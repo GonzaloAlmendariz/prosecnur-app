@@ -11,7 +11,7 @@ guardado. Orden: censo → prototipo (artifact) → implementación.
 | 3 | Unificar el nombrado de los archivos | `Estudio_Entregable[_Base][_Detalle]_Fecha.ext`, rótulo por salida en el prototipo (vista «Nombre»); extiende `.export_filename()`. Decidido: palabras `Frecuencias_por_base`, tildes y ñ transliteradas, fecha `07_11_26` (la de `.export_filename()`) | decidido; espera implementación |
 | 4 | Unificar la ubicación del guardado | Decidido: `Entregables\<Módulo>\` junto al .pulso en escritorio, sin diálogo; descargas en navegador (vista «Ubicación») | decidido |
 | 5 | Prototipo como artifact | https://claude.ai/artifact/8S4BRaszzE1tChaRcAUVRk | publicado; espera revisión |
-| 6 | Implementar | Fases en la vista «Decisiones»: defectos → `entregable_registrar()` + ADR → Electron → `useGeneracion` → migración con ratchet | en curso: fase 1 (`318e66b33`) y fase 2 (`eecc17c8f`, ADR 0133) hechas; fases 3 a 5 pendientes |
+| 6 | Implementar | Fases en la vista «Decisiones»: defectos → `entregable_registrar()` + ADR → Electron → `useGeneracion` → migración con ratchet | en curso: fases 1 (`318e66b33`), 2 (`eecc17c8f`, ADR 0133) y 3 (`dbee82353`) hechas; fases 4 y 5 pendientes |
 
 ## Fase 1: defectos (commit `318e66b33`)
 
@@ -46,6 +46,18 @@ Gates: `test-descargas-entrega.R` 29 OK; gate R del área 1711 pass, 0 fail; 3 t
 | Flujos que guardan a mano o no se ofrecen: Editor XLSForm, Correos, Subir Kobo, limpieza, piezas del handoff | catálogo con `guardar = FALSE` | transitorio hasta la fase 5 |
 
 Verificación: el verificador rechazó la primera entrega porque el informe compartido de Gráficos se copiaba y además abría el diálogo; se corrigió y se recomprobó (`test-entregables-respuesta.R` 51 OK, vitest de Gráficos 1988 OK). Gate R del área: 6587 pass, 0 fail, 0 rotas. Punta a punta en proceso con dos proyectos de referencia: nombre con el código del estudio, copia en `Entregables/Procesamiento`, `_2` en la segunda generación, nada en modo público, job de Cruces real con una sola copia. Pendiente: llamadores que aún pasan su propio nombre (`base_limpia_<base>`, correos, handoff) se migran en la fase 5.
+
+## Fase 3: Electron (commit `dbee82353`)
+
+| Pieza | Dónde vive | Estado |
+|---|---|---|
+| Descarga sin diálogo a Descargas, `_2` sin pisar, reserva entre simultáneas, aviso `descarga:terminada` | `desktop/descargas.cjs` (`instalarDescargas`), `main.cjs` | hecho; caso feliz en Electron real sin verificar |
+| Descargas ilegible (EPERM de macOS) → diálogo y aviso igual | `instalarDescargas` | hecho y probado en Electron real |
+| «Abrir» y «Mostrar en la carpeta» solo para entregables en Descargas o `<proyecto>/Entregables` | `rutaPermitida`, `crearHandlersEntregable`, IPC con `trustedHandle` | hecho; rechazos probados en Electron real |
+| Rutas UNC y flujos NTFS rechazados antes de tocar disco; el log no copia rutas ni textos del sistema | `rutaPermitida`, `esMotivoPropio` | hecho (hallazgos del verificador) |
+| Puente en el front con respaldo inerte en navegador | `frontend/src/lib/escritorio.ts`, `features/project/types.ts` | hecho; sin consumidores hasta la fase 4 |
+
+Gates: `pnpm -C desktop test` 69/69; `escritorio.test.ts` 19/19; `tsc` limpio; audit limpio; `make gate-front` 743/744 con un timeout por contención de la máquina (`GlidingTabList` 9/9 aislado). Pendiente de probar a mano, sobre todo en Windows: generar sin proyecto guardado, descargar dos veces y ver `X` y `X_2` en Descargas sin diálogo; «Abrir» y «Mostrar en la carpeta»; la marca de «archivo de Internet» (Vista protegida de Office). Riesgo aceptado: `.xls` sigue en la lista porque la app genera la carga de campo de aulas en ese formato.
 
 ## Notas
 
