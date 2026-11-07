@@ -320,6 +320,9 @@
              rotulo_centro = espec$frase_centro)$doc)
   }
   if (espec$tipo %in% c("contraste", "panorama")) {   # ADR 0114 (lamina_contraste.R)
+    # La base del contraste es la de cada grupo, en el pie (abajo a la izquierda): la automática de la encuesta entera
+    # («Base: 300») no describe a ningún grupo y se descarta; una base escrita en la lámina se respeta.
+    if (identical(espec$tipo, "contraste") && !is.null(espec$nota_base) && is.null(como_texto(slots$base))) base <- NULL
     f <- if (identical(espec$tipo, "contraste")) .lam_laminas_contraste else .lam_laminas_panorama
     return(f(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo), base = .lam_unir_base(texto(base), texto(pie)),
              folio = length(doc) + 1L, sub = texto(subtitulo), layout = layout, master = master, por_lamina = por_lamina)$doc)

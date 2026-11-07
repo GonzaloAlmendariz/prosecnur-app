@@ -12,10 +12,10 @@ describe("ficha · resumen ejecutivo (ADR 0114)", () => {
   });
 
   it("brecha: el contraste con tabla de base y su separador; el separador no se nombra en el recetario", () => {
-    expect(ajustes("p_dumbbell", { estilo: "resumen", separar_tras: 6 })).toEqual(["Contraste con tabla de base", "Separador tras la fila 6"]);
+    expect(ajustes("p_dumbbell", { estilo: "resumen", separar_tras: 6 })).toEqual(["Contraste de públicos", "Separador tras la fila 6"]);
     expect(ajustes("p_dumbbell", { separar_tras: 6 })).toEqual([]);
-    expect(ajustes("p_dumbbell", { estilo: "resumen", base_en: "tabla" })).toEqual(["Contraste con tabla de base", "Base en la tabla"]);
-    expect(ajustes("p_dumbbell", { estilo: "resumen", base_en: "auto" })).toEqual(["Contraste con tabla de base"]);
+    expect(ajustes("p_dumbbell", { estilo: "resumen", base_en: "tabla" })).toEqual(["Contraste de públicos", "Base en la tabla"]);
+    expect(ajustes("p_dumbbell", { estilo: "resumen", base_en: "auto" })).toEqual(["Contraste de públicos"]);
     expect(ajustes("p_dumbbell", { base_en: "tabla" })).toEqual([]);
   });
 

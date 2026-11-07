@@ -33,21 +33,24 @@ test_that("el contraste de dos públicos resta el primero menos el segundo, orde
   expect_identical(e$sentido_diferencia, "Estudiantes − Docentes")
 })
 
-test_that("una base que no cambia de fila a fila va una vez: en la leyenda por defecto, o en la nota de la base", {
+test_that("la base va al pie, abajo a la izquierda, y la tabla queda sólo con la diferencia", {
   e <- attr(graficar_dumbbell(.re_publicos(), estilo = "resumen", universos = "Docentes: 123; Estudiantes: 327"), "pulso_espec")
-  expect_identical(e$base_en, "leyenda")
-  expect_identical(e$leyenda, c("Estudiantes (n = 279, 85%)", "Docentes (n = 115, 93%)"))
-  xml <- .re_xml(.lam_laminas_contraste(.re_doc(), e, "Docentes y estudiantes", folio = 6)$doc)
+  expect_identical(e$base_en, "nota")
+  expect_identical(e$nota_base, "Base: Estudiantes 279 (85%); Docentes 115 (93%)")
+  expect_identical(e$leyenda, c("Estudiantes", "Docentes"))
+  xml <- .re_xml(.lam_laminas_contraste(.re_doc(), e, "Docentes y estudiantes", base = "Top Two Box", folio = 6)$doc)
   expect_identical(.re_txt(xml, "tabla:encabezado"), "Diferencia")       # sin columnas de base
   expect_length(.re_sp(xml, "puntos:base"), 0L)
-  expect_true("Docentes (n = 115, 93%)" %in% .re_txt(xml, "leyenda:texto"))
-  en <- attr(graficar_dumbbell(.re_publicos(), estilo = "resumen", universos = "Docentes: 123; Estudiantes: 327", base_en = "nota"), "pulso_espec")
-  expect_identical(en$leyenda, c("Estudiantes", "Docentes"))
-  xn <- .re_xml(.lam_laminas_contraste(.re_doc(), en, "Docentes y estudiantes", base = "Top Two Box", folio = 6)$doc)
-  expect_match(.re_txt(xn, "Base lamina"), "^Base: Estudiantes 279 \\(85%\\); Docentes 115 \\(93%\\)\\. Top Two Box")
-  # Si la base cambia de fila a fila (una pregunta filtrada), sólo la tabla puede decirla.
+  expect_match(.re_txt(xml, "Base lamina"), "^Base: Estudiantes 279 \\(85%\\); Docentes 115 \\(93%\\)\\. Top Two Box")
+  # Si la base cambia de fila a fila (una pregunta filtrada), el pie da su rango; nunca abre columnas por su cuenta.
   d <- .re_publicos(); d$n_casos[1] <- 200
-  expect_identical(attr(graficar_dumbbell(d, estilo = "resumen", base_en = "leyenda"), "pulso_espec")$base_en, "tabla")
+  ed <- attr(graficar_dumbbell(d, estilo = "resumen", universos = "Docentes: 123; Estudiantes: 327"), "pulso_espec")
+  expect_identical(ed$base_en, "nota")
+  expect_identical(ed$nota_base, "Base: Estudiantes 200 a 279 (61% a 85%); Docentes 115 (93%)")
+  # La leyenda sigue disponible si se pide y la base es la misma en todas las filas.
+  el <- attr(graficar_dumbbell(.re_publicos(), estilo = "resumen", universos = "Docentes: 123; Estudiantes: 327", base_en = "leyenda"), "pulso_espec")
+  expect_identical(el$leyenda, c("Estudiantes (n = 279, 85%)", "Docentes (n = 115, 93%)"))
+  expect_identical(attr(graficar_dumbbell(d, estilo = "resumen", base_en = "leyenda"), "pulso_espec")$base_en, "nota")
 })
 
 test_that("la lámina del contraste pone la tabla de Diferencia y Base fuera del área de puntos, con encabezados", {
@@ -84,7 +87,7 @@ test_that("con tres grupos cada pregunta lleva una sub-fila por grupo y la difer
   expect_identical(e$modo, "subfilas"); expect_identical(e$formas, c("ellipse", "rect", "triangle"))
   expect_identical(e$textos_diferencia, c("17", "17"))
   expect_identical(e$bases[1, ], c("139", "25", "115"))                    # sin padrón del subgrupo: sólo n
-  expect_identical(e$leyenda, c("2do (n = 139)", "3er (n = 25)", "4to (n = 115)"))
+  expect_identical(e$nota_base, "Base: 2do 139; 3er 25; 4to 115")
   expect_identical(e$colores, unname(.std_paleta("grupos"))[1:3])
   xml <- .re_xml(.lam_laminas_contraste(.re_doc(), e, "Por ciclo", folio = 9)$doc)
   expect_length(.re_sp(xml, "puntos:marca"), 6L)

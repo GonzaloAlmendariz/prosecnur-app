@@ -132,7 +132,7 @@ const ORDEN_DIVERGENTES: Readonly<Record<string, string>> = {
 
 /** Dónde va la base en el contraste con tabla de base (ADR 0114), salvo «Automático», que es el de por defecto. */
 const BASE_EN: Readonly<Record<string, string>> = {
-  leyenda: "Base en la leyenda", nota: "Base en la nota", tabla: "Base en la tabla",
+  leyenda: "Base en la leyenda", tabla: "Base en la tabla",
 };
 
 const DESTACADO: Readonly<Record<string, string>> = {
@@ -193,7 +193,7 @@ export function ajustesDelGlifo(graficador: string, args: Readonly<Record<string
       glifo.brecha = v("mostrar_brecha") !== false;
       if (!glifo.brecha) ajustes.push("Sin la brecha");
       if (v("estilo") === "resumen") {
-        ajustes.push("Contraste con tabla de base");
+        ajustes.push("Contraste de públicos");
         const sep = entero(v("separar_tras"));
         if (sep) ajustes.push(`Separador tras la fila ${sep}`);
         const baseEn = BASE_EN[String(v("base_en") ?? "")];

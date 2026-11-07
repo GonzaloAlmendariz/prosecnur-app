@@ -1889,7 +1889,7 @@
            default = "recetario",
            choices = list(
              list(value = "recetario", label = "Recetario", hint = "Láminas 85 y 86: dos grupos y la diferencia al margen."),
-             list(value = "resumen", label = "Contraste con tabla de base", hint = "La del resumen ejecutivo: una forma por grupo, bandas alternas y, fuera del gráfico, la diferencia y la base n (cobertura %). Con un cruce admite hasta cuatro grupos.")
+             list(value = "resumen", label = "Contraste de públicos", hint = "La del resumen ejecutivo: una forma por grupo, bandas alternas, la diferencia fuera del gráfico y la base n (cobertura %) en la nota. Con un cruce admite hasta cuatro grupos.")
            ),
            descripcion = "Cómo se compone la lámina. La diferencia se calcula igual."),
       list(name = "universos", label = "Padrón de cada grupo", tipo_input = "string", grupo = "datos",
@@ -1897,12 +1897,11 @@
       list(name = "base_en", label = "Dónde va la base", tipo_input = "choice", grupo = "estilo",
            default = "auto",
            choices = list(
-             list(value = "auto", label = "Automático", hint = "En la leyenda si es la misma en todas las filas; si cambia, en la tabla."),
-             list(value = "leyenda", label = "En la leyenda", hint = "Docentes (n = 115, 93%)."),
-             list(value = "nota", label = "En la nota de la base", hint = "Base: Docentes 115 (93%); Estudiantes 279 (85%)."),
+             list(value = "auto", label = "En la nota de la base", hint = "Abajo a la izquierda: Base: Docentes 115 (93%); Estudiantes 279 (85%). Si cambia de pregunta a pregunta, su rango."),
+             list(value = "leyenda", label = "En la leyenda", hint = "Docentes (n = 115, 93%). Sólo si es la misma en todas las preguntas."),
              list(value = "tabla", label = "En columnas de la tabla", hint = "Una columna por grupo, fila por fila.")
            ),
-           descripcion = "Una base que no cambia de fila a fila se dice una vez; si cambia, sólo la tabla la dice fila por fila."),
+           descripcion = "Por defecto la base va en la nota, abajo a la izquierda, y la tabla lleva sólo la diferencia."),
       list(name = "separar_tras", label = "Separador después de la fila", tipo_input = "number", grupo = "estilo",
            default = 0, min = 0, max = 30, step = 1,
            descripcion = "Una línea punteada entre dos grupos de preguntas (competencias de salida y genéricas). 0: sin separador. Fija el orden declarado.")
@@ -2444,7 +2443,7 @@
   p_puntos_comparativos = list("comparar", "nativa", condicion = "Sale como ranking con puntos; si los rótulos no caben, sale como imagen."),
   p_mapa_resultado_distrital = list("territorio", "nativa", condicion = "Si el mapa no cabe en la lámina, sale por la ruta anterior."),
   p_cifra = list("numeros", "nativa", condicion = "Va en las ranuras de cifra; en una ranura de gráfico sale por la ruta anterior."),
-  p_dumbbell = list("comparar", "nativa", condicion = "En «Contraste con tabla de base», hasta 14 preguntas con dos grupos o 24 sub-filas con tres o cuatro; si no caben, va dibujado."),
+  p_dumbbell = list("comparar", "nativa", condicion = "En «Contraste de públicos», hasta 14 preguntas con dos grupos o 24 sub-filas con tres o cuatro; si no caben, va dibujado."),
   p_panorama = list("comparar", "nativa", condicion = "Hasta cinco públicos; con más, va dibujado."),   # ADR 0114
   p_significancia_publicos = list("comparar", "nativa", condicion = "Dos o tres públicos y hasta diez temas."),
   # Pieza interna de la dependencia entre los dos gráficos de una lámina (graficos_dependencia.R): no se elige como tipo.

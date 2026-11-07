@@ -66,7 +66,7 @@ export const AYUDA_CORTES_CHIP = "Dos valores que separan rojo, ámbar y verde. 
 export const AYUDA_ESTILO = "Cómo se compone la lámina; el cálculo es el mismo.";
 export const AYUDA_UNIVERSOS = "Para escribir la base como n (cobertura %). Un grupo sin padrón va sólo con n.";
 export const AYUDA_SEPARAR_TRAS = "Línea punteada entre dos grupos de preguntas. 0: sin separador.";
-export const AYUDA_BASE_EN = "Automático: en la leyenda si es la misma en todas las filas; si cambia, en la tabla.";
+export const AYUDA_BASE_EN = "Por defecto, en la nota de la base (abajo a la izquierda); la tabla lleva sólo la diferencia.";
 export const AYUDA_REFERENCIA = "La línea punteada y la columna «Bajo» de la tabla.";
 
 /**

@@ -117,7 +117,7 @@ describe("C40 · ASIGNAR", () => {
     expect(nombres(sinInterruptor, {}, "p_dumbbell")).not.toContain("etiqueta_brecha");
     expect(nombres(dumbbell, {}, "p_lollipop")).not.toContain("etiqueta_brecha");
   });
-  it("ADR 0114 · dumbbell: el estilo siempre; padrón y separador sólo con «Contraste con tabla de base»", () => {
+  it("ADR 0114 · dumbbell: el estilo siempre; padrón y separador sólo con «Contraste de públicos»", () => {
     const resumen = [...dumbbell, a("estilo", "choice", { default: "recetario" }), a("universos", "string"),
       a("separar_tras", "number", { default: 0 }), a("base_en", "choice", { default: "auto" })];
     expect(nombres(resumen, {}, "p_dumbbell")).toEqual(["corte_etiqueta", "estilo", "orden", "mostrar_brecha", "etiqueta_brecha"]);

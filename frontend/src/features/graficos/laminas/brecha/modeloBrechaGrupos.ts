@@ -135,7 +135,7 @@ export function faltaEnBrecha(args: Args): string | null {
   const [a, b] = gruposDe(args);
   const tope = maxGrupos(args);
   if (gruposElegidos(args).length > tope) {
-    return "Recetario compara dos grupos: quita los demás o elige «Contraste con tabla de base» en Estilo.";
+    return "Recetario compara dos grupos: quita los demás o elige «Contraste de públicos» en Estilo.";
   }
   if (!a || !b) return tope > MAX_GRUPOS_RECETARIO ? "Elige al menos los dos primeros grupos." : "Elige los dos grupos que se comparan.";
   if (!preguntasDe(args).length) return "Agrega al menos una pregunta.";

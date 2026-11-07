@@ -161,13 +161,22 @@
     .contraste_base_texto(N[i, j], uni[j])
   }, ""), length(temas), k)
   cif <- matrix(.pulso_fmt_half_up(V, dec), nrow(V))
-  # Dónde va la base (Gonzalo, 2026-11-07: «a veces es mejor poner el N en la leyenda con porcentaje o en la nota de la
-  # base y ya no ponerle en otra columna»). Una base que no cambia de fila a fila se dice una vez: en la leyenda por
-  # defecto. Si cambia (una pregunta filtrada, un faltante), sólo la tabla puede decirla fila por fila.
+  # Dónde va la base. Gonzalo, 2026-11-07: «a veces es mejor poner el N en la leyenda con porcentaje o en la nota de
+  # la base» y luego «la base podría ir en la esquina inferior izquierda, como ya iba antes; ya no es necesario hacer
+  # columnas adicionales para bases, simplemente para diferencia». Por defecto va al pie; si cambia de fila a fila,
+  # el pie da su rango («Docentes 107 a 115»). La leyenda y las columnas quedan como opción explícita.
   constante <- all(vapply(seq_len(k), function(j) length(unique(B[, j])) == 1L, TRUE))
-  if (identical(base_en, "auto")) base_en <- if (constante) "leyenda" else "tabla"
-  if (!constante && base_en %in% c("leyenda", "nota")) base_en <- "tabla"
-  base_grupo <- B[1, ]
+  if (identical(base_en, "auto")) base_en <- "nota"
+  if (!constante && identical(base_en, "leyenda")) base_en <- "nota"
+  base_grupo <- vapply(seq_len(k), function(j) {
+    n <- N[, j][is.finite(N[, j])]
+    if (!length(n)) return("—")
+    if (length(unique(n)) == 1L) return(B[1, j])
+    rango <- sprintf("%s a %s", .dumbbell_fmt_casos(min(n)), .dumbbell_fmt_casos(max(n)))
+    if (is.finite(uni[j]) && max(n) <= uni[j]) rango <- sprintf("%s (%s%% a %s%%)", rango, .pulso_fmt_half_up(100 * min(n) / uni[j], 0L),
+                                                             .pulso_fmt_half_up(100 * max(n) / uni[j], 0L))
+    rango
+  }, "")
   leyenda <- if (identical(base_en, "leyenda")) sprintf("%s (n = %s)", grupos, sub(" \\((.*)\\)$", ", \\1", base_grupo)) else grupos
   nota_base <- if (identical(base_en, "nota")) paste0("Base: ", paste(sprintf("%s %s", grupos, base_grupo), collapse = "; ")) else NULL
   colores_g <- .contraste_colores(grupos, colores)
