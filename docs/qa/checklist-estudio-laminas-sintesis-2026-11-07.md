@@ -19,13 +19,13 @@ Decisiones de Gonzalo al empezar (2026-11-07):
 
 | # | Indicación | Dónde vive | Estado |
 |---|---|---|---|
-| 1 | Función pura de selección por regla (todas las de escala, N de mayor diferencia, distancia o Sin información, umbral bajo X, comunes entre públicos), con el texto de la regla para la nota | `api/R/graficos_regla_preguntas.R` (ADR 0135 §2-3) | En curso |
-| 2 | Lámina de resumen Fortalezas y alertas: especificación pura, lámina nativa, test | motor, por definir | Pendiente |
-| 3 | Lámina de resumen Cobertura y participación: padrón y meta desde Cálculo de muestra o Monitoreo cuando exista | motor, por definir | Pendiente |
+| 1 | Función pura de selección por regla (todas las de escala, N de mayor diferencia, distancia o Sin información, umbral bajo X, comunes entre públicos), con el texto de la regla para la nota | `api/R/graficos_regla_preguntas.R`, `graficos_regla_indicadores.R`, `POST /api/graficos/resumenes/regla` (8aed0ca4d) | Hecho en motor; falta verlo en la UI |
+| 2 | Lámina de resumen Fortalezas y alertas: especificación pura, lámina nativa, test | `p_fortalezas`, `fortalezas/1` | En curso |
+| 3 | Lámina de resumen Cobertura y participación: padrón y meta desde Cálculo de muestra o Monitoreo cuando exista | `p_cobertura`, `.graficos_padron_por_base` | En curso |
 | 4 | Lámina de resumen Cierre con hallazgos: toma cifras de otras láminas, no recalcula | motor, por definir | Pendiente |
 | 5 | Lámina de Tendencia | Fuera de este encargo (decisión 3) | Fuera |
 | 6 | Títulos sugeridos | No se hacen (decisión 2) | Fuera |
-| 7 | Selector por intención con miniaturas y la clase de cada tipo; «Ver por tipo de gráfico» como entrada secundaria | `laminas/selectores/` | En curso |
+| 7 | Selector por intención con miniaturas y la clase de cada tipo; «Ver por tipo de gráfico» como entrada secundaria | `laminas/selectores/intencionesContar.ts` (acdb1f589) | Hecho; falta QA visual |
 | 8 | Inspector uniforme Datos, Cálculo, Aspecto: primero los del resumen, luego los de uso general; cada control con rótulo y «?» | `DatosGrafico.tsx`, `gruposTarjeta.ts` | En curso |
 | 9 | Control de regla con conteo en vivo y ajuste a mano de la lista | Gráficos, por definir | Pendiente |
 | 10 | Grupos internos hasta cuatro, con padrón e interruptor de padrón confiable | Gráficos, por definir | Pendiente |
