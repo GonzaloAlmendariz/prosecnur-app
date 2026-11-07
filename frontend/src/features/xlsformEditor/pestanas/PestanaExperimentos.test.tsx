@@ -95,4 +95,27 @@ describe("ficha de la tabla de un par", () => {
     expect(html).toContain("<table");
     expect(html).not.toContain("Texto de la nota");
   });
+
+  test("el escenario de una viñeta también se ve como lo ve el encuestado (C11)", () => {
+    const wb = formulario(false);
+    const { survey, choices } = generarVinetas(vinetasIniciales("vi"));
+    survey.forEach((f, i) => insertRecord(wb.survey, i + 1, { ...f }));
+    choices.forEach((c, i) => insertRecord(wb.choices, i, { ...c }));
+    const idx = buildXlsformIndex(wb);
+    const node = idx.structure.outline.find((n) => n.name === "vi_v2_texto")!;
+    const nada = () => undefined;
+    const acciones: AccionesFicha = {
+      campo: nada, tipo: nada, obligatoria: nada, asignarLista: nada, crearLista: nada, duplicar: nada, moverASeccion: nada,
+      eliminar: nada, alternarRepeticion: nada, seleccionarFila: nada, irPestana: nada, ajuste: nada, editarFormulario: nada,
+    };
+    const html = renderToStaticMarkup(
+      <ProveedorReglas structure={idx.structure} scope={alcanceDeLectura(idx.structure, idx.catalogs)} survey={wb.survey}>
+        <FichaConstructor workbook={wb} structure={idx.structure} selection={{ kind: "survey", rowIndex: node.rowIndex }} node={node}
+          settingsRecord={null} choices={[]} catalogs={idx.catalogs} usosPorLista={new Map()} diagnostics={[]} acciones={acciones} />
+      </ProveedorReglas>,
+    );
+    expect(html).toContain("Escenario de la viñeta 2");
+    expect(html).toMatch(/Una persona de (25|60) años pide un préstamo para/);
+    expect(html).not.toContain("Texto de la nota");
+  });
 });

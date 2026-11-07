@@ -272,13 +272,14 @@ describe("experimento de elección por pares", () => {
     ["text", "q9", "Después"],
   ];
   const tarea = (f: number) => (f === 3 ? 1 : f === 7 ? 2 : undefined);
-  const exp = { filas: new Set([1, 2, 6]) };
+  const exp = [{ filas: new Set([1, 2, 6]), titulo: "Experimento de elección por pares", resumen: "2 pares, 1 atributos" }];
 
   test("la introducción y los pares quedan bajo una cabecera, con su sorteo adentro", () => {
     const a = construirArbol(parseBuilderStructure(hoja(filasExp)), tarea, exp);
     expect(a.hijos.map((h) => h.tipo)).toEqual(["fila", "experimento", "fila"]);
     const e = a.hijos[1]!;
     if (e.tipo !== "experimento") return;
+    expect(e.titulo).toBe("Experimento de elección por pares");
     expect(e.hijos.map((h) => h.nodo.name)).toEqual(["intro", "tarea1", "tarea2"]);
     expect(e.finSlot).toBe(10);
     const par1 = e.hijos[1]!;
@@ -287,7 +288,7 @@ describe("experimento de elección por pares", () => {
 
   test("con una pregunta ajena entre dos pares no se junta nada", () => {
     const con = [...filasExp.slice(0, 6), ["text", "ajena", "Otra"], ...filasExp.slice(6)];
-    const a = construirArbol(parseBuilderStructure(hoja(con)), undefined, { filas: new Set([1, 2, 7]) });
+    const a = construirArbol(parseBuilderStructure(hoja(con)), undefined, [{ filas: new Set([1, 2, 7]), titulo: "E", resumen: "" }]);
     expect(a.hijos.some((h) => h.tipo === "experimento")).toBe(false);
   });
 
@@ -298,4 +299,21 @@ describe("experimento de elección por pares", () => {
     expect(ls.map((l) => l.tipo)).toEqual(["fila", "experimento", "fila"]);
     expect(huecoEntre(s, ls, 2)).toEqual({ indice: 10, contenedor: null });
   });
+});
+
+test("dos experimentos, dos cabeceras: cada una con sus piezas (C11)", () => {
+  // 0 q0 · 1 begin P1 · 2 tabla · 3 end · 4 begin V1 · 5 nota · 6 end · 7 begin V2 · 8 nota · 9 end
+  const s = parseBuilderStructure(hoja([
+    ["text", "q0", "Antes"],
+    ["begin_group", "tarea1", "Par 1 de 1"], ["note", "t1_tabla", "Tabla"], ["end_group", "", ""],
+    ["begin_group", "vi_vineta1", "Viñeta 1 de 2"], ["note", "vi_v1_texto", "Escenario"], ["end_group", "", ""],
+    ["begin_group", "vi_vineta2", "Viñeta 2 de 2"], ["note", "vi_v2_texto", "Escenario"], ["end_group", "", ""],
+  ]));
+  const a = construirArbol(s, undefined, [
+    { filas: new Set([1]), titulo: "Experimento de elección por pares", resumen: "1 par" },
+    { filas: new Set([4, 7]), titulo: "Experimento de viñetas", resumen: "2 viñetas" },
+  ]);
+  expect(a.hijos.map((h) => (h.tipo === "experimento" ? `${h.titulo}:${h.hijos.length}` : h.tipo))).toEqual([
+    "fila", "Experimento de elección por pares:1", "Experimento de viñetas:2",
+  ]);
 });

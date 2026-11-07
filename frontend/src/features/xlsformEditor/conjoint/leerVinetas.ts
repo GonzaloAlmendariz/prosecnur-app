@@ -39,7 +39,8 @@ function porVinetaYClave(n1: string, n2: string | undefined, clave: string): ((v
   return f ? (v, c) => f(v).replace("\u0000", c) : null;
 }
 
-export function leerVinetas(wb: Pick<XlsformEditorWorkbook, "survey" | "choices"> | null): LecturaVinetas | null {
+/** Sin `choices` (la ficha sólo tiene survey) se reconocen las viñetas, pero no la escala, y no se declaran editables. */
+export function leerVinetas(wb: (Pick<XlsformEditorWorkbook, "survey"> & Partial<Pick<XlsformEditorWorkbook, "choices">>) | null): LecturaVinetas | null {
   if (!wb) return null;
   const survey = wb.survey;
   const filas: FilaV[] = survey.rows.map((_, i) => {
@@ -136,10 +137,13 @@ export function leerVinetas(wb: Pick<XlsformEditorWorkbook, "survey" | "choices"
   const prefijoEditor = /^([A-Za-z_][A-Za-z0-9_]*)_v1_/.exec(c0.nivel)?.[1];
 
   // La escala: los códigos de la lista son enteros seguidos; los extremos llevan su rótulo después del número.
-  const opciones = wb.choices.rows
-    .map((_, i) => rowToRecord(wb.choices, i))
-    .filter((r) => (r.list_name ?? "").trim() === lista)
-    .map((r) => ({ codigo: Number((r.name ?? "").trim()), label: (r.label ?? "").trim() }));
+  const hojaChoices = wb.choices;
+  const opciones = hojaChoices
+    ? hojaChoices.rows
+        .map((_, i) => rowToRecord(hojaChoices, i))
+        .filter((r) => (r.list_name ?? "").trim() === lista)
+        .map((r) => ({ codigo: Number((r.name ?? "").trim()), label: (r.label ?? "").trim() }))
+    : [{ codigo: 0, label: "0" }, { codigo: 1, label: "1" }];
   if (opciones.length < 2 || opciones.some((o, k) => !Number.isInteger(o.codigo) || o.codigo !== opciones[0]!.codigo + k)) return null;
   const extremo = (o: { codigo: number; label: string }) => o.label.replace(new RegExp(`^${o.codigo}\\s*`), "");
 
@@ -173,7 +177,7 @@ export function leerVinetas(wb: Pick<XlsformEditorWorkbook, "survey" | "choices"
   if (intro) delExperimento.add(intro.i);
   for (const v of vinetas) for (let i = v.grupo; i <= v.fin; i += 1) delExperimento.add(i);
 
-  let motivo: string | null = validarVinetas(diseno)[0] ?? null;
+  let motivo: string | null = hojaChoices ? validarVinetas(diseno)[0] ?? null : "Falta la hoja choices para leer la escala.";
   if (!motivo) {
     const { survey: nuevas, choices } = generarVinetas(diseno, nombres);
     for (const n of nuevas) {

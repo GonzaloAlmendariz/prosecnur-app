@@ -1,6 +1,6 @@
-// Ficha de la tabla de un par de un experimento de elección por pares (checklist elección por pares C9, 2026-11-07).
-// La tabla la arma el diseño del experimento: aquí se ve como la verá el encuestado, con un sorteo de ejemplo, y se
-// edita en la pestaña Experimentos. El markdown con las referencias queda abajo como texto en XLSForm, sólo de lectura.
+// Ficha de una nota que arma un experimento (checklist elección por pares C9 y C11, 2026-11-07): la tabla de un par o
+// el escenario de una viñeta. La escribe el diseño del experimento: aquí se ve como la verá el encuestado, con un
+// sorteo de ejemplo, y se edita en la pestaña Experimentos. El texto con las referencias queda abajo, sólo de lectura.
 
 import { useMemo, useState } from "react";
 import { Shuffle } from "../../../../vendor/lucide-react";
@@ -11,10 +11,11 @@ import { calcularValores, semillaNueva } from "../../shell/simulador/calculosPru
 import type { BuilderNode, BuilderStructure } from "../../types";
 import { BloqueFicha } from "./piezasFicha";
 
-export function TablaParFicha({ node, structure, tarea, onEditarDiseno }: {
+export function NotaExperimentoFicha({ node, structure, titulo, onEditarDiseno }: {
   node: BuilderNode;
   structure: BuilderStructure | null;
-  tarea: number;
+  /** «Tabla del par 3», «Escenario de la viñeta 2». */
+  titulo: string;
   onEditarDiseno: () => void;
 }) {
   const [semilla, setSemilla] = useState(semillaNueva);
@@ -24,7 +25,7 @@ export function TablaParFicha({ node, structure, tarea, onEditarDiseno }: {
   }, [node.label, structure, semilla]);
   return (
     <BloqueFicha
-      titulo={`Tabla del par ${tarea}`}
+      titulo={titulo}
       accion={
         <button type="button" className="xfh-boton" onClick={onEditarDiseno}>
           Editar en Experimentos

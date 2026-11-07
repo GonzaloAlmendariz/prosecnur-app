@@ -938,14 +938,30 @@ export default function XlsformEditorPage() {
     (fila: number, n: number) => (lecturaVinetas?.sorteo.has(fila) ? `Sorteo de la viñeta ${n}` : `Sorteo del par ${n}`),
     [lecturaVinetas],
   );
-  const experimentoPares = useMemo(() => {
-    if (!lecturaPares) return undefined;
-    const filas = new Set(lecturaPares.pares.map((p) => p.grupo));
-    if (lecturaPares.intro != null) filas.add(lecturaPares.intro);
-    const n = lecturaPares.pares.length;
-    const a = lecturaPares.diseno.atributos.length;
-    return { filas, resumen: `${n} ${n === 1 ? "par" : "pares"}, ${a} atributos` };
-  }, [lecturaPares]);
+  // La tabla de un par y el escenario de una viñeta se nombran por lo que son, no por su texto con referencias (C11).
+  const tituloFijo = useMemo(() => {
+    const m = new Map<number, string>();
+    lecturaPares?.pares.forEach((p) => m.set(p.tabla, `Tabla del par ${p.tarea}`));
+    lecturaVinetas?.vinetas.forEach((v) => m.set(v.nota, `Escenario de la viñeta ${v.vineta}`));
+    return m.size ? (fila: number) => m.get(fila) : undefined;
+  }, [lecturaPares, lecturaVinetas]);
+  // Cada experimento lleva su cabecera en Estructura (C7 pares, C11 viñetas).
+  const experimentosEstructura = useMemo(() => {
+    const out: { filas: Set<number>; titulo: string; resumen: string }[] = [];
+    if (lecturaPares) {
+      const filas = new Set(lecturaPares.pares.map((p) => p.grupo));
+      if (lecturaPares.intro != null) filas.add(lecturaPares.intro);
+      const n = lecturaPares.pares.length;
+      out.push({ filas, titulo: "Experimento de elección por pares", resumen: `${n} ${n === 1 ? "par" : "pares"}, ${lecturaPares.diseno.atributos.length} atributos` });
+    }
+    if (lecturaVinetas) {
+      const filas = new Set(lecturaVinetas.vinetas.map((v) => v.grupo));
+      if (lecturaVinetas.intro != null) filas.add(lecturaVinetas.intro);
+      const n = lecturaVinetas.vinetas.length;
+      out.push({ filas, titulo: "Experimento de viñetas", resumen: `${n} ${n === 1 ? "viñeta" : "viñetas"}, ${lecturaVinetas.diseno.atributos.length} atributos` });
+    }
+    return out;
+  }, [lecturaPares, lecturaVinetas]);
 
   // Candidatos de matriz para el selector de exportación a PDF: runs contiguos
   // de select_one/select_multiple con misma lista dentro de la misma sección.
@@ -2809,9 +2825,10 @@ export default function XlsformEditorPage() {
                         onMoverFila={(rowIndex, direccion) => moveSelection(direccion, rowIndex)}
                         formularioId={activeFormId}
                         tareaDeSorteo={tareaDeSorteo}
-                        experimento={experimentoPares}
+                        experimentos={experimentosEstructura}
                         rotuloSorteo={rotuloSorteo}
-                        onAbrirPares={(fila) => pestanaEditor.irConFoco("experimentos", fila != null && lecturaVinetas?.sorteo.has(fila) ? FOCO_VINETAS : FOCO_PARES)}
+                        tituloFijo={tituloFijo}
+                        onAbrirPares={(fila) => pestanaEditor.irConFoco("experimentos", fila != null && lecturaVinetas && (lecturaVinetas.sorteo.has(fila) || lecturaVinetas.filas.includes(fila)) ? FOCO_VINETAS : FOCO_PARES)}
                         accionBarra={
                           // En pantallas bajas la cabecera «Estructura» se esconde para dar alto a la lista (I2) y
                           // «Añadir pieza» pasa a la barra de búsqueda.

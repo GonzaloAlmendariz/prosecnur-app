@@ -28,8 +28,8 @@ export type ValorEstructura = {
   /** Abre el diseño del experimento; con `fila`, el del experimento de ese sorteo (C5, C10). */
   onAbrirPares?: (fila?: number) => void;
   rotuloSorteo?: (fila: number, n: number) => string;
-  /** «8 pares, 5 atributos»: lo que dice la cabecera del experimento (C7). */
-  resumenPares?: string;
+  /** Nombre de una pieza que arma un experimento (C11): «Tabla del par 3», «Escenario de la viñeta 2». */
+  tituloFijo?: (fila: number) => string | undefined;
 };
 
 export const ContextoEstructura = createContext<ValorEstructura | null>(null);
@@ -74,6 +74,7 @@ export function RamaEstructura({
                 avisos={c.avisos?.get(fila)}
                 onElegir={c.onElegir}
                 onInsertar={c.onInsertar}
+                tituloFijo={c.tituloFijo?.(fila)}
               />
             </Fragment>
           );
@@ -87,13 +88,13 @@ export function RamaEstructura({
               <FilaAgrupada
                 id={h.id}
                 variante="experimento"
-                titulo="Experimento de elección por pares"
-                conteo={c.resumenPares ?? ""}
-                conteoLargo={c.resumenPares ?? ""}
+                titulo={h.titulo}
+                conteo={h.resumen}
+                conteoLargo={h.resumen}
                 abierta={abierto}
                 enRecorrido={c.enRecorrido === h.id}
                 onPlegar={c.onPlegar}
-                onAbrirDiseno={c.onAbrirPares ? () => c.onAbrirPares?.() : undefined}
+                onAbrirDiseno={c.onAbrirPares ? () => c.onAbrirPares?.(fila) : undefined}
               >
                 {abierto ? <RamaEstructura hijos={h.hijos} contenedor={contenedor} finSlot={-1} /> : null}
               </FilaAgrupada>

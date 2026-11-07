@@ -101,8 +101,10 @@ export type SurveyOutlineProps = {
   onAbrirPares?: (fila?: number) => void;
   /** Rótulo del sorteo que empieza en `fila` («Sorteo del par 3», «Sorteo de la viñeta 2»). */
   rotuloSorteo?: (fila: number, n: number) => string;
-  /** Piezas del experimento (introducción y pares) y lo que dice su cabecera (C7). */
-  experimento?: ExperimentoEnEstructura & { resumen: string };
+  /** Nombre de una pieza que arma un experimento, en vez de su texto con referencias. */
+  tituloFijo?: (fila: number) => string | undefined;
+  /** Experimentos del formulario: sus piezas de primer nivel y lo que dice su cabecera (C7, C11). */
+  experimentos?: readonly ExperimentoEnEstructura[];
 };
 
 const MARGEN_AUTOSCROLL = 44;
@@ -126,7 +128,8 @@ export function SurveyOutline({
   tareaDeSorteo,
   onAbrirPares,
   rotuloSorteo,
-  experimento,
+  tituloFijo,
+  experimentos,
 }: SurveyOutlineProps) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [arrastre, setArrastre] = useState<ArrastreEstructura | null>(null);
@@ -142,7 +145,7 @@ export function SurveyOutline({
   // Árbol, filtro y líneas visibles
   // ---------------------------------------------------------------------------
 
-  const arbol = useMemo(() => construirArbol(structure, tareaDeSorteo, experimento), [structure, tareaDeSorteo, experimento]);
+  const arbol = useMemo(() => construirArbol(structure, tareaDeSorteo, experimentos), [structure, tareaDeSorteo, experimentos]);
 
   const hechos = useMemo(() => {
     // Misma lectura que los diagnósticos (estadoLista): una lista existe si choices le da alguna opción.
@@ -542,11 +545,11 @@ export function SurveyOutline({
             onPlegar,
             onInsertar: hayInsertar ? abrirInsertar : undefined,
             onAbrirPares,
-            resumenPares: experimento?.resumen,
             rotuloSorteo,
+            tituloFijo,
           }
         : null,
-    [structure, selectedRow, enRecorrido, arrastre, filtrando, plegada, avisosPorFila, limiteSeccion, onElegir, onPlegar, hayInsertar, abrirInsertar, onAbrirPares, rotuloSorteo, experimento],
+    [structure, selectedRow, enRecorrido, arrastre, filtrando, plegada, avisosPorFila, limiteSeccion, onElegir, onPlegar, hayInsertar, abrirInsertar, onAbrirPares, rotuloSorteo, tituloFijo],
   );
 
   const itemsMenu = useMemo(

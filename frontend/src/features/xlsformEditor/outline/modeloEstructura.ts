@@ -38,19 +38,23 @@ export type NodoSorteo = {
   finSlot: number;
 };
 /**
- * Un experimento de elección por pares (C7, 2026-11-07): su introducción y sus pares se ven bajo una sola cabecera.
- * Es sólo de la Estructura: en el XLSForm cada par sigue siendo su propia página, sin grupo que los contenga.
+ * Un experimento (C7 y C11, 2026-11-07): su introducción y sus pares o viñetas se ven bajo una sola cabecera. Es sólo
+ * de la Estructura: en el XLSForm cada par o viñeta sigue siendo su propia página, sin grupo que los contenga.
  */
 export type NodoExperimento = {
   tipo: "experimento";
   id: number;
+  titulo: string;
+  /** «8 pares, 5 atributos». */
+  resumen: string;
   /** Primera pieza del experimento (su introducción o el primer par). */
   nodo: BuilderNode;
   hijos: NodoArbol[];
   finSlot: number;
 };
 export type ArbolEstructura = { hijos: NodoArbol[]; finSlot: number };
-export type ExperimentoEnEstructura = { filas: ReadonlySet<number> };
+/** Piezas de primer nivel de un experimento (introducción y grupos) y lo que dice su cabecera. */
+export type ExperimentoEnEstructura = { filas: ReadonlySet<number>; titulo: string; resumen: string };
 
 const BASE_EXPERIMENTO = 1_000_000;
 export const idExperimento = (primeraFila: number) => -(BASE_EXPERIMENTO + primeraFila);
@@ -63,7 +67,8 @@ export const filaDeIdSorteo = (id: number) => -id - 1;
 
 /** Junta bajo una cabecera las piezas seguidas del experimento (introducción y pares) de un mismo contenedor. Si
  * algo ajeno queda en medio, no las junta: la cabecera mentiría sobre lo que contiene. */
-function agruparExperimento(structure: BuilderStructure, hijos: NodoArbol[], filas: ReadonlySet<number>): NodoArbol[] {
+function agruparExperimento(structure: BuilderStructure, hijos: NodoArbol[], exp: ExperimentoEnEstructura): NodoArbol[] {
+  const filas = exp.filas;
   const enHijos = hijos.map((h) => h.tipo !== "sorteo" && h.tipo !== "experimento" && filas.has(h.nodo.rowIndex));
   const primero = enHijos.indexOf(true);
   if (primero >= 0) {
@@ -75,6 +80,8 @@ function agruparExperimento(structure: BuilderStructure, hijos: NodoArbol[], fil
       const nodo: NodoExperimento = {
         tipo: "experimento",
         id: idExperimento(tramo[0]!.nodo.rowIndex),
+        titulo: exp.titulo,
+        resumen: exp.resumen,
         nodo: tramo[0]!.nodo,
         hijos: tramo,
         finSlot: finDeBloque(structure, fin.nodo.rowIndex) + 1,
@@ -82,7 +89,7 @@ function agruparExperimento(structure: BuilderStructure, hijos: NodoArbol[], fil
       return [...hijos.slice(0, primero), nodo, ...hijos.slice(ultimo + 1)];
     }
   }
-  return hijos.map((h) => (h.tipo === "seccion" ? { ...h, hijos: agruparExperimento(structure, h.hijos, filas) } : h));
+  return hijos.map((h) => (h.tipo === "seccion" ? { ...h, hijos: agruparExperimento(structure, h.hijos, exp) } : h));
 }
 
 /** Junta en un NodoSorteo los cálculos seguidos de un mismo par. */
@@ -117,7 +124,7 @@ export function finDeBloque(structure: BuilderStructure, row: number): number {
 export function construirArbol(
   structure: BuilderStructure | null,
   tareaDeSorteo?: (fila: number) => number | undefined,
-  experimento?: ExperimentoEnEstructura,
+  experimentos: readonly ExperimentoEnEstructura[] = [],
 ): ArbolEstructura {
   if (!structure) return { hijos: [], finSlot: 0 };
   const raiz: ArbolEstructura = { hijos: [], finSlot: 0 };
@@ -137,7 +144,7 @@ export function construirArbol(
   const ultimo = raiz.hijos[raiz.hijos.length - 1];
   raiz.finSlot = ultimo ? finDeBloque(structure, ultimo.nodo.rowIndex) + 1 : 0;
   const conSorteo = tareaDeSorteo ? agruparSorteo(raiz.hijos, tareaDeSorteo) : raiz.hijos;
-  const hijos = experimento?.filas.size ? agruparExperimento(structure, conSorteo, experimento.filas) : conSorteo;
+  const hijos = experimentos.reduce((acc, e) => (e.filas.size ? agruparExperimento(structure, acc, e) : acc), conSorteo);
   return { ...raiz, hijos };
 }
 

@@ -45,6 +45,8 @@ export type OutlineRowProps = {
   avisos?: readonly AvisoFila[];
   onElegir: (rowIndex: number) => void;
   onInsertar?: AbrirInsertar;
+  /** Nombre de la pieza cuando la arma un experimento («Escenario de la viñeta 2»): en vez de su texto con referencias. */
+  tituloFijo?: string;
 };
 
 export const OutlineRow = memo(function OutlineRow({
@@ -57,6 +59,7 @@ export const OutlineRow = memo(function OutlineRow({
   avisos,
   onElegir,
   onInsertar,
+  tituloFijo,
 }: OutlineRowProps) {
   const reglas = useContextoReglas();
   const requiredRaw = reglas?.requiredRaw(node.rowIndex);
@@ -64,7 +67,7 @@ export const OutlineRow = memo(function OutlineRow({
     () => marcasNodo(node, reglas?.structure, requiredRaw),
     [node, reglas?.structure, requiredRaw],
   );
-  const titulo = tituloDe(node);
+  const titulo = tituloFijo ?? tituloDe(node);
   const tituloSinRefs = tituloPlano(titulo);
 
   return (
