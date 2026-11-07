@@ -5,11 +5,12 @@
 // cambiar la lámina del foco (conserva sus gráficos y avisa los que no caben o se reemplazan) o insertar una nueva
 // detrás de ella. Una tarjeta es un tipo o un tipo con su payload de partida (opcionesLamina.ts).
 
-import { LayoutTemplate, MousePointer2, Search } from "../../../../vendor/lucide-react";
+import { LayoutTemplate, MousePointer2, Presentation, Search } from "../../../../vendor/lucide-react";
 import { useEffect, useId, useMemo, useRef } from "react";
 import type { GraficadorRef, Slide } from "../../../../api/graficos";
 import { toast } from "../../../../components/toasterStore";
 import { PulsoInput } from "../../../../components/PulsoInput";
+import { PulsoButton } from "../../../../components/PulsoButton";
 import { usePanelDireccionable } from "../../../../lib/navegacion/paneles";
 import { CATALOGO_GRAFICOS, CATALOGO_LAMINAS } from "../../iconos/catalogoTipos.generated";
 import { ESTANDAR_LAMINAS } from "../../iconos/estandarLaminas.generated";
@@ -48,9 +49,11 @@ type Props = {
   posicion: number | null;
   /** Cierra el panel en una sola navegación y deja el foco en `posicion` (si se da). */
   cerrar: (posicion?: number) => void;
+  /** Abre «Armar el resumen ejecutivo» en lugar de este panel (sólo al insertar). */
+  onArmarResumen?: () => void;
 };
 
-export function SelectorTipoLamina({ slide, posicion, cerrar }: Props) {
+export function SelectorTipoLamina({ slide, posicion, cerrar, onArmarResumen }: Props) {
   const panel = usePanelDireccionable(PANEL_TIPO_LAMINA);
   const { slidesById, graficadoresById, registry } = useGraficosRegistry();
   const ui = useSelectoresUi();
@@ -217,6 +220,12 @@ export function SelectorTipoLamina({ slide, posicion, cerrar }: Props) {
         : "Los gráficos que ya configuraste pasan a la lámina nueva."}
       focoInicialRef={focoInicialRef}
       destinoAlCerrar={() => destinoAlCerrarEnDocumento(null)}
+      accion={modo === "insertar" && onArmarResumen ? (
+        <PulsoButton variant="secondary" size="sm" onClick={onArmarResumen} data-armar-resumen="">
+          <Presentation size={14} aria-hidden="true" />
+          Armar el resumen ejecutivo
+        </PulsoButton>
+      ) : undefined}
       buscador={(
         <label className="pulso-f6-selector-buscar">
           <Search size={14} aria-hidden="true" />

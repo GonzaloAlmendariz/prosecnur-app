@@ -1,0 +1,226 @@
+/* Mazo «Resumen ejecutivo» (MazoResumen.tsx). El marco es el Dialog del kit en alto fijo: la franja va en la banda del
+   stepper (fija) y el cuerpo es el único dueño del scroll (C4). Las tarjetas son el Panel del kit en una grilla de
+   alto igual (C1 `equal`): con dos o con nueve, cada fila mide lo mismo y el vacío bajo la última es del cuerpo (C3). */
+
+/* Tres tarjetas por fila desde 1024 px: el lg del kit (980) deja dos y obliga a desplazar el mazo entero. */
+.pulso-f6-mazo.pulso-dialog--lg {
+  width: min(1180px, calc(100vw - var(--pulso-space-7)));
+}
+
+.pulso-f6-mazo-franja {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--pulso-space-3) var(--pulso-space-5);
+  min-width: 0;
+}
+
+.pulso-f6-mazo-campo {
+  display: grid;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.pulso-f6-mazo-campo.is-referencia {
+  width: 160px;
+}
+
+.pulso-f6-mazo-rotulo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  padding: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-f6-mazo-publicos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1) var(--pulso-space-3);
+  min-height: 32px;
+  align-items: center;
+}
+
+.pulso-f6-mazo-indicador {
+  min-width: 240px;
+  max-width: 420px;
+}
+
+.pulso-f6-mazo-sin-dato {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-f6-mazo-cuerpo {
+  display: grid;
+  min-width: 0;
+}
+
+.pulso-f6-mazo-tarjetas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-auto-rows: 1fr;
+  gap: var(--pulso-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-f6-mazo-tarjetas > li {
+  display: flex;
+  min-width: 0;
+}
+
+.pulso-f6-mazo-tarjeta.pulso-panel {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  margin: 0;
+}
+
+.pulso-f6-mazo-tarjeta.is-quitada > :not(.pulso-f6-mazo-acciones) {
+  opacity: 0.45;
+}
+
+.pulso-f6-mazo-tarjeta-cabeza {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-f6-mazo-numero {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--module-accent);
+  color: var(--pulso-surface);
+  font-size: var(--pulso-type-micro-size);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-f6-mazo-antetitulo {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-top: 3px;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.pulso-f6-mazo-tipo {
+  display: grid;
+  flex: 0 1 auto;
+  justify-items: end;
+  max-width: 55%;
+  text-align: right;
+}
+
+.pulso-f6-mazo-tipo-nombre {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-f6-mazo-tipo-clase {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pulso-f6-mazo-tipo[data-clase-tarjeta="resumen"] .pulso-f6-mazo-tipo-clase {
+  color: var(--module-accent);
+}
+
+.pulso-f6-mazo-miniatura {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 16 / 7;
+  padding: var(--pulso-space-2);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-f6-mazo-miniatura > svg {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.pulso-f6-mazo-titulo {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+  font-style: italic;
+}
+
+.pulso-f6-mazo-regla {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.pulso-f6-mazo-regla[aria-busy="true"] {
+  color: var(--pulso-text-faint);
+}
+
+.pulso-f6-mazo-falta {
+  color: var(--pulso-warn-fg);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.pulso-f6-mazo-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  margin-top: auto;
+  padding-top: var(--pulso-space-1);
+}
+
+.pulso-f6-mazo-acciones .is-volver {
+  color: var(--module-accent);
+  box-shadow: inset 0 0 0 1px var(--module-accent);
+}
+
+.pulso-f6-mazo-edicion {
+  display: grid;
+  min-width: 0;
+  padding-top: var(--pulso-space-2);
+  border-top: 1px solid var(--pulso-border);
+}
+
+/* La lista de candidatas desplaza dentro de la tarjeta: con 47 no estira la fila de la grilla. */
+.pulso-f6-mazo-edicion .pulso-f6-regla-filas {
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pulso-f6-mazo-tarjeta > :not(.pulso-f6-mazo-acciones) {
+    transition: opacity var(--motion-dur-fast) var(--motion-ease-out);
+  }
+}

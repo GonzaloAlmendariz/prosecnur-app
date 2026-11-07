@@ -1,5 +1,6 @@
 import type { PanelDeclarado } from "../../lib/navegacion/paneles";
 import { PANEL_GUIAS_LAMINA } from "./laminas/guias/panelGuias";
+import { PANEL_RESUMEN_EJECUTIVO } from "./laminas/mazoResumen/panelResumen";
 import { PANEL_TIPO_GRAFICO, PANEL_TIPO_LAMINA } from "./laminas/selectores/panelesSelectores";
 
 export const PANEL_BIBLIOTECA_SLIDES: PanelDeclarado = {
@@ -119,6 +120,7 @@ export const PANELES_GRAFICOS = [
   PANEL_AVISOS_INFORME,
   PANEL_TIPO_LAMINA,
   PANEL_TIPO_GRAFICO,
+  PANEL_RESUMEN_EJECUTIVO,
   PANEL_GUIAS_LAMINA,
   PANEL_ARMAR_DESDE,
   PANEL_ICONOS,

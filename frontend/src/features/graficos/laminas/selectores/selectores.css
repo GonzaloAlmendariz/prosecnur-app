@@ -668,6 +668,11 @@
   margin-left: auto;
 }
 
+.pulso-f6-selector-accion {
+  flex: none;
+  align-self: center;
+}
+
 .pulso-f6-selector-buscar {
   position: relative;
   display: flex;

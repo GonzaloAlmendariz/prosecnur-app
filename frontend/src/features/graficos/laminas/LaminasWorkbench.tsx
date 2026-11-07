@@ -44,6 +44,9 @@ import { SelectorTipoLamina } from "./selectores/SelectorTipoLamina";
 import { SelectorTipoGrafico } from "./selectores/SelectorTipoGrafico";
 import { esPanelSelector, PANEL_TIPO_GRAFICO, PANEL_TIPO_LAMINA } from "./selectores/panelesSelectores";
 import { useSelectoresUi, type ModoSelectorLamina } from "./selectores/selectoresStore";
+import { MazoResumen } from "./mazoResumen/MazoResumen";
+import { useMazoResumenUi } from "./mazoResumen/mazoResumenStore";
+import { PANEL_RESUMEN_EJECUTIVO } from "./mazoResumen/panelResumen";
 import { usePreviewLamina } from "./usePreviewLamina";
 import { useRanurasLamina } from "./useRanurasLamina";
 import { graficadorDisplayName } from "../graficadorDisplay";
@@ -178,7 +181,7 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
 
   // Selectores de tipo (F6.2): abren sobre el lateral (que sigue en la sesión) y cierran en UNA navegación que quita el
   // panel, deja el foco en la lámina o ranura resultante y repone el lateral: dos `navigate` seguidos se pisan.
-  const panelSelector = esPanelSelector(direccion.panel);
+  const panelSelector = esPanelSelector(direccion.panel) || direccion.panel === PANEL_RESUMEN_EJECUTIVO.id;
   const abrirSelectorLamina = useCallback((modo: ModoSelectorLamina) => {
     useSelectoresUi.getState().prepararLamina(modo);
     navigate({ pathname: location.pathname, search: searchConPanel(location.search, PANEL_TIPO_LAMINA) }, { replace: true });
@@ -199,6 +202,12 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
   }, [focoDePosicion, lateralPreferido, location.pathname, location.search, navigate]);
   const cerrarSelectorLamina = useCallback((posicion?: number) => cerrarSelector(PANEL_TIPO_LAMINA, posicion), [cerrarSelector]);
   const cerrarSelectorGrafico = useCallback((posicion?: number, k?: number | null) => cerrarSelector(PANEL_TIPO_GRAFICO, posicion, k), [cerrarSelector]);
+  // «Armar el resumen ejecutivo» (ADR 0135): reemplaza al selector en el slot `panel` y cierra como él.
+  const abrirResumen = useCallback(() => {
+    useMazoResumenUi.getState().preparar();
+    navigate({ pathname: location.pathname, search: searchConPanel(location.search, PANEL_RESUMEN_EJECUTIVO) }, { replace: true });
+  }, [location.pathname, location.search, navigate]);
+  const cerrarResumen = useCallback((posicion?: number) => cerrarSelector(PANEL_RESUMEN_EJECUTIVO, posicion), [cerrarSelector]);
 
   // Una sola navegación: foco de la ranura y, si hace falta, el inspector abierto (dos `navigate` seguidos se pisan).
   const elegirRanura = useCallback((k: number | null) => {
@@ -284,6 +293,7 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
             accion={
               <div className="pulso-f6-vacio-acciones">
                 <button type="button" className="pulso-f6-boton" onClick={() => abrirSelectorLamina("insertar")}>Insertar la primera lámina</button>
+                <button type="button" className="pulso-f6-boton" onClick={abrirResumen} data-armar-resumen="">Armar el resumen ejecutivo</button>
                 <BotonArmarDesdeVacio />
               </div>
             }
@@ -292,7 +302,8 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
         </div>
       </div>
       {avisos.abierto && <PanelAvisos panel={avisos} grupos={grupos} estructura={estructura} onIr={irA} coloresPendientes={coloresPendientes} baseImplicita={baseImplicita} />}
-      <SelectorTipoLamina slide={null} posicion={null} cerrar={cerrarSelectorLamina} />
+      <SelectorTipoLamina slide={null} posicion={null} cerrar={cerrarSelectorLamina} onArmarResumen={abrirResumen} />
+      <MazoResumen posicion={null} cerrar={cerrarResumen} />
       </div>
     );
   }
@@ -397,7 +408,8 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
         <button type="button" className="pulso-f6-velo pulso-f6-solo-compacto" aria-label="Cerrar ajustes" tabIndex={-1} onClick={cerrarInspectorConFoco} />
       )}
     </div>
-    <SelectorTipoLamina slide={slide} posicion={lamina.posicion} cerrar={cerrarSelectorLamina} />
+    <SelectorTipoLamina slide={slide} posicion={lamina.posicion} cerrar={cerrarSelectorLamina} onArmarResumen={abrirResumen} />
+    <MazoResumen posicion={lamina.posicion} cerrar={cerrarResumen} />
     <SelectorTipoGrafico slide={slide} posicion={lamina.posicion} ranura={ranura} cerrar={cerrarSelectorGrafico} />
     </div>
   );

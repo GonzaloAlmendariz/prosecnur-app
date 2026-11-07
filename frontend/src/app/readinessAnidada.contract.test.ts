@@ -168,6 +168,8 @@ const FALSE_TRANSITORIO: Record<string, string> = {
   "features/graficos/indice/BibliotecaIconos.tsx": "listo al llegar los nombres de íconos o su error",
   "features/graficos/laminas/diferencias/DiferenciasInspector.tsx":
     "«calculando» mientras GET /api/graficos/diferencias?slide= responde; con la lámina o su error publica graficos-diferencias",
+  "features/graficos/laminas/mazoResumen/MazoResumen.tsx":
+    "lectura de las variables y del registro al abrir el mazo; con los dos (o el error de uno) publica graficos-resumen-ejecutivo o su vacío",
   "features/graficos/laminas/diferencias/ReglaDiferenciasDialog.tsx":
     "lectura de GET /api/graficos/diferencias/regla al abrir el diálogo; con la regla o su error publica graficos-diferencias-regla",
   "features/graficos/laminas/diferencias/PorQuePopover.tsx":
