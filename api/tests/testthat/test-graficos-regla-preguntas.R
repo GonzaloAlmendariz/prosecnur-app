@@ -284,7 +284,9 @@ test_that("escala del resumen: el lado de acuerdo y Sin información; en multiba
   expect_identical(r$vars, "docentes$q4")
   expect_identical(r$evaluacion$texto, "Se muestra la de más Sin información, de 5 preguntas de escala.")
   ind <- .regla_preguntas_indicadores(el, src)$indicadores
-  expect_equal(ind$valor[ind$tema == "docentes$q1"], 75)   # n_negativas 2 y neutro partido: el lado de acuerdo es 4 y 5
+  # La cifra es la de la lámina (graficos_regla_divergentes.R): el reparto se fija sobre los seis niveles originales
+  # (con «Sin información»), así que con n_negativas 2 «Ni uno ni otro» cae en el lado de acuerdo: (5 + 15 + 15) / 40.
+  expect_equal(ind$valor[ind$tema == "docentes$q1"], 89)
   el2 <- p_barras_divergentes(vars = c("q1", "q2"), regla = list(tipo = "todas"))
   r2 <- .regla_preguntas_de_elemento(el2, src)
   expect_length(r2$vars, 0L)

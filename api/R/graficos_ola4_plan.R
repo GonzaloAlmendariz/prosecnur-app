@@ -463,8 +463,8 @@ p_barras_divergentes <- function(vars = NULL,
 
 #' @keywords internal
 .render_barras_divergentes <- function(el, preset_args = list()) {
-  ap <- .regla_preguntas_aplicar_render(el, "barras divergentes"); el <- ap$el   # ADR 0135
   base_preset <- if (length(preset_args)) preset_args else .ola4_preset("barras_divergentes")
+  ap <- .regla_preguntas_aplicar_render(el, "barras divergentes", preset = base_preset); el <- ap$el   # ADR 0135
   args_usuario <- utils::modifyList(as.list(base_preset %||% list()),
                                     as.list(el$overrides %||% list()))
   excluir_opciones <- .reporte_plan_excluir_cascada(

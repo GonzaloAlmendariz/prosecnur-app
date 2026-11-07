@@ -20,7 +20,8 @@
 #     no pueden discrepar.
 #
 # La diferencia es la del contraste (`.contraste_diferencia`, graficos_espec_contraste.R) sobre las cifras redondeadas
-# como se leen en la lámina; «Sin información» se detecta con `.graficos_no_sustantivos`, el único detector.
+# como se leen en la lámina; «Sin información» se detecta con `.graficos_no_sustantivos`, el único detector. La escala
+# del resumen es la excepción deliberada: mide con la tabla que pinta su lámina (graficos_regla_divergentes.R).
 
 .REGLA_PREGUNTAS_TIPOS <- c("todas", "comunes", "mayor_diferencia", "diferencia_minima", "mayor_sin_info",
                             "bajo_umbral", "extremos", "a_mano")
@@ -291,10 +292,10 @@
 #' @return `list(evaluacion, vars, avisos)`; `vars` en la forma que el render del tipo espera (refs del panorama y la
 #'   divergente; lista nombrada tema -> refs del dumbbell).
 #' @keywords internal
-.regla_preguntas_de_elemento <- function(el, sources, regla = el$regla) {
+.regla_preguntas_de_elemento <- function(el, sources, regla = el$regla, preset = NULL) {
   regla <- .regla_preguntas_normalizar(regla)
   tipo <- (regla %||% list(tipo = "todas"))$tipo
-  ind <- .regla_preguntas_indicadores(el, sources, tipo)
+  ind <- .regla_preguntas_indicadores(el, sources, tipo, preset = preset)
   dec <- suppressWarnings(as.integer((el$overrides %||% list())$valores_decimales %||% 0L)[1])
   ev <- .regla_preguntas_evaluar(ind$indicadores, regla, universo = ind$universo, grupos_unidad = ind$grupos_unidad,
                                  decimales = if (is.finite(dec)) dec else 0L)
@@ -307,9 +308,9 @@
 #'
 #' Sin regla devuelve el elemento intacto (el contrato de siempre) y no toca las fuentes.
 #' @keywords internal
-.regla_preguntas_aplicar_render <- function(el, contexto, sources = NULL) {
+.regla_preguntas_aplicar_render <- function(el, contexto, sources = NULL, preset = NULL) {
   if (is.null(el$regla)) return(list(el = el, texto = NULL))
-  r <- .regla_preguntas_de_elemento(el, sources %||% .regla_preguntas_fuentes_render(contexto))
+  r <- .regla_preguntas_de_elemento(el, sources %||% .regla_preguntas_fuentes_render(contexto), preset = preset)
   if (!length(r$vars)) stop("La regla de preguntas no deja ninguna pregunta: ", r$evaluacion$texto, call. = FALSE)
   el$vars <- r$vars
   if (identical(el$.element_type, "barras_divergentes")) el$var <- if (length(r$vars) == 1L) r$vars else NULL

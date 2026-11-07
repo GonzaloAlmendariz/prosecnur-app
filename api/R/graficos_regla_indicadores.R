@@ -250,23 +250,13 @@
        universo = "preguntas de escala", grupos_unidad = "grupos")
 }
 
-#' Códigos del lado de acuerdo de la escala de una divergente (el mismo reparto que la lámina, sin los no sustantivos)
-#' @keywords internal
-.regla_preguntas_lado_positivo <- function(esc, n_negativas = 2L, incluir_neutro = TRUE, direccion = "negativo_positivo") {
-  sus <- esc$codigos[!esc$no_sustantivo]
-  if (length(sus) < 2L) return(character(0))
-  orden <- if (identical(direccion, "positivo_negativo")) rev(sus) else sus
-  rep <- tryCatch(.divergentes_reparto(orden, n_negativas %||% 2L, isTRUE(incluir_neutro %||% TRUE)), error = function(e) NULL)
-  if (is.null(rep)) return(character(0))
-  as.character(rep$positivas)
-}
-
 #' Indicadores de la escala con «Sin información» aparte: el lado de acuerdo y el «Sin información» de cada pregunta
 #'
 #' Las preguntas de una divergente comparten escala: entre las candidatas sólo quedan las de la firma más frecuente.
+#' Las cifras salen de la tabla de la lámina (`.regla_div_medidas`, graficos_regla_divergentes.R): el Top Two Box y el
+#' «Sin información» que la lámina rotula, con sus exclusiones y su detector de la columna especial.
 #' @keywords internal
-.regla_preguntas_ind_divergentes <- function(el, sources) {
-  ov <- el$overrides %||% list()
+.regla_preguntas_ind_divergentes <- function(el, sources, preset = NULL) {
   refs <- character(0); motivos <- list(); original <- character(0)
   for (r in as.character(el$vars)) {
     q <- .regla_preguntas_calificar(r, sources)
@@ -290,20 +280,26 @@
   firma_tab <- table(cands)
   # La firma más frecuente; con empate, la que aparece primero.
   firma <- if (length(cands)) cands[cands %in% names(firma_tab)[firma_tab == max(firma_tab)]][1] else NA_character_
-  filas <- list(); refs_tema <- list(); datos_cache <- list()
+  aptas <- integer(0)
   for (i in seq_along(refs)) {
     x <- info[[i]]
     if (!is.null(x$motivo)) { motivos[[length(motivos) + 1L]] <- x$motivo; next }
     if (!identical(x$firma, firma)) { motivos[[length(motivos) + 1L]] <- "tienen otra escala que la mayoría"; next }
-    ctx <- x$ctx
-    esc <- .regla_preguntas_escala(ctx$inst, ctx$resolved_variable)
-    pos <- .regla_preguntas_lado_positivo(esc, ov$n_negativas, ov$incluir_neutro, ov$direccion_escala %||% "negativo_positivo")
+    aptas <- c(aptas, i)
+  }
+  med <- .regla_div_medidas(refs[aptas], el, sources, preset = preset)
+  motivos <- c(motivos, med$motivos)
+  filas <- list(); refs_tema <- list(); datos_cache <- list()
+  for (i in aptas) {
+    j <- match(refs[i], med$medidas$ref)
+    if (is.na(j)) next
+    ctx <- info[[i]]$ctx
     if (is.null(datos_cache[[ctx$source]])) datos_cache[[ctx$source]] <- .regla_preguntas_datos_base(ctx$source, sources, el$filtros)
-    m <- .regla_preguntas_medir(datos_cache[[ctx$source]], ctx$resolved_variable, esc, pos)
-    if (!is.finite(m$valor)) { motivos[[length(motivos) + 1L]] <- "no tienen respuestas con los filtros"; next }
+    datos <- datos_cache[[ctx$source]]
     tema <- original[i]
     filas[[length(filas) + 1L]] <- data.frame(tema = tema, etiqueta = .regla_preguntas_rotulo(ctx$inst, ctx$resolved_variable),
-                                              grupo = ctx$source, valor = m$valor, sin_info = m$sin_info, n = m$n, orden = i,
+                                              grupo = ctx$source, valor = med$medidas$valor[j], sin_info = med$medidas$sin_info[j],
+                                              n = .dumbbell_casos(datos[[ctx$resolved_variable]], .radar_mb_pesos(datos)), orden = i,
                                               stringsAsFactors = FALSE)
     refs_tema[[tema]] <- tema
   }
@@ -316,14 +312,15 @@
 #' @param el Elemento `ppt_element` del constructor.
 #' @param sources `list(data_sources, inst_sources)`.
 #' @param tipo Tipo de regla (decide si el panorama empareja por nombre).
+#' @param preset Args del preset del tipo; sólo la escala los usa (sus exclusiones y su reparto).
 #' @return `list(indicadores, refs_por_tema, avisos, universo, grupos_unidad)`.
 #' @keywords internal
-.regla_preguntas_indicadores <- function(el, sources, tipo = "todas") {
+.regla_preguntas_indicadores <- function(el, sources, tipo = "todas", preset = NULL) {
   et <- as.character(el$.element_type %||% "")[1]
   switch(et,
     panorama = .regla_preguntas_ind_panorama(el, sources, tipo),
     dumbbell = if (!is.null(el$cruce)) .regla_preguntas_ind_dumbbell_cruce(el, sources) else .regla_preguntas_ind_dumbbell_bases(el, sources),
-    barras_divergentes = .regla_preguntas_ind_divergentes(el, sources),
+    barras_divergentes = .regla_preguntas_ind_divergentes(el, sources, preset = preset),
     .regla_preguntas_falla(sprintf("El gráfico «%s» no elige sus preguntas con una regla.", et))
   )
 }
