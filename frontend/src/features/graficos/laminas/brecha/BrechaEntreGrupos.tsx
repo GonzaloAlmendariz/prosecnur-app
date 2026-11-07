@@ -9,11 +9,13 @@ import { EditorTemasEquivalentes } from "../../temasEquivalentes/EditorTemasEqui
 import { useVariables } from "../../useVariables";
 import {
   aEntreBases, aEntreGrupos, conCorte, conCruce, conGrupo, conPreguntas, corteDe, esEntreGrupos, faltaEnBrecha, gruposDe,
-  mismaBase, opcionesDe, preguntasDe,
+  maxGrupos, mismaBase, opcionesDe, opcionesDeGrupo, preguntasDe,
 } from "./modeloBrechaGrupos";
 import "./brechaEntreGrupos.css";
 
 type Props = { args: Readonly<Record<string, unknown>>; onCambio: (patch: Record<string, unknown>) => void };
+
+const ORDINAL: readonly string[] = ["Primer", "Segundo", "Tercer", "Cuarto"];
 
 const esSelectOne = (tipo: string) => /^select_one/.test(tipo) || tipo === "so";
 
@@ -24,7 +26,8 @@ export function BrechaEntreGrupos({ args, onCambio }: Props) {
   const cruce = typeof args.cruce === "string" ? args.cruce : "";
   const preguntas = preguntasDe(args);
   const opcionesCruce = cruce ? opcionesDe(variables, cruce) : [];
-  const [g1, g2] = gruposDe(args);
+  const casillas = gruposDe(args);
+  const varios = maxGrupos(args) > 2;
   const escala = grupos && preguntas.length ? opcionesDe(variables, preguntas[0]) : [];
   const corte = new Set(corteDe(args));
   const falta = grupos ? faltaEnBrecha(args) : null;
@@ -52,13 +55,13 @@ export function BrechaEntreGrupos({ args, onCambio }: Props) {
           </div>
           {cruce && (
             <div className="pulso-f6-dato is-apilado">
-              <span className="pulso-f6-dato-rotulo">Los dos grupos</span>
-              <div className="pulso-f6-brecha-grupos">
-                {([0, 1] as const).map((k) => (
-                  <select key={k} className="pulso-f6-dato-select" aria-label={k === 0 ? "Primer grupo" : "Segundo grupo"}
-                          value={k === 0 ? g1 : g2} onChange={(e) => onCambio(conGrupo(args, k, e.target.value))}>
-                    <option value="">{k === 0 ? "Primer grupo…" : "Segundo grupo…"}</option>
-                    {opcionesCruce.filter((o) => k === 0 || o.codigo !== g1).map((o) => <option key={o.codigo} value={o.codigo}>{o.etiqueta}</option>)}
+              <span className="pulso-f6-dato-rotulo">{varios ? "Los grupos (hasta cuatro)" : "Los dos grupos"}</span>
+              <div className="pulso-f6-brecha-grupos" data-grupos={casillas.length}>
+                {casillas.map((g, k) => (
+                  <select key={k} className="pulso-f6-dato-select" aria-label={ORDINAL[k] ? `${ORDINAL[k]} grupo` : `Grupo ${k + 1}`}
+                          value={g} onChange={(e) => onCambio(conGrupo(args, k, e.target.value))}>
+                    <option value="">{k < 2 ? `${ORDINAL[k]} grupo…` : `${ORDINAL[k] ?? "Otro"} grupo (opcional)…`}</option>
+                    {opcionesDeGrupo(opcionesCruce, args, k).map((o) => <option key={o.codigo} value={o.codigo}>{o.etiqueta}</option>)}
                   </select>
                 ))}
               </div>

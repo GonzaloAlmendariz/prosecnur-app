@@ -103,6 +103,21 @@ const ICONOS: Readonly<Record<string, DibujoGrafico>> = {
       </Acento>
     </>
   ),
+  // Panorama de públicos (ADR 0114): una fila por público, un punto por pregunta y la mediana como línea vertical.
+  p_panorama: () => (
+    <>
+      <Circulo cx={5.25} cy={6} r={1.5} tono="apoyo" />
+      <Circulo cx={9.75} cy={6} r={1.5} tono="apoyo" />
+      <Circulo cx={17.25} cy={6} r={1.5} tono="apoyo" />
+      <Circulo cx={7.5} cy={12} r={1.5} tono="apoyo" />
+      <Circulo cx={15.75} cy={12} r={1.5} tono="apoyo" />
+      <Circulo cx={19.5} cy={12} r={1.5} tono="apoyo" />
+      <Circulo cx={4.5} cy={18} r={1.5} tono="apoyo" />
+      <Circulo cx={9} cy={18} r={1.5} tono="apoyo" />
+      <Circulo cx={18} cy={18} r={1.5} tono="apoyo" />
+      <Acento><Trazo d="M12.75 3V21" tono="pleno" /></Acento>
+    </>
+  ),
   // Escala con Top Two Box (p78): filas de segmentos; el primero de cada fila en acento.
   p_barras_multiapiladas: () => {
     const filas: ReadonlyArray<readonly [number, number, number]> = [[4.5, 8.25, 4.5], [10.125, 5.25, 6.75], [15.75, 9, 3.75]];

@@ -151,8 +151,8 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
   const categoriasDe = (name: string): CategoriasFila | undefined => {
     if (name === "excluir_opciones" || name === "corte") {
       // Varias preguntas de la misma escala (radar, divergentes): las categorías de la primera, que todas comparten.
-      // Con temas por público (objeto, no lista) no hay una sola lista: queda el texto.
-      const primera = !variable && Array.isArray(args.vars) && typeof args.vars[0] === "string" ? args.vars[0] : "";
+      // Con temas por público (objeto, no lista) o con `base$*` (panorama, ADR 0114) no hay una sola lista: queda el texto.
+      const primera = !variable && Array.isArray(args.vars) && typeof args.vars[0] === "string" && !args.vars[0].endsWith("$*") ? args.vars[0] : "";
       if (!variable && !primera) return nVars > 0 ? undefined : { variable: "", scope, modo: name === "corte" ? "elegir" : "excluir" };
       return { variable: varCalificada(variable || primera, baseActiva, scope), scope, modo: name === "corte" ? "elegir" : "excluir" };
     }

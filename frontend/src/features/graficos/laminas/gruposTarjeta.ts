@@ -16,12 +16,13 @@ const ORDEN: ReadonlySet<string> = new Set([
   "orden_barras", "orden", "orden_periodos", "max_categorias", "top_k", "top_n", "agrupar_resto_en_otros", "etiqueta_otros",
   "mostrar_ceros", "mostrar_categorias_en_cero", "mostrar_respuestas", "filete_temas", "mostrar_ranking", "ancho_tema", "limite_superior",
   "invertir_barras", "otros_al_final", "residuales_gris", "normalizar_etiquetas", "max_palabras", "min_chars", "limites",
+  "separar_tras",
 ]);
 
 const CIFRAS: ReadonlySet<string> = new Set([
   "marcas_eje", "mostrar_significancia", "significancia_alpha", "alpha", "mostrar_brecha", "etiqueta_brecha", "decimales_promedio",
   "tipo_rango", "mostrar_valores", "max_series_con_cifras", "valores_decimales", "umbral_rojo_pct", "cortes_chip", "min_n", "cortes",
-  "decimales", "mostrar_leyenda",
+  "decimales", "mostrar_leyenda", "referencia",
 ]);
 
 export function grupoDeCampo(arg: string): GrupoTarjeta {

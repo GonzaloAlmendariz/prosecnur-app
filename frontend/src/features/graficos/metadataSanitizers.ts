@@ -131,6 +131,7 @@ const GRAFICADOR_BLUEPRINT_KINDS: Record<GraficadorBlueprintKind, true> = {
   "bars-diverging": true,
   "comparison-dots": true,
   dumbbell: true,
+  panorama: true,
   lollipop: true,
   "line-series": true,
   radar: true,

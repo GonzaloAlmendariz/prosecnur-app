@@ -60,11 +60,11 @@ describe("cobertura frente al registro", () => {
     expect(Object.values(ALIAS_GRAFICO).every((b) => b in ICONOS_GRAFICO)).toBe(true);
   });
 
-  it("60 íconos dibujados: 22 del recetario + 9 de estructura (con las reglas de la identidad) + 29 gráficos (con las citas, TXT-4) (con la dicotómica, G10, la matriz de cuadrantes, G16, y las diferencias significativas, p112; la pregunta filtro es pieza interna de la dependencia y no se elige)", () => {
+  it("60 íconos dibujados: 22 del recetario + 9 de estructura (con las reglas de la identidad) + 30 gráficos (con las citas, TXT-4, y el panorama de públicos, ADR 0114) (con la dicotómica, G10, la matriz de cuadrantes, G16, y las diferencias significativas, p112; la pregunta filtro es pieza interna de la dependencia y no se elige)", () => {
     const delEstandar = Object.keys(ICONOS_LAMINA).filter((t) => t in RANURAS_ESTANDAR);
     expect(delEstandar).toHaveLength(22);
     expect(Object.keys(ICONOS_LAMINA).length - delEstandar.length).toBe(9);
-    expect(Object.keys(ICONOS_GRAFICO)).toHaveLength(29);   // + p_citas (TXT-4)
+    expect(Object.keys(ICONOS_GRAFICO)).toHaveLength(30);   // + p_citas (TXT-4) + p_panorama (ADR 0114)
     expect(Object.keys(ALIAS_LAMINA)).toHaveLength(3);
   });
 });

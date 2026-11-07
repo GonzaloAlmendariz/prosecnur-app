@@ -62,6 +62,12 @@ export const AYUDA_TIPO_RANGO = "La leyenda de la lámina dice qué abarca la ba
 export const AVISO_RANGO_CUSTOM = "Personalizado: se dibuja con los percentiles guardados.";
 export const AYUDA_CORTE_SCORE = "Obligatorio en Dispersión: separa los puntajes altos de los bajos.";
 export const AYUDA_CORTES_CHIP = "Dos valores que separan rojo, ámbar y verde. Vacío: 60 y 80.";
+// ADR 0114: los gráficos del resumen ejecutivo (Arte y Diseño FG 2026).
+export const AYUDA_ESTILO = "Cómo se compone la lámina; el cálculo es el mismo.";
+export const AYUDA_UNIVERSOS = "Para escribir la base como n (cobertura %). Un grupo sin padrón va sólo con n.";
+export const AYUDA_SEPARAR_TRAS = "Línea punteada entre dos grupos de preguntas. 0: sin separador.";
+export const AYUDA_BASE_EN = "Automático: en la leyenda si es la misma en todas las filas; si cambia, en la tabla.";
+export const AYUDA_REFERENCIA = "La línea punteada y la columna «Bajo» de la tabla.";
 
 /**
  * 5a (Gonzalo, 2026-10-11; docs/qa/estudio-paletas-por-lista-f6-2026-10-11.md): los graficadores cuya lámina NO es
@@ -119,6 +125,10 @@ const MEDIA_RANGO = ["p_media_rango"];
 const conTopK = (v: Valores) => typeof v.top_k === "number" && Number.isFinite(v.top_k) && v.top_k >= 1;
 const OTROS_POR_TOP_K = { siActivo: undefined, cuando: conTopK };
 
+/** Brecha y divergentes con el estilo del resumen ejecutivo (ADR 0114): los ajustes que sólo ese estilo dibuja. */
+export const esEstiloResumen = (v: Valores) => v.estilo === "resumen";
+const ESTILO_RESUMEN = ["p_dumbbell", "p_barras_divergentes"];
+
 /** Orden de aparición = orden de las claves. */
 /** ¿El gráfico ya trae su lista de preguntas (`vars`)? Entonces la «Pregunta» suelta no aplica (catálogo, I1). */
 export const tieneVars = (v: Valores) =>
@@ -148,6 +158,13 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   cruce: { rotulo: "Dividir por", ayuda: "Sin dividir, el gráfico muestra una sola serie.", excepto: ["p_barras_multiapiladas", "p_dumbbell"] },
   corte: { rotulo: "Corte", excepto: ["p_dumbbell", "p_significancia_publicos"] },
   corte_etiqueta: { rotulo: "Rótulo del corte" },
+  // ADR 0114: la composición del resumen ejecutivo; el padrón sólo lo escribe el contraste con tabla de base.
+  estilo: { rotulo: "Estilo", ayuda: AYUDA_ESTILO, soloEn: ESTILO_RESUMEN },
+  universos: {
+    rotulo: "Padrón de cada grupo", ayuda: AYUDA_UNIVERSOS, placeholder: "Docentes: 123; Estudiantes: 327",
+    soloEn: ["p_dumbbell"], cuando: esEstiloResumen,
+  },
+  base_en: { rotulo: "Dónde va la base", ayuda: AYUDA_BASE_EN, soloEn: ["p_dumbbell"], cuando: esEstiloResumen },
   // C44: el radar «entre públicos» rotula cada columna de su tabla con el nombre técnico de la base.
   tabla_encabezados: { rotulo: "Nombre de cada público", ayuda: "Vacío conserva el nombre de la base.", estricto: true },
   // Radar entre públicos (Gonzalo, 2026-10-23): la tabla de datos es una opción del radar y de sus variantes. `tabla`
@@ -177,7 +194,9 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   usar_pesos: { rotulo: "Aplicar pesos", soloEn: FODA, defecto: true },
   cortes_chip: { rotulo: "Cortes del semáforo", ayuda: AYUDA_CORTES_CHIP, placeholder: "60, 80", soloEn: FODA },
   orden_barras: { rotulo: "Orden" },
-  orden: { rotulo: "Orden", soloEn: ["p_dumbbell", "p_lollipop"] },
+  orden: { rotulo: "Orden", soloEn: ["p_dumbbell", "p_lollipop", "p_barras_divergentes"] },
+  // ADR 0114: formal de p_dumbbell(); sólo lo dibuja el contraste con tabla de base.
+  separar_tras: { rotulo: "Separador después de la fila", ayuda: AYUDA_SEPARAR_TRAS, soloEn: ["p_dumbbell"], cuando: esEstiloResumen },
   orden_periodos: {
     rotulo: "Orden de los periodos",
     ayuda: "Nombres de las fuentes, todas y sin repetir. Vacío: el orden declarado.",
@@ -251,6 +270,8 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   mostrar_brecha: { rotulo: "Mostrar la brecha", ayuda: AYUDA_BRECHA, soloEn: ["p_dumbbell"] },
   // Formal de p_dumbbell (e93c51d): sólo se escribe junto a la brecha, así que sin brecha no hay qué rotular.
   etiqueta_brecha: { rotulo: "Unidad de la brecha", placeholder: "pts", siActivo: "mostrar_brecha", soloEn: ["p_dumbbell"] },
+  // ADR 0114: formal de p_panorama(); la mediana de cada público se lee contra esta línea.
+  referencia: { rotulo: "Referencia (%)", ayuda: AYUDA_REFERENCIA, soloEn: ["p_panorama"] },
   // Formales de p_media_rango (e93c51d): `decimales_promedio` es el que llega (el constructor lo pasa a `chip_decimales`).
   decimales_promedio: { rotulo: "Decimales de la media", soloEn: MEDIA_RANGO },
   tipo_rango: {

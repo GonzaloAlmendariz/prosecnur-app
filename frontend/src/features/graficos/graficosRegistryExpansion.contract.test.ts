@@ -203,6 +203,18 @@ describe("contrato sucesor del registry de Gráficos", () => {
     }
   });
 
+  it("resuelve el blueprint del panorama de públicos (ADR 0114) y su ícono del shim", () => {
+    expect(resolveGraficadorBlueprint("panorama")).toBe("panorama");
+    const [panorama] = normalizeGraficosRegistry({
+      slides: [],
+      graficadores: [{ name: "p_panorama", titulo_humano: "Panorama de públicos", icono_ui: "Rows3", categoria: "comparison",
+        blueprint: "panorama", preset_key: "", args: [], args_extra: [] }],
+    }).graficadores;
+    expect(panorama?.blueprint).toBe("panorama");
+    expect(graficadorToPresetType("p_panorama", "")).toBeNull();
+    expect(resolveGraphLucideIcon("Rows3", "Square")).not.toBe(resolveGraphLucideIcon("Square", "Square"));
+  });
+
   it("mantiene visibles los generados pero cierra la inserción genérica con copy honesto", () => {
     const registry = normalizeGraficosRegistry(successorRegistryInput());
     const dumbbell = registry.graficadores.find((graf) => graf.name === "p_dumbbell");

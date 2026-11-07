@@ -26,6 +26,8 @@ const MAP: Record<string, string | null> = {
   p_barras_divergentes:         "barras_divergentes",
   p_puntos_comparativos:        "puntos_comparativos",
   p_dumbbell:                   "dumbbell",
+  // ADR 0114: el registro declara preset_key "" (sin ajustes de estilo por tipo).
+  p_panorama:                   null,
   p_matriz_cuadrantes:          null,
   p_lollipop:                   "lollipop",
   p_serie_temporal:             "serie_temporal",

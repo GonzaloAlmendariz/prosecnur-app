@@ -29,6 +29,7 @@ const GRAFICADOR_BLUEPRINT_KINDS = new Set<string>([
   "bars-diverging",
   "comparison-dots",
   "dumbbell",
+  "panorama",
   "lollipop",
   "line-series",
   "radar",
@@ -305,6 +306,32 @@ function BlueprintMarks({
             <circle cx="88" cy="44" r="4" />
             <circle cx="58" cy="62" r="4" />
             <circle cx="118" cy="62" r="4" />
+          </g>
+        </>
+      );
+    case "panorama":
+      // Una fila por público con un punto por pregunta; la mediana de la fila es la
+      // marca vertical y la referencia, la línea punteada que cruza todas.
+      return (
+        <>
+          <ChartAxes />
+          <line
+            className="pulso-graficador-library-blueprint-axis"
+            x1="100" y1="14" x2="100" y2="72"
+            strokeDasharray="3 3"
+          />
+          <g className="pulso-graficador-library-blueprint-soft">
+            <circle cx="44" cy="26" r="3.5" /><circle cx="62" cy="26" r="3.5" />
+            <circle cx="88" cy="26" r="3.5" /><circle cx="114" cy="26" r="3.5" />
+            <circle cx="56" cy="44" r="3.5" /><circle cx="84" cy="44" r="3.5" />
+            <circle cx="106" cy="44" r="3.5" /><circle cx="128" cy="44" r="3.5" />
+            <circle cx="40" cy="62" r="3.5" /><circle cx="52" cy="62" r="3.5" />
+            <circle cx="72" cy="62" r="3.5" /><circle cx="110" cy="62" r="3.5" />
+          </g>
+          <g className="pulso-graficador-library-blueprint-primary">
+            <rect x="73" y="18" width="3" height="16" rx="1.5" />
+            <rect x="90" y="36" width="3" height="16" rx="1.5" />
+            <rect x="61" y="54" width="3" height="16" rx="1.5" />
           </g>
         </>
       );

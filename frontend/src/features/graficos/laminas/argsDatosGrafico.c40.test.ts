@@ -8,10 +8,14 @@ import { describe, expect, it } from "vitest";
 import type { ArgMetadata } from "../../../api/graficos";
 import { mergeSlotArgsPatch } from "../store";
 import {
+  AYUDA_BASE_EN,
   AYUDA_BRECHA,
   AYUDA_CEROS,
   AYUDA_CORTES,
   AYUDA_EJE_MIN,
+  AYUDA_ESTILO,
+  AYUDA_REFERENCIA,
+  AYUDA_SEPARAR_TRAS,
   AYUDA_LIMITE_SUPERIOR,
   AYUDA_MIN_N,
   AYUDA_TABLA,
@@ -112,6 +116,36 @@ describe("C40 · ASIGNAR", () => {
     const sinInterruptor = dumbbell.filter((x) => x.name !== "mostrar_brecha");
     expect(nombres(sinInterruptor, {}, "p_dumbbell")).not.toContain("etiqueta_brecha");
     expect(nombres(dumbbell, {}, "p_lollipop")).not.toContain("etiqueta_brecha");
+  });
+  it("ADR 0114 · dumbbell: el estilo siempre; padrón y separador sólo con «Contraste con tabla de base»", () => {
+    const resumen = [...dumbbell, a("estilo", "choice", { default: "recetario" }), a("universos", "string"),
+      a("separar_tras", "number", { default: 0 }), a("base_en", "choice", { default: "auto" })];
+    expect(nombres(resumen, {}, "p_dumbbell")).toEqual(["corte_etiqueta", "estilo", "orden", "mostrar_brecha", "etiqueta_brecha"]);
+    expect(nombres(resumen, { estilo: "recetario" }, "p_dumbbell")).not.toEqual(expect.arrayContaining(["universos"]));
+    expect(nombres(resumen, { estilo: "recetario" }, "p_dumbbell")).not.toContain("base_en");
+    expect(nombres(resumen, { estilo: "resumen" }, "p_dumbbell")).toEqual(
+      ["corte_etiqueta", "estilo", "universos", "base_en", "orden", "separar_tras", "mostrar_brecha", "etiqueta_brecha"]);
+    expect(campo(resumen, { estilo: "resumen" }, "p_dumbbell", "base_en")?.ayuda).toBe(AYUDA_BASE_EN);
+    expect(campo(resumen, { estilo: "resumen" }, "p_dumbbell", "base_en")?.control).toBe("opciones");
+    expect(campo(resumen, {}, "p_dumbbell", "estilo")?.ayuda).toBe(AYUDA_ESTILO);
+    expect(campo(resumen, { estilo: "resumen" }, "p_dumbbell", "universos")?.control).toBe("texto");
+    expect(campo(resumen, { estilo: "resumen" }, "p_dumbbell", "separar_tras")?.ayuda).toBe(AYUDA_SEPARAR_TRAS);
+    expect(campo(resumen, { estilo: "resumen" }, "p_dumbbell", "separar_tras")?.control).toBe("numero");
+    // En otro graficador el mismo nombre no tiene efecto nativo.
+    expect(nombres(resumen, { estilo: "resumen" }, "p_lollipop")).not.toEqual(expect.arrayContaining(["estilo", "universos", "separar_tras"]));
+  });
+  it("ADR 0114 · divergentes: estilo y orden de las filas; sin padrón ni separador", () => {
+    const divergentes = [a("vars", "variables_list"), a("estilo", "choice", { default: "recetario" }),
+      a("orden", "choice", { default: "top_two_box" }), a("universos", "string"), a("separar_tras", "number"), a("base_en", "choice")];
+    expect(nombres(divergentes, { estilo: "resumen" }, "p_barras_divergentes")).toEqual(["vars", "estilo", "orden"]);
+  });
+  it("ADR 0114 · panorama: preguntas, indicador, su nombre y la referencia", () => {
+    const panorama = [a("vars", "variables_list"), a("corte", "codigos_list"), a("corte_etiqueta", "string"),
+      a("referencia", "number", { default: 60 })];
+    expect(nombres(panorama, { vars: ["docentes$*"] }, "p_panorama")).toEqual(["vars", "corte", "corte_etiqueta", "referencia"]);
+    expect(campo(panorama, {}, "p_panorama", "referencia")?.ayuda).toBe(AYUDA_REFERENCIA);
+    expect(campo(panorama, {}, "p_panorama", "corte")?.control).toBe("codigos");
+    expect(nombres(panorama, {}, "p_radar")).not.toContain("referencia");
   });
   it("serie: orden de periodos siempre; cifras y su máximo sólo con tres o más mediciones", () => {
     expect(nombres(serie, dosOlas, "p_serie_temporal")).toEqual(["corte", "corte_etiqueta", "orden_periodos"]);

@@ -49,9 +49,32 @@ export function opcionesDe(variables: readonly VarWithSource[], ref: string): Op
   return (variableDe(variables, ref)?.choices ?? []).map((c) => ({ codigo: String(c.name), etiqueta: c.label || String(c.name) }));
 }
 
-export function gruposDe(args: Args): [string, string] {
-  const g = lista(args.grupos);
-  return [g[0] ?? "", g[1] ?? ""];
+/**
+ * Cuántos grupos admite la brecha entre grupos: dos en el recetario; hasta cuatro en el contraste del resumen ejecutivo
+ * (ADR 0114: aperturas internas por ciclo o dedicación), que es lo que acepta `.p_dumbbell_grupos()`.
+ */
+export const MAX_GRUPOS_RECETARIO = 2;
+export const MAX_GRUPOS_RESUMEN = 4;
+export function maxGrupos(args: Args): number {
+  return args.estilo === "resumen" ? MAX_GRUPOS_RESUMEN : MAX_GRUPOS_RECETARIO;
+}
+
+/** Los grupos elegidos, sin huecos al final (los dos primeros conservan su posición: primero menos segundo). */
+export function gruposElegidos(args: Args): string[] {
+  return lista(args.grupos);
+}
+
+/**
+ * Las casillas de grupo que la tarjeta muestra: siempre dos; en el resumen, una más vacía mientras quepa otra (hasta
+ * cuatro). Un plan guardado con más grupos de los que admite su estilo los muestra todos para poder quitarlos: no se
+ * recortan en silencio (faltaEnBrecha lo avisa).
+ */
+export function gruposDe(args: Args): string[] {
+  const g = Array.isArray(args.grupos) ? args.grupos.map(texto) : lista(args.grupos);
+  const llenos = g.filter(Boolean).length;
+  const tope = maxGrupos(args);
+  const casillas = Math.max(2, Math.min(tope, llenos + (tope > MAX_GRUPOS_RECETARIO ? 1 : 0)), g.length > tope ? g.length : 0);
+  return Array.from({ length: casillas }, (_, i) => g[i] ?? "");
 }
 
 export function corteDe(args: Args): string[] {
@@ -73,9 +96,27 @@ export function conCruce(variables: readonly VarWithSource[], ref: string | null
   return { cruce: ref ? refCompleta(variables, ref) : "", grupos: [] };
 }
 
-export function conGrupo(args: Args, k: 0 | 1, codigo: string): Record<string, unknown> {
-  const g = gruposDe(args); g[k] = codigo;
-  return { grupos: g.filter((x, i) => i === 0 || x !== g[0] || !x) };
+/**
+ * Elegir el grupo de la casilla `k`. Un código ya elegido en otra casilla anterior deja vacía la posterior; las dos
+ * primeras conservan su posición (la brecha es la primera menos la segunda) y desde la tercera los huecos se cierran.
+ */
+export function conGrupo(args: Args, k: number, codigo: string): Record<string, unknown> {
+  const g = gruposDe(args);
+  if (k < 0 || k >= g.length) return { grupos: g.filter((x, i) => i < 2 || x) };
+  g[k] = codigo;
+  const vistos = new Set<string>();
+  const limpio = g.map((x) => {
+    if (!x || vistos.has(x)) return "";
+    vistos.add(x);
+    return x;
+  });
+  return { grupos: limpio.filter((x, i) => i < 2 || x) };
+}
+
+/** Las opciones de la casilla `k`: las del cruce menos las elegidas en las demás casillas. */
+export function opcionesDeGrupo(opciones: readonly Opcion[], args: Args, k: number): Opcion[] {
+  const otros = new Set(gruposDe(args).filter((x, i) => i !== k && x));
+  return opciones.filter((o) => !otros.has(o.codigo));
 }
 
 export function conPreguntas(variables: readonly VarWithSource[], refs: readonly string[]): Record<string, unknown> {
@@ -92,7 +133,11 @@ export function conCorte(args: Args, codigo: string, marcado: boolean): Record<s
 export function faltaEnBrecha(args: Args): string | null {
   if (!texto(args.cruce)) return "Elige la pregunta que define los grupos.";
   const [a, b] = gruposDe(args);
-  if (!a || !b) return "Elige los dos grupos que se comparan.";
+  const tope = maxGrupos(args);
+  if (gruposElegidos(args).length > tope) {
+    return "Recetario compara dos grupos: quita los demás o elige «Contraste con tabla de base» en Estilo.";
+  }
+  if (!a || !b) return tope > MAX_GRUPOS_RECETARIO ? "Elige al menos los dos primeros grupos." : "Elige los dos grupos que se comparan.";
   if (!preguntasDe(args).length) return "Agrega al menos una pregunta.";
   if (!corteDe(args).length) return "Marca qué respuestas suman el indicador.";
   return null;

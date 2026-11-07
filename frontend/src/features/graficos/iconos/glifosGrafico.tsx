@@ -342,6 +342,31 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
       </>
     );
   },
+  // Panorama de públicos (ADR 0114): una fila por público con un punto por pregunta, la mediana de la fila como marca
+  // vertical, la referencia punteada (60 % por defecto) y la columna lateral Mediana / Bajo 60%.
+  p_panorama: () => {
+    const filas: ReadonlyArray<readonly number[]> = [[52, 66, 74, 88, 104], [60, 78, 96, 108, 118], [46, 58, 70, 82, 112]];
+    const medianas = [74, 96, 70];
+    return (
+      <>
+        <path d="M92 10V82" className="pulso-glifo__trazo-n" strokeWidth={1} strokeDasharray="2 2" fill="none" />
+        {filas.map((xs, i) => {
+          const y = 22 + i * 24;
+          const m = medianas[i] ?? 80;
+          return (
+            <g key={y}>
+              <Rotulo x={12} y={y - 1.5} w={24} />
+              <Trazo d={`M44 ${y}H122`} ancho={1} t="n" />
+              {xs.map((x) => <Punto key={x} cx={x} cy={y} r={3} t="a" />)}
+              <Trazo d={`M${m} ${y - 7}V${y + 7}`} ancho={2.5} t="p" />
+              <Valor x={130} y={y - 1.75} w={10} />
+              <Valor x={144} y={y - 1.75} w={8} />
+            </g>
+          );
+        })}
+      </>
+    );
+  },
   // Escala por premisa, de la más intensa a SIN INF, con su columna Top Two Box (p78).
   // Con opciones (maqueta), la columna Top Two Box sólo si el gráfico la lleva, y la Bottom Two Box a su lado.
   p_barras_multiapiladas: (o) => {

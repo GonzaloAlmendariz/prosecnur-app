@@ -134,6 +134,7 @@ export type GraficadorBlueprintKind =
   | "bars-diverging"
   | "comparison-dots"
   | "dumbbell"
+  | "panorama"
   | "quadrant"
   | "lollipop"
   | "line-series"

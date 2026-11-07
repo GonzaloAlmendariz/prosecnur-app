@@ -125,6 +125,16 @@ const entero = (x: unknown): number | null => {
 };
 const lista = (x: unknown): string[] => (Array.isArray(x) ? x : typeof x === "string" ? x.split(",") : []).map((t) => String(t).trim()).filter(Boolean);
 
+/** Órdenes de las divergentes distintos del de por defecto («Por acuerdo»), con su rótulo del registro. */
+const ORDEN_DIVERGENTES: Readonly<Record<string, string>> = {
+  sin_informacion: "Por Sin información", declarado: "Orden declarado",
+};
+
+/** Dónde va la base en el contraste con tabla de base (ADR 0114), salvo «Automático», que es el de por defecto. */
+const BASE_EN: Readonly<Record<string, string>> = {
+  leyenda: "Base en la leyenda", nota: "Base en la nota", tabla: "Base en la tabla",
+};
+
 const DESTACADO: Readonly<Record<string, string>> = {
   arriba_der: "arriba a la derecha", abajo_izq: "abajo a la izquierda", abajo_der: "abajo a la derecha",
 };
@@ -170,14 +180,33 @@ export function ajustesDelGlifo(graficador: string, args: Readonly<Record<string
       if (destacadas.length) { glifo.resaltar = true; ajustes.push(`Destacada: ${destacadas.join(", ")}`); }
       break;
     }
-    case "p_barras_divergentes":
+    case "p_barras_divergentes": {
       glifo.neutro = v("incluir_neutro") !== false;
       if (!glifo.neutro) ajustes.push("Sin el neutro partido");
+      // ADR 0114: la escala del resumen ejecutivo y su orden («Por acuerdo» es el del registro).
+      if (v("estilo") === "resumen") ajustes.push("Escala con Sin información aparte");
+      const orden = ORDEN_DIVERGENTES[String(v("orden") ?? "")];
+      if (orden) ajustes.push(orden);
       break;
-    case "p_dumbbell":
+    }
+    case "p_dumbbell": {
       glifo.brecha = v("mostrar_brecha") !== false;
       if (!glifo.brecha) ajustes.push("Sin la brecha");
+      if (v("estilo") === "resumen") {
+        ajustes.push("Contraste con tabla de base");
+        const sep = entero(v("separar_tras"));
+        if (sep) ajustes.push(`Separador tras la fila ${sep}`);
+        const baseEn = BASE_EN[String(v("base_en") ?? "")];
+        if (baseEn) ajustes.push(baseEn);
+      }
       break;
+    }
+    case "p_panorama": {
+      // ADR 0114: la referencia punteada; 60 es el default del registro.
+      const ref = Number(v("referencia"));
+      if (v("referencia") !== undefined && v("referencia") !== null && Number.isFinite(ref) && ref !== 60) ajustes.push(`Referencia ${ref} %`);
+      break;
+    }
     case "p_serie_temporal":
       glifo.cifras = v("mostrar_valores") !== false;
       if (!glifo.cifras) ajustes.push("Sin cifras");
