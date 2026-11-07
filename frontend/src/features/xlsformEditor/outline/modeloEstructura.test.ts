@@ -210,3 +210,46 @@ describe("siguienteBajoPunteroEn (búsqueda binaria del arrastre)", () => {
     }
   });
 });
+
+// C5 (elección por pares, 2026-11-07). Mata: cálculos del sorteo que se ven sueltos, un sorteo que junta dos pares o
+// cálculos no seguidos, un sorteo plegado cuyo contenido sigue en las líneas del teclado, y un hueco que cae dentro
+// del sorteo plegado.
+describe("sorteo de un par", () => {
+  // 0 q0 · 1 begin P1 · 2 r1 · 3 n1 · 4 t1 · 5 tabla · 6 end · 7 r2 · 8 n2 · 9 q9
+  const s = parseBuilderStructure(hoja([
+    ["text", "q0", "Antes"],
+    ["begin_group", "P1", "Par 1 de 2"],
+    ["calculate", "t1A_r_x", ""],
+    ["calculate", "t1A_x", ""],
+    ["calculate", "t1A_x_txt", ""],
+    ["note", "t1_tabla", "Tabla"],
+    ["end_group", "", ""],
+    ["calculate", "t2A_r_x", ""],
+    ["calculate", "t2A_x", ""],
+    ["text", "q9", "Después"],
+  ]));
+  const tarea = (f: number) => (f >= 2 && f <= 4 ? 1 : f >= 7 && f <= 8 ? 2 : undefined);
+  const arbol = construirArbol(s, tarea);
+
+  test("los cálculos seguidos de un par se juntan en una línea, dentro de su grupo o sueltos", () => {
+    const par1 = arbol.hijos[1]!;
+    expect(par1.tipo).toBe("seccion");
+    if (par1.tipo !== "seccion") return;
+    expect(par1.hijos.map((h) => h.tipo)).toEqual(["sorteo", "fila"]);
+    const suelto = arbol.hijos[2]!;
+    expect(suelto.tipo === "sorteo" && suelto.tarea === 2 && suelto.hijos.length === 2 && suelto.finSlot === 9).toBe(true);
+  });
+
+  test("plegado no deja sus cálculos en las líneas; abierto, sí", () => {
+    const plegado = lineasVisibles(arbol, () => true).map((l) => l.fila);
+    expect(plegado).not.toContain(7);
+    expect(lineasVisibles(arbol, () => false).map((l) => l.fila)).toContain(7);
+  });
+
+  test("el hueco después de un sorteo plegado cae tras su último cálculo", () => {
+    const ls = lineasVisibles(arbol, (f) => f < 0);
+    const i = ls.findIndex((l) => l.tipo === "sorteo" && l.inicio === 7);
+    expect(huecoEntre(s, ls, i + 1)).toEqual({ indice: 9, contenedor: null });
+    expect(huecoEntre(s, ls, i)).toEqual({ indice: 7, contenedor: null });
+  });
+});

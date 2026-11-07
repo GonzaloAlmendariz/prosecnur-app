@@ -1,6 +1,7 @@
 // Panel «Experimento de elección por pares» (conjoint) (E7b editor-conjoint, 2026-11-06): su dirección y el estado del diseño que se edita.
 // El estado vive en un reducer propio del panel, no en la página del editor.
 
+import { create } from "zustand";
 import type { PanelDeclarado } from "../../../lib/navegacion/paneles";
 import type { AtributoConjoint, DisenoConjoint } from "./modeloConjoint";
 
@@ -9,6 +10,13 @@ export const PANEL_EXPERIMENTO_CONJOINT: PanelDeclarado = {
   label: "Experimento de elección por pares",
   clase: "sideover",
 };
+
+/** El panel se abre para crear uno nuevo (desde «Añadir pieza») o para editar el que ya tiene el formulario (desde
+ * el sorteo en Estructura). Es estado UI efímero: vive aquí y no en la página. */
+export const useModoPanelPares = create<{ editar: boolean; fijar: (editar: boolean) => void }>((set) => ({
+  editar: false,
+  fijar: (editar) => set({ editar }),
+}));
 
 /** Nombre de variable a partir de un rótulo: sin tildes, minúsculas, `_` entre palabras, hasta 20 caracteres. */
 export function claveDesde(rotulo: string, usadas: readonly string[] = []): string {

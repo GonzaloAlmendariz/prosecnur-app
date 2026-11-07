@@ -40,6 +40,7 @@ import { crearFantasma, type Fantasma } from "./fantasma";
 import {
   FILTROS_RAPIDOS,
   construirArbol,
+  filaDeIdSorteo,
   filtrarArbol,
   huecoEntre,
   lineaVecina,
@@ -60,6 +61,12 @@ import { clavePlegado, estadoDe, useEstructuraStore } from "./storeEstructura";
 import { itemsInsertar } from "./tiposInsertables";
 import { useFlip } from "./useFlip";
 import "./estructura.css";
+
+/** Clave del plegado de un sorteo: el código de su primer cálculo, que no cambia al mover o insertar filas. */
+function claveSorteo(structure: BuilderStructure | null, id: number): string {
+  const fila = filaDeIdSorteo(id);
+  return `sorteo:${structure?.byRow.get(fila)?.name || fila}`;
+}
 
 export type { AvisoFila } from "./PuntoAviso";
 export type { LimiteSeccion } from "./SeccionEstructura";
@@ -84,6 +91,10 @@ export type SurveyOutlineProps = {
   formularioId?: string | null;
   /** Acción extra al final de la barra de búsqueda (ver BarraEstructura). */
   accionBarra?: ReactNode;
+  /** Par al que pertenece cada cálculo del sorteo de un experimento de elección por pares (C5). */
+  tareaDeSorteo?: (fila: number) => number | undefined;
+  /** Abre el panel del experimento con el diseño leído. */
+  onAbrirPares?: () => void;
 };
 
 const MARGEN_AUTOSCROLL = 44;
@@ -104,6 +115,8 @@ export function SurveyOutline({
   limiteSeccion,
   formularioId = null,
   accionBarra,
+  tareaDeSorteo,
+  onAbrirPares,
 }: SurveyOutlineProps) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [arrastre, setArrastre] = useState<ArrastreEstructura | null>(null);
@@ -119,7 +132,7 @@ export function SurveyOutline({
   // Árbol, filtro y líneas visibles
   // ---------------------------------------------------------------------------
 
-  const arbol = useMemo(() => construirArbol(structure), [structure]);
+  const arbol = useMemo(() => construirArbol(structure, tareaDeSorteo), [structure, tareaDeSorteo]);
 
   const hechos = useMemo(() => {
     // Misma lectura que los diagnósticos (estadoLista): una lista existe si choices le da alguna opción.
@@ -172,6 +185,8 @@ export function SurveyOutline({
   const plegada = useCallback(
     (fila: number) => {
       if (filtrando) return false;
+      // Un sorteo (id negativo) va plegado salvo que se haya abierto: en el store se anota abierto.
+      if (fila < 0) return !plegadas.has(claveSorteo(structure, fila));
       const n = structure?.byRow.get(fila);
       return n ? plegadas.has(clavePlegado(n.name, fila)) : false;
     },
@@ -213,6 +228,11 @@ export function SurveyOutline({
       id = meta.parentId;
     }
   }, [selectedRow, structure, fijarPlegada]);
+  useEffect(() => {
+    if (selectedRow == null || !tareaDeSorteo?.(selectedRow)) return;
+    const l = lineas.find((x) => x.tipo === "sorteo" && x.inicio! <= selectedRow && selectedRow < x.fin!);
+    if (l && !l.abierta) fijarPlegada(claveSorteo(structure, l.fila), true);
+  }, [selectedRow, tareaDeSorteo, lineas, structure, fijarPlegada]);
 
   // La fila elegida se trae a la vista sólo cuando cambia QUÉ pieza está elegida (o la movió el teclado). Un cambio
   // del workbook que sólo la renumera (arrastrar otra fila por encima, insertar, guardar) no debe mover la lista:
@@ -250,6 +270,11 @@ export function SurveyOutline({
   const onElegir = useCallback((fila: number) => ultimo.current.onSelect({ kind: "survey", rowIndex: fila }), []);
   const onPlegar = useCallback(
     (fila: number) => {
+      if (fila < 0) {
+        flip.capturar();
+        alternarPlegada(claveSorteo(structure, fila));
+        return;
+      }
       const n = structure?.byRow.get(fila);
       if (!n) return;
       flip.capturar();
@@ -415,6 +440,7 @@ export function SurveyOutline({
     const l = lineas.find((x) => x.fila === fila);
     if (!l) return { despuesDeFila: fila, seccionFila: null };
     if (l.tipo === "seccion" && l.abierta) return { despuesDeFila: null, seccionFila: fila };
+    if (l.tipo === "sorteo") return { despuesDeFila: l.fin! - 1, seccionFila: l.contenedor };
     return { despuesDeFila: fila, seccionFila: l.contenedor };
   }
 
@@ -429,11 +455,12 @@ export function SurveyOutline({
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       if (fila == null) onSelect({ kind: "settings" });
+      else if (fila < 0) onPlegar(fila);
       else onElegir(fila);
       return;
     }
     if (e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
-      if (fila == null || filtrando) return;
+      if (fila == null || fila < 0 || filtrando) return;
       e.preventDefault();
       const dir = e.key === "ArrowUp" ? "up" : "down";
       focoTrasMover.current = true;
@@ -462,16 +489,16 @@ export function SurveyOutline({
     }
     if (e.key === "ArrowLeft" && linea) {
       e.preventDefault();
-      if (linea.tipo === "seccion" && linea.abierta && !filtrando) onPlegar(linea.fila);
+      if (linea.tipo !== "fila" && linea.abierta && !filtrando) onPlegar(linea.fila);
       else if (linea.contenedor != null) enfocar(linea.contenedor);
       return;
     }
-    if (e.key === "ArrowRight" && linea?.tipo === "seccion") {
+    if (e.key === "ArrowRight" && linea && linea.tipo !== "fila") {
       e.preventDefault();
       if (!linea.abierta) onPlegar(linea.fila);
       else {
         const vecina = lineaVecina(lineas, linea.fila, 1);
-        if (vecina?.contenedor === linea.fila) enfocar(vecina.fila);
+        if (vecina && (vecina.contenedor === linea.fila || linea.tipo === "sorteo")) enfocar(vecina.fila);
       }
       return;
     }
@@ -500,9 +527,10 @@ export function SurveyOutline({
             onElegir,
             onPlegar,
             onInsertar: hayInsertar ? abrirInsertar : undefined,
+            onAbrirPares,
           }
         : null,
-    [structure, selectedRow, enRecorrido, arrastre, filtrando, plegada, avisosPorFila, limiteSeccion, onElegir, onPlegar, hayInsertar, abrirInsertar],
+    [structure, selectedRow, enRecorrido, arrastre, filtrando, plegada, avisosPorFila, limiteSeccion, onElegir, onPlegar, hayInsertar, abrirInsertar, onAbrirPares],
   );
 
   const itemsMenu = useMemo(

@@ -14,7 +14,7 @@ import type { BuilderNode, BuilderStructure } from "../types";
 import type { RowMovePlan } from "./outlineUtils";
 import { formatoConteo } from "../../../lib/formatoNumero";
 
-export type NodoArbol = NodoFila | NodoSeccion;
+export type NodoArbol = NodoFila | NodoSeccion | NodoSorteo;
 export type NodoFila = { tipo: "fila"; nodo: BuilderNode };
 export type NodoSeccion = {
   tipo: "seccion";
@@ -23,7 +23,47 @@ export type NodoSeccion = {
   /** Índice de inserción del final de la sección (la fila de su cierre). */
   finSlot: number;
 };
+/**
+ * El sorteo de un par de un experimento de elección por pares (checklist elección por pares C5): sus cálculos
+ * seguidos se ven como una sola línea plegable. `id` es negativo para no chocar con ninguna fila del survey.
+ */
+export type NodoSorteo = {
+  tipo: "sorteo";
+  id: number;
+  /** Primer cálculo del sorteo. */
+  nodo: BuilderNode;
+  tarea: number;
+  hijos: NodoFila[];
+  /** Índice de inserción justo después del último cálculo. */
+  finSlot: number;
+};
 export type ArbolEstructura = { hijos: NodoArbol[]; finSlot: number };
+
+/** Id de la línea de un sorteo a partir de su primera fila (siempre negativo). */
+export const idSorteo = (primeraFila: number) => -(primeraFila + 1);
+export const filaDeIdSorteo = (id: number) => -id - 1;
+
+/** Junta en un NodoSorteo los cálculos seguidos de un mismo par. */
+function agruparSorteo(hijos: NodoArbol[], tareaDe: (fila: number) => number | undefined): NodoArbol[] {
+  const out: NodoArbol[] = [];
+  for (const h of hijos) {
+    if (h.tipo === "seccion") {
+      out.push({ ...h, hijos: agruparSorteo(h.hijos, tareaDe) });
+      continue;
+    }
+    const tarea = h.tipo === "fila" ? tareaDe(h.nodo.rowIndex) : undefined;
+    const previo = out[out.length - 1];
+    if (tarea == null || h.tipo !== "fila") {
+      out.push(h);
+    } else if (previo?.tipo === "sorteo" && previo.tarea === tarea && previo.finSlot === h.nodo.rowIndex) {
+      previo.hijos.push(h);
+      previo.finSlot = h.nodo.rowIndex + 1;
+    } else {
+      out.push({ tipo: "sorteo", id: idSorteo(h.nodo.rowIndex), nodo: h.nodo, tarea, hijos: [h], finSlot: h.nodo.rowIndex + 1 });
+    }
+  }
+  return out;
+}
 
 const esBloque = (n: BuilderNode) => n.kind === "section" || n.kind === "repeat";
 
@@ -32,7 +72,10 @@ export function finDeBloque(structure: BuilderStructure, row: number): number {
   return structure.spans.get(row)?.end ?? row;
 }
 
-export function construirArbol(structure: BuilderStructure | null): ArbolEstructura {
+export function construirArbol(
+  structure: BuilderStructure | null,
+  tareaDeSorteo?: (fila: number) => number | undefined,
+): ArbolEstructura {
   if (!structure) return { hijos: [], finSlot: 0 };
   const raiz: ArbolEstructura = { hijos: [], finSlot: 0 };
   const porSeccion = new Map<string, NodoArbol[]>([["root", raiz.hijos]]);
@@ -50,7 +93,7 @@ export function construirArbol(structure: BuilderStructure | null): ArbolEstruct
   }
   const ultimo = raiz.hijos[raiz.hijos.length - 1];
   raiz.finSlot = ultimo ? finDeBloque(structure, ultimo.nodo.rowIndex) + 1 : 0;
-  return raiz;
+  return tareaDeSorteo ? { ...raiz, hijos: agruparSorteo(raiz.hijos, tareaDeSorteo) } : raiz;
 }
 
 /** Cuenta las piezas que no son secciones; con `cuenta`, sólo las que cumplen (p. ej. las mismas preguntas que el
@@ -140,7 +183,9 @@ export function filtrarArbol(
         continue;
       }
       const dentro = podar(h.hijos);
-      if (si || dentro.length) out.push({ ...h, hijos: dentro });
+      if (si || dentro.length) {
+        out.push(h.tipo === "sorteo" ? { ...h, hijos: dentro.filter((d): d is NodoFila => d.tipo === "fila") } : { ...h, hijos: dentro });
+      }
     }
     return out;
   };
@@ -178,12 +223,16 @@ export function textoDestino(
 // -----------------------------------------------------------------------------
 
 export type Linea = {
+  /** Fila del survey; en un sorteo, su id negativo. */
   fila: number;
-  tipo: "fila" | "seccion";
+  tipo: "fila" | "seccion" | "sorteo";
   /** Apertura de la sección que la contiene (null = el formulario). */
   contenedor: number | null;
-  /** Para una sección: si muestra su contenido. */
+  /** Para una sección o un sorteo: si muestra su contenido. */
   abierta: boolean;
+  /** Para un sorteo: primera fila y el índice justo después de la última. */
+  inicio?: number;
+  fin?: number;
 };
 
 /** Las líneas en el orden en que se ven, sin el contenido de las secciones plegadas ni el bloque `excluir`. */
@@ -199,6 +248,12 @@ export function lineasVisibles(
       if (fila === excluir) continue;
       if (h.tipo === "fila") {
         out.push({ fila, tipo: "fila", contenedor, abierta: false });
+        continue;
+      }
+      if (h.tipo === "sorteo") {
+        const abierto = !plegada(h.id);
+        out.push({ fila: h.id, tipo: "sorteo", contenedor, abierta: abierto, inicio: fila, fin: h.finSlot });
+        if (abierto) recorrer(h.hijos, contenedor);
         continue;
       }
       const abierta = !plegada(fila);
@@ -233,9 +288,11 @@ export type Hueco = { indice: number; contenedor: number | null };
 export function huecoEntre(structure: BuilderStructure, lineas: readonly Linea[], siguiente: number): Hueco | null {
   const L = lineas[siguiente];
   if (L && L.tipo === "fila") return { indice: L.fila, contenedor: L.contenedor };
+  if (L && L.tipo === "sorteo") return { indice: L.inicio!, contenedor: L.contenedor };
   const prev = lineas[siguiente - 1];
   if (!prev) return L ? { indice: L.fila, contenedor: L.contenedor } : null;
   if (prev.tipo === "fila") return { indice: prev.fila + 1, contenedor: prev.contenedor };
+  if (prev.tipo === "sorteo") return { indice: prev.fin!, contenedor: prev.contenedor };
   if (prev.abierta) return { indice: prev.fila + 1, contenedor: prev.fila };
   return { indice: finDeBloque(structure, prev.fila) + 1, contenedor: prev.contenedor };
 }

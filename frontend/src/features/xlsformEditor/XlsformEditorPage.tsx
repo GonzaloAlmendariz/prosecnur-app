@@ -174,7 +174,8 @@ import { usePanelDireccionable } from "../../lib/navegacion/paneles";
 import { MontajeConjoint } from "./conjoint/MontajeConjoint";
 import { conEjemploParaPapel } from "./cuestionario/ejemploSorteo";
 import { itemAltaConjoint } from "./conjoint/altaConjoint";
-import { PANEL_EXPERIMENTO_CONJOINT } from "./conjoint/estadoPanelConjoint";
+import { PANEL_EXPERIMENTO_CONJOINT, useModoPanelPares } from "./conjoint/estadoPanelConjoint";
+import { leerConjoint } from "./conjoint/leerConjoint";
 import { esperarExportPapel, textoExportando } from "./shell/paperExportJob";
 import { ToastDeck, useToastDeck } from "./shell/ToastDeck";
 import { EditorCommandBar } from "./shell/EditorCommandBar";
@@ -926,6 +927,12 @@ export default function XlsformEditorPage() {
     [workbook]
   );
   const structure = xlsformIndex?.structure ?? null;
+  // Experimento de elección por pares ya escrito (C5): Estructura pliega el sorteo de cada par y lo abre en el panel.
+  const lecturaPares = useMemo(() => leerConjoint(workbook), [workbook]);
+  const tareaDeSorteo = useMemo(
+    () => (lecturaPares ? (fila: number) => lecturaPares.sorteo.get(fila) : undefined),
+    [lecturaPares],
+  );
 
   // Candidatos de matriz para el selector de exportación a PDF: runs contiguos
   // de select_one/select_multiple con misma lista dentro de la misma sección.
@@ -2788,6 +2795,11 @@ export default function XlsformEditorPage() {
                         onInsertar={insertarDesdeEstructura}
                         onMoverFila={(rowIndex, direccion) => moveSelection(direccion, rowIndex)}
                         formularioId={activeFormId}
+                        tareaDeSorteo={tareaDeSorteo}
+                        onAbrirPares={() => {
+                          useModoPanelPares.getState().fijar(true);
+                          conjointPanel.abrir();
+                        }}
                         accionBarra={
                           // En pantallas bajas la cabecera «Estructura» se esconde para dar alto a la lista (I2) y
                           // «Añadir pieza» pasa a la barra de búsqueda.

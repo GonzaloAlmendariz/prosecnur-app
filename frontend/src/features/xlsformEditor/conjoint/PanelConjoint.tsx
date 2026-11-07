@@ -33,12 +33,16 @@ function parDeMuestra(d: DisenoConjoint, semilla: number): string | null {
   return conTablasHtml(tabla.replace(/\$\{([^}]+)\}/g, (_m, n: string) => valores[n] ?? ""), renderMarkdownInline);
 }
 
-export function PanelConjoint({ prefijoSugerido, onInsertar }: {
+export function PanelConjoint({ prefijoSugerido, existente, onInsertar }: {
   prefijoSugerido: string;
-  /** Inserta el diseño; devuelve los motivos si no se pudo. */
+  /** El experimento que ya tiene el formulario (C5): el panel lo edita en vez de crear uno. */
+  existente?: { diseno: DisenoConjoint; fiel: boolean; motivo: string | null } | null;
+  /** Inserta (o, con `existente`, reemplaza) el diseño; devuelve los motivos si no se pudo. */
   onInsertar: (d: DisenoConjoint) => string[];
 }) {
-  const [d, despachar] = useReducer(reducirConjoint, prefijoSugerido, disenoInicial);
+  const [d, despachar] = useReducer(reducirConjoint, null, () => existente?.diseno ?? disenoInicial(prefijoSugerido));
+  const editando = Boolean(existente);
+  const bloqueo = existente && !existente.fiel ? `No se puede editar desde aquí: ${existente.motivo ?? "el experimento no sigue el patrón del editor."}` : null;
   const [semilla, setSemilla] = useState(semillaNueva);
   const [rechazo, setRechazo] = useState<string[]>([]);
   const problemas = useMemo(() => validarDiseno(d), [d]);
@@ -59,8 +63,8 @@ export function PanelConjoint({ prefijoSugerido, onInsertar }: {
       icon={<Shuffle size={16} />}
       footerStatus={cifras ? `${cifras.calculos} cálculos y ${cifras.paginas} páginas` : `${problemas.length} por corregir`}
       footer={
-        <button type="button" className="pulso-primary" onClick={insertar} disabled={problemas.length > 0}>
-          Insertar en el formulario
+        <button type="button" className="pulso-primary" onClick={insertar} disabled={problemas.length > 0 || Boolean(bloqueo)}>
+          {editando ? "Aplicar cambios" : "Insertar en el formulario"}
         </button>
       }
     >
@@ -186,11 +190,11 @@ export function PanelConjoint({ prefijoSugerido, onInsertar }: {
           </button>
         </section>
 
-        {problemas.length || rechazo.length ? (
+        {problemas.length || rechazo.length || bloqueo ? (
           <section className="xfe-conjoint__avisos" role="status">
             <strong>Por corregir</strong>
             <ul>
-              {[...problemas, ...rechazo].map((p) => (
+              {[...(bloqueo ? [bloqueo] : []), ...problemas, ...rechazo].map((p) => (
                 <li key={p}>{p}</li>
               ))}
             </ul>

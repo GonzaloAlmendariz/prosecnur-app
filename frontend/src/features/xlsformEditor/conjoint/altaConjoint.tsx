@@ -3,6 +3,7 @@
 
 import { Shuffle } from "lucide-react";
 import type { AddMenuItem } from "../types";
+import { useModoPanelPares } from "./estadoPanelConjoint";
 
 export const CLAVE_ALTA_CONJOINT = "conjoint";
 
@@ -12,7 +13,10 @@ export function itemAltaConjoint(abrirPanel: () => void): AddMenuItem {
     label: "Experimento de elección por pares",
     hint: "Pares de perfiles con atributos sorteados y una pregunta de elección por par.",
     icon: <Shuffle size={16} />,
-    action: abrirPanel,
+    action: () => {
+      useModoPanelPares.getState().fijar(false);
+      abrirPanel();
+    },
     group: "logic",
   };
 }

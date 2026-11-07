@@ -1,11 +1,13 @@
-// Montaje del panel «Experimento conjoint» en el editor (E7b): decide dónde entra el bloque (tras la pieza elegida,
-// o al final), lo inserta y deja elegida su primera fila. La página sólo le pasa el workbook y sus manejadores.
+// Montaje del panel «Experimento de elección por pares» en el editor (E7b; edición, C5 2026-11-07): para uno nuevo
+// decide dónde entra (tras la pieza elegida, o al final); para el que ya tiene el formulario lo reemplaza en su lugar
+// con sus mismos nombres. Deja elegida la primera fila. La página sólo le pasa el workbook y sus manejadores.
 
 import { usePanelDireccionable } from "../../../lib/navegacion/paneles";
 import type { BuilderSelection, BuilderStructure, XlsformEditorWorkbook } from "../types";
-import { insertarConjoint, prefijoLibre } from "./insertarConjoint";
+import { insertarConjoint, prefijoLibre, reemplazarConjoint } from "./insertarConjoint";
+import { leerConjoint } from "./leerConjoint";
 import type { DisenoConjoint } from "./modeloConjoint";
-import { PANEL_EXPERIMENTO_CONJOINT } from "./estadoPanelConjoint";
+import { PANEL_EXPERIMENTO_CONJOINT, useModoPanelPares } from "./estadoPanelConjoint";
 import { PanelConjoint } from "./PanelConjoint";
 
 export function MontajeConjoint({ workbook, structure, selection, updateWorkbook, onInsertado }: {
@@ -16,7 +18,9 @@ export function MontajeConjoint({ workbook, structure, selection, updateWorkbook
   onInsertado: (rowIndex: number) => void;
 }) {
   const panel = usePanelDireccionable(PANEL_EXPERIMENTO_CONJOINT);
+  const editar = useModoPanelPares((s) => s.editar);
   if (!workbook || !structure || !panel.abierto) return null;
+  const lectura = editar ? leerConjoint(workbook) : null;
   const insertar = (d: DisenoConjoint): string[] => {
     const destino = selection?.kind === "survey"
       ? { despuesDeFila: selection.rowIndex, seccionFila: null }
@@ -24,7 +28,7 @@ export function MontajeConjoint({ workbook, structure, selection, updateWorkbook
     let motivos: string[] = [];
     let fila = -1;
     updateWorkbook((draft) => {
-      const r = insertarConjoint(draft, structure, destino, d);
+      const r = lectura ? reemplazarConjoint(draft, lectura, d) : insertarConjoint(draft, structure, destino, d);
       if (r.ok) fila = r.rowIndex;
       else motivos = r.motivos;
     });
@@ -34,5 +38,5 @@ export function MontajeConjoint({ workbook, structure, selection, updateWorkbook
     }
     return motivos;
   };
-  return <PanelConjoint prefijoSugerido={prefijoLibre(workbook)} onInsertar={insertar} />;
+  return <PanelConjoint prefijoSugerido={prefijoLibre(workbook)} existente={lectura} onInsertar={insertar} />;
 }
