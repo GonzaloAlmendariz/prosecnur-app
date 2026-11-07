@@ -87,11 +87,12 @@ export function PanelConjoint({ prefijoSugerido, existente, onInsertar }: {
             </PulsoField>
           </PulsoFieldRow>
           <PulsoFieldRow geometryGroup="xlsform/conjoint-textos" className="xfe-conjoint__columna">
+            {/* Textos largos (la pregunta y la introducción del v5 pasan de una línea): área de texto, no input. */}
             <PulsoField label="Pregunta de elección">
-              <PulsoInput value={d.pregunta} onChange={(e) => despachar({ tipo: "general", cambios: { pregunta: e.target.value } })} />
+              <textarea className="pulso-input xfe-conjoint__texto" rows={2} value={d.pregunta} onChange={(e) => despachar({ tipo: "general", cambios: { pregunta: e.target.value } })} />
             </PulsoField>
             <PulsoField label="Introducción" labelDetail="opcional">
-              <PulsoInput value={d.intro ?? ""} onChange={(e) => despachar({ tipo: "general", cambios: { intro: e.target.value } })} />
+              <textarea className="pulso-input xfe-conjoint__texto" rows={4} value={d.intro ?? ""} onChange={(e) => despachar({ tipo: "general", cambios: { intro: e.target.value } })} />
             </PulsoField>
           </PulsoFieldRow>
         </section>
@@ -104,18 +105,18 @@ export function PanelConjoint({ prefijoSugerido, existente, onInsertar }: {
             «—» y en la base queda NA.
           </p>
           {d.atributos.map((a, i) => (
-            <fieldset key={i} className="xfe-conjoint__atributo">
-              <legend className="xfe-conjoint__cabeza">
+            <section key={i} className="xfe-conjoint__atributo" aria-label={`Atributo ${i + 1}: ${a.rotulo}`}>
+              <div className="xfe-conjoint__cabeza">
                 <PulsoInput aria-label={`Rótulo del atributo ${i + 1}`} value={a.rotulo} onChange={(e) => despachar({ tipo: "rotuloAtributo", indice: i, rotulo: e.target.value })} />
                 <code>{a.clave}</code>
                 <button type="button" className="xfe-conjoint__quitar" aria-label={`Quitar ${a.rotulo}`} onClick={() => despachar({ tipo: "quitarAtributo", indice: i })}>
                   <Trash2 size={14} />
                 </button>
-              </legend>
+              </div>
               <ol className="xfe-conjoint__niveles">
                 {a.niveles.map((n, k) => (
                   <li key={k}>
-                    <span className="xfe-conjoint__codigo">{n.codigo}</span>
+                    <span className="xfe-conjoint__codigo" title={n.codigo}>{n.codigo}</span>
                     <PulsoInput size="sm" aria-label={`Nivel ${k + 1} de ${a.rotulo}`} value={n.texto} onChange={(e) => despachar({ tipo: "textoNivel", atributo: i, nivel: k, texto: e.target.value })} />
                     {n.peso != null ? (
                       <PulsoInput
@@ -142,26 +143,26 @@ export function PanelConjoint({ prefijoSugerido, existente, onInsertar }: {
                   <Plus size={13} /> Nivel
                 </button>
                 <PulsoSwitch size="sm" label="Con pesos" checked={a.niveles.every((n) => n.peso != null)} onCheckedChange={(v) => despachar({ tipo: "usarPesos", atributo: i, usar: v })} />
-                {i > 0 ? (
-                  <span className="xfe-conjoint__condicion">
-                    Se omite si
-                    <PulsoSelect
-                      size="sm"
-                      ariaLabel={`Condición de ${a.rotulo}`}
-                      value={a.soloSi ? `${a.soloSi.atributo}|${a.soloSi.noEs[0]}` : "siempre"}
-                      onValueChange={(valor) => {
-                        const [atributo, codigo] = valor.split("|");
-                        despachar({ tipo: "condicion", atributo: i, soloSi: atributo && codigo ? { atributo, noEs: [codigo] } : undefined });
-                      }}
-                      options={[
-                        { value: "siempre", label: "siempre se muestra" },
-                        ...d.atributos.slice(0, i).flatMap((b) => b.niveles.map((n) => ({ value: `${b.clave}|${n.codigo}`, label: `${b.rotulo} es «${n.texto}»` }))),
-                      ]}
-                    />
-                  </span>
-                ) : null}
               </div>
-            </fieldset>
+              {i > 0 ? (
+                <div className="xfe-conjoint__condicion">
+                  <span>Se omite si</span>
+                  <PulsoSelect
+                    size="sm"
+                    ariaLabel={`Condición de ${a.rotulo}`}
+                    value={a.soloSi ? `${a.soloSi.atributo}|${a.soloSi.noEs[0]}` : "siempre"}
+                    onValueChange={(valor) => {
+                      const [atributo, codigo] = valor.split("|");
+                      despachar({ tipo: "condicion", atributo: i, soloSi: atributo && codigo ? { atributo, noEs: [codigo] } : undefined });
+                    }}
+                    options={[
+                      { value: "siempre", label: "siempre se muestra" },
+                      ...d.atributos.slice(0, i).flatMap((b) => b.niveles.map((n) => ({ value: `${b.clave}|${n.codigo}`, label: `${b.rotulo} es «${n.texto}»` }))),
+                    ]}
+                  />
+                </div>
+              ) : null}
+            </section>
           ))}
           <button type="button" onClick={() => despachar({ tipo: "agregarAtributo" })}>
             <Plus size={13} /> Atributo

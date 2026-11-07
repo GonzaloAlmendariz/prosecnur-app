@@ -1,4 +1,4 @@
-/* Panel «Experimento conjoint» (E7b editor-conjoint). */
+/* Panel «Experimento de elección por pares» (E7b editor-conjoint; reparto y alineación, 2026-11-07). */
 .xfe-conjoint {
   display: flex;
   flex-direction: column;
@@ -40,24 +40,41 @@
   gap: 10px;
 }
 
+/* En la fila del kit cada campo lleva flex: 1 1 180px; apilado en columna ese 180px se volvía ALTO y dejaba un
+   bloque vacío bajo la pregunta y la introducción. */
+.xfe-conjoint__columna > .pulso-field {
+  flex: 0 0 auto;
+}
+
+.xfe-conjoint__texto {
+  width: 100%;
+  min-height: 0;
+  height: auto;
+  padding-block: 8px;
+  line-height: 1.45;
+  resize: vertical;
+  font: inherit;
+}
+
 .xfe-conjoint__atributo {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   margin: 0;
-  padding: 10px;
+  padding: 12px;
   border: 1px solid var(--pulso-border);
   border-radius: 10px;
   background: var(--pulso-surface-2);
 }
 
 .xfe-conjoint__cabeza {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 28px;
   align-items: center;
   gap: 8px;
-  width: 100%;
-  padding: 0;
 }
 
 .xfe-conjoint__cabeza input {
-  flex: 1;
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -70,26 +87,34 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin: 8px 0;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
 
+/* Código, texto, peso (si hay) y quitar en columnas fijas: el texto arranca en el mismo punto en todos los niveles
+   y atributos, sea cual sea el largo del código. */
 .xfe-conjoint__niveles li {
-  display: flex;
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) 28px;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
-.xfe-conjoint__niveles li > input:first-of-type {
-  flex: 1;
+.xfe-conjoint__niveles li:has(.xfe-conjoint__peso) {
+  grid-template-columns: 96px minmax(0, 1fr) 72px 28px;
 }
 
 .xfe-conjoint__codigo {
-  display: inline-grid;
-  place-items: center;
-  min-width: 22px;
-  height: 22px;
+  display: block;
+  min-width: 0;
+  height: 24px;
+  padding: 0 6px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  line-height: 22px;
+  color: var(--pulso-text-muted);
   border-radius: 6px;
   border: 1px solid var(--pulso-border);
   background: var(--pulso-surface);
@@ -105,7 +130,9 @@
 .xfe-conjoint__quitar {
   display: inline-grid;
   place-items: center;
-  padding: 4px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
   border: 0;
   background: transparent;
   color: var(--pulso-text-muted);
@@ -125,11 +152,16 @@
 }
 
 .xfe-conjoint__condicion {
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) 28px;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
+}
+
+.xfe-conjoint__condicion > span {
+  white-space: nowrap;
 }
 
 .xfe-conjoint__muestra {
