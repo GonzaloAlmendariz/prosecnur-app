@@ -4,7 +4,7 @@
 // La subida es un botón real que abre el selector de archivos: llega con Tab y se activa con Enter o espacio.
 
 import { useRef, type ChangeEvent, type KeyboardEvent } from "react";
-import { downloadUrl } from "../../../api/core";
+import { urlDelArchivo } from "../../../api/core";
 import type { EstiloLogoRef, EstiloLugarLogo, EstiloOpcionLogo } from "../../../api/graficosEstilo";
 import { ImagePlus, RotateCcw } from "../../../vendor/lucide-react";
 import { PulsoButton } from "../../../components/PulsoButton";
@@ -67,7 +67,7 @@ export function TarjetaLogo({
         <div className={`pulso-f6-estilo-logo-pagina is-${lugar === "contraportada" ? "contraportada" : "portada"}`}>
           <span className={`pulso-f6-estilo-logo-sitio is-${lugar}`}>
             {propio ? (
-              <img src={downloadUrl(logo.file_id)} alt={`Logo ${logo.nombre ?? "propio"} en ${titulo.toLowerCase()}`} />
+              <img src={urlDelArchivo(logo.file_id)} alt={`Logo ${logo.nombre ?? "propio"} en ${titulo.toLowerCase()}`} />
             ) : imagenPorDefecto ? (
               <img src={imagenPorDefecto} alt={`Logo por defecto en ${titulo.toLowerCase()}: ${recetario?.nombre ?? ""}`} />
             ) : null}

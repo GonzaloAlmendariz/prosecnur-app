@@ -30,7 +30,7 @@ export type PaletaPorLista = Record<string, string>;
 
 // Un ícono PNG subido por el analista para usar en slides de población.
 // El archivo vive en `session/$sid/icons/<file_id>.png`; el store solo
-// guarda la referencia. El frontend lo consume via `downloadUrl(file_id)`.
+// guarda la referencia. El frontend lo consume via `urlDelArchivo(file_id)`.
 export type IconoConfig = {
   id: string;          // uuid stable, usado como key en la UI
   nombre: string;      // etiqueta humana: "Logo GIZ", "Icono EESS"

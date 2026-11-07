@@ -8,7 +8,7 @@ import { apiGraficosPaletasSugeridas, type PaletaChoiceItem, type PaletaSugerida
 import { ESTANDAR_NOMINAL, LIKERT_RECETARIO, paletaNominal } from "./paletasSugeridas";
 import { escalasParaSembrar, escalasParaVariable } from "./escalaDeVariable";
 import { MAX_FOCOS, parseIndicePayload } from "./indiceModel";
-import { downloadUrl } from "../../api/client";
+import { urlDelArchivo } from "../../api/client";
 import VariablePicker from "./VariablePicker";
 import VarsListPicker from "./VarsListPicker";
 import { humanizeIdentifier } from "./graficadorDisplay";
@@ -2838,7 +2838,7 @@ function IconoSelect({
         <span style={iconPickerPreviewStyle} aria-hidden="true">
           {selected ? (
             <img
-              src={downloadUrl(selected.file_id)}
+              src={urlDelArchivo(selected.file_id)}
               alt=""
               style={iconPickerImageStyle}
             />
@@ -2898,7 +2898,7 @@ function IconoSelect({
                 >
                   <span style={iconPickerOptionThumbStyle}>
                     <img
-                      src={downloadUrl(ic.file_id)}
+                      src={urlDelArchivo(ic.file_id)}
                       alt=""
                       style={iconPickerImageStyle}
                     />

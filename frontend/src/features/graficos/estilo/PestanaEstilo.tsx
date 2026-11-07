@@ -57,7 +57,7 @@ import { usePptStyleProfiles } from "../usePptStyleProfiles";
 import { usePaletasRespuestas } from "./usePaletasRespuestas";
 import { MuestraIdentidad, type DatosMuestra, type LogoMuestra } from "./MuestraIdentidad";
 import { IMAGEN_POR_DEFECTO } from "./TarjetaLogo";
-import { downloadUrl } from "../../../api/core";
+import { urlDelArchivo } from "../../../api/core";
 import { useLineasPropias } from "./lineasPropiasStore";
 import { useVariables } from "../useVariables";
 import { ESTILO_AMBITOS } from "../../../api/graficosEstilo";
@@ -168,7 +168,7 @@ export default function PestanaEstilo() {
   const logoMuestra = (lugar: EstiloLugarLogo): LogoMuestra => {
     const propio = estilo.logos?.[lugar];
     const rec = opciones?.logos.find((l) => l.lugar === lugar);
-    return propio ? { src: downloadUrl(propio.file_id), nombre: propio.nombre ?? "Logo propio" }
+    return propio ? { src: urlDelArchivo(propio.file_id), nombre: propio.nombre ?? "Logo propio" }
       : { src: rec?.logo ? IMAGEN_POR_DEFECTO[rec.logo] ?? null : null, nombre: rec?.nombre ?? "" };
   };
   const portada = slidesPlan.find((x) => x.tipo === "p_slide_portada");

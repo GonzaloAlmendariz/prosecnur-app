@@ -6,7 +6,7 @@
 import { useId } from "react";
 import { AlertTriangle, Ban, History } from "../../../../vendor/lucide-react";
 import type { ArgMetadata } from "../../../../api/graficos";
-import { downloadUrl } from "../../../../api/core";
+import { urlDelArchivo } from "../../../../api/core";
 import type { IconoConfig } from "../../store";
 import { iconoElegido, nombreIcono } from "./modeloContenidoEspecial";
 import "../selectores/selectores.css";
@@ -54,7 +54,7 @@ export function SelectorIconoSubido({ arg, valor, iconos, onCambio }: Props) {
           <label key={ic.id} className="pulso-f6-icono-subido-opcion" title={nombreIcono(ic)} data-qa-geometry-member>
             <input type="radio" className="pulso-f6-radio-oculto" name={`${id}-icono`} checked={actual === ic.id}
               onChange={() => onCambio(ic.id)} aria-label={nombreIcono(ic)} />
-            <span className="pulso-f6-icono-subido-muestra"><img src={downloadUrl(ic.file_id)} alt="" /></span>
+            <span className="pulso-f6-icono-subido-muestra"><img src={urlDelArchivo(ic.file_id)} alt="" /></span>
             <span className="pulso-f6-icono-subido-nombre" aria-hidden="true">{nombreIcono(ic)}</span>
           </label>
         ))}

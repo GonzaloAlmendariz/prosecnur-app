@@ -309,3 +309,12 @@ export function downloadUrl(file_id: string) {
   const qs = sid ? `?sid=${encodeURIComponent(sid)}` : "";
   return apiPath(`/api/files/${file_id}/download${qs}`);
 }
+
+/**
+ * URL de un archivo del file store para mostrarlo en línea (`<img src>`,
+ * previsualización). Es la misma ruta que `downloadUrl`; el nombre distinto
+ * separa "ver" de "entregar" para el ratchet de entregas (ADR 0133).
+ */
+export function urlDelArchivo(file_id: string): string {
+  return downloadUrl(file_id);
+}

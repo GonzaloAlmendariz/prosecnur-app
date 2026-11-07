@@ -43,7 +43,7 @@ vi.mock("../../useVariables", async (importOriginal) => ({
 
 vi.mock("../../../../api/core", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../../api/core")>()),
-  downloadUrl: (fileId: string) => `/api/files/${fileId}`,
+  urlDelArchivo: (fileId: string) => `/api/files/${fileId}`,
 }));
 
 vi.mock("../../indice/useIconosRecetario", () => ({

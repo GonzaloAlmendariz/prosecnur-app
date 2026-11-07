@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Upload, Trash2, Pencil, Check, ImageOff, Images, CheckCircle2 } from "../../vendor/lucide-react";
-import { apiGraficosIconoUpload, downloadUrl } from "../../api/client";
+import { apiGraficosIconoUpload, urlDelArchivo } from "../../api/client";
 import { usePlanStore, IconoConfig } from "./store";
 import { EmptyState, ErrorBlock } from "../../components/States";
 import { formatoConteo } from "../../lib/formatoNumero";
@@ -177,7 +177,7 @@ function IconoCard({
     <article className="pulso-gv2-icon-card">
       <div className="pulso-gv2-icon-card-preview">
         <img
-          src={downloadUrl(icono.file_id)}
+          src={urlDelArchivo(icono.file_id)}
           alt={icono.nombre}
         />
       </div>
