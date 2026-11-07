@@ -56,11 +56,12 @@
     xb <- x + ge$wr + 0.15; wb <- ge$w - ge$wr - 0.15 - 0.6
     for (i in seq_along(cl$rotulos)) {
       yc <- ge$y0 + ge$cab + (i - 0.5) * ge$h
-      hr <- .lam_alto_tinta(cl$rotulos[i], ge$wr + 0.1, 12, FALSE)   # el ancho del cuadro de texto
-      .lam_txt(lz, cl$rotulos[i], x - 0.1, yc - hr / 2 - 0.02, ge$wr + 0.1, hr, 12, azul, nombre = "fortalezas:rotulo")
-      .lam_caja(lz, xb, yc - ge$g / 2, wb, ge$g, pista, nombre = "fortalezas:pista")
+      # El cuadro ocupa la fila entera y centra su texto: una o dos líneas quedan centradas con la barra sin depender
+      # de cuántas líneas estime la medición (LibreOffice y PowerPoint parten distinto en la frontera).
+      .lam_txt(lz, cl$rotulos[i], x - 0.1, yc - ge$h / 2, ge$wr + 0.1, ge$h, 12, azul, nombre = "fortalezas:rotulo", anclaje = "ctr")
+      .lam_caja(lz, xb, yc - ge$g / 2, wb, ge$g, pista, nombre = "fortalezas:pista", borde = NA)
       lb <- max(0.01, wb * max(0, min(100, cl$valores[i])) / 100)
-      .lam_caja(lz, xb, yc - ge$g / 2, lb, ge$g, cl$color, nombre = "fortalezas:barra")
+      .lam_caja(lz, xb, yc - ge$g / 2, lb, ge$g, cl$color, nombre = "fortalezas:barra", borde = NA)
       tinta <- .lam_ancho_tinta(cl$cifras[i], 12, TRUE) + 0.22
       if (lb >= tinta) {
         .lam_txt(lz, cl$cifras[i], xb + lb - tinta - 0.02, .lam_y_centrada(yc, 12), tinta, 0.3, 12, .lam_texto_sobre(cl$color), bold = TRUE,

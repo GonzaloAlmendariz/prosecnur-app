@@ -62,12 +62,16 @@
 #' @keywords internal
 .lam_caja <- function(lz, l, t, w, h, fill, nombre = "caja", geom = c("rect", "triangle", "ellipse", "diamond"), borde = NULL, borde_pt = 0.75) {
   geom <- match.arg(geom)
-  hex <- .lam_hex(fill); hex_borde <- .lam_hex(borde %||% fill); w_borde <- if (is.null(borde)) 3175L else as.integer(round(borde_pt * 12700))
+  # `borde = NA`: sin línea (una barra sobre su pista no debe dejar un filo en el extremo).
+  sin_borde <- length(borde) == 1L && is.na(borde)
+  hex <- .lam_hex(fill); hex_borde <- if (sin_borde) hex else .lam_hex(borde %||% fill)
+  w_borde <- if (is.null(borde) || sin_borde) 3175L else as.integer(round(borde_pt * 12700))
+  ln <- if (sin_borde) '<a:ln><a:noFill/></a:ln>' else paste0('<a:ln w="', w_borde, '"><a:solidFill><a:srgbClr val="', hex_borde, '"/></a:solidFill></a:ln>')
   xml <- paste0(
     '<p:sp><p:nvSpPr><p:cNvPr id="0" name="', .lam_xml_esc(nombre), '"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>',
     '<p:spPr>', .lam_xfrm(l, t, w, h), '<a:prstGeom prst="', geom, '"><a:avLst/></a:prstGeom>',
     '<a:solidFill><a:srgbClr val="', hex, '"/></a:solidFill>',
-    '<a:ln w="', w_borde, '"><a:solidFill><a:srgbClr val="', hex_borde, '"/></a:solidFill></a:ln></p:spPr>',
+    ln, '</p:spPr>',
     '<p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:endParaRPr/></a:p></p:txBody></p:sp>'
   )
   .lam_registrar(lz, xml, l, t, w, h)
@@ -76,15 +80,15 @@
 #' Cuadro de texto de un párrafo (`txt()` del recetario)
 #' @keywords internal
 .lam_txt <- function(lz, s, l, t, w, h, size = 12, color = .std_color("azul"), bold = FALSE,
-                     align = c("left", "center", "right"), nombre = "texto") {
-  align <- match.arg(align)
+                     align = c("left", "center", "right"), nombre = "texto", anclaje = c("t", "ctr")) {
+  align <- match.arg(align); anclaje <- match.arg(anclaje)   # `ctr`: el texto se centra en el alto del cuadro
   algn <- c(left = "l", center = "ctr", right = "r")[[align]]
   bold <- .lam_negrita(nombre, bold)   # negrita por elemento (O8a): el rol sale del nombre de la pieza, estilo_negrita.R
   fuente <- .std_pt("fuente")
   xml <- paste0(
     '<p:sp><p:nvSpPr><p:cNvPr id="0" name="', .lam_xml_esc(nombre), '"/><p:cNvSpPr txBox="1"/><p:nvPr/></p:nvSpPr>',
     '<p:spPr>', .lam_xfrm(l, t, w, h), '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/></p:spPr>',
-    '<p:txBody><a:bodyPr wrap="square" lIns="91440" tIns="45720" rIns="91440" bIns="45720" anchor="t" anchorCtr="0">',
+    '<p:txBody><a:bodyPr wrap="square" lIns="91440" tIns="45720" rIns="91440" bIns="45720" anchor="', anclaje, '" anchorCtr="0">',
     '<a:noAutofit/></a:bodyPr><a:lstStyle/>',
     '<a:p><a:pPr algn="', algn, '" marL="0" marR="0" indent="0"><a:lnSpc><a:spcPct val="100000"/></a:lnSpc>',
     '<a:spcBef><a:spcPts val="0"/></a:spcBef><a:spcAft><a:spcPts val="0"/></a:spcAft><a:buNone/></a:pPr>',
