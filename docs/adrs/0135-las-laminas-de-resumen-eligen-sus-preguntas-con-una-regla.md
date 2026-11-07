@@ -29,8 +29,10 @@ Decisiones de Gonzalo del 2026-11-07:
 ## Decisión
 
 1. **Tres clases de tipo.** Un *gráfico* es una pieza de uso general que va en cualquier lámina. Una *lámina* es una
-   composición. Una *lámina de resumen* elige sus preguntas con una regla. La clase se declara en el catálogo de cada
-   tipo (`clase`: `grafico`, `lamina` o `resumen`) y la interfaz la muestra en el selector, el catálogo y el inspector.
+   composición. Una *lámina de resumen* elige sus preguntas con una regla. La clase es de la **tarjeta** del
+   selector, no del graficador: el mismo `p_dumbbell` es un gráfico en estilo recetario y una lámina de resumen con
+   estilo `resumen` y `regla`. Se declara en la tabla de tarjetas del front (`clase`: `grafico`, `lamina` o `resumen`) y
+   la interfaz la muestra en el selector, el catálogo y el inspector.
 2. **La regla.** El arg `regla` de los graficadores de resumen es una lista:
    `{tipo, n, umbral, agregar, quitar}`. Los tipos son:
    - `todas`: todas las candidatas.
