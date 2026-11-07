@@ -43,8 +43,12 @@
 
 /* La hoja de prueba en el centro con las dos columnas a los lados; bajo 1180 px, sólo la hoja como antes. */
 .pulso-xfsim-main.con-paneles { display: grid; grid-template-columns: 250px minmax(0, 1fr) 280px; gap: 20px; align-items: start; }
-.pulso-xfsim-main.con-paneles > .pulso-xfsim-sheet,
-.pulso-xfsim-main.con-paneles > .pulso-xfsim-empty { justify-self: center; width: 100%; max-width: 680px; }
+.pulso-xfsim-main.con-paneles > .pulso-xfsim-sheet { justify-self: center; width: 100%; max-width: 680px; }
+/* A9 (2026-11-07): sin preguntas no hay columnas laterales; el vacío ocupa todo el ancho y queda al centro. */
+.pulso-xfsim-main.con-paneles > .pulso-xfsim-empty {
+  grid-column: 1 / -1; justify-self: center; align-self: center; width: 100%; max-width: 420px;
+  min-height: 50vh; margin: 0; justify-content: center;
+}
 @media (max-width: 1180px) {
   .pulso-xfsim-main.con-paneles { grid-template-columns: minmax(0, 1fr); }
   .pulso-xfsim-main.con-paneles > .xfsp-col { display: none; }

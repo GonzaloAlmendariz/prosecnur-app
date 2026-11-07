@@ -650,12 +650,12 @@ input[type="range"].pulso-xfsim-range-input::-moz-range-thumb {
 }
 
 .pulso-xfsim-empty strong {
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   color: var(--pulso-text);
 }
 
 .pulso-xfsim-empty span {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 

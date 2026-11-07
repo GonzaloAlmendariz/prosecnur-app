@@ -61,7 +61,7 @@ const SNAPSHOT_LITERALES: Record<string, number> = {
   "features/xlsformEditor/pestanas/armador/armador.css": 2,
   "features/xlsformEditor/styles/xf-home/01-xf-home-css-hub-biblioteca-d.css": 1,
   "features/xlsformEditor/styles/xf-preview-inputs.css": 9,
-  "features/xlsformEditor/styles/xf-simulator.css": 17,
+  "features/xlsformEditor/styles/xf-simulator.css": 15,
   "features/hojasRuta/mapa/mapaPage.css": 2,
   "features/monitoreo/monitoreo.css": 3,
   "features/monitoreo/profiles/acreditacion/AvanceCorreo.css": 3,
