@@ -42,6 +42,8 @@ Gonzalo, 2026-11-07: «propón una vista moderna de UI para seleccionar tipos de
 
 Tercera ronda (Gonzalo: «sigue faltando menús de configuración didácticos para los tipos de gráficos… ¿está clara la diferencia entre láminas de resumen y gráficos que sirven para el resumen pero sirven para otras cosas en general?»): un tablero separa gráfico (pieza de uso general), lámina (composición) y lámina de resumen (elige sus preguntas con una regla); otro muestra la configuración de los quince tipos con los mismos tres pasos (qué datos, qué se calcula, cómo se ve), cada control con su «para qué sirve» y lo que cambia en la lámina; el catálogo y la galería separan «láminas de resumen» de «gráficos de uso general que el resumen reutiliza».
 
+Cuarta ronda (Gonzalo: «no lo estás poniendo en su sidebar donde van la configuración por gráfico; además lo llenas de textos innecesarios y sobredescriptivos»): la configuración de cada gráfico pasa al inspector de la pantalla real de Gráficos (estructura a la izquierda, lámina al centro, pestañas Lámina y Gráfico a la derecha, secciones Datos, Cálculo y Aspecto), cada control con su rótulo y un «?»; se quitaron de todos los tableros los párrafos de introducción, las líneas de ayuda bajo cada control y los recuadros explicativos.
+
 ## Decisiones que necesita Gonzalo
 
 1. ¿La entrada es una familia nueva en el selector («Resumir el estudio») o un mazo que arma todo de una vez? (Se pueden hacer las dos; la pregunta es cuál va primero.)
