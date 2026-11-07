@@ -2,15 +2,15 @@
 // outline/SeccionEstructura.tsx — una sección o repetición como contenedor de la Estructura
 // =============================================================================
 // Rediseño del Constructor (2026-10-17, C2 y C14). La sección es un contenedor con borde lateral y sus piezas
-// adentro; su cierre es ese borde, no una fila. La cabecera se ELIGE (abre la ficha de la sección con el `onSelect`
-// de siempre) y el chevrón sólo pliega. Si la sección tiene condición propia, la cabecera la marca.
+// adentro; su cierre es ese borde, no una fila. Sin chevrón (E20, decisión de Gonzalo 2026-11-06: «Plegar con el
+// título»): un clic en la cabecera pliega o despliega; el doble clic y Enter abren la ficha de la sección. Si la
+// sección tiene condición propia, la cabecera la marca.
 //
 // Mover el cierre sigue disponible desde la sección elegida: el pie ofrece «Incluir la siguiente» y «Sacar la
 // última» (los mismos `moveSectionBoundary` de la página).
 // =============================================================================
 
 import { useId, type ReactNode } from "react";
-import { ChevronDown } from "../../../vendor/lucide-react";
 import { AsaArrastre } from "./AsaArrastre";
 import type { BuilderNode } from "../types";
 import { TypeIcon } from "../kit/TypeIcon";
@@ -85,30 +85,18 @@ export function SeccionEstructura({
             titulo={`Arrastra para mover la ${nombreTipo} entera (Alt+↑ / Alt+↓)`}
             etiqueta={`Arrastra para mover la ${nombreTipo}`}
           />
-          <button
-            type="button"
-            className="xfe-chev"
-            tabIndex={-1}
-            aria-label={`${abierta ? "Plegar" : "Desplegar"} «${tituloSinRefs}»`}
-            title={abierta ? "Plegar (←)" : "Desplegar (→)"}
-            onClick={(e) => {
-              e.stopPropagation();
-              onPlegar(node.rowIndex);
-            }}
-          >
-            <ChevronDown size={13} strokeWidth={2.4} aria-hidden="true" />
-          </button>
           <div
             role="button"
             tabIndex={enRecorrido ? 0 : -1}
             aria-current={active ? "true" : undefined}
-            // El estado plegado va en lo que recibe el foco (el chevrón queda fuera del recorrido con Tab).
             aria-expanded={abierta}
             aria-controls={idHijos}
             aria-keyshortcuts="Enter ArrowLeft ArrowRight Alt+ArrowUp Alt+ArrowDown Insert"
-            title={`${titulo}\n${ATAJOS_FILA}, ← → pliega`}
+            title={`${titulo}\nClic: ${abierta ? "plegar" : "desplegar"}. Doble clic: abrir la ficha.\n${ATAJOS_FILA}, ← → pliega`}
             data-nav={node.rowIndex}
-            onClick={() => onElegir(node.rowIndex)}
+            // Clic pliega; el doble clic (que también trae dos clics) deja el plegado como estaba y abre la ficha.
+            onClick={(e) => { if (e.detail <= 1) onPlegar(node.rowIndex); }}
+            onDoubleClick={() => { onPlegar(node.rowIndex); onElegir(node.rowIndex); }}
             className="pulso-outline-body xfe-sec-cab__cuerpo"
           >
             <span className="pulso-outline-typeicon xfe-sello">
