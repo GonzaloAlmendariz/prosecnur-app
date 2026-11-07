@@ -18,6 +18,11 @@
 .lam_laminas_divergentes <- function(doc, espec, titulo, ante = NULL, base = NULL, folio = NULL, sub = NULL,
                                      layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
   force(folio)
+  # ADR 0114: la escala del resumen ejecutivo tiene su propia lámina (lamina_divergentes_resumen.R).
+  if (identical(espec$estilo, "resumen")) {
+    return(.lam_laminas_divergentes_resumen(doc, espec, titulo, ante = ante, base = base, folio = folio, sub = sub,
+                                            layout = layout, master = master, por_lamina = por_lamina))
+  }
   g_ <- .std_geom; ml <- g_("margen_izq"); W <- g_("ancho"); mr <- g_("margen_der")
   yt <- g_("zona_datos_y0"); yf <- g_("contenido_y1")
   azul <- .std_color("azul"); suave <- .std_color("texto_suave"); tenue <- .std_color("texto_tenue")
@@ -110,6 +115,7 @@
 #' ¿Las divergentes caben? Hasta 8 afirmaciones con su texto en la fila (10.5 pt en 4.5 in)
 #' @keywords internal
 .lam_divergentes_cabe <- function(espec) {
+  if (identical(espec$estilo, "resumen")) return(.lam_divergentes_resumen_cabe(espec))   # ADR 0114
   n <- length(espec$filas); y0 <- .std_geom("zona_datos_y0") + 0.3
   fila <- min(0.74, (.std_geom("contenido_y1") - y0 - 0.35) / max(1L, n))
   # La afirmación puede pasar un poco del alto de su fila (el recetario lleva una de cuatro líneas en 0.74 in).

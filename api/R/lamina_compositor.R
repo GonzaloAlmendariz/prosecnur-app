@@ -146,6 +146,9 @@
   if (identical(espec$tipo, "pie")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_circular_cabe(espec)))
   # N3: barras divergentes (lámina 71) y ranking con puntos (lámina 72), si caben.
   if (identical(espec$tipo, "divergentes")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_divergentes_cabe(espec)))
+  # ADR 0114: el contraste de públicos y el panorama del resumen ejecutivo, si caben.
+  if (identical(espec$tipo, "contraste")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_contraste_cabe(espec)))
+  if (identical(espec$tipo, "panorama")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_panorama_cabe(espec)))
   if (identical(espec$tipo, "categorica") && identical(espec$forma, "lollipop")) {
     return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_lollipop_cabe(espec)))
   }
@@ -315,6 +318,11 @@
     return(f(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo), base = paste(c(texto(base), texto(pie)), collapse = ". "),
              folio = length(doc) + 1L, sub = texto(subtitulo), unidad_n = unidad, layout = layout, master = master, por_lamina = por_lamina,
              rotulo_centro = espec$frase_centro)$doc)
+  }
+  if (espec$tipo %in% c("contraste", "panorama")) {   # ADR 0114 (lamina_contraste.R)
+    f <- if (identical(espec$tipo, "contraste")) .lam_laminas_contraste else .lam_laminas_panorama
+    return(f(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo), base = .lam_unir_base(texto(base), texto(pie)),
+             folio = length(doc) + 1L, sub = texto(subtitulo), layout = layout, master = master, por_lamina = por_lamina)$doc)
   }
   if (identical(espec$tipo, "divergentes")) {
     return(.lam_laminas_divergentes(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),

@@ -113,6 +113,11 @@
 #'   expresadas como IDs de `cols_porcentaje`. Permite conservar la semantica
 #'   declarada sobre la escala original cuando algunas categorias se excluyen.
 #' @param escala_valor `proporcion_1` (0-1) o `proporcion_100` (0-100).
+#' @param estilo `recetario` (lámina 71) o `resumen`: la escala del resumen ejecutivo (ADR 0114), con la leyenda
+#'   alineada con cada lado, cifras en texto oscuro, la cifra que no cabe en un extremo fuera de la barra y
+#'   «Sin información» en una columna aparte.
+#' @param orden `top_two_box` (de mayor a menor acuerdo), `sin_informacion` (de mayor a menor «Sin información») o
+#'   `declarado`.
 #'
 #' @family graficador
 #' @export
@@ -156,9 +161,13 @@ graficar_barras_divergentes <- function(
     textos_negrita = NULL,
     font_family = "Arial",
     reparto = NULL,
-    codigos_grupos = NULL
+    codigos_grupos = NULL,
+    estilo = c("recetario", "resumen"),
+    orden = c("top_two_box", "sin_informacion", "declarado")
 ) {
   escala_valor <- match.arg(escala_valor)
+  estilo <- match.arg(estilo)
+  orden <- match.arg(orden)
   leyenda_posicion <- match.arg(leyenda_posicion)
   face <- .graficos_face_de(textos_negrita)
 
@@ -195,7 +204,8 @@ graficar_barras_divergentes <- function(
 
   espec_div <- tryCatch(.espec_divergentes(data, var_categoria, cols_porcentaje, etiquetas, particion, escala_valor,
                                            valores_decimales, colores_grupos, incluir_neutro = incluir_neutro,
-                                           reparto_explicito = !is.null(reparto), codigos = codigos_grupos), error = function(e) NULL)
+                                           reparto_explicito = !is.null(reparto), codigos = codigos_grupos, orden = orden,
+                                           estilo = estilo), error = function(e) NULL)
   items <- as.character(data[[var_categoria]])
   filas <- list()
   for (i in seq_along(items)) {

@@ -21,8 +21,9 @@
   codigos <- .radar_mb_codigos(corte)
   if (!length(codigos)) stop_api(400, "E_RADAR_SIN_CORTE", "La brecha necesita un indicador: al menos un código de la escala.")
   grupos <- as.character(unlist(grupos))
-  if (length(grupos) != 2L || anyDuplicated(grupos)) {
-    stop("dumbbell: `grupos` debe traer exactamente dos códigos distintos del cruce.", call. = FALSE)
+  # Dos grupos en el recetario; el contraste del resumen (ADR 0114) admite hasta cuatro (aperturas por ciclo).
+  if (length(grupos) < 2L || length(grupos) > 4L || anyDuplicated(grupos)) {
+    stop("dumbbell: `grupos` debe traer entre dos y cuatro códigos distintos del cruce.", call. = FALSE)
   }
   cx <- .graficos_consolidado_ref_context(cruce, sources)
   if (!isTRUE(cx$exists)) stop("dumbbell: la pregunta de cruce `", cruce, "` no existe en la base.", call. = FALSE)
@@ -48,7 +49,7 @@
       stop("dumbbell: el tema `", tema, "` está en la base `", ctx$source, "` y el cruce en `", cx$source,
            "`: los dos grupos se comparan dentro de una misma base.", call. = FALSE)
     }
-    for (k in 1:2) {
+    for (k in seq_along(grupos)) {
       dentro <- !is.na(g) & g == grupos[k]
       v <- datos[[ctx$resolved_variable]][dentro]
       m <- .radar_mb_pct(v, codigos, pesos = pesos[dentro])
@@ -61,7 +62,7 @@
   out$eje <- factor(out$eje, levels = names(temas))
   out$grupo <- factor(out$grupo, levels = etiquetas)
   rownames(out) <- NULL
-  attr(out, "dumbbell_colores") <- unname(.std_paleta("dicotomica"))[1:2]   # L10-3: pareja de marca para dos grupos de una base
+  if (length(grupos) == 2L) attr(out, "dumbbell_colores") <- unname(.std_paleta("dicotomica"))[1:2]   # L10-3: pareja de marca para dos grupos de una base
   out
 }
 
@@ -96,7 +97,8 @@
 #' `p_dumbbell()` con `cruce`: una ref por tema, todas de una base, y los dos códigos de grupo
 #' @keywords internal
 .p_dumbbell_grupos <- function(vars, corte, corte_etiqueta, orden, mostrar_brecha, umbral_brecha_pct, titulo,
-                               overrides, base, filtros, etiqueta_brecha, cruce, grupos) {
+                               overrides, base, filtros, etiqueta_brecha, cruce, grupos, estilo = NULL, universos = NULL,
+                               separar_tras = NULL, base_en = NULL) {
   if (!nzchar(trimws(as.character(cruce)[1] %||% ""))) .plan_spec_abort("p_dumbbell(): elige la pregunta que define los grupos.")
   refs <- if (is.list(vars)) vapply(vars, function(x) as.character(unlist(x))[1], character(1)) else as.character(vars)
   if (!length(refs) || any(is.na(refs) | !nzchar(trimws(refs)))) {
@@ -104,11 +106,15 @@
   }
   if (!length(.radar_mb_codigos(corte))) .plan_spec_abort("p_dumbbell(): `corte` debe traer al menos un codigo de la escala.")
   grupos <- trimws(as.character(unlist(grupos)))
-  if (length(grupos) != 2L || anyDuplicated(grupos) || any(!nzchar(grupos))) {
-    .plan_spec_abort("p_dumbbell(): `grupos` debe traer los dos grupos del cruce que se comparan.")
-  }
   if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
   ov <- .dumbbell_slot_overrides(overrides, orden, mostrar_brecha, umbral_brecha_pct, etiqueta_brecha)   # O7c
+  ov <- .dumbbell_resumen_overrides(ov, estilo, universos, separar_tras, base_en)
+  # El recetario compara dos grupos; el contraste del resumen, hasta cuatro (ADR 0114).
+  tope <- if (identical(ov$estilo, "resumen")) 4L else 2L
+  if (length(grupos) < 2L || length(grupos) > tope || anyDuplicated(grupos) || any(!nzchar(grupos))) {
+    .plan_spec_abort(if (tope == 2L) "p_dumbbell(): `grupos` debe traer los dos grupos del cruce que se comparan."
+                     else "p_dumbbell(): `grupos` debe traer entre dos y cuatro grupos del cruce.")
+  }
   el <- list(
     .element_type = "dumbbell",
     var = NULL,
@@ -124,4 +130,16 @@
   )
   class(el) <- c("ppt_element", "list")
   el
+}
+
+#' Los args del contraste del resumen (ADR 0114) en los overrides de la lámina: sólo lo que el slot declara (O7c)
+#' @keywords internal
+.dumbbell_resumen_overrides <- function(ov, estilo = NULL, universos = NULL, separar_tras = NULL, base_en = NULL) {
+  ov <- .ppt_slot_override(ov, "estilo", estilo, "opcion", opciones = c("recetario", "resumen"))
+  ov <- .ppt_slot_override(ov, "base_en", base_en, "opcion", opciones = c("auto", "tabla", "leyenda", "nota"))
+  if (!is.null(universos) && length(universos)) ov$universos <- universos
+  sep <- suppressWarnings(as.integer(unlist(separar_tras)))
+  sep <- sort(unique(sep[is.finite(sep) & sep >= 1L]))   # 0 = sin separador
+  if (length(sep)) ov$separar_tras <- sep
+  ov
 }

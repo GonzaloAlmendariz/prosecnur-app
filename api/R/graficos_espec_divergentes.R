@@ -20,7 +20,8 @@
 #'   `total_neg`/`total_pos` (sumas rotuladas).
 #' @keywords internal
 .espec_divergentes <- function(data, var_categoria, cols_porcentaje, etiquetas, particion, escala_valor = "proporcion_100",
-                               decimales = 0L, colores = NULL, incluir_neutro = TRUE, reparto_explicito = FALSE, codigos = NULL) {
+                               decimales = 0L, colores = NULL, incluir_neutro = TRUE, reparto_explicito = FALSE, codigos = NULL,
+                               orden = "top_two_box", estilo = "recetario") {
   rot <- unname(etiquetas[cols_porcentaje]); rot[is.na(rot)] <- cols_porcentaje[is.na(rot)]
   # Especial por etiqueta o por código (90-99, punto 2 del ADR 0093): nunca entra en un lado ni en el Top Two Box.
   cod <- if (!is.null(codigos)) unname(as.character(codigos[cols_porcentaje])) else cols_porcentaje
@@ -46,7 +47,12 @@
   if (ncol(P) == 1L) U <- t(U)
   cifras <- matrix(.pulso_fmt_pct_unidades(U, dec), nrow(U))
   tn <- rowSums(U[, lado == "neg", drop = FALSE]); tp <- rowSums(U[, lado == "pos", drop = FALSE])
-  o <- order(-tp, seq_along(tp))
+  # ADR 0114: el resumen ordena también por «Sin información» (la lámina del desconocimiento) o como se declaró.
+  tsi <- rowSums(U[, lado == "sin_inf", drop = FALSE])
+  o <- switch(as.character(orden %||% "top_two_box")[1],
+              sin_informacion = order(-tsi, -tp, seq_along(tp)),
+              declarado = seq_along(tp),
+              order(-tp, seq_along(tp)))
   # Del centro hacia afuera: el nivel de cada lado más cercano al otro lado va primero (sirve en las dos
   # direcciones de la escala).
   ineg <- which(lado == "neg"); ipos <- which(lado == "pos")
@@ -73,6 +79,7 @@
        total_neg = tn[o], total_pos = tp[o], cifras_neg = .pulso_fmt_pct_unidades(tn[o], dec), cifras_pos = .pulso_fmt_pct_unidades(tp[o], dec),
        decimales = dec)
   if (!is.null(por_rotulo)) espec$colores <- por_rotulo
+  espec$estilo <- if (identical(estilo, "resumen")) "resumen" else "recetario"
   espec
 }
 

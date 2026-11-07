@@ -299,10 +299,12 @@ ave_seq <- function(x) ave(seq_along(x), x, FUN = seq_along)
         arg_name = paste0("filtros de `", ref, "`"),
         mode = "strict"
       )
-      medida <- .radar_mb_pct(datos[[col]], codigos, pesos = .radar_mb_pesos(datos))
+      pesos_ref <- .radar_mb_pesos(datos)
+      medida <- .radar_mb_pct(datos[[col]], codigos, pesos = pesos_ref)
+      # ADR 0114: los casos sin ponderar de cada celda, para la base `n (cobertura %)` del contraste.
       filas[[length(filas) + 1L]] <- data.frame(
         eje = titulo, grupo = ctx$source,
-        valor = medida$valor, n = medida$n,
+        valor = medida$valor, n = medida$n, n_casos = .dumbbell_casos(datos[[col]], pesos_ref),
         stringsAsFactors = FALSE
       )
     }

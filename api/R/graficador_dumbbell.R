@@ -35,6 +35,13 @@
 #' @param umbral_brecha_pct Solo se rotulan las brechas de al menos este tamano,
 #'   en puntos porcentuales. El sufijo `_pct` evita que el patch de UI lo acote
 #'   a la escala 0-1 de las apiladas.
+#' @param estilo `recetario` (láminas 85 y 86) o `resumen`: el contraste del resumen ejecutivo (ADR 0114), con dos o
+#'   más grupos, una forma por grupo y la tabla de «Diferencia» y «Base» fuera del gráfico.
+#' @param universos Padrón de cada grupo (`list(Docentes = 123)` o «Docentes: 123; Estudiantes: 327») para escribir la
+#'   base como `n (cobertura %)`. Sin padrón de un grupo, su base va sólo con `n`. Sólo con `estilo = "resumen"`.
+#' @param base_en Dónde va la base de cada grupo: `auto` (en la leyenda si no cambia de fila a fila; si cambia, en la
+#'   tabla), `tabla`, `leyenda` o `nota` (al pie). Sólo con `estilo = "resumen"`.
+#' @param separar_tras Filas (en el orden declarado) tras las que va un separador; fija el orden declarado.
 #' @param orden `brecha` ordena por tamaño de la diferencia —la lectura de
 #'   ranking—; `valor` por el valor del primer grupo; `declarado` respeta el
 #'   orden de entrada.
@@ -82,10 +89,27 @@ graficar_dumbbell <- function(
     color_nota_pie = .PULSO_COLOR_TEXTO,
     size_nota_pie = 8,
     textos_negrita = NULL,
-    font_family = "Arial"
+    font_family = "Arial",
+    estilo = c("recetario", "resumen"),
+    universos = NULL,
+    separar_tras = NULL,
+    base_en = c("auto", "tabla", "leyenda", "nota")
 ) {
   escala_valor <- match.arg(escala_valor)
   orden <- match.arg(orden)
+  estilo <- match.arg(estilo)
+  # ADR 0114: el contraste del resumen ejecutivo (dos o más grupos, formas por grupo y tabla de base) tiene su propia
+  # especificación (graficos_espec_contraste.R); el recetario (láminas 85 y 86) sigue abajo sin cambios.
+  if (identical(estilo, "resumen")) {
+    d <- data
+    if (identical(escala_valor, "proporcion_1")) d[[var_valor]] <- suppressWarnings(as.numeric(d[[var_valor]])) * 100
+    col_casos <- .dumbbell_col_casos(d, var_n, var_n_casos)
+    espec <- .espec_contraste(d, var_eje, var_grupo, var_valor, var_n_casos = col_casos, universos = universos,
+                              separar_tras = separar_tras, orden = orden, decimales = valores_decimales,
+                              colores = colores_grupos, encabezado_diferencia = encabezado_brecha, limite_x = limite_x,
+                              titulo_eje = titulo_eje, base_en = match.arg(base_en))
+    return(.graficar_contraste_gg(espec, titulo = titulo, subtitulo = subtitulo, nota_pie = nota_pie, font_family = font_family))
+  }
   leyenda_posicion <- match.arg(leyenda_posicion)
   face <- .graficos_face_de(textos_negrita)
 

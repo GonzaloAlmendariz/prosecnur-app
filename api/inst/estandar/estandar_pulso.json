@@ -112,6 +112,10 @@
         "rotulos": ["Docentes", "Estudiantes", "Egresados", "Autoridades", "Administrativos", "Empleadores"],
         "uso": "Cada público conserva su color en todo el informe; si el nombre ya está junto a la barra, no necesita color."
       },
+      "grupos": {
+        "colores": ["#0B4F8C", "#C8742B", "#2A9D8F", "#7B5BA6"],
+        "uso": "Grupos de un mismo público en un contraste de puntos (dedicación, pertenencia, ciclo): cada grupo con su color y su forma, que lo distinguen también impreso en blanco y negro."
+      },
       "categorias": {
         "mayor": "#081F5C",
         "resto": "#8E9DBD",

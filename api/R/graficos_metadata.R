@@ -1749,7 +1749,22 @@
            default = 3, min = 0, max = 20, step = 1, unidad = "%",
            descripcion = "Los segmentos por debajo de este porcentaje no llevan cifra: no cabe."),
       list(name = "excluir_opciones", label = "Excluir del denominador", tipo_input = "codigos_list", grupo = "filtro",
-           descripcion = "Retira estas respuestas antes de calcular los porcentajes y el saldo; cambia el denominador.")
+           descripcion = "Retira estas respuestas antes de calcular los porcentajes y el saldo; cambia el denominador."),
+      # ADR 0114: la escala del resumen ejecutivo (Arte y Diseño FG 2026).
+      list(name = "estilo", label = "Estilo", tipo_input = "choice", grupo = "estilo",
+           default = "recetario",
+           choices = list(
+             list(value = "recetario", label = "Recetario", hint = "Lámina 71: totales de cada lado y la especial en su columna."),
+             list(value = "resumen", label = "Escala con Sin información aparte", hint = "La del resumen ejecutivo: leyenda alineada con cada lado, cifras oscuras y la que no cabe en un extremo fuera de la barra.")
+           ),
+           descripcion = "Cómo se compone la lámina. El cálculo es el mismo."),
+      list(name = "orden", label = "Orden de las filas", tipo_input = "choice", grupo = "estilo",
+           default = "top_two_box",
+           choices = list(
+             list(value = "top_two_box", label = "Por acuerdo", hint = "De mayor a menor Top Two Box."),
+             list(value = "sin_informacion", label = "Por Sin información", hint = "De mayor a menor desconocimiento."),
+             list(value = "declarado", label = "Orden declarado")
+           ))
     ), .args_graf_comunes())
   ),
 
@@ -1868,7 +1883,51 @@
       # C40: formal de `p_dumbbell()`; «pts» = motor (`graficar_dumbbell()`) y recetario.
       list(name = "etiqueta_brecha", label = "Unidad de la brecha", tipo_input = "string", grupo = "valores",
            default = "pts",
-           descripcion = "Se escribe junto a la diferencia: «+6 pts».")
+           descripcion = "Se escribe junto a la diferencia: «+6 pts»."),
+      # ADR 0114: el contraste del resumen ejecutivo (Arte y Diseño FG 2026): formas por grupo y tabla de base.
+      list(name = "estilo", label = "Estilo", tipo_input = "choice", grupo = "estilo",
+           default = "recetario",
+           choices = list(
+             list(value = "recetario", label = "Recetario", hint = "Láminas 85 y 86: dos grupos y la diferencia al margen."),
+             list(value = "resumen", label = "Contraste con tabla de base", hint = "La del resumen ejecutivo: una forma por grupo, bandas alternas y, fuera del gráfico, la diferencia y la base n (cobertura %). Con un cruce admite hasta cuatro grupos.")
+           ),
+           descripcion = "Cómo se compone la lámina. La diferencia se calcula igual."),
+      list(name = "universos", label = "Padrón de cada grupo", tipo_input = "string", grupo = "datos",
+           descripcion = "Para escribir la base como n (cobertura %): «Docentes: 123; Estudiantes: 327». Un grupo sin padrón confiable se omite y su base va sólo con n."),
+      list(name = "base_en", label = "Dónde va la base", tipo_input = "choice", grupo = "estilo",
+           default = "auto",
+           choices = list(
+             list(value = "auto", label = "Automático", hint = "En la leyenda si es la misma en todas las filas; si cambia, en la tabla."),
+             list(value = "leyenda", label = "En la leyenda", hint = "Docentes (n = 115, 93%)."),
+             list(value = "nota", label = "En la nota de la base", hint = "Base: Docentes 115 (93%); Estudiantes 279 (85%)."),
+             list(value = "tabla", label = "En columnas de la tabla", hint = "Una columna por grupo, fila por fila.")
+           ),
+           descripcion = "Una base que no cambia de fila a fila se dice una vez; si cambia, sólo la tabla la dice fila por fila."),
+      list(name = "separar_tras", label = "Separador después de la fila", tipo_input = "number", grupo = "estilo",
+           default = 0, min = 0, max = 30, step = 1,
+           descripcion = "Una línea punteada entre dos grupos de preguntas (competencias de salida y genéricas). 0: sin separador. Fija el orden declarado.")
+    ), .args_graf_comunes())
+  ),
+
+  # =========================================================================
+  # PANORAMA (ADR 0114): todas las preguntas de cada público de un vistazo
+  # =========================================================================
+  p_panorama = list(
+    titulo_humano = "Panorama de públicos",
+    descripcion   = "Una fila por público y un punto por pregunta en su indicador (Top Two Box), con la mediana del público y una referencia punteada. A la derecha, la mediana y cuántas preguntas quedan bajo la referencia.",
+    icono_ui      = "Rows3",
+    categoria     = "comparison",
+    blueprint     = "panorama",
+    requisito     = "Las preguntas de escala de cada público (base$* toma todas las de una base) y las respuestas que suman el indicador.",
+    args = c(list(
+      list(name = "vars", label = "Preguntas", tipo_input = "variables_list", grupo = "datos",
+           descripcion = "Preguntas de escala de uno o más públicos; cada base es una fila de la lámina."),
+      list(name = "corte", label = "Indicador", tipo_input = "codigos_list", grupo = "datos",
+           descripcion = "Las respuestas que suman el porcentaje de cada punto (ej. De acuerdo y Totalmente de acuerdo)."),
+      list(name = "corte_etiqueta", label = "Nombre del indicador", tipo_input = "string", grupo = "datos"),
+      list(name = "referencia", label = "Referencia (%)", tipo_input = "number", grupo = "valores",
+           default = 60, min = 0, max = 100, step = 5, unidad = "%",
+           descripcion = "La línea punteada y la columna «Bajo» de la tabla. Describe, no califica: no se rotula ningún tramo.")
     ), .args_graf_comunes())
   ),
 
@@ -2385,7 +2444,8 @@
   p_puntos_comparativos = list("comparar", "nativa", condicion = "Sale como ranking con puntos; si los rótulos no caben, sale como imagen."),
   p_mapa_resultado_distrital = list("territorio", "nativa", condicion = "Si el mapa no cabe en la lámina, sale por la ruta anterior."),
   p_cifra = list("numeros", "nativa", condicion = "Va en las ranuras de cifra; en una ranura de gráfico sale por la ruta anterior."),
-  p_dumbbell = list("comparar", "nativa"),
+  p_dumbbell = list("comparar", "nativa", condicion = "En «Contraste con tabla de base», hasta 14 preguntas con dos grupos o 24 sub-filas con tres o cuatro; si no caben, va dibujado."),
+  p_panorama = list("comparar", "nativa", condicion = "Hasta cinco públicos; con más, va dibujado."),   # ADR 0114
   p_significancia_publicos = list("comparar", "nativa", condicion = "Dos o tres públicos y hasta diez temas."),
   # Pieza interna de la dependencia entre los dos gráficos de una lámina (graficos_dependencia.R): no se elige como tipo.
   p_filtro_subpregunta = list("categorias", "nativa", condicion = "Hasta siete respuestas en el filtro; «Abajo» pide un filtro de dos respuestas.", en_selector = FALSE),
@@ -2437,6 +2497,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
   p_mapa_resultado_distrital = "",
   p_cifra = "",
   p_dumbbell = "dumbbell",
+  p_panorama = "",
   p_filtro_subpregunta = "",
   p_significancia_publicos = "",
   p_lollipop = "lollipop",

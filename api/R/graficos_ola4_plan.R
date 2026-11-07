@@ -31,7 +31,9 @@ p_barras_divergentes <- function(vars = NULL,
                                  filtros = list(),
                                  umbral_etiqueta_pct = 3,
                                  excluir_opciones = NULL,
-                                 direccion_escala = c("negativo_positivo", "positivo_negativo")) {
+                                 direccion_escala = c("negativo_positivo", "positivo_negativo"),
+                                 estilo = NULL,
+                                 orden = NULL) {
   direccion_escala <- match.arg(direccion_escala)
   refs <- as.character(unlist(vars %||% var %||% character(0)))
   refs <- refs[!is.na(refs) & nzchar(trimws(refs))]
@@ -46,6 +48,9 @@ p_barras_divergentes <- function(vars = NULL,
   ov$mostrar_saldo <- isTRUE(mostrar_saldo)
   ov$umbral_etiqueta_pct <- suppressWarnings(as.numeric(umbral_etiqueta_pct)[1])
   ov$direccion_escala <- direccion_escala
+  # ADR 0114: la escala del resumen ejecutivo y su orden; sólo lo que el slot declara (O7c).
+  ov <- .ppt_slot_override(ov, "estilo", estilo, "opcion", opciones = c("recetario", "resumen"))
+  ov <- .ppt_slot_override(ov, "orden", orden, "opcion", opciones = c("top_two_box", "sin_informacion", "declarado"))
   if (!is.null(excluir_opciones)) {
     ov$excluir_opciones <- .reporte_plan_excluir_opciones(excluir_opciones)
   }
@@ -569,11 +574,15 @@ p_dumbbell <- function(vars,
                        etiqueta_brecha = NULL,
                        cruce = NULL,
                        grupos = NULL,
-                       titulos_grupo = NULL) {
+                       titulos_grupo = NULL,
+                       estilo = NULL,
+                       universos = NULL,
+                       separar_tras = NULL,
+                       base_en = NULL) {
   # G17: con `cruce` y `grupos` la brecha es entre dos grupos de una misma base (graficos_dumbbell_grupos.R).
   if (!is.null(cruce)) {
     return(.p_dumbbell_grupos(vars, corte, corte_etiqueta, orden, mostrar_brecha, umbral_brecha_pct, titulo,
-                              overrides, base, filtros, etiqueta_brecha, cruce, grupos))
+                              overrides, base, filtros, etiqueta_brecha, cruce, grupos, estilo, universos, separar_tras, base_en))
   }
   vars <- .graf_aplicar_titulos_grupo(vars, titulos_grupo, "p_dumbbell()")
   if (!is.list(vars) || !length(vars)) {
@@ -618,6 +627,7 @@ p_dumbbell <- function(vars,
   }
 
   ov <- .dumbbell_slot_overrides(overrides, orden, mostrar_brecha, umbral_brecha_pct, etiqueta_brecha)
+  ov <- .dumbbell_resumen_overrides(ov, estilo, universos, separar_tras, base_en)   # ADR 0114
 
   el <- list(
     .element_type = "dumbbell",
@@ -674,6 +684,9 @@ p_dumbbell <- function(vars,
     subtitulo = el$corte_etiqueta %||% NULL
   )
   args <- utils::modifyList(base_args, args_usuario)
+  # ADR 0114: en el contraste del resumen los públicos se rotulan capitalizados («Docentes»), como la leyenda del radar;
+  # el padrón se empareja sin mayúsculas, así que «docentes: 123» sigue casando.
+  if (identical(args$estilo, "resumen") && is.null(el$cruce)) levels(args$data$grupo) <- .radar_mb_capitalizar(levels(args$data$grupo))
   args <- .keep_formals(graficar_dumbbell, args, contexto = "graficar_dumbbell")
   do.call(graficar_dumbbell, args)
 }

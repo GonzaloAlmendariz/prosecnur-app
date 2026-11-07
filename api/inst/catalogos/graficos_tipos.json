@@ -322,6 +322,12 @@
       "en_selector": true
     },
     {
+      "name": "p_panorama",
+      "familia_editor": "comparar",
+      "salida": "nativa",
+      "en_selector": true
+    },
+    {
       "name": "p_filtro_subpregunta",
       "familia_editor": "categorias",
       "salida": "nativa",
