@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { calcularValores } from "../../shell/simulador/calculosPrueba";
 import { evaluarCalculo } from "../../logic/probarCalculo";
 import type { BuilderNode } from "../../types";
-import { aFormula, faltantes, filasAuxiliares, intencionVacia, literalDe, type Intencion } from "./modeloCalculo";
+import { aFormula, deFormula, faltantes, filasAuxiliares, intencionVacia, literalDe, type Intencion } from "./modeloCalculo";
 
 const evaluar = (f: string | null, r: Record<string, string>) => {
   const res = evaluarCalculo(f ?? "", r);
@@ -70,5 +70,32 @@ describe("armador de cálculos por intención", () => {
       .toBe("if(${sexo} = '2', 'm', 'otro')");
     expect(aFormula({ ...base, casos: [{ pregunta: "edad", operador: "<", valor: "18", resultado: "menor" }] }))
       .toBe("if(${edad} < 18, 'menor', 'otro')");
+  });
+});
+
+describe("de la fórmula a la intención", () => {
+  const ida: Intencion[] = [
+    { tipo: "segun", casos: [{ pregunta: "edad", operador: "<", valor: "18", resultado: "menor" }], siNo: "adulto" },
+    { tipo: "segun", casos: [{ pregunta: "medios", operador: "marcó", valor: "1", resultado: "tv" }, { pregunta: "sexo", operador: "=", valor: "2", resultado: "m", codigo: true }], siNo: "otro" },
+    { tipo: "operar", operacion: "sumar", preguntas: ["hijos", "hijas"], constante: "" },
+    { tipo: "operar", operacion: "promedio", preguntas: ["a", "b", "c"], constante: "" },
+    { tipo: "operar", operacion: "multiplicar", preguntas: ["horas"], constante: "60" },
+    { tipo: "contar", pregunta: "medios" },
+    { tipo: "sortear", azar: "az", valores: [{ valor: "A", peso: "" }, { valor: "B", peso: "" }, { valor: "C", peso: "" }] },
+    { tipo: "sortear", azar: "az", valores: [{ valor: "A", peso: "30" }, { valor: "B", peso: "70" }] },
+    { tipo: "unir", partes: [{ tipo: "texto", valor: "Hola " }, { tipo: "pregunta", valor: "nombre" }] },
+  ];
+  it("cada intención armada se lee de vuelta igual", () => {
+    for (const i of ida) expect(deFormula(aFormula(i)!)).toEqual(i);
+  });
+  it("lee las fórmulas reales del conjoint", () => {
+    expect(deFormula("if(int(${cj_t1A_edad_r} * 3) = 0, '1', if(int(${cj_t1A_edad_r} * 3) = 1, '2', '3'))")?.tipo).toBe("sortear");
+    expect(deFormula("if(${cj_t1A_edad} = 1, '35 años', if(${cj_t1A_edad} = 2, '50 años', '65 años'))")?.tipo).toBe("segun");
+  });
+  it("lo que no sabe reescribir idéntico queda para la edición a mano", () => {
+    expect(deFormula("once(random())")).toBeNull();
+    expect(deFormula("int((today() - ${nac}) div 365.25)")).toBeNull();
+    expect(deFormula("if(${a} = 1 and ${b} = 2, 'x', 'y')")).toBeNull();
+    expect(deFormula("${a} + ${b} * 2")).toBeNull();
   });
 });

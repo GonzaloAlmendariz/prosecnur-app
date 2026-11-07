@@ -17,6 +17,7 @@ import { ProbarCalculo } from "./ProbarCalculo";
 import { CatalogoFunciones } from "./CatalogoFunciones";
 import { CalculationRecipePanel } from "../canvas/constructor/CalculoRepeticionPaneles";
 import { ArmadorCalculo } from "./armadorCalculo/ArmadorCalculo";
+import { deFormula } from "./armadorCalculo/modeloCalculo";
 import { valoresDeEjemplo } from "../cuestionario/ejemploSorteo";
 import { agruparEnFamilias, tituloFamilia } from "./familiasCalculo";
 
@@ -94,6 +95,8 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
   const [borrador, setBorrador] = useState<{ fila: number; texto: string } | null>(null);
   if (claveEditor !== clave) { setClaveEditor(clave); setEditando(false); setBorrador(null); }
   const guardada = actual?.node.calculation ?? "";
+  // E17: una fórmula que el armador sabe reescribir idéntica se edita también con él.
+  const intencionGuardada = useMemo(() => (guardada.trim() ? deFormula(guardada) : null), [guardada]);
   const editorAbierto = Boolean(actual) && (editando || Boolean(actual?.vacio));
   const texto = borrador && borrador.fila === clave ? borrador.texto : guardada;
   const formulaPrueba = editorAbierto ? texto : guardada;
@@ -173,16 +176,17 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
                 </div>
               ) : null}
             </div>
-            {actual.vacio && onArmar ? (
+            {(actual.vacio || (editando && intencionGuardada)) && onArmar ? (
               <ArmadorCalculo
                 // Clave propia: el editor de fórmula, hermano en la misma tarjeta, ya usa el número de fila.
                 key={`armador-${actual.node.rowIndex}`}
                 scope={scope}
                 nombre={actual.node.name}
+                inicial={actual.vacio ? null : intencionGuardada}
                 onBorrador={alArmar}
                 onAplicar={(f, aux) => {
                   const motivo = onArmar(actual.node.rowIndex, f, aux);
-                  if (!motivo) setBorrador(null);
+                  if (!motivo) { setBorrador(null); setEditando(false); }
                   return motivo;
                 }}
               />

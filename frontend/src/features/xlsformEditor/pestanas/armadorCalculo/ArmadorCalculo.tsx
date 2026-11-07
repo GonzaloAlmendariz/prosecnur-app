@@ -55,13 +55,15 @@ type Props = {
   nombre: string;
   /** La fórmula armada mientras se completa (null si falta algo), para que «Probar con respuestas» la evalúe. */
   onBorrador: (formula: string | null) => void;
+  /** La intención de una fórmula ya escrita, para editarla con el armador (E17). */
+  inicial?: Intencion | null;
   /** Escribe la fórmula y sus filas auxiliares; devuelve el motivo si no se pudo. */
   onAplicar: (formula: string, auxiliares: { name: string; calculation: string }[]) => string | null;
 };
 
-export function ArmadorCalculo({ scope, nombre, onBorrador, onAplicar }: Props) {
+export function ArmadorCalculo({ scope, nombre, inicial, onBorrador, onAplicar }: Props) {
   const tituloId = useId();
-  const [intencion, setIntencion] = useState<Intencion | null>(null);
+  const [intencion, setIntencion] = useState<Intencion | null>(inicial ?? null);
   const [error, setError] = useState<string | null>(null);
   const formula = intencion ? aFormula(intencion) : null;
   const falta = intencion ? faltantes(intencion) : [];
