@@ -535,7 +535,8 @@ test_that("el dispatcher encuentra los tres renderers por convencion", {
 
 test_that("los constructores rechazan una declaracion incompleta", {
   expect_error(p_barras_divergentes(vars = character(0)), "al menos una pregunta")
-  expect_error(p_dumbbell(vars = list(), corte = "3"), "lista nombrada")
+  expect_error(p_dumbbell(vars = list(), corte = "3"), "los dos públicos en `bases`", fixed = TRUE)   # ADR 0135: sin temas, `bases`
+  expect_error(p_dumbbell(vars = list("a$b", "c$d"), corte = "3"), "cada tema necesita nombre")
   expect_error(p_dumbbell(vars = list("T" = "a$b"), corte = ""), "al menos un codigo")
   expect_error(p_lollipop(var = ""), "character\\(1\\)")
 })
