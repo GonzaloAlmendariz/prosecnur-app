@@ -92,14 +92,17 @@ Decisiones de Gonzalo del 2026-11-07:
 - En la barra divergente el porcentaje es sobre el total de respondientes de la pregunta, con «Sin información» dentro
   del denominador y en su columna; si se excluyen opciones, sobre quienes quedan, y el pie lo dice. Con filtros o
   pesos, «total de respondientes» es el del subconjunto filtrado o ponderado.
-- El detector único reconoce como no sustantivo lo que declara la lista (`choices$especial`/`no_sustantivo`), los
-  códigos 90 a 99, los rótulos de no respuesta («No tengo información suficiente», «No aplica», «Prefiero no
-  responder»…) y los códigos fuera del rango de la escala; un hueco interior (1, 2, 4, 5) sigue siendo escala, y
-  «Ninguno»/«Ninguna» como extremo de una escala es sustantivo.
+- El detector único reconoce como no sustantivo SÓLO lo que declara la lista (`choices$especial`/`no_sustantivo`),
+  los códigos 90 a 99 y los rótulos de no respuesta («No tengo información suficiente», «No aplica», «Prefiero no
+  responder», «No precisa», «Sin opinión», «Ninguna de las anteriores», «Otro»…), en cualquier extremo de la lista. El
+  rango de los códigos ya no decide: tres revisiones metodológicas mostraron que cada heurística de saltos rompía otro
+  caso (escalas codificadas de dos en dos, huecos, códigos sueltos). «Ninguno»/«Ninguna» como nivel es sustantivo. Un
+  rótulo de no respuesta que el patrón no conozca queda como nivel; se corrige declarándolo en la lista.
 - El Top Two Box de la lámina es la suma de los segmentos ya redondeados; puede diferir en un punto del redondeo de la
   suma exacta.
-- El reparto por defecto deja dos niveles en el lado negativo (`n_negativas = 2`), heredado del recetario: en escalas de
-  7 u 11 puntos hay que declararlo. No cambia en este ADR.
+- Sin declarar, el reparto deja la mitad de los niveles sustantivos en cada lado (`floor(k/2)`) y el central como neutro
+  si son impares; en escalas de 4 y 5 puntos coincide con el recetario, y en las de 3, 7 u 11 corrige el sesgo que
+  dejaba sólo dos niveles en desacuerdo.
 - Pendiente: el dibujo de respaldo (ggplot) apila el gris de «Sin información» detrás del acuerdo; la lámina nativa no.
 
 ### Precisiones de la implementación
