@@ -406,3 +406,10 @@ button.xfh-regla__fila:focus-visible { outline: var(--mov-foco, 2px solid var(--
 .xfh-tabla-par { font-size: var(--pulso-type-body-size); }
 .xfh-tabla-par__pie { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--pulso-text-soft); font-size: var(--pulso-type-caption-size); }
 .xfh-tabla-par__xls { display: block; white-space: pre-wrap; overflow-wrap: anywhere; font-size: var(--pulso-type-caption-size); color: var(--pulso-text-muted); }
+
+/* Pregunta con versiones al azar (C13, 2026-11-07): cada versión con su número, su texto y su peso. */
+.xfh-versiones { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.xfh-versiones li { display: grid; grid-template-columns: 76px minmax(0, 1fr) auto; gap: 8px; align-items: baseline; padding: 8px 10px; border-radius: 8px; background: var(--pulso-surface-2); }
+.xfh-versiones__n { color: var(--pulso-text-soft); font-size: var(--pulso-type-caption-size); }
+.xfh-versiones__texto { font-size: var(--pulso-type-body-size); line-height: 1.45; }
+.xfh-versiones__peso { color: var(--pulso-text-soft); font-size: var(--pulso-type-caption-size); font-variant-numeric: tabular-nums; }

@@ -131,4 +131,28 @@ describe("ficha de la tabla de un par", () => {
     expect(html).toMatch(/Una persona de (25|60) años pide un préstamo para/);
     expect(html).not.toContain("Texto de la nota");
   });
+
+  test("la pregunta con versiones muestra sus versiones en la ficha, no la referencia (C13)", () => {
+    const wb = formulario(false);
+    insertRecord(wb.choices, 0, { list_name: "acuerdo", name: "1", label: "Sí" });
+    generarVersiones({ prefijo: "vs", pregunta: "P5", tipo: "select_one", lista: "acuerdo", obligatoria: true, versiones: [{ texto: "¿Apoya?", peso: 0.7 }, { texto: "¿Apoya, aunque cueste?", peso: 0.3 }] })
+      .forEach((f, i) => insertRecord(wb.survey, i + 1, { ...f }));
+    const idx = buildXlsformIndex(wb);
+    const node = idx.structure.outline.find((n) => n.name === "P5")!;
+    const nada = () => undefined;
+    const acciones: AccionesFicha = {
+      campo: nada, tipo: nada, obligatoria: nada, asignarLista: nada, crearLista: nada, duplicar: nada, moverASeccion: nada,
+      eliminar: nada, alternarRepeticion: nada, seleccionarFila: nada, irPestana: nada, ajuste: nada, editarFormulario: nada,
+    };
+    const html = renderToStaticMarkup(
+      <ProveedorReglas structure={idx.structure} scope={alcanceDeLectura(idx.structure, idx.catalogs)} survey={wb.survey}>
+        <FichaConstructor workbook={wb} structure={idx.structure} selection={{ kind: "survey", rowIndex: node.rowIndex }} node={node}
+          settingsRecord={null} choices={[]} catalogs={idx.catalogs} usosPorLista={new Map()} diagnostics={[]} acciones={acciones} />
+      </ProveedorReglas>,
+    );
+    expect(html).toContain("Pregunta en 2 versiones");
+    expect(html).toContain("¿Apoya, aunque cueste?");
+    expect(html).toContain("70%");
+    expect(html).not.toMatch(/>¿Qué se le pregunta al encuestado\?|value="\$\{vs_texto\}"/);
+  });
 });
