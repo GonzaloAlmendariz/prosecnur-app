@@ -8,6 +8,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { downloadUrl } from "../../../api/core";
+import { descargarArchivo } from "../../../lib/descargas";
 import { apiSupervisionExcel, type ColumnasDeSupervision } from "../../../api/materialSupervision";
 import { EstadoVacio } from "../../../components/EstadoVacio";
 import { PulsoButton } from "../../../components/PulsoButton";
@@ -114,7 +115,7 @@ export function EntregaSupervision({ campaignId, columnas, casos, sinLote, loteI
     setOcupado(true);
     setError("");
     apiSupervisionExcel(campaignId)
-      .then((r) => window.open(downloadUrl(r.file_id), "_blank", "noopener,noreferrer"))
+      .then((r) => descargarArchivo(downloadUrl(r.file_id)))
       .catch((e: unknown) => setError(e instanceof Error ? e.message.replace(/ · E_[A-Z_]+$/, "") : "No se pudo generar la base."))
       .finally(() => setOcupado(false));
   };

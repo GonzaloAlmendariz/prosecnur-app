@@ -43,6 +43,7 @@ import { EstadoVacio } from "../../components/EstadoVacio";
 import { LoadingBlock } from "../../components/States";
 import { useCodifSource } from "./useCodifSource";
 import { formatoConteo } from "../../lib/formatoNumero";
+import { descargarArchivo } from "../../lib/descargas";
 
 type Props = {
   disabled?: boolean;
@@ -295,7 +296,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
     setError("");
     try {
       const out = await apiCodifMatricesExport(visibility, exportVariableNames, activeBase);
-      window.open(downloadUrl(out.file_id), "_blank", "noopener,noreferrer");
+      descargarArchivo(downloadUrl(out.file_id));
       toast.exito(
         visibility === "work"
           ? `Matriz de trabajo generada para ${activeBaseLabel}.`

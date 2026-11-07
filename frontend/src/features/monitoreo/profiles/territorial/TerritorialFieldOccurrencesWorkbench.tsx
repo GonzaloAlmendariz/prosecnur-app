@@ -54,6 +54,7 @@ import {
   type OccurrenceUmpAttentionStatus,
 } from "../../fieldOccurrences";
 import { copiarTexto } from "../../../../lib/portapapeles";
+import { descargarArchivo } from "../../../../lib/descargas";
 
 type OccurrenceTab = "states" | "distritos" | "registro" | "ump" | "alerts" | "rhythm";
 type OccurrenceBusy = "" | "config" | "xlsform" | "upload" | "inspect" | "ump-export";
@@ -722,7 +723,7 @@ function TerritorialFieldOccurrencesWorkbenchImpl({
     const result = await apiMonitoreoTerritorialOccurrencesXlsform(config ?? {});
     onStateChange?.(result.state);
     if (result.download_url && typeof window !== "undefined") {
-      window.open(result.download_url, "_blank", "noopener,noreferrer");
+      descargarArchivo(result.download_url);
     }
   }), [config, onStateChange, runAction]);
 
@@ -749,7 +750,7 @@ function TerritorialFieldOccurrencesWorkbenchImpl({
         ...(opts.only_missing ? { only_missing: true } : {}),
       });
       if (result.file_id && typeof window !== "undefined") {
-        window.open(downloadUrl(result.file_id), "_blank", "noopener,noreferrer");
+        descargarArchivo(downloadUrl(result.file_id));
       }
     }), [runAction]);
 
@@ -804,19 +805,19 @@ function TerritorialFieldOccurrencesWorkbenchImpl({
               {assetPickerOpen ? "Ocultar Kobo" : active ? "Cambiar formulario" : "Elegir formulario"}
             </button>
             <button type="button" className="pulso-button" onClick={generateXlsform} disabled={disabled}>
-              {localBusy === "xlsform" ? <Loader2 size={15} className="spin" /> : <Download size={15} />}
+              {localBusy === "xlsform" ? <Loader2 size={15} className="pulso-spin" /> : <Download size={15} />}
               XLSForm
             </button>
             <button type="button" className="pulso-button" onClick={uploadKobo} disabled={disabled || !hasKoboToken}>
-              {localBusy === "upload" ? <Loader2 size={15} className="spin" /> : <UploadCloud size={15} />}
+              {localBusy === "upload" ? <Loader2 size={15} className="pulso-spin" /> : <UploadCloud size={15} />}
               Subir Kobo
             </button>
             <button type="button" className="pulso-button" onClick={inspectFields} disabled={disabled || !active}>
-              {localBusy === "inspect" ? <Loader2 size={15} className="spin" /> : <FileCheck2 size={15} />}
+              {localBusy === "inspect" ? <Loader2 size={15} className="pulso-spin" /> : <FileCheck2 size={15} />}
               Campos
             </button>
             <button type="button" className="pulso-button" onClick={() => exportUmp({})} disabled={disabled} title="Descarga un Excel con las UMP totales y sus estados">
-              {localBusy === "ump-export" ? <Loader2 size={15} className="spin" /> : <Download size={15} />}
+              {localBusy === "ump-export" ? <Loader2 size={15} className="pulso-spin" /> : <Download size={15} />}
               Excel UMP
             </button>
             {/* «Actualizar» (traer las ocurrencias) vive en el «Actualizar ▾» de la
@@ -884,7 +885,7 @@ function TerritorialFieldOccurrencesWorkbenchImpl({
                     onClick={() => { void loadOccurrenceAssets(true); }}
                     disabled={assetsLoading || disabled || !hasKoboToken || !occurrenceBaseUrl}
                   >
-                    {assetsLoading ? <Loader2 size={15} className="spin" /> : <RefreshCw size={15} />}
+                    {assetsLoading ? <Loader2 size={15} className="pulso-spin" /> : <RefreshCw size={15} />}
                     Cargar formularios
                   </button>
                   <label className="mon-field-occurrences-connect-search">
@@ -924,7 +925,7 @@ function TerritorialFieldOccurrencesWorkbenchImpl({
                             <em>{shortenMiddle(asset.uid, 30)}{asset.version_id ? `, v ${shortenMiddle(asset.version_id, 14)}` : ""}</em>
                           </span>
                           <b className={asset.deployment_active ? "is-active" : ""}>{asset.deployment_active ? "activo" : "sin deploy"}</b>
-                          <i>{choosing ? <Loader2 size={13} className="spin" /> : selected ? <CheckCircle2 size={13} /> : "Usar"}</i>
+                          <i>{choosing ? <Loader2 size={13} className="pulso-spin" /> : selected ? <CheckCircle2 size={13} /> : "Usar"}</i>
                         </button>
                       );
                     })}

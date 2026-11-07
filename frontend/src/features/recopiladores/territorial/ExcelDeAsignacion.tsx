@@ -6,6 +6,7 @@
 import { useRef, useState } from "react";
 
 import { downloadUrl } from "../../../api/core";
+import { descargarArchivo } from "../../../lib/descargas";
 import {
   apiMaterialTerritorialExcelAsignacion,
   apiMaterialTerritorialImportarAsignacion,
@@ -34,7 +35,7 @@ export function ExcelDeAsignacion({ campaignId, deshabilitado, aplicar }: Props)
     setOcupado("generar");
     setError("");
     apiMaterialTerritorialExcelAsignacion(campaignId)
-      .then((r) => window.open(downloadUrl(r.file_id), "_blank", "noopener,noreferrer"))
+      .then((r) => descargarArchivo(downloadUrl(r.file_id)))
       .catch((e: unknown) => setError(e instanceof Error ? e.message : "No se pudo generar el Excel"))
       .finally(() => setOcupado(""));
   };

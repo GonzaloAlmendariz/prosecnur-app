@@ -3,6 +3,7 @@ import "./planCampo.css";
 import { tonoCss } from "../lienzo/tonos";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { downloadUrl } from "../../../../api/core";
+import { descargarArchivo } from "../../../../lib/descargas";
 import { apiHojasRutaHojaDia, apiHojasRutaPlanCampo, normalizarPlanSupuestos, PLAN_SUPUESTOS_POR_DEFECTO, type HojasRutaJornada, type HojasRutaPlanCampo, type HojasRutaPlanSupuestos } from "../../../../api/hojasRuta";
 import { nombreDistrito } from "../nombres";
 
@@ -136,7 +137,7 @@ export function PlanCampo({ guardados, deshabilitado, onGuardar, conCostos = tru
                         onClick={() => {
                           setHoja(j.id);
                           fuente.hojaDia(j.id, s)
-                            .then((r) => window.open(downloadUrl(r.file_id), "_blank", "noopener,noreferrer"))
+                            .then((r) => descargarArchivo(downloadUrl(r.file_id)))
                             .catch((e: unknown) => setError(e instanceof Error ? e.message : "No se pudo generar la hoja del día"))
                             .finally(() => setHoja(null));
                         }}

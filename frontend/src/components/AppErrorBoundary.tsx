@@ -18,6 +18,7 @@ import React, { Component } from "react";
 import type { ErrorInfo, ReactNode } from "react";
 import { AlertTriangle, Clipboard, RefreshCcw, Home, Check } from "lucide-react";
 import { buildDiagnostic, note } from "../lib/logSink";
+import { copiarTexto } from "../lib/portapapeles";
 
 type Props = {
   children: ReactNode;
@@ -55,26 +56,14 @@ export class AppErrorBoundary extends Component<Props, State> {
         : "AppErrorBoundary",
     });
     try {
-      await navigator.clipboard.writeText(diag);
+      // copiarTexto cae a textarea + execCommand si Electron niega el permiso.
+      await copiarTexto(diag);
       this.setState({ copied: true });
       window.setTimeout(() => this.setState({ copied: false }), 2500);
     } catch {
-      // Fallback: textarea + execCommand. En Electron clipboard suele
-      // funcionar, pero por las dudas.
-      try {
-        const ta = document.createElement("textarea");
-        ta.value = diag;
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand("copy");
-        document.body.removeChild(ta);
-        this.setState({ copied: true });
-        window.setTimeout(() => this.setState({ copied: false }), 2500);
-      } catch {
-        // Si todo falla, mostramos el texto en un prompt para copia manual.
-        // eslint-disable-next-line no-alert
-        window.prompt("Copia manualmente este diagnóstico:", diag);
-      }
+      // Si todo falla, mostramos el texto en un prompt para copia manual.
+      // eslint-disable-next-line no-alert
+      window.prompt("Copia manualmente este diagnóstico:", diag);
     }
   };
 

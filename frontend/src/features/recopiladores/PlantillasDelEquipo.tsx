@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { downloadUrl } from "../../api/core";
+import { descargarArchivo } from "../../lib/descargas";
 import { apiMaterialAulasEntrega, apiMaterialAulasPlantilla, type EntregaDeAulas, type PiezaDelEquipo } from "../../api/materialAulasEntrega";
 import { Panel } from "../../components/Panel";
 import { PulsoButton } from "../../components/PulsoButton";
@@ -53,7 +54,7 @@ export function PlantillasDelEquipo() {
     setOcupado(pieza);
     setError("");
     apiMaterialAulasPlantilla(pieza)
-      .then((r) => window.open(downloadUrl(r.file_id), "_blank", "noopener,noreferrer"))
+      .then((r) => descargarArchivo(downloadUrl(r.file_id)))
       .catch((e: unknown) => setError(e instanceof Error ? e.message.replace(/ · E_[A-Z_]+$/, "") : "No se pudo generar la plantilla."))
       .finally(() => setOcupado(null));
   };

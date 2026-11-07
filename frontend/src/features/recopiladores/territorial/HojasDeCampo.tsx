@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { downloadUrl } from "../../../api/core";
+import { descargarArchivo } from "../../../lib/descargas";
 import {
   apiMaterialTerritorialFormatos,
   apiMaterialTerritorialGuardarFormatos,
@@ -39,7 +40,7 @@ function mensaje(e: unknown, porDefecto: string): string {
 }
 
 function abrir(fileId: string) {
-  window.open(downloadUrl(fileId), "_blank", "noopener,noreferrer");
+  descargarArchivo(downloadUrl(fileId));
 }
 
 /** Los códigos del estudio: se leen al entrar y se guardan con la revisión leída. */

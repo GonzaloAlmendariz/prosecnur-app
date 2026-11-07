@@ -143,7 +143,7 @@
 }
 
 .monitoreo_territorial_drift_from_payload <- function(parsed = list(),
-                                                      out_dir = file.path("tmp", "qa", "monitoreo-deliverables"),
+                                                      out_dir = file.path(tempdir(), "prosecnur", "monitoreo-deliverables"),
                                                       source = "",
                                                       cut = "",
                                                       project = "") {
@@ -203,10 +203,9 @@
   source <- .monitoreo_scalar(parsed$source %||% parsed$fuente %||% "Referencia validada territorial", "")
   cut <- .monitoreo_scalar(parsed$cut %||% parsed$corte %||% snapshot$synced_at %||% snapshot$generated_at, "")
   project <- .monitoreo_publication_project_label(parsed, s, cfg)
-  out_dir <- parsed$out_dir %||% parsed$outDir %||% file.path(
-    "tmp",
-    "qa",
-    "monitoreo-deliverables",
+  # Siempre bajo la sesión: el cliente no elige dónde escribe el backend.
+  out_dir <- file.path(
+    .session_downloads_dir(sid, "monitoreo-deliverables"),
     paste(
       .monitoreo_publication_evidence_slug(project, "territorial"),
       "operational-package-review",
@@ -3244,7 +3243,7 @@ mount_monitoreo <- function(pr) {
       res$setHeader("Content-Type", "application/pdf")
       res$setHeader("Content-Length", as.character(n))
       modo <- if (is.character(inline) && length(inline) >= 1L && inline[[1]] %in% c("1", "true", "TRUE")) "inline" else "attachment"
-      res$setHeader("Content-Disposition", sprintf('%s; filename="%s"', modo, basename(meta$path)))
+      res$setHeader("Content-Disposition", .content_disposition(modo, basename(meta$path)))
       res$body <- bytes
       res
     })) |>
@@ -3318,7 +3317,7 @@ mount_monitoreo <- function(pr) {
       res$setHeader("Content-Type", "application/pdf")
       res$setHeader("Content-Length", as.character(n))
       modo <- if (is.character(inline) && length(inline) >= 1L && inline[[1]] %in% c("1", "true", "TRUE")) "inline" else "attachment"
-      res$setHeader("Content-Disposition", sprintf('%s; filename="%s"', modo, basename(meta$path)))
+      res$setHeader("Content-Disposition", .content_disposition(modo, basename(meta$path)))
       res$body <- bytes
       res
     })) |>

@@ -124,7 +124,7 @@
 }
 .monitoreo_publication_reference_drift_from_request <- function(sid,
                                                                 parsed = list(),
-                                                                out_dir = file.path("tmp", "qa", "monitoreo-deliverables"),
+                                                                out_dir = .session_downloads_dir(sid, "monitoreo-deliverables"),
                                                                 source = "",
                                                                 cut = "",
                                                                 project = "") {
@@ -195,9 +195,7 @@
     sid,
     parsed,
     out_dir = file.path(
-      "tmp",
-      "qa",
-      "monitoreo-deliverables",
+      .session_downloads_dir(sid, "monitoreo-deliverables"),
       paste(
         .monitoreo_publication_evidence_slug(project_label, "project"),
         .monitoreo_publication_evidence_slug(audience, "audience"),
@@ -308,7 +306,7 @@
   project_slug <- .monitoreo_publication_evidence_slug(bundle$preflight$project, "monitoreo")
   audience_slug <- .monitoreo_publication_evidence_slug(bundle$audience, "client")
   cut_slug <- .monitoreo_publication_evidence_slug(bundle$preflight$cut, format(Sys.Date(), "%Y-%m-%d"))
-  out_dir <- file.path("tmp", "qa", "monitoreo-deliverables", paste(project_slug, audience_slug, cut_slug, sep = "-"))
+  out_dir <- file.path(.session_downloads_dir(sid, "monitoreo-deliverables"), paste(project_slug, audience_slug, cut_slug, sep = "-"))
   if (dir.exists(out_dir)) unlink(out_dir, recursive = TRUE, force = TRUE)
 
   xlsx_started <- Sys.time()

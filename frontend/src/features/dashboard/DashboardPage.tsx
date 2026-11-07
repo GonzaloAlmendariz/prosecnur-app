@@ -398,7 +398,7 @@ export default function DashboardPage({
               role="tabpanel"
               aria-labelledby={`dash-tab-${tabActiva}`}
             >
-              <TabContent tab={tabActiva} />
+              <TabContent tab={tabActiva} publicMode={publicMode} />
             </section>
           </AdaptiveSplitView>
         ) : (
@@ -420,7 +420,7 @@ export default function DashboardPage({
             role="tabpanel"
             aria-labelledby={`dash-tab-${tabActiva}`}
           >
-            <TabContent tab={tabActiva} />
+            <TabContent tab={tabActiva} publicMode={publicMode} />
           </section>
         </>
         )
@@ -506,14 +506,14 @@ function DashboardSectionTab({
   );
 }
 
-function TabContent({ tab }: { tab: DashboardTabId }) {
+function TabContent({ tab, publicMode }: { tab: DashboardTabId; publicMode: boolean }) {
   switch (tab) {
     case "resumen":
       return <ResumenTab />;
     case "relaciones":
       return <RelacionTab />;
     case "base_datos":
-      return <BaseDatosTab />;
+      return <BaseDatosTab publicMode={publicMode} />;
     case "dimensiones":
       return <DimensionesTab />;
   }

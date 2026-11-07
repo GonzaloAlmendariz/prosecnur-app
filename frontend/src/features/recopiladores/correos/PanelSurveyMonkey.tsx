@@ -17,6 +17,7 @@ import { useId, useState } from "react";
 import { downloadUrl } from "../../../api/core";
 import type { MailExportPayload, MailReview, MailSend, MailTemplate } from "../../../api/materialMail";
 import { PulsoButton } from "../../../components/PulsoButton";
+import { copiarTexto } from "../../../lib/portapapeles";
 import { Check, Copy, Download, FolderOpen, Inbox, Loader2, Upload } from "../../../vendor/lucide-react";
 import { VerLosPuntos } from "./VerLosPuntos";
 import { camposDeEnlace, conDestino, conEtiquetaSurveyMonkey, etiquetasDePlataforma, motivoSinEtiqueta, opcionesSurveyMonkey, problemaDeEtiquetas } from "./dialectos";
@@ -155,7 +156,8 @@ export function PanelSurveyMonkey({
   const copiar = async () => {
     setCopia("copiando");
     setHtmlDeRespaldo(null);
-    const clip = typeof navigator !== "undefined" ? navigator.clipboard : undefined;
+    // copiarTexto cae a execCommand si Electron niega el permiso del portapapeles.
+    const clip = { writeText: copiarTexto };
     let html: string | null = null;
     const out = await copiarHtmlParaPegar(async () => { html = await onHtml(); return html; }, clip);
     setCopia(out);

@@ -118,7 +118,7 @@ mount_monitoreo_telefonico <- function(pr) {
       res$setHeader("Content-Type", "application/pdf")
       res$setHeader("Content-Length", as.character(n))
       modo <- if (is.character(inline) && length(inline) >= 1L && inline[[1]] %in% c("1", "true", "TRUE")) "inline" else "attachment"
-      res$setHeader("Content-Disposition", sprintf('%s; filename="%s"', modo, basename(meta$path)))
+      res$setHeader("Content-Disposition", .content_disposition(modo, basename(meta$path)))
       res$body <- bytes
       res
     }))

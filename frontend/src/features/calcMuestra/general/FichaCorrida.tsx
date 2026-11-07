@@ -2,6 +2,7 @@ import { useReducer } from "react";
 import { Download, Loader2, Shuffle } from "lucide-react";
 
 import type { CalcMuestraComponente } from "../../../api/calcMuestra";
+import { descargarArchivo } from "../../../lib/descargas";
 import { apiCalcMuestraGeneralExportar, type CalcMuestraGeneralCorrida } from "../../../api/calcMuestraGeneral";
 import { downloadUrl } from "../../../api/core";
 import { Panel } from "../../../components/Panel";
@@ -61,7 +62,7 @@ export function FichaCorrida({
     try {
       await guardarEstudioPendiente();
       const res = await apiCalcMuestraGeneralExportar(componenteId);
-      window.open(downloadUrl(res.file_id), "_blank", "noreferrer");
+      descargarArchivo(downloadUrl(res.file_id));
       dispatch({ tipo: "exportado", filename: res.filename });
     } catch (e) {
       dispatch({ tipo: "fallo", error: errorGeneralDesde(e) });

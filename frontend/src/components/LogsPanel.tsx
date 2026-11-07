@@ -24,6 +24,7 @@ import {
   type LogLevel,
 } from "../lib/logSink";
 import { conModificador, nombreDeAtajo } from "../lib/teclado";
+import { copiarTexto } from "../lib/portapapeles";
 import { Dialog } from "./Dialog";
 import { PulsoButton } from "./PulsoButton";
 import "./logs-panel.css";
@@ -37,7 +38,7 @@ export default function LogsPanel() {
   const [open, setOpen] = useState(false);
   const [entries, setEntries] = useState<LogEntry[]>([]);
   const [filter, setFilter] = useState<LogLevel | "all">("all");
-  const [copied, setCopied] = useState(false);
+  const [copia, setCopia] = useState<"" | "ok" | "fallo">("");
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   // Suscripción al sink mientras está abierto.
@@ -75,17 +76,12 @@ export default function LogsPanel() {
   const handleCopy = useCallback(async () => {
     const diag = buildDiagnostic({ tailEntries: 200 });
     try {
-      await navigator.clipboard.writeText(diag);
+      await copiarTexto(diag);
+      setCopia("ok");
     } catch {
-      const ta = document.createElement("textarea");
-      ta.value = diag;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
+      setCopia("fallo");
     }
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 2500);
+    window.setTimeout(() => setCopia(""), 2500);
   }, []);
 
   const handleClear = useCallback(() => {
@@ -108,8 +104,8 @@ export default function LogsPanel() {
             <Trash2 size={13} aria-hidden="true" /> Limpiar
           </PulsoButton>
           <PulsoButton variant="primary" size="md" onClick={() => void handleCopy()}>
-            {copied ? <Check size={13} aria-hidden="true" /> : <Clipboard size={13} aria-hidden="true" />}
-            {copied ? "Copiado" : "Copiar diagnóstico"}
+            {copia === "ok" ? <Check size={13} aria-hidden="true" /> : <Clipboard size={13} aria-hidden="true" />}
+            {copia === "ok" ? "Copiado" : copia === "fallo" ? "No se pudo copiar" : "Copiar diagnóstico"}
           </PulsoButton>
         </>
       )}

@@ -797,7 +797,7 @@ mount_sistema <- function(pr) {
       bytes <- readBin(meta$path, what = "raw", n = n)
       res$setHeader("Content-Type", mime::guess_type(meta$path))
       res$setHeader("Content-Length", as.character(n))
-      res$setHeader("Content-Disposition", sprintf('attachment; filename="%s"', meta$original_name))
+      res$setHeader("Content-Disposition", .content_disposition("attachment", meta$original_name))
       res$body <- bytes
       res
     }))

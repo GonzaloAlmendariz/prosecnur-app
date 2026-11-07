@@ -301,7 +301,7 @@ function TerritorialProductionAnnulmentWorkspaceImpl({
           {localError ? <p className="mon-production-annulments__error">{localError}</p> : null}
           <div className="mon-production-annulments__actions">
             <button type="button" onClick={runPreview} disabled={saving || !hasTarget}>
-              {saving ? <Loader2 size={14} className="spin" /> : <Eye size={14} />}
+              {saving ? <Loader2 size={14} className="pulso-spin" /> : <Eye size={14} />}
               <span>Previsualizar impacto</span>
             </button>
             <button type="button" className="is-danger" onClick={applyAnnulment} disabled={saving || !hasTarget || alreadyAnnulled}>

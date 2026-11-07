@@ -56,6 +56,9 @@ const TRANSVERSALES = [
   // La publicación monta sin Router: un hook de router en lo que alcanza lanza al montarse (7453e06dc).
   // Recorre el cierre de imports de PublicArtifactApp, así que se rompe desde cualquier componente que importe.
   "src/app/publicModeSinRouter.contract.test.tsx",
+  // Descargas que Electron deniega (window.open), copiado sin copiarTexto y la clase `spin` que no existe:
+  // se rompen desde cualquier feature (descargas unificadas, 2026-11-07).
+  "src/lib/descargasContrato.contract.test.ts",
 ];
 
 const area = process.argv[2] ?? "";

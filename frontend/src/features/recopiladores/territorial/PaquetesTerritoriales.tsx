@@ -17,6 +17,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { ApiError, downloadUrl } from "../../../api/core";
+import { descargarArchivo } from "../../../lib/descargas";
 import {
   apiHojasRutaGenerate,
   apiHojasRutaManualReplacementsPdf,
@@ -239,7 +240,7 @@ export function PaquetesTerritoriales({ campaignId, unidades, hojas, onRecargar,
                     size="sm"
                     disabled={!config || !listo || corriendo || unidades.stale}
                     onClick={() => config && void correr("excel", () => apiHojasRutaRouteWorkbook(config, muestra), (r) => {
-                      window.open(downloadUrl(r.file_id), "_blank", "noopener,noreferrer");
+                      descargarArchivo(downloadUrl(r.file_id));
                       return { excel: r };
                     })}
                   >
@@ -319,7 +320,7 @@ export function PaquetesTerritoriales({ campaignId, unidades, hojas, onRecargar,
             jobId={e.jobPuntuales}
             onDone={(r) => {
               setE((s) => ({ ...s, puntuales: r, jobPuntuales: null }));
-              if (r.file_id) window.open(downloadUrl(r.file_id), "_blank", "noopener,noreferrer");
+              if (r.file_id) descargarArchivo(downloadUrl(r.file_id));
             }}
             onError={(msg) => setE((s) => ({ ...s, error: msg, jobPuntuales: null }))}
             onCancelled={() => setE((s) => ({ ...s, jobPuntuales: null }))}

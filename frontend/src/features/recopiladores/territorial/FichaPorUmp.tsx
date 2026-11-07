@@ -10,6 +10,7 @@
 import { useState } from "react";
 
 import { downloadUrl } from "../../../api/core";
+import { descargarArchivo } from "../../../lib/descargas";
 import { apiHojasRutaFichaUmp, apiHojasRutaRandomPdf, type HojasRutaRandomPreference, type HojasRutaState } from "../../../api/hojasRuta";
 import type { UnidadesTerritoriales } from "../../../api/materialTerritorial";
 import { GlidingRadioGroup } from "../../../components/GlidingRadioGroup";
@@ -43,17 +44,17 @@ export function FichaPorUmp({ unidades, hojas }: { unidades: UnidadesTerritorial
   const verPng = () => correr("png", async () => {
     const r = await apiHojasRutaFichaUmp(elegida, "png");
     setPng(r.formato === "png" ? downloadUrl(r.file_id) : null);
-    if (r.formato === "pdf") window.open(downloadUrl(r.file_id), "_blank", "noopener,noreferrer");
+    if (r.formato === "pdf") descargarArchivo(downloadUrl(r.file_id));
   });
   const abrirPdf = () => correr("pdf", async () => {
     const r = await apiHojasRutaFichaUmp(elegida, "pdf");
-    window.open(downloadUrl(r.file_id), "_blank", "noopener,noreferrer");
+    descargarArchivo(downloadUrl(r.file_id));
   });
   const alAzar = () => correr("azar", async () => {
     if (!hojas) return;
     const r = await apiHojasRutaRandomPdf(hojas.integrated_config, preferencia);
     setAzar(`${r.distrito}, zona ${r.zona}, manzana ${r.manzana}`);
-    window.open(downloadUrl(r.file_id), "_blank", "noopener,noreferrer");
+    descargarArchivo(downloadUrl(r.file_id));
   });
 
   return (

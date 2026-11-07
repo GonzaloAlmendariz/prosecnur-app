@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Check, Copy } from "../../../vendor/lucide-react";
+import { copiarTexto } from "../../../lib/portapapeles";
 import { truncarHuella, versionTraductorLegible } from "./smImportModel";
 
 // Lo técnico de la importación, plegado: el analista no lo necesita para
@@ -15,7 +16,7 @@ function CopiarValor({ valor, etiqueta }: { valor: string; etiqueta: string }) {
   }, [estado]);
   async function copiar() {
     try {
-      await navigator.clipboard.writeText(valor);
+      await copiarTexto(valor);
       setEstado("copiado");
     } catch {
       setEstado("error");

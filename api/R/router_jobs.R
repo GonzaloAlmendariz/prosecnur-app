@@ -16,9 +16,8 @@ mount_jobs <- function(pr) {
       if (is.null(j$result_path) || !file.exists(j$result_path)) {
         stop_api(404, "E_NO_RESULT_FILE", "Job has no file result")
       }
-      original <- sub("^[^_]+__", "", basename(j$result_path))
       res$setHeader("Content-Type", mime::guess_type(j$result_path))
-      res$setHeader("Content-Disposition", sprintf('attachment; filename="%s"', original))
+      res$setHeader("Content-Disposition", .content_disposition("attachment", basename(j$result_path)))
       # Body de archivo estilo Rook (`c(file = path)`): plumber lo pasa tal
       # cual en toResponse() y httpuv sirve el archivo desde disco por
       # streaming, con Content-Length derivado del tamaño real. Antes se hacía

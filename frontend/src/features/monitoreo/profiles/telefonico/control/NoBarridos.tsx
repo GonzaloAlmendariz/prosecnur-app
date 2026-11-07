@@ -23,6 +23,7 @@ import {
 import "./controlTelefonico.css";
 import "./noBarridos.css";
 import { formatoConteo } from "../../../../../lib/formatoNumero";
+import { copiarTexto as copiarAlPortapapeles } from "../../../../../lib/portapapeles";
 
 function n(valor: number | null | undefined) {
   return valor == null ? "—" : formatoConteo(valor);
@@ -51,7 +52,7 @@ type Copia = { tono: "exito" | "error"; texto: string } | null;
 
 async function copiarTexto(texto: string, hecho: string): Promise<Copia> {
   try {
-    await navigator.clipboard.writeText(texto);
+    await copiarAlPortapapeles(texto);
     return { tono: "exito", texto: hecho };
   } catch {
     return { tono: "error", texto: "No se pudo copiar el mensaje." };

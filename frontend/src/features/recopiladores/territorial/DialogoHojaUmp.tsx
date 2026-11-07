@@ -11,6 +11,7 @@
 import { useEffect, useState } from "react";
 
 import { downloadUrl } from "../../../api/core";
+import { descargarArchivo } from "../../../lib/descargas";
 import { apiHojasRutaFichaUmp } from "../../../api/hojasRuta";
 import type { UnidadTerritorial } from "../../../api/materialTerritorial";
 import { Dialog } from "../../../components/Dialog";
@@ -76,7 +77,7 @@ export function DialogoHojaUmp({ unidad, stale, hrefAnterior = null, hrefSiguien
 
   const imprimir = () => {
     if (e.pdf) {
-      window.open(e.pdf, "_blank", "noopener,noreferrer");
+      descargarArchivo(e.pdf);
       return;
     }
     if (!id) return;
@@ -84,7 +85,7 @@ export function DialogoHojaUmp({ unidad, stale, hrefAnterior = null, hrefSiguien
       .then((r) => {
         const url = downloadUrl(r.file_id);
         setE((s) => ({ ...s, pdf: url }));
-        window.open(url, "_blank", "noopener,noreferrer");
+        descargarArchivo(url);
       })
       .catch((err: unknown) => setE((s) => ({ ...s, error: mensaje(err, "No se pudo generar el PDF.") })));
   };

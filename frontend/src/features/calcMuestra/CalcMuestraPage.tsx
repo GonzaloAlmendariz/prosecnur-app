@@ -22,6 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { PageFrame } from "../../components/PageFrame";
+import { descargarArchivo } from "../../lib/descargas";
 import { ChromeIndicator, ChromeIndicatorGroup } from "../../components/ChromeIndicator";
 import { ModuleCommandBar } from "../../components/ModuleCommandBar";
 import { Alert } from "../../components/Alert";
@@ -1437,9 +1438,7 @@ export default function CalcMuestraPage() {
     try {
       const res = await apiCalcMuestraAulasExportar();
       setAulasState(res.state.aulas ?? null);
-      if (res.export?.file_id) {
-        window.open(downloadUrl(res.export.file_id), "_blank", "noreferrer");
-      }
+      if (res.export?.file_id) descargarArchivo(downloadUrl(res.export.file_id));
       setMsg({ kind: "info", text: `Anexo de cursos-horario exportado: ${res.export?.filename ?? "workbook xlsx"}.` });
     } catch (e) {
       setMsg({ kind: "error", text: e instanceof Error ? e.message : "No se pudo exportar la selección de cursos-horario." });

@@ -251,15 +251,6 @@ export async function apiMuestraAulasReporteIniciar(
   );
 }
 
-export function muestraAulasReporteDescargarUrl(opts: { inline?: boolean } = {}): string {
-  const sid = localStorage.getItem(SESSION_KEY);
-  const params = new URLSearchParams();
-  if (sid) params.set("sid", sid);
-  if (opts.inline) params.set("inline", "1");
-  const qs = params.toString();
-  return apiPath(`/api/muestra-aulas/reporte/descargar${qs ? `?${qs}` : ""}`);
-}
-
 // ============================================================================
 // Calculador de Muestra (nuevo módulo `calc-muestra`)
 // ============================================================================

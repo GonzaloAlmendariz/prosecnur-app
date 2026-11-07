@@ -19,6 +19,7 @@ import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
 import "./controlTelefonico.css";
 import "./discrepancias.css";
 import { formatoConteo } from "../../../../../lib/formatoNumero";
+import { copiarTexto } from "../../../../../lib/portapapeles";
 
 const TODOS = "";
 
@@ -78,7 +79,7 @@ export function Discrepancias({
 
   const copiar = async () => {
     try {
-      await navigator.clipboard.writeText(textoParaElEquipo(gruposParaAvisar));
+      await copiarTexto(textoParaElEquipo(gruposParaAvisar));
       setAviso({ tono: "exito", texto: "Lista copiada: pégala en el chat del equipo." });
     } catch {
       setAviso({ tono: "error", texto: "No se pudo copiar; usa «Exportar CSV»." });

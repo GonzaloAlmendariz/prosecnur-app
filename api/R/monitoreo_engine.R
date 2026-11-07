@@ -36011,7 +36011,7 @@ monitoreo_deliverables_preflight <- function(family = "territorial",
 
 monitoreo_deliverables_territorial_drift_report <- function(expected_umps = data.frame(),
                                                             metrics = data.frame(),
-                                                            out_dir = file.path("tmp", "qa", "monitoreo-deliverables"),
+                                                            out_dir = file.path(tempdir(), "prosecnur", "monitoreo-deliverables"),
                                                             source = "",
                                                             cut = "",
                                                             project = "") {
@@ -36520,7 +36520,7 @@ monitoreo_deliverables_territorial_drift_report <- function(expected_umps = data
 
 monitoreo_deliverables_territorial_operational_package_review <- function(package_rows = data.frame(),
                                                                          drift = list(),
-                                                                         out_dir = file.path("tmp", "qa", "monitoreo-deliverables"),
+                                                                         out_dir = file.path(tempdir(), "prosecnur", "monitoreo-deliverables"),
                                                                          source = "",
                                                                          cut = "",
                                                                          project = "",
@@ -37413,7 +37413,7 @@ monitoreo_deliverables_evidence_pack <- function(out_dir,
 }
 
 monitoreo_deliverables_performance_summary <- function(items,
-                                                       out_dir = file.path("tmp", "qa", "monitoreo-deliverables")) {
+                                                       out_dir = file.path(tempdir(), "prosecnur", "monitoreo-deliverables")) {
   out_dir <- normalizePath(out_dir, mustWork = FALSE)
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
   perf_items <- .monitoreo_deliverables_performance_items(items)

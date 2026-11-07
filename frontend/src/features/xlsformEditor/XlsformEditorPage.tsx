@@ -56,6 +56,7 @@ import {
   type XlsformFormSource,
 } from "../../api/client";
 import type { XlsformPaperExportOptions } from "../../api/xlsformEditor";
+import { descargarArchivo } from "../../lib/descargas";
 import { useProjectShell } from "../project/ProjectShell";
 import { ImportSurveyMonkeyDialog } from "./shell/ImportSurveyMonkeyDialog";
 import { MatrizPulsoDialog } from "./shell/MatrizPulsoDialog";
@@ -1798,7 +1799,7 @@ export default function XlsformEditorPage() {
             durationMs: 8000,
             action: {
               label: "Descargar",
-              onClick: () => { window.open(downloadUrl(out.file_id), "_blank"); },
+              onClick: () => { descargarArchivo(downloadUrl(out.file_id)); },
             },
           });
         }
@@ -1810,7 +1811,7 @@ export default function XlsformEditorPage() {
           durationMs: 6000,
           action: {
             label: "Descargar",
-            onClick: () => { window.open(downloadUrl(out.file_id), "_blank"); },
+            onClick: () => { descargarArchivo(downloadUrl(out.file_id)); },
           },
         });
       }
@@ -1870,7 +1871,7 @@ export default function XlsformEditorPage() {
             durationMs: 8000,
             action: {
               label: "Descargar",
-              onClick: () => { window.open(downloadUrl(out.file_id), "_blank"); },
+              onClick: () => { descargarArchivo(downloadUrl(out.file_id)); },
             },
           });
         }
@@ -1882,7 +1883,7 @@ export default function XlsformEditorPage() {
           durationMs: 7000,
           action: {
             label: "Descargar",
-            onClick: () => { window.open(downloadUrl(out.file_id), "_blank"); },
+            onClick: () => { descargarArchivo(downloadUrl(out.file_id)); },
           },
         });
       }

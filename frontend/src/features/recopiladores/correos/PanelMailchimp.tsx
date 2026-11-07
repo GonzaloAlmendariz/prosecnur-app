@@ -3,6 +3,7 @@ import { useState, type ReactNode } from "react";
 import { downloadUrl } from "../../../api/core";
 import type { MailExportPayload, MailExportScope, MailReview } from "../../../api/materialMail";
 import { PulsoButton } from "../../../components/PulsoButton";
+import { copiarTexto } from "../../../lib/portapapeles";
 import { Check, Copy, Download, FolderOpen, Loader2, Upload } from "../../../vendor/lucide-react";
 import { VerLosPuntos } from "./VerLosPuntos";
 import { pesoLegible, revisionBloquea } from "./modeloCorreo";
@@ -42,17 +43,18 @@ async function copiarHtml(html: string): Promise<void> {
   const clip = typeof navigator !== "undefined" ? navigator.clipboard : undefined;
   if (clip && typeof ClipboardItem !== "undefined" && typeof clip.write === "function") {
     const tipo = "text/html";
-    await clip.write([new ClipboardItem({
-      [tipo]: new Blob([html], { type: tipo }),
-      "text/plain": new Blob([html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()], { type: "text/plain" }),
-    })]);
-    return;
+    try {
+      await clip.write([new ClipboardItem({
+        [tipo]: new Blob([html], { type: tipo }),
+        "text/plain": new Blob([html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()], { type: "text/plain" }),
+      })]);
+      return;
+    } catch {
+      // Electron puede negar la escritura enriquecida: sigue como texto.
+    }
   }
-  if (clip?.writeText) {
-    await clip.writeText(html);
-    return;
-  }
-  throw new Error("Este equipo no deja copiar al portapapeles.");
+  // copiarTexto lanza si ni la API ni execCommand pudieron copiar.
+  await copiarTexto(html);
 }
 
 /**

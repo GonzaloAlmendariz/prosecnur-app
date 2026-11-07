@@ -2,11 +2,12 @@ import { useState } from "react";
 import { JobProgress } from "../../../../components/JobProgress";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { apiHojasRutaReporteDecisionalIniciar, hojasRutaReporteDecisionalUrl } from "../../../../api/hojasRuta";
+import { descargarArchivo } from "../../../../lib/descargas";
 import { FileText } from "../../../../vendor/lucide-react";
 
 /**
- * «Ver el informe» (brecha B22): el informe de diseño muestral (U16) que arma el motor
- * en un job; al terminar se abre en una pestaña propia. Nada se calcula aquí.
+ * «Descargar el informe» (brecha B22): el informe de diseño muestral (U16) que arma el
+ * motor en un job; al terminar se descarga. Nada se calcula aquí.
  */
 export function InformeDiseno({ deshabilitado }: { deshabilitado: boolean }) {
   const [job, setJob] = useState<string | null>(null);
@@ -23,14 +24,14 @@ export function InformeDiseno({ deshabilitado }: { deshabilitado: boolean }) {
       <p className="hr-mapa-nota">Territorio, población, tamaño, marco elegible y sorteo, con sus supuestos, para compartir con el cliente.</p>
       {error ? <p className="hr-mapa-aviso">{error}</p> : null}
       <PulsoButton variant="secondary" size="sm" disabled={deshabilitado || job != null} onClick={iniciar}>
-        <FileText size={13} aria-hidden /> {job ? "Preparando el informe…" : "Ver el informe"}
+        <FileText size={13} aria-hidden /> {job ? "Preparando el informe…" : "Descargar el informe"}
       </PulsoButton>
       <JobProgress
         label="Preparando el informe"
         jobId={job}
         onDone={() => {
           setJob(null);
-          window.open(hojasRutaReporteDecisionalUrl({ inline: true }), "_blank", "noopener,noreferrer");
+          descargarArchivo(hojasRutaReporteDecisionalUrl());
         }}
         onError={(msg) => {
           setJob(null);

@@ -10,6 +10,7 @@
 import { useState } from "react";
 
 import { downloadUrl } from "../../../api/core";
+import { descargarArchivo } from "../../../lib/descargas";
 import { apiMaterialTerritorialPapel, type UnidadesTerritoriales, type ZonaDeCuotas } from "../../../api/materialTerritorial";
 import { EstadoVacio } from "../../../components/EstadoVacio";
 import { PulsoButton } from "../../../components/PulsoButton";
@@ -35,7 +36,7 @@ export function ZonasDeCuotas({ campaignId, unidades }: Props) {
     setOcupado(unidad ?? "__todas");
     setError("");
     apiMaterialTerritorialPapel(campaignId, "conteo", unidad ? { unidad } : { alcance: "todas" })
-      .then((r) => window.open(downloadUrl(r.file_id), "_blank", "noopener,noreferrer"))
+      .then((r) => descargarArchivo(downloadUrl(r.file_id)))
       .catch((e: unknown) => setError(e instanceof Error ? e.message.replace(/ · E_[A-Z_]+$/, "") : "No se pudo generar la hoja."))
       .finally(() => setOcupado(""));
   };

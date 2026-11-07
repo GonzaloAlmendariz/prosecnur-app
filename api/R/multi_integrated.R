@@ -1494,7 +1494,7 @@ mount_multi_integrated <- function(pr) {
       bytes <- readBin(out_path, what = "raw", n = n)
       res$setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
       res$setHeader("Content-Length", as.character(n))
-      res$setHeader("Content-Disposition", sprintf('attachment; filename="%s"', filename))
+      res$setHeader("Content-Disposition", .content_disposition("attachment", filename))
       res$body <- bytes
       res
     }))
