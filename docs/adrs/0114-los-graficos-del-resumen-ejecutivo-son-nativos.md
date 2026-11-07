@@ -38,3 +38,14 @@ Para la reunión de revisión de informes del estudio de acreditación de Formac
 - `.radar_mb_datos()` devuelve además `n_casos` (casos sin ponderar por celda), que el radar ignora.
 - La UI de Gráficos ofrece los estilos en la tarjeta del tipo y el panorama en la familia «Comparar».
 - `lamina_piezas.R`: `.lam_linea()` admite trazo punteado y `.lam_caja()` el rombo.
+
+## Cumplimiento
+
+- `api/tests/testthat/test-graficos-resumen-ejecutivo.R`: especificaciones `contraste/1` y `panorama/1`, láminas nativas de los cinco gráficos, `base_en`, separador, escala del resumen y la ruta real de `reporte_ppt_plan`.
+- Los contratos del registro (`test-graficos-metadata.R`, `test-graficos-tipos-catalogo.R`) y del front (`argsDatosGrafico.c40.test.ts`, `iconosTipo.contract.test.ts`) enumeran el graficador nuevo y los args.
+- El estilo `recetario` no cambia: la lámina 71 y las pesas salen idénticas byte a byte antes y después (verificador, 2026-11-07).
+
+## Notas
+
+- Checklist del encargo: [checklist-graficos-resumen-ejecutivo-2026-11-07](../qa/checklist-graficos-resumen-ejecutivo-2026-11-07.md).
+- Pendiente: QA visual de la tarjeta del inspector y del selector con `/ver-ui`.

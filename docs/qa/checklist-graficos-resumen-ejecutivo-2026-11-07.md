@@ -1,5 +1,10 @@
 # Checklist: gráficos del resumen ejecutivo como tipos nativos (2026-11-07)
 
+Tipo: Checklist de trabajo
+Estado: Vigente
+Fecha: 2026-11-07
+Autoridad: Encargo de Gonzalo del 2026-11-07 — integrar al motor los cinco gráficos del resumen ejecutivo de Arte y Diseño FG 2026; ADR 0114
+
 Pedido: integrar al motor los cinco gráficos hechos a mano para el resumen ejecutivo de Formación General de Arte y
 Diseño 2026 (ADR 0114). Sólo Gonzalo da el checklist por terminado.
 
