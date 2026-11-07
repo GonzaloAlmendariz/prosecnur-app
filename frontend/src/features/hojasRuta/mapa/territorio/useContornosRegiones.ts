@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiHojasRutaContornos } from "../../../../api/hojasRuta";
 import { contornosDeCobertura, type ContornoDistrito } from "../lienzo/capas";
 
@@ -22,6 +22,8 @@ export function useContornosRegiones(regiones: readonly string[]) {
   const clave = [...regiones].sort().join(",");
   const [listas, setListas] = useState<Record<string, ContornoDistrito[]>>({});
   const [errores, setErrores] = useState<Record<string, string>>({});
+  // Reintentar tras un error: el pedido fallido ya salió de la caché, basta con volver a correr el efecto.
+  const [intento, setIntento] = useState(0);
   useEffect(() => {
     let vivo = true;
     for (const r of clave ? clave.split(",") : []) {
@@ -32,9 +34,14 @@ export function useContornosRegiones(regiones: readonly string[]) {
     return () => {
       vivo = false;
     };
-  }, [clave]);
+  }, [clave, intento]);
   const pedidas = useMemo(() => (clave ? clave.split(",") : []), [clave]);
   const contornos = useMemo(() => pedidas.flatMap((r) => listas[r] ?? []), [pedidas, listas]);
   const cargando = pedidas.filter((r) => !listas[r] && !errores[r]);
-  return { contornos, cargando, errores };
+  const fallidas = pedidas.filter((r) => errores[r] && !listas[r]);
+  const reintentar = useCallback(() => {
+    setErrores({});
+    setIntento((n) => n + 1);
+  }, []);
+  return { contornos, cargando, errores, fallidas, reintentar };
 }

@@ -130,8 +130,14 @@ export function dibujarRelieves(ctx: CanvasRenderingContext2D, u: UtilLienzo, re
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
   for (const r of relieves) {
-    const c = componer(r, u.colores.fondo, u.colores.mar, u.colores.texto);
     const [x0, y0, x1, y1] = r.caja;
+    // Una imagen estirada de más se ve borrosa (el Perú, a 1,6 km por píxel, sobre una ciudad): se desvanece entre
+    // 5 y 10 píxeles de pantalla por píxel de imagen y deja de dibujarse (revisión del 7 nov 2026, Trujillo).
+    const estiramiento = ((x1 - x0) / r.imagen.naturalWidth) * u.camara.s;
+    const alfa = Math.max(0, Math.min(1, (10 - estiramiento) / 5));
+    if (!alfa) continue;
+    const c = componer(r, u.colores.fondo, u.colores.mar, u.colores.texto);
+    ctx.globalAlpha = alfa;
     ctx.drawImage(capa === "base" ? c.base : c.velo, x0, y0, x1 - x0, y1 - y0);
   }
   ctx.restore();

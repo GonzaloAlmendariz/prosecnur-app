@@ -1,4 +1,5 @@
-import { ChevronLeft, ChevronRight, MapPinned, Plus, Inbox } from "../../../../vendor/lucide-react";
+import { useState } from "react";
+import { ChevronLeft, ChevronRight, MapPinned, Plus, Inbox, Trash2 } from "../../../../vendor/lucide-react";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { InspectorCabecera } from "../InspectorCabecera";
 import { proyectarLonLat } from "../lienzo/camara";
@@ -117,7 +118,13 @@ type InspectorProps = {
   onQuitar: (codigo: string) => void;
 };
 
-export function AtlasInspector({ ciudad, enEstudio, elegidos, totalCiudades, bloqueado, guardando, onAgregar, onAbrir, onQuitar }: InspectorProps) {
+export function AtlasInspector(props: InspectorProps) {
+  // La confirmación de quitar es de UNA ciudad: al abrir otra, vuelve a pedirse.
+  return <AtlasInspectorCiudad key={props.ciudad?.codigo ?? ""} {...props} />;
+}
+
+function AtlasInspectorCiudad({ ciudad, enEstudio, elegidos, totalCiudades, bloqueado, guardando, onAgregar, onAbrir, onQuitar }: InspectorProps) {
+  const [confirmando, setConfirmando] = useState(false);
   if (!ciudad) {
     return (
       <>
@@ -158,9 +165,26 @@ export function AtlasInspector({ ciudad, enEstudio, elegidos, totalCiudades, blo
               <PulsoButton variant="primary" onClick={() => onAbrir(ciudad.codigo)}>
                 Elegir distritos <ChevronRight size={14} aria-hidden="true" />
               </PulsoButton>
-              <PulsoButton variant="secondary" disabled={bloqueado || guardando} onClick={() => onQuitar(ciudad.codigo)}>
-                {elegidos ? `Quitar con sus ${elegidos} distrito${elegidos === 1 ? "" : "s"}` : "Quitar del estudio"}
-              </PulsoButton>
+              {confirmando ? (
+                // Quitar una ciudad con distritos elegidos rehace el estudio: se dice qué se pierde antes de hacerlo
+                // («Quitar con sus 6 distritos» lo hacía de un clic y no se entendía; revisión del 7 nov 2026).
+                <div className="hr-mapa-aviso hr-atlas-quitar" role="alert">
+                  <p>
+                    {ciudad.nombre} sale del estudio con {elegidos === 1 ? "su distrito elegido" : `sus ${elegidos} distritos elegidos`}. Se
+                    recalculan la población, la muestra y las cuotas, y se descarta el sorteo actual.
+                  </p>
+                  <div className="hr-atlas-quitar-acciones">
+                    <PulsoButton variant="danger" confirm disabled={bloqueado || guardando} onClick={() => onQuitar(ciudad.codigo)}>
+                      <Trash2 size={14} aria-hidden="true" /> Quitar del estudio
+                    </PulsoButton>
+                    <PulsoButton variant="ghost" onClick={() => setConfirmando(false)}>Cancelar</PulsoButton>
+                  </div>
+                </div>
+              ) : (
+                <PulsoButton variant="secondary" disabled={bloqueado || guardando} onClick={() => (elegidos ? setConfirmando(true) : onQuitar(ciudad.codigo))}>
+                  Quitar del estudio
+                </PulsoButton>
+              )}
             </>
           ) : (
             <PulsoButton variant="primary" disabled={bloqueado || guardando} onClick={() => onAgregar(ciudad.codigo)}>
@@ -192,7 +216,7 @@ export function CiudadCabecera({ ciudad, onVolver }: { ciudad: CiudadAtlas; onVo
 }
 
 /** Miga del atlas por niveles: Perú › departamento › ciudad, con cada nivel clicable para subir. */
-export function MigaAtlas({ total, departamento, ciudad, distritos, cargando, enEstudio = false, onPeru, onDepartamento }: {
+export function MigaAtlas({ total, departamento, ciudad, distritos, cargando, fallo = false, onReintentar, enEstudio = false, onPeru, onDepartamento }: {
   total: number;
   /** Si la ciudad ya está en el estudio: sólo entonces existe «Elegir distritos». */
   enEstudio?: boolean;
@@ -200,6 +224,9 @@ export function MigaAtlas({ total, departamento, ciudad, distritos, cargando, en
   ciudad: CiudadAtlas | null;
   distritos: number;
   cargando: boolean;
+  /** Si el pedido de sus distritos falló: «0 distritos» se leía como una ciudad sin distritos (revisión del 7 nov 2026). */
+  fallo?: boolean;
+  onReintentar?: () => void;
   onPeru: () => void;
   onDepartamento: (nombre: string) => void;
 }) {
@@ -214,8 +241,9 @@ export function MigaAtlas({ total, departamento, ciudad, distritos, cargando, en
         {/* Nombra el botón que de verdad está en la ficha: fuera del estudio es «Agregar al estudio». */}
         {/* Entre paréntesis: con el hueco del contenedor flex, una coma inicial quedaba suelta («Perú , 26…»). */}
         {/* Sólo el dato: la acción («Elegir distritos» / «Agregar al estudio») ya está en la ficha y la frase truncaba la píldora. */}
-        {ciudad ? (cargando ? "(cargando sus distritos…)" : `(${distritos} distrito${distritos === 1 ? "" : "s"}${enEstudio ? ", en el estudio" : ""})`) : "(clic en una ciudad para ver su ficha)"}
+        {ciudad ? (cargando ? "(cargando sus distritos…)" : fallo && !distritos ? "(no se pudieron cargar sus distritos)" : `(${distritos} distrito${distritos === 1 ? "" : "s"}${enEstudio ? ", en el estudio" : ""})`) : "(clic en una ciudad para ver su ficha)"}
       </span>
+      {ciudad && fallo && !distritos && onReintentar ? <button type="button" className="hr-miga-nivel" onClick={onReintentar}>Reintentar</button> : null}
     </>
   );
 }
