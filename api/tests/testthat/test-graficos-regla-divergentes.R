@@ -76,11 +76,11 @@ test_that("con excluir_opciones la regla mide sin la opción excluida, como la l
   reg <- .rd_cifras_regla(el, src, lam$etiqueta)
   expect_equal(reg$valor, lam$valor)
   expect_equal(reg$sin_info, c(0, 0))
-  # El reparto se fija sobre la escala ORIGINAL (seis niveles, el 9 no se reconoce como especial): «Ni uno ni otro»
-  # queda en el lado de acuerdo también tras excluir el 9. Salud: 25 + 16 + 16 unidades de 8, 5 y 5 sobre 32. La
-  # regla repite lo que la lámina pinta, sea cual sea su lectura.
+  # ADR 0135 §3: el reparto se fija sobre las opciones SUSTANTIVAS de la escala original (1 a 5; el 9 es no sustantivo
+  # aunque se excluya), así que «Ni uno ni otro» es el punto medio y el lado de acuerdo es 4 y 5. Salud: 5 y 5 sobre
+  # 32 (15,625 % cada uno), que la lámina rotula 16 + 16 (unidades que suman 100).
   ind <- .regla_preguntas_indicadores(el, src)$indicadores
-  expect_equal(ind$valor[ind$etiqueta == "Salud"], 57)
+  expect_equal(ind$valor[ind$etiqueta == "Salud"], 32)
 })
 
 test_that("«Sin información» con su rótulo: la columna especial de la lámina es la métrica de mayor_sin_info", {

@@ -26,7 +26,9 @@
   tinta <- max(vapply(espec$filas, function(t) .lam_ancho_tinta(t, 12, FALSE), 0))
   wq <- min(4.2, max(2.2, tinta + 0.25))
   hay_si <- any(C$lado == "sin_inf")
-  wsi <- if (hay_si) max(1.5, .lam_ancho_tinta(C$rotulo[C$lado == "sin_inf"][1], 11, FALSE) + 0.45) else 0
+  # ADR 0135 §3: un rótulo largo («No tengo información suficiente») no ensancha la columna más de 2 in; su leyenda se
+  # parte en dos líneas.
+  wsi <- if (hay_si) min(2, max(1.5, .lam_ancho_tinta(C$rotulo[C$lado == "sin_inf"][1], 11, FALSE) + 0.45)) else 0
   list(ml = ml, fin = fin, y0 = y0, fila = fila, g = fila * 0.74, wq = wq, hay_si = hay_si, wsi = wsi,
        xa = ml + wq + 0.2, xb = fin - wsi - (if (hay_si) 0.45 else 0))
 }
@@ -60,19 +62,25 @@
   yl <- y0 - 0.42
   item <- function(k) .lam_ancho_tinta(C$rotulo[k], 11, FALSE) + 0.3
   izq_ley <- rev(neg); x <- xc - 0.1 - sum(vapply(izq_ley, item, 0)) - 0.15 * max(0, length(izq_ley) - 1L)
-  for (k in c(izq_ley, if (length(neu)) neu)) {
-    .lam_caja(lz, x, yl + 0.075, 0.15, 0.15, C$color[k], nombre = "leyenda:cuadro")
-    .lam_txt(lz, C$rotulo[k], x + 0.12, yl, item(k) + 0.2, 0.3, 11, azul, nombre = "leyenda:texto"); x <- x + item(k) + 0.15
-  }
+  # Primero las posiciones; la leyenda se dibuja después para poder correrla entera si pisa la de «Sin información».
+  ley <- list()
+  for (k in c(izq_ley, if (length(neu)) neu)) { ley[[length(ley) + 1L]] <- c(k = k, x = x); x <- x + item(k) + 0.15 }
   x <- max(x, xc + 0.1)
-  for (k in pos) {
-    .lam_caja(lz, x, yl + 0.075, 0.15, 0.15, C$color[k], nombre = "leyenda:cuadro")
-    .lam_txt(lz, C$rotulo[k], x + 0.12, yl, item(k) + 0.2, 0.3, 11, azul, nombre = "leyenda:texto"); x <- x + item(k) + 0.15
+  for (k in pos) { ley[[length(ley) + 1L]] <- c(k = k, x = x); x <- x + item(k) + 0.15 }
+  # ADR 0135 §3: con «Sin información» aparte, la leyenda de la escala termina antes de su columna; si no, se corre
+  # entera a la izquierda (sin pasar del margen). Sin desborde queda donde estaba.
+  sobra <- if (ge$hay_si) (x - 0.15) - (ge$fin - ge$wsi - 0.2) else 0
+  corre <- if (sobra > 0) min(sobra, max(0, ley[[1]][["x"]] - ge$ml)) else 0
+  for (it in ley) {
+    k <- it[["k"]]; xi <- it[["x"]] - corre
+    .lam_caja(lz, xi, yl + 0.075, 0.15, 0.15, C$color[k], nombre = "leyenda:cuadro")
+    .lam_txt(lz, C$rotulo[k], xi + 0.12, yl, item(k) + 0.2, 0.3, 11, azul, nombre = "leyenda:texto")
   }
   xsi <- ge$fin - ge$wsi
   if (ge$hay_si) {
-    .lam_caja(lz, xsi, yl + 0.075, 0.15, 0.15, C$color[si[1]], nombre = "leyenda:cuadro")
-    .lam_txt(lz, C$rotulo[si[1]], xsi + 0.12, yl, ge$wsi, 0.3, 11, azul, nombre = "leyenda:texto")
+    hl <- max(0.3, .lam_alto_tinta(C$rotulo[si[1]], ge$wsi, 11, FALSE))
+    .lam_caja(lz, xsi, yl + 0.375 - hl, 0.15, 0.15, C$color[si[1]], nombre = "leyenda:cuadro")
+    .lam_txt(lz, C$rotulo[si[1]], xsi + 0.12, yl + 0.3 - hl, ge$wsi, hl, 11, azul, nombre = "leyenda:texto")
   }
   max_si <- if (ge$hay_si) max(1, max(U[, si[1]])) else 1
   for (i in seq_len(n)) {
@@ -106,7 +114,8 @@
       wbar <- (ge$wsi - 0.05) * U[i, si[1]] / max_si
       .lam_caja(lz, xsi, yb, wbar, g, C$color[si[1]], nombre = "divergentes:sin_inf")
       cabe <- wbar >= .lam_ancho_tinta(X[i, si[1]], 11, FALSE) + 0.1
-      .lam_txt(lz, X[i, si[1]], if (cabe) xsi else xsi + wbar + 0.04, .lam_y_centrada(yc, 11), if (cabe) wbar else 0.6, 0.28, 11, azul,
+      # Centrada con holgura, como las cifras de los segmentos: una caja del ancho justo de la barra partía «3 %».
+      .lam_txt(lz, X[i, si[1]], if (cabe) xsi - 0.2 else xsi + wbar + 0.04, .lam_y_centrada(yc, 11), if (cabe) wbar + 0.4 else 0.6, 0.28, 11, azul,
                align = if (cabe) "center" else "left", nombre = "divergentes:cifra_sin_inf")
     }
   }

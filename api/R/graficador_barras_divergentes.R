@@ -207,6 +207,9 @@ graficar_barras_divergentes <- function(
                                            reparto_explicito = !is.null(reparto), codigos = codigos_grupos, orden = orden,
                                            estilo = estilo), error = function(e) NULL)
   items <- as.character(data[[var_categoria]])
+  # ADR 0135 §3: lo que la especificación reconoce como no sustantivo («Sin información», el 9 de una 1-5) no entra al
+  # saldo; en la imagen va al final del lado derecho, en el gris de lo no sustantivo.
+  sin_inf <- if (!is.null(espec_div)) espec_div$categorias$col[espec_div$categorias$lado == "sin_inf"] else character(0)
   filas <- list()
   for (i in seq_along(items)) {
     for (col in cols_porcentaje) {
@@ -214,7 +217,7 @@ graficar_barras_divergentes <- function(
       if (!is.finite(v)) v <- 0
       if (identical(escala_valor, "proporcion_1")) v <- v * 100
 
-      lado <- if (col %in% particion$negativas) "neg" else if (col %in% particion$neutro) "neu" else "pos"
+      lado <- if (col %in% sin_inf) "sin_inf" else if (col %in% particion$negativas) "neg" else if (col %in% particion$neutro) "neu" else "pos"
       # El neutro se parte por la mitad a cada lado. Ocultarlo inflaria los dos
       # extremos y haria parecer que todos opinaron.
       if (identical(lado, "neu")) {
@@ -259,6 +262,7 @@ graficar_barras_divergentes <- function(
 
   colores <- .graficos_mk_palette(cols_porcentaje, pal_user = colores_grupos)
   names(colores) <- cols_porcentaje
+  if (length(sin_inf) && is.null(colores_grupos)) colores[sin_inf] <- .graficos_no_sustantivo_color()
 
   tope <- suppressWarnings(as.numeric(limite_x)[1])
   if (!is.finite(tope)) {

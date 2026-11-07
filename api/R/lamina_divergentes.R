@@ -43,8 +43,11 @@
   # «Top Two Box» sólo cuando el lado de acuerdo son exactamente dos categorías (lámina 19).
   .lam_txt(lz, if (length(espec$orden_pos) == 2L) "De acuerdo (Top Two Box)" else "De acuerdo", xc + 0.1, y0 - 0.4, 3, 0.26, 10.5, suave,
            bold = TRUE, nombre = "divergentes:encabezado")
-  if (hay_si) .lam_txt(lz, C$rotulo[C$lado == "sin_inf"][1], W - mr - wsi, y0 - 0.4, wsi, 0.26, 10.5, suave, bold = TRUE, align = "center",
-                       nombre = "divergentes:encabezado")
+  if (hay_si) {
+    hsi <- .lam_divergentes_hsi(C$rotulo[C$lado == "sin_inf"][1])
+    .lam_txt(lz, C$rotulo[C$lado == "sin_inf"][1], W - mr - wsi, y0 - 0.14 - hsi, wsi, hsi, 10.5, suave, bold = TRUE, align = "center",
+             nombre = "divergentes:encabezado")
+  }
   neg <- espec$orden_neg %||% rev(which(C$lado == "neg")); pos <- espec$orden_pos %||% which(C$lado == "pos"); si <- which(C$lado == "sin_inf")
   max_si <- if (hay_si) max(1, max(U[, si])) else 1
   # L10-4: la línea del centro va DETRÁS de los segmentos y sus cifras: se ve entre filas y no tacha la cifra del neutro.
@@ -113,7 +116,17 @@
 
 #' Ancho de la columna especial: 0.9 in del recetario, o lo que pida su cabecera (hasta 1.6 in)
 #' @keywords internal
-.lam_divergentes_wsi <- function(rotulo) max(0.9, .lam_ancho_tinta(rotulo, 10.5, TRUE) + 0.2)
+.lam_divergentes_wsi <- function(rotulo) min(1.6, max(0.9, .lam_ancho_tinta(rotulo, 10.5, TRUE) + 0.2))
+
+#' Alto de la cabecera de la columna especial: una línea (0.26 in) o lo que pida un rótulo largo partido en 1.6 in
+#'
+#' ADR 0135 §3: «No tengo información suficiente» ya es la columna especial y no cabía en una línea de 1.6 in; la lámina
+#' caía al gráfico de imagen. La cabecera crece hacia arriba y su base queda donde siempre.
+#' @keywords internal
+.lam_divergentes_hsi <- function(rotulo) {
+  l <- .lam_lineas(rotulo, .lam_divergentes_wsi(rotulo), 10.5, TRUE)
+  if (l <= 1L) 0.26 else .lam_alto_txt(rotulo, .lam_divergentes_wsi(rotulo), 10.5, TRUE)
+}
 
 #' ¿Las divergentes caben? Hasta 8 afirmaciones con su texto en la fila (10.5 pt en 4.5 in)
 #' @keywords internal
@@ -125,6 +138,6 @@
   # Una sola categoría especial (la columna del recetario es una) y la afirmación puede pasar apenas su fila (el
   # recetario lleva una de cuatro líneas en 0.74 in).
   si <- espec$categorias$rotulo[espec$categorias$lado == "sin_inf"]
-  n >= 1L && n <= 8L && length(si) <= 1L && (!length(si) || .lam_divergentes_wsi(si) <= 1.6) &&
+  n >= 1L && n <= 8L && length(si) <= 1L && (!length(si) || .lam_lineas(si, .lam_divergentes_wsi(si), 10.5, TRUE) <= 3L) &&
     all(vapply(espec$filas, function(t) .lam_alto_txt(t, 4.5, 10.5, TRUE) <= fila + 0.06, TRUE))
 }

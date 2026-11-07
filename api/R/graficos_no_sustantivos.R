@@ -6,8 +6,9 @@
 # por rótulo: el código, que sí lo dice (9 o 77 fuera de una escala 1-5), ya se había perdido.
 #
 # Modelo: «SIN INF» en el mazo de Arte — gris (`likert[5]`), último segmento, con su entrada en la leyenda, y la escala
-# con su propia rampa. Esto sólo decide COLOR y LUGAR: las cifras, la base y el Top Two Box no cambian (si el no
-# sustantivo sale o no del denominador del T2B es la decisión D13, abierta).
+# con su propia rampa. En las apiladas esto sólo decide COLOR y LUGAR: las cifras, la base y el Top Two Box no cambian
+# (si el no sustantivo sale o no del denominador del T2B es la decisión D13, abierta). En la escala divergente (resumen y
+# lámina 71, ADR 0135 §3) el no sustantivo sale de los lados y del reparto, y el denominador sigue siendo el total.
 #
 # Detección, en este orden:
 #   (a) metadata del instrumento: una columna de `choices` que marca la opción como especial (sí) o como de la escala

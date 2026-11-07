@@ -10,6 +10,27 @@
 
 .DIVERGENTES_ESPECIAL <- "^(SIN INF|Sin información|No sabe|No sé|No se|NS/NR|NS/NO|No responde|No opina|No aplica|Ninguno de los anteriores)"
 
+#' ¿Qué opciones de la escala no son sustantivas? Un solo detector para la escala (ADR 0135 §3)
+#'
+#' La regla de siempre de la lámina 71 (`.DIVERGENTES_ESPECIAL` o un código 90-99) más `.graficos_no_sustantivos`: un
+#' código fuera del rango de la escala (el 9 «No tengo información suficiente» de una 1-5) o un rótulo de no respuesta.
+#' La usan la tabla del render (para fijar el reparto y el punto medio sobre las opciones sustantivas) y la
+#' especificación (para sacarlas de los lados), así que no pueden discrepar.
+#' @param rotulos Rótulos de las opciones.
+#' @param codigos Códigos alineados con `rotulos` (o `NULL`/`NA`: decide el rótulo).
+#' @param codigos_lista Todos los códigos de la escala, para el rango; por defecto los de `codigos`.
+#' @return Lógico alineado con `rotulos`.
+#' @keywords internal
+.divergentes_especiales <- function(rotulos, codigos = NULL, codigos_lista = NULL) {
+  rot <- trimws(as.character(rotulos)); rot[is.na(rot)] <- ""
+  cod <- if (is.null(codigos)) rep(NA_character_, length(rot)) else trimws(as.character(codigos))
+  hay <- !is.na(cod) & nzchar(cod)
+  previo <- grepl(.DIVERGENTES_ESPECIAL, rot, ignore.case = TRUE) | (hay & grepl("^9[0-9]$", cod))
+  lista <- if (length(codigos_lista)) trimws(as.character(codigos_lista)) else cod[hay]
+  ns <- .graficos_no_sustantivos(ifelse(hay, cod, rot), rot, codigos_lista = lista[!is.na(lista) & nzchar(lista)])
+  previo | ns
+}
+
 #' Especificación de unas barras divergentes
 #'
 #' @param data,var_categoria,cols_porcentaje,etiquetas Los del graficador.
@@ -23,10 +44,12 @@
                                decimales = 0L, colores = NULL, incluir_neutro = TRUE, reparto_explicito = FALSE, codigos = NULL,
                                orden = "top_two_box", estilo = "recetario") {
   rot <- unname(etiquetas[cols_porcentaje]); rot[is.na(rot)] <- cols_porcentaje[is.na(rot)]
-  # Especial por etiqueta o por código (90-99, punto 2 del ADR 0093): nunca entra en un lado ni en el Top Two Box.
+  # Especial por etiqueta, por código (90-99, punto 2 del ADR 0093) o por el detector común de no sustantivos (ADR 0135
+  # §3): nunca entra en un lado ni en el Top Two Box. La lista completa de códigos de la escala (atributo
+  # `codigos_lista`, la pone `.ola4_tabla_escala`) fija el rango aunque una opción del medio se haya excluido.
   cod <- if (!is.null(codigos)) unname(as.character(codigos[cols_porcentaje])) else cols_porcentaje
   cod[is.na(cod)] <- cols_porcentaje[is.na(cod)]
-  especial <- grepl(.DIVERGENTES_ESPECIAL, trimws(rot), ignore.case = TRUE) | grepl("^9[0-9]$", cod)
+  especial <- .divergentes_especiales(rot, cod, attr(codigos, "codigos_lista", exact = TRUE))
   normales <- cols_porcentaje[!especial]
   # El reparto posicional cuenta la especial como un nivel más: si cayó en un lado, se rehace sin ella.
   # Si el reparto lo declaró la escala, sólo se saca la especial de su lado.

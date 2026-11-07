@@ -9,7 +9,10 @@
 # suficiente», o con una opción excluida, daba en la nota de la regla otra cifra que en la lámina.
 #
 # Aquí la regla mide DESDE ESA MISMA TABLA: las cifras de la regla son las unidades redondeadas que la lámina rotula,
-# así que coinciden por construcción. El detector de la lámina no cambia.
+# así que coinciden por construcción. Desde la oleada 3 la lámina reconoce lo no sustantivo con un solo detector
+# (`.divergentes_especiales`, que suma `.graficos_no_sustantivos`): el 9 va a «Sin información», el reparto y el punto
+# medio se fijan sobre las opciones sustantivas y el Top Two Box es la suma rotulada de su lado sobre el total de
+# respondientes.
 #
 # Las frecuencias salen de `.tab_freq()`, `.resolve_ref()` y `.exclusion_for_ctx()`, que son locales de
 # `reporte_ppt_plan()` y se leen con `dynGet`. Dentro del render se usan las del motor. Fuera de él (el endpoint de

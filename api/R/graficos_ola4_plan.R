@@ -275,6 +275,7 @@ p_barras_divergentes <- function(vars = NULL,
   ref_escala <- NULL
   firma_escala <- NULL
   opciones_e1 <- NULL
+  no_sustantivas <- character(0)
 
   for (ref in refs) {
     tab <- .ola4_tabla_opciones(
@@ -305,8 +306,14 @@ p_barras_divergentes <- function(vars = NULL,
       } else {
         escala_original
       }
+      # ADR 0135 §3: el reparto y el punto medio se fijan sobre las opciones SUSTANTIVAS. Las no sustantivas (el 9
+      # «No tengo información suficiente» de una 1-5) van a su columna y no cuentan como un nivel más de la escala.
+      codigos_escala <- if (!is.null(firma_ref) && length(opciones_ref)) {
+        vapply(opciones_ref, function(x) as.character(x$codigo)[1], character(1))
+      } else NULL
+      no_sustantivas <- escala_original[.divergentes_especiales(escala_original, codigos_escala)]
       reparto_original <- .divergentes_reparto(
-        escala_reparto,
+        setdiff(escala_reparto, no_sustantivas),
         n_negativas,
         incluir_neutro
       )
@@ -403,10 +410,12 @@ p_barras_divergentes <- function(vars = NULL,
     x <- x[x %in% niveles]
     unname(id_por_nivel[x])
   }
+  # Las no sustantivas completan el reparto (el graficador exige cubrir todas las columnas) por el lado positivo; la
+  # especificación las reconoce con el mismo detector y las saca de los lados.
   reparto_visible <- list(
     negativas = ids_visibles(reparto_original$negativas),
     neutro = ids_visibles(reparto_original$neutro),
-    positivas = ids_visibles(reparto_original$positivas)
+    positivas = ids_visibles(c(reparto_original$positivas, no_sustantivas))
   )
   if (!length(reparto_visible$negativas)) {
     stop(
@@ -432,7 +441,9 @@ p_barras_divergentes <- function(vars = NULL,
   codigos <- if (length(opciones_e1)) {
     et <- vapply(opciones_e1, function(x) as.character(x$etiqueta)[1], character(1))
     cd <- vapply(opciones_e1, function(x) as.character(x$codigo)[1], character(1))
-    stats::setNames(unname(cd[match(niveles, et)]), cols)
+    out_cod <- stats::setNames(unname(cd[match(niveles, et)]), cols)
+    attr(out_cod, "codigos_lista") <- unname(cd)   # el rango de la escala completa, aun con exclusiones
+    out_cod
   } else NULL
   list(
     data = out,

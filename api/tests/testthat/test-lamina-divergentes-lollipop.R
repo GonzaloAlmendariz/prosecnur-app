@@ -155,6 +155,20 @@ test_that("ninguna cifra chica queda cruzada por la línea del centro y la cabec
   enc <- .dl_ext(xml, "divergentes:encabezado")[3, ]                                           # la cabecera de la especial
   expect_identical(.dl_txt(xml, "divergentes:encabezado")[3], "Desconoce")
   expect_gte(enc$w, .lam_ancho_tinta("Desconoce", 10.5, TRUE) + 0.1)
+  # ADR 0135 §3: la cabecera de la especial se parte hasta en tres líneas de 1.6 in como mucho, creciendo hacia arriba
+  # (el 9 «No tengo información suficiente» ya es la columna especial); más larga, no cabe y va la ruta anterior.
   e2 <- e; e2$categorias$rotulo[5] <- "Desconoce por completo la existencia del programa"
-  expect_false(.lam_divergentes_cabe(e2))                                                      # no cabe: ruta anterior
+  expect_true(.lam_divergentes_cabe(e2))
+  xml2b <- .dl_xml(.lam_laminas_divergentes(.dl_doc(), e2, "Larga", folio = 1)$doc)
+  enc2 <- .dl_ext(xml2b, "divergentes:encabezado")
+  expect_lte(enc2$w[3], 1.6 + 1e-6)
+  fondo <- function(x) {                                                                        # base de la cabecera especial
+    xf <- xml2::xml_find_all(x, "//p:sp[p:nvSpPr/p:cNvPr[@name='divergentes:encabezado']]/p:spPr/a:xfrm")[3]
+    (as.numeric(xml2::xml_attr(xml2::xml_find_first(xf, "./a:off"), "y")) +
+       as.numeric(xml2::xml_attr(xml2::xml_find_first(xf, "./a:ext"), "cy"))) / 914400
+  }
+  expect_equal(fondo(xml2b), fondo(xml), tolerance = 1e-3)                                     # la base, donde siempre
+  expect_gt(fondo(xml), 0)
+  e3 <- e; e3$categorias$rotulo[5] <- "Desconoce por completo la existencia del programa de tutorías de la facultad y sus horarios"
+  expect_false(.lam_divergentes_cabe(e3))                                                      # no cabe: ruta anterior
 })
