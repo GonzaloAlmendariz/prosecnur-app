@@ -305,11 +305,8 @@
 }
 .pulso-f6-indice-tarjeta-ir { flex: none; }
 .pulso-f6-datos:not(:has(> [data-seccion-tarjeta="datos"] > .pulso-f6-grupo-cuerpo > *)) [data-ir="datos"],
-.pulso-f6-datos:not(:has(> [data-seccion-tarjeta="orden"] > .pulso-f6-grupo-cuerpo > *)) [data-ir="orden"],
-.pulso-f6-datos:not(:has(> [data-seccion-tarjeta="cifras"] > .pulso-f6-grupo-cuerpo > *)) [data-ir="cifras"],
-.pulso-f6-datos:not(:has(> [data-seccion-tarjeta="diferencias"] > .pulso-f6-grupo-cuerpo > *)) [data-ir="diferencias"],
-.pulso-f6-datos:not(:has(> [data-seccion-tarjeta="colores"] > .pulso-f6-grupo-cuerpo > *)) [data-ir="colores"],
-.pulso-f6-datos:not(:has(> [data-seccion-tarjeta="word"] > .pulso-f6-grupo-cuerpo > *)) [data-ir="word"] {
+.pulso-f6-datos:not(:has(> [data-seccion-tarjeta="calculo"] > .pulso-f6-grupo-cuerpo > *)) [data-ir="calculo"],
+.pulso-f6-datos:not(:has(> [data-seccion-tarjeta="aspecto"] > .pulso-f6-grupo-cuerpo > *)) [data-ir="aspecto"] {
   display: none;
 }
 

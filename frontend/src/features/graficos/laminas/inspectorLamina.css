@@ -520,3 +520,31 @@ textarea.pulso-f6-input {
 .pulso-f6-inspector-avisos ul[hidden] {
   display: none;
 }
+
+/* ADR 0135 §1 y §8: la cabecera del gráfico lleva su miniatura, su nombre y su clase. */
+.pulso-f6-ranura-miniatura {
+  flex: none;
+  width: 56px;
+  aspect-ratio: 16 / 10;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-f6-ranura-miniatura > .pulso-glifo {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.pulso-f6-ranura-clase {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pulso-f6-ranura-clase[data-clase-tarjeta="resumen"] {
+  color: var(--module-accent);
+}

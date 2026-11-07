@@ -8,6 +8,7 @@
 
 import { useId } from "react";
 import { PulsoSwitch } from "../../../../components/PulsoSwitch";
+import { AyudaGlobo } from "../AyudaGlobo";
 import { usePlanStore } from "../../store";
 import { parseVarRef, useVariables } from "../../useVariables";
 import { formatoConteo } from "../../../../lib/formatoNumero";
@@ -70,6 +71,7 @@ export function PreguntaClave({ slideId, graficador, args }: Props) {
     <div className="pulso-f6-dato is-apilado pulso-f6-clave" data-qa="pregunta-clave">
       <span className="pulso-f6-dato-rotulo" id={id}>
         Preguntas clave del estudio
+        <AyudaGlobo rotulo="Preguntas clave del estudio" detalle={AYUDA_CLAVE} />
         <span className="pulso-f6-clave-n">{n ? `${formatoConteo(n)} de ${formatoConteo(refs.length)}` : "Ninguna"}</span>
       </span>
       <ul className="pulso-f6-clave-lista" aria-labelledby={id}
@@ -84,7 +86,6 @@ export function PreguntaClave({ slideId, graficador, args }: Props) {
           );
         })}
       </ul>
-      <span className="pulso-f6-dato-ayuda">{AYUDA_CLAVE}</span>
     </div>
   );
 }

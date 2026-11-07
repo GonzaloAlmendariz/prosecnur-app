@@ -1,54 +1,77 @@
-// Grupos de la tarjeta del gráfico (O7b del rediseño, 2026-10-15; aprobado por Gonzalo): Datos, Categorías y orden,
-// Cifras, Diferencias entre grupos (ADR 0128), Colores y En el Word. Cada campo de la lista blanca cae en uno; lo no listado es Datos. Un grupo sin nada para
-// ese tipo de gráfico no se muestra (CSS), así cada tipo enseña su propio juego de ajustes.
+// Secciones de la tarjeta del gráfico (ADR 0135 §8, «inspector uniforme»; maqueta graficos-sintesis «Configuraciones»):
+// Datos, Cálculo y Aspecto, las mismas para todos los graficadores. Reemplazan a las seis del rediseño O7b (Datos,
+// Categorías y orden, Cifras, Diferencias entre grupos, Colores y En el Word): el orden, las cifras, los colores y el
+// Word son Aspecto; las diferencias entre grupos, Cálculo.
+//
+// Cada campo de la lista blanca (argsDatosGrafico.ts) tiene su sección en `SECCION_DE_CAMPO`, explícita: un campo nuevo
+// sin sección hace fallar gruposTarjeta.test.ts. Las tarjetas propias (Brecha, Matriz, Two Box, Colores…) declaran la
+// suya donde DatosGrafico las monta. Una sección sin nada para ese tipo de gráfico no se muestra (CSS).
 
-export type GrupoTarjeta = "datos" | "orden" | "cifras";
+export type SeccionTarjeta = "datos" | "calculo" | "aspecto";
+
+/** Antes eran grupos y secciones aparte; hoy son lo mismo. Se conserva el nombre para quien lo importa. */
+export type GrupoTarjeta = SeccionTarjeta;
 
 /** Las secciones de la tarjeta, en el orden en que salen (H4: cada una se pliega y el índice salta a ella). */
-export type SeccionTarjeta = GrupoTarjeta | "diferencias" | "colores" | "word";
-
-export const SECCIONES_TARJETA: readonly SeccionTarjeta[] = ["datos", "orden", "cifras", "diferencias", "colores", "word"];
+export const SECCIONES_TARJETA: readonly SeccionTarjeta[] = ["datos", "calculo", "aspecto"];
 
 export const TITULO_GRUPO: Readonly<Record<SeccionTarjeta, string>> = {
   datos: "Datos",
-  orden: "Categorías y orden",
-  cifras: "Cifras",
-  // ADR 0128: el interruptor y el resumen de las marcas; reemplaza al «Nivel de significancia» de Cifras.
-  diferencias: "Diferencias entre grupos",
-  colores: "Colores",
-  word: "En el Word",
+  calculo: "Cálculo",
+  aspecto: "Aspecto",
 };
 
-const ORDEN: ReadonlySet<string> = new Set([
-  "orden_barras", "orden", "orden_periodos", "max_categorias", "top_k", "top_n", "agrupar_resto_en_otros", "etiqueta_otros",
-  "mostrar_ceros", "mostrar_categorias_en_cero", "mostrar_respuestas", "filete_temas", "mostrar_ranking", "ancho_tema", "premisa_posicion", "limite_superior",
-  "invertir_barras", "otros_al_final", "residuales_gris", "normalizar_etiquetas", "max_palabras", "min_chars", "limites",
-  "separar_tras",
-]);
+/** Rótulo de la sección en el índice de arriba: una palabra. */
+export const ROTULO_INDICE: Readonly<Record<SeccionTarjeta, string>> = TITULO_GRUPO;
 
-const CIFRAS: ReadonlySet<string> = new Set([
-  "marcas_eje", "alpha", "mostrar_brecha", "etiqueta_brecha", "decimales_promedio",
-  "tipo_rango", "mostrar_valores", "max_series_con_cifras", "valores_decimales", "umbral_rojo_pct", "cortes_chip", "min_n", "cortes",
-  "decimales", "mostrar_leyenda", "referencia",
-  // U6 (2026-11-05): cómo se dibujan las barras y la mediana.
-  "pista_barras", "colorear_por_opcion", "marca_mediana",
-  // U10: los casos bajo el porcentaje del histograma.
-  "mostrar_frecuencia",
-]);
+/**
+ * Qué pregunta, de qué público, dividida por qué y con qué filtro: Datos. Qué se cuenta y cómo (indicador, corte,
+ * redondeo, significancia, umbrales que cambian lo que entra en una clase): Cálculo. Cómo se ve (orden, recortes
+ * visuales, cifras, leyenda, colores, Word): Aspecto.
+ */
+export const SECCION_DE_CAMPO: Readonly<Record<string, SeccionTarjeta>> = {
+  // Datos
+  var: "datos", vars: "datos", modo: "datos", scope: "datos", ubigeo: "datos", unit: "datos", coverage_mode: "datos",
+  area: "datos", juntar: "datos", agrupar_lista: "datos", medida: "datos", unidad: "datos", otra_respuesta: "datos",
+  cruces: "datos", cruce: "datos", grupos: "datos", grupo: "datos", excluir_opciones: "datos", excluir_grupos: "datos",
+  series: "datos", total_arriba: "datos", segmentos_total: "datos", grafico_sub: "datos", tabla_encabezados: "datos",
+  objetivo: "datos", categoria: "datos", universos: "datos",
+  // Cálculo
+  corte: "calculo", corte_etiqueta: "calculo", metrica: "calculo", direccion_escala: "calculo", n_negativas: "calculo",
+  incluir_neutro: "calculo", incluir_total: "calculo", nivel: "calculo", usar_pesos: "calculo", corte_score: "calculo",
+  alpha: "calculo", referencia: "calculo", decimales_promedio: "calculo", tipo_rango: "calculo", valores_decimales: "calculo",
+  decimales: "calculo", min_n: "calculo", cortes: "calculo", cortes_chip: "calculo", sm_omit_na: "calculo",
+  // Aspecto
+  estilo: "aspecto", base_en: "aspecto", forma: "aspecto", fallback_pocos: "aspecto", eje_pocos: "aspecto",
+  eje_pocos_min: "aspecto", eje_pocos_max: "aspecto", tabla: "aspecto", tabla_titulo: "aspecto", eje_min: "aspecto",
+  modo_foda: "aspecto", orden_barras: "aspecto", orden: "aspecto", separar_tras: "aspecto", orden_periodos: "aspecto",
+  max_categorias: "aspecto", top_k: "aspecto", top_n: "aspecto", agrupar_resto_en_otros: "aspecto", etiqueta_otros: "aspecto",
+  mostrar_ceros: "aspecto", mostrar_categorias_en_cero: "aspecto", mostrar_respuestas: "aspecto", filete_temas: "aspecto",
+  mostrar_ranking: "aspecto", eje_x: "aspecto", eje_y: "aspecto", linea: "aspecto", linea_x: "aspecto", linea_y: "aspecto",
+  destacado: "aspecto", ancho_tema: "aspecto", premisa_posicion: "aspecto", umbral_rojo_pct: "aspecto",
+  disposicion: "aspecto", marcas_eje: "aspecto", mostrar_brecha: "aspecto", etiqueta_brecha: "aspecto",
+  limite_superior: "aspecto", invertir_barras: "aspecto", otros_al_final: "aspecto", normalizar_etiquetas: "aspecto",
+  residuales_gris: "aspecto", max_palabras: "aspecto", min_chars: "aspecto", mostrar_leyenda: "aspecto",
+  mostrar_valores: "aspecto", max_series_con_cifras: "aspecto", pista_barras: "aspecto", colorear_por_opcion: "aspecto",
+  marca_mediana: "aspecto", mostrar_frecuencia: "aspecto", titulo_seccion: "aspecto", publico: "aspecto",
+  nombre_nivel: "aspecto", lectura: "aspecto", rotulo_total: "aspecto", encuadre: "aspecto", puntos: "aspecto",
+  otra_respuesta_rotulo: "aspecto", limites: "aspecto",
+};
 
-export function grupoDeCampo(arg: string): GrupoTarjeta {
-  return ORDEN.has(arg) ? "orden" : CIFRAS.has(arg) ? "cifras" : "datos";
+export function grupoDeCampo(arg: string): SeccionTarjeta {
+  return SECCION_DE_CAMPO[arg] ?? "datos";
 }
 
-/** Rótulo de la sección en el índice de arriba: una palabra, para que el índice quepa en una línea del inspector. */
-export const ROTULO_INDICE: Readonly<Record<SeccionTarjeta, string>> = {
-  datos: "Datos",
-  orden: "Orden",
-  cifras: "Cifras",
-  diferencias: "Diferencias",
-  colores: "Colores",
-  word: "Word",
+/** Las claves de las seis secciones anteriores (direcciones y estado guardados): a cuál de las tres van. */
+const SECCION_ANTERIOR: Readonly<Record<string, SeccionTarjeta>> = {
+  orden: "aspecto", cifras: "aspecto", colores: "aspecto", word: "aspecto", diferencias: "calculo",
 };
+
+/** La sección de una clave nueva o anterior; `null` si no es de la tarjeta. */
+export function seccionDeClave(v: unknown): SeccionTarjeta | null {
+  if (esSeccionTarjeta(v)) return v;
+  return typeof v === "string" ? SECCION_ANTERIOR[v] ?? null : null;
+}
 
 /**
  * H4 (checklist de usabilidad, 2026-11-05): a 1024x600 la tarjeta entera abierta eran ocho pantallas. Arranca abierta
@@ -56,11 +79,8 @@ export const ROTULO_INDICE: Readonly<Record<SeccionTarjeta, string>> = {
  */
 export const ABIERTA_POR_DEFECTO: Readonly<Record<SeccionTarjeta, boolean>> = {
   datos: true,
-  orden: false,
-  cifras: false,
-  diferencias: false,
-  colores: false,
-  word: false,
+  calculo: false,
+  aspecto: false,
 };
 
 export type SeccionesAbiertas = Partial<Record<SeccionTarjeta, boolean>>;

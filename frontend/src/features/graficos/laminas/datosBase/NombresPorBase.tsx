@@ -6,6 +6,7 @@ import { useVariables } from "../../useVariables";
 import { parseBaseLabels, patchNombreDeBase } from "./nombresPorBaseModel";
 import "./datosBase.css";
 import { CargaDeBloque } from "../../../../components/CargaDeBloque";
+import { AyudaGlobo } from "../AyudaGlobo";
 
 type Props = {
   argName: string;
@@ -23,7 +24,7 @@ export function NombresPorBase({ argName, rotulo, ayuda, valor, onCambio }: Prop
 
   return (
     <div role="group" aria-labelledby={id} className="pulso-f6-dato is-apilado pulso-f6-nombres-base" data-qa-geometry-group="graficos/f6-nombres-base" data-qa-geometry-contract="intrinsic">
-      <span id={id} className="pulso-f6-dato-rotulo">{rotulo}</span>
+      <span id={id} className="pulso-f6-dato-rotulo">{rotulo}{ayuda && <AyudaGlobo rotulo={rotulo} detalle={ayuda} />}</span>
       {loading ? (
         <CargaDeBloque label="Leyendo las bases del estudio…" />
       ) : bases.length < 2 ? (
@@ -42,7 +43,6 @@ export function NombresPorBase({ argName, rotulo, ayuda, valor, onCambio }: Prop
               />
             </label>
           ))}
-          {ayuda && <span className="pulso-f6-dato-ayuda">{ayuda}</span>}
         </>
       )}
     </div>

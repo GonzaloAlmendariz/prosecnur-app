@@ -8,7 +8,8 @@
 // C40 (docs/qa/revision-c40-args-sin-control-f6-2026-10-11.md): cada arg asignado se verificó contra su `tipo_input`,
 // `choices` y `default` en api/R/graficos_metadata.R y contra los formals de su constructor del plan — un arg que no es
 // formal se cae en `.clean_rebuild_args` (router_graficos.R) y un control suyo prometería algo que la lámina no dibuja
-// (C5). Las guardas van como ayuda visible junto al control; lo retirado no sale y su valor guardado no se toca.
+// (C5). Las guardas van en el «?» del control junto con la descripción del registro (ADR 0135 §8: sin párrafos de ayuda
+// bajo los controles); lo retirado no sale y su valor guardado no se toca.
 
 import type { ArgMetadata } from "../../../api/graficos";
 import { argAplica } from "../argDependencias";
@@ -52,7 +53,7 @@ type Entrada = {
   opcionesRetiradas?: Readonly<Record<string, string>>;
 };
 
-// Guardas C40 (docs/qa/revision-c40-args-sin-control-f6-2026-10-11.md): el texto que la tarjeta muestra junto al control.
+// Guardas C40 (docs/qa/revision-c40-args-sin-control-f6-2026-10-11.md): el texto que abre el «?» del control.
 export const AYUDA_CEROS = "Las respuestas especiales 90–99 sin casos nunca se muestran.";
 export const AYUDA_EJE_MIN =
   "0 = automático. Un piso alto acerca las diferencias; si deja fuera un dato, el eje baja solo y la lámina lo avisa.";
@@ -154,6 +155,29 @@ export function cortesDistribucion(v: Valores): Pick<Entrada, "rotulo" | "ayuda"
     ayuda: "Desde la segunda clase. Ninguna área queda fuera de la escala.",
     placeholder,
   };
+}
+
+/** Las claves de la lista blanca, en su orden: cada una tiene su sección en `SECCION_DE_CAMPO` (gruposTarjeta.ts). */
+export function camposDeLaListaBlanca(): string[] {
+  return Object.keys(LISTA_BLANCA);
+}
+
+const conPunto = (t: string): string => (/[.!?…]$/.test(t) ? t : `${t}.`);
+
+/**
+ * El texto del «?» de un control (ADR 0135 §8): la guarda de la tarjeta, lo que significa marcar y la descripción del
+ * registro, sin repetir y cada uno con su punto. Vacío si no hay nada que decir (entonces no hay «?»).
+ */
+export function textoAyuda(...partes: readonly (string | null | undefined)[]): string {
+  const vistas = new Set<string>();
+  const salida: string[] = [];
+  for (const p of partes) {
+    const t = p?.trim();
+    if (!t || vistas.has(t)) continue;
+    vistas.add(t);
+    salida.push(conPunto(t));
+  }
+  return salida.join(" ");
 }
 
 const LISTA_BLANCA: Record<string, Entrada> = {
@@ -482,8 +506,9 @@ const CONTROL_POR_TIPO: Partial<Record<ArgMetadata["tipo_input"], ControlDato>> 
 export type CampoDato = {
   arg: ArgMetadata;
   rotulo: string;
+  /** La guarda de la tarjeta (C40): abre el «?» junto con `detalle`. */
   ayuda: string | null;
-  /** Descripción larga del registro, para el título del «?». */
+  /** Descripción larga del registro, para el «?». */
   detalle: string;
   control: ControlDato;
   placeholder: string | null;

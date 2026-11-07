@@ -6,6 +6,7 @@ import { useId } from "react";
 import type { GraficadorRef } from "../../../api/graficos";
 import { usePlanStore } from "../store";
 import { parseVarRef, useVariables } from "../useVariables";
+import { AyudaGlobo } from "./AyudaGlobo";
 
 export function DonaCentro({ slideId, slot, valor }: { slideId: string; slot: string; valor: GraficadorRef }) {
   const id = useId();
@@ -33,10 +34,11 @@ export function DonaCentro({ slideId, slot, valor }: { slideId: string; slot: st
         </div>
       )}
       <div className="pulso-f6-dato is-apilado">
-        <label className="pulso-f6-dato-rotulo" htmlFor={idFrase}>Frase del centro</label>
+        <label className="pulso-f6-dato-rotulo" htmlFor={idFrase}>
+          Frase del centro<AyudaGlobo rotulo="Frase del centro" detalle="Se lee bajo la cifra del centro. Vacío: el nombre de la respuesta." />
+        </label>
         <input id={idFrase} className="pulso-f6-input" value={frase} placeholder={elegida || "Nombre de la respuesta"}
           onChange={(e) => updateSlotArgs(slideId, slot, { frase_centro: e.target.value || null })} />
-        <span className="pulso-f6-dato-ayuda">Se lee bajo la cifra del centro. Vacío: el nombre de la respuesta.</span>
       </div>
     </>
   );

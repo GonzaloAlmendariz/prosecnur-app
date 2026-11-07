@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ArgMetadata } from "../../../api/graficos";
 import {
   ayudaDeLaOpcion,
+  textoAyuda,
   avisoParte, camposDeDatos, codigosATexto, conEtiquetaCorta, filasAPartes, leerEtiquetaCorta, mismasPartes, notaParte, partesAFilas,
   textoACodigos,
 } from "./argsDatosGrafico";
@@ -160,5 +161,16 @@ describe("ayudaDeLaOpcion (H2): la ayuda de «Pista gris» describe la opción e
   });
   it("otro mando conserva su ayuda fija", () => {
     expect(ayudaDeLaOpcion({ ...pista, arg: { ...pista.arg, name: "tipo_rango" } }, "nunca")).toBe(pista.ayuda);
+  });
+});
+
+describe("ADR 0135 §8: el «?» y los args que la tarjeta todavía no sabe dibujar", () => {
+  it("textoAyuda junta guarda y descripción sin repetir y con su punto", () => {
+    expect(textoAyuda("Hasta tres", null, "", "Hasta tres", "Líneas de la serie.")).toBe("Hasta tres. Líneas de la serie.");
+    expect(textoAyuda(null, undefined, "  ")).toBe("");
+  });
+  it("un tipo de control desconocido (la regla de preguntas, que llega en la oleada siguiente) no rompe la tarjeta", () => {
+    const regla = a("vars", "regla_preguntas" as unknown as ArgMetadata["tipo_input"]);
+    expect(camposDeDatos([regla, a("corte", "codigos_list")], {}, "p_panorama").map((c) => c.arg.name)).toEqual(["corte"]);
   });
 });

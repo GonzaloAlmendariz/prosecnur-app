@@ -1,5 +1,7 @@
-// C40 pintado: la tarjeta de un gráfico muestra la guarda junto al control en TODAS las formas de fila (interruptor,
+// C40 pintado: la tarjeta de un gráfico lleva la guarda de cada control en TODAS las formas de fila (interruptor,
 // número, códigos) y el interruptor sin valor guardado dice lo que el motor dibuja (su default del registro).
+// ADR 0135 §8: la guarda vive en el «?» del rótulo (el globo, montado y nombrado por el control), nunca en un párrafo
+// visible debajo del control.
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import type { ArgMetadata, GraficadorRef } from "../../../api/graficos";
@@ -47,7 +49,9 @@ const pintar = (graficador: string, args: Record<string, unknown> = {}) => {
   const valor: GraficadorRef = { graficador, args };
   return renderToStaticMarkup(<DatosGrafico slideId="s1" slot="grafico" valor={valor} />);
 };
-const ayudaDe = (html: string, texto: string) => html.includes(`class="pulso-f6-dato-ayuda">${texto}</span>`);
+/** La guarda está en el globo del «?» y no en un párrafo de ayuda visible. */
+const ayudaDe = (html: string, texto: string) =>
+  html.includes(`role="tooltip" class="pulso-f6-ayuda-globo">${texto}</span>`) && !html.includes(`class="pulso-f6-dato-ayuda">${texto}`);
 
 describe("DatosGrafico · C40", () => {
   it("interruptor: la guarda se lee y, sin guardar, el estado es el default del registro", () => {
@@ -98,6 +102,8 @@ describe("DatosGrafico · C40", () => {
     expect(ayudaDe(html, AYUDA_EJE_MIN)).toBe(true);
     const id = /<input id="([^"]+)" type="number"[^>]*aria-describedby="([^"]+)"/.exec(html);
     expect(id?.[2]).toBe(`${id?.[1]}-ayuda`);
+    // El control nombra el globo del «?»: el lector anuncia la guarda aunque esté cerrado.
+    expect(html).toContain(`<span id="${id?.[1]}-ayuda" role="tooltip" class="pulso-f6-ayuda-globo">${AYUDA_EJE_MIN}</span>`);
   });
   it("mapa distrital: casos mínimos y cortes con su guarda y el default del motor como placeholder", () => {
     const html = pintar("p_mapa_resultado_distrital");

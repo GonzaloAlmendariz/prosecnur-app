@@ -1,8 +1,9 @@
 // Datos de un gráfico en su tarjeta del inspector (F6.1, parte 2). Reemplaza al editor de ranura viejo incrustado:
 // una sola superficie con filas planas (rótulo y control en una línea), sólo los datos que la salida nativa lee
-// (lista blanca, argsDatosGrafico.ts), sin buscador de ajustes ni descripciones largas. Lo que no cabe en el inspector
-// (bloques de multiapiladas, filtros) se edita en un panel ancho. Cierran la tarjeta el Top/Bottom Two Box de las
-// escalas y «En el Word» (F6.2, F-d; tarjetaGrafico/).
+// (lista blanca, argsDatosGrafico.ts), sin buscador de ajustes. Lo que no cabe en el inspector (bloques de
+// multiapiladas, filtros) se edita en un panel ancho. ADR 0135 §8: tres secciones para todos los graficadores (Datos,
+// Cálculo y Aspecto, gruposTarjeta.ts) y cada control con su rótulo y un «?» que guarda su descripción; ningún
+// párrafo de ayuda debajo. Lo que sigue visible bajo un control es estado (avisos), no ayuda.
 
 import { Fragment, useEffect, useId, useRef, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
@@ -16,6 +17,7 @@ import VariablePicker from "../VariablePicker";
 import {
   ayudaDeLaOpcion,
   camposDeDatos,
+  textoAyuda,
   codigosATexto,
   codigosEmitidos,
   textoACodigos,
@@ -50,7 +52,7 @@ import { PaletaDelGrafico } from "./colores/PaletaDelGrafico";
 import { AvisoColorPorOpcion } from "./colores/AvisoColorPorOpcion";
 import { NombresPorBase } from "./datosBase/NombresPorBase";
 import { RedondeoDelGrafico } from "./RedondeoDelGrafico";
-import { grupoDeCampo, seccionAbierta, type GrupoTarjeta } from "./gruposTarjeta";
+import { grupoDeCampo, seccionAbierta, seccionDeClave, type SeccionTarjeta } from "./gruposTarjeta";
 import { SeccionPlegable } from "./tarjetaGrafico/SeccionPlegable";
 import { IndiceSecciones } from "./tarjetaGrafico/IndiceSecciones";
 import { irASeccion } from "./tarjetaGrafico/irASeccion";
@@ -202,7 +204,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
       {radarPublicos && c.arg.name === "modo" && <EditorTemasEquivalentes tipo="radar" args={args} onCambio={set} />}
     </Fragment>
   );
-  const delGrupo = (g: GrupoTarjeta) => campos.filter((c) => grupoDeCampo(c.arg.name) === g).map(filaDe);
+  const delGrupo = (g: SeccionTarjeta) => campos.filter((c) => grupoDeCampo(c.arg.name) === g).map(filaDe);
 
   // ADR 0128: «Diferencias entre grupos» reemplaza al nivel de significancia de Cifras. El interruptor es el
   // `mostrar_significancia` del gráfico (guardado, del tipo o el default del registro); el nivel es de la regla del estudio.
@@ -234,8 +236,9 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
   // H4: al volver a la tarjeta (de Identidad › Colores, de otra lámina) se vuelve a la sección que se abrió por última vez.
   useEffect(() => {
     const { seccionReciente, seccionesTarjeta } = useLaminasUi.getState();
-    if (seccionReciente && seccionReciente !== "datos" && seccionAbierta(seccionesTarjeta, seccionReciente)) {
-      irASeccion(tarjetaRef.current, seccionReciente, { enfocar: false, instantaneo: true });
+    const reciente = seccionDeClave(seccionReciente);
+    if (reciente && reciente !== "datos" && seccionAbierta(seccionesTarjeta, reciente)) {
+      irASeccion(tarjetaRef.current, reciente, { enfocar: false, instantaneo: true });
     }
   }, [slideId, slot]);
 
@@ -282,31 +285,14 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
         )}
         <PublicoGrafico slideId={slideId} slot={slot} valor={valor} />
       </SeccionPlegable>
-      <SeccionPlegable seccion="orden">
-        {conOrden && variable && !sinBaseCompartido && (
-          <OrdenCategoriasGrafico variable={varCalificada(variable, baseActiva, scope)} graficador={valor.graficador} args={args} scope={scope} onCambio={(o) => set({ orden_categorias: o })} />
-        )}
-        {delGrupo("orden")}
-        <ResaltarGrafico slideId={slideId} slot={slot} valor={valor} />
-        <DestacarRespuestas slideId={slideId} slot={slot} valor={valor} />
-      </SeccionPlegable>
-      <SeccionPlegable seccion="cifras">
-        {delGrupo("cifras")}
-        {/* U12: letra de categorías y cifras y eje libre, que la lámina nativa lee de `overrides`. */}
-        <LetraYEjeAgrupadas graficador={valor.graficador} args={args} onCambio={(ov) => set({ overrides: ov })} />
+      {/* Cálculo: qué se cuenta y cómo (indicador, Two Box, redondeo y diferencias entre grupos). */}
+      <SeccionPlegable seccion="calculo">
+        {delGrupo("calculo")}
         <TwoBoxGrafico slideId={slideId} slot={slot} valor={valor} onAbrirBloques={() => abrirEditorAmplio({ tipo: "bloques", slideId, slot })} />
-        <CasosGrafico slideId={slideId} slot={slot} valor={valor} />
         {/* R4: método y decimales propios, como excepción a la regla del informe. */}
         <RedondeoDelGrafico graficador={valor.graficador} args={args} onCambio={(ov) => set({ overrides: ov })} />
-        <DonaCentro slideId={slideId} slot={slot} valor={valor} />
-      </SeccionPlegable>
-      {conTarjetas && (
-        <SeccionPlegable seccion="diferencias">
-          <TarjetasDiferencias slideId={slideId} slot={slot} />
-        </SeccionPlegable>
-      )}
-      {argSig && sigAplica && argCruce && !conTarjetas && (
-        <SeccionPlegable seccion="diferencias">
+        {conTarjetas && <TarjetasDiferencias slideId={slideId} slot={slot} />}
+        {argSig && sigAplica && argCruce && !conTarjetas && (
           <DiferenciasInspector
             slideId={slideId}
             encendido={interruptorEncendido(argSig, sigGuardada)}
@@ -316,13 +302,22 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
             onAgregarCruce={agregarCruce}
             onQuitarCruce={() => set({ [argCruce]: null })}
           />
-        </SeccionPlegable>
-      )}
-      <SeccionPlegable seccion="colores">
+        )}
+      </SeccionPlegable>
+      {/* Aspecto: orden, cifras, colores y el Word. */}
+      <SeccionPlegable seccion="aspecto">
+        {conOrden && variable && !sinBaseCompartido && (
+          <OrdenCategoriasGrafico variable={varCalificada(variable, baseActiva, scope)} graficador={valor.graficador} args={args} scope={scope} onCambio={(o) => set({ orden_categorias: o })} />
+        )}
+        {delGrupo("aspecto")}
+        <ResaltarGrafico slideId={slideId} slot={slot} valor={valor} />
+        <DestacarRespuestas slideId={slideId} slot={slot} valor={valor} />
+        {/* U12: letra de categorías y cifras y eje libre, que la lámina nativa lee de `overrides`. */}
+        <LetraYEjeAgrupadas graficador={valor.graficador} args={args} onCambio={(ov) => set({ overrides: ov })} />
+        <CasosGrafico slideId={slideId} slot={slot} valor={valor} />
+        <DonaCentro slideId={slideId} slot={slot} valor={valor} />
         <ColoresGrafico slideId={slideId} slot={slot} valor={valor} argsDelRegistro={meta?.args ?? []} />
         <PaletaDelGrafico valor={valor} />
-      </SeccionPlegable>
-      <SeccionPlegable seccion="word">
         <EnElWord slideId={slideId} slot={slot} valor={valor} argsDelRegistro={meta?.args ?? []} />
       </SeccionPlegable>
       {propios.length > 0 && (
@@ -345,8 +340,8 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
 // (graficador_barras_agrupadas.R, F1). Queda un solo mando, el «Invertir» de «Orden»; el valor guardado no se toca.
 const ORDEN_ANTERIOR = new Set(["orden_barras", "ordenar_categorias", "invertir_barras"]);
 
-function Ayuda({ rotulo, detalle }: { rotulo: string; detalle: string }) {
-  return <AyudaGlobo rotulo={rotulo} detalle={detalle} />;
+function Ayuda({ id, rotulo, detalle }: { id?: string; rotulo: string; detalle: string }) {
+  return <AyudaGlobo id={id} rotulo={rotulo} detalle={detalle} />;
 }
 
 type CategoriasFila = {
@@ -368,13 +363,18 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias, args }: {
   const id = useId();
   const idAyuda = `${id}-ayuda`;
   const { arg, rotulo, ayuda, detalle, control, placeholder } = campo;
-  const describe = ayuda ? idAyuda : undefined;
-  // La guarda (C40) se lee junto al control, en todas las formas de fila: no sólo en las apiladas.
-  const nota = ayuda ? <span id={idAyuda} className="pulso-f6-dato-ayuda">{ayuda}</span> : null;
+  // ADR 0135 §8: la guarda (C40) y la descripción del registro van en el «?» del rótulo, en todas las formas de fila.
+  // Los campos de categorías suman lo que significa marcar una ficha.
+  const marcas = control === "codigos" && categorias
+    ? categorias.nota ?? (categorias.modo === "excluir" ? "Las marcadas no salen en el gráfico." : "Las marcadas forman el corte.")
+    : null;
+  const texto = textoAyuda(ayuda, marcas, detalle);
+  const describe = texto ? idAyuda : undefined;
+  const globo = <Ayuda id={idAyuda} rotulo={rotulo} detalle={texto} />;
   const etiqueta = (
     <label className="pulso-f6-dato-rotulo" htmlFor={id}>
       {rotulo}
-      <Ayuda rotulo={rotulo} detalle={detalle} />
+      {globo}
       {sello}
     </label>
   );
@@ -390,7 +390,6 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias, args }: {
             placeholder={control === "variable_opcional" ? "Sin dividir" : "Elige una pregunta…"}
           />
         </div>
-        {nota}
       </div>
     );
   }
@@ -401,7 +400,6 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias, args }: {
         <div id={id} className="pulso-f6-dato-control">
           <ListaPreguntas valor={valor} onCambio={onCambio} describe={describe} />
         </div>
-        {nota}
       </div>
     );
   }
@@ -413,9 +411,8 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias, args }: {
     const encendido = interruptorEncendido(arg, valor);
     return (
       <div className="pulso-f6-dato">
-        <span className="pulso-f6-dato-rotulo" id={id}>{rotulo}<Ayuda rotulo={rotulo} detalle={detalle} />{sello}</span>
+        <span className="pulso-f6-dato-rotulo" id={id}>{rotulo}{globo}{sello}</span>
         <Switch checked={encendido} ariaLabel={rotulo} onToggle={() => onCambio(!encendido)} />
-        {nota}
       </div>
     );
   }
@@ -431,7 +428,6 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias, args }: {
           onChange={(e) => onCambio(e.target.value)}>
           {campo.opciones.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
-        {nota}
         {campo.aviso && <span id={idAviso} className="pulso-f6-dato-ayuda" role="note">{campo.aviso}</span>}
       </div>
     );
@@ -442,10 +438,9 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias, args }: {
     const actual = typeof valor === "number" ? valor : typeof arg.default === "number" ? arg.default : enBotones[0].valor;
     return (
       <div className="pulso-f6-dato">
-        <span className="pulso-f6-dato-rotulo" id={id}>{rotulo}<Ayuda rotulo={rotulo} detalle={detalle} />{sello}</span>
+        <span className="pulso-f6-dato-rotulo" id={id}>{rotulo}{globo}{sello}</span>
         <Segmentado etiqueta={rotulo} valor={String(actual)} opciones={enBotones.map((o) => ({ clave: String(o.valor), rotulo: o.rotulo }))}
           onCambiar={(k) => onCambio(Number(k))} />
-        {nota}
       </div>
     );
   }
@@ -455,7 +450,6 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias, args }: {
         {etiqueta}
         <NumeroAcotado id={id} rotulo={rotulo} arg={arg} valor={valor} describe={describe}
           placeholder={placeholder ?? (arg.default !== undefined && arg.default !== null ? String(arg.default) : "")} onCambio={onCambio} />
-        {nota}
       </div>
     );
   }
@@ -468,19 +462,18 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias, args }: {
           placeholder={placeholder ?? (arg.default !== undefined && arg.default !== null ? String(arg.default) : "")}
           min={arg.min} max={arg.max} step={arg.step ?? "any"}
           onChange={(e) => onCambio(e.target.value === "" ? null : Number(e.target.value))} />
-        {nota}
       </div>
     );
   }
   if (control === "grupos_lista") {
-    return <AgruparLista id={id} etiqueta={etiqueta} nota={nota} valor={valor} args={args} onCambio={onCambio} />;
+    return <AgruparLista id={id} etiqueta={etiqueta} nota={null} valor={valor} args={args} onCambio={onCambio} />;
   }
   if (control === "partes") {
-    return <PartesLineas id={id} arg={arg.name} etiqueta={etiqueta} nota={nota} valor={valor} variable={categorias?.variable ?? ""}
+    return <PartesLineas id={id} arg={arg.name} etiqueta={etiqueta} nota={null} valor={valor} variable={categorias?.variable ?? ""}
       scope={categorias?.scope ?? "active"} graficador={graficador} onCambio={onCambio} />;
   }
   if (control === "codigos" && (arg.name === "cortes" || arg.name === "cortes_chip") && placeholder) {
-    return <CortesNumericos id={id} etiqueta={etiqueta} nota={nota} describe={describe} defectos={textoACodigos(placeholder)} valor={valor} onCambio={onCambio} />;
+    return <CortesNumericos id={id} etiqueta={etiqueta} nota={null} describe={describe} defectos={textoACodigos(placeholder)} valor={valor} onCambio={onCambio} />;
   }
   if (control === "codigos") {
     const comoTexto = (
@@ -488,7 +481,6 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias, args }: {
         {etiqueta}
         <input id={id} className="pulso-f6-input" value={codigosATexto(valor)} placeholder={placeholder ?? "Ninguna"} aria-describedby={describe}
           onChange={(e) => onCambio(codigosEmitidos(e.target.value, graficador, arg.name))} />
-        {nota}
       </div>
     );
     // Con la pregunta elegida, sus categorías como fichas; el texto queda de respaldo (sin lista o con error).
@@ -496,23 +488,22 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias, args }: {
     return (
       <SelectorCategorias id={id} etiqueta={etiqueta} variable={categorias.variable} scope={categorias.scope} graficador={graficador}
         valor={valor} modo={categorias.modo} vacioEsTodos={categorias.vacioEsTodos} sustantivo={categorias.sustantivo} textoRespaldo={comoTexto}
-        nota={<span className="pulso-f6-dato-ayuda">{categorias.nota ?? (categorias.modo === "excluir" ? "Las marcadas no salen en el gráfico." : "Las marcadas forman el corte.")}</span>}
+        nota={null}
         onCambio={(cods) => onCambio(arg.name === "corte" && CORTE_EN_CADENA.has(graficador) ? cods.join(",") : cods)} />
     );
   }
-  return <FilaTexto rotulo={rotulo} ayuda={ayuda} placeholder={placeholder} valor={typeof valor === "string" ? valor : ""} onCambio={(t) => onCambio(t)} sello={sello} />;
+  return <FilaTexto rotulo={rotulo} ayuda={texto} placeholder={placeholder} valor={typeof valor === "string" ? valor : ""} onCambio={(t) => onCambio(t)} sello={sello} />;
 }
 
 function FilaTexto({ rotulo, ayuda, placeholder = null, valor, onCambio, sello }: {
-  rotulo: string; ayuda: string | null; placeholder?: string | null; valor: string; onCambio: (t: string) => void; sello?: ReactNode;
+  rotulo: string; ayuda: string; placeholder?: string | null; valor: string; onCambio: (t: string) => void; sello?: ReactNode;
 }) {
   const id = useId();
   return (
     <div className="pulso-f6-dato is-apilado">
-      <label className="pulso-f6-dato-rotulo" htmlFor={id}>{rotulo}{sello}</label>
+      <label className="pulso-f6-dato-rotulo" htmlFor={id}>{rotulo}<Ayuda id={`${id}-ayuda`} rotulo={rotulo} detalle={ayuda} />{sello}</label>
       <input id={id} className="pulso-f6-input" value={valor} placeholder={placeholder ?? undefined}
         aria-describedby={ayuda ? `${id}-ayuda` : undefined} onChange={(e) => onCambio(e.target.value)} />
-      {ayuda && <span id={`${id}-ayuda`} className="pulso-f6-dato-ayuda">{ayuda}</span>}
     </div>
   );
 }

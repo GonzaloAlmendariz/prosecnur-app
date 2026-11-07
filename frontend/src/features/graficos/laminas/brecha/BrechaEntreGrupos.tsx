@@ -12,6 +12,7 @@ import {
   maxGrupos, mismaBase, opcionesDe, opcionesDeGrupo, preguntasDe,
 } from "./modeloBrechaGrupos";
 import "./brechaEntreGrupos.css";
+import { AyudaGlobo } from "../AyudaGlobo";
 
 type Props = { args: Readonly<Record<string, unknown>>; onCambio: (patch: Record<string, unknown>) => void };
 
@@ -55,7 +56,10 @@ export function BrechaEntreGrupos({ args, onCambio }: Props) {
           </div>
           {cruce && (
             <div className="pulso-f6-dato is-apilado">
-              <span className="pulso-f6-dato-rotulo">{varios ? "Los grupos (hasta cuatro)" : "Los dos grupos"}</span>
+              <span className="pulso-f6-dato-rotulo">
+                {varios ? "Los grupos (hasta cuatro)" : "Los dos grupos"}
+                <AyudaGlobo rotulo={varios ? "Los grupos" : "Los dos grupos"} detalle="La brecha es el primero menos el segundo." />
+              </span>
               <div className="pulso-f6-brecha-grupos" data-grupos={casillas.length}>
                 {casillas.map((g, k) => (
                   <select key={k} className="pulso-f6-dato-select" aria-label={ORDINAL[k] ? `${ORDINAL[k]} grupo` : `Grupo ${k + 1}`}
@@ -65,7 +69,6 @@ export function BrechaEntreGrupos({ args, onCambio }: Props) {
                   </select>
                 ))}
               </div>
-              <span className="pulso-f6-dato-ayuda">La brecha es el primero menos el segundo.</span>
             </div>
           )}
           <div className="pulso-f6-dato is-apilado">

@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// H4: la cabecera de cada sección es un botón con aria-expanded; cerrada, el cuerpo sigue montado con
+// H4 y ADR 0135 §8 (Datos, Cálculo y Aspecto): la cabecera de cada sección es un botón con aria-expanded; cerrada, el cuerpo sigue montado con
 // hidden="until-found" (los mandos no pierden su estado y buscar en la página la abre). El índice abre y salta.
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -23,11 +23,11 @@ afterEach(() => {
 });
 
 describe("SeccionPlegable", () => {
-  test("Cifras arranca cerrada, se abre con su botón y se recuerda en el store", () => {
-    act(() => root.render(<SeccionPlegable seccion="cifras"><input aria-label="Decimales" /></SeccionPlegable>));
+  test("Cálculo arranca cerrada, se abre con su botón y se recuerda en el store", () => {
+    act(() => root.render(<SeccionPlegable seccion="calculo"><input aria-label="Decimales" /></SeccionPlegable>));
     const boton = host.querySelector<HTMLButtonElement>("button[aria-expanded]")!;
     const cuerpo = host.querySelector<HTMLElement>(".pulso-f6-grupo-cuerpo")!;
-    expect(boton.textContent).toContain("Cifras");
+    expect(boton.textContent).toContain("Cálculo");
     expect(boton.getAttribute("aria-expanded")).toBe("false");
     expect(boton.getAttribute("aria-controls")).toBe(cuerpo.id);
     expect(cuerpo.getAttribute("hidden")).toBe("until-found");
@@ -35,15 +35,15 @@ describe("SeccionPlegable", () => {
     act(() => boton.click());
     expect(boton.getAttribute("aria-expanded")).toBe("true");
     expect(cuerpo.hasAttribute("hidden")).toBe(false);
-    expect(useLaminasUi.getState().seccionesTarjeta.cifras).toBe(true);
-    expect(useLaminasUi.getState().seccionReciente).toBe("cifras");
+    expect(useLaminasUi.getState().seccionesTarjeta.calculo).toBe(true);
+    expect(useLaminasUi.getState().seccionReciente).toBe("calculo");
   });
 
   test("buscar en la página un mando escondido abre su sección (beforematch)", () => {
-    act(() => root.render(<SeccionPlegable seccion="word"><span>Tabla de datos en el Word</span></SeccionPlegable>));
+    act(() => root.render(<SeccionPlegable seccion="aspecto"><span>Tabla de datos en el Word</span></SeccionPlegable>));
     const cuerpo = host.querySelector<HTMLElement>(".pulso-f6-grupo-cuerpo")!;
     act(() => { cuerpo.dispatchEvent(new Event("beforematch")); });
-    expect(useLaminasUi.getState().seccionesTarjeta.word).toBe(true);
+    expect(useLaminasUi.getState().seccionesTarjeta.aspecto).toBe(true);
     expect(cuerpo.hasAttribute("hidden")).toBe(false);
   });
 

@@ -17,6 +17,7 @@ import {
   leerLetraYEje,
   type LetraYEje,
 } from "./letraYEje";
+import { AyudaGlobo } from "../AyudaGlobo";
 
 type Props = { graficador: string; args: Readonly<Record<string, unknown>>; onCambio: (overrides: Record<string, unknown> | null) => void };
 
@@ -48,17 +49,19 @@ export function LetraYEjeAgrupadas({ graficador, args, onCambio }: Props) {
           valor={actual.cifraPt} placeholder="Auto" onCambio={(v) => cambiar({ cifraPt: v })} />
       </div>
       <div className="pulso-f6-dato is-automatico" data-qa="espacio-etiquetas">
-        <label className="pulso-f6-dato-rotulo" htmlFor={`${id}-etiquetas`}>Espacio para las etiquetas (%)</label>
+        <label className="pulso-f6-dato-rotulo" htmlFor={`${id}-etiquetas`}>
+          Espacio para las etiquetas (%)
+          <AyudaGlobo id={`${id}-etiquetas-ayuda`} rotulo="Espacio para las etiquetas"
+            detalle="La columna con el nombre de cada barra, en % del ancho de la lámina. Vacío, se ajusta a los nombres." />
+        </label>
         <NumeroAcotado id={`${id}-etiquetas`} rotulo="Espacio para las etiquetas" arg={ESPACIO_ETIQUETAS} describe={`${id}-etiquetas-ayuda`}
           valor={actual.etiquetasPct} placeholder="Automático" onCambio={(v) => cambiar({ etiquetasPct: v })} />
-        <span id={`${id}-etiquetas-ayuda`} className="pulso-f6-dato-ayuda">
-          La columna con el nombre de cada barra, en % del ancho de la lámina. Vacío, se ajusta a los nombres.
-        </span>
       </div>
       <div className="pulso-f6-dato" data-qa="eje-libre">
-        <span className="pulso-f6-dato-rotulo" id={`${id}-eje`}>Eje libre</span>
+        <span className="pulso-f6-dato-rotulo" id={`${id}-eje`}>
+          Eje libre<AyudaGlobo rotulo="Eje libre" detalle="La barra mayor llega al borde. Apagado, la escala va de 0 a 100%." />
+        </span>
         <Switch checked={actual.ejeLibre} ariaLabel="Eje libre" onToggle={() => cambiar({ ejeLibre: !actual.ejeLibre })} />
-        <span className="pulso-f6-dato-ayuda">La barra mayor llega al borde. Apagado, la escala va de 0 a 100%.</span>
       </div>
     </>
   );

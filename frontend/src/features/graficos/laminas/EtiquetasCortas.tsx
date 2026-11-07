@@ -13,6 +13,7 @@ import { usePlanStore } from "../store";
 import { AYUDA_CLAVE, conClave, esClave, leerPreguntasClave } from "./preguntasClave/modeloPreguntasClave";
 import { useMotivoNoCuenta } from "./preguntasClave/useMotivoNoCuenta";
 import "./preguntasClave/preguntasClave.css";
+import { AyudaGlobo } from "./AyudaGlobo";
 
 type Args = Readonly<Record<string, unknown>>;
 type Props = { args: Args; onCambio: (overrides: Record<string, unknown>) => void };
@@ -24,10 +25,11 @@ export function EtiquetaCortaPregunta({ args, variable, onCambio }: Props & { va
   const id = useId();
   return (
     <div className="pulso-f6-dato is-apilado">
-      <label className="pulso-f6-dato-rotulo" htmlFor={id}>Nombre corto de la pregunta</label>
+      <label className="pulso-f6-dato-rotulo" htmlFor={id}>
+        Nombre corto de la pregunta<AyudaGlobo id={`${id}-ayuda`} rotulo="Nombre corto de la pregunta" detalle={AYUDA} />
+      </label>
       <CampoConBorrador id={id} describe={`${id}-ayuda`} valor={leerEtiquetaCorta(args, variable)}
         onCambio={(t) => onCambio(conEtiquetaCorta(args, variable, t))} />
-      <span id={`${id}-ayuda`} className="pulso-f6-dato-ayuda">{AYUDA}</span>
     </div>
   );
 }

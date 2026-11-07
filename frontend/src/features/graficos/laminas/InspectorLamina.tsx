@@ -16,6 +16,8 @@ import { nombreSlot } from "./selectores/etiquetas";
 import { graficadorDisplayName } from "../graficadorDisplay";
 import { conSlideMeta, leerSlideMeta } from "../slideMeta";
 import { IconoTipo } from "../iconos/IconoTipo";
+import { GlifoGrafico } from "../iconos/GlifoGrafico";
+import { presentacionDeGrafico, ROTULO_CLASE } from "./selectores/intencionesContar";
 import { SLIDE_GRAF_SLOTS, usePlanStore } from "../store";
 import { useGraficosRegistry } from "../useGraficosRegistry";
 import { usePlanValidator } from "../usePlanValidator";
@@ -175,7 +177,9 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onCambiarGrafico }: {
           if (k !== activo) return null;
           const valor = payload[slot] as GraficadorRef | undefined;
           const tecnico = valor?.graficador ?? "";
-          const nombre = tecnico ? graficadorDisplayName(tecnico, graficadoresById[tecnico]) : "Sin gráfico";
+          // ADR 0135 §1: el inspector dice la clase de lo que hay en la ranura y lo nombra como su tarjeta.
+          const presentacion = tecnico ? presentacionDeGrafico(tecnico, (valor?.args ?? {}) as Record<string, unknown>) : null;
+          const nombre = tecnico ? presentacion?.nombre ?? graficadorDisplayName(tecnico, graficadoresById[tecnico]) : "Sin gráfico";
           const abierta = true;
           const rotulo = slots.length > 1 ? `gráfico (${nombreSlot(slot, slidesById[slide.tipo]).toLowerCase()})` : "gráfico";
           return (
@@ -183,10 +187,14 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onCambiarGrafico }: {
               <div className="pulso-f6-ranura-fila">
                 {/* El selector de arriba ya dice dónde va: la cabecera sólo dice su tipo. */}
                 <div className="pulso-f6-ranura-cabeza" aria-label={`${rotulo.charAt(0).toUpperCase()}${rotulo.slice(1)}`}>
-                  {tecnico && <IconoTipo clase="grafico" tipo={tecnico} size={20} />}
+                  {tecnico && (
+                    <span className="pulso-f6-ranura-miniatura"><GlifoGrafico tipo={tecnico} /></span>
+                  )}
                   <span className="pulso-f6-ranura-texto">
                     <strong>{nombre}</strong>
-
+                    {presentacion && (
+                      <span className="pulso-f6-ranura-clase" data-clase-tarjeta={presentacion.clase}>{ROTULO_CLASE[presentacion.clase]}</span>
+                    )}
                   </span>
                 </div>
                 {abierta && (

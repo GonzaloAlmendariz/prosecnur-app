@@ -27,7 +27,7 @@ describe("«Enunciado de cada barra» en la multiapilada", () => {
     const [c] = camposDeDatos([premisa], { modo: "var", vars: ["e$p1", "e$p2"] }, "p_barras_multiapiladas");
     expect(c).toMatchObject({ rotulo: "Enunciado de cada barra", control: "opciones" });
     expect(c.opciones.map((o) => o.value)).toEqual(["auto", "arriba", "izquierda"]);
-    expect(grupoDeCampo("premisa_posicion")).toBe("orden");
+    expect(grupoDeCampo("premisa_posicion")).toBe("aspecto");
     expect(`${c.rotulo} ${c.ayuda}`).not.toMatch(/premisa|canvas|[;·—]/i);
   });
   it("en una batería y en una pregunta por grupos, sí; con públicos o grupos dentro del tema, no (la lámina no lo aplica)", () => {
