@@ -253,7 +253,6 @@
   font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.45px;
-  text-transform: uppercase;
   color: var(--pulso-text-soft);
 }
 
@@ -427,7 +426,6 @@
   font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-black);
   line-height: 1;
-  text-transform: uppercase;
 }
 
 .pulso-logic-predicate-copy,

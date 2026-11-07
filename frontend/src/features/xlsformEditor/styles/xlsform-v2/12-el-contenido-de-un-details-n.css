@@ -382,9 +382,7 @@
   color: #667386;
   font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
-  letter-spacing: 0.04em;
   line-height: 1.2;
-  text-transform: uppercase;
 }
 
 .pulso-add-element-menu-copy {

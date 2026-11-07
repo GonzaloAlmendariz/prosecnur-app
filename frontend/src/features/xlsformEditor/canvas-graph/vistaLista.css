@@ -7,7 +7,7 @@
 .xfv-cols, .xfv-fila {
   display: grid; grid-template-columns: 18px minmax(160px, 0.9fr) minmax(0, 1.5fr) minmax(0, 0.7fr) 46px; gap: 12px; align-items: center;
 }
-.xfv-cols { padding: 0 10px 6px; border-bottom: 1px solid var(--pulso-border); font-size: var(--pulso-type-eyebrow-size); font-weight: var(--pulso-weight-semibold); letter-spacing: 0.04em; text-transform: uppercase; color: var(--pulso-text-faint); }
+.xfv-cols { padding: 0 10px 6px; border-bottom: 1px solid var(--pulso-border); font-size: var(--pulso-type-eyebrow-size); font-weight: var(--pulso-weight-semibold); color: var(--pulso-text-faint); }
 .xfv-sec { margin-top: 18px; }
 .xfv-sec__tit { display: flex; align-items: center; gap: 8px; margin: 0 0 4px; padding: 0 10px; font-size: var(--pulso-type-subtitle-size); font-weight: var(--pulso-weight-semibold); color: var(--pulso-text); }
 .xfv-sec__letra { font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--pulso-text-faint); }

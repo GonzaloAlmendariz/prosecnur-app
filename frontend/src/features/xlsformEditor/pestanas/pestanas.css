@@ -239,7 +239,7 @@
 .xfp-lectura-regla { display: flex; flex-direction: column; gap: 10px; max-width: 880px; }
 .xfp-lectura { margin: 0; font-size: var(--pulso-type-body-size); line-height: 1.55; color: var(--pulso-text); }
 .xfp-def { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 4px 12px; margin: 0; font-size: var(--pulso-type-body-size); line-height: 1.5; }
-.xfp-def dt { font-size: var(--pulso-type-eyebrow-size); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--pulso-text-faint); padding-top: 2px; }
+.xfp-def dt { font-size: var(--pulso-type-eyebrow-size); font-weight: 600; color: var(--pulso-text-faint); padding-top: 2px; }
 .xfp-def dd { margin: 0; color: var(--pulso-text-soft); overflow-wrap: anywhere; }
 .xfp-codigo-xls { font-size: var(--pulso-type-body-size); color: var(--pulso-text-muted); }
 .xfp-codigo-xls { display: grid; gap: 4px; }
@@ -295,3 +295,6 @@
 .pulso-focus-aviso-mensaje button:hover { border-color: var(--pulso-primary); color: var(--pulso-primary); }
 /* E20: «Se acepta» / «Pide corregir» en una línea; se partía en dos en la columna angosta. */
 .xfp-prueba td:last-child, .xfp-prueba th:last-child { white-space: nowrap; }
+
+/* A4 (2026-11-07): los rótulos pequeños del editor van en castellano normal, sin versalitas, también los del kit global. */
+.pulso-xlsform-frame .pulso-section-eyebrow { text-transform: none; letter-spacing: normal; }

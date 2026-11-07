@@ -239,7 +239,6 @@
   color: #667386;
   font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
-  text-transform: uppercase;
 }
 
 .pulso-focus-repeat-builder label > div {

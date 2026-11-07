@@ -1,7 +1,7 @@
 /* Contenido de la sección en la vista de trabajo (ContenidoSeccion.tsx). */
 .xfcs { display: flex; flex-direction: column; min-width: 0; border: 1px solid var(--pulso-border); border-radius: var(--pulso-radius-card); background: var(--pulso-surface); overflow: hidden; }
 .xfcs__cab { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--pulso-border); background: var(--pulso-surface-2); }
-.xfcs__tit { color: var(--pulso-text-muted); font-size: var(--pulso-type-eyebrow-size); font-weight: var(--pulso-weight-semibold); letter-spacing: 0.06em; text-transform: uppercase; }
+.xfcs__tit { color: var(--pulso-text-muted); font-size: var(--pulso-type-eyebrow-size); font-weight: var(--pulso-weight-semibold); }
 .xfcs__n { color: var(--pulso-text-muted); font-size: var(--pulso-type-body-size); font-variant-numeric: tabular-nums; }
 .xfcs__lista { display: flex; flex-direction: column; margin: 0; padding: 4px; list-style: none; }
 .xfcs__fila {

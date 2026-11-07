@@ -143,8 +143,6 @@
 .pulso-xftr-cat-label {
   font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--pulso-text-muted);
 }
 

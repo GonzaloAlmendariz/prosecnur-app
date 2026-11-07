@@ -292,7 +292,6 @@
   font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.6px;
-  text-transform: uppercase;
   color: var(--pulso-text-soft);
 }
 
@@ -371,7 +370,6 @@
   color: var(--pulso-text-soft);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.4px;
-  text-transform: uppercase;
 }
 
 .pulso-catalogchip-pop-list {

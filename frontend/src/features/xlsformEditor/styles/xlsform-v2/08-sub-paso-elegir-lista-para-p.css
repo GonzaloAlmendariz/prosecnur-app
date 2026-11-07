@@ -8,7 +8,6 @@
   padding: 8px 10px 4px;
   font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
-  text-transform: uppercase;
   letter-spacing: 0.4px;
   color: var(--pulso-text-soft);
   border-top: 1px dashed var(--pulso-border);
@@ -402,7 +401,6 @@
   gap: 6px;
   font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-bold);
-  text-transform: uppercase;
   letter-spacing: 0.55px;
   color: var(--pulso-primary);
 }

@@ -44,8 +44,6 @@
   margin: 8px 0 4px;
   font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-semibold);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
   color: var(--pulso-text-muted);
 }
 

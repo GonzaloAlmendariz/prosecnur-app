@@ -193,8 +193,6 @@
   text-align: left;
   font-size: var(--pulso-type-micro-size);
   font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
   color: var(--pulso-text-faint);
   border-bottom: 1px solid var(--pulso-border);
 }

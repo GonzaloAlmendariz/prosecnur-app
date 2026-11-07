@@ -63,7 +63,6 @@
   font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.5px;
-  text-transform: uppercase;
   color: var(--pulso-text-soft);
 }
 
@@ -103,7 +102,6 @@
   align-self: flex-start;
   font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
-  text-transform: uppercase;
   letter-spacing: 0.6px;
   color: var(--pulso-primary);
   background: var(--pulso-primary-bg, rgba(36, 87, 214, 0.08));

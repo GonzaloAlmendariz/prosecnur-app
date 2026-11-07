@@ -27,9 +27,7 @@
   color: var(--pulso-text-faint);
   font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
-  letter-spacing: 0.05em;
   line-height: 1.2;
-  text-transform: uppercase;
 }
 
 .xfe-alta__lista { display: grid; gap: 1px; }

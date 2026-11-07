@@ -93,7 +93,7 @@
   display: grid; grid-template-columns: 28px minmax(28px, var(--xfo-n, 3ch)) minmax(0, 1fr) 150px 32px; align-items: center; gap: 8px;
   padding: 6px 8px; border-top: 1px solid var(--pulso-border); background: var(--pulso-surface);
 }
-.xfo-fila.is-cab { border-top: 0; padding-block: 8px; background: var(--pulso-surface-2); color: var(--pulso-text-muted); font-size: var(--pulso-type-eyebrow-size); font-weight: var(--pulso-weight-semibold); letter-spacing: 0.04em; text-transform: uppercase; }
+.xfo-fila.is-cab { border-top: 0; padding-block: 8px; background: var(--pulso-surface-2); color: var(--pulso-text-muted); font-size: var(--pulso-type-eyebrow-size); font-weight: var(--pulso-weight-semibold); }
 .xfo-fila.is-arrastre { position: relative; z-index: 1; box-shadow: var(--pulso-shadow-popover); }
 .xfo-fila .xfo-fila__codigo { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: var(--pulso-type-body-size); }
 .xfo-fila__n { color: var(--pulso-text-muted); font-size: var(--pulso-type-body-size); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }

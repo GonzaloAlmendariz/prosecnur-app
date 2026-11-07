@@ -346,8 +346,6 @@
   color: var(--pulso-text-soft);
   font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 
 .pulso-xf-smi-sugerencia-texto strong {

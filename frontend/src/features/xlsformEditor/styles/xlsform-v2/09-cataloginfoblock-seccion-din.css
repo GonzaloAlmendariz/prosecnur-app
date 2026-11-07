@@ -272,7 +272,6 @@
   display: block;
   font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
-  text-transform: uppercase;
   letter-spacing: 0.6px;
   color: var(--pulso-text-soft);
   margin-bottom: 4px;
@@ -474,8 +473,6 @@
   color: var(--pulso-text-soft);
   font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
 .pulso-focus-required-message-block[open] > summary {

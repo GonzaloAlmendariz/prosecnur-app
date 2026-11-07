@@ -174,7 +174,6 @@ input.pulso-xfi-mono.is-invalid {
   gap: 5px;
   font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
-  text-transform: uppercase;
   letter-spacing: 0.6px;
   color: var(--pulso-text-muted, #9aa4b2);
 }

@@ -434,7 +434,6 @@
   padding: 6px 10px 0;
   font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
-  text-transform: uppercase;
   letter-spacing: 0.6px;
   color: var(--pulso-text-soft);
 }

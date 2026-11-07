@@ -98,7 +98,6 @@
 .pulso-cataloglibrary-item-unused {
   font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
-  text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--pulso-warn-fg);
   background: var(--pulso-warn-bg);
@@ -170,7 +169,6 @@
 .pulso-catalogworkspace-listname-label {
   font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-bold);
-  text-transform: uppercase;
   letter-spacing: 0.4px;
   color: var(--pulso-text-soft);
 }
@@ -407,7 +405,6 @@
   justify-content: center;
   font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
-  text-transform: uppercase;
   letter-spacing: 0.4px;
   color: var(--pulso-text-soft);
   flex-shrink: 0;
@@ -423,7 +420,6 @@
   flex: 1;
   font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
-  text-transform: uppercase;
   letter-spacing: 0.4px;
   color: var(--pulso-text-soft);
   padding: 0 6px;

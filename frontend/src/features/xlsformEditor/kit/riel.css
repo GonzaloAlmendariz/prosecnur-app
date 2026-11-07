@@ -37,7 +37,7 @@
   padding: 4px 8px 4px 27px; flex: none;
   background: var(--xls-sidebar, var(--pulso-surface)); border-bottom: 1px solid var(--pulso-border);
 }
-.xfk-riel-cab__rotulo { font-size: var(--pulso-type-micro-size); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pulso-text-faint); }
+.xfk-riel-cab__rotulo { font-size: var(--pulso-type-micro-size); font-weight: 700; color: var(--pulso-text-faint); }
 .xfk-riel-cab__cols { display: grid; grid-template-columns: repeat(5, 24px); gap: 2px; padding-left: 11px; }
 .xfk-riel-cab__col { display: grid; place-items: center; height: 18px; cursor: help; }
 .xfk-riel-cab__col svg.xfk-marca { color: var(--pulso-text-faint); --xfk-occ: var(--xls-sidebar, var(--pulso-surface)); opacity: 0.8; }
@@ -97,7 +97,7 @@
 .xfk-pop__icono { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: color-mix(in srgb, var(--xfk-c) 15%, transparent); }
 .xfk-pop__icono .xfk-marca { --xfk-occ: color-mix(in srgb, var(--xfk-c) 15%, var(--pulso-surface)); }
 .xfk-pop__titulos { display: grid; min-width: 0; }
-.xfk-pop__tipo { display: block; font-size: var(--pulso-type-eyebrow-size); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--xfk-c); }
+.xfk-pop__tipo { display: block; font-size: var(--pulso-type-eyebrow-size); font-weight: 700; color: var(--xfk-c); }
 .xfk-pop__preg { display: block; font-size: var(--pulso-type-body-size); color: var(--pulso-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .xfk-pop__x {
   width: 26px; height: 26px; border: 0; border-radius: 7px; background: transparent; color: var(--pulso-text-faint);

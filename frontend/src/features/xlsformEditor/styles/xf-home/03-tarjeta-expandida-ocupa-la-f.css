@@ -36,7 +36,6 @@
   font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.6px;
-  text-transform: uppercase;
   color: var(--pulso-module-editor);
 }
 
@@ -200,7 +199,6 @@
   font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.6px;
-  text-transform: uppercase;
   color: var(--pulso-module-editor);
 }
 
