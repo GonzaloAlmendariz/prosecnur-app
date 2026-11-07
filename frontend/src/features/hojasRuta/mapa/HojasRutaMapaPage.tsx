@@ -76,7 +76,7 @@ import { SeleccionCajon, SeleccionEstructura, SeleccionInspector } from "./selec
 import { SalidasPanel } from "./seleccion/SalidasPanel";
 import { AjustesDisenoHost } from "./ajustes/AjustesDisenoHost";
 import { BotonDiseno } from "./ajustes/BotonDiseno";
-import { areaKm2, escalaDistritos, rellenoDistrito } from "./territorio/capaDistritos";
+import { NOMBRE_NSE, areaKm2, escalaDistritos, rellenoDistrito } from "./territorio/capaDistritos";
 import { leyendaCapaDistritos, SelectorCapaDistritos, valorDeCapa } from "./territorio/CapaDistritosControles";
 import { useGeometriaDistrito } from "./territorio/useGeometriaDistrito";
 import { alcanceEstudio, seccionLista } from "./ajustes/barraDiseno";
@@ -552,6 +552,10 @@ export default function HojasRutaMapaPage() {
   // Dentro de un distrito, las manzanas toman el color de la capa elegida: viviendas (también para Población, que
   // por manzana no existe) o NSE.
   const capaAdentro: CapaLienzo = capaDistritos === "nse" ? "nse" : capaDistritos === "distritos" ? "manzanas" : "viviendas";
+  // La manzana bajo el cursor dentro del distrito abierto: antes el cursor no decía nada sobre sus manzanas.
+  const manzanaAdentroPorId = useMemo(() => new Map((geoAdentro.piezas?.manzanas ?? []).map((m) => [m.id, m] as const)), [geoAdentro.piezas]);
+  const manzanaAdentro = adentro && manzanaBajoCursor ? (manzanaAdentroPorId.get(manzanaBajoCursor) ?? null) : null;
+  useEffect(() => { if (!adentro) setManzanaBajoCursor(null); }, [adentro, setManzanaBajoCursor]);
   // La ciudad abierta en el atlas, coloreada por distrito (población, viviendas o NSE): sin leer sus manzanas.
   // Densidad por km²: el área sale del contorno de cada distrito (el de la cartografía del lienzo).
   const areasCiudad = useMemo(
@@ -651,7 +655,7 @@ export default function HojasRutaMapaPage() {
 
         // Tres estados que se distinguen a simple vista (H21): bajo el cursor, un contorno del acento a media tinta;
         // elegido, el acento entero y más grueso. Los dos con un halo del fondo debajo, que se lee sobre cualquier color.
-        const contorno = (c: (typeof contornos)[number], ancho: number, alfa: number) => {
+        const contorno = (c: Parameters<typeof u.trazo>[0], ancho: number, alfa: number) => {
           ctx.save();
           ctx.lineJoin = "round";
           ctx.globalAlpha = 0.9;
@@ -668,6 +672,7 @@ export default function HojasRutaMapaPage() {
         if (bajo) contorno(bajo, 2, 0.6);
         const enfocadoC = distritoEnfocado ? contornos.find((c) => c.ubigeo === distritoEnfocado) : null;
         if (enfocadoC) contorno(enfocadoC, 3, 1);
+        if (manzanaAdentro) contorno(manzanaAdentro, 2, 1);
         return;
       }
       if (enManzanas) {
@@ -713,7 +718,7 @@ export default function HojasRutaMapaPage() {
       if (enSeleccion) dibujarReemplazosMundo(ctx, u, reemplazosEnfocados);
       if (!enPoblacion && !enMuestra) dibujarTitularesMundo(ctx, u, titularesVisibles, enSeleccion ? umpEnfocada : null, capaContraste);
     },
-    [enMuestra, enPoblacion, enTerritorio, enManzanas, enSeleccion, borrador, distritoBajoCursor, distritoEnfocado, titularesVisibles, reemplazos, excluidasPiloto, contextoOsm, reemplazosEnfocados, umpEnfocada, zonasCortas, distritos, configSorteo, dibujoArea, capaContraste, contornos, nacional.dibujarMundo],
+    [enMuestra, enPoblacion, enTerritorio, enManzanas, enSeleccion, borrador, distritoBajoCursor, distritoEnfocado, titularesVisibles, reemplazos, excluidasPiloto, contextoOsm, reemplazosEnfocados, umpEnfocada, zonasCortas, distritos, configSorteo, dibujoArea, capaContraste, contornos, nacional.dibujarMundo, manzanaAdentro],
   );
   // Perfil NSE de lo elegido para la gráfica del inspector de Territorio: viviendas
   // por nivel de las manzanas ya cargadas en el lienzo. null mientras no hay geometría.
@@ -765,6 +770,15 @@ export default function HojasRutaMapaPage() {
         </>
       );
     }
+    if (manzanaAdentro) {
+      const nse = manzanaAdentro.nse >= 1 && manzanaAdentro.nse <= 5 ? `NSE ${NOMBRE_NSE[manzanaAdentro.nse].toLowerCase()}` : "NSE sin dato";
+      return (
+        <>
+          <b>Zona {manzanaAdentro.zona}, Mz {manzanaAdentro.id.slice(-4)}</b>
+          <span>{fmt(manzanaAdentro.viviendas)} viviendas, {nse}</span>
+        </>
+      );
+    }
     if (!enTerritorio || !distritoBajoCursor || distritoBajoCursor === distritoEnfocado) return null;
     const t = (estado?.territories ?? []).find((x) => x.ubigeo === distritoBajoCursor);
     if (!t) return null;
@@ -772,10 +786,10 @@ export default function HojasRutaMapaPage() {
       <>
         <b>{nombreDistrito(t.distrito)}</b>
         <span>{enAtlas ? valorDeCapa(capaDistritos, t, areasCiudad.get(t.ubigeo) ?? null) : `${fmt(t.poblacion)} hab., ${fmt(t.viviendas)} viviendas, ${fmt(t.manzanas)} manzanas`}</span>
-        <span>Clic para ver su ficha</span>
+        <span>{adentro ? "Clic para ver sus manzanas" : "Clic para ver su ficha"}</span>
       </>
     );
-  }, [enTerritorio, distritoBajoCursor, distritoEnfocado, estado, enSeleccion, umpBajoCursor, umpEnfocada, bloquesTitulares, bloquesReemplazos, enManzanas, manzanaBajoCursor, manzanaEnfocada, manzanaPorId, enAtlas, capaDistritos, areasCiudad]);
+  }, [manzanaAdentro, adentro, enTerritorio, distritoBajoCursor, distritoEnfocado, estado, enSeleccion, umpBajoCursor, umpEnfocada, bloquesTitulares, bloquesReemplazos, enManzanas, manzanaBajoCursor, manzanaEnfocada, manzanaPorId, enAtlas, capaDistritos, areasCiudad]);
   // Habitantes por distrito para los rótulos de Territorio (B9), de todo el catálogo.
   const habitantes = useMemo(() => new Map((estado?.territories ?? []).map((t) => [t.ubigeo, t.poblacion])), [estado]);
   const dibujarPantalla = useCallback(
@@ -1046,7 +1060,12 @@ export default function HojasRutaMapaPage() {
               ? (punto) => setDistritoBajoCursor(punto ? distritoEnPunto(contornosAbiertos, punto[0], punto[1])?.ubigeo ?? null : null)
               : enAtlas && ciudadEnfocada
               ? // En el atlas, el distrito bajo el cursor dice su valor en la capa que se ve (H19).
-                (punto) => setDistritoBajoCursor(punto ? distritoEnPunto(contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadEnfocada), punto[0], punto[1])?.ubigeo ?? null : null)
+                // Dentro de un distrito, sobre sus manzanas el cursor dice la manzana; fuera, el vecino.
+                (punto) => {
+                  const m = punto && adentro && geoAdentro.piezas ? manzanaEnPunto(geoAdentro.piezas.manzanas, punto[0], punto[1]) : null;
+                  setManzanaBajoCursor(m?.id ?? null);
+                  setDistritoBajoCursor(punto && !m ? distritoEnPunto(contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadEnfocada), punto[0], punto[1])?.ubigeo ?? null : null);
+                }
               : enSeleccion
               ? (punto) => setUmpBajoCursor(punto ? manzanaEnPunto(titulares.map((t) => t.manzana), punto[0], punto[1])?.id ?? null : null)
               : enManzanas && !dibujoArea
