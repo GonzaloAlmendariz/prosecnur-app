@@ -148,9 +148,11 @@
   animation-name: pulso-xf-graph-aviso-in;
 }
 
+/* Deja libre la franja del minimapa (186 px + márgenes): en un lienzo angosto el aviso se montaba sobre él
+   (2026-11-06). Se centra en el espacio que queda a su izquierda. */
 .pulso-graph-body .pulso-graph-empty.pulso-graph-empty-no-edges {
-  inset: auto 0 24px;
-  max-width: min(560px, calc(100% - 48px));
+  inset: auto 218px 24px 0;
+  max-width: min(560px, calc(100% - 218px - 32px));
 }
 
 @keyframes pulso-xf-graph-aviso-in {

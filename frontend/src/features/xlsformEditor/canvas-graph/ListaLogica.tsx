@@ -72,7 +72,7 @@ export function ListaLogica({ structure, scope: scopeBase, seleccionada, onSelec
   return (
     <aside className="xfl-lista" aria-label="Lógica del formulario">
       <header className="xfl-lista__head">
-        <div className="xfl-lista__tit"><span>Lógica del formulario</span><span className="xfl-lista__total">{total} reglas</span></div>
+        <div className="xfl-lista__tit"><span>Lógica del formulario</span><span className="xfl-lista__total">{total} {total === 1 ? "regla" : "reglas"}</span></div>
         <Segmented
           aria-label="Qué reglas mostrar"
           size="sm"
