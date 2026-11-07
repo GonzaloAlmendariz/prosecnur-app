@@ -1,0 +1,393 @@
+{
+ "taxonomia_extra": {
+  "cabecera_de_panel": "acción a la derecha del título de un panel/tarjeta (no al pie, no en medio): XF-04, MO-12..16, MO-20, MO-21, CM-05"
+ },
+ "conteo": {
+  "seccion_o_tarjeta": 49,
+  "pie_de_panel": 29,
+  "barra_de_comandos": 16,
+  "menu_desplegable": 16,
+  "dialogo_o_cajon": 11,
+  "cabecera_de_panel": 9,
+  "fila_de_tabla": 6,
+  "enlace_en_texto": 4,
+  "aviso_o_toast": 1
+ },
+ "por_modulo": {
+  "editor-xlsform": {
+   "barra_de_comandos": 3,
+   "cabecera_de_panel": 1,
+   "aviso_o_toast": 1,
+   "dialogo_o_cajon": 1
+  },
+  "procesamiento": {
+   "pie_de_panel": 26,
+   "enlace_en_texto": 4,
+   "menu_desplegable": 6,
+   "barra_de_comandos": 5,
+   "dialogo_o_cajon": 6,
+   "seccion_o_tarjeta": 2,
+   "fila_de_tabla": 1
+  },
+  "tablero": {
+   "seccion_o_tarjeta": 1,
+   "dialogo_o_cajon": 3
+  },
+  "monitoreo": {
+   "seccion_o_tarjeta": 18,
+   "cabecera_de_panel": 7,
+   "pie_de_panel": 2,
+   "fila_de_tabla": 2,
+   "barra_de_comandos": 7
+  },
+  "material-campo": {
+   "menu_desplegable": 8,
+   "seccion_o_tarjeta": 22,
+   "fila_de_tabla": 3,
+   "dialogo_o_cajon": 1,
+   "barra_de_comandos": 1,
+   "pie_de_panel": 1
+  },
+  "calc-muestra": {
+   "seccion_o_tarjeta": 5,
+   "cabecera_de_panel": 1
+  },
+  "hojas-ruta": {
+   "menu_desplegable": 2,
+   "seccion_o_tarjeta": 1
+  }
+ },
+ "ejemplos": [
+  {
+   "clase": "pie_de_panel",
+   "fila_id": "AN-12",
+   "modulo": "procesamiento/analitica",
+   "ubicacion_ui": "/analitica?pestana=frecuencias",
+   "descripcion_layout": "Rail de pestañas a la izquierda (AdaptiveSplitView + ContextTabRail) y el pane a la derecha, ancho completo de la columna de contenido. Dentro de un Panel único, en vertical: (1) docbar con ícono, antetítulo «Producto tabular», título «Frecuencias», subtítulo y a la derecha tres cifras (Secciones, Variables, Orden); (2) nota con ícono Info y enlace a Datos; (3) Section «Variables con resumen numérico» con selector y botón ghost «Quitar numéricas»; (4) Section «Presentación» con un segmentado de orden, dos interruptores y una nota de salida Excel; (5) editor de notas al pie; (6) al final GenerateFooter: fila flex (gap 12 px, sin borde superior) con el PulsoButton lg primario «Generar frecuencias» a la izquierda, el hint de deshabilitado al lado y, cuando hay archivo, la pastilla .analitica-download-pill con el nombre y el span «Guardado como …». Es el único botón primario del pane.",
+   "textos_literales": [
+    "Producto tabular",
+    "Frecuencias",
+    "Tablas univariadas estilo SPSS agrupadas por instrumento.",
+    "Variables con resumen numérico",
+    "Presentación",
+    "Generar frecuencias",
+    "Generando…",
+    "frecuencias.xlsx",
+    "Guardado como <archivo>",
+    "No se pudo generar"
+   ],
+   "espera_hoy_posicion": "En el mismo botón: Loader2 y el texto «Generando…». En los panes con job (Cruces, Multibase, Base panel), la tarjeta JobProgress aparece DEBAJO de la fila del pie, a ancho completo. El resultado (pastilla y «Guardado como») queda en la misma fila, a la DERECHA del botón. El error (ErrorBlock) va debajo de todo. En Electron, además, se abre el diálogo nativo del sistema.",
+   "archivo_linea": "frontend/src/features/analitica/panes/FrecuenciasPane.tsx:94 (Panel), :101 (docbar), :229 (GenerateFooter); frontend/src/features/analitica/PaneKit.tsx:95-260; frontend/src/app/theme.css:13988"
+  },
+  {
+   "clase": "pie_de_panel",
+   "fila_id": "MO-17",
+   "modulo": "monitoreo/telefonico",
+   "ubicacion_ui": "/monitoreo?modo=telefonico&seccion=control&pestana=discrepancias",
+   "descripcion_layout": "Sección con la lista de responsables (botones con conteo, aria-pressed) y, al final, un footer .mon-dsc-acciones: «Copiar para el equipo» (primario, ícono Clipboard) y luego «Exportar CSV» (secundario, ícono Download). A la derecha del footer, la NotaDelModo con el resultado de copiar. A la derecha de la sección queda el detalle del caso elegido.",
+   "textos_literales": [
+    "Copiar para el equipo",
+    "Exportar CSV",
+    "Lista copiada: pégala en el chat del equipo.",
+    "No se pudo copiar; usa «Exportar CSV»."
+   ],
+   "espera_hoy_posicion": "No hay espera (el CSV y la copia son inmediatos). El resultado de la copia aparece en la misma fila del footer, a la derecha. El CSV baja sin ningún aviso.",
+   "archivo_linea": "frontend/src/features/monitoreo/profiles/telefonico/control/Discrepancias.tsx:143-157"
+  },
+  {
+   "clase": "barra_de_comandos",
+   "fila_id": "XF-01",
+   "modulo": "editor-xlsform",
+   "ubicacion_ui": "/editor-xlsform?form_id=<id>",
+   "descripcion_layout": "ModuleCommandBar del editor, una sola fila a lo ancho de la página. A la izquierda: FormSwitcher, un grupo de indicadores (Preguntas, Secciones, Listas), el estado (origen y guardado) y Deshacer/Rehacer. En el centro, el nombre de la pestaña activa. A la derecha, en este orden: DiagnosticsBadge, LeyendaIconos, FormIntakeMenu y, al final, el split primario «⤓ Exportar .xlsx | ▾». El caret abre un menú con el eyebrow «Destino del .xlsx», dos radios («Kobo / ODK» y «Prosecnur» con su descripción), el eyebrow «Impreso» y el ítem «Documento», que lleva a la pestaña Impreso. Es el único botón primario de la barra.",
+   "textos_literales": [
+    "Exportar",
+    ".xlsx",
+    "Destino del .xlsx",
+    "Kobo / ODK",
+    "XLSForm estándar, listo para subir a Kobo u ODK.",
+    "Prosecnur",
+    "Impreso",
+    "Documento",
+    "Configurar y exportar el cuestionario impreso (PDF o Word).",
+    "Exportando XLSForm…",
+    "Exportación guardada en el proyecto"
+   ],
+   "espera_hoy_posicion": "LEJOS del botón: el split sólo queda deshabilitado. Bajo la barra, en el flujo de la página, aparece un Panel «Procesando» con LoadingBlock inline y el texto «Exportando XLSForm…». Ese panel empuja el contenido hacia abajo. El resultado sale por dos lados: un toast abajo a la derecha («Exportación guardada en el proyecto» con la ruta) y un Panel «XLSForm listo» con SaveEntregableButton en el mismo lugar del panel de carga.",
+   "archivo_linea": "frontend/src/features/xlsformEditor/shell/EditorCommandBar.tsx:154-167; frontend/src/features/xlsformEditor/shell/ExportMenu.tsx:69-145; frontend/src/features/xlsformEditor/XlsformEditorPage.tsx:1751, :2671-2705, :3060"
+  },
+  {
+   "clase": "barra_de_comandos",
+   "fila_id": "CO-01",
+   "modulo": "procesamiento/codificacion",
+   "ubicacion_ui": "/codificacion?pestana=matrices",
+   "descripcion_layout": "Una fila de botones .pulso-codificacion-config-button bajo el hero de cifras (Variables, Casos, Asignaciones, Categorías, Comentarios), a lo ancho del workbench. Orden: «Importar matriz…»/«Actualizar mapeo…» (primario si no hay matriz), «Generar matriz» (primario si no hay matriz), «Editar casos», «Compartir», «Auditoría», «Respaldo JSON» y el ícono de refrescar. Todos tienen el mismo peso visual salvo el primario.",
+   "textos_literales": [
+    "Importar matriz...",
+    "Generar matriz",
+    "Generando...",
+    "Compartir",
+    "Auditoría",
+    "Respaldo JSON",
+    "Guardando...",
+    "Matriz de trabajo generada para <base>."
+   ],
+   "espera_hoy_posicion": "Varía según el botón: «Generar matriz» cambia su texto a «Generando...»; «Compartir» y «Auditoría» no cambian nada y sólo se deshabilita toda la barra; «Respaldo JSON» pasa a «Guardando...». El archivo se abre en una pestaña nueva. El éxito llega como toast. El error es un Alert al pie del componente, lejos de la barra.",
+   "archivo_linea": "frontend/src/features/codificacion/CodingConfigActions.tsx:416-510, :982"
+  },
+  {
+   "clase": "menu_desplegable",
+   "fila_id": "GR-01",
+   "modulo": "procesamiento/graficos",
+   "ubicacion_ui": "/graficos?pestana=laminas",
+   "descripcion_layout": "BarraLaminas (role=toolbar), una fila a lo ancho. A la izquierda: título del informe, alcance, conteo de láminas y estado «Aplicado». A la derecha, en este orden: Deshacer/Rehacer (íconos), «N avisos», cobertura del plan, «Armar desde…», el disparador primario en píldora «⤓ Exportar [n] ▾» y «Más». El popover (role=dialog) tiene una cabecera con marca de ícono, «Exportar reporte» y «Elige el archivo final que necesitas generar.»; luego el aviso de plan, el aviso de colores pendientes y dos acciones grandes, una por fila: «PowerPoint / PPTX editable» y «Word / DOCX narrativo», cada una con ícono a la izquierda. Al pie, la lista de archivos generados y el estado «Guardado como …».",
+   "textos_literales": [
+    "Exportar",
+    "Exportar reporte",
+    "Elige el archivo final que necesitas generar.",
+    "Revisa el estado del plan antes de generar archivos.",
+    "PowerPoint",
+    "PPTX editable",
+    "Word",
+    "DOCX narrativo",
+    "reporte.pptx",
+    "Exportando PPT",
+    "validando ppt…"
+   ],
+   "espera_hoy_posicion": "Repartida en tres lugares. Al elegir una opción el popover se CIERRA. El disparador muestra Loader2 en lugar del ícono. FUERA del menú, en la toolbar de la página, aparecen un Alert «validando ppt…» y una tarjeta JobProgress «Exportando PPT» (barra, fase y Cancelar) a lo ancho, debajo de la barra. Al terminar, el disparador muestra un contador; los enlaces y el «Guardado como» sólo se ven si se REABRE el popover. En Electron se abre además el diálogo nativo.",
+   "archivo_linea": "frontend/src/features/graficos/laminas/BarraLaminas.tsx:97-161; frontend/src/features/graficos/ExportarInformeMenu.tsx:96-205; frontend/src/features/graficos/GraficosPage.tsx:361-376, :380"
+  },
+  {
+   "clase": "menu_desplegable",
+   "fila_id": "MC-02",
+   "modulo": "material-campo/correo",
+   "ubicacion_ui": "/material-campo?modo=correo&seccion=correo&pestana=editor",
+   "descripcion_layout": "Disparador «⇧ Exportar ▾» en la barra del correo, con un punto que indica paquete listo. Abre un Radix Popover alineado a la derecha. Contenido: eyebrow «Para SurveyMonkey · <envío>»; una lista de dos salidas grandes, cada una con título y debajo «para qué sirve»: «Copiar HTML para SurveyMonkey» con el chip «principal» y «Paquete del envío»; luego los pasos «Dónde se pega en SurveyMonkey» y una ayuda. Al final, la tarjeta del ZIP con el nombre en monoespaciada, el peso y la marca de datos personales, más dos botones pequeños: «Descargar» (secundario) y «Junto al proyecto» (ghost). Debajo, la sección «Vista para revisión».",
+   "textos_literales": [
+    "Exportar",
+    "Para SurveyMonkey · <envío>",
+    "Copiar HTML para SurveyMonkey",
+    "principal",
+    "Paquete del envío",
+    "HTML copiado",
+    "Descargar",
+    "Junto al proyecto",
+    "contiene datos personales",
+    "sin datos personales"
+   ],
+   "espera_hoy_posicion": "DENTRO del menú, que se queda abierto: Loader2 en el ícono del ítem pulsado. El resultado (la tarjeta del ZIP) aparece al pie del mismo popover y obliga a un segundo clic en «Descargar». El error va en el aviso del editor, FUERA del popover.",
+   "archivo_linea": "frontend/src/features/recopiladores/correos/MenuExportar.tsx:29-59; frontend/src/features/recopiladores/correos/PanelSurveyMonkey.tsx:166-245; frontend/src/features/recopiladores/correos/CorreosEditor.tsx:632"
+  },
+  {
+   "clase": "seccion_o_tarjeta",
+   "fila_id": "MO-01",
+   "modulo": "monitoreo/acreditacion (igual en los 4 modos)",
+   "ubicacion_ui": "/monitoreo?modo=acreditacion&seccion=avance&pestana=salidas",
+   "descripcion_layout": "Arriba, la cabecera del workbench: «Salidas del avance», «Entregables del corte», la fecha del corte y el switch «Incluir metas». Debajo, la readiness. Luego la grilla .mon-outputs-grid de dos columnas (minmax(280px,.85fr) y minmax(360px,1.15fr)). Columna izquierda angosta, en pila: tarjeta PDF (antetítulo «PDF ejecutivo», título, detalle, desplegable «Portada del PDF» con seis campos en aulas y telefónico, y el botón primario a ancho de tarjeta «⤓ Generar PDF ejecutivo»), luego la tarjeta Producción (tags, input «Título del PDF», botón) y la tarjeta Procesamiento. Columna derecha ancha: la tarjeta Google Sheets.",
+   "textos_literales": [
+    "Salidas del avance",
+    "PDF ejecutivo",
+    "Generar PDF ejecutivo",
+    "Preparando el reporte…",
+    "Generando PDF ejecutivo",
+    "en curso",
+    "PDF ejecutivo listo para descargar.",
+    "Descargar PDF ejecutivo",
+    "Generación cancelada."
+   ],
+   "espera_hoy_posicion": "EN el botón: Loader2 y «Preparando el reporte…», luego la etiqueta de progreso, con el fondo del botón llenándose como barra (CSS var). Justo DEBAJO del botón, la línea JobStatusLine (spinner, texto y «NN%»/«en curso», más una barra fina, sin Cancelar). Después un alert info o error y, al final, el enlace «Descargar PDF ejecutivo», que pide un segundo clic. Todo queda dentro de la tarjeta, en orden vertical.",
+   "archivo_linea": "frontend/src/features/monitoreo/salidas/MonitoreoOutputsWorkbench.tsx:1268-1300 (cabecera), :1303-1407 (tarjeta PDF), :569-640 (JobStatusLine); frontend/src/features/monitoreo/salidas/outputsWorkbench.css:75"
+  },
+  {
+   "clase": "seccion_o_tarjeta",
+   "fila_id": "MC-17",
+   "modulo": "material-campo/aulas",
+   "ubicacion_ui": "/material-campo?modo=aulas&seccion=paquetes&pestana=armado",
+   "descripcion_layout": "Arriba, una fila de cuatro cifras en tarjeta (Fichas creadas con avance, Titulares, Reemplazos, Adicionales) y, si falta, un Alert warn con «Ir a Accesos». Debajo, .rec-package-layout con dos Panels: «Fichas — La ficha de estos accesos» (dl Plantilla/Accesos y «Crear las fichas») y «Lo genera Pulso — PNG, PDF o paquete». Dentro de este último, una grilla de 3 columnas iguales (FormatosDeSalida, 1 columna bajo 1100 px), cada tarjeta con ícono de 32 px, título, descripción y botón: «Imagen de una ficha / Ver imagen», «PDF del lote / Generar PDF» (tarjeta principal tintada con el acento y botón primario) y «Paquete por facultad / Generar el paquete». Bajo la grilla, el control de ficha de prueba y el histórico.",
+   "textos_literales": [
+    "Lo genera Pulso",
+    "PNG, PDF o paquete",
+    "Imagen de una ficha",
+    "Ver imagen",
+    "PDF del lote",
+    "Todas las fichas del plan en un solo PDF, listo para imprimir.",
+    "Generar PDF",
+    "Paquete por facultad",
+    "Generar el paquete",
+    "Render pdf",
+    "Descargar la ficha",
+    "Enviar al Drive del operativo",
+    "El archivo y su vista previa los genera Pulso, y no se guardan dentro del proyecto."
+   ],
+   "espera_hoy_posicion": "DEBAJO de la grilla y del bloque de ficha de prueba, a ancho del Panel: JobProgress con label «Render pdf». Los tres botones sólo se deshabilitan; ninguno cambia de texto ni de ícono. El resultado aparece más abajo, en el bloque verde .rec-render-result (nombre, metadatos y sha256), con el enlace «Descargar la ficha» (segundo clic) y «Enviar al Drive del operativo». El error va al final del Panel.",
+   "archivo_linea": "frontend/src/features/recopiladores/MaterialsSection.tsx:287-420; frontend/src/features/recopiladores/PaquetesAulasTablero.tsx:1-30; frontend/src/features/recopiladores/styles/paquetesAulasTablero.css:9-40"
+  },
+  {
+   "clase": "seccion_o_tarjeta",
+   "fila_id": "DB-01",
+   "modulo": "tablero",
+   "ubicacion_ui": "/tablero?pestana=base_datos",
+   "descripcion_layout": "Grilla .dash-base-layout de 300 px y 1fr. La columna lateral izquierda (300 px) apila tarjetas .dash-cardbox: «Vista» (segmentado Códigos/Etiquetas), filtros y, al final, «Descargar»: título h2, label «Formato», select «Excel (.xlsx) / CSV (.csv)», botón primario a ancho «⤓ Descargar» y el resumen «N filas a exportar» / «N columnas». La tabla de datos ocupa la columna ancha de la derecha.",
+   "textos_literales": [
+    "Descargar",
+    "Formato",
+    "Excel (.xlsx)",
+    "CSV (.csv)",
+    "Generando…",
+    "filas a exportar",
+    "columnas"
+   ],
+   "espera_hoy_posicion": "EN el botón: el texto cambia a «Generando…» (sin spinner). No hay resultado ni error visibles: no hay .catch, así que un fallo no se muestra.",
+   "archivo_linea": "frontend/src/features/dashboard/tabs/BaseDatosTab/index.tsx:65-85, :179-205; frontend/src/features/dashboard/tabs/BaseDatosTab/baseDatos.css:1-6"
+  },
+  {
+   "clase": "fila_de_tabla",
+   "fila_id": "MC-23",
+   "modulo": "material-campo/territorial",
+   "ubicacion_ui": "/material-campo?modo=territorial&seccion=unidades (muestra por cuotas)",
+   "descripcion_layout": "Cabecera .rec-terr-cabeza con h2 «Zonas de la muestra por cuotas», un subtítulo (zonas, entrevistas, fase, fecha de envío) y, a la derecha, el botón secundario «🖨 Hojas de conteo de todas». Debajo, una PulsoTable compacta a lo ancho con las columnas Zona (220), Código (100), Entrevistas (110), Cuota por sexo (200), Celdas (80) y «Hoja de conteo» (140). La última columna lleva en cada fila un PulsoButton ghost sm «🖨 Abrir».",
+   "textos_literales": [
+    "Zonas de la muestra por cuotas",
+    "Hojas de conteo de todas",
+    "Hoja de conteo",
+    "Abrir",
+    "Generando…",
+    "No se pudo generar la hoja."
+   ],
+   "espera_hoy_posicion": "EN el botón de esa fila: el texto cambia a «Generando…». Todas las demás filas y el botón de cabecera se deshabilitan. El PDF se abre en una pestaña nueva. El error aparece DEBAJO de toda la tabla, lejos de la fila que lo causó.",
+   "archivo_linea": "frontend/src/features/recopiladores/territorial/ZonasDeCuotas.tsx:42-51, :56-70, :83"
+  },
+  {
+   "clase": "fila_de_tabla",
+   "fila_id": "MC-29",
+   "modulo": "material-campo/territorial (componente de hojas-ruta)",
+   "ubicacion_ui": "/material-campo?modo=territorial&seccion=entrega&pestana=plan",
+   "descripcion_layout": "Panel «Plan de campo» (hint «Cada jornada es un día de un encuestador…»). Grilla de jornadas por encuestador; cada celda role=cell (.hr-plan-jornada) muestra el id en negrita, el distrito, «N UMP, N visitas, N km», la marca «Jornada corta» si aplica y, al final, un botón pequeño de texto .hr-plan-hoja «Hoja del día». Bajo la grilla, la fila de acciones del plan: «Armar el plan»/«Recalcular» y «Guardar».",
+   "textos_literales": [
+    "Plan de campo",
+    "Hoja del día",
+    "Generando…",
+    "Jornada corta: una sola ruta",
+    "No se pudo generar la hoja del día"
+   ],
+   "espera_hoy_posicion": "EN el botón de esa celda: «Generando…». Los botones de las otras celdas se deshabilitan. El PDF se abre en una pestaña nueva. El error va arriba de la grilla (p.hr-mapa-aviso), separado de la celda.",
+   "archivo_linea": "frontend/src/features/hojasRuta/mapa/seleccion/PlanCampo.tsx:69, :85, :120-146; frontend/src/features/recopiladores/territorial/EntregaTerritorial.tsx:77-88"
+  },
+  {
+   "clase": "dialogo_o_cajon",
+   "fila_id": "MC-27",
+   "modulo": "material-campo/territorial",
+   "ubicacion_ui": "/material-campo?modo=territorial&seccion=unidades&panel=hoja-ump",
+   "descripcion_layout": "Dialog size lg de alto fijo: ícono FileText, título «Hoja de ruta · <UMP>» y subtítulo «distrito · zona · manzana · viv. · motivo». En el cuerpo, la maqueta de la ficha y la nota «Esta es la estructura de la ficha. Generar la vista previa real (tarda unos segundos por el mapa)»; o la imagen real. En el footer, a la izquierda, los enlaces «‹ Anterior» y «Siguiente ›» (flechas ←/→); a la derecha, el botón primario sm «🖨 Imprimir o descargar».",
+   "textos_literales": [
+    "Hoja de ruta · <UMP>",
+    "Generar la vista previa real",
+    "Generando la hoja… tarda unos segundos por el mapa.",
+    "Anterior",
+    "Siguiente",
+    "Imprimir o descargar",
+    "No se pudo generar el PDF."
+   ],
+   "espera_hoy_posicion": "Para el PDF, NINGUNA: el botón sigue activo y no cambia. La única espera visible es la de la vista previa PNG, en el cuerpo del diálogo. El PDF aparece en una pestaña nueva y el error en el cuerpo del diálogo, lejos del botón del pie.",
+   "archivo_linea": "frontend/src/features/recopiladores/territorial/DialogoHojaUmp.tsx:77-140"
+  },
+  {
+   "clase": "dialogo_o_cajon",
+   "fila_id": "GR-08",
+   "modulo": "procesamiento/graficos",
+   "ubicacion_ui": "/graficos?pestana=laminas → Más → Compartir → «Plan portátil»",
+   "descripcion_layout": "DialogoCompartir (Radix Dialog). Cabecera con título y descripción, y una X a la derecha. Cuerpo: un bloque .pulso-gv2-share-package con la copia a la izquierda («Plan portátil» y su explicación) y las acciones a la derecha: «⤓ Exportar plan» (primario) e «⇧ Importar plan» (secundario). Debajo, la inspección del paquete importado. Footer del diálogo: un span role=status para el mensaje de éxito y otro role=alert para el error.",
+   "textos_literales": [
+    "Plan portátil",
+    "Comparte composición, estilos y ajustes. Al aplicar, solo actualiza Gráficos y luego puedes regenerar PPT/Word.",
+    "Exportar plan",
+    "Importar plan",
+    "Paquete compartible exportado"
+   ],
+   "espera_hoy_posicion": "EN el botón: Loader2 en lugar del ícono, sin cambiar el texto. El resultado aparece en el FOOTER del diálogo (Check + «Paquete compartible exportado», que se borra solo) y el archivo baja a descargas.",
+   "archivo_linea": "frontend/src/features/graficos/compartir/PlanPortatilContenido.tsx:18-45; frontend/src/features/graficos/compartir/DialogoCompartir.tsx:48-75"
+  },
+  {
+   "clase": "aviso_o_toast",
+   "fila_id": "XF-05",
+   "modulo": "editor-xlsform",
+   "ubicacion_ui": "/editor-xlsform (cualquier pestaña, tras exportar)",
+   "descripcion_layout": "ToastDeck fijo en la esquina inferior derecha (right 24, bottom 24); los toasts se apilan. Cada uno lleva el ícono y el tono del tipo (success/warn/danger), un título en negrita, el detalle (la ruta absoluta o el error) y un botón de acción «Descargar». Duración de 6 a 9 s.",
+   "textos_literales": [
+    "Exportación lista",
+    "Exportación guardada en el proyecto",
+    "No se pudo guardar en la carpeta del proyecto",
+    "PDF listo",
+    "Descargar"
+   ],
+   "espera_hoy_posicion": "El toast ES el resultado: no tiene espera propia. La espera previa ocurre en otro lugar (Panel «Procesando» o el botón de la pestaña Impreso). El clic en «Descargar» abre una pestaña nueva.",
+   "archivo_linea": "frontend/src/features/xlsformEditor/XlsformEditorPage.tsx:1776-1810, :1849-1882, :3060; frontend/src/features/xlsformEditor/shell/ToastDeck.tsx:150-240"
+  },
+  {
+   "clase": "enlace_en_texto",
+   "fila_id": "CO-05",
+   "modulo": "procesamiento/codificacion",
+   "ubicacion_ui": "/codificacion?pestana=adaptar",
+   "descripcion_layout": "Al pie de la pestaña Adaptación, tras el botón primario «▶ Confirmar y adaptar respuestas», el JobProgress, el Alert de error y los avisos de omitidas y sin recodificar, aparece un Panel con eyebrow «Resultado» y título «Archivos adaptados listos para descargar». Dentro, una línea de éxito en verde con CheckCircle2 («La adaptación terminó correctamente.») y dos enlaces lado a lado: «⤓ data_adaptada.xlsx» con estilo primario y «⤓ instrumento_adaptado.xlsx» sin estilo de botón.",
+   "textos_literales": [
+    "Confirmar y adaptar respuestas",
+    "Aplicando…",
+    "Adaptando respuestas con mapeos confirmados",
+    "Resultado",
+    "Archivos adaptados listos para descargar",
+    "La adaptación terminó correctamente.",
+    "data_adaptada.xlsx",
+    "instrumento_adaptado.xlsx"
+   ],
+   "espera_hoy_posicion": "En el botón de adaptar (Loader2 y «Aplicando…»), luego en la tarjeta JobProgress justo debajo. El resultado son los enlaces de un Panel nuevo, varias secciones más abajo, separados del botón por los avisos.",
+   "archivo_linea": "frontend/src/features/codificacion/AdaptarAplicacion.tsx:158-176, :186-194, :219-238"
+  },
+  {
+   "clase": "enlace_en_texto",
+   "fila_id": "CA-01",
+   "modulo": "procesamiento/carga",
+   "ubicacion_ui": "/carga?pestana=fuentes (base única)",
+   "descripcion_layout": "Dentro del resumen de respuestas (RespuestasResumen), tras «N respuestas y N columnas», la compatibilidad, «Preparada: …» y el aviso de mapeo de códigos, hay un párrafo .pulso-resp-descargas: el texto «Descargar la base preparada» seguido de tres botones pequeños en línea, «⤓.xlsx», «⤓.csv» y «⤓.sav». Debajo, dos details: «Qué se preparó» y «Ver las N columnas».",
+   "textos_literales": [
+    "Descargar la base preparada",
+    ".xlsx",
+    ".csv",
+    ".sav",
+    "Preparando base normalizada .xlsx…"
+   ],
+   "espera_hoy_posicion": "LEJOS: los tres botones se deshabilitan y el LoadingBlock inline «Preparando base normalizada .xlsx…» aparece arriba del workbench de Carga, fuera de la vista del párrafo. Al terminar, window.location.href navega al archivo. No hay mensaje de éxito; el error aparece en la cabecera de Carga.",
+   "archivo_linea": "frontend/src/features/carga/RespuestasResumen.tsx:65-74; frontend/src/features/carga/CargaPage.tsx:1113-1124, :1350"
+  },
+  {
+   "clase": "cabecera_de_panel",
+   "fila_id": "MO-13",
+   "modulo": "monitoreo/acreditacion",
+   "ubicacion_ui": "/monitoreo?modo=acreditacion&seccion=control&pestana=personas",
+   "descripcion_layout": "Sección .acr-av-panel «Personas del padrón». Su header .acr-av-panel-cabecera hace de barra de filtros: buscador («Llave, canal o cruce»), un grupo de chips de estado (Todos, …) y, al final a la derecha, el botón .acr-av-boton «⤓ Exportar CSV». La tabla paginada va debajo, a lo ancho.",
+   "textos_literales": [
+    "Llave, canal o cruce",
+    "Todos",
+    "Exportar CSV",
+    "personas-del-padron.csv"
+   ],
+   "espera_hoy_posicion": "Ninguna (CSV armado en el front): el archivo baja sin confirmación.",
+   "archivo_linea": "frontend/src/features/monitoreo/profiles/acreditacion/control/casos/Personas.tsx:128-148"
+  },
+  {
+   "clase": "cabecera_de_panel",
+   "fila_id": "CM-05",
+   "modulo": "calc-muestra",
+   "ubicacion_ui": "/calc-muestra?modo=marco-disponible&seccion=seleccion&pestana=seleccion-corrida",
+   "descripcion_layout": "Panel .cmg-ficha con eyebrow «Selección vigente» y título con el nombre de la corrida. En actions (a la derecha del título): botón ghost «⤓ Descargar listado (XLSX)» y, debajo, un small aria-live con el estado («Selección, memoria de cálculo, estratos y listado.» o «Descargado: <archivo>»). El cuerpo con la ficha de la corrida va a lo ancho.",
+   "textos_literales": [
+    "Selección vigente",
+    "Descargar listado (XLSX)",
+    "Selección, memoria de cálculo, estratos y listado.",
+    "Descargado: <archivo>",
+    "No se pudo exportar el listado"
+   ],
+   "espera_hoy_posicion": "EN el botón: Loader2 en lugar del ícono, sin cambiar el texto. El resultado aparece justo DEBAJO del botón, en la misma cabecera («Descargado: …»). El error se muestra en el cuerpo del Panel (ErrorDelMotor), debajo de la cabecera. El archivo se abre en una pestaña nueva.",
+   "archivo_linea": "frontend/src/features/calcMuestra/general/FichaCorrida.tsx:58-100"
+  }
+ ]
+}
