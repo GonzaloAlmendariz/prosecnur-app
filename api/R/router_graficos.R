@@ -611,6 +611,8 @@
     # D8: las listas que Analítica declara ordinales deciden el orden «recetario» de cada gráfico (graficos_orden_categorias.R).
     inst_sources[[nm]]$listas_ordinales <- tryCatch(.orden_categorias_ordinal_set(inst_sources[[nm]], cfg), error = function(e) NULL)
     inst_sources[[nm]]$listas_nominales <- tryCatch({ o <- .orden_categorias_ordinales_from_cfg(cfg); names(o)[!o] }, error = function(e) NULL)
+    # ADR 0135: sólo lo que el analista DECLARÓ ordinal hace de escala una lista sin batería (graficos_regla_escala.R).
+    inst_sources[[nm]]$listas_ordinales_declaradas <- tryCatch({ o <- .orden_categorias_ordinales_from_cfg(cfg); names(o)[o] }, error = function(e) NULL)
     orden_cfg <- .orden_categorias_from_cfg(cfg)
     if (!length(orden_cfg)) next
     inst <- .apply_orden_categorias(inst_sources[[nm]], orden_cfg)

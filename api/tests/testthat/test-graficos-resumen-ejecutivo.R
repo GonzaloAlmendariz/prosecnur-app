@@ -134,15 +134,17 @@ test_that("p_panorama exige referencias calificadas y un corte", {
 })
 
 test_that("base$* toma las preguntas de escala con el corte y deja fuera las que no lo son", {
-  inst <- list(survey = data.frame(name = c("p1", "p2", "sexo"), type = c("select_one lk", "select_one lk", "select_one sx"),
-                                   label = c("Uno", "Dos", "Sexo"), stringsAsFactors = FALSE),
+  # Tres preguntas comparten la lista: una batería (ADR 0135, punto 5).
+  inst <- list(survey = data.frame(name = c("p1", "p2", "p3", "sexo"), type = c("select_one lk", "select_one lk", "select_one lk", "select_one sx"),
+                                   label = c("Uno", "Dos", "Tres", "Sexo"), stringsAsFactors = FALSE),
                choices = data.frame(list_name = c(rep("lk", 5), "sx", "sx"), name = c(1:5, 1:2), label = c("TD", "D", "A", "TA", "SI", "H", "M"),
                                     stringsAsFactors = FALSE))
-  datos <- data.frame(p1 = c("4", "5", "1", "2"), p2 = c("5", "5", "4", "1"), sexo = c("1", "2", "1", "2"), stringsAsFactors = FALSE)
+  datos <- data.frame(p1 = c("4", "5", "1", "2"), p2 = c("5", "5", "4", "1"), p3 = c("1", "1", "1", "4"), sexo = c("1", "2", "1", "2"),
+                      stringsAsFactors = FALSE)
   src <- list(data_sources = list(est = datos), inst_sources = list(est = inst))
   d <- .panorama_datos("est$*", c("4", "5"), src)
-  expect_identical(as.character(d$item), c("p1", "p2"))
-  expect_equal(d$valor, c(50, 75))
+  expect_identical(as.character(d$item), c("p1", "p2", "p3"))
+  expect_equal(d$valor, c(50, 75, 25))
   expect_identical(levels(d$publico), "Est")
 })
 
@@ -236,7 +238,7 @@ test_that("en la ruta real el panorama y la escala del resumen salen como lámin
   inst <- list(survey = data.frame(name = c("a1", "a2"), type = c("select_one lk", "select_one lk"), list_name = c("lk", "lk"),
                                    label = c("Afirmación uno", "Afirmación dos"), stringsAsFactors = FALSE),
                choices = data.frame(list_name = rep("lk", 5), name = as.character(1:5), label = unname(.re_niv), stringsAsFactors = FALSE),
-               orders_list = NULL)
+               orders_list = NULL, listas_ordinales_declaradas = "lk")   # dos preguntas: la escala la declara el estudio
   plan <- list(a = p_slide_1_grafico(grafico = p_barras_divergentes(vars = c("a1", "a2"), incluir_neutro = FALSE, estilo = "resumen"),
                                      titulo = "Escala"),
                b = p_slide_1_grafico(grafico = p_panorama(vars = "default$*", corte = c("3", "4")), titulo = "Panorama"))

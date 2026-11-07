@@ -7,7 +7,7 @@
 # base. Se engancha por convención de nombre (`.render_panorama`), como la ola 4: `reporte_plan_ppt.R` no crece.
 #
 # `base$*` declara todas las preguntas de escala de una base: las `select_one` planas cuya lista tiene los códigos
-# del corte y al menos cuatro opciones (una pregunta de dos opciones con el código 1 no es una escala).
+# del corte, al menos cuatro opciones sustantivas y forma batería o es ordinal declarada (graficos_regla_escala.R).
 
 #' Panorama: todas las preguntas de cada público de un vistazo
 #'
@@ -54,7 +54,7 @@ p_panorama <- function(vars,
 #' opciones SUSTANTIVAS (ADR 0135: «Sin información» no cuenta como un nivel de la escala; lo decide
 #' `.graficos_no_sustantivos`, el único detector). La definición vive en graficos_regla_indicadores.R.
 #' @keywords internal
-.panorama_es_escala <- function(inst, var, codigos) .regla_preguntas_es_escala(inst, var, codigos)
+.panorama_es_escala <- function(inst, var, codigos, baterias = NULL) .regla_preguntas_es_escala(inst, var, codigos, baterias)
 
 #' Expande `base$*` a las preguntas de escala de esa base
 #' @keywords internal
@@ -70,7 +70,8 @@ p_panorama <- function(vars,
     }
     vs <- as.character(inst$survey$name)
     vs <- vs[!is.na(vs) & vs %in% names(datos)]
-    vs <- vs[vapply(vs, function(v) isTRUE(tryCatch(.panorama_es_escala(inst, v, codigos), error = function(e) FALSE)), TRUE)]
+    bat <- .regla_escala_baterias(inst)
+    vs <- vs[vapply(vs, function(v) isTRUE(tryCatch(.panorama_es_escala(inst, v, codigos, bat), error = function(e) FALSE)), TRUE)]
     out <- c(out, paste0(part$source, "$", vs))
   }
   unique(out)

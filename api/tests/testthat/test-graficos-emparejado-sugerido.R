@@ -19,6 +19,7 @@ source("setup-load-all.R")
   ei <- .es_inst(ev, c("Conozco los reglamentos de la unidad", "La biblioteca atiende mis necesidades", "Hay servicios de salud oportunos",
                        "Los docentes dominan la materia"), c("lk", "lk", "lk", "fr"))
   datos <- function(vs) as.data.frame(stats::setNames(lapply(vs, function(v) rep(as.character(1:5), 4)), vs), stringsAsFactors = FALSE)
+  ei$listas_ordinales_declaradas <- "fr"   # e4 es la única de su lista: es escala porque el estudio la declara (ADR 0135, punto 5)
   list(data_sources = list(docentes = datos(dv), estudiantes = datos(ev)), inst_sources = list(docentes = di, estudiantes = ei))
 }
 .es_equiv <- function() list(bases = c("docentes", "estudiantes"), filas = list(
@@ -111,6 +112,8 @@ test_that("HTTP: lee la matriz de la sesión y las dos bases, sin caer en la act
   session_set(sid, "rp_data_sources", src$data_sources)
   session_set(sid, "rp_inst_sources", list(docentes = xl(src$inst_sources$docentes), estudiantes = xl(src$inst_sources$estudiantes)))
   session_set(sid, "equivalencias_publicos", .es_equiv())
+  # La declaración ordinal de `fr` llega desde Analítica por la ruta real (sin ella, e4 no es de escala).
+  session_set(sid, "analitica_config_por_base", list(estudiantes = list(listas_ordinales = list(fr = TRUE))))
   r <- .es_http(sid, '{"bases": ["docentes", "estudiantes"]}')
   expect_identical(r$status, 200L)
   expect_true(isTRUE(r$body$ok))

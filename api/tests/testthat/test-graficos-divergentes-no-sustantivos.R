@@ -12,7 +12,8 @@ source("setup-load-all.R")
   if (!is.null(especial)) ch$especial <- especial
   inst <- list(survey = data.frame(name = names(cnts), type = "select_one lk", list_name = "lk",
                                    label = paste("Afirmación", names(cnts)), stringsAsFactors = FALSE),
-               choices = ch, orders_list = NULL)
+               choices = ch, orders_list = NULL,
+               listas_ordinales_declaradas = "lk")   # una pregunta sola: la escala la declara el estudio (ADR 0135, punto 5)
   list(data_sources = list(b = d), inst_sources = list(b = inst))
 }
 .dns_espec <- function(src, estilo = "resumen", ...) {

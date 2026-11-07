@@ -12,7 +12,7 @@ source("setup-load-all.R")
                choices = data.frame(list_name = c(rep("lk", 6), "sx", "sx"), name = c(lk, "1", "2"),
                                     label = c("Muy en desacuerdo", "En desacuerdo", "Ni uno ni otro", "De acuerdo", "Muy de acuerdo",
                                               "No tengo información suficiente", "Mujer", "Hombre"), stringsAsFactors = FALSE),
-               orders_list = NULL)
+               orders_list = NULL, listas_ordinales_declaradas = "lk")   # dos preguntas: la escala la declara el estudio
   base <- function(a, b) data.frame(q1 = rep(lk, a), q2 = rep(lk, b), sexo = rep(c("1", "2"), length.out = 40), stringsAsFactors = FALSE)
   list(data_sources = list(docentes = base(c(2, 3, 5, 15, 10, 5), c(4, 6, 10, 10, 6, 4)),
                            estudiantes = base(c(5, 5, 10, 10, 8, 2), c(6, 8, 8, 9, 9, 0))),

@@ -8,7 +8,7 @@
 #
 # Universo de candidatas por tipo (ADR 0135, punto 5):
 #   - Panorama, fortalezas y escala del resumen: las preguntas de escala de cada base (`select_one` de diseño independiente con el
-#     corte y al menos cuatro opciones sustantivas).
+#     corte, al menos cuatro opciones sustantivas y una lista de batería o declarada ordinal: graficos_regla_escala.R).
 #   - Contraste entre públicos: los temas que el payload declara (el render no tiene sesión, así que los pares de la
 #     matriz de equivalencias llegan ya escritos en `vars`); un tema con `base$*` en las dos bases toma los pares del
 #     mismo nombre y la misma firma de escala (bases que comparten instrumento).
@@ -28,7 +28,8 @@
   ch <- inst$choices
   ns <- .graficos_no_sustantivos(cods, etq, codigos_lista = cods,
                                  especiales = .graficos_no_sustantivos_especiales_meta(lista, ch),
-                                 sustantivos = .graficos_no_sustantivos_especiales_meta(lista, ch, .NO_SUSTANTIVOS_META_NO))
+                                 sustantivos = .graficos_no_sustantivos_especiales_meta(lista, ch, .NO_SUSTANTIVOS_META_NO),
+                                 residuales = FALSE, salto_max = 2L)   # el mismo detector que la escala divergente
   list(codigos = cods, etiquetas = etq, no_sustantivo = as.logical(ns))
 }
 
@@ -79,16 +80,18 @@
   list(valor = m$valor, n = .dumbbell_casos(datos[[var]], pesos), sin_info = .regla_preguntas_sin_info(datos[[var]], esc, pesos))
 }
 
-#' ¿Pregunta de escala para una lámina de resumen? `select_one` plana con el corte y 4+ opciones sustantivas
+#' ¿Pregunta de escala para una lámina de resumen? `select_one` plana con el corte, 4+ opciones sustantivas y una lista
+#' que forma batería o que el estudio declara ordinal (graficos_regla_escala.R)
+#' @param baterias `.regla_escala_baterias(inst)`, si ya se calculó para la base.
 #' @keywords internal
-.regla_preguntas_es_escala <- function(inst, var, codigos = character(0)) {
+.regla_preguntas_es_escala <- function(inst, var, codigos = character(0), baterias = NULL) {
   sv <- (inst %||% list())$survey
   if (!is.data.frame(sv)) return(FALSE)
   fila <- which(as.character(sv$name) == var)[1]
   if (is.na(fila) || !grepl("^select_one(?:\\s|$)", trimws(as.character(sv$type[[fila]])), perl = TRUE)) return(FALSE)
   if (!identical(.graficos_sig_diseno_de_fuente(inst, var), "independiente")) return(FALSE)
   esc <- .regla_preguntas_escala(inst, var)
-  sum(!esc$no_sustantivo) >= 4L && all(codigos %in% esc$codigos)
+  sum(!esc$no_sustantivo) >= 4L && all(codigos %in% esc$codigos) && .regla_escala_por_lista(inst, var, baterias)
 }
 
 #' Las preguntas de escala de una base (lo que significa `base$*`)
@@ -99,7 +102,8 @@
   if (is.null(inst) || !is.data.frame(inst$survey) || !is.data.frame(datos)) return(NULL)
   vs <- as.character(inst$survey$name)
   vs <- vs[!is.na(vs) & vs %in% names(datos)]
-  vs[vapply(vs, function(v) isTRUE(tryCatch(.regla_preguntas_es_escala(inst, v, codigos), error = function(e) FALSE)), TRUE)]
+  bat <- .regla_escala_baterias(inst)
+  vs[vapply(vs, function(v) isTRUE(tryCatch(.regla_preguntas_es_escala(inst, v, codigos, bat), error = function(e) FALSE)), TRUE)]
 }
 
 #' Datos filtrados de una base (los filtros de la lámina, en modo estricto como el render)
