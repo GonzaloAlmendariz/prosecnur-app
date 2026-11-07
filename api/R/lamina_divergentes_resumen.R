@@ -123,6 +123,12 @@
   .lam_caja(lz, xc - 0.008, y0 - 0.04, 0.016, n * fila + 0.08, azul, nombre = "divergentes:centro")
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:divergentes")
   # ADR 0135: con regla de preguntas, cómo se eligieron va tras la base; sin ella la nota no cambia.
-  doc <- .lam_pie(doc, if (is.null(espec$texto_regla)) base else .lam_unir_base(base, espec$texto_regla), folio)
+  # ADR 0135 §3: el denominador va tras la base («Porcentaje sobre el total de respondientes.»), como en el mazo de Arte.
+  # Un pie que ya dice sobre qué es el porcentaje (escrito por el analista) no se repite.
+  nota <- espec$nota_porcentaje
+  if (!is.null(nota) && grepl("porcentaje sobre", base %||% "", ignore.case = TRUE)) nota <- NULL
+  pie <- if (is.null(espec$texto_regla) && is.null(nota)) base else .lam_unir_base(base, nota, espec$texto_regla)
+  if (!is.null(nota) && is.null(espec$texto_regla)) pie <- paste0(pie, ".")
+  doc <- .lam_pie(doc, pie, folio)
   list(doc = por_lamina(doc), partes = 1L)
 }

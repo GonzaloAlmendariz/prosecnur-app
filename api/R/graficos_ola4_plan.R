@@ -110,9 +110,14 @@ p_barras_divergentes <- function(vars = NULL,
     )
   }
 
+  # ADR 0135 §3: la metadata de la lista (choices$especial sí/no) llega al detector de la escala.
+  lista <- .equiv_lista_de(inst, var)$lista
+  ch <- inst$choices %||% ctx$choices %||% NULL
   list(
     firma = .equiv_firma_escala(inst, var),
-    opciones = .equiv_escala_opciones(inst, var)
+    opciones = .equiv_escala_opciones(inst, var),
+    especiales = .graficos_no_sustantivos_especiales_meta(lista, ch),
+    sustantivos = .graficos_no_sustantivos_especiales_meta(lista, ch, .NO_SUSTANTIVOS_META_NO)
   )
 }
 
@@ -222,6 +227,8 @@ p_barras_divergentes <- function(vars = NULL,
   attr(tab, "ola4_reparto_original") <- reparto_original
   attr(tab, "ola4_firma_e1") <- metodologia$firma %||% NA_character_
   attr(tab, "ola4_opciones_e1") <- metodologia$opciones %||% NULL
+  attr(tab, "ola4_meta_especiales") <- list(especiales = metodologia$especiales %||% character(0),
+                                            sustantivos = metodologia$sustantivos %||% character(0))
   attr(tab, "ola4_excluir_resuelto") <- excluir_ref
   tab
 }
@@ -276,6 +283,8 @@ p_barras_divergentes <- function(vars = NULL,
   firma_escala <- NULL
   opciones_e1 <- NULL
   no_sustantivas <- character(0)
+  meta_ns <- list()
+  hubo_exclusion <- FALSE
 
   for (ref in refs) {
     tab <- .ola4_tabla_opciones(
@@ -286,6 +295,7 @@ p_barras_divergentes <- function(vars = NULL,
       incluir_neutro = incluir_neutro
     )
     escala_ref <- attr(tab, "ola4_escala_original", exact = TRUE)
+    if (isTRUE(attr(tab, "excluded_any", exact = TRUE))) hubo_exclusion <- TRUE
     firma_ref <- attr(tab, "ola4_firma_e1", exact = TRUE)
     if (!length(firma_ref) || is.na(firma_ref[[1]]) || !nzchar(firma_ref[[1]])) {
       firma_ref <- NULL
@@ -311,7 +321,10 @@ p_barras_divergentes <- function(vars = NULL,
       codigos_escala <- if (!is.null(firma_ref) && length(opciones_ref)) {
         vapply(opciones_ref, function(x) as.character(x$codigo)[1], character(1))
       } else NULL
-      no_sustantivas <- escala_original[.divergentes_especiales(escala_original, codigos_escala)]
+      meta_ns <- attr(tab, "ola4_meta_especiales", exact = TRUE) %||% list()
+      no_sustantivas <- escala_original[.divergentes_especiales(escala_original, codigos_escala,
+                                                                especiales = meta_ns$especiales %||% character(0),
+                                                                sustantivos = meta_ns$sustantivos %||% character(0))]
       reparto_original <- .divergentes_reparto(
         setdiff(escala_reparto, no_sustantivas),
         n_negativas,
@@ -443,6 +456,8 @@ p_barras_divergentes <- function(vars = NULL,
     cd <- vapply(opciones_e1, function(x) as.character(x$codigo)[1], character(1))
     out_cod <- stats::setNames(unname(cd[match(niveles, et)]), cols)
     attr(out_cod, "codigos_lista") <- unname(cd)   # el rango de la escala completa, aun con exclusiones
+    attr(out_cod, "especiales") <- meta_ns$especiales %||% character(0)
+    attr(out_cod, "sustantivos") <- meta_ns$sustantivos %||% character(0)
     out_cod
   } else NULL
   list(
@@ -450,7 +465,8 @@ p_barras_divergentes <- function(vars = NULL,
     cols_porcentaje = cols,
     etiquetas_grupos = stats::setNames(niveles, cols),
     codigos_grupos = codigos,
-    reparto = reparto_visible
+    reparto = reparto_visible,
+    hubo_exclusion = hubo_exclusion
   )
 }
 
@@ -514,7 +530,22 @@ p_barras_divergentes <- function(vars = NULL,
   # overrides: hacerlo reintroduciria la reclasificacion por indices visibles.
   args$reparto <- tabla$reparto
   args <- .keep_formals(graficar_barras_divergentes, args, contexto = "graficar_barras_divergentes")
-  .regla_preguntas_en_espec(do.call(graficar_barras_divergentes, args), ap$texto)
+  p <- .regla_preguntas_en_espec(do.call(graficar_barras_divergentes, args), ap$texto)
+  .divergentes_nota_porcentaje(p, isTRUE(tabla$hubo_exclusion))
+}
+
+#' El denominador de la escala del resumen, para su pie (ADR 0135 §3, como el mazo de Arte)
+#'
+#' Sin exclusiones el porcentaje es sobre el total de respondientes (con «Sin información» en su columna); si una
+#' respuesta se excluyó, sobre quienes quedan.
+#' @keywords internal
+.divergentes_nota_porcentaje <- function(p, hubo_exclusion = FALSE) {
+  esp <- attr(p, "pulso_espec", exact = TRUE)
+  if (is.null(esp) || !identical(esp$estilo, "resumen")) return(p)
+  esp$nota_porcentaje <- if (isTRUE(hubo_exclusion)) "Porcentaje sobre quienes respondieron, sin contar las respuestas excluidas."
+                         else "Porcentaje sobre el total de respondientes."
+  attr(p, "pulso_espec") <- esp
+  p
 }
 
 .ola4_fuentes_de_refs <- function(refs, contexto, tema) {

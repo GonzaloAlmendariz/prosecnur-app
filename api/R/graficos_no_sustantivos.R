@@ -51,11 +51,14 @@
 #' `especiales` (los que la metadata declara) se recortan de las PUNTAS de la corrida: un 9 marcado no alarga una escala
 #' 1-8, y un 3 marcado en medio de una 1-5 no la parte en dos (4 y 5 siguen dentro).
 #' @keywords internal
-.graficos_no_sustantivos_rango <- function(codigos, especiales = character(0)) {
+#' `salto_max` es el paso más grande que no corta la corrida: 1 (consecutivos, lo de siempre) o 2 en la escala divergente,
+#' donde una 1, 2, 4, 5 (sin el 3) es una sola escala y no dos corridas (ADR 0135 §3).
+#' @keywords internal
+.graficos_no_sustantivos_rango <- function(codigos, especiales = character(0), salto_max = 1L) {
   v <- suppressWarnings(as.numeric(codigos))
   v <- sort(unique(v[is.finite(v) & v == round(v)]))
   if (length(v) < 2L) return(NULL)
-  corte <- cumsum(c(1L, diff(v) != 1))
+  corte <- cumsum(c(1L, diff(v) > salto_max))
   largo <- tabulate(corte)
   mejor <- which.max(largo)   # empate: la primera (la de códigos menores)
   if (largo[mejor] < 2L) return(NULL)
@@ -69,9 +72,11 @@
 
 #' ¿El rótulo es de no sustantivo? Partes separadas por « / »: basta una (`.graficos_no_sustantivos`, regla c)
 #' @keywords internal
-.graficos_no_sustantivos_rotulo <- function(etiquetas) {
+#' `residuales = FALSE` no cuenta `.CATEGORIAS_RESIDUALES` («Ninguno», «Otro»…): en una escala ordinal «Ninguna confianza»
+#' o «Ninguno» es su extremo, no una no respuesta (revisión metodológica de la oleada 3, ADR 0135 §3).
+.graficos_no_sustantivos_rotulo <- function(etiquetas, residuales = TRUE) {
   casa <- function(e) {
-    grepl(.CATEGORIAS_RESIDUALES, e, ignore.case = TRUE) | grepl(.DIVERGENTES_ESPECIAL, e, ignore.case = TRUE) |
+    (isTRUE(residuales) & grepl(.CATEGORIAS_RESIDUALES, e, ignore.case = TRUE)) | grepl(.DIVERGENTES_ESPECIAL, e, ignore.case = TRUE) |
       grepl(.NO_SUSTANTIVOS_ROTULO_EXTRA, tolower(.box_norm_etiqueta(e)), perl = TRUE)
   }
   vapply(as.character(etiquetas), function(e) {
@@ -102,21 +107,23 @@
 #' @param codigos_lista Todos los códigos de la lista (para el rango); por defecto `codigos`.
 #' @param especiales Códigos que la metadata del instrumento declara especiales (regla a).
 #' @param sustantivos Códigos que la metadata declara de la escala (regla a en «no»): mandan sobre (b) y (c).
+#' @param residuales Si `FALSE`, los rótulos residuales («Ninguno», «Otro») no cuentan (la escala divergente).
+#' @param salto_max Paso más grande dentro del rango de la escala (ver `.graficos_no_sustantivos_rango`).
 #' @return Lógico alineado con `codigos`.
 #' @keywords internal
 .graficos_no_sustantivos <- function(codigos, etiquetas, codigos_lista = codigos, especiales = character(0),
-                                     sustantivos = character(0)) {
+                                     sustantivos = character(0), residuales = TRUE, salto_max = 1L) {
   codigos <- trimws(as.character(codigos)); etiquetas <- trimws(as.character(etiquetas))
   especiales <- trimws(as.character(especiales %||% character(0)))
   meta <- codigos %in% especiales
   meta_no <- codigos %in% setdiff(trimws(as.character(sustantivos %||% character(0))), especiales)
   # Los que la metadata ya declaró no alargan la escala por sus puntas (un 9 marcado especial no alarga una 1-8).
-  rango <- .graficos_no_sustantivos_rango(trimws(as.character(codigos_lista)), especiales)
+  rango <- .graficos_no_sustantivos_rango(trimws(as.character(codigos_lista)), especiales, salto_max = salto_max)
   v <- suppressWarnings(as.numeric(codigos))
   rango <- .graficos_no_sustantivos_recortar_cola(rango, v, etiquetas, sustantivos)
   dentro <- if (is.null(rango)) rep(FALSE, length(codigos)) else (is.finite(v) & v >= rango[1] & v <= rango[2])
   fuera <- if (is.null(rango)) rep(FALSE, length(codigos)) else (is.finite(v) & !dentro)
-  rotulo <- .graficos_no_sustantivos_rotulo(etiquetas)
+  rotulo <- .graficos_no_sustantivos_rotulo(etiquetas, residuales = residuales)
   (meta | fuera | rotulo) & !(dentro & !meta) & !meta_no
 }
 

@@ -6,11 +6,13 @@ source("setup-load-all.R")
 # calculan sobre las opciones sustantivas; la no sustantiva va a su columna. El denominador sigue siendo el total de
 # respondientes (con «Sin información» dentro), como dice el pie del mazo de Arte.
 
-.dns_fuentes <- function(cods, labs, cnts) {
+.dns_fuentes <- function(cods, labs, cnts, especial = NULL) {
   d <- as.data.frame(lapply(cnts, function(cn) rep(cods, cn)), stringsAsFactors = FALSE)
+  ch <- data.frame(list_name = "lk", name = cods, label = labs, stringsAsFactors = FALSE)
+  if (!is.null(especial)) ch$especial <- especial
   inst <- list(survey = data.frame(name = names(cnts), type = "select_one lk", list_name = "lk",
                                    label = paste("Afirmación", names(cnts)), stringsAsFactors = FALSE),
-               choices = data.frame(list_name = "lk", name = cods, label = labs, stringsAsFactors = FALSE), orders_list = NULL)
+               choices = ch, orders_list = NULL)
   list(data_sources = list(b = d), inst_sources = list(b = inst))
 }
 .dns_espec <- function(src, estilo = "resumen", ...) {
@@ -87,4 +89,69 @@ test_that("una escala sin no sustantivos sale como antes: reparto posicional sob
   e <- .dns_espec(src)
   expect_identical(e$categorias$lado, c("neg", "neg", "neu", "pos", "pos"))
   expect_equal(e$total_pos / 10^e$decimales, 63)
+})
+
+# ---- Revisión metodológica de 68f9f0e7c (H1, H2, H3, H5) ----------------------
+
+test_that("H1: en una escala, «Ninguna» o «Ninguno» es su extremo, no Sin información (códigos de texto)", {
+  skip_if_not_installed("ggplot2")
+  src <- .dns_fuentes(c("ninguna", "poca", "algo", "bastante", "mucha"),
+                      c("Ninguna confianza", "Poca confianza", "Algo de confianza", "Bastante confianza", "Mucha confianza"),
+                      list(a = c(10, 5, 5, 10, 10)))
+  e <- .dns_espec(src)
+  expect_identical(e$categorias$lado, c("neg", "neg", "neu", "pos", "pos"))
+  expect_equal(e$total_pos / 10^e$decimales, 50)
+  src2 <- .dns_fuentes(c("ninguno", "pocos", "algunos", "todos"), c("Ninguno", "Pocos", "Algunos", "Todos"), list(a = c(4, 4, 6, 6)))
+  expect_identical(.dns_espec(src2)$categorias$lado, c("neg", "neg", "pos", "pos"))
+  expect_false(any(.divergentes_especiales(c("Ninguno", "Uno", "Dos o tres", "Más de tres"))))
+  # La regla no elige por «Sin información» una pregunta que no la tiene.
+  el <- p_barras_divergentes(vars = "b$*", orden = "declarado", regla = list(tipo = "mayor_sin_info", n = 1))
+  ind <- .regla_preguntas_indicadores(el, src)$indicadores
+  expect_equal(ind$sin_info, 0)
+})
+
+test_that("H2: una escala con hueco (1, 2, 4, 5) es una sola escala: dos niveles por lado", {
+  skip_if_not_installed("ggplot2")
+  expect_false(any(.divergentes_especiales(c("a", "b", "d", "e"), c("1", "2", "4", "5"))))
+  src <- .dns_fuentes(c("1", "2", "4", "5"), c("Muy en desacuerdo", "En desacuerdo", "De acuerdo", "Muy de acuerdo"),
+                      list(a = c(5, 5, 10, 10)))
+  e <- .dns_espec(src)
+  expect_identical(e$categorias$lado, c("neg", "neg", "pos", "pos"))
+  # Con un 9 detrás del hueco, el 9 sigue fuera.
+  expect_identical(.divergentes_especiales(c("a", "b", "d", "e", "x"), c("1", "2", "4", "5", "9")), c(rep(FALSE, 4), TRUE))
+})
+
+test_that("H3: la metadata de la lista manda (choices$especial)", {
+  skip_if_not_installed("ggplot2")
+  cods <- c("1", "2", "3", "4", "5", "9")
+  # El 9 declarado de la escala («no»): es un nivel más, no Sin información.
+  src <- .dns_fuentes(cods, c(.dns_lik5, "No tengo información suficiente"), list(a = c(2, 3, 5, 10, 10, 10)),
+                      especial = c("no", "no", "no", "no", "no", "no"))
+  expect_false("sin_inf" %in% .dns_espec(src)$categorias$lado)
+  # Un 3 declarado especial dentro del rango sale de los lados.
+  src2 <- .dns_fuentes(cods, c(.dns_lik5, "No tengo información suficiente"), list(a = c(2, 3, 5, 10, 10, 10)),
+                       especial = c("", "", "si", "", "", ""))
+  expect_identical(.dns_espec(src2)$categorias$lado, c("neg", "neg", "sin_inf", "pos", "pos", "sin_inf"))
+  expect_identical(.divergentes_especiales(c(.dns_lik5, "x"), cods, sustantivos = "9"), rep(FALSE, 6))
+})
+
+test_that("H5: el pie de la escala del resumen dice sobre qué es el porcentaje", {
+  skip_if_not_installed("officer"); skip_if_not_installed("ggplot2")
+  src <- .dns_fuentes(c("1", "2", "3", "4", "5", "9"), c(.dns_lik5, "No tengo información suficiente"),
+                      list(a = c(2, 3, 5, 10, 10, 10)))
+  pie_de <- function(el) {
+    expect_true(!is.null(.dns_espec(src)))
+    out <- tempfile(fileext = ".pptx"); on.exit(unlink(out), add = TRUE)
+    plan <- p_plan(slides = list(p_slide_1_grafico(el, titulo = "Escala")))
+    suppressMessages(suppressWarnings(reporte_ppt_plan(data = src$data_sources, instrumento = src$inst_sources, plan = plan,
+                                                       path_ppt = out, mensajes_progreso = FALSE)))
+    x <- xml2::read_xml(unz(out, "ppt/slides/slide1.xml"))
+    sp <- xml2::xml_find_all(x, "//p:sp[p:nvSpPr/p:cNvPr[@name='Base lamina']]")
+    paste(xml2::xml_text(sp), collapse = " ")
+  }
+  expect_match(pie_de(p_barras_divergentes(vars = "b$a", estilo = "resumen")), "^Base: 40 b\\. Porcentaje sobre el total de respondientes\\.$")
+  expect_match(pie_de(p_barras_divergentes(vars = "b$a", estilo = "resumen", excluir_opciones = "9")),
+               "Porcentaje sobre quienes respondieron, sin contar las respuestas excluidas.", fixed = TRUE)
+  expect_identical(.dns_espec(src)$nota_porcentaje, "Porcentaje sobre el total de respondientes.")
+  expect_null(.dns_espec(src, estilo = "recetario")$nota_porcentaje)
 })

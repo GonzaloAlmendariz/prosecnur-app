@@ -12,22 +12,29 @@
 
 #' ¿Qué opciones de la escala no son sustantivas? Un solo detector para la escala (ADR 0135 §3)
 #'
-#' La regla de siempre de la lámina 71 (`.DIVERGENTES_ESPECIAL` o un código 90-99) más `.graficos_no_sustantivos`: un
-#' código fuera del rango de la escala (el 9 «No tengo información suficiente» de una 1-5) o un rótulo de no respuesta.
-#' La usan la tabla del render (para fijar el reparto y el punto medio sobre las opciones sustantivas) y la
-#' especificación (para sacarlas de los lados), así que no pueden discrepar.
+#' La regla de siempre de la lámina 71 (`.DIVERGENTES_ESPECIAL` o un código 90-99) más `.graficos_no_sustantivos` con la
+#' metadata de la lista (`choices$especial` sí/no manda), un código fuera del rango de la escala (el 9 «No tengo
+#' información suficiente» de una 1-5) o un rótulo de no respuesta («no tengo información», «no aplica», «ns/nr»). No
+#' cuentan los rótulos residuales («Ninguno», «Otro»): en una escala ordinal «Ninguna confianza» es su extremo. El rango
+#' admite un hueco de un código (1, 2, 4, 5 es una escala). La usan la tabla del render (reparto y punto medio sobre las
+#' sustantivas) y la especificación (fuera de los lados), así que no pueden discrepar.
 #' @param rotulos Rótulos de las opciones.
 #' @param codigos Códigos alineados con `rotulos` (o `NULL`/`NA`: decide el rótulo).
 #' @param codigos_lista Todos los códigos de la escala, para el rango; por defecto los de `codigos`.
+#' @param especiales,sustantivos Códigos que la metadata de la lista declara especiales o de la escala.
 #' @return Lógico alineado con `rotulos`.
 #' @keywords internal
-.divergentes_especiales <- function(rotulos, codigos = NULL, codigos_lista = NULL) {
+.divergentes_especiales <- function(rotulos, codigos = NULL, codigos_lista = NULL, especiales = character(0),
+                                    sustantivos = character(0)) {
   rot <- trimws(as.character(rotulos)); rot[is.na(rot)] <- ""
   cod <- if (is.null(codigos)) rep(NA_character_, length(rot)) else trimws(as.character(codigos))
   hay <- !is.na(cod) & nzchar(cod)
-  previo <- grepl(.DIVERGENTES_ESPECIAL, rot, ignore.case = TRUE) | (hay & grepl("^9[0-9]$", cod))
+  meta_no <- hay & cod %in% setdiff(trimws(as.character(sustantivos %||% character(0))), trimws(as.character(especiales %||% character(0))))
+  previo <- (grepl(.DIVERGENTES_ESPECIAL, rot, ignore.case = TRUE) | (hay & grepl("^9[0-9]$", cod))) & !meta_no
   lista <- if (length(codigos_lista)) trimws(as.character(codigos_lista)) else cod[hay]
-  ns <- .graficos_no_sustantivos(ifelse(hay, cod, rot), rot, codigos_lista = lista[!is.na(lista) & nzchar(lista)])
+  ns <- .graficos_no_sustantivos(ifelse(hay, cod, rot), rot, codigos_lista = lista[!is.na(lista) & nzchar(lista)],
+                                 especiales = especiales %||% character(0), sustantivos = sustantivos %||% character(0),
+                                 residuales = FALSE, salto_max = 2L)
   previo | ns
 }
 
@@ -49,7 +56,9 @@
   # `codigos_lista`, la pone `.ola4_tabla_escala`) fija el rango aunque una opción del medio se haya excluido.
   cod <- if (!is.null(codigos)) unname(as.character(codigos[cols_porcentaje])) else cols_porcentaje
   cod[is.na(cod)] <- cols_porcentaje[is.na(cod)]
-  especial <- .divergentes_especiales(rot, cod, attr(codigos, "codigos_lista", exact = TRUE))
+  especial <- .divergentes_especiales(rot, cod, attr(codigos, "codigos_lista", exact = TRUE),
+                                      especiales = attr(codigos, "especiales", exact = TRUE) %||% character(0),
+                                      sustantivos = attr(codigos, "sustantivos", exact = TRUE) %||% character(0))
   normales <- cols_porcentaje[!especial]
   # El reparto posicional cuenta la especial como un nivel más: si cayó en un lado, se rehace sin ella.
   # Si el reparto lo declaró la escala, sólo se saca la especial de su lado.
