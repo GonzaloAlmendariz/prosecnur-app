@@ -20,15 +20,15 @@ Decisiones de Gonzalo al empezar (2026-11-07):
 | # | Indicación | Dónde vive | Estado |
 |---|---|---|---|
 | 1 | Función pura de selección por regla (todas las de escala, N de mayor diferencia, distancia o Sin información, umbral bajo X, comunes entre públicos), con el texto de la regla para la nota | `api/R/graficos_regla_preguntas.R`, `graficos_regla_indicadores.R`, `POST /api/graficos/resumenes/regla` (8aed0ca4d) | Hecho en motor; falta verlo en la UI |
-| 2 | Lámina de resumen Fortalezas y alertas: especificación pura, lámina nativa, test | `p_fortalezas`, `fortalezas/1` | En curso |
-| 3 | Lámina de resumen Cobertura y participación: padrón y meta desde Cálculo de muestra o Monitoreo cuando exista | `p_cobertura`, `.graficos_padron_por_base` | En curso |
-| 4 | Lámina de resumen Cierre con hallazgos: toma cifras de otras láminas, no recalcula | motor, por definir | Pendiente |
+| 2 | Lámina de resumen Fortalezas y alertas: especificación pura, lámina nativa, test | `p_fortalezas` (01caf81bf, 712d6e45d), render revisado | Hecho en motor; falta verlo en la UI |
+| 3 | Lámina de resumen Cobertura y participación: padrón y meta desde Cálculo de muestra o Monitoreo cuando exista | `p_cobertura`, `.graficos_padron_por_base`, `GET /api/graficos/resumenes/padron` (4fafa0817), render revisado contra Arte p. 2 | Hecho en motor; falta verlo en la UI |
+| 4 | Lámina de resumen Cierre con hallazgos: toma cifras de otras láminas, no recalcula | `p_slide_cierre_hallazgos` (referencia viva) | En curso |
 | 5 | Lámina de Tendencia | Fuera de este encargo (decisión 3) | Fuera |
 | 6 | Títulos sugeridos | No se hacen (decisión 2) | Fuera |
 | 7 | Selector por intención con miniaturas y la clase de cada tipo; «Ver por tipo de gráfico» como entrada secundaria | `laminas/selectores/intencionesContar.ts` (acdb1f589) | Hecho; falta QA visual |
 | 8 | Inspector uniforme Datos, Cálculo, Aspecto: primero los del resumen, luego los de uso general; cada control con rótulo y «?» | `DatosGrafico.tsx`, `gruposTarjeta.ts` (e7cc5e4fe); quedan ayudas por pasar al «?» | Hecho en parte; falta QA visual |
-| 9 | Control de regla con conteo en vivo y ajuste a mano de la lista | `laminas/reglaPreguntas/` | En curso |
-| 10 | Grupos internos hasta cuatro, con padrón e interruptor de padrón confiable | Gráficos, por definir | Pendiente |
+| 9 | Control de regla con conteo en vivo y ajuste a mano de la lista | `laminas/reglaPreguntas/` (703a4a64a) | Hecho; falta QA interactiva |
+| 10 | Grupos internos hasta cuatro, con padrón e interruptor de padrón confiable | `laminas/gruposPadron/`, arg `universos_no_confiables` | En curso |
 | 11 | Revisión del emparejado entre públicos: matriz de equivalencias, sugerido por texto para confirmar, sin par | Gráficos, ADR 0135 §7 (enmienda 0104) | Pendiente |
 | 12 | Mazo «Resumen ejecutivo»: propone las láminas en orden con sus reglas; aceptar, editar o quitar | Gráficos, por definir | Pendiente |
 | 13 | Mejoras a la maqueta que aparezcan al construir, dichas a Gonzalo; si cambia, publicar y regenerar la copia local | Maqueta `graficos-sintesis` | Pendiente |
@@ -37,6 +37,8 @@ Decisiones de Gonzalo al empezar (2026-11-07):
 | 16 | `make gate-area`, `make gate-front AREA=graficos`, agente verificador | QA | Pendiente |
 
 Aprendido:
+
+- La escala pintaba «No tengo información suficiente» con código 9 como el verde más oscuro (acuerdo): sólo reconocía como especial los códigos 90 a 99. Se unifica el detector con `.graficos_no_sustantivos` (ADR 0135 §3), también en la lámina 71.
 
 - La rama base `claude/vigilant-poitras-f29198` nació el 2026-10-28 y estaba 2046 commits detrás de `main`. Se integró
   `main` en `claude/estudio-laminas-sintesis`. El número 0114 ya estaba tomado en `main`, así que el ADR del resumen
