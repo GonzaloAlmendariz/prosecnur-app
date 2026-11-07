@@ -424,3 +424,15 @@ test_that("el endpoint queda montado en la app", {
   src <- paste(readLines(test_path("..", "..", "R", "plumber_app.R"), warn = FALSE), collapse = "\n")
   expect_match(src, "mount_graficos_regla(pr)", fixed = TRUE)
 })
+
+test_that("la regla entre grupos sin grupos lo dice bien, y sin fuentes el conteo responde el 409 de Gráficos", {
+  m <- tryCatch(.regla_preguntas_evaluar(data.frame(), list(tipo = "comunes")), api_error = function(e) conditionMessage(e))
+  expect_match(m, "La regla «comunes» compara públicos y la lámina no tiene públicos.", fixed = TRUE)
+  m1 <- tryCatch(.regla_preguntas_evaluar(.rp_ind()[.rp_ind()$grupo == "doc", ], list(tipo = "comunes"), grupos_unidad = "grupos"),
+                 api_error = function(e) conditionMessage(e))
+  expect_match(m1, "La regla «comunes» compara grupos y la lámina tiene uno solo.", fixed = TRUE)
+  vacias <- list(data_sources = list(), inst_sources = list())
+  e <- tryCatch(.regla_preguntas_conteo("p_panorama", list(vars = list("docentes$*"), corte = list("4"), regla = list(tipo = "comunes")), vacias),
+                api_error = function(e) e)
+  expect_identical(e$code, "E_NO_VALID_RP_DATA"); expect_identical(as.integer(e$status), 409L)
+})

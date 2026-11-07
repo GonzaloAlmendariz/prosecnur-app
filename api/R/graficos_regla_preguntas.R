@@ -201,7 +201,8 @@
   k <- length(grupos)
   entre <- regla$tipo %in% .REGLA_PREGUNTAS_ENTRE_GRUPOS
   if (entre && k < 2L) {
-    .regla_preguntas_falla(sprintf("La regla «%s» compara grupos y la lámina tiene %s.", regla$tipo, if (k == 1L) "uno solo" else "ninguno"),
+    .regla_preguntas_falla(if (k == 1L) sprintf("La regla «%s» compara %s y la lámina tiene uno solo.", regla$tipo, grupos_unidad)
+                           else sprintf("La regla «%s» compara %s y la lámina no tiene %s.", regla$tipo, grupos_unidad, grupos_unidad),
                            list(tipo = regla$tipo))
   }
   val <- suppressWarnings(as.numeric(ind$valor)); si <- suppressWarnings(as.numeric(ind$sin_info))
@@ -364,6 +365,10 @@
   graficador <- trimws(as.character(graficador %||% "")[1])
   if (is.na(graficador) || !graficador %in% c("p_panorama", "p_dumbbell", "p_barras_divergentes", "p_fortalezas")) {
     .regla_preguntas_falla(sprintf("El gráfico «%s» no elige sus preguntas con una regla.", graficador %||% ""))
+  }
+  # Sin fuentes del estudio no hay nada que contar: es el 409 de siempre de Gráficos, no una regla inválida.
+  if (!.graficos_sources_usable(sources$data_sources %||% list(), sources$inst_sources %||% list())) {
+    stop_api(409, "E_NO_VALID_RP_DATA", "La fuente procesada para Gráficos no está disponible o quedó incompleta.")
   }
   args <- as.list(args %||% list())
   el <- .rebuild_graf(list(graficador = graficador, args = args))
