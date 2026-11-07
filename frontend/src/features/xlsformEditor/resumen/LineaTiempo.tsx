@@ -3,10 +3,17 @@
 // distingan. Cada tramo dice su sección y sus minutos al pasar el puntero o al enfocarlo; el clic resalta su fila en
 // la tabla de secciones y la trae a la vista, sin salir de «Resumen» (ítem 50).
 
+import { useEffect, useRef, useState } from "react";
 import { duracion, marcasDeMinutos, rotuloMinutos, type FilaSeccion } from "./modeloResumen";
 
-/** Un tramo más angosto que esta parte del total no lleva rótulo: «S2: …» montado sobre el vecino no se lee (S14). */
-const ANCHO_CON_ROTULO = 0.06;
+/**
+ * ¿Entra el rótulo completo en el tramo? Un rótulo cortado («A1_b…», «Sección …») no se lee (2026-11-06): se muestra sólo
+ * si cabe entero, medido contra el ancho real de la barra; si no, queda en el título emergente. ~6,6 px por carácter
+ * del rótulo a 11,5 px y 14 px de relleno.
+ */
+export function rotuloCabe(fraccion: number, anchoBarra: number, rotulo: string): boolean {
+  return anchoBarra > 0 && fraccion * anchoBarra >= rotulo.length * 6.6 + 14;
+}
 
 export function LineaTiempo({ filas, segundos, resaltada, onResaltar }: {
   filas: readonly FilaSeccion[];
@@ -16,15 +23,23 @@ export function LineaTiempo({ filas, segundos, resaltada, onResaltar }: {
   onResaltar: (fila: FilaSeccion) => void;
 }) {
   const tramos = filas.filter((f) => f.segundos > 0);
+  const barra = useRef<HTMLOListElement | null>(null);
+  const [ancho, setAncho] = useState(0);
+  useEffect(() => {
+    const el = barra.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(([e]) => setAncho(e?.contentRect.width ?? 0));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [tramos.length > 0]); // la barra no existe mientras no hay tramos
   const marcas = marcasDeMinutos(segundos);
   if (tramos.length === 0 || segundos <= 0) return null;
   return (
     <section className="pulso-xf-res-tiempo" aria-labelledby="xf-res-tiempo-titulo" data-qa-geometry-member="">
       <header className="pulso-xf-res-tiempo-cabeza">
-        <h3 id="xf-res-tiempo-titulo">Recorrido en el tiempo</h3>
-        <span>Cada tramo es una sección, del inicio al final del cuestionario</span>
+        <h3 id="xf-res-tiempo-titulo">Duración por sección</h3>
       </header>
-      <ol className="pulso-xf-res-tiempo-barra" data-qa-geometry-group="xlsform/resumen-recorrido" data-qa-geometry-contract="intrinsic">
+      <ol ref={barra} className="pulso-xf-res-tiempo-barra" data-qa-geometry-group="xlsform/resumen-recorrido" data-qa-geometry-contract="intrinsic">
         {tramos.map((f, i) => {
           const texto = `${f.rotulo}, ${duracion(f.segundos)}`;
           return (
@@ -37,7 +52,7 @@ export function LineaTiempo({ filas, segundos, resaltada, onResaltar }: {
                 aria-pressed={resaltada === f.id}
                 onClick={() => onResaltar(f)}
               >
-                {f.segundos / segundos >= ANCHO_CON_ROTULO ? <span>{f.rotulo}</span> : null}
+                {rotuloCabe(f.segundos / segundos, ancho, f.rotulo) ? <span>{f.rotulo}</span> : null}
               </button>
             </li>
           );
