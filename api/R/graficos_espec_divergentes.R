@@ -12,15 +12,14 @@
 
 #' ¿Qué opciones de la escala no son sustantivas? Un solo detector para la escala (ADR 0135 §3)
 #'
-#' La regla de siempre de la lámina 71 (`.DIVERGENTES_ESPECIAL` o un código 90-99) más `.graficos_no_sustantivos` con la
-#' metadata de la lista (`choices$especial` sí/no manda), un código fuera del rango de la escala (el 9 «No tengo
-#' información suficiente» de una 1-5) o un rótulo de no respuesta («no tengo información», «no aplica», «ns/nr»). No
-#' cuentan los rótulos residuales («Ninguno», «Otro»): en una escala ordinal «Ninguna confianza» es su extremo. El rango
-#' admite un hueco de un código (1, 2, 4, 5 es una escala). La usan la tabla del render (reparto y punto medio sobre las
-#' sustantivas) y la especificación (fuera de los lados), así que no pueden discrepar.
+#' `.graficos_no_sustantivos_escala`: la metadata de la lista (`choices$especial` sí/no manda), un código 90-99 o un
+#' rótulo de no respuesta en cualquier punta («Prefiero no responder», «No tengo información suficiente», «Ninguna de
+#' las anteriores», «Otro»). El rango de códigos no decide: una escala 1, 3, 5, 7, 9 es entera. «Ninguna confianza» o
+#' «Ninguno» como nivel siguen en la escala. La usan la tabla del render (reparto y punto medio sobre las sustantivas) y
+#' la especificación (fuera de los lados), así que no pueden discrepar.
 #' @param rotulos Rótulos de las opciones.
 #' @param codigos Códigos alineados con `rotulos` (o `NULL`/`NA`: decide el rótulo).
-#' @param codigos_lista Todos los códigos de la escala, para el rango; por defecto los de `codigos`.
+#' @param codigos_lista Se acepta por compatibilidad; ya no decide.
 #' @param especiales,sustantivos Códigos que la metadata de la lista declara especiales o de la escala.
 #' @return Lógico alineado con `rotulos`.
 #' @keywords internal
@@ -29,13 +28,8 @@
   rot <- trimws(as.character(rotulos)); rot[is.na(rot)] <- ""
   cod <- if (is.null(codigos)) rep(NA_character_, length(rot)) else trimws(as.character(codigos))
   hay <- !is.na(cod) & nzchar(cod)
-  meta_no <- hay & cod %in% setdiff(trimws(as.character(sustantivos %||% character(0))), trimws(as.character(especiales %||% character(0))))
-  previo <- (grepl(.DIVERGENTES_ESPECIAL, rot, ignore.case = TRUE) | (hay & grepl("^9[0-9]$", cod))) & !meta_no
-  lista <- if (length(codigos_lista)) trimws(as.character(codigos_lista)) else cod[hay]
-  ns <- .graficos_no_sustantivos(ifelse(hay, cod, rot), rot, codigos_lista = lista[!is.na(lista) & nzchar(lista)],
-                                 especiales = especiales %||% character(0), sustantivos = sustantivos %||% character(0),
-                                 residuales = FALSE, salto_max = 2L)
-  previo | ns
+  # `codigos_lista` ya no decide: el rango de códigos no dice qué es escala (graficos_no_sustantivos.R).
+  .graficos_no_sustantivos_escala(ifelse(hay, cod, ""), rot, especiales = especiales, sustantivos = sustantivos)
 }
 
 #' Especificación de unas barras divergentes

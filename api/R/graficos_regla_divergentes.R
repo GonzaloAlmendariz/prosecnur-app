@@ -90,7 +90,7 @@
   args <- utils::modifyList(as.list(base_preset %||% list()), as.list(el$overrides %||% list()))
   dec <- suppressWarnings(as.integer(args$valores_decimales %||% 0L)[1]); if (!is.finite(dec) || dec < 0L) dec <- 0L
   list(excluir = .reporte_plan_excluir_cascada(base_preset, el$overrides %||% list(), el),
-       n_negativas = args$n_negativas %||% 2L, incluir_neutro = args$incluir_neutro %||% TRUE,
+       n_negativas = args$n_negativas, incluir_neutro = args$incluir_neutro %||% TRUE,
        direccion = args$direccion_escala %||% "negativo_positivo", decimales = dec)
 }
 

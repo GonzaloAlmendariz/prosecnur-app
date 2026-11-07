@@ -31,6 +31,19 @@
 # Con `residuales = FALSE` (la escala divergente) «Ninguno/Ninguna» es el extremo de la escala, pero «Otro» sigue siendo
 # residual: cuenta por rótulo y, contiguo a la escala por arriba, se recorta de su punta como una no respuesta.
 .NO_SUSTANTIVOS_RESIDUALES_ESCALA <- "^(Otro|Otros|Otra|Otras|No sabe|Prefiero no)\\b"
+# La ESCALA (barra divergente y regla de las láminas de resumen) no decide por el rango de códigos: una escala de dos
+# en dos (1, 3, 5, 7, 9) o con un 0 «Prefiero no responder» delante rompía cualquier heurística de corrida (tercera
+# revisión metodológica de 31db92ae2). Un código es no sustantivo de la escala SÓLO si (a) la lista lo declara, (b) es
+# 90-99 o (c) su rótulo es de no respuesta, en cualquier punta. «Ninguno/Ninguna» como nivel y «Ninguna confianza»
+# siguen en la escala; «Ninguna de las anteriores» no. Un rótulo de no respuesta que esta lista no conozca queda como
+# nivel: la salida es declararlo en `choices$especial`. Se compara en minúsculas y sin tildes (`.box_norm_etiqueta`).
+.NO_SUSTANTIVOS_ROTULO_ESCALA <- paste0("^(", paste(c(
+  "prefiero no (responder|decir|contestar)", "no precisa", "sin opini", "no tiene opini", "no opina", "no contesta",
+  "no responde", "no (quiere|desea) (responder|contestar)", "rechaz", "ns ?/ ?n[rcos]", "no se\\b", "no lo se\\b",
+  "no sabe\\b", "no sabria", "no sabia", "desconoc", "no conoc", "no tengo informaci", "sin informaci", "sin inf\\b",
+  "no aplica", "no corresponde", "no recuerda", "no uso", "no utilic",
+  "no he (acudido|asistido|usado|utilizado|ido|participado|tenido)",
+  "ningun[oa] de (los|las) (anteriores|opciones)", "otr[oa]s?$", "otro\\b"), collapse = "|"), ")")
 .NO_SUSTANTIVOS_COLS_META <- c("especial", "no_sustantivo", "valor_especial", "special", "es_especial")
 .NO_SUSTANTIVOS_META_SI <- c("1", "true", "t", "si", "sí", "yes", "x", "especial")
 .NO_SUSTANTIVOS_META_NO <- c("0", "false", "f", "no", "n")
@@ -210,3 +223,26 @@
 #' misma barra (CCSS Perfil 2026, ccss-mazo, ronda R6). Decisión del loop, para revisión de Gonzalo.
 #' @keywords internal
 .graficos_no_sustantivo_color <- function() .std_color("texto_tenue")
+
+#' ¿Qué opciones de una ESCALA no son sustantivas? (barra divergente y regla de las láminas de resumen)
+#'
+#' Sin rango de códigos: (a) la metadata de la lista (`especiales`; `sustantivos` manda sobre todo), (b) códigos 90-99,
+#' (c) rótulo de no respuesta (`.NO_SUSTANTIVOS_ROTULO_ESCALA`); un rótulo compuesto con « / » cuenta si alguna parte casa.
+#' @param codigos Códigos (o rótulos, si no hay código) alineados con `etiquetas`.
+#' @return Lógico alineado con `codigos`.
+#' @keywords internal
+.graficos_no_sustantivos_escala <- function(codigos, etiquetas, especiales = character(0), sustantivos = character(0)) {
+  codigos <- trimws(as.character(codigos)); codigos[is.na(codigos)] <- ""
+  etiquetas <- trimws(as.character(etiquetas))
+  especiales <- trimws(as.character(especiales %||% character(0)))
+  meta <- nzchar(codigos) & codigos %in% especiales
+  meta_no <- nzchar(codigos) & codigos %in% setdiff(trimws(as.character(sustantivos %||% character(0))), especiales)
+  cod9x <- grepl("^9[0-9]$", codigos)
+  rotulo <- vapply(etiquetas, function(e) {
+    if (is.na(e) || !nzchar(e)) return(FALSE)
+    partes <- trimws(strsplit(e, "\\s+/\\s+", perl = TRUE)[[1]])
+    norm <- tolower(.box_norm_etiqueta(c(e, partes[nzchar(partes)])))
+    any(grepl(.NO_SUSTANTIVOS_ROTULO_ESCALA, norm, perl = TRUE))
+  }, logical(1), USE.NAMES = FALSE)
+  (meta | cod9x | rotulo) & !meta_no
+}

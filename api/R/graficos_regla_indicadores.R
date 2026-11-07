@@ -26,10 +26,8 @@
   if (!length(cods)) return(list(codigos = character(0), etiquetas = character(0), no_sustantivo = logical(0)))
   lista <- .equiv_lista_de(inst, var)$lista
   ch <- inst$choices
-  ns <- .graficos_no_sustantivos(cods, etq, codigos_lista = cods,
-                                 especiales = .graficos_no_sustantivos_especiales_meta(lista, ch),
-                                 sustantivos = .graficos_no_sustantivos_especiales_meta(lista, ch, .NO_SUSTANTIVOS_META_NO),
-                                 residuales = FALSE, salto_max = 2L)   # el mismo detector que la escala divergente
+  ns <- .graficos_no_sustantivos_escala(cods, etq, especiales = .graficos_no_sustantivos_especiales_meta(lista, ch),
+                                        sustantivos = .graficos_no_sustantivos_especiales_meta(lista, ch, .NO_SUSTANTIVOS_META_NO))   # el detector de la escala divergente
   list(codigos = cods, etiquetas = etq, no_sustantivo = as.logical(ns))
 }
 

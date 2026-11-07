@@ -18,12 +18,13 @@
 #'
 #' @param vars Preguntas que comparten escala; cada una es una barra.
 #' @param n_negativas Niveles que van a la izquierda del cero, contados desde el
-#'   primero de la escala.
+#'   primero de la escala. `NULL`: la mitad de las opciones sustantivas, con neutro si son impares
+#'   (4 y 5 puntos: 2; 3: 1; 7: 3; 11: 5).
 #' @param regla Cómo se eligen las preguntas entre las de `vars` (ADR 0135); sólo en el estilo resumen.
 #' @export
 p_barras_divergentes <- function(vars = NULL,
                                  var = NULL,
-                                 n_negativas = 2L,
+                                 n_negativas = NULL,
                                  incluir_neutro = TRUE,
                                  mostrar_saldo = TRUE,
                                  titulo = NULL,
@@ -45,7 +46,8 @@ p_barras_divergentes <- function(vars = NULL,
   if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
 
   ov <- overrides
-  ov$n_negativas <- suppressWarnings(as.integer(n_negativas)[1])
+  # Sin declarar, la tabla de la escala parte las sustantivas por la mitad (`.ola4_n_negativas`).
+  if (!is.null(n_negativas)) ov$n_negativas <- suppressWarnings(as.integer(n_negativas)[1])
   ov$incluir_neutro <- isTRUE(incluir_neutro)
   ov$mostrar_saldo <- isTRUE(mostrar_saldo)
   ov$umbral_etiqueta_pct <- suppressWarnings(as.numeric(umbral_etiqueta_pct)[1])
@@ -270,8 +272,15 @@ p_barras_divergentes <- function(vars = NULL,
   )
 }
 
+#' Niveles del lado negativo: los declarados o, sin declarar, la mitad (piso) de las opciones sustantivas
+#' @keywords internal
+.ola4_n_negativas <- function(n_negativas, k_sustantivas) {
+  if (!is.null(n_negativas) && length(n_negativas) && !is.na(suppressWarnings(as.integer(n_negativas)[1]))) return(n_negativas)
+  as.integer(k_sustantivas) %/% 2L
+}
+
 .ola4_tabla_escala <- function(refs, filtros, excluir_opciones = NULL,
-                               n_negativas = 2L,
+                               n_negativas = NULL,
                                incluir_neutro = TRUE,
                                direccion_escala = c("negativo_positivo", "positivo_negativo")) {
   direccion_escala <- match.arg(direccion_escala)
@@ -291,7 +300,7 @@ p_barras_divergentes <- function(vars = NULL,
       ref,
       filtros,
       excluir_opciones,
-      n_negativas = n_negativas,
+      n_negativas = NULL,   # el reparto se fija abajo, sobre las sustantivas
       incluir_neutro = incluir_neutro
     )
     escala_ref <- attr(tab, "ola4_escala_original", exact = TRUE)
@@ -325,9 +334,10 @@ p_barras_divergentes <- function(vars = NULL,
       no_sustantivas <- escala_original[.divergentes_especiales(escala_original, codigos_escala,
                                                                 especiales = meta_ns$especiales %||% character(0),
                                                                 sustantivos = meta_ns$sustantivos %||% character(0))]
+      sustantivas <- setdiff(escala_reparto, no_sustantivas)
       reparto_original <- .divergentes_reparto(
-        setdiff(escala_reparto, no_sustantivas),
-        n_negativas,
+        sustantivas,
+        .ola4_n_negativas(n_negativas, length(sustantivas)),
         incluir_neutro
       )
       ref_escala <- as.character(ref)[1]
@@ -503,7 +513,7 @@ p_barras_divergentes <- function(vars = NULL,
     el$vars,
     el$filtros %||% list(),
     excluir_opciones = excluir_opciones,
-    n_negativas = args_usuario$n_negativas %||% 2L,
+    n_negativas = args_usuario$n_negativas,
     incluir_neutro = args_usuario$incluir_neutro %||% TRUE,
     direccion_escala = args_usuario$direccion_escala %||% "negativo_positivo"
   )

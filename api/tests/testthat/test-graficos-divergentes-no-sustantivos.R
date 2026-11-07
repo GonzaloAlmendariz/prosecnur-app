@@ -25,12 +25,12 @@ source("setup-load-all.R")
 }
 .dns_lik5 <- c("Muy en desacuerdo", "En desacuerdo", "Ni uno ni otro", "De acuerdo", "Muy de acuerdo")
 
-test_that("el detector: código fuera de la escala, 90-99 y rótulo de no respuesta; dentro del rango nunca", {
+test_that("el detector: metadata, 90-99 y rótulo de no respuesta; el rango de códigos no decide", {
   cods <- c("1", "2", "3", "4", "5", "9")
   expect_identical(.divergentes_especiales(c(.dns_lik5, "No tengo información suficiente"), cods),
                    c(rep(FALSE, 5), TRUE))
-  # El 9 con un rótulo cualquiera: fuera del rango 1-5.
-  expect_identical(.divergentes_especiales(c(.dns_lik5, "Otra cosa"), cods), c(rep(FALSE, 5), TRUE))
+  # U6 (tercera revisión de 31db92ae2): el 9 con un rótulo sustantivo queda como nivel; la salida es choices$especial.
+  expect_identical(.divergentes_especiales(c(.dns_lik5, "Otra cosa"), cods), rep(FALSE, 6))
   # La regla de siempre (90-99 y `.DIVERGENTES_ESPECIAL`) sigue.
   expect_true(.divergentes_especiales("Lo que sea", "99"))
   expect_true(.divergentes_especiales("Sin información", NA))
@@ -118,8 +118,9 @@ test_that("H2: una escala con hueco (1, 2, 4, 5) es una sola escala: dos niveles
                       list(a = c(5, 5, 10, 10)))
   e <- .dns_espec(src)
   expect_identical(e$categorias$lado, c("neg", "neg", "pos", "pos"))
-  # Con un 9 detrás del hueco, el 9 sigue fuera.
-  expect_identical(.divergentes_especiales(c("a", "b", "d", "e", "x"), c("1", "2", "4", "5", "9")), c(rep(FALSE, 4), TRUE))
+  # Detrás del hueco, el 9 sale por su rótulo, no por su código.
+  expect_identical(.divergentes_especiales(c("a", "b", "d", "e", "No sé"), c("1", "2", "4", "5", "9")), c(rep(FALSE, 4), TRUE))
+  expect_false(any(.divergentes_especiales(c("a", "b", "d", "e", "x"), c("1", "2", "4", "5", "9"))))
 })
 
 test_that("H3: la metadata de la lista manda (choices$especial)", {
@@ -159,13 +160,13 @@ test_that("H5: el pie de la escala del resumen dice sobre qué es el porcentaje"
 
 # ---- Re-revisión metodológica de afcd0f8e3 (N1, N2) ----------------------------
 
-test_that("N1: el salto de 2 sólo une un hueco interior; una punta suelta es Sin información", {
+test_that("N1: una punta de no respuesta es Sin información por su rótulo; una sustantiva suelta es un nivel", {
   skip_if_not_installed("ggplot2")
   f <- .divergentes_especiales
   expect_identical(f(c(paste("N", 1:7), "Prefiero no responder"), c(as.character(1:7), "9")), c(rep(FALSE, 7), TRUE))
   expect_identical(f(c("a", "b", "c", "d", "Sin opinión"), c("1", "2", "3", "4", "6")), c(rep(FALSE, 4), TRUE))
   expect_identical(f(c("a", "b", "c", "No precisa"), c("1", "2", "3", "5")), c(rep(FALSE, 3), TRUE))
-  expect_identical(f(c("a", "b", "c", "d", "e", "Algo sustantivo"), c("1", "2", "3", "4", "5", "7")), c(rep(FALSE, 5), TRUE))
+  expect_false(any(f(c("a", "b", "c", "d", "e", "Algo sustantivo"), c("1", "2", "3", "4", "5", "7"))))
   expect_false(any(f(c("a", "b", "d", "e"), c("1", "2", "4", "5"))))
   # Los rótulos de no respuesta también se reconocen contiguos a la escala.
   expect_identical(f(c("a", "b", "c", "d", "e", "Prefiero no decir"), as.character(1:6)), c(rep(FALSE, 5), TRUE))
@@ -187,4 +188,66 @@ test_that("N2: «Otro» no entra a la escala aunque sea contiguo; «Ninguno» s�
   expect_false(.divergentes_especiales("Ninguna confianza", NA))
   src <- .dns_fuentes(as.character(1:6), c(.dns_lik5, "Otro"), list(a = c(2, 3, 5, 10, 10, 10)))
   expect_identical(.dns_espec(src)$categorias$lado, c("neg", "neg", "neu", "pos", "pos", "sin_inf"))
+})
+
+# ---- U6: tercera revisión metodológica de 31db92ae2 — el rango de códigos ya no decide ---------------------------
+
+.dns_lados <- function(cods, labs, cnts) {
+  e <- .dns_espec(.dns_fuentes(cods, labs, list(a = cnts)))
+  list(lado = e$categorias$lado, t2b = e$total_pos / 10^e$decimales)
+}
+
+test_that("U6: escalas codificadas de dos en dos quedan enteras y se dibujan", {
+  skip_if_not_installed("ggplot2")
+  for (cods in list(as.character(c(1, 3, 5, 7, 9)), as.character(c(2, 4, 6, 8, 10)))) {
+    expect_false(any(.divergentes_especiales(.dns_lik5, cods)))
+    r <- .dns_lados(cods, .dns_lik5, c(2, 3, 5, 10, 10))
+    expect_identical(r$lado, c("neg", "neg", "neu", "pos", "pos"))
+    expect_equal(r$t2b, 66)   # 33 + 33: el Top Two Box suma segmentos ya redondeados (ADR 0135, supuestos)
+  }
+  r <- .dns_lados(c("1", "3", "5"), c("Malo", "Regular", "Bueno"), c(5, 5, 10))
+  expect_identical(r$lado, c("neg", "neu", "pos"))
+  expect_equal(r$t2b, 50)
+  expect_identical(.dns_lados(c("1", "2", "3"), c("Bajo", "Medio", "Alto"), c(5, 5, 10))$lado, c("neg", "neu", "pos"))
+})
+
+test_that("U6: «Prefiero no responder» en el 0 y «Ninguna de las anteriores» en el 6 son Sin información", {
+  skip_if_not_installed("ggplot2")
+  r <- .dns_lados(as.character(0:5), c("Prefiero no responder", .dns_lik5), c(10, 2, 3, 5, 10, 10))
+  expect_identical(r$lado, c("sin_inf", "neg", "neg", "neu", "pos", "pos"))
+  expect_equal(r$t2b, 50)
+  r <- .dns_lados(as.character(1:6), c(.dns_lik5, "Ninguna de las anteriores"), c(2, 3, 5, 10, 10, 10))
+  expect_identical(r$lado, c("neg", "neg", "neu", "pos", "pos", "sin_inf"))
+  expect_equal(r$t2b, 50)
+  # «Ninguno» como nivel y «Ninguna confianza» siguen en la escala; «Otras veces» no es «Otro».
+  expect_false(any(.divergentes_especiales(c("Ninguno", "Uno", "Dos", "Tres"), as.character(0:3))))
+  expect_false(.divergentes_especiales("Ninguna confianza", "1"))
+  expect_false(.divergentes_especiales("Otras veces", "6"))
+  expect_true(.divergentes_especiales("Otro", "6"))
+})
+
+test_that("U6: sin n_negativas declarado el reparto parte las sustantivas por la mitad (1-7 + 9, 0-10 + 99)", {
+  skip_if_not_installed("ggplot2")
+  expect_null(p_barras_divergentes(vars = "b$a")$overrides$n_negativas)
+  r <- .dns_lados(c(as.character(1:7), "9"), c(paste("Nivel", 1:7), "Prefiero no responder"), c(2, 2, 2, 4, 4, 3, 3, 20))
+  expect_identical(r$lado, c(rep("neg", 3), "neu", rep("pos", 3), "sin_inf"))
+  r <- .dns_lados(c(as.character(0:10), "99"), c(as.character(0:10), "No responde"), c(rep(2, 11), 8))
+  expect_identical(r$lado, c(rep("neg", 5), "neu", rep("pos", 5), "sin_inf"))
+  # 4 y 5 puntos quedan como antes (2 negativas); declarado, manda lo declarado.
+  expect_identical(.dns_lados(as.character(1:4), .dns_lik5[-3], c(2, 3, 5, 10))$lado, c("neg", "neg", "pos", "pos"))
+  expect_identical(.dns_lados(as.character(1:5), .dns_lik5, c(2, 3, 5, 10, 10))$lado, c("neg", "neg", "neu", "pos", "pos"))
+  e <- .dns_espec(.dns_fuentes(as.character(1:5), .dns_lik5, list(a = c(2, 3, 5, 10, 10))), n_negativas = 1L, incluir_neutro = FALSE)
+  expect_identical(e$categorias$lado, c("neg", "pos", "pos", "pos", "pos"))
+  expect_identical(.ola4_n_negativas(NULL, 7L), 3L); expect_identical(.ola4_n_negativas(NULL, 3L), 1L)
+  expect_identical(.ola4_n_negativas(2L, 7L), 2L)
+})
+
+test_that("U6: la regla de las láminas de resumen usa el mismo detector (0 «Prefiero no responder», 1,3,5,7,9)", {
+  inst <- list(survey = data.frame(name = "a", type = "select_one lk", list_name = "lk", label = "A", stringsAsFactors = FALSE),
+               choices = data.frame(list_name = "lk", name = as.character(0:5), label = c("Prefiero no responder", .dns_lik5),
+                                    stringsAsFactors = FALSE))
+  expect_identical(.regla_preguntas_escala(inst, "a")$no_sustantivo, c(TRUE, rep(FALSE, 5)))
+  inst$choices$name <- c("99", as.character(c(1, 3, 5, 7, 9)))
+  inst$choices$label <- c("No responde", .dns_lik5)
+  expect_identical(.regla_preguntas_escala(inst, "a")$no_sustantivo, c(TRUE, rep(FALSE, 5)))
 })

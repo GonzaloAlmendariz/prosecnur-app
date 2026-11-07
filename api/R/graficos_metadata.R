@@ -1886,9 +1886,10 @@
              list(value = "positivo_negativo", label = "Positivo → negativo", hint = "Los primeros niveles son positivos y los últimos negativos; no cambia el orden visible.")
            ),
            descripcion = "Define el significado de cada lado sin reordenar las categorías de la escala."),
+      # U6 (ADR 0135, supuestos): sin valor, la mitad de las opciones sustantivas, con neutro si son impares.
       list(name = "n_negativas", label = "Niveles del lado negativo", tipo_input = "number", grupo = "datos",
-           default = 2, min = 1, max = 6, step = 1,
-           descripcion = "Cuántos niveles, contando desde el primero de la escala, van a la izquierda del cero."),
+           min = 1, max = 6, step = 1,
+           descripcion = "Cuántos niveles, contando desde el primero de la escala, van a la izquierda del cero. Vacío: la mitad de las opciones sustantivas."),
       list(name = "incluir_neutro", label = "Partir el neutro", tipo_input = "bool", grupo = "datos",
            default = TRUE,
            descripcion = "Dibuja el nivel central mitad a cada lado. Ocultarlo infla los dos extremos y hace parecer que todos opinaron."),
