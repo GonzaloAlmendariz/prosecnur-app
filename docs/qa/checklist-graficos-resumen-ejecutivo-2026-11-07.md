@@ -18,6 +18,9 @@ Diseño 2026 (ADR 0114). Sólo Gonzalo da el checklist por terminado.
 | 6 | Gonzalo (en la sesión): «a veces es mejor poner el N en la leyenda con porcentaje o en la nota de la base y ya no ponerle en otra columna» | `base_en` = auto · leyenda · nota · tabla (`graficos_espec_contraste.R`) | Hecho: auto pone la base constante en la leyenda; si cambia por fila, en la tabla |
 | 7 | Elegibles desde la UI de Gráficos | registro `graficos_metadata.R` + tarjeta del inspector (`argsDatosGrafico.ts`), blueprint `panorama` | Hecho: estilos en la tarjeta, `p_panorama` en Comparar con su dibujo, ícono y glifo; aperturas de hasta 4 grupos. Sin QA visual de la tarjeta todavía |
 | 8 | Gate por área R y front, verificador | `make gate-area`, `make gate-front AREA=graficos` | R: 62 suites verdes tras actualizar contratos (31 → 32 graficadores); front: 244 archivos / 2196 tests verdes. Verificador pendiente |
+| 9 | Gonzalo: «la base podría ir en la esquina inferior izquierda, como ya iba antes; sólo columnas para diferencia» | `base_en` = auto → nota; la base por grupo reemplaza a la automática (`lamina_compositor.R`) | Hecho y render revisado; con base variable la nota da su rango |
+| 10 | Probar en la app si se pueden armar y qué tan intuitivo es | acrconta en Procesamiento › Gráficos | Hecho: el panorama no se puede armar en la práctica (preguntas una por una, una base) y el estilo de la brecha está escondido; ver la propuesta |
+| 11 | Relacionarlas con las láminas de resumen que ya existen y pensar gráficos de síntesis y tendencias más intuitivos | [propuesta-laminas-de-sintesis-2026-11-07.md](propuesta-laminas-de-sintesis-2026-11-07.md) | Bloqueado: tres decisiones de Gonzalo en la propuesta |
 
 Aprendido:
 - La diferencia con dos grupos sigue la regla del motor (primero menos segundo, entre cifras rotuladas). Para leer
