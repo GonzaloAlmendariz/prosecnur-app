@@ -102,6 +102,23 @@ Decisiones de Gonzalo del 2026-11-07:
   7 u 11 puntos hay que declararlo. No cambia en este ADR.
 - Pendiente: el dibujo de respaldo (ggplot) apila el gris de «Sin información» detrás del acuerdo; la lámina nativa no.
 
+### Precisiones de la implementación
+
+- **Cifras del cierre.** No se guardan en la espec (contraste, fortalezas y divergentes ya usan `cifras` para su dibujo):
+  `.cifras_clave(espec)` las deriva con el mismo texto que la lámina. Claves: `diferencia:<tema>`,
+  `valor:<tema>:<grupo>`, `mediana:<publico>`, `bajo:<publico>`, `valor:<tema>`, `casos|tasa|meta:<publico>`,
+  `t2b|sin_info:<tema>`; cada cifra trae `{clave, rotulo, texto, valor, unidad}`. El id de la lámina de origen viaja en
+  `meta$lamina_id`, que copian los tres rearmados del plan (job, router y vista previa). Si se guarda
+  `cifra_al_escribir`, la lámina avisa cuando la cifra cambió desde que se escribió la frase.
+- **Emparejado sugerido.** `POST /api/graficos/resumenes/emparejado`: Jaccard sobre palabras normalizadas (sin tildes,
+  minúsculas, sin palabras vacías), misma firma de escala, puntaje mínimo 0,2, hasta tres candidatas; sólo lectura.
+- **Endpoints.** `POST /api/graficos/resumenes/regla`, `GET /api/graficos/resumenes/padron`,
+  `POST /api/graficos/resumenes/cifras`, `POST /api/graficos/resumenes/emparejado`.
+- **Códigos.** `E_REGLA_PREGUNTAS_INVALIDA`, `E_EMPAREJADO_INVALIDO`, `E_CIFRAS_INVALIDO` (400).
+- **Pregunta de escala.** Es de escala la `select_one` de diseño independiente cuya lista comparten al menos tres
+  preguntas de su base (batería) o que el estudio declara ordinal; una demográfica de cuatro o más opciones (edad, grado)
+  no lo es. Medido en Arte: sin este criterio entraban 3, 2 y 1 preguntas demográficas por público.
+
 ## Consecuencias
 
 - `p_panorama`, `p_dumbbell` (estilo `resumen`) y `p_barras_divergentes` (estilo `resumen`) ganan `regla`.
