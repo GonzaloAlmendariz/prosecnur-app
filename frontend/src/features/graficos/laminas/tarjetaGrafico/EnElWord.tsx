@@ -5,6 +5,7 @@ import { useId } from "react";
 import { leerModoInforme, leerModoLamina, MODOS_MULTI_INFORME, MODOS_MULTI_LAMINA, rotuloHeredado } from "../../word/modeloMultiWord";
 import type { ArgMetadata, GraficadorRef } from "../../../../api/graficos";
 import { Switch } from "../../../../components/Switch";
+import { AyudaGlobo } from "../AyudaGlobo";
 import { BarraExtraControl } from "../../BarraExtraControl";
 import { SLIDE_GRAF_SLOTS, usePlanStore } from "../../store";
 import { leerEtiquetaCorta } from "../argsDatosGrafico";
@@ -54,11 +55,21 @@ export function EnElWord({ slideId, slot, valor, argsDelRegistro }: Props) {
   return (
     // H4: la cabecera «En el Word» es la de su sección plegable (SeccionPlegable, en DatosGrafico).
     <div className="pulso-f6-word" data-qa-geometry-group="graficos/f6-word" data-qa-geometry-contract="intrinsic" data-qa="en-el-word">
-      {/* En las multiapiladas cómo sale depende de su forma (W6): lo explica la ayuda del control de abajo. */}
-      {valor.graficador !== "p_barras_multiapiladas" && <p className="pulso-f6-dato-ayuda">{COMO_SALE[titulo]}</p>}
+      {/* ADR 0135 §8: cómo sale la figura va en el «?» del rótulo. En las multiapiladas depende de su forma (W6): lo
+          explica el «?» del control de abajo. */}
+      {valor.graficador !== "p_barras_multiapiladas" && (
+        <span className="pulso-f6-dato-rotulo" data-qa="como-sale-word">
+          En el Word
+          <AyudaGlobo id={`${id}-como-sale`} rotulo="En el Word" detalle={COMO_SALE[titulo]} />
+        </span>
+      )}
       {conTitulo && (
         <div className="pulso-f6-dato is-apilado">
-          <label className="pulso-f6-dato-rotulo" htmlFor={`${id}-titulo`}>Título de la figura</label>
+          <label className="pulso-f6-dato-rotulo" htmlFor={`${id}-titulo`}>
+            Título de la figura
+            <AyudaGlobo id={`${id}-titulo-ayuda`} rotulo="Título de la figura"
+              detalle="También encabeza este gráfico en la lámina. Vacío usa la etiqueta corta o la pregunta." />
+          </label>
           <input
             id={`${id}-titulo`}
             className="pulso-f6-input"
@@ -67,28 +78,31 @@ export function EnElWord({ slideId, slot, valor, argsDelRegistro }: Props) {
             aria-describedby={`${id}-titulo-ayuda`}
             onChange={(e) => set({ titulo: e.target.value.trim() ? e.target.value : null })}
           />
-          <span className="pulso-f6-dato-ayuda" id={`${id}-titulo-ayuda`}>
-            También encabeza este gráfico en la lámina. Vacío usa la etiqueta corta o la pregunta.
-          </span>
         </div>
       )}
       {/* W6: cómo sale la multiapilada en el Word; vacío sigue al informe (Word, Gráficos). */}
       {valor.graficador === "p_barras_multiapiladas" && (
         <div className="pulso-f6-dato is-apilado">
-          <label className="pulso-f6-dato-rotulo" htmlFor={`${id}-multi`}>Cómo sale en el Word</label>
-          <select id={`${id}-multi`} className="pulso-f6-input" value={leerModoLamina(args)}
+          <label className="pulso-f6-dato-rotulo" htmlFor={`${id}-multi`}>
+            Cómo sale en el Word
+            <AyudaGlobo id={`${id}-multi-ayuda`} rotulo="Cómo sale en el Word"
+              detalle={`${MODOS_MULTI_INFORME.find((m) => m.clave === modoEfectivo)?.detalle ?? ""} Solo cambia el Word; la lámina del PPT no se toca.`.trim()} />
+          </label>
+          <select id={`${id}-multi`} className="pulso-f6-input" value={leerModoLamina(args)} aria-describedby={`${id}-multi-ayuda`}
             onChange={(e) => set({ word_multiapiladas: e.target.value || null })}>
             <option value="">Como el informe ({rotuloHeredado(leerModoInforme(wPresets as Record<string, Record<string, unknown>>))})</option>
             {MODOS_MULTI_LAMINA.map((m) => <option key={m.clave} value={m.clave}>{m.rotulo}</option>)}
           </select>
-          <span className="pulso-f6-dato-ayuda">{MODOS_MULTI_INFORME.find((m) => m.clave === modoEfectivo)?.detalle} Solo cambia el Word; la lámina del PPT no se toca.</span>
           {(modoEfectivo === "un_grafico" || modoEfectivo === "mismo_actor_escala" || modoEfectivo === "un_grafico_mismo_publico") && (
             <>
-              <label className="pulso-f6-dato-rotulo" htmlFor={`${id}-titfig`}>Título de la figura en el Word</label>
+              <label className="pulso-f6-dato-rotulo" htmlFor={`${id}-titfig`}>
+                Título de la figura en el Word
+                <AyudaGlobo id={`${id}-titfig-ayuda`} rotulo="Título de la figura en el Word"
+                  detalle="Encabeza la figura que junta varias preguntas o temas. Vacío, sale sin título." />
+              </label>
               <input id={`${id}-titfig`} className="pulso-f6-input" value={typeof args.word_titulo_figura === "string" ? args.word_titulo_figura : ""}
                 placeholder="Sin título" aria-describedby={`${id}-titfig-ayuda`}
                 onChange={(e) => set({ word_titulo_figura: e.target.value.trim() ? e.target.value : null })} />
-              <span className="pulso-f6-dato-ayuda" id={`${id}-titfig-ayuda`}>Encabeza la figura que junta varias preguntas o temas. Vacío, sale sin título.</span>
             </>
           )}
         </div>
@@ -110,7 +124,10 @@ export function EnElWord({ slideId, slot, valor, argsDelRegistro }: Props) {
       {conTablaWord && (
         <div className="pulso-f6-dato is-apilado" data-qa="tabla-word">
           <div className="pulso-f6-dato">
-            <span className="pulso-f6-dato-rotulo" id={`${id}-tabla`}>Tabla de datos en el Word</span>
+            <span className="pulso-f6-dato-rotulo" id={`${id}-tabla`}>
+              Tabla de datos en el Word
+              <AyudaGlobo id={`${id}-tabla-ayuda`} rotulo="Tabla de datos en el Word" detalle={`${NOTA_TABLA_WORD}.`} />
+            </span>
             <Switch
               checked={tablaWord}
               disabled={tablaPorLamina}
@@ -118,7 +135,8 @@ export function EnElWord({ slideId, slot, valor, argsDelRegistro }: Props) {
               onToggle={() => set(patchTablaWord(args, !tablaWord))}
             />
           </div>
-          <span className="pulso-f6-dato-ayuda">{tablaPorLamina ? `${NOTA_TABLA_WORD_HEREDADA}.` : `${NOTA_TABLA_WORD}.`}</span>
+          {/* Estado, no ayuda: la tabla la decide la lámina y el interruptor queda deshabilitado. */}
+          {tablaPorLamina && <span className="pulso-f6-dato-ayuda" role="note">{`${NOTA_TABLA_WORD_HEREDADA}.`}</span>}
         </div>
       )}
       {conRotulo && (

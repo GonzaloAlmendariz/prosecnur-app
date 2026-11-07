@@ -7,6 +7,7 @@
 import { useId, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
 import { AlertTriangle, ArrowDown, ArrowUp, GripVertical, Info, Loader2, RefreshCw } from "../../../vendor/lucide-react";
 import { Switch } from "../../../components/Switch";
+import { AyudaGlobo } from "./AyudaGlobo";
 import type { GraficosCategorias } from "../../../api/graficos";
 import {
   ATRIBUTO_ACCION_ORDEN,
@@ -66,7 +67,13 @@ export function OrdenCategoriasGrafico({ variable, graficador, args, scope, onCa
   return (
     <div className="pulso-f6-dato is-apilado pulso-f6-orden" data-qa-geometry-group="graficos/f6-orden" data-qa-geometry-contract="intrinsic">
       <div className="pulso-f6-orden-cabeza">
-        <label className="pulso-f6-dato-rotulo" htmlFor={`${id}-modo`}>Orden</label>
+        <label className="pulso-f6-dato-rotulo" htmlFor={`${id}-modo`}>
+          Orden
+          {/* ADR 0135 §8: cómo se mueve una categoría va en el «?» del rótulo; la lista lo nombra en aria-describedby. */}
+          {orden.modo === "personalizado" && datos && !escala && (
+            <AyudaGlobo id={`${id}-mover`} rotulo="Orden" detalle={AYUDA_MOVER} />
+          )}
+        </label>
         <select
           id={`${id}-modo`}
           className="pulso-f6-input pulso-f6-dato-select"
@@ -98,7 +105,7 @@ export function OrdenCategoriasGrafico({ variable, graficador, args, scope, onCa
       </div>
       {escala && <NotaAviso nota={escala} id={escalaId} />}
       {orden.modo === "recetario" && heredado && (
-        <span className="pulso-f6-dato-ayuda" data-qa="orden-heredado">
+        <span className="pulso-f6-dato-ayuda" data-qa="orden-heredado" role="note">
           {nombreHeredado ? `Este gráfico trae el orden «${nombreHeredado}», elegido antes` : "Este gráfico trae un orden elegido antes"}; manda
           mientras no elijas otro.
         </span>
@@ -114,6 +121,7 @@ export function OrdenCategoriasGrafico({ variable, graficador, args, scope, onCa
           datos={datos}
           lista={ordenMostrado(orden.lista, datos, orden.invertir)}
           invertido={orden.invertir}
+          ayudaId={`${id}-mover`}
           onLista={(mostrado) => guardar({ ...orden, lista: listaDesdeMostrado(mostrado, orden.invertir) })}
         />
       )}
@@ -152,7 +160,11 @@ function EstadoDatos({ estado }: { estado: ReturnType<typeof useCategoriasGrafic
   return null;
 }
 
-function ListaOrden({ datos, lista, invertido, onLista }: { datos: GraficosCategorias; lista: string[]; invertido: boolean; onLista: (l: string[]) => void }) {
+export const AYUDA_MOVER = "Arrastra o usa Alt + ↑/↓ sobre una categoría para moverla.";
+
+function ListaOrden({ datos, lista, invertido, ayudaId, onLista }: {
+  datos: GraficosCategorias; lista: string[]; invertido: boolean; ayudaId: string; onLista: (l: string[]) => void;
+}) {
   // U14: con el rótulo corto del estudio la lista dice lo que dirá la lámina; el completo queda en el title.
   const cortos = useRotulosCortos();
   const completa = new Map(datos.categorias.map((c) => [c.codigo, c.etiqueta]));
@@ -161,7 +173,6 @@ function ListaOrden({ datos, lista, invertido, onLista }: { datos: GraficosCateg
   const items = useRef(new Map<string, HTMLLIElement>());
   const [arrastrado, setArrastrado] = useState<number | null>(null);
   const [anuncio, setAnuncio] = useState("");
-  const ayudaId = useId();
 
   // `enfocar`: «item» devuelve el foco a la categoría (Alt+↑/↓); «subir»/«bajar» lo deja en ese botón de la fila movida
   // (o en el opuesto si quedó disabled en el borde, `botonTrasMover`): un disabled tiraba el foco a BODY.
@@ -193,9 +204,7 @@ function ListaOrden({ datos, lista, invertido, onLista }: { datos: GraficosCateg
 
   return (
     <>
-      <span className="pulso-f6-dato-ayuda" id={ayudaId}>
-        {invertido ? "Se muestra invertida, tal como se dibuja. " : ""}Arrastra o usa Alt + ↑/↓ sobre una categoría para moverla.
-      </span>
+      {invertido && <span className="pulso-f6-dato-ayuda" role="note">Se muestra invertida, tal como se dibuja.</span>}
       <ol className="pulso-f6-orden-lista" aria-label="Orden personalizado de las categorías" aria-describedby={ayudaId}
         data-qa-geometry-group="graficos/f6-orden-lista" data-qa-geometry-contract="intrinsic">
         {lista.map((codigo, i) => {

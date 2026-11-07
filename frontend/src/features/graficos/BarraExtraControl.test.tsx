@@ -18,7 +18,9 @@ describe("BarraExtraControl", () => {
     const html = pintar(false);
     expect(html).toContain('role="switch"');
     expect(html).toContain('aria-checked="false"');
-    expect(html).toContain("Muestra una columna a la derecha de cada barra.");
+    // ADR 0135 §8: la ayuda va en el «?» del rótulo (globo con id), no en un párrafo visible.
+    expect(html).toContain('role="tooltip" class="pulso-f6-ayuda-globo">Muestra una columna a la derecha de cada barra.</span>');
+    expect(html).not.toContain("pulso-barra-extra-ayuda");
     expect(html).not.toContain("aria-pressed");
   });
 

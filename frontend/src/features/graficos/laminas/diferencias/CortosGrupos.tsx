@@ -14,6 +14,7 @@ import { varCalificada } from "../ordenCategorias";
 import { useCategoriasGrafico } from "../useCategoriasGrafico";
 import { searchDePiezaIdentidad } from "../../estilo/direccionIdentidad";
 import { revelarFilaNueva, selectorFila } from "../../revelarFila";
+import { AyudaGlobo } from "../AyudaGlobo";
 import "../datosGrafico.css";
 import { avisoCorto, cortosAFilas, filasACortos, mismosCortos, type FilaCorto, type ValorTarjetas } from "./modeloTarjetas";
 
@@ -56,7 +57,11 @@ export function CortosGrupos({ valor, cruces, scope, baseActiva, onCambio, uso =
 
   return (
     <div ref={raiz} className="pulso-f6-dato is-apilado" data-qa="tarjetas-cortos" data-qa-geometry-member="">
-      <span className="pulso-f6-dato-rotulo" id={`${id}-rotulo`}>Nombre corto de un grupo</span>
+      <span className="pulso-f6-dato-rotulo" id={`${id}-rotulo`}>
+        Nombre corto de un grupo
+        <AyudaGlobo id={`${id}-ayuda`} rotulo="Nombre corto de un grupo"
+          detalle={`${AYUDA_USO_CORTO[uso]} Las respuestas se acortan en Rótulos cortos del estudio.`} />
+      </span>
       <div className="pulso-f6-criterios" role="group" aria-labelledby={`${id}-rotulo`} aria-describedby={`${id}-ayuda`}
         data-qa-geometry-group="graficos/f6-tarjetas-cortos" data-qa-geometry-contract="intrinsic">
         {filas.map((f, i) => {
@@ -91,13 +96,10 @@ export function CortosGrupos({ valor, cruces, scope, baseActiva, onCambio, uso =
       <datalist id={listaId}>
         {cruces.map((ref) => <GruposDeCruce key={ref} variable={varCalificada(ref, baseActiva, scope)} scope={scope} />)}
       </datalist>
-      {/* Una sola ayuda (C1: dos ayudas hermanas son una colección sin contrato): cuándo se usa y adónde ir por las respuestas. */}
-      <span id={`${id}-ayuda`} className="pulso-f6-dato-ayuda">
-        {AYUDA_USO_CORTO[uso]} Las respuestas se acortan en{" "}
-        <Link className="pulso-f6-enlace-ayuda" to={{ pathname: loc.pathname, search: searchDePiezaIdentidad(loc.search, "rotulos") }}>
-          Rótulos cortos del estudio
-        </Link>.
-      </span>
+      {/* ADR 0135 §8: cuándo se usa va en el «?» del rótulo; el enlace a los rótulos de las respuestas queda como acción. */}
+      <Link className="pulso-f6-enlace-ayuda" to={{ pathname: loc.pathname, search: searchDePiezaIdentidad(loc.search, "rotulos") }}>
+        Rótulos cortos del estudio
+      </Link>
     </div>
   );
 }

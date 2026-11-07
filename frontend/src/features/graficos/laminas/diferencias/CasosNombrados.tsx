@@ -3,6 +3,7 @@
 // de los grupos (H6 del checklist de usabilidad, 2026-11-05).
 
 import { useId } from "react";
+import { AyudaGlobo } from "../AyudaGlobo";
 
 type Props = {
   valor: string;
@@ -15,10 +16,12 @@ export function CasosNombrados({ valor, ayuda = "En la lectura de cada tarjeta, 
   const id = useId();
   return (
     <div className="pulso-f6-dato is-apilado" data-campo="publico" data-qa-geometry-member="">
-      <label className="pulso-f6-dato-rotulo" htmlFor={`${id}-publico`}>Cómo se nombran los casos</label>
+      <label className="pulso-f6-dato-rotulo" htmlFor={`${id}-publico`}>
+        Cómo se nombran los casos
+        <AyudaGlobo id={`${id}-publico-ayuda`} rotulo="Cómo se nombran los casos" detalle={ayuda} />
+      </label>
       <input id={`${id}-publico`} className="pulso-f6-input" value={valor} placeholder="personas encuestadas"
         aria-describedby={`${id}-publico-ayuda`} onChange={(e) => onCambio(e.target.value)} />
-      <span id={`${id}-publico-ayuda`} className="pulso-f6-dato-ayuda">{ayuda}</span>
     </div>
   );
 }

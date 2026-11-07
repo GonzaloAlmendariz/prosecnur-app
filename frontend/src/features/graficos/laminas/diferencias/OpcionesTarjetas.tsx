@@ -9,6 +9,7 @@ import { parseVarRef, useVariables } from "../../useVariables";
 import { Segmentado } from "../../subpestanas/Segmentado";
 import { CortosGrupos } from "./CortosGrupos";
 import { CasosNombrados } from "./CasosNombrados";
+import { AyudaGlobo } from "../AyudaGlobo";
 import {
   crucesDe,
   dondeTarjetas,
@@ -50,14 +51,14 @@ export function OpcionesTarjetas({ valor, ranura, scope, baseActiva, onCambio, e
     <>
       {enLinea && (
         <div className="pulso-f6-dato" data-qa="tarjetas-donde" data-qa-geometry-member="">
-          <span className="pulso-f6-dato-rotulo">Dónde van</span>
+          <span className="pulso-f6-dato-rotulo">
+            Dónde van
+            <AyudaGlobo rotulo="Dónde van" detalle={donde === "en_linea"
+              ? "Bajo la barra de la respuesta, sus grupos con su cifra. Hasta dos respuestas, sin panel aparte."
+              : "En un panel junto al gráfico, una tarjeta por diferencia."} />
+          </span>
           <Segmentado etiqueta="Dónde van las diferencias" valor={donde} opciones={DONDE}
             onCambiar={(k) => onCambio({ modo: modoAGuardar(k) })} />
-          <span className="pulso-f6-dato-ayuda">
-            {donde === "en_linea"
-              ? "Bajo la barra de la respuesta, sus grupos con su cifra. Hasta dos respuestas, sin panel aparte."
-              : "En un panel junto al gráfico, una tarjeta por diferencia."}
-          </span>
         </div>
       )}
       <CrucesTarjetas valor={valor} cruces={cruces} onCambio={onCambio} />
@@ -100,7 +101,10 @@ export function CrucesTarjetas({ valor, cruces, onCambio, ayudaVacia = "Sin eleg
   };
   return (
     <div className="pulso-f6-dato is-apilado" data-qa="tarjetas-cruces" data-qa-geometry-member="">
-      <span className="pulso-f6-dato-rotulo" id={`${id}-rotulo`}>Comparar por</span>
+      <span className="pulso-f6-dato-rotulo" id={`${id}-rotulo`}>
+        Comparar por
+        <AyudaGlobo id={`${id}-ayuda`} rotulo="Comparar por" detalle={cruces.length ? ayudaLlena : ayudaVacia} />
+      </span>
       <div className="pulso-f6-criterios" role="group" aria-labelledby={`${id}-rotulo`} aria-describedby={`${id}-ayuda`}
         data-qa-geometry-group="graficos/f6-tarjetas-cruces" data-qa-geometry-contract="intrinsic">
         {cruces.map((ref, i) => {
@@ -126,9 +130,6 @@ export function CrucesTarjetas({ valor, cruces, onCambio, ayudaVacia = "Sin eleg
             onChange={(v) => { if (v && !cruces.includes(v)) onCambio({ cruces: [...cruces, v] }); }} />
         </div>
       </div>
-      <span id={`${id}-ayuda`} className="pulso-f6-dato-ayuda">
-        {cruces.length ? ayudaLlena : ayudaVacia}
-      </span>
     </div>
   );
 }

@@ -20,6 +20,7 @@ import {
   type CitaAprobada,
 } from "./modeloCitas";
 import { useCitasCandidatas } from "./useCitasCandidatas";
+import { AyudaGlobo } from "../AyudaGlobo";
 import "./citasAprobadas.css";
 import { formatoConteo } from "../../../../lib/formatoNumero";
 
@@ -50,14 +51,14 @@ export function CitasAprobadas({ args, variable, onCambio }: Props) {
         <h5 id={idTitulo} className="pulso-f6-dato-rotulo">Citas aprobadas</h5>
         <span className="pulso-f6-citas-n">{formatoConteo(aprobadas.length)} de {TOPE_CITAS}</span>
       </header>
-      {estado.fase === "sin_pregunta" && <p className="pulso-f6-dato-ayuda">Elige primero la pregunta abierta.</p>}
+      {estado.fase === "sin_pregunta" && <p className="pulso-f6-dato-ayuda" role="note">Elige primero la pregunta abierta.</p>}
       {estado.fase === "cargando" && <p className="pulso-f6-dato-ayuda" role="status">Leyendo los comentarios</p>}
       {estado.fase === "error" && <p className="pulso-f6-citas-aviso" role="alert">{estado.mensaje}</p>}
       {estado.fase === "lista" && (
         <>
           {estado.datos.avisos.map((a) => <p key={a} className="pulso-f6-citas-aviso" role="note">{a}</p>)}
           {aprobadas.length === 0 ? (
-            <p className="pulso-f6-dato-ayuda">Sin citas aprobadas, la lámina sale como borrador. Aprueba de tres a cinco.</p>
+            <p className="pulso-f6-dato-ayuda" role="note">Sin citas aprobadas, la lámina sale como borrador. Aprueba de tres a cinco.</p>
           ) : (
             <ol className="pulso-f6-citas-lista" aria-label="Aprobadas, en el orden en que van"
               data-qa-geometry-group="graficos/f6-citas-aprobadas" data-qa-geometry-contract="intrinsic">
@@ -74,7 +75,7 @@ export function CitasAprobadas({ args, variable, onCambio }: Props) {
             <span className="pulso-f6-citas-n">{formatoConteo(libres.length)}</span>
           </div>
           {libres.length === 0 ? (
-            <p className="pulso-f6-dato-ayuda">
+            <p className="pulso-f6-dato-ayuda" role="note">
               {candidatas.length ? "Ya aprobaste todos los comentarios que sirven como cita." : "Ningún comentario tiene el largo de una cita (de 40 a 280 letras)."}
             </p>
           ) : (
@@ -159,14 +160,18 @@ function CitaAprobadaFila({ cita, candidata, pos, total, onCambiar, onMover, onQ
         </div>
       )}
       {modo === "ver" && cita.sic && (
-        <label className="pulso-f6-cita-sic" htmlFor={idSic}>
-          <span className="pulso-f6-dato-ayuda">Detrás de qué palabras va «[sic]» (opcional; si no, al final)</span>
+        <div className="pulso-f6-cita-sic">
+          <label className="pulso-f6-dato-rotulo" htmlFor={idSic}>
+            Palabras con «[sic]»
+            <AyudaGlobo id={`${idSic}-ayuda`} rotulo="Palabras con «[sic]»" detalle="Detrás de qué palabras va «[sic]». Vacío, va al final de la cita." />
+          </label>
           <input id={idSic} className="pulso-f6-input" defaultValue={palabrasSic.join(", ")} placeholder="pdoer, adceso"
+            aria-describedby={`${idSic}-ayuda`}
             onBlur={(e) => {
               const ps = e.target.value.split(/[,\s]+/).map((x) => x.trim()).filter(Boolean);
               onCambiar({ sic: ps.length ? ps : true });
             }} />
-        </label>
+        </div>
       )}
       {modo === "recortar" && (
         <Recortar base={cita.texto && !cita.texto.includes("[…]") && v?.ok ? cita.texto : original}
@@ -186,13 +191,17 @@ function CitaAprobadaFila({ cita, candidata, pos, total, onCambiar, onMover, onQ
 function Recortar({ base, onGuardar, onOriginal, onCancelar }: {
   base: string; onGuardar: (t: string) => void; onOriginal: () => void; onCancelar: () => void;
 }) {
+  const id = useId();
   const segmentos = segmentosCita(base);
   const [elegidos, setElegidos] = useState<boolean[]>(() => segmentos.map(() => true));
   const texto = armarRecorte(segmentos, elegidos);
   return (
     <div className="pulso-f6-cita-editor" role="group" aria-label="Recortar la cita">
-      <p className="pulso-f6-dato-ayuda">Toca los fragmentos que no van. Donde se quite algo, la cita lleva «[…]».</p>
-      <div className="pulso-f6-cita-fragmentos">
+      <span className="pulso-f6-dato-rotulo">
+        Fragmentos
+        <AyudaGlobo id={`${id}-ayuda`} rotulo="Fragmentos" detalle="Toca los fragmentos que no van. Donde se quite algo, la cita lleva «[…]»." />
+      </span>
+      <div className="pulso-f6-cita-fragmentos" aria-describedby={`${id}-ayuda`}>
         {segmentos.map((s, i) => (
           <button key={`${i}-${s}`} type="button" aria-pressed={elegidos[i]}
             className={`pulso-f6-cita-fragmento${elegidos[i] ? " is-elegido" : ""}`}
@@ -221,9 +230,12 @@ function Corregir({ original, inicial, conSic, onGuardar, onCancelar }: {
     : "";
   return (
     <div className="pulso-f6-cita-editor" role="group" aria-label="Corregir la cita">
-      <label className="pulso-f6-dato-ayuda" htmlFor={id}>Corrige sólo erratas. El sentido de la cita no cambia.</label>
+      <label className="pulso-f6-dato-rotulo" htmlFor={id}>
+        Texto corregido
+        <AyudaGlobo id={`${id}-ayuda`} rotulo="Texto corregido" detalle="Corrige sólo erratas. El sentido de la cita no cambia." />
+      </label>
       <textarea id={id} className="pulso-f6-input pulso-f6-cita-area" rows={4} value={texto}
-        aria-invalid={!!motivo} aria-describedby={motivo ? `${id}-motivo` : undefined}
+        aria-invalid={!!motivo} aria-describedby={[`${id}-ayuda`, motivo ? `${id}-motivo` : ""].filter(Boolean).join(" ")}
         onChange={(e) => setTexto(e.target.value)} />
       {motivo && <p id={`${id}-motivo`} className="pulso-f6-citas-aviso" role="alert">{motivo}</p>}
       <div className="pulso-f6-cita-acciones">

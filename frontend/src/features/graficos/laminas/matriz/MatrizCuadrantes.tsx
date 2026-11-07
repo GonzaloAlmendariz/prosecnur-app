@@ -1,7 +1,9 @@
 // G16: la tarjeta de la matriz de cuadrantes. Los temas y sus dos preguntas, qué respuestas suman cada eje y los nombres
 // de los cuadrantes. Nombres de ejes, cortes y cuadrante destacado van como campos de la tarjeta (argsDatosGrafico).
 
+import { useId } from "react";
 import { X } from "../../../../vendor/lucide-react";
+import { AyudaGlobo } from "../AyudaGlobo";
 import VariablePicker from "../../VariablePicker";
 import { useVariables } from "../../useVariables";
 import {
@@ -20,12 +22,16 @@ export function MatrizCuadrantes({ args, onCambio }: Props) {
   const nombres = nombresDe(args);
   const falta = faltaEnMatriz(args);
   const cambiar = (t: Tema[]) => onCambio(conTemas(variables, t));
+  const idAyuda = `${useId()}-temas-ayuda`;
 
   return (
     <div className="pulso-f6-brecha" data-qa-geometry-group="graficos/f6-matriz" data-qa-geometry-contract="intrinsic">
       <div className="pulso-f6-dato is-apilado">
-        <span className="pulso-f6-dato-rotulo">Temas</span>
-        <ul className="pulso-f6-brecha-preguntas" data-qa-geometry-group="graficos/f6-matriz-preguntas" data-qa-geometry-contract="intrinsic">
+        <span className="pulso-f6-dato-rotulo">
+          Temas
+          <AyudaGlobo id={idAyuda} rotulo="Temas" detalle="El nombre parte de la etiqueta de la pregunta; si es larga, escríbelo corto." />
+        </span>
+        <ul className="pulso-f6-brecha-preguntas" aria-describedby={idAyuda} data-qa-geometry-group="graficos/f6-matriz-preguntas" data-qa-geometry-contract="intrinsic">
           {temas.map((t, i) => (
             <li key={`${t.nombre}-${i}`} className="pulso-f6-matriz-tema" data-qa-geometry-member data-qa-geometry-group="graficos/f6-matriz-tema" data-qa-geometry-contract="intrinsic">
               <input className="pulso-f6-input" aria-label="Nombre del tema" value={t.nombre}
@@ -48,7 +54,6 @@ export function MatrizCuadrantes({ args, onCambio }: Props) {
           <VariablePicker value={null} allowEmpty filter={esSelectOne} placeholder="Agregar tema: su pregunta del eje horizontal…"
                           onChange={(v) => v && cambiar([...temas, { nombre: nombreDePartida(variables, v), x: v, y: "" }])} />
         </div>
-        <span className="pulso-f6-dato-ayuda">El nombre parte de la etiqueta de la pregunta; si es larga, escríbelo corto.</span>
       </div>
       {(["x", "y"] as const).map((eje) => {
         const escala = escalaDe(variables, temas, eje);

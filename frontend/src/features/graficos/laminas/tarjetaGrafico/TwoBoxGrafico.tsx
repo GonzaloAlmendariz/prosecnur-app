@@ -67,7 +67,8 @@ function BarraExtraPorBloque({ slideId, slot, valor, composicion, onAbrirBloques
         ariaLabel="Barra extra de todos los bloques"
         ayuda="Muestra una columna a la derecha de cada barra. Cada bloque puede tener la suya."
       />
-      <p className="pulso-f6-dato-ayuda">
+      {/* Estado de los bloques, no ayuda (ADR 0135 §8): sigue visible. */}
+      <p className="pulso-f6-dato-ayuda" role="status">
         {resumen.total === 0 ? "Aún no hay bloques." : `${resumen.conBarra} de ${resumen.total} ${resumen.total === 1 ? "bloque lleva" : "bloques llevan"} barra extra${resumen.propios > 0 ? `; ${resumen.propios} ${resumen.propios === 1 ? "tiene" : "tienen"} la suya propia` : ""}. `}
         {sinCategorias > 0 ? `Falta elegir categorías en ${sinCategorias} ${sinCategorias === 1 ? "bloque" : "bloques"}. ` : ""}
         <button type="button" className="pulso-f6-texto-boton" onClick={onAbrirBloques}>

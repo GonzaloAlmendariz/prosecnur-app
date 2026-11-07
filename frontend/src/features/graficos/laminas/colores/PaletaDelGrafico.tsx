@@ -108,7 +108,8 @@ export function PaletaDelGrafico({ valor }: Props) {
                 </select>
               </label>
             ) : null}
-            <p className="pulso-f6-dato-ayuda">
+            {/* Estado (a qué más alcanza la paleta) con su acción, no ayuda: sigue visible (ADR 0135 §8). */}
+            <p className="pulso-f6-dato-ayuda" role="note">
               {fraseOtrasPreguntas(otras)}{" "}
               <button type="button" className="pulso-pg-enlace" onClick={irAIdentidad}>Editar colores</button>
             </p>

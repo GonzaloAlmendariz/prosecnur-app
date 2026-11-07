@@ -6,6 +6,9 @@
 
 import { useId, useState } from "react";
 import { HelpCircle } from "../../../vendor/lucide-react";
+// Sus estilos (.pulso-f6-ayuda*) viven en la hoja de la tarjeta; el globo también sale fuera de ella (barra extra de un
+// bloque de la multiapilada), así que la trae consigo.
+import "./datosGrafico.css";
 
 export function AyudaGlobo({ rotulo, detalle, id: idPropio }: { rotulo: string; detalle: string; id?: string }) {
   const idAuto = useId();

@@ -89,7 +89,8 @@ describe("«Resumen de diferencias» en el inspector", () => {
     expect(cortos).toBeGreaterThan(-1);
     expect(publico).toBeGreaterThan(cortos);
     expect(publico).toBeLessThan(html.indexOf('data-qa="capitulos-resumen"'));
-    expect(html.match(/Cómo se nombran los casos/g)).toHaveLength(1);
+    // Un solo campo: el rótulo visible una vez (el «?» lo repite en su nombre accesible, ADR 0135 §8).
+    expect(html.match(/>Cómo se nombran los casos</g)).toHaveLength(1);
     expect(html).toContain("Esta lámina lo usa siempre en lugar del nombre.");
     expect(html).not.toContain("todavía no está en Láminas");
     // Antes, el tipo desconocido caía a «string» y los capítulos salían como un campo de texto que pisaba la lista.

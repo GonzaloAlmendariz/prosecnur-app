@@ -4,6 +4,7 @@
 // (con opciones, porcentaje o respuestas; sin opciones, media o mediana), la categoría elegida de la lista y el texto
 // que acompaña al número. El valor no se adelanta en la tarjeta: lo calcula el motor con el peso y se ve en la lámina.
 
+import { AyudaGlobo } from "./AyudaGlobo";
 import { useId } from "react";
 import { Segmentado } from "../subpestanas/Segmentado";
 import { useCategoriasGrafico } from "./useCategoriasGrafico";
@@ -39,13 +40,19 @@ export function CifraGrafico({ args, variable, scope, onCambio }: Props) {
 
       {modo === "porcentaje" && (
         <div className="pulso-f6-dato is-apilado">
-          <span className="pulso-f6-dato-rotulo" id={`${id}-cat`}>Respuesta que se cuenta</span>
+          <span className="pulso-f6-dato-rotulo" id={`${id}-cat`}>
+            Respuesta que se cuenta
+            {cats.length > 0 && (
+              <AyudaGlobo id={`${id}-cat-ayuda`} rotulo="Respuesta que se cuenta"
+                detalle="El porcentaje es sobre quienes respondieron, con el peso del estudio." />
+            )}
+          </span>
           {!variable ? (
-            <span className="pulso-f6-dato-ayuda">Elige primero la pregunta.</span>
+            <span className="pulso-f6-dato-ayuda" role="note">Elige primero la pregunta.</span>
           ) : estado.fase === "cargando" ? (
             <span className="pulso-f6-dato-ayuda" role="status">Leyendo las respuestas de la pregunta</span>
           ) : cats.length ? (
-            <div className="pulso-f6-cifra-cats" role="group" aria-labelledby={`${id}-cat`}>
+            <div className="pulso-f6-cifra-cats" role="group" aria-labelledby={`${id}-cat`} aria-describedby={`${id}-cat-ayuda`}>
               {cats.map((c) => {
                 const activa = c.codigo === categoria;
                 return (
@@ -63,7 +70,6 @@ export function CifraGrafico({ args, variable, scope, onCambio }: Props) {
             <input className="pulso-f6-input" aria-labelledby={`${id}-cat`} value={categoria} placeholder="Código de la respuesta"
               onChange={(e) => onCambio({ categoria: e.target.value })} />
           )}
-          {cats.length > 0 && <span className="pulso-f6-dato-ayuda">El porcentaje es sobre quienes respondieron, con el peso del estudio.</span>}
         </div>
       )}
 
@@ -87,10 +93,12 @@ function Campo({ rotulo, valor, placeholder, ayuda, corto, onCambio }: {
   const id = useId();
   return (
     <div className={`pulso-f6-dato is-apilado${corto ? " is-corto" : ""}`}>
-      <label className="pulso-f6-dato-rotulo" htmlFor={id}>{rotulo}</label>
+      <label className="pulso-f6-dato-rotulo" htmlFor={id}>
+        {rotulo}
+        {ayuda && <AyudaGlobo id={`${id}-ayuda`} rotulo={rotulo} detalle={ayuda} />}
+      </label>
       <input id={id} className="pulso-f6-input" value={valor} placeholder={placeholder}
         aria-describedby={ayuda ? `${id}-ayuda` : undefined} onChange={(e) => onCambio(e.target.value)} />
-      {ayuda && <span id={`${id}-ayuda`} className="pulso-f6-dato-ayuda">{ayuda}</span>}
     </div>
   );
 }

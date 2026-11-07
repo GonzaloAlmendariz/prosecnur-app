@@ -6,6 +6,7 @@
 // o categorías haya (los chips envuelven), el vacío (cargando, error, sin escala, categorías por elegir) vive dentro del
 // propio control (C3/C5) y nada se recorta (C4: el scroll es del contenedor que lo aloja).
 
+import { AyudaGlobo } from "./laminas/AyudaGlobo";
 import { useId, useState } from "react";
 import { Loader2, RefreshCw } from "../../vendor/lucide-react";
 import { Switch } from "../../components/Switch";
@@ -85,9 +86,12 @@ export function BarraExtraControl({
     <div className="pulso-barra-extra" role="group" aria-labelledby={`${id}-rotulo`} data-qa={qa}
       data-qa-geometry-group="graficos/barra-extra" data-qa-geometry-contract="intrinsic">
       <div className="pulso-barra-extra-cabeza">
-        <span className="pulso-barra-extra-rotulo" id={`${id}-rotulo`}>{rotulo}</span>
+        {/* ADR 0135 §8: la ayuda va en el «?» del rótulo, no en un párrafo debajo. */}
+        <span className="pulso-barra-extra-rotulo" id={`${id}-rotulo`}>
+          {rotulo}
+          <AyudaGlobo id={`${id}-ayuda`} rotulo={rotulo} detalle={ayuda} />
+        </span>
         <Switch checked={encendida} ariaLabel={nombre} onToggle={alEncender} />
-        <span className="pulso-barra-extra-ayuda">{ayuda}</span>
       </div>
 
       {encendida && (

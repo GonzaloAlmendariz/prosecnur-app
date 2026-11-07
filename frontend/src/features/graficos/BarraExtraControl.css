@@ -18,17 +18,13 @@
 }
 
 .pulso-barra-extra-rotulo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  min-width: 0;
   font-size: var(--pulso-type-subtitle-size);
   font-weight: 700;
   color: var(--pulso-text);
-}
-
-.pulso-barra-extra-ayuda {
-  grid-column: 1 / -1;
-  font-size: var(--pulso-type-caption-size);
-  line-height: 1.4;
-  color: var(--pulso-text-faint);
-  overflow-wrap: anywhere;
 }
 
 .pulso-barra-extra-chips {
