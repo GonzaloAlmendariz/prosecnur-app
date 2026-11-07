@@ -91,7 +91,7 @@ Decisiones de Gonzalo del 2026-11-07:
 
 - `p_panorama`, `p_dumbbell` (estilo `resumen`) y `p_barras_divergentes` (estilo `resumen`) ganan `regla`.
 - Aparecen tres tipos nuevos en el registro y los contratos que enumeran tipos suben sus conteos.
-- Se suma un error `E_REGLA_INVALIDA`.
+- Se suma un error `E_REGLA_PREGUNTAS_INVALIDA` (`E_REGLA_INVALIDA` ya era de las reglas de validación). El arg se rotula «Regla de preguntas» para no repetir «Preguntas» de `vars`. Una regla implica el estilo `resumen`; con `estilo = "recetario"` explícito, el constructor la rechaza.
 - Un padrón confirmado en la lámina puede envejecer si Cálculo de muestra cambia. La tarjeta muestra el origen y avisa
   cuando ya no coincide.
 
