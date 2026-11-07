@@ -4,8 +4,8 @@
  * Generador : prosecnur-identity-compiler v1.0.0 (branding/identity/generate.mjs)
  * Fuente    : branding/identity.json
  * Identidad : prosecnur-la-senal-ordenada v1.5.0 (frozen)
- * Manifest  : sha256:e0be8fe816b586328e186c42b7415856347aec9c6d3b1af3b937ef395fb579a4
- * Input     : sha256:7cbfac07a51a18fb9c775f811a235a011c026d599c338c677e05abdaf95c557a (digest del archivo identity.json)
+ * Manifest  : sha256:b70a046d7880e1f73217c9b8cda0e7109dca982a1c3417c5d9b573ee5b35345d
+ * Input     : sha256:edab295bf707753071119bdb3c35004317d1e8b50623916464b8185705b96636 (digest del archivo identity.json)
  * ------------------------------------------------------------
  * Derivado determinista del manifiesto congelado. El identificador
  * de generación es el input digest (sin timestamp, a propósito).

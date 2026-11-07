@@ -53,8 +53,10 @@ fi
 BRAND_DIR="$ROOT/packaging/windows/brand"
 ICON_TMP="$ASSETS_DIR/.icon-tmp"
 mkdir -p "$ICON_TMP"
+# 16 y 32 px salen de la variante de cinco hilos del isotipo (ADR 0132): la de siete se empasta.
 for size in 16 32 48 64 128 256; do
-  rsvg-convert -w "$size" -h "$size" "$BRAND_DIR/icon.svg" -o "$ICON_TMP/icon-$size.png"
+  if [ "$size" -le 32 ]; then src="$BRAND_DIR/icon-chico.svg"; else src="$BRAND_DIR/icon.svg"; fi
+  rsvg-convert -w "$size" -h "$size" "$src" -o "$ICON_TMP/icon-$size.png"
 done
 $IM_CMD "$ICON_TMP/icon-16.png" "$ICON_TMP/icon-32.png" "$ICON_TMP/icon-48.png" \
        "$ICON_TMP/icon-64.png" "$ICON_TMP/icon-128.png" "$ICON_TMP/icon-256.png" \

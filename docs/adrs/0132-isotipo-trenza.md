@@ -43,7 +43,8 @@ cuerda cierra en punta a cada lado, la pregunta y el resultado, y cruza el conte
 - El tono es **opaco**: cada tramo es una proporción de tinta sobre el color del contenedor, nunca una
   transparencia. Así dos hilos superpuestos no forman manchas.
 - **32 px o menos:** variante de cinco hilos más gruesos (`prosecnur-isotipo-chico.svg`, `chica` en el
-  componente).
+  componente). También en los empaquetados: las capas de 16 y 32 px del `.icns` y del `.ico` salen de
+  `prosecnur-appicon-chico.svg` y `packaging/windows/brand/icon-chico.svg`.
 - **Una tinta** (mono negro, mono blanco calado, instalador): sólo los hilos de adelante, que se leen como cintas
   diagonales.
 
@@ -84,8 +85,8 @@ cuerda cierra en punta a cada lado, la pregunta y el resultado, y cruza el conte
 - El isotipo dice algo del oficio sin dibujar un gráfico, y el color del módulo deja de ser ajeno a la marca:
   aparece en ella justo cuando el usuario espera a ese módulo.
 - Cambiar la forma es cambiar `trenzaGeometria.ts` y regenerar; no hay SVG que editar a mano.
-- `branding/manual-identidad.html` queda **desactualizado** (mirror `stale` en `identity.json`). Todavía muestra el
-  ecualizador en 24 figuras y describe la firma de pastillas. Su actualización es un pendiente del checklist.
+- `branding/manual-identidad.html` muestra la Trenza: sus celdas de variantes incrustan los SVG generados y su
+  firma animada usa la misma geometría que la app.
 - El instalador de Windows y el `.icns` toman el ícono nuevo en el siguiente build de packaging. Ese build no se
   corrió en este cambio.
 

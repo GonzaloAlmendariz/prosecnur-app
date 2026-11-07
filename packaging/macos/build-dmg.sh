@@ -43,6 +43,7 @@ PREVIEW_STAGE_DIR="$ROOT/packaging/macos/preview-renderer"
 # lienzo). El full-bleed de packaging/windows/brand/icon.svg queda solo para
 # el .ico de Windows, donde el borde a borde es lo correcto.
 ICON_SVG="$ROOT/branding/logo/prosecnur-appicon.svg"
+ICON_SVG_CHICO="$ROOT/branding/logo/prosecnur-appicon-chico.svg"
 
 R_VERSION="${PROSECNUR_R_VERSION:-4.5.1}"
 ARCHS="${PROSECNUR_DMG_ARCHS:-arm64 x64}"
@@ -76,15 +77,17 @@ make build
 
 # ----- 2. icon.icns desde el SVG --------------------------------------------
 ICON_ICNS="$BUILD_RES/icon.icns"
-if [ ! -s "$ICON_ICNS" ] || [ "$ICON_SVG" -nt "$ICON_ICNS" ]; then
+if [ ! -s "$ICON_ICNS" ] || [ "$ICON_SVG" -nt "$ICON_ICNS" ] || [ "$ICON_SVG_CHICO" -nt "$ICON_ICNS" ]; then
   echo "[Prosecnur] Generando icon.icns..."
   ICONSET="$BUILD_RES/icon.iconset"
   rm -rf "$ICONSET"
   mkdir -p "$ICONSET"
   # Apple iconset convention: pares por size (1x y 2x).
+  # 16 y 32 px salen de la variante de cinco hilos del isotipo (ADR 0132): la de siete se empasta.
+  icon_src() { if [ "$1" -le 32 ]; then echo "$ICON_SVG_CHICO"; else echo "$ICON_SVG"; fi; }
   for size in 16 32 128 256 512; do
-    rsvg-convert -w "$size" -h "$size" "$ICON_SVG" -o "$ICONSET/icon_${size}x${size}.png"
-    rsvg-convert -w "$((size*2))" -h "$((size*2))" "$ICON_SVG" -o "$ICONSET/icon_${size}x${size}@2x.png"
+    rsvg-convert -w "$size" -h "$size" "$(icon_src "$size")" -o "$ICONSET/icon_${size}x${size}.png"
+    rsvg-convert -w "$((size*2))" -h "$((size*2))" "$(icon_src "$((size*2))")" -o "$ICONSET/icon_${size}x${size}@2x.png"
   done
   iconutil -c icns "$ICONSET" -o "$ICON_ICNS"
   rm -rf "$ICONSET"

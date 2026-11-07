@@ -27,9 +27,21 @@ en el [ADR 0132](../adrs/0132-isotipo-trenza.md). Sólo Gonzalo da este checklis
 | 15 | ADR 0132, índice de ADR y nota en la dirección creativa | `docs/adrs/`, `branding/direccion-creativa-v3.md` | Hecho |
 | 16 | `identity.json` 1.5.0: decisión `dec-isotipo-trenza`, reglas de marca y hash; tokens y referencia regenerados | `branding/identity.json`, `branding/identity/` | Hecho, validador VALID |
 | 16b | Excepción de movimiento `motion-isotipo-trenza` y la firma de marca actualizada | `branding/identity.json` | Hecho, validador VALID |
-| 17 | Manual de identidad: 24 figuras del ecualizador y la firma de pastillas | `branding/manual-identidad.html` | **Pendiente** (mirror marcado `stale`) |
-| 18 | Ver el ícono nuevo en un build empaquetado (Dock de macOS, instalador de Windows) | `packaging/` | **Pendiente**: no se corrió build de packaging |
-| 19 | Mirarlo en la app real con un proyecto abierto (header en contexto, carga del proyecto a pantalla completa) | `/ver-ui` | **Pendiente**: se vio con los componentes montados en Vite, sin proyecto |
+| 17 | Manual de identidad: 24 figuras del ecualizador y la firma de pastillas | `branding/manual-identidad.html` | Hecho: las celdas de variantes incrustan los SVG generados, el resto de figuras y la firma animada usan la misma geometría (sin errores de consola); mirror de vuelta a `current` |
+| 18 | Ícono en el build empaquetado (Dock de macOS, instalador de Windows) | `packaging/` | Pasos de ícono de `build-dmg.sh` y `build-self-contained.sh` reproducidos: en 16 px los siete hilos se empastaban, así que 16 y 32 px salen ahora de la variante de cinco hilos (`prosecnur-appicon-chico.svg`, `icon-chico.svg`). No se corrió el build completo ni se instaló |
+| 19 | Mirarlo en la app real con un proyecto abierto (header en contexto, carga del proyecto a pantalla completa) | `/ver-ui` | Hecho por `qa-visual-desktop` con acrconta y acnur_acg: header navy y alineado en 1440 y 1024; carga del proyecto en el tono del destino (Monitoreo, Hojas de ruta) y navy hacia el Home, girando y sin desaparecer (539 y 1.279 muestras, 0 ausencias); carga de módulo en los siete tonos; firma que termina en la pose quieta; contraste mínimo 4,3:1; 0 errores de consola e ids únicos |
+
+## Lo que el QA encontró fuera del isotipo
+
+No vienen del cambio de isotipo; quedan anotados para otra unidad.
+
+- **Barra de `CargaDeModulo` casi invisible:** el bloque se encoge al ancho de su contenido (194 px), así que la
+  barra queda en 92 px, y su pista no contrasta con el fondo (~1,0). Pasa también con la barra determinada de
+  la carga del proyecto cerca del 1 %. Vive en `components/carga-de-modulo.css` y en la barra del kit.
+- **Ceja y rótulo repetidos** en `CargaDeModulo` («CÁLCULO DE MUESTRA / Cálculo de muestra») en el primer instante.
+- **`PantallaDeCarga`:** la lámina se recentra y baja unos 86 px cuando colapsa la lista de fases (C2), y a
+  1024x600 hay 14 px de scroll de página.
+- No se observó `LoadingBlock` en vivo, y Windows no se probó (sólo Chromium en macOS).
 
 ## Lo aprendido
 
@@ -37,5 +49,6 @@ en el [ADR 0132](../adrs/0132-isotipo-trenza.md). Sólo Gonzalo da este checklis
   avance). Por eso la mezcla de color de los hilos no va inline: cada parada lleva `--k` y `isotipo.css` arma el
   `color-mix(... calc(var(--k) * 100%) ...)`.
 - En una tinta, los hilos de atrás se leen como manchitas del mismo color que los de adelante; por eso se omiten.
+- Los SVG del isotipo se arman con `branding/logo/isotipo-svg.mjs`, que también sirve para incrustarlo en documentos.
 - Node 25 importa el `.ts` de la geometría sin compilar. El archivo no debe tener imports ni sintaxis que no sea
   borrable (`enum`, `namespace`).
