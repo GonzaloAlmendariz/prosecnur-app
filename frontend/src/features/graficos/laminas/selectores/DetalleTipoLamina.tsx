@@ -4,7 +4,7 @@
 // o textos fuera, lo dice antes y pide confirmarlo.
 
 import { useId } from "react";
-import { AlertTriangle, Check } from "../../../../vendor/lucide-react";
+import { Check } from "../../../../vendor/lucide-react";
 import type { GraficadorRef, SlideType } from "../../../../api/graficos";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { ComposicionLamina } from "../../iconos/ComposicionLamina";
@@ -14,6 +14,8 @@ import { SLIDE_GRAF_SLOTS } from "../../store";
 import type { CambioTipoLamina } from "./cambioTipoLamina";
 import type { ModoSelectorLamina } from "./selectoresStore";
 import { etiquetaBoton, fraseDetalle, tamanoTexto } from "./detalleLamina";
+import { AvisoCambio } from "./AvisoCambio";
+import { ROTULO_CLASE } from "./intencionesContar";
 import { MedidasEstandar } from "./MedidasEstandar";
 import { RepartoGraficos } from "./RepartoGraficos";
 import { rotuloRanuras, type VariantesTipo } from "./tiposLamina";
@@ -70,6 +72,7 @@ export function DetalleTipoLamina(props: Props) {
       </div>
       <div className="pulso-f6-detalle-texto">
         <h3>{nombre}</h3>
+        <span className="pulso-f6-detalle-clase" data-clase-tarjeta="lamina">{ROTULO_CLASE.lamina}</span>
         {frase && <p>{frase}</p>}
       </div>
 
@@ -120,21 +123,8 @@ export function DetalleTipoLamina(props: Props) {
       <MedidasEstandar estandar={estandar} ranuras={comp.ranuras} slots={slots} nombreSlot={nombreSlot} />
 
       <div className="pulso-f6-selector-pie">
-        {hayPerdida && (
-          <div className="pulso-f6-aviso-cambio" id={idAviso} role={confirmando ? "alert" : undefined}>
-            <strong>
-              <AlertTriangle size={14} aria-hidden="true" />{" "}
-              {confirmando ? "Confirma el cambio: esto no pasa a la lámina nueva" : "Al cambiar, esto no pasa a la lámina nueva"}
-            </strong>
-            <ul>
-              {sobrantes.map((g) => (
-                <li key={g.slot}>{nombreGrafico(g.grafico)} <span>(ranura {nombreSlot(g.slot)})</span></li>
-              ))}
-              {textos.map((t) => <li key={t}>Texto “{nombreCampo(t)}”</li>)}
-            </ul>
-            <span>Los demás gráficos se conservan. Puedes deshacerlo después.</span>
-          </div>
-        )}
+        <AvisoCambio id={idAviso} sobrantes={sobrantes} textos={textos} confirmando={confirmando}
+          nombreGrafico={nombreGrafico} nombreSlot={nombreSlot} nombreCampo={nombreCampo} />
         <div className="pulso-f6-selector-acciones">
           {confirmando && <PulsoButton variant="secondary" onClick={onVolver}>Elegir otra</PulsoButton>}
           <PulsoButton

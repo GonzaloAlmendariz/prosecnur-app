@@ -1,20 +1,23 @@
-// Panel «¿Qué lámina?» (`panel=tipo-lamina`; dirección F6 §4.3). Izquierda, la pregunta del analista (intenciones);
-// centro, las composiciones candidatas dibujadas desde el estándar con los gráficos de la lámina del foco acomodados;
-// derecha, el detalle y el botón. Dos modos: cambiar el tipo de la lámina del foco (conserva sus gráficos y avisa los
-// que no caben) o insertar una lámina nueva detrás de ella. Una tarjeta es un tipo o un tipo con su payload de partida
-// (opcionesLamina.ts: «Resumen ejecutivo», H7).
+// Panel «¿Qué quieres contar?» (`panel=tipo-lamina`; ADR 0135 §1, maqueta graficos-sintesis «Main»). Izquierda, la
+// pregunta del estudio (intencionesContar.ts) y, al pie, «Ver por tipo de gráfico» con las familias de siempre
+// (tiposLamina.ts); centro, las tarjetas; derecha, el detalle y el botón. Cada tarjeta dice su clase (Gráfico, Lámina o
+// Lámina de resumen). El buscador de la cabecera filtra todas las tarjetas por nombre y por lo que responden. Dos modos:
+// cambiar la lámina del foco (conserva sus gráficos y avisa los que no caben o se reemplazan) o insertar una nueva
+// detrás de ella. Una tarjeta es un tipo o un tipo con su payload de partida (opcionesLamina.ts).
 
-import { LayoutTemplate, MousePointer2 } from "../../../../vendor/lucide-react";
+import { LayoutTemplate, MousePointer2, Search } from "../../../../vendor/lucide-react";
 import { useEffect, useId, useMemo, useRef } from "react";
 import type { GraficadorRef, Slide } from "../../../../api/graficos";
 import { toast } from "../../../../components/toasterStore";
+import { PulsoInput } from "../../../../components/PulsoInput";
 import { usePanelDireccionable } from "../../../../lib/navegacion/paneles";
-import { CATALOGO_LAMINAS } from "../../iconos/catalogoTipos.generated";
+import { CATALOGO_GRAFICOS, CATALOGO_LAMINAS } from "../../iconos/catalogoTipos.generated";
 import { ESTANDAR_LAMINAS } from "../../iconos/estandarLaminas.generated";
 import { BASE_DERIVADA } from "../../iconos/composicion";
 import { payloadPorDefecto, usePlanStore } from "../../store";
 import { useGraficosRegistry } from "../../useGraficosRegistry";
 import { graficosDeLamina, graficosPorSlot, planearCambioTipo, requiereConfirmacion, type CambioTipoLamina } from "./cambioTipoLamina";
+import { DetalleTarjetaContar } from "./DetalleTarjetaContar";
 import { DetalleTipoLamina } from "./DetalleTipoLamina";
 import { usoDeTarjeta } from "./detalleLamina";
 import { DialogoSelector } from "./DialogoSelector";
@@ -24,7 +27,10 @@ import { PANEL_TIPO_LAMINA } from "./panelesSelectores";
 import { useSelectoresUi } from "./selectoresStore";
 import { TarjetaTipoLamina } from "./TarjetaTipoLamina";
 import { conVariante, INTENCIONES, intencionDe, rotuloRanuras, varianteDe, variantesDe, type IntencionLamina } from "./tiposLamina";
-import { conOpcion, opcionDeLamina, opcionesDe, presetDe, tipoDeOpcion, type OpcionLamina } from "./opcionesLamina";
+import { cambioConOpcion, conOpcion, opcionDeLamina, opcionesDe, presetDe, tipoDeOpcion, type OpcionLamina } from "./opcionesLamina";
+import {
+  casaBusqueda, INTENCIONES_CONTAR, intencionDeTarjeta, tarjetaContar, tarjetaContarDeLamina, tarjetasDe, type IntencionContarId,
+} from "./intencionesContar";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { formatoConteo } from "../../../../lib/formatoNumero";
 
@@ -52,7 +58,11 @@ export function SelectorTipoLamina({ slide, posicion, cerrar }: Props) {
   const modo = ui.modoLamina === "cambiar" && slide ? "cambiar" : "insertar";
   const tipoActual = modo === "cambiar" && slide ? slide.tipo : null;
   const opcionActual: OpcionLamina | null = modo === "cambiar" && slide ? opcionDeLamina(slide) : null;
+  const tarjetaActual: OpcionLamina | null = modo === "cambiar" && slide ? tarjetaContarDeLamina(slide)?.clave ?? null : null;
   const intencion: IntencionLamina = ui.intencion ?? (tipoActual ? intencionDe(tipoActual) : null) ?? "una";
+  // Al cambiar una lámina que no es una tarjeta por intención, el selector abre en su familia de «Ver por tipo».
+  const porTipo = ui.porTipo ?? (modo === "cambiar" && !tarjetaActual);
+  const busqueda = ui.busqueda.trim();
 
   // Lo que el registro de esta sesión ofrece: sin los retirados del selector y, con el registro cargado, sin los que
   // este backend no conoce todavía.
@@ -65,21 +75,44 @@ export function SelectorTipoLamina({ slide, posicion, cerrar }: Props) {
       return !!meta && meta.en_selector !== false;
     }),
   })), [registry, slidesById]);
+  // Las tarjetas por intención sólo si el registro trae su lámina y su gráfico; sin registro, el catálogo generado.
+  const contarOfrecidas = useMemo(() => {
+    const graficadores = new Set(registry ? Object.keys(graficadoresById) : CATALOGO_GRAFICOS.map((g) => g.name));
+    const laminas = new Set(registry ? Object.keys(slidesById) : CATALOGO_LAMINAS.map((l) => l.name));
+    return INTENCIONES_CONTAR.map((i) => ({ ...i, lista: tarjetasDe(i, graficadores, laminas).map((t) => t.clave as OpcionLamina) }));
+  }, [registry, graficadoresById, slidesById]);
+  const contar: IntencionContarId = ui.contar
+    ?? (tarjetaActual ? intencionDeTarjeta(tarjetaActual) : null)
+    ?? contarOfrecidas.find((i) => i.lista.length > 0)?.id
+    ?? "resumir";
+  const nombreDe = (op: OpcionLamina): string => nombreDeOpcion(op, slidesById);
+  const usoDe = (op: OpcionLamina): string => usoDeOpcion(op, slidesById);
   const opciones = useMemo(() => {
-    const i = intenciones.find((x) => x.id === intencion);
-    return i ? opcionesDe(i) : [];
-  }, [intenciones, intencion]);
-  const candidato: OpcionLamina | null = ui.candidato ?? (opcionActual && opciones.includes(opcionActual) ? opcionActual : opciones[0] ?? null);
+    if (busqueda) {
+      const todas = [...contarOfrecidas.flatMap((i) => i.lista), ...intenciones.flatMap((i) => opcionesDe(i))];
+      return [...new Set(todas)].filter((op) =>
+        casaBusqueda(busqueda, [nombreDeOpcion(op, slidesById), usoDeOpcion(op, slidesById), presetDe(op)?.pide]));
+    }
+    if (porTipo) {
+      const i = intenciones.find((x) => x.id === intencion);
+      return i ? opcionesDe(i) : [];
+    }
+    return contarOfrecidas.find((i) => i.id === contar)?.lista ?? [];
+  }, [busqueda, porTipo, intenciones, intencion, contarOfrecidas, contar, slidesById]);
+  const esActual = (op: OpcionLamina): boolean => op === opcionActual || op === tarjetaActual;
+  const candidato: OpcionLamina | null = ui.candidato ?? opciones.find(esActual) ?? opciones[0] ?? null;
 
   const cambios = useMemo(() => {
     const m = new Map<OpcionLamina, CambioTipoLamina>();
     if (modo !== "cambiar" || !slide) return m;
     const actual = opcionDeLamina(slide);
+    const tarjeta = tarjetaContarDeLamina(slide)?.clave ?? null;
     for (const op of opciones) {
       const t = tipoDeOpcion(op);
       const c = planearCambioTipo(slide, t, { clavesDestino: slidesById[t]?.args.map((a) => a.name) });
-      // Otra tarjeta del mismo tipo (Hallazgos clave ⇄ Resumen ejecutivo) es un cambio, con su payload de partida.
-      m.set(op, op === actual ? c : { ...c, payload: conOpcion(op, c.payload), mismoTipo: false });
+      // Otra tarjeta del mismo tipo (Hallazgos clave ⇄ Hallazgos por capítulo, Panorama ⇄ Contraste) es un cambio, con
+      // su payload de partida; si trae otro gráfico, el de antes se avisa como sobrante.
+      m.set(op, op === actual || op === tarjeta ? c : cambioConOpcion(op, c));
     }
     return m;
   }, [modo, slide, opciones, slidesById]);
@@ -92,7 +125,6 @@ export function SelectorTipoLamina({ slide, posicion, cerrar }: Props) {
   };
   const varianteInicial = (op: OpcionLamina): string | null =>
     slide && op === opcionActual ? varianteDe(slide) : variantesDeTipo(op)?.defecto ?? null;
-  const nombreDe = (op: OpcionLamina): string => presetDe(op)?.nombre ?? nombreLamina(tipoDeOpcion(op), slidesById[tipoDeOpcion(op)]);
   const variante = candidato ? ui.variante ?? varianteInicial(candidato) : null;
   const cambio = candidato ? cambios.get(candidato) ?? null : null;
 
@@ -119,7 +151,7 @@ export function SelectorTipoLamina({ slide, posicion, cerrar }: Props) {
       cerrarYOlvidar(indice + 1);
       return;
     }
-    if (!slide || !cambio || posicion === null) return;
+    if (!slide || !cambio || posicion === null || candidato === tarjetaActual) return;
     if (requiereConfirmacion(cambio, ui.confirmando)) {
       ui.setConfirmando(true);
       return;
@@ -149,6 +181,14 @@ export function SelectorTipoLamina({ slide, posicion, cerrar }: Props) {
   const nombreG = (g: GraficadorRef) => nombreGrafico(g, graficadoresById);
   const metaOrigen = slide ? slidesById[slide.tipo] : undefined;
 
+  const tituloGaleria = busqueda
+    ? `Resultados de “${busqueda}”`
+    : porTipo ? intenciones.find((i) => i.id === intencion)?.label ?? "" : contarOfrecidas.find((i) => i.id === contar)?.nombre ?? "";
+  const cuentaGaleria = busqueda || !porTipo
+    ? `${formatoConteo(opciones.length)} ${opciones.length === 1 ? "lámina" : "láminas"}`
+    : conGraficos ? `${rotuloCuenta(opciones.length)}, con los gráficos de esta lámina` : rotuloCuenta(opciones.length);
+  const tarjetaCandidata = tarjetaContar(candidato);
+
   return (
     <DialogoSelector
       abierto={panel.abierto}
@@ -156,42 +196,90 @@ export function SelectorTipoLamina({ slide, posicion, cerrar }: Props) {
       panelProps={panel.props}
       auditReady="f6-selector-lamina"
       antetitulo={modo === "insertar" ? (posicion ? `Insertar después de la lámina ${posicion}` : "Primera lámina del informe") : `Lámina ${posicion}`}
-      titulo="¿Qué lámina?"
+      titulo="¿Qué quieres contar?"
       descripcion={modo === "insertar"
-        ? "Elige qué quieres mostrar y la composición que lo resuelve."
-        : "Cambia la composición: los gráficos que ya configuraste pasan a la lámina nueva."}
+        ? "Elige por la pregunta del estudio o por el tipo de gráfico."
+        : "Los gráficos que ya configuraste pasan a la lámina nueva."}
       focoInicialRef={focoInicialRef}
       destinoAlCerrar={() => destinoAlCerrarEnDocumento(null)}
+      buscador={(
+        <label className="pulso-f6-selector-buscar">
+          <Search size={14} aria-hidden="true" />
+          <span className="pulso-sr-only">Buscar por pregunta o tipo</span>
+          <PulsoInput type="search" size="sm" value={ui.busqueda} placeholder="Buscar por pregunta o tipo"
+            onChange={(e) => ui.buscar(e.target.value)} />
+        </label>
+      )}
       pregunta={(
-        <fieldset className="pulso-f6-opciones">
-          <legend className="pulso-f6-selector-leyenda">¿Qué quieres mostrar?</legend>
-          {intenciones.map((i) => (
-            <label key={i.id} className="pulso-f6-opcion">
+        <div className="pulso-f6-navegacion">
+          <fieldset className="pulso-f6-opciones">
+            <legend className="pulso-f6-selector-leyenda">Según la pregunta del estudio</legend>
+            {contarOfrecidas.map((i) => (
+              <label key={i.id} className="pulso-f6-opcion" data-intencion-contar={i.id}>
+                <input
+                  ref={!porTipo && i.id === contar ? focoInicialRef : undefined}
+                  type="radio"
+                  className="pulso-f6-radio-oculto"
+                  name={`${grupo}-vista`}
+                  value={i.id}
+                  checked={!porTipo && i.id === contar}
+                  disabled={i.lista.length === 0}
+                  onChange={() => ui.elegirContar(i.id)}
+                />
+                <strong>{i.nombre}</strong>
+                <span className="pulso-f6-opcion-cuenta">{formatoConteo(i.lista.length)}</span>
+                <span>{i.ayuda}</span>
+              </label>
+            ))}
+            <label className="pulso-f6-opcion is-secundaria" data-intencion-contar="por-tipo">
               <input
-                ref={i.id === intencion ? focoInicialRef : undefined}
+                ref={porTipo ? focoInicialRef : undefined}
                 type="radio"
                 className="pulso-f6-radio-oculto"
-                name={`${grupo}-intencion`}
-                value={i.id}
-                checked={i.id === intencion}
-                disabled={i.tipos.length === 0}
-                onChange={() => ui.elegirIntencion(i.id)}
+                name={`${grupo}-vista`}
+                value="por-tipo"
+                checked={porTipo}
+                onChange={() => ui.verPorTipo()}
               />
-              <strong>{i.label}</strong>
-              <span className="pulso-f6-opcion-cuenta">{formatoConteo(opcionesDe(i).length)}</span>
-              <span>{i.descripcion}</span>
+              <strong>Ver por tipo de gráfico</strong>
+              <span className="pulso-f6-opcion-cuenta">{formatoConteo(intenciones.length)}</span>
+              <span>Composiciones por familia.</span>
             </label>
-          ))}
-        </fieldset>
+          </fieldset>
+          {porTipo && (
+            <fieldset className="pulso-f6-opciones is-familias">
+              <legend className="pulso-sr-only">Familias de composiciones</legend>
+              {intenciones.map((i) => (
+                <label key={i.id} className="pulso-f6-opcion">
+                  <input
+                    type="radio"
+                    className="pulso-f6-radio-oculto"
+                    name={`${grupo}-intencion`}
+                    value={i.id}
+                    checked={i.id === intencion}
+                    disabled={i.tipos.length === 0}
+                    onChange={() => ui.elegirIntencion(i.id)}
+                  />
+                  <strong>{i.label}</strong>
+                  <span className="pulso-f6-opcion-cuenta">{formatoConteo(opcionesDe(i).length)}</span>
+                  <span>{i.descripcion}</span>
+                </label>
+              ))}
+            </fieldset>
+          )}
+        </div>
       )}
       galeria={(
         <section aria-labelledby={`${grupo}-galeria`}>
           <div className="pulso-f6-galeria-cabeza">
-            <h3 id={`${grupo}-galeria`}>{intenciones.find((i) => i.id === intencion)?.label}</h3>
-            <span>{conGraficos ? `${rotuloCuenta(opciones.length)}, con los gráficos de esta lámina` : rotuloCuenta(opciones.length)}</span>
+            <h3 id={`${grupo}-galeria`}>{tituloGaleria}</h3>
+            <span>{cuentaGaleria}</span>
           </div>
           {opciones.length === 0 ? (
-            <EstadoVacio icono={<LayoutTemplate size={16} aria-hidden="true" />} titulo="Todavía no hay láminas de este grupo" />
+            <EstadoVacio
+              icono={<LayoutTemplate size={16} aria-hidden="true" />}
+              titulo={busqueda ? "Ninguna lámina responde a esa búsqueda" : "Todavía no hay láminas de este grupo"}
+            />
           ) : (
             <ul
               className="pulso-f6-tarjetas is-laminas"
@@ -203,6 +291,7 @@ export function SelectorTipoLamina({ slide, posicion, cerrar }: Props) {
             >
               {opciones.map((op) => {
                 const t = tipoDeOpcion(op);
+                const preset = presetDe(op);
                 return (
                   <li key={op} data-qa-geometry-member>
                     <TarjetaTipoLamina
@@ -210,12 +299,14 @@ export function SelectorTipoLamina({ slide, posicion, cerrar }: Props) {
                       opcion={op}
                       tipo={t}
                       nombre={nombreDe(op)}
-                      meta={rotuloRanuras(t)}
-                      uso={presetDe(op)?.uso ?? usoDeTarjeta(t, ESTANDAR_LAMINAS[t]?.uso, slidesById[t]?.descripcion)}
+                      clase={preset?.clase ?? "lamina"}
+                      meta={preset?.grafico ? "" : rotuloRanuras(t)}
+                      uso={usoDe(op)}
+                      glifo={preset?.grafico?.graficador}
                       graficos={graficosDe(op)}
                       variante={varianteInicial(op)}
                       elegida={op === candidato}
-                      actual={op === opcionActual}
+                      actual={esActual(op)}
                       sobrantes={cambios.get(op)?.mismoTipo ? 0 : cambios.get(op)?.sobrantes.length ?? 0}
                       onElegir={() => ui.elegirCandidato(op, varianteInicial(op))}
                       onAplicar={() => { if (op !== candidato) ui.elegirCandidato(op, varianteInicial(op)); else aplicar(); }}
@@ -227,7 +318,20 @@ export function SelectorTipoLamina({ slide, posicion, cerrar }: Props) {
           )}
         </section>
       )}
-      detalle={candidato ? (
+      detalle={candidato && tarjetaCandidata ? (
+        <DetalleTarjetaContar
+          tarjeta={tarjetaCandidata}
+          modo={modo}
+          actual={candidato === tarjetaActual}
+          cambio={cambio}
+          confirmando={ui.confirmando}
+          nombreGrafico={nombreG}
+          nombreSlot={(s) => nombreSlot(s, slidesById[tarjetaCandidata.tipo] ?? metaOrigen)}
+          nombreCampo={(c) => nombreCampo(c, metaOrigen)}
+          onAplicar={aplicar}
+          onVolver={() => ui.setConfirmando(false)}
+        />
+      ) : candidato ? (
         <DetalleTipoLamina
           tipo={tipoDeOpcion(candidato)}
           nombre={nombreDe(candidato)}
@@ -247,10 +351,21 @@ export function SelectorTipoLamina({ slide, posicion, cerrar }: Props) {
           onVolver={() => ui.setConfirmando(false)}
         />
       ) : (
-        <EstadoVacio icono={<MousePointer2 size={16} aria-hidden="true" />} titulo="Elige una composición para ver su detalle" />
+        <EstadoVacio icono={<MousePointer2 size={16} aria-hidden="true" />} titulo="Elige una lámina para ver su detalle" />
       )}
     />
   );
+}
+
+type RegistroLaminas = ReturnType<typeof useGraficosRegistry>["slidesById"];
+
+function nombreDeOpcion(op: OpcionLamina, slidesById: RegistroLaminas): string {
+  return presetDe(op)?.nombre ?? nombreLamina(tipoDeOpcion(op), slidesById[tipoDeOpcion(op)]);
+}
+
+function usoDeOpcion(op: OpcionLamina, slidesById: RegistroLaminas): string {
+  const t = tipoDeOpcion(op);
+  return presetDe(op)?.uso ?? usoDeTarjeta(t, ESTANDAR_LAMINAS[t]?.uso, slidesById[t]?.descripcion);
 }
 
 const rotuloCuenta = (n: number): string => `${n} ${n === 1 ? "composición" : "composiciones"}`;

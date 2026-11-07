@@ -85,3 +85,23 @@ export function etiquetaBoton(p: EntradaBoton): EstadoBoton {
   if (p.confirmando) return { texto: "Cambiar de todos modos", deshabilitado: false };
   return { texto: "Usar esta composición", deshabilitado: false };
 }
+
+export type EntradaBotonTarjeta = {
+  modo: ModoSelectorLamina;
+  /** ¿La lámina del foco ya es esta tarjeta? */
+  actual: boolean;
+  /** Gráficos que la tarjeta reemplaza o que no caben (sólo al cambiar). */
+  sobrantes: number;
+  confirmando: boolean;
+};
+
+/** El botón del detalle de una tarjeta por intención («¿Qué quieres contar?», ADR 0135). */
+export function etiquetaBotonTarjeta(p: EntradaBotonTarjeta): EstadoBoton {
+  if (p.modo === "insertar") return { texto: "Insertar lámina", deshabilitado: false };
+  if (p.actual) return { texto: "Es la lámina actual", deshabilitado: true };
+  if (p.confirmando && p.sobrantes > 0) {
+    return { texto: `Cambiar y quitar ${p.sobrantes === 1 ? "1 gráfico" : `${p.sobrantes} gráficos`}`, deshabilitado: false };
+  }
+  if (p.confirmando) return { texto: "Cambiar de todos modos", deshabilitado: false };
+  return { texto: "Usar esta lámina", deshabilitado: false };
+}

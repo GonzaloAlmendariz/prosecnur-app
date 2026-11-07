@@ -7,23 +7,41 @@
 // (un `undefined` borra la clave). La tarjeta del tipo puede tener su propio parche: «Hallazgos clave» son las cifras
 // (`modo: "cifras"`), así que elegirla desde un resumen ejecutivo deja de ser un resumen.
 
-import type { Slide, SlideType } from "../../../../api/graficos";
+import type { GraficadorRef, Slide, SlideType } from "../../../../api/graficos";
+import { esGraficadorRef, type CambioTipoLamina } from "./cambioTipoLamina";
+import { TARJETAS_CONTAR, type ClaseTarjeta } from "./intencionesContar";
 import type { Intencion, IntencionLamina } from "./tiposLamina";
+import { SLIDE_GRAF_SLOTS } from "../../store";
 
 export type ClavePreset = `${SlideType}:${string}`;
 export type OpcionLamina = SlideType | ClavePreset;
 
 type Parche = Readonly<Record<string, unknown>>;
 
+/** El gráfico con que nace la tarjeta (ADR 0135 §1: la tarjeta, no el graficador, decide la clase). */
+export type GraficoDePreset = {
+  graficador: string;
+  /** Args de partida; un `undefined` borra la clave al aplicarlos sobre un gráfico del mismo tipo. */
+  args: Readonly<Record<string, unknown>>;
+  /** Ranura donde va (sin ella, la primera del tipo). */
+  slot?: string;
+};
+
 export type PresetLamina = {
   clave: ClavePreset;
   tipo: SlideType;
-  intencion: IntencionLamina;
+  /** La familia de «Ver por tipo de gráfico» que la ofrece (las tarjetas por intención no tienen). */
+  intencion?: IntencionLamina;
   nombre: string;
   /** Una línea de tarjeta (hasta 56 caracteres, como `usoDeTarjeta`). */
   uso: string;
   descripcion: string;
   parche: Parche;
+  grafico?: GraficoDePreset;
+  /** «Gráfico», «Lámina» o «Lámina de resumen» (ADR 0135 §1). Sin ella, «Lámina». */
+  clase?: ClaseTarjeta;
+  /** Lo que la tarjeta necesita del estudio, en una línea del detalle. */
+  pide?: string;
   /** ¿La lámina ya es esta opción? (para marcarla «Actual» y no reescribirla). */
   coincide: (payload: Readonly<Record<string, unknown>>) => boolean;
 };
@@ -35,7 +53,8 @@ export const PRESETS_LAMINA: readonly PresetLamina[] = [
     clave: "p_slide_hallazgos:resumen",
     tipo: "p_slide_hallazgos",
     intencion: "resumen",
-    nombre: "Resumen ejecutivo",
+    // ADR 0135: el mazo «Resumen ejecutivo» viene después; esta tarjeta se nombra por lo que arma.
+    nombre: "Hallazgos por capítulo",
     uso: "Por capítulo, lo que más difiere y la cifra más rotunda",
     descripcion: "Una tabla por capítulo con la diferencia más fuerte y la cifra más rotunda sin diferencia, propuestas por el motor. Se ajustan en la lámina.",
     parche: { modo: "resumen", seleccion: "auto" },
@@ -50,7 +69,7 @@ const PARCHE_DEL_TIPO: Readonly<Partial<Record<SlideType, Parche>>> = {
 };
 
 export function presetDe(op: OpcionLamina | null | undefined): PresetLamina | null {
-  return PRESETS_LAMINA.find((p) => p.clave === op) ?? null;
+  return PRESETS_LAMINA.find((p) => p.clave === op) ?? TARJETAS_CONTAR.find((p) => p.clave === op) ?? null;
 }
 
 export function tipoDeOpcion(op: OpcionLamina): SlideType {
@@ -69,14 +88,57 @@ export function opcionDeLamina(slide: Pick<Slide, "tipo" | "payload">): OpcionLa
   return PRESETS_LAMINA.find((p) => p.tipo === slide.tipo && p.coincide(payload))?.clave ?? slide.tipo;
 }
 
-/** El payload con la opción puesta (un `undefined` del parche borra la clave). */
-export function conOpcion(op: OpcionLamina, payload: Readonly<Record<string, unknown>>): Record<string, unknown> {
-  const parche = presetDe(op)?.parche ?? PARCHE_DEL_TIPO[op as SlideType];
-  if (!parche) return { ...payload };
-  const out: Record<string, unknown> = { ...payload };
+function conParche(base: Readonly<Record<string, unknown>>, parche: Parche): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...base };
   for (const [k, v] of Object.entries(parche)) {
     if (v === undefined) delete out[k];
     else out[k] = v;
   }
   return out;
+}
+
+/** La ranura donde va el gráfico de la tarjeta: la declarada o la primera del tipo. */
+export function ranuraDePreset(preset: Pick<PresetLamina, "tipo" | "grafico">): string | null {
+  return preset.grafico?.slot ?? SLIDE_GRAF_SLOTS[preset.tipo]?.[0] ?? null;
+}
+
+/**
+ * El gráfico de la tarjeta sobre lo que ya hay en su ranura: si es el mismo graficador conserva sus args y sólo escribe
+ * los de la tarjeta (el contraste pasa a ser aperturas sin perder sus preguntas); si es otro, lo reemplaza.
+ */
+export function graficoConPreset(previo: unknown, g: GraficoDePreset): GraficadorRef {
+  if (esGraficadorRef(previo) && previo.graficador === g.graficador) {
+    return { graficador: g.graficador, args: conParche(previo.args ?? {}, g.args) };
+  }
+  return { graficador: g.graficador, args: conParche({}, g.args) };
+}
+
+/** El payload con la opción puesta (un `undefined` del parche borra la clave). */
+export function conOpcion(op: OpcionLamina, payload: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  const preset = presetDe(op);
+  const parche = preset?.parche ?? PARCHE_DEL_TIPO[op as SlideType];
+  const out = parche ? conParche(payload, parche) : { ...payload };
+  const slot = preset?.grafico ? ranuraDePreset(preset) : null;
+  if (preset?.grafico && slot) out[slot] = graficoConPreset(payload[slot], preset.grafico);
+  return out;
+}
+
+/**
+ * El cambio de tipo con la tarjeta puesta. Cuando la tarjeta trae un gráfico distinto del que ocupa su ranura, el de
+ * antes se pierde: entra en `sobrantes` para que el selector lo diga y pida confirmarlo antes de aplicar.
+ */
+export function cambioConOpcion(op: OpcionLamina, cambio: CambioTipoLamina): CambioTipoLamina {
+  const preset = presetDe(op);
+  const payload = conOpcion(op, cambio.payload);
+  const slot = preset?.grafico ? ranuraDePreset(preset) : null;
+  if (!preset?.grafico || !slot) return { ...cambio, payload, mismoTipo: false };
+  const previo = cambio.payload[slot];
+  const reemplaza = esGraficadorRef(previo) && previo.graficador !== preset.grafico.graficador;
+  return {
+    ...cambio,
+    payload,
+    mismoTipo: false,
+    conservados: reemplaza ? cambio.conservados.filter((r) => r.hacia !== slot) : cambio.conservados,
+    sobrantes: reemplaza && esGraficadorRef(previo) ? [...cambio.sobrantes, { slot, grafico: previo }] : cambio.sobrantes,
+  };
 }

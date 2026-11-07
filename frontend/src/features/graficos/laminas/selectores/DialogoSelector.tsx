@@ -19,6 +19,8 @@ type Props = {
   descripcion: string;
   /** Lo que recibe el foco al abrir (la opción elegida de la primera columna). */
   focoInicialRef: RefObject<HTMLInputElement>;
+  /** Campo de búsqueda en la cabecera, entre el título y el botón de cerrar (opcional). */
+  buscador?: ReactNode;
   pregunta: ReactNode;
   galeria: ReactNode;
   detalle: ReactNode;
@@ -31,7 +33,7 @@ type Props = {
 };
 
 export function DialogoSelector({
-  abierto, onCerrar, panelProps, auditReady, antetitulo, titulo, descripcion, focoInicialRef, pregunta, galeria, detalle,
+  abierto, onCerrar, panelProps, auditReady, antetitulo, titulo, descripcion, focoInicialRef, buscador, pregunta, galeria, detalle,
   destinoAlCerrar, className,
 }: Props) {
   const anclaRef = useRef<HTMLSpanElement>(null);
@@ -60,6 +62,7 @@ export function DialogoSelector({
                 <Dialog.Title className="pulso-f6-selector-titulo">{titulo}</Dialog.Title>
                 <Dialog.Description className="pulso-f6-selector-descripcion">{descripcion}</Dialog.Description>
               </div>
+              {buscador && <div className="pulso-f6-selector-buscador">{buscador}</div>}
               <Dialog.Close className="pulso-f6-icono-boton pulso-f6-selector-cerrar" aria-label="Cerrar sin cambiar">
                 <X size={16} aria-hidden="true" />
               </Dialog.Close>

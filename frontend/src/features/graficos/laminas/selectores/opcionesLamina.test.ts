@@ -5,10 +5,10 @@ import { INTENCIONES } from "./tiposLamina";
 
 const resumir = INTENCIONES.find((i) => i.id === "resumen")!;
 
-describe("«Resumen ejecutivo» como tarjeta propia (H7)", () => {
-  it("«Resumir el informe» ofrece Resumen ejecutivo, Hallazgos clave y Resumen de diferencias", () => {
+describe("«Hallazgos por capítulo» como tarjeta propia (H7; ADR 0135)", () => {
+  it("«Resumir el informe» ofrece Hallazgos por capítulo, Hallazgos clave y Resumen de diferencias", () => {
     expect(opcionesDe(resumir)).toEqual(["p_slide_hallazgos:resumen", "p_slide_hallazgos", "p_slide_resumen_diferencias"]);
-    expect(presetDe("p_slide_hallazgos:resumen")?.nombre).toBe("Resumen ejecutivo");
+    expect(presetDe("p_slide_hallazgos:resumen")?.nombre).toBe("Hallazgos por capítulo");
     expect(tipoDeOpcion("p_slide_hallazgos:resumen")).toBe("p_slide_hallazgos");
     expect(tipoDeOpcion("p_slide_resumen_diferencias")).toBe("p_slide_resumen_diferencias");
   });
