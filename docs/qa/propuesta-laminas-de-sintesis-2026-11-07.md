@@ -36,6 +36,10 @@ Autoridad: Gonzalo, 2026-11-07, tras ver los gráficos del resumen ejecutivo en 
 - La tarjeta abre con la **regla** ya puesta («Todas las preguntas de escala de: Docentes, Estudiantes, Administrativos») y un contador («157 preguntas»); se puede afinar a mano después.
 - Un mazo **Resumen ejecutivo** que arma en orden: cobertura → panorama → brechas → bajo umbral → desconocimiento → aperturas → tendencia → cierre, con títulos sugeridos a partir de los datos («Los estudiantes valoran más; los docentes concentran las preguntas bajo 60%») que el analista corrige.
 
+## Maqueta para aprobación
+
+Gonzalo, 2026-11-07: «propón una vista moderna de UI para seleccionar tipos de gráficos… debe ser una propuesta coherente centrada en el producto… en la accesibilidad del analista de armarlas desde cero… debe estar en un artefacto para su aprobación». Maqueta: <https://claude.ai/artifact/QdTnLf95feciWxy2YDtt2X> (privada hasta que se comparta). Tres tableros: el estudio de láminas (eliges qué quieres contar, galería con miniaturas, regla de preguntas con conteo y lámina en vivo con título sugerido), el mazo «Resumen ejecutivo» en un clic y el catálogo de síntesis (existe, mejorada o nueva).
+
 ## Decisiones que necesita Gonzalo
 
 1. ¿La entrada es una familia nueva en el selector («Resumir el estudio») o un mazo que arma todo de una vez? (Se pueden hacer las dos; la pregunta es cuál va primero.)
