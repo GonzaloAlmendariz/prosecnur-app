@@ -3,23 +3,18 @@ import type { HojasRutaTerritory } from "../../../../api/hojasRuta";
 import { formatoConteo } from "../../../../lib/formatoNumero";
 import { leyendaLienzo } from "../lienzo/flotantes";
 import "./capaDistritos.css";
-import { FichaDistritoNacional } from "../nacional/FichaDistritoNacional";
 import { CAPAS_DISTRITOS, NOMBRE_NSE, type CapaDistritos, type EscalaDistritos } from "./capaDistritos";
 
-// Nombres literales: el contrato de tokens no lee nombres armados.
-const NSE_TOKEN = ["--pulso-nse-0", "--pulso-nse-1", "--pulso-nse-2", "--pulso-nse-3", "--pulso-nse-4", "--pulso-nse-5"] as const;
-
-/**
- * Ficha del distrito al que se hace clic con una ciudad abierta en el atlas. Antes ese clic caía en «fuera de
- * una ciudad» y devolvía al Perú (revisión del 7 nov 2026); ahora la ciudad sigue abierta y el distrito se lee.
- */
-export function FichaDistritoAtlas({ territorio, ciudad, areaKm2, onCerrar }: { territorio: HojasRutaTerritory; ciudad: string; areaKm2: number | null; onCerrar: () => void }) {
-  const nse = territorio.nse_predominante;
-  const conNse = typeof nse === "number" && nse >= 1 && nse <= 5;
-  const linea = conNse ? `NSE predominante: ${NOMBRE_NSE[nse].toLowerCase()}` : null;
-  // La densidad que pinta la capa Población, con la misma área (la del contorno del distrito).
-  const densidad = areaKm2 && areaKm2 > 0 ? `${formatoConteo(Math.round(territorio.poblacion / areaKm2))} habitantes por km²` : null;
-  return <FichaDistritoNacional territorio={territorio} ciudad={ciudad} previa={densidad} linea={linea} marca={conNse ? `var(${NSE_TOKEN[nse]})` : undefined} onCerrar={onCerrar} />;
+/** El valor de un distrito en la capa que se ve, para el rótulo del cursor: «13,995 habitantes por km²», «NSE predominante: medio». */
+export function valorDeCapa(capa: CapaDistritos, t: HojasRutaTerritory, areaKm2: number | null): string {
+  const por = (n: number, que: string) => (areaKm2 && areaKm2 > 0 ? `${formatoConteo(Math.round(n / areaKm2))} ${que} por km²` : "sin área");
+  if (capa === "poblacion") return por(t.poblacion, "habitantes");
+  if (capa === "viviendas") return por(t.viviendas, "viviendas");
+  if (capa === "nse") {
+    const n = t.nse_predominante;
+    return typeof n === "number" && n >= 1 && n <= 5 ? `NSE predominante: ${NOMBRE_NSE[n].toLowerCase()}` : "NSE sin dato";
+  }
+  return `${formatoConteo(t.poblacion)} habitantes, ${formatoConteo(t.viviendas)} viviendas`;
 }
 
 /** Selector de la capa de distritos de la ciudad abierta en el atlas (mismo control que el de manzanas). */

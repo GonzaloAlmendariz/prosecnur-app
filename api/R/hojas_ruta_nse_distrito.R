@@ -44,10 +44,19 @@ hojas_ruta_nse_por_distrito <- function() {
   valor
 }
 
-#' Columna `nse_predominante` para una lista de ubigeos (NA donde no hay NSE).
+#' NSE de una lista de ubigeos para los territorios: el nivel predominante y la proporción de hogares en
+#' cada nivel (`nse_pct_1` Alto … `nse_pct_5` Bajo, 0 a 1). NA donde no hay NSE. El reparto va a la ficha del
+#' distrito: «medio» predominante puede esconder un 40 % de hogares bajos (revisión del 7 nov 2026).
 #' @noRd
 hojas_ruta_nse_columnas <- function(ubigeos) {
   ubigeos <- sprintf("%06s", as.character(ubigeos))
   tabla <- hojas_ruta_nse_por_distrito()
-  data.frame(nse_predominante = tabla$nse_predominante[match(ubigeos, tabla$ubigeo)])
+  i <- match(ubigeos, tabla$ubigeo)
+  out <- data.frame(nse_predominante = tabla$nse_predominante[i])
+  total <- tabla$nse_hogares[i]
+  for (k in 1:5) {
+    hogares <- if (paste0("nse_", k) %in% names(tabla)) tabla[[paste0("nse_", k)]][i] else rep(NA_real_, length(i))
+    out[[paste0("nse_pct_", k)]] <- ifelse(!is.na(total) & total > 0, round(hogares / total, 4), NA_real_)
+  }
+  out
 }

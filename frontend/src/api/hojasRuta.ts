@@ -560,6 +560,12 @@ export type HojasRutaTerritory = {
   g?: number | null;
   /** NSE que predomina entre los hogares del distrito, 1 (Alto) a 5 (Bajo); null sin NSE empaquetado. */
   nse_predominante?: number | null;
+  /** Proporción de hogares por nivel NSE (0 a 1): 1 = Alto … 5 = Bajo; null sin NSE. */
+  nse_pct_1?: number | null;
+  nse_pct_2?: number | null;
+  nse_pct_3?: number | null;
+  nse_pct_4?: number | null;
+  nse_pct_5?: number | null;
 };
 
 export type HojasRutaAlert = {

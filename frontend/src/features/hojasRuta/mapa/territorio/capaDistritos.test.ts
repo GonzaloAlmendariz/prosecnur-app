@@ -51,3 +51,13 @@ describe("leyenda escalonada", () => {
     expect(corteCorto(1000)).toBe("1 mil");
   });
 });
+
+describe("rótulo del cursor en el atlas", () => {
+  it("dice el valor de la capa que se ve", async () => {
+    const { valorDeCapa } = await import("./CapaDistritosControles");
+    const d = t("150128", 169_458, 3);
+    expect(valorDeCapa("poblacion", d, 12.1)).toBe("14,005 habitantes por km²");
+    expect(valorDeCapa("nse", d, 12.1)).toBe("NSE predominante: medio");
+    expect(valorDeCapa("poblacion", d, null)).toBe("sin área");
+  });
+});

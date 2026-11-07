@@ -640,7 +640,7 @@ hojas_ruta_contexto_curado_path <- function() {
 .hojas_ruta_inei_frame_cache <- new.env(parent = emptyenv())
 .hojas_ruta_inei_frame_summary_cache <- new.env(parent = emptyenv())
 .hojas_ruta_inei_age_simple_cache <- new.env(parent = emptyenv())
-.hojas_ruta_inei_frame_summary_cache_version <- "summary-v5-nse-distrito"
+.hojas_ruta_inei_frame_summary_cache_version <- "summary-v6-nse-reparto"
 
 .hojas_ruta_frame_summary_signature <- function(source, path, info) {
   paste(

@@ -58,6 +58,9 @@ type EstadoLienzo = {
   /** Capa de los distritos de la ciudad abierta en el atlas de Territorio: población, viviendas o NSE. */
   capaDistritos: CapaDistritos;
   setCapaDistritos: (capa: CapaDistritos) => void;
+  /** Atlas: el distrito cuyas manzanas se ven (la vista más profunda del atlas); null, sólo el distrito. */
+  manzanasDistrito: string | null;
+  setManzanasDistrito: (ubigeo: string | null) => void;
   /** Cajón inferior de Población (brecha B17/B29): la matriz entera, fuera del inspector. */
   cajonPoblacion: "matriz" | "pct" | null;
   setCajonPoblacion: (v: "matriz" | "pct" | null) => void;
@@ -79,7 +82,7 @@ type EstadoLienzo = {
   reiniciar: () => void;
 };
 
-const INICIAL = { borrador: null, busquedaDistrito: "", soloElegidos: false, distritoBajoCursor: null, umpBajoCursor: null as string | null, manzanaBajoCursor: null as string | null, rangosBorrador: null, muestraBorrador: null, sorteoBorrador: null, dibujoArea: null, soloPorRevisar: false, busquedaUmp: "", capaMapa: "manzanas" as CapaLienzo, capaDistritos: "distritos" as CapaDistritos, zonaFiltro: null as string | null, distritoEnfocado: null as string | null, ciudadEnfocada: null as string | null, departamentoEnfocado: null as string | null, manzanaEnfocada: null as string | null, cajonPoblacion: null as "matriz" | "pct" | null, cajonMuestra: false, escenariosMuestra: [] as EscenarioMuestra[], cortesBorrador: null as { modo: HojasRutaAgeRangeMode; base: HojasRutaAgeRangeScope } | null };
+const INICIAL = { borrador: null, busquedaDistrito: "", soloElegidos: false, distritoBajoCursor: null, umpBajoCursor: null as string | null, manzanaBajoCursor: null as string | null, rangosBorrador: null, muestraBorrador: null, sorteoBorrador: null, dibujoArea: null, soloPorRevisar: false, busquedaUmp: "", capaMapa: "manzanas" as CapaLienzo, capaDistritos: "distritos" as CapaDistritos, manzanasDistrito: null as string | null, zonaFiltro: null as string | null, distritoEnfocado: null as string | null, ciudadEnfocada: null as string | null, departamentoEnfocado: null as string | null, manzanaEnfocada: null as string | null, cajonPoblacion: null as "matriz" | "pct" | null, cajonMuestra: false, escenariosMuestra: [] as EscenarioMuestra[], cortesBorrador: null as { modo: HojasRutaAgeRangeMode; base: HojasRutaAgeRangeScope } | null };
 
 export const useLienzoHojasRuta = create<EstadoLienzo>((set) => ({
   ...INICIAL,
@@ -92,13 +95,14 @@ export const useLienzoHojasRuta = create<EstadoLienzo>((set) => ({
   setSoloPorRevisar: (soloPorRevisar) => set({ soloPorRevisar }),
   setCapaMapa: (capaMapa) => set({ capaMapa }),
   setCapaDistritos: (capaDistritos) => set({ capaDistritos }),
+  setManzanasDistrito: (manzanasDistrito) => set({ manzanasDistrito }),
   setCajonPoblacion: (cajonPoblacion) => set({ cajonPoblacion }),
   setCajonMuestra: (cajonMuestra) => set({ cajonMuestra }),
   setEscenariosMuestra: (escenariosMuestra) => set({ escenariosMuestra }),
   setZonaFiltro: (zonaFiltro) => set({ zonaFiltro }),
   setDistritoEnfocado: (distritoEnfocado) => set({ distritoEnfocado }),
   // Otra ciudad (o ninguna): la ficha del distrito de la anterior se cierra.
-  setCiudadEnfocada: (ciudadEnfocada) => set({ ciudadEnfocada, distritoEnfocado: null }),
+  setCiudadEnfocada: (ciudadEnfocada) => set({ ciudadEnfocada, distritoEnfocado: null, manzanasDistrito: null }),
   setDepartamentoEnfocado: (departamentoEnfocado) => set({ departamentoEnfocado }),
   setManzanaEnfocada: (manzanaEnfocada) => set({ manzanaEnfocada }),
   setBusquedaUmp: (busquedaUmp) => set({ busquedaUmp }),

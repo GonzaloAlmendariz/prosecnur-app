@@ -6,6 +6,7 @@ import { proyectarLonLat } from "../lienzo/camara";
 import type { CiudadAtlas } from "./ciudades";
 import { ciudadesDeDepartamento } from "./atlasFoco";
 import "./atlas.css";
+import { DistritoAtlasTarjeta, type DistritoAtlas } from "./DistritoAtlasTarjeta";
 
 import { formatoDecimal } from "../../../../lib/formatoNumero";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
@@ -118,9 +119,24 @@ type InspectorProps = {
   onQuitar: (codigo: string) => void;
 };
 
-export function AtlasInspector(props: InspectorProps) {
+/** El distrito elegido en la ciudad abierta: su tarjeta reemplaza a la de la ciudad (H21). */
+type DistritoProps = {
+  distrito: DistritoAtlas | null;
+  adentro: boolean;
+  cargandoManzanas: boolean;
+  errorManzanas: string | null;
+  manzanas: number | null;
+  onVerManzanas: () => void;
+  onVolverCiudad: () => void;
+};
+
+export function AtlasInspector(props: InspectorProps & DistritoProps) {
+  const { distrito, adentro, cargandoManzanas, errorManzanas, manzanas, onVerManzanas, onVolverCiudad, ...ciudad } = props;
+  if (distrito && ciudad.ciudad) {
+    return <DistritoAtlasTarjeta ciudad={ciudad.ciudad.nombre} distrito={distrito} adentro={adentro} cargandoManzanas={cargandoManzanas} errorManzanas={errorManzanas} manzanas={manzanas} onVerManzanas={onVerManzanas} onVolver={onVolverCiudad} />;
+  }
   // La confirmación de quitar es de UNA ciudad: al abrir otra, vuelve a pedirse.
-  return <AtlasInspectorCiudad key={props.ciudad?.codigo ?? ""} {...props} />;
+  return <AtlasInspectorCiudad key={ciudad.ciudad?.codigo ?? ""} {...ciudad} />;
 }
 
 function AtlasInspectorCiudad({ ciudad, enEstudio, elegidos, totalCiudades, bloqueado, guardando, onAgregar, onAbrir, onQuitar }: InspectorProps) {
@@ -216,7 +232,7 @@ export function CiudadCabecera({ ciudad, onVolver }: { ciudad: CiudadAtlas; onVo
 }
 
 /** Miga del atlas por niveles: Perú › departamento › ciudad, con cada nivel clicable para subir. */
-export function MigaAtlas({ total, departamento, ciudad, distritos, cargando, fallo = false, onReintentar, enEstudio = false, onPeru, onDepartamento }: {
+export function MigaAtlas({ total, departamento, ciudad, distritos, cargando, fallo = false, onReintentar, distrito = null, adentro = false, onCiudad, enEstudio = false, onPeru, onDepartamento }: {
   total: number;
   /** Si la ciudad ya está en el estudio: sólo entonces existe «Elegir distritos». */
   enEstudio?: boolean;
@@ -227,6 +243,11 @@ export function MigaAtlas({ total, departamento, ciudad, distritos, cargando, fa
   /** Si el pedido de sus distritos falló: «0 distritos» se leía como una ciudad sin distritos (revisión del 7 nov 2026). */
   fallo?: boolean;
   onReintentar?: () => void;
+  /** El distrito elegido (H21): la miga baja un nivel y la ciudad pasa a ser un enlace de vuelta. */
+  distrito?: string | null;
+  /** Si se ven sus manzanas. */
+  adentro?: boolean;
+  onCiudad?: () => void;
   onPeru: () => void;
   onDepartamento: (nombre: string) => void;
 }) {
@@ -236,13 +257,20 @@ export function MigaAtlas({ total, departamento, ciudad, distritos, cargando, fa
     <>
       <button type="button" className="hr-miga-nivel" onClick={onPeru}>Perú</button>
       {dep ? <> › {ciudad ? <button type="button" className="hr-miga-nivel" onClick={() => onDepartamento(dep)}>{dep}</button> : <b>{dep}</b>}</> : null}
-      {ciudad ? <> › <b>{ciudad.nombre}</b></> : null}
-      <span className="hr-lienzo-miga-ayuda">
+      {ciudad && distrito ? (
+        <>
+          {" › "}
+          <button type="button" className="hr-miga-nivel" onClick={onCiudad}>{ciudad.nombre}</button> › <b>{distrito}</b>
+          {adentro ? <span className="hr-lienzo-miga-ayuda">(sus manzanas)</span> : null}
+        </>
+      ) : null}
+      {ciudad && !distrito ? <> › <b>{ciudad.nombre}</b></> : null}
+      {ciudad && distrito ? null : <span className="hr-lienzo-miga-ayuda">
         {/* Nombra el botón que de verdad está en la ficha: fuera del estudio es «Agregar al estudio». */}
         {/* Entre paréntesis: con el hueco del contenedor flex, una coma inicial quedaba suelta («Perú , 26…»). */}
         {/* Sólo el dato: la acción («Elegir distritos» / «Agregar al estudio») ya está en la ficha y la frase truncaba la píldora. */}
         {ciudad ? (cargando ? "(cargando sus distritos…)" : fallo && !distritos ? "(no se pudieron cargar sus distritos)" : `(${distritos} distrito${distritos === 1 ? "" : "s"}${enEstudio ? ", en el estudio" : ""})`) : "(clic en una ciudad para ver su ficha)"}
-      </span>
+      </span>}
       {ciudad && fallo && !distritos && onReintentar ? <button type="button" className="hr-miga-nivel" onClick={onReintentar}>Reintentar</button> : null}
     </>
   );

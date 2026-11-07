@@ -23,8 +23,6 @@
 .hr-nac-ficha { gap: 12px; padding: 14px 16px; }
 .hr-nac-ficha .hr-ter-ficha-cifras dd { margin-top: 4px; font-size: var(--pulso-type-title-size); font-weight: 650; letter-spacing: -0.01em; }
 .hr-nac-ficha .hr-ter-ficha-nota { display: flex; align-items: center; gap: 8px; padding-top: 10px; border-top: 1px solid var(--pulso-border); }
-/* La densidad y el NSE van bajo un mismo divisor. */
-.hr-nac-ficha .hr-nac-ficha-previa + .hr-ter-ficha-nota { padding-top: 0; border-top: 0; margin-top: -6px; }
 .hr-nac-ficha-marca { flex: none; width: 10px; height: 10px; border-radius: 3px; }
 @media (max-width: 1100px) {
   .hr-lienzo-miga:has(.hr-miga-nacional) { max-width: min(360px, calc(100% - 24px)); }
