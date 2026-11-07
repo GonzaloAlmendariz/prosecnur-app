@@ -11,6 +11,7 @@ import type { XlsformEditorWorkbook } from "../types";
 import { FichaConstructor, type AccionesFicha } from "../canvas/ficha/FichaConstructor";
 import { generarConjoint, type DisenoConjoint } from "../conjoint/modeloConjoint";
 import { generarVinetas, vinetasIniciales } from "../conjoint/modeloVinetas";
+import { generarVersiones } from "../conjoint/modeloVersiones";
 import { PestanaExperimentos } from "./PestanaExperimentos";
 
 const diseno: DisenoConjoint = {
@@ -65,6 +66,18 @@ describe("pestaña Experimentos", () => {
     expect(html).toContain("Escenario");
     expect(html).toContain("Aplicar cambios");
     expect(html).toContain("Un escenario con atributos sorteados; se califica");
+  });
+
+  test("una pregunta con versiones al azar se lista por su código y abre su diseño (C12)", () => {
+    const wb = formulario(false);
+    insertRecord(wb.choices, 0, { list_name: "acuerdo", name: "1", label: "Sí" });
+    const filas = generarVersiones({ prefijo: "vs", pregunta: "P5", tipo: "select_one", lista: "acuerdo", obligatoria: true, versiones: [{ texto: "¿Apoya?" }, { texto: "¿Apoya, aunque cueste?" }] });
+    filas.forEach((f, i) => insertRecord(wb.survey, i + 1, { ...f }));
+    const html = pintar(wb);
+    expect(html).toContain("P5: 2 versiones");
+    expect(html).toContain("Versiones al azar");
+    expect(html).toContain("¿Apoya, aunque cueste?");
+    expect(html).toContain("Aplicar cambios");
   });
 
   test("sin experimento abre uno nuevo para insertar", () => {

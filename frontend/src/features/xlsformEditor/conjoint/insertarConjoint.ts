@@ -10,6 +10,8 @@ import type { LecturaConjoint } from "./leerConjoint";
 import { generarConjoint, validarDiseno, type DisenoConjoint } from "./modeloConjoint";
 import { generarVinetas, validarVinetas, type DisenoVinetas } from "./modeloVinetas";
 import type { LecturaVinetas } from "./leerVinetas";
+import type { LecturaVersiones } from "./leerVersiones";
+import { generarVersiones, validarVersiones, type DisenoVersiones } from "./modeloVersiones";
 
 export type ResultadoConjoint =
   | { ok: true; rowIndex: number; filas: number; calculos: number }
@@ -85,6 +87,8 @@ export function reemplazarBloque(
   [...quitar].sort((a, b) => b - a).forEach((i) => deleteRow(draft.survey, i));
   survey.forEach((f, k) => insertRecord(draft.survey, indice + k, { ...f }));
 
+  // Sin lista propia (versiones al azar usa una lista del formulario), choices no se toca.
+  if (!bloque.lista) return { ok: true, rowIndex: indice, filas: survey.length, calculos: survey.filter((f) => f.type === "calculate").length };
   const deLista = draft.choices.rows.map((_, i) => i).filter((i) => (rowToRecord(draft.choices, i).list_name ?? "").trim() === bloque.lista);
   const enChoices = deLista.length ? deLista[0]! : draft.choices.rows.length;
   deLista.sort((a, b) => b - a).forEach((i) => deleteRow(draft.choices, i));
@@ -147,4 +151,22 @@ export function reemplazarVinetas(draft: XlsformEditorWorkbook, lectura: Lectura
   const { survey, choices } = generarVinetas(diseno, lectura.nombres);
   const ancla = lectura.intro ?? lectura.vinetas[0]!.grupo;
   return reemplazarBloque(draft, { filas: lectura.filas, ancla, lista: lectura.nombres.lista, fiel: lectura.fiel, motivo: lectura.motivo }, survey, choices);
+}
+
+/** Listas de opciones del formulario (para validar la de una pregunta con versiones). */
+export const listasDe = (draft: XlsformEditorWorkbook) => [...columnaDe(draft, "choices", "list_name")];
+
+/** Una pregunta con versiones al azar nueva, en el lugar del «+». */
+export function insertarVersiones(draft: XlsformEditorWorkbook, structure: BuilderStructure, destino: DestinoInsercion, diseno: DisenoVersiones): ResultadoConjoint {
+  const problemas = validarVersiones(diseno, listasDe(draft));
+  if (problemas.length) return { ok: false, motivos: problemas };
+  return insertarBloque(draft, structure, destino, generarVersiones(diseno), [], diseno.prefijo);
+}
+
+/** La pregunta con versiones al azar ya escrita, con el diseño editado. */
+export function reemplazarVersiones(draft: XlsformEditorWorkbook, lectura: LecturaVersiones, diseno: DisenoVersiones): ResultadoConjoint {
+  if (!lectura.fiel) return { ok: false, motivos: [lectura.motivo ?? "El experimento no se puede editar desde aquí."] };
+  const problemas = validarVersiones(diseno, listasDe(draft));
+  if (problemas.length) return { ok: false, motivos: problemas };
+  return reemplazarBloque(draft, { filas: lectura.filas, ancla: lectura.filas[0]!, lista: "", fiel: true, motivo: null }, generarVersiones(diseno), []);
 }

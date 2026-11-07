@@ -172,11 +172,12 @@ import { deriveEditorHeaderStatus } from "./shell/editorHeaderStatus";
 import { contextoResumen } from "./resumen/contextoResumen";
 import { PestanaImpreso } from "./impreso/PestanaImpreso";
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
-import { FOCO_NUEVO_PARES, FOCO_PARES, FOCO_VINETAS, PestanaExperimentos } from "./pestanas/PestanaExperimentos";
+import { FOCO_NUEVO_PARES, FOCO_PARES, FOCO_VINETAS, focoVersiones, PestanaExperimentos } from "./pestanas/PestanaExperimentos";
 import { conEjemploParaPapel } from "./cuestionario/ejemploSorteo";
 import { itemAltaConjoint } from "./conjoint/altaConjoint";
 import { leerConjoint } from "./conjoint/leerConjoint";
 import { leerVinetas } from "./conjoint/leerVinetas";
+import { leerVersiones } from "./conjoint/leerVersiones";
 import { esperarExportPapel, textoExportando } from "./shell/paperExportJob";
 import { ToastDeck, useToastDeck } from "./shell/ToastDeck";
 import { EditorCommandBar } from "./shell/EditorCommandBar";
@@ -930,6 +931,7 @@ export default function XlsformEditorPage() {
   // Experimento de elección por pares ya escrito (C5): Estructura pliega el sorteo de cada par y lo abre en el panel.
   const lecturaPares = useMemo(() => leerConjoint(workbook), [workbook]);
   const lecturaVinetas = useMemo(() => leerVinetas(workbook), [workbook]);
+  const lecturasVersiones = useMemo(() => leerVersiones(workbook), [workbook]);
   const tareaDeSorteo = useMemo(
     () => (lecturaPares || lecturaVinetas ? (fila: number) => lecturaPares?.sorteo.get(fila) ?? lecturaVinetas?.sorteo.get(fila) : undefined),
     [lecturaPares, lecturaVinetas],
@@ -943,8 +945,9 @@ export default function XlsformEditorPage() {
     const m = new Map<number, string>();
     lecturaPares?.pares.forEach((p) => m.set(p.tabla, `Tabla del par ${p.tarea}`));
     lecturaVinetas?.vinetas.forEach((v) => m.set(v.nota, `Escenario de la viñeta ${v.vineta}`));
+    lecturasVersiones.forEach((l) => m.set(l.pregunta, `Pregunta con ${l.diseno.versiones.length} versiones`));
     return m.size ? (fila: number) => m.get(fila) : undefined;
-  }, [lecturaPares, lecturaVinetas]);
+  }, [lecturaPares, lecturaVinetas, lecturasVersiones]);
   // Cada experimento lleva su cabecera en Estructura (C7 pares, C11 viñetas).
   const experimentosEstructura = useMemo(() => {
     const out: { filas: Set<number>; titulo: string; resumen: string }[] = [];
@@ -960,8 +963,11 @@ export default function XlsformEditorPage() {
       const n = lecturaVinetas.vinetas.length;
       out.push({ filas, titulo: "Experimento de viñetas", resumen: `${n} ${n === 1 ? "viñeta" : "viñetas"}, ${lecturaVinetas.diseno.atributos.length} atributos` });
     }
+    for (const l of lecturasVersiones) {
+      out.push({ filas: new Set(l.filas), titulo: "Versiones al azar", resumen: `${l.diseno.pregunta}: ${l.diseno.versiones.length} versiones` });
+    }
     return out;
-  }, [lecturaPares, lecturaVinetas]);
+  }, [lecturaPares, lecturaVinetas, lecturasVersiones]);
 
   // Candidatos de matriz para el selector de exportación a PDF: runs contiguos
   // de select_one/select_multiple con misma lista dentro de la misma sección.
@@ -2828,7 +2834,11 @@ export default function XlsformEditorPage() {
                         experimentos={experimentosEstructura}
                         rotuloSorteo={rotuloSorteo}
                         tituloFijo={tituloFijo}
-                        onAbrirPares={(fila) => pestanaEditor.irConFoco("experimentos", fila != null && lecturaVinetas && (lecturaVinetas.sorteo.has(fila) || lecturaVinetas.filas.includes(fila)) ? FOCO_VINETAS : FOCO_PARES)}
+                        onAbrirPares={(fila) => {
+                          const vs = fila == null ? undefined : lecturasVersiones.find((l) => l.filas.includes(fila));
+                          const vin = fila != null && lecturaVinetas && (lecturaVinetas.sorteo.has(fila) || lecturaVinetas.filas.includes(fila));
+                          pestanaEditor.irConFoco("experimentos", vs ? focoVersiones(vs.diseno.pregunta) : vin ? FOCO_VINETAS : FOCO_PARES);
+                        }}
                         accionBarra={
                           // En pantallas bajas la cabecera «Estructura» se esconde para dar alto a la lista (I2) y
                           // «Añadir pieza» pasa a la barra de búsqueda.

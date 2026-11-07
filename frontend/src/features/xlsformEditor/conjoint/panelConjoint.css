@@ -262,3 +262,12 @@
 
 .xfe-conjoint__numero { display: grid; grid-template-columns: 180px; }
 .xfe-conjoint__numero > .pulso-field { flex: none; }
+
+/* Versiones al azar (C12, 2026-11-07): rótulo, texto, peso (si hay) y quitar en columnas fijas. */
+.xfe-conjoint__versiones { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.xfe-conjoint__versiones li { display: grid; grid-template-columns: 96px minmax(0, 1fr) 28px; align-items: start; gap: 8px; }
+.xfe-conjoint__versiones li:has(.xfe-conjoint__peso) { grid-template-columns: 96px minmax(0, 1fr) 72px 28px; }
+.xfe-conjoint__versiones .xfe-conjoint__codigo { margin-top: 6px; }
+.xfe-conjoint__codigo.is-version { align-self: flex-start; width: auto; }
+.xfe-conjoint__trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; align-items: end; }
+.xfe-conjoint__trio > .pulso-field { flex: none; }

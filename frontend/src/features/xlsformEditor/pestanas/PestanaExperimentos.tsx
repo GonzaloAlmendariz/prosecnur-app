@@ -1,10 +1,13 @@
 // Pestaña Experimentos del editor (checklist elección por pares C8 y C10, 2026-11-07). A la izquierda, los experimentos
-// que ya tiene el formulario y los que se pueden agregar; a la derecha, el diseño del elegido. Hay dos tipos: elección
-// por pares (conjoint) y viñetas (encuesta factorial).
+// que ya tiene el formulario y los que se pueden agregar; a la derecha, el diseño del elegido. Hay tres tipos: elección
+// por pares (conjoint), viñetas (encuesta factorial) y versiones al azar (split-sample, C12).
 
 import { useMemo } from "react";
 import { leerConjoint } from "../conjoint/leerConjoint";
-import { insertarConjoint, insertarVinetas, prefijoLibre, reemplazarConjoint, reemplazarVinetas } from "../conjoint/insertarConjoint";
+import { insertarConjoint, insertarVersiones, insertarVinetas, listasDe, prefijoLibre, reemplazarConjoint, reemplazarVersiones, reemplazarVinetas } from "../conjoint/insertarConjoint";
+import { leerVersiones } from "../conjoint/leerVersiones";
+import type { DisenoVersiones } from "../conjoint/modeloVersiones";
+import { DisenoVersiones as DisenoVersionesPanel } from "../conjoint/DisenoVersiones";
 import { leerVinetas } from "../conjoint/leerVinetas";
 import type { DisenoVinetas } from "../conjoint/modeloVinetas";
 import { DisenoVinetas as DisenoVinetasPanel } from "../conjoint/DisenoVinetas";
@@ -21,6 +24,9 @@ export const FOCO_PARES = "pares";
 export const FOCO_NUEVO_PARES = "nuevo:pares";
 export const FOCO_VINETAS = "vinetas";
 export const FOCO_NUEVO_VINETAS = "nuevo:vinetas";
+export const FOCO_NUEVO_VERSIONES = "nuevo:versiones";
+/** Foco de una pregunta con versiones al azar: puede haber varias, se distinguen por su código. */
+export const focoVersiones = (pregunta: string) => `versiones:${pregunta}`;
 
 export function PestanaExperimentos({ workbook, structure, selection, updateWorkbook, seleccionada, onSeleccionar, onEditar }: {
   workbook: XlsformEditorWorkbook;
@@ -34,11 +40,17 @@ export function PestanaExperimentos({ workbook, structure, selection, updateWork
 }) {
   const lectura = useMemo(() => leerConjoint(workbook), [workbook]);
   const lecturaV = useMemo(() => leerVinetas(workbook), [workbook]);
-  const validos = [FOCO_NUEVO_PARES, FOCO_NUEVO_VINETAS, ...(lectura ? [FOCO_PARES] : []), ...(lecturaV ? [FOCO_VINETAS] : [])];
+  const lecturasVs = useMemo(() => leerVersiones(workbook), [workbook]);
+  const listas = useMemo(() => listasDe(workbook), [workbook]);
+  const validos = [
+    FOCO_NUEVO_PARES, FOCO_NUEVO_VINETAS, FOCO_NUEVO_VERSIONES,
+    ...(lectura ? [FOCO_PARES] : []), ...(lecturaV ? [FOCO_VINETAS] : []),
+    ...lecturasVs.map((l) => focoVersiones(l.diseno.pregunta)),
+  ];
   const foco = seleccionada && validos.includes(seleccionada)
     ? seleccionada
-    : lectura ? FOCO_PARES : lecturaV ? FOCO_VINETAS : FOCO_NUEVO_PARES;
-  const cuantos = (lectura ? 1 : 0) + (lecturaV ? 1 : 0);
+    : lectura ? FOCO_PARES : lecturaV ? FOCO_VINETAS : lecturasVs[0] ? focoVersiones(lecturasVs[0].diseno.pregunta) : FOCO_NUEVO_PARES;
+  const cuantos = (lectura ? 1 : 0) + (lecturaV ? 1 : 0) + lecturasVs.length;
 
   const grupos: ReglaListaGrupo[] = [
     {
@@ -64,6 +76,14 @@ export function PestanaExperimentos({ workbook, structure, selection, updateWork
               aviso: !lecturaV.fiel,
             }]
           : []),
+        ...lecturasVs.map((l) => ({
+          key: focoVersiones(l.diseno.pregunta),
+          baseType: "note",
+          numero: "",
+          titulo: "Versiones al azar",
+          resumen: `${l.diseno.pregunta}: ${l.diseno.versiones.length} versiones`,
+          aviso: !l.fiel,
+        })),
       ],
     },
     {
@@ -80,6 +100,12 @@ export function PestanaExperimentos({ workbook, structure, selection, updateWork
         numero: "",
         titulo: "Viñetas",
         resumen: "Un escenario con atributos sorteados; se califica",
+      }, {
+        key: FOCO_NUEVO_VERSIONES,
+        baseType: "note",
+        numero: "",
+        titulo: "Versiones al azar",
+        resumen: "Una pregunta en varias redacciones; a cada uno le toca una",
       }],
     },
   ];
@@ -110,10 +136,17 @@ export function PestanaExperimentos({ workbook, structure, selection, updateWork
     return escribir((draft) => (existente ? reemplazarVinetas(draft, existente, d) : insertarVinetas(draft, structure, destino, d)), existente ? null : FOCO_VINETAS);
   };
 
+  const lecturaVs = lecturasVs.find((l) => focoVersiones(l.diseno.pregunta) === foco) ?? null;
+  const aplicarVersiones = (d: DisenoVersiones): string[] => {
+    if (!structure) return ["El formulario todavía no está listo."];
+    const existente = lecturaVs;
+    return escribir((draft) => (existente ? reemplazarVersiones(draft, existente, d) : insertarVersiones(draft, structure, destino, d)), focoVersiones(d.pregunta));
+  };
+  const esVersiones = foco === FOCO_NUEVO_VERSIONES || Boolean(lecturaVs);
   const esVinetas = foco === FOCO_VINETAS || foco === FOCO_NUEVO_VINETAS;
   const existente = foco === FOCO_PARES ? lectura : null;
   const existenteV = foco === FOCO_VINETAS ? lecturaV : null;
-  const primeraFila = existente ? existente.pares[0]!.grupo : existenteV ? existenteV.vinetas[0]!.grupo : null;
+  const primeraFila = existente ? existente.pares[0]!.grupo : existenteV ? existenteV.vinetas[0]!.grupo : lecturaVs ? lecturaVs.pregunta : null;
   return (
     <PestanaReglas
       titulo="Experimentos"
@@ -130,7 +163,7 @@ export function PestanaExperimentos({ workbook, structure, selection, updateWork
     >
       <div className="xfp-encabezado">
         <span className="xfp-encabezado__ruta">{primeraFila != null ? "Experimento" : "Experimento nuevo"}</span>
-        <h2 className="xfp-encabezado__titulo">{esVinetas ? "Viñetas" : "Elección por pares"}</h2>
+        <h2 className="xfp-encabezado__titulo">{esVersiones ? "Versiones al azar" : esVinetas ? "Viñetas" : "Elección por pares"}</h2>
         {primeraFila != null ? (
           <span className="xfp-encabezado__accion">
             <button type="button" className="xfp-boton" onClick={() => onEditar(primeraFila)}>
@@ -139,7 +172,15 @@ export function PestanaExperimentos({ workbook, structure, selection, updateWork
           </span>
         ) : null}
       </div>
-      {esVinetas ? (
+      {esVersiones ? (
+        <DisenoVersionesPanel
+          key={lecturaVs ? `versiones-${lecturaVs.diseno.pregunta}-${lecturaVs.diseno.versiones.length}` : "nuevo-versiones"}
+          prefijoSugerido={prefijoLibre(workbook, "vs")}
+          listas={listas}
+          existente={lecturaVs}
+          onInsertar={aplicarVersiones}
+        />
+      ) : esVinetas ? (
         <DisenoVinetasPanel
           key={existenteV ? `vinetas-${existenteV.vinetas.length}-${existenteV.filas.length}` : "nuevo-vinetas"}
           prefijoSugerido={prefijoLibre(workbook, "vi")}
