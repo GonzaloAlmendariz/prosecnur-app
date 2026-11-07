@@ -4,9 +4,9 @@
 // tarjeta y no del graficador: `p_dumbbell` es un gráfico en estilo recetario y una lámina de resumen en estilo resumen.
 //
 // Una tarjeta sólo aparece si el registro trae lo que pide (`requiere`), como `FUERA_DEL_CATALOGO`: Fortalezas y
-// Cobertura entran solas cuando el backend las declare. El cierre con hallazgos es un tipo de lámina nuevo
-// (`p_slide_cierre_hallazgos`) y entra cuando `SlideType` lo incluya. La tendencia entre mediciones queda fuera (ADR 0135
-// §9). Pura: el selector la usa y los tests la prueban sola.
+// Cobertura entran solas cuando el backend las declare. El cierre con hallazgos es un tipo de lámina sin gráfico
+// (`p_slide_cierre_hallazgos`): su tarjeta no trae `grafico` y entra cuando el registro trae el tipo. La tendencia entre
+// mediciones queda fuera (ADR 0135 §9). Pura: el selector la usa y los tests la prueban sola.
 
 import type { Slide } from "../../../../api/graficos";
 import { esEntreGrupos } from "../brecha/modeloBrechaGrupos";
@@ -31,7 +31,12 @@ export type IntencionContar = {
   tarjetas: readonly ClavePreset[];
 };
 
-export type TarjetaContar = PresetLamina & Required<Pick<PresetLamina, "clase" | "pide" | "grafico">>;
+export type TarjetaContar = PresetLamina & Required<Pick<PresetLamina, "clase" | "pide">>;
+
+/** Una tarjeta que nace con su gráfico (todas menos el cierre con hallazgos). */
+export type TarjetaConGrafico = TarjetaContar & Required<Pick<PresetLamina, "grafico">>;
+
+export const conGraficoDePartida = (t: TarjetaContar): t is TarjetaConGrafico => !!t.grafico;
 
 type Args = Readonly<Record<string, unknown>>;
 
@@ -205,6 +210,18 @@ export const TARJETAS_CONTAR: readonly TarjetaContar[] = [
     grafico: { graficador: "p_barras_divergentes", args: { estilo: "recetario", regla: undefined } },
     coincide: conGrafico("p_barras_divergentes", (a) => !resumen(a)),
   },
+  {
+    // ADR 0135 §6: tres a cinco hallazgos, cada uno con una cifra tomada de otra lámina y la frase del analista.
+    clave: "p_slide_cierre_hallazgos:cierre",
+    tipo: "p_slide_cierre_hallazgos",
+    nombre: "Cierre con hallazgos",
+    clase: "resumen",
+    uso: "Las cifras clave del estudio con tu frase",
+    descripcion: "De tres a cinco hallazgos, cada uno con una cifra de otra lámina de resumen.",
+    pide: "Láminas de resumen ya puestas en el informe",
+    parche: {},
+    coincide: () => true,
+  },
 ];
 
 export const INTENCIONES_CONTAR: readonly IntencionContar[] = [
@@ -212,7 +229,7 @@ export const INTENCIONES_CONTAR: readonly IntencionContar[] = [
     id: "resumir",
     nombre: "Resumir el estudio",
     ayuda: "Cómo valora cada público, en una lámina.",
-    tarjetas: ["p_slide_1_grafico:panorama", "p_slide_1_grafico:fortalezas", "p_slide_1_grafico:cobertura"],
+    tarjetas: ["p_slide_1_grafico:panorama", "p_slide_1_grafico:fortalezas", "p_slide_1_grafico:cobertura", "p_slide_cierre_hallazgos:cierre"],
   },
   {
     id: "comparar",
@@ -243,7 +260,7 @@ export function tarjetaContar(clave: string | null | undefined): TarjetaContar |
  * registro cargado, los del catálogo generado) y `laminas`, los tipos de lámina.
  */
 export function tarjetaDisponible(t: Pick<TarjetaContar, "tipo" | "grafico">, graficadores: ReadonlySet<string>, laminas: ReadonlySet<string>): boolean {
-  return laminas.has(t.tipo) && graficadores.has(t.grafico.graficador);
+  return laminas.has(t.tipo) && (!t.grafico || graficadores.has(t.grafico.graficador));
 }
 
 /** Las tarjetas de una intención que el registro ofrece, en su orden. */
@@ -283,6 +300,6 @@ export function casaBusqueda(busqueda: string, textos: readonly (string | null |
  * describe (el contraste es «Contraste de públicos», no «Brecha entre dos grupos») o, si ninguna, un gráfico.
  */
 export function presentacionDeGrafico(graficador: string, args: Args): { nombre: string | null; clase: ClaseTarjeta } {
-  const t = TARJETAS_CONTAR.find((x) => x.coincide({ grafico: { graficador, args } }));
+  const t = TARJETAS_CONTAR.find((x) => !!x.grafico && x.coincide({ grafico: { graficador, args } }));
   return t ? { nombre: t.nombre, clase: t.clase } : { nombre: null, clase: "grafico" };
 }

@@ -318,6 +318,8 @@ const DEFAULT_PAYLOADS: Record<SlideType, Record<string, unknown>> = {
   // (con «manual» sin capítulos, o «cifras» sin cifras, el motor rechaza la lámina recién insertada).
   p_slide_resumen_diferencias: { titulo: "", etiqueta: "", base: "", seleccion: "auto" },
   p_slide_hallazgos:           { titulo: "", etiqueta: "", base: "", modo: "resumen", seleccion: "auto" },
+  // ADR 0135 §6: los hallazgos {lamina, cifra, texto} se eligen en Inspector › Lámina; el texto lo escribe el analista.
+  p_slide_cierre_hallazgos:    { titulo: "", etiqueta: "", base: "", hallazgos: [] },
 
   // ---- 2 gráficos -----------------------------------------------------
   p_slide_2_graficos:              { titulo: "", izquierda: null, derecha: null, base: "", pie: "", etiqueta: "" },
@@ -973,6 +975,7 @@ export const SLIDE_LABELS: Record<SlideType, string> = {
   p_slide_grafico_texto_izquierda:      "Gráfico + texto izquierda",
   p_slide_resumen_diferencias:          "Resumen de diferencias",
   p_slide_hallazgos:                    "Hallazgos clave",
+  p_slide_cierre_hallazgos:             "Cierre con hallazgos",
   p_slide_2_graficos:                   "Dos gráficos",
   p_slide_2_graficos_narrativo:         "Dos gráficos + narrativa",
   p_slide_2_graficos_texto_izquierda:   "Dos gráficos + texto izquierda",
@@ -1014,6 +1017,7 @@ export const SLIDE_GRAF_SLOTS: Record<SlideType, string[]> = {
   p_slide_grafico_texto_izquierda:      ["grafico"],
   p_slide_resumen_diferencias:          [],
   p_slide_hallazgos:                    [],
+  p_slide_cierre_hallazgos:             [],
   p_slide_2_graficos:                   ["izquierda", "derecha"],
   p_slide_2_graficos_narrativo:         ["izquierda", "derecha"],
   p_slide_2_graficos_texto_izquierda:   ["grafico_1", "grafico_2"],

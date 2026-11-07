@@ -43,6 +43,7 @@ export const CATALOGO_LAMINAS: readonly TipoLaminaCatalogo[] = [
   { name: "p_slide_estandar", categoria: "estructural", estandar: null, en_selector: false },
   { name: "p_slide_resumen_diferencias", categoria: "1grafico", estandar: null, en_selector: true },
   { name: "p_slide_hallazgos", categoria: "1grafico", estandar: null, en_selector: true },
+  { name: "p_slide_cierre_hallazgos", categoria: "1grafico", estandar: null, en_selector: true },
 ];
 
 export const CATALOGO_GRAFICOS: readonly TipoGraficoCatalogo[] = [

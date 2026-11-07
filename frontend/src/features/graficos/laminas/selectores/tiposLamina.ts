@@ -55,7 +55,7 @@ export const INTENCIONES: readonly Intencion[] = [
     id: "resumen",
     label: "Resumir el informe",
     descripcion: "Resumen ejecutivo, hallazgos clave y diferencias entre grupos, al final del mazo.",
-    tipos: ["p_slide_hallazgos", "p_slide_resumen_diferencias"],
+    tipos: ["p_slide_hallazgos", "p_slide_resumen_diferencias", "p_slide_cierre_hallazgos"],
   },
   {
     id: "mensaje",

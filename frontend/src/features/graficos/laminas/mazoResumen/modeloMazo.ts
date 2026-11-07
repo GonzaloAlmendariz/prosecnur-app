@@ -15,7 +15,7 @@ import { payloadPorDefecto } from "../../store";
 import { CORTE_EN_CADENA } from "../argsDatosGrafico";
 import { nombrePublico } from "../gruposPadron/modeloPadron";
 import { leerRegla } from "../reglaPreguntas/modeloReglaPreguntas";
-import { tarjetaContar, tarjetaDisponible, type ClaseTarjeta, type TarjetaContar } from "../selectores/intencionesContar";
+import { conGraficoDePartida, tarjetaContar, tarjetaDisponible, type ClaseTarjeta, type TarjetaConGrafico } from "../selectores/intencionesContar";
 import { graficoConPreset, ranuraDePreset, type ClavePreset, type EstudioDelSelector } from "../selectores/opcionesLamina";
 
 type Args = Record<string, unknown>;
@@ -27,7 +27,7 @@ export type PropuestaMazo = {
   /** Estable entre renders: «panorama», «fortalezas:docentes». Con él se recuerdan la exclusión y la regla editada. */
   id: string;
   clase: ClasePropuesta;
-  /** La tarjeta del selector de la que sale (null en el cierre, que es un tipo de lámina). */
+  /** La tarjeta del selector de la que sale. */
   tarjeta: ClavePreset | null;
   tipo: SlideType;
   nombre: string;
@@ -66,8 +66,8 @@ export type EntradaMazo = {
 export const REFERENCIA_POR_DEFECTO = 60;
 export const N_CONTRASTE = 13;
 export const N_SIN_INFO = 12;
-/** Aún no es un `SlideType`: el backend lo está agregando. Mientras el editor no sepa insertarlo, el mazo no lo propone. */
-export const TIPO_CIERRE: string = "p_slide_cierre_hallazgos";
+/** El cierre con hallazgos (ADR 0135 §6): último paso del mazo cuando el registro lo trae. */
+export const TIPO_CIERRE: SlideType = "p_slide_cierre_hallazgos";
 export const ORIGEN_RESUMEN = "resumen";
 export const FALTA_DIVIDE = "Falta elegir la pregunta que divide";
 
@@ -78,6 +78,7 @@ const TARJETA = {
   escala: "p_slide_1_grafico:escala",
   aperturas: "p_slide_1_grafico:aperturas",
   fortalezas: "p_slide_1_grafico:fortalezas",
+  cierre: "p_slide_cierre_hallazgos:cierre",
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -194,7 +195,7 @@ export function indicadoresDelEstudio(escala: readonly Opcion[]): IndicadorMazo[
 // Las propuestas
 // ---------------------------------------------------------------------------
 
-function argsDeTarjeta(t: TarjetaContar, estudio: EstudioDelSelector): Args {
+function argsDeTarjeta(t: TarjetaConGrafico, estudio: EstudioDelSelector): Args {
   return { ...graficoConPreset(undefined, t.grafico, estudio).args };
 }
 
@@ -211,7 +212,7 @@ function conRegla(e: EntradaMazo, id: string, args: Args): Args {
 }
 
 type Borrador = Omit<PropuestaMazo, "reglaEnPalabras" | "graficador" | "slot" | "nombre" | "claseTarjeta" | "tipo" | "falta"> & {
-  t: TarjetaContar;
+  t: TarjetaConGrafico;
   nombre?: string;
   falta?: string | null;
   publicosRegla: readonly string[];
@@ -248,9 +249,9 @@ export function proponerMazo(e: EntradaMazo): PropuestaMazo[] {
   const principal = basePrincipal(publicos, e.estudio.baseActiva) as string;
   const varios = publicos.length > 1;
   const estudio: EstudioDelSelector = { ...e.estudio, bases: publicos, baseActiva: principal };
-  const disponible = (clave: string): TarjetaContar | null => {
+  const disponible = (clave: string): TarjetaConGrafico | null => {
     const t = tarjetaContar(clave);
-    return t && tarjetaDisponible(t, e.graficadores, e.laminas) ? t : null;
+    return t && conGraficoDePartida(t) && tarjetaDisponible(t, e.graficadores, e.laminas) ? t : null;
   };
   const out: PropuestaMazo[] = [];
 
@@ -317,10 +318,9 @@ export function proponerMazo(e: EntradaMazo): PropuestaMazo[] {
     }
   }
 
-  const cierre = [...e.tiposInsertables].find((t) => t === TIPO_CIERRE);
-  if (cierre && e.laminas.has(TIPO_CIERRE)) {
+  if (e.tiposInsertables.has(TIPO_CIERRE) && e.laminas.has(TIPO_CIERRE)) {
     out.push({
-      id: "cierre", clase: "cierre", tarjeta: null, tipo: cierre, nombre: "Cierre con hallazgos", claseTarjeta: "lamina",
+      id: "cierre", clase: "cierre", tarjeta: TARJETA.cierre, tipo: TIPO_CIERRE, nombre: "Cierre con hallazgos", claseTarjeta: "resumen",
       antetitulo: "Conclusiones", graficador: null, slot: null, args: {}, reglaEnPalabras: "Una cifra de cada lámina anterior", falta: null,
     });
   }

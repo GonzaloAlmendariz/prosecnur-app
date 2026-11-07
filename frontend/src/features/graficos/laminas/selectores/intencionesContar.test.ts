@@ -26,6 +26,16 @@ describe("intenciones de «¿Qué quieres contar?»", () => {
     ]);
   });
 
+  it("el cierre con hallazgos es la última tarjeta de «Resumir el estudio», como lámina de resumen y sin gráfico", () => {
+    const conCierre = tarjetasDe(INTENCIONES_CONTAR[0], new Set([...HOY, "p_fortalezas", "p_cobertura"]), new Set([...LAMINAS, "p_slide_cierre_hallazgos"]));
+    const ultima = conCierre[conCierre.length - 1];
+    expect(ultima).toMatchObject({ clave: "p_slide_cierre_hallazgos:cierre", tipo: "p_slide_cierre_hallazgos", nombre: "Cierre con hallazgos", clase: "resumen" });
+    expect(ultima.grafico).toBeUndefined();
+    expect(claves("resumir")).not.toContain("p_slide_cierre_hallazgos:cierre");
+    expect(conOpcion("p_slide_cierre_hallazgos:cierre", payloadPorDefecto("p_slide_cierre_hallazgos"))).toEqual(payloadPorDefecto("p_slide_cierre_hallazgos"));
+    expect(presentacionDeGrafico("p_barras_agrupadas", {}).nombre).toBeNull();
+  });
+
   it("comparar, ver dentro y leer una escala ofrecen sus tarjetas; el contraste está en dos intenciones", () => {
     expect(claves("comparar")).toEqual(["p_slide_1_grafico:contraste", "p_slide_1_grafico:significancia", "p_slide_1_grafico:dimensiones"]);
     expect(claves("dentro")).toEqual(["p_slide_1_grafico:aperturas", "p_slide_1_grafico:contraste"]);

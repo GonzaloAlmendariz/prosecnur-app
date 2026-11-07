@@ -547,6 +547,27 @@ function Hallazgos({ d }: { d: D }) {
   );
 }
 
+/** Cierre con hallazgos (lamina_cierre_hallazgos.R): tarjetas con filete azul, la cifra grande y la frase debajo. */
+function CierreHallazgos({ d }: { d: D }) {
+  return (
+    <>
+      <Cabecera titulo={d?.titulo} />
+      {[0, 1, 2].map((i) => {
+        const x = 0.495 + i * 4.2;
+        return (
+          <g key={i}>
+            <Caja x={x} y={2} w={3.8} h={0.06} c="banda" rx={0.02} />
+            <Renglon x={x + 0.2} y={2.4} w={1.6} h={0.5} c={i === 0 ? "acento" : "tinta"} />
+            <Renglon x={x + 0.2} y={3.2} w={2.6} h={0.12} />
+            <Renglon x={x + 0.2} y={3.6} w={3.2} h={0.14} />
+            <Renglon x={x + 0.2} y={3.9} w={2.4} h={0.14} />
+          </g>
+        );
+      })}
+    </>
+  );
+}
+
 /** ¿Hay dibujo de estructura para este tipo? */
 export function tieneDibujoEstructura(tipo: string): boolean {
   return tipo in DIBUJOS;
@@ -564,6 +585,7 @@ const DIBUJOS: Readonly<Record<string, (variante: string | null, d: D) => JSX.El
   p_slide_estandar: (_v, d) => <Estandar d={d} />,
   p_slide_resumen_diferencias: (_v, d) => <ResumenDiferencias d={d} />,
   p_slide_hallazgos: (_v, d) => <Hallazgos d={d} />,
+  p_slide_cierre_hallazgos: (_v, d) => <CierreHallazgos d={d} />,
 };
 
 export function DibujoEstructura({ tipo, variante, datos }: { tipo: string; variante: string | null; datos?: D }): JSX.Element | null {

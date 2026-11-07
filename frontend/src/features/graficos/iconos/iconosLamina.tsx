@@ -178,6 +178,17 @@ const hallazgos: DibujoLamina = () => (
   </>
 );
 
+/** Cierre con hallazgos: tarjetas con la cifra arriba y la frase debajo, tres en fila (lamina_cierre_hallazgos.R). */
+const cierreHallazgos: DibujoLamina = () => (
+  <>
+    <Marco />
+    <LineaTitulo />
+    <Acento><Trazo d="M3 10.5H7.5" tono="pleno" ancho={2.25} /></Acento>
+    <Trazo d="M9.75 10.5H14.25M16.5 10.5H21" ancho={2.25} />
+    <Trazo d="M3 13.5H7.5M3 15.75H6M9.75 13.5H14.25M9.75 15.75H12.75M16.5 13.5H21M16.5 15.75H19.5" />
+  </>
+);
+
 const ESTRUCTURA: Readonly<Record<string, DibujoLamina>> = {
   p_slide_portada: portada,
   p_slide_objetivo_icono: objetivo,
@@ -190,6 +201,7 @@ const ESTRUCTURA: Readonly<Record<string, DibujoLamina>> = {
   p_slide_estandar: estandar,
   p_slide_resumen_diferencias: resumenDiferencias,
   p_slide_hallazgos: hallazgos,
+  p_slide_cierre_hallazgos: cierreHallazgos,
 };
 
 /** Ícono propio (dibujado): 22 del estándar + 11 de estructura y contenido sin ranuras. */

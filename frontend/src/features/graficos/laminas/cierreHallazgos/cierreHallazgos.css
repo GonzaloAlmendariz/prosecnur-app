@@ -1,0 +1,39 @@
+/* Cierre con hallazgos en Inspector › Lámina (CierreHallazgos.tsx). Las filas son las de «Hallazgos clave»
+   (hallazgos.css); aquí sólo el rótulo con su «?», el conteo y la opción de cifra con su número delante. */
+
+.pulso-f6-cierre > .pulso-f6-especial-cabeza {
+  align-items: center;
+}
+
+.pulso-f6-cierre-rotulo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+}
+
+.pulso-f6-cierre-rotulo > .pulso-f6-subtitulo {
+  margin: 0;
+}
+
+.pulso-f6-cierre-cuenta {
+  flex: 0 0 auto;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+}
+
+/* La cifra va antes de su rótulo: en el inspector angosto el rótulo se parte y la cifra queda siempre a la vista. */
+.pulso-f6-cierre-opcion {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-f6-cierre-cifra {
+  flex: 0 0 auto;
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}

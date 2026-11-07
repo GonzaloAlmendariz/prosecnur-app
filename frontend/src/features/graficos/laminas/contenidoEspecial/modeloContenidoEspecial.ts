@@ -21,8 +21,9 @@ export function esArgIcono(a: Pick<ArgMetadata, "tipo_input">): boolean {
  * «Hallazgos clave» (revisión del PPT v7.11, ítem 2): el modo y el resumen ejecutivo por capítulo (hallazgos/).
  * «Resumen de diferencias» (revisión del PPT v7.23, ítem 15): la selección, los cruces, los topes y los capítulos con
  * sus filas (resumenDiferencias/).
+ * «Cierre con hallazgos» (ADR 0135 §6): sus hallazgos con referencia viva a otras láminas (cierreHallazgos/).
  */
-export const LAMINAS_CON_AJUSTES: ReadonlySet<string> = new Set(["p_slide_hallazgos", "p_slide_resumen_diferencias"]);
+export const LAMINAS_CON_AJUSTES: ReadonlySet<string> = new Set(["p_slide_hallazgos", "p_slide_resumen_diferencias", "p_slide_cierre_hallazgos"]);
 
 /**
  * Textos que van en el bloque de ajustes y no en «Textos»: «Cómo se nombran los casos» (`publico`) sale bajo «Comparar

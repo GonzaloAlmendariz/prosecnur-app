@@ -5,6 +5,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import type { Slide } from "../../../../api/graficos";
+import { CierreHallazgos } from "../cierreHallazgos/CierreHallazgos";
 import { CifraAlLado } from "../cifraLateral/CifraAlLado";
 import { DependenciaLamina } from "../DependenciaLamina";
 import { DependenciaTresLamina } from "../DependenciaTresLamina";
@@ -60,7 +61,9 @@ export function PestanaLamina({ slide, lamina, ranura, onCambiarLamina }: Props)
       </SeccionLaminaPlegable>
       {especial.ajustes.length > 0 && (slide.tipo === "p_slide_resumen_diferencias"
         ? <AjustesResumenDiferencias slide={slide} args={especial.ajustes} />
-        : <AjustesHallazgos slide={slide} args={especial.ajustes} />)}
+        : slide.tipo === "p_slide_cierre_hallazgos"
+          ? <CierreHallazgos slide={slide} args={especial.ajustes} />
+          : <AjustesHallazgos slide={slide} args={especial.ajustes} />)}
     </div>
   );
 }

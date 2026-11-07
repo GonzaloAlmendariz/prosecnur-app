@@ -58,9 +58,20 @@ describe("el mazo propone en orden (ADR 0135; maqueta Mazo)", () => {
     expect(ids).toEqual(["panorama", "contraste", "escala_umbral", "escala_sin_info", "aperturas"]);
   });
 
-  it("el cierre con hallazgos no aparece mientras el editor no sepa insertar su tipo", () => {
-    const ids = proponerMazo(entrada({ laminas: new Set(["p_slide_1_grafico", "p_slide_cierre_hallazgos"]) })).map((p) => p.id);
-    expect(ids).not.toContain("cierre");
+  it("el cierre con hallazgos es el último paso cuando el registro lo trae, como lámina de resumen", () => {
+    const props = proponerMazo(entrada({ laminas: new Set(["p_slide_1_grafico", "p_slide_cierre_hallazgos"]) }));
+    const ultima = props[props.length - 1];
+    expect(ultima).toMatchObject({ id: "cierre", tipo: "p_slide_cierre_hallazgos", nombre: "Cierre con hallazgos", claseTarjeta: "resumen" });
+    expect(proponerMazo(entrada()).map((p) => p.id)).not.toContain("cierre");
+    const sinInsertar = new Set([...TIPOS].filter((t) => t !== "p_slide_cierre_hallazgos"));
+    expect(proponerMazo(entrada({ tiposInsertables: sinInsertar, laminas: new Set(["p_slide_1_grafico", "p_slide_cierre_hallazgos"]) })).map((p) => p.id)).not.toContain("cierre");
+  });
+
+  it("la lámina del cierre nace con los hallazgos vacíos y sin título", () => {
+    const props = proponerMazo(entrada({ laminas: new Set(["p_slide_1_grafico", "p_slide_cierre_hallazgos"]) }));
+    const cierre = props.find((p) => p.id === "cierre");
+    const s = cierre && laminaDePropuesta(cierre, "s-9");
+    expect(s?.payload).toMatchObject({ titulo: "", hallazgos: [] });
   });
 
   it("los públicos respetan el orden del estudio aunque lleguen en otro", () => {

@@ -44,6 +44,7 @@ export type SlideType =
   // Tabla y cifras del informe (fuera del selector hasta tener inspector; los planes que las traen se muestran)
   | "p_slide_resumen_diferencias"
   | "p_slide_hallazgos"
+  | "p_slide_cierre_hallazgos"
   // 2 gráficos
   | "p_slide_2_graficos"
   | "p_slide_2_graficos_narrativo"

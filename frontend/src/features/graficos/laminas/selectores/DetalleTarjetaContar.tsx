@@ -6,7 +6,9 @@ import { useId } from "react";
 import { Check } from "../../../../vendor/lucide-react";
 import type { GraficadorRef } from "../../../../api/graficos";
 import { PulsoButton } from "../../../../components/PulsoButton";
+import { ComposicionLamina } from "../../iconos/ComposicionLamina";
 import { GlifoGrafico } from "../../iconos/GlifoGrafico";
+import { SLIDE_GRAF_SLOTS } from "../../store";
 import { AvisoCambio } from "./AvisoCambio";
 import type { CambioTipoLamina } from "./cambioTipoLamina";
 import { etiquetaBotonTarjeta } from "./detalleLamina";
@@ -37,7 +39,9 @@ export function DetalleTarjetaContar({
   return (
     <div className="pulso-f6-detalle" data-tarjeta-contar={tarjeta.clave}>
       <div className="pulso-f6-detalle-lienzo is-grafico">
-        <GlifoGrafico tipo={tarjeta.grafico.graficador} titulo={`Esquema de “${tarjeta.nombre}”`} />
+        {tarjeta.grafico
+          ? <GlifoGrafico tipo={tarjeta.grafico.graficador} titulo={`Esquema de “${tarjeta.nombre}”`} />
+          : <ComposicionLamina tipo={tarjeta.tipo} slots={SLIDE_GRAF_SLOTS[tarjeta.tipo] ?? []} />}
       </div>
       <div className="pulso-f6-detalle-texto">
         <h3>{tarjeta.nombre}</h3>

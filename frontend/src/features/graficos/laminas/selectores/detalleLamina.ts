@@ -41,6 +41,7 @@ const USO_ESTRUCTURA: Readonly<Partial<Record<SlideType, string>>> = {
   // H7: el resumen ejecutivo tiene su tarjeta (opcionesLamina.ts); ésta son las cifras.
   p_slide_hallazgos: "Cifras destacadas con su intervalo de confianza",
   p_slide_resumen_diferencias: "Qué grupos difieren, pregunta por pregunta",
+  p_slide_cierre_hallazgos: "Una cifra de otra lámina con tu frase",
 };
 
 /** La línea de la tarjeta: el «uso» del estándar o, en estructura, el propio. Nunca la descripción larga ni el ícono. */
