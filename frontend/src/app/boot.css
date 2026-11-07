@@ -178,35 +178,16 @@ input {
   filter: drop-shadow(0 6px 14px rgba(0, 36, 87, 0.2));
 }
 
-/* El squircle ya trae sus esquinas (rx 15.4/64); un border-radius CSS aquí
+/* El contenedor ya trae sus esquinas (rx 24/100); un border-radius CSS aquí
    recortaría el isotipo (el svg inline clipea por overflow hidden). */
 .boot-mark svg {
   display: block;
 }
 
-/* Firma de arranque: las pastillas del isotipo suben al montar con stagger
-   de 60ms (branding/direccion-creativa.md — Motion, «firma de marca»).
-   El primer rect del SVG es el squircle: por eso los delays usan
-   nth-of-type(2..5) (la primera pastilla = type 2 = delay 0). */
-.boot-mark-bar {
-  transform-box: fill-box;
-  transform-origin: 50% 100%;
-  animation: boot-mark-bar-in var(--motion-dur-slow) var(--motion-ease-productive) both;
-}
-
-.boot-mark-bar:nth-of-type(2) { animation-delay: 0ms; }
-.boot-mark-bar:nth-of-type(3) { animation-delay: 60ms; }
-.boot-mark-bar:nth-of-type(4) { animation-delay: 120ms; }
-.boot-mark-bar:nth-of-type(5) { animation-delay: 180ms; }
-
-@keyframes boot-mark-bar-in {
-  from { transform: scaleY(0); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .boot-mark-bar {
-    animation: none;
-  }
+/* Firma de arranque (ADR 0132): la anima IsotipoCarga en modo «firma». La sombra ya la pone .boot-mark. */
+.boot-mark .pulso-isotipo-carga {
+  --isotipo-carga-lado: 44px;
+  filter: none;
 }
 
 .boot-hero-id {

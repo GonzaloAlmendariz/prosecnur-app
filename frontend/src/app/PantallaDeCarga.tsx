@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { AlertTriangle, Check, Loader2, Minus } from "lucide-react";
 import { BarraDeAvance } from "../components/BarraDeAvance";
-import { BootEcualizador } from "./BootEcualizador";
+import { IsotipoCarga } from "./marca/IsotipoCarga";
 import { WarmupReloj } from "./WarmupReloj";
 import type { WarmupEstimacion } from "./warmupTiempo";
 import "./pantalla-de-carga.css";
@@ -10,7 +10,7 @@ import "./pantalla-de-carga.css";
  * La pantalla de carga de la app, una sola (5 nov 2026, Gonzalo: «las ventanas de carga de módulos aún no está
  * estandarizada»). Antes había dos con el mismo propósito y distinto cuerpo: la del proyecto (BootGate, lámina
  * propia, pasos con detalle) y la del módulo (ModuleWarmupBoundary, otra lámina, fases con reloj). Ahora las dos
- * dibujan ESTA: silueta de la vista destino al fondo, y encima una lámina con el isotipo que late, la ceja en el
+ * dibujan ESTA: silueta de la vista destino al fondo, y encima una lámina con el isotipo que gira (ADR 0132), la ceja en el
  * tono del módulo, el titular de la fase, la barra del kit, la lectura (reloj y cifra) y la lista de fases.
  *
  * Lo que varía es el dato, no la forma: quien la monta decide la ceja, el titular, si hay porcentaje medido y
@@ -141,7 +141,7 @@ function LaminaDeCarga({
   return (
     <div className="pulso-carga-lamina">
       <div className="pulso-carga-resumen">
-        <BootEcualizador detenido={detenido} />
+        <IsotipoCarga detenido={detenido} fondo="var(--carga-tono)" />
         <div className="pulso-carga-cabeza">
           <p className="pulso-carga-ceja">{ceja}</p>
           {sujeto ? <p className="pulso-carga-sujeto" title={sujeto}>{sujeto}</p> : null}

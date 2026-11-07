@@ -11,8 +11,7 @@
   padding: var(--pulso-space-5);
   animation: pulso-carga-modulo-aparece var(--motion-dur-base) var(--motion-ease-out) 90ms backwards;
 }
-.pulso-carga-modulo .boot-eq svg { width: 36px; height: 36px; }
-.pulso-carga-modulo .boot-eq { margin-bottom: var(--pulso-space-1); }
+.pulso-carga-modulo .pulso-isotipo-carga { --isotipo-carga-lado: 44px; margin-bottom: var(--pulso-space-1); }
 .pulso-carga-modulo-ceja {
   display: inline-flex;
   align-items: center;

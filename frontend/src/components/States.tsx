@@ -2,7 +2,7 @@ import { AlertTriangle } from "lucide-react";
 
 import { splitErrorDetail } from "./errorPresentation";
 import { BarraDeAvance } from "./BarraDeAvance";
-import { BootEcualizador } from "../app/BootEcualizador";
+import { IsotipoCarga } from "../app/marca/IsotipoCarga";
 import "./states.css";
 
 // Componentes de estado compartidos entre editores. Antes vivían inline en
@@ -32,10 +32,10 @@ export function LoadingBlock({
       style={{ minHeight: effectiveMinHeight }}
     >
       {/* 6 nov 2026 (pulido de UI): la carga de una sección completa habla como la pantalla de carga en chico
-          (isotipo que late, rótulo y barra en el tono del módulo); la inline conserva el anillo pequeño. */}
+          (isotipo que gira, rótulo y barra en el tono del módulo); la inline conserva el anillo pequeño. */}
       {variant === "panel" ? (
         <>
-          <BootEcualizador />
+          <IsotipoCarga />
           <span className="pulso-loading-block-rotulo">{label}</span>
           <BarraDeAvance indeterminada etiqueta={label} />
         </>

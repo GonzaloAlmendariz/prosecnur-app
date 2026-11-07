@@ -1,0 +1,20 @@
+/* Isotipo «Trenza» (ADR 0132). IsotipoTrenza pone en el svg el fondo y la tinta; cada parada de degradado trae su
+   proporción de tinta en --k (0 = fondo, 1 = tinta) y aquí se mezcla, así el tono es opaco y sigue al módulo. */
+.pulso-isotipo .pulso-isotipo-contenedor { fill: var(--isotipo-fondo); }
+.pulso-isotipo .pulso-isotipo-filo { stroke: var(--isotipo-fondo); }
+.pulso-isotipo stop { stop-color: color-mix(in srgb, var(--isotipo-tinta) calc(var(--k, 1) * 100%), var(--isotipo-fondo)); }
+
+/* El isotipo «Trenza» como indicador de espera (ADR 0132). Su tamaño lo fija quien lo monta con
+   `--isotipo-carga-lado`; la sombra sale del mismo tono del contenedor. */
+.pulso-isotipo-carga {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  filter: drop-shadow(0 8px 18px color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 24%, transparent));
+}
+
+.pulso-isotipo-carga .pulso-isotipo {
+  display: block;
+  width: var(--isotipo-carga-lado, 60px);
+  height: var(--isotipo-carga-lado, 60px);
+}

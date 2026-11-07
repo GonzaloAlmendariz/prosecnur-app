@@ -56,6 +56,7 @@ import {
   type WarmupModuleProgress,
 } from "./warmupRegistry";
 import { destinoWarmup } from "./destinoWarmup";
+import { IsotipoCarga } from "./marca/IsotipoCarga";
 
 type AppSuiteModule = {
   default: ComponentType;
@@ -1185,24 +1186,14 @@ function phaseLabel(phase: GatePhase) {
 }
 
 /**
- * Isotipo canónico de la identidad (branding/logo/prosecnur-isotipo.svg):
- * squircle navy + 4 pastillas en perfil de latido. Fuente única de la
- * geometría: branding/direccion-creativa.md — misma marca que Layout.tsx
- * `BrandMark`. Inline SVG: BootGate vive en el chunk de entrada y no puede
- * depender de assets externos ni de features. `--pulso-primary` lo define
- * boot.css para el chunk de entrada; `.boot-mark-bar` anima la firma de
- * arranque (stagger de pastillas) también en boot.css.
+ * Isotipo de la identidad (branding/logo/prosecnur-isotipo.svg, ADR 0132): la Trenza, con su firma de arranque
+ * —los hilos se tuercen y se asientan en la pose quieta—. Vive en el chunk de entrada: sólo depende de app/marca,
+ * que no importa nada, y de `--pulso-primary`, que boot.css define para este chunk.
  */
 function BootBrandMark() {
   return (
     <span className="boot-mark" aria-hidden="true">
-      <svg viewBox="0 0 64 64" width="44" height="44">
-        <rect width="64" height="64" rx="15.4" fill="var(--pulso-primary)" />
-        <rect className="boot-mark-bar" x="12" y="30" width="7" height="18" rx="3.5" fill="#fff" />
-        <rect className="boot-mark-bar" x="23" y="22" width="7" height="26" rx="3.5" fill="#fff" />
-        <rect className="boot-mark-bar" x="34" y="28" width="7" height="20" rx="3.5" fill="#fff" />
-        <rect className="boot-mark-bar" x="45" y="16" width="7" height="32" rx="3.5" fill="#fff" />
-      </svg>
+      <IsotipoCarga modo="firma" fondo="var(--pulso-primary)" />
     </span>
   );
 }

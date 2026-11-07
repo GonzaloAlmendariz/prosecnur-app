@@ -120,6 +120,13 @@ estado de éxito. El token operativo es `--pulso-module-fieldkit`;
 pasa a `Backpack` y el QR se queda en la sección Accesos. Siguen siendo ocho
 acentos.
 
+**Isotipo «Trenza» del 7 de noviembre de 2026.** El ecualizador de cuatro pastillas se reemplaza por la Trenza,
+versión Cuerda abierta ([ADR 0132](../docs/adrs/0132-isotipo-trenza.md), identidad 1.5.0): siete hilos, uno por
+módulo, torcidos en un huso diagonal. Es una excepción acotada a «se conservan sin redibujo el isotipo» y a los
+roles prohibidos del acento modular: el contenedor del isotipo toma el acento del módulo **sólo en su pantalla de
+carga**. Los íconos de módulo no cambian. La geometría vive en `frontend/src/app/marca/trenzaGeometria.ts` y los
+SVG de `branding/logo/` se generan desde ella.
+
 **Roles permitidos:** contexto de módulo, rail y superficie de selección,
 icono modular, tintes y bordes de procedencia, y foco contextual cuando el
 control pertenece al módulo.

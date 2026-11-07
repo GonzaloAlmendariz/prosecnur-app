@@ -6,7 +6,7 @@ describe("CargaDeModulo (salto corto, lenguaje de PantallaDeCarga)", () => {
   it("lleva el isotipo, la ceja del módulo en su tono, el rótulo y la barra indeterminada", () => {
     const html = renderToStaticMarkup(<CargaDeModulo label="Abriendo Avance…" modulo="monitoreo" />);
     expect(html).toContain('role="status"');
-    expect(html).toContain('class="boot-eq"');
+    expect(html).toContain('class="pulso-isotipo-carga"');
     expect(html).toContain("pulso-carga-modulo-ceja");
     expect(html).toContain("--module-accent:");
     expect(html).toContain("Abriendo Avance…");

@@ -207,5 +207,6 @@ identidad; no debe usarse como precedente para IDs nuevos.
 | [0128](0128-una-regla-de-diferencias-por-estudio.md) | Aceptado | 2026-11-03 | Una regla de diferencias por estudio en `graficos_config$significancia` para láminas, Word y tablas: Rao-Scott por aula en R base, BH sobre el informe, umbral de 10 puntos, base mínima de 30 casos y 8 conglomerados, frágiles con contorno; reemplaza 0127 |
 | [0129](0129-tarjetas-de-diferencias-junto-al-total.md) | Aceptado | 2026-11-04 | Tarjetas de diferencias junto al gráfico del total (propuesta P08): opción `meta.tarjetas_diferencias` de la lámina, cada grupo frente al resto con la regla del 0128, dos niveles solo por p, tope de 6, PPT nativo y Word A4, lectura una sola vez |
 | [0130](0130-una-serie-un-color.md) | Aceptado | 2026-11-04 | Una serie, un color: la agrupada de una sola serie va monocroma aunque la lista tenga paleta; `colorear_por_opcion` la recupera; acota el 0097 |
+| [0132](0132-isotipo-trenza.md) | Aceptado | 2026-11-07 | Isotipo «Trenza», Cuerda abierta: siete hilos torcidos en un huso diagonal, geometría única en `app/marca/trenzaGeometria.ts`; el contenedor toma el acento del módulo en su pantalla de carga; la cuerda gira sin desaparecer; reemplaza la geometría del 0038 |
 
 Ver tambien la [guia arquitectonica canonica](../arquitectura-prosecnur.md).

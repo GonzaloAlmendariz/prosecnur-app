@@ -55,9 +55,8 @@ const SNAPSHOT: Record<"layout" | "infinitas" | "retardo", Record<string, number
     "features/xlsformEditor/styles/xlsform-v2/07-secciones-largas-20-pregunta.css": 1,
   },
   infinitas: {
-    // 4 nov 2026: el anillo del warm start (su órbita giraba sin fin) se retiró; el isotipo que lo
-    // reemplaza late mientras se prepara el proyecto: es el indicador de espera, como un spinner.
-    "app/boot-ecualizador.css": 1,
+    // 7 nov 2026 (ADR 0132): el isotipo que latía (boot-ecualizador.css) se retiró; la Trenza gira por
+    // requestAnimationFrame, sin animación CSS infinita.
     "app/boot.css": 3,
     // 5 nov 2026: la carga de proyecto es PantallaDeCarga (su giro de fase). module-warmup.css volvió el 6 nov sólo
     // como contenedor de CargaDeModulo, sin animaciones propias.
@@ -96,7 +95,8 @@ const SNAPSHOT: Record<"layout" | "infinitas" | "retardo", Record<string, number
     "features/xlsformEditor/styles/xf-sm-import/01-dialogo-traducir-encuesta-de.css": 1,
   },
   retardo: {
-    "app/boot.css": 5,
+    // 7 nov 2026 (ADR 0132): sin las pastillas escalonadas de la firma de arranque (5 → 3).
+    "app/boot.css": 3,
     "components/recent-project-card.css": 3,
     "features/analitica/analitica-v2.css": 2,
     "features/calcMuestra/calcMuestra.css": 3,

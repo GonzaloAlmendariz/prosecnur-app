@@ -49,9 +49,8 @@
   animation: pulso-loading-block-aparece var(--motion-dur-base, 220ms) var(--motion-ease-out, ease-out) 90ms backwards;
 }
 
-.pulso-loading-block--panel .boot-eq svg {
-  width: 30px;
-  height: 30px;
+.pulso-loading-block--panel .pulso-isotipo-carga {
+  --isotipo-carga-lado: 34px;
 }
 
 .pulso-loading-block-rotulo {

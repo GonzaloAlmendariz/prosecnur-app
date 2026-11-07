@@ -20,10 +20,10 @@
     "path": "branding/identity.json",
     "schema_version": "1.0.0",
     "identity_id": "prosecnur-la-senal-ordenada",
-    "identity_version": "1.4.0",
+    "identity_version": "1.5.0",
     "identity_status": "frozen",
-    "manifest_hash": "sha256:4840494992287e84d34fac05d3aebdfabc73f58bde3dba947d51e124d4b611b2",
-    "file_sha256": "2a6305fda90d8e3e00d651e09dfee1ada4fafd8425b4812c332301e05ac9bfdb",
+    "manifest_hash": "sha256:e0be8fe816b586328e186c42b7415856347aec9c6d3b1af3b937ef395fb579a4",
+    "file_sha256": "7cbfac07a51a18fb9c775f811a235a011c026d599c338c677e05abdaf95c557a",
     "manifest_hash_method": "sha256 del archivo con todos los campos manifest_hash en placeholder de 64 ceros (extensions.pe.pucp.pulso.prosecnur.manifest_hash_method)"
   },
   "determinism": {
@@ -71,7 +71,7 @@
         "systems.motion",
         "platforms.windows"
       ],
-      "sha256": "bd888a68dc27cc14f7b536627d92a5d6bd5c697bdc91f99edf0a49ab4288821b",
+      "sha256": "06e0dea60aea03c3ec7e3dc96dff4abd29e6e86b2502a5e25ff7872263fb9c94",
       "bytes": 13665
     },
     {
@@ -89,8 +89,8 @@
         "outputs",
         "extensions.pe.pucp.pulso.prosecnur"
       ],
-      "sha256": "a784b30ae9a26e96689a40d8a47e0727f3e1f45459289c5a6f3a09b4531361e1",
-      "bytes": 65871
+      "sha256": "50915e102c1603819dcd3843ce3098a38f1276f1ad8a1758fde7bacea528748a",
+      "bytes": 67241
     }
   ],
   "validations": [

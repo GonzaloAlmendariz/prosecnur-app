@@ -74,7 +74,7 @@
   text-align: center;
 }
 
-.pulso-carga-resumen .boot-eq svg { width: 60px; height: 60px; }
+.pulso-carga-resumen .pulso-isotipo-carga { --isotipo-carga-lado: 60px; }
 
 .pulso-carga-cabeza {
   display: grid;

@@ -5,8 +5,8 @@
     "name": "Prosecnur — La señal ordenada (identidad visual v1.2)",
     "mode": "reconstruction",
     "status": "frozen",
-    "version": "1.4.0",
-    "manifest_hash": "sha256:4840494992287e84d34fac05d3aebdfabc73f58bde3dba947d51e124d4b611b2",
+    "version": "1.5.0",
+    "manifest_hash": "sha256:e0be8fe816b586328e186c42b7415856347aec9c6d3b1af3b937ef395fb579a4",
     "owners": [
       "Gonzalo Almendáriz (PULSO PUCP)"
     ]
@@ -40,7 +40,7 @@
       "Dashboard genérico o plantillas ajenas de Office",
       "Color como decoración: arcoíris en charts, acentos sin significado",
       "Vibrancy real del OS o efectos no portables a Windows",
-      "Más de dos tintas en la marca (el color vivo pertenece al sistema, nunca al logo)",
+      "Más de dos tintas en el isotipo a la vez (una tinta de contenedor y el blanco); fuera de la pantalla de carga de un módulo, el contenedor es navy",
       "Franjas de título y H1 visibles en módulos (la identidad vive en el chrome)",
       "Sustituir colores semánticos (éxito/alerta/peligro) por el acento del módulo"
     ],
@@ -109,11 +109,11 @@
     {
       "id": "ev-logo-suite",
       "type": "existing_identity",
-      "location": "branding/logo/ (10 SVG canónicos + preview.html)",
+      "location": "branding/logo/ (SVG generados por generar-isotipo.mjs + preview.html)",
       "confidence": "canonical",
       "findings": [
-        "Geometría congelada del isotipo «ecualizador del pulso»: viewBox 64, squircle rx 15.4 (24%) navy #002457, cuatro pastillas blancas width 7 rx 3.5 en x=12/23/34/45, baseline y=48, alturas 18/26/20/32",
-        "Suite de 10 variantes: isotipo, isotipo-gradiente (#013371→#002457, solo app icon/instalador), isotipo-oscuro, appicon 512 en retícula macOS, lockup horizontal claro/oscuro, lockup principal con subline, lockup vertical, mono negro y mono blanco knockout"
+        "Isotipo «Trenza», versión Cuerda abierta (ADR 0132, reemplaza al «ecualizador del pulso» del ADR 0038): siete cintas continuas sobre una hélice de dos medias vueltas, en un huso girado -35° dentro de un squircle de radio 24 (viewBox 100); geometría única en frontend/src/app/marca/trenzaGeometria.ts",
+        "Suite generada: isotipo, isotipo-chico (cinco hilos, 32 px o menos), isotipo-gradiente (#013371→#002457, solo app icon/instalador), isotipo-oscuro, appicon 512 en retícula macOS, lockup horizontal claro/oscuro, lockup principal con subline, lockup vertical, mono negro, mono blanco calado y una variante por color de módulo en modulos/"
       ]
     },
     {
@@ -331,6 +331,18 @@
         "ev-theme-css",
         "ev-modules-ts"
       ]
+    },
+    {
+      "id": "dec-isotipo-trenza",
+      "gate": "change-request",
+      "owner": "Gonzalo Almendáriz (PULSO PUCP)",
+      "timestamp": "2026-11-07T12:00:00Z",
+      "status": "approved",
+      "rationale": "El isotipo «ecualizador del pulso» decía «gráfico de barras», lo mismo que cualquier ícono de analítica. Tras cuatro rondas de propuestas, el usuario eligió la «Trenza», versión Cuerda abierta: siete hilos, los siete módulos, torcidos en una sola cuerda que empieza en una pregunta y termina en un resultado. Debía verse bien quieto, llenar el contenedor cuadrado y tomar el color de cualquier módulo; por eso el contenedor toma el acento del módulo en su pantalla de carga, lo que reemplaza la regla de que el logo nunca lleva el color vivo. Los módulos conservan su ícono. La animación nunca desaparece. ADR 0132; reemplaza la geometría del ADR 0038.",
+      "evidence_ids": [
+        "ev-logo-suite",
+        "ev-adr-0038"
+      ]
     }
   ],
   "territories": [
@@ -344,7 +356,7 @@
         "dinámico-contenido",
         "nativo"
       ],
-      "visual_hypothesis": "Isotipo de cuatro pastillas que trazan un latido sobre retícula de 64; sistema 60/30/10 de superficies frías + navy estructural + acento puntual; espectro modular como dimensión dinámica; motion «Física Pulso» con easing de salida; patrones maestros destilados de los ejemplares más profesionales ya construidos en la app.",
+      "visual_hypothesis": "Isotipo «Trenza»: siete hilos, los siete módulos, torcidos en una sola cuerda (ADR 0132; antes, cuatro pastillas que trazaban un latido); sistema 60/30/10 de superficies frías + navy estructural + acento puntual; espectro modular como dimensión dinámica; motion «Física Pulso» con easing de salida; patrones maestros destilados de los ejemplares más profesionales ya construidos en la app.",
       "status": "selected"
     },
     {
@@ -364,9 +376,9 @@
     "selected_territory_id": "la-senal-ordenada",
     "thesis": "Ritmo contenido en geometría: Prosecnur se ve y se comporta como un instrumento profesional de precisión — la señal del campo, ordenada.",
     "signatures": [
-      "Isotipo «ecualizador del pulso»: squircle navy con cuatro pastillas blancas de alturas 18/26/20/32 (geometría congelada)",
+      "Isotipo «Trenza»: siete cintas continuas torcidas en un huso diagonal dentro del squircle; navy en la marca y el tono del módulo en su pantalla de carga (ADR 0132)",
       "Espectro modular: cada módulo tiñe su chrome con un acento propio reasignado por CSS var, nunca el contenido",
-      "Física Pulso: motion CSS tokenizado con easing de salida dominante; firma de arranque con stagger de pastillas de 60ms",
+      "Física Pulso: motion CSS tokenizado con easing de salida dominante; firma de arranque: los hilos se tuercen y se asientan en la pose quieta (ADR 0132)",
       "KPI discreto 21/900 con hairline de acento: cifras serias, nunca display gigante",
       "Material translúcido Windows-safe (gradiente blanco + color-mix + blur progresivo) solo en navegación y capas de comando",
       "Voz de colega experto en español peruano neutro: verbo + objeto, errores con salida, números es-PE tabulares"
@@ -678,7 +690,7 @@
         "Los semánticos operan en triadas bg/border/fg sobre superficie clara; el token base (success/warn/danger) es el acento del estado; info usa el navy translúcido (bg rgba(0,36,87,0.04), border = primary-border, fg = primary)",
         "El peligro de chart (#DC2626) y el carmesí UI (#BE123C) son tokens distintos a propósito: no unificarlos",
         "El marcador repeat (naranja suave) es semántico transversal —pertenencia a estructura repetida roster—, no un acento de módulo; se superpone a cualquier paleta sin competir",
-        "Dos tintas máximo en la marca (navy + blanco); el color vivo pertenece al sistema, nunca al logo",
+        "Dos tintas a la vez en el isotipo (contenedor + blanco); el contenedor es navy salvo en la pantalla de carga de un módulo, donde toma su acento (ADR 0132)",
         "Colores solo con tokens --pulso-* dentro de la app y --prosecnur-* fuera de ella; si un color no está en la paleta de visualización, no entra a un gráfico",
         "Las triadas semánticas deben sostener contraste AA de texto sobre su fondo; la verificación formal vive en el check de accesibilidad"
       ]
@@ -785,7 +797,7 @@
         "Peso de trabajo de controles: 500 en macOS, 600 en Windows vía :root[data-platform=\"windows\"]; la jerarquía se construye con tamaño y color, no con bold",
         "Rail lateral canónico 240px con filas de 32/40 (24 en densos)",
         "Mínimos operativos: workbench/panel/media 360px · lista 260px · cuerpo de diálogo 240px",
-        "Isotipo: squircle con radio 24% del lado (rx 15.4 sobre viewBox 64)"
+        "Isotipo: squircle con radio 24% del lado (rx 24 sobre viewBox 100)"
       ]
     },
     "elevation": {
@@ -822,16 +834,16 @@
   },
   "systems": {
     "brand": {
-      "principle": "Un solo isotipo canónico «ecualizador del pulso» con geometría congelada; toda reproducción parte de los SVG de branding/logo/, nunca de redibujos.",
+      "principle": "Un solo isotipo canónico, la «Trenza» (ADR 0132), con geometría única en frontend/src/app/marca/trenzaGeometria.ts; los SVG de branding/logo/ se generan desde ella y la app la dibuja desde ella, nunca se redibuja a mano.",
       "rules": [
-        "Geometría congelada: viewBox 64, squircle rx 15.4 (24%) navy #002457, cuatro pastillas blancas width 7 · rx 3.5 · gap 4 en x=12/23/34/45, baseline y=48, alturas 18/26/20/32 (el perfil del latido)",
-        "Suite de 10 variantes: isotipo (mínimo 16px), isotipo-gradiente (#013371→#002457, SOLO icono de app e instalador), isotipo-oscuro (squircle blanco para fondos oscuros), appicon 512 en retícula macOS (fuente del .icns/.ico), lockup horizontal claro/oscuro (mínimo 96px de ancho), lockup principal con «SUITE ANALÍTICA · PULSO PUCP», lockup vertical (portadas/splash), mono negro (impresión), mono blanco knockout (fondos fotográficos/navy)",
+        "Geometría: viewBox 100, squircle rx 24; siete cintas de ancho variable (2,2 a 4,9) sobre una hélice de dos medias vueltas, huso de 88 de largo y 20 de semiancho girado -35°; los hilos de adelante pasan sobre los de atrás con un filo del color del contenedor; desde 32 px, variante de cinco hilos más gruesos",
+        "Suite generada por branding/logo/generar-isotipo.mjs: isotipo (mínimo 16px con la variante chica), isotipo-gradiente (#013371→#002457, SOLO icono de app e instalador), isotipo-oscuro (squircle blanco para fondos oscuros), appicon 512 en retícula macOS (fuente del .icns/.ico), lockup horizontal claro/oscuro (mínimo 96px de ancho), lockup principal con «SUITE ANALÍTICA · PULSO PUCP», lockup vertical (portadas/splash), mono negro (impresión, sólo hilos de adelante), mono blanco calado (fondos fotográficos/navy) y modulos/ con el contenedor en el acento de cada módulo",
         "Wordmark: «Prosecnur» en stack de sistema, peso 800, tracking -0.02em, navy #002457; sobre fondos oscuros, blanco",
         "Jerarquía de emisión: Prosecnur es el producto; «PULSO PUCP» acompaña como subline institucional («Suite analítica · PULSO PUCP»)",
-        "Dos tintas máximo (navy + blanco); el color vivo pertenece al sistema (espectro modular, azul señal), nunca al logo",
+        "Dos tintas a la vez (contenedor + blanco). El contenedor es navy; sólo en la pantalla de carga de un módulo (carga del proyecto con destino en un módulo y carga de módulo) toma el acento de ese módulo. Los módulos conservan su propio ícono: el isotipo no los reemplaza",
         "Clearspace: ¼ de la altura del isotipo",
-        "Usos incorrectos: no recolorear, no deformar, no rotar, no aplicar efectos, no redibujar; sobre fondos oscuros siempre la variante invertida o el mono blanco",
-        "Firma de arranque: el isotipo entra con stagger de pastillas (60ms entre barras, duración slow + easing productivo) — BootBrandMark"
+        "Usos incorrectos: no recolorear fuera de los acentos de módulo, no deformar, no rotar, no aplicar efectos, no redibujar; sobre fondos oscuros siempre la variante invertida o el mono blanco",
+        "Movimiento (IsotipoCarga): en la carga los hilos se tuercen en 1,4 s y la cuerda queda girando sin corte, dos séptimos de vuelta cada 3,4 s, con una respiración de 5,2 s; nunca desaparece. Firma de arranque (BootBrandMark): la misma entrada, que se asienta en la pose quieta. Con movimiento reducido, pose quieta"
       ]
     },
     "iconography": {
@@ -869,7 +881,7 @@
         "Cinco easings: salida cubic-bezier(0.23,1,0.32,1) (dominante) · estándar cubic-bezier(0.2,0,0,1) · drawer cubic-bezier(0.32,0.72,0,1) · productivo cubic-bezier(0.16,1,0.3,1) · in-out cubic-bezier(0.77,0,0.175,1)",
         "Rutas: enter y+8px, forward x+12px, back x-12px",
         "Firma de PageFrame (transición base de toda ruta): cuerpo 190ms / header 150ms / toolbar 160ms con easing de salida",
-        "Firma de marca: el isotipo entra con stagger de pastillas de 60ms (slow + productivo)",
+        "Firma de marca (ADR 0132): en la carga los hilos de la Trenza se tuercen en 1,4 s y la cuerda gira sin corte con una respiración de 5,2 s; en el selector de proyecto la misma entrada se asienta en la pose quieta (excepción gobernada motion-isotipo-trenza)",
         "Firma de diagramas y árboles: «orbit-in + edge-draw» del dashboard — nodos 620ms con easing productivo + aristas por stroke-dashoffset 680ms (excepción gobernada al tope de 420ms de la escala de tokens; ver governance.exceptions)",
         "La escala de tokens no supera 420ms; toda animación respeta prefers-reduced-motion"
       ],
@@ -1001,6 +1013,12 @@
         "reason": "La firma «orbit-in + edge-draw» del dashboard usa 620ms (nodos) y 680ms (aristas), por encima del tope de 420ms de la escala de tokens; está documentada como patrón maestro 8 en la dirección v1.1/v1.2 y se mantiene como excepción acotada a diagramas y árboles, con vía reducida obligatoria.",
         "owner": "Gonzalo Almendáriz (PULSO PUCP)",
         "expires": "2027-01-31"
+      },
+      {
+        "id": "motion-isotipo-trenza",
+        "reason": "El isotipo «Trenza» es el indicador de espera de la carga del proyecto, la carga de módulo y el bloque de carga (ADR 0132): su entrada dura 1400ms, la cuerda gira sin fin y respira cada 5200ms mientras dure la espera, como un spinner. Supera el tope de 680ms y se anima por requestAnimationFrame, no por tokens CSS. Con prefers-reduced-motion queda en la pose quieta.",
+        "owner": "Gonzalo Almendáriz (PULSO PUCP)",
+        "expires": "2027-11-07"
       }
     ],
     "generated_file_policy": {
@@ -1012,9 +1030,9 @@
           "target": "documentation",
           "path": "branding/manual-identidad.html",
           "ownership": "manual_template",
-          "status": "current",
-          "identity_version": "1.4.0",
-          "manifest_hash": "sha256:4840494992287e84d34fac05d3aebdfabc73f58bde3dba947d51e124d4b611b2"
+          "status": "stale",
+          "identity_version": "1.5.0",
+          "manifest_hash": "sha256:e0be8fe816b586328e186c42b7415856347aec9c6d3b1af3b937ef395fb579a4"
         },
         {
           "id": "prosecnur-brand-css",
@@ -1022,8 +1040,8 @@
           "path": "branding/tokens/prosecnur-brand.css",
           "ownership": "manual_template",
           "status": "current",
-          "identity_version": "1.4.0",
-          "manifest_hash": "sha256:4840494992287e84d34fac05d3aebdfabc73f58bde3dba947d51e124d4b611b2"
+          "identity_version": "1.5.0",
+          "manifest_hash": "sha256:e0be8fe816b586328e186c42b7415856347aec9c6d3b1af3b937ef395fb579a4"
         }
       ]
     },
@@ -1098,8 +1116,8 @@
       "path": "branding/identity/tokens.css",
       "ownership": "generated",
       "status": "current",
-      "identity_version": "1.4.0",
-      "manifest_hash": "sha256:4840494992287e84d34fac05d3aebdfabc73f58bde3dba947d51e124d4b611b2"
+      "identity_version": "1.5.0",
+      "manifest_hash": "sha256:e0be8fe816b586328e186c42b7415856347aec9c6d3b1af3b937ef395fb579a4"
     },
     {
       "id": "identity-reference-doc",
@@ -1107,8 +1125,8 @@
       "path": "branding/identity/identity-reference.html",
       "ownership": "generated",
       "status": "current",
-      "identity_version": "1.4.0",
-      "manifest_hash": "sha256:4840494992287e84d34fac05d3aebdfabc73f58bde3dba947d51e124d4b611b2"
+      "identity_version": "1.5.0",
+      "manifest_hash": "sha256:e0be8fe816b586328e186c42b7415856347aec9c6d3b1af3b937ef395fb579a4"
     }
   ],
   "extensions": {

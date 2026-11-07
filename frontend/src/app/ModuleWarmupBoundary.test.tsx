@@ -22,7 +22,7 @@ describe("warm start de módulo (L23)", () => {
     expect(html).toContain('class="pulso-module-warmup"');
     expect(html).toContain('data-module-warmup="monitoreo"');
     expect(html).toContain('class="pulso-carga-modulo"');
-    expect(html).toContain('class="boot-eq"');
+    expect(html).toContain('class="pulso-isotipo-carga"');
     expect(html).toContain("pulso-barra-avance pulso-barra-avance--indeterminada");
     expect(html).toContain('style="--module-accent:');
     expect(html).not.toContain("Transcurrido");
