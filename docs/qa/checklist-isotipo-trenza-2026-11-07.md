@@ -31,17 +31,14 @@ en el [ADR 0132](../adrs/0132-isotipo-trenza.md). Sólo Gonzalo da este checklis
 | 18 | Ícono en el build empaquetado (Dock de macOS, instalador de Windows) | `packaging/` | Pasos de ícono de `build-dmg.sh` y `build-self-contained.sh` reproducidos: en 16 px los siete hilos se empastaban, así que 16 y 32 px salen ahora de la variante de cinco hilos (`prosecnur-appicon-chico.svg`, `icon-chico.svg`). No se corrió el build completo ni se instaló |
 | 19 | Mirarlo en la app real con un proyecto abierto (header en contexto, carga del proyecto a pantalla completa) | `/ver-ui` | Hecho por `qa-visual-desktop` con acrconta y acnur_acg: header navy y alineado en 1440 y 1024; carga del proyecto en el tono del destino (Monitoreo, Hojas de ruta) y navy hacia el Home, girando y sin desaparecer (539 y 1.279 muestras, 0 ausencias); carga de módulo en los siete tonos; firma que termina en la pose quieta; contraste mínimo 4,3:1; 0 errores de consola e ids únicos |
 
-## Lo que el QA encontró fuera del isotipo
+## Lo que el QA encontró fuera del isotipo (corregido el 2026-11-07)
 
-No vienen del cambio de isotipo; quedan anotados para otra unidad.
-
-- **Barra de `CargaDeModulo` casi invisible:** el bloque se encoge al ancho de su contenido (194 px), así que la
-  barra queda en 92 px, y su pista no contrasta con el fondo (~1,0). Pasa también con la barra determinada de
-  la carga del proyecto cerca del 1 %. Vive en `components/carga-de-modulo.css` y en la barra del kit.
-- **Ceja y rótulo repetidos** en `CargaDeModulo` («CÁLCULO DE MUESTRA / Cálculo de muestra») en el primer instante.
-- **`PantallaDeCarga`:** la lámina se recentra y baja unos 86 px cuando colapsa la lista de fases (C2), y a
-  1024x600 hay 14 px de scroll de página.
-- No se observó `LoadingBlock` en vivo, y Windows no se probó (sólo Chromium en macOS).
+| Defecto | Causa | Arreglo | Verificado |
+|---|---|---|---|
+| Barra de la carga casi invisible | El riel usaba `--pulso-surface-3`, que no existe en el chunk de entrada (la carga del proyecto) y no contrasta con la lámina blanca; en la carga de módulo la barra medía el 60 % de un bloque encogido a 194 px | Riel teñido con el tono del módulo sobre `--pulso-border` en las tres cargas; 240 px fijos en la carga de módulo | En Vite: riel visible en la carga del proyecto y en la de módulo, barra de 240 px |
+| Ceja y rótulo repetidos | El rótulo tomaba el nombre del chunk que corría («Cálculo de muestra», «Dashboard local») | El rótulo sigue los mensajes del perfil del módulo | Tests de `ModuleWarmupBoundary` |
+| La lámina saltaba ~86 px al agrupar las fases | Centrada en su columna, se recentraba al acortarse la lista | Su alto sólo crece mientras dura la carga (`ResizeObserver`); lo que se acorta queda como aire dentro de la lámina | En Vite: isotipo en y = 63 antes y después de agrupar |
+| 14 px de scroll a 1024x600 | Márgenes de 72 px arriba y abajo de la columna | Margen `clamp(16px, 5vh, 112px)` bajo 1080 px de ancho | En Vite: `scrollHeight` 600 = viewport |
 
 ## Lo aprendido
 

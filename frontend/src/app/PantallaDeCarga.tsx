@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { AlertTriangle, Check, Loader2, Minus } from "lucide-react";
 import { BarraDeAvance } from "../components/BarraDeAvance";
 import { IsotipoCarga } from "./marca/IsotipoCarga";
@@ -138,8 +138,23 @@ function LaminaDeCarga({
   fases?: FaseDeCarga[];
   error?: string;
 }) {
+  // 7 nov 2026 (QA del isotipo): la lámina va centrada en su columna, y cuando las fases listas se agrupan en una
+  // fila la lista se acorta, la lámina se recentraba y el isotipo saltaba ~86 px. Su alto sólo crece mientras dura
+  // la carga: lo que se acorta deja aire abajo, adentro de la lámina, y nada se mueve.
+  const laminaRef = useRef<HTMLDivElement>(null);
+  const [altoMinimo, setAltoMinimo] = useState(0);
+  useEffect(() => {
+    const lamina = laminaRef.current;
+    if (!lamina || typeof ResizeObserver === "undefined") return;
+    const observador = new ResizeObserver(() => {
+      const alto = lamina.offsetHeight;
+      setAltoMinimo((previo) => (alto > previo ? alto : previo));
+    });
+    observador.observe(lamina);
+    return () => observador.disconnect();
+  }, []);
   return (
-    <div className="pulso-carga-lamina">
+    <div className="pulso-carga-lamina" ref={laminaRef} style={altoMinimo ? { minHeight: altoMinimo } : undefined}>
       <div className="pulso-carga-resumen">
         <IsotipoCarga detenido={detenido} fondo="var(--carga-tono)" />
         <div className="pulso-carga-cabeza">

@@ -364,7 +364,9 @@ export default function ModuleWarmupBoundary({ children }: { children: ReactNode
     const frontendPromise = warmupFrontendModules((progress) => {
       frontendProgress.set(progress.id, progress);
       avanzarFase(fases, progress.id, { status: progress.status, elapsedMs: progress.elapsed_ms });
-      pushProgress(progress.status === "running" ? progress.label : undefined);
+      // 7 nov 2026: el rótulo sigue los mensajes del perfil («Revisando marco», «Preparando cálculo»…). El nombre
+      // del chunk que corre («Cálculo de muestra», «Dashboard local») repetía la ceja del módulo.
+      pushProgress();
     }, {
       concurrency: profile.concurrency ?? 2,
       moduleIds: profile.frontend,

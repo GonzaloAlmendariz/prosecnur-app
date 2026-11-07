@@ -60,6 +60,7 @@
 
 .pulso-loading-block--panel .pulso-barra-avance {
   width: min(200px, 60%);
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 18%, var(--pulso-border));
 }
 
 @keyframes pulso-loading-block-aparece {

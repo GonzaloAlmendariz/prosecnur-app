@@ -34,7 +34,14 @@
   font-weight: var(--pulso-type-subtitle-weight);
   color: var(--pulso-text-soft);
 }
-.pulso-carga-modulo .pulso-barra-avance { width: min(240px, 60%); margin-top: var(--pulso-space-1); }
+/* 7 nov 2026 (QA del isotipo): el bloque se encoge al ancho de su contenido, así que un 60 % dejaba la barra en 92 px;
+   y el riel surface-3 no se distinguía del fondo. Ancho fijo y riel teñido del tono del módulo. */
+.pulso-carga-modulo .pulso-barra-avance {
+  width: 240px;
+  max-width: 100%;
+  margin-top: var(--pulso-space-1);
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 18%, var(--pulso-border));
+}
 
 @keyframes pulso-carga-modulo-aparece {
   from { opacity: 0; }

@@ -55,6 +55,7 @@
 .pulso-carga-lamina {
   width: min(520px, 100%);
   display: grid;
+  align-content: start;
   gap: 20px;
   padding: clamp(24px, 3.2vw, 36px) clamp(22px, 3vw, 36px);
   border: 1px solid color-mix(in srgb, var(--pulso-border) 80%, transparent);
@@ -131,6 +132,8 @@
 .pulso-carga-resumen .pulso-barra-avance {
   width: 100%;
   margin-top: 2px;
+  /* 7 nov 2026: el riel no se veía (surface-3 no existe en el chunk de entrada, que sólo tiene los tokens de boot.css); con poco avance sólo quedaba un punto. */
+  background: color-mix(in srgb, var(--carga-tono) 18%, var(--pulso-border));
 }
 
 .pulso-carga-lectura {
@@ -349,5 +352,6 @@
 @media (max-width: 1080px) {
   .pulso-carga.is-recorrido { place-items: center; }
   .pulso-carga.is-recorrido .pulso-carga-fondo { display: none; }
-  .pulso-carga.is-recorrido .pulso-carga-columna { min-height: 0; margin: var(--rc-top) auto; }
+  /* 7 nov 2026: con 600 px de alto, los 72 px de margen arriba y abajo dejaban 14 px de scroll de página. */
+  .pulso-carga.is-recorrido .pulso-carga-columna { min-height: 0; margin: clamp(16px, 5vh, 112px) auto; }
 }
