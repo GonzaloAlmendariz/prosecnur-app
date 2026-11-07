@@ -289,7 +289,7 @@
 
 #' La regla aplicada a un elemento: indicadores, evaluación y las `vars` que quedan
 #'
-#' @return `list(evaluacion, vars, avisos)`; `vars` en la forma que el render del tipo espera (refs del panorama y la
+#' @return `list(evaluacion, vars, avisos, indicadores)`; `vars` en la forma que el render del tipo espera (refs del panorama y la
 #'   divergente; lista nombrada tema -> refs del dumbbell).
 #' @keywords internal
 .regla_preguntas_de_elemento <- function(el, sources, regla = el$regla, preset = NULL) {
@@ -301,7 +301,7 @@
                                  decimales = if (is.finite(dec)) dec else 0L)
   elegidas <- ind$refs_por_tema[ev$temas]
   vars <- if (identical(el$.element_type, "dumbbell")) elegidas else unname(unlist(elegidas))
-  list(evaluacion = ev, vars = vars, avisos = c(ind$avisos, ev$avisos))
+  list(evaluacion = ev, vars = vars, avisos = c(ind$avisos, ev$avisos), indicadores = ind$indicadores)
 }
 
 #' El render aplica la regla: el elemento con sus `vars` elegidas y el texto para la nota
@@ -356,13 +356,13 @@
 
 #' Respuesta del endpoint de conteo para un graficador y sus args
 #'
-#' @param graficador Nombre del constructor (`p_panorama`, `p_dumbbell`, `p_barras_divergentes`).
+#' @param graficador Nombre del constructor (`p_panorama`, `p_dumbbell`, `p_barras_divergentes`, `p_fortalezas`).
 #' @param args Args del constructor, como los guarda el slot.
 #' @param sources Fuentes del estudio.
 #' @keywords internal
 .regla_preguntas_conteo <- function(graficador, args, sources) {
   graficador <- trimws(as.character(graficador %||% "")[1])
-  if (is.na(graficador) || !graficador %in% c("p_panorama", "p_dumbbell", "p_barras_divergentes")) {
+  if (is.na(graficador) || !graficador %in% c("p_panorama", "p_dumbbell", "p_barras_divergentes", "p_fortalezas")) {
     .regla_preguntas_falla(sprintf("El gráfico «%s» no elige sus preguntas con una regla.", graficador %||% ""))
   }
   args <- as.list(args %||% list())

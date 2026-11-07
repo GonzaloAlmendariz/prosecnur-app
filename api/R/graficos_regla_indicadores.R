@@ -7,7 +7,7 @@
 # candidatas y se cuenta en los avisos.
 #
 # Universo de candidatas por tipo (ADR 0135, punto 5):
-#   - Panorama y escala del resumen: las preguntas de escala de cada base (`select_one` de diseño independiente con el
+#   - Panorama, fortalezas y escala del resumen: las preguntas de escala de cada base (`select_one` de diseño independiente con el
 #     corte y al menos cuatro opciones sustantivas).
 #   - Contraste entre públicos: los temas que el payload declara (el render no tiene sesión, así que los pares de la
 #     matriz de equivalencias llegan ya escritos en `vars`); un tema con `base$*` en las dos bases toma los pares del
@@ -307,7 +307,7 @@
        universo = "preguntas de escala", grupos_unidad = "públicos")
 }
 
-#' Tabla de indicadores de un elemento ya construido (`p_panorama`, `p_dumbbell`, `p_barras_divergentes`)
+#' Tabla de indicadores de un elemento ya construido (`p_panorama`, `p_dumbbell`, `p_barras_divergentes`, `p_fortalezas`)
 #'
 #' @param el Elemento `ppt_element` del constructor.
 #' @param sources `list(data_sources, inst_sources)`.
@@ -319,6 +319,7 @@
   et <- as.character(el$.element_type %||% "")[1]
   switch(et,
     panorama = .regla_preguntas_ind_panorama(el, sources, tipo),
+    fortalezas = .regla_preguntas_ind_panorama(el, sources, tipo),   # un público: las preguntas de escala de su base
     dumbbell = if (!is.null(el$cruce)) .regla_preguntas_ind_dumbbell_cruce(el, sources) else .regla_preguntas_ind_dumbbell_bases(el, sources),
     barras_divergentes = .regla_preguntas_ind_divergentes(el, sources, preset = preset),
     .regla_preguntas_falla(sprintf("El gráfico «%s» no elige sus preguntas con una regla.", et))

@@ -93,6 +93,23 @@
   sprintf("%s (%s%%)", .dumbbell_fmt_casos(n), .pulso_fmt_half_up(100 * n / universo, 0L))
 }
 
+#' Base de un grupo en la nota: «115 (93%)» si es la misma en todas las filas; si no, su rango («107 a 115 (87% a 93%)»)
+#'
+#' La comparten el contraste, las fortalezas y alertas y la cobertura: la base de un público se escribe igual en todas
+#' las láminas del resumen.
+#' @param n Casos de cada fila (pregunta) del grupo.
+#' @param universo Padrón del grupo (`NA` sin padrón).
+#' @keywords internal
+.contraste_base_grupo <- function(n, universo = NA_real_) {
+  n <- n[is.finite(n)]
+  if (!length(n)) return("—")
+  if (length(unique(n)) == 1L) return(.contraste_base_texto(n[1], universo))
+  rango <- sprintf("%s a %s", .dumbbell_fmt_casos(min(n)), .dumbbell_fmt_casos(max(n)))
+  if (is.finite(universo) && max(n) <= universo) rango <- sprintf("%s (%s%% a %s%%)", rango, .pulso_fmt_half_up(100 * min(n) / universo, 0L),
+                                                               .pulso_fmt_half_up(100 * max(n) / universo, 0L))
+  rango
+}
+
 #' Eje de porcentaje acercado al rango, en decenas y sin pasar de 0 ni 100
 #' @keywords internal
 .contraste_eje <- function(valores, limite_x = NULL) {
@@ -178,15 +195,7 @@
   constante <- all(vapply(seq_len(k), function(j) length(unique(B[, j])) == 1L, TRUE))
   if (identical(base_en, "auto")) base_en <- "nota"
   if (!constante && identical(base_en, "leyenda")) base_en <- "nota"
-  base_grupo <- vapply(seq_len(k), function(j) {
-    n <- N[, j][is.finite(N[, j])]
-    if (!length(n)) return("—")
-    if (length(unique(n)) == 1L) return(B[1, j])
-    rango <- sprintf("%s a %s", .dumbbell_fmt_casos(min(n)), .dumbbell_fmt_casos(max(n)))
-    if (is.finite(uni[j]) && max(n) <= uni[j]) rango <- sprintf("%s (%s%% a %s%%)", rango, .pulso_fmt_half_up(100 * min(n) / uni[j], 0L),
-                                                             .pulso_fmt_half_up(100 * max(n) / uni[j], 0L))
-    rango
-  }, "")
+  base_grupo <- vapply(seq_len(k), function(j) .contraste_base_grupo(N[, j], uni[j]), "")
   leyenda <- if (identical(base_en, "leyenda")) sprintf("%s (n = %s)", grupos, sub(" \\((.*)\\)$", ", \\1", base_grupo)) else grupos
   nota_base <- if (identical(base_en, "nota")) paste0("Base: ", paste(sprintf("%s %s", grupos, base_grupo), collapse = "; ")) else NULL
   colores_g <- .contraste_colores(grupos, colores)

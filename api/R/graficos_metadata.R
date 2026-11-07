@@ -2108,6 +2108,32 @@
     ), .args_graf_comunes())
   ),
 
+  # =========================================================================
+  # FORTALEZAS Y ALERTAS (ADR 0135): las más altas y las más bajas de un público
+  # =========================================================================
+  p_fortalezas = list(
+    titulo_humano = "Fortalezas y alertas",
+    descripcion   = "Las preguntas más altas y las más bajas de un público, en dos columnas, con su barra y su cifra.",
+    icono_ui      = "ArrowUpDown",
+    categoria     = "comparison",
+    blueprint     = "bars-categorical",
+    requisito     = "Las preguntas de escala de un público (base$* toma todas) y las respuestas que suman el indicador.",
+    args = c(list(
+      list(name = "vars", label = "Preguntas", tipo_input = "variables_list", grupo = "datos",
+           descripcion = "Preguntas de escala de un solo público."),
+      list(name = "corte", label = "Indicador", tipo_input = "codigos_list", grupo = "datos",
+           descripcion = "Respuestas que suman la cifra de cada barra."),
+      list(name = "corte_etiqueta", label = "Nombre del indicador", tipo_input = "string", grupo = "datos"),
+      list(name = "n", label = "Preguntas por columna", tipo_input = "number", grupo = "datos",
+           default = 5, min = 1, max = 10, step = 1,
+           descripcion = "Cuántas van en Más altas y cuántas en Más bajas."),
+      list(name = "regla", label = "Regla de preguntas", tipo_input = "regla_preguntas", grupo = "datos",
+           descripcion = "Por defecto, las más altas y las más bajas."),
+      list(name = "universos", label = "Padrón del público", tipo_input = "string", grupo = "datos",
+           descripcion = "Para la base n (cobertura %): «Docentes: 123». Sin padrón, sólo n.")
+    ), .args_graf_comunes())
+  ),
+
   # Recetario p192–p194 (inventario de configuraciones, ítem 20): la pregunta filtro, lo que habilita y la subpregunta con
   # su propia base, unidas por una llave. Se arma en su tarjeta (FiltroSubpregunta en la pestaña Gráfico).
   p_filtro_subpregunta = list(
@@ -2660,6 +2686,7 @@
   p_cifra = list("numeros", "nativa", condicion = "Va en las ranuras de cifra; en una ranura de gráfico sale por la ruta anterior."),
   p_dumbbell = list("comparar", "nativa", condicion = "En «Contraste de públicos», hasta 14 preguntas con dos grupos o 24 sub-filas con tres o cuatro; si no caben, va dibujado."),
   p_panorama = list("comparar", "nativa", condicion = "Hasta cinco públicos; con más, va dibujado."),   # ADR 0134
+  p_fortalezas = list("comparar", "nativa", condicion = "Hasta ocho preguntas por columna; con más, va dibujado."),   # ADR 0135
   p_significancia_publicos = list("comparar", "nativa", condicion = "Dos o tres públicos y hasta diez temas."),
   # Pieza interna de la dependencia entre los dos gráficos de una lámina (graficos_dependencia.R): no se elige como tipo.
   p_filtro_subpregunta = list("categorias", "nativa", condicion = "Hasta siete respuestas en el filtro; «Abajo» pide un filtro de dos respuestas.", en_selector = FALSE),
@@ -2714,6 +2741,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
   p_cifra = "",
   p_dumbbell = "dumbbell",
   p_panorama = "",
+  p_fortalezas = "",
   p_filtro_subpregunta = "",
   p_significancia_publicos = "",
   p_lollipop = "lollipop",
@@ -2758,6 +2786,8 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
     "Elige la pregunta de cada medición, tema por tema, y las respuestas que suman; tu matriz de equivalencias te sugiere la equivalente."
   } else if (identical(name, "p_mapa_resultado_distrital")) {
     "Elige la pregunta, la del distrito y las respuestas que suman, de la base activa."
+  } else if (identical(name, "p_fortalezas")) {
+    "Elige las preguntas de escala de un público y las respuestas que suman."
   } else if (identical(name, "p_filtro_subpregunta")) {
     "Elige la pregunta filtro, las respuestas que habilitan y la subpregunta, de la misma base."
   } else {
