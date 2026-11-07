@@ -51,6 +51,11 @@ export function VistaEncuestado({ a, choices, respuestas, onRespuesta, destello 
   const visibles = opcionesVisibles(a, choices, respuestas);
   const compacto = a.entradas.length > 3;
   const multiple = a.baseType === "select_multiple";
+  // A3 (2026-11-07): antes de responder la pregunta de la que depende, la lista vacía no es un error.
+  const sinResponder = a.entradas.length > 0 && a.entradas.every((e) => {
+    const v = respuestas[e.nombre];
+    return v == null || v === "" || (Array.isArray(v) && v.length === 0);
+  });
   return (
     <section className="xcf-vista" aria-labelledby="xcf-vista-titulo">
       <h4 id="xcf-vista-titulo" className="xcf-vista__titulo">Qué ve el encuestado</h4>
@@ -75,6 +80,8 @@ export function VistaEncuestado({ a, choices, respuestas, onRespuesta, destello 
                   <li key={o.codigo}><span className={multiple ? "xcf-vista__glifo is-cuadro" : "xcf-vista__glifo"} aria-hidden="true" />{o.etiqueta}</li>
                 ))}
               </ul>
+            ) : sinResponder ? (
+              <p className="xcf-nota" aria-live="polite">Elige una respuesta arriba para ver las opciones.</p>
             ) : <div className="xcf-vista__vacia" aria-live="polite">La pregunta se muestra sin opciones.</div>}
             <div className="xcf-nota">{visibles?.length ?? 0} de {a.opciones.length} opciones</div>
           </>
