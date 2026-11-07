@@ -268,6 +268,9 @@ export type ArgTipoInput =
   // regla_preguntas: {tipo, n?, umbral?, agregar?, quitar?} con que una lámina de resumen elige sus preguntas
   // (ADR 0135); el conteo en vivo es `apiGraficosConteoRegla` (graficosRegla.ts).
   | "regla_preguntas"
+  // cierre_hallazgos: hallazgos {lamina, cifra, texto, cifra_al_escribir?} del cierre (p_slide_cierre_hallazgos,
+  // ADR 0135 §6); las cifras de cada lámina son `apiGraficosCifras` (graficosCifras.ts).
+  | "cierre_hallazgos"
   | "icono"
   | "overrides"
   | "filtros"
