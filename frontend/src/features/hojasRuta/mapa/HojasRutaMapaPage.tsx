@@ -1009,6 +1009,9 @@ export default function HojasRutaMapaPage() {
                   const enCiudad = ciudadEnfocada ? distritoEnPunto(contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadEnfocada), x, y) : null;
                   if (enCiudad) {
                     // Otro clic en el mismo distrito no lo suelta (de él se vuelve con «Volver a la ciudad» o la miga).
+                    // Si ya se veían manzanas, el vecino se abre al mismo nivel: saltar de Lima a Magdalena dejaba
+                    // Magdalena como un bloque de color y había que volver a pedir sus manzanas (H22).
+                    if (adentro && enCiudad.ubigeo !== adentro) setManzanasDistrito(enCiudad.ubigeo);
                     setDistritoEnfocado(enCiudad.ubigeo);
                     return;
                   }

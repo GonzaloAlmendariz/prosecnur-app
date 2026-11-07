@@ -291,6 +291,14 @@ export function LienzoMapa({
       // Borde de 1 px: con 0,6 el negro se antialiasa a gris y la manzana no se recorta.
       ctx.lineWidth = (k === "manzanas" ? 1 : 0.6) * px;
       for (const m of manzanasVisibles) ctx.stroke(trazoDe(m));
+    } else if (k === "manzanas" && manzanasVisibles.length <= 20000) {
+      // La manzana es blanca sobre fondo blanco: sin borde, un distrito entero (Lima Cercado, 1,901 manzanas) se veía
+      // vacío al abrir «Ver sus manzanas». De lejos va un borde fino y tenue, que se aclara cuanto más lejos.
+      ctx.strokeStyle = col.manzanaBorde;
+      ctx.globalAlpha = Math.max(0.18, Math.min(0.45, c.s / 0.25 * 0.45));
+      ctx.lineWidth = 0.6 * px;
+      for (const m of manzanasVisibles) ctx.stroke(trazoDe(m));
+      ctx.globalAlpha = 1;
     }
     if (c.s > 0.12) {
       ctx.strokeStyle = col.zona;

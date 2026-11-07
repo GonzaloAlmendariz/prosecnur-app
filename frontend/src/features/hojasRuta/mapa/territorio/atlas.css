@@ -61,11 +61,12 @@
 .hr-miga-nivel:focus-visible { outline: 2px solid var(--pulso-module-routes-border); outline-offset: 1px; border-radius: 3px; }
 
 /* Tarjeta del distrito elegido (DistritoAtlasTarjeta.tsx): reparto de sus hogares por NSE. */
-.hr-atlas-nse { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid var(--pulso-border); }
+.hr-atlas-nse { align-self: stretch; display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid var(--pulso-border); }
 .hr-atlas-nse > p { margin: 0; font-size: var(--pulso-type-micro-size); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--pulso-text-soft); }
 .hr-atlas-nse-barra { display: flex; gap: 2px; height: 10px; border-radius: 3px; overflow: hidden; }
-.hr-atlas-nse-barra > i { display: block; min-width: 2px; }
-.hr-atlas-nse ul { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(2, auto); justify-content: start; column-gap: 16px; row-gap: 4px; font-size: var(--pulso-type-caption-size); color: var(--pulso-text-soft); }
-.hr-atlas-nse li { display: inline-flex; align-items: center; gap: 6px; }
+.hr-atlas-nse-barra > i { display: block; }
+.hr-atlas-nse ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; font-size: var(--pulso-type-caption-size); color: var(--pulso-text-soft); }
+.hr-atlas-nse li { display: flex; align-items: center; gap: 8px; }
+.hr-atlas-nse li b { margin-left: auto; }
 .hr-atlas-nse li i { width: 9px; height: 9px; border-radius: 2px; flex: none; }
 .hr-atlas-nse li b { font-weight: 600; color: var(--pulso-text); font-variant-numeric: tabular-nums; }

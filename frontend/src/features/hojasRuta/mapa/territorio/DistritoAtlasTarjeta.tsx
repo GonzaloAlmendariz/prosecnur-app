@@ -18,7 +18,8 @@ export function repartoNse(t: HojasRutaTerritory): number[] | null {
   return r.every((v) => v !== null) && (r as number[]).reduce((a, v) => a + v, 0) > 0 ? (r as number[]) : null;
 }
 
-const pct = (v: number) => `${Math.round(v * 100)} %`;
+// Un nivel con hogares pero bajo el medio punto se rotula «menos de 1 %»: «0 %» contradecía la astilla de la barra.
+export const pct = (v: number) => (v > 0 && v < 0.005 ? "menos de 1 %" : `${Math.round(v * 100)} %`);
 
 /**
  * Tarjeta del distrito elegido en el atlas, en el panel lateral (revisión del 7 nov 2026, H21: la ficha flotaba
