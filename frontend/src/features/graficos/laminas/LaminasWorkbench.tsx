@@ -29,7 +29,7 @@ import { EditorAmplio } from "./EditorAmplio";
 import { DiferenciasPaneles } from "./diferencias/DiferenciasPaneles";
 import { agruparAvisos } from "./resumenInforme";
 import { construirEstructura } from "./modeloEstructura";
-import { tituloQueSale } from "./tituloQueSale";
+import { nombreEnEstructura } from "./tituloQueSale";
 import { useVariables } from "../useVariables";
 import { focoDeId, resolverFocoLamina } from "../focoLamina";
 import { useLaminasUi } from "./laminasStore";
@@ -95,7 +95,7 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
 
   const { variables } = useVariables();
   // Un mismo título en la tira, el visor y la Estructura: el que va a salir (G15/U13).
-  const estructura = useMemo(() => construirEstructura(slides, (sl, tipoLabel) => tituloQueSale(sl, variables, tipoLabel)), [slides, variables]);
+  const estructura = useMemo(() => construirEstructura(slides, (sl, tipoLabel) => nombreEnEstructura(sl, variables, tipoLabel)), [slides, variables]);
   const direccion = useSeccion("procesamiento");
   const foco = useMemo(() => resolverFocoLamina(direccion.foco, slides), [direccion.foco, slides]);
   const total = estructura.laminas.length;

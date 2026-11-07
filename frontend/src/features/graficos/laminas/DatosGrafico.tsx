@@ -34,6 +34,8 @@ import { OrdenCategoriasGrafico } from "./OrdenCategoriasGrafico";
 import { TwoBoxGrafico } from "./tarjetaGrafico/TwoBoxGrafico";
 import { CasosGrafico } from "./CasosGrafico";
 import { ListaPreguntas } from "./ListaPreguntas";
+import { PublicosGrafico } from "./publicosGrafico/PublicosGrafico";
+import { usaPublicos } from "./publicosGrafico/modeloPublicos";
 import { CriteriosGrafico } from "./CriteriosGrafico";
 import { DestacarRespuestas } from "./DestacarRespuestas";
 import { criteriosDelRadar, formaEfectivaRadar, rotuloTablaAuto } from "./formaRadar";
@@ -403,6 +405,19 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias, args, sco
             placeholder={control === "variable_opcional" ? "Sin dividir" : "Elige una pregunta…"}
           />
         </div>
+      </div>
+    );
+  }
+  // Q2-11: con `base$*` las preguntas se eligen por público (una ficha por base, ordenable); no un selector vacío por cada una.
+  if (control === "variables" && usaPublicos(valor)) {
+    return (
+      <div className="pulso-f6-dato is-apilado" data-campo={arg.name}>
+        <span className="pulso-f6-dato-rotulo" id={`${id}-publicos`}>
+          Públicos
+          <Ayuda rotulo="Públicos" detalle="Todas las preguntas de escala de cada público. El orden es el de las filas del gráfico." />
+          {sello}
+        </span>
+        <PublicosGrafico id={id} graficador={graficador} valor={valor} describe={`${id}-publicos`} onCambio={onCambio} />
       </div>
     );
   }

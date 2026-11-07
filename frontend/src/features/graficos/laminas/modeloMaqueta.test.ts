@@ -47,6 +47,16 @@ describe("maqueta: qué muestra cada ranura", () => {
     expect(r).toMatchObject({ pregunta: "Sexo", masPreguntas: 0, bases: [] });
   });
 
+  it("Q2-6: las láminas de resumen recién puestas no piden pregunta: la cobertura lee públicos y la regla elige", () => {
+    const [cob] = ranurasDeMaqueta(slide({ graficador: "p_cobertura", args: { bases: ["estudiantes", "docentes"] } }), []);
+    expect(cob.preguntas.map((q) => q.titulo)).toEqual(["Estudiantes", "Docentes"]);
+    const [pan] = ranurasDeMaqueta(slide({ graficador: "p_panorama", args: { vars: ["docentes$*", "estudiantes$*"], regla: { tipo: "todas" } } }), []);
+    expect(pan.preguntas.map((q) => q.titulo)).toEqual(["Docentes, todas las de escala", "Estudiantes, todas las de escala"]);
+    expect(pan.bases).toEqual(["Docentes", "Estudiantes"]);
+    const [fort] = ranurasDeMaqueta(slide({ graficador: "p_fortalezas", args: { regla: { tipo: "extremos", n: 5 } } }), []);
+    expect(fort.preguntas.map((q) => q.titulo)).toEqual(["Preguntas que elige la regla"]);
+  });
+
   it("una ranura sin gráfico queda vacía, sin pregunta", () => {
     const [r] = ranurasDeMaqueta(slide(null), []);
     expect(r).toMatchObject({ graficador: null, pregunta: null, bases: [] });

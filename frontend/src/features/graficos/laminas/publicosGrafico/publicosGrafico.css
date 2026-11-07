@@ -1,0 +1,48 @@
+/* «Públicos» de un gráfico de resumen (PublicosGrafico.tsx): una fila por público con sus flechas y su quitar, y el
+   selector para agregar otro. Todo con min-width: 0; el inspector es angosto. */
+
+.pulso-f6-publicos {
+  display: grid;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-f6-publicos-lista {
+  display: grid;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Filas separadas por su filete, como los hallazgos: sin caja propia (el marco de bloque es components/Panel). */
+.pulso-f6-publicos-ficha {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  padding: var(--pulso-space-1) 0;
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-f6-publicos-ficha:first-child {
+  border-top: 0;
+}
+
+.pulso-f6-publicos-nombre {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--pulso-space-1);
+  min-width: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-f6-publicos-nombre > strong {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+}

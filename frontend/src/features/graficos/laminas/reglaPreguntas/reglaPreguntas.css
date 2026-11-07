@@ -82,9 +82,11 @@
   overflow: hidden;
 }
 
+/* La cabecera nombra la métrica de la columna de cifras; la fila lleva la cifra en una primera columna de ancho fijo
+   (cinco cifras tabulares) y la pregunta toma el resto y se parte. */
 .pulso-f6-regla-cabeza {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--pulso-space-2);
   padding: var(--pulso-space-2) var(--pulso-space-3);
   border-bottom: 1px solid var(--pulso-border);
@@ -105,7 +107,7 @@
 
 .pulso-f6-regla-fila {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: 6ch minmax(0, 1fr);
   align-items: center;
   gap: var(--pulso-space-2);
   min-width: 0;
@@ -123,4 +125,5 @@
   font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
   text-align: right;
+  white-space: nowrap;
 }

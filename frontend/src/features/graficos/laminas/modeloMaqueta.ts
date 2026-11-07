@@ -246,13 +246,29 @@ function gruposDe(args: Record<string, unknown>, bloque = 0, lamina?: BarraExtra
   if (typeof args.subpregunta === "string") {
     return ["var", "subpregunta"].flatMap((k) => refsDe(args[k])).map((r) => ({ titulo: null, refs: [r], bloque, cruce }));
   }
-  const refs = ["var", "vars", "variable", "variables"].flatMap((k) => refsDe(args[k]));
-  const porNombre = new Map<string, string[]>();
-  for (const r of refs) {
-    const n = parseVarRef(r).name;
-    porNombre.set(n, [...(porNombre.get(n) ?? []), r]);
+  // Q2-6 (prueba con Arte): la cobertura lee públicos (`bases`), no preguntas; la ficha decía «Falta elegir la pregunta».
+  if (Array.isArray(args.bases)) {
+    const bases = args.bases.filter((b): b is string => typeof b === "string" && !!b.trim());
+    if (bases.length) return bases.map((b) => ({ titulo: nombreBase(b.trim()), refs: [], bloque, cruce }));
   }
-  return [...porNombre.values()].map((rs) => ({ titulo: null, refs: rs, bloque, cruce }));
+  const refs = ["var", "vars", "variable", "variables"].flatMap((k) => refsDe(args[k]));
+  // Las láminas de resumen eligen sus preguntas con una regla (ADR 0135 §2): sin lista declarada, la regla las elige.
+  if (!refs.length && args.regla && typeof args.regla === "object" && !Array.isArray(args.regla)) {
+    return [{ titulo: "Preguntas que elige la regla", refs: [], bloque, cruce }];
+  }
+  const porNombre = new Map<string, { titulo: string | null; refs: string[] }>();
+  for (const r of refs) {
+    const pr = parseVarRef(r);
+    // `base$*` (todas las de escala de esa base) es un grupo por público, no una pregunta llamada «*» compartida.
+    const comodin = pr.name === "*" && !!pr.source;
+    const clave = comodin ? r : pr.name;
+    const previo = porNombre.get(clave);
+    porNombre.set(clave, {
+      titulo: comodin ? `${nombreBase(pr.source as string)}, todas las de escala` : null,
+      refs: [...(previo?.refs ?? []), r],
+    });
+  }
+  return [...porNombre.values()].map((g) => ({ titulo: g.titulo, refs: g.refs, bloque, cruce }));
 }
 
 export function ranurasDeMaqueta(slide: Pick<Slide, "tipo" | "payload">, variables: readonly VarLike[], presets: Presets = {}, colores?: ColoresMaqueta): RanuraMaqueta[] {

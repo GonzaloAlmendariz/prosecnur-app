@@ -169,12 +169,25 @@ export function valorCifra(r: ReglaPreguntas): number | null {
   return null;
 }
 
-/** El encabezado de la cifra de cada fila: la métrica con que el backend ordena para ese tipo. */
-export function rotuloMetrica(tipo: TipoReglaPreguntas, grupos: number): string {
+/**
+ * El encabezado de la cifra de cada fila: la métrica con que el backend ordena para ese tipo (`.regla_preguntas_conteo`,
+ * graficos_regla_preguntas.R). Con dos públicos la distancia es su diferencia; con tres o más, la distancia entre el más
+ * alto y el más bajo; con uno, el valor del indicador (Q2-12: «Todas las de escala» del panorama de tres públicos se
+ * rotulaba «Diferencia»). `indicador` es el nombre que la lámina le da (`corte_etiqueta`).
+ */
+export function rotuloMetrica(tipo: TipoReglaPreguntas, grupos: number, indicador = ""): string {
+  const delIndicador = indicador.trim() || "Indicador";
+  const distancia = grupos >= 3 ? "Distancia" : "Diferencia";
   if (tipo === "mayor_sin_info") return "Sin información";
-  if (tipo === "bajo_umbral") return "Mínimo";
-  if (tipo === "extremos") return "Promedio";
-  return grupos >= 2 || ENTRE_GRUPOS.has(tipo) ? "Diferencia" : "Valor";
+  if (tipo === "mayor_diferencia" || tipo === "diferencia_minima") return distancia;
+  if (tipo === "bajo_umbral") return grupos >= 2 ? "Mínimo" : delIndicador;
+  if (tipo === "extremos") return grupos >= 2 ? "Promedio" : delIndicador;
+  return grupos >= 2 ? distancia : delIndicador;
+}
+
+/** El nombre del indicador de la lámina, para rotular su cifra. */
+export function indicadorDe(args: Args): string {
+  return typeof args.corte_etiqueta === "string" ? args.corte_etiqueta : "";
 }
 
 export function textoMetrica(m: number | null): string {

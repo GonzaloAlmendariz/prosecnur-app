@@ -17,7 +17,7 @@ import { ErrorBlock } from "../../../../components/States";
 import { AyudaGlobo } from "../AyudaGlobo";
 import { NumeroAcotado } from "../NumeroAcotado";
 import {
-  ajustadaAMano, alternarFila, campoCifra, conCifra, conTipo, filaBloqueada, gruposDeLaLamina, reglaEfectiva, rotuloMetrica,
+  ajustadaAMano, alternarFila, campoCifra, conCifra, conTipo, filaBloqueada, gruposDeLaLamina, indicadorDe, reglaEfectiva, rotuloMetrica,
   rotuloTipo, textoConteo, textoMetrica, tiposOfrecidos, valorCifra, volverALaRegla,
 } from "./modeloReglaPreguntas";
 import { useConteoRegla } from "./useConteoRegla";
@@ -98,17 +98,18 @@ export function ReglaPreguntas({ rotulo, ayuda, graficador, args, valor, scope, 
             <EstadoVacio icono={<ListChecks size={16} />} titulo="Sin preguntas candidatas" descripcion="Revisa las bases, el indicador y los filtros." />
           ) : (
             <Panel variant="subtle" noPadding className="pulso-f6-regla-lista" data-qa-geometry-member>
+              {/* Q2-12 (C4): la cifra va antes de la pregunta (a la derecha quedaba cortada en el inspector angosto) y la
+                  cabecera nombra su métrica a todo lo ancho, sin una columna que la parta. */}
               <div className="pulso-f6-regla-cabeza" aria-hidden="true">
-                <span>Pregunta</span>
-                <span>{rotuloMetrica(regla.tipo, grupos)}</span>
+                <span>{rotuloMetrica(regla.tipo, grupos, indicadorDe(args))}</span>
               </div>
               <ul className="pulso-f6-regla-filas" data-qa-scroll-owner="regla-preguntas" aria-label={`Preguntas candidatas, ${textoConteo(conteo)} en la lámina`}>
                 {conteo.candidatas.map((c) => (
                   <li key={c.tema} className="pulso-f6-regla-fila">
+                    <span className="pulso-f6-regla-metrica">{textoMetrica(c.metrica)}</span>
                     <PulsoSwitch size="sm" label={c.etiqueta} checked={c.seleccionada}
                       disabled={filaBloqueada(regla, c.tema, c.seleccionada)}
                       onCheckedChange={() => onCambio(alternarFila(regla, c.tema, c.seleccionada))} />
-                    <span className="pulso-f6-regla-metrica">{textoMetrica(c.metrica)}</span>
                   </li>
                 ))}
               </ul>

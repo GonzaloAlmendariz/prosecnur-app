@@ -105,7 +105,15 @@ describe("conteo y firma", () => {
   it("la métrica se rotula como la ordena el backend", () => {
     expect(rotuloMetrica("mayor_diferencia", 2)).toBe("Diferencia");
     expect(rotuloMetrica("mayor_sin_info", 1)).toBe("Sin información");
-    expect(rotuloMetrica("todas", 1)).toBe("Valor");
+    expect(rotuloMetrica("todas", 1)).toBe("Indicador");
+  });
+  it("Q2-12: «Todas las de escala» se rotula por su métrica: indicador con un público, distancia con tres", () => {
+    expect(rotuloMetrica("todas", 1, "Top Two Box")).toBe("Top Two Box");
+    expect(rotuloMetrica("todas", 2, "Top Two Box")).toBe("Diferencia");
+    expect(rotuloMetrica("todas", 3, "Top Two Box")).toBe("Distancia");
+    expect(rotuloMetrica("mayor_diferencia", 3)).toBe("Distancia");
+    expect(rotuloMetrica("extremos", 1, "Top Box")).toBe("Top Box");
+    expect(rotuloMetrica("bajo_umbral", 3)).toBe("Mínimo");
   });
   it("la firma no cambia con el orden de las claves ni con un objeto nuevo igual", () => {
     const a = firmaPedidoRegla("p_panorama", { vars: ["d$*"], regla: { tipo: "todas", n: undefined } }, "active");

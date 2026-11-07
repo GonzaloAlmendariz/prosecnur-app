@@ -20,7 +20,8 @@ export function cleanInferredVariableTitle(value: unknown): string | null {
 function flattenRefs(value: unknown): string[] {
   if (typeof value === "string") {
     const text = value.trim();
-    return text ? [text] : [];
+    // `base$*` (todas las de escala de una base, ADR 0135) no es una pregunta: no da título (Q2-7, «docentes$*»).
+    return text && !/\$\*$/.test(text) && text !== "*" ? [text] : [];
   }
   if (Array.isArray(value)) {
     return value.flatMap(flattenRefs);
