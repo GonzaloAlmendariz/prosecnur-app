@@ -197,6 +197,17 @@ export function dibujarTitularesPantalla(
 // ---------- Identidad por distrito (B9) ----------
 
 /** Mezcla dos colores hex (`t` = peso de `b`). Un color que no es hex devuelve `a`. */
+/** Si un color «#rrggbb» es oscuro (luminancia relativa bajo 0,36): sobre él el texto va en blanco. */
+export function esOscuro(c: string): boolean {
+  const m = /^#?([0-9a-f]{6})$/i.exec(c.trim());
+  if (!m) return false;
+  const [r, g, b] = [0, 2, 4].map((i) => {
+    const v = parseInt(m[1].slice(i, i + 2), 16) / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.36;
+}
+
 export function mezclar(a: string, b: string, t: number): string {
   const hex = (c: string) => {
     const m = /^#?([0-9a-f]{6})$/i.exec(c.trim());
@@ -332,8 +343,15 @@ export function sinPisarFichas<T extends CajaOcupada>(medidos: readonly T[], ocu
   return medidos.filter((m) => !ocupadas.some((o) => seTocan(m, o)));
 }
 
-export function dibujarNombresFuera(ctx: CanvasRenderingContext2D, u: UtilLienzo, nombres: readonly { clave: string; nombre: string; x: number; y: number }[], ocupadas: readonly CajaOcupada[] = []) {
-  ctx.font = "600 10.5px -apple-system, system-ui, sans-serif";
+/**
+ * Nombres de distrito sobre el mapa. Con `relleno` (la coropleta del atlas), cada nombre toma la tinta que se lee
+ * sobre el color de su distrito —oscura sobre claro, blanca sobre oscuro— y un halo fino del mismo color, como en
+ * los mapas de Datawrapper o Mapbox: el halo blanco grueso se veía como letras recortadas y pegadas (revisión
+ * del 7 nov 2026). Los que chocan entre sí no se dibujan.
+ */
+export function dibujarNombresFuera(ctx: CanvasRenderingContext2D, u: UtilLienzo, nombres: readonly { clave: string; nombre: string; x: number; y: number }[], ocupadas: readonly CajaOcupada[] = [], relleno?: (clave: string) => string | null) {
+  ctx.font = "500 10.5px -apple-system, system-ui, sans-serif";
+  if ("letterSpacing" in ctx) ctx.letterSpacing = "0.01em";
   const medidos = nombres
     .map((n) => {
       const [x, y] = u.aPantalla(n.x, n.y);
@@ -346,17 +364,20 @@ export function dibujarNombresFuera(ctx: CanvasRenderingContext2D, u: UtilLienzo
   // Con halo del fondo, como los demás rótulos: sin él, los bordes de distrito y las líneas guía de las
   // fichas cruzaban el nombre («Callao», «Comas») y a 1024 se leía como trazos sueltos.
   ctx.lineJoin = "round";
-  ctx.lineWidth = 3;
-  ctx.strokeStyle = u.colores.fondo;
-  ctx.fillStyle = u.colores.suave;
   for (const m of medidos) {
     if (!libres.has(m.clave)) continue;
-    ctx.globalAlpha = 0.9;
+    const fondo = relleno?.(m.clave) ?? null;
+    const oscuro = fondo ? esOscuro(fondo) : false;
+    ctx.lineWidth = fondo ? 2 : 2.5;
+    ctx.strokeStyle = fondo ?? u.colores.fondo;
+    ctx.globalAlpha = fondo ? 0.7 : 0.9;
     ctx.strokeText(m.nombre, m.x, m.y);
-    ctx.globalAlpha = 0.75;
+    ctx.fillStyle = oscuro ? "#ffffff" : fondo ? u.colores.texto : u.colores.suave;
+    ctx.globalAlpha = oscuro ? 0.95 : fondo ? 0.82 : 0.8;
     ctx.fillText(m.nombre, m.x, m.y);
   }
   ctx.globalAlpha = 1;
+  if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
 }
 
 export function dibujarRotulosDistrito(ctx: CanvasRenderingContext2D, u: UtilLienzo, rotulos: readonly RotuloDistrito[]): CajaOcupada[] {

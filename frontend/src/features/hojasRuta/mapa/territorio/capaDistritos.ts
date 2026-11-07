@@ -1,4 +1,5 @@
 import type { HojasRutaTerritory } from "../../../../api/hojasRuta";
+import type { ColoresLienzo } from "../lienzo/LienzoMapa";
 import { KX, KY, ORIGEN_LONLAT } from "../lienzo/camara";
 
 /**
@@ -101,4 +102,12 @@ export function escalaDistritos(capa: CapaDistritos, territorios: readonly Hojas
   const cortes = cortesCuantiles(valores.map((x) => x.v));
   for (const { ubigeo, v } of valores) clase.set(ubigeo, Math.min(CLASES_DENSIDAD, 1 + cortes.filter((c) => v >= c).length));
   return { capa, clase, cortes };
+}
+
+/** Relleno de un distrito en la coropleta: el NSE por su nivel; la densidad en los escalones 2..6 de la rampa (el 1 no
+ *  llega a 2:1 sobre el fondo); sin dato, el gris claro del NSE. Lo usan el relleno y la tinta de su nombre. */
+export function rellenoDistrito(colores: ColoresLienzo, escala: EscalaDistritos, ubigeo: string): string {
+  const k = escala.clase.get(ubigeo) ?? 0;
+  if (escala.capa === "nse") return colores.nse[k];
+  return k ? colores.densidad[k + 1] : colores.nse[0];
 }

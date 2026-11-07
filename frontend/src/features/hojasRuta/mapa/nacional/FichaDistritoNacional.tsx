@@ -8,11 +8,13 @@ import { nombreDistrito } from "../nombres";
  * (entrevistas, población objetivo o UMP). Flota bajo la miga y no toca el inspector, que sigue diciendo
  * lo de la sección entera.
  */
-export function FichaDistritoNacional({ territorio, ciudad, linea, onCerrar }: {
+export function FichaDistritoNacional({ territorio, ciudad, linea, marca, onCerrar }: {
   territorio: Pick<HojasRutaTerritory, "ubigeo" | "distrito" | "provincia" | "poblacion" | "viviendas" | "manzanas">;
   ciudad: string;
   /** La cifra de la sección para este distrito, ya redactada; null si la sección aún no la tiene. */
   linea: string | null;
+  /** Color que acompaña la línea (el del NSE en el mapa), para leerla junto con la leyenda. */
+  marca?: string;
   onCerrar: () => void;
 }) {
   const nombre = nombreDistrito(territorio.distrito);
@@ -30,7 +32,7 @@ export function FichaDistritoNacional({ territorio, ciudad, linea, onCerrar }: {
         <div><dt>Viviendas</dt><dd>{formatoConteo(territorio.viviendas)}</dd></div>
         <div><dt>Manzanas</dt><dd>{formatoConteo(territorio.manzanas)}</dd></div>
       </dl>
-      {linea ? <p className="hr-ter-ficha-nota">{linea}</p> : null}
+      {linea ? <p className="hr-ter-ficha-nota">{marca ? <i className="hr-nac-ficha-marca" style={{ background: marca }} aria-hidden="true" /> : null}{linea}</p> : null}
     </section>
   );
 }

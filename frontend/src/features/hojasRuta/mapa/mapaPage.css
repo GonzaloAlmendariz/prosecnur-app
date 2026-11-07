@@ -508,8 +508,8 @@ div.hr-mapa-aviso { display: flex; flex-direction: column; align-items: flex-sta
 .hr-ter-cerrar { flex: none; display: grid; place-items: center; width: 26px; height: 26px; border: 0; border-radius: 8px; background: transparent; color: var(--pulso-text-soft); cursor: pointer; }
 .hr-ter-cerrar:hover { background: var(--pulso-surface-2); color: var(--pulso-text); }
 .hr-ter-cerrar:focus-visible { outline: 2px solid var(--pulso-module-routes-border); }
-.hr-ter-ficha-cifras { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.hr-ter-ficha-cifras div { min-width: 0; padding: 0 10px; border-left: 1px solid var(--pulso-border); }
+.hr-ter-ficha-cifras { margin: 0; display: grid; grid-template-columns: repeat(3, auto); justify-content: start; }
+.hr-ter-ficha-cifras div { padding: 0 14px; border-left: 1px solid var(--pulso-border); }
 .hr-ter-ficha-cifras div:first-child { padding-left: 0; border-left: 0; }
 .hr-ter-ficha-cifras dt { font-size: var(--pulso-type-micro-size); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--pulso-text-soft); }
 .hr-ter-ficha-cifras dd { margin: 2px 0 0; font-size: var(--pulso-type-kpi-size); font-weight: 700; font-variant-numeric: tabular-nums; color: var(--pulso-text); white-space: nowrap; }

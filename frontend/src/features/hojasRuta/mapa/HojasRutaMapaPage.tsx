@@ -75,7 +75,7 @@ import { SeleccionCajon, SeleccionEstructura, SeleccionInspector } from "./selec
 import { SalidasPanel } from "./seleccion/SalidasPanel";
 import { AjustesDisenoHost } from "./ajustes/AjustesDisenoHost";
 import { BotonDiseno } from "./ajustes/BotonDiseno";
-import { areaKm2, escalaDistritos } from "./territorio/capaDistritos";
+import { areaKm2, escalaDistritos, rellenoDistrito } from "./territorio/capaDistritos";
 import { FichaDistritoAtlas, leyendaCapaDistritos, SelectorCapaDistritos } from "./territorio/CapaDistritosControles";
 import { alcanceEstudio, seccionLista } from "./ajustes/barraDiseno";
 import { useSeleccionDireccion } from "./seleccion/useSeleccionDireccion";
@@ -553,6 +553,10 @@ export default function HojasRutaMapaPage() {
   const niveles = useMemo(() => ({ nacional: limites, fino: limitesFinos }), [limitesFinos]);
   const nacional = useVistaNacional({ seccion: nav.seccion, atlas, confirmados, territorios, contornos, niveles, objetivoPorUbigeo: matriz.vigente ? matriz.porUbigeo : undefined, tamanoFilas: tamano?.filas, titulares: bloquesTitulares, ump: titularEnfocada ? codigoDeUmp(titularEnfocada) : null });
 
+  // Sobre Viviendas o NSE la titular va en tinta oscura con halo (si no, se pierde en el color de las manzanas), y el
+  // distrito queda en gris neutro.
+  // A escala país no hay manzanas que colorear: la capa (y su selector) sólo existen bajo la vista nacional.
+  const capaContraste = conSelectorDeCapa(nav.seccion as SeccionLienzo) && nacional.nivel?.nivel !== "nacional" && capaMapa !== "manzanas";
   const dibujarFondo = useCallback(
     (ctx: CanvasRenderingContext2D, u: UtilLienzo) => {
       const l = limitesALaEscala(niveles, u.camara.s);
@@ -574,15 +578,19 @@ export default function HojasRutaMapaPage() {
         // UI, 2 nov 2026: «todas las ciudades deben verse así de bien», como Lima).
         if (ciudadEnfocada) dibujarContornos(ctx, u, contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadEnfocada), (c) => {
           if (!escalaCiudad) return { relleno: mezclar(u.colores.fondo, u.colores.acento, 0.07), borde: mezclar(u.colores.distritoBorde, u.colores.acento, 0.45), grosor: 1 };
-          // Coropleta: borde blanco fino entre distritos, como en los mapas de la ONS o Datawrapper. La densidad usa
-          // los cinco escalones más oscuros de la rampa (densidad[2..6]); el primero no llega a 2:1 sobre el fondo.
-          const k = escalaCiudad.clase.get(c.ubigeo) ?? 0;
-          const relleno = escalaCiudad.capa === "nse" ? u.colores.nse[k] : k ? u.colores.densidad[k + 1] : u.colores.nse[0];
-          return { relleno, borde: u.colores.fondo, grosor: 1.2 };
+          // Coropleta: borde blanco fino entre distritos, como en los mapas de la ONS o Datawrapper.
+          return { relleno: rellenoDistrito(u.colores, escalaCiudad, c.ubigeo), borde: u.colores.fondo, grosor: 1.2 };
         });
         return;
       }
       dibujarContornos(ctx, u, enTerritorio ? contornosAbiertos : contornos, (c) => {
+        const estilo = estiloDistrito(c);
+        // Con Viviendas o NSE por manzana, el color lo llevan las manzanas: el distrito queda en gris neutro y no compite
+        // con ellas (revisión del 7 nov 2026: el verde de Ate ocupaba todo lo que no era manzana). Los bordes se quedan.
+        if (capaContraste) estilo.relleno = confirmados.includes(c.ubigeo) || borrador.includes(c.ubigeo) ? u.colores.distrito : u.colores.fondo;
+        return estilo;
+      });
+      function estiloDistrito(c: (typeof contornos)[number]) {
         const conf = confirmados.includes(c.ubigeo);
         // B9: cada distrito confirmado lleva su tono, en el orden de confirmación.
         // Población también: su cifra va en el rótulo, no en una rampa de color.
@@ -598,13 +606,10 @@ export default function HojasRutaMapaPage() {
           grosor: enB !== conf ? 2 : enB ? 1.3 : 1,
           punteado: enB && !conf,
         };
-      });
+      }
     },
-    [confirmados, borrador, enTerritorio, enPoblacion, enMuestra, enAtlas, contornos, contornosAbiertos, ciudadEnfocada, departamentoEnfocado, nacional.dibujarFondo, niveles, escalaCiudad],
+    [confirmados, borrador, enTerritorio, enPoblacion, enMuestra, enAtlas, contornos, contornosAbiertos, ciudadEnfocada, departamentoEnfocado, nacional.dibujarFondo, niveles, escalaCiudad, capaContraste],
   );
-  // Sobre Viviendas o NSE la titular va en tinta oscura con halo (si no, se pierde en el naranja).
-  // A escala país no hay manzanas que colorear: la capa (y su selector) sólo existen bajo la vista nacional.
-  const capaContraste = conSelectorDeCapa(nav.seccion as SeccionLienzo) && nacional.nivel?.nivel !== "nacional" && capaMapa !== "manzanas";
   const dibujarMundo = useCallback(
     (ctx: CanvasRenderingContext2D, u: UtilLienzo) => {
       // P9: parques, plazas y agua (OSM) al fondo, para orientarse donde se ven manzanas.
@@ -741,7 +746,7 @@ export default function HojasRutaMapaPage() {
       if (enAtlas) {
         dibujarCiudadesAtlas(ctx, u, atlas, enEstudio, sinDistritos(ciudadEnfocada) ? null : ciudadEnfocada);
         // La ciudad enfocada muestra sus distritos con nombre (zoom de ciudad).
-        if (ciudadEnfocada) dibujarNombresFuera(ctx, u, contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadEnfocada).map((c) => ({ clave: c.ubigeo, nombre: nombreDistrito(c.nombre), x: c.rotulo[0], y: c.rotulo[1] })));
+        if (ciudadEnfocada) dibujarNombresFuera(ctx, u, contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadEnfocada).map((c) => ({ clave: c.ubigeo, nombre: nombreDistrito(c.nombre), x: c.rotulo[0], y: c.rotulo[1] })), [], escalaCiudad ? (clave) => rellenoDistrito(u.colores, escalaCiudad, clave) : undefined);
         return;
       }
       if (enTerritorio && ciudadAbierta && sinDistritos(ciudadAbierta)) {
@@ -772,7 +777,7 @@ export default function HojasRutaMapaPage() {
       }
       if (enTerritorio) dibujarNombresFuera(ctx, u, contornosAbiertos.filter((c) => !visibles.includes(c)).map((c) => ({ clave: c.ubigeo, nombre: nombreDistrito(c.nombre), x: c.rotulo[0], y: c.rotulo[1] })), fichas);
     },
-    [titularesVisibles, confirmados, borrador, enTerritorio, enPoblacion, enMuestra, enSeleccion, umpEnfocada, titularEnfocada, manzanaPorId, reemplazosEnfocados, matriz, tamano, habitantes, capaContraste, enAtlas, atlas, enEstudio, ciudadEnfocada, ciudadAbierta, contornos, contornosAbiertos, nacional],
+    [titularesVisibles, confirmados, borrador, enTerritorio, enPoblacion, enMuestra, enSeleccion, umpEnfocada, titularEnfocada, manzanaPorId, reemplazosEnfocados, matriz, tamano, habitantes, capaContraste, enAtlas, atlas, enEstudio, ciudadEnfocada, ciudadAbierta, contornos, contornosAbiertos, nacional, escalaCiudad],
   );
 
   // B1: la zona de acciones del documento (fase, avisos por revisar, bitácora, Material).
@@ -959,6 +964,12 @@ export default function HojasRutaMapaPage() {
                   const enCiudad = ciudadEnfocada ? distritoEnPunto(contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadEnfocada), x, y) : null;
                   if (enCiudad) {
                     setDistritoEnfocado(enCiudad.ubigeo !== distritoEnfocado ? enCiudad.ubigeo : null);
+                    return;
+                  }
+                  // Fuera de sus distritos (el mar, el vacío) la ciudad sigue abierta: de ella se sale con la miga o
+                  // «Todo el Perú», no con un clic suelto (revisión del 7 nov 2026). Sólo se cierra la ficha.
+                  if (ciudadEnfocada) {
+                    setDistritoEnfocado(null);
                     return;
                   }
                   // El mapa informa: un clic abre la tarjeta de la ciudad en el inspector.

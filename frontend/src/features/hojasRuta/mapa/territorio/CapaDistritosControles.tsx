@@ -5,14 +5,18 @@ import { leyendaLienzo } from "../lienzo/flotantes";
 import { FichaDistritoNacional } from "../nacional/FichaDistritoNacional";
 import { CAPAS_DISTRITOS, NOMBRE_NSE, type CapaDistritos, type EscalaDistritos } from "./capaDistritos";
 
+// Nombres literales: el contrato de tokens no lee nombres armados.
+const NSE_TOKEN = ["--pulso-nse-0", "--pulso-nse-1", "--pulso-nse-2", "--pulso-nse-3", "--pulso-nse-4", "--pulso-nse-5"] as const;
+
 /**
  * Ficha del distrito al que se hace clic con una ciudad abierta en el atlas. Antes ese clic caía en «fuera de
  * una ciudad» y devolvía al Perú (revisión del 7 nov 2026); ahora la ciudad sigue abierta y el distrito se lee.
  */
 export function FichaDistritoAtlas({ territorio, ciudad, onCerrar }: { territorio: HojasRutaTerritory; ciudad: string; onCerrar: () => void }) {
   const nse = territorio.nse_predominante;
-  const linea = typeof nse === "number" && nse >= 1 && nse <= 5 ? `NSE predominante: ${NOMBRE_NSE[nse].toLowerCase()}` : null;
-  return <FichaDistritoNacional territorio={territorio} ciudad={ciudad} linea={linea} onCerrar={onCerrar} />;
+  const conNse = typeof nse === "number" && nse >= 1 && nse <= 5;
+  const linea = conNse ? `NSE predominante: ${NOMBRE_NSE[nse].toLowerCase()}` : null;
+  return <FichaDistritoNacional territorio={territorio} ciudad={ciudad} linea={linea} marca={conNse ? `var(${NSE_TOKEN[nse]})` : undefined} onCerrar={onCerrar} />;
 }
 
 /** Selector de la capa de distritos de la ciudad abierta en el atlas (mismo control que el de manzanas). */
