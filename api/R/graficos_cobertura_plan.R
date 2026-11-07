@@ -14,6 +14,8 @@
 #' @param metas Meta por público en porcentaje del padrón («Docentes: 60%») o en casos («Docentes: 74»).
 #' @param extras Filas extra de la columna izquierda, sin barra: lista de `{cifra, rotulo, detalle}`
 #'   («34», «egresados(as)», «en 4 grupos focales»), o un texto con una por línea: «34 | egresados(as) | en 4 grupos focales».
+#' @param universos_no_confiables Lo tecleado como padrón de un público con «Padrón confiable» apagado («Docentes TC:
+#'   24»). Se conserva en el elemento y no entra a ningún cálculo.
 #' @export
 p_cobertura <- function(bases = NULL,
                         universos = NULL,
@@ -22,7 +24,8 @@ p_cobertura <- function(bases = NULL,
                         titulo = NULL,
                         overrides = list(),
                         base = list(),
-                        filtros = list()) {
+                        filtros = list(),
+                        universos_no_confiables = NULL) {
   bs <- trimws(as.character(unlist(bases %||% character(0))))
   bs <- unique(bs[!is.na(bs) & nzchar(bs)])
   if (any(grepl("$", bs, fixed = TRUE))) .plan_spec_abort("p_cobertura(): `bases` lleva nombres de base, no preguntas.")
@@ -41,6 +44,7 @@ p_cobertura <- function(bases = NULL,
     base = base,
     filtros = .ppt_norm_filters(filtros)
   )
+  el$universos_no_confiables <- .graficos_universos_no_confiables(universos_no_confiables, "p_cobertura()")
   class(el) <- c("ppt_element", "list")
   el
 }

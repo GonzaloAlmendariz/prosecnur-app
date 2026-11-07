@@ -576,6 +576,8 @@ p_barras_divergentes <- function(vars = NULL,
 #'   `TRUE`, 0: los que tenía este constructor).
 #' @param regla Cómo se eligen los temas entre los de `vars` (ADR 0135); sólo en el estilo resumen. Un tema cuyas dos
 #'   referencias son `base$*` toma los pares del mismo nombre entre las dos bases.
+#' @param universos_no_confiables Lo tecleado como padrón de un grupo con «Padrón confiable» apagado («Docentes TC:
+#'   24»): se conserva en el elemento y no entra a ningún cálculo (graficos_padron_confiable.R).
 #' @export
 p_dumbbell <- function(vars,
                        corte,
@@ -595,11 +597,14 @@ p_dumbbell <- function(vars,
                        universos = NULL,
                        separar_tras = NULL,
                        base_en = NULL,
-                       regla = NULL) {
+                       regla = NULL,
+                       universos_no_confiables = NULL) {
+  no_confiables <- .graficos_universos_no_confiables(universos_no_confiables, "p_dumbbell()")
   # G17: con `cruce` y `grupos` la brecha es entre dos grupos de una misma base (graficos_dumbbell_grupos.R).
   if (!is.null(cruce)) {
     el <- .p_dumbbell_grupos(vars, corte, corte_etiqueta, orden, mostrar_brecha, umbral_brecha_pct, titulo,
                              overrides, base, filtros, etiqueta_brecha, cruce, grupos, estilo, universos, separar_tras, base_en)
+    el$universos_no_confiables <- no_confiables
     return(.regla_preguntas_en_constructor(el, regla, "p_dumbbell()"))   # ADR 0135
   }
   vars <- .graf_aplicar_titulos_grupo(vars, titulos_grupo, "p_dumbbell()")
@@ -658,6 +663,7 @@ p_dumbbell <- function(vars,
     base = base,
     filtros = .ppt_norm_filters(filtros)
   )
+  el$universos_no_confiables <- no_confiables
   class(el) <- c("ppt_element", "list")
   .regla_preguntas_en_constructor(el, regla, "p_dumbbell()")   # ADR 0135
 }

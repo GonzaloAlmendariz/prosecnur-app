@@ -2069,6 +2069,8 @@
            descripcion = "Cómo se compone la lámina. La diferencia se calcula igual."),
       list(name = "universos", label = "Padrón de cada grupo", tipo_input = "string", grupo = "datos",
            descripcion = "Para escribir la base como n (cobertura %): «Docentes: 123; Estudiantes: 327». Un grupo sin padrón confiable se omite y su base va sólo con n."),
+      list(name = "universos_no_confiables", label = "Padrones no confiables", tipo_input = "string", grupo = "datos",
+           descripcion = "Padrón de los grupos con «Padrón confiable» apagado. Se guarda y no se usa en el cálculo."),
       list(name = "base_en", label = "Dónde va la base", tipo_input = "choice", grupo = "estilo",
            default = "auto",
            choices = list(
@@ -2149,6 +2151,8 @@
            descripcion = "Bases que entran, en su orden. Vacío: todas."),
       list(name = "universos", label = "Padrón de cada público", tipo_input = "string", grupo = "datos",
            descripcion = "«Docentes: 123; Estudiantes: 327». Sin padrón, sólo n y sin tasa."),
+      list(name = "universos_no_confiables", label = "Padrones no confiables", tipo_input = "string", grupo = "datos",
+           descripcion = "Padrón de los públicos con «Padrón confiable» apagado. Se guarda y no se usa en el cálculo."),
       list(name = "metas", label = "Meta de cada público", tipo_input = "string", grupo = "datos",
            descripcion = "En % del padrón («Docentes: 60%») o en casos («Docentes: 74»)."),
       list(name = "extras", label = "Filas extra", tipo_input = "textarea", grupo = "datos",
