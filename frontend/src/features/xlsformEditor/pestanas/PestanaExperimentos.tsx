@@ -1,12 +1,16 @@
 // Pestaña Experimentos del editor (checklist elección por pares C8 y C10, 2026-11-07). A la izquierda, los experimentos
-// que ya tiene el formulario y los que se pueden agregar; a la derecha, el diseño del elegido. Hay cinco tipos:
+// que ya tiene el formulario y los que se pueden agregar; a la derecha, el diseño del elegido. Hay seis tipos:
 // elección por pares (conjoint), viñetas (encuesta factorial), versiones al azar (split-sample, C12), lista (técnica
-// de conteo de ítems, C14) y respaldo (endorsement, C15).
+// de conteo de ítems, C14), respaldo (endorsement, C15) y orden al azar de las opciones (C16).
 
 import { useMemo } from "react";
 import { leerConjoint } from "../conjoint/leerConjoint";
 import { insertarConjoint, insertarLista, insertarRespaldo, insertarVersiones, insertarVinetas, listasDe, prefijoLibre, reemplazarConjoint, reemplazarLista, reemplazarRespaldo, reemplazarVersiones, reemplazarVinetas } from "../conjoint/insertarConjoint";
 import { leerRespaldo } from "../conjoint/leerRespaldo";
+import { aplicarOrden, leerOrden, validarOrden, type DisenoOrden } from "../conjoint/modeloOrden";
+import { DisenoOrden as DisenoOrdenPanel, type PreguntaSeleccion } from "../conjoint/DisenoOrden";
+import { indiceInsercion } from "../state/accionesConstructor";
+import { rowToRecord } from "../parsing/sheetUtils";
 import type { DisenoRespaldo } from "../conjoint/modeloRespaldo";
 import { DisenoRespaldo as DisenoRespaldoPanel } from "../conjoint/DisenoRespaldo";
 import { leerLista } from "../conjoint/leerLista";
@@ -40,6 +44,9 @@ export const focoLista = (prefijo: string) => `lista:${prefijo}`;
 export const FOCO_NUEVO_RESPALDO = "nuevo:respaldo";
 /** Foco de un experimento de respaldo: puede haber varios, se distinguen por su prefijo. */
 export const focoRespaldo = (prefijo: string) => `respaldo:${prefijo}`;
+export const FOCO_NUEVO_ORDEN = "nuevo:orden";
+/** Foco de un orden al azar: se distingue por su prefijo (el de su semilla). */
+export const focoOrden = (prefijo: string) => `orden:${prefijo}`;
 
 export function PestanaExperimentos({ workbook, structure, selection, updateWorkbook, seleccionada, onSeleccionar, onEditar }: {
   workbook: XlsformEditorWorkbook;
@@ -56,18 +63,34 @@ export function PestanaExperimentos({ workbook, structure, selection, updateWork
   const lecturasVs = useMemo(() => leerVersiones(workbook), [workbook]);
   const lecturasLs = useMemo(() => leerLista(workbook), [workbook]);
   const lecturasRs = useMemo(() => leerRespaldo(workbook), [workbook]);
+  const lecturasOr = useMemo(() => leerOrden(workbook), [workbook]);
+  // Preguntas de selección con sus opciones, para elegir cuáles barajan (C16).
+  const seleccion = useMemo<PreguntaSeleccion[]>(() => {
+    const opciones = new Map<string, { codigo: string; etiqueta: string }[]>();
+    workbook.choices.rows.forEach((_, i) => {
+      const r = rowToRecord(workbook.choices, i);
+      const l = (r.list_name ?? "").trim();
+      if (l) opciones.set(l, [...(opciones.get(l) ?? []), { codigo: (r.name ?? "").trim(), etiqueta: (r.label ?? "").trim() }]);
+    });
+    return workbook.survey.rows.flatMap((_, i) => {
+      const r = rowToRecord(workbook.survey, i);
+      const m = /^select_(?:one|multiple)\s+(\S+)/.exec((r.type ?? "").trim());
+      return m && r.name?.trim() ? [{ nombre: r.name.trim(), etiqueta: r.label ?? "", opciones: opciones.get(m[1]!) ?? [] }] : [];
+    });
+  }, [workbook]);
   const listas = useMemo(() => listasDe(workbook), [workbook]);
   const validos = [
-    FOCO_NUEVO_PARES, FOCO_NUEVO_VINETAS, FOCO_NUEVO_VERSIONES, FOCO_NUEVO_LISTA, FOCO_NUEVO_RESPALDO,
+    FOCO_NUEVO_PARES, FOCO_NUEVO_VINETAS, FOCO_NUEVO_VERSIONES, FOCO_NUEVO_LISTA, FOCO_NUEVO_RESPALDO, FOCO_NUEVO_ORDEN,
     ...(lectura ? [FOCO_PARES] : []), ...(lecturaV ? [FOCO_VINETAS] : []),
     ...lecturasVs.map((l) => focoVersiones(l.diseno.pregunta)),
     ...lecturasLs.map((l) => focoLista(l.diseno.prefijo)),
     ...lecturasRs.map((l) => focoRespaldo(l.diseno.prefijo)),
+    ...lecturasOr.map((l) => focoOrden(l.diseno.prefijo)),
   ];
   const foco = seleccionada && validos.includes(seleccionada)
     ? seleccionada
-    : lectura ? FOCO_PARES : lecturaV ? FOCO_VINETAS : lecturasVs[0] ? focoVersiones(lecturasVs[0].diseno.pregunta) : lecturasLs[0] ? focoLista(lecturasLs[0].diseno.prefijo) : lecturasRs[0] ? focoRespaldo(lecturasRs[0].diseno.prefijo) : FOCO_NUEVO_PARES;
-  const cuantos = (lectura ? 1 : 0) + (lecturaV ? 1 : 0) + lecturasVs.length + lecturasLs.length + lecturasRs.length;
+    : lectura ? FOCO_PARES : lecturaV ? FOCO_VINETAS : lecturasVs[0] ? focoVersiones(lecturasVs[0].diseno.pregunta) : lecturasLs[0] ? focoLista(lecturasLs[0].diseno.prefijo) : lecturasRs[0] ? focoRespaldo(lecturasRs[0].diseno.prefijo) : lecturasOr[0] ? focoOrden(lecturasOr[0].diseno.prefijo) : FOCO_NUEVO_PARES;
+  const cuantos = (lectura ? 1 : 0) + (lecturaV ? 1 : 0) + lecturasVs.length + lecturasLs.length + lecturasRs.length + lecturasOr.length;
 
   const grupos: ReglaListaGrupo[] = [
     {
@@ -117,6 +140,13 @@ export function PestanaExperimentos({ workbook, structure, selection, updateWork
           resumen: `${l.diseno.politicas.length} ${l.diseno.politicas.length === 1 ? "política" : "políticas"}, ${l.diseno.actores.length} ${l.diseno.actores.length === 1 ? "actor" : "actores"}`,
           aviso: !l.fiel,
         })),
+        ...lecturasOr.map((l) => ({
+          key: focoOrden(l.diseno.prefijo),
+          baseType: "note",
+          numero: "",
+          titulo: "Orden al azar",
+          resumen: `Opciones de ${l.diseno.preguntas.length} ${l.diseno.preguntas.length === 1 ? "pregunta" : "preguntas"}`,
+        })),
       ],
     },
     {
@@ -151,6 +181,12 @@ export function PestanaExperimentos({ workbook, structure, selection, updateWork
         numero: "",
         titulo: "Respaldo",
         resumen: "Las mismas políticas, con o sin el apoyo de un actor",
+      }, {
+        key: FOCO_NUEVO_ORDEN,
+        baseType: "note",
+        numero: "",
+        titulo: "Orden al azar",
+        resumen: "Las opciones de cada pregunta en otro orden",
       }],
     },
   ];
@@ -202,10 +238,21 @@ export function PestanaExperimentos({ workbook, structure, selection, updateWork
     return escribir((draft) => (existente ? reemplazarRespaldo(draft, existente, d) : insertarRespaldo(draft, structure, destino, d)), focoRespaldo(d.prefijo));
   };
   const esRespaldo = foco === FOCO_NUEVO_RESPALDO || Boolean(lecturaRs);
+  const lecturaOr = lecturasOr.find((l) => focoOrden(l.diseno.prefijo) === foco) ?? null;
+  const aplicarOrdenAzar = (d: DisenoOrden): string[] => {
+    const problemas = validarOrden(d, seleccion.map((p) => p.nombre));
+    if (problemas.length) return problemas;
+    const indice = structure ? indiceInsercion(structure, destino, workbook.survey.rows.length) : 0;
+    return escribir((draft) => {
+      aplicarOrden(draft, d, lecturaOr ? 0 : indice, lecturaOr);
+      return { ok: true };
+    }, focoOrden(d.prefijo));
+  };
+  const esOrden = foco === FOCO_NUEVO_ORDEN || Boolean(lecturaOr);
   const esVinetas = foco === FOCO_VINETAS || foco === FOCO_NUEVO_VINETAS;
   const existente = foco === FOCO_PARES ? lectura : null;
   const existenteV = foco === FOCO_VINETAS ? lecturaV : null;
-  const primeraFila = existente ? existente.pares[0]!.grupo : existenteV ? existenteV.vinetas[0]!.grupo : lecturaVs ? lecturaVs.pregunta : lecturaLs ? lecturaLs.conteo : lecturaRs ? lecturaRs.sorteo[0]! : null;
+  const primeraFila = existente ? existente.pares[0]!.grupo : existenteV ? existenteV.vinetas[0]!.grupo : lecturaVs ? lecturaVs.pregunta : lecturaLs ? lecturaLs.conteo : lecturaRs ? lecturaRs.sorteo[0]! : lecturaOr ? lecturaOr.semilla : null;
   return (
     <PestanaReglas
       titulo="Experimentos"
@@ -222,7 +269,7 @@ export function PestanaExperimentos({ workbook, structure, selection, updateWork
     >
       <div className="xfp-encabezado">
         <span className="xfp-encabezado__ruta">{primeraFila != null ? "Experimento" : "Experimento nuevo"}</span>
-        <h2 className="xfp-encabezado__titulo">{esRespaldo ? "Respaldo" : esLista ? "Lista" : esVersiones ? "Versiones al azar" : esVinetas ? "Viñetas" : "Elección por pares"}</h2>
+        <h2 className="xfp-encabezado__titulo">{esOrden ? "Orden al azar" : esRespaldo ? "Respaldo" : esLista ? "Lista" : esVersiones ? "Versiones al azar" : esVinetas ? "Viñetas" : "Elección por pares"}</h2>
         {primeraFila != null ? (
           <span className="xfp-encabezado__accion">
             <button type="button" className="xfp-boton" onClick={() => onEditar(primeraFila)}>
@@ -231,7 +278,15 @@ export function PestanaExperimentos({ workbook, structure, selection, updateWork
           </span>
         ) : null}
       </div>
-      {esRespaldo ? (
+      {esOrden ? (
+        <DisenoOrdenPanel
+          key={lecturaOr ? `orden-${lecturaOr.diseno.prefijo}-${lecturaOr.diseno.preguntas.join("|")}` : "nuevo-orden"}
+          prefijoSugerido={prefijoLibre(workbook, "or")}
+          preguntas={seleccion}
+          existente={lecturaOr}
+          onInsertar={aplicarOrdenAzar}
+        />
+      ) : esRespaldo ? (
         <DisenoRespaldoPanel
           key={lecturaRs ? `respaldo-${lecturaRs.diseno.prefijo}-${lecturaRs.diseno.politicas.length}-${lecturaRs.diseno.actores.length}` : "nuevo-respaldo"}
           prefijoSugerido={prefijoLibre(workbook, "rs")}

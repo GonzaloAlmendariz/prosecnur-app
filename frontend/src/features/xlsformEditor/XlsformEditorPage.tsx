@@ -180,6 +180,7 @@ import { leerVinetas } from "./conjoint/leerVinetas";
 import { leerVersiones } from "./conjoint/leerVersiones";
 import { leerLista } from "./conjoint/leerLista";
 import { leerRespaldo } from "./conjoint/leerRespaldo";
+import { leerOrden } from "./conjoint/modeloOrden";
 import { esperarExportPapel, textoExportando } from "./shell/paperExportJob";
 import { ToastDeck, useToastDeck } from "./shell/ToastDeck";
 import { EditorCommandBar } from "./shell/EditorCommandBar";
@@ -936,6 +937,7 @@ export default function XlsformEditorPage() {
   const lecturasVersiones = useMemo(() => leerVersiones(workbook), [workbook]);
   const lecturasLista = useMemo(() => leerLista(workbook), [workbook]);
   const lecturasRespaldo = useMemo(() => leerRespaldo(workbook), [workbook]);
+  const lecturasOrden = useMemo(() => leerOrden(workbook), [workbook]);
   // Cálculos del sorteo de cada experimento: se pliegan en Estructura con su rótulo (C5, C10, C12, C14).
   const sorteoUnico = useMemo(() => {
     const m = new Map<number, string>();
@@ -971,8 +973,9 @@ export default function XlsformEditorPage() {
       m.set(p.texto, "Frase con o sin respaldo");
       m.set(p.frase, `Frase de la política ${k + 1}`);
     }));
+    lecturasOrden.forEach((l) => m.set(l.semilla, "Semilla del orden al azar"));
     return m.size ? (fila: number) => m.get(fila) : undefined;
-  }, [lecturaPares, lecturaVinetas, lecturasVersiones, lecturasLista, lecturasRespaldo]);
+  }, [lecturaPares, lecturaVinetas, lecturasVersiones, lecturasLista, lecturasRespaldo, lecturasOrden]);
   // Cada experimento lleva su cabecera en Estructura (C7 pares, C11 viñetas).
   const experimentosEstructura = useMemo(() => {
     const out: { filas: Set<number>; titulo: string; resumen: string }[] = [];

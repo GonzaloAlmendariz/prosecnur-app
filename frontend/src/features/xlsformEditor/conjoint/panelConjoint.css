@@ -280,3 +280,9 @@
 
 /* Respaldo (C15, 2026-11-07): la frase que lee cada grupo. */
 .xfe-conjoint__frase { margin: 0; line-height: 1.45; }
+
+/* Orden al azar (C16, 2026-11-07): una fila por pregunta de selección, con su aviso si «No sabe» u «Otro» se moverían. */
+.xfe-conjoint__preguntas-orden { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.xfe-conjoint__preguntas-orden li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; padding: 8px 10px; border: 1px solid var(--pulso-border); border-radius: 8px; }
+.xfe-conjoint__detalle { color: var(--pulso-text-soft); font-size: var(--pulso-type-caption-size); font-variant-numeric: tabular-nums; }
+.xfe-conjoint__aviso-opciones { grid-column: 1 / -1; color: var(--pulso-warn-fg); font-size: var(--pulso-type-caption-size); }
