@@ -84,6 +84,8 @@ describe("de la fórmula a la intención", () => {
     { tipo: "sortear", azar: "az", valores: [{ valor: "A", peso: "" }, { valor: "B", peso: "" }, { valor: "C", peso: "" }] },
     { tipo: "sortear", azar: "az", valores: [{ valor: "A", peso: "30" }, { valor: "B", peso: "70" }] },
     { tipo: "unir", partes: [{ tipo: "texto", valor: "Hola " }, { tipo: "pregunta", valor: "nombre" }] },
+    { tipo: "tiempo", fecha: "nac", unidad: "años" },
+    { tipo: "tiempo", fecha: "visita", unidad: "días" },
   ];
   it("cada intención armada se lee de vuelta igual", () => {
     for (const i of ida) expect(deFormula(aFormula(i)!)).toEqual(i);
@@ -94,8 +96,16 @@ describe("de la fórmula a la intención", () => {
   });
   it("lo que no sabe reescribir idéntico queda para la edición a mano", () => {
     expect(deFormula("once(random())")).toBeNull();
-    expect(deFormula("int((today() - ${nac}) div 365.25)")).toBeNull();
+    expect(deFormula("int((today() - ${nac}) div 365)")).toBeNull();
     expect(deFormula("if(${a} = 1 and ${b} = 2, 'x', 'y')")).toBeNull();
     expect(deFormula("${a} + ${b} * 2")).toBeNull();
+  });
+});
+
+describe("tiempo desde una fecha", () => {
+  it("escribe las fórmulas que el motor lee como años cumplidos o días", () => {
+    expect(aFormula({ tipo: "tiempo", fecha: "nac", unidad: "años" })).toBe("int((today() - ${nac}) div 365.25)");
+    expect(aFormula({ tipo: "tiempo", fecha: "visita", unidad: "días" })).toBe("today() - ${visita}");
+    expect(faltantes({ tipo: "tiempo", fecha: "", unidad: "años" })).toEqual(["Falta la pregunta de fecha."]);
   });
 });

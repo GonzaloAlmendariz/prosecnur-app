@@ -16,7 +16,9 @@ export type Intencion =
   // `azar`: el cálculo que guarda el número al azar con once(random()). Va aparte porque cada once(random()) dentro de
   // una misma fórmula sortea un número distinto; el armador lo crea junto al cálculo (`filasAuxiliares`).
   | { tipo: "sortear"; azar: string; valores: { valor: string; peso: string; texto?: boolean }[] }
-  | { tipo: "unir"; partes: { tipo: "texto" | "pregunta"; valor: string }[] };
+  | { tipo: "unir"; partes: { tipo: "texto" | "pregunta"; valor: string }[] }
+  // Lo que el motor lee en reglas/motor/lapso.ts: años cumplidos o días desde una fecha hasta hoy.
+  | { tipo: "tiempo"; fecha: string; unidad: "años" | "días" };
 
 export type TipoIntencion = Intencion["tipo"];
 
@@ -26,6 +28,7 @@ export const INTENCIONES: { tipo: TipoIntencion; nombre: string; ejemplo: string
   { tipo: "operar", nombre: "Operación con números", ejemplo: "La suma de los hijos y las hijas" },
   { tipo: "contar", nombre: "Conteo de opciones marcadas", ejemplo: "Cuántos medios marcó en la pregunta 4" },
   { tipo: "sortear", nombre: "Sorteo", ejemplo: "«A» o «B», equiprobable o con pesos" },
+  { tipo: "tiempo", nombre: "Tiempo desde una fecha", ejemplo: "Años cumplidos desde la fecha de nacimiento" },
   { tipo: "unir", nombre: "Unión de textos", ejemplo: "«Hola » y el nombre del encuestado" },
 ];
 
@@ -41,6 +44,8 @@ export function intencionVacia(tipo: TipoIntencion): Intencion {
       return { tipo, azar: "", valores: [{ valor: "", peso: "" }, { valor: "", peso: "" }] };
     case "unir":
       return { tipo, partes: [{ tipo: "texto", valor: "" }, { tipo: "pregunta", valor: "" }] };
+    case "tiempo":
+      return { tipo, fecha: "", unidad: "años" };
   }
 }
 
@@ -99,6 +104,9 @@ export function faltantes(i: Intencion): string[] {
     case "unir":
       if (i.partes.filter((p) => p.valor.trim()).length < 2) out.push("Hacen falta al menos dos partes.");
       break;
+    case "tiempo":
+      if (!i.fecha) out.push("Falta la pregunta de fecha.");
+      break;
   }
   return out;
 }
@@ -135,6 +143,8 @@ export function aFormula(i: Intencion): string | null {
         salida(valores[valores.length - 1]!.valor, valores[valores.length - 1]!.texto),
       );
     }
+    case "tiempo":
+      return i.unidad === "años" ? `int((today() - ${ref(i.fecha)}) div 365.25)` : `today() - ${ref(i.fecha)}`;
     case "unir":
       return `concat(${i.partes.filter((p) => p.valor.trim()).map((p) => (p.tipo === "pregunta" ? ref(p.valor) : literalDe(p.valor))).join(", ")})`;
   }
@@ -237,6 +247,18 @@ function segunOSorteoDe(e: Nodo): Intencion | null {
   return { tipo: "segun", casos: casos as Caso[], siNo: ultimo, ...(textoNumerico(resto) ? { siNoTexto: true } : {}) };
 }
 
+/** `int((today() - ${f}) div 365.25)` o `today() - ${f}`. */
+function tiempoDe(e: Nodo): Intencion | null {
+  const resta = (x: Nodo | undefined) => (esLlamada(x, "-") && esLlamada(x.args[0], "today") && esRef(x.args[1]) ? x.args[1].name : null);
+  const dias = resta(e);
+  if (dias) return { tipo: "tiempo", fecha: dias, unidad: "días" };
+  if (esLlamada(e, "int") && esLlamada(e.args[0], "div") && esLit(e.args[0].args[1]) && Number(e.args[0].args[1].value) === 365.25) {
+    const f = resta(e.args[0].args[0]);
+    if (f) return { tipo: "tiempo", fecha: f, unidad: "años" };
+  }
+  return null;
+}
+
 /** La intención de una fórmula que el armador sabe reescribir idéntica; null si no. */
 export function deFormula(formula: string): Intencion | null {
   const ast = parseExpressionLectura(formula.trim());
@@ -246,7 +268,7 @@ export function deFormula(formula: string): Intencion | null {
   else if (esLlamada(ast, "concat") && ast.args.every((a) => esRef(a) || esLit(a))) {
     i = { tipo: "unir", partes: ast.args.map((a) => (esRef(a) ? { tipo: "pregunta" as const, valor: a.name } : { tipo: "texto" as const, valor: String((a as Extract<Nodo, { kind: "literal" }>).value) })) };
   } else if (esLlamada(ast, "if")) i = segunOSorteoDe(ast);
-  else i = operarDe(ast);
+  else i = tiempoDe(ast) ?? operarDe(ast);
   if (!i) return null;
   // Sólo si al volver a escribirla queda la misma estructura: el armador no cambia en silencio lo que no entiende.
   const vuelta = aFormula(i);

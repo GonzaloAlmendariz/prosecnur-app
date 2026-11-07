@@ -4,7 +4,7 @@
 // arma; «Probar con respuestas», debajo, la evalúa en vivo porque el borrador sube a la pestaña. Sin triángulos (E20).
 
 import { useEffect, useId, useState, type ReactNode } from "react";
-import { Calculator, GitBranch, Link2, ListChecks, Plus, Shuffle, Sigma, X } from "../../../../vendor/lucide-react";
+import { Calculator, CalendarClock, GitBranch, Link2, ListChecks, Plus, Shuffle, Sigma, X } from "../../../../vendor/lucide-react";
 import { PulsoInput } from "../../../../components/PulsoInput";
 import { PulsoSelect } from "../../../../components/PulsoSelect";
 import { SelectorPregunta, type OpcionPregunta } from "../../kit/SelectorPregunta";
@@ -30,6 +30,7 @@ const ICONO: Record<TipoIntencion, ReactNode> = {
   contar: <ListChecks />,
   sortear: <Shuffle />,
   unir: <Link2 />,
+  tiempo: <CalendarClock />,
 };
 
 const OPERADORES: { value: Operador; label: string }[] = [
@@ -118,6 +119,22 @@ export function ArmadorCalculo({ scope, nombre, inicial, onBorrador, onAplicar }
           ) : null}
           {intencion.tipo === "sortear" ? <FraseSortear i={intencion} onCambio={cambiar} /> : null}
           {intencion.tipo === "unir" ? <FraseUnir i={intencion} preguntas={preguntas} onCambio={cambiar} /> : null}
+          {intencion.tipo === "tiempo" ? (
+            <>
+              <div className="xfa-cuantas__modos" role="radiogroup" aria-label="Unidad">
+                {(["años", "días"] as const).map((u) => (
+                  <button key={u} type="button" role="radio" aria-checked={intencion.unidad === u} className={`xfa-cuantas__modo${intencion.unidad === u ? " is-on" : ""}`} onClick={() => cambiar({ ...intencion, unidad: u })}>
+                    {u === "años" ? "Años cumplidos" : "Días"}
+                  </button>
+                ))}
+              </div>
+              <div className="xfc-linea">
+                <span>Desde</span>
+                <SelectorPregunta opciones={preguntas.filter((p) => p.baseType === "date" || p.baseType === "datetime")} valor={intencion.fecha} onCambio={(v) => cambiar({ ...intencion, fecha: v })} placeholder="Elige una pregunta de fecha" etiqueta="Pregunta de fecha" />
+                <span>hasta hoy</span>
+              </div>
+            </>
+          ) : null}
         </div>
       ) : null}
 
