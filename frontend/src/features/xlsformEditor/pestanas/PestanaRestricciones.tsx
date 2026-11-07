@@ -121,22 +121,21 @@ export function PestanaRestricciones({ structure, scope: scopeBase, seleccionada
               </button>
             ) : undefined}
           >
-            <div className="xfp-lectura-regla">
+            {/* A5 (2026-11-07): sin regla, el armador de abajo ya lo dice; aquí no se repite. */}
+            {actual.estado === "con" ? <div className="xfp-lectura-regla">
               <p className="xfp-lectura" data-qa-geometry-group="xlsform/lectura-regla" data-qa-geometry-contract="intrinsic">
-                {actual.estado !== "con"
-                  ? "Acepta cualquier valor: todavía no tiene restricción."
-                  : actual.rota
-                    ? LECTURA_FILA_ROTA
-                    : lectura?.tecnica
-                      ? "El motor todavía no traduce esta regla: se aplica tal como está escrita."
-                      : <LecturaPiezas piezas={lectura?.piezas ?? []} etiquetaDe={etq} />}
+                {actual.rota
+                  ? LECTURA_FILA_ROTA
+                  : lectura?.tecnica
+                    ? "El motor todavía no traduce esta regla: se aplica tal como está escrita."
+                    : <LecturaPiezas piezas={lectura?.piezas ?? []} etiquetaDe={etq} />}
               </p>
               {actual.rota ? null : <dl className="xfp-def">
                 <dt>Mensaje</dt>
                 <dd>
                   {mensajeActual && mensajeActual !== actual.node.name
                     ? <Markdown texto={mensajeActual} />
-                    : <span className="xfp-nota">{actual.estado === "con" ? "Sin mensaje: quien se equivoque verá un aviso genérico." : "Se escribe junto con la regla."}</span>}
+                    : <span className="xfp-nota">Sin mensaje: quien se equivoque verá un aviso genérico.</span>}
                 </dd>
               </dl>}
               {actual.node.constraint.trim() ? (
@@ -146,7 +145,7 @@ export function PestanaRestricciones({ structure, scope: scopeBase, seleccionada
                   <code>{actual.node.constraint.trim()}</code>
                 </div>
               ) : null}
-            </div>
+            </div> : null}
             {editando || actual.estado !== "con" ? (
               <div className="xfp-editor-regla">
                 <EditorValidacion

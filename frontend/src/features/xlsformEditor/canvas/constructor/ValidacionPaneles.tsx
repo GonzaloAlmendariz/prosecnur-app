@@ -89,7 +89,7 @@ export function ValidationSummary({
     <div className="pulso-focus-validation">
       <div className="pulso-focus-validation-presets" aria-label="Validaciones sugeridas">
         <div className="pulso-focus-validation-presets-head">
-          <span className="pulso-section-eyebrow">Atajos</span>
+          <span className="pulso-section-eyebrow">Reglas frecuentes</span>
         </div>
         <div className="pulso-focus-validation-preset-grid">
           {presets.map((preset) => (

@@ -155,7 +155,6 @@ export function ConstraintBuilder({
         {showShortcuts && !isText && shortcutPresets.length > 0 && (
           <div className="pulso-constraint-shortcuts" aria-label="Atajos comunes de validación">
             <div className="pulso-constraint-shortcuts-head">
-              <span className="pulso-section-eyebrow">Atajos</span>
               <strong>Reglas frecuentes</strong>
             </div>
             <div className="pulso-constraint-shortcut-grid">
@@ -174,7 +173,6 @@ export function ConstraintBuilder({
                     <small>{preset.hint}</small>
                     <em>{preset.message}</em>
                   </span>
-                  {preset.badge && <code>{preset.badge}</code>}
                 </button>
               ))}
             </div>
