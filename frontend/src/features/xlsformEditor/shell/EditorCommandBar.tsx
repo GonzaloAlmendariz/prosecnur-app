@@ -21,6 +21,7 @@
 
 import { IconRedo, IconUndo } from "../../../lib/icons";
 import { ModuleCommandBar } from "../../../components/ModuleCommandBar";
+import { ChromeIndicator, ChromeIndicatorGroup } from "../../../components/ChromeIndicator";
 import type { XlsformFormPublication } from "../../../api/xlsformEditor";
 import type { XlsformFormSource } from "../../../api/multiIntegrado";
 import type { BuilderDiagnostic, BuilderSelection } from "../types";
@@ -90,16 +91,16 @@ export function EditorCommandBar(props: EditorCommandBarProps) {
       contexto={(
         <>
           <FormSwitcher {...props.switcher} />
-          <span
-            className="pulso-xf-cmd-metrics"
-            aria-label="Resumen del formulario"
-            data-qa-geometry-group="xlsform/banda-metricas"
-            data-qa-geometry-contract="intrinsic"
-            title={`${plural(metrics.fields, "pregunta", "preguntas")}, ${plural(metrics.sections, "sección", "secciones")}, ${listsTitle}`}
-          >
-            <span><strong>{metrics.fields}</strong> {metrics.fields === 1 ? "pregunta" : "preguntas"},</span>
-            <span><strong>{metrics.sections}</strong> {metrics.sections === 1 ? "sección" : "secciones"}<span className="pulso-xf-cmd-secondary">,</span></span>
-            <span className="pulso-xf-cmd-secondary">{listsLabel}</span>
+          {/* A8 (2026-11-07): los conteos son indicadores como el de «Formulario», con la misma escalera de compactación. */}
+          <span className="pulso-xf-cmd-metrics" data-qa-geometry-group="xlsform/banda-metricas" data-qa-geometry-contract="intrinsic">
+            <ChromeIndicatorGroup
+              ariaLabel="Resumen del formulario"
+              resumen={`${plural(metrics.fields, "pregunta", "preguntas")}, ${plural(metrics.sections, "sección", "secciones")}, ${listsTitle}`}
+            >
+              <ChromeIndicator label="Preguntas" value={metrics.fields} prioridad="alta" />
+              <ChromeIndicator label="Secciones" value={metrics.sections} />
+              <ChromeIndicator label="Listas" value={metrics.readyCatalogs} prioridad="baja" detalle={listsTitle} />
+            </ChromeIndicatorGroup>
           </span>
           <span className="pulso-xf-cmd-state" aria-label="Estado del formulario">
             <span className="pulso-xf-status is-info pulso-xf-cmd-source" title={formatSourceLong(source?.kind ?? null)}>

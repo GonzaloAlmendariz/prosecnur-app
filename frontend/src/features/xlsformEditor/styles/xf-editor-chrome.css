@@ -61,22 +61,15 @@
   min-width: 0;
 }
 
-/* Conteo: «92 preguntas · 17 secciones · 24 listas», listas en segundo plano. */
+/* Conteo: indicadores Preguntas, Secciones y Listas (A8), separados del de «Formulario» por la misma línea. */
 .pulso-xlsform-frame .pulso-xf-cmd-metrics {
   display: inline-flex;
-  align-items: baseline;
-  gap: 5px;
+  align-items: center;
   flex: 0 0 auto;
-  padding-left: 10px;
-  border-left: 1px solid var(--pulso-border);
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-body-size);
-  white-space: nowrap;
+  border-left: 1px solid color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 22%, var(--pulso-border));
 }
 
-.pulso-xlsform-frame .pulso-xf-cmd-metrics strong {
-  color: var(--pulso-text);
-  font-weight: var(--pulso-weight-bold);
+.pulso-xlsform-frame .pulso-xf-cmd-metrics .pulso-chrome-indicator-value {
   font-variant-numeric: tabular-nums;
 }
 
