@@ -1,0 +1,204 @@
+# =============================================================================
+# xlsform_editor_word_visor.R — páginas reales del Word del cuestionario (L36 · DOC.2)
+# =============================================================================
+#
+# «Previsualizar» ya mostraba el PDF. L36 pide ver el Word, que es el entregable
+# editable, como páginas reales y saber en qué página cae cada pregunta: es la
+# base de DOC.3 (bloques seleccionables). Un solo job arma el modelo, dibuja el
+# .docx con el mismo `formulario_word_render`, lo pasa a PDF con LibreOffice y
+# rasteriza cada página. El .docx se registra como cualquier export: lo que se
+# ve es lo que se descarga. Diseño: docs/qa/l36-doc0-direccion-cuestionario-2026-11-01.md
+# (D-L36-9 a D-L36-12).
+
+#' Números impresos del modelo, en orden: preguntas (`7`) e ítems de matriz (`8.1`)
+#' @keywords internal
+.cuestionario_numeros_del_modelo <- function(model) {
+  nums <- character(0)
+  for (b in model$blocks %||% list()) {
+    if (identical(b$kind, "question")) nums <- c(nums, .form_pdf_clean_text(b$number %||% ""))
+    if (identical(b$kind, "matrix")) {
+      for (it in b$items %||% list()) nums <- c(nums, .form_pdf_clean_text(it$number %||% ""))
+    }
+  }
+  unique(nums[nzchar(nums)])
+}
+
+#' Página en que empieza cada pregunta, a partir del texto de cada página
+#'
+#' Sólo se buscan los números que el modelo imprimió (D-L36-10): una pregunta
+#' `7` es «7.» al inicio de una línea o de su columna, y un ítem `8.1`, «8.1». Así un código de opción («1 Técnico») o una celda de escala no se
+#' confunden con una pregunta. Un número que no aparece queda con `pagina = NA`.
+#'
+#' @param textos Un texto por página (`pdftools::pdf_text`).
+#' @param numeros Números impresos, en el orden del modelo.
+#' @return `list(list(numero, pagina), ...)`.
+#' @keywords internal
+.cuestionario_visor_mapa <- function(textos, numeros) {
+  lineas <- lapply(textos, function(t) trimws(strsplit(t %||% "", "\n", fixed = TRUE)[[1]]))
+  # Los números impresos sólo llevan cifras y puntos: basta con escapar el punto.
+  escapar <- function(x) gsub(".", "\\.", x, fixed = TRUE)
+  lapply(numeros, function(num) {
+    # Al inicio de línea o tras el hueco entre columnas (dos espacios o más):
+    # con dos columnas, pdftotext pone la pregunta de la derecha en la misma
+    # línea que la de la izquierda («3. ¿Cuál…   4. ¿Cuenta…»).
+    inicio <- "(^|\\s{2,})"
+    patron <- if (grepl(".", num, fixed = TRUE)) {
+      paste0(inicio, escapar(num), "(\\s|$)")
+    } else {
+      paste0(inicio, escapar(num), "\\.(\\s|$)")
+    }
+    pagina <- NA_integer_
+    for (p in seq_along(lineas)) {
+      if (any(grepl(patron, lineas[[p]]))) { pagina <- p; break }
+    }
+    list(numero = num, pagina = pagina)
+  })
+}
+
+#' Variable de cada número impreso (L36 · DOC.3): con ella el editor sabe qué fila abrir
+#' @return Vector con nombre: `c("1" = "p1", "8.1" = "p8_1")`.
+#' @keywords internal
+.cuestionario_variables_del_modelo <- function(model) {
+  out <- character(0)
+  agregar <- function(numero, nombre) {
+    numero <- .form_pdf_clean_text(numero %||% "")
+    if (nzchar(numero) && !numero %in% names(out)) out[[numero]] <<- .form_pdf_chr(nombre %||% "")
+  }
+  for (b in model$blocks %||% list()) {
+    if (identical(b$kind, "question")) agregar(b$number, b$name)
+    if (identical(b$kind, "matrix")) for (it in b$items %||% list()) agregar(it$number, it$name)
+  }
+  out
+}
+
+#' Caja de cada pregunta sobre su página (L36 · DOC.3), en fracciones de la página
+#'
+#' Parte de las palabras con posición de `pdftools::pdf_data`: una pregunta `7`
+#' empieza en la palabra «7.» y un ítem `8.1` en «8.1». La caja va desde ese
+#' número hasta donde empieza la siguiente pregunta de su misma columna (o el
+#' fin del contenido de la página). En una página a dos columnas, una pregunta
+#' de la izquierda llega hasta donde empieza la columna derecha; los ítems de
+#' matriz son filas de tabla y van a todo el ancho.
+#'
+#' @param datos Lista de `data.frame` por página (`x`, `y`, `width`, `height`, `text`), en puntos.
+#' @param numeros Números impresos, en el orden del modelo.
+#' @param ancho,alto Tamaño de la página en puntos.
+#' @return Lista con nombre por número: `list(pagina, x, y, ancho, alto)` o `NULL` si no se encontró.
+#' @keywords internal
+.cuestionario_visor_cajas <- function(datos, numeros, ancho, alto) {
+  inicios <- list()
+  for (num in numeros) {
+    token <- if (grepl(".", num, fixed = TRUE)) num else paste0(num, ".")
+    for (p in seq_along(datos)) {
+      d <- datos[[p]]
+      k <- which(d$text == token)
+      if (length(k)) {
+        inicios[[num]] <- list(numero = num, pagina = p, x = d$x[k[1]], y = d$y[k[1]],
+                               item = grepl(".", num, fixed = TRUE))
+        break
+      }
+    }
+  }
+  cajas <- list()
+  for (p in seq_along(datos)) {
+    en_pagina <- Filter(function(i) i$pagina == p, inicios)
+    if (!length(en_pagina)) next
+    d <- datos[[p]]
+    cuerpo <- d[d$y < alto - 50, , drop = FALSE]   # sin el pie de página
+    izq <- if (nrow(cuerpo)) min(cuerpo$x) else 30
+    der <- if (nrow(cuerpo)) max(cuerpo$x + cuerpo$width) else ancho - 30
+    fondo <- if (nrow(cuerpo)) max(cuerpo$y + cuerpo$height) else alto - 60
+    medio <- ancho * 0.45
+    preguntas <- Filter(function(i) !i$item, en_pagina)
+    derechas <- Filter(function(i) i$x > medio, preguntas)
+    corte_columna <- if (length(derechas)) min(vapply(derechas, function(i) i$x, numeric(1))) - 8 else der
+    for (i in en_pagina) {
+      columna <- if (i$item) "ancho" else if (i$x > medio) "der" else "izq"
+      siguientes <- Filter(function(o) o$y > i$y + 1 && (
+        identical(columna, "ancho") ||
+          (if (o$item) TRUE else identical(if (o$x > medio) "der" else "izq", columna))
+      ), en_pagina)
+      y1 <- if (length(siguientes)) min(vapply(siguientes, function(o) o$y, numeric(1))) - 3 else fondo + 2
+      x0 <- max(0, i$x - 4)
+      x1 <- if (identical(columna, "izq")) corte_columna else der + 2
+      y0 <- max(0, i$y - 3)
+      cajas[[i$numero]] <- list(pagina = p, x = x0 / ancho, y = y0 / alto,
+                                ancho = max(0, x1 - x0) / ancho, alto = max(0, y1 - y0) / alto)
+    }
+  }
+  cajas
+}
+
+# Worker del job (subproceso callr). Misma firma que `xlsform_editor_export_job_runner`
+# para compartir el handler de export; `formato` no se usa: siempre es docx.
+xlsform_editor_word_visor_job_runner <- function(input_path, formato, fail_code, fail_message,
+                                                 result_path, progress_path = NULL) {
+  progreso <- job_progress_writer(progress_path)
+  tryCatch({
+    p <- readRDS(input_path)
+    progreso("modelo", percent = 10, message = "Armando el modelo")
+    model <- formulario_pdf_build_model(
+      survey = p$survey, choices = p$choices, settings = p$settings,
+      paper = p$paper, options = p$options
+    )
+    if (!requireNamespace("pdftools", quietly = TRUE)) stop("falta pdftools para rasterizar el Word")
+    out_dir <- paste0(result_path, "_paginas")
+    dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+    # officer y LibreOffice exigen la extensión .docx: se dibuja con ella y se
+    # copia al resultado del job, que es lo que registra on_complete.
+    docx <- file.path(out_dir, "cuestionario.docx")
+    progreso("dibujando", percent = 30, message = "Dibujando el Word")
+    formulario_word_render(model, docx)
+    file.copy(docx, result_path, overwrite = TRUE)
+    progreso("paginas", percent = 55, message = "Convirtiendo a páginas")
+    pdf <- .pptx_to_pdf_soffice(docx, out_dir, timeout = 90)
+    if (is.null(pdf)) stop("LibreOffice no convirtió el Word a PDF")
+    n <- pdftools::pdf_info(pdf)$pages
+    archivos <- vapply(seq_len(n), function(k) {
+      destino <- file.path(out_dir, sprintf("pagina_%03d.png", k))
+      png::writePNG(pdftools::pdf_render_page(pdf, page = k, dpi = 60, numeric = TRUE), destino)
+      destino
+    }, character(1))
+    progreso("mapa", percent = 90, message = "Ubicando las preguntas")
+    numeros <- .cuestionario_numeros_del_modelo(model)
+    mapa <- .cuestionario_visor_mapa(pdftools::pdf_text(pdf), numeros)
+    # L36 · DOC.3: variable y caja de cada pregunta, para elegirla sobre la página.
+    tam <- pdftools::pdf_pagesize(pdf)[1, ]
+    cajas <- .cuestionario_visor_cajas(pdftools::pdf_data(pdf), numeros, tam$width, tam$height)
+    variables <- .cuestionario_variables_del_modelo(model)
+    mapa <- lapply(mapa, function(m) {
+      m$nombre <- unname(variables[m$numero]) %||% ""
+      if (is.na(m$nombre)) m$nombre <- ""
+      caja <- cajas[[m$numero]]
+      if (!is.null(caja)) {
+        if (is.na(m$pagina)) m$pagina <- caja$pagina
+        if (identical(as.integer(m$pagina), as.integer(caja$pagina))) m$caja <- caja[c("x", "y", "ancho", "alto")]
+      }
+      m
+    })
+    list(ok = TRUE, summary = model$summary, warnings = model$warnings,
+         n = n, archivos = archivos, mapa = mapa)
+  }, error = function(e) .xlsform_editor_export_error(e, fail_code, fail_message))
+}
+
+# `on_complete` (proceso principal): registra el .docx como el export de Word y
+# agrega las páginas como data URI y el mapa. Nunca lanza.
+.xlsform_editor_word_visor_on_complete <- function(sid, spec, filename) {
+  base <- .xlsform_editor_export_on_complete(sid, spec, filename)
+  function(j) {
+    data <- j$result_data %||% list()
+    archivos <- as.character(unlist(data$archivos %||% character(0)))
+    salida <- base(j)
+    if (!isTRUE(salida$ok)) return(salida)
+    paginas <- vapply(archivos[file.exists(archivos)], function(f) {
+      paste0("data:image/png;base64,", jsonlite::base64_enc(readBin(f, "raw", file.info(f)$size)))
+    }, character(1), USE.NAMES = FALSE)
+    # Las páginas ya viajan en la respuesta: su carpeta temporal sobra.
+    if (length(archivos)) unlink(dirname(archivos[1]), recursive = TRUE)
+    salida$n <- as.integer(data$n %||% length(paginas))
+    salida$paginas <- I(paginas)
+    salida$mapa <- data$mapa %||% list()
+    salida
+  }
+}
+attr(xlsform_editor_word_visor_job_runner, "prosecnur_job_function_name") <- "xlsform_editor_word_visor_job_runner"

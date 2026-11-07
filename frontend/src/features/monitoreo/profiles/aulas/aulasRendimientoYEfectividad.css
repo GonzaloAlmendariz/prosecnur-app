@@ -64,7 +64,7 @@
 }
 
 .mon-profile-page.is-aulas-flow .aulas-rye-tasa strong {
-  font-size: 21px;
+  font-size: var(--pulso-type-kpi-size);
   line-height: 1.1;
   font-weight: 620;
   font-variant-numeric: tabular-nums;
@@ -86,7 +86,7 @@
 
 .mon-profile-page.is-aulas-flow .aulas-rye-flecha {
   color: var(--pulso-text-faint);
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
   align-self: center;
 }
 

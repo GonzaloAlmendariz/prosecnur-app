@@ -15,6 +15,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown, FileSpreadsheet, LayoutGrid, Lock, Plus } from "../../../vendor/lucide-react";
 import type { LibraryEntry } from "../state/persistence";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 export type FormSwitcherProps = {
   forms: LibraryEntry[];
@@ -71,24 +72,26 @@ export function FormSwitcher({
     >
       <button
         type="button"
-        className="pulso-more-views-trigger pulso-xf-form-switcher-trigger"
+        // Mismo indicador que el contexto de los otros módulos (rótulo en versalitas y valor), ADR 0042.
+        className="pulso-chrome-indicator is-accion pulso-xf-form-switcher-trigger"
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
         title={`${label} — cambiar de formulario`}
         aria-label={`Formulario activo: ${label}. Cambiar de formulario`}
       >
-        <FileSpreadsheet size={13} aria-hidden="true" />
-        <span className="pulso-xf-form-switcher-label">{label}</span>
-        <ChevronDown size={13} aria-hidden="true" />
+        <small className="pulso-chrome-indicator-label">Formulario</small>
+        <strong className="pulso-chrome-indicator-value pulso-xf-form-switcher-valor">
+          <FileSpreadsheet size={12} aria-hidden="true" />
+          <span className="pulso-xf-form-switcher-label">{label}</span>
+          <ChevronDown size={12} aria-hidden="true" />
+        </strong>
       </button>
       {open && (
         <div className="pulso-more-views-menu pulso-xf-form-switcher-menu" role="menu">
           <span className="pulso-more-views-eyebrow">Formularios del proyecto</span>
           {forms.length === 0 && (
-            <span className="pulso-xf-form-switcher-empty">
-              Todavía no hay otros formularios en este proyecto.
-            </span>
+            <EstadoVacio icono={<FileSpreadsheet size={14} />} titulo="Todavía no hay otros formularios en este proyecto" />
           )}
           {forms.map((form) => {
             const isActive = form.id === activeFormId;
@@ -104,7 +107,7 @@ export function FormSwitcher({
                 // existiría para nadie: recortar solo es legítimo si el texto
                 // completo sigue alcanzable.
                 title={form.source?.original_name
-                  ? `${form.name} · ${form.source.original_name}`
+                  ? `${form.name} (${form.source.original_name})`
                   : form.name}
                 onClick={() => {
                   setOpen(false);

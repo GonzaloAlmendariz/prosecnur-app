@@ -14,6 +14,8 @@ export function ejemploPorTipo(base: string, opciones: readonly Opcion[]): strin
       return new Date().toISOString().slice(0, 10);
     case "text":
       return "ejemplo";
+    case "aleatorio":
+      return "0.5";
     default:
       return "3";
   }

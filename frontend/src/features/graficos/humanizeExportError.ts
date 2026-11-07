@@ -10,7 +10,7 @@ import { nombreTipoLamina, rotuloLamina } from "./rotuloLamina";
 // Mantenemos la humanización en frontend (no en backend) para que los
 // patrones sean fácil de iterar y se puedan cruzar con el plan actual
 // (ej. inferir qué lámina / espacio causó el error). Los textos nombran la
-// lámina con `rotuloLamina` («Lámina 3 · “título”»), como el backend; el id
+// lámina con `rotuloLamina` («Lámina 3, “título”»), como el backend; el id
 // viaja aparte en `slideRef.id`.
 //
 // Patrones cubiertos (80% de errores típicos):

@@ -1,4 +1,4 @@
-import { ArrowRight, Table2 } from "../../../../vendor/lucide-react";
+import { ArrowRight } from "../../../../vendor/lucide-react";
 import type {
   CalcMuestraMatrizEmbudo,
   CalcMuestraMatrizEmbudoCell,
@@ -6,6 +6,7 @@ import type {
 import { fmtInt } from "../../sharedCore";
 import { AvisoModulo } from "../shared/AvisoModulo";
 import "./matrizEmbudo.css";
+import { Panel } from "../../../../components/Panel";
 
 function signed(value: number | null): string {
   if (value === null) return "—";
@@ -81,25 +82,20 @@ export function MatrizEmbudoCriterios({
 }) {
   if (!matriz) {
     return (
-      <section
-        className="cmv2-panel cmv2-matriz-embudo"
+      <Panel
+        className="cmv2-matriz-embudo"
         aria-labelledby="cmv2-matriz-embudo-title"
+        eyebrow="Comparación"
+        title={<span id="cmv2-matriz-embudo-title">Qué pasaría si quitara cada criterio</span>}
         data-qa-geometry-group="calc-muestra/matriz-criterios"
         data-qa-geometry-contract="intrinsic"
       >
-        <header className="cmv2-matriz-embudo-head">
-          <span aria-hidden="true"><Table2 size={18} /></span>
-          <div>
-            <small>Dato → impacto</small>
-            <h3 id="cmv2-matriz-embudo-title">Qué pasaría si quitara cada criterio</h3>
-          </div>
-        </header>
         <AvisoModulo tone={rawPresent ? "warn" : "info"} role="status">
           {rawPresent
             ? "Esta comparación llegó incompleta o no corresponde al marco ejecutado. Reconstruye el marco para volver a calcularla."
             : "Reconstruye el marco para ver qué pasaría si quitaras cada criterio, facultad por facultad."}
         </AvisoModulo>
-      </section>
+      </Panel>
     );
   }
 
@@ -109,31 +105,26 @@ export function MatrizEmbudoCriterios({
   ];
 
   return (
-    <section
-      className="cmv2-panel cmv2-matriz-embudo"
+    <Panel
+      className="cmv2-matriz-embudo"
       aria-labelledby="cmv2-matriz-embudo-title"
       data-surface-group="calc-muestra-marco"
       data-surface-contract="matriz-marginal-criterios"
       data-surface-member="impactos-por-facultad"
       data-qa-geometry-group="calc-muestra/matriz-criterios"
       data-qa-geometry-contract="intrinsic"
+      // ADR 0057 · «Matriz marginal», «impactos marginales, no aditivos» y «dato → impacto» son vocabulario de método:
+      // dicen la verdad y no se entienden sin saberlo de antes. El título es la pregunta que el usuario sí se hace.
+      eyebrow="Comparación"
+      title={<span id="cmv2-matriz-embudo-title">Qué pasaría si quitara cada criterio</span>}
+      hint={
+        <>
+          Cada celda muestra cuántos cursos-horario entrarían de más en esa facultad si ese criterio —y sólo ese— no se
+          aplicara. <strong>No se suman entre columnas</strong>: cada una responde por su cuenta, quitando un criterio a
+          la vez sobre el marco ya construido.
+        </>
+      }
     >
-      <header className="cmv2-matriz-embudo-head">
-        <span aria-hidden="true"><Table2 size={18} /></span>
-        <div>
-          {/* ADR 0057 · «Matriz marginal», «impactos marginales, no aditivos»
-              y «dato → impacto» son vocabulario de método. Dicen la verdad y no
-              se entienden sin saberlo de antes. Lo que la tabla responde, en
-              cambio, es una pregunta concreta que el usuario sí se hace. */}
-          <small>Comparación</small>
-          <h3 id="cmv2-matriz-embudo-title">Qué pasaría si quitara cada criterio</h3>
-          <p>
-            Cada celda muestra cuántos cursos-horario entrarían de más en esa facultad si ese criterio
-            —y sólo ese— no se aplicara. <strong>No se suman entre columnas</strong>: cada una responde
-            por su cuenta, quitando un criterio a la vez sobre el marco ya construido.
-          </p>
-        </div>
-      </header>
 
       <div
         className="cmv2-matriz-embudo-scroll"
@@ -183,8 +174,8 @@ export function MatrizEmbudoCriterios({
         </table>
       </div>
       <footer className="cmv2-matriz-embudo-foot">
-        Unidad: curso-horario único · Facultad efectiva del curso-horario · Firma {matriz.frame_hash.slice(0, 10)}
+        Unidad: curso-horario único, Facultad efectiva del curso-horario, Firma {matriz.frame_hash.slice(0, 10)}
       </footer>
-    </section>
+    </Panel>
   );
 }

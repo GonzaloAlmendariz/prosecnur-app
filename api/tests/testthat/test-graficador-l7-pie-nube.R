@@ -10,7 +10,7 @@ test_that("p_nube_palabras acepta max_palabras y min_chars (ex fantasmas)", {
   expect_identical(el$overrides$min_chars, 6L)
 })
 
-test_that("pie y donut no duplican la Base en el placeholder del slide", {
+test_that("pie y donut llevan su base en la figura del Word", {
   df <- data.frame(
     satisf = c("Sí", "Sí", "No", "Sí"),
     stringsAsFactors = FALSE
@@ -32,8 +32,11 @@ test_that("pie y donut no duplican la Base en el placeholder del slide", {
     solo_lista = TRUE, build_render_meta = TRUE,
     mensajes_progreso = FALSE
   )
+  # render_meta es lo que arma la figura del Word: desde graficos_base_word.R la dona y el pie llevan ahí su base
+  # (el Word no tiene la lámina que la lleva en el PPT; CCSS v6.2 tenía 4 de 91 figuras sin «Base»). El placeholder
+  # de la lámina del PPT no cambia: se comprobó en el mazo de CCSS que cada lámina de dona conserva una sola base.
   bases <- lapply(out$render_meta, function(m) m$base)
-  expect_true(all(vapply(bases, is.null, logical(1))))
+  expect_true(all(vapply(bases, function(b) is.character(b) && grepl("^Base", b), logical(1))))
 })
 
 # B20: paleta de la casa en el pie, orden "natural" aceptado (antes match.arg

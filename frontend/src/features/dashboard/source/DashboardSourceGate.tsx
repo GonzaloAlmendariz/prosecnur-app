@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { EtapasDelTablero } from "./EtapasDelTablero";
 import { ChevronDown, ChevronRight, Database, FileSpreadsheet, FolderOpen, Layers, ListChecks, Loader2, RotateCcw, Upload, X } from "lucide-react";
 import {
   apiDashboardSourceGet,
@@ -10,6 +11,7 @@ import {
   type DashboardSourcePayload,
 } from "../../../api/client";
 import { EmptyState } from "../shared/EmptyState";
+import { avisoDeOrigenInactivo } from "./faltanteDeFuente";
 import { useDashboardStore } from "../store";
 import { useDashboardAllVars } from "../useDashboardData";
 
@@ -137,8 +139,12 @@ export function DashboardSourceGate({
   const sessionReady =
     (payload?.candidates.session.xlsforms.length ?? 0) > 0 &&
     (payload?.candidates.session.data.length ?? 0) > 0;
-  const projectDisabledReason = projectReady ? "" : "No hay XLSForm y data detectados en el proyecto.";
-  const sessionDisabledReason = sessionReady ? "" : "No hay XLSForm y data detectados en la sesión actual.";
+  const projectDisabledReason = avisoDeOrigenInactivo("project", payload?.candidates.project) ?? "";
+  const sessionDisabledReason = avisoDeOrigenInactivo("session", payload?.candidates.session) ?? "";
+  // Sólo se avisa cuando el proyecto, que es el origen preferido, quedó fuera:
+  // explica por qué se usa la sesión. El origen activo ya enseña en sus
+  // selectores lo que tiene, y el botón de carga dice qué falta elegir.
+  const avisoInactivo = group === "session" ? projectDisabledReason : "";
   const selectedDisabledReason =
     !selectedXls && !selectedData
       ? "Selecciona un XLSForm y una base de datos."
@@ -179,6 +185,8 @@ export function DashboardSourceGate({
           </button>
         )}
       </div>
+
+      {!payload?.has_source && !compact ? <EtapasDelTablero /> : null}
 
       {payload?.has_source && (
         <div className="dash-source-current">
@@ -226,10 +234,10 @@ export function DashboardSourceGate({
             </button>
           </div>
 
-          {(!projectReady || !sessionReady) && (
+          {avisoInactivo && (
             <div className="dash-source-segment-hints" role="note">
-              {!projectReady && <span>Proyecto: falta XLSForm o data.</span>}
-              {!sessionReady && <span>Sesión: falta XLSForm o data.</span>}
+              {/* 5 nov 2026: el aviso dice su consecuencia («…: se usan los de la sesión»), no sólo el hecho. */}
+              <span>{avisoInactivo.replace(/\.$/, "")}: se usan los de la sesión.</span>
             </div>
           )}
 

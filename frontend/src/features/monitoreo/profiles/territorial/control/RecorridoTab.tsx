@@ -1,5 +1,7 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Maximize2, Minus, Plus, Route as RouteIcon } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import type { MonitoreoTerritorialDashboard, TerritorialBlockProgress } from "../../../../../api/client";
 import { fmt } from "../rotulos";
 import {
@@ -54,10 +56,10 @@ function tooltipDe(formulario: FormularioDelRecorrido, punto: { x: number; y: nu
   return {
     x: punto.x,
     y: punto.y,
-    titulo: `${formulario.orden}. ${formulario.hora || "Sin hora"} · ${textoDeDistanciaDeFormulario(formulario)}`,
+    titulo: `${formulario.orden}. ${formulario.hora || "Sin hora"}, ${textoDeDistanciaDeFormulario(formulario)}`,
     lineas: [
       rotuloDeManzana(formulario),
-      `${ROTULO_DEL_ESTADO[formulario.estado]}${formulario.duracionMin != null ? ` · ${fmt(Math.round(formulario.duracionMin))} min` : ""}`,
+      `${ROTULO_DEL_ESTADO[formulario.estado]}${formulario.duracionMin != null ? `, ${fmt(Math.round(formulario.duracionMin))} min` : ""}`,
     ],
   };
 }
@@ -142,11 +144,14 @@ function RecorridoTabImpl({
   if (!modelo.disponible || !aplicador || !jornada || !resumen) {
     return (
       <section className="mon-rec mon-rec--vacio" data-audit-ready="vacio:sin-respuestas" aria-label="Recorrido">
-        <div className="mon-rec-panel mon-rec-vacio">
+        <div className="mon-rec-panel">
           <RotuloDePestana />
-          <RouteIcon size={20} aria-hidden="true" />
-          <strong>Sin formularios en el corte</strong>
-          <span>El recorrido aparece cuando la fuente de Kobo trae respuestas con fecha de la fase activa.</span>
+          <EstadoVacio
+            tamano="normal"
+            icono={<RouteIcon size={18} />}
+            titulo="Sin formularios en el corte"
+            descripcion="El recorrido aparece cuando la fuente de Kobo trae respuestas con fecha de la fase activa."
+          />
         </div>
       </section>
     );
@@ -167,7 +172,7 @@ function RecorridoTabImpl({
   };
   const resaltado = sobre?.id ?? elegido;
   const linea = puntos.map(({ punto }, indice) => `${indice ? "L" : "M"}${punto.x.toFixed(1)},${punto.y.toFixed(1)}`).join(" ");
-  const rotuloDeManzanaEnMapa = (manzana: ManzanaDeLaJornada) => [manzana.ump ? `UMP ${manzana.ump}` : "", manzana.manzana].filter(Boolean).join(" · ");
+  const rotuloDeManzanaEnMapa = (manzana: ManzanaDeLaJornada) => [manzana.ump ? `UMP ${manzana.ump}` : "", manzana.manzana].filter(Boolean).join(", ");
 
   return (
     <section
@@ -185,7 +190,7 @@ function RecorridoTabImpl({
             <select value={aplicador.aplicador} onChange={(event) => elegirAplicador(event.currentTarget.value)}>
               {modelo.aplicadores.map((item) => (
                 <option key={item.aplicador} value={item.aplicador}>
-                  {item.aplicador} · {fmt(item.formularios)} formularios{item.lejos ? ` · ${fmt(item.lejos)} lejos` : ""}
+                  {item.aplicador}, {fmt(item.formularios)} formularios{item.lejos ? `, ${fmt(item.lejos)} lejos` : ""}
                 </option>
               ))}
             </select>
@@ -301,8 +306,8 @@ function RecorridoTabImpl({
             {TRAMOS.map((tramo) => <span key={tramo} className={`is-${tramo}`}>{ROTULO_DE_TRAMO[tramo]} de su manzana</span>)}
           </span>
           <span className="mon-rec-fuente">Fuentes: GPS de Kobo, manzanas INEI 2017{geometria?.calles.length ? " y calles OpenStreetMap" : ""}</span>
-          {resumen.formularios > resumen.conGps ? <span className="mon-ter-chip is-aviso">{fmt(resumen.formularios - resumen.conGps)} sin GPS</span> : null}
-          {esperando ? <span className="mon-ter-chip is-info" role="status">Cargando cartografía</span> : null}
+          {resumen.formularios > resumen.conGps ? <EstadoChip label={`${fmt(resumen.formularios - resumen.conGps)} sin GPS`} tone="warn" /> : null}
+          {esperando ? <EstadoChip label="Cargando cartografía" tone="info" /> : null}
         </footer>
       </div>
 

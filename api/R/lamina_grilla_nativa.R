@@ -65,10 +65,32 @@
 #' @keywords internal
 .lam_slide_2_despacho <- function(doc, ps, els, slide, titulo, presets, layout, master, antetitulo, base_auto, nota_de,
                                   por_lamina = function(doc) doc, titulo_de_var = NULL) {
+  motor <- parent.frame()
+  # ADR 0129 §9: la cifra al lado y el gráfico con su desglose en línea (lamina_cifra_y_grafico.R).
+  if (.lam_cifra_lateral_aplica(slide)) {
+    r <- tryCatch(.lam_slide_cifra_y_grafico(doc, ps, els, slide, titulo, presets, antetitulo, base_auto, por_lamina, env = motor,
+                                             layout = layout, master = master),
+                  error = function(e) { if (exists(".pulso_aviso", mode = "function")) .pulso_aviso(paste0("Cifra y gráfico: ", conditionMessage(e))); NULL })
+    if (!is.null(r)) return(r)
+  }
+  # ADR 0129 §6: con tarjetas por ranura la lámina va por la composición mixta, con los paneles acortados.
+  ts <- .tarjetas_de_ranuras(ps, els, slide, motor)
+  if (!is.null(ts)) {
+    return(.lam_slide_2_con_tarjetas(doc, ts, function(d) .lam_slide_2_mixta(d, ps, els, slide, titulo, presets, antetitulo, base_auto,
+                                                                             por_lamina, titulo_de_var),
+                                     ps = ps, els = els, titulo = titulo %||% "", titulo_de_var = titulo_de_var))
+  }
   if (isTRUE(.lam_compositor_aplica_paneles(ps, slide))) {
     return(.lam_slide_paneles_nativa(doc, ps, els, slide, titulo, presets, layout, master, antetitulo, base_auto, nota_de,
                                      por_lamina, titulo_de_var))
   }
+  .lam_slide_2_mixta(doc, ps, els, slide, titulo, presets, antetitulo, base_auto, por_lamina, titulo_de_var)
+}
+
+#' La lámina de dos gráficos por la composición mixta (la ruta de `.lam_slide_2_despacho` cuando no son paneles de escala)
+#' @keywords internal
+.lam_slide_2_mixta <- function(doc, ps, els, slide, titulo, presets, antetitulo, base_auto, por_lamina = function(doc) doc,
+                               titulo_de_var = NULL) {
   slots <- slide$slots %||% list()
   texto <- function(x) {
     x <- if (inherits(x, "ppt_element_text")) x$text else x

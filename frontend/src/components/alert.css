@@ -1,0 +1,28 @@
+/* Alert con acciones (6 nov 2026): el texto a la izquierda y las acciones al costado cuando el aviso mide
+   al menos 640 px; por debajo, las acciones bajan bajo el texto. Por ancho del AVISO (container query), no
+   de la ventana: el mismo aviso vive en un panel angosto o a lo ancho de la página. */
+.pulso-alert.has-acciones {
+  container-type: inline-size;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.pulso-alert.has-acciones .pulso-alert-content {
+  flex: 1 1 320px;
+}
+
+.pulso-alert-acciones {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2, 8px);
+  margin-inline-start: auto;
+}
+
+@container (max-width: 639px) {
+  .pulso-alert-acciones {
+    flex-basis: 100%;
+    margin-inline-start: 26px;
+  }
+}

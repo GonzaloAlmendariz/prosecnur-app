@@ -129,7 +129,7 @@ export function AulasRendimientoPorFacultad({
             ({comparables[comparables.length - 1].facultad})
             {apartadas.length > 0 ? (
               <>
-                {" "}· {fmt(apartadas.length)} con menos de {MINIMO_PARA_COMPARAR}{" "}
+                ,{" "}{fmt(apartadas.length)} con menos de {MINIMO_PARA_COMPARAR}{" "}
                 cursos-horario todavía no{" "}
                 {apartadas.length === 1 ? "entra" : "entran"} en la comparación
               </>
@@ -142,7 +142,7 @@ export function AulasRendimientoPorFacultad({
           <>Ninguna llega a {MINIMO_PARA_COMPARAR} cursos-horario visitados:
           todavía no hay rendimiento que comparar</>
         )}
-        {" "}· <strong>{personasPorAula(media)}</strong> de media en{" "}
+        ,{" "}<strong>{personasPorAula(media)}</strong> de media en{" "}
         {fmt(aulas)} {aulas === 1 ? "curso-horario visitado" : "cursos-horario visitados"}
         {/* **El descarte se DICE.** El ranking deja fuera los partes que vinieron
             sin su cifra de efectivas —una celda vacía no es un cero, y publicarla
@@ -151,7 +151,7 @@ export function AulasRendimientoPorFacultad({
             cursos-horario» donde el resto del perfil cuenta 17 partes. */}
         {sinCifra > 0 ? (
           <em className="es-ausente">
-            {" "}· {fmt(sinCifra)}{" "}
+            ,{" "}{fmt(sinCifra)}{" "}
             {sinCifra === 1
               ? "parte más se aplicó y no trae su cifra de efectivas, así que no entra"
               : "partes más se aplicaron y no traen su cifra de efectivas, así que no entran"}
@@ -304,7 +304,7 @@ export function AulasRendimientoPorFacultad({
                   suerte de dos aulas. Aparte de la barra porque no puede
                   ordenarla: aplasta la lista contra la media. */}
               <em>
-                {fmt(f.aulas)} {f.aulas === 1 ? "curso-horario" : "cursos-horario"} ·{" "}
+                {fmt(f.aulas)} {f.aulas === 1 ? "curso-horario" : "cursos-horario"},{" "}
                 {fmt(f.efectivas)} efectivas
                 {/* **Sólo donde se juzga a alguien.** La línea vale para la
                     facultad y para el aplicador, que son las dos lentes en las
@@ -314,7 +314,7 @@ export function AulasRendimientoPorFacultad({
                     105 y 112 px— esta línea se partía en TRES y CUATRO
                     renglones y subía cada fila a 61 px. Medido el 2026-09-10. */}
                 {juzgaAUnEjecutante && f.delPotencialAjustado != null
-                  ? <> · {pct(f.delPotencialAjustado)} pesando la evidencia</>
+                  ? <>, {pct(f.delPotencialAjustado)} pesando la evidencia</>
                   : null}
               </em>
             </NombreDeFacultad>
@@ -400,7 +400,7 @@ export function AulasRendimientoPorFacultad({
              a buscar la fila en la hoja: en pantalla se enseña sólo la hora
              —repetir la fecha nueve veces no se lee— pero el dato entero tiene
              que estar a un hover de distancia. */
-          title={doceHoras.map((h) => `${h.codigo}: ${h.cruda}${h.ventana ? ` · plan ${h.ventana}` : ""}`).join("\n")}
+          title={doceHoras.map((h) => `${h.codigo}: ${h.cruda}${h.ventana ? `, plan ${h.ventana}` : ""}`).join("\n")}
         >
           <strong>{fmt(doceHoras.length)}</strong>{" "}
           {doceHoras.length === 1 ? "parte trae" : "partes traen"} una hora

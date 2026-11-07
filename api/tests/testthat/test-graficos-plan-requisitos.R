@@ -61,7 +61,7 @@ test_that("una ficha técnica sin filas impide exportar con su motivo y su arreg
   llena <- list(id = "s-ok", tipo = "p_slide_tabla_tecnica", payload = list(titulo = "Ficha", filas = "Universo: 115 docentes"))
   errs <- .plan_errores_tabla_tecnica(list(llena, vacia))
   expect_length(errs, 1L)
-  expect_match(errs, "^Lámina 2 · ")
+  expect_match(errs, "^Lámina 2, ")
   expect_match(errs, "FICHA TÉCNICA CUANTITATIVA")
   expect_match(errs, "no tiene filas", fixed = TRUE)
   expect_false(grepl("`filas`|character", errs))

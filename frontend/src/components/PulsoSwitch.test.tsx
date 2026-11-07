@@ -85,7 +85,9 @@ describe("PulsoSwitch (K1)", () => {
   it("la geometría de la chica cuadra: perilla 13 px dentro de 30×17 con borde de 1 px", () => {
     const css = fs.readFileSync(path.join(__dirname, "kit-inputs.css"), "utf8");
     expect(css).toMatch(/\.pulso-switch\.pulso-switch--sm \{[^}]*width: 30px;[^}]*height: 17px;/);
-    expect(css).toMatch(/\.pulso-switch\.pulso-switch--sm\[aria-checked="true"\] \.pulso-switch-thumb \{\s*left: 14px;/);
+    // Apoya en `left: 1px` y encendida se desliza 13 px (L37: con transform): queda en 14, a 1 px del borde.
+    expect(css).toMatch(/\.pulso-switch\.pulso-switch--sm \.pulso-switch-thumb \{[^}]*left: 1px;/);
+    expect(css).toMatch(/\.pulso-switch\.pulso-switch--sm\[aria-checked="true"\] \.pulso-switch-thumb \{\s*transform: translateX\(13px\);/);
     expect(css).toMatch(/\.pulso-switch:focus-visible \{\s*outline: 2px solid/);
   });
 

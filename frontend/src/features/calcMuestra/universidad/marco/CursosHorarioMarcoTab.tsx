@@ -67,7 +67,7 @@ import { setMinimoFacultad, setTasaAsistencia, tasaAsistencia } from "../criteri
 import { senalAgrupamientoDti } from "../criterios/tipoSesionModel";
 import { MANUAL_EXCLUDED_ID, reactivarTodas, setAulaExcluida } from "../criterios/aulasFinalesModel";
 import { ExcluirEnBloqueCard } from "./ExcluirEnBloqueCard";
-import { rowsFrom } from "../../sharedCore";
+import { fmtInt, rowsFrom } from "../../sharedCore";
 import { CursosHorarioBaseGlobal } from "./CursosHorarioBaseGlobal";
 import { FacultadDecisionBloque, type RepartoCriterio } from "./FacultadDecisionBloque";
 import { facultadesBloque, resumenDecisionFacultad, slugFacultad } from "./facultadDecisionModel";
@@ -90,6 +90,7 @@ import { MatrizCascadaCriterios } from "./MatrizCascadaCriterios";
 import { MatrizEmbudoCriterios } from "./MatrizEmbudoCriterios";
 import "../criterios/criterios.css";
 import "./marco.css";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 /** G41 · Id del criterio de composición en el ciclo de confirmación. */
 const COMPOSICION_ID = "composicion";
 
@@ -1079,15 +1080,12 @@ export function CursosHorarioMarcoTab({
       <SaludCriteriosCard salud={saludCriterios} />
 
       {!ready ? (
-        <div className="cmv2-crit-empty">
-          <Compass size={22} aria-hidden="true" />
-          <strong>Aún no hay catálogo de criterios de curso-horario.</strong>
-          <p>
-            La suite enumera las categorías reales de tu base (dirigida por el mapeo) y su radiografía por facultad.
-            Construye el marco desde tus fuentes para poblarla; luego decides los criterios de curso-horario con la
-            radiografía de cada facultad a la vista.
-          </p>
-        </div>
+        <EstadoVacio
+          tamano="normal"
+          icono={<Compass size={16} aria-hidden="true" />}
+          titulo="Aún no hay catálogo de criterios de curso-horario"
+          descripcion="Construye el marco desde tus fuentes: aquí aparecerán las categorías reales de tu base con la radiografía de cada facultad."
+        />
       ) : (
         <>
           {!criteriosRadiografiaF1Lista ? (
@@ -1117,7 +1115,7 @@ export function CursosHorarioMarcoTab({
                   <School size={18} />
                 </span>
                 <div className="cmv2-chfp-section-copy">
-                  <h3>Por facultad · información y decisión</h3>
+                  <h3>Por facultad, información y decisión</h3>
                   <p>
                     Ordenadas por matrículas elegibles. Abre una facultad para ver su radiografía y decidir sus
                     criterios de curso-horario en la misma superficie, luego pasa a la siguiente.
@@ -1179,7 +1177,7 @@ export function CursosHorarioMarcoTab({
                         </option>
                       ))}
                     </select>
-                    <small>{bloques.length} facultades · se muestra una a la vez con todo su detalle</small>
+                    <small>{fmtInt(bloques.length)} facultades, se muestra una a la vez con todo su detalle</small>
                   </label>
                   {(bloqueFoco ? [bloqueFoco] : []).map((bloque) => (
                     <FacultadDecisionBloque

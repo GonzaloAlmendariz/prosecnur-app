@@ -3,6 +3,7 @@ import type { MonitoreoState, MonitoreoTerritorialDashboard } from "../../../../
 import { fmt, fmtConSigno } from "../rotulos";
 import { construirHistorial } from "./historialModel";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
+import { BloqueDeMonitoreo } from "../../../core/BloqueDeMonitoreo";
 import "./insumos.css";
 
 /**
@@ -30,11 +31,15 @@ function HistorialTabImpl({
       data-qa-geometry-group="territorial-insumos-historial"
       data-qa-geometry-contract="intrinsic"
     >
-      <section className="mon-ins-panel" aria-labelledby="mon-ins-lecturas" data-qa-geometry-member="lecturas">
-        <header className="mon-ins-cabecera is-inicio">
-          <RotuloDePestana />
-          <h3 id="mon-ins-lecturas" className="mon-ins-titulo">Lecturas de las fuentes <span className="mon-ter-cuenta">{fmt(modelo.lecturas.length)}</span></h3>
-        </header>
+      <BloqueDeMonitoreo
+        marco="kit"
+        className="mon-ins-panel"
+        aria-labelledby="mon-ins-lecturas"
+        data-qa-geometry-member="lecturas"
+        antetitulo={<RotuloDePestana />}
+        titulo={<>Lecturas de las fuentes <span className="mon-ter-cuenta">{fmt(modelo.lecturas.length)}</span></>}
+        tituloId="mon-ins-lecturas"
+      >
         {modelo.lecturas.length ? (
           <div className="mon-ins-tabla-marco" data-qa-geometry-capacity="owned" tabIndex={0} aria-label="Lecturas, con desplazamiento">
             <table className="mon-ins-tabla">
@@ -65,22 +70,20 @@ function HistorialTabImpl({
         ) : (
           <p className="mon-ins-base">Todavía no hay lecturas registradas.</p>
         )}
-      </section>
+      </BloqueDeMonitoreo>
 
       <div className="mon-ins-derecha is-historial" data-qa-geometry-member="lateral" data-qa-geometry-group="territorial-insumos-historial-lateral" data-qa-geometry-contract="intrinsic">
         {modelo.serie.length > 1 ? (
-          <section className="mon-ins-panel is-serie" aria-labelledby="mon-ins-serie">
-            <h3 id="mon-ins-serie" className="mon-ins-titulo">Respuestas en cada lectura</h3>
+          <BloqueDeMonitoreo marco="kit" className="mon-ins-panel is-serie" aria-labelledby="mon-ins-serie" titulo="Respuestas en cada lectura" tituloId="mon-ins-serie">
             <svg className="mon-ins-serie-grande" viewBox={`0 0 ${modelo.serie.length * 10} 60`} preserveAspectRatio="none" role="img" aria-label={`De ${fmt(modelo.serie[0].respuestas)} a ${fmt(modelo.serie.at(-1)?.respuestas)} respuestas en ${fmt(modelo.serie.length)} lecturas`}>
               {modelo.serie.map((punto, indice) => (
                 <rect key={`${punto.cuando}-${indice}`} x={indice * 10 + 1} width={8} y={60 - (punto.respuestas / maximo) * 60} height={(punto.respuestas / maximo) * 60} />
               ))}
             </svg>
             <span className="mon-ins-base">{modelo.serie[0].cuando} a {modelo.serie.at(-1)?.cuando}</span>
-          </section>
+          </BloqueDeMonitoreo>
         ) : null}
-        <section className="mon-ins-panel" aria-labelledby="mon-ins-otras">
-          <h3 id="mon-ins-otras" className="mon-ins-titulo">Otras acciones registradas</h3>
+        <BloqueDeMonitoreo marco="kit" className="mon-ins-panel" aria-labelledby="mon-ins-otras" titulo="Otras acciones registradas" tituloId="mon-ins-otras">
           {modelo.otras.length ? (
             <ul className="mon-ins-lista">
               {modelo.otras.map((accion) => <li key={accion.id}><small>{accion.cuando}</small> {accion.texto}</li>)}
@@ -88,7 +91,7 @@ function HistorialTabImpl({
           ) : (
             <p className="mon-ins-base">Sin subsanaciones ni anulaciones.</p>
           )}
-        </section>
+        </BloqueDeMonitoreo>
       </div>
     </section>
   );

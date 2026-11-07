@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { construirApiladoDeEstados, detalleDeSegmento, resumenDelDia } from "./apiladoDeEstados";
-import type { AcreditacionPhoneDailyStatusSeries } from "../profiles/acreditacion/AcreditacionPhoneDailyTrend";
+import type { AcreditacionPhoneDailyStatusSeries } from "../core/tendenciaTelefonicaDiaria";
 
 function punto(dia: string, value: number) {
   return {
@@ -170,14 +170,14 @@ describe("resumenDelDia", () => {
   it("un día de un solo estado no arrastra separadores sueltos", () => {
     const apilado = construirApiladoDeEstados([serie("Rechazo", [["2026-06-01", 1]])]);
     const texto = resumenDelDia(apilado.dias[0]);
-    expect(texto).not.toMatch(/·\s*$/);
+    expect(texto).not.toMatch(/[·,:]\s*$/);
   });
 
   it("un solo caso se dice en singular", () => {
     // Decía «1 casos», y el test anterior lo dejaba pasar porque `toContain`
     // con "1 caso" también acierta dentro de "1 casos".
     const apilado = construirApiladoDeEstados([serie("Rechazo", [["2026-06-01", 1]])]);
-    expect(resumenDelDia(apilado.dias[0])).toContain("1 caso ·");
+    expect(resumenDelDia(apilado.dias[0])).toContain("1 caso:");
     expect(resumenDelDia(apilado.dias[0])).not.toContain("1 casos");
   });
 });

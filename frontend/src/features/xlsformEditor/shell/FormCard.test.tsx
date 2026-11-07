@@ -173,7 +173,7 @@ describe("FormCard workflow", () => {
 
     expect(markup).toContain("Borrador vacío");
     expect(markup).toContain("Agrega preguntas para publicar.");
-    expect(markup).toContain('data-qa-geometry-capacity="owned"');
+    expect(markup).toContain('data-estado-vacio');
     expect(markup).not.toContain("Falta 1 corrección");
     expect(markup).not.toContain("is-danger");
   });

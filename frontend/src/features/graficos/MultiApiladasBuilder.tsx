@@ -28,6 +28,8 @@ import { describeScale, evaluateScaleCompat, scaleKeyOf, type ScaleTone, type Sc
 import { useSession } from "../../lib/SessionContext";
 import { processingBaseScopePresentation } from "../procesamiento/baseScopeModel";
 import { blockFromArgs, carryCruce, carryVars } from "./multiApiladasCarry";
+import { leerTwoBox } from "./laminas/tarjetaGrafico/twoBox";
+import { usePlanStore } from "./store";
 import VariableRespondentSummary from "./VariableRespondentSummaryView";
 import { QueCompara, type BocetoQueCompara } from "./multiapiladas/QueCompara";
 import { TemasPorPublico } from "./multiapiladas/TemasPorPublico";
@@ -39,6 +41,9 @@ import { guardarLectura, recuperarLectura } from "./multiapiladas/memoriaLectura
 import { conteoBarrasMultiapiladas, cupoBarras, MOTIVO_TOPE, type ConteoBarras } from "./multiapiladas/topeBarras";
 import { ConteoBarrasMultiapiladas } from "./multiapiladas/ConteoBarras";
 import "./multiapiladas/multiapiladas.css";
+import { formatoConteo } from "../../lib/formatoNumero";
+import { CargaDeBloque } from "../../components/CargaDeBloque";
+import { textoPlano } from "./textoPlano";
 
 type Props = {
   graf: GraficadorRef;
@@ -141,6 +146,7 @@ const INTENTS: {
 ];
 
 export default function MultiApiladasBuilder({ graf, onArgs, memoriaKey }: Props) {
+  const presets = usePlanStore((s) => s.presets);
   const { variables, multi, sources, loading } = useVariables();
   // Un estudio de bases hermanas expone una sola fuente mientras editas por
   // base: el modo multi-fuente existe, pero vive en el informe compartido.
@@ -159,7 +165,9 @@ export default function MultiApiladasBuilder({ graf, onArgs, memoriaKey }: Props
   // P20: la matriz de equivalencias sugiere el público vacío; se carga una vez y sólo si hay públicos que comparar.
   const matriz = useSugerenciasDeMatriz(multi && sources.length > 1 && (intent === "publicos_tema" || intent === "combinar"));
   const issues = validateArgs(args, variables, multi);
-  const scale = scaleSummary(refs, variables, multi);
+  // En «Bloques» cada bloque tiene su escala y la revisa en su editor (ScaleInline): comparar las preguntas de TODOS los
+  // bloques entre sí daba «no comparten una escala» justo en el modo que existe para mezclarlas (unión de láminas, D4).
+  const scale = intent === "combinar" ? null : scaleSummary(refs, variables, multi);
   // Tope de seis barras (multiapiladas/topeBarras.ts): el conteo va junto a la lista y frena el «agregar».
   const conteo = conteoBarrasMultiapiladas(args);
 
@@ -233,7 +241,9 @@ export default function MultiApiladasBuilder({ graf, onArgs, memoriaKey }: Props
         // Un bloque sembrado con lo que ya había: "Combinar bloques" con un
         // solo bloque es exactamente la lectura anterior, así que la ida es
         // reversible y no hay nada que volver a elegir.
-        bloques: existing.length ? existing : [blockFromArgs(args, carriedVars, carriedCruce)],
+        // La barra que la lámina MOSTRABA (efectiva: declarada o heredada del estilo/recetario), no sólo la declarada: en
+        // «Bloques» un bloque sin barra declarada sale sin ella (twoBox.ts, `heredado`), así que se declara (D1).
+        bloques: existing.length ? existing : [blockFromArgs(args, carriedVars, carriedCruce, leerTwoBox("p_barras_multiapiladas", args, presets)?.valor)],
         vars: null,
         var: null,
         cruces: null,
@@ -243,7 +253,7 @@ export default function MultiApiladasBuilder({ graf, onArgs, memoriaKey }: Props
   }
 
   if (loading) {
-    return <div style={hintStyle}>Cargando variables del estudio…</div>;
+    return <CargaDeBloque label="Cargando variables del estudio…" />;
   }
 
   return (
@@ -476,7 +486,7 @@ function BlockEditor({
   return (
     <div style={blockStyle}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <strong style={{ fontSize: 12 }}>Bloque {index + 1}</strong>
+        <strong style={{ fontSize: "var(--pulso-type-body-size)" }}>Bloque {index + 1}</strong>
         <div style={blockIntentSwitcherStyle} aria-label="Tipo de bloque">
           {INTENTS.filter((item) => BLOQUE_SIN_GRUPOS.has(item.key) || item.key === blockIntent).map((item) => {
             const active = item.key === blockIntent;
@@ -589,9 +599,9 @@ function BuilderSection({ title, hint, children }: { title: string; hint: string
     <section style={panelStyle}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
         <ListPlus size={14} color="var(--pulso-primary)" />
-        <strong style={{ fontSize: 13 }}>{title}</strong>
+        <strong style={{ fontSize: "var(--pulso-type-body-size)" }}>{title}</strong>
       </div>
-      <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.45, marginBottom: 10 }}>{hint}</div>
+      <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", lineHeight: 1.45, marginBottom: 10 }}>{hint}</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{children}</div>
     </section>
   );
@@ -601,7 +611,7 @@ function FieldLabel({ label, help, compact, children }: { label: string; help?: 
   return (
     <label style={{ display: "flex", flexDirection: "column", gap: compact ? 3 : 5 }}>
       <span style={{ fontSize: compact ? 10 : 11, fontWeight: 700, color: "var(--pulso-text)" }}>{label}</span>
-      {help && <span style={{ fontSize: 10, color: "var(--pulso-text-soft)", lineHeight: 1.35 }}>{help}</span>}
+      {help && <span style={{ fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)", lineHeight: 1.35 }}>{help}</span>}
       {children}
     </label>
   );
@@ -686,7 +696,7 @@ function SingleVarSelect({
       variables={variables}
       multi={multi}
       placeholder="Elegir pregunta…"
-      emptyHint={`${variables.length} disponible${variables.length === 1 ? "" : "s"}`}
+      emptyHint={`${formatoConteo(variables.length)} disponible${variables.length === 1 ? "" : "s"}`}
       allowEmpty
       onPick={onChange}
     />
@@ -838,7 +848,7 @@ function VariableChoicePopover({
             <span aria-hidden="true"><Database size={15} /></span>
             <div>
               <strong>Elegir variable</strong>
-              <small>{variables.length} disponibles</small>
+              <small>{formatoConteo(variables.length)} disponibles</small>
             </div>
           </div>
 
@@ -899,7 +909,7 @@ function VariableChoicePopover({
                     </span>
                     <span className="pulso-gv2-variable-option-meta">
                       {multi && <em>{v.source}</em>}
-                      {v.seccion && <em>{v.seccion}</em>}
+                      {v.seccion && <em>{textoPlano(v.seccion)}</em>}
                       {v.tipo && <em>{friendlyVarType(v.tipo)}</em>}
                       {typeof v.n_non_empty === "number" && <em>{v.n_non_empty} respuestas</em>}
                       {/* La escala decide si la pregunta puede entrar al
@@ -943,7 +953,7 @@ function TitlesEditor({
   if (!keys.length) return null;
   return (
     <details style={{ border: "1px solid var(--pulso-border)", borderRadius: 7, padding: "7px 9px", background: "var(--pulso-surface)" }}>
-      <summary style={{ cursor: "pointer", fontSize: 11, fontWeight: 700 }}>Títulos de los bloques</summary>
+      <summary style={{ cursor: "pointer", fontSize: "var(--pulso-type-caption-size)", fontWeight: 700 }}>Títulos de los bloques</summary>
       <div style={{ display: "flex", flexDirection: "column", gap: 7, marginTop: 8 }}>
         {keys.map((key) => {
           const info = findVar(key, variables, multi);
@@ -989,10 +999,10 @@ function ScaleInline({ refs, variables, multi }: { refs: string[]; variables: Va
 function RequirementPanel({ title, text }: { title: string; text: string }) {
   return (
     <div style={{ ...panelStyle, borderColor: "var(--pulso-warn-border)", background: "#fff9eb" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700, fontSize: 13 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700, fontSize: "var(--pulso-type-subtitle-size)" }}>
         <AlertCircle size={14} /> {title}
       </div>
-      <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", lineHeight: 1.45, marginTop: 6 }}>{text}</div>
+      <div style={{ fontSize: "var(--pulso-type-subtitle-size)", color: "var(--pulso-text-soft)", lineHeight: 1.45, marginTop: 6 }}>{text}</div>
     </div>
   );
 }
@@ -1020,9 +1030,9 @@ export function validateArgs(args: Record<string, unknown>, variables: VarWithSo
   const intent = detectIntent(args);
   const issues: ValidationIssue[] = [];
   const refs = refsForIntent(args);
-  const scale = scaleSummary(refs, variables, multi);
-  if (scale.tone === "error") issues.push({ kind: "error", message: scale.message });
-  if (scale.tone === "warning") issues.push({ kind: "warning", message: scale.message });
+  const scale = intent === "combinar" ? null : scaleSummary(refs, variables, multi);   // por bloque, no entre bloques (D4)
+  if (scale?.tone === "error") issues.push({ kind: "error", message: scale.message });
+  if (scale?.tone === "warning") issues.push({ kind: "warning", message: scale.message });
 
   if (intent === "comparar" && asStringArray(args.vars).length === 0) {
     issues.push({ kind: "error", message: "Selecciona al menos una pregunta." });
@@ -1197,7 +1207,7 @@ function slugKey(text: string): string {
 function displayRef(ref: string, multi: boolean): string {
   const { source, name } = parseVarRef(ref);
   if (!multi || !source) return name;
-  return `${name} · ${source.charAt(0).toUpperCase()}${source.slice(1).replace(/_/g, " ")}`;
+  return `${name} (${source.charAt(0).toUpperCase()}${source.slice(1).replace(/_/g, " ")})`;
 }
 
 function friendlyVarType(tipo: string) {
@@ -1241,7 +1251,7 @@ const inputStyle: React.CSSProperties = {
   border: "1px solid var(--pulso-border)",
   borderRadius: 5,
   padding: "6px 8px",
-  fontSize: 12,
+  fontSize: "var(--pulso-type-body-size)",
   background: "white",
   color: "var(--pulso-text)",
 };
@@ -1255,7 +1265,7 @@ const secondaryButtonStyle: React.CSSProperties = {
   borderRadius: 6,
   background: "white",
   padding: "7px 10px",
-  fontSize: 12,
+  fontSize: "var(--pulso-type-body-size)",
   cursor: "pointer",
 };
 
@@ -1268,7 +1278,7 @@ const chipStyle: React.CSSProperties = {
   color: "var(--pulso-primary)",
   borderRadius: 6,
   padding: "3px 5px",
-  fontSize: 11,
+  fontSize: "var(--pulso-type-caption-size)",
 };
 
 const chipLabelStyle: React.CSSProperties = {
@@ -1288,7 +1298,7 @@ const chipCodeStyle: React.CSSProperties = {
   background: "rgba(255, 255, 255, 0.72)",
   color: "var(--pulso-text-soft)",
   fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-  fontSize: 10,
+  fontSize: "var(--pulso-type-micro-size)",
   fontWeight: 800,
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -1316,7 +1326,7 @@ const blockIntentButtonStyle: React.CSSProperties = {
   borderRadius: 999,
   background: "rgba(255, 255, 255, 0.76)",
   color: "var(--pulso-text-soft)",
-  fontSize: 10.4,
+  fontSize: "var(--pulso-type-micro-size)",
   fontWeight: 700,
   cursor: "pointer",
 };
@@ -1333,7 +1343,7 @@ const blockIntentButtonDisabledStyle: React.CSSProperties = {
 };
 
 const hintStyle: React.CSSProperties = {
-  fontSize: 11,
+  fontSize: "var(--pulso-type-caption-size)",
   color: "var(--pulso-text-soft)",
   fontStyle: "italic",
 };
@@ -1345,7 +1355,7 @@ const inlineStatusStyle: React.CSSProperties = {
   border: "1px solid",
   borderRadius: 7,
   padding: "7px 9px",
-  fontSize: 11,
+  fontSize: "var(--pulso-type-caption-size)",
   background: "white",
 };
 
@@ -1358,7 +1368,7 @@ const detailsStyle: React.CSSProperties = {
 
 const summaryStyle: React.CSSProperties = {
   cursor: "pointer",
-  fontSize: 11,
+  fontSize: "var(--pulso-type-caption-size)",
   fontWeight: 700,
 };
 
@@ -1366,7 +1376,7 @@ const toggleStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   gap: 7,
-  fontSize: 12,
+  fontSize: "var(--pulso-type-subtitle-size)",
   fontWeight: 600,
 };
 

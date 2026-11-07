@@ -118,10 +118,10 @@
   writeLines(jsonlite::toJSON(manifest, auto_unbox = TRUE, pretty = TRUE, null = "null"), manifest_path, useBytes = TRUE)
 
   stamp <- format(Sys.time(), "%Y%m%d-%H%M%S")
-  zip_name <- .cmail_export_name(slug, send$send_id, "surveymonkey", stamp = stamp)
+  zip_name <- .cmail_export_name(slug, .cmail_send_tag(campaign, send), "surveymonkey", stamp = stamp)
   zip_path <- file.path(session$dir, "downloads", paste0(uuid::UUIDgenerate(), "__", zip_name))
   zip::zip(zip_path, files = c(entries, "manifest.json"), root = work, mode = "mirror")
-  manifest_name <- .cmail_export_name(slug, send$send_id, "surveymonkey_manifest", ext = "json")
+  manifest_name <- .cmail_export_name(slug, .cmail_send_tag(campaign, send), "surveymonkey_manifest", ext = "json")
   manifest_out <- file.path(session$dir, "downloads", paste0(uuid::UUIDgenerate(), "__", manifest_name))
   file.copy(manifest_path, manifest_out, overwrite = TRUE)
   artifacts <- list(

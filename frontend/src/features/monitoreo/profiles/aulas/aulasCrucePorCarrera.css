@@ -7,9 +7,9 @@
 
 .aulas-cxc { display: grid; gap: 10px; min-width: 0; }
 
-.aulas-cxc-titular { margin: 0; font-size: 14px; color: var(--pulso-text-soft); }
+.aulas-cxc-titular { margin: 0; font-size: var(--pulso-type-body-size); color: var(--pulso-text-soft); }
 .aulas-cxc-titular strong {
-  font-size: 22px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: 500;
   color: var(--pulso-text);
   font-variant-numeric: tabular-nums;
@@ -22,7 +22,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 4px 14px;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-faint);
 }
 
@@ -34,7 +34,7 @@
   gap: 12px;
 }
 .aulas-cxc-cab {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--pulso-text-faint);
@@ -45,13 +45,13 @@
 
 .aulas-cxc-num {
   text-align: right;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text-soft);
 }
-.aulas-cxc-fuerte { color: var(--pulso-text); font-weight: 600; font-size: 14px; }
+.aulas-cxc-fuerte { color: var(--pulso-text); font-weight: 600; font-size: var(--pulso-type-subtitle-size); }
 .aulas-cxc-debil { color: var(--pulso-text-faint); }
-.aulas-cxc-dup { font-style: normal; font-size: 12px; color: var(--pulso-warn-fg); }
+.aulas-cxc-dup { font-style: normal; font-size: var(--pulso-type-body-size); color: var(--pulso-warn-fg); }
 
 .aulas-cxc-barra {
   display: block;
@@ -83,17 +83,17 @@
   grid-template-columns: 3.5rem minmax(0, 1fr);
   align-items: baseline;
   gap: 10px;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
-.aulas-cxc-pie { margin: 2px 0 0; font-size: 12px; line-height: 1.45; color: var(--pulso-text-faint); }
+.aulas-cxc-pie { margin: 2px 0 0; font-size: var(--pulso-type-body-size); line-height: 1.45; color: var(--pulso-text-faint); }
 
 /* Los plegables, con la misma forma que los de `AulasSenalesPorAula`: se leen
    unos paneles más allá y darles dos formas distintas obligaría a aprenderlas
    dos veces. */
 .aulas-cxc-grupo > summary {
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
   padding: 2px 0;
 }
@@ -102,7 +102,7 @@
 .aulas-cxc-grupo[open] > summary { margin-bottom: 6px; }
 
 .aulas-cxc-rotulo {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-weight: var(--pulso-weight-heavy, 600);
   color: var(--pulso-text);
 }
@@ -121,10 +121,10 @@
   grid-template-columns: 3.5rem minmax(0, 1fr);
   align-items: baseline;
   gap: 10px;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
-.aulas-cxc-pie { margin: 2px 0 0; font-size: 12px; line-height: 1.45; color: var(--pulso-text-faint); }
+.aulas-cxc-pie { margin: 2px 0 0; font-size: var(--pulso-type-body-size); line-height: 1.45; color: var(--pulso-text-faint); }
 
 /* --- el detalle: fila por alumno ------------------------------------------ */
 
@@ -150,7 +150,7 @@
    para que la fila de filtros no compita con la tabla. */
 .aulas-cxc-filtro {
   font: inherit;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -177,10 +177,10 @@
 .aulas-cxc-filtro[aria-pressed="true"][data-tono="falla"] { border-color: var(--pulso-danger-fg); color: var(--pulso-danger-fg); }
 .aulas-cxc-filtro:disabled { cursor: default; opacity: 0.5; }
 
-.aulas-cxc-select { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--pulso-text-faint); }
+.aulas-cxc-select { display: inline-flex; align-items: center; gap: 6px; font-size: var(--pulso-type-body-size); color: var(--pulso-text-faint); }
 .aulas-cxc-select select {
   font: inherit;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   padding: 3px 6px;
   border-radius: 6px;
   border: 1px solid var(--pulso-border);
@@ -209,7 +209,7 @@
 }
 .aulas-cxc-buscador input {
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   min-width: 0;
   border: 0;
   background: transparent;
@@ -243,7 +243,7 @@
   .aulas-cxc-scroll { max-height: min(300px, calc(100vh - 330px)); }
 }
 
-.aulas-cxc-tabla { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.aulas-cxc-tabla { width: 100%; border-collapse: collapse; font-size: var(--pulso-type-body-size); }
 
 /* Pegajosa contra el contenedor que scrollea, que es `.aulas-cxc-scroll`: con
    400 filas, perder los rótulos al bajar deja cinco columnas sin nombre. */
@@ -256,7 +256,7 @@
   padding: 7px 10px 8px;
   text-align: left;
   white-space: nowrap;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: 600;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -272,26 +272,8 @@
 .aulas-cxc-tabla tbody tr:last-child > td { border-bottom: 0; }
 
 .aulas-cxc-codigo { font-variant-numeric: tabular-nums; color: var(--pulso-text); white-space: nowrap; }
-.aulas-cxc-nivel { font-style: normal; font-size: 12px; color: var(--pulso-text-faint); margin-left: 6px; }
+.aulas-cxc-nivel { font-style: normal; font-size: var(--pulso-type-body-size); color: var(--pulso-text-faint); margin-left: 6px; }
 .aulas-cxc-cuando { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .aulas-cxc-ch { font-variant-numeric: tabular-nums; white-space: nowrap; }
-.aulas-cxc-motivo-fila { font-style: normal; font-size: 12px; color: var(--pulso-text-faint); }
+.aulas-cxc-motivo-fila { font-style: normal; font-size: var(--pulso-type-body-size); color: var(--pulso-text-faint); }
 
-/* Tres tonos para tres estados, en el orden en que se leen sin leyenda: verde
-   lo que cuenta, ámbar lo que cruzó y no suma, rojo lo que no se identificó. */
-.aulas-cxc-pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 1px 8px;
-  border-radius: 999px;
-  font-size: 11px;
-  white-space: nowrap;
-  border: 1px solid var(--pulso-border);
-  color: var(--pulso-text-soft);
-}
-/* El neutro es el de «Aceptó»: existe, se ve, y no compite con el 3 % que
-   dice algo. */
-.aulas-cxc-pill[data-tono="neutro"] { color: var(--pulso-text-faint); border-color: var(--pulso-border); }
-.aulas-cxc-pill[data-tono="ok"] { color: var(--pulso-success-fg); border-color: var(--pulso-success-fg); }
-.aulas-cxc-pill[data-tono="aviso"] { color: var(--pulso-warn-fg); border-color: var(--pulso-warn-fg); }
-.aulas-cxc-pill[data-tono="falla"] { color: var(--pulso-danger-fg); border-color: var(--pulso-danger-fg); }

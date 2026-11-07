@@ -2,9 +2,9 @@
 // la dirección (`panel`, `foco`); aquí sólo lo que el analista va eligiendo dentro del diálogo.
 
 import { create } from "zustand";
-import type { SlideType } from "../../../../api/graficos";
 import type { FamiliaGrafico } from "./tiposGrafico";
 import type { IntencionLamina } from "./tiposLamina";
+import type { OpcionLamina } from "./opcionesLamina";
 
 /** «cambiar» la lámina del foco o «insertar» una nueva detrás de ella. */
 export type ModoSelectorLamina = "cambiar" | "insertar";
@@ -12,7 +12,8 @@ export type ModoSelectorLamina = "cambiar" | "insertar";
 type SelectoresUi = {
   modoLamina: ModoSelectorLamina;
   intencion: IntencionLamina | null;
-  candidato: SlideType | null;
+  /** La tarjeta elegida: un tipo o un tipo con su payload de partida (`p_slide_hallazgos:resumen`). */
+  candidato: OpcionLamina | null;
   variante: string | null;
   /** Segundo paso de «Usar esta lámina» cuando hay gráficos o textos que no caben. */
   confirmando: boolean;
@@ -21,7 +22,7 @@ type SelectoresUi = {
   /** Al abrir el selector de lámina: modo y elección limpia (la intención la deriva el diálogo de la lámina). */
   prepararLamina: (modo: ModoSelectorLamina) => void;
   elegirIntencion: (i: IntencionLamina) => void;
-  elegirCandidato: (tipo: SlideType, variante: string | null) => void;
+  elegirCandidato: (opcion: OpcionLamina, variante: string | null) => void;
   elegirVariante: (v: string) => void;
   setConfirmando: (c: boolean) => void;
   prepararGrafico: () => void;

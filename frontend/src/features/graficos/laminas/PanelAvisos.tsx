@@ -17,6 +17,7 @@ import { enfocarSinDesplazar } from "./enfocarSinDesplazar";
 import { laBase } from "../relacionBases";
 import { MOTIVO_COLORES_PENDIENTES } from "../exportarInformeRegla";
 import "./panelAvisos.css";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 type Props = {
   panel: ControlPanel;
@@ -106,7 +107,7 @@ export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = 
       <div className="pulso-f6-avisos-cuerpo" data-qa-geometry-group="graficos/f6-avisos-grupos" data-qa-geometry-contract="intrinsic">
         {grupos.plan.length > 0 && (
           <section className="pulso-f6-avisos-grupo" aria-label="Cambios al abrir el plan">
-            <h3>Cambios al abrir el plan <span>{grupos.plan.length}</span></h3>
+            <h3>Cambios al abrir el plan <span>{formatoConteo(grupos.plan.length)}</span></h3>
             <ul data-qa-geometry-group="graficos/f6-avisos-plan" data-qa-geometry-contract="intrinsic">
               {grupos.plan.map((a) => <li key={a}><span>{a}</span></li>)}
             </ul>
@@ -114,7 +115,7 @@ export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = 
         )}
         {grupos.equivalencias.length > 0 && (
           <section className="pulso-f6-avisos-grupo" aria-label="Equivalencias entre bases">
-            <h3>Equivalencias entre bases <span>{grupos.equivalencias.length}</span></h3>
+            <h3>Equivalencias entre bases <span>{formatoConteo(grupos.equivalencias.length)}</span></h3>
             <ul data-qa-geometry-group="graficos/f6-avisos-equivalencias" data-qa-geometry-contract="intrinsic">
               {grupos.equivalencias.map((a) => <li key={a}><span>{a}</span></li>)}
             </ul>

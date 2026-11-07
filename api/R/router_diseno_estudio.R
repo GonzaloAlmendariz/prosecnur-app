@@ -333,9 +333,13 @@
   mon_cfg <- s$monitoreo_config %||% list()
   mon_profile <- mon_cfg$monitoreo_profile %||% mon_cfg$profile %||% list()
 
+  # ADR 0122: la identidad la dice el Planner, y sólo si se declaró (ADR 0123
+  # §5). Sin nombre declarado, el Home usa el del archivo (.overview_project_name).
+  identidad <- .planner_identidad(s)
   list(
-    title = .diseno_scalar(estudio$nombre %||% calc$titulo %||% dashboard$titulo, "Proyecto sin titulo"),
-    client = .diseno_scalar(calc_context$cliente %||% dashboard$cliente, ""),
+    title = .diseno_scalar(if (nzchar(identidad$nombre)) identidad$nombre else NULL, "Proyecto sin titulo"),
+    client = .diseno_scalar(identidad$cliente, ""),
+    code = .diseno_scalar(identidad$codigo, ""),
     client_type = .diseno_scalar(calc_context$tipo_cliente, ""),
     description = .diseno_scalar(calc_context$descripcion_libre %||% dashboard$subtitulo, ""),
     processing_mode = .diseno_scalar(estudio$processing_mode, "multibase"),

@@ -10,7 +10,7 @@
   color: var(--pulso-text);
   display: flex;
   flex-wrap: wrap;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   gap: 6px var(--pulso-space-2);
   line-height: 1.45;
   margin: 0;
@@ -50,7 +50,7 @@
 
 .rec-mail-def-campo-sm {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 /* La nota «Opcional» va dentro del cuerpo del inspector: hereda su margen. */
@@ -69,11 +69,11 @@
 /* Campos de cada persona: el nombre humano manda; la etiqueta de la plataforma va en segundo plano. */
 .rec-mail-def-campo-nombre {
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   color: var(--pulso-text);
 }
 .rec-mail-def-campo-plataforma {
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-faint);
   margin-left: auto;
 }
@@ -86,14 +86,14 @@
 
 .rec-variables-titulo {
   color: var(--pulso-text);
-  font-size: 13.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   margin: 0;
 }
 
 .rec-variables-intro {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.4;
   margin: 0;
 }
@@ -115,16 +115,38 @@
 
 .rec-variables-linea-rotulo {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .rec-variables-sin-columna {
   color: var(--pulso-text-faint);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.4;
 }
 
 .rec-variables-tag-fija {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
+}
+
+/* Datos de la campaña (L6): nombre, valor, usos y quitar en una fila. */
+.rec-datos-campana-lista {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+}
+
+.rec-datos-campana-fila {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.4fr) auto auto;
+}
+
+.rec-datos-campana-usos {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+  white-space: nowrap;
 }

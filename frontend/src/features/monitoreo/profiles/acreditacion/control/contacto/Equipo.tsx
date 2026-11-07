@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { EstadoChip } from "../../../../../../components/EstadoChip";
 import { CheckCircle2, Users } from "lucide-react";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../../api/client";
 import { fmt } from "../../formato";
@@ -132,7 +133,7 @@ export function EquipoVista({ modelo }: { modelo: ModeloDeEquipo }) {
                   <td className="is-num"><b>{fmt(item.efectivas)}</b></td>
                   <td className="is-num">{item.conciliadas == null ? "—" : fmt(item.conciliadas)}</td>
                   <td className="is-num">
-                    <span className={`acr-av-chip${!item.sinAsignar && (item.pctSinBarrer ?? 0) >= 0.2 ? " is-falta" : ""}`}>{pctEntero(item.pctSinBarrer)}</span>
+                    <EstadoChip label={pctEntero(item.pctSinBarrer)} tone={!item.sinAsignar && (item.pctSinBarrer ?? 0) >= 0.2 ? "warn" : "neutral"} />
                   </td>
                   <td className="is-num">{item.sinAsignar ? "—" : pctEntero(item.pctIncidencias)}</td>
                 </tr>

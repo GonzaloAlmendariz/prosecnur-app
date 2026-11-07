@@ -93,7 +93,7 @@ export function FacultadRadiografiaCard({
             <span className="cmv2-explorador-card-nombre">{fac.facultad}</span>
             <span className="cmv2-explorador-card-meta">
               {fmtInt(fac.ch_elegibles)} de {fmtInt(fac.ch_total)} CH elegibles
-              {fac.est_aula_mediana != null ? ` · mediana ${fmtDec(fac.est_aula_mediana, 0)} por aula` : ""}
+              {fac.est_aula_mediana != null ? `, mediana ${fmtDec(fac.est_aula_mediana, 0)} por aula` : ""}
             </span>
           </span>
           <span className="cmv2-explorador-card-hero">
@@ -135,7 +135,7 @@ export function FacultadRadiografiaCard({
           <strong>{fmtInt(recorte?.quedan ?? fac.ch_elegibles)}</strong> de{" "}
           {fmtInt(recorte?.llegan ?? fac.ch_total)} cursos-horario
           siguen siendo candidatos con los criterios vigentes
-          {fac.est_aula_mediana != null ? ` · mediana ${fmtDec(fac.est_aula_mediana, 0)} elegibles/aula` : ""}
+          {fac.est_aula_mediana != null ? `, mediana ${fmtDec(fac.est_aula_mediana, 0)} elegibles/aula` : ""}
         </p>
         )}
         {verCond && cond.segmentos.length > 0 && (

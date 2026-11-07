@@ -301,7 +301,7 @@ ave_seq <- function(x) ave(seq_along(x), x, FUN = seq_along)
       )
       pesos_ref <- .radar_mb_pesos(datos)
       medida <- .radar_mb_pct(datos[[col]], codigos, pesos = pesos_ref)
-      # ADR 0114: los casos sin ponderar de cada celda, para la base `n (cobertura %)` del contraste.
+      # ADR 0134: los casos sin ponderar de cada celda, para la base `n (cobertura %)` del contraste.
       filas[[length(filas) + 1L]] <- data.frame(
         eje = titulo, grupo = ctx$source,
         valor = medida$valor, n = medida$n, n_casos = .dumbbell_casos(datos[[col]], pesos_ref),
@@ -568,7 +568,6 @@ ave_seq <- function(x) ave(seq_along(x), x, FUN = seq_along)
   fuente <- "Arial"
   dec <- suppressWarnings(as.integer(decimales)[1]); if (!is.finite(dec)) dec <- 0L
   d$etiqueta <- .pulso_fmt_pct_half_up(d$valor, max(0L, min(3L, dec)), escala = 1)   # mitad hacia arriba, como la tabla
-  sub <- if (nzchar(trimws(as.character(indicador %||% "")))) paste0("% ", trimws(as.character(indicador))) else NULL
   ggplot2::ggplot(d, ggplot2::aes(x = .data$valor, y = .data$eje, fill = .data$grupo)) +
     ggplot2::geom_col(position = ggplot2::position_dodge2(reverse = TRUE, padding = 0.15), width = 0.8) +
     ggplot2::geom_text(ggplot2::aes(label = .data$etiqueta), position = ggplot2::position_dodge2(width = 0.8, reverse = TRUE),
@@ -576,7 +575,7 @@ ave_seq <- function(x) ave(seq_along(x), x, FUN = seq_along)
     ggplot2::scale_fill_manual(values = colores, breaks = levels(d$grupo)) +
     ggplot2::scale_x_continuous(limits = c(0, 112), breaks = seq(0, 100, 20), labels = function(x) paste0(x, "%"),
                                 expand = ggplot2::expansion(mult = c(0, 0))) +
-    ggplot2::labs(title = titulo, subtitle = sub, x = NULL, y = NULL, fill = NULL) +
+    ggplot2::labs(title = titulo, x = NULL, y = NULL, fill = NULL) +   # sin «% indicador»: lo dicen el eje y la tabla
     ggplot2::theme_minimal(base_size = 11, base_family = fuente) +
     ggplot2::theme(
       panel.grid.major.y = ggplot2::element_blank(), panel.grid.minor = ggplot2::element_blank(),
@@ -601,7 +600,6 @@ ave_seq <- function(x) ave(seq_along(x), x, FUN = seq_along)
                  levels = .radar_mb_eje_completo(levels(datos$eje))),                  # cada medio (graficos_rotulo_completo.R)
     grupo = factor(.radar_mb_capitalizar(as.character(datos$grupo)), levels = .radar_mb_capitalizar(levels(datos$grupo))),
     valor = datos$valor, n = if ("n" %in% names(datos)) datos$n else NA_real_, stringsAsFactors = FALSE)
-  sub <- if (nzchar(trimws(as.character(indicador %||% "")))) paste0("% ", trimws(as.character(indicador))) else NULL
   # Eje: por defecto acercado a los datos (el del dumbbell: multiplos de 5 con 3 puntos de margen, dentro de 0-100);
   # `eje` = list(tipo = "auto"|"0-100"|"personalizado", min, max). Un personalizado que deja fuera un dato se ensancha.
   tipo <- as.character(eje$tipo %||% "auto")[1]
@@ -619,14 +617,9 @@ ave_seq <- function(x) ave(seq_along(x), x, FUN = seq_along)
   dibujar <- function(titulo_eje) graficar_dumbbell(d, orden = "declarado", titulo = titulo, titulo_eje = titulo_eje,
                     valores_decimales = decimales, mostrar_brecha = FALSE, limite_x = lim, size_punto = 4.6,
                     size_segmento = 1.8, leyenda_posicion = "abajo", var_n = NULL)
-  g <- dibujar(sub)
-  # Un eje que no arranca en 0 lo dice bajo el subtitulo: las marcas del eje ya muestran los valores.
-  lo <- unname(attr(g, "pulso_espec")$eje["lo"])
-  if (length(lo) == 1L && is.finite(lo) && lo > 0) {
-    nota <- sprintf("Eje desde %s %%", format(lo, trim = TRUE))
-    g <- dibujar(if (is.null(sub)) nota else paste0(sub, " \u00b7 ", nota))
-  }
-  g
+  # Sin rótulo sobre el eje (Gonzalo, 2026-10-28): «% De acuerdo + … · Eje desde 60 %» repetía lo que ya dicen las marcas
+  # del eje y el encabezado de la tabla; era relleno.
+  dibujar(NULL)
 }
 
 # Catalogo de estilos en la forma que consume el registro de graficadores. Se
@@ -851,8 +844,8 @@ ave_seq <- function(x) ave(seq_along(x), x, FUN = seq_along)
 #'   Los tres aceptan `NULL` —el defecto—, que significa «el gráfico no opina»
 #'   (O7c): rige el preset del tipo (`mostrar_valores`, `valores_decimales`,
 #'   `limites`) y, sin él, `FALSE`, 0 y 0. Ver `.radar_mb_resolver()`.
-#' @param tabla_titulo Encabezado de la primera columna. Vacío = «Tema» más el
-#'   nombre del indicador.
+#' @param tabla_titulo Encabezado de la primera columna, que escribe el analista. Vacío
+#'   queda vacío y se avisa.
 #' @param tabla_encabezados Renombres de las columnas de público, `clave=Título`
 #'   por línea. Lo que no se nombra se queda como está.
 #' @param tabla_ancho_tema Ancho de la primera columna como fracción del ancho
@@ -1070,10 +1063,10 @@ p_radar_publicos <- function(
                          preset = as.list(preset_args %||% list()))
   # La tabla de datos (graficos_radar_tabla.R): el Word no la pinta dentro de la imagen —si la pide, `word_tabla`, va como
   # tabla nativa de Word encima de la figura—; el PPT la lleva segun `tabla`.
-  info_tabla <- function() .radar_mb_tabla_cifras(datos, res$decimales, el$corte_etiqueta, el$tabla_titulo %||% "",
-                                                  el$tabla_encabezados %||% list())
+  info_tabla <- function() { .radar_mb_avisar_sin_encabezado(el)
+    .radar_mb_tabla_cifras(datos, res$decimales, el$corte_etiqueta, el$tabla_titulo %||% "", el$tabla_encabezados %||% list()) }
   if (isTRUE(el[[".word_render"]])) {
-    return(if (isTRUE(el[["word_tabla"]])) .radar_mb_word_adjuntar(g, info_tabla()) else g)
+    return(if (.radar_mb_word_tabla_procede(el, dibuja)) .radar_mb_word_adjuntar(g, info_tabla()) else g)
   }
   modo_tabla <- .radar_mb_tabla_modo_el(el)
   if (identical(modo_tabla, "no")) return(g)
@@ -1082,6 +1075,7 @@ p_radar_publicos <- function(
   }
 
   tabla <- .radar_mb_tabla(datos, el$corte_etiqueta, decimales = res$decimales)
+  .radar_mb_avisar_sin_encabezado(el)
   .radar_mb_componer(g, tabla,
                      # Mismo orden que el resto: elemento, luego preset. Leyendolo
                      # solo del elemento, un `tabla_nativa` declarado en el
@@ -1110,9 +1104,8 @@ p_radar_publicos <- function(
 
 # Encabezados finales de la tabla.
 #
-# La primera columna dice «Tema» a secas. El indicador NO va aqui: metido en la
-# celda, «De acuerdo + Totalmente de Acuerdo» se comia media tabla, y ademas
-# hace falta aunque la tabla este apagada. Vive en el subtitulo del grafico.
+# La primera columna lleva lo que escriba el analista en `tabla_titulo`; sin él
+# queda vacía y se avisa (Gonzalo, 2026-10-28): «Tema» de fábrica era relleno.
 #
 # Las columnas de publico se renombran por clave, y la clave es el nombre de la
 # base tal como llega del estudio: «docentes», no «Docentes». Lo que no se
@@ -1139,7 +1132,7 @@ p_radar_publicos <- function(
   # literal, aunque el autor lo escriba en minuscula.
   nombres <- .radar_mb_capitalizar(names(tabla))
   titulo_tema <- trimws(as.character(titulo_tema %||% "")[1])
-  if (nzchar(titulo_tema)) nombres[1] <- titulo_tema
+  nombres[1] <- if (is.na(titulo_tema)) "" else titulo_tema   # sin «Tema» de fábrica: lo escribe el analista
   for (clave in names(encabezados %||% list())) {
     j <- match(clave, names(tabla))
     if (!is.na(j)) nombres[j] <- as.character(encabezados[[clave]])

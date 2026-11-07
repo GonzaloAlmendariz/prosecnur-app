@@ -42,7 +42,7 @@ export const AVISO_NOMBRE_REPETIDO = "Ya existe una campaña con este nombre";
 /** El aviso en línea: abrirla, o escribir otro nombre. Una archivada no se abre desde aquí. */
 export function avisoDeHomonima(c: CampanaConNombre): { texto: string; accion: string | null } {
   return c.archived
-    ? { texto: `${AVISO_NOMBRE_REPETIDO}, archivada · usa otro nombre`, accion: null }
+    ? { texto: `${AVISO_NOMBRE_REPETIDO}, archivada. Usa otro nombre`, accion: null }
     : { texto: AVISO_NOMBRE_REPETIDO, accion: "Ábrela o usa otro nombre" };
 }
 
@@ -64,5 +64,5 @@ export function subtituloDeCampana(
 
 /** El nombre accesible del menú «⋯»: con el subtítulo, dos homónimas no se confunden. */
 export function rotuloDelMenu(c: { name: string }, subtitulo: string): string {
-  return subtitulo ? `Acciones de ${c.name} · ${subtitulo}` : `Acciones de ${c.name}`;
+  return subtitulo ? `Acciones de ${c.name} (${subtitulo})` : `Acciones de ${c.name}`;
 }

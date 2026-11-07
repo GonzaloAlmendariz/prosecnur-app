@@ -135,3 +135,29 @@ describe("numeración en orden de lectura (E6)", () => {
     expect(numeros).toEqual([1, 2, 3, 4, 5]);
   });
 });
+
+describe("baterías table-list en el documento", () => {
+  test("una batería sin rótulo toma el de su sección y el código de su nota, y no cuenta como sin título", async () => {
+    const { parseBuilderStructure } = await import("../parsing/buildIndex");
+    const fila = (type: string, name: string, label = "", appearance = "") => [type, name, label, appearance];
+    const structure = parseBuilderStructure({
+      columns: ["type", "name", "label", "appearance"],
+      rows: [
+        fila("begin_group", "secA", "Sección A"),
+        fila("note", "a1_txt", "**A1.** ¿Qué opina de cada fruta?"),
+        fila("begin_group", "a1_bateria", "", "table-list"),
+        fila("select_one gusto", "manzana", "Manzana"),
+        fila("end_group", ""),
+        fila("begin_group", "suelta", ""),
+        fila("text", "otra", "Otra"),
+        fila("end_group", ""),
+        fila("end_group", ""),
+      ],
+    });
+    const doc = armarDocumento(structure, [{ listName: "gusto", items: [{ rowIndex: 0, name: "1", label: "Sí" }] } as unknown as CatalogSummary], []);
+    const bateria = doc.find((d) => d.name === "a1_bateria")!;
+    expect(bateria.rotulo).toBe("Sección A (A1)");
+    expect(bateria.sinTitulo).toBe(false);
+    expect(doc.find((d) => d.name === "suelta")?.sinTitulo).toBe(true);
+  });
+});

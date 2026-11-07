@@ -21,8 +21,10 @@ test_that("el resumen del protocolo lee el estudio sin mutar otros modulos", {
 
   protocol <- .diseno_protocol_summary(session_get(sid))
 
-  expect_equal(protocol$title, "Acreditacion profesional")
-  expect_equal(protocol$client, "Facultad")
+  # El nombre y el cliente son del Planner y sólo valen declarados (ADR 0123 §5):
+  # el título de Cálculo ya no los siembra.
+  expect_equal(protocol$title, "Proyecto sin titulo")
+  expect_equal(protocol$client, "")
   expect_equal(protocol$sample_target_n, 120L)
   expect_equal(protocol$sample_operational_n, 144L)
   expect_equal(protocol$monitoring_sources_count, 1L)

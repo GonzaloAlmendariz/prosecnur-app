@@ -1,5 +1,5 @@
 # =============================================================================
-# lamina_contraste.R — contraste de públicos y panorama, con formas nativas (ADR 0114)
+# lamina_contraste.R — contraste de públicos y panorama, con formas nativas (ADR 0134)
 # =============================================================================
 #
 # Las dos láminas de puntos del resumen ejecutivo de Formación General de Arte y Diseño 2026 comparten geometría:

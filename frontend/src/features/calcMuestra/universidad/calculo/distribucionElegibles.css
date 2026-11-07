@@ -25,7 +25,7 @@
   justify-content: space-between;
   align-items: baseline;
   gap: 8px;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text);
   white-space: nowrap;
   overflow: hidden;
@@ -34,7 +34,7 @@
 
 .cmv2-distelig-nombre small {
   color: var(--pulso-text-muted);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -86,15 +86,18 @@
   position: absolute;
   top: -6px;
   transform: translateX(-50%);
-  font-size: 9.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--module-accent, var(--pulso-primary));
   font-variant-numeric: tabular-nums;
+  /* Con posición absoluta cerca del borde del carril, el ancho disponible se
+   * achica y «20» se partía en «2 | 0» a 1024. */
+  white-space: nowrap;
 }
 
 .cmv2-distelig-leyenda {
   margin: 10px 0 0;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.5;
   color: var(--pulso-text-muted);
 }

@@ -32,7 +32,7 @@ export function FrecuenciasPane() {
   const numericasGlobal = useAnaliticaStore((s) => s.config.numericas);
   const excluidas = useAnaliticaStore((s) => s.config.variables_excluidas);
   const setFrec = useAnaliticaStore((s) => s.setFrecuencias);
-  const run = useReporteRun();
+  const run = useReporteRun("Frecuencias", { articulo: "las", formato: "xlsx" });
 
   const [variables, setVariables] = useState<VariableInstrumento[]>([]);
   // Mientras llegan las variables (el backend puede tardar varios segundos en
@@ -228,10 +228,7 @@ export function FrecuenciasPane() {
 
         <GenerateFooter
           label="Generar frecuencias"
-          busy={run.busy}
-          fileId={run.fileId}
-          downloadName={run.filename ?? "frecuencias.xlsx"}
-          error={run.error}
+          run={run}
           onGenerate={onGenerate}
           disabled={nVariablesAfectadas === 0}
           disabledHint={nVariablesAfectadas === 0
@@ -243,7 +240,6 @@ export function FrecuenciasPane() {
               ? "Todas las secciones están ocultas. Muestra alguna en la pestaña Datos."
               : "No hay variables que tabular. Incluye alguna en la pestaña Datos."
             : undefined}
-          perBase={run.perBase}
         />
       </div>
     </Panel>

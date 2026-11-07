@@ -37,6 +37,7 @@ import { FORMULA_TEMPLATES } from "./formulaTemplates";
 import { IfBlock } from "./IfBlock";
 import { readCalculation } from "./calculationReadout";
 import type { CalculationReadout } from "./calculationReadout";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 export type CalculationBuilderProps = {
   expression: string;
@@ -149,7 +150,7 @@ function CalculationReadoutStrip({ readout }: { readout: CalculationReadout }) {
       <div className="pulso-logic-calc-readout-fact">
         <dt>Condición</dt>
         <dd>
-          {conector} · {readout.bloques}
+          {conector} ({readout.bloques})
           {readout.comparaciones !== readout.bloques && (
             <small>{readout.comparaciones} comparaciones</small>
           )}
@@ -239,9 +240,7 @@ function FreeCalculationEditor({
             {varPickerOpen && (
               <div className="pulso-logic-calc-varpop" role="listbox">
                 {scope.variables.length === 0 ? (
-                  <div className="pulso-logic-calc-varempty">
-                    Sin preguntas para insertar todavía.
-                  </div>
+                  <EstadoVacio icono={<Variable size={14} />} titulo="Sin preguntas para insertar todavía" />
                 ) : (
                   <ul>
                     {scope.variables.map((v) => (
@@ -279,7 +278,7 @@ function FreeCalculationEditor({
         rows={3}
         value={expression}
         onChange={(event) => onChange(event.target.value)}
-        placeholder='Ej. ${edad} * 12  ·  if(${respuesta}=&apos;si&apos;, 1, 0)'
+        placeholder='Ej. ${edad} * 12 o if(${respuesta}=&apos;si&apos;, 1, 0)'
         spellCheck={false}
       />
       {hint && <p className="pulso-logic-builder-hint">{hint}</p>}

@@ -21,7 +21,11 @@ import {
   type FilaSeccion,
   type Orden,
 } from "./modeloResumen";
+import { formatoDecimal } from "../../../lib/formatoNumero";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
+import { Panel } from "../../../components/Panel";
+import { useAltoDeCabecera } from "../../procesamiento/useAltoDeCabecera";
 const COLUMNAS: readonly { columna: ColumnaOrden; rotulo: string; clase: string; ayuda?: string }[] = [
   { columna: "preguntas", rotulo: "Preguntas", clase: "is-num is-col-preguntas" },
   { columna: "obligatorias", rotulo: "Obligatorias", clase: "is-num is-col-obligatorias" },
@@ -45,7 +49,7 @@ function Encabezado({ columna, rotulo, clase, ayuda, orden, onOrden }: {
 }
 
 function minutosDePregunta(segundos: number): string {
-  return `${(segundos / 60).toLocaleString("es-PE", { maximumFractionDigits: 1 })} min`;
+  return `${formatoDecimal(segundos / 60, 1)} min`;
 }
 
 function PreguntasDesplegadas({ preguntas, onEditar }: {
@@ -90,6 +94,8 @@ export function TablaSecciones({ filas, kindDe, abierta, onAlternar, resaltada, 
     el.scrollIntoView({ block: "nearest", behavior: quieto ? "auto" : "smooth" });
   }, [resaltada]);
   const ordenadas = useMemo(() => ordenarSecciones(filas, orden), [filas, orden]);
+  // La cabecera fija parte sus rótulos en dos líneas: se mide su alto real para que las filas encajen debajo.
+  const marcoDeLaTabla = useAltoDeCabecera<HTMLDivElement>(filas);
   const maxPeso = Math.max(0.0001, ...filas.map((f) => f.peso));
   const pesadas = filas.filter((f) => f.pesada).length;
   const nSecciones = filas.filter((f) => f.id !== "root").length;
@@ -100,19 +106,24 @@ export function TablaSecciones({ filas, kindDe, abierta, onAlternar, resaltada, 
   const totalColumnas = columnas.length + 3;
 
   return (
-    <section className="pulso-xf-res-panel pulso-xf-res-secciones" aria-labelledby="xf-res-secciones-titulo" data-qa-geometry-member="">
-      <header className="pulso-xf-res-panel-cabeza">
-        <h3 id="xf-res-secciones-titulo">Secciones</h3>
+    <Panel
+      className="pulso-xf-res-panel pulso-xf-res-secciones"
+      noPadding
+      aria-labelledby="xf-res-secciones-titulo"
+      data-qa-geometry-member=""
+      title={<span id="xf-res-secciones-titulo">Secciones</span>}
+      actions={
         <span className="pulso-xf-res-panel-nota">
           {/* «Fuera de toda sección» es una fila, no una sección: el conteo cuadra con la cifra de arriba (S14). */}
           {nSecciones} {nSecciones === 1 ? "sección" : "secciones"}{filas.length > nSecciones ? " y preguntas sueltas" : ""}
-          {pesadas ? ` · ${pesadas} ${pesadas === 1 ? "pesada" : "pesadas"}` : ""}
+          {pesadas ? `, ${pesadas} ${pesadas === 1 ? "pesada" : "pesadas"}` : ""}
         </span>
-      </header>
+      }
+    >
       {filas.length === 0 ? (
-        <p className="pulso-xf-res-vacio">El formulario no tiene secciones: todas sus preguntas van en un solo bloque.</p>
+        <EstadoVacio icono={<ChevronRight size={14} />} titulo="El formulario no tiene secciones" descripcion="Todas sus preguntas van en un solo bloque." />
       ) : (
-        <div className="pulso-xf-res-tabla-marco" data-qa-scroll-owner="resumen-secciones" tabIndex={0} aria-label="Tabla de secciones">
+        <div className="pulso-xf-res-tabla-marco" ref={marcoDeLaTabla} data-qa-scroll-owner="resumen-secciones" tabIndex={0} aria-label="Tabla de secciones">
           <table className="pulso-xf-res-tabla">
             <thead>
               <tr>
@@ -136,7 +147,7 @@ export function TablaSecciones({ filas, kindDe, abierta, onAlternar, resaltada, 
                     <th scope="row" className="is-seccion">
                       <button type="button" className="pulso-xf-res-seccion" onClick={(e) => { e.stopPropagation(); onAlternar(clave); }}
                         aria-expanded={desplegada} aria-controls={desplegada ? idDetalle : undefined}>
-                        <ChevronRight size={13} aria-hidden="true" className="pulso-xf-res-seccion-chevron" />
+                        
                         <Sello baseType={kindDe(f.id) === "repeat" ? "begin_repeat" : "begin_group"} size={16} />
                         <span className="pulso-xf-res-seccion-texto">
                           <span title={f.rotulo} className={tituloTecnico(f.rotulo, f.name) ? "is-tecnico" : undefined}>{f.rotulo}</span>
@@ -181,6 +192,6 @@ export function TablaSecciones({ filas, kindDe, abierta, onAlternar, resaltada, 
         {sinCondiciones && filas.length > 0 ? "Ninguna sección tiene condiciones todavía. " : ""}
         Pesada: {Math.round(UMBRAL_SECCION_PESADA * 100)} % o más de las preguntas.
       </p>
-    </section>
+    </Panel>
   );
 }

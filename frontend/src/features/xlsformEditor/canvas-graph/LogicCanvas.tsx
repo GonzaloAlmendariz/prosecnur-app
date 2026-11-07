@@ -853,11 +853,14 @@ export function LogicCanvas({
                 <>{reglasLista} {reglasLista === 1 ? "regla" : "reglas"} en el formulario</>
               ) : (
                 <>
-                  {stats.visible} {stats.visible === 1 ? "nodo visible" : "nodos visibles"} ·{" "}
+                  {stats.visible} {stats.visible === 1 ? "nodo visible" : "nodos visibles"},{" "}
                   {stats.edges} {stats.edges === 1 ? "conexión" : "conexiones"}
+                  {graph && graph.calculosOmitidos > 0 ? (
+                    <span title="No condicionan ninguna pregunta; se editan en Cálculos.">. Fuera del mapa: {graph.calculosOmitidos} {graph.calculosOmitidos === 1 ? "cálculo" : "cálculos"}</span>
+                  ) : null}
                 </>
               )}
-              {readOnly ? " · solo lectura" : ""}
+              {readOnly ? " (solo lectura)" : ""}
             </span>
           </div>
         </div>
@@ -1397,7 +1400,7 @@ export function LogicCanvas({
             a 100%. Doble-click → fit-to-screen. */}
         <div
           className="pulso-graph-zoom-indicator"
-          title="Click: 100%  ·  Dble-click: ajustar a pantalla"
+          title="Clic: 100 %; doble clic: ajustar a la pantalla"
           onClick={() => {
             triggerSmooth();
             setZoom(1);
@@ -1864,8 +1867,8 @@ export function LogicCanvas({
                   Relación lógica
                   {bundleEdges.length > 1 && (
                     <span className="pulso-graph-edge-panel-bundle-count">
-                      {" · "}
-                      {bundleEdges.length} ramas
+                      {" ("}
+                      {bundleEdges.length} ramas)
                     </span>
                   )}
                 </span>
@@ -1905,7 +1908,7 @@ export function LogicCanvas({
                         <code>
                           {nodeKindLabel(src)}
                           {nodeDisplayName(src) !== src.name && (
-                            <> · {src.name}</>
+                            <> ({src.name})</>
                           )}
                         </code>
                       </div>
@@ -2061,7 +2064,7 @@ export function LogicCanvas({
                         <code>
                           {nodeKindLabel(tgt)}
                           {nodeDisplayName(tgt) !== tgt.name && (
-                            <> · {tgt.name}</>
+                            <> ({tgt.name})</>
                           )}
                         </code>
                       </div>

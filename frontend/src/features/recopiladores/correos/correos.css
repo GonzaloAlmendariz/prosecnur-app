@@ -106,7 +106,7 @@
 }
 
 .rec-mail-barra-textos b {
-  font-size: 14.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -116,7 +116,7 @@
 .rec-mail-asunto {
   color: var(--pulso-text-muted);
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   max-width: 62ch;
   overflow: hidden;
   text-align: left;
@@ -141,7 +141,7 @@
   align-items: center;
   color: var(--pulso-text-muted);
   display: inline-flex;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   gap: 6px;
   white-space: nowrap;
 }
@@ -155,7 +155,7 @@
   align-items: center;
   color: var(--pulso-text-faint);
   display: inline-flex;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   gap: 4px;
   white-space: nowrap;
 }
@@ -168,7 +168,7 @@
   background: var(--pulso-surface-3);
   border-radius: 5px;
   color: var(--pulso-text-muted);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   padding: 1px 6px;
 }
 
@@ -183,7 +183,7 @@
   border-radius: 10px;
   display: flex;
   flex-wrap: wrap;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   gap: 8px;
   grid-area: aviso;
   margin: 0;
@@ -305,13 +305,13 @@
 }
 
 .rec-mail-preset-texto b {
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
 .rec-mail-preset-texto span {
   color: var(--pulso-text-muted);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 /* Miniatura: el correo real a 1/16, recortado por arriba. */
@@ -348,7 +348,7 @@
   border-radius: 8px;
   color: var(--pulso-warn-fg);
   display: grid;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   gap: 6px;
   padding: 8px 10px;
 }
@@ -361,7 +361,7 @@
 .rec-mail-link {
   color: var(--pulso-module-fieldkit);
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -401,7 +401,7 @@
   color: var(--pulso-text-soft);
   cursor: pointer;
   display: flex;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   gap: 6px;
   min-height: 28px;
   padding: 0 8px;
@@ -470,7 +470,7 @@
 }
 
 .rec-mail-bloque-titulo {
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   font-weight: var(--pulso-weight-medium);
 }
 
@@ -480,7 +480,7 @@
 
 .rec-mail-bloque-resumen {
   color: var(--pulso-text-faint);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -507,7 +507,7 @@
   cursor: pointer;
   display: inline-flex;
   font-family: inherit;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   height: 24px;
   padding: 0 8px;
 }
@@ -551,7 +551,7 @@
   border-radius: 8px;
   color: var(--pulso-warn-fg);
   display: flex;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   gap: 6px;
   margin: 0;
   max-width: 100%;
@@ -584,7 +584,7 @@
   border-radius: 4px;
   color: var(--pulso-text-muted);
   display: flex;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   gap: 8px;
   justify-content: center;
   min-height: 420px;
@@ -618,7 +618,7 @@
   color: var(--pulso-text-soft);
   cursor: pointer;
   display: inline-flex;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   gap: 5px;
   height: 26px;
   padding: 0 8px;
@@ -633,7 +633,7 @@
   background: var(--pulso-danger-bg);
   border-radius: 999px;
   color: var(--pulso-danger-fg);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   min-width: 16px;
   padding: 0 4px;
@@ -661,21 +661,21 @@
 }
 
 .rec-mail-insp-cabeza h3 {
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-semibold);
   margin: 0;
 }
 
 .rec-mail-insp-cabeza p {
   color: var(--pulso-text-muted);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.5;
   margin: 0;
 }
 
 .rec-mail-vacio {
   color: var(--pulso-text-muted);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .rec-mail-props {
@@ -688,7 +688,7 @@
   border-bottom: 1px solid var(--pulso-border);
   display: flex;
   flex-wrap: wrap;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   gap: 8px;
   justify-content: space-between;
   padding-bottom: 8px;
@@ -708,13 +708,13 @@
   align-items: baseline;
   color: var(--pulso-text-soft);
   display: flex;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   justify-content: space-between;
 }
 
 .rec-mail-contador {
   color: var(--pulso-text-faint);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -725,7 +725,7 @@
 .rec-mail-input,
 .rec-mail-select {
   background: var(--pulso-surface);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.5;
   min-width: 0;
   width: 100%;
@@ -737,7 +737,7 @@ textarea.rec-mail-input {
 
 .rec-mail-input.is-mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .rec-mail-input.is-error {
@@ -746,13 +746,13 @@ textarea.rec-mail-input {
 
 .rec-mail-input--sm,
 .rec-mail-select {
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   padding: 4px 7px;
 }
 
 .rec-mail-ayuda {
   color: var(--pulso-text-faint);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.45;
 }
 
@@ -760,7 +760,7 @@ textarea.rec-mail-input {
   align-items: flex-start;
   color: var(--pulso-text-soft);
   display: flex;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   gap: 6px;
   line-height: 1.5;
   margin: 0;
@@ -774,7 +774,7 @@ textarea.rec-mail-input {
 .rec-mail-problemas {
   color: var(--pulso-danger-fg);
   display: grid;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   gap: 2px;
   margin: 0;
   padding-left: 16px;
@@ -782,7 +782,7 @@ textarea.rec-mail-input {
 
 .rec-mail-problema-linea {
   color: var(--pulso-danger-fg);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   margin: 0;
 }
 
@@ -847,7 +847,7 @@ textarea.rec-mail-input {
 
 .rec-mail-banner-fila {
   display: flex;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   justify-content: space-between;
 }
 
@@ -891,7 +891,7 @@ textarea.rec-mail-input {
 .rec-mail-estado-linea {
   align-items: center;
   display: flex;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   gap: 6px;
 }
 
@@ -939,7 +939,7 @@ textarea.rec-mail-input {
 .rec-mail-logo-id {
   align-items: center;
   display: flex;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   gap: 6px;
   grid-area: id;
   min-width: 0;
@@ -956,7 +956,7 @@ textarea.rec-mail-input {
 .rec-mail-acento {
   align-items: center;
   display: inline-flex;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   gap: 8px;
 }
 
@@ -970,7 +970,7 @@ textarea.rec-mail-input {
 /* Destinatarios */
 .rec-mail-cuentas {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   margin: 0;
 }
 
@@ -982,7 +982,7 @@ textarea.rec-mail-input {
 .rec-mail-mapeo-fila {
   align-items: center;
   display: grid;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   gap: 8px;
   grid-template-columns: 64px minmax(0, 1fr);
 }
@@ -1003,7 +1003,7 @@ textarea.rec-mail-input {
   border-bottom: 1px solid var(--pulso-border);
   cursor: pointer;
   display: grid;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   gap: 8px;
   grid-template-columns: minmax(0, 1fr) auto;
   min-height: 42px;
@@ -1039,7 +1039,7 @@ textarea.rec-mail-input {
 
 .rec-mail-persona-n {
   color: var(--pulso-text-faint);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1056,7 +1056,7 @@ textarea.rec-mail-input {
 }
 
 .rec-mail-sin-lista p {
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.5;
   margin: 0;
 }
@@ -1092,7 +1092,7 @@ textarea.rec-mail-input {
 .rec-mail-def-campo-tags {
   align-items: center;
   display: grid;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   gap: 6px;
   grid-template-columns: auto auto minmax(0, 1fr) auto;
   justify-items: start;
@@ -1111,7 +1111,7 @@ textarea.rec-mail-input {
 .rec-mail-token-texto {
   color: var(--pulso-module-fieldkit);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .rec-mail-flecha {
@@ -1144,7 +1144,7 @@ textarea.rec-mail-input {
   border-bottom: 1px solid var(--pulso-border);
   display: grid;
   column-gap: 8px;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   grid-template-areas:
     "icono rotulo cifra"
     ". detalle detalle";
@@ -1173,7 +1173,7 @@ textarea.rec-mail-input {
 
 .rec-mail-chk-detalle {
   color: var(--pulso-text-muted);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.45;
 }
 
@@ -1185,13 +1185,13 @@ textarea.rec-mail-input {
 
 .rec-mail-chk-items span {
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 /* La cifra es corta y nunca se parte; el rótulo y el detalle usan el resto. */
 .rec-mail-chk-cifra {
   color: var(--pulso-text-muted);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
   text-align: right;
   white-space: nowrap;
@@ -1223,7 +1223,7 @@ textarea.rec-mail-input {
 .rec-mail-mc-etiqueta {
   align-items: center;
   display: grid;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 }
 
@@ -1247,7 +1247,7 @@ textarea.rec-mail-input {
 .rec-mail-mc-listo-nombre {
   display: flex;
   flex-direction: column;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   min-width: 0;
 }
 
@@ -1274,7 +1274,7 @@ textarea.rec-mail-input {
   }
 
   .rec-mail-tab {
-    font-size: 12px;
+    font-size: var(--pulso-type-body-size);
     gap: 3px;
     padding: 0 7px;
   }

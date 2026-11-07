@@ -24,7 +24,9 @@ export function ProbarCalculo({ formula, usa, structure, opcionesDe }: {
   const [tecleados, setTecleados] = useState<Record<string, string>>({});
   const valores = valoresDePrueba(usa, tecleados, (v) => {
     const n = porNombre.get(v);
-    return { base: n?.typeInfo.base ?? "", opciones: n ? opcionesDe(n.typeInfo.listName) : [] };
+    // Un número al azar (once(random())) se prueba con un valor entre 0 y 1, no con «3».
+    const aleatorio = n?.kind === "calculate" && /\brandom\s*\(/.test(n.calculation);
+    return { base: aleatorio ? "aleatorio" : n?.typeInfo.base ?? "", opciones: n ? opcionesDe(n.typeInfo.listName) : [] };
   });
   // Lo que sólo el teléfono resuelve se dice antes de intentar evaluarlo, con su porqué (choice-name, join, sum…).
   const enTelefono = motivosEnTelefono(formula).length > 0;
@@ -40,7 +42,7 @@ export function ProbarCalculo({ formula, usa, structure, opcionesDe }: {
         ) : resultado.estado === "ok" ? (
           <>
             <span className="xfk-over">Resultado</span> <b className="xfp-resultado">{resultado.valor === "" ? "(vacío)" : valorLegible(resultado.valor)}</b>
-            {dependeDelMomento(formula) ? <span className="xfp-nota"> · en el teléfono, el momento en que se abre la encuesta</span> : null}
+            {dependeDelMomento(formula) ? <span className="xfp-nota"> (en el teléfono, el momento en que se abre la encuesta)</span> : null}
           </>
         ) : (
           <><span className="xfk-over">Resultado</span> {textoEnTelefono(formula)}</>

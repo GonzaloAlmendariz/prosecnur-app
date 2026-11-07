@@ -13,6 +13,7 @@ import { campoMetaDelActor, pieDeCuota } from "./modelo";
 import { origenDeTecnica } from "./secciones";
 import { useDesbordaHorizontal } from "./useDesbordaHorizontal";
 import "./general.css";
+import { Panel } from "../../../components/Panel";
 
 /** Dirección de la Selección de un actor: `seccion=seleccion&foco=<id>`. */
 export function hrefSeleccionDeActor(pathname: string, search: string, componenteId: string): string {
@@ -34,18 +35,14 @@ export function ActoresAcreditacion({
   const location = useLocation();
   const { ref, desborda } = useDesbordaHorizontal<HTMLDivElement>();
   return (
-    <section
-      className="cmv2-panel cmg-actores-acred"
+    <Panel
+      className="cmg-actores-acred"
       aria-labelledby="cmg-actores-marco-titulo"
       // Pinta los componentes del estudio ya hidratado: no espera a nadie.
       data-audit-ready="true"
+      eyebrow="Marco por actor"
+      title={<span id="cmg-actores-marco-titulo">Actores del estudio</span>}
     >
-      <div className="cmv2-panel-head">
-        <div>
-          <span className="cmv2-eyebrow">Marco por actor</span>
-          <h3 className="cmg-panel-titulo" id="cmg-actores-marco-titulo">Actores del estudio</h3>
-        </div>
-      </div>
       <p className="cmg-nota" id="cmg-actores-nota">
         El cuadro maestro PULSO de acreditación elige la técnica de cada actor según actor, canal y N. Sin N, el actor conserva su técnica inicial.
       </p>
@@ -129,7 +126,7 @@ export function ActoresAcreditacion({
           </tbody>
         </table>
       </div>
-    </section>
+    </Panel>
   );
 }
 

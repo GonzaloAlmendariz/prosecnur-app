@@ -35,7 +35,7 @@ export function MonitoreoModeChoice({
       lead={
         sugerida
           ? `${sugerida.motivo} Puedes seguir esa lectura o elegir otro modo.`
-          : "Elige el modo que corresponde al diseño del estudio. Esta decisión configura las secciones, fuentes y reglas operativas de Monitoreo."
+          : "Elige el modo que corresponde al diseño del estudio. Configura las secciones, fuentes y reglas de Monitoreo, y queda guardado en el proyecto."
       }
       className="mon-mode-choice-frame"
       layout="document"
@@ -43,15 +43,8 @@ export function MonitoreoModeChoice({
       auditReady="monitoreo-mode-choice"
     >
       <div className="mon-mode-choice">
-        <div className="mon-mode-choice__intro">
-          <span className="pulso-section-eyebrow">Configuración inicial</span>
-          <strong>Declara el propósito de Monitoreo</strong>
-          <p>
-            Pulso guardará esta elección en el proyecto. Las opciones específicas de
-            acreditación solo aparecerán cuando elijas ese modo.
-          </p>
-        </div>
-
+        {/* D7: un solo titular —el de la página— y sin prometer opciones de un
+            modo que quizá no se ofrece aquí. */}
         <div
           className="mon-mode-choice__grid"
           aria-label="Modos de Monitoreo disponibles"

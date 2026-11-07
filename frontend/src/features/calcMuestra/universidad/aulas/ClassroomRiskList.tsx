@@ -70,7 +70,7 @@ export function ClassroomRiskList({
       .filter((x) => x.n > 0);
     const frase = porNaturaleza
       .map(({ nat, n }) => `${n} ${n === 1 ? ETIQUETA_NATURALEZA[nat].singular : ETIQUETA_NATURALEZA[nat].plural}`)
-      .join(" · ");
+      .join(", ");
     const hayAsunto = porNaturaleza.some((x) => x.nat === "asunto");
     return (
       <div className="cmv2-classroom-risk-resumen" data-severidad={altas > 0 ? "alta" : hayAsunto ? "media" : "ok"}>

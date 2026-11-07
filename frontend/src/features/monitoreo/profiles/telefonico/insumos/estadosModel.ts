@@ -26,6 +26,7 @@ import {
 import { filasDeBloque } from "../navegacion/bloques";
 import type { CasoDeCola } from "../../../core/colaDeInsistenciaModel";
 import { clasificadorDeStatus, type FamiliaDelCliente } from "../control/familiasDelCliente";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 export type FilaDeEstado = AcreditacionEstadoDetectado & {
   motor: FamiliaDelCliente;
@@ -106,7 +107,7 @@ export function chipsDeEstados(
 ): string[] {
   const detectados = acreditacionEstadosDetectados(entradasDeEstatus(reports), acreditacionDeclaracionesDesdeReglas(reglas));
   if (!detectados.length) return [];
-  const fmt = (n: number) => n.toLocaleString("es-PE");
+  const fmt = (n: number) => formatoConteo(n);
   const sinRegla = sinReglaDelMotor(filasDeEstados(detectados, reglas));
   return [
     `${fmt(detectados.length)} ${detectados.length === 1 ? "valor" : "valores"} en la columna Status`,

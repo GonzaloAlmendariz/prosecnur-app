@@ -275,6 +275,7 @@ session_schema <- function() {
     "dir",                         "literal", "interna",        "session_store.R",   "bootstrap",   "tempdir; build_pulso lo excluye y load_pulso lo reescribe",
     "project_path",                "literal", "interna",        "session_store.R",   "bootstrap",   "exenta de dirty; build la excluye, load la setea",
     "project_dirty",               "literal", "interna",        "session_store.R",   "session_set", "exenta de dirty; build la excluye",
+    "project_dirty_reasons",       "literal", "interna",        "session_store.R",   "directa",      "motivos de project_dirty (L22); exenta de dirty; build la excluye",
     "project_last_saved_at",       "literal", "interna",        "session_store.R",   "bootstrap",   "exenta de dirty; build la excluye",
     "data_raw",                    "literal", "persistible",    "session_store.R",   "bootstrap",   "campo legacy pre-estudio; suele quedar NULL",
     "files",                       "literal", "persistible",    "io.R",              "session_set", "build recorta la copia persistida al subset de inputs referenciados",
@@ -418,6 +419,12 @@ session_schema <- function() {
 
     # --- Recopiladores (ADR 0046: estado propio, aditivo al legado de aulas) ---
     "collection_state",           "literal", "persistible",    "collection_engine.R", "directa",     "schema collection_state/v1; load_pulso siembra aulas_v1 sin marcar dirty",
+    "material_aulas_siembra", "literal", "persistible", "collection_aulas_siembra.R", "session_set", "X7 (ADR 0122 §11): de dónde siembra Material su plan de aulas, «calculo» (nuevo) o «monitoreo» (anterior). Sin clave: «monitoreo» si el plan ya sembró de Monitoreo o el estudio es HSVG 2026, «calculo» si es nuevo",
+    "material_telefonica_config", "literal", "persistible", "collection_campaigns_telefonica.R", "session_set", "P10: configuración de la campaña telefónica (schema material_telefonica_config/v1: llave, estratos, teléfonos por caso, reemplazo, casos de muestra y backup, responsables, catálogo de Status). Sin datos personales: el listado vive en el archivo del operativo. Sin clave se lee con los valores por defecto",
+    "material_telefonica_sheets", "literal", "persistible", "collection_barrido_sheets.R", "session_set", "Qué Sheets es el barrido (sólo `spreadsheet_id` y cuándo se construyó, ningún dato del listado): la base de supervisión trae de ahí nombre y teléfono por fórmula y nunca se arma en él. Sin clave (.pulso viejo) no hay barrido construido",
+    "material_supervision_config", "literal", "persistible", "collection_supervision_base.R", "session_set", "ADR 0125 A3: por campaña de supervisión, las columnas elegidas del barrido y de los resultados y el Sheets de supervisión (`spreadsheet_id`, `construida_en`; lo escribe también collection_supervision_sheets.R). Sin clave se proponen Responsable y Status y no hay documento",
+    "material_territorial_formatos", "literal", "persistible", "collection_territorial_formatos.R", "session_set", "D1: códigos de resultado editables (2, 3, 5, 99), uso del 99, columna del criterio y caras del ruteo (schema material_territorial_formatos/v1). Sin clave (.pulso viejo) se lee con los valores por defecto y no marca dirty",
+    "material_territorial_asignacion", "literal", "persistible", "collection_territorial_asignacion.R", "session_set", "Decisión I3: asignación UMP → código del equipo de Monitoreo (schema material_territorial_asignacion/v1, por id_manzana sobre la foto enviada; C7 suma `estados`/`estados_at`, el Estado y las fechas que declara campo en el Excel, aditivo). Sin clave (.pulso viejo) se lee vacía y no marca dirty",
     "material_campaigns",         "literal", "persistible",    "collection_campaigns.R", "session_set", "ADR 0111: registro material_campaigns/v1 de las campañas sin otro dueño (aulas); las de correo se proyectan de collection_state$mail_campaigns. Sin clave (.pulso viejo) la lista se proyecta al leer y no marca dirty",
 
     # --- Hojas de ruta ---
@@ -427,12 +434,14 @@ session_schema <- function() {
     "hojas_ruta_ui_state",         "literal", "persistible",    "router_hojas_ruta.R", "session_set", "",
     "hojas_ruta_workspace_outputs", "literal", "persistible",   "router_hojas_ruta.R", "session_set", "",
     "hojas_ruta_reporte_decisional", "literal", "persistible",  "router_hojas_ruta.R", "session_set", "",
+    "hojas_ruta_bitacora",         "literal", "persistible",    "hojas_ruta_bitacora.R", "directa",   "U17/ADR 0115 §4: entradas fechadas por fase, vocabulario cerrado, tope de 500 (las más recientes), sin versión; detalle sin polígonos",
     "hojas_ruta_ok",               "literal", "cache_stripped", "router_hojas_ruta.R", "session_set", "los PDFs/ZIP se regeneran desde hojas_ruta_config + marco INEI local",
 
     # --- Cálculo de muestra ---
     "calc_muestra_estudio",        "literal", "persistible",    "router_calc_muestra.R", "session_set", "",
     "calc_muestra_referencia_asistencia", "literal", "persistible", "router_calc_muestra.R", "session_set", "agregados del estudio ANTERIOR: celda/k/tasa/IC, embudos, composicion, cuotas, serie semanal y cadenas de reemplazo (fila por cadena del historico, sin PII). La fuente raw no viaja y su binding queda pendiente, asi que si el agregado no se guarda la lectura se pierde y hay que volver a subir la base",
     "calc_muestra_reporte",        "literal", "persistible",    "router_calc_muestra.R", "session_set", "",
+    "calc_muestra_representatividad", "literal", "persistible", "router_calc_muestra_representatividad.R", "session_set", "ADR 0123 Q1: universo y variables de cuota que declara Cálculo (representatividad_v1 sin celdas, con declarado_en). Monitoreo los lee de la foto design_targets al importar, no de aquí. Sin clave (.pulso viejo) no hay declaración y no marca dirty",
     "calc_muestra_aulas_config",   "literal", "persistible",    "router_calc_muestra.R", "session_set", "",
     "calc_muestra_general",        "literal", "persistible",    "router_calc_muestra_general.R", "session_set", "ADR 0090: marcos declarados de Muestra general y Acreditación y sus corridas de sorteo (con unidades, pi y pesos); el archivo del marco entra a files/ por .pulso_collect_calc_muestra_fids",
     "calc_muestra_aulas_criterios_contexto", "literal", "cache_stripped", "router_calc_muestra_criterios.R", "session_set", "contexto atomico estudiante x CH para preview; nunca viaja en .pulso",
@@ -452,6 +461,8 @@ session_schema <- function() {
     "bitacora_preferencias",       "literal", "persistible",    "bitacora_preferencias.R", "session_set", "filtros y vista de las cuatro secciones; viajan con el proyecto y no con la maquina (ADR 0047)",
     "bitacora_avisos",             "literal", "persistible",    "bitacora_avisos.R",       "session_set", "libro de disparos: garantiza que un recordatorio no suene dos veces entre sesiones; libro aparte de la tarea para que editar sus recordatorios no reviva avisos ya mostrados (ADR 0047)",
     "bitacora_canvas",             "literal", "persistible",    "bitacora_canvas.R",       "session_set", "lienzos del modulo: nodos, aristas y viewport. Los grupos son nodos con caja (pertenencia geometrica) y el color guarda el NOMBRE del token, nunca un hex (ADR 0047)",
+    "publicacion_preparada",       "literal", "persistible",    "dashboard_publish_permitido.R", "directa", "ADR 0122 §9: marca de un .pulso armado por la ruta de publicación (lista permitida y base podada). Sólo existe en el .pulso que se sube a un Space; el runtime público (launch_server.R) no arranca sin ella",
+    "planner",                     "literal", "persistible",    "planner_modelo.R",  "session_set", "ADR 0122 y 0123: el estudio declarado una vez (schema planner/v1, revision entera). Guarda SOLO las secciones declaradas; lo no declarado viene vacio (el modo se deduce aparte, sin mostrarse, en planner_proyeccion.R) y no marca dirty. Un .pulso anterior no la trae y abre igual",
     "project_modules",             "literal", "persistible",    "project_overview.R", "session_set", "",
     "xlsform_state",               "literal", "persistible",    "router_xlsform_editor.R", "session_set", "legacy mono-formulario; load lo migra a xlsform_forms",
     "xlsform_forms",               "literal", "persistible",    "xlsform_forms.R",   "directa",     "colección multi-formulario del editor",

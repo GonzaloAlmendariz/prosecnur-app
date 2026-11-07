@@ -76,6 +76,10 @@ describe("Control › Bandeja", () => {
   it("duración en min:s y escala del esquema que siempre muestra los dos anillos", () => {
     expect(minutosYSegundos(895)).toBe("14:55");
     expect(minutosYSegundos(null)).toBe("—");
+    // Formulario abierto de un día para otro (acnur_acg, 28/10): no «2759:15».
+    expect(minutosYSegundos(165555)).toBe("45:59\u00a0h");
+    expect(minutosYSegundos(3599)).toBe("59:59");
+    expect(minutosYSegundos(3600)).toBe("1:00\u00a0h");
     expect(escalaDelEsquema(628)).toEqual({ radioMaximo: 800, anillos: [150, 300] });
     expect(escalaDelEsquema(null).radioMaximo).toBe(400);
   });

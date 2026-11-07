@@ -94,7 +94,7 @@ export default function DrilldownTable({
         style={{
           padding: "20px 16px",
           textAlign: "center",
-          fontSize: 12,
+          fontSize: "var(--pulso-type-body-size)",
           color: "var(--pulso-text-soft)",
           fontStyle: "italic",
           border: "1px dashed var(--pulso-border)",

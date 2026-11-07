@@ -188,3 +188,39 @@ test_that("nitidez: el remuestreo es el promedio de área exacto, no el vecino m
   p <- .cmail_image_upload_prepare("trazos.png", .cmr_png(img))
   expect_lt(max(abs(png::readPNG(p$raw) - ref)), 1 / 255)
 })
+
+# L14: una cabecera opaca que cumple el tope pero pasa de 200 KB (la de Acreditación
+# 2026 pesaba 245 KB a 1200×500) sale JPEG y liviana; con transparencia queda intacta.
+.cmr_pesada <- function(alfa = FALSE) {
+  set.seed(14)
+  w <- 1200L; h <- 500L
+  img <- array(1, dim = c(h, w, if (alfa) 4L else 3L))
+  x <- matrix(rep(seq(0, 1, length.out = w), each = h), h)
+  img[, , 1] <- 0.1 + 0.3 * x; img[, , 2] <- 0.3; img[, , 3] <- 0.6
+  for (k in 1:3) img[1:220, , k] <- pmin(pmax(img[1:220, , k] + 0.08 * (stats::runif(220 * w) - 0.5), 0), 1)
+  if (alfa) img[400:500, 1:300, 4] <- 0
+  .cmr_png(img)
+}
+
+test_that("PNG opaca sobre 200 KB y bajo 1 MB se guarda JPEG bajo 200 KB, sin cambiar medidas, y lo dice (L14)", {
+  raw <- .cmr_pesada()
+  expect_gt(length(raw), .CMAIL_IMAGE_WARN_BYTES)
+  expect_lte(length(raw), .CMAIL_IMAGE_MAX_BYTES)
+  p <- .cmail_image_upload_prepare("cabecera-pucp-acreditacion.png", raw)
+  expect_identical(p$ext, "jpg")
+  expect_identical(p$type, "jpeg")
+  expect_identical(p$image_id, "cabecera-pucp-acreditacion")
+  expect_lt(length(p$raw), .CMAIL_IMAGE_WARN_BYTES)
+  expect_identical(unname(.cmr_dims(p$raw)), c(1200L, 500L))
+  expect_true(p$reduccion$convertida)
+  expect_match(p$reduccion$aviso, "JPEG (calidad 85)", fixed = TRUE)
+})
+
+test_that("con transparencia, sobre 200 KB, queda PNG byte a byte (L14)", {
+  raw <- .cmr_pesada(alfa = TRUE)
+  expect_gt(length(raw), .CMAIL_IMAGE_WARN_BYTES)
+  p <- .cmail_image_upload_prepare("logo.png", raw)
+  expect_identical(p$raw, raw)
+  expect_identical(p$ext, "png")
+  expect_false(p$reduccion$reducida)
+})

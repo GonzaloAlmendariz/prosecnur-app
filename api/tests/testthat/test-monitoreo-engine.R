@@ -3713,12 +3713,14 @@ test_that("reporte cliente usa solo efectivas y omite metadata operacional", {
     status <- system2(pdftotext_bin, c(pdf_path, txt_path), stdout = TRUE, stderr = TRUE)
     expect_null(attr(status, "status"))
     pdf_text <- paste(readLines(txt_path, warn = FALSE), collapse = "\n")
-    insight_hits <- gregexpr("Canales y ritmo reciente", pdf_text, fixed = TRUE)[[1]]
-    expect_equal(if (identical(insight_hits, -1L)) 0L else length(insight_hits), nrow(actors))
-    expect_true(grepl("Desde último informe", pdf_text, fixed = TRUE))
-    expect_true(grepl("Rechazo", pdf_text, fixed = TRUE))
-    expect_true(grepl("Sin respuesta", pdf_text, fixed = TRUE))
-    expect_true(grepl("Base reportada", pdf_text, fixed = TRUE))
+    # El PDF de cliente lee el avance por público frente a la meta y nombra a
+    # cada público (checklist-pdf-avance-acreditacion-2026-10-30).
+    # (Los rótulos de sección van en versalitas con aire; pdftotext no los lee
+    # seguidos, así que se comprueban los títulos y el texto corrido.)
+    expect_true(grepl("Resumen del avance", pdf_text, fixed = TRUE))
+    expect_true(grepl("Ritmo del campo", pdf_text, fixed = TRUE))
+    expect_true(grepl("Avance diario por p", pdf_text, fixed = TRUE))
+    for (actor in actors$Actor) expect_true(grepl(actor, pdf_text, fixed = TRUE), info = actor)
     expect_false(grepl("Lectura del corte|Mayor aporte|Participacion|Participación|Ultima efectiva|Última efectiva|WhatsApp|Whartsapp", pdf_text))
     expect_false(grepl("Rechazos plataforma|Mínimo operativo|brecha contra mínimo|plataforma", pdf_text, ignore.case = TRUE))
   }
@@ -4137,10 +4139,12 @@ test_that("monitoreo territorial valida respuestas y separa avance oficial", {
   )
   report <- monitoreo_territorial_reportes(data, cfg, context)
   expect_equal(report$kpis$total_respuestas, 4L)
-  expect_equal(report$kpis$validas, 1L)
+  # Cuenta única (Gonzalo, 2026-11-02): las efectivas incluyen las en
+  # observación (1 validada + 1 en revisión); `revision` es su marca aparte.
+  expect_equal(report$kpis$validas, 2L)
   expect_equal(report$kpis$revision, 1L)
   expect_equal(report$kpis$no_defendibles, 2L)
-  expect_equal(report$district_progress[[1]]$validas, 1L)
+  expect_equal(report$district_progress[[1]]$validas, 2L)
   expect_equal(report$block_progress[[1]]$validas, 0L)
   expect_equal(report$response_audit[[1]]$submission_date, "1 Junio")
   expect_equal(report$response_audit[[1]]$submission_hour, "05:10am")

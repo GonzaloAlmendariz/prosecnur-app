@@ -48,12 +48,15 @@ const basesPanelSource = fs.readFileSync(
   "utf8",
 );
 
+/** El asistente vive en su archivo desde L6: se lee desde su declaración hasta el final. */
 function independentWizardSource(): string {
-  const start = basesPanelSource.indexOf("function IndependentSiblingsSurveyMonkeyWizard");
-  const end = basesPanelSource.indexOf("\nfunction fileLabel", start);
+  const source = fs.readFileSync(
+    fileURLToPath(new URL("./independiente/IndependentSiblingsWizard.tsx", import.meta.url)),
+    "utf8",
+  );
+  const start = source.indexOf("function IndependentSiblingsSurveyMonkeyWizard");
   expect(start).toBeGreaterThan(-1);
-  expect(end).toBeGreaterThan(start);
-  return basesPanelSource.slice(start, end);
+  return source.slice(start);
 }
 
 describe("BasesPanel integrated history helpers", () => {
@@ -79,8 +82,8 @@ describe("BasesPanel integrated history helpers", () => {
   });
 
   test("describes active independent bases without ambiguous fractions", () => {
-    expect(independentSiblingsCapacityLabel(1, 10)).toBe("1 base activa · capacidad máxima 10");
-    expect(independentSiblingsCapacityLabel(4, 10)).toBe("4 bases activas · capacidad máxima 10");
+    expect(independentSiblingsCapacityLabel(1, 10)).toBe("1 base activa, capacidad máxima 10");
+    expect(independentSiblingsCapacityLabel(4, 10)).toBe("4 bases activas, capacidad máxima 10");
   });
 
   test("summarizes workbook inspection state for visual controls", () => {
@@ -300,7 +303,7 @@ describe("BasesPanel integrated history helpers", () => {
     } as unknown as EstudioMultiIntegrated;
 
     expect(integratedLabelOverrideEntries(meta)).toMatchObject([
-      { key: "Mexico \u00b7 p1", value: "Fraseo estandar Mexico", origin: "Mexico", variable: "p1" },
+      { key: "Mexico/p1", value: "Fraseo estandar Mexico", origin: "Mexico", variable: "p1" },
       { key: "p2", value: "Fraseo comun", origin: "Común", variable: "p2" },
     ]);
     expect(integratedLabelOverrideGroups(meta)).toMatchObject([
@@ -812,9 +815,9 @@ describe("BasesPanel integrated history helpers", () => {
 
   test("excludes test collectors from effective SurveyMonkey decisions", () => {
     const collectors = [
-      { id: "campo", label: "Campo · campo", source: "Ingeniería Civil" },
-      { id: "prueba", label: "Prueba · prueba", source: "Ingeniería Civil" },
-      { id: "correo", label: "Email Invitation 1 · correo", source: "Encuesta a Egresados" },
+      { id: "campo", label: "Campo, campo", source: "Ingeniería Civil" },
+      { id: "prueba", label: "Prueba, prueba", source: "Ingeniería Civil" },
+      { id: "correo", label: "Email Invitation 1, correo", source: "Encuesta a Egresados" },
     ];
 
     expect(smDecisionCollectorIsTest(collectors[1])).toBe(true);

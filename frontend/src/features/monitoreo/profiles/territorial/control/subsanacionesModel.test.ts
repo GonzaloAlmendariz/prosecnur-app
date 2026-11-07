@@ -32,7 +32,7 @@ describe("Control › Subsanaciones", () => {
 
   it("el paquete sugerido dice de dónde, a dónde, qué celda y a qué distancia", () => {
     expect(modelo.sugerencias[0]).toMatchObject({
-      origen: { ump: "142", manzana: "0440", aplicador: "P824 · Uno" },
+      origen: { ump: "142", manzana: "0440", aplicador: "P824, Uno" },
       destino: { ump: "143", manzana: "0590" },
       movimientos: [{ celda: "hombre de 30 a 44 años", casos: 1 }],
       casos: 1,
@@ -72,7 +72,7 @@ describe("Control › Subsanaciones", () => {
   });
 
   it("el lugar del paquete omite la manzana que el motor no trae", () => {
-    expect(lugarDelPaquete({ ump: "144", manzana: "0430", aplicador: "P132 · Aplicadora" })).toBe("manzana 0430, P132 · Aplicadora");
+    expect(lugarDelPaquete({ ump: "144", manzana: "0430", aplicador: "P132, Aplicadora" })).toBe("manzana 0430, P132, Aplicadora");
     expect(lugarDelPaquete({ ump: "2 sobrantes", manzana: "", aplicador: "Varios responsables" })).toBe("Varios responsables");
   });
 });

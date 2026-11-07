@@ -19,13 +19,13 @@ describe("catálogo de encuestas", () => {
 
   it("dice código, envíos, fecha y estado sólo con lo que la API trae", () => {
     const [rms, viejo] = ordenarYBuscar(KOBO, "");
-    expect(detalleDelCatalogo(rms)).toBe("aRms2026 · 412 envíos · último envío 23/10/2026 · Desplegado");
+    expect(detalleDelCatalogo(rms)).toBe("aRms2026, 412 envíos, último envío 23/10/2026, Desplegado");
     // Sin `submission_count` no se inventa una cifra.
-    expect(detalleDelCatalogo(viejo)).toBe("aOld111 · modificada 01/08/2026 · Inactivo");
+    expect(detalleDelCatalogo(viejo)).toBe("aOld111, modificada 01/08/2026, Inactivo");
   });
 
   it("SurveyMonkey trae fecha de modificación y respuestas", () => {
     const [encuesta] = desdeSurveyMonkey([{ id: "123", title: "Acreditación 2026", date_modified: "2026-10-01T00:00:00", response_count: 88 }]);
-    expect(detalleDelCatalogo(encuesta)).toBe("123 · 88 envíos · modificada 01/10/2026");
+    expect(detalleDelCatalogo(encuesta)).toBe("123, 88 envíos, modificada 01/10/2026");
   });
 });

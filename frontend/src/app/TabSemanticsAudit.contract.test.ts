@@ -263,14 +263,12 @@ const SELECTORS_WITHOUT_PANELS: readonly SelectorCase[] = [
     rootMarker: 'aria-label="Formato de ficha"',
     semantics: "radio",
   },
-  {
-    name: "A02 CalcMuestra · rail con destinos compartidos",
-    file: "features/calcMuestra/CalcMuestraPage.tsx",
-    rootMarker: "cmv2-section-local-tabs",
-    // Varias opciones pueden resolver al mismo destino, pero activeTabId
-    // mantiene exactamente una elección: semánticamente sigue siendo radio.
-    semantics: "radio",
-  },
+  // A02 «CalcMuestra · rail con destinos compartidos» RETIRADA, no perdida, por
+  // la misma razón que B08 y B11: en 9f80662fd (L16) todos los escritorios de
+  // Cálculo pasaron al rail compartido `ContextTabRail` y el rail propio
+  // (`CalcMuestraContextSidebar`, clase `cmv2-section-local-tabs`) dejó de
+  // existir. La semántica la pone el rail compartido y la prueba
+  // `ContextTabRail.test.tsx`.
   {
     name: "A03 BaseDatosTab · códigos/etiquetas",
     file: "features/dashboard/tabs/BaseDatosTab/index.tsx",
@@ -326,12 +324,6 @@ const REAL_TABSETS: readonly TabsetCase[] = [
     file: "features/analitica/panes/PanelBasePane.tsx",
     rootMarker: "analitica-segmented--five",
     relationStem: "analitica-panel-view",
-  },
-  {
-    name: "B02 CanvasSection",
-    file: "features/bitacora/canvas/CanvasSection.tsx",
-    rootMarker: 'className="bcanvas-lienzos-tablist"',
-    relationStem: "bcanvas-lienzo",
   },
   {
     name: "B05 GlobalSettingsDialog",
@@ -391,12 +383,6 @@ const REAL_TABSETS: readonly TabsetCase[] = [
   // `inspector/ContextPanel.tsx`, que apila sus secciones sin roles de tab, así
   // que no hay tabset que auditar aquí. Se retira la entrada junto con el
   // componente muerto.
-  {
-    name: "B14 CronogramaSection",
-    file: "features/bitacora/CronogramaSection.tsx",
-    rootMarker: "plan-vista-switch plan-command-side",
-    relationStem: "plan-vista",
-  },
 ] as const;
 
 describe("ARIA selector and tab relationship audit", () => {

@@ -1,0 +1,29 @@
+/* Panel de cuota: «Con metas» o «Solo seguimiento», y las cifras del público y la
+ * variable en su propia línea (sin «·» dentro de la opción). */
+
+.mon-cuotas-uso {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.mon-cuotas-datos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+}
+
+.mon-cuotas-datos b {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-cuotas-panel-cabeza small {
+  display: block;
+  margin-top: 2px;
+}

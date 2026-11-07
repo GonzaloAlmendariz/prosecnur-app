@@ -3,6 +3,7 @@
  * la Ronda 1 sin guardar y los dos diálogos (Nueva ronda y Publicar).
  */
 import { renderToStaticMarkup } from "react-dom/server";
+import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import type { MonitoreoSource } from "../../../../../api/client";
 import { DialogoNuevaRonda } from "./DialogoNuevaRonda";
@@ -21,17 +22,18 @@ const RONDA = (numero: number, extra: Partial<FilaDeRonda> = {}): FilaDeRonda =>
 
 function lista(rondas: FilaDeRonda[]) {
   return renderToStaticMarkup(
-    <RondasDeSupervision rondas={rondas} actual={rondas.at(-1)?.numero ?? null} proxima={rondas.length + 1} nuevas={4}
-      onElegir={() => {}} onNueva={() => {}} onPublicar={() => {}} onGuardada={() => {}} />,
+    <MemoryRouter><RondasDeSupervision rondas={rondas} actual={rondas.at(-1)?.numero ?? null} proxima={rondas.length + 1} nuevas={4}
+      onElegir={() => {}} onNueva={() => {}} onPublicar={() => {}} onGuardada={() => {}} /></MemoryRouter>,
   ).replace(/<!-- -->/g, "");
 }
 
 describe("RondasDeSupervision", () => {
-  it("cada ronda dice si está guardada o publicada y en qué pestaña; sólo la guardada sin publicar ofrece publicar", () => {
+  it("cada ronda dice si está guardada o publicada y en qué pestaña; la guardada sin publicar lleva a Material (ADR 0125 A3)", () => {
     const html = lista([RONDA(1, { publicadaEn: "Ronda 1" }), RONDA(2)]);
     expect(html).toContain("Publicada en «Ronda 1»");
     expect(html).toContain("Guardada");
-    expect(html.match(/Publicar en el Sheets/g)).toHaveLength(1);
+    expect(html.match(/Armar la base en Material/g)).toHaveLength(1);
+    expect(html).toContain("/material-campo?modo=supervision&amp;campana=supervision.ronda-2");
     expect(html).toContain("4 efectivas nuevas desde la última");
     expect(html).toContain('aria-pressed="true"');
   });
@@ -41,13 +43,13 @@ describe("RondasDeSupervision", () => {
     expect(html).toContain("Guardar la Ronda 1 tal cual");
     expect(html).toContain("Ronda 1 sin guardar");
     expect(html).toMatch(/<button[^>]*disabled=""[^>]*>.*Nueva ronda/);
-    expect(html).not.toContain("Publicar en el Sheets");
+    expect(html).not.toContain("Armar la base en Material");
   });
 
   it("sin efectivas nuevas «Nueva ronda» se apaga y dice por qué (Gonzalo, 2026-10-27)", () => {
     const html = renderToStaticMarkup(
-      <RondasDeSupervision rondas={[RONDA(1)]} actual={1} proxima={2} nuevas={0}
-        onElegir={() => {}} onNueva={() => {}} onPublicar={() => {}} onGuardada={() => {}} />,
+      <MemoryRouter><RondasDeSupervision rondas={[RONDA(1)]} actual={1} proxima={2} nuevas={0}
+        onElegir={() => {}} onNueva={() => {}} onPublicar={() => {}} onGuardada={() => {}} /></MemoryRouter>,
     ).replace(/<!-- -->/g, "");
     const boton = /<button[^>]*>(?:(?!<\/button>).)*Nueva ronda<\/button>/.exec(html)?.[0] ?? "";
     expect(boton).toContain('disabled=""');
@@ -66,9 +68,9 @@ describe("RondasDeSupervision", () => {
 
   it("con hoja y una ronda publicada ofrece leer resultados; marca la pestaña borrada y pinta el aviso", () => {
     const html = renderToStaticMarkup(
-      <RondasDeSupervision rondas={[RONDA(1, { publicadaEn: "Ronda 1", lectura: "pestana_borrada" }), RONDA(2, { publicadaEn: "Ronda 2", lectura: "leida", leidaEl: "2026-10-24T09:00:00" })]}
+      <MemoryRouter><RondasDeSupervision rondas={[RONDA(1, { publicadaEn: "Ronda 1", lectura: "pestana_borrada" }), RONDA(2, { publicadaEn: "Ronda 2", lectura: "leida", leidaEl: "2026-10-24T09:00:00" })]}
         actual={2} proxima={3} nuevas={0} hojaConectada avisos={["La Ronda 1 se publicó en «Ronda 1», pero esa pestaña ya no está."]}
-        onElegir={() => {}} onNueva={() => {}} onPublicar={() => {}} onGuardada={() => {}} />,
+        onElegir={() => {}} onNueva={() => {}} onPublicar={() => {}} onGuardada={() => {}} /></MemoryRouter>,
     ).replace(/<!-- -->/g, "");
     expect(html).toContain("Leer resultados");
     expect(html).toContain("La pestaña «Ronda 1» ya no está");

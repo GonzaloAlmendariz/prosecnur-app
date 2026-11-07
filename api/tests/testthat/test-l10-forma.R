@@ -44,7 +44,8 @@ test_that("L10-3: la columna de la diferencia dice quién menos quién y los gru
   d <- .dumbbell_grupos_datos(.dumbbell_grupos_temas(c("b1$a", "b1$b"), src), "4", "b1$sexo", c("1", "2"), src)
   e <- attr(graficar_dumbbell(d), "pulso_espec")
   expect_identical(e$sentido_diferencia, "Mujer − Hombre")
-  expect_identical(e$colores, unname(.std_paleta("dicotomica")[1:2]))
+  expect_identical(unname(e$colores), unname(.std_paleta("dicotomica")[1:2]))
+  expect_identical(names(e$colores), c("Mujer", "Hombre"))   # con su nombre: el Word casa el color por grupo
   expect_false(any(toupper(e$colores) == "#2A9D8F"))
   o <- .lam_laminas_pesas(.l10_doc(), e, "Brecha", folio = 1)
   xml <- .l10_xml(o$doc)

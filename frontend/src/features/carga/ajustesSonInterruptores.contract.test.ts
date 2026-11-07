@@ -14,7 +14,10 @@ const casillas = (src: string) => (src.match(/type="checkbox"/gu) ?? []).length;
 
 // Casillas legítimas: selección múltiple o confirmación de una acción.
 const CASILLAS_PERMITIDAS: Record<string, number> = {
-  "./BasesPanel.tsx": 3, // recopiladores a incluir: rejilla de decisión, selector SM y su ID manual
+  // L6 (2026-10-28): el asistente independiente y su auditoría salieron de BasesPanel con sus casillas.
+  "./BasesPanel.tsx": 0,
+  "./independiente/SmDecisionSuite.tsx": 1, // recopiladores a incluir en la rejilla de decisión
+  "./independiente/IndependentSiblingsWizard.tsx": 2, // selector SM y su ID manual
   "./ReconciliacionExtraDialog.tsx": 1, // variables extra a incorporar
   "./AcreditacionBatchPanel.tsx": 1, // confirmar el reemplazo antes de crear las bases
   "./CargaPage.tsx": 0,
@@ -25,11 +28,11 @@ const CASILLAS_PERMITIDAS: Record<string, number> = {
 const INTERRUPTORES: Array<[string, string]> = [
   ["./CargaUniverseFilter.tsx", "Usar una variable real/prueba"],
   ["./CargaPage.tsx", "Incluir respuestas parciales"],
-  ["./BasesPanel.tsx", "Mostrar solo casos observados"],
-  ["./BasesPanel.tsx", "Mostrar solo respuestas casi completas"],
-  ["./BasesPanel.tsx", "Rescatar parciales con avance suficiente"],
-  ["./BasesPanel.tsx", "Permitir repetidos en la base"],
-  ["./BasesPanel.tsx", "Permitir rechazos en la base"],
+  ["./independiente/SmDecisionSuite.tsx", "Mostrar solo casos observados"],
+  ["./independiente/SmDecisionSuite.tsx", "Mostrar solo respuestas casi completas"],
+  ["./independiente/SmDecisionSuite.tsx", "Rescatar parciales con avance suficiente"],
+  ["./independiente/SmDecisionSuite.tsx", "Permitir repetidos en la base"],
+  ["./independiente/SmDecisionSuite.tsx", "Permitir rechazos en la base"],
   ["./variablesBase/VariablesBasePanel.tsx", "Esta base ya viene codificada"], // ADR 0106
 ];
 

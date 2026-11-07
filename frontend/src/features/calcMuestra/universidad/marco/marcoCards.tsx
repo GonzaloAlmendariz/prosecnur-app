@@ -429,7 +429,7 @@ export function MarcoEstructuraControles({
     next: "Si existe ciclo, asígnalo en Definición > Variables.",
   });
   return (
-    <div className="cmv2-dashboard-chart-grid">
+    <div className="cmv2-dashboard-chart-grid" data-qa-geometry-group="calc-muestra/marco-graficos" data-qa-geometry-contract="intrinsic">
       <ClassroomPlotCard title="Facultad por ciclo" subtitle="mapa de calor de estudiantes elegibles por avance académico" wide>
         <ClassroomHeatmapPlot table={levelTable} ariaLabel="Mapa de calor facultad por ciclo" minColumnWidth={56} emptyState={levelEmptyState} />
       </ClassroomPlotCard>
@@ -621,13 +621,13 @@ export function MarcoAulasHistograma({
       </div>
       <div className="cmv2-marco-histo-legend" aria-hidden="true" onMouseLeave={() => setGrupoResaltado("")}>
         <span data-grupo="bajo" onMouseEnter={() => setGrupoResaltado("bajo")}>
-          <i />bajo el mínimo{underMin > 0 ? ` · ${fmtInt(underMin)} cursos-horario` : ""}
+          <i />bajo el mínimo{underMin > 0 ? `, ${fmtInt(underMin)} cursos-horario` : ""}
         </span>
         {groups.map((group) => {
           const max = marcoSizeGroupMax(group.max);
           return (
             <span key={group.id} data-grupo={group.id} onMouseEnter={() => setGrupoResaltado(group.id)}>
-              <i />{group.label} · {fmtInt(safeNumber(group.min, 0))}{Number.isFinite(max) ? `–${fmtInt(max)}` : "+"} {group.descripcion ? `· ${courseScheduleGroupDescription(group.descripcion)}` : ""}
+              <i />{group.label}, {fmtInt(safeNumber(group.min, 0))}{Number.isFinite(max) ? `–${fmtInt(max)}` : "+"} {group.descripcion ? `(${courseScheduleGroupDescription(group.descripcion)})` : ""}
             </span>
           );
         })}

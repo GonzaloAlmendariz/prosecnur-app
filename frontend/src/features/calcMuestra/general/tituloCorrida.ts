@@ -32,12 +32,12 @@ export function nombreDeCorrida(
 ): NombreDeCorrida {
   const c = corrida.corrida;
   const semilla = `semilla ${c.semilla}`;
-  if (c.modalidad === "censo") return { titulo: `Cobertura censal · ${semilla}`, modalidad: "Censo" };
+  if (c.modalidad === "censo") return { titulo: `Cobertura censal, ${semilla}`, modalidad: "Censo" };
   const metodo = etiquetaMetodo(c.metodo);
   if (componente?.tecnica === "prob_estratificado" && corridaEstratificada(corrida)) {
     const asignacion = ETIQUETA_ASIGNACION[asignacionEstratificada(componente)];
-    const diseno = `Estratificado (${asignacion}) · ${metodo} dentro de cada estrato`;
-    return { titulo: `${diseno} · ${semilla}`, modalidad: `Probabilística · ${diseno}` };
+    const diseno = `Estratificado (${asignacion}), ${metodo} dentro de cada estrato`;
+    return { titulo: `${diseno}; ${semilla}`, modalidad: `Probabilística: ${diseno}` };
   }
-  return { titulo: `${metodo} · ${semilla}`, modalidad: `Probabilística · ${metodo}` };
+  return { titulo: `${metodo}, ${semilla}`, modalidad: `Probabilística: ${metodo}` };
 }

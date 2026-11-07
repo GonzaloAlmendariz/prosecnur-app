@@ -1,3 +1,4 @@
+import { partirEnBloques, tieneTabla } from "./markdownTabla";
 // =============================================================================
 // helpers/markdown.ts — render del subset XLSForm de markdown a HTML
 // =============================================================================
@@ -137,7 +138,13 @@ export function renderMarkdownInline(input: string): string {
  *  inyectar HTML pero tampoco mostrar los `**` literales. */
 export function stripMarkdown(input: string): string {
   if (!input) return "";
-  let out = input;
+  // Una tabla markdown se resume por sus columnas: «Tabla: Persona A, Persona B», no `| | Persona A | … |---|`.
+  let out = tieneTabla(input)
+    ? partirEnBloques(input)
+        .map((b) => (b.tipo === "tabla" ? `Tabla: ${b.encabezado.filter(Boolean).join(", ")}` : b.texto.trim()))
+        .filter(Boolean)
+        .join(" ")
+    : input;
   // Encabezado: quitar el prefijo "#### ".
   out = out.replace(/^####[ \t]+/gm, "");
   // Color: dejar solo el texto interno del <span style="color:…">.

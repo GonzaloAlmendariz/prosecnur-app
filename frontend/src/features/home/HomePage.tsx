@@ -1,17 +1,17 @@
 import { type ReactNode, useEffect, useMemo, useState } from "react";
-import { Power, Settings2 } from "lucide-react";
+import { FileText, Power, Settings2 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useLayoutPreset } from "../../lib/layoutPreference";
 import { useSession } from "../../lib/SessionContext";
 import { coberturaGraficos } from "../graficos/coberturaBases";
 import { useProjectShell } from "../project/ProjectShell";
 import { useProjectModules } from "../project/ProjectModulesContext";
-import { GlobalSettingsDialog } from "./GlobalSettingsDialog";
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
 import { PANEL_CONFIGURACION, PANEL_MODULOS } from "./panelesHome";
+import { PANEL_ESTUDIO } from "../estudio/panelEstudio";
 import { MissionControl, type ProcState } from "./MissionControl";
 import { ModuleCarousel } from "./ModuleCarousel";
-import { RELEASE_NOTES } from "./releaseNotes";
+import { useNombreOficial } from "./useNombreOficial";
 import "./home-v2.css";
 
 // Home — menú principal de Prosecnur.
@@ -85,7 +85,10 @@ export default function HomePage() {
   // como alias.
   const panelConfiguracion = usePanelDireccionable(PANEL_CONFIGURACION);
   const panelModulos = usePanelDireccionable(PANEL_MODULOS);
+  const panelEstudio = usePanelDireccionable(PANEL_ESTUDIO);
   const { overview, loading, addedSlugs, addModule, removeModule } = useProjectModules();
+  // El nombre oficial de la Ficha: encabeza el Home y, si falta, el pie lo avisa junto a «Ficha del estudio».
+  const nombreOficial = useNombreOficial();
 
   const hasModules = addedSlugs.length > 0;
 
@@ -108,6 +111,7 @@ export default function HomePage() {
     content = (
       <div className="home-suite">
         <MissionControl
+          nombreOficial={nombreOficial}
           overview={overview}
           proc={proc}
           addedSlugs={addedSlugs}
@@ -138,14 +142,10 @@ export default function HomePage() {
         version={version}
         onClose={requestAppExit}
         onOpenSettings={panelConfiguracion.abrir}
+        onOpenEstudio={panelEstudio.abrir}
+        faltaNombreOficial={nombreOficial === ""}
       />
 
-      <GlobalSettingsDialog
-        open={panelConfiguracion.abierto}
-        notes={RELEASE_NOTES}
-        pulsoName={PULSO_FULL_NAME}
-        onClose={panelConfiguracion.cerrar}
-      />
     </div>
   );
 }
@@ -169,6 +169,12 @@ function MissionControlSkeleton() {
   );
 }
 
+/** «app v0.9.6, prosecnur v0.9.6» se lee «v0.9.6» cuando las dos coinciden (5 nov 2026: el pie repetía la versión). */
+export function versionLegible(version: string): string {
+  const par = /^app v(\S+), prosecnur v(\S+)$/.exec(version.trim());
+  return par && par[1] === par[2] ? `v${par[1]}` : version;
+}
+
 // =====================================================================
 // Footer — versión + autor + abrir notas + cerrar app
 // =====================================================================
@@ -176,18 +182,36 @@ function HomeFooter({
   version,
   onClose,
   onOpenSettings,
+  onOpenEstudio,
+  faltaNombreOficial = false,
 }: {
   version: string;
+  faltaNombreOficial?: boolean;
   onClose: () => void;
   onOpenSettings: () => void;
+  onOpenEstudio: () => void;
 }) {
   return (
     <footer className="home-footer">
       <div className="home-footer-attr">
-        <span>Prosecnur{version && version !== "…" ? ` · ${version}` : ""}</span>
-        <span aria-hidden="true">·</span>
+        <span>Prosecnur{version && version !== "…" ? ` ${versionLegible(version)}` : ""}</span>
+        <span className="home-footer-sep" aria-hidden="true" />
         <span>Hecho para el {PULSO_FULL_NAME}</span>
         <div style={{ flex: 1 }} />
+        {/* 6 nov 2026 (Gonzalo: «es mejor que sea un pop up cuando Ficha de estudio tenga como un lunar
+            amarillo» y «¿el aviso no puede estar dentro del popup?»): sin nombre oficial, el botón lleva un lunar
+            amarillo y el aviso vive DENTRO de la Ficha que abre (FichaDelEstudio), donde se resuelve. */}
+        <span className={`home-footer-ficha${faltaNombreOficial ? " has-aviso" : ""}`}>
+          <button
+            type="button"
+            className="home-footer-notes"
+            onClick={onOpenEstudio}
+            title={faltaNombreOficial ? "Falta el nombre oficial del estudio" : undefined}
+          >
+            <FileText size={14} aria-hidden="true" /> Ficha del estudio
+            {faltaNombreOficial ? <span className="home-footer-lunar"><span className="pulso-sr-only">Falta el nombre oficial</span></span> : null}
+          </button>
+        </span>
         <button
           type="button"
           className="home-footer-notes"

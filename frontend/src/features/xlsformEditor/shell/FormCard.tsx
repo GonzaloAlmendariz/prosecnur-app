@@ -44,6 +44,7 @@ import {
   type FormOrigin,
 } from "./formCardMetrics";
 import { getFormWorkflowView, instrumentActorLabel, suggestAudienceFromTitle } from "./formWorkflowView";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 export type ActorCatalogStatus = "loading" | "ready" | "empty" | "error";
 
@@ -483,7 +484,7 @@ export function FormCard({
               <summary>
                 <Info size={12} aria-hidden="true" />
                 {warnings.length === 1 ? "1 aviso" : `${warnings.length} avisos`}
-                <span>· no impide publicar</span>
+                <span>(no impide publicar)</span>
               </summary>
               <ul>
                 {warnings.map((warning) => (
@@ -502,11 +503,7 @@ export function FormCard({
               libre de la tarjeta, contenido y con nombre, en vez de dejar un
               hueco y un bloqueo en rojo. */}
           {workflow?.emptyDraft ? (
-            <div className="pulso-xf-home-card-vacio" data-qa-geometry-capacity="owned">
-              <Circle size={14} aria-hidden="true" />
-              <strong>Borrador vacío</strong>
-              <span>Agrega preguntas para publicar.</span>
-            </div>
+            <EstadoVacio icono={<Circle size={14} />} titulo="Borrador vacío" descripcion="Agrega preguntas para publicar." />
           ) : null}
           <div className="pulso-xf-home-card-cierre">
             {workflow?.emptyDraft ? null : (

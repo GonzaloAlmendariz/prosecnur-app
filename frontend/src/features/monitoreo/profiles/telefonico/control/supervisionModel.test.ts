@@ -60,7 +60,7 @@ describe("Control › Supervisión", () => {
     const con = construirSupervision(CORTE("conectada"));
     expect(con?.resultados).toEqual({ coinciden: 1, noCoinciden: 0, sinResultado: 1 });
     const html = pintar({ reports: CORTE("conectada") });
-    expect(html).toContain("Efectivo · Conforme (coincide)");
+    expect(html).toContain("Efectivo, Conforme (coincide)");
     expect(html).toContain("Sin rellamar");
     expect(html).toContain(">3 de 4<");
     expect(html).toContain("No coinciden: ¿Recibió el efectivo el día que lo esperaba?");

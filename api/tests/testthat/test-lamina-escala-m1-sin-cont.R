@@ -59,7 +59,9 @@ test_that("M1 con piso: la leyenda no pisa la última barra, las premisas no se 
 
 test_that("M1 con piso: seis barras de enunciados mixtos (sin cifras chicas) caben en una lámina; con cifras chicas y 3 líneas no", {
   expect_identical(.m1_lam(.m1_espec(6, c("media", "corta", "corta"), PISO, chica = FALSE))$partes, 1L)
-  expect_gt(.m1_lam(.m1_espec(6, "media", PISO))$partes, 1L)   # 6 x 0,75 in ya no caben ni con el aire mínimo
+  e6 <- .m1_espec(6, "media", PISO); p6 <- .lam_escala_premisas(e6)
+  withr::with_options(list(prosecnur.grosor_piso_cm = PISO), expect_gt(.lam_escala_partes_con(p6, e6, 0), 1L))   # 6 x 0,75 in no caben ni con el aire mínimo
+  expect_identical(.m1_lam(e6)$partes, 1L)   # el ensanche justo de esa lámina los hace caber (lamina_escala_ensanche_justo.R)
 })
 
 test_that("M1: más de 6 barras, o enunciados que no caben ni comprimidos, se parten como hoy", {

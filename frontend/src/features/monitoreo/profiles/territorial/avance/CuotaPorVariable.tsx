@@ -1,3 +1,4 @@
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import { fmt } from "../rotulos";
 import type { VariableDeCuota } from "./faltanteModel";
 
@@ -31,9 +32,7 @@ export function CuotaPorVariable({ variables, titulo }: { variables: readonly Va
                   <span className="mon-ter-variable-rotulo">{celda.rotulo}</span>
                   <i className="mon-ter-variable-barra" aria-hidden="true"><b style={{ width: `${ancho}%` }} /></i>
                   <span className="mon-ter-variable-cifra">{fmt(celda.logrado)} / {fmt(celda.meta)}</span>
-                  <span className={`mon-ter-chip ${celda.falta > 0 ? "is-falta" : "is-ok"}`}>
-                    {celda.falta > 0 ? `Falta ${fmt(celda.falta)}` : "Completa"}
-                  </span>
+                  <EstadoChip label={celda.falta > 0 ? `Falta ${fmt(celda.falta)}` : "Completa"} tone={celda.falta > 0 ? "warn" : "success"} />
                 </li>
               );
             })}

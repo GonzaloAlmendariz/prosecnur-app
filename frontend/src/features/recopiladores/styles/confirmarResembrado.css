@@ -41,7 +41,7 @@
   flex: 0 0 auto;
   margin: 0;
   padding: var(--pulso-space-5) var(--pulso-space-6) var(--pulso-space-3);
-  font-size: 17px;
+  font-size: var(--pulso-type-title-size);
   line-height: 1.3;
   font-weight: var(--pulso-weight-semibold);
 }
@@ -54,7 +54,7 @@
   flex-direction: column;
   gap: var(--pulso-space-3);
   padding: 0 var(--pulso-space-6) var(--pulso-space-4);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.5;
 }
 
@@ -88,7 +88,7 @@
 
 .rec-resembrar-bloque h3 {
   margin: 0 0 var(--pulso-space-1);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-soft);
 }
@@ -135,5 +135,5 @@
 /* Desde Origen: el conteo de diferencias va primero y con el color del texto. */
 .rec-resembrar-entra .rec-resembrar-diferencias {
   color: var(--pulso-text);
-  font-size: 14px;
+  font-size: var(--pulso-type-body-size);
 }

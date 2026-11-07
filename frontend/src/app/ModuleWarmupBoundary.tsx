@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
-import { AlertTriangle, Check, Loader2 } from "lucide-react";
 import { apiJobStatus, apiProjectWarmup } from "../api/client";
-import { VistaSkeleton } from "../components/VistaSkeleton";
+import { CargaDeModulo } from "../components/CargaDeModulo";
 import {
   PROSECNUR_ACTIVE_MODULES,
   moduleChromeVars,
@@ -15,8 +14,6 @@ import {
   warmupModulesComplete,
   type WarmupModuleProgress,
 } from "./warmupRegistry";
-import { WarmupReloj, useAhora } from "./WarmupReloj";
-import { SIN_ESTIMACION, duracionFase } from "./warmupTiempo";
 import "./module-warmup.css";
 
 type ModuleWarmupProfile = {
@@ -200,14 +197,6 @@ const MODULE_PROFILES: ModuleWarmupProfile[] = [
     backend: ["project", "editor_xlsform"],
     messages: ["Preparando formulario", "Leyendo estructura", "Abriendo editor"],
   },
-  {
-    key: "bitacora",
-    title: "Bitácora",
-    moduleTo: "/bitacora",
-    frontend: ["diseno_estudio"],
-    backend: ["project"],
-    messages: ["Leyendo bitácora", "Preparando cronograma", "Abriendo módulo"],
-  },
 ];
 
 function cleanPathname(pathname: string) {
@@ -230,9 +219,6 @@ function warmupProfileForPath(pathname: string) {
   }
   if (path === "/material-campo" || path === "/recopiladores") {
     return MODULE_PROFILES.find((profile) => profile.key === "material-campo") ?? null;
-  }
-  if (path === "/bitacora" || path === "/plan-trabajo" || path === "/diseno-estudio") {
-    return MODULE_PROFILES.find((profile) => profile.key === "bitacora") ?? null;
   }
   if (path === "/tablero") return MODULE_PROFILES.find((profile) => profile.key === "dashboard") ?? null;
   if (path === "/editor-xlsform") return MODULE_PROFILES.find((profile) => profile.key === "editor-xlsform") ?? null;
@@ -378,7 +364,9 @@ export default function ModuleWarmupBoundary({ children }: { children: ReactNode
     const frontendPromise = warmupFrontendModules((progress) => {
       frontendProgress.set(progress.id, progress);
       avanzarFase(fases, progress.id, { status: progress.status, elapsedMs: progress.elapsed_ms });
-      pushProgress(progress.status === "running" ? progress.label : undefined);
+      // 7 nov 2026: el rótulo sigue los mensajes del perfil («Revisando marco», «Preparando cálculo»…). El nombre
+      // del chunk que corre («Cálculo de muestra», «Dashboard local») repetía la ceja del módulo.
+      pushProgress();
     }, {
       concurrency: profile.concurrency ?? 2,
       moduleIds: profile.frontend,
@@ -445,83 +433,33 @@ export default function ModuleWarmupBoundary({ children }: { children: ReactNode
     <ModuleWarmupScreen
       profile={profile}
       message={propio ? state.message : profile.messages[0]}
-      inicioMs={propio ? state.inicioMs : undefined}
-      fases={propio ? state.fases : undefined}
       error={propio ? state.error : undefined}
     />
   );
 }
 
-function FaseIcono({ status }: { status: ModuleWarmupFase["status"] }) {
-  if (status === "ready") return <Check size={12} strokeWidth={3} aria-hidden="true" />;
-  if (status === "running") return <Loader2 size={12} strokeWidth={2.6} className="pulso-module-warmup-spin" aria-hidden="true" />;
-  if (status === "error") return <AlertTriangle size={11} strokeWidth={2.4} aria-hidden="true" />;
-  return null;
-}
-
 function ModuleWarmupScreen({
   profile,
   message,
-  inicioMs,
-  fases,
   error,
 }: {
   profile: ModuleWarmupProfile;
   message: string;
-  inicioMs?: number;
-  fases?: ModuleWarmupFase[];
   error?: string;
 }) {
+  // 6 nov 2026 (Gonzalo: «por su sencillez, la carga de módulos sea sólo el ícono de logo de la app haciendo la misma
+  // apertura que ahora, en todos los módulos y sus vistas; la animación elegante sólo para la pantalla de inicio y
+  // carga»): abrir un módulo dura segundos y ya no monta la lámina del proyecto (fases y reloj), sino la carga corta
+  // de la app (CargaDeModulo: isotipo, módulo en su tono, rótulo y barra) dentro del espacio de trabajo.
   const module = moduleForProfile(profile);
-  // Sin inicio del boundary (fallback de Suspense) el reloj cuenta desde que
-  // esta pantalla apareció.
-  const [montadoMs] = useState(() => Date.now());
-  const ahoraMs = useAhora(true);
-  const desde = inicioMs ?? montadoMs;
   return (
-    <section
+    <div
       className="pulso-module-warmup"
       style={module ? moduleChromeVars(module) : undefined}
-      role="status"
-      aria-live="polite"
       data-module-warmup={profile.key}
     >
-      <div className="pulso-module-warmup-destino" aria-hidden="true">
-        <VistaSkeleton variante="modulo" secciones={module?.sections.length ?? 5} />
-      </div>
-      <div className="pulso-module-warmup-card">
-        <div className="pulso-module-warmup-mark" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-        </div>
-        <div className="pulso-module-warmup-copy">
-          <p>{profile.title}</p>
-          <h2>{message || "Preparando módulo"}</h2>
-        </div>
-        <WarmupReloj transcurridoMs={Math.max(0, ahoraMs - desde)} estimacion={SIN_ESTIMACION} />
-        {fases?.length ? (
-          <ol className="pulso-module-warmup-fases" aria-label="Fases" aria-live="off">
-            {fases.map((fase) => (
-              <li className={`pulso-module-warmup-fase is-${fase.status}`} key={fase.id}>
-                <span className="pulso-module-warmup-fase-icono" aria-hidden="true">
-                  <FaseIcono status={fase.status} />
-                </span>
-                <strong>{fase.label}</strong>
-                <small>
-                  {duracionFase({
-                    status: fase.status,
-                    elapsedMs: fase.elapsedMs,
-                    inicioMs: fase.inicioMs,
-                    ahoraMs,
-                  }) || (fase.status === "pending" ? "En espera" : "")}
-                </small>
-              </li>
-            ))}
-          </ol>
-        ) : null}
-        {error ? <small className="pulso-module-warmup-error">{error}</small> : null}
-      </div>
-    </section>
+      <CargaDeModulo label={message || "Preparando módulo"} modulo={module?.slug} />
+      {error ? <p className="pulso-module-warmup-error" role="alert">{error}</p> : null}
+    </div>
   );
 }

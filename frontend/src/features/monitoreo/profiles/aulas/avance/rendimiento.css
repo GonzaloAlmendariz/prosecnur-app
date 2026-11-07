@@ -1,0 +1,536 @@
+/* Avance › Rendimiento (aulas.md, ficha A4). Tres columnas: el tiempo (por
+ * día y por hora), la tasa del campo contra la del diseño y el esfuerzo (día
+ * de la semana y aplicador, 330 px). Escala 4/8/12/16. Paleta de datos G10
+ * sólo con tokens.
+ *
+ * Dos regímenes de desplazamiento (C4), uno por pantalla:
+ * - Escritorio amplio: la vista llena el alto que le da `.aulas-mon-view` y
+ *   sólo la tabla de aplicadores desplaza dentro de su marco, con la cabecera
+ *   fija. Los gráficos reparten el alto de su columna.
+ * - Compacto (≤ 1180 px de ancho o ≤ 720 px de alto): la vista mide por
+ *   contenido y desplaza `.mon-profile-content`. */
+
+.aulas-rd {
+  --aulas-rd-efectivas: var(--pulso-brand-navy);
+  --aulas-rd-fin: color-mix(in srgb, var(--pulso-brand-navy) 45%, var(--pulso-surface));
+  --aulas-rd-hora: var(--pulso-info-fg);
+  --aulas-rd-diseno: var(--pulso-module-monitoring);
+  --aulas-rd-bajo: var(--pulso-warn-accent);
+  --aulas-rd-pista: var(--pulso-surface-3);
+  --aulas-rd-cabecera: 32px;
+
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 330px;
+  gap: var(--pulso-space-3);
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+}
+
+.aulas-rd--vacio {
+  display: block;
+  height: auto;
+}
+
+.aulas-rd-columna {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  min-height: 0;
+}
+
+.aulas-rd-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  min-height: 0;
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+/* Los dos gráficos del tiempo se reparten la columna; la tasa la llena; el
+ * día de la semana mide lo que trae y el aplicador se queda el resto. */
+.aulas-rd-panel.is-grafico,
+.aulas-rd-panel.is-tasa,
+.aulas-rd-panel.is-aplicador {
+  flex: 1 1 0;
+}
+
+.aulas-rd-panel.is-semana {
+  flex: 0 0 auto;
+}
+
+.aulas-rd-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+}
+
+.aulas-rd-titulo {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.aulas-rd-sub {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.aulas-rd-num,
+.aulas-rd .is-num {
+  font-variant-numeric: tabular-nums;
+}
+
+.aulas-rd .is-num {
+  text-align: right;
+}
+
+.aulas-rd-tenue {
+  color: var(--pulso-text-soft);
+}
+
+.aulas-rd-nota {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.aulas-rd-nota svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.aulas-rd-pie {
+  margin: 0;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.aulas-rd-leyenda {
+  display: inline-flex;
+  gap: var(--pulso-space-3);
+  margin-left: auto;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.aulas-rd-leyenda > span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  white-space: nowrap;
+}
+
+.aulas-rd-leyenda > span::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.aulas-rd-leyenda .is-semana::before { background: var(--aulas-rd-efectivas); }
+.aulas-rd-leyenda .is-fin::before { background: var(--aulas-rd-fin); }
+.aulas-rd-leyenda .is-diseno::before { width: 2px; height: 10px; border-radius: 0; background: var(--aulas-rd-diseno); }
+.aulas-rd-leyenda .is-campo::before { border-radius: 50%; background: var(--aulas-rd-efectivas); }
+
+/* ---- Barras verticales: por día y por hora ---- */
+
+.aulas-rd-barras {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  min-height: 0;
+}
+
+.aulas-rd-barras-zona,
+.aulas-rd-eje {
+  display: flex;
+  gap: 4px;
+}
+
+.aulas-rd-barras-zona {
+  flex: 1 1 auto;
+  align-items: flex-end;
+  min-height: 96px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.aulas-rd-barras-zona.is-hora {
+  gap: 3px;
+  min-height: 72px;
+}
+
+.aulas-rd-barra {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 2px;
+  height: 100%;
+  min-width: 0;
+}
+
+.aulas-rd-barra > span {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-micro-size);
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.aulas-rd-barra > i {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  border-radius: 3px 3px 0 0;
+  background: var(--aulas-rd-efectivas);
+}
+
+.aulas-rd-barra > i.is-fin { background: var(--aulas-rd-fin); }
+.aulas-rd-barra > i.is-hora { background: color-mix(in srgb, var(--aulas-rd-hora) 70%, var(--pulso-surface)); }
+.aulas-rd-barra > i.is-pico { background: var(--aulas-rd-hora); }
+
+.aulas-rd-eje > span {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-micro-size);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+/* ---- Pesas: tasa del diseño contra la del campo ---- */
+
+.aulas-rd-pesas {
+  display: grid;
+  flex: 1 1 auto;
+  grid-auto-rows: minmax(24px, 1fr);
+  min-height: 0;
+  font-size: var(--pulso-type-caption-size);
+}
+
+.aulas-rd-pesa {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(96px, 150px) 52px 52px;
+  gap: var(--pulso-space-2);
+  align-items: center;
+  border-top: 1px solid var(--pulso-surface-3);
+}
+
+.aulas-rd-pesa.is-cabeza {
+  border-top: 0;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-micro-size);
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.aulas-rd-facultad {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aulas-rd-riel {
+  position: relative;
+  display: block;
+  height: 12px;
+  border-radius: 6px;
+  background: var(--aulas-rd-pista);
+}
+
+.aulas-rd-riel > i {
+  position: absolute;
+  display: block;
+}
+
+.aulas-rd-riel > .is-tramo {
+  top: 5px;
+  height: 2px;
+  background: var(--pulso-border-strong);
+}
+
+.aulas-rd-riel > .is-diseno {
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--aulas-rd-diseno);
+}
+
+.aulas-rd-riel > .is-campo {
+  top: 1px;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  border-radius: 50%;
+  background: var(--aulas-rd-efectivas);
+}
+
+.aulas-rd-riel > .is-campo.is-bajo {
+  background: var(--aulas-rd-bajo);
+}
+
+/* ---- Día de la semana ---- */
+
+.aulas-rd-semana {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--pulso-type-caption-size);
+}
+
+.aulas-rd-semana > li {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 48px;
+  gap: var(--pulso-space-2);
+  align-items: center;
+  min-height: 26px;
+  border-top: 1px solid var(--pulso-surface-3);
+}
+
+.aulas-rd-semana > li > b {
+  text-align: right;
+}
+
+.aulas-rd-pista {
+  display: block;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--aulas-rd-pista);
+}
+
+.aulas-rd-pista > i {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--aulas-rd-hora);
+}
+
+/* ---- Por aplicador ---- */
+
+.aulas-rd-tabla-marco {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+  scroll-padding-top: var(--aulas-rd-cabecera);
+  /* Encaje por fila: al desplazar, la fila se detiene bajo la cabecera fija y
+   * no a medias detrás de ella. */
+  scroll-snap-type: y proximity;
+}
+
+.aulas-rd-tabla tbody tr {
+  scroll-snap-align: start;
+}
+
+.aulas-rd-tabla {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  font-size: var(--pulso-type-caption-size);
+}
+
+.aulas-rd-tabla th,
+.aulas-rd-tabla td {
+  padding: 0 var(--pulso-space-1);
+  height: 28px;
+  box-shadow: inset 0 1px 0 var(--pulso-surface-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.aulas-rd-tabla thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: var(--aulas-rd-cabecera);
+  box-shadow: inset 0 -1px 0 var(--pulso-border);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-micro-size);
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.04em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.aulas-rd-tabla thead th.is-num {
+  text-align: right;
+}
+
+/* Las cifras miden lo justo: el nombre del aplicador se queda el resto. */
+.aulas-rd-tabla th:nth-child(2),
+.aulas-rd-tabla td:nth-child(2) {
+  width: 44px;
+}
+
+.aulas-rd-tabla th:nth-child(3),
+.aulas-rd-tabla td:nth-child(3) {
+  width: 64px;
+}
+
+.aulas-rd-tabla th:nth-child(4),
+.aulas-rd-tabla td:nth-child(4) {
+  width: 56px;
+}
+
+.aulas-rd-tabla tbody th {
+  overflow: hidden;
+  font-weight: var(--pulso-weight-bold);
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- Silueta S1 ---- */
+
+.aulas-rd-silueta {
+  flex: 1 1 0;
+  justify-content: center;
+  min-height: 160px;
+  background: var(--pulso-surface-2);
+  box-shadow: none;
+}
+
+.aulas-rd-preparando {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+  text-align: center;
+}
+
+/* Compacto: la vista mide por contenido y desplaza `.mon-profile-content`.
+ * El tiempo y la tasa quedan lado a lado y el esfuerzo debajo, con sus dos
+ * paneles también lado a lado. */
+@media (max-width: 1180px), (max-height: 720px) {
+  .mon-profile-page.is-aulas-flow .aulas-mon-view:has(> .aulas-rd) {
+    flex: 0 0 auto;
+    grid-template-rows: auto;
+  }
+
+  .aulas-rd {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    height: auto;
+  }
+
+  .aulas-rd-columna.is-esfuerzo {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .aulas-rd-columna,
+  .aulas-rd-panel {
+    min-height: auto;
+  }
+
+  .aulas-rd-panel.is-grafico,
+  .aulas-rd-panel.is-tasa,
+  .aulas-rd-panel.is-aplicador {
+    flex: none;
+  }
+
+  .aulas-rd-barras-zona {
+    min-height: 140px;
+  }
+
+  .aulas-rd-barras-zona.is-hora {
+    min-height: 110px;
+  }
+
+  .aulas-rd-tabla-marco {
+    overflow: visible;
+    scroll-snap-type: none;
+  }
+}
+
+@media (max-width: 860px) {
+  .aulas-rd,
+  .aulas-rd-columna.is-esfuerzo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Rendimiento como razón contra lo esperado (revisión metodológica, 31 oct):
+ * la línea marca 100 %; lo que tiene menos de 3 cursos-horario va atenuado. */
+.aulas-rd-barras-zona.is-razon {
+  position: relative;
+}
+
+.aulas-rd-barras-zona.is-razon::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  /* --aulas-rd-cien es la fracción de la escala donde cae el 100 %. */
+  bottom: calc(var(--aulas-rd-cien) * 100%);
+  left: 0;
+  border-top: 1px dashed var(--aulas-rd-diseno);
+  pointer-events: none;
+}
+
+.aulas-rd-barra > i.is-pocos {
+  background: var(--pulso-surface-3);
+}
+
+.aulas-rd-semana.is-razon > li {
+  grid-template-columns: 40px minmax(0, 1fr) 48px 56px;
+}
+
+.aulas-rd-semana.is-razon .aulas-rd-pista {
+  position: relative;
+  overflow: visible;
+}
+
+.aulas-rd-semana.is-razon .aulas-rd-pista::after {
+  content: "";
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  left: calc(var(--aulas-rd-cien) * 100%);
+  border-left: 1px dashed var(--aulas-rd-diseno);
+}
+
+.aulas-rd-semana > li.is-pocos,
+.aulas-rd-tabla tr.is-pocos {
+  color: var(--pulso-text-faint);
+}
+
+.aulas-rd-semana > li.is-pocos .aulas-rd-pista > i {
+  background: var(--pulso-border-strong);
+}
+
+.aulas-rd-riel > .is-banda {
+  top: 3px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--pulso-border-strong);
+  opacity: 0.6;
+}
+
+.aulas-rd-pesa {
+  grid-template-columns: minmax(0, 1fr) minmax(96px, 150px) 48px 48px 40px;
+}

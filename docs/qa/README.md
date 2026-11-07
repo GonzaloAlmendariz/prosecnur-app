@@ -29,7 +29,7 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
 - [Plan 1b — el esperado redefinido, de punta a punta](plan-1b-esperado-redefinido-2026-08-20.md): plan de trabajo qa.
 - [Plan de ticks — de la selección de aulas al control de campo](plan-ticks-hsvg2026-2026-08-22.md): plan de trabajo qa.
 - [Checklist dimensionado: las tres fuentes de Monitoreo](checklist-tres-fuentes-monitoreo-2026-08-27.md): agendación, registro de campo y base de control, cada una con qué está cubierto, qué es parcial y qué falta; más los filtros de encuesta válida, la procedencia y la crítica de forma.
-- [Checklist: gráficos del resumen ejecutivo como tipos nativos](checklist-graficos-resumen-ejecutivo-2026-11-07.md): los cinco gráficos de Arte y Diseño FG 2026 en el motor (contraste, aperturas, panorama, escala con Sin información aparte y competencias), la base en la leyenda o la nota y su estado (ADR 0114).
+- [Checklist: gráficos del resumen ejecutivo como tipos nativos](checklist-graficos-resumen-ejecutivo-2026-11-07.md): los cinco gráficos de Arte y Diseño FG 2026 en el motor (contraste, aperturas, panorama, escala con Sin información aparte y competencias), la base en la leyenda o la nota y su estado (ADR 0134).
 - [Propuesta: láminas de síntesis que se piden por la pregunta del estudio](propuesta-laminas-de-sintesis-2026-11-07.md): lo que se vio al armar el resumen ejecutivo en la app, el principio de selección por regla y las láminas de síntesis y tendencia por decidir.
 - [Simular la primera semana de HSVG2026 con el campo real de 2025](simulacion-semana1-hsvg2026-2026-08-27.md): qué saldría tras una semana sobre las 174 reales calibrando con 2025 —nueve de quince facultades no llegarían con sus titulares— y qué destapa eso en Monitoreo, incluido el criterio C-F de procedencia.
 - [Monitoreo: criterios generales y prueba con la selección real](checklist-monitoreo-criterios-2026-08-26.md): los cinco criterios de dominio que Monitoreo tiene que sostener, y el plan para probarlos con las 174 aulas de HSVG26ULT.
@@ -48,6 +48,7 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
 - [Mapa de lo pendiente — cursos-horario, 2026-08-24](mapa-pendientes-aulas-2026-08-24.md): relevo del loop de cálculo de muestra a monitoreo: qué queda y dónde vive.
 - [Censo de las cuatro cifras (A9-B7)](censo-cuatro-cifras-2026-09-01.md): cuatro conceptos repartidos en nueve claves del payload; insumo de diseño de B7.
 - [Pendientes al cierre del loop de mejora visual](pendientes-cierre-loop-2026-09-03.md): acta del cierre del 2026-09-03 con todo lo que quedó vivo.
+- [Pendientes al cerrar el loop de Monitoreo y Aulas](pendientes-cierre-loop-monitoreo-2026-10-28.md): acta del cierre del 2026-10-28: lo cerrado con su commit, A3 sin mergear y las decisiones abiertas.
 - [Traspaso — operativo de aulas, cierre del día 1](traspaso-operativo-aulas-2026-09-07.md): documentos vivos, lo cerrado con su commit y lo ya medido.
 - [Cómo encajan los dos Sheets y la app](operativa-aulas-dos-sheets-y-la-app-2026-09-08.md): quién es dueño de qué dato y en qué orden se sincroniza.
 - [Un ancho fijo acaba cortando un dato](anchos-que-cortan-datos-2026-09-09.md): lección del libro de aulas sobre anchos literales en el `.xlsx`.

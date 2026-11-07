@@ -48,13 +48,14 @@ test_that("barras: sin colores el relleno es el del recetario; con colores cada 
   e <- preparar_categorica(c("Redes sociales", "Un amigo", "No sabe"), c(.45, .30, .25), c("45%", "30%", "25%"))
   T <- .WORD_TINTA
   e$residuales_gris <- TRUE      # el gris de las residuales es opcional (test-residuales-gris-opcional.R): aquí, encendido
-  r0 <- .wcp_capa(.word_g_barras(e))
+  # Capa 2: la 1 es la pista gris hasta el 100% (revisión v7.23, ítem 8: en toda barra de una serie).
+  r0 <- .wcp_capa(.word_g_barras(e), 2L)
   esperado0 <- ifelse(grepl(.CATEGORIAS_RESIDUALES, e$rotulos, ignore.case = TRUE), T$gris,
                       ifelse(seq_along(e$rotulos) == which.max(ifelse(grepl(.CATEGORIAS_RESIDUALES, e$rotulos, ignore.case = TRUE), -1, e$largos)),
                              T$navy, if (isTRUE(e$realce)) T$tenue else T$navy))
   expect_identical(r0$fill, esperado0)
   e$colores <- c("Un amigo" = "#AA0000", "Redes sociales" = "#00AA00")      # orden distinto al de las barras
-  r1 <- .wcp_capa(.word_g_barras(e))
+  r1 <- .wcp_capa(.word_g_barras(e), 2L)
   expect_identical(r1$fill[e$rotulos == "Redes sociales"], "#00AA00")
   expect_identical(r1$fill[e$rotulos == "Un amigo"], "#AA0000")
   expect_identical(r1$fill[e$rotulos == "No sabe"], r0$fill[e$rotulos == "No sabe"])   # desconocido: respaldo del recetario
@@ -110,6 +111,10 @@ test_that("torta/dona: cada porción toma su color por rótulo y el resto conser
 
 test_that("pesas: los dos grupos toman su color por rótulo; sin paleta, navy y celeste con la cifra de la segunda en azul medio", {
   e <- .wcp_pesas(); T <- .WORD_TINTA; gr <- as.character(e$grupos)
+  # El motor ya trae los colores de cada público con su nombre: el Word los usa, como el PPT (Arte, 2026-10-28).
+  expect_identical(names(e$colores), gr)
+  expect_setequal(unique(.wcp_capa(.word_g_pesas(e), 2L)$colour), unname(e$colores))
+  e$colores <- NULL   # una espec sin colores: el respaldo del Word
   g0 <- .word_g_pesas(e)
   p0 <- .wcp_capa(g0, 2L)
   expect_setequal(unique(p0$colour), c(T$navy, T$celeste))
@@ -135,9 +140,10 @@ test_that("comparativo de dimensiones: pasa la paleta a los puntos y sin ella di
 
 test_that("una paleta con rótulos de otra lista no cambia nada: todo cae al recetario", {
   e <- preparar_categorica(c("Redes sociales", "Un amigo", "Otro"), c(.45, .30, .25), c("45%", "30%", "25%"))
-  r0 <- .wcp_capa(.word_g_barras(e))
+  # Capa 2: la 1 es la pista gris hasta el 100% (revisión v7.23, ítem 8: en toda barra de una serie).
+  r0 <- .wcp_capa(.word_g_barras(e), 2L)
   e$colores <- c(Nada = "#FF0000", Que = "#00FF00", Ver = "#0000FF")
-  expect_identical(.wcp_capa(.word_g_barras(e))$fill, r0$fill)
+  expect_identical(.wcp_capa(.word_g_barras(e), 2L)$fill, r0$fill)
   p <- .wcp_pie(); f0 <- .wcp_capa(.word_g_pie(p))$fill
   p$colores <- c(Nada = "#FF0000")
   expect_identical(.wcp_capa(.word_g_pie(p))$fill, f0)

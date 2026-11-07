@@ -60,7 +60,7 @@ export function MatrizUnidadesView({ payload }: { payload: DashboardDimMatrizPay
       <div className="dash-matriz-toolbar">
         <span className="dash-matriz-meta">
           {filas.length} {filas.length === 1 ? "fila" : "filas"}
-          {payload.var_color_label ? ` · ${payload.var_color_label}` : ""}
+          {payload.var_color_label ? `: ${payload.var_color_label}` : ""}
           {payload.var_nombre_label ? ` × ${payload.var_nombre_label}` : ""}
         </span>
         <div className="dash-matriz-orden" role="group" data-gliding-opt-out="sort-order" aria-label="Orden de filas">
@@ -160,7 +160,7 @@ export function MatrizUnidadesView({ payload }: { payload: DashboardDimMatrizPay
       {payload.icon_legend && payload.icon_legend.length > 0 && (
         <div
           className="dash-matriz-legend"
-          aria-label={`Leyenda de íconos${payload.var_icono_label ? ` · ${payload.var_icono_label}` : ""}`}
+          aria-label={`Leyenda de íconos${payload.var_icono_label ? `: ${payload.var_icono_label}` : ""}`}
         >
           {payload.icon_legend.map((it) => (
             <span key={it.key} className="dash-matriz-legend-item">

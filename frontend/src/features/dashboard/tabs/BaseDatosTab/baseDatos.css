@@ -46,8 +46,10 @@
   color: #fff;
   cursor: pointer;
   display: inline-flex;
+  flex: none;
   height: 34px;
   justify-content: center;
+  padding: 0;
   transition:
     background-color var(--dash-dur-hover) var(--dash-ease-out),
     transform var(--dash-dur-press) var(--dash-ease-out),
@@ -138,7 +140,8 @@
   text-transform: none;
   letter-spacing: normal;
   font-weight: var(--pulso-weight-regular);
-  top: 32px;
+  /* Bajo la fila de nombres, mida lo que mida (`useAltoDeCabecera`). */
+  top: var(--sheet-cabecera-1, 32px);
   z-index: 1;
   border-bottom: 1px solid var(--dash-divider);
 }
@@ -276,6 +279,14 @@
   max-height: calc(100vh - 280px);
   min-height: 320px;
   overflow: auto;
+  /* Las filas encajan bajo la cabecera fija (nombres y filtros, alto real por `useAltoDeCabecera`): sin encaje, la
+     fila que asomaba quedaba 17 px bajo la cabecera a 1024. */
+  scroll-padding-top: var(--sheet-cabecera, 72px);
+  scroll-snap-type: y mandatory;
+}
+
+.dashboard-scope .dash-base-tabla tbody tr {
+  scroll-snap-align: start;
 }
 
 .dashboard-scope .dash-base-tabla {

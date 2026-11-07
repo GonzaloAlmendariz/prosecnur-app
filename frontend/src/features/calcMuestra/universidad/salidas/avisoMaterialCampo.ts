@@ -17,6 +17,7 @@ import { useEffect, useState } from "react";
 
 import { apiRecopiladoresOrigen, type CollectionOrigen } from "../../../../api/recopiladores";
 import { DIRECCION_ORIGEN, fechaDelSorteo } from "../../../recopiladores/origen";
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 
 export type AvisoMaterialCampo = {
   tono: "warn" | "info";
@@ -25,7 +26,7 @@ export type AvisoMaterialCampo = {
 };
 
 function n(valor: number): string {
-  return valor.toLocaleString("es-PE");
+  return formatoDecimal(valor, 3);
 }
 
 function unidadesDelPlan(origen: CollectionOrigen): string {

@@ -8,6 +8,8 @@
 //
 // Acá viven los tres granos con nombre y la única regla que gobierna las salidas.
 
+import { formatoConteo } from "../../../lib/formatoNumero";
+
 export type MonitoreoCorteGrano = "ingesta" | "procesable" | "oficial";
 
 /** Estado visual canónico. El verde vive solo en `listo`. */
@@ -399,7 +401,7 @@ export function recorteTabla<T>(
     visibles,
     total,
     recortado: true,
-    etiqueta: `Mostrando ${visibles.length} de ${total.toLocaleString("es-PE")} ${plural}`,
+    etiqueta: `Mostrando ${formatoConteo(visibles.length)} de ${formatoConteo(total)} ${plural}`,
   };
 }
 
@@ -414,9 +416,9 @@ export function recorteTabla<T>(
  */
 export function textoAvance(oficial: number | null, meta: number | null) {
   if (oficial == null) return "S/D";
-  const valor = oficial.toLocaleString("es-PE");
+  const valor = formatoConteo(oficial);
   if (meta == null || meta <= 0) return `${valor} sin meta declarada`;
-  return `${valor} de ${meta.toLocaleString("es-PE")}`;
+  return `${valor} de ${formatoConteo(meta)}`;
 }
 
 /**
@@ -427,5 +429,5 @@ export function textoAvance(oficial: number | null, meta: number | null) {
 export function textoSobrecumplimiento(oficial: number | null, meta: number | null) {
   if (oficial == null || meta == null || meta <= 0) return "";
   if (oficial <= meta) return "";
-  return `Meta superada, +${(oficial - meta).toLocaleString("es-PE")}`;
+  return `Meta superada, +${formatoConteo(oficial - meta)}`;
 }

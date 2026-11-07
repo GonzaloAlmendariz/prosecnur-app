@@ -15,6 +15,7 @@ import {
   rotuloExclusiva,
 } from "./compararFuentesModel";
 
+import { EstadoChip } from "../../../components/EstadoChip";
 type Lados = { a: string; b: string };
 
 function Celda({ pct, n, lado }: { pct: number | null; n: number | null; lado: "a" | "b" }) {
@@ -59,7 +60,7 @@ export function VariableComparadaTarjeta({ variable, lados }: { variable: Variab
   const { sustantivas, especiales } = partirCategorias(variable.categorias);
   const diferencia = rotuloDiferenciaPp(variable.diferencia_max_pp);
   const soloEn = variable.estado === "solo_a" ? lados.a : variable.estado === "solo_b" ? lados.b : null;
-  const titulo = `${variable.variable}${variable.etiqueta ? ` · ${variable.etiqueta}` : ""}`;
+  const titulo = `${variable.variable}${variable.etiqueta ? `: ${variable.etiqueta}` : ""}`;
   return (
     <article className="pulso-cf-var" data-qa-geometry-member aria-label={titulo}>
       <header className="pulso-cf-var-cabecera">
@@ -68,10 +69,13 @@ export function VariableComparadaTarjeta({ variable, lados }: { variable: Variab
           {variable.etiqueta ? <span className="pulso-cf-var-etiqueta">{variable.etiqueta}</span> : null}
         </h4>
         <div className="pulso-cf-var-meta">
-          <span className={`pulso-cf-estado is-${variable.estado}`}>{soloEn ? `Solo en ${soloEn}` : ROTULO_ESTADO[variable.estado]}</span>
+          <EstadoChip
+            label={soloEn ? `Solo en ${soloEn}` : ROTULO_ESTADO[variable.estado]}
+            tone={variable.estado === "distinta" ? "warn" : "neutral"}
+          />
           {diferencia ? <span className="pulso-cf-diferencia">{diferencia}</span> : null}
           <span className="pulso-cf-validos">
-            Válidos {formatoConteo(variable.n_validos_a)} · {formatoConteo(variable.n_validos_b)}
+            Válidos {formatoConteo(variable.n_validos_a)} frente a {formatoConteo(variable.n_validos_b)}
           </span>
         </div>
       </header>

@@ -86,17 +86,15 @@
   }
   if (!nzchar(map_ubigeo)) map_level <- "distritos"
   if (identical(map_level, "manzanas") && !nzchar(map_zona)) map_level <- "zonas"
-  route_history <- ui$route_history %||% ui$routeHistory %||% list()
-  if (is.null(route_history) || !is.list(route_history)) route_history <- list()
-  if (is.data.frame(route_history)) {
-    route_history <- lapply(seq_len(nrow(route_history)), function(i) as.list(route_history[i, , drop = FALSE]))
-  }
-  route_history <- Filter(is.list, route_history)
-  if (length(route_history) > 12L) route_history <- route_history[seq_len(12L)]
+  # Instantáneas sin su muestra, con huella y firmas (hojas_ruta_route_history.R).
+  route_history <- .hojas_ruta_route_history_normalizar(ui$route_history %||% ui$routeHistory)
 
   list(
     active_stage = active_stage,
     draft_territories = as.list(draft),
+    # Plan R3: ciudades agregadas o quitadas en Territorio antes de confirmar (lista cerrada:
+    # sin esta línea el autosave las perdería).
+    draft_ciudades = if (is.null(ui[["draft_ciudades"]])) NULL else as.list(intersect(.hojas_ruta_ciudades_pedidas(ui[["draft_ciudades"]]), .hojas_ruta_ciudades_validas())),
     map_ubigeo = map_ubigeo,
     map_zona = map_zona,
     map_level = map_level,
@@ -104,7 +102,9 @@
       ui$map_selection_mode %||% ui$mapSelectionMode,
       FALSE
     ),
-    route_history = route_history
+    route_history = route_history,
+    # U14: supuestos del plan de campo (lista cerrada: sin esta línea se perderían al guardar).
+    plan_campo = hojas_ruta_plan_campo_supuestos(ui$plan_campo %||% list())
   )
 }
 
@@ -208,6 +208,8 @@
   cfg$n_mode <- defaults$n_mode
   cfg$n_por_distrito <- defaults$n_por_distrito
   cfg$sample_size_mode <- defaults$sample_size_mode
+  # ADR 0115: Campo real escribe el marco elegible explícito (mínimo 1 si el piloto era legacy).
+  cfg$marco_elegible <- hojas_ruta_marco_elegible_para_campo(cfg$marco_elegible)$marco
   cfg
 }
 
@@ -241,6 +243,8 @@
     locked = if (identical(role, "pilot")) TRUE else isTRUE(run$locked),
     role = role
   )
+  # ADR 0118 §3: la foto enviada a Material viaja con el run (lista cerrada: sin esto se borra al guardar).
+  out$envio <- .hojas_ruta_envio_normalize(run[["envio"]])
   if (identical(role, "field")) {
     out$pilot_exclusion_mode <- .hojas_ruta_pilot_exclusion_mode_normalize(
       run$pilot_exclusion_mode %||% run$pilotExclusionMode,
@@ -250,19 +254,52 @@
   out
 }
 
+# Huella de las corridas SIN su ui_state: lo que cambia el proyecto. La página
+# persiste el workspace 600 ms después de cada cambio de UI (al hidratar, al
+# pasar de etapa, al desmontar) y antes cada persistencia marcaba «sin guardar»:
+# mirar Hojas › Muestra ensuciaba el proyecto (L22). La posición de la UI se
+# sigue guardando, pero sola no es una edición. Se compara por JSON porque el
+# ida y vuelta por el cliente cambia tipos (1L/1, vector/lista) sin cambiar nada.
+.hojas_ruta_runs_huella <- function(runs) {
+  if (!is.list(runs) || !length(runs)) return("")
+  sin_ui <- lapply(runs, function(run) {
+    if (is.list(run)) {
+      run$ui_state <- NULL
+      # La config se compara normalizada: un .pulso anterior a una clave nueva
+      # (marco_elegible, los campos de no respuesta de sample_size) la recibe con su
+      # valor por defecto al primer guardado, y eso es migración derivable, no una
+      # edición que deba marcar el proyecto «sin guardar».
+      if (is.list(run$config)) run$config <- hojas_ruta_integrada_normalize_config(run$config)
+    }
+    run
+  })
+  as.character(jsonlite::toJSON(sin_ui, auto_unbox = TRUE, digits = NA, null = "null", na = "null"))
+}
+
 .hojas_ruta_store_runs <- function(sid, runs, active_phase = "field", notice = NULL) {
   active_phase <- .hojas_ruta_phase_normalize(active_phase, default = "field")
   if (is.null(runs[[active_phase]])) active_phase <- "field"
   if (is.null(runs[[active_phase]])) active_phase <- names(runs)[[1]]
   active <- runs[[active_phase]]
   s <- session_get(sid)
+  previas <- s$hojas_ruta_runs
+  # Sin corridas previas y sin aviso de migración, esto es la corrida vacía por
+  # defecto que se siembra al leer: derivable, no una edición.
+  sembrada <- (!is.list(previas) || !length(previas)) && is.null(notice)
+  cambio_real <- !sembrada && (
+    !is.null(notice) ||
+      !identical(as.character(s$hojas_ruta_active_phase %||% ""), active_phase) ||
+      !identical(.hojas_ruta_runs_huella(previas), .hojas_ruta_runs_huella(runs))
+  )
   s$hojas_ruta_runs <- runs
   s$hojas_ruta_active_phase <- active_phase
   if (!is.null(notice)) s$hojas_ruta_phase_notice <- notice
   s$hojas_ruta_config <- active$config
   s$hojas_ruta_ui_state <- active$ui_state
   s$hojas_ruta_workspace_outputs <- active$workspace_outputs
-  s <- .mark_project_dirty(s)
+  if (cambio_real) {
+    s <- .mark_project_dirty(s, if (is.null(notice)) "hojas_ruta_runs" else "hojas_ruta_runs (corrida antigua migrada a Piloto)")
+  }
   .session_env[[sid]] <- s
   invisible(s)
 }
@@ -278,6 +315,8 @@
 
   if (is.list(s$hojas_ruta_runs) && length(s$hojas_ruta_runs)) {
     runs <- list()
+    # El historial con muestras enteras se migra en las tres ubicaciones al leer.
+    changed <- .hojas_ruta_route_history_por_migrar(s)
     if (!is.null(s$hojas_ruta_runs$pilot)) {
       runs$pilot <- .hojas_ruta_run_normalize(s$hojas_ruta_runs$pilot, "pilot")
     }
@@ -365,7 +404,9 @@
     run$ui_state <- .hojas_ruta_ui_state_normalize(ui_state, run$config)
   }
   if (!is.null(workspace_outputs) && !(identical(phase, "pilot") && isTRUE(run$locked))) {
-    run$workspace_outputs <- .hojas_ruta_workspace_outputs_normalize(workspace_outputs)
+    # La muestra lleva la fecha de su sorteo junto a la semilla (hojas_ruta_sorteo_fecha.R).
+    run$workspace_outputs <- .hojas_ruta_sellar_sorteo(run$workspace_outputs,
+                                                       .hojas_ruta_workspace_outputs_normalize(workspace_outputs))
   }
   if (identical(phase, "field")) {
     run$pilot_exclusion_mode <- .hojas_ruta_pilot_exclusion_mode_normalize(
@@ -483,7 +524,9 @@
 
 .hojas_ruta_state_payload <- function(sid) {
   data <- tryCatch(.hojas_ruta_data_activa(sid), error = function(e) NULL)
+  # La corrida que se ve es la de Hojas; la etapa del Planner sólo avisa (ADR 0123 §6, hojas_ruta_etapa.R).
   active <- .hojas_ruta_active_run(sid)
+  etapa <- .hojas_ruta_etapa(session_get(sid))
   s <- active$session
   legacy_cfg <- hojas_ruta_normalize_config(active$run$config %||% list())
   cfg <- hojas_ruta_integrada_normalize_config(active$run$config %||% list())
@@ -493,6 +536,10 @@
   )
   ui_state <- .hojas_ruta_ui_state_normalize(active$run$ui_state %||% list(), cfg, frame_summary = frame_summary)
   workspace_outputs <- .hojas_ruta_workspace_outputs_normalize(active$run$workspace_outputs %||% list())
+  # ADR 0117: una muestra sin firma se sorteó con v1; se avisa, nunca se re-sortea.
+  if (!is.null(workspace_outputs$sample)) {
+    workspace_outputs$sample <- tryCatch(hojas_ruta_sorteo_aviso_v1(workspace_outputs$sample), error = function(e) workspace_outputs$sample)
+  }
   reporte_meta_raw <- s$hojas_ruta_reporte_decisional %||% list(disponible = FALSE)
   reporte_meta <- list(
     disponible   = isTRUE(reporte_meta_raw$disponible),
@@ -517,8 +564,10 @@
       integrated_config = cfg,
       ui_state = ui_state,
       workspace_outputs = workspace_outputs,
-      runs = s$hojas_ruta_runs %||% list(),
+      runs = .hojas_ruta_runs_publicos(s$hojas_ruta_runs),
+      envio_meta = hojas_ruta_envio_meta(active$run),
       active_phase = active$phase,
+      etapa = etapa,
       phase_notice = s$hojas_ruta_phase_notice %||% NULL,
       frame_meta = frame_meta,
       territories = territories,
@@ -537,8 +586,10 @@
     integrated_config = cfg,
     ui_state = ui_state,
     workspace_outputs = workspace_outputs,
-    runs = s$hojas_ruta_runs %||% list(),
+    runs = .hojas_ruta_runs_publicos(s$hojas_ruta_runs),
+    envio_meta = hojas_ruta_envio_meta(active$run),
     active_phase = active$phase,
+    etapa = etapa,
     phase_notice = s$hojas_ruta_phase_notice %||% NULL,
     frame_meta = frame_meta,
     territories = territories,
@@ -587,8 +638,11 @@ mount_hojas_ruta <- function(pr) {
       active <- .hojas_ruta_active_run(sid, phase)
       current <- active$run$config %||% list()
       cfg <- hojas_ruta_integrada_normalize_config(parsed$config %||% current)
+      # Checklist F1: un ui_state ausente conserva el guardado (antes se normalizaba vacío y se
+      # perdía el historial de ruteos). Ningún llamador lo omitía; el lienzo lo omite al cambiar ciudades.
+      ui_raw <- parsed$ui_state %||% parsed$uiState
       ui_state <- .hojas_ruta_ui_state_normalize(
-        parsed$ui_state %||% parsed$uiState %||% list(),
+        if (is.null(ui_raw)) active$run$ui_state %||% list() else ui_raw,
         cfg
       )
       has_outputs <- any(c("workspace_outputs", "workspaceOutputs", "outputs") %in% names(parsed))
@@ -609,13 +663,28 @@ mount_hojas_ruta <- function(pr) {
         workspace_outputs = workspace_outputs,
         pilot_exclusion_mode = parsed$pilot_exclusion_mode %||% parsed$pilotExclusionMode
       )
+      # U17: un cambio de territorio queda en la bitácora.
+      antes <- sort(as.character(unlist(current$territorios %||% list(), use.names = FALSE)))
+      ahora <- sort(as.character(unlist(cfg$territorios %||% list(), use.names = FALSE)))
+      if (length(ahora) && !identical(antes, ahora)) {
+        .hojas_ruta_bitacora_intentar(sid, "territorio_confirmado", sprintf("Territorio: %d distrito(s).", length(ahora)), list(ubigeos = as.list(ahora), antes = as.list(antes)))
+      }
+      # Plan R3: una ciudad que no existe en el registro se descarta, y se dice.
+      descartadas <- .hojas_ruta_ciudades_descartadas(parsed$config[["ciudades"]], cfg)
+      alerts <- if (length(descartadas)) list(list(level = "warn", code = "W_HOJAS_RUTA_CIUDAD_DESCARTADA", message = sprintf("Sin cartografía para: %s.", paste(descartadas, collapse = ", ")), codigos = as.list(descartadas))) else list()
+      # Checklist F1: `ligero` devuelve sólo lo que cambia; la respuesta completa pesa ~3 MB
+      # (historial de ruteos y salidas de cada fase) y la página clásica y Material la usan.
+      if (isTRUE(parsed$ligero)) {
+        return(list(ok = TRUE, integrated_config = run$config, active_phase = active$phase, alerts = alerts))
+      }
       list(
         ok = TRUE,
         integrated_config = run$config,
         ui_state = run$ui_state,
         workspace_outputs = run$workspace_outputs,
         active_phase = active$phase,
-        runs = session_get(sid)$hojas_ruta_runs %||% list()
+        runs = .hojas_ruta_runs_publicos(session_get(sid)$hojas_ruta_runs),
+        alerts = alerts
       )
     })) |>
     plumber::pr_post("/api/hojas-ruta/phase", wrap_endpoint(function(req, res, ...) {
@@ -634,6 +703,14 @@ mount_hojas_ruta <- function(pr) {
       if (is.null(pilot)) {
         stop_api(409, "E_NO_PILOT_RUN", "No hay una piloto historica desde la cual crear campo real.")
       }
+      # Crear campo desde el piloto reemplaza la corrida de campo entera: con muestra o envío, sólo
+      # si se pide explícitamente (revisión de guardian-contratos de la P1, B2).
+      reemplazable <- .hojas_ruta_campo_reemplazable(runs$field)
+      if (!reemplazable$ok && !isTRUE(as.logical(unlist(parsed$reemplazar %||% FALSE))[1])) {
+        stop_api(409, "E_HOJAS_RUTA_CAMPO_CON_MUESTRA",
+                 "Campo real ya tiene una muestra sorteada o enviada a Material: crearlo desde el piloto la reemplazaría.",
+                 details = list(tiene_muestra = reemplazable$tiene_muestra, tiene_envio = reemplazable$tiene_envio))
+      }
       mode <- .hojas_ruta_pilot_exclusion_mode_normalize(
         parsed$pilot_exclusion_mode %||% parsed$pilotExclusionMode,
         "exclude_titulars"
@@ -646,7 +723,12 @@ mount_hojas_ruta <- function(pr) {
         .hojas_ruta_workspace_outputs_for_field_from_pilot(pilot$workspace_outputs)
       )
       .hojas_ruta_store_runs(sid, runs, "field")
-      .hojas_ruta_state_payload(sid)
+      # Separador de generación: las entradas de campo anteriores son de la corrida descartada.
+      .hojas_ruta_bitacora_intentar(sid, "campo_desde_piloto", sprintf("Campo real creado desde la piloto (%s).", mode))
+      payload <- .hojas_ruta_state_payload(sid)
+      aviso_marco <- hojas_ruta_marco_elegible_para_campo(hojas_ruta_integrada_normalize_config(pilot$config)$marco_elegible)$alertas
+      if (length(aviso_marco)) payload$alerts <- c(payload$alerts %||% list(), aviso_marco)
+      payload
     })) |>
     plumber::pr_post("/api/hojas-ruta/preview", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
@@ -664,6 +746,7 @@ mount_hojas_ruta <- function(pr) {
       active <- .hojas_ruta_active_run(sid)
       .hojas_ruta_save_run(sid, active$phase, config = cfg)
       result <- hojas_ruta_population_preview_integrado(cfg)
+      .hojas_ruta_bitacora_intentar(sid, "poblacion_calculada", sprintf("Población objetivo: %s personas en %d rango(s) de edad.", format(round(as.numeric(result$total_poblacion %||% 0)), big.mark = ","), length(cfg$age_ranges %||% list())), origen = parsed$origen)
       .hojas_ruta_workspace_outputs_update(
         sid,
         patch = list(population = result),
@@ -675,12 +758,12 @@ mount_hojas_ruta <- function(pr) {
       sid <- session_header(req)
       parsed <- .hojas_ruta_parse_body(req)
       cfg <- hojas_ruta_integrada_normalize_config(parsed$config %||% parsed)
-      active <- .hojas_ruta_active_run(sid)
-      .hojas_ruta_save_run(sid, active$phase, config = cfg)
+      # Exportar es leer (B50 del checklist de brecha): no guarda la config ni deja el
+      # proyecto «sin guardar»; el archivo se registra como las vistas previas.
       out_path <- tempfile(fileext = ".xlsx")
       summary <- hojas_ruta_exportar_matriz_poblacional(cfg, out_path)
       out_name <- .export_filename(sid, "hojas_ruta_population_matrix", "xlsx")
-      meta <- .register_output_file(sid, "hojas_ruta_population_matrix", out_path, original_name = out_name)
+      meta <- .hojas_ruta_vp_registrar(sid, "hojas_ruta_population_matrix", out_path, original_name = out_name)
       list(
         ok = TRUE,
         file_id = meta$file_id,
@@ -709,9 +792,18 @@ mount_hojas_ruta <- function(pr) {
       sid <- session_header(req)
       parsed <- .hojas_ruta_parse_body(req)
       cfg <- hojas_ruta_integrada_normalize_config(parsed$config %||% parsed)
+      # ADR 0116 §2: un ICC aplicado recalcula el DEFF con el k actual antes de calcular el N.
+      cfg$sample_size <- hojas_ruta_icc_reconciliar(cfg$sample_size, .hojas_ruta_route_size(cfg))
       active <- .hojas_ruta_active_run(sid)
       .hojas_ruta_save_run(sid, active$phase, config = cfg)
       result <- hojas_ruta_sample_size_preview(cfg)
+      # ADR 0116: visitas, contactos, procedencia del DEFF y sus avisos.
+      result <- hojas_ruta_tamano_extras_completar(result, cfg)
+      .hojas_ruta_bitacora_intentar(sid, "tamano_calculado", sprintf(
+        "Tamaño: N = %d, margen total %s, DEFF %s (%s).",
+        as.integer(result$n_used %||% 0L), .hojas_ruta_bitacora_margen(result$margin_total_estimated), format(cfg$sample_size$design_effect %||% 1),
+        as.character(cfg$sample_size$design_effect_fuente %||% "legado")
+      ), list(icc_aplicado = cfg$sample_size$icc_aplicado), origen = parsed$origen)
       .hojas_ruta_workspace_outputs_update(
         sid,
         patch = list(sample_size_preview = result),
@@ -724,9 +816,26 @@ mount_hojas_ruta <- function(pr) {
       parsed <- .hojas_ruta_parse_body(req)
       cfg <- hojas_ruta_integrada_normalize_config(parsed$config %||% parsed)
       active <- .hojas_ruta_active_run(sid)
+      marco_anterior <- active$run$config$marco_elegible %||% NULL
       .hojas_ruta_save_run(sid, active$phase, config = cfg)
       effective_cfg <- .hojas_ruta_effective_config_for_phase(sid, cfg, active$phase)
       result <- hojas_ruta_sample_preview_integrado(effective_cfg)
+      # ADR 0115 §3, §5: nada de n perdida en silencio, y π y hashes del marco elegible.
+      avisos_marco <- c(
+        attr(hojas_ruta_marco_elegible_normalizar((parsed$config %||% parsed)$marco_elegible), "alertas"),
+        hojas_ruta_marco_elegible_aviso_adopcion(marco_anterior, cfg$marco_elegible)
+      )
+      result <- hojas_ruta_marco_elegible_completar(result, effective_cfg, avisos = avisos_marco)
+      # ADR 0116 §1: el salto que imprime la hoja se calcula sobre visitas, no sobre entrevistas.
+      result <- hojas_ruta_tamano_extras_salto_muestra(result, effective_cfg)
+      # ADR 0115 §4 (enmienda U17): estado de la decisión de cobertura; el sorteo no se bloquea.
+      result <- hojas_ruta_decision_cobertura_en_muestra(result, effective_cfg$marco_elegible, session_get(sid)$hojas_ruta_bitacora)
+      if (any(vapply(avisos_marco, function(a) identical(a$code, "W_FRAME_CHANGED_BY_ELIGIBILITY"), logical(1)))) {
+        .hojas_ruta_bitacora_intentar(sid, "marco_elegible_adoptado", "Se adopta el marco elegible.", hojas_ruta_bitacora_detalle_marco(cfg$marco_elegible), origen = parsed$origen)
+      }
+      .hojas_ruta_bitacora_intentar(sid, "sorteo", hojas_ruta_bitacora_resumen_sorteo(result, effective_cfg), list(seed = result$seed, n_blocks = result$n_blocks), origen = parsed$origen)
+      # La instantánea del historial guarda esta huella en vez de la muestra.
+      result$sample_fingerprint <- .hojas_ruta_sample_fingerprint(result)
       .hojas_ruta_workspace_outputs_update(sid, patch = list(sample = result))
       result
     })) |>
@@ -747,6 +856,7 @@ mount_hojas_ruta <- function(pr) {
       active <- .hojas_ruta_active_run(sid)
       .hojas_ruta_save_run(sid, active$phase, config = cfg)
       cfg <- .hojas_ruta_effective_config_for_phase(sid, cfg, active$phase)
+      .hojas_ruta_exigir_decision_cobertura(sid)
       out_path <- tempfile(fileext = ".pdf")
       summary <- hojas_ruta_generar_pdf_aleatorio_integrado(cfg, out_path)
       out_name <- sprintf(
@@ -831,6 +941,7 @@ mount_hojas_ruta <- function(pr) {
       active <- .hojas_ruta_active_run(sid)
       .hojas_ruta_save_run(sid, active$phase, config = cfg)
       cfg <- .hojas_ruta_effective_config_for_phase(sid, cfg, active$phase)
+      .hojas_ruta_exigir_decision_cobertura(sid)
       outputs <- .hojas_ruta_workspace_outputs_normalize(
         .hojas_ruta_active_run(sid, active$phase)$run$workspace_outputs %||% list()
       )
@@ -838,6 +949,9 @@ mount_hojas_ruta <- function(pr) {
       if (is.null(sample_override) || !is.list(sample_override)) {
         stop_api(409, "E_NO_SAMPLE", "Primero genera una seleccion de manzanas antes de pedir reemplazos puntuales.")
       }
+      # ADR 0115 §5: los reemplazos puntuales salen del marco elegible con el que se sorteó.
+      marco_muestra <- hojas_ruta_marco_elegible_de_la_muestra(cfg, sample_override)
+      cfg <- marco_muestra$config
       titular_ids <- .hojas_ruta_chr_vec(
         parsed$titular_ids %||%
           parsed$titularIds %||%
@@ -909,7 +1023,8 @@ mount_hojas_ruta <- function(pr) {
           )
         }
       )
-      list(ok = TRUE, job_id = job_id, kind = "hojas_ruta.manual_replacements_pdf")
+      .hojas_ruta_bitacora_intentar(sid, "reemplazos_puntuales", sprintf("Reemplazos puntuales para %d titular(es), %d por titular.", length(titular_ids), as.integer(replacements_per_titular)), list(titulares = as.list(titular_ids)))
+      list(ok = TRUE, job_id = job_id, kind = "hojas_ruta.manual_replacements_pdf", alerts = marco_muestra$alertas)
     })) |>
     plumber::pr_post("/api/hojas-ruta/route-workbook", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
@@ -918,6 +1033,7 @@ mount_hojas_ruta <- function(pr) {
       active <- .hojas_ruta_active_run(sid)
       .hojas_ruta_save_run(sid, active$phase, config = cfg)
       cfg <- .hojas_ruta_effective_config_for_phase(sid, cfg, active$phase)
+      .hojas_ruta_exigir_decision_cobertura(sid)
       outputs <- .hojas_ruta_workspace_outputs_normalize(
         .hojas_ruta_active_run(sid, active$phase)$run$workspace_outputs %||% list()
       )
@@ -950,6 +1066,7 @@ mount_hojas_ruta <- function(pr) {
       active <- .hojas_ruta_active_run(sid)
       .hojas_ruta_save_run(sid, active$phase, config = cfg)
       cfg <- .hojas_ruta_effective_config_for_phase(sid, cfg, active$phase)
+      .hojas_ruta_exigir_decision_cobertura(sid)
       sample_override <- parsed$sample %||% parsed$sample_snapshot %||% parsed$sampleSnapshot %||% NULL
 
       cfg_path <- job_save_rds(sid, "hojas_ruta_config", cfg)
@@ -1040,6 +1157,10 @@ mount_hojas_ruta <- function(pr) {
         territorios_all
       }
 
+      # U16: bitácora, decisión de cobertura, plan y NSE se calculan aquí; el
+      # worker callr no lee la sesión.
+      insumos_marco <- .reporte_mt_insumos_sesion(sid, active, cfg, outputs$sample %||% list())
+
       ext <- if (formato == "pdf") "pdf" else "html"
       filename <- sprintf("reporte_muestra_territorial.%s", ext)
 
@@ -1072,7 +1193,8 @@ mount_hojas_ruta <- function(pr) {
           sample_size_preview = outputs$sample_size_preview,
           quota               = outputs$quota,
           decision_log        = NULL,
-          formato             = formato
+          formato             = formato,
+          insumos_marco       = insumos_marco
         ),
         result_filename = filename,
         on_complete = on_complete
@@ -1129,8 +1251,7 @@ mount_hojas_ruta <- function(pr) {
       modo <- if (is.character(inline) && length(inline) >= 1 &&
                   inline[[1]] %in% c("1", "true", "TRUE")) "inline"
               else "attachment"
-      res$setHeader("Content-Disposition",
-                    sprintf('%s; filename="%s"', modo, basename(meta$path)))
+      res$setHeader("Content-Disposition", .content_disposition(modo, basename(meta$path)))
       res$body <- bytes
       res
     }))

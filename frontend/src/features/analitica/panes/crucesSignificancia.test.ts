@@ -1,21 +1,18 @@
 import { describe, expect, test } from "vitest";
-import { ALFA_CRUCES, detalleSignificancia, formatoAlfa, subtituloSignificancia } from "./crucesSignificancia";
+import { detalleSignificancia, formatoAlfa, subtituloSignificancia } from "./crucesSignificancia";
 
-describe("copy de significancia de Cruces (P-A9)", () => {
-  test("estándar: z de proporciones, Bonferroni, letras y el nivel que se envía", () => {
-    const texto = detalleSignificancia("estandar", ALFA_CRUCES);
-    expect(texto).toContain("Prueba z de diferencia de proporciones");
-    expect(texto).toContain("Bonferroni");
-    expect(texto).toContain("nivel de significancia 0.05");
+describe("copy de significancia de Cruces (P-A9, ADR 0128)", () => {
+  test("estándar: letras sobre proporciones y la prueba remite a la regla del estudio", () => {
+    const texto = detalleSignificancia("estandar");
+    expect(texto).toContain("proporción");
     expect(texto).toContain("letra");
-    expect(texto).toContain("cluster-robust");
+    expect(texto).toContain("regla del estudio");
+    // La prueba ya no se afirma aquí: la dice la regla.
+    expect(texto).not.toMatch(/Bonferroni|Welch|prueba z/i);
   });
 
-  test("dimensiones: t de Welch sobre promedios", () => {
-    const texto = detalleSignificancia("dimensiones", 0.1);
-    expect(texto).toContain("t de Welch");
-    expect(texto).toContain("promedio");
-    expect(texto).toContain("nivel de significancia 0.1");
+  test("dimensiones: promedios", () => {
+    expect(detalleSignificancia("dimensiones")).toContain("promedio");
   });
 
   test("nunca describe asteriscos ni chi²", () => {

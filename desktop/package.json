@@ -60,6 +60,7 @@
       "preview-renderer.cjs",
       "security.cjs",
       "hf-publish-broker.cjs",
+      "descargas.cjs",
       "preload.cjs",
       "auto-updater.cjs",
       "mac-bootstrap.cjs",
@@ -78,7 +79,12 @@
           "**/*",
           "!tests",
           "!.DS_Store",
-          "!outputs"
+          "!outputs",
+          "!man",
+          "!**/.Rhistory",
+          "!**/Rplots.pdf",
+          "!**/*.bak",
+          "!**/*.bak_*"
         ]
       },
       {

@@ -112,7 +112,7 @@ describe("tarjeta", () => {
       logic_external: { herramienta: "SPSS", nota: "", declarada_en: "2026-10-14" },
     });
     expect(html).toContain('pulso-xf-home-card-stage is-neutral');
-    expect(html).toContain("Fuera de Prosecnur · SPSS");
+    expect(html).toContain("Fuera de Prosecnur (SPSS)");
     expect(html).not.toContain("Revisión necesaria");
     expect(html).not.toContain("Revisa la lógica");
     expect(html).toMatch(/<button[^>]*class="pulso-xf-publication-action"[^>]*>Publicar</);

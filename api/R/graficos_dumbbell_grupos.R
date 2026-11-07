@@ -21,7 +21,7 @@
   codigos <- .radar_mb_codigos(corte)
   if (!length(codigos)) stop_api(400, "E_RADAR_SIN_CORTE", "La brecha necesita un indicador: al menos un código de la escala.")
   grupos <- as.character(unlist(grupos))
-  # Dos grupos en el recetario; el contraste del resumen (ADR 0114) admite hasta cuatro (aperturas por ciclo).
+  # Dos grupos en el recetario; el contraste del resumen (ADR 0134) admite hasta cuatro (aperturas por ciclo).
   if (length(grupos) < 2L || length(grupos) > 4L || anyDuplicated(grupos)) {
     stop("dumbbell: `grupos` debe traer entre dos y cuatro códigos distintos del cruce.", call. = FALSE)
   }
@@ -109,7 +109,7 @@
   if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
   ov <- .dumbbell_slot_overrides(overrides, orden, mostrar_brecha, umbral_brecha_pct, etiqueta_brecha)   # O7c
   ov <- .dumbbell_resumen_overrides(ov, estilo, universos, separar_tras, base_en)
-  # El recetario compara dos grupos; el contraste del resumen, hasta cuatro (ADR 0114).
+  # El recetario compara dos grupos; el contraste del resumen, hasta cuatro (ADR 0134).
   tope <- if (identical(ov$estilo, "resumen")) 4L else 2L
   if (length(grupos) < 2L || length(grupos) > tope || anyDuplicated(grupos) || any(!nzchar(grupos))) {
     .plan_spec_abort(if (tope == 2L) "p_dumbbell(): `grupos` debe traer los dos grupos del cruce que se comparan."
@@ -132,7 +132,7 @@
   el
 }
 
-#' Los args del contraste del resumen (ADR 0114) en los overrides de la lámina: sólo lo que el slot declara (O7c)
+#' Los args del contraste del resumen (ADR 0134) en los overrides de la lámina: sólo lo que el slot declara (O7c)
 #' @keywords internal
 .dumbbell_resumen_overrides <- function(ov, estilo = NULL, universos = NULL, separar_tras = NULL, base_en = NULL) {
   ov <- .ppt_slot_override(ov, "estilo", estilo, "opcion", opciones = c("recetario", "resumen"))

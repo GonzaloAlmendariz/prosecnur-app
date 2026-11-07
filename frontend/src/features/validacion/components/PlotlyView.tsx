@@ -366,7 +366,7 @@ function NativeBarChart({
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
-                fontSize: 12,
+                fontSize: "var(--pulso-type-subtitle-size)",
                 fontWeight: 700,
                 color: "var(--pulso-text)",
               }}
@@ -398,7 +398,7 @@ function NativeBarChart({
               style={{
                 minWidth: 30,
                 textAlign: "right",
-                fontSize: 12,
+                fontSize: "var(--pulso-type-subtitle-size)",
                 fontWeight: 800,
                 color: "var(--pulso-primary)",
                 fontVariantNumeric: "tabular-nums",
@@ -469,7 +469,7 @@ function NativeHeatmap({ summary }: { summary: NativeHeatmapSummary }) {
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
-              fontSize: 11,
+              fontSize: "var(--pulso-type-caption-size)",
               fontWeight: 800,
               color: "var(--pulso-text)",
             }}
@@ -513,7 +513,7 @@ function NativeHeatmap({ summary }: { summary: NativeHeatmapSummary }) {
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
-                      fontSize: 10,
+                      fontSize: "var(--pulso-type-micro-size)",
                       lineHeight: 1.15,
                       fontWeight: 700,
                       opacity: value > 0 ? 0.92 : 0.72,
@@ -523,7 +523,7 @@ function NativeHeatmap({ summary }: { summary: NativeHeatmapSummary }) {
                   </span>
                   <span
                     style={{
-                      fontSize: value > 0 ? 17 : 12,
+                      fontSize: value > 0 ? "var(--pulso-type-title-size)" : "var(--pulso-type-subtitle-size)",
                       lineHeight: 1,
                       fontWeight: 800,
                       fontVariantNumeric: "tabular-nums",
@@ -546,7 +546,7 @@ function NativeHeatmap({ summary }: { summary: NativeHeatmapSummary }) {
             gap: 8,
             alignItems: "center",
             color: "var(--pulso-text-soft)",
-            fontSize: 11,
+            fontSize: "var(--pulso-type-caption-size)",
             lineHeight: 1.4,
           }}
         >
@@ -617,7 +617,7 @@ function ChartHeader({
         />
         <span
           style={{
-            fontSize: 10,
+            fontSize: "var(--pulso-type-micro-size)",
             fontWeight: 800,
             textTransform: "uppercase",
             letterSpacing: 0.6,
@@ -631,7 +631,7 @@ function ChartHeader({
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
         <div
           style={{
-            fontSize: 17,
+            fontSize: "var(--pulso-type-title-size)",
             fontWeight: 800,
             lineHeight: 1.25,
             color: "var(--pulso-text)",
@@ -643,7 +643,7 @@ function ChartHeader({
         {subtitle && (
           <div
             style={{
-              fontSize: 12,
+              fontSize: "var(--pulso-type-body-size)",
               lineHeight: 1.5,
               color: "var(--pulso-text-soft)",
               maxWidth: 760,
@@ -689,7 +689,7 @@ function MetaChip({
         background: bg,
         border: `1px solid ${border}`,
         color,
-        fontSize: 10,
+        fontSize: "var(--pulso-type-micro-size)",
         fontWeight: 700,
         letterSpacing: 0.2,
         fontFamily: mono ? 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace' : undefined,
@@ -735,7 +735,7 @@ function ChartFooter({
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
         <div
           style={{
-            fontSize: 10,
+            fontSize: "var(--pulso-type-micro-size)",
             fontWeight: 800,
             textTransform: "uppercase",
             letterSpacing: 0.5,
@@ -746,7 +746,7 @@ function ChartFooter({
         </div>
         <div
           style={{
-            fontSize: 11,
+            fontSize: "var(--pulso-type-caption-size)",
             lineHeight: 1.5,
             color: "var(--pulso-text-soft)",
           }}
@@ -772,7 +772,7 @@ function EmptyChartHint({ hint }: { hint: string }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 360 }}>
         <div
           style={{
-            fontSize: 10,
+            fontSize: "var(--pulso-type-micro-size)",
             fontWeight: 800,
             textTransform: "uppercase",
             letterSpacing: 0.6,
@@ -783,7 +783,7 @@ function EmptyChartHint({ hint }: { hint: string }) {
         </div>
         <div
           style={{
-            fontSize: 12,
+            fontSize: "var(--pulso-type-body-size)",
             lineHeight: 1.6,
             color: "var(--pulso-text-soft)",
           }}

@@ -59,7 +59,7 @@ export function ReporteMetodologicoCard(props: {
           )}
         </div>
       ) : (
-        <p className="cmv2-did-note">Calcula la muestra en el paso 3 para habilitar el reporte.</p>
+        <p className="cmv2-did-note">Calcula la muestra en Cálculo › Propuestas para habilitar el reporte.</p>
       )}
 
       <div className="cmv2-did-sal-sub">

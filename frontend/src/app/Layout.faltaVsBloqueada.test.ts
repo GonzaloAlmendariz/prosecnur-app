@@ -16,9 +16,13 @@ const layout = fs.readFileSync(path.join(aqui, "Layout.tsx"), "utf8");
 
 describe("el riel de Procesamiento separa faltar de estar bloqueada", () => {
   test("`is-blocked` depende sólo de `blockedReason`", () => {
-    const clase = layout.slice(layout.indexOf('blocked ? "is-blocked"'));
-    expect(clase.slice(0, 80)).not.toMatch(/falta/i);
-    expect(layout).toMatch(/const blocked = !!it\.blockedReason;/);
+    // Desde L15 el riel es el SectionPillbar del kit: `is-blocked` sale de
+    // `lockedReason`, y a `lockedReason` sólo llega `blockedReason`.
+    expect(layout).toMatch(/lockedReason: it\.blockedReason \?\? undefined,/);
+    const linea = layout.split("\n").find((l) => l.includes("lockedReason:")) ?? "";
+    expect(linea).not.toMatch(/falta/i);
+    const pillbar = fs.readFileSync(path.join(aqui, "../components/SectionPillbar.tsx"), "utf8");
+    expect(pillbar).toMatch(/item\.lockedReason \? "is-blocked" : ""/);
   });
 
   test("lo que falta viaja por su propio campo", () => {
@@ -35,7 +39,12 @@ describe("el riel de Procesamiento separa faltar de estar bloqueada", () => {
   });
 
   test("el motivo llega al title y al lector de pantalla", () => {
-    expect(layout).toMatch(/title=\{it\.blockedReason \?\? it\.faltaReason \?\?/);
-    expect(layout).toMatch(/: it\.faltaReason\s*\n\s*\? `\$\{it\.label\}\. \$\{it\.faltaReason\}`/);
+    expect(layout).toMatch(/nota: it\.faltaReason \?\?/);
+    const pillbar = fs.readFileSync(path.join(aqui, "../components/SectionPillbar.tsx"), "utf8");
+    expect(pillbar).toMatch(/title=\{item\.lockedReason \?\? item\.nota \?\? item\.label\}/);
+    // Desde 706d0c130 el motivo entra al aria-label de la píldora junto con su marca
+    // (pendientes o lista), en vez de un span sólo para lector de pantalla.
+    expect(pillbar).toMatch(/\[item\.lockedReason \?\? item\.nota, marca\]/);
+    expect(pillbar).toMatch(/aria-label=\{detalle \? `\$\{item\.label\}\. \$\{detalle\}` : undefined\}/);
   });
 });

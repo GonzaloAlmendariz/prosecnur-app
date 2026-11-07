@@ -1,8 +1,16 @@
-testthat::skip_if(
-  identical(Sys.getenv("CI"), "true") &&
-    !nzchar(Sys.getenv("PROSECNUR_RUN_HOJAS_RUTA_ENGINE_CI")),
-  "Integracion pesada de hojas de ruta requiere frame/cartografia completa; set PROSECNUR_RUN_HOJAS_RUTA_ENGINE_CI=1 para correrla en CI."
-)
+# Antes un skip a nivel de archivo apagaba los 65 tests en CI (8699413d6, may
+# 2026) y ningún workflow fijaba la variable que los reactivaba: la suite entera
+# no corría nunca en CI. Medido el 4 nov 2026: 155–215 s en local, de los que 8
+# tests suman ~95 s y los otros 57 ~60 s. Los 57 corren siempre; los 8 de
+# integración (zip, PDF y cartografía completos) se apagan sólo en CI.
+.hr_engine_pesado <- function() {
+  # skip_on_ci: integración de ~5–28 s por test (≈95 s los ocho) sobre un shard de CI;
+  # corren siempre en gate-area y local, y PROSECNUR_RUN_HOJAS_RUTA_ENGINE_CI=1 los activa en CI.
+  testthat::skip_if(
+    identical(Sys.getenv("CI"), "true") && !nzchar(Sys.getenv("PROSECNUR_RUN_HOJAS_RUTA_ENGINE_CI")),
+    "Integración pesada de hojas de ruta: corre en gate-area; PROSECNUR_RUN_HOJAS_RUTA_ENGINE_CI=1 la activa en CI."
+  )
+}
 
 test_that("hojas_ruta_detectar_campos valida columnas canonicas", {
   df <- data.frame(
@@ -92,6 +100,7 @@ test_that("hojas_ruta_generar_zip produce PDFs y resumen", {
 })
 
 test_that("hojas_ruta_inei_frame carga marco completo versionado", {
+  .hr_engine_pesado()
   frame <- hojas_ruta_inei_frame()
   expect_true(nrow(frame) > 0)
   expect_true(all(c("ubigeo", "distrito", "id_manzana", "viviendas", "poblacion") %in% names(frame)))
@@ -99,16 +108,21 @@ test_that("hojas_ruta_inei_frame carga marco completo versionado", {
   expect_true(meta$ok)
   expect_equal(meta$year, 2017L)
   expect_false(meta$pilot)
-  expect_equal(meta$n_distritos, 50L)
-  expect_true(meta$n_manzanas > 100000L)
-  expect_true(all(c("150103", "150143", "070106") %in% unique(frame$ubigeo)))
+  # ADR 0119: 50 distritos de Lima y Callao más los de las ciudades del registro.
+  distritos_registro <- unlist(lapply(hojas_ruta_territorios()$provincias, function(p) unlist(p$distritos)))
+  expect_equal(meta$n_distritos, length(unique(distritos_registro)))
+  expect_true(meta$n_manzanas > 200000L)
+  expect_true(all(c("150103", "150143", "070106", "040101", "080101") %in% unique(frame$ubigeo)))
 })
 
 test_that("frame oficial INEI 2017 queda disponible sin reemplazar default", {
   current <- hojas_ruta_inei_frame()
   official <- hojas_ruta_inei_frame("inei2017_official")
-  expect_equal(nrow(official), 118408L)
-  expect_equal(length(unique(official$ubigeo)), 50L)
+  # ADR 0119: 118 408 manzanas de Lima y Callao más las ciudades del registro.
+  lima_callao <- official[substr(official$ubigeo, 1L, 4L) %in% c("1501", "0701"), ]
+  expect_equal(nrow(lima_callao), 118408L)
+  expect_equal(length(unique(lima_callao$ubigeo)), 50L)
+  expect_equal(length(unique(official$ubigeo)), length(unique(unlist(lapply(hojas_ruta_territorios()$provincias, function(p) unlist(p$distritos))))))
   expect_true(all(c("id_manzana", "id_manzana_norm", "cartografia_id") %in% names(official)))
   expect_equal(length(unique(official$id_manzana_norm)), nrow(official))
 
@@ -123,7 +137,7 @@ test_that("frame oficial INEI 2017 queda disponible sin reemplazar default", {
   meta <- .hojas_ruta_frame_meta(current, cfg_default$frame_source)
   expect_equal(meta$active_source, "current")
   expect_true(meta$official$available)
-  expect_equal(meta$official$n_manzanas, 118408L)
+  expect_equal(meta$official$n_manzanas, nrow(official))
   expect_true(meta$audit$available)
 })
 
@@ -162,8 +176,9 @@ test_that("hojas_ruta_inei_age_simple carga edad simple oficial REDATAM", {
   expect_true(all(c("Hombre", "Mujer") %in% unique(age$sexo)))
   expect_true(min(age$edad, na.rm = TRUE) == 0L)
   expect_true(max(age$edad, na.rm = TRUE) >= 100L)
-  expect_equal(length(unique(age$ubigeo)), 50L)
-  expect_true(all(c("150110", "150143", "070106") %in% unique(age$ubigeo)))
+  # ADR 0119: los 50 distritos de Lima y Callao más los de las ciudades del registro.
+  expect_equal(sum(substr(unique(age$ubigeo), 1L, 4L) %in% c("1501", "0701")), 50L)
+  expect_true(all(c("150110", "150143", "070106", "040101", "080104") %in% unique(age$ubigeo)))
 })
 
 test_that("hojas_ruta_quota_preview_integrado asigna N objetivo por cuotas", {
@@ -644,9 +659,12 @@ test_that("cartografia de manzanas declara Lima 2017 y Callao 2019 locales", {
 })
 
 test_that("cartografia de manzanas no consulta internet por defecto", {
+  # 150199 no existe: desde el ADR 0119 la cobertura sale del registro de territorios, así que
+  # un distrito fuera del registro se rechaza antes de buscar archivo local o fuente remota.
   out <- hojas_ruta_block_map_preview("150199", limit = 10, refresh = TRUE)
   expect_false(out$ok)
-  expect_true(any(vapply(out$alerts, function(x) identical(x$code, "W_BLOCK_MAP_NOT_PACKAGED_LOCAL"), logical(1))))
+  expect_identical(out$returned, 0L)
+  expect_true(any(vapply(out$alerts, function(x) identical(x$code, "W_CARTOGRAPHY_UNSUPPORTED_COVERAGE"), logical(1))))
 })
 
 test_that("cartografia de zonas se deriva de manzanas locales", {
@@ -664,6 +682,7 @@ test_that("cartografia de zonas se deriva de manzanas locales", {
 })
 
 test_that("cartografia vial INEI 2017 se sirve localmente con respaldo OSM", {
+  .hr_engine_pesado()
   meta <- hojas_ruta_cartografia_calles_meta()
   expect_true(meta$ok)
   expect_match(meta$source, "INEI|Informacion Digital")
@@ -692,6 +711,7 @@ test_that("cartografia vial INEI 2017 se sirve localmente con respaldo OSM", {
 })
 
 test_that("schema vial expone atributos enriquecidos (name_es, lanes, surface, source)", {
+  .hr_engine_pesado()
   miraflores <- hojas_ruta_street_map_preview("150122")
   skip_if(!miraflores$ok, "Capa vial Miraflores no disponible")
   feats <- miraflores$geojson$features
@@ -817,6 +837,7 @@ test_that("contexto urbano OSM esta empaquetado y se sirve localmente", {
 })
 
 test_that("hojas_ruta_sample_preview_integrado es reproducible con semilla PPS", {
+  .hr_engine_pesado()
   cfg <- list(
     n_objetivo = 24,
     territorios = c("150110", "070106"),
@@ -940,7 +961,7 @@ test_that("hojas_ruta_sample_preview_integrado selecciona reemplazos en otra zon
   expect_equal(as.integer(paired$rango_fin_replacement), as.integer(paired$rango_fin_titular))
   expect_equal(as.integer(paired$titular_rango_inicio), as.integer(paired$rango_inicio_titular))
   expect_equal(as.integer(paired$titular_rango_fin), as.integer(paired$rango_fin_titular))
-  expect_true(all(grepl("^Remplazo de [A-Za-z0-9_-]+ \\[Encuestas [0-9]+ a [0-9]+\\]$", replacements$replacement_label)))
+  expect_true(all(grepl("^Reemplazo de [A-Za-z0-9_-]+ \\[Encuestas [0-9]+ a [0-9]+\\]$", replacements$replacement_label)))
 })
 
 test_that("reemplazos en otra zona hacen fallback advertido a la zona titular", {
@@ -983,7 +1004,7 @@ test_that("reemplazos en otra zona hacen fallback advertido a la zona titular", 
   expect_true(isTRUE(replacements$replacement_fallback[[1]]))
   expect_equal(replacements$rango_inicio[[1]], blocks$rango_inicio[[1]])
   expect_equal(replacements$rango_fin[[1]], blocks$rango_fin[[1]])
-  expect_equal(replacements$replacement_label[[1]], "Remplazo de A [Encuestas 1 a 6]")
+  expect_equal(replacements$replacement_label[[1]], "Reemplazo de A [Encuestas 1 a 6]")
 })
 
 test_that("etiqueta ordinal de reemplazo aparece solo cuando hay varios por titular", {
@@ -1004,9 +1025,9 @@ test_that("etiqueta ordinal de reemplazo aparece solo cuando hay varios por titu
   replacements <- .hojas_ruta_apply_replacement_route_ranges(replacements, titulars)
   expect_equal(replacements$replacement_total, c(2L, 1L, 2L))
   expect_equal(replacements$replacement_label, c(
-    "Remplazo 2/2 de A [Encuestas 7 a 12]",
-    "Remplazo de B [Encuestas 1 a 6]",
-    "Remplazo 1/2 de A [Encuestas 7 a 12]"
+    "Reemplazo 2/2 de A [Encuestas 7 a 12]",
+    "Reemplazo de B [Encuestas 1 a 6]",
+    "Reemplazo 1/2 de A [Encuestas 7 a 12]"
   ))
 
   ordered <- .hojas_ruta_order_replacements(replacements)
@@ -1039,6 +1060,7 @@ test_that("codigo operativo UMP/R usa la UMP titular y el orden de reemplazo", {
 })
 
 test_that("reemplazos puntuales generan PDF unificado para titulares seleccionadas", {
+  .hr_engine_pesado()
   testthat::skip_if_not_installed("qpdf")
   cfg <- hojas_ruta_integrada_normalize_config(list(
     n_objetivo = 12,
@@ -1066,7 +1088,7 @@ test_that("reemplazos puntuales generan PDF unificado para titulares seleccionad
   expect_true(qpdf::pdf_length(out_pdf) >= res$n_replacement_blocks)
   replacements <- .hojas_ruta_rows_df(res$replacement_blocks)
   expect_equal(replacements$replacement_total, c(2L, 2L))
-  expect_true(all(grepl("^Remplazo [12]/2 de [A-Za-z0-9_-]+ \\[Encuestas [0-9]+ a [0-9]+\\]$", replacements$replacement_label)))
+  expect_true(all(grepl("^Reemplazo [12]/2 de [A-Za-z0-9_-]+ \\[Encuestas [0-9]+ a [0-9]+\\]$", replacements$replacement_label)))
   expect_equal(as.character(replacements$titular_id_manzana), rep(titular_id, 2))
   replacement_codes <- vapply(seq_len(nrow(replacements)), function(i) {
     row <- as.list(replacements[i, , drop = FALSE])
@@ -1311,6 +1333,7 @@ test_that("valores operativos son estables por id_manzana y no por orden", {
 })
 
 test_that("hojas_ruta_generar_pdf_aleatorio_integrado funciona sin seleccion previa", {
+  .hr_engine_pesado()
   out_pdf <- tempfile(fileext = ".pdf")
   res <- hojas_ruta_generar_pdf_aleatorio_integrado(list(), out_pdf)
   expect_true(res$ok)
@@ -1323,6 +1346,7 @@ test_that("hojas_ruta_generar_pdf_aleatorio_integrado funciona sin seleccion pre
 })
 
 test_that("hojas_ruta_generar_pdf_aleatorio_integrado respeta territorios si existen", {
+  .hr_engine_pesado()
   out_pdf <- tempfile(fileext = ".pdf")
   res <- hojas_ruta_generar_pdf_aleatorio_integrado(
     list(
@@ -1363,7 +1387,7 @@ test_that("preferencias del PDF aleatorio ponderan poblacion y urbanidad", {
 })
 
 test_that("contexto distrital incluye distritos vecinos y nombres", {
-  skip_if_not(file.exists(.hojas_ruta_district_coverage_path()))
+  skip_if_not(length(hojas_ruta_contornos_regiones()) > 0L)
   districts <- .hojas_ruta_pdf_district_context_features("150135")
   expect_gt(length(districts), 1L)
   active <- districts[vapply(districts, function(feature) identical(feature$ubigeo, "150135"), logical(1))][[1]]
@@ -1375,7 +1399,7 @@ test_that("contexto distrital incluye distritos vecinos y nombres", {
 })
 
 test_that("mapa de zona puede incluir manzanas de distritos vecinos", {
-  skip_if_not(file.exists(.hojas_ruta_district_coverage_path()))
+  skip_if_not(length(hojas_ruta_contornos_regiones()) > 0L)
   districts <- .hojas_ruta_pdf_district_context_features("150115")
   active <- districts[vapply(districts, function(feature) identical(feature$ubigeo, "150115"), logical(1))][[1]]
   bbox <- .hojas_ruta_bbox_fit_aspect(.hojas_ruta_bbox_expand(active$bbox, pad = 0.12), width = 1, height = 1)
@@ -1463,6 +1487,7 @@ test_that("tabla B usa poblacion etaria de cada manzana y sexo balanceado", {
 })
 
 test_that("hojas_ruta_generar_zip_integrado produce entrega operativa plana", {
+  .hr_engine_pesado()
   out_zip <- tempfile(fileext = ".zip")
   res <- hojas_ruta_generar_zip_integrado(
     list(

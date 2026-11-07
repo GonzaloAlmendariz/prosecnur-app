@@ -150,7 +150,7 @@ export function RecorridoSerieBanda({ pasos, hrefDe }: RecorridoSerieBandaProps)
                 <Link className="pulso-recorrido-enlace" to={hrefDe(p)} title={`Ir a ${p.enlace.etiqueta}`}>
                   <span className="pulso-recorrido-cabeza">
                     <span className="pulso-recorrido-numero" aria-hidden="true">{p.numero}</span>
-                    <strong className="pulso-recorrido-nombre">{p.titulo}</strong>
+                    <strong className="pulso-recorrido-nombre" title={p.titulo}>{p.titulo}</strong>
                     <Icono
                       size={14}
                       aria-hidden="true"

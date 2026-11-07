@@ -48,7 +48,7 @@ function FilaCriterio({ fila }: { fila: CalcMuestraSaludCriterioFila }) {
         <span className="cmv2-salud-crit-cifra">
           {fmtInt(fila.aulas_con_valor)} de {fmtInt(fila.aulas)} aulas con dato
           {fila.categorias_declaradas > 0 ? (
-            <> · {fmtInt(fila.categorias_presentes)} de {fmtInt(fila.categorias_declaradas)} categorías</>
+            <>, {fmtInt(fila.categorias_presentes)} de {fmtInt(fila.categorias_declaradas)} categorías</>
           ) : null}
         </span>
       </div>

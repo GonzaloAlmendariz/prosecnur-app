@@ -63,7 +63,7 @@ test_that("p_slide_2_graficos con dos donas sale nativa, con la barra del títul
                                                      path_ppt = out, mensajes_progreso = FALSE)))
   x <- xml2::read_xml(unz(out, "ppt/slides/slide1.xml")); nm <- xml2::xml_attr(xml2::xml_find_all(x, "//p:cNvPr"), "name")
   expect_true("titulo:barra" %in% nm)
-  expect_equal(sum(nm == "dona:cifra"), 2L)
+  expect_equal(sum(nm == "dona:porcion"), 8L); expect_false("dona:cifra" %in% nm)   # seis y dos porciones, sin cifra al centro
   expect_false("mixta:respaldo" %in% nm)
   rot <- xml2::xml_text(xml2::xml_find_all(x, "//p:sp[p:nvSpPr/p:cNvPr[@name='circular:rotulo']]"))
   expect_true(all(car %in% rot))

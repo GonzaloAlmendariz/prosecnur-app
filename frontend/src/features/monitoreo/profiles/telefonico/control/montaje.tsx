@@ -8,6 +8,7 @@ import { NoBarridos } from "./NoBarridos";
 import { criteriosDesdeFiltro } from "../../../filtroEfectiva/criterios";
 import { Respuestas, type PasoDeLaCadena, type ReglaQueCuenta } from "./Respuestas";
 import { construirRespuestas, mermaDeRepetidos } from "./respuestasModel";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 /** Segmento de cuota del corte (Sede, Actor…), como en Avance › Cuotas. */
 export function segmentoDelCorte(reports: MonitoreoAcreditacionReports | null | undefined) {
@@ -40,7 +41,7 @@ export function BarridoDeLaHoja({
 }
 
 function plural(cantidad: number, uno: string, varios: string) {
-  return `${cantidad.toLocaleString("es-PE")} ${cantidad === 1 ? uno : varios}`;
+  return `${formatoConteo(cantidad)} ${cantidad === 1 ? uno : varios}`;
 }
 
 /** Control › Respuestas sobre el corte y el filtro de efectiva del proyecto. */

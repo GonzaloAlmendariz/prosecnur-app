@@ -12,7 +12,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
 import { chipsDeRitmo } from "./chipsDeRitmo";
-import { Entregas } from "./Entregas";
+import { HojaDelCliente, RitmoDeLaHoja } from "../../../salidas/estandar/HojaDelCliente";
+import { tablaTelefonicaDelCliente } from "./SalidasTelefonicas";
 import { Ritmo } from "./Ritmo";
 import { efectivasPorDia, notaDeLaSerie, notaDeValidasTelefonica, notaSinCategoria, resumenDeRitmo, serieDiariaDelCorte } from "./ritmoModel";
 import { MonitoreoOutputsReadiness } from "../../../salidas/MonitoreoOutputsReadiness";
@@ -57,14 +58,18 @@ describe("la serie diaria de efectivas es una sola", () => {
     expect(sinCategoria).toBe(1);
     expect(notaSinCategoria(sinCategoria, segmento)).toBe("1 efectiva de Kobo sin actor no entra a la serie");
 
-    const entregas = renderToStaticMarkup(<Entregas modelo={null} corte="" dias={dias} nota={notaSinCategoria(sinCategoria, segmento)} salidas={null} />)
-      .replace(/<!-- -->/g, "");
+    // La hoja del cliente que monta Avance › Entregas (`SalidasTelefonicas`), con su ritmo diario.
+    const entregas = renderToStaticMarkup(
+      <HojaDelCliente encabezado="Monitoreo telefónico" corte="" titulo="Avance por actor" tabla={tablaTelefonicaDelCliente(null)} vacio="El corte no trae cuotas para mostrar.">
+        <RitmoDeLaHoja dias={dias} nota={notaSinCategoria(sinCategoria, segmento)} />
+      </HojaDelCliente>,
+    ).replace(/<!-- -->/g, "");
     expect(entregas).toContain(">04/08<");
     expect(entregas).toContain(">16<");
     expect(entregas).not.toContain(">17<");
     expect(entregas).toContain("sin actor");
 
-    const ritmo = renderToStaticMarkup(<Ritmo reports={REPORTS} state={STATE} />).replace(/<!-- -->/g, "");
+    const ritmo = renderToStaticMarkup(<MemoryRouter><Ritmo reports={REPORTS} state={STATE} /></MemoryRouter>).replace(/<!-- -->/g, "");
     expect(ritmo).toContain("30 de 100");
     expect(ritmo).not.toContain(">17<");
     expect(ritmo).toContain("sin actor");
@@ -143,5 +148,20 @@ describe("la serie diaria de efectivas es una sola", () => {
     }));
     const deLaSerie = new Map(efectivasPorDia(corte).map((dia) => [dia.fecha, dia.casos]));
     expect(deLaSerie).toEqual(diarioDeCuotas);
+  });
+});
+
+describe("Ritmo dice por qué unas completas de Kobo no suman (reparo 2 del numerador)", () => {
+  it("muestra los avisos que el motor publica en `avisos_numerador`", () => {
+    const nota = "4 completas de Kobo sin caso en la base no se suman a Efectivas: Pandemia cuenta la hoja porque ninguno de sus casos cruza con Kobo. Revisa sus llaves.";
+    const conNota = {
+      ...REPORTS,
+      sheets: REPORTS.sheets.map((hoja) => ({
+        ...hoja,
+        blocks: [...hoja.blocks, { id: "avisos_numerador", title: "Avisos", columns: [], rows: [{ Aviso: "Completas sin caso", Detalle: nota }] }],
+      })),
+    } as MonitoreoAcreditacionReports;
+    expect(renderToStaticMarkup(<MemoryRouter><Ritmo reports={conNota} state={STATE} /></MemoryRouter>)).toContain("no se suman a Efectivas: Pandemia cuenta la hoja");
+    expect(renderToStaticMarkup(<MemoryRouter><Ritmo reports={REPORTS} state={STATE} /></MemoryRouter>)).not.toContain("no se suman a Efectivas");
   });
 });

@@ -49,11 +49,11 @@ function separarFila(items: Etiqueta[], lo: number, hi: number): Etiqueta[] {
 /** Texto accesible y de tooltip con el resumen literal, sin caja negra. */
 function resumenTexto(caja: BoxplotResumen): string {
   const media =
-    caja.media != null ? ` · media ${fmtDec(caja.media, 1)}` : " · media sin dato";
+    caja.media != null ? `, media ${fmtDec(caja.media, 1)}` : ", media sin dato";
   return (
-    `Elegibles por aula — min ${fmtDec(caja.min, 0)} · ` +
-    `Q1 ${fmtDec(caja.q1, 0)} · mediana ${fmtDec(caja.mediana, 0)} · ` +
-    `Q3 ${fmtDec(caja.q3, 0)} · max ${fmtDec(caja.max, 0)}${media}`
+    `Elegibles por aula — min ${fmtDec(caja.min, 0)}, ` +
+    `Q1 ${fmtDec(caja.q1, 0)}, mediana ${fmtDec(caja.mediana, 0)}, ` +
+    `Q3 ${fmtDec(caja.q3, 0)}, max ${fmtDec(caja.max, 0)}${media}`
   );
 }
 

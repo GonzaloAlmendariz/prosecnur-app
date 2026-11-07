@@ -24,7 +24,7 @@ export function BotonInsertar({
       className={className ? `xfe-mas ${className}` : "xfe-mas"}
       tabIndex={-1}
       aria-label={etiqueta}
-      title={`${etiqueta} · tecla Insert o +`}
+      title={`${etiqueta} (tecla Insert o +)`}
       onPointerDown={(e) => e.stopPropagation()}
       onClick={(e) => {
         e.stopPropagation();

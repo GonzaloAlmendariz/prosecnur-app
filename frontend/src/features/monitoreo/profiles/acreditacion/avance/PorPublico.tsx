@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import { usePanelDireccionable, type PanelDeclarado } from "../../../../../lib/navegacion/paneles";
 import { pctConEspacio } from "../../../core/formatoComun";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
@@ -20,7 +21,7 @@ function porcentaje(valor: number, total: number) {
 }
 
 function BarraDeAvance({ tarjeta }: { tarjeta: AcreditacionAdvanceCard }) {
-  if (!tieneMeta(tarjeta)) return <span className="acr-av-chip">Sin meta</span>;
+  if (!tieneMeta(tarjeta)) return <EstadoChip label="Sin meta" tone="neutral" />;
   const avance = tarjeta.effective / (tarjeta.meta as number);
   return (
     <span className="acr-pub-avance">
@@ -41,6 +42,9 @@ type PropsDePorPublico = {
   diarioPorPublico: ReadonlyArray<Record<string, unknown>>;
   fuentes: ReadonlyArray<Record<string, unknown>>;
 };
+
+/** Hasta cuántos públicos la tabla no necesita cabecera fija. */
+const FILAS_SIN_CABECERA_FIJA = 8;
 
 /** Lee del corte observado los casos y el barrido, que llegan con Control. */
 export function PorPublico(props: PropsDePorPublico) {
@@ -78,7 +82,9 @@ export function PorPublicoVista({
             <h3>{fmt(filas.length)} {filas.length === 1 ? "público" : "públicos"} <span className="acr-av-tenue">Ordenados por universo</span></h3>
           </CabeceraDeTarjeta>
           <div className="acr-pub-tabla-marco" data-qa-geometry-capacity="owned">
-            <table className="acr-pub-tabla">
+            {/* Con pocos públicos la cabecera no se fija: el marco apenas desplaza y una
+                cabecera pegajosa dejaba media fila tapada (QA 30/10, 1440x1000). */}
+            <table className={`acr-pub-tabla${filas.length <= FILAS_SIN_CABECERA_FIJA ? " is-corta" : ""}`}>
               <thead>
                 <tr>
                   <th scope="col">Público</th>
@@ -132,9 +138,13 @@ export function PorPublicoVista({
             </table>
           </div>
         </section>
-        <section className="acr-av-panel acr-pub-estados" aria-label="Universo de cada público por estado">
+        {/* Cómo respondió cada público: la composición de los que respondieron. La
+            versión anterior pintaba el universo entero y el 98 % «sin respuesta» dejaba
+            los estados útiles en una astilla (E5, 30/10); lo que falta por responder ya
+            lo dicen las columnas de la tabla. */}
+        <section className="acr-av-panel acr-pub-estados" aria-label="Cómo respondió cada público">
           <header className="acr-av-panel-cabecera">
-            <h3>Universo de cada público por estado</h3>
+            <h3>Cómo respondió cada público <span className="acr-av-tenue">De los que respondieron</span></h3>
           </header>
           <ul className="acr-pub-estados-lista" data-qa-geometry-group="acreditacion-publicos-estados" data-qa-geometry-contract="equal" data-qa-geometry-capacity="owned">
             {filas.map((tarjeta) => {
@@ -142,25 +152,31 @@ export function PorPublicoVista({
                 efectivas: tarjeta.effective,
                 parciales: tarjeta.partial,
                 rechazos: tarjeta.refusals,
-                sinRespuesta: tarjeta.pending,
-              });
+                sinRespuesta: 0,
+              }).filter((estado) => estado.clave !== "sin-respuesta");
+              const respondieron = estados.reduce((suma, estado) => suma + estado.valor, 0);
               return (
                 <li key={tarjeta.id} data-qa-geometry-member>
                   <span className="acr-pub-estados-nombre">{tarjeta.actor}</span>
-                  <span className="acr-av-apilada" role="img" aria-label={`${tarjeta.actor}: ${estados.map((estado) => `${estado.etiqueta} ${fmt(estado.valor)}`).join(", ")}`}>
-                    {estados.map((estado) => (estado.valor > 0 ? (
-                      <span key={estado.clave} className={`is-${estado.clave}`} style={{ flexGrow: estado.valor }}>
-                        {estado.clave !== "sin-respuesta" && tarjeta.universe > 0 && estado.valor / tarjeta.universe > 0.08 ? fmt(estado.valor) : null}
-                      </span>
-                    ) : null))}
+                  {respondieron > 0 ? (
+                    <span className="acr-av-apilada" role="img" aria-label={`${tarjeta.actor}: ${estados.map((estado) => `${estado.etiqueta} ${fmt(estado.valor)}`).join(", ")}`}>
+                      {estados.map((estado) => (estado.valor > 0 ? (
+                        <span key={estado.clave} className={`is-${estado.clave}`} style={{ flexGrow: estado.valor }}>
+                          {estado.valor / respondieron >= 0.12 ? fmt(estado.valor) : null}
+                        </span>
+                      ) : null))}
+                    </span>
+                  ) : <span className="acr-av-tenue">Nadie respondió todavía</span>}
+                  <span className="acr-pub-estados-pct">
+                    <b className="acr-av-num">{fmt(respondieron)}</b>
+                    <small className="acr-av-tenue acr-av-num">{porcentaje(respondieron, tarjeta.universe)} del universo</small>
                   </span>
-                  <span className="acr-av-num acr-pub-estados-pct">{porcentaje(tarjeta.effective, tarjeta.universe)}</span>
                 </li>
               );
             })}
           </ul>
           <span className="acr-av-leyenda is-centrada">
-            {estadosDelUniverso(totales).map((estado) => (
+            {estadosDelUniverso(totales).filter((estado) => estado.clave !== "sin-respuesta").map((estado) => (
               <span key={estado.clave}><i className={`acr-av-punto is-${estado.clave}`} aria-hidden="true" />{estado.etiqueta}</span>
             ))}
           </span>

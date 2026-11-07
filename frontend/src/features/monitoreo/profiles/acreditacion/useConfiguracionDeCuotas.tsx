@@ -1,11 +1,16 @@
 import { useCallback, useEffect, useReducer, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { getMonitoreoCuotas, postMonitoreoCuotaProponer, postMonitoreoCuotas } from "../../../../api/monitoreoCuotas";
+import { apiMonitoreoConfig, type MonitoreoInterestVariable, type MonitoreoState } from "../../../../api/client";
+import { postMonitoreoCuotaProponer, postMonitoreoCuotas } from "../../../../api/monitoreoCuotas";
+import { generacionDeCuotas, leerCuotas, recordarCuotas } from "./insumos/cuotasRecientes";
 import { serializarDireccion } from "../../../../lib/navegacion/direccion";
 import { usePanelDireccionable } from "../../../../lib/navegacion/paneles";
 import { useDireccion } from "../../../../lib/navegacion/useDireccion";
 import { AvanceCuotasPanel, PANEL_CUOTA } from "./AvanceCuotasPanel";
+import { claveDeSeguida } from "./seguidas";
+
+export { claveDeSeguida };
 import {
   borradorDeCuota,
   borradorNuevo,
@@ -28,7 +33,10 @@ function mensajeDeError(e: unknown, respaldo: string) {
   return e instanceof Error && e.message ? e.message : respaldo;
 }
 
-export function useConfiguracionDeCuotas() {
+/** El estudio, para seguir una variable sin metas (`operational_model.interest_variables`). */
+type OpcionesDeCuotas = { state?: MonitoreoState | null; onStateChange?: (state: MonitoreoState) => void };
+
+export function useConfiguracionDeCuotas({ state, onStateChange }: OpcionesDeCuotas = {}) {
   const [s, despachar] = useReducer(reducirCuotas, ESTADO_CUOTAS_INICIAL);
   const [borrador, despacharBorrador] = useReducer(reducirBorrador, borradorNuevo([]));
   const panel = usePanelDireccionable(PANEL_CUOTA);
@@ -46,7 +54,7 @@ export function useConfiguracionDeCuotas() {
   const cargar = useCallback(async () => {
     despachar({ tipo: "cargar" });
     try {
-      const estado = await getMonitoreoCuotas();
+      const estado = await leerCuotas();
       if (vivo.current) despachar({ tipo: "cargado", estado });
     } catch (e) {
       if (vivo.current) despachar({ tipo: "fallo", error: mensajeDeError(e, "No se pudieron leer las cuotas.") });
@@ -115,9 +123,11 @@ export function useConfiguracionDeCuotas() {
     if (!estado) return;
     despachar({ tipo: "guardar" });
     try {
+      const generacion = generacionDeCuotas();
       const nuevo = await postMonitoreoCuotas(entradasConBorrador(estado.cuotas, borrador));
+      recordarCuotas(nuevo, generacion);
       if (!vivo.current) return;
-      despachar({ tipo: "guardado", estado: nuevo, aviso: `Cuota guardada: ${borrador.actor} · ${borrador.variable}.` });
+      despachar({ tipo: "guardado", estado: nuevo, aviso: `Cuota de ${borrador.actor} por ${borrador.variable} guardada.` });
       irA({ panel: false, foco: idGuardado(nuevo, borrador) });
     } catch (e) {
       if (vivo.current) despachar({ tipo: "fallo-panel", error: mensajeDeError(e, "No se pudo guardar la cuota.") });
@@ -128,13 +138,58 @@ export function useConfiguracionDeCuotas() {
     if (!estado) return;
     despachar({ tipo: "guardar" });
     try {
+      const generacion = generacionDeCuotas();
       const nuevo = await postMonitoreoCuotas(entradasSinCuota(estado.cuotas, id));
+      recordarCuotas(nuevo, generacion);
       if (!vivo.current) return;
       despachar({ tipo: "guardado", estado: nuevo, aviso: "Cuota quitada." });
       irA({ panel: false, foco: "" });
     } catch (e) {
       if (vivo.current) despachar({ tipo: "fallo-panel", error: mensajeDeError(e, "No se pudo quitar la cuota.") });
     }
+  };
+
+  // «Solo seguimiento» (Gonzalo, 30/10): la variable no lleva metas; se compara la
+  // distribución de las efectivas con la del universo en Variables de control.
+  const seguidas = new Set((state?.config?.operational_model?.interest_variables ?? []).map((item) => claveDeSeguida(item.actor, item.variable)));
+  const escribirSeguidas = async (siguientes: MonitoreoInterestVariable[], aviso: string, debeQuedar: boolean) => {
+    if (!estado || !state?.config) return;
+    despachar({ tipo: "guardar" });
+    try {
+      const result = await apiMonitoreoConfig({
+        ...state.config,
+        operational_model: { ...state.config.operational_model, interest_variables: siguientes },
+      });
+      onStateChange?.(result.state);
+      // El motor descarta la variable que no está en la base: no se anuncia lo que no quedó.
+      const vuelta = (result.state?.config?.operational_model?.interest_variables ?? [])
+        .some((item) => claveDeSeguida(item.actor, item.variable) === claveDeSeguida(borrador.actor, borrador.variable));
+      if (!vivo.current) return;
+      if (vuelta !== debeQuedar) {
+        despachar({ tipo: "fallo-panel", error: debeQuedar ? `El motor no aceptó ${borrador.variable}: no está entre las columnas de la base de ${borrador.actor}.` : `${borrador.variable} sigue en seguimiento: el motor no la quitó.` });
+        return;
+      }
+      despachar({ tipo: "guardado", estado, aviso });
+      irA({ panel: false, foco });
+    } catch (e) {
+      if (vivo.current) despachar({ tipo: "fallo-panel", error: mensajeDeError(e, "No se pudo cambiar el seguimiento de la variable.") });
+    }
+  };
+  const seguir = async () => {
+    if (!state?.config || !borrador.actor || !borrador.variable) return;
+    if (seguidas.has(claveDeSeguida(borrador.actor, borrador.variable))) return;
+    const previas = state.config.operational_model?.interest_variables ?? [];
+    await escribirSeguidas(
+      [...previas, { actor: borrador.actor, variable: borrador.variable, normalization: "ninguna" }],
+      `${borrador.variable} de ${borrador.actor} queda en seguimiento: su distribución se compara con la del universo en Avance › Variables de control.`,
+      true,
+    );
+  };
+  const dejarDeSeguir = async () => {
+    if (!state?.config || !borrador.actor || !borrador.variable) return;
+    const clave = claveDeSeguida(borrador.actor, borrador.variable);
+    const previas = state.config.operational_model?.interest_variables ?? [];
+    await escribirSeguidas(previas.filter((item) => claveDeSeguida(item.actor, item.variable) !== clave), `${borrador.variable} de ${borrador.actor} deja de estar en seguimiento.`, false);
   };
 
   const abrirNueva = useCallback((actor = "", variable = "") => {
@@ -155,9 +210,12 @@ export function useConfiguracionDeCuotas() {
       onProponer={() => { void proponer(); }}
       onGuardar={() => { void guardar(); }}
       onQuitar={(id) => { void quitar(id); }}
+      onSeguir={state?.config ? () => { void seguir(); } : undefined}
+      onDejarDeSeguir={state?.config ? () => { void dejarDeSeguir(); } : undefined}
+      seguidas={seguidas}
       onCerrar={cerrar}
     />
   ) : null;
 
-  return { s, foco, irA, cargar, abrirNueva, panelNode };
+  return { s, foco, irA, cargar, abrirNueva, panelNode, seguidas };
 }

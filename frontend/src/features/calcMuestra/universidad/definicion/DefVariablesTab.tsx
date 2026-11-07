@@ -40,6 +40,8 @@ import { AvisoModulo } from "../shared/AvisoModulo";
 import { universityOrphanMappings } from "../shared/mapeoEfectivo";
 import { VariableMapCard } from "./VariableMapCard";
 import "./definicion.css";
+import { EstadoChip } from "../../../../components/EstadoChip";
+import { Panel } from "../../../../components/Panel";
 
 /**
  * Separación por HOJA (§ADR 0035 fase 3): las tarjetas de rol se agrupan en dos
@@ -214,16 +216,17 @@ export function DefVariablesTab({
   ).length;
 
   return (
-    <section className="cmv2-panel cmv2-university-variable-map">
-      <header className="cmv2-defi-var-head">
-        <div className="cmv2-defi-var-head-copy">
-          <span className="cmv2-eyebrow">Mapeo manual de columnas</span>
-          <p>Confirma qué columna de tu base cumple cada rol. Mientras no confirmes, se usa la sugerencia que ves aquí: lo que muestra esta pantalla es lo que recibe el motor.</p>
-        </div>
+    <Panel
+      className="cmv2-university-variable-map"
+      aria-labelledby="cmv2-defi-var-titulo"
+      title={<span id="cmv2-defi-var-titulo">Mapeo manual de columnas</span>}
+      hint="Confirma qué columna de tu base cumple cada rol. Mientras no confirmes, se usa la sugerencia que ves aquí: lo que muestra esta pantalla es lo que recibe el motor."
+      actions={
         <div className="cmv2-defi-var-head-actions">
-          <span className="cmv2-pill-soft" data-ok={confirmedRequired.length === requiredRoles.length || undefined}>
-            {fmtInt(confirmedRequired.length)} de {fmtInt(requiredRoles.length)} requeridas confirmadas
-          </span>
+          <EstadoChip
+            tone={confirmedRequired.length === requiredRoles.length ? "success" : "warn"}
+            label={`${fmtInt(confirmedRequired.length)} de ${fmtInt(requiredRoles.length)} requeridas confirmadas`}
+          />
           {pendingSuggestions > 0 && (
             <button type="button" className="cmv2-defi-var-confirm-all" onClick={confirmAllSuggestions}>
               <ListChecks size={14} />
@@ -231,14 +234,15 @@ export function DefVariablesTab({
             </button>
           )}
         </div>
-      </header>
+      }
+    >
 
       {huerfanas.length > 0 && (
         <AvisoModulo tone="warn" title="Hay columnas declaradas que tu archivo ya no tiene">
           <p>
             {huerfanas.map((h, i) => (
               <span key={h.role}>
-                {i > 0 ? " · " : null}
+                {i > 0 ? ", " : null}
                 <strong>{h.label}</strong> → <code>{h.column}</code>
               </span>
             ))}
@@ -344,6 +348,6 @@ export function DefVariablesTab({
           hint="Cuando cargues o construyas el marco en Fuentes, estas tarjetas propondrán columnas para que las confirmes. Mientras tanto puedes dejar preparado qué datos espera el estudio."
         />
       )}
-    </section>
+    </Panel>
   );
 }

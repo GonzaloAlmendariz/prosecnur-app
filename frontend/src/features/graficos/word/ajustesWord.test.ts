@@ -12,6 +12,19 @@ describe("ajustes del Word", () => {
       s("p_slide_portada", { titulo: "x" }),
     ])).toEqual(["pie", "barras_apiladas"]);
   });
+  it("el radar entre públicos no es el «Radar + tabla»: no le ofrece letra, negrita ni rojo (su tabla del Word es la nativa)", () => {
+    const s = (payload: Record<string, unknown>) => ({ id: "x", tipo: "p_slide_1_grafico", payload }) as unknown as Slide;
+    const tipos = tiposDelInforme([
+      s({ grafico: { graficador: "p_radar", args: { modo: "publicos" } } }),
+      s({ grafico: { graficador: "p_radar", args: { modo: "var" } } }),
+    ]);
+    // Los demás modos tampoco: el motor apaga su tabla (p_radar_split.R) y el Word dibuja sólo el radar (.word_g_radar).
+    expect(tipos).toEqual(["radar_publicos", "radar_solo"]);
+    expect(AJUSTES_WORD.radar_publicos ?? []).toHaveLength(0);
+    expect(AJUSTES_WORD.radar_solo ?? []).toHaveLength(0);
+    // La tabla (p_tabla) sí sigue en «Radar + tabla»: su Word es el gráfico de la ruta anterior, que los lee.
+    expect(tiposDelInforme([s({ grafico: { graficador: "p_tabla", args: {} } })])).toEqual(["radar_tabla"]);
+  });
 
   // Mata: dejar ofrecido o sin avisar un decimal del Word que pisa Reglas (O2), o tipo_pie / bins (O3).
   it("decimales, método, tipo de torta y bins nunca son ajustes del Word; sí se avisan si estaban guardados", () => {

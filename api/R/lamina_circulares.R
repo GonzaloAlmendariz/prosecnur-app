@@ -68,7 +68,7 @@
   for (i in seq_len(k)) {
     yk <- yt + 1.0 + (i - 1) * min(1.9, 3.8 / k)
     .lam_caja(lz, 6.7, yk + 0.12, 0.3, 0.3, cols[i], nombre = "torta:cuadro")
-    .lam_txt(lz, espec$cifras[i], 7.15, yk - 0.05, 2.2, 0.62, 34, if (i == 1L) azul else .std_color("azul_medio"), bold = TRUE, nombre = "torta:cifra_leyenda")
+    .lam_txt(lz, espec$cifras[i], 7.15, yk - 0.05, 2.2, 0.62, .std_pt("cifra_destacada"), if (i == 1L) azul else .std_color("azul_medio"), bold = TRUE, nombre = "torta:cifra_leyenda")
     .lam_txt(lz, espec$rotulos[i], 7.15, yk + 0.58, 5.5, 0.3, 13, azul, bold = TRUE, nombre = "torta:rotulo")
     if (is.finite(.espec_casos(espec)[i]) && is.finite(.espec_total_casos(espec))) {
       .lam_txt(lz, sprintf("%s de %s %s", format(round(.espec_casos(espec)[i]), big.mark = ",", trim = TRUE), format(round(.espec_total_casos(espec)), big.mark = ",", trim = TRUE), unidad_n),
@@ -98,8 +98,8 @@
   lz <- .lam_lienzo()
   f <- espec$valores / sum(espec$valores); acum <- c(0, cumsum(f))
   for (i in seq_len(k)) if (f[i] > 0) .lam_sector(lz, cx, cy, r, acum[i], acum[i + 1], cols[i], arco = TRUE, borde_pt = 2.4, nombre = "dona:porcion")
-  .lam_txt(lz, espec$cifras[1], xd, cy - 0.45, d, 0.66, 34, azul, bold = TRUE, align = "center", nombre = "dona:cifra")
-  .lam_txt(lz, rotulo_centro %||% espec$rotulos[1], xd, cy + 0.2, d, 0.3, 12, azul, align = "center", nombre = "dona:rotulo")
+  .lam_txt(lz, espec$cifras[1], xd, cy - 0.45, d, 0.66, .std_pt("cifra_destacada"), azul, bold = TRUE, align = "center", nombre = "dona:cifra")
+  .lam_txt(lz, rotulo_centro %||% espec$rotulos[1], xd, cy + 0.2, d, 0.3, .std_pt("rotulo_categoria"), azul, align = "center", nombre = "dona:rotulo")
   # Lectura con filete coral (narrativa del recetario): «De N <unidad>, n1 <rótulo 1> y n2 (p2) <rótulo 2>».
   if (all(is.finite(.espec_casos(espec))) && is.finite(.espec_total_casos(espec)) && k == 2L) {
     .lam_caja(lz, 6.9, yt + 1.05, 0.05, 2.5, .std_color("coral"), nombre = "dona:filete")
@@ -119,7 +119,6 @@
 #' de 5.5 in); la dona, hasta 4 porciones con su leyenda bajo el disco.
 #' @keywords internal
 .lam_circular_cabe <- function(espec) {
-  k <- length(espec$valores)
   # C3: la torta que no cabe en la lámina 69 va como la dona grande sin hueco, no a la imagen ggplot.
   if (identical(espec$forma, "pie")) return(.lam_torta_cabe(espec) || .lam_dona_grande_cabe(espec))
   # La dona del recetario es una dicotomía: la cifra clave al centro y la otra en la lectura, que necesita las
@@ -133,7 +132,7 @@
 .lam_dona_recetario_cabe <- function(espec) {
   k <- length(espec$valores)
   k == 2L && all(is.finite(.espec_casos(espec))) && is.finite(.espec_total_casos(espec)) &&
-    .lam_ancho_tinta(espec$rotulos[1], 12) <= 1.6 &&
+    .lam_ancho_tinta(espec$rotulos[1], .std_pt("rotulo_categoria")) <= 1.6 &&
     sum(0.22 + .lam_ancho_tinta(espec$rotulos, .std_pt("leyenda"))) + 0.3 * (k - 1) <= 4.0
 }
 

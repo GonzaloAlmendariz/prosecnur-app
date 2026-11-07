@@ -368,6 +368,7 @@ reporte_word_plan <- function(
   # -------------------------------------------------------------------------
   if (isTRUE(mensajes_progreso)) message("Preparando render_meta desde plan PPT...")
 
+  .op_sig <- options(prosecnur.sig_nota_en_lamina = TRUE); on.exit(options(.op_sig), add = TRUE)   # ADR 0128: la nota de diferencias va en su párrafo, bajo la base
   ppt_result <- reporte_ppt_plan(
     data               = data,
     instrumento        = instrumento,

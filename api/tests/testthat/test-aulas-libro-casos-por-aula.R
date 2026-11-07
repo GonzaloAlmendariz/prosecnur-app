@@ -453,12 +453,14 @@ test_that("el alto de cada fila se reasienta: la nota que se fue no deja su huec
                      function(r) r$updateDimensionProperties$range$startIndex + 1L, integer(1))
   # Toda fila que no sea cabecera de tabla pide su alto: las cabeceras lo piden
   # en otra pasada porque bajan de línea, y pisarlas las aplastaría.
-  sin_alto <- setdiff(seq_along(rows), con_alto)
-  for (i in sin_alto) {
-    expect_true(nzchar(prosecnurapp:::.calac_tabla_de_cabecera(
-      vapply(rows[[i]], function(x) as.character(x %||% ""), character(1)))),
-      info = sprintf("la fila %d no reasienta su alto y no es cabecera", i))
-  }
+  #
+  # Antes sólo afirmaba DENTRO de un bucle sobre las filas sin alto: en verde el
+  # bucle no daba vueltas y testthat lo daba por «empty test» (CI, 1 nov 2026).
+  # Ahora afirma siempre, y un reasiento que deja de pedir altos da rojo.
+  es_cabecera <- vapply(rows, function(r) nzchar(prosecnurapp:::.calac_tabla_de_cabecera(
+    vapply(r, function(x) as.character(x %||% ""), character(1)))), logical(1))
+  expect_gt(length(con_alto), 0L)
+  expect_identical(setdiff(which(!es_cabecera), con_alto), integer(0))
 })
 
 # =============================================================================

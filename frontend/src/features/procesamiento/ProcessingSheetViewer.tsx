@@ -19,6 +19,7 @@ import {
   type ProcessingSheetRepeatContext,
 } from "../../lib/rosterExplorer";
 import { ColumnFilterControl, columnFilterActive, describeColumnFilter } from "./ColumnFilterControl";
+import { useAltoDeCabecera } from "./useAltoDeCabecera";
 import "./processingSheetViewer.css";
 
 type Props = {
@@ -117,7 +118,8 @@ export function ProcessingSheetViewer({
         if (!cancelled) setPayload(next);
       })
       .catch((e: unknown) => {
-        if (!cancelled) setError((e as Error).message);
+        // Nunca vacío: un error sin texto dejaría la marca en «todavía no» para siempre.
+        if (!cancelled) setError((e as Error)?.message || "No se pudo cargar la base.");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -169,6 +171,7 @@ export function ProcessingSheetViewer({
   const hasCodingLegend = highlightCoding && columns.some((column) => isColumnWithKindColor(column));
   const hasOpenTextMultipleLegend = highlightCoding && columns.some((column) => isOpenTextMultipleRecodColumn(column));
   const isWideSheet = (payload?.n_columns ?? columns.length) > 8;
+  const marcoDeLaGrilla = useAltoDeCabecera<HTMLDivElement>(payload);
 
   const rosterGrain = useMemo(
     () =>
@@ -239,7 +242,10 @@ export function ProcessingSheetViewer({
       className={`pulso-processing-sheet${isWideSheet ? " is-wide" : ""}${isRoster ? " is-roster" : ""}`}
       aria-label={title}
       data-repeat-roster={isRoster ? "true" : undefined}
-      data-audit-ready={isRoster ? "true" : undefined}
+      // Mientras no hay datos ni error, la vista todavía no es la tabla: «todavía
+      // no» (false) bloquea a la marca de la pestaña, que antes se daba por lista
+      // con «Armando vista previa» en pantalla (Analítica › Base final, L29).
+      data-audit-ready={isRoster ? "true" : !payload && !error ? "false" : undefined}
     >
       <div className="pulso-processing-sheet-toolbar">
         <div className="pulso-processing-sheet-title">
@@ -265,7 +271,7 @@ export function ProcessingSheetViewer({
             <span className="pulso-processing-sheet-source">{sourceLabel}</span>
             {payload && (
               <span className="pulso-processing-sheet-meta">
-                {total.toLocaleString("es-PE")} {isRoster ? rosterUnitLabel : "filas"} ·{" "}
+                {total.toLocaleString("es-PE")} {isRoster ? rosterUnitLabel : "filas"} y{" "}
                 {payload.n_columns.toLocaleString("es-PE")} columnas
               </span>
             )}
@@ -431,7 +437,7 @@ export function ProcessingSheetViewer({
         </div>
       ) : (
         <>
-          <div className="pulso-processing-sheet-scroll">
+          <div className="pulso-processing-sheet-scroll" ref={marcoDeLaGrilla}>
             <table className="pulso-processing-sheet-table">
               <thead>
                 <tr>
@@ -520,7 +526,7 @@ export function ProcessingSheetViewer({
                               data-kind={displayKind}
                               title={value || undefined}
                             >
-                              <span className="pulso-processing-sheet-cell-text">{display}</span>
+                              <span className={`pulso-processing-sheet-cell-text${/\s/.test(String(display).trim()) ? "" : " is-token"}`}>{display}</span>
                             </td>
                           );
                         })}
@@ -537,8 +543,8 @@ export function ProcessingSheetViewer({
               {total > 0
                 ? `${visibleStart.toLocaleString("es-PE")}-${visibleEnd.toLocaleString("es-PE")} de ${total.toLocaleString("es-PE")}`
                 : "0 filas"}
-              {payload ? ` · ${payload.n_columns.toLocaleString("es-PE")} columnas` : ""}
-              {isWideSheet ? " · desplaza horizontalmente" : ""}
+              {payload ? `, ${payload.n_columns.toLocaleString("es-PE")} columnas` : ""}
+              {isWideSheet ? "; desplaza horizontalmente" : ""}
             </span>
             <div className="pulso-processing-sheet-pager">
               <select

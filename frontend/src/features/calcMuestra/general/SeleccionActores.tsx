@@ -3,6 +3,7 @@ import { CircleSlash2, Users } from "lucide-react";
 import type { CalcMuestraComponente } from "../../../api/calcMuestra";
 import { CALC_MUESTRA_ACREDITACION_PESTANAS } from "../../../lib/navegacion/catalogos/calcMuestra";
 import type { CalcMuestraGeneralCorrida, CalcMuestraGeneralMarco } from "../../../api/calcMuestraGeneral";
+import { Panel } from "../../../components/Panel";
 import { EmptyState } from "../../../components/States";
 import { ArchivoMarcoGeneral } from "./ArchivoMarcoGeneral";
 import { estadoDelActor, tecnicaDelActor, type TecnicaDelActor } from "./actores";
@@ -129,13 +130,12 @@ export function SeleccionActoresVista({
       data-qa-geometry-contract="intrinsic"
     >
       {!activo || !actor ? (
-        <section className="cmv2-panel" aria-labelledby="cmg-actores-titulo" data-qa-geometry-member>
-          <div className="cmv2-panel-head">
-            <div>
-              <span className="cmv2-eyebrow">Actores</span>
-              <h3 className="cmg-panel-titulo" id="cmg-actores-titulo">Marco y selección por actor</h3>
-            </div>
-          </div>
+        <Panel
+          aria-labelledby="cmg-actores-titulo"
+          data-qa-geometry-member
+          eyebrow="Actores"
+          title={<span id="cmg-actores-titulo">Marco y selección por actor</span>}
+        >
           <EmptyState
             icon={<Users size={20} aria-hidden="true" />}
             title="Aún no hay actores"
@@ -146,7 +146,7 @@ export function SeleccionActoresVista({
               </button>
             )}
           />
-        </section>
+        </Panel>
       ) : (
         <>
           <SelectorActor actores={actores} activoId={activo.id} onElegir={onElegir} />
@@ -194,7 +194,7 @@ function ActorSinSorteo({
   onActores: () => void;
 }) {
   return (
-    <section className="cmv2-panel cmg-sin-sorteo" aria-label={`${nombre}: sin selección`}>
+    <Panel className="cmg-sin-sorteo" aria-label={`${nombre}: sin selección`}>
       <EmptyState
         icon={<CircleSlash2 size={20} aria-hidden="true" />}
         title={tecnica.clase === "cuotas" ? `${nombre} va por cuotas` : `${nombre} no se selecciona aquí`}
@@ -205,6 +205,6 @@ function ActorSinSorteo({
           </button>
         )}
       />
-    </section>
+    </Panel>
   );
 }

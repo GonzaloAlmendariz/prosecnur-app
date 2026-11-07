@@ -1,3 +1,4 @@
+import { formatoDecimal } from "../../../../../lib/formatoNumero";
 import type { MonitoreoTerritorialDashboard, TerritorialResponseAuditRow } from "../../../../../api/client";
 import { diaYMes, fmt, nombreDeDistrito, numeroDeUmp, rotuloDeAplicador } from "../rotulos";
 
@@ -230,7 +231,7 @@ export function textoDeDistanciaDeFormulario(formulario: Pick<FormularioDelRecor
   if (formulario.tramo === "sin-gps" || formulario.distanciaM == null) return "Sin GPS";
   const metros = formulario.distanciaM;
   return metros >= 1000
-    ? `${(metros / 1000).toLocaleString("es-PE", { maximumFractionDigits: 1 })} km de su manzana`
+    ? `${formatoDecimal(metros / 1000, 1)} km de su manzana`
     : `${fmt(Math.round(metros))} m de su manzana`;
 }
 

@@ -44,10 +44,10 @@ describe("uso de cada código en las bases", () => {
   ];
   it("dice dónde aparece, qué pasa al marcarlo y el desglose por base", () => {
     const o = { porBase, marcado: true };
-    expect(textoUso(o)).toBe("En 14 preguntas · elegido en 5");
+    expect(textoUso(o)).toBe("En 14 preguntas, elegido en 5");
     expect(textoEfecto(o)).toBe("Se omitirá en 9 preguntas donde nadie lo eligió");
     expect(textoEfecto({ porBase, marcado: false })).toBe("");
-    expect(textoPorBase(o)).toBe("2024: 4 preguntas, elegido en 3 · 2026: 10 preguntas, elegido en 2");
+    expect(textoPorBase(o)).toBe("2024: 4 preguntas, elegido en 3; 2026: 10 preguntas, elegido en 2");
   });
   it("sin conteo no inventa el efecto", () => {
     const o = { porBase: [{ base: "2026", n_preguntas: 3, n_con_casos: null }], marcado: true };

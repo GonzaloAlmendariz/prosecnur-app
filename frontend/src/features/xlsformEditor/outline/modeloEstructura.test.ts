@@ -210,3 +210,124 @@ describe("siguienteBajoPunteroEn (búsqueda binaria del arrastre)", () => {
     }
   });
 });
+
+// C5 (elección por pares, 2026-11-07). Mata: cálculos del sorteo que se ven sueltos, un sorteo que junta dos pares o
+// cálculos no seguidos, un sorteo plegado cuyo contenido sigue en las líneas del teclado, y un hueco que cae dentro
+// del sorteo plegado.
+describe("sorteo de un par", () => {
+  // 0 q0 · 1 begin P1 · 2 r1 · 3 n1 · 4 t1 · 5 tabla · 6 end · 7 r2 · 8 n2 · 9 q9
+  const s = parseBuilderStructure(hoja([
+    ["text", "q0", "Antes"],
+    ["begin_group", "P1", "Par 1 de 2"],
+    ["calculate", "t1A_r_x", ""],
+    ["calculate", "t1A_x", ""],
+    ["calculate", "t1A_x_txt", ""],
+    ["note", "t1_tabla", "Tabla"],
+    ["end_group", "", ""],
+    ["calculate", "t2A_r_x", ""],
+    ["calculate", "t2A_x", ""],
+    ["text", "q9", "Después"],
+  ]));
+  const tarea = (f: number) => (f >= 2 && f <= 4 ? 1 : f >= 7 && f <= 8 ? 2 : undefined);
+  const arbol = construirArbol(s, tarea);
+
+  test("los cálculos seguidos de un par se juntan en una línea, dentro de su grupo o sueltos", () => {
+    const par1 = arbol.hijos[1]!;
+    expect(par1.tipo).toBe("seccion");
+    if (par1.tipo !== "seccion") return;
+    expect(par1.hijos.map((h) => h.tipo)).toEqual(["sorteo", "fila"]);
+    const suelto = arbol.hijos[2]!;
+    expect(suelto.tipo === "sorteo" && suelto.tarea === 2 && suelto.hijos.length === 2 && suelto.finSlot === 9).toBe(true);
+  });
+
+  test("plegado no deja sus cálculos en las líneas; abierto, sí", () => {
+    const plegado = lineasVisibles(arbol, () => true).map((l) => l.fila);
+    expect(plegado).not.toContain(7);
+    expect(lineasVisibles(arbol, () => false).map((l) => l.fila)).toContain(7);
+  });
+
+  test("el hueco después de un sorteo plegado cae tras su último cálculo", () => {
+    const ls = lineasVisibles(arbol, (f) => f < 0);
+    const i = ls.findIndex((l) => l.tipo === "sorteo" && l.inicio === 7);
+    expect(huecoEntre(s, ls, i + 1)).toEqual({ indice: 9, contenedor: null });
+    expect(huecoEntre(s, ls, i)).toEqual({ indice: 7, contenedor: null });
+  });
+});
+
+// C7 (elección por pares, 2026-11-07). Mata: pares que se ven como secciones sueltas, una cabecera que se traga una
+// pregunta ajena puesta entre dos pares, y un experimento plegado cuyos pares siguen en las líneas del teclado.
+describe("experimento de elección por pares", () => {
+  // 0 q0 · 1 intro · 2 begin P1 · 3 r1 · 4 tabla1 · 5 end · 6 begin P2 · 7 r2 · 8 tabla2 · 9 end · 10 q9
+  const filasExp = [
+    ["text", "q0", "Antes"],
+    ["note", "intro", "Le mostraré dos personas"],
+    ["begin_group", "tarea1", "Par 1 de 2"],
+    ["calculate", "t1A_r_x", ""],
+    ["note", "t1_tabla", "Tabla"],
+    ["end_group", "", ""],
+    ["begin_group", "tarea2", "Par 2 de 2"],
+    ["calculate", "t2A_r_x", ""],
+    ["note", "t2_tabla", "Tabla"],
+    ["end_group", "", ""],
+    ["text", "q9", "Después"],
+  ];
+  const tarea = (f: number) => (f === 3 ? 1 : f === 7 ? 2 : undefined);
+  const exp = [{ filas: new Set([1, 2, 6]), titulo: "Experimento de elección por pares", resumen: "2 pares, 1 atributos" }];
+
+  test("la introducción y los pares quedan bajo una cabecera, con su sorteo adentro", () => {
+    const a = construirArbol(parseBuilderStructure(hoja(filasExp)), tarea, exp);
+    expect(a.hijos.map((h) => h.tipo)).toEqual(["fila", "experimento", "fila"]);
+    const e = a.hijos[1]!;
+    if (e.tipo !== "experimento") return;
+    expect(e.titulo).toBe("Experimento de elección por pares");
+    expect(e.hijos.map((h) => h.nodo.name)).toEqual(["intro", "tarea1", "tarea2"]);
+    expect(e.finSlot).toBe(10);
+    const par1 = e.hijos[1]!;
+    expect(par1.tipo === "seccion" && par1.hijos[0]!.tipo === "sorteo").toBe(true);
+  });
+
+  test("con una pregunta ajena entre dos pares no se junta nada", () => {
+    const con = [...filasExp.slice(0, 6), ["text", "ajena", "Otra"], ...filasExp.slice(6)];
+    const a = construirArbol(parseBuilderStructure(hoja(con)), undefined, [{ filas: new Set([1, 2, 7]), titulo: "E", resumen: "" }]);
+    expect(a.hijos.some((h) => h.tipo === "experimento")).toBe(false);
+  });
+
+  test("plegado, sus pares salen de las líneas; el hueco de después cae tras el último par", () => {
+    const s = parseBuilderStructure(hoja(filasExp));
+    const a = construirArbol(s, tarea, exp);
+    const ls = lineasVisibles(a, (f) => f < 0);
+    expect(ls.map((l) => l.tipo)).toEqual(["fila", "experimento", "fila"]);
+    expect(huecoEntre(s, ls, 2)).toEqual({ indice: 10, contenedor: null });
+  });
+});
+
+test("dos experimentos, dos cabeceras: cada una con sus piezas (C11)", () => {
+  // 0 q0 · 1 begin P1 · 2 tabla · 3 end · 4 begin V1 · 5 nota · 6 end · 7 begin V2 · 8 nota · 9 end
+  const s = parseBuilderStructure(hoja([
+    ["text", "q0", "Antes"],
+    ["begin_group", "tarea1", "Par 1 de 1"], ["note", "t1_tabla", "Tabla"], ["end_group", "", ""],
+    ["begin_group", "vi_vineta1", "Viñeta 1 de 2"], ["note", "vi_v1_texto", "Escenario"], ["end_group", "", ""],
+    ["begin_group", "vi_vineta2", "Viñeta 2 de 2"], ["note", "vi_v2_texto", "Escenario"], ["end_group", "", ""],
+  ]));
+  const a = construirArbol(s, undefined, [
+    { filas: new Set([1]), titulo: "Experimento de elección por pares", resumen: "1 par" },
+    { filas: new Set([4, 7]), titulo: "Experimento de viñetas", resumen: "2 viñetas" },
+  ]);
+  expect(a.hijos.map((h) => (h.tipo === "experimento" ? `${h.titulo}:${h.hijos.length}` : h.tipo))).toEqual([
+    "fila", "Experimento de elección por pares:1", "Experimento de viñetas:2",
+  ]);
+});
+
+test("una cabecera junta también un sorteo de primer nivel (versiones y lista, C14)", () => {
+  // 0 q0 · 1 r · 2 version · 3 texto · 4 P5 · 5 q9
+  const s = parseBuilderStructure(hoja([
+    ["text", "q0", "Antes"],
+    ["calculate", "vs_r", ""], ["calculate", "vs_version", ""], ["calculate", "vs_texto", ""],
+    ["integer", "P5", "${vs_texto}"],
+    ["text", "q9", "Después"],
+  ]));
+  const a = construirArbol(s, (f) => (f >= 1 && f <= 3 ? 1 : undefined), [{ filas: new Set([1, 2, 3, 4]), titulo: "Versiones al azar", resumen: "P5: 2 versiones" }]);
+  expect(a.hijos.map((h) => h.tipo)).toEqual(["fila", "experimento", "fila"]);
+  const e = a.hijos[1]!;
+  expect(e.tipo === "experimento" && e.hijos.map((h) => h.tipo).join()).toBe("sorteo,fila");
+});

@@ -13,7 +13,7 @@
 
 .pulso-f6-nombres-base-clave {
   min-width: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -24,7 +24,7 @@
   grid-template-columns: auto minmax(0, 1fr);
   justify-content: start;
   margin: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.4;
   color: var(--pulso-text-soft);
   overflow-wrap: anywhere;

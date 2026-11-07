@@ -54,7 +54,7 @@
   if (!scope %in% c("light", "source", "route_summary", "advance_summary", "validation_summary", "queries_summary", "phone_summary", "full")) scope <- "full"
   scope
 }
-.monitoreo_dashboard_cache_token <- function(snapshot, data, cfg, report_scope = "full") {
+.monitoreo_dashboard_cache_token <- function(snapshot, data, cfg, report_scope = "full", route_sig = "") {
   # Unidad 3.4b: al token entra solo la partición del config que afecta el
   # cálculo de reportes (ver monitoreo_perf_config_for_cache_token); editar
   # metadata de publicación/inspección ya no invalida los 7 scopes.
@@ -66,7 +66,7 @@
   } else {
     ""
   }
-  paste(
+  token <- paste(
     .monitoreo_dashboard_cache_key,
     report_schema,
     .monitoreo_report_scope(report_scope),
@@ -77,6 +77,9 @@
     cfg_json,
     sep = "|"
   )
+  # I4 paso 2: la firma de la foto enviada. Sin envío el token es el de siempre
+  # (no se agrega ni el separador), para no invalidar dashboards guardados.
+  if (nzchar(.monitoreo_scalar(route_sig, ""))) paste(token, route_sig, sep = "|") else token
 }
 .monitoreo_snapshot_dashboard_valid <- function(snapshot, data, cfg, cache_token, report_scope = "full") {
   if (!is.list(snapshot) || !is.list(snapshot$dashboard)) return(FALSE)

@@ -35,7 +35,7 @@ export function porcentaje(p: number | null | undefined): string {
 /** «57.9 % · 350 de 605». */
 export function conBase(n: number | null | undefined, base: number | null | undefined): string {
   const p = n != null && base ? n / base : null;
-  return `${porcentaje(p)} · ${cifra(n)} de ${cifra(base)}`;
+  return `${porcentaje(p)}, ${cifra(n)} de ${cifra(base)}`;
 }
 
 // ---------- Fases y readiness ----------
@@ -163,7 +163,7 @@ export function resumenCuota(q: MonitoreoCuota): ResumenCuota {
     meta,
     avance,
     relleno: avance == null ? 0 : Math.max(0, Math.min(1, avance)),
-    avanceTexto: meta > 0 ? `${porcentaje(avance)} · ${cifra(efectivas)} de ${cifra(meta)}` : "Sin metas",
+    avanceTexto: meta > 0 ? `${porcentaje(avance)}, ${cifra(efectivas)} de ${cifra(meta)}` : "Sin metas",
     cumplidas: `${cifra(cumplidas)} de ${cifra(total)} ${total === 1 ? "categoría cumplida" : "categorías cumplidas"}`,
     cobertura: q.cobertura != null ? `cobertura ${porcentaje(q.cobertura)}` : "metas escritas a mano",
     tono,
@@ -259,6 +259,8 @@ export type BorradorCuota = {
   /** Porcentaje como lo escribe la persona («31.2»); `""` = sin cobertura. */
   cobertura: string;
   filas: FilaBorrador[];
+  /** ADR 0126: si los números de la tabla se exigen o sólo se describen. */
+  caracter: "meta" | "referencial";
 };
 
 /** Cobertura por defecto del público: meta / universo. */
@@ -290,7 +292,7 @@ export function textoAMeta(texto: string): number {
 
 export function borradorNuevo(publicos: readonly MonitoreoCuotaPublico[], actor = ""): BorradorCuota {
   const p = publicos.find((x) => x.actor === actor) ?? publicos[0];
-  return { id: "", actor: p?.actor ?? "", variable: "", cobertura: coberturaATexto(coberturaPorDefecto(p)), filas: [] };
+  return { id: "", actor: p?.actor ?? "", variable: "", cobertura: coberturaATexto(coberturaPorDefecto(p)), filas: [], caracter: "meta" };
 }
 
 export function borradorDeCuota(q: MonitoreoCuota): BorradorCuota {
@@ -299,8 +301,17 @@ export function borradorDeCuota(q: MonitoreoCuota): BorradorCuota {
     actor: q.actor,
     variable: q.variable,
     cobertura: coberturaATexto(q.cobertura),
-    filas: q.categorias.map((c) => ({ categoria: c.categoria, universo: c.universo, meta: c.meta != null ? String(c.meta) : "" })),
+    filas: q.categorias.map((c) => {
+      const numero = numeroDeCategoria(q, c);
+      return { categoria: c.categoria, universo: c.universo, meta: numero != null ? String(numero) : "" };
+    }),
+    caracter: q.caracter,
   };
+}
+
+/** El número escrito de una categoría: su meta, o su referencia si la cuota es referencial. */
+function numeroDeCategoria(q: MonitoreoCuota, c: MonitoreoCuota["categorias"][number]): number | null {
+  return q.caracter === "referencial" ? c.referencia ?? null : c.meta;
 }
 
 export type AccionBorrador =
@@ -309,6 +320,7 @@ export type AccionBorrador =
   | { tipo: "variable"; variable: string }
   | { tipo: "cobertura"; cobertura: string }
   | { tipo: "meta"; categoria: string; meta: string }
+  | { tipo: "caracter"; caracter: "meta" | "referencial" }
   | { tipo: "propuesta"; propuesta: MonitoreoCuotaPropuesta };
 
 export function reducirBorrador(b: BorradorCuota, a: AccionBorrador): BorradorCuota {
@@ -324,6 +336,8 @@ export function reducirBorrador(b: BorradorCuota, a: AccionBorrador): BorradorCu
       return a.variable === b.variable ? b : { ...b, variable: a.variable, filas: [] };
     case "cobertura":
       return { ...b, cobertura: a.cobertura };
+    case "caracter":
+      return { ...b, caracter: a.caracter };
     case "meta":
       return { ...b, filas: b.filas.map((f) => (f.categoria === a.categoria ? { ...f, meta: a.meta } : f)) };
     case "propuesta":
@@ -355,14 +369,16 @@ export function problemaDelBorrador(b: BorradorCuota, cuotas: readonly Monitoreo
 
 function entradaDeCuota(q: MonitoreoCuota): MonitoreoCuotaEntrada {
   const metas: Record<string, number> = {};
-  for (const c of q.categorias) metas[c.categoria] = c.meta ?? 0;
-  return { id: q.id, actor: q.actor, variable: q.variable, cobertura: q.cobertura, metas };
+  // Una referencial publica sus números en `referencia`: se devuelven como
+  // estaban, o se perderían al guardar otra cuota (ADR 0126).
+  for (const c of q.categorias) metas[c.categoria] = numeroDeCategoria(q, c) ?? 0;
+  return { id: q.id, actor: q.actor, variable: q.variable, cobertura: q.cobertura, metas, caracter: q.caracter };
 }
 
 function entradaDeBorrador(b: BorradorCuota): MonitoreoCuotaEntrada {
   const metas: Record<string, number> = {};
   for (const f of b.filas) metas[f.categoria] = textoAMeta(f.meta);
-  return { ...(b.id ? { id: b.id } : {}), actor: b.actor, variable: b.variable, cobertura: textoACobertura(b.cobertura), metas };
+  return { ...(b.id ? { id: b.id } : {}), actor: b.actor, variable: b.variable, cobertura: textoACobertura(b.cobertura), metas, caracter: b.caracter };
 }
 
 /** La configuración completa con el borrador puesto (reemplaza o agrega). */

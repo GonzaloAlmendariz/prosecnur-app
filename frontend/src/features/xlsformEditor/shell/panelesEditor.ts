@@ -16,3 +16,13 @@ export const PANEL_LOGICA_SURVEYMONKEY: PanelDeclarado = {
   label: "Lógica de SurveyMonkey",
   clase: "dialogo",
 };
+
+/**
+ * Traducir una encuesta de SurveyMonkey vía API: `?panel=importar-surveymonkey`.
+ * El diálogo arranca vacío (elegir encuesta), así que el enlace lo reproduce.
+ */
+export const PANEL_IMPORTAR_SURVEYMONKEY: PanelDeclarado = {
+  id: "importar-surveymonkey",
+  label: "Traducir encuesta de SurveyMonkey",
+  clase: "dialogo",
+};

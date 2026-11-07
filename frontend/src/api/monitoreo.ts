@@ -69,6 +69,13 @@ export type MonitoreoSource = {
   declared_person_code_var?: string;
   declared_person_code_label?: string;
   dimensions?: Record<string, string>;
+  /** Columna de la que sale el público de cada fila (padrón compartido por varios públicos). */
+  actor_var?: string;
+  /** Valor de `actor_var` -> público; lo que no está en el mapa queda en el público de la fuente. */
+  actor_map?: Record<string, string> | unknown[];
+  /** Respuestas: el público sale de la fila del padrón con la que cruzan, no de la encuesta. */
+  actor_por_padron?: boolean;
+  dimension_vars?: Record<string, string> | unknown[];
   collectors?: MonitoreoSourceCollector[];
   created_at?: string;
   last_sync_at?: string;
@@ -133,6 +140,8 @@ export type MonitoreoGoal = {
   meta: number;
   meta_pct?: number | null;
   objetivo?: MonitoreoGoalObjetivo | null;
+  /** ADR 0126: `meta` se exige; `referencial` se describe. Sin declarar, meta si hay número. */
+  caracter?: "meta" | "referencial" | null;
 };
 
 export type MonitoreoReportWeekday = "lunes" | "martes" | "miercoles" | "jueves" | "viernes" | "sabado" | "domingo";
@@ -807,6 +816,11 @@ export type MonitoreoAulasConfig = {
    */
   libro_publicado?: {
     publicado_en?: string; synced_at?: string; hojas?: number; partes?: number;
+    /**
+     * Qué pasó con cada hoja en esa publicación, tal como lo declaró el recibo.
+     * Ausente en sellos anteriores al 2026-10-31.
+     */
+    detalle?: Array<{ hoja: string; accion: string; filas: number }>;
   } | null;
   /**
    * **Contra qué otro estudio se cruza, y de dónde se lee.** Es una decisión de
@@ -1008,6 +1022,10 @@ export type MonitoreoAulasAvanceCuotaFacultad = {
   estado: "ok" | "sin_aulas_en_plan" | "sin_cuota" | "fuera_del_diseno";
   fuera_universo: number;
   respuestas_sin_sexo: number;
+  /** ADR 0126 (aditivo; ausente en «fuera del diseño», que es residual). */
+  caracter?: "meta" | "referencial";
+  fuente?: "declarada" | "respaldo" | "";
+  estado_cuota?: "cumple" | "falta" | "sin_base" | "referencial" | "sin_comparador";
 };
 
 /**
@@ -1039,6 +1057,11 @@ export type MonitoreoAulasAvanceCuota = {
    * Sin esta declaración el mismo payload significa dos cosas y la UI adivina.
    * Un contrato viejo sin `eje` se lee como `facultad`, que es lo que es.
    */
+  /**
+   * El avance por celdas de las variables que declara el estudio (ADR 0121,
+   * F2). Cuenta lo mismo que este bloque, repartido. Ausente sin metas.
+   */
+  celdas_declaradas?: MonitoreoAulasAvancePorCeldas | null;
   eje?: {
     clave: string;
     columna: string;
@@ -1090,6 +1113,11 @@ export type MonitoreoAulasAvanceCuota = {
   meta_diseno?: number | null;
   sobremuestra?: number | null;
   meta_operativa?: number | null;
+  /**
+   * ADR 0126: los dos niveles de la meta (muestra y sobremuestra). `compensa`
+   * dice que el veredicto compara el total: la sobremuestra no tiene celdas.
+   */
+  niveles?: Array<{ nivel: "muestra" | "sobremuestra"; meta: number; caracter: "meta"; compensa: boolean; estado_cuota: string }>;
   total: MonitoreoAulasAvanceCuotaTotal;
   facultades: MonitoreoAulasAvanceCuotaFacultad[];
 };
@@ -1832,6 +1860,91 @@ export type MonitoreoAulasReemplazosPorTipo = {
   total?: number;
 };
 
+/** Una celda del avance por variables declaradas (ADR 0121, F2). */
+export type MonitoreoAulasCeldaDeAvance = {
+  valores: Record<string, string>;
+  cuota: number | null;
+  logradas: number;
+  /** Lo que falta en ESA celda; un marginal suma las brechas de sus celdas. */
+  brecha: number | null;
+};
+
+/** `avance_cuota.celdas_declaradas`: lo que lleva el estudio, celda a celda. */
+export type MonitoreoAulasAvancePorCeldas = {
+  schema: "avance_por_celdas_v1" | string;
+  variables: string[];
+  celdas: MonitoreoAulasCeldaDeAvance[];
+  marginales: Record<string, Array<{ valor: string; cuota: number | null; logradas: number; brecha: number }>>;
+  total: { cuota: number | null; logradas: number; brecha: number };
+  /** Cuentan para el estudio y no caen en ninguna celda declarada. */
+  fuera_de_celdas: number;
+  sin_valor: Record<string, number>;
+};
+
+/** Una variable de cuota del estudio (ADR 0121). */
+export type MonitoreoAulasVariableDeCuota = {
+  clave: string;
+  etiqueta: string;
+  etiqueta_plural: string;
+  etiqueta_sin: string;
+  /** De dónde sale el valor de cada respuesta: del aula, de la persona (padrón) o de lo que declara. */
+  atribucion: "aula" | "persona" | "respuesta" | string;
+  fuente_valor: "plan" | "padron" | "respuesta" | string;
+  categorias: Array<{ valor: string; etiqueta: string; orden: number; clave?: string }>;
+};
+
+/**
+ * La representatividad que prometió el estudio (ADR 0121): universo, variables
+ * de cuota en orden (la primera agrupa las vistas) y las celdas con meta. En F1
+ * se traduce del contrato v1 (`origen: "traducida_v1"`); ninguna cifra sale de
+ * aquí todavía.
+ */
+export type MonitoreoAulasRepresentatividad = {
+  schema: "representatividad_v1" | string;
+  origen: "diseno" | "traducida_v1" | "planner" | string;
+  /** Con `origen = "planner"`: de dónde salen las celdas (el diseño). */
+  origen_celdas?: string;
+  /** F4: lo que no casa entre lo declarado en el Planner y las celdas del diseño. */
+  discrepancias?: Array<{ tipo: "variable_sin_celdas" | "celdas_sin_variable" | string; variable: string; texto: string }>;
+  universo: {
+    nivel: "universidad" | "facultad" | "carrera" | "" | string;
+    valor?: string | null;
+    etiqueta: string;
+    poblacion?: number | null;
+    inferido?: boolean;
+    motivo?: string;
+  };
+  variables: MonitoreoAulasVariableDeCuota[];
+  celdas: Array<{ valores: Record<string, string>; cuota: number | null; sobremuestra?: number | null; tau?: number | null }>;
+  agrupacion_operativa?: string;
+};
+
+/** La tasa de un tipo de curso-horario aplicado, en `refuerzos.rendimiento`. */
+export type MonitoreoAulasTasaPorTipo = {
+  /** Cursos-horario aplicados de ese tipo. */
+  n: number;
+  elegibles: number;
+  efectivas: number;
+  /** Efectivas sobre elegibles, en proporción; `null` sin elegibles. */
+  tasa: number | null;
+};
+
+/**
+ * El bloque `refuerzos` del tablero (`monitoreo_aulas_refuerzos()`). Sólo se
+ * declara lo que la vista lee —`ok`, `motivo` y `rendimiento`—; el resto
+ * (techo, activadas, disponibles) viaja igual y queda abierto.
+ */
+export type MonitoreoAulasRefuerzosTablero = {
+  ok: boolean;
+  motivo?: string;
+  /** Rendimiento de cada tipo de curso-horario ya aplicado, según su procedencia. */
+  rendimiento?: Partial<Record<
+    "titulares" | "reemplazo" | "complemento" | "refuerzo" | "adicional" | "banco",
+    MonitoreoAulasTasaPorTipo
+  >>;
+  [clave: string]: unknown;
+};
+
 export type MonitoreoAulasDashboard = {
   schema: "monitoreo_aulas_dashboard_v1" | string;
   generated_at: string;
@@ -1847,6 +1960,13 @@ export type MonitoreoAulasDashboard = {
    * anteriores al bloque (backend viejo): la vista lo declara, no revienta.
    */
   dos_tasas?: MonitoreoAulasDosTasas | null;
+  /**
+   * Refuerzos y el rendimiento por tipo de curso-horario. Ausente en cortes
+   * anteriores al bloque: A2 lo declara.
+   */
+  refuerzos?: MonitoreoAulasRefuerzosTablero | null;
+  /** La representatividad declarada (ADR 0121). Ausente sin metas del diseño. */
+  representatividad_declarada?: MonitoreoAulasRepresentatividad | null;
   /**
    * El mapa de horas por día: qué ventana ocupa cada cita y cuántas aulas
    * caen a la vez (el número que dimensiona a los aplicadores). Ausente en
@@ -2166,6 +2286,12 @@ export type MonitoreoAulasDashboard = {
 	    mejor_dia?: { fecha: string; validas: number } | null;
 	    media_diaria: number;
 	    meta: number;
+	    /**
+	     * Válidas por hora local del día (0–23), sólo las horas con alguna. Sale
+	     * de la misma marca que fecha el día. Ausente en cortes anteriores al
+	     * 2026-10-31: la vista lo declara.
+	     */
+	    por_hora?: Array<{ hora: number; validas: number }>;
 	  };
 	  /**
 	   * La MISMA serie, repartida por facultad y sobre el mismo eje de días.
@@ -2792,6 +2918,8 @@ export type MonitoreoTerritorialProductionAnnulmentsPayload = {
     pulso_code?: string;
     responses?: number;
     valid_responses?: number;
+    /** Efectivas validadas no anuladas: la base del avance. */
+    advance_valid_responses?: number;
     umps?: number;
     districts?: string;
     latest_activity?: string;
@@ -2914,6 +3042,8 @@ export type MonitoreoConfig = {
   monitoreo_profile: MonitoreoProfile;
   acreditacion: MonitoreoAcreditacion;
   client_report: MonitoreoClientReportConfig;
+  /** Color elegido por el equipo para cada público (público -> "#rrggbb"); sin entrada, el tono de la paleta. */
+  publico_colores?: Record<string, string>;
   territorial: MonitoreoTerritorialConfig;
   aulas_universitarias: MonitoreoAulasConfig;
 };
@@ -2967,7 +3097,11 @@ export type MonitoreoAssistedReview = {
   declared_name?: string;
   candidates?: MonitoreoAssistedReviewCandidate[];
   assignment_candidates?: MonitoreoAssistedReviewCandidate[];
-  /** Actor cuyo universo asignable viaja una sola vez en `MonitoreoInternalQueries.assignment_pool`. */
+  /**
+   * Actor cuyo universo asignable vive una sola vez en el corte. En
+   * acreditación se pide con `apiMonitoreoAcreditacionAssignmentPool`; en
+   * telefónico viaja en `MonitoreoInternalQueries.assignment_pool`.
+   */
   assignment_pool_key?: string;
   warnings?: string[];
   manual_decision?: MonitoreoManualCaseReconciliation | null;
@@ -3391,7 +3525,11 @@ export type MonitoreoInternalQueries = {
   pending_exit: MonitoreoInternalQueryCase[];
   issues: MonitoreoInternalQueryIssue[];
   flow: MonitoreoInternalQueryFlow;
-  /** Personas asignables del universo, una lista por actor; los casos las nombran con `assignment_pool_key`. */
+  /**
+   * Personas asignables del universo, una lista por actor; los casos las
+   * nombran con `assignment_pool_key`. Sólo telefónico: acreditación ya no las
+   * manda con el scope (4.6 MB a 45 mil personas) y el panel las pide aparte.
+   */
   assignment_pool?: Record<string, MonitoreoAssistedReviewCandidate[]>;
 };
 
@@ -4061,6 +4199,9 @@ export type TerritorialQuotaObservedCrossColumn = {
 export type TerritorialQuotaObservedCross = {
   schema?: string;
   source?: string;
+  /** Sólo en `observed_valid_cross`: el marginal tiene meta y variable en la base. */
+  sex_evaluable?: boolean;
+  age_evaluable?: boolean;
   total?: number;
   total_consentido?: number;
   adjustment_delta?: number;
@@ -4108,6 +4249,8 @@ export type TerritorialQuotaProgressBlock = {
   age: TerritorialQuotaProgressItem[];
   cross: TerritorialQuotaProgressItem[];
   observed_cross?: TerritorialQuotaObservedCross | null;
+  /** 2h: el mismo cruce sobre las efectivas validadas (`advance_valid`), con todos los rangos de la meta. */
+  observed_valid_cross?: TerritorialQuotaObservedCross | null;
   missing: TerritorialQuotaProgressItem[];
 };
 
@@ -4212,6 +4355,8 @@ export type TerritorialQuotaProgressPayload = {
 
 export type MonitoreoTerritorialDashboard = {
   schema: string;
+  /** ADR 0125 A1: con envío por cuotas, el avance por zona y celda (lo normaliza avance/porZonaModelo.ts). */
+  cuotas?: unknown;
   report_scope?: "source" | "route_summary" | "advance_summary" | "validation_summary" | "queries_summary" | "phone_summary" | "full" | string;
   generated_at: string;
   active_route_phase: "pilot" | "field" | string;
@@ -4575,6 +4720,10 @@ export type MonitoreoSourcePayload = {
   declared_person_code_var?: string;
   declared_person_code_label?: string;
   dimensions?: Record<string, string>;
+  actor_var?: string;
+  actor_map?: Record<string, string>;
+  actor_por_padron?: boolean;
+  dimension_vars?: Record<string, string>;
 };
 
 export type MonitoreoSheetsStatus = {
@@ -4837,7 +4986,7 @@ export async function apiMonitoreoPublicReport() {
   );
 }
 
-type MonitoreoPublicationRequestOptions = {
+export type MonitoreoPublicationRequestOptions = {
   audience?: "client" | "internal";
   includeTargets?: boolean;
   confirmedFullData?: boolean;
@@ -4846,7 +4995,7 @@ type MonitoreoPublicationRequestOptions = {
   operationalPackageReview?: MonitoreoTerritorialOperationalPackageReview | MonitoreoTerritorialOperationalPackageReviewResult | Record<string, unknown>;
 };
 
-function monitoreoPublicationRequestBody(spreadsheetId: string, options: MonitoreoPublicationRequestOptions = {}) {
+export function monitoreoPublicationRequestBody(spreadsheetId: string, options: MonitoreoPublicationRequestOptions = {}) {
   return {
     spreadsheet_id: spreadsheetId,
     audience: options.audience ?? "client",
@@ -4965,6 +5114,8 @@ export type MonitoreoActorUnit = {
   group: string;
   origin: "declarado" | "fuentes";
   phone: { enabled: boolean; role: string };
+  /** ADR 0125 §5: canales del público en el orden en que se abrieron (rondas). */
+  canales?: Array<{ ronda: number; canal: string }>;
 };
 
 export type MonitoreoActorRosterResult = {
@@ -5891,6 +6042,26 @@ export async function apiMonitoreoAcreditacionCaseReconciliation(payload: {
   );
 }
 
+/**
+ * Personas asignables del padrón de un público (Control › Por resolver). Las
+ * `personas` llegan en el transporte `columnas_v1` de los casos; las decodifica
+ * `normalizarPersonasAsignables`. `preparando` dice que la sesión aún no tiene
+ * las consultas del corte.
+ */
+export type MonitoreoAcreditacionAssignmentPool = {
+  ok: true;
+  preparando: boolean;
+  key: string;
+  total: number;
+  personas: unknown;
+};
+
+export async function apiMonitoreoAcreditacionAssignmentPool(key: string, signal?: AbortSignal) {
+  return handle<MonitoreoAcreditacionAssignmentPool>(
+    await apiFetch(`/api/monitoreo/acreditacion/assignment-pool?key=${encodeURIComponent(key)}`, { headers: headers(), signal }),
+  );
+}
+
 export async function apiMonitoreoSurveyMonkeyCollectors(
   sourceIds: string[] = [],
   options: { remote?: boolean; includeRecipients?: boolean; includeDetails?: boolean } = {},
@@ -6710,6 +6881,9 @@ export async function apiMonitoreoAulasAvanceTablas() {
     actualizado?: string;
     titular?: string;
     tablas: MonitoreoAulasAvanceTabla[];
+    /** El estudio todavía no tiene plan de aulas: `vacio` dice por qué y adónde ir. */
+    sin_plan?: boolean;
+    vacio?: string;
   }>(
     await apiFetch("/api/monitoreo/aulas/avance-tablas", { headers: headers() }),
   );

@@ -104,6 +104,12 @@ const motor = {
 } as unknown as MotorEfectivo;
 
 function cursosHorarioMetric(html: string): string {
+  // L18: los indicadores sin cifra se juntan en la línea «Sin cifra todavía».
+  const vacios = html.indexOf('<div class="rec-resumen-item rec-resumen-vacios"');
+  if (vacios >= 0) {
+    const bloque = html.slice(vacios, html.indexOf("</div>", vacios) + "</div>".length);
+    if (bloque.includes("Cursos-horario elegibles")) return bloque;
+  }
   const label = "<small>Cursos-horario elegibles</small>";
   const labelIndex = html.indexOf(label);
   if (labelIndex < 0) return "";
@@ -135,7 +141,7 @@ describe("consistencia del marco ejecutado frente a radiografía legacy", () => 
     const metric = cursosHorarioMetric(html);
 
     expect(metric).toContain("Cursos-horario elegibles");
-    expect(metric).toMatch(/reconstruye|>—</);
+    expect(metric).toMatch(/reconstruye|>—<|Sin cifra todavía/);
     expect(metric).not.toContain("marco vigente");
   });
 });

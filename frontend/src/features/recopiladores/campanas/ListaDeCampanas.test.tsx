@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 
-import { normalizarRegistroDeCampanas, type RegistroDeCampanas } from "../../../api/materialCampanas";
+import { normalizarRegistroDeCampanas, type RegistroDeCampanas, type TipoDeCampana } from "../../../api/materialCampanas";
 import { REGISTRO_CRUDO, REGISTRO_VACIO_CRUDO } from "../../../api/materialCampanas.fixture";
 import { accionesDeCampana } from "./accionesDeCampana";
 import { TiposDeCampana } from "./DialogoNuevaCampana";
@@ -42,8 +42,10 @@ describe("la lista de campañas (ADR 0111 §2)", () => {
   it("sin campañas: el vacío vive en su caja y ofrece «Nueva campaña» (C3)", () => {
     const html = lista(VACIO);
     expect(html).toContain("Todavía no hay campañas");
+    // 5 nov 2026: el vacío ya muestra los tipos para elegir (abre «Nueva campaña» con ese tipo marcado).
+    expect(html).toContain('data-qa-geometry-group="material-campo/campanas/nueva-tipos"');
     expect(html).toContain('data-audit-ready="vacio:sin-campanas"');
-    expect(html).toContain('class="rec-campanas-vacio" data-qa-geometry-capacity="owned"');
+    expect(html).toContain('class="rec-campanas-vacio is-con-tipos" data-qa-geometry-capacity="owned"');
     expect(html).not.toContain('data-qa-geometry-group="material-campo/campanas"');
   });
 
@@ -59,11 +61,11 @@ describe("la lista de campañas (ADR 0111 §2)", () => {
     const html = lista(LLENO);
     expect(html.match(/class="rec-campana-tarjeta is-/g)?.length).toBe(2);
     expect(html).toContain("Campo en aulas");
-    expect(html).toContain("120/175 titulares con enlace");
+    expect(html).toContain("120 de 175 titulares con enlace");
     // Cifras grandes de aulas y cada envío en su línea con su punto de estado.
     expect(html).toContain('<dt>titulares</dt><dd>175</dd>');
-    expect(html).toContain("Invitación · exportado 02/09");
-    expect(html).toContain("Recordatorio 1 · pendiente");
+    expect(html).toContain("<b>Invitación</b> exportado 02/09");
+    expect(html).toContain("<b>Recordatorio 1</b> pendiente");
     expect(html).toContain('href="/material-campo?modo=aulas&amp;campana=aulas.principal&amp;seccion=unidades&amp;pestana=lista"');
     expect(lista(conCorreos(12)).match(/data-qa-geometry-member/g)).toHaveLength(12);
   });
@@ -93,25 +95,42 @@ describe("la lista de campañas (ADR 0111 §2)", () => {
     expect(accionesDeCampana(correo, { fuente: "registro", correos: 1 }).map((a) => a.id)).toEqual(["renombrar", "duplicar", "borrar"]);
     // Sin registro en el backend, archivar se ve deshabilitado con su motivo.
     expect(accionesDeCampana(aulas, { fuente: "derivada", correos: 1 }).every((a) => a.motivo)).toBe(true);
+    // Revamp v5: la supervisión ya no tiene el menú vacío.
+    const supervision = { ...aulas, id: "supervision.lote-2", tipo: "supervision" as const };
+    expect(accionesDeCampana(supervision, { fuente: "registro", correos: 1 }).map((a) => a.id)).toEqual(["renombrar", "ver-lote", "archivar"]);
+    expect(accionesDeCampana({ ...supervision, archived: true }, { fuente: "registro", correos: 1 }).map((a) => a.id)).toEqual(["reabrir"]);
   });
 });
 
 describe("«Nueva campaña»", () => {
-  function tipos(registro: RegistroDeCampanas) {
-    return renderToStaticMarkup(<TiposDeCampana registro={registro} elegido={null} ocupado={false} onElegir={noop} />);
+  function tipos(registro: RegistroDeCampanas, elegido: TipoDeCampana | null = null) {
+    return renderToStaticMarkup(<MemoryRouter><TiposDeCampana registro={registro} elegido={elegido} ocupado={false} onElegir={noop} /></MemoryRouter>);
   }
 
-  it("muestra los tres tipos; territorial deshabilitada con su motivo", () => {
+  it("muestra los cinco tipos; territorial y supervisión deshabilitadas con su motivo", () => {
     const html = tipos(VACIO);
-    expect(html.match(/data-qa-geometry-member/g)).toHaveLength(3);
+    expect(html.match(/data-qa-geometry-member/g)).toHaveLength(5);
+    expect(html).toContain("Telefónica");
+    expect(html).toContain("Supervisión");
     expect(html).toContain("Campo en aulas");
     expect(html).toContain("Requiere leer las UMP de Hojas de ruta");
-    expect(html.match(/disabled=""/g)).toHaveLength(1);
+    // Sin lotes de Monitoreo (ADR 0125 A3) la supervisión no se crea.
+    expect(html.match(/disabled=""/g)).toHaveLength(2);
+  });
+
+  it("el enlace a Hojas de ruta sólo acompaña la elección, no a otro tipo ya elegido", () => {
+    const sinEnvio: RegistroDeCampanas = {
+      ...VACIO,
+      tipos: VACIO.tipos.map((t) => (t.tipo === "territorial" ? { ...t, motivo: "Primero envía la muestra desde Hojas de ruta" } : t)),
+    };
+    const enlace = "Enviar la muestra desde Hojas de ruta";
+    expect(tipos(sinEnvio)).toContain(enlace);
+    expect(tipos(sinEnvio, "telefonica")).not.toContain(enlace);
   });
 
   it("aulas se deshabilita si el proyecto ya tiene la suya", () => {
     const html = tipos(LLENO);
     expect(html).toContain("El proyecto ya tiene su campaña de aulas.");
-    expect(html.match(/disabled=""/g)).toHaveLength(2);
+    expect(html.match(/disabled=""/g)).toHaveLength(3);
   });
 });

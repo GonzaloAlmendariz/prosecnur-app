@@ -168,6 +168,13 @@ export type ProsecnurApi = {
   onAppCloseRequest?: (callback: () => void) => () => void;
   confirmAppClose?: () => Promise<boolean>;
   setAppCloseGuardReady?: (ready: boolean) => void;
+  // Descargas sin diálogo (ADR 0133, fase 3). Opcionales: un shell anterior no
+  // las expone. Usar los envoltorios de `lib/escritorio.ts`.
+  mostrarEnCarpeta?: (ruta: string) => Promise<{ ok: true } | { ok: false; motivo?: string }>;
+  abrirArchivo?: (ruta: string) => Promise<{ ok: true } | { ok: false; motivo?: string }>;
+  onDescargaTerminada?: (
+    callback: (descarga: { estado: string; nombre: string; ruta: string }) => void,
+  ) => () => void;
 };
 
 declare global {

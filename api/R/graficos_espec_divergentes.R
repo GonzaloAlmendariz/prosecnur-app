@@ -47,7 +47,7 @@
   if (ncol(P) == 1L) U <- t(U)
   cifras <- matrix(.pulso_fmt_pct_unidades(U, dec), nrow(U))
   tn <- rowSums(U[, lado == "neg", drop = FALSE]); tp <- rowSums(U[, lado == "pos", drop = FALSE])
-  # ADR 0114: el resumen ordena también por «Sin información» (la lámina del desconocimiento) o como se declaró.
+  # ADR 0134: el resumen ordena también por «Sin información» (la lámina del desconocimiento) o como se declaró.
   tsi <- rowSums(U[, lado == "sin_inf", drop = FALSE])
   o <- switch(as.character(orden %||% "top_two_box")[1],
               sin_informacion = order(-tsi, -tp, seq_along(tp)),

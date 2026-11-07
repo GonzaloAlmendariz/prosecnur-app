@@ -974,6 +974,7 @@ graficar_histograma <- function(
     # Doctrina de la casa: en los modos de porcentaje la etiqueta lleva SOLO el
     # porcentaje; el conteo es opt-in. En modo `conteo` este arg no interviene.
     mostrar_frecuencia = FALSE,
+    marca_mediana = "linea",   # v7.11: «linea» o «triangulo» en la lámina nativa (graficador_histograma_lamina.R)
     posicion_etiquetas = c("segmento", "cima", "ninguna"),
     mostrar_n_intervalo = FALSE,
     etiqueta_cima_modo = c("conteos_grupo", "conteo_total", "porcentaje_conteos_grupo", "porcentaje_grupo_conteos_grupo"),
@@ -1079,7 +1080,9 @@ graficar_histograma <- function(
                                color_titulo = color_titulo, size_titulo = size_titulo,
                                color_subtitulo = color_subtitulo, size_subtitulo = size_subtitulo,
                                color_nota_pie = color_nota_pie, size_nota_pie = size_nota_pie,
-                               unidad = .unidad_de_etiqueta(attr(data[[var]], "label", exact = TRUE) %||% var))
+                               unidad = .unidad_de_etiqueta(attr(data[[var]], "label", exact = TRUE) %||% var),
+                               mostrar_frecuencia = mostrar_frecuencia,   # CCSS 2026: «103 (26%)»
+                               marca_mediana = marca_mediana)
     if (identical(exportar, "png") && !is.null(path_salida) && nzchar(path_salida)) {
       ggplot2::ggsave(path_salida, p, width = ancho, height = alto %||% 4.6, dpi = dpi, bg = "transparent")
     }

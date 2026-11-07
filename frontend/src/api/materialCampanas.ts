@@ -29,11 +29,11 @@ import { ApiError, apiFetch, handle, headers } from "./core";
 
 export const MATERIAL_CAMPANAS_SCHEMA = "material_campaigns/v1";
 
-export const TIPOS_DE_CAMPANA = ["aulas", "territorial", "correo"] as const;
+export const TIPOS_DE_CAMPANA = ["aulas", "territorial", "correo", "telefonica", "supervision"] as const;
 export type TipoDeCampana = (typeof TIPOS_DE_CAMPANA)[number];
 
-/** `^(aulas|territorial|correo)\.[a-z0-9][a-z0-9-]{0,39}$` (ADR 0111 §4). */
-export const ID_DE_CAMPANA_RE = /^(aulas|territorial|correo)\.[a-z0-9][a-z0-9-]{0,39}$/;
+/** `^(aulas|territorial|correo|telefonica|supervision)\.[a-z0-9][a-z0-9-]{0,39}$` (ADR 0111 §4; P10; ADR 0125 A3). */
+export const ID_DE_CAMPANA_RE = /^(aulas|territorial|correo|telefonica|supervision)\.[a-z0-9][a-z0-9-]{0,39}$/;
 
 export type EstadoCampanaAulas = {
   tipo: "aulas";
@@ -63,7 +63,40 @@ export type EstadoCampanaCorreo = {
   envios_detalle: EnvioDeCampana[];
 };
 
-export type EstadoCampana = EstadoCampanaAulas | EstadoCampanaCorreo;
+/** La campaña territorial (ADR 0118): la foto que envió Hojas de ruta en su fase. */
+export type EstadoCampanaTerritorial = {
+  tipo: "territorial";
+  titulares: number;
+  reemplazos: number;
+  /** La muestra viva de la fase ya no es la enviada (o la foto ya no está). */
+  stale: boolean;
+  /** ISO del envío, o `null` si la foto no está. */
+  enviado_at: string | null;
+  /** `pilot` o `field`: fijada al crear la campaña (`ref.fase`). */
+  fase: "pilot" | "field";
+};
+
+/** La campaña telefónica (P10): sólo su configuración; el listado vive en el archivo del operativo. */
+export type EstadoCampanaTelefonica = {
+  tipo: "telefonica";
+  muestra: number;
+  backup: number;
+  casos: number;
+  llave: string;
+  configurada: boolean;
+};
+
+/** La supervisión de un lote de Monitoreo (ADR 0125 A3): cuántos casos trae y si el lote sigue en Monitoreo. */
+export type EstadoCampanaSupervision = {
+  tipo: "supervision";
+  lote_id: string;
+  casos: number;
+  /** Monitoreo borró o rehízo el lote: la campaña ya no tiene de dónde armar la base. */
+  sin_lote: boolean;
+  criterio: string;
+};
+
+export type EstadoCampana = EstadoCampanaAulas | EstadoCampanaCorreo | EstadoCampanaTerritorial | EstadoCampanaTelefonica | EstadoCampanaSupervision;
 
 export type CampanaMaterial = {
   id: string;
@@ -78,6 +111,12 @@ export type CampanaMaterial = {
   ref: string;
   /** `null` cuando la respuesta no trae estado (o no es de un tipo conocido). */
   estado: EstadoCampana | null;
+  /** ADR 0122 P2: el Planner declara perfiles y este tipo no es de ellos. Se abre igual. */
+  fuera_del_estudio?: boolean;
+  /** ADR 0125 A4: "acreditacion" si se creó en un estudio de acreditación. */
+  proposito?: "acreditacion" | null;
+  /** ADR 0125 §5: de qué público y ronda es, y de qué campaña viene. */
+  relacion?: RelacionDeCampana | null;
 };
 
 export type DisponibilidadDeTipo = {
@@ -85,7 +124,18 @@ export type DisponibilidadDeTipo = {
   disponible: boolean;
   /** Por qué no se puede crear, en el idioma de quien la usa. */
   motivo: string | null;
+  /** ADR 0122 P2: `false` si el Planner declaró perfiles y este tipo no es de ellos. */
+  del_estudio?: boolean;
+  /** Sólo supervisión (ADR 0125 A3): los lotes de Monitoreo que todavía no tienen su campaña. */
+  lotes_libres?: LoteDeSupervision[];
+  /** Sólo telefónica en acreditación (ADR 0125 §5): las rondas del Modelo que todavía no tienen su campaña. */
+  rondas_libres?: RondaLibre[];
 };
+
+export type RondaLibre = { publico: string; etiqueta: string; ronda: number; id: string; viene_de: string | null };
+export type RelacionDeCampana = { publico: string | null; ronda: number | null; viene_de: string | null };
+
+export type LoteDeSupervision = { lote_id: string; criterio: string; casos: number; creado_en: string | null };
 
 export type RegistroDeCampanas = {
   schema: typeof MATERIAL_CAMPANAS_SCHEMA;
@@ -160,8 +210,38 @@ function normalizarEnvio(valor: unknown): EnvioDeCampana | null {
   };
 }
 
-function normalizarEstado(tipo: TipoDeCampana, valor: unknown): EstadoCampana | null {
+function normalizarEstado(tipo: TipoDeCampana, valor: unknown, ref?: unknown): EstadoCampana | null {
   if (!esRegistro(valor)) return null;
+  if (tipo === "territorial") {
+    const fase = esRegistro(ref) ? texto(ref.fase) : "";
+    return {
+      tipo,
+      titulares: entero(valor.titulares),
+      reemplazos: entero(valor.reemplazos),
+      stale: logico(valor.stale),
+      enviado_at: textoONulo(valor.enviado_at),
+      fase: fase === "pilot" ? "pilot" : "field",
+    };
+  }
+  if (tipo === "telefonica") {
+    return {
+      tipo,
+      muestra: entero(valor.muestra),
+      backup: entero(valor.backup),
+      casos: entero(valor.casos),
+      llave: texto(valor.llave).trim(),
+      configurada: logico(valor.configurada),
+    };
+  }
+  if (tipo === "supervision") {
+    return {
+      tipo,
+      lote_id: texto(valor.lote_id).trim(),
+      casos: entero(valor.casos),
+      sin_lote: logico(valor.sin_lote),
+      criterio: texto(valor.criterio).trim(),
+    };
+  }
   if (tipo === "aulas") {
     return {
       tipo,
@@ -216,7 +296,12 @@ export function normalizarCampana(valor: unknown): CampanaMaterial | null {
     archived: logico(valor.archived),
     persisted: logico(valor.persisted),
     ref: refDe(valor.ref, id, tipo),
-    estado: normalizarEstado(tipo, valor.estado),
+    estado: normalizarEstado(tipo, valor.estado, valor.ref),
+    fuera_del_estudio: logico(valor.fuera_del_estudio),
+    proposito: texto(valor.proposito).trim() === "acreditacion" ? "acreditacion" : null,
+    relacion: esRegistro(valor.relacion)
+      ? { publico: textoONulo(valor.relacion.publico), ronda: valor.relacion.ronda == null ? null : entero(valor.relacion.ronda), viene_de: textoONulo(valor.relacion.viene_de) }
+      : null,
   };
 }
 
@@ -235,7 +320,20 @@ function normalizarTipo(valor: unknown): DisponibilidadDeTipo | null {
   const tipo = texto(valor.tipo).trim();
   if (!esTipoDeCampana(tipo)) return null;
   const disponible = logico(valor.disponible);
-  return { tipo, disponible, motivo: disponible ? null : motivoSinCodigo(textoONulo(valor.motivo)) };
+  // Sin el campo (backend anterior) el tipo es del estudio.
+  const delEstudio = valor.del_estudio == null ? true : logico(valor.del_estudio);
+  const base: DisponibilidadDeTipo = { tipo, disponible, motivo: disponible ? null : motivoSinCodigo(textoONulo(valor.motivo)), del_estudio: delEstudio };
+  if (tipo === "telefonica" && valor.rondas_libres != null) {
+    const rondas_libres = lista(valor.rondas_libres).filter(esRegistro)
+      .map((r) => ({ publico: texto(r.publico).trim(), etiqueta: texto(r.etiqueta).trim() || texto(r.publico).trim(), ronda: entero(r.ronda), id: texto(r.id).trim(), viene_de: textoONulo(r.viene_de) }))
+      .filter((r) => r.publico && r.id);
+    return { ...base, rondas_libres };
+  }
+  if (tipo !== "supervision") return base;
+  const lotes_libres = lista(valor.lotes_libres).filter(esRegistro)
+    .map((l) => ({ lote_id: texto(l.lote_id).trim(), criterio: texto(l.criterio).trim(), casos: entero(l.casos), creado_en: textoONulo(l.creado_en) }))
+    .filter((l) => l.lote_id);
+  return { ...base, lotes_libres };
 }
 
 export function normalizarRegistroDeCampanas(valor: unknown): RegistroDeCampanas {
@@ -328,6 +426,13 @@ export type NuevaCampana = {
   platform?: MailPlatform;
   preset_id?: string | null;
   import_id?: string | null;
+  /** Sólo territorial: de qué fase de Hojas de ruta se lee la foto. */
+  fase?: "pilot" | "field";
+  /** Sólo supervisión: el lote de Monitoreo que se supervisa. */
+  lote?: string;
+  /** Sólo telefónica en acreditación: el público y la ronda del Modelo. */
+  publico?: string;
+  ronda?: number;
   expected_state_revision?: number | null;
   expected_registry_revision?: number | null;
 };
@@ -370,6 +475,9 @@ const AVISO_DEL_REGISTRO: Readonly<Record<string, string>> = {
   E_COLLECTION_CAMPAIGN_TIPO: "Ese tipo de campaña no existe.",
   E_COLLECTION_CAMPAIGN_TIPO_NO_DISPONIBLE: "Ese tipo de campaña todavía no se puede crear en este proyecto.",
   E_COLLECTION_CAMPAIGN_AULAS_UNICA: "El proyecto ya tiene su campaña de aulas: ábrela desde la lista.",
+  E_COLLECTION_CAMPAIGN_TERRITORIAL_UNICA: "El proyecto ya tiene su campaña territorial: ábrela desde la lista.",
+  E_COLLECTION_CAMPAIGN_TELEFONICA_UNICA: "El proyecto ya tiene su campaña telefónica: ábrela desde la lista.",
+  E_COLLECTION_CAMPAIGN_TERRITORIAL_SIN_ENVIO: "Esa fase no tiene una muestra enviada: envíala desde Hojas de ruta.",
   E_COLLECTION_CAMPAIGN_STALE: "Otro cambio se guardó antes. Se volvió a leer la lista de campañas.",
   E_COLLECTION_STATE_STALE: "Otro cambio del módulo se guardó antes. Se volvió a leer la lista de campañas.",
   E_COLLECTION_CAMPAIGN_INVALID: "Ese cambio no aplica a este tipo de campaña.",

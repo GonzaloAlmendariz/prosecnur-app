@@ -1,0 +1,52 @@
+/* CargaDeModulo.tsx — el salto corto dentro de la app (fallback de Suspense) con el lenguaje de PantallaDeCarga
+   en pequeño: isotipo que late, ceja con el punto del tono del módulo, rótulo y barra indeterminada.
+   Aparece con un retardo corto para no parpadear cuando el código ya estaba en caché. */
+.pulso-carga-modulo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--pulso-space-2);
+  min-height: 260px;
+  padding: var(--pulso-space-5);
+  animation: pulso-carga-modulo-aparece var(--motion-dur-base) var(--motion-ease-out) 90ms backwards;
+}
+.pulso-carga-modulo .pulso-isotipo-carga { --isotipo-carga-lado: 44px; margin-bottom: var(--pulso-space-1); }
+.pulso-carga-modulo-ceja {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 72%, var(--pulso-text));
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.pulso-carga-modulo-ceja::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--module-accent, var(--pulso-primary));
+}
+.pulso-carga-modulo-rotulo {
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-type-subtitle-weight);
+  color: var(--pulso-text-soft);
+}
+/* 7 nov 2026 (QA del isotipo): el bloque se encoge al ancho de su contenido, así que un 60 % dejaba la barra en 92 px;
+   y el riel surface-3 no se distinguía del fondo. Ancho fijo y riel teñido del tono del módulo. */
+.pulso-carga-modulo .pulso-barra-avance {
+  width: 240px;
+  max-width: 100%;
+  margin-top: var(--pulso-space-1);
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 18%, var(--pulso-border));
+}
+
+@keyframes pulso-carga-modulo-aparece {
+  from { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-carga-modulo { animation: none; }
+}

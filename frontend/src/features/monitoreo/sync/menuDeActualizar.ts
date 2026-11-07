@@ -49,7 +49,7 @@ const NOMBRE_DE_PAPEL: Partial<Record<string, string>> = {
 function detalleDeFuente(fuente: MonitoreoSource) {
   const plataforma = NOMBRE_DE_PLATAFORMA[fuente.kind] ?? fuente.kind;
   const papel = fuente.role ? NOMBRE_DE_PAPEL[fuente.role] : undefined;
-  return papel ? `${plataforma} · ${papel}` : plataforma;
+  return papel ? `${plataforma}, ${papel}` : plataforma;
 }
 
 function etiquetaDeFuente(fuente: MonitoreoSource) {

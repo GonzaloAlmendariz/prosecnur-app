@@ -39,7 +39,7 @@ describe("Origen con la fuente cambiada", () => {
 
   it("dice de dónde salen y que la lista no se edita aquí", () => {
     expect(html).toContain("De dónde salen");
-    expect(html).toContain("Selección de cursos-horario · Cálculo de muestra");
+    expect(html).toContain("Selección de cursos-horario, de Cálculo de muestra");
     expect(html).toContain("la lista no se edita aquí");
     expect(html).toContain("Abrir en Cálculo de muestra");
   });
@@ -98,7 +98,7 @@ describe("Origen bloqueado o vacío", () => {
     const html = pintar(origenDe({ fuente_intermedia_desfasada: true }));
     expect(html).toMatch(/disabled=""[^>]*aria-describedby="rec-origen-motivo"|aria-describedby="rec-origen-motivo"[^>]*disabled=""/);
     expect(html).toContain("Actualízala allí primero");
-    expect(html).toContain('href="/monitoreo?seccion=modelo"');
+    expect(html).toContain('href="/monitoreo?modo=aulas&amp;seccion=control&amp;pestana=agenda"');
   });
 
   it("sin plan: vacío con acción que lleva a la Lista, sin botón de actualizar", () => {

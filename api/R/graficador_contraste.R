@@ -1,4 +1,4 @@
-# Contraste de públicos: el dumbbell del resumen ejecutivo (ADR 0114)
+# Contraste de públicos: el dumbbell del resumen ejecutivo (ADR 0134)
 # ===================================================================
 #
 # `graficar_dumbbell(estilo = "resumen")` llega aquí. La metodología vive en `.espec_contraste()`

@@ -141,7 +141,7 @@ test_that("plan de trabajo se persiste como estado propio y expone sincronizacio
   exported <- .plan_export_xlsx(sid, plan)
   expect_equal(exported$kind, "plan_trabajo_xlsx")
   expect_true(file.exists(exported$path))
-  expect_match(exported$original_name, "plan_trabajo")
+  expect_match(exported$original_name, "_Plan_de_trabajo_")
 })
 
 test_that("plan de trabajo permite actualizar una actividad sin tocar otros modulos", {

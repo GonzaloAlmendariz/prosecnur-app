@@ -1,0 +1,167 @@
+/* Insumos › Conexiones (ConexionesTab.tsx + FuenteDeConexion.tsx), pasada de
+ * diseño de Material (3 nov 2026). Las fuentes en una columna de `Panel` y la
+ * muestra de campo al costado. La vista mide lo que trae: desplaza con el
+ * área de trabajo (No Scroll Jail) y no estira tarjetas hasta el pie. */
+
+.mon-con {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 300px);
+  gap: var(--pulso-space-3);
+  align-items: start;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.mon-con .pulso-panel {
+  margin: 0;
+}
+
+.mon-con-fuentes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+}
+
+/* —— Cabecera de la fuente —— */
+.mon-con-fuente.es-activa {
+  border-color: var(--pulso-module-monitoring-border);
+}
+
+.mon-con-fuente .pulso-panel-header {
+  align-items: flex-end;
+}
+
+/* El rótulo de la pestaña encabeza la primera tarjeta (estándar §2a-bis): el
+ * antetítulo del kit no lo pasa a versalitas. */
+.mon-con-fuente .pulso-section-eyebrow {
+  margin-bottom: var(--pulso-space-3);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-regular);
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.mon-con-fuente .pulso-panel-hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--pulso-space-1) var(--pulso-space-3);
+  margin-bottom: var(--pulso-space-3);
+  font-size: var(--pulso-type-body-size);
+}
+
+.mon-con-formulario {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/* Un nombre de formulario en mayúsculas no se reescribe: se le baja el peso. */
+.mon-con-formulario.es-versal {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-regular);
+  letter-spacing: 0.04em;
+}
+
+.mon-con-metadatos {
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* —— Cuerpo: cifras y tira de lecturas —— */
+.mon-con-cuerpo {
+  display: grid;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+}
+
+/* Columnas fijas entre fuentes: las cifras de Campo y de ocurrencias quedan
+ * alineadas aunque una traiga cuatro y la otra tres. */
+.mon-con-fuente .pulso-cifras-tarjeta {
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+}
+
+.mon-con-fuente.es-discreta .pulso-cifra-tarjeta {
+  padding: var(--pulso-space-3);
+  background: transparent;
+  box-shadow: none;
+}
+
+.mon-con-fuente.es-discreta .pulso-cifra-tarjeta dd {
+  font-size: var(--pulso-type-title-size);
+}
+
+.mon-con-tira {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: end;
+  gap: var(--pulso-space-4);
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface-2);
+}
+
+.mon-con-tira figcaption {
+  display: grid;
+  gap: 2px;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mon-con-tira-rotulo {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-type-eyebrow-weight);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Cada lectura es una barra de 10 px como máximo: la tira mide lo que trae y
+ * sólo se estrecha si hay más lecturas de las que caben. */
+.mon-con-tira-barras {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  width: min(100%, calc(var(--mon-con-lecturas, 1) * 12px));
+  height: 28px;
+}
+
+.mon-con-tira-barras > i {
+  flex: 1 1 0;
+  min-width: 1px;
+  max-width: 10px;
+  height: max(2px, calc(var(--mon-con-altura, 0) * 100%));
+  border-radius: 2px 2px 0 0;
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 32%, var(--pulso-surface));
+}
+
+.mon-con-tira-barras > i:last-child {
+  background: var(--pulso-module-monitoring);
+}
+
+.mon-con-fuente.es-discreta .mon-con-tira-barras > i,
+.mon-con-fuente.es-discreta .mon-con-tira-barras > i:last-child {
+  background: color-mix(in srgb, var(--pulso-text-soft) 40%, var(--pulso-surface));
+}
+
+/* —— Muestra de campo —— */
+.mon-con-muestra .pulso-cifras-tarjeta {
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+}
+
+.mon-con-muestra .mon-ins-aviso-muestra,
+.mon-con-abrir {
+  margin-top: var(--pulso-space-3);
+}
+
+@media (max-width: 1100px) {
+  .mon-con {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

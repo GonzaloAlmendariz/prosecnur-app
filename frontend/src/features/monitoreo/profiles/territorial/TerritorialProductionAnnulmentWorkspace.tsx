@@ -204,7 +204,7 @@ function TerritorialProductionAnnulmentWorkspaceImpl({
     <section className="mon-production-annulments" aria-label="Anulación de producción territorial">
       <header className="mon-production-annulments__hero">
         <div>
-          <span><Trash2 size={14} /> Anulación auditada · Campo</span>
+          <span><Trash2 size={14} /> Anulación auditada en campo</span>
           <strong>Tachar producción o un caso por UUID</strong>
           <p>La tacha excluye respuestas de avance, cuotas, consultas, mapas y exportables normales. Kobo permanece intacto.</p>
         </div>
@@ -257,7 +257,7 @@ function TerritorialProductionAnnulmentWorkspaceImpl({
                 <div className="mon-production-annulments__responsible">
                   <strong>{selectedResponsible.label}</strong>
                   <span>
-                    {formatMetric(selectedResponsible.responses ?? 0)} respuestas · {formatMetric(selectedResponsible.valid_responses ?? 0)} válidas · {formatMetric(selectedResponsible.umps ?? 0)} UMP · {selectedResponsible.districts || "sin distrito"}
+                    {formatMetric(selectedResponsible.responses ?? 0)} respuestas, {formatMetric(selectedResponsible.valid_responses ?? 0)} válidas, {formatMetric(selectedResponsible.umps ?? 0)} UMP, {selectedResponsible.districts || "sin distrito"}
                   </span>
                   {alreadyAnnulled ? <em>Ya tiene una anulación activa.</em> : null}
                 </div>
@@ -283,7 +283,7 @@ function TerritorialProductionAnnulmentWorkspaceImpl({
                 <strong>{selectedCase?.label ?? "Caso ingresado manualmente"}</strong>
                 <span>
                   {selectedCase
-                    ? `${selectedCase.responsible_label || "sin responsable"} · ${selectedCase.district || "sin distrito"} · ${selectedCase.ump || "sin UMP"} · ${selectedCase.validation_status || "sin estado"}`
+                    ? `${selectedCase.responsible_label || "sin responsable"}, ${selectedCase.district || "sin distrito"}, ${selectedCase.ump || "sin UMP"}, ${selectedCase.validation_status || "sin estado"}`
                     : "Se validará contra la auditoría territorial vigente al previsualizar o aplicar."}
                 </span>
                 {alreadyAnnulled ? <em>Ya tiene una anulación activa.</em> : null}
@@ -301,7 +301,7 @@ function TerritorialProductionAnnulmentWorkspaceImpl({
           {localError ? <p className="mon-production-annulments__error">{localError}</p> : null}
           <div className="mon-production-annulments__actions">
             <button type="button" onClick={runPreview} disabled={saving || !hasTarget}>
-              {saving ? <Loader2 size={14} className="spin" /> : <Eye size={14} />}
+              {saving ? <Loader2 size={14} className="pulso-spin" /> : <Eye size={14} />}
               <span>Previsualizar impacto</span>
             </button>
             <button type="button" className="is-danger" onClick={applyAnnulment} disabled={saving || !hasTarget || alreadyAnnulled}>
@@ -339,8 +339,8 @@ function TerritorialProductionAnnulmentWorkspaceImpl({
                   <tr key={`${block.id_manzana ?? ""}-${block.ump ?? ""}`}>
                     <td><strong>{block.ump || "S/D"}</strong><span>{block.distrito || ""}</span></td>
                     <td>{block.manzana || "S/D"}</td>
-                    <td>{territorialAnnulmentStatusLabel(block.estado_antes)} · {formatMetric(block.validas_antes ?? 0)}</td>
-                    <td>{territorialAnnulmentStatusLabel(block.estado_despues)} · {formatMetric(block.validas_despues ?? 0)}</td>
+                    <td>{territorialAnnulmentStatusLabel(block.estado_antes)}, {formatMetric(block.validas_antes ?? 0)}</td>
+                    <td>{territorialAnnulmentStatusLabel(block.estado_despues)}, {formatMetric(block.validas_despues ?? 0)}</td>
                     <td>{formatMetric(block.validas_anuladas ?? block.respuestas_anuladas ?? 0)}</td>
                     <td>{formatMetric(block.brecha_despues ?? 0)}</td>
                   </tr>
@@ -366,7 +366,7 @@ function TerritorialProductionAnnulmentWorkspaceImpl({
               <div>
                 <span>{stringOrEmpty(entry.status) === "active" ? "Activa" : "Revertida"}</span>
                 <strong>{territorialProductionAnnulmentEntryLabel(entry)}</strong>
-                <em>{territorialProductionAnnulmentEntryScope(entry) === "response" ? "Caso individual" : "Responsable completo"} · {entry.reason || "Sin motivo registrado"} · {entry.created_at ? formatDate(entry.created_at) : "sin fecha"}</em>
+                <em>{territorialProductionAnnulmentEntryScope(entry) === "response" ? "Caso individual" : "Responsable completo"}, {entry.reason || "Sin motivo registrado"}, {entry.created_at ? formatDate(entry.created_at) : "sin fecha"}</em>
               </div>
               <div>
                 <strong>{formatMetric(entry.impact?.responses_excluded ?? 0)}</strong>
@@ -439,7 +439,7 @@ function territorialProductionAnnulmentCases(reports: MonitoreoTerritorialDashbo
     const latestActivity = stringOrEmpty(row.submission_date_iso || row.submission_time).trim();
     rows.push({
       response_id: responseId,
-      label: [responseId, responsibleLabel, district, ump].filter(Boolean).join(" · "),
+      label: [responseId, responsibleLabel, district, ump].filter(Boolean).join(", "),
       responsible_key: territorialProductionAnnulmentKey(responsibleLabel),
       responsible_label: responsibleLabel,
       pulso_code: stringOrEmpty(row.pulso_code).trim(),

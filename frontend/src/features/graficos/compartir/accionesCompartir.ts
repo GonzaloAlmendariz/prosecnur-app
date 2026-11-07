@@ -30,6 +30,7 @@ import {
   type ModoImportacionJson,
   type SeccionesJson,
 } from "./seccionesJson";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 export type DepsCompartir = {
   configExport: () => Promise<{ config?: unknown }>;
@@ -190,5 +191,5 @@ export async function aplicarPlanPortatil(
   invalidateSlideCompositionPersistenceAck(sid, "active");
   await deps.shareImport(plan.package_file_id, bases);
   await rehidratarDesdeBackend(sid, deps);
-  return `Plan aplicado a ${bases.length} base${bases.length === 1 ? "" : "s"}`;
+  return `Plan aplicado a ${formatoConteo(bases.length)} base${bases.length === 1 ? "" : "s"}`;
 }

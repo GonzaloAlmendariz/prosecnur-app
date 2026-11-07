@@ -28,21 +28,28 @@
   --aulas-bpf-alto: 14px;
 }
 
-.aulas-bpf-vacio { margin: 8px 0 0; }
-
 .aulas-bpf-cabecera {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 
 .aulas-bpf-cabecera-meta strong { color: var(--pulso-text); }
 .aulas-bpf-cabecera-sexo { margin-left: 10px; }
-.aulas-bpf-cabecera-sexo::before { content: "· "; color: var(--pulso-text-faint); }
+/* Filete vertical, no un punto medio (regla de la pasada de formato, 3 nov 2026). */
+.aulas-bpf-cabecera-sexo::before {
+  content: "";
+  display: inline-block;
+  width: 1px;
+  height: 0.9em;
+  margin-right: 6px;
+  vertical-align: -0.1em;
+  background: var(--pulso-border-strong);
+}
 
 .aulas-bpf-leyenda {
   display: inline-flex;
@@ -95,7 +102,7 @@
   border: 0;
   padding: 0;
   font: inherit;
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: 600;
   letter-spacing: 0.02em;
   color: var(--pulso-text);
@@ -104,20 +111,6 @@
 }
 
 .aulas-bpf-nombre:hover { text-decoration: underline; }
-
-.aulas-bpf-chip {
-  font-size: 11px;
-  padding: 1px 7px;
-  border-radius: 999px;
-  border: 1px solid var(--pulso-border);
-  color: var(--pulso-text-soft);
-}
-
-.aulas-bpf-chip[data-estado="cumplida"] {
-  background: var(--pulso-success-bg);
-  border-color: var(--pulso-success-border);
-  color: var(--pulso-success-fg);
-}
 
 .aulas-bpf-carriles {
   display: flex;
@@ -133,7 +126,7 @@
 }
 
 .aulas-bpf-carril-sexo {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 
@@ -168,13 +161,13 @@
   display: flex;
   align-items: baseline;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
-.aulas-bpf-cifras strong { color: var(--pulso-text); font-size: 13px; }
+.aulas-bpf-cifras strong { color: var(--pulso-text); font-size: var(--pulso-type-body-size); }
 .aulas-bpf-de { color: var(--pulso-text-faint); }
 .aulas-bpf-pct { margin-left: 2px; color: var(--pulso-text); font-weight: 600; }
 .aulas-bpf-resto { color: var(--pulso-text-faint); }

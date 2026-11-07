@@ -63,7 +63,7 @@ describe("graficadorToPresetType", () => {
     expect(graficadorToPresetType("p_dim_radar_tabla")).toBe("dim_radar");
   });
 
-  test("el panorama de públicos (ADR 0114) no tiene preset de tipo", () => {
+  test("el panorama de públicos (ADR 0134) no tiene preset de tipo", () => {
     expect(graficadorToPresetType("p_panorama")).toBeNull();
     expect(graficadorToPresetType("p_panorama", "")).toBeNull();
   });

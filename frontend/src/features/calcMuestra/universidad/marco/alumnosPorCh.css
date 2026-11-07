@@ -5,44 +5,10 @@
   min-width: 0;
 }
 
-.cmv2-alumnos-ch-head {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--pulso-space-3);
-}
-
-.cmv2-alumnos-ch-head > span {
-  display: grid;
-  place-items: center;
-  flex: 0 0 36px;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--pulso-radius);
-  color: var(--cmv2-accent);
-  background: var(--cmv2-accent-soft);
-}
-
-.cmv2-alumnos-ch-head h3 {
-  margin: 2px 0 0;
-}
-
-.cmv2-alumnos-ch-head small,
 .cmv2-alumnos-ch-table small {
   display: block;
   color: var(--pulso-text-muted);
   font-size: 0.69rem;
-}
-
-.cmv2-alumnos-ch-head > div > small {
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.cmv2-alumnos-ch-head p {
-  max-width: 78ch;
-  margin: var(--pulso-space-2) 0 0;
-  color: var(--pulso-text-muted);
-  line-height: 1.5;
 }
 
 /* `auto-fit` y no `repeat(4, …)`: con cuatro métodos, una rejilla de tres deja
@@ -222,7 +188,7 @@
 
 .cmv2-alumnos-ch-tira-cifras {
   color: var(--pulso-text-muted);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -231,7 +197,7 @@
 
 .cmv2-alumnos-ch-tira-vacia {
   color: var(--pulso-text-muted);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
 }
 
 /* Leyenda del bloque: una sola vez, nunca por fila. */
@@ -241,7 +207,7 @@
   gap: 4px 12px;
   margin: 0;
   color: var(--pulso-text-muted);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
 }
 
 .cmv2-alumnos-ch-tira-leyenda-escala {
@@ -254,5 +220,5 @@
    dejaba al usuario sin saber qué pieza falta. */
 .cmv2-alumnos-ch-bloqueo {
   color: var(--pulso-danger-text, var(--pulso-text-muted));
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }

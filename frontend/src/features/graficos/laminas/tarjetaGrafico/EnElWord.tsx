@@ -3,7 +3,6 @@
 
 import { useId } from "react";
 import { leerModoInforme, leerModoLamina, MODOS_MULTI_INFORME, MODOS_MULTI_LAMINA, rotuloHeredado } from "../../word/modeloMultiWord";
-import { FileText } from "../../../../vendor/lucide-react";
 import type { ArgMetadata, GraficadorRef } from "../../../../api/graficos";
 import { Switch } from "../../../../components/Switch";
 import { BarraExtraControl } from "../../BarraExtraControl";
@@ -18,7 +17,7 @@ import {
   tituloWordPorDefecto,
   type TituloDeFigura,
 } from "./enElWordModel";
-import { leerTablaWord, aplicaTablaWord, NOTA_TABLA_WORD, patchTablaWord } from "./tablaWord";
+import { leerTablaWord, aplicaTablaWord, NOTA_TABLA_WORD, patchTablaWord, tablaWordPorLaLamina, NOTA_TABLA_WORD_HEREDADA } from "./tablaWord";
 import { leerTwoBox } from "./twoBox";
 import { leerBarraExtraWord, NOTA_WORD_IGUAL, NOTA_WORD_PROPIA, patchBarraExtraWord } from "./twoBoxWord";
 import "./tarjetaGrafico.css";
@@ -49,13 +48,12 @@ export function EnElWord({ slideId, slot, valor, argsDelRegistro }: Props) {
   const estadoPpt = leerTwoBox(valor.graficador, args, presets);
   const conTablaWord = aplicaTablaWord(valor.graficador, args);
   const tablaWord = conTablaWord && leerTablaWord(args);
+  const tablaPorLamina = conTablaWord && tablaWordPorLaLamina(args);
   const porDefecto = tituloWordPorDefecto(variable ? leerEtiquetaCorta(args, variable) : "", "");
 
   return (
-    <section className="pulso-f6-word" aria-labelledby={`${id}-cab`} data-qa-geometry-group="graficos/f6-word" data-qa-geometry-contract="intrinsic" data-qa="en-el-word">
-      <h4 className="pulso-f6-word-cabeza" id={`${id}-cab`}>
-        <FileText size={14} aria-hidden="true" /> En el Word
-      </h4>
+    // H4: la cabecera «En el Word» es la de su sección plegable (SeccionPlegable, en DatosGrafico).
+    <div className="pulso-f6-word" data-qa-geometry-group="graficos/f6-word" data-qa-geometry-contract="intrinsic" data-qa="en-el-word">
       {/* En las multiapiladas cómo sale depende de su forma (W6): lo explica la ayuda del control de abajo. */}
       {valor.graficador !== "p_barras_multiapiladas" && <p className="pulso-f6-dato-ayuda">{COMO_SALE[titulo]}</p>}
       {conTitulo && (
@@ -115,11 +113,12 @@ export function EnElWord({ slideId, slot, valor, argsDelRegistro }: Props) {
             <span className="pulso-f6-dato-rotulo" id={`${id}-tabla`}>Tabla de datos en el Word</span>
             <Switch
               checked={tablaWord}
+              disabled={tablaPorLamina}
               ariaLabel="Tabla de datos en el Word"
               onToggle={() => set(patchTablaWord(args, !tablaWord))}
             />
           </div>
-          <span className="pulso-f6-dato-ayuda">{NOTA_TABLA_WORD}.</span>
+          <span className="pulso-f6-dato-ayuda">{tablaPorLamina ? `${NOTA_TABLA_WORD_HEREDADA}.` : `${NOTA_TABLA_WORD}.`}</span>
         </div>
       )}
       {conRotulo && (
@@ -132,6 +131,6 @@ export function EnElWord({ slideId, slot, valor, argsDelRegistro }: Props) {
           />
         </div>
       )}
-    </section>
+    </div>
   );
 }

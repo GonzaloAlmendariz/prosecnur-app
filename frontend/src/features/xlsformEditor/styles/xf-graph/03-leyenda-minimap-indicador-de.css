@@ -14,7 +14,7 @@
     transform var(--motion-dur-press) var(--motion-ease-out);
 }
 .pulso-graph-overlay .pulso-graph-legend-toggle:active {
-  transform: scale(0.94);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-graph-overlay .pulso-graph-minimap {
@@ -148,9 +148,11 @@
   animation-name: pulso-xf-graph-aviso-in;
 }
 
+/* Deja libre la franja del minimapa (186 px + márgenes): en un lienzo angosto el aviso se montaba sobre él
+   (2026-11-06). Se centra en el espacio que queda a su izquierda. */
 .pulso-graph-body .pulso-graph-empty.pulso-graph-empty-no-edges {
-  inset: auto 0 24px;
-  max-width: min(560px, calc(100% - 48px));
+  inset: auto 218px 24px 0;
+  max-width: min(560px, calc(100% - 218px - 32px));
 }
 
 @keyframes pulso-xf-graph-aviso-in {
@@ -195,11 +197,6 @@
   font-family: var(--pulso-font-mono, ui-monospace, monospace);
   font-style: normal;
 }
-.pulso-graph-detail-vacio {
-  margin: 0;
-  color: var(--pulso-text-soft);
-  font-size: 12px;
-}
 
 @media (prefers-reduced-motion: reduce) {
   .pulso-graph-detail {
@@ -217,10 +214,10 @@
 .pulso-graph-empty-accion {
   display: inline-flex; align-items: center; margin-top: 8px; height: 30px; padding: 0 12px;
   border: 1px solid var(--pulso-primary); border-radius: var(--pulso-radius); background: var(--pulso-primary);
-  color: var(--pulso-surface); font: inherit; font-size: 12px; font-weight: var(--pulso-weight-medium); cursor: pointer; box-shadow: none;
+  color: var(--pulso-surface); font: inherit; font-size: var(--pulso-type-body-size); font-weight: var(--pulso-weight-medium); cursor: pointer; box-shadow: none;
 }
 .pulso-graph-empty-accion:hover { filter: brightness(1.05); }
-.pulso-graph-empty-accion:focus-visible { outline: 2px solid var(--pulso-primary-focus); outline-offset: 2px; }
+.pulso-graph-empty-accion:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 2px; }
 /* El aviso queda por encima del lienzo: con una acción adentro, el SVG se tragaba el clic. */
 .pulso-graph-body .pulso-graph-empty.pulso-graph-empty-no-edges { z-index: 6; pointer-events: auto; }
 

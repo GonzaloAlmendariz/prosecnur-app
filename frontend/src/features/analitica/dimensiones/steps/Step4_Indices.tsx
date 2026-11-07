@@ -69,8 +69,8 @@ export function Step4_Indices() {
           textAlign: "center",
         }}
       >
-        <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Aún no hay bloques</h2>
-        <p style={{ marginTop: 6, fontSize: 12, color: "var(--pulso-text-soft)" }}>
+        <h2 style={{ margin: 0, fontSize: "var(--pulso-type-kpi-size)", fontWeight: 700 }}>Aún no hay bloques</h2>
+        <p style={{ marginTop: 6, fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text-soft)" }}>
           Vuelve al paso anterior para crear al menos un bloque temático antes de
           definir índices compuestos.
         </p>
@@ -82,13 +82,13 @@ export function Step4_Indices() {
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <header style={{ display: "flex", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
         <div style={{ flex: 1, minWidth: 280 }}>
-          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>
+          <h2 style={{ margin: 0, fontSize: "var(--pulso-type-kpi-size)", fontWeight: 800 }}>
             Combina bloques en índices compuestos
           </h2>
           <p
             style={{
               margin: "6px 0 0",
-              fontSize: 13,
+              fontSize: "var(--pulso-type-body-size)",
               color: "var(--pulso-text-soft)",
               lineHeight: 1.5,
               maxWidth: 720,
@@ -129,7 +129,7 @@ export function Step4_Indices() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <span
                   style={{
-                    fontSize: 10,
+                    fontSize: "var(--pulso-type-micro-size)",
                     fontWeight: 700,
                     textTransform: "uppercase",
                     letterSpacing: 0.4,
@@ -147,7 +147,7 @@ export function Step4_Indices() {
                   onChange={(v) => actualizarIndice(i, { etiqueta: v })}
                 />
               </div>
-              <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 22 }}>
+              <span style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", marginTop: 22 }}>
                 {idx.subindices.length} de {bloquesDisponibles.length} bloques
               </span>
               <button
@@ -181,7 +181,7 @@ export function Step4_Indices() {
                       border: `1px solid ${incluido ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
                       background: incluido ? "var(--pulso-primary-soft)" : "white",
                       color: incluido ? "var(--pulso-primary)" : "var(--pulso-text)",
-                      fontSize: 12,
+                      fontSize: "var(--pulso-type-body-size)",
                       fontWeight: incluido ? 700 : 500,
                       cursor: "pointer",
                       transition:
@@ -212,7 +212,7 @@ export function Step4_Indices() {
           borderRadius: 10,
           background: "var(--pulso-surface)",
           cursor: "pointer",
-          fontSize: 13,
+          fontSize: "var(--pulso-type-body-size)",
           color: "var(--pulso-text-soft)",
         }}
       >
@@ -273,7 +273,7 @@ function IndiceEtiquetaInput({
           width: "100%",
           border: "none",
           background: "transparent",
-          fontSize: 16,
+          fontSize: "var(--pulso-type-title-size)",
           fontWeight: 700,
           color: "var(--pulso-text)",
           padding: 0,

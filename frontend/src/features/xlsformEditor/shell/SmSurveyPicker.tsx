@@ -3,6 +3,7 @@ import { Check, Search } from "../../../vendor/lucide-react";
 import type { SurveyMonkeyListItem } from "../../../api/multiIntegrado";
 import { smSurveyMatchesQuery, smSurveyMetaParts, smSurveyTitle } from "./surveyMonkeySurveySearch";
 import "../styles/xfSmImport";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 // Buscador del catálogo SurveyMonkey. Cada fila trae respuestas, preguntas y
 // fecha en tipografía secundaria (U5): así se distinguen dos encuestas
@@ -62,8 +63,8 @@ export function SmSurveyPicker({
         </label>
         <span className="pulso-xf-smi-picker-caption" aria-live="polite">
           Mostrando {Math.min(mostradas.length, visibles.length)} de {visibles.length === surveys.length ? meta?.totalRecent ?? surveys.length : visibles.length} modificadas en los últimos {meses} meses
-          {typeof totalCuenta === "number" && totalCuenta >= 0 ? ` · ${totalCuenta} en la cuenta` : ""}
-          {meta?.fromCache ? " · lista guardada en este equipo" : ""}
+          {typeof totalCuenta === "number" && totalCuenta >= 0 ? `, ${totalCuenta} en la cuenta` : ""}
+          {meta?.fromCache ? ", lista guardada en este equipo" : ""}
         </span>
       </div>
       {mostradas.length ? (
@@ -101,7 +102,7 @@ export function SmSurveyPicker({
           })}
         </ul>
       ) : (
-        <p className="pulso-xf-smi-vacio">Ninguna encuesta coincide con «{query}».</p>
+        <EstadoVacio icono={<Search size={14} />} titulo={`Ninguna encuesta coincide con «${query}»`} />
       )}
       {ocultas > 0 ? (
         <button type="button" className="pulso-xf-smi-mas" onClick={() => setTodas(true)}>

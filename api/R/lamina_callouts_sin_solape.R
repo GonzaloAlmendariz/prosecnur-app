@@ -94,11 +94,14 @@
 #' Centros de las cifras chicas de una barra apilada (lamina_escala.R): la colocación de siempre si no choca; si no, la nueva
 #' @keywords internal
 .lam_callouts_escala <- function(cs, textos, x, w, size = .std_pt("cifra_fuera")) {
-  pos <- cs
-  for (k in seq_along(pos)[-1]) pos[k] <- max(pos[k], pos[k - 1] + 0.46)
-  m <- length(pos); lim <- x + w - 0.12
-  if (m && pos[m] > lim) { pos[m] <- lim; if (m > 1) for (k in (m - 1):1) pos[k] <- min(pos[k], pos[k + 1] - 0.46) }
   anchos <- .lam_ancho_tinta(textos, size, TRUE)
+  # Dos cifras vecinas se separan lo que miden más un aire, no un 0,46 in fijo: dos «2%» (0,26 in) quedaban a 0,46 y la
+  # guía de la segunda cruzaba un tramo largo (Gonzalo, 2026-10-29: «un pequeño error en ese 2 % y su rama»).
+  sep <- function(k) (anchos[k - 1L] + anchos[k]) / 2 + 0.08
+  pos <- cs
+  for (k in seq_along(pos)[-1]) pos[k] <- max(pos[k], pos[k - 1] + sep(k))
+  m <- length(pos); lim <- x + w - 0.12
+  if (m && pos[m] > lim) { pos[m] <- lim; if (m > 1) for (k in (m - 1):1) pos[k] <- min(pos[k], pos[k + 1] - sep(k + 1L)) }
   if (!.lam_callouts_chocan(cs, pos, anchos)) return(pos)
   structure(.lam_callouts_sin_solape(cs, anchos, x - 0.15, x + w + 0.15), reparto = "nuevo")
 }
@@ -125,15 +128,37 @@
 }
 
 #' La guía de una cifra chica. Con la colocación de siempre, el tic vertical y el codo horizontal de siempre (Arte idéntico).
-#' Con el reparto nuevo, un trazo recto del segmento a la cifra: como los segmentos y las cifras van en el mismo orden,
-#' los trazos no se cruzan, mientras que los codos horizontales de una cadena corrida a un lado se montaban en la misma
-#' altura y se leían como un solo corchete.
+#' El reparto nuevo ya no pasa por aquí: va por `.lam_callout_carril` (ítem 20, v7 RV); `nuevo = TRUE` queda sólo por
+#' compatibilidad y también traza recto.
 #' @param y Borde superior de la barra. @param alto,y_codo Tic y altura del codo de siempre.
 #' @param nuevo `TRUE` si la posición salió del reparto nuevo.
 #' @keywords internal
 .lam_callout_guia <- function(lz, cs, pos, y, alto, y_codo, nuevo, col, nombre = "guia") {
-  if (isTRUE(nuevo)) return(.lam_linea(lz, cs, y - 0.004, pos, y - alto - 0.02, col, pt = 0.9, nombre = nombre))
+  if (isTRUE(nuevo)) return(.lam_callout_carril(lz, cs, pos, y, col, y_cifra = y - alto - 0.03, nombre = nombre))
   .lam_caja(lz, cs - 0.006, y - alto, 0.012, alto, col, nombre = nombre)
   if (abs(pos - cs) > 0.01) .lam_caja(lz, min(cs, pos), y_codo, abs(pos - cs), 0.012, col, nombre = nombre)
+  invisible(lz)
+}
+
+# ---- Guías por un carril compartido, sin diagonales (Gonzalo, PPT v7 RV, lámina 34: «los 1 % están rompiendo la
+# regla de líneas rectas») ---------------------------------------------------------------------------------------------
+# El reparto nuevo unía cada segmento con su cifra por un trazo diagonal. La regla de la casa es recta: cada guía sube
+# vertical desde su segmento hasta un carril horizontal, común a todas las cifras chicas de la barra, corre por él y se
+# desvía hacia arriba a su cifra, que queda en la fila de las demás. Gonzalo eligió el carril compartido frente a la
+# escalera de codos a alturas distintas («¿no puede usar el mismo carril y desviarse luego?»).
+
+#' Guía ortogonal de una cifra chica por el carril común: tic del segmento al carril, tramo por el carril y subida a la
+#' base de la cifra (`y_cifra`). Sin corrimiento, una sola vertical.
+#' @param y Borde superior de la barra. @param y_carril Altura del carril, entre la barra y la cifra. @keywords internal
+.lam_callout_carril <- function(lz, cs, pos, y, col, y_cifra, y_carril = (y + y_cifra) / 2, nombre = "guia") {
+  g <- 0.012
+  if (abs(pos - cs) <= 0.01) {
+    .lam_caja(lz, cs - g / 2, y_cifra, g, y - y_cifra, col, nombre = nombre)
+    return(invisible(lz))
+  }
+  yc <- y_carril - g / 2
+  .lam_caja(lz, cs - g / 2, yc, g, y - yc, col, nombre = nombre)                         # del segmento al carril
+  .lam_caja(lz, min(cs, pos) - g / 2, yc, abs(pos - cs) + g, g, col, nombre = nombre)     # por el carril
+  .lam_caja(lz, pos - g / 2, y_cifra, g, yc - y_cifra + g, col, nombre = nombre)          # del carril a la cifra
   invisible(lz)
 }

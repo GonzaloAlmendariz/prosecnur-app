@@ -13,7 +13,7 @@
   height: 100%;
   min-height: 0;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.35;
 }
 
@@ -62,7 +62,7 @@
 .acr-pr-grupo ul {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -75,13 +75,21 @@
   width: 100%;
   min-height: 32px;
   padding: 0 var(--pulso-space-2);
-  border: 1px solid transparent;
-  border-radius: 8px;
+  border: 0;
+  border-radius: 6px;
   background: transparent;
+  /* Una fila de lista no es un botón con relieve: sin la sombra ni el salto del
+   * botón global, que hacían de cada fila una caja dentro de la tarjeta (K4). */
+  box-shadow: none;
+  transform: none;
   color: var(--pulso-text);
   font: inherit;
   text-align: left;
   cursor: pointer;
+}
+
+.acr-pr-grupo li + li > button {
+  box-shadow: inset 0 1px 0 var(--pulso-surface-3);
 }
 
 .acr-pr-grupo button > b {
@@ -89,13 +97,21 @@
 }
 
 .acr-pr-grupo button:hover {
-  background: var(--pulso-surface-3);
+  background: color-mix(in srgb, var(--pulso-surface-3) 70%, transparent);
+  transform: none;
 }
 
-.acr-pr-grupo button.is-activo {
-  border-color: color-mix(in srgb, var(--pulso-module-monitoring) 45%, var(--pulso-surface));
-  background: color-mix(in srgb, var(--pulso-module-monitoring) 7%, var(--pulso-surface));
+/* La elegida: fondo teñido del módulo, sin borde ni franja (K2/K4). */
+.acr-pr-grupo button.is-activo,
+.acr-pr-grupo li + li > button.is-activo {
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 10%, var(--pulso-surface));
+  box-shadow: none;
+  color: color-mix(in srgb, var(--pulso-module-monitoring) 55%, var(--pulso-text));
   font-weight: var(--pulso-weight-semibold);
+}
+
+.acr-pr-grupo li:has(> button.is-activo) + li > button {
+  box-shadow: none;
 }
 
 .acr-pr-grupo button:focus-visible,
@@ -174,7 +190,7 @@
 
 .acr-pr-dato dt {
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -218,7 +234,7 @@
 }
 
 .acr-pr-linea b {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .acr-pr-linea span {
@@ -280,18 +296,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.acr-av-chip.is-exact {
-  border-color: var(--pulso-success-border);
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-}
-
-.acr-av-chip.is-possible {
-  border-color: var(--pulso-warn-border);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
-}
-
 .acr-pr-buscador {
   display: flex;
   align-items: center;
@@ -335,7 +339,7 @@
 
 .acr-pr-nota span {
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -351,6 +355,8 @@
 
 .acr-pr-acciones {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: flex-end;
   gap: var(--pulso-space-2);
 }
@@ -386,7 +392,17 @@
    * filas. A lo ancho, debajo de las dos columnas, la fila de arriba medía lo
    * que los filtros y una cola de 2 casos dejaba 250 px vacíos antes del caso. */
   .acr-pr { grid-template-rows: auto minmax(0, 1fr); }
-  .acr-pr > .acr-pr-filtros { grid-row: 1 / span 2; }
+  /* Con el caso abierto la segunda fila mide lo que el caso (~1 300 px a 1024) y
+   * los filtros, a su alto natural, dejaban esa columna en blanco. Quedan fijos
+   * arriba mientras se baja por el caso; si no caben en lo visible, desplazan
+   * dentro (el tope descuenta la barra de la app y la del módulo). */
+  .acr-pr > .acr-pr-filtros {
+    grid-row: 1 / span 2;
+    position: sticky;
+    top: 0;
+    max-height: calc(100dvh - 160px);
+    overflow-y: auto;
+  }
   .acr-pr-panel { grid-column: 2; grid-row: 2; align-self: start; }
   .acr-pr-cola-marco { max-height: 420px; }
   .acr-pr-panel-cuerpo,
@@ -444,4 +460,12 @@
 .acr-av-panel.acr-pr-panel h3 .acr-av-antetitulo {
   flex: 0 0 auto;
   white-space: nowrap;
+}
+
+/* La razón de un botón apagado va a su lado, en texto tenue (K5). */
+.acr-pr-motivo {
+  flex: 1 1 100%;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+  text-align: right;
 }

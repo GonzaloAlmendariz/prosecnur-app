@@ -15,6 +15,7 @@ import { PestanaReglas, type ReglaListaGrupo } from "./PestanaReglas";
 import { restriccionesDelFormulario } from "./reglasModel";
 import { ProbarRestriccion } from "./ProbarRestriccion";
 
+import { EstadoChip } from "../../../components/EstadoChip";
 // Pestaña Restricciones (revamp 2026-10-16): todas las reglas de «qué acepta» del formulario
 // en un solo lugar. El Constructor edita la misma regla en línea; aquí hay más espacio para
 // leerla, ver de qué otras preguntas depende y qué le falta.
@@ -36,12 +37,12 @@ export function PestanaRestricciones({ structure, scope: scopeBase, seleccionada
   const scope = useMemo(() => enriquecerAlcance(scopeBase, structure), [scopeBase, structure]);
   // Un «mensaje» que repite el nombre de la pregunta (fila rota) no es un mensaje: cuenta como que falta (S5).
   const items = useMemo(
-    () => restriccionesDelFormulario(structure).map((i) => {
+    () => restriccionesDelFormulario(structure, (lista) => catalogs.find((c) => c.listName === lista)?.items ?? []).map((i) => {
       const mensaje = (i.node.constraint_message ?? "").trim();
       const rota = esFilaRota(i.node);
       return { ...i, rota, usa: rota ? [] : i.usa, sinMensaje: i.sinMensaje || (i.estado === "con" && mensaje === i.node.name) };
     }),
-    [structure],
+    [structure, catalogs],
   );
   const con = useMemo(() => items.filter((i) => i.estado === "con"), [items]);
   const sugeridas = useMemo(() => items.filter((i) => i.estado === "sugerida"), [items]);
@@ -67,7 +68,7 @@ export function PestanaRestricciones({ structure, scope: scopeBase, seleccionada
         titulo: "Sugeridas",
         items: sugeridas.map((i) => ({
           key: i.node.name, baseType: i.node.typeInfo.base, numero: i.node.paperNumber ?? "", titulo: tituloDe(i.node),
-          resumen: "Acepta cualquier valor",
+          resumen: i.node.typeInfo.base === "select_multiple" ? "Tiene opciones que suelen ir solas" : "Acepta cualquier valor",
         })),
       },
     ];
@@ -90,7 +91,7 @@ export function PestanaRestricciones({ structure, scope: scopeBase, seleccionada
     <PestanaReglas
       titulo="Restricciones"
       marca="regla"
-      total={`${con.length} con regla · ${sugeridas.length} sugeridas`}
+      total={`${con.length} con regla, ${sugeridas.length} sugeridas`}
       grupos={grupos}
       seleccionada={actual?.node.name ?? null}
       onSeleccionar={onSeleccionar}
@@ -107,44 +108,44 @@ export function PestanaRestricciones({ structure, scope: scopeBase, seleccionada
       {actual ? (
         <>
           <div className="xfp-encabezado">
-            <span className="xfp-encabezado__ruta"><TypeIcon baseType={actual.node.typeInfo.base} boxed /> Restricción{actual.node.label ? <> · <code className="xfp-codigo">{actual.node.name}</code></> : null}</span>
+            <span className="xfp-encabezado__ruta"><TypeIcon baseType={actual.node.typeInfo.base} boxed /> Restricción{actual.node.label ? <code className="xfp-codigo">{actual.node.name}</code> : null}</span>
             <h2 className="xfp-encabezado__titulo">{actual.node.label ? <EtiquetaLegible texto={actual.node.label} etiquetaDe={etq} /> : <code className="xfp-var is-codigo">{actual.node.name}</code>}</h2>
             <span className="xfp-encabezado__accion"><EditarEnConstructor onEditar={() => onEditar(actual.node.rowIndex)} que={`la pregunta ${numero(actual.node)}`} /></span>
           </div>
           <PanelCard
             title="Regla"
-            meta={<span className={`xfp-insignia is-${estado.replace(/\s+/g, "-")}`}>{estado}</span>}
+            meta={<EstadoChip label={estado} tone={estado === "vigente" ? "success" : estado === "sin regla" ? "neutral" : "warn"} />}
             footer={actual.estado === "con" ? (
               <button type="button" className="xfp-boton" aria-expanded={editando} onClick={() => setEditando((v) => !v)}>
                 <Pencil size={13} aria-hidden="true" /> {editando ? "Cerrar el editor" : "Editar la regla"}
               </button>
             ) : undefined}
           >
-            <div className="xfp-lectura-regla">
+            {/* A5 (2026-11-07): sin regla, el armador de abajo ya lo dice; aquí no se repite. */}
+            {actual.estado === "con" ? <div className="xfp-lectura-regla">
               <p className="xfp-lectura" data-qa-geometry-group="xlsform/lectura-regla" data-qa-geometry-contract="intrinsic">
-                {actual.estado !== "con"
-                  ? "Acepta cualquier valor: todavía no tiene restricción."
-                  : actual.rota
-                    ? LECTURA_FILA_ROTA
-                    : lectura?.tecnica
-                      ? "El motor todavía no traduce esta regla: se aplica tal como está escrita."
-                      : <LecturaPiezas piezas={lectura?.piezas ?? []} etiquetaDe={etq} />}
+                {actual.rota
+                  ? LECTURA_FILA_ROTA
+                  : lectura?.tecnica
+                    ? "El motor todavía no traduce esta regla: se aplica tal como está escrita."
+                    : <LecturaPiezas piezas={lectura?.piezas ?? []} etiquetaDe={etq} />}
               </p>
               {actual.rota ? null : <dl className="xfp-def">
                 <dt>Mensaje</dt>
                 <dd>
                   {mensajeActual && mensajeActual !== actual.node.name
                     ? <Markdown texto={mensajeActual} />
-                    : <span className="xfp-nota">{actual.estado === "con" ? "Sin mensaje: quien se equivoque verá un aviso genérico." : "Se escribe junto con la regla."}</span>}
+                    : <span className="xfp-nota">Sin mensaje: quien se equivoque verá un aviso genérico.</span>}
                 </dd>
               </dl>}
               {actual.node.constraint.trim() ? (
-                <details className="xfp-codigo-xls" open={Boolean(lectura?.tecnica)}>
-                  <summary>Expresión en XLSForm</summary>
+                // Siempre a la vista: sin triángulo que despliega (E20).
+                <div className="xfp-codigo-xls">
+                  <span className="xfp-codigo-xls__rot">Expresión en XLSForm</span>
                   <code>{actual.node.constraint.trim()}</code>
-                </details>
+                </div>
               ) : null}
-            </div>
+            </div> : null}
             {editando || actual.estado !== "con" ? (
               <div className="xfp-editor-regla">
                 <EditorValidacion

@@ -57,7 +57,7 @@ export function BarraEstructura({
             type="search"
             value={consulta}
             placeholder="Buscar"
-            title="Busca por texto o código · Esc limpia"
+            title="Busca por texto o código; Esc limpia"
             aria-label="Buscar por texto o código"
             aria-describedby={activo ? idEstado : undefined}
             onChange={(e) => onConsulta(e.currentTarget.value)}

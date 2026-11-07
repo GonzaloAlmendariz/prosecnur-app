@@ -241,7 +241,8 @@ function hojasRutaUbigeos(state: HojasRutaState) {
   return uniqueStrings([...fromRuns, ...fromTerritories]);
 }
 
-async function warmupHojasRutaRunData(api: WarmupApi, plan: ReturnType<typeof hojasRutaRunPlans>[number]) {
+/** Exportada para el test de regresión: el warm start no debe tomar decisiones (sortear). */
+export async function warmupHojasRutaRunData(api: Pick<WarmupApi, "apiHojasRutaPopulationPreview" | "apiHojasRutaSampleSizePreview" | "apiHojasRutaQuotaPreview">, plan: ReturnType<typeof hojasRutaRunPlans>[number]) {
   const territorios = plan.config.territorios ?? [];
   if (!territorios.length) return { phase: plan.phase, skipped: "sin territorios" };
 
@@ -250,20 +251,20 @@ async function warmupHojasRutaRunData(api: WarmupApi, plan: ReturnType<typeof ho
   let population = plan.outputs.population ?? null;
   let sampleSize = plan.outputs.sample_size_preview ?? null;
   let quota = plan.outputs.quota ?? null;
-  let sample = plan.outputs.sample ?? null;
+  const sample = plan.outputs.sample ?? null;
 
   if (!population && fullDepth >= HOJAS_RUTA_STAGE_ORDER.poblacion) {
-    population = await api.apiHojasRutaPopulationPreview(plan.config).catch(() => null);
+    population = await api.apiHojasRutaPopulationPreview(plan.config, "restauracion").catch(() => null);
   }
   if (!sampleSize && fullDepth >= HOJAS_RUTA_STAGE_ORDER.muestra) {
-    sampleSize = await api.apiHojasRutaSampleSizePreview(plan.config).catch(() => null);
+    sampleSize = await api.apiHojasRutaSampleSizePreview(plan.config, "restauracion").catch(() => null);
   }
   if (!quota && fullDepth >= HOJAS_RUTA_STAGE_ORDER.manzanas && (sampleSize as { ok?: boolean } | null)?.ok) {
     quota = await api.apiHojasRutaQuotaPreview(plan.config).catch(() => null);
   }
-  if (!sample && fullDepth >= HOJAS_RUTA_STAGE_ORDER.seleccion && (quota as { ok?: boolean } | null)?.ok) {
-    sample = await api.apiHojasRutaSamplePreview(plan.config).catch(() => null);
-  }
+  // El sorteo NO se restaura: el .pulso guarda la muestra de cada corrida, así que si falta es porque se
+  // descartó (confirmar otro territorio lo descarta) o nunca se sorteó. Rehacerla aquí sorteaba al abrir el
+  // proyecto, sin que nadie pulsara «Sortear» (regresión en warmupHojasRutaSinSorteo.test.ts).
 
   return {
     phase: plan.phase,
@@ -369,9 +370,10 @@ async function warmupMonitoreoLocalData() {
   }
 
   if (family === "acreditacion") {
-    const scopes = familyProfile?.warmupScopes?.length
-      ? [...familyProfile.warmupScopes]
-      : ["source", "advance_summary", "queries_summary", "phone_summary"];
+    // Sólo el corte de la vista de aterrizaje: los demás scopes bloqueaban el
+    // Plumber mono-hilo antes de que Avance pudiera responder.
+    const { scopeDeAterrizaje } = await import("../features/monitoreo/profiles/acreditacion/sync/scopeDeAterrizaje");
+    const scopes = [scopeDeAterrizaje(typeof window === "undefined" ? "" : window.location.search, family)];
     await withTimeout(
       "Monitoreo acreditación",
       settleAllLimited(scopes, async (reportScope) => {
@@ -486,7 +488,7 @@ export const WARMUP_MODULES: WarmupModuleEntry[] = [
   {
     id: "hojas_ruta",
     label: "Hojas de ruta",
-    load: () => import("../features/hojasRuta/HojasRutaPage"),
+    load: () => import("../features/hojasRuta/mapa/HojasRutaMapaPage"),
   },
   {
     id: "hojas_ruta_datos",
@@ -507,11 +509,6 @@ export const WARMUP_MODULES: WarmupModuleEntry[] = [
     id: "calc_muestra",
     label: "Cálculo de muestra",
     load: () => import("../features/calcMuestra/CalcMuestraPage"),
-  },
-  {
-    id: "plan_trabajo",
-    label: "Cronograma del proyecto",
-    load: () => import("../features/bitacora/BitacoraPage"),
   },
   {
     id: "material_campo",
@@ -542,11 +539,6 @@ export const WARMUP_MODULES: WarmupModuleEntry[] = [
     id: "editor_xlsform",
     label: "Editor de formularios",
     load: () => import("../features/xlsformEditor/XlsformEditorPage"),
-  },
-  {
-    id: "diseno_estudio",
-    label: "Bitácora",
-    load: () => import("../features/bitacora/BitacoraPage"),
   },
   {
     id: "plotly",
@@ -626,3 +618,13 @@ export async function warmupFrontendModules(
   markWarmupModulesComplete(results.map((item) => item.id));
   return results;
 }
+
+// Frontera de HMR (sólo dev). Sin ella, editar cualquier módulo que este
+// registro alcanza —un perfil de Monitoreo, su `index.ts`, el registro de
+// familias— subía hasta BootGate, Fast Refresh volvía a correr sus efectos y
+// la app relanzaba bootstrap y un job de warmup nuevo con la vista abierta
+// (21.8 s sin readiness, medido). BootGate y ModuleWarmupBoundary quedan con
+// la versión anterior de este registro hasta recargar; si después se edita
+// ModuleWarmupBoundary, toma la nueva con el set de completados vacío y
+// re-calienta su módulo una vez (acotado por su presupuesto, sin job nuevo).
+if (import.meta.hot) import.meta.hot.accept();

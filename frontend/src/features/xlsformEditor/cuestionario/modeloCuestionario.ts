@@ -15,6 +15,8 @@ import type { MatrixCandidate } from "../parsing/detectMatrixCandidates";
 import type { BuilderNode, BuilderStructure, CatalogSummary } from "../types";
 import { segundosDePregunta } from "../resumen/modeloResumen";
 import { esMetadato } from "../kit/tiposPregunta";
+import { appearanceTokens } from "../canvas/previewInputs";
+import { tituloSinRotulo } from "../shell/simulador/modeloGrilla";
 import { conReferencias, esNotaSinTexto } from "../helpers/markdownPregunta";
 
 /**
@@ -249,12 +251,17 @@ export function armarDocumento(
   outline.forEach((nodo, i) => {
     if (nodo.kind === "section" || nodo.kind === "repeat") {
       cerrar();
+      // Una batería (table-list) no lleva rótulo propio: toma el de su sección y el código de la nota que la
+      // presenta («Sección A… (A1)»), igual que en Probar. No es una sección sin título.
+      const bateria = tituloTecnico(nodo.label, nodo.name) && appearanceTokens(nodo).includes("table-list");
+      const padre = structure?.sections?.get(nodo.sectionId)?.label?.trim() || null;
+      const previa = outline[i - 1]?.kind === "note" ? outline[i - 1]! : null;
       actual = {
         clave: `${nodo.name || "seccion"}-${i}`,
         name: nodo.name,
-        rotulo: nodo.label || nodo.name,
+        rotulo: bateria && padre ? tituloSinRotulo(padre, previa) : nodo.label || nodo.name,
         fila: nodo.rowIndex,
-        sinTitulo: tituloTecnico(nodo.label, nodo.name),
+        sinTitulo: bateria && padre ? false : tituloTecnico(nodo.label, nodo.name),
         repite: nodo.kind === "repeat",
         preguntas: 0,
         segundos: 0,

@@ -4,46 +4,12 @@
   min-width: 0;
 }
 
-.cmv2-matriz-embudo-head {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--pulso-space-3);
-}
-
-.cmv2-matriz-embudo-head > span {
-  display: grid;
-  place-items: center;
-  flex: 0 0 36px;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--pulso-radius);
-  color: var(--cmv2-accent);
-  background: var(--cmv2-accent-soft);
-}
-
-.cmv2-matriz-embudo-head > div {
-  min-width: 0;
-}
-
-.cmv2-matriz-embudo-head small,
 .cmv2-matriz-embudo-table thead small {
   display: block;
   color: var(--pulso-text-muted);
   font-size: 0.69rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-}
-
-.cmv2-matriz-embudo-head h3 {
-  margin: 2px 0 0;
-  color: var(--pulso-text);
-}
-
-.cmv2-matriz-embudo-head p {
-  max-width: 78ch;
-  margin: var(--pulso-space-2) 0 0;
-  color: var(--pulso-text-muted);
-  line-height: 1.5;
 }
 
 .cmv2-matriz-embudo-scroll {

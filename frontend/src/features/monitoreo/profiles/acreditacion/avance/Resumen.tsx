@@ -1,13 +1,18 @@
 import { useMemo } from "react";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import { ArrowRight, CalendarDays } from "lucide-react";
 import type { MonitoreoCorte } from "../../../corte/corteContract";
 import { pctConEspacio } from "../../../core/formatoComun";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
-import { AcreditacionEmbudoCorte } from "../AcreditacionEmbudoCorte";
+import { EmbudoDeRespuestas } from "./EmbudoDeRespuestas";
+
+// La página de Acreditación (congelada) lo toma de aquí para Avance › Salidas.
+export { EmbudoDeRespuestas };
 import { fmt } from "../formato";
 import { useResumenDelCorte } from "../navegacion/resumenDelCorte";
 import { esperanPorPublico, type CasosDelCorte } from "../control/casos/tiposDeCaso";
 import {
+  rotuloDeDiasALaMeta,
   diaDeMetaCumplida,
   proyeccion,
   rezagadosPrimero,
@@ -25,6 +30,7 @@ import { CabeceraDeTarjeta } from "../navegacion/rotuloDePestana";
 import { VacioDeBloque } from "../piezas/AvisoDeTarjeta";
 import { clasePublico, paletaDePublicos, type PaletaDePublicos } from "../paletaPublicos";
 import "../paletaPublicos.css";
+import { formatoDecimal } from "../../../../../lib/formatoNumero";
 
 function porcentaje(valor: number, total: number) {
   return total > 0 ? pctConEspacio((valor / total) * 100) : "—";
@@ -36,19 +42,19 @@ function porcentajeEntero(valor: number, total: number) {
 
 function ChipDeProyeccion({ serie, totales }: { serie: ReturnType<typeof serieDiaria>; totales: TotalesDeAvance }) {
   const lectura = proyeccion(serie, totales);
-  if (lectura.tipo === "sin-meta") return <span className="acr-av-chip">Sin meta declarada</span>;
+  if (lectura.tipo === "sin-meta") return <EstadoChip label="Sin meta declarada" tone="neutral" />;
   if (lectura.tipo === "cumplida") {
-    return <span className="acr-av-chip is-cumple">{lectura.fecha ? `Meta cumplida el ${fechaCorta(lectura.fecha)}` : "Meta cumplida"}</span>;
+    return <EstadoChip label={lectura.fecha ? `Meta cumplida el ${fechaCorta(lectura.fecha)}` : "Meta cumplida"} tone="success" />;
   }
   // El chip dice la cifra; el cálculo que la sostiene va en el tooltip.
-  const ritmo = fmt(Math.round(lectura.ritmo));
+  const ritmo = formatoDecimal(lectura.ritmo, 1);
   return (
     <span className="acr-res-chips-proyeccion">
-      <span className="acr-av-chip is-falta">{`Faltan ${fmt(lectura.faltan)}`}</span>
+      <EstadoChip label={`Faltan ${fmt(lectura.faltan)}`} tone="warn" />
       {lectura.dias != null ? (
-        <span className="acr-av-chip" title={`Al ritmo de ${ritmo} efectivas diarias`}>{`≈ ${fmt(lectura.dias)} ${lectura.dias === 1 ? "día" : "días"}`}</span>
+        <EstadoChip label={rotuloDeDiasALaMeta(lectura.dias)} tone="neutral" detail={`Al ritmo de ${ritmo} efectivas diarias: ≈ ${fmt(lectura.dias)} días`} />
       ) : (
-        <span className="acr-av-chip" title="Sin efectivas en los últimos siete días">Sin ritmo</span>
+        <EstadoChip label="Sin ritmo" tone="neutral" detail="Sin efectivas en los últimos siete días" />
       )}
     </span>
   );
@@ -88,9 +94,9 @@ function PublicoEnBarra({
           <b className="acr-res-publico-nombre"><i className="mon-publico-punto" aria-hidden="true" />{tarjeta.actor}</b>
           {conMeta
             ? faltan > 0
-              ? <span className="acr-av-chip is-falta">Faltan {fmt(faltan)}</span>
-              : <span className="acr-av-chip is-cumple">Cumple</span>
-            : <span className="acr-av-chip">Sin meta</span>}
+              ? <EstadoChip label={`Faltan ${fmt(faltan)}`} tone="warn" />
+              : <EstadoChip label="Cumple" tone="success" />
+            : <EstadoChip label="Sin meta" tone="neutral" />}
           <span className="acr-res-publico-cifra">
             <b className="acr-av-num">{fmt(tarjeta.effective)}</b>
             <span className="acr-av-tenue">{`/ ${fmt(conMeta ? meta : tarjeta.universe)}`}</span>
@@ -195,7 +201,6 @@ export function Resumen(props: PropsDelResumen) {
 export function ResumenVista({
   tarjetas,
   diarioGeneral,
-  corte,
   casos,
   casosPorPublico = [],
 }: PropsDelResumen & { casos: CasosDelCorte | null; casosPorPublico?: Array<{ actor: string; esperan: number }> }) {
@@ -208,6 +213,8 @@ export function ResumenVista({
   // Densidad declarable (Meta B, L29): cómoda con pocos públicos, compacta con muchos.
   const compacta = tarjetas.length > 6;
   const avance = totales.meta > 0 ? totales.efectivas / totales.meta : null;
+  const lecturaDeProyeccion = useMemo(() => proyeccion(serie, totales), [serie, totales]);
+  const ritmoDeProyeccion = lecturaDeProyeccion.tipo === "faltan" ? lecturaDeProyeccion.ritmo : null;
 
   return (
     <div className="acr-res" data-density={compacta ? "compacta" : "comoda"} data-qa-geometry-group="acreditacion-avance-resumen" data-qa-geometry-contract="intrinsic">
@@ -223,7 +230,7 @@ export function ResumenVista({
               <span className="acr-res-kpi-linea">
                 <b className="acr-res-kpi-grande acr-av-num">{fmt(totales.efectivas)}</b>
                 {totales.meta > 0 ? <span className="acr-res-kpi-meta">de {fmt(totales.meta)} meta</span> : null}
-                {avance != null ? <span className={`acr-av-chip ${avance >= 1 ? "is-cumple" : "is-avance"}`}>{pctConEspacio(avance * 100)}</span> : null}
+                {avance != null ? <EstadoChip label={pctConEspacio(avance * 100)} tone={avance >= 1 ? "success" : "info"} /> : null}
               </span>
               <span className="acr-av-pista is-gruesa"><i style={{ width: `${Math.min(100, (avance ?? 0) * 100)}%` }} /></span>
             </div>
@@ -240,7 +247,7 @@ export function ResumenVista({
             <div className="acr-res-kpi" data-qa-geometry-member>
               <small>Rechazos</small>
               <b className="acr-av-num">{fmt(totales.rechazos)}</b>
-              <small>sin consentimiento</small>
+              <small>no aceptaron</small>
             </div>
             <div className="acr-res-kpi" data-qa-geometry-member>
               <small>Sin respuesta</small>
@@ -248,12 +255,12 @@ export function ResumenVista({
               <small>en el universo</small>
             </div>
           </div>
-          <div className="acr-res-embudo" aria-label="Del registro a la efectiva">
-            <AcreditacionEmbudoCorte corte={corte} />
+          <div className="acr-res-embudo" aria-label="De la respuesta a la efectiva">
+            <EmbudoDeRespuestas />
           </div>
           <div className="acr-res-curva" data-qa-geometry-capacity="owned">
             {serie.length ? (
-              <CurvaAcumulada serie={serie} meta={totales.meta} diaDeMeta={diaDeMetaCumplida(serie, totales.meta)} />
+              <CurvaAcumulada serie={serie} meta={totales.meta} diaDeMeta={diaDeMetaCumplida(serie, totales.meta)} ritmo={ritmoDeProyeccion} diasALaMeta={lecturaDeProyeccion.tipo === "faltan" ? lecturaDeProyeccion.dias : null} />
             ) : (
               <VacioDeBloque icono={<CalendarDays size={15} />} titulo="El corte todavía no trae efectivas con fecha." descripcion="La curva aparece cuando las encuestas devuelven respuestas completas." />
             )}
@@ -272,7 +279,7 @@ export function ResumenVista({
             <div className="acr-res-ultimos">
               <BarrasPorDia dias={ultimos.dias} etiqueta="Efectivas por día en los últimos 14 días del corte" />
               <div className="acr-res-ultimos-cifras">
-                <div className="acr-res-kpi"><small>Promedio de 7 días</small><b className="acr-av-num">{ultimos.promedio7.toLocaleString("es-PE", { maximumFractionDigits: 1 })}</b></div>
+                <div className="acr-res-kpi"><small>Promedio de 7 días</small><b className="acr-av-num">{formatoDecimal(ultimos.promedio7, 1)}</b></div>
                 <div className="acr-res-kpi"><small>Mejor día</small><b className="acr-av-num">{ultimos.mejor ? fmt(ultimos.mejor.efectivas) : "—"} <span className="acr-av-tenue">{ultimos.mejor ? fechaCorta(ultimos.mejor.fecha) : ""}</span></b></div>
                 <div className="acr-res-kpi"><small>Días sin efectivas</small><b className="acr-av-num">{fmt(ultimos.sinEfectivas)}</b></div>
               </div>

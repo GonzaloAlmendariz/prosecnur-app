@@ -608,3 +608,20 @@ test_that("H5: promote general (Kobo) nunca aplica mapas del editor y lo declara
   df <- .read_data_any_path(s$files[[child$data_file_id]]$path, "xlsx")
   expect_equal(sort(as.character(df$srv_claridad)), sort(c("4", "5", "3", "5")))
 })
+
+test_that("un corte con la cuenta única no suma dos veces las en observación (2026-11-02)", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  s <- session_get(sid)
+  snap <- .handoff_snapshot_fixture(validada = 1283L, revision = 255L, no_defendible = 90L, total = 1373L)
+  # Corte nuevo: `validas` ya trae las en observación y lo dice `efectivas`.
+  snap$territorial_overview_facts$efectivas <- 1283L
+  s$monitoreo_snapshot <- snap
+  s$monitoreo_config <- list(monitoreo_profile = list(family = "territorial"))
+  .session_env[[sid]] <- s
+
+  out <- .carga_monitoreo_handoff_status(sid)
+  expect_equal(out$counts$processable, 1283L)
+  expect_equal(out$counts$validada, 1028L)
+  expect_equal(out$counts$revision, 255L)
+})

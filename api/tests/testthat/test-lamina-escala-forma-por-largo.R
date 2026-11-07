@@ -1,7 +1,7 @@
 # Batería de escala con Bottom Two Box: la forma la decide el largo de las premisas (decisión «2c» de Gonzalo).
 # Premisas cortas -> filas con las dos columnas de box (lámina 97 del recetario); alguna larga -> bloque de premisas
 # (láminas 221/222). El largo se mide con `.lam_lineas_tinta` en la columna de rótulos de la forma en filas (1.8 in,
-# 12 pt) contra `.LAM_ESCALA_FILAS_LINEAS_MAX`. Sólo cambia la composición: cifras, bases y orden son los de la espec.
+# 12 pt) contra `ppt.composicion.filas.lineas_max`. Sólo cambia la composición: cifras, bases y orden son los de la espec.
 # Sin Bottom Two Box nada cambia, y la fila Total sigue mandando a filas.
 
 .fl_niv <- c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo", "SIN INF")
@@ -56,11 +56,11 @@
 .fl_over <- list(top2box_labels = .fl_niv[3:4], columna_bottom2box = TRUE, bottom2box_labels = .fl_niv[1:2])
 
 test_that("el umbral sale de lo dibujado: la lámina 97 cabe en dos líneas de la columna de filas y la 221/222 no", {
-  expect_identical(.LAM_ESCALA_FILAS_LINEAS_MAX, 2L)
-  medir <- function(t) .lam_lineas_tinta(t, .LAM_ESCALA_FILAS_WLAB, .std_pt("actor"), TRUE)
-  expect_lte(max(medir(.fl_cortas)), .LAM_ESCALA_FILAS_LINEAS_MAX)
+  expect_equal(.std_comp("filas", "lineas_max"), 2)
+  medir <- function(t) .lam_lineas_tinta(t, .std_comp("filas", "ancho_rotulo"), .std_pt("actor"), TRUE)
+  expect_lte(max(medir(.fl_cortas)), .std_comp("filas", "lineas_max"))
   expect_identical(medir("Claridad de la información"), 2L)          # la frontera: dos líneas todavía es la 97
-  expect_gt(min(medir(.fl_largas)), .LAM_ESCALA_FILAS_LINEAS_MAX)
+  expect_gt(min(medir(.fl_largas)), .std_comp("filas", "lineas_max"))
 })
 
 test_that("con Bottom Two Box: cortas en filas, una sola larga basta para el bloque; sin ella, Total o actores nada cambia", {

@@ -76,7 +76,7 @@ export function AulasAgendaPorFacultad({ filas, choques, hrefDeFicha, onVerFicha
         <strong>{fmt(total)}</strong> {total === 1 ? "curso-horario" : "cursos-horario"} en{" "}
         <strong>{fmt(facultades.length)}</strong>{" "}
         {facultades.length === 1 ? "facultad" : "facultades"}, por el día en que empieza cada una
-        {sinFecha ? <> · <strong>{fmt(sinFecha)}</strong> sin fecha, al final de su facultad</> : null}
+        {sinFecha ? <>, <strong>{fmt(sinFecha)}</strong> sin fecha, al final de su facultad</> : null}
       </p>
       {/* TODAS abiertas, y se pueden cerrar. Probé con sólo la primera abierta
           —la lista pasa de 5 538 px a 941— y el contrato lo tumba: el último
@@ -93,7 +93,7 @@ export function AulasAgendaPorFacultad({ filas, choques, hrefDeFicha, onVerFicha
               <span className="aulas-ruta-nombre">{f.facultad}</span>
               <span className="aulas-ruta-cuenta">
                 {fmt(f.aulas.length)} {f.aulas.length === 1 ? "curso-horario" : "cursos-horario"}
-                {f.enMarcha ? <em> · {fmt(f.enMarcha)} en marcha</em> : null}
+                {f.enMarcha ? <em>, {fmt(f.enMarcha)} en marcha</em> : null}
               </span>
               <span className="aulas-ruta-desde">
                 {f.primeraFecha ? `desde ${fechaCorta(f.primeraFecha)}` : "sin fecha"}

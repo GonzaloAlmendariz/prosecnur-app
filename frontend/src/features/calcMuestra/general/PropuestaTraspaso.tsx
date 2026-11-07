@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { CheckCircle2, Route } from "lucide-react";
 
+import { Panel } from "../../../components/Panel";
 import "./mesa.css";
 
 /**
@@ -27,18 +28,18 @@ export function PropuestaTraspaso({
   children?: ReactNode;
 }) {
   return (
-    <section className="cmv2-panel cmg-propuesta" aria-labelledby="cmg-propuesta-titulo" data-qa-geometry-member>
-      <div className="cmv2-panel-head">
-        <div>
-          <span className="cmv2-eyebrow">Salida</span>
-          <h3 id="cmg-propuesta-titulo" className="cmg-panel-titulo">Propuesta y traspaso</h3>
-        </div>
-        {cerrada && (
-          <span className="cmg-estado-chip" data-tono="ok">
-            <CheckCircle2 size={13} aria-hidden="true" /> Cerrada
-          </span>
-        )}
-      </div>
+    <Panel
+      className="cmg-propuesta"
+      aria-labelledby="cmg-propuesta-titulo"
+      data-qa-geometry-member
+      eyebrow="Salida"
+      title={<span id="cmg-propuesta-titulo">Propuesta y traspaso</span>}
+      actions={cerrada ? (
+        <span className="cmg-estado-chip" data-tono="ok">
+          <CheckCircle2 size={13} aria-hidden="true" /> Cerrada
+        </span>
+      ) : undefined}
+    >
       <div className="cmg-propuesta-campo">
         <label htmlFor="cmg-propuesta-notas">Notas de la propuesta</label>
         <textarea
@@ -65,6 +66,6 @@ export function PropuestaTraspaso({
         {!monitoreoListo && <small id="cmg-monitoreo-motivo" className="cmg-motivo">Se habilita con un n calculado.</small>}
       </div>
       {children}
-    </section>
+    </Panel>
   );
 }

@@ -5,6 +5,7 @@ import { useId, useMemo } from "react";
 import { useVariables } from "../../useVariables";
 import { parseBaseLabels, patchNombreDeBase } from "./nombresPorBaseModel";
 import "./datosBase.css";
+import { CargaDeBloque } from "../../../../components/CargaDeBloque";
 
 type Props = {
   argName: string;
@@ -24,7 +25,7 @@ export function NombresPorBase({ argName, rotulo, ayuda, valor, onCambio }: Prop
     <div role="group" aria-labelledby={id} className="pulso-f6-dato is-apilado pulso-f6-nombres-base" data-qa-geometry-group="graficos/f6-nombres-base" data-qa-geometry-contract="intrinsic">
       <span id={id} className="pulso-f6-dato-rotulo">{rotulo}</span>
       {loading ? (
-        <span className="pulso-f6-dato-ayuda" role="status">Leyendo las bases del estudio…</span>
+        <CargaDeBloque label="Leyendo las bases del estudio…" />
       ) : bases.length < 2 ? (
         <span className="pulso-f6-dato-ayuda">Este estudio no tiene bases separadas: la tabla no tiene una columna por público.</span>
       ) : (

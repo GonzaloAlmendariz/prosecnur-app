@@ -5,6 +5,7 @@
 
 import type { ReactNode } from "react";
 import type { PdfDialogState } from "../shell/pdfExportPreference";
+import { partirEnLineas, type PreguntaDePagina, type PrimeraPagina } from "./primeraPagina";
 
 const TINTA = "var(--pulso-border-strong)";
 const LINEA = "var(--pulso-border)";
@@ -12,6 +13,10 @@ const SUAVE = "var(--pulso-surface-2)";
 const ACENTO = "var(--module-accent, var(--pulso-primary))";
 const M = 14; // margen
 const ANCHO = 210 - 2 * M;
+
+const TEXTO = "var(--pulso-text)";
+const TEXTO_SUAVE = "var(--pulso-text-soft)";
+const PIE = 278;
 
 const barra = (x: number, y: number, w: number, fill = LINEA, h = 2.6) => <rect x={x} y={y} width={w} height={h} rx={h / 2} fill={fill} />;
 
@@ -55,6 +60,73 @@ function matriz(x: number, y: number, w: number): [ReactNode, number] {
   ];
 }
 
+/** Cuántos caracteres caben en `mm` con un cuerpo de `cuerpo` mm (media eme por carácter, de sobra para sans). */
+const caben = (mm: number, cuerpo: number) => Math.max(8, Math.floor(mm / (cuerpo * 0.52)));
+
+/**
+ * Una pregunta real (L36): número, enunciado en hasta dos líneas y sus opciones con su marca. Devuelve el dibujo y su
+ * alto, que depende de lo que trae: el esquema medía 28 siempre.
+ */
+function preguntaReal(x: number, y: number, w: number, p: PreguntaDePagina): [ReactNode, number] {
+  const sangria = p.numero ? 9 : 0;
+  const lineas = partirEnLineas(p.texto, caben(w - sangria, 3.3), 2);
+  let yy = y + 3.4;
+  const piezas: ReactNode[] = [];
+  if (p.numero) {
+    piezas.push(<text key="n" x={x} y={yy} fontSize={3.1} fontWeight={700} fill={ACENTO}>{p.numero.slice(0, 4)}</text>);
+  }
+  lineas.forEach((linea, i) => {
+    piezas.push(<text key={`l${i}`} x={x + sangria} y={yy + i * 4.2} fontSize={3.3} fontWeight={600} fill={TEXTO}>{linea}</text>);
+  });
+  yy += (lineas.length - 1) * 4.2 + 2.4;
+  if (p.marca === "linea") {
+    piezas.push(<path key="r" d={`M${x + sangria} ${yy + 4} h${(w - sangria) * 0.7}`} stroke={TINTA} strokeWidth={0.4} strokeDasharray="1 1" />);
+    yy += 6;
+  } else {
+    const opciones = p.restantes > 0 ? [...p.opciones, `y ${p.restantes} más`] : p.opciones;
+    opciones.forEach((opcion, i) => {
+      const cy = yy + 2.4 + i * 4.4;
+      const ultima = p.restantes > 0 && i === opciones.length - 1;
+      if (!ultima) {
+        piezas.push(
+          p.marca === "cuadro"
+            ? <rect key={`m${i}`} x={x + sangria} y={cy - 1.5} width={3} height={3} rx={0.5} fill="none" stroke={TINTA} strokeWidth={0.5} />
+            : <circle key={`m${i}`} cx={x + sangria + 1.5} cy={cy} r={1.5} fill="none" stroke={TINTA} strokeWidth={0.5} />,
+        );
+      }
+      piezas.push(
+        <text key={`o${i}`} x={x + sangria + 5} y={cy + 1.1} fontSize={2.9} fill={ultima ? TEXTO_SUAVE : TEXTO} fontStyle={ultima ? "italic" : undefined}>
+          {partirEnLineas(opcion, caben(w - sangria - 5, 2.9), 1)[0]}
+        </text>,
+      );
+    });
+    yy += opciones.length * 4.4 + 1;
+  }
+  return [<g key={`r${x}-${y}`}>{piezas}</g>, yy - y + 2];
+}
+
+/**
+ * Las preguntas reales en `columnas` columnas, como en un periódico: llena la primera hasta el pie y sigue en la
+ * siguiente. Devuelve el dibujo y cuántas preguntas usó.
+ */
+function flujoReal(y: number, columnas: 1 | 2, preguntas: readonly PreguntaDePagina[], x0 = M, ancho = ANCHO): [ReactNode[], number] {
+  const out: ReactNode[] = [];
+  const gap = 8;
+  const w = columnas === 2 ? (ancho - gap) / 2 : ancho;
+  let i = 0;
+  for (let c = 0; c < columnas && i < preguntas.length; c++) {
+    let yy = y;
+    while (i < preguntas.length) {
+      const [dib, alto] = preguntaReal(x0 + c * (w + gap), yy, w, preguntas[i]!);
+      if (yy + alto > PIE) break;
+      out.push(dib);
+      yy += alto + 3;
+      i += 1;
+    }
+  }
+  return [out, i];
+}
+
 /** Columnas de preguntas desde `y` hasta el pie. */
 function columnasDesde(y: number, columnas: 1 | 2, desde: number): ReactNode[] {
   const out: ReactNode[] = [];
@@ -72,11 +144,23 @@ function columnasDesde(y: number, columnas: 1 | 2, desde: number): ReactNode[] {
   return out;
 }
 
-export function MaquetaPagina({ estado, hayMatrices }: { estado: PdfDialogState; hayMatrices: boolean }) {
+export function MaquetaPagina({ estado, hayMatrices, pagina }: {
+  estado: PdfDialogState;
+  hayMatrices: boolean;
+  /** El contenido real del formulario (L36). Sin él, o sin preguntas imprimibles, se dibuja el esquema. */
+  pagina?: PrimeraPagina | null;
+}) {
+  const reales = pagina?.preguntas.length ? pagina.preguntas : null;
   let y = M;
   const partes: ReactNode[] = [];
   // Cabecera
-  if (estado.showHeaderTitle) partes.push(<g key="tit">{barra(M, y + 1, 92, TINTA, 3.4)}{barra(M, y + 7, 54, LINEA, 2.2)}</g>);
+  if (estado.showHeaderTitle) {
+    partes.push(
+      reales && pagina?.titulo
+        ? <text key="tit" x={M} y={y + 5} fontSize={4.4} fontWeight={700} fill={TEXTO}>{partirEnLineas(pagina.titulo, caben(estado.showQuestionnaireNumber ? 128 : ANCHO, 4.4), 1)[0]}</text>
+        : <g key="tit">{barra(M, y + 1, 92, TINTA, 3.4)}{barra(M, y + 7, 54, LINEA, 2.2)}</g>,
+    );
+  }
   if (estado.showQuestionnaireNumber) {
     partes.push(
       <g key="num">
@@ -89,6 +173,34 @@ export function MaquetaPagina({ estado, hayMatrices }: { estado: PdfDialogState;
     y += 13;
     partes.push(<path key="sep" d={`M${M} ${y} h${ANCHO}`} stroke={TINTA} strokeWidth={0.6} />);
     y += 6;
+  }
+  // Portada (L36 · D-L36-5): «institución · periodo» y el bloque de control, como los imprime el motor.
+  const subtitulo = [estado.institution.trim(), estado.period.trim()].filter(Boolean).join(" · ");
+  if (subtitulo) {
+    partes.push(
+      <text key="subtitulo" x={105} y={y + 3} fontSize={3.4} textAnchor="middle" fill={TEXTO}>
+        {partirEnLineas(subtitulo, caben(ANCHO, 3.4), 1)[0]}
+      </text>,
+    );
+    y += 8;
+  }
+  if (estado.controlBlock) {
+    const hueco = 6;
+    const ancho = (ANCHO - hueco * 2) / 3;
+    partes.push(
+      <g key="control">
+        {["Encuestador:", "Fecha:", "Supervisor:"].map((rotulo, i) => {
+          const x = M + i * (ancho + hueco);
+          return (
+            <g key={rotulo}>
+              <text x={x} y={y + 4} fontSize={2.8} fill={TEXTO}>{rotulo}</text>
+              <path d={`M${x} ${y + 6} h${ancho}`} stroke={TINTA} strokeWidth={0.5} />
+            </g>
+          );
+        })}
+      </g>,
+    );
+    y += 12;
   }
   // Instrucciones
   if (estado.defaultIntro) {
@@ -109,7 +221,23 @@ export function MaquetaPagina({ estado, hayMatrices }: { estado: PdfDialogState;
     partes.push(dib);
     y += alto + 6;
   }
-  if (estado.columns === "auto") {
+  if (reales) {
+    // El mismo reparto que el esquema, con las preguntas reales.
+    if (estado.columns === "auto") {
+      const [p1, a1] = preguntaReal(M, y, ANCHO, reales[0]!);
+      partes.push(p1);
+      partes.push(...flujoReal(y + a1 + 3, 2, reales.slice(1))[0]);
+    } else if (enColumna && hayMatrices) {
+      const gap = 8;
+      const w = (ANCHO - gap) / 2;
+      const [dib, alto] = matriz(M, y, w);
+      partes.push(dib);
+      const [col1, usadas] = flujoReal(y + alto + 6, 1, reales, M, w);
+      partes.push(...col1, ...flujoReal(y, 1, reales.slice(usadas), M + w + gap, w)[0]);
+    } else {
+      partes.push(...flujoReal(y, estado.columns === 2 ? 2 : 1, reales)[0]);
+    }
+  } else if (estado.columns === "auto") {
     // Automáticas: la batería ancha a toda la página, lo demás a dos columnas.
     const [p1, a1] = pregunta(M, y, ANCHO, 0);
     partes.push(p1);
@@ -129,7 +257,7 @@ export function MaquetaPagina({ estado, hayMatrices }: { estado: PdfDialogState;
     partes.push(...columnasDesde(y, estado.columns === 2 ? 2 : 1, 0));
   }
   return (
-    <svg className="pulso-xf-imp-pagina" viewBox="0 0 210 297" role="img" aria-label="Esquema de la primera página con estas opciones">
+    <svg className="pulso-xf-imp-pagina" viewBox="0 0 210 297" role="img" aria-label={reales ? "Primera página del cuestionario con estas opciones" : "Esquema de la primera página con estas opciones"}>
       <rect x={0.5} y={0.5} width={209} height={296} rx={3} fill="var(--pulso-surface)" stroke={LINEA} />
       {partes}
       {barra(103, 287, 4, TINTA, 1.8)}

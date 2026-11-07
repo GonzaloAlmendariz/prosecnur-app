@@ -656,6 +656,11 @@ xlsform_editor_validate <- function(survey, choices, settings) {
     for (i in seq_along(col_data)) {
       raw <- trimws(col_data[i] %||% "")
       if (!nzchar(raw)) next
+      # Las fórmulas de cálculo no pasan por el parser de reglas: no modela aritmética (xlsform_editor_diag_calculos.R).
+      if (identical(field$col, "calculation")) {
+        out <- c(out, .xlsform_editor_diag_calculo(raw, i - 1L, valid_names, .xlsform_editor_diag))
+        next
+      }
       self_var <- if (field$context == "constraint") trimws(name_col[i] %||% "") else NULL
       parsed <- tryCatch(
         odk_parse_to_ast(raw, context = field$context, self_var = self_var),
@@ -1164,8 +1169,12 @@ mount_xlsform_editor <- function(pr) {
       list(
         ok = TRUE,
         forms = .xlsform_forms_list(s),
-        active_form_id = s$xlsform_active_form_id %||% NULL
+        active_form_id = s$xlsform_active_form_id %||% NULL,
+        instrumento_del_estudio = .xlsform_instrumento_del_estudio(s)
       )
+    })) |>
+    plumber::pr_post("/api/xlsform-editor/import-instrumento-estudio", wrap_endpoint(function(req, res, ...) {
+      .xlsform_instrumento_estudio_workbook(session_get(session_header(req)))
     })) |>
     plumber::pr_get("/api/xlsform-editor/forms/<id>", wrap_endpoint(function(req, res, id = "", ...) {
       # Entrada completa (con workbook) de un formulario por id.
@@ -1586,6 +1595,9 @@ mount_xlsform_editor <- function(pr) {
       tmp <- tempfile("xlsform_editor_", fileext = ".xlsx")
       on.exit(unlink(tmp), add = TRUE)
       openxlsx::saveWorkbook(wb, tmp, overwrite = TRUE)
+      # Kobo (pyxform/openpyxl) rechaza el .xlsx si quedan relaciones a dibujos
+      # que openxlsx no escribe. Ver xlsx_relaciones_huerfanas.R.
+      xlsx_quitar_relaciones_huerfanas(tmp)
       bytes <- readBin(tmp, what = "raw", n = file.info(tmp)$size)
       meta <- save_upload(sid, kind = "xlsform", original_name = filename, raw_bytes = bytes)
       if (length(source_meta %||% list())) {
@@ -1622,6 +1634,19 @@ mount_xlsform_editor <- function(pr) {
         fail_message = "No pude generar el Word del formulario"
       ))
     })) |>
+    plumber::pr_post("/api/xlsform-editor/word-visor", wrap_endpoint(function(req, res, ...) {
+      # L36 · DOC.2: el Word del cuestionario como páginas reales y el mapa
+      # pregunta -> página. Mismo cuerpo que export-word; el .docx queda
+      # registrado igual (xlsform_editor_word_visor.R).
+      .xlsform_editor_export_formulario(req, res, list(
+        ext = "docx",
+        output_kind = "formulario_word",
+        fail_code = "E_WORD_VISOR_FAILED",
+        fail_message = "No pude armar las páginas del Word del formulario",
+        runner = xlsform_editor_word_visor_job_runner,
+        on_complete = .xlsform_editor_word_visor_on_complete
+      ))
+    })) |>
     plumber::pr_post("/api/xlsform-editor/validate", wrap_endpoint(function(req, res, ...) {
       # Validador estructural ligero. El frontend lo invoca debounced (cada
       # ~1s tras una edición) para refrescar el DiagnosticsBadge. Devuelve
@@ -1635,5 +1660,7 @@ mount_xlsform_editor <- function(pr) {
         diagnostics = diagnostics,
         count = length(diagnostics)
       )
-    }))
+    })) |>
+    mount_xlsform_impreso() |>
+    mount_xlsform_logica_impresa()
 }

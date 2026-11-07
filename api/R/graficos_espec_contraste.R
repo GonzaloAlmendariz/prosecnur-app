@@ -1,5 +1,5 @@
 # =============================================================================
-# graficos_espec_contraste.R — lo que afirma el contraste de públicos (ADR 0114)
+# graficos_espec_contraste.R — lo que afirma el contraste de públicos (ADR 0134)
 # =============================================================================
 #
 # El estilo «resumen» del dumbbell (`graficar_dumbbell(estilo = "resumen")`) nació en el resumen ejecutivo de

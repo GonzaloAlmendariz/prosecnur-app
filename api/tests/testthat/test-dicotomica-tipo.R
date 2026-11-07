@@ -8,7 +8,9 @@ test_that("«Dicotómica» está en el registro, en Categorías y sale nativa", 
   expect_true(inherits(p_dicotomica("p1"), "ppt_element"))
 })
 
-test_that("una pregunta Sí/No con p_dicotomica sale como la dicotómica del recetario, cifras en los polos", {
+# Revisión del PPT v7.23 de CCSS, ítem 11: ninguna franja dicotómica en el mazo. `p_dicotomica` sigue en el selector, pero
+# la Sí/No sale como barra apilada clásica: cifras dentro de sus segmentos (la fila de escala) y su leyenda.
+test_that("v7.23 ítem 11: una pregunta Sí/No con p_dicotomica sale como apilada clásica, con las cifras dentro", {
   skip_if_not_installed("officer")
   dat <- data.frame(p1 = rep(c("1", "2"), c(172, 4)), stringsAsFactors = FALSE)
   inst <- list(survey = data.frame(name = "p1", type = "select_one sn", list_name = "sn", label = "¿Está trabajando actualmente?", stringsAsFactors = FALSE),
@@ -17,6 +19,8 @@ test_that("una pregunta Sí/No con p_dicotomica sale como la dicotómica del rec
   suppressMessages(suppressWarnings(reporte_ppt_plan(data = dat, instrumento = inst, plan = list(p_slide_1_grafico(p_dicotomica("p1"), titulo = "Situación laboral")),
                                                      path_ppt = out, mensajes_progreso = FALSE)))
   xml <- xml2::read_xml(unz(out, "ppt/slides/slide1.xml"))
-  cifras <- xml2::xml_text(xml2::xml_find_all(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='dicotomia:cifra']]"))
-  expect_identical(cifras, c("98%", "2%"))
+  expect_length(xml2::xml_find_all(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='dicotomia:cifra']]"), 0L)
+  expect_length(xml2::xml_find_all(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='segmento']]"), 2L)
+  cifras <- xml2::xml_text(xml2::xml_find_all(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='cifra' or @name='cifra_fuera']]"))
+  expect_setequal(cifras, c("98%", "2%"))
 })

@@ -4,7 +4,9 @@
 
 export type GrupoAvisos = { clave: string; lamina: string | null; titulo: string | null; detalles: string[] };
 
-const PATRON = /^Lámina\s+(\d+)\s*·\s*[“"«]([^”"»]*)[”"»]\s*:\s*(.+)$/s;
+// El motor separa con coma desde 2026-11-05 («Lámina 3, “Título”: …», «Lámina 2 de «docentes», “X”: …»); se acepta el
+// formato anterior con «·» para avisos guardados antes.
+const PATRON = /^Lámina\s+(\d+)(?:\s+de\s+«[^»]+»)?\s*[·,]\s*[“"«]([^”"»]*)[”"»]\s*:\s*(.+)$/s;
 
 /** Agrupa por lámina conservando el orden de aparición; lo que no nombra lámina va en un grupo «Informe». */
 export function agruparAvisos(avisos: readonly string[]): GrupoAvisos[] {

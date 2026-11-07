@@ -13,7 +13,7 @@
                    bold = isTRUE(negrita_base) || isTRUE(r$b),
                    italic = isTRUE(italic) || isTRUE(r$i),
                    underlined = isTRUE(r$u),
-                   color = color, font.family = .FORM_WORD_FONT)
+                   color = color, font.family = .std_cuestionario("tipografia", "fuente"))
 }
 
 # Funde tramos contiguos que en ESTE sitio se ven igual (con la negrita o la
@@ -38,8 +38,8 @@
 }
 
 # Runs de un parrafo (`officer::fpar`).
-.form_word_rt_ftext <- function(runs, size = .FORM_WORD_SZ, negrita_base = FALSE,
-                                italic = FALSE, color = .FORM_WORD_INK) {
+.form_word_rt_ftext <- function(runs, size = .std_cuestionario("tipografia", "cuerpo"), negrita_base = FALSE,
+                                italic = FALSE, color = .std_cuestionario("colores", "tinta")) {
   runs <- .form_word_rt_efectivos(runs, negrita_base, italic)
   lapply(runs, function(r) {
     if (.form_rt_es_br(r)) return(officer::run_linebreak())
@@ -48,8 +48,8 @@
 }
 
 # Chunks de una celda (`flextable::as_paragraph`).
-.form_word_rt_chunks <- function(runs, size = .FORM_WORD_SZ, negrita_base = FALSE,
-                                 italic = FALSE, color = .FORM_WORD_INK) {
+.form_word_rt_chunks <- function(runs, size = .std_cuestionario("tipografia", "cuerpo"), negrita_base = FALSE,
+                                 italic = FALSE, color = .std_cuestionario("colores", "tinta")) {
   base <- .form_rt_run("")
   runs <- .form_word_rt_efectivos(runs, negrita_base, italic)
   lapply(runs, function(r) {
@@ -78,12 +78,12 @@
   if (!nzchar(hint)) return(list())
   rt <- .form_word_rt_alinea(hint_rt, hint)
   if (.form_rt_tiene_formato(rt, base_i = TRUE)) {
-    return(.form_word_rt_chunks(c(list(.FORM_RT_BR), rt), size = .FORM_WORD_SZ_MIN, italic = TRUE))
+    return(.form_word_rt_chunks(c(list(.FORM_RT_BR), rt), size = .std_cuestionario("tipografia", "minimo"), italic = TRUE))
   }
   list(flextable::as_chunk(
     paste0("\n", hint),
-    props = officer::fp_text(font.size = .FORM_WORD_SZ_MIN, italic = TRUE,
-                             color = .FORM_WORD_INK, font.family = .FORM_WORD_FONT)))
+    props = officer::fp_text(font.size = .std_cuestionario("tipografia", "minimo"), italic = TRUE,
+                             color = .std_cuestionario("colores", "tinta"), font.family = .std_cuestionario("tipografia", "fuente"))))
 }
 
 # Etiquetas de categoria con formato (item 19): se componen por tramos en su

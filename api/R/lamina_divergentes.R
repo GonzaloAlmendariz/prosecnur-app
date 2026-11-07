@@ -18,7 +18,7 @@
 .lam_laminas_divergentes <- function(doc, espec, titulo, ante = NULL, base = NULL, folio = NULL, sub = NULL,
                                      layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
   force(folio)
-  # ADR 0114: la escala del resumen ejecutivo tiene su propia lámina (lamina_divergentes_resumen.R).
+  # ADR 0134: la escala del resumen ejecutivo tiene su propia lámina (lamina_divergentes_resumen.R).
   if (identical(espec$estilo, "resumen")) {
     return(.lam_laminas_divergentes_resumen(doc, espec, titulo, ante = ante, base = base, folio = folio, sub = sub,
                                             layout = layout, master = master, por_lamina = por_lamina))
@@ -61,6 +61,7 @@
     segs <- segs[order(vapply(segs, `[[`, 0, "x"))]
     # CCSS-14: si la colocación de siempre cruza codos, cada lado se reparte sin solaparse ni cruzar el centro (lamina_callouts_sin_solape.R).
     cl_de <- .lam_callouts_divergentes(Filter(function(sg) U[i, sg$k] > 0 && sg$w < 0.45, segs), X[i, ], xc, xa, xa + wa)
+    nuevo_i <- identical(attr(cl_de, "reparto"), "nuevo")
     for (sg in segs) {
       if (U[i, sg$k] <= 0) next
       .lam_caja(lz, sg$x - 0.002, yb, sg$w + 0.004, g, C$color[sg$k], nombre = "divergentes:segmento")
@@ -72,7 +73,9 @@
         # Y nunca sobre la línea del centro, que atraviesa el aire entre filas: la cifra se queda entera de su lado y,
         # si de ese lado no cabe junto a la vecina, pasa al otro (verificador de N6, ronda 3).
         cs <- sg$x + sg$w / 2; cl <- cl_de[[as.character(sg$k)]]
-        .lam_callout_guia(lz, cs, cl, yb, 0.06, yb - 0.066, identical(attr(cl_de, "reparto"), "nuevo"), tenue, nombre = "divergentes:guia")
+        # Ítem 20 (v7 RV): en el reparto nuevo, guía recta por un carril común (nunca diagonal).
+        if (nuevo_i) .lam_callout_carril(lz, cs, cl, yb, tenue, y_cifra = yb - 0.06, nombre = "divergentes:guia") else
+          .lam_callout_guia(lz, cs, cl, yb, 0.06, yb - 0.066, FALSE, tenue, nombre = "divergentes:guia")
         .lam_txt(lz, X[i, sg$k], cl - 0.3, yb - 0.3, 0.6, 0.24, 10.5, azul, bold = TRUE, align = "center", nombre = "divergentes:cifra")
       }
     }
@@ -115,7 +118,7 @@
 #' ¿Las divergentes caben? Hasta 8 afirmaciones con su texto en la fila (10.5 pt en 4.5 in)
 #' @keywords internal
 .lam_divergentes_cabe <- function(espec) {
-  if (identical(espec$estilo, "resumen")) return(.lam_divergentes_resumen_cabe(espec))   # ADR 0114
+  if (identical(espec$estilo, "resumen")) return(.lam_divergentes_resumen_cabe(espec))   # ADR 0134
   n <- length(espec$filas); y0 <- .std_geom("zona_datos_y0") + 0.3
   fila <- min(0.74, (.std_geom("contenido_y1") - y0 - 0.35) / max(1L, n))
   # La afirmación puede pasar un poco del alto de su fila (el recetario lleva una de cuatro líneas en 0.74 in).

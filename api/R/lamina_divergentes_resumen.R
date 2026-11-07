@@ -1,5 +1,5 @@
 # =============================================================================
-# lamina_divergentes_resumen.R — la escala del resumen ejecutivo (ADR 0114)
+# lamina_divergentes_resumen.R — la escala del resumen ejecutivo (ADR 0134)
 # =============================================================================
 #
 # Variante `estilo = "resumen"` de las barras divergentes (lamina_divergentes.R es la lámina 71 del recetario). Nació

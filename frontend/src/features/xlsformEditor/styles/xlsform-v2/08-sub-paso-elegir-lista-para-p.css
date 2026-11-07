@@ -6,9 +6,8 @@
 .pulso-canvas-addbetween-listpick-divider {
   display: block;
   padding: 8px 10px 4px;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
-  text-transform: uppercase;
   letter-spacing: 0.4px;
   color: var(--pulso-text-soft);
   border-top: 1px dashed var(--pulso-border);
@@ -23,7 +22,7 @@
   background: rgba(247, 175, 0, 0.08);
   border: 1px solid rgba(247, 175, 0, 0.3);
   border-radius: 6px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-warn-fg, #8a5a00);
 }
 
@@ -65,7 +64,7 @@
   border: 1px solid rgba(247, 175, 0, 0.4);
   background: white;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
   line-height: 1.5;
@@ -118,7 +117,7 @@
 .pulso-choices-edit-empty strong {
   display: block;
   color: #1f2a3d;
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
@@ -126,7 +125,7 @@
 .pulso-choices-edit-empty p {
   margin: 3px 0 0;
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.4;
 }
@@ -167,7 +166,7 @@
 
 .pulso-choice-edit-code {
   font-family: ui-monospace, monospace;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   padding: 3px 8px;
   border: 1px solid transparent;
   border-radius: 4px;
@@ -181,7 +180,7 @@
   position: absolute;
   top: calc(100% + 4px);
   right: 0;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-soft);
   background: white;
   border: 1px solid var(--pulso-border);
@@ -216,7 +215,7 @@
   align-items: center;
   gap: 5px;
   color: #566172;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
   pointer-events: none;
@@ -241,7 +240,7 @@
   background: color-mix(in srgb, var(--pulso-primary) 6%, #ffffff);
   color: var(--pulso-primary);
   cursor: pointer;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   pointer-events: auto;
 }
@@ -251,7 +250,7 @@
   max-width: 140px;
   overflow: hidden;
   font-family: ui-monospace, monospace;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -288,7 +287,7 @@
   border: 1px dashed var(--pulso-border);
   background: transparent;
   border-radius: 6px;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
   cursor: pointer;
 }
@@ -317,7 +316,7 @@
 
 .pulso-listname-input {
   font-family: ui-monospace, monospace;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   padding: 3px 8px;
   border: 1px solid transparent;
   border-radius: 4px;
@@ -349,7 +348,7 @@
   padding: 3px 6px;
   border: none;
   background: transparent;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
   cursor: pointer;
 }
@@ -400,16 +399,15 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-bold);
-  text-transform: uppercase;
   letter-spacing: 0.55px;
   color: var(--pulso-primary);
 }
 
 .pulso-coachmarks-callout-title {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: -0.2px;
   color: var(--pulso-text);
@@ -417,7 +415,7 @@
 
 .pulso-coachmarks-callout-body {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
   line-height: 1.55;
 }
@@ -434,7 +432,7 @@
   border: none;
   background: transparent;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   cursor: pointer;
   padding: 6px 10px;
   border-radius: 6px;
@@ -450,7 +448,7 @@
   color: white;
   border: none;
   padding: 8px 16px;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   border-radius: 6px;
   cursor: pointer;
@@ -464,7 +462,7 @@
 }
 
 .pulso-coachmarks-next:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 @media (max-width: 720px) {

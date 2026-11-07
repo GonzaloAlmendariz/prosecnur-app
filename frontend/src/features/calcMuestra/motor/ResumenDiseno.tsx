@@ -3,6 +3,7 @@
  * del universo, la estimación viva de elegibles y las metas operativas del
  * diseño. Vive en el toolbar del módulo, no dentro de una pestaña.
  */
+import { separarIndicadoresVacios } from "./indicadoresVacios";
 import { useMemo, type ReactNode } from "react";
 import { BookOpenCheck, ClipboardCheck, RotateCcw, School, ShieldCheck, Sigma, Target, Users } from "lucide-react";
 import {
@@ -14,6 +15,7 @@ import {
   normalizeCalcMuestraDistribucionI19,
   type CalcMuestraDistribucionI19State,
 } from "../../../api/calcMuestraDistribucionI19";
+import { enumerar } from "../../../lib/enumerar";
 import { fmtInt } from "../sharedCore";
 import { calculoDistribucionScenarioMeta } from "../universidad/calculo/calculoDistribucionModel";
 import { estadisticoDelReparto, nombreEstadistico } from "../universidad/calculo/estadisticoAula";
@@ -207,9 +209,9 @@ export function ResumenDiseno({
   const procedenciaDesconocida =
     hayMarco && correspondeALasFuentes === null && (fuentesActuales?.length ?? 0) > 0;
   const notaDeFuentes = fuentesCambiaron
-    ? "otras bases cargadas · reconstruye"
+    ? "otras bases cargadas; reconstrúyelo"
     : procedenciaDesconocida
-      ? "no consta de qué bases salió · reconstruye"
+      ? "no consta de qué bases salió; reconstrúyelo"
       : null;
 
   // Metas operativas: el mismo selector P1/P2 y el mismo normalizador de la
@@ -292,7 +294,7 @@ export function ResumenDiseno({
   // mientras el sorteo llevaba 174: la elección nunca se hizo y la pantalla no
   // tenía cómo decirlo. El aviso nombra la causa, no sólo el hecho.
   const notaEscenario = vigor.discrepa && vigor.delSorteo
-    ? `el sorteo ejecutado dimensionó con ${calculoDistribucionScenarioMeta(vigor.delSorteo).shortLabel} · revisa`
+    ? `el sorteo ejecutado dimensionó con ${calculoDistribucionScenarioMeta(vigor.delSorteo).shortLabel}, revisa`
     : vigor.origen === "sorteo"
       ? "escenario tomado del sorteo ejecutado; nadie lo eligió"
       : null;
@@ -300,40 +302,42 @@ export function ResumenDiseno({
   // una interfaz en español— y «contrato anterior», que no le dice a nadie qué
   // hacer. Los estados que piden acción la nombran: «recalcula».
   const resultNote = resultReady
-    ? `${resultModel.selection.shortLabel} · R · marco vigente`
+    ? `${resultModel.selection.shortLabel}, R, marco vigente`
     : resultModel.state.kind === "stale"
-      ? `${resultModel.selection.shortLabel} · R · marco anterior · recalcula`
+      ? `${resultModel.selection.shortLabel}, R, marco anterior, recalcula`
       : resultModel.state.kind === "invalid"
         // Con la razón que R publicó, no sólo «inválido». El motor explica por
         // qué —«La suma de facultades no coincide con el marco validado del
         // diseño», con los dos números— y esa explicación llegaba al front y
         // se quedaba sin mostrar: la cabecera decía «resultado inválido» y el
         // usuario no tenía forma de saber qué revisar.
-        ? `${resultModel.selection.shortLabel} · R · ${primeraRazonInvalida(resultModel.state) ?? "resultado inválido"}`
+        ? `${resultModel.selection.shortLabel}, R, ${primeraRazonInvalida(resultModel.state) ?? "resultado inválido"}`
         : resultModel.state.kind === "legacy"
-          ? `${resultModel.selection.shortLabel} · calculado con una versión anterior · recalcula`
-          : `${resultModel.selection.shortLabel} · falta calcular`;
-  const notaResultado = notaEscenario ? `${resultNote} · ${notaEscenario}` : resultNote;
+          ? `${resultModel.selection.shortLabel}, calculado con una versión anterior, recalcula`
+          : `${resultModel.selection.shortLabel}, falta calcular`;
+  const notaResultado = notaEscenario ? `${resultNote}, ${notaEscenario}` : resultNote;
 
   const metrics: SummaryMetric[] = [
     {
       label: "Universo de estudiantes",
       value: universoEstudiantes,
-      note: notaDeFuentes ?? "base completa",
+      // La procedencia del marco se dice UNA vez, bajo la franja (D3): repetirla
+      // en cada tarjeta ocultaba lo que cada una sí sabe.
+      note: "base completa",
       icon: <Users size={16} aria-hidden="true" />,
       tone: "universe",
     },
     {
-      label: "Universo de cursos-horario",
+      label: "Universo de cursos‑horario", // U+2011: no se parte en el guion
       value: universoCursosHorario,
       // El periodo va en la nota de ESTA tarjeta porque es su base la que
       // define el catálogo. Cuando el año no cuadra con el del estudio se dice
       // entero —«base 2025 · el estudio es 2026»—: nombrar los dos es lo que
       // deja ver el error sin abrir ningún archivo.
-      note: notaDeFuentes ?? (periodoMarco
+      note: (periodoMarco
         ? periodoCuadra === false
-          ? `base ${periodoMarco} · el estudio es ${anio(perfil.nombre)}`
-          : `base ${periodoMarco} · unidades únicas`
+          ? `base ${periodoMarco}, el estudio es ${anio(perfil.nombre)}`
+          : `base ${periodoMarco}, unidades únicas`
         : "unidades únicas"),
       icon: <BookOpenCheck size={16} aria-hidden="true" />,
       tone: fuentesCambiaron || procedenciaDesconocida || periodoCuadra === false ? "estimated" : "universe",
@@ -341,14 +345,14 @@ export function ResumenDiseno({
     {
       label: "Estudiantes elegibles",
       value: estudiantesElegibles,
-      note: notaDeFuentes ?? notaIntegridad ?? (estudiantesDesactualizados ? "criterios cambiados · reconstruye" : "marco vigente"),
+      note: notaIntegridad ?? (estudiantesDesactualizados ? "criterios cambiados; reconstruye el marco" : notaDeFuentes ? "del marco actual" : "marco vigente"),
       icon: <ClipboardCheck size={16} aria-hidden="true" />,
       tone: fuentesCambiaron || procedenciaDesconocida || estudiantesDesactualizados || !marcoPublicable ? "estimated" : "confirmed",
     },
     {
       label: "Cursos-horario elegibles",
       value: cursosHorarioElegibles,
-      note: notaDeFuentes ?? notaIntegridad ?? (cursosDesactualizados ? "criterios cambiados · reconstruye" : "marco vigente"),
+      note: notaIntegridad ?? (cursosDesactualizados ? "criterios cambiados; reconstruye el marco" : notaDeFuentes ? "del marco actual" : "marco vigente"),
       icon: <BookOpenCheck size={16} aria-hidden="true" />,
       tone: fuentesCambiaron || procedenciaDesconocida || cursosDesactualizados || !marcoPublicable ? "estimated" : "confirmed",
     },
@@ -409,6 +413,8 @@ export function ResumenDiseno({
     },
   ];
 
+  const indicadores = separarIndicadoresVacios(metrics);
+
   return (
     <section
       className="rec-resumen-shell"
@@ -422,6 +428,10 @@ export function ResumenDiseno({
           <strong>Universo → elegibles → operación → aulas</strong>
         </span>
         <span className="rec-resumen-meta">
+          {/* La procedencia del marco, una sola vez y en la cabecera de la franja (D3). */}
+          {notaDeFuentes ? (
+            <span className="rec-resumen-procedencia" data-tone="estimated">Marco: {notaDeFuentes}</span>
+          ) : null}
           {perfil.esEjemplo && <span className="rec-badge-ejemplo">EJEMPLO</span>}
           {/* De dónde salen las cifras, en una frase llana. Antes era una píldora
               con jerga interna («Manual · Proyecto nuevo — universidad») que se
@@ -442,6 +452,9 @@ export function ResumenDiseno({
           comparten franja. La rejilla los reparte en `repeat(6, minmax(0, 1fr))`,
           así que ninguno puede ensancharse ni crecer por su cuenta según el
           largo de su nombre o de su cifra. */}
+      {/* Sin ninguna cifra (un estudio que aún no calcula) la rejilla no se monta:
+          vacía y visible era un grupo `equal` sin miembros (auditoría, 4 nov). */}
+      {indicadores.conValor.length > 0 && (
       <div
         className="rec-resumen"
         role="status"
@@ -449,8 +462,10 @@ export function ResumenDiseno({
         data-qa-geometry-group="calc-muestra/resumen-diseno"
         data-qa-geometry-contract="equal"
       >
-        {metrics.map((metric) => (
-          <div className="rec-resumen-item" data-tone={metric.tone} key={metric.label}>
+        {indicadores.conValor.map((metric) => (
+          // Miembros explícitos: el contrato «equal» es entre tarjetas de cifra; la
+          // fila «Sin cifra todavía» va a lo ancho y no es una tarjeta par.
+          <div className="rec-resumen-item" data-tone={metric.tone} key={metric.label} data-qa-geometry-member>
             <span className="rec-resumen-item-icon" aria-hidden="true">{metric.icon}</span>
             <span className="rec-resumen-item-copy">
               <small>{metric.label}</small>
@@ -463,6 +478,26 @@ export function ResumenDiseno({
           </div>
         ))}
       </div>
+      )}
+      {/* Fuera de la rejilla (D3): con la franja corta a 1280×720 la rejilla pasa
+          a una sola fila y esta línea, metida en ella, se apretaba en una
+          columna; afuera mide lo mismo en todos los anchos. */}
+      {indicadores.vacios.length > 0 && (
+        <div className="rec-resumen-item rec-resumen-vacios" data-tone="operation">
+          <span className="rec-resumen-item-icon" aria-hidden="true"><Sigma size={16} aria-hidden="true" /></span>
+          <span className="rec-resumen-item-copy">
+            <small>Sin cifra todavía</small>
+            {/* 5 nov 2026 (pulido de UI): con más de tres, la enumeración era una línea de ~10 nombres seguidos
+                que no se alcanzaba a leer. Se cuentan, y los nombres quedan en el `title`. */}
+            <strong title={enumerar(indicadores.vacios.map((metric) => metric.label))}>
+              {indicadores.vacios.length <= 3
+                ? enumerar(indicadores.vacios.map((metric) => metric.label))
+                : `${fmtInt(indicadores.vacios.length)} indicadores por calcular`}
+            </strong>
+            <span>{notaResultado}</span>
+          </span>
+        </div>
+      )}
     </section>
   );
 }

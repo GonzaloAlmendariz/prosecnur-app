@@ -1,0 +1,57 @@
+/* Motivos de «sin guardar» (L22). Tamaños por rol (app/tipografia.css). */
+
+.pulso-motivos-sin-guardar {
+  display: grid;
+  gap: var(--pulso-space-2);
+  margin-top: var(--pulso-space-3);
+}
+
+.pulso-motivos-sin-guardar-titulo {
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-type-eyebrow-weight);
+}
+
+.pulso-motivos-sin-guardar ul {
+  display: grid;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-motivos-sin-guardar li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--pulso-space-3);
+  min-width: 0;
+}
+
+.pulso-motivos-sin-guardar-area {
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-motivos-sin-guardar-cuando {
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pulso-motivos-sin-guardar-clave {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-caption-size);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-motivos-sin-guardar-resto {
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-caption-size);
+}

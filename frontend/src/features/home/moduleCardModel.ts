@@ -2,6 +2,7 @@ import type { DisenoEstudioSourceState, ProjectOverview } from "../../api/client
 import type { ProsecnurModuleMeta } from "../../lib/modules";
 import { resumenDelInicio } from "../recopiladores/campanas/resumenDelInicio";
 import { baseDelAvance, estaRegenerando, lineaDelAvance, rezagado, type HechosDeMonitoreo } from "./lecturaDeMonitoreo";
+import { enumerar } from "../../lib/enumerar";
 
 export type ModuleStatusState = DisenoEstudioSourceState;
 
@@ -13,14 +14,6 @@ export type ModuleProgressStep = {
 export type ModuleCardViz =
   | { kind: "phases"; done: number; total: number; labels: string[] }
   | { kind: "stat"; value: string; label: string }
-  | {
-      kind: "date";
-      day: string;
-      month: string;
-      label: string;
-      countdown: string;
-      tone: "future" | "today" | "past" | "empty";
-    }
   | {
       kind: "progress";
       current: number;
@@ -87,22 +80,6 @@ function calendarDateFromIso(value: string): CalendarDate | null {
   return calendar;
 }
 
-function calendarDateInLima(timestamp: number): CalendarDate {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: LIMA_TIME_ZONE,
-    year: "numeric",
-    month: "numeric",
-    day: "numeric",
-  }).formatToParts(new Date(timestamp));
-  const part = (type: Intl.DateTimeFormatPartTypes) =>
-    Number(parts.find((item) => item.type === type)?.value ?? 0);
-  return { year: part("year"), month: part("month"), day: part("day") };
-}
-
-function calendarOrdinal({ year, month, day }: CalendarDate): number {
-  return Math.floor(Date.UTC(year, month - 1, day) / 86400000);
-}
-
 function formatCutDate(iso: string): string {
   if (!iso) return "Sin corte";
   const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(iso);
@@ -145,38 +122,6 @@ export function formatSavedAt(iso: string, now?: number): string {
   return `guardado el ${date.toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}`;
 }
 
-const MONTHS_SHORT = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
-
-function dateViz(
-  iso: string,
-  now?: number,
-): Extract<ModuleCardViz, { kind: "date" }> {
-  const date = calendarDateFromIso(iso);
-  if (!date) {
-    return {
-      kind: "date",
-      day: "",
-      month: "",
-      label: "fecha programada",
-      countdown: "Fecha por confirmar",
-      tone: "empty",
-    };
-  }
-  const today = calendarDateInLima(now ?? Date.now());
-  const diff = calendarOrdinal(date) - calendarOrdinal(today);
-  const tone = diff < 0 ? "past" : diff === 0 ? "today" : "future";
-  const countdown =
-    diff < 0 ? "Fecha programada" : diff === 0 ? "Es hoy" : diff === 1 ? "Mañana" : `En ${diff} días`;
-  return {
-    kind: "date",
-    day: String(date.day),
-    month: MONTHS_SHORT[date.month - 1] ?? "",
-    label: tone === "past" ? "fecha de cronograma" : "próximo entregable",
-    countdown,
-    tone,
-  };
-}
-
 function capitalize(value: string): string {
   return value ? value.charAt(0).toUpperCase() + value.slice(1) : value;
 }
@@ -205,6 +150,24 @@ const MONITOREO_FAMILY_LABEL: Record<string, string> = {
   digital_general: "Digital",
 };
 
+/**
+ * Lo que dice la tarjeta debajo de la cifra de preguntas. Si la cifra sale del
+ * instrumento vinculado y el editor tiene abierto otro borrador, «en edición»
+ * sería falso: el editor abre ese borrador, no el instrumento.
+ */
+export function subDelCuestionario(editor: {
+  questions_count: number;
+  draft_questions_count?: number;
+  from_instrument?: boolean;
+}): string {
+  if (!editor.from_instrument) return "Cuestionario en edición";
+  const borrador = editor.draft_questions_count ?? 0;
+  if (borrador === editor.questions_count) return "Cuestionario en edición";
+  return borrador > 0
+    ? `Instrumento del estudio; el editor tiene abierto un borrador de ${formatCount(borrador)} ${borrador === 1 ? "pregunta" : "preguntas"}`
+    : "Instrumento del estudio; todavía no está abierto en el editor";
+}
+
 const FORM_ORIGIN_LABEL: Record<string, string> = {
   "": "Desde cero",
   xlsform: "Importado",
@@ -226,8 +189,7 @@ function progressSteps(labels: string[], current: number): ModuleProgressStep[] 
 }
 
 function nodeForModule(module: ProsecnurModuleMeta, overview: ProjectOverview) {
-  const nodeId = module.slug === "diseno-estudio" ? "plan-trabajo" : module.slug;
-  return overview.modules.find((item) => item.id === nodeId);
+  return overview.modules.find((item) => item.id === module.slug);
 }
 
 function moduleAction(module: ProsecnurModuleMeta, label: string, route?: string) {
@@ -251,8 +213,22 @@ export function buildModuleCardView(
   switch (module.slug) {
     case "procesamiento": {
       const total = PROCESSING_STEPS.length;
-      const done = Math.min(total, Math.max(0, Math.trunc(proc.done)));
-      const nextIndex = Math.min(done, total - 1);
+      // Una sola definición de avance, la del motor (L31): cada fase cuenta si
+      // `overview.modules` la declara lista. Las banderas de la sesión que lee
+      // `proc` exigían `state.xlsform` en una sesión multibase y la tarjeta
+      // decía «Por iniciar · Sigue: Carga» con la base ya codificada y
+      // Analítica lista. `proc` queda sólo para un backend que no publique fases.
+      const fasesDelMotor = PROCESSING_STEPS.map(({ route }) =>
+        overview.modules.find((item) => item.id === route.slice(1)),
+      );
+      const delMotor = fasesDelMotor.every(Boolean);
+      const done = delMotor
+        ? fasesDelMotor.filter((item) => item?.state === "ready").length
+        : Math.min(total, Math.max(0, Math.trunc(proc.done)));
+      const pendiente = delMotor ? fasesDelMotor.findIndex((item) => item?.state !== "ready") : -1;
+      const nextIndex = delMotor
+        ? (pendiente >= 0 ? pendiente : total - 1)
+        : Math.min(done, total - 1);
       const next = PROCESSING_STEPS[nextIndex];
       const warningStep = PROCESSING_STEPS.find(({ route }) =>
         overview.modules.some(
@@ -294,7 +270,7 @@ export function buildModuleCardView(
             { label: "variables", value: formatCount(metrics.variables_count) },
           ];
       if (outputParts.length > 0) {
-        cardFacts.push({ label: "salidas", value: outputParts.join(" · ") });
+        cardFacts.push({ label: "salidas", value: enumerar(outputParts) });
       }
       return {
         state,
@@ -346,7 +322,9 @@ export function buildModuleCardView(
         regenerando
           ? { kind: "stat", value: "Actualizando", label: avanceLabel }
           : monitoring.avance_pct >= 0
-          ? { kind: "stat", value: `${monitoring.avance_pct}%`, label: avanceLabel }
+          // Entero y con espacio, la convención de la insignia de Avance de
+          // Monitoreo (`pctEntero`): «107 %» en los dos lados, no «106.9%» (L20).
+          ? { kind: "stat", value: `${Math.round(monitoring.avance_pct)} %`, label: avanceLabel }
           : monitoring.valid > 0
             ? { kind: "stat", value: formatCount(monitoring.valid), label: `casos ${validLabel}` }
             : monitoring.collected > 0
@@ -524,7 +502,7 @@ export function buildModuleCardView(
         sub: multiInstrument
           ? `${formatCount(editor.questions_count)} preguntas en el que estás editando`
           : hasQuestions
-            ? "Cuestionario en edición"
+            ? subDelCuestionario(editor)
             : "Empieza o importa un formulario",
         facts: [
           { label: "secciones", value: formatCount(editor.sections_count) },
@@ -539,6 +517,19 @@ export function buildModuleCardView(
 
     case "hojas-ruta": {
       const routes = facts.hojas;
+      // ADR 0122 P2: un territorial por conveniencia no sortea UMP. Es un vacío legítimo, no un pendiente.
+      if (routes.aplica === false) {
+        return {
+          state: "pending",
+          statusLabel: "No aplica",
+          viz: { kind: "stat", value: "No aplica", label: "en este estudio" },
+          sub: "Este estudio no sortea manzanas: no lleva hojas de ruta.",
+          facts: [],
+          action: moduleAction(module, "Abrir hojas de ruta"),
+          alert: null,
+          summary: "No aplica en este estudio",
+        };
+      }
       const routeFacts: ModuleCardFact[] = [
         { label: "distritos", value: formatCount(routes.districts_count) },
         routes.blocks_count > 0
@@ -564,7 +555,7 @@ export function buildModuleCardView(
         sub:
           nodeState === "ready"
             ? routes.from_pilot
-              ? "Campo derivado del piloto"
+              ? "A partir de la muestra del piloto"
               : "Rutas y cartografía generadas"
             : "Genera las rutas para el equipo de campo",
         facts: routeFacts,
@@ -738,99 +729,18 @@ export function buildModuleCardView(
       };
     }
 
-    case "diseno-estudio":
-    default: {
-      const log = facts.bitacora;
-      const total = Math.max(0, log.total_tasks);
-      const pending = Math.max(0, log.pending);
-      const completed = Math.max(0, Math.min(total, total - pending));
-      const scheduledDate = log.next_date ? dateViz(log.next_date, now) : null;
-      const scheduledDateIsPast = scheduledDate?.tone === "past";
-      const cardFacts: ModuleCardFact[] = [
-        { label: "registros", value: formatCount(log.entries_count) },
-        { label: "decisiones", value: formatCount(log.decisions_count) },
-        { label: "pendientes", value: formatCount(pending) },
-      ];
-      if (log.next_date) {
-        cardFacts.push({
-          label: scheduledDateIsPast ? "fecha de cronograma" : "próxima fecha",
-          value: formatCutDate(log.next_date),
-        });
-      }
-      if (total > 0) {
-        const state: ModuleStatusState =
-          nodeState === "warning" ? "warning" : pending === 0 ? "ready" : "active";
-        const actionLabel =
-          state === "warning"
-            ? "Revisar cronograma"
-            : pending > 0
-              ? "Continuar cronograma"
-              : "Revisar bitácora";
-        return {
-          state,
-          statusLabel: stateLabel(state),
-          viz: {
-            kind: "progress",
-            current: completed,
-            total,
-            display: `${completed}/${total}`,
-            label: "actividades",
-          },
-          sub:
-            log.next_title
-              ? `${scheduledDateIsPast ? "Fecha" : "Próximo"}: ${log.next_title}`
-              : pending > 0
-                ? `${formatCount(pending)} actividades pendientes`
-                : "Cronograma completado",
-          facts: cardFacts,
-          action: moduleAction(
-            module,
-            actionLabel,
-            state === "warning" || pending > 0
-              ? "/bitacora?seccion=cronograma"
-              : undefined,
-          ),
-          alert: state === "warning" ? "Revisar cronograma" : null,
-          summary,
-        };
-      }
-      if (log.next_date) {
-        const viz = scheduledDate as Extract<ModuleCardViz, { kind: "date" }>;
-        return {
-          state: nodeState === "warning" ? "warning" : "active",
-          statusLabel: nodeState === "warning" ? "Requiere atención" : "En curso",
-          viz,
-          sub: log.next_title || "Hay una fecha registrada en el cronograma",
-          facts: cardFacts,
-          action: moduleAction(module, "Abrir cronograma", "/bitacora?seccion=cronograma"),
-          alert: nodeAlert,
-          summary,
-        };
-      }
-      if (log.entries_count > 0) {
-        const state: ModuleStatusState = nodeState === "warning" ? "warning" : "active";
-        return {
-          state,
-          statusLabel: stateLabel(state),
-          emphasis: log.last_entry_title ? "activity" : undefined,
-          viz: { kind: "stat", value: formatCount(log.entries_count), label: "registros" },
-          sub: log.last_entry_title ? `Última: ${log.last_entry_title}` : "Bitácora con actividad",
-          facts: cardFacts,
-          action: moduleAction(module, "Registrar avance"),
-          alert: nodeAlert,
-          summary,
-        };
-      }
+    default:
+      // Un slug sin tarjeta propia: el manifiesto ya no tiene Bitácora (ADR
+      // 0124), y los slugs de legado sólo sobreviven en el tipo. Lectura
+      // neutra, sin inventar datos.
       return {
         state: "pending",
         statusLabel: "Por iniciar",
-        emphasis: "activity",
-        viz: { kind: "stat", value: "Sin actividad", label: "bitácora y cronograma" },
-        sub: "Registra avances y arma el cronograma del estudio",
-        facts: cardFacts,
-        action: moduleAction(module, "Registrar primer avance"),
+        viz: { kind: "stat", value: "Sin lectura", label: "en este estudio" },
+        sub: module.tagline,
+        facts: [],
+        action: moduleAction(module, `Abrir ${module.shortLabel}`),
         summary,
       };
-    }
   }
 }

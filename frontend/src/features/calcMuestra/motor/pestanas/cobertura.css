@@ -36,13 +36,13 @@
 }
 .cmv2-cob-card-title h3 {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
 .cmv2-cob-card-title p {
   margin: 2px 0 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.35;
   color: var(--pulso-text-muted);
 }
@@ -52,13 +52,13 @@
   gap: 1px;
 }
 .cmv2-cob-card-kpi strong {
-  font-size: 18px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text);
 }
 .cmv2-cob-card-kpi span {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text-muted);
 }
@@ -72,7 +72,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-muted);
 }
@@ -100,7 +100,7 @@
   gap: 10px;
 }
 .cmv2-cob-row-name {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text);
   white-space: nowrap;
   overflow: hidden;
@@ -126,5 +126,5 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-.cmv2-cob-row-val b { font-size: 13px; font-weight: var(--pulso-weight-bold); color: var(--pulso-text); }
-.cmv2-cob-row-val em { font-size: 11px; font-style: normal; color: var(--pulso-text-muted); }
+.cmv2-cob-row-val b { font-size: var(--pulso-type-subtitle-size); font-weight: var(--pulso-weight-bold); color: var(--pulso-text); }
+.cmv2-cob-row-val em { font-size: var(--pulso-type-caption-size); font-style: normal; color: var(--pulso-text-muted); }

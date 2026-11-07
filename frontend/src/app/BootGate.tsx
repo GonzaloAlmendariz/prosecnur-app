@@ -1,22 +1,23 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type ComponentType, type CSSProperties } from "react";
 import { hrefSinParamDeProyecto } from "../lib/navegacion/direccion";
 import {
-  AlertTriangle,
   Check,
   Clock,
   Folder,
   FolderOpen,
   FolderSearch,
   Loader2,
-  Minus,
   Pencil,
   Plus,
   X,
 } from "lucide-react";
 import { formatRelativeDate } from "../components/RecentProjectCard";
-import { PROSECNUR_ACTIVE_MODULES, PROSECNUR_PRIMARY_ACTIVE_MODULES, moduleChromeVars } from "../lib/modules";
-import { VistaSkeleton } from "../components/VistaSkeleton";
-import { WarmupReloj, useAhora } from "./WarmupReloj";
+import { PROSECNUR_PRIMARY_ACTIVE_MODULES, moduleChromeVars } from "../lib/modules";
+import { RecorridoCarga, SegmentosRecorrido } from "./carga/RecorridoCarga";
+import { PantallaDeCarga } from "./PantallaDeCarga";
+import "./selector-proyecto.css";
+import { fasesVisibles } from "./warmupFasesVisibles";
+import { useAhora } from "./WarmupReloj";
 import {
   TIEMPO_WARMUP_INICIAL,
   duracionFase,
@@ -54,6 +55,8 @@ import {
   WARMUP_MODULES,
   type WarmupModuleProgress,
 } from "./warmupRegistry";
+import { destinoWarmup } from "./destinoWarmup";
+import { IsotipoCarga } from "./marca/IsotipoCarga";
 
 type AppSuiteModule = {
   default: ComponentType;
@@ -398,6 +401,14 @@ function friendlyWarmupHeadline(raw: string | null | undefined, phase: GatePhase
     : headline;
 }
 
+function titularDeCierre(titular: string, pasos: WarmupDisplayStep[]) {
+  if (titular !== "Terminando preparación") return titular;
+  const enCurso = pasos.filter((paso) => paso.status === "running");
+  const propio = enCurso.find((paso) => paso.id !== "backend-progress");
+  if (propio) return propio.label;
+  return enCurso.length ? "Terminando los datos del proyecto" : titular;
+}
+
 function friendlyTaskLabel(raw: string | null | undefined, fallback: string) {
   const text = (raw ?? "").trim();
   if (!text) return fallback;
@@ -472,11 +483,8 @@ function warmupScopeSteps(task: BootWarmupTask): WarmupDisplayStep[] {
   });
 }
 
-/** Clave de la fase de backend en curso: una por tarea del job. */
-function backendFaseId(progress: BootJobProgress | null) {
-  const current = Number(progress?.current);
-  return `backend-progress:${Number.isFinite(current) ? Math.round(current) : 0}`;
-}
+/** Clave del reloj de la fase de datos: una sola para todo el job (ver `warmupDisplaySteps`). */
+const BACKEND_FASE_RELOJ = "backend-progress";
 
 /* Frontend, backend y scopes de backend son tres fuentes independientes, pero
  * sus etiquetas pasan por el mismo mapeo amigable, que a propósito colapsa
@@ -532,7 +540,7 @@ function warmupDisplaySteps({
   const steps: WarmupDisplayStep[] = [
     {
       id: "workspace",
-      label: "Abriendo workspace local",
+      label: projectPath ? "Proyecto abierto" : "Abriendo el proyecto",
       status: projectPath ? "ready" : "running",
       detail: projectName(projectPath),
     },
@@ -558,11 +566,14 @@ function warmupDisplaySteps({
   if (backendScopeSteps.length) steps.push(...backendScopeSteps);
   collapseStepsByLabel(steps);
   if (backendEnabled && !backend.length) {
+    // 5 nov 2026: la fila se rotula por lo que hace, no con el mensaje crudo del backend (que al final vale
+    // «Listo» mientras sigue girando), y su reloj cuenta desde que empezó la preparación de datos, no desde la
+    // tarea actual del job (por eso retrocedía de 4:00 a 0:25 al cambiar de tarea).
     steps.push({
       id: "backend-progress",
-      label: friendlyWarmupMessage(backendProgress?.message, "warming"),
+      label: "Datos del proyecto",
       status: "running",
-      detail: warmupStepDetail("running", undefined, undefined, { reloj, faseId: backendFaseId(backendProgress) }),
+      detail: warmupStepDetail("running", undefined, undefined, { reloj, faseId: BACKEND_FASE_RELOJ }),
     });
   }
   steps.push({
@@ -570,11 +581,7 @@ function warmupDisplaySteps({
     label: "Listo para trabajar",
     status: steps.some((item) => item.status === "running" || item.status === "pending") ? "pending" : "ready",
   });
-  const activeSteps = steps.filter((item) => item.status === "running" || item.status === "pending");
-  if (!activeSteps.length) return steps.slice(-6);
-  const activeIds = new Set(activeSteps.map((item) => item.id));
-  const settledSteps = steps.filter((item) => !activeIds.has(item.id));
-  return [...settledSteps.slice(-Math.max(1, 6 - activeSteps.length)), ...activeSteps].slice(-6);
+  return fasesVisibles(steps);
 }
 
 function rememberBootProject(path: string) {
@@ -627,6 +634,10 @@ function warmupPercent({
 
 export default function BootGate({ loadSuite }: BootGateProps) {
   const [phase, setPhase] = useState<GatePhase>("initializing");
+  // 6 nov 2026 (Gonzalo: «por un milisegundo apareció la pantalla de carga antigua»): mientras inicializa, el
+  // arranque que ya sabe que abre un proyecto (deep-link de dev o archivo de lanzamiento) pinta la pantalla de
+  // carga desde el primer cuadro, no el selector de proyectos.
+  const [arranqueDirecto, setArranqueDirecto] = useState(() => Boolean(readDevProjectPath()));
   const [error, setError] = useState("");
   const [appVersion, setAppVersion] = useState("");
   const [manualPath, setManualPath] = useState("");
@@ -748,7 +759,7 @@ export default function BootGate({ loadSuite }: BootGateProps) {
       const progress = snap.progress && "phase" in snap.progress ? snap.progress : null;
       setBackendProgress(progress);
       if (progress && progress.phase !== "done") {
-        despacharTiempo({ tipo: "fase", id: backendFaseId(progress), ahoraMs: Date.now() });
+        despacharTiempo({ tipo: "fase", id: BACKEND_FASE_RELOJ, ahoraMs: Date.now() });
       }
       if (progress?.message) setWarmupMessage(progress.message);
       if (isWarmupResult(snap.result_data)) {
@@ -971,6 +982,13 @@ export default function BootGate({ loadSuite }: BootGateProps) {
         // propio (nunca rechaza); si health cae, el await de abajo lleva al
         // mismo estado de error de siempre sin unhandled rejection.
         const bootstrapPromise = bootApiSystemBootstrap().catch(() => ({ sid: null as string | null }));
+        // El archivo de lanzamiento se pide una sola vez, al inicio, y se reutiliza abajo: así se sabe temprano
+        // si el arranque abre un proyecto sin consumir la respuesta dos veces.
+        const launchPathPromise: Promise<string | null | undefined> =
+          window.prosecnurApi?.getLaunchProject?.().catch(() => null) ?? Promise.resolve(null);
+        void launchPathPromise.then((ruta) => {
+          if (ruta && !cancelled && mountedRef.current) setArranqueDirecto(true);
+        });
         // Los recientes viven en IPC de Electron (o localStorage en dev) y
         // no dependen de la sesión: se refrescan en paralelo con toda la
         // cadena bootstrap→status→session. refreshRecents nunca rechaza.
@@ -990,7 +1008,7 @@ export default function BootGate({ loadSuite }: BootGateProps) {
         if (cancelled || !mountedRef.current) return;
 
         const devPath = readDevProjectPath();
-        const launchPath = await window.prosecnurApi?.getLaunchProject?.().catch(() => null);
+        const launchPath = await launchPathPromise;
         const autoPath = devPath || launchPath || "";
         if (autoPath) {
           // El deep-link de dev (?pulso=) trae la ruta a propósito; el resto
@@ -1036,6 +1054,7 @@ export default function BootGate({ loadSuite }: BootGateProps) {
       setBackendWarmupEnabled(true);
       setBackgroundWarmup(false);
       setDeadlineReached(false);
+      setArranqueDirecto(false);
       setWarmupMessage("Selecciona un proyecto .pulso para continuar.");
       setDisplayProgressPercent(0);
       setPhase("choose");
@@ -1083,7 +1102,6 @@ export default function BootGate({ loadSuite }: BootGateProps) {
     : rawWarmupPercent;
   const ahoraMs = useAhora(isProgressPhase);
   const transcurridoMs = tiempo.inicioMs === null ? 0 : Math.max(0, ahoraMs - tiempo.inicioMs);
-  const warmupHeadline = friendlyWarmupHeadline(warmupMessage, phase, progressPercent);
   const displayWarmupSteps = warmupDisplaySteps({
     projectPath: activeProjectPath,
     frontendModules,
@@ -1092,6 +1110,9 @@ export default function BootGate({ loadSuite }: BootGateProps) {
     backendEnabled: backendWarmupEnabled,
     reloj: { ahoraMs, inicios: tiempo.inicios },
   });
+  // 5 nov 2026: al final del arranque la barra pasaba más de un minuto en 93 % con «Terminando preparación» sin
+  // decir qué faltaba. El titular nombra lo que de verdad se está esperando.
+  const warmupHeadline = titularDeCierre(friendlyWarmupHeadline(warmupMessage, phase, progressPercent), displayWarmupSteps);
   if (suite) {
     const Suite = suite;
     return (
@@ -1107,7 +1128,8 @@ export default function BootGate({ loadSuite }: BootGateProps) {
     );
   }
 
-  const isWarmupPhase = phase === "warming" || phase === "loading";
+  const isWarmupPhase =
+    phase === "warming" || phase === "loading" || ((phase === "initializing" || phase === "opening") && arranqueDirecto);
 
   return (
     <main
@@ -1115,18 +1137,18 @@ export default function BootGate({ loadSuite }: BootGateProps) {
       data-boot-phase={phase}
       data-boot-progress={isWarmupPhase ? progressPercent : undefined}
     >
-      {isWarmupPhase ? <WarmupDestino /> : null}
-      <section className={`boot-panel ${isWarmupPhase ? "boot-panel-warmup" : ""}`} aria-live="polite">
-        {isWarmupPhase ? (
-          <WarmupView
-            projectPath={activeProjectPath}
-            message={warmupHeadline}
-            transcurridoMs={transcurridoMs}
-            estimacion={tiempo.estimacion}
-            progressPercent={progressPercent}
-            steps={displayWarmupSteps}
-          />
-        ) : (
+      {isWarmupPhase ? (
+        <WarmupView
+          projectPath={activeProjectPath}
+          message={warmupHeadline}
+          transcurridoMs={transcurridoMs}
+          estimacion={tiempo.estimacion}
+          progressPercent={progressPercent}
+          steps={displayWarmupSteps}
+        />
+      ) : (
+      <section className="boot-panel" aria-live="polite">
+        {(
           <>
             <ChooserView
               phase={phase}
@@ -1149,6 +1171,7 @@ export default function BootGate({ loadSuite }: BootGateProps) {
           </>
         )}
       </section>
+      )}
     </main>
   );
 }
@@ -1163,24 +1186,14 @@ function phaseLabel(phase: GatePhase) {
 }
 
 /**
- * Isotipo canónico de la identidad (branding/logo/prosecnur-isotipo.svg):
- * squircle navy + 4 pastillas en perfil de latido. Fuente única de la
- * geometría: branding/direccion-creativa.md — misma marca que Layout.tsx
- * `BrandMark`. Inline SVG: BootGate vive en el chunk de entrada y no puede
- * depender de assets externos ni de features. `--pulso-primary` lo define
- * boot.css para el chunk de entrada; `.boot-mark-bar` anima la firma de
- * arranque (stagger de pastillas) también en boot.css.
+ * Isotipo de la identidad (branding/logo/prosecnur-isotipo.svg, ADR 0132): la Trenza, con su firma de arranque
+ * —los hilos se tuercen y se asientan en la pose quieta—. Vive en el chunk de entrada: sólo depende de app/marca,
+ * que no importa nada, y de `--pulso-primary`, que boot.css define para este chunk.
  */
 function BootBrandMark() {
   return (
     <span className="boot-mark" aria-hidden="true">
-      <svg viewBox="0 0 64 64" width="44" height="44">
-        <rect width="64" height="64" rx="15.4" fill="var(--pulso-primary)" />
-        <rect className="boot-mark-bar" x="12" y="30" width="7" height="18" rx="3.5" fill="#fff" />
-        <rect className="boot-mark-bar" x="23" y="22" width="7" height="26" rx="3.5" fill="#fff" />
-        <rect className="boot-mark-bar" x="34" y="28" width="7" height="20" rx="3.5" fill="#fff" />
-        <rect className="boot-mark-bar" x="45" y="16" width="7" height="32" rx="3.5" fill="#fff" />
-      </svg>
+      <IsotipoCarga modo="firma" fondo="var(--pulso-primary)" />
     </span>
   );
 }
@@ -1249,7 +1262,7 @@ function ChooserView({
         </div>
         <p className="boot-hero-tagline">
           Tu suite de proyectos de investigación. Cada proyecto vive en un
-          archivo <code>.pulso</code> con su avance, bitácora y entregables.
+          archivo <code>.pulso</code> con su instrumento, sus datos y su avance.
         </p>
 
         {error && <div className="boot-error">{error}</div>}
@@ -1341,9 +1354,17 @@ function ChooserView({
           </div>
         ) : (
           <div className="boot-empty">
-            <FolderSearch size={22} aria-hidden="true" />
-            <strong>Sin proyectos recientes</strong>
-            <span>Abre o crea un proyecto y aparecerá aquí para volver rápido.</span>
+            {/* La silueta de las tarjetas que van a llegar (5 nov 2026): el vacío dice qué forma tendrá. */}
+            <div className="boot-empty-fantasmas" aria-hidden="true">
+              {Array.from({ length: 6 }, (_, idx) => (
+                <span className="boot-empty-fantasma" key={idx}><i /><i /><b /></span>
+              ))}
+            </div>
+            <div className="boot-empty-mensaje">
+              <FolderSearch size={22} aria-hidden="true" />
+              <strong>Sin proyectos recientes</strong>
+              <span>Abre o crea un proyecto y aparecerá aquí para volver rápido.</span>
+            </div>
           </div>
         )}
       </div>
@@ -1476,37 +1497,7 @@ function BootRecentRow({
   );
 }
 
-function WarmupStepIcon({ status }: { status: WarmupDisplayStepStatus }) {
-  if (status === "ready") return <Check size={12} strokeWidth={3} aria-hidden="true" />;
-  if (status === "running") return <Loader2 size={12} strokeWidth={2.6} className="boot-step-spin" aria-hidden="true" />;
-  if (status === "skipped") return <Minus size={12} strokeWidth={2.6} aria-hidden="true" />;
-  if (status === "timeout" || status === "error") return <AlertTriangle size={11} strokeWidth={2.4} aria-hidden="true" />;
-  return null;
-}
-
-/** Silueta de la vista a la que se va a entrar, detrás del indicador (L23). */
-function destinoWarmup(pathname: string) {
-  const path = pathname.replace(/\/+$/, "") || "/";
-  const module = PROSECNUR_ACTIVE_MODULES.find((item) => item.to !== "/" && (path === item.to || path.endsWith(item.to)));
-  return module ?? null;
-}
-
-function WarmupDestino() {
-  const module = useMemo(
-    () => (typeof window === "undefined" ? null : destinoWarmup(window.location.pathname)),
-    [],
-  );
-  return (
-    <div className="boot-warmup-destino" aria-hidden="true">
-      {module ? (
-        <VistaSkeleton variante="modulo" secciones={module.sections.length} style={moduleChromeVars(module)} />
-      ) : (
-        <VistaSkeleton variante="inicio" />
-      )}
-    </div>
-  );
-}
-
+/** El arranque del proyecto dibuja la pantalla de carga de la app (PantallaDeCarga) en disposición «recorrido». */
 function WarmupView({
   projectPath,
   message,
@@ -1522,45 +1513,30 @@ function WarmupView({
   progressPercent: number;
   steps: WarmupDisplayStep[];
 }) {
-  const clampedPercent = Math.min(100, progressPercent);
+  // 3 nov 2026 (Gonzalo): la preparación toma el color del módulo de destino; en el Home queda el azul de marca.
+  const destino = useMemo(
+    () => (typeof window === "undefined" ? null : destinoWarmup(window.location.pathname)),
+    [],
+  );
+  const modulo = destino?.modulo ?? null;
   return (
-    <div className="boot-warmup" data-boot-message={message}>
-      <div className="boot-warmup-summary">
-        <div className="boot-warmup-mark">Prosecnur</div>
-        <div
-          className="boot-ring"
-          style={{ "--boot-ring-p": clampedPercent } as CSSProperties}
-          role="progressbar"
-          aria-label="Avance de preparación"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={clampedPercent}
-        >
-          <span className="boot-ring-orbit" aria-hidden="true" />
-          <span className="boot-ring-arc" aria-hidden="true" />
-          <span className="boot-ring-core">
-            <span className="boot-progress-percent">{progressPercent}%</span>
-          </span>
-        </div>
-        <div className="boot-progress">
-          <p className="boot-project-name" title={projectPath ?? undefined}>{projectName(projectPath)}</p>
-          <h1>{message}</h1>
-          <WarmupReloj className="boot-warmup-reloj" transcurridoMs={transcurridoMs} estimacion={estimacion} />
-        </div>
-      </div>
-      <div className="boot-warmup-steps" aria-label="Fases de preparación" aria-live="off">
-        {steps.map((step) => (
-          <div className={`boot-warmup-step is-${step.status}`} key={step.id}>
-            <span className="boot-step-icon" aria-hidden="true">
-              <WarmupStepIcon status={step.status} />
-            </span>
-            <div>
-              <strong>{step.label}</strong>
-              {step.detail ? <small>{step.detail}</small> : null}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
+    <PantallaDeCarga
+      alto="ventana"
+      style={modulo ? moduleChromeVars(modulo) : undefined}
+      conTono={Boolean(modulo)}
+      datos={{ "data-boot-message": message, "data-modulo-destino": modulo?.slug }}
+      // 6 nov 2026 (Gonzalo, propuesta «Fondo de carga de Prosecnur»): la carga del proyecto es el Recorrido de
+      // los siete módulos, con la lámina angosta a la izquierda y la barra de módulos debajo.
+      disposicion="recorrido"
+      fondo={<RecorridoCarga transcurridoMs={transcurridoMs} estimacion={estimacion} />}
+      bajoLamina={<SegmentosRecorrido transcurridoMs={transcurridoMs} estimacion={estimacion} />}
+      ceja={destino ? `Abriendo ${destino.rotulo}` : "Abriendo el proyecto"}
+      sujeto={projectName(projectPath)}
+      titulo={message}
+      porcentaje={Math.min(100, progressPercent)}
+      transcurridoMs={transcurridoMs}
+      estimacion={estimacion}
+      fases={steps.map((step) => ({ id: step.id, label: step.label, status: step.status, lectura: step.detail }))}
+    />
   );
 }

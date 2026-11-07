@@ -26,7 +26,7 @@ export function detallesFormulario(f: FormularioPublicado): string[] {
   const partes: string[] = [];
   if (f.n_campos != null) partes.push(formatoConteoDe(f.n_campos, "campo"));
   if (f.campanas.length) partes.push(formatoConteoDe(f.campanas.length, "campaña"));
-  if (f.logic_external) partes.push("Lógica: fuera de Prosecnur · SPSS");
+  if (f.logic_external) partes.push("Lógica: fuera de Prosecnur, en SPSS");
   return partes;
 }
 
@@ -81,7 +81,7 @@ export function veredictoVistaPrevia(vp: VistaPreviaFormularioPublicado): Veredi
       detalle: vp.bloqueo?.mensaje || `${calzan}; hace falta al menos el ${Math.round(UMBRAL_COBERTURA * 100)} %.`,
     };
   }
-  const filas = vp.n_filas != null ? `${formatoConteoDe(vp.n_filas, "respuesta")} · ` : "";
+  const filas = vp.n_filas != null ? `${formatoConteoDe(vp.n_filas, "respuesta")}, ` : "";
   return { nivel: "listo", porcentaje, titulo: "Las respuestas calzan con el formulario", detalle: `${filas}${calzan}` };
 }
 

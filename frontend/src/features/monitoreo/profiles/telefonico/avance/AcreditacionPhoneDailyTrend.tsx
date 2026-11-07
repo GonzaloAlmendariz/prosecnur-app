@@ -8,9 +8,11 @@ import {
   type AcreditacionPhoneDailyStatusSeries,
 } from "../TelefonicoPhoneDailyTrend";
 import { formatMetric, normalizeSourceMatch } from "../formato";
+import { formatoDecimal } from "../../../../../lib/formatoNumero";
 import { EmptyPanel } from "../EmptyPanel";
 import { phoneStatusPalette, phoneStatusTone } from "./ritmoDiario";
 import { COLOR_RESULTADO } from "../../../coloresDeResultado";
+import { ticksDeFechas } from "../../../core/ejeDeFechas";
 
 // Ritmo diario telefónico (efectivas Kobo + estados del barrido), extraído
 // del page-file congelado (TelefonicoMonitoreoPage.tsx) en la ola 2 del plan
@@ -60,7 +62,7 @@ function AcreditacionPhoneDailyStatusBars({ series }: { series: AcreditacionPhon
                   {item.points.map((point) => {
                     const size = point.value > 0 ? Math.max(5, Math.min(100, (point.value / maxPoint) * 100)) : 0;
                     return (
-                      <span key={`${item.label}-${point.rawLabel}`} title={`${item.label} · ${point.label}: ${formatMetric(point.value)}`}>
+                      <span key={`${item.label}-${point.rawLabel}`} title={`${item.label}, ${point.label}: ${formatMetric(point.value)}`}>
                         <i style={{ "--phone-status-day": `${size}%` } as CSSProperties} />
                         <small>{point.axisLabel || point.label}</small>
                         <b>{formatMetric(point.value)}</b>
@@ -226,6 +228,11 @@ export function AcreditacionPhoneDailyTrend({
   );
 }
 
+function isoDeFecha(fecha: Date) {
+  const dos = (valor: number) => String(valor).padStart(2, "0");
+  return `${fecha.getFullYear()}-${dos(fecha.getMonth() + 1)}-${dos(fecha.getDate())}`;
+}
+
 // Derivación pura del gráfico. Antes vivía en el cuerpo del componente y
 // reconstruía chartData/chartLayout en cada render.
 function buildPhoneDailyTrendModel(
@@ -250,14 +257,22 @@ function buildPhoneDailyTrendModel(
   });
   const totalPeriod = chartRows[chartRows.length - 1]?.cumulativeTotal ?? 0;
   const averagePerDay = chartRows.length ? totalPeriod / chartRows.length : 0;
-  const averageLabel = averagePerDay.toLocaleString("es-PE", {
-    maximumFractionDigits: averagePerDay < 10 ? 1 : 0,
-  });
+  const averageLabel = formatoDecimal(averagePerDay, averagePerDay < 10 ? 1 : 0);
   const bestPoint = chartRows.reduce<(AcreditacionPhoneDailyPoint & { dailyTotal: number; cumulativeTotal: number }) | null>((best, point) => (
     !best || point.dailyTotal > best.dailyTotal ? point : best
   ), null);
   const lastPoint = [...chartRows].reverse().find((point) => point.date) ?? chartRows[chartRows.length - 1] ?? null;
   const xLabels = chartRows.map((point) => point.axisLabel || point.label);
+  // Eje de fechas común de Monitoreo (`core/ejeDeFechas`): el día bajo su barra
+  // y el mes debajo sólo donde empieza. Los ticks apuntan a las categorías del
+  // eje; el paso por barra se estima con el ancho típico de la tarjeta y el
+  // mínimo de 28 px por corte que fija `ritmoDiario.css` (`--trend-cortes`).
+  const pasoDelEje = Math.max(28, (statusSeries.length ? 600 : 900) / Math.max(1, chartRows.length));
+  const ejeDeFechasDelRitmo = ticksDeFechas(
+    chartRows.map((point) => (point.date ? isoDeFecha(point.date) : point.label)),
+    pasoDelEje,
+    (indice) => xLabels[indice],
+  );
   const hoverData = chartRows.map((point) => [
     point.label,
     point.effective,
@@ -296,7 +311,7 @@ function buildPhoneDailyTrendModel(
     bargap: chartRows.length <= 1 ? 0.5 : chartRows.length <= 7 ? 0.42 : 0.24,
     hovermode: "x unified" as const,
     showlegend: false,
-    margin: { l: 48, r: 58, t: 14, b: chartRows.length > 7 ? 70 : 48 },
+    margin: { l: 48, r: 58, t: 14, b: 48 },
     paper_bgcolor: "transparent",
     plot_bgcolor: "transparent",
     hoverlabel: {
@@ -310,7 +325,9 @@ function buildPhoneDailyTrendModel(
       fixedrange: true,
       showgrid: false,
       zeroline: false,
-      tickangle: chartRows.length > 7 ? -32 : 0,
+      tickangle: 0,
+      tickvals: ejeDeFechasDelRitmo.tickvals,
+      ticktext: ejeDeFechasDelRitmo.ticktext,
       tickfont: { color: "#474f5b", size: 10 },
       automargin: true,
     },

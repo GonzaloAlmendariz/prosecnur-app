@@ -9,7 +9,7 @@ import { leerRegla } from "../../reglas/leerRegla";
 import { AvisosFicha } from "./AvisosFicha";
 import { CabeceraDesdeDatos, dondeEsta } from "./CabeceraFicha";
 import { CampoCodigo } from "./CampoCodigo";
-import { plural } from "./modeloFicha";
+import { etiquetaEscrita } from "./modeloFicha";
 import { BloqueFicha, BotonIr, CampoTexto, CodigoXlsform, Lectura } from "./piezasFicha";
 import { ReglasFicha } from "./ReglasFicha";
 import type { DatosFicha } from "./tiposFicha";
@@ -22,7 +22,7 @@ export function FichaCalculo({ datos }: { datos: DatosFicha }) {
   const irCalculos = () => acciones.irPestana("calculos", node.name || null);
   return (
     <section className="xfh-caja" data-qa-geometry-group="xlsform/ficha-bloques" data-qa-geometry-contract="intrinsic">
-      <CabeceraDesdeDatos datos={datos} posicion={`No lo ve el encuestado · ${dondeEsta(node, structure)}`} conTipo />
+      <CabeceraDesdeDatos datos={datos} posicion={`No lo ve el encuestado, ${dondeEsta(node, structure)}`} conTipo />
       <AvisosFicha avisos={avisos} />
       <BloqueFicha titulo="Fórmula">
         {lectura ? (
@@ -33,7 +33,7 @@ export function FichaCalculo({ datos }: { datos: DatosFicha }) {
             ) : null}
             <div className="xfh-det__pie">
               <BotonIr onClick={irCalculos}>Editar en Cálculos</BotonIr>
-              <CodigoXlsform lineas={[{ columna: "calculation", raw: formula }]} abierto={lectura.tecnica} />
+              <CodigoXlsform lineas={[{ columna: "calculation", raw: formula }]} />
             </div>
           </>
         ) : (
@@ -59,11 +59,10 @@ export function FichaCalculo({ datos }: { datos: DatosFicha }) {
         ) : (
           <p className="xfh-aviso-suave">Ninguna pregunta usa este valor todavía. Se guarda igual en la base.</p>
         )}
-        {usos.length ? <small className="xfh-det__sub">{plural(usos.length, "uso", "usos")} en el formulario</small> : null}
       </BloqueFicha>
-      <BloqueFicha titulo="Nombre">
+      <BloqueFicha titulo="Etiqueta y código">
         <div className="xfh-dos-campos">
-          <CampoTexto etiqueta="Nombre para reconocerlo" valor={node.label} onCambio={(v) => acciones.campo("label", v)} placeholder="Opcional" />
+          <CampoTexto etiqueta="Etiqueta" valor={etiquetaEscrita(survey, node)} onCambio={(v) => acciones.campo("label", v)} placeholder="Opcional" />
           <CampoCodigo valor={node.name} survey={survey} onCambio={(v) => acciones.campo("name", v)} />
         </div>
       </BloqueFicha>

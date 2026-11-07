@@ -31,7 +31,9 @@ source("setup-load-all.R")
   "p_dim_foda", "p_dim_heatmap_criterios",
   "p_dicotomica",   # alias de p_barras_categoricas (G10): usa su renderer
   # Recetario p192–p194 y p111–p112: su render arma la lámina con otros renders (barras) o con su propio cálculo.
-  "p_filtro_subpregunta", "p_significancia_publicos"
+  "p_filtro_subpregunta", "p_significancia_publicos",
+  # Línea por nivel (ef925428a): lámina nativa propia (lamina_lineas_nivel.R) y figura Word; no pasa por un graficar_*.
+  "p_lineas_nivel"
 )
 
 # Args catalogados que no son formals de NINGUNA de las dos capas porque los
@@ -67,10 +69,11 @@ source("setup-load-all.R")
            nombres(.presets_metadata_payload()$presets)))
 }
 
-test_that("los 31 graficadores del registro resuelven, ninguno se salta", {
-  # 24 + p_cifra y p_mapa_resultado_distrital (F6), ambos con renderer graficar_* propio.
+test_that("los 33 graficadores del registro resuelven, ninguno se salta", {
+  # 24 + p_cifra y p_mapa_resultado_distrital (F6) y p_mapa_distribucion (CCSS 2026), con renderer graficar_* propio, y
+  # p_lineas_nivel (CCSS 2026), sin él.
   gs <- .graficos_registry_payload()$graficadores
-  expect_length(gs, 31L)
+  expect_length(gs, 33L)
   for (g in gs) {
     fn <- tryCatch(getExportedValue("prosecnurapp", g$name), error = function(e) NULL)
     expect_true(is.function(fn), info = sprintf("%s no resuelve como el router lo resuelve", g$name))

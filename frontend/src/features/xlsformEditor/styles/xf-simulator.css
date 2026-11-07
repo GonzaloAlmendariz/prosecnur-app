@@ -12,12 +12,7 @@
  * Namespace: `.pulso-xfsim-*`.
  * ========================================================================= */
 
-@keyframes pulso-xfsim-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-/* Debe cubrir la command bar del editor (.pulso-page-frame-toolbar, z-index
+/* Debe cubrir la command bar del editor (.pulso-page-frame-chrome, z-index
  * 1000) y el MoreViewsMenu (1200), igual que .pulso-graph-overlay (1400). El
  * overlay se portalea a document.body, así que sin este z-index la barra
  * «Instrumento / Constructor / Hojas» quedaba pintada ENCIMA del simulador. */
@@ -120,7 +115,7 @@
 .pulso-xfsim-slot.is-visible {
   grid-template-rows: 1fr;
   opacity: 1;
-  animation: pulso-xfsim-in var(--motion-dur-base) var(--motion-ease-out) backwards;
+  animation: pulso-mov-sube var(--motion-dur-base) var(--motion-ease-out) backwards;
 }
 
 /* Stagger sutil al entrar a una página (máx ~6 cards). */
@@ -230,7 +225,7 @@
 }
 
 .pulso-xfsim-edit:active {
-  transform: scale(0.94);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-xfsim-hint {
@@ -269,7 +264,7 @@
 }
 
 .pulso-xfsim-option:active:not(:disabled) {
-  transform: scale(0.985);
+  transform: scale(var(--mov-press-tarjeta, 0.985));
 }
 
 .pulso-xfsim-option:disabled {
@@ -317,6 +312,33 @@
 .pulso-xfsim-option-label {
   min-width: 0;
   overflow-wrap: break-word;
+}
+
+/* Escala (appearance likert): en fila, el punto arriba y el rótulo debajo, como en la plataforma (E4). */
+.pulso-xfsim-options.is-escala {
+  flex-direction: row;
+  gap: 4px;
+}
+
+.pulso-xfsim-options.is-escala .pulso-xfsim-option {
+  flex: 1 1 0;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 8px 4px;
+  text-align: center;
+}
+
+.pulso-xfsim-options.is-escala .pulso-xfsim-option-label {
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.25;
+}
+
+/* columns: varias columnas de opciones. */
+.pulso-xfsim-options.is-columnas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
 }
 
 .pulso-xfsim-options-empty {
@@ -601,7 +623,7 @@ input[type="range"].pulso-xfsim-range-input::-moz-range-thumb {
 }
 
 .pulso-xfsim-pill:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-xfsim-pill:disabled {
@@ -628,12 +650,12 @@ input[type="range"].pulso-xfsim-range-input::-moz-range-thumb {
 }
 
 .pulso-xfsim-empty strong {
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   color: var(--pulso-text);
 }
 
 .pulso-xfsim-empty span {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 

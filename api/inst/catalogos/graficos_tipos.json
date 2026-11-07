@@ -204,6 +204,18 @@
       "categoria": "estructural",
       "estandar": null,
       "en_selector": false
+    },
+    {
+      "name": "p_slide_resumen_diferencias",
+      "categoria": "1grafico",
+      "estandar": null,
+      "en_selector": true
+    },
+    {
+      "name": "p_slide_hallazgos",
+      "categoria": "1grafico",
+      "estandar": null,
+      "en_selector": true
     }
   ],
   "graficadores": [
@@ -304,6 +316,12 @@
       "en_selector": true
     },
     {
+      "name": "p_mapa_distribucion",
+      "familia_editor": "territorio",
+      "salida": "nativa",
+      "en_selector": true
+    },
+    {
       "name": "p_mapa_resultado_distrital",
       "familia_editor": "territorio",
       "salida": "nativa",
@@ -396,6 +414,12 @@
     {
       "name": "p_dim_heatmap_criterios",
       "familia_editor": "dimensiones",
+      "salida": "nativa",
+      "en_selector": true
+    },
+    {
+      "name": "p_lineas_nivel",
+      "familia_editor": "comparar",
       "salida": "nativa",
       "en_selector": true
     }

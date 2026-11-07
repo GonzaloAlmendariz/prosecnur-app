@@ -243,6 +243,8 @@ test_that("la negrita del Word sigue Identidad › Letra: la categoría mayor, t
   withr::local_options(prosecnur.negrita = list(categorias = "ninguna", cifras = FALSE, leyenda = TRUE))
   expect_true(all(caras() == "plain"))
   g <- .word_g_barras(esp)
-  expect_identical(g$layers[[2]]$aes_params$fontface, "plain")           # la cifra de cada barra
+  # Por contenido, no por posición: la pista hasta el 100% (revisión v7.23, ítem 8: en toda barra de una serie) suma una capa.
+  capa_cifra <- Filter(function(l) inherits(l$geom, "GeomText") && identical(rlang::as_label(l$mapping$label), "et"), g$layers)[[1]]
+  expect_identical(capa_cifra$aes_params$fontface, "plain")              # la cifra de cada barra
   expect_identical(.word_tema()$legend.text$face, "bold")
 })

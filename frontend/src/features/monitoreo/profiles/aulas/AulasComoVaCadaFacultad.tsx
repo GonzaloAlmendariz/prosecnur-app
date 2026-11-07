@@ -80,10 +80,10 @@ export function AulasComoVaCadaFacultad({ bloque, porSexo, facultadEnFoco, onRef
         )}
         {/* El caso que la cifra global esconde, contado aparte. */}
         {r.deUnSoloSexo ? (
-          <> · <strong>{fmt(r.deUnSoloSexo)}</strong> {r.deUnSoloSexo === 1 ? "sólo en un sexo" : "sólo en un sexo"}</>
+          <>, <strong>{fmt(r.deUnSoloSexo)}</strong> {r.deUnSoloSexo === 1 ? "sólo en un sexo" : "sólo en un sexo"}</>
         ) : null}
-        {r.porEncima ? <> · <strong>{fmt(r.porEncima)}</strong> por encima de lo previsto</> : null}
-        {r.sinCampo ? <> · <strong>{fmt(r.sinCampo)}</strong> sin campo todavía</> : null}
+        {r.porEncima ? <>, <strong>{fmt(r.porEncima)}</strong> por encima de lo previsto</> : null}
+        {r.sinCampo ? <>, <strong>{fmt(r.sinCampo)}</strong> sin campo todavía</> : null}
         {/* **«No se compensa entre facultades» sólo dice algo si hay más de
             una.** Con un estudio de una sola —CCSS— la frase enuncia una regla
             que no puede aplicarse, y ocupa el sitio de lo que sí hay que saber:

@@ -45,6 +45,8 @@ import {
   apiXlsformFormPublishRevision,
   apiXlsformFormSave,
   apiXlsformFormsList,
+  apiXlsformEditorImportInstrumentoEstudio,
+  type InstrumentoDelEstudio,
   downloadUrl,
   normalizeXlsformFormSource,
   type ChoiceCodeMap,
@@ -54,6 +56,7 @@ import {
   type XlsformFormSource,
 } from "../../api/client";
 import type { XlsformPaperExportOptions } from "../../api/xlsformEditor";
+import { descargarArchivo } from "../../lib/descargas";
 import { useProjectShell } from "../project/ProjectShell";
 import { ImportSurveyMonkeyDialog } from "./shell/ImportSurveyMonkeyDialog";
 import { MatrizPulsoDialog } from "./shell/MatrizPulsoDialog";
@@ -163,12 +166,21 @@ import { instrumentActorLabel } from "./shell/formWorkflowView";
 import { exportWarningDetail, pdfDialogStorageKey } from "./shell/pdfExportPreference";
 import { EditorPestanas } from "./shell/EditorPestanas";
 import { usePestanaEditor } from "./shell/pestanaEditor";
-import { PANEL_CATALOGOS, PANEL_LOGICA_SURVEYMONKEY } from "./shell/panelesEditor";
+import { PANEL_CATALOGOS, PANEL_IMPORTAR_SURVEYMONKEY, PANEL_LOGICA_SURVEYMONKEY } from "./shell/panelesEditor";
 import { VistaCuestionario } from "./shell/VistaCuestionario";
 import { deriveEditorHeaderStatus } from "./shell/editorHeaderStatus";
 import { contextoResumen } from "./resumen/contextoResumen";
 import { PestanaImpreso } from "./impreso/PestanaImpreso";
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
+import { FOCO_NUEVO_PARES, FOCO_PARES, FOCO_VINETAS, focoLista, focoRespaldo, focoVersiones, PestanaExperimentos } from "./pestanas/PestanaExperimentos";
+import { conEjemploParaPapel } from "./cuestionario/ejemploSorteo";
+import { itemAltaConjoint } from "./conjoint/altaConjoint";
+import { leerConjoint } from "./conjoint/leerConjoint";
+import { leerVinetas } from "./conjoint/leerVinetas";
+import { leerVersiones } from "./conjoint/leerVersiones";
+import { leerLista } from "./conjoint/leerLista";
+import { leerRespaldo } from "./conjoint/leerRespaldo";
+import { leerOrden } from "./conjoint/modeloOrden";
 import { esperarExportPapel, textoExportando } from "./shell/paperExportJob";
 import { ToastDeck, useToastDeck } from "./shell/ToastDeck";
 import { EditorCommandBar } from "./shell/EditorCommandBar";
@@ -177,6 +189,8 @@ import { useActivePublicationRefresh } from "./shell/useActivePublicationRefresh
 import { contarEscalasRepetidas, useListasOpcionesPanel } from "./listas";
 import { buildSuiteMetrics } from "./shell/editorMetrics";
 import { RestoreOfferBanner } from "./shell/RestoreOfferBanner";
+import { OfertaInstrumentoDelEstudio } from "./shell/OfertaInstrumentoDelEstudio";
+import { ofrecerInstrumentoDelEstudio } from "./shell/instrumentoDelEstudio";
 import { LogicaExternaDialogo, LogicaExternaDisparador } from "./shell/LogicaExterna";
 import { useLogicaExterna } from "./shell/useLogicaExterna";
 import { CollapsibleSection } from "./shell/CollapsibleSection";
@@ -209,6 +223,7 @@ import "./styles/xlsformV2";
 import "./styles/xf-logic.css";
 import { PestanaRestricciones } from "./pestanas/PestanaRestricciones";
 import { PestanaCalculos } from "./pestanas/PestanaCalculos";
+import { aplicarArmado } from "./pestanas/armadorCalculo/aplicarArmado";
 import { ListaLogica } from "./canvas-graph/ListaLogica";
 import { workbookWithSurveyMonkeyLogic, refreshSurveyMonkeyAdvancedRules, extractExistingKoboLogic, visualActionCountForFooter, mergeAdvancedLogicRules, mergeVisualLogicRules, choiceCodeMapsWithOverrides, mergeChoiceCodeMaps, sectionIdForRow, findNextSiblingAfterSection, findLastDirectChildInSection, buildSectionBoundaryState } from "./state/editorHelpers";
 import { SurveyMonkeyLogicPopup } from "./shell/SurveyMonkeyLogicPopup";
@@ -255,6 +270,9 @@ export default function XlsformEditorPage() {
   // caliente, las tarjetas nacían sin su bloque de publicación y crecían al
   // llegar. Esperar una sola vez cuesta unos ms y entrega una sola superficie.
   const [libraryReady, setLibraryReady] = useState(false);
+  // Hallazgo 12: el instrumento vinculado al estudio, que la biblioteca puede no traer todavía.
+  const [instrumentoDelEstudio, setInstrumentoDelEstudio] = useState<InstrumentoDelEstudio | null>(null);
+  const [abriendoInstrumento, setAbriendoInstrumento] = useState(false);
   // El índice del proyecto no se pudo leer. Distinto de "no hay formularios":
   // afirmar el vacío sin saberlo es la misma mentira que producía el hero de
   // creación delante de un proyecto que sí tenía formularios.
@@ -328,12 +346,12 @@ export default function XlsformEditorPage() {
 	  const [smLogicRules, setSmLogicRules] = useState<ConfirmedRule[]>([]);
 	  const [smVisualLogicRules, setSmVisualLogicRules] = useState<SurveyMonkeyVisualLogicRule[]>([]);
 	  const [smLogicChoiceOverrides, setSmLogicChoiceOverrides] = useState<Record<string, string[]>>({});
-  /** Modal de importación SurveyMonkey vía API. El .sav queda solo como ruta
-   *  legacy opcional; el flujo principal ya no pide archivo. */
-  const [smImportDialog, setSmImportDialog] = useState<
-    | { fileId?: string | null; fileName: string }
-    | null
-  >(null);
+  /** Importación SurveyMonkey vía API → panel direccionable. El .sav quedó
+   *  como ruta legacy; el flujo abre siempre sin archivo. */
+  const smImportPanel = usePanelDireccionable(PANEL_IMPORTAR_SURVEYMONKEY);
+  // El cierre tras importar llega después de varios `await`: lee la dirección vigente.
+  const smImportPanelRef = useRef(smImportPanel);
+  smImportPanelRef.current = smImportPanel;
   /** Diálogo del importador de "Matriz PULSO IAC-CINDA". Se abre cuando el
    *  backend detecta que el .xlsx subido es una matriz por audiencia en vez de
    *  un XLSForm normal. */
@@ -433,6 +451,7 @@ export default function XlsformEditorPage() {
       });
     }
     setForms(listForms(projectScope));
+    setInstrumentoDelEstudio(backend.instrumento_del_estudio);
     setPublicationUi((prev) => ({
       ...prev,
       byFormId: Object.fromEntries(
@@ -755,6 +774,7 @@ export default function XlsformEditorPage() {
     let localActive = migrated.activeFormId;
     let formCount = migrated.forms.length;
     let backendFormIds = new Set<string>();
+    let instrumentoDelBackend: InstrumentoDelEstudio | null = null;
 
     let cancelled = false;
     void (async () => {
@@ -767,6 +787,7 @@ export default function XlsformEditorPage() {
         if (cancelled) return;
         setLibraryError(false);
         backendFormIds = new Set(backend.forms.map((form) => form.id));
+        instrumentoDelBackend = backend.instrumento_del_estudio;
         if (backend.active_form_id && !localActive) {
           localActive = backend.active_form_id;
         }
@@ -807,6 +828,9 @@ export default function XlsformEditorPage() {
           localActive
           && !hubElegidoRef.current
           && (formCount <= 1 || new URLSearchParams(window.location.search).has("pestana"))
+          // Con el instrumento del estudio fuera de la biblioteca se aterriza en ella, que lo ofrece:
+          // entrar directo al borrador escondía el instrumento (hallazgo 12).
+          && !ofrecerInstrumentoDelEstudio(instrumentoDelBackend, listForms(projectScope))
         ) {
           // Una dirección que pide una pestaña (`?pestana=impreso`) pide el
           // formulario, no la biblioteca: sin `form_id`, se abre el activo.
@@ -907,6 +931,79 @@ export default function XlsformEditorPage() {
     [workbook]
   );
   const structure = xlsformIndex?.structure ?? null;
+  // Experimento de elección por pares ya escrito (C5): Estructura pliega el sorteo de cada par y lo abre en el panel.
+  const lecturaPares = useMemo(() => leerConjoint(workbook), [workbook]);
+  const lecturaVinetas = useMemo(() => leerVinetas(workbook), [workbook]);
+  const lecturasVersiones = useMemo(() => leerVersiones(workbook), [workbook]);
+  const lecturasLista = useMemo(() => leerLista(workbook), [workbook]);
+  const lecturasRespaldo = useMemo(() => leerRespaldo(workbook), [workbook]);
+  const lecturasOrden = useMemo(() => leerOrden(workbook), [workbook]);
+  // Cálculos del sorteo de cada experimento: se pliegan en Estructura con su rótulo (C5, C10, C12, C14).
+  const sorteoUnico = useMemo(() => {
+    const m = new Map<number, string>();
+    lecturasVersiones.forEach((l) => l.calculos.forEach((f) => m.set(f, "Sorteo de la versión")));
+    lecturasLista.forEach((l) => l.filas.slice(0, 2).forEach((f) => m.set(f, "Sorteo del grupo")));
+    lecturasRespaldo.forEach((l) => l.sorteo.forEach((f) => m.set(f, "Sorteo del respaldo")));
+    return m;
+  }, [lecturasVersiones, lecturasLista, lecturasRespaldo]);
+  const tareaDeSorteo = useMemo(
+    () => (lecturaPares || lecturaVinetas || sorteoUnico.size
+      ? (fila: number) => lecturaPares?.sorteo.get(fila) ?? lecturaVinetas?.sorteo.get(fila) ?? (sorteoUnico.has(fila) ? 1 : undefined)
+      : undefined),
+    [lecturaPares, lecturaVinetas, sorteoUnico],
+  );
+  const rotuloSorteo = useCallback(
+    (fila: number, n: number) => sorteoUnico.get(fila) ?? (lecturaVinetas?.sorteo.has(fila) ? `Sorteo de la viñeta ${n}` : `Sorteo del par ${n}`),
+    [lecturaVinetas, sorteoUnico],
+  );
+  // La tabla de un par y el escenario de una viñeta se nombran por lo que son, no por su texto con referencias (C11).
+  const tituloFijo = useMemo(() => {
+    const m = new Map<number, string>();
+    lecturaPares?.pares.forEach((p) => m.set(p.tabla, `Tabla del par ${p.tarea}`));
+    lecturaVinetas?.vinetas.forEach((v) => m.set(v.nota, `Escenario de la viñeta ${v.vineta}`));
+    lecturasVersiones.forEach((l) => m.set(l.pregunta, `Pregunta con ${l.diseno.versiones.length} versiones`));
+    lecturasLista.forEach((l) => {
+      if (l.pagina != null) m.set(l.pagina, "Página de la lista");
+      m.set(l.control, "Lista del grupo de control");
+      m.set(l.tratamiento, "Lista con la afirmación sensible");
+    });
+    lecturasRespaldo.forEach((l) => l.politicas.forEach((p, k) => {
+      if (p.pagina != null) m.set(p.pagina, `Política ${k + 1}`);
+      m.set(p.politica, `Texto de la política ${k + 1}`);
+      m.set(p.texto, "Frase con o sin respaldo");
+      m.set(p.frase, `Frase de la política ${k + 1}`);
+    }));
+    lecturasOrden.forEach((l) => m.set(l.semilla, "Semilla del orden al azar"));
+    return m.size ? (fila: number) => m.get(fila) : undefined;
+  }, [lecturaPares, lecturaVinetas, lecturasVersiones, lecturasLista, lecturasRespaldo, lecturasOrden]);
+  // Cada experimento lleva su cabecera en Estructura (C7 pares, C11 viñetas).
+  const experimentosEstructura = useMemo(() => {
+    const out: { filas: Set<number>; titulo: string; resumen: string }[] = [];
+    if (lecturaPares) {
+      const filas = new Set(lecturaPares.pares.map((p) => p.grupo));
+      if (lecturaPares.intro != null) filas.add(lecturaPares.intro);
+      const n = lecturaPares.pares.length;
+      out.push({ filas, titulo: "Experimento de elección por pares", resumen: `${n} ${n === 1 ? "par" : "pares"}, ${lecturaPares.diseno.atributos.length} atributos` });
+    }
+    if (lecturaVinetas) {
+      const filas = new Set(lecturaVinetas.vinetas.map((v) => v.grupo));
+      if (lecturaVinetas.intro != null) filas.add(lecturaVinetas.intro);
+      const n = lecturaVinetas.vinetas.length;
+      out.push({ filas, titulo: "Experimento de viñetas", resumen: `${n} ${n === 1 ? "viñeta" : "viñetas"}, ${lecturaVinetas.diseno.atributos.length} atributos` });
+    }
+    for (const l of lecturasVersiones) {
+      out.push({ filas: new Set(l.filas), titulo: "Versiones al azar", resumen: `${l.diseno.pregunta}: ${l.diseno.versiones.length} versiones` });
+    }
+    for (const l of lecturasLista) {
+      out.push({ filas: new Set(l.primerNivel), titulo: "Experimento de lista", resumen: `${l.diseno.controles.length} afirmaciones y 1 sensible` });
+    }
+    for (const l of lecturasRespaldo) {
+      const p = l.diseno.politicas.length;
+      const a = l.diseno.actores.length;
+      out.push({ filas: new Set(l.primerNivel), titulo: "Experimento de respaldo", resumen: `${p} ${p === 1 ? "política" : "políticas"}, ${a} ${a === 1 ? "actor" : "actores"}` });
+    }
+    return out;
+  }, [lecturaPares, lecturaVinetas, lecturasVersiones, lecturasLista, lecturasRespaldo]);
 
   // Candidatos de matriz para el selector de exportación a PDF: runs contiguos
   // de select_one/select_multiple con misma lista dentro de la misma sección.
@@ -1422,11 +1519,29 @@ export default function XlsformEditorPage() {
     }
   }
 
+  async function onAbrirInstrumentoDelEstudio() {
+    if (!instrumentoDelEstudio || blockUntilRestoreDecision("abrir el instrumento del estudio") || blockIfAtFormLimit()) return;
+    resetMessages();
+    setAbriendoInstrumento(true);
+    try {
+      const out = await apiXlsformEditorImportInstrumentoEstudio();
+      const nombre = instrumentoDelEstudio.nombre || "el instrumento del estudio";
+      loadWorkbook(out.workbook, out.source, `Abrimos ${nombre}, el instrumento del estudio.`);
+      toasts.push({ kind: "success", title: "Instrumento del estudio abierto", detail: `${nombre} queda en la biblioteca como un formulario más.` });
+    } catch (e: unknown) {
+      const msg = (e as Error).message;
+      setError(msg);
+      toasts.push({ kind: "danger", title: "No se pudo abrir el instrumento", detail: msg });
+    } finally {
+      setAbriendoInstrumento(false);
+    }
+  }
+
   function onImportSurveyMonkey() {
     if (blockUntilRestoreDecision("traducir SurveyMonkey")) return;
     if (blockIfAtFormLimit()) return;
     resetMessages();
-    setSmImportDialog({ fileId: null, fileName: "SurveyMonkey API" });
+    smImportPanel.abrir();
   }
 
   // Confirmación del diálogo de Matriz PULSO: por cada audiencia elegida pide al
@@ -1458,7 +1573,7 @@ export default function XlsformEditorPage() {
           const res = await apiXlsformEditorImportMatrizPulso(dialog.fileId, audience);
           const formId = openWorkbookAsForm(
             res.workbook,
-            { kind: "matriz_pulso", original_name: `${dialog.fileName} · ${audience}` },
+            { kind: "matriz_pulso", original_name: `${dialog.fileName} (${audience})` },
             `Generamos el formulario de ${audience} desde la matriz PULSO.`,
             // Guarda cada formulario sin activarlo; el switchToForm de abajo
             // activa solo el primero, evitando la carrera de activaciones.
@@ -1492,7 +1607,7 @@ export default function XlsformEditorPage() {
     if (createdIds.length > 0) {
       toasts.push({
         kind: "success",
-        title: `Matriz PULSO · ${createdIds.length} formulario${createdIds.length === 1 ? "" : "s"}`,
+        title: `Matriz PULSO: ${createdIds.length} formulario${createdIds.length === 1 ? "" : "s"}`,
         detail: `Generamos ${plan.toCreate.slice(0, createdIds.length).join(", ")} desde ${dialog.fileName}.`,
       });
     }
@@ -1500,7 +1615,7 @@ export default function XlsformEditorPage() {
       toasts.push({
         kind: "info",
         title: "Escala inferida — revísala",
-        detail: `${scaleNotes.join(" · ")}. Revisa las preguntas antes de publicar.`,
+        detail: `${scaleNotes.join("; ")}. Revisa las preguntas antes de publicar.`,
         durationMs: 8000,
       });
     }
@@ -1531,7 +1646,7 @@ export default function XlsformEditorPage() {
     surveyMonkeyChoiceOverrides?: Record<string, string[]>;
     surveyMonkeyChoiceCodeMaps?: ChoiceCodeMap[];
   }) {
-    const fileName = smImportDialog?.fileName ?? payload.source.original_name ?? "archivo";
+    const fileName = payload.source.original_name ?? "SurveyMonkey API";
     const choiceCodeMaps = payload.surveyMonkeyChoiceCodeMaps ?? payload.workbook.surveyMonkeyLogic?.choice_code_maps ?? [];
     const workbookDraft = workbookWithSurveyMonkeyLogic(
       payload.workbook,
@@ -1552,7 +1667,7 @@ export default function XlsformEditorPage() {
       payload.surveyMonkeyChoiceOverrides ?? {},
       choiceCodeMaps,
     );
-    setSmImportDialog(null);
+    smImportPanelRef.current.cerrar();
     setHallazgos(payload.hallazgos);
     loadWorkbook(
       workbookWithLogic,
@@ -1748,7 +1863,7 @@ export default function XlsformEditorPage() {
             durationMs: 8000,
             action: {
               label: "Descargar",
-              onClick: () => { window.open(downloadUrl(out.file_id), "_blank"); },
+              onClick: () => { descargarArchivo(downloadUrl(out.file_id)); },
             },
           });
         }
@@ -1760,7 +1875,7 @@ export default function XlsformEditorPage() {
           durationMs: 6000,
           action: {
             label: "Descargar",
-            onClick: () => { window.open(downloadUrl(out.file_id), "_blank"); },
+            onClick: () => { descargarArchivo(downloadUrl(out.file_id)); },
           },
         });
       }
@@ -1785,7 +1900,8 @@ export default function XlsformEditorPage() {
     setArtifact(null);
     setBusy(textoExportando(label, ""));
     try {
-      const exportableWorkbook = { ...workbook, diagnostico: null };
+      // El papel lleva cada par de conjoint con un sorteo de ejemplo (E8c).
+      const exportableWorkbook = conEjemploParaPapel({ ...workbook, diagnostico: null });
       const exportFn = isWord ? apiXlsformEditorExportWord : apiXlsformEditorExportPdf;
       const filename = isWord
         ? wordFilenameFromSource(source?.original_name)
@@ -1819,7 +1935,7 @@ export default function XlsformEditorPage() {
             durationMs: 8000,
             action: {
               label: "Descargar",
-              onClick: () => { window.open(downloadUrl(out.file_id), "_blank"); },
+              onClick: () => { descargarArchivo(downloadUrl(out.file_id)); },
             },
           });
         }
@@ -1831,7 +1947,7 @@ export default function XlsformEditorPage() {
           durationMs: 7000,
           action: {
             label: "Descargar",
-            onClick: () => { window.open(downloadUrl(out.file_id), "_blank"); },
+            onClick: () => { descargarArchivo(downloadUrl(out.file_id)); },
           },
         });
       }
@@ -2476,6 +2592,7 @@ export default function XlsformEditorPage() {
       action: t.key === "section" || t.key === "repeat" ? () => addSection(undefined, t.base) : () => addQuestion(t.base),
       group: t.group,
     })),
+    itemAltaConjoint(() => pestanaEditor.irConFoco("experimentos", FOCO_NUEVO_PARES)),
     {
       key: "section_end",
       label: "Cerrar sección",
@@ -2494,8 +2611,9 @@ export default function XlsformEditorPage() {
       headerMode="sr-only"
       auditReady={workbook ? "xlsform-editor" : undefined /* el hub: lo decide FormsLibrary */}
       resetScrollKey={`${workbook ? "workbook" : "empty"}:${pestana}`}
-      toolbar={workbook ? (
+      chrome={workbook ? (
         <EditorCommandBar
+          pestana={pestana}
           switcher={{
             forms,
             activeFormId,
@@ -2605,6 +2723,13 @@ export default function XlsformEditorPage() {
                 snapshot={restoreOffer}
                 onAccept={acceptRestoreOffer}
                 onDismiss={dismissRestoreOffer}
+              />
+            ) : instrumentoDelEstudio && ofrecerInstrumentoDelEstudio(instrumentoDelEstudio, forms) ? (
+              <OfertaInstrumentoDelEstudio
+                instrumento={instrumentoDelEstudio}
+                abriendo={abriendoInstrumento}
+                puedeCrear={canCreateForm}
+                onAbrir={() => { void onAbrirInstrumentoDelEstudio(); }}
               />
             ) : null
           }
@@ -2736,13 +2861,30 @@ export default function XlsformEditorPage() {
                         onSelect={selectBuilderFocus}
                         onMoveUp={() => moveSelection("up")}
                         onMoveDown={() => moveSelection("down")}
-                        canMoveUp={!!movement.prevRow}
-                        canMoveDown={!!movement.nextRow}
                         onApplyMove={applyOutlineMove}
                         avisosPorFila={avisosPorFila}
                         onInsertar={insertarDesdeEstructura}
                         onMoverFila={(rowIndex, direccion) => moveSelection(direccion, rowIndex)}
                         formularioId={activeFormId}
+                        tareaDeSorteo={tareaDeSorteo}
+                        experimentos={experimentosEstructura}
+                        rotuloSorteo={rotuloSorteo}
+                        tituloFijo={tituloFijo}
+                        onAbrirPares={(fila) => {
+                          const vs = fila == null ? undefined : lecturasVersiones.find((l) => l.filas.includes(fila));
+                          const ls = fila == null ? undefined : lecturasLista.find((l) => l.filas.includes(fila));
+                          const rs = fila == null ? undefined : lecturasRespaldo.find((l) => l.filas.includes(fila));
+                          if (rs) {
+                            pestanaEditor.irConFoco("experimentos", focoRespaldo(rs.diseno.prefijo));
+                            return;
+                          }
+                          if (ls) {
+                            pestanaEditor.irConFoco("experimentos", focoLista(ls.diseno.prefijo));
+                            return;
+                          }
+                          const vin = fila != null && lecturaVinetas && (lecturaVinetas.sorteo.has(fila) || lecturaVinetas.filas.includes(fila));
+                          pestanaEditor.irConFoco("experimentos", vs ? focoVersiones(vs.diseno.pregunta) : vin ? FOCO_VINETAS : FOCO_PARES);
+                        }}
                         accionBarra={
                           // En pantallas bajas la cabecera «Estructura» se esconde para dar alto a la lista (I2) y
                           // «Añadir pieza» pasa a la barra de búsqueda.
@@ -2790,14 +2932,11 @@ export default function XlsformEditorPage() {
                       obligatoria: (si) => selectedNode && toggleRequired(selectedNode.rowIndex, si),
                       asignarLista: (lista) => selectedNode && assignCatalogToQuestion(selectedNode.rowIndex, lista),
                       ...accionesNuevasFicha({ structure, workbook, selection, updateWorkbook, seleccionar: selectBuilderFocus, irALista: (l) => pestanaEditor.irConFoco("opciones", l) }),
-                      mover: (dir) => moveSelection(dir),
                       eliminar: deleteCurrentSelection,
                       seleccionarFila: (rowIndex) => selectBuilderFocus({ kind: "survey", rowIndex }),
                       irPestana: pestanaEditor.irConFoco,
                       ajuste: updateSettingsField,
                       editarFormulario: updateWorkbook,
-                      puedeSubir: movement.prevRow != null,
-                      puedeBajar: movement.nextRow != null,
                     }}
                   />
 
@@ -2830,7 +2969,7 @@ export default function XlsformEditorPage() {
                 structure={structure}
                 catalogs={catalogs}
                 onEditarEnConstructor={irAFila}
-                acciones={(
+                acciones={source?.kind === "surveymonkey" || smLogicRules.length > 0 || smVisualLogicRules.length > 0 ? (
                   <button
                     type="button"
                     className="pulso-graph-allbutton"
@@ -2842,7 +2981,7 @@ export default function XlsformEditorPage() {
                   >
                     Lógica de SurveyMonkey
                   </button>
-                )}
+                ) : undefined}
                 onSetRelevant={(rowIndex, expression) => {
                   // El canvas declara/edita/elimina relaciones de visibilidad
                   // (relevant). Una expresión vacía ELIMINA la condición (el
@@ -2862,9 +3001,13 @@ export default function XlsformEditorPage() {
             {pestana === "restricciones" && (
               <PestanaRestricciones structure={structure} scope={logicScope} seleccionada={pestanaEditor.foco} onSeleccionar={fijarFocoEnSitio} onEditar={irAFila} onCampo={updateSurveyField} onCampos={updateSurveyFields} catalogs={catalogs} />
             )}
+            {pestana === "experimentos" && workbook && (
+              <PestanaExperimentos workbook={workbook} structure={structure} selection={selection} updateWorkbook={updateWorkbook} seleccionada={pestanaEditor.foco} onSeleccionar={fijarFocoEnSitio} onEditar={irAFila} />
+            )}
             {pestana === "calculos" && (
               <PestanaCalculos structure={structure} scope={logicScope} seleccionada={pestanaEditor.foco} onSeleccionar={fijarFocoEnSitio} onEditar={irAFila} onCampo={updateSurveyField} catalogs={catalogs}
-                onNuevo={workbook ? () => { const nombre = addQuestion("calculate", workbook.survey.rows.length - 1); if (nombre) fijarFocoEnSitio(nombre); } : undefined} />
+                onNuevo={workbook ? () => { const nombre = addQuestion("calculate", workbook.survey.rows.length - 1); if (nombre) fijarFocoEnSitio(nombre); } : undefined}
+                onArmar={(fila, formula, aux) => { let motivo: string | null = null; updateWorkbook((d) => { const r = aplicarArmado(d, fila, formula, aux); if (!r.ok) motivo = r.motivo; }); return motivo; }} />
             )}
             {pestana === "opciones" && workbook && (
               <PestanaOpciones
@@ -2989,14 +3132,14 @@ export default function XlsformEditorPage() {
       <ToastDeck items={toasts.items} onDismiss={toasts.dismiss} />
 
       {/* Diálogo de importación SurveyMonkey vía API. */}
-      {smImportDialog ? (
+      {smImportPanel.abierto ? (
         <ImportSurveyMonkeyDialog
-          fileId={smImportDialog.fileId}
-          fileName={smImportDialog.fileName}
-          onCancel={() => setSmImportDialog(null)}
+          fileId={null}
+          fileName="SurveyMonkey API"
+          onCancel={smImportPanel.cerrar}
           onComplete={onSurveyMonkeyImportComplete}
           onCampaignDeclared={({ formName }) => {
-            setSmImportDialog(null);
+            smImportPanel.cerrar();
             void refreshBackendFormIndex().catch(() => undefined);
             toasts.push({ kind: "success", title: "Campaña agregada", detail: `Quedó declarada en «${formName}».`, durationMs: 6000 });
           }}

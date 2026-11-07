@@ -32,6 +32,8 @@ import {
 import { useIconosRecetario } from "./useIconosRecetario";
 import "./editorIndice.css";
 import { SubcapitulosEditor } from "./SubcapitulosEditor";
+import { EstadoVacio } from "../../../components/EstadoVacio";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 export function EditorIndice({ slide }: { slide: Slide }) {
   const updatePayload = usePlanStore((s) => s.updateSlidePayload);
@@ -95,7 +97,7 @@ export function EditorIndiceVista({ indice, estructura, onAplicar: aplicar, onAb
     if (hasta < 0 || hasta >= indice.capitulos.length || desde === hasta) return;
     const titulo = indice.capitulos[desde].titulo.trim() || "Capítulo sin título";
     aplicar(moverCapitulo(indice, desde, hasta));
-    setAnuncio(`«${titulo}» en la posición ${hasta + 1} de ${indice.capitulos.length}.`);
+    setAnuncio(`«${titulo}» en la posición ${hasta + 1} de ${formatoConteo(indice.capitulos.length)}.`);
     requestAnimationFrame(() => {
       const fila = filas.current.get(hasta);
       if (!fila) return;
@@ -119,7 +121,7 @@ export function EditorIndiceVista({ indice, estructura, onAplicar: aplicar, onAb
   const tomar = () => {
     const nuevo = indiceDesdeEstructura(estructura, indice);
     aplicar(nuevo);
-    setAnuncio(`El índice tomó los ${nuevo.capitulos.length} capítulos del informe. Ctrl+Z lo deshace.`);
+    setAnuncio(`El índice tomó los ${formatoConteo(nuevo.capitulos.length)} capítulos del informe. Ctrl+Z lo deshace.`);
   };
   const n = indice.capitulos.length;
   return (
@@ -166,11 +168,13 @@ export function EditorIndiceVista({ indice, estructura, onAplicar: aplicar, onAb
       )}
 
       {n === 0 ? (
-        <p className="pulso-f6-indice-vacio">
-          {capitulosInforme > 0
-            ? "Sin capítulos propios: el índice sale con los capítulos del informe. Tómalos para editarlos."
-            : "Ni el índice ni el informe tienen capítulos todavía: agrega separadores de capítulo al informe o escribe aquí los del índice."}
-        </p>
+        <EstadoVacio
+          icono={<ListOrdered size={16} aria-hidden="true" />}
+          titulo={capitulosInforme > 0 ? "Sin capítulos propios" : "Ni el índice ni el informe tienen capítulos"}
+          descripcion={capitulosInforme > 0
+            ? "El índice sale con los capítulos del informe. Tómalos para editarlos."
+            : "Agrega separadores de capítulo al informe o escribe aquí los del índice."}
+        />
       ) : (
         <>
           <span className="pulso-f6-ayuda" id={idAyuda}>Usa Alt + ↑/↓ sobre un capítulo para moverlo.</span>

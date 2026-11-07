@@ -501,6 +501,52 @@ function Estandar({ d }: { d: D }) {
   );
 }
 
+/**
+ * Resumen de diferencias (lamina_resumen_diferencias.R): tabla por capítulo, una fila por pregunta con la cápsula de
+ * la diferencia de cada grupo frente al resto. Esquema: las filas del plan no se leen aquí (todavía sin inspector).
+ */
+function ResumenDiferencias({ d }: { d: D }) {
+  const capitulos: ReadonlyArray<readonly [number, number]> = [[1.75, 3], [4.25, 2]];
+  return (
+    <>
+      <Cabecera titulo={d?.titulo} />
+      {capitulos.map(([y, filas]) => (
+        <g key={y}>
+          <Renglon x={0.495} y={y} w={2.2} h={0.16} c="tinta" />
+          {Array.from({ length: filas }, (_, k) => {
+            const yf = y + 0.42 + k * 0.5;
+            return (
+              <g key={k}>
+                <Renglon x={0.495} y={yf} w={[5.4, 4.6, 6.1][k] ?? 5} h={0.14} />
+                <Caja x={8.4 + (k % 2) * 1.6} y={yf - 0.06} w={1.2} h={0.26} c={k === 0 ? "acento" : "ilustracion"} rx={0.13} />
+              </g>
+            );
+          })}
+        </g>
+      ))}
+    </>
+  );
+}
+
+/** Hallazgos clave (lamina_hallazgos.R): cifras destacadas en fila, cada una con su rótulo y su intervalo debajo. */
+function Hallazgos({ d }: { d: D }) {
+  return (
+    <>
+      <Cabecera titulo={d?.titulo} />
+      {[0, 1, 2].map((i) => {
+        const x = 0.495 + i * 4.2;
+        return (
+          <g key={i}>
+            <Caja x={x} y={2} w={3.8} h={1.3} c={i === 0 ? "acento" : "ilustracion"} rx={0.05} />
+            <Renglon x={x} y={3.6} w={3.2} h={0.14} />
+            <Renglon x={x} y={3.9} w={2.4} h={0.12} />
+          </g>
+        );
+      })}
+    </>
+  );
+}
+
 /** ¿Hay dibujo de estructura para este tipo? */
 export function tieneDibujoEstructura(tipo: string): boolean {
   return tipo in DIBUJOS;
@@ -516,6 +562,8 @@ const DIBUJOS: Readonly<Record<string, (variante: string | null, d: D) => JSX.El
   p_slide_top_two_box: (_v, d) => <TopTwoBox d={d} />,
   p_slide_redondeo: (_v, d) => <Redondeo d={d} />,
   p_slide_estandar: (_v, d) => <Estandar d={d} />,
+  p_slide_resumen_diferencias: (_v, d) => <ResumenDiferencias d={d} />,
+  p_slide_hallazgos: (_v, d) => <Hallazgos d={d} />,
 };
 
 export function DibujoEstructura({ tipo, variante, datos }: { tipo: string; variante: string | null; datos?: D }): JSX.Element | null {

@@ -113,7 +113,7 @@ export function diagnostica(codigo: string, plan: ReadonlyArray<FilaDePlan>): Ve
   return {
     ...base,
     puede: true,
-    motivo: `Disponible${base.elegibles ? ` · ${base.elegibles} elegibles` : ""}.`,
+    motivo: `Disponible${base.elegibles ? `, ${base.elegibles} elegibles` : ""}.`,
   };
 }
 

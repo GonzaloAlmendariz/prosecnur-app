@@ -12,24 +12,41 @@ XC <- ML; AC <- W - MR - ML
 geom <- list(unidad = "in", ancho = W, alto = H, margen_izq_borde = ML0, margen_izq = ML, margen_der = MR, titulo_y = 0.355,
              zona_datos_y0 = 1.65, zona_datos_y1 = 6.42, contenido_y1 = 6.72, leyenda_y = 6.42, base_y = 6.88,
              ancho_contenido = r3(AC), separacion_paneles = 0.5, columna_top_two_box = 1.0, aire_cifra_chica = 0.36,
-             likert = list(x_premisa = ML, ancho_premisa = 3.3, x_actor = 3.6, ancho_actor = 1.5, x_barra = 5.2, ancho_barra = 6.0, x_top_two_box = 11.4),
+             likert = list(x_premisa = ML, ancho_premisa = 3.0, x_actor = 3.45, ancho_actor = 1.5, x_barra = 5.2, ancho_barra = 6.2, x_top_two_box = 11.5),
              # K15: la cifra de las láminas de composición es la pieza `cifra()` (recetario_piezas.R:51-56): valor de 0.62,
              # rótulo debajo (0.3), detalle en +0.9 (0.26); ocupa 1.15 y sus separadores van de y + 0.05 a y + 1.2 (p171).
              cifra_pieza = list(valor_h = 0.62, rotulo_dy = 0.62, rotulo_h = 0.3, detalle_dy = 0.9, detalle_h = 0.26, alto = 1.15, separador_dy = 0.05))
-tipografia_ppt <- list(unidad = "pt", titulo = 24, antetitulo = 10, pregunta = 13, cifra = 14, cifra_fuera = 12, leyenda = 12, actor = 12,
-                       base = 10, n = 10, cuerpo = 14, narrativa = 15, cifra_destacada = 34, rotulo_top_two_box = 10,
+tipografia_ppt <- list(unidad = "pt", titulo = 24, antetitulo = 10, subtitulo = 18, pregunta = 13, cifra = 14, cifra_fuera = 12, leyenda = 12, actor = 12,
+                       # Rótulo de cada categoría en barras, columnas y circulares (el `actor` es el público de la escala).
+                       rotulo_categoria = 12,
+                       base = 10, n = 10, cuerpo = 14, narrativa = 15, cifra_destacada = 34, rotulo_top_two_box = 12,
                        # Piso de las cifras tras el paso de letra del cliente (K13 en el PPT, como `grafico_minimo` en el Word) y la
                        # portada del recetario (lámina 23 y sus variantes 24 «izquierda» y 25 «banda», lamina_identidad.R).
                        cifra_minimo = 8, portada_rotulo = 13, portada_titulo = 30, portada_encargo = 18, portada_fecha = 18,
                        portada_encargo_izquierda = 16, portada_fecha_izquierda = 14, portada_encargo_banda = 15, portada_fecha_banda = 13,
                        fuente = "Arial")
 colores <- list(coral = "#CA5651", azul = "#081F5C", tenue = "#8E9DBD", texto_suave = "#5A6480", texto_tenue = "#8A93A8", filete = "#D5D9DF",
-                cebra = "#E9ECF1", fondo = "#F2F2F2", verde_top_two_box = "#4E9438", naranja_bottom_two_box = "#B4541F", naranja_bottom_two_box_texto = "#A44A1F", azul_medio = "#4F7FAF",
+                cebra = "#E9ECF1", fondo = "#F2F2F2", verde_top_two_box = "#70AD47", naranja_bottom_two_box = "#B4541F", naranja_bottom_two_box_texto = "#A44A1F", azul_medio = "#4F7FAF",
                 azul_rango = "#B9C5DC",   # caja del 50 % central (boxplot) y barra del rango (media y rango), recetario_m3b.R
                 anillo_radar = "#C9CED8",   # anillos del radar, recetario_m3c.R:82
                 mapa_aplicada = "#2F4B7C", mapa_medio = "#9FB1D1", mapa_fuera = "#E2E6EC", mapa_borde = "#B8C2D3",   # mapas, recetario_m3e.R:85
                 numero_fondo = "#DCE2EC", banda_clara = "#E3E7EF",   # separadores C y subcapítulo 3 (recetario-moderna.pptx, láminas 54 y 57)
-                fondo_destacado = "#F8E3E2")   # cuadrante destacado de la matriz de cuadrantes (lámina 91)
+                fondo_destacado = "#F8E3E2",   # cuadrante destacado de la matriz de cuadrantes (lámina 91)
+                # Tarjetas de diferencias (ADR 0129, propuesta P08): borde y fondo al 99 %, borde, fondo y barra al 95 %
+                # (punteado), la fila del total y el verde del encabezado del acuerdo.
+                tarjeta_borde = "#D9DEE8", tarjeta_fondo = "#FFFFFF", tarjeta_fondo_95 = "#F8F9FB", tarjeta_borde_95 = "#3A6591",
+                tarjeta_barra_95 = "#6F8FC4", tarjeta_total = "#B7BECC", tarjeta_barra_neutra = "#C3CFE2", verde_acuerdo = "#3B7A2A",
+                # Mapas de distribución (especificación aprobada de las láminas de variables geográficas, CCSS 2026-11-03;
+                # graficos_mapa_distribucion_*.R): clases ColorBrewer Blues (cinco; la de cuatro cambia la tercera), áreas sin
+                # casos, el borde entre áreas (gris oscuro, y blanco sobre las clases oscuras: revisión v7, lámina 11), mar,
+                # tierra de contexto, el punto de referencia, el rayado de otra respuesta del filtro y la lista con su pista.
+                mapa_clase_1 = "#C6DBEF", mapa_clase_2 = "#9ECAE1", mapa_clase_3 = "#6BAED6", mapa_clase_4 = "#3182BD",
+                mapa_clase_5 = "#08519C", mapa_clase4_3 = "#4292C6", mapa_vacio = "#FAF9F6", mapa_vacio_borde = "#C9CED6",
+                mapa_punto = "#C8463D", mapa_borde_area = "#5A6478", mapa_borde_area_oscura = "#FFFFFF", mapa_contorno = "#8E98A8",
+                mapa_mar = "#E6EEF5", mapa_oceano = "#7A8AA0", mapa_tierra = "#EEECE7", mapa_tierra_borde = "#D9D5CD",
+                mapa_pais = "#A39E94", mapa_texto = "#14213D", mapa_guia = "#3C4658", mapa_otra = "#E4E7EC",
+                mapa_otra_raya = "#B3BAC6", mapa_pista = "#EDEFF3", mapa_otros_barra = "#AEB5C1", mapa_otros_texto = "#6B7486",
+                mapa_tarjeta_borde = "#DDE1E7", mapa_zona_texto = "#2A3448", mapa_zona_filete = "#E3E6EB")
 # `uso` es la regla de cada paleta tal como la lee la lámina «Los colores y lo que significan» del catálogo
 # (lamina_estandar_paleta.R): la constitución dice el color y su regla en el mismo sitio (Gonzalo, 2026-10-27).
 paletas <- list(
@@ -65,8 +82,72 @@ paletas <- list(
 grosor <- list(unidad = "in", nota = "por número de filas de la lámina; la barra no adelgaza por cifras chicas, la fila gana aire",
   # Piso de grosor de la barra de escala en cm (ADR 0092, registro: rige sin declararlo; el informe lo cambia y 0 lo apaga).
   piso_escala_cm = 1.12,
+  # Piso de la barra de escala dentro de un panel (media lámina), en cm: el mínimo de Contabilidad (lám. 18, 19 y 21:
+  # 0,66 cm). El de la escala, 1,12 cm, no cabe en media lámina (Gonzalo, 2026-10-29: «0,66 cm, como Conta»).
+  piso_panel_cm = 0.66,
   escala_apilada = list(list(filas_hasta = 2, grosor = 0.50), list(filas_hasta = 3, grosor = 0.48), list(filas_hasta = 6, grosor = 0.44), list(filas_hasta = 9, grosor = 0.38), list(filas_hasta = 999, grosor = 0.32)),
   categorias = list(list(filas_hasta = 3, grosor = 0.26), list(filas_hasta = 6, grosor = 0.28), list(filas_hasta = 7, grosor = 0.30), list(filas_hasta = 999, grosor = 0.32)))
+# Composición de las láminas de escala (Sí/No, multilista, filtro): las medidas que el motor decide y que se midieron sobre
+# el informe de Contabilidad del motor anterior (GOAL docs/qa/goal-estandar-composicion-2026-10-29.md). Todo en pulgadas.
+composicion <- list(unidad = "in",
+  escala = list(
+    aire_tema = 0.14,                # entre las barras de un mismo tema, borde a borde (Conta 0,10–0,35)
+    aire_entre_temas_max = 0.9,      # tope del aire entre temas cuando la lámina no llena su alto
+    aire_leyenda = 0.3,              # de la última barra (o premisa) a la leyenda
+    aire_leyenda_multilista = 0.09,  # del final del último bloque a la leyenda compartida (el bloque acaba 0,06 bajo su barra)
+    aire_leyenda_apretada = 0.12,    # lo mismo en la lámina apretada (M1), que no tiene sitio para más
+    aire_leyenda_fila = 0.17,        # de la barra a su leyenda cuando cada fila lleva la suya (Sí/No con escala, como Conta)
+    aire_leyenda_solo = 0.55,        # de la barra a la leyenda en la lámina de una sola afirmación (recetario 216)
+    rotulo_box_sobre = 0.45,         # el rótulo TOP TWO BOX sobre el inicio de la franja de barras
+    primera_chica = 0.18,            # alto de la primera barra bajo el bloque si su cifra chica sube (medio paso de 0,24 + 0,06):
+                                     # la cifra no se acerca al rótulo de la columna Top Two Box
+    columna_box = 1.5, columna_box_con_btb = 1.25),   # ancho de la columna Top/Bottom Two Box
+  filtro = list(                     # pregunta filtro y subpregunta (lamina_filtro_sub.R; PPT 23 de Renzo, p193)
+    columna_box = 1.3,               # columna Top Two Box de la barra del filtro y de la subpregunta
+    rotulo_box_sobre = 0.4,          # el rótulo TOP TWO BOX sobre la barra de la subpregunta
+    cifra_pt = 26, cifra_pt_bateria = 20,   # cifras de la dicotomía filtro; con una batería abajo, compacta
+    grosor = 0.42, grosor_bateria = 0.32,   # grosor de esa dicotomía
+    aire_sub = 0.75, aire_sub_bateria = 0.5,   # de la dicotomía a la subpregunta
+    # Como Conta (su lámina 34, lamina_filtro_sub_conta.R): barra de 0,71, leyenda a 0,45 de su barra, 2,78 de barra a barra
+    conta_grosor = 0.71, conta_aire_leyenda = 0.45, conta_y = 0.25, conta_paso = 2.78),
+  filas = list(                      # la escala en filas, con Total o Bottom Two Box (recetario, lámina 77)
+    ancho_rotulo = 1.8,              # columna de los rótulos de fila
+    lineas_max = 2),                 # premisas de a lo más estas líneas en esa columna pueden ir en filas
+  # La tabla de datos al costado de líneas y puntos o del radar (lamina_tabla_costado.R; la de la lámina 90) y la tabla
+  # nativa genérica del camino general. Letra en pt; `relleno_pt`, el margen interno de la celda.
+  tabla_costado = list(col1 = 2.2, col = 1.15, fila = 0.5, fila_min = 0.4, hueco = 0.3, hueco_v = 0.2,
+                       min_graf_w = 3.6, dy = 0.6, cuerpo_pt = 13, enc_pt = 11, relleno_pt = 12),
+  tabla_general = list(col1 = 2.2, col = 1.15, fila = 0.42, cuerpo_pt = 12, enc_pt = 11, relleno_pt = 14),
+  multilista = list(                 # varios bloques en una lámina (lamina_multilista.R; recetario p144)
+    gap_bloques = 0.27,              # del fondo de un bloque al título del siguiente (p144: 0,33 desde la barra)
+    aire_titulo = 0.1,               # del título del bloque a su primera fila, sin columna Top Two Box
+    aire_ttb = 0.35,                 # lo mismo con columna Top Two Box: su rótulo cabe en medio
+    rotulo_box_sobre = 0.37,         # el rótulo TOP TWO BOX sobre la franja de un bloque con título (p144)
+    alto_leyenda = 0.5),             # alto de la leyenda propia de un bloque, con su aire al siguiente
+  apretada = list(                   # la lámina que sólo cabe con el aire en su mínimo (M1, lamina_escala_aire.R)
+    holgura_chica = 0.03,            # de la cifra chica a la barra de arriba (0,075 en la lámina normal)
+    aire_ttb = 0.25,                 # del título del bloque a su primera fila con Top Two Box
+    extra_franja = 0.30),            # lo que la franja de datos baja hacia el pie
+  perfil = list(                     # paneles de las láminas de perfil y mixtas, como Conta (lamina_perfil_panel.R; ítems 18–20)
+    titulo_pt = 16,                  # pregunta del panel, centrada
+    rotulo_pt = c(13, 12.5, 12, 11.5, 11),   # categoría: 13 pt y baja medio punto sólo si así quedan más paneles nativos
+    rotulo_pt_con_tarjetas = c(10.5, 10),   # ADR 0129 §6: con tarjetas debajo del gráfico, el panel puede bajar a 10 pt
+    grosor_max_cm = 0.99,            # la barra más gruesa de Conta (el piso es piso_panel_cm)
+    grosor_frac = 0.7,               # fracción de la fila que ocupa la barra
+    aire_fila = 0.06,                # aire mínimo entre dos barras
+    aire_titulo = 0.18,              # de la pregunta (o su público) a la primera barra
+    margen_inf = 0.03),              # bajo la última barra
+  pie = list(base_x = 0.35, base_y = 7.06, base_negrita = TRUE),   # «Base:» y folio; la base en negrita (Gonzalo, 2026-10-30)
+  portada_plantilla = list(         # encargo y fecha de la portada sobre «Title Slide», como Conta (ítem 26; lamina_portada_plantilla.R)
+    encargo = list(left = 3.30, top = 5.50, width = 6.75, height = 0.56), fecha = list(left = 9.17, top = 6.21, width = 3.06, height = 0.40),
+    encargo_pt = 18, fecha_pt = 18),
+  llenar = list(                     # la lámina con alto de sobra (lamina_escala_llenar.R)
+    aire_leyenda = 0.45,             # Conta 0,3–0,75
+    aire_entre_temas_max = 1.0,      # Conta: mediana 0,74; 1,1–1,4 con pocas barras
+    aire_publicos_max = 0.65,        # públicos de una sola pregunta (Conta 0,65–0,84)
+    piso_leyenda = 0.32,             # la leyenda de una fila no baja de base_y menos esto
+    grosor = list(list(filas_hasta = 2, grosor = 0.70), list(filas_hasta = 3, grosor = 0.66), list(filas_hasta = 4, grosor = 0.58),
+                  list(filas_hasta = 6, grosor = 0.51), list(filas_hasta = 9, grosor = 0.38), list(filas_hasta = 999, grosor = 0.32))))
 reglas <- list(
   leyenda = "centrada en todo el bloque, incluida la columna Top Two Box; en mapas, al lado y centrada en vertical",
   cifras_chicas = "si no caben en su segmento suben con una guía, separadas 0.46 in entre sí; la fila gana aire_cifra_chica",
@@ -140,8 +221,16 @@ word <- list(
   documento = c("portada tipográfica sola en su página", "resumen", "índice, índice de gráficos e índice de tablas en página propia", "una sección de Word por capítulo con su encabezado escrito",
                 "apertura de capítulo con número grande, título, entrada y secciones", "Cómo leer este informe", "referencias con sangría francesa", "contraportada sin encabezado"))
 
+# ---- Cuestionario impreso (L36 · DOC.1; reporte_formulario_word.R y docs/qa/l36-doc0-direccion-cuestionario-2026-11-01.md)
+# Los valores son los que el motor ya imprimía como constantes: Arial Narrow en dos cuerpos (la referencia medida,
+# 2026-09-24), negro para todo el texto y la rejilla (decisión de Gonzalo del 2026-09-25: la línea casi no gasta tinta
+# y sobrevive a la fotocopiadora) y grises sólo para los rellenos. Ahora viven aquí y el motor los lee por nombre.
+cuestionario <- list(
+  tipografia = list(unidad = "pt", fuente = "Arial Narrow", cuerpo = 10, minimo = 8, titulo = 20),
+  colores = list(tinta = "#000000", rejilla = "#000000", banda = "#D9D9D9", banda_sub = "#E8E8E8", cebra = "#F2F2F2"))
+
 est <- list(version = "2026.10", fuente = c("docs/qa/motor-ppt-2026-10-06/4-recetario/recetario-moderna.pptx", "docs/qa/motor-ppt-2026-10-06/4-recetario/propuesta-word.docx"),
-            ppt = list(geometria = geom, tipografia = tipografia_ppt, colores = colores, paletas = paletas, grosor = grosor, reglas = reglas, tipos_lamina = tipos), word = word)
+            ppt = list(geometria = geom, tipografia = tipografia_ppt, colores = colores, paletas = paletas, grosor = grosor, composicion = composicion, reglas = reglas, tipos_lamina = tipos), word = word, cuestionario = cuestionario)
 dir.create("api/inst/estandar", showWarnings = FALSE, recursive = TRUE)
 salida <- commandArgs(trailingOnly = TRUE)[1]
 if (is.na(salida)) salida <- "api/inst/estandar/estandar_pulso.json"

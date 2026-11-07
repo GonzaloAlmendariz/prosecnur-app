@@ -156,9 +156,16 @@ monitoreo_aulas_avance_tablas <- function(sid, cfg = NULL) {
   aulas_cfg <- if (is.list(cfg[["aulas_universitarias"]])) cfg[["aulas_universitarias"]] else list()
 
   plan <- s$monitoreo_aulas_plan %||% aulas_cfg[["plan"]] %||% list()
+  # Sin plan no hay avance que tabular, y no es una falla: es un estudio que todavía no importó su
+  # selección. Se responde con su causa en vez de un 409, para que la vista pinte su vacío propio y no
+  # un error (pasada de formato de Monitoreo, 4 nov 2026: el 409 llegaba como error de API).
   if (!length(plan)) {
-    stop_api(409, "E_AULAS_LIBRO_SIN_PLAN",
-             "No hay plan de aulas del que sacar el avance. Importa la selección de cálculo de muestra primero.")
+    return(list(
+      ok = TRUE,
+      tablas = list(),
+      sin_plan = TRUE,
+      vacio = "Todavía no hay plan de cursos-horario: se importa de Cálculo de muestra en Insumos › Fuentes."
+    ))
   }
   # La misma meta por aula que el libro: esta función existe para que la app y
   # el Sheets enseñen las mismas tablas (monitoreo_aulas_meta_del_diseno.R).

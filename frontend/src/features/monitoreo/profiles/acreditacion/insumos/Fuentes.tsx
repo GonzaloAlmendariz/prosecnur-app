@@ -16,6 +16,7 @@ import "../avance/avance.css";
 import "../control/casos/porResolver.css";
 import "../control/casos/personas.css";
 import "./insumos.css";
+import { RepartoDeLaFuente } from "./RepartoDeLaFuente";
 import { VacioDeBloque } from "../piezas/AvisoDeTarjeta";
 
 type PropsDeVista = {
@@ -33,6 +34,8 @@ type PropsDeVista = {
   declaracion?: ReactNode;
   /** Personas de cada padrón por público (clave normalizada), para las fuentes sin contador. */
   personasPorPublico?: ReadonlyMap<string, number> | null;
+  /** Repartir el padrón entre públicos o heredar el público del padrón (E10), bajo la ficha. */
+  reparto?: (elegida: FuenteDelMaestro) => ReactNode;
 };
 
 function Dato({ rotulo, children }: { rotulo: string; children: ReactNode }) {
@@ -60,7 +63,7 @@ function Cabecera({ elegida }: { elegida: FuenteDelMaestro }) {
   );
 }
 
-export function FuentesVista({ sources, borrador, totales, foco, onElegir, onIncluir, onGuardar, pendientes, guardando, mensaje, declaracion, personasPorPublico = null }: PropsDeVista) {
+export function FuentesVista({ sources, borrador, totales, foco, onElegir, onIncluir, onGuardar, pendientes, guardando, mensaje, declaracion, personasPorPublico = null, reparto }: PropsDeVista) {
   const grupos = useMemo(() => fuentesPorPublico(sources, borrador, personasPorPublico), [sources, borrador, personasPorPublico]);
   const todas = grupos.flatMap((grupo) => grupo.fuentes);
   const elegida = todas.find((item) => item.id === foco) ?? todas[0] ?? null;
@@ -68,7 +71,7 @@ export function FuentesVista({ sources, borrador, totales, foco, onElegir, onInc
   const conRecopiladores = elegida?.fuente.kind === "surveymonkey";
   if (!todas.length) {
     return (
-      <div className="acr-in-fuentes acr-in-fuentes-vacio" data-vacio="legitimo">
+      <div className="acr-in-fuentes" data-vacio="legitimo">
         <section className="acr-av-panel" aria-label="Fuentes del estudio">
           <header className="acr-av-panel-cabecera"><h3>Fuentes</h3></header>
           <VacioDeBloque icono={<Database size={15} />} titulo="El estudio todavía no tiene fuentes conectadas." descripcion="Cada encuesta se declara abajo; el padrón y el barrido, con «Conectar fuente»." />
@@ -92,7 +95,11 @@ export function FuentesVista({ sources, borrador, totales, foco, onElegir, onInc
                       <button type="button" className={`acr-in-fuente${elegida?.id === item.id ? " is-activo" : ""}${item.activa ? "" : " is-inactiva"}`} aria-pressed={elegida?.id === item.id} onClick={() => onElegir(item.id)}>
                         <span className="acr-in-fuente-nombre">
                           <span>{item.nombre}</span>
-                          <small className="acr-av-tenue">{`${item.servicio} · ${item.papelRotulo}${item.activa ? "" : " · Desactivada"}`}</small>
+                          <span className="acr-in-fuente-meta">
+                            <small>{item.servicio}</small>
+                            <small>{item.papelRotulo}</small>
+                            {item.activa ? null : <small className="is-apagada">Desactivada</small>}
+                          </span>
                         </span>
                         <b className="acr-av-num">{item.filas == null ? "—" : fmt(item.filas)}</b>
                       </button>
@@ -114,6 +121,7 @@ export function FuentesVista({ sources, borrador, totales, foco, onElegir, onInc
               ) : null}
             </header>
             <div className="acr-ct-cuerpo"><Cabecera elegida={elegida} /></div>
+            {reparto ? reparto(elegida) : null}
             {mensaje ? <div className="acr-ct-cuerpo"><Alert kind={mensaje.tono === "error" ? "error" : "info"}>{mensaje.texto}</Alert></div> : null}
             {conRecopiladores && recopiladores.length ? (
               <>
@@ -233,6 +241,14 @@ export function Fuentes({
       mensaje={mensaje}
       declaracion={declaracion}
       personasPorPublico={personasPorPublico}
+      reparto={(elegida) => (
+        <RepartoDeLaFuente
+          key={elegida.id}
+          elegida={elegida}
+          variables={cuotas?.publicos.find((item) => normalizeSourceMatch(item.actor) === normalizeSourceMatch(elegida.publico))?.variables ?? []}
+          onStateChange={onStateChange}
+        />
+      )}
     />
   );
 }

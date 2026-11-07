@@ -2,12 +2,12 @@
 // láminas elegidas y lleva lo que se hace con ellas —mover a un capítulo, duplicar, eliminar (con confirmación) y soltar—
 // con sus atajos a la vista. Flota: no empuja el contenido (C2). Mover y eliminar avisan con «Deshacer» (toast).
 
+import { esMac, nombreDeAtajo } from "../../../lib/teclado";
 import { useState } from "react";
 import { Copy, ListTree, Trash2, X } from "../../../vendor/lucide-react";
 import type { FilaVistaGeneral } from "./modeloVistaGeneral";
 
-const esMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
-const MOD = esMac ? "⌘" : "Ctrl+";
+const MAC = esMac();
 
 type Props = {
   filas: readonly FilaVistaGeneral[];
@@ -40,9 +40,9 @@ export function BarraSeleccion({ filas, seleccionadas, destinosHabilitados, onMo
         <ListTree size={14} aria-hidden="true" />
         Mover
       </button>
-      <button type="button" className="pulso-f6-vg-selbar-btn" onClick={onDuplicar} aria-keyshortcuts={esMac ? "Meta+D" : "Control+D"}>
+      <button type="button" className="pulso-f6-vg-selbar-btn" onClick={onDuplicar} aria-keyshortcuts={MAC ? "Meta+D" : "Control+D"}>
         <Copy size={14} aria-hidden="true" />
-        Duplicar <kbd>{MOD}D</kbd>
+        Duplicar <kbd>{nombreDeAtajo("D", MAC)}</kbd>
       </button>
       <button type="button" className="pulso-f6-vg-selbar-btn is-peligro" onClick={onEliminar} aria-keyshortcuts="Delete">
         <Trash2 size={14} aria-hidden="true" />

@@ -1,5 +1,5 @@
 import { useEffect, useId, useReducer, useRef, useState, type KeyboardEvent } from "react";
-import { Check, ChevronRight, Plus, X } from "../../../../vendor/lucide-react";
+import { Check, Plus, X } from "../../../../vendor/lucide-react";
 import { ArmadorBloque } from "./ArmadorBloque";
 import { PruebaValor } from "./PruebaValor";
 import {
@@ -16,6 +16,7 @@ import {
   rotuloCorto,
 } from "./armadorModelo";
 import "./armador.css";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 // Armador de patrones (G2): arma una regla regex de pregunta de texto por partes y la escribe al aplicar.
 // Nada se toca hasta «Aplicar»: cancelar deja la constraint como estaba.
@@ -138,7 +139,7 @@ export function ArmadorPatron({ constraint, onAplicar, onCancelar }: Props) {
             ))}
           </ol>
         ) : (
-          <p className="xfa-vacio">Sin partes</p>
+          <EstadoVacio icono={<Plus size={14} />} titulo="Sin partes" />
         )}
         <div className="xfa-agregar">
           <button
@@ -223,12 +224,11 @@ export function ArmadorPatron({ constraint, onAplicar, onCancelar }: Props) {
       </section>
 
       {codigo && (
-        <details className="xfa-codigo">
-          <summary>
-            <ChevronRight aria-hidden="true" /> Ver código
-          </summary>
+        // Siempre a la vista: sin triángulo que despliega (E20).
+        <div className="xfa-codigo">
+          <span className="xfa-codigo__rot">Expresión en XLSForm</span>
           <pre>{codigo}</pre>
-        </details>
+        </div>
       )}
 
       <div className="xfa-acciones">

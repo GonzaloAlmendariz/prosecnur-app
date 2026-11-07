@@ -726,15 +726,15 @@
       stop_api(500, "E_REPORTE_FAILED",
                sprintf("La generación del script de replicación para la base '%s' no produjo archivo.", nombre))
     }
-    meta <- .register_output_file(sid, "bases_script_r", path, original_name = fname)
-    list(nombre = nombre, file_id = meta$file_id, filename = fname,
-         size = meta$size, path = path)
+    meta <- .register_output_file(sid, "bases_script_r", path, original_name = fname, copiar = solo_una)
+    entregable_respuesta(list(nombre = nombre, file_id = meta$file_id, filename = fname,
+                              size = meta$size, path = path), meta)
   })
 
   if (length(outputs) == 1L) {
     o <- outputs[[1]]
-    return(list(ok = TRUE, n_bases = 1L, file_id = o$file_id,
-                filename = o$filename, size = o$size, bases = outputs))
+    return(entregable_respuesta(list(ok = TRUE, n_bases = 1L, file_id = o$file_id,
+                                     filename = o$filename, size = o$size, bases = outputs), o))
   }
   zip_meta <- .zip_outputs(sid, outputs, "replicar_base", "bases_script_r_zip")
   list(ok = TRUE, n_bases = length(outputs), zip = zip_meta, bases = outputs)

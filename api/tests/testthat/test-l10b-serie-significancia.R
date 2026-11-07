@@ -85,3 +85,18 @@ test_that("L10-9: p_serie_temporal declara el interruptor en el editor", {
   args <- vapply(.GRAFICADORES_META$p_serie_temporal$args, function(a) a$name, "")
   expect_true(all(c("mostrar_significancia", "significancia_alpha") %in% args))
 })
+
+test_that("ADR 0128: con la regla del estudio la serie marca con la misma prueba y el mismo umbral que las láminas", {
+  regla <- .sig_regla_normalizar(list(prueba = "z", correccion = "bonferroni_fila", base_minima = 20, umbral_puntos = 10))
+  vieja <- .sig_informe_activar(list(regla = regla, familia = NULL)); on.exit(options(vieja), add = TRUE)
+  el <- p_serie_temporal(vars = list(Trabaja = "b$t"), corte = "1", cruce = "b$niv", mostrar_significancia = TRUE)
+  p <- .render_serie_cruce(el, .l10bs_sources())
+  expect_setequal(.l10bs_labels(p), c("10%", "50% ▲A", "90% ▲AB"))
+  expect_match(.lam_nota_sig_de(p), "Mayor que el grupo de esa letra")
+  # Con una base mínima de 50, ningún nivel (40 casos) se compara y la nota lo dice.
+  regla$base_minima <- 50
+  .sig_informe_activar(list(regla = regla, familia = NULL))
+  p2 <- .render_serie_cruce(el, .l10bs_sources())
+  expect_setequal(.l10bs_labels(p2), c("10%", "50%", "90%"))
+  expect_match(.lam_nota_sig_de(p2), "no se comparan")
+})

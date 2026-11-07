@@ -41,7 +41,7 @@
   !is.na(x) & grepl("^ponderacion$", x)
 }
 
-#' Texto de la fila «Ponderación»: el sello S4 de la corrida; en multibase, uno por base («docentes: …; estudiantes: …»)
+#' Texto de la fila «Ponderación»: el sello S4 de la corrida; en multibase, uno por base («docentes: … y estudiantes: …»)
 #' @keywords internal
 .lam_ficha_texto_ponderacion <- function(data_sources) {
   con <- .lam_pond_estados_con_info(data_sources)
@@ -49,7 +49,7 @@
   textos <- vapply(con, reporte_ponderacion_sello, character(1))
   nms <- names(con) %||% rep("", length(con))
   if (length(con) == 1L || !all(nzchar(nms))) return(unname(textos[1]))
-  paste(sprintf("%s: %s", nms, textos), collapse = "; ")
+  .sig_lista_y(sprintf("%s: %s", nms, textos))
 }
 
 #' La tabla técnica del PPT con su fila «Ponderación» (enganche de `reporte_ppt_plan`, rama TECHNICAL_TABLE)

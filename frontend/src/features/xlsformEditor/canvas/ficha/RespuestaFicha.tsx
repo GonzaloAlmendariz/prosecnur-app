@@ -78,7 +78,7 @@ export function RespuestaFicha({ node, choices, catalogs, usosDeLaLista, onAsign
           <b>{lista}</b>
           <small>
             {plural(choices.length, "opción", "opciones")}
-            {usosDeLaLista > 1 ? ` · la usan ${usosDeLaLista} preguntas` : " · sólo esta pregunta la usa"}
+            {usosDeLaLista > 1 ? `, la usan ${usosDeLaLista} preguntas` : ", sólo esta pregunta la usa"}
           </small>
         </div>
         <EnlaceIr onClick={() => onIrListas(lista)}>Editar en Listas de opciones</EnlaceIr>

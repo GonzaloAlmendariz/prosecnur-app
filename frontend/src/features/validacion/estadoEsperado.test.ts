@@ -56,17 +56,18 @@ describe("estadoEsperado", () => {
  * ellas y `if (!list || !inv)` en la tercera, que además mezclaba «falló» con
  * «todavía no llegó» y con un «Estado desconocido» que no debería ocurrir.
  *
+ * Panorama se retiró el 2026-11-04 (nadie la montaba); quedan Explorar y Reglas.
+ *
  * Este guardián no comprueba lo que se ve —eso se verificó en pantalla, tres
  * veces— sino que ninguna vuelva a decidirlo por su cuenta: en cuanto una lo
  * haga, las tres divergen otra vez.
  */
-describe("las tres pestañas de Validación comparten el criterio", () => {
+describe("las pestañas de Validación comparten el criterio", () => {
   const leer = (rel: string) =>
     fs.readFileSync(path.join(aqui, rel), "utf8");
 
   it.each([
     ["tabs/ExplorarTab.tsx"],
-    ["tabs/PanoramaTab.tsx"],
     ["tabs/ReglasCustomTab.tsx"],
   ])("%s lo importa en vez de reimplementarlo", (archivo) => {
     const fuente = leer(archivo);

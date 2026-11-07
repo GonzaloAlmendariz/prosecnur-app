@@ -1,4 +1,5 @@
 // La barra del correo abierto: UNA línea fina, con el estilo de la barra de
+import { rotuloDeAtajo } from "./atajosDelEditor";
 // Láminas de Gráficos (44 px, filete neutro, herramientas en íconos y lo
 // secundario en «Más»).
 //
@@ -114,10 +115,10 @@ export function BarraDelCorreo(p: Props) {
       <span className="rec-barra-herramientas" role="toolbar" aria-label="Herramientas del correo">
         {p.cajon}
         <span className="rec-barra-grupo" role="group" aria-label="Deshacer y rehacer">
-          <button type="button" className="rec-barra-icono" aria-label="Deshacer" title="Deshacer (⌘Z)" disabled={!p.puedeDeshacer} onClick={p.onDeshacer}>
+          <button type="button" className="rec-barra-icono" aria-label="Deshacer" title={rotuloDeAtajo("Deshacer", "Z")} disabled={!p.puedeDeshacer} onClick={p.onDeshacer}>
             <Undo2 size={16} aria-hidden />
           </button>
-          <button type="button" className="rec-barra-icono" aria-label="Rehacer" title="Rehacer (⌘⇧Z)" disabled={!p.puedeRehacer} onClick={p.onRehacer}>
+          <button type="button" className="rec-barra-icono" aria-label="Rehacer" title={rotuloDeAtajo("Rehacer", "⇧Z")} disabled={!p.puedeRehacer} onClick={p.onRehacer}>
             <Redo2 size={16} aria-hidden />
           </button>
         </span>

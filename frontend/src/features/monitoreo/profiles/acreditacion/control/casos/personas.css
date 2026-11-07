@@ -7,7 +7,9 @@
 
 .acr-ps-izquierda {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  /* Alto natural (K1): «Quiénes respondieron» no se estira con un hueco abajo. */
+  grid-template-rows: auto auto;
+  align-self: start;
   gap: var(--pulso-space-3);
   min-width: 0;
   min-height: 0;
@@ -15,11 +17,15 @@
 
 /* 150 y no 180: con 180 la tabla medía 523 px en una tarjeta de 518 y la fila
  * elegida pintaba su fondo fuera del borde. */
+/* La celda sigue siendo celda (QA 30/10, 1280x720: como flex dejaba de tomar
+ * la franja de la fila y se veía un bloque blanco de 230 px); el nombre y la
+ * barra se apilan por dentro. */
 .acr-ps-estados th[scope="row"] {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
   min-width: 150px;
+}
+
+.acr-ps-estados th[scope="row"] > .acr-ps-barra {
+  margin-top: 6px;
 }
 
 /* El nombre con su punto es un botón flex: el `justify-content: center` global
@@ -82,7 +88,7 @@
 .acr-ps-chips .acr-av-chip {
   cursor: pointer;
   font: inherit;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -149,7 +155,7 @@
   padding: 0 var(--pulso-space-2);
 }
 
-.acr-rs-total > .acr-av-chip {
+.acr-rs-total > .pulso-estado-chip {
   align-self: flex-start;
   margin-top: 4px;
 }
@@ -173,4 +179,17 @@
 /* El buscador de Respuestas: su ejemplo («Respuesta, público o encuesta») cabe entero. */
 .acr-ps-filtros .acr-pr-buscador {
   min-width: 300px;
+}
+
+/* Siete filas que no desplazan por dentro: la cabecera no necesita ser pegajosa,
+ * y pegada al scroll de la página tapaba la primera fila (QA 30/10, 1280x720). */
+.acr-ps-estados thead th {
+  position: static;
+}
+
+/* Personas: el buscador cede ancho para que «Exportar CSV» quede en la misma fila
+ * que los estados (en Respuestas conserva sus 300 px para su ejemplo largo). */
+.acr-ps:not(.is-respuestas) .acr-ps-filtros .acr-pr-buscador {
+  flex: 1 1 200px;
+  min-width: 180px;
 }

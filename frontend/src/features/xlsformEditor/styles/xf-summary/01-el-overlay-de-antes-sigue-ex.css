@@ -61,13 +61,13 @@
 
 .pulso-xf-res-cifra-rotulo {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
 .pulso-xf-res-cifra-valor {
   color: var(--pulso-text);
-  font-size: 28px;
+  font-size: var(--pulso-type-display-size);
   font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
@@ -77,7 +77,7 @@
 .pulso-xf-res-cifra-detalle {
   overflow: hidden;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.35;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -99,35 +99,29 @@
   overflow-y: auto;
 }
 
-.pulso-xf-res-panel {
+/* P2 (4 nov 2026): los dos bloques del Resumen son `Panel` del kit (sin relleno: la lista y la pila
+   van de borde a borde). La caja la pone el kit; aquí sólo la columna y la cabecera con su filete. */
+.pulso-panel.pulso-xf-res-panel {
   display: flex;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-panel);
-  background: var(--pulso-surface);
+  margin-bottom: 0;
 }
 
-.pulso-xf-res-panel-cabeza {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--pulso-space-3);
+.pulso-xf-res-panel > .pulso-panel-header {
+  align-items: center;
+  margin-bottom: 0;
   padding: var(--pulso-space-3) var(--pulso-space-4);
   border-bottom: 1px solid var(--pulso-border);
   flex: 0 0 auto;
 }
 
-.pulso-xf-res-panel-cabeza h3 {
-  margin: 0;
-  font-size: 14px;
-  font-weight: var(--pulso-weight-semibold);
-}
+
 
 .pulso-xf-res-panel-nota {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -136,28 +130,13 @@
   margin: 0;
   padding: var(--pulso-space-4);
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 /* ── Qué falta para publicar e imprimir ────────────────────────────────── */
 
-.pulso-xf-res-contador {
-  padding: 2px 10px;
-  border-radius: 999px;
-  font-size: 11.5px;
-  font-weight: var(--pulso-weight-semibold);
-  white-space: nowrap;
-}
 
-.pulso-xf-res-contador.is-aviso {
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
-}
 
-.pulso-xf-res-contador.is-listo {
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-}
 
 .pulso-xf-res-pendientes-lista {
   margin: 0;
@@ -206,7 +185,7 @@
 
 .pulso-xf-res-pendiente-texto strong {
   overflow: hidden;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -216,7 +195,7 @@
   display: -webkit-box;
   overflow: hidden;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.3;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -237,7 +216,7 @@
   background: transparent;
   color: var(--xf-res-acento);
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   white-space: nowrap;
   cursor: pointer;
@@ -274,7 +253,7 @@
 .pulso-xf-res-comp-titulo {
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -300,7 +279,7 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-xf-res-comp-leyenda li {
@@ -330,7 +309,7 @@
 
 .pulso-xf-res-comp-pct {
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
 }
 

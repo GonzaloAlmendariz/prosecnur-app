@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import type { MonitoreoActorUnit, MonitoreoSource } from "../../../../../api/client";
-import { canalesDeLaMatriz, celda, padronesPorPublico } from "./publicosModelo";
+import { canalesDeLaMatriz, celda, fuenteRepiteAlPublico, nombreVisibleDeFuente, padronesPorPublico } from "./publicosModelo";
 import { Publicos } from "./Publicos";
 
 const fuente = (id: string, role: string, kind: string, actor: string, canal = ""): MonitoreoSource =>
@@ -42,5 +42,41 @@ describe("Insumos › Públicos", () => {
     expect(html).toContain("Por dónde entra cada público");
     expect(html).toContain("Ciclo de egreso");
     expect(html).not.toMatch(/>[a-z0-9]+([_-][a-z0-9]+)+</);
+  });
+
+  it("con un solo canal no pinta la matriz de una columna, y una llave de una columna no lleva número", () => {
+    const soloCorreo = [
+      fuente("Universo · Egresados", "universo", "google_sheets", "Egresados"),
+      fuente("SurveyMonkey · Egresados · Correo", "respuestas", "surveymonkey", "Egresados", "correo"),
+    ];
+    const html = renderToStaticMarkup(
+      <MemoryRouter><Publicos sources={soloCorreo} unidades={[]} llave={["Token"]} cuotasDePrueba={CUOTAS} /></MemoryRouter>,
+    );
+    expect(html).not.toContain("Por dónde entra cada público");
+    expect(html).toContain("Llave de cruce");
+    expect(html).toContain('<span class="acr-in-columna">Token</span>');
+    expect(html).not.toMatch(/acr-in-llave"><li><span class="acr-av-tenue/);
+  });
+});
+
+describe("nombre visible de una fuente", () => {
+  it("quita el papel de la etiqueta guardada y reconoce cuándo repite al público", () => {
+    const padron = fuente("Universo · Egresados", "universo", "google_sheets", "Egresados");
+    expect(nombreVisibleDeFuente(padron)).toBe("Egresados");
+    expect(fuenteRepiteAlPublico(padron, "egresados")).toBe(true);
+    expect(nombreVisibleDeFuente(fuente("Acreditación 2026 - Egresados", "respuestas", "surveymonkey", "Egresados"))).toBe("Acreditación 2026 - Egresados");
+    expect(nombreVisibleDeFuente(fuente("Universo · Profesores · Lima", "universo", "google_sheets", "Profesores"))).toBe("Profesores · Lima");
+    expect(nombreVisibleDeFuente(fuente("Base - Docentes 2025", "universo", "google_sheets", "Docentes"))).toBe("Base - Docentes 2025");
+  });
+});
+
+describe("padrón repartido entre dos públicos", () => {
+  it("el padrón y la encuesta que hereda aparecen también bajo el público del mapa", () => {
+    const padron = { ...fuente("Universo · Profesores", "universo", "google_sheets", "Docentes Campus"), actor_var: "Modalidad docente", actor_map: { CENTRUM: "Docentes CENTRUM" } };
+    const encuesta = { ...fuente("Acreditación 2026 - Profesores", "respuestas", "surveymonkey", "Docentes Campus"), actor_por_padron: true };
+    const filas = padronesPorPublico(["Docentes Campus", "Docentes CENTRUM"], [padron, encuesta], []);
+    expect(filas[1].padrones.map((item) => item.label)).toEqual(["Universo · Profesores"]);
+    expect(filas[1].encuestas.map((item) => item.label)).toEqual(["Acreditación 2026 - Profesores"]);
+    expect(filas[0].padrones).toHaveLength(1);
   });
 });

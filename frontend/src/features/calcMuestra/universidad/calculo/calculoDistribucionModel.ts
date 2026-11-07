@@ -29,14 +29,14 @@ export function calculoDistribucionScenarioMeta(
     ? {
         actorId: UNIVERSITY_FACULTY_COMPONENT_ID,
         scenario: "p2_facultades",
-        shortLabel: "P2 · Facultades",
-        longLabel: "Propuesta 2 · precisión formal por facultad",
+        shortLabel: "P2, Facultades",
+        longLabel: "Propuesta 2, precisión formal por facultad",
       }
     : {
         actorId: UNIVERSITY_TOTAL_COMPONENT_ID,
         scenario: "p1_universidad",
-        shortLabel: "P1 · Universidad",
-        longLabel: "Propuesta 1 · precisión formal global",
+        shortLabel: "P1, Universidad",
+        longLabel: "Propuesta 1, precisión formal global",
       };
 }
 

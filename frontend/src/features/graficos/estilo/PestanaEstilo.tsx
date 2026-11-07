@@ -18,7 +18,6 @@ import {
 import { useSession } from "../../../lib/SessionContext";
 import { useGraficosReportScope } from "../reportScope";
 import { usePlanStore } from "../store";
-import { motivoPiezaNoDisponible } from "./disponibilidadEstilo";
 import { useEstiloUi } from "./estiloUiStore";
 import {
   conAmbito,
@@ -43,8 +42,11 @@ import {
 } from "./modeloEstilo";
 import { SeccionLetra } from "./SeccionLetra";
 import { SeccionLegibilidad } from "./SeccionLegibilidad";
+import { SeccionAntetitulo } from "./SeccionAntetitulo";
 import { IconosEditor } from "../IconosEditor";
 import { ColoresRespuestas } from "./ColoresRespuestas";
+import { RotulosCortos } from "./RotulosCortos";
+import { cuantosRotulos } from "./modeloRotulosCortos";
 import { useSubpestana, type Subpestana } from "../subpestanas/Subpestanas";
 import { Segmentado } from "../subpestanas/Segmentado";
 import { PREFIJO_PIEZA, PiezasIdentidad, type ClavePieza } from "./PiezasIdentidad";
@@ -55,7 +57,7 @@ import { usePptStyleProfiles } from "../usePptStyleProfiles";
 import { usePaletasRespuestas } from "./usePaletasRespuestas";
 import { MuestraIdentidad, type DatosMuestra, type LogoMuestra } from "./MuestraIdentidad";
 import { IMAGEN_POR_DEFECTO } from "./TarjetaLogo";
-import { downloadUrl } from "../../../api/core";
+import { urlDelArchivo } from "../../../api/core";
 import { useLineasPropias } from "./lineasPropiasStore";
 import { useVariables } from "../useVariables";
 import { ESTILO_AMBITOS } from "../../../api/graficosEstilo";
@@ -74,6 +76,7 @@ function mensajeDe(error: unknown, porDefecto: string): string {
 const SUB_IDENTIDAD: readonly Subpestana<ClavePieza>[] = [
   { key: "linea", label: "Línea visual" },
   { key: "colores", label: "Colores de las respuestas" },
+  { key: "rotulos", label: "Rótulos cortos" },
   { key: "logos", label: "Logos" },
   { key: "letra", label: "Letra" },
   { key: "iconos", label: "Íconos propios" },
@@ -84,7 +87,6 @@ export default function PestanaEstilo() {
   const [sub, setSub] = useSubpestana(SUB_IDENTIDAD);
   const location = useLocation();
   const scope = useGraficosReportScope(location.search);
-  const motivoPieza = motivoPiezaNoDisponible(scope, sub);
   const { state } = useSession();
   const prepOk = !!state?.analitica_prep_ok;
 
@@ -92,6 +94,7 @@ export default function PestanaEstilo() {
   const scopeRules = usePlanStore((s) => s.scopeRules);
   const iconos = usePlanStore((s) => s.iconos);
   const slidesPlan = usePlanStore((s) => s.plan.slides);
+  const nRotulos = usePlanStore((s) => cuantosRotulos(s.plan.rotulos_cortos));
   const { profiles } = usePptStyleProfiles();
   const propias = useLineasPropias((s) => s.lineas);
   const { filas: filasPaletas } = usePaletasRespuestas();
@@ -159,13 +162,13 @@ export default function PestanaEstilo() {
   const faltanColores = filasPaletas.filter((f) => f.faltan > 0).length;
   const conLogos = logosModificados(decisiones);
   const conLetra = letraModificada(decisiones);
-  const piezas = piezasIdentidad({ lineaNombre, faltanColores, conLogos, conLetra, nIconos: iconos.length });
+  const piezas = piezasIdentidad({ lineaNombre, faltanColores, conLogos, conLetra, nIconos: iconos.length, nRotulos });
   // ID8: datos de la muestra viva. La escala de muestra es la primera con todos sus colores (o la primera con alguno).
   const escala = filasPaletas.find((f) => f.faltan === 0 && f.opciones.length >= 3) ?? filasPaletas.find((f) => f.faltan < f.opciones.length) ?? null;
   const logoMuestra = (lugar: EstiloLugarLogo): LogoMuestra => {
     const propio = estilo.logos?.[lugar];
     const rec = opciones?.logos.find((l) => l.lugar === lugar);
-    return propio ? { src: downloadUrl(propio.file_id), nombre: propio.nombre ?? "Logo propio" }
+    return propio ? { src: urlDelArchivo(propio.file_id), nombre: propio.nombre ?? "Logo propio" }
       : { src: rec?.logo ? IMAGEN_POR_DEFECTO[rec.logo] ?? null : null, nombre: rec?.nombre ?? "" };
   };
   const portada = slidesPlan.find((x) => x.tipo === "p_slide_portada");
@@ -202,15 +205,9 @@ export default function PestanaEstilo() {
           <div className="pulso-f6-estilo-secciones" id={ID_PANEL} role="region" aria-labelledby={`${PREFIJO_PIEZA}-${sub}`}
             data-qa-geometry-group="graficos/f6-estilo-secciones" data-qa-geometry-contract="intrinsic">
             {opcionesError ? <p className="pulso-f6-estilo-error" role="alert">{opcionesError}</p> : null}
-            {/* QA del Informe (2026-10-15): el motivo es una sección más del grupo, no un <p> suelto (capacity-drift). */}
-            {motivoPieza ? (
-              <section className="pulso-f6-estilo-seccion" data-qa-geometry-member>
-                <p className="pulso-f6-estilo-ayuda" role="status">{motivoPieza}</p>
-              </section>
-            ) : null}
             {/* D3: la línea visual vive en Identidad (antes en Reglas); su biblioteca llega con ID3. */}
             {sub === "linea" && <SeccionLineaVisual aplicada={lineaId} />}
-            {sub === "logos" && !motivoPieza && (<>
+            {sub === "logos" && (<>
 
             <section className="pulso-f6-estilo-seccion" aria-labelledby="f6-estilo-logos-titulo" data-qa-geometry-member>
               <header className="pulso-f6-estilo-seccion-cabecera">
@@ -243,7 +240,7 @@ export default function PestanaEstilo() {
             </section>
             </>)}
 
-            {sub === "letra" && !motivoPieza && <SeccionLetra
+            {sub === "letra" && <SeccionLetra
               paso={paso}
               procedenciaPaso={procedenciaPaso(decisiones)}
               pasoRol={(rol) => pasoEfectivoRol(estilo, ref, rol)}
@@ -258,7 +255,8 @@ export default function PestanaEstilo() {
               onSinLetra={() => cambiar(sinLetra)}
             />}
             {/* O8: negrita por elemento y modo de leyenda, para todo el informe. */}
-            {sub === "letra" && !motivoPieza && <SeccionLegibilidad estilo={estilo} onCambiar={cambiar} />}
+            {sub === "letra" && <SeccionLegibilidad estilo={estilo} onCambiar={cambiar} />}
+            {sub === "letra" && <SeccionAntetitulo estilo={estilo} onCambiar={cambiar} />}
 
             {/* Los íconos del cliente (lámina de objetivo y capítulos) se suben aquí; la población no lleva ícono. */}
             {sub === "iconos" && (
@@ -268,6 +266,8 @@ export default function PestanaEstilo() {
               </section>
             )}
             {sub === "colores" && <ColoresRespuestas />}
+            {/* U3 (2026-11-05): `plan.rotulos_cortos`, que el job aplica a datos, instrumento, plan y paletas. */}
+            {sub === "rotulos" && <RotulosCortos />}
           </div>
           {/* ID8: lo que la identidad cambia, a la vista mientras se ajusta (no en el compartido: sin logos ni letra). */}
           {scope !== "consolidated" && <MuestraIdentidad datos={muestra} />}

@@ -1,10 +1,10 @@
-// ADR 0114: lo que la ficha de la maqueta dice de los gráficos del resumen ejecutivo.
+// ADR 0134: lo que la ficha de la maqueta dice de los gráficos del resumen ejecutivo.
 import { describe, expect, it } from "vitest";
 import { ajustesDelGlifo } from "./fichaModelo";
 
 const ajustes = (g: string, args: Record<string, unknown>) => ajustesDelGlifo(g, args, false).ajustes;
 
-describe("ficha · resumen ejecutivo (ADR 0114)", () => {
+describe("ficha · resumen ejecutivo (ADR 0134)", () => {
   it("divergentes: nombra la escala del resumen y un orden distinto del de por defecto", () => {
     expect(ajustes("p_barras_divergentes", {})).toEqual([]);
     expect(ajustes("p_barras_divergentes", { estilo: "resumen", orden: "top_two_box" })).toEqual(["Escala con Sin información aparte"]);

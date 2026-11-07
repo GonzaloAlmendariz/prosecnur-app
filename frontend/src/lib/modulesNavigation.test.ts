@@ -22,7 +22,7 @@ import {
 import { DASHBOARD_PESTANAS } from "./navegacion/catalogos/dashboard";
 
 const EXPECTED_PRIMARY_NAVIGATION: Record<
-  Exclude<ProsecnurModuleSlug, "plan-trabajo">,
+  Exclude<ProsecnurModuleSlug, "plan-trabajo" | "diseno-estudio">,
   {
     landingKind: "section" | "entrypoint";
     to: string;
@@ -34,16 +34,6 @@ const EXPECTED_PRIMARY_NAVIGATION: Record<
     }>;
   }
 > = {
-  "diseno-estudio": {
-    landingKind: "section",
-    to: "/bitacora",
-    sections: [
-      { id: "bitacora", label: "Bitácora", to: "/bitacora", layoutPolicy: "viewport" },
-      { id: "cronograma", label: "Cronograma", to: "/bitacora?seccion=cronograma", layoutPolicy: "viewport" },
-      { id: "calendario", label: "Calendario", to: "/bitacora?seccion=calendario", layoutPolicy: "viewport" },
-      { id: "canvas", label: "Lienzo", to: "/bitacora?seccion=canvas", layoutPolicy: "viewport" },
-    ],
-  },
   "calc-muestra": {
     landingKind: "section",
     to: "/calc-muestra",
@@ -118,8 +108,9 @@ describe("manifiesto primario de navegación", () => {
     });
   });
 
-  it("da a los ocho módulos un landing y secciones primarias válidas", () => {
-    expect(PROSECNUR_MODULES).toHaveLength(8);
+  // ADR 0124: el Planner salió; quedan siete.
+  it("da a los siete módulos un landing y secciones primarias válidas", () => {
+    expect(PROSECNUR_MODULES).toHaveLength(7);
 
     const navigationKeys: string[] = [];
     const publishedRoutes: string[] = [];
@@ -179,7 +170,7 @@ describe("manifiesto primario de navegación", () => {
     expect(new Set(publishedRoutes).size).toBe(publishedRoutes.length);
   });
 
-  it("define las cinco etapas y los tres destinos subordinados de Selección", () => {
+  it("define las cinco etapas y los cuatro destinos subordinados de Selección", () => {
     const routes = PROSECNUR_MODULES.find(
       (module) => module.slug === "hojas-ruta",
     );
@@ -197,13 +188,14 @@ describe("manifiesto primario de navegación", () => {
       { id: "cuotas", label: "Cuotas", to: "/hojas-ruta?seccion=seleccion&pestana=cuotas" },
       { id: "titulares", label: "Titulares", to: "/hojas-ruta?seccion=seleccion&pestana=titulares" },
       { id: "reemplazos", label: "Reemplazos", to: "/hojas-ruta?seccion=seleccion&pestana=reemplazos" },
+      { id: "revision", label: "Revisión", to: "/hojas-ruta?seccion=seleccion&pestana=revision" },
     ]);
   });
 
-  it("mantiene ocho acentos de módulo distintos y fuera de los estados semánticos", () => {
+  it("mantiene siete acentos de módulo distintos y fuera de los estados semánticos", () => {
     const accents = PROSECNUR_MODULES.map((module) => module.tone.accent);
 
-    expect(new Set(accents).size).toBe(8);
+    expect(new Set(accents).size).toBe(7);
     for (const module of PROSECNUR_MODULES) {
       expect(module.tone).toBe(MODULE_TONES[module.slug]);
     }
@@ -270,11 +262,11 @@ describe("manifiesto primario de navegación", () => {
         id: "aulas",
         label: "Cursos-horario",
         sections: [
-          { id: "fuentes", label: "Fuentes", to: "/monitoreo?seccion=fuentes", layoutPolicy: "viewport" },
-          { id: "modelo", label: "Agenda de cursos-horario", to: "/monitoreo?seccion=modelo", layoutPolicy: "viewport" },
+          // Esqueleto común desde el revamp (`docs/qa/revamp-monitoreo/aulas.md` §1).
+          { id: "insumos", label: "Insumos", to: "/monitoreo?seccion=insumos", layoutPolicy: "viewport" },
+          { id: "modelo", label: "Modelo", to: "/monitoreo?seccion=modelo", layoutPolicy: "viewport" },
+          { id: "control", label: "Control", to: "/monitoreo?seccion=control", layoutPolicy: "viewport" },
           { id: "avance", label: "Avance", to: "/monitoreo?seccion=avance", layoutPolicy: "viewport" },
-          { id: "calidad", label: "Validación", to: "/monitoreo?seccion=calidad", layoutPolicy: "viewport" },
-          { id: "consultas", label: "Consultas", to: "/monitoreo?seccion=consultas", layoutPolicy: "viewport" },
         ],
       },
     ]);
@@ -293,7 +285,34 @@ describe("manifiesto primario de navegación", () => {
           { id: "accesos", to: "/material-campo?modo=aulas&seccion=accesos", tabs: ["/material-campo?modo=aulas&seccion=accesos&pestana=canales", "/material-campo?modo=aulas&seccion=accesos&pestana=vinculacion"] },
           { id: "catalogo", to: "/material-campo?modo=aulas&seccion=catalogo", tabs: ["/material-campo?modo=aulas&seccion=catalogo&pestana=tipos", "/material-campo?modo=aulas&seccion=catalogo&pestana=editor"] },
           { id: "paquetes", to: "/material-campo?modo=aulas&seccion=paquetes", tabs: ["/material-campo?modo=aulas&seccion=paquetes&pestana=armado"] },
-          { id: "entrega", to: "/material-campo?modo=aulas&seccion=entrega", tabs: ["/material-campo?modo=aulas&seccion=entrega&pestana=traspaso"] },
+          { id: "entrega", to: "/material-campo?modo=aulas&seccion=entrega", tabs: ["/material-campo?modo=aulas&seccion=entrega&pestana=traspaso", "/material-campo?modo=aulas&seccion=entrega&pestana=plantillas"] },
+        ],
+      },
+      {
+        // ADR 0118 §4: la campaña territorial, sobre la foto que envía Hojas de ruta.
+        id: "territorial",
+        sections: [
+          { id: "unidades", to: "/material-campo?modo=territorial&seccion=unidades", tabs: ["/material-campo?modo=territorial&seccion=unidades&pestana=lista"] },
+          { id: "catalogo", to: "/material-campo?modo=territorial&seccion=catalogo", tabs: ["/material-campo?modo=territorial&seccion=catalogo&pestana=fichas", "/material-campo?modo=territorial&seccion=catalogo&pestana=zonas", "/material-campo?modo=territorial&seccion=catalogo&pestana=ruteo", "/material-campo?modo=territorial&seccion=catalogo&pestana=consolidados", "/material-campo?modo=territorial&seccion=catalogo&pestana=codigos"] },
+          { id: "paquetes", to: "/material-campo?modo=territorial&seccion=paquetes", tabs: ["/material-campo?modo=territorial&seccion=paquetes&pestana=armado"] },
+          { id: "entrega", to: "/material-campo?modo=territorial&seccion=entrega", tabs: ["/material-campo?modo=territorial&seccion=entrega&pestana=plan"] },
+        ],
+      },
+      {
+        // P10: la campaña telefónica, sólo con su configuración.
+        id: "telefonica",
+        sections: [
+          { id: "casos", to: "/material-campo?modo=telefonica&seccion=casos", tabs: ["/material-campo?modo=telefonica&seccion=casos&pestana=configuracion"] },
+          { id: "barrido", to: "/material-campo?modo=telefonica&seccion=barrido", tabs: ["/material-campo?modo=telefonica&seccion=barrido&pestana=plantilla", "/material-campo?modo=telefonica&seccion=barrido&pestana=status"] },
+          { id: "entrega", to: "/material-campo?modo=telefonica&seccion=entrega", tabs: ["/material-campo?modo=telefonica&seccion=entrega&pestana=monitoreo"] },
+        ],
+      },
+      {
+        // ADR 0125 A3: la supervisión de un lote de Monitoreo.
+        id: "supervision",
+        sections: [
+          { id: "columnas", to: "/material-campo?modo=supervision&seccion=columnas", tabs: ["/material-campo?modo=supervision&seccion=columnas&pestana=seleccion"] },
+          { id: "entrega", to: "/material-campo?modo=supervision&seccion=entrega", tabs: ["/material-campo?modo=supervision&seccion=entrega&pestana=base"] },
         ],
       },
       {
@@ -303,8 +322,6 @@ describe("manifiesto primario de navegación", () => {
         ],
       },
     ]);
-    // `territorial` no se declara hasta E2: aparece deshabilitado en «Nueva campaña».
-    expect(material?.modos?.some((modo) => modo.id === "territorial")).toBe(false);
   });
 
   it("adjunta a Monitoreo las mismas pestañas del catálogo canónico", () => {
@@ -358,8 +375,9 @@ describe("manifiesto primario de navegación", () => {
       // Territorial, Ocurrencias y Reportes UMP dependen de que el proyecto
       // declare el parte de ocurrencias de campo (territorial.md §3.9). En
       // Acreditación, el grupo Contacto de Control existe solo si el estudio
-      // declara el canal (`acreditacion.md` §1).
-    ).toEqual(["correo", "barrido", "reintentos", "equipo", "ocurrencias", "reportes"]);
+      // declara el canal (`acreditacion.md` §1). En Cursos-horario, Alumnos
+      // existe solo si el estudio pide el código del alumno (`aulas.md` §1).
+    ).toEqual(["correo", "barrido", "reintentos", "equipo", "ocurrencias", "reportes", "alumnos"]);
   });
 
   it("adjunta sin clonar los catálogos de Muestra, Procesamiento y Dashboard", () => {

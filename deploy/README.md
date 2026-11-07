@@ -26,6 +26,20 @@ también sirven para hacerlo manual.
   read-only del dashboard (ver `api/R/forbid_mutations.R`).
 - **Bootstrap obligatorio**: `launch_server.R` falla rápido si no encuentra
   un `.pulso` en `PULSO_BOOTSTRAP_PROJECT` (default `/data/proyecto.pulso`).
+- **Sólo un `.pulso` PREPARADO para publicar** (ADR 0122 §9). Nunca se sube el
+  `.pulso` del proyecto: trae la lista de encuestadores con nombres y DNI, la
+  base completa con todas sus columnas y lo demás. El botón Deploy y el script
+  `api/scripts/publicacion_preparar.R` arman la misma copia: sólo lo que el
+  dashboard lee, con la base podada a las columnas que usa, y una marca
+  (`publicacion_preparada`). `launch_server.R` **no arranca** con un `.pulso`
+  sin esa marca.
+
+  ```bash
+  Rscript api/scripts/publicacion_preparar.R --project /ruta/MiProyecto.pulso --out data/proyecto.pulso
+  ```
+
+  El script no toca el proyecto y termina con error si el detector de datos
+  personales encuentra algo en el resultado.
   En Hugging Face el `.pulso` viaja dentro de la imagen; no se declara
   `VOLUME /data` para evitar que el runtime lo tape con un volumen vacío.
 
@@ -43,7 +57,9 @@ Para Dashboards generales se usa Docker SDK:
    - `Dockerfile` (raíz)
    - `api/`, `frontend/`, `launcher/`, `tsconfig.json` (todo el repo
      menos lo del `.dockerignore`)
-   - `data/proyecto.pulso` (el dump del proyecto a publicar)
+   - `data/proyecto.pulso`: el `.pulso` PREPARADO con
+     `api/scripts/publicacion_preparar.R` (o el que arma el botón Deploy),
+     nunca el del proyecto
 4. HF buildea el Dockerfile (~10-15 min primera vez, ~2 min cached).
 
 Monitoreo no usa este flujo. Sus salidas vigentes son workbooks de Google
@@ -55,7 +71,8 @@ Sheets cliente e interno, publicados desde el modulo Monitoreo.
 2. `flyctl launch --no-deploy --copy-config`
 3. `flyctl volumes create pulso_data --size 1 --region scl`
 4. `flyctl deploy`
-5. Subir el `.pulso` al volume vía `flyctl ssh sftp`.
+5. Preparar el `.pulso` con `api/scripts/publicacion_preparar.R` y subir ESE
+   archivo al volume vía `flyctl ssh sftp`. El del proyecto no arranca.
 
 ## Endpoints expuestos en modo público
 

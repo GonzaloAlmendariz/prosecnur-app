@@ -32,7 +32,7 @@ describe("NuevaBaseFormularioPublicado", () => {
     expect(html).toContain("Estudiantes Arte 2026");
     expect(html).toContain("revisión 3");
     expect(html).toContain("42 campos");
-    expect(html).toContain("Lógica: fuera de Prosecnur · SPSS");
+    expect(html).toContain("Lógica: fuera de Prosecnur, en SPSS");
     expect(html).toContain('data-qa-geometry-group="carga/formulario-publicado/formularios"');
     expect(html).toContain('aria-live="polite"');
   });

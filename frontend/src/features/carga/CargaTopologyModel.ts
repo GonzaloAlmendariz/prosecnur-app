@@ -176,7 +176,8 @@ export function resolveCargaTopology(input: CargaTopologyInput): CargaTopologyRe
         strategyLocked: true,
         lockReason: baseCount > 1
           ? "El estudio ya contiene varias bases separadas; su cantidad y sus fuentes se gestionan desde Fuentes."
-          : "El estudio ya contiene una base dentro del espacio multibase; su organización materializada se gestiona desde Fuentes.",
+          // Con una sola base, «Varias bases» describe para qué está preparado el estudio, no lo que ya tiene: se dice.
+          : "El estudio está preparado para varias bases separadas y por ahora tiene una. Agrega la siguiente desde Fuentes.",
       };
     }
 

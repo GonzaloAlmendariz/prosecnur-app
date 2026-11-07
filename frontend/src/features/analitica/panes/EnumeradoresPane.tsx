@@ -51,7 +51,7 @@ function detectarModo(
 export function EnumeradoresPane() {
   const enumer = useAnaliticaStore((s) => s.config.enumeradores);
   const setEnumer = useAnaliticaStore((s) => s.setEnumeradores);
-  const run = useReporteRun();
+  const run = useReporteRun("Reporte de enumeradores", { articulo: "el", formato: "pdf" });
 
   // Quarto es dependencia opcional para PDF de enumeradores. Lo
   // chequeamos al montar la pantalla para mostrar un banner claro y
@@ -140,25 +140,25 @@ export function EnumeradoresPane() {
                     border: `1px solid ${modo === opt.key ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
                     background: modo === opt.key ? "var(--pulso-primary-soft)" : "white",
                     color: modo === opt.key ? "var(--pulso-primary)" : "var(--pulso-text)",
-                    cursor: "pointer", fontSize: 12, fontWeight: 600,
+                    cursor: "pointer", fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 600,
                     display: "inline-flex", alignItems: "center", gap: 6,
                   }}
                 >
-                  <span style={{ fontSize: 11, opacity: 0.7 }}>{opt.icon}</span>
+                  <span style={{ fontSize: "var(--pulso-type-caption-size)", opacity: 0.7 }}>{opt.icon}</span>
                   {opt.label}
                 </button>
               ))}
             </div>
 
             {modo === "ninguna" && (
-              <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", lineHeight: 1.5, padding: "8px 12px", background: "var(--pulso-surface)", borderRadius: 6 }}>
+              <div style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text-soft)", lineHeight: 1.5, padding: "8px 12px", background: "var(--pulso-surface)", borderRadius: 6 }}>
                 El reporte tendrá una sola página con la producción total por enumerador. Sin desglose por modalidad.
               </div>
             )}
 
             {modo === "columna" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
+                <div style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
                   Selecciona una columna del dataset que indique la modalidad por fila. Los valores que no coincidan con las modalidades esperadas se agrupan como "otras".
                 </div>
                 <VariableSelect
@@ -210,7 +210,7 @@ export function EnumeradoresPane() {
                 type="text"
                 value={enumer.titulo}
                 onChange={(e) => setEnumer({ titulo: e.target.value })}
-                style={{ fontSize: 13, padding: "6px 10px" }}
+                style={{ fontSize: "var(--pulso-type-body-size)", padding: "6px 10px" }}
               />
             </label>
             <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -220,7 +220,7 @@ export function EnumeradoresPane() {
                 value={enumer.min_encuestas}
                 onChange={(e) => setEnumer({ min_encuestas: Number(e.target.value) || 0 })}
                 min={0}
-                style={{ width: 110, fontSize: 13, padding: "6px 10px" }}
+                style={{ width: 110, fontSize: "var(--pulso-type-body-size)", padding: "6px 10px" }}
               />
             </label>
             <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -228,7 +228,7 @@ export function EnumeradoresPane() {
               <select
                 value={enumer.ordenar_por}
                 onChange={(e) => setEnumer({ ordenar_por: e.target.value as "total" | "nombre" })}
-                style={{ fontSize: 13, padding: "6px 10px" }}
+                style={{ fontSize: "var(--pulso-type-body-size)", padding: "6px 10px" }}
               >
                 <option value="total">Producción total</option>
                 <option value="nombre">Nombre</option>
@@ -260,7 +260,7 @@ export function EnumeradoresPane() {
               display: "flex",
               gap: 10,
               alignItems: "flex-start",
-              fontSize: 13,
+              fontSize: "var(--pulso-type-body-size)",
               lineHeight: 1.45,
               marginBottom: 12,
             }}
@@ -269,9 +269,9 @@ export function EnumeradoresPane() {
             <div style={{ flex: 1 }}>
               <strong>Falta Quarto CLI</strong> — el reporte de enumeradores
               se renderiza con Quarto + Typst para PDF. {!diag.quarto.r_package && "También falta el paquete R "}
-              {!diag.quarto.r_package && <code style={{ fontFamily: "ui-monospace, monospace" }}>quarto</code>}
+              {!diag.quarto.r_package && <code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" }}>quarto</code>}
               {!diag.quarto.r_package && " (instálalo con "}
-              {!diag.quarto.r_package && <code style={{ fontFamily: "ui-monospace, monospace" }}>install.packages("quarto")</code>}
+              {!diag.quarto.r_package && <code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" }}>install.packages("quarto")</code>}
               {!diag.quarto.r_package && "). "}
               <br/>
               Instala Quarto CLI desde{" "}
@@ -293,11 +293,7 @@ export function EnumeradoresPane() {
         {/* 5. Generar */}
         <GenerateFooter
           label="Generar reporte"
-          busy={run.busy}
-          jobId={run.jobId}
-          fileId={run.fileId}
-          downloadName={run.filename ?? "enumeradores.pdf"}
-          error={run.error}
+          run={run}
           onGenerate={onGenerate}
           disabled={!puedeGenerar || quartoOk === false}
           disabledHint={
@@ -306,10 +302,6 @@ export function EnumeradoresPane() {
               : !enumer.col_enumerador
               ? "Selecciona primero la columna del enumerador."
               : "Agrega al menos una regla o cambia el modo a «Sin modalidad» / «Por columna»."}
-          onJobDone={run.onJobDone}
-          onJobError={run.onJobError}
-          onJobCancelled={run.onJobCancelled}
-          perBase={run.perBase}
         />
       </div>
     </Panel>
@@ -346,13 +338,13 @@ function ReglasBuilder({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
+      <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
         Cada regla tiene una o más <strong>condiciones</strong> (todas deben cumplirse). Las reglas se evalúan en orden;
         la primera que se cumple asigna la modalidad. Si ninguna matchea, se usa la modalidad <strong>por defecto</strong>.
       </div>
 
       {reglas.length === 0 && (
-        <div style={{ padding: 14, border: "1px dashed var(--pulso-border)", borderRadius: 6, textAlign: "center", fontSize: 12, color: "var(--pulso-text-soft)" }}>
+        <div style={{ padding: 14, border: "1px dashed var(--pulso-border)", borderRadius: 6, textAlign: "center", fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text-soft)" }}>
           Aún no hay reglas. Haz click en <strong>+ Agregar regla</strong> para empezar.
         </div>
       )}
@@ -369,7 +361,7 @@ function ReglasBuilder({
       ))}
 
       <div>
-        <button type="button" onClick={addRegla} style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 4 }}>
+        <button type="button" onClick={addRegla} style={{ fontSize: "var(--pulso-type-body-size)", display: "inline-flex", alignItems: "center", gap: 4 }}>
           <Plus size={12} /> Agregar regla
         </button>
       </div>
@@ -380,7 +372,7 @@ function ReglasBuilder({
           background: "var(--pulso-surface)", borderRadius: 6, border: "1px solid var(--pulso-border)",
         }}
       >
-        <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3, color: "var(--pulso-text-soft)" }}>
+        <span style={{ fontSize: "var(--pulso-type-eyebrow-size)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3, color: "var(--pulso-text-soft)" }}>
           Si ninguna regla matchea →
         </span>
         <ModalidadPills value={modalidadDefault} onChange={onDefault} />
@@ -443,10 +435,10 @@ function ReglaCard({
         >
           {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
         </button>
-        <span style={{ fontSize: 11, fontWeight: 700, color: "var(--pulso-text-soft)", textTransform: "uppercase", letterSpacing: 0.3 }}>
+        <span style={{ fontSize: "var(--pulso-type-eyebrow-size)", fontWeight: 700, color: "var(--pulso-text-soft)", textTransform: "uppercase", letterSpacing: 0.3 }}>
           Regla {index + 1}
         </span>
-        <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <span style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {resumen} → <ModalidadPrint v={regla.modalidad} />
         </span>
         <button type="button" onClick={onRemove} className="pulso-icon pulso-icon-danger" title="Eliminar regla" aria-label="Eliminar">
@@ -466,7 +458,7 @@ function ReglaCard({
               showAnd={i > 0}
             />
           ))}
-          <button type="button" onClick={addCond} style={{ fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4, alignSelf: "flex-start" }}>
+          <button type="button" onClick={addCond} style={{ fontSize: "var(--pulso-type-caption-size)", display: "inline-flex", alignItems: "center", gap: 4, alignSelf: "flex-start" }}>
             <Plus size={11} /> {regla.condiciones.length === 0 ? "Agregar condición" : "Agregar otra condición (Y)"}
           </button>
 
@@ -476,7 +468,7 @@ function ReglaCard({
               padding: "8px 0 0", borderTop: "1px dashed var(--pulso-border)",
             }}
           >
-            <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3, color: "var(--pulso-text-soft)" }}>
+            <span style={{ fontSize: "var(--pulso-type-eyebrow-size)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3, color: "var(--pulso-text-soft)" }}>
               entonces modalidad →
             </span>
             <ModalidadPills
@@ -523,7 +515,7 @@ function CondicionRow({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
       {showAnd && (
-        <span style={{ fontSize: 10, fontWeight: 700, color: "var(--pulso-primary)", textTransform: "uppercase", letterSpacing: 0.5 }}>
+        <span style={{ fontSize: "var(--pulso-type-micro-size)", fontWeight: 700, color: "var(--pulso-primary)", textTransform: "uppercase", letterSpacing: 0.5 }}>
           Y
         </span>
       )}
@@ -547,7 +539,7 @@ function CondicionRow({
               valor: mismoTipo ? cond.valor : (nuevoEsMulti ? [] : ""),
             });
           }}
-          style={{ fontSize: 12, padding: "6px 8px", minWidth: 100 }}
+          style={{ fontSize: "var(--pulso-type-body-size)", padding: "6px 8px", minWidth: 100 }}
         >
           <option value="==">es igual a</option>
           <option value="!=">es distinto de</option>
@@ -589,7 +581,7 @@ function ValorInput({
         value=""
         disabled
         placeholder="Selecciona una columna…"
-        style={{ width: "100%", fontSize: 12, padding: "6px 10px", background: "var(--pulso-surface-2)" }}
+        style={{ width: "100%", fontSize: "var(--pulso-type-body-size)", padding: "6px 10px", background: "var(--pulso-surface-2)" }}
       />
     );
   }
@@ -606,7 +598,7 @@ function ValorInput({
               padding: "1px 4px 1px 8px", borderRadius: 999,
               background: "var(--pulso-primary-soft)",
               border: "1px solid var(--pulso-primary)",
-              fontSize: 11, fontFamily: "monospace", color: "var(--pulso-primary)",
+              fontSize: "var(--pulso-type-caption-size)", fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", color: "var(--pulso-primary)",
             }}
           >
             {v}
@@ -621,7 +613,7 @@ function ValorInput({
             const v = e.target.value;
             if (v && !lista.includes(v)) onChange([...lista, v]);
           }}
-          style={{ fontSize: 12, padding: "4px 6px", border: "none", background: "transparent", flex: 1, minWidth: 100 }}
+          style={{ fontSize: "var(--pulso-type-body-size)", padding: "4px 6px", border: "none", background: "transparent", flex: 1, minWidth: 100 }}
           disabled={loading}
         >
           <option value="">{loading ? "Cargando…" : "+ añadir valor…"}</option>
@@ -641,7 +633,7 @@ function ValorInput({
       <select
         value={valor as string}
         onChange={(e) => onChange(e.target.value)}
-        style={{ width: "100%", fontSize: 12, padding: "6px 10px" }}
+        style={{ width: "100%", fontSize: "var(--pulso-type-body-size)", padding: "6px 10px" }}
       >
         <option value="">{loading ? "Cargando…" : "— seleccionar —"}</option>
         {valores.map((v) => (
@@ -659,7 +651,7 @@ function ValorInput({
       onChange={(e) => onChange(e.target.value)}
       placeholder={loading ? "Cargando…" : "Valor"}
       list="vals-hint"
-      style={{ width: "100%", fontSize: 12, padding: "6px 10px" }}
+      style={{ width: "100%", fontSize: "var(--pulso-type-body-size)", padding: "6px 10px" }}
     />
   );
 }
@@ -675,7 +667,7 @@ function ModalidadPills({ value, onChange }: { value: string; onChange: (v: Moda
           ? <Phone size={11} />
           : m === "Presencial"
           ? <Users size={11} />
-          : <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", display: "inline-flex", alignItems: "center" }}>—</span>;
+          : <span style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", display: "inline-flex", alignItems: "center" }}>—</span>;
         return (
           <button
             key={m}
@@ -687,7 +679,7 @@ function ModalidadPills({ value, onChange }: { value: string; onChange: (v: Moda
               border: `1px solid ${active ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
               background: active ? "var(--pulso-primary-soft)" : "white",
               color: active ? "var(--pulso-primary)" : "var(--pulso-text)",
-              cursor: "pointer", fontSize: 11,
+              cursor: "pointer", fontSize: "var(--pulso-type-caption-size)",
               fontWeight: active ? 600 : 500,
               transition: "background 120ms ease, border-color 120ms ease, color 120ms ease",
             }}
@@ -728,7 +720,7 @@ function CortesPicker({
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
         {seleccionados.length === 0 && (
-          <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontStyle: "italic" }}>
+          <span style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", fontStyle: "italic" }}>
             Sin cortes adicionales.
           </span>
         )}
@@ -742,12 +734,12 @@ function CortesPicker({
                 padding: "3px 4px 3px 10px", borderRadius: 999,
                 background: "var(--pulso-primary-soft)",
                 border: "1px solid var(--pulso-primary)",
-                fontSize: 11, color: "var(--pulso-primary)",
+                fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-primary)",
                 maxWidth: 260,
               }}
               title={v?.label}
             >
-              <code style={{ fontFamily: "monospace", fontWeight: 700 }}>{c}</code>
+              <code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", fontWeight: 700 }}>{c}</code>
               <button type="button" onClick={() => onToggle(c)} className="pulso-icon" aria-label={`Quitar ${c}`} style={{ minWidth: 16, minHeight: 16 }}>
                 <X size={10} />
               </button>
@@ -756,17 +748,17 @@ function CortesPicker({
         })}
       </div>
       <div style={{ display: "flex", gap: 6 }}>
-        <button type="button" onClick={() => setOpen((v) => !v)} style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 4 }}>
+        <button type="button" onClick={() => setOpen((v) => !v)} style={{ fontSize: "var(--pulso-type-body-size)", display: "inline-flex", alignItems: "center", gap: 4 }}>
           <Plus size={12} /> {open ? "Cerrar selector" : "Agregar corte"}
         </button>
         {seleccionados.length > 0 && (
-          <button type="button" onClick={onClear} style={{ fontSize: 12 }}>Quitar todos</button>
+          <button type="button" onClick={onClear} style={{ fontSize: "var(--pulso-type-body-size)" }}>Quitar todos</button>
         )}
       </div>
       {open && (
         <div style={{ border: "1px solid var(--pulso-border)", borderRadius: 6, padding: 6, maxHeight: 240, overflowY: "auto", scrollbarWidth: "thin", scrollbarColor: "var(--pulso-border) transparent" }}>
           {variables.length === 0 ? (
-            <div style={{ padding: 10, fontSize: 12, color: "var(--pulso-text-soft)", textAlign: "center" }}>Sin variables disponibles.</div>
+            <div style={{ padding: 10, fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text-soft)", textAlign: "center" }}>Sin variables disponibles.</div>
           ) : (
             variables.map((v) => {
               const active = seleccionadosSet.has(v.name);
@@ -783,10 +775,10 @@ function CortesPicker({
                 >
                   <input type="checkbox" checked={active} onChange={() => onToggle(v.name)} style={{ margin: 0 }} />
                   <div style={{ minWidth: 0 }}>
-                    <code style={{ fontFamily: "monospace", fontWeight: 700, fontSize: 12, color: active ? "var(--pulso-primary)" : "var(--pulso-text)" }}>{v.name}</code>
-                    <span style={{ marginLeft: 6, fontSize: 11, color: "var(--pulso-text-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.label}</span>
+                    <code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", fontWeight: 700, fontSize: "var(--pulso-type-subtitle-size)", color: active ? "var(--pulso-primary)" : "var(--pulso-text)" }}>{v.name}</code>
+                    <span style={{ marginLeft: 6, fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.label}</span>
                   </div>
-                  <span style={{ fontSize: 10, color: "var(--pulso-text-soft)", textTransform: "uppercase", letterSpacing: 0.3 }}>{v.tipo}</span>
+                  <span style={{ fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)", textTransform: "uppercase", letterSpacing: 0.3 }}>{v.tipo}</span>
                 </label>
               );
             })

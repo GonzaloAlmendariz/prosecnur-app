@@ -111,7 +111,7 @@ describe("getFormWorkflowView", () => {
     expect(view.primaryAction).toBe("open");
     // Publicada pero sin consumidor: el hito no puede decir "Disponible" como
     // si Procesamiento ya la estuviera usando.
-    expect(view.processing.label).toBe("Publicada · revisión 2");
+    expect(view.processing.label).toBe("Publicada, revisión 2");
     expect(view.processing.detail).toMatch(/ninguna base la usa todavía/i);
   });
 
@@ -254,7 +254,7 @@ describe("getFormWorkflowView con la lógica hecha fuera", () => {
 
   test("etapa neutra con el programa y publicar como acción", () => {
     const view = getFormWorkflowView(publication(), [], null, false, externa);
-    expect(view.logic).toMatchObject({ label: "Fuera de Prosecnur · SPSS", tone: "neutral" });
+    expect(view.logic).toMatchObject({ label: "Fuera de Prosecnur (SPSS)", tone: "neutral" });
     expect(view.logic.detail).toContain("la base limpia se carga en Procesamiento");
     expect(view.primaryAction).toBe("publish");
   });

@@ -63,3 +63,29 @@
   )
   .monitoreo_google_apply_timeouts(handle)
 }
+
+# Error de la Sheets API que conserva su status HTTP. `.monitoreo_google_api`
+# lo levanta en vez de un `stop(msg)` plano para que el ensayo de publicación
+# distinga 429, 401 y 403 sin interpretar el texto de Google. Hereda de `error`:
+# quien hace `conditionMessage(e)` ve el mismo mensaje de siempre.
+.monitoreo_google_http_error <- function(message, status_code) {
+  structure(
+    class = c("monitoreo_google_http_error", "error", "condition"),
+    list(message = as.character(message)[1], call = NULL,
+         status_code = suppressWarnings(as.integer(status_code)[1]))
+  )
+}
+
+# Tipo de fallo de una llamada a Google: "timeout", "rate_limit",
+# "credencial" (401/403) u "otro".
+.monitoreo_google_error_tipo <- function(e) {
+  if (inherits(e, "curl_error_operation_timedout") ||
+      grepl("Timeout was reached|timed out", conditionMessage(e), ignore.case = TRUE)) {
+    return("timeout")
+  }
+  status <- suppressWarnings(as.integer(e$status_code %||% NA_integer_)[1])
+  if (is.na(status)) return("otro")
+  if (status == 429L) return("rate_limit")
+  if (status %in% c(401L, 403L)) return("credencial")
+  "otro"
+}

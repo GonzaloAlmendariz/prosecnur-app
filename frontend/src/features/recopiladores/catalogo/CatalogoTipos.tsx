@@ -19,6 +19,7 @@ import {
 import { TarjetaDeTipo } from "./TarjetaDeTipo";
 import { useCatalogoDeMateriales } from "./useCatalogoDeMateriales";
 import "./catalogoTipos.css";
+import { LoadingBlock } from "../../../components/States";
 
 export const DIRECCION_DEL_EDITOR = "/material-campo?modo=aulas&seccion=catalogo&pestana=editor";
 
@@ -100,7 +101,7 @@ export function CatalogoTipos({ payload, onStateRefresh, onCargando, onIr }: Pro
     );
   }
 
-  if (!catalogo) return <div className="rec-loading" data-qa-geometry-capacity="owned">Leyendo el catálogo…</div>;
+  if (!catalogo) return <LoadingBlock label="Leyendo el catálogo…" />;
 
   if (!presets.length) {
     return (
@@ -174,7 +175,7 @@ export function CatalogoTipos({ payload, onStateRefresh, onCargando, onIr }: Pro
           />
         ) : (
           <PanelCard className="rec-cat-inspector" fill title="Tipo">
-            <div className="rec-contained-empty" data-qa-geometry-capacity="owned">Elige un tipo de la galería.</div>
+            <EstadoVacio icono={<LayoutGrid size={16} aria-hidden />} titulo="Elige un tipo de la galería" />
           </PanelCard>
         )}
       </div>

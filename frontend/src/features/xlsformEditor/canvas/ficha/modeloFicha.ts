@@ -4,7 +4,7 @@
 // Las lecturas de reglas NO viven aquí: salen siempre del motor (reglas/leerRegla.ts).
 
 import type { EditorFormulariosPestanaId } from "../../shell/pestanaEditor";
-import { SURVEY_COLUMNS_WITH_VAR_REFS, findVarReferences } from "../../parsing/sheetUtils";
+import { SURVEY_COLUMNS_WITH_VAR_REFS, findVarReferences, rowToRecord } from "../../parsing/sheetUtils";
 import type { BuilderNode, BuilderStructure, XlsformEditorSheet } from "../../types";
 
 export const esSeleccion = (base: string) => base === "select_one" || base === "select_multiple";
@@ -206,4 +206,17 @@ export const plural = (n: number, uno: string, varios: string) => `${n} ${n === 
  * Respuesta con sus acciones: repetirlos en rojo encima es ruido (E11b). */
 export function avisosDeFicha<T extends { id: string }>(avisos: readonly T[], base: string): readonly T[] {
   return esSeleccion(base) ? avisos.filter((a) => !/^catalog-(empty|missing)-/.test(a.id)) : avisos;
+}
+
+/**
+ * La etiqueta tal como está escrita en la fila (vacía si no tiene). `BuilderNode.label` cae al código cuando la etiqueta
+ * está vacía, y un campo editable que mostrara ese respaldo haría creer que la fila tiene etiqueta (y al tocarlo la
+ * escribiría). Columna `label`, o el primer `label::idioma` si no hay `label`.
+ */
+export function etiquetaEscrita(survey: XlsformEditorSheet | null | undefined, node: { rowIndex: number; label: string }): string {
+  if (!survey) return node.label;
+  const r = rowToRecord(survey, node.rowIndex);
+  if ("label" in r) return r.label ?? "";
+  const otra = Object.keys(r).find((k) => k.toLowerCase().startsWith("label::"));
+  return otra ? r[otra] ?? "" : "";
 }

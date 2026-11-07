@@ -150,7 +150,7 @@ describe("CriteriosRadiografiaConsola", () => {
     expect(html).toContain("Media");
     expect(html).toContain("P10");
     expect(html).toContain("P25");
-    expect(html).toContain("P50 · mediana");
+    expect(html).toContain("P50, mediana");
     expect(html).toContain("P75");
     expect(html).toContain("P90");
     // La ausencia se sigue declarando —no se fabrica un cero—, pero en la
@@ -308,7 +308,7 @@ describe("CriteriosRadiografiaConsola", () => {
     };
 
     const html = renderToStaticMarkup(<CriteriosRadiografiaCardDetalle card={card} radiografia={radiografia} />);
-    expect(html).toContain("segmentos solapados · no aditivos");
+    expect(html).toContain("segmentos solapados, no aditivos");
   });
 
   it("falla cerrado por tarjeta cuando un gate de composición es inválido", () => {

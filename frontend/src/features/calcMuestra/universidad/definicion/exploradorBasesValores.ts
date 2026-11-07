@@ -1,3 +1,5 @@
+import { enumerar } from "../../../../lib/enumerar";
+
 /**
  * Cómo se leen los VALORES de las columnas que calcula el marco.
  *
@@ -53,10 +55,10 @@ const POR_COLUMNA: Record<string, Record<string, string>> = {
     modal: "Nivel más frecuente del aula",
   },
   size_group: {
-    g1: "Tramo 1 · los más pequeños",
+    g1: "Tramo 1, los más pequeños",
     g2: "Tramo 2",
     g3: "Tramo 3",
-    g4: "Tramo 4 · los más grandes",
+    g4: "Tramo 4, los más grandes",
   },
   sex_top_1: { f: "Femenino", m: "Masculino" },
   sex_top_2: { f: "Femenino", m: "Masculino" },
@@ -88,7 +90,7 @@ export function etiquetaDeValor(columna: string, valor: string): string | null {
     const traducidas = piezas.map((pieza) => MOTIVOS[pieza] ?? humanizarClave(pieza) ?? pieza);
     // Con varios motivos el separador es un punto medio: el `|` del motor se
     // lee como parte del código, no como «y además».
-    return traducidas.join(" · ");
+    return enumerar(traducidas);
   }
 
   const tabla = POR_COLUMNA[columna];

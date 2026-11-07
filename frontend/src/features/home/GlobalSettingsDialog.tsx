@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { PulsoSwitch } from "../../components/PulsoSwitch";
+import { useFocoDeVuelta } from "../../components/useFocoDeVuelta";
+import type { SettingsTab } from "./seccionesConfiguracion";
 import { createPortal } from "react-dom";
 import { GlidingTabList } from "../../components/GlidingTabList";
+import { Panel } from "../../components/Panel";
+import { EstadoChip } from "../../components/EstadoChip";
+import "./GlobalSettingsDialog.css";
 import {
   AlertTriangle,
   Check,
@@ -17,7 +23,6 @@ import {
   ScrollText,
   ServerCog,
   Settings2,
-  ShieldCheck,
   Trash2,
   X,
   type LucideIcon,
@@ -50,13 +55,15 @@ import {
 import type { HfSavedDestination, HfSavedToken } from "../project/types";
 import type { ReleaseNote } from "./releaseNotes";
 
-type SettingsTab = "appearance" | "connections" | "notes" | "credits";
+
 
 type GlobalSettingsDialogProps = {
   open: boolean;
   notes: ReleaseNote[];
   pulsoName: string;
   onClose: () => void;
+  /** Sección con la que abre; sin ella, Conexiones. */
+  seccionInicial?: SettingsTab | null;
 };
 
 type ProviderMeta = {
@@ -337,7 +344,7 @@ function activeConnectionDetail(meta: ProviderMeta, state: ConnectionTokenState,
   }
   if (meta.provider === "google_sheets") parts.push("Autorización local guardada");
   if (state.ephemeral) parts.push("No se guardó para el próximo inicio");
-  return parts.join(" · ");
+  return parts.join(", ");
 }
 
 function profileDetail(profile: ConnectionProfileState, isKobo: boolean): string {
@@ -345,10 +352,10 @@ function profileDetail(profile: ConnectionProfileState, isKobo: boolean): string
   if (isKobo && profile.server_label) parts.push(profile.server_label);
   if (isKobo && profile.base_url && !profile.server_label) parts.push(profile.base_url);
   if (profile.masked_token) parts.push(`Referencia ${profile.masked_token}`);
-  return parts.join(" · ");
+  return parts.join(", ");
 }
 
-export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: GlobalSettingsDialogProps) {
+export function GlobalSettingsDialog({ open, notes, pulsoName, onClose, seccionInicial }: GlobalSettingsDialogProps) {
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const [activeTab, setActiveTab] = useState<SettingsTab>("connections");
   const [connections, setConnections] = useState<Record<ConnectionProvider, ConnectionTokenState>>(EMPTY_CONNECTIONS);
@@ -379,6 +386,9 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
     () => Object.values(connections).filter((item) => item.has_token).length + (hfSettings.token_configured ? 1 : 0),
     [connections, hfSettings.token_configured],
   );
+
+  // Abierta por dirección desde otro módulo (L7), devuelve el foco a quien la abrió.
+  useFocoDeVuelta(open);
 
   useEffect(() => {
     if (!open) return;
@@ -438,6 +448,11 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
       window.removeEventListener("keydown", handler);
     };
   }, [open, onClose]);
+
+  // Después del efecto de apertura, que vuelve a Conexiones: así gana la sección del enlace.
+  useEffect(() => {
+    if (open && seccionInicial) setActiveTab(seccionInicial);
+  }, [open, seccionInicial]);
 
   if (!open) return null;
 
@@ -679,7 +694,7 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
         hf_token: hfToken.trim() || undefined,
       });
       if (result.ok) {
-        const orgs = result.org_count ? ` · ${result.org_count} organizaciones visibles` : "";
+        const orgs = result.org_count ? `, ${result.org_count} organizaciones visibles` : "";
         if (result.name) setHfUsername((current) => current || result.name);
         setHfMessage({ kind: "ok", text: `Hugging Face responde${result.name ? ` como ${result.name}` : ""}${orgs}.` });
       } else {
@@ -867,8 +882,13 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
           aria-labelledby={`home-settings-tab-${activeTab}`}
         >
           {activeTab === "appearance" && (
-            <div className="home-settings-panel">
-              <div className="home-layout-preset-list" role="radiogroup" aria-label="Disposición de pantalla">
+            <Panel
+              className="home-settings-grupo"
+              aria-labelledby="home-settings-disposicion"
+              title={<span id="home-settings-disposicion">Disposición de pantalla</span>}
+              actions={<EstadoChip label={`Activo: ${layoutMeta.label}, ${layoutMeta.size}`} tone="info" />}
+            >
+              <div className="home-layout-preset-list" role="radiogroup" aria-labelledby="home-settings-disposicion">
                 {LAYOUT_PRESET_OPTIONS.map((option) => (
                   <button
                     key={option.value}
@@ -889,11 +909,7 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
                   </button>
                 ))}
               </div>
-              <div className="home-layout-preset-current">
-                <span>Activo</span>
-                <strong>{layoutMeta.label} · {layoutMeta.size}</strong>
-              </div>
-            </div>
+            </Panel>
           )}
 
           {activeTab === "connections" && (
@@ -904,6 +920,12 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
                   <span>{loadError}</span>
                 </div>
               )}
+              <Panel
+                className="home-settings-grupo"
+                aria-labelledby="home-settings-fuentes"
+                title={<span id="home-settings-fuentes">Fuentes de datos</span>}
+                hint="De dónde se importan formularios y respuestas."
+              >
               <div className="home-connection-list" aria-busy={loadingConnections}>
                 {PROVIDERS.map((meta) => (
                   <ConnectionCard
@@ -930,6 +952,15 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
                     onOpenAuth={() => authUrls[meta.provider] && window.open(authUrls[meta.provider], "_blank", "noopener,noreferrer")}
                   />
                 ))}
+              </div>
+              </Panel>
+              <Panel
+                className="home-settings-grupo"
+                aria-labelledby="home-settings-publicacion"
+                title={<span id="home-settings-publicacion">Publicación</span>}
+                hint="Dónde se publican los dashboards para verlos en la web."
+              >
+              <div className="home-connection-list">
                 <HuggingFaceConnectionCard
                   settings={hfSettings}
                   username={hfUsername}
@@ -952,6 +983,7 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
                   onDeleteDestination={(id) => void deleteHfDestination(id)}
                 />
               </div>
+              </Panel>
             </div>
           )}
 
@@ -979,30 +1011,27 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
 
           {activeTab === "credits" && (
             <div className="home-settings-panel home-credits-body">
-              <section className="home-credit-section">
-                <span className="home-credit-label">Para quién fue hecho</span>
+              <Panel className="home-credit-section" aria-labelledby="home-credito-para-quien" title={<span id="home-credito-para-quien">Para quién fue hecho</span>}>
                 <p>
                   Prosecnur fue construido para el {pulsoName}, como una herramienta
                   de trabajo para estudios con cuestionarios, bases, validación,
                   codificación, muestreo y reportes.
                 </p>
-              </section>
-              <section className="home-credit-section">
-                <span className="home-credit-label">Cómo nació</span>
+              </Panel>
+              <Panel className="home-credit-section" aria-labelledby="home-credito-como-nacio" title={<span id="home-credito-como-nacio">Cómo nació</span>}>
                 <p>
                   El proyecto empezó como una forma de ordenar tareas repetitivas
                   del flujo de investigación aplicada: revisar instrumentos,
                   normalizar datos, documentar decisiones y convertir análisis en
                   entregables claros.
                 </p>
-              </section>
-              <section className="home-credit-section">
-                <span className="home-credit-label">Construcción</span>
+              </Panel>
+              <Panel className="home-credit-section" aria-labelledby="home-credito-construccion" title={<span id="home-credito-construccion">Construcción</span>}>
                 <p>
                   Gonzalo Almendáriz viene diseñando y desarrollando Prosecnur en
                   diálogo con las necesidades cotidianas del equipo.
                 </p>
-              </section>
+              </Panel>
             </div>
           )}
         </div>
@@ -1080,14 +1109,10 @@ function HuggingFaceConnectionCard({
           <h4>Hugging Face Spaces</h4>
           <p>Publicación web de dashboards derivados.</p>
         </div>
-        <span className={`home-connection-status ${hasTokens ? "is-ready" : ""}`}>
-          {hasTokens ? <ShieldCheck size={13} /> : <AlertTriangle size={13} />}
-          {hasTokens
-            ? "Token guardado en este equipo"
-            : savedTokens.length
-              ? "Reautenticación requerida"
-              : "Sin token HF"}
-        </span>
+        <EstadoChip
+          tone={hasTokens ? "success" : savedTokens.length ? "warn" : "neutral"}
+          label={hasTokens ? "Token guardado en este equipo" : savedTokens.length ? "Reautenticación requerida" : "Sin token HF"}
+        />
       </div>
 
       <div className="home-hf-current-grid">
@@ -1096,8 +1121,8 @@ function HuggingFaceConnectionCard({
             <span>Credencial local</span>
             <strong>{selected.name || selected.hf_username || "Token HF"}</strong>
             <small>
-              {selected.hf_username ? `Cuenta/alias ${selected.hf_username}` : "Cuenta HF no verificada"} · {selected.masked_token || "••••"}
-              {selected.requires_reauth ? " · vuelve a autenticar" : ""}
+              {selected.hf_username ? `Cuenta/alias ${selected.hf_username}` : "Cuenta HF no verificada"}, {selected.masked_token || "••••"}
+              {selected.requires_reauth ? ", vuelve a autenticar" : ""}
             </small>
           </div>
         ) : (
@@ -1123,7 +1148,7 @@ function HuggingFaceConnectionCard({
       <details className="home-connection-details" open={detailsOpen} onToggle={(event) => setDetailsOpen(event.currentTarget.open)}>
         <summary>
           <span>Configurar publicación</span>
-          <small>{hasTokens ? `${savedTokens.length} ${savedTokens.length === 1 ? "token" : "tokens"}` : "Token requerido"} · {effectiveDefaultNamespace || "sin namespace"}</small>
+          <small>{hasTokens ? `${savedTokens.length} ${savedTokens.length === 1 ? "token" : "tokens"}` : "Token requerido"}, {effectiveDefaultNamespace || "sin namespace"}</small>
         </summary>
 
         {savedTokens.length > 0 && (
@@ -1138,8 +1163,8 @@ function HuggingFaceConnectionCard({
                   <div className="home-connection-profile-copy">
                     <strong>{saved.name || "Token HF"}</strong>
                     <small>
-                      {saved.hf_username ? `Cuenta/alias ${saved.hf_username}` : "Cuenta HF no verificada"} · {saved.masked_token || "••••"}
-                      {saved.requires_reauth ? " · almacenamiento anterior no seguro" : ""}
+                      {saved.hf_username ? `Cuenta/alias ${saved.hf_username}` : "Cuenta HF no verificada"}, {saved.masked_token || "••••"}
+                      {saved.requires_reauth ? ", almacenamiento anterior no seguro" : ""}
                     </small>
                   </div>
                   <div className="home-connection-profile-actions">
@@ -1172,7 +1197,7 @@ function HuggingFaceConnectionCard({
                 <div key={destination.id} className={`home-connection-profile ${destination.namespace === effectiveDefaultNamespace ? "is-default" : ""}`}>
                   <div className="home-connection-profile-copy">
                     <strong>{hfDestinationLabel(destination)}</strong>
-                    <small>{destination.private ? "Privado" : "No marcado privado"}{destination.audience ? ` · ${destination.audience}` : ""}</small>
+                    <small>{destination.private ? "Privado" : "No marcado privado"}{destination.audience ? `, ${destination.audience}` : ""}</small>
                   </div>
                   <div className="home-connection-profile-actions">
                     <button type="button" onClick={() => onDefaultNamespaceChange(destination.namespace)} disabled={busy != null || !destination.namespace}>
@@ -1366,11 +1391,10 @@ function ConnectionCard({
           <h4>{meta.title}</h4>
           <p>{meta.subtitle}</p>
         </div>
-        <span className={`home-connection-status ${!state.has_token ? "" : verificacion === "probada" || isOAuth ? "is-ready" : verificacion === "rechazada" ? "is-error" : "is-pending"}`}>
-          {state.has_token && verificacion !== "rechazada" ? <ShieldCheck size={13} /> : <AlertTriangle size={13} />}
-          {connectionStatusLabel(meta, state)}
-          {state.has_token && !isOAuth ? (verificacion === "probada" ? " · verificada" : verificacion === "rechazada" ? " · no responde" : " · sin verificar") : null}
-        </span>
+        <EstadoChip
+          tone={!state.has_token ? "neutral" : verificacion === "probada" || isOAuth ? "success" : verificacion === "rechazada" ? "danger" : "warn"}
+          label={`${connectionStatusLabel(meta, state)}${state.has_token && !isOAuth ? (verificacion === "probada" ? ", verificada" : verificacion === "rechazada" ? ", no responde" : ", sin verificar") : ""}`}
+        />
       </div>
 
       {state.has_token ? (
@@ -1495,15 +1519,13 @@ function ConnectionCard({
             )}
           </label>
           {supportsSession && (
-            <label className="home-connection-check">
-              <input
-                type="checkbox"
-                checked={remember}
-                onChange={(event) => onRememberChange(event.target.checked)}
-                disabled={busy != null}
-              />
-              <span>Recordar en este equipo</span>
-            </label>
+            <PulsoSwitch
+              size="sm"
+              label="Recordar en este equipo"
+              checked={remember}
+              onCheckedChange={onRememberChange}
+              disabled={busy != null}
+            />
           )}
         </div>
 

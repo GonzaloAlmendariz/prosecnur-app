@@ -1,9 +1,9 @@
 // Una regla de la ficha (C15): una fila que se despliega. Activa muestra su lectura del motor; ausente dice qué hace
 // y lleva a su pestaña; «no aplica» queda deshabilitada con el porqué. La obligatoria lleva un interruptor en vez de
-// desplegarse (un botón no puede contener otro).
+// desplegarse (un botón no puede contener otro). Sin triángulo: lo pidió Gonzalo (E20, 2026-11-06); la fila se abre
+// al clicarla y el borde de color la marca abierta.
 
 import { useId, type CSSProperties, type ReactNode } from "react";
-import { ChevronRight } from "../../../../vendor/lucide-react";
 import { GlifoMarca } from "../../kit";
 import type { ClaveMarca } from "../../kit/glifosMarca";
 
@@ -35,12 +35,32 @@ export function FilaRegla({ glifo, tono, nombre, estado, resumen, resumenPlano, 
     </>
   );
   if (control) {
+    // Con interruptor y además detalle (la obligatoria «sólo si…»): el interruptor sigue siendo el atajo y un botón
+    // aparte abre el detalle (E19-1).
     return (
-      <li className={`xfh-regla is-${estado}`} style={estilo} data-qa-geometry-member="">
+      <li className={`xfh-regla is-${estado}${abierta ? " is-abierta" : ""}`} style={estilo} data-qa-geometry-member="">
         <div className="xfh-regla__fila">
           {partes}
-          <span className="xfh-regla__acc">{control}</span>
+          <span className="xfh-regla__acc">
+            {onAlternar ? (
+              <button
+                type="button"
+                className="xfh-regla__mas"
+                aria-expanded={abierta}
+                aria-controls={abierta ? idDetalle : undefined}
+                onClick={onAlternar}
+              >
+                Opciones
+              </button>
+            ) : null}
+            {control}
+          </span>
         </div>
+        {abierta && onAlternar ? (
+          <div className="xfh-regla__det" id={idDetalle}>
+            {children}
+          </div>
+        ) : null}
       </li>
     );
   }
@@ -56,7 +76,6 @@ export function FilaRegla({ glifo, tono, nombre, estado, resumen, resumenPlano, 
       >
         {partes}
         <span className="xfh-regla__acc">
-          {estado === "on" ? <ChevronRight size={14} aria-hidden="true" className="xfh-regla__chev" /> : null}
           {estado === "off" ? <span className="xfh-regla__agregar">Agregar</span> : null}
         </span>
       </button>

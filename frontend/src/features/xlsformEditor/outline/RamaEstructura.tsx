@@ -5,6 +5,8 @@ import { createContext, Fragment, useContext } from "react";
 import type { BuilderStructure } from "../types";
 import type { AbrirInsertar } from "./BotonInsertar";
 import { contarPiezas, type Hueco, type NodoArbol } from "./modeloEstructura";
+import { FilaAgrupada } from "./FilaAgrupada";
+import { formatoConteo } from "../../../lib/formatoNumero";
 import { OutlineRow } from "./OutlineRow";
 import type { AvisoFila } from "./PuntoAviso";
 import { SeccionEstructura, type LimiteSeccion } from "./SeccionEstructura";
@@ -19,14 +21,15 @@ export type ValorEstructura = {
   arrastrable: boolean;
   plegada: (fila: number) => boolean;
   avisos?: ReadonlyMap<number, readonly AvisoFila[]>;
-  canMoveUp: boolean;
-  canMoveDown: boolean;
   limite?: LimiteSeccion;
   onElegir: (fila: number) => void;
   onPlegar: (fila: number) => void;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
   onInsertar?: AbrirInsertar;
+  /** Abre el diseño del experimento; con `fila`, el del experimento de ese sorteo (C5, C10). */
+  onAbrirPares?: (fila?: number) => void;
+  rotuloSorteo?: (fila: number, n: number) => string;
+  /** Nombre de una pieza que arma un experimento (C11): «Tabla del par 3», «Escenario de la viñeta 2». */
+  tituloFijo?: (fila: number) => string | undefined;
 };
 
 export const ContextoEstructura = createContext<ValorEstructura | null>(null);
@@ -69,13 +72,55 @@ export function RamaEstructura({
                 enRecorrido={c.enRecorrido === fila}
                 arrastrable={c.arrastrable}
                 avisos={c.avisos?.get(fila)}
-                canMoveUp={active && c.canMoveUp}
-                canMoveDown={active && c.canMoveDown}
                 onElegir={c.onElegir}
-                onMoveUp={c.onMoveUp}
-                onMoveDown={c.onMoveDown}
                 onInsertar={c.onInsertar}
+                tituloFijo={c.tituloFijo?.(fila)}
               />
+            </Fragment>
+          );
+        }
+        if (h.tipo === "experimento") {
+          const abierto = !c.plegada(h.id);
+          return (
+            <Fragment key={h.id}>
+              {/* Abierta, el hueco de su primera pieza lo pinta la rama de adentro; plegada, va aquí. */}
+              {abierto ? null : huecoEn(fila)}
+              <FilaAgrupada
+                id={h.id}
+                variante="experimento"
+                titulo={h.titulo}
+                conteo={h.resumen}
+                conteoLargo={h.resumen}
+                abierta={abierto}
+                enRecorrido={c.enRecorrido === h.id}
+                onPlegar={c.onPlegar}
+                onAbrirDiseno={c.onAbrirPares ? () => c.onAbrirPares?.(fila) : undefined}
+              >
+                {abierto ? <RamaEstructura hijos={h.hijos} contenedor={contenedor} finSlot={-1} /> : null}
+              </FilaAgrupada>
+            </Fragment>
+          );
+        }
+        if (h.tipo === "sorteo") {
+          const abierto = !c.plegada(h.id);
+          const n = formatoConteo(h.hijos.length);
+          return (
+            <Fragment key={h.id}>
+              {abierto ? null : huecoEn(fila)}
+              <FilaAgrupada
+                id={h.id}
+                variante="sorteo"
+                titulo={c.rotuloSorteo?.(fila, h.tarea) ?? `Sorteo del par ${h.tarea}`}
+                conteo={n}
+                conteoLargo={`${n} cálculos que sortean los dos perfiles`}
+                abierta={abierto}
+                enRecorrido={c.enRecorrido === h.id}
+                onPlegar={c.onPlegar}
+                onAbrirDiseno={c.onAbrirPares ? () => c.onAbrirPares?.(fila) : undefined}
+              >
+                {/* finSlot -1: el hueco de después lo pinta la rama de afuera. */}
+                {abierto ? <RamaEstructura hijos={h.hijos} contenedor={contenedor} finSlot={-1} /> : null}
+              </FilaAgrupada>
             </Fragment>
           );
         }
@@ -93,14 +138,11 @@ export function RamaEstructura({
               arrastrable={c.arrastrable}
               origen={origen}
               avisos={c.avisos?.get(fila)}
-              canMoveUp={active && c.canMoveUp}
-              canMoveDown={active && c.canMoveDown}
               limite={active ? c.limite : undefined}
               onElegir={c.onElegir}
               onPlegar={c.onPlegar}
-              onMoveUp={c.onMoveUp}
-              onMoveDown={c.onMoveDown}
               onInsertar={c.onInsertar}
+              tituloFijo={c.tituloFijo?.(fila)}
             >
               {abierta ? (
                 h.hijos.length || hueco?.contenedor === fila ? (

@@ -1,0 +1,73 @@
+/* Material › Entrega: asignación de encuestadores de la lista de Monitoreo (decisión I3). */
+.rec-asig {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+}
+
+/* Lo que mide con la lista y el Excel: el plan de abajo no salta cuando llega. */
+.rec-asig[aria-busy="true"] { min-height: 90px; }
+
+.rec-asig-cab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+}
+
+.rec-asig-cab strong { display: block; font-size: var(--pulso-type-body-size); color: var(--pulso-text); }
+.rec-asig-cab small { display: block; font-size: var(--pulso-type-caption-size); color: var(--pulso-text-soft); }
+
+.rec-asig-aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: var(--pulso-space-2);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: 8px;
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: 600;
+}
+
+/* El selector vive en la cabecera de la columna del calendario (planCampo.css la pinta en fila). */
+.hr-plan-cabeza span:has(> .rec-asig-selector) { flex-wrap: wrap; }
+.rec-asig-selector { flex: 1 1 100%; min-width: 0; }
+
+/* El Excel de campo (C1/C3): descargar, subir y lo que se leyó antes de aplicar. */
+.rec-asig-excel { display: flex; flex-direction: column; gap: var(--pulso-space-2); }
+.rec-asig-excel-acciones { display: flex; flex-wrap: wrap; gap: var(--pulso-space-2); }
+.rec-asig-lectura {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface-2);
+}
+.rec-asig-lectura p { margin: 0; font-size: var(--pulso-type-body-size); color: var(--pulso-text); }
+.rec-asig-lectura-equipo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rec-asig-lectura-equipo li {
+  padding: 2px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-soft);
+}
+.rec-asig-lectura-equipo b { color: var(--pulso-text); font-variant-numeric: tabular-nums; }
+.rec-asig-aviso ul { margin: 2px 0 0; padding-left: 16px; font-weight: 400; }
+.rec-asig-aviso p { margin: 0; }

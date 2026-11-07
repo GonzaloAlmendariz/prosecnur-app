@@ -17,6 +17,7 @@
 #' ¿La lámina se compone con piezas nativas? Las citas, siempre (salvo `meta$motor_nativo = FALSE`); lo demás, el compositor
 #' @keywords internal
 .lam_citas_aplica <- function(p, slide = NULL) {
+  if (.lam_tarjetas_aplica(p, slide)) return(TRUE)   # tarjetas de diferencias (lamina_tarjetas_diferencias.R)
   espec <- if (inherits(p, "ggplot")) attr(p, "pulso_espec") else NULL
   if (identical(espec$tipo, "citas")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE))
   .lam_compositor_aplica(p, slide)
@@ -27,10 +28,17 @@
 .lam_citas_slide_1_nativa <- function(doc, p, slide, titulo, subtitulo, el_plot, presets, layout, master, antetitulo,
                                       base_auto, nota_de, sin_base = FALSE, sin_pie = FALSE, por_lamina = function(doc) doc,
                                       titulo_de_var = NULL) {
+  if (.lam_tarjetas_aplica(p, slide)) {
+    return(.lam_tarjetas_slide_1(doc, p, slide, titulo, el_plot, presets, layout, master, antetitulo, base_auto, nota_de,
+                                 sin_base, sin_pie, por_lamina, motor = parent.frame()))
+  }
   espec <- if (inherits(p, "ggplot")) attr(p, "pulso_espec") else NULL
   if (!identical(espec$tipo, "citas")) {
-    return(.lam_slide_1_nativa(doc, p, slide, titulo, subtitulo, el_plot, presets, layout, master, antetitulo, base_auto,
-                               nota_de, sin_base, sin_pie, por_lamina, titulo_de_var))
+    # Tarjetas activas sin ninguna diferencia: la lámina lo dice sobre «Base:» (v7.25, ítem 5; graficos_tarjetas_sin_diferencias.R).
+    sin_dif <- if (is.null(.lam_nota_sig_de(p))) .tarjetas_sin_diferencias_de(p) else NULL
+    return(.lam_con_nota_sig(sin_dif, por_lamina, function(por_lamina)
+      .lam_slide_1_nativa(doc, p, slide, titulo, subtitulo, el_plot, presets, layout, master, antetitulo, base_auto,
+                          nota_de, sin_base, sin_pie, por_lamina, titulo_de_var)))
   }
   slots <- slide$slots %||% list()
   como_texto <- function(x) {
@@ -108,7 +116,7 @@
   if (borrador) {
     wb <- 2.9; xb <- W - mr - wb
     .lam_caja(lz, xb, yt - 0.36, wb, 0.3, .std_color("fondo_destacado"), nombre = "citas:borrador:fondo")
-    .lam_txt(lz, "Citas sin aprobar · borrador", xb, yt - 0.36, wb, 0.3, 10, coral, bold = TRUE, align = "center",
+    .lam_txt(lz, "Citas sin aprobar (borrador)", xb, yt - 0.36, wb, 0.3, 10, coral, bold = TRUE, align = "center",
              nombre = "citas:borrador")
   }
   if (!k) {

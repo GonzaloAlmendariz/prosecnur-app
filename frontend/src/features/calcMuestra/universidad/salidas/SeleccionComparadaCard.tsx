@@ -95,7 +95,7 @@ export function SeleccionComparadaCard({
                         { label: `Logradas ${periodo || "antes"}`, valor: f.efectivasRef != null ? fmtInt(Math.round(f.efectivasRef)) : "sin referencia" },
                         ...(delta != null ? [{ label: "Diferencia", valor: `${delta > 0 ? "+" : ""}${fmtInt(delta)}` }] : []),
                       ],
-                      nota: `${fmtInt(f.aulasNuevas)} titulares hoy · ${f.aulasAplicadasRef != null ? fmtInt(f.aulasAplicadasRef) : "—"} aplicadas antes`,
+                      nota: `${fmtInt(f.aulasNuevas)} titulares hoy, ${f.aulasAplicadasRef != null ? fmtInt(f.aulasAplicadasRef) : "—"} aplicadas antes`,
                       tono: "efectiva",
                     };
                     return (

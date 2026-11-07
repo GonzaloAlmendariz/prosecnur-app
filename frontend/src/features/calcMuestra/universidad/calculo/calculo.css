@@ -44,17 +44,17 @@
 }
 
 .cmv2-calc-escenario .cmv2-uni-flujo-label {
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   letter-spacing: 0.06em;
 }
 
 .cmv2-calc-escenario .cmv2-uni-flujo-valor {
-  font-size: 19px;
+  font-size: var(--pulso-type-kpi-size);
   letter-spacing: -0.01em;
 }
 
 .cmv2-calc-escenario .cmv2-uni-flujo-detalle {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 /* Conectores más finos entre etapas: hairline suave, no barra. */
@@ -76,7 +76,7 @@
   border-left: 3px solid var(--pulso-danger-fg);
   border-radius: 10px;
   background: color-mix(in srgb, var(--pulso-danger-bg) 65%, transparent);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.45;
 }
 
@@ -113,7 +113,7 @@
   border-left: 3px solid var(--pulso-warn-fg);
   border-radius: 10px;
   background: color-mix(in srgb, var(--pulso-warn-bg) 65%, transparent);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.45;
 }
 
@@ -153,7 +153,7 @@
 
 .cmv2-calc-escenario-head h3 {
   margin: 2px 0 0;
-  font-size: 13.5px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.35;
 }
 
@@ -197,7 +197,7 @@
   background: var(--cmv2-surface-tint);
   padding: 4px 10px;
   min-height: 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text-muted);
@@ -227,18 +227,18 @@
 }
 
 .cmv2-calc-piso-pop strong {
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--cmv2-accent);
 }
 
 .cmv2-calc-piso-pop p {
   margin: 0;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.5;
 }
 
 .cmv2-calc-escenario-foot {
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.5;
   color: var(--pulso-text-muted);
   border-top: 1px solid color-mix(in srgb, var(--cmv2-border) 60%, transparent);
@@ -254,9 +254,12 @@
   gap: 12px;
 }
 
+/* La tabla de cuotas mide sus filas (una por facultad) y desplaza la página, no
+ * su marco: con 320 px de tope desplazaba por dentro y su cabecera fija tapaba
+ * 17 px de la fila que asomaba (detector, 1440 y 1024). */
 .cmv2-calc-cuotas-tabla {
-  max-height: 320px;
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: visible;
 }
 
 /* Columnas numéricas de las cuotas: alineadas a la derecha y tabulares
@@ -326,7 +329,7 @@
 }
 
 .cmv2-calc-supuesto-titulo strong {
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text);
 }
 
@@ -350,7 +353,7 @@
 }
 
 .cmv2-calc-porque:active {
-  transform: scale(0.96);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -367,19 +370,19 @@
 }
 
 .cmv2-calc-porque-pop strong {
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--cmv2-accent);
 }
 
 .cmv2-calc-porque-pop p {
   margin: 0;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.5;
 }
 
 .cmv2-calc-supuesto-resumen {
   margin: 0;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.5;
   color: var(--pulso-text-muted);
 }
@@ -439,7 +442,7 @@
   padding-bottom: 7px;
   border-bottom: 1px solid var(--cmv2-border);
   color: var(--pulso-text-muted);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
 }
 
 .cmv2-calc-ambitos span {
@@ -513,7 +516,7 @@
   width: min(100%, 760px);
   justify-self: center;
   margin: 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.5;
   color: var(--pulso-text-muted);
 }
@@ -529,7 +532,7 @@
   color: var(--pulso-warn-fg);
   border-radius: 10px;
   padding: 9px 12px;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.5;
 }
 
@@ -549,7 +552,7 @@
   /* Propuestas · cascada de etapas del flujo n fórmula → aulas. Las etapas son
      los hijos impares del flujo (los pares son aristas, que solo funden). */
   .cmv2-calc-stagger .cmv2-uni-flujo > .cmv2-uni-flujo-etapa {
-    animation: cmv2-calc-enter 220ms var(--cmv2-ease-out, cubic-bezier(0.23, 1, 0.32, 1)) both;
+    animation: pulso-mov-aparece 220ms var(--cmv2-ease-out, cubic-bezier(0.23, 1, 0.32, 1)) both;
   }
 
   .cmv2-calc-stagger .cmv2-uni-flujo > .cmv2-uni-flujo-etapa:nth-child(3) {
@@ -565,7 +568,7 @@
   }
 
   .cmv2-calc-stagger .cmv2-uni-flujo > .cmv2-uni-flujo-arista {
-    animation: cmv2-calc-fade 200ms ease-out both;
+    animation: pulso-mov-aparece 200ms ease-out both;
   }
 
   .cmv2-calc-stagger .cmv2-uni-flujo > .cmv2-uni-flujo-arista:nth-child(2) {
@@ -594,11 +597,11 @@
 
   /* Área ±z, marcas y puntos aparecen cuando la curva ya está trazada. */
   .cmv2-calc-svg-revela {
-    animation: cmv2-calc-fade 260ms ease-out 240ms both;
+    animation: pulso-mov-aparece 260ms ease-out 240ms both;
   }
 
   .cmv2-calc-svg-punto-movil {
-    animation: cmv2-calc-fade 200ms ease-out 360ms both;
+    animation: pulso-mov-aparece 200ms ease-out 360ms both;
     transition: transform 200ms var(--cmv2-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
   }
 
@@ -658,7 +661,7 @@
 }
 
 .cmv2-university-desk .rec-formula .cmv2-uni-formula-body .pulso-math {
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .cmv2-university-desk .rec-formula .cmv2-uni-formula-term {
@@ -675,7 +678,7 @@
 }
 
 .cmv2-university-desk .rec-formula-control-hint {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
 }
 
 .cmv2-university-desk .rec-formula > .cmv2-uni-cifra-fila {
@@ -740,28 +743,18 @@
   }
 }
 
-/* El vacío es un preflight compacto, no un lienzo de resultados ficticio. */
-.cmv2-calc-escenarios-panel > .pulso-empty-state--panel {
+/* Antes del cálculo: el vacío del kit y las propuestas en esqueleto, con su
+   camino de etapas sin cifras. Atenuadas para que no se lean como resultado. */
+.cmv2-calc-preflight {
   display: grid;
-  grid-template-columns: 36px minmax(180px, auto) minmax(280px, 1fr);
-  justify-content: start;
-  min-height: 0;
-  padding: 20px 16px;
-  gap: 4px 12px;
-  text-align: left;
+  gap: var(--pulso-space-3);
 }
 
-.cmv2-calc-escenarios-panel > .pulso-empty-state--panel .pulso-empty-state-icon {
-  grid-row: 1 / span 2;
-  width: 34px;
-  height: 34px;
-  align-self: center;
-}
-
-.cmv2-calc-escenarios-panel > .pulso-empty-state--panel .pulso-empty-state-title,
-.cmv2-calc-escenarios-panel > .pulso-empty-state--panel .pulso-empty-state-hint {
-  max-width: none;
-  align-self: center;
+.cmv2-calc-escenario.is-esqueleto {
+  border-style: dashed;
+  background: transparent;
+  box-shadow: none;
+  opacity: 0.86;
 }
 
 /* Ayuda contextual anclada al concepto que explica. */
@@ -804,18 +797,6 @@
 }
 
 /* Fade-only: el wrapper del tab ya desliza (motion en capas, ui/ui.css). */
-@keyframes cmv2-calc-enter {
-  from {
-    opacity: 0;
-  }
-}
-
-@keyframes cmv2-calc-fade {
-  from {
-    opacity: 0;
-  }
-}
-
 @keyframes cmv2-calc-trazo {
   to {
     stroke-dashoffset: 0;
@@ -864,7 +845,7 @@
   border-radius: var(--pulso-radius-md, 8px);
   background: var(--pulso-surface-muted, var(--pulso-surface-2));
   border: 1px solid var(--pulso-border);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.5;
   color: var(--pulso-text-muted);
 }
@@ -892,7 +873,7 @@
   border-radius: var(--pulso-radius-md, 8px);
   background: var(--cmv2-surface-tint, var(--pulso-surface-2));
   border: 1px solid var(--cmv2-border, var(--pulso-border));
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.5;
   color: var(--pulso-text-muted);
 }
@@ -941,12 +922,12 @@
 }
 
 .cmv2-calc-confirm-copy strong {
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text);
 }
 
 .cmv2-calc-confirm-copy span {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-muted);
 }
 
@@ -964,7 +945,7 @@
 }
 
 .cmv2-calc-params-eyebrow {
-  font-size: 11px;
+  font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.03em;
   text-transform: uppercase;
@@ -979,7 +960,7 @@
   border-radius: 999px;
   background: var(--cmv2-surface-raised, var(--pulso-surface));
   border: 1px solid var(--cmv2-border, var(--pulso-border));
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .cmv2-calc-param-chip code {
@@ -993,62 +974,14 @@
 
 .cmv2-calc-param-nota {
   flex: 1 1 220px;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 
 .cmv2-calc-cuotas-nota {
   margin: 4px 0 10px;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-muted);
-}
-
-/* --- Stepper de cantidad (Anexo A.3) ---------------------------------------- */
-.cmv2-stepper {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.cmv2-stepper-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 7px;
-  border: 1px solid var(--cmv2-border, var(--pulso-border));
-  background: var(--cmv2-control-bg, var(--pulso-surface));
-  color: var(--pulso-text);
-  cursor: pointer;
-  transition: transform var(--motion-dur-press, 120ms) var(--cmv2-ease-out, ease-out),
-    background-color 140ms ease, border-color 140ms ease;
-}
-
-.cmv2-stepper-btn:hover:not(:disabled) {
-  border-color: var(--cmv2-accent-border, var(--cmv2-accent));
-}
-
-.cmv2-stepper-btn:active:not(:disabled) {
-  transform: scale(0.9);
-}
-
-.cmv2-stepper-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.cmv2-stepper-valor {
-  min-width: 26px;
-  text-align: center;
-  font-size: 13px;
-  font-weight: var(--pulso-weight-semibold);
-  font-variant-numeric: tabular-nums;
-  color: var(--pulso-text);
-}
-
-.cmv2-stepper-valor[data-pop] {
-  animation: cmv2-stepper-pop 320ms var(--motion-ease-productive);
 }
 
 @keyframes cmv2-stepper-pop {
@@ -1071,7 +1004,7 @@
   border: 0;
   border-radius: 7px;
   background: transparent;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-weight: var(--pulso-weight-medium);
   color: var(--pulso-text-muted);
   cursor: pointer;
@@ -1106,14 +1039,14 @@
 }
 
 .cmv2-ch-kpi span {
-  font-size: 20px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text);
 }
 
 .cmv2-ch-kpi small {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 
@@ -1128,97 +1061,14 @@
 
 .cmv2-ch-tabla-final {
   font-variant-numeric: tabular-nums;
+  /* El total de cursos-horario es la cifra de la fila: a 1024 la columna se
+   * achicaba a 9 px y «20» salía «2 | 0». Mide su cifra; si la tabla no cabe,
+   * desplaza en horizontal dentro de su marco. */
+  white-space: nowrap;
 }
 
 .cmv2-ch-tabla tr[data-incompleta] {
   color: var(--pulso-text-muted);
-}
-
-/* Gráfico de barras segmentadas (necesarios + extra) */
-.cmv2-ch-chart {
-  display: grid;
-  gap: 6px;
-  margin-top: 6px;
-}
-
-.cmv2-ch-chart-fila {
-  display: grid;
-  grid-template-columns: minmax(120px, 200px) 1fr auto;
-  align-items: center;
-  gap: 10px;
-}
-
-.cmv2-ch-chart-nombre {
-  font-size: 12px;
-  color: var(--pulso-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.cmv2-ch-chart-pista {
-  display: flex;
-  height: 14px;
-  border-radius: 7px;
-  overflow: hidden;
-  background: var(--cmv2-surface-tint, var(--pulso-surface-2));
-}
-
-.cmv2-ch-chart-barra {
-  height: 100%;
-  transition: width 260ms var(--cmv2-ease-out, ease-out);
-}
-
-.cmv2-ch-chart-barra--nec {
-  background: var(--cmv2-accent);
-}
-
-.cmv2-ch-chart-barra--extra {
-  background: color-mix(in srgb, var(--cmv2-accent) 42%, transparent);
-}
-
-.cmv2-ch-chart-valor {
-  font-size: 12px;
-  font-weight: var(--pulso-weight-semibold);
-  font-variant-numeric: tabular-nums;
-  color: var(--pulso-text);
-}
-
-.cmv2-ch-leyenda {
-  display: flex;
-  gap: 16px;
-  margin-top: 8px;
-  font-size: 11.5px;
-  color: var(--pulso-text-muted);
-}
-
-.cmv2-ch-leyenda span {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.cmv2-ch-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
-}
-
-.cmv2-ch-dot--nec {
-  background: var(--cmv2-accent);
-}
-
-.cmv2-ch-dot--extra {
-  background: color-mix(in srgb, var(--cmv2-accent) 42%, transparent);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .cmv2-stepper-valor[data-pop] {
-    animation: none;
-  }
-  .cmv2-ch-chart-barra {
-    transition: none;
-  }
 }
 
 /* La pestaña conserva un solo dueño vertical (el panel activo). La envolvente
@@ -1258,132 +1108,6 @@
   font-weight: var(--pulso-weight-semibold);
 }
 
-/* Columna Extra: stepper por fila + control bulk en la cabecera, centrados. */
-.cmv2-ch-tabla th.cmv2-ch-th-extra-cell,
-.cmv2-ch-tabla td.cmv2-ch-td-extra {
-  text-align: center;
-}
-
-.cmv2-ch-tabla td.cmv2-ch-td-extra .cmv2-stepper {
-  justify-content: center;
-}
-
-.cmv2-ch-th-extra {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
-/* El bulk reusa los botones del Stepper (Anexo A.3) en formato compacto. */
-.cmv2-ch-th-bulk {
-  gap: 3px;
-}
-
-.cmv2-ch-th-bulk .cmv2-stepper-btn {
-  width: 22px;
-  height: 20px;
-}
-
-/* --- Selector global de método de estudiantes-por-aula ---------------------- */
-.cmv2-ch-metodo {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 10px;
-}
-
-.cmv2-ch-metodo-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.cmv2-ch-metodo-label {
-  font-size: 12px;
-  font-weight: var(--pulso-weight-medium);
-  color: var(--pulso-text);
-}
-
-.cmv2-ch-metodo-ayuda {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.4;
-  color: var(--pulso-text-muted);
-}
-
-.cmv2-ch-metodo-ayuda svg {
-  flex: 0 0 auto;
-  margin-top: 1px;
-  color: var(--cmv2-accent, var(--pulso-accent));
-}
-
-.cmv2-ch-metodo-ayuda strong {
-  color: var(--pulso-text);
-  font-weight: var(--pulso-weight-semibold);
-}
-
-/* --- Columnas de referencia y «En uso» de la tabla por facultad ------------- */
-/* Encabezado/celda de la columna cuyo método está activo: se resalta con un
-   tinte suave del acento para leer al instante qué divisor gobierna. */
-.cmv2-ch-tabla th.cmv2-ch-th-ref[data-enuso],
-.cmv2-ch-tabla td.cmv2-ch-td-ref[data-enuso],
-.cmv2-ch-tabla th.cmv2-ch-th-enuso,
-.cmv2-ch-tabla td.cmv2-ch-td-enuso {
-  background: color-mix(in srgb, var(--cmv2-accent, var(--pulso-accent)) 9%, transparent);
-}
-
-.cmv2-ch-tabla td.cmv2-ch-td-enuso strong,
-.cmv2-ch-tabla td.cmv2-ch-td-ref[data-enuso] {
-  color: var(--cmv2-accent, var(--pulso-accent));
-  font-weight: var(--pulso-weight-semibold);
-}
-
-.cmv2-ch-tabla th.cmv2-ch-th-ref {
-  font-weight: var(--pulso-weight-medium);
-}
-
-/* Badge de facultad chica en la columna LI 95%: el bootstrap no es fiable. */
-.cmv2-ch-li-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 1px 6px;
-  border-radius: 999px;
-  border: 1px solid var(--pulso-warn-border);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
-  font-size: 11px;
-  font-weight: var(--pulso-weight-medium);
-  white-space: nowrap;
-  cursor: help;
-}
-
-.cmv2-ch-li-badge svg {
-  flex: 0 0 auto;
-}
-
-/* Banner de marco desactualizado en Cálculo → Cursos-horario por facultad:
-   los criterios cambiaron desde el build, así que el # de CH/aulas puede estar
-   stale. Misma semántica que el aviso de la tab de Marco. Tokens --pulso-warn-*. */
-.cmv2-ch-stale-banner {
-  margin: 0 0 12px;
-  padding: 10px 14px;
-  border-radius: 10px;
-  border: 1px solid var(--pulso-warn-border);
-  background: color-mix(in srgb, var(--pulso-warn-fg) 9%, transparent);
-  color: var(--pulso-warn-fg);
-  font-size: 12px;
-  line-height: 1.55;
-}
-.cmv2-ch-stale-banner strong {
-  font-weight: var(--pulso-weight-semibold);
-}
-
 /* S7-bis · Las tres lecturas de la distribución se recorren, no se apilan:
    apiladas sumaban 2.253 px sobre 645 visibles. Mismo remedio que el riel de
    pasos de Criterios; las tres siguen en el DOM. */
@@ -1408,7 +1132,7 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface);
   color: var(--pulso-text);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   cursor: pointer;
 }
 
@@ -1420,7 +1144,7 @@
   border-radius: 50%;
   background: var(--pulso-surface-2);
   color: var(--pulso-text-muted);
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1454,13 +1178,13 @@
 }
 .cmv2-sindecision-aviso strong {
   display: block;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-warn-fg);
   margin-bottom: 4px;
 }
 .cmv2-sindecision-aviso p {
   margin: 0;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.45;
   color: var(--pulso-text-muted);
 }
@@ -1470,7 +1194,7 @@
 .cmv2-recorrido-paso { display: grid; gap: 6px; }
 .cmv2-recorrido-paso + .cmv2-recorrido-paso { margin-top: 16px; }
 .cmv2-recorrido-kicker {
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold, 600);
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1483,7 +1207,7 @@
 .cmv2-calc-confirm-que-hace {
   display: block;
   margin-top: 3px;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.4;
   color: var(--pulso-text-muted);
 }

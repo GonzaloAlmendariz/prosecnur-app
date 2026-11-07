@@ -27,7 +27,7 @@ const platformView = between(
 const collectorsView = between(
   page,
   "function AcreditacionCollectorsSourceView(",
-  "function AcreditacionActiveSourcesView(",
+  "function AcreditacionConfiguredSourcesList(",
 );
 const encuestasCss = between(
   css,

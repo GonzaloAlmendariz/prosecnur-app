@@ -6,6 +6,7 @@ import { useId, useMemo, useState, type KeyboardEvent } from "react";
 import { Search } from "../../../vendor/lucide-react";
 import { Sello } from "../kit";
 
+import { EstadoChip } from "../../../components/EstadoChip";
 export type PreguntaElegible = { name: string; titulo: string; baseType: string; tieneFiltro?: boolean };
 
 type Props = {
@@ -73,7 +74,7 @@ export function SelectorPreguntaFiltro({ preguntas, elegidas, onElegir, etiqueta
               <Sello baseType={p.baseType} size={16} />
               <code className="xcf-sel__codigo" title={p.name}>{p.name}</code>
               <span className="xcf-sel__titulo" title={p.titulo}>{p.titulo}</span>
-              {marcarConFiltro && p.tieneFiltro ? <span className="xcf-chip is-nunca">ya tiene filtro</span> : null}
+              {marcarConFiltro && p.tieneFiltro ? <EstadoChip label="ya tiene filtro" tone="warn" /> : null}
             </li>
           );
         }) : <li className="xcf-sel__nada" role="presentation">Ninguna pregunta coincide.</li>}

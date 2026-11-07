@@ -49,6 +49,28 @@ describe("Control › Señales", () => {
     expect(modelo.sinDistrito).toBe(1);
   });
 
+  it("todas las señales usan la base del motor: los rechazos y los no válidos quedan fuera", () => {
+    const fila = (extra: Record<string, unknown>) => ({ geo_estado: "geo_ok", distance_m: 10, ...extra });
+    const reports = {
+      response_audit: [
+        fila({ distrito: "", source_effective: false, advance_valid: false, duration_seconds: 60 }), // A: rechazo
+        fila({ distrito: "ATE", advance_valid: false, duration_seconds: 90 }), // B: no válido
+        fila({ distrito: "ATE", advance_valid: true, source_effective: true, duration_seconds: 200 }), // C
+        fila({ distrito: "", advance_valid: true, duration_seconds: 100 }), // D: cuenta, sin distrito
+      ],
+    } as unknown as MonitoreoTerritorialDashboard;
+    const m = construirSenales(reports);
+    expect(m.duracion.base).toBe(2);
+    expect(m.total.casos).toBe(1);
+    expect(m.sinDistrito).toBe(1);
+    expect(m.fuera).toBe(2);
+    expect(m.disponible).toBe(true);
+    const nadie = construirSenales({ response_audit: [fila({ advance_valid: false, duration_seconds: 50 })] } as unknown as MonitoreoTerritorialDashboard);
+    expect(nadie.duracion.base).toBe(0);
+    expect(nadie.duracion.mediana).toBeNull();
+    expect(nadie.disponible).toBe(true);
+  });
+
   it("sin respuestas una a una no hay señales", () => {
     expect(construirSenales({ response_audit: [] } as unknown as MonitoreoTerritorialDashboard).disponible).toBe(false);
   });

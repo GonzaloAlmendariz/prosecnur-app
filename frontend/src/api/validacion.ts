@@ -4,6 +4,14 @@
 
 import type { ExploradorVariablesList, InstrumentoEstado, InstrumentoOperationalConfig, InstrumentoVariablesExcluidas, LimpiezaBeforeAfterPreview, LimpiezaDecision, LimpiezaPromocion, LimpiezaSummary, ReglaCustom, ReglaSemilla, ReglasCustomList, RolesSugerencias, ViewDescriptor } from "../features/validacion/types";
 import { apiFetch, handle, headers } from "./core";
+import {
+  normalizeExploradorCruce,
+  normalizeExploradorDist,
+  normalizeExploradorFicha,
+  type ExploradorCruce,
+  type ExploradorDist,
+  type ExploradorFicha,
+} from "./validacionExplorar";
 
 // =============================================================================
 // Fase 2 v2 — Validación (scoped por base)
@@ -456,12 +464,16 @@ export type ExplorarUnivariadoResult = {
   n_tras_filtro: number;
   n_total: number;
   filtros_aplicados: number;
+  /** Distribución por tipo (contrato 2026-11-02). Ausente con un motor anterior. */
+  dist?: ExploradorDist | null;
 };
 
 export type ExplorarBivariadoResult = {
   ok: true;
   base_nombre: string | null;
   view: ViewDescriptor;
+  /** Cruce por par de tipos (contrato 2026-11-02). Ausente con un motor anterior. */
+  cruce?: ExploradorCruce | null;
 };
 
 export async function apiV2ExplorarUnivariado(
@@ -470,13 +482,14 @@ export async function apiV2ExplorarUnivariado(
   filtros?: ExplorarFiltros,
   fuente: ExplorarFuente = "raw",
 ) {
-  return handle<ExplorarUnivariadoResult>(
+  const res = await handle<ExplorarUnivariadoResult>(
     await apiFetch("/api/validacion/v2/explorar/univariado", {
       method: "POST",
       headers: v2Headers(baseNombre, { "Content-Type": "application/json" }),
       body: JSON.stringify({ var: vari, filtros: filtros ?? {}, fuente }),
     }),
   );
+  return { ...res, dist: normalizeExploradorDist(res.dist) };
 }
 
 export async function apiV2ExplorarBivariado(
@@ -486,13 +499,32 @@ export async function apiV2ExplorarBivariado(
   filtros?: ExplorarFiltros,
   fuente: ExplorarFuente = "raw",
 ) {
-  return handle<ExplorarBivariadoResult>(
+  const res = await handle<ExplorarBivariadoResult>(
     await apiFetch("/api/validacion/v2/explorar/bivariado", {
       method: "POST",
       headers: v2Headers(baseNombre, { "Content-Type": "application/json" }),
       body: JSON.stringify({ var_x, var_y, filtros: filtros ?? {}, fuente }),
     }),
   );
+  return { ...res, cruce: normalizeExploradorCruce(res.cruce) };
+}
+
+/**
+ * Ficha de la pregunta: lo que dice el formulario y lo que se ve en los datos
+ * (GET /explorar/ficha). Un motor que todavía no la sirve responde 404: aquí
+ * se devuelve `null` y los paneles no se muestran, en vez de un error.
+ */
+export async function apiV2ExplorarFicha(
+  vari: string,
+  baseNombre?: string | null,
+  fuente: ExplorarFuente = "raw",
+): Promise<ExploradorFicha | null> {
+  const qs = new URLSearchParams({ var: vari, fuente });
+  const res = await apiFetch(`/api/validacion/v2/explorar/ficha?${qs.toString()}`, {
+    headers: v2Headers(baseNombre),
+  });
+  if (res.status === 404 || res.status === 405) return null;
+  return normalizeExploradorFicha(await handle<unknown>(res));
 }
 
 export type ExplorarValoresRango = {

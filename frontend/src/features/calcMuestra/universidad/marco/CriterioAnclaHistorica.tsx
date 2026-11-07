@@ -1,5 +1,8 @@
+import { History } from "lucide-react";
 import type { CalcMuestraCriteriosAnchorRow } from "../../../../api/calcMuestraCriteriosI18b";
 import "./criteriosI18b.css";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
+import { fmtInt } from "../../sharedCore";
 
 const INTEGER = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 0 });
 const PERCENT = new Intl.NumberFormat("en-US", {
@@ -71,9 +74,13 @@ export function CriterioAnclaHistorica({
   ));
   if (!anchors.length) {
     return (
-      <div className="cmv2-i18b-anchor-empty" role="status" data-state="sin_ancla">
-        <strong>Sin ancla histórica para este criterio</strong>
-        <span>La referencia no publicó una coincidencia ni una degradación acreditable.</span>
+      <div role="status" data-state="sin_ancla">
+        <EstadoVacio
+          tamano="compacto"
+          icono={<History size={16} aria-hidden="true" />}
+          titulo="Sin ancla histórica para este criterio"
+          descripcion="La referencia no publicó una coincidencia ni una degradación acreditable."
+        />
       </div>
     );
   }
@@ -104,7 +111,7 @@ export function CriterioAnclaHistorica({
         >
           <header>
             <div>
-              <strong>Sin coincidencia publicable en {anchors.length} {anchors.length === 1 ? "facultad" : "facultades"}</strong>
+              <strong>Sin coincidencia publicable en {fmtInt(anchors.length)} {anchors.length === 1 ? "facultad" : "facultades"}</strong>
               <span>{primera.requested_label ?? primera.requested_dimension ?? "Criterio sin característica histórica"}</span>
             </div>
             <span className="cmv2-i18b-anchor-level">{niveles.size === 1 ? primera.match_level : "mixto"}</span>
@@ -116,7 +123,7 @@ export function CriterioAnclaHistorica({
           </dl>
           <p role="note">{avisoComun}</p>
           <p className="cmv2-i18b-anchor-facultades">
-            {anchors.map((anchor) => anchor.faculty_label).join(" · ")}
+            {anchors.map((anchor) => anchor.faculty_label).join(", ")}
           </p>
         </article>
       </div>

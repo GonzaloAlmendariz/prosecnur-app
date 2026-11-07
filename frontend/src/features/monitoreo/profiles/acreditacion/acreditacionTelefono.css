@@ -55,28 +55,19 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.03em;
   text-transform: uppercase;
 }
 
 .mon-query-answer.is-compacta > strong {
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   font-weight: var(--pulso-weight-medium);
   color: var(--pulso-text-soft);
 }
 
-/* El borde izquierdo lleva el acento del tono: es la marca que se ve de reojo
- * al cambiar de pestaña, sin leer el título. `currentColor` NO sirve —lo medí:
- * daba el mismo `rgb(23,33,47)` en las dos, porque hereda el color del texto y
- * no del tono—; el acento por tono ya existe como variable. */
-.mon-query-answer.is-compacta {
-  border-left: 3px solid var(--query-answer-accent, var(--pulso-border-strong));
-}
-
-/* Y el encabezado con el mismo acento, para que la señal no dependa de una
- * línea de 3 px. */
+/* El acento del tono va en el encabezado, sin franja lateral (Gonzalo, 30/10). */
 .mon-query-answer.is-compacta > span {
   color: var(--query-answer-accent, var(--pulso-text-soft));
 }

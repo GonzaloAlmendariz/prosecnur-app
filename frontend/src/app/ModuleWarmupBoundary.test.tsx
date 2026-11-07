@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { RouteLoadingFallback } from "./ModuleWarmupBoundary";
 import { WarmupReloj } from "./WarmupReloj";
 import { VistaSkeleton } from "../components/VistaSkeleton";
+import { PROSECNUR_ACTIVE_MODULES } from "../lib/modules";
 import { SIN_ESTIMACION, normalizarEstimacionWarmup } from "./warmupTiempo";
 
 function fallback(path: string) {
@@ -15,20 +16,22 @@ function fallback(path: string) {
 }
 
 describe("warm start de módulo (L23)", () => {
-  it("muestra tiempo y la silueta de la vista destino, no un porcentaje", () => {
+  it("es la carga corta de la app: isotipo, módulo en su tono, rótulo y barra; sin reloj ni fases", () => {
     const html = fallback("/monitoreo?modo=territorial&seccion=avance");
+    // 6 nov 2026 (Gonzalo): abrir un módulo dura segundos; la lámina con fases y reloj queda para el proyecto.
     expect(html).toContain('class="pulso-module-warmup"');
-    expect(html).toContain("Transcurrido");
-    expect(html).toContain("0:00");
-    expect(html).toContain('data-vista-skeleton="modulo"');
+    expect(html).toContain('data-module-warmup="monitoreo"');
+    expect(html).toContain('class="pulso-carga-modulo"');
+    expect(html).toContain('class="pulso-isotipo-carga"');
+    expect(html).toContain("pulso-barra-avance pulso-barra-avance--indeterminada");
+    expect(html).toContain('style="--module-accent:');
+    expect(html).not.toContain("Transcurrido");
+    expect(html).not.toContain("pulso-carga-fases");
     expect(html).not.toMatch(/\d+%/);
-    expect(html).not.toContain('role="progressbar"');
   });
 
-  it("la silueta no es la vista: oculta a lectores y sin marca de readiness", () => {
-    const html = fallback("/monitoreo");
-    expect(html).toMatch(/class="pulso-module-warmup-destino" aria-hidden="true"/);
-    expect(html).not.toContain("data-audit-ready");
+  it("la carga no es la vista: sin marca de readiness", () => {
+    expect(fallback("/monitoreo")).not.toContain("data-audit-ready");
   });
 
   it("una ruta sin módulo no pinta warm start", () => {
@@ -68,9 +71,11 @@ describe("VistaSkeleton", () => {
     expect(renderToStaticMarkup(<VistaSkeleton secciones={40} />).match(/is-pill/g)).toHaveLength(8);
   });
 
-  it("la variante de inicio es la grilla de tarjetas", () => {
+  it("la variante de inicio es el Home: una tarjeta por módulo activo, con su tono", () => {
     const html = renderToStaticMarkup(<VistaSkeleton variante="inicio" />);
     expect(html).toContain('data-vista-skeleton="inicio"');
-    expect(html.match(/pulso-vista-skeleton-card"/g)).toHaveLength(8);
+    expect(html.match(/pulso-vista-skeleton-card"/g)).toHaveLength(PROSECNUR_ACTIVE_MODULES.length);
+    expect(html.match(/--module-accent:/g)).toHaveLength(PROSECNUR_ACTIVE_MODULES.length);
+    expect(html).toContain("pulso-vista-skeleton-franja");
   });
 });

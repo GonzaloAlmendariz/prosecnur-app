@@ -132,24 +132,17 @@ describe("cruce", () => {
 });
 
 describe("resumen", () => {
-  it("cinco tarjetas; «Respondieron» dice que aún no se lee en vez de un cero", () => {
-    const tarjetas = tarjetasDeResumen(RESUMEN, false);
-    expect(tarjetas.map((t) => t.id)).toEqual(["importados", "efectivos", "fuera", "enlace", "respondieron"]);
+  it("cuatro tarjetas de la lista; «Respondieron» es avance y vive en Monitoreo (R8)", () => {
+    const tarjetas = tarjetasDeResumen({ ...RESUMEN, respondieron: 78 });
+    expect(tarjetas.map((t) => t.id)).toEqual(["importados", "efectivos", "fuera", "enlace"]);
     expect(tarjetas[1].detalle).toBe("97.5% de 320 importados");
     expect(tarjetas[2]).toMatchObject({ valor: "8", detalle: "3 sin correo · 2 con correo inválido · 3 repetidos", tono: "aviso" });
     expect(tarjetas[3].detalle).toBe("Todavía sin enlaces");
-    expect(tarjetas[4]).toMatchObject({ valor: "—", detalle: "Aún no se lee quién respondió" });
-  });
-
-  it("con respuestas leídas, la tasa va con su base", () => {
-    const t = tarjetasDeResumen({ ...RESUMEN, respondieron: 78, con_enlace: 312 }, true);
-    expect(t[4].valor).toBe("78");
-    expect(t[4].detalle).toBe("25.0% de 312 efectivos");
-    expect(t[3].tono).toBe("exito");
+    expect(tarjetasDeResumen({ ...RESUMEN, con_enlace: 312 })[3].tono).toBe("exito");
   });
 
   it("los millares llevan coma", () => {
-    expect(tarjetasDeResumen({ ...RESUMEN, importados: 5000, efectivos: 4890 }, false)[0].valor).toBe("5,000");
+    expect(tarjetasDeResumen({ ...RESUMEN, importados: 5000, efectivos: 4890 })[0].valor).toBe("5,000");
   });
 });
 

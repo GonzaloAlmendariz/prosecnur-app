@@ -66,7 +66,7 @@
 .mon-profile-page.is-aulas-flow .aulas-ruta-reserva.es-refuerzo {
   display: inline-block;
   font-style: normal;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: 600;
   padding: 0 7px;
   border-radius: 999px;

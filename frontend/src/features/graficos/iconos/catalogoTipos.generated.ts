@@ -41,6 +41,8 @@ export const CATALOGO_LAMINAS: readonly TipoLaminaCatalogo[] = [
   { name: "p_slide_6_graficos_poblacion", categoria: "poblacion", estandar: "p_slide_6_graficos_poblacion", en_selector: true },
   { name: "p_slide_cierre", categoria: "estructural", estandar: null, en_selector: true },
   { name: "p_slide_estandar", categoria: "estructural", estandar: null, en_selector: false },
+  { name: "p_slide_resumen_diferencias", categoria: "1grafico", estandar: null, en_selector: true },
+  { name: "p_slide_hallazgos", categoria: "1grafico", estandar: null, en_selector: true },
 ];
 
 export const CATALOGO_GRAFICOS: readonly TipoGraficoCatalogo[] = [
@@ -60,6 +62,7 @@ export const CATALOGO_GRAFICOS: readonly TipoGraficoCatalogo[] = [
   { name: "p_media_rango", familia_editor: "numeros", salida: "nativa", en_selector: true },
   { name: "p_barras_divergentes", familia_editor: "escalas", salida: "nativa", en_selector: true },
   { name: "p_puntos_comparativos", familia_editor: "comparar", salida: "nativa", en_selector: true },
+  { name: "p_mapa_distribucion", familia_editor: "territorio", salida: "nativa", en_selector: true },
   { name: "p_mapa_resultado_distrital", familia_editor: "territorio", salida: "nativa", en_selector: true },
   { name: "p_cifra", familia_editor: "numeros", salida: "nativa", en_selector: true },
   { name: "p_dumbbell", familia_editor: "comparar", salida: "nativa", en_selector: true },
@@ -76,4 +79,5 @@ export const CATALOGO_GRAFICOS: readonly TipoGraficoCatalogo[] = [
   { name: "p_dim_comparativo_radarbar", familia_editor: "dimensiones", salida: "nativa", en_selector: true },
   { name: "p_dim_foda", familia_editor: "dimensiones", salida: "ruta_anterior", en_selector: false },
   { name: "p_dim_heatmap_criterios", familia_editor: "dimensiones", salida: "nativa", en_selector: true },
+  { name: "p_lineas_nivel", familia_editor: "comparar", salida: "nativa", en_selector: true },
 ];

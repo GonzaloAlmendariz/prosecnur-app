@@ -1,0 +1,181 @@
+/* Lienzo cartográfico de Hojas de ruta (ADR 0114 §1). El Canvas ocupa la región
+ * entera; la escala y el zoom flotan abajo a la derecha. Sólo tokens. */
+
+.hr-lienzo {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--pulso-mapa-fondo);
+}
+
+.hr-lienzo-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
+}
+
+.hr-lienzo-canvas[data-arrastrando="true"] {
+  cursor: grabbing;
+}
+
+.hr-lienzo-pie {
+  position: absolute;
+  z-index: 2;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.hr-lienzo-escala {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: var(--pulso-type-micro-size);
+  font-weight: 700;
+  color: var(--pulso-text-soft);
+}
+
+.hr-lienzo-escala::before {
+  content: attr(data-rotulo);
+}
+
+.hr-lienzo-escala::after {
+  content: "";
+  display: block;
+  width: var(--lienzo-escala, 70px);
+  height: 5px;
+  border: 1.5px solid var(--pulso-text-soft);
+  border-top: 0;
+}
+
+.hr-lienzo-zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--pulso-surface) 92%, transparent);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--pulso-text) 8%, transparent);
+}
+
+.hr-lienzo-zoom button {
+  all: unset;
+  box-sizing: border-box;
+  width: 28px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  font-size: var(--pulso-type-title-size);
+  font-weight: 700;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+
+.hr-lienzo-zoom button:hover {
+  color: var(--pulso-text);
+  background: var(--pulso-surface-3);
+}
+
+.hr-lienzo-zoom button:focus-visible {
+  outline: 2px solid var(--pulso-module-routes-border);
+}
+
+/* Flotantes del lienzo (brechas B6 y B8, artefacto .hm-capsula/.hm-miga/.hm-leyenda) */
+.hr-lienzo-capsula {
+  position: absolute;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--pulso-surface) 92%, transparent);
+  border: 1px solid var(--pulso-border);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--pulso-text) 8%, transparent);
+  backdrop-filter: blur(10px);
+}
+.hr-lienzo-miga {
+  top: 12px;
+  left: 12px;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  max-width: min(420px, calc(100% - 24px));
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: 700;
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hr-lienzo-miga b { color: var(--pulso-text); }
+.hr-lienzo-miga svg { flex: none; color: var(--pulso-module-routes); }
+.hr-lienzo-leyenda {
+  left: 12px;
+  bottom: 12px;
+  gap: 12px;
+  padding: 7px 12px;
+  max-width: calc(100% - 220px);
+  flex-wrap: wrap;
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-soft);
+}
+.hr-lienzo-leyenda > span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.hr-lienzo-leyenda i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; flex: none; }
+.hr-lienzo-rampa { display: inline-flex; gap: 0; }
+.hr-lienzo-rampa i { border-radius: 0; width: 14px; }
+.hr-lienzo-rampa i:first-child { border-radius: 3px 0 0 3px; }
+.hr-lienzo-rampa i:last-child { border-radius: 0 3px 3px 0; }
+@media (max-width: 1100px) {
+  .hr-lienzo-miga { max-width: min(200px, calc(100% - 24px)); }
+  /* B26: angosto, la miga dice sólo dónde está; la instrucción no cabe junto a las capas. */
+  .hr-lienzo-miga-ayuda { display: none; }
+  .hr-lienzo-leyenda { display: none; }
+}
+
+/* Selector de capas arriba a la derecha (brecha B7, artefacto .hm-capsula[data-capa]) */
+.hr-lienzo-controles { top: 12px; right: 12px; padding: 3px; }
+.hr-lienzo-capas { display: inline-flex; gap: 2px; }
+.hr-lienzo-capas button { all: unset; cursor: pointer; display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 8px; font-size: var(--pulso-type-subtitle-size); font-weight: 700; color: var(--pulso-text-soft); white-space: nowrap; }
+.hr-lienzo-capas button:hover { color: var(--pulso-text); }
+.hr-lienzo-capas button[aria-pressed="true"] { background: var(--pulso-surface-3); color: var(--pulso-text); }
+.hr-lienzo-capas button:focus-visible { outline: 2px solid var(--pulso-module-routes-border); }
+
+/* El distrito bajo el cursor, junto al cursor (LienzoMapa: rotuloCursor). Lo mueve una ref. */
+.hr-lienzo-cursor {
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--pulso-text) 14%, transparent);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-caption-size);
+  left: 0;
+  line-height: 1.35;
+  max-width: 240px;
+  padding: 7px 10px;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  visibility: hidden;
+  z-index: 3;
+}
+
+.hr-lienzo-cursor b {
+  display: block;
+  font-size: var(--pulso-type-body-size);
+}
+
+.hr-lienzo-cursor span {
+  color: var(--pulso-text-soft);
+  display: block;
+}
+
+.hr-lienzo-canvas[data-sobre="true"]:not([data-arrastrando]) {
+  cursor: pointer;
+}

@@ -210,6 +210,8 @@ test_that("sin plan y sin fuente: estados propios, sin listas", {
 test_that("Monitoreo gana como fuente y su copia vieja se declara intermedia desfasada", {
   sid <- session_create()
   on.exit(session_delete(sid), add = TRUE)
+  # Modo anterior (el que sigue HSVG 2026): la siembra prefiere el plan de Monitoreo.
+  collection_aulas_siembra_put(sid, "monitoreo")
   vieja <- .org_filas(run = "sel_aulas_20260801211224_aaaa1111")
   session_set(sid, "monitoreo_aulas_plan", vieja)
   session_set(sid, "calc_muestra_aulas_selection",
@@ -233,9 +235,15 @@ test_that("tras la entrega la copia de Monitoreo es el eco del plan: no inventa 
   df$link <- sprintf("https://kf.kobotoolbox.org/x/a?d%%5BcollectorID%%5D=%s", df$classroom_id)
   sid <- .org_sid(df)
   on.exit(session_delete(sid), add = TRUE)
+  # Modo anterior (HSVG 2026): tras traer la entrega, Monitoreo vuelve a ser la fuente y es el eco.
+  collection_aulas_siembra_put(sid, "monitoreo")
   st <- collection_state_get(sid)
   expect_identical(st$state$deployment$status, "prepared")
+  antes <- session_get(sid)$monitoreo_aulas_plan
   collection_handoff(sid, st$state_revision)
+  # X8: la entrega no escribe el plan de Monitoreo; Monitoreo la trae.
+  expect_identical(session_get(sid)$monitoreo_aulas_plan, antes)
+  monitoreo_aulas_traer_entrega(sid)
   expect_true(length(.collection_rows(session_get(sid)$monitoreo_aulas_plan)) > 0L)
 
   g <- collection_origen_get(sid)
@@ -401,4 +409,19 @@ test_that("rendimiento: 2.400 filas se comparan en menos de 2 s, tambien en resu
   expect_identical(r$estado, "cambio")
   expect_equal(r$resumen$campos, 10L)
   expect_lt(tr, 4)
+})
+
+test_that("modo nuevo (estudio nuevo): con sorteo de Cálculo, la copia de Monitoreo no es fuente ni eco", {
+  df <- .org_filas()
+  df$link <- sprintf("https://kf.kobotoolbox.org/x/a?d%%5BcollectorID%%5D=%s", df$classroom_id)
+  sid <- .org_sid(df)
+  on.exit(session_delete(sid), add = TRUE)
+  expect_identical(collection_aulas_siembra_get(sid)$modo, "calculo")
+  st <- collection_state_get(sid)
+  collection_handoff(sid, st$state_revision)
+  monitoreo_aulas_traer_entrega(sid)
+  g <- collection_origen_get(sid)
+  expect_identical(g$fuente$origen, "calc_muestra_aulas_selection")
+  expect_false(g$fuente$circular)
+  expect_identical(g$estado, "al_dia")
 })

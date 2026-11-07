@@ -14,7 +14,7 @@
   cursor: pointer;
   display: inline-flex;
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   gap: 5px;
   height: 32px;
@@ -34,7 +34,7 @@
 }
 
 .rec-barra-exportar:focus-visible {
-  outline: 2px solid var(--pulso-primary-focus);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 1px;
 }
 
@@ -100,7 +100,7 @@
 }
 
 .rec-exp-salida:focus-visible {
-  outline: 2px solid var(--pulso-primary-focus);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 1px;
 }
 
@@ -112,14 +112,14 @@
 .rec-exp-salida-titulo {
   align-items: center;
   display: flex;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   gap: 6px;
 }
 
 .rec-exp-salida-para {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.4;
   padding-left: 20px;
 }
@@ -128,7 +128,7 @@
   background: var(--pulso-module-fieldkit-soft);
   border-radius: var(--pulso-radius-chip);
   color: var(--pulso-module-fieldkit);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   margin-left: 4px;
   padding: 0 5px;
@@ -136,7 +136,7 @@
 
 .rec-exp-bloqueo {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   margin: 0;
 }
 
@@ -148,7 +148,7 @@
 
 .rec-exp-respaldo-html {
   display: grid;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   gap: 4px;
   width: 100%;
 }
@@ -157,7 +157,7 @@
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   padding: 6px 8px;
   resize: vertical;
   width: 100%;
@@ -180,7 +180,7 @@
   padding-left: 20px;
   display: grid;
   gap: 4px;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
   color: var(--pulso-text-muted);
 }
@@ -198,4 +198,74 @@
   align-items: center;
   display: inline-flex;
   gap: 2px;
+}
+
+/* Vista para revisión (L9), al pie del menú Exportar. */
+.rec-exp-revision {
+  border-top: 1px solid var(--pulso-border);
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+.rec-exp-revision-titulo {
+  align-items: center;
+  display: flex;
+  font-size: var(--pulso-type-body-size);
+  gap: 6px;
+  margin: 0;
+}
+
+.rec-exp-revision-ayuda {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+  margin: 0;
+}
+
+.rec-exp-revision-lista {
+  display: grid;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  max-height: 160px;
+  overflow-y: auto;
+  padding: 0;
+}
+
+/* Qué envío (L17): una fila de opciones, como la lista de campañas. */
+.rec-exp-revision-envio {
+  border: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  padding: 0;
+}
+
+.rec-exp-revision-envio legend {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: 600;
+  margin-bottom: 4px;
+  padding: 0;
+}
+
+.rec-exp-revision-envio label {
+  align-items: center;
+  display: flex;
+  font-size: var(--pulso-type-body-size);
+  gap: 6px;
+}
+
+.rec-exp-revision-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rec-exp-revision-error {
+  color: var(--pulso-danger-fg);
+  font-size: var(--pulso-type-body-size);
+  margin: 0;
 }

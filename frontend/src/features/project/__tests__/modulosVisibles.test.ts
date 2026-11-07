@@ -95,9 +95,8 @@ describe("modulosVisibles", () => {
 
 describe("modulosVisibles · lo que NO puede colarse", () => {
   it("no reabre un módulo vacío que su dueño había quitado", () => {
-    // `deriveDefaultAdded` abre la bitácora cuando el estudio está en marcha,
-    // aunque no tenga ni una entrada. Eso es correcto para un proyecto sin
-    // curar y no para uno que ya decidió qué ver: medido en pantalla, la unión
+    // Un proyecto que ya decidió qué ver no recibe de vuelta lo que quitó.
+    // Medido en pantalla antes del ADR 0124, la unión
     // a secas colaba una tarjeta «Bitácora · Sin actividad».
     const enMarcha = {
       maturity: { level: "in_progress" },
@@ -112,12 +111,13 @@ describe("modulosVisibles · lo que NO puede colarse", () => {
     expect(visto).not.toContain("diseno-estudio");
   });
 
-  it("pero sin curación sí lo abre, que es el default de un proyecto nuevo", () => {
+  it("un .pulso que traía el Planner lo pierde: ya no es módulo (ADR 0124)", () => {
     const enMarcha = {
       maturity: { level: "in_progress" },
-      modules: [{ id: "plan-trabajo", state: "pending" }],
+      modules: [{ id: "plan-trabajo", state: "ready" }, { id: "calc-muestra", state: "ready" }],
     } as unknown as ProjectOverview;
-    expect(modulosVisibles(null, enMarcha)).toContain("diseno-estudio");
+    expect(modulosVisibles(["diseno-estudio", "calc-muestra"], enMarcha)).toEqual(["calc-muestra"]);
+    expect(modulosVisibles(null, enMarcha)).not.toContain("diseno-estudio");
   });
 
   it("Procesamiento cuenta como trabajo si CUALQUIERA de sus etapas lo tiene", () => {

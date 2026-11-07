@@ -94,12 +94,12 @@ export function PlanDeCampo({
           <div data-qa-geometry-member>
             <dt>Plan</dt>
             <dd className="acr-av-num">{borrador.durationWeeks === 1 ? `Semana ${fmt(borrador.startWeek)}` : `Semanas ${fmt(borrador.startWeek)} a ${fmt(finSemana)}`}</dd>
-            <small>{rango(borrador.startDate, borrador.endDate)} · {semanas(borrador.durationWeeks)}</small>
+            <small>{`${rango(borrador.startDate, borrador.endDate)}, ${semanas(borrador.durationWeeks)}`}</small>
           </div>
           <div data-qa-geometry-member>
             <dt>Ejecutado</dt>
             <dd className="acr-av-num">{hayEjecucion ? rango(ventana.desde ?? "", ventana.hasta ?? "") : "Sin respuestas"}</dd>
-            <small>{hayEjecucion ? `${semanas(semanasEjecutadas)} · ${fmt(ventana.diasConEfectivas)} días con efectivas` : "Aparece con las primeras respuestas con fecha"}</small>
+            <small>{hayEjecucion ? `${semanas(semanasEjecutadas)}, ${fmt(ventana.diasConEfectivas)} ${ventana.diasConEfectivas === 1 ? "día" : "días"} con efectivas` : "Aparece con las primeras respuestas con fecha"}</small>
           </div>
           <div data-qa-geometry-member className={fueraDelPlan ? "is-alerta" : hayEjecucion ? "is-ok" : undefined}>
             <dt>Lectura</dt>
@@ -109,7 +109,7 @@ export function PlanDeCampo({
                 ? "Falta el campo ejecutado"
                 : fueraDelPlan
                   ? `El campo lleva ${semanas(semanasEjecutadas)} y el plan declara ${semanas(borrador.durationWeeks)}`
-                  : `Cabe en las ${semanas(borrador.durationWeeks)} declaradas`}
+                  : borrador.durationWeeks === 1 ? "Cabe en la semana declarada" : `Cabe en las ${semanas(borrador.durationWeeks)} declaradas`}
             </small>
           </div>
         </dl>

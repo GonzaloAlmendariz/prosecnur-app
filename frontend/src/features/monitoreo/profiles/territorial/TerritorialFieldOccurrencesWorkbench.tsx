@@ -21,7 +21,9 @@ import {
   UploadCloud,
   X,
   XCircle,
+  SearchX,
 } from "lucide-react";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 import {
   apiConnectionsList,
   apiMonitoreoKoboAssets,
@@ -52,6 +54,7 @@ import {
   type OccurrenceUmpAttentionStatus,
 } from "../../fieldOccurrences";
 import { copiarTexto } from "../../../../lib/portapapeles";
+import { descargarArchivo } from "../../../../lib/descargas";
 
 type OccurrenceTab = "states" | "distritos" | "registro" | "ump" | "alerts" | "rhythm";
 type OccurrenceBusy = "" | "config" | "xlsform" | "upload" | "inspect" | "ump-export";
@@ -234,7 +237,7 @@ function koboOccurrenceProfiles(connection: ConnectionTokenState | null): KoboOc
 function koboOccurrenceProfileLabel(profile: KoboOccurrenceProfile) {
   const label = profile.server_label || profile.alias || "Kobo";
   const base = normalizeKoboBaseUrl(profile.base_url);
-  return base ? `${label} · ${base.replace(/^https?:\/\//i, "")}` : label;
+  return base ? `${label}, ${base.replace(/^https?:\/\//i, "")}` : label;
 }
 
 function occurrenceOutcomeColor(key: string) {
@@ -279,7 +282,7 @@ function occurrenceRowsAdvanceContext(rows: OccurrenceRouteUmpRow[]) {
   const progress = meta > 0
     ? `${formatMetric(validas)}/${formatMetric(meta)} validas`
     : `${formatMetric(validas)} validas`;
-  return latest ? `${progress} · ultimo ingreso ${latest}` : progress;
+  return latest ? `${progress}, ultimo ingreso ${latest}` : progress;
 }
 
 function occurrenceBlockIsReplacement(block: OccurrenceRouteUmpRow["expected_blocks"][number]) {
@@ -348,7 +351,7 @@ function occurrenceCoverageCounts(rows: OccurrenceRouteUmpRow[]) {
 }
 
 function compactParts(parts: Array<string | number | boolean | null | undefined>) {
-  return parts.map((part) => String(part ?? "").trim()).filter(Boolean).join(" · ");
+  return parts.map((part) => String(part ?? "").trim()).filter(Boolean).join(", ");
 }
 
 function occurrenceRecordCode(row: MonitoreoFieldOccurrenceDashboard["records"][number]) {
@@ -392,7 +395,7 @@ function buildOccurrenceAlertReviewItems({
     const detail = row.advance_started
       ? compactParts([occurrenceAdvanceProgressLabel(row), row.advance_quota_status || "avance iniciado", row.advance_last_activity])
       : "Sin avance territorial ni ocurrencia sincronizada";
-    const title = `UMP ${row.ump || "S/D"}${row.manzana ? ` · Mz ${row.manzana}` : ""}`;
+    const title = `UMP ${row.ump || "S/D"}${row.manzana ? `, Mz ${row.manzana}` : ""}`;
     return {
       id: `missing:${row.id}`,
       kind: "missing" as const,
@@ -720,7 +723,7 @@ function TerritorialFieldOccurrencesWorkbenchImpl({
     const result = await apiMonitoreoTerritorialOccurrencesXlsform(config ?? {});
     onStateChange?.(result.state);
     if (result.download_url && typeof window !== "undefined") {
-      window.open(result.download_url, "_blank", "noopener,noreferrer");
+      descargarArchivo(result.download_url);
     }
   }), [config, onStateChange, runAction]);
 
@@ -747,7 +750,7 @@ function TerritorialFieldOccurrencesWorkbenchImpl({
         ...(opts.only_missing ? { only_missing: true } : {}),
       });
       if (result.file_id && typeof window !== "undefined") {
-        window.open(downloadUrl(result.file_id), "_blank", "noopener,noreferrer");
+        descargarArchivo(downloadUrl(result.file_id));
       }
     }), [runAction]);
 
@@ -802,19 +805,19 @@ function TerritorialFieldOccurrencesWorkbenchImpl({
               {assetPickerOpen ? "Ocultar Kobo" : active ? "Cambiar formulario" : "Elegir formulario"}
             </button>
             <button type="button" className="pulso-button" onClick={generateXlsform} disabled={disabled}>
-              {localBusy === "xlsform" ? <Loader2 size={15} className="spin" /> : <Download size={15} />}
+              {localBusy === "xlsform" ? <Loader2 size={15} className="pulso-spin" /> : <Download size={15} />}
               XLSForm
             </button>
             <button type="button" className="pulso-button" onClick={uploadKobo} disabled={disabled || !hasKoboToken}>
-              {localBusy === "upload" ? <Loader2 size={15} className="spin" /> : <UploadCloud size={15} />}
+              {localBusy === "upload" ? <Loader2 size={15} className="pulso-spin" /> : <UploadCloud size={15} />}
               Subir Kobo
             </button>
             <button type="button" className="pulso-button" onClick={inspectFields} disabled={disabled || !active}>
-              {localBusy === "inspect" ? <Loader2 size={15} className="spin" /> : <FileCheck2 size={15} />}
+              {localBusy === "inspect" ? <Loader2 size={15} className="pulso-spin" /> : <FileCheck2 size={15} />}
               Campos
             </button>
             <button type="button" className="pulso-button" onClick={() => exportUmp({})} disabled={disabled} title="Descarga un Excel con las UMP totales y sus estados">
-              {localBusy === "ump-export" ? <Loader2 size={15} className="spin" /> : <Download size={15} />}
+              {localBusy === "ump-export" ? <Loader2 size={15} className="pulso-spin" /> : <Download size={15} />}
               Excel UMP
             </button>
             {/* «Actualizar» (traer las ocurrencias) vive en el «Actualizar ▾» de la
@@ -882,7 +885,7 @@ function TerritorialFieldOccurrencesWorkbenchImpl({
                     onClick={() => { void loadOccurrenceAssets(true); }}
                     disabled={assetsLoading || disabled || !hasKoboToken || !occurrenceBaseUrl}
                   >
-                    {assetsLoading ? <Loader2 size={15} className="spin" /> : <RefreshCw size={15} />}
+                    {assetsLoading ? <Loader2 size={15} className="pulso-spin" /> : <RefreshCw size={15} />}
                     Cargar formularios
                   </button>
                   <label className="mon-field-occurrences-connect-search">
@@ -919,10 +922,10 @@ function TerritorialFieldOccurrencesWorkbenchImpl({
                         >
                           <span>
                             <strong>{asset.name || asset.uid}</strong>
-                            <em>{shortenMiddle(asset.uid, 30)}{asset.version_id ? ` · v ${shortenMiddle(asset.version_id, 14)}` : ""}</em>
+                            <em>{shortenMiddle(asset.uid, 30)}{asset.version_id ? `, v ${shortenMiddle(asset.version_id, 14)}` : ""}</em>
                           </span>
                           <b className={asset.deployment_active ? "is-active" : ""}>{asset.deployment_active ? "activo" : "sin deploy"}</b>
-                          <i>{choosing ? <Loader2 size={13} className="spin" /> : selected ? <CheckCircle2 size={13} /> : "Usar"}</i>
+                          <i>{choosing ? <Loader2 size={13} className="pulso-spin" /> : selected ? <CheckCircle2 size={13} /> : "Usar"}</i>
                         </button>
                       );
                     })}
@@ -970,7 +973,7 @@ function TerritorialFieldOccurrencesWorkbenchImpl({
               </span>
               <span className={coverageCounts.missing ? "is-warning" : ""}>
                 <strong>{formatMetric(coverageCounts.missing)}</strong>
-                <em>sin registro · {formatMetric(coverageCounts.validasMissing)} válidas sin ocurrencias</em>
+                <em>sin registro, {formatMetric(coverageCounts.validasMissing)} válidas sin ocurrencias</em>
               </span>
               <span>
                 <strong>{formatMetric(coverageCounts.replacementFamilies)}</strong>
@@ -1190,7 +1193,7 @@ function OccurrenceRhythmWorkspace({
           <div className="mon-field-occurrences-rhythm-kpis">
             <span><strong>{formatMetric(totalAttempts)}</strong><em>intentos</em></span>
             <span><strong>{formatMetric(rows.length)}</strong><em>dias con reporte</em></span>
-            <span><strong>{peakDay ? formatMetric(peakDay.intentos || 0) : "0"}</strong><em>pico diario{peakDay ? ` · ${peakDay.date_label || formatShortDate(peakDay.date)}` : ""}</em></span>
+            <span><strong>{peakDay ? formatMetric(peakDay.intentos || 0) : "0"}</strong><em>pico diario{peakDay ? `, ${peakDay.date_label || formatShortDate(peakDay.date)}` : ""}</em></span>
             <span><strong>{latestDay?.date_label || "S/D"}</strong><em>ultimo dia</em></span>
             {/* «formulario» y «última sincronización» eran configuración dentro de
                 una pestaña operativa; ahora viven en la barra de fuente, visible
@@ -1206,7 +1209,7 @@ function OccurrenceRhythmWorkspace({
                   <strong>{entry.type || "evento"}</strong>
                   {entry.status ? <span>{entry.status}</span> : null}
                 </div>
-                <p>{entry.created_at ? formatDate(entry.created_at) : "sin fecha"} · {formatMetric(entry.response_count)} registros{entry.asset_uid ? ` · ${shortenMiddle(entry.asset_uid, 20)}` : ""}</p>
+                <p>{entry.created_at ? formatDate(entry.created_at) : "sin fecha"}, {formatMetric(entry.response_count)} registros{entry.asset_uid ? `, ${shortenMiddle(entry.asset_uid, 20)}` : ""}</p>
                 {entry.message ? <small>{entry.message}</small> : null}
               </article>
             ))}
@@ -1258,7 +1261,7 @@ function OccurrenceDistrictMatrix({ rows }: { rows: OccurrenceDistrictSummary[] 
             >
               <div className="mon-field-occurrences-district-name">
                 <strong>{row.distrito || "Sin distrito"}</strong>
-                <span>{formatMetric(row.ump_reportadas)} reportadas · {formatMetric(row.ump_completas_sin_reporte ?? 0)} completas sin ocurrencias · {formatMetric(row.ump_incompletas_sin_reporte ?? 0)} incompletas · {formatMetric(validasSinReporte)} validas{ultimoIngresoSinReporte ? ` · ultimo ingreso ${ultimoIngresoSinReporte}` : ""}</span>
+                <span>{formatMetric(row.ump_reportadas)} reportadas, {formatMetric(row.ump_completas_sin_reporte ?? 0)} completas sin ocurrencias, {formatMetric(row.ump_incompletas_sin_reporte ?? 0)} incompletas, {formatMetric(validasSinReporte)} validas{ultimoIngresoSinReporte ? `, ultimo ingreso ${ultimoIngresoSinReporte}` : ""}</span>
               </div>
               <div className="mon-field-occurrences-district-coverage" aria-label="Cobertura UMP">
                 <span>
@@ -1278,7 +1281,7 @@ function OccurrenceDistrictMatrix({ rows }: { rows: OccurrenceDistrictSummary[] 
                 <span className="is-noneffective"><strong>{formatMetric(row.no_efectivas)}</strong><em>No efectivas</em></span>
                 <span className="is-complete-missing"><strong>{formatMetric(row.ump_completas_sin_reporte ?? 0)}</strong><em>Completas sin ocurrencias</em></span>
                 <span className="is-incomplete-missing"><strong>{formatMetric(row.ump_incompletas_sin_reporte ?? 0)}</strong><em>Incompletas sin ocurrencias</em></span>
-                <span className="is-advance-missing"><strong>{formatMetric(validasSinReporte)}</strong><em>Validas sin ocurrencias{ultimoIngresoSinReporte ? ` · ${ultimoIngresoSinReporte}` : ""}</em></span>
+                <span className="is-advance-missing"><strong>{formatMetric(validasSinReporte)}</strong><em>Validas sin ocurrencias{ultimoIngresoSinReporte ? `, ${ultimoIngresoSinReporte}` : ""}</em></span>
                 <span><strong>{rate}</strong><em>Tasa</em></span>
               </div>
               <div className="mon-field-occurrences-district-outcomes">
@@ -1391,11 +1394,11 @@ function buildOccurrenceRegisterRows(rows: OccurrenceRouteUmpRow[]) {
     const dateLabel = registeredAt || (row.has_report ? row.report_window_label : "");
     const title = row.is_unreconciled
       ? `UMP ${row.ump || "S/D"}`
-      : `UMP ${row.ump || "S/D"}${row.manzana ? ` · Mz ${row.manzana}` : ""}`;
+      : `UMP ${row.ump || "S/D"}${row.manzana ? `, Mz ${row.manzana}` : ""}`;
     const routeMeta = row.is_unreconciled
       ? row.route_match_message || "No cruza con la ruta activa"
       : replacementCount > 0
-        ? `${row.route_label || row.distrito || "Ruta activa"} · R cuenta como titular`
+        ? `${row.route_label || row.distrito || "Ruta activa"}, R cuenta como titular`
         : row.route_label || row.distrito || "Ruta activa";
     const advanceLabel = occurrenceAdvanceProgressLabel(row);
     const sourceLabel = row.is_unreconciled
@@ -1403,7 +1406,7 @@ function buildOccurrenceRegisterRows(rows: OccurrenceRouteUmpRow[]) {
       : row.has_report
         ? "Reporte UMP"
         : row.advance_started
-          ? `${advanceLabel} · sin reporte`
+          ? `${advanceLabel}, sin reporte`
           : "Sin reporte";
     const searchText = [
       row.search_text,
@@ -1472,11 +1475,11 @@ function OccurrenceRegisterWorkspace({ rows }: { rows: OccurrenceRouteUmpRow[] }
       <header className="mon-field-occurrences-register-head">
         <div>
           <span><FileCheck2 size={14} /> Reporte UMP</span>
-          <strong>{formatMetric(counts.reported)} con reporte · {formatMetric(counts.missing)} sin reporte</strong>
+          <strong>{formatMetric(counts.reported)} con reporte, {formatMetric(counts.missing)} sin reporte</strong>
           {/* Decía «151 visibles de 150 UMP oficiales»: más filas en pantalla que
               universo, porque `expected` excluye las no conciliadas y la lista no.
               El denominador ahora es el mismo universo que se está listando. */}
-          <em>{formatMetric(filteredRows.length)} visibles de {formatMetric(registerRows.length)} en la lista · {formatMetric(counts.expected)} UMP oficiales · {formatMetric(counts.unreconciled)} por conciliar</em>
+          <em>{formatMetric(filteredRows.length)} visibles de {formatMetric(registerRows.length)} en la lista, {formatMetric(counts.expected)} UMP oficiales, {formatMetric(counts.unreconciled)} por conciliar</em>
         </div>
         <div className="mon-field-occurrences-register-kpis" aria-label="Resumen del registro UMP">
           <span className="is-total"><strong>{formatMetric(counts.expected)}</strong><em>UMP oficiales</em></span>
@@ -1546,7 +1549,7 @@ function OccurrenceRegisterWorkspace({ rows }: { rows: OccurrenceRouteUmpRow[] }
             </article>
           ))}
           {!filteredRows.length ? (
-            <p className="mon-field-occurrences-register-empty">Sin UMP para estos filtros.</p>
+            <EstadoVacio icono={<SearchX size={15} />} titulo="Sin UMP para estos filtros." />
           ) : null}
         </div>
       </div>
@@ -1615,8 +1618,8 @@ function OccurrenceUmpWorkspace({ rows, allRows, onExportUmp }: {
     if (!selectedRow) setDetailOpen(false);
   }, [selectedRow]);
   const coverageSummary = counts.sinConciliacion
-    ? `${formatMetric(counts.expected)} UMP titulares · ${formatMetric(counts.sinConciliacion)} sin conciliacion · ${formatMetric(filteredRows.length)} visibles`
-    : `${formatMetric(counts.expected)} UMP titulares · ${formatMetric(filteredRows.length)} visibles`;
+    ? `${formatMetric(counts.expected)} UMP titulares, ${formatMetric(counts.sinConciliacion)} sin conciliacion, ${formatMetric(filteredRows.length)} visibles`
+    : `${formatMetric(counts.expected)} UMP titulares, ${formatMetric(filteredRows.length)} visibles`;
 
   // El inspector cambiaba de lado según la paridad de la fila: abrir la UMP 22 lo
   // ponía a la derecha y la 23 a la izquierda. Nada en el dato justifica el salto,
@@ -1637,8 +1640,8 @@ function OccurrenceUmpWorkspace({ rows, allRows, onExportUmp }: {
               mismo encabezado y nada que explicara en qué se diferencian. Esta
               lidera con el resultado de la ocurrencia, que es su eje propio;
               el cumplimiento de entrega es el de la pestaña vecina. */}
-          <strong>{formatMetric(counts.efectivas)} efectivas · {formatMetric(counts.noEfectivas)} no efectivas</strong>
-          <em>Mismo universo que Reporte UMP ({formatMetric(counts.expected)} titulares); acá manda qué pasó dentro de cada una · {formatMetric(counts.expectedBlocks)} manzanas activas</em>
+          <strong>{formatMetric(counts.efectivas)} efectivas, {formatMetric(counts.noEfectivas)} no efectivas</strong>
+          <em>Mismo universo que Reporte UMP ({formatMetric(counts.expected)} titulares); acá manda qué pasó dentro de cada una, {formatMetric(counts.expectedBlocks)} manzanas activas</em>
         </div>
         {/* Diez indicadores con el mismo peso no jerarquizan nada. Se separan los
             que piden acción de los que solo dan contexto. */}
@@ -1646,7 +1649,7 @@ function OccurrenceUmpWorkspace({ rows, allRows, onExportUmp }: {
           <span className="is-sin_reporte"><strong>{formatMetric(counts.sinReporte)}</strong><em>sin reporte</em></span>
           <span className="is-completa_sin_reporte"><strong>{formatMetric(counts.completasSinReporte)}</strong><em>completas sin ocurrencias</em></span>
           <span className="is-incompleta_sin_reporte"><strong>{formatMetric(counts.incompletasSinReporte)}</strong><em>incompletas sin ocurrencias</em></span>
-          <span className="is-iniciada_sin_reporte"><strong>{formatMetric(counts.validasSinReporte)}</strong><em>validas sin ocurrencias{counts.ultimaSinReporte ? ` · ${counts.ultimaSinReporte}` : ""}</em></span>
+          <span className="is-iniciada_sin_reporte"><strong>{formatMetric(counts.validasSinReporte)}</strong><em>validas sin ocurrencias{counts.ultimaSinReporte ? `, ${counts.ultimaSinReporte}` : ""}</em></span>
           <span className="is-revisar_cruce"><strong>{formatMetric(counts.sinConciliacion)}</strong><em>sin conciliacion</em></span>
         </div>
         <div className="mon-field-occurrences-workspace-stats is-context" aria-label="Contexto de cobertura UMP">
@@ -1751,12 +1754,12 @@ function OccurrenceUmpListRow({
   const replacementCount = occurrenceRowAppliedReplacementCount(row);
   const hasReplacementFamily = !unexpectedUmp && replacementCount > 0;
   const advanceProgress = occurrenceAdvanceProgressLabel(row);
-  const title = unexpectedUmp ? "UMP sin conciliacion" : `UMP ${row.ump || "S/D"}${row.manzana ? ` · Mz ${row.manzana}` : ""}`;
+  const title = unexpectedUmp ? "UMP sin conciliacion" : `UMP ${row.ump || "S/D"}${row.manzana ? `, Mz ${row.manzana}` : ""}`;
   const identityLabel = unexpectedUmp
-    ? `Declarada ${row.ump || "S/D"} · requiere cruce`
+    ? `Declarada ${row.ump || "S/D"}, requiere cruce`
     : hasReplacementFamily
-      ? `${row.route_label || row.distrito || "Ruta esperada"} · reemplazo cuenta como titular`
-      : row.route_label || `${row.distrito || "Sin distrito"}${row.zona ? ` · Zona ${row.zona}` : ""}`;
+      ? `${row.route_label || row.distrito || "Ruta esperada"}, reemplazo cuenta como titular`
+      : row.route_label || `${row.distrito || "Sin distrito"}${row.zona ? `, zona ${row.zona}` : ""}`;
   const rate = row.tasa_no_efectiva == null ? "S/D" : formatPercentLabel(row.tasa_no_efectiva * 100);
   const resultLabel = unexpectedUmp
     ? "No vinculada a una UMP esperada"
@@ -1772,14 +1775,14 @@ function OccurrenceUmpListRow({
   const resultMeta = unexpectedUmp
     ? row.route_match_message || `La UMP declarada ${row.ump || "S/D"} queda fuera del marco hasta conciliarse.`
     : missingWithAdvance
-      ? `${advanceProgress}${row.advance_last_activity ? ` · ultimo ingreso ${row.advance_last_activity}` : ""}`
+      ? `${advanceProgress}${row.advance_last_activity ? `, ultimo ingreso ${row.advance_last_activity}` : ""}`
     : row.has_report
-    ? `${formatMetric(row.efectivas)} efectivas · ${formatMetric(row.no_efectivas)} no efectivas · ${rate} no efectiva`
+    ? `${formatMetric(row.efectivas)} efectivas, ${formatMetric(row.no_efectivas)} no efectivas, ${rate} no efectiva`
     : "Esperada en hoja de ruta";
   const sourceMeta = missingWithAdvance
-    ? `${advanceProgress}${row.advance_last_activity ? ` · ${row.advance_last_activity}` : ""} · ocurrencias pendiente`
+    ? `${advanceProgress}${row.advance_last_activity ? `, ${row.advance_last_activity}` : ""}, ocurrencias pendiente`
     : row.has_report
-      ? `${formatMetric(row.reportes)} reporte${row.reportes === 1 ? "" : "s"} · ${formatMetric(row.intentos)} intento${row.intentos === 1 ? "" : "s"}`
+      ? `${formatMetric(row.reportes)} reporte${row.reportes === 1 ? "" : "s"}, ${formatMetric(row.intentos)} intento${row.intentos === 1 ? "" : "s"}`
       : "Pendiente de sincronizacion";
   const resultColor = row.dominant_outcome ? occurrenceOutcomeColor(row.dominant_outcome.key) : "var(--occurrence-status-color)";
   return (
@@ -1841,9 +1844,9 @@ function OccurrenceUmpDetail({
     : row.status === "incompleta_sin_reporte"
       ? "Ya registra avance válido, todavía no completa cuota y falta el registro operativo de ocurrencias."
       : "Registra avance territorial valido, pero falta el registro operativo de ocurrencias.";
-  const title = unexpectedUmp ? "UMP sin conciliacion" : `UMP ${row.ump || "S/D"}${row.manzana ? ` · Mz ${row.manzana}` : ""}`;
+  const title = unexpectedUmp ? "UMP sin conciliacion" : `UMP ${row.ump || "S/D"}${row.manzana ? `, Mz ${row.manzana}` : ""}`;
   const subtitle = unexpectedUmp
-    ? `Declarada ${row.ump || "S/D"} · pendiente de cruce con ruta esperada`
+    ? `Declarada ${row.ump || "S/D"}, pendiente de cruce con ruta esperada`
     : row.route_label || row.distrito || "Sin ruta asignada";
   const rate = row.tasa_no_efectiva == null ? "S/D" : formatPercentLabel(row.tasa_no_efectiva * 100);
   const districtLabel = row.distrito || (unexpectedUmp ? "UMP sin conciliacion" : "Sin distrito");
@@ -1891,7 +1894,7 @@ function OccurrenceUmpDetail({
           <Clock size={14} />
           <div>
             <strong>{missingNoticeTitle}</strong>
-            <span>{missingNoticeText} {advanceProgress}{row.advance_last_activity ? ` · ultimo ingreso ${row.advance_last_activity}` : ""}.</span>
+            <span>{missingNoticeText} {advanceProgress}{row.advance_last_activity ? `, ultimo ingreso ${row.advance_last_activity}` : ""}.</span>
           </div>
         </section>
       ) : null}
@@ -1965,7 +1968,7 @@ function OccurrenceUmpDetail({
       </div>
 
       <section className="mon-field-occurrences-detail-section is-records">
-        <header><FileCheck2 size={14} /><strong>Registros fuente</strong><em>{formatMetric(sourceTotal)} filas{sourceOverflow ? ` · +${formatMetric(sourceOverflow)}` : ""}</em></header>
+        <header><FileCheck2 size={14} /><strong>Registros fuente</strong><em>{formatMetric(sourceTotal)} filas{sourceOverflow ? `, +${formatMetric(sourceOverflow)}` : ""}</em></header>
         <div>
           {sourceRows.length ? sourceRows.map((record, index) => {
             const code = occurrenceRecordCode(record);

@@ -1,0 +1,57 @@
+/* Tipografía por rol y densidad declarable (L29, maqueta m/L29-densidad-tipografia).
+ *
+ * Archivo propio: tokens.css y theme.css están congelados a crecimiento. Se
+ * importa justo después de theme.css (AppSuite.tsx).
+ *
+ * Ocho roles, cada uno con su tamaño y su peso. El piso es 10 px: ningún rol
+ * baja de ahí, y el contrato tipografiaPorRol falla si alguno lo hace. Un
+ * `font-size` nuevo se escribe con `var(--pulso-type-<rol>-size)`.
+ */
+
+:root {
+  /* solo el hero del Home */
+  --pulso-type-display-size: 28px;
+  --pulso-type-display-weight: var(--pulso-weight-black);
+  /* cifras de tarjeta y de cabecera */
+  --pulso-type-kpi-size: 21px;
+  --pulso-type-kpi-weight: var(--pulso-weight-black);
+  /* pestaña, diálogo, panel */
+  --pulso-type-title-size: 16px;
+  --pulso-type-title-weight: var(--pulso-weight-heavy);
+  /* subtítulo, label de campo */
+  --pulso-type-subtitle-size: 13px;
+  --pulso-type-subtitle-weight: var(--pulso-weight-semibold);
+  /* texto base, celdas, inputs */
+  --pulso-type-body-size: 13px;
+  --pulso-type-body-weight: var(--pulso-weight-regular);
+  /* hint, pie, base de una cifra */
+  --pulso-type-caption-size: 11.5px;
+  --pulso-type-caption-weight: var(--pulso-weight-medium);
+  /* eyebrow y cabecera de tabla, en versalitas */
+  --pulso-type-eyebrow-size: 11px;
+  --pulso-type-eyebrow-weight: var(--pulso-weight-semibold);
+  /* chips, corte del rail — el piso */
+  --pulso-type-micro-size: 10px;
+  --pulso-type-micro-weight: var(--pulso-weight-bold);
+
+  /* Densidad: la cómoda es la de siempre. La compacta la declara quien la
+     pide escribiendo data-density="compacta" en :root (o en una superficie). */
+  --pulso-density-control: var(--pulso-control-height-md);
+  --pulso-density-row: 36px;
+  --pulso-density-gap: var(--pulso-space-4);
+  --pulso-density-cell-x: var(--pulso-space-3);
+}
+
+/* La compacta también llega sola desde la presentación elegida en
+   Configuración › Apariencia (lib/layoutPreference.ts escribe
+   data-pulso-layout-density en :root): no hace falta otro control. */
+:root[data-pulso-layout-density="compact"],
+:root[data-pulso-layout-density="short"],
+[data-density="compacta"] {
+  --pulso-density-control: var(--pulso-control-height-sm);
+  --pulso-density-row: 30px;
+  --pulso-density-gap: var(--pulso-space-2);
+  --pulso-density-cell-x: var(--pulso-space-2);
+  --pulso-type-body-size: 12px;
+  --pulso-type-kpi-size: 17px;
+}

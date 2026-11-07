@@ -53,7 +53,7 @@ test_that("L10-7: la serie por niveles sigue el orden del instrumento y declara 
   expect_identical(levels(d$grupo), c("VIII", "VI", "VII"))                 # orden de la lista del instrumento
   expect_equal(d$valor[match(c("VI", "VII", "VIII"), d$grupo)], c(50, 25, 75))
   expect_equal(d$n_casos, c(4, 4, 4))
-  expect_identical(.serie_cruce_nota(d), "Casos que respondieron, por nivel: VIII: 4 · VI: 4 · VII: 4.")
+  expect_identical(.serie_cruce_nota(d), "Casos que respondieron, por nivel: VIII: 4, VI: 4, VII: 4.")
   # `grupos` fija el orden del eje.
   d2 <- .serie_cruce_datos(list(Trabaja = "b$t"), "1", "b$niv", .l10v_sources(), grupos = c("6", "7", "8"))
   expect_identical(levels(d2$grupo), c("VI", "VII", "VIII"))

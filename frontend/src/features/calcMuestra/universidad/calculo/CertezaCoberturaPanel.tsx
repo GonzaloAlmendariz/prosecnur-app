@@ -6,6 +6,7 @@
  * promedio? La respuesta viene de R (Monte Carlo del sorteo real); acá se
  * presenta y se explica.
  */
+import { ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { Info, Shuffle } from "../../../../vendor/lucide-react";
 import type { CalcMuestraAulasEstrato } from "../../../../api/client";
@@ -21,6 +22,8 @@ import {
   type CertezaVista,
 } from "./certezaCoberturaModel";
 import "./certezaCobertura.css";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
+import { Panel } from "../../../../components/Panel";
 
 const PCT = new Intl.NumberFormat("es-PE", {
   style: "percent",
@@ -90,7 +93,7 @@ function CurvaCerteza({ fila }: { fila: CertezaFilaVista }) {
     .join(" ");
   const titulo = plana
     ? `El rendimiento no crece al sumar aulas (${puntos[0]!.aulas} → ${puntos[puntos.length - 1]!.aulas}): la corrida no está evaluando el número que declara.`
-    : puntos.map((p) => `${p.aulas} aulas: ${Math.round(p.rendimiento_medio)}`).join(" · ");
+    : puntos.map((p) => `${p.aulas} aulas: ${Math.round(p.rendimiento_medio)}`).join(", ");
   return (
     <td className="cmv2-certeza-curva" data-plana={plana ? "" : undefined}>
       <svg viewBox="0 0 46 16" role="img" aria-label={titulo}>
@@ -154,11 +157,11 @@ function FilaCerteza({ fila, nivel, onFijarAulas }: {
                 ? `Decidido con ${precision.corridas} sorteos, y el veredicto es frágil: a ${fila.aulas_certeza! - 1} aulas le falta sólo ${(precision.distancia * 100).toFixed(2)} puntos para alcanzar el nivel, que son ${precision.erroresHastaVoltear!.toFixed(1)} veces el error de muestreo (±${(precision.error * 100).toFixed(2)}). Otra corrida podría dejar el mínimo en ${fila.aulas_certeza! - 1}.`
                 : precision.erroresHastaVoltear == null
                   ? `Decidido con ${precision.corridas} sorteos`
-                  : `Decidido con ${precision.corridas} sorteos · el veredicto aguanta: a ${fila.aulas_certeza! - 1} aulas le faltan ${(precision.distancia * 100).toFixed(1)} puntos para el nivel, ${precision.erroresHastaVoltear.toFixed(1)} veces el error de muestreo`
+                  : `Decidido con ${precision.corridas} sorteos, el veredicto aguanta: a ${fila.aulas_certeza! - 1} aulas le faltan ${(precision.distancia * 100).toFixed(1)} puntos para el nivel, ${precision.erroresHastaVoltear.toFixed(1)} veces el error de muestreo`
             }
           >
             {fmtInt(precision.corridas)} sorteos
-            {precision.dentroDelRuido && " · veredicto frágil"}
+            {precision.dentroDelRuido && ", veredicto frágil"}
           </small>
         )}
       </td>
@@ -223,30 +226,17 @@ export function CertezaCoberturaPanel({
   const nivelMostrado = vista ? vista.nivelPct : nivel;
 
   return (
-    <section
-      className="cmv2-panel cmv2-certeza-panel"
-      aria-label="Certeza de cobertura"
+    <Panel
+      className="cmv2-certeza-panel"
+      aria-labelledby="cmv2-certeza-titulo"
       data-qa-geometry-group="calc-muestra/certeza-cobertura"
       data-qa-geometry-contract="intrinsic"
-    >
-      <div className="cmv2-panel-head" data-qa-geometry-member>
-        <div>
-          {/* Gonzalo, 2026-08-21: «tampoco entiendo la finalidad de "alcanza".
-              ¿A qué te refieres con alcanza?». El título preguntaba sin decir
-              qué se pregunta: la respuesta estaba en el párrafo de abajo y el
-              rótulo, solo, no significaba nada. */}
-          <strong>¿Esas aulas alcanzan la cuota de cada facultad?</strong>
-          {/* La explicación es el contenido, no una nota al pie: sin ella el
-              usuario no tiene forma de saber por qué dos números distintos
-              responden la misma pregunta. */}
-          <p className="cmv2-certeza-explicacion">
-            La tabla de arriba divide la cuota entre el tamaño típico de un aula. Esa cuenta apunta
-            al centro: dice cuántas aulas harían falta si cada una rindiera lo normal. Pero el
-            sorteo se hace una sola vez, las aulas no son todas iguales y los estudiantes se repiten
-            entre ellas. Acá se simula el sorteo real muchas veces y se cuenta en cuántas se llegó
-            a la cuota.
-          </p>
-        </div>
+      // Gonzalo, 2026-08-21: «tampoco entiendo la finalidad de "alcanza".
+      // ¿A qué te refieres con alcanza?». El título preguntaba sin decir
+      // qué se pregunta: la respuesta estaba en el párrafo de abajo y el
+      // rótulo, solo, no significaba nada.
+      title={<span id="cmv2-certeza-titulo">¿Esas aulas alcanzan la cuota de cada facultad?</span>}
+      actions={(
         <div className="cmv2-certeza-acciones">
           <div className="cmv2-segment" role="radiogroup" aria-label="Nivel de certeza exigido">
             {NIVELES.map((valor) => (
@@ -272,7 +262,18 @@ export function CertezaCoberturaPanel({
             {busy ? "Simulando…" : vista ? "Volver a medir" : "Medir certeza"}
           </button>
         </div>
-      </div>
+      )}
+    >
+      {/* La explicación es el contenido, no una nota al pie: sin ella el
+          usuario no tiene forma de saber por qué dos números distintos
+          responden la misma pregunta. */}
+      <p className="cmv2-certeza-explicacion" data-qa-geometry-member>
+        La tabla de arriba divide la cuota entre el tamaño típico de un aula. Esa cuenta apunta
+        al centro: dice cuántas aulas harían falta si cada una rindiera lo normal. Pero el
+        sorteo se hace una sola vez, las aulas no son todas iguales y los estudiantes se repiten
+        entre ellas. Acá se simula el sorteo real muchas veces y se cuenta en cuántas se llegó
+        a la cuota.
+      </p>
 
       {marcoDesactualizado && (
         <AvisoModulo tone="warn" role="status">
@@ -282,11 +283,15 @@ export function CertezaCoberturaPanel({
       )}
 
       {!vista ? (
-        <p className="cmv2-certeza-vacio" role="status">
-          {estratos.length === 0
-            ? "Sin facultades con cuota publicada: recalcula la propuesta para poder medir."
-            : `Sin medir todavía. La simulación responde cuántas aulas hacen falta para que la cuota se alcance en al menos ${PCT.format(nivel)} de los sorteos posibles.`}
-        </p>
+        <div role="status">
+          <EstadoVacio
+            icono={<ShieldCheck size={16} aria-hidden="true" />}
+            titulo={estratos.length === 0 ? "Sin facultades con cuota publicada" : "Sin medir todavía"}
+            descripcion={estratos.length === 0
+              ? "Recalcula la propuesta para poder medir."
+              : `La simulación responde cuántas aulas hacen falta para que la cuota se alcance en al menos ${PCT.format(nivel)} de los sorteos posibles.`}
+          />
+        </div>
       ) : (
         <>
           {!vista.vigente && (
@@ -442,6 +447,6 @@ export function CertezaCoberturaPanel({
           </footer>
         </>
       )}
-    </section>
+    </Panel>
   );
 }

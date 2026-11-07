@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 /**
- * Dock del header con los ocho módulos agregados (L35). happy-dom no mide
+ * Dock del header con los siete módulos agregados (L35; ocho hasta el ADR 0124). happy-dom no mide
  * layout, así que el cupo se inyecta mockeando `useCupoDelDock`; la geometría
  * real (ningún tile cruza el borde a 1440 y a 1024) se verifica en la captura.
  */
@@ -19,7 +19,6 @@ vi.mock("./useCupoDelDock", () => ({
 vi.mock("../features/project/ProjectModulesContext", () => ({
   useProjectModules: () => ({
     addedSlugs: [
-      "diseno-estudio",
       "procesamiento",
       "calc-muestra",
       "editor-xlsform",
@@ -64,11 +63,11 @@ function items(): HTMLLIElement[] {
   return Array.from(host.querySelectorAll<HTMLLIElement>("nav > ul.pulso-module-dock > li"));
 }
 
-describe("dock de módulos con ocho módulos (L35)", () => {
-  test("con cupo suficiente: nueve destinos, «Agregar» último y el activo con su nombre", () => {
+describe("dock de módulos con siete módulos (L35)", () => {
+  test("con cupo suficiente: ocho destinos, «Agregar» último y el activo con su nombre", () => {
     montar("/monitoreo", 1000);
     const lis = items();
-    expect(lis).toHaveLength(9);
+    expect(lis).toHaveLength(8);
     const ultimo = lis[lis.length - 1].querySelector("a");
     expect(ultimo?.getAttribute("aria-label")).toBe("Agregar módulo");
     const activos = host.querySelectorAll('a[aria-current="page"]');
@@ -95,7 +94,7 @@ describe("dock de módulos con ocho módulos (L35)", () => {
     const recogidos = Number(host.querySelector("nav")?.getAttribute("data-dock-recogidos"));
     expect(recogidos).toBeGreaterThan(0);
     expect(mas?.getAttribute("aria-label")).toBe(`Más módulos (${recogidos})`);
-    expect(enDock.length + recogidos).toBe(8);
+    expect(enDock.length + recogidos).toBe(7);
     // «Más módulos» va justo antes de «Agregar».
     expect(lis[lis.length - 2].querySelector("button.pulso-module-tile-more")).not.toBeNull();
 
@@ -108,7 +107,7 @@ describe("dock de módulos con ocho módulos (L35)", () => {
     const enMenu = Array.from(panel?.querySelectorAll<HTMLAnchorElement>("nav[aria-label='Más módulos'] a") ?? []);
     expect(enMenu).toHaveLength(recogidos);
     const todos = new Set([...enDock, ...enMenu].map((a) => a.getAttribute("href")));
-    expect(todos.size).toBe(8);
+    expect(todos.size).toBe(7);
     expect(todos.has("/tablero")).toBe(true);
 
     // Elegir un destino cierra el panel.

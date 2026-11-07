@@ -113,7 +113,7 @@
 #'   expresadas como IDs de `cols_porcentaje`. Permite conservar la semantica
 #'   declarada sobre la escala original cuando algunas categorias se excluyen.
 #' @param escala_valor `proporcion_1` (0-1) o `proporcion_100` (0-100).
-#' @param estilo `recetario` (lámina 71) o `resumen`: la escala del resumen ejecutivo (ADR 0114), con la leyenda
+#' @param estilo `recetario` (lámina 71) o `resumen`: la escala del resumen ejecutivo (ADR 0134), con la leyenda
 #'   alineada con cada lado, cifras en texto oscuro, la cifra que no cabe en un extremo fuera de la barra y
 #'   «Sin información» en una columna aparte.
 #' @param orden `top_two_box` (de mayor a menor acuerdo), `sin_informacion` (de mayor a menor «Sin información») o

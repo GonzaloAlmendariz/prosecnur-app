@@ -15,9 +15,16 @@
 #   (b) código fuera del rango de la escala (la corrida consecutiva más larga de códigos enteros de la lista);
 #   (c) el rótulo (`.CATEGORIAS_RESIDUALES`, `.DIVERGENTES_ESPECIAL` y los «no lo sé / no tengo información»), sin
 #       distinguir mayúsculas ni tildes; un rótulo compuesto con « / » cuenta si alguna de sus partes casa.
-# Un código DENTRO del rango nunca es no sustantivo (salvo que la metadata lo declare).
+# Un código DENTRO del rango nunca es no sustantivo (salvo que la metadata lo declare), con una excepción en la PUNTA
+# DE ARRIBA: los códigos más altos de la corrida cuyo rótulo es inequívocamente una no respuesta o un «no aplica»
+# (`.NO_SUSTANTIVOS_ROTULO_COLA`) se recortan del rango. CCSS 2026, B15_2_1: 1-5 de acuerdo + 6 «No he acudido a esos
+# horarios» + 7 «No sabía que los/as docentes tuvieran horario de atención», contiguos a la escala, recibían el verde
+# más intenso de una rampa de siete. Sólo por arriba: un «Ninguno» que abre una escala de frecuencia sigue en ella.
 
 .NO_SUSTANTIVOS_ROTULO_EXTRA <- "^(no tengo informaci|no lo s[eé]|no s[eé]\\b|no uso|no utilic|no conozco|desconozco|no aplica|sin informaci|ns ?/ ?n[rco])"
+.NO_SUSTANTIVOS_ROTULO_COLA <- paste0("^(no tengo informaci|no lo s[eé]|no s[eé]\\b|no sab[ií]a|no conoc[ií]a|no conozco|desconozco|",
+                                      "no aplica|sin informaci|ns ?/ ?n[rco]|no responde|no opina|",
+                                      "no he (acudido|asistido|usado|utilizado|ido|participado|tenido)|no uso|no utilic)")
 .NO_SUSTANTIVOS_COLS_META <- c("especial", "no_sustantivo", "valor_especial", "special", "es_especial")
 .NO_SUSTANTIVOS_META_SI <- c("1", "true", "t", "si", "sí", "yes", "x", "especial")
 .NO_SUSTANTIVOS_META_NO <- c("0", "false", "f", "no", "n")
@@ -73,6 +80,20 @@
   }, logical(1), USE.NAMES = FALSE)
 }
 
+#' Recorta de la punta de arriba del rango los códigos con rótulo de no respuesta (`.NO_SUSTANTIVOS_ROTULO_COLA`)
+#'
+#' Sólo códigos cuyo rótulo se conoce (`v`, `etiquetas`) y que la metadata no declara de la escala; la escala que queda
+#' conserva al menos dos puntos.
+#' @keywords internal
+.graficos_no_sustantivos_recortar_cola <- function(rango, v, etiquetas, sustantivos = character(0)) {
+  if (is.null(rango)) return(rango)
+  norm <- tolower(.box_norm_etiqueta(ifelse(is.na(etiquetas), "", etiquetas)))
+  cola <- v[is.finite(v) & grepl(.NO_SUSTANTIVOS_ROTULO_COLA, norm, perl = TRUE) &
+              !(as.character(v) %in% trimws(as.character(sustantivos %||% character(0))))]
+  while (rango[2] %in% cola && rango[2] - 1 > rango[1]) rango[2] <- rango[2] - 1
+  rango
+}
+
 #' ¿Qué categorías no son sustantivas?
 #'
 #' @param codigos Códigos de las categorías a decidir (alineados con `etiquetas`).
@@ -91,6 +112,7 @@
   # Los que la metadata ya declaró no alargan la escala por sus puntas (un 9 marcado especial no alarga una 1-8).
   rango <- .graficos_no_sustantivos_rango(trimws(as.character(codigos_lista)), especiales)
   v <- suppressWarnings(as.numeric(codigos))
+  rango <- .graficos_no_sustantivos_recortar_cola(rango, v, etiquetas, sustantivos)
   dentro <- if (is.null(rango)) rep(FALSE, length(codigos)) else (is.finite(v) & v >= rango[1] & v <= rango[2])
   fuera <- if (is.null(rango)) rep(FALSE, length(codigos)) else (is.finite(v) & !dentro)
   rotulo <- .graficos_no_sustantivos_rotulo(etiquetas)

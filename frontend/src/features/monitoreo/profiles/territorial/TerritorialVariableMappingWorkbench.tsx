@@ -193,7 +193,7 @@ export function TerritorialVariableMappingWorkbench({
                   >
                     <header>
                       <strong>{variable.etiqueta}</strong>
-                      <code>{variable.campo}</code>
+                      <span className="mapeo-var__campo">{variable.campo}</span>
                     </header>
                     <label className="mapeo-var__field">
                       <span className="mapeo-var__field-label">Columna de la base</span>
@@ -217,7 +217,7 @@ export function TerritorialVariableMappingWorkbench({
                       {vacia
                         ? "La columna existe pero viene vacía en todas las filas."
                         : columna
-                        ? `${pctCobertura(columna.cobertura)} con dato${columna.ejemplo ? ` · p. ej. ${columna.ejemplo}` : ""}`
+                        ? `${pctCobertura(columna.cobertura)} con dato${columna.ejemplo ? `, p. ej. ${columna.ejemplo}` : ""}`
                         : valor
                           ? "Apunta a una columna que la base no tiene: saldrá S/D en todas las filas."
                           : "Sin columna asignada."}

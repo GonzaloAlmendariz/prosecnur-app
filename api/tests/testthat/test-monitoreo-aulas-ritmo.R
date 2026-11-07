@@ -83,3 +83,20 @@ test_that("el ritmo llega al tablero con su meta", {
   expect_length(d$ritmo_diario$dias, 2L)
   expect_identical(d$ritmo_diario$meta, 21)
 })
+
+test_that("la hora en que se responde sale de la marca local y solo la pide la serie global", {
+  # `start` trae el desfase del dispositivo: las 11:20 de Lima son las 11, no
+  # las 16 de UTC. La invalida no cuenta y la marca sin hora no se reparte.
+  r <- monitoreo_aulas_ritmo_diario(
+    data.frame(start = c("2026-09-09T11:20:00-05:00", "2026-09-09T11:55:00-05:00",
+                         "2026-09-09T15:05:00-05:00", "2026-09-09T15:10:00-05:00",
+                         "2026-09-10"), check.names = FALSE),
+    c(TRUE, TRUE, TRUE, FALSE, TRUE), meta = 10, con_hora = TRUE
+  )
+  expect_identical(vapply(r$por_hora, function(h) h$hora, integer(1)), c(11L, 15L))
+  expect_identical(vapply(r$por_hora, function(h) h$validas, integer(1)), c(2L, 1L))
+  sin <- monitoreo_aulas_ritmo_diario(.mar_resp("2026-08-10T09:00:00"), TRUE, meta = 10)
+  expect_null(sin$por_hora)
+  vacio <- monitoreo_aulas_ritmo_diario(data.frame(a = 1), TRUE, meta = 10, con_hora = TRUE)
+  expect_identical(vacio$por_hora, list())
+})

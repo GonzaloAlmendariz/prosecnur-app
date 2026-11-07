@@ -16,7 +16,12 @@
 #   cercano pixela el texto de los logos; el promedio de área no.
 # - La transparencia se promedia premultiplicada por alfa (sin halos en los
 #   bordes de un logo recortado).
-# - Lo que ya cumple (≤ 1.200 px y ≤ 1 MB) se guarda byte a byte.
+# - Lo que ya cumple (≤ 1.200 px y ≤ 1 MB) se guarda byte a byte, salvo que pase
+#   de 200 KB (`image_weight`) sin transparencia: entonces se prueba JPEG de
+#   calidad 85 y queda la versión más liviana (loop editor de correos, L14; la
+#   cabecera de Acreditación 2026, 1200×500 opaca, pesaba 245 KB en PNG y el
+#   aviso no tenía arreglo en la app). Con transparencia nunca: el JPEG la pinta
+#   de blanco y reducir colores a un PNG con degradés da bandas.
 
 .CMAIL_IMAGE_JPEG_QUALITY <- 0.85
 # Tope de decodificación: un PNG de 16 MP ocupa ~512 MB como array double de 4
@@ -160,11 +165,14 @@
   }
   ext_of <- function(t) if (identical(t, "png")) "png" else "jpg"
   bytes_in <- length(raw)
-  if (w <= .CMAIL_IMAGE_MAX_W && bytes_in <= .CMAIL_IMAGE_MAX_BYTES) {
+  if (w <= .CMAIL_IMAGE_MAX_W && bytes_in <= .CMAIL_IMAGE_MAX_BYTES && bytes_in <= .CMAIL_IMAGE_WARN_BYTES) {
     return(list(raw = raw, ext = ext_of(type), type = type, width = w, height = h, image_id = slug,
                 reduccion = list(reducida = FALSE, convertida = FALSE, de = .cmail_dims_label(w, h),
                                  a = .cmail_dims_label(w, h), peso_antes = bytes_in, peso_despues = bytes_in,
                                  formato_antes = type, formato_despues = type, aviso = NULL)))
+  }
+  if (w <= .CMAIL_IMAGE_MAX_W && bytes_in <= .CMAIL_IMAGE_MAX_BYTES) {
+    return(.cmail_aligerar(raw, type, w, h, slug))
   }
   if (bytes_in > .CMAIL_IMAGE_MAX_UPLOAD_BYTES || as.numeric(w) * as.numeric(h) > .CMAIL_IMAGE_MAX_PIXELS) {
     invalid("too_large", sprintf(
@@ -204,4 +212,29 @@
                         de = .cmail_dims_label(w, h), a = .cmail_dims_label(dims[["width"]], dims[["height"]]),
                         peso_antes = bytes_in, peso_despues = length(out),
                         formato_antes = type, formato_despues = out_type, aviso = aviso))
+}
+
+#' Una imagen que ya cumple el tope pero pasa de 200 KB: si no tiene
+#' transparencia, JPEG de calidad 85 cuando pesa menos; si no, los bytes tal cual (L14).
+#' @keywords internal
+.cmail_aligerar <- function(raw, type, w, h, slug) {
+  ext_of <- function(t) if (identical(t, "png")) "png" else "jpg"
+  tal_cual <- list(raw = raw, ext = ext_of(type), type = type, width = w, height = h, image_id = slug,
+                   reduccion = list(reducida = FALSE, convertida = FALSE, de = .cmail_dims_label(w, h),
+                                    a = .cmail_dims_label(w, h), peso_antes = length(raw), peso_despues = length(raw),
+                                    formato_antes = type, formato_despues = type, aviso = NULL))
+  if (as.numeric(w) * as.numeric(h) > .CMAIL_IMAGE_MAX_PIXELS) return(tal_cual)
+  img <- .cmail_decode(raw, type)
+  if (is.null(img) || .cmail_has_transparency(img)) return(tal_cual)
+  out <- .cmail_encode(.cmail_drop_opaque_alpha(img), "jpeg")
+  if (length(out) >= length(raw)) return(tal_cual)
+  r <- tal_cual
+  r$raw <- out; r$ext <- "jpg"; r$type <- "jpeg"
+  r$reduccion$reducida <- TRUE
+  r$reduccion$convertida <- !identical(type, "jpeg")
+  r$reduccion$peso_despues <- length(out)
+  r$reduccion$formato_despues <- "jpeg"
+  r$reduccion$aviso <- sprintf("Pesaba %d KB; la guardamos como JPEG (calidad 85) y quedó en %d KB para que cargue rápido en el teléfono.",
+                               as.integer(round(length(raw) / 1024)), as.integer(round(length(out) / 1024)))
+  r
 }

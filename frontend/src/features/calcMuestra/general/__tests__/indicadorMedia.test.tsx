@@ -150,19 +150,19 @@ describe("asignación de potencia", () => {
   it("se elige como «Potencia» y la memoria la nombra con Bankier", () => {
     expect(vista(comp("prob_estratificado"))).toContain('<option value="potencia">Potencia</option>');
     expect(lineaDeAsignacion({ resultado: resultado("potencia", "potencia") }))
-      .toBe("Reparto entre estratos: potencia (Bankier) · n calculado por estrato.");
+      .toBe("Reparto entre estratos: potencia (Bankier), con n calculado por estrato.");
   });
 
   it("la técnica y la ficha la llevan en el nombre", () => {
     const c = { ...comp("prob_estratificado", { asignacion: "potencia" }), resultado: resultado("potencia", "potencia") };
-    expect(tecnicaCalculadaLabel(c)).toBe("Estratificado · potencia");
+    expect(tecnicaCalculadaLabel(c)).toBe("Estratificado (potencia)");
     const corrida = {
       corrida: { semilla: 7, metodo: "mas", modalidad: "probabilistica" },
       estratos: [{ clave: "Norte" }, { clave: "Sur" }],
     } as unknown as CalcMuestraGeneralCorrida;
-    expect(nombreDeCorrida(corrida, c).titulo).toBe("Estratificado (potencia) · MAS dentro de cada estrato · semilla 7");
+    expect(nombreDeCorrida(corrida, c).titulo).toBe("Estratificado (potencia), MAS dentro de cada estrato; semilla 7");
     // Sin resultado, manda la declarada.
-    expect(tecnicaCalculadaLabel(comp("prob_estratificado", { asignacion: "potencia" }))).toBe("Estratificado · potencia");
+    expect(tecnicaCalculadaLabel(comp("prob_estratificado", { asignacion: "potencia" }))).toBe("Estratificado (potencia)");
   });
 });
 

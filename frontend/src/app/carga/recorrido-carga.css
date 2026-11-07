@@ -1,0 +1,380 @@
+/* =============================================================================
+   Recorrido de la pantalla de inicio y carga del proyecto (6 nov 2026)
+   =============================================================================
+   Propuesta aprobada por Gonzalo (artefacto «Fondo de carga de Prosecnur», v17) y
+   checklist docs/qa/checklist-escenas-carga-2026-11-06.md. La lámina de
+   PantallaDeCarga pasa a una columna angosta a la izquierda; el resto de la
+   ventana muestra los siete módulos en orden, cada uno con una de sus cinco
+   escenas (al azar), a doble tamaño sobre una superficie que se sale por el borde.
+
+   Contrato de armonía (base 1280×800): margen 64, columna de estado 368, respiro
+   122, rieles 112 (lámina y rótulo) y 288 (superficie). Elevación: fondo plano ·
+   superficie del módulo (sombra media) · lámina de estado (sombra alta).
+   Se pinta desde el chunk de arranque: sólo tokens que boot.css replica. */
+
+/* --- Escaparate (fondo de PantallaDeCarga en disposición «recorrido») ------- */
+.rc-escaparate {
+  position: absolute;
+  inset: 0;
+}
+
+.rc-ambiente {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 58% 72% at 80% 64%, color-mix(in srgb, var(--rc-tono) 12%, transparent), transparent 72%),
+    radial-gradient(ellipse 36% 36% at 58% 14%, color-mix(in srgb, var(--rc-tono) 6%, transparent), transparent 70%);
+  transition: background var(--motion-dur-slow, 420ms) var(--motion-ease-out, ease-out);
+}
+
+.rc-identidad {
+  position: absolute;
+  left: var(--rc-x);
+  top: var(--rc-top);
+  right: var(--rc-margen);
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  color: var(--rc-tono);
+  animation: rc-id-entra calc(var(--motion-dur-slow, 420ms) * 1.6) var(--motion-ease-productive, ease-out) both;
+}
+
+.rc-identidad small {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  height: 32px;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold, 700);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--rc-tono) 74%, var(--pulso-text));
+}
+
+.rc-identidad small span {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--rc-tono);
+  color: var(--pulso-surface);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--rc-tono) 28%, transparent);
+}
+
+.rc-identidad h2 {
+  margin: 0;
+  font-size: 48px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 48px;
+  color: var(--pulso-text);
+}
+
+.rc-identidad p {
+  margin: 0;
+  max-width: 466px;
+  font-size: 18px;
+  line-height: 24px;
+  color: var(--pulso-text-soft);
+}
+
+.rc-lienzo {
+  position: absolute;
+  left: var(--rc-x);
+  top: calc(var(--rc-top) + 176px);
+  right: -240px;
+  bottom: -240px;
+  border-radius: 20px 0 0 0;
+  background: var(--pulso-surface);
+  color: var(--rc-tono);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--rc-tono) 12%, var(--pulso-border)),
+    0 14px 30px color-mix(in srgb, var(--pulso-primary) 8%, transparent);
+  animation: rc-lienzo-entra calc(var(--motion-dur-slow, 420ms) * 2.2) var(--motion-ease-productive, ease-out) both;
+}
+
+.rc-lienzo-cab {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 80px;
+  padding: 0 32px;
+  border-bottom: 1px solid color-mix(in srgb, var(--pulso-border) 70%, transparent);
+}
+
+.rc-lienzo-cab .rc-chip {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--rc-tono) 13%, var(--pulso-surface));
+}
+
+.rc-lienzo-cab .rc-eb {
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold, 700);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--rc-tono) 74%, var(--pulso-text));
+  white-space: nowrap;
+}
+
+.rc-lienzo-cab .rc-tt {
+  padding-left: 12px;
+  border-left: 1px solid var(--pulso-border);
+  font-size: 15px;
+  font-weight: var(--pulso-weight-bold, 700);
+  color: var(--pulso-text);
+  white-space: nowrap;
+}
+
+.rc-lienzo .escena-carga {
+  position: absolute;
+  left: 32px;
+  top: 104px;
+  width: var(--rc-escena-ancho);
+  aspect-ratio: 16 / 10;
+}
+
+@keyframes rc-lienzo-entra {
+  from { opacity: 0; transform: translateY(40px); }
+}
+
+@keyframes rc-id-entra {
+  from { opacity: 0; transform: translateY(12px); }
+}
+
+/* --- Barra de los siete módulos, debajo de la lámina ------------------------ */
+.rc-segmentos {
+  display: grid;
+  grid-template-columns: repeat(var(--rc-n, 7), minmax(0, 1fr));
+  gap: 8px;
+}
+
+.rc-segmentos > div {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  color: var(--t);
+}
+
+.rc-pista {
+  width: 100%;
+  height: 4px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--t) 18%, var(--pulso-border));
+}
+
+.rc-pista i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--t);
+  transform-origin: 0 50%;
+  transition: transform 1s linear;
+}
+
+.rc-segmentos svg {
+  opacity: 0.45;
+  transition: opacity var(--motion-dur-base, 220ms) var(--motion-ease-out, ease-out);
+}
+
+.rc-segmentos .is-actual svg,
+.rc-segmentos .is-visto svg {
+  opacity: 1;
+}
+
+/* =============================================================================
+   Escenas (SVG 320×200). Clases de forma y color + repertorio de movimientos.
+   Los font-size de las escenas son unidades del viewBox 320×200, no píxeles de
+   pantalla: la escena se dibuja a 480–760 px de ancho (1,5–2,4×), así que el más
+   chico (6,8) mide 10,2 px o más. Por eso están en el snapshot del piso de 10 px.
+   ============================================================================= */
+.escena-carga {
+  --ciclo: calc(var(--motion-dur-slow, 420ms) * 10);
+  display: block;
+}
+
+.escena-carga svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transition: opacity var(--motion-dur-base, 220ms) var(--motion-ease-out, ease-out);
+}
+
+.escena-carga.is-cierra svg { opacity: 0; }
+
+.escena-carga text { font-family: inherit; }
+
+.escena-carga .s-t { font-size: 8.6px; }
+.escena-carga .s-micro { font-size: 6.8px; }
+.escena-carga .s-b { font-weight: 700; }
+.escena-carga .s-eyebrow { font-size: 7px; font-weight: 700; letter-spacing: 0.09em; fill: color-mix(in srgb, currentColor 72%, var(--pulso-text)); }
+.escena-carga .s-num { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+.escena-carga .s-num-s { font-size: 14px; font-weight: 800; letter-spacing: -0.01em; }
+.escena-carga .s-mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+.escena-carga .s-mono:not(.s-micro):not(.s-t) { font-size: 7.6px; }
+.escena-carga .s-glyph { font-size: 12px; font-weight: 800; }
+.escena-carga .s-glyph-s { font-size: 10px; font-weight: 800; }
+.escena-carga .s-lam-tit { font-size: 11.5px; font-weight: 800; letter-spacing: 0.01em; fill: var(--pulso-text); }
+
+.escena-carga .s-ink { fill: var(--pulso-text); }
+.escena-carga .s-mute { fill: var(--pulso-text-faint); }
+.escena-carga .s-faint { fill: color-mix(in srgb, var(--pulso-text-faint) 70%, var(--pulso-surface)); }
+.escena-carga .s-tonetxt { fill: color-mix(in srgb, currentColor 80%, var(--pulso-text)); }
+.escena-carga .s-white-t { fill: var(--pulso-surface); }
+.escena-carga .s-okt { fill: var(--pulso-success-fg); }
+.escena-carga .s-warnt { fill: var(--pulso-warn-fg); }
+.escena-carga .s-navy-t { fill: var(--pulso-primary); }
+.escena-carga .s-orange-t { fill: var(--pulso-module-encyclopedia); }
+
+.escena-carga .s-card { fill: var(--pulso-surface); stroke: var(--pulso-border); }
+.escena-carga .s-card-b { fill: var(--pulso-surface); stroke: var(--pulso-border-strong); }
+.escena-carga .s-card-sel { fill: var(--pulso-surface); stroke: currentColor; stroke-width: 1.5; }
+.escena-carga .s-chip { fill: var(--pulso-surface-2); stroke: var(--pulso-border); }
+.escena-carga .s-mono-chip { fill: var(--pulso-surface-2); stroke: var(--pulso-border); }
+.escena-carga .s-soft { fill: color-mix(in srgb, currentColor 13%, var(--pulso-surface)); }
+.escena-carga .s-soft-b { fill: color-mix(in srgb, currentColor 12%, var(--pulso-surface)); stroke: color-mix(in srgb, currentColor 40%, var(--pulso-surface)); }
+.escena-carga .s-soft-st { fill: color-mix(in srgb, currentColor 14%, transparent); }
+.escena-carga .s-tone { fill: currentColor; }
+.escena-carga .s-pt { fill: currentColor; stroke: var(--pulso-surface); stroke-width: 0.8; }
+.escena-carga .s-tone-st { stroke: currentColor; }
+.escena-carga .s-tone-o { fill: none; stroke: currentColor; stroke-width: 1.3; }
+.escena-carga .s-ok { fill: var(--pulso-success-fg); }
+.escena-carga .s-ok-bg { fill: var(--pulso-success-bg); }
+.escena-carga .s-warn-bg { fill: color-mix(in srgb, var(--pulso-warn-border) 45%, var(--pulso-surface)); }
+.escena-carga .s-warn-card { fill: color-mix(in srgb, var(--pulso-warn-border) 22%, var(--pulso-surface)); stroke: var(--pulso-warn-border); }
+.escena-carga .s-warn-cell { fill: color-mix(in srgb, var(--pulso-warn-border) 70%, var(--pulso-surface)); }
+.escena-carga .s-dot { fill: color-mix(in srgb, currentColor 34%, var(--pulso-surface)); }
+.escena-carga .s-head { fill: var(--pulso-surface-2); }
+.escena-carga .s-track { fill: color-mix(in srgb, var(--pulso-border) 70%, var(--pulso-surface)); }
+.escena-carga .s-track-st { stroke: color-mix(in srgb, var(--pulso-border) 70%, var(--pulso-surface)); }
+.escena-carga .s-hair { stroke: var(--pulso-border); stroke-width: 1; }
+.escena-carga .s-hair-d { fill: var(--pulso-border-strong); }
+.escena-carga .s-hair-l { stroke: var(--pulso-border-strong); }
+.escena-carga .s-inkfill { fill: var(--pulso-text); }
+.escena-carga .s-bar-ink { fill: color-mix(in srgb, var(--pulso-border-strong) 80%, var(--pulso-surface)); }
+.escena-carga .s-white { fill: var(--pulso-surface); }
+.escena-carga .s-radio { fill: var(--pulso-surface); stroke: var(--pulso-text-faint); stroke-width: 1.2; }
+.escena-carga .s-sweep-teal { fill: color-mix(in srgb, var(--pulso-module-processing) 14%, transparent); }
+.escena-carga .s-navy { fill: var(--pulso-primary); }
+.escena-carga .s-navy-st { stroke: var(--pulso-primary); }
+.escena-carga .s-navy-l { fill: color-mix(in srgb, var(--pulso-primary) 28%, var(--pulso-surface)); }
+.escena-carga .s-gray { fill: color-mix(in srgb, var(--pulso-primary) 24%, var(--pulso-surface)); }
+.escena-carga .s-orange { fill: var(--pulso-module-encyclopedia); }
+.escena-carga .s-meta-st { stroke: var(--pulso-module-monitoring); stroke-width: 1.4; stroke-dasharray: 5 4; }
+.escena-carga .s-halo { fill: color-mix(in srgb, var(--pulso-module-encyclopedia) 22%, transparent); }
+.escena-carga .s-ring { fill: none; stroke: currentColor; stroke-width: 2; }
+.escena-carga .s-repl { fill: var(--pulso-surface-2); stroke: var(--pulso-text-faint); stroke-dasharray: 3 2; }
+.escena-carga .s-block { fill: var(--pulso-bg); stroke: var(--pulso-border); }
+.escena-carga .s-dot-hollow { fill: var(--pulso-surface); stroke: var(--pulso-text); stroke-width: 1.2; }
+.escena-carga .s-paper { fill: var(--pulso-surface); stroke: var(--pulso-border); }
+.escena-carga .s-paper-sh { fill: var(--pulso-surface); stroke: var(--pulso-border); }
+.escena-carga .s-well { fill: var(--pulso-bg); }
+.escena-carga .s-soft-teal { fill: color-mix(in srgb, var(--pulso-module-processing) 12%, var(--pulso-surface)); }
+.escena-carga .s-teal { fill: var(--pulso-module-processing); }
+.escena-carga .s-qnode-b { fill: var(--pulso-surface-2); stroke: color-mix(in srgb, var(--pulso-module-dashboard) 45%, var(--pulso-surface)); }
+.escena-carga .s-qnode-o { fill: var(--pulso-surface-2); stroke: color-mix(in srgb, var(--pulso-module-encyclopedia) 45%, var(--pulso-surface)); }
+.escena-carga .s-cell { fill: var(--pulso-surface-2); }
+.escena-carga .s-cell-id { fill: var(--pulso-bg); }
+.escena-carga .s-chip-teal { fill: color-mix(in srgb, var(--pulso-module-processing) 12%, var(--pulso-surface)); }
+.escena-carga .s-group { fill: color-mix(in srgb, currentColor 6%, var(--pulso-surface)); stroke: color-mix(in srgb, currentColor 35%, var(--pulso-surface)); }
+.escena-carga .s-group-ring { fill: none; stroke: currentColor; stroke-width: 2; }
+.escena-carga .s-check-box { fill: var(--pulso-surface); stroke: var(--pulso-text-faint); }
+.escena-carga .s-teal-l { fill: color-mix(in srgb, var(--pulso-module-processing) 24%, var(--pulso-surface)); }
+.escena-carga .s-teal-l2 { fill: color-mix(in srgb, var(--pulso-module-processing) 42%, var(--pulso-surface)); }
+.escena-carga .s-thumb-sel { fill: var(--pulso-surface); stroke: currentColor; stroke-width: 1.6; }
+.escena-carga .s-num-chip { fill: color-mix(in srgb, var(--pulso-text) 72%, transparent); }
+.escena-carga .s-stamp { fill: var(--pulso-surface); stroke: currentColor; stroke-width: 1.6; }
+.escena-carga .s-faint-f { fill: var(--pulso-border-strong); }
+.escena-carga .s-node { fill: var(--pulso-surface); stroke: var(--pulso-border-strong); }
+.escena-carga .s-ghost { fill: var(--pulso-surface-2); stroke: var(--pulso-border-strong); stroke-dasharray: 4 3; }
+.escena-carga .s-umbral { fill: none; stroke: var(--pulso-text-faint); stroke-width: 1; stroke-dasharray: 3 3; }
+.escena-carga .s-gps-mid { fill: color-mix(in srgb, var(--pulso-primary) 50%, var(--pulso-surface)); }
+.escena-carga .s-handle { fill: var(--pulso-surface); stroke: currentColor; stroke-width: 1.4; }
+.escena-carga .s-manzana { fill: var(--pulso-surface); stroke: var(--pulso-text); stroke-width: 1.6; }
+.escena-carga .s-esquina { fill: var(--pulso-surface); stroke: currentColor; stroke-width: 1.4; }
+.escena-carga .s-tierra { fill: var(--pulso-bg); }
+.escena-carga .s-dist-blanco { fill: var(--pulso-surface); stroke: var(--pulso-text-faint); stroke-width: 1.4; }
+.escena-carga .s-completa { fill: color-mix(in srgb, var(--pulso-primary) 62%, var(--pulso-surface)); }
+
+/* --- Repertorio de movimientos: una pasada por ciclo; --k es el instante (al 80 % del ciclo, para que toda escena
+       termine completa antes de fundirse). */
+.escena-carga .a {
+  opacity: var(--op, 1);
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation-duration: var(--dur-a, 640ms);
+  animation-timing-function: var(--motion-ease-productive, ease-out);
+  animation-fill-mode: both;
+  animation-delay: calc(var(--ciclo) * var(--k, 0) * 0.8);
+}
+
+.escena-carga .a-cae { animation-name: rc-a-cae; }
+.escena-carga .a-sube { animation-name: rc-a-sube; }
+.escena-carga .a-pop { animation-name: rc-a-pop; }
+.escena-carga .a-crece { animation-name: rc-a-crece; transform-origin: 50% 100%; }
+.escena-carga .a-traza { animation-name: rc-a-traza; transform-origin: 0 50%; }
+.escena-carga .a-trazaV { animation-name: rc-a-trazaV; transform-origin: 50% 0; }
+.escena-carga .a-viaja { animation-name: rc-a-viaja; --dur-a: 900ms; }
+.escena-carga .a-atenua { animation-name: rc-a-atenua; }
+.escena-carga .a-atenua0,
+.escena-carga .a-sale { animation-name: rc-a-sale; }
+.escena-carga .a-gira { animation-name: rc-a-gira; --dur-a: 900ms; }
+.escena-carga .a-late { animation-name: rc-a-late; --dur-a: 760ms; opacity: 0; }
+.escena-carga .a-barre { animation-name: rc-a-barre; --dur-a: 1800ms; animation-timing-function: var(--motion-ease-in-out, ease-in-out); opacity: 0; }
+.escena-carga .a-barre-v { animation-name: rc-a-barre-v; --dur-a: 2000ms; animation-timing-function: var(--motion-ease-in-out, ease-in-out); opacity: 0; }
+.escena-carga .a-destella { animation-name: rc-a-destella; --dur-a: 1000ms; animation-timing-function: var(--motion-ease-in-out, ease-in-out); opacity: 0; }
+
+.escena-carga .a-pop-atenua,
+.escena-carga .a-pop-atenua0,
+.escena-carga .a-sube.pasa,
+.escena-carga .a-traza.sale2 {
+  animation-delay: calc(var(--ciclo) * var(--k, 0) * 0.8), calc(var(--ciclo) * var(--k2, 1) * 0.8);
+  animation-fill-mode: both, forwards;
+}
+
+.escena-carga .a-pop-atenua { animation-name: rc-a-pop, rc-a-atenua; }
+.escena-carga .a-pop-atenua0 { animation-name: rc-a-pop, rc-a-sale; }
+.escena-carga .a-sube.pasa { animation-name: rc-a-sube, rc-a-sale; }
+.escena-carga .a-traza.sale2 { animation-name: rc-a-traza, rc-a-sale; }
+
+@keyframes rc-a-cae { from { opacity: 0; transform: translateY(-9px); } to { opacity: var(--op, 1); transform: none; } }
+@keyframes rc-a-sube { from { opacity: 0; transform: translateY(6px); } to { opacity: var(--op, 1); transform: none; } }
+@keyframes rc-a-pop { from { opacity: 0; transform: scale(0.4); } 70% { opacity: var(--op, 1); transform: scale(1.06); } to { opacity: var(--op, 1); transform: none; } }
+@keyframes rc-a-crece { from { transform: scaleY(0); } to { transform: none; } }
+@keyframes rc-a-traza { from { transform: scaleX(0); } to { transform: none; } }
+@keyframes rc-a-trazaV { from { transform: scaleY(0); } to { transform: none; } }
+@keyframes rc-a-viaja { from { opacity: 0; transform: translate(var(--dx, 0px), var(--dy, 0px)); } 20% { opacity: var(--op, 1); } to { opacity: var(--op, 1); transform: none; } }
+@keyframes rc-a-atenua { from { opacity: var(--op, 1); } to { opacity: 0.15; } }
+@keyframes rc-a-sale { from { opacity: var(--op, 1); } to { opacity: 0; } }
+@keyframes rc-a-gira { from { opacity: 0; transform: rotate(-70deg); } to { opacity: 1; transform: none; } }
+@keyframes rc-a-late { 0% { opacity: 0; transform: none; } 30% { opacity: 0.9; } 100% { opacity: 0; transform: scale(1.06); } }
+@keyframes rc-a-barre { 0% { opacity: 0; transform: none; } 12%, 86% { opacity: 1; } 100% { opacity: 0; transform: translateX(var(--dx, 0px)); } }
+@keyframes rc-a-barre-v { 0% { opacity: 0; transform: none; } 10%, 88% { opacity: 1; } 100% { opacity: 0; transform: translateY(var(--dy, 0px)); } }
+@keyframes rc-a-destella { 0%, 100% { opacity: 0; } 25%, 70% { opacity: 1; } }
+
+/* Variante quieta: cada escena en su cuadro final y la superficie sin desplazarse. */
+@media (prefers-reduced-motion: reduce) {
+  .rc-lienzo,
+  .rc-identidad,
+  .escena-carga .a,
+  .escena-carga svg { animation: none !important; transition: none !important; }
+
+  .escena-carga .a-sale,
+  .escena-carga .a-atenua0,
+  .escena-carga .a-pop-atenua0,
+  .escena-carga .pasa,
+  .escena-carga .sale2,
+  .escena-carga .a-late,
+  .escena-carga .a-barre,
+  .escena-carga .a-barre-v,
+  .escena-carga .a-destella { opacity: 0 !important; }
+
+  .escena-carga .a-atenua,
+  .escena-carga .a-pop-atenua { opacity: 0.15 !important; }
+}

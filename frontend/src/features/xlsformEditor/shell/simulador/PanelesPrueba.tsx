@@ -3,7 +3,7 @@
 // prueba queda como antes.
 
 import { useState } from "react";
-import { ArrowRight, Check, ChevronRight } from "../../../../vendor/lucide-react";
+import { ArrowRight, Check } from "../../../../vendor/lucide-react";
 import { stripMarkdown } from "../../helpers/markdown";
 import { PanelCard, TypeIcon } from "../../kit";
 import type { RespuestaDada, SeccionRecorrido } from "./modeloRecorrido";
@@ -38,7 +38,6 @@ export function RecorridoPrueba({ secciones, onIr }: { secciones: readonly Secci
       {omitidas.length > 0 && (
         <>
           <button type="button" className="xfsp-omitidas" aria-expanded={verOmitidas} onClick={() => setVerOmitidas((v) => !v)}>
-            <ChevronRight size={13} aria-hidden="true" />
             {omitidas.length} {omitidas.length === 1 ? "no aparece" : "no aparecen"} con estas respuestas
           </button>
           {verOmitidas && (

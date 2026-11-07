@@ -115,14 +115,14 @@ const TABLA: readonly Entrada[] = [
   // UMP declarada; regresa a Fuente › Reconciliación para los enlaces viejos.
   entrada("control", "conciliacion", null, v("fuentes", "reconciliation"), { vista: "Códigos", propia: true, corte: v("calidad", "geolocalizacion") }),
   entrada("control", "conciliacion", "espacial", v("calidad", "reconciliacion"), { vista: "Sospechas espaciales" }),
-  // Faltante por UMP reemplaza a Validación › Cuotas (§3.17): la vista vieja
-  // vuelve aquí cuando un enlace interno la pide.
-  entrada("avance", "faltante", null, v("calidad", "cuotas"), { propia: true, corte: v("avance", "faltante") }),
   // Resumen cuenta los motivos de observación caso por caso: pide el corte de
   // Validación, el único con `response_audit` además de `advance`.
   entrada("avance", "resumen", null, v("avance", "resumen"), { vista: "Resumen", propia: true, corte: v("calidad", "geolocalizacion") }),
   entrada("avance", "resumen", "distritos", v("avance", "distritos"), { vista: "Distritos" }),
   entrada("avance", "resumen", "ritmo", v("avance", "ritmo"), { vista: "Ritmo diario" }),
+  // Faltante por UMP reemplaza a Validación › Cuotas (§3.17): la vista vieja
+  // vuelve aquí cuando un enlace interno la pide.
+  entrada("avance", "faltante", null, v("calidad", "cuotas"), { propia: true, corte: v("avance", "faltante") }),
   entrada("avance", "mapa", null, v("avance", "ump"), { propia: true, corte: v("avance", "mapa") }),
   entrada("avance", "umps", null, v("modelo", "tabla"), { regreso: false, propia: true, corte: v("avance", "umps") }),
   entrada("avance", "salidas", null, v("avance", "salidas")),
@@ -179,8 +179,8 @@ function d(seccion: SeccionTerritorial, pestana: string, panel: string | null = 
 
 export const SECCIONES_TERRITORIALES: readonly SeccionTerritorial[] = ["insumos", "modelo", "control", "avance"];
 
-/** Donde aterriza el modo: el faltante por UMP (procedimientos respondidos). */
-export const ATERRIZAJE_TERRITORIAL: DireccionTerritorial = d("avance", "faltante");
+/** Donde aterriza el modo: el Resumen de Avance (Gonzalo, 2026-11-02: «resumen siempre va primero»). */
+export const ATERRIZAJE_TERRITORIAL: DireccionTerritorial = d("avance", "resumen");
 
 /** Los `panel` que son sub-vistas de este modo, y no paneles superpuestos. */
 export const PANELES_DE_SUBVISTA: readonly string[] = [
@@ -199,6 +199,8 @@ const PANELES_SUPERPUESTOS: Record<string, readonly string[]> = {
   "control/bandeja": ["anular"],
   "control/equipo": ["codigo", "anular"],
   "avance/umps": ["ump"],
+  // Estándar de Salidas (4 nov 2026): el motor completo («PDF y cliente») sobre la portada.
+  "avance/salidas": ["herramientas"],
 };
 const SIN_PANELES: readonly string[] = [];
 

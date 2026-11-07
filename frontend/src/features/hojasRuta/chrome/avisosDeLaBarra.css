@@ -1,0 +1,100 @@
+/* Avisos de la barra de Hojas de ruta: un botón con su cuenta y el tono del
+ * aviso más fuerte; el panel, uno por fila con su punto de tono. */
+
+.hr-avisos-boton {
+  --hr-aviso-tono: var(--pulso-text-soft);
+  gap: 6px;
+}
+
+.hr-avisos-boton[data-tone="info"] { --hr-aviso-tono: var(--pulso-info-fg); }
+.hr-avisos-boton[data-tone="warn"] { --hr-aviso-tono: var(--pulso-warn-fg); }
+.hr-avisos-boton[data-tone="danger"] { --hr-aviso-tono: var(--pulso-danger-fg); }
+.hr-avisos-boton[data-tone="success"] { --hr-aviso-tono: var(--pulso-success-fg); }
+
+.hr-avisos-boton > svg {
+  color: var(--hr-aviso-tono);
+}
+
+.hr-avisos-cuenta {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--hr-aviso-tono);
+  color: var(--pulso-surface);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.hr-avisos-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+}
+
+.hr-avisos-item {
+  --hr-aviso-tono: var(--pulso-text-soft);
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  text-align: left;
+  white-space: normal;
+  cursor: pointer;
+}
+
+.hr-avisos-item[data-tone="info"] { --hr-aviso-tono: var(--pulso-info-fg); }
+.hr-avisos-item[data-tone="warn"] { --hr-aviso-tono: var(--pulso-warn-fg); }
+.hr-avisos-item[data-tone="danger"] { --hr-aviso-tono: var(--pulso-danger-fg); }
+.hr-avisos-item[data-tone="success"] { --hr-aviso-tono: var(--pulso-success-fg); }
+
+.hr-avisos-item:hover:not(:disabled) {
+  background: var(--pulso-surface-2);
+}
+
+.hr-avisos-item:focus-visible {
+  outline: 2px solid var(--pulso-module-routes-border);
+}
+
+.hr-avisos-item:disabled {
+  cursor: default;
+}
+
+.hr-avisos-item > i {
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: var(--hr-aviso-tono);
+}
+
+.hr-avisos-item > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.hr-avisos-item b {
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.hr-avisos-item small {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.35;
+}

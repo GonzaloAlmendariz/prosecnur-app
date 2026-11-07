@@ -1,5 +1,6 @@
 import type { CasoDeCola } from "../colaDeInsistenciaModel";
 import { diasDesde, fechaDeCola, siglaDeCuota } from "../colaDeInsistenciaModel";
+import { formatoConteo } from "../../../../lib/formatoNumero";
 
 export type ColumnasDeCola = {
   /** Rótulo de la columna de cuota que declara el estudio (Sede, Actor…). */
@@ -13,8 +14,8 @@ export type ColumnasDeCola = {
 export function telefonoDelCaso(caso: CasoDeCola): string {
   if (caso.ordenTelefono == null) return "";
   return caso.numTelefonos != null
-    ? `${caso.ordenTelefono.toLocaleString("es-PE")} de ${caso.numTelefonos.toLocaleString("es-PE")}`
-    : caso.ordenTelefono.toLocaleString("es-PE");
+    ? `${formatoConteo(caso.ordenTelefono)} de ${formatoConteo(caso.numTelefonos)}`
+    : formatoConteo(caso.ordenTelefono);
 }
 
 /**
@@ -81,7 +82,7 @@ export function TablaDeCola({
                   </button>
                 </th>
                 <td className="mon-cola-intentos">
-                  <b>{caso.intentos == null ? "—" : caso.intentos.toLocaleString("es-PE")}</b>
+                  <b>{caso.intentos == null ? "—" : formatoConteo(caso.intentos)}</b>
                   <i aria-hidden="true" style={{ width: `${((caso.intentos ?? 0) / maximo) * 100}%` }} />
                 </td>
                 <td title={caso.status || undefined}>

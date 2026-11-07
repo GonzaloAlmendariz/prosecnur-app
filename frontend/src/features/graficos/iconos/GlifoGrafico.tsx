@@ -4,6 +4,7 @@
 
 import { useId, type CSSProperties } from "react";
 import { dibujoGlifo, GLIFO, type OpcionesGlifo } from "./glifosGrafico";
+import "../../../app/tokens-datos.css";
 import "./glifoGrafico.css";
 
 /** El dibujo sin su `<svg>`, en el espacio 160 × 100; un tipo desconocido es una ranura punteada. */

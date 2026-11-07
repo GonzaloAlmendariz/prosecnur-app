@@ -402,7 +402,7 @@ reporte_ppt_plan <- function(
     } else {
       base_args$color_titulo_slide
     }
-    color <- color %||% .std_color("coral")
+    color <- color %||% .lam_portada_titulo_color_defecto(is_cover_title, opened_template_path)   # ítem 26: portada azul (lamina_portada_plantilla.R)
     color <- as.character(color)[1]
     if (is.na(color) || !nzchar(trimws(color))) color <- .std_color("coral")
 
@@ -3139,7 +3139,7 @@ reporte_ppt_plan <- function(
 
     if (length(srcs_used) == 1L) {
       src <- srcs_used[1]
-      first_ref <- refs[match(src, vapply(ctxs, `[[`, character(1), "source"))]
+      first_ref <- .base_ref_de_mayor_n(refs[vapply(ctxs, `[[`, character(1), "source") == src], function(r) .tab_freq(r, filtros = filtros, source = src))   # la de mayor N (reporte_plan_base_mayor.R)
 
       # Si el reporte completo usa multiples BBDD, la base automatica debe
       # rotularse por fuente (igual que en PPT), incluso cuando el grafico
@@ -3174,8 +3174,8 @@ reporte_ppt_plan <- function(
     parts <- character(0)
     alguna_reducida <- FALSE
     for (src in srcs_used) {
-      idx <- which(vapply(ctxs, `[[`, character(1), "source") == src)[1]
-      ref_src <- refs[idx]
+      idx <- which(vapply(ctxs, `[[`, character(1), "source") == src)[1]; ref_src <- .base_ref_de_mayor_n(refs[vapply(ctxs, `[[`, character(1), "source") == src], function(r) .tab_freq(r, filtros = filtros, source = src))   # la de mayor N
+
       ctx_ref <- tryCatch(.resolve_ref(ref_src, source = src, arg_name = "var"), error = function(e) NULL)
       excluir_src <- if (is.null(ctx_ref)) excluir_opciones else .exclusion_for_ctx(ctx_ref, excluir_opciones)
       tab <- .tab_freq(ref_src, filtros = filtros, source = src)
@@ -3255,7 +3255,7 @@ reporte_ppt_plan <- function(
     # Apiladas, multiapiladas y agrupadas (G-17) ya NO imprimen caption
     # propio, asi que su base de slide vuelve. Los etypes que aun llevan
     # caption en el grafico (categoricas/pie/donut) siguen suprimidos.
-    if (etype %in% c("barras_categoricas", "pie", "donut")) return(NULL)
+    if (etype %in% c("barras_categoricas", "pie", "donut") && !(.base_es_para_word() && etype %in% c("pie", "donut"))) return(NULL)   # la dona del Word no trae la base en su imagen (graficos_base_word.R)
     excluir_base <- switch(
       etype,
       barras_multiapiladas = .reporte_plan_excluir_cascada(
@@ -3673,7 +3673,7 @@ reporte_ppt_plan <- function(
     }
 
     if (identical(etype, "filtro_subpregunta") && !is.null(pzs <- .word_filtro_sub_piezas(el, plot))) { for (pz in pzs) .push_render_meta_for_element(pz$el, pz$plot); return(invisible(NULL)) }   # el filtro y su subpregunta: dos figuras en el Word (reporte_word_filtro_sub.R); si no, ELEMENTO NORMAL
-    title <- .word_titulo_una_pregunta(el, .word_title_for_element(el), function(ref, src) .word_clean_inferred_title(.plan_con_etiquetas_cortas(el, .title_of_var(ref, source = src))))  # criterio B: una premisa, su enunciado (reporte_word_publico_barra.R)
+    title <- .word_titulo_con_subtitulo(.word_titulo_una_pregunta(el, .word_title_for_element(el), function(ref, src) .word_clean_inferred_title(.plan_con_etiquetas_cortas(el, .title_of_var(ref, source = src)))), el$.word_subtitulo)  # criterio B: una premisa, su enunciado (reporte_word_publico_barra.R); + subtítulo de la lámina
 
     word_note <- .plot_note_from(plot, el$overrides$nota_pie %||% el$nota_pie %||% NULL)
 
@@ -3687,7 +3687,7 @@ reporte_ppt_plan <- function(
     p_word <- .word_publico_marcar(tryCatch(.render_element_impl(el_for_word), error = function(e) plot), el)   # R2: el público a la izquierda (reporte_word_publico_una_barra.R)
 
     base <- tryCatch(
-      .base_auto_from_element(el, sufijo_auto = suf, formato = fmt),
+      .base_para_word(.base_auto_from_element(el, sufijo_auto = suf, formato = fmt)),
       error = function(e) NULL
     )
 
@@ -4865,7 +4865,7 @@ reporte_ppt_plan <- function(
         alpha             = overrides$significancia_alpha %||%
                             preset_args_multi$significancia_alpha %||%
                             preset_args_single$significancia_alpha %||% 0.05,
-        diseno            = .graficos_sig_diseno_de_fuente(ctx_var$instrumento, var)
+        diseno            = .sig_fuente_render(ctx_var, environment())   # ADR 0128: microdatos del render (graficos_significancia_render.R)
       )
       nota_sig <- base_args$nota_pie_significancia
       base_args$nota_pie_significancia <- NULL
@@ -5474,17 +5474,8 @@ reporte_ppt_plan <- function(
       }
     }
 
-    # Detectar si la variable es select_multiple -> agregar subtitulo destacado.
-    if (is.null(overrides$subtitulo)) {
-      ctx_v <- tryCatch(.resolve_ref(var, arg_name = "var"), error = function(e) NULL)
-      if (!is.null(ctx_v) && !is.null(ctx_v$survey) && all(c("type", "name") %in% names(ctx_v$survey))) {
-        mask <- !is.na(ctx_v$survey$name) & ctx_v$survey$name == ctx_v$var
-        tps  <- unique(stats::na.omit(ctx_v$survey$type[mask]))
-        if (any(grepl("^select_multiple(\\s|$)", tps))) {
-          overrides <- .ppt_multiple_choice_notice_overrides(overrides)
-        }
-      }
-    }
+    # La opción múltiple ya no lleva subtítulo de fábrica («% de encuestados que marcó cada opción»; Gonzalo,
+    # 2026-10-29): si el analista escribe uno, sale el suyo.
 
     if (!exists("graficar_barras_agrupadas", mode = "function", inherits = TRUE)) {
       stop("No existe `graficar_barras_agrupadas()` en el entorno/paquete.", call. = FALSE)
@@ -5552,7 +5543,7 @@ reporte_ppt_plan <- function(
       etiquetas_series = etiquetas_series,
       activo           = isTRUE(overrides$mostrar_significancia %||% preset_args$mostrar_significancia),
       alpha            = overrides$significancia_alpha %||% preset_args$significancia_alpha %||% 0.05,
-      diseno           = .graficos_sig_diseno_de_fuente(ctx_var$instrumento, ctx_var$var)
+      diseno           = .sig_fuente_render(ctx_var, environment())   # ADR 0128: microdatos del render (graficos_significancia_render.R)
     )
     nota_significancia <- base_args$nota_pie_significancia
     base_args$nota_pie_significancia <- NULL
@@ -7040,7 +7031,7 @@ reporte_ppt_plan <- function(
             sub,
             contract$slots$subtitle,
             color = base_args$color_subtitulo_portada %||% base_args$color_subtitulo %||% .std_color("azul"),
-            font_size = base_args$size_subtitulo_portada %||% base_args$size_subtitulo_slide %||% 16,
+            font_size = base_args$size_subtitulo_portada %||% .lam_portada_rotulo_plantilla_pt(),   # G1: 20 pt (size_subtitulo_slide es de las láminas de texto)
             font_family = base_args$font_family_subtitulo_portada %||% base_args$font_family_portada %||%
               base_args$font_family_ppt %||% base_args$font_family,
             bold = TRUE,
@@ -7050,10 +7041,10 @@ reporte_ppt_plan <- function(
           )
         }
         if (!is.null(dt) && nzchar(trimws(dt))) {
-          doc <- .ph_with_strict(doc, dt, contract$slots$date)
+          doc <- .ph_with_strict(doc, .lam_portada_fecha_valor(dt, opened_template_path), .lam_portada_slot_plantilla(contract$slots$date, "date", opened_template_path))   # ítem 26: orden de Conta
         }
         if (!is.null(stx) && nzchar(trimws(stx))) {
-          doc <- .ph_with_strict(doc, stx, contract$slots$subtexto)
+          doc <- .ph_with_strict(doc, .lam_portada_encargo_valor(stx, opened_template_path), .lam_portada_slot_plantilla(contract$slots$subtexto, "subtexto", opened_template_path))
         }
       }
 
@@ -7842,7 +7833,7 @@ reporte_ppt_plan <- function(
         if (!is.null(title_slide) && is.null(el_plot$title_slide)) {
           el_plot$title_slide <- title_slide
         }
-        .push_render_meta_for_element(el_plot, p)
+        el_plot$.word_subtitulo <- subtitle_slide; .push_render_meta_for_element(el_plot, p)   # el subtítulo entra al rótulo Word (reporte_word_rotulo_subtitulo.R)
       }
 
       # Resolver titulo del slide si no viene

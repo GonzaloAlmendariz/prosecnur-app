@@ -5,6 +5,7 @@
  * (universidad / facultad) con su toggle "incluir en reporte" y un solo badge
  * de procedencia por tabla.
  */
+import { Calculator } from "lucide-react";
 import type {
   CalcMuestraComponente,
   CalcMuestraWorkspace,
@@ -22,6 +23,8 @@ import {
 } from "../shared/study";
 import "../../didactica/didactica.css";
 import "./salidas.css";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
+import { Panel } from "../../../../components/Panel";
 
 export function salidasChartComponent(
   componentes: readonly CalcMuestraComponente[],
@@ -59,10 +62,7 @@ export function SalidasResultadosTab({
     >
       {chartComp && <DistribucionFacultadSexo resultado={chartComp.resultado} />}
 
-      <section className="cmv2-panel cmv2-sal-panel cmv2-university-results" aria-label="Tablas de cierre por componente">
-        <div className="cmv2-panel-head">
-          <strong>Tablas de salida</strong>
-        </div>
+      <Panel className="cmv2-sal-panel cmv2-university-results" aria-label="Tablas de cierre por componente" title="Tablas de salida">
         <div className="cmv2-results-stack">
           {componentes.map((comp) => {
             const scenario = scenarios.find((e) => e.component_id === comp.id);
@@ -94,7 +94,11 @@ export function SalidasResultadosTab({
                   />
                 </div>
                 {rows.length === 0 ? (
-                  <div className="cmv2-result-empty">Pendiente de cálculo</div>
+                  <EstadoVacio
+                    icono={<Calculator size={16} aria-hidden="true" />}
+                    titulo="Pendiente de cálculo"
+                    descripcion="Las cuotas de este componente aparecen al calcular la propuesta."
+                  />
                 ) : (
                   <div className="cmv2-table-wrap">
                     <table className="cmv2-table cmv2-table--university">
@@ -138,7 +142,7 @@ export function SalidasResultadosTab({
             );
           })}
         </div>
-      </section>
+      </Panel>
     </div>
   );
 }

@@ -109,7 +109,7 @@ export function resumenOpciones(opciones: readonly OpcionBase[], max = 3): strin
   if (opciones.length === 0) return "";
   const vistas = opciones.slice(0, max).map((o) => (o.etiqueta && o.etiqueta !== o.codigo ? `${o.codigo} ${o.etiqueta}` : o.codigo));
   const resto = opciones.length - vistas.length;
-  return resto > 0 ? `${vistas.join(" · ")} · +${resto}` : vistas.join(" · ");
+  return resto > 0 ? `${vistas.join(", ")}, +${resto}` : vistas.join(", ");
 }
 
 /** Opciones que sólo traen el código (lo usual al venir de un Excel). */
@@ -134,7 +134,7 @@ export function reglaLegible(c: Pick<VariableCalculada, "regla" | "variables" | 
     return `Recodifica ${origen} en ${formatoConteoDe(c.escala.length, "categoría", "categorías")}`;
   }
   const cuantas = c.variables.length === 1 ? c.variables[0] : `Alguna de ${formatoConteo(c.variables.length)} preguntas`;
-  return c.codigos.length ? `${cuantas} · sí = ${textoDeCodigos(c.codigos)}` : cuantas;
+  return c.codigos.length ? `${cuantas}, sí = ${textoDeCodigos(c.codigos)}` : cuantas;
 }
 
 /** «Sí 120 · No 300 · Sin dato 5»; una fórmula: «Con valor 2.400 · de 0 a 19 · Sin dato 5». */
@@ -143,12 +143,12 @@ export function textoResumen(r: ResumenCalculada): string {
     const { n_validos, minimo, maximo } = r.numerico;
     const rango = minimo === null || maximo === null
       ? ""
-      : minimo === maximo ? ` · ${formatoNumeroCorto(minimo)}` : ` · de ${formatoNumeroCorto(minimo)} a ${formatoNumeroCorto(maximo)}`;
-    return `Con valor ${formatoConteo(n_validos)}${rango} · Sin dato ${formatoConteo(r.n_sin_dato)}`;
+      : minimo === maximo ? `, ${formatoNumeroCorto(minimo)}` : `, de ${formatoNumeroCorto(minimo)} a ${formatoNumeroCorto(maximo)}`;
+    return `Con valor ${formatoConteo(n_validos)}${rango}, Sin dato ${formatoConteo(r.n_sin_dato)}`;
   }
   const partes = r.por_codigo.map((f) => `${f.etiqueta || f.codigo} ${formatoConteo(f.n)}`);
   partes.push(`Sin dato ${formatoConteo(r.n_sin_dato)}`);
-  return partes.join(" · ");
+  return partes.join(", ");
 }
 
 // ---------------------------------------------------------------------------

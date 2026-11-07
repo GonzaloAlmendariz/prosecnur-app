@@ -13,7 +13,7 @@
   height: 100%;
   min-height: 0;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .acr-cr-principal,
@@ -59,7 +59,7 @@
 .acr-cr-nodo.is-sin-respuesta { fill: var(--acr-sin-respuesta); }
 
 .acr-cr-rotulo {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   paint-order: stroke;
   stroke: var(--pulso-surface);
   stroke-width: 3px;
@@ -148,4 +148,38 @@
 
   .acr-cr-listas,
   .acr-cr-pila { overflow: visible; }
+}
+
+/* «Cómo se cruzó»: las lecturas de una sola categoría como datos, no como barras al 100 %. */
+.acr-cr-datos {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-4) var(--pulso-space-4);
+}
+
+.acr-cr-datos > div {
+  display: grid;
+  gap: 2px;
+  padding: var(--pulso-space-2) 0;
+}
+
+.acr-cr-datos > div + div {
+  border-top: 1px solid var(--pulso-surface-3);
+}
+
+.acr-cr-datos dt {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.acr-cr-datos dd {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  font-size: var(--pulso-type-body-size);
 }

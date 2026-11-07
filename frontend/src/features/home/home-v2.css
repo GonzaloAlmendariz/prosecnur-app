@@ -45,7 +45,7 @@
 }
 
 .home-cinema-arrow:active {
-  transform: scale(0.96);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .home-cinema-arrow:focus-visible,
@@ -145,7 +145,7 @@
 
 .home-cinema .home-cinema-card.is-focused .home-cinema-card-tagline {
   margin: 0;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.3;
   color: var(--home-mod-accent, var(--pulso-primary));
@@ -155,7 +155,7 @@
 .home-cinema .home-cinema-card.is-focused .home-cinema-card-blurb {
   margin: 0;
   max-width: 48ch;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.5;
   color: var(--pulso-text-soft);
   text-wrap: pretty;
@@ -166,8 +166,7 @@
 }
 
 /* Acción centrada al pie de la ficha. */
-.home-cinema .home-cinema-card.is-focused .home-cinema-cta,
-.home-cinema .home-cinema-card.is-focused .home-cinema-picker-actions {
+.home-cinema .home-cinema-card.is-focused .home-cinema-cta {
   margin-top: 5px;
   align-self: center;
   width: auto;
@@ -223,10 +222,12 @@
 }
 
 .home-cinema-cta:hover {
-  transform: translateY(-1px);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.32),
     0 13px 26px color-mix(in srgb, var(--home-mod-accent, var(--pulso-primary)) 24%, transparent);
+}
+@media (hover: hover) and (pointer: fine) {
+  .home-cinema-cta:hover { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 .home-cinema-cta:hover svg {
@@ -234,9 +235,8 @@
 }
 
 .home-cinema-cta:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
-
 
 .home-cinema-dot::after {
   content: "";
@@ -278,7 +278,7 @@
 }
 
 .home-cinema-dot:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .home-footer-quit:hover {
@@ -288,7 +288,7 @@
 }
 
 .home-footer-quit:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .home-footer-notes:hover {
@@ -298,7 +298,7 @@
 }
 
 .home-footer-notes:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 :root[data-pulso-layout-preset="portable-compact"] .home-cinema,
@@ -324,34 +324,6 @@
   padding: 15px;
   gap: 6px;
   border-radius: 16px;
-}
-
-:root[data-pulso-layout-preset="portable-compact"] .home-cinema-panel,
-:root[data-pulso-layout-preset="compact"] .home-cinema-panel {
-  height: 100%;
-  min-height: 246px;
-  max-height: none;
-  padding: 12px;
-  gap: 7px;
-  border-radius: 16px;
-}
-
-:root[data-pulso-layout-preset="portable-compact"] .home-cinema-panel h3,
-:root[data-pulso-layout-preset="compact"] .home-cinema-panel h3 {
-  font-size: 18px;
-}
-
-:root[data-pulso-layout-preset="portable-compact"] .home-cinema-panel-blurb,
-:root[data-pulso-layout-preset="compact"] .home-cinema-panel-blurb {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-:root[data-pulso-layout-preset="portable-compact"] .home-cinema-feature-list,
-:root[data-pulso-layout-preset="compact"] .home-cinema-feature-list {
-  display: none;
 }
 
 :root[data-pulso-layout-preset="short"] .home-cinema {
@@ -384,38 +356,10 @@
   border-radius: 16px;
 }
 
-:root[data-pulso-layout-preset="short"] .home-cinema-panel {
-  min-height: 0;
-  max-height: 228px;
-  padding: 12px;
-  gap: 6px;
-  border-radius: 16px;
-}
-
 :root[data-pulso-layout-preset="short"] .home-cinema-card.is-focused .home-cinema-card-icon {
   width: 54px;
   height: 54px;
   border-radius: 16px;
-}
-
-:root[data-pulso-layout-preset="short"] .home-cinema-card-title {
-  width: min(100%, 210px);
-  font-size: 17px;
-}
-
-:root[data-pulso-layout-preset="short"] .home-cinema-panel h3 {
-  font-size: 18px;
-}
-
-:root[data-pulso-layout-preset="short"] .home-cinema-panel-blurb {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-:root[data-pulso-layout-preset="short"] .home-cinema-feature-list {
-  display: none;
 }
 
 /* Banda de alto medio: no es "short", pero ya no cabe la ficha roomy completa.
@@ -428,64 +372,8 @@
     min-height: 0;
   }
 
-  .home-cinema-panel,
-  :root[data-pulso-layout-preset="large"] .home-cinema-panel,
-  :root[data-pulso-layout-preset="portable"] .home-cinema-panel {
-    height: 100%;
-    min-height: 0;
-    max-height: none;
-    justify-content: center;
-    gap: 8px;
-    padding: 16px;
-  }
-
-  .home-cinema-panel > * {
-    width: min(100%, 520px);
-  }
-
-  .home-cinema-panel-icon,
-  :root[data-pulso-layout-preset="large"] .home-cinema-panel-icon {
-    width: 52px;
-    height: 52px;
-    border-radius: 15px;
-  }
-
-  .home-cinema-panel-icon svg {
-    width: 30px;
-    height: 30px;
-  }
-
-  .home-cinema-panel h3,
-  :root[data-pulso-layout-preset="large"] .home-cinema-panel h3 {
-    font-size: 22px;
-    line-height: 1.08;
-  }
-
-  .home-cinema-panel-tagline {
-    font-size: 12.5px;
-    line-height: 1.28;
-  }
-
-  .home-cinema-panel-blurb,
-  :root[data-pulso-layout-preset="large"] .home-cinema-panel-blurb {
-    display: -webkit-box;
-    max-width: 520px;
-    font-size: 12px;
-    line-height: 1.38;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .home-cinema-feature-list,
-  :root[data-pulso-layout-preset="large"] .home-cinema-feature-list {
-    display: none;
-  }
-
   .home-cinema-cta,
-  :root[data-pulso-layout-preset="large"] .home-cinema-cta,
-  .home-cinema-soon,
-  :root[data-pulso-layout-preset="large"] .home-cinema-soon {
+:root[data-pulso-layout-preset="large"] .home-cinema-cta {
     margin-top: 4px;
   }
 
@@ -503,11 +391,6 @@
   .home-cinema-card.is-focused .home-cinema-card-icon svg {
     width: 40px;
     height: 40px;
-  }
-
-  .home-cinema-card-title {
-    width: min(100%, 230px);
-    font-size: 20px;
   }
 
   .home-cinema-card-blurb {
@@ -550,11 +433,12 @@
   }
 
   .home-cinema-card-name {
+    /* L29, excepción declarada: título de presentación entre `title` (16) y `display` (28). */
     font-size: 20px;
   }
 
   .home-cinema .home-cinema-card.is-focused .home-cinema-card-tagline {
-    font-size: 12px;
+    font-size: var(--pulso-type-caption-size);
   }
 
   .home-cinema .home-cinema-card.is-focused .home-cinema-card-blurb {
@@ -572,12 +456,11 @@
   .home-cinema-card-features li {
     min-height: 30px;
     padding: 5px 10px;
-    font-size: 11px;
+    font-size: var(--pulso-type-caption-size);
     line-height: 1.2;
   }
 
-  .home-cinema .home-cinema-card.is-focused .home-cinema-cta,
-  .home-cinema .home-cinema-card.is-focused .home-cinema-picker-actions {
+  .home-cinema .home-cinema-card.is-focused .home-cinema-cta {
     margin-top: 2px;
   }
 }
@@ -600,16 +483,6 @@
   animation: home-settings-dialog-in var(--motion-dur-panel) var(--motion-ease-productive) both;
 }
 
-.home-settings-head {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: center;
-  padding: 18px 20px 14px;
-  border-bottom: 1px solid var(--pulso-border);
-  background: linear-gradient(180deg, var(--pulso-surface), var(--pulso-surface-2));
-}
-
 .home-settings-icon {
   width: 36px;
   height: 36px;
@@ -620,60 +493,6 @@
   color: var(--pulso-primary);
   background: var(--pulso-primary-soft);
   border: 1px solid var(--pulso-primary-border);
-}
-
-.home-settings-head h3 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: var(--pulso-weight-bold);
-  color: var(--pulso-primary);
-}
-
-.home-settings-tabs {
-  display: flex;
-  gap: 4px;
-  padding: 10px 20px;
-  border-bottom: 1px solid var(--pulso-border);
-  background: var(--pulso-surface-2);
-}
-
-.home-settings-tabs button {
-  min-height: 30px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  padding: 5px 10px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--pulso-text-soft);
-  background: transparent;
-  font-size: 12px;
-  font-weight: var(--pulso-weight-semibold);
-  cursor: pointer;
-}
-
-.home-settings-tabs button span {
-  min-width: 0;
-  padding: 1px 6px;
-  border-radius: 999px;
-  color: var(--pulso-text-soft);
-  background: var(--pulso-surface);
-  border: 1px solid var(--pulso-border);
-  font-size: 10px;
-  font-weight: var(--pulso-weight-bold);
-}
-
-.home-settings-tabs button.is-active {
-  color: var(--pulso-primary);
-  border-color: var(--pulso-primary-border);
-  background: var(--pulso-surface);
-  box-shadow: var(--pulso-shadow-low);
-}
-
-.home-settings-tabs button.is-active span {
-  color: var(--pulso-primary);
-  background: var(--pulso-primary-soft);
-  border-color: var(--pulso-primary-border);
 }
 
 .home-settings-body {
@@ -687,7 +506,7 @@
   align-items: flex-start;
   gap: 8px;
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
 }
 
@@ -745,7 +564,7 @@
 }
 
 .home-layout-preset:active {
-  transform: scale(0.99);
+  transform: scale(var(--mov-press-tarjeta, 0.985));
 }
 
 .home-layout-preset.is-active {
@@ -771,33 +590,6 @@
 .home-layout-preset.is-active .home-layout-preset-check {
   border-color: var(--pulso-primary);
   background: var(--pulso-primary);
-}
-
-.home-layout-preset-current {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 40px;
-  padding: 9px 11px;
-  border: 1px solid var(--pulso-primary-border);
-  border-radius: 8px;
-  color: var(--pulso-primary);
-  background: var(--pulso-primary-soft);
-}
-
-.home-layout-preset-current span {
-  font-size: 10px;
-  font-weight: var(--pulso-weight-heavy);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.home-layout-preset-current strong {
-  min-width: 0;
-  font-size: 12px;
-  font-weight: var(--pulso-weight-heavy);
-  text-align: right;
 }
 
 .home-connection-list {
@@ -833,15 +625,6 @@
     max-height: calc(100vh - 20px);
   }
 
-  .home-settings-head {
-    padding: 14px;
-  }
-
-  .home-settings-tabs {
-    padding: 8px 14px;
-    overflow-x: auto;
-  }
-
   .home-settings-body {
     padding: 14px;
   }
@@ -858,14 +641,6 @@
     grid-template-columns: 1fr;
   }
 
-  .home-layout-preset-current {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .home-layout-preset-current strong {
-    text-align: left;
-  }
 }
 
 /* =============================================================================
@@ -876,39 +651,12 @@
  * superficie glass, entrada con stagger sutil. Sin cambios de layout.
  * ========================================================================= */
 
-@keyframes homev2-fade-in-up {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
 /* El panel se remonta en cada cambio de foco (key=slug); un fade+lift sutil lo
    re-revela como transición fluida en vez de un salto de contenido. */
 @keyframes homev2-panel-in {
   from { opacity: 0; transform: translateY(5px) scale(0.994); }
   to   { opacity: 1; transform: none; }
 }
-
-/* ── Panel de detalle — superficie glass de la base ────────────────────── */
-
-.home-wrap .home-cinema-panel {
-  background:
-    radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--home-mod-accent-soft, var(--pulso-primary-soft)) 52%, transparent) 0 24%, transparent 58%),
-    color-mix(in srgb, var(--pulso-surface) 88%, transparent);
-  backdrop-filter: blur(10px) saturate(1.08);
-  -webkit-backdrop-filter: blur(10px) saturate(1.08);
-  border-color: color-mix(in srgb, var(--home-mod-accent-border, var(--pulso-primary-border)) 62%, var(--pulso-border));
-  animation: homev2-panel-in 340ms cubic-bezier(0.32, 0.72, 0, 1) both;
-}
-
-/* Lista de features del módulo enfocado — stagger sutil (máx 5 ítems) */
-.home-wrap .home-cinema-feature-list li {
-  animation: homev2-fade-in-up var(--motion-dur-base) var(--motion-ease-out) both;
-}
-
-.home-wrap .home-cinema-feature-list li:nth-child(2) { animation-delay: 35ms; }
-.home-wrap .home-cinema-feature-list li:nth-child(3) { animation-delay: 70ms; }
-.home-wrap .home-cinema-feature-list li:nth-child(4) { animation-delay: 105ms; }
-.home-wrap .home-cinema-feature-list li:nth-child(n + 5) { animation-delay: 140ms; }
 
 /* Microcopy sobre párrafos: en alturas cortas la tarjeta no tiene espacio
    para el blurb (el grid lo recorta a media línea). Se oculta y el panel
@@ -930,7 +678,7 @@
 }
 
 .home-wrap .home-cinema-cta:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 /* ── Strip de módulos → contenedor y dots pill ─────────────────────────── */
@@ -941,7 +689,7 @@
 
 .home-wrap .home-cinema-dot {
   border-radius: 999px;
-  animation: homev2-fade-in-up var(--motion-dur-base) var(--motion-ease-out) both;
+  animation: pulso-mov-sube var(--motion-dur-base) var(--motion-ease-out) both;
 }
 
 .home-wrap .home-cinema-dot:nth-child(2) { animation-delay: 30ms; }
@@ -951,7 +699,7 @@
 .home-wrap .home-cinema-dot:nth-child(n + 6) { animation-delay: 150ms; }
 
 .home-wrap .home-cinema-dot:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .home-wrap .home-cinema-arrow {
@@ -978,7 +726,7 @@
 
 .home-wrap .home-footer-notes:active,
 .home-wrap .home-footer-quit:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 /* ── Accesibilidad ─────────────────────────────────────────────────────── */
@@ -993,8 +741,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .home-wrap .home-cinema-feature-list li,
-  .home-wrap .home-cinema-panel,
   .home-wrap .home-cinema-dot {
     animation: none !important;
   }
@@ -1036,7 +782,11 @@
      pocos módulos, media pantalla vacía debajo del bloque se leía como que
      faltaba algo. Centrado, el aire se lee como margen. */
   flex: 1 1 auto;
-  justify-content: center;
+  /* `safe`: cuando las tarjetas no caben (1024×600), el desborde va abajo,
+     donde el scroll de .home-suite lo alcanza. Con `center` a secas se
+     repartía arriba y la primera fila quedaba cortada sin forma de llegar a
+     ella (L12; censo 2026-10-10, hallazgo 15d). */
+  justify-content: safe center;
   min-height: 0;
   width: 100%;
   /* Llena el ancho disponible (solo el padding base del layout como margen);
@@ -1044,50 +794,14 @@
      estiran (1fr) y muchas suman columnas — el tamaño lo modula data-density. */
   max-width: min(2160px, 100%);
   align-self: center;
-}
-
-/* Cabecera de una sola línea. El titular grande costaba ~65px de alto que las
-   tarjetas necesitan para caber sin scroll, y duplicaba el nombre que ya
-   muestra el chip del topbar. */
-.home-mission-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 0 2px;
-  min-width: 0;
-}
-
-.home-mission-id {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 0 10px;
-  min-width: 0;
-}
-
-.home-mission-title {
-  margin: 0;
-  font-size: 14.5px;
-  font-weight: var(--pulso-weight-semibold);
-  line-height: 1.3;
-  letter-spacing: -0.012em;
-}
-
-.home-mission-client {
-  margin: 0;
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  min-width: 0;
-  color: var(--pulso-text-faint);
-  font-size: 12px;
-  font-weight: var(--pulso-weight-medium);
-}
-
-.home-mission-meta-dot {
-  margin: 0 7px;
-  color: var(--pulso-text-faint);
+  /* 5 nov 2026 (Gonzalo: «que ocupe mejor el espacio»): la columna crece con la ventana (400 → 500 px) y la
+     fila con el alto (hasta 330 px), repartido entre las filas que hay. A 1710×1107 la grilla pasaba de
+     1200×478 (30 % de la ventana) a ~1500×700. El piso sigue siendo el de cada densidad. */
+  --home-ancho-col: clamp(400px, 28vw, 500px);
+  /* 6 nov 2026: sin restas fijas sobre 100vh (no conocían el alto real de la cabecera ni del pie y a ~823 px
+     de alto la grilla se pasaba y aparecía scroll). La grilla toma el espacio que queda (flex) y reparte sus
+     filas en partes iguales (1fr), con techo por fila para que en pantallas altas no queden tarjetas vacías. */
+  --home-fila-techo: 330px;
 }
 
 /* --- Métricas headline: banda única con divisores hairline ------------ */
@@ -1100,36 +814,6 @@
   overflow: hidden;
   background: var(--pulso-border);
   box-shadow: 0 1px 2px rgba(0, 36, 87, 0.04);
-}
-
-.home-mc-stat-tile {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-rows: auto auto;
-  align-items: center;
-  column-gap: 9px;
-  padding: 12px 16px;
-  background: var(--pulso-surface);
-}
-
-.home-mc-stat-tile > svg {
-  grid-row: 1 / span 2;
-  color: var(--pulso-text-soft);
-}
-
-.home-mc-stat-tile-value {
-  font-size: 18px;
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1.1;
-  letter-spacing: -0.01em;
-}
-
-.home-mc-stat-tile-label {
-  color: var(--pulso-text-faint);
-  font-size: 10.5px;
-  font-weight: var(--pulso-weight-bold);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
 }
 
 /* --- Grid de tarjetas por módulo (adaptativo al número) -------------- */
@@ -1152,12 +836,20 @@
   align-items: stretch;
   align-content: start;
   grid-template-columns: repeat(var(--home-cols, 4), minmax(0, 1fr));
-  grid-auto-rows: minmax(0, auto);
+  /* Todas las filas al alto de la más alta: el grupo declara contrato «equal» y una
+     fila con el pie en dos renglones medía 2.7 px más que la otra (1024 px). */
+  /* Piso = el de la tarjeta (densidad): si de verdad no cabe (1024×600), la suite hace scroll; nunca se pisan. */
+  grid-auto-rows: minmax(222px, 1fr);
   gap: 14px;
+  width: 100%;
+  /* Ocupa lo que deja la cabecera dentro de .home-mission (flex columna) y no más que N filas de techo. */
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: calc(var(--home-filas, 2) * var(--home-fila-techo, 330px) + (var(--home-filas, 2) - 1) * 14px);
   /* Techo por columna: con dos módulos, repartir todo el ancho daba tarjetas
      de 715px con el contenido flotando en el medio. La tarjeta tiene un ancho
      cómodo (~400) y de ahí no crece; el sobrante se vuelve margen centrado. */
-  max-width: calc(var(--home-cols, 4) * 400px);
+  max-width: calc(var(--home-cols, 4) * var(--home-ancho-col, 400px));
   margin-inline: auto;
 }
 
@@ -1228,11 +920,12 @@
 /* Piso de legibilidad, no altura de diseño: el alto real lo reparte
    grid-auto-rows. Con 8 módulos en 2 filas el piso debe caber en la mitad del
    área visible (544px a 1280x720), por eso `dense` baja a 232px. */
-.home-mission-grid[data-density="spacious"] .home-mc-card { min-height: 216px; }
-.home-mission-grid[data-density="balanced"] .home-mc-card { min-height: 208px; }
-.home-mission-grid[data-density="dense"] .home-mc-card { min-height: 200px; }
+.home-mission-grid[data-density="spacious"] .home-mc-card { min-height: 238px; }
+.home-mission-grid[data-density="balanced"] .home-mc-card { min-height: 230px; }
+/* +22 px desde L31: el renglón de la siguiente acción, reservado en todas. */
+.home-mission-grid[data-density="dense"] .home-mc-card { min-height: 222px; }
 
-.home-mc-card:active { transform: scale(0.995); }
+.home-mc-card:active { transform: scale(var(--mov-press-tarjeta, 0.985)); }
 
 /* El estado NO tiñe el marco. Pintar el borde completo de verde/ámbar hacía
    que ocho tarjetas juntas se leyeran como un semáforo desordenado y competía
@@ -1281,8 +974,7 @@
       0 1px 1px rgba(0, 36, 87, 0.05),
       0 10px 24px -8px color-mix(in srgb, var(--home-mod-accent, var(--pulso-primary)) 30%, transparent);
   }
-  .home-mc-card:hover .home-mc-cta-arrow { transform: translateX(2px); }
-  .home-mc-card:hover .home-mc-cta { color: var(--home-mod-accent, var(--pulso-primary)); }
+
 }
 
 .home-mc-head,
@@ -1354,7 +1046,7 @@
 /* Ramp del kit macOS 26: 13 Body para el nombre del módulo, 11 Subheadline
    para la descripción. Nada de tamaños con decimales afinados a ojo. */
 .home-mc-head-text strong {
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.25;
   letter-spacing: -0.006em;
@@ -1363,13 +1055,18 @@
 /* La tagline describe el módulo, no su estado: con la tarjeta compacta se
    limita a una línea para que no empuje la cifra. */
 .home-mc-tagline {
+  /* Dos renglones antes de cortar: en una línea, a 1440 la descripción ya se
+     cortaba a media palabra («…selección de unidad…»), justo lo que la regla de
+     arriba evita. Las filas se igualan entre sí (grid-auto-rows: 1fr). */
+  display: -webkit-box;
   overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
   color: var(--pulso-text-faint);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-regular);
   line-height: 1.3;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .home-mc-signals {
@@ -1429,7 +1126,7 @@
   background: transparent;
   color: inherit;
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   text-align: left;
   cursor: pointer;
@@ -1456,20 +1153,20 @@
 .home-mc-menu-progress > span,
 .home-mc-menu-progress dt {
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 .home-mc-menu-progress > strong {
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   line-height: 1.35;
 }
 
 .home-mc-menu-progress > small {
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .home-mc-menu-progress dl {
@@ -1494,7 +1191,7 @@
 }
 
 .home-mc-menu-progress dd {
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -1511,7 +1208,7 @@
   border-radius: 999px;
   background: var(--pulso-warn-bg);
   color: var(--pulso-warn-fg);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-medium);
   white-space: nowrap;
 }
@@ -1525,7 +1222,7 @@
   padding: 0 8px;
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-medium);
   white-space: nowrap;
 }
@@ -1587,7 +1284,8 @@
    es el elemento que la vista busca primero. */
 .home-mc-stat > strong {
   color: var(--home-mod-accent, var(--pulso-primary));
-  font-size: 22px;
+  /* Crece con el alto de la ventana, como la fila: 21 px a 768 de alto, ~32 px a 1107. */
+  font-size: clamp(var(--pulso-type-kpi-size), 2.9vh, 32px);
   font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
@@ -1601,7 +1299,7 @@
 /* Cuando la "cifra" es una palabra ("Sin cálculo", "Campo") no puede ocupar el
    tamaño de un número: se lee como titular y desequilibra la grilla. */
 .home-mc-stat.is-text > strong {
-  font-size: 15px;
+  font-size: clamp(var(--pulso-type-title-size), 1.9vh, 21px);
   letter-spacing: -0.012em;
 }
 
@@ -1609,7 +1307,7 @@
   min-width: 0;
   overflow: hidden;
   color: var(--pulso-text-soft);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   font-weight: var(--pulso-weight-regular);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1622,17 +1320,20 @@
   line-clamp: 2;
   overflow: hidden;
   color: var(--pulso-text-soft);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.35;
   white-space: normal;
 }
 
 /* Cuando la cifra no dice nada útil, la frase toma el rol primario sin
    cambiar la estructura del bloque. */
-.home-mc-viz.is-activity { flex-direction: column-reverse; justify-content: flex-end; }
+/* 5 nov 2026: centrada como las demás. Con flex-end (que en column-reverse es «arriba») estas tarjetas subían su
+   lectura mientras las vecinas la centraban, y con las filas más altas del Home la diferencia se leía como un
+   desnivel entre tarjetas de la misma fila. */
+.home-mc-viz.is-activity { flex-direction: column-reverse; justify-content: center; }
 .home-mc-viz.is-activity .home-mc-stat-sub {
   color: var(--pulso-text);
-  font-size: 14px;
+  font-size: var(--pulso-type-body-size);
   -webkit-line-clamp: 3;
   line-clamp: 3;
 }
@@ -1672,14 +1373,14 @@
 
 .home-mc-progress-copy strong {
   color: var(--home-mod-accent, var(--pulso-primary));
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
 }
 
 .home-mc-progress-copy > span {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .home-mc-progress-steps {
@@ -1688,7 +1389,7 @@
   gap: 6px;
   width: 100%;
   color: var(--pulso-text-faint);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
 }
 
 .home-mc-progress-steps .is-done { color: var(--pulso-text-soft); }
@@ -1731,7 +1432,7 @@
 .home-mc-phase-labels span {
   flex: 1;
   text-align: center;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-faint);
 }
@@ -1747,8 +1448,7 @@
   gap: 10px;
 }
 
-.home-mc-viz.is-phases .home-mc-stat > strong { font-size: 21px; }
-.home-mc-viz.is-phases .home-mc-stat-meta { flex-direction: row; align-items: baseline; gap: 8px; }
+.home-mc-viz.is-phases .home-mc-stat > strong { font-size: var(--pulso-type-kpi-size); }
 
 /* --- Pie: línea de metadatos ------------------------------------------ */
 /* Material de contexto en una sola línea, al estilo del pie de Finder. Los
@@ -1758,28 +1458,40 @@
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
-  gap: 2px 7px;
+  /* El separador vive en el hueco (19 px, lo mismo que antes sumaban el gap y los
+     márgenes del filete). Cuando un hecho abre renglón, su separador cae fuera del
+     borde izquierdo y `overflow: hidden` lo recorta: ningún renglón empieza con «|». */
+  gap: 2px 19px;
+  overflow: hidden;
   width: 100%;
   margin-top: auto;
   padding-top: 10px;
   text-align: left;
   border-top: 1px solid color-mix(in srgb, var(--pulso-border) 70%, transparent);
   color: var(--pulso-text-faint);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.45;
 }
 
 .home-mc-fact {
+  position: relative;
   display: inline-flex;
   align-items: baseline;
   gap: 4px;
   min-width: 0;
 }
 
+.home-mc-foot .home-mc-fact-dot {
+  position: absolute;
+  top: 0.32em;
+  left: -10px;
+  margin: 0;
+}
+
 .home-mc-fact strong {
   overflow: hidden;
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
   text-overflow: ellipsis;
@@ -1793,57 +1505,15 @@
   white-space: nowrap;
 }
 
-.home-mc-fact-dot { margin-right: 1px; color: var(--pulso-border-strong); }
-
-.home-mc-cta {
-  align-self: flex-start;
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--pulso-text-soft);
-  font-size: 12px;
-  font-weight: var(--pulso-weight-semibold);
-  transition: color var(--motion-dur-fast) ease;
-}
-
-.home-mc-cta-arrow {
-  display: grid;
-  place-items: center;
-  width: 16px;
-  height: 16px;
-  color: currentColor;
-  transition: transform var(--motion-dur-base) var(--motion-ease-out);
-}
-
-.home-mc-cta-arrow > svg { width: 13px; height: 13px; }
-
-/* --- Botón "agregar módulo" en la cabecera --------------------------- */
-.home-mission-add-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-  height: 34px;
-  padding: 0 14px 0 12px;
-  border: 1px solid var(--pulso-border-strong);
-  border-radius: 999px;
-  background: var(--pulso-surface);
-  color: var(--pulso-text-soft);
-  font-size: 13px;
-  font-weight: var(--pulso-weight-semibold);
-  white-space: nowrap;
-  cursor: pointer;
-  transition: border-color var(--motion-dur-fast) ease, background var(--motion-dur-fast) ease, color var(--motion-dur-fast) ease;
-}
-
-.home-mission-add-btn:hover {
-  border-color: var(--pulso-primary-border);
-  background: var(--pulso-primary-soft);
-  color: var(--pulso-primary);
+/* Separadores como línea fina, no como punto medio (Gonzalo, 3 nov 2026). */
+.home-mc-fact-dot,
+.home-footer-sep {
+  display: inline-block;
+  width: 1px;
+  height: 0.85em;
+  margin: 0 6px;
+  vertical-align: -0.08em;
+  background: var(--pulso-border-strong);
 }
 
 /* --- Diálogo de confirmación (quitar módulo) ------------------------- */
@@ -1872,8 +1542,8 @@
   transform: translate(-50%, -50%);
 }
 
-.home-confirm strong { font-size: 16px; font-weight: var(--pulso-weight-heavy); }
-.home-confirm p { margin: 0; color: var(--pulso-text-soft); font-size: 13px; line-height: 1.5; }
+.home-confirm strong { font-size: var(--pulso-type-title-size); font-weight: var(--pulso-weight-heavy); }
+.home-confirm p { margin: 0; color: var(--pulso-text-soft); font-size: var(--pulso-type-body-size); line-height: 1.5; }
 
 .home-confirm-actions {
   display: flex;
@@ -1888,7 +1558,7 @@
   padding: 8px 16px;
   background: var(--pulso-danger-bg);
   color: var(--pulso-danger-fg);
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   cursor: pointer;
 }
@@ -1930,7 +1600,7 @@
 .home-setup-kicker {
   margin: 0 0 2px;
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -1947,7 +1617,7 @@
   margin: 4px auto 0;
   max-width: 46ch;
   color: var(--pulso-text-soft);
-  font-size: 13.5px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.5;
 }
 
@@ -2033,12 +1703,7 @@
   padding: clamp(16px, 3vh, 30px) clamp(20px, 4vw, 60px) clamp(18px, 3vh, 34px);
   background: color-mix(in srgb, var(--pulso-surface) 86%, transparent);
   backdrop-filter: blur(16px) saturate(1.05);
-  animation: home-picker-in 200ms var(--motion-ease-out);
-}
-
-@keyframes home-picker-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  animation: pulso-mov-aparece 200ms var(--motion-ease-out);
 }
 
 .home-picker-bar {
@@ -2052,6 +1717,7 @@
   flex: 1;
   min-width: 0;
   margin: 0;
+  /* L29, excepción declarada: título de presentación entre `title` (16) y `display` (28). */
   font-size: 20px;
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: -0.01em;
@@ -2064,7 +1730,7 @@
   padding: 6px 12px;
   background: var(--pulso-surface);
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-bold);
   white-space: nowrap;
 }
@@ -2076,7 +1742,7 @@
   padding: 9px 20px;
   background: var(--pulso-primary);
   color: #fff;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   cursor: pointer;
 }
@@ -2153,7 +1819,7 @@
 
 .home-settings-rail-brand h3 {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-heavy);
   color: var(--pulso-primary);
 }
@@ -2184,6 +1850,15 @@
 
 .home-settings-nav button:hover {
   background: var(--pulso-surface);
+}
+
+/* El rail vertical del kit pinta el activo con el acento sólido y texto blanco;
+ * aquí el activo es una tarjeta clara con borde de acento, así que se le dicen
+ * esos dos colores al rail. Sin esto, el subtítulo y el ícono quedaban verdes
+ * sobre verde. */
+.home-settings-nav.pulso-gliding-tab-list {
+  --pulso-gliding-indicator-bg: var(--pulso-surface);
+  --pulso-gliding-active-color: var(--pulso-text);
 }
 
 .home-settings-nav button.is-active {
@@ -2223,14 +1898,14 @@
 }
 
 .home-settings-nav-text strong {
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   line-height: 1.25;
 }
 
 .home-settings-nav-text > span {
   color: var(--pulso-text-faint);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.3;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2243,7 +1918,7 @@
   padding: 1px 7px;
   background: var(--pulso-surface);
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   white-space: nowrap;
 }
@@ -2277,7 +1952,7 @@
 
 .home-settings-main-copy h4 {
   margin: 0;
-  font-size: 17px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: -0.01em;
 }
@@ -2285,7 +1960,7 @@
 .home-settings-main-copy p {
   margin: 3px 0 0;
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.5;
   max-width: 78ch;
 }
@@ -2351,8 +2026,6 @@
 .home-cinema-card-features li:last-child:nth-child(odd) {
   grid-column: 1 / -1;
 }
-
-.home-footer-author:hover { color: var(--pulso-primary); }
 
 :root[data-pulso-layout-preset="short"] .home-cinema-deck-wrap {
   overflow: visible;
@@ -2445,7 +2118,7 @@
 .home-settings-eyebrow {
   display: block;
   margin-bottom: 2px;
-  font-size: 10px;
+  font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.7px;
   text-transform: uppercase;
@@ -2489,21 +2162,21 @@
 
 .home-layout-preset-copy strong {
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
 }
 
 .home-layout-preset-copy small {
   color: var(--pulso-primary);
-  font-size: 11px;
+  font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }
 
 .home-layout-preset-copy span {
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.35;
 }
 
@@ -2557,57 +2230,18 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--pulso-text);
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
 }
 
 .home-connection-title p {
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.42;
 }
 
-.home-connection-status {
-  grid-column: 1 / -1;
-  justify-self: start;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  max-width: 100%;
-  min-height: 22px;
-  padding: 2px 7px;
-  border-radius: 999px;
-  color: var(--pulso-warn-fg);
-  background: var(--pulso-warn-bg);
-  border: 1px solid var(--pulso-warn-border);
-  font-size: 10.5px;
-  font-weight: var(--pulso-weight-bold);
-  line-height: 1.2;
-}
-
-.home-connection-status svg {
-  flex: 0 0 auto;
-}
-
-.home-connection-status.is-ready {
-  color: var(--pulso-success-fg);
-  background: var(--pulso-success-bg);
-  border-color: var(--pulso-success-border);
-}
-
 /* U3: una clave guardada pero sin probar no se pinta de verde; una rechazada, en rojo. */
-.home-connection-status.is-pending {
-  color: var(--pulso-text-soft);
-  background: var(--pulso-surface-2);
-  border-color: var(--pulso-border);
-}
-
-.home-connection-status.is-error {
-  color: var(--pulso-danger-fg);
-  background: var(--pulso-danger-bg);
-  border-color: var(--pulso-danger-border);
-}
 
 .home-connection-current,
 .home-connection-empty {
@@ -2648,7 +2282,7 @@
 .home-connection-empty span {
   min-width: 0;
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.05em;
   line-height: 1.2;
@@ -2659,7 +2293,7 @@
 .home-connection-empty strong {
   min-width: 0;
   color: var(--pulso-text);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.25;
   overflow: hidden;
@@ -2669,7 +2303,7 @@
 .home-connection-current small {
   min-width: 0;
   color: var(--pulso-text-soft);
-  font-size: 10.8px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.34;
   overflow-wrap: anywhere;
@@ -2702,7 +2336,7 @@
   white-space: nowrap;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   color: var(--pulso-text);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .home-connection-form {
@@ -2719,17 +2353,20 @@
   background: color-mix(in srgb, var(--pulso-surface-2) 72%, #fff 28%);
 }
 
+/* Rótulo arriba y cifra debajo, botón a la derecha: en fila los tres no caben
+   en la tarjeta a 1024 px («Configurar / credencial» partido y «3 perfil…»). */
 .home-connection-details > summary {
   min-height: 36px;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  column-gap: 10px;
+  row-gap: 1px;
   padding: 8px 10px;
   color: var(--pulso-primary);
   cursor: pointer;
   list-style: none;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-heavy);
 }
 
@@ -2737,9 +2374,17 @@
   display: none;
 }
 
+.home-connection-details > summary > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .home-connection-details > summary::after {
   content: "Configurar...";
-  flex: 0 0 auto;
+  grid-column: 2;
+  grid-row: 1 / span 2;
   min-height: 22px;
   display: inline-flex;
   align-items: center;
@@ -2748,7 +2393,7 @@
   border-radius: 7px;
   color: var(--pulso-primary);
   background: #fff;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
 }
 
@@ -2757,10 +2402,10 @@
 }
 
 .home-connection-details > summary small {
+  grid-column: 1;
   min-width: 0;
-  margin-left: auto;
   color: var(--pulso-text-soft);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2780,13 +2425,13 @@
   display: grid;
   gap: 4px;
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-bold);
 }
 
 .home-connection-form label > small {
   color: var(--pulso-text-soft);
-  font-size: 10.8px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.34;
 }
@@ -2803,7 +2448,7 @@
   color: var(--pulso-text);
   background: var(--pulso-surface);
   font-family: inherit;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.35;
 }
@@ -2830,7 +2475,7 @@
 .home-connection-form input[type="text"]:focus,
 .home-connection-form select:focus,
 .home-connection-form textarea:focus {
-  outline: 2px solid var(--pulso-primary-focus);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   border-color: var(--pulso-primary-border);
 }
 
@@ -2859,7 +2504,7 @@
 
 .home-connection-profiles-head span {
   color: var(--pulso-text);
-  font-size: 11px;
+  font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-heavy);
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -2869,7 +2514,7 @@
 .home-connection-profiles p {
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.35;
 }
 
@@ -2909,14 +2554,14 @@
 
 .home-connection-profile strong {
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-heavy);
 }
 
 .home-connection-profile small {
   margin-top: 2px;
   color: var(--pulso-text-soft);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -2934,7 +2579,7 @@
   padding: 3px 7px;
   color: var(--pulso-primary);
   background: #fff;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   cursor: pointer;
 }
@@ -2943,20 +2588,6 @@
   color: var(--pulso-danger-fg);
   border-color: var(--pulso-danger-border);
   background: var(--pulso-danger-bg);
-}
-
-.home-connection-check {
-  display: inline-flex !important;
-  grid-template-columns: none !important;
-  align-items: center;
-  gap: 7px !important;
-  color: var(--pulso-text-soft);
-  font-size: 11px !important;
-  font-weight: var(--pulso-weight-semibold) !important;
-}
-
-.home-connection-check input {
-  margin: 0;
 }
 
 .home-connection-actions {
@@ -2978,7 +2609,7 @@
   min-width: 0;
   color: var(--pulso-text);
   background: var(--pulso-surface);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-bold);
   line-height: 1.2;
   white-space: nowrap;
@@ -3007,7 +2638,7 @@
 }
 
 .home-connection-actions button:not(:disabled):active {
-  transform: scale(0.98);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .home-connection-verify-note {
@@ -3017,7 +2648,7 @@
   align-items: start;
   margin: -4px 0 0;
   color: var(--pulso-text-soft);
-  font-size: 10.8px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.35;
 }
@@ -3033,7 +2664,7 @@
   gap: 7px;
   padding: 8px 10px;
   border-radius: 8px;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.4;
 }
 
@@ -3054,97 +2685,6 @@
   border: 1px solid var(--pulso-danger-border);
 }
 
-/* ── Release notes drawer (lateral derecho) ────────────────────────────── */
-.home-drawer-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.32);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity var(--motion-dur-base) ease;
-  z-index: 180;
-}
-
-.home-drawer-backdrop.is-open {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.home-drawer {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: min(440px, 92vw);
-  background: white;
-  box-shadow: var(--pulso-shadow-high);
-  display: flex;
-  flex-direction: column;
-  transform: translateX(100%);
-  transition: transform var(--motion-dur-panel) var(--motion-ease-drawer);
-  z-index: 190;
-  border-left: 1px solid var(--pulso-border);
-}
-
-.home-drawer.is-open { transform: translateX(0); }
-
-.home-drawer-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding: 22px 24px 16px;
-  border-bottom: 1px solid var(--pulso-border);
-  flex-shrink: 0;
-}
-
-.home-drawer-eyebrow {
-  font-size: 10px;
-  font-weight: var(--pulso-weight-bold);
-  letter-spacing: 0.7px;
-  text-transform: uppercase;
-  color: var(--pulso-text-soft);
-  display: block;
-  margin-bottom: 4px;
-}
-
-.home-drawer-title {
-  margin: 0;
-  font-size: 20px;
-  font-weight: var(--pulso-weight-bold);
-  color: var(--pulso-primary);
-  letter-spacing: -0.3px;
-}
-
-.home-drawer-close {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  border: 1px solid var(--pulso-border);
-  background: var(--pulso-surface-2);
-  color: var(--pulso-text-soft);
-  font-size: 20px;
-  line-height: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  cursor: pointer;
-}
-
-.home-drawer-close:hover {
-  border-color: var(--pulso-primary-border);
-  color: var(--pulso-primary);
-}
-
-.home-drawer-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 18px 24px 28px;
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
-}
-
 .home-release-head {
   display: flex;
   align-items: center;
@@ -3153,7 +2693,7 @@
 }
 
 .home-release-pill {
-  font-size: 11px;
+  font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-bold);
   font-family: ui-monospace, monospace;
   padding: 3px 9px;
@@ -3170,12 +2710,12 @@
 }
 
 .home-release-date {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
 }
 
 .home-release-now {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.6px;
   text-transform: uppercase;
@@ -3197,7 +2737,7 @@
 }
 
 .home-release-notes li {
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text);
   line-height: 1.55;
   display: flex;
@@ -3213,7 +2753,7 @@
 
 .home-release:not(.is-latest) .home-release-notes li {
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .home-release:not(.is-latest) .home-release-notes li svg {
@@ -3238,7 +2778,7 @@
 .home-credit-label {
   display: block;
   margin-bottom: 7px;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.65px;
   text-transform: uppercase;
@@ -3247,7 +2787,156 @@
 
 .home-credit-section p {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.65;
   color: var(--pulso-text);
+}
+
+/* L31: la siguiente acción del módulo, cuando dice algo («Revisar alertas»,
+   «Continuar en Validación»). Va en el acento del módulo y sobre el pie. */
+.home-mc-siguiente {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  min-height: 18px;
+  margin-top: var(--pulso-space-2);
+  color: var(--home-mod-accent, var(--pulso-primary));
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/* L31b: mientras corre un import de plataforma, el renglón de la siguiente
+   acción de Procesamiento es la barra viva. Mismo alto que el renglón, así la
+   tarjeta no cambia de tamaño (contrato `equal` del grupo). */
+.home-mc-siguiente.is-importando {
+  display: flex;
+  min-width: 0;
+  gap: var(--pulso-space-2);
+}
+
+.home-mc-import-barra {
+  flex: 0 0 56px;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--home-mod-accent, var(--pulso-primary)) 16%, transparent);
+}
+
+.home-mc-import-barra > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--home-mod-accent, var(--pulso-primary));
+  transform-origin: left center;
+  transition: transform var(--motion-dur-base) var(--motion-ease-out);
+}
+
+.home-mc-import-texto {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- L31: bloque «desde tu última apertura» ---------------------------- */
+/* Una banda baja sobre las tarjetas, del ancho de la rejilla. Dice lo que
+   cambió, o que no cambió nada, o que es la primera apertura en el equipo:
+   nunca queda vacía (C3). */
+.home-hoy {
+  /* Mismo techo y centrado que .home-mission-grid: con dos módulos la franja
+     medía el ancho entero y las tarjetas, 800 px (2026-11-02, sin Bitácora). */
+  box-sizing: border-box;
+  width: 100%;
+  max-width: calc(var(--home-cols, 4) * var(--home-ancho-col, 400px));
+  margin-inline: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 12px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.45;
+}
+
+.home-hoy-icono {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+}
+
+.home-hoy-texto {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  min-width: 0;
+  margin: 0;
+  padding-top: 3px;
+}
+
+.home-hoy-texto strong {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.home-hoy-cambios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Sin color por dirección: que suban los casos por revisar no es una buena
+   noticia, y que suban las válidas sí. El signo ya lo dice. */
+.home-hoy-cambios li {
+  color: var(--pulso-text);
+}
+
+/* Aviso de nombre oficial en el pie (6 nov 2026, Gonzalo: «un pop up cuando Ficha de estudio tenga como un
+   lunar amarillo»): el botón lleva un lunar amarillo; el aviso vive dentro de la Ficha que abre. */
+.home-footer-ficha {
+  position: relative;
+  display: inline-flex;
+}
+
+.home-wrap .home-footer-ficha .home-footer-notes {
+  position: relative;
+}
+
+.home-footer-lunar {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  /* Amarillo: el acento de aviso aclarado con su borde (un dorado que se lee como «lunar amarillo»). */
+  background: color-mix(in srgb, var(--pulso-warn-accent) 55%, var(--pulso-warn-border));
+  box-shadow: 0 0 0 2px var(--pulso-surface);
+}
+
+
+/* Ventanas muy bajas (≤ 640 px, 6 nov 2026): a 1024×600 quedaban 432 px útiles y dos filas pedían 458 (la
+   tarjeta medía 230 con 157 de contenido). La tarjeta se compacta —menos relleno y separación, sin la línea
+   descriptiva bajo el nombre del módulo, que ya lo identifica— y la fila baja su piso a 180 px: las dos filas
+   entran sin scroll. */
+@media (max-height: 640px) {
+  .home-mission-grid { grid-auto-rows: minmax(180px, 1fr); gap: 10px; }
+  .home-mission-grid[data-density] .home-mc-card { min-height: 0; }
+  .home-mission-grid .home-mc-enter { gap: 6px; padding: 10px 14px 9px; }
+  .home-mission-grid .home-mc-tagline { display: none; }
+  .home-mission-grid .home-mc-head { min-height: 26px; }
 }

@@ -1,6 +1,9 @@
 import type { MonitoreoGoal } from "../../../../../api/client";
 import { acreditacionObjetivoDeGoals } from "../AcreditacionObjetivoActor";
 import { normalizeSourceMatch } from "../formato";
+import { rowNumber } from "../../../core/numerosDeFila";
+
+export { rowNumber };
 
 /**
  * Tarjeta de avance por público: universo, efectivas, parciales, rechazos,
@@ -10,23 +13,6 @@ import { normalizeSourceMatch } from "../formato";
  * congelado sin cambiar una línea de lógica.
  */
 
-function num(value: unknown, fallback = 0) {
-  if (value == null || value === "") return fallback;
-  const parsed = Number(String(value).replace(/%/g, "").replace(/\s/g, "").replace(",", "."));
-  return Number.isFinite(parsed) ? parsed : fallback;
-}
-
-export function rowNumber(row: Record<string, unknown>, keys: string[], fallback = 0) {
-  const normalized = new Map(Object.keys(row).map((key) => [
-    key.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase(),
-    key,
-  ]));
-  for (const key of keys) {
-    const hit = normalized.get(key.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase());
-    if (hit) return num(row[hit], fallback);
-  }
-  return fallback;
-}
 
 // Nombres canónicos de columna del reporte de acreditación. Existían SIETE
 // listas distintas para el mismo concepto y varias omitían el nombre real:

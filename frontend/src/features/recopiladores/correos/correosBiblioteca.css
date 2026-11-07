@@ -13,7 +13,7 @@
   display: flex;
   flex-direction: column;
   font-family: inherit;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.4;
   position: absolute;
   text-align: left;
@@ -66,14 +66,14 @@
 }
 
 .rec-bib-titulo {
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
 .rec-bib-pista {
   color: var(--pulso-text-muted);
   flex: 1;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -117,7 +117,7 @@
 
 .rec-bib-grupo-titulo {
   color: var(--pulso-text-muted);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.06em;
   margin: 0;
@@ -159,7 +159,10 @@
 .rec-bib-tipo:focus-visible {
   border-color: var(--pulso-module-fieldkit-border);
   box-shadow: var(--pulso-shadow-low);
-  transform: translateY(-1px);
+}
+@media (hover: hover) and (pointer: fine) {
+  .rec-bib-tipo:hover:not(:disabled),
+.rec-bib-tipo:focus-visible { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 /* #18: anillo de foco con contraste ≥ 3:1 (el acento del módulo sobre blanco). */
@@ -169,7 +172,7 @@
 }
 
 .rec-bib-tipo:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(var(--mov-press, 0.97));
   transition-duration: var(--motion-dur-press);
 }
 
@@ -244,7 +247,7 @@
 .rec-bib-nombre {
   align-items: center;
   display: flex;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   gap: 5px;
 }
@@ -261,7 +264,7 @@
   -webkit-line-clamp: 2;
   color: var(--pulso-text-muted);
   display: -webkit-box;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.35;
   min-height: calc(2 * 1.35em);
   overflow: hidden;
@@ -359,14 +362,14 @@
 
 .rec-bib-vacio {
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
   margin: 0;
 }
 
 .rec-bib-borrar.is-confirmando {
   color: var(--pulso-text);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   padding: 0 8px;
   width: auto;

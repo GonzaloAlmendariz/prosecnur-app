@@ -107,7 +107,7 @@ export function MatrizPorOpcion({ a, workbook, porNombre, candidatas, resaltadas
   return (
     <div className="xcf-matriz">
       <div className="xcf-matriz__cab">
-        <h4>Opción × pregunta que la habilita</h4>
+        <h4>Opciones por pregunta que las habilita</h4>
         {editable ? (
           <PulsoButton variant="ghost" size="sm" aria-expanded={agregando} onClick={() => setAgregando((x) => !x)}>
             <Plus size={13} aria-hidden="true" /> Agregar pregunta
@@ -125,10 +125,10 @@ export function MatrizPorOpcion({ a, workbook, porNombre, candidatas, resaltadas
         <table className="xcf-mx">
           <thead>
             <tr>
-              <th scope="col" className="xcf-mx__esquina">Opción de <code>{a.pregunta}</code></th>
+              <th scope="col" className="xcf-mx__esquina">Opción</th>
               {preguntas.map((p, i) => {
                 return (
-                  <th key={p} scope="col" title={`${p} · ${titulos[i]}`}>
+                  <th key={p} scope="col" title={`${p}: ${titulos[i]}`}>
                     <span className="xcf-mx__hc" title={p}>{p}</span>
                     <span className={cortos[i] !== titulos[i] ? "xcf-mx__hl is-recortado" : "xcf-mx__hl"} title={titulos[i]}>{cortos[i]}</span>
                   </th>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Prosecnur — referencia técnica de identidad v1.4.0</title>
+<title>Prosecnur — referencia técnica de identidad v1.5.0</title>
 <meta name="generator" content="prosecnur-identity-compiler v1.0.0">
 <style>
 /* ============================================================
@@ -11,9 +11,9 @@
  * ------------------------------------------------------------
  * Generador : prosecnur-identity-compiler v1.0.0 (branding/identity/generate.mjs)
  * Fuente    : branding/identity.json
- * Identidad : prosecnur-la-senal-ordenada v1.4.0 (frozen)
- * Manifest  : sha256:4840494992287e84d34fac05d3aebdfabc73f58bde3dba947d51e124d4b611b2
- * Input     : sha256:2a6305fda90d8e3e00d651e09dfee1ada4fafd8425b4812c332301e05ac9bfdb (digest del archivo identity.json)
+ * Identidad : prosecnur-la-senal-ordenada v1.5.0 (frozen)
+ * Manifest  : sha256:1f1b93f3d9798d6b531b05899e3f991f573107f9debf909b54f9c06f039f8e7c
+ * Input     : sha256:a9844626c88fea3621bc70f3b2880455fc311051e991a9d15ef367c7e77584c2 (digest del archivo identity.json)
  * ------------------------------------------------------------
  * Derivado determinista del manifiesto congelado. El identificador
  * de generación es el input digest (sin timestamp, a propósito).
@@ -346,16 +346,16 @@ footer code { font-family: var(--prosecnur-font-mono); word-break: break-all; }
 <main>
   <header class="doc">
     <h1>Prosecnur — La señal ordenada (identidad visual v1.2)</h1>
-    <p>Referencia técnica generada del manifiesto — prosecnur-la-senal-ordenada · v1.4.0 · status frozen</p>
-    <p><code>manifest_hash: sha256:4840494992287e84d34fac05d3aebdfabc73f58bde3dba947d51e124d4b611b2</code></p>
-    <p><code>input sha256: 2a6305fda90d8e3e00d651e09dfee1ada4fafd8425b4812c332301e05ac9bfdb</code> · prosecnur-identity-compiler v1.0.0</p>
+    <p>Referencia técnica generada del manifiesto — prosecnur-la-senal-ordenada · v1.5.0 · status frozen</p>
+    <p><code>manifest_hash: sha256:1f1b93f3d9798d6b531b05899e3f991f573107f9debf909b54f9c06f039f8e7c</code></p>
+    <p><code>input sha256: a9844626c88fea3621bc70f3b2880455fc311051e991a9d15ef367c7e77584c2</code> · prosecnur-identity-compiler v1.0.0</p>
     <p class="note" style="opacity:.7">Documento GENERADO (no editar): el mirror rico es branding/manual-identidad.html; la norma es branding/identity.json + branding/direccion-creativa.md. La marca se reproduce solo desde branding/logo/.</p>
   </header>
 
   <section>
     <h2>Marca</h2>
-    <p class="src">fuente: <code>systems.brand</code> — Un solo isotipo canónico «ecualizador del pulso» con geometría congelada; toda reproducción parte de los SVG de branding/logo/, nunca de redibujos.</p>
-    <ul class="rules"><li>Geometría congelada: viewBox 64, squircle rx 15.4 (24%) navy #002457, cuatro pastillas blancas width 7 · rx 3.5 · gap 4 en x=12/23/34/45, baseline y=48, alturas 18/26/20/32 (el perfil del latido)</li><li>Suite de 10 variantes: isotipo (mínimo 16px), isotipo-gradiente (#013371→#002457, SOLO icono de app e instalador), isotipo-oscuro (squircle blanco para fondos oscuros), appicon 512 en retícula macOS (fuente del .icns/.ico), lockup horizontal claro/oscuro (mínimo 96px de ancho), lockup principal con «SUITE ANALÍTICA · PULSO PUCP», lockup vertical (portadas/splash), mono negro (impresión), mono blanco knockout (fondos fotográficos/navy)</li><li>Wordmark: «Prosecnur» en stack de sistema, peso 800, tracking -0.02em, navy #002457; sobre fondos oscuros, blanco</li><li>Jerarquía de emisión: Prosecnur es el producto; «PULSO PUCP» acompaña como subline institucional («Suite analítica · PULSO PUCP»)</li><li>Dos tintas máximo (navy + blanco); el color vivo pertenece al sistema (espectro modular, azul señal), nunca al logo</li><li>Clearspace: ¼ de la altura del isotipo</li><li>Usos incorrectos: no recolorear, no deformar, no rotar, no aplicar efectos, no redibujar; sobre fondos oscuros siempre la variante invertida o el mono blanco</li><li>Firma de arranque: el isotipo entra con stagger de pastillas (60ms entre barras, duración slow + easing productivo) — BootBrandMark</li></ul>
+    <p class="src">fuente: <code>systems.brand</code> — Un solo isotipo canónico, la «Trenza» (ADR 0132), con geometría única en frontend/src/app/marca/trenzaGeometria.ts; los SVG de branding/logo/ se generan desde ella y la app la dibuja desde ella, nunca se redibuja a mano.</p>
+    <ul class="rules"><li>Geometría: viewBox 100, squircle rx 24; siete cintas de ancho variable (2,2 a 4,9) sobre una hélice de dos medias vueltas, huso de 88 de largo y 20 de semiancho girado -35°; los hilos de adelante pasan sobre los de atrás con un filo del color del contenedor; desde 32 px, variante de cinco hilos más gruesos</li><li>Suite generada por branding/logo/generar-isotipo.mjs: isotipo (mínimo 16px con la variante chica), isotipo-gradiente (#013371→#002457, SOLO icono de app e instalador), isotipo-oscuro (squircle blanco para fondos oscuros), appicon 512 en retícula macOS (fuente del .icns/.ico), lockup horizontal claro/oscuro (mínimo 96px de ancho), lockup principal con «SUITE ANALÍTICA · PULSO PUCP», lockup vertical (portadas/splash), mono negro (impresión, sólo hilos de adelante), mono blanco calado (fondos fotográficos/navy) y modulos/ con el contenedor en el acento de cada módulo</li><li>Wordmark: «Prosecnur» en stack de sistema, peso 800, tracking -0.02em, navy #002457; sobre fondos oscuros, blanco</li><li>Jerarquía de emisión: Prosecnur es el producto; «PULSO PUCP» acompaña como subline institucional («Suite analítica · PULSO PUCP»)</li><li>Dos tintas a la vez (contenedor + blanco). El contenedor es navy; sólo en la pantalla de carga de un módulo (carga del proyecto con destino en un módulo y carga de módulo) toma el acento de ese módulo. Los módulos conservan su propio ícono: el isotipo no los reemplaza</li><li>Clearspace: ¼ de la altura del isotipo</li><li>Usos incorrectos: no recolorear fuera de los acentos de módulo, no deformar, no rotar, no aplicar efectos, no redibujar; sobre fondos oscuros siempre la variante invertida o el mono blanco</li><li>Movimiento (IsotipoCarga): en la carga los hilos se tuercen en 1 s y la cuerda queda girando sin corte, dos séptimos de vuelta cada 2,4 s, con una respiración de 4 s; nunca desaparece. Firma de arranque (BootBrandMark): la misma entrada, que se asienta en la pose quieta. Con movimiento reducido, pose quieta</li></ul>
   </section>
 
   <section>
@@ -600,7 +600,7 @@ footer code { font-family: var(--prosecnur-font-mono); word-break: break-all; }
     <h3>Secuencial (intensidad del navy)</h3>
     <div class="seqrow"><div class="seq" style="background:#dbe8ff" title="seq-step-1"></div><div class="seq" style="background:#7aa2f8" title="seq-step-2"></div><div class="seq" style="background:#2457d6" title="seq-step-3"></div><div class="seq" style="background:#002457" title="seq-step-4"></div></div>
     <h3>Reglas de uso</h3>
-    <ul class="rules"><li>Proporción 60/30/10: superficies frías dominan, el navy estructura, el acento (modular o señal) aparece de forma puntual e intencional</li><li>El acento es chrome, el semántico es significado: éxito/alerta/peligro/info jamás se sustituyen por el color del módulo</li><li>Acento inyectado por variable (--module-accent / --home-mod-accent / reasignación de --pulso-primary); nunca hex de módulo hardcodeado por regla</li><li>Cada acento modular tiene variantes soft (alpha 0.12-0.13) y border (alpha 0.30-0.32) definidas en theme.css; ver extensions.interaction_alphas para los valores exactos de interacción del navy (soft 8%, border 18%, focus 15%, ring 12%)</li><li>Los semánticos operan en triadas bg/border/fg sobre superficie clara; el token base (success/warn/danger) es el acento del estado; info usa el navy translúcido (bg rgba(0,36,87,0.04), border = primary-border, fg = primary)</li><li>El peligro de chart (#DC2626) y el carmesí UI (#BE123C) son tokens distintos a propósito: no unificarlos</li><li>El marcador repeat (naranja suave) es semántico transversal —pertenencia a estructura repetida roster—, no un acento de módulo; se superpone a cualquier paleta sin competir</li><li>Dos tintas máximo en la marca (navy + blanco); el color vivo pertenece al sistema, nunca al logo</li><li>Colores solo con tokens --pulso-* dentro de la app y --prosecnur-* fuera de ella; si un color no está en la paleta de visualización, no entra a un gráfico</li><li>Las triadas semánticas deben sostener contraste AA de texto sobre su fondo; la verificación formal vive en el check de accesibilidad</li></ul>
+    <ul class="rules"><li>Proporción 60/30/10: superficies frías dominan, el navy estructura, el acento (modular o señal) aparece de forma puntual e intencional</li><li>El acento es chrome, el semántico es significado: éxito/alerta/peligro/info jamás se sustituyen por el color del módulo</li><li>Acento inyectado por variable (--module-accent / --home-mod-accent / reasignación de --pulso-primary); nunca hex de módulo hardcodeado por regla</li><li>Cada acento modular tiene variantes soft (alpha 0.12-0.13) y border (alpha 0.30-0.32) definidas en theme.css; ver extensions.interaction_alphas para los valores exactos de interacción del navy (soft 8%, border 18%, focus 15%, ring 12%)</li><li>Los semánticos operan en triadas bg/border/fg sobre superficie clara; el token base (success/warn/danger) es el acento del estado; info usa el navy translúcido (bg rgba(0,36,87,0.04), border = primary-border, fg = primary)</li><li>El peligro de chart (#DC2626) y el carmesí UI (#BE123C) son tokens distintos a propósito: no unificarlos</li><li>El marcador repeat (naranja suave) es semántico transversal —pertenencia a estructura repetida roster—, no un acento de módulo; se superpone a cualquier paleta sin competir</li><li>Dos tintas a la vez en el isotipo (contenedor + blanco); el contenedor es navy salvo en la pantalla de carga de un módulo, donde toma su acento (ADR 0132)</li><li>Colores solo con tokens --pulso-* dentro de la app y --prosecnur-* fuera de ella; si un color no está en la paleta de visualización, no entra a un gráfico</li><li>Las triadas semánticas deben sostener contraste AA de texto sobre su fondo; la verificación formal vive en el check de accesibilidad</li></ul>
   </section>
 
   <section>
@@ -699,7 +699,7 @@ footer code { font-family: var(--prosecnur-font-mono); word-break: break-all; }
     <h3>Mínimos operativos</h3>
     <table><thead><tr><th>token</th><th>valor</th><th>alcance</th></tr></thead><tbody><tr><td><code>--prosecnur-min-workbench-panel-media</code></td><td>360px</td><td>workbench/panel/media</td></tr><tr><td><code>--prosecnur-min-lista</code></td><td>260px</td><td>lista</td></tr><tr><td><code>--prosecnur-min-cuerpo-de-dialogo</code></td><td>240px</td><td>cuerpo de diálogo</td></tr></tbody></table>
     <h3>Reglas completas</h3>
-    <ul class="rules"><li>Radios: control 10 · tarjeta 14 · panel 16 · lens 20 · chip 999</li><li>Alturas de control (escalera macOS 26 UI Kit): 28 default de content area (sm y md coinciden hoy en 28 pero son slots semánticos distintos: denso vs default) · 36 reservado a toolbar/CTA · checkbox 16</li><li>Peso de trabajo de controles: 500 en macOS, 600 en Windows vía :root[data-platform=&quot;windows&quot;]; la jerarquía se construye con tamaño y color, no con bold</li><li>Rail lateral canónico 240px con filas de 32/40 (24 en densos)</li><li>Mínimos operativos: workbench/panel/media 360px · lista 260px · cuerpo de diálogo 240px</li><li>Isotipo: squircle con radio 24% del lado (rx 15.4 sobre viewBox 64)</li></ul>
+    <ul class="rules"><li>Radios: control 10 · tarjeta 14 · panel 16 · lens 20 · chip 999</li><li>Alturas de control (escalera macOS 26 UI Kit): 28 default de content area (sm y md coinciden hoy en 28 pero son slots semánticos distintos: denso vs default) · 36 reservado a toolbar/CTA · checkbox 16</li><li>Peso de trabajo de controles: 500 en macOS, 600 en Windows vía :root[data-platform=&quot;windows&quot;]; la jerarquía se construye con tamaño y color, no con bold</li><li>Rail lateral canónico 240px con filas de 32/40 (24 en densos)</li><li>Mínimos operativos: workbench/panel/media 360px · lista 260px · cuerpo de diálogo 240px</li><li>Isotipo: squircle con radio 24% del lado (rx 24 sobre viewBox 100)</li></ul>
   </section>
 
   <section>
@@ -725,7 +725,7 @@ footer code { font-family: var(--prosecnur-font-mono); word-break: break-all; }
       <tr><td>Diagramas y árboles</td><td>orbit-in 620ms + edge-draw 680ms — excepción gobernada <code>motion-firma-diagramas</code></td></tr>
     </tbody></table>
     <p class="note">Tope de la escala de tokens: 420ms · máximo gobernado: 680ms · prefers-reduced-motion obligatorio.</p>
-    <ul class="rules"><li>Cinco duraciones: press 120ms (presión de controles, scale 0.98) · fast 160ms (hover, focus ring, chips) · base 220ms (aparición de contenido, fades con rise de 6-8px) · panel 280ms (drawers, popovers, rutas) · slow 420ms (celebraciones, gráficos, logo)</li><li>Cinco easings: salida cubic-bezier(0.23,1,0.32,1) (dominante) · estándar cubic-bezier(0.2,0,0,1) · drawer cubic-bezier(0.32,0.72,0,1) · productivo cubic-bezier(0.16,1,0.3,1) · in-out cubic-bezier(0.77,0,0.175,1)</li><li>Rutas: enter y+8px, forward x+12px, back x-12px</li><li>Firma de PageFrame (transición base de toda ruta): cuerpo 190ms / header 150ms / toolbar 160ms con easing de salida</li><li>Firma de marca: el isotipo entra con stagger de pastillas de 60ms (slow + productivo)</li><li>Firma de diagramas y árboles: «orbit-in + edge-draw» del dashboard — nodos 620ms con easing productivo + aristas por stroke-dashoffset 680ms (excepción gobernada al tope de 420ms de la escala de tokens; ver governance.exceptions)</li><li>La escala de tokens no supera 420ms; toda animación respeta prefers-reduced-motion</li></ul>
+    <ul class="rules"><li>Cinco duraciones: press 120ms (presión de controles, scale 0.98) · fast 160ms (hover, focus ring, chips) · base 220ms (aparición de contenido, fades con rise de 6-8px) · panel 280ms (drawers, popovers, rutas) · slow 420ms (celebraciones, gráficos, logo)</li><li>Cinco easings: salida cubic-bezier(0.23,1,0.32,1) (dominante) · estándar cubic-bezier(0.2,0,0,1) · drawer cubic-bezier(0.32,0.72,0,1) · productivo cubic-bezier(0.16,1,0.3,1) · in-out cubic-bezier(0.77,0,0.175,1)</li><li>Rutas: enter y+8px, forward x+12px, back x-12px</li><li>Firma de PageFrame (transición base de toda ruta): cuerpo 190ms / header 150ms / toolbar 160ms con easing de salida</li><li>Firma de marca (ADR 0132): en la carga los hilos de la Trenza se tuercen en 1 s y la cuerda gira sin corte con una respiración de 4 s; en el selector de proyecto la misma entrada se asienta en la pose quieta (excepción gobernada motion-isotipo-trenza)</li><li>Firma de diagramas y árboles: «orbit-in + edge-draw» del dashboard — nodos 620ms con easing productivo + aristas por stroke-dashoffset 680ms (excepción gobernada al tope de 420ms de la escala de tokens; ver governance.exceptions)</li><li>La escala de tokens no supera 420ms; toda animación respeta prefers-reduced-motion</li></ul>
   </section>
 
   <section>
@@ -801,7 +801,7 @@ footer code { font-family: var(--prosecnur-font-mono); word-break: break-all; }
     <p class="src">fuente: <code>governance</code></p>
     <h3>Excepciones vigentes</h3>
     <table><thead><tr><th>id</th><th>vence</th><th>motivo</th></tr></thead><tbody>
-      <tr><td><code>motion-firma-diagramas</code></td><td>2027-01-31</td><td>La firma «orbit-in + edge-draw» del dashboard usa 620ms (nodos) y 680ms (aristas), por encima del tope de 420ms de la escala de tokens; está documentada como patrón maestro 8 en la dirección v1.1/v1.2 y se mantiene como excepción acotada a diagramas y árboles, con vía reducida obligatoria.</td></tr>
+      <tr><td><code>motion-firma-diagramas</code></td><td>2027-01-31</td><td>La firma «orbit-in + edge-draw» del dashboard usa 620ms (nodos) y 680ms (aristas), por encima del tope de 420ms de la escala de tokens; está documentada como patrón maestro 8 en la dirección v1.1/v1.2 y se mantiene como excepción acotada a diagramas y árboles, con vía reducida obligatoria.</td></tr><tr><td><code>motion-isotipo-trenza</code></td><td>2027-11-07</td><td>El isotipo «Trenza» es el indicador de espera de la carga del proyecto, la carga de módulo y el bloque de carga (ADR 0132): su entrada dura 1000ms, la cuerda gira sin fin y respira cada 4000ms mientras dure la espera, como un spinner. Supera el tope de 680ms y se anima por requestAnimationFrame, no por tokens CSS. Con prefers-reduced-motion queda en la pose quieta.</td></tr>
     </tbody></table>
     <h3>Condiciones de revisión</h3>
     <ul class="rules"><li>Cambios de identidad (geometría del isotipo, paleta de marca, patrones maestros) requieren actualizar la dirección creativa y republicar el manual; el Artifact y branding/manual-identidad.html deben mantenerse en paridad</li><li>Reabrir el freeze cuando cambie el concepto, el significado semántico de tokens, los contratos de componentes, las invariantes de plataforma o los outputs requeridos</li><li>Los derivados .ico/.icns/.bmp se regeneran desde branding/logo/ en el siguiente build de packaging</li><li>theme.css es la fuente operativa dentro de la app: cualquier drift entre identity.json y theme.css/prosecnur-brand.css se resuelve a favor de la dirección creativa y se registra</li></ul>
@@ -810,8 +810,8 @@ footer code { font-family: var(--prosecnur-font-mono); word-break: break-all; }
   </section>
 
   <footer>
-    Derivado determinista de <code>branding/identity.json</code> · prosecnur-la-senal-ordenada v1.4.0 ·
-    <code>sha256:4840494992287e84d34fac05d3aebdfabc73f58bde3dba947d51e124d4b611b2</code> · prosecnur-identity-compiler v1.0.0
+    Derivado determinista de <code>branding/identity.json</code> · prosecnur-la-senal-ordenada v1.5.0 ·
+    <code>sha256:1f1b93f3d9798d6b531b05899e3f991f573107f9debf909b54f9c06f039f8e7c</code> · prosecnur-identity-compiler v1.0.0
   </footer>
 </main>
 </body>

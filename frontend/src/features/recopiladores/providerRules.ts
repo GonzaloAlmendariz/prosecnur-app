@@ -10,9 +10,9 @@ import type {
 export const COLLECTION_ADAPTER_LABELS: Record<CollectionAdapterId, string> = {
   aulas_v1: "Aulas (compatibilidad)",
   manual_links_v1: "Enlaces entregados manualmente",
-  kobo_existing_v1: "Kobo · asset existente",
-  surveymonkey_weblink_existing_v1: "SurveyMonkey · Web Link existente",
-  surveymonkey_recipient_existing_v1: "SurveyMonkey · recipients existentes",
+  kobo_existing_v1: "Kobo, asset existente",
+  surveymonkey_weblink_existing_v1: "SurveyMonkey, Web Link existente",
+  surveymonkey_recipient_existing_v1: "SurveyMonkey, recipients existentes",
 };
 
 // `CollectionDeployment["status"]` es un union type cerrado de 4 valores

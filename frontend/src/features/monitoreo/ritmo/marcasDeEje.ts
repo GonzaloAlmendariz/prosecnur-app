@@ -13,6 +13,8 @@
  * empezando en el borde inferior del área.
  */
 
+import { formatoDecimal } from "../../../lib/formatoNumero";
+
 export type MarcaDeEje = {
   valor: number;
   /** Distancia desde el borde superior del gráfico, en píxeles. */
@@ -42,7 +44,7 @@ export function marcasDeEje(
   alto: number,
   margenSuperior: number,
   margenInferior: number,
-  formatear: (valor: number) => string = (valor) => valor.toLocaleString("es-PE"),
+  formatear: (valor: number) => string = (valor) => formatoDecimal(valor, 3),
 ): MarcaDeEje[] {
   const altoTrazado = alto - margenSuperior - margenInferior;
   // Sin alto útil o sin escala no hay eje que dibujar: devolver marcas

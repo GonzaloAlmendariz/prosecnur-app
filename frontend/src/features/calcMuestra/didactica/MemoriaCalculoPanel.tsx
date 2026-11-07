@@ -6,12 +6,12 @@
 import type { CalcMuestraMemoria } from "../../../api/client";
 import { BadgeMotor } from "./PasoDidactico";
 import type { MemoriaCalculo } from "./useMemoriaCalculo";
+import { fmtInt } from "../sharedCore";
+import { formatoDecimal } from "../../../lib/formatoNumero";
 
-const fmtInt = (value: number | null | undefined) =>
-  value == null || !Number.isFinite(value) ? "—" : Math.round(value).toLocaleString("es-PE");
 
 const fmtPct = (value: number | null | undefined, digits = 2) =>
-  value == null || !Number.isFinite(value) ? "—" : `±${(value * 100).toLocaleString("es-PE", { maximumFractionDigits: digits })}%`;
+  value == null || !Number.isFinite(value) ? "—" : `±${formatoDecimal(value * 100, digits)}%`;
 
 export function MemoriaCalculoPanel({ calculo }: { calculo: MemoriaCalculo }) {
   const { estado, memoria, preview } = calculo;

@@ -16,6 +16,7 @@
 
 import type { MonitoreoAcreditacionReports } from "../../../../../api/client";
 import { filasDeBloque } from "../navegacion/bloques";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 /**
  * Umbrales de severidad, en días sin barrer. Un solo lugar: Avisos, la ficha
@@ -239,7 +240,7 @@ export function rotuloDeReferencia(tipo: TipoDeReferencia): string {
 export function diasLegibles(dias: number | null) {
   if (dias == null) return "Sin fecha";
   if (dias === 0) return "Hoy";
-  return `${dias.toLocaleString("es-PE")} ${dias === 1 ? "día" : "días"}`;
+  return `${formatoConteo(dias)} ${dias === 1 ? "día" : "días"}`;
 }
 
 /** «23/10» desde una fecha ISO. */
@@ -263,7 +264,7 @@ export function mensajeParaElOperador(operador: OperadorNoBarrido, corte: string
   const lista = atrasados.length ? atrasados : operador.casos;
   const total = lista.length;
   const alCorte = corte ? ` al ${corte}` : "";
-  const encabezado = `${operador.nombre}: ${total.toLocaleString("es-PE")} ${total === 1 ? "caso asignado sigue" : "casos asignados siguen"} sin barrer${alCorte}`
+  const encabezado = `${operador.nombre}: ${formatoConteo(total)} ${total === 1 ? "caso asignado sigue" : "casos asignados siguen"} sin barrer${alCorte}`
     + (operador.maxDias != null && operador.maxDias > 0 ? ` (el más antiguo, ${diasLegibles(operador.maxDias).toLowerCase()}).` : ".");
   return [
     encabezado,

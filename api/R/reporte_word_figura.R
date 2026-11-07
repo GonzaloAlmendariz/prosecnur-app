@@ -69,6 +69,10 @@ to_wml.pulso_run_seq <- function(x, add_ns = FALSE, ...) {
   officer::body_add_fpar(doc, do.call(officer::fpar, partes), style = "Rótulo de gráfico")
 }
 
+#' ¿Texto con contenido?
+#' @keywords internal
+.word_tiene <- function(x) !is.null(x) && length(x) == 1L && !is.na(x) && nzchar(trimws(x))
+
 #' Base y fuente bajo la figura; con lectura, el estilo que no la separa de ella
 #' @keywords internal
 .word_base <- function(doc, texto, con_lectura = FALSE) {
@@ -98,16 +102,24 @@ to_wml.pulso_run_seq <- function(x, add_ns = FALSE, ...) {
 #' @param tabla `NULL` o la tabla de datos (`.radar_mb_tabla_cifras`) que va encima de la imagen, centrada.
 #' @keywords internal
 .word_figura <- function(doc, n, titulo, png, alto, ancho = .std_word("pagina", "ancho_util"), base = NULL, lectura = NULL,
-                          tabla = NULL) {
+                          tabla = NULL, nota_sig = NULL, tarjetas = NULL) {
   doc <- .word_rotulo(doc, n, titulo)
   # Tabla de datos encima de la figura (reporte_word_tabla_grafico.R): rótulo, tabla e imagen quedan pegados.
   if (!is.null(tabla)) doc <- .word_tabla_encima(doc, tabla)
   doc <- officer::body_add_fpar(doc, officer::fpar(officer::external_img(png, width = ancho, height = alto),
-                                                   fp_p = officer::fp_par(text.align = "center", keep_with_next = !is.null(base) && nzchar(trimws(base)),
+                                                   fp_p = officer::fp_par(text.align = "center", keep_with_next = (!is.null(base) && nzchar(trimws(base))) || length(tarjetas$tarjetas) > 0L,
                                                                           padding.top = if (is.null(tabla)) 0 else 6)))
+  if (length(tarjetas$tarjetas)) doc <- .word_tarjetas_en_figura(doc, tarjetas, ancho = .std_word("pagina", "ancho_util"))   # ADR 0129: reporte_word_tarjetas.R
+  # Tarjetas activas sin ninguna diferencia: la misma línea que la lámina, con el estilo de la base (v7.25, ítem 5).
+  if (!.word_tiene(nota_sig)) nota_sig <- .tarjetas_sin_diferencias_texto(tarjetas)
   # Sin base la imagen no se pega a lo que sigue: encadenaba figura tras figura y empujaba el capítulo a otra página (N8.13).
   con_lectura <- !is.null(lectura) && nzchar(trimws(lectura))
-  doc <- .word_base(doc, base, con_lectura = con_lectura)
+  doc <- .word_base(doc, base, con_lectura = con_lectura || .word_tiene(nota_sig))
+  # Nota de diferencias (ADR 0128): el mismo texto de la lámina, una línea lógica por párrafo, con el estilo de la base.
+  if (.word_tiene(nota_sig)) {
+    lineas <- strsplit(nota_sig, "\n", fixed = TRUE)[[1]]
+    for (k in seq_along(lineas)) doc <- .word_base(doc, lineas[[k]], con_lectura = con_lectura || k < length(lineas))
+  }
   if (con_lectura) doc <- .word_lectura(doc, lectura)
   doc
 }

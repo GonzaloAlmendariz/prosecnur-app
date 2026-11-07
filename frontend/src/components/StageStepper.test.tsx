@@ -32,6 +32,21 @@ const stages = [
 ] as const;
 
 describe("StageStepper", () => {
+  it("dice el número de cada paso una sola vez (L6)", () => {
+    // Sin ícono, el círculo ya muestra el número: repetirlo en el rótulo se leía «1 1 Referencia».
+    const html = renderToStaticMarkup(
+      <StageStepper
+        stages={[{ key: "a", label: "Referencia" }, { key: "b", label: "Auditar", completed: true }]}
+        currentStage="a"
+        onStageChange={() => undefined}
+        ariaLabel="Pasos"
+      />,
+    );
+    const numeros = html.match(/pulso-step-number/g) ?? [];
+    // Sólo el paso completado (el círculo pasa a check) lleva el número en el rótulo.
+    expect(numeros).toHaveLength(1);
+  });
+
   it("renders honest workflow semantics with visible labels for every stage", () => {
     const html = renderToStaticMarkup(
       <StageStepper

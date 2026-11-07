@@ -3,6 +3,8 @@ import { useMemo, useState } from "react";
 import { fmt } from "./kpisDeAulas";
 import { claseDeFacultad } from "./tonoDeFacultad";
 import { Search, XCircle } from "../../../../vendor/lucide-react";
+import { EstadoChip } from "../../../../components/EstadoChip";
+import { tonoDeEstadoChip, type TonoDeAulas } from "./tonoDeEstadoChip";
 
 import "./aulasCrucePorCarrera.css";
 
@@ -85,7 +87,7 @@ export type BloqueDeCruce = {
  * identificar. Meterlas en la misma bolsa mandaría a revisar el código de quien
  * lo escribió bien.
  */
-const ESTADOS: Array<{ clave: string; texto: string; tono: string }> = [
+const ESTADOS: Array<{ clave: string; texto: string; tono: TonoDeAulas }> = [
   { clave: "identificado", texto: "Identificado", tono: "ok" },
   { clave: "repetida", texto: "Ya había respondido", tono: "aviso" },
   { clave: "sin_identificar", texto: "Sin identificar", tono: "falla" },
@@ -102,7 +104,7 @@ const ESTADOS: Array<{ clave: string; texto: string; tono: string }> = [
  * es efectiva y no tiene curso-horario. «Efectiva» va en voz baja porque es la
  * mayoría de las filas y gritarla taparía a las que piden algo.
  */
-const RESPUESTAS: Array<{ clave: string; texto: string; tono: string }> = [
+const RESPUESTAS: Array<{ clave: string; texto: string; tono: TonoDeAulas }> = [
   { clave: "efectiva", texto: "Efectiva", tono: "neutro" },
   { clave: "huerfana", texto: "Sin curso-horario del plan", tono: "aviso" },
   { clave: "rechaza", texto: "Rechazó participar", tono: "falla" },
@@ -170,7 +172,7 @@ export function AulasCrucePorCarrera({ bloque }: { bloque: BloqueDeCruce | null 
     <div className="aulas-cxc" data-qa-geometry-capacity="owned" data-qa-geometry-member>
       <p className="aulas-cxc-titular">
         <strong>{fmt(total.personas)}</strong> alumnos distintos identificados por su código
-        {tasa != null ? <span className="aulas-cxc-pct"> · cruzó el {tasa} % de {fmt(total.consideradas)}</span> : null}
+        {tasa != null ? <span className="aulas-cxc-pct">, cruzó el {tasa} % de {fmt(total.consideradas)}</span> : null}
       </p>
       {/* Las dos notas del total. Sólo cuando existen: un «0 repetidos»
           permanente es ruido, y con el padrón entero resolviendo no hay nada
@@ -223,7 +225,7 @@ export function AulasCrucePorCarrera({ bloque }: { bloque: BloqueDeCruce | null 
                         no se puede ir a buscar. */}
                     {dup > 0 ? (
                       <em className="aulas-cxc-dup">
-                        {dup === 1 ? " · 1 repetida" : ` · ${fmt(dup)} repetidas`}
+                        {dup === 1 ? ", 1 repetida" : `, ${fmt(dup)} repetidas`}
                       </em>
                     ) : null}
                   </span>
@@ -288,7 +290,7 @@ export function AulasCrucePorCarrera({ bloque }: { bloque: BloqueDeCruce | null 
               {/* El recorte se dice: en silencio haría creer que el operativo
                   tiene las filas que se ven. */}
               {bloque?.truncado
-                ? ` · se enseñan las ${fmt(alumnos.length)} últimas de ${fmt(total.consideradas)}`
+                ? `, se enseñan las ${fmt(alumnos.length)} últimas de ${fmt(total.consideradas)}`
                 : null}
             </span>
           </div>
@@ -414,7 +416,7 @@ export function AulasCrucePorCarrera({ bloque }: { bloque: BloqueDeCruce | null 
                         {/* Sin marca de tiempo, un guion: la fila sigue diciendo
                             quién y de qué carrera, y lo que falta es la hora. */}
                         <td className="aulas-cxc-cuando">
-                          {a.fecha ? `${a.fecha} · ${a.hora || "--:--"}` : "—"}
+                          {a.fecha ? `${a.fecha}, ${a.hora || "--:--"}` : "—"}
                         </td>
                         <td className="aulas-cxc-ch">{a.curso_horario || "—"}</td>
                         <td>
@@ -425,17 +427,13 @@ export function AulasCrucePorCarrera({ bloque }: { bloque: BloqueDeCruce | null 
                             const texto = a.respuesta_etiqueta || r?.texto || "";
                             if (!texto) return <span className="aulas-cxc-debil">—</span>;
                             return (
-                              <span className="aulas-cxc-pill" data-tono={r?.tono ?? "neutro"}>
-                                {texto}
-                              </span>
+                              <EstadoChip label={texto} tone={tonoDeEstadoChip(r?.tono ?? "neutro")} />
                             );
                           })()}
                         </td>
                         <td>
                           {a.estado ? (
-                            <span className="aulas-cxc-pill" data-tono={e?.tono ?? "neutro"}>
-                              {e?.texto ?? a.estado}
-                            </span>
+                            <EstadoChip label={e?.texto ?? a.estado} tone={tonoDeEstadoChip(e?.tono ?? "neutro")} />
                           ) : (
                             // De una que no cuenta no se afirma el cruce: nunca
                             // iba a contar y «sin identificar» se leería como un
@@ -451,7 +449,7 @@ export function AulasCrucePorCarrera({ bloque }: { bloque: BloqueDeCruce | null 
                               renglón hace leer dos veces para entender que es
                               una sola cosa. */}
                           {a.motivo_etiqueta && a.motivo !== "rechazo_participar" ? (
-                            <em className="aulas-cxc-motivo-fila"> · {a.motivo_etiqueta}</em>
+                            <em className="aulas-cxc-motivo-fila">, {a.motivo_etiqueta}</em>
                           ) : null}
                         </td>
                       </tr>

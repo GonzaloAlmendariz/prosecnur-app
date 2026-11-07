@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { calendario, fasesConFechas, nombresDePublicos, pulsoDelCampo, seriesApiladas } from "./ritmoModelo";
+import { MemoryRouter } from "react-router-dom";
+import { calendario, fasesConFechas, nombresDePublicos, pulsoDelCampo, serieDelGrafico, seriesApiladas } from "./ritmoModelo";
 import { lunesDe, mapaPorSemana } from "./mapaDeCalor";
 import { RitmoVista } from "./Ritmo";
+import { acumulado } from "./DiarioYAcumulado";
 import { SuperficieFlotante } from "../../../core/superficieFlotante/SuperficieFlotante";
 
 const actores = [
@@ -21,6 +23,15 @@ const fuentes = [
 ];
 
 describe("Avance › Ritmo", () => {
+  it("la serie llega hasta la fecha del corte: un campo detenido son días en cero", () => {
+    const serie = seriesApiladas(diarioPorPublico, [], nombresDePublicos(actores), "2026-06-02");
+    expect(serie.fechas.at(-1)).toBe("2026-06-02");
+    expect(serie.totales.slice(-4)).toEqual([0, 0, 0, 0]);
+    // Una fecha anterior al último dato, o absurda, no recorta ni estira.
+    expect(seriesApiladas(diarioPorPublico, [], nombresDePublicos(actores), "2026-05-20").fechas.at(-1)).toBe("2026-05-29");
+    expect(seriesApiladas(diarioPorPublico, [], nombresDePublicos(actores), "basura").fechas.at(-1)).toBe("2026-05-29");
+  });
+
   it("apila por público sobre un calendario sin huecos", () => {
     const serie = seriesApiladas(diarioPorPublico, [], nombresDePublicos(actores));
     expect(serie.fechas).toEqual(calendario("2026-05-25", "2026-05-29"));
@@ -28,12 +39,22 @@ describe("Avance › Ritmo", () => {
     expect(serie.totales).toEqual([10, 3, 0, 0, 4]);
   });
 
-  it("junta en «Otros» a los públicos que no caben con color propio", () => {
+  it("cada público es su capa: ninguno se junta en «Otros»", () => {
     const filas = Array.from({ length: 9 }, (_, indice) => ({ Actor: `P${indice}`, Fecha: "2026-05-25", Efectivas: 9 - indice }));
     const serie = seriesApiladas(filas, []);
-    expect(serie.capas).toHaveLength(7);
-    expect(serie.capas.at(-1)?.publico).toBe("Otros 3 públicos");
+    expect(serie.capas).toHaveLength(9);
+    expect(serie.capas.some((capa) => capa.publico.startsWith("Otros"))).toBe(false);
     expect(serie.totales[0]).toBe(45);
+  });
+
+  it("el gráfico termina en el último día con efectivas; la serie sigue hasta el corte", () => {
+    const serie = seriesApiladas(diarioPorPublico, [], nombresDePublicos(actores), "2026-06-05");
+    expect(serie.fechas.at(-1)).toBe("2026-06-05");
+    const grafico = serieDelGrafico(serie);
+    expect(grafico.fechas.at(-1)).toBe("2026-05-29");
+    // Los días vacíos de en medio se quedan.
+    expect(grafico.totales).toEqual([10, 3, 0, 0, 4]);
+    expect(grafico.capas.every((capa) => capa.valores.length === 5)).toBe(true);
   });
 
   it("sin desglose por público usa la serie general", () => {
@@ -67,7 +88,7 @@ describe("Avance › Ritmo", () => {
 
   it("dibuja la vista sin claves técnicas y ofrece declarar fases cuando no hay", () => {
     const html = renderToStaticMarkup(
-      <RitmoVista actores={actores} diarioGeneral={[]} diarioPorPublico={diarioPorPublico} fuentes={fuentes} fases={[]} onDeclararFases={() => {}} onVerFuentes={() => {}} />,
+      <MemoryRouter initialEntries={["/monitoreo?seccion=avance&pestana=ritmo"]}><RitmoVista actores={actores} diarioGeneral={[]} diarioPorPublico={diarioPorPublico} fuentes={fuentes} fases={[]} onDeclararFases={() => {}} onVerFuentes={() => {}} /></MemoryRouter>,
     );
     expect(html).toContain("Declarar fases");
     expect(html).toContain("Pulso del campo");
@@ -80,5 +101,42 @@ describe("Avance › Ritmo", () => {
     expect(html).toContain('role="dialog"');
     expect(html).toContain('aria-modal="true"');
     expect(html).toContain('aria-label="Cerrar"');
+  });
+});
+
+describe("fecha local del corte", () => {
+  it("convierte el instante del corte al día local y rechaza lo que no es fecha", async () => {
+    const { fechaLocal } = await import("../navegacion/resumenDelCorte");
+    const instante = new Date(2026, 9, 29, 19, 33).toISOString();
+    expect(fechaLocal(instante)).toBe("2026-10-29");
+    expect(fechaLocal("no es fecha")).toBeNull();
+    expect(fechaLocal(null)).toBeNull();
+  });
+
+  it("con un solo día de campo dice la fecha una vez, no «29 oct a 29 oct»", () => {
+    const html = renderToStaticMarkup(
+      <MemoryRouter initialEntries={["/monitoreo?seccion=avance&pestana=ritmo"]}><RitmoVista actores={actores} diarioGeneral={[]} diarioPorPublico={[{ Actor: "Docentes", Fecha: "2026-10-29", Efectivas: 5 }]} fuentes={fuentes} fases={[]} onDeclararFases={() => {}} /></MemoryRouter>,
+    );
+    expect(html).toMatch(/29 oct, por público/);
+    expect(html).not.toMatch(/29 oct a 29 oct/);
+  });
+
+  it("ofrece ver el ritmo por público o diario con el acumulado en dos ejes", () => {
+    const html = renderToStaticMarkup(
+      <MemoryRouter initialEntries={["/monitoreo?seccion=avance&pestana=ritmo"]}><RitmoVista actores={actores} diarioGeneral={[]} diarioPorPublico={diarioPorPublico} fuentes={fuentes} fases={[]} onDeclararFases={() => {}} onVerFuentes={() => {}} /></MemoryRouter>,
+    );
+    expect(html).toContain("Por público");
+    expect(html).toContain("Diario y acumulado");
+    expect(html).toMatch(/aria-pressed="true"[^>]*>Por público/);
+    expect(acumulado([3, 0, 5, 2])).toEqual([3, 3, 8, 10]);
+  });
+  it("el gráfico elegido viaja en el foco: ?foco=acumulado abre el diario con el acumulado (L19)", () => {
+    const vista = (entrada: string) => renderToStaticMarkup(
+      <MemoryRouter initialEntries={[entrada]}>
+        <RitmoVista actores={actores} diarioGeneral={[]} diarioPorPublico={diarioPorPublico} fuentes={fuentes} fases={[]} onDeclararFases={() => {}} />
+      </MemoryRouter>,
+    );
+    expect(vista("/monitoreo?seccion=avance&pestana=ritmo")).toContain(", por público");
+    expect(vista("/monitoreo?seccion=avance&pestana=ritmo&foco=acumulado")).toContain(", con el acumulado");
   });
 });

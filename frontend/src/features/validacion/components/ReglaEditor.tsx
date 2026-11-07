@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, ChevronLeft, ChevronRight, Save, X as XIcon } from "lucide-react";
+import { CheckCircle2, ChevronLeft, ChevronRight, Save, Search, X as XIcon } from "lucide-react";
 import {
   apiV2ExplorarValores,
   type ExplorarValoresResult,
@@ -18,6 +18,8 @@ import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import { RuleNarrative } from "./v2";
 import type { VariableHoverData } from "./v2";
 import { draftCustomToRule } from "../customRuleNarrative";
+import { formatoConteo } from "../../../lib/formatoNumero";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 // =============================================================================
 // ReglaEditor — wizard de 3 pasos para crear / editar una ReglaCustom
@@ -411,11 +413,11 @@ export default function ReglaEditor({ inv, baseNombre, inicial, onSubmit, onCanc
     <section className="pulso-regla-editor">
       <div className="pulso-regla-editor-head">
         <div style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1 }}>
-          <div style={{ fontSize: 13, fontWeight: 800, color: "var(--pulso-text)" }}>
+          <div style={{ fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 800, color: "var(--pulso-text)" }}>
             {inicial ? "Editar criterio de revisión" : "Nuevo criterio de revisión"}
           </div>
-          <div style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
-            Paso {step} de 3 · {stepTitle(step)}
+          <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)" }}>
+            Paso {step} de 3: {stepTitle(step)}
           </div>
         </div>
         <label
@@ -498,7 +500,7 @@ export default function ReglaEditor({ inv, baseNombre, inicial, onSubmit, onCanc
         {error && (
           <div
             style={{
-              fontSize: 11,
+              fontSize: "var(--pulso-type-caption-size)",
               color: "var(--pulso-danger-fg)",
               background: "var(--pulso-danger-bg)",
               border: "1px solid var(--pulso-danger-border)",
@@ -525,7 +527,7 @@ export default function ReglaEditor({ inv, baseNombre, inicial, onSubmit, onCanc
           onClick={goBack}
           disabled={step === 1}
           style={{
-            fontSize: 12,
+            fontSize: "var(--pulso-type-body-size)",
             padding: "7px 14px",
             display: "inline-flex",
             alignItems: "center",
@@ -540,7 +542,7 @@ export default function ReglaEditor({ inv, baseNombre, inicial, onSubmit, onCanc
           <button
             type="button"
             onClick={onCancel}
-            style={{ fontSize: 12, padding: "7px 14px" }}
+            style={{ fontSize: "var(--pulso-type-body-size)", padding: "7px 14px" }}
           >
             Cancelar
           </button>
@@ -550,7 +552,7 @@ export default function ReglaEditor({ inv, baseNombre, inicial, onSubmit, onCanc
             onClick={goNext}
             disabled={saving}
             style={{
-              fontSize: 12,
+              fontSize: "var(--pulso-type-body-size)",
               padding: "7px 14px",
               display: "inline-flex",
               alignItems: "center",
@@ -636,10 +638,10 @@ function WizardIntro({
       }}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-        <div style={{ fontSize: 13, fontWeight: 800, color: "var(--pulso-text)" }}>
+        <div style={{ fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 800, color: "var(--pulso-text)" }}>
           {copy.title}
         </div>
-        <div style={{ fontSize: 11.5, color: "var(--pulso-text-soft)", lineHeight: 1.45 }}>
+        <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", lineHeight: 1.45 }}>
           {copy.body}
         </div>
       </div>
@@ -648,7 +650,7 @@ function WizardIntro({
           style={{
             alignSelf: "flex-start",
             flexShrink: 0,
-            fontSize: 10,
+            fontSize: "var(--pulso-type-micro-size)",
             fontWeight: 800,
             color: "var(--pulso-primary)",
             background: "white",
@@ -747,7 +749,7 @@ function Step1({
                   <strong>{grupo.label}</strong>
                   <p>{grupo.hint}</p>
                 </div>
-                <span>{groupTipos.length} criterio{groupTipos.length === 1 ? "" : "s"}</span>
+                <span>{formatoConteo(groupTipos.length)} criterio{groupTipos.length === 1 ? "" : "s"}</span>
               </header>
               <div className="pulso-regla-settings-rows">
                 {groupTipos.map((t) => {
@@ -830,17 +832,17 @@ function Step2({
         }}
       >
         <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-          <div style={{ fontSize: 12, fontWeight: 800, color: "var(--pulso-text)" }}>
+          <div style={{ fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 800, color: "var(--pulso-text)" }}>
             {tipoMeta.label}
           </div>
-          <div style={{ fontSize: 11.5, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
+          <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>
             {tipoMeta.variableHint}
           </div>
         </div>
         <span
           style={{
             flexShrink: 0,
-            fontSize: 10,
+            fontSize: "var(--pulso-type-micro-size)",
             fontWeight: 800,
             color: variables.length >= needed ? "var(--pulso-success-fg)" : "var(--pulso-text-soft)",
             background: variables.length >= needed ? "var(--pulso-success-bg)" : "var(--pulso-surface-2)",
@@ -849,7 +851,7 @@ function Step2({
             padding: "4px 9px",
           }}
         >
-          {variables.length} / {needed === max ? needed : `${needed}-${max}`}
+          {formatoConteo(variables.length)} / {needed === max ? needed : `${needed}-${max}`}
         </span>
       </div>
       <input
@@ -858,7 +860,7 @@ function Step2({
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         style={{
-          fontSize: 12,
+          fontSize: "var(--pulso-type-body-size)",
           padding: "7px 10px",
           borderRadius: 6,
           border: "1px solid var(--pulso-border)",
@@ -891,20 +893,20 @@ function Step2({
               }}
             >
               <PulsoSwitch size="sm" ariaLabel={`Usar ${v.name}`} checked={checked} onCheckedChange={() => toggle(v.name)} />
-              <code style={{ fontSize: 11, fontFamily: "ui-monospace, monospace", color: "var(--pulso-text)" }}>
+              <code style={{ fontSize: "var(--pulso-type-caption-size)", fontFamily: "ui-monospace, monospace", color: "var(--pulso-text)" }}>
                 {v.name}
               </code>
-              <span style={{ fontSize: 10, color: "var(--pulso-text-soft)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <span style={{ fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {v.label}
               </span>
-              <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 4, background: "var(--pulso-surface-2)", color: "var(--pulso-text-soft)", fontFamily: "ui-monospace, monospace" }}>
+              <span style={{ fontSize: "var(--pulso-type-micro-size)", fontWeight: 700, padding: "2px 6px", borderRadius: 4, background: "var(--pulso-surface-2)", color: "var(--pulso-text-soft)", fontFamily: "ui-monospace, monospace" }}>
                 {variableTipoLabel(v.tipo)}
               </span>
             </label>
           );
         })}
       {!candidatas.length && (
-        <div style={{ padding: 20, textAlign: "center", fontSize: 11, color: "var(--pulso-text-soft)", fontStyle: "italic" }}>
+        <div style={{ padding: 20, textAlign: "center", fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", fontStyle: "italic" }}>
             No encontramos variables con ese filtro.
         </div>
       )}
@@ -920,7 +922,7 @@ function Step2({
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 4,
-                fontSize: 11,
+                fontSize: "var(--pulso-type-caption-size)",
                 fontWeight: 600,
                 padding: "3px 8px",
                 borderRadius: 999,
@@ -1098,7 +1100,7 @@ function Step3({
         <FieldRow
           label={`k (${tipo === "outliers_iqr" ? "típico 1.5" : "típico 3"})`}
           hint={tipo === "outliers_iqr"
-            ? "Detecta fuera de [Q1 − k·IQR, Q3 + k·IQR]."
+            ? "Detecta fuera de [Q1 − k × IQR, Q3 + k × IQR]."
             : "Detecta |z-score| > k."}
         >
           <input
@@ -1126,7 +1128,7 @@ function Step3({
 
       {tipo === "coherencia_2v" && (
         <>
-          <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
+          <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
             Si <code>{variables[0]}</code> ({labelVar(variables[0])}) cumple la condición X,
             entonces <code>{variables[1]}</code> ({labelVar(variables[1])}) debe cumplir la condición Y.
           </div>
@@ -1225,7 +1227,7 @@ function Step3({
       )}
 
       {tipo === "no_nulo" && (
-        <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontStyle: "italic" }}>
+        <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", fontStyle: "italic" }}>
           Sin parámetros adicionales: cada caso con NA o vacío se marca como hallazgo.
         </div>
       )}
@@ -1334,19 +1336,19 @@ function RuleIntentCard({ tipoMeta }: { tipoMeta: TipoMeta }) {
       }}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        <div style={{ fontSize: 10, fontWeight: 800, color: "var(--pulso-primary)", textTransform: "uppercase", letterSpacing: 0.4 }}>
+        <div style={{ fontSize: "var(--pulso-type-micro-size)", fontWeight: 800, color: "var(--pulso-primary)", textTransform: "uppercase", letterSpacing: 0.4 }}>
           Criterio elegido
         </div>
-        <div style={{ fontSize: 13, fontWeight: 800, color: "var(--pulso-text)" }}>
+        <div style={{ fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 800, color: "var(--pulso-text)" }}>
           {tipoMeta.label}
         </div>
-        <div style={{ fontSize: 11.5, color: "var(--pulso-text-soft)", lineHeight: 1.45 }}>
+        <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", lineHeight: 1.45 }}>
           {tipoMeta.resultado}
         </div>
       </div>
       <div
         style={{
-          fontSize: 11,
+          fontSize: "var(--pulso-type-caption-size)",
           lineHeight: 1.4,
           color: "var(--pulso-text-soft)",
           background: "rgba(255,255,255,0.76)",
@@ -1558,7 +1560,7 @@ function OptionSelect({
       <option value="">{placeholder}</option>
       {options.map((option) => (
         <option key={option.code} value={option.code}>
-          {option.label || option.code}{option.code !== option.label ? ` · ${option.code}` : ""}{option.n != null ? ` · n=${option.n}` : ""}
+          {option.label || option.code}{option.code !== option.label ? ` (${option.code})` : ""}{option.n != null ? `, n = ${option.n}` : ""}
         </option>
       ))}
     </select>
@@ -1619,7 +1621,7 @@ function OptionChecklist({
           );
         })}
         {!filtered.length && (
-          <div className="pulso-option-picker-empty">Sin opciones con ese filtro.</div>
+          <EstadoVacio icono={<Search size={16} />} titulo="Sin opciones con ese filtro." />
         )}
       </div>
     </div>
@@ -1700,10 +1702,10 @@ function GateConditionsEditor({
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
         <div>
-          <div style={{ fontSize: 11, fontWeight: 800, color: "var(--pulso-text-soft)", textTransform: "uppercase", letterSpacing: 0.4 }}>
+          <div style={{ fontSize: "var(--pulso-type-eyebrow-size)", fontWeight: 800, color: "var(--pulso-text-soft)", textTransform: "uppercase", letterSpacing: 0.4 }}>
             Ámbito
           </div>
-          <div style={{ fontSize: 10.5, color: "var(--pulso-text-soft)", lineHeight: 1.35 }}>
+          <div style={{ fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)", lineHeight: 1.35 }}>
             Opcional. Limita el criterio a registros con una condición previa.
           </div>
         </div>
@@ -1892,7 +1894,7 @@ function OpValor({
         gap: 6,
       }}
     >
-      <div style={{ fontSize: 11, fontWeight: 700, color: "var(--pulso-text-soft)", textTransform: "uppercase", letterSpacing: 0.4 }}>
+      <div style={{ fontSize: "var(--pulso-type-eyebrow-size)", fontWeight: 700, color: "var(--pulso-text-soft)", textTransform: "uppercase", letterSpacing: 0.4 }}>
         {title}
       </div>
       <select
@@ -1940,11 +1942,11 @@ function FieldRow({
 }) {
   return (
     <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      <span style={{ fontSize: 11, fontWeight: 700, color: "var(--pulso-text-soft)", textTransform: "uppercase", letterSpacing: 0.4 }}>
+      <span style={{ fontSize: "var(--pulso-type-eyebrow-size)", fontWeight: 700, color: "var(--pulso-text-soft)", textTransform: "uppercase", letterSpacing: 0.4 }}>
         {label}
       </span>
       {children}
-      {hint && <span style={{ fontSize: 10, color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>{hint}</span>}
+      {hint && <span style={{ fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)", lineHeight: 1.4 }}>{hint}</span>}
     </label>
   );
 }
@@ -2102,9 +2104,9 @@ function variableTipoLabel(tipo: ExploradorVariable["tipo"]) {
 
 function formatVariableOption(variable: ExploradorVariable): string {
   const label = variable.label && variable.label !== variable.name
-    ? `${variable.label} · ${variable.name}`
+    ? `${variable.label} (${variable.name})`
     : variable.name;
-  return `${label} · ${variableTipoLabel(variable.tipo)}`;
+  return `${label}, ${variableTipoLabel(variable.tipo)}`;
 }
 
 function emptyGateCondition(flatVars: ExploradorVariable[]): ReglaGateCondition {
@@ -2333,7 +2335,7 @@ function quoteGateValue(value: string): string {
 }
 
 const inputStyle: React.CSSProperties = {
-  fontSize: 12,
+  fontSize: "var(--pulso-type-body-size)",
   padding: "7px 10px",
   borderRadius: 6,
   border: "1px solid var(--pulso-border)",
@@ -2343,7 +2345,7 @@ const inputStyle: React.CSSProperties = {
 };
 
 const secondarySmallButtonStyle: React.CSSProperties = {
-  fontSize: 11,
+  fontSize: "var(--pulso-type-caption-size)",
   fontWeight: 700,
   padding: "5px 10px",
   borderRadius: 6,
@@ -2358,7 +2360,7 @@ const emptyInlineStyle: React.CSSProperties = {
   borderRadius: 8,
   background: "var(--pulso-surface)",
   color: "var(--pulso-text-soft)",
-  fontSize: 11,
+  fontSize: "var(--pulso-type-caption-size)",
 };
 
 // =============================================================================
@@ -2390,7 +2392,7 @@ function NarrativePreview({
     >
       <div
         style={{
-          fontSize: 10,
+          fontSize: "var(--pulso-type-micro-size)",
           fontWeight: 800,
           textTransform: "uppercase",
           letterSpacing: 0.5,

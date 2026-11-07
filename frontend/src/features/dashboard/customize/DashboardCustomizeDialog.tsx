@@ -31,6 +31,7 @@ import {
 import { Dialog, type RetornoDeFoco } from "../../../components/Dialog";
 import { useDimSeccionesVars } from "../useDashboardData";
 import { DASHBOARD_PESTANAS } from "../../../lib/navegacion/catalogos/dashboard";
+import { Panel } from "../../../components/Panel";
 
 type CustomizePanel = "marca" | "pestanas" | "foda" | "graficos" | "semaforo" | "dimensiones" | "matriz" | "iconos";
 
@@ -482,7 +483,7 @@ export function DashboardCustomizeDialog({
                     >
                       <span className="dash-customize-view-name">{view.label}</span>
                       <span className="dash-customize-view-meta">
-                        {view.variable ? view.variable : "Dimensiones"} · {view.card_mode === "alias" ? "Alias" : "Iconos"}
+                        {view.variable ? view.variable : "Dimensiones"}, {view.card_mode === "alias" ? "alias" : "iconos"}
                       </span>
                     </button>
                   ))}
@@ -832,7 +833,7 @@ export function DashboardCustomizeDialog({
                 <p className="dash-customize-help">
                   Si solo eliges la de color, las filas son los valores de esa variable (ej.
                   Lima, Rímac, Lurigancho) sin ícono. Si eliges una distinta como ícono, cada
-                  fila es una combinación observada (ej. “Lima · ULE Lurigancho”) y la 2ª
+                  fila es una combinación observada (ej. «Lima, ULE Lurigancho») y la 2ª
                   variable aporta el ícono. Si eliges la misma variable en ambos selects, las
                   filas son los valores de esa variable y el ícono aparece en cada fila. Los
                   íconos se reutilizan de la configuración del FODA cuando la variable coincide
@@ -947,15 +948,25 @@ function PanelTitle({ title, text }: { title: string; text: string }) {
   );
 }
 
+/**
+ * Un grupo de ajustes del editor con su título: `Panel` del kit (P2, 4 nov 2026; revisable por Gonzalo). El
+ * editor es chrome de la app, no el tablero publicado, así que toma el material del kit; el ícono va con el título.
+ */
 function SettingBlock({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
   return (
-    <div className="dash-customize-setting-block" data-qa-geometry-group="dash-customize-setting-block" data-qa-geometry-contract="intrinsic">
-      <div className="dash-customize-setting-title">
-        {icon}
-        <strong>{title}</strong>
-      </div>
+    <Panel
+      className="dash-customize-setting-block"
+      data-qa-geometry-group="dash-customize-setting-block"
+      data-qa-geometry-contract="intrinsic"
+      title={
+        <span className="dash-customize-setting-title">
+          {icon}
+          <span>{title}</span>
+        </span>
+      }
+    >
       {children}
-    </div>
+    </Panel>
   );
 }
 

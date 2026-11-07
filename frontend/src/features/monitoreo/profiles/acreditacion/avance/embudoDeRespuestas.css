@@ -1,0 +1,167 @@
+/* Avance › embudo de las respuestas (Resumen y Salidas): una sola fila,
+ * paso — tramo — paso — tramo — paso. Cada tramo dice cuánto se pierde ahí y
+ * por qué; cada paso, su parte de las respuestas con una pista que se estrecha. */
+
+.acr-emb {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(176px, 0.85fr) minmax(0, 1fr) minmax(176px, 0.85fr) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 0;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 80%, var(--pulso-surface));
+  border-radius: 10px;
+  background: var(--pulso-surface);
+  overflow: hidden;
+}
+
+.acr-emb-paso {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+}
+
+.acr-emb-rotulo {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.acr-emb-paso > b {
+  font-size: var(--pulso-type-kpi-size);
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.1;
+}
+
+.acr-emb-paso > small {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.acr-emb-pista {
+  display: block;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--pulso-surface-3);
+  overflow: hidden;
+}
+
+.acr-emb-pista > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--acr-efectiva, var(--pulso-brand-navy)) 55%, var(--pulso-surface));
+}
+
+/* El paso final es la cifra que importa: fondo tenue y la pista en el tono pleno. */
+.acr-emb-paso.is-oficial {
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 6%, var(--pulso-surface));
+}
+
+.acr-emb-paso.is-oficial > .acr-emb-pista > i {
+  background: var(--acr-efectiva, var(--pulso-brand-navy));
+}
+
+.acr-emb-tramo {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3) var(--pulso-space-2) var(--pulso-space-5);
+  border-inline: 1px solid var(--pulso-surface-3);
+  background: color-mix(in srgb, var(--pulso-surface-2) 60%, var(--pulso-surface));
+}
+
+/* La flecha del flujo, a la izquierda del tramo. */
+.acr-emb-flecha {
+  position: absolute;
+  top: 50%;
+  left: 8px;
+  width: 8px;
+  height: 8px;
+  border-top: 2px solid var(--pulso-border-strong);
+  border-right: 2px solid var(--pulso-border-strong);
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.acr-emb-tramo > b {
+  color: var(--pulso-warn-fg);
+  font-size: var(--pulso-type-title-size);
+  font-weight: var(--pulso-weight-bold);
+}
+
+/* El libro de mermas: una fila por motivo, la cifra en su columna (alineada a la derecha) y el
+ * motivo corto en un renglón. Una sub-rejilla comparte la columna de cifras entre las filas. */
+.acr-emb-mermas {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: var(--pulso-space-2);
+  row-gap: 2px;
+}
+
+.acr-emb-merma {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: baseline;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+}
+
+.acr-emb-merma > .acr-av-num {
+  justify-self: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.acr-emb-merma-regla {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.acr-emb-merma:hover {
+  color: var(--pulso-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.acr-emb-merma:focus-visible {
+  outline: 2px solid var(--pulso-brand-navy);
+  outline-offset: 2px;
+}
+
+.acr-emb-merma > .acr-av-num {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/* Muy angosto: los pasos en fila y los tramos debajo de cada uno (a 1024 la
+ * tarjeta del Resumen mide ~900 px y la fila completa cabe). */
+@media (max-width: 760px) {
+  .acr-emb {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .acr-emb-tramo {
+    border-inline: 0;
+    border-block: 1px solid var(--pulso-surface-3);
+  }
+
+  .acr-emb-flecha {
+    transform: translateY(-50%) rotate(135deg);
+  }
+}

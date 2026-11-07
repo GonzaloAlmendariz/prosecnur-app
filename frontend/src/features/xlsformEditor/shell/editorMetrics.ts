@@ -106,14 +106,14 @@ export function plural(count: number, singular: string, pluralForm: string): str
 
 /** «92 campos · 17 secciones»: el par que repiten cabecera, outline y vista completa. */
 export function formatFieldSectionPair(fields: number, sections: number): string {
-  return `${plural(fields, "campo", "campos")} · ${plural(sections, "sección", "secciones")}`;
+  return `${plural(fields, "campo", "campos")}, ${plural(sections, "sección", "secciones")}`;
 }
 
 /** Texto humano del estado de guardado para el chip del header. */
 export function formatSaveStatus(dirty: boolean, lastSavedAt: number | null, now = Date.now()): string {
   if (dirty) {
     if (lastSavedAt == null) return "Cambios sin guardar";
-    return `Cambios sin guardar · último guardado ${formatRelativeTime(lastSavedAt, now)}`;
+    return `Cambios sin guardar (último guardado ${formatRelativeTime(lastSavedAt, now)})`;
   }
   if (lastSavedAt == null) return "Sin cambios";
   return `Guardado ${formatRelativeTime(lastSavedAt, now)}`;

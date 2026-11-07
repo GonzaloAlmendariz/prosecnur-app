@@ -8,7 +8,7 @@ import { useInRouterContext, useLocation, useNavigate } from "react-router-dom";
 import { apiCargaCompararFuentes } from "../../../api/cargaArmonizacion";
 import { usePanelDireccionable } from "../../../lib/navegacion/paneles";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
-import { GitCompareArrows } from "../../../vendor/lucide-react";
+import { GitCompareArrows, Inbox } from "../../../vendor/lucide-react";
 import {
   PANEL_COMPARAR_FUENTES,
   cambiarLado,
@@ -25,6 +25,7 @@ import { CompararFuentesVista, type CargaComparacion } from "./CompararFuentesVi
 import { PanelLateralFuentes } from "./PanelLateralFuentes";
 import "./compararFuentes.css";
 
+import { EstadoVacio } from "../../../components/EstadoVacio";
 export function readinessComparacion(carga: CargaComparacion, par: ParBases | null): string {
   if (!par) return "vacio:sin-par";
   if (carga.tipo === "cargando") return "false";
@@ -102,12 +103,8 @@ function PanelConDireccion({ bases }: Props) {
         <CompararFuentesVista carga={carga} />
       ) : (
         // C5: vacío legítimo. Hace falta un segundo formulario cargado de la misma revisión.
-        <div className="pulso-plf-estado" role="status" data-qa-geometry-capacity="owned">
-          <strong>No hay dos fuentes que comparar</strong>
-          <p>
-            Se comparan bases ligadas a la misma revisión de un formulario publicado; por ejemplo, las respuestas de
-            SurveyMonkey y el .sav limpiado del mismo cuestionario. Agrega la segunda base desde «Formulario publicado».
-          </p>
+        <div data-qa-geometry-capacity="owned">
+          <EstadoVacio icono={<Inbox size={16} />} titulo="No hay dos fuentes que comparar" descripcion="Se comparan bases ligadas a la misma revisión de un formulario publicado; por ejemplo, las respuestas de SurveyMonkey y el .sav limpiado del mismo cuestionario. Agrega la segunda base desde «Formulario publicado»." />
         </div>
       )}
     </PanelLateralFuentes>

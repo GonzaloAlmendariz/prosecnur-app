@@ -73,9 +73,38 @@ export function paletaDePublicos(nombres: Iterable<string>): PaletaDePublicos {
   return out;
 }
 
-/** Clase CSS del público: `es-publico-N` o `es-publico-neutro`. */
+/** Clave estable del público para su clase propia (`es-publico-x-<clave>`). */
+export function claveDePublico(nombre: string): string {
+  return normalizar(nombre).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "sin-nombre";
+}
+
+/**
+ * Clase CSS del público: `es-publico-N` (o `es-publico-neutro`) más su clase
+ * propia `es-publico-x-<clave>`, que es donde se engancha el color que el
+ * equipo elija en Modelo › Cuotas (`reglasDeColores`). Así cambiar un color no
+ * obliga a re-pintar a los consumidores: sólo cambia la hoja.
+ */
 export function clasePublico(paleta: PaletaDePublicos, nombre: string): string {
   const clave = String(nombre ?? "").trim();
   const tono = paleta.has(clave) ? paleta.get(clave) ?? null : tonoPreferido(clave);
-  return tono == null ? "es-publico-neutro" : `es-publico-${tono}`;
+  return tono == null ? "es-publico-neutro" : `es-publico-${tono} es-publico-x-${claveDePublico(clave)}`;
+}
+
+const HEX = /^#[0-9a-f]{6}$/;
+
+/** Normaliza lo que el usuario escribe: «0f0», «#0F0», «#00ff00» -> «#00ff00»; `null` si no es un color. */
+export function hexValido(texto: string): string | null {
+  let hex = String(texto ?? "").trim().toLowerCase();
+  if (!hex.startsWith("#")) hex = `#${hex}`;
+  if (/^#[0-9a-f]{3}$/.test(hex)) hex = `#${[...hex.slice(1)].map((c) => c + c).join("")}`;
+  return HEX.test(hex) ? hex : null;
+}
+
+/** Las reglas que pintan a cada público con el color elegido; doble clase para ganar a `es-publico-N`. */
+export function reglasDeColores(colores: Readonly<Record<string, string>> | null | undefined): string {
+  return Object.entries(colores ?? {})
+    .map(([publico, valor]) => [claveDePublico(publico), hexValido(valor)] as const)
+    .filter((par): par is readonly [string, string] => par[1] != null)
+    .map(([clave, hex]) => `.es-publico-x-${clave}.es-publico-x-${clave} { --publico: ${hex}; }`)
+    .join("\n");
 }

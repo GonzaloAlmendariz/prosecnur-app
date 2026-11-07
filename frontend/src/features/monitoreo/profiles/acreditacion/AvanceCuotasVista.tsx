@@ -3,7 +3,8 @@ import { useId, useMemo, type ReactNode } from "react";
 import { Alert } from "../../../../components/Alert";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { PulsoButton } from "../../../../components/PulsoButton";
-import { Database, Loader2, Plus, Target } from "../../../../vendor/lucide-react";
+import { LoadingBlock } from "../../../../components/States";
+import { Database, Plus, Target } from "../../../../vendor/lucide-react";
 import { AvanceCuotasDetalle } from "./AvanceCuotasDetalle";
 import { AvanceCuotasResumen } from "./AvanceCuotasResumen";
 import { cifra, cuotaElegida, type EstadoCuotas, faseCuotas, marcaReadinessCuotas } from "./avanceCuotasModelo";
@@ -76,10 +77,10 @@ export function AvanceCuotasVista({ s, foco, panel, onElegir, onAgregar, onEdita
       ) : null}
 
       {fase === "cargando" ? (
-        <p className="mon-cuotas-cargando" role="status"><Loader2 size={14} className="pulso-spin" aria-hidden /> Leyendo las cuotas…</p>
+        <LoadingBlock label="Leyendo las cuotas…" />
       ) : null}
       {fase === "error" ? (
-        <div className="mon-cuotas-vacio" data-qa-geometry-capacity="owned">
+        <div data-qa-geometry-capacity="owned">
           <EstadoVacio
             tamano="normal"
             icono={<Target size={18} />}
@@ -90,7 +91,7 @@ export function AvanceCuotasVista({ s, foco, panel, onElegir, onAgregar, onEdita
         </div>
       ) : null}
       {fase === "preparando" ? (
-        <div className="mon-cuotas-vacio" data-qa-geometry-capacity="owned">
+        <div data-qa-geometry-capacity="owned">
           <EstadoVacio
             tamano="normal"
             icono={<Database size={18} />}
@@ -100,7 +101,7 @@ export function AvanceCuotasVista({ s, foco, panel, onElegir, onAgregar, onEdita
         </div>
       ) : null}
       {fase === "sin-universo" ? (
-        <div className="mon-cuotas-vacio" data-qa-geometry-capacity="owned">
+        <div data-qa-geometry-capacity="owned">
           <EstadoVacio
             tamano="normal"
             icono={<Database size={18} />}
@@ -110,7 +111,7 @@ export function AvanceCuotasVista({ s, foco, panel, onElegir, onAgregar, onEdita
         </div>
       ) : null}
       {fase === "sin-cuotas" ? (
-        <div className="mon-cuotas-vacio" data-qa-geometry-capacity="owned">
+        <div data-qa-geometry-capacity="owned">
           <EstadoVacio
             tamano="normal"
             icono={<Target size={18} />}

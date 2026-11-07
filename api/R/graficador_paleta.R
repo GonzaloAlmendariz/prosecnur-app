@@ -39,6 +39,26 @@
 .PALETA_ESCALA_NEUTRO <- "neutral|regular|indiferente|^ni .* ni "
 .PALETA_ESCALA_ESPECIAL_EXTRA <- "^(no utilic|no us[eé]|no he usado|no aplica)"
 
+#' Rampa de colores para los `k` pasos de una escala ordinal (negativo primero)
+#'
+#' Cuatro pasos: la Likert del estándar. Cinco: la Likert con neutro. Más pasos con un punto medio neutro («Regular»,
+#' «Ni … ni …»): los negativos van de coral a amarillo, el medio en el gris neutro y los positivos de verde claro a verde.
+#' Antes los siete pasos interpolaban los cuatro colores y el medio salía verde olivo (Gonzalo, revisión del PPT v7 de
+#' CCSS, lámina 65: «Regular no debería ser verde»). Sin medio neutro, la interpolación de siempre.
+#' @param n Pasos normalizados (para reconocer el medio neutro); `NULL` lo omite.
+#' @keywords internal
+.paleta_rampa_escala <- function(k, n = NULL) {
+  lk <- unname(.std_paleta("likert")); ln <- unname(.std_paleta("likert_neutro"))
+  if (k == 4L) return(lk[1:4])
+  if (k == 5L) return(ln[1:5])
+  medio <- (k + 1L) / 2L
+  if (k %% 2L == 1L && !is.null(n) && length(n) >= medio && grepl(.PALETA_ESCALA_NEUTRO, n[medio])) {
+    h <- (k - 1L) / 2L
+    return(c(grDevices::colorRampPalette(lk[1:2])(h), ln[3], grDevices::colorRampPalette(lk[3:4])(h)))
+  }
+  grDevices::colorRampPalette(lk[1:4])(k)
+}
+
 #' Paleta Likert del estándar para una escala ordinal sin paleta propia, o `NULL` si las categorías no son una escala
 #'
 #' Conservadora a propósito: sólo si TODAS las categorías no especiales nombran un eje de escala, son de 3 a 7 y una
@@ -60,7 +80,7 @@
   neg_primero <- grepl(.PALETA_ESCALA_NEGATIVO, n[1]); neg_ultimo <- grepl(.PALETA_ESCALA_NEGATIVO, n[k])
   if (neg_primero == neg_ultimo) return(NULL)
   lk <- unname(.std_paleta("likert"))
-  rampa <- if (k == 4L) lk[1:4] else if (k == 5L) unname(.std_paleta("likert_neutro"))[1:5] else grDevices::colorRampPalette(lk[1:4])(k)
+  rampa <- .paleta_rampa_escala(k, n)
   if (neg_ultimo) rampa <- rev(rampa)
   vals <- character(length(levels_cat)); vals[!especial] <- rampa; vals[especial] <- lk[5]
   stats::setNames(vals, levels_cat)

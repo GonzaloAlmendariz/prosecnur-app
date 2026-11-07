@@ -32,8 +32,8 @@ describe("dirección pública del modo territorial", () => {
     expect(total).toBe(20);
   });
 
-  it("sin dirección aterriza en Avance › Faltante por UMP", () => {
-    expect(direccionInicial(pedida(null))).toEqual({ seccion: "avance", pestana: "faltante", panel: null });
+  it("sin dirección aterriza en Avance › Resumen", () => {
+    expect(direccionInicial(pedida(null))).toEqual({ seccion: "avance", pestana: "resumen", panel: null });
     expect(direccionInicial(pedida("avance"))).toEqual(ATERRIZAJE_TERRITORIAL);
   });
 
@@ -56,8 +56,8 @@ describe("dirección pública del modo territorial", () => {
     expect(direccionPedida(pedida("modelo", "variables"))).toEqual({ seccion: "insumos", pestana: "mapeo", panel: null });
     expect(direccionPedida(pedida("modelo", "resumen"))).toEqual({ seccion: "avance", pestana: "mapa", panel: null });
     expect(direccionPedida(pedida("modelo", "tabla"))).toEqual({ seccion: "avance", pestana: "umps", panel: null });
-    expect(direccionPedida(pedida("calidad", "cuotas"))).toEqual(ATERRIZAJE_TERRITORIAL);
-    expect(direccionPedida(pedida("avance", "cuotas"))).toEqual(ATERRIZAJE_TERRITORIAL);
+    expect(direccionPedida(pedida("calidad", "cuotas"))).toEqual({ seccion: "avance", pestana: "faltante", panel: null });
+    expect(direccionPedida(pedida("avance", "cuotas"))).toEqual({ seccion: "avance", pestana: "faltante", panel: null });
     expect(direccionPedida(pedida("avance", "ump"))).toEqual({ seccion: "avance", pestana: "mapa", panel: null });
     expect(direccionPedida(pedida("avance", "ritmo"))).toEqual({ seccion: "avance", pestana: "resumen", panel: null });
     expect(direccionPedida(pedida("consultas", "gps"))).toEqual({ seccion: "control", pestana: "bandeja", panel: "gps" });
@@ -76,14 +76,14 @@ describe("dirección pública del modo territorial", () => {
     expect(direccionDeVista({ seccion: "calidad", pestana: "geolocalizacion" })).toEqual({ seccion: "control", pestana: "senales", panel: null });
     // Validación › Cuotas se monta en Modelo › Cuotas, pero un enlace a ella
     // va al faltante, que es lo que la reemplaza.
-    expect(direccionDeVista({ seccion: "calidad", pestana: "cuotas" })).toEqual(ATERRIZAJE_TERRITORIAL);
+    expect(direccionDeVista({ seccion: "calidad", pestana: "cuotas" })).toEqual({ seccion: "avance", pestana: "faltante", panel: null });
     expect(direccionDeVista({ seccion: "modelo", pestana: "tabla" })).toEqual({ seccion: "modelo", pestana: "metas", panel: "manzanas" });
   });
 
-  it("Faltante por UMP es propia y pide el corte de avance", () => {
-    expect(esPestanaPropia(ATERRIZAJE_TERRITORIAL)).toBe(true);
+  it("Faltante es propia y pide el corte de avance", () => {
+    expect(esPestanaPropia({ seccion: "avance", pestana: "faltante", panel: null })).toBe(true);
     // `validation_summary` (el corte de Validación) no trae las subsanaciones.
-    expect(vistaDeDireccion(ATERRIZAJE_TERRITORIAL).seccion).toBe("avance");
+    expect(vistaDeDireccion({ seccion: "avance", pestana: "faltante", panel: null }).seccion).toBe("avance");
     // Resumen necesita `response_audit` para los motivos de observación.
     expect(vistaDeDireccion({ seccion: "avance", pestana: "resumen", panel: null }).seccion).toBe("calidad");
     expect(esPestanaPropia({ seccion: "avance", pestana: "resumen", panel: "ritmo" })).toBe(false);

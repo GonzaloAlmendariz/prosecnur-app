@@ -64,14 +64,49 @@
   if (is.na(x)) 0L else x
 }
 
-# Todas las páginas de un recurso de Mailchimp.
+# Páginas que se piden a la vez. Mailchimp tarda del lado suyo unos 11 ms por
+# destinatario en `sent-to` (11 s por página de 1 000, medido el 29/10/2026), y
+# las páginas iban una tras otra: 45 120 destinatarios eran ~12 minutos. Mailchimp
+# admite 10 conexiones simultáneas por cuenta; se usan 4 para dejar margen.
+.MCM_PARALELO <- 4L
+
+# Todas las páginas de un recurso de Mailchimp. La primera dice el total; las
+# demás se piden en lotes en paralelo y se juntan en el orden de su `offset`.
 .mcm_paginas <- function(key, path, item, fields = NULL, query = list(), avance = NULL) {
+  consulta <- function(offset) {
+    q <- c(query, list(count = .MCM_PAGINA, offset = offset))
+    if (!is.null(fields)) q$fields <- paste0(fields, ",total_items")
+    q
+  }
+  primera <- .mc_call("GET", path, key, query = consulta(0L))
+  out <- primera[[item]] %||% list()
+  total <- .mcm_int(primera$total_items)
+  if (is.function(avance)) avance(length(out), total)
+  if (!length(out) || length(out) >= total) return(out)
+  pendientes <- seq.int(length(out), total - 1L, by = .MCM_PAGINA)
+  for (lote in split(pendientes, ceiling(seq_along(pendientes) / .MCM_PARALELO))) {
+    cuerpos <- .mcm_pedir_varias(key, path, lapply(lote, consulta))
+    for (k in seq_along(lote)) {
+      items <- cuerpos[[k]][[item]] %||% list()
+      # Una página corta o un total que cambió dejarían un hueco con pasos fijos:
+      # entonces se relee el recurso entero una página tras otra, como antes.
+      esperados <- min(.MCM_PAGINA, total - lote[[k]])
+      if (length(items) != esperados || !identical(.mcm_int(cuerpos[[k]]$total_items), total)) {
+        return(.mcm_paginas_en_serie(key, path, item, consulta, avance))
+      }
+      out <- c(out, items)
+    }
+    if (is.function(avance)) avance(length(out), total)
+  }
+  out
+}
+
+# La lectura de siempre: avanza por lo que trae cada página y relee el total.
+.mcm_paginas_en_serie <- function(key, path, item, consulta, avance = NULL) {
   out <- list()
   offset <- 0L
   repeat {
-    q <- c(query, list(count = .MCM_PAGINA, offset = offset))
-    if (!is.null(fields)) q$fields <- paste0(fields, ",total_items")
-    body <- .mc_call("GET", path, key, query = q)
+    body <- .mc_call("GET", path, key, query = consulta(offset))
     items <- body[[item]] %||% list()
     out <- c(out, items)
     offset <- offset + length(items)
@@ -79,6 +114,51 @@
     if (is.function(avance)) avance(offset, total)
     if (!length(items) || offset >= total) break
   }
+  out
+}
+
+# Varias peticiones GET a la vez. Lo que no vuelve con 200 —error de red, 429,
+# 5xx, clave rechazada— se repite con `.mc_call`, que trae los reintentos y el
+# error de siempre.
+.mcm_pedir_varias <- function(key, path, consultas) {
+  if (length(consultas) <= 1L) return(lapply(consultas, function(q) .mc_call("GET", path, key, query = q)))
+  respuestas <- .mcm_http_varias(vapply(consultas, function(q) .mcm_url(key, path, q), character(1)), key)
+  Map(function(res, q) {
+    if (is.list(res) && identical(as.integer(res$status %||% 0L), 200L)) return(res$body)
+    .mc_call("GET", path, key, query = q)
+  }, respuestas, consultas)
+}
+
+# La URL que arma `.mc_call` para un GET.
+.mcm_url <- function(key, path, query = list()) {
+  url <- sprintf("https://%s.api.mailchimp.com/3.0%s", .mc_dc(key), path)
+  if (!length(query)) return(url)
+  paste0(url, "?", paste(names(query), vapply(query, function(v) utils::URLencode(as.character(v), reserved = TRUE), ""),
+                         sep = "=", collapse = "&"))
+}
+
+# GET simultáneos con `curl` (sin fork). Devuelve, por URL y en su orden,
+# `list(status, body)` o `NULL` si la red falló.
+.mcm_http_varias <- function(urls, key) {
+  pool <- curl::new_pool(total_con = length(urls), host_con = length(urls))
+  out <- vector("list", length(urls))
+  for (i in seq_along(urls)) {
+    local({
+      j <- i
+      h <- curl::new_handle()
+      curl::handle_setopt(h, userpwd = paste0("prosecnur:", key), httpauth = 1L, timeout = 60L, connecttimeout = 15L)
+      curl::curl_fetch_multi(urls[[j]], handle = h, pool = pool,
+        done = function(res) {
+          cuerpo <- tryCatch({
+            txt <- rawToChar(res$content); Encoding(txt) <- "UTF-8"
+            if (nzchar(txt)) jsonlite::fromJSON(txt, simplifyVector = FALSE) else list()
+          }, error = function(e) NULL)
+          out[j] <<- list(if (is.null(cuerpo)) NULL else list(status = res$status_code, body = cuerpo))
+        },
+        fail = function(msg) out[j] <<- list(NULL))
+    })
+  }
+  curl::multi_run(pool = pool)
   out
 }
 
@@ -234,14 +314,19 @@
     firma <- .mcm_firma(reporte)
     seg <- .mcm_segmento(campana, etiquetas)
     anterior <- previos[[id]]
-    reutiliza <- !is.null(anterior) && identical(.mcm_chr(anterior$firma), firma) &&
-      any(previas_personas$campaign_id == id)
+    tiene_previas <- !is.null(anterior) && any(previas_personas$campaign_id == id)
+    reutiliza <- tiene_previas && identical(.mcm_chr(anterior$firma), firma)
+    # Entrega igual y sólo se movieron aperturas o clics: se suma la actividad nueva
+    # sin volver a bajar a todos los destinatarios (monitoreo_mailchimp_incremental.R).
+    desde <- .mcm_desde(previo$leido_at)
+    incremental <- !reutiliza && tiene_previas && nzchar(desde) &&
+      identical(.mcm_firma_entrega_guardada(anterior), .mcm_firma_entrega(reporte))
     envios[[id]] <- c(
       list(
         campaign_id = id, titulo = titulo, asunto = .mcm_chr(campana$settings$subject_line),
         enviado_at = .mcm_chr(campana$send_time), etiqueta = seg$etiqueta, excluye = seg$excluye,
         tipo = if (nzchar(seg$excluye)) "recordatorio" else "invitacion",
-        firma = firma
+        firma = firma, firma_entrega = .mcm_firma_entrega(reporte)
       ),
       .mcm_resumen_reporte(reporte)
     )
@@ -249,6 +334,14 @@
       personas[[id]] <- previas_personas[previas_personas$campaign_id == id, , drop = FALSE]
       bajas[[id]] <- (previo$bajas %||% data.frame())[(previo$bajas$campaign_id %||% character(0)) == id, , drop = FALSE]
       quejas[[id]] <- (previo$quejas %||% data.frame())[(previo$quejas$campaign_id %||% character(0)) == id, , drop = FALSE]
+      next
+    }
+    if (incremental) {
+      personas[[id]] <- .mcm_actualizar_personas(key, list_id, id, previas_personas[previas_personas$campaign_id == id, , drop = FALSE], desde,
+        avance = function(hecho, total) report("campaign", current = i, total = n, percent = base_pct,
+          message = sprintf("Mailchimp: envío %d de %d · actividad nueva de %s personas", i, n, format(total, big.mark = ","))))
+      bajas[[id]] <- if (.mcm_int(reporte$unsubscribed) > 0L) .mcm_leer_bajas(key, id) else NULL
+      quejas[[id]] <- if (.mcm_int(reporte$abuse_reports) > 0L) .mcm_leer_quejas(key, id) else NULL
       next
     }
     personas[[id]] <- .mcm_leer_personas(key, id, avance = function(hecho, total) {

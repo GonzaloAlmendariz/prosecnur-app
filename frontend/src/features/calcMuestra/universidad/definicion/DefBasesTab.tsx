@@ -47,6 +47,7 @@ import { useValorSwap } from "../ui/useValorSwap";
 import { SolicitudDtiButton } from "./SolicitudDtiButton";
 import { ReferenciaAsistenciaCard } from "./ReferenciaAsistenciaCard";
 import "./definicion.css";
+import { Panel } from "../../../../components/Panel";
 
 const MODE_BADGES: Record<CalcMuestraWorkspaceSourceMode, string> = {
   base_madre: "Recomendado",
@@ -64,7 +65,7 @@ const UPLOAD_ACCEPT = [
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ].join(",");
 
-const UPLOAD_ACCEPT_LABEL = ".xlsx · .xls · .csv";
+const UPLOAD_ACCEPT_LABEL = ".xlsx, .xls, .csv";
 
 /** Nombre corto de cada variable requerida para la franja de compatibilidad. */
 const REQUIRED_SHORT_LABEL: Record<string, string> = {
@@ -117,11 +118,11 @@ function RequisitosReferencia() {
   // title de cada nombre para no convertir la tarjeta en un muro.
   return (
     <div className="cmv2-defi-requisitos">
-      <span>Columnas que debe traer ({requisitos.length})</span>
+      <span>Columnas que debe traer ({fmtInt(requisitos.length)})</span>
       <p>
         {requisitos.map((req, i) => (
           <span key={req.campo}>
-            {i > 0 ? " · " : null}
+            {i > 0 ? ", " : null}
             <code title={req.alias.length > 1 ? `También se acepta: ${req.alias.filter((a) => a !== req.campo).join(", ")}` : undefined}>
               {req.campo}
             </code>
@@ -306,7 +307,8 @@ export function BaseUploadCard({
           <div className="cmv2-defi-upload-stats">
             <div className="cmv2-defi-upload-stat">
               <span>Archivo</span>
-              <strong>{binding.file_name || "cargado"}</strong>
+              {/* El nombre se parte en los espacios, no en el guion de «curso-horario» o «2025-2». */}
+              <strong title={binding.file_name || undefined}>{(binding.file_name || "cargado").replace(/-/g, "\u2011")}</strong>
             </div>
             <label className="cmv2-compact-field">
               <span>Hoja leída</span>
@@ -354,7 +356,7 @@ export function BaseUploadCard({
           {columnas.length > 0 && (
             <div className="cmv2-defi-upload-cols">
               <p className="cmv2-defi-upload-cols-head">
-                <strong>{columnas.length}</strong>{" "}
+                <strong>{fmtInt(columnas.length)}</strong>{" "}
                 {columnas.length === 1 ? "columna detectada" : "columnas detectadas"}
               </p>
               <div className="cmv2-defi-upload-cols-list">
@@ -478,7 +480,7 @@ export function DefBasesTab({
     {
       id: "archivo",
       label: "Archivo",
-      valor: `${loadedCount}/${frameBindings.length}`,
+      valor: `${loadedCount}/${fmtInt(frameBindings.length)}`,
       detalle: loadedCount ? "Excel cargados" : "sube el Excel institucional",
       estado: loadedCount === frameBindings.length && loadedCount > 0 ? "ready" : loadedCount > 0 ? "working" : "pending",
     },
@@ -499,8 +501,8 @@ export function DefBasesTab({
   ];
 
   return (
-    <section
-      className="cmv2-panel cmv2-university-sources"
+    <Panel
+      className="cmv2-university-sources"
       // Marcaba `member` sin que ningún grupo lo contuviera: un miembro
       // huérfano no lo audita nadie. Ahora la sección declara su grupo y sus
       // bloques internos son los miembros.
@@ -613,8 +615,8 @@ export function DefBasesTab({
       {showCompat && (
         <AvisoModulo tone={compatOk ? "success" : "warn"} role="status" compact>
           {compatOk
-            ? `Compatible · ${detectedRequired.length}/${requiredVariables.length} variables requeridas detectadas · confírmalas en la pestaña Variables`
-            : `Por revisar · ${detectedRequired.length}/${requiredVariables.length} variables requeridas detectadas · faltan: ${missingRequired
+            ? `Compatible, ${fmtInt(detectedRequired.length)}/${fmtInt(requiredVariables.length)} variables requeridas detectadas, confírmalas en la pestaña Variables`
+            : `Por revisar, ${fmtInt(detectedRequired.length)}/${fmtInt(requiredVariables.length)} variables requeridas detectadas, faltan: ${missingRequired
                 .map((row) => REQUIRED_SHORT_LABEL[row.role] ?? row.label.toLowerCase())
                 .join(", ")} — mapéalas en la pestaña Variables`}
         </AvisoModulo>
@@ -658,6 +660,6 @@ export function DefBasesTab({
           </div>
         </>
       )}
-    </section>
+    </Panel>
   );
 }

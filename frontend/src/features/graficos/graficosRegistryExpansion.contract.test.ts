@@ -203,7 +203,7 @@ describe("contrato sucesor del registry de Gráficos", () => {
     }
   });
 
-  it("resuelve el blueprint del panorama de públicos (ADR 0114) y su ícono del shim", () => {
+  it("resuelve el blueprint del panorama de públicos (ADR 0134) y su ícono del shim", () => {
     expect(resolveGraficadorBlueprint("panorama")).toBe("panorama");
     const [panorama] = normalizeGraficosRegistry({
       slides: [],

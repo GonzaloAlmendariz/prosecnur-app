@@ -17,7 +17,17 @@ describe("esquema de la primera página", () => {
     expect(html({}, false)).not.toBe(base);
   });
 
-  it("los recuadros de N.° aparecen sólo con el número de cuestionario", () => {
+  it("la portada dibuja «institución · periodo» y el bloque de control sólo si están puestos (L36 · D-L36-5)", () => {
+    const base = html({});
+    expect(base).not.toContain("Encuestador:");
+    const conPortada = html({ institution: "UNSA", period: "2026-2", controlBlock: true });
+    expect(conPortada).toContain("UNSA · 2026-2");
+    expect(conPortada).toContain("Encuestador:");
+    expect(conPortada).toContain("Supervisor:");
+    expect(html({ period: "2026-2" })).toContain(">2026-2<");
+  });
+
+    it("los recuadros de N.° aparecen sólo con el número de cuestionario", () => {
     expect(recuadrosNumero(html({ showQuestionnaireNumber: true }))).toBe(4);
     expect(recuadrosNumero(html({ showQuestionnaireNumber: false }))).toBe(0);
   });

@@ -34,7 +34,7 @@ test_that("el detector de jerga reconoce los casos reales y respeta lo que el an
               "La lámina 'p_slide_objetivo_icono' necesita un ícono", "Declara `escala_valor = \"proporcion_100\"`",
               "Usa estandar, resto_mayor o ambos", "methodology_zero_denominator: x", "slide[9]: x")
   expect_true(all(.aviso_tiene_jerga(viejos)))
-  expect_false(any(.aviso_tiene_jerga(c("Lámina 3 · “PERFIL_2026”: crea «p3_recod»", "El radar recibió valores de hasta 98.1"))))
+  expect_false(any(.aviso_tiene_jerga(c("Lámina 3, “PERFIL_2026”: crea «p3_recod»", "El radar recibió valores de hasta 98.1"))))
   expect_identical(.aviso_motivo("No se pudo renderizar `icono`"), "")
   expect_identical(.aviso_motivo("la variable P7 no existe."), " Motivo: la variable P7 no existe.")
 })
@@ -55,10 +55,10 @@ test_that("el detector de jerga reconoce el voseo y no el español neutro (mutan
 })
 
 test_that("el rótulo de una lámina es número + título, como la numera la UI", {
-  expect_identical(.aviso_lamina(3, "Perfil del docente"), "Lámina 3 · “Perfil del docente”")
+  expect_identical(.aviso_lamina(3, "Perfil del docente"), "Lámina 3, “Perfil del docente”")
   expect_identical(.aviso_lamina(3, ""), "Lámina 3")
-  expect_identical(.aviso_lamina(3, "Bienestar (cont.)"), "Lámina 3 · “Bienestar”")
-  expect_identical(.aviso_lamina(2, "X", base = "docentes"), "Lámina 2 de «docentes» · “X”")
+  expect_identical(.aviso_lamina(3, "Bienestar (cont.)"), "Lámina 3, “Bienestar”")
+  expect_identical(.aviso_lamina(2, "X", base = "docentes"), "Lámina 2 de «docentes», “X”")
   expect_identical(.aviso_lamina(NULL, "X"), "La lámina “X”")
   expect_identical(.aviso_lamina(), "Una lámina sin título")
 })
@@ -75,7 +75,7 @@ test_that("tipos y espacios se nombran como el selector, no por su nombre intern
 test_that("el ícono que falta no expone su id y nombra la lámina", {
   av <- .avisos_de(.aviso_con_lamina(4, "Objetivo general", .graficos_rebuild_icon(.UUID_TEST, list())))
   expect_length(av, 1L)
-  expect_match(av, "^Lámina 4 · “Objetivo general”: su ícono ya no está en el catálogo")
+  expect_match(av, "^Lámina 4, “Objetivo general”: su ícono ya no está en el catálogo")
   expect_false(grepl(.UUID_TEST, av, fixed = TRUE))
   expect_length(.jerga_en(av), 0L)
   # Sin lámina en curso, una frase completa (y tampoco el id).
@@ -89,7 +89,7 @@ test_that("el ícono que perdió su PNG se nombra como en el catálogo, no por s
   reg <- .graficos_icon_registry(NULL, cfg)
   expect_identical(unname(attr(reg, "nombres")[[.UUID_TEST]]), "Perfil")
   av <- .avisos_de(.aviso_con_lamina(5, "Perfil del docente", .graficos_rebuild_icon(.UUID_TEST, reg)))
-  expect_identical(av, paste0("Lámina 5 · “Perfil del docente”: su ícono «Perfil» ya no está en el catálogo de íconos y sale sin él. ",
+  expect_identical(av, paste0("Lámina 5, “Perfil del docente”: su ícono «Perfil» ya no está en el catálogo de íconos y sale sin él. ",
                               "Vuelve a subirlo en Identidad > Íconos si lo necesitas."))
   expect_length(.jerga_en(av), 0L)
 })
@@ -118,8 +118,8 @@ test_that("el validador del plan rotula por número y título, y nombra el espac
   ))
   v <- .validar_plan_json(plan)
   textos <- c(v$warnings, v$errors)
-  expect_true(any(grepl("^Lámina 1 · “Perfil del estudiante”: el espacio «Inferior derecha» está sin gráfico$", v$warnings)))
-  expect_true(any(grepl("^Lámina 1 · “Perfil del estudiante”: «p5» de la base «estudiantes» se grafica dos veces", v$warnings)))
+  expect_true(any(grepl("^Lámina 1, “Perfil del estudiante”: el espacio «Inferior derecha» está sin gráfico$", v$warnings)))
+  expect_true(any(grepl("^Lámina 1, “Perfil del estudiante”: «p5» de la base «estudiantes» se grafica dos veces", v$warnings)))
   expect_true(any(grepl("^Lámina 2: el espacio «Gráfico principal» usa un tipo de gráfico que esta versión no reconoce", v$errors)))
   expect_false(any(grepl("1pkxbl|zz9|p_no_existe|inferior_derecha|slide\\[", textos)))
   expect_length(.jerga_en(textos), 0L)
@@ -132,15 +132,15 @@ test_that("la degradación a «Sin datos» nombra la lámina en curso y deja el 
   on.exit(e$rotulo <- viejo, add = TRUE)
   e$rotulo <- list(numero = 7L, titulo = "Bienestar universitario")
   av <- .avisos_de(.plan_canvas_render_nulo("No se pudo renderizar `icono` en `p_slide_objetivo_icono()`."))
-  expect_identical(av, "Lámina 7 · “Bienestar universitario”: un gráfico no se pudo dibujar y su espacio sale con «Sin datos».")
+  expect_identical(av, "Lámina 7, “Bienestar universitario”: un gráfico no se pudo dibujar y su espacio sale con «Sin datos».")
   # El warning (log del job) conserva el detalle técnico para depurar.
   expect_warning(suppressMessages(.plan_canvas_render_nulo("detalle `x`")), "detalle `x`", fixed = TRUE)
   av2 <- .avisos_de(.plan_elemento_degradado("En `p_slide_1_grafico()`, `grafico` debe ser `ppt_element`."))
-  expect_match(av2, "^Lámina 7 · “Bienestar universitario”: un gráfico quedó incompleto en el plan")
+  expect_match(av2, "^Lámina 7, “Bienestar universitario”: un gráfico quedó incompleto en el plan")
   falla <- function(el) stop(structure(class = c("pulso_slide_render_error", "error", "condition"),
                                        list(message = "la variable no está en la base", call = NULL)))
   av3 <- .avisos_de(.plan_render_element_degradable(falla, structure(list(.element_type = "barras_apiladas"), class = c("ppt_element", "list"))))
-  expect_match(av3, "^Lámina 7 · “Bienestar universitario”: no se pudo dibujar y sale con «Sin datos»\\. Motivo: la variable no está en la base\\.$")
+  expect_match(av3, "^Lámina 7, “Bienestar universitario”: no se pudo dibujar y sale con «Sin datos»\\. Motivo: la variable no está en la base\\.$")
   expect_length(.jerga_en(c(av, av2, av3)), 0L)
 })
 
@@ -171,7 +171,7 @@ test_that("el detalle técnico queda en el stderr del proceso (el `.err` del job
   avisos <- trimws(sub(paste0(".*\\", .PULSO_AVISO_SELLO), "", grep(.PULSO_AVISO_SELLO, lineas, fixed = TRUE, value = TRUE)))
   expect_true(any(grepl("var_fantasma", detalle, fixed = TRUE)))
   expect_true(any(grepl(.UUID_TEST, detalle, fixed = TRUE)))
-  expect_true(any(grepl("^Lámina 1 · “Rota”: no se pudo dibujar", avisos)))
+  expect_true(any(grepl("^Lámina 1, “Rota”: no se pudo dibujar", avisos)))
   expect_false(any(grepl("var_fantasma", avisos, fixed = TRUE)))
   expect_false(any(grepl(.UUID_TEST, avisos, fixed = TRUE)))
   # El prefijo del detalle no es el sello: `.pulso_avisos_de_job()` no lo recoge.
@@ -194,9 +194,9 @@ test_that("los avisos numeran por la posición en el plan, no en el PPTX (partic
     cierre <- .avisos_de(.lam_avisos_cierre(plan, NULL))
     c(out, cierre)
   })
-  expect_match(rotulos[6], "^Lámina 2 · “Bienestar”: salió en 2 partes")   # el de líneas, con el mismo número
-  expect_identical(rotulos[5], "Lámina 3 · “Satisfacción”")
-  expect_identical(rotulos[3], "Lámina 2 · “Bienestar”")
+  expect_match(rotulos[6], "^Lámina 2, “Bienestar”: salió en 2 partes")   # el de líneas, con el mismo número
+  expect_identical(rotulos[5], "Lámina 3, “Satisfacción”")
+  expect_identical(rotulos[3], "Lámina 2, “Bienestar”")
   expect_null(e$rotulo)
 })
 

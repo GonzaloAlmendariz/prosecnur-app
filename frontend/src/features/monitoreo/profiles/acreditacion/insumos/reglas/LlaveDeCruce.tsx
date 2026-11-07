@@ -35,13 +35,13 @@ export function LlaveDeCruce({
           <div>
             <span className="acr-av-antetitulo">Columnas del padrón</span>
             <ol className="acr-in-llave">
-              {padron.map((columna, indice) => <li key={columna}><span className="acr-av-tenue acr-av-num">{fmt(indice + 1)}</span><span className="acr-in-columna">{columna}</span></li>)}
+              {padron.map((columna, indice) => <li key={columna}>{padron.length > 1 ? <span className="acr-av-tenue acr-av-num">{fmt(indice + 1)}</span> : null}<span className="acr-in-columna">{columna}</span></li>)}
             </ol>
           </div>
           <div>
             <span className="acr-av-antetitulo">Campos de la respuesta</span>
             <ol className="acr-in-llave">
-              {respuesta.map((columna, indice) => <li key={columna}><span className="acr-av-tenue acr-av-num">{fmt(indice + 1)}</span><span className="acr-in-columna">{columna}</span></li>)}
+              {respuesta.map((columna, indice) => <li key={columna}>{respuesta.length > 1 ? <span className="acr-av-tenue acr-av-num">{fmt(indice + 1)}</span> : null}<span className="acr-in-columna">{columna}</span></li>)}
             </ol>
           </div>
         </div>
@@ -60,7 +60,8 @@ export function LlaveDeCruce({
               {cruces.map((item) => (
                 <li key={item.rotulo}>
                   <span>{item.rotulo}</span>
-                  <span className="acr-av-pista"><i style={{ width: `${total ? (item.casos / total) * 100 : 0}%` }} /></span>
+                  {/* Una sola forma de cruce es un dato, no un reparto: sin barra llena. */}
+                  {cruces.length > 1 ? <span className="acr-av-pista"><i style={{ width: `${total ? (item.casos / total) * 100 : 0}%` }} /></span> : null}
                   <b className="acr-av-num">{fmt(item.casos)}</b>
                 </li>
               ))}

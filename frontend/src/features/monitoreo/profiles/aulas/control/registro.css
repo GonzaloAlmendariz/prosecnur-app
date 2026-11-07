@@ -1,0 +1,117 @@
+/* Control › Registro de campo (aulas.md, ficha Ctl4). Lista de partes (300 px),
+ * el parte leído del libro al centro y las reservas sin caso (300 px). */
+
+.aulas-reg {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr) 320px;
+  align-items: start;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+}
+
+.aulas-reg-items {
+  display: grid;
+  max-height: 520px;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+  scrollbar-gutter: stable;
+}
+
+.aulas-reg-items button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 2px var(--pulso-space-2);
+  width: 100%;
+  padding: var(--pulso-space-2);
+  border: 0;
+  border-top: 1px solid var(--pulso-surface-3);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: var(--pulso-type-caption-size);
+  text-align: left;
+  cursor: pointer;
+}
+
+.aulas-reg-items button .pulso-estado-chip {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
+.aulas-reg-items button.is-elegido {
+  background: var(--pulso-surface-2);
+}
+
+.aulas-reg-franja,
+.aulas-reg-campos {
+  display: grid;
+  gap: var(--pulso-space-2) var(--pulso-space-4);
+  margin: 0;
+}
+
+.aulas-reg-franja {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding-bottom: var(--pulso-space-2);
+  border-bottom: 1px solid var(--pulso-surface-3);
+}
+
+.aulas-reg-campos {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.aulas-reg-franja dt,
+.aulas-reg-campos dt {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.aulas-reg-franja dd,
+.aulas-reg-campos dd {
+  margin: 2px 0 0;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.aulas-reg-cuadre {
+  align-self: flex-start;
+  white-space: normal;
+}
+
+.aulas-reg-casos {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.aulas-reg-casos li {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  padding: var(--pulso-space-2) 0;
+  border-top: 1px solid var(--pulso-surface-3);
+}
+
+.aulas-reg-casos .aulas-ins-acciones {
+  margin-left: 0;
+}
+
+@media (max-width: 1366px) {
+  .aulas-reg {
+    grid-template-columns: 260px minmax(0, 1fr);
+  }
+
+  .aulas-reg > :last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 1100px) {
+  .aulas-reg {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -1,0 +1,27 @@
+/* Eje de fechas de dos líneas de los gráficos diarios de Monitoreo (core/ejeDeFechas.tsx). */
+.mon-eje-fecha {
+  fill: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-eje-fecha.is-mes {
+  fill: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-bold);
+}
+
+/* La versión HTML (rótulos posicionados sobre un SVG estirado). */
+.mon-eje-fecha-html {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.25;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-eje-fecha-html > b {
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-bold);
+}

@@ -22,7 +22,7 @@
   flex-wrap: wrap;
   gap: 4px var(--pulso-space-2);
   margin: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 
@@ -39,12 +39,9 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
+  padding-left: 8px;
+  border-left: 1px solid var(--pulso-border);
   color: var(--pulso-text-faint);
-}
-
-.pulso-carga-sources-plan-meta-origen::before {
-  content: "·";
-  margin-right: 4px;
 }
 
 .pulso-carga-sources-plan-strategy,
@@ -86,7 +83,7 @@
 .pulso-carga-monitoring-actors small,
 .pulso-carga-monitoring-source-list small {
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-style: normal;
 }
 
@@ -101,7 +98,7 @@
   grid-template-columns: 1fr 64px;
   align-items: center;
   gap: 3px 8px;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-carga-sources-plan-count input {
@@ -169,7 +166,7 @@
 .pulso-multi-strategy.is-locked small,
 .pulso-multi-strategy.is-locked span span {
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .pulso-carga-manual-lanes {
@@ -179,7 +176,7 @@
 
 .pulso-carga-manual-lanes-note {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-carga-manual-lanes-list {
@@ -202,7 +199,7 @@
   place-items: center;
   color: var(--pulso-text-soft);
   background: var(--pulso-surface-3);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
@@ -225,7 +222,7 @@
   align-items: center;
   gap: 5px;
   color: var(--pulso-success-fg);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .pulso-carga-manual-lane-name,
@@ -235,7 +232,7 @@
 }
 
 .pulso-carga-manual-lane-name span {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
 }
 
@@ -276,7 +273,7 @@
 .pulso-carga-base-picker-copy small,
 .pulso-carga-base-picker-action {
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -290,7 +287,7 @@
 .pulso-carga-manual-lane-error {
   grid-column: 1 / -1;
   color: var(--pulso-danger-fg);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .pulso-carga-monitoring-discovery,
@@ -316,7 +313,7 @@
 .pulso-carga-platform-context p {
   margin: 2px 0 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-carga-monitoring-summary {
@@ -376,7 +373,7 @@
   border: 1px solid var(--pulso-border);
   border-radius: 8px;
   background: var(--pulso-surface-2);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .pulso-carga-plan-progress span {
@@ -408,7 +405,7 @@
 
 .pulso-carga-monitoring-counts dt {
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
 }
 
 .pulso-carga-monitoring-counts dd {
@@ -429,7 +426,7 @@
   border: 1px solid var(--pulso-danger-border);
   border-radius: 8px;
   background: var(--pulso-danger-bg);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 @media (max-width: 1180px), (max-height: 720px) {

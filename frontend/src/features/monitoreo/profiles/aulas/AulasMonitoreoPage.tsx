@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type {
   MonitoreoAulasTramo,
   MonitoreoAulasDistribucionSheets,
@@ -9,16 +10,15 @@ import type { CSSProperties, ReactNode } from "react";
 // Por el shim, que es la regla de la casa: los imports directos de
 // `lucide-react` arrastran el barrel entero al bundle. Este archivo se lo
 // saltaba desde antes; se corrige al pasar por aquí.
-import { AlertCircle, CalendarRange, CheckCircle2, Info } from "../../../../vendor/lucide-react";
+import { AlertCircle, CheckCircle2, Info } from "../../../../vendor/lucide-react";
+import { LoadingBlock } from "../../../../components/States";
 import {
   apiMonitoreoAulasGenerarLibro,
   apiMonitoreoAulasDisponibilidad,
   apiMonitoreoAulasDisponibilidadPlantilla,
   apiMonitoreoAulasImportarLibro,
   apiMonitoreoAulasImportarSheets,
-  apiMonitoreoAulasPublicarDistribucion,
   apiMonitoreoAulasSincronizarDistribucion,
-  apiMonitoreoAulasPublicarLibro,
   apiMonitoreoAulasRecalcularTraslape,
   apiMonitoreoAulasImportFromCalcMuestra,
   apiMonitoreoAulasConfig,
@@ -61,8 +61,10 @@ import { avisoDelSync } from "./avisoDelSync";
 import { avisoLibroGenerado } from "./avisoLibroGenerado";
 import { avisoLibroImportado, type TonoAviso } from "./avisoLibroImportado";
 import { avisoDisponibilidadImportada } from "./avisoDisponibilidadImportada";
-import { avisoLibroPublicado, avisoTraslapeRecalculado } from "./avisoLibroPublicado";
-import { avisoDistribucionPublicada } from "./distribucionDeAplicadores";
+import { avisoTraslapeRecalculado } from "./avisoLibroPublicado";
+
+/** Material › Entrega de cursos-horario, donde se construyen las tablas del Sheets (R13). */
+const RUTA_CONSTRUIR_EN_MATERIAL = "/material-campo?modo=aulas&campana=aulas.principal&seccion=entrega&pestana=traspaso";
 import { sugerenciasDeDescarte } from "./AulasSexoYDescartes";
 import { AulasOrigenDesfasado } from "./AulasOrigenDesfasado";
 import { AulasCriterioDeAula } from "./AulasCriterioDeAula";
@@ -87,20 +89,22 @@ import {
   pestanasDeMonitoreo,
 } from "../../../../lib/navegacion/catalogos/monitoreo";
 import {
-  modoIdDesdeFamily, AULAS_WORKBENCH_VIEWS, MONITOREO_MODOS, type MonitoreoSeccion } from "../../core/monitoreoRegistry";
-import {
-  monitoreoPestanaDesdeParams,
-  monitoreoSeccionDesdeParams,
-  pestanaInicialDeSeccion,
-  seccionInicialMonitoreo,
-  useFocoMonitoreo,
-  useMonitoreoDireccion,
-} from "../../useMonitoreoDireccion";
+  modoIdDesdeFamily, AULAS_SECCIONES_PUBLICAS, MONITOREO_MODOS, type MonitoreoSeccion } from "../../core/monitoreoRegistry";
+import { useFocoMonitoreo } from "../../useMonitoreoDireccion";
+import { useDireccionAulas } from "./navegacion/useDireccionAulas";
+import { esPestanaPropia, FICHA_DE_AULA, HREF_HERRAMIENTAS_DE_SALIDAS, hrefDeFichaDeAula, tieneSubvistas } from "./navegacion/direccionAulas";
+import { PestanaPropiaDeAulas } from "./navegacion/PestanaPropiaDeAulas";
+import { AvisoDeLecturaFallida } from "./estados/AvisoDeLecturaFallida";
+import { ActualizarAbierto, ActualizarCorriendo } from "./estados/ActualizarEnCurso";
+import { ReciboDeActualizar } from "./estados/ReciboDeActualizar";
+import { useReciboDeActualizar } from "./estados/useReciboDeActualizar";
+import { SubvistasDeAulas } from "./navegacion/SubvistasDeAulas";
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { MonitoreoModuleChrome } from "../../shell/MonitoreoModuleChrome";
 import { MonitoreoOutputsWorkbench } from "../../salidas/MonitoreoOutputsWorkbench";
-import { MonitoreoWorkbenchChrome, MonitoreoWorkbenchHead, MonitoreoWorkbenchRail } from "../../components";
-import { railDeAulas } from "./railDeAulas";
+import { MonitoreoWorkbenchChrome, MonitoreoWorkbenchRail } from "../../components";
+import { TabHeading } from "../../../../components/TabHeading";
+import { railDeAulas, rotuloDePestanaAulas } from "./railDeAulas";
 import { readinessDeAulas } from "./navegacion/readinessDeAulas";
 import {
   aulasFieldLabel,
@@ -129,23 +133,19 @@ import { columnasSinConstantesInertes, columnasSinDuplicados } from "./columnasQ
 // telefónico y acreditación (su vocabulario, sus fases), y esto no es eso — es
 // esperar a un job y leer su progreso, idéntico para cualquier familia.
 import { useWaitForSourceSyncJob } from "../../sync/pollSourceSync";
+import { construirBarraDeAulas } from "./barraDeAulas";
 
 const AULAS_ROUTE = MONITOREO_MODOS.find((route) => route.family === "aulas_universitarias") ?? MONITOREO_MODOS[2];
 
-// Avance es la única sección con pestañas: el resto siguen siendo hojas del
-// árbol. «Salidas» es donde vive la publicación a Sheets del perfil (ADR 0019).
-// Todas las secciones con pestañas, no sólo Avance: es la misma gramática que
-// usan telefónico y acreditación (módulo → modo → sección → pestaña → panel).
+// Las pestañas PÚBLICAS del modo (Insumos, Modelo, Control, Avance), con la
+// misma gramática que telefónico, acreditación y territorial (módulo → modo →
+// sección → pestaña → panel). «Salidas» es donde vive la publicación a Sheets
+// del perfil (ADR 0019).
 const AULAS_PESTANAS = MONITOREO_PESTANAS.aulas as Record<string, ReadonlyArray<{ key: string; label: string }>>;
 
-/** Pestañas de una sección; vacío cuando la sección es una hoja del árbol. */
-function pestanasDe(seccion: MonitoreoSeccion) {
+/** Pestañas de una sección pública. */
+function pestanasDe(seccion: string) {
   return AULAS_PESTANAS[seccion] ?? [];
-}
-
-/** Primera pestaña de la sección, que es donde se aterriza. */
-function primeraPestana(seccion: MonitoreoSeccion) {
-  return pestanasDe(seccion)[0]?.key ?? "";
 }
 
 
@@ -490,8 +490,7 @@ export function DataTable({
                           ? (
                             <CodigoEnCelda
                               valor={String(row[column] ?? "")}
-                              hrefDeFicha={(codigo) =>
-                                `/monitoreo?seccion=consultas&pestana=ficha&foco=${encodeURIComponent(`aula:${codigo}`)}`}
+                              hrefDeFicha={hrefDeFichaDeAula}
                               onVerFicha={onVerFicha ?? undefined}
                             />
                           )
@@ -503,18 +502,8 @@ export function DataTable({
         </tbody>
       </table>
       {avisos.length ? (
-        <p className="mon-profile-table-recorte">{avisos.join(" · ")}</p>
+        <p className="mon-profile-table-recorte">{avisos.join(", ")}</p>
       ) : null}
-    </div>
-  );
-}
-
-function EmptyPanel({ title, detail }: { title: string; detail: string }) {
-  return (
-    <div className="mon-profile-empty">
-      <span className="mon-profile-empty__icon"><CalendarRange size={18} /></span>
-      <strong>{title}</strong>
-      <p>{detail}</p>
     </div>
   );
 }
@@ -648,7 +637,7 @@ export function contadorDeCursosHorario(
   const base = total > visibles
     ? `se ven ${fmt(visibles)} de ${fmt(total)} cursos-horario`
     : `${fmt(visibles)} cursos-horario`;
-  return deReservaAdicional ? `${base} · ${fmt(deReservaAdicional)} de la reserva adicional` : base;
+  return deReservaAdicional ? `${base}, ${fmt(deReservaAdicional)} de la reserva adicional` : base;
 }
 
 function cleanCell(value: unknown) {
@@ -1091,57 +1080,21 @@ function renderAulasView({
 
 export default function AulasMonitoreoPage() {
   const [state, setState] = useState<MonitoreoState | null>(null);
-  const [seccionActiva, setActiveView] = useState<MonitoreoSeccion>(() => seccionInicialMonitoreo("fuentes", AULAS_WORKBENCH_VIEWS));
-  // Una pestaña activa POR SECCIÓN: volver a una sección la reencuentra donde
-  // se dejó, en vez de reiniciarla.
-  const [pestanaPorSeccion, setPestanaPorSeccion] = useState<Record<string, string>>(() => {
-    const inicial = seccionInicialMonitoreo("fuentes", AULAS_WORKBENCH_VIEWS);
-    const mapa: Record<string, string> = {};
-    for (const def of AULAS_WORKBENCH_VIEWS) {
-      const claves = pestanasDe(def.key).map((item) => item.key);
-      if (!claves.length) continue;
-      mapa[def.key] = pestanaInicialDeSeccion(def.key, inicial, claves[0], claves);
-    }
-    return mapa;
-  });
-  const pestanaActiva = pestanaPorSeccion[seccionActiva] ?? primeraPestana(seccionActiva);
+  // La dirección PÚBLICA (Insumos, Modelo, Control, Avance) es el estado; la
+  // vista heredada que se monta —`seccionActiva` y `pestanaActiva`, que deciden
+  // el corte y lo que se pinta— se deriva de ella. Las direcciones viejas se
+  // leen como alias. Ver `navegacion/direccionAulas.ts`.
+  const { direccion, seccionActiva, pestanaActiva, irA, irASeccion, irAPestana: irAPestanaPublica, irAVista } = useDireccionAulas();
   // El nombre de la pestaña activa, para el encabezado. Sale del mismo registro
   // que dibuja el rail, así que no puede desincronizarse con lo que se ve.
-  const pestanaActivaLabel = pestanasDe(seccionActiva).find((p) => p.key === pestanaActiva)?.label ?? "";
-  const elegirPestana = (seccion: MonitoreoSeccion, clave: string) =>
-    setPestanaPorSeccion((prev) => ({ ...prev, [seccion]: clave }));
-
-  useMonitoreoDireccion(seccionActiva, pestanaActiva || undefined, "aulas", {
-    onSeccionPedida: (seccion) => {
-      setActiveView(seccion);
-      // La pestaña de la URL se aplica AQUÍ, junto con su sección. Al cambiar
-      // de sección, la pestaña activa pasa a ser la recordada para esa sección
-      // y se publica en la URL, pisando la pedida: `?seccion=consultas&
-      // pestana=reemplazos` aterrizaba en `brechas` si esa era la última vista.
-      // La vista quedaba alcanzable por clic y no por dirección, que es
-      // justamente lo que el contrato v3 prohíbe.
-      // Se exige que la SECCIÓN de la URL coincida con la que se activa: eso
-      // distingue «vengo de una dirección» de «vengo de un clic», donde la URL
-      // todavía trae la pestaña de la sección anterior. Aquí el clic de sección
-      // no pasa por este callback, pero depender de eso es suponer quién
-      // dispara qué; la condición lo hace explícito y es la misma en los cuatro
-      // perfiles.
-      if (monitoreoSeccionDesdeParams(window.location.search) !== seccion) return;
-      const pedida = monitoreoPestanaDesdeParams(window.location.search);
-      if (pedida && pestanasDe(seccion).some((item) => item.key === pedida)) {
-        elegirPestana(seccion, pedida);
-      }
-    },
-    onPestanaPedida: (pestana, seccion) => {
-      if (pestanasDe(seccion as MonitoreoSeccion).some((item) => item.key === pestana)) {
-        elegirPestana(seccion as MonitoreoSeccion, pestana);
-      }
-    },
-  });
+  const pestanaActivaLabel = pestanasDe(direccion.seccion).find((p) => p.key === direccion.pestana)?.label ?? "";
+  // Las vistas heredadas piden otra de las suyas por su clave vieja: se
+  // traduce a la dirección pública que la monta.
+  const elegirPestana = (seccion: MonitoreoSeccion, clave: string) => irAVista(seccion, clave);
   useRegistrarPestanasMonitoreo(
     "aulas",
-    seccionActiva,
-    pestanasDeMonitoreo("aulas", seccionActiva),
+    direccion.seccion,
+    pestanasDeMonitoreo("aulas", direccion.seccion),
   );
   const [loading, setLoading] = useState(true);
   const [mutating, setMutating] = useState(false);
@@ -1179,8 +1132,8 @@ export default function AulasMonitoreoPage() {
   const [guardandoCriterio, setGuardandoCriterio] = useState(false);
 
   const activeDef = useMemo(
-    () => AULAS_WORKBENCH_VIEWS.find((item) => item.key === seccionActiva) ?? AULAS_WORKBENCH_VIEWS[0],
-    [seccionActiva],
+    () => AULAS_SECCIONES_PUBLICAS.find((item) => item.key === direccion.seccion) ?? AULAS_SECCIONES_PUBLICAS[0],
+    [direccion.seccion],
   );
   const dashboard = dashboardFromState(state);
   // **La clave del eje de cuotas del estudio, leída del motor.**
@@ -1280,17 +1233,11 @@ export default function AulasMonitoreoPage() {
     : imported
       ? "Pide las respuestas nuevas a la plataforma y recalcula el corte de campo, la agenda y el avance"
       : "Primero importa el plan desde el cálculo de muestra (sección Fuentes)";
-  // «Avance» NO trae datos: abre la sección y la recalcula con lo que el
-  // proyecto ya tiene. Decirlo evita que se lea como una segunda sincronización.
-  const advanceTitle = busy
-    ? "Actualizando vista de cursos-horario..."
-    : "Abre la sección Avance y la recalcula con los datos que ya están en el proyecto (no pide nada a la plataforma)";
-
   /**
    * Relee el estado del proyecto.
    *
    * `silencioso` NO toca `loading`, y eso no es un detalle de parpadeo: la vista
-   * se pinta como `{loading ? <EmptyPanel/> : <RegistroDeCampo/>}`, así que
+   * se pinta como `{loading ? <LoadingBlock/> : <RegistroDeCampo/>}`, así que
    * cualquier recarga DESMONTA el registro de campo y se lleva por delante su
    * estado —la selección, el formulario y el mensaje de la acción que acaba de
    * ocurrir—. Medido: al activar un reemplazo, el motor devuelve «CH 3 pasa a
@@ -1466,26 +1413,6 @@ export default function AulasMonitoreoPage() {
    * motivo, que es la regla de dueño hecha visible, no un fallo—. La recarga
    * silenciosa trae la config con el destino recién recordado al campo.
    */
-  /**
-   * S7: publicar la distribución de la semana al Sheets de los aplicadores.
-   * Con enlace lo recuerda; sin él usa el recordado. La recarga trae el
-   * bloque recordado y la huella nueva, y el aviso de Asignación pasa a
-   * «al día».
-   */
-  const publicarDistribucion = useCallback(async (enlace?: string) => {
-    setMutating(true);
-    setError("");
-    setAviso({ texto: "", tono: "ok" });
-    try {
-      const res = await apiMonitoreoAulasPublicarDistribucion(enlace);
-      setAviso(avisoDistribucionPublicada(res));
-      await loadView(seccionActiva, true, true);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "No se pudo publicar la distribución a los aplicadores.");
-    } finally {
-      setMutating(false);
-    }
-  }, [loadView, seccionActiva]);
 
   /**
    * El ciclo del Sheets de los aplicadores en una sola acción: lee la hoja,
@@ -1554,20 +1481,10 @@ export default function AulasMonitoreoPage() {
     }
   }, []);
 
-  const publicarASheets = useCallback(async (enlace?: string) => {
-    setMutating(true);
-    setError("");
-    setAviso({ texto: "", tono: "ok" });
-    try {
-      const res = await apiMonitoreoAulasPublicarLibro(enlace);
-      setAviso(avisoLibroPublicado(res));
-      await loadView(seccionActiva, true, true);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "No se pudo publicar el libro al Sheets.");
-    } finally {
-      setMutating(false);
-    }
-  }, [loadView, seccionActiva]);
+  // R13: las tablas del Sheets se construyen en Material › Entrega (mismo motor,
+  // 8d9659dfe); Monitoreo lleva allá y se queda con leer y supervisar.
+  const navigate = useNavigate();
+  const irAMaterial = useCallback(() => navigate(RUTA_CONSTRUIR_EN_MATERIAL), [navigate]);
 
 
   useEffect(() => {
@@ -1922,17 +1839,21 @@ export default function AulasMonitoreoPage() {
       const result = await apiMonitoreoAulasImportFromCalcMuestra();
       setState(result.state);
       // El monolito aterrizaba en la agenda tras importar; se conserva.
-      setActiveView("modelo");
+      irAVista("modelo");
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setMutating(false);
     }
-  }, []);
+  }, [irAVista]);
 
-  const syncField = useCallback(async () => {
+  // P1: «Traer respuestas» se abre (qué hará), corre (en qué paso va) y deja
+  // recibo, medido desde fuera del sync. `leer=false` recalcula sin pedir nada.
+  const reciboSync = useReciboDeActualizar();
+  const syncField = useCallback(async (leer = true) => {
     setMutating(true);
     setError("");
+    reciboSync.empezar(dashboardFromState(state), leer);
     try {
       // **Primero TRAER de la plataforma, y sólo después recalcular.**
       //
@@ -1948,7 +1869,7 @@ export default function AulasMonitoreoPage() {
       // fuentes activas no se pide nada y no es un error: hay estudios de aulas
       // que cargan la base a mano.
       let avisoDescarga = "";
-      if (activeSources > 0) {
+      if (leer && activeSources > 0) {
         try {
           // **Sin config.** La de la pantalla viene RECORTADA del payload (sin
           // plan ni tablas del marco) y el backend la guardaba tal cual: tras
@@ -1961,8 +1882,10 @@ export default function AulasMonitoreoPage() {
           avisoDescarga = cause instanceof Error ? cause.message : String(cause);
         }
       }
+      reciboSync.paso("recalcular");
       const result = await apiMonitoreoAulasSync();
       setState(result.state);
+      reciboSync.terminar(dashboardFromState(result.state), activeSources, avisoDescarga);
       if (avisoDescarga) {
         setAviso({
           texto: `No se pudieron traer respuestas nuevas de la plataforma (${avisoDescarga}). Las cifras son las de la última sincronización que sí entró.`,
@@ -1997,335 +1920,29 @@ export default function AulasMonitoreoPage() {
         setAviso((elegido ?? retiro)!);
       }
     } catch (e) {
+      // El fallo lo dice S3; el «corriendo» no se queda girando.
+      reciboSync.cerrar();
       setError((e as Error).message);
     } finally {
       setMutating(false);
     }
-  }, [activeSources, state?.config, esperarSyncDeFuentes]);
+  }, [activeSources, state, esperarSyncDeFuentes, reciboSync]);
 
-  return (
-    <div className="mon-profile-page is-aulas-flow" style={MODULE_TONES.monitoreo as CSSProperties}>
-      {/* **La marca dice «false» mientras la vista carga.**
-          Emitida fija, la vista se declaraba lista desde el primer render y el
-          runner canónico capturaba la pantalla de «Preparando vista» como si
-          fuera la vista: `ok=true issues=0` sobre CONTROLES 0, ALERTAS 0 y
-          REPRESENTATIVIDAD S/D. Verde por ausencia, y no en un panel sino en el
-          gate entero del perfil. `data-audit-has-dashboard` llevaba el dato al
-          lado sin que nadie lo consultara.
-
-          Sólo `loading`, que es transitorio: un estudio que terminó de cargar y
-          no tiene libro SÍ está listo —su vacío es legítimo y hay que poder
-          auditarlo—, y declararlo «false» dejaría al runner esperando hasta el
-          timeout.
-
-          Y lista, la marca es la DIRECCIÓN de la vista (Meta B, L10):
-          `monitoreo-aulas-<sección>-<pestaña>`. Con una sola marca para todo el
-          modo, una pestaña muda aterrizaba en la de al lado y salía aprobada. */}
-      <span
-        hidden
-        data-audit-ready={loading ? "false" : readinessDeAulas(seccionActiva, pestanaActiva)}
-        data-audit-has-dashboard={dashboard ? "true" : "false"}
-      />
-      <MonitoreoModuleChrome
-        routes={[AULAS_ROUTE]}
-        route={AULAS_ROUTE}
-        routeSelected
-        seccionActiva={seccionActiva}
-        saving={busy}
-        syncedAt={state?.synced_at ?? ""}
-        generatedAt={state?.generated_at ?? state?.synced_at ?? ""}
-        generationStatus={state?.generation_status ?? ""}
-        pendingRegeneration={Boolean(state?.pending_regeneration)}
-        syncErrors={state?.sync_errors ?? state?.errors ?? []}
-        sourceTotal={sourceTotal}
-        activeSources={activeSources}
-        nRows={state?.n_rows ?? 0}
-        hasSnapshot={Boolean(state?.has_snapshot)}
-        syncing={busy}
-        // A26b — semántica dictada por el dueño (2026-09-01): «Avance es para
-        // ver el avance en plataforma; Recargar es para cargar el excel y
-        // todo lo demás». Estaba al revés: «Avance» conversaba con el libro y
-        // «Recargar» solo releía memoria — medido: un Recargar dejó la agenda
-        // en 12 con el libro en 28.
-        advanceSyncDisabled={busy}
-        advanceSyncLabel="Avance"
-        advanceSyncTitle={advanceTitle}
-        onSyncAdvance={() => {
-          if (seccionActiva !== "avance") setActiveView("avance");
-          void loadView("avance", true);
-        }}
-        syncDisabled={busy || !imported}
-        syncLabel="Traer respuestas"
-        syncTitle={refreshTitle}
-        onSyncAll={() => { void syncField(); }}
-        onCambioSeccion={(view) => {
-          if (view !== seccionActiva) setActiveView(view);
-        }}
-      />
-
-      {/* Va ENTRE el chrome de módulo y la mesa de trabajo porque califica todo
-          lo que hay debajo —avance, cuotas, atrasos—, no un panel concreto. */}
-      <AulasOrigenDesfasado origen={state?.aulas_origen} />
-
-      {/* Las pestañas viven en el RAIL lateral con íconos, no en píldoras
-          arriba: es el patrón de telefónico y acreditación y criterio de toda la
-          app. Aulas tenía la gramática correcta —módulo → modo → sección →
-          pestaña— con el patrón visual equivocado. Los rótulos y los íconos
-          salen del catálogo de navegación; el rail sólo añade contador y estado.
-
-          El chrome compartido es quien coloca el rail a la izquierda: con un
-          `<main>` propio el rail caía como columna encima del contenido. Se le
-          pasan las clases de aulas (`mainClassName`/`contentClassName`) para no
-          perder la hoja del perfil, que gobierna stacks, tablas y gráficos. */}
-      <MonitoreoWorkbenchChrome
-        perfil="aulas"
-        seccionActiva={seccionActiva}
-        ariaLabel={`Mesa de trabajo de cursos-horario: ${activeDef.label}`}
-        className="is-aulas"
-        mainClassName="mon-profile-workbench"
-        contentClassName={`mon-profile-content${seccionActiva === "fuentes" ? " has-aulas-flow" : ""}`}
-        contentRole="tabpanel"
-        contentAriaLabelledBy={`monitoreo-${seccionActiva}-tab-${pestanaActiva}`}
-        scrollResetKey={`${seccionActiva}/${pestanaActiva}`}
-        head={
-          /* Aulas era el ÚNICO de los cuatro perfiles con `head={null}`, y el
-            componente existe justo para lo que a aulas le faltaba: su propio
-            comentario lo dice —«el rail es icon-only y su cuadrante no lleva
-            rótulo, así que el nombre de dónde estás vive acá»—. Medido en
-            Avance > Resumen: el rail tiene cuatro botones, el activo no lleva
-            texto ni `title`, y la palabra «Resumen» no aparecía en ninguna
-            parte de la pantalla. Se estaba en una pestaña y nada decía cuál.
-
-            Sin `pills`: la franja de arriba ya lleva estado, registros y corte,
-             y repetirlos aquí sería decir dos veces lo mismo a dos dedos. Y sin
-             `detail`: con la descripción de la sección el encabezado medía
-             177 px, y esa frase ya la dice el rail al pasar por su icono. Lo
-             que aquí no estaba en ninguna parte es el nombre de la pestaña. */
-          (
-          <MonitoreoWorkbenchHead
-            icon={activeDef.icon}
-            eyebrow="Cursos-horario"
-            title={activeDef.label}
-            detail={activeDef.desc}
-            pestanaLabel={pestanaActivaLabel}
-            // **El MANDO vive sólo en Resumen; el foco sigue cruzando todo.**
-            //
-            // Está en la cabecera y no dentro de un panel porque ahí se movía con
-            // el scroll. Pero estaba en las CINCO pestañas de Avance y en las
-            // otras cuatro secciones, y Gonzalo lo dijo el 2026-09-10: «el
-            // selector de facultades que está en el encabezado debería ser un
-            // botón que sólo esté en resumen, no en las demás pestañas, porque
-            // es Resumen quien maneja este selector».
-            //
-            // Tiene razón en el reparto: Resumen es la única pestaña donde el
-            // foco FILTRA —el bloque «Respuestas» enseña las de esa facultad—;
-            // en las demás sólo RESALTA una fila de un ranking
-            // (`focoQueCruzaLaSeccion.test.tsx`). Un mando que en cuatro de cada
-            // cinco pantallas no cambia lo que se lee, sino que pinta una fila,
-            // pide más atención de la que devuelve.
-            //
-            // El resaltado NO se toca: sigue cruzando la sección, y quien quiera
-            // quitarlo vuelve a Resumen, que es de donde salió.
-            control={mandoDeFacultadVisible(seccionActiva, pestanaActiva) ? (
-              <AulasSelectorDeFoco
-                // El eje desde las filas del avance; carrera y sexo desde
-                // `avance_cuota.composicion`, que el motor publica YA ordenado
-                // por población — reordenarlos aquí haría bailar la lista con
-                // cada sincronización.
-                valores={{
-                  eje: facultadesDelEstudio,
-                  carrera: categoriasDeLaComposicion("carrera"),
-                  sexo: categoriasDeLaComposicion("sexo"),
-                }}
-                foco={foco}
-                onFoco={cambiarFoco}
-                eje={ejeDeclarado}
-              />
-            ) : undefined}
-          />
-          )
-        }
-        rail={(
-          <MonitoreoWorkbenchRail
-          pestanaActiva={pestanaActiva}
-          activeSection={{ label: activeDef.label, desc: activeDef.desc ?? "Vista operativa", icon: activeDef.icon }}
-          seccionActiva={seccionActiva}
-          ariaLabel={`Mesa de trabajo de cursos-horario: ${activeDef.label}`}
-          className="is-aulas"
-          emptyDetail={activeDef.desc ?? "Vista operativa"}
-          iconOnlyTabs
-          localTabs={railDeAulas(seccionActiva, dashboard)}
-          modeCountLabel={contar(pestanasDe(seccionActiva).length || 1, "pestaña", "pestañas")}
-          routeLabel="Cursos-horario"
-          routeSectionLabel="Cursos-horario · sección"
-          routeShortLabel="Cursos-horario"
-          statusAriaLabel="Última actualización del monitoreo"
-          statusItems={[{
-            label: "Última actualización",
-            // Mientras se lee el proyecto no se sabe si hubo actualización: «Sin
-            // actualización» en ese tramo afirmaba algo que nadie había leído.
-            value: state?.synced_at || (loading && !state ? "Leyendo el proyecto…" : "Sin actualización"),
-            ready: Boolean(state?.synced_at),
-          }]}
-          onCambioPestana={(key) => elegirPestana(seccionActiva, key)}
-        />
-        )}
-      >
-
-          <AulasKpiBand
-            dashboard={dashboard}
-            seccion={seccionActiva}
-            pestana={pestanaActiva}
-            facultadEnFoco={facultadDeLaCabecera}
-            cargando={loading}
-            onIr={(clave) => elegirPestana(seccionActiva, clave)}
-          />
-          {seccionActiva === "fuentes" ? (
-            <AulasApplicationFlow
-              tone="monitoreo"
-              current="monitoreo"
-              compact
-              // «Seguimiento de la INTERVENCIÓN» convivía con el eyebrow
-              // «APLICACIÓN por cursos-horario» en el mismo bloque: dos palabras
-              // para lo mismo, que es la ambigüedad que este perfil lleva todo
-              // el día pagando. «Intervención» es palabra del dueño (cita del
-              // 18/08 en AulasMatrizUmbrales), pero el vocabulario dominante de
-              // la pantalla es «aplicación» —estados, fechas, KPIs— y el bloque
-              // ya lo usa de eyebrow. Se unifica hacia el dominante.
-              title="Seguimiento de la aplicación por cursos-horario"
-              // **La franja en prosa era la propia franja.** Decía «lee el plan
-              // del cálculo de muestra y sus enlaces QR/PDF para medir avance,
-              // caídas, reemplazos y brechas» —26 palabras— y justo debajo están
-              // los cuatro pasos con esos mismos rótulos; lo único que añadía,
-              // «sin rediseñar la muestra», ya lo dice la tarjeta de Monitoreo.
-              // Gonzalo: «todos los elementos visuales siguen bastante
-              // verborreados en esta sección».
-              //
-              // Se queda lo que los pasos NO dicen: que cada uno se hace en otro
-              // sitio y que esta vista sólo mira.
-              summary="Cada paso se hace en su módulo; aquí sólo se sigue."
-              secondaryAction={{ to: AULAS_SAMPLE_ROUTE, label: "Ver muestra de cursos-horario" }}
-              // Con su sección: el botón promete fichas y «/material-campo» a
-              // secas aterriza en la lista de unidades.
-              action={{ to: "/material-campo?modo=aulas&seccion=catalogo&pestana=editor", label: "Abrir fichas QR" }}
-            />
-          ) : null}
-          <div
-            className="aulas-mon-view"
-            role={pestanaActiva ? "tabpanel" : undefined}
-            id={pestanaActiva ? `aulas-mon-panel-${pestanaActiva}` : undefined}
-            aria-labelledby={pestanaActiva ? `aulas-mon-tab-${pestanaActiva}` : undefined}
-          >
-            {error ? <div className="mon-profile-error"><AlertCircle size={16} /> {error}</div> : null}
-            {/* Fuera del `{loading ? …}` de abajo: un aviso sobre lo que acaba
-                de pasar no puede vivir dentro de lo que la acción remonta. */}
-            {aviso.texto ? (
-              <div className="aulas-aviso" data-tono={aviso.tono}>
-                {aviso.tono === "ok" ? <CheckCircle2 size={16} /> : <Info size={16} />} {aviso.texto}
-              </div>
-            ) : null}
-            {loading ? (
-              <EmptyPanel title="Preparando vista" detail="Leyendo cache local del proyecto..." />
-            ) : seccionActiva === "avance" && pestanaActiva === "salidas" ? (
-              // Salidas se muestra aunque no haya dashboard: el workbench declara
-              // por qué está bloqueada (sin corte, sin válidas) en vez de dejar la
-              // pestaña muda.
-              <>
-              <MonitoreoOutputsWorkbench
-                family="aulas"
-                routeLabel="Cursos-horario"
-                config={state?.config}
-                clientSheets={state?.publication?.client_last_sheets ?? null}
-                internalSheets={state?.publication?.internal_last_sheets ?? null}
-                corte={corte}
-                syncedAt={state?.synced_at ?? ""}
-                // Silencioso: el workbench acaba de escribir «N pestañas
-                // actualizadas» con el id del spreadsheet, y una recarga que
-                // encienda `loading` lo desmonta con su mensaje dentro. Publicar
-                // a Sheets sin confirmación es peor que no confirmarlo: el id es
-                // lo único que dice DÓNDE quedó publicado.
-                onPublished={() => { void loadView(seccionActiva, true, true); }}
-              />
-                {/* Y debajo del workbench, lo que se va a publicar. Las cinco
-                    tablas del libro estuvieron en Metas y volvieron aquí: allá
-                    duplicaban paneles que ya existían, aquí contestan la
-                    pregunta de la pestaña —qué sale— antes de que alguien le
-                    dé al botón. */}
-                <AulasVistaPreviaDelLibro />
-              </>
-            ) : renderAulasView({
-              onGuardado: () => { void loadView(seccionActiva, true, true); },
-              view: seccionActiva,
-              dashboard,
-              operations: (
-                <AulasOperationsPanel
-                  config={aulasConfig}
-                  sources={state?.sources ?? []}
-                  busy={busy}
-                  origen={state?.aulas_origen}
-                  onImportPlan={() => { void importPlan(); }}
-                  onSyncField={() => { void syncField(); }}
-              selloDeLibro={aulasConfig?.libro_publicado ?? null}
-              sincronizadoEn={state?.synced_at ?? ""}
-                  onGenerarLibro={() => { void generarLibro(); }}
-                  onImportarLibro={(archivo) => { void importarLibro(archivo); }}
-                  onLeerDeSheets={(enlace) => { void leerDeSheets(enlace); }}
-                  onPublicarASheets={(enlace) => { void publicarASheets(enlace); }}
-                  onRecalcularTraslape={
-                    aulasConfig?.traslape_fuente?.etiqueta
-                      ? () => { void recalcularTraslape(); }
-                      : undefined
-                  }
-                  traslapeDe={aulasConfig?.traslape_fuente?.etiqueta ?? ""}
-                />
-              ),
-              vacioSinTablero: (
-                <VacioSinTablero
-                  planImportado={imported}
-                  fuentesActivas={activeSources}
-                  fuentesDeclaradas={sourceTotal}
-                  onIrAFuentes={() => setActiveView("fuentes")}
-                  lecturaFallida={!state && Boolean(error)}
-                  onReintentar={() => { void loadView(seccionActiva, true); }}
-                />
-              ),
-              registro: (
-                <RegistroDeCampo
-                  // Del TABLERO, no de la config: el plan dejo de viajar ahi y
-                  // `agenda` es un superconjunto suyo —mismos campos mas
-                  // `respuestas_validas` y `brecha`— que ademas se reconstruye en
-                  // cada peticion, tambien antes de la primera respuesta.
-                  agenda={(dashboard?.agenda ?? []) as MonitoreoAulasPlanRow[]}
-                  // La hoja de partes, sólo para el contador: sin ella el panel
-                  // decía «0 con parte» mientras Consultas enseñaba «210 partes».
-                  partes={(dashboard?.partes_campo ?? []) as Array<Record<string, unknown>>}
-                  // Las cuotas por sexo, para que elegir un reemplazo mire lo
-                  // que a la facultad le falta. Es el mismo bloque que pinta la
-                  // pestaña de cuotas.
-                  celdasSexo={(dashboard?.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>}
-                  onGuardado={() => { void loadView(seccionActiva, true, true); }}
-                  // La dirección abre el aula: `?foco=aula:CH 21` deja el
-                  // formulario puesto sobre ella, que es donde vive la única
-                  // acción que activa su reemplazo. Antes había que buscarla
-                  // entre 196 filas, y quien la veía caer en la ruta del día no
-                  // tenía cómo llegar hasta aquí.
-                  codigoEnFoco={foco?.tipo === "aula" ? foco.valor : ""}
-                  onElegir={(codigo) => cambiarFoco({ tipo: "aula", valor: codigo })}
-                />
-              ),
-              fuentes: state?.sources ?? [],
-              pestana: pestanaActiva,
-              foco,
-              onFoco: cambiarFoco,
-              volumen: (
-                {
-                  filas: Number(state?.n_rows ?? 0) || undefined,
-                  columnas: (state?.variables ?? []).length || undefined,
-                }
-              ),
-              // Las tres declaraciones de «cómo mide este estudio», ya
-              // construidas: la sección no ve el estado ni sabe guardar.
-              comoMide: (
+  const vacioSinTablero = (
+    <VacioSinTablero
+      planImportado={imported}
+      fuentesActivas={activeSources}
+      fuentesDeclaradas={sourceTotal}
+      onIrAFuentes={() => irAVista("fuentes")}
+      lecturaFallida={!state && Boolean(error)}
+      onReintentar={() => { void loadView(seccionActiva, true); }}
+    />
+  );
+  // Las pestañas del revamp con contenido propio (lote 2): Avance › Resumen y
+  // Por facultad. Pintan también su silueta mientras carga (S1).
+  // Las reglas del estudio, construidas una vez: las monta la hoja Fuentes
+  // heredada y las ordena Insumos › Reglas (I2).
+  const comoMideDelEstudio = (
                 <AulasComoMideElEstudio
                   valores={{
                     eje: state?.aulas_universitarias?.eje_cuota ?? "",
@@ -2346,11 +1963,8 @@ export default function AulasMonitoreoPage() {
                   guardando={guardandoComoMide}
                   onGuardar={(cambio) => { void declararComoMide(cambio); }}
                 />
-              ),
-              // El panel del criterio, ya construido: el render no ve el estado
-              // ni sabe guardar. Sólo cuando hay base que mirar —sin variables
-              // no hay nada que elegir y el panel sería un formulario vacío.
-              criterioDeEfectiva: (
+  );
+  const criterioDeEfectivaDelEstudio = (
                 filtrosEfectiva && (state?.variables ?? []).length ? (
                   <AulasFiltrosDeEfectiva
                     filtros={filtrosEfectiva}
@@ -2392,15 +2006,408 @@ export default function AulasMonitoreoPage() {
                     )}
                   />
                 ) : null
-              ),
-              // La vara de aula válida, también construida aquí por lo mismo.
-              criterioDeAula: (
+  );
+  const criterioDeAulaDelEstudio = (
                 <AulasCriterioDeAula
                   criterio={(state?.aulas_universitarias?.aula_valida ?? null) as never}
                   hayMetas={metasDelDiseno}
                   onGuardar={guardarCriterioDeAula}
                 />
+  );
+  // Las operaciones del plan, una sola vez: las monta la hoja Fuentes heredada
+  // y, bajo «Más operaciones», Insumos › Fuentes (I1).
+  const operacionesDelPlan = (
+                <AulasOperationsPanel
+                  config={aulasConfig}
+                  sources={state?.sources ?? []}
+                  busy={busy}
+                  origen={state?.aulas_origen}
+                  onImportPlan={() => { void importPlan(); }}
+                  onSyncField={() => { void syncField(); }}
+              selloDeLibro={aulasConfig?.libro_publicado ?? null}
+              sincronizadoEn={state?.synced_at ?? ""}
+                  onGenerarLibro={() => { void generarLibro(); }}
+                  onImportarLibro={(archivo) => { void importarLibro(archivo); }}
+                  onLeerDeSheets={(enlace) => { void leerDeSheets(enlace); }}
+                  onIrAMaterial={irAMaterial}
+                  onRecalcularTraslape={
+                    aulasConfig?.traslape_fuente?.etiqueta
+                      ? () => { void recalcularTraslape(); }
+                      : undefined
+                  }
+                  traslapeDe={aulasConfig?.traslape_fuente?.etiqueta ?? ""}
+                />
+  );
+  const propia = esPestanaPropia(direccion);
+  const resumenPropio = propia
+    ? (
+      <PestanaPropiaDeAulas
+        direccion={direccion}
+        dashboard={dashboard}
+        cargando={loading}
+        vacioSinTablero={vacioSinTablero}
+        salidas={{
+          config: aulasConfig,
+          corte: state?.synced_at ?? "",
+          clientSheets: state?.publication?.client_last_sheets ?? null,
+          ocupado: busy,
+          irAMaterial,
+          generarLibro,
+          hrefHerramientas: HREF_HERRAMIENTAS_DE_SALIDAS,
+        }}
+        agendaVisible={agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[]}
+        distribucion={{
+          config: aulasConfig,
+          ocupado: busy,
+          onConcentrar: (valor) => { void concentrar(valor); },
+          onResortear: (semilla) => { void resortear(semilla); },
+          // La distribución se construye en Material (ADR 0125): el botón lleva allá.
+          onPublicarDistribucion: irAMaterial,
+          onSincronizarDistribucion: (aplicar) => { void sincronizarDistribucion(aplicar); },
+          sincronizacion,
+        }}
+        insumos={{
+          config: aulasConfig,
+          fuentes: state?.sources ?? [],
+          ocupado: busy,
+          importarPlan: () => { void importPlan(); },
+          recargar: () => { void loadView(seccionActiva, true, true); },
+          operaciones: operacionesDelPlan,
+          comoMide: comoMideDelEstudio,
+          criterioDeEfectiva: criterioDeEfectivaDelEstudio,
+          criterioDeAula: criterioDeAulaDelEstudio,
+          onDeclararUmbralDeDuracion: guardarUmbralDeDuracion,
+          plantillaDisponibilidad: () => { void plantillaDisponibilidad(); },
+          importarDisponibilidad: (archivo) => { void importarDisponibilidad(archivo); },
+        }}
+      />
+    )
+    : null;
+
+  return (
+    <div className="mon-profile-page is-aulas-flow" style={MODULE_TONES.monitoreo as CSSProperties}>
+      {/* **La marca dice «false» mientras la vista carga.**
+          Emitida fija, la vista se declaraba lista desde el primer render y el
+          runner canónico capturaba la pantalla de «Preparando vista» como si
+          fuera la vista: `ok=true issues=0` sobre CONTROLES 0, ALERTAS 0 y
+          REPRESENTATIVIDAD S/D. Verde por ausencia, y no en un panel sino en el
+          gate entero del perfil. `data-audit-has-dashboard` llevaba el dato al
+          lado sin que nadie lo consultara.
+
+          Sólo `loading`, que es transitorio: un estudio que terminó de cargar y
+          no tiene libro SÍ está listo —su vacío es legítimo y hay que poder
+          auditarlo—, y declararlo «false» dejaría al runner esperando hasta el
+          timeout.
+
+          Y lista, la marca es la DIRECCIÓN de la vista (Meta B, L10):
+          `monitoreo-aulas-<sección>-<pestaña>`. Con una sola marca para todo el
+          modo, una pestaña muda aterrizaba en la de al lado y salía aprobada. */}
+      <span
+        hidden
+        data-audit-ready={loading ? "false" : readinessDeAulas(direccion.seccion, direccion.pestana)}
+        data-audit-has-dashboard={dashboard ? "true" : "false"}
+      />
+      <MonitoreoModuleChrome
+        routes={[AULAS_ROUTE]}
+        route={AULAS_ROUTE}
+        routeSelected
+        seccionActiva={direccion.seccion}
+        saving={busy}
+        syncedAt={state?.synced_at ?? ""}
+        generatedAt={state?.generated_at ?? state?.synced_at ?? ""}
+        generationStatus={state?.generation_status ?? ""}
+        pendingRegeneration={Boolean(state?.pending_regeneration)}
+        syncErrors={state?.sync_errors ?? state?.errors ?? []}
+        sourceTotal={sourceTotal}
+        activeSources={activeSources}
+        nRows={state?.n_rows ?? 0}
+        hasSnapshot={Boolean(state?.has_snapshot)}
+        syncing={busy}
+        // L38: un solo «Actualizar ▾» en la barra común, como los otros tres
+        // perfiles. El viejo «Avance» (A26b: nunca trajo datos) y «Recalcular
+        // sin leer» viven en su menú (`barraDeAulas.ts`).
+        barraDelModo={construirBarraDeAulas({
+          registros: state?.n_rows ?? 0,
+          syncedAt: state?.synced_at ?? "",
+          generationStatus: state?.generation_status ?? "",
+          pendienteDeRecalcular: Boolean(state?.pending_regeneration),
+          hayEstado: Boolean(state),
+          cargando: loading,
+          actualizando: reciboSync.estado.momento === "corriendo",
+          error,
+          ocupado: busy,
+          importado: imported,
+          tituloActualizar: refreshTitle,
+          onActualizar: reciboSync.abrir,
+          onRecalcular: () => { void syncField(false); },
+          onReleerAvance: () => {
+            if (direccion.seccion !== "avance") irASeccion("avance");
+            void loadView("avance", true);
+          },
+        })}
+        onCambioSeccion={(view) => {
+          if (view !== direccion.seccion) irASeccion(view);
+        }}
+      />
+
+      {/* Va ENTRE el chrome de módulo y la mesa de trabajo porque califica todo
+          lo que hay debajo —avance, cuotas, atrasos—, no un panel concreto. */}
+      <AulasOrigenDesfasado origen={state?.aulas_origen} />
+
+      {/* Las pestañas viven en el RAIL lateral con íconos, no en píldoras
+          arriba: es el patrón de telefónico y acreditación y criterio de toda la
+          app. Aulas tenía la gramática correcta —módulo → modo → sección →
+          pestaña— con el patrón visual equivocado. Los rótulos y los íconos
+          salen del catálogo de navegación; el rail sólo añade contador y estado.
+
+          El chrome compartido es quien coloca el rail a la izquierda: con un
+          `<main>` propio el rail caía como columna encima del contenido. Se le
+          pasan las clases de aulas (`mainClassName`/`contentClassName`) para no
+          perder la hoja del perfil, que gobierna stacks, tablas y gráficos. */}
+      <MonitoreoWorkbenchChrome
+        perfil="aulas"
+        seccionActiva={seccionActiva}
+        ariaLabel={`Mesa de trabajo de cursos-horario: ${activeDef.label}`}
+        className="is-aulas"
+        mainClassName="mon-profile-workbench"
+        contentClassName={`mon-profile-content${seccionActiva === "fuentes" ? " has-aulas-flow" : ""}`}
+        contentId={`monitoreo-${direccion.seccion}-panel`}
+        contentRole="tabpanel"
+        contentAriaLabelledBy={`monitoreo-${direccion.seccion}-tab-${direccion.pestana}`}
+        scrollResetKey={`${direccion.seccion}/${direccion.pestana}/${direccion.panel ?? ""}`}
+        head={
+          /* Aulas era el ÚNICO de los cuatro perfiles con `head={null}`, y el
+            componente existe justo para lo que a aulas le faltaba: su propio
+            comentario lo dice —«el rail es icon-only y su cuadrante no lleva
+            rótulo, así que el nombre de dónde estás vive acá»—. Medido en
+            Avance > Resumen: el rail tiene cuatro botones, el activo no lleva
+            texto ni `title`, y la palabra «Resumen» no aparecía en ninguna
+            parte de la pantalla. Se estaba en una pestaña y nada decía cuál.
+
+            Sin `pills`: la franja de arriba ya lleva estado, registros y corte,
+             y repetirlos aquí sería decir dos veces lo mismo a dos dedos. Y sin
+             `detail`: con la descripción de la sección el encabezado medía
+             177 px, y esa frase ya la dice el rail al pasar por su icono. Lo
+             que aquí no estaba en ninguna parte es el nombre de la pestaña. */
+          (
+          // L14: la variante «sección» del TabHeading del kit —antetítulo con la
+          // sección y el nombre de la pestaña—, la misma que los otros tres modos.
+          <TabHeading
+            variante="seccion"
+            icono={railDeAulas(direccion.seccion, dashboard).find((tab) => tab.key === direccion.pestana)?.icon ?? activeDef.icon}
+            eyebrow={activeDef.label}
+            titulo={rotuloDePestanaAulas(direccion.seccion, direccion.pestana, dashboard) ?? (pestanaActivaLabel || activeDef.label)}
+            // **El MANDO vive sólo en Resumen; el foco sigue cruzando todo.**
+            //
+            // Está en la cabecera y no dentro de un panel porque ahí se movía con
+            // el scroll. Pero estaba en las CINCO pestañas de Avance y en las
+            // otras cuatro secciones, y Gonzalo lo dijo el 2026-09-10: «el
+            // selector de facultades que está en el encabezado debería ser un
+            // botón que sólo esté en resumen, no en las demás pestañas, porque
+            // es Resumen quien maneja este selector».
+            //
+            // Tiene razón en el reparto: Resumen es la única pestaña donde el
+            // foco FILTRA —el bloque «Respuestas» enseña las de esa facultad—;
+            // en las demás sólo RESALTA una fila de un ranking
+            // (`focoQueCruzaLaSeccion.test.tsx`). Un mando que en cuatro de cada
+            // cinco pantallas no cambia lo que se lee, sino que pinta una fila,
+            // pide más atención de la que devuelve.
+            //
+            // El resaltado NO se toca: sigue cruzando la sección, y quien quiera
+            // quitarlo vuelve a Resumen, que es de donde salió.
+            //
+            // Al lado, el selector de sub-vistas de una pestaña que absorbe
+            // varias vistas heredadas (Control › Calidad: Controles, Base de
+            // control, Respuestas abiertas).
+            control={tieneSubvistas(direccion) || mandoDeFacultadVisible(seccionActiva, pestanaActiva) ? (<>
+              <SubvistasDeAulas direccion={direccion} onElegir={(panel) => irA({ ...direccion, panel })} />
+              {mandoDeFacultadVisible(seccionActiva, pestanaActiva) ? <AulasSelectorDeFoco
+                // El eje desde las filas del avance; carrera y sexo desde
+                // `avance_cuota.composicion`, que el motor publica YA ordenado
+                // por población — reordenarlos aquí haría bailar la lista con
+                // cada sincronización.
+                valores={{
+                  eje: facultadesDelEstudio,
+                  carrera: categoriasDeLaComposicion("carrera"),
+                  sexo: categoriasDeLaComposicion("sexo"),
+                }}
+                foco={foco}
+                onFoco={cambiarFoco}
+                eje={ejeDeclarado}
+              /> : null}
+            </>) : undefined}
+          />
+          )
+        }
+        rail={(
+          <MonitoreoWorkbenchRail
+          pestanaActiva={direccion.pestana}
+          activeSection={{ label: activeDef.label, desc: activeDef.desc ?? "Vista operativa", icon: activeDef.icon }}
+          seccionActiva={direccion.seccion}
+          ariaLabel={`Mesa de trabajo de cursos-horario: ${activeDef.label}`}
+          className="is-aulas"
+          emptyDetail={activeDef.desc ?? "Vista operativa"}
+          iconOnlyTabs
+          localTabs={railDeAulas(direccion.seccion, dashboard)}
+          modeCountLabel={contar(pestanasDe(direccion.seccion).length || 1, "pestaña", "pestañas")}
+          routeLabel="Cursos-horario"
+          routeSectionLabel="Cursos-horario, sección"
+          routeShortLabel="Cursos-horario"
+          statusAriaLabel="Última actualización del monitoreo"
+          statusItems={[{
+            label: "Última actualización",
+            // Mientras se lee el proyecto no se sabe si hubo actualización: «Sin
+            // actualización» en ese tramo afirmaba algo que nadie había leído.
+            value: state?.synced_at || (loading && !state ? "Leyendo el proyecto…" : "Sin actualización"),
+            ready: Boolean(state?.synced_at),
+          }]}
+          onCambioPestana={(key) => irAPestanaPublica(direccion.seccion, key)}
+        />
+        )}
+      >
+
+          {propia ? null : <AulasKpiBand
+            dashboard={dashboard}
+            seccion={seccionActiva}
+            pestana={pestanaActiva}
+            facultadEnFoco={facultadDeLaCabecera}
+            cargando={loading}
+            onIr={(clave) => elegirPestana(seccionActiva, clave)}
+          />}
+          {seccionActiva === "fuentes" ? (
+            <AulasApplicationFlow
+              tone="monitoreo"
+              current="monitoreo"
+              compact
+              // «Seguimiento de la INTERVENCIÓN» convivía con el eyebrow
+              // «APLICACIÓN por cursos-horario» en el mismo bloque: dos palabras
+              // para lo mismo, que es la ambigüedad que este perfil lleva todo
+              // el día pagando. «Intervención» es palabra del dueño (cita del
+              // 18/08 en AulasMatrizUmbrales), pero el vocabulario dominante de
+              // la pantalla es «aplicación» —estados, fechas, KPIs— y el bloque
+              // ya lo usa de eyebrow. Se unifica hacia el dominante.
+              title="Seguimiento de la aplicación por cursos-horario"
+              // **La franja en prosa era la propia franja.** Decía «lee el plan
+              // del cálculo de muestra y sus enlaces QR/PDF para medir avance,
+              // caídas, reemplazos y brechas» —26 palabras— y justo debajo están
+              // los cuatro pasos con esos mismos rótulos; lo único que añadía,
+              // «sin rediseñar la muestra», ya lo dice la tarjeta de Monitoreo.
+              // Gonzalo: «todos los elementos visuales siguen bastante
+              // verborreados en esta sección».
+              //
+              // Se queda lo que los pasos NO dicen: que cada uno se hace en otro
+              // sitio y que esta vista sólo mira.
+              summary="Cada paso se hace en su módulo; aquí sólo se sigue."
+              secondaryAction={{ to: AULAS_SAMPLE_ROUTE, label: "Ver muestra de cursos-horario" }}
+              // Con su sección: el botón promete fichas y «/material-campo» a
+              // secas aterriza en la lista de unidades.
+              action={{ to: "/material-campo?modo=aulas&seccion=catalogo&pestana=editor", label: "Abrir fichas QR" }}
+            />
+          ) : null}
+          <div
+            className="aulas-mon-view"
+            role={pestanaActiva ? "tabpanel" : undefined}
+            id={pestanaActiva ? `aulas-mon-panel-${pestanaActiva}` : undefined}
+            aria-labelledby={pestanaActiva ? `aulas-mon-tab-${pestanaActiva}` : undefined}
+          >
+            {error ? <AvisoDeLecturaFallida error={error} corte={state?.synced_at ?? ""} onReintentar={() => { void loadView(seccionActiva, true); }} /> : null}
+            {/* Fuera del `{loading ? …}` de abajo: un aviso sobre lo que acaba
+                de pasar no puede vivir dentro de lo que la acción remonta. */}
+            {reciboSync.estado.momento === "abierto" ? (
+              <ActualizarAbierto
+                fuentes={activeSources}
+                onActualizar={() => { void syncField(true); }}
+                onRecalcular={() => { void syncField(false); }}
+                onCerrar={reciboSync.cerrar}
+              />
+            ) : reciboSync.estado.momento === "corriendo" ? (
+              <ActualizarCorriendo paso={reciboSync.estado.paso} segundos={reciboSync.estado.segundos} leyendo={reciboSync.estado.leyendo} fuentes={activeSources} />
+            ) : reciboSync.estado.momento === "recibo" ? (
+              <ReciboDeActualizar recibo={reciboSync.estado.recibo} onCerrar={reciboSync.cerrar} />
+            ) : null}
+            {aviso.texto ? (
+              <div className="aulas-aviso" data-tono={aviso.tono}>
+                {aviso.tono === "ok" ? <CheckCircle2 size={16} /> : <Info size={16} />} {aviso.texto}
+              </div>
+            ) : null}
+            {loading ? (
+              resumenPropio ?? <LoadingBlock label="Leyendo cache local del proyecto…" />
+            ) : resumenPropio ? resumenPropio : seccionActiva === "avance" && pestanaActiva === "salidas" ? (
+              // Salidas se muestra aunque no haya dashboard: el workbench declara
+              // por qué está bloqueada (sin corte, sin válidas) en vez de dejar la
+              // pestaña muda.
+              <>
+              <MonitoreoOutputsWorkbench
+                family="aulas"
+                routeLabel="Cursos-horario"
+                config={state?.config}
+                clientSheets={state?.publication?.client_last_sheets ?? null}
+                internalSheets={state?.publication?.internal_last_sheets ?? null}
+                corte={corte}
+                syncedAt={state?.synced_at ?? ""}
+                // Silencioso: el workbench acaba de escribir «N pestañas
+                // actualizadas» con el id del spreadsheet, y una recarga que
+                // encienda `loading` lo desmonta con su mensaje dentro. Publicar
+                // a Sheets sin confirmación es peor que no confirmarlo: el id es
+                // lo único que dice DÓNDE quedó publicado.
+                onPublished={() => { void loadView(seccionActiva, true, true); }}
+              />
+                {/* Y debajo del workbench, lo que se va a publicar. Las cinco
+                    tablas del libro estuvieron en Metas y volvieron aquí: allá
+                    duplicaban paneles que ya existían, aquí contestan la
+                    pregunta de la pestaña —qué sale— antes de que alguien le
+                    dé al botón. */}
+                <AulasVistaPreviaDelLibro />
+              </>
+            ) : renderAulasView({
+              onGuardado: () => { void loadView(seccionActiva, true, true); },
+              view: seccionActiva,
+              dashboard,
+              operations: operacionesDelPlan,
+              vacioSinTablero,
+              registro: (
+                <RegistroDeCampo
+                  // Del TABLERO, no de la config: el plan dejo de viajar ahi y
+                  // `agenda` es un superconjunto suyo —mismos campos mas
+                  // `respuestas_validas` y `brecha`— que ademas se reconstruye en
+                  // cada peticion, tambien antes de la primera respuesta.
+                  agenda={(dashboard?.agenda ?? []) as MonitoreoAulasPlanRow[]}
+                  // La hoja de partes, sólo para el contador: sin ella el panel
+                  // decía «0 con parte» mientras Consultas enseñaba «210 partes».
+                  partes={(dashboard?.partes_campo ?? []) as Array<Record<string, unknown>>}
+                  // Las cuotas por sexo, para que elegir un reemplazo mire lo
+                  // que a la facultad le falta. Es el mismo bloque que pinta la
+                  // pestaña de cuotas.
+                  celdasSexo={(dashboard?.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>}
+                  onGuardado={() => { void loadView(seccionActiva, true, true); }}
+                  // La dirección abre el aula: `?foco=aula:CH 21` deja el
+                  // formulario puesto sobre ella, que es donde vive la única
+                  // acción que activa su reemplazo. Antes había que buscarla
+                  // entre 196 filas, y quien la veía caer en la ruta del día no
+                  // tenía cómo llegar hasta aquí.
+                  codigoEnFoco={foco?.tipo === "aula" ? foco.valor : ""}
+                  onElegir={(codigo) => cambiarFoco({ tipo: "aula", valor: codigo })}
+                />
               ),
+              fuentes: state?.sources ?? [],
+              pestana: pestanaActiva,
+              foco,
+              onFoco: cambiarFoco,
+              volumen: (
+                {
+                  filas: Number(state?.n_rows ?? 0) || undefined,
+                  columnas: (state?.variables ?? []).length || undefined,
+                }
+              ),
+              // Las tres declaraciones de «cómo mide este estudio», ya
+              // construidas: la sección no ve el estado ni sabe guardar.
+              comoMide: comoMideDelEstudio,
+              // El panel del criterio, ya construido: el render no ve el estado
+              // ni sabe guardar. Sólo cuando hay base que mirar —sin variables
+              // no hay nada que elegir y el panel sería un formulario vacío.
+              criterioDeEfectiva: criterioDeEfectivaDelEstudio,
+              // La vara de aula válida, también construida aquí por lo mismo.
+              criterioDeAula: criterioDeAulaDelEstudio,
               // Cambiar de pestaña dentro de la sección: quien recuerda la
               // activa de cada una es este componente, no el render.
               irAPestana: (clave) => elegirPestana(seccionActiva, clave),
@@ -2419,7 +2426,7 @@ export default function AulasMonitoreoPage() {
               // aquí convertiría a este archivo en el séptimo lector, que es lo
               // que el contrato de `lectoresDeDireccion` impide.
               verFichaDe: (codigo: string) => {
-                escribirFoco(`aula:${codigo}`, { seccion: "consultas", pestana: "ficha" });
+                escribirFoco(`aula:${codigo}`, FICHA_DE_AULA);
               },
               // El umbral de duración sospechosa: el motor lo aceptaba desde
               // siempre y no había dónde ponerlo.
@@ -2444,7 +2451,7 @@ export default function AulasMonitoreoPage() {
               onConcentrar: concentrar,
               // S7: el Sheets de los aplicadores, recordado en la config.
               distribucionRecordada: aulasConfig?.distribucion_sheets ?? null,
-              onPublicarDistribucion: publicarDistribucion,
+              onPublicarDistribucion: irAMaterial,
               onSincronizarDistribucion: sincronizarDistribucion,
               sincronizacion,
             })}

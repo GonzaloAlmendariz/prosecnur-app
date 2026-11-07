@@ -4,6 +4,7 @@
 // Restricciones y Cálculos: las listas a la izquierda, sus opciones al centro y, al lado, dónde se usa y si se repite.
 // La lista elegida vive en `?foco=` (su código): enlazable.
 
+import { stripMarkdown } from "../helpers/markdown";
 import { useCallback, useMemo, useState } from "react";
 import { ListChecks, Plus } from "../../../vendor/lucide-react";
 import type { XlsformEditorWorkbook } from "../../../api/multiIntegrado";
@@ -18,6 +19,7 @@ import { agregarOpcion, crearLista, moverOpcion, nombreUnificadoCorto, totalList
 import { UnificarListas } from "./UnificarListas";
 import { useAnchoCompacto } from "./useAnchoCompacto";
 import "./opciones.css";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 export type PestanaOpcionesProps = {
   workbook: XlsformEditorWorkbook;
@@ -91,7 +93,7 @@ export function PestanaOpciones(p: PestanaOpcionesProps) {
                   {usos.map((n, i) => (
                     <li key={`${n.name}-${i}`}>
                       <button type="button" className="xfo-uso" onClick={() => p.onIrAPregunta(n.name)}>
-                        <QuestionToken baseType={n.typeInfo.base} label={n.paperNumber || n.name} hint={n.label} variable={n.name} />
+                        <QuestionToken baseType={n.typeInfo.base} label={n.paperNumber || n.name} hint={stripMarkdown(n.label)} variable={n.name} />
                       </button>
                       {n.choiceFilter ? <span className="xfo-uso-filtro">Con filtro de opciones</span> : null}
                     </li>
@@ -123,8 +125,8 @@ export function PestanaOpciones(p: PestanaOpcionesProps) {
         seleccionada={actual?.listName ?? null}
         onSeleccionar={p.onSeleccionar}
         pie={nueva}
-        vacio={<div className="xfo-vacio"><ListChecks size={18} aria-hidden="true" /><p>Este formulario todavía no tiene listas.</p>{nueva}</div>}
-        vacioDetalle={<div className="xfo-vacio"><p>Crea la primera lista para las preguntas de selección.</p></div>}
+        vacio={<EstadoVacio tamano="normal" icono={<ListChecks size={18} />} titulo="Este formulario todavía no tiene listas" accion={nueva} />}
+        vacioDetalle={<EstadoVacio icono={<Plus size={14} />} titulo="Crea la primera lista para las preguntas de selección" />}
         lateral={compacto ? undefined : lateral}
       >
         {actual ? (

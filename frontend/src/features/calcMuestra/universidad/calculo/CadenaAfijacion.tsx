@@ -56,21 +56,21 @@ export function CadenaAfijacion({
       label: "② Redondeo de diseño",
       valor: fmtInt(nObjetivo),
       detalle: esCifraDiseno
-        ? `cifra fijada · error real ${fmtPct(precision)}`
+        ? `cifra fijada, error real ${fmtPct(precision)}`
         : "coincide con la fórmula",
       estado: "ready",
     },
     {
       id: "facultad",
       label: "③ Afijación facultad",
-      valor: `${rows.length} unidades`,
+      valor: `${fmtInt(rows.length)} unidades`,
       detalle: "n · N_fac / N, mayor resto",
       estado: rows.length > 0 ? "ready" : "pending",
     },
     {
       id: "sexo",
       label: "④ Afijación sexo",
-      valor: `M ${fmtInt(totalMujeres)} · H ${fmtInt(totalHombres)}`,
+      valor: `M ${fmtInt(totalMujeres)}, H ${fmtInt(totalHombres)}`,
       detalle: "n_fac · sexo / N_fac, mayor resto",
       estado: rows.length > 0 ? "ready" : "pending",
     },
@@ -95,13 +95,14 @@ export function CadenaAfijacion({
       <FlujoVertical
         etapas={etapas}
         orientacion="horizontal"
+        geometryGroup="calc-muestra/cadena-afijacion"
         ariaLabel="Cadena de la población a la meta: fórmula, redondeo de diseño, afijación por facultad y sexo, cuadratura y meta"
       />
       <p className="cmv2-cadena-a-meta">
         <strong>
-          Meta: M {fmtInt(totalMujeres)} · H {fmtInt(totalHombres)} = {fmtInt(sumaCuotas)}
+          Meta: M {fmtInt(totalMujeres)}, H {fmtInt(totalHombres)} = {fmtInt(sumaCuotas)}
         </strong>
-        {pctMujeres != null && <> · {fmtPct(pctMujeres)} mujeres, la proporción real de la población.</>}{" "}
+        {pctMujeres != null && <>, {fmtPct(pctMujeres)} mujeres, la proporción real de la población.</>}{" "}
         {esCifraDiseno && (
           <>
             El n objetivo ({fmtInt(nObjetivo)}) es una <em>cifra de diseño</em>, no el despeje exacto de la fórmula

@@ -239,7 +239,7 @@ export function AulasEstadoChart({
   // que contrasta, y el separador blanco entre segmentos contiguos.
   const detalle = estados
     .map((e) => `${e.etiqueta} ${fmt(e.aulas)}`)
-    .join(" · ");
+    .join(", ");
 
   return (
     // C1: quién posee el espacio interior del panel. Sin declararlo, el gate

@@ -6,6 +6,7 @@ import {
   type CalcMuestraTecnica,
   type CalcMuestraWorkspaceFrameMode,
 } from "../../api/client";
+import { formatoConteo } from "../../lib/formatoNumero";
 
 export type ActiveDesk = CalcMuestraWorkspaceFrameMode;
 export type GuideStatus = "ready" | "working" | "pending";
@@ -45,9 +46,9 @@ export function safeNumber(value: unknown, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+/** Conteo con separador de millares es-PE («17,124»). Delegado en el formateador compartido. */
 export function fmtInt(value: number | null | undefined) {
-  if (value == null || Number.isNaN(value)) return "—";
-  return Math.round(value).toLocaleString("es-PE");
+  return formatoConteo(value);
 }
 
 export function fmtPct(value: number | null | undefined) {

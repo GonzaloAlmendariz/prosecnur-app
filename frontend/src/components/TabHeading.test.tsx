@@ -37,6 +37,7 @@ describe("TabHeading — render", () => {
   test.each([
     ["listo", "Listo"],
     ["parcial", "Parcial"],
+    ["atencion", "Requiere atención"],
     ["bloqueado", "Bloqueado"],
   ] as const)("estado %s se dice «%s»", (estado, palabra) => {
     const html = renderToStaticMarkup(
@@ -65,7 +66,8 @@ describe("TabHeading — render", () => {
     const ambos = renderToStaticMarkup(
       <TabHeading eyebrow="Carga" titulo="Fuentes" icono={PlugZap} pestanaN={2} pestanaDe={5} />,
     );
-    expect(ambos).toContain("Carga · pestaña 2 de 5");
+    expect(ambos).toContain("Carga, pestaña 2 de 5");
+    expect(ambos).not.toContain("·");
     const soloN = renderToStaticMarkup(<TabHeading eyebrow="Carga" titulo="Fuentes" icono={PlugZap} pestanaN={2} />);
     expect(soloN).not.toContain("pestaña");
     const soloDe = renderToStaticMarkup(<TabHeading eyebrow="Carga" titulo="Fuentes" icono={PlugZap} pestanaDe={5} />);
@@ -136,6 +138,28 @@ describe("TabHeading — render", () => {
   });
 });
 
+describe("TabHeading — variante sección (L14 opción a)", () => {
+  test("44 px: antetítulo visible, título y sin detalle", () => {
+    const html = renderToStaticMarkup(
+      <TabHeading variante="seccion" eyebrow="Avance · Territorial" titulo="Resumen" icono={PlugZap}
+        detalle="Esto no se pinta en la de sección" />,
+    );
+    expect(html).toContain('data-variante="seccion"');
+    expect(html).toContain('class="pulso-section-eyebrow pulso-tab-heading-eyebrow">Avance · Territorial</span>');
+    expect(html).toMatch(/<h2>Resumen<\/h2>/);
+    expect(html).not.toContain("pulso-tab-heading-detalle");
+    expect(html).not.toContain("pulso-sr-only");
+  });
+
+  test("gana sobre `compacta`, y `compacta` sola sigue siendo la de 40 px", () => {
+    const ambas = renderToStaticMarkup(<TabHeading variante="seccion" compacta eyebrow="A" titulo="B" icono={PlugZap} />);
+    expect(ambas).toContain('data-variante="seccion"');
+    const compacta = renderToStaticMarkup(<TabHeading compacta eyebrow="A" titulo="B" icono={PlugZap} />);
+    expect(compacta).toContain('data-variante="compacta"');
+    expect(compacta).toContain("pulso-sr-only");
+  });
+});
+
 describe("TabHeading — lógica pura", () => {
   test("detalleUtil", () => {
     expect(detalleUtil("Fuentes", undefined)).toBeNull();
@@ -145,7 +169,7 @@ describe("TabHeading — lógica pura", () => {
   });
 
   test("textoEyebrow rechaza numeraciones incoherentes", () => {
-    expect(textoEyebrow("Carga", 2, 5)).toBe("Carga · pestaña 2 de 5");
+    expect(textoEyebrow("Carga", 2, 5)).toBe("Carga, pestaña 2 de 5");
     expect(textoEyebrow("Carga", 6, 5)).toBe("Carga");
     expect(textoEyebrow("Carga", 0, 5)).toBe("Carga");
     expect(textoEyebrow("", 1, 3)).toBe("Pestaña 1 de 3");

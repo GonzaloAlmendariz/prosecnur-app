@@ -13,6 +13,8 @@ import { BookOpen, Check, Circle, ExternalLink } from "../../../../vendor/lucide
 import { resumenSustento, seccionesSustento } from "./sustentoSecciones";
 import type { CalcMuestraAulasState, CalcMuestraEstudio, CalcMuestraWorkspace } from "../../../../api/client";
 import "./sustentoCobertura.css";
+import { fmtInt } from "../../sharedCore";
+import { Panel } from "../../../../components/Panel";
 
 export function SustentoCoberturaCard({
   estudio,
@@ -27,16 +29,17 @@ export function SustentoCoberturaCard({
   const r = resumenSustento(secciones);
 
   return (
-    <section className="cmv2-panel cmv2-sustento" aria-label="Cobertura del sustento metodológico">
-      <div className="cmv2-subhead">
-        <strong>El sustento metodológico, capítulo por capítulo</strong>
-        <small>qué se puede escribir hoy y qué no</small>
-      </div>
+    <Panel
+      className="cmv2-sustento"
+      aria-labelledby="cmv2-sustento-titulo"
+      title={<span id="cmv2-sustento-titulo">El sustento metodológico, capítulo por capítulo</span>}
+      hint="Qué se puede escribir hoy y qué no"
+    >
       <p className="cmv2-sustento-resumen">
         <b>{r.disponibles} de {r.total}</b> capítulos se pueden escribir con lo que el
         estudio tiene ahora.
-        {r.pendientes.length > 0 && <> Faltan <b>{r.pendientes.length}</b> por trabajo del propio módulo.</>}
-        {r.externas.length > 0 && <> {r.externas.length === 1 ? "Uno depende" : `${r.externas.length} dependen`} de otro módulo y no se resuelve{r.externas.length === 1 ? "" : "n"} trabajando acá.</>}
+        {r.pendientes.length > 0 && <> Faltan <b>{fmtInt(r.pendientes.length)}</b> por trabajo del propio módulo.</>}
+        {r.externas.length > 0 && <> {r.externas.length === 1 ? "Uno depende" : `${fmtInt(r.externas.length)} dependen`} de otro módulo y no se resuelve{r.externas.length === 1 ? "" : "n"} trabajando acá.</>}
       </p>
       <ol className="cmv2-sustento-lista">
         {secciones.map((s) => (
@@ -47,9 +50,10 @@ export function SustentoCoberturaCard({
             <span className="cmv2-sustento-titulo">
               <b>{s.numero}.</b> {s.titulo}
             </span>
-            {/* La fuente literal, para que quien lo mantenga no la adivine, y el
-                motivo cuando falta: un «no disponible» sin razón no sirve. */}
-            <small className="cmv2-sustento-detalle">
+            {/* De dónde sale, en lenguaje llano (el campo literal va en title,
+                para quien lo mantenga), y el motivo cuando falta: un «no
+                disponible» sin razón no sirve. */}
+            <small className="cmv2-sustento-detalle" title={s.disponible ? s.campo : undefined}>
               {s.disponible ? s.fuente : s.falta}
             </small>
           </li>
@@ -60,6 +64,6 @@ export function SustentoCoberturaCard({
         recoge lo que ya calculan el sustento técnico, el relato, la bitácora del
         libro y el propio motor, y lo ordena en el registro de un informe.
       </small>
-    </section>
+    </Panel>
   );
 }

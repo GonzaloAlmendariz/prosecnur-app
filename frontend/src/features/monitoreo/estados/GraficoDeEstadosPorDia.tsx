@@ -9,11 +9,12 @@
 import { useState, type CSSProperties } from "react";
 
 import type { AcreditacionDeclaracionEstado } from "./familiasDeLlamada";
-import type { AcreditacionPhoneDailyStatusSeries } from "../profiles/acreditacion/AcreditacionPhoneDailyTrend";
+import type { AcreditacionPhoneDailyStatusSeries } from "../core/tendenciaTelefonicaDiaria";
 import { contar } from "../fuentes/vocabulario";
 import { construirApiladoDeEstados, detalleDeSegmento, resumenDelDia, tituloDelDia } from "./apiladoDeEstados";
 
 import "./apiladoDeEstados.css";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 export function GraficoDeEstadosPorDia({
   series,
@@ -51,7 +52,7 @@ export function GraficoDeEstadosPorDia({
             <li key={familia.familia} className={delDia === 0 ? "is-ausente" : ""}>
               <i style={{ background: familia.color }} aria-hidden="true" />
               <span>{familia.etiqueta}</span>
-              <b>{(delDia ?? familia.casos).toLocaleString("es-PE")}</b>
+              <b>{formatoConteo(delDia ?? familia.casos)}</b>
             </li>
           );
         })}
@@ -99,7 +100,7 @@ export function GraficoDeEstadosPorDia({
                 </span>
               ))}
             </div>
-            <em title={`${dia.etiqueta}: ${dia.total.toLocaleString("es-PE")} casos`}>{dia.etiquetaEje}</em>
+            <em title={`${dia.etiqueta}: ${formatoConteo(dia.total)} casos`}>{dia.etiquetaEje}</em>
           </div>
         ))}
       </div>

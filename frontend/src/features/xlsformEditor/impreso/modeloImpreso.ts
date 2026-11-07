@@ -155,13 +155,13 @@ export type ContextoResumen = {
 export function resumenDeParte(parte: ParteImpreso, estado: PdfDialogState, ctx: ContextoResumen): string {
   switch (parte) {
     case "formato":
-      return `${columnasCorto(estado.columns)} · ${estado.showQuestionnaireNumber ? "con N.º" : "sin N.º"}`;
+      return `${columnasCorto(estado.columns)}, ${estado.showQuestionnaireNumber ? "con N.º" : "sin N.º"}`;
     case "logica": {
       const consent = ctx.consentimiento.some((q) => q.name === estado.consentVar) ? "con consentimiento" : "sin consentimiento";
-      return `${estado.logicLanguage === "saltos" ? "Saltos" : "Condiciones"} · ${consent}`;
+      return `${estado.logicLanguage === "saltos" ? "Saltos" : "Condiciones"}, ${consent}`;
     }
     case "contenido":
-      return `${estado.defaultIntro ? "Instrucciones" : "Sin instrucciones"} · ${estado.maxOptionsPerQuestion} opciones`;
+      return `${estado.defaultIntro ? "Instrucciones" : "Sin instrucciones"}, ${estado.maxOptionsPerQuestion} opciones`;
     case "matrices": {
       // El total son las sugeribles (dos o más preguntas), el mismo número del contador de la parte.
       const { matrices } = separarCandidatas(ctx.candidatas);
@@ -245,7 +245,7 @@ export function resumenCabecera(cifras: CifrasPrevia | null): string {
   const partes = ["A4"];
   if (cifras.paginas) partes.push(`${cifras.paginas} ${cifras.paginas === 1 ? "página" : "páginas"}`);
   partes.push(`${cifras.preguntas} ${cifras.preguntas === 1 ? "pregunta" : "preguntas"}`);
-  return partes.join(" · ");
+  return partes.join(", ");
 }
 
 /** Firma de las opciones de una previa: si cambia, la previa quedó vieja. */

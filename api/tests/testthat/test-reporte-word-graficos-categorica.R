@@ -7,9 +7,15 @@ test_that("las barras Word leen la espec: residual al final en gris, la mayor en
   g <- .word_g_barras(e)
   expect_true(all(c("45%", "30%", "25%", "Redes sociales") %in% .wc_textos(g)))
   b <- suppressWarnings(ggplot2::ggplot_build(g))
-  rect <- b$data[[1]]
+  # Revisión v7.23, ítem 8: la pista gris hasta el 100% va en toda barra de una serie (capa 1) y lleva la escala a 0-100%;
+  # el eje libre (al máximo con aire) queda para `pista = "nunca"`.
+  expect_identical(unique(b$data[[1]]$fill), .lam_barras_pista_color())
+  rect <- b$data[[2]]
   expect_identical(rect$fill[rect$xmax == max(rect$xmax)], .WORD_TINTA$navy)
-  expect_equal(b$layout$panel_params[[1]]$x.range[2], 45 * 1.18)               # sin marca: al máximo con aire
+  expect_equal(b$layout$panel_params[[1]]$x.range[2], 112)
+  e$pista <- "nunca"
+  expect_equal(suppressWarnings(ggplot2::ggplot_build(.word_g_barras(e)))$layout$panel_params[[1]]$x.range[2], 45 * 1.18)   # sin pista ni marca: al máximo con aire
+  e$pista <- NULL
   e$escala_completa <- TRUE
   b2 <- suppressWarnings(ggplot2::ggplot_build(.word_g_barras(e)))
   expect_equal(b2$layout$panel_params[[1]]$x.range[2], 112)                     # agrupadas: 0-100 %, con aire para la cifra
@@ -78,7 +84,8 @@ test_that("en la ruta real las barras agrupadas llegan al Word de 0 a 100 % y co
     suppressWarnings(ggplot2::ggplot_build(.word_g_barras(e)))$layout$panel_params[[1]]$x.range[2]
   }
   expect_equal(rango(), 112)                                  # 100 % con aire para la cifra
-  expect_lt(rango(usar_eje_libre = TRUE), 100)                # eje libre: al máximo (45 %) con aire
+  expect_equal(rango(usar_eje_libre = TRUE), 112)             # v7.23 ítem 8: con la pista, también el eje libre va a 0-100 %
+  expect_lt(rango(usar_eje_libre = TRUE, pista_barras = "nunca"), 100)   # sin pista: al máximo (45 %) con aire
 })
 
 test_that("las marcas 0-100 % son opcionales: apagadas por defecto, encendidas con marcas_eje y nunca con el eje libre (Gonzalo, 2026-10-09)", {

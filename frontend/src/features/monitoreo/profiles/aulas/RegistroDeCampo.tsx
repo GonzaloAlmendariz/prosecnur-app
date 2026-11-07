@@ -13,10 +13,12 @@
 // aulas haya; C3 el vacío vive dentro del panel; C4 la lista scrollea dentro de
 // su propio contenedor; C5 entrega lo que su título promete — el registro
 // completo de una aplicación, no un subconjunto cómodo.
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 import { useEffect, useMemo, useState } from "react";
 
 import { contar } from "../../fuentes/vocabulario";
 import { ArrowRightLeft, ClipboardCheck, ClipboardList, ExternalLink, FileCheck2, Link2Off, Loader2, Search, TriangleAlert } from "../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { AulasPopoverReemplazo } from "./AulasPopoverReemplazo";
 import { brechaDeLaFacultad } from "./brechaDeLaFacultad";
 import { fichaEscaneadaDelParte } from "./fichaEscaneada";
@@ -29,7 +31,8 @@ import { ESTADOS_OPERATIVOS, MOTIVOS_DE_REEMPLAZO } from "./aulasPresentation";
 import { ChipDato, ChipHora, ChipLugar } from "./AulasSistemaPabellon";
 import { etiquetaSinRepetir, facultadesDelRegistro } from "./registroPorFacultad";
 import { porQueEsaMeta } from "./porQueEsaMeta";
-import { EstadoEnCelda } from "./EstadoEnCelda";
+import { EstadoEnCelda, colorDeEstado } from "./EstadoEnCelda";
+import { EstadoChip } from "../../../../components/EstadoChip";
 import "./registroDeCampo.css";
 import { fmt } from "./kpisDeAulas";
 import { ordenarPorCadenaOperativa } from "../../../../lib/cadenaOperativa";
@@ -39,6 +42,7 @@ import { usePanelDireccionable } from "../../../../lib/navegacion/paneles";
 // Mudado a `aulasPresentation`, que es donde vive el vocabulario: acá sólo
 // alimentaba este select y la tabla que pinta la misma columna no lo alcanzaba.
 const ESTADOS = ESTADOS_OPERATIVOS;
+const rotuloDeEstado = (estado: string) => ESTADOS.find((e) => e.value === estado)?.label ?? estado;
 
 // El vocabulario vive en `aulasPresentation`, que es donde están todos los
 // rótulos: aquí se ofrecía en un select y la tabla de la cadena no lo alcanzaba,
@@ -523,15 +527,17 @@ export function RegistroDeCampo({
             // con dos nombres distintos sugiere que son dos cosas.
             aplicadas && aplicadas !== conRegistro ? `${fmt(aplicadas)} con registro` : "",
             `${conRegistro} con parte en el libro`,
-          ].filter(Boolean).join(" · ")
+          ].filter(Boolean).join(", ")
           : "sin agenda"}</span>
       </div>
 
       {filas.length === 0 ? (
-        <p className="registro-campo-vacio">
-          No hay agenda de cursos-horario. Importa el plan desde el cálculo de muestra
-          para registrar lo que pasa en cada curso-horario.
-        </p>
+        <EstadoVacio
+          tamano="normal"
+          icono={<ClipboardList size={18} />}
+          titulo="No hay agenda de cursos-horario."
+          descripcion="Importa el plan desde el cálculo de muestra para registrar lo que pasa en cada curso-horario."
+        />
       ) : (
         <div className="registro-campo-cuerpo">
           {/* Filtro y lista son UNA celda del grid. Sueltos, el filtro se comía
@@ -551,10 +557,10 @@ export function RegistroDeCampo({
             <label className="registro-campo-filtro">
               <span>Facultad</span>
               <select value={facultad} onChange={(e) => setFacultad(e.target.value)}>
-                <option value="">Todas · {filas.length}</option>
+                <option value="">Todas ({fmt(filas.length)})</option>
                 {facultades.map((f) => (
                   <option key={f.facultad} value={f.facultad}>
-                    {f.facultad} · {f.aulas - f.conParte || f.aulas}
+                    {f.facultad} ({fmt(f.aulas - f.conParte || f.aulas)})
                   </option>
                 ))}
               </select>
@@ -564,6 +570,7 @@ export function RegistroDeCampo({
             {visibles.map((row) => {
               const clave = String(row.operational_code ?? row.classroom_id);
               const estado = String(row.operational_status ?? "planificada");
+              const rotulo = rotuloDeEstado(estado);
               return (
                 <li key={clave}>
                   <button
@@ -600,9 +607,12 @@ export function RegistroDeCampo({
                         con parte
                       </span>
                     ) : null}
-                    <span className={`registro-campo-estado is-${estado}`}>
-                      <EstadoEnCelda valor={ESTADOS.find((e) => e.value === estado)?.label ?? estado} />
-                    </span>
+                    {/* Un estado operativo conocido lleva el color de su desenlace
+                        (`aulas-estado-chip`, el mismo de la franja por día, B33);
+                        uno que el vocabulario no reconoce, el EstadoChip neutro. */}
+                    {colorDeEstado(rotulo)
+                      ? <EstadoEnCelda valor={rotulo} />
+                      : <EstadoChip label={rotulo} tone="neutral" />}
                   </button>
                 </li>
               );
@@ -619,22 +629,22 @@ export function RegistroDeCampo({
               // vista no cargó. Lleva además cuántas faltan por registrar, que
               // es lo que quien abre esta pestaña viene a saber y ya está en la
               // misma lista que tiene al lado.
-              <div className="registro-campo-vacio">
-                <ClipboardList size={22} aria-hidden="true" />
-                <strong>Elige un curso-horario de la lista</strong>
-                <p>
-                  Aquí se registra cómo fue su aplicación: asistentes, rechazos,
-                  duplicados y encuestas aplicadas.
-                </p>
+              <div className="registro-campo-sin-eleccion">
+                <EstadoVacio
+                  tamano="normal"
+                  icono={<ClipboardList size={18} />}
+                  titulo="Elige un curso-horario de la lista"
+                  descripcion="Aquí se registra cómo fue su aplicación: asistentes, rechazos, duplicados y encuestas aplicadas."
+                />
                 {porRegistrar ? (
-                  <p className="registro-campo-vacio-cifra">
+                  <p className="registro-campo-por-registrar">
                     <strong>{porRegistrar}</strong> de {filas.length - reemplazadas} todavía sin registrar
                     {/* El denominador son las REGISTRABLES, y la diferencia con
                         la lista de al lado se dice: si la lista tiene 196 filas
                         y aquí pone 170, sin explicación se lee como aulas
                         perdidas. */}
                     {reemplazadas ? (
-                      <em> · {reemplazadas} reemplazados no se registran</em>
+                      <em>, {reemplazadas} reemplazados no se registran</em>
                     ) : null}
                   </p>
                 ) : null}
@@ -643,7 +653,7 @@ export function RegistroDeCampo({
               <>
                 <p className="registro-campo-contexto">
                   {etiquetaDeAula(activa)}
-                  {activa.eligible_n ? ` · ${contar(activa.eligible_n, "matriculado", "matriculados")}` : ""}
+                  {activa.eligible_n ? `, ${contar(activa.eligible_n, "matriculado", "matriculados")}` : ""}
                 </p>
                 {/* La cita a la vista de quien registra: dónde, de qué
                     facultad, qué día y a qué hora, como la fila de chips del
@@ -692,7 +702,7 @@ export function RegistroDeCampo({
                       <Link2Off size={12} aria-hidden="true" /> Sin enlace de ficha: lo escribe la entrega de Recopiladores
                     </span>
                   )}
-                  {" · "}
+                  {", "}
                   {fichaEscaneada?.estado === "enlace" ? (
                     <a
                       href={fichaEscaneada.url}
@@ -722,7 +732,7 @@ export function RegistroDeCampo({
                   const p = (v: number) => `${Math.round(v * 100)} %`;
                   return (
                     <p className="registro-campo-meta">
-                      Este curso-horario espera <strong>{pq.meta.toLocaleString("es-PE")}</strong> encuestas:{" "}
+                      Este curso-horario espera <strong>{formatoDecimal(pq.meta, 3)}</strong> encuestas:{" "}
                       {pq.elegibles} elegibles{" "}
                       {/* `p_aplicada` sólo aparece si es factor de ESTA meta.
                           Desde el rediseño «1b» del cálculo de muestra dejó de

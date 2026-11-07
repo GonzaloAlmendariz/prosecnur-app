@@ -3,6 +3,7 @@
 // de dónde vienen las respuestas (su encuesta de SurveyMonkey, un .sav o un
 // Excel), se revisa la vista previa y la base se crea ligada a esa revisión.
 
+import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import { useId } from "react";
 import type { FormularioPublicado, ImportarFormularioPublicadoResultado } from "../../../api/cargaFormularioPublicado";
 import type { EstudioPayload } from "../../../api/estudio";
@@ -90,7 +91,7 @@ export function NuevaBaseFormularioPublicado({
                 <span className="pulso-bfp-formulario-texto">
                   <strong>{f.form_name}</strong>
                   <small>{rotuloRevision(f.revision_no)}</small>
-                  {detalles.length ? <small className="pulso-bfp-formulario-meta">{detalles.join(" · ")}</small> : null}
+                  {detalles.length ? <small className="pulso-bfp-formulario-meta">{detalles.join(", ")}</small> : null}
                 </span>
               </button>
             );
@@ -126,16 +127,14 @@ export function NuevaBaseFormularioPublicado({
           </div>
 
           {estado.fuente === "surveymonkey" && elegido.campanas.length ? (
-            <label htmlFor={idCampanas} className="pulso-bfp-casilla">
-              <input
-                id={idCampanas}
-                type="checkbox"
-                checked={estado.incluirCampanas}
-                disabled={ocupado}
-                onChange={(e) => flujo.incluirCampanas(e.target.checked)}
-              />
-              <span>Incluir campañas: {elegido.campanas.map((c) => c.titulo).join(", ")}</span>
-            </label>
+            <PulsoSwitch
+              id={idCampanas}
+              size="sm"
+              label={`Incluir campañas: ${elegido.campanas.map((c) => c.titulo).join(", ")}`}
+              checked={estado.incluirCampanas}
+              disabled={ocupado}
+              onCheckedChange={(valor) => flujo.incluirCampanas(valor)}
+            />
           ) : null}
 
           {estado.fuente === "sav" || estado.fuente === "excel" ? (

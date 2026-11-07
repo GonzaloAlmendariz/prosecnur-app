@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import { Loader2, Save } from "../../../../../vendor/lucide-react";
 import { apiMonitoreoConfig } from "../../../../../api/monitoreo";
 import type { MonitoreoAcreditacionReports, MonitoreoState } from "../../../../../api/client";
 import { NotaDelModo } from "../../../core/NotaDelModo";
 import { filasDeEquivalencia, paresParaGuardar, type Par } from "./equivalenciasModel";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 const ROTULO = { confirmada: "Confirmada", sugerida: "Sugerida", sin_pareja: "Sin pareja" } as const;
 
@@ -50,7 +52,7 @@ export function EquivalenciasDeNombres({
     <section className="mon-ctl-panel mon-equivalencias" aria-label="Enumerador de Kobo y responsable de la hoja">
       <header className="mon-insumos-cabecera">
         <strong>Enumerador y responsable</strong>
-        <span>{filas.length ? `${filas.length} por confirmar o confirmados` : ""}</span>
+        <span>{filas.length ? `${formatoConteo(filas.length)} por confirmar o confirmados` : ""}</span>
         {filas.length ? (
           <button
             type="button"
@@ -78,7 +80,7 @@ export function EquivalenciasDeNombres({
               <tr key={fila.kobo}>
                 <th scope="row">
                   {fila.kobo}
-                  {fila.envios != null ? <small className="mon-equivalencias-envios">{fila.envios.toLocaleString("es-PE")} envíos</small> : null}
+                  {fila.envios != null ? <small className="mon-equivalencias-envios">{formatoConteo(fila.envios)} envíos</small> : null}
                 </th>
                 <td>
                   <select
@@ -94,7 +96,7 @@ export function EquivalenciasDeNombres({
                   </select>
                 </td>
                 <td>
-                  <span className={`mon-insumos-estado${fila.estado === "confirmada" ? " is-encendido" : ""}`} title={fila.criterio || undefined}>{ROTULO[fila.estado]}</span>
+                  <EstadoChip label={ROTULO[fila.estado]} tone={fila.estado === "confirmada" ? "success" : "neutral"} detail={fila.criterio || undefined} />
                 </td>
               </tr>
             ))}
@@ -105,7 +107,7 @@ export function EquivalenciasDeNombres({
         {filas.length
           ? "La misma persona escrita de dos formas. Discrepancias deja de marcarla como otra persona al confirmar."
           : mismoNombre > 0
-            ? `Los ${mismoNombre.toLocaleString("es-PE")} enumeradores de Kobo se llaman igual en la hoja.`
+            ? `Los ${formatoConteo(mismoNombre)} enumeradores de Kobo se llaman igual en la hoja.`
             : "Sin enumeradores de Kobo en este corte."}
       </NotaDelModo>
     </section>

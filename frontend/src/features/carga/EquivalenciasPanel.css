@@ -41,12 +41,12 @@
 
 .pulso-equiv-title strong {
   color: var(--pulso-text);
-  font-size: 14px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-equiv-title small {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
   max-width: 62ch;
 }
@@ -78,7 +78,7 @@
   margin: 0;
   padding: var(--pulso-space-2) var(--pulso-space-3);
   border-radius: var(--pulso-radius-chip);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
 }
 
@@ -113,29 +113,9 @@
   background: var(--pulso-surface);
 }
 
-.pulso-equiv-vacio {
-  display: flex;
-  flex-direction: column;
-  gap: var(--pulso-space-2);
-  margin: 0;
-}
 
-.pulso-equiv-vacio p {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.55;
-  color: var(--pulso-text-soft);
-  max-width: 68ch;
-}
 
-.pulso-equiv-vacio strong {
-  color: var(--pulso-text);
-}
 
-.pulso-equiv-vacio-nota {
-  color: var(--pulso-text-faint);
-  font-size: 12px;
-}
 
 .pulso-equiv-resumen {
   list-style: none;
@@ -186,12 +166,12 @@
 }
 
 .pulso-equiv-resumen-copy strong {
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text);
 }
 
 .pulso-equiv-resumen-copy small {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
   line-height: 1.4;
 }
@@ -202,7 +182,7 @@
 
 .pulso-equiv-pie {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-faint);
 }
 
@@ -226,7 +206,7 @@
   border-spacing: 0;
   table-layout: fixed;
   width: 100%;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 /* La cabecera de la Lista se pega bajo la barra de vistas, cuyo alto mide el
@@ -283,7 +263,7 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface);
   color: var(--pulso-info-fg);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: 600;
 }
 
@@ -298,7 +278,7 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: 600;
 }
 
@@ -307,12 +287,12 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-equiv-variable-fija {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   overflow-wrap: anywhere;
 }
 
@@ -324,7 +304,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   padding: 3px 6px;
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-chip);
@@ -357,7 +337,7 @@
   border-top: 1px solid var(--pulso-border);
   border-radius: 0 0 var(--pulso-radius-panel) var(--pulso-radius-panel);
   background: var(--pulso-surface);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-faint);
 }
 
@@ -389,7 +369,7 @@
   border-bottom: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-panel) var(--pulso-radius-panel) 0 0;
   background: var(--pulso-surface);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 /* Solo el selector de vista; las acciones masivas son PulsoButton (M2). */
@@ -399,7 +379,7 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface);
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: 600;
 }
 
@@ -446,7 +426,7 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -475,7 +455,7 @@ button.pulso-equiv-chip-escala:hover,
 
 .pulso-equiv-escala-globo-head {
   margin: 0 0 var(--pulso-space-2);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: 600;
   color: var(--pulso-text-faint);
 }
@@ -487,7 +467,7 @@ button.pulso-equiv-chip-escala:hover,
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text);
 }
 
@@ -559,7 +539,7 @@ button.pulso-equiv-chip-escala:hover,
   background: var(--pulso-surface);
   color: var(--pulso-text-soft);
   font: inherit;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.5;
   white-space: nowrap;
@@ -607,7 +587,7 @@ button.pulso-equiv-escala { cursor: pointer; }
   -webkit-line-clamp: 2;
   overflow: hidden;
   max-width: 100%;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.35;
   color: var(--pulso-text-faint);
   overflow-wrap: anywhere;
@@ -621,7 +601,7 @@ button.pulso-equiv-escala:disabled {
 }
 
 button.pulso-equiv-escala:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 2px;
 }
 
@@ -751,7 +731,7 @@ button.pulso-equiv-escala:focus-visible {
 .pulso-equiv-que-es {
   margin-top: 2px;
   max-width: 72ch;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 
@@ -764,7 +744,7 @@ button.pulso-equiv-escala:focus-visible {
 }
 
 .pulso-equiv-que-es > summary:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 2px;
 }
 
@@ -814,7 +794,7 @@ button.pulso-equiv-escala:focus-visible {
 }
 
 .pulso-equiv-hscroll.is-desborda:focus-visible {
-  outline: 2px solid var(--module-accent);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 2px;
 }
 
@@ -851,7 +831,7 @@ button.pulso-equiv-escala:focus-visible {
 /* M9: la cobertura completa no se atenua —se leia deshabilitada—; la parcial
    se marca con el color semantico de advertencia ademas del peso. */
 .pulso-equiv-cobertura {
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text-soft);
   white-space: nowrap;

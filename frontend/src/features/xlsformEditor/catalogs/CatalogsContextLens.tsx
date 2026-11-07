@@ -49,7 +49,7 @@ export default function CatalogsContextLens({
     listsCount === 0
       ? "Define listas reutilizables y conéctalas a las preguntas de selección desde el inspector."
       : pendingListsCount > 0
-        ? `${listsCount} ${listsCount === 1 ? "lista conectada" : "listas conectadas"} · ${pendingListsCount} ${pendingListsCount === 1 ? "en preparación" : "en preparación"}. Agrega opciones reales antes de exportar.`
+        ? `${listsCount} ${listsCount === 1 ? "lista conectada" : "listas conectadas"} y ${pendingListsCount} ${pendingListsCount === 1 ? "en preparación" : "en preparación"}. Agrega opciones reales antes de exportar.`
         : `${readyListsCount} ${readyListsCount === 1 ? "lista con opciones" : "listas con opciones"}. Conéctalas a las preguntas de selección desde el inspector.`;
 
   return (

@@ -13,12 +13,13 @@ import { PulsoButton } from "../../../components/PulsoButton";
 type Props = {
   preguntas: readonly PreguntaDestino[];
   candidatasDe: (name: string) => PreguntaElegible[];
+  numericasDe?: (name: string) => PreguntaElegible[];
   workbook: XlsformEditorWorkbook;
   onCrear: (wb: XlsformEditorWorkbook, pregunta: string) => void;
   onAbrir: (pregunta: string) => void;
 };
 
-export function NuevoFiltro({ preguntas, candidatasDe, workbook, onCrear, onAbrir }: Props) {
+export function NuevoFiltro({ preguntas, candidatasDe, numericasDe, workbook, onCrear, onAbrir }: Props) {
   const panel = usePanelDireccionable(PANEL_NUEVO_FILTRO);
   // Elegir o crear fija el `foco` (una navegación); cerrar el panel es otra. Las dos leen la dirección del render en
   // curso, así que el cierre espera al render siguiente para no pisar el foco recién escrito.
@@ -40,6 +41,7 @@ export function NuevoFiltro({ preguntas, candidatasDe, workbook, onCrear, onAbri
               <NuevoFiltroDialogo
                 preguntas={preguntas}
                 candidatasDe={candidatasDe}
+                numericasDe={numericasDe}
                 workbook={workbook}
                 onCerrar={panel.cerrar}
                 onAbrir={(n) => { onAbrir(n); setCerrarDespues(true); }}

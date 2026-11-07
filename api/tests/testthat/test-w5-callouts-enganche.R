@@ -13,6 +13,16 @@
 }
 .ce_doc <- function() officer::read_pptx(system.file("plantillas", "plantilla_16_9.pptx", package = "prosecnurapp"))
 .ce_sin_cruce <- function(a0, a1) { o <- order(a0); all(a0[o][-1] >= a1[o][-length(o)] - 1e-6) }
+# Ítem 20 (v7 RV, «los 1% están rompiendo la regla de líneas rectas»): toda pieza de guía es un trazo vertical u
+# horizontal, nunca una diagonal, y todos los tramos horizontales corren por un mismo carril (una sola altura), del que
+# cada guía sube a su cifra.
+.ce_guias_rectas <- function(g) {
+  expect_gt(nrow(g), 0L)
+  expect_true(all(g$w < 0.02 | g$h < 0.02))
+  carril <- g[g$h < 0.02 & g$w >= 0.02, ]
+  expect_gt(nrow(carril), 0L)
+  expect_lt(diff(range(carril$y)), 1e-6)
+}
 
 # Acotado (Arte idéntico): un par sin codos cruzados («1% ⌐1%», el «2% ⌐6%» aprobado en Arte) conserva la colocación de
 # siempre; el reparto nuevo entra sólo cuando la anterior cruza codos (cadenas como «5% 3% 5%», fila Instagram).
@@ -30,13 +40,12 @@ test_that("CCSS-14 escala: una cadena de tres cifras chicas («2% 1% 2%») ya no
   # La colocación de siempre (paso fijo de 0.46 in a la derecha) sí cruzaba codos en esta fila: el rojo del defecto.
   viejo <- cs; for (k in seq_along(viejo)[-1]) viejo[k] <- max(viejo[k], viejo[k - 1] + 0.46)
   expect_true(.lam_callouts_chocan(cs, viejo, tinta))
-  # Reparto nuevo: tintas a 0.12 in o más y guías rectas (segmentos y cifras en el mismo orden: no se cruzan); ningún
-  # codo horizontal, que en una cadena corrida a un lado se montaban en la misma altura.
+  # Reparto nuevo: tintas a 0.12 in o más, segmentos y cifras en el mismo orden, guías en escalera sin diagonales y con
+  # los codos a alturas distintas; las cifras siguen en una sola fila.
   expect_true(all(diff(centros) - (tinta[-1] + tinta[-m]) / 2 >= 0.12 - 1e-6))
   expect_true(all(order(centros) == order(cs)))
-  g <- f[f$nombre == "guia", ]
-  expect_equal(sum(g$h < 0.02 & g$w > 0.05), 0L)
-  expect_equal(nrow(g), m)
+  expect_lt(diff(range(cf$y)), 1e-6)
+  .ce_guias_rectas(f[f$nombre == "guia", ])
 })
 
 test_that("CCSS-14 escala: un par sin cruce («1% ⌐1%») conserva la colocación aprobada", {
@@ -47,7 +56,9 @@ test_that("CCSS-14 escala: un par sin cruce («1% ⌐1%») conserva la colocaci�
   seg <- f[f$nombre == "segmento", ]; seg <- seg[order(seg$x), ]
   cf <- f[f$nombre == "cifra_fuera", ]; cf <- cf[order(cf$x), ]
   cs <- seg$x[1:2] + seg$w[1:2] / 2
-  expect_equal(cf$x + cf$w / 2, c(cs[1], cs[1] + 0.46), tolerance = 0.01)
+  # La segunda se separa lo que miden las dos más 0,08 in (antes un 0,46 fijo: «un pequeño error en ese 2 % y su rama»).
+  sep <- sum(.lam_ancho_tinta(c("1%", "1%"), .std_pt("cifra_fuera"), TRUE)) / 2 + 0.08
+  expect_equal(cf$x + cf$w / 2, c(cs[1], cs[1] + sep), tolerance = 0.01)
 })
 
 test_that("CCSS-14 divergentes: tres cifras chicas del lado del acuerdo sin cruzar codos ni la línea del centro", {
@@ -68,20 +79,22 @@ test_that("CCSS-14 divergentes: tres cifras chicas del lado del acuerdo sin cruz
   expect_true(.lam_callouts_chocan(cs, viejo, tinta))
   expect_true(all(diff(centros) - (tinta[-1] + tinta[-3]) / 2 >= 0.12 - 1e-6))
   expect_true(all(order(centros) == order(cs)))
-  g <- f[f$nombre == "divergentes:guia", ]
-  expect_equal(sum(g$h < 0.02 & g$w > 0.05), 0L)
+  .ce_guias_rectas(f[f$nombre == "divergentes:guia", ])
+  expect_lt(diff(range(cf$y)), 1e-6)
   expect_true(all(centros - tinta / 2 >= xc + 0.05 - 1e-6))       # del lado del acuerdo, sin tocar la línea del centro
 })
 
-test_that("U5 panel circular: la leyenda no compacta escribe «<1%» con casos", {
+test_that("U5 panel circular: la figura escribe «<1%» con casos y la leyenda no lleva porcentajes", {
   e <- attr(suppressWarnings(graficar_pie(data.frame(c = c("Femenino", "Masculino", "No binario", "Prefiero no responder"),
                                                      p = c(209, 181, 6, 1) / 397, n = c(209, 181, 6, 1)), "c", "p", var_n = "n",
                                           tipo_pie = "donut")), "pulso_espec")
   geo <- .lam_panel_circular_geo(e, 0.5, 1.65, 6.01, 2.4, 0)
-  expect_false(isTRUE(geo$compacto))
+  expect_true(isTRUE(geo$cabe))
   lz <- .lam_lienzo(); .lam_panel_circular(lz, e, geo)
   doc <- .lam_agrupar(officer::add_slide(.ce_doc(), layout = "Graficos2", master = "Office Theme"), lz, nombre = "t")
   f <- .ce_formas(doc)
-  cif <- f$texto[f$nombre == "circular:cifra"]
+  # Revisión del v7: el porcentaje va sobre su porción o fuera con su guía, no en la leyenda.
+  cif <- f$texto[f$nombre %in% c("dona:cifra_aro", "dona:cifra_fuera")]
   expect_true("<1%" %in% cif); expect_false("0%" %in% cif)
+  expect_false(any(grepl("%", f$texto[f$nombre == "circular:rotulo"])))
 })

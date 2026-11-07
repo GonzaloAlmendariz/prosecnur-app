@@ -44,7 +44,7 @@ describe("el nombre de una campaña no se repite (F1)", () => {
       .toBe("Encuesta de reacreditación de Contabilidad");
     expect(subtituloDeCampana({ name: "Encuesta", actor: "" }, " encuesta ")).toBe("");
     expect(subtituloDeCampana({ name: "Encuesta", actor: "" })).toBe("");
-    expect(rotuloDelMenu({ name: "Encuesta" }, "Docentes")).toBe("Acciones de Encuesta · Docentes");
+    expect(rotuloDelMenu({ name: "Encuesta" }, "Docentes")).toBe("Acciones de Encuesta (Docentes)");
     expect(rotuloDelMenu({ name: "Encuesta" }, "")).toBe("Acciones de Encuesta");
   });
 

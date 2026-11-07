@@ -2,6 +2,7 @@
 // (`foco=<slide.id>:g2`). Izquierda, las siete familias; centro, los gráficos de la familia con su glifo; derecha, el
 // detalle. Usar un gráfico conserva los argumentos compatibles del anterior (`compatibleGraficadorRef`).
 
+import { BarChart3, MousePointer2 } from "lucide-react";
 import { useId, useMemo, useRef } from "react";
 import type { GraficadorMetadata, GraficadorRef, Slide } from "../../../../api/graficos";
 import { toast } from "../../../../components/toasterStore";
@@ -21,6 +22,9 @@ import { PANEL_TIPO_GRAFICO } from "./panelesSelectores";
 import { useSelectoresUi } from "./selectoresStore";
 import { TarjetaTipoGrafico } from "./TarjetaTipoGrafico";
 import { encajeEnRanura, FAMILIAS_GRAFICO, familiaInicial, graficosDeFamilia, salidaDe } from "./tiposGrafico";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
+import { CargaDeBloque } from "../../../../components/CargaDeBloque";
+import { formatoConteo } from "../../../../lib/formatoNumero";
 
 type Props = {
   slide: Slide | null;
@@ -60,7 +64,10 @@ export function SelectorTipoGrafico({ slide, posicion, ranura, cerrar }: Props) 
     ?? lista[0]
     ?? null;
 
-  const rotuloRanura = k && slot ? `Gráfico ${k}, ${nombreSlot(slot, slide ? slidesById[slide.tipo] : undefined)}` : "";
+  // H6: en una lámina de varios gráficos la ranura se nombra por su lugar («espacio «Derecha»»), como en los avisos.
+  const rotuloRanura = k && slot
+    ? slots.length > 1 ? `espacio «${nombreSlot(slot, slide ? slidesById[slide.tipo] : undefined)}»` : "gráfico"
+    : "";
   const bloqueoDe = (g: GraficadorMetadata): string | null => {
     if (canInsertGraficador(g, dimOk)) return encajeEnRanura(g.name, slot).cabe ? null : "No va en esta ranura";
     return g.disabled_reason?.trim() || graficadorAvailabilityLabel(g, dimOk);
@@ -75,7 +82,7 @@ export function SelectorTipoGrafico({ slide, posicion, ranura, cerrar }: Props) 
     if (!g || !slide || !slot || bloqueoDe(g) || g.name === actual?.graficador) return;
     const id = slide.id;
     setSlot(id, slot, compatibleGraficadorRef(g, actual));
-    toast.exito(`${rotuloRanura}: ${graficadorDisplayName(g.name, g)}`, {
+    toast.exito(`${rotuloRanura.charAt(0).toUpperCase()}${rotuloRanura.slice(1)}: ${graficadorDisplayName(g.name, g)}`, {
       detalle: actual ? `Reemplaza a ${graficadorDisplayName(actual.graficador, graficadoresById[actual.graficador])}; se conservan sus datos compatibles.` : undefined,
       accion: { label: "Deshacer", onSelect: () => undo() },
     });
@@ -85,7 +92,7 @@ export function SelectorTipoGrafico({ slide, posicion, ranura, cerrar }: Props) 
   const sinRanura = !slide || !slot;
   const vacio = sinRanura
     ? "Esta lámina no lleva gráficos: elige otra composición en ¿Qué lámina?."
-    : loading && !registry ? "Cargando los gráficos del estudio…"
+    : loading && !registry ? "cargando"
     : error && !registry ? "No se pudo leer el catálogo de gráficos. Cierra y vuelve a intentarlo."
     : lista.length === 0 ? "Esta familia no tiene gráficos en este estudio."
     : null;
@@ -96,7 +103,7 @@ export function SelectorTipoGrafico({ slide, posicion, ranura, cerrar }: Props) 
       onCerrar={cerrarYOlvidar}
       panelProps={panel.props}
       auditReady="f6-selector-grafico"
-      antetitulo={posicion && rotuloRanura ? `Lámina ${posicion}, ${rotuloRanura}` : posicion ? `Lámina ${posicion}` : "Gráfico"}
+      antetitulo={posicion && rotuloRanura && slots.length > 1 ? `Lámina ${posicion}, ${rotuloRanura}` : posicion ? `Lámina ${posicion}` : "Gráfico"}
       titulo="¿Qué gráfico?"
       descripcion={actual
         ? `Hoy: ${graficadorDisplayName(actual.graficador, graficadoresById[actual.graficador])}. Al cambiarlo se conservan los datos que el nuevo entienda.`
@@ -131,10 +138,12 @@ export function SelectorTipoGrafico({ slide, posicion, ranura, cerrar }: Props) 
         <section aria-labelledby={`${grupo}-galeria`}>
           <div className="pulso-f6-galeria-cabeza">
             <h3 id={`${grupo}-galeria`}>{FAMILIAS_GRAFICO.find((f) => f.id === familia)?.label}</h3>
-            <span>{lista.length} {lista.length === 1 ? "gráfico" : "gráficos"}</span>
+            <span>{formatoConteo(lista.length)} {lista.length === 1 ? "gráfico" : "gráficos"}</span>
           </div>
           {vacio ? (
-            <p className="pulso-f6-selector-vacio" data-qa-geometry-capacity="owned">{vacio}</p>
+            loading && !registry
+              ? <CargaDeBloque label="Cargando los gráficos del estudio…" />
+              : <EstadoVacio icono={<BarChart3 size={16} aria-hidden="true" />} titulo={vacio} />
           ) : (
             <ul
               className="pulso-f6-tarjetas is-graficos"
@@ -168,16 +177,17 @@ export function SelectorTipoGrafico({ slide, posicion, ranura, cerrar }: Props) 
         <DetalleTipoGrafico
           meta={candidato}
           nombre={graficadorDisplayName(candidato.name, candidato)}
-          ranura={rotuloRanura ? `“${rotuloRanura}”` : "esta ranura"}
+          ranura={rotuloRanura && slots.length > 1 ? `el ${rotuloRanura}` : "esta ranura"}
           encaje={encajeEnRanura(candidato.name, slot)}
           bloqueo={canInsertGraficador(candidato, dimOk) ? null : bloqueoDe(candidato)}
           esActual={candidato.name === actual?.graficador}
           onAplicar={() => aplicar(candidato)}
         />
       ) : (
-        <p className="pulso-f6-selector-vacio" data-qa-geometry-capacity="owned">
-          {sinRanura ? "Sin ranura de gráfico." : "Elige un gráfico para ver qué pide y cómo sale."}
-        </p>
+        <EstadoVacio
+          icono={<MousePointer2 size={16} aria-hidden="true" />}
+          titulo={sinRanura ? "Sin ranura de gráfico" : "Elige un gráfico para ver qué pide y cómo sale"}
+        />
       )}
     />
   );

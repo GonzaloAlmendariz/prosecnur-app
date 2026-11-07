@@ -127,7 +127,7 @@ export interface DiagnosticOptions {
 export function buildDiagnostic(opts: DiagnosticOptions = {}): string {
   const tail = opts.tailEntries ?? 100;
   const lines: string[] = [];
-  lines.push("=== Pulso · diagnóstico ===");
+  lines.push("=== Diagnóstico de Pulso ===");
   lines.push(`Timestamp: ${new Date().toISOString()}`);
   lines.push(`URL: ${typeof window !== "undefined" ? window.location.href : "(sin window)"}`);
   if (typeof navigator !== "undefined") {

@@ -69,7 +69,7 @@ export default function PreguntaDetalle() {
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
         <NavLink
           to="/codificacion"
-          style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 13, color: "var(--pulso-text-soft)", textDecoration: "none" }}
+          style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text-soft)", textDecoration: "none" }}
         >
           <ArrowLeft size={14} /> Volver al listado
         </NavLink>
@@ -84,7 +84,7 @@ export default function PreguntaDetalle() {
             width: 34, height: 34, borderRadius: 8,
             background: ts.bg, color: ts.fg,
             display: "inline-flex", alignItems: "center", justifyContent: "center",
-            flexShrink: 0, fontSize: 11, fontWeight: 700,
+            flexShrink: 0, fontSize: "var(--pulso-type-caption-size)", fontWeight: 700,
             border: `1px solid ${ts.border ?? "transparent"}`,
           }}
         >
@@ -92,14 +92,14 @@ export default function PreguntaDetalle() {
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <h2 style={{ margin: 0, fontSize: 16, lineHeight: 1.3, fontWeight: 700 }}>
+            <h2 style={{ margin: 0, fontSize: "var(--pulso-type-title-size)", lineHeight: 1.3, fontWeight: 700 }}>
               <TextoConEnfasis texto={pregunta.parent_label} />
             </h2>
             <code
               title={`ID del formulario: ${pregunta.parent}`}
               style={{
-                fontFamily: "ui-monospace, monospace",
-                fontSize: 11, fontWeight: 600,
+                fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                fontSize: "var(--pulso-type-caption-size)", fontWeight: 600,
                 color: ts.fg, background: ts.bg,
                 padding: "2px 8px", borderRadius: 4,
               }}
@@ -110,16 +110,16 @@ export default function PreguntaDetalle() {
               style={{
                 padding: "2px 8px", borderRadius: 999,
                 background: ts.bg, color: ts.fg,
-                fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3,
+                fontSize: "var(--pulso-type-micro-size)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3,
               }}
             >
               {ts.label}
-              {pregunta.modo_so === "hijo" && " · hijo"}
-              {pregunta.modo_so === "padre" && " · padre"}
+              {pregunta.modo_so === "hijo" && " (hijo)"}
+              {pregunta.modo_so === "padre" && " (padre)"}
             </span>
           </div>
           {textoPlano(pregunta.section_label) && (
-            <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 4 }}>
+            <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", marginTop: 4 }}>
               {textoPlano(pregunta.section_label)}
             </div>
           )}
@@ -152,9 +152,9 @@ export default function PreguntaDetalle() {
         </Panel>
       ) : (
         <Panel eyebrow={arq.replace("-", " ")} title="Esta vista llega en la próxima sub-parte">
-          <div style={{ fontSize: 13, color: "var(--pulso-text-soft)", lineHeight: 1.6 }}>
+          <div style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text-soft)", lineHeight: 1.6 }}>
             Esta pregunta tiene <strong>{formatoConteo(pregunta.n_respuestas)}</strong> respuestas
-            ({<strong>{formatoConteo(pregunta.n_unicas)}</strong>} únicas) en la columna <code style={{ fontFamily: "monospace" }}>{pregunta.col_efectiva}</code>.
+            ({<strong>{formatoConteo(pregunta.n_unicas)}</strong>} únicas) en la columna <code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" }}>{pregunta.col_efectiva}</code>.
             <br /><br />
             {arq === "pareja-sm" && "Las preguntas de opción múltiple tienen su propia vista de codificación por opciones (próximo commit)."}
             {arq === "no-aplica" && "Esta pregunta está desactivada."}
@@ -162,7 +162,7 @@ export default function PreguntaDetalle() {
           {pregunta.preview && pregunta.preview.length > 0 && (
             <div style={{ marginTop: 16 }}>
               <div className="pulso-section-eyebrow">Respuestas más frecuentes</div>
-              <ul style={{ fontSize: 13, paddingLeft: 20, marginTop: 8 }}>
+              <ul style={{ fontSize: "var(--pulso-type-body-size)", paddingLeft: 20, marginTop: 8 }}>
                 {pregunta.preview.map((p, i) => <li key={i}>“{p}”</li>)}
               </ul>
             </div>

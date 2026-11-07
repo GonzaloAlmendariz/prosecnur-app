@@ -28,6 +28,7 @@ import { InventarioUnicosPanel } from "./InventarioUnicosPanel";
 import { recordNumber, recordStringList } from "./marcoCharts";
 import "../../didactica/didactica.css";
 import "./marco.css";
+import { Panel } from "../../../../components/Panel";
 
 /** Acción sugerida por código de hallazgo del motor R. */
 const MARCO_ISSUE_ACTIONS: Record<string, string> = {
@@ -38,7 +39,7 @@ const MARCO_ISSUE_ACTIONS: Record<string, string> = {
   empate_bajo_catalogo: "Busca diferencias de mayúsculas, tildes o códigos en la llave común antes de recalcular.",
   aulas_base_sin_catalogo: "Revisa si a esos cursos-horario les falta docente, salón u horario, o confírmalos como cursos-horario sin ficha.",
   catalogo_fuera_de_base: "Esos cursos-horario quedan como contexto. Revisa en Datos → Fuentes que no falte población en la base.",
-  catalogo_sin_docente: "Asigna la columna Docente/contacto en Datos → Variables para preparar la agenda.",
+  catalogo_sin_docente: "Asigna la columna «Docente / contacto» en Datos → Variables para preparar la agenda.",
 };
 
 function issueAction(code: string) {
@@ -162,7 +163,7 @@ export function MarcoConsistenciaTab({
   return (
     <div className="cmv2-marco-stack">
       <InventarioUnicosPanel aulasState={aulasState} />
-      <section className="cmv2-panel cmv2-marco-consistencia">
+      <Panel className="cmv2-marco-consistencia">
         <div className="cmv2-frame-source-relation">
           {sourceCards.map((card, index) => (
             <div className="cmv2-frame-source-node" key={card.label}>
@@ -242,7 +243,7 @@ export function MarcoConsistenciaTab({
           </>
         )}
 
-      </section>
+      </Panel>
     </div>
   );
 }

@@ -116,13 +116,16 @@
 .codebook_pdf_header <- function(titulo, subtitulo, pal) {
   .form_pdf_text(titulo, 0.048, 0.968, 0.904, chars = 84, fontsize = 15,
                  fontface = "bold", col = pal$navy, line_h = 0.020)
+  # La regla baja si el subtítulo ocupa dos líneas: a 0.918 tachaba la segunda.
+  y_regla <- 0.918
   if (nzchar(subtitulo)) {
-    .form_pdf_text(subtitulo, 0.048, 0.952, 0.904, chars = 130, fontsize = 9.5,
-                   col = pal$soft, line_h = 0.014)
+    y_sub <- .form_pdf_text(subtitulo, 0.048, 0.943, 0.904, chars = 112, fontsize = 9.5,
+                            col = pal$soft, line_h = 0.0118)
+    y_regla <- min(y_regla, y_sub - 0.006)
   }
   grid::grid.lines(
     x = grid::unit(c(0.048, 0.952), "npc"),
-    y = grid::unit(0.918, "npc"),
+    y = grid::unit(y_regla, "npc"),
     gp = grid::gpar(col = pal$navy, lwd = 1.1)
   )
 }
@@ -277,9 +280,9 @@
     if ((i %% 2L) == 0L) .cb_rect(x, y, w, rh, zebra_fill)  # zebra en filas pares
     # codigo alineado con la PRIMERA linea de la etiqueta (top), centrado horizontal
     grid::grid.text(block$codes[[i]], x = grid::unit(x + code_w / 2, "npc"),
-                    y = grid::unit(y - 0.0016, "npc"), just = c("center", "top"),
+                    y = grid::unit(y - tb$row_pad * 0.8, "npc"), just = c("center", "top"),
                     gp = grid::gpar(fontsize = 7.8, col = pal$ink))
-    .form_pdf_text(block$labels[[i]], x_div + 0.006, y - 0.0016, w - code_w - 0.008,
+    .form_pdf_text(block$labels[[i]], x_div + 0.006, y - tb$row_pad * 0.8, w - code_w - 0.008,
                    chars = .codebook_pdf_val_chars(w, code_w),
                    fontsize = 7.8, col = pal$ink, line_h = tb$row_lh)
     y <- y - rh

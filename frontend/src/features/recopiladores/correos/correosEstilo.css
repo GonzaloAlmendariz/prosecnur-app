@@ -58,14 +58,14 @@
 }
 
 .rec-estilo-opcion-nombre {
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   margin-top: 6px;
 }
 
 .rec-estilo-opcion-ayuda {
   color: var(--pulso-text-faint);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.3;
 }
 
@@ -167,7 +167,7 @@
 
 .rec-estilo-rotulo {
   color: var(--pulso-text-soft);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .rec-estilo-muestras {
@@ -217,7 +217,7 @@
   background: var(--rec-estilo-boton, var(--pulso-surface));
   border-radius: 999px;
   color: var(--rec-estilo-tinta-boton, var(--pulso-text));
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   padding: 6px 16px;
 }
@@ -243,7 +243,7 @@
   background: var(--pulso-module-fieldkit-soft);
   border-radius: 999px;
   color: var(--pulso-module-fieldkit);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   margin-left: 6px;
   padding: 1px 6px;

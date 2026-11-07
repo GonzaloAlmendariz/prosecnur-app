@@ -25,9 +25,10 @@ export function searchDeCampanas(search: string, direccion: DireccionDeCampanas)
 
 /** Donde aterriza una campaña al abrirla desde la lista. */
 export function direccionDeApertura(campana: Pick<CampanaMaterial, "id" | "tipo">): DireccionDeCampanas {
-  return campana.tipo === "correo"
-    ? { modo: "correo", campana: campana.id, seccion: "correo", pestana: "editor" }
-    : { modo: campana.tipo, campana: campana.id, seccion: "unidades", pestana: "lista" };
+  if (campana.tipo === "correo") return { modo: "correo", campana: campana.id, seccion: "correo", pestana: "editor" };
+  if (campana.tipo === "telefonica") return { modo: "telefonica", campana: campana.id, seccion: "casos", pestana: "configuracion" };
+  if (campana.tipo === "supervision") return { modo: "supervision", campana: campana.id, seccion: "columnas", pestana: "seleccion" };
+  return { modo: campana.tipo, campana: campana.id, seccion: "unidades", pestana: "lista" };
 }
 
 export function hrefDeCampana(campana: Pick<CampanaMaterial, "id" | "tipo">): string {

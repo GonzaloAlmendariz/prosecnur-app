@@ -49,10 +49,10 @@ const STEPS: Array<{
   detail: string;
   icon: typeof Target;
 }> = [
-  { id: "muestra", label: "Muestra de cursos-horario", detail: "titulares y reservas", icon: Target },
+  { id: "muestra", label: "Muestra de cursos‑horario", detail: "titulares y reservas", icon: Target },
   { id: "qr", label: "Kobo + QR", detail: "enlace personalizado", icon: QrCode },
   { id: "pdf", label: "Fichas PDF/Word", detail: "individual y consolidado", icon: FileText },
-  { id: "monitoreo", label: "Monitoreo de cursos-horario", detail: "avance y caídas", icon: CalendarRange },
+  { id: "monitoreo", label: "Monitoreo de cursos‑horario", detail: "avance y caídas", icon: CalendarRange },
 ];
 
 const NOTEBOOK_OUTPUTS = [

@@ -118,7 +118,7 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
         que no llegaron
         {conCinco ? (
           <>
-            {" · "}
+            {", "}
             <strong>{fmt(conCinco)}</strong>{" "}
             {fmt(conCinco) === "1" ? "está" : "están"} a cinco o menos
           </>
@@ -193,7 +193,7 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
                   distintas. Ese dato ya está arriba para el conjunto y abajo
                   aula por aula. */}
               <span className="aulas-falta-por">
-                {f.aulas === 1 ? "curso-horario" : "cursos-horario"} · {fmt(f.costo)} encuestas
+                {f.aulas === 1 ? "curso-horario" : "cursos-horario"}, {fmt(f.costo)} encuestas
               </span>
             </li>
           ))}
@@ -227,7 +227,7 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
             )}
             <span className="aulas-falta-n"><strong>{fmt(a.faltan)}</strong></span>
             <span className="aulas-falta-por">
-              {a.enviadas} de {a.umbral} · falla {FALLA[a.falla]}
+              {a.enviadas} de {a.umbral}, falla {FALLA[a.falla]}
             </span>
           </li>
         ))}

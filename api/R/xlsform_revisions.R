@@ -500,6 +500,7 @@
       openxlsx::freezePane(wb, sheet_name, firstActiveRow = 2)
     }
     openxlsx::saveWorkbook(wb, tmp, overwrite = TRUE)
+    xlsx_quitar_relaciones_huerfanas(tmp)
   }, error = function(e) {
     stop_api(
       500,

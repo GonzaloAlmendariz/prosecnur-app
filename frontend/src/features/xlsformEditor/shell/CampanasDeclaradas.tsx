@@ -39,7 +39,7 @@ function descripcionCampana(campana: CampanaDeclarada, titulo: string): string {
   if (campana.n_emparejadas != null && campana.n_preguntas_base != null) {
     partes.push(`calzan ${campana.n_emparejadas} de ${campana.n_preguntas_base} campos`);
   }
-  return partes.join(" · ");
+  return partes.join(", ");
 }
 
 export function CampanasDeclaradas({
@@ -123,7 +123,7 @@ export function CampanasDeclaradas({
                 {calceCampana(campana) ? (
                   <small>
                     {calceCampana(campana)}
-                    <span className="pulso-sr-only"> preguntas calzan · ID {campana.survey_id}</span>
+                    <span className="pulso-sr-only"> preguntas calzan, ID {campana.survey_id}</span>
                   </small>
                 ) : null}
               </span>

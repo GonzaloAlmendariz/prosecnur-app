@@ -640,7 +640,7 @@ hojas_ruta_contexto_curado_path <- function() {
 .hojas_ruta_inei_frame_cache <- new.env(parent = emptyenv())
 .hojas_ruta_inei_frame_summary_cache <- new.env(parent = emptyenv())
 .hojas_ruta_inei_age_simple_cache <- new.env(parent = emptyenv())
-.hojas_ruta_inei_frame_summary_cache_version <- "summary-v2-territories-zones"
+.hojas_ruta_inei_frame_summary_cache_version <- "summary-v6-nse-reparto"
 
 .hojas_ruta_frame_summary_signature <- function(source, path, info) {
   paste(
@@ -720,17 +720,13 @@ hojas_ruta_inei_frame <- function(source = "current") {
     normalizePath(path, mustWork = FALSE),
     info$size %||% 0,
     as.numeric(info$mtime %||% 0),
-    "frame-v5-nse-geoperu-official",
+    "frame-v6-registro-ciudades-adr0119",
     sep = "|"
   )
   cached <- .hojas_ruta_inei_frame_cache[[key]]
   if (!is.null(cached)) return(cached)
-  df <- utils::read.csv(
-    path,
-    stringsAsFactors = FALSE,
-    check.names = FALSE,
-    fileEncoding = "UTF-8"
-  )
+  # ADR 0119: el marco histórico de Lima y Callao más las ciudades del registro.
+  df <- .hojas_ruta_leer_csv_con_registro(path, "marco")
   required <- c(
     "ubigeo", "departamento", "provincia", "distrito", "zona", "manzana",
     "id_manzana", "viviendas", "poblacion"
@@ -781,12 +777,8 @@ hojas_ruta_inei_frame_summary <- function(source = "current") {
     return(cached_disk)
   }
 
-  df <- utils::read.csv(
-    path,
-    stringsAsFactors = FALSE,
-    check.names = FALSE,
-    fileEncoding = "UTF-8"
-  )
+  # ADR 0119: el marco histórico de Lima y Callao más las ciudades del registro.
+  df <- .hojas_ruta_leer_csv_con_registro(path, "marco")
   required <- c(
     "ubigeo", "departamento", "provincia", "distrito",
     "id_manzana", "viviendas", "poblacion", "zona"
@@ -837,18 +829,12 @@ hojas_ruta_inei_age_simple <- function(required = FALSE) {
     normalizePath(path, mustWork = FALSE),
     info$size %||% 0,
     as.numeric(info$mtime %||% 0),
-    "age-simple-v1",
+    "age-simple-v2-registro-adr0119",
     sep = "|"
   )
   cached <- .hojas_ruta_inei_age_simple_cache[[key]]
   if (!is.null(cached)) return(cached)
-  df <- utils::read.csv(
-    path,
-    stringsAsFactors = FALSE,
-    check.names = FALSE,
-    fileEncoding = "UTF-8",
-    colClasses = c(ubigeo = "character")
-  )
+  df <- .hojas_ruta_leer_csv_con_registro(path, "edad", colClasses = c(ubigeo = "character"))
   required_cols <- c("ubigeo", "distrito", "edad", "sexo", "poblacion")
   missing <- setdiff(required_cols, names(df))
   if (length(missing)) {
@@ -900,6 +886,7 @@ hojas_ruta_inei_age_simple <- function(required = FALSE) {
       label = "PPS estratificado",
       description = "Seleccion por dominio con probabilidad proporcional a viviendas/poblacion."
     ),
+    list(id = "pps_tope", label = "PPS con tope", description = "PPS con la medida topada en el percentil 95 del distrito: menos rutas en manzanas grandes; no autoponderado (ADR 0120)."),
     list(
       id = "sistematico",
       label = "Sistematico con arranque aleatorio",
@@ -982,7 +969,7 @@ hojas_ruta_inei_age_simple <- function(required = FALSE) {
   names(n_manzanas)[2] <- "manzanas"
   agg <- merge(agg, n_manzanas, by = "ubigeo", all.x = TRUE)
   agg <- agg[order(agg$departamento, agg$provincia, agg$distrito), , drop = FALSE]
-  .hojas_ruta_df_rows(agg)
+  .hojas_ruta_df_rows(.hojas_ruta_territorios_con_cobertura(agg))
 }
 
 .hojas_ruta_age_simple_meta <- function(age = NULL) {
@@ -1081,9 +1068,8 @@ hojas_ruta_inei_age_simple <- function(required = FALSE) {
 
 .hojas_ruta_cartografia_profile_for_ubigeo <- function(ubigeo) {
   ubigeo <- sprintf("%06s", as.character(ubigeo %||% ""))
-  if (grepl("^1501[0-9]{2}$", ubigeo)) return(.hojas_ruta_cartografia_profile("lima"))
-  if (grepl("^0701[0-9]{2}$", ubigeo)) return(.hojas_ruta_cartografia_profile("callao"))
-  NULL
+  # ADR 0119 §2: la cobertura sale del registro territorios.json, no de un patrón de ubigeo.
+  .hojas_ruta_perfil_cartografia_registro(ubigeo)
 }
 
 .hojas_ruta_packaged_geojson_stats <- function(dir, manifest_path = NULL) {
@@ -1268,8 +1254,7 @@ hojas_ruta_nse_inei <- function(required = FALSE) {
     if (isTRUE(required)) stop("No se encontro NSE oficial GeoPeru/INEI empaquetado.", call. = FALSE)
     return(data.frame())
   }
-  df <- utils::read.csv(path, stringsAsFactors = FALSE, check.names = FALSE,
-                        fileEncoding = "UTF-8")
+  df <- .hojas_ruta_leer_csv_con_registro(path, "nse")
   if ("ubigeo" %in% names(df)) df$ubigeo <- sprintf("%06s", as.character(df$ubigeo))
   if ("id_manzana" %in% names(df)) df$id_manzana <- as.character(df$id_manzana)
   if ("id_manzana_norm" %in% names(df)) df$id_manzana_norm <- as.character(df$id_manzana_norm)
@@ -1307,7 +1292,7 @@ hojas_ruta_nse_inei <- function(required = FALSE) {
     distributor = manifest$distributor %||% "Plataforma Nacional de Datos Georreferenciados GeoPeru / IDEP",
     source_url = manifest$source_url %||% "https://visor.geoperu.gob.pe/?layers=1207",
     download_url = manifest$download_url %||% "https://descargas.geoperu.gob.pe/peru_estrato_nacional_.zip",
-    year = as.integer(manifest$year %||% 2026L),
+    year = as.integer(manifest$anio_dato %||% manifest$year %||% 2017L),
     version = manifest$version %||% HOJAS_RUTA_NSE_INEI_VERSION,
     coverage = manifest$coverage %||% "Lima Metropolitana y Callao",
     rows = as.integer(manifest$rows %||% manifest$packaged_records %||% if (isTRUE(load_data) && ok) nrow(nse) else 0L),
@@ -1905,7 +1890,7 @@ hojas_ruta_block_map_preview <- function(ubigeo, limit = 1200L, refresh = FALSE,
     alerts[[length(alerts) + 1L]] <- list(
       level = "warn",
       code = "W_CARTOGRAPHY_UNSUPPORTED_COVERAGE",
-      message = "La cartografia local de manzanas esta empaquetada para Lima Metropolitana y Callao."
+      message = "El distrito no esta en el registro de territorios de Hojas de ruta: no hay cartografia local de sus manzanas."
     )
     return(list(
       ok = FALSE,
@@ -2900,7 +2885,7 @@ hojas_ruta_context_map_preview_json <- function(ubigeo) {
     version = if (requested_official) HOJAS_RUTA_INEI_OFFICIAL_VERSION else HOJAS_RUTA_INEI_VERSION,
     packaged_at = if (requested_official) NA_character_ else "2026-05-03",
     checksum = .hojas_ruta_checksum(path),
-    coverage = if (full_frame) "Lima Metropolitana y Callao" else "Piloto Lima/Callao",
+    coverage = if (full_frame) "Lima Metropolitana, Callao y ciudades principales" else "Piloto Lima/Callao",
     pilot = !full_frame,
     granularity = if (full_frame) "manzana_urbana" else "manzana_piloto",
     path = normalizePath(path, mustWork = FALSE),
@@ -2931,7 +2916,7 @@ hojas_ruta_context_map_preview_json <- function(ubigeo) {
     version = if (requested_official) HOJAS_RUTA_INEI_OFFICIAL_VERSION else HOJAS_RUTA_INEI_VERSION,
     packaged_at = if (requested_official) NA_character_ else "2026-05-03",
     checksum = .hojas_ruta_checksum(path),
-    coverage = if (full_frame) "Lima Metropolitana y Callao" else "Piloto Lima/Callao",
+    coverage = if (full_frame) "Lima Metropolitana, Callao y ciudades principales" else "Piloto Lima/Callao",
     pilot = !full_frame,
     granularity = if (full_frame) "manzana_urbana" else "manzana_piloto",
     path = normalizePath(path, mustWork = FALSE),
@@ -2987,7 +2972,7 @@ hojas_ruta_context_map_preview_json <- function(ubigeo) {
     methods = .hojas_ruta_sampling_methods(),
     note = if (full_frame) {
       paste(
-        "Marco local completo para Lima Metropolitana y Callao urbano.",
+        "Marco local completo para Lima Metropolitana, Callao y las ciudades del registro de territorios (ADR 0119).",
         "El frame actual sigue siendo el default; el frame oficial INEI 2017 queda disponible para auditoria y activacion controlada."
       )
     } else {
@@ -3045,7 +3030,7 @@ hojas_ruta_context_map_preview_json <- function(ubigeo) {
     methods = .hojas_ruta_sampling_methods(),
     note = if (full_frame) {
       paste(
-        "Marco local completo para Lima Metropolitana y Callao urbano.",
+        "Marco local completo para Lima Metropolitana, Callao y las ciudades del registro de territorios (ADR 0119).",
         "El frame actual sigue siendo el default; el frame oficial INEI 2017 queda disponible para auditoria y activacion controlada."
       )
     } else {
@@ -3171,7 +3156,7 @@ hojas_ruta_context_map_preview_json <- function(ubigeo) {
   allocation_mode <- .hojas_ruta_scalar(x$allocation_mode, "proportional")
   if (!allocation_mode %in% .hojas_ruta_allocation_modes()) allocation_mode <- "proportional"
   enforce_district <- .hojas_ruta_bool(x$enforce_district_floor, TRUE)
-  list(
+  c(list( # ADR 0116: + ocupacion, design_effect_fuente, icc_aplicado
     confidence_level = .hojas_ruta_prop(x$confidence_level, 0.95, min = 0.5, max = 0.999),
     margin_total = .hojas_ruta_prop(x$margin_total, 0.05, min = 0.001, max = 0.5),
     margin_district = .hojas_ruta_prop(x$margin_district, 0.10, min = 0.001, max = 0.8),
@@ -3183,11 +3168,11 @@ hojas_ruta_context_map_preview_json <- function(ubigeo) {
     enforce_district_floor = enforce_district,
     response_rate = .hojas_ruta_prop(x$response_rate, 0.90, min = 0.01, max = 1),
     apply_fpc = .hojas_ruta_bool(x$apply_fpc, TRUE)
-  )
+  ), hojas_ruta_tamano_extras_normalizar(x))
 }
 
 .hojas_ruta_design_effect_for <- function(params, ubigeo = NULL) {
-  base <- max(0.1, as.numeric(params$design_effect %||% 1.5))
+  base <- max(0.1, as.numeric(params$design_effect %||% .hojas_ruta_design_effect_default())) # ADR 0116 §3: el mismo defecto que el normalizador
   if (is.null(ubigeo) || !nzchar(as.character(ubigeo))) return(base)
   overrides <- params$design_effect_overrides %||% list()
   key <- as.character(ubigeo)
@@ -3516,7 +3501,7 @@ hojas_ruta_integrada_normalize_config <- function(config = list()) {
   )
   replacement_policy <- .hojas_ruta_scalar(
     config$replacement_policy %||% config$replacementPolicy %||% config$politica_reemplazo,
-    defaults$replacement_policy
+    if (hojas_ruta_estrato_vigente(list(sample_size = sample_size, sample_size_mode = sample_size_mode))) "paired_by_titular_zone" else defaults$replacement_policy # ADR 0131 §5
   )
   if (!replacement_policy %in% .hojas_ruta_replacement_policies()) {
     replacement_policy <- defaults$replacement_policy
@@ -3601,9 +3586,8 @@ hojas_ruta_integrada_normalize_config <- function(config = list()) {
     replacement_policy = replacement_policy,
     replacements_per_titular = replacements_per_titular,
     territorios = as.list(territorios),
-    row_var = row_var,
-    col_var = "rango_edad",
-    subquota_var = subquota_var,
+    row_var = row_var, col_var = "rango_edad", subquota_var = subquota_var,
+    caracter_cuotas = hojas_ruta_caracter_cuotas_normalizar(config$caracter_cuotas, subquota_var), # ADR 0126 (hojas_ruta_caracter_cuotas.R)
     measure_var = measure_var,
     sampling_method = method,
     seed = .hojas_ruta_int(config$seed, defaults$seed),
@@ -3619,6 +3603,8 @@ hojas_ruta_integrada_normalize_config <- function(config = list()) {
     age_ranges = age_ranges,
     sample_size_mode = sample_size_mode,
     sample_size = sample_size,
+    marco_elegible = hojas_ruta_marco_elegible_normalizar(config$marco_elegible), # ADR 0115
+    ciudades = .hojas_ruta_ciudades_normalizar(config[["ciudades"]], territorios), # plan R3 (hojas_ruta_ciudades.R)
     excluded_titular_ids = as.list(unique(.hojas_ruta_chr_vec(
       config$excluded_titular_ids %||%
         config$excludedTitularIds %||%
@@ -3632,6 +3618,7 @@ hojas_ruta_integrada_normalize_config <- function(config = list()) {
   cfg <- hojas_ruta_integrada_normalize_config(config)
   frame <- hojas_ruta_inei_frame(cfg$frame_source)
   frame <- frame[frame$ubigeo %in% unlist(cfg$territorios, use.names = FALSE), , drop = FALSE]
+  frame <- hojas_ruta_marco_elegible_aplicar(frame, cfg$marco_elegible)$frame # ADR 0115: antes del piloto
   excluded_ids <- unique(as.character(unlist(cfg$excluded_titular_ids %||% list(), use.names = FALSE)))
   excluded_ids <- excluded_ids[nzchar(excluded_ids)]
   if (length(excluded_ids) && "id_manzana" %in% names(frame)) {
@@ -3884,6 +3871,7 @@ hojas_ruta_integrada_normalize_config <- function(config = list()) {
 
 .hojas_ruta_finalize_quota_cells <- function(cells, cfg) {
   if (!nrow(cells)) return(cells)
+  cells <- hojas_ruta_reparto_base_escalar_celdas(cells, cfg) # ADR 0131 §2
   cells$cuota_raw <- 0
   cells$cuota <- 0L
   route_size <- .hojas_ruta_route_size(cfg)
@@ -3911,7 +3899,7 @@ hojas_ruta_integrada_normalize_config <- function(config = list()) {
         weights <- vapply(domains, function(domain) {
           sum(cells$poblacion[idx & route_domain == domain], na.rm = TRUE)
         }, numeric(1))
-        route_counts <- .hojas_ruta_allocate_integer(weights, n_ubigeo / route_size)
+        route_counts <- .hojas_ruta_cuota_zona_rutas(weights, n_ubigeo %/% route_size, cfg$seed %||% 2017L, ubigeo)
         for (j in seq_along(domains)) {
           assign_domain(idx & route_domain == domains[[j]], route_counts[[j]] * route_size)
         }
@@ -3926,9 +3914,8 @@ hojas_ruta_integrada_normalize_config <- function(config = list()) {
     district_weights <- vapply(districts, function(ubigeo) {
       sum(cells$poblacion[as.character(cells$ubigeo) == ubigeo], na.rm = TRUE)
     }, numeric(1))
-    district_route_counts <- .hojas_ruta_allocate_by_mode(
-      district_weights, route_total, alloc_mode
-    )
+    district_route_counts <- hojas_ruta_reparto_base_rutas(districts, route_total, cfg) %||%
+      .hojas_ruta_allocate_by_mode(district_weights, route_total, alloc_mode)
     for (j in seq_along(districts)) {
       district_idx <- as.character(cells$ubigeo) == districts[[j]]
       district_routes <- as.integer(district_route_counts[[j]])
@@ -3938,7 +3925,7 @@ hojas_ruta_integrada_normalize_config <- function(config = list()) {
         weights <- vapply(domains, function(domain) {
           sum(cells$poblacion[district_idx & route_domain == domain], na.rm = TRUE)
         }, numeric(1))
-        route_counts <- .hojas_ruta_allocate_integer(weights, district_routes)
+        route_counts <- .hojas_ruta_cuota_zona_rutas(weights, district_routes, cfg$seed %||% 2017L, districts[[j]])
         for (z in seq_along(domains)) {
           assign_domain(
             district_idx & route_domain == domains[[z]],
@@ -4012,7 +3999,7 @@ hojas_ruta_integrada_normalize_config <- function(config = list()) {
   if (!nrow(cells)) return(cells)
   source <- attr(cells, "age_source", exact = TRUE)
   cells <- .hojas_ruta_finalize_quota_cells(cells, cfg)
-  attr(cells, "age_source") <- source
+  attr(cells, "age_source") <- hojas_ruta_cuotas_2025_fuente_edad(source, cfg) # ADR 0131 §2
   cells
 }
 
@@ -4325,6 +4312,8 @@ hojas_ruta_sample_size_preview <- function(config = list()) {
 
   district_pop <- as.numeric(district_frame$poblacion)
   district_ubigeos <- as.character(district_frame$ubigeo)
+  district_pop <- hojas_ruta_reparto_base_poblacion(district_ubigeos, district_pop, params) # ADR 0131 §2
+  total_population <- sum(district_pop, na.rm = TRUE)
   district_deff <- vapply(district_ubigeos, function(u) {
     .hojas_ruta_design_effect_for(params, u)
   }, numeric(1))
@@ -4386,6 +4375,7 @@ hojas_ruta_sample_size_preview <- function(config = list()) {
     floors_used <- if (enforce_floor && n_used >= n_district_floor) n_district_min else rep(0L, length(district_pop))
     .hojas_ruta_allocate_by_mode(district_pop, n_used, alloc_mode, floors_used)
   }
+  used_by_district <- hojas_ruta_estrato_preview_rutas(district_ubigeos, n_used, cfg, route_status$ok) %||% used_by_district # ADR 0131 §1
   used_by_district[is.na(used_by_district) | used_by_district < 0L] <- 0L
 
   margin_total <- .hojas_ruta_margin_error(total_population, n_used, params)
@@ -4459,7 +4449,7 @@ hojas_ruta_sample_size_preview <- function(config = list()) {
     )
   }
 
-  list(
+  c(list(
     ok = nrow(frame) > 0L && n_used > 0L && isTRUE(route_status$ok),
     frame_meta = .hojas_ruta_frame_meta(frame_all, cfg$frame_source),
     config = cfg,
@@ -4484,7 +4474,7 @@ hojas_ruta_sample_size_preview <- function(config = list()) {
     margin_total_target = params$margin_total,
     district_rows = rows,
     alerts = alerts
-  )
+  ), hojas_ruta_reparto_base_declaracion(district_ubigeos, params, cfg, n_used))
 }
 
 #' Previsualizar cuotas integradas desde el marco INEI 2017
@@ -4583,13 +4573,11 @@ hojas_ruta_quota_preview_integrado <- function(config = list()) {
     ord <- order(df$ubigeo, df$zona, df$manzana, df$id_manzana)
     if (n_blocks >= length(ord)) return(ord)
     step <- length(ord) / n_blocks
-    start <- stats::runif(1, min = 1, max = step)
-    pos <- pmin(length(ord), floor(start + (seq_len(n_blocks) - 1L) * step))
+    start <- stats::runif(1, min = 0, max = step)  # arranque en un intervalo completo: π = n/N
+    pos <- pmin(length(ord), floor(start + (seq_len(n_blocks) - 1L) * step) + 1L)
     return(ord[unique(pos)])
   }
-  prob <- df[[cfg$measure_var]]
-  prob[is.na(prob) | prob <= 0] <- 1
-  sample(seq_len(nrow(df)), size = n_blocks, replace = FALSE, prob = prob)
+  sample(seq_len(nrow(df)), size = n_blocks, replace = FALSE, prob = .hojas_ruta_sorteo_medida(df, cfg))  # M <= 0 no sale (ADR 0117)
 }
 
 .hojas_ruta_stable_bucket <- function(seed, id, salt, n) {
@@ -4687,7 +4675,7 @@ hojas_ruta_quota_preview_integrado <- function(config = list()) {
   values <- lapply(seq_len(nrow(blocks)), function(i) {
     row <- as.list(blocks[i, , drop = FALSE])
     row[] <- lapply(row, function(x) x[[1]])
-    .hojas_ruta_route_operational_values(row, config)
+    hojas_ruta_valores_operativos(row, config)
   })
   fields <- names(values[[1]])
   for (field in fields) {
@@ -4734,9 +4722,9 @@ hojas_ruta_quota_preview_integrado <- function(config = list()) {
   has_multi <- !is.na(replacement_order) & replacement_order > 0L &
     !is.na(replacement_total) & replacement_total > 1L
   has_titular_id <- !is.na(titular_id) & nzchar(titular_id)
-  base <- rep("Remplazo", n)
+  base <- rep("Reemplazo", n)
   base[has_multi] <- sprintf(
-    "Remplazo %d/%d",
+    "Reemplazo %d/%d",
     replacement_order[has_multi],
     replacement_total[has_multi]
   )
@@ -4982,7 +4970,7 @@ hojas_ruta_generar_reemplazos_manual_pdf <- function(config = list(), sample = N
   manual_cfg <- cfg
   manual_cfg$replacements_per_titular <- count
   report("replacement", percent = 25, message = "Seleccionando manzanas de reemplazo...")
-  assignment <- .hojas_ruta_assign_replacements(selected, frame, manual_cfg, selected_ids)
+  assignment <- .hojas_ruta_assign_replacements(selected, .hojas_ruta_sorteo_candidatos(frame, manual_cfg), manual_cfg, selected_ids)
   blocking <- Filter(function(x) identical(x$level, "error"), assignment$alerts %||% list())
   if (length(blocking)) {
     stop(as.character(blocking[[1]]$message %||% "No se pudieron generar reemplazos puntuales."), call. = FALSE)
@@ -5003,7 +4991,7 @@ hojas_ruta_generar_reemplazos_manual_pdf <- function(config = list(), sample = N
     "manzana", "viviendas", "poblacion", "territorio_muestral", "metodo",
     "orden_seleccion", "hoja_num", "rango_inicio", "rango_fin",
     "entrevistas", "medida_tamano", "lat", "lon", "tipo_manzana",
-    "cuota_edad_totals",
+    "cuota_edad_totals", "cuota_sexo_totals",
     "replacement_policy", "replacement_order", "replacement_total", "titular_id_manzana",
     "titular_orden_seleccion", "titular_ubigeo", "titular_zona",
     "titular_hoja_num", "titular_rango_inicio", "titular_rango_fin",
@@ -5474,61 +5462,12 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
     route_total <- as.integer(n_district / route_size)
     if (route_total <= 0L) next
 
-    zone_value_cols <- unique(c(cfg$measure_var, "poblacion", "viviendas"))
-    zone_frame <- stats::aggregate(
-      district_frame[zone_value_cols],
-      by = district_frame[c("ubigeo", "distrito", "zona")],
-      FUN = sum,
-      na.rm = TRUE
-    )
-    zone_frame <- zone_frame[order(zone_frame$zona), , drop = FALSE]
-    if (identical(cfg$row_var, "zona")) {
-      zone_quota <- stats::aggregate(
-        cells$cuota[cells$ubigeo == ubigeo],
-        by = list(zona = sub("^[^-]+-", "", as.character(cells$territorio[cells$ubigeo == ubigeo]))),
-        FUN = sum,
-        na.rm = TRUE
-      )
-      names(zone_quota)[2] <- "n"
-      zone_frame <- merge(zone_frame, zone_quota, by = "zona", all.x = TRUE)
-      zone_frame$n[is.na(zone_frame$n)] <- 0L
-      zone_routes <- as.integer(zone_frame$n / route_size)
-    } else {
-      zone_routes <- .hojas_ruta_allocate_integer(zone_frame[[cfg$measure_var]], route_total)
-    }
-
-    for (j in seq_len(nrow(zone_frame))) {
-      n_routes <- as.integer(zone_routes[[j]])
-      if (is.na(n_routes) || n_routes <= 0L) next
-      zona <- as.character(zone_frame$zona[[j]])
-      df_z <- district_frame[as.character(district_frame$zona) == zona, , drop = FALSE]
-      if (!nrow(df_z)) {
-        unassigned_total <- unassigned_total + n_routes * route_size
-        next
-      }
-      n_blocks <- n_routes
-      if (n_blocks > nrow(df_z)) {
-        alerts[[length(alerts) + 1L]] <- list(
-          level = "warn",
-          code = "W_FRAME_INSUFFICIENT",
-          message = sprintf(
-            "%s zona %s requiere %d ruta(s), pero el marco contiene %d manzana(s).",
-            as.character(zone_frame$distrito[[j]]), zona, n_blocks, nrow(df_z)
-          )
-        )
-        unassigned_total <- unassigned_total + as.integer((n_blocks - nrow(df_z)) * route_size)
-        n_blocks <- nrow(df_z)
-      }
-      idx <- .hojas_ruta_sample_indices(df_z, n_blocks, cfg)
-      selected <- df_z[idx, , drop = FALSE]
-      selected$territorio_muestral <- paste(ubigeo, zona, sep = "-")
-      selected$metodo <- cfg$sampling_method
-      selected$orden_seleccion <- seq_len(nrow(selected))
-      selected$entrevistas <- as.integer(rep(route_size, nrow(selected)))
-      selected$medida_tamano <- selected[[cfg$measure_var]]
-      selected$tipo_manzana <- "titular"
-      blocks[[length(blocks) + 1L]] <- selected
-    }
+    # ADR 0117: un sistemático PPS por distrito (o por zona con cuota por zona); v1
+    # repartía rutas entre zonas con mayor resto determinista y dejaba zonas con π = 0.
+    sorteo <- .hojas_ruta_sorteo_titulares_distrito(district_frame, cells, ubigeo, n_district, route_size, cfg)
+    if (nrow(sorteo$blocks)) blocks[[length(blocks) + 1L]] <- sorteo$blocks
+    alerts <- c(alerts, sorteo$alertas)
+    unassigned_total <- unassigned_total + sorteo$sin_asignar
   }
 
   blocks_df <- if (length(blocks)) do.call(rbind, blocks) else data.frame()
@@ -5538,11 +5477,12 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   } else {
     character(0)
   }
-  replacement_assignment <- .hojas_ruta_assign_replacements(blocks_df, frame, cfg, selected_ids)
+  replacement_assignment <- .hojas_ruta_assign_replacements(blocks_df, .hojas_ruta_sorteo_candidatos(frame, cfg), cfg, selected_ids)
   replacement_blocks_df <- replacement_assignment$blocks
   replacement_blocks_df <- .hojas_ruta_apply_replacement_route_ranges(replacement_blocks_df, blocks_df)
   replacement_blocks_df <- .hojas_ruta_order_replacements(replacement_blocks_df)
-  alerts <- c(alerts, replacement_assignment$alerts)
+  pim <- hojas_ruta_pi_muestra(blocks_df, replacement_blocks_df, frame, cfg) # ADR 0131 §5: π y estrato
+  blocks_df <- pim$blocks; replacement_blocks_df <- pim$replacements; alerts <- c(alerts, replacement_assignment$alerts, pim$alerts)
   if (unassigned_total > 0L) {
     alerts[[length(alerts) + 1L]] <- list(
       level = "error",
@@ -5555,47 +5495,18 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   }
   blocks_df <- .hojas_ruta_add_operational_values(blocks_df, cfg)
   replacement_blocks_df <- .hojas_ruta_add_operational_values(replacement_blocks_df, cfg)
-  # Cuota de edad coordinada por distrito -> manzana. Se calcula una sola vez,
-  # con todas las manzanas del distrito a la vista, y se persiste por manzana
-  # para que tanto el PDF de la hoja de ruta como la validacion de cuotas del
-  # monitoreo lean el mismo target (ambos pasan por
-  # .hojas_ruta_reference_quota_marginals, que prefiere este valor). Sin esto,
-  # cada manzana redondea 8 casos por separado y colapsa al mismo vector.
-  if (nrow(blocks_df) && "ubigeo" %in% names(blocks_df) && nrow(cells) &&
-      all(c("ubigeo", "rango_id", "cuota") %in% names(cells))) {
-    defs_deal <- cfg$age_ranges
-    if (!length(defs_deal)) defs_deal <- .hojas_ruta_age_defs_default()
-    age_ids <- vapply(defs_deal, function(d) .hojas_ruta_scalar(d$id, ""), character(1))
-    cells_cuota <- suppressWarnings(as.numeric(cells$cuota))
-    cells_cuota[is.na(cells_cuota)] <- 0
-    cells_ubigeo <- as.character(cells$ubigeo)
-    cells_rango <- as.character(cells$rango_id)
-    ent_all <- suppressWarnings(as.integer(blocks_df$entrevistas))
-    ent_all[is.na(ent_all)] <- 0L
-    edad_totals_col <- rep("", nrow(blocks_df))
-    for (u in unique(as.character(blocks_df$ubigeo))) {
-      rows_u <- which(as.character(blocks_df$ubigeo) == u)
-      if (!length(rows_u)) next
-      cell_u <- cells_ubigeo == u
-      totals_u <- vapply(age_ids, function(id) {
-        sum(cells_cuota[cell_u & cells_rango == id], na.rm = TRUE)
-      }, numeric(1))
-      mat <- .hojas_ruta_deal_age_quota(totals_u, ent_all[rows_u])
-      edad_totals_col[rows_u] <- apply(mat, 1L, function(r) paste(as.integer(r), collapse = ","))
-    }
-    blocks_df$cuota_edad_totals <- edad_totals_col
-    if (nrow(replacement_blocks_df) && "titular_id_manzana" %in% names(replacement_blocks_df)) {
-      m <- match(as.character(replacement_blocks_df$titular_id_manzana),
-                 as.character(blocks_df$id_manzana))
-      replacement_blocks_df$cuota_edad_totals <- ifelse(is.na(m), "", edad_totals_col[m])
-    }
-  }
+  # Cuotas de edad y de sexo coordinadas por distrito -> ficha, persistidas por manzana:
+  # el PDF y las metas de Monitoreo leen el mismo valor (hojas_ruta_cuotas_por_ficha.R).
+  cuotas_ficha <- hojas_ruta_cuotas_por_ficha(blocks_df, replacement_blocks_df, cells, cfg)
+  blocks_df <- cuotas_ficha$blocks
+  replacement_blocks_df <- cuotas_ficha$replacements
+  alerts <- c(alerts, cuotas_ficha$alertas)
   blocks_public <- blocks_df[, intersect(c(
     "id_manzana", "departamento", "provincia", "distrito", "ubigeo", "zona",
     "manzana", "viviendas", "poblacion", "territorio_muestral", "metodo",
     "orden_seleccion", "hoja_num", "rango_inicio", "rango_fin",
     "entrevistas", "medida_tamano", "lat", "lon", "tipo_manzana",
-    "cuota_edad_totals",
+    "cuota_edad_totals", "cuota_sexo_totals", "estrato", "pi", "pi_regla", "pi_ciudad", "ciudad_condicion", "grupo_ciudades", "pi_distrito", "distrito_condicion",
     "esquina_codigo", "esquina_inicio", "esquina_coordenada", "sentido_recorrido",
     "vivienda_inicio", "domicilio_inicio", "constante_salto", "constante_salto_unidad",
     "constante_salto_modo", "modo_seleccion_vivienda",
@@ -5607,11 +5518,11 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
     "manzana", "viviendas", "poblacion", "territorio_muestral", "metodo",
     "orden_seleccion", "hoja_num", "rango_inicio", "rango_fin",
     "entrevistas", "medida_tamano", "lat", "lon", "tipo_manzana",
-    "cuota_edad_totals",
+    "cuota_edad_totals", "cuota_sexo_totals",
     "replacement_policy", "replacement_order", "replacement_total", "titular_id_manzana",
     "titular_orden_seleccion", "titular_ubigeo", "titular_zona",
     "titular_hoja_num", "titular_rango_inicio", "titular_rango_fin",
-    "replacement_label", "replacement_fallback",
+    "replacement_label", "replacement_fallback", "estrato", "pi", "pi_fuente", "pi_ciudad", "ciudad_condicion", "grupo_ciudades", "pi_distrito", "distrito_condicion",
     "esquina_codigo", "esquina_inicio", "esquina_coordenada", "sentido_recorrido",
     "vivienda_inicio", "domicilio_inicio", "constante_salto", "constante_salto_unidad",
     "constante_salto_modo", "modo_seleccion_vivienda",
@@ -5626,6 +5537,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
     quota = quota,
     method = cfg$sampling_method,
     seed = seed,
+    algoritmo_sorteo = .hojas_ruta_sorteo_firma(cfg),
     blocks = .hojas_ruta_df_rows(blocks_public),
     replacement_blocks = .hojas_ruta_df_rows(replacement_public),
     n_blocks = as.integer(nrow(blocks_public)),
@@ -6513,70 +6425,14 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
 
 .hojas_ruta_pdf_district_outline_cache <- new.env(parent = emptyenv())
 
-.hojas_ruta_district_coverage_path <- function() {
-  repo_root <- Sys.getenv("PULSO_REPO_ROOT", "")
-  candidates <- c(
-    .hojas_ruta_inst_path("hojas_ruta", "cartografia_distritos_lima_callao.geojson"),
-    if (nzchar(repo_root)) file.path(repo_root, "frontend", "src", "features", "hojasRuta", "limaDistrictCoverage.json") else "",
-    file.path(dirname(.app_api_dir()), "frontend", "src", "features", "hojasRuta", "limaDistrictCoverage.json"),
-    file.path(getwd(), "frontend", "src", "features", "hojasRuta", "limaDistrictCoverage.json"),
-    file.path(getwd(), "..", "frontend", "src", "features", "hojasRuta", "limaDistrictCoverage.json"),
-    file.path(getwd(), "..", "..", "frontend", "src", "features", "hojasRuta", "limaDistrictCoverage.json"),
-    file.path(getwd(), "..", "..", "..", "frontend", "src", "features", "hojasRuta", "limaDistrictCoverage.json")
-  )
-  hit <- candidates[nzchar(candidates) & file.exists(candidates)][1]
-  if (!is.na(hit) && nzchar(hit)) normalizePath(hit, mustWork = FALSE) else ""
-}
-
-.hojas_ruta_pdf_district_context_cache <- new.env(parent = emptyenv())
-
+# Distritos alrededor de uno, desde los contornos por región (hojas_ruta_contornos.R): vale
+# para Lima y para las ciudades. El distrito activo va primero para que gane prioridad.
 .hojas_ruta_pdf_district_context_features <- function(ubigeo = NULL, bbox = NULL) {
-  path <- .hojas_ruta_district_coverage_path()
-  if (!nzchar(path) || !file.exists(path)) return(list())
-  info <- file.info(path)
-  key <- paste(
-    normalizePath(path, mustWork = FALSE),
-    info$size %||% 0,
-    as.numeric(info$mtime %||% 0),
-    "district-context-v1",
-    sep = "|"
-  )
-  cached <- .hojas_ruta_pdf_district_context_cache[[key]]
-  if (is.null(cached)) {
-    geo <- tryCatch(.hojas_ruta_read_json_any(path), error = function(e) NULL)
-    features <- geo$features %||% list()
-    cached <- lapply(features, function(feature) {
-      props <- feature$properties %||% list()
-      rings <- .hojas_ruta_geometry_rings(feature$geometry)
-      if (!length(rings)) return(NULL)
-      feature_bbox <- .hojas_ruta_bbox_from_rings(rings)
-      if (is.null(feature_bbox)) return(NULL)
-      list(
-        ubigeo = sprintf("%06s", as.character(props$ubigeo %||% "")),
-        distrito = as.character(props$distrito %||% props$NOMBDIST %||% ""),
-        label_lon = suppressWarnings(as.numeric(props$label_lon %||% NA_real_)),
-        label_lat = suppressWarnings(as.numeric(props$label_lat %||% NA_real_)),
-        bbox = feature_bbox,
-        rings = rings
-      )
-    })
-    cached <- cached[!vapply(cached, is.null, logical(1))]
-    .hojas_ruta_pdf_district_context_cache[[key]] <- cached
-  }
-  if (!length(cached)) return(list())
   ubigeo <- sprintf("%06s", as.character(ubigeo %||% ""))
-  out <- cached
-  if (!is.null(bbox)) {
-    out <- out[vapply(out, function(feature) {
-      .hojas_ruta_bbox_intersects(feature$bbox, bbox)
-    }, logical(1))]
-  }
+  out <- hojas_ruta_contornos_contexto(ubigeo)
+  if (!is.null(bbox)) out <- out[vapply(out, function(f) .hojas_ruta_bbox_intersects(f$bbox, bbox), logical(1))]
   if (!length(out)) return(list())
-  # Mantener el distrito activo primero para que sus capas y etiqueta ganen
-  # prioridad sobre las municipalidades vecinas.
-  out[order(vapply(out, function(feature) {
-    if (identical(as.character(feature$ubigeo), ubigeo)) 0L else 1L
-  }, integer(1)))]
+  out[order(vapply(out, function(f) if (identical(as.character(f$ubigeo), ubigeo)) 0L else 1L, integer(1)))]
 }
 
 .hojas_ruta_pdf_minimap_label <- function(name) {
@@ -7158,10 +7014,10 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   ox <- x + (width - map_w) / 2
   oy <- y + (height - map_h) / 2
   function(ring) {
-    data.frame(
+    list2DF(list(  # list2DF: data.frame() validaba en cada anillo del mapa
       x = ox + (ring[, 1] - min_lon) * scale,
       y = oy + (ring[, 2] - min_lat) * scale * k
-    )
+    ))
   }
 }
 
@@ -7210,10 +7066,10 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   ox <- x + (width - map_w) / 2
   oy <- y + (height - map_h) / 2
   function(ring) {
-    data.frame(
+    list2DF(list(
       x = ox + (ring[, 1] - min_lon) * scale,
       y = oy + (ring[, 2] - min_lat) * scale
-    )
+    ))
   }
 }
 
@@ -7323,20 +7179,24 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   }
 }
 
+# Los assets de la hoja salen del paquete (`inst/hojas_ruta/assets`) o de una
+# carpeta declarada en PROSECNUR_HOJAS_RUTA_ASSETS_DIR; si no están, NA y la hoja
+# se dibuja sin ellos. Antes caía a una carpeta del Documents de una persona
+# (el generador viejo), una ruta personal en un repo público (4 nov 2026).
 .hojas_ruta_legacy_asset_path <- function(filename) {
+  dir_env <- Sys.getenv("PROSECNUR_HOJAS_RUTA_ASSETS_DIR", "")
   candidates <- c(
     .hojas_ruta_inst_path("hojas_ruta", "assets", filename),
-    file.path(path.expand("~"), "Documents", "Pulso", "GeneradorHojasDeZona", "assets", filename),
-    file.path("/Users/gonzaloalmendariz/Documents/Pulso/GeneradorHojasDeZona/assets", filename)
+    if (nzchar(dir_env)) file.path(dir_env, filename) else character(0)
   )
+  candidates <- candidates[!is.na(candidates) & nzchar(candidates)]
   hit <- candidates[file.exists(candidates)][1]
   if (!is.na(hit) && nzchar(hit)) normalizePath(hit, mustWork = FALSE) else NA_character_
 }
 
 .hojas_ruta_draw_png_asset <- function(filename, x, y, width, height) {
   path <- .hojas_ruta_legacy_asset_path(filename)
-  if (is.na(path) || !nzchar(path) || !requireNamespace("png", quietly = TRUE)) return(FALSE)
-  img <- tryCatch(png::readPNG(path), error = function(e) NULL)
+  img <- .hojas_ruta_ficha_png(path)  # decodificado una vez por proceso
   if (is.null(img)) return(FALSE)
   grid::grid.raster(img, x = x, y = y, width = width, height = height,
                     interpolate = TRUE)
@@ -7486,15 +7346,9 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   stored_age <- .hojas_ruta_parse_edad_totals(block$cuota_edad_totals %||% NULL, length(defs))
   if (!is.null(stored_age) && sum(stored_age) == entrevistas) age_totals <- stored_age
 
-  hombre_total <- entrevistas %/% 2L
-  mujer_total <- entrevistas %/% 2L
-  if (entrevistas %% 2L == 1L) {
-    if (sum(sex_pop, na.rm = TRUE) > 0 && sex_pop[["Mujer"]] > sex_pop[["Hombre"]]) {
-      mujer_total <- mujer_total + 1L
-    } else {
-      hombre_total <- hombre_total + 1L
-    }
-  }
+  sexo <- .hojas_ruta_cuota_sexo_de_ficha(block, entrevistas, sex_pop)
+  hombre_total <- sexo[[1]]
+  mujer_total <- sexo[[2]]
   list(
     defs = defs,
     age_totals = as.integer(age_totals),
@@ -7539,44 +7393,6 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
                   gp = grid::gpar(fontsize = 9, fontface = "bold", col = "#3a3a3a",
                                    letter.spacing = 1.5))
   invisible(TRUE)
-}
-
-.hojas_ruta_draw_systematic_diagram <- function(esquina, recorrido, arranque, constante) {
-  grid::grid.text("Esquema de recorrido", x = 0.5, y = 0.41,
-                  gp = grid::gpar(fontsize = 9.5, fontface = "bold", col = "#2a2a2a"))
-  if (isTRUE(.hojas_ruta_draw_png_asset("graficoMsistematico.png", x = 0.5, y = 0.30, width = 0.275, height = 0.17))) {
-    return(invisible(TRUE))
-  }
-  left <- 0.355
-  top <- 0.385
-  cell <- 0.09
-  gap <- 0.008
-  labels <- matrix(c("Reemplazo 8", "Reemplazo 1", "Reemplazo 2",
-                     "Reemplazo 7", "Manzana\ninicial",  "Reemplazo 3",
-                     "Reemplazo 6", "Reemplazo 5", "Reemplazo 4"),
-                   nrow = 3, byrow = TRUE)
-  for (r in 1:3) {
-    for (cidx in 1:3) {
-      x <- left + (cidx - 1) * (cell + gap)
-      y <- top - (r - 1) * (cell + gap)
-      is_center <- r == 2 && cidx == 2
-      .hojas_ruta_pdf_rect(x, y, cell, cell,
-                           fill = if (is_center) "white" else "#ededed",
-                           col = if (is_center) "black" else "#888888",
-                           lwd = if (is_center) 0.9 else 0.4)
-      if (is_center) {
-        .hojas_ruta_pdf_text("4", x + 0.008, y - 0.011, fontsize = 6, fontface = "bold")
-        .hojas_ruta_pdf_text("1", x + cell - 0.012, y - 0.011, align = "right", fontsize = 6, fontface = "bold")
-        .hojas_ruta_pdf_text("3", x + 0.008, y - cell + 0.011, fontsize = 6, fontface = "bold")
-        .hojas_ruta_pdf_text("2", x + cell - 0.012, y - cell + 0.011, align = "right", fontsize = 6, fontface = "bold")
-      }
-      grid::grid.text(labels[r, cidx], x = x + cell / 2, y = y - cell / 2,
-                      gp = grid::gpar(fontsize = 6.4,
-                                       fontface = if (is_center) "bold" else "plain",
-                                       col = if (is_center) "black" else "#3a3a3a",
-                                       lineheight = 1.0))
-    }
-  }
 }
 
 .hojas_ruta_short_block_label <- function(id) {
@@ -7817,20 +7633,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   grid::grid.newpage()
   grid::grid.rect(gp = grid::gpar(fill = "white", col = NA))
 
-  .hojas_ruta_draw_reference_logo(x = 0.06, y = 0.945, height = 0.052,
-                                   paper_w = 11.69, paper_h = 8.27)
-  is_replacement <- identical(as.character(block$tipo_manzana %||% ""), "reemplazo")
-  grid::grid.text(
-    sprintf("Mapa de zona · %s", .hojas_ruta_operational_code(block)),
-    x = 0.5, y = 0.95, gp = grid::gpar(fontsize = 15, fontface = "bold", col = "black")
-  )
-  grid::grid.text(
-    sprintf("%s · UBIGEO %s · Zona %s · Manzana %s",
-            .hojas_ruta_title_case(block$distrito), block$ubigeo, block$zona, block$manzana),
-    x = 0.5, y = 0.918, gp = grid::gpar(fontsize = 10, col = "#3a3a3a")
-  )
-  grid::grid.lines(x = c(0.06, 0.96), y = c(0.895, 0.895),
-                   gp = grid::gpar(col = "black", lwd = 0.5))
+  .hojas_ruta_mapa_cabecera(block)  # marco de la cara 2: hojas_ruta_mapa_marco.R
 
   map_x <- 0.035
   map_y <- 0.072
@@ -7893,38 +7696,21 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
     }
   }
 
-  for (feature in neighbor_features) {
-    no_population <- .hojas_ruta_pdf_feature_without_population(feature)
-    for (ring in feature$rings) {
-      p <- project(ring)
-      grid::grid.polygon(
-        x = p$x, y = p$y, default.units = "npc",
-        gp = grid::gpar(
-          fill = if (no_population) "#eeeeee" else "#f7f7f7",
-          col = "#c8c8c8",
-          lwd = 0.16
-        )
-      )
-      if (no_population) .hojas_ruta_draw_no_population_texture(p, density = 0.011)
-    }
-  }
-
-  for (feature in visible_features) {
-    if (identical(as.character(feature$id %||% ""), selected_id)) next
-    no_population <- .hojas_ruta_pdf_feature_without_population(feature)
-    for (ring in feature$rings) {
-      p <- project(ring)
-      grid::grid.polygon(
-        x = p$x, y = p$y, default.units = "npc",
-        gp = grid::gpar(
-          fill = if (no_population) "#f1f1f1" else if (isTRUE(feature$in_zone)) "#ffffff" else "#fbfbfb",
-          col = if (no_population) "#9a9a9a" else if (isTRUE(feature$in_zone)) "#333333" else "#b8b8b8",
-          lwd = if (no_population) 0.24 else if (isTRUE(feature$in_zone)) 0.30 else 0.18
-        )
-      )
-      if (no_population) .hojas_ruta_draw_no_population_texture(p, density = 0.010)
-    }
-  }
+  # Manzanas vecinas y visibles: en lote (hojas_ruta_mapa_lote.R), mismo orden y estilos.
+  an <- .hojas_ruta_mapa_anillos(neighbor_features, project)
+  sp <- vapply(neighbor_features, .hojas_ruta_pdf_feature_without_population, logical(1))[an$feature]
+  .hojas_ruta_mapa_poligonos(an$p, fill = ifelse(sp, "#eeeeee", "#f7f7f7"), col = "#c8c8c8", lwd = 0.16)
+  for (p in an$p[sp]) .hojas_ruta_draw_no_population_texture(p, density = 0.011)
+  hay_sin_poblacion <- any(sp)
+  others <- Filter(function(f) !identical(as.character(f$id %||% ""), selected_id), visible_features)
+  an <- .hojas_ruta_mapa_anillos(others, project)
+  sp <- vapply(others, .hojas_ruta_pdf_feature_without_population, logical(1))[an$feature]
+  iz <- vapply(others, function(f) isTRUE(f$in_zone), logical(1))[an$feature]
+  .hojas_ruta_mapa_poligonos(an$p, fill = ifelse(sp, "#f1f1f1", ifelse(iz, "#ffffff", "#fbfbfb")),
+                             col = ifelse(sp, "#9a9a9a", ifelse(iz, "#333333", "#b8b8b8")),
+                             lwd = ifelse(sp, 0.24, ifelse(iz, 0.30, 0.18)))
+  for (p in an$p[sp]) .hojas_ruta_draw_no_population_texture(p, density = 0.010)
+  hay_sin_poblacion <- hay_sin_poblacion || any(sp)
 
   # Solo nombres viales: las geometrías de calles/avenidas se usan para ubicar
   # etiquetas, pero no se dibujan líneas viales visibles.
@@ -7970,23 +7756,9 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
       }
     }
 
-    for (zone in zone_outlines) {
-      center <- .hojas_ruta_pdf_projected_center(zone$rings, project)
-      if (is.null(center) || center[["x"]] < 0.04 || center[["x"]] > 0.96 ||
-          center[["y"]] < 0.04 || center[["y"]] > 0.96) next
-      current <- identical(as.character(zone$zona %||% ""), as.character(block$zona %||% ""))
-      grid::grid.text(
-        as.character(zone$zona %||% ""),
-        x = center[["x"]], y = center[["y"]],
-        gp = grid::gpar(
-          fontsize = if (current) 18 else 12.5,
-          fontface = "bold",
-          col = if (current) "#0072ce" else "#0072ceaa"
-        )
-      )
-    }
   }
 
+  seleccion <- NULL
   for (feature in visible_features) {
     if (!identical(as.character(feature$id %||% ""), selected_id)) next
     for (ring in feature$rings) {
@@ -7995,6 +7767,8 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
         x = p$x, y = p$y, default.units = "npc",
         gp = grid::gpar(fill = "#cfe8ff", col = "#003f88", lwd = 1.75)
       )
+      seleccion <- c(x0 = min(p$x, seleccion[["x0"]]), x1 = max(p$x, seleccion[["x1"]]),
+                     y0 = min(p$y, seleccion[["y0"]]), y1 = max(p$y, seleccion[["y1"]]))
     }
   }
 
@@ -8002,18 +7776,13 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   if (isTRUE(has_reference_map)) {
     block_labels <- block_labels[vapply(block_labels, function(label) isTRUE(label$selected), logical(1))]
   }
-  for (label in block_labels) {
-    grid::grid.text(
-      label$label,
-      x = label$x,
-      y = label$y,
-      gp = grid::gpar(
-        fontsize = label$fontsize,
-        fontface = if (isTRUE(label$selected)) "bold" else "plain",
-        col = if (isTRUE(label$selected)) "#003f88" else if (isTRUE(label$in_zone)) "#111111" else "#707070"
-      )
-    )
-  }
+  sel_l <- vapply(block_labels, function(l) isTRUE(l$selected), logical(1))
+  zon_l <- vapply(block_labels, function(l) isTRUE(l$in_zone), logical(1))
+  .hojas_ruta_mapa_textos(vapply(block_labels, function(l) as.character(l$label), ""),
+                          vapply(block_labels, `[[`, 0, "x"), vapply(block_labels, `[[`, 0, "y"),
+                          size = vapply(block_labels, function(l) as.numeric(l$fontsize), 0),
+                          face = ifelse(sel_l, "bold", "plain"),
+                          col = ifelse(sel_l, "#003f88", ifelse(zon_l, "#111111", "#707070")), halo_pt = 0.6)
 
   if (!isTRUE(has_reference_map)) {
     street_label_key <- paste(
@@ -8037,353 +7806,42 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
       }
       labels
     })
-    if (length(street_labels)) {
-      for (label in street_labels) {
-        grid::grid.text(
-          label$name,
-          x = label$x,
-          y = label$y,
-          rot = label$angle,
-          gp = grid::gpar(
-            fontsize = label$fontsize,
-            fontface = if (isTRUE(label$major)) "bold" else "plain",
-            col = "#111111"
-          )
-        )
-      }
-    }
+    .hojas_ruta_mapa_textos(vapply(street_labels, function(l) as.character(l$name), ""),
+                            vapply(street_labels, `[[`, 0, "x"), vapply(street_labels, `[[`, 0, "y"),
+                            rot = vapply(street_labels, function(l) as.numeric(l$angle), 0),
+                            size = vapply(street_labels, function(l) as.numeric(l$fontsize), 0),
+                            face = ifelse(vapply(street_labels, function(l) isTRUE(l$major), logical(1)), "bold", "plain"),
+                            halo_pt = 0.8)
+    # Números de zona al final, con halo: antes la manzana asignada los tapaba.
+    .hojas_ruta_mapa_rotulos_zona(zone_outlines, block$zona, project, seleccion)
   }
 
+  # Referencias sólo dentro de la zona: fuera de ella distraen, no orientan.
+  zona_rings <- unlist(lapply(Filter(function(z) identical(as.character(z$zona %||% ""), as.character(block$zona %||% "")),
+                                     zone_outlines), `[[`, "rings"), recursive = FALSE)
+  referencias <- .hojas_ruta_mapa_dibujar_referencias(block$ubigeo, map_bbox, project, render_ctx, zona = zona_rings)
   grid::popViewport()
   grid::grid.rect(x = map_x + map_w / 2, y = map_y + map_h / 2, width = map_w, height = map_h,
                   gp = grid::gpar(fill = NA, col = "black", lwd = 0.7))
 
   side_x <- 0.84
   side_w <- 0.13
-  .hojas_ruta_pdf_text("UBICACIÓN DE CAMPO", side_x, 0.86,
-                       fontsize = 8.5, fontface = "bold", col = "black")
-  grid::grid.lines(x = c(side_x, side_x + side_w), y = c(0.847, 0.847),
-                   gp = grid::gpar(col = "black", lwd = 0.5))
-  details <- list(
-    list("Distrito", .hojas_ruta_title_case(block$distrito)),
-    list("Zona",     as.character(block$zona %||% "")),
-    list("Manzana",  as.character(block$manzana %||% "")),
-    list("ID",       as.character(block$id_manzana %||% "")),
-    list("Viviendas", format(as.integer(block$viviendas %||% 0L), big.mark = ",")),
-    list("Entrevistas", format(as.integer(block$entrevistas %||% 0L), big.mark = ","))
-  )
-  detail_y <- 0.83
-  for (d in details) {
-    value <- as.character(d[[2]])
-    long_value <- nchar(value) > 17L
-    grid::grid.text(d[[1]], x = side_x, y = detail_y + if (long_value) 0.007 else 0, just = c("left", "center"),
-                    gp = grid::gpar(fontsize = 7.5, fontface = "bold", col = "#3a3a3a"))
-    grid::grid.text(value, x = side_x + side_w, y = detail_y - if (long_value) 0.012 else 0,
-                    just = c("right", "center"),
-                    gp = grid::gpar(fontsize = if (long_value) 6.2 else 7.5, col = "black"))
-    detail_y <- detail_y - if (long_value) 0.040 else 0.026
-  }
+  .hojas_ruta_mapa_ubicacion(block, side_x, side_w, top = 0.855)
 
-  mini_x <- side_x
-  mini_y <- 0.40
-  mini_w <- side_w
-  mini_h <- 0.19
-  .hojas_ruta_pdf_text("CONTEXTO DISTRITAL", side_x, mini_y + mini_h + 0.018,
-                       fontsize = 8.5, fontface = "bold", col = "black")
-  grid::grid.lines(x = c(side_x, side_x + side_w), y = c(mini_y + mini_h + 0.005, mini_y + mini_h + 0.005),
-                   gp = grid::gpar(col = "black", lwd = 0.5))
-  grid::grid.rect(x = mini_x + mini_w / 2, y = mini_y + mini_h / 2, width = mini_w, height = mini_h,
-                  gp = grid::gpar(fill = "white", col = "#9a9a9a", lwd = 0.5))
-  if (!is.null(ctx_block)) {
-    district_context_all <- tryCatch(
-      .hojas_ruta_pdf_district_context_features(block$ubigeo),
-      error = function(err) list()
-    )
-    active_district <- NULL
-    if (length(district_context_all)) {
-      active_idx <- which(vapply(district_context_all, function(feature) {
-        identical(as.character(feature$ubigeo %||% ""), sprintf("%06s", as.character(block$ubigeo %||% "")))
-      }, logical(1)))[1]
-      if (!is.na(active_idx)) active_district <- district_context_all[[active_idx]]
-    }
-    district_outlines_mini <- list()
-    if (is.null(active_district)) {
-      district_outlines_mini <- tryCatch(
-        .hojas_ruta_pdf_district_outline_features(block$ubigeo),
-        error = function(err) list()
-      )
-    }
-    district_rings <- if (!is.null(active_district)) {
-      active_district$rings
-    } else if (length(district_outlines_mini)) {
-      unlist(lapply(district_outlines_mini, `[[`, "rings"), recursive = FALSE)
-    } else {
-      unlist(lapply(ctx_block$all, `[[`, "rings"), recursive = FALSE)
-    }
-    inset <- 0.03  # NPC del viewport, en cada lado
-    rect_w_in <- (1 - 2 * inset) * mini_w * 11.69
-    rect_h_in <- (1 - 2 * inset) * mini_h * 8.27
-    district_bbox <- .hojas_ruta_bbox_from_rings(district_rings)
-    mini_bbox <- NULL
-    district_context_mini <- list()
-    # Mantener un zoom distrital, pero abrir lo justo para que aparezcan los
-    # distritos vecinos como referencia politica cuando existen alrededor.
-    for (pad_i in c(0.12, 0.20, 0.30)) {
-      candidate_bbox <- .hojas_ruta_bbox_fit_aspect(
-        .hojas_ruta_bbox_expand(district_bbox, pad = pad_i),
-        width = rect_w_in,
-        height = rect_h_in
-      )
-      candidate_districts <- if (length(district_context_all)) {
-        .hojas_ruta_pdf_district_context_features(block$ubigeo, candidate_bbox)
-      } else {
-        list()
-      }
-      mini_bbox <- candidate_bbox
-      district_context_mini <- candidate_districts
-      if (length(candidate_districts) > 1L || identical(pad_i, 0.30)) break
-    }
-    if (!length(district_context_mini) && length(district_outlines_mini)) {
-      district_context_mini <- lapply(district_outlines_mini, function(feature) {
-        feature$distrito <- as.character(block$distrito %||% "")
-        feature$bbox <- .hojas_ruta_bbox_from_rings(feature$rings)
-        feature$label_lon <- mean(c(feature$bbox[["min_lon"]], feature$bbox[["max_lon"]]))
-        feature$label_lat <- mean(c(feature$bbox[["min_lat"]], feature$bbox[["max_lat"]]))
-        feature
-      })
-    }
-    mini_ring <- .hojas_ruta_bbox_to_ring(mini_bbox)
-    grid::pushViewport(grid::viewport(
-      x = mini_x + mini_w / 2, y = mini_y + mini_h / 2,
-      width = mini_w, height = mini_h, clip = "on"
-    ))
-    mini_project <- .hojas_ruta_project_rings_paper(
-      list(mini_ring), inset, inset, 1 - 2 * inset, 1 - 2 * inset,
-      paper_w = mini_w * 11.69, paper_h = mini_h * 8.27, pad = 0
-    )
-    visible_block <- ctx_block$all[vapply(ctx_block$all, function(feature) {
-      .hojas_ruta_bbox_intersects(feature$bbox %||% .hojas_ruta_bbox_from_rings(feature$rings), mini_bbox)
-    }, logical(1))]
-    # Capa 1: municipios vecinos rellenos para que el contexto distrital no
-    # quede flotando sobre blanco.
-    if (length(district_context_mini)) {
-      ordered_districts <- district_context_mini[order(vapply(district_context_mini, function(feature) {
-        if (identical(as.character(feature$ubigeo %||% ""), sprintf("%06s", as.character(block$ubigeo %||% "")))) 1L else 0L
-      }, integer(1)))]
-      for (district in ordered_districts) {
-        active <- identical(as.character(district$ubigeo %||% ""), sprintf("%06s", as.character(block$ubigeo %||% "")))
-        for (ring in district$rings) {
-          p <- mini_project(ring)
-          grid::grid.polygon(
-            x = p$x, y = p$y, default.units = "npc",
-            gp = grid::gpar(
-              fill = if (active) "#eef6ff" else "#f0f0f0",
-              col = if (active) "#7e9abd" else "#c2c2c2",
-              lwd = if (active) 0.45 else 0.28,
-              linejoin = "round", lineend = "round"
-            )
-          )
-        }
-      }
-    }
-    # Capa 2: vecindario urbano del distrito activo en gris claro.
-    for (feature in visible_block) {
-      for (ring in feature$rings) {
-        p <- mini_project(ring)
-        grid::grid.polygon(
-          x = p$x, y = p$y, default.units = "npc",
-          gp = grid::gpar(fill = "#ececec", col = "#cccccc", lwd = 0.12)
-        )
-      }
-    }
-    # Capa 3: limites distritales solidos, como fronteras politicas.
-    if (length(district_context_mini)) {
-      ordered_districts <- district_context_mini[order(vapply(district_context_mini, function(feature) {
-        if (identical(as.character(feature$ubigeo %||% ""), sprintf("%06s", as.character(block$ubigeo %||% "")))) 1L else 0L
-      }, integer(1)))]
-      for (district in ordered_districts) {
-        active <- identical(as.character(district$ubigeo %||% ""), sprintf("%06s", as.character(block$ubigeo %||% "")))
-        for (ring in district$rings) {
-          smoothed <- .hojas_ruta_chaikin_smooth(ring, iters = 1L, closed = TRUE)
-          p <- mini_project(smoothed)
-          grid::grid.polygon(
-            x = p$x, y = p$y, default.units = "npc",
-            gp = grid::gpar(
-              fill = NA,
-              col = if (active) "#111111" else "#747474",
-              lwd = if (active) 1.15 else 0.50,
-              linejoin = "round", lineend = "round"
-            )
-          )
-        }
-      }
-    } else {
-      for (district in district_outlines_mini) {
-        for (ring in district$rings) {
-          smoothed <- .hojas_ruta_chaikin_smooth(ring, iters = 1L, closed = TRUE)
-          p <- mini_project(smoothed)
-          grid::grid.polygon(
-            x = p$x, y = p$y, default.units = "npc",
-            gp = grid::gpar(fill = NA, col = "#111111", lwd = 1.15,
-                            linejoin = "round", lineend = "round")
-          )
-        }
-      }
-    }
-    # Capa 4: nombres de distritos vecinos y del distrito activo.
-    if (length(district_context_mini)) {
-      accepted_labels <- list()
-      label_count <- 0L
-      for (district in district_context_mini) {
-        active <- identical(as.character(district$ubigeo %||% ""), sprintf("%06s", as.character(block$ubigeo %||% "")))
-        if (!active && label_count >= 7L) next
-        lon <- suppressWarnings(as.numeric(district$label_lon %||% NA_real_))
-        lat <- suppressWarnings(as.numeric(district$label_lat %||% NA_real_))
-        if (!is.finite(lon) || !is.finite(lat) ||
-            lon < mini_bbox[["min_lon"]] || lon > mini_bbox[["max_lon"]] ||
-            lat < mini_bbox[["min_lat"]] || lat > mini_bbox[["max_lat"]]) {
-          lon <- mean(c(district$bbox[["min_lon"]], district$bbox[["max_lon"]]))
-          lat <- mean(c(district$bbox[["min_lat"]], district$bbox[["max_lat"]]))
-        }
-        if (!is.finite(lon) || !is.finite(lat)) next
-        pt <- mini_project(matrix(c(lon, lat), ncol = 2, byrow = TRUE))
-        if (!nrow(pt) || pt$x[[1]] < 0.035 || pt$x[[1]] > 0.965 ||
-            pt$y[[1]] < 0.035 || pt$y[[1]] > 0.965) next
-        label <- .hojas_ruta_pdf_minimap_label(district$distrito %||% "")
-        if (!nzchar(label)) next
-        collides <- vapply(accepted_labels, function(other) {
-          sqrt((pt$x[[1]] - other$x)^2 + (pt$y[[1]] - other$y)^2) < if (active || other$active) 0.085 else 0.105
-        }, logical(1))
-        if (length(collides) && any(collides)) next
-        grid::grid.text(
-          label,
-          x = pt$x[[1]], y = pt$y[[1]],
-          gp = grid::gpar(
-            fontsize = if (active) 4.0 else 3.35,
-            fontface = if (active) "bold" else "plain",
-            col = if (active) "#111111" else "#555555",
-            lineheight = 0.88
-          )
-        )
-        accepted_labels[[length(accepted_labels) + 1L]] <- list(x = pt$x[[1]], y = pt$y[[1]], active = active)
-        if (!active) label_count <- label_count + 1L
-      }
-    }
-    # Capa 5: outlines de zonas (incluye zonas vecinas y limites con otras
-    # municipalidades si los hubiera).
-    zone_outlines_mini <- tryCatch(
-      .hojas_ruta_pdf_zone_outline_features(block$ubigeo, mini_bbox,
-                                            render_ctx = render_ctx),
-      error = function(err) list()
-    )
-    for (zone in zone_outlines_mini) {
-      current <- identical(as.character(zone$zona %||% ""), as.character(block$zona %||% ""))
-      if (current) next
-      for (ring in zone$rings) {
-        smoothed <- .hojas_ruta_chaikin_smooth(ring, iters = 2L, closed = TRUE)
-        p <- mini_project(smoothed)
-        grid::grid.polygon(
-          x = p$x, y = p$y, default.units = "npc",
-          gp = grid::gpar(fill = NA, col = "#b9b9b9", lwd = 0.45,
-                          linejoin = "round", lineend = "round")
-        )
-      }
-    }
-    # Capa 6: zona del block actual rellena en celeste con borde azul.
-    zone_ids <- if (!is.null(ctx_zone$zone_features)) {
-      vapply(ctx_zone$zone_features, function(f) as.character(f$id %||% ""), character(1))
-    } else character(0)
-    for (feature in visible_block) {
-      if (!as.character(feature$id %||% "") %in% zone_ids) next
-      for (ring in feature$rings) {
-        p <- mini_project(ring)
-        grid::grid.polygon(
-          x = p$x, y = p$y, default.units = "npc",
-          gp = grid::gpar(fill = "#cfe8ff", col = NA)
-        )
-      }
-    }
-    # Capa 7: limite poligonal de la zona seleccionada en azul intenso.
-    for (zone in zone_outlines_mini) {
-      if (!identical(as.character(zone$zona %||% ""), as.character(block$zona %||% ""))) next
-      for (ring in zone$rings) {
-        smoothed <- .hojas_ruta_chaikin_smooth(ring, iters = 2L, closed = TRUE)
-        p <- mini_project(smoothed)
-        grid::grid.polygon(
-          x = p$x, y = p$y, default.units = "npc",
-          gp = grid::gpar(fill = NA, col = "#003f88", lwd = 1.2,
-                          linejoin = "round", lineend = "round")
-        )
-      }
-    }
-    grid::popViewport()
-  }
+  .hojas_ruta_mapa_contexto_distrital(block, side_x, 0.40, side_w, 0.19,
+                                     fallback_rings = if (is.null(ctx_block)) list() else unlist(lapply(ctx_block$all, `[[`, "rings"), recursive = FALSE),
+                                     render_ctx = render_ctx)
 
-  legend_top <- 0.345
-  legend_text_x <- side_x + 0.028
-  legend_icon_x <- side_x + 0.011
-  legend_item <- function(label, y, col = "#2f2f2f", fontsize = 7.05) {
-    grid::grid.text(label, x = legend_text_x, y = y,
-                    just = c("left", "center"),
-                    gp = grid::gpar(fontsize = fontsize, col = col))
-  }
-  legend_line <- function(y, col, lwd = 1, lty = "solid") {
-    grid::grid.lines(
-      x = c(side_x + 0.003, side_x + 0.020),
-      y = c(y, y),
-      gp = grid::gpar(col = col, lwd = lwd, lty = lty, lineend = "round")
-    )
-  }
-  legend_box <- function(y, fill, col, lwd = 0.55, hatch_col = NULL) {
-    grid::grid.rect(x = legend_icon_x, y = y, width = 0.0155, height = 0.0155,
-                    gp = grid::gpar(fill = fill, col = col, lwd = lwd))
-    if (!is.null(hatch_col)) {
-      for (k in 0:3) {
-        grid::grid.lines(
-          x = c(legend_icon_x - 0.007 + k * 0.0049, legend_icon_x - 0.001 + k * 0.0049),
-          y = c(y - 0.0068, y + 0.0068),
-          gp = grid::gpar(col = hatch_col, lwd = 0.22)
-        )
-      }
-    }
-  }
-  .hojas_ruta_pdf_text("LEYENDA", side_x, legend_top,
-                       fontsize = 8.1, fontface = "bold", col = "black")
-  grid::grid.lines(x = c(side_x, side_x + side_w), y = c(legend_top - 0.012, legend_top - 0.012),
-                   gp = grid::gpar(col = "#2b2b2b", lwd = 0.38))
-
-  y <- legend_top - 0.031
-  legend_box(y, fill = "#d8ecff", col = "#003f88", lwd = 0.85)
-  legend_item("Manzana asignada", y, col = "#111111")
-
-  y <- y - 0.023
-  legend_line(y, col = "#083f88", lwd = 1.95)
-  legend_item("Límite de zona", y)
-
-  y <- y - 0.023
-  legend_line(y, col = "#111111", lwd = 0.95)
-  legend_item("Límite distrital", y)
-
-  y <- y - 0.023
-  legend_line(y, col = "#d7191c", lwd = 0.75)
-  legend_item("Otras zonas INEI", y)
-
-  y <- y - 0.023
-  legend_box(y, fill = "#edf7e9", col = "#7fae73", lwd = 0.42, hatch_col = "#62a65a")
-  legend_item("Parque / plaza / agua", y)
-
-  y <- y - 0.023
-  legend_box(y, fill = "#f1f1f1", col = "#9a9a9a", lwd = 0.42, hatch_col = "#9a9a9a")
-  legend_item("Sin población", y)
-
-  grid::grid.lines(x = c(0.06, 0.96), y = c(0.05, 0.05),
-                   gp = grid::gpar(col = "#888888", lwd = 0.4))
-  grid::grid.text("Pulso PUCP · Mapa de zona",
-                  x = 0.06, y = 0.035, just = c("left", "center"),
-                  gp = grid::gpar(fontsize = 7.5, col = "#4a4a4a"))
-  grid::grid.text(format(Sys.Date(), "%d/%m/%Y"),
-                  x = 0.96, y = 0.035, just = c("right", "center"),
-                  gp = grid::gpar(fontsize = 7.5, col = "#4a4a4a"))
+  dibuja_contornos <- !isTRUE(has_reference_map)
+  .hojas_ruta_mapa_leyenda(c(
+    limite_distrital = dibuja_contornos && length(district_boundaries) > 0L,
+    otras_zonas = dibuja_contornos && any(vapply(zone_outlines, function(z) {
+      !identical(as.character(z$zona %||% ""), as.character(block$zona %||% ""))
+    }, logical(1))),
+    sin_poblacion = hay_sin_poblacion,
+    parque = length(urban_context$polygons %||% list()) > 0L
+  ), side_x, side_w, top = 0.345, referencias = referencias)
+  .hojas_ruta_mapa_pie(block)
   invisible(TRUE)
 }
 
@@ -8688,372 +8146,17 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   invisible(TRUE)
 }
 
+# La hoja de zona vive en hojas_ruta_hoja_zona_pdf.R (mapa de la cara 2 con todas
+# las rutas de la zona y capa Pulso PDF); sin contexto cartográfico, el respaldo.
 .hojas_ruta_draw_zone_sheet_pdf <- function(zone_row, zone_blocks, config, out_pdf,
                                             render_ctx = NULL) {
-  ctx <- .hojas_ruta_zone_context_features(zone_row$ubigeo, zone_row$zona,
-                                           zone_blocks$id_manzana,
-                                           render_ctx = render_ctx)
-  if (is.null(ctx)) return(.hojas_ruta_draw_zone_sheet_fallback_pdf(zone_row, zone_blocks, out_pdf))
-  replacement_ids <- if ("tipo_manzana" %in% names(zone_blocks)) {
-    as.character(zone_blocks$id_manzana[as.character(zone_blocks$tipo_manzana) == "reemplazo"])
-  } else {
-    character(0)
-  }
-  titular_ids <- setdiff(as.character(zone_blocks$id_manzana), replacement_ids)
-  grDevices::pdf(out_pdf, paper = "special", width = 11.69, height = 8.27)
-  on.exit(grDevices::dev.off(), add = TRUE)
-  grid::grid.newpage()
-  grid::grid.rect(gp = grid::gpar(fill = "white", col = NA))
-
-  .hojas_ruta_draw_reference_logo(x = 0.055, y = 0.948, height = 0.046,
-                                   paper_w = 11.69, paper_h = 8.27)
-  grid::grid.text("Hoja operativa de zona",
-                  x = 0.5, y = 0.952,
-                  gp = grid::gpar(fontsize = 16, fontface = "bold", col = "black"))
-  grid::grid.text(
-    sprintf("%s · UBIGEO %s · Zona %s",
-            .hojas_ruta_title_case(zone_row$distrito), zone_row$ubigeo, zone_row$zona),
-    x = 0.5, y = 0.923,
-    gp = grid::gpar(fontsize = 10, col = "#3a3a3a")
-  )
-  grid::grid.lines(x = c(0.055, 0.955), y = c(0.895, 0.895),
-                   gp = grid::gpar(col = "black", lwd = 0.5))
-
-  map_x <- 0.045
-  map_y <- 0.075
-  map_w <- 0.62
-  map_h <- 0.79
-  grid::grid.rect(x = map_x + map_w / 2, y = map_y + map_h / 2,
-                  width = map_w, height = map_h,
-                  gp = grid::gpar(fill = "#f8fafc", col = "black", lwd = 0.7))
-  all_rings <- unlist(lapply(ctx$features, `[[`, "rings"), recursive = FALSE)
-  project <- .hojas_ruta_project_rings(all_rings, map_x + 0.015, map_y + 0.015, map_w - 0.03, map_h - 0.03, pad = 0.08)
-  for (feature in ctx$features) {
-    is_replacement <- as.character(feature$id %||% "") %in% replacement_ids
-    is_titular <- as.character(feature$id %||% "") %in% titular_ids
-    for (ring in feature$rings) {
-      p <- project(ring)
-      fill <- if (is_replacement) {
-        "#dbeafe"
-      } else if (is_titular || isTRUE(feature$selected)) {
-        "#bdbdbd"
-      } else if (isTRUE(feature$in_zone)) {
-        "#f5f5f5"
-      } else {
-        "#fbfbfb"
-      }
-      col <- if (is_replacement) {
-        "#1d4ed8"
-      } else if (is_titular || isTRUE(feature$selected)) {
-        "black"
-      } else if (isTRUE(feature$in_zone)) {
-        "#686868"
-      } else {
-        "#b8b8b8"
-      }
-      lwd <- if (is_replacement || is_titular || isTRUE(feature$selected)) 1.2 else if (isTRUE(feature$in_zone)) 0.36 else 0.22
-      grid::grid.polygon(
-        x = p$x, y = p$y, default.units = "npc",
-        gp = grid::gpar(fill = fill, col = col, lwd = lwd)
-      )
-    }
-  }
-  # La lista lateral identifica las manzanas seleccionadas; evitamos rotulos
-  # sobre el mapa para no tapar manzanas colindantes.
-
-  side_x <- 0.69
-  side_w <- 0.265
-  .hojas_ruta_pdf_text("RESUMEN DE ZONA", side_x, 0.86,
-                       fontsize = 9, fontface = "bold", col = "black")
-  grid::grid.lines(x = c(side_x, side_x + side_w), y = c(0.847, 0.847),
-                   gp = grid::gpar(col = "black", lwd = 0.5))
-  summary <- list(
-    list("Distrito", .hojas_ruta_title_case(zone_row$distrito)),
-    list("Zona", as.character(zone_row$zona)),
-    list("Manzanas de la zona", format(as.integer(zone_row$manzanas_zona %||% 0L), big.mark = ",")),
-    list("Titulares", format(as.integer(zone_row$manzanas_titulares %||% zone_row$manzanas_seleccionadas %||% 0L), big.mark = ",")),
-    list("Reemplazos", format(as.integer(zone_row$manzanas_reemplazo %||% 0L), big.mark = ",")),
-    list("Entrevistas titulares", format(as.integer(zone_row$entrevistas_titulares %||% zone_row$entrevistas %||% 0L), big.mark = ",")),
-    list("Entrevistas reemplazo", format(as.integer(zone_row$entrevistas_reemplazo %||% 0L), big.mark = ",")),
-    list("Viviendas censadas", format(as.integer(zone_row$viviendas %||% 0L), big.mark = ","))
-  )
-  yy <- 0.825
-  for (item in summary) {
-    grid::grid.text(item[[1]], x = side_x, y = yy, just = c("left", "center"),
-                    gp = grid::gpar(fontsize = 7.8, fontface = "bold", col = "#3a3a3a"))
-    grid::grid.text(item[[2]], x = side_x + side_w, y = yy, just = c("right", "center"),
-                    gp = grid::gpar(fontsize = 7.8, col = "black"))
-    yy <- yy - 0.026
-  }
-
-  .hojas_ruta_pdf_text("RUTAS EN ZONA", side_x, 0.61,
-                       fontsize = 9, fontface = "bold", col = "black")
-  grid::grid.lines(x = c(side_x, side_x + side_w), y = c(0.597, 0.597),
-                   gp = grid::gpar(col = "black", lwd = 0.5))
-  rows <- zone_blocks
-  if (nrow(rows)) {
-    tipo_sort <- if ("tipo_manzana" %in% names(rows)) ifelse(as.character(rows$tipo_manzana) == "reemplazo", 1L, 0L) else 0L
-    rows <- rows[order(tipo_sort, rows$orden_seleccion, rows$id_manzana), , drop = FALSE]
-  }
-  rows <- utils::head(rows, 14L)
-  row_as_list <- function(i) {
-    row <- as.list(rows[i, , drop = FALSE])
-    row[] <- lapply(row, function(x) x[[1]])
-    row
-  }
-  codigo <- vapply(seq_len(nrow(rows)), function(i) {
-    .hojas_ruta_operational_code(row_as_list(i))
-  }, character(1), USE.NAMES = FALSE)
-  rango <- if (all(c("rango_inicio", "rango_fin") %in% names(rows))) {
-    paste0(as.character(rows$rango_inicio), "-", as.character(rows$rango_fin))
-  } else {
-    as.character(rows$entrevistas)
-  }
-  reemplaza <- vapply(seq_len(nrow(rows)), function(i) {
-    row <- row_as_list(i)
-    if (!identical(as.character(row$tipo_manzana %||% ""), "reemplazo")) return("-")
-    titular_code <- .hojas_ruta_operational_code(
-      list(
-        tipo_manzana = "titular",
-        hoja_num = row$titular_hoja_num %||% row$titular_orden_seleccion
-      )
-    )
-    titular_id <- .hojas_ruta_short_manzana_id(row$titular_id_manzana %||% "")
-    if (nzchar(titular_id)) sprintf("%s / %s", titular_code, titular_id) else titular_code
-  }, character(1), USE.NAMES = FALSE)
-  tbl <- cbind(
-    Codigo = codigo,
-    Manzana = as.character(rows$manzana),
-    Rango = rango,
-    Reemplaza = reemplaza
-  )
-  if (nrow(tbl)) {
-    data <- rbind(c("Codigo", "Manzana", "Rango", "Reemplaza"), tbl)
-    grey <- matrix(FALSE, nrow(data), ncol(data))
-    grey[1, ] <- TRUE
-    font <- matrix("plain", nrow(data), ncol(data))
-    font[1, ] <- "bold"
-    .hojas_ruta_draw_reference_table(
-      data,
-      x = side_x,
-      y = 0.58,
-      col_widths = c(0.055, 0.06, 0.055, 0.095),
-      row_heights = rep(0.026, nrow(data)),
-      grey_cells = grey,
-      font_size = 7.4,
-      align = "center",
-      fontface = font
-    )
-  }
-
-  grid::grid.rect(x = side_x + 0.012, y = 0.12, width = 0.018, height = 0.018,
-                  gp = grid::gpar(fill = "#bdbdbd", col = "black", lwd = 1.0))
-  grid::grid.text("UMP titular",
-                  x = side_x + 0.03, y = 0.12, just = c("left", "center"),
-                  gp = grid::gpar(fontsize = 7.5, col = "black"))
-  grid::grid.rect(x = side_x + 0.012, y = 0.092, width = 0.018, height = 0.018,
-                  gp = grid::gpar(fill = "#dbeafe", col = "#1d4ed8", lwd = 1.0))
-  grid::grid.text("R reemplazo",
-                  x = side_x + 0.03, y = 0.092, just = c("left", "center"),
-                  gp = grid::gpar(fontsize = 7.5, col = "#1d4ed8"))
-  grid::grid.rect(x = side_x + 0.012, y = 0.064, width = 0.018, height = 0.018,
-                  gp = grid::gpar(fill = "white", col = "#9a9a9a", lwd = 0.5))
-  grid::grid.text("Manzana no seleccionada",
-                  x = side_x + 0.03, y = 0.064, just = c("left", "center"),
-                  gp = grid::gpar(fontsize = 7.5, col = "#3a3a3a"))
-  grid::grid.lines(x = c(0.055, 0.955), y = c(0.05, 0.05),
-                   gp = grid::gpar(col = "#888888", lwd = 0.4))
-  grid::grid.text("Pulso PUCP · Hoja de zona",
-                  x = 0.055, y = 0.035, just = c("left", "center"),
-                  gp = grid::gpar(fontsize = 7.5, col = "#4a4a4a"))
-  grid::grid.text(format(Sys.Date(), "%d/%m/%Y"),
-                  x = 0.955, y = 0.035, just = c("right", "center"),
-                  gp = grid::gpar(fontsize = 7.5, col = "#4a4a4a"))
-  invisible(TRUE)
+  if (isTRUE(hojas_ruta_hoja_zona_pdf(zone_row, zone_blocks, config, out_pdf, render_ctx = render_ctx))) return(TRUE)
+  .hojas_ruta_draw_zone_sheet_fallback_pdf(zone_row, zone_blocks, out_pdf)
 }
 
+# La ficha vive en hojas_ruta_ficha_pdf.R (modelo + dibujo con la capa Pulso PDF).
 .hojas_ruta_draw_integrated_pdf_page1 <- function(block, quota_table, meta, config, out_pdf) {
-  grDevices::pdf(out_pdf, paper = "a4", width = 8.27, height = 11.69)
-  on.exit(grDevices::dev.off(), add = TRUE)
-  grid::grid.newpage()
-  grid::grid.rect(gp = grid::gpar(fill = "white", col = NA))
-
-  start <- as.integer(block$rango_inicio %||% 1L)
-  end <- as.integer(block$rango_fin %||% block$entrevistas %||% start)
-  hoja_num <- as.integer(block$hoja_num %||% block$orden_seleccion %||% 1L)
-  viviendas <- as.integer(block$viviendas %||% 0L)
-  entrevistas <- max(1L, as.integer(block$entrevistas %||% 1L))
-  is_replacement <- identical(as.character(block$tipo_manzana %||% ""), "reemplazo")
-  route_code <- .hojas_ruta_operational_code(block)
-  replacement_label <- as.character(block$replacement_label %||% "")
-  if (!nzchar(replacement_label) ||
-      grepl("^Reemplazo( [0-9]+ de [0-9]+)?( de [0-9]+ a [0-9]+)?$", replacement_label)) {
-    replacement_label <- .hojas_ruta_replacement_range_label(
-      start,
-      end,
-      block$replacement_order,
-      block$replacement_total,
-      block$titular_id_manzana
-    )[[1]]
-  }
-  route_ops <- .hojas_ruta_route_operational_values(block, config)
-  constante <- as.integer(route_ops$constante_salto)
-  esquina <- as.character(route_ops$esquina_coordenada %||% route_ops$esquina_inicio)
-  recorrido <- as.character(route_ops$sentido_recorrido)
-  arranque <- as.integer(route_ops$domicilio_inicio %||% route_ops$vivienda_inicio)
-  modo_seleccion <- as.character(route_ops$modo_seleccion_vivienda)
-  project_code <- as.character(config$project_code %||% "001")
-
-  # Header: logo a la izquierda, contexto a la derecha. Linea separadora delgada.
-  .hojas_ruta_draw_reference_logo(x = 0.085, y = 0.957, height = 0.034)
-  grid::grid.text(
-    sprintf("%s · %s",
-            toupper(.hojas_ruta_title_case(block$departamento %||% "")),
-            toupper(.hojas_ruta_title_case(block$provincia %||% ""))),
-    x = 0.92, y = 0.962, just = c("right", "center"),
-    gp = grid::gpar(fontsize = 8.5, fontface = "bold", col = "black", letter.spacing = 1)
-  )
-  grid::grid.text(
-    if (is_replacement) {
-      replacement_label
-    } else {
-      sprintf("Encuestas %s a %s", start, end)
-    },
-    x = 0.92, y = 0.948, just = c("right", "center"),
-    gp = grid::gpar(fontsize = 8, col = "#4a4a4a")
-  )
-  grid::grid.lines(x = c(0.085, 0.92), y = c(0.93, 0.93),
-                   gp = grid::gpar(col = "black", lwd = 0.6))
-
-  # Titulo y subtitulo: jerarquia tipografica clara.
-  grid::grid.text(
-    if (is_replacement) {
-      sprintf("Ficha de reemplazo · %s", route_code)
-    } else {
-      sprintf("Ficha de trabajo de campo · %s", route_code)
-    },
-    x = 0.085, y = 0.905, just = c("left", "center"),
-    gp = grid::gpar(fontsize = 14, fontface = "bold", col = "black")
-  )
-  grid::grid.text(
-    sprintf("%s · Zona %s", .hojas_ruta_title_case(block$distrito %||% ""), as.character(block$zona %||% "")),
-    x = 0.085, y = 0.886, just = c("left", "center"),
-    gp = grid::gpar(fontsize = 11, col = "#2a2a2a")
-  )
-  if (is_replacement) {
-    grid::grid.text(
-      replacement_label,
-      x = 0.085, y = 0.869, just = c("left", "center"),
-      gp = grid::gpar(fontsize = 9, fontface = "bold", col = "#1d4ed8")
-    )
-  }
-  grid::grid.text(
-    sprintf("UBIGEO %s", block$ubigeo),
-    x = 0.92, y = 0.886, just = c("right", "center"),
-    gp = grid::gpar(fontsize = 9.5, fontface = "bold", col = "#4a4a4a", letter.spacing = 0.8)
-  )
-
-  .hojas_ruta_pdf_text("A. Datos generales", 0.085, 0.852,
-                       fontsize = 10, fontface = "bold")
-  year <- format(Sys.Date(), "%Y")
-  table_a <- matrix(c(
-    "CÓDIGO DE ESTUDIO", project_code, "TIPO DE RUTA", if (is_replacement) "REEMPLAZO" else "TITULAR",
-    "FECHA INICIO / FIN", sprintf("__/__/%s   __/__/%s", year, year), "NIVEL SOCIOECONÓMICO", "-",
-    "NOMBRE DEL\nENCUESTADOR", "", "CÓDIGO DE ZONA", as.character(block$zona %||% ""),
-    "SUPERVISOR DE\nMESA", "", "CÓDIGO DE MANZANA", as.character(block$manzana %||% ""),
-    "SUPERVISOR DE\nCAMPO", "", "TOTAL DE VIVIENDAS", as.character(viviendas),
-    "Indique líneas de transporte, rutas y paraderos de referencia para llegar a la zona:\n\n\n", "", "", ""
-  ), ncol = 4, byrow = TRUE)
-  grey_a <- matrix(FALSE, nrow(table_a), ncol(table_a))
-  grey_a[1:5, c(1, 3)] <- TRUE
-  align_a <- matrix("left", nrow(table_a), ncol(table_a))
-  align_a[1:5, c(2, 4)] <- "center"
-  font_a <- matrix("plain", nrow(table_a), ncol(table_a))
-  font_a[1:5, c(1, 3)] <- "bold"
-  .hojas_ruta_draw_reference_table(
-    table_a, x = 0.085, y = 0.838,
-    col_widths = c(0.232, 0.183, 0.232, 0.188),
-    row_heights = c(0.026, 0.027, 0.034, 0.034, 0.034, 0.052),
-    grey_cells = grey_a,
-    span_last = TRUE,
-    font_size = 7.6,
-    align = align_a,
-    fontface = font_a,
-    lineheight = 1.1
-  )
-
-  .hojas_ruta_pdf_text("B. Cuotas de sexo y edad", 0.085, 0.605,
-                       fontsize = 10, fontface = "bold")
-  quota_data <- .hojas_ruta_reference_quota_data(block, quota_table, config)
-  q_cols <- ncol(quota_data)
-  q_width <- 0.835
-  q_left <- 0.5 - q_width / 2
-  q_label <- 0.135
-  q_widths <- c(q_label, rep((q_width - q_label) / (q_cols - 1), q_cols - 1))
-  grey_q <- matrix(FALSE, nrow(quota_data), ncol(quota_data))
-  grey_q[1, ] <- TRUE
-  grey_q[, 1] <- TRUE
-  align_q <- matrix("center", nrow(quota_data), ncol(quota_data))
-  font_q <- matrix("plain", nrow(quota_data), ncol(quota_data))
-  font_q[1, ] <- "bold"
-  font_q[, 1] <- "bold"
-  .hojas_ruta_draw_reference_table(
-    quota_data, x = q_left, y = 0.589,
-    col_widths = q_widths,
-    row_heights = rep(0.031, nrow(quota_data)),
-    grey_cells = grey_q,
-    font_size = if (q_cols > 6) 6.5 else 8.2,
-    align = align_q,
-    fontface = font_q,
-    lineheight = 1.0
-  )
-
-  .hojas_ruta_pdf_text("C. Selección de casas / domicilios", 0.085, 0.435,
-                       fontsize = 10, fontface = "bold")
-  .hojas_ruta_draw_systematic_diagram(esquina, recorrido, arranque, constante)
-  constante_label <- if (identical(modo_seleccion, "Sin constante de salto")) {
-    "Deshabilitada"
-  } else if (identical(modo_seleccion, "Barrido completo")) {
-    "1 - Barrido"
-  } else {
-    as.character(constante)
-  }
-  table_c <- matrix(c(
-    "ESQUINA / COORDENADA DE INICIO", as.character(esquina),
-    "RECORRIDO", as.character(recorrido),
-    "CASA / DOMICILIO DE INICIO", as.character(arranque),
-    "CONSTANTE DE SALTO POR\nCASA / DOMICILIO", constante_label
-  ), ncol = 2, byrow = TRUE)
-  grey_c <- matrix(FALSE, nrow(table_c), ncol(table_c))
-  grey_c[, 1] <- TRUE
-  align_c <- matrix("center", nrow(table_c), ncol(table_c))
-  align_c[, 1] <- "left"
-  font_c <- matrix("plain", nrow(table_c), ncol(table_c))
-  font_c[, 1] <- "bold"
-  .hojas_ruta_draw_reference_table(
-    table_c, x = 0.16, y = 0.19,
-    col_widths = c(0.44, 0.24),
-    row_heights = rep(0.029, 4),
-    grey_cells = grey_c,
-    font_size = 8.2,
-    align = align_c,
-    fontface = font_c,
-    lineheight = 0.95
-  )
-
-  # Footer minimalista: linea fina + tres elementos balanceados.
-  grid::grid.lines(x = c(0.085, 0.92), y = c(0.052, 0.052),
-                   gp = grid::gpar(col = "#888888", lwd = 0.4))
-  grid::grid.text("Pulso PUCP · Ficha de trabajo de campo",
-                  x = 0.085, y = 0.038, just = c("left", "center"),
-                  gp = grid::gpar(fontsize = 7.5, col = "#4a4a4a"))
-  grid::grid.text(if (is_replacement) sprintf("REEMPLAZO %s · %d-%d", route_code, start, end) else route_code,
-                  x = 0.5, y = 0.038,
-                  gp = grid::gpar(fontsize = 7.5, fontface = "bold", col = "#4a4a4a"))
-  grid::grid.text(format(Sys.Date(), "%d/%m/%Y"),
-                  x = 0.92, y = 0.038, just = c("right", "center"),
-                  gp = grid::gpar(fontsize = 7.5, col = "#4a4a4a"))
-  invisible(out_pdf)
+  hojas_ruta_ficha_pdf_pagina(block, quota_table, meta, config, out_pdf)
 }
 
 .hojas_ruta_draw_integrated_pdf <- function(block, quota_table, meta, config, out_pdf,
@@ -9317,6 +8420,7 @@ hojas_ruta_sample_preview_integrado <- function(config = list()) {
   switch(
     method,
     pps = "PPS",
+    pps_tope = "PPS con tope",
     sistematico = "Sistematico",
     conglomerado_fijo = "Conglomerado fijo",
     method
@@ -10084,6 +9188,7 @@ hojas_ruta_generar_zip_integrado <- function(config = list(), result_path, progr
   report_pdf_progress <- function(stage, current, total, message) {
     report(stage, current = current, total = total, percent = pdf_percent(), message = message)
   }
+  tareas <- list()  # fichas de titulares y reemplazos; se dibujan juntas (hojas_ruta_entrega_fichas.R)
   for (i in seq_len(total_pdfs)) {
     block <- as.list(blocks[i, , drop = FALSE])
     block[] <- lapply(block, function(x) x[[1]])
@@ -10103,23 +9208,7 @@ hojas_ruta_generar_zip_integrado <- function(config = list(), result_path, progr
     if (rel_pdf %in% used_names) rel_pdf <- sub("\\.pdf$", sprintf("_%03d.pdf", i), rel_pdf)
     used_names <- c(used_names, rel_pdf)
     out_pdf <- file.path(stage, rel_pdf)
-    report_pdf_progress(
-      "pdf",
-      current = i - 1L,
-      total = total_pdfs,
-      message = sprintf("Generando titular %d de %d (%s)", i, total_pdfs,
-                        .hojas_ruta_title_case(block$distrito %||% ""))
-    )
-    .hojas_ruta_draw_integrated_pdf(block, qdom, sample$frame_meta, sample$config, out_pdf,
-                                    render_ctx = render_ctx)
-    completed_pdf_units <- completed_pdf_units + 1L
-    report_pdf_progress(
-      "pdf",
-      current = i,
-      total = total_pdfs,
-      message = sprintf("Titular %d de %d listo (%s)", i, total_pdfs,
-                        .hojas_ruta_title_case(block$distrito %||% ""))
-    )
+    tareas[[length(tareas) + 1L]] <- list(block = block, qdom = qdom, out_pdf = out_pdf)
     pdf_files <- c(pdf_files, out_pdf)
     archive_files <- c(archive_files, rel_pdf)
     route_report[[length(route_report) + 1L]] <- .hojas_ruta_delivery_report_row(
@@ -10160,23 +9249,7 @@ hojas_ruta_generar_zip_integrado <- function(config = list(), result_path, progr
       if (rel_pdf %in% used_names) rel_pdf <- sub("\\.pdf$", sprintf("_R%03d.pdf", i), rel_pdf)
       used_names <- c(used_names, rel_pdf)
       out_pdf <- file.path(stage, rel_pdf)
-      report_pdf_progress(
-        "replacement-pdf",
-        current = i - 1L,
-        total = total_replacement_pdfs,
-        message = sprintf("Generando reemplazo %d de %d (%s)", i, total_replacement_pdfs,
-                          .hojas_ruta_title_case(block$distrito %||% ""))
-      )
-      .hojas_ruta_draw_integrated_pdf(block, qdom, sample$frame_meta, sample$config, out_pdf,
-                                      render_ctx = render_ctx)
-      completed_pdf_units <- completed_pdf_units + 1L
-      report_pdf_progress(
-        "replacement-pdf",
-        current = i,
-        total = total_replacement_pdfs,
-        message = sprintf("Reemplazo %d de %d listo (%s)", i, total_replacement_pdfs,
-                          .hojas_ruta_title_case(block$distrito %||% ""))
-      )
+      tareas[[length(tareas) + 1L]] <- list(block = block, qdom = qdom, out_pdf = out_pdf)
       replacement_pdf_files <- c(replacement_pdf_files, out_pdf)
       archive_files <- c(archive_files, rel_pdf)
       route_report[[length(route_report) + 1L]] <- .hojas_ruta_delivery_report_row(
@@ -10186,6 +9259,11 @@ hojas_ruta_generar_zip_integrado <- function(config = list(), result_path, progr
       )
     }
   }
+  .hojas_ruta_entrega_fichas(tareas, sample, render_ctx, function(hechas, total) {
+    completed_pdf_units <<- hechas
+    report_pdf_progress("pdf", current = hechas, total = total,
+                        message = sprintf("Fichas de manzana: %d de %d listas", hechas, total))
+  })
   if (nrow(zone_summary)) {
     for (i in seq_len(nrow(zone_summary))) {
       zone_row <- as.list(zone_summary[i, , drop = FALSE])

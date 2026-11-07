@@ -22,7 +22,7 @@
 .pulso-questionnaire-section-copy strong {
   min-width: 0;
   color: var(--pulso-text);
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   line-height: 1.3;
   font-weight: var(--pulso-weight-heavy);
   overflow-wrap: anywhere;
@@ -30,7 +30,7 @@
 
 .pulso-questionnaire-section-copy span {
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.35;
   font-weight: var(--pulso-weight-bold);
   overflow-wrap: anywhere;
@@ -48,19 +48,6 @@
   border-color: color-mix(in srgb, #b45309 28%, var(--pulso-border));
   background: #fff7ed;
   color: #9a3412;
-}
-
-.pulso-questionnaire-section-empty {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 10px;
-  border: 1px dashed color-mix(in srgb, var(--pulso-border) 84%, #fff 16%);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--pulso-surface-2) 72%, #fff 28%);
-  color: var(--pulso-text-soft);
-  font-size: 11.5px;
-  line-height: 1.4;
 }
 
 .pulso-questionnaire-question-list {
@@ -128,7 +115,7 @@
   background: color-mix(in srgb, var(--pulso-surface-2) 76%, #fff 24%);
   border: 1px solid color-mix(in srgb, var(--pulso-border) 78%, #fff 22%);
   color: #64748b;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
@@ -154,7 +141,7 @@
 
 .pulso-questionnaire-question-copy strong {
   color: var(--pulso-text);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   line-height: 1.35;
   font-weight: var(--pulso-weight-heavy);
   overflow-wrap: anywhere;
@@ -171,7 +158,7 @@
 
 .pulso-questionnaire-question-copy span {
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.35;
   font-weight: var(--pulso-weight-semibold);
   white-space: normal;
@@ -309,8 +296,10 @@
 }
 
 .pulso-md-color-swatch:hover {
-  transform: scale(1.12);
   box-shadow: 0 0 0 2px var(--pulso-primary-soft);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-md-color-swatch:hover { transform: scale(1.12); }
 }
 
 .pulso-md-color-swatch[data-clear="true"] {
@@ -340,7 +329,7 @@
 
 .pulso-form-canvas-empty-title {
   margin: 0;
-  font-size: 18px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text);
   letter-spacing: -0.2px;
@@ -348,7 +337,7 @@
 
 .pulso-form-canvas-empty-text {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
   max-width: 460px;
   line-height: 1.6;
@@ -365,7 +354,7 @@
 
 .pulso-form-canvas-empty-text-secondary {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
   max-width: 460px;
   line-height: 1.55;
@@ -373,7 +362,7 @@
 
 .pulso-form-canvas-empty-text-secondary code {
   font-family: ui-monospace, monospace;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   background: rgba(0, 0, 0, 0.05);
   padding: 1px 5px;
   border-radius: 3px;
@@ -383,7 +372,7 @@
 .pulso-form-canvas-empty-cta {
   margin-top: 8px;
   padding: 10px 22px;
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   color: white;
   background: #0f766e;
@@ -395,7 +384,9 @@
 
 .pulso-form-canvas-empty-cta:hover {
   background: #0d6660;
-  transform: translateY(-1px);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pulso-form-canvas-empty-cta:hover { transform: translateY(var(--mov-hover-lift, -1px)); }
 }
 
 /* === FormCanvas: lienzo único scrollable con todo el formulario === */
@@ -432,7 +423,7 @@
 
 .pulso-canvas-section-name {
   font-family: ui-monospace, monospace;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   background: rgba(0, 0, 0, 0.04);
   padding: 1px 5px;
   border-radius: 4px;
@@ -441,9 +432,8 @@
 .pulso-canvas-addbetween-menu-eyebrow {
   display: block;
   padding: 6px 10px 0;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
-  text-transform: uppercase;
   letter-spacing: 0.6px;
   color: var(--pulso-text-soft);
 }
@@ -462,7 +452,7 @@
 .pulso-canvas-addbetween-group-title {
   padding: 2px 5px 4px;
   color: var(--pulso-text-soft);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.2;
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { GlifoMarca, TypeIcon } from "../kit";
 import type { ClaveMarca } from "../kit/glifosMarca";
 import { TituloLegible } from "../kit/CuerpoPanelMarca";
@@ -18,6 +18,8 @@ export type ReglaListaItem = {
   titulo: string;
   resumen: string;
   aviso?: boolean;
+  /** Familia: la fila se pliega y despliega sus miembros (cálculos que sólo cambian de tarea o perfil). */
+  miembros?: ReglaListaItem[];
 };
 
 /** Texto plano de una fila del riel para su `title`: número, etiqueta legible y resumen. */
@@ -28,7 +30,14 @@ export function tituloDeFilaRegla(it: Pick<ReglaListaItem, "numero" | "titulo" |
   return resumen ? `${cabeza} — ${resumen}` : cabeza;
 }
 
-export type ReglaListaGrupo = { titulo: string; items: ReglaListaItem[] };
+export type ReglaListaGrupo = {
+  titulo: string;
+  items: ReglaListaItem[];
+  /** Una línea bajo el título del grupo que dice qué reúne. */
+  nota?: string;
+};
+
+const cuantos = (items: readonly ReglaListaItem[]) => items.reduce((n, it) => n + (it.miembros?.length ?? 1), 0);
 
 export type PestanaReglasProps = {
   titulo: string;
@@ -51,6 +60,36 @@ export type PestanaReglasProps = {
 
 export function PestanaReglas({ titulo, marca, total, grupos, seleccionada, onSeleccionar, vacio, vacioDetalle, aviso, pie, lateral, children }: PestanaReglasProps) {
   const hayItems = grupos.some((g) => g.items.length > 0);
+  // Familias abiertas: la que contiene la elegida se abre sola.
+  const [abiertas, setAbiertas] = useState<ReadonlySet<string>>(new Set());
+  const familiaDeElegida = grupos.flatMap((g) => g.items).find((it) => it.miembros?.some((m) => m.key === seleccionada))?.key;
+  const abierta = (key: string) => abiertas.has(key) || key === familiaDeElegida;
+  const alternar = (key: string) =>
+    setAbiertas((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  const fila = (it: ReglaListaItem, i: number, miembro = false) => (
+    <button
+      // Clave por posición: los formularios reales repiten nombres de variable (t4_P10 dos veces en el tipo 2).
+      key={`${it.key}-${i}`}
+      type="button"
+      className={`xfp-item${it.numero ? "" : " sin-num"}${miembro ? " is-miembro" : ""}${it.key === seleccionada ? " is-on" : ""}`}
+      aria-current={it.key === seleccionada ? "true" : undefined}
+      // La fila se corta con elipsis: el title devuelve el texto entero al pasar el puntero.
+      title={tituloDeFilaRegla(it)}
+      onClick={() => onSeleccionar(it.key)}
+    >
+      <TypeIcon baseType={it.baseType} size={13} />
+      {it.numero ? <span className="xfp-item__num">{it.numero}</span> : null}
+      <span className="xfp-item__txt">
+        <span className="xfp-item__titulo"><TituloLegible texto={it.titulo} /></span>
+        <span className={it.aviso ? "xfp-item__resumen is-aviso" : "xfp-item__resumen"}>{it.resumen}</span>
+      </span>
+    </button>
+  );
   // La elegida por la dirección (un enlace desde otra pestaña) se trae a la vista dentro de la lista, sin mover la página.
   const cuerpo = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -75,27 +114,35 @@ export function PestanaReglas({ titulo, marca, total, grupos, seleccionada, onSe
                   <section key={g.titulo} className="xfp-grupo">
                     <header className="xfp-grupo__head">
                       <span>{g.titulo}</span>
-                      <span className="xfp-grupo__k">{g.items.length}</span>
+                      <span className="xfp-grupo__k">{cuantos(g.items)}</span>
                     </header>
-                    {g.items.map((it, i) => (
-                      <button
-                        // Clave por posición: los formularios reales repiten nombres de variable (t4_P10 dos veces en el tipo 2).
-                        key={`${it.key}-${i}`}
-                        type="button"
-                        className={`xfp-item${it.numero ? "" : " sin-num"}${it.key === seleccionada ? " is-on" : ""}`}
-                        aria-current={it.key === seleccionada ? "true" : undefined}
-                        // La fila se corta con elipsis: el title devuelve el texto entero al pasar el puntero.
-                        title={tituloDeFilaRegla(it)}
-                        onClick={() => onSeleccionar(it.key)}
-                      >
-                        <TypeIcon baseType={it.baseType} size={13} />
-                        {it.numero ? <span className="xfp-item__num">{it.numero}</span> : null}
-                        <span className="xfp-item__txt">
-                          <span className="xfp-item__titulo"><TituloLegible texto={it.titulo} /></span>
-                          <span className={it.aviso ? "xfp-item__resumen is-aviso" : "xfp-item__resumen"}>{it.resumen}</span>
-                        </span>
-                      </button>
-                    ))}
+                    {g.nota ? <p className="xfp-grupo__nota">{g.nota}</p> : null}
+                    {g.items.map((it, i) =>
+                      it.miembros ? (
+                        <div key={`${it.key}-${i}`} className={`xfp-familia${abierta(it.key) ? " is-abierta" : ""}`}>
+                          <button
+                            type="button"
+                            className={`xfp-item sin-num xfp-familia__cabeza${it.miembros.some((m) => m.key === seleccionada) ? " is-dentro" : ""}`}
+                            aria-expanded={abierta(it.key)}
+                            title={tituloDeFilaRegla(it)}
+                            onClick={() => {
+                              alternar(it.key);
+                              if (!abierta(it.key)) onSeleccionar(it.miembros![0]!.key);
+                            }}
+                          >
+                            <span className="xfp-item__txt">
+                              <span className="xfp-item__titulo">
+                                {it.titulo} <span className="xfp-familia__k" title={`${it.miembros.length} filas`}>{it.miembros.length}</span>
+                              </span>
+                              <span className="xfp-item__resumen">{it.resumen}</span>
+                            </span>
+                          </button>
+                          {abierta(it.key) ? it.miembros.map((m, k) => fila(m, k, true)) : null}
+                        </div>
+                      ) : (
+                        fila(it, i)
+                      ),
+                    )}
                   </section>
                 ) : null,
               )

@@ -1,4 +1,4 @@
-// «Ya existe una campaña con este nombre · Ábrela o usa otro nombre» (F1).
+// «Ya existe una campaña con este nombre. Ábrela o usa otro nombre» (F1).
 //
 // Va en línea, junto al campo del nombre, en «Nueva campaña», en «Renombrar» y
 // al importar un correo. «Ábrela» es navegación de ruta: lleva a la campaña que
@@ -26,11 +26,11 @@ export function AvisoDeNombreRepetido({ id, campana, href }: Props) {
         {aviso.texto}
         {aviso.accion && href ? (
           <>
-            {" · "}
+            {". "}
             <Link className="rec-nombre-repetido-abrir" to={href}>Ábrela</Link>
             {" o usa otro nombre"}
           </>
-        ) : aviso.accion ? ` · usa otro nombre` : null}
+        ) : aviso.accion ? `. Usa otro nombre` : null}
       </span>
     </p>
   );

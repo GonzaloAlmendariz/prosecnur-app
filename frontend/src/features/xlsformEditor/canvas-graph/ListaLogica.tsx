@@ -7,6 +7,8 @@ import { Segmented, TypeIcon } from "../kit";
 import { describeExpression, leerColumna } from "../canvas/reglasHumanas";
 import { dividirPorLogica, focoEnLista, listaLogica, type TipoRegla } from "./listaLogicaModel";
 import "./listaLogica.css";
+import { EstadoVacio } from "../../../components/EstadoVacio";
+import { GitBranch } from "../../../vendor/lucide-react";
 
 // Lista de la lógica junto al mapa (revamp 2026-10-16). Cada sección es un contenedor: arriba la regla que
 // vale para toda la sección (la heredan sus preguntas, unidas por una línea) y debajo las preguntas con regla
@@ -70,7 +72,7 @@ export function ListaLogica({ structure, scope: scopeBase, seleccionada, onSelec
   return (
     <aside className="xfl-lista" aria-label="Lógica del formulario">
       <header className="xfl-lista__head">
-        <div className="xfl-lista__tit"><span>Lógica del formulario</span><span className="xfl-lista__total">{total} reglas</span></div>
+        <div className="xfl-lista__tit"><span>Lógica del formulario</span><span className="xfl-lista__total">{total} {total === 1 ? "regla" : "reglas"}</span></div>
         <Segmented
           aria-label="Qué reglas mostrar"
           size="sm"
@@ -88,7 +90,12 @@ export function ListaLogica({ structure, scope: scopeBase, seleccionada, onSelec
       ) : null}
       <div ref={cuerpo} className="xfl-lista__cuerpo" data-qa-geometry-group="xlsform/logica-secciones" data-qa-geometry-contract="intrinsic">
         {secciones.length === 0 && (filtro !== "todas" || sinLogica.length === 0) ? (
-          <p className="xfl-vacio">Este formulario no tiene reglas de cuándo aparece una pregunta ni de qué opciones se muestran.</p>
+          <EstadoVacio
+            tamano="normal"
+            icono={<GitBranch size={18} />}
+            titulo="Este formulario no tiene lógica"
+            descripcion="Ninguna regla dice cuándo aparece una pregunta ni qué opciones se muestran."
+          />
         ) : (
           secciones.map((s) => {
             const items = verPregunta ? s.items : [];
@@ -98,7 +105,7 @@ export function ListaLogica({ structure, scope: scopeBase, seleccionada, onSelec
                 <header className="xfl-sec__head">
                   <span className="xfl-sec__letra">{s.letra}</span>
                   <span className="xfl-sec__nombre">{stripMarkdown(s.nombre)}</span>
-                  <span className="xfl-sec__n">{s.preguntas} preg.{s.esRepeticion ? " · se repite" : ""}</span>
+                  <span className="xfl-sec__n">{s.preguntas} preg.{s.esRepeticion ? ", se repite" : ""}</span>
                 </header>
                 {verSeccion && s.regla ? (
                   <button type="button" className={seleccionada === focoSeccion ? "xfl-toda is-on" : "xfl-toda"} onClick={() => onSeleccionar(focoSeccion)}>

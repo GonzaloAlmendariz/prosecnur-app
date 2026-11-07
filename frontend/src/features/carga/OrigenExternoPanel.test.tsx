@@ -95,7 +95,7 @@ describe("OrigenExternoVista", () => {
   it("sin declaración explica el vacío dentro de su zona y ofrece declarar", () => {
     const html = render({ tipo: "listo", datos: { ...HSYVBG, estado: "", bloque: null, resumen: null } });
     expect(html).toContain("Sin declarar");
-    expect(html).toMatch(/data-qa-geometry-capacity="owned"[^>]*>\s*<div class="pulso-origen-externo-vacio">/u);
+    expect(html).toMatch(/data-qa-geometry-capacity="owned"[^>]*>\s*<div class="pulso-estado-vacio/u);
     expect(html).toContain("Base preparada fuera de la plataforma");
     expect(html).toContain("Si la base llega con menos casos o menos variables que el instrumento, declara qué se retiró y por qué.");
     expect(html).toContain("no declara una preparación externa");
@@ -113,7 +113,7 @@ describe("OrigenExternoVista", () => {
     expect(tramos.match(/data-qa-geometry-member=""/gu)).toHaveLength(3);
     expect(html).toContain("<dt>crítico</dt><dd>3</dd>");
     expect(html).toContain("<dt>ambiguo</dt><dd>6</dd>");
-    expect(html).toContain("limpieza_hostigamiento.R · versión v3 · declarada el 2026-10-13");
+    expect(html).toContain("limpieza_hostigamiento.R, versión v3, declarada el 2026-10-13");
     expect(html).toContain(">Declarar<");
     expect(html).not.toContain("variables retiradas</strong>");
     expect(html).not.toContain("La declaración habla de una base anterior");

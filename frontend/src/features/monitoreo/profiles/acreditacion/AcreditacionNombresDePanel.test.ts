@@ -36,13 +36,20 @@ function titulosPorDato(): Map<string, Set<string>> {
   const mapa = new Map<string, Set<string>>();
   const tabla = /<DataTable\s+rows=\{(\w+)\}/g;
   for (let m = tabla.exec(fuente); m; m = tabla.exec(fuente)) {
-    // El h3 más cercano hacia atrás: es la cabecera de su `mon-profile-panel`.
+    // El título más cercano hacia atrás: la cabecera de su bloque, sea un `<h3>` suelto o el
+    // `titulo="…"` de `BloqueDeMonitoreo` (P2 de la pasada de formato).
     const previo = fuente.slice(0, m.index);
     const h3 = previo.lastIndexOf("<h3>");
-    if (h3 < 0) continue;
-    const cierre = previo.indexOf("</h3>", h3);
-    if (cierre < 0) continue;
-    const titulo = previo.slice(h3 + 4, cierre);
+    const prop = [...previo.matchAll(/\btitulo="([^"]*)"/g)].at(-1);
+    let titulo: string;
+    if (prop && (prop.index ?? -1) > h3) {
+      titulo = prop[1];
+    } else {
+      if (h3 < 0) continue;
+      const cierre = previo.indexOf("</h3>", h3);
+      if (cierre < 0) continue;
+      titulo = previo.slice(h3 + 4, cierre);
+    }
     // Sólo los rótulos literales; uno interpolado no se puede comparar así.
     if (/[{<]/.test(titulo)) continue;
     const componente = [...previo.matchAll(/^function (\w+)/gm)].at(-1)?.[1] ?? "?";
@@ -61,17 +68,9 @@ describe("un mismo dato se llama igual en todas las ramas", () => {
     expect(conflictos).toEqual([]);
   });
 
-  test("las fuentes conservan los nombres acordados", () => {
-    const de = (variable: string) => {
-      const titulos = new Set<string>();
-      for (const [clave, valores] of titulosPorDato()) {
-        if (clave.endsWith(`.${variable}`)) valores.forEach((v) => titulos.add(v));
-      }
-      return [...titulos];
-    };
-    expect(de("activeRows")).toEqual(["Fuentes activas"]);
-    expect(de("reportSources")).toEqual(["Fuentes del reporte"]);
-  });
+  // «Las fuentes conservan los nombres acordados» fijaba los títulos de `activeRows` y `reportSources` en
+  // `AcreditacionActiveSourcesView`, que nadie alcanzaba y se retiró el 2026-11-04 con confirmación de Gonzalo.
+  // La invariante general, la de arriba, sigue mirando todo el archivo.
 
   test("«Fuentes configuradas» queda para la lista que sí las trae todas", () => {
     // La que lleva el contador activas/total. Si alguien vuelve a titular así

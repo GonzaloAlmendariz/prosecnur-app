@@ -126,7 +126,7 @@ export function construirMatrizCascada(
   const tipoDe = (i: number): "alumno" | "aula" | "operativo" =>
     criterios[i].operativo ? "operativo" : criterios[i].scope;
   const ETIQUETA = {
-    alumno: "Criterios de estudiante · quitan un curso-horario sólo si lo vacían",
+    alumno: "Criterios de estudiante, quitan un curso-horario sólo si lo vacían",
     aula: "Criterios de curso-horario",
     operativo: "Operativo",
   } as const;

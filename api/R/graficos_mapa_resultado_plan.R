@@ -116,11 +116,7 @@ p_mapa_resultado_distrital <- function(var, cruces, corte, titulo = NULL, filtro
   clase <- findInterval(.pulso_round_half_up(ok$porcentaje), cortes) + 1L
   fill_de <- stats::setNames(pal[clase], ok$ubigeo)
   lima$fill <- ifelse(lima$ubigeo %in% names(fill_de), fill_de[lima$ubigeo], .std_color("mapa_fuera"))
-  bordes <- c(0, cortes, 100)
-  rot <- vapply(seq_along(pal), function(k) {
-    if (k == 1L) sprintf("Menos de %s %%", bordes[2]) else if (k == length(pal)) sprintf("%s %% a más", bordes[k])
-    else if (all(bordes == round(bordes))) sprintf("%s a %s %%", bordes[k], bordes[k + 1L] - 1) else sprintf("%s a menos de %s %%", bordes[k], bordes[k + 1L])
-  }, "")
+  rot <- .mapa_clases_rotulos(cortes, pal)
   o <- order(-ok$porcentaje, ok$etiqueta)
   lim <- .mapa_resultado_lima()
   nombre <- ifelse(is.na(match(ok$ubigeo, lim$ubigeo)), ok$etiqueta, .mapa_nombre_distrito(lim$distrito[match(ok$ubigeo, lim$ubigeo)]))
@@ -133,6 +129,17 @@ p_mapa_resultado_distrital <- function(var, cruces, corte, titulo = NULL, filtro
        ranking = data.frame(distrito = nombre[o], valor = .pulso_round_half_up(ok$porcentaje[o]), n = ok$n[o], color = pal[clase][o], stringsAsFactors = FALSE),
        panel = list(titulo = titulo_panel, sub = "Por distrito, de mayor a menor"),
        sin_casar = filas$etiqueta[is.na(filas$ubigeo)], pocos_casos = filas$etiqueta[!is.na(filas$ubigeo) & filas$n < min_n])
+}
+
+#' Rótulos de las clases de un mapa: «Menos de 55 %», «55 a 64 %», «75 % a más» (con cortes no enteros, «a menos de»)
+#' @keywords internal
+.mapa_clases_rotulos <- function(cortes, pal) {
+  bordes <- c(0, cortes, 100)
+  vapply(seq_along(pal), function(k) {
+    if (k == 1L) sprintf("Menos de %s %%", bordes[2]) else if (k == length(pal)) sprintf("%s %% a más", bordes[k])
+    else if (all(bordes == round(bordes))) (if (bordes[k + 1L] - 1 == bordes[k]) sprintf("%s %%", bordes[k]) else sprintf("%s a %s %%", bordes[k], bordes[k + 1L] - 1))
+    else sprintf("%s a menos de %s %%", bordes[k], bordes[k + 1L])
+  }, "")
 }
 
 #' Mapa de resultado por distrito (ggplot de respaldo con la espec adjunta)

@@ -118,7 +118,7 @@ export function TerritorialRouteCoverageAtlas({
         <section className="mon-territorial-route-summary-hero" aria-label="Cobertura de UMP">
           <div>
             <span><Route size={13} /> Cobertura</span>
-            <strong>{formatMetric(coverage.totals.titulares)} titulares · {formatMetric(coverage.totals.reemplazos)} reemplazos</strong>
+            <strong>{formatMetric(coverage.totals.titulares)} titulares, {formatMetric(coverage.totals.reemplazos)} reemplazos</strong>
             <em>{formatMetric(coverage.totals.zones)} zonas en {formatMetric(coverage.totals.districts)} distritos. Lectura territorial sin puntos GPS.</em>
           </div>
           <div className="mon-territorial-route-summary-progress" aria-label="Avance contra meta de fase">
@@ -149,7 +149,7 @@ export function TerritorialRouteCoverageAtlas({
         <section className="mon-territorial-route-atlas-map-panel" aria-label="Mapa ligero de cobertura territorial">
           <header>
             <span><MapPin size={13} /> Manzanas seleccionadas</span>
-            <strong>{formatMetric(coverage.totals.titulares)} titulares · {formatMetric(coverage.totals.reemplazos)} reemplazos</strong>
+            <strong>{formatMetric(coverage.totals.titulares)} titulares, {formatMetric(coverage.totals.reemplazos)} reemplazos</strong>
           </header>
           <TerritorialRouteCoverageMap coverage={coverage} blocks={blocks} reports={reports} mode="selection" />
         </section>
@@ -157,8 +157,8 @@ export function TerritorialRouteCoverageAtlas({
         <aside className="mon-territorial-route-atlas-rail" aria-label="Indicadores y composicion demografica">
           <div className="mon-territorial-route-atlas-phase">
             <span>{phaseLabel}</span>
-            <strong>{formatMetric(coverage.totals.titulares)} titulares · {formatMetric(coverage.totals.reemplazos)} reemplazos</strong>
-            <small>{formatMetric(coverage.totals.operationalBlocks)} manzanas operativas · {formatMetric(coverage.totals.zones)} zonas</small>
+            <strong>{formatMetric(coverage.totals.titulares)} titulares, {formatMetric(coverage.totals.reemplazos)} reemplazos</strong>
+            <small>{formatMetric(coverage.totals.operationalBlocks)} manzanas operativas, {formatMetric(coverage.totals.zones)} zonas</small>
           </div>
           <TerritorialRouteBucketBars title="Sexo" buckets={coverage.sexTotals} empty="Sin cuotas por sexo" />
           <TerritorialRouteBucketBars title="Rango de edad" buckets={coverage.ageTotals} empty="Sin cuotas por edad" />
@@ -291,8 +291,8 @@ export function TerritorialRouteCoverageMap({
     .slice(0, 7);
   const replacementPatternId = `mon-route-replacement-pattern-${mode}`;
   const caption = mode === "selection"
-    ? `${formatMetric(selectionTotals.titulares)} titulares · ${formatMetric(selectionTotals.reemplazos)} reemplazos · ${formatMetric(activeUbigeos.size)} distritos`
-    : `${formatMetric(effectiveZoneKeys.size)} zonas con cierre · ${formatMetric(effectiveBlocks.length)} UMP completas`;
+    ? `${formatMetric(selectionTotals.titulares)} titulares, ${formatMetric(selectionTotals.reemplazos)} reemplazos, ${formatMetric(activeUbigeos.size)} distritos`
+    : `${formatMetric(effectiveZoneKeys.size)} zonas con cierre, ${formatMetric(effectiveBlocks.length)} UMP completas`;
   const ariaLabel = mode === "selection"
     ? "Mapa estatico con bordes de Lima Metropolitana y manzanas titulares y reemplazos seleccionadas"
     : "Mapa estatico con bordes de Lima Metropolitana y zonas con cierre de avance";
@@ -384,7 +384,7 @@ export function TerritorialRouteCoverageMap({
                       vectorEffect="non-scaling-stroke"
                       style={{ "--route-zone-color": district?.color ?? "#be123c" } as CSSProperties}
                     >
-                      <title>{`${district?.distrito || feature.properties.ubigeo || "Distrito"} · ${territorialZoneDisplayLabel(feature)}`}</title>
+                      <title>{`${district?.distrito || feature.properties.ubigeo || "Distrito"}, ${territorialZoneDisplayLabel(feature)}`}</title>
                     </path>
                   );
                 })}
@@ -503,7 +503,7 @@ function TerritorialRouteDistrictCoverageTable({ rows }: { rows: TerritorialRout
               </div>
               <div className="mon-territorial-route-district-territory">
                 <strong>{formatMetric(row.zones)} zonas</strong>
-                <em>{formatMetric(row.titulares)} titulares · {formatMetric(row.reemplazos)} reemplazos</em>
+                <em>{formatMetric(row.titulares)} titulares, {formatMetric(row.reemplazos)} reemplazos</em>
               </div>
               <div className="mon-territorial-route-district-quota">
                 <span><strong>{formatMetric(row.validas)}</strong><em>de {formatMetric(row.target || row.population)} previstas</em></span>
@@ -551,7 +551,7 @@ function TerritorialRouteMiniStack({ buckets }: { buckets: TerritorialRouteBucke
           );
         })}
       </i>
-      <span>{buckets.slice(0, 2).map((bucket) => bucket.label).join(" · ")}</span>
+      <span>{buckets.slice(0, 2).map((bucket) => bucket.label).join(", ")}</span>
     </div>
   );
 }
@@ -640,7 +640,7 @@ function territorialRouteBlockMapTitle(block: TerritorialBlockProgress, fallback
     block.manzana ? `Mz ${block.manzana}` : "",
     territorialRouteBlockIsReplacement(block) ? territorialRouteReplacementShortLabel(block) : "Titular",
   ].filter(Boolean);
-  return parts.join(" · ");
+  return parts.join(", ");
 }
 
 export function territorialBlockZoneKey(block: TerritorialBlockProgress) {

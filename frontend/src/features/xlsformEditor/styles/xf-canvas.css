@@ -34,7 +34,7 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--pulso-primary) 6%, white);
   color: color-mix(in srgb, var(--pulso-primary) 72%, #475569);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   line-height: 1;
   white-space: nowrap;
@@ -44,7 +44,7 @@
   overflow: hidden;
   color: inherit;
   font-family: ui-monospace, monospace;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   text-overflow: ellipsis;
 }
 
@@ -57,7 +57,7 @@
   border-radius: 999px;
   background: white;
   color: var(--pulso-primary);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
   transition: background 120ms ease, border-color 120ms ease;
@@ -70,7 +70,7 @@
   padding: 4px 6px;
   border: none;
   background: transparent;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
   cursor: pointer;
   border-radius: 4px;
@@ -112,7 +112,7 @@
 
 /* Chip del tipo: español + término técnico entre paréntesis (TechTerm). */
 .pulso-xlsform-frame .pulso-canvas-card-typebadge .pulso-xf-tech {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-medium);
   letter-spacing: 0;
   text-transform: none;
@@ -124,7 +124,7 @@
 .pulso-xlsform-frame .pulso-canvas-card-conditional {
   gap: 4px;
   align-items: center;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.2px;
   line-height: 1;
@@ -167,7 +167,7 @@
 }
 
 .pulso-xlsform-frame .pulso-canvas-addbetween-trigger:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 /* Menú de inserción: entrada tipo popover gv2 (fade + translate + scale,
@@ -191,7 +191,7 @@
 /* --- 3 · SectionHeader: jerarquía + chevron animado ----------------------- */
 
 .pulso-xlsform-frame .pulso-canvas-section-title {
-  font-size: 15.5px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: -0.1px;
 }
@@ -211,7 +211,7 @@
 .pulso-xlsform-frame .pulso-canvas-section-boundary .pulso-xf-tech {
   min-width: 0;
   overflow: hidden;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   text-overflow: ellipsis;
 }
 
@@ -235,7 +235,7 @@
 }
 
 .pulso-xlsform-frame .pulso-focus-mode-toggle button:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 /* --- 5 · Accesibilidad: focus-visible + reduced motion -------------------- */

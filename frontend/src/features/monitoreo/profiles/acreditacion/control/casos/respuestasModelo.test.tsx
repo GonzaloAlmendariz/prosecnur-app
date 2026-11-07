@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { MonitoreoInternalQueries, MonitoreoInternalQueryCase } from "../../../../../../api/client";
-import { conteoDeFaceta, filtrarRespuestas, respuestasDe } from "./respuestasModelo";
+import { conteoDeFaceta, embudoDeRespuestas, filtrarRespuestas, respuestasDe } from "./respuestasModelo";
 import { Respuestas } from "./Respuestas";
 
 function caso(id: string, estado: string, advancement: string, fecha: string, channel = "Correo"): MonitoreoInternalQueryCase {
@@ -33,5 +33,19 @@ describe("Control › Respuestas", () => {
     const html = renderToStaticMarkup(<Respuestas consultas={consultas} />);
     expect(html).toContain("cuentan en el avance");
     expect(html).not.toMatch(/>[a-z0-9]+([_-][a-z0-9]+)+</);
+  });
+});
+
+describe("embudo de respuestas", () => {
+  const r = (cruce: string, cuenta: boolean) => ({ clave: cruce, id: "", recibida: "", publico: "", canal: "", encuesta: "", estado: "", cruce, cuenta });
+  it("cuenta recibidas → cruzan → efectivas y separa lo que no llega", () => {
+    const embudo = embudoDeRespuestas([
+      r("Cruzó por llave", true), r("Cruzó por llave", true), r("Cruzó por llave", false),
+      r("Cruzó por correo", true), r("Sin llave", false), r("Sin cruce", false), r("Sin base", false),
+    ]);
+    expect(embudo).toEqual({ recibidas: 7, cruzan: 4, efectivas: 3, sinLlave: 1, sinCruce: 2, noCuentan: 1 });
+  });
+  it("una que «cuenta» sin cruzar no es efectiva", () => {
+    expect(embudoDeRespuestas([r("Sin llave", true)]).efectivas).toBe(0);
   });
 });

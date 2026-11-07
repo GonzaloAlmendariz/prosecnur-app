@@ -2,6 +2,7 @@
 // «Cancelar» (la opción segura), Escape y el velo cancelan, y al cerrar el foco vuelve a la tarjeta de origen. No es un
 // panel direccionable: confirma una selección efímera que un enlace no puede reproducir.
 
+import { nombreDeAtajo } from "../../../lib/teclado";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useRef } from "react";
 import { Trash2 } from "../../../vendor/lucide-react";
@@ -35,7 +36,7 @@ export function ConfirmarEliminar({ titulos, onConfirmar, onCancelar, retorno }:
             {n === 1 ? "¿Eliminar esta lámina?" : `¿Eliminar ${n} láminas?`}
           </Dialog.Title>
           <Dialog.Description className="pulso-f6-vg-confirmar-texto">
-            Se quitan del informe. Puedes deshacerlo justo después con Deshacer o con Ctrl/⌘+Z.
+            Se quitan del informe. Puedes deshacerlo justo después con Deshacer o con {nombreDeAtajo("Z")}.
           </Dialog.Description>
           <ul className="pulso-f6-vg-confirmar-lista">
             {(titulos ?? []).slice(0, MAX_LISTADAS).map((t, i) => <li key={`${i}-${t}`}>{t}</li>)}

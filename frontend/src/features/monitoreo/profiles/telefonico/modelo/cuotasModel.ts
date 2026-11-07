@@ -8,7 +8,16 @@
  * el universo, que es la pregunta que el equipo se hace al revisarlas.
  */
 
-export type FilaDeMeta = { value: string; universe: number; meta: number | null; effective: number };
+import { formatoConteo } from "../../../../../lib/formatoNumero";
+import type { CaracterDeCuota } from "../../../core/caracterDeCuota";
+
+/**
+ * `caracter` (ADR 0126): una referencial no entra a la suma de metas ni al
+ * reparto proporcional; su número es una referencia. Sin él, cuenta como meta.
+ */
+export type FilaDeMeta = { value: string; universe: number; meta: number | null; effective: number; caracter?: CaracterDeCuota };
+
+const esReferencial = (fila: FilaDeMeta) => fila.caracter === "referencial";
 
 export type MetaConProporcion = FilaDeMeta & {
   /** Meta sobre el universo de la categoría, de 0 a 1; null sin universo o sin meta. */
@@ -17,31 +26,40 @@ export type MetaConProporcion = FilaDeMeta & {
   proporcional: number | null;
   /** Meta menos el reparto proporcional, redondeado; positivo lleva más. */
   desvio: number | null;
+  /**
+   * Parte del universo de la variable, de 0 a 1 (Gonzalo, 3/11: «cuando es
+   * referencial debe estar el porcentaje del universo para poder
+   * referenciarlo»). Es contra lo que Avance compara a una referencial.
+   */
+  pesoEnUniverso: number | null;
 };
 
 export function metasConProporcion(filas: readonly FilaDeMeta[]): MetaConProporcion[] {
-  const universo = filas.reduce((suma, fila) => suma + fila.universe, 0);
-  const metas = filas.reduce((suma, fila) => suma + (fila.meta ?? 0), 0);
+  const universoTotal = filas.reduce((suma, fila) => suma + Math.max(0, fila.universe), 0);
+  const deMeta = filas.filter((fila) => !esReferencial(fila));
+  const universo = deMeta.reduce((suma, fila) => suma + fila.universe, 0);
+  const metas = deMeta.reduce((suma, fila) => suma + (fila.meta ?? 0), 0);
   return filas.map((fila) => {
-    const proporcional = universo > 0 && metas > 0 ? (fila.universe / universo) * metas : null;
+    const proporcional = !esReferencial(fila) && universo > 0 && metas > 0 ? (fila.universe / universo) * metas : null;
     return {
       ...fila,
       sobreUniverso: fila.meta != null && fila.universe > 0 ? fila.meta / fila.universe : null,
       proporcional,
       desvio: proporcional != null && fila.meta != null ? Math.round(fila.meta - proporcional) : null,
+      pesoEnUniverso: universoTotal > 0 ? Math.max(0, fila.universe) / universoTotal : null,
     };
   });
 }
 
 export type Validacion = { tono: "ok" | "aviso"; texto: string };
 
-const fmt = (n: number) => n.toLocaleString("es-PE");
+const fmt = (n: number) => formatoConteo(n);
 
 /** Desvío desde el que se dice que una categoría se aparta del reparto. */
 export const DESVIO_QUE_SE_SENALA = 5;
 
 export function validarMetas({
-  filas,
+  filas: todas,
   variable,
   objetivoTotal,
 }: {
@@ -49,8 +67,15 @@ export function validarMetas({
   variable: string;
   objetivoTotal: number | null;
 }): Validacion[] {
+  let filas = todas;
   const out: Validacion[] = [];
   if (!filas.length) return [{ tono: "aviso", texto: `${variable} no tiene categorías en la hoja ni metas declaradas.` }];
+  const referenciales = filas.filter(esReferencial);
+  if (referenciales.length) {
+    out.push({ tono: "ok", texto: `${referenciales.map((fila) => fila.value).join(", ")} ${referenciales.length === 1 ? "es referencial: se describe" : "son referenciales: se describen"} en Avance y no suma a la meta.` });
+    filas = filas.filter((fila) => !esReferencial(fila));
+    if (!filas.length) return out;
+  }
   const suma = filas.reduce((total, fila) => total + (fila.meta ?? 0), 0);
   const conMeta = filas.filter((fila) => fila.meta != null && fila.meta > 0);
   const cuantas = filas.length === 1 ? "La meta suma" : `Las ${fmt(filas.length)} metas suman`;

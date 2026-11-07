@@ -73,3 +73,18 @@ describe("S13: una pregunta con fórmula también es un cálculo", () => {
     expect(items.map((i) => [i.node.name, i.enPregunta])).toEqual([["edad_calc", true], ["tramo", false]]);
   });
 });
+
+describe("sugeridas de opciones que van solas (E18)", () => {
+  test("una selección múltiple con «Ninguno» es sugerida; sin esas opciones, no", () => {
+    const s = estructura([
+      nodo(1, "medios", "select_multiple", { typeInfo: { raw: "select_multiple m", base: "select_multiple", listName: "m" } }),
+      nodo(2, "frutas", "select_multiple", { typeInfo: { raw: "select_multiple f", base: "select_multiple", listName: "f" } }),
+    ]);
+    const opciones: Record<string, { name: string; label: string }[]> = {
+      m: [{ name: "1", label: "Radio" }, { name: "99", label: "Ninguno" }],
+      f: [{ name: "1", label: "Manzana" }],
+    };
+    const r = restriccionesDelFormulario(s, (l) => opciones[l] ?? []);
+    expect(r.map((x) => [x.node.name, x.estado])).toEqual([["medios", "sugerida"]]);
+  });
+});

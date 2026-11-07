@@ -12,6 +12,7 @@ import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Check, Copy, X } from "../../../vendor/lucide-react";
 import type { CampanaDeclararResultado } from "../../../api/xlsformCampanas";
+import { copiarTexto } from "../../../lib/portapapeles";
 import { CampanaComplementariaPanel } from "./CampanaComplementariaPanel";
 import "../styles/xfCampana";
 
@@ -72,7 +73,7 @@ export function CampanaComplementariaDialog({
               {encuestaPrincipal ? (
                 <span className="pulso-xf-campana-contexto-principal">
                   Principal: {encuestaPrincipalTitulo && encuestaPrincipalTitulo !== formName
-                    ? `${encuestaPrincipalTitulo} · `
+                    ? `${encuestaPrincipalTitulo}, `
                     : ""}
                   <CopiarId id={encuestaPrincipal} />
                 </span>
@@ -108,7 +109,7 @@ function CopiarId({ id }: { id: string }) {
       aria-label={copiado ? `ID ${id} copiado` : `Copiar el ID ${id}`}
       title="Copiar el ID de SurveyMonkey"
       onClick={() => {
-        void navigator.clipboard?.writeText(id).then(() => {
+        void copiarTexto(id).then(() => {
           setCopiado(true);
           window.setTimeout(() => setCopiado(false), 1600);
         // Sin permiso de portapapeles el ID sigue visible y seleccionable.

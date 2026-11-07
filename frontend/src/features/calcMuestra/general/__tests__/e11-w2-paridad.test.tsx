@@ -111,7 +111,7 @@ describe("Acreditación › Actores", () => {
     const html = tabla([docentesMas()]);
     expect(html).toContain('aria-label="Respuesta esperada de Docentes"');
     expect(html).toContain('value="60"');
-    expect(html).toContain("Respuesta esperada · margen ±5.0%");
+    expect(html).toContain("Respuesta esperada, margen ±5.0%");
     expect(html).not.toContain("Sobremuestra");
     expect(html).not.toContain("0.0%");
   });
@@ -139,7 +139,7 @@ describe("Acreditación › Actores", () => {
   it("V13 · readiness declarada y V12 · el título es un h3 bajo el h2 de la sección", () => {
     const html = tabla([docentesMas()]);
     expect(html).toContain('data-audit-ready="true"');
-    expect(html).toContain('<h3 class="cmg-panel-titulo" id="cmg-actores-marco-titulo">');
+    expect(html).toContain('<h3 class="pulso-panel-title"><span id="cmg-actores-marco-titulo">');
     expect(sinSaltos(html)).toBe(true);
   });
 
@@ -199,7 +199,7 @@ describe("V3 · Método es una región, no un tabpanel huérfano", () => {
     const html = metodo({ fase: "listo", catalogo: CATALOGO });
     expect(html).toMatch(/^<section id="cmv2-section-general-metodo"[^>]*aria-labelledby="cmg-seccion-titulo"/);
     expect(html).not.toContain('role="tabpanel"');
-    expect(html).toContain('<h3 class="cmg-panel-titulo" id="cmg-tecnica-titulo">');
+    expect(html).toContain('<h3 class="pulso-panel-title"><span id="cmg-tecnica-titulo">');
   });
 
   it("V13 · readiness: false mientras el catálogo o el marco se leen", () => {
@@ -305,7 +305,7 @@ describe("V9 · tablas con la gramática de aulas", () => {
     expect(html).toContain('<th scope="row"><code>U-1</code></th>');
     expect(html).toContain('<th scope="col" class="cmv2-num">Peso base</th>');
     expect(html).toContain('class="cmv2-table-wrap cmg-tabla-desplazable"');
-    expect(html).toContain('<h3 class="cmg-panel-titulo" id="cmg-unidades-titulo">');
+    expect(html).toContain('<h3 class="pulso-panel-title"><span id="cmg-unidades-titulo">');
   });
 
   it("estratos: caption, estrato como rótulo de fila y N_h con nombre accesible", () => {

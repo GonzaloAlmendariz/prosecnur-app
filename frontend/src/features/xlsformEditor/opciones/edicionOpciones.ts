@@ -84,5 +84,5 @@ export function totalListas(catalogs: readonly { items: readonly unknown[] }[]):
   const sinOpciones = catalogs.filter((c) => c.items.length === 0).length;
   const con = catalogs.length - sinOpciones;
   const base = `${con} ${con === 1 ? "lista" : "listas"}`;
-  return sinOpciones ? `${base} · ${sinOpciones} sin opciones` : base;
+  return sinOpciones ? `${base}, ${sinOpciones} sin opciones` : base;
 }

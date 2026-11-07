@@ -297,7 +297,7 @@ describe("superficie de Revisión en Carga", () => {
   });
 });
 
-describe("CargaReviewSummary · aviso de procedencia (GOAL validación extrínseca, L11)", () => {
+describe("CargaReviewSummary, aviso de procedencia (GOAL validación extrínseca, L11)", () => {
   const baseProps = {
     pendingChoiceMapping: false,
     extraVariableCount: 0,
@@ -380,7 +380,7 @@ describe("CargaReviewSummary · aviso de procedencia (GOAL validación extrínse
   });
 });
 
-describe("CargaReviewSummary · fuentes emparejadas por pregunta (ADR 0099)", () => {
+describe("CargaReviewSummary, fuentes emparejadas por pregunta (ADR 0099)", () => {
   const baseProps = {
     pendingChoiceMapping: false,
     extraVariableCount: 0,
@@ -436,7 +436,7 @@ describe("CargaReviewSummary · fuentes emparejadas por pregunta (ADR 0099)", ()
     );
     const item = finding(html, "en otro orden");
     expect(item).toContain('class="is-info"');
-    expect(item).toContain("Telefónico · 73 de 74 preguntas emparejadas, en otro orden");
+    expect(item).toContain("Telefónico, 73 de 74 preguntas emparejadas, en otro orden");
     expect(html).toContain('data-qa-geometry-group="carga-review-findings"');
     expect(html).toContain("Sin bloqueos");
   });
@@ -461,7 +461,7 @@ describe("CargaReviewSummary · fuentes emparejadas por pregunta (ADR 0099)", ()
     );
     const item = finding(html, "No entraron");
     expect(item).toContain('class="is-pending"');
-    expect(item).toContain("Telefónico · 73 de 74 preguntas emparejadas");
+    expect(item).toContain("Telefónico, 73 de 74 preguntas emparejadas");
     expect(item).toContain("Sin respuesta en esta fuente: Edad");
     expect(item).toContain("No entraron: Cod Pulso, Celular del egresado, Enumerador +1");
     expect(item).not.toMatch(/survey_id|firma|ordinal/u);
@@ -480,7 +480,7 @@ describe("CargaReviewSummary · fuentes emparejadas por pregunta (ADR 0099)", ()
     );
     const item = finding(html, "no entró a la base");
     expect(item).toContain('class="is-incompatible"');
-    expect(item).toContain("Telefónico · no entró a la base");
+    expect(item).toContain("Telefónico, no entró a la base");
     expect(item).toContain("Solo coinciden 30 de 74 preguntas con la base. 48 respuestas quedaron fuera.");
     expect(item).toContain("Impórtala como base separada y relaciónala en Equivalencias.");
     // No bloquea, pero el encabezado no dice «sin bloqueos» junto a una fuente fuera.

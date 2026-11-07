@@ -88,6 +88,10 @@
   if (is.null(cfg[["documento_word"]]) && is.list(previa) && !is.null(previa[["documento_word"]])) {
     cfg[["documento_word"]] <- previa[["documento_word"]]
   }
+  # La regla de diferencias (ADR 0128) la escribe su endpoint; el autosave del editor no la trae y no debe borrarla.
+  if (is.null(cfg[["significancia"]]) && is.list(previa) && !is.null(previa[["significancia"]])) {
+    cfg[["significancia"]] <- previa[["significancia"]]
+  }
   cfg
 }
 

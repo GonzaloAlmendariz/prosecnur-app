@@ -117,7 +117,7 @@ describe("C40 · ASIGNAR", () => {
     expect(nombres(sinInterruptor, {}, "p_dumbbell")).not.toContain("etiqueta_brecha");
     expect(nombres(dumbbell, {}, "p_lollipop")).not.toContain("etiqueta_brecha");
   });
-  it("ADR 0114 · dumbbell: el estilo siempre; padrón y separador sólo con «Contraste de públicos»", () => {
+  it("ADR 0134 · dumbbell: el estilo siempre; padrón y separador sólo con «Contraste de públicos»", () => {
     const resumen = [...dumbbell, a("estilo", "choice", { default: "recetario" }), a("universos", "string"),
       a("separar_tras", "number", { default: 0 }), a("base_en", "choice", { default: "auto" })];
     expect(nombres(resumen, {}, "p_dumbbell")).toEqual(["corte_etiqueta", "estilo", "orden", "mostrar_brecha", "etiqueta_brecha"]);
@@ -134,12 +134,12 @@ describe("C40 · ASIGNAR", () => {
     // En otro graficador el mismo nombre no tiene efecto nativo.
     expect(nombres(resumen, { estilo: "resumen" }, "p_lollipop")).not.toEqual(expect.arrayContaining(["estilo", "universos", "separar_tras"]));
   });
-  it("ADR 0114 · divergentes: estilo y orden de las filas; sin padrón ni separador", () => {
+  it("ADR 0134 · divergentes: estilo y orden de las filas; sin padrón ni separador", () => {
     const divergentes = [a("vars", "variables_list"), a("estilo", "choice", { default: "recetario" }),
       a("orden", "choice", { default: "top_two_box" }), a("universos", "string"), a("separar_tras", "number"), a("base_en", "choice")];
     expect(nombres(divergentes, { estilo: "resumen" }, "p_barras_divergentes")).toEqual(["vars", "estilo", "orden"]);
   });
-  it("ADR 0114 · panorama: preguntas, indicador, su nombre y la referencia", () => {
+  it("ADR 0134 · panorama: preguntas, indicador, su nombre y la referencia", () => {
     const panorama = [a("vars", "variables_list"), a("corte", "codigos_list"), a("corte_etiqueta", "string"),
       a("referencia", "number", { default: 60 })];
     expect(nombres(panorama, { vars: ["docentes$*"] }, "p_panorama")).toEqual(["vars", "corte", "corte_etiqueta", "referencia"]);
@@ -165,6 +165,12 @@ describe("C40 · ASIGNAR", () => {
     expect(t?.rotulo).toBe("Tabla de datos");
     expect(t?.ayuda).toBe(AYUDA_TABLA);
     expect(t?.opciones.map((o) => o.value)).toEqual(["auto", "si", "no"]);
+    // La regla del motor (.radar_mb_tabla_procede): Automática ya la pone con líneas y puntos; sólo barras pide «Sí».
+    expect(AYUDA_TABLA).toMatch(/^Automática la pone junto al radar y a las líneas y puntos/);
+    // Sin encabezado de fábrica: vacío queda vacío y avisa; la ayuda no promete «Tema».
+    const enc = campo(radar, { modo: "publicos" }, "p_radar", "tabla_titulo")?.ayuda ?? "";
+    expect(enc).toContain("Vacío, la celda queda vacía");
+    expect(enc).not.toMatch(/Tema/);
     expect(esRetirado("mostrar_tabla", "p_radar")).toBe(true);
     expect(nombres(radar, {}, "p_radar")).not.toContain("tabla");
     expect(campo(radar, { modo: "publicos" }, "p_radar", "eje_min")?.ayuda).toBe(AYUDA_EJE_MIN);

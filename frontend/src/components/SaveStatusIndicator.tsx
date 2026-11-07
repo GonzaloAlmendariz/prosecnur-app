@@ -34,6 +34,8 @@ type Props = {
    * Default: "Guardado".
    */
   savedLabel?: string;
+  /** Label en estado `dirty`, cuando «sin guardar» diría otra cosa que el indicador del proyecto (Gráficos, H10). */
+  dirtyLabel?: string;
   /**
    * Oculta el texto visible cuando el estado ya vive dentro de una barra muy
    * densa. El label queda disponible via aria-label/title.
@@ -52,7 +54,7 @@ type Cfg = {
   border: string;
 };
 
-function cfgFor(state: SaveState, savedLabel: string): Cfg {
+function cfgFor(state: SaveState, savedLabel: string, dirtyLabel: string): Cfg {
   switch (state) {
     case "saved":
       return {
@@ -72,7 +74,7 @@ function cfgFor(state: SaveState, savedLabel: string): Cfg {
       };
     case "dirty":
       return {
-        label: "Cambios sin guardar",
+        label: dirtyLabel,
         icon: null,
         color: "var(--pulso-warn-fg)",
         bg: "var(--pulso-warn-bg)",
@@ -110,9 +112,10 @@ export function SaveStatusIndicator({
   state,
   variant = "inline",
   savedLabel = "Guardado",
+  dirtyLabel = "Cambios sin guardar",
   showLabel = true,
 }: Props) {
-  const cfg = cfgFor(state, savedLabel);
+  const cfg = cfgFor(state, savedLabel, dirtyLabel);
   if (variant === "badge") {
     return (
       <span

@@ -12,6 +12,9 @@
 #   corners rectas · suaves · redondas            (0 · 8 · 16 px)
 #   spacing compacto · normal · amplio            (arriba 12 · 20 · 36 px)
 #   text    auto · tinta · acento · blanco
+#   join    no · siguiente    (loop editor de correos, L10) «siguiente» la pega a
+#           la caja que sigue: sin el hueco de 16 px y con esquinas rectas donde
+#           se tocan, para que dos bloques se lean como una sola caja
 # Los nombres de la paleta se guardan como nombre, no como hex: cambiar el
 # acento re-viste toda caja «tinte» o «acento» del correo.
 #
@@ -27,13 +30,14 @@
 # fondo invierte sus colores. Outlook de Windows ignora `border-radius`: la caja
 # sale con esquinas rectas ahí (degradación aceptada en el benchmark).
 
-.CMAIL_BOX_KEYS <- c("bg", "border", "corners", "spacing", "text")
+.CMAIL_BOX_KEYS <- c("bg", "border", "corners", "spacing", "text", "join")
 .CMAIL_BOX_BG_NAMES <- c("papel", "tinte", "acento", "tinta")
 .CMAIL_BOX_ENUMS <- list(
   border = c("ninguno", "fino", "acento"),
   corners = c("rectas", "suaves", "redondas"),
   spacing = c("compacto", "normal", "amplio"),
-  text = c("auto", "tinta", "acento", "blanco")
+  text = c("auto", "tinta", "acento", "blanco"),
+  join = c("no", "siguiente")
 )
 .CMAIL_BOX_RADIUS <- c(rectas = 0L, suaves = 8L, redondas = 16L)
 .CMAIL_BOX_SPACING <- list(compacto = c(12L, 0L), normal = c(20L, 4L), amplio = c(36L, 20L))
@@ -82,7 +86,7 @@
   if (!is.list(box) || as.character(b$type %||% "") %in% .CMAIL_BOX_EXCLUDED) return(NULL)
   pick <- function(k, default) .cmail_one(box[[k]]) %||% default
   list(bg = pick("bg", "papel"), border = pick("border", "ninguno"), corners = pick("corners", "suaves"),
-       spacing = pick("spacing", "normal"), text = pick("text", "auto"))
+       spacing = pick("spacing", "normal"), text = pick("text", "auto"), join = pick("join", "no"))
 }
 
 .cmail_box_bg <- function(box, ctx) {
@@ -149,7 +153,7 @@
 #' Envuelve las filas de un bloque en su caja.
 #' @param html las filas `<tr>` del bloque, ya renderizadas con `.cmail_box_ctx`.
 #' @keywords internal
-.cmail_box_wrap <- function(html, box, ctx) {
+.cmail_box_wrap <- function(html, box, ctx, pegada_arriba = FALSE) {
   if (!nzchar(html)) return(html)
   bg <- ctx$pal$box_bg
   space <- .CMAIL_BOX_SPACING[[box$spacing]]
@@ -162,14 +166,22 @@
   if (identical(box$border, "acento") && .cmail_contrast(tolower(ctx$accent %||% .CMAIL_DEFAULT_ACCENT), bg) < 3) {
     border <- sprintf("border-left:4px solid %s;", ctx$pal$text)
   }
+  # Unida a la siguiente (L10): sin hueco abajo y esquinas rectas donde se toca con la vecina.
+  pegada_abajo <- identical(box$join, "siguiente")
+  arriba <- if (isTRUE(pegada_arriba)) 0L else radius
+  abajo <- if (pegada_abajo) 0L else radius
+  # Donde se tocan, la mitad del relleno de cada una: juntas suman el de una sola caja.
+  if (isTRUE(pegada_arriba)) space[[1]] <- as.integer(space[[1]] %/% 2L)
+  if (pegada_abajo) space[[2]] <- as.integer(space[[2]] %/% 2L)
+  radios <- if (arriba == abajo) sprintf("%dpx", radius * (arriba > 0)) else sprintf("%dpx %dpx %dpx %dpx", arriba, arriba, abajo, abajo)
   sprintf(paste0(
-    '<tr><td class="%s" style="padding:0 %dpx 16px %dpx;">',
+    '<tr><td class="%s" style="padding:0 %dpx %dpx %dpx;">',
     '<table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0"><tr>',
-    '<td bgcolor="%s" style="background-color:%s;%sborder-radius:%dpx;padding:%dpx 0 %dpx 0;">',
+    '<td bgcolor="%s" style="background-color:%s;%sborder-radius:%s;padding:%dpx 0 %dpx 0;">',
     '<table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0">%s</table>',
     '</td></tr></table></td></tr>'
-  ), .CMAIL_BOX_CLASS, .CMAIL_BOX_INSET, .CMAIL_BOX_INSET, bg, bg, border, radius, space[[1]], space[[2]],
-  .cmail_box_inner_pad(html))
+  ), .CMAIL_BOX_CLASS, .CMAIL_BOX_INSET, if (pegada_abajo) 0L else 16L, .CMAIL_BOX_INSET, bg, bg, border, radios,
+  space[[1]], space[[2]], .cmail_box_inner_pad(html))
 }
 
 # Regla del `<head>`: solo si el cuerpo trae alguna caja (sin cajas, el HTML de

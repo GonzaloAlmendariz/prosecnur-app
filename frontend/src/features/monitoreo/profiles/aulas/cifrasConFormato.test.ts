@@ -27,7 +27,9 @@ const UNIDADES = "cursos-horario|aulas|respuestas|reservas|filas|celdas|titulare
 /**
  * `${algo} aulas` — una cifra metida en la frase sin pasar por el formateador.
  *
- * Se exige `fmt(`, `fmtCuenta(` o `toLocaleString` dentro de la interpolación.
+ * Se exige `fmt(`, `fmtCuenta(`, el formateador compartido (`formatoConteo(`,
+ * `formatoDecimal(`, `formatoConteoDe(` de `lib/formatoNumero`) o
+ * `toLocaleString` dentro de la interpolación.
  * `fmtCuenta()` entró después que este guard y es MÁS estricto que `fmt()`
  * —redondea hacia arriba porque media respuesta no existe—, así que dejarlo
  * fuera empujaba a usar el formateador menos correcto para una cuenta. Una
@@ -38,7 +40,7 @@ const UNIDADES = "cursos-horario|aulas|respuestas|reservas|filas|celdas|titulare
 // Se excluyen las interpolaciones que llevan comillas dentro: `${n === 1 ?
 // "reserva" : "reservas"}` produce TEXTO, no una cifra, y formatearlo no
 // significaría nada.
-const SIN_FORMATO = String.raw`\$\{(?!fmt\(|fmtCuenta\(|fmtAporte\(|pctPerfil\(|[^}]*toLocaleString)[^}"']*\}`;
+const SIN_FORMATO = String.raw`\$\{(?!fmt\(|fmtCuenta\(|fmtAporte\(|pctPerfil\(|formatoConteo\(|formatoDecimal\(|formatoConteoDe\(|[^}]*toLocaleString)[^}"']*\}`;
 
 /**
  * Las formas en que una cifra llega a la frase, medidas en el perfil:

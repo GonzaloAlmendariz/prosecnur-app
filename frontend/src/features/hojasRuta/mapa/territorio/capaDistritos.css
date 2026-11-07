@@ -1,0 +1,5 @@
+/* Leyenda escalonada de la coropleta del atlas (CapaDistritosControles.tsx): color, corte, color… en un renglón. */
+.hr-capa-escalones { display: inline-flex; align-items: center; gap: 4px; }
+.hr-capa-escalones > span { display: inline-flex; align-items: center; gap: 4px; }
+.hr-capa-escalones i { width: 18px; height: 10px; border-radius: 2px; }
+.hr-capa-escalones small { font-size: var(--pulso-type-caption-size); font-variant-numeric: tabular-nums; color: var(--pulso-text-soft); }

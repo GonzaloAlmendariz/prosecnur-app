@@ -134,6 +134,26 @@ describe("usePlataformaStore", () => {
     expect(store.getState().terminados["surveymonkey:separada"]?.resultado.tipo).toBe("cancelado-importado");
   });
 
+  it("avisa al Home sólo cuando la base quedó (L31b)", async () => {
+    const poller = pollerManual();
+    const avisarCambio = vi.fn();
+    const store = crearStorePlataforma({
+      surveymonkeySeparada: vi.fn().mockResolvedValue({ ok: true, async: true, job_id: "j5", kind: "x" }),
+      koboSeparada: vi.fn().mockResolvedValue({ ok: true, async: true, job_id: "j6", kind: "x" }),
+      poll: poller.poll,
+      avisarCambio,
+    });
+    await store.getState().importar(peticionSm);
+    poller.emitir("j5", { status: "running", progress: { phase: "fetch", percent: 30 } });
+    expect(avisarCambio).not.toHaveBeenCalled();
+    poller.emitir("j5", { status: "done", result_data: separadoOk });
+    expect(avisarCambio).toHaveBeenCalledTimes(1);
+
+    await store.getState().importar({ ...peticionSm, proveedor: "kobo", baseUrl: "https://kf.kobotoolbox.org" });
+    poller.emitir("j6", { status: "cancelled" });
+    expect(avisarCambio).toHaveBeenCalledTimes(1);
+  });
+
   it("cancelar antes de tener job_id cancela en cuanto llega", async () => {
     const poller = pollerManual();
     const cancelarJob = vi.fn().mockResolvedValue({ ok: true });

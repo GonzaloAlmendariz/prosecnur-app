@@ -38,7 +38,7 @@ describe("registro de campo", () => {
   });
 
   it("identifica el aula por su código y su curso", () => {
-    expect(etiquetaDeAula(fila())).toBe("CH 1 · Cálculo I");
+    expect(etiquetaDeAula(fila())).toBe("CH 1, Cálculo I");
     expect(etiquetaDeAula(fila({ course_name: "", label: "" }))).toBe("CH 1");
   });
 

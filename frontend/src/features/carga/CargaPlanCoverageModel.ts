@@ -10,6 +10,7 @@
 
 import type { EstudioBase } from "../../api/client";
 import type { CargaTopologyResolution } from "./CargaTopologyModel";
+import { formatoConteo } from "../../lib/formatoNumero";
 
 export type CoverageState = "ready" | "attention" | "pending";
 
@@ -35,19 +36,19 @@ function baseLabel(base: EstudioBase) {
 
 function sourceLabel(base: EstudioBase) {
   if (base.source_kind === "surveymonkey") return "SurveyMonkey";
-  if (base.source_kind === "kobo_repeat") return "Kobo · grupo repetido";
+  if (base.source_kind === "kobo_repeat") return "Kobo, grupo repetido";
   if (base.source_kind?.startsWith("kobo")) return "KoboToolbox";
   return "Archivo o fuente local";
 }
 
 function baseMeta(base: EstudioBase) {
   const rows = typeof base.n_filas === "number"
-    ? `${base.n_filas.toLocaleString("es-PE")} filas`
+    ? `${formatoConteo(base.n_filas)} filas`
     : "filas por contar";
   const columns = typeof base.n_columnas === "number"
-    ? `${base.n_columnas.toLocaleString("es-PE")} columnas`
+    ? `${formatoConteo(base.n_columnas)} columnas`
     : "columnas por contar";
-  return `${sourceLabel(base)} · ${rows} · ${columns}`;
+  return `${sourceLabel(base)}, ${rows}, ${columns}`;
 }
 
 export function rowState(hasInstrument: boolean, hasData: boolean): CoverageState {
@@ -99,7 +100,7 @@ export function coverageSummary({
       ? [singleRow(
           hasInstrument,
           hasData,
-          `Base que ya tiene el estudio · ${hasData ? "respuestas conectadas" : "aún sin respuestas"}`,
+          `Base que ya tiene el estudio, ${hasData ? "respuestas conectadas" : "aún sin respuestas"}`,
         )]
       : [];
   } else if (topologyDefined) {

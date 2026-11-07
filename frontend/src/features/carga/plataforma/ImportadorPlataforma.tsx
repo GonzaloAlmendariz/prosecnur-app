@@ -6,6 +6,7 @@ import {
   fasesDeImport,
   formatoTranscurrido,
   type EstrategiaImport,
+  textoDeExcluidas,
   type ImportExitoso,
   type ProveedorPlataforma,
 } from "./modeloPlataforma";
@@ -26,12 +27,18 @@ const NUMERO = new Intl.NumberFormat("es-PE");
 
 function detalleExito(exito: ImportExitoso): string {
   const partes: string[] = [];
-  if (exito.nFilas != null) partes.push(`${NUMERO.format(exito.nFilas)} registros`);
+  const filtro = exito.filtro;
+  if (filtro && filtro.excluidas > 0) {
+    partes.push(`${NUMERO.format(filtro.conservadas)} de ${NUMERO.format(filtro.originales)} respuestas`);
+    partes.push(textoDeExcluidas(filtro));
+  } else if (exito.nFilas != null) {
+    partes.push(`${NUMERO.format(exito.nFilas)} registros`);
+  }
   if (exito.nColumnas != null) partes.push(`${NUMERO.format(exito.nColumnas)} columnas`);
   if (exito.basesHijas.length) {
     partes.push(`${exito.basesHijas.length} base${exito.basesHijas.length === 1 ? "" : "s"} de repeat`);
   }
-  return partes.join(" · ");
+  return partes.join(", ");
 }
 
 /**
@@ -71,7 +78,7 @@ export function ImportadorPlataforma({
       : vivo?.reintentando
         ? "Reintentando conexión…"
         : progreso?.mensaje || (estado === "lanzando" ? `Conectando con ${plataforma}…` : fases[fase]);
-    const meta = [mensaje, contador, `${formatoTranscurrido(transcurridoMs)} transcurridos`].filter(Boolean).join(" · ");
+    const meta = [mensaje, contador, `${formatoTranscurrido(transcurridoMs)} transcurridos`].filter(Boolean).join(", ");
     const estiloAvance = { "--importador-avance": percent ?? 0 } as CSSProperties;
 
     return (
@@ -108,7 +115,7 @@ export function ImportadorPlataforma({
               aria-valuemin={0}
               aria-valuemax={100}
               aria-valuenow={percent == null ? undefined : Math.round(percent)}
-              aria-valuetext={percent == null ? fases[fase] : `${Math.round(percent)} % · ${fases[fase]}`}
+              aria-valuetext={percent == null ? fases[fase] : `${Math.round(percent)} %, ${fases[fase]}`}
             >
               <i />
             </div>

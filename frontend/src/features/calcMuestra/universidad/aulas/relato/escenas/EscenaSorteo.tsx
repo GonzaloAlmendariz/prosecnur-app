@@ -39,7 +39,7 @@ function elegiblesEnsamblados(paso: RelatoPasoSorteo, encoge: boolean): number |
 }
 
 function cifraDeAterrizaje(paso: RelatoPasoSorteo, encoge: boolean): string {
-  if (paso.certeza) return "certeza · sin sorteo";
+  if (paso.certeza) return "certeza, sin sorteo";
   if (encoge && paso.neto != null) return `${fmtInt(paso.neto)} netos`;
   const elegibles = elegiblesEnsamblados(paso, encoge);
   return elegibles != null ? `${fmtInt(elegibles)} elegibles` : "";
@@ -275,8 +275,8 @@ export function EscenaSorteo({ escena }: { escena: RelatoEscenaSorteo }) {
                     (paso.yaCubiertos ?? 0) > 0 ? `${fmtInt(paso.yaCubiertos)} ya cubiertos` : "",
                   ]
                     .filter(Boolean)
-                    .join(" · ")
-                : [unidad.bola!.etiqueta, unidad.bola!.facultad, cifra].filter(Boolean).join(" · ");
+                    .join(", ")
+                : [unidad.bola!.etiqueta, unidad.bola!.facultad, cifra].filter(Boolean).join(", ");
               return (
                 <g
                   key={`${unidad.clave}${esReciente ? "-enciende" : ""}`}
@@ -305,8 +305,8 @@ export function EscenaSorteo({ escena }: { escena: RelatoEscenaSorteo }) {
                 >
                   <title>
                     {paso
-                      ? `Paso ${fmtInt(paso.paso)} · ${paso.estrato} · ${codigo} · ${detalle}`
-                      : `Sin sortear · ${codigo} · ${detalle}`}
+                      ? `Paso ${fmtInt(paso.paso)}, ${paso.estrato}, ${codigo}, ${detalle}`
+                      : `Sin sortear, ${codigo}, ${detalle}`}
                   </title>
                   <circle className="cmv2-relato-goo-cuerpo" r={unidad.r.toFixed(2)} />
                   <circle
@@ -334,12 +334,12 @@ export function EscenaSorteo({ escena }: { escena: RelatoEscenaSorteo }) {
                   {esReciente ? (
                     <text className="cmv2-relato-goo-rotulo is-reciente" y={unidad.r + 2.6}>
                       {codigo}
-                      {cifra ? ` · ${cifra}` : ""}
+                      {cifra ? `, ${cifra}` : ""}
                     </text>
                   ) : (
                     <text className="cmv2-relato-goo-rotulo is-hover" y={unidad.r + 2.6}>
                       {codigo}
-                      {cifra ? ` · ${cifra}` : ""}
+                      {cifra ? `, ${cifra}` : ""}
                     </text>
                   )}
                 </g>
@@ -382,7 +382,7 @@ export function EscenaSorteo({ escena }: { escena: RelatoEscenaSorteo }) {
             <p className="cmv2-relato-indicador" aria-live="polite">
               Bola {fmtInt(aterrizadas)} de {fmtInt(total)}
               {ultima
-                ? ` · ${ultima.code} · ${cifraDeAterrizaje(ultima, escena.encoge)}`
+                ? `, ${ultima.code}, ${cifraDeAterrizaje(ultima, escena.encoge)}`
                 : ""}
             </p>
           </div>
@@ -399,9 +399,9 @@ export function EscenaSorteo({ escena }: { escena: RelatoEscenaSorteo }) {
                 <span className="cmv2-relato-paso-quien">
                   <strong>
                     {paso.code}
-                    {paso.certeza ? " · certeza · sin sorteo" : ""}
+                    {paso.certeza ? ", certeza, sin sorteo" : ""}
                   </strong>
-                  <small>{paso.etiqueta} · {paso.facultad}</small>
+                  <small>{paso.etiqueta}, {paso.facultad}</small>
                 </span>
                 <span className="cmv2-relato-paso-cifras">
                   <span>{paso.bruto == null ? "— brutos" : `${fmtInt(paso.bruto)} brutos`}</span>

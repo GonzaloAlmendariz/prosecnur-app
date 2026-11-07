@@ -95,7 +95,9 @@ describe("estrategia de Plan dentro de Fuentes", () => {
     const separatePlatform = pageSource.slice(start, end);
     expect(separatePlatform).toContain("plannedInputCount");
     expect(separatePlatform).toContain("{platformPanel}");
-    expect(pageSource).toContain("apiCargaImportSurveyMonkeySeparadaAsync(");
+    // L5b: el import va por el importador único (job en el store, cancelable).
+    expect(pageSource).toContain('importsPlataforma.lanzar("surveymonkey", "separada"');
+    expect(pageSource).toContain('importsPlataforma.lanzar("kobo", "separada"');
     expect(pageSource).toMatch(/sourceStrategy === "separate"\) \{\s*const baseName = nombreLibreDeBase\(nombreCortoDeEncuesta/);
   });
 });

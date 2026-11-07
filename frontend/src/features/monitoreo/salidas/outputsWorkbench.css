@@ -154,11 +154,15 @@
     box-shadow var(--motion-dur-fast, 160ms) var(--motion-ease-out, ease);
 }
 
+/* La barra va DETRÁS del contenido: con z-index 0 tapaba el texto del botón (que
+ * no está envuelto) y al completarse el botón verde quedaba vacío, sólo con el
+ * ícono (Gonzalo, 30/10). El botón aísla su apilamiento, así que -1 la deja
+ * sobre su fondo y bajo el texto. */
 .mon-outputs-action-progress::before {
   content: "";
   position: absolute;
   inset: 0 auto 0 0;
-  z-index: 0;
+  z-index: -1;
   width: var(--mon-output-action-progress);
   border-radius: inherit;
   opacity: 0;
@@ -1674,7 +1678,7 @@
   gap: 5px;
   padding: 3px 9px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: 600;
   letter-spacing: 0.01em;
   background: color-mix(in srgb, currentColor 10%, transparent);
@@ -1687,7 +1691,7 @@
 .mon-outputs-readiness.is-sin-configurar .mon-outputs-readiness__badge { color: var(--pulso-state-unset-fg); }
 
 .mon-outputs-readiness__head strong {
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: 600;
   color: var(--pulso-text);
 }
@@ -1709,7 +1713,7 @@
 }
 
 .mon-outputs-readiness__granos dt {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -1718,14 +1722,14 @@
 
 .mon-outputs-readiness__granos dd {
   margin: 0;
-  font-size: 17px;
+  font-size: var(--pulso-type-title-size);
   font-weight: 650;
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text);
 }
 
 .mon-outputs-readiness__granos small {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-muted);
 }
 
@@ -1746,7 +1750,7 @@
   display: flex;
   align-items: baseline;
   gap: 8px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 
@@ -1758,7 +1762,7 @@
 
 .mon-outputs-readiness__sin-saltos {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 
@@ -1766,7 +1770,7 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text);
 }
 
@@ -1787,7 +1791,7 @@
   border: 1px solid var(--pulso-border);
   background: var(--pulso-surface);
   color: var(--pulso-text);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: 600;
   cursor: pointer;
 }
@@ -1925,7 +1929,7 @@
   border: 0;
   background: none;
   color: var(--pulso-text-faint);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.09em;
   line-height: 1.2;
@@ -1936,7 +1940,7 @@
  * acreditació…» y «cort…» (QA final). */
 .mon-outputs-workbench--ficha .mon-outputs-workbench__head > div > strong {
   overflow: visible;
-  font-size: 14px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.25;
   text-overflow: clip;
   white-space: normal;
@@ -1945,7 +1949,7 @@
 .mon-outputs-workbench--ficha .mon-outputs-workbench__head > div > small {
   overflow: visible;
   color: var(--pulso-text-faint);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-weight: var(--pulso-weight-regular);
   text-overflow: clip;
   white-space: normal;
@@ -1976,7 +1980,7 @@
   border: 0;
   background: none;
   color: var(--pulso-text);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   white-space: nowrap;
 }
@@ -2026,4 +2030,12 @@
 
 .mon-outputs-action-motivo > .mon-outputs-primary {
   width: 100%;
+}
+
+/* Los datos del corte en la cabecera de las tarjetas: cada uno en su elemento,
+ * separados por espacio y no por «·». */
+.mon-outputs-corte-datos {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
 }

@@ -1,3 +1,4 @@
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 import { useMemo } from "react";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
@@ -94,7 +95,7 @@ export function AulasMedioDeContacto({ filas }: { filas: ReadonlyArray<Monitoreo
               dos palabras y está donde se mira el número; el pie queda libre
               para la justificación, que sólo hace falta cuando hay medios que
               comparar y el estadístico decide cuál gana. */}
-          <span role="columnheader">Intentos · <em>mediana</em></span>
+          <span role="columnheader">Intentos (<em>mediana</em>)</span>
         </li>
         {medios.map((m) => (
           <li key={m.medio} role="row">
@@ -130,7 +131,7 @@ export function AulasMedioDeContacto({ filas }: { filas: ReadonlyArray<Monitoreo
                 «2 med.» se lee como **2 medios**, que es la lectura natural y es
                 falsa: son 2 intentos. */}
             <span role="cell" className="aulas-medio-intentos">
-              {m.intentos == null ? "—" : m.intentos.toLocaleString("es-PE")}
+              {m.intentos == null ? "—" : formatoDecimal(m.intentos, 3)}
             </span>
           </li>
         ))}

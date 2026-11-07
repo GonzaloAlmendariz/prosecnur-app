@@ -6,7 +6,7 @@
 #  2. `temas_de_texto` (opcional, apagado por defecto) declara el texto abierto que se codificó. Con él:
 #       - el denominador son los comentarios con contenido de ese texto (sin las no respuestas), no sólo los que
 #         recibieron un tema; la base lo dice («Base: N comentarios con contenido»);
-#       - el subtítulo avisa que los porcentajes suman más de 100 %;
+#       - sin subtítulo de fábrica (Gonzalo, 2026-10-29): sólo sale el que escriba el analista;
 #       - los subtemas de un módulo partido (21–29) van bajo su módulo, en el orden de los códigos, con el módulo
 #         como fila propia (% de comentarios que tocan cualquiera de sus subtemas) y rótulo corto.
 #     Sin él, nada cambia.
@@ -82,7 +82,7 @@ test_that("temas_de_texto: base de comentarios con contenido, módulo con sus su
   expect_equal(tab$pct, c(1, 2, 2, 1, 1, 5) / 5)
 })
 
-test_that("temas_de_texto en la lámina: cifras, orden, base y nota de más de 100 %", {
+test_that("temas_de_texto en la lámina: cifras, orden, base y sin encabezado de fábrica", {
   x <- .tt_lamina(p_barras_agrupadas("coment_recod", temas_de_texto = "coment",
                                      overrides = list(orden_barras = "mayor_menor")))
   rot <- trimws(.tt_formas(x, "rotulo"))
@@ -91,7 +91,11 @@ test_that("temas_de_texto en la lámina: cifras, orden, base y nota de más de 1
   expect_identical(.tt_formas(x, "cifra"), c("20%", "40%", "40%", "20%", "20%"))
   txt <- .tt_texto(x)
   expect_match(txt, "Base: 5 comentarios con contenido", fixed = TRUE)
-  expect_match(txt, "más de 100 %", fixed = TRUE)
+  expect_no_match(txt, "toca cada tema", fixed = TRUE)
+  # El que escribe el analista sí sale.
+  y <- .tt_lamina(p_barras_agrupadas("coment_recod", temas_de_texto = "coment",
+                                     overrides = list(orden_barras = "mayor_menor", subtitulo = "Temas mencionados")))
+  expect_match(.tt_texto(y), "Temas mencionados", fixed = TRUE)
 })
 
 test_that("sin temas_de_texto la múltiple sigue igual: base de quienes recibieron un tema", {

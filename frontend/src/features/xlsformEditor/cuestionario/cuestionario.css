@@ -86,7 +86,7 @@
   background: transparent;
   color: var(--pulso-text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-xf-cue-buscador input::-webkit-search-cancel-button {
@@ -113,7 +113,7 @@
   margin: 0;
   padding-inline: var(--pulso-space-1);
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-xf-cue-hallazgos {
@@ -136,7 +136,7 @@
   background: transparent;
   color: var(--pulso-text);
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   text-align: left;
   cursor: pointer;
 }
@@ -159,13 +159,13 @@
 .pulso-xf-cue-hallazgos code {
   grid-column: 2;
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .pulso-xf-cue-hallazgos-mas {
   padding: var(--pulso-space-2);
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 /* «Condicional» como glifo (rama) con su explicación en el title: el texto le quitaba medio ancho al título. */
@@ -196,12 +196,6 @@
   color: var(--pulso-text);
 }
 
-.pulso-xf-cue-vacio {
-  margin: var(--pulso-space-6);
-  color: var(--pulso-text-soft);
-  font-size: 13px;
-}
-
 .pulso-xf-cue-leyenda {
   display: flex;
   flex-wrap: wrap;
@@ -210,7 +204,7 @@
   padding-bottom: var(--pulso-space-3);
   border-bottom: 1px solid var(--pulso-border);
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-xf-cue-aviso {
@@ -223,7 +217,7 @@
   border-radius: var(--pulso-radius-card);
   background: var(--pulso-warn-bg);
   color: var(--pulso-warn-fg);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-xf-cue-aviso > span {
@@ -275,14 +269,14 @@
   margin: 0;
   min-width: 0;
   overflow-wrap: anywhere;
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-semibold);
 }
 
 .pulso-xf-cue-banda > span {
   flex: none;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -307,7 +301,7 @@
   padding-left: var(--pulso-space-2);
   border-left: 2px solid var(--pulso-border-strong);
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   font-style: italic;
 }
 
@@ -341,7 +335,7 @@
 
 .pulso-xf-cue-numero {
   color: var(--xf-cue-acento);
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -358,14 +352,14 @@
   border: 1px solid var(--pulso-border);
   border-radius: 999px;
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-medium);
   white-space: nowrap;
 }
 
 .pulso-xf-cue-enunciado {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-medium);
   line-height: 1.5;
   overflow-wrap: anywhere;
@@ -374,7 +368,7 @@
 .pulso-xf-cue-ayuda {
   margin: 2px 0 0 32px;
   color: var(--pulso-text-soft);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   font-style: italic;
   line-height: 1.45;
 }
@@ -385,7 +379,7 @@
   margin: var(--pulso-space-2) 0 0 32px;
   padding: 0;
   list-style: none;
-  font-size: 14px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.4;
 }
 
@@ -430,7 +424,7 @@
   border-radius: 5px;
   background: var(--pulso-surface-2);
   color: var(--xf-cue-acento);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   white-space: normal;
   overflow-wrap: anywhere;
@@ -442,7 +436,7 @@
   gap: var(--pulso-space-3);
   margin: var(--pulso-space-2) 0 0 32px;
   color: var(--pulso-text-soft);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-xf-cue-caja {
@@ -466,7 +460,7 @@
 .pulso-xf-cue-falta {
   margin: var(--pulso-space-2) 0 0 32px;
   color: var(--pulso-danger-fg);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 /* ── Nota ──────────────────────────────────────────────────────────────── */
@@ -476,8 +470,16 @@
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-card);
   background: var(--pulso-surface-2);
-  font-size: 13.5px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.55;
+}
+
+/* Nota con niveles sorteados (E8 editor-conjoint): lo que se ve es un ejemplo. */
+.pulso-xf-cue-ejemplo {
+  margin: var(--pulso-space-2) 0 0;
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-muted);
+  font-style: italic;
 }
 
 .pulso-xf-cue-nota p {
@@ -497,7 +499,7 @@
 .pulso-xf-cue-matriz {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-xf-cue-matriz thead th {
@@ -508,7 +510,7 @@
   hyphens: auto;
   border-bottom: 1px solid var(--pulso-border-strong);
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.3;
   text-align: center;
@@ -654,7 +656,7 @@
   border-radius: 999px;
   background: var(--pulso-surface);
   color: var(--pulso-text-muted);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-medium, 500);
   cursor: pointer;
 }

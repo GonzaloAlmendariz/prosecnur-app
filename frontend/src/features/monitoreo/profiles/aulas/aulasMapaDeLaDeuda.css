@@ -22,7 +22,7 @@
 
 .mon-profile-page.is-aulas-flow .aulas-mapa-marca {
   fill: var(--pulso-text-faint);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   letter-spacing: 0.04em;
   font-variant-numeric: tabular-nums;
 }
@@ -30,7 +30,7 @@
 .mon-profile-page.is-aulas-flow .aulas-mapa-punto { cursor: pointer; }
 .mon-profile-page.is-aulas-flow .aulas-mapa-punto text {
   fill: var(--pulso-text);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: 600;
   transition: fill 140ms ease;
 }
@@ -76,7 +76,7 @@
 }
 .mon-profile-page.is-aulas-flow .aulas-mapa-eje {
   fill: var(--pulso-text-faint);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   letter-spacing: 0.04em;
 }
 /* El lado que duele, con su tinta: la dirección del eje ES la lectura del
@@ -84,7 +84,7 @@
 .mon-profile-page.is-aulas-flow .aulas-mapa-eje.es-debe { fill: var(--pulso-danger-fg); }
 .mon-profile-page.is-aulas-flow .aulas-mapa-eje.es-titulo {
   fill: var(--pulso-text-soft);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: 600;
   letter-spacing: 0.09em;
 }

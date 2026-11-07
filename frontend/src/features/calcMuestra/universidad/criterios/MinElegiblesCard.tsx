@@ -76,13 +76,13 @@ export function MinElegiblesCard({
         <div className="cmv2-crit-card-title">
           <strong>Elegibles por curso-horario</strong>
           <span className="cmv2-crit-card-meta">
-            <span className="cmv2-crit-col">criterio 7 · regla final del marco</span>
+            <span className="cmv2-crit-col">criterio 7, regla final del marco</span>
           </span>
         </div>
         <div className="cmv2-crit-card-state">
           <span className="cmv2-crit-head-count">
             ≥ {fmtInt(umbral)}
-            {overrides > 0 ? ` · ${overrides} ${overrides === 1 ? "facultad con mínimo propio" : "facultades con mínimo propio"}` : ""}
+            {overrides > 0 ? `, ${overrides} ${overrides === 1 ? "facultad con mínimo propio" : "facultades con mínimo propio"}` : ""}
           </span>
           <span className="cmv2-crit-state" data-state={pendiente ? "pending" : "confirmed"}>
             {pendiente ? (

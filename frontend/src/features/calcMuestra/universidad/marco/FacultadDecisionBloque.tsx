@@ -561,7 +561,7 @@ function MinFacultadCard({
               </div>
               <p className="cmv2-chfp-min-dist">
                 Elegibles por curso-horario aquí: mediana <strong>{fmtDec(mediana!, 0)}</strong>
-                {media != null ? `, media ${fmtDec(media, 0)}` : ""} · rango {fmtInt(distMin!)}–{fmtInt(distMax!)}.
+                {media != null ? `, media ${fmtDec(media, 0)}` : ""}, rango {fmtInt(distMin!)}–{fmtInt(distMax!)}.
                 {minimoAlto ? (
                   <span className="cmv2-chfp-min-alerta">
                     {" "}El mínimo {fmtInt(base)} supera la mediana: dejaría fuera a más de la mitad de las aulas de
@@ -788,7 +788,7 @@ export function FacultadDecisionBloque({
           <span className="cmv2-chfp-bloque-nombre">{facLabel}</span>
           <span className="cmv2-chfp-bloque-meta">
             {fmtInt(chFacultad.elegibles)} de {fmtInt(chFacultad.total)} CH elegibles
-            {fac.est_aula_mediana != null ? ` · mediana ${fmtDec(fac.est_aula_mediana, 0)} por aula` : ""}
+            {fac.est_aula_mediana != null ? `, mediana ${fmtDec(fac.est_aula_mediana, 0)} por aula` : ""}
           </span>
         </span>
         <span className="cmv2-chfp-bloque-estado" data-decidido={resumen.propias > 0 || undefined}>
@@ -812,7 +812,7 @@ export function FacultadDecisionBloque({
           <span className="cmv2-chfp-bloque-nombre">{facLabel}</span>
           <span className="cmv2-chfp-bloque-meta">
             {fmtInt(chFacultad.elegibles)} de {fmtInt(chFacultad.total)} CH elegibles
-            {fac.est_aula_mediana != null ? ` · mediana ${fmtDec(fac.est_aula_mediana, 0)} por aula` : ""}
+            {fac.est_aula_mediana != null ? `, mediana ${fmtDec(fac.est_aula_mediana, 0)} por aula` : ""}
           </span>
         </span>
         <span className="cmv2-chfp-bloque-estado" data-decidido={resumen.propias > 0 || undefined}>

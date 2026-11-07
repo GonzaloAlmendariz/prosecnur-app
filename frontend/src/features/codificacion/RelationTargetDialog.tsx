@@ -3,6 +3,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Link2, Search, X } from "lucide-react";
 import type { PreguntaAbierta } from "../../api/client";
 import { textoPlano } from "../../lib/textoPlano";
+import { EstadoVacio } from "../../components/EstadoVacio";
 
 const TIPO_STYLE: Record<string, { bg: string; border: string; fg: string }> = {
   select_multiple: { bg: "var(--tipo-sm-bg)", border: "var(--tipo-sm-border)", fg: "var(--tipo-sm-fg)" },
@@ -90,7 +91,7 @@ export function RelationTargetDialog({
 
           <div className="pulso-codificacion-relation-target-list" role="listbox" aria-label="Preguntas destino">
             {visible.length === 0 ? (
-              <div className="pulso-codificacion-relation-empty">No hay preguntas que coincidan.</div>
+              <EstadoVacio icono={<Search size={16} />} titulo="No hay preguntas que coincidan" />
             ) : visible.map((candidate) => {
               const typeStyle = TIPO_STYLE[candidate.tipo] ?? TIPO_STYLE.text;
               return (

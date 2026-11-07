@@ -22,7 +22,7 @@ const ARREGLO: Readonly<Record<string, string>> = {
   import_zip_weight: "Reduce el peso de las imágenes.",
   accent_contrast: "Elige un color de acento más oscuro en Identidad.",
   image_width: "Sube la imagen al doble del ancho con que sale en el correo.",
-  image_weight: "Vuelve a subir la imagen: al subirla se reduce sola a menos de 1 MB.",
+  image_weight: "Vuelve a subir la imagen: si no tiene transparencia, se guarda como JPEG y queda más liviana.",
   survey_link: "Pon en el botón el campo del enlace y elige [SurveyLink] en Personas › «Para SurveyMonkey».",
   footer_optout: "Deja el bloque de pie: la app le agrega el enlace de baja.",
   images_public_url: "Ponle a la imagen su dirección web (https): SurveyMonkey no la lleva dentro.",
@@ -33,6 +33,8 @@ const ARREGLO: Readonly<Record<string, string>> = {
   sm_destination_mismatch: "Responde en Personas › «Para SurveyMonkey» si el enlace es la encuesta.",
   send_dates: "Pon cada recordatorio después del envío anterior, en Envíos.",
   reminder_audience: "Elige a quién va el recordatorio en Envíos.",
+  send_subject_repeated: "Cambia el asunto de este envío en Envíos.",
+  contraction: "Escribe «del» o «al». Si sale de un dato de la campaña, quita el artículo del valor o del texto.",
   greeting_trato: "Elige la columna de sexo de la lista en «Saludo según la persona».",
   greeting_trato_word: "Escribe en el saludo la palabra de respaldo, o cámbiala en «Saludo según la persona».",
   sm_trato_blank: "Importa en el recopilador el archivo de contactos que exporta la app: trae el saludo ya escrito.",
@@ -110,6 +112,7 @@ const EN_PESTANA: Readonly<Record<string, PestanaDelChequeo>> = {
   sm_destination_mismatch: "destinatarios",
   send_dates: "envios",
   reminder_audience: "envios",
+  send_subject_repeated: "envios",
 };
 
 /**

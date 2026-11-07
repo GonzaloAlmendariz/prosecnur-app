@@ -15,7 +15,7 @@ export function ListaPreguntas({ valor, onCambio, describe }: Props) {
   const { variables } = useVariables();
   const nombre = (ref: string) => {
     const r = parseVarRef(ref);
-    // ADR 0114: `base$*` en el panorama de públicos toma todas las preguntas de escala de esa base.
+    // ADR 0134: `base$*` en el panorama de públicos toma todas las preguntas de escala de esa base.
     if (r.name === "*") return r.source ? `Todas las preguntas de escala, ${r.source}` : "Todas las preguntas de escala";
     const v = variables.find((x) => x.name === r.name && (!r.source || x.source === r.source));
     const rotulo = v?.label?.trim() || r.name;

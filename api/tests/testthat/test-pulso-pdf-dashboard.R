@@ -147,41 +147,82 @@ test_that("los dos colores de sexo son el MISMO gris, y por eso nada puede depen
   expect_lt(abs(gris(tok$sexo_h) - gris(tok$sexo_m)), 0.10)
 })
 
-test_that("las barras del dia se cuentan entre ellas, no entre las jornadas", {
-  # Gonzalo, 2026-09-18: «las barras siguen sin números». El salto se calculaba
-  # sobre las jornadas del calendario, asi que en un panel de 11 dias con 5
-  # barras reales las de indice par salian mudas — aunque cabian todas.
-  once_dias <- c(101, 0, 66, 0, 39, 0, 37, 0, 69, 0, 37)   # 6 barras de 11 dias
-  expect_equal(prosecnurapp:::.ppd_rotulos_de_barras(once_dias, 6L),
-               c(1L, 3L, 5L, 7L, 9L, 11L))
-  # El defecto que esto mata: con la regla vieja, una barra en dia PAR no se
-  # rotulaba nunca. Aqui las tres barras existen en dias pares y las tres hablan.
-  pares <- c(0, 19, 0, 0, 0, 12, 0, 6, 0, 0, 0)
-  expect_equal(prosecnurapp:::.ppd_rotulos_de_barras(pares, 6L), c(2L, 6L, 8L))
-  # Cuando NO caben, una de cada tantas y siempre la ultima.
-  muchas <- rep(5, 12)
-  got <- prosecnurapp:::.ppd_rotulos_de_barras(muchas, 6L)
-  expect_lte(length(got), 7L)
-  expect_true(12L %in% got)
-  # Un panel sin una sola efectiva no rotula nada.
-  expect_equal(prosecnurapp:::.ppd_rotulos_de_barras(rep(0, 5), 6L), integer(0))
-  expect_equal(prosecnurapp:::.ppd_rotulos_de_barras(c(NA, NA), 6L), integer(0))
+test_that("toda barra del dia lleva su cifra; lo que cede es el cuerpo", {
+  # Gonzalo, 2026-10-30: «las barras del avance diario siempre deben tener sus
+  # numeros arriba»; la regla anterior escribia una de cada tantas y el panel
+  # salia intercalado.
+  once_dias <- c(101, 0, 66, 0, 39, 0, 37, 0, 69, 0, 37)
+  r <- prosecnurapp:::.ppd_cifras_de_barras(once_dias, 0.42, 11L, 5.8)
+  expect_equal(r$indices, c(1L, 3L, 5L, 7L, 9L, 11L))
+  expect_equal(r$fontsize, 5.8)
+  expect_false(r$escalonar)
+  # Dieciocho jornadas de cuatro digitos en un panel estrecho: todas llevan
+  # cifra, a menor cuerpo y nunca bajo el piso legible.
+  miles <- rep(c(1010, 2300, 4100), 6)
+  r <- prosecnurapp:::.ppd_cifras_de_barras(miles, 0.25, 18L, 5.8)
+  expect_equal(r$indices, seq_len(18L))
+  expect_gte(r$fontsize, 4.6)
+  expect_lt(r$fontsize, 5.8)
+  expect_true(r$escalonar)
+  # Una jornada sin efectivas no dibuja barra ni cifra.
+  expect_equal(prosecnurapp:::.ppd_cifras_de_barras(rep(0, 5), 0.42, 5L, 5.8)$indices, integer(0))
+  expect_equal(prosecnurapp:::.ppd_cifras_de_barras(c(NA, NA), 0.42, 2L, 5.8)$indices, integer(0))
 })
 
-test_that("cuantas cifras caben lo decide el ancho, no un tope fijo", {
-  # El tope fijo de seis silenciaba barras aunque sobrara papel: un panel de
-  # facultad con once barras de dos o tres digitos las admite todas.
-  once <- c(55, 150, 35, 29, 89, 32, 14, 13, 24, 31, 28)
-  caben <- prosecnurapp:::.ppd_cifras_que_caben(once, 0.42, 5.8)
-  expect_gte(caben, length(once))
-  expect_equal(length(prosecnurapp:::.ppd_rotulos_de_barras(once, caben)), length(once))
-  # Y al reves: cifras de miles en un panel estrecho SI se amontonarian, asi que
-  # el tope baja solo. Esto es lo que el numero magico no sabia hacer.
-  miles <- c(1010, 2300, 4100, 1500, 2200)
-  expect_lt(prosecnurapp:::.ppd_cifras_que_caben(miles, 0.12, 5.8), length(miles))
-  # Mas digitos, menos cifras: la relacion no puede invertirse.
-  expect_lte(prosecnurapp:::.ppd_cifras_que_caben(miles, 0.42, 5.8),
-             prosecnurapp:::.ppd_cifras_que_caben(c(5, 7, 9), 0.42, 5.8))
-  # Un panel sin efectivas no divide por cero ni promete sitio que no usa.
-  expect_equal(prosecnurapp:::.ppd_cifras_que_caben(rep(0, 4), 0.42, 5.8), 1L)
+test_that("toda barra del dia lleva su fecha; lo que cede es el cuerpo", {
+  # Gonzalo, 2026-11-06: «la fecha del pdf puede hacerse mas pequena pero no
+  # debe dejar de mostrarse». Antes el eje rotulaba como mucho 14 dias (6 en
+  # los paneles) y el resto de barras salia sin fecha.
+  # Medidor falso: 0.001 npc por caracter y punto de la linea mas larga; una
+  # linea mide 0.0012 npc de alto por punto.
+  medir <- function(texto, f) {
+    lineas <- strsplit(texto, "\n", fixed = TRUE)[[1]]
+    c(ancho = max(nchar(lineas)) * 0.001 * f, alto_en_x = 0.0012 * f)
+  }
+  dias <- paste0(sprintf("%02d/10", 1:20), "\n", rep(c("lun", "mar", "mié", "jue", "vie"), 4))
+  dias[[20]] <- "20/10\nhasta 11:40"
+  rotulos <- function(hueco) prosecnurapp:::.ppd_rotulos_de_fecha(dias, hueco, 5.8, medir = medir)
+
+  # Con aire, todo va completo y al cuerpo de partida.
+  r <- rotulos(0.08)
+  expect_equal(r$textos, dias)
+  expect_equal(r$fontsize, 5.8)
+  expect_false(r$rotar)
+
+  # Mas estrecho: baja el cuerpo, la fecha sigue en todas; «hasta 11:40» no
+  # cabe y se queda solo la fecha.
+  r <- rotulos(0.032)
+  expect_length(r$textos, 20L)
+  expect_true(all(startsWith(r$textos, sprintf("%02d/10", 1:20))))
+  expect_lt(r$fontsize, 5.8)
+  expect_gte(r$fontsize, 5.6)
+  expect_equal(r$textos[[20]], "20/10")
+  expect_equal(r$textos[[1]], dias[[1]])
+  expect_false(r$rotar)
+
+  # Ni al piso cabe en horizontal: se gira, y ninguna barra queda sin fecha.
+  r <- rotulos(0.012)
+  expect_true(r$rotar)
+  expect_equal(r$textos, sprintf("%02d/10", 1:20))
+  expect_gte(r$fontsize, 5.6)
+
+  expect_length(prosecnurapp:::.ppd_rotulos_de_fecha(character(0), 0.05, 5.8, medir = medir)$textos, 0L)
+})
+
+test_that("con muchos dias los paneles pierden columnas antes que la fecha se vuelva diminuta", {
+  # Gonzalo, 2026-11-06: «si los dias ya son demasiados, en vez de 3 en fila que
+  # sean 2; tampoco debe verse diminuto».
+  tres <- list(columnas = 3L, hojas = 1L, por_hoja = 6L)
+  ancho <- 1 - 2 * 0.048
+  # Dos semanas caben de a tres.
+  expect_identical(prosecnurapp:::.ppd_rejilla_que_cabe(tres, 6L, 14L, ancho), tres)
+  # Cuarenta dias no: pasan a dos por fila, dos filas por hoja, reparto parejo.
+  r <- prosecnurapp:::.ppd_rejilla_que_cabe(tres, 6L, 40L, ancho)
+  expect_equal(r$columnas, 2L)
+  expect_equal(r$por_hoja, 3L)
+  expect_equal(r$hojas, 2L)
+  # Y a dos por fila, cada fecha cabe girada al piso.
+  panel <- (ancho - 0.030) / 2 - 0.026
+  expect_true(prosecnurapp:::.ppd_eje_cabe(panel, 40L))
+  expect_false(prosecnurapp:::.ppd_eje_cabe((ancho - 0.060) / 3 - 0.026, 40L))
 })

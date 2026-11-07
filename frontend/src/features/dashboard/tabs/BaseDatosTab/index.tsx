@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Book, Download, RotateCcw, Search, X } from "lucide-react";
+import { Book, Download, RotateCcw, Search, X } from "../../../../vendor/lucide-react";
 import {
   apiDashboardBaseDatosDescargar,
   type DashboardBaseDatosSeccion,
-} from "../../../../api/client";
+} from "../../../../api/dashboard";
+import { ErrorBlock } from "../../../../components/States";
 import { useDashboardStore } from "../../store";
 import {
   useBaseDatosData,
@@ -13,12 +14,14 @@ import {
 import { EmptyState } from "../../shared/EmptyState";
 import { GlidingTabList } from "../../../../components/GlidingTabList";
 import "./baseDatos.css";
+import { useAltoDeCabecera } from "../../../procesamiento/useAltoDeCabecera";
 
+import { formatoConteo } from "../../../../lib/formatoNumero";
 // Tab Base de datos — fiel al legacy `prosecnur::reporte_interactivo()`:
 // toolbar pegada a la tabla con [Dicc] [Reset] [Buscar], fila de filtros
 // por columna bajo el header, sidebar con vista/secciones/descarga.
 
-export function BaseDatosTab() {
+export function BaseDatosTab({ publicMode = false }: { publicMode?: boolean } = {}) {
   const baseDatos = useDashboardStore((s) => s.baseDatos);
   const setBaseDatos = useDashboardStore((s) => s.setBaseDatos);
   const toggleVar = useDashboardStore((s) => s.toggleBaseDatosVariable);
@@ -45,6 +48,7 @@ export function BaseDatosTab() {
   const [diccionarioOpen, setDiccionarioOpen] = useState(false);
   const [downloadFormato, setDownloadFormato] = useState<"xlsx" | "csv">("xlsx");
   const [downloadBusy, setDownloadBusy] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
 
   const allVarNames = useMemo(() => {
     if (!estructura) return [];
@@ -63,6 +67,7 @@ export function BaseDatosTab() {
   function handleDescargar() {
     if (!baseDatos.variables.length) return;
     setDownloadBusy(true);
+    setDownloadError(null);
     apiDashboardBaseDatosDescargar({
       modo: baseDatos.modo,
       variables: baseDatos.variables,
@@ -78,6 +83,9 @@ export function BaseDatosTab() {
         a.click();
         a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
+      })
+      .catch((err: unknown) => {
+        setDownloadError(err instanceof Error ? err.message : "No se pudo descargar el archivo.");
       })
       .finally(() => setDownloadBusy(false));
   }
@@ -174,6 +182,8 @@ export function BaseDatosTab() {
           )}
         </section>
 
+        {/* En la publicación el lector no exporta la base (microdatos fuera del Space). */}
+        {!publicMode && (
         <section className="dash-cardbox">
           <div className="dash-cardbox-header">
             <h2 className="dash-cardbox-title">Descargar</h2>
@@ -197,12 +207,14 @@ export function BaseDatosTab() {
             <Download size={14} style={{ marginRight: 6 }} />
             {downloadBusy ? "Generando…" : "Descargar"}
           </button>
+          {downloadError && <ErrorBlock label="No se pudo descargar la base" detail={downloadError} />}
           {/* Resumen pre-descarga (legacy: interactivo_base_datos.R:924-951). */}
           <div className="dash-base-download-summary">
-            <div><strong>{resumenFilas.toLocaleString("es-PE")}</strong> filas a exportar</div>
+            <div><strong>{formatoConteo(resumenFilas)}</strong> filas a exportar</div>
             <div><strong>{resumenCols}</strong> columna{resumenCols === 1 ? "" : "s"}</div>
           </div>
         </section>
+        )}
       </aside>
 
       {/* ───── Main ───── */}
@@ -369,6 +381,9 @@ function BaseDatosTabla({
   const end = Math.min(payload.total, start + payload.rows.length - 1);
 
   const hasFiltros = !!search || Object.values(columnFilters).some((v) => v.trim().length > 0);
+  // La cabecera fija tiene dos filas (nombres y filtros): se mide su alto real para anclar los filtros bajo los
+  // nombres y para que las filas encajen bajo ella al desplazar (el patrón de la grilla de bases).
+  const marcoDeLaTabla = useAltoDeCabecera<HTMLDivElement>(payload.columnas);
 
   return (
     <div className="dash-base-tabla-wrap">
@@ -410,7 +425,7 @@ function BaseDatosTabla({
         </div>
       </div>
 
-      <div className="dash-base-tabla-scroll">
+      <div className="dash-base-tabla-scroll" ref={marcoDeLaTabla}>
         <table className="dash-base-tabla">
           <thead>
             {/* Header fila 1: nombre columna. */}
@@ -458,7 +473,7 @@ function BaseDatosTabla({
       <div className="dash-base-paginacion">
         <span className="dash-base-paginacion-info">
           {payload.total > 0
-            ? `Mostrando ${start}–${end} de ${payload.total.toLocaleString("es-PE")}`
+            ? `Mostrando ${start}–${end} de ${formatoConteo(payload.total)}`
             : "Sin filas"}
         </span>
         <div className="dash-base-paginacion-controles">
@@ -591,7 +606,7 @@ function DiccionarioContenido({
       <div className="dash-diccionario-meta">
         <div><strong>Variable:</strong> {payload.variable}</div>
         <div><strong>Etiqueta:</strong> {payload.etiqueta}</div>
-        <div><strong>Tipo:</strong> {payload.tipo} · {payload.tipo_medicion}</div>
+        <div><strong>Tipo:</strong> {payload.tipo} ({payload.tipo_medicion})</div>
       </div>
       {payload.opciones.length > 0 ? (
         <table className="dash-cross-table">

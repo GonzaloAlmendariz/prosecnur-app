@@ -1,0 +1,8 @@
+/* F11: banda de la muestra sorteada con el reparto v1, arriba del inspector de Manzanas. */
+.hr-sorteo-v1 { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px 14px; border: 1px solid var(--pulso-warn-border); border-radius: 12px; background: var(--pulso-warn-bg); color: var(--pulso-warn-fg); }
+.hr-sorteo-v1 strong { font-size: var(--pulso-type-subtitle-size); font-weight: 700; }
+.hr-sorteo-v1 p { margin: 0; font-size: var(--pulso-type-body-size); line-height: 1.45; }
+.hr-sorteo-v1 .hr-sorteo-v1-ir { padding: 0; min-height: 0; border: 0; background: none; color: inherit; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+
+/* Volver a sortear una muestra enviada: Cancelar y Sortear igual, en fila. */
+.hr-sorteo-confirmar { display: flex; gap: 8px; }

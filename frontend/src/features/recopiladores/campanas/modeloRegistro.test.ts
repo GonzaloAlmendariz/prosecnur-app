@@ -10,6 +10,7 @@ import {
   campanasVisibles,
   cuentaDeCampanas,
   lineaDeEnvios,
+  ponerEnRegistro,
   refDeCorreo,
   resumenDeTarjeta,
   tipoDelId,
@@ -125,7 +126,7 @@ describe("la tarjeta dice lo que la campaña tiene", () => {
   it("correo: plataforma, envíos, bloques y qué envío ya salió (ADR 0111 §8)", () => {
     const r = resumenDeTarjeta(REGISTRO.campaigns[1]);
     expect(r.estado).toBe("Exportada en parte");
-    expect(r.hechos).toEqual(["Sale por Mailchimp · 7 bloques"]);
+    expect(r.hechos).toEqual(["Sale por Mailchimp, con 7 bloques"]);
     expect(r.envios).toEqual([
       { label: "Invitación", exportado: true, texto: "exportado 02/09" },
       { label: "Recordatorio 1", exportado: false, texto: "pendiente" },
@@ -198,5 +199,17 @@ describe("la miniatura del correo es su imagen real", () => {
     })?.url).toBe("https://x.org/i.png");
     // Sin URL pública (imagen por subir) no se inventa una miniatura.
     expect(miniaturaDeLaPlantilla({ header: { kind: "banner", image_ref: "b" }, images: { b: { alt: "x" } }, blocks: [] })).toBeNull();
+  });
+});
+
+describe("ponerEnRegistro", () => {
+  it("el motivo del tipo único sigue a la campaña: archivada dice que se reabre", () => {
+    const tel = { id: "telefonica.principal", tipo: "telefonica", name: "Barrido telefónico", archived: false } as Parameters<typeof ponerEnRegistro>[1];
+    const motivo = (r: ReturnType<typeof ponerEnRegistro>) => r.tipos.find((t) => t.tipo === "telefonica")?.motivo;
+    const creada = ponerEnRegistro(REGISTRO, tel, null);
+    expect(motivo(creada)).toBe("El proyecto ya tiene su campaña telefónica.");
+    const archivada = ponerEnRegistro(creada, { ...tel, archived: true }, null);
+    expect(motivo(archivada)).toBe("El proyecto ya tiene su campaña telefónica (archivada): reábrela.");
+    expect(motivo(ponerEnRegistro(archivada, tel, null))).toBe("El proyecto ya tiene su campaña telefónica.");
   });
 });

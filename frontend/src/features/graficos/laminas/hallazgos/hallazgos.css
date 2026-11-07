@@ -1,0 +1,69 @@
+/* Capítulos y hallazgos del resumen ejecutivo (CapitulosHallazgos.tsx): una tarjeta por capítulo y, dentro, una fila
+   por hallazgo separada por su filete. Todo con min-width: 0; el inspector es angosto. */
+
+.pulso-f6-hallazgos-campo {
+  display: grid;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.pulso-f6-hallazgos-capitulos,
+.pulso-f6-hallazgos-lista {
+  display: grid;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-f6-hallazgos-cabeza {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  gap: var(--pulso-space-1);
+  align-items: center;
+}
+
+.pulso-f6-hallazgo {
+  display: grid;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  padding-top: var(--pulso-space-2);
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-f6-hallazgo.is-incompleto {
+  border-top-color: var(--pulso-warn-border);
+}
+
+.pulso-f6-hallazgo-cabeza {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-f6-hallazgo-acciones {
+  display: inline-flex;
+  gap: var(--pulso-space-1);
+}
+
+.pulso-f6-hallazgo-rotulo {
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-soft);
+}
+
+.pulso-f6-hallazgo textarea.pulso-f6-input {
+  min-height: calc(var(--pulso-control-height-md) * 1.6);
+}
+
+/* La cabecera centra su título y el conteo: alineados por la línea base, el conteo dejaba 3 px vacíos al pie (gate de
+   geometría, capacity-drift). */
+.pulso-f6-hallazgos > .pulso-f6-especial-cabeza {
+  align-items: center;
+}

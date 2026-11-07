@@ -3,7 +3,9 @@
 // importan del barrel ./client; este módulo no cambia el contrato.
 
 import { apiFetch, apiPath, handle, headers, SESSION_KEY } from "./core";
+import { normalizarEnvioMeta, type EnvioMeta } from "./materialTerritorial";
 import type { JobStart } from "./jobs";
+import { normalizeHojasRutaDistritosSorteo, type HojasRutaDistritosSorteo } from "./hojasRutaDistritos";
 
 // ---------- Hojas de ruta para campo ----------
 
@@ -40,7 +42,7 @@ export type HojasRutaAgeRange = {
   max: number | null;
 };
 
-export type SamplingMethod = "pps" | "sistematico" | "conglomerado_fijo";
+export type SamplingMethod = "pps" | "pps_tope" | "sistematico" | "conglomerado_fijo";
 export type SampleSizeMode = "calculator" | "external_total" | "external_district";
 export type HojasRutaAgeRangeMode = "manual" | "terciles" | "cuartiles" | "quintiles" | "deciles";
 export type HojasRutaAgeRangeScope = "selected" | "frame";
@@ -65,7 +67,177 @@ export type HojasRutaSampleSizeConfig = {
   enforce_district_floor?: boolean;
   response_rate: number;
   apply_fpc: boolean;
+  /** ADR 0116: tasa de ocupación y elegibilidad de viviendas (e), por defecto 1. */
+  ocupacion?: number;
+  /** De dónde sale el DEFF: `legado` (guardado antes), `por_declarar` (nuevo), `manual` o `icc_biblioteca`. */
+  design_effect_fuente?: HojasRutaDeffFuente;
+  /** La entrada de la biblioteca de ICC aplicada, copiada para reconstruir el DEFF sin la biblioteca. */
+  icc_aplicado?: HojasRutaIccEntrada | null;
+  /** ADR 0131 §2: con qué población se reparte entre distritos; `cpv2017` (por defecto) o adultos urbanos 2025. */
+  base_reparto?: HojasRutaBaseRepartoCodigo;
+  /** ADR 0131 §1: estrato explícito del sorteo; `distrito` (por defecto) o la provincia. */
+  estrato?: HojasRutaEstratoModo;
+  /** ADR 0131 §1b: rutas mínimas de toda ciudad visitada en el estrato provincia (6 por defecto). */
+  rutas_minimas_ciudad?: number;
+  /** ADR 0131 §1c: rutas mínimas de todo distrito visitado (3 por defecto; 0 lo apaga). Rige con la base 2025. */
+  rutas_minimas_distrito?: number;
 };
+
+export type HojasRutaEstratoModo = "distrito" | "provincia" | "provincia_lima_areas";
+
+export type HojasRutaEstratoFila = { estrato: string; etiqueta: string; n_distritos: number; poblacion: number; rutas: number };
+
+export type HojasRutaCiudadCondicion = "forzosa" | "sorteada" | "no_sorteada";
+
+/** Ciudad (provincia del registro) en la selección del §1b: forzosa con π 1, o de un grupo por macrorregión. */
+export type HojasRutaCiudadSorteo = {
+  ciudad: string;
+  etiqueta: string;
+  macrorregion: string;
+  grupo: string | null;
+  condicion: HojasRutaCiudadCondicion;
+  pi_ciudad: number;
+  rutas: number;
+};
+
+export type HojasRutaGrupoCiudades = { grupo: string; reparto: number; h: number; rutas: number; n_ciudades: number };
+
+/** Lo que la vista previa del tamaño declara del estrato provincia (ADR 0131 §1 y §1b). */
+export type HojasRutaEstratoMuestral = {
+  modo: Exclude<HojasRutaEstratoModo, "distrito">;
+  rutas_minimas_ciudad: number;
+  regla: string;
+  estratos: HojasRutaEstratoFila[];
+  ciudades: HojasRutaCiudadSorteo[];
+  grupos: HojasRutaGrupoCiudades[];
+  /** ADR 0131 §1c: forzosos y sorteados por ciudad o área; null si no rige. */
+  distritos: HojasRutaDistritosSorteo | null;
+};
+
+const escalar = (v: unknown): unknown => (Array.isArray(v) ? v[0] : v);
+
+/** Normalizador defensivo de `sample_size_preview.estrato_muestral`; null si no aplica o viene roto. */
+export function normalizeHojasRutaEstratoMuestral(raw: unknown): HojasRutaEstratoMuestral | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const modo = escalar(r.modo);
+  if (modo !== "provincia" && modo !== "provincia_lima_areas") return null;
+  const estratos = (Array.isArray(r.estratos) ? r.estratos : []).flatMap((e): HojasRutaEstratoFila[] => {
+    if (!e || typeof e !== "object") return [];
+    const x = e as Record<string, unknown>;
+    const estrato = escalar(x.estrato);
+    const rutas = numeroFinito(escalar(x.rutas));
+    if (typeof estrato !== "string" || rutas === null) return [];
+    const etiqueta = escalar(x.etiqueta);
+    return [{
+      estrato,
+      etiqueta: typeof etiqueta === "string" && etiqueta ? etiqueta : estrato,
+      n_distritos: numeroFinito(escalar(x.n_distritos)) ?? 0,
+      poblacion: numeroFinito(escalar(x.poblacion)) ?? 0,
+      rutas,
+    }];
+  });
+  if (!estratos.length) return null;
+  const regla = escalar(r.regla);
+  const ciudades = (Array.isArray(r.ciudades) ? r.ciudades : []).flatMap((c): HojasRutaCiudadSorteo[] => {
+    if (!c || typeof c !== "object") return [];
+    const x = c as Record<string, unknown>;
+    const ciudad = escalar(x.ciudad);
+    const condicion = escalar(x.condicion);
+    const pi = numeroFinito(escalar(x.pi_ciudad));
+    const rutas = numeroFinito(escalar(x.rutas));
+    if (typeof ciudad !== "string" || (condicion !== "forzosa" && condicion !== "sorteada" && condicion !== "no_sorteada") || pi === null || rutas === null) return [];
+    const etiqueta = escalar(x.etiqueta);
+    const grupo = escalar(x.grupo);
+    const macro = escalar(x.macrorregion);
+    return [{
+      ciudad,
+      etiqueta: typeof etiqueta === "string" && etiqueta ? etiqueta : ciudad,
+      macrorregion: typeof macro === "string" ? macro : "",
+      grupo: typeof grupo === "string" && grupo ? grupo : null,
+      condicion,
+      pi_ciudad: pi,
+      rutas,
+    }];
+  });
+  const grupos = (Array.isArray(r.grupos) ? r.grupos : []).flatMap((g): HojasRutaGrupoCiudades[] => {
+    if (!g || typeof g !== "object") return [];
+    const x = g as Record<string, unknown>;
+    const grupo = escalar(x.grupo);
+    const h = numeroFinito(escalar(x.h));
+    const rutas = numeroFinito(escalar(x.rutas));
+    if (typeof grupo !== "string" || h === null || rutas === null) return [];
+    return [{ grupo, reparto: numeroFinito(escalar(x.reparto)) ?? 0, h, rutas, n_ciudades: numeroFinito(escalar(x.n_ciudades)) ?? 0 }];
+  });
+  return {
+    modo,
+    rutas_minimas_ciudad: numeroFinito(escalar(r.rutas_minimas_ciudad)) ?? 6,
+    regla: typeof regla === "string" ? regla : "",
+    estratos,
+    ciudades,
+    grupos,
+    distritos: normalizeHojasRutaDistritosSorteo(r),
+  };
+}
+
+/** π publicada de una manzana sorteada, o null si falta o no es una probabilidad (0, 1]. */
+export function piDeManzana(b: Pick<SelectedBlock, "pi">): number | null {
+  const v = Array.isArray(b.pi) ? (b.pi as unknown[])[0] : b.pi;
+  return typeof v === "number" && Number.isFinite(v) && v > 0 && v <= 1 + 1e-9 ? v : null;
+}
+
+export type HojasRutaBaseRepartoCodigo = "cpv2017" | "cpv2025_adultos_urbanos";
+
+/** Insumos de la base 2025 de un distrito: P̂25 = pob25 · u17 · a17 y g = P̂25 / pob17 en el marco. */
+export type HojasRutaBaseRepartoDistrito = {
+  ubigeo: string;
+  pob25: number;
+  pob17_redatam: number;
+  pob17_en_capa: number;
+  pob18_17: number;
+  u17: number;
+  a17: number;
+  p25: number;
+  g: number;
+};
+
+/** Lo que el backend declara cuando reparte con la base 2025 (`base_reparto` de la vista previa del tamaño). */
+export type HojasRutaBaseReparto = {
+  codigo: "cpv2025_adultos_urbanos";
+  fuente: string;
+  formula: string;
+  supuestos: { u17: string; a17: string };
+  distritos: HojasRutaBaseRepartoDistrito[];
+};
+
+const numeroFinito = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
+
+/** Normalizador defensivo de `base_reparto`: null si falta o no trae lo mínimo para declarar la fuente. */
+export function normalizeHojasRutaBaseReparto(raw: unknown): HojasRutaBaseReparto | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  if (r.codigo !== "cpv2025_adultos_urbanos" || typeof r.fuente !== "string") return null;
+  const sup = (r.supuestos && typeof r.supuestos === "object" ? r.supuestos : {}) as Record<string, unknown>;
+  const distritos = (Array.isArray(r.distritos) ? r.distritos : []).flatMap((d): HojasRutaBaseRepartoDistrito[] => {
+    if (!d || typeof d !== "object") return [];
+    const x = d as Record<string, unknown>;
+    const campos = ["pob25", "pob17_redatam", "pob17_en_capa", "pob18_17", "u17", "a17", "p25", "g"] as const;
+    const vals = campos.map((c) => numeroFinito(Array.isArray(x[c]) ? (x[c] as unknown[])[0] : x[c]));
+    const ubigeo = Array.isArray(x.ubigeo) ? x.ubigeo[0] : x.ubigeo;
+    if (typeof ubigeo !== "string" || vals.some((v) => v === null)) return [];
+    const [pob25, pob17_redatam, pob17_en_capa, pob18_17, u17, a17, p25, g] = vals as number[];
+    return [{ ubigeo, pob25, pob17_redatam, pob17_en_capa, pob18_17, u17, a17, p25, g }];
+  });
+  return {
+    codigo: "cpv2025_adultos_urbanos",
+    fuente: r.fuente,
+    formula: typeof r.formula === "string" ? r.formula : "",
+    supuestos: { u17: typeof sup.u17 === "string" ? sup.u17 : "", a17: typeof sup.a17 === "string" ? sup.a17 : "" },
+    distritos,
+  };
+}
+
+export type HojasRutaDeffFuente = "legado" | "por_declarar" | "manual" | "icc_biblioteca";
 
 export type HojasRutaIntegratedConfig = {
   frame_source: HojasRutaFrameSource;
@@ -76,9 +248,17 @@ export type HojasRutaIntegratedConfig = {
   replacement_policy: HojasRutaReplacementPolicy;
   replacements_per_titular: number;
   territorios: string[];
+  /** Plan R3: ciudades del estudio («lima» o código de provincia), aunque aún no tengan distritos. Opcional por snapshots viejos. */
+  ciudades?: string[];
   row_var: "departamento" | "provincia" | "distrito" | "ubigeo" | "zona";
   col_var: "rango_edad";
   subquota_var: "sexo" | "ninguna";
+  /**
+   * ADR 0126: qué dimensión de la cuota se exige (meta) y cuál sólo se describe
+   * (referencial). El total de la zona es siempre meta. Sin declarar, las dos
+   * son meta; opcional por snapshots viejos.
+   */
+  caracter_cuotas?: { sexo?: "meta" | "referencial"; edad?: "meta" | "referencial" };
   measure_var: "viviendas" | "poblacion";
   sampling_method: SamplingMethod;
   seed: number;
@@ -94,6 +274,8 @@ export type HojasRutaIntegratedConfig = {
   sample_size_mode: SampleSizeMode;
   sample_size: HojasRutaSampleSizeConfig;
   excluded_titular_ids?: string[];
+  /** Marco elegible del run (ADR 0115). Ausente = corrida legacy: el marco no se depura. */
+  marco_elegible?: HojasRutaMarcoElegible;
   random_preference?: HojasRutaRandomPreference;
 };
 
@@ -102,11 +284,15 @@ export type HojasRutaUiStage = "territorio" | "poblacion" | "muestra" | "manzana
 export type HojasRutaUiState = {
   active_stage: HojasRutaUiStage;
   draft_territories: string[];
+  /** Plan R3: ciudades agregadas o quitadas en Territorio antes de confirmar; null si no hay borrador. */
+  draft_ciudades?: string[] | null;
   map_ubigeo: string;
   map_zona: string;
   map_level: "distritos" | "zonas" | "manzanas";
   map_selection_mode: boolean;
   route_history: HojasRutaRouteSnapshot[];
+  /** U14: supuestos del plan de campo. */
+  plan_campo?: HojasRutaPlanSupuestos;
 };
 
 export type TerritorialFrameMeta = {
@@ -360,6 +546,26 @@ export type HojasRutaTerritory = {
   viviendas: number;
   poblacion: number;
   manzanas: number;
+  /** ADR 0119 §7: provincia del registro de territorios y cobertura del distrito contra el CPV 2025. */
+  provincia_codigo?: string | null;
+  cobertura_nivel?: string | null;
+  cobertura_cartografica?: number | null;
+  captacion?: number | null;
+  /** ADR 0131 §2: base 2025 del distrito; null si el registro no trae sus datos. */
+  pob25?: number | null;
+  u17?: number | null;
+  a17?: number | null;
+  /** Adultos urbanos estimados 2025: pob25 · u17 · a17. */
+  p25?: number | null;
+  g?: number | null;
+  /** NSE que predomina entre los hogares del distrito, 1 (Alto) a 5 (Bajo); null sin NSE empaquetado. */
+  nse_predominante?: number | null;
+  /** Proporción de hogares por nivel NSE (0 a 1): 1 = Alto … 5 = Bajo; null sin NSE. */
+  nse_pct_1?: number | null;
+  nse_pct_2?: number | null;
+  nse_pct_3?: number | null;
+  nse_pct_4?: number | null;
+  nse_pct_5?: number | null;
 };
 
 export type HojasRutaAlert = {
@@ -432,10 +638,18 @@ export type HojasRutaSampleSizePreview = {
   enforce_district_floor: boolean;
   n_used: number;
   contacts_suggested: number;
+  /** ADR 0116: la no respuesta suma visitas, no entrevistas. */
+  visitas?: HojasRutaVisitas;
+  design_effect_fuente?: HojasRutaDeffFuente;
+  margen_incluye_conglomerado?: boolean;
   margin_total_estimated: number | null;
   margin_total_target: number;
   district_rows: HojasRutaSampleSizeDistrictRow[];
   alerts: HojasRutaAlert[];
+  /** ADR 0131 §2: sólo cuando se reparte con la base 2025. Léelo con `normalizeHojasRutaBaseReparto`. */
+  base_reparto?: unknown;
+  /** ADR 0131 §1: sólo con estrato provincia. Léelo con `normalizeHojasRutaEstratoMuestral`. */
+  estrato_muestral?: unknown;
 };
 
 export type HojasRutaPopulationExportResult = {
@@ -481,6 +695,12 @@ export type SelectedBlock = {
   titular_rango_fin?: number;
   replacement_label?: string;
   replacement_fallback?: boolean | string;
+  /** ADR 0131 §5: estrato explícito del sorteo (ubigeo, provincia o área de Lima). */
+  estrato?: string | null;
+  /** Probabilidad de inclusión de la manzana; en un reemplazo, la heredada de su titular (o null fuera de su zona). Léela con `piDeManzana`. */
+  pi?: number | null;
+  pi_regla?: string | null;
+  pi_fuente?: "hereda_titular" | "otra_zona_sin_pi" | string | null;
   esquina_codigo?: number;
   esquina_inicio?: string;
   esquina_coordenada?: string;
@@ -493,6 +713,8 @@ export type SelectedBlock = {
   constante_salto_unidad?: string;
   constante_salto_modo?: HojasRutaRouteJumpMode | string;
   salto_operativo?: number;
+  /** Visitas esperadas de la ruta (ADR 0116 §1), si la muestra se sorteó con el salto sobre visitas. */
+  visitas_esperadas?: number;
   modo_seleccion_vivienda?: string;
   nse_codigo?: string | number | null;
   nse_nivel?: string | null;
@@ -511,6 +733,8 @@ export type HojasRutaSamplePreview = {
   quota: QuotaPlan;
   method: SamplingMethod;
   seed: number;
+  /** Cuándo se sorteó (ISO UTC), sellado al guardar; falta en las muestras guardadas antes del 1 nov 2026. */
+  sorteado_en?: string;
   blocks: SelectedBlock[];
   replacement_blocks: SelectedBlock[];
   n_blocks: number;
@@ -519,6 +743,12 @@ export type HojasRutaSamplePreview = {
   total_replacement_interviews: number;
   unassigned: number;
   alerts: HojasRutaAlert[];
+  /** ADR 0117: firma del algoritmo del sorteo; sin firma o «zona_mayor_resto_v1» = reparto v1. */
+  algoritmo_sorteo?: string;
+  /** Huella de identidad de la muestra (ADR 0118 §3); la calcula R en /sample-preview. */
+  sample_fingerprint?: string | null;
+  /** ADR 0115: firmas del marco con que se sorteó (sólo las que lee el historial). */
+  marco_elegible?: { hash_marco?: string | null; hash_criterios?: string | null } | null;
 };
 
 export type HojasRutaWorkspaceOutputs = {
@@ -538,6 +768,8 @@ export type HojasRutaRun = {
   locked?: boolean;
   role: HojasRutaPhase;
   pilot_exclusion_mode?: HojasRutaPilotExclusionMode;
+  /** Metadatos del envío a Material de esta corrida (sin la foto); null si nunca se envió. */
+  envio_meta?: unknown;
 };
 
 export type HojasRutaPhaseNotice = {
@@ -571,7 +803,16 @@ export type HojasRutaRouteSnapshot = {
   territories: string[];
   distribution: HojasRutaRouteDistrictSummary[];
   config: HojasRutaIntegratedConfig;
-  sample: HojasRutaSamplePreview;
+  /** Instantáneas viejas: R la recorta al leer (docs/qa/propuesta-route-history-2026-10-30.md). */
+  sample?: HojasRutaSamplePreview;
+  /** Huella de la muestra de este ruteo; NA/null = no se puede comprobar. */
+  sample_fingerprint?: string | null;
+  algoritmo_sorteo?: string | null;
+  frame_version?: string | null;
+  hash_marco?: string | null;
+  hash_criterios?: string | null;
+  /** Exclusiones efectivas (en campo, las de la piloto) con que se sorteó. */
+  excluded_titular_ids?: string[] | null;
 };
 
 export type HojasRutaBlockMapFeature = {
@@ -708,6 +949,8 @@ export type HojasRutaReporteDecisionalMeta = {
 
 export type HojasRutaState = {
   ok: boolean;
+  /** ADR 0118 F1: envío a Material de la fase activa (normalizar con `normalizarEnvioMeta`). */
+  envio_meta?: unknown;
   has_data: boolean;
   cache_dir: string;
   config: HojasRutaConfig;
@@ -717,6 +960,8 @@ export type HojasRutaState = {
   runs?: Partial<Record<HojasRutaPhase, HojasRutaRun>>;
   active_phase?: HojasRutaPhase;
   phase_notice?: HojasRutaPhaseNotice | null;
+  /** La etapa del estudio: la corrida que mira Hojas (ADR 0124: el Planner ya no propone otra). */
+  etapa?: { fase: HojasRutaPhase; origen: "hojas_ruta" };
   frame_meta: TerritorialFrameMeta;
   territories: HojasRutaTerritory[];
   campos: HojasRutaCampos | null;
@@ -818,6 +1063,42 @@ export async function apiHojasRutaWarmupTargets(options: { maxUbigeos?: number }
   );
 }
 
+/**
+ * Cuerpo de /api/hojas-ruta/workspace. Sin `outputs` la clave no viaja y el backend
+ * conserva las salidas guardadas; antes viajaba `{}` y las borraba todas (revisión de
+ * la fase 3 del lienzo, M1). Mandar `{}` explícito sigue limpiándolas a propósito.
+ */
+export function cuerpoPersistWorkspace(
+  config: Partial<HojasRutaIntegratedConfig>,
+  uiState: Partial<HojasRutaUiState>,
+  outputs?: Partial<HojasRutaWorkspaceOutputs>,
+  phase?: HojasRutaPhase,
+  pilotExclusionMode?: HojasRutaPilotExclusionMode,
+) {
+  return {
+    config,
+    ui_state: uiState,
+    ...(outputs !== undefined ? { workspace_outputs: outputs } : {}),
+    ...(phase ? { phase } : {}),
+    ...(pilotExclusionMode ? { pilot_exclusion_mode: pilotExclusionMode } : {}),
+  };
+}
+
+/**
+ * Guarda sólo la configuración (checklist F1): sin ui_state ni salidas en la ida (el backend
+ * conserva los guardados) y sin el eco de ~3 MB en la vuelta (`ligero`). Para cambios que no
+ * invalidan nada, como agregar una ciudad sin distritos.
+ */
+export async function apiHojasRutaGuardarConfig(config: Partial<HojasRutaIntegratedConfig>, phase?: HojasRutaPhase) {
+  return handle<{ ok: true; integrated_config: HojasRutaIntegratedConfig; active_phase?: HojasRutaPhase; alerts?: HojasRutaAlert[] }>(
+    await apiFetch("/api/hojas-ruta/workspace", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ config, ...(phase ? { phase } : {}), ligero: true }),
+    }),
+  );
+}
+
 export async function apiHojasRutaPersistWorkspace(
   config: Partial<HojasRutaIntegratedConfig>,
   uiState: Partial<HojasRutaUiState>,
@@ -829,13 +1110,7 @@ export async function apiHojasRutaPersistWorkspace(
     await apiFetch("/api/hojas-ruta/workspace", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({
-        config,
-        ui_state: uiState,
-        workspace_outputs: outputs ?? {},
-        ...(phase ? { phase } : {}),
-        ...(pilotExclusionMode ? { pilot_exclusion_mode: pilotExclusionMode } : {}),
-      }),
+      body: JSON.stringify(cuerpoPersistWorkspace(config, uiState, outputs, phase, pilotExclusionMode)),
     }),
   );
 }
@@ -890,12 +1165,19 @@ export async function apiHojasRutaQuotaPreview(config: Partial<HojasRutaIntegrat
   );
 }
 
-export async function apiHojasRutaPopulationPreview(config: Partial<HojasRutaIntegratedConfig>) {
+/**
+ * Quién pide el cálculo. «restauracion» es el warm start o la hidratación que rehacen
+ * salidas que faltan al abrir el proyecto: el servidor calcula igual pero no lo anota
+ * en la bitácora, porque no es una decisión del usuario (U17, revisión de contratos).
+ */
+export type HojasRutaOrigenCalculo = "restauracion";
+
+export async function apiHojasRutaPopulationPreview(config: Partial<HojasRutaIntegratedConfig>, origen?: HojasRutaOrigenCalculo) {
   return handle<PopulationPlan>(
     await apiFetch("/api/hojas-ruta/population-preview", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ config }),
+      body: JSON.stringify(origen ? { config, origen } : { config }),
     }),
   );
 }
@@ -910,22 +1192,22 @@ export async function apiHojasRutaPopulationExport(config: Partial<HojasRutaInte
   );
 }
 
-export async function apiHojasRutaSampleSizePreview(config: Partial<HojasRutaIntegratedConfig>) {
+export async function apiHojasRutaSampleSizePreview(config: Partial<HojasRutaIntegratedConfig>, origen?: HojasRutaOrigenCalculo) {
   return handle<HojasRutaSampleSizePreview>(
     await apiFetch("/api/hojas-ruta/sample-size-preview", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ config }),
+      body: JSON.stringify(origen ? { config, origen } : { config }),
     }),
   );
 }
 
-export async function apiHojasRutaSamplePreview(config: Partial<HojasRutaIntegratedConfig>) {
+export async function apiHojasRutaSamplePreview(config: Partial<HojasRutaIntegratedConfig>, origen?: HojasRutaOrigenCalculo) {
   return handle<HojasRutaSamplePreview>(
     await apiFetch("/api/hojas-ruta/sample-preview", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ config }),
+      body: JSON.stringify(origen ? { config, origen } : { config }),
     }),
   );
 }
@@ -1038,4 +1320,543 @@ export function hojasRutaReporteDecisionalUrl(opts: { inline?: boolean } = {}): 
   if (opts.inline) params.set("inline", "1");
   const qs = params.toString();
   return apiPath(`/api/hojas-ruta/reporte-decisional/descargar${qs ? `?${qs}` : ""}`);
+}
+
+// ---------- Geometría compacta para el lienzo (ADR 0114 §7) ----------
+
+/** Manzana: id, viviendas, zona, NSE (0 sin dato · 1 Alto … 5 Bajo) y anillos en metros (x1,y1,x2,y2…). */
+export type HojasRutaGeometriaManzana = {
+  id: string;
+  viviendas: number;
+  zona: string;
+  nse: 0 | 1 | 2 | 3 | 4 | 5;
+  anillos: number[][];
+};
+
+/** Vía mayor: rango 2 troncal o primaria, 1 secundaria; nombre vacío si no tiene. */
+export type HojasRutaGeometriaVia = { rango: 1 | 2; nombre: string; lineas: number[][] };
+
+export type HojasRutaGeometriaZona = { codigo: string; anillos: number[][] };
+
+export type HojasRutaGeometria = {
+  ok: boolean;
+  version: string;
+  ubigeo: string;
+  nombre: string;
+  /** [xmin, ymin, xmax, ymax] en metros. */
+  bbox: [number, number, number, number];
+  manzanas: HojasRutaGeometriaManzana[];
+  vias: HojasRutaGeometriaVia[];
+  zonas: HojasRutaGeometriaZona[];
+};
+
+const esArreglo = Array.isArray;
+const comoNumero = (v: unknown, defecto = 0) => (typeof v === "number" && Number.isFinite(v) ? v : defecto);
+const comoTexto = (v: unknown) => (typeof v === "string" ? v : v == null ? "" : String(v));
+const anillosValidos = (v: unknown, minimo: number): number[][] =>
+  esArreglo(v)
+    ? v.filter((r): r is number[] => esArreglo(r) && r.length >= minimo && r.every((n) => typeof n === "number"))
+    : [];
+
+/**
+ * Normaliza la respuesta cruda de `/api/hojas-ruta/geometria`. Descarta en
+ * silencio sólo lo que no se puede dibujar (anillos con menos de tres puntos,
+ * líneas con menos de dos); el resto llega con valores por defecto explícitos.
+ */
+export function normalizarGeometriaHojasRuta(raw: unknown): HojasRutaGeometria {
+  const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const bbox = esArreglo(o.bbox) && o.bbox.length === 4 ? (o.bbox.map((n) => comoNumero(n)) as [number, number, number, number]) : ([0, 0, 0, 0] as [number, number, number, number]);
+  const manzanas = (esArreglo(o.manz) ? o.manz : []).flatMap((m): HojasRutaGeometriaManzana[] => {
+    if (!esArreglo(m)) return [];
+    const anillos = anillosValidos(m[4], 6);
+    const nse = comoNumero(m[3]);
+    if (!anillos.length) return [];
+    return [{ id: comoTexto(m[0]), viviendas: Math.max(0, comoNumero(m[1])), zona: comoTexto(m[2]), nse: (nse >= 0 && nse <= 5 ? Math.round(nse) : 0) as HojasRutaGeometriaManzana["nse"], anillos }];
+  });
+  const vias = (esArreglo(o.calles) ? o.calles : []).flatMap((c): HojasRutaGeometriaVia[] => {
+    if (!esArreglo(c)) return [];
+    const lineas = anillosValidos(c[2], 4);
+    return lineas.length ? [{ rango: comoNumero(c[0]) >= 2 ? 2 : 1, nombre: comoTexto(c[1]), lineas }] : [];
+  });
+  const zonas = (esArreglo(o.zonas) ? o.zonas : []).flatMap((z): HojasRutaGeometriaZona[] => {
+    if (!esArreglo(z)) return [];
+    const anillos = anillosValidos(z[1], 6);
+    return anillos.length ? [{ codigo: comoTexto(z[0]), anillos }] : [];
+  });
+  return { ok: o.ok === true && manzanas.length > 0, version: comoTexto(o.version), ubigeo: comoTexto(o.ubigeo), nombre: comoTexto(o.nombre), bbox, manzanas, vias, zonas };
+}
+
+export async function apiHojasRutaGeometria(ubigeo: string): Promise<HojasRutaGeometria> {
+  const params = new URLSearchParams({ ubigeo });
+  return normalizarGeometriaHojasRuta(
+    await handle<unknown>(await apiFetch(`/api/hojas-ruta/geometria?${params.toString()}`)),
+  );
+}
+
+// ---------- Contornos por región (paquete por ciudades, R2/R4) ----------
+
+/** Distritos de una región como FeatureCollection, del registro (no del estudio): sin sesión. */
+export type HojasRutaContornosRegion = {
+  region: string;
+  nombre: string;
+  distritos: { features: Array<{ properties?: { ubigeo?: string; distrito?: string; provincia?: string; label_lon?: number; label_lat?: number }; geometry?: { type?: string; coordinates?: unknown } }> };
+};
+
+export async function apiHojasRutaContornos(region: string): Promise<HojasRutaContornosRegion> {
+  const crudo = await handle<unknown>(await apiFetch(`/api/hojas-ruta/contornos?region=${encodeURIComponent(region)}`, { headers: headers() }));
+  const o = (crudo && typeof crudo === "object" ? crudo : {}) as Record<string, unknown>;
+  const d = (o.distritos && typeof o.distritos === "object" ? o.distritos : {}) as Record<string, unknown>;
+  return {
+    region: typeof o.region === "string" ? o.region : region,
+    nombre: typeof o.nombre === "string" ? o.nombre : "",
+    distritos: { features: Array.isArray(d.features) ? (d.features as HojasRutaContornosRegion["distritos"]["features"]) : [] },
+  };
+}
+
+// ---------- Marco elegible (ADR 0115) ----------
+
+export type HojasRutaMotivoExclusion = "inseguridad" | "no_residencial" | "inaccesible" | "otro";
+
+export type HojasRutaAreaExcluida = {
+  id: string;
+  motivo: HojasRutaMotivoExclusion;
+  detalle: string;
+  /** Obligatorias con `inseguridad` e `inaccesible`. */
+  fuente?: string;
+  fecha_evidencia?: string;
+  /** Anillo cerrado en lon/lat WGS84. */
+  poligono: [number, number][];
+  creada?: string;
+};
+
+export type HojasRutaMarcoElegible = { declarado: boolean; minimo_viviendas: number; areas_excluidas: HojasRutaAreaExcluida[] };
+
+export type HojasRutaConteoMarco = { manzanas: number; viviendas: number; poblacion: number };
+
+export type HojasRutaCoberturaMarco = {
+  ubigeo: string;
+  distrito: string;
+  zona?: string;
+  total: HojasRutaConteoMarco;
+  elegible: HojasRutaConteoMarco;
+  excluida_area: HojasRutaConteoMarco;
+  excluida_minimo: HojasRutaConteoMarco;
+  /** Titulares del piloto (Campo real), contadas aparte de los criterios del marco. */
+  excluida_piloto: HojasRutaConteoMarco;
+  excluida_minimo_sin_conteo: number;
+  sin_geometria: number;
+  /** `null` cuando el distrito o la zona no tienen población. */
+  cobertura_poblacion: number | null;
+};
+
+export type HojasRutaCapacidadZona = { ubigeo: string; distrito: string; zona: string; rutas: number; manzanas: number; necesita: number; falta: "titulares" | "reemplazos" | null };
+
+export type HojasRutaMarcoElegiblePreview = {
+  ok: boolean;
+  marco_elegible: HojasRutaMarcoElegible;
+  por_distrito: HojasRutaCoberturaMarco[];
+  por_zona: HojasRutaCoberturaMarco[];
+  nse: { elegible: Record<string, number>; excluida: Record<string, number> };
+  capacidad: HojasRutaCapacidadZona[];
+  alerts: HojasRutaAlert[];
+};
+
+const MOTIVOS_EXCLUSION: readonly HojasRutaMotivoExclusion[] = ["inseguridad", "no_residencial", "inaccesible", "otro"];
+
+function normalizarConteoMarco(raw: unknown): HojasRutaConteoMarco {
+  const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  return { manzanas: Math.max(0, comoNumero(o.manzanas)), viviendas: Math.max(0, comoNumero(o.viviendas)), poblacion: Math.max(0, comoNumero(o.poblacion)) };
+}
+
+export function normalizarMarcoElegible(raw: unknown): HojasRutaMarcoElegible {
+  const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const areas = (esArreglo(o.areas_excluidas) ? o.areas_excluidas : []).flatMap((a): HojasRutaAreaExcluida[] => {
+    const r = (a && typeof a === "object" ? a : {}) as Record<string, unknown>;
+    const motivo = comoTexto(r.motivo) as HojasRutaMotivoExclusion;
+    const poligono = (esArreglo(r.poligono) ? r.poligono : []).flatMap((p): [number, number][] => (esArreglo(p) && p.length >= 2 ? [[comoNumero(p[0]), comoNumero(p[1])]] : []));
+    if (!MOTIVOS_EXCLUSION.includes(motivo) || poligono.length < 4) return [];
+    return [{ id: comoTexto(r.id), motivo, detalle: comoTexto(r.detalle), fuente: comoTexto(r.fuente) || undefined, fecha_evidencia: comoTexto(r.fecha_evidencia) || undefined, poligono, creada: comoTexto(r.creada) || undefined }];
+  });
+  return { declarado: o.declarado === true, minimo_viviendas: Math.max(0, Math.round(comoNumero(o.minimo_viviendas))), areas_excluidas: areas };
+}
+
+export function normalizarMarcoElegiblePreview(raw: unknown): HojasRutaMarcoElegiblePreview {
+  const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const cobertura = (lista: unknown) =>
+    // R puede mandarla como objeto con claves (una lista con nombres): se aceptan las dos formas.
+    (esArreglo(lista) ? lista : lista && typeof lista === "object" ? Object.values(lista) : []).map((c): HojasRutaCoberturaMarco => {
+      const r = (c && typeof c === "object" ? c : {}) as Record<string, unknown>;
+      const cob = typeof r.cobertura_poblacion === "number" && Number.isFinite(r.cobertura_poblacion) ? r.cobertura_poblacion : null;
+      return {
+        ubigeo: comoTexto(r.ubigeo), distrito: comoTexto(r.distrito), zona: r.zona === undefined ? undefined : comoTexto(r.zona),
+        total: normalizarConteoMarco(r.total), elegible: normalizarConteoMarco(r.elegible),
+        excluida_area: normalizarConteoMarco(r.excluida_area), excluida_minimo: normalizarConteoMarco(r.excluida_minimo), excluida_piloto: normalizarConteoMarco(r.excluida_piloto),
+        excluida_minimo_sin_conteo: Math.max(0, comoNumero(r.excluida_minimo_sin_conteo)), sin_geometria: Math.max(0, comoNumero(r.sin_geometria)),
+        cobertura_poblacion: cob,
+      };
+    });
+  const perfil = (x: unknown): Record<string, number> => Object.fromEntries(Object.entries((x && typeof x === "object" ? x : {}) as Record<string, unknown>).map(([k, v]) => [k, Math.max(0, comoNumero(esArreglo(v) ? v[0] : v))]));
+  const nse = (o.nse && typeof o.nse === "object" ? o.nse : {}) as Record<string, unknown>;
+  const capacidad = (esArreglo(o.capacidad) ? o.capacidad : []).map((c): HojasRutaCapacidadZona => {
+    const r = (c && typeof c === "object" ? c : {}) as Record<string, unknown>;
+    const falta = comoTexto(r.falta);
+    return { ubigeo: comoTexto(r.ubigeo), distrito: comoTexto(r.distrito), zona: comoTexto(r.zona), rutas: comoNumero(r.rutas), manzanas: comoNumero(r.manzanas), necesita: comoNumero(r.necesita), falta: falta === "titulares" || falta === "reemplazos" ? falta : null };
+  });
+  return {
+    ok: o.ok === true,
+    marco_elegible: normalizarMarcoElegible(o.marco_elegible),
+    por_distrito: cobertura(o.por_distrito),
+    por_zona: cobertura(o.por_zona),
+    nse: { elegible: perfil(nse.elegible), excluida: perfil(nse.excluida) },
+    capacidad,
+    alerts: (esArreglo(o.alerts) ? o.alerts : []) as HojasRutaAlert[],
+  };
+}
+
+export async function apiHojasRutaMarcoElegiblePreview(config: Partial<HojasRutaIntegratedConfig>): Promise<HojasRutaMarcoElegiblePreview> {
+  return normalizarMarcoElegiblePreview(
+    await handle<unknown>(
+      await apiFetch("/api/hojas-ruta/marco-elegible/preview", {
+        method: "POST",
+        headers: headers({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ config }),
+      }),
+    ),
+  );
+}
+
+// ---------- No respuesta e ICC (ADR 0116) ----------
+
+export type HojasRutaVisitas = {
+  entrevistas_por_ruta: number;
+  respuesta: number;
+  ocupacion: number;
+  por_ruta: number;
+  tope_90: number;
+  contactos_esperados: number;
+  visitas_planificadas: number;
+};
+
+export type HojasRutaIccEntrada = {
+  id: string;
+  estudio?: string;
+  indicador?: string;
+  escala?: "proporcion" | "continua" | string;
+  unidad_conglomerado?: string;
+  definicion_conglomerado?: string;
+  estimador?: string;
+  icc: number;
+  icc_ic95?: [number, number];
+  m_medio?: number;
+  conglomerados?: number;
+  fecha?: string;
+  fuente?: string;
+  k_ruta?: number;
+  deff_resultante?: number;
+};
+
+export type HojasRutaIccAplicable = { ok: boolean; motivo: string; avisos?: HojasRutaAlert[] };
+
+function normalizarIccEntrada(raw: unknown): (HojasRutaIccEntrada & { aplicable: HojasRutaIccAplicable }) | null {
+  const o = (raw && typeof raw === "object" ? raw : null) as Record<string, unknown> | null;
+  if (!o || !comoTexto(o.id)) return null;
+  const ap = (o.aplicable && typeof o.aplicable === "object" ? o.aplicable : {}) as Record<string, unknown>;
+  const ic = esArreglo(o.icc_ic95) && o.icc_ic95.length === 2 ? ([comoNumero(o.icc_ic95[0]), comoNumero(o.icc_ic95[1])] as [number, number]) : undefined;
+  return {
+    id: comoTexto(o.id), estudio: comoTexto(o.estudio), indicador: comoTexto(o.indicador), escala: comoTexto(o.escala),
+    unidad_conglomerado: comoTexto(o.unidad_conglomerado), definicion_conglomerado: comoTexto(o.definicion_conglomerado),
+    estimador: comoTexto(o.estimador), icc: comoNumero(o.icc, Number.NaN), icc_ic95: ic,
+    m_medio: comoNumero(o.m_medio, Number.NaN), conglomerados: comoNumero(o.conglomerados, Number.NaN),
+    fecha: comoTexto(o.fecha), fuente: comoTexto(o.fuente),
+    aplicable: { ok: ap.ok === true, motivo: comoTexto(ap.motivo), avisos: (esArreglo(ap.avisos) ? ap.avisos : []) as HojasRutaAlert[] },
+  };
+}
+
+export async function apiHojasRutaIcc(): Promise<Array<HojasRutaIccEntrada & { aplicable: HojasRutaIccAplicable }>> {
+  const r = await handle<{ entradas?: unknown }>(await apiFetch("/api/hojas-ruta/icc", { headers: headers() }));
+  return (esArreglo(r?.entradas) ? r.entradas : []).flatMap((e) => normalizarIccEntrada(e) ?? []);
+}
+
+export async function apiHojasRutaIccGuardar(entrada: HojasRutaIccEntrada): Promise<HojasRutaIccAplicable> {
+  const r = await handle<{ aplicable?: HojasRutaIccAplicable }>(
+    await apiFetch("/api/hojas-ruta/icc", { method: "POST", headers: headers({ "Content-Type": "application/json" }), body: JSON.stringify({ entrada }) }),
+  );
+  return r.aplicable ?? { ok: false, motivo: "" };
+}
+
+/** Devuelve el `sample_size` con el DEFF recalculado; no guarda nada. */
+export async function apiHojasRutaIccAplicar(config: Partial<HojasRutaIntegratedConfig>, id: string) {
+  return handle<{ ok: boolean; sample_size: HojasRutaSampleSizeConfig; alerts: HojasRutaAlert[]; distritos_con_override: string[] }>(
+    await apiFetch("/api/hojas-ruta/icc/aplicar", { method: "POST", headers: headers({ "Content-Type": "application/json" }), body: JSON.stringify({ config, id }) }),
+  );
+}
+
+// ---------- Comparar semillas (U13) ----------
+
+export type HojasRutaSemillaComparada = {
+  semilla: number;
+  actual: boolean;
+  titulares: number;
+  por_revisar: number;
+  por_revisar_pct: number | null;
+  mediana_viviendas: number | null;
+  nse_distancia: number | null;
+  cercania_km: number | null;
+  sin_asignar: number;
+};
+
+const numONull = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+
+export function normalizarSemillasComparadas(raw: unknown): HojasRutaSemillaComparada[] {
+  const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  return (esArreglo(o.semillas) ? o.semillas : []).flatMap((x): HojasRutaSemillaComparada[] => {
+    const r = (x && typeof x === "object" ? x : {}) as Record<string, unknown>;
+    const semilla = comoNumero(r.semilla, Number.NaN);
+    if (!Number.isFinite(semilla)) return [];
+    return [{
+      semilla, actual: r.actual === true, titulares: comoNumero(r.titulares), por_revisar: comoNumero(r.por_revisar),
+      por_revisar_pct: numONull(r.por_revisar_pct), mediana_viviendas: numONull(r.mediana_viviendas),
+      nse_distancia: numONull(r.nse_distancia), cercania_km: numONull(r.cercania_km), sin_asignar: comoNumero(r.sin_asignar),
+    }];
+  });
+}
+
+/** Sorteos en seco con otras semillas; no guarda nada. */
+export async function apiHojasRutaCompararSemillas(config: Partial<HojasRutaIntegratedConfig>, nuevas = 2): Promise<HojasRutaSemillaComparada[]> {
+  return normalizarSemillasComparadas(
+    await handle<unknown>(
+      await apiFetch("/api/hojas-ruta/sample-preview/comparar", { method: "POST", headers: headers({ "Content-Type": "application/json" }), body: JSON.stringify({ config, nuevas }) }),
+    ),
+  );
+}
+
+// ---------- Plan de campo (U14) ----------
+
+export type HojasRutaPlanSupuestos = {
+  encuestadores: number;
+  visitas_por_jornada: number;
+  costo_por_entrevista: number;
+  costo_por_jornada: number;
+  costo_por_km: number;
+  /** Supervisión y coordinación, en % sobre el total (B21). */
+  supervision_pct: number;
+  moneda: string;
+};
+
+export type HojasRutaJornada = {
+  id: string; ubigeo: string; distrito: string; rutas: string[]; visitas: number; km: number;
+  /** La ruta no cabe en una jornada: va entera, con el mismo encuestador varios días. */
+  excede_jornada: boolean; jornadas_equivalentes: number;
+  /** Calendario (B20): encuestador 1..n y día en que empieza la jornada. */
+  encuestador: number; dia: number;
+};
+
+export type HojasRutaPlanCampo = {
+  supuestos: HojasRutaPlanSupuestos;
+  jornadas: HojasRutaJornada[];
+  resumen: { rutas: number; entrevistas: number; visitas: number; jornadas: number; dias: number; km: number; costo: number };
+  /** Avisos del plan (p. ej. W_PLAN_RUTA_EXCEDE_JORNADA). */
+  alertas: { code: string; message: string }[];
+};
+
+// Los del artefacto aprobado y de HOJAS_RUTA_PLAN_DEFAULTS en R (B21): S/ 120 de pago
+// más S/ 25 de movilidad por jornada, y 15 % de supervisión. Supuestos editables.
+export const PLAN_SUPUESTOS_POR_DEFECTO: HojasRutaPlanSupuestos = { encuestadores: 4, visitas_por_jornada: 30, costo_por_entrevista: 0, costo_por_jornada: 145, costo_por_km: 0, supervision_pct: 15, moneda: "S/" };
+
+export function normalizarPlanSupuestos(raw: unknown): HojasRutaPlanSupuestos {
+  const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const d = PLAN_SUPUESTOS_POR_DEFECTO;
+  return {
+    encuestadores: Math.max(1, Math.round(comoNumero(o.encuestadores, d.encuestadores))),
+    visitas_por_jornada: Math.max(1, Math.round(comoNumero(o.visitas_por_jornada, d.visitas_por_jornada))),
+    costo_por_entrevista: Math.max(0, comoNumero(o.costo_por_entrevista, d.costo_por_entrevista)),
+    costo_por_jornada: Math.max(0, comoNumero(o.costo_por_jornada, d.costo_por_jornada)),
+    costo_por_km: Math.max(0, comoNumero(o.costo_por_km, d.costo_por_km)),
+    supervision_pct: Math.min(100, Math.max(0, comoNumero(o.supervision_pct, d.supervision_pct))),
+    moneda: comoTexto(o.moneda) || d.moneda,
+  };
+}
+
+export function normalizarPlanCampo(raw: unknown): HojasRutaPlanCampo {
+  const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const r = (o.resumen && typeof o.resumen === "object" ? o.resumen : {}) as Record<string, unknown>;
+  return {
+    supuestos: normalizarPlanSupuestos(o.supuestos),
+    jornadas: (esArreglo(o.jornadas) ? o.jornadas : []).map((j) => {
+      const x = (j && typeof j === "object" ? j : {}) as Record<string, unknown>;
+      return {
+        id: comoTexto(x.id), ubigeo: comoTexto(x.ubigeo), distrito: comoTexto(x.distrito), rutas: (esArreglo(x.rutas) ? x.rutas : []).map(comoTexto), visitas: comoNumero(x.visitas), km: comoNumero(x.km),
+        excede_jornada: x.excede_jornada === true, jornadas_equivalentes: Math.max(1, comoNumero(x.jornadas_equivalentes) || 1),
+        encuestador: Math.max(1, comoNumero(x.encuestador) || 1), dia: Math.max(1, comoNumero(x.dia) || 1),
+      };
+    }),
+    resumen: { rutas: comoNumero(r.rutas), entrevistas: comoNumero(r.entrevistas), visitas: comoNumero(r.visitas), jornadas: comoNumero(r.jornadas), dias: comoNumero(r.dias), km: comoNumero(r.km), costo: comoNumero(r.costo) },
+    alertas: (esArreglo(o.alertas) ? o.alertas : []).flatMap((a) => {
+      const x = (a && typeof a === "object" ? a : {}) as Record<string, unknown>;
+      return comoTexto(x.message) ? [{ code: comoTexto(x.code), message: comoTexto(x.message) }] : [];
+    }),
+  };
+}
+
+/** Arma el plan sobre la muestra guardada; no guarda nada. */
+export async function apiHojasRutaPlanCampo(supuestos: HojasRutaPlanSupuestos): Promise<HojasRutaPlanCampo> {
+  return normalizarPlanCampo(
+    await handle<unknown>(await apiFetch("/api/hojas-ruta/plan-campo", { method: "POST", headers: headers({ "Content-Type": "application/json" }), body: JSON.stringify({ supuestos }) })),
+  );
+}
+
+// ---------- Bitácora de decisiones (U17) ----------
+
+export type HojasRutaBitacoraEntrada = { id: number; fecha: string; fase: string; accion: string; resumen: string; detalle: Record<string, unknown> };
+
+export function normalizarBitacora(raw: unknown): HojasRutaBitacoraEntrada[] {
+  const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  return (esArreglo(o.entradas) ? o.entradas : []).flatMap((e): HojasRutaBitacoraEntrada[] => {
+    const x = (e && typeof e === "object" ? e : {}) as Record<string, unknown>;
+    if (!comoTexto(x.resumen)) return [];
+    return [{ id: comoNumero(x.id), fecha: comoTexto(x.fecha), fase: comoTexto(x.fase), accion: comoTexto(x.accion), resumen: comoTexto(x.resumen), detalle: (x.detalle && typeof x.detalle === "object" ? x.detalle : {}) as Record<string, unknown> }];
+  });
+}
+
+export async function apiHojasRutaBitacora(): Promise<HojasRutaBitacoraEntrada[]> {
+  return normalizarBitacora(await handle<unknown>(await apiFetch("/api/hojas-ruta/bitacora", { headers: headers() })));
+}
+
+/** Desde la interfaz sólo se anotan decisiones de cobertura (ADR 0115 §4) y notas. */
+export async function apiHojasRutaBitacoraAnotar(accion: "decision_cobertura" | "nota", resumen: string, detalle: Record<string, unknown> = {}) {
+  return handle<{ ok: boolean }>(
+    await apiFetch("/api/hojas-ruta/bitacora", { method: "POST", headers: headers({ "Content-Type": "application/json" }), body: JSON.stringify({ accion, resumen, detalle }) }),
+  );
+}
+
+// ---------- Cuotas por hoja sin re-sortear ----------
+
+export type HojasRutaCuotasRepartidas = { resumen: { ubigeo: string; distrito: string; hombres: number; mujeres: number }[] };
+
+/**
+ * «Enviar a Material» (ADR 0118 §3): el servidor copia la muestra vigente de la fase
+ * activa como foto con huella. Devuelve el `envio_meta` resultante.
+ */
+export async function apiHojasRutaEnviar(): Promise<EnvioMeta | null> {
+  const r = await handle<{ envio_meta?: unknown }>(await apiFetch("/api/hojas-ruta/envio", { method: "POST", headers: headers({ "Content-Type": "application/json" }), body: "{}" }));
+  return normalizarEnvioMeta(r.envio_meta);
+}
+
+/**
+ * «Enviar a Material» de un estudio por cuotas (ADR 0125 §2): el servidor arma las zonas con su N y su cuota
+ * por celda desde la configuración de la fase y las guarda como foto con huella. Sin zonas, 409.
+ */
+export async function apiHojasRutaEnviarCuotas(fase?: string): Promise<EnvioMeta | null> {
+  const r = await handle<{ envio_meta?: unknown }>(await apiFetch("/api/hojas-ruta/envio", {
+    method: "POST",
+    headers: headers({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ kind: "cuotas", ...(fase ? { fase } : {}) }),
+  }));
+  return normalizarEnvioMeta(r.envio_meta);
+}
+
+/** Reparte la cuota de sexo y edad de cada distrito entre las hojas de la muestra guardada (mismas manzanas). */
+export async function apiHojasRutaCuotasPorFicha(): Promise<HojasRutaCuotasRepartidas> {
+  const r = await handle<{ resumen?: unknown }>(await apiFetch("/api/hojas-ruta/cuotas-por-ficha", { method: "POST", headers: headers({ "Content-Type": "application/json" }), body: "{}" }));
+  return {
+    resumen: (esArreglo(r.resumen) ? r.resumen : []).map((x) => {
+      const d = (x && typeof x === "object" ? x : {}) as Record<string, unknown>;
+      return { ubigeo: comoTexto(d.ubigeo), distrito: comoTexto(d.distrito), hombres: comoNumero(d.hombres), mujeres: comoNumero(d.mujeres) };
+    }),
+  };
+}
+
+/** ¿La muestra trae las cuotas por sexo repartidas por distrito? (las anteriores al reparto piden 4/4 en todas). */
+export function muestraConCuotasRepartidas(blocks: readonly unknown[] | undefined): boolean {
+  if (!blocks?.length) return true;
+  return blocks.every((b) => b != null && typeof b === "object" && /^\d+,\d+$/.test(comoTexto((b as Record<string, unknown>).cuota_sexo_totals)));
+}
+
+// ---------- Decisión de cobertura (ADR 0115 §4, enmienda U17) ----------
+
+export type HojasRutaDecisionCobertura = {
+  fase: string;
+  /** Distritos que pierden 10 % o más de su población con el marco elegible. */
+  exigida: { ubigeo: string; distrito: string; excluida: number }[];
+  huella: string;
+  /** Id de la entrada de la bitácora que la cubre, o null si falta. */
+  vigente: number | null;
+};
+
+export function normalizarDecisionCobertura(raw: unknown): HojasRutaDecisionCobertura {
+  const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const exigida = (Array.isArray(o.exigida) ? o.exigida : []).flatMap((x) => {
+    const d = (x && typeof x === "object" ? x : {}) as Record<string, unknown>;
+    const excluida = Number(d.excluida);
+    return comoTexto(d.ubigeo) ? [{ ubigeo: comoTexto(d.ubigeo), distrito: comoTexto(d.distrito), excluida: Number.isFinite(excluida) ? excluida : 0 }] : [];
+  });
+  const v = Number(o.vigente);
+  return { fase: comoTexto(o.fase) || "field", exigida, huella: comoTexto(o.huella), vigente: o.vigente == null || !Number.isFinite(v) ? null : v };
+}
+
+/** Estado de la decisión para el marco del run activo, según la muestra guardada. */
+export async function apiHojasRutaDecisionCobertura() {
+  return normalizarDecisionCobertura(await handle<unknown>(await apiFetch("/api/hojas-ruta/decision-cobertura", { headers: headers() })));
+}
+
+// ---------- Vista previa de la hoja y hoja del día (U15) ----------
+
+export type HojasRutaArchivoGenerado = { file_id: string; filename: string; formato: "png" | "pdf" };
+
+export function normalizarArchivo(raw: unknown, formatoPorDefecto: "png" | "pdf"): HojasRutaArchivoGenerado & Record<string, unknown> {
+  const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const f = comoTexto(o.formato);
+  return { ...o, file_id: comoTexto(o.file_id), filename: comoTexto(o.filename), formato: f === "png" || f === "pdf" ? f : formatoPorDefecto };
+}
+
+/** La ficha de una UMP de la muestra guardada (titular o reemplazo); tarda unos segundos. */
+export async function apiHojasRutaFichaUmp(idManzana: string, formato: "png" | "pdf" = "png") {
+  return normalizarArchivo(
+    await handle<unknown>(await apiFetch("/api/hojas-ruta/ficha-ump", { method: "POST", headers: headers({ "Content-Type": "application/json" }), body: JSON.stringify({ id_manzana: idManzana, formato }) })),
+    formato,
+  );
+}
+
+/** La hoja del día de una jornada del plan de campo, en PDF. */
+export async function apiHojasRutaHojaDia(jornada: string, supuestos?: HojasRutaPlanSupuestos) {
+  return normalizarArchivo(
+    await handle<unknown>(await apiFetch("/api/hojas-ruta/hoja-dia", { method: "POST", headers: headers({ "Content-Type": "application/json" }), body: JSON.stringify({ jornada, ...(supuestos ? { supuestos } : {}) }) })),
+    "pdf",
+  );
+}
+
+// ---------- Cartografía de manzanas por ciudad ----------
+
+export type CartografiaDeProvincia = { provincia: string; disponible: boolean; cobertura: string; anio: number | null; fuente: string };
+
+/** Año y fuente de la cartografía de manzanas de cada provincia de los ubigeos (una por provincia). */
+export async function apiHojasRutaCartografia(ubigeos: readonly string[]): Promise<CartografiaDeProvincia[]> {
+  const qs = new URLSearchParams({ ubigeos: ubigeos.join(",") });
+  const r = await handle<{ provincias?: unknown }>(await apiFetch(`/api/hojas-ruta/cartografia?${qs.toString()}`, { headers: headers() }));
+  return (esArreglo(r.provincias) ? r.provincias : []).map((x) => {
+    const d = (x && typeof x === "object" ? x : {}) as Record<string, unknown>;
+    const anio = comoNumero(d.anio);
+    return { provincia: comoTexto(d.provincia), disponible: d.disponible === true || (Array.isArray(d.disponible) && d.disponible[0] === true),
+      cobertura: comoTexto(d.cobertura), anio: anio > 0 ? anio : null, fuente: comoTexto(d.fuente) };
+  }).filter((p) => p.provincia);
+}
+
+/** «Arequipa, Arequipa 2017»: lo que dice la fila Cartografía con una ciudad abierta. Varias
+ *  provincias van con punto y coma: la cobertura de cada una ya lleva comas. */
+const MENORES = new Set(["de", "del", "la", "las", "los", "y"]);
+/** «AREQUIPA, AREQUIPA» (provincia y departamento homónimos, en mayúsculas del INEI) se dice «Arequipa». */
+function coberturaLegible(cobertura: string): string {
+  const partes = cobertura.split(",").map((x) => x.trim()).filter(Boolean);
+  const unicas = partes.filter((x, i) => partes.findIndex((y) => y.toLocaleLowerCase("es-PE") === x.toLocaleLowerCase("es-PE")) === i);
+  const capitalizar = (t: string) =>
+    t
+      .toLocaleLowerCase("es-PE")
+      .split(" ")
+      .map((w, i) => (i > 0 && MENORES.has(w) ? w : w.charAt(0).toLocaleUpperCase("es-PE") + w.slice(1)))
+      .join(" ");
+  return unicas.map((x) => (x === x.toLocaleUpperCase("es-PE") ? capitalizar(x) : x)).join(", ");
+}
+
+export function rotuloDeCartografia(provincias: readonly CartografiaDeProvincia[]): string {
+  return provincias.map((p) => (p.disponible ? `${coberturaLegible(p.cobertura)}${p.anio ? ` ${p.anio}` : ""}` : "sin cartografía de manzanas")).join("; ");
 }

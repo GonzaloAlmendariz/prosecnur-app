@@ -1,0 +1,77 @@
+/* Avance › Ritmo por público: tarjetas pares, tres por fila (dos en compacto),
+ * con el color de la capa del apilado en la muestra, la pista y las barras. */
+
+.acr-rp-grilla {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--pulso-space-3);
+  margin: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-4);
+  list-style: none;
+}
+
+.acr-rp-publico {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+}
+
+.acr-rp-linea {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.acr-rp-nombre {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.acr-rp-cifra {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.acr-rp-cifra b {
+  font-size: var(--pulso-type-kpi-size);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.acr-rp-pie {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+}
+
+/* El color de cada público es el de su capa en el apilado de arriba. */
+.acr-rp-publico.is-capa-1 { --acr-rp-color: var(--acr-capa-1); }
+.acr-rp-publico.is-capa-2 { --acr-rp-color: var(--acr-capa-2); }
+.acr-rp-publico.is-capa-3 { --acr-rp-color: var(--acr-capa-3); }
+.acr-rp-publico.is-capa-4 { --acr-rp-color: var(--acr-capa-4); }
+.acr-rp-publico.is-capa-5 { --acr-rp-color: var(--acr-capa-5); }
+.acr-rp-publico.is-capa-6 { --acr-rp-color: var(--acr-capa-6); }
+/* Con exactamente siete públicos no hay «Otros» y el séptimo lleva la capa 7. */
+.acr-rp-publico.is-capa-7 { --acr-rp-color: var(--acr-capa-7); }
+
+.acr-rp-publico .acr-av-pista > i { background: var(--acr-rp-color, var(--acr-efectiva)); }
+.acr-rp-publico .acr-av-minibarras { fill: var(--acr-rp-color, var(--pulso-accent-steel)); }
+
+@media (max-width: 1200px) {
+  .acr-rp-grilla { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Con la paleta de públicos: el mismo color que en Resumen, Correo y Por cuota. */
+.acr-rp-publico.con-publico { --acr-rp-color: var(--publico); }

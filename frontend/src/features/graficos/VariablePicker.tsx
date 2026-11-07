@@ -5,6 +5,11 @@ import { Check, ChevronDown, Database, Search, X } from "lucide-react";
 import { useVariables, parseVarRef, formatVarRef } from "./useVariables";
 import { safeText } from "./safeText";
 import { getDerivedReportVariable } from "./derivedReportVariables";
+import { formatoConteo } from "../../lib/formatoNumero";
+import { CargaDeBloque } from "../../components/CargaDeBloque";
+import { textoPlano } from "./textoPlano";
+import { estadoBaseDeRef } from "./baseDeReferencia";
+import { FijarEnOtraBase, PastillaBaseRef } from "./PastillaBaseRef";
 
 type Props = {
   value: string | null | undefined;
@@ -14,6 +19,12 @@ type Props = {
   allowEmpty?: boolean;
   /** Sin el rótulo de la base en el disparador: donde la fila ya dice de qué público es (tarjetas por público). */
   ocultarBase?: boolean;
+  /** Base en la que abre el buscador mientras no hay pregunta elegida: la fila de un público abre en la suya (antes abría
+   *  en la primera base del estudio y, desde la fila de Estudiantes, buscaba en Docentes). */
+  fuenteInicial?: string;
+  /** Sin pastilla de base en una referencia sin prefijo: donde el motor la lee en la base del gráfico (los cruces de las
+   *  tarjetas de diferencias, `.sig_var_local`; U15 del checklist de mandos del mazo). */
+  sinAvisoDeBase?: boolean;
 };
 
 // VariablePicker multi-base (v0.2+).
@@ -31,9 +42,9 @@ type Props = {
 // el analista lo guardó conscientemente así).
 
 export default function VariablePicker({
-  value, onChange, placeholder = "Selecciona variable…", filter, allowEmpty = false, ocultarBase = false,
+  value, onChange, placeholder = "Selecciona variable…", filter, allowEmpty = false, ocultarBase = false, fuenteInicial, sinAvisoDeBase = false,
 }: Props) {
-  const { sources, multi, loading, error } = useVariables();
+  const { sources, multi, variables, relacionBases, baseActiva, scope, loading, error } = useVariables();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [draftSource, setDraftSource] = useState<string | null>(null);
@@ -45,9 +56,14 @@ export default function VariablePicker({
 
   // Parsear el value actual a (source, name).
   const parsed = useMemo(() => parseVarRef(value), [value]);
+  // Con varias bases, de qué base lee el motor una ref sin prefijo: la activa del informe (baseDeReferencia.ts).
+  const estadoBase = useMemo(
+    () => (sinAvisoDeBase ? { tipo: "sin-aviso" as const } : estadoBaseDeRef(value, { multi, variables: variables ?? [], baseActiva, relacionBases, scope })),
+    [sinAvisoDeBase, value, multi, variables, baseActiva, relacionBases, scope],
+  );
   const derivedVariable = useMemo(() => getDerivedReportVariable(value), [value]);
   const sourceKey = sources.map((source) => source.name).join("\u001F");
-  const firstSourceName = sources[0]?.name ?? null;
+  const firstSourceName = (fuenteInicial && sources.some((source) => source.name === fuenteInicial) ? fuenteInicial : sources[0]?.name) ?? null;
   const valueSource = parsed.source && sources.some((source) => source.name === parsed.source)
     ? parsed.source
     : null;
@@ -89,7 +105,7 @@ export default function VariablePicker({
     if (open) requestAnimationFrame(() => searchRef.current?.focus());
   }, [open]);
 
-  if (loading) return <span className="pulso-gv2-variable-status">Cargando variables…</span>;
+  if (loading) return <CargaDeBloque label="Cargando variables…" />;
   if (error) {
     const isSessionLost = error.includes("E_NO_SESSION");
     return (
@@ -136,17 +152,16 @@ export default function VariablePicker({
     );
   }
   const visibleVars = filtered.slice(0, 120);
-  const selectedSourceName = valueSource ?? pickerSource;
+  const baseResuelta = estadoBase.tipo === "base-activa" || estadoBase.tipo === "en-otra-base" ? estadoBase.base : null;
+  const selectedSourceName = valueSource ?? baseResuelta ?? pickerSource;
   const selectedSource = sources.find((s) => s.name === selectedSourceName) ?? source;
   const selectedVar = selectedSource?.variables.find((v) => safeText(v.name) === parsed.name) ?? null;
-  const selectedLabel = selectedVar ? safeText(selectedVar.label, selectedVar.name) : "";
+  const selectedLabel = selectedVar ? textoPlano(safeText(selectedVar.label, selectedVar.name)) : "";
   const selectedCode = selectedVar ? safeText(selectedVar.name) : "";
   const selectedSourceLabel = selectedVar ? (selectedSource?.name ?? "") : (pickerSource ?? "");
-  // Con varias bases, una referencia sin prefijo no tiene base: la que se
-  // mostraba era la del picker, o sea la primera que resultara tener ese
-  // nombre. El chip parecía una atribución y el motor, en cambio, ni siquiera
-  // puede renderizar el gráfico. Se dice lo que hay: falta elegir la base.
-  const refSinBase = multi && !parsed.source && !!parsed.name;
+  // Con varias bases, una referencia sin prefijo se lee de la base activa del informe, igual que en el motor. La
+  // pastilla dice de cuál, o avisa si la pregunta está en otra base o en ninguna.
+  const sinPrefijo = multi && !parsed.source && !!parsed.name;
 
   function handleSourceChange(newSource: string) {
     if (!sources.some((s) => s.name === newSource)) return;
@@ -162,6 +177,11 @@ export default function VariablePicker({
     onChange(formatVarRef(pickerSource, newName, multi));
     setOpen(false);
     setQuery("");
+  }
+
+  function fijarEnBase(base: string) {
+    if (!parsed.name || !sources.some((s) => s.name === base)) return;
+    onChange(formatVarRef(base, parsed.name, true));
   }
 
   function clearVariable(e: React.MouseEvent<HTMLButtonElement>) {
@@ -211,18 +231,16 @@ export default function VariablePicker({
           <Database size={14} />
         </span>
         <span className="pulso-gv2-variable-trigger-copy">
-          <strong>{selectedVar ? selectedLabel : placeholder}</strong>
+          <strong>{selectedVar ? selectedLabel : estadoBase.tipo === "en-ninguna" ? parsed.name : placeholder}</strong>
           <small>
             {selectedVar
               ? selectedCode
-              : `${eligible.length} pregunta${eligible.length === 1 ? "" : "s"} disponible${eligible.length === 1 ? "" : "s"}`}
+              : `${formatoConteo(eligible.length)} pregunta${eligible.length === 1 ? "" : "s"} disponible${eligible.length === 1 ? "" : "s"}`}
           </small>
         </span>
-        {refSinBase ? (
-          <span className="pulso-gv2-variable-trigger-source is-sin-base" title="Esta variable no dice de qué base es; vuelve a elegirla.">
-            falta la base
-          </span>
-        ) : selectedVar && selectedSourceLabel && !ocultarBase ? (
+        {sinPrefijo ? (
+          <PastillaBaseRef estado={estadoBase} ocultarNeutra={ocultarBase} />
+        ) : selectedVar && selectedSourceLabel && !ocultarBase && !sinPrefijo ? (
           <span className="pulso-gv2-variable-trigger-source">{selectedSourceLabel}</span>
         ) : null}
         <ChevronDown size={14} className="pulso-gv2-variable-trigger-chevron" />
@@ -240,6 +258,8 @@ export default function VariablePicker({
         </button>
       )}
 
+      <FijarEnOtraBase estado={estadoBase} baseActiva={baseActiva ?? relacionBases?.resolutora ?? null} onFijar={fijarEnBase} />
+
       {open && typeof document !== "undefined" && createPortal((
         <div
           ref={popoverRef}
@@ -253,7 +273,7 @@ export default function VariablePicker({
             <span aria-hidden="true"><Database size={15} /></span>
             <div>
               <strong>Elegir variable</strong>
-              <small>{source?.name ?? "Base activa"} · {eligible.length} disponibles</small>
+              <small>{source?.name ?? "Base activa"}, {formatoConteo(eligible.length)} disponibles</small>
             </div>
           </div>
 
@@ -267,7 +287,7 @@ export default function VariablePicker({
                   onClick={() => handleSourceChange(s.name)}
                 >
                   <span>{s.name}</span>
-                  <b>{s.variables.length}</b>
+                  <b>{formatoConteo(s.variables.length)}</b>
                 </button>
               ))}
             </div>
@@ -325,12 +345,12 @@ export default function VariablePicker({
                   </span>
                   <span className="pulso-gv2-variable-option-main">
                     <span className="pulso-gv2-variable-option-title">
-                      <strong>{label}</strong>
+                      <strong>{textoPlano(label)}</strong>
                       <code>{name}</code>
                     </span>
                     <span className="pulso-gv2-variable-option-meta">
                       {multi && source?.name && <em>{source.name}</em>}
-                      {v.seccion && <em>{v.seccion}</em>}
+                      {v.seccion && <em>{textoPlano(v.seccion)}</em>}
                       {v.tipo && <em>{friendlyVarType(v.tipo)}</em>}
                       {typeof v.n_non_empty === "number" && <em>{v.n_non_empty} respuestas</em>}
                       {v.is_recoded && <em>recodificada</em>}
@@ -349,7 +369,7 @@ export default function VariablePicker({
 
             {filtered.length > visibleVars.length && (
               <div className="pulso-gv2-variable-more">
-                Mostrando {visibleVars.length} de {filtered.length}. Afina la búsqueda para ver resultados más precisos.
+                Mostrando {formatoConteo(visibleVars.length)} de {formatoConteo(filtered.length)}. Afina la búsqueda para ver resultados más precisos.
               </div>
             )}
           </div>

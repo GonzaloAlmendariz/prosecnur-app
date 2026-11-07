@@ -80,18 +80,20 @@ test_that("con Bottom Two Box la batería se parte igual, cada premisa ocupa el 
     # Las dos columnas: una cifra de cada box por premisa, sus rótulos, y la Top Two Box a la izquierda de la Bottom.
     b1 <- .b2_formas(con[[k]], "box:cifra"); b2 <- .b2_formas(con[[k]], "box2:cifra")
     expect_identical(nrow(b1), nrow(pc)); expect_identical(nrow(b2), nrow(pc))
-    expect_identical(.b2_formas(con[[k]], "box2:rotulo")$t, "Bottom Two Box")
+    expect_identical(.b2_formas(con[[k]], "box2:rotulo")$t, "BOTTOM TWO BOX")   # G20: mayúsculas en la lámina
     expect_true(all(b1$x + b1$w <= min(b2$x) + 1e-6), info = paste("lámina", k))
     expect_true(all(grepl("^[0-9]+%$", b2$t)), info = paste("lámina", k))
     # La barra cede el ancho de la columna y termina antes de la Top Two Box.
     seg <- .b2_formas(con[[k]], "segmento")
     expect_lte(max(seg$x + seg$w), min(b1$x) + 1e-6)
-    expect_equal(max(seg$x + seg$w) - min(seg$x), .std_geom("likert")$ancho_barra - 1.25, tolerance = 0.01)
+    # G13: la columna de la Top Two Box se acercó a la barra; la barra termina donde ella empieza (antes: ancho - 1.25).
+    L_ <- .std_geom("likert")
+    expect_equal(max(seg$x + seg$w) - min(seg$x), min(L_$ancho_barra - 1.25, L_$x_top_two_box + 0.75 - 1.25 - 1.25 / 2 - 0.01 - L_$x_barra), tolerance = 0.01)
     # Base chica: cada box dice sus casos, como sin Bottom Two Box.
     expect_identical(nrow(.b2_formas(con[[k]], "box2:casos")), nrow(pc))
   }
   expect_setequal(vistas, .b2_premisas)                        # el texto completo, ninguna premisa perdida
-  # Sin Bottom Two Box nada cambia: la Top Two Box sigue en su columna de 11.4 in.
+  # Sin Bottom Two Box nada cambia: la Top Two Box sigue en su columna (`x_top_two_box`).
   expect_true(all(abs(.b2_formas(sin[[1]], "box:cifra")$x - .std_geom("likert")$x_top_two_box) < 0.01))
   expect_identical(nrow(.b2_formas(sin[[1]], "box2:cifra")), 0L)
 })

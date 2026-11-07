@@ -1,3 +1,4 @@
+import { formatoConteo } from "../../../../lib/formatoNumero";
 import { useState } from "react";
 import type { MonitoreoAulasSincronizacion, MonitoreoAulasTramo } from "../../../../api/monitoreo";
 import type { ReactNode } from "react";
@@ -18,6 +19,7 @@ import { fmt } from "./kpisDeAulas";
 import { soloFacultad } from "./aulasPresentation";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
 import type { TablaDelPerfil } from "./tablaDelPerfil";
+import { hrefDeFichaDeAula } from "./navegacion/direccionAulas";
 import type { MonitoreoAulasDashboard, MonitoreoAulasPlanRow, MonitoreoAulasDistribucionSheets } from "../../../../api/monitoreo";
 
 /**
@@ -295,14 +297,13 @@ export function AulasSeccionModelo({
                 agenda podrían enseñar cuentas distintas. */}
             <span>{(() => {
               const n = agendaRows(dashboard).length;
-              return n ? `${n.toLocaleString("es-PE")} cursos-horario` : "sin agenda";
+              return n ? `${formatoConteo(n)} cursos-horario` : "sin agenda";
             })()}</span>
           </div>
           <AulasAgendaPorFacultad
             // El `href` se escribe aunque no haya callback: es la dirección
             // real de esa ficha, y sirve para copiarla o abrirla aparte.
-            hrefDeFicha={(codigo) =>
-              `/monitoreo?seccion=consultas&pestana=ficha&foco=${encodeURIComponent(`aula:${codigo}`)}`}
+            hrefDeFicha={hrefDeFichaDeAula}
             onVerFicha={verFichaDe ?? undefined}
             filas={filasDelFoco() as unknown as MonitoreoAulasPlanRow[]}
             // El choque cita/horario de clase, desde las ventanas del MOTOR
@@ -361,17 +362,17 @@ export function AulasSeccionModelo({
               {eslabon === 0 ? (
                 <>
                   {fmt(filasDeLaAgenda.length)} cursos-horario
-                  {facultadEnFoco ? ` · solo ${facultadEnFoco}` : ""}
+                  {facultadEnFoco ? `, solo ${facultadEnFoco}` : ""}
                   {agendaReservas(dashboard)
-                    ? ` · ${fmt(agendaReservas(dashboard))} reservas detrás`
+                    ? `, ${fmt(agendaReservas(dashboard))} reservas detrás`
                     : ""}
                 </>
               ) : (
                 <>
                   {fmt(filasDeLaAgenda.length)} cursos-horario en reemplazo {eslabon}
-                  {facultadEnFoco ? ` · solo ${facultadEnFoco}` : ""}
+                  {facultadEnFoco ? `, solo ${facultadEnFoco}` : ""}
                   {sinOrden
-                    ? ` · ${fmt(sinOrden)} reservas sin eslabón declarado`
+                    ? `, ${fmt(sinOrden)} reservas sin eslabón declarado`
                     : ""}
                 </>
               )}

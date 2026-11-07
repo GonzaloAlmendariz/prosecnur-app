@@ -54,7 +54,7 @@ describe("la brecha entre dos bases se arma en la lámina (P21, enmienda ADR 010
   });
 });
 
-describe("la brecha entre grupos con el contraste del resumen ejecutivo (ADR 0114)", () => {
+describe("la brecha entre grupos con el contraste del resumen ejecutivo (ADR 0134)", () => {
   const listo = { cruce: "docentes$ciclo", vars: ["docentes$p12_1"], corte: "4,5" };
   const opciones = ["1", "2", "3", "4", "5"].map((codigo) => ({ codigo, etiqueta: `Ciclo ${codigo}` }));
 

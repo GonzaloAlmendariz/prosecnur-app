@@ -342,6 +342,8 @@ Configuración inmediata para Arte (sin código): `word_multiapiladas = "un_graf
 
 **D-b decidida por el usuario (2026-10-22), versión final:** el título de la figura única lo declara el analista en la UI (campo propio del slot); si no se declara, no se pone título y queda en blanco. Reemplaza la decisión anterior («enunciado de la primera pregunta»). Aplica solo a `un_grafico` y `un_grafico_mismo_publico`; `automatico`, `por_barra` y `por_tema` no cambian. En implementación (agente `acc8546f7775555ad`, con prueba que falle primero).
 
+**D-b se mantiene (2026-11-02).** Al generar el Perfil CCSS 2026 una multiapilada `modo = "var"` salió como «Gráfico N° 79» sin título aunque la lámina tenía `titulo`. No es un defecto, es D-b: el título de la lámina no titula la figura única (tampoco la batería del criterio B por defecto). La vía es `word_titulo_figura` del slot («Título de la figura en el Word»), y ahora lo dice el roxygen de `p_barras_multiapiladas`. No se revierte sin una decisión nueva del usuario.
+
 Decisiones que el diagnóstico deja al usuario:
 - D-a. Cambiar el default de «automático» para un bloque `var` de una sola fuente a `un_grafico` cambia todos los informes. Alternativa: un valor nuevo del informe.
 - D-b. Qué título lleva una figura `un_grafico` con varias variables.

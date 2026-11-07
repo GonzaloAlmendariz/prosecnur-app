@@ -72,16 +72,17 @@
 .is-territorial-profile .pulso-context-tab-rail-meta > span > span {
   display: block;
   color: var(--pulso-text-faint);
-  font-size: 9px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  /* En caja normal: en versalitas, a 10 px (el piso) «CORTE» no cabía en los
+     40 px de la cápsula y se partía «Cort/e» (P1 de la pasada de formato). */
+  white-space: nowrap;
 }
 
 .is-territorial-profile .pulso-context-tab-rail-meta strong,
 .is-territorial-profile .pulso-context-tab-rail-meta .mon-rail-sync-time {
   color: var(--pulso-text-soft);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -109,7 +110,7 @@
 
 .mon-ter-fase-boton small {
   color: var(--pulso-text-faint);
-  font-size: 9.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -119,7 +120,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -160,7 +161,7 @@
   padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-2);
   border-bottom: 1px solid var(--pulso-border);
   color: var(--pulso-text-faint);
-  font-size: 9.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -202,14 +203,14 @@
 }
 
 .mon-ter-fase-copia strong {
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
 }
 
 .mon-ter-fase-copia small,
 .mon-ter-fase-fecha {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -217,7 +218,7 @@
   padding: var(--pulso-space-2) var(--pulso-space-4) var(--pulso-space-3);
   border-top: 1px solid var(--pulso-border);
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 /* Pestañas rediseñadas (§2a-bis): sin fila de cabecera; el rótulo vive en la
@@ -247,7 +248,7 @@
 
 .mon-ter-rotulo-copia small {
   color: var(--pulso-text-faint);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -257,7 +258,7 @@
 .mon-ter-rotulo-copia h2 {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 17px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-bold);
   line-height: 1.2;
   white-space: nowrap;
@@ -279,7 +280,7 @@
   background: transparent;
   color: var(--pulso-text-soft);
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
 }
@@ -313,15 +314,9 @@
   margin-inline-end: 0;
 }
 
-/* En un estado vacío el rótulo va arriba a la izquierda, como en la pestaña
- * llena, y el mensaje queda centrado en el resto de la tarjeta. */
-[class*="-vacio"] > .mon-ter-rotulo {
-  align-self: flex-start;
-  justify-self: start;
-  margin-bottom: auto;
-  text-align: left;
-}
-
-[class*="-vacio"]:has(> .mon-ter-rotulo) > :last-child {
-  margin-bottom: auto;
+/* P5: la pestaña vacía es su tarjeta con el rótulo arriba y el EstadoVacio del
+ * kit debajo. La tarjeta mide lo que contiene (C3): no se estira hasta el pie
+ * de la vista para centrar el mensaje en una superficie en blanco. */
+[class*="--vacio"] > :has(> .mon-ter-rotulo + .pulso-estado-vacio) {
+  align-self: start;
 }

@@ -1,8 +1,9 @@
-import { useState } from "react";
 import { CheckCircle2, FilePlus2, FileSpreadsheet, Gauge, ListChecks, Network } from "lucide-react";
 import { PlantillaCard } from "../shared/PlantillaCard";
 import { JsonImportPanel } from "../confirmar-import/JsonImportPanel";
 import { useDimensionesWizardStore } from "../store";
+import { usePanelDireccionable } from "../../../../lib/navegacion/paneles";
+import { PANEL_IMPORTAR_DIMENSIONES } from "../../panelesAnalitica";
 
 // Step 1 — Punto de partida. Dos caminos genéricos:
 //
@@ -38,7 +39,7 @@ const FLUJO_GUIA = [
 export function Step1_Plantilla({ onAdvance }: { onAdvance: (toStep: 2 | 3 | 5) => void }) {
   const setDraft = useDimensionesWizardStore((s) => s.setDraft);
   const setVarsFaltantesJson = useDimensionesWizardStore((s) => s.setVarsFaltantesJson);
-  const [importOpen, setImportOpen] = useState(false);
+  const panelImportar = usePanelDireccionable(PANEL_IMPORTAR_DIMENSIONES);
 
   function elegirDesdeCero() {
     // No tocamos draft (queda en EMPTY_DRAFT por default).
@@ -74,7 +75,7 @@ export function Step1_Plantilla({ onAdvance }: { onAdvance: (toStep: 2 | 3 | 5) 
               "Conserva bloques e índices acordados",
             ]}
             ctaLabel="Cargar plantilla"
-            onClick={() => setImportOpen(true)}
+            onClick={panelImportar.abrir}
           />
           <PlantillaCard
             index={1}
@@ -129,12 +130,12 @@ export function Step1_Plantilla({ onAdvance }: { onAdvance: (toStep: 2 | 3 | 5) 
       </div>
 
       <JsonImportPanel
-        open={importOpen}
-        onClose={() => setImportOpen(false)}
+        open={panelImportar.abierto}
+        onClose={panelImportar.cerrar}
         onApply={(parsed, faltantes) => {
           setDraft(parsed);
           setVarsFaltantesJson(faltantes);
-          setImportOpen(false);
+          panelImportar.cerrar();
           // Saltamos a step 3 (Bloques) — listas y semáforo ya vienen
           // pre-llenadas del JSON; el step crítico de revisión humana
           // es la asignación de variables a bloques.

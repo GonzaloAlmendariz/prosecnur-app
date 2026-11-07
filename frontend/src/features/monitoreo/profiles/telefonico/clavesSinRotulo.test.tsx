@@ -6,7 +6,7 @@
  * prueba y revisa el texto que ve el usuario. Falla si un nodo de texto es
  * exactamente una clave conocida en minúscula («atencion», «exacta»,
  * «non_effective»…) o tiene forma de clave (`snake_case`, `kebab-case`). El
- * contenido de `<code>` queda fuera: ahí se pintan nombres de columna, que son
+ * contenido de `<code>` y de `<data>` queda fuera: ahí se pintan nombres de columna, que son
  * datos del estudio.
  *
  * Existe porque dos rechazos seguidos del verificador fueron por claves que se
@@ -29,7 +29,8 @@ import { LlaveYFiltros } from "./insumos/Llave";
 import { AcreditacionPhoneSourceSlotCard } from "./insumos/TarjetaDeFuente";
 import { Cuotas } from "./modelo/Cuotas";
 import { Ritmo } from "./avance/Ritmo";
-import { Entregas } from "./avance/Entregas";
+import { tablaTelefonicaDelCliente } from "./avance/SalidasTelefonicas";
+import { HojaDelCliente, RitmoDeLaHoja } from "../../salidas/estandar/HojaDelCliente";
 
 // Claves que viven en contratos y modelos del telefónico y que en pantalla
 // siempre llevan rótulo.
@@ -55,7 +56,7 @@ const FORMA_DE_CLAVE = /^[a-z0-9]+([_-][a-z0-9]+)+$/;
 
 function textosVisibles(html: string): string[] {
   return html
-    .replace(/<code[^>]*>[\s\S]*?<\/code>/g, " ")
+    .replace(/<(code|data)\b[^>]*>[\s\S]*?<\/\1>/g, " ")
     .replace(/<!-- -->/g, "")
     .replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/g, " ")
     .split(/<[^>]+>/)
@@ -190,6 +191,11 @@ const STATE = {
 } as unknown as MonitoreoState;
 
 const RUTA = "/monitoreo?modo=telefonico";
+const SJL = {
+  clave: "sjl", nombre: "San Juan de Lurigancho (SJL)", estado: "cumple" as const, caracter: "meta" as const, estadoCuota: "cumple" as const,
+  meta: 107, referencia: null, efectivas: 109, faltan: 0, pct: 101.9, acumulado: [], cumplio: "03/07", cumplioClave: "2026-07-03",
+  sinLlamar: 0, universo: 614, rechazoOParcial: 0, llamadoSinEfectiva: 0,
+};
 const nada = () => undefined;
 
 const PESTANAS: Array<[string, () => string]> = [
@@ -250,24 +256,27 @@ const PESTANAS: Array<[string, () => string]> = [
     `${RUTA}&seccion=modelo&pestana=cuotas`,
   )],
   ["Avance › Ritmo", () => pintar(<Ritmo reports={REPORTS} state={STATE} />, `${RUTA}&seccion=avance&pestana=ritmo`)],
+  // La hoja del cliente que `SalidasTelefonicas` monta en Avance › Entregas: su tabla por cuota y su ritmo diario.
   ["Avance › Entregas", () => pintar(
-    <Entregas
-      modelo={{
+    <HojaDelCliente
+      encabezado="Monitoreo telefónico"
+      corte="27/07/26, 9:04 a. m."
+      titulo="Avance por sede"
+      tabla={tablaTelefonicaDelCliente({
         segmento: "Sede",
-        filas: [{
-          clave: "sjl", nombre: "San Juan de Lurigancho (SJL)", estado: "cumple", meta: 107, efectivas: 109, faltan: 0, pct: 101.9,
-          acumulado: [], cumplio: "03/07", cumplioClave: "2026-07-03", sinLlamar: 0, universo: 614, rechazoOParcial: 0, llamadoSinEfectiva: 0,
-        }],
-        total: { meta: 107, efectivas: 109, faltan: 0, pct: 101.9, desde: null, hasta: null, cumplio: null, sinLlamar: 0, universo: 614 },
+        filas: [SJL],
+        todas: [SJL],
+        referenciales: [],
+        total: { meta: 107, efectivas: 109, efectivasDeMetas: 109, faltan: 0, pct: 101.9, desde: null, hasta: null, cumplio: null, sinLlamar: 0, universo: 614 },
         ritmo: null,
         rendimiento: null,
         sinAsignar: null,
         faltanteDiario: { fechas: [], series: [] },
-      }}
-      corte="27/07/26, 9:04 a. m."
-      dias={[{ fecha: "2026-07-01", casos: 74 }]}
-      salidas={null}
-    />,
+      })}
+      vacio="El corte no trae cuotas para mostrar."
+    >
+      <RitmoDeLaHoja dias={[{ fecha: "2026-07-01", casos: 74 }]} />
+    </HojaDelCliente>,
     `${RUTA}&seccion=avance&pestana=entregas`,
   )],
   ["Insumos › Fuentes", () => {

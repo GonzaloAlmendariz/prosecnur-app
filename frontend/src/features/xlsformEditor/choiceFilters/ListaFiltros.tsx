@@ -3,15 +3,21 @@
 
 import { useEffect, useRef } from "react";
 import type { FraseFiltro } from "./fraseFiltro";
-import { NOMBRE_TIPO, type AnalisisFiltro, type Estado } from "./modeloFiltros";
+import { EstadoChip } from "../../../components/EstadoChip";
+import type { ChromeStatusTone } from "../../../components/ModuleCommandBar";
+import { nombreDeTipo, type AnalisisFiltro, type ClaseEstado, type Estado } from "./modeloFiltros";
+
+/** P6 de la pasada de formato: el estado del filtro es el `EstadoChip` del kit (punto de tono, mayúscula inicial). */
+const TONO_DEL_ESTADO: Record<ClaseEstado, ChromeStatusTone> = {
+  ok: "success",
+  nunca: "warn",
+  vacia: "danger",
+  conflicto: "danger",
+  "sin-vista": "neutral",
+};
 
 export function ChipEstado({ estado }: { estado: Estado }) {
-  return (
-    <span className={`xcf-chip is-${estado.clase}`}>
-      <span className="xcf-chip__punto" aria-hidden="true" />
-      {estado.texto}
-    </span>
-  );
+  return <EstadoChip label={estado.texto} tone={TONO_DEL_ESTADO[estado.clase]} />;
 }
 
 type Props = {
@@ -54,7 +60,7 @@ export function ListaFiltros({ filtros, frases, actual, idDetalle, onElegir }: P
                 </span>
                 {frase ? <span className="xcf-item__frase" title={frase.texto}>{frase.texto}</span> : null}
                 <span className="xcf-item__r3">
-                  <span className="xcf-chip">{NOMBRE_TIPO[f.tipo]}</span>
+                  <span className="xcf-chip">{nombreDeTipo(f)}</span>
                   <ChipEstado estado={f.estado} />
                 </span>
               </button>

@@ -77,6 +77,40 @@ export const PANEL_PREVIA_WORD: PanelDeclarado = {
   clase: "dialogo",
 };
 
+/** Atajos de teclado de Gráficos (tecla «?»): `?panel=atajos`. */
+export const PANEL_ATAJOS_GRAFICOS: PanelDeclarado = {
+  id: "atajos",
+  label: "Atajos de teclado",
+  clase: "dialogo",
+};
+
+/**
+ * Diferencias entre grupos (ADR 0128). La regla del estudio, una para láminas, Word y tablas de cruces:
+ * `?panel=diferencias-regla` (diálogo, desde el inspector o la revisión).
+ */
+export const PANEL_DIFERENCIAS_REGLA: PanelDeclarado = {
+  id: "diferencias-regla",
+  label: "Regla de diferencias del estudio",
+  clase: "dialogo",
+};
+
+/**
+ * «Por qué» de las marcas de una lámina: capa anclada con el par elegido y la tabla de pares. La lámina la dice `foco`
+ * (`?foco=<slide.id>&panel=diferencias-lamina`); el par elegido es estado efímero del feature, no de la dirección.
+ */
+export const PANEL_DIFERENCIAS_LAMINA: PanelDeclarado = {
+  id: "diferencias-lamina",
+  label: "Por qué se marca",
+  clase: "popover",
+};
+
+/** Revisión en lote de las diferencias del informe: `?panel=diferencias` (sideover, desde el menú ⋯ de Láminas). */
+export const PANEL_DIFERENCIAS_INFORME: PanelDeclarado = {
+  id: "diferencias",
+  label: "Diferencias del informe",
+  clase: "sideover",
+};
+
 export const PANELES_GRAFICOS = [
   PANEL_BIBLIOTECA_SLIDES,
   PANEL_BIBLIOTECA_GRAFICADORES,
@@ -92,4 +126,8 @@ export const PANELES_GRAFICOS = [
   PANEL_PLAN_PORTATIL,
   PANEL_SECCIONES_JSON,
   PANEL_PREVIA_WORD,
+  PANEL_ATAJOS_GRAFICOS,
+  PANEL_DIFERENCIAS_REGLA,
+  PANEL_DIFERENCIAS_LAMINA,
+  PANEL_DIFERENCIAS_INFORME,
 ] as const satisfies readonly PanelDeclarado[];

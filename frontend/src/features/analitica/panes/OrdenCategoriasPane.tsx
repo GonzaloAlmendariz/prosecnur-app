@@ -9,6 +9,7 @@ import {
 } from "../../../api/client";
 import { Alert } from "../../../components/Alert";
 import { Panel } from "../../../components/Panel";
+import "./ordenCategorias.css";
 import { ErrorBlock, LoadingBlock } from "../../../components/States";
 import { useAnaliticaStore } from "../store";
 import { Section } from "../PaneKit";
@@ -16,6 +17,7 @@ import { VariableSelect } from "../VariableSelect";
 import { OrdenCategoriasEditor } from "./OrdenCategoriasEditor";
 import { derivarCatalogoListas } from "./ordenCategoriasModel";
 
+import { EstadoVacio } from "../../../components/EstadoVacio";
 // Pane "Orden de categorías" (Analítica).
 //
 // Flujo: el analista elige una LISTA de opciones (list_name) del catálogo de
@@ -127,7 +129,9 @@ export function OrdenCategoriasPane() {
   }
 
   return (
-    <Panel>
+    // El panel es dueño de su scroll (6 nov 2026): a 1024×600 el catálogo de listas no cabe y, con el overflow
+    // oculto del panel, lo de abajo quedaba inalcanzable (C4).
+    <Panel className="analitica-orden-panel" data-qa-scroll-owner="analitica-orden">
       <div className="analitica-report-shell" data-audit-ready="analitica-orden">
         <div className="analitica-dimensiones-docbar">
           <span className="analitica-dimensiones-docbar-icon" aria-hidden="true">
@@ -186,9 +190,7 @@ export function OrdenCategoriasPane() {
 
               <div className="analitica-orden-catalogo" role="listbox" aria-label="Listas de opciones">
                 {catalogoFiltrado.length === 0 ? (
-                  <div className="analitica-orden-catalogo-empty">
-                    Ninguna lista coincide con “{query}”.
-                  </div>
+                  <EstadoVacio icono={<Search size={16} />} titulo={`Ninguna lista coincide con «${query}»`} />
                 ) : (
                   catalogoFiltrado.map((e) => {
                     const selected = e.listName === listName;
@@ -212,11 +214,11 @@ export function OrdenCategoriasPane() {
                         )}
                         <span className="analitica-orden-lista-meta">
                           {e.nVariables} {e.nVariables === 1 ? "variable" : "variables"}
-                          {" · "}
+                          {", "}
                           {e.nCategorias} {e.nCategorias === 1 ? "categoría" : "categorías"}
                           {e.ordinalEfectivo && (
                             <>
-                              {" · "}
+                              {", "}
                               <span className="analitica-orden-lista-ordinal">ordinal</span>
                             </>
                           )}
@@ -245,11 +247,9 @@ export function OrdenCategoriasPane() {
           </Alert>
         )}
 
-        {!listName && catalogo.length > 0 && (
-          <Alert kind="info">
-            Selecciona una lista del catálogo para ordenar sus categorías.
-          </Alert>
-        )}
+        {/* 6 nov 2026 (pulido de UI): sin lista elegida no va un segundo aviso. «Lista a ordenar» ya dice «Elige una
+            lista de opciones del catálogo…» justo encima, y este repetido quedaba cortado al pie del panel a
+            1280×720 (470 px de contenido en 444). */}
       </div>
     </Panel>
   );

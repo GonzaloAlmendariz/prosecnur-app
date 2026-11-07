@@ -797,3 +797,45 @@ test_that("R13: n_comparison_slides cuenta las comparaciones dentro de multilist
   solo$slides[[1]]$payload$grafico$args$bloques[[1]]$modo <- "var"
   expect_identical(.graficos_consolidado_comparison_slide_count(solo), 0L)
 })
+
+test_that("el PPT del informe compartido recibe los logos y la letra del cliente, como el de cada base (D5)", {
+  sid <- .gcc_test_setup()
+  on.exit(session_delete(sid), add = TRUE)
+  captured <- NULL
+  config <- list(estilo_cliente = list(letra = list(leyenda = "una_fila")))
+  testthat::with_mocked_bindings(
+    graficos_consolidado_start(sid, config = config),
+    job_submit = function(...) { captured <<- list(...); "job-estilo" },
+    .package = "prosecnurapp"
+  )
+  expect_identical(captured$args$estilo_cliente$letra$leyenda, "una_fila")
+})
+
+test_that("el runner del compartido abre y cierra el estilo del cliente alrededor del render", {
+  skip_if_not_installed("officer")
+  sid <- .gcc_test_setup()
+  on.exit(session_delete(sid), add = TRUE)
+  preflight <- graficos_consolidado_preflight(sid)
+  recipe <- list(plan = preflight$plan, presets = list(), paletas = list(), icon_registry = list(), auto_otros_slides = TRUE)
+  td <- tempfile("gcc_estilo_"); dir.create(td); on.exit(unlink(td, recursive = TRUE, force = TRUE), add = TRUE)
+  saveRDS(preflight$sources$data_sources, file.path(td, "data.rds"))
+  saveRDS(preflight$sources$inst_sources, file.path(td, "inst.rds"))
+  saveRDS(recipe, file.path(td, "recipe.rds"))
+  visto <- list()
+  testthat::with_mocked_bindings(
+    graficos_consolidado_job_runner(
+      data_path = file.path(td, "data.rds"), inst_path = file.path(td, "inst.rds"), recipe_path = file.path(td, "recipe.rds"),
+      template_pptx = .graficos_resolve_template_pptx(config = list()), template_id = "generic_16_9",
+      result_path = file.path(td, "c.pptx"), progress_path = file.path(td, "p.json"),
+      estilo_cliente = list(letra = list(leyenda = "una_fila"))
+    ),
+    .graficos_estilo_cliente_iniciar = function(est, medio, template_pptx = NULL, base = "") {
+      visto$iniciar <<- list(est = est, medio = medio); list(previas = list(), logos = list())
+    },
+    .graficos_estilo_cliente_cerrar_ppt = function(ec, slides_r, base = "") { visto$cerrar <<- length(slides_r); invisible(NULL) },
+    .package = "prosecnurapp"
+  )
+  expect_identical(visto$iniciar$medio, "ppt")
+  expect_identical(visto$iniciar$est$letra$leyenda, "una_fila")
+  expect_gt(visto$cerrar, 0L)
+})

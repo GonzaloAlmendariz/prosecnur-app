@@ -83,7 +83,7 @@
       }
       sl$payload <- payload
     }
-    sl
+    .resbase_calificar_lamina(sl, base_chr)   # las láminas de resumen leen la base del plan (graficos_resumen_base.R)
   })
   plan
 }
@@ -122,7 +122,7 @@
     }
     titulo_i <- .aviso_titulo_payload(slides[[i]])
     slides_r[[i]] <- tryCatch(
-      .aviso_con_lamina(i, titulo_i, .graficos_rebuild_slide_json(   # avisos «Lámina i · …»
+      .aviso_con_lamina(i, titulo_i, .graficos_rebuild_slide_json(   # avisos «Lámina i, …»
         slides[[i]],
         slide_registry = slide_registry,
         graficador_registry = graficador_registry,
@@ -158,7 +158,7 @@ graficos_job_worker_ppt <- function(rp_data_path, rp_inst_path, plan, presets, p
                                     slide_registry, graficador_registry,
                                     icon_registry, active_base,
                                     template_pptx, template_id, auto_otros_slides,
-                                    result_path, progress_path = NULL, estilo_cliente = list()) {
+                                    result_path, progress_path = NULL, estilo_cliente = list(), significancia = NULL) {
   report <- job_progress_writer(progress_path)
   inicio <- Sys.time()
   ms_desde <- function(t) as.integer(round(as.numeric(difftime(Sys.time(), t, units = "secs")) * 1000))
@@ -167,8 +167,13 @@ graficos_job_worker_ppt <- function(rp_data_path, rp_inst_path, plan, presets, p
   report("loading", percent = 2, message = "Cargando datos y plantilla...")
   ec <- .graficos_estilo_cliente_iniciar(estilo_cliente, "ppt", template_pptx)   # graficos_estilo_cliente_worker.R
   on.exit(options(ec$previas), add = TRUE)
+  report("loading", percent = 4, message = "Calculando diferencias del informe...")
+  inc <- .inclusivo_preparar_job(rp_data_path, rp_inst_path, plan, paletas)   # lenguaje inclusivo con paréntesis (graficos_inclusivo.R)
+  rp_data_path <- inc$data; rp_inst_path <- inc$inst; plan <- inc$plan; paletas <- inc$paletas
+  sig_previa <- .sig_informe_preparar(significancia, rp_data_path, rp_inst_path, active_base)   # ADR 0128
+  on.exit(options(sig_previa), add = TRUE)
   palette_env <- .graficos_palette_env(paletas, parent = parent.frame())
-  plan <- .graficos_calificar_refs_plan(plan, active_base)
+  plan <- .sig_plan_como_leer(.graficos_calificar_refs_plan(plan, active_base))   # ADR 0128: «Cómo leer» desde la regla
   slides_r <- .graficos_job_rebuild_slides(
     plan, slide_registry, graficador_registry, icon_registry,
     report = report, base_error = base_error, item_label = "la lámina"
@@ -289,7 +294,7 @@ graficos_job_worker_word <- function(rp_data_path, rp_inst_path, plan, presets, 
                                      paletas, slide_registry, graficador_registry,
                                      icon_registry, active_base,
                                      result_path, progress_path = NULL, opciones_documento = list(),
-                                     estilo_cliente = list(), auto_otros_slides = FALSE) {
+                                     estilo_cliente = list(), auto_otros_slides = FALSE, significancia = NULL) {
   report <- job_progress_writer(progress_path)
   base_error <- .graficos_job_base_error(active_base)
   report("loading", percent = 2, message = "Cargando datos y plantilla...")
@@ -300,8 +305,12 @@ graficos_job_worker_word <- function(rp_data_path, rp_inst_path, plan, presets, 
   ec <- .graficos_estilo_cliente_iniciar(estilo_cliente, "word")   # graficos_estilo_cliente_worker.R
   on.exit(options(ec$previas), add = TRUE)
   if (length(ec$logos)) opciones_documento$logos <- ec$logos
+  inc <- .inclusivo_preparar_job(rp_data_path, rp_inst_path, plan, paletas)   # lenguaje inclusivo con paréntesis (graficos_inclusivo.R)
+  rp_data_path <- inc$data; rp_inst_path <- inc$inst; plan <- inc$plan; paletas <- inc$paletas
+  sig_previa <- .sig_informe_preparar(significancia, rp_data_path, rp_inst_path, active_base)   # ADR 0128
+  on.exit(options(sig_previa), add = TRUE)
   palette_env <- .graficos_palette_env(paletas, parent = parent.frame())
-  plan <- .graficos_calificar_refs_plan(plan, active_base)
+  plan <- .sig_plan_como_leer(.graficos_calificar_refs_plan(plan, active_base))   # ADR 0128: «Cómo leer» desde la regla
   slides_r <- .graficos_job_rebuild_slides(
     plan, slide_registry, graficador_registry, icon_registry,
     report = report, base_error = base_error, item_label = "la sección"

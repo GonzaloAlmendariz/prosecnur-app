@@ -1,0 +1,3523 @@
+{
+  "schema_version": 1,
+  "id": "hojas-ruta-territorios",
+  "version": "hojas-ruta-territorios-v1",
+  "generado": "2026-02-19",
+  "umbrales": {
+    "1": {
+      "pob25": 300000,
+      "captacion": 65,
+      "cobertura_cartografica": 75
+    },
+    "2": {
+      "pob25": 100000,
+      "captacion": 55,
+      "cobertura_cartografica": 65
+    }
+  },
+  "provincias": [
+    {
+      "codigo": "0201",
+      "departamento": "ANCASH",
+      "provincia": "HUARAZ",
+      "distritos": [
+        "020101",
+        "020105"
+      ],
+      "cobertura": {
+        "nivel": "2",
+        "referencia": "INEI CPV 2025, REDATAM base CPV2025DI (población censada por distrito)",
+        "anio_referencia": 2025,
+        "provincia": {
+          "pob17_redatam": 120475,
+          "pob17_en_capa": 94595,
+          "pob25": 145290,
+          "cobertura_cartografica": 78.5,
+          "captacion": 65.1,
+          "crecimiento": 20.6,
+          "peso_en_provincia": 83.6
+        },
+        "distritos": {
+          "020101": {
+            "pob17_redatam": 55850,
+            "pob17_en_capa": 46069,
+            "pob25": 61561,
+            "cobertura_cartografica": 82.5,
+            "captacion": 74.8,
+            "crecimiento": 10.2
+          },
+          "020105": {
+            "pob17_redatam": 64625,
+            "pob17_en_capa": 48526,
+            "pob25": 83729,
+            "cobertura_cartografica": 75.1,
+            "captacion": 58,
+            "crecimiento": 29.6
+          }
+        }
+      },
+      "capas": {
+        "manzanas": {
+          "perfil": "ciudades",
+          "ruta": "cartografia/manzanas_inei2017_ciudades",
+          "patron": "<ubigeo>.geojson.gz",
+          "fuente": "INEI - CENSO 2017 (GeoPeru/IDEP)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-manzanas-v1",
+          "checksums": {
+            "020101.geojson.gz": "0968c5713c452f5c2a709d74fe2f6895",
+            "020105.geojson.gz": "eafa96051979d14c4453eccad6f0f2a4"
+          }
+        },
+        "marco": {
+          "ruta": "inei2017_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017, base de manzana (Vivienda.C2P2, Poblacio.SEXO)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-marco-v1",
+          "checksums": {
+            "inei2017_ciudades_manzanas.csv.gz": "c704e22b18bd50e502ece792015f3cda"
+          }
+        },
+        "nse": {
+          "ruta": "nse_geoperu_inei_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "GeoPeru/IDEP - INEI, Ingreso per capita del Hogar (peru_estrato_nacional_)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "nse-geoperu-inei-ciudades-manzanas-v1",
+          "checksums": {
+            "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
+        }
+      }
+    },
+    {
+      "codigo": "0218",
+      "departamento": "ANCASH",
+      "provincia": "SANTA",
+      "distritos": [
+        "021801",
+        "021803",
+        "021808",
+        "021809"
+      ],
+      "cobertura": {
+        "nivel": "1",
+        "referencia": "INEI CPV 2025, REDATAM base CPV2025DI (población censada por distrito)",
+        "anio_referencia": 2025,
+        "provincia": {
+          "pob17_redatam": 390779,
+          "pob17_en_capa": 309525,
+          "pob25": 446832,
+          "cobertura_cartografica": 79.2,
+          "captacion": 69.3,
+          "crecimiento": 14.3,
+          "peso_en_provincia": 92.1
+        },
+        "distritos": {
+          "021801": {
+            "pob17_redatam": 198566,
+            "pob17_en_capa": 163704,
+            "pob25": 222225,
+            "cobertura_cartografica": 82.4,
+            "captacion": 73.7,
+            "crecimiento": 11.9
+          },
+          "021803": {
+            "pob17_redatam": 15979,
+            "pob17_en_capa": 9529,
+            "pob25": 17593,
+            "cobertura_cartografica": 59.6,
+            "captacion": 54.2,
+            "crecimiento": 10.1
+          },
+          "021808": {
+            "pob17_redatam": 17849,
+            "pob17_en_capa": 14536,
+            "pob25": 22099,
+            "cobertura_cartografica": 81.4,
+            "captacion": 65.8,
+            "crecimiento": 23.8
+          },
+          "021809": {
+            "pob17_redatam": 158385,
+            "pob17_en_capa": 121756,
+            "pob25": 184915,
+            "cobertura_cartografica": 76.9,
+            "captacion": 65.8,
+            "crecimiento": 16.8
+          }
+        }
+      },
+      "capas": {
+        "manzanas": {
+          "perfil": "ciudades",
+          "ruta": "cartografia/manzanas_inei2017_ciudades",
+          "patron": "<ubigeo>.geojson.gz",
+          "fuente": "INEI - CENSO 2017 (GeoPeru/IDEP)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-manzanas-v1",
+          "checksums": {
+            "021801.geojson.gz": "1040c3b50272cea51c17b66719a75dd1",
+            "021803.geojson.gz": "449935882e790a031ab2f0c4e11c1db7",
+            "021808.geojson.gz": "e52550489ad3343c7acae79ed3fa64a6",
+            "021809.geojson.gz": "279e166ba042f2106cb35dc6cfbeb45e"
+          }
+        },
+        "marco": {
+          "ruta": "inei2017_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017, base de manzana (Vivienda.C2P2, Poblacio.SEXO)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-marco-v1",
+          "checksums": {
+            "inei2017_ciudades_manzanas.csv.gz": "c704e22b18bd50e502ece792015f3cda"
+          }
+        },
+        "nse": {
+          "ruta": "nse_geoperu_inei_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "GeoPeru/IDEP - INEI, Ingreso per capita del Hogar (peru_estrato_nacional_)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "nse-geoperu-inei-ciudades-manzanas-v1",
+          "checksums": {
+            "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
+        }
+      }
+    },
+    {
+      "codigo": "0401",
+      "departamento": "AREQUIPA",
+      "provincia": "AREQUIPA",
+      "distritos": [
+        "040101",
+        "040102",
+        "040103",
+        "040104",
+        "040105",
+        "040107",
+        "040109",
+        "040110",
+        "040112",
+        "040116",
+        "040117",
+        "040122",
+        "040123",
+        "040124",
+        "040126",
+        "040128",
+        "040129"
+      ],
+      "cobertura": {
+        "nivel": "1",
+        "referencia": "INEI CPV 2025, REDATAM base CPV2025DI (población censada por distrito)",
+        "anio_referencia": 2025,
+        "provincia": {
+          "pob17_redatam": 1018064,
+          "pob17_en_capa": 821480,
+          "pob25": 1222998,
+          "cobertura_cartografica": 80.7,
+          "captacion": 67.2,
+          "crecimiento": 20.1,
+          "peso_en_provincia": 92.5
+        },
+        "distritos": {
+          "040101": {
+            "pob17_redatam": 55437,
+            "pob17_en_capa": 48634,
+            "pob25": 52930,
+            "cobertura_cartografica": 87.7,
+            "captacion": 91.9,
+            "crecimiento": -4.5
+          },
+          "040102": {
+            "pob17_redatam": 85870,
+            "pob17_en_capa": 72650,
+            "pob25": 100790,
+            "cobertura_cartografica": 84.6,
+            "captacion": 72.1,
+            "crecimiento": 17.4
+          },
+          "040103": {
+            "pob17_redatam": 91922,
+            "pob17_en_capa": 77167,
+            "pob25": 106443,
+            "cobertura_cartografica": 83.9,
+            "captacion": 72.5,
+            "crecimiento": 15.8
+          },
+          "040104": {
+            "pob17_redatam": 197731,
+            "pob17_en_capa": 147336,
+            "pob25": 262059,
+            "cobertura_cartografica": 74.5,
+            "captacion": 56.2,
+            "crecimiento": 32.5
+          },
+          "040105": {
+            "pob17_redatam": 12411,
+            "pob17_en_capa": 6238,
+            "pob25": 19824,
+            "cobertura_cartografica": 50.3,
+            "captacion": 31.5,
+            "crecimiento": 59.7
+          },
+          "040107": {
+            "pob17_redatam": 50145,
+            "pob17_en_capa": 43594,
+            "pob25": 52070,
+            "cobertura_cartografica": 86.9,
+            "captacion": 83.7,
+            "crecimiento": 3.8
+          },
+          "040109": {
+            "pob17_redatam": 59918,
+            "pob17_en_capa": 48612,
+            "pob25": 70931,
+            "cobertura_cartografica": 81.1,
+            "captacion": 68.5,
+            "crecimiento": 18.4
+          },
+          "040110": {
+            "pob17_redatam": 60589,
+            "pob17_en_capa": 54547,
+            "pob25": 72387,
+            "cobertura_cartografica": 90,
+            "captacion": 75.4,
+            "crecimiento": 19.5
+          },
+          "040112": {
+            "pob17_redatam": 131346,
+            "pob17_en_capa": 112758,
+            "pob25": 148064,
+            "cobertura_cartografica": 85.8,
+            "captacion": 76.2,
+            "crecimiento": 12.7
+          },
+          "040116": {
+            "pob17_redatam": 4357,
+            "pob17_en_capa": 1964,
+            "pob25": 9476,
+            "cobertura_cartografica": 45.1,
+            "captacion": 20.7,
+            "crecimiento": 117.5
+          },
+          "040117": {
+            "pob17_redatam": 24225,
+            "pob17_en_capa": 16064,
+            "pob25": 27993,
+            "cobertura_cartografica": 66.3,
+            "captacion": 57.4,
+            "crecimiento": 15.6
+          },
+          "040122": {
+            "pob17_redatam": 74912,
+            "pob17_en_capa": 60061,
+            "pob25": 83525,
+            "cobertura_cartografica": 80.2,
+            "captacion": 71.9,
+            "crecimiento": 11.5
+          },
+          "040123": {
+            "pob17_redatam": 15765,
+            "pob17_en_capa": 11039,
+            "pob25": 17500,
+            "cobertura_cartografica": 70,
+            "captacion": 63.1,
+            "crecimiento": 11
+          },
+          "040124": {
+            "pob17_redatam": 13319,
+            "pob17_en_capa": 8200,
+            "pob25": 17182,
+            "cobertura_cartografica": 61.6,
+            "captacion": 47.7,
+            "crecimiento": 29
+          },
+          "040126": {
+            "pob17_redatam": 25417,
+            "pob17_en_capa": 23097,
+            "pob25": 26640,
+            "cobertura_cartografica": 90.9,
+            "captacion": 86.7,
+            "crecimiento": 4.8
+          },
+          "040128": {
+            "pob17_redatam": 32871,
+            "pob17_en_capa": 16620,
+            "pob25": 59296,
+            "cobertura_cartografica": 50.6,
+            "captacion": 28,
+            "crecimiento": 80.4
+          },
+          "040129": {
+            "pob17_redatam": 81829,
+            "pob17_en_capa": 72899,
+            "pob25": 95888,
+            "cobertura_cartografica": 89.1,
+            "captacion": 76,
+            "crecimiento": 17.2
+          }
+        }
+      },
+      "capas": {
+        "manzanas": {
+          "perfil": "ciudades",
+          "ruta": "cartografia/manzanas_inei2017_ciudades",
+          "patron": "<ubigeo>.geojson.gz",
+          "fuente": "INEI - CENSO 2017 (GeoPeru/IDEP)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-manzanas-v1",
+          "checksums": {
+            "040101.geojson.gz": "9add81d15c76ed93f26864b8fa064f14",
+            "040102.geojson.gz": "7fbe3df857e27475beb7fbc84897371b",
+            "040103.geojson.gz": "f318428a6f9284c9c6d44bff98a8b8c2",
+            "040104.geojson.gz": "a5ba47134e9171f46bd73138aa71c0f1",
+            "040105.geojson.gz": "5567585f523e90ac0f61362a1a668294",
+            "040107.geojson.gz": "96cb7bf63c62beee6f8fa777a2b9b21d",
+            "040109.geojson.gz": "dc864f5ea92fb744bcf217a0f3b2dd72",
+            "040110.geojson.gz": "3220b5bf87a475afd99d3009fcf723f0",
+            "040112.geojson.gz": "5e0c5f8de4a217a66ffdd0fb9b810a7b",
+            "040116.geojson.gz": "4c42d671e200c032ee2b2369847493c5",
+            "040117.geojson.gz": "b5bdfc23144d0ef8b6adf9ac6e81186b",
+            "040122.geojson.gz": "f4abb3fdb68daaad035c7056fc6659c7",
+            "040123.geojson.gz": "4129e469c6421f754444e5388287ea60",
+            "040124.geojson.gz": "5f71e2a6a14074703d74ebac101d96d3",
+            "040126.geojson.gz": "337cfe3d36484ea658dde19ad862c237",
+            "040128.geojson.gz": "1a77436ea4934e65f4ee55e5521a2419",
+            "040129.geojson.gz": "5445256eba0592bf86489286a79c2dce"
+          }
+        },
+        "marco": {
+          "ruta": "inei2017_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017, base de manzana (Vivienda.C2P2, Poblacio.SEXO)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-marco-v1",
+          "checksums": {
+            "inei2017_ciudades_manzanas.csv.gz": "c704e22b18bd50e502ece792015f3cda"
+          }
+        },
+        "nse": {
+          "ruta": "nse_geoperu_inei_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "GeoPeru/IDEP - INEI, Ingreso per capita del Hogar (peru_estrato_nacional_)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "nse-geoperu-inei-ciudades-manzanas-v1",
+          "checksums": {
+            "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
+        }
+      }
+    },
+    {
+      "codigo": "0501",
+      "departamento": "AYACUCHO",
+      "provincia": "HUAMANGA",
+      "distritos": [
+        "050101",
+        "050104",
+        "050110",
+        "050115",
+        "050116"
+      ],
+      "cobertura": {
+        "nivel": "2",
+        "referencia": "INEI CPV 2025, REDATAM base CPV2025DI (población censada por distrito)",
+        "anio_referencia": 2025,
+        "provincia": {
+          "pob17_redatam": 216444,
+          "pob17_en_capa": 183535,
+          "pob25": 229034,
+          "cobertura_cartografica": 84.8,
+          "captacion": 80.1,
+          "crecimiento": 5.8,
+          "peso_en_provincia": 76.1
+        },
+        "distritos": {
+          "050101": {
+            "pob17_redatam": 97200,
+            "pob17_en_capa": 82986,
+            "pob25": 96131,
+            "cobertura_cartografica": 85.4,
+            "captacion": 86.3,
+            "crecimiento": -1.1
+          },
+          "050104": {
+            "pob17_redatam": 27644,
+            "pob17_en_capa": 21857,
+            "pob25": 33190,
+            "cobertura_cartografica": 79.1,
+            "captacion": 65.9,
+            "crecimiento": 20.1
+          },
+          "050110": {
+            "pob17_redatam": 48979,
+            "pob17_en_capa": 44705,
+            "pob25": 49964,
+            "cobertura_cartografica": 91.3,
+            "captacion": 89.5,
+            "crecimiento": 2
+          },
+          "050115": {
+            "pob17_redatam": 17590,
+            "pob17_en_capa": 14639,
+            "pob25": 19996,
+            "cobertura_cartografica": 83.2,
+            "captacion": 73.2,
+            "crecimiento": 13.7
+          },
+          "050116": {
+            "pob17_redatam": 25031,
+            "pob17_en_capa": 19348,
+            "pob25": 29753,
+            "cobertura_cartografica": 77.3,
+            "captacion": 65,
+            "crecimiento": 18.9
+          }
+        }
+      },
+      "capas": {
+        "manzanas": {
+          "perfil": "ciudades",
+          "ruta": "cartografia/manzanas_inei2017_ciudades",
+          "patron": "<ubigeo>.geojson.gz",
+          "fuente": "INEI - CENSO 2017 (GeoPeru/IDEP)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-manzanas-v1",
+          "checksums": {
+            "050101.geojson.gz": "8df6ec567104d104326685ae3294f503",
+            "050104.geojson.gz": "091482e1250c361cf7800811738fe3cd",
+            "050110.geojson.gz": "e4bee78f8fe6e4b035fadcba68239b2c",
+            "050115.geojson.gz": "6563ba05ec6d1b329802b6f40344283c",
+            "050116.geojson.gz": "46837ecd67cbe38202817b3d13e47a6e"
+          }
+        },
+        "marco": {
+          "ruta": "inei2017_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017, base de manzana (Vivienda.C2P2, Poblacio.SEXO)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-marco-v1",
+          "checksums": {
+            "inei2017_ciudades_manzanas.csv.gz": "c704e22b18bd50e502ece792015f3cda"
+          }
+        },
+        "nse": {
+          "ruta": "nse_geoperu_inei_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "GeoPeru/IDEP - INEI, Ingreso per capita del Hogar (peru_estrato_nacional_)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "nse-geoperu-inei-ciudades-manzanas-v1",
+          "checksums": {
+            "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
+        }
+      }
+    },
+    {
+      "codigo": "0608",
+      "departamento": "CAJAMARCA",
+      "provincia": "JAEN",
+      "distritos": [
+        "060801"
+      ],
+      "cobertura": {
+        "nivel": "2",
+        "referencia": "INEI CPV 2025, REDATAM base CPV2025DI (población censada por distrito)",
+        "anio_referencia": 2025,
+        "provincia": {
+          "pob17_redatam": 81587,
+          "pob17_en_capa": 65922,
+          "pob25": 108414,
+          "cobertura_cartografica": 80.8,
+          "captacion": 60.8,
+          "crecimiento": 32.9,
+          "peso_en_provincia": 53.4
+        },
+        "distritos": {
+          "060801": {
+            "pob17_redatam": 81587,
+            "pob17_en_capa": 65922,
+            "pob25": 108414,
+            "cobertura_cartografica": 80.8,
+            "captacion": 60.8,
+            "crecimiento": 32.9
+          }
+        }
+      },
+      "capas": {
+        "manzanas": {
+          "perfil": "ciudades",
+          "ruta": "cartografia/manzanas_inei2017_ciudades",
+          "patron": "<ubigeo>.geojson.gz",
+          "fuente": "INEI - CENSO 2017 (GeoPeru/IDEP)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-manzanas-v1",
+          "checksums": {
+            "060801.geojson.gz": "5d64c216edd30027a6339f49cab3266b"
+          }
+        },
+        "marco": {
+          "ruta": "inei2017_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017, base de manzana (Vivienda.C2P2, Poblacio.SEXO)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-marco-v1",
+          "checksums": {
+            "inei2017_ciudades_manzanas.csv.gz": "c704e22b18bd50e502ece792015f3cda"
+          }
+        },
+        "nse": {
+          "ruta": "nse_geoperu_inei_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "GeoPeru/IDEP - INEI, Ingreso per capita del Hogar (peru_estrato_nacional_)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "nse-geoperu-inei-ciudades-manzanas-v1",
+          "checksums": {
+            "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
+        }
+      }
+    },
+    {
+      "codigo": "0701",
+      "departamento": "CALLAO",
+      "provincia": "CALLAO",
+      "distritos": [
+        "070101",
+        "070102",
+        "070103",
+        "070104",
+        "070105",
+        "070106",
+        "070107"
+      ],
+      "cobertura": {
+        "nivel": "1",
+        "referencia": "INEI CPV 2025, REDATAM base CPV2025DI (población censada por distrito)",
+        "anio_referencia": 2025,
+        "provincia": {
+          "pob17_redatam": 994494,
+          "pob17_en_capa": 960270,
+          "pob25": 1043538,
+          "cobertura_cartografica": 96.6,
+          "captacion": 92,
+          "crecimiento": 4.9,
+          "peso_en_provincia": 100
+        },
+        "distritos": {
+          "070101": {
+            "pob17_redatam": 451260,
+            "pob17_en_capa": 442612,
+            "pob25": 455773,
+            "cobertura_cartografica": 98.1,
+            "captacion": 97.1,
+            "crecimiento": 1
+          },
+          "070102": {
+            "pob17_redatam": 74851,
+            "pob17_en_capa": 74503,
+            "pob25": 77664,
+            "cobertura_cartografica": 99.5,
+            "captacion": 95.9,
+            "crecimiento": 3.8
+          },
+          "070103": {
+            "pob17_redatam": 42240,
+            "pob17_en_capa": 42193,
+            "pob25": 44418,
+            "cobertura_cartografica": 99.9,
+            "captacion": 95,
+            "crecimiento": 5.2
+          },
+          "070104": {
+            "pob17_redatam": 61417,
+            "pob17_en_capa": 61089,
+            "pob25": 64707,
+            "cobertura_cartografica": 99.5,
+            "captacion": 94.4,
+            "crecimiento": 5.4
+          },
+          "070105": {
+            "pob17_redatam": 3829,
+            "pob17_en_capa": 3695,
+            "pob25": 3736,
+            "cobertura_cartografica": 96.5,
+            "captacion": 98.9,
+            "crecimiento": -2.4
+          },
+          "070106": {
+            "pob17_redatam": 315600,
+            "pob17_en_capa": 292250,
+            "pob25": 345962,
+            "cobertura_cartografica": 92.6,
+            "captacion": 84.5,
+            "crecimiento": 9.6
+          },
+          "070107": {
+            "pob17_redatam": 45297,
+            "pob17_en_capa": 43928,
+            "pob25": 51278,
+            "cobertura_cartografica": 97,
+            "captacion": 85.7,
+            "crecimiento": 13.2
+          }
+        }
+      },
+      "capas": {
+        "manzanas": {
+          "ruta": "cartografia/manzanas_callao_2019",
+          "patron": "<ubigeo>.geojson.gz",
+          "perfil": "callao",
+          "fuente": "B_070101_Manzanas - Plan de Desarrollo Metropolitano del Callao; fuente declarada en atributos: META 6 - PCC 2019",
+          "anio_dato": 2019,
+          "descargado": "2026-05-03",
+          "version": "callao-pcc2019-v1",
+          "checksums": {
+            "070101.geojson.gz": "cfe10324153843cd61a0c32a7ac11bca",
+            "070102.geojson.gz": "62daf51bc92fd0dec51eab877dca4713",
+            "070103.geojson.gz": "1c32f01bcb07380177b01545877165d4",
+            "070104.geojson.gz": "613dae85db45592a239dd2f2d81843b8",
+            "070105.geojson.gz": "5494cb2ddf12c97b4fe4b9c99107ddba",
+            "070106.geojson.gz": "724be5be4509fe0afcd636079cc1d3a1",
+            "070107.geojson.gz": "a2deb31738140c03d5efc00f7a1c4833"
+          }
+        },
+        "marco": {
+          "ruta": "inei2017_lima_callao_manzanas_oficial.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI CPV 2017 (Informacion Digital Urbano Censal)",
+          "anio_dato": 2017,
+          "descargado": "2026-05-14",
+          "version": "inei2017-official-blocks-lima-callao-v1",
+          "checksums": {
+            "inei2017_lima_callao_manzanas_oficial.csv.gz": "fe4e28d26a352f72d0209d209fac5055"
+          }
+        },
+        "nse": {
+          "ruta": "nse_geoperu_inei_lima_callao_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "GeoPeru/IDEP - INEI, Ingreso per capita del Hogar",
+          "anio_dato": 2017,
+          "descargado": "2026-06-19",
+          "version": "nse-geoperu-inei-lima-callao-manzanas-v1",
+          "checksums": {
+            "nse_geoperu_inei_lima_callao_manzanas.csv.gz": "b4c9e1679b6646d87e915eb742cc32e9"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_lima_callao_edad_simple_distrito.csv",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-05-03",
+          "version": "inei2017-lima-callao-edad-simple-v1",
+          "checksums": {
+            "inei2017_lima_callao_edad_simple_distrito.csv": "091fd97f893d516a80c881daa2b44618"
+          }
+        }
+      }
+    },
+    {
+      "codigo": "0801",
+      "departamento": "CUSCO",
+      "provincia": "CUSCO",
+      "distritos": [
+        "080101",
+        "080104",
+        "080105",
+        "080106",
+        "080108"
+      ],
+      "cobertura": {
+        "nivel": "1",
+        "referencia": "INEI CPV 2025, REDATAM base CPV2025DI (población censada por distrito)",
+        "anio_referencia": 2025,
+        "provincia": {
+          "pob17_redatam": 429352,
+          "pob17_en_capa": 335116,
+          "pob25": 432601,
+          "cobertura_cartografica": 78.1,
+          "captacion": 77.5,
+          "crecimiento": 0.8,
+          "peso_en_provincia": 94.8
+        },
+        "distritos": {
+          "080101": {
+            "pob17_redatam": 111930,
+            "pob17_en_capa": 89609,
+            "pob25": 96746,
+            "cobertura_cartografica": 80.1,
+            "captacion": 92.6,
+            "crecimiento": -13.6
+          },
+          "080104": {
+            "pob17_redatam": 55335,
+            "pob17_en_capa": 33976,
+            "pob25": 67907,
+            "cobertura_cartografica": 61.4,
+            "captacion": 50,
+            "crecimiento": 22.7
+          },
+          "080105": {
+            "pob17_redatam": 110817,
+            "pob17_en_capa": 79931,
+            "pob25": 124106,
+            "cobertura_cartografica": 72.1,
+            "captacion": 64.4,
+            "crecimiento": 12
+          },
+          "080106": {
+            "pob17_redatam": 92729,
+            "pob17_en_capa": 79040,
+            "pob25": 91039,
+            "cobertura_cartografica": 85.2,
+            "captacion": 86.8,
+            "crecimiento": -1.8
+          },
+          "080108": {
+            "pob17_redatam": 58541,
+            "pob17_en_capa": 52560,
+            "pob25": 52803,
+            "cobertura_cartografica": 89.8,
+            "captacion": 99.5,
+            "crecimiento": -9.8
+          }
+        }
+      },
+      "capas": {
+        "manzanas": {
+          "perfil": "ciudades",
+          "ruta": "cartografia/manzanas_inei2017_ciudades",
+          "patron": "<ubigeo>.geojson.gz",
+          "fuente": "INEI - CENSO 2017 (GeoPeru/IDEP)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-manzanas-v1",
+          "checksums": {
+            "080101.geojson.gz": "d0893dc4d5b8ebb87c109f6a5be1058a",
+            "080104.geojson.gz": "650213adb5d6b4d228893e9b5735e443",
+            "080105.geojson.gz": "c8b0200ae1c49f174abc03b8c01e85c5",
+            "080106.geojson.gz": "63b2f681377a9ba8d442bc558c817bbf",
+            "080108.geojson.gz": "9cecb1344175c3ad5d8a97815328dfc8"
+          }
+        },
+        "marco": {
+          "ruta": "inei2017_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017, base de manzana (Vivienda.C2P2, Poblacio.SEXO)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-marco-v1",
+          "checksums": {
+            "inei2017_ciudades_manzanas.csv.gz": "c704e22b18bd50e502ece792015f3cda"
+          }
+        },
+        "nse": {
+          "ruta": "nse_geoperu_inei_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "GeoPeru/IDEP - INEI, Ingreso per capita del Hogar (peru_estrato_nacional_)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "nse-geoperu-inei-ciudades-manzanas-v1",
+          "checksums": {
+            "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
+        }
+      }
+    },
+    {
+      "codigo": "1001",
+      "departamento": "HUANUCO",
+      "provincia": "HUANUCO",
+      "distritos": [
+        "100101",
+        "100102",
+        "100111"
+      ],
+      "cobertura": {
+        "nivel": "2",
+        "referencia": "INEI CPV 2025, REDATAM base CPV2025DI (población censada por distrito)",
+        "anio_referencia": 2025,
+        "provincia": {
+          "pob17_redatam": 202016,
+          "pob17_en_capa": 149091,
+          "pob25": 232556,
+          "cobertura_cartografica": 73.8,
+          "captacion": 64.1,
+          "crecimiento": 15.1,
+          "peso_en_provincia": 72.2
+        },
+        "distritos": {
+          "100101": {
+            "pob17_redatam": 84612,
+            "pob17_en_capa": 65982,
+            "pob25": 90560,
+            "cobertura_cartografica": 78,
+            "captacion": 72.9,
+            "crecimiento": 7
+          },
+          "100102": {
+            "pob17_redatam": 76333,
+            "pob17_en_capa": 60273,
+            "pob25": 87400,
+            "cobertura_cartografica": 79,
+            "captacion": 69,
+            "crecimiento": 14.5
+          },
+          "100111": {
+            "pob17_redatam": 41071,
+            "pob17_en_capa": 22836,
+            "pob25": 54596,
+            "cobertura_cartografica": 55.6,
+            "captacion": 41.8,
+            "crecimiento": 32.9
+          }
+        }
+      },
+      "capas": {
+        "manzanas": {
+          "perfil": "ciudades",
+          "ruta": "cartografia/manzanas_inei2017_ciudades",
+          "patron": "<ubigeo>.geojson.gz",
+          "fuente": "INEI - CENSO 2017 (GeoPeru/IDEP)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-manzanas-v1",
+          "checksums": {
+            "100101.geojson.gz": "c1ebc4dad54ccc00ea2395fc72595e40",
+            "100102.geojson.gz": "44ffe5c78d94bf9c24b68927126aadfb",
+            "100111.geojson.gz": "33ff21260a02577c7e143c7f10c9368f"
+          }
+        },
+        "marco": {
+          "ruta": "inei2017_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017, base de manzana (Vivienda.C2P2, Poblacio.SEXO)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-marco-v1",
+          "checksums": {
+            "inei2017_ciudades_manzanas.csv.gz": "c704e22b18bd50e502ece792015f3cda"
+          }
+        },
+        "nse": {
+          "ruta": "nse_geoperu_inei_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "GeoPeru/IDEP - INEI, Ingreso per capita del Hogar (peru_estrato_nacional_)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "nse-geoperu-inei-ciudades-manzanas-v1",
+          "checksums": {
+            "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
+        }
+      }
+    },
+    {
+      "codigo": "1101",
+      "departamento": "ICA",
+      "provincia": "ICA",
+      "distritos": [
+        "110101",
+        "110102",
+        "110103",
+        "110106",
+        "110108",
+        "110110",
+        "110112"
+      ],
+      "cobertura": {
+        "nivel": "2",
+        "referencia": "INEI CPV 2025, REDATAM base CPV2025DI (población censada por distrito)",
+        "anio_referencia": 2025,
+        "provincia": {
+          "pob17_redatam": 324775,
+          "pob17_en_capa": 224346,
+          "pob25": 393744,
+          "cobertura_cartografica": 69.1,
+          "captacion": 57,
+          "crecimiento": 21.2,
+          "peso_en_provincia": 84.5
+        },
+        "distritos": {
+          "110101": {
+            "pob17_redatam": 149618,
+            "pob17_en_capa": 112250,
+            "pob25": 167147,
+            "cobertura_cartografica": 75,
+            "captacion": 67.2,
+            "crecimiento": 11.7
+          },
+          "110102": {
+            "pob17_redatam": 37149,
+            "pob17_en_capa": 30300,
+            "pob25": 48036,
+            "cobertura_cartografica": 81.6,
+            "captacion": 63.1,
+            "crecimiento": 29.3
+          },
+          "110103": {
+            "pob17_redatam": 20143,
+            "pob17_en_capa": 8068,
+            "pob25": 28375,
+            "cobertura_cartografica": 40.1,
+            "captacion": 28.4,
+            "crecimiento": 40.9
+          },
+          "110106": {
+            "pob17_redatam": 53204,
+            "pob17_en_capa": 45887,
+            "pob25": 60047,
+            "cobertura_cartografica": 86.2,
+            "captacion": 76.4,
+            "crecimiento": 12.9
+          },
+          "110108": {
+            "pob17_redatam": 25216,
+            "pob17_en_capa": 1117,
+            "pob25": 41187,
+            "cobertura_cartografica": 4.4,
+            "captacion": 2.7,
+            "crecimiento": 63.3
+          },
+          "110110": {
+            "pob17_redatam": 12312,
+            "pob17_en_capa": 8367,
+            "pob25": 14890,
+            "cobertura_cartografica": 68,
+            "captacion": 56.2,
+            "crecimiento": 20.9
+          },
+          "110112": {
+            "pob17_redatam": 27133,
+            "pob17_en_capa": 18357,
+            "pob25": 34062,
+            "cobertura_cartografica": 67.7,
+            "captacion": 53.9,
+            "crecimiento": 25.5
+          }
+        }
+      },
+      "capas": {
+        "manzanas": {
+          "perfil": "ciudades",
+          "ruta": "cartografia/manzanas_inei2017_ciudades",
+          "patron": "<ubigeo>.geojson.gz",
+          "fuente": "INEI - CENSO 2017 (GeoPeru/IDEP)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-manzanas-v1",
+          "checksums": {
+            "110101.geojson.gz": "df8cba33c1c4fb47d365799ff90ebb70",
+            "110102.geojson.gz": "8f6b41b5a5c0451ffe91d594eec3b167",
+            "110103.geojson.gz": "384d107663195d23510c2354985b5f2d",
+            "110106.geojson.gz": "24afa98fde6959143d721e1874eaac26",
+            "110108.geojson.gz": "eb56ae9d9f1ad463f050756ee685a68c",
+            "110110.geojson.gz": "ce49af30e43c0cb5f514934aa4d2908f",
+            "110112.geojson.gz": "b8b4a9ef796bce7a91ee834aca2946d4"
+          }
+        },
+        "marco": {
+          "ruta": "inei2017_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017, base de manzana (Vivienda.C2P2, Poblacio.SEXO)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-marco-v1",
+          "checksums": {
+            "inei2017_ciudades_manzanas.csv.gz": "c704e22b18bd50e502ece792015f3cda"
+          }
+        },
+        "nse": {
+          "ruta": "nse_geoperu_inei_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "GeoPeru/IDEP - INEI, Ingreso per capita del Hogar (peru_estrato_nacional_)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "nse-geoperu-inei-ciudades-manzanas-v1",
+          "checksums": {
+            "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
+        }
+      }
+    },
+    {
+      "codigo": "1102",
+      "departamento": "ICA",
+      "provincia": "CHINCHA",
+      "distritos": [
+        "110201",
+        "110206",
+        "110207",
+        "110210"
+      ],
+      "cobertura": {
+        "nivel": "2",
+        "referencia": "INEI CPV 2025, REDATAM base CPV2025DI (población censada por distrito)",
+        "anio_referencia": 2025,
+        "provincia": {
+          "pob17_redatam": 181524,
+          "pob17_en_capa": 138276,
+          "pob25": 214282,
+          "cobertura_cartografica": 76.2,
+          "captacion": 64.5,
+          "crecimiento": 18,
+          "peso_en_provincia": 80
+        },
+        "distritos": {
+          "110201": {
+            "pob17_redatam": 66349,
+            "pob17_en_capa": 52407,
+            "pob25": 79615,
+            "cobertura_cartografica": 79,
+            "captacion": 65.8,
+            "crecimiento": 20
+          },
+          "110206": {
+            "pob17_redatam": 24051,
+            "pob17_en_capa": 11205,
+            "pob25": 33285,
+            "cobertura_cartografica": 46.6,
+            "captacion": 33.7,
+            "crecimiento": 38.4
+          },
+          "110207": {
+            "pob17_redatam": 62604,
+            "pob17_en_capa": 55869,
+            "pob25": 60109,
+            "cobertura_cartografica": 89.2,
+            "captacion": 92.9,
+            "crecimiento": -4
+          },
+          "110210": {
+            "pob17_redatam": 28520,
+            "pob17_en_capa": 18795,
+            "pob25": 41273,
+            "cobertura_cartografica": 65.9,
+            "captacion": 45.5,
+            "crecimiento": 44.7
+          }
+        }
+      },
+      "capas": {
+        "manzanas": {
+          "perfil": "ciudades",
+          "ruta": "cartografia/manzanas_inei2017_ciudades",
+          "patron": "<ubigeo>.geojson.gz",
+          "fuente": "INEI - CENSO 2017 (GeoPeru/IDEP)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-manzanas-v1",
+          "checksums": {
+            "110201.geojson.gz": "5136f93e2b494f05d4fb72f6d4a00b4b",
+            "110206.geojson.gz": "48525bb4e38775c873a9b6aa76c0dc43",
+            "110207.geojson.gz": "dd3a6b9d495df6036acaaf54995e3401",
+            "110210.geojson.gz": "38813f129b26d93a31bd27dbb02997d2"
+          }
+        },
+        "marco": {
+          "ruta": "inei2017_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017, base de manzana (Vivienda.C2P2, Poblacio.SEXO)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-marco-v1",
+          "checksums": {
+            "inei2017_ciudades_manzanas.csv.gz": "c704e22b18bd50e502ece792015f3cda"
+          }
+        },
+        "nse": {
+          "ruta": "nse_geoperu_inei_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "GeoPeru/IDEP - INEI, Ingreso per capita del Hogar (peru_estrato_nacional_)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "nse-geoperu-inei-ciudades-manzanas-v1",
+          "checksums": {
+            "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
+        }
+      }
+    },
+    {
+      "codigo": "1105",
+      "departamento": "ICA",
+      "provincia": "PISCO",
+      "distritos": [
+        "110501",
+        "110506",
+        "110507",
+        "110508"
+      ],
+      "cobertura": {
+        "nivel": "2",
+        "referencia": "INEI CPV 2025, REDATAM base CPV2025DI (población censada por distrito)",
+        "anio_referencia": 2025,
+        "provincia": {
+          "pob17_redatam": 121333,
+          "pob17_en_capa": 99707,
+          "pob25": 142936,
+          "cobertura_cartografica": 82.2,
+          "captacion": 69.8,
+          "crecimiento": 17.8,
+          "peso_en_provincia": 82.1
+        },
+        "distritos": {
+          "110501": {
+            "pob17_redatam": 67388,
+            "pob17_en_capa": 52911,
+            "pob25": 75110,
+            "cobertura_cartografica": 78.5,
+            "captacion": 70.4,
+            "crecimiento": 11.5
+          },
+          "110506": {
+            "pob17_redatam": 12074,
+            "pob17_en_capa": 9904,
+            "pob25": 18817,
+            "cobertura_cartografica": 82,
+            "captacion": 52.6,
+            "crecimiento": 55.8
+          },
+          "110507": {
+            "pob17_redatam": 24207,
+            "pob17_en_capa": 21621,
+            "pob25": 28244,
+            "cobertura_cartografica": 89.3,
+            "captacion": 76.6,
+            "crecimiento": 16.7
+          },
+          "110508": {
+            "pob17_redatam": 17664,
+            "pob17_en_capa": 15271,
+            "pob25": 20765,
+            "cobertura_cartografica": 86.5,
+            "captacion": 73.5,
+            "crecimiento": 17.6
+          }
+        }
+      },
+      "capas": {
+        "manzanas": {
+          "perfil": "ciudades",
+          "ruta": "cartografia/manzanas_inei2017_ciudades",
+          "patron": "<ubigeo>.geojson.gz",
+          "fuente": "INEI - CENSO 2017 (GeoPeru/IDEP)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-manzanas-v1",
+          "checksums": {
+            "110501.geojson.gz": "4fe0d61a8e5dfeeedcc1e6c9531cfb13",
+            "110506.geojson.gz": "8bb071d50ff5e13f4a2f629bb809f570",
+            "110507.geojson.gz": "e6ae10ee9f9b5bc35c745a17a4567fd0",
+            "110508.geojson.gz": "d352528475bd08c41ccdddd663545d68"
+          }
+        },
+        "marco": {
+          "ruta": "inei2017_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017, base de manzana (Vivienda.C2P2, Poblacio.SEXO)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-marco-v1",
+          "checksums": {
+            "inei2017_ciudades_manzanas.csv.gz": "c704e22b18bd50e502ece792015f3cda"
+          }
+        },
+        "nse": {
+          "ruta": "nse_geoperu_inei_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "GeoPeru/IDEP - INEI, Ingreso per capita del Hogar (peru_estrato_nacional_)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "nse-geoperu-inei-ciudades-manzanas-v1",
+          "checksums": {
+            "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
+        }
+      }
+    },
+    {
+      "codigo": "1201",
+      "departamento": "JUNIN",
+      "provincia": "HUANCAYO",
+      "distritos": [
+        "120101",
+        "120107",
+        "120114",
+        "120117",
+        "120119",
+        "120125",
+        "120129",
+        "120133"
+      ],
+      "cobertura": {
+        "nivel": "1",
+        "referencia": "INEI CPV 2025, REDATAM base CPV2025DI (población censada por distrito)",
+        "anio_referencia": 2025,
+        "provincia": {
+          "pob17_redatam": 451971,
+          "pob17_en_capa": 344711,
+          "pob25": 498245,
+          "cobertura_cartografica": 76.3,
+          "captacion": 69.2,
+          "crecimiento": 10.2,
+          "peso_en_provincia": 83.4
+        },
+        "distritos": {
+          "120101": {
+            "pob17_redatam": 118550,
+            "pob17_en_capa": 98467,
+            "pob25": 118552,
+            "cobertura_cartografica": 83.1,
+            "captacion": 83.1,
+            "crecimiento": 0
+          },
+          "120107": {
+            "pob17_redatam": 91796,
+            "pob17_en_capa": 69124,
+            "pob25": 97620,
+            "cobertura_cartografica": 75.3,
+            "captacion": 70.8,
+            "crecimiento": 6.3
+          },
+          "120114": {
+            "pob17_redatam": 159131,
+            "pob17_en_capa": 134088,
+            "pob25": 165953,
+            "cobertura_cartografica": 84.3,
+            "captacion": 80.8,
+            "crecimiento": 4.3
+          },
+          "120117": {
+            "pob17_redatam": 5251,
+            "pob17_en_capa": 2359,
+            "pob25": 8306,
+            "cobertura_cartografica": 44.9,
+            "captacion": 28.4,
+            "crecimiento": 58.2
+          },
+          "120119": {
+            "pob17_redatam": 23659,
+            "pob17_en_capa": 14111,
+            "pob25": 27640,
+            "cobertura_cartografica": 59.6,
+            "captacion": 51.1,
+            "crecimiento": 16.8
+          },
+          "120125": {
+            "pob17_redatam": 20055,
+            "pob17_en_capa": 14667,
+            "pob25": 25363,
+            "cobertura_cartografica": 73.1,
+            "captacion": 57.8,
+            "crecimiento": 26.5
+          },
+          "120129": {
+            "pob17_redatam": 14310,
+            "pob17_en_capa": 7762,
+            "pob25": 19990,
+            "cobertura_cartografica": 54.2,
+            "captacion": 38.8,
+            "crecimiento": 39.7
+          },
+          "120133": {
+            "pob17_redatam": 19219,
+            "pob17_en_capa": 4133,
+            "pob25": 34821,
+            "cobertura_cartografica": 21.5,
+            "captacion": 11.9,
+            "crecimiento": 81.2
+          }
+        }
+      },
+      "capas": {
+        "manzanas": {
+          "perfil": "ciudades",
+          "ruta": "cartografia/manzanas_inei2017_ciudades",
+          "patron": "<ubigeo>.geojson.gz",
+          "fuente": "INEI - CENSO 2017 (GeoPeru/IDEP)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-manzanas-v1",
+          "checksums": {
+            "120101.geojson.gz": "8a1f87b3a4a269fbb5122949558a2666",
+            "120107.geojson.gz": "cc6860a579f25f0b2b0da816de0fe37a",
+            "120114.geojson.gz": "413654a84800da1e68b2571677df3df9",
+            "120117.geojson.gz": "cf344778ea7fd5a160322f9243d939d3",
+            "120119.geojson.gz": "6e9b6be5136b38b21c3266511d25cb88",
+            "120125.geojson.gz": "6d9ed5f500cbb3531fc989cbc0707c4e",
+            "120129.geojson.gz": "df46da66a0431759288acdf669c5f624",
+            "120133.geojson.gz": "731e7baf6b8cc8a99df8adeb83201349"
+          }
+        },
+        "marco": {
+          "ruta": "inei2017_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017, base de manzana (Vivienda.C2P2, Poblacio.SEXO)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-marco-v1",
+          "checksums": {
+            "inei2017_ciudades_manzanas.csv.gz": "c704e22b18bd50e502ece792015f3cda"
+          }
+        },
+        "nse": {
+          "ruta": "nse_geoperu_inei_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "GeoPeru/IDEP - INEI, Ingreso per capita del Hogar (peru_estrato_nacional_)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "nse-geoperu-inei-ciudades-manzanas-v1",
+          "checksums": {
+            "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
+        }
+      }
+    },
+    {
+      "codigo": "1301",
+      "departamento": "LA LIBERTAD",
+      "provincia": "TRUJILLO",
+      "distritos": [
+        "130101",
+        "130102",
+        "130103",
+        "130104",
+        "130105",
+        "130106",
+        "130107",
+        "130109",
+        "130111"
+      ],
+      "cobertura": {
+        "nivel": "1",
+        "referencia": "INEI CPV 2025, REDATAM base CPV2025DI (población censada por distrito)",
+        "anio_referencia": 2025,
+        "provincia": {
+          "pob17_redatam": 947975,
+          "pob17_en_capa": 806566,
+          "pob25": 963608,
+          "cobertura_cartografica": 85.1,
+          "captacion": 83.7,
+          "crecimiento": 1.6,
+          "peso_en_provincia": 91.3
+        },
+        "distritos": {
+          "130101": {
+            "pob17_redatam": 314808,
+            "pob17_en_capa": 282621,
+            "pob25": 298141,
+            "cobertura_cartografica": 89.8,
+            "captacion": 94.8,
+            "crecimiento": -5.3
+          },
+          "130102": {
+            "pob17_redatam": 190461,
+            "pob17_en_capa": 153471,
+            "pob25": 109893,
+            "cobertura_cartografica": 80.6,
+            "captacion": 139.7,
+            "crecimiento": -42.3
+          },
+          "130103": {
+            "pob17_redatam": 37262,
+            "pob17_en_capa": 35723,
+            "pob25": 55651,
+            "cobertura_cartografica": 95.9,
+            "captacion": 64.2,
+            "crecimiento": 49.4
+          },
+          "130104": {
+            "pob17_redatam": 67832,
+            "pob17_en_capa": 45532,
+            "pob25": 89348,
+            "cobertura_cartografica": 67.1,
+            "captacion": 51,
+            "crecimiento": 31.7
+          },
+          "130105": {
+            "pob17_redatam": 189206,
+            "pob17_en_capa": 174905,
+            "pob25": 204924,
+            "cobertura_cartografica": 92.4,
+            "captacion": 85.4,
+            "crecimiento": 8.3
+          },
+          "130106": {
+            "pob17_redatam": 28076,
+            "pob17_en_capa": 22978,
+            "pob25": 51489,
+            "cobertura_cartografica": 81.8,
+            "captacion": 44.6,
+            "crecimiento": 83.4
+          },
+          "130107": {
+            "pob17_redatam": 32917,
+            "pob17_en_capa": 23724,
+            "pob25": 47581,
+            "cobertura_cartografica": 72.1,
+            "captacion": 49.9,
+            "crecimiento": 44.5
+          },
+          "130109": {
+            "pob17_redatam": 18907,
+            "pob17_en_capa": 8621,
+            "pob25": 28048,
+            "cobertura_cartografica": 45.6,
+            "captacion": 30.7,
+            "crecimiento": 48.3
+          },
+          "130111": {
+            "pob17_redatam": 68506,
+            "pob17_en_capa": 58991,
+            "pob25": 78533,
+            "cobertura_cartografica": 86.1,
+            "captacion": 75.1,
+            "crecimiento": 14.6
+          }
+        }
+      },
+      "capas": {
+        "manzanas": {
+          "perfil": "ciudades",
+          "ruta": "cartografia/manzanas_inei2017_ciudades",
+          "patron": "<ubigeo>.geojson.gz",
+          "fuente": "INEI - CENSO 2017 (GeoPeru/IDEP)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-manzanas-v1",
+          "checksums": {
+            "130101.geojson.gz": "74e12acdeb61c9c214cc0712fbca88b0",
+            "130102.geojson.gz": "87034410abac6937dce442ae753e97ec",
+            "130103.geojson.gz": "2a6afeeadf0a9159d3f25b5098983124",
+            "130104.geojson.gz": "19ec385b896b3c46d49ce4d182a1acab",
+            "130105.geojson.gz": "6ac70569cfb7542138758792eae878fa",
+            "130106.geojson.gz": "ab07a02519641519027e6f13aefb9f9d",
+            "130107.geojson.gz": "624d90c64fd316c204a603b526ae48c4",
+            "130109.geojson.gz": "a18e62d79bdef8374e76cb48de594643",
+            "130111.geojson.gz": "fefaec7537e0e375a6588b468a23ab50"
+          }
+        },
+        "marco": {
+          "ruta": "inei2017_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017, base de manzana (Vivienda.C2P2, Poblacio.SEXO)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-marco-v1",
+          "checksums": {
+            "inei2017_ciudades_manzanas.csv.gz": "c704e22b18bd50e502ece792015f3cda"
+          }
+        },
+        "nse": {
+          "ruta": "nse_geoperu_inei_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "GeoPeru/IDEP - INEI, Ingreso per capita del Hogar (peru_estrato_nacional_)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "nse-geoperu-inei-ciudades-manzanas-v1",
+          "checksums": {
+            "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
+        }
+      }
+    },
+    {
+      "codigo": "1401",
+      "departamento": "LAMBAYEQUE",
+      "provincia": "CHICLAYO",
+      "distritos": [
+        "140101",
+        "140105",
+        "140106",
+        "140108",
+        "140112",
+        "140118",
+        "140120"
+      ],
+      "cobertura": {
+        "nivel": "1",
+        "referencia": "INEI CPV 2025, REDATAM base CPV2025DI (población censada por distrito)",
+        "anio_referencia": 2025,
+        "provincia": {
+          "pob17_redatam": 625588,
+          "pob17_en_capa": 540707,
+          "pob25": 687292,
+          "cobertura_cartografica": 86.4,
+          "captacion": 78.7,
+          "crecimiento": 9.9,
+          "peso_en_provincia": 79.3
+        },
+        "distritos": {
+          "140101": {
+            "pob17_redatam": 270208,
+            "pob17_en_capa": 244511,
+            "pob25": 262915,
+            "cobertura_cartografica": 90.5,
+            "captacion": 93,
+            "crecimiento": -2.7
+          },
+          "140105": {
+            "pob17_redatam": 156498,
+            "pob17_en_capa": 146955,
+            "pob25": 163191,
+            "cobertura_cartografica": 93.9,
+            "captacion": 90.1,
+            "crecimiento": 4.3
+          },
+          "140106": {
+            "pob17_redatam": 86024,
+            "pob17_en_capa": 78390,
+            "pob25": 103112,
+            "cobertura_cartografica": 91.1,
+            "captacion": 76,
+            "crecimiento": 19.9
+          },
+          "140108": {
+            "pob17_redatam": 23969,
+            "pob17_en_capa": 18953,
+            "pob25": 38639,
+            "cobertura_cartografica": 79.1,
+            "captacion": 49.1,
+            "crecimiento": 61.2
+          },
+          "140112": {
+            "pob17_redatam": 40876,
+            "pob17_en_capa": 14248,
+            "pob25": 59642,
+            "cobertura_cartografica": 34.9,
+            "captacion": 23.9,
+            "crecimiento": 45.9
+          },
+          "140118": {
+            "pob17_redatam": 22099,
+            "pob17_en_capa": 19501,
+            "pob25": 30374,
+            "cobertura_cartografica": 88.2,
+            "captacion": 64.2,
+            "crecimiento": 37.4
+          },
+          "140120": {
+            "pob17_redatam": 25914,
+            "pob17_en_capa": 18149,
+            "pob25": 29419,
+            "cobertura_cartografica": 70,
+            "captacion": 61.7,
+            "crecimiento": 13.5
+          }
+        }
+      },
+      "capas": {
+        "manzanas": {
+          "perfil": "ciudades",
+          "ruta": "cartografia/manzanas_inei2017_ciudades",
+          "patron": "<ubigeo>.geojson.gz",
+          "fuente": "INEI - CENSO 2017 (GeoPeru/IDEP)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-manzanas-v1",
+          "checksums": {
+            "140101.geojson.gz": "6ffafef80ab8782c1f144e898cb855fa",
+            "140105.geojson.gz": "c00f2f16135b961b3c3ec46ba2bd30c3",
+            "140106.geojson.gz": "35f3577219f63af28bf186750f0694cd",
+            "140108.geojson.gz": "3c52f3c47117553506068a4783b7c681",
+            "140112.geojson.gz": "5df8a7893ca0f86f3a62720302fd7431",
+            "140118.geojson.gz": "5cb6dee631f7ea9792585e9ab1126d74",
+            "140120.geojson.gz": "8bf736e1b05bd8d89600f84f3ebb5585"
+          }
+        },
+        "marco": {
+          "ruta": "inei2017_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017, base de manzana (Vivienda.C2P2, Poblacio.SEXO)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-marco-v1",
+          "checksums": {
+            "inei2017_ciudades_manzanas.csv.gz": "c704e22b18bd50e502ece792015f3cda"
+          }
+        },
+        "nse": {
+          "ruta": "nse_geoperu_inei_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "GeoPeru/IDEP - INEI, Ingreso per capita del Hogar (peru_estrato_nacional_)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "nse-geoperu-inei-ciudades-manzanas-v1",
+          "checksums": {
+            "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
+        }
+      }
+    },
+    {
+      "codigo": "1501",
+      "departamento": "LIMA",
+      "provincia": "LIMA",
+      "distritos": [
+        "150101",
+        "150102",
+        "150103",
+        "150104",
+        "150105",
+        "150106",
+        "150107",
+        "150108",
+        "150109",
+        "150110",
+        "150111",
+        "150112",
+        "150113",
+        "150114",
+        "150115",
+        "150116",
+        "150117",
+        "150118",
+        "150119",
+        "150120",
+        "150121",
+        "150122",
+        "150123",
+        "150124",
+        "150125",
+        "150126",
+        "150127",
+        "150128",
+        "150129",
+        "150130",
+        "150131",
+        "150132",
+        "150133",
+        "150134",
+        "150135",
+        "150136",
+        "150137",
+        "150138",
+        "150139",
+        "150140",
+        "150141",
+        "150142",
+        "150143"
+      ],
+      "cobertura": {
+        "nivel": "1",
+        "referencia": "INEI CPV 2025, REDATAM base CPV2025DI (población censada por distrito)",
+        "anio_referencia": 2025,
+        "provincia": {
+          "pob17_redatam": 8567786,
+          "pob17_en_capa": 8085692,
+          "pob25": 9600043,
+          "cobertura_cartografica": 94.4,
+          "captacion": 84.2,
+          "crecimiento": 12,
+          "peso_en_provincia": 100
+        },
+        "distritos": {
+          "150101": {
+            "pob17_redatam": 268352,
+            "pob17_en_capa": 264137,
+            "pob25": 292666,
+            "cobertura_cartografica": 98.4,
+            "captacion": 90.3,
+            "crecimiento": 9.1
+          },
+          "150102": {
+            "pob17_redatam": 62928,
+            "pob17_en_capa": 45582,
+            "pob25": 74099,
+            "cobertura_cartografica": 72.4,
+            "captacion": 61.5,
+            "crecimiento": 17.8
+          },
+          "150103": {
+            "pob17_redatam": 599196,
+            "pob17_en_capa": 552053,
+            "pob25": 668628,
+            "cobertura_cartografica": 92.1,
+            "captacion": 82.6,
+            "crecimiento": 11.6
+          },
+          "150104": {
+            "pob17_redatam": 34378,
+            "pob17_en_capa": 33972,
+            "pob25": 41076,
+            "cobertura_cartografica": 98.8,
+            "captacion": 82.7,
+            "crecimiento": 19.5
+          },
+          "150105": {
+            "pob17_redatam": 85309,
+            "pob17_en_capa": 85153,
+            "pob25": 96892,
+            "cobertura_cartografica": 99.8,
+            "captacion": 87.9,
+            "crecimiento": 13.6
+          },
+          "150106": {
+            "pob17_redatam": 328740,
+            "pob17_en_capa": 286961,
+            "pob25": 416086,
+            "cobertura_cartografica": 87.3,
+            "captacion": 69,
+            "crecimiento": 26.6
+          },
+          "150107": {
+            "pob17_redatam": 42912,
+            "pob17_en_capa": 40524,
+            "pob25": 44216,
+            "cobertura_cartografica": 94.4,
+            "captacion": 91.7,
+            "crecimiento": 3
+          },
+          "150108": {
+            "pob17_redatam": 314241,
+            "pob17_en_capa": 309779,
+            "pob25": 359715,
+            "cobertura_cartografica": 98.6,
+            "captacion": 86.1,
+            "crecimiento": 14.5
+          },
+          "150109": {
+            "pob17_redatam": 34480,
+            "pob17_en_capa": 27767,
+            "pob25": 45735,
+            "cobertura_cartografica": 80.5,
+            "captacion": 60.7,
+            "crecimiento": 32.6
+          },
+          "150110": {
+            "pob17_redatam": 520450,
+            "pob17_en_capa": 500592,
+            "pob25": 553297,
+            "cobertura_cartografica": 96.2,
+            "captacion": 90.5,
+            "crecimiento": 6.3
+          },
+          "150111": {
+            "pob17_redatam": 198862,
+            "pob17_en_capa": 195030,
+            "pob25": 210467,
+            "cobertura_cartografica": 98.1,
+            "captacion": 92.7,
+            "crecimiento": 5.8
+          },
+          "150112": {
+            "pob17_redatam": 211360,
+            "pob17_en_capa": 198599,
+            "pob25": 214620,
+            "cobertura_cartografica": 94,
+            "captacion": 92.5,
+            "crecimiento": 1.5
+          },
+          "150113": {
+            "pob17_redatam": 75359,
+            "pob17_en_capa": 72206,
+            "pob25": 97659,
+            "cobertura_cartografica": 95.8,
+            "captacion": 73.9,
+            "crecimiento": 29.6
+          },
+          "150114": {
+            "pob17_redatam": 140679,
+            "pob17_en_capa": 137281,
+            "pob25": 143899,
+            "cobertura_cartografica": 97.6,
+            "captacion": 95.4,
+            "crecimiento": 2.3
+          },
+          "150115": {
+            "pob17_redatam": 173630,
+            "pob17_en_capa": 170913,
+            "pob25": 171310,
+            "cobertura_cartografica": 98.4,
+            "captacion": 99.8,
+            "crecimiento": -1.3
+          },
+          "150116": {
+            "pob17_redatam": 54711,
+            "pob17_en_capa": 54458,
+            "pob25": 66298,
+            "cobertura_cartografica": 99.5,
+            "captacion": 82.1,
+            "crecimiento": 21.2
+          },
+          "150117": {
+            "pob17_redatam": 325884,
+            "pob17_en_capa": 323600,
+            "pob25": 343232,
+            "cobertura_cartografica": 99.3,
+            "captacion": 94.3,
+            "crecimiento": 5.3
+          },
+          "150118": {
+            "pob17_redatam": 240814,
+            "pob17_en_capa": 207199,
+            "pob25": 290674,
+            "cobertura_cartografica": 86,
+            "captacion": 71.3,
+            "crecimiento": 20.7
+          },
+          "150119": {
+            "pob17_redatam": 87888,
+            "pob17_en_capa": 80530,
+            "pob25": 128697,
+            "cobertura_cartografica": 91.6,
+            "captacion": 62.6,
+            "crecimiento": 46.4
+          },
+          "150120": {
+            "pob17_redatam": 60290,
+            "pob17_en_capa": 60092,
+            "pob25": 79482,
+            "cobertura_cartografica": 99.7,
+            "captacion": 75.6,
+            "crecimiento": 31.8
+          },
+          "150121": {
+            "pob17_redatam": 83323,
+            "pob17_en_capa": 83034,
+            "pob25": 96532,
+            "cobertura_cartografica": 99.7,
+            "captacion": 86,
+            "crecimiento": 15.9
+          },
+          "150122": {
+            "pob17_redatam": 99337,
+            "pob17_en_capa": 97531,
+            "pob25": 121203,
+            "cobertura_cartografica": 98.2,
+            "captacion": 80.5,
+            "crecimiento": 22
+          },
+          "150123": {
+            "pob17_redatam": 108884,
+            "pob17_en_capa": 89735,
+            "pob25": 130016,
+            "cobertura_cartografica": 82.4,
+            "captacion": 69,
+            "crecimiento": 19.4
+          },
+          "150124": {
+            "pob17_redatam": 14891,
+            "pob17_en_capa": 10267,
+            "pob25": 17855,
+            "cobertura_cartografica": 68.9,
+            "captacion": 57.5,
+            "crecimiento": 19.9
+          },
+          "150125": {
+            "pob17_redatam": 329675,
+            "pob17_en_capa": 297883,
+            "pob25": 378129,
+            "cobertura_cartografica": 90.4,
+            "captacion": 78.8,
+            "crecimiento": 14.7
+          },
+          "150126": {
+            "pob17_redatam": 15846,
+            "pob17_en_capa": 10578,
+            "pob25": 15638,
+            "cobertura_cartografica": 66.8,
+            "captacion": 67.6,
+            "crecimiento": -1.3
+          },
+          "150127": {
+            "pob17_redatam": 7073,
+            "pob17_en_capa": 5175,
+            "pob25": 10528,
+            "cobertura_cartografica": 73.2,
+            "captacion": 49.2,
+            "crecimiento": 48.8
+          },
+          "150128": {
+            "pob17_redatam": 174785,
+            "pob17_en_capa": 169458,
+            "pob25": 183297,
+            "cobertura_cartografica": 97,
+            "captacion": 92.4,
+            "crecimiento": 4.9
+          },
+          "150129": {
+            "pob17_redatam": 7332,
+            "pob17_en_capa": 5906,
+            "pob25": 6767,
+            "cobertura_cartografica": 80.6,
+            "captacion": 87.3,
+            "crecimiento": -7.7
+          },
+          "150130": {
+            "pob17_redatam": 113247,
+            "pob17_en_capa": 111725,
+            "pob25": 121870,
+            "cobertura_cartografica": 98.7,
+            "captacion": 91.7,
+            "crecimiento": 7.6
+          },
+          "150131": {
+            "pob17_redatam": 60735,
+            "pob17_en_capa": 58534,
+            "pob25": 69137,
+            "cobertura_cartografica": 96.4,
+            "captacion": 84.7,
+            "crecimiento": 13.8
+          },
+          "150132": {
+            "pob17_redatam": 1038495,
+            "pob17_en_capa": 940862,
+            "pob25": 1124772,
+            "cobertura_cartografica": 90.6,
+            "captacion": 83.6,
+            "crecimiento": 8.3
+          },
+          "150133": {
+            "pob17_redatam": 355219,
+            "pob17_en_capa": 343745,
+            "pob25": 394812,
+            "cobertura_cartografica": 96.8,
+            "captacion": 87.1,
+            "crecimiento": 11.1
+          },
+          "150134": {
+            "pob17_redatam": 52082,
+            "pob17_en_capa": 51501,
+            "pob25": 55447,
+            "cobertura_cartografica": 98.9,
+            "captacion": 92.9,
+            "crecimiento": 6.5
+          },
+          "150135": {
+            "pob17_redatam": 654083,
+            "pob17_en_capa": 644856,
+            "pob25": 723830,
+            "cobertura_cartografica": 98.6,
+            "captacion": 89.1,
+            "crecimiento": 10.7
+          },
+          "150136": {
+            "pob17_redatam": 155384,
+            "pob17_en_capa": 152828,
+            "pob25": 179648,
+            "cobertura_cartografica": 98.4,
+            "captacion": 85.1,
+            "crecimiento": 15.6
+          },
+          "150137": {
+            "pob17_redatam": 196214,
+            "pob17_en_capa": 195204,
+            "pob25": 210411,
+            "cobertura_cartografica": 99.5,
+            "captacion": 92.8,
+            "crecimiento": 7.2
+          },
+          "150138": {
+            "pob17_redatam": 993,
+            "pob17_en_capa": 775,
+            "pob25": 973,
+            "cobertura_cartografica": 78,
+            "captacion": 79.7,
+            "crecimiento": -2
+          },
+          "150139": {
+            "pob17_redatam": 27863,
+            "pob17_en_capa": 19196,
+            "pob25": 36108,
+            "cobertura_cartografica": 68.9,
+            "captacion": 53.2,
+            "crecimiento": 29.6
+          },
+          "150140": {
+            "pob17_redatam": 329152,
+            "pob17_en_capa": 324402,
+            "pob25": 386432,
+            "cobertura_cartografica": 98.6,
+            "captacion": 83.9,
+            "crecimiento": 17.4
+          },
+          "150141": {
+            "pob17_redatam": 91023,
+            "pob17_en_capa": 89928,
+            "pob25": 111082,
+            "cobertura_cartografica": 98.8,
+            "captacion": 81,
+            "crecimiento": 22
+          },
+          "150142": {
+            "pob17_redatam": 393254,
+            "pob17_en_capa": 388456,
+            "pob25": 432599,
+            "cobertura_cartografica": 98.8,
+            "captacion": 89.8,
+            "crecimiento": 10
+          },
+          "150143": {
+            "pob17_redatam": 398433,
+            "pob17_en_capa": 347685,
+            "pob25": 454209,
+            "cobertura_cartografica": 87.3,
+            "captacion": 76.5,
+            "crecimiento": 14
+          }
+        }
+      },
+      "capas": {
+        "manzanas": {
+          "ruta": "cartografia/manzanas_lima_2017",
+          "patron": "<ubigeo>.geojson.gz",
+          "perfil": "lima",
+          "fuente": "IMP PlanMet 2040 - capa Manzanas Urbanas; fuente declarada: INEI 2017, Equipo Tecnico Plan Met 40, IMP 2020",
+          "anio_dato": 2017,
+          "descargado": "2026-05-03",
+          "version": "planmet-imp-inei2017-manzanas-lima-v1",
+          "checksums": {
+            "150101.geojson.gz": "2351b3626faa388e59d0e2c6e9131932",
+            "150102.geojson.gz": "15ebdf5d1e5ada005b0568e4e7499c19",
+            "150103.geojson.gz": "2228d16e4936ca0091d822444303a029",
+            "150104.geojson.gz": "91ef8e0109c68b71de83d0e182e6fff2",
+            "150105.geojson.gz": "099996c0308aa276671d77b83dd8daeb",
+            "150106.geojson.gz": "155d1e8e00daf601264b16f84c6322ae",
+            "150107.geojson.gz": "11b423de3dc0e6b4241ed32ac4583770",
+            "150108.geojson.gz": "0ce247941ce0af5c9b6626850bbe0d59",
+            "150109.geojson.gz": "2ed0bd65cf43e2300fb58f544a2e77c6",
+            "150110.geojson.gz": "2f251a24c2bea179a6fc1006eaf0baab",
+            "150111.geojson.gz": "188bb6530ad7776186354bd408eb4fc8",
+            "150112.geojson.gz": "aebed096c4f1692a826f0a610847897a",
+            "150113.geojson.gz": "2c2c93ebc58ed2a9b6b5d4fe3e6d14fe",
+            "150114.geojson.gz": "51ed31fcb742c758f79b0ea6cc20f6cf",
+            "150115.geojson.gz": "130d5c08c29643c4e774a21b3dc6c084",
+            "150116.geojson.gz": "f126f79bf1e3aecab976fc6c5fb41192",
+            "150117.geojson.gz": "9e5218c46c3dc3e543a22a8186381880",
+            "150118.geojson.gz": "e73d922d084432c138d4c2b8b0ffae72",
+            "150119.geojson.gz": "e95bd30eaf21a52c5394b76b1439fe4f",
+            "150120.geojson.gz": "1ff6a84e1ee4797aac8afc27600ba5fa",
+            "150121.geojson.gz": "d0ccc2e75011ea49bdea2a0695aa61fc",
+            "150122.geojson.gz": "51ca476fff544304aaf7bf60b0d71c1b",
+            "150123.geojson.gz": "0c1727ba91c245d59ec98f66d42e8a47",
+            "150124.geojson.gz": "514b10152d0359f869e80f42eb184ce9",
+            "150125.geojson.gz": "4cfc300cc28cc7df1f71d02b7800d3a2",
+            "150126.geojson.gz": "978b763c5eee2039b3cabe651593333c",
+            "150127.geojson.gz": "c2868e999e281cc24ee8e268596235b9",
+            "150128.geojson.gz": "66cd3c863228728c33370865f93ad80a",
+            "150129.geojson.gz": "83ab61e471fbc2e13e6807092219fdcb",
+            "150130.geojson.gz": "fdeeeb5ee35416240f528374b5642585",
+            "150131.geojson.gz": "925f4e572003ca9ef48f3ae814ca0416",
+            "150132.geojson.gz": "c4ce159c5536448d7ce2aea23cc3c3d0",
+            "150133.geojson.gz": "6d553a1da874c09f42137d426abd12be",
+            "150134.geojson.gz": "0d9f9bdf9e36bc54c4c7e40295c26c65",
+            "150135.geojson.gz": "2833ae0b609308a9a8c332f554f3852f",
+            "150136.geojson.gz": "d0b6ce16a78438dd243d89ec024bbabf",
+            "150137.geojson.gz": "9cd77ead99767dc40b012a2c0fe06d98",
+            "150138.geojson.gz": "d494f24b0ba87057963960c10252c7ba",
+            "150139.geojson.gz": "7496e579d5d32b9f3150dbea2f5ee7fd",
+            "150140.geojson.gz": "b848ad6cd9518b0ed20f8191497ce781",
+            "150141.geojson.gz": "47dbe64320064b7df6373dc206df2da5",
+            "150142.geojson.gz": "6229cf6c9a0bb65c301fdeec86a97952",
+            "150143.geojson.gz": "03fedb32d7bbacda29cf293f056a7181"
+          }
+        },
+        "marco": {
+          "ruta": "inei2017_lima_callao_manzanas_oficial.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI CPV 2017 (Informacion Digital Urbano Censal)",
+          "anio_dato": 2017,
+          "descargado": "2026-05-14",
+          "version": "inei2017-official-blocks-lima-callao-v1",
+          "checksums": {
+            "inei2017_lima_callao_manzanas_oficial.csv.gz": "fe4e28d26a352f72d0209d209fac5055"
+          }
+        },
+        "nse": {
+          "ruta": "nse_geoperu_inei_lima_callao_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "GeoPeru/IDEP - INEI, Ingreso per capita del Hogar",
+          "anio_dato": 2017,
+          "descargado": "2026-06-19",
+          "version": "nse-geoperu-inei-lima-callao-manzanas-v1",
+          "checksums": {
+            "nse_geoperu_inei_lima_callao_manzanas.csv.gz": "b4c9e1679b6646d87e915eb742cc32e9"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_lima_callao_edad_simple_distrito.csv",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-05-03",
+          "version": "inei2017-lima-callao-edad-simple-v1",
+          "checksums": {
+            "inei2017_lima_callao_edad_simple_distrito.csv": "091fd97f893d516a80c881daa2b44618"
+          }
+        }
+      }
+    },
+    {
+      "codigo": "1502",
+      "departamento": "LIMA",
+      "provincia": "BARRANCA",
+      "distritos": [
+        "150201",
+        "150202",
+        "150204",
+        "150205"
+      ],
+      "cobertura": {
+        "nivel": "2",
+        "referencia": "INEI CPV 2025, REDATAM base CPV2025DI (población censada por distrito)",
+        "anio_referencia": 2025,
+        "provincia": {
+          "pob17_redatam": 114790,
+          "pob17_en_capa": 83670,
+          "pob25": 128382,
+          "cobertura_cartografica": 72.9,
+          "captacion": 65.2,
+          "crecimiento": 11.8,
+          "peso_en_provincia": 87.9
+        },
+        "distritos": {
+          "150201": {
+            "pob17_redatam": 63716,
+            "pob17_en_capa": 49359,
+            "pob25": 67456,
+            "cobertura_cartografica": 77.5,
+            "captacion": 73.2,
+            "crecimiento": 5.9
+          },
+          "150202": {
+            "pob17_redatam": 19408,
+            "pob17_en_capa": 13147,
+            "pob25": 19822,
+            "cobertura_cartografica": 67.7,
+            "captacion": 66.3,
+            "crecimiento": 2.1
+          },
+          "150204": {
+            "pob17_redatam": 18880,
+            "pob17_en_capa": 11117,
+            "pob25": 26656,
+            "cobertura_cartografica": 58.9,
+            "captacion": 41.7,
+            "crecimiento": 41.2
+          },
+          "150205": {
+            "pob17_redatam": 12786,
+            "pob17_en_capa": 10047,
+            "pob25": 14448,
+            "cobertura_cartografica": 78.6,
+            "captacion": 69.5,
+            "crecimiento": 13
+          }
+        }
+      },
+      "capas": {
+        "manzanas": {
+          "perfil": "ciudades",
+          "ruta": "cartografia/manzanas_inei2017_ciudades",
+          "patron": "<ubigeo>.geojson.gz",
+          "fuente": "INEI - CENSO 2017 (GeoPeru/IDEP)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-manzanas-v1",
+          "checksums": {
+            "150201.geojson.gz": "c8ccfa2054563682486058f4bbc6f8bf",
+            "150202.geojson.gz": "a28f9340841048c69bca3f7eca4bb5e2",
+            "150204.geojson.gz": "1cf27d26388f5164c916337025dbebd4",
+            "150205.geojson.gz": "6ce79f4cca6c1fd4e6485805952364fd"
+          }
+        },
+        "marco": {
+          "ruta": "inei2017_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017, base de manzana (Vivienda.C2P2, Poblacio.SEXO)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-marco-v1",
+          "checksums": {
+            "inei2017_ciudades_manzanas.csv.gz": "c704e22b18bd50e502ece792015f3cda"
+          }
+        },
+        "nse": {
+          "ruta": "nse_geoperu_inei_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "GeoPeru/IDEP - INEI, Ingreso per capita del Hogar (peru_estrato_nacional_)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "nse-geoperu-inei-ciudades-manzanas-v1",
+          "checksums": {
+            "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
+        }
+      }
+    },
+    {
+      "codigo": "1508",
+      "departamento": "LIMA",
+      "provincia": "HUAURA",
+      "distritos": [
+        "150801",
+        "150803",
+        "150805",
+        "150806",
+        "150810"
+      ],
+      "cobertura": {
+        "nivel": "2",
+        "referencia": "INEI CPV 2025, REDATAM base CPV2025DI (población censada por distrito)",
+        "anio_referencia": 2025,
+        "provincia": {
+          "pob17_redatam": 165505,
+          "pob17_en_capa": 115884,
+          "pob25": 183979,
+          "cobertura_cartografica": 70,
+          "captacion": 63,
+          "crecimiento": 11.2,
+          "peso_en_provincia": 72.9
+        },
+        "distritos": {
+          "150801": {
+            "pob17_redatam": 62691,
+            "pob17_en_capa": 48619,
+            "pob25": 66363,
+            "cobertura_cartografica": 77.6,
+            "captacion": 73.3,
+            "crecimiento": 5.9
+          },
+          "150803": {
+            "pob17_redatam": 8049,
+            "pob17_en_capa": 5101,
+            "pob25": 8734,
+            "cobertura_cartografica": 63.4,
+            "captacion": 58.4,
+            "crecimiento": 8.5
+          },
+          "150805": {
+            "pob17_redatam": 28696,
+            "pob17_en_capa": 20937,
+            "pob25": 29389,
+            "cobertura_cartografica": 73,
+            "captacion": 71.2,
+            "crecimiento": 2.4
+          },
+          "150806": {
+            "pob17_redatam": 31792,
+            "pob17_en_capa": 20815,
+            "pob25": 37262,
+            "cobertura_cartografica": 65.5,
+            "captacion": 55.9,
+            "crecimiento": 17.2
+          },
+          "150810": {
+            "pob17_redatam": 34277,
+            "pob17_en_capa": 20412,
+            "pob25": 42231,
+            "cobertura_cartografica": 59.6,
+            "captacion": 48.3,
+            "crecimiento": 23.2
+          }
+        }
+      },
+      "capas": {
+        "manzanas": {
+          "perfil": "ciudades",
+          "ruta": "cartografia/manzanas_inei2017_ciudades",
+          "patron": "<ubigeo>.geojson.gz",
+          "fuente": "INEI - CENSO 2017 (GeoPeru/IDEP)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-manzanas-v1",
+          "checksums": {
+            "150801.geojson.gz": "b35755cc2245e0d09733762199448a56",
+            "150803.geojson.gz": "267673186e3e7f6e872cf0ee0a89866b",
+            "150805.geojson.gz": "36ec0a63a841c4fa45cdd97d7b9a66ae",
+            "150806.geojson.gz": "d79e5e47786d58924eaa4b532c5f9dde",
+            "150810.geojson.gz": "a662c03e40f8da2991646dd430b9d868"
+          }
+        },
+        "marco": {
+          "ruta": "inei2017_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017, base de manzana (Vivienda.C2P2, Poblacio.SEXO)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-marco-v1",
+          "checksums": {
+            "inei2017_ciudades_manzanas.csv.gz": "c704e22b18bd50e502ece792015f3cda"
+          }
+        },
+        "nse": {
+          "ruta": "nse_geoperu_inei_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "GeoPeru/IDEP - INEI, Ingreso per capita del Hogar (peru_estrato_nacional_)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "nse-geoperu-inei-ciudades-manzanas-v1",
+          "checksums": {
+            "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
+        }
+      }
+    },
+    {
+      "codigo": "1601",
+      "departamento": "LORETO",
+      "provincia": "MAYNAS",
+      "distritos": [
+        "160101",
+        "160108",
+        "160112",
+        "160113"
+      ],
+      "cobertura": {
+        "nivel": "1",
+        "referencia": "INEI CPV 2025, REDATAM base CPV2025DI (población censada por distrito)",
+        "anio_referencia": 2025,
+        "provincia": {
+          "pob17_redatam": 384550,
+          "pob17_en_capa": 299778,
+          "pob25": 425190,
+          "cobertura_cartografica": 78,
+          "captacion": 70.5,
+          "crecimiento": 10.6,
+          "peso_en_provincia": 87
+        },
+        "distritos": {
+          "160101": {
+            "pob17_redatam": 145070,
+            "pob17_en_capa": 131752,
+            "pob25": 120060,
+            "cobertura_cartografica": 90.8,
+            "captacion": 109.7,
+            "crecimiento": -17.2
+          },
+          "160108": {
+            "pob17_redatam": 69401,
+            "pob17_en_capa": 60314,
+            "pob25": 80155,
+            "cobertura_cartografica": 86.9,
+            "captacion": 75.2,
+            "crecimiento": 15.5
+          },
+          "160112": {
+            "pob17_redatam": 56462,
+            "pob17_en_capa": 45947,
+            "pob25": 74546,
+            "cobertura_cartografica": 81.4,
+            "captacion": 61.6,
+            "crecimiento": 32
+          },
+          "160113": {
+            "pob17_redatam": 113617,
+            "pob17_en_capa": 61765,
+            "pob25": 150429,
+            "cobertura_cartografica": 54.4,
+            "captacion": 41.1,
+            "crecimiento": 32.4
+          }
+        }
+      },
+      "capas": {
+        "manzanas": {
+          "perfil": "ciudades",
+          "ruta": "cartografia/manzanas_inei2017_ciudades",
+          "patron": "<ubigeo>.geojson.gz",
+          "fuente": "INEI - CENSO 2017 (GeoPeru/IDEP)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-manzanas-v1",
+          "checksums": {
+            "160101.geojson.gz": "90e1c7039a5dae3feb2cc0fa719bb6d4",
+            "160108.geojson.gz": "58e8dece5cc688534b8212a2fce8f913",
+            "160112.geojson.gz": "278ce17eaad5e7c9e7ddc06c74803ae5",
+            "160113.geojson.gz": "ffe0d9fa230962bb92f9b22c3eb9bc4d"
+          }
+        },
+        "marco": {
+          "ruta": "inei2017_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017, base de manzana (Vivienda.C2P2, Poblacio.SEXO)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-marco-v1",
+          "checksums": {
+            "inei2017_ciudades_manzanas.csv.gz": "c704e22b18bd50e502ece792015f3cda"
+          }
+        },
+        "nse": {
+          "ruta": "nse_geoperu_inei_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "GeoPeru/IDEP - INEI, Ingreso per capita del Hogar (peru_estrato_nacional_)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "nse-geoperu-inei-ciudades-manzanas-v1",
+          "checksums": {
+            "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
+        }
+      }
+    },
+    {
+      "codigo": "2001",
+      "departamento": "PIURA",
+      "provincia": "PIURA",
+      "distritos": [
+        "200101",
+        "200104",
+        "200105",
+        "200109",
+        "200110",
+        "200114",
+        "200115"
+      ],
+      "cobertura": {
+        "nivel": "2",
+        "referencia": "INEI CPV 2025, REDATAM base CPV2025DI (población censada por distrito)",
+        "anio_referencia": 2025,
+        "provincia": {
+          "pob17_redatam": 671948,
+          "pob17_en_capa": 520539,
+          "pob25": 865495,
+          "cobertura_cartografica": 77.5,
+          "captacion": 60.1,
+          "crecimiento": 28.8,
+          "peso_en_provincia": 93.7
+        },
+        "distritos": {
+          "200101": {
+            "pob17_redatam": 152832,
+            "pob17_en_capa": 136005,
+            "pob25": 153676,
+            "cobertura_cartografica": 89,
+            "captacion": 88.5,
+            "crecimiento": 0.6
+          },
+          "200104": {
+            "pob17_redatam": 158985,
+            "pob17_en_capa": 127655,
+            "pob25": 191177,
+            "cobertura_cartografica": 80.3,
+            "captacion": 66.8,
+            "crecimiento": 20.2
+          },
+          "200105": {
+            "pob17_redatam": 73644,
+            "pob17_en_capa": 58445,
+            "pob25": 87152,
+            "cobertura_cartografica": 79.4,
+            "captacion": 67.1,
+            "crecimiento": 18.3
+          },
+          "200109": {
+            "pob17_redatam": 35784,
+            "pob17_en_capa": 13803,
+            "pob25": 44422,
+            "cobertura_cartografica": 38.6,
+            "captacion": 31.1,
+            "crecimiento": 24.1
+          },
+          "200110": {
+            "pob17_redatam": 41012,
+            "pob17_en_capa": 26838,
+            "pob25": 48307,
+            "cobertura_cartografica": 65.4,
+            "captacion": 55.6,
+            "crecimiento": 17.8
+          },
+          "200114": {
+            "pob17_redatam": 43979,
+            "pob17_en_capa": 22073,
+            "pob25": 136350,
+            "cobertura_cartografica": 50.2,
+            "captacion": 16.2,
+            "crecimiento": 210
+          },
+          "200115": {
+            "pob17_redatam": 165712,
+            "pob17_en_capa": 135720,
+            "pob25": 204411,
+            "cobertura_cartografica": 81.9,
+            "captacion": 66.4,
+            "crecimiento": 23.4
+          }
+        }
+      },
+      "capas": {
+        "manzanas": {
+          "perfil": "ciudades",
+          "ruta": "cartografia/manzanas_inei2017_ciudades",
+          "patron": "<ubigeo>.geojson.gz",
+          "fuente": "INEI - CENSO 2017 (GeoPeru/IDEP)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-manzanas-v1",
+          "checksums": {
+            "200101.geojson.gz": "c94b76a88f21e877e8ff53e7faca523d",
+            "200104.geojson.gz": "921958ea008c89f82566d39ba91bb865",
+            "200105.geojson.gz": "802bcdbd9ece06b76b69c2b88db3bf41",
+            "200109.geojson.gz": "621aaa0fadc71fd8313c2887f66ef144",
+            "200110.geojson.gz": "e04780bad524c42fbfd18c225e48768b",
+            "200114.geojson.gz": "3333f1939b00264b47127f2d29e9ded0",
+            "200115.geojson.gz": "9b62e7274d1cc3216815837a98762eea"
+          }
+        },
+        "marco": {
+          "ruta": "inei2017_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017, base de manzana (Vivienda.C2P2, Poblacio.SEXO)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-marco-v1",
+          "checksums": {
+            "inei2017_ciudades_manzanas.csv.gz": "c704e22b18bd50e502ece792015f3cda"
+          }
+        },
+        "nse": {
+          "ruta": "nse_geoperu_inei_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "GeoPeru/IDEP - INEI, Ingreso per capita del Hogar (peru_estrato_nacional_)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "nse-geoperu-inei-ciudades-manzanas-v1",
+          "checksums": {
+            "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
+        }
+      }
+    },
+    {
+      "codigo": "2005",
+      "departamento": "PIURA",
+      "provincia": "PAITA",
+      "distritos": [
+        "200501"
+      ],
+      "cobertura": {
+        "nivel": "2",
+        "referencia": "INEI CPV 2025, REDATAM base CPV2025DI (población censada por distrito)",
+        "anio_referencia": 2025,
+        "provincia": {
+          "pob17_redatam": 87974,
+          "pob17_en_capa": 62934,
+          "pob25": 104854,
+          "cobertura_cartografica": 71.5,
+          "captacion": 60,
+          "crecimiento": 19.2,
+          "peso_en_provincia": 69.2
+        },
+        "distritos": {
+          "200501": {
+            "pob17_redatam": 87974,
+            "pob17_en_capa": 62934,
+            "pob25": 104854,
+            "cobertura_cartografica": 71.5,
+            "captacion": 60,
+            "crecimiento": 19.2
+          }
+        }
+      },
+      "capas": {
+        "manzanas": {
+          "perfil": "ciudades",
+          "ruta": "cartografia/manzanas_inei2017_ciudades",
+          "patron": "<ubigeo>.geojson.gz",
+          "fuente": "INEI - CENSO 2017 (GeoPeru/IDEP)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-manzanas-v1",
+          "checksums": {
+            "200501.geojson.gz": "ae0a997ea569659d53450613a4b1fafc"
+          }
+        },
+        "marco": {
+          "ruta": "inei2017_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017, base de manzana (Vivienda.C2P2, Poblacio.SEXO)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-marco-v1",
+          "checksums": {
+            "inei2017_ciudades_manzanas.csv.gz": "c704e22b18bd50e502ece792015f3cda"
+          }
+        },
+        "nse": {
+          "ruta": "nse_geoperu_inei_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "GeoPeru/IDEP - INEI, Ingreso per capita del Hogar (peru_estrato_nacional_)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "nse-geoperu-inei-ciudades-manzanas-v1",
+          "checksums": {
+            "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
+        }
+      }
+    },
+    {
+      "codigo": "2006",
+      "departamento": "PIURA",
+      "provincia": "SULLANA",
+      "distritos": [
+        "200601",
+        "200602",
+        "200606"
+      ],
+      "cobertura": {
+        "nivel": "2",
+        "referencia": "INEI CPV 2025, REDATAM base CPV2025DI (población censada por distrito)",
+        "anio_referencia": 2025,
+        "provincia": {
+          "pob17_redatam": 208330,
+          "pob17_en_capa": 168931,
+          "pob25": 241967,
+          "cobertura_cartografica": 81.1,
+          "captacion": 69.8,
+          "crecimiento": 16.1,
+          "peso_en_provincia": 70
+        },
+        "distritos": {
+          "200601": {
+            "pob17_redatam": 161974,
+            "pob17_en_capa": 133382,
+            "pob25": 193088,
+            "cobertura_cartografica": 82.3,
+            "captacion": 69.1,
+            "crecimiento": 19.2
+          },
+          "200602": {
+            "pob17_redatam": 37530,
+            "pob17_en_capa": 34418,
+            "pob25": 37864,
+            "cobertura_cartografica": 91.7,
+            "captacion": 90.9,
+            "crecimiento": 0.9
+          },
+          "200606": {
+            "pob17_redatam": 8826,
+            "pob17_en_capa": 1131,
+            "pob25": 11015,
+            "cobertura_cartografica": 12.8,
+            "captacion": 10.3,
+            "crecimiento": 24.8
+          }
+        }
+      },
+      "capas": {
+        "manzanas": {
+          "perfil": "ciudades",
+          "ruta": "cartografia/manzanas_inei2017_ciudades",
+          "patron": "<ubigeo>.geojson.gz",
+          "fuente": "INEI - CENSO 2017 (GeoPeru/IDEP)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-manzanas-v1",
+          "checksums": {
+            "200601.geojson.gz": "cf7dd3ff691db9ca63964db25116c578",
+            "200602.geojson.gz": "0a5b83d822bd85b60ef6e2ab5f259688",
+            "200606.geojson.gz": "732551c600af0be1245fd75131b4773d"
+          }
+        },
+        "marco": {
+          "ruta": "inei2017_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017, base de manzana (Vivienda.C2P2, Poblacio.SEXO)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-marco-v1",
+          "checksums": {
+            "inei2017_ciudades_manzanas.csv.gz": "c704e22b18bd50e502ece792015f3cda"
+          }
+        },
+        "nse": {
+          "ruta": "nse_geoperu_inei_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "GeoPeru/IDEP - INEI, Ingreso per capita del Hogar (peru_estrato_nacional_)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "nse-geoperu-inei-ciudades-manzanas-v1",
+          "checksums": {
+            "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
+        }
+      }
+    },
+    {
+      "codigo": "2101",
+      "departamento": "PUNO",
+      "provincia": "PUNO",
+      "distritos": [
+        "210101"
+      ],
+      "cobertura": {
+        "nivel": "2",
+        "referencia": "INEI CPV 2025, REDATAM base CPV2025DI (población censada por distrito)",
+        "anio_referencia": 2025,
+        "provincia": {
+          "pob17_redatam": 129922,
+          "pob17_en_capa": 100681,
+          "pob25": 119214,
+          "cobertura_cartografica": 77.5,
+          "captacion": 84.5,
+          "crecimiento": -8.2,
+          "peso_en_provincia": 57.3
+        },
+        "distritos": {
+          "210101": {
+            "pob17_redatam": 129922,
+            "pob17_en_capa": 100681,
+            "pob25": 119214,
+            "cobertura_cartografica": 77.5,
+            "captacion": 84.5,
+            "crecimiento": -8.2
+          }
+        }
+      },
+      "capas": {
+        "manzanas": {
+          "perfil": "ciudades",
+          "ruta": "cartografia/manzanas_inei2017_ciudades",
+          "patron": "<ubigeo>.geojson.gz",
+          "fuente": "INEI - CENSO 2017 (GeoPeru/IDEP)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-manzanas-v1",
+          "checksums": {
+            "210101.geojson.gz": "b62baf5141b630e420ec30e3d63c85ab"
+          }
+        },
+        "marco": {
+          "ruta": "inei2017_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017, base de manzana (Vivienda.C2P2, Poblacio.SEXO)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-marco-v1",
+          "checksums": {
+            "inei2017_ciudades_manzanas.csv.gz": "c704e22b18bd50e502ece792015f3cda"
+          }
+        },
+        "nse": {
+          "ruta": "nse_geoperu_inei_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "GeoPeru/IDEP - INEI, Ingreso per capita del Hogar (peru_estrato_nacional_)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "nse-geoperu-inei-ciudades-manzanas-v1",
+          "checksums": {
+            "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
+        }
+      }
+    },
+    {
+      "codigo": "2111",
+      "departamento": "PUNO",
+      "provincia": "SAN ROMAN",
+      "distritos": [
+        "211101"
+      ],
+      "cobertura": {
+        "nivel": "2",
+        "referencia": "INEI CPV 2025, REDATAM base CPV2025DI (población censada por distrito)",
+        "anio_referencia": 2025,
+        "provincia": {
+          "pob17_redatam": 217743,
+          "pob17_en_capa": 182070,
+          "pob25": 209115,
+          "cobertura_cartografica": 83.6,
+          "captacion": 87.1,
+          "crecimiento": -4,
+          "peso_en_provincia": 70
+        },
+        "distritos": {
+          "211101": {
+            "pob17_redatam": 217743,
+            "pob17_en_capa": 182070,
+            "pob25": 209115,
+            "cobertura_cartografica": 83.6,
+            "captacion": 87.1,
+            "crecimiento": -4
+          }
+        }
+      },
+      "capas": {
+        "manzanas": {
+          "perfil": "ciudades",
+          "ruta": "cartografia/manzanas_inei2017_ciudades",
+          "patron": "<ubigeo>.geojson.gz",
+          "fuente": "INEI - CENSO 2017 (GeoPeru/IDEP)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-manzanas-v1",
+          "checksums": {
+            "211101.geojson.gz": "3dca81adf270d5cd990d50912851ffb8"
+          }
+        },
+        "marco": {
+          "ruta": "inei2017_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017, base de manzana (Vivienda.C2P2, Poblacio.SEXO)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-marco-v1",
+          "checksums": {
+            "inei2017_ciudades_manzanas.csv.gz": "c704e22b18bd50e502ece792015f3cda"
+          }
+        },
+        "nse": {
+          "ruta": "nse_geoperu_inei_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "GeoPeru/IDEP - INEI, Ingreso per capita del Hogar (peru_estrato_nacional_)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "nse-geoperu-inei-ciudades-manzanas-v1",
+          "checksums": {
+            "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
+        }
+      }
+    },
+    {
+      "codigo": "2209",
+      "departamento": "SAN MARTIN",
+      "provincia": "SAN MARTIN",
+      "distritos": [
+        "220901",
+        "220909",
+        "220910"
+      ],
+      "cobertura": {
+        "nivel": "2",
+        "referencia": "INEI CPV 2025, REDATAM base CPV2025DI (población censada por distrito)",
+        "anio_referencia": 2025,
+        "provincia": {
+          "pob17_redatam": 145892,
+          "pob17_en_capa": 123381,
+          "pob25": 179063,
+          "cobertura_cartografica": 84.6,
+          "captacion": 68.9,
+          "crecimiento": 22.7,
+          "peso_en_provincia": 78.8
+        },
+        "distritos": {
+          "220901": {
+            "pob17_redatam": 75530,
+            "pob17_en_capa": 67075,
+            "pob25": 78158,
+            "cobertura_cartografica": 88.8,
+            "captacion": 85.8,
+            "crecimiento": 3.5
+          },
+          "220909": {
+            "pob17_redatam": 39654,
+            "pob17_en_capa": 30425,
+            "pob25": 59552,
+            "cobertura_cartografica": 76.7,
+            "captacion": 51.1,
+            "crecimiento": 50.2
+          },
+          "220910": {
+            "pob17_redatam": 30708,
+            "pob17_en_capa": 25881,
+            "pob25": 41353,
+            "cobertura_cartografica": 84.3,
+            "captacion": 62.6,
+            "crecimiento": 34.7
+          }
+        }
+      },
+      "capas": {
+        "manzanas": {
+          "perfil": "ciudades",
+          "ruta": "cartografia/manzanas_inei2017_ciudades",
+          "patron": "<ubigeo>.geojson.gz",
+          "fuente": "INEI - CENSO 2017 (GeoPeru/IDEP)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-manzanas-v1",
+          "checksums": {
+            "220901.geojson.gz": "99556cedbc33e09b059b03f82d6ce14d",
+            "220909.geojson.gz": "bd95451c503cc7863af7c4d1def9077e",
+            "220910.geojson.gz": "4e7adccebc5326651a40a779aae52103"
+          }
+        },
+        "marco": {
+          "ruta": "inei2017_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017, base de manzana (Vivienda.C2P2, Poblacio.SEXO)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-marco-v1",
+          "checksums": {
+            "inei2017_ciudades_manzanas.csv.gz": "c704e22b18bd50e502ece792015f3cda"
+          }
+        },
+        "nse": {
+          "ruta": "nse_geoperu_inei_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "GeoPeru/IDEP - INEI, Ingreso per capita del Hogar (peru_estrato_nacional_)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "nse-geoperu-inei-ciudades-manzanas-v1",
+          "checksums": {
+            "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
+        }
+      }
+    },
+    {
+      "codigo": "2301",
+      "departamento": "TACNA",
+      "provincia": "TACNA",
+      "distritos": [
+        "230101",
+        "230102",
+        "230104",
+        "230108",
+        "230110"
+      ],
+      "cobertura": {
+        "nivel": "1",
+        "referencia": "INEI CPV 2025, REDATAM base CPV2025DI (población censada por distrito)",
+        "anio_referencia": 2025,
+        "provincia": {
+          "pob17_redatam": 286240,
+          "pob17_en_capa": 235584,
+          "pob25": 311190,
+          "cobertura_cartografica": 82.3,
+          "captacion": 75.7,
+          "crecimiento": 8.7,
+          "peso_en_provincia": 90.6
+        },
+        "distritos": {
+          "230101": {
+            "pob17_redatam": 92383,
+            "pob17_en_capa": 74238,
+            "pob25": 110999,
+            "cobertura_cartografica": 80.4,
+            "captacion": 66.9,
+            "crecimiento": 20.2
+          },
+          "230102": {
+            "pob17_redatam": 33958,
+            "pob17_en_capa": 28783,
+            "pob25": 28890,
+            "cobertura_cartografica": 84.8,
+            "captacion": 99.6,
+            "crecimiento": -14.9
+          },
+          "230104": {
+            "pob17_redatam": 31777,
+            "pob17_en_capa": 28767,
+            "pob25": 31674,
+            "cobertura_cartografica": 90.5,
+            "captacion": 90.8,
+            "crecimiento": -0.3
+          },
+          "230108": {
+            "pob17_redatam": 18007,
+            "pob17_en_capa": 13148,
+            "pob25": 22877,
+            "cobertura_cartografica": 73,
+            "captacion": 57.5,
+            "crecimiento": 27
+          },
+          "230110": {
+            "pob17_redatam": 110115,
+            "pob17_en_capa": 90648,
+            "pob25": 116750,
+            "cobertura_cartografica": 82.3,
+            "captacion": 77.6,
+            "crecimiento": 6
+          }
+        }
+      },
+      "capas": {
+        "manzanas": {
+          "perfil": "ciudades",
+          "ruta": "cartografia/manzanas_inei2017_ciudades",
+          "patron": "<ubigeo>.geojson.gz",
+          "fuente": "INEI - CENSO 2017 (GeoPeru/IDEP)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-manzanas-v1",
+          "checksums": {
+            "230101.geojson.gz": "bd69774e8e43b71cc71de566b83ab433",
+            "230102.geojson.gz": "cbf0fc21950b941f70df2da0e81512cf",
+            "230104.geojson.gz": "010fd61af9e0bf0699fc0c499049903a",
+            "230108.geojson.gz": "fa12988232da163f39baf664b5d671ab",
+            "230110.geojson.gz": "c9bb7d250df8b4ecc0894663032eef28"
+          }
+        },
+        "marco": {
+          "ruta": "inei2017_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017, base de manzana (Vivienda.C2P2, Poblacio.SEXO)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-marco-v1",
+          "checksums": {
+            "inei2017_ciudades_manzanas.csv.gz": "c704e22b18bd50e502ece792015f3cda"
+          }
+        },
+        "nse": {
+          "ruta": "nse_geoperu_inei_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "GeoPeru/IDEP - INEI, Ingreso per capita del Hogar (peru_estrato_nacional_)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "nse-geoperu-inei-ciudades-manzanas-v1",
+          "checksums": {
+            "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
+        }
+      }
+    },
+    {
+      "codigo": "2401",
+      "departamento": "TUMBES",
+      "provincia": "TUMBES",
+      "distritos": [
+        "240101"
+      ],
+      "cobertura": {
+        "nivel": "2",
+        "referencia": "INEI CPV 2025, REDATAM base CPV2025DI (población censada por distrito)",
+        "anio_referencia": 2025,
+        "provincia": {
+          "pob17_redatam": 100946,
+          "pob17_en_capa": 81730,
+          "pob25": 111473,
+          "cobertura_cartografica": 81,
+          "captacion": 73.3,
+          "crecimiento": 10.4,
+          "peso_en_provincia": 65.1
+        },
+        "distritos": {
+          "240101": {
+            "pob17_redatam": 100946,
+            "pob17_en_capa": 81730,
+            "pob25": 111473,
+            "cobertura_cartografica": 81,
+            "captacion": 73.3,
+            "crecimiento": 10.4
+          }
+        }
+      },
+      "capas": {
+        "manzanas": {
+          "perfil": "ciudades",
+          "ruta": "cartografia/manzanas_inei2017_ciudades",
+          "patron": "<ubigeo>.geojson.gz",
+          "fuente": "INEI - CENSO 2017 (GeoPeru/IDEP)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-manzanas-v1",
+          "checksums": {
+            "240101.geojson.gz": "e8882fbea30f550fd8030f2a7f815e82"
+          }
+        },
+        "marco": {
+          "ruta": "inei2017_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017, base de manzana (Vivienda.C2P2, Poblacio.SEXO)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-marco-v1",
+          "checksums": {
+            "inei2017_ciudades_manzanas.csv.gz": "c704e22b18bd50e502ece792015f3cda"
+          }
+        },
+        "nse": {
+          "ruta": "nse_geoperu_inei_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "GeoPeru/IDEP - INEI, Ingreso per capita del Hogar (peru_estrato_nacional_)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "nse-geoperu-inei-ciudades-manzanas-v1",
+          "checksums": {
+            "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
+        }
+      }
+    },
+    {
+      "codigo": "2501",
+      "departamento": "UCAYALI",
+      "provincia": "CORONEL PORTILLO",
+      "distritos": [
+        "250101",
+        "250105",
+        "250107"
+      ],
+      "cobertura": {
+        "nivel": "2",
+        "referencia": "INEI CPV 2025, REDATAM base CPV2025DI (población censada por distrito)",
+        "anio_referencia": 2025,
+        "provincia": {
+          "pob17_redatam": 328831,
+          "pob17_en_capa": 246331,
+          "pob25": 384403,
+          "cobertura_cartografica": 74.9,
+          "captacion": 64.1,
+          "crecimiento": 16.9,
+          "peso_en_provincia": 86.8
+        },
+        "distritos": {
+          "250101": {
+            "pob17_redatam": 144207,
+            "pob17_en_capa": 112485,
+            "pob25": 156665,
+            "cobertura_cartografica": 78,
+            "captacion": 71.8,
+            "crecimiento": 8.6
+          },
+          "250105": {
+            "pob17_redatam": 99084,
+            "pob17_en_capa": 65968,
+            "pob25": 126594,
+            "cobertura_cartografica": 66.6,
+            "captacion": 52.1,
+            "crecimiento": 27.8
+          },
+          "250107": {
+            "pob17_redatam": 85540,
+            "pob17_en_capa": 67878,
+            "pob25": 101144,
+            "cobertura_cartografica": 79.4,
+            "captacion": 67.1,
+            "crecimiento": 18.2
+          }
+        }
+      },
+      "capas": {
+        "manzanas": {
+          "perfil": "ciudades",
+          "ruta": "cartografia/manzanas_inei2017_ciudades",
+          "patron": "<ubigeo>.geojson.gz",
+          "fuente": "INEI - CENSO 2017 (GeoPeru/IDEP)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-manzanas-v1",
+          "checksums": {
+            "250101.geojson.gz": "38465a02e3f25c61b9b0e9c13281449c",
+            "250105.geojson.gz": "7da3fc0c7d0d3ce349b74869388a54dc",
+            "250107.geojson.gz": "0018ddb1ecbe6e90dd0080652640334f"
+          }
+        },
+        "marco": {
+          "ruta": "inei2017_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017, base de manzana (Vivienda.C2P2, Poblacio.SEXO)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "inei2017-ciudades-marco-v1",
+          "checksums": {
+            "inei2017_ciudades_manzanas.csv.gz": "c704e22b18bd50e502ece792015f3cda"
+          }
+        },
+        "nse": {
+          "ruta": "nse_geoperu_inei_ciudades_manzanas.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "GeoPeru/IDEP - INEI, Ingreso per capita del Hogar (peru_estrato_nacional_)",
+          "anio_dato": 2017,
+          "descargado": "2026-02-19",
+          "version": "nse-geoperu-inei-ciudades-manzanas-v1",
+          "checksums": {
+            "nse_geoperu_inei_ciudades_manzanas.csv.gz": "65f7da26c5e97d4f530e4232f9a5396b"
+          }
+        },
+        "edad": {
+          "ruta": "inei2017_ciudades_edad_simple_distrito.csv.gz",
+          "filtro": "ubigeo",
+          "fuente": "INEI REDATAM CPV 2017 (Poblacio.C5P41 x Poblacio.SEXO, edad simple por distrito)",
+          "anio_dato": 2017,
+          "descargado": "2026-10-29",
+          "version": "inei2017-ciudades-edad-simple-v1",
+          "checksums": {
+            "inei2017_ciudades_edad_simple_distrito.csv.gz": "5cc6293835d1b2eb8844fdc3d5b03787"
+          }
+        }
+      }
+    }
+  ]
+}

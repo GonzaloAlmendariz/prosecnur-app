@@ -32,8 +32,8 @@ describe("validarLogicaExterna", () => {
 describe("rótulos", () => {
   test("con y sin programa", () => {
     const info = { herramienta: "SPSS", nota: "", declaradaEn: "" };
-    expect(rotuloLogicaExterna(info)).toBe("Lógica: fuera de Prosecnur · SPSS");
-    expect(detalleLogicaExterna(info)).toBe("Fuera de Prosecnur · SPSS");
+    expect(rotuloLogicaExterna(info)).toBe("Lógica: fuera de Prosecnur (SPSS)");
+    expect(detalleLogicaExterna(info)).toBe("Fuera de Prosecnur (SPSS)");
     expect(rotuloLogicaExterna({ ...info, herramienta: "" })).toBe("Lógica: fuera de Prosecnur");
   });
 });

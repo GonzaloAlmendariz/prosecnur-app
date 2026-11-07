@@ -29,7 +29,7 @@ describe("si el Sheets del operativo está al día", () => {
     );
     expect(e.estado).toBe("atrasado");
     expect(e.texto).toContain("se publicó con el corte de las");
-    expect(e.texto).toContain("Vuelve a traer respuestas");
+    expect(e.texto).toContain("Pulsa «Actualizar»");
   });
 
   it("sin corte en la app no se acusa de atraso a la hoja", () => {

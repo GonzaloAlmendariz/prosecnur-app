@@ -68,7 +68,7 @@ describe("lectura de una cuota", () => {
     const r = resumenCuota(ESTADO.cuotas[0]);
     expect(r.efectivas).toBe(481);
     expect(r.meta).toBe(812);
-    expect(sinSeparador(r.avanceTexto)).toBe("59|2 % · 481 de 812");
+    expect(sinSeparador(r.avanceTexto)).toBe("59|2 %, 481 de 812");
     expect(r.cumplidas).toBe("0 de 3 categorías cumplidas");
     expect(sinSeparador(r.cobertura)).toBe("cobertura 31|2 %");
     expect(r.tono).toBe("en_curso");
@@ -118,8 +118,8 @@ describe("lectura de una cuota", () => {
   });
 
   it("porcentaje siempre con su frecuencia y su base", () => {
-    expect(sinSeparador(conBase(350, 1939))).toBe("18|1 % · 350 de 1|939");
-    expect(conBase(0, 0)).toBe("— · 0 de 0");
+    expect(sinSeparador(conBase(350, 1939))).toBe("18|1 %, 350 de 1|939");
+    expect(conBase(0, 0)).toBe("—, 0 de 0");
   });
 });
 

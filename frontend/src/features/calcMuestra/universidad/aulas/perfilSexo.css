@@ -14,7 +14,7 @@
   min-width: 0;
 }
 .cmv2-psx-nombre {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -45,7 +45,7 @@
   opacity: 0.55;
 }
 .cmv2-psx-cifras {
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-muted);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;

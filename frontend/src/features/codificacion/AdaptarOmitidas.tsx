@@ -33,7 +33,7 @@ export function AdaptarOmitidas({
       <div style={{ fontWeight: 600, marginBottom: 4 }}>
         {preguntas.length} {preguntas.length === 1 ? "pregunta quedará" : "preguntas quedarán"} fuera de la adaptación
       </div>
-      <div style={{ fontSize: 12 }}>Tienen grupos codificados que todavía no se pueden aplicar:</div>
+      <div style={{ fontSize: "var(--pulso-type-body-size)" }}>Tienen grupos codificados que todavía no se pueden aplicar:</div>
       <ul className="pulso-codif-omitidas">
         {preguntas.map((p) => (
           <OmitidaFila key={p.parent} p={p} onCambio={onCambio} onIrAPreguntas={onIrAPreguntas} />

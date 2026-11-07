@@ -30,8 +30,6 @@ function pintar(extra: Partial<Parameters<typeof SurveyOutline>[0]> = {}) {
       onSelect={nada}
       onMoveUp={nada}
       onMoveDown={nada}
-      canMoveUp={false}
-      canMoveDown={false}
       onApplyMove={nada}
       {...extra}
     />,
@@ -53,12 +51,12 @@ describe("SurveyOutline", () => {
     expect(html).toMatch(/class="xfe-seccion__hijos"[^>]*role="group"/);
   });
 
-  test("la cabecera de la sección se elige, el chevrón pliega y la condición se marca", () => {
+  test("la cabecera de la sección pliega sin chevrón, dice cómo abrir la ficha y marca la condición", () => {
+    // E20, decisión de Gonzalo (2026-11-06): «Plegar con el título». No hay chevrón; la cabecera lleva el estado.
     expect(html).toMatch(/data-nav="1"/);
-    expect(html).toContain('aria-label="Plegar «Educación»"');
-    // El estado plegado va en lo que recibe el foco, no en el chevrón fuera del recorrido con Tab.
+    expect(html).not.toContain("xfe-chev");
     expect(html).toMatch(/aria-expanded="true"[^>]*data-nav="1"/);
-    expect(html).not.toMatch(/class="xfe-chev"[^>]*aria-expanded/);
+    expect(html).toContain("Clic: plegar. Doble clic: abrir la ficha.");
     expect(html).toContain('aria-label="La sección tiene condición"');
   });
 

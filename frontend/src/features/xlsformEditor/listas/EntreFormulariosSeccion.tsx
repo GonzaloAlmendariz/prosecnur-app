@@ -23,6 +23,8 @@ import {
   type RenombreSugerido,
 } from "./listasEntreFormularios";
 import type { EstadoHermanos } from "./useFormulariosHermanos";
+import { EstadoVacio } from "../../../components/EstadoVacio";
+import { LoadingBlock } from "../../../components/States";
 
 export const TEXTO_ENTRE_FORMULARIOS =
   "Si una lista es igual en otros formularios, dale el mismo nombre: así las mismas preguntas se analizan juntas entre públicos.";
@@ -71,10 +73,7 @@ export function EntreFormulariosSeccion({
       {error ? <p className="pulso-xf-listas-error" role="alert">{error}</p> : null}
 
       {hermanos.estado === "cargando" ? (
-        <div className="pulso-xf-listas-vacio" data-qa-geometry-capacity="owned">
-          <Loader2 size={18} aria-hidden="true" className="pulso-xf-listas-girando" />
-          <p>Leyendo los otros formularios del proyecto…</p>
-        </div>
+        <LoadingBlock variant="inline" label="Leyendo los otros formularios del proyecto…" />
       ) : null}
 
       {hermanos.estado === "listo" && hermanos.fallidos.length > 0 ? (
@@ -84,15 +83,13 @@ export function EntreFormulariosSeccion({
       ) : null}
 
       {comparacion && coincidencias.length === 0 ? (
-        <div className="pulso-xf-listas-vacio" data-qa-geometry-capacity="owned">
-          <CheckCheck size={18} aria-hidden="true" />
-          <p>
-            <strong>Ninguna lista es idéntica a las de los otros formularios.</strong>{" "}
-            {hermanos.estado === "listo" && hermanos.hermanos.length > 0
-              ? `Se comparó con ${hermanos.hermanos.map((h) => h.nombre).join(", ")}.`
-              : null}
-          </p>
-        </div>
+        <EstadoVacio
+          icono={<CheckCheck size={18} />}
+          titulo="Ninguna lista es idéntica a las de los otros formularios"
+          descripcion={hermanos.estado === "listo" && hermanos.hermanos.length > 0
+            ? `Se comparó con ${hermanos.hermanos.map((h) => h.nombre).join(", ")}.`
+            : undefined}
+        />
       ) : null}
 
       {coincidencias.length > 0 ? (
@@ -148,7 +145,7 @@ function CoincidenciaFila({
       <div className="pulso-xf-listas-entre-texto">
         <code className="pulso-xf-listas-nombre">{c.lista}</code>
         <p>
-          {describirDondeSeRepite(c.copias)} · {describirNombresAlla(c.copias)}
+          {describirDondeSeRepite(c.copias)}; {describirNombresAlla(c.copias)}
           {c.motivo ? <span className="pulso-xf-listas-entre-motivo"> {c.motivo}</span> : null}
         </p>
       </div>

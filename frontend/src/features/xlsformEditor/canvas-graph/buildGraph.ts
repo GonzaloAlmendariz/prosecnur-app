@@ -176,6 +176,9 @@ export type LogicGraph = {
   /** Indexa todos los nodos del árbol — incluso los anidados — para
    *  lookup O(1) en el render. */
   byId: Map<string, GraphNode>;
+  /** Cálculos que no entran en ninguna condición de apertura: no se dibujan (serían tarjetas sueltas sin conexión;
+   *  un conjoint trae 246) y se cuentan para decirlo en pantalla. Viven en la pestaña Cálculos. */
+  calculosOmitidos: number;
 };
 
 /**
@@ -197,8 +200,20 @@ export function buildLogicGraph(
   // El título que se lee en el Mapa: `${x}` como «[Etiqueta corta]» y `<br>` como espacio, nunca crudos (E11b).
   const etiquetas = new Map(structure.outline.map((n) => [n.name, n.label] as const));
   const lector = { etiquetaDe: (n: string) => etiquetas.get(n) };
+  // Lo que citan las condiciones de apertura: un cálculo que nadie cita y que no tiene condición propia no es lógica
+  // de apertura y no se dibuja (E12 editor-conjoint).
+  const citadosEnCondiciones = new Set<string>();
+  for (const node of structure.outline) {
+    const ast = node.relevant.trim() ? parseExpression(node.relevant) : null;
+    if (ast) for (const r of collectRefs(ast)) citadosEnCondiciones.add(r);
+  }
+  let calculosOmitidos = 0;
   for (const node of structure.outline) {
     if (!node.name) continue;
+    if (node.kind === "calculate" && !node.relevant.trim() && !citadosEnCondiciones.has(node.name)) {
+      calculosOmitidos += 1;
+      continue;
+    }
     const isSection = node.kind === "section" || node.kind === "repeat";
     const id = `q:${node.rowIndex}`;
     const graphNode: GraphNode = {
@@ -320,7 +335,7 @@ export function buildLogicGraph(
     if (node.kind === "section") {
       const count = countQuestionsDeep(node);
       const noun = count === 1 ? "pregunta" : "preguntas";
-      node.subtitle = `${node.name} · ${count} ${noun}`;
+      node.subtitle = `${node.name} (${count} ${noun})`;
     }
   }
 
@@ -366,7 +381,7 @@ export function buildLogicGraph(
   };
   for (const root of rootNodes) inheritFrom([], root);
 
-  return { rootNodes, edges, byId };
+  return { rootNodes, edges, byId, calculosOmitidos };
 }
 
 /** Pinta recursivamente el `sectionColor` de los hijos de una sección. */

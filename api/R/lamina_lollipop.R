@@ -34,8 +34,10 @@
     yc <- yt + 0.35 + (i - 0.5) * fl; xv <- xs + ws * pc[i] / esc
     # Las que el analista resalta van en coral (como la ruta anterior); las residuales, en gris.
     # Con paleta del usuario (ADR 0097) cada punto lleva el color de su opción; el resaltado sigue en coral.
-    col <- if (lab[i] %in% (espec$resaltar %||% character(0))) .std_color("coral") else if (!is.null(cols_u)) cols_u[i] else
-      if (isTRUE(espec[["residuales_gris"]]) && grepl(.CATEGORIAS_RESIDUALES, lab[i], ignore.case = TRUE)) gris else azul
+    # `residuales_gris` gana sobre la paleta de la lista: es una decisión explícita (CCSS 2026-11-04).
+    col <- if (lab[i] %in% (espec$resaltar %||% character(0))) .std_color("coral") else
+      if (isTRUE(espec[["residuales_gris"]]) && grepl(.CATEGORIAS_RESIDUALES, lab[i], ignore.case = TRUE)) gris else
+      if (!is.null(cols_u)) cols_u[i] else azul
     hl <- .lam_alto_txt(lab[i], wl, pt)
     .lam_txt(lz, lab[i], ml, yc - hl / 2, wl, hl, pt, azul, align = "right", nombre = "lollipop:rotulo")
     # L10-8: el tallo es una línea de 0.024 in, no un rectángulo con contorno: el contorno se ajusta al píxel y el relleno

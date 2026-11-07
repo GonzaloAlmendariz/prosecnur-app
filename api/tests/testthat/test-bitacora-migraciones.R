@@ -225,3 +225,37 @@ test_that("un .pulso viejo con fase Diseño abre migrado y sin fases inválidas"
   expect_true(all(fases %in% c(BITACORA_FASES, "")))
   expect_false("diseno" %in% fases)
 })
+
+test_that("los nodos del lienzo que apuntaban a Calendario o Lienzo siguen resolviendo (ADR 0122)", {
+  # Calendario y Lienzo pasaron a ser pestañas del Planner: sin reescribir la
+  # clave, el nodo guardado se leería como huérfano y ofrecería volverse nota.
+  canvas <- list(schema = "bitacora_canvas_v1", canvases = list(list(id = "c1", nodes = list(
+    list(id = "n1", type = "referencia", ref = list(target_type = "modulo", target_id = "diseno-estudio/calendario")),
+    list(id = "n2", type = "referencia", ref = list(target_type = "modulo", target_id = "diseno-estudio/calendario/semana")),
+    list(id = "n3", type = "referencia", ref = list(target_type = "modulo", target_id = "diseno-estudio/canvas")),
+    list(id = "n4", type = "referencia", ref = list(target_type = "modulo", target_id = "monitoreo::territorial/avance")),
+    list(id = "n5", type = "referencia", ref = list(target_type = "tarea", target_id = "diseno-estudio/canvas"))
+  ))))
+  s <- .bitacora_migrar_estado(list(bitacora_canvas = canvas))
+  destinos <- vapply(s$bitacora_canvas$canvases[[1]]$nodes, function(n) n$ref$target_id, character(1))
+  expect_equal(destinos, c("diseno-estudio/cronograma/mes", "diseno-estudio/cronograma/semana",
+                           "diseno-estudio/camino/lienzo", "monitoreo::territorial/avance",
+                           "diseno-estudio/canvas"))
+  # Idempotente: migrar lo migrado no cambia nada.
+  expect_identical(.bitacora_migrar_estado(s), s)
+})
+
+test_that("los nodos que apuntaban a la Bitácora o a secciones retiradas siguen resolviendo (ADR 0123)", {
+  canvas <- list(schema = "bitacora_canvas_v1", canvases = list(list(id = "c1", nodes = lapply(seq_along(.d <- c(
+    "diseno-estudio/bitacora", "diseno-estudio/bitacora/registro", "diseno-estudio/bitacora/lienzo",
+    "diseno-estudio/equipo", "diseno-estudio/codigos/barrido", "diseno-estudio/estudio/insumos",
+    "diseno-estudio/muestra", "diseno-estudio/camino")), function(i) {
+    list(id = paste0("n", i), type = "referencia", ref = list(target_type = "modulo", target_id = .d[[i]]))
+  }))))
+  s <- .bitacora_migrar_estado(list(bitacora_canvas = canvas))
+  destinos <- vapply(s$bitacora_canvas$canvases[[1]]$nodes, function(n) n$ref$target_id, character(1))
+  expect_equal(destinos, c("diseno-estudio/cronograma/registro", "diseno-estudio/cronograma/registro",
+                           "diseno-estudio/camino/lienzo", "diseno-estudio/estudio", "diseno-estudio/estudio",
+                           "diseno-estudio/estudio", "diseno-estudio/estudio", "diseno-estudio/camino/lienzo"))
+  expect_identical(.bitacora_migrar_estado(s), s)
+})

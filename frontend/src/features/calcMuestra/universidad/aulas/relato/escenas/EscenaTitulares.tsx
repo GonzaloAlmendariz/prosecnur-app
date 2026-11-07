@@ -40,7 +40,7 @@ export function EscenaTitulares({ escena }: { escena: RelatoEscenaTitulares }) {
                   <span
                     className="cmv2-relato-cadena-titular"
                     style={{ ["--relato-escala" as string]: escala.toFixed(2) } as CSSProperties}
-                    title={`${slot.titularCode} · ${slot.facultad}${slot.elegibles != null ? ` · ${fmtInt(slot.elegibles)} elegibles` : ""}`}
+                    title={`${slot.titularCode}, ${slot.facultad}${slot.elegibles != null ? `, ${fmtInt(slot.elegibles)} elegibles` : ""}`}
                   >
                     {slot.titularCode}
                   </span>
@@ -48,7 +48,7 @@ export function EscenaTitulares({ escena }: { escena: RelatoEscenaTitulares }) {
                     <span
                       key={`${slot.slot}-${reserva.code}-${reserva.orden}`}
                       className="cmv2-relato-cadena-reserva"
-                      title={`${reserva.code} · orden ${fmtInt(reserva.orden)}${reserva.estado ? ` · ${reserva.estado.replace(/_/g, " ")}` : ""}`}
+                      title={`${reserva.code}, orden ${fmtInt(reserva.orden)}${reserva.estado ? `, ${reserva.estado.replace(/_/g, " ")}` : ""}`}
                     >
                       {reserva.code}
                     </span>

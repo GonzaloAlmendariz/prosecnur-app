@@ -94,7 +94,8 @@
 #' Pie de la lámina: la prueba y la base (la de la lámina o, si no hay, la de cada público)
 #' @keywords internal
 .lam_significancia_pie <- function(espec, base = "") {
-  prueba <- sprintf("Prueba z entre cada par de públicos, con corrección de Bonferroni (α = %s)", format(espec$alpha %||% 0.05, nsmall = 2))
+  prueba <- sprintf("Prueba z entre cada par de públicos, con corrección de Bonferroni (α = %s), bajo el supuesto de muestreo aleatorio simple", format(espec$alpha %||% 0.05, nsmall = 2))
+  if (isTRUE(espec$excluidos)) prueba <- sprintf("%s. Los públicos con menos de %d casos no se comparan", prueba, as.integer(espec$base_minima %||% 30L))
   if (!nzchar(trimws(base %||% ""))) {
     nmax <- apply(espec$n, 2, max)
     bases <- paste(sprintf("%s %s", format(as.integer(nmax), big.mark = ","), tolower(espec$publicos)), collapse = ", ")

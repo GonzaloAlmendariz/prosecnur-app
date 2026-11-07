@@ -12,6 +12,8 @@
 //   window.prosecnurApi.pushRecentProject(path)
 //   window.prosecnurApi.onMenuCommand(callback)  // recibe 'project:save' etc.
 //   window.prosecnurApi.onAppCloseRequest(callback)
+//   window.prosecnurApi.mostrarEnCarpeta(ruta) / abrirArchivo(ruta)
+//   window.prosecnurApi.onDescargaTerminada(callback)
 //
 // Cada función es un wrapper de `ipcRenderer.invoke('handler', args)` que
 // el main resuelve con `ipcMain.handle('handler', ...)`. Patrón
@@ -52,6 +54,24 @@ contextBridge.exposeInMainWorld("prosecnurApi", {
   // Quita un path de la lista de recientes. NO toca el archivo en disco.
   removeRecentProject: (path) =>
     ipcRenderer.invoke("project:removeRecent", { path }),
+
+  // ----- Entregables (ADR 0133, fase 3) -------------------------------------
+
+  // El main valida la ruta (Descargas o <proyecto>/Entregables, extensión de
+  // entregable) y responde { ok: true } o { ok: false, motivo }.
+  mostrarEnCarpeta: (ruta) =>
+    ipcRenderer.invoke("entregable:mostrarEnCarpeta", { ruta }),
+
+  abrirArchivo: (ruta) =>
+    ipcRenderer.invoke("entregable:abrir", { ruta }),
+
+  // Aviso del main cuando termina una descarga sin diálogo:
+  // { estado: "completed" | "cancelled" | "interrupted", nombre, ruta }.
+  onDescargaTerminada: (callback) => {
+    const handler = (_event, descarga) => callback(descarga);
+    ipcRenderer.on("descarga:terminada", handler);
+    return () => ipcRenderer.removeListener("descarga:terminada", handler);
+  },
 
   // ----- Hugging Face ---------------------------------------------------------
 

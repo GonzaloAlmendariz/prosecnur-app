@@ -44,7 +44,7 @@ export function BasesPane() {
 
   return (
     <Panel className="analitica-bases-panel">
-      <div className="analitica-report-shell analitica-bases-workbench">
+      <div className="analitica-report-shell analitica-bases-workbench" data-qa-geometry-group="analitica/bases-mesa" data-qa-geometry-contract="intrinsic">
         <div className="analitica-bases-docbar">
           <span className="analitica-bases-docbar-icon" aria-hidden="true">
             <Database size={16} />
@@ -122,7 +122,7 @@ function BasesUseGuide({
       <div>
         <strong>Todo se genera como archivo nuevo</strong>
         <span>
-          Fuente {fuenteLabel} · {siblingsLabel}. Descargar cualquier entregable no altera la base activa ni la codificación del proyecto.
+          Fuente {fuenteLabel}, {siblingsLabel}. Descargar cualquier entregable no altera la base activa ni la codificación del proyecto.
         </span>
       </div>
     </div>
@@ -141,7 +141,7 @@ function ArchivosFuenteSection() {
       }
       subtitle="Respuestas y formulario de la fuente activa, listos para revisar sin alterar el proyecto."
     >
-      <div className="analitica-bases-source-grid">
+      <div className="analitica-bases-source-grid" data-qa-geometry-group="analitica/bases-fuentes" data-qa-geometry-contract="equal">
         <SourceDataCard />
         <SourceInstrumentCard />
       </div>
@@ -150,7 +150,7 @@ function ArchivosFuenteSection() {
 }
 
 function SourceDataCard() {
-  const run = useReporteRun();
+  const run = useReporteRun("Respuestas", { articulo: "las", formato: "xlsx" });
 
   async function onGenerate() {
     await run.runSync(apiAnaliticaBasesData);
@@ -171,19 +171,15 @@ function SourceDataCard() {
       </div>
       <GenerateFooter
         label="Descargar respuestas"
-        busy={run.busy}
-        fileId={run.fileId}
-        downloadName={run.filename ?? "data_codificada.xlsx"}
-        error={run.error}
+        run={run}
         onGenerate={onGenerate}
-        perBase={run.perBase}
       />
     </div>
   );
 }
 
 function SourceInstrumentCard() {
-  const run = useReporteRun();
+  const run = useReporteRun("Formulario", { articulo: "el", formato: "xlsx" });
 
   async function onGenerate() {
     await run.runSync(apiAnaliticaBasesInstrumento);
@@ -204,12 +200,8 @@ function SourceInstrumentCard() {
       </div>
       <GenerateFooter
         label="Descargar formulario"
-        busy={run.busy}
-        fileId={run.fileId}
-        downloadName={run.filename ?? "instrumento_codificado.xlsx"}
-        error={run.error}
+        run={run}
         onGenerate={onGenerate}
-        perBase={run.perBase}
       />
     </div>
   );
@@ -259,7 +251,7 @@ function SavCard({
   cfg: { incluir_sps: boolean };
   onChange: (patch: Partial<{ incluir_sps: boolean }>) => void;
 }) {
-  const run = useReporteRun();
+  const run = useReporteRun("Base en SAV", { articulo: "la", formato: cfg.incluir_sps ? "zip" : "sav" });
   const [writer, setWriter] = useState<BasesSavWriterInfo | null>(null);
 
   useEffect(() => {
@@ -294,7 +286,7 @@ function SavCard({
         </>
       }
     >
-      <div className="analitica-bases-format-stack">
+      <div className="analitica-bases-format-stack" data-qa-geometry-group="analitica/bases-formato-1" data-qa-geometry-contract="intrinsic">
         <div className="analitica-bases-file-note">
           <code>datos.sav</code>
           <div>
@@ -315,12 +307,8 @@ function SavCard({
 
         <GenerateFooter
           label="Descargar SAV para SPSS"
-          busy={run.busy}
-          fileId={run.fileId}
-          downloadName={run.filename ?? downloadName}
-          error={run.error}
+          run={run}
           onGenerate={onGenerate}
-          perBase={run.perBase}
         />
       </div>
     </Section>
@@ -360,7 +348,7 @@ function CsvCard({
   };
   onChange: (patch: Partial<typeof cfg>) => void;
 }) {
-  const run = useReporteRun();
+  const run = useReporteRun("Base en CSV", { articulo: "la", formato: "csv" });
 
   async function onGenerate() {
     await run.runSync(() =>
@@ -381,7 +369,7 @@ function CsvCard({
       }
       subtitle="Archivo plano para equipos que trabajan en R, Python, Stata o Excel."
     >
-      <div className="analitica-bases-format-stack">
+      <div className="analitica-bases-format-stack" data-qa-geometry-group="analitica/bases-formato-2" data-qa-geometry-contract="intrinsic">
         <RadioRow
           label="Contenido"
           value={cfg.valores}
@@ -420,12 +408,8 @@ function CsvCard({
 
         <GenerateFooter
           label="Descargar CSV"
-          busy={run.busy}
-          fileId={run.fileId}
-          downloadName={run.filename ?? "datos.csv"}
-          error={run.error}
+          run={run}
           onGenerate={onGenerate}
-          perBase={run.perBase}
         />
       </div>
     </Section>
@@ -445,7 +429,7 @@ function XlsxCard({
   };
   onChange: (patch: Partial<typeof cfg>) => void;
 }) {
-  const run = useReporteRun();
+  const run = useReporteRun("Base en Excel", { articulo: "la", formato: "xlsx" });
   const { state } = useSession();
   const relational = state?.estudio_processing_mode === "multibase" && (state?.n_bases ?? 0) > 1;
 
@@ -476,7 +460,7 @@ function XlsxCard({
         ? "Un solo archivo con códigos y etiquetas para las encuestas y cada grupo repetible, enlazados por llaves públicas."
         : "Libro de trabajo para lectura rápida de códigos, etiquetas y preguntas de varias opciones."}
     >
-      <div className="analitica-bases-format-stack">
+      <div className="analitica-bases-format-stack" data-qa-geometry-group="analitica/bases-formato-3" data-qa-geometry-contract="intrinsic">
         {!relational && (
           <RadioRow
             label="Contenido"
@@ -518,12 +502,8 @@ function XlsxCard({
 
         <GenerateFooter
           label="Descargar Excel"
-          busy={run.busy}
-          fileId={run.fileId}
-          downloadName={run.filename ?? "datos.xlsx"}
-          error={run.error}
+          run={run}
           onGenerate={onGenerate}
-          perBase={run.perBase}
         />
       </div>
     </Section>
@@ -533,7 +513,7 @@ function XlsxCard({
 // ---- Script de replicación (.R) -------------------------------------------
 
 function ScriptReplicaCard() {
-  const run = useReporteRun();
+  const run = useReporteRun("Script de replicación", { articulo: "el", formato: "r" });
 
   async function onGenerate() {
     await run.runSync(apiAnaliticaBasesScriptR);
@@ -548,7 +528,7 @@ function ScriptReplicaCard() {
       }
       subtitle="Entregable opcional para la reproducibilidad metodológica del cliente."
     >
-      <div className="analitica-bases-format-stack">
+      <div className="analitica-bases-format-stack" data-qa-geometry-group="analitica/bases-formato-4" data-qa-geometry-contract="intrinsic">
         <div className="analitica-bases-file-note">
           <code>replicar_base.R</code>
           <div>
@@ -558,12 +538,8 @@ function ScriptReplicaCard() {
 
         <GenerateFooter
           label="Descargar script de replicación"
-          busy={run.busy}
-          fileId={run.fileId}
-          downloadName={run.filename ?? "replicar_base.R"}
-          error={run.error}
+          run={run}
           onGenerate={onGenerate}
-          perBase={run.perBase}
         />
       </div>
     </Section>
@@ -579,8 +555,8 @@ function UnifiedSiblingsCard({
     incluir_madre_sm?: boolean;
   };
 }) {
-  const cleanRun = useReporteRun();
-  const metadataRun = useReporteRun();
+  const cleanRun = useReporteRun("Bases unidas en Excel", { articulo: "las", formato: "xlsx", porBase: false });
+  const metadataRun = useReporteRun("Bases unidas con trazabilidad", { articulo: "las", formato: "xlsx", porBase: false });
   const { state } = useSession();
   const enabled = state?.estudio_processing_mode === "independent_siblings" && (state?.n_bases ?? 0) > 1;
 
@@ -651,24 +627,16 @@ function UnifiedSiblingsCard({
         <div className="analitica-bases-unified-actions">
           <GenerateFooter
             label="Descargar Excel limpio"
-            busy={cleanRun.busy}
-            fileId={cleanRun.fileId}
-            downloadName={cleanRun.filename ?? "bases_unificadas.xlsx"}
-            error={cleanRun.error}
+            run={cleanRun}
             onGenerate={onGenerateClean}
-            perBase={cleanRun.perBase}
           />
           <div title="Incluye variables identificadoras y metadatos operativos como survey_id, response_id, collector_id, estado y fechas.">
             <GenerateFooter
               label="Descargar Excel trazable"
-              busy={metadataRun.busy}
-              fileId={metadataRun.fileId}
-              downloadName={metadataRun.filename ?? "bases_unificadas_con_metadata.xlsx"}
-              error={metadataRun.error}
+              run={metadataRun}
               onGenerate={onGenerateWithMetadata}
               disabled={cleanRun.busy}
               disabledHint={cleanRun.busy ? "Espera a que termine el Excel limpio." : undefined}
-              perBase={metadataRun.perBase}
               variant="secondary"
             />
           </div>
@@ -676,7 +644,7 @@ function UnifiedSiblingsCard({
         <div className="analitica-bases-unified-summary" aria-live="polite">
           {summary && (
             <span>
-              {summary.n_filas} filas · {summary.n_columnas} columnas · {summary.n_variables_comunes} variables comunes · {summary.n_variables_no_comunes} no comunes
+              {summary.n_filas} filas, {summary.n_columnas} columnas, {summary.n_variables_comunes} variables comunes, {summary.n_variables_no_comunes} no comunes
             </span>
           )}
         </div>

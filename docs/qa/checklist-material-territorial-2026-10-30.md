@@ -1,0 +1,39 @@
+# Checklist: UI de Material de campo territorial
+
+Fecha: 2026-10-30. Loop de Hojas de ruta, reorientado por Gonzalo: «la UI de hojas de ruta y la UI de material de
+campo para ruta aún le falta muchísimo trabajo». Vara: que un analista lo use para preparar el campo territorial y
+que sea intuitivo, dinámico y presentable.
+
+Proyecto: acnur_acg (`outputs/reference-runs/acnur_acg-20261028-131642/acnur_acg.pulso`). La muestra se volvió a
+sortear con el método vigente y se envió **sólo en la sesión**: no se guardó el `.pulso`.
+
+| # | Hallazgo | Dónde vive | Gravedad | Estado |
+|---|---|---|---|---|
+| M1 | Enviar la muestra no creaba la campaña territorial: «Abrir en Material de campo» caía en «Todavía no hay campañas», con un aviso que decía «La campaña territorial nace al enviar la muestra» justo después de enviarla | `hojasRuta/mapa/seleccion/SalidasPanel.tsx`, `campanaTerritorial.ts` (nuevo), `recopiladores/campanas/MaterialCampoShell.tsx` | **bloquea** | ☑ (este commit) al enviar o reenviar, si el proyecto no tiene su campaña territorial se crea («Campaña territorial»); si alguien llega con la muestra enviada y sin campaña, el aviso dice «falta crear su campaña territorial» con «Crear la campaña». Verificado en vivo |
+| M2 | El envío tarda más de 20 s y sólo dice «Enviando…», sin progreso ni qué está pasando | `SalidasPanel.tsx` / `POST /api/hojas-ruta/envio` | confunde | ☐ medir dónde se va el tiempo |
+| M3 | Unidades apila los 6 distritos en tarjetas de ~2.800 px cada una (25 titulares + 25 reemplazos), en una grilla de 3 × 2: San Juan de Lurigancho empieza a 3.013 px; no hay vista general ni forma de ir a un distrito | `recopiladores/territorial/` (Unidades) | **confunde** | ☑ (este commit) franja de distritos arriba (titulares, reemplazos y rutas por revisar; «Todos» y la búsqueda muestran todos) que elige el distrito a la vista; el de la UMP enfocada se elige solo. El panel pasa de 5.651 a ~1.750 px y cualquier distrito queda a un clic |
+| M4 | Las rutas con problemas no se distinguen: UMP 13 «5 viv.» para 8 encuestas, UMP 16 «1,716 viv.» (condominio), titulares sin viviendas; la revisión contra el marco de Selección no llega a Material | Unidades; revisión en `hojasRuta/seleccion/revisionMarco.ts` | confunde | ☑ (este commit) `revisionUnidades.ts` lleva las unidades a `revisarSeleccion`/`estadosPorTitular` de Hojas de ruta (mismo criterio, con la respuesta y la ocupación del estudio): «sin viviendas», «no alcanza», «sin margen», «muy grande», «sin reemplazo» en cada UMP; la cabecera dice «16 rutas por revisar» |
+| M5 | Cada UMP es una línea corrida «Zona 00300 · Mz 0140 · encuestas 1–8 · 164 viv.» que se parte en dos; sin columnas, comparar viviendas o rangos entre rutas es leer párrafos | Unidades | confunde | ☑ (este commit) tabla del kit (`PulsoTable`, el contrato L28 prohíbe tablas a mano) con UMP · Zona · Manzana · Encuestas · Viviendas · Estado · Hoja; el reemplazo va debajo de su titular, con sangría; la fila elegida va en `?foco=` |
+| M6 | Material no tiene mapa: el analista no ve dónde están las rutas que va a imprimir (Hojas de ruta sí) | Unidades | mejora | ☐ evaluar después de M3–M5: enlace a la UMP en el lienzo de Hojas (`/hojas-ruta?seccion=seleccion&foco=<id>`) o un mapa propio |
+| M7 | La hoja de una UMP se abre en un diálogo, pero para revisar las 150 hay que cerrar y volver a abrir una por una | `DialogoHojaUmp.tsx`, `UnidadesTerritoriales.tsx` | confunde | ☑ (este commit) «Anterior» / «Siguiente» en el pie y ← → con el diálogo abierto, en el orden de la lista (titular y sus reemplazos); la tabla de fondo sigue al distrito de la hoja |
+| M8 | El diálogo de la hoja no dice cuántas viviendas tiene la manzana ni si la ruta tiene observaciones | `DialogoHojaUmp.tsx` | confunde | ☑ (este commit) el subtítulo suma las viviendas y el estado de la revisión («no alcanza», «sin viviendas»…) |
+| M9 | Catálogo › Fichas ofrece elegir una UMP para «Ver la ficha / Abrir el PDF», lo mismo que el botón «Hoja» de cada fila en Unidades; además trae el «PDF de prueba» (manzana al azar), que sí es propio | `CatalogoTerritorial.tsx` | mejora | ☐ decisión de diseño: dejar en Catálogo sólo lo que no está en Unidades (prueba de formato, hojas de zona) |
+| M10 | El costo del campo difiere entre Hojas › Muestra (S/ 8,004, 48 jornadas, con promedios) y Material › Entrega (S/ 9,005, 54 jornadas, con el plan real) | `MuestraPaneles.tsx`, `PlanCampo.tsx` | — | ☑ sin defecto: Hojas ya dice «Con promedios por ruta: el plan por encuestador de Material de campo lo afina» |
+| M11 | El plan por encuestador mostraba 5 días y terminaba en «y 9 días más.», sin forma de verlos (C4) | `hojasRuta/mapa/seleccion/PlanCampo.tsx` (compartido) | **confunde** | ☑ (este commit) «Ver los 9 días más» / «Ver sólo los primeros días»; el botón toma el acento del módulo donde se muestra (`--pulso-primary`). Verificado en vivo: 5 → 14 días |
+| M12 | Cada distrito cierra con una jornada de 1 UMP · 9 visitas (J09 Ate, J18 Chorrillos): un encuestador sale un día por una sola ruta | plan de campo (`hojas_ruta_plan_campo.R`) | mejora | ◐ marcadas en el calendario («Jornada corta: una sola ruta»: J09, J18, J27, J36, J45, J54, una por distrito); completarlas es del motor del plan, sin tocar |
+| M13 | Material › Entrega mostraba costos y precios del campo (costo por entrevista, por jornada, movilidad, supervisión, costo total). Gonzalo: «Material no tiene que ver con costos y precios… nadie lo va a usar y no debería estar allí» | `PlanCampo.tsx` (`conCostos`), `EntregaTerritorial.tsx` | **sobra** | ☑ 9e45a6629 en Material el plan va sin costos: sólo encuestadores, visitas por jornada, jornadas, días y km. Los supuestos de costo guardados no se tocan. También fuera de Hojas › Muestra (Gonzalo: «Sí, quítalo»): la tarjeta «Costo aproximado del campo» y su helper `costo.ts` se borran (este commit) |
+| M14 | Gonzalo: «ese módulo sólo recibe la lista, entonces debe mostrar mejor cada pestaña de una forma más profesional» | Catálogo, Paquetes, Entrega (Unidades ya rediseñada, M3–M5) | **pedido** | ◐ Paquetes ☑ (este commit): fuera los chips de Territorio/Población/Cuotas (son de Hojas: sólo se avisa si falta algo); tabla del kit «qué incluye» por distrito (fichas titulares, de reemplazo, hojas por zona, con su total: 150 · 150 · 282); los reemplazos puntuales sugieren primero las titulares por revisar con su motivo («UMP 13 · no alcanza»), con el criterio de Unidades. Entrega ☑ 2a57424f6: el plan es un calendario — un día por fila, un encuestador por columna, cada jornada con su distrito, UMP, visitas, km y «Hoja del día»; los 14 días a la vista, sin «Ver más» ni scroll horizontal. Falta Catálogo |
+| M15 | Abrir la hoja de una UMP generaba en el acto la vista previa (PNG con mapa en el servidor) y consumía recursos aunque sólo se quisiera ver cómo está armada. Gonzalo (2026-10-31): «en vez de mostrarme una maqueta de cómo está estructurada la ficha corre la vista previa en automático» | `DialogoHojaUmp.tsx`, `MaquetaFicha.tsx` (nuevo) | **sobra** | ☑ (este commit) al abrir se ve la maqueta de la ficha (cara 1: encabezado con UMP y encuestas, datos generales, cuota, selección de hogares, procedimiento; cara 2: mapa) con los datos de esa UMP, sin pedir nada al servidor; «Generar la vista previa real» la pide; cambiar de UMP vuelve a la maqueta. Test de render; sin verificar en vivo (servidores detenidos, la sesión con la muestra enviada se perdió) |
+
+**Pausa 2026-10-30 (~08:50).** Hecho:
+
+| Ítem | Commit |
+|---|---|
+| M1 | 5a1427f35 |
+| M3–M5 Unidades | 6faf498e4 |
+| M7/M8 Hoja | 2845c62f7 |
+| M11/M14 Entrega calendario | 2a57424f6 |
+| M13 sin costos | 9e45a6629 y 3911d634f |
+| M14 Paquetes | 4d1c12b35 |
+
+Sigue: M14 Catálogo. Pendientes: M2 (envío lento: medir en R), M9 (Catálogo duplica la Hoja de Unidades) y M12 (jornadas de una sola ruta, ya marcadas; completarlas es del motor del plan).

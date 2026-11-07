@@ -32,8 +32,8 @@ export function CodebookPane() {
   const excluidasCount = useAnaliticaStore((s) => new Set(s.config.variables_excluidas).size);
   const location = useLocation();
   const hrefExcluidas = { pathname: location.pathname, search: searchConPanel(location.search, PANEL_VARIABLES_EXCLUIDAS) };
-  const run = useReporteRun();
-  const runPdf = useReporteRun();
+  const run = useReporteRun("Libro de códigos", { articulo: "el", formato: "xlsx" });
+  const runPdf = useReporteRun("Libro de códigos en PDF", { articulo: "el", formato: "pdf" });
   const { state } = useSession();
 
   const codes = codebook.codigos_solo_si_presentes;
@@ -218,12 +218,8 @@ export function CodebookPane() {
           >
             <GenerateFooter
               label="Generar Excel"
-              busy={run.busy}
-              fileId={run.fileId}
-              downloadName={run.filename ?? "libro_de_codigos.xlsx"}
-              error={run.error}
+              run={run}
               onGenerate={onGenerate}
-              perBase={run.perBase}
             />
 
             <FinalXlsformDownload result={run.lastResult?.xlsform} />
@@ -239,12 +235,8 @@ export function CodebookPane() {
           >
             <GenerateFooter
               label="Generar PDF"
-              busy={runPdf.busy}
-              fileId={runPdf.fileId}
-              downloadName={runPdf.filename ?? "libro_de_codigos.pdf"}
-              error={runPdf.error}
+              run={runPdf}
               onGenerate={onGeneratePdf}
-              perBase={runPdf.perBase}
             />
           </Section>
         </PaneGroup>

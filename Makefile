@@ -39,7 +39,7 @@ QA_URL ?= http://localhost:5173/
 QA_API ?= auto
 QA_OUT ?= $(REPO_ROOT)/outputs/visual-qa/$(shell date +%Y%m%d-%H%M%S)
 
-.PHONY: catalogo-recetario-build help dev-api dev-frontend dev-pulso dev-electron-vite dev-status dev-prune visual-qa ui-quick-check vaults-audit vaults-check vaults-index monitoreo-qa audit-reference-build audit-reference-run audit-reference-smoke desktop-audit audit-projects-build audit-project-build audit-project-run audit-project-visual-matrix audit-project-deliverables reference-projects-build reference-project-build reference-project-verify reference-project-seed-aulas reference-project-run reference-project-visual-matrix build build-if-stale build-if-stale-fast dev-port-preflight clean install-r install-frontend install-desktop desktop desktop-fast package-local package-windows-self-contained package-mac-dmg
+.PHONY: catalogo-recetario-build help dev-api dev-frontend dev-pulso dev-electron-vite dev-status dev-prune visual-qa ui-quick-check monitoreo-qa audit-reference-build audit-reference-run audit-reference-smoke desktop-audit audit-projects-build audit-project-build audit-project-run audit-project-visual-matrix audit-project-deliverables reference-projects-build reference-project-build reference-project-verify reference-project-seed-aulas reference-project-run reference-project-visual-matrix build build-if-stale build-if-stale-fast dev-port-preflight clean install-r install-frontend install-desktop desktop desktop-fast package-local package-windows-self-contained package-mac-dmg
 
 help:
 	@echo "Entrada normal del usuario:"
@@ -57,9 +57,6 @@ help:
 	@echo "  visual-qa        Run reusable Playwright visual QA against a route/project"
 	@echo "  ui-quick-check   Fast Playwright UI check; starts free ports and optional PULSO project"
 	@echo "  monitoreo-qa     Run visual QA for /monitoreo with a .pulso project"
-	@echo "  vaults-audit     Report Obsidian vault drift without failing"
-	@echo "  vaults-check     Fail when either vault drifts from the live navigation contract"
-	@echo "  vaults-index     Regenerate docs/sistema/direcciones from the contract and ## Gobierna"
 	@echo "  build            Build the frontend into api/inst/www"
 	@echo "  desktop-fast     Run Electron, rebuilding frontend only if stale"
 	@echo "  audit-reference-build Generate the canonical audit .pulso"
@@ -165,15 +162,6 @@ ui-quick-check:
 	@node scripts/ui-quick-check.mjs \
 	  $(if $(PULSO),--project "$(PULSO)",) \
 	  $(UI_QA_ARGS)
-
-vaults-audit:
-	@node scripts/vaults-check.mjs $(VAULTS_ARGS)
-
-vaults-check:
-	@node scripts/vaults-check.mjs --check $(VAULTS_ARGS)
-
-vaults-index:
-	@node scripts/vaults-check.mjs --generar
 
 # El gate de un área del backend: sus suites MÁS los contratos transversales.
 # Existe porque «las suites que toqué» deja fuera justo a los contratos, que se
@@ -358,7 +346,7 @@ build-if-stale:
 	  elif [ "$$status" = "1" ]; then \
 	    echo "→ Compilando frontend de producción..."; \
 	    build_started=$$(date +%s); \
-	    cd frontend && UV_THREADPOOL_SIZE="$(NODE_UV_THREADPOOL_SIZE)" pnpm build; \
+	    cd frontend && UV_THREADPOOL_SIZE="$(NODE_UV_THREADPOOL_SIZE)" pnpm build || exit $$?; \
 	    cd "$(REPO_ROOT)" && node scripts/frontend-build-status.mjs --stamp; \
 	    build_elapsed=$$(( $$(date +%s) - build_started )); \
 	    total_elapsed=$$(( $$(date +%s) - started )); \
@@ -378,7 +366,7 @@ build-if-stale-fast:
 	  elif [ "$$status" = "1" ]; then \
 	    echo "→ Compilando frontend de desarrollo rápido..."; \
 	    build_started=$$(date +%s); \
-	    cd frontend && UV_THREADPOOL_SIZE="$(NODE_UV_THREADPOOL_SIZE)" pnpm build:fast; \
+	    cd frontend && UV_THREADPOOL_SIZE="$(NODE_UV_THREADPOOL_SIZE)" pnpm build:fast || exit $$?; \
 	    cd "$(REPO_ROOT)" && node scripts/frontend-build-status.mjs --stamp; \
 	    build_elapsed=$$(( $$(date +%s) - build_started )); \
 	    total_elapsed=$$(( $$(date +%s) - started )); \
@@ -392,8 +380,8 @@ build-if-stale-fast:
 dev-port-preflight:
 	@node scripts/dev-port-preflight.mjs --ports 8787,8788,8789
 
-# Higiene de servers dev: inventario y limpieza de vites huérfanos/stale.
-# Nunca toca el backend R (8787).
+# Higiene de servers dev: inventario y limpieza de vites, backends R y runners
+# de QA huérfanos. Nunca toca los puertos del usuario (8787, 8841, 5181).
 dev-status:
 	@bash scripts/dev-servers.sh status
 
@@ -425,12 +413,12 @@ package-local: build-if-stale
 	# Copia del template del .app (Info.plist + Contents/MacOS/Prosecnur bash).
 	bash scripts/copy-tree.sh Prosecnur.app "$(PACKAGE_STAGING)/Prosecnur.app" ".DS_Store"
 	# Fuentes embebidas dentro del .app (modo packaged usa Resources/Internals).
-	bash scripts/copy-tree.sh api "$(PACKAGE_STAGING)/Prosecnur.app/Contents/Resources/Internals/api" ".DS_Store" "tests"
+	bash scripts/stage-api.sh api "$(PACKAGE_STAGING)/Prosecnur.app/Contents/Resources/Internals/api"
 	bash scripts/copy-tree.sh launcher "$(PACKAGE_STAGING)/Prosecnur.app/Contents/Resources/Internals/launcher" ".DS_Store"
 	bash scripts/copy-tree.sh desktop "$(PACKAGE_STAGING)/Prosecnur.app/Contents/Resources/Internals/desktop" ".DS_Store" "node_modules"
 	# Fuentes para el launcher Windows (.bat). Las espeja al lado del .bat.
 	cp Prosecnur.bat "$(PACKAGE_STAGING)/Prosecnur.bat"
-	bash scripts/copy-tree.sh api "$(PACKAGE_STAGING)/Internals/api" ".DS_Store" "tests"
+	bash scripts/stage-api.sh api "$(PACKAGE_STAGING)/Internals/api"
 	bash scripts/copy-tree.sh launcher "$(PACKAGE_STAGING)/Internals/launcher" ".DS_Store"
 	bash scripts/copy-tree.sh desktop "$(PACKAGE_STAGING)/Internals/desktop" ".DS_Store" "node_modules"
 	# Docs

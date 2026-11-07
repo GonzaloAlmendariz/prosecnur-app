@@ -36,6 +36,8 @@ import { GenerateFooter, Section } from "../PaneKit";
 import { type PanelConfig, useAnaliticaStore } from "../store";
 import { useReporteRun } from "../useReporteRun";
 
+import { EstadoVacio } from "../../../components/EstadoVacio";
+import { EstadoChip } from "../../../components/EstadoChip";
 type PanelView = "estructura" | "variables" | "nse" | "auditoria" | "exportar";
 
 const VIEWS: Array<{ key: PanelView; label: string }> = [
@@ -64,15 +66,15 @@ export function PanelBasePane() {
   const cruces = useAnaliticaStore((s) => s.config.cruces);
   const setPanel = useAnaliticaStore((s) => s.setPanel);
   const setPanelWave = useAnaliticaStore((s) => s.setPanelWave);
-  const codebookRun = useReporteRun();
-  const codebookPdfRun = useReporteRun();
-  const freqRun = useReporteRun();
-  const crossesRun = useReporteRun();
-  const auditRun = useReporteRun();
-  const fichaRun = useReporteRun();
-  const xlsxRun = useReporteRun();
-  const csvRun = useReporteRun();
-  const savRun = useReporteRun();
+  const codebookRun = useReporteRun("Libro de códigos del panel", { articulo: "el", formato: "xlsx", porBase: false });
+  const codebookPdfRun = useReporteRun("Libro de códigos del panel en PDF", { articulo: "el", formato: "pdf", porBase: false });
+  const freqRun = useReporteRun("Frecuencias del panel", { articulo: "las", formato: "xlsx", porBase: false });
+  const crossesRun = useReporteRun("Cruces del panel", { articulo: "los", formato: "xlsx", porBase: false });
+  const auditRun = useReporteRun("Revisión del panel", { articulo: "la", formato: "xlsx", porBase: false });
+  const fichaRun = useReporteRun("Ficha técnica del panel", { articulo: "la", formato: "docx", porBase: false });
+  const xlsxRun = useReporteRun("Panel en Excel", { articulo: "el", formato: "xlsx", porBase: false });
+  const csvRun = useReporteRun("Panel en CSV", { articulo: "el", formato: "csv", porBase: false });
+  const savRun = useReporteRun("Panel en SAV", { articulo: "el", porBase: false });
   const [info, setInfo] = useState<AnaliticaPanelInfo | null>(null);
   const [preview, setPreview] = useState<{
     summary: AnaliticaPanelSummary;
@@ -258,7 +260,7 @@ export function PanelBasePane() {
             <strong>Base panel</strong>
             <small>Une mediciones de la misma persona para comparar cambios y exportar una base lista.</small>
           </div>
-          <div className="analitica-report-overview analitica-report-overview--panel">
+          <div className="analitica-report-overview analitica-report-overview--panel" data-qa-geometry-group="analitica/panel-cifras" data-qa-geometry-contract="intrinsic">
             {panelStats.map((stat) => (
               <Metric key={stat.label} {...stat} />
             ))}
@@ -355,10 +357,7 @@ export function PanelBasePane() {
                     )}
                   </label>
                   <div className="analitica-panel-status-row">
-                    <span className={`analitica-panel-badge ${info?.available ? "is-ok" : "is-warn"}`}>
-                      {info?.available ? <Database size={12} /> : <AlertTriangle size={12} />}
-                      {info?.available ? "ID común listo" : "Falta ID común"}
-                    </span>
+                    <EstadoChip label={info?.available ? "ID común listo" : "Falta ID común"} tone={info?.available ? "success" : "warn"} />
                     <span>{panelSourceLabel(info?.fuente)}</span>
                   </div>
                 </div>
@@ -446,18 +445,10 @@ export function PanelBasePane() {
                       />
                       <GenerateFooter
                         label="Generar libro"
-                        busy={codebookRun.busy}
-                        jobId={codebookRun.jobId}
-                        fileId={codebookRun.fileId}
-                        downloadName={codebookRun.filename ?? "base_panel_libro_codigos.xlsx"}
-                        error={codebookRun.error}
+                        run={codebookRun}
                         onGenerate={onGenerateCodebook}
                         disabled={disabled || !panel.outputs.codebook}
                         disabledHint={disabled ? (info?.reason || "Selecciona un identificador común válido para todas las mediciones.") : "Activa este entregable para generarlo."}
-                        perBase={codebookRun.perBase}
-                        onJobDone={codebookRun.onJobDone}
-                        onJobError={codebookRun.onJobError}
-                        onJobCancelled={codebookRun.onJobCancelled}
                       />
                     </PanelExportCard>
 
@@ -473,18 +464,10 @@ export function PanelBasePane() {
                       />
                       <GenerateFooter
                         label="Generar PDF"
-                        busy={codebookPdfRun.busy}
-                        jobId={codebookPdfRun.jobId}
-                        fileId={codebookPdfRun.fileId}
-                        downloadName={codebookPdfRun.filename ?? "base_panel_libro_codigos.pdf"}
-                        error={codebookPdfRun.error}
+                        run={codebookPdfRun}
                         onGenerate={onGenerateCodebookPdf}
                         disabled={disabled || !panel.outputs.codebook}
                         disabledHint={disabled ? (info?.reason || "Selecciona un identificador común válido para todas las mediciones.") : "Activa este entregable para generarlo."}
-                        perBase={codebookPdfRun.perBase}
-                        onJobDone={codebookPdfRun.onJobDone}
-                        onJobError={codebookPdfRun.onJobError}
-                        onJobCancelled={codebookPdfRun.onJobCancelled}
                       />
                     </PanelExportCard>
 
@@ -500,18 +483,10 @@ export function PanelBasePane() {
                       />
                       <GenerateFooter
                         label="Generar frecuencias"
-                        busy={freqRun.busy}
-                        jobId={freqRun.jobId}
-                        fileId={freqRun.fileId}
-                        downloadName={freqRun.filename ?? "base_panel_frecuencias.xlsx"}
-                        error={freqRun.error}
+                        run={freqRun}
                         onGenerate={onGenerateFrecuencias}
                         disabled={disabled || !panel.outputs.frecuencias}
                         disabledHint={disabled ? (info?.reason || "Selecciona un identificador común válido para todas las mediciones.") : "Activa este entregable para generarlo."}
-                        perBase={freqRun.perBase}
-                        onJobDone={freqRun.onJobDone}
-                        onJobError={freqRun.onJobError}
-                        onJobCancelled={freqRun.onJobCancelled}
                       />
                     </PanelExportCard>
 
@@ -527,18 +502,10 @@ export function PanelBasePane() {
                       />
                       <GenerateFooter
                         label="Generar cruces"
-                        busy={crossesRun.busy}
-                        jobId={crossesRun.jobId}
-                        fileId={crossesRun.fileId}
-                        downloadName={crossesRun.filename ?? "base_panel_cruces.xlsx"}
-                        error={crossesRun.error}
+                        run={crossesRun}
                         onGenerate={onGenerateCruces}
                         disabled={disabled || !panel.outputs.cruces}
                         disabledHint={disabled ? (info?.reason || "Selecciona un identificador común válido para todas las mediciones.") : "Activa este entregable para generarlo."}
-                        perBase={crossesRun.perBase}
-                        onJobDone={crossesRun.onJobDone}
-                        onJobError={crossesRun.onJobError}
-                        onJobCancelled={crossesRun.onJobCancelled}
                       />
                     </PanelExportCard>
 
@@ -554,18 +521,10 @@ export function PanelBasePane() {
                       />
                       <GenerateFooter
                         label="Generar revisión"
-                        busy={auditRun.busy}
-                        jobId={auditRun.jobId}
-                        fileId={auditRun.fileId}
-                        downloadName={auditRun.filename ?? "base_panel_auditoria.xlsx"}
-                        error={auditRun.error}
+                        run={auditRun}
                         onGenerate={onGenerateAuditoria}
                         disabled={disabled || !panel.outputs.auditoria}
                         disabledHint={disabled ? (info?.reason || "Selecciona un identificador común válido para todas las mediciones.") : "Activa este entregable para generarlo."}
-                        perBase={auditRun.perBase}
-                        onJobDone={auditRun.onJobDone}
-                        onJobError={auditRun.onJobError}
-                        onJobCancelled={auditRun.onJobCancelled}
                       />
                     </PanelExportCard>
                   </div>
@@ -574,18 +533,10 @@ export function PanelBasePane() {
                 <Section title="Ficha técnica" subtitle="Crea un documento Word con la metodología del panel y sus decisiones principales.">
                   <GenerateFooter
                     label="Generar ficha técnica"
-                    busy={fichaRun.busy}
-                    jobId={fichaRun.jobId}
-                    fileId={fichaRun.fileId}
-                    downloadName={fichaRun.filename ?? "ficha_tecnica_panel.docx"}
-                    error={fichaRun.error}
+                    run={fichaRun}
                     onGenerate={onGenerateFichaTecnica}
                     disabled={disabled}
                     disabledHint={disabled ? (info?.reason || "Selecciona un identificador común válido para todas las mediciones.") : undefined}
-                    perBase={fichaRun.perBase}
-                    onJobDone={fichaRun.onJobDone}
-                    onJobError={fichaRun.onJobError}
-                    onJobCancelled={fichaRun.onJobCancelled}
                     variant="secondary"
                   />
                 </Section>
@@ -615,18 +566,10 @@ export function PanelBasePane() {
                       />
                       <GenerateFooter
                         label="Exportar Excel"
-                        busy={xlsxRun.busy}
-                        jobId={xlsxRun.jobId}
-                        fileId={xlsxRun.fileId}
-                        downloadName={xlsxRun.filename ?? "base_panel_wide.xlsx"}
-                        error={xlsxRun.error}
+                        run={xlsxRun}
                         onGenerate={onGenerateXlsx}
                         disabled={disabled}
                         disabledHint={disabled ? (info?.reason || "Selecciona un identificador común válido para todas las mediciones.") : undefined}
-                        perBase={xlsxRun.perBase}
-                        onJobDone={xlsxRun.onJobDone}
-                        onJobError={xlsxRun.onJobError}
-                        onJobCancelled={xlsxRun.onJobCancelled}
                       />
                     </PanelExportCard>
 
@@ -661,18 +604,10 @@ export function PanelBasePane() {
                       />
                       <GenerateFooter
                         label="Exportar CSV"
-                        busy={csvRun.busy}
-                        jobId={csvRun.jobId}
-                        fileId={csvRun.fileId}
-                        downloadName={csvRun.filename ?? "base_panel_wide.csv"}
-                        error={csvRun.error}
+                        run={csvRun}
                         onGenerate={onGenerateCsv}
                         disabled={disabled}
                         disabledHint={disabled ? (info?.reason || "Selecciona un identificador común válido para todas las mediciones.") : undefined}
-                        perBase={csvRun.perBase}
-                        onJobDone={csvRun.onJobDone}
-                        onJobError={csvRun.onJobError}
-                        onJobCancelled={csvRun.onJobCancelled}
                       />
                     </PanelExportCard>
 
@@ -695,18 +630,10 @@ export function PanelBasePane() {
                       />
                       <GenerateFooter
                         label="Exportar SAV"
-                        busy={savRun.busy}
-                        jobId={savRun.jobId}
-                        fileId={savRun.fileId}
-                        downloadName={savRun.filename ?? (panel.formatos.sav.incluir_sps ? "base_panel_sav.zip" : "base_panel_wide.sav")}
-                        error={savRun.error}
+                        run={savRun}
                         onGenerate={onGenerateSav}
                         disabled={disabled}
                         disabledHint={disabled ? (info?.reason || "Selecciona un identificador común válido para todas las mediciones.") : undefined}
-                        perBase={savRun.perBase}
-                        onJobDone={savRun.onJobDone}
-                        onJobError={savRun.onJobError}
-                        onJobCancelled={savRun.onJobCancelled}
                       />
                     </PanelExportCard>
                   </div>
@@ -731,10 +658,12 @@ function Metric({
   suffix?: string;
   compact?: boolean;
 }) {
+  // El alto mínimo de la cifra (44 px en la banda de Panel) es un piso deliberado para que las cifras queden
+  // alineadas aunque una tenga menos texto: capacidad reservada, no hueco (contrato de superficie, 6 nov 2026).
   return (
-    <div className="analitica-stat">
+    <div className="analitica-stat" data-qa-geometry-capacity="owned">
       <span className="analitica-stat-label">{label}</span>
-      <span className="analitica-stat-value" style={compact ? { fontSize: 13, paddingTop: 2 } : undefined}>
+      <span className="analitica-stat-value" style={compact ? { fontSize: "var(--pulso-type-body-size)", paddingTop: 2 } : undefined}>
         {value}
         {suffix && <small>{suffix}</small>}
       </span>
@@ -944,13 +873,7 @@ function formatCell(value: unknown) {
 
 function EmptyPanelState({ icon, label }: { icon: ReactNode; label: string }) {
   return (
-    <div className="analitica-empty analitica-panel-empty">
-      <span className="analitica-empty-icon" aria-hidden="true">
-        {icon}
-      </span>
-      <strong>{label}</strong>
-      <small>Previsualiza cuando quieras recalcular esta vista.</small>
-    </div>
+    <EstadoVacio icono={icon} titulo={label} descripcion="Previsualiza cuando quieras recalcular esta vista." />
   );
 }
 

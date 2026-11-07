@@ -65,7 +65,17 @@ function manualChunks(id: string) {
   // Repartido entre chunks de módulo, Rollup llegó a ejecutar `manifiesto.ts`
   // (que arma MANIFIESTO_NAVEGACION en top-level) antes de que `direccion.ts`
   // inicializara TABLA_RUTAS, y el TDZ dejaba la app en blanco sin montar React.
+  // El panel de la Ficha del estudio (ADR 0124) lo declara el manifiesto global
+  // de `lib/navegacion/`. Sin regla, Rollup lo metía en monitoreo-core (Monitoreo
+  // también importa `features/estudio/`), el manifiesto importaba monitoreo-core
+  // de vuelta y el arranque moría con un TDZ («Cannot access 'Er' before
+  // initialization», 2026-11-02). Es una constante sin dependencias: viaja con
+  // el manifiesto.
+  if (normalized.endsWith("/src/features/estudio/panelEstudio.ts")) return "app-core";
   if (normalized.includes("/src/components/") || normalized.includes("/src/lib/")) {
+    // Kit de entregables (ADR 0133, fase 4): importa api/jobs, api/core y
+    // api/workspace por valor; en app-core cerraría el mismo ciclo con api-client.
+    if (normalized.includes("/src/components/entregables/")) return undefined;
     if (APP_CORE_VALUE_COUPLED_EXCLUDED.some((suffix) => normalized.endsWith(suffix))) {
       return undefined;
     }
@@ -89,6 +99,15 @@ function manualChunks(id: string) {
   // así que el chunk propio no ahorraba nada y cerraba un segundo ciclo
   // (monitoreo-core ↔ monitoreo-shell) de la misma clase que dejó la app en
   // blanco. Cae en el catch-all de monitoreo y viaja con su núcleo.
+  // Hojas de formato que viven bajo telefonico/ pero que el núcleo compartido
+  // (core/*Comunes, L33) importa: si viajaran con su perfil, monitoreo-core
+  // importaría monitoreo-telefonico de vuelta y el arranque moría con un TDZ
+  // («Cannot access 'Al' before initialization», 2026-10-28). Lo vigila
+  // features/monitoreo/nucleoNoImportaPerfil.contract.test.ts.
+  if (
+    normalized.endsWith("/src/features/monitoreo/profiles/telefonico/formato.ts") ||
+    normalized.endsWith("/src/features/monitoreo/profiles/telefonico/avance/ritmoDiario.ts")
+  ) return "monitoreo-core";
   if (
     normalized.includes("/src/features/monitoreo/components/") ||
     normalized.includes("/src/features/monitoreo/core/") ||

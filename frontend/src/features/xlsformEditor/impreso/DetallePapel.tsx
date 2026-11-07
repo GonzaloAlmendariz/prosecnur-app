@@ -5,7 +5,6 @@
 // ajustes. La única salida al Constructor es «Editar en Constructor», al pie de la ficha.
 
 import { useId } from "react";
-import { ChevronRight } from "../../../vendor/lucide-react";
 import { PaperSettingsBlock } from "../canvas/PaperSettingsBlock";
 import { EditarEnConstructor } from "../shell/EditarEnConstructor";
 import type { BuilderNode } from "../types";
@@ -88,7 +87,7 @@ export function DetallePapel({ filas, sinPapel, nodoDe, abierta, onAbrir, onCamp
                   <span title={etiquetaCorta(f, plano)}>{etiquetaCorta(f, plano)}</span>
                 </span>
                 <span className="pulso-xf-imp-papel-columnas">{rotuloAjustesPapel(f.columnas)}</span>
-                <ChevronRight size={14} aria-hidden="true" className="pulso-xf-imp-papel-chevron" />
+                
               </button>
               {nodo && (
                 <section id={idFicha} className="pulso-xf-imp-papel-cuerpo" aria-label={`Ajustes de papel de ${f.name}`}>

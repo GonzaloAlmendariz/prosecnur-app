@@ -240,4 +240,10 @@ describe("resolveDisplayFallback", () => {
   test("usa el default de metadata cuando no hay valor heredado", () => {
     expect(resolveDisplayFallback(meta({ default: true }), undefined)).toBe(true);
   });
+
+  test("U-c: el espacio para etiquetas sin default es automático; el 0.45 del preset no se muestra como heredado", () => {
+    const espacio = meta({ name: "canvas_w_etiquetas", tipo_input: "number", grupo: "canvas" });
+    expect(resolveDisplayFallback(espacio, 0.45)).toBeUndefined();
+    expect(resolveDisplayFallback({ ...espacio, default: 0.12 }, 0.2)).toBe(0.2);
+  });
 });

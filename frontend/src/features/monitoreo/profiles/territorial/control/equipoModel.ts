@@ -19,7 +19,8 @@ export type FilaDeEquipo = {
   aplicador: string;
   anulado: boolean;
   recibidas: number;
-  cuentan: number;
+  /** Efectivas validadas no anuladas, por quien envió; `null` en un corte que no las trae. */
+  cuentan: number | null;
   umps: number;
   distritos: string[];
   gpsObservado: { casos: number; base: number; texto: string } | null;
@@ -94,7 +95,10 @@ export function construirEquipo(
       aplicador: rotuloDeAplicador(responsable.label),
       anulado: String(responsable.status ?? "").toLowerCase() === "anulado",
       recibidas: Math.round(n(responsable.responses)),
-      cuentan: Math.round(n(responsable.valid_responses)),
+      // La base del avance (efectivas validadas no anuladas). Un corte anterior
+      // al 1 nov sólo trae `valid_responses` (efectiva de la plataforma): no se
+      // usa en su lugar, para no rotular consentimientos como validadas.
+      cuentan: responsable.advance_valid_responses == null ? null : Math.round(n(responsable.advance_valid_responses)),
       umps: Math.round(n(responsable.umps)),
       distritos: String(responsable.districts ?? "").split("·").map((item) => item.trim()).filter(Boolean).map(nombreDeDistrito),
       gpsObservado: conAuditoria ? { casos: observado, base: conGps.length, texto: pctEntero(observado, conGps.length) } : null,
@@ -110,6 +114,6 @@ export function construirEquipo(
         .sort((a, b) => b.casos - a.casos || Number(a.ump) - Number(b.ump)),
     };
   });
-  filas.sort((a, b) => Number(a.anulado) - Number(b.anulado) || (b.enBandeja ?? 0) - (a.enBandeja ?? 0) || b.cuentan - a.cuentan);
+  filas.sort((a, b) => Number(a.anulado) - Number(b.anulado) || (b.enBandeja ?? 0) - (a.enBandeja ?? 0) || (b.cuentan ?? 0) - (a.cuentan ?? 0));
   return { filas, dias, conAuditoria, conBandeja };
 }

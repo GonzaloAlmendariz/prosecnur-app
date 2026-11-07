@@ -111,7 +111,7 @@ function BotonConfirmar({ rotulo, pendientes, onConfirmar }: { rotulo: string; p
       aria-label={pendientes.length === 1
         ? `Confirmar la respuesta sugerida para ${rotulo}`
         : pendientes.length
-        ? `Confirmar las ${pendientes.length} respuestas sugeridas para ${rotulo}`
+        ? `Confirmar las ${formatoConteo(pendientes.length)} respuestas sugeridas para ${rotulo}`
         : `Todas las sugeridas para ${rotulo} están confirmadas`}
       onClick={onConfirmar}
     >

@@ -23,8 +23,8 @@ export type AcreditacionDailyReportCut = {
 
 export type AcreditacionDailyChartRow = AcreditacionAdvanceDailyPoint & {
   x: number;
-  axisLabel: string;
-  displayLabel: string;
+  /** La fecha que lee el eje común (`advanceAxisDate`): ISO, «S/D» o el rótulo corto. */
+  axisDate: string;
   dailyTotal: number;
   cumulative: number;
 };
@@ -192,6 +192,17 @@ export function compactAdvanceDateTickLabel(value: string) {
   if (!parsed) return shortAdvanceDateLabel(value);
   const month = parsed.toLocaleDateString("es-PE", { month: "short" }).replace(".", "").toLowerCase();
   return `${month}<br>${String(parsed.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * La fecha de un corte tal como la lee el eje común de Monitoreo
+ * (`core/ejeDeFechas`): ISO si se reconoce, «S/D» para el corte sin fecha y,
+ * si no es una fecha, su rótulo corto, que el eje pinta tal cual.
+ */
+export function advanceAxisDate(value: string) {
+  if (isAcreditacionNoDateLabel(value)) return "S/D";
+  const parsed = parseAcreditacionDailyDate(value);
+  return parsed ? calendarIsoDate(parsed) : shortAdvanceDateLabel(value);
 }
 
 export function shortAdvanceDateLabel(value: string) {

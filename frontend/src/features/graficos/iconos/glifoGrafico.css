@@ -169,3 +169,7 @@
   stroke-width: 0.5;
   opacity: 0.7;
 }
+
+/* Diferencias entre grupos (ADR 0128): la cápsula ▲A de la lámina, con sus colores (app/tokens-datos.css). */
+.pulso-glifo__sig-capsula { fill: var(--pulso-sig-capsula-fondo, var(--pulso-surface-3)); }
+.pulso-glifo__sig-tri { fill: var(--pulso-sig-capsula-texto, var(--glifo-principal)); }

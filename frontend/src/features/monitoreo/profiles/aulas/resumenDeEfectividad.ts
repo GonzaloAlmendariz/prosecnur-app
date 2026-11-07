@@ -1,3 +1,4 @@
+import { enumerar } from "../../../../lib/enumerar";
 import { fmt } from "./kpisDeAulas";
 import type {
   MonitoreoAulasEfectividadFacultad,
@@ -344,7 +345,7 @@ export function repartoDeSenales(
   ].filter(Boolean);
   return {
     total: filas.length, sobre, bajo, conforme, sinVara,
-    frase: `De ${fmt(filas.length)} facultades: ${partes.join(" · ")}.`,
+    frase: `De ${fmt(filas.length)} facultades: ${enumerar(partes)}.`,
   };
 }
 

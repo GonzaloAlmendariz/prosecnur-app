@@ -1,0 +1,594 @@
+/* Diferencias entre grupos (ADR 0128; propuesta de significancia §3.5 y §4.3). Cápsula con los colores de la lámina,
+   foco y acción en el acento de Procesamiento, abstención y frágil con título afirmativo en aviso, error en peligro.
+   Los tokens --pulso-sig-* viven en :root (app/tokens-datos.css): resuelven también dentro de un portal. */
+
+/* ---------- Cápsula ▲A ---------- */
+
+.pulso-sig-capsula {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  min-height: 18px;
+  padding: 1px 7px 1px 6px;
+  border-radius: 999px;
+  background: var(--pulso-sig-capsula-fondo);
+  color: var(--pulso-sig-capsula-texto);
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.pulso-sig-capsula.is-fragil {
+  outline: 1.3px dashed var(--pulso-sig-fragil);
+  outline-offset: -1.3px;
+  color: var(--pulso-sig-fragil);
+}
+
+.pulso-sig-capsula-tri {
+  width: 8px;
+  height: 7px;
+  fill: currentColor;
+}
+
+/* ---------- Piezas comunes ---------- */
+
+.pulso-sig-texto {
+  margin: 0;
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+  overflow-wrap: anywhere;
+}
+
+.pulso-sig-texto.is-trama {
+  padding-left: var(--pulso-space-2);
+  border-left: 3px solid var(--pulso-sig-trama);
+}
+
+.pulso-sig-titulo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.pulso-sig-codigo {
+  margin: 0;
+  font-size: var(--pulso-type-eyebrow-size);
+  color: var(--pulso-danger-fg);
+}
+
+/* Código E_* e id del fallo: letra del sistema con cifras tabulares; el valor completo va en `title`. */
+.pulso-sig-codigo-error {
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.pulso-sig-espacio {
+  flex: 1;
+}
+
+/* El marco es el de Panel (components/Panel.tsx, CajaDiferencias.tsx); aquí sólo su ritmo interior. */
+.pulso-panel.pulso-sig-caja {
+  display: grid;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  margin: 0;
+  padding: var(--pulso-space-3);
+}
+
+.pulso-panel.pulso-sig-caja.is-sugerencia {
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.pulso-panel.pulso-sig-caja.is-aviso {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+}
+
+.pulso-sig-caja.is-aviso .pulso-sig-texto,
+.pulso-sig-caja.is-aviso .pulso-sig-titulo {
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-panel.pulso-sig-caja.is-peligro {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+}
+
+.pulso-sig-caja.is-peligro .pulso-sig-texto,
+.pulso-sig-caja.is-peligro .pulso-sig-titulo {
+  color: var(--pulso-danger-fg);
+}
+
+/* Una fila de acciones del kit, alineadas a la izquierda y a la misma altura (PulsoButton sm). */
+.pulso-sig-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-sig-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-sig-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  padding: 0 calc(var(--pulso-space-2) + 1px);
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px var(--pulso-border);
+  background: var(--pulso-surface);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+}
+
+.pulso-sig-chip.is-marcada {
+  box-shadow: none;
+  background: var(--pulso-sig-capsula-fondo);
+  color: var(--pulso-sig-capsula-texto);
+}
+
+.pulso-sig-chip.is-marcada .pulso-sig-capsula {
+  padding: 0;
+  background: transparent;
+}
+
+.pulso-sig-chip.is-fragil {
+  box-shadow: none;
+  outline: 1.3px dashed var(--pulso-sig-fragil);
+  outline-offset: -1.3px;
+  color: var(--pulso-sig-fragil);
+}
+
+.pulso-sig-chip.is-fragil .pulso-sig-capsula {
+  padding: 0;
+  outline: 0;
+  background: transparent;
+}
+
+.pulso-sig-chip.is-aviso {
+  box-shadow: inset 0 0 0 1px var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-sig-chip.is-peligro {
+  box-shadow: inset 0 0 0 1px var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-sig-eyebrow {
+  margin: 0 0 var(--pulso-space-2);
+  padding: 0;
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pulso-text-faint);
+}
+
+/* ---------- U2 · sección del inspector ---------- */
+
+.pulso-sig-inspector {
+  display: grid;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-sig-cuerpo {
+  min-width: 0;
+}
+
+.pulso-sig-regla-linea {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+  margin: 0;
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.45;
+  color: var(--pulso-text-faint);
+}
+
+/* ---------- U1 · regla del estudio ---------- */
+
+.pulso-sig-regla-cuerpo {
+  display: grid;
+  gap: var(--pulso-space-3);
+}
+
+.pulso-sig-regla {
+  min-width: 0;
+}
+
+.pulso-sig-regla-cabeza {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-sig-regla-rejilla {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pulso-space-4) var(--pulso-space-5);
+  margin-top: var(--pulso-space-3);
+}
+
+@media (max-width: 860px) {
+  .pulso-sig-regla-rejilla {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.pulso-sig-grupo {
+  display: grid;
+  align-content: start;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.pulso-panel.pulso-sig-opcion {
+  display: grid;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: var(--pulso-space-3);
+  background: var(--pulso-surface);
+}
+
+.pulso-panel.pulso-sig-opcion.is-elegida {
+  border-color: var(--pulso-module-processing);
+  background: var(--pulso-module-processing-soft);
+}
+
+.pulso-sig-opcion:focus-within {
+  box-shadow: 0 0 0 2px var(--pulso-module-processing);
+}
+
+.pulso-sig-opcion-rotulo {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--pulso-space-2);
+  cursor: pointer;
+}
+
+.pulso-sig-opcion-rotulo input {
+  margin: 2px 0 0;
+  accent-color: var(--pulso-module-processing);
+}
+
+.pulso-sig-opcion-texto {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pulso-sig-opcion-titulo {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.pulso-sig-opcion-detalle {
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.4;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-sig-recomendada {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--pulso-module-processing-soft);
+  font-size: var(--pulso-type-micro-size);
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-module-processing);
+}
+
+.pulso-sig-columnas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pulso-space-2);
+  padding-left: calc(13px + var(--pulso-space-2));
+}
+
+.pulso-sig-campo {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pulso-sig-fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-height: 36px;
+}
+
+.pulso-sig-fila-rotulo {
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-soft);
+}
+
+.pulso-sig-nota {
+  display: grid;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+  transition: opacity 180ms var(--motion-ease-out);
+}
+
+/* Al cambiar la regla, la nota hace un fundido cruzado sin rebote (§3.5). */
+.pulso-sig-nota.is-actualizando {
+  opacity: 0.55;
+}
+
+.pulso-sig-nota-linea {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.45;
+  color: var(--pulso-text);
+}
+
+.pulso-sig-error-pie {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--pulso-danger-fg);
+}
+
+/* ---------- U3 · «Por qué» ---------- */
+
+.pulso-sig-porque {
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-popover);
+  outline: none;
+  overflow: hidden;
+  transition:
+    opacity 140ms var(--motion-ease-out),
+    transform 140ms var(--motion-ease-out);
+}
+
+@starting-style {
+  .pulso-sig-porque {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.pulso-sig-porque:focus-visible {
+  box-shadow: var(--pulso-shadow-popover), 0 0 0 2px var(--pulso-module-processing);
+}
+
+.pulso-sig-porque-cabeza {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-sig-porque-cabeza h2 {
+  margin: 0;
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.pulso-sig-porque-cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  align-items: start;
+  gap: var(--pulso-space-4);
+  min-height: 0;
+  padding: var(--pulso-space-3);
+  overflow: auto;
+}
+
+@media (max-width: 760px) {
+  .pulso-sig-porque-cuerpo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.pulso-sig-porque-cuerpo > .pulso-sig-texto,
+.pulso-sig-porque-cuerpo > .pulso-sig-caja {
+  grid-column: 1 / -1;
+}
+
+.pulso-sig-detalle {
+  display: grid;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-sig-detalle-cabeza {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  font-size: var(--pulso-type-subtitle-size);
+  color: var(--pulso-text);
+}
+
+.pulso-sig-frase {
+  margin: 0;
+  font-size: var(--pulso-type-subtitle-size);
+  line-height: 1.45;
+  color: var(--pulso-text);
+}
+
+.pulso-sig-datos {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px var(--pulso-space-3);
+  margin: 0;
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-sig-datos dt {
+  color: var(--pulso-text-soft);
+}
+
+.pulso-sig-datos dd {
+  margin: 0;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+}
+
+.pulso-sig-condiciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-sig-condiciones li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  padding: 0 var(--pulso-space-2);
+  border-radius: 999px;
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-sig-condiciones .is-cumple {
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.pulso-sig-condiciones .is-falla {
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-sig-pares {
+  display: grid;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+/* Hover de una cápsula: anillo de 2 px en el acento, en 120 ms (§3.5). */
+.pulso-sig-pares tr:hover .pulso-sig-capsula,
+.pulso-sig-pares tr:focus-visible .pulso-sig-capsula {
+  box-shadow: 0 0 0 2px var(--pulso-module-processing);
+  transition: box-shadow 120ms var(--motion-ease-out);
+}
+
+/* ---------- U4 · revisión del informe ---------- */
+
+.pulso-sig-revision {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  width: min(620px, 94%);
+  border-left: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-popover);
+  transition:
+    transform var(--motion-dur-panel) var(--motion-ease-drawer),
+    opacity var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+@starting-style {
+  .pulso-sig-revision {
+    transform: translateX(100%);
+  }
+}
+
+.pulso-sig-revision-cuerpo {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  align-content: start;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3);
+  overflow: auto;
+}
+
+.pulso-sig-revision-barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-sig-porque,
+  .pulso-sig-revision,
+  .pulso-sig-nota {
+    transition: none;
+  }
+
+  @starting-style {
+    .pulso-sig-porque,
+    .pulso-sig-revision {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+/* ---------- Rótulos cortos de las tarjetas (CortosGrupos.tsx) ---------- */
+
+/* Grupo → corto en una fila; el aviso de una fila incompleta ocupa la fila entera debajo. */
+.pulso-tarjetas-corto {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+}
+
+.pulso-tarjetas-corto-flecha {
+  color: var(--pulso-text-muted);
+}
+
+.pulso-tarjetas-corto-aviso {
+  grid-column: 1 / -1;
+}

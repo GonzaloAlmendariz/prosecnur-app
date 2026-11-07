@@ -157,7 +157,7 @@ export function planTerritorialDeActualizar({
     menu.push({
       clave: `fuente:${fuente.id}`,
       etiqueta: etiquetaDe(fuente),
-      detalle: deDosFases ? "Kobo · piloto y campo" : `Kobo · ${NOMBRE_DE_FASE[cada]}${cada === fase ? ", fase activa" : ""}`,
+      detalle: deDosFases ? "Kobo, piloto y campo" : `Kobo, ${NOMBRE_DE_FASE[cada]}${cada === fase ? ", fase activa" : ""}`,
       titulo: `Traer todo de nuevo de ${etiquetaDe(fuente)} y recalcular`,
       grupo: "fuentes",
       disabled: deshabilitado,
@@ -168,7 +168,7 @@ export function planTerritorialDeActualizar({
     menu.push({
       clave: `fuente:${ocurrencias.id}`,
       etiqueta: ocurrencias.etiqueta,
-      detalle: "Kobo · ocurrencias de campo",
+      detalle: "Kobo, ocurrencias de campo",
       titulo: `Traer de nuevo ${ocurrencias.etiqueta} y recalcular`,
       grupo: "fuentes",
       disabled: deshabilitado,
@@ -179,7 +179,7 @@ export function planTerritorialDeActualizar({
     menu.push({
       clave: `fuente:${hoja.id}`,
       etiqueta: etiquetaDe(hoja),
-      detalle: "Google Sheets · hoja de ruta",
+      detalle: "Google Sheets, hoja de ruta",
       titulo: `Traer de nuevo ${etiquetaDe(hoja)} y recalcular`,
       grupo: "fuentes",
       disabled: deshabilitado,

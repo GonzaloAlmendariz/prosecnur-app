@@ -1,0 +1,107 @@
+/* El bloque de Monitoreo sobre el `Panel` del kit (P2 de la pasada de formato). El marco sigue siendo
+ * el de `mon-profile-panel`; aquí sólo se le da a la cabecera del kit la piel que tenía la cabecera
+ * propia (`.mon-profile-panel > .mon-profile-panel-head`): una línea, filete abajo, título y bajada en
+ * el mismo renglón. */
+.mon-bloque.pulso-panel {
+  margin-bottom: 0;
+}
+
+/* Marco de perfil: la cabecera lleva el filete de `mon-profile-panel-head`. */
+.mon-profile-panel.mon-bloque > .pulso-panel-header {
+  align-items: center;
+  min-height: 36px;
+  margin: 0;
+  padding: 2px 1px 7px;
+  border-bottom: 1px solid var(--mon-profile-toolbar-border, var(--pulso-border));
+}
+
+/* El título no se encoge por debajo de su texto: si no caben título y acciones en un renglón, son
+ * las acciones las que bajan (con `min-width: 0` el título se salía de la tarjeta a 1024). */
+.mon-bloque .pulso-panel-heading {
+  flex: 1 0 auto;
+  max-width: 100%;
+}
+
+.mon-bloque .pulso-panel-title {
+  align-items: baseline;
+  column-gap: var(--pulso-space-2);
+  row-gap: 2px;
+  font-size: var(--pulso-type-body-size);
+  overflow-wrap: normal;
+}
+
+.mon-bloque > .pulso-panel-hint {
+  margin: 0;
+  max-width: 78ch;
+  line-height: 1.45;
+}
+
+.mon-bloque-bajada {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-bold);
+}
+
+/* Aulas: el escalón de título y la bajada a media tinta de su cabecera vigente (`aulasMonitoreo.css`,
+ * «un solo material de panel y dos escalones de tipo»): la píldora del contador se retiró allí. */
+.mon-profile-page.is-aulas-flow .mon-bloque .pulso-panel-title {
+  font-size: var(--pulso-type-title-size);
+  letter-spacing: -0.01em;
+}
+
+.mon-profile-page.is-aulas-flow .mon-bloque-bajada {
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-sec);
+  font-weight: var(--pulso-weight-medium);
+  letter-spacing: 0;
+}
+
+/* Marco del kit (territorial): el material es el del `Panel`; el bloque reparte sus hijos en columna
+ * y la cabecera va sin filete, como las de las vistas que reemplaza. */
+/* El padding del módulo en los cuatro lados (el kit pone 18 px a los costados): las tablas de las
+ * vistas sangran hasta el borde con `margin: 0 calc(-1 * var(--pulso-space-4))`. */
+.mon-bloque--kit.pulso-panel {
+  padding: var(--pulso-space-4);
+}
+
+/* Especificidad cero: el layout de cada vista (su `min-height`, su `gap`, su reparto en la rejilla)
+ * manda sobre este reparto por defecto aunque su hoja cargue antes. Con `.mon-bloque--kit` a secas
+ * el `min-height: 0` de aquí pisaba el de Faltante y la tarjeta medía 34 px a 1024 × 600. */
+:where(.mon-bloque--kit) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+}
+
+.mon-bloque--kit > .pulso-panel-header {
+  align-items: center;
+  margin: 0;
+}
+
+.mon-bloque--kit .pulso-panel-title {
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-weight-bold);
+}
+
+/* El antetítulo es el rótulo de la pestaña (§2a-bis), que trae su propia tipografía: el `eyebrow` del
+ * kit no le impone versalitas ni color. */
+.mon-bloque--kit .pulso-section-eyebrow {
+  margin-bottom: var(--pulso-space-2);
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.mon-bloque--kit .pulso-section-eyebrow:empty {
+  display: none;
+}
+
+@media (max-width: 1180px), (max-height: 760px) {
+  .mon-profile-panel.mon-bloque > .pulso-panel-header {
+    min-height: 32px;
+    padding: 1px 1px 6px;
+  }
+}

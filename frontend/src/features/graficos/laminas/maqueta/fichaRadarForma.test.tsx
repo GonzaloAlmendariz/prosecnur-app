@@ -23,13 +23,14 @@ describe("maqueta del radar entre públicos", () => {
     expect(f.glifo).toMatchObject({ formaRadar: "radar", tabla: true });
     expect(glifo(f)).toContain("pulso-glifo__rejilla");
   });
-  it("4 criterios en automático: líneas y puntos sin tabla (no la telaraña)", () => {
+  it("4 criterios en automático: líneas y puntos con su tabla (no la telaraña)", () => {
     const f = radar(4);
-    expect(f.glifo).toMatchObject({ formaRadar: "puntos", tabla: false });
+    expect(f.glifo).toMatchObject({ formaRadar: "puntos", tabla: true });
     const g = glifo(f);
     expect(g).not.toContain("pulso-glifo__rejilla");
     expect(g).toContain("<circle");
-    expect(f.ajustes).toEqual(expect.arrayContaining(["Líneas y puntos", "Sin tabla de datos"]));
+    expect(f.ajustes).toEqual(expect.arrayContaining(["Líneas y puntos"]));
+    expect(f.ajustes).not.toContain("Sin tabla de datos");
   });
   it("fallback barras: barras comparativas, dos por fila", () => {
     const f = radar(4, { fallback_pocos: "barras" });
@@ -41,9 +42,17 @@ describe("maqueta del radar entre públicos", () => {
     expect(radar(4, { forma: "radar" }).glifo).toMatchObject({ formaRadar: "radar", tabla: true });
     const conTabla = radar(4, { tabla: "si" });
     expect(conTabla.glifo).toMatchObject({ formaRadar: "puntos", tabla: true });
-    expect(glifo(conTabla)).not.toBe(glifo(radar(4)));
+    expect(glifo(radar(4, { tabla: "no" }))).not.toBe(glifo(conTabla));   // con «no», el glifo pierde su tabla
   });
   it("mostrar_tabla: false (proyectos viejos) equivale a tabla «no»", () => {
     expect(radar(6, { mostrar_tabla: false }).glifo.tabla).toBe(false);
+  });
+});
+
+describe("maqueta del radar en los otros modos", () => {
+  it.each(["sm", "box"])("modo %s: el radar solo, sin tabla (el motor la apaga, p_radar_split.R)", (modo) => {
+    const s = { id: "s", tipo: "p_slide_1_grafico", payload: { titulo: "T", grafico: { graficador: "p_radar", args: { modo, vars: criterios(5) } } } } as unknown as Slide;
+    const f = fichaDeRanura(ranurasDeMaqueta(s, VARS, {})[0], "Radar");
+    expect(f.glifo.tabla).toBe(false);
   });
 });

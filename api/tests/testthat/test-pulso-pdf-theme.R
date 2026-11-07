@@ -34,3 +34,12 @@ test_that("cabecera y pie Pulso PDF renderizan en ambas orientaciones", {
     unlink(path)
   }
 })
+
+test_that("el kit PDF dibuja el logo estándar de emblema de contorno", {
+  # La DAA de la PUCP observó el 2026-10-30 que el emblema de círculo relleno
+  # (`hojas_ruta/assets/logo_pulso.png`) no es el oficial; el oficial es el de
+  # contorno, que es el logo estándar del repo (ADR 0093).
+  ruta <- .pulso_pdf_logo_path()
+  expect_false(is.na(ruta))
+  expect_match(normalizePath(ruta), "estandar/logos/logo_pulso\\.png$")
+})

@@ -1,0 +1,155 @@
+/* =============================================================================
+   Movimiento — el vocabulario común de la app (5 nov 2026)
+   =============================================================================
+   Gonzalo: «puede tener un sistema de animación más sofisticado y universal».
+   Los TIEMPOS y las CURVAS ya eran comunes (tokens --motion-* en tokens.css);
+   los GESTOS no: había 278 @keyframes con 177 cuerpos distintos, y los cuatro
+   más repetidos —aparecer, girar, subir 6 px, emerger escalando— eran 69
+   copias con 69 nombres. Aquí vive un gesto por propósito; las hojas de los
+   módulos los nombran en vez de redefinirlos.
+
+   Se carga con la suite (AppSuite.tsx), así que lo usa cualquier hoja de
+   features/. NO lo usan las hojas del chunk de arranque (boot.css,
+   pantalla-de-carga.css) ni las de components/ que el selector monta antes
+   de la suite: esas conservan sus keyframes.
+
+   Gestos (cada uno con su propósito nombrable, contrato de movimiento F6 §0):
+   - pulso-mov-aparece  algo que llega sin venir de un lugar (velo, contenido
+                        que reemplaza a otro).
+   - pulso-mov-sube     algo que entra en el flujo de la página (tarjeta,
+                        sección, fila). Distancia en --mov-dy (6 px).
+   - pulso-mov-emerge   algo que se abre desde su disparador (popover, menú):
+                        baja 6 px y escala desde .97. Nunca desde scale(0).
+   - pulso-mov-escala   un diálogo o lámina centrada que se presenta.
+   - pulso-mov-entra-lado  un panel lateral que entra desde su borde
+                        (--mov-dx, 24 px).
+   - pulso-mov-sube-corto  lo mismo, a 4 px: entradas sutiles dentro de un
+                        panel que ya entró (segundo lote, 5 nov 2026).
+   - pulso-mov-pop      una marca que se confirma (un check, un punto): desde
+                        .6, nunca desde 0.
+   - pulso-mov-giro     el único bucle: un indicador de espera.
+
+   Utilidad por atributo, para lo que se monta y no tiene hoja propia:
+     <section data-entra="sube" style="--i: 2">
+   escalona 30 ms por índice con tope de 3 (90 ms, el techo del ratchet de
+   retardo en movimiento.contract.test.ts).
+
+   Movimiento reducido: los gestos con desplazamiento quedan en opacidad.
+   ============================================================================= */
+
+@keyframes pulso-mov-aparece {
+  from { opacity: 0; }
+}
+
+@keyframes pulso-mov-sube {
+  from { opacity: 0; transform: translateY(var(--mov-dy, 6px)); }
+}
+
+@keyframes pulso-mov-sube-corto {
+  from { opacity: 0; transform: translateY(4px); }
+}
+
+@keyframes pulso-mov-pop {
+  from { opacity: 0; transform: scale(0.6); }
+}
+
+@keyframes pulso-mov-emerge {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+}
+
+@keyframes pulso-mov-escala {
+  from { opacity: 0; transform: scale(0.97); }
+}
+
+@keyframes pulso-mov-entra-lado {
+  from { opacity: 0; transform: translateX(var(--mov-dx, 24px)); }
+}
+
+@keyframes pulso-mov-giro {
+  to { transform: rotate(360deg); }
+}
+
+[data-entra] {
+  animation-duration: var(--motion-dur-base);
+  animation-timing-function: var(--motion-ease-out);
+  animation-fill-mode: backwards;
+  animation-delay: calc(min(var(--i, 0), 3) * 30ms);
+}
+
+[data-entra="aparece"] { animation-name: pulso-mov-aparece; }
+[data-entra="sube"] { animation-name: pulso-mov-sube; }
+[data-entra="emerge"] { animation-name: pulso-mov-emerge; animation-duration: var(--motion-dur-fast); }
+[data-entra="escala"] { animation-name: pulso-mov-escala; }
+[data-entra="lado"] { animation-name: pulso-mov-entra-lado; animation-duration: var(--motion-dur-panel); animation-timing-function: var(--motion-ease-drawer); }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-entra] { animation-name: pulso-mov-aparece; animation-delay: 0ms; }
+}
+
+/* =============================================================================
+   Microinteracciones: pasar, presionar (5 nov 2026)
+   =============================================================================
+   Gonzalo: «¿y qué hay de las animaciones al pasar por un botón, apretarlo y todo eso?». Medido ese día: 296
+   reglas :active con 11 escalas distintas (0.94 a 0.995) y hover que levanta −1 o −2 px según el módulo. El
+   estándar son DOS presiones con nombre:
+   - --mov-press: 0.97, controles (botones, chips, pestañas): se siente el clic.
+   - --mov-press-tarjeta: 0.985, superficies grandes (tarjetas, filas clicables): escalar una tarjeta a .97
+     la encoge de golpe; a .985 sólo «cede».
+   Y un hover que, si levanta, levanta 1 px (--mov-hover-lift), siempre bajo (hover: hover) para que en
+   pantalla táctil no quede pegado.
+
+   Regla base: todo botón habilitado que NO declare su propia presión cede a --mov-press al apretarlo. Va en
+   :where() (especificidad 0): cualquier regla de un módulo —incluida una que fije su transform para
+   posicionar— gana sin pelear, así que no mueve nada que ya estuviera puesto. */
+:root {
+  /* Foco visible (6 nov 2026): 2 px sólidos en el tono del módulo, azul de marca fuera de un módulo. Medido ese
+     día: 70 reglas dibujaban el foco con --pulso-primary-focus, que es navy al 15 %: un anillo de ~1,2:1 de
+     contraste, invisible para quien navega con teclado (WCAG 2.4.7 / 1.4.11 piden 3:1). */
+  --mov-foco: 2px solid var(--module-accent, var(--pulso-primary));
+  --mov-press: 0.97;
+  --mov-press-tarjeta: 0.985;
+  --mov-hover-lift: -1px;
+}
+
+:where(button, [role="button"], [role="tab"], summary):where(:not(:disabled, [aria-disabled="true"])) {
+  transition-property: transform, background-color, border-color, color, box-shadow, opacity;
+  transition-duration: var(--motion-dur-press);
+  transition-timing-function: var(--motion-ease-out);
+}
+
+:where(button, [role="button"], [role="tab"], summary):where(:not(:disabled, [aria-disabled="true"])):active {
+  transform: scale(var(--mov-press));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(button, [role="button"], [role="tab"], summary):active { transform: none; }
+}
+
+/* =============================================================================
+   Cambio de sección o pestaña (6 nov 2026)
+   =============================================================================
+   La ruta ya entra con `.pulso-route-surface`; la sección y la pestaña viven en la query y no re-montan nada,
+   así que el contenido saltaba. PageFrame marca su cuerpo con data-cambio-vista="a"|"b" (useCambioDeVista),
+   que alterna en cada cambio: dos keyframes iguales con distinto nombre reinician la entrada sin re-montar la
+   vista. Sólo el cuerpo: la barra de pestañas queda quieta. Breve (--motion-dur-fast) y sutil (4 px). */
+@keyframes pulso-mov-vista-a {
+  from { opacity: 0; transform: translateY(4px); }
+}
+
+@keyframes pulso-mov-vista-b {
+  from { opacity: 0; transform: translateY(4px); }
+}
+
+.pulso-page-frame-body[data-cambio-vista] {
+  animation-duration: var(--motion-dur-fast);
+  animation-timing-function: var(--motion-ease-out);
+  /* backwards, no both: un transform retenido haría del cuerpo el containing block de sus fixed. */
+  animation-fill-mode: backwards;
+}
+
+.pulso-page-frame-body[data-cambio-vista="a"] { animation-name: pulso-mov-vista-a; }
+.pulso-page-frame-body[data-cambio-vista="b"] { animation-name: pulso-mov-vista-b; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-page-frame-body[data-cambio-vista] { animation: none; }
+}

@@ -1,3 +1,4 @@
+import { enumerar } from "../../../../lib/enumerar";
 import { useMemo } from "react";
 
 import { MessageSquareText } from "../../../../vendor/lucide-react";
@@ -77,19 +78,19 @@ export function AulasObservacionesDeCampo({ partes, registros = [] }: {
         {r.partes === 1 ? "curso-horario gestionado trae" : "cursos-horario gestionados traen"} observación
         {r.conNota > r.aulasConNota ? (
           <>
-            {" "}· <strong>{fmt(r.conNota)}</strong>{" "}
+            ,{" "}<strong>{fmt(r.conNota)}</strong>{" "}
             {r.conNota === 1 ? "nota" : "notas"} en total
           </>
         ) : null}
         {r.observaciones.length < r.conNota ? (
           <>
-            {" "}· <strong>{fmt(r.observaciones.length)}</strong>{" "}
+            ,{" "}<strong>{fmt(r.observaciones.length)}</strong>{" "}
             {r.observaciones.length === 1 ? "cosa distinta" : "cosas distintas"}
           </>
         ) : null}
         {r.partes > r.aulasConNota ? (
           <>
-            {" "}·{" "}
+            ,{" "}
             <span className="aulas-observaciones-hueco">
               {fmt(r.partes - r.aulasConNota)} sin anotar
             </span>
@@ -139,9 +140,9 @@ export function AulasObservacionesDeCampo({ partes, registros = [] }: {
               {/* Nombres normalizados y unidos con punto medio: un nombre YA
                   lleva su coma y juntarlos con otra los duplicaba a la vista. */}
               {o.aplicadores.length
-                ? <> · {o.aplicadores.map(nombreDeAplicador).join(" · ")}</> : null}
-              {o.facultades.length === 1 ? <> · {o.facultades[0]}</> : null}
-              {o.facultades.length > 1 ? <> · {fmt(o.facultades.length)} facultades</> : null}
+                ? <>, {enumerar(o.aplicadores.map(nombreDeAplicador))}</> : null}
+              {o.facultades.length === 1 ? <>, {o.facultades[0]}</> : null}
+              {o.facultades.length > 1 ? <>, {fmt(o.facultades.length)} facultades</> : null}
               {/* TODOS los códigos, como badges que envuelven (B33: jamás
                   «y N más» — la lista se organiza, no se esconde). Una
                   observación repetida en cuarenta cursos-horario es un patrón

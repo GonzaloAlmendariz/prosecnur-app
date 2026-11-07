@@ -1,11 +1,26 @@
-import { useState, type ReactNode } from "react";
+import { useCallback, type ReactNode } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { LayoutList, ListChecks } from "../../vendor/lucide-react";
 import type { Pregunta, Seccion } from "../../api/client";
 import { GlidingTabList } from "../../components/GlidingTabList";
+import { conNivel } from "../../lib/navegacion/direccion";
+import { useDireccion } from "../../lib/navegacion/useDireccion";
 import PreguntasPanel from "./PreguntasPanel";
 import SeccionesPanel from "./SeccionesPanel";
 
 type StructureView = "sections" | "questions";
+
+/**
+ * La vista viaja en el `foco` de Carga › Estructura (L19), como la hoja en Formularios › Hojas:
+ * `foco=preguntas`; Secciones es la de siempre y no se escribe.
+ */
+export function vistaEstructuraDesdeFoco(foco: string | null | undefined): StructureView {
+  return foco === "preguntas" ? "questions" : "sections";
+}
+
+export function focoDeVistaEstructura(vista: StructureView): string | null {
+  return vista === "questions" ? "preguntas" : null;
+}
 
 export function CargaStructureWorkbench({
   estructura,
@@ -14,7 +29,18 @@ export function CargaStructureWorkbench({
   estructura: { secciones: Seccion[]; preguntas: Pregunta[] };
   schemaSelector?: ReactNode;
 }) {
-  const [activeView, setActiveView] = useState<StructureView>("sections");
+  const activeView = vistaEstructuraDesdeFoco(useDireccion()?.foco);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const setActiveView = useCallback(
+    (vista: StructureView) => {
+      navigate(
+        { pathname: location.pathname, search: conNivel(location.search, "foco", focoDeVistaEstructura(vista)) },
+        { replace: true },
+      );
+    },
+    [location.pathname, location.search, navigate],
+  );
 
   return (
     <section
@@ -28,7 +54,7 @@ export function CargaStructureWorkbench({
             Estructura del instrumento
           </h2>
           <span className="pulso-carga-structure-count">
-            {estructura.secciones.length} secciones · {estructura.preguntas.length} ítems
+            {estructura.secciones.length} secciones, {estructura.preguntas.length} ítems
           </span>
         </div>
         {schemaSelector && (

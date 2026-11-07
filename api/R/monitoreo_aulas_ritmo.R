@@ -61,16 +61,22 @@ MONITOREO_AULAS_COLUMNAS_FECHA <- c(
 #'   operativo. Un dia FUERA de los extremos no se descarta: los extremos se
 #'   ensanchan hasta contenerlo, porque perder una respuesta para que el eje
 #'   quede bonito es peor que un eje mas ancho.
+#' @param con_hora Si agrega `por_hora`: las validas por hora local del dia
+#'   (0-23), de la MISMA marca que fecha el dia. Solo la serie global la pide
+#'   (Avance > Rendimiento, «Hora en que se responde»); las series por facultad
+#'   no la necesitan y no la cargan.
 monitoreo_aulas_ritmo_diario <- function(responses = data.frame(),
                                          valid_response = logical(0),
                                          meta = 0,
                                          brecha = NULL,
                                          desde = NULL,
-                                         hasta = NULL) {
+                                         hasta = NULL,
+                                         con_hora = FALSE) {
   .brecha <- suppressWarnings(as.numeric(brecha %||% NA_real_))
   .brecha <- if (length(.brecha) == 1L && is.finite(.brecha)) max(0, .brecha) else NA_real_
   vacio <- list(dias = list(), dias_con_campo = 0L, mejor_dia = NULL,
                 media_diaria = 0, meta = as.numeric(meta %||% 0), brecha = .brecha)
+  if (isTRUE(con_hora)) vacio$por_hora <- list()
   if (!is.data.frame(responses) || !nrow(responses)) return(vacio)
 
   col <- .monitoreo_aulas_col(responses, MONITOREO_AULAS_COLUMNAS_FECHA)
@@ -117,7 +123,7 @@ monitoreo_aulas_ritmo_diario <- function(responses = data.frame(),
 
   con_campo <- sum(as.integer(por_dia) > 0L)
   mejor <- which.max(as.integer(por_dia))
-  list(
+  out <- list(
     dias = dias,
     dias_con_campo = as.integer(con_campo),
     # El mejor dia es la vara con la que se juzga si el ritmo alcanza: sin el,
@@ -129,4 +135,22 @@ monitoreo_aulas_ritmo_diario <- function(responses = data.frame(),
     meta = as.numeric(meta %||% 0),
     brecha = .brecha
   )
+  if (isTRUE(con_hora)) out$por_hora <- .mar_por_hora(responses[[col]][keep])
+  out
+}
+
+# Validas por hora local, solo las horas que tienen alguna. La hora se lee de la
+# marca TAL COMO la escribio el dispositivo (`monitoreo_aulas_hora_local`), con
+# el mismo criterio que fecha el dia: con `_submission_time` en UTC un aula de
+# las 11:00 de Lima saldria a las 16:00. Una marca sin hora legible no se cuenta
+# en ninguna hora: la suma puede quedar por debajo de las validas, y la vista lo
+# dice en vez de repartir las que faltan.
+.mar_por_hora <- function(marcas) {
+  h <- monitoreo_aulas_hora_local(marcas)
+  h <- suppressWarnings(as.integer(substr(h[nzchar(h)], 1L, 2L)))
+  h <- h[!is.na(h) & h >= 0L & h <= 23L]
+  if (!length(h)) return(list())
+  tabla <- table(h)
+  horas <- sort(as.integer(names(tabla)))
+  lapply(horas, function(x) list(hora = x, validas = as.integer(tabla[[as.character(x)]])))
 }

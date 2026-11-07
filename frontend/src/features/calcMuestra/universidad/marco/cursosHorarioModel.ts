@@ -77,7 +77,7 @@ export function cursoHorarioSexRows(
       const label = classroomRowText(row, ["course_name", "curso", "label", "classroom_label", "aula", "classroom_id"]) || `Curso-horario ${index + 1}`;
       const detail = [program, level ? `ciclo ${level}` : "", classroomId && classroomId !== label ? classroomId : ""]
         .filter(Boolean)
-        .join(" · ");
+        .join(", ");
       return {
         id: classroomId || `${label}-${index}`,
         label,

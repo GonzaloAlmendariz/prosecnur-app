@@ -14,6 +14,7 @@ import { DiagramaArbol } from "../shared/DiagramaArbol";
 import { stripPrefijo } from "../shared/displayVar";
 import { useDimensionesWizardStore } from "../store";
 
+import { formatoConteo } from "../../../../lib/formatoNumero";
 // Step 5 — Confirmar y generar. Muestra el árbol resumen + editor
 // compacto del semáforo + botón grande "Generar dimensiones".
 //
@@ -73,13 +74,13 @@ export function Step5_Confirmar({ onSuccess }: { onSuccess: () => void }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18, position: "relative" }}>
       <header>
-        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>
+        <h2 style={{ margin: 0, fontSize: "var(--pulso-type-kpi-size)", fontWeight: 800 }}>
           Revisa la estructura y genera
         </h2>
         <p
           style={{
             margin: "6px 0 0",
-            fontSize: 13,
+            fontSize: "var(--pulso-type-body-size)",
             color: "var(--pulso-text-soft)",
             lineHeight: 1.5,
             maxWidth: 720,
@@ -116,7 +117,7 @@ export function Step5_Confirmar({ onSuccess }: { onSuccess: () => void }) {
           padding: "10px 14px",
           borderRadius: 10,
           background: "var(--pulso-surface-2, #f4f5f9)",
-          fontSize: 12,
+          fontSize: "var(--pulso-type-body-size)",
         }}
       >
         <summary style={{ cursor: "pointer", fontWeight: 600 }}>
@@ -124,7 +125,7 @@ export function Step5_Confirmar({ onSuccess }: { onSuccess: () => void }) {
         </summary>
         <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
           <div style={{ color: "var(--pulso-text-soft)" }}>
-            Cortes: <strong>{draft.semaforo.cortes.join(" / ")}</strong> · Colores:{" "}
+            Cortes: <strong>{draft.semaforo.cortes.join(" / ")}</strong>; colores:{" "}
             <ColorChip c={draft.semaforo.colores.rojo} l="rojo" />
             <ColorChip c={draft.semaforo.colores.ambar} l="ámbar" />
             <ColorChip c={draft.semaforo.colores.verde} l="verde" />
@@ -146,7 +147,7 @@ export function Step5_Confirmar({ onSuccess }: { onSuccess: () => void }) {
             border: "1px solid var(--pulso-danger-border)",
             background: "var(--pulso-danger-bg)",
             color: "var(--pulso-danger-fg)",
-            fontSize: 13,
+            fontSize: "var(--pulso-type-body-size)",
           }}
         >
           {error}
@@ -177,7 +178,7 @@ export function Step5_Confirmar({ onSuccess }: { onSuccess: () => void }) {
             display: "inline-flex",
             alignItems: "center",
             gap: 8,
-            fontSize: 14,
+            fontSize: "var(--pulso-type-subtitle-size)",
             padding: "10px 18px",
             fontWeight: 700,
           }}
@@ -185,10 +186,10 @@ export function Step5_Confirmar({ onSuccess }: { onSuccess: () => void }) {
           {busy ? <Loader2 size={16} className="pulso-spin" /> : <IconAI size={16} />}
           {busy ? "Generando…" : "Generar dimensiones"}
         </button>
-        <div style={{ flex: 1, fontSize: 12, color: "var(--pulso-text)" }}>
+        <div style={{ flex: 1, fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text)" }}>
           {resultado ? (
             <>
-              <strong>¡Listo!</strong> {resultado.n_filas.toLocaleString("es-PE")} filas,{" "}
+              <strong>¡Listo!</strong> {formatoConteo(resultado.n_filas)} filas,{" "}
               {resultado.n_sub} bloques, {resultado.n_idx} índices.
             </>
           ) : (
@@ -205,7 +206,7 @@ export function Step5_Confirmar({ onSuccess }: { onSuccess: () => void }) {
       <p
         style={{
           margin: 0,
-          fontSize: 11,
+          fontSize: "var(--pulso-type-caption-size)",
           color: "var(--pulso-text-soft)",
           lineHeight: 1.5,
         }}
@@ -289,10 +290,10 @@ function DetalleEstructura() {
       >
         <header style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
           <Layers size={14} color="var(--pulso-primary)" />
-          <h3 style={{ margin: 0, fontSize: 13, fontWeight: 700 }}>
+          <h3 style={{ margin: 0, fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 700 }}>
             Bloques temáticos ({draft.subindices.length})
           </h3>
-          <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
+          <span style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)" }}>
             cada bloque será un sub-índice 0-100
           </span>
         </header>
@@ -332,8 +333,8 @@ function DetalleEstructura() {
                       transform: open ? "rotate(0deg)" : "rotate(-90deg)",
                     }}
                   />
-                  <strong style={{ fontSize: 13, flex: 1 }}>{b.etiqueta}</strong>
-                  <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
+                  <strong style={{ fontSize: "var(--pulso-type-body-size)", flex: 1 }}>{b.etiqueta}</strong>
+                  <span style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)" }}>
                     {b.vars.length} {b.vars.length === 1 ? "var" : "vars"}
                   </span>
                 </button>
@@ -355,7 +356,7 @@ function DetalleEstructura() {
                           display: "flex",
                           alignItems: "center",
                           gap: 8,
-                          fontSize: 12,
+                          fontSize: "var(--pulso-type-body-size)",
                           color: "var(--pulso-text)",
                           padding: "3px 0",
                         }}
@@ -363,8 +364,8 @@ function DetalleEstructura() {
                         <span style={{ flex: 1 }}>{labelDeVar(v)}</span>
                         <code
                           style={{
-                            fontFamily: "ui-monospace, monospace",
-                            fontSize: 10,
+                            fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                            fontSize: "var(--pulso-type-micro-size)",
                             color: "var(--pulso-text-soft)",
                           }}
                         >
@@ -392,10 +393,10 @@ function DetalleEstructura() {
         >
           <header style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
             <Sigma size={14} color="var(--pulso-primary)" />
-            <h3 style={{ margin: 0, fontSize: 13, fontWeight: 700 }}>
+            <h3 style={{ margin: 0, fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 700 }}>
               Índices compuestos ({draft.indices.length})
             </h3>
-            <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
+            <span style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)" }}>
               promedio 0-100 de varios bloques
             </span>
           </header>
@@ -437,20 +438,20 @@ function DetalleEstructura() {
                         transform: open ? "rotate(0deg)" : "rotate(-90deg)",
                       }}
                     />
-                    <strong style={{ fontSize: 13, flex: 1 }}>{idx.etiqueta}</strong>
+                    <strong style={{ fontSize: "var(--pulso-type-body-size)", flex: 1 }}>{idx.etiqueta}</strong>
                   </button>
                   {open && (
                     <div
                       style={{
                         padding: "0 12px 10px 32px",
-                        fontSize: 12,
+                        fontSize: "var(--pulso-type-body-size)",
                         color: "var(--pulso-text)",
                       }}
                     >
                       <div
                         style={{
-                          fontFamily: "ui-monospace, monospace",
-                          fontSize: 11,
+                          fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                          fontSize: "var(--pulso-type-caption-size)",
                           padding: "6px 10px",
                           background: "var(--pulso-surface-2, #f4f5f9)",
                           borderRadius: 6,
@@ -480,7 +481,7 @@ function ColorChip({ c, l }: { c: string; l: string }) {
         alignItems: "center",
         gap: 4,
         marginLeft: 6,
-        fontSize: 11,
+        fontSize: "var(--pulso-type-caption-size)",
       }}
     >
       <span

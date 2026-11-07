@@ -34,7 +34,7 @@
 }
 
 .pulso-xftr-section-head small {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 
@@ -64,7 +64,7 @@
 .pulso-xftr-apply:active:not(:disabled),
 .pulso-xftr-chip:active:not(:disabled),
 .pulso-xftr-sample:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-xftr-cta:focus-visible,
@@ -85,7 +85,7 @@
   border: 1px solid var(--pulso-border);
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-xftr-ghost {
@@ -94,7 +94,7 @@
   border: 1px solid var(--pulso-border);
   background: var(--pulso-surface);
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .pulso-xftr-apply {
@@ -103,7 +103,7 @@
   border: 1px solid var(--pulso-primary);
   background: var(--pulso-primary);
   color: #ffffff;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   box-shadow: 0 2px 8px rgba(0, 36, 87, 0.18);
 }
 
@@ -125,7 +125,7 @@
   border-radius: 14px;
   background: var(--pulso-surface);
   transform-origin: top left;
-  animation: pulso-xftr-pop-in var(--motion-dur-fast) var(--motion-ease-out) both;
+  animation: pulso-mov-emerge var(--motion-dur-fast) var(--motion-ease-out) both;
 }
 
 .pulso-xftr-cat {
@@ -133,7 +133,7 @@
   flex-direction: column;
   gap: 5px;
   min-width: 0;
-  animation: pulso-xftr-fade-up var(--motion-dur-base) var(--motion-ease-out) both;
+  animation: pulso-mov-sube-corto var(--motion-dur-base) var(--motion-ease-out) both;
 }
 
 .pulso-xftr-cat:nth-child(2) { animation-delay: 30ms; }
@@ -141,10 +141,8 @@
 .pulso-xftr-cat:nth-child(4) { animation-delay: 90ms; }
 
 .pulso-xftr-cat-label {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--pulso-text-muted);
 }
 
@@ -160,7 +158,7 @@
   border: 1px solid var(--pulso-border);
   background: var(--pulso-surface-2);
   color: var(--pulso-text);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .pulso-xftr-chip svg {
@@ -179,7 +177,7 @@
   border-radius: 14px;
   background: var(--pulso-surface);
   transform-origin: top left;
-  animation: pulso-xftr-pop-in var(--motion-dur-fast) var(--motion-ease-out) both;
+  animation: pulso-mov-emerge var(--motion-dur-fast) var(--motion-ease-out) both;
 }
 
 .pulso-xftr-phrase {
@@ -187,7 +185,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 4px;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
   min-width: 0;
@@ -228,7 +226,7 @@
 }
 
 .pulso-xftr-equiv {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 
@@ -263,7 +261,7 @@
   border: 1px solid var(--pulso-border);
   border-radius: 999px;
   background: var(--pulso-surface-2);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text);
   transition:
     border-color var(--motion-dur-fast) ease,
@@ -276,10 +274,10 @@
   gap: 4px;
   padding: 2px 9px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-heavy);
   white-space: nowrap;
-  animation: pulso-xftr-fade-up var(--motion-dur-fast) var(--motion-ease-out) both;
+  animation: pulso-mov-sube-corto var(--motion-dur-fast) var(--motion-ease-out) both;
 }
 
 .pulso-xftr-verdict.is-ok {
@@ -307,13 +305,13 @@
   border: 1px dashed var(--pulso-border);
   background: transparent;
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 .pulso-xftr-note {
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-muted);
 }
 
@@ -346,7 +344,7 @@
 .pulso-xftr-summary-title {
   flex: 1;
   min-width: 120px;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
@@ -363,7 +361,7 @@
   padding: 2px 9px;
   border-radius: 999px;
   background: var(--pulso-surface-2);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text-muted);
   white-space: nowrap;
@@ -394,28 +392,6 @@
 }
 
 /* ── Keyframes ────────────────────────────────────────────────────────── */
-
-@keyframes pulso-xftr-pop-in {
-  from {
-    opacity: 0;
-    transform: translateY(-6px) scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@keyframes pulso-xftr-fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
 
 /* ── Reduced motion ───────────────────────────────────────────────────── */
 

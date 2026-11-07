@@ -8,13 +8,15 @@ import type { BuilderNode } from "../types";
 import { PiezasLectura } from "../kit/CuerpoPanelMarca";
 import { LECTURA_FILA_ROTA } from "../reglas/motor/filaRota";
 import { EditarEnConstructor } from "../shell/EditarEnConstructor";
-import { alternarFijaCascada, conExpresion, marcarCascada, marcarFijo, reemplazarCodigos, renombrarColumna } from "./escrituraFiltros";
+import { alternarFijaCascada, conExpresion, fijarNumeroOpcion, leerComparacion, marcarCascada, marcarFijo, reemplazarCodigos, renombrarColumna } from "./escrituraFiltros";
+import { ColumnaNumerica } from "./ColumnaNumerica";
+import { stripMarkdown } from "../helpers/markdown";
 import type { FraseFiltro } from "./fraseFiltro";
 import { ChipEstado } from "./ListaFiltros";
 import { ListaFija } from "./ListaFija";
 import { MatrizCascada } from "./MatrizCascada";
 import { MatrizPorOpcion } from "./MatrizPorOpcion";
-import { NOMBRE_TIPO, respuestasIniciales, type AnalisisFiltro, type Diagnostico, type Respuestas } from "./modeloFiltros";
+import { nombreDeTipo, respuestasIniciales, type AnalisisFiltro, type Diagnostico, type Respuestas } from "./modeloFiltros";
 import { OpcionesDeExpresion } from "./OpcionesDeExpresion";
 import type { PreguntaElegible } from "./SelectorPreguntaFiltro";
 import { VistaEncuestado } from "./VistaEncuestado";
@@ -85,7 +87,7 @@ export function DetalleFiltro({ id, a, frase, workbook, porNombre, candidatas, o
       const e = a.entradas.find((x) => x.nombre === d.entrada);
       const nombres = d.respuestas.map((r) => e?.respuestas?.find((x) => x.codigo === r)?.etiqueta ?? r);
       return {
-        titulo: d.respuestas.length === 1 ? <>Con <b>{nombres[0]}</b> la lista queda vacía</> : <>Con {d.respuestas.length} respuestas de <code>{d.entrada}</code> la lista queda vacía</>,
+        titulo: d.respuestas.length === 1 ? <>Con <b>{nombres[0]}</b> la lista queda vacía</> : <>La lista queda vacía con {d.respuestas.length} respuestas</>,
         sub: d.respuestas.length === 1 ? <>Ninguna opción tiene <code>{d.respuestas[0]}</code>.</> : lista(nombres, 4),
         arreglo: null,
         ver: true,
@@ -128,6 +130,12 @@ export function DetalleFiltro({ id, a, frase, workbook, porNombre, candidatas, o
     if (a.tipo === "fijo" && a.fijo && workbook) {
       return <ListaFija a={a} choices={choices} editable={editable} onMarcar={(cods, v) => escribir(marcarFijo(workbook, a.fila, a.lista, a.fijo!, cods, v))} />;
     }
+    const comparacion = workbook ? leerComparacion(a.expresion) : null;
+    if (comparacion && workbook) {
+      return <ColumnaNumerica a={a} choices={choices} columna={comparacion.columna} operador={comparacion.operador}
+        pregunta={porNombre.get(comparacion.pregunta)?.label ? stripMarkdown(porNombre.get(comparacion.pregunta)!.label) : comparacion.pregunta}
+        editable={editable} onNumero={(cod, v) => escribir(fijarNumeroOpcion(workbook, a.lista, comparacion.columna, cod, v))} />;
+    }
     return <OpcionesDeExpresion a={a} resaltadas={resaltadas} />;
   })();
 
@@ -138,7 +146,7 @@ export function DetalleFiltro({ id, a, frase, workbook, porNombre, candidatas, o
       <header className="xcf-detalle__cab">
         <div className="xcf-detalle__meta">
           <code className="xcf-detalle__codigo">{a.pregunta}</code>
-          <span className="xcf-chip">{NOMBRE_TIPO[a.tipo]}</span>
+          <span className="xcf-chip">{nombreDeTipo(a)}</span>
           <span className="xcf-nota">lista <code>{a.lista || "—"}</code></span>
           <span className="xcf-esp" />
           <ChipEstado estado={a.estado} />
@@ -147,7 +155,7 @@ export function DetalleFiltro({ id, a, frase, workbook, porNombre, candidatas, o
         </div>
         <h3 className="xcf-detalle__titulo">{a.etiqueta}</h3>
         <p id={`${id}-frase`} className={fraseLarga && !fraseEntera ? "xcf-detalle__frase is-recortada" : "xcf-detalle__frase"}>
-          {frase?.piezas ? <><PiezasLectura piezas={frase.piezas} />.</> : frase?.texto}
+          {frase?.piezas ? <><PiezasLectura piezas={frase.piezas} />{/[?!…»]$/.test(frase.texto.trim()) ? null : "."}</> : frase?.texto}
           {frase?.tecnica ? <code className="xcf-detalle__raw">{a.expresion}</code> : null}
         </p>
         {fraseLarga ? (

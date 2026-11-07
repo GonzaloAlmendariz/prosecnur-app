@@ -48,8 +48,8 @@ export function ComposicionPorFacultad({ unidades }: { unidades: CollectionUnit[
       title={<><Building2 size={18} aria-hidden /> Por facultad</>}
     >
       <p className="rec-facultades-lead">
-        {c.filas.length} facultades · {miles(c.elegibles)} alumnos elegibles ·
-        {" "}{respaldo.toFixed(1)} reservas por aula
+        {c.filas.length} facultades, {miles(c.elegibles)} alumnos elegibles y
+        {" "}{respaldo.toLocaleString("es-PE", { maximumFractionDigits: 1 })} reservas por aula
       </p>
       <p className="rec-facultades-cabecera" aria-hidden>
         <span>aulas</span><span>elegibles</span>

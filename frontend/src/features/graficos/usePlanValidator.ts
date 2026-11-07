@@ -16,6 +16,7 @@ import { avisaTtbSinRespuestas } from "./laminas/ttbSinRespuestas";
 import { laBase, type RelacionBases } from "./relacionBases";
 import { baseImplicitaDe, basesPorNombre } from "./fijarBase";
 import { conteoBarrasMultiapiladas, excedeTope, laminasNecesarias, MAX_BARRAS_MULTIAPILADAS } from "./multiapiladas/topeBarras";
+import { formatoConteo } from "../../lib/formatoNumero";
 
 // Validador del plan 100% client-side: deriva warnings/errores de lo
 // que ya vive en el store + registry + variables del instrumento. Sin
@@ -76,7 +77,7 @@ export type ValidationIssue = {
     | "ttb-sin-respuestas"
     | "radar-criterios";
   message: string;
-  /** El mensaje sin «Lámina N · “título” (tipo)»: para mostrarlo dentro de la lámina (Inspector). */
+  /** El mensaje sin «Lámina N, “título” (tipo)»: para mostrarlo dentro de la lámina (Inspector). */
   detalle?: string;
   slideId?: string;       // para poder saltar al slide afectado
   slotName?: string;
@@ -124,7 +125,7 @@ export type EntradaValidarPlan = {
   relacionBases?: RelacionBases;
 };
 
-// Los textos nombran la lámina como el backend (`rotuloLamina`: «Lámina 3 · “título”») y su tipo y espacio como el
+// Los textos nombran la lámina como el backend (`rotuloLamina`: «Lámina 3, “título”») y su tipo y espacio como el
 // selector; el id de la lámina viaja sólo en `slideId`, para «Ir a la lámina».
 export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
   const { slides, presets, wPresets, overridesReusables, paletas, iconos, slidesById, graficadoresById, presetsByName, variables, multi, relacionBases } = entrada;
@@ -532,7 +533,7 @@ function frasePreguntasEnBase(etiquetas: string[], base: string): string {
   const vistas = etiquetas.slice(0, 2).map((e) => `«${e}»`);
   const resto = etiquetas.length - vistas.length;
   const lista = resto ? `${vistas.join(", ")} y ${resto === 1 ? "1 más" : `${resto} más`}` : vistas.join(" y ");
-  return `${etiquetas.length} preguntas (${lista}) se leen de ${laBase(base)}.`;
+  return `${formatoConteo(etiquetas.length)} preguntas (${lista}) se leen de ${laBase(base)}.`;
 }
 
 /** El texto visible de la pregunta en esa base, sin HTML y acotado; nunca su nombre interno salvo que no tenga texto. */
@@ -551,7 +552,7 @@ function enMayuscula(texto: string): string {
   return texto ? texto.charAt(0).toLocaleUpperCase("es") + texto.slice(1) : texto;
 }
 
-/** «Estas preguntas…» → «estas preguntas…», para ir detrás de «Lámina 3 · …: ». */
+/** «Estas preguntas…» → «estas preguntas…», para ir detrás de «Lámina 3, …: ». */
 function enMinuscula(texto: string): string {
   return texto ? texto.charAt(0).toLocaleLowerCase("es") + texto.slice(1) : texto;
 }

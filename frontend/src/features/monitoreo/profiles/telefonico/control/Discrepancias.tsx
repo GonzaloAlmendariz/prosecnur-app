@@ -18,6 +18,8 @@ import {
 import { RotuloDePestana, useHayRotulo } from "../navegacion/RotuloDePestana";
 import "./controlTelefonico.css";
 import "./discrepancias.css";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
+import { copiarTexto } from "../../../../../lib/portapapeles";
 
 const TODOS = "";
 
@@ -28,7 +30,7 @@ const ROTULO_DE_DECISION: Record<EstadoDeDecision, string> = {
 };
 
 function n(valor: number) {
-  return valor.toLocaleString("es-PE");
+  return formatoConteo(valor);
 }
 
 function fechaHora(iso: string) {
@@ -77,7 +79,7 @@ export function Discrepancias({
 
   const copiar = async () => {
     try {
-      await navigator.clipboard.writeText(textoParaElEquipo(gruposParaAvisar));
+      await copiarTexto(textoParaElEquipo(gruposParaAvisar));
       setAviso({ tono: "exito", texto: "Lista copiada: pégala en el chat del equipo." });
     } catch {
       setAviso({ tono: "error", texto: "No se pudo copiar; usa «Exportar CSV»." });
@@ -86,7 +88,7 @@ export function Discrepancias({
 
   if (!vigentes.length) {
     return (
-      <section className="mon-ctl-panel mon-dsc-vacio mon-tel-vacio" aria-label="Discrepancias" data-qa-geometry-capacity="owned">
+      <section className="mon-ctl-panel is-vacio" aria-label="Discrepancias" data-qa-geometry-capacity="owned">
         {hayRotulo ? <header className="mon-ctl-panel-cabecera"><RotuloDePestana /></header> : null}
         <EstadoVacio
           tamano="normal"
@@ -160,7 +162,7 @@ export function Discrepancias({
       <section className="mon-ctl-panel mon-dsc-centro" aria-label="Casos que no coinciden" data-qa-geometry-capacity="owned">
         <header className="mon-ctl-panel-cabecera">
           <b>{responsable === TODOS ? "Casos que no coinciden" : `Casos de ${responsable}`}</b>
-          <span>{n(resumen.pendientes)} por decidir · {n(resumen.decididos)} {resumen.decididos === 1 ? "decidido" : "decididos"}</span>
+          <span>{n(resumen.pendientes)} por decidir, {n(resumen.decididos)} {resumen.decididos === 1 ? "decidido" : "decididos"}</span>
         </header>
         <div className="mon-ctl-tabla-marco mon-dsc-marco">
           <table className="mon-ctl-tabla mon-dsc-tabla">

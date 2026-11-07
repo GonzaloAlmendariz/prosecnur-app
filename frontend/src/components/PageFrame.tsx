@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, type ReactElement, type ReactNode } from "react";
 
 import type { ModuleCommandBar, ModuleCommandBarProps } from "./ModuleCommandBar";
+import { useCambioDeVista } from "./useCambioDeVista";
 
 /**
  * Un elemento que ES una `ModuleCommandBar`, no «cualquier nodo». Sin esto el
@@ -74,6 +75,8 @@ export function PageFrame({
   const headerRef = useRef<HTMLElement | null>(null);
   const toolbarRef = useRef<HTMLDivElement | null>(null);
   const bodyRef = useRef<HTMLDivElement | null>(null);
+  // Entrada breve del cuerpo al cambiar de sección o pestaña (useCambioDeVista; CSS en app/movimiento.css).
+  const cambioDeVista = useCambioDeVista();
   const previousResetKeyRef = useRef(resetScrollKey);
   const resolvedScrollOwner = scrollOwner ?? (bodyMode === "fill" ? "panels" : "page");
   const classes = [
@@ -166,6 +169,7 @@ export function PageFrame({
       <div
         ref={bodyRef}
         className={`pulso-page-frame-body pulso-page-frame-body--${bodyMode}`}
+        data-cambio-vista={cambioDeVista ?? undefined}
       >
         {children}
       </div>

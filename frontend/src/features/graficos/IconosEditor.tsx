@@ -1,8 +1,9 @@
 import { useRef, useState } from "react";
 import { Upload, Trash2, Pencil, Check, ImageOff, Images, CheckCircle2 } from "../../vendor/lucide-react";
-import { apiGraficosIconoUpload, downloadUrl } from "../../api/client";
+import { apiGraficosIconoUpload, urlDelArchivo } from "../../api/client";
 import { usePlanStore, IconoConfig } from "./store";
 import { EmptyState, ErrorBlock } from "../../components/States";
+import { formatoConteo } from "../../lib/formatoNumero";
 
 // Editor de biblioteca de iconos PNG. Los iconos son parte esencial de
 // la lámina de objetivo (p_slide_objetivo_icono) y los capítulos. La
@@ -69,7 +70,7 @@ export function IconosEditor() {
         </div>
         <div className="pulso-gv2-iconos-hero-stats" aria-label="Estado de la biblioteca">
           <span>
-            <strong>{iconos.length}</strong>
+            <strong>{formatoConteo(iconos.length)}</strong>
             <small>{iconos.length === 1 ? "ícono" : "íconos"}</small>
           </span>
           <span>
@@ -176,7 +177,7 @@ function IconoCard({
     <article className="pulso-gv2-icon-card">
       <div className="pulso-gv2-icon-card-preview">
         <img
-          src={downloadUrl(icono.file_id)}
+          src={urlDelArchivo(icono.file_id)}
           alt={icono.nombre}
         />
       </div>

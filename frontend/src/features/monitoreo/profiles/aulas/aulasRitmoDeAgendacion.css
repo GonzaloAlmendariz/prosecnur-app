@@ -8,7 +8,7 @@
 
 .mon-profile-page.is-aulas-flow .aulas-ritmo-lectura {
   margin: 0;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 .mon-profile-page.is-aulas-flow .aulas-ritmo-lectura strong {
@@ -31,7 +31,7 @@
   align-items: center; gap: 10px;
 }
 .mon-profile-page.is-aulas-flow .aulas-ritmo-fecha {
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
   text-align: right;
   white-space: nowrap;
@@ -51,7 +51,7 @@
   background: var(--pulso-success-fg);
 }
 .mon-profile-page.is-aulas-flow .aulas-ritmo-n {
-  font-size: 12px; font-weight: 600;
+  font-size: var(--pulso-type-subtitle-size); font-weight: 600;
   color: var(--pulso-text);
   font-variant-numeric: tabular-nums;
 }
@@ -62,7 +62,7 @@
 .mon-profile-page.is-aulas-flow .aulas-cola-releva {
   display: block;
   font-style: normal;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-faint);
   white-space: nowrap;
 }

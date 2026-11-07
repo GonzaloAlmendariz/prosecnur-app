@@ -1,0 +1,557 @@
+/* Avance › Faltante con envío por cuotas (ADR 0125 A1). Usa todo el alto de
+   la vista: una banda de indicadores y, debajo, la matriz a la izquierda y lo
+   que falta (por zona y por celda) a la derecha. Toma de Faltante por UMP sólo
+   el panel y la escala de calor; la estructura es propia. */
+.mon-pz {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: var(--pulso-space-3);
+  height: 100%;
+  min-height: 0;
+}
+
+/* ---------- Banda ---------- */
+.mon-pz-banda {
+  display: grid;
+  grid-template-columns: 1.25fr repeat(4, minmax(0, 1fr));
+  gap: var(--pulso-space-3);
+}
+
+.mon-pz-tile {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 4px;
+  min-width: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.mon-pz-tile.is-rotulo { justify-content: space-between; }
+
+.mon-pz-tile small {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-micro-size);
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mon-pz-tile strong {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-kpi-size);
+  font-weight: var(--pulso-weight-heavy);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.mon-pz-tile strong.is-texto { font-size: var(--pulso-type-title-size); font-weight: var(--pulso-weight-semibold); }
+
+.mon-pz-tile strong span {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-regular);
+}
+
+.mon-pz-tile.is-aviso {
+  border-color: var(--pulso-module-monitoring-border);
+  background: var(--pulso-module-monitoring-soft);
+}
+
+.mon-pz-tile.is-aviso small,
+.mon-pz-tile.is-aviso strong,
+.mon-pz-tile.is-aviso strong span,
+.mon-pz-tile.is-aviso .mon-pz-nota { color: var(--pulso-module-monitoring); }
+
+.mon-pz-nota {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.mon-pz-bloques {
+  display: grid;
+  grid-template-columns: repeat(24, minmax(0, 1fr));
+  gap: 2px;
+}
+
+.mon-pz-bloques > i {
+  height: 6px;
+  border-radius: 2px;
+  background: var(--pulso-module-monitoring-border);
+}
+
+.mon-pz-bloques > i.is-ok { background: var(--pulso-brand-navy); }
+
+.mon-pz-linea {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.mon-pz-linea.is-entre { justify-content: space-between; color: var(--pulso-text); font-size: var(--pulso-type-body-size); }
+.mon-pz-linea > .mon-pz-barra { flex: 1; }
+
+.mon-pz-barra {
+  display: block;
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--pulso-surface-3);
+}
+
+.mon-pz-barra.is-gruesa { height: 6px; }
+.mon-pz-barra > i { display: block; height: 100%; border-radius: inherit; background: var(--pulso-brand-navy); }
+.mon-pz-barra.is-aviso { background: var(--pulso-module-monitoring-soft); }
+.mon-pz-barra.is-aviso > i { background: var(--pulso-module-monitoring); }
+
+/* ---------- Cuerpo ---------- */
+.mon-pz-cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: var(--pulso-space-3);
+  min-height: 0;
+}
+
+.mon-pz-lateral {
+  display: grid;
+  grid-template-rows: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: var(--pulso-space-3);
+  min-height: 0;
+}
+
+.mon-pz-cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  flex: 0 0 auto;
+}
+
+/* Sin elipsis: el título no cede y el subtítulo pasa a dos líneas (1280). */
+.mon-pz-cabecera > .mon-falt-base { min-width: 0; text-align: right; }
+
+.mon-pz-cabecera h3 {
+  flex: none;
+  margin: 0;
+  white-space: nowrap;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-pz-cabecera > span:first-child { display: flex; flex-direction: column; gap: 2px; }
+
+.mon-pz-leyenda {
+  display: flex;
+  gap: var(--pulso-space-3);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  white-space: nowrap;
+}
+
+.mon-pz-leyenda > span { display: inline-flex; align-items: center; gap: 5px; }
+.mon-pz-leyenda i { width: 12px; height: 12px; border-radius: 3px; }
+.mon-pz-leyenda i.is-falta { background: var(--pulso-module-monitoring-soft); border: 1px solid var(--pulso-module-monitoring-border); }
+
+/* ---------- Matriz ---------- */
+.mon-pz-matriz { min-height: 0; }
+
+.mon-pz-tabla-marco {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+.mon-pz-tabla {
+  width: 100%;
+  height: 100%;
+  border-collapse: separate;
+  border-spacing: 4px;
+  table-layout: fixed;
+  font-size: var(--pulso-type-body-size);
+}
+
+.mon-pz-tabla thead th {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-regular);
+  text-align: center;
+}
+
+.mon-pz-tabla th.mon-pz-zona-col { width: 200px; text-align: left; }
+.mon-pz-tabla th.mon-pz-avance-col { width: 84px; text-align: right; }
+
+.mon-pz-tabla th.mon-pz-grupo {
+  padding-bottom: 3px;
+  color: var(--pulso-brand-navy);
+  font-size: var(--pulso-type-micro-size);
+  font-weight: var(--pulso-weight-heavy);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-bottom: 2px solid var(--pulso-brand-navy);
+}
+
+.mon-pz-tabla th.mon-pz-grupo.is-1 {
+  color: var(--pulso-module-monitoring);
+  border-bottom-color: var(--pulso-module-monitoring);
+}
+
+.mon-pz-tabla tbody th,
+.mon-pz-tabla tfoot th { text-align: left; font-weight: var(--pulso-weight-regular); }
+
+.mon-pz-tabla tbody td { height: 1px; padding: 0; }
+
+.mon-pz-zona { display: flex; align-items: center; gap: var(--pulso-space-2); min-width: 0; }
+.mon-pz-zona > span { display: flex; flex-direction: column; min-width: 0; }
+.mon-pz-zona b { overflow: hidden; color: var(--pulso-text); font-weight: var(--pulso-weight-semibold); text-overflow: ellipsis; white-space: nowrap; }
+.mon-pz-zona small { font-size: var(--pulso-type-caption-size); }
+.mon-pz-zona small.is-falta { color: var(--pulso-module-monitoring); }
+.mon-pz-zona small.is-ok { color: var(--pulso-success-fg); }
+
+.mon-pz-celda {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  height: 100%;
+  min-height: 52px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  line-height: 1.15;
+  color: var(--pulso-brand-navy);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-pz-celda.is-clara { color: var(--pulso-surface); }
+.mon-pz-celda.is-falta { border-color: var(--pulso-module-monitoring-border); background: var(--pulso-module-monitoring-soft); color: var(--pulso-module-monitoring); }
+.mon-pz-celda b { font-size: var(--pulso-type-title-size); font-weight: var(--pulso-weight-semibold); letter-spacing: -0.01em; }
+.mon-pz-celda small { font-size: var(--pulso-type-micro-size); opacity: 0.75; }
+.mon-pz-celda em { margin-top: 2px; font-size: var(--pulso-type-micro-size); font-style: normal; font-weight: var(--pulso-weight-semibold); white-space: nowrap; }
+
+.mon-pz-vacia { color: var(--pulso-text-soft); font-size: var(--pulso-type-caption-size); text-align: center; }
+
+.mon-pz-avance { text-align: right; }
+.mon-pz-avance b { display: block; color: var(--pulso-text); font-weight: var(--pulso-weight-semibold); font-variant-numeric: tabular-nums; }
+.mon-pz-avance .mon-pz-barra { width: 56px; height: 3px; margin: 6px 0 0 auto; }
+.mon-pz-avance small { color: var(--pulso-text-soft); font-size: var(--pulso-type-caption-size); }
+
+.mon-pz-tabla tfoot th,
+.mon-pz-tabla tfoot td { padding-top: var(--pulso-space-2); border-top: 1px solid var(--pulso-border-strong); }
+
+.mon-pz-total-zona { display: flex; flex-direction: column; }
+.mon-pz-total-zona b { color: var(--pulso-text); font-weight: var(--pulso-weight-heavy); }
+.mon-pz-total-zona small { color: var(--pulso-text-soft); font-size: var(--pulso-type-caption-size); }
+
+.mon-pz-total { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 0 4px; }
+.mon-pz-total .mon-pz-barra { align-self: stretch; }
+.mon-pz-total b { color: var(--pulso-text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mon-pz-total.is-falta b { color: var(--pulso-module-monitoring); }
+.mon-pz-total small { color: var(--pulso-text-soft); font-size: var(--pulso-type-caption-size); white-space: nowrap; }
+
+/* ---------- Faltante por zona ---------- */
+.mon-pz-mapa-cuerpo {
+  display: flex;
+  flex: 1 1 auto;
+  gap: var(--pulso-space-3);
+  min-height: 0;
+}
+
+.mon-pz-mapa-cuerpo > svg { flex: 1 1 auto; min-width: 0; height: 100%; }
+.mon-pz-vecinos { fill: var(--pulso-surface-3); stroke: var(--pulso-surface); stroke-width: 1.2; }
+.mon-pz-distrito { stroke: var(--pulso-surface); stroke-width: 1.6; stroke-linejoin: round; }
+.mon-pz-rotulo-mapa {
+  fill: var(--pulso-module-monitoring);
+  font-size: var(--pulso-type-title-size);
+  font-weight: 700;
+  text-anchor: middle;
+  paint-order: stroke;
+  stroke: var(--pulso-surface);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+.mon-pz-mapa-lista {
+  display: flex;
+  flex: 0 0 168px;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--pulso-type-caption-size);
+}
+
+.mon-pz-mapa-lista li { display: flex; align-items: center; gap: var(--pulso-space-2); }
+.mon-pz-mapa-lista i { flex: none; width: 10px; height: 10px; border: 1px solid var(--pulso-module-monitoring-border); border-radius: 3px; }
+.mon-pz-mapa-lista span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mon-pz-mapa-lista b { color: var(--pulso-module-monitoring); }
+
+/* ---------- Faltante por celda ---------- */
+.mon-pz-celdas-lista {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--pulso-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-pz-celdas-lista li { display: flex; flex-direction: column; gap: 5px; }
+.mon-pz-celdas-lista b.is-falta { color: var(--pulso-module-monitoring); }
+
+/* ---------- Reparto ---------- */
+.mon-pz-personas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2) var(--pulso-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--pulso-type-caption-size);
+}
+
+.mon-pz-personas li { display: inline-flex; align-items: center; gap: var(--pulso-space-2); }
+
+/* Ancho medio (1280): las celdas son angostas; la cuota baja a su propia línea. */
+@media (max-width: 1360px) {
+  .mon-pz-tabla th.mon-pz-zona-col { width: 168px; }
+  .mon-pz-celda b { font-size: var(--pulso-type-title-size); }
+  .mon-pz-celda em { font-size: var(--pulso-type-micro-size); }
+  .mon-pz-total small { font-size: var(--pulso-type-micro-size); }
+}
+
+/* Pantalla baja: el marco no cambia; las celdas se compactan y la matriz
+   desplaza dentro de su panel si no cabe. */
+@media (max-height: 800px) {
+  .mon-pz-tile { padding: var(--pulso-space-2) var(--pulso-space-3); }
+  .mon-pz-celda { min-height: 36px; }
+  .mon-pz-lateral { grid-template-rows: minmax(0, 1.15fr) minmax(0, 1fr); }
+  .mon-pz-celdas-lista { gap: var(--pulso-space-2); }
+}
+
+/* Pantalla angosta: la matriz va a lo ancho y lo que falta debajo, en dos columnas. */
+@media (max-width: 1180px) {
+  /* Sin encogerse al alto de la ventana (el contenedor es flex en columna):
+   * encogida, el mapa y las celdas se salían de su panel por abajo. */
+  .mon-pz { flex: none; height: auto; min-height: auto; grid-template-rows: none; }
+  .mon-pz > *, .mon-pz-lateral > * { min-height: auto; }
+  .mon-pz-banda { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .mon-pz-cuerpo { grid-template-columns: minmax(0, 1fr); }
+  .mon-pz-matriz { min-height: 560px; }
+  .mon-pz-lateral { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: none; }
+  .mon-pz-mapa-cuerpo { min-height: 280px; }
+}
+
+/* ADR 0126: celda referencial (se describe, no se exige) y los bloques Metas /
+ * Referenciales cuando una dimensión de la cuota es referencial. */
+.mon-pz-celda.is-referencial {
+  border: 1px dashed var(--pulso-border-strong);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+}
+
+/* Con los bloques Metas y Referenciales la vista crece y desplaza la pestaña:
+ * repartir el alto entre cuatro filas aplastaba la matriz y el mapa. */
+.mon-pz.con-referencial {
+  flex: none; /* el contenedor de la pestaña es flex en columna: sin esto la encogía a su alto */
+  grid-template-rows: auto minmax(440px, auto) auto auto;
+  height: auto;
+  min-height: 100%;
+}
+
+/* La cabecera del bloque Metas y referenciales: el subtítulo es una frase y
+ * puede ir en dos líneas; la leyenda queda arriba a la derecha. */
+.mon-pz-cabecera.is-amplia > span:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.mon-pz-cabecera.is-amplia .mon-falt-base {
+  white-space: normal;
+}
+
+/* Total de una columna referencial: efectivas sobre su referencia, sin barra. */
+.mon-pz-total.is-referencial {
+  color: var(--pulso-text-soft);
+}
+
+.mon-pz-caracter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+}
+
+.mon-pz-zonas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: var(--pulso-space-3);
+  align-items: start;
+}
+
+.mon-pz-zcard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+}
+
+.mon-pz-zcard-cabeza {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  gap: var(--pulso-space-3);
+  align-items: center;
+}
+
+.mon-pz-zcard-cabeza > span:nth-child(2) {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mon-pz-zcard-cabeza small {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.mon-pz-zcard-estado {
+  padding: 3px 8px;
+  border-radius: 8px;
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+
+.mon-pz-zcard-estado.is-falta {
+  border: 1px solid var(--pulso-module-monitoring-border);
+  background: var(--pulso-module-monitoring-soft);
+  color: var(--pulso-module-monitoring);
+}
+
+.mon-pz-zcard-estado.is-ok {
+  border: 1px solid var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.mon-pz-zcard-sub {
+  margin: var(--pulso-space-1) 0 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-micro-size);
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mon-pz-metas {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-pz-metas > li {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) 76px 40px;
+  gap: var(--pulso-space-2);
+  align-items: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-pz-metas-barra {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--pulso-surface-3);
+}
+
+.mon-pz-metas-barra > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--pulso-brand-navy);
+}
+
+.mon-pz-metas > li.is-falta .mon-pz-metas-barra > i {
+  background: var(--pulso-module-monitoring);
+}
+
+.mon-pz-metas-barra > b {
+  position: absolute;
+  top: -3px;
+  width: 2px;
+  height: 16px;
+  border-radius: 1px;
+  background: var(--pulso-text);
+  transform: translateX(-1px);
+}
+
+/* Leyenda de las tarjetas: la misma marca y las mismas barras que dibujan. */
+.mon-pz-leyenda i.mon-pz-meta-muestra {
+  width: 2px;
+  height: 12px;
+  border-radius: 1px;
+  background: var(--pulso-text);
+}
+
+.mon-pz-leyenda i.mon-pz-leyenda-referencial {
+  border: 1px dashed var(--pulso-border-strong);
+  background: var(--pulso-surface);
+}
+
+.mon-pz-leyenda i.mon-pz-leyenda-barra {
+  width: 14px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--pulso-brand-navy);
+}
+
+.mon-pz-leyenda i.mon-pz-leyenda-barra.is-falta {
+  background: var(--pulso-module-monitoring);
+}
+
+.mon-pz-metas-cifra {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.mon-pz-metas-cifra small {
+  color: var(--pulso-text-faint);
+}
+
+.mon-pz-metas-falta {
+  color: var(--pulso-success-fg);
+  font-weight: var(--pulso-weight-bold);
+  text-align: right;
+}
+
+.mon-pz-metas > li.is-falta .mon-pz-metas-falta {
+  color: var(--pulso-module-monitoring);
+}
+
+/* En la tarjeta las pesas van compactas. */
+.mon-pz-zcard .mon-pesas-fila {
+  grid-template-columns: 64px minmax(80px, 1fr) auto 64px;
+}
+
+@media (max-width: 1180px) {
+  .mon-pz-zonas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

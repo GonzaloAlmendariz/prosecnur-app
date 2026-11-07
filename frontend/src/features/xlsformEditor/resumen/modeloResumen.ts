@@ -9,6 +9,7 @@
 
 import type { BuilderDiagnostic, BuilderNode, BuilderStructure, CatalogSummary } from "../types";
 import { typeLabel } from "../parsing/parseType";
+import { stripMarkdown } from "../helpers/markdown";
 import { esPreguntaDelFormulario } from "../shell/editorMetrics";
 
 /** Tipos que se responden eligiendo entre opciones; el resto se escribe o anota. */
@@ -113,7 +114,10 @@ export function resumirFormulario(
     };
   };
 
-  const filasSecciones = secciones.map((s, i) => filaDe(s.id, s.name, s.label || s.name, i + 1));
+  // El rótulo del XLSForm trae su formato (`<span style="color:…">`, `**`, `####`): la tabla, los tramos y sus títulos
+  // muestran el texto, como el resto del editor (`stripMarkdown`).
+  const rotuloDe = (label: string) => stripMarkdown(label ?? "").replace(/\s+/g, " ").trim();
+  const filasSecciones = secciones.map((s, i) => filaDe(s.id, s.name, rotuloDe(s.label) || s.name, i + 1));
   const enRaiz = preguntas.filter((n) => n.sectionId === "root");
   if (enRaiz.length > 0) filasSecciones.unshift(filaDe("root", "", "Fuera de toda sección", 0));
 

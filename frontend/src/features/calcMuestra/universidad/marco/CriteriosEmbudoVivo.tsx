@@ -1,3 +1,4 @@
+import { Filter } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
   createCriteriosPreviewCoordinator,
@@ -6,6 +7,7 @@ import {
   type CalcMuestraCriteriosPreviewState,
 } from "../../../../api/calcMuestraCriteriosI18b";
 import "./criteriosI18b.css";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 const INTEGER = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 0 });
 
@@ -115,9 +117,13 @@ export function CriteriosEmbudoVivo({
 
   if (!cascade) {
     return (
-      <div className="cmv2-i18b-cascade-empty" role="status" data-state="sin_cascada">
-        <strong>Sin cascada secuencial acreditable</strong>
-        <span>Reconstruye el marco para publicar el orden real y sus recortes por facultad.</span>
+      <div role="status" data-state="sin_cascada">
+        <EstadoVacio
+          tamano="compacto"
+          icono={<Filter size={16} aria-hidden="true" />}
+          titulo="Sin cascada secuencial acreditable"
+          descripcion="Reconstruye el marco para publicar el orden real y sus recortes por facultad."
+        />
       </div>
     );
   }
@@ -204,7 +210,7 @@ export function CriteriosEmbudoVivo({
           ))}
         </ol>
       )}
-      <footer>Unidad: curso-horario único · firma {cascade.criteria_hash.slice(0, 12)}</footer>
+      <footer>Unidad: curso-horario único, firma {cascade.criteria_hash.slice(0, 12)}</footer>
     </div>
   );
 }

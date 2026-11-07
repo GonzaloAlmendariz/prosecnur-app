@@ -11,6 +11,7 @@ import { PreguntaRow } from "./PreguntaRow";
 import { KpiCard } from "./KpiCard";
 import { FiltrosMultiRow } from "./FiltrosMultiRow";
 
+import { formatoConteo } from "../../../../lib/formatoNumero";
 // Tab Resumen — alineado al legacy `reporte_interactivo()` (tab 1):
 //   ┌────────────────────────────────────────────────────────────┐
 //   │ ┌─ Sidebar ─────────┐  ┌─ Main ───────────────────────────┐ │
@@ -93,7 +94,7 @@ export function ResumenTab() {
               la colección queda con miembros de una sola variante. */}
           <div className="dash-kpi-n">
             N:{" "}
-            {(kpisPayload?.n_total ?? payload?.n_total ?? 0).toLocaleString("es-PE")}
+            {formatoConteo(kpisPayload?.n_total ?? payload?.n_total ?? 0)}
           </div>
           {/* `intrinsic`: cada tarjeta del perfil mide lo que pide su leyenda
               —«¿En qué distrito vive?» lista seis y «¿Cuál es su sexo?» dos—,
@@ -104,9 +105,7 @@ export function ResumenTab() {
             data-qa-geometry-contract="intrinsic"
           >
             {kpisPayload?.kpis?.length === 0 && (
-              <div className="dash-kpi-empty">
-                Sin indicadores configurados.
-              </div>
+              <EmptyState title="Sin indicadores configurados" />
             )}
             {kpisPayload?.kpis?.map((kpi) => (
               <KpiCard key={kpi.var} kpi={kpi} />

@@ -1,0 +1,101 @@
+/* Campaña telefónica (P10): las columnas de la plantilla como fichas; las que llena
+   campo, en el ámbar de las columnas de campo. */
+.rec-tel-columnas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1);
+}
+
+.rec-tel-col {
+  padding: 3px 8px;
+  border-radius: var(--pulso-radius-card);
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+}
+
+.rec-tel-col.is-campo {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+}
+
+/* T14: la columna sensible, como en la plantilla (encabezado en rojo). */
+.rec-tel-col.is-sensible {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.rec-tel-lista {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+}
+
+/* Los campos no crecen en la tarjeta en columna: `.rec-terr-campo` trae flex-basis
+   para las filas y en columna se estira hacia abajo. */
+.rec-tel-tarjeta .rec-terr-campo {
+  flex: none;
+}
+
+/* Casos: muestra, backup y llave en una fila; el guardar abajo a la derecha con su estado. */
+.rec-tel-campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--pulso-space-3);
+}
+.rec-tel-campos .rec-terr-campo {
+  min-width: 0;
+}
+.rec-tel-pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  padding-top: var(--pulso-space-3);
+  border-top: 1px solid var(--pulso-border);
+}
+
+/* Contacto: rótulo a la izquierda, control a la derecha, un ajuste por renglón. */
+.rec-tel-ajuste {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) auto;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-2) 0;
+  border-top: 1px solid var(--pulso-border);
+}
+.rec-tel-ajuste > span:first-child {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-medium);
+}
+
+/* Revamp v5: los bloques de Casos son pares y comparten alto (C2); el vacío queda dentro de cada uno. */
+.rec-tel-pares { align-items: stretch; }
+
+/* D18: la opción elegida del segmentado lleva ✓, no sólo un cambio de tono. */
+.rec-tel-tarjeta .rec-terr-opciones.pulso-gliding-tab-list > button[aria-checked="true"]::before {
+  content: "✓";
+  margin-right: var(--pulso-space-1);
+  font-weight: 700;
+}
+
+/* Pasada de diseño (2 nov 2026): las tarjetas son Panel. Dentro de la grilla no llevan el margen
+   inferior que el tema da al Panel en densidad corta, y su contenido se apila con aire. */
+.rec-terr .rec-terr-tarjetas > .pulso-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  margin-bottom: 0;
+}
+.rec-terr .rec-terr-tarjetas > .pulso-panel > .pulso-panel-header { margin-bottom: 0; }
+
+.rec-terr .rec-terr-tarjetas > .rec-tel-recorrido { grid-column: 1 / -1; }
+.rec-terr .rec-terr-tarjetas:has(> .rec-tel-recorrido) { grid-template-columns: repeat(2, minmax(0, 1fr)); }

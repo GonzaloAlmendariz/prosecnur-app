@@ -184,19 +184,28 @@
   transition: background-color 140ms ease;
 }
 
-.pulso-chrome-indicator.is-accion .pulso-chrome-indicator-value {
-  text-decoration: underline dotted color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 55%, transparent);
-  text-underline-offset: 3px;
+/* Se reconoce como bloque, no con un subrayado punteado: un fondo tenue del tono
+ * del módulo que se intensifica al pasar el mouse. Entre bloques no hay divisoria:
+ * el propio fondo los separa. */
+.pulso-chrome-indicator.is-accion {
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 6%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 12%, transparent);
+}
+
+.pulso-chrome-indicator.is-accion + .pulso-chrome-indicator.is-accion {
+  border-left: 0;
+  margin-left: 4px;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .pulso-chrome-indicator.is-accion:hover {
-    background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 10%, transparent);
+    background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 12%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 24%, transparent);
   }
 }
 
 .pulso-chrome-indicator.is-accion:focus-visible {
-  outline: 2px solid var(--module-accent, var(--pulso-primary));
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 1px;
 }
 
@@ -269,7 +278,9 @@
   opacity: 1;
 }
 
-.pulso-chrome-status-chip:not(:disabled):hover {
+/* Sólo el chip que es botón reacciona al puntero: el de estado (`<span>`, EstadoChip sin
+   onSelect) conserva su tono. */
+button.pulso-chrome-status-chip:not(:disabled):hover {
   border-color: var(--pulso-border-strong);
   background: var(--pulso-surface);
 }
@@ -296,4 +307,33 @@
   border-color: var(--pulso-danger-border);
   background: var(--pulso-danger-bg);
   color: var(--pulso-danger-fg);
+}
+
+/* Marca de la píldora de sección: pendientes en ámbar o ✓ de lista. Una sola cifra,
+   siempre del mismo tipo; en la píldora activa conserva su tono para que el ámbar
+   no se pierda justo donde el analista está trabajando. */
+.pulso-phase-pill-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  margin-left: var(--pulso-space-2);
+  padding: 0 4px;
+  border-radius: var(--pulso-radius-chip);
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.pulso-phase-pill-badge[data-estado="pendiente"] {
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+.pulso-phase-pill-badge[data-estado="lista"] {
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 16%, transparent);
+  color: var(--module-accent, var(--pulso-primary));
+}
+.pulso-phase-pill.is-active .pulso-phase-pill-badge[data-estado="lista"] {
+  background: color-mix(in srgb, var(--pulso-surface) 24%, transparent);
+  color: inherit;
 }

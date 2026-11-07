@@ -1,10 +1,13 @@
+import { formatoDecimal } from "../../../../../lib/formatoNumero";
 import { memo, useMemo } from "react";
 import { ClipboardList } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { fmt, pct } from "../rotulos";
 import { construirOcurrencias, motivosDeLaBarra, rotuloCortoDeMotivo, type ModeloOcurrencias } from "./ocurrenciasModel";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import "./ocurrencias.css";
+import { BloqueDeMonitoreo } from "../../../core/BloqueDeMonitoreo";
 
 /**
  * Control › Ocurrencias (territorial.md §3.9). Arriba la banda con intentos,
@@ -18,11 +21,14 @@ function OcurrenciasTabImpl({ reports }: { reports: MonitoreoTerritorialDashboar
   if (!modelo.conPartes) {
     return (
       <section className="mon-ocu mon-ocu--vacio" data-audit-ready="vacio:sin-partes" aria-label="Ocurrencias">
-        <div className="mon-ocu-panel mon-ocu-vacio">
+        <div className="mon-ocu-panel">
           <RotuloDePestana />
-          <ClipboardList size={20} aria-hidden="true" />
-          <strong>Sin partes de ocurrencias</strong>
-          <span title="Los partes llegan del formulario de ocurrencias de campo">«Actualizar» trae los partes nuevos</span>
+          <EstadoVacio
+            tamano="normal"
+            icono={<ClipboardList size={18} />}
+            titulo="Sin partes de ocurrencias"
+            descripcion={<span title="Los partes llegan del formulario de ocurrencias de campo">«Actualizar» trae los partes nuevos</span>}
+          />
         </div>
       </section>
     );
@@ -80,11 +86,15 @@ function Banda({ modelo }: { modelo: ModeloOcurrencias }) {
 function PorDistrito({ modelo }: { modelo: ModeloOcurrencias }) {
   const maximo = Math.max(1, ...modelo.distritos.flatMap((fila) => fila.porCien));
   return (
-    <section className="mon-ocu-panel mon-ocu-distritos" aria-labelledby="mon-ocu-distritos" data-qa-geometry-member="distritos">
-      <header className="mon-ocu-cabecera">
-        <h3 id="mon-ocu-distritos" className="mon-ocu-titulo">Por distrito</h3>
-        <span className="mon-ocu-base">Motivos por cada 100 intentos</span>
-      </header>
+    <BloqueDeMonitoreo
+      marco="kit"
+      className="mon-ocu-panel mon-ocu-distritos"
+      aria-labelledby="mon-ocu-distritos"
+      data-qa-geometry-member="distritos"
+      titulo="Por distrito"
+      tituloId="mon-ocu-distritos"
+      bajada="Motivos por cada 100 intentos"
+    >
       <div className="mon-ocu-tabla-marco" data-qa-geometry-capacity="owned" tabIndex={0} aria-label="Ocurrencias por distrito, con desplazamiento">
         <table className="mon-ocu-tabla">
           <thead>
@@ -112,7 +122,7 @@ function PorDistrito({ modelo }: { modelo: ModeloOcurrencias }) {
                 <td className="is-num">{fmt(fila.efectivas)}</td>
                 {fila.porCien.map((valor, indice) => (
                   <td key={modelo.columnas[indice]?.clave ?? indice} className="is-num is-calor" style={{ background: `color-mix(in srgb, var(--pulso-warn-accent) ${Math.round((valor / maximo) * 45)}%, var(--pulso-surface))` }}>
-                    {valor.toLocaleString("es-PE", { maximumFractionDigits: 1 })}
+                    {formatoDecimal(valor, 1)}
                   </td>
                 ))}
               </tr>
@@ -120,15 +130,21 @@ function PorDistrito({ modelo }: { modelo: ModeloOcurrencias }) {
           </tbody>
         </table>
       </div>
-    </section>
+    </BloqueDeMonitoreo>
   );
 }
 
 function PorDia({ modelo }: { modelo: ModeloOcurrencias }) {
   const maximo = Math.max(1, ...modelo.dias.map((dia) => dia.intentos));
   return (
-    <section className="mon-ocu-panel mon-ocu-dias-panel" aria-labelledby="mon-ocu-dias" data-qa-geometry-member="dias">
-      <h3 id="mon-ocu-dias" className="mon-ocu-titulo">Por día</h3>
+    <BloqueDeMonitoreo
+      marco="kit"
+      className="mon-ocu-panel mon-ocu-dias-panel"
+      aria-labelledby="mon-ocu-dias"
+      data-qa-geometry-member="dias"
+      titulo="Por día"
+      tituloId="mon-ocu-dias"
+    >
       <div className="mon-ocu-grafico">
       <span className="mon-ocu-eje-titulo" aria-hidden="true">Partes por día</span>
       <span className="mon-ocu-eje" aria-hidden="true">
@@ -152,18 +168,22 @@ function PorDia({ modelo }: { modelo: ModeloOcurrencias }) {
         <span className="is-intentos">Intentos</span>
         <span className="is-efectivas">Efectivas declaradas</span>
       </span>
-    </section>
+    </BloqueDeMonitoreo>
   );
 }
 
 function TasaPorUmp({ modelo }: { modelo: ModeloOcurrencias }) {
   const maximo = Math.max(1, ...modelo.tasas.map((tramo) => tramo.umps));
   return (
-    <section className="mon-ocu-panel" aria-labelledby="mon-ocu-tasa" data-qa-geometry-member="tasa">
-      <header className="mon-ocu-cabecera">
-        <h3 id="mon-ocu-tasa" className="mon-ocu-titulo">UMP por tasa de efectividad</h3>
-        <span className="mon-ocu-base">{modelo.medianaDeTasa == null ? "Sin mediana" : `Mediana ${pct(modelo.medianaDeTasa)}`}</span>
-      </header>
+    <BloqueDeMonitoreo
+      marco="kit"
+      className="mon-ocu-panel"
+      aria-labelledby="mon-ocu-tasa"
+      data-qa-geometry-member="tasa"
+      titulo="UMP por tasa de efectividad"
+      tituloId="mon-ocu-tasa"
+      bajada={<>{modelo.medianaDeTasa == null ? "Sin mediana" : `Mediana ${pct(modelo.medianaDeTasa)}`}</>}
+    >
       <ol className="mon-ocu-tramos">
         {modelo.tasas.map((tramo) => (
           <li key={tramo.rotulo}>
@@ -173,7 +193,7 @@ function TasaPorUmp({ modelo }: { modelo: ModeloOcurrencias }) {
           </li>
         ))}
       </ol>
-    </section>
+    </BloqueDeMonitoreo>
   );
 }
 

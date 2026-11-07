@@ -486,6 +486,13 @@
   unique(nums)
 }
 
+# ¿La banda de sección tiene algo que decir? (L36 · D-L36-2)
+.form_pdf_seccion_dice_algo <- function(seccion) {
+  texto <- function(x) nzchar(trimws(paste(as.character(x %||% ""), collapse = "")))
+  isTRUE(seccion$repeatable) || texto(seccion$title) || texto(seccion$hint) ||
+    texto(seccion$skip) || texto(seccion$opening_condition)
+}
+
 formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper = NULL, options = list()) {
   # Item 46: NFC al leer (la tilde combinada salia con otra fuente).
   survey <- .form_pdf_nfc(survey); choices <- .form_pdf_nfc(choices)
@@ -509,6 +516,10 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   # Item 19: el formato del instrumento (HTML, entidades, `#`, `**`) se
   # INTERPRETA antes de leer ningun texto: las columnas quedan planas y el crudo
   # se guarda para los tramos de cada bloque (reporte_formulario_ricotexto.R).
+  # Las tablas markdown de las notas (E8c editor-conjoint) se apartan ANTES: el texto rico junta las
+  # lineas y la tabla dejaria de reconocerse (reporte_formulario_tabla_md.R).
+  md <- .form_md_tablas_del_survey(survey)
+  survey <- md$survey
   rti <- .form_rt_instrumento(survey, choices, paper, settings)
   survey <- rti$survey; choices <- rti$choices
   paper <- rti$paper; settings <- rti$settings
@@ -643,7 +654,10 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
 
   # Portada: titulo prominente centrado en la primera pagina, sobre las
   # instrucciones (jerarquia tipo referencia Word).
-  add_block(list(kind = "cover", title = title, full_width = TRUE))
+  # L36 · D-L36-5: subtítulo (institución · periodo) y bloque de control (reporte_formulario_portada.R).
+  portada <- .form_portada_opciones(options)
+  add_block(list(kind = "cover", title = title, full_width = TRUE,
+                 subtitle = portada$subtitulo, control = portada$control))
 
   if (nrow(paper)) {
     pos <- suppressWarnings(as.numeric(paper$position))
@@ -861,7 +875,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
       # begin_group para marcar la sección como repetible (one-to-many/roster) y,
       # si el instrumento lo trae, su repeat_count.
       is_repeat <- identical(base, "begin_repeat")
-      add_block(list(
+      seccion <- list(
         kind = "section",
         number = numbers[i],
         name = .form_pdf_chr(survey$name[i]),
@@ -875,7 +889,11 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
         repeatable = is_repeat,
         repeat_count = if (is_repeat) .form_pdf_clean_text(survey$repeat_count[i]) else "",
         full_width = TRUE
-      ))
+      )
+      # L36 · D-L36-2: un grupo que no dice nada (sin título, pista, salto ni
+      # condición, y que no se repite) no dibuja banda. Los grupos de matriz que
+      # llegan de SurveyMonkey sin etiqueta dejaban marcos grises vacíos en papel.
+      if (.form_pdf_seccion_dice_algo(seccion)) add_block(seccion)
       i <- i + 1L
       next
     }
@@ -903,6 +921,8 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
         opt
       })
     }
+    # La tabla markdown de una nota (los perfiles de un conjoint), apartada antes del texto rico.
+    tabla_md <- md$tablas[[i]]
     label <- .form_pdf_first_nonempty(survey$paper_label[i], survey$label[i])
     label <- .form_pdf_strip_leading_number(label, numbers[i])
     label <- .form_pdf_paper_text(label)
@@ -957,7 +977,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
         max(1L, length(.form_pdf_wrap(paste(opt$label, opt$paper_skip), 44L)))
       }, numeric(1)))
     } else 0
-    full <- (base == "note" && nchar(label) > 90) ||
+    full <- !is.null(tabla_md) || (base == "note" && nchar(label) > 90) ||
       layout %in% c("full", "wide") ||
       nchar(label) > 230 ||
       length(opts) > 10L ||
@@ -977,6 +997,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
       layout = layout,
       coded_list = coded_list,
       var_tag = num$tags[i],
+      tabla_md = tabla_md,
       full_width = full
     ))
     i <- i + 1L
@@ -1175,8 +1196,9 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     # margenes—. Antes eran 0.056 + lineas * 0.026: 90.9 pt reservados para
     # dibujar 61.5.
     lay <- .form_pdf_rt_si(.form_rt_campo(block, "title"), width, 15, 0.023, base_b = TRUE)
-    if (!is.null(lay)) return(0.027 + lay$alto)
-    return(0.027 + length(.form_pdf_wrap(block$title, 46)) * 0.023)
+    extra <- .form_pdf_portada_extra_alto(block)
+    if (!is.null(lay)) return(0.027 + lay$alto + extra)
+    return(0.027 + length(.form_pdf_wrap(block$title, 46)) * 0.023 + extra)
   }
   if (identical(block$kind, "section")) {
     # L19 — LA RESERVA SIGUE AL DIBUJO. Aqui habia un `0.058` fijo (48.8 pt) mas
@@ -1488,7 +1510,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   }
   grid::grid.lines(x = grid::unit(c(cx - 0.055, cx + 0.055), "npc"),
                    y = grid::unit(y, "npc"), gp = grid::gpar(col = tk$ink, lwd = 1.2))
-  y - 0.011
+  .form_pdf_draw_portada_extra(block, x, y - 0.011, w)
 }
 
 .form_pdf_draw_paper <- function(block, x, y, w) {
@@ -1879,7 +1901,8 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
                     gp = grid::gpar(fill = NA, col = tk$tbl_frame, lwd = 0.5))
     y <- y - h
   } else if (identical(block$type, "note")) {
-    # Solo texto informativo.
+    # Texto informativo; si trae una tabla markdown, la tabla debajo (E8c editor-conjoint).
+    if (!is.null(block$tabla_md)) y <- .form_md_tabla_pdf_dibujar(block$tabla_md, x + 0.006, y, w - 0.012, tk)
   } else {
     grid::grid.rect(x = grid::unit(x + 0.006 + (w - 0.012) / 2, "npc"), y = grid::unit(y - 0.0125, "npc"),
                     width = grid::unit(w - 0.012, "npc"), height = grid::unit(0.025, "npc"),

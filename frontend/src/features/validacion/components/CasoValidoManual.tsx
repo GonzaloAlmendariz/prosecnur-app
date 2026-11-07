@@ -18,6 +18,7 @@ import { PulsoButton } from "../../../components/PulsoButton";
 import { formatoConteo, formatoConteoDe } from "../../../lib/formatoNumero";
 import { Plus, X } from "../../../vendor/lucide-react";
 import { casosQueCumplen, condicionDesdeBorrador, textoCondicion, type Sentido } from "../casoValidoManualModel";
+import { LoadingBlock } from "../../../components/States";
 
 export function CasoValidoManual({
   baseNombre,
@@ -135,7 +136,7 @@ export function CasoValidoManual({
       {abierto ? (
         <div className="pulso-cvm-editor" role="group" aria-labelledby={`${id}-t`}>
                     {columnas === null ? (
-            <p className="pulso-cvm-ayuda">Leyendo las columnas de la base…</p>
+            <LoadingBlock variant="inline" minHeight={40} label="Leyendo las columnas de la base…" />
           ) : !columnas.length ? (
             <p className="pulso-cvm-ayuda">{errorColumnas || "La base no tiene columnas de pocos valores con las que declarar una condición."}</p>
           ) : (

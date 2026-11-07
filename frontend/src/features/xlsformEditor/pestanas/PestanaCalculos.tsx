@@ -16,7 +16,12 @@ import { fragmentoDe, insertarEnCursor, type Funcion } from "./catalogoModelo";
 import { ProbarCalculo } from "./ProbarCalculo";
 import { CatalogoFunciones } from "./CatalogoFunciones";
 import { CalculationRecipePanel } from "../canvas/constructor/CalculoRepeticionPaneles";
+import { ArmadorCalculo } from "./armadorCalculo/ArmadorCalculo";
+import { deFormula } from "./armadorCalculo/modeloCalculo";
+import { valoresDeEjemplo } from "../cuestionario/ejemploSorteo";
+import { agruparEnFamilias, tituloFamilia } from "./familiasCalculo";
 
+import { EstadoChip } from "../../../components/EstadoChip";
 // Pestaña Cálculos (revamp 2026-10-16): cada `calculate` del formulario con su fórmula leída
 // en español, de qué respuestas sale y quién lo usa después.
 
@@ -30,14 +35,18 @@ export type PestanaCalculosProps = {
   catalogs: { listName: string; items: { name: string; label: string }[] }[];
   /** M5: crea un cálculo al final del formulario y lo deja abierto aquí (cada pestaña deja crear lo que muestra). */
   onNuevo?: () => void;
+  /** E19-3: escribe lo que arma el armador por intención (fórmula y filas auxiliares); devuelve el motivo si no pudo. */
+  onArmar?: (rowIndex: number, formula: string, auxiliares: { name: string; calculation: string }[]) => string | null;
 };
 
-export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onSeleccionar, onEditar, onCampo, catalogs, onNuevo }: PestanaCalculosProps) {
+export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onSeleccionar, onEditar, onCampo, catalogs, onNuevo, onArmar }: PestanaCalculosProps) {
   const opcionesDe = useCallback((listName: string) => catalogs.find((c) => c.listName === listName)?.items ?? [], [catalogs]);
   // Con la estructura el motor cita grupos y repeticiones por su etiqueta (indexed-repeat, sum, join).
   const scope = useMemo(() => enriquecerAlcance(scopeBase, structure), [scopeBase, structure]);
   // «Lo usan» cuenta TODAS las columnas: también la etiqueta, la ayuda, los mensajes y las opciones (S1).
   const usos = useMemo(() => indiceDeUsos(structure, catalogs), [structure, catalogs]);
+  // Valores de una entrevista de ejemplo para los cálculos que dependen de un sorteo.
+  const ejemplo = useMemo(() => valoresDeEjemplo(structure?.outline ?? []), [structure]);
   const items = useMemo(
     () => calculosDelFormulario(structure).map((i) => ({ ...i, loUsan: usos.get(i.node.name) ?? [] })),
     [structure, usos],
@@ -58,12 +67,25 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
         aviso: i.vacio,
       };
     };
+    // Las fórmulas repetidas por tarea y perfil (un conjoint) se pliegan en una fila por familia (E10).
+    const conFamilias = (lista: typeof items) =>
+      agruparEnFamilias(lista, (i) => i.node.name).map((g) => {
+        if (g.tipo === "suelto") return item(g.item);
+        const miembros = g.items.map(item);
+        return { ...miembros[0]!, titulo: tituloFamilia(g.clave), resumen: miembros[0]!.resumen, miembros };
+      });
+    const sorteado = (i: (typeof items)[number]) => ejemplo.sorteados.has(i.node.name);
     return [
-      { titulo: "En uso", items: items.filter((i) => !i.enPregunta && i.loUsan.length > 0).map(item) },
-      { titulo: "Sólo para la base", items: items.filter((i) => !i.enPregunta && i.loUsan.length === 0).map(item) },
+      {
+        titulo: "Sorteos",
+        nota: "Se calculan una vez por entrevista a partir de números al azar: cada encuestado ve otro sorteo.",
+        items: conFamilias(items.filter((i) => !i.enPregunta && sorteado(i))),
+      },
+      { titulo: "En uso", items: conFamilias(items.filter((i) => !i.enPregunta && !sorteado(i) && i.loUsan.length > 0)) },
+      { titulo: "Sólo para la base", items: conFamilias(items.filter((i) => !i.enPregunta && !sorteado(i) && i.loUsan.length === 0)) },
       { titulo: "Preguntas con fórmula", items: items.filter((i) => i.enPregunta).map(item) },
     ];
-  }, [items, scope, structure]);
+  }, [items, scope, structure, ejemplo]);
   const lectura = useMemo(() => (actual && !actual.vacio ? leerRegla("calculation", actual.node.calculation, actual.node, scope) : null), [actual, scope]);
   const enPreguntas = items.filter((i) => i.enPregunta).length;
   const [editando, setEditando] = useState(false);
@@ -73,6 +95,8 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
   const [borrador, setBorrador] = useState<{ fila: number; texto: string } | null>(null);
   if (claveEditor !== clave) { setClaveEditor(clave); setEditando(false); setBorrador(null); }
   const guardada = actual?.node.calculation ?? "";
+  // E17: una fórmula que el armador sabe reescribir idéntica se edita también con él.
+  const intencionGuardada = useMemo(() => (guardada.trim() ? deFormula(guardada) : null), [guardada]);
   const editorAbierto = Boolean(actual) && (editando || Boolean(actual?.vacio));
   const texto = borrador && borrador.fila === clave ? borrador.texto : guardada;
   const formulaPrueba = editorAbierto ? texto : guardada;
@@ -96,6 +120,8 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
     setBorrador({ fila: clave, texto: r.texto });
     cursorPendiente.current = r.cursor;
   };
+  // El armador sube su fórmula como borrador: «Probar con respuestas» la evalúa mientras se arma.
+  const alArmar = useCallback((f: string | null) => setBorrador(f ? { fila: clave, texto: f } : null), [clave]);
   const focoPerdido = seleccionada && actual && actual.node.name !== seleccionada
     ? <>No hay un cálculo llamado <code>{seleccionada}</code>: se muestra el primero de la lista.</>
     : null;
@@ -104,7 +130,7 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
     <PestanaReglas
       titulo="Cálculos"
       marca="calc"
-      total={`${items.length} cálculo${items.length === 1 ? "" : "s"}${enPreguntas ? ` · ${enPreguntas} en preguntas` : ""}`}
+      total={`${items.length} cálculo${items.length === 1 ? "" : "s"}${enPreguntas ? `, ${enPreguntas} en preguntas` : ""}`}
       aviso={focoPerdido}
       grupos={grupos}
       seleccionada={actual?.node.name ?? null}
@@ -119,14 +145,14 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
           <div className="xfp-encabezado">
             <span className="xfp-encabezado__ruta">
               <TypeIcon baseType={actual.enPregunta ? actual.node.typeInfo.base : "calculate"} boxed /> {actual.enPregunta ? "Pregunta con fórmula" : "Cálculo"}
-              {actual.node.label ? <> · <code className="xfp-codigo">{actual.node.name}</code></> : null}
+              {actual.node.label ? <code className="xfp-codigo">{actual.node.name}</code> : null}
             </span>
             <h2 className="xfp-encabezado__titulo">{actual.node.label ? <EtiquetaLegible texto={actual.node.label} etiquetaDe={etiquetaDe} /> : <code className="xfp-var is-codigo">{actual.node.name}</code>}</h2>
             <span className="xfp-encabezado__accion"><EditarEnConstructor onEditar={() => onEditar(actual.node.rowIndex)} que={`el cálculo ${actual.node.name}`} /></span>
           </div>
           <PanelCard
             title="Fórmula"
-            meta={<span className={`xfp-insignia is-${actual.vacio ? "sin-regla" : lectura?.tecnica ? "sin-traducir" : "vigente"}`}>{actual.vacio ? "vacía" : lectura?.tecnica ? "sin traducir" : "vigente"}</span>}
+            meta={<EstadoChip label={actual.vacio ? "vacía" : lectura?.tecnica ? "sin traducir" : "vigente"} tone={actual.vacio ? "neutral" : lectura?.tecnica ? "warn" : "success"} />}
             footer={actual.vacio ? undefined : (
               <button type="button" className="xfp-boton" aria-expanded={editando} onClick={() => setEditando((v) => !v)}>
                 <Pencil size={13} aria-hidden="true" /> {editando ? "Cerrar el editor" : "Editar la fórmula"}
@@ -143,13 +169,28 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
               </p>
               {actual.enPregunta ? <p className="xfp-nota">La respuesta de esta pregunta sale de la fórmula: quien encuesta no la escribe.</p> : null}
               {!actual.vacio && !editorAbierto ? (
-                <details className="xfp-codigo-xls" open={Boolean(lectura?.tecnica)}>
-                  <summary>Expresión en XLSForm</summary>
+                // Siempre a la vista: sin triángulo que despliega (E20).
+                <div className="xfp-codigo-xls">
+                  <span className="xfp-codigo-xls__rot">Expresión en XLSForm</span>
                   <code>{actual.node.calculation.trim()}</code>
-                </details>
+                </div>
               ) : null}
             </div>
-            {actual.vacio ? (
+            {(actual.vacio || (editando && intencionGuardada)) && onArmar ? (
+              <ArmadorCalculo
+                // Clave propia: el editor de fórmula, hermano en la misma tarjeta, ya usa el número de fila.
+                key={`armador-${actual.node.rowIndex}`}
+                scope={scope}
+                nombre={actual.node.name}
+                inicial={actual.vacio ? null : intencionGuardada}
+                onBorrador={alArmar}
+                onAplicar={(f, aux) => {
+                  const motivo = onArmar(actual.node.rowIndex, f, aux);
+                  if (!motivo) { setBorrador(null); setEditando(false); }
+                  return motivo;
+                }}
+              />
+            ) : actual.vacio ? (
               <CalculationRecipePanel
                 expression={actual.node.calculation}
                 scope={scope}
@@ -167,6 +208,15 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
               />
             ) : null}
           </PanelCard>
+          {ejemplo.sorteados.has(actual.node.name) ? (
+            <PanelCard title="En una entrevista de ejemplo" meta={<EstadoChip label="sorteo" tone="neutral" />}>
+              <p className="xfp-lectura">
+                {ejemplo.valores[actual.node.name] !== undefined && ejemplo.valores[actual.node.name] !== ""
+                  ? <>Vale <strong>{valorLegible(ejemplo.valores[actual.node.name]!)}</strong>. En otra entrevista el sorteo puede dar otro valor.</>
+                  : "Con este sorteo queda vacío."}
+              </p>
+            </PanelCard>
+          ) : null}
           <ProbarCalculo key={actual.node.rowIndex} node={actual.node} formula={formulaPrueba} usa={usaPrueba} structure={structure} opcionesDe={opcionesDe} />
           <div className="xfp-fila2" data-qa-geometry-group="xlsform/calculos-fila" data-qa-geometry-contract="equal">
             <PanelCard title="Usa" meta={actual.usa.length ? `${actual.usa.length}` : undefined} fill>
@@ -174,7 +224,7 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
                 <div className="xfp-toks">
                   {actual.usa.map((v) => {
                     const n = porNombre(v);
-                    return <QuestionToken key={v} baseType={n?.typeInfo.base ?? ""} label={n ? numero(n) : v} hint={n?.label ? etiquetaPlana(n.label, etiquetaDe) : undefined} variable={v} />;
+                    return <QuestionToken key={v} baseType={n?.typeInfo.base ?? ""} label={n ? numero(n) : v} hint={pistaDistinta(n?.label ? etiquetaPlana(n.label, etiquetaDe) : "", n ? numero(n) : v)} variable={v} />;
                   })}
                 </div>
               ) : <p className="xfp-nota">No lee ninguna respuesta.</p>}
@@ -184,7 +234,7 @@ export function PestanaCalculos({ structure, scope: scopeBase, seleccionada, onS
                 <ul className="xfp-usos">
                   {actual.loUsan.map((u) => (
                     <li key={`${u.node.rowIndex}-${u.columna}-${u.opcion?.valor ?? ""}`}>
-                      <QuestionToken baseType={u.node.typeInfo.base} label={numero(u.node)} hint={etiquetaPlana(u.node.label, etiquetaDe)} variable={u.node.name} />
+                      <QuestionToken baseType={u.node.typeInfo.base} label={numero(u.node)} hint={pistaDistinta(etiquetaPlana(u.node.label, etiquetaDe), numero(u.node))} variable={u.node.name} />
                       {/* M2: el sufijo es corto para no comerse el título; qué opción, en el tooltip y sin `${x}` crudo. */}
                       <span className="xfp-usos__col" title={u.opcion ? `Opción de la lista ${u.opcion.lista}: ${etiquetaPlana(u.opcion.etiqueta, etiquetaDe)}` : undefined}>
                         {DONDE_SE_USA[u.columna]}
@@ -243,4 +293,15 @@ function CalculosVacio() {
       </PanelCard>
     </>
   );
+}
+
+/** Un número al azar se lee con tres decimales («0.232», no «0.231999499»); un texto o un entero, tal cual. */
+export function valorLegible(valor: string): string {
+  return /^-?\d+\.\d{4,}$/.test(valor) ? String(Math.round(Number(valor) * 1000) / 1000) : valor;
+}
+
+/** La etiqueta junto al código sólo si dice algo más: un cálculo sin rótulo repetía su código dos veces. */
+export function pistaDistinta(etiqueta: string, codigo: string): string | undefined {
+  const e = etiqueta.trim();
+  return e && e !== codigo.trim() ? e : undefined;
 }

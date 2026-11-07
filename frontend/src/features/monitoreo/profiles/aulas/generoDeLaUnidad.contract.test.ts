@@ -46,6 +46,10 @@ const OTRO_SUJETO = new Map<string, string>([
   // tramo. El encabezado va en femenino porque concuerda con la columna que
   // tiene al lado, que es lo que el ojo empareja.
   ["Aplicadas", "la CITA del tramo, femenina — la columna vecina se llama «Citas»"],
+  // El vacío de Registro de campo (P5): «aplicadas» son las ENCUESTAS que el
+  // parte cuenta, no el curso-horario. Antes la frase iba partida en líneas de
+  // JSX y el barrido no la veía; en `descripcion` de EstadoVacio es un literal.
+  ["Aquí se registra cómo fue su aplicación: asistentes, rechazos, duplicados y encuestas aplicadas.", "las ENCUESTAS del parte, femeninas"],
 ]);
 
 /**

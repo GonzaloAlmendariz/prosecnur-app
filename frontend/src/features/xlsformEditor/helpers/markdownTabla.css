@@ -1,0 +1,58 @@
+/* Tabla markdown dentro de una nota (E2 editor-conjoint): dos perfiles lado a lado, como los ve el encuestado. */
+.pulso-md-tabla-texto {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.pulso-md-tabla-marco {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 4px 0;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+}
+
+.pulso-md-tabla {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 0.95em;
+  line-height: 1.4;
+  color: var(--pulso-text);
+}
+
+.pulso-md-tabla th,
+.pulso-md-tabla td {
+  padding: 8px 12px;
+  overflow-wrap: break-word;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-md-tabla tbody tr:last-child th,
+.pulso-md-tabla tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.pulso-md-tabla thead th:first-child {
+  width: 30%;
+}
+
+.pulso-md-tabla thead th {
+  background: var(--pulso-surface-2);
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.pulso-md-tabla tbody th {
+  font-weight: var(--pulso-weight-medium);
+  color: var(--pulso-text-soft);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-md-tabla td + td {
+  border-left: 1px solid var(--pulso-border);
+}

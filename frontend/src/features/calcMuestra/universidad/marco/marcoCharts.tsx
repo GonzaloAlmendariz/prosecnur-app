@@ -36,6 +36,7 @@ import {
   workspaceCategoryLabel,
   type CategoryLabeler,
 } from "../shared/categorias";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
 
 /* ============================================================================
    Tipos y constantes
@@ -120,7 +121,7 @@ export function fmtStackPct(value: number | null | undefined) {
 
 function fmtComparisonPct(value: number) {
   if (!Number.isFinite(value)) return "—";
-  return `${(value * 100).toFixed(1).replace(".", ",")}%`;
+  return `${(value * 100).toFixed(1)}%`;
 }
 
 export function safeShare(value: number, total: number) {
@@ -469,7 +470,7 @@ export function classroomSexCompositionRowsFromAulas(
       const level = rowCategoryLabel(row, ["level", "nivel", "nivel_del_curso", "ciclo"], "level", workspace);
       const classroomId = classroomRowText(row, ["classroom_id", "course_schedule_id", "nrc", "codigo_aula"]);
       const label = classroomRowText(row, ["course_name", "curso", "label", "classroom_label", "aula", "classroom_id"]) || `Curso-horario ${index + 1}`;
-      const detail = [faculty, program, level ? `ciclo ${level}` : "", classroomId && classroomId !== label ? classroomId : ""].filter(Boolean).join(" · ");
+      const detail = [faculty, program, level ? `ciclo ${level}` : "", classroomId && classroomId !== label ? classroomId : ""].filter(Boolean).join(", ");
       const segments = sortedSexColumns(Array.from(counts.keys()))
         .map((label) => {
           const kind: ClassroomSexCompositionRow["segments"][number]["kind"] = sexLabelKind(label) ?? (label === "Sin dato" ? "missing" : "other");
@@ -802,20 +803,20 @@ export function descriptiveMissingState(
 }
 
 export function DescriptiveEmptyNotice({ state, compact = false }: { state: DescriptiveEmptyState; compact?: boolean }) {
+  // El vacío es ícono, título y UNA línea (P5): el porqué y el qué sigue van
+  // juntos ahí. Los chips repetían la fuente y la variable que ya dice el
+  // título; de ellos sólo se conserva si el faltante bloquea o no.
+  const linea = [state.detail, state.next, state.tone === "optional" ? "No bloquea el cálculo." : null]
+    .filter(Boolean)
+    .join(" ");
   return (
-    <div className={`cmv2-descriptive-empty-state is-${state.tone ?? "waiting"} ${compact ? "is-compact" : ""}`}>
-      <span aria-hidden="true"><CircleHelp size={16} /></span>
-      <div>
-        <strong>{state.title}</strong>
-        <p>{state.detail}</p>
-        {state.next && <small>{state.next}</small>}
-        {state.chips?.length ? (
-          <div className="cmv2-descriptive-empty-tags" aria-label="Motivos del estado">
-            {state.chips.map((chip) => <em key={chip}>{chip}</em>)}
-          </div>
-        ) : null}
-      </div>
-    </div>
+    <EstadoVacio
+      tamano={compact ? "compacto" : "normal"}
+      className={`is-${state.tone ?? "waiting"}`}
+      icono={<CircleHelp size={16} aria-hidden="true" />}
+      titulo={state.title}
+      descripcion={linea}
+    />
   );
 }
 
@@ -877,7 +878,7 @@ export function ClassroomFunnelStrip({ title, steps }: { title: string; steps: C
 
 export function ClassroomInsightGrid({ items }: { items: ClassroomInsight[] }) {
   return (
-    <section className="cmv2-dashboard-insights cmv2-uni-stagger" aria-label="Lecturas del marco">
+    <section className="cmv2-dashboard-insights cmv2-uni-stagger" aria-label="Lecturas del marco" data-qa-geometry-group="calc-muestra/marco-lecturas" data-qa-geometry-contract="equal">
       {items.map((item) => {
         const Icon = item.icon ?? Gauge;
         return (
@@ -978,7 +979,7 @@ export function ClassroomBarPlot({
             </div>
             <strong>
               {fmtInt(row.value)}{" "}
-              <small>{Number.isFinite(total) && total && row.value > 0 ? `${shareComparison ? fmtComparisonPct(row.value / total) : fmtStackPct(row.value / total)} · ${unit}` : unit}</small>
+              <small>{Number.isFinite(total) && total && row.value > 0 ? `${shareComparison ? fmtComparisonPct(row.value / total) : fmtStackPct(row.value / total)}, ${unit}` : unit}</small>
             </strong>
           </div>
         );
@@ -989,7 +990,7 @@ export function ClassroomBarPlot({
           <div aria-hidden="true"><i style={{ width: `${Math.min(100, Math.max(3, (overflow.value / max) * 100))}%` }} /></div>
           <strong>
             {fmtInt(overflow.value)}{" "}
-            <small>{Number.isFinite(total) && total && overflow.value > 0 ? `${fmtStackPct(overflow.value / total)} · ${unit}` : unit}</small>
+            <small>{Number.isFinite(total) && total && overflow.value > 0 ? `${fmtStackPct(overflow.value / total)}, ${unit}` : unit}</small>
           </strong>
         </div>
       )}

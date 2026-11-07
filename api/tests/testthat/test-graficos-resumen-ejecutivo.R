@@ -1,4 +1,4 @@
-# Los cinco gráficos del resumen ejecutivo de Arte y Diseño FG 2026, nativos del motor (ADR 0114).
+# Los cinco gráficos del resumen ejecutivo de Arte y Diseño FG 2026, nativos del motor (ADR 0134).
 
 .re_doc <- function() officer::read_pptx(system.file("plantillas", "plantilla_16_9.pptx", package = "prosecnurapp"))
 .re_xml <- function(doc) { out <- tempfile(fileext = ".pptx"); print(doc, target = out); xml2::read_xml(unz(out, sprintf("ppt/slides/slide%d.xml", length(doc)))) }

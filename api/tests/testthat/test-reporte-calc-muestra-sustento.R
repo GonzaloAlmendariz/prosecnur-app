@@ -77,7 +77,6 @@ test_that("el bundle lleva la memoria sólo de los componentes de elementos con 
 
 test_that("el reporte renderizado lleva la memoria y el sorteo (Quarto real)", {
   skip_if_not(nzchar(Sys.which("quarto")) && requireNamespace("quarto", quietly = TRUE), "sin quarto")
-  skip_on_cran()
   set.seed(4)
   marco <- data.frame(codigo = sprintf("H%04d", 1:600), zona = sample(c("Norte", "Sur"), 600, TRUE))
   comp <- calc_muestra_normalize_componente(list(id = "c1", actor = "Hogares", actor_id = "h", tecnica = "prob_estratificado",

@@ -175,7 +175,13 @@
 #' @keywords internal
 .lam_tabla_ttb <- function(doc, d, x, y, ws, rowh, rowh_cuerpo = rowh, nombre = NULL) {
   azul <- .std_color("azul"); fuente <- .std_pt("fuente")
+  # Los rótulos del encabezado no son las claves de las columnas: uno vacío (la primera columna sin encabezado, que el
+  # informe avisa) o dos iguales hacían caer `flextable` con «undefined columns selected», y con él el mazo entero
+  # (acrconta_mazo, lámina 48). Claves internas seguras y el encabezado tal cual.
+  rotulos <- as.character(names(d)); rotulos[is.na(rotulos)] <- ""
+  names(d) <- paste0("c", seq_along(d))
   ft <- flextable::flextable(d)
+  ft <- flextable::set_header_labels(ft, values = stats::setNames(as.list(rotulos), names(d)))
   ft <- flextable::font(ft, fontname = fuente, part = "all")
   ft <- flextable::fontsize(ft, size = 13, part = "body"); ft <- flextable::fontsize(ft, size = 11, part = "header")
   ft <- flextable::color(ft, color = azul, part = "all"); ft <- flextable::bold(ft, part = "header"); ft <- flextable::bold(ft, j = 1, part = "body")

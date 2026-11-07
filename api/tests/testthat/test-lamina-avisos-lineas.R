@@ -82,7 +82,7 @@ test_that("una multilista que se parte avisa una vez con sus partes", {
   expect_gt(k, 1L)
   linea <- grep("las premisas ocupan", av, value = TRUE, fixed = TRUE)
   expect_length(linea, 1L)
-  expect_match(linea, sprintf("^Lámina 1 · “Multilista larga”: las premisas ocupan hasta [0-9]+ líneas?; salió en %d partes$", k))
+  expect_match(linea, sprintf("^Lámina 1, “Multilista larga”: las premisas ocupan hasta [0-9]+ líneas?; salió en %d partes$", k))
 })
 
 # Verificador de K12b (acrconta, BIENESTAR UNIVERSITARIO): el plan parte la escala por barras
@@ -115,7 +115,7 @@ test_that("una escala partida por el plan avisa una vez con las láminas reales 
   expect_equal(r$n, 3L)
   sobre <- grep("BIENESTAR", r$avisos, value = TRUE, fixed = TRUE)
   expect_length(sobre, 1L)
-  expect_match(sobre, sprintf("^Lámina 2 · “BIENESTAR UNIVERSITARIO”: las premisas ocupan hasta [0-9]+ líneas; salió en %d partes \\(14 barras; el máximo legible por lámina es 6\\)$", r$n))
+  expect_match(sobre, sprintf("^Lámina 2, “BIENESTAR UNIVERSITARIO”: las premisas ocupan hasta [0-9]+ líneas; salió en %d partes \\(14 barras; el máximo legible por lámina es 6\\)$", r$n))
   expect_false(any(grepl("se partió en", r$avisos, fixed = TRUE)))           # el aviso previo se fusiona
 })
 
@@ -123,7 +123,7 @@ test_that("una escala partida sólo por el plan también avisa, con sus piezas",
   r <- .al_mazo(.al_cruce(largas = FALSE))
   sobre <- grep("BIENESTAR", r$avisos, value = TRUE, fixed = TRUE)
   expect_length(sobre, 1L)
-  expect_match(sobre, sprintf("^Lámina 2 · .*salió en %d partes \\(14 barras; el máximo legible por lámina es 6\\)$", r$n))
+  expect_match(sobre, sprintf("^Lámina 2, .*salió en %d partes \\(14 barras; el máximo legible por lámina es 6\\)$", r$n))
 })
 
 test_that("el Word avisa la partición del plan una vez, con sus figuras", {
@@ -132,7 +132,7 @@ test_that("el Word avisa la partición del plan una vez, con sus figuras", {
     presets_ppt = do.call(p_presets, .PRESETS_DEFAULT_PULSO), mensajes_progreso = FALSE)))
   sobre <- grep("BIENESTAR", av, value = TRUE, fixed = TRUE)
   expect_length(sobre, 1L)
-  expect_match(sobre, "Lámina 2 · “BIENESTAR UNIVERSITARIO”: salió en 3 partes (14 barras; el máximo legible por lámina es 6)", fixed = TRUE)
+  expect_match(sobre, "Lámina 2, “BIENESTAR UNIVERSITARIO”: salió en 3 partes (14 barras; el máximo legible por lámina es 6)", fixed = TRUE)
 })
 
 test_that("un mazo que falla a mitad no deja el registro tomado: el compositor llamado solo vuelve a avisar", {
@@ -150,17 +150,17 @@ test_that("dos láminas con el mismo título que se parten dan dos avisos distin
   r <- .al_mazo(f)
   sobre <- grep("BIENESTAR", r$avisos, value = TRUE, fixed = TRUE)
   expect_length(unique(sobre), 2L)
-  expect_match(sobre[1], "^Lámina 2 · ")
+  expect_match(sobre[1], "^Lámina 2, ")
   # Numera por la posición en el plan —la que navega la UI—, no por la del PPTX (verificador de B-g: un mazo de 67
   # láminas avisaba la 91). Las partes de la primera no corren el número de la segunda.
-  expect_match(sobre[2], "^Lámina 3 · ")
+  expect_match(sobre[2], "^Lámina 3, ")
 })
 
 test_that("un job con muchas particiones conserva todos los demás avisos y agrupa los de partición", {
   sid <- session_create()
   jobs <- file.path(session_get(sid)$dir, "jobs"); dir.create(jobs, recursive = TRUE, showWarnings = FALSE)
-  part <- sprintf("Lámina %d · “BIENESTAR UNIVERSITARIO”: las premisas ocupan hasta 2 líneas; salió en 3 partes", c(18, 21, 24, 27, 30, 33, 36, 39, 42))
-  tit <- "Lámina 50 · “UN TÍTULO MUY LARGO”: el título ocupa 3 líneas"
+  part <- sprintf("Lámina %d, “BIENESTAR UNIVERSITARIO”: las premisas ocupan hasta 2 líneas; salió en 3 partes", c(18, 21, 24, 27, 30, 33, 36, 39, 42))
+  tit <- "Lámina 50, “UN TÍTULO MUY LARGO”: el título ocupa 3 líneas"
   otros <- c("El radar recibió valores de hasta 98.1 declarados como proporción.", "La columna «top2box» se omite.", "Falta un ícono.")
   writeLines(paste(.PULSO_AVISO_SELLO, c(part[1:4], otros[1], part[5:9], tit, otros[2:3])), file.path(jobs, "J.err"))
   av <- .pulso_avisos_de_job(sid, "J")
@@ -191,7 +191,7 @@ test_that("en el Word dos láminas partidas por el plan avisan con su número en
   av <- .al_avisos(suppressWarnings(reporte_word_plan(data = f$data, instrumento = f$inst, plan = f$plan, path_docx = tempfile(fileext = ".docx"),
     presets_ppt = do.call(p_presets, .PRESETS_DEFAULT_PULSO), mensajes_progreso = FALSE)))
   sobre <- grep("BIENESTAR", av, value = TRUE, fixed = TRUE)
-  expect_identical(sub(" · .*$", "", sobre), c("Lámina 2", "Lámina 3"))
+  expect_identical(sub(", .*$", "", sobre), c("Lámina 2", "Lámina 3"))
 })
 
 test_that("sin archivo, las láminas «Otros» que inserta el motor no corren el número", {
@@ -204,7 +204,7 @@ test_that("sin archivo, las láminas «Otros» que inserta el motor no corren el
   plan <- list(s("Uno"), s("Otros", otros = TRUE), s("A", "pa"), s("A (cont.)", "pa"), s("B", "pb"), s("B (cont.)", "pb"))
   correr <- function() { for (i in seq_along(plan)) .lam_avisos_paso(plan, i, NULL); .lam_avisos_cierre(plan, NULL) }
   av <- .al_avisos(correr())
-  expect_identical(sub(" · .*$", "", av), c("Lámina 2", "Lámina 3"))
+  expect_identical(sub(", .*$", "", av), c("Lámina 2", "Lámina 3"))
 })
 
 # Verificador de K12b (mutante M2): en la vista previa el número del aviso sigue al folio real de la lámina (K2).
@@ -212,10 +212,10 @@ test_that("en la vista previa el número del aviso suma el desplazamiento de fol
   f <- .al_cruce()
   av <- .al_avisos(.preview_con_folio(suppressWarnings(reporte_ppt_plan(data = f$data, instrumento = f$inst, plan = f$plan,
     path_ppt = tempfile(fileext = ".pptx"), presets = do.call(p_presets, .PRESETS_DEFAULT_PULSO), mensajes_progreso = FALSE)), 7L))
-  expect_match(grep("BIENESTAR", av, value = TRUE, fixed = TRUE), "^Lámina 8 · ")      # la de texto es la 7
+  expect_match(grep("BIENESTAR", av, value = TRUE, fixed = TRUE), "^Lámina 8, ")      # la de texto es la 7
   sin <- .al_avisos(suppressWarnings(reporte_ppt_plan(data = f$data, instrumento = f$inst, plan = f$plan,
     path_ppt = tempfile(fileext = ".pptx"), presets = do.call(p_presets, .PRESETS_DEFAULT_PULSO), mensajes_progreso = FALSE)))
-  expect_match(grep("BIENESTAR", sin, value = TRUE, fixed = TRUE), "^Lámina 2 · ")
+  expect_match(grep("BIENESTAR", sin, value = TRUE, fixed = TRUE), "^Lámina 2, ")
 })
 
 # Verificador de K12b: el registro guardaba el marco de `reporte_ppt_plan` (`e$marco`) y, si el mazo fallaba, retenía
@@ -231,18 +231,18 @@ test_that("un mazo que falla no deja entornos retenidos en el registro de avisos
 
 # Verificador de K12b (2.ª ronda, punto 6): `.pulso_avisos_ordenar` agrupaba todo «Lámina N ·» y descartaba en
 # silencio los que no eran de partes ni de título. Sólo esos dos se agrupan; cualquier otro va con los demás.
-test_that("un aviso «Lámina N ·» que no es de partes ni de título no se pierde al agrupar", {
-  part <- sprintf("Lámina %d · “B”: salió en 3 partes", 1:9)
-  otro <- "Lámina 5 · “X”: el gráfico se degradó a «Sin datos»"
+test_that("un aviso «Lámina N,» que no es de partes ni de título no se pierde al agrupar", {
+  part <- sprintf("Lámina %d, “B”: salió en 3 partes", 1:9)
+  otro <- "Lámina 5, “X”: el gráfico se degradó a «Sin datos»"
   av <- .pulso_avisos_ordenar(c(part, otro), 8L)
   expect_true(otro %in% av)
   expect_true("9 láminas salieron en varias partes: 1, 2, 3, 4, 5, 6, 7, 8, 9." %in% av)
 })
 
 test_that("el resumen de un job multibase dice a qué base pertenece cada número", {
-  part <- c(sprintf("Lámina %d de «docentes» · “B”: salió en 2 partes", c(3, 9, 12)), sprintf("Lámina %d de «estudiantes» · “B”: salió en 2 partes", c(3, 7)),
-            sprintf("Lámina %d de «estudiantes» · “T”: el título ocupa 3 líneas", 4))
+  part <- c(sprintf("Lámina %d de «docentes», “B”: salió en 2 partes", c(3, 9, 12)), sprintf("Lámina %d de «estudiantes», “B”: salió en 2 partes", c(3, 7)),
+            sprintf("Lámina %d de «estudiantes», “T”: el título ocupa 3 líneas", 4))
   av <- .pulso_avisos_ordenar(c(part, sprintf("Otro aviso %d", 1:5)), 8L)
-  expect_true("5 láminas salieron en varias partes: «docentes» 3, 9, 12; «estudiantes» 3, 7." %in% av)
+  expect_true("5 láminas salieron en varias partes: «docentes» 3, 9, 12 y «estudiantes» 3, 7." %in% av)
   expect_true("1 título pasa de dos líneas: «estudiantes» 4." %in% av)
 })

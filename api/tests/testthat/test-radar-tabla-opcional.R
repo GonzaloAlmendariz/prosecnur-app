@@ -52,25 +52,29 @@ source("setup-load-all.R")
 }
 .rt_ns <- c(w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main")
 
-test_that("default auto: el radar lleva tabla y las líneas y puntos o barras NO (todo igual que antes)", {
+test_that("default auto: el radar y las líneas y puntos llevan tabla; las barras no (Gonzalo, 2026-10-28)", {
   expect_identical(p_radar(modo = "publicos", vars = .rt_vars(6L), corte = "3,4")[["tabla"]], "auto")
   r6 <- .rt_render(6L)
   expect_identical(.rt_forma(r6$g), "radar"); expect_true(.rt_con_tabla(r6$g))
   r4 <- .rt_render(4L)
-  expect_identical(.rt_forma(r4$g), "puntos"); expect_false(.rt_con_tabla(r4$g))
+  expect_identical(.rt_forma(r4$g), "puntos"); expect_true(.rt_con_tabla(r4$g))   # «faltan las tablas en los comparativos de ejes»
   rb <- .rt_render(4L, forma = "barras")
   expect_identical(.rt_forma(rb$g), "barras"); expect_false(.rt_con_tabla(rb$g))
   # tabla = "auto" explícito es lo mismo que sin declarar
-  expect_false(.rt_con_tabla(.rt_render(4L, tabla = "auto")$g))
+  expect_true(.rt_con_tabla(.rt_render(4L, tabla = "auto")$g))
   expect_true(.rt_con_tabla(.rt_render(6L, tabla = "auto")$g))
 })
 
 test_that("tabla = si lleva la tabla en radar, líneas y puntos y barras; tabla = no, en ninguna", {
   for (forma in c("radar", "puntos", "barras")) {
-    r <- .rt_render(6L, forma = forma, tabla = "si")
+    r <- .rt_render(6L, forma = forma, tabla = "si", tabla_titulo = "TOP TWO BOX")
     expect_identical(.rt_forma(r$g), forma, info = forma)
     expect_true(.rt_con_tabla(r$g), info = forma)
     expect_length(r$avisos, 0L)
+    # sin encabezado declarado, la tabla sale igual y el informe lo dice (no hay encabezado de fábrica)
+    sin <- .rt_render(6L, forma = forma, tabla = "si")
+    expect_true(.rt_con_tabla(sin$g), info = forma)
+    expect_true(any(grepl("no tiene encabezado en su primera columna", sin$avisos, fixed = TRUE)), info = forma)
     expect_false(.rt_con_tabla(.rt_render(6L, forma = forma, tabla = "no")$g), info = forma)
   }
   expect_error(p_radar(modo = "publicos", vars = .rt_vars(4L), corte = "3,4", tabla = "quizá"), "tabla")
@@ -116,7 +120,7 @@ test_that("la metadata declara tabla y word_tabla, y mostrar_tabla como heredado
   tab <- args[[match("tabla", nm)]]
   expect_identical(tab$tipo_input, "choice"); expect_identical(tab$default, "auto")
   expect_identical(vapply(tab$choices, function(x) x$value, ""), c("auto", "si", "no"))
-  expect_identical(vapply(tab$choices, function(x) x$label, "")[1], "Automática: junto al radar")
+  expect_identical(vapply(tab$choices, function(x) x$label, "")[1], "Automática: radar y líneas y puntos")
   expect_identical(tab$label, "Tabla de datos")
   expect_true(match("tabla", nm) > match("forma", nm))                           # junto a `forma`
   wt <- args[[match("word_tabla", nm)]]
@@ -141,7 +145,7 @@ test_that("contenido: lo que reporta el indicador, con los decimales y las cifra
   r <- .rt_render(4L, forma = "puntos", tabla = "si", valores_decimales = 1)
   t <- attr(r$g, "pulso_espec")[["tabla"]]
   esp <- attr(r$g, "pulso_espec")
-  expect_identical(t$encabezado, "% Bien + Muy bien")                              # el nombre del indicador
+  expect_identical(t$encabezado, " ")                                              # sin encabezado de fábrica (ni el indicador)
   expect_identical(t$grupos, c("Docentes", "Estudiantes"))
   expect_identical(t$ejes, paste("Tema", 1:4))
   # mismas cifras redondeadas que las etiquetas del gráfico (espec$cifras_a / cifras_b)
@@ -158,7 +162,7 @@ test_that("contenido: lo que reporta el indicador, con los decimales y las cifra
   # barras: las etiquetas de las barras llevan los mismos decimales que la tabla
   rb <- .rt_render(4L, forma = "barras", tabla = "si", valores_decimales = 1)
   tb <- .tabla_nativa_de(rb$g)$tabla
-  expect_identical(names(tb)[1], "% Bien + Muy bien"); expect_identical(names(tb)[-1], c("Docentes", "Estudiantes"))
+  expect_identical(names(tb)[1], " "); expect_identical(names(tb)[-1], c("Docentes", "Estudiantes"))
   etq <- ggplot2::ggplot_build(rb$g)$plot$data$etiqueta
   expect_true(all(unlist(tb[, -1]) %in% etq))
 })
@@ -222,13 +226,13 @@ test_that("lámina de líneas y puntos con tabla: nativa al costado, gráfico m�
   tbl <- xml2::xml_find_all(xml, "//a:tbl")
   expect_length(tbl, 1L)
   celdas <- xml2::xml_text(xml2::xml_find_all(tbl, ".//a:tc"))
-  expect_identical(celdas[1:3], c("% Bien + Muy bien", "Docentes", "Estudiantes"))
+  expect_identical(celdas[1:3], c(" ", "Docentes", "Estudiantes"))
   expect_identical(celdas[4:6], c("Tema 1", e$cifras_a[1], e$cifras_b[1]))
   off <- xml2::xml_find_first(xml, "//p:graphicFrame[.//a:tbl]/p:xfrm/a:off")
   x_tab <- as.numeric(xml2::xml_attr(off, "x")) / 914400
   expect_gt(x_tab, 7)                                                                # al costado, a la derecha
-  # sin tabla (default) la lámina no lleva tabla
-  e0 <- attr(.rt_render(4L)$g, "pulso_espec")
+  # con `tabla = "no"` la lámina no lleva tabla
+  e0 <- attr(.rt_render(4L, tabla = "no")$g, "pulso_espec")
   o0 <- .lam_laminas_pesas(officer::read_pptx(system.file("plantillas", "plantilla_16_9.pptx", package = "prosecnurapp")), e0, "SIN", folio = 1)
   out0 <- tempfile(fileext = ".pptx"); print(o0$doc, target = out0)
   expect_length(xml2::xml_find_all(xml2::read_xml(unz(out0, "ppt/slides/slide1.xml")), "//a:tbl"), 0L)
@@ -247,16 +251,16 @@ test_that("lámina de líneas y puntos: sin sitio en ninguna parte la tabla se o
   expect_match(avisos, "no cabe ni al costado ni debajo", fixed = FALSE)
 })
 
-test_that("word_tabla: FALSE por defecto (incluido el radar) y el gráfico del Word nunca pinta la tabla en la imagen", {
+test_that("word_tabla: sin marcar sigue a `tabla` (como el PPT) y el gráfico del Word nunca pinta la tabla en la imagen", {
   expect_null(p_radar(modo = "publicos", vars = .rt_vars(4L), corte = "3,4")[["word_tabla"]])
   expect_true(p_radar(modo = "publicos", vars = .rt_vars(4L), corte = "3,4", word_tabla = TRUE)[["word_tabla"]])
-  for (n in c(4L, 6L)) {
-    for (args in list(list(), list(tabla = "si"))) {
-      r <- do.call(.rt_render, c(list(n, word = TRUE), list(tabla_args = args)))
-      expect_null(attr(r$g, "pulso_word_tabla"), info = n)                          # no pidió word_tabla
-      expect_null(.tabla_nativa_de(r$g)); expect_false(isTRUE(attr(r$g, "pulso_espec")$con_tabla))
-    }
+  for (n in c(4L, 6L)) {   # puntos y radar: con `auto` el Word lleva su tabla nativa; con `no`, no
+    r <- .rt_render(n, word = TRUE)
+    expect_false(is.null(attr(r$g, "pulso_word_tabla")), info = as.character(n))
+    expect_null(.tabla_nativa_de(r$g)); expect_false(isTRUE(attr(r$g, "pulso_espec")$con_tabla))
+    expect_null(attr(.rt_render(n, word = TRUE, tabla = "no")$g, "pulso_word_tabla"), info = as.character(n))
   }
+  expect_null(attr(.rt_render(4L, word = TRUE, forma = "barras")$g, "pulso_word_tabla"))   # barras: como en el PPT, sin tabla
   # word_tabla TRUE no hereda de `tabla = no`
   r <- .rt_render(4L, word = TRUE, tabla = "no", word_tabla = TRUE)
   expect_false(is.null(attr(r$g, "pulso_word_tabla")))
@@ -279,7 +283,7 @@ test_that("word_tabla TRUE: tabla nativa de Word, centrada y ENCIMA de la figura
     jc <- xml2::xml_attr(xml2::xml_find_first(x, "//w:tbl/w:tblPr/w:jc", .rt_ns), "w:val", ns = .rt_ns)
     expect_identical(jc, "center", info = forma)
     celdas <- xml2::xml_text(xml2::xml_find_all(x, "//w:tbl//w:tc", .rt_ns))
-    expect_identical(celdas[1:3], c("% Bien + Muy bien", "Docentes", "Estudiantes"), info = forma)
+    expect_identical(celdas[1:3], c(" ", "Docentes", "Estudiantes"), info = forma)
     expect_match(celdas[5], "^[0-9]+\\.[0-9]%$")
     # rótulo, tabla y figura juntos: keep-with-next en el rótulo (estilo), en las filas y en la imagen
     expect_false(inherits(xml2::xml_find_first(x, "//w:tbl//w:tr[last()]//w:keepNext", .rt_ns), "xml_missing"))
@@ -291,7 +295,7 @@ test_that("word_tabla TRUE: tabla nativa de Word, centrada y ENCIMA de la figura
   expect_length(xml2::xml_find_all(x0, "//w:tbl", .rt_ns), 0L)
 })
 
-test_that("el Word de la tarjeta completa lleva la tabla encima cuando word_tabla y ninguna cuando no", {
+test_that("el Word de la tarjeta completa lleva la tabla encima con `tabla` auto o word_tabla, y ninguna con `tabla = no`", {
   src <- .rt_sources(4L)
   mk <- function(...) p_radar(modo = "publicos", vars = .rt_vars(4L), corte = "3,4", corte_etiqueta = "% Bien", ...)
   doc_de <- function(el) {
@@ -301,7 +305,18 @@ test_that("el Word de la tarjeta completa lleva la tabla encima cuando word_tabl
     png <- tempfile(fileext = ".png"); grDevices::png(png, 600, 300); graphics::par(mar = c(0, 0, 0, 0)); graphics::plot.new(); grDevices::dev.off()
     .rt_doc_xml(.word_figura(.word_documento_nuevo(), 1, "T", png, alto = 1.5, tabla = attr(p, "pulso_word_tabla")))
   }
-  expect_length(xml2::xml_find_all(doc_de(mk()), "//w:tbl", .rt_ns), 0L)
-  expect_length(xml2::xml_find_all(doc_de(mk(tabla = "si")), "//w:tbl", .rt_ns), 0L)     # no hereda `tabla`
+  expect_length(xml2::xml_find_all(doc_de(mk()), "//w:tbl", .rt_ns), 1L)                 # sigue a `tabla` (auto)
+  expect_length(xml2::xml_find_all(doc_de(mk(tabla = "no")), "//w:tbl", .rt_ns), 0L)
   expect_length(xml2::xml_find_all(doc_de(mk(word_tabla = TRUE)), "//w:tbl", .rt_ns), 1L)
+})
+
+test_that("la tabla del radar con la primera columna sin encabezado (o dos iguales) sale con su celda vacía y no tumba el mazo", {
+  doc <- officer::read_pptx(system.file("plantillas", "plantilla_16_9.pptx", package = "prosecnurapp"))
+  doc <- officer::add_slide(doc, layout = "Graficos2", master = "Office Theme")
+  d <- data.frame(c("Comunicación eficaz", "Trabajo en equipo"), c("98%", "98%"), c("94%", "99%"), check.names = FALSE, stringsAsFactors = FALSE)
+  names(d) <- c("", "Docentes", "Docentes")   # acrconta_mazo, lámina 48: «undefined columns selected»
+  doc <- .lam_tabla_ttb(doc, d, 1, 1, c(2, 1, 1), 0.3)
+  xml <- as.character(doc$slide$get_slide(doc$cursor)$get())
+  expect_match(xml, "Comunicación eficaz", fixed = TRUE)
+  expect_equal(lengths(regmatches(xml, gregexpr("<a:t>Docentes</a:t>", xml, fixed = TRUE))), 2L)
 })

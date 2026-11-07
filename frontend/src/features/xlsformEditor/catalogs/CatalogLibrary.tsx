@@ -13,6 +13,7 @@
 import { useMemo, useState } from "react";
 import { ListChecks, Plus, Search } from "lucide-react";
 import type { CatalogSummary } from "../types";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 export type CatalogLibraryProps = {
   catalogs: CatalogSummary[];
@@ -40,20 +41,18 @@ export function CatalogLibrary({
 
   if (catalogs.length === 0) {
     return (
-      <div className="pulso-cataloglibrary pulso-cataloglibrary-empty">
-        <ListChecks size={20} />
-        <strong>Aún no hay listas</strong>
-        <p>
-          Crea la primera lista para definir las opciones reutilizables de tus
-          preguntas de selección.
-        </p>
-        <button
-          type="button"
-          className="pulso-cataloglibrary-create"
-          onClick={onCreate}
-        >
-          <Plus size={13} /> Crear primera lista
-        </button>
+      <div className="pulso-cataloglibrary">
+        <EstadoVacio
+          tamano="normal"
+          icono={<ListChecks size={20} />}
+          titulo="Aún no hay listas"
+          descripcion="Crea la primera para definir las opciones reutilizables de tus preguntas de selección."
+          accion={(
+            <button type="button" className="pulso-cataloglibrary-create" onClick={onCreate}>
+              <Plus size={13} /> Crear primera lista
+            </button>
+          )}
+        />
       </div>
     );
   }
@@ -99,7 +98,7 @@ export function CatalogLibrary({
                     {catalog.items.length} {catalog.items.length === 1 ? "opción" : "opciones"}
                     {usage > 0 && (
                       <>
-                        {" · "}
+                        {", "}
                         {usage === 1 ? "1 pregunta" : `${usage} preguntas`}
                       </>
                     )}

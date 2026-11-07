@@ -159,7 +159,7 @@ monitoreo_cuotas_modelo <- function(universo, case_rollup = list(), cuotas = lis
     variable <- .mcm_chr(q$variable)
     fa <- if (nrow(filas)) filas[filas$.mcu_actor == actor, , drop = FALSE] else filas
     if (!nrow(fa) || !variable %in% names(fa)) {
-      avisos <- c(avisos, sprintf("La cuota «%s · %s» no encuentra esa variable en la base del público.", actor, variable))
+      avisos <- c(avisos, sprintf("La cuota de %s por %s no encuentra esa variable en la base del público.", actor, variable))
       next
     }
     t <- .mcu_ordenar(.mcu_tabla_categorias(fa, variable, efectivas))
@@ -168,11 +168,33 @@ monitoreo_cuotas_modelo <- function(universo, case_rollup = list(), cuotas = lis
       m <- suppressWarnings(as.integer(metas[[cat]] %||% 0L)[1])
       if (is.na(m) || m < 0L) 0L else m
     }, integer(1), USE.NAMES = FALSE)
+    # Metas de categorías que ya no están en el público (p. ej. CENTRUM tras repartir
+    # el padrón): no se cuentan, y se dice cuáles en vez de bajar la suma en silencio.
+    huerfanas <- setdiff(names(metas)[vapply(metas, function(m) isTRUE(suppressWarnings(as.integer(m %||% 0L)[1]) > 0L), logical(1))], t$categoria)
+    if (length(huerfanas)) {
+      avisos <- c(avisos, sprintf(
+        "La cuota de %s por %s tiene metas para %s, que ya no %s en su público: no se cuentan.",
+        actor, variable, paste(huerfanas, collapse = " y "), if (length(huerfanas) == 1L) "está" else "están"
+      ))
+    }
+    # ADR 0126: sin declarar, una cuota es meta si alguna categoría tiene número.
+    # Una referencial no se exige: sus números pasan a `referencia`, la meta a 0
+    # (la franja y la lista leen `meta` como piso) y cada categoría publica su
+    # composición frente al universo, sin «Sin dato» (va aparte, en `sin_dato`).
+    caracter <- .monitoreo_cuota_caracter(q$caracter, if (sum(meta) > 0L) sum(meta) else NA_real_)$caracter
+    referencia <- if (caracter == "referencial") meta else rep(NA_integer_, length(meta))
+    if (caracter == "referencial") meta <- rep(0L, length(meta))
     falta <- pmax(meta - t$efectivas, 0L)
     estado <- .mcu_estado(t$efectivas, meta)
     total_meta <- sum(meta)
+    conocida <- t$categoria != .MCU_SIN_DATO
+    ef_conocidas <- sum(t$efectivas[conocida])
+    un_conocido <- sum(t$universo[conocida])
+    estado_cuota <- ifelse(caracter == "meta" & meta > 0L,
+                           .monitoreo_cuota_estado("meta", meta, t$efectivas, t$universo),
+                           .monitoreo_cuota_estado("referencial", NA, t$efectivas, t$universo))
     cuotas_out[[length(cuotas_out) + 1L]] <- list(
-      id = .mcm_chr(q$id), actor = actor, variable = variable,
+      id = .mcm_chr(q$id), actor = actor, variable = variable, caracter = caracter,
       cobertura = suppressWarnings(as.numeric(q$cobertura %||% NA)[1]),
       universo = nrow(fa), meta = total_meta,
       efectivas = sum(t$efectivas),
@@ -180,12 +202,18 @@ monitoreo_cuotas_modelo <- function(universo, case_rollup = list(), cuotas = lis
       categorias_cumplidas = sum(estado == "cumplida"),
       categorias_total = sum(meta > 0L),
       sin_dato = sum(t$universo[t$categoria == .MCU_SIN_DATO]),
+      sin_dato_efectivas = sum(t$efectivas[!conocida]),
       categorias = lapply(seq_len(nrow(t)), function(i) list(
         categoria = t$categoria[[i]], universo = t$universo[[i]], meta = meta[[i]],
         efectivas = t$efectivas[[i]], falta = falta[[i]],
         avance = if (meta[[i]] > 0L) t$efectivas[[i]] / meta[[i]] else NA_real_,
         tasa = if (t$universo[[i]] > 0L) t$efectivas[[i]] / t$universo[[i]] else NA_real_,
-        estado = estado[[i]]
+        estado = estado[[i]],
+        estado_cuota = estado_cuota[[i]],
+        referencia = if (is.na(referencia[[i]]) || referencia[[i]] <= 0L) NA_integer_ else referencia[[i]],
+        pct_efectivas = if (conocida[[i]] && ef_conocidas > 0L) t$efectivas[[i]] / ef_conocidas else NA_real_,
+        pct_universo = if (conocida[[i]] && un_conocido > 0L) t$universo[[i]] / un_conocido else NA_real_,
+        celda_vacia = .monitoreo_cuota_celda_vacia(if (meta[[i]] > 0L) "meta" else "referencial", t$efectivas[[i]], t$universo[[i]])
       ))
     )
   }

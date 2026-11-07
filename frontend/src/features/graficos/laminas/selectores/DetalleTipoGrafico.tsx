@@ -19,7 +19,7 @@ const PIDE: Record<GraficadorDataRequirement, string> = {
 type Props = {
   meta: GraficadorMetadata;
   nombre: string;
-  /** «Gráfico 2 · Derecha». */
+  /** «el espacio «Derecha»» o «esta ranura»: va detrás de «Va en». */
   ranura: string;
   encaje: Encaje;
   /** Motivo por el que no se puede insertar (disponibilidad, dimensiones…). */

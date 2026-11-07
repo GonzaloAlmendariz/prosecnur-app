@@ -212,7 +212,7 @@ describe("P1–P3 · la mesa pinta el rail de aulas y un tabpanel por pestaña",
     // El grupo medido envuelve sólo el cuerpo: la cabecera de la pestaña queda fuera (como en aulas).
     expect(html).toMatch(/class="cmg-pestana-cuerpo" data-qa-geometry-group="calc-muestra\/general-pestana-metodo-memoria" data-qa-geometry-contract="intrinsic"/);
     // La pestaña formula su pregunta, con la cabecera de aulas.
-    expect(html).toContain('<h2 id="cmv2-active-local-title">Cálculo del n</h2>');
+    expect(html).toContain('<h2>Cálculo del n</h2>');
     expect(html).toContain("¿qué fórmula lleva del N de la población al n y a la muestra a contactar?");
     // P2 · cadena del marco al n a campo (patrón 5) y memoria (patrón 6).
     expect(html).toContain("Del marco a la muestra a contactar");

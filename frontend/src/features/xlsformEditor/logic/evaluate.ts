@@ -160,6 +160,16 @@ function evaluateCall(name: string, args: Expr[], answers: SimAnswers): EvalValu
     }
   }
   if (fn === "if" && args.length === 3) return toBoolean(arg(0)) ? arg(1) : arg(2);
+  // Aritmética: sólo la produce el modo lectura del parser (`parseExpressionLectura`), que la codifica como llamada.
+  if (ARITMETICA.has(fn) && args.length === 2) {
+    const a = toNumberOrNull(arg(0)) ?? Number.NaN;
+    const b = toNumberOrNull(arg(1)) ?? Number.NaN;
+    if (fn === "+") return a + b;
+    if (fn === "-") return a - b;
+    if (fn === "*") return a * b;
+    if (fn === "div") return a / b;
+    return a % b;
+  }
   // Funciones de los cálculos reales (sonda de formularios tipo): se evalúan con su semántica ODK simple.
   if (fn === "once" && args.length === 1) return arg(0);
   if (fn === "now" && args.length === 0) return new Date().toISOString();
@@ -215,6 +225,8 @@ function toBoolean(value: EvalValue): boolean {
 }
 
 const FECHA = /^\d{4}-\d{2}-\d{2}/;
+
+const ARITMETICA = new Set(["+", "-", "*", "div", "mod"]);
 
 function compareValues(op: CompareOp, left: EvalValue, right: EvalValue): boolean {
   // Dos fechas ISO se comparan como texto: el orden lexicográfico es el cronológico.

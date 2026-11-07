@@ -1,0 +1,70 @@
+/* Entrega › Plantillas del equipo (campaña de aulas, etapa 3): dos tarjetas, una fila por
+   plantilla con su descarga y el estado del traspaso a Monitoreo. */
+/* Pasada de diseño (2 nov 2026): las plantillas ocupan el ancho con sus tres tarjetas de
+   salida y el traspaso va a su lado, más angosto. */
+.rec-equipo-tarjetas {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  align-items: start;
+  gap: var(--pulso-space-4);
+}
+@media (max-width: 1100px) {
+  .rec-equipo-tarjetas { grid-template-columns: minmax(0, 1fr); }
+}
+.rec-equipo-tarjetas .rec-paq-formatos { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+/* Sin el margin-bottom que el tema da al Panel en densidad corta: dentro de la grilla era hueco (capacity-drift). */
+.rec-equipo-tarjetas .pulso-panel { display: flex; flex-direction: column; gap: var(--pulso-space-3); margin-bottom: 0; }
+.rec-equipo-estado {
+  margin: 0;
+  padding: var(--pulso-space-3);
+  border: 1px dashed var(--pulso-border-strong);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface-2);
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-type-subtitle-weight);
+  color: var(--pulso-text-soft);
+}
+
+
+
+
+.rec-equipo-nota {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.rec-equipo-error {
+  margin: 0;
+  color: var(--pulso-danger-fg);
+  font-size: var(--pulso-type-body-size);
+}
+
+.rec-equipo-piezas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rec-equipo-piezas li {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-2) 0;
+  border-top: 1px solid var(--pulso-border);
+}
+
+.rec-equipo-piezas li > span {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rec-equipo-piezas small {
+  color: var(--pulso-text-soft);
+}

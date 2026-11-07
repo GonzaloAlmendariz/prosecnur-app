@@ -66,6 +66,19 @@ describe("maqueta: qué muestra cada ranura", () => {
     expect(r.twoBox.ttb).toBe(true);
   });
 
+  it("un bloque Sí/No con el Top Two Box encendido no lo dibuja: no tiene «dos mejores» (como el motor)", () => {
+    const vars = [
+      { name: "p11", source: "docentes", label: "¿Conoce?", list_name: "sn", choices: [{ name: "1", label: "Sí" }, { name: "2", label: "No" }] },
+      { name: "p12", source: "docentes", label: "Definidos", list_name: "ac", choices: ["Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo"].map((l, i) => ({ name: String(i + 1), label: l })) },
+    ] as never[];
+    const s = slide({ graficador: "p_barras_multiapiladas", args: { modo: "multilista", barra_extra: ["top2box"], bloques: [
+      { vars: { t: ["docentes$p11"] } },
+      { vars: { t: ["docentes$p12"] } },
+    ] } });
+    const [r] = ranurasDeMaqueta(s, vars);
+    expect(r.preguntas.map((q) => [q.titulo, q.ttb])).toEqual([["¿Conoce?", false], ["Definidos", true]]);
+  });
+
   it("cada pregunta trae su escala con los colores de su lista y se dice si comparten escala", () => {
     const vars = [
       { name: "p11", source: "docentes", label: "¿Conoce?", list_name: "sn", choices: [{ name: "1", label: "Sí" }, { name: "2", label: "No" }] },
@@ -117,5 +130,26 @@ describe("barra extra por bloque: bloque > lámina > preset", () => {
     expect(ttbDeBloque({ barra_extra: ["top2box"] }, false)).toBe(true);
     expect(ttbDeBloque({ barra_extra: ["conteos"] }, ["top2box"])).toBe(false);
     expect(ttbDeBloque({}, undefined)).toBe(false);
+  });
+});
+
+describe("tienePistasDeOrden: la misma regla que .goc_pistas_orden del motor", () => {
+  it("números romanos, solos o con «ciclo», cuentan como orden (graficos_orden_romanos.R)", async () => {
+    const { tienePistasDeOrden, sonRomanos } = await import("./modeloMaqueta");
+    expect(tienePistasDeOrden(["VI", "VII", "VIII", "IX"])).toBe(true);
+    expect(tienePistasDeOrden(["Ciclo I", "Ciclo II", "Ciclo X"])).toBe(true);
+    expect(sonRomanos(["IIII", "V"])).toBe(false);            // mal escrito: la ida y vuelta lo descarta
+    expect(sonRomanos(["Mi casa", "Vivo solo"])).toBe(false);
+  });
+  it("los residuales van anclados al inicio, con Ninguna/Ninguno, como .CATEGORIAS_RESIDUALES", async () => {
+    const { tienePistasDeOrden } = await import("./modeloMaqueta");
+    // «Ninguno» es residual: no hace de segunda etiqueta con cifra.
+    expect(tienePistasDeOrden(["1 hijo", "Ninguno"])).toBe(false);
+    // «Hay otro modo» no empieza por «Otro»: cuenta como etiqueta (antes el «otro» suelto la tiraba).
+    expect(tienePistasDeOrden(["Más de 3 años", "Hay otro modo 2"])).toBe(true);
+  });
+  it("una escala en romanos con Top Two Box encendido y sin categorías: la maqueta lo muestra para que la tarjeta avise", async () => {
+    const { twoBoxEnPregunta } = await import("./modeloMaqueta");
+    expect(twoBoxEnPregunta(true, undefined, ["Ciclo I", "Ciclo II", "Ciclo III"].map((rotulo) => ({ rotulo })))).toBe(true);
   });
 });

@@ -17,6 +17,7 @@ import {
   apiProjectOpen,
   apiProjectSave,
   apiProjectStatus,
+  motivoGuardadoBloqueado,
   ProjectStatus,
 } from "../../api/client";
 import { flushGraficosConfigIfHydrated } from "../graficos/configSnapshot";
@@ -206,10 +207,18 @@ export function useProject(sessionId?: string) {
     }
   }, [refresh, refreshRecents]);
 
+  // ADR 0122 §7: con el candado puesto el backend responde 409; se dice antes
+  // de abrir diálogos o vaciar lo pendiente, con el mismo texto que el 409.
+  const bloqueo = motivoGuardadoBloqueado(status);
+
   const save = useCallback(async () => {
     setError("");
     if (!status.has_project) {
       setError("No hay proyecto abierto.");
+      return null;
+    }
+    if (bloqueo) {
+      setError(bloqueo);
       return null;
     }
     setBusy(true);
@@ -227,11 +236,15 @@ export function useProject(sessionId?: string) {
     } finally {
       setBusy(false);
     }
-  }, [status.has_project, refresh]);
+  }, [status.has_project, bloqueo, refresh]);
 
   const saveAs = useCallback(async () => {
     const electronApi = window.prosecnurApi;
     setError("");
+    if (bloqueo) {
+      setError(bloqueo);
+      return null;
+    }
     setBusy(true);
     try {
       if (!electronApi) {
@@ -255,13 +268,17 @@ export function useProject(sessionId?: string) {
     } finally {
       setBusy(false);
     }
-  }, [status.name, status.path, refresh, refreshRecents]);
+  }, [status.name, status.path, bloqueo, refresh, refreshRecents]);
 
   const duplicate = useCallback(async (defaultName?: string, pathOpt?: string) => {
     const electronApi = window.prosecnurApi;
     setError("");
     if (!status.has_project) {
       setError("No hay proyecto abierto para duplicar.");
+      return null;
+    }
+    if (bloqueo) {
+      setError(bloqueo);
       return null;
     }
     setBusy(true);
@@ -296,7 +313,7 @@ export function useProject(sessionId?: string) {
     } finally {
       setBusy(false);
     }
-  }, [status.has_project, status.name, status.path, refresh, refreshRecents]);
+  }, [status.has_project, status.name, status.path, bloqueo, refresh, refreshRecents]);
 
   const removeRecent = useCallback(async (path: string) => {
     const electronApi = window.prosecnurApi;

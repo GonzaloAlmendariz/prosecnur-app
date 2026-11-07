@@ -47,7 +47,7 @@
   align-items: center;
   color: var(--pulso-text-soft);
   display: flex;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   gap: 10px;
 }
 
@@ -59,4 +59,9 @@
   .rec-recorte-marco {
     transition: none;
   }
+}
+
+/* «Quitar los márgenes de la imagen» (image_trim), sobre la proporción. */
+.rec-recorte-margenes {
+  justify-self: start;
 }

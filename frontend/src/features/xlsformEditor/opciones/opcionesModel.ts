@@ -130,7 +130,7 @@ export function gruposDeListas(
     };
   };
   return [
-    { titulo: "Se repiten", items: catalogs.filter((c) => enRepetidas.has(c.listName)).map(item) },
+    { titulo: "Repetidas", items: catalogs.filter((c) => enRepetidas.has(c.listName)).map(item) },
     { titulo: "En uso", items: catalogs.filter((c) => !enRepetidas.has(c.listName) && (usos[c.listName] ?? 0) > 0).map(item) },
     { titulo: "Sin uso", items: catalogs.filter((c) => !enRepetidas.has(c.listName) && (usos[c.listName] ?? 0) === 0).map(item) },
   ];

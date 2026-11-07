@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import type { MonitoreoTerritorialDashboard, TerritorialBlockProgress } from "../../../../../api/client";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import { normalizeRouteBlockCode } from "../../../routeCoverageModel";
 import { fmt, nombreDeDistrito } from "../rotulos";
 import { LIMA_DISTRICT_FEATURES, selectTerritorialMapFeatures } from "../TerritorialRouteCoverageAtlas";
@@ -123,7 +124,7 @@ export function MapaDeLaMuestra({
         {conteo.reserva && !conteo.sinDatoDeUso ? <span>{fmt(conteo.reserva)} de reserva sin usar</span> : null}
         {conteo.sinDatoDeUso ? <span>Reemplazos en uso sin dato</span> : null}
         <span>Fuentes: distritos PlanMet y manzanas INEI 2017</span>
-        {cartografia.incompleta ? <span className="mon-ter-chip is-aviso">Cartografía incompleta</span> : null}
+        {cartografia.incompleta ? <EstadoChip label="Cartografía incompleta" tone="warn" /> : null}
       </footer>
     </div>
   );

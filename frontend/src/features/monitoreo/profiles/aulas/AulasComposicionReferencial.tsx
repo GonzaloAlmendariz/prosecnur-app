@@ -180,7 +180,7 @@ export function AulasComposicionReferencial({ avanceCuota }: {
                               // salga con el teclado: un dato que sólo existe
                               // bajo el ratón no existe para quien no lo usa.
                               tabIndex={0}
-                              data-info={`${f.etiqueta} · ${pctPerfil(pct)} · ${fmt(cual === "obtenidas" ? f.obtenidas : f.poblacion)}`}
+                              data-info={`${f.etiqueta}, ${pctPerfil(pct)}, ${fmt(cual === "obtenidas" ? f.obtenidas : f.poblacion)}`}
                             >
                               {/* El rótulo dentro sólo donde cabe. Debajo de ~9 %
                                   se recorta a un guión ilegible, y la leyenda ya
@@ -192,7 +192,7 @@ export function AulasComposicionReferencial({ avanceCuota }: {
                         {resto > 0.5 ? (
                           <i className="aulas-comp-seg es-resto" style={{ width: `${resto}%` }}
                             tabIndex={0}
-                            data-info={`Otras categorías o sin dato · ${pctPerfil(resto)}`} />
+                            data-info={`Otras categorías o sin dato, ${pctPerfil(resto)}`} />
                         ) : null}
                       </>
                     )}

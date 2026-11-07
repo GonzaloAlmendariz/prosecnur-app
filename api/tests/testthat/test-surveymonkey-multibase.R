@@ -109,7 +109,7 @@ test_that("catalogo SurveyMonkey normaliza timeout como espera agotada", {
   expect_equal(err$code, "E_SM_TIMEOUT")
   expect_equal(res$status, 504)
   expect_equal(payload$error$code, "E_SM_TIMEOUT")
-  expect_match(payload$error$message, "SurveyMonkey no respondio", fixed = TRUE)
+  expect_match(payload$error$message, "SurveyMonkey no respondió", fixed = TRUE)
 })
 
 test_that("comparador multibase trata empresa distinta como variante de categorias", {

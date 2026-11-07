@@ -101,7 +101,7 @@
 }
 
 .registro-campo-item-titulo {
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   font-weight: 500;
   /* Dato operativo: no se recorta con elipsis (C4). */
   overflow-wrap: anywhere;
@@ -115,7 +115,7 @@
 /* La marca de «tiene parte en el libro». Va antes del estado y en el tono
  * neutro del perfil: es un dato de la fila, no una alerta. */
 .registro-campo-parte {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: 600;
   letter-spacing: 0.01em;
   padding: 1px 6px;
@@ -124,21 +124,6 @@
   background: var(--pulso-surface-2);
   color: var(--pulso-text-muted);
   white-space: nowrap;
-}
-
-.registro-campo-estado {
-  font-size: 11px;
-  color: var(--pulso-text-soft);
-}
-
-.registro-campo-estado.is-sin_acceso,
-.registro-campo-estado.is-cancelada {
-  color: var(--pulso-danger-fg);
-}
-
-.registro-campo-estado.is-aplicada,
-.registro-campo-estado.is-cerrada {
-  color: var(--pulso-success-fg);
 }
 
 .registro-campo-form {
@@ -150,7 +135,7 @@
 
 .registro-campo-contexto {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: 600;
   color: var(--pulso-text);
 }
@@ -163,14 +148,14 @@
 }
 
 .registro-campo-campo > span {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
 }
 
 .registro-campo-campo input,
 .registro-campo-campo select {
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   padding: 6px 8px;
   border-radius: 8px;
   border: 1px solid var(--pulso-border);
@@ -197,7 +182,7 @@
   align-items: center;
   gap: 6px;
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   padding: 7px 12px;
   border-radius: 8px;
   border: 1px solid var(--pulso-border);
@@ -220,12 +205,12 @@
 }
 
 .registro-campo-ok {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-success-fg);
 }
 
 .registro-campo-error {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-danger-fg);
 }
 
@@ -245,7 +230,7 @@
   border: 1px solid var(--pulso-border);
   border-radius: 10px;
   background: var(--pulso-surface-2);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.4;
   color: var(--pulso-text);
 }
@@ -257,32 +242,21 @@
 }
 
 /* El vacío vive DENTRO del panel, con su propia caja (C3). */
-/* El vacío del registro, construido.
-   Medido a 1440: este panel deja 1 030 x 436 px sin nada dentro hasta que se
-   elige un aula, y ahí había una sola línea de 13 px pegada a la esquina
-   superior izquierda — que a ese tamaño no se lee como «elige uno», se lee como
-   que la vista no cargó. Centrado y con su ícono, el hueco pasa a ser una
-   superficie que dice qué hacer y cuánto falta. */
-.registro-campo-vacio {
+/* El vacío del registro: el EstadoVacio del kit y, debajo, cuántos faltan por
+   registrar, que es lo que quien abre esta pestaña viene a saber. */
+.registro-campo-sin-eleccion {
   display: grid;
-  place-content: center;
-  justify-items: center;
-  gap: 6px;
-  height: 100%;
-  min-height: 220px;
+  gap: var(--pulso-space-2);
+  align-content: start;
+}
+.registro-campo-por-registrar {
   margin: 0;
-  padding: var(--pulso-space-4, 16px);
-  text-align: center;
   color: var(--pulso-text-soft);
-}
-.registro-campo-vacio > svg { color: var(--pulso-border-strong); }
-.registro-campo-vacio > strong { font-size: 14px; color: var(--pulso-text); }
-.registro-campo-vacio > p { margin: 0; font-size: 12px; max-width: 42ch; }
-.registro-campo-vacio-cifra {
-  margin-top: 4px !important;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
+  text-align: center;
 }
-.registro-campo-vacio-cifra strong { color: var(--pulso-text); }
+.registro-campo-por-registrar strong { color: var(--pulso-text); }
 
 /* La seccion Agenda vive en una vista de alto fijo que RECORTA (`overflow:
  * hidden`). Con dos paneles cabian; al entrar el registro de campo como tercero
@@ -428,7 +402,7 @@
   margin: 0 0 8px;
   padding: 0 0 8px;
   border-bottom: 1px solid var(--pulso-border);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-faint);
 }
 
@@ -436,7 +410,7 @@
   flex: 1;
   min-width: 0;
   font: inherit;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   padding: 3px 6px;
   border: 1px solid var(--pulso-border);
   border-radius: 6px;
@@ -447,7 +421,7 @@
 /* De que facultad es cada aula. Con «Todas» puesto, sin esto la fila decia el
    codigo y el curso y nada mas. */
 .registro-campo-item-facultad {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-faint);
 }
 
@@ -465,6 +439,6 @@
    registra necesita saber contra que se la va a medir, antes de anotar. */
 .registro-campo-meta {
   margin: 4px 0 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-faint);
 }

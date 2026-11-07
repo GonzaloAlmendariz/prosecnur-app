@@ -97,7 +97,7 @@ export function construirConciliacion(
       sinReconocer,
       conciliaciones: (codigos?.reconciliation_entries ?? []).map((entrada) => ({
         escrito: String(entrada.raw_code || entrada.normalized_code || ""),
-        asignado: [entrada.assigned_code, entrada.assigned_name].filter(Boolean).join(" · "),
+        asignado: [entrada.assigned_code, entrada.assigned_name].filter(Boolean).join(", "),
       })),
     },
     padron,
@@ -116,7 +116,7 @@ export function construirConciliacion(
       ump: numeroDeUmp(opcion.route_ump),
       distrito: nombreDeDistrito(opcion.distrito),
       ubigeo: String(opcion.ubigeo ?? ""),
-      rotulo: `UMP ${numeroDeUmp(opcion.route_ump)} · ${nombreDeDistrito(opcion.distrito)}${opcion.manzana ? `, manzana ${opcion.manzana}` : ""}`,
+      rotulo: `UMP ${numeroDeUmp(opcion.route_ump)}, ${nombreDeDistrito(opcion.distrito)}${opcion.manzana ? `, manzana ${opcion.manzana}` : ""}`,
     })).filter((opcion) => opcion.idManzana),
   };
 }

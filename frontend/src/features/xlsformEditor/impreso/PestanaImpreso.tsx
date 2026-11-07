@@ -12,7 +12,7 @@
 // al Constructor sólo se va con «Editar en Constructor».
 // =============================================================================
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ListaPartes, type GrupoDePartes } from "../../../components/ListaPartes";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { FileText } from "../../../vendor/lucide-react";
@@ -42,7 +42,11 @@ import {
 } from "./modeloImpreso";
 import { generarPrevia, previaVieja, usePreviaImpreso } from "./storePrevia";
 import { PreviaImpreso } from "./PreviaImpreso";
+import { primeraPagina, tituloDelFormulario } from "./primeraPagina";
 import { useEstadoImpreso } from "./useEstadoImpreso";
+import { VersionesImpreso } from "./VersionesImpreso";
+import { LogicaImpresa } from "./LogicaImpresa";
+import { EstilosImpreso } from "./EstilosImpreso";
 import "./impreso.css";
 
 const ID_DETALLE = "xf-impreso-detalle";
@@ -87,7 +91,15 @@ export function PestanaImpreso({
 }: PestanaImpresoProps) {
   // Sólo se sugieren matrices con lista corta, y nacen apagadas (E7, 2026-10-20).
   const candidatas = useMemo(() => candidatasSugeribles(candidatasDetectadas), [candidatasDetectadas]);
-  const { estado: estadoGuardado, actualizar, actualizarMatriz } = useEstadoImpreso(storageKey, candidatas);
+  const {
+    estado: estadoGuardado,
+    actualizar,
+    actualizarMatriz,
+    sincronia,
+    versiones,
+    guardarVersion,
+    usarVersion,
+  } = useEstadoImpreso(storageKey, candidatas, formId);
   const estado = useMemo(
     () => ({ ...estadoGuardado, matrices: conSugerenciasApagadas(candidatas, estadoGuardado.matrices) }),
     [estadoGuardado, candidatas],
@@ -105,6 +117,21 @@ export function PestanaImpreso({
   const filas = useMemo(() => filasConPapel(structure), [structure]);
   // La fila de «Papel por pregunta» con sus ajustes abiertos (una a la vez).
   const [papelAbierto, setPapelAbierto] = useState<number | null>(null);
+  // L36 · DOC.3 visto en vivo: con detalle y previa apilados (≤1280 px), la ficha abierta desde un bloque quedaba
+  // fuera de la vista. Se desplaza sólo la columna (scrollIntoView movería también la pestaña).
+  const contenidoRef = useRef<HTMLDivElement>(null);
+  const [fichaPedida, setFichaPedida] = useState<number | null>(null);
+  useEffect(() => {
+    if (fichaPedida === null) return;
+    const columna = contenidoRef.current;
+    const ficha = columna?.querySelector<HTMLElement>(`#xf-imp-papel-${fichaPedida}`)?.closest("li");
+    setFichaPedida(null);
+    if (!columna || !ficha) return;
+    const caja = ficha.getBoundingClientRect();
+    const marco = columna.getBoundingClientRect();
+    if (caja.top >= marco.top && caja.top < marco.bottom - 40) return;
+    columna.scrollTo({ top: columna.scrollTop + caja.top - marco.top - 24, behavior: "smooth" });
+  }, [fichaPedida]);
   const filasPapel = useMemo(() => filasPapelVisibles(structure, papelAbierto), [structure, papelAbierto]);
   const sinPapel = useMemo(
     () => filasSinPapel(structure).filter((f) => f.rowIndex !== papelAbierto),
@@ -117,6 +144,12 @@ export function PestanaImpreso({
   );
 
   const previa = usePreviaImpreso();
+  const pagina = useMemo(() => {
+    const p = primeraPagina(workbook, structure);
+    // L36 · D-L36-5: «Así queda» dibuja el mismo título que imprimirá el motor.
+    const propio = estado.documentTitle.trim();
+    return propio ? { ...p, titulo: propio } : p;
+  }, [workbook, structure, estado.documentTitle]);
   // Otra previa de otro formulario no se muestra: se descarta al llegar.
   useEffect(() => {
     if (previa.formId !== null && previa.formId !== formId) previa.descartar();
@@ -167,7 +200,7 @@ export function PestanaImpreso({
         <div className="pulso-xf-imp-partes">
           <ListaPartes etiqueta="Partes del impreso" grupos={grupos} actual={parte} onElegir={onParte} idPanel={ID_DETALLE} prefijoId={PREFIJO} />
         </div>
-        <div className="pulso-xf-imp-contenido" data-qa-scroll-owner="impreso">
+        <div className="pulso-xf-imp-contenido" data-qa-scroll-owner="impreso" ref={contenidoRef}>
           <div
             id={ID_DETALLE}
             className="pulso-xf-imp-detalle"
@@ -176,8 +209,25 @@ export function PestanaImpreso({
             data-qa-geometry-group="xlsform/impreso-detalle"
             data-qa-geometry-contract="intrinsic"
           >
-            {parte === "formato" && <DetalleFormato estado={estado} actualizar={actualizar} />}
-            {parte === "logica" && <DetalleLogica estado={estado} actualizar={actualizar} consentimiento={consentimiento} plano={plano} />}
+            {parte === "formato" && (
+              <>
+                <DetalleFormato estado={estado} actualizar={actualizar} tituloDelFormulario={tituloDelFormulario(workbook)} />
+                <EstilosImpreso />
+                <VersionesImpreso
+                  sincronia={sincronia}
+                  versiones={versiones}
+                  puedeGuardar={formId !== null}
+                  onGuardar={guardarVersion}
+                  onUsar={usarVersion}
+                />
+              </>
+            )}
+            {parte === "logica" && (
+              <>
+                <DetalleLogica estado={estado} actualizar={actualizar} consentimiento={consentimiento} plano={plano} />
+                <LogicaImpresa workbook={workbook} opciones={opciones} />
+              </>
+            )}
             {parte === "contenido" && <DetalleContenido estado={estado} actualizar={actualizar} />}
             {parte === "matrices" && <DetalleMatrices candidatas={candidatas} matrices={estado.matrices} onCambiar={actualizarMatriz} plano={plano} />}
             {parte === "papel" && (
@@ -193,7 +243,16 @@ export function PestanaImpreso({
               />
             )}
           </div>
-          <PreviaImpreso previa={previa} vieja={vieja} motivo={motivo} onGenerar={generar} estado={estado} hayMatrices={matricesActivas(reales, estado.matrices) > 0} />
+          <PreviaImpreso previa={previa} vieja={vieja} motivo={motivo} onGenerar={generar} onLectura={(lectura) => previa.parchar({ lectura })}
+            bloqueElegido={parte === "papel" && papelAbierto !== null ? structure?.byRow.get(papelAbierto)?.name ?? null : null}
+            onElegirBloque={(nombre) => {
+              // L36 · DOC.3: la pregunta elegida sobre la página abre su fila en «Papel por pregunta».
+              const nodo = structure?.outline.find((n) => n.name === nombre);
+              if (!nodo) return;
+              onParte("papel");
+              setPapelAbierto(nodo.rowIndex);
+              setFichaPedida(nodo.rowIndex);
+            }} estado={estado} hayMatrices={matricesActivas(reales, estado.matrices) > 0} pagina={pagina} />
         </div>
       </div>
     </div>

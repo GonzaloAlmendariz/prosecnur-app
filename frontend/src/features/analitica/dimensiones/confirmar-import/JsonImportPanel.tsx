@@ -1,5 +1,7 @@
-import { AlertCircle, Check, FileJson, Loader2, Upload, X } from "lucide-react";
 import { useRef, useState } from "react";
+import { AlertCircle, Check, FileJson, Loader2, Upload } from "../../../../vendor/lucide-react";
+import { Dialog } from "../../../../components/Dialog";
+import { PulsoButton } from "../../../../components/PulsoButton";
 import { ValidacionReporte } from "../../../../api/client";
 import { DimensionesConfig } from "../../store";
 import { useValidacionJson } from "./useValidacionJson";
@@ -8,8 +10,8 @@ import { useValidacionJson } from "./useValidacionJson";
 // usuario sube un JSON, vemos el reporte de validación, y deja al
 // usuario decidir "Continuar con coincidencias" o "Cancelar".
 //
-// Se monta como overlay sobre Step 1 — no es un drawer separado, es un
-// panel modal que toma el foco visual de la galería de plantillas.
+// Se monta como overlay sobre Step 1 con el Dialog del kit (L1): Escape,
+// click afuera, foco atrapado y de vuelta vienen de la primitiva.
 
 export function JsonImportPanel({
   open,
@@ -45,131 +47,62 @@ export function JsonImportPanel({
   }
 
   return (
-    <div
-      role="dialog"
-      aria-label="Aplicar plantilla al instrumento"
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 200,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 24,
-        background: "rgba(15, 23, 42, 0.45)",
-        backdropFilter: "blur(2px)",
-        animation: "pulso-lens-fade-in-kf var(--anim-dur-short) var(--anim-ease-smooth)",
-      }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) handleClose();
-      }}
+    <Dialog
+      open
+      onOpenChange={(abierto) => { if (!abierto) handleClose(); }}
+      size="md"
+      title="Aplicar plantilla al instrumento"
+      icon={<FileJson size={16} aria-hidden="true" />}
+      footer={(
+        <>
+          <PulsoButton variant="secondary" size="md" onClick={handleClose}>Cancelar</PulsoButton>
+          <PulsoButton variant="primary" size="md" disabled={estado.kind !== "ok"} onClick={handleApply}>
+            Continuar con coincidencias
+          </PulsoButton>
+        </>
+      )}
     >
-      <div
-        style={{
-          background: "white",
-          borderRadius: 14,
-          width: "min(720px, 100%)",
-          maxHeight: "calc(100vh - 48px)",
-          display: "flex",
-          flexDirection: "column",
-          boxShadow: "var(--pulso-shadow-high, 0 24px 48px rgba(0,0,0,0.18))",
-          animation: "pulso-lens-slide-in-kf var(--anim-dur-med) var(--anim-ease-expressive)",
-        }}
-      >
-        <header
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            padding: "16px 20px",
-            borderBottom: "1px solid var(--pulso-border)",
-          }}
-        >
-          <FileJson size={18} color="var(--pulso-primary)" />
-          <h3 style={{ margin: 0, flex: 1, fontSize: 15, fontWeight: 700 }}>
-            Aplicar plantilla al instrumento
-          </h3>
-          <button
-            type="button"
-            aria-label="Cerrar"
-            onClick={handleClose}
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        {estado.kind === "idle" && (
+          <Dropzone
+            draggingOver={draggingOver}
+            setDraggingOver={setDraggingOver}
+            onFile={validar}
+            onClick={() => inputRef.current?.click()}
+          />
+        )}
+        {estado.kind === "loading" && (
+          <div
             style={{
-              border: "none",
-              background: "transparent",
-              cursor: "pointer",
-              padding: 6,
-              borderRadius: 4,
+              padding: 32,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 10,
               color: "var(--pulso-text-soft)",
             }}
           >
-            <X size={16} />
-          </button>
-        </header>
-
-        <div style={{ flex: 1, overflowY: "auto", padding: "18px 22px", display: "flex", flexDirection: "column", gap: 16 }}>
-          {estado.kind === "idle" && (
-            <Dropzone
-              draggingOver={draggingOver}
-              setDraggingOver={setDraggingOver}
-              onFile={validar}
-              onClick={() => inputRef.current?.click()}
-            />
-          )}
-          {estado.kind === "loading" && (
-            <div
-              style={{
-                padding: 32,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 10,
-                color: "var(--pulso-text-soft)",
-              }}
-            >
-              <Loader2 size={26} className="pulso-spin" />
-              <span style={{ fontSize: 12 }}>Validando contra el instrumento…</span>
-            </div>
-          )}
-          {estado.kind === "error" && (
-            <ErrorPanel message={estado.message} onRetry={() => reset()} />
-          )}
-          {estado.kind === "ok" && <ReportePanel reporte={estado.reporte} />}
-          <input
-            ref={inputRef}
-            type="file"
-            accept=".json,application/json"
-            style={{ display: "none" }}
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) validar(f);
-              if (inputRef.current) inputRef.current.value = "";
-            }}
-          />
-        </div>
-
-        <footer
-          style={{
-            padding: "14px 20px",
-            borderTop: "1px solid var(--pulso-border)",
-            display: "flex",
-            gap: 10,
-            justifyContent: "flex-end",
+            <Loader2 size={26} className="pulso-spin" />
+            <span style={{ fontSize: "var(--pulso-type-body-size)" }}>Validando contra el instrumento…</span>
+          </div>
+        )}
+        {estado.kind === "error" && (
+          <ErrorPanel message={estado.message} onRetry={() => reset()} />
+        )}
+        {estado.kind === "ok" && <ReportePanel reporte={estado.reporte} />}
+        <input
+          ref={inputRef}
+          type="file"
+          accept=".json,application/json"
+          style={{ display: "none" }}
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) validar(f);
+            if (inputRef.current) inputRef.current.value = "";
           }}
-        >
-          <button type="button" onClick={handleClose} style={{ padding: "6px 12px" }}>
-            Cancelar
-          </button>
-          <button
-            type="button"
-            className="pulso-primary"
-            disabled={estado.kind !== "ok"}
-            onClick={handleApply}
-          >
-            Continuar con coincidencias
-          </button>
-        </footer>
+        />
       </div>
-    </div>
+    </Dialog>
   );
 }
 
@@ -212,10 +145,10 @@ function Dropzone({
       }}
     >
       <Upload size={28} color={draggingOver ? "var(--pulso-primary)" : "var(--pulso-text-soft)"} />
-      <div style={{ marginTop: 10, fontSize: 13, fontWeight: 600 }}>
+      <div style={{ marginTop: 10, fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 600 }}>
         Arrastra tu plantilla <code>.json</code> aquí
       </div>
-      <div style={{ marginTop: 4, fontSize: 11, color: "var(--pulso-text-soft)" }}>
+      <div style={{ marginTop: 4, fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)" }}>
         o haz click para elegir la plantilla
       </div>
     </div>
@@ -239,7 +172,7 @@ function ErrorPanel({ message, onRetry }: { message: string; onRetry: () => void
       <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700 }}>
         <AlertCircle size={16} /> No se pudo validar la plantilla
       </div>
-      <div style={{ fontSize: 12, fontWeight: 400 }}>{message}</div>
+      <div style={{ fontSize: "var(--pulso-type-body-size)", fontWeight: 400 }}>{message}</div>
       <button type="button" onClick={onRetry} style={{ alignSelf: "flex-start" }}>
         Probar otra plantilla
       </button>
@@ -264,7 +197,7 @@ function ReportePanel({ reporte }: { reporte: ValidacionReporte }) {
       {reporte.listas.no_usadas.length > 0 && (
         <Block title="Listas no usadas en este instrumento" tone="neutral">
           <ChipList items={reporte.listas.no_usadas} icon="info" />
-          <p style={{ fontSize: 11, color: "var(--pulso-text-soft)", margin: "8px 0 0" }}>
+          <p style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", margin: "8px 0 0" }}>
             Estas listas existen en el JSON pero tu XLSForm no tiene preguntas que las
             referencien. <strong>No es un problema</strong> — simplemente no aplican a
             este estudio y se ignorarán al construir.
@@ -279,7 +212,7 @@ function ReportePanel({ reporte }: { reporte: ValidacionReporte }) {
               <SubcriterioRow key={sc.nombre} sc={sc} />
             ))}
           </div>
-          <p style={{ fontSize: 11, color: "var(--pulso-text-soft)", margin: "8px 0 0" }}>
+          <p style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", margin: "8px 0 0" }}>
             Variables derivadas que el sistema crea promediando otras al construir
             (ej. <code>p17_prom = avg(p17, p17.1)</code>). Se resuelven solo si todas
             las fuentes existen.
@@ -322,7 +255,7 @@ function SubcriterioRow({ sc }: { sc: ValidacionReporte["subcriterios"][number] 
         padding: "8px 10px",
         borderRadius: 6,
         background: sc.ok ? "var(--pulso-success-bg, #f0fdf4)" : "var(--pulso-warn-bg, #fffbeb)",
-        fontSize: 12,
+        fontSize: "var(--pulso-type-body-size)",
         flexWrap: "wrap",
       }}
     >
@@ -336,8 +269,8 @@ function SubcriterioRow({ sc }: { sc: ValidacionReporte["subcriterios"][number] 
           <strong style={{ fontWeight: 700 }}>{sc.etiqueta}</strong>
           <code
             style={{
-              fontFamily: "ui-monospace, monospace",
-              fontSize: 10,
+              fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+              fontSize: "var(--pulso-type-micro-size)",
               color: "var(--pulso-text-soft)",
             }}
           >
@@ -345,7 +278,7 @@ function SubcriterioRow({ sc }: { sc: ValidacionReporte["subcriterios"][number] 
           </code>
         </>
       ) : (
-        <code style={{ fontFamily: "ui-monospace, monospace", fontWeight: 700 }}>
+        <code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", fontWeight: 700 }}>
           {sc.nombre}
         </code>
       )}
@@ -355,7 +288,7 @@ function SubcriterioRow({ sc }: { sc: ValidacionReporte["subcriterios"][number] 
           {i > 0 && <span style={{ color: "var(--pulso-text-soft)" }}>, </span>}
           <code
             style={{
-              fontFamily: "ui-monospace, monospace",
+              fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
               color: sc.vars_fuente_faltantes.includes(f)
                 ? "var(--pulso-warn-fg, #b45309)"
                 : "var(--pulso-text)",
@@ -367,7 +300,7 @@ function SubcriterioRow({ sc }: { sc: ValidacionReporte["subcriterios"][number] 
       ))}
       <span style={{ color: "var(--pulso-text-soft)" }}>)</span>
       {!sc.ok && sc.vars_fuente_faltantes.length > 0 && (
-        <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--pulso-warn-fg, #b45309)" }}>
+        <span style={{ marginLeft: "auto", fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-warn-fg, #b45309)" }}>
           falta {sc.vars_fuente_faltantes.join(", ")}
         </span>
       )}
@@ -401,18 +334,18 @@ function ResumenStrip({
       ) : (
         <Check size={20} color="var(--pulso-success-fg, #15803d)" />
       )}
-      <div style={{ fontSize: 12, lineHeight: 1.5 }}>
+      <div style={{ fontSize: "var(--pulso-type-body-size)", lineHeight: 1.5 }}>
         <strong>
           {algoFalla ? "Coincidencia parcial — puedes continuar" : "Coincidencia completa"}
         </strong>
         <div style={{ marginTop: 2, color: "var(--pulso-text-soft)" }}>
-          {resumen.n_vars_ok} de {totalVars} variables disponibles ·{" "}
+          {resumen.n_vars_ok} de {totalVars} variables disponibles,{" "}
           {resumen.n_subindices_completos} bloques completos
           {resumen.n_subindices_parciales > 0 && `, ${resumen.n_subindices_parciales} parciales`}
           {resumen.n_subcriterios_resueltos > 0 &&
-            ` · ${resumen.n_subcriterios_resueltos} subcriterios resueltos`}
+            `, ${resumen.n_subcriterios_resueltos} subcriterios resueltos`}
           {resumen.n_listas_no_usadas > 0 &&
-            ` · ${resumen.n_listas_no_usadas} listas no aplican a este instrumento`}
+            `, ${resumen.n_listas_no_usadas} listas no aplican a este instrumento`}
           .
         </div>
       </div>
@@ -446,7 +379,7 @@ function Block({
     >
       <div
         style={{
-          fontSize: 11,
+          fontSize: "var(--pulso-type-eyebrow-size)",
           fontWeight: 700,
           textTransform: "uppercase",
           letterSpacing: 0.4,
@@ -466,7 +399,7 @@ function ChipList({ items, icon }: { items: string[]; icon: "ok" | "warn" | "err
     ok: { bg: "var(--pulso-success-bg, #f0fdf4)", fg: "var(--pulso-success-fg, #15803d)", border: "var(--pulso-success-border, #86efac)", glyph: "✓" },
     warn: { bg: "var(--pulso-warn-bg, #fffbeb)", fg: "var(--pulso-warn-fg, #b45309)", border: "var(--pulso-warn-border, #fcd34d)", glyph: "⚠" },
     err: { bg: "var(--pulso-danger-bg)", fg: "var(--pulso-danger-fg)", border: "var(--pulso-danger-border)", glyph: "✗" },
-    info: { bg: "var(--pulso-surface-2, #f4f5f9)", fg: "var(--pulso-text-soft)", border: "var(--pulso-border)", glyph: "·" },
+    info: { bg: "var(--pulso-surface-2, #f4f5f9)", fg: "var(--pulso-text-soft)", border: "var(--pulso-border)", glyph: "i" },
   } as const;
   const t = tones[icon];
   return (
@@ -480,8 +413,8 @@ function ChipList({ items, icon }: { items: string[]; icon: "ok" | "warn" | "err
             gap: 4,
             padding: "2px 8px",
             borderRadius: 999,
-            fontSize: 11,
-            fontFamily: "ui-monospace, monospace",
+            fontSize: "var(--pulso-type-caption-size)",
+            fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
             background: t.bg,
             color: t.fg,
             border: `1px solid ${t.border}`,
@@ -517,8 +450,8 @@ function BloqueRow({
           marginBottom: 6,
         }}
       >
-        <span style={{ fontSize: 13, fontWeight: 700 }}>{s.etiqueta}</span>
-        <span style={{ fontSize: 10, color: "var(--pulso-text-soft)" }}>
+        <span style={{ fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 700 }}>{s.etiqueta}</span>
+        <span style={{ fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)" }}>
           ({s.n_ok}/{s.n_solicitadas} variables)
         </span>
       </div>
@@ -545,12 +478,12 @@ function IndiceRow({ idx }: { idx: ValidacionReporte["indices"][number] }) {
       }}
     >
       {idx.ok ? <Check size={14} color="var(--pulso-success-fg, #15803d)" /> : <AlertCircle size={14} color="var(--pulso-warn-fg, #b45309)" />}
-      <strong style={{ fontSize: 12 }}>{idx.etiqueta}</strong>
-      <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
+      <strong style={{ fontSize: "var(--pulso-type-body-size)" }}>{idx.etiqueta}</strong>
+      <span style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)" }}>
         ← {idx.subindices_ok.join(", ") || "—"}
         {idx.subindices_faltantes.length > 0 && (
           <em style={{ color: "var(--pulso-warn-fg, #b45309)" }}>
-            {" "}· faltan {idx.subindices_faltantes.join(", ")}
+            ; faltan {idx.subindices_faltantes.join(", ")}
           </em>
         )}
       </span>

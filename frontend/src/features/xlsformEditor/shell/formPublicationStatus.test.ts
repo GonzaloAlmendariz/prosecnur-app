@@ -55,7 +55,7 @@ describe("getFormPublicationView", () => {
       can_delete: false,
     }))).toMatchObject({
       status: "published",
-      label: "Disponible · revisión 2",
+      label: "Disponible, revisión 2",
       actionLabel: null,
     });
 

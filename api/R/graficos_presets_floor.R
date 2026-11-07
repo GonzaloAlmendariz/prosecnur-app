@@ -44,7 +44,7 @@
 #' - `4`: ADR 0092 (F2.3) — las cifras chicas de las apiladas suben con guia
 #'   (`etiquetas_arriba_si_no_caben = TRUE`), como en el recetario.
 #' - `5`: ADR 0092 (F2.4) — columna Top Two Box del recetario: cifras 14 pt,
-#'   rotulo 10 pt, verde #4E9438.
+#'   rotulo 10 pt, verde #70AD47.
 #' - `6`: ADR 0092 (F2.7) — histograma sin `bins` fijos (una barra por valor) y
 #'   radar sin `limites` fijos y con las cifras de los anillos.
 #'

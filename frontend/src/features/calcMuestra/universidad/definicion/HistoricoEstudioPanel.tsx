@@ -140,12 +140,12 @@ function PasoEmbudo({
           {entra > 0 ? (
             <span>
               <b data-suma="si">+{fmtInt(entra)}</b> {suma?.texto}
-              {activas.length > 0 ? " · " : null}
+              {activas.length > 0 ? ", " : null}
             </span>
           ) : null}
           {activas.map((merma, i) => (
             <span key={merma.texto}>
-              {i > 0 ? " · " : null}
+              {i > 0 ? ", " : null}
               <b data-sale={merma.sale ? "si" : undefined}>−{fmtInt(merma.n)}</b> {merma.texto}
             </span>
           ))}
@@ -551,7 +551,7 @@ function SerieCampo({
               </span>
               <span>
                 <strong>{num(acumulado)}</strong> acumuladas
-                {avance !== null ? ` · ${avance.toFixed(0)} % de la meta` : ""}
+                {avance !== null ? `, ${avance.toFixed(0)} % de la meta` : ""}
               </span>
               {avance !== null ? (
                 <span className="cmv2-hist-semana-avance" aria-hidden="true">
@@ -564,7 +564,7 @@ function SerieCampo({
       })}
       {totalEfectivas !== null ? (
         <p className="cmv2-hist-nota-grupo">
-          El campo duró {filas.length} semanas y acumuló {num(totalEfectivas)} encuestas completas.
+          El campo duró {fmtInt(filas.length)} semanas y acumuló {num(totalEfectivas)} encuestas completas.
           Las encuestas por aula caen de {num(filas[0]?.efectivas_por_aula)} a{" "}
           {num(filas[filas.length - 1]?.efectivas_por_aula)} entre la primera semana y la última.
           {/* G53 · La efectividad no cae en línea recta y decirlo evita la
@@ -688,8 +688,8 @@ function MatrizCadenas({
               <span role="cell">
                 {grupo.facultad}
                 <em>
-                  {fmtInt(grupo.filas.length)} titulares · {fmtInt(grupo.efectivas)} completas
-                  {grupo.conReemplazo > 0 ? ` · ${fmtInt(grupo.conReemplazo)} con reemplazo` : ""}
+                  {fmtInt(grupo.filas.length)} titulares, {fmtInt(grupo.efectivas)} completas
+                  {grupo.conReemplazo > 0 ? `, ${fmtInt(grupo.conReemplazo)} con reemplazo` : ""}
                 </em>
                 {/* Aquí SÍ hay denominador —la cuota del diseño—, así que se
                     puede dar una tasa. Es cumplimiento, no efectividad: por eso
@@ -967,7 +967,7 @@ export function HistoricoEstudioPanel({
           <p>
             {[estudio.periodo, `${fmtInt(cobertura.aplicados)} aulas aplicadas`]
               .filter(Boolean)
-              .join(" · ")}
+              .join(", ")}
           </p>
         </div>
         {meta && logradas ? (
@@ -1344,12 +1344,12 @@ export function HistoricoEstudioPanel({
                   <span data-rol="titular">
                     <small>Titulares aplicados</small>
                     <strong>{fmtInt(t.aplicados)}</strong>
-                    <em>semana {t.semana_media.toFixed(1)} en promedio · rinden {pct(t.rendimiento, 0)}</em>
+                    <em>semana {t.semana_media.toFixed(1)} en promedio, rinden {pct(t.rendimiento, 0)}</em>
                   </span>
                   <span data-rol="reemplazo">
                     <small>Reemplazos aplicados</small>
                     <strong>{fmtInt(r.aplicados)}</strong>
-                    <em>semana {r.semana_media.toFixed(1)} en promedio · rinden {pct(r.rendimiento, 0)}</em>
+                    <em>semana {r.semana_media.toFixed(1)} en promedio, rinden {pct(r.rendimiento, 0)}</em>
                   </span>
                 </div>
                 <p>
@@ -1373,8 +1373,8 @@ export function HistoricoEstudioPanel({
             );
           })()}
           <div className="cmv2-hist-leyenda">
-            <span data-tipo="efectiva">Se aplicó · completas y % de sus elegibles</span>
-            <span data-tipo="rechazo">Se cayó · la letra dice por qué</span>
+            <span data-tipo="efectiva">Se aplicó, completas y % de sus elegibles</span>
+            <span data-tipo="rechazo">Se cayó, la letra dice por qué</span>
             <span data-tipo="ausencia">No hizo falta contactarlo</span>
           </div>
           {/* La letra de la casilla no puede quedar muda: su significado va
@@ -1493,7 +1493,7 @@ export function HistoricoEstudioPanel({
                   diseno.margen_error !== null ? `±${pct(diseno.margen_error, 2)}` : null,
                   diseno.proporcion_esperada !== null ? `p = ${diseno.proporcion_esperada}` : null,
                   diseno.deff !== null ? `efecto de diseño ${diseno.deff}` : null,
-                ].filter(Boolean).join(" · ")}
+                ].filter(Boolean).join(", ")}
               </span>
             </li>
             {diseno.sobremuestra !== null ? (
@@ -1568,14 +1568,14 @@ export function HistoricoEstudioPanel({
                 <li data-sexo="mujer">
                   <strong>{pct(referencia.cuotas.cumplimiento_mujeres, 0)}</strong>
                   <span>
-                    de la cuota de mujeres · {fmtInt(referencia.cuotas.logradas_mujeres ?? 0)} de{" "}
+                    de la cuota de mujeres, {fmtInt(referencia.cuotas.logradas_mujeres ?? 0)} de{" "}
                     {fmtInt(referencia.cuotas.cuota_mujeres ?? 0)}
                   </span>
                 </li>
                 <li data-sexo="hombre">
                   <strong>{pct(referencia.cuotas.cumplimiento_hombres, 0)}</strong>
                   <span>
-                    de la cuota de hombres · {fmtInt(referencia.cuotas.logradas_hombres ?? 0)} de{" "}
+                    de la cuota de hombres, {fmtInt(referencia.cuotas.logradas_hombres ?? 0)} de{" "}
                     {fmtInt(referencia.cuotas.cuota_hombres ?? 0)}
                   </span>
                 </li>
@@ -1595,7 +1595,7 @@ export function HistoricoEstudioPanel({
                         const valor = lado === "hombres" ? f.cumplimiento_hombres : f.cumplimiento_mujeres;
                         return `${f.facultad} (${lado}, ${pct(valor, 0)})`;
                       })
-                      .join(" · ")}
+                      .join(", ")}
                     . Es lo que obliga a ponderar: sin peso, esas personas
                     quedarían subrepresentadas en el análisis.
                   </p>

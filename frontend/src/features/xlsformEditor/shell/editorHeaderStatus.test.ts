@@ -69,7 +69,7 @@ describe("editorMetrics (U8)", () => {
     ];
     const metrics = buildSuiteMetrics({ outline } as never, 3, []);
     expect(metrics.sections).toBe(2);
-    expect(formatFieldSectionPair(1, 1)).toBe("1 campo · 1 sección");
+    expect(formatFieldSectionPair(1, 1)).toBe("1 campo, 1 sección");
   });
 
   it("campos = variables que reciben respuesta: sin notas ni `_other` con madre (= import y campañas)", () => {
@@ -86,7 +86,7 @@ describe("editorMetrics (U8)", () => {
     ];
     const metrics = buildSuiteMetrics({ outline } as never, 0, []);
     expect(countFieldsInOutline(outline as never)).toBe(5);
-    expect(formatFieldSectionPair(5, metrics.sections)).toBe("5 campos · 1 sección");
+    expect(formatFieldSectionPair(5, metrics.sections)).toBe("5 campos, 1 sección");
   });
 
   it("preguntas (cabecera y Resumen): sin notas, cálculos ni metadatos, con el «Otro» que se pregunta", () => {
@@ -124,7 +124,7 @@ describe("deriveEditorHeaderStatus con la lógica hecha fuera", () => {
   it("rótulo neutro con el programa, nunca «Revisa la lógica»", () => {
     const status = deriveEditorHeaderStatus([], publication([]), declarada);
     expect(status.tone).toBe("neutral");
-    expect(status.label).toBe("Lógica: fuera de Prosecnur · SPSS");
+    expect(status.label).toBe("Lógica: fuera de Prosecnur (SPSS)");
     expect(status.logicStepPending).toBe(false);
     expect(status.logicaExterna?.herramienta).toBe("SPSS");
   });

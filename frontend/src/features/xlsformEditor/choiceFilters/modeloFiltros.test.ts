@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import type { XlsformEditorWorkbook } from "../../../api/multiIntegrado";
 import { parseBuilderStructure } from "../parsing/buildIndex";
 import { acnur } from "../reglas/acnurEs.fixture";
-import { analizarFiltro, analizarTodos, columnaParecida, leerCascada, leerFijo, opcionesVisibles, respuestasIniciales } from "./modeloFiltros";
+import { analizarFiltro, analizarTodos, columnaParecida, leerCascada, leerFijo, nombreDeTipo, opcionesVisibles, respuestasIniciales } from "./modeloFiltros";
 
 const S = ["type", "name", "label", "choice_filter"];
 const C = ["list_name", "name", "label", "province", "filter_P14", "filter_P15", "grupo", "kk", "gasto"];
@@ -141,5 +141,18 @@ describe("con filas reales del ACNUR", () => {
   it("REF16 (condición + opciones nombradas) es una expresión con vista previa", () => {
     expect(f("REF16").tipo).toBe("expresion");
     expect(f("REF16").evaluable).toBe(true);
+  });
+});
+
+describe("nombre del tipo (E11b)", () => {
+  it("repetir lo marcado antes no se rotula como cascada", () => {
+    const marcada = leerCascada("selected(${medios}, name)");
+    expect(marcada?.forma).toBe("marcada");
+    expect(nombreDeTipo({ tipo: "cascada", cascada: marcada })).toBe("Marcadas en otra pregunta");
+    expect(nombreDeTipo({ tipo: "cascada", cascada: leerCascada("region = ${region}") })).toBe("Cascada");
+    expect(nombreDeTipo({ tipo: "fijo", cascada: null })).toBe("Fijo");
+    expect(nombreDeTipo({ tipo: "expresion", cascada: null, expresion: "edad_min <= ${edad}" })).toBe("Comparación numérica");
+    expect(nombreDeTipo({ tipo: "expresion", cascada: null, expresion: "${edad} > minimo" })).toBe("Comparación numérica");
+    expect(nombreDeTipo({ tipo: "expresion", cascada: null, expresion: "edad_min <= ${edad} and x = 1" })).toBe("Expresión");
   });
 });

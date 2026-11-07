@@ -19,8 +19,8 @@ describe("normalizarBarraExtra", () => {
     expect(normalizarBarraExtra(["bottom2box", "top2box"])).toEqual(["top2box", "bottom2box"]);
     expect(normalizarBarraExtra(["conteos"])).toEqual(["conteos"]);
   });
-  it("lo ausente o ajeno es undefined: no declara nada", () => {
-    for (const v of [undefined, null, "top2box", true, 3, {}]) expect(normalizarBarraExtra(v)).toBeUndefined();
+  it("lo ausente o ajeno es undefined: no declara nada (un texto que no es una opción, tampoco)", () => {
+    for (const v of [undefined, null, "raro", true, 3, {}]) expect(normalizarBarraExtra(v)).toBeUndefined();
   });
   it("un array vacío o sin opciones válidas es false; quita duplicados y opciones desconocidas", () => {
     expect(normalizarBarraExtra([])).toBe(false);
@@ -123,5 +123,17 @@ describe("resumenDeBloques", () => {
   });
   it("sin bloques, todo en cero", () => {
     expect(resumenDeBloques(undefined, false)).toEqual({ total: 0, conBarra: 0, propios: 0, sinCategorias: 0, conBottomSinCategorias: 0 });
+  });
+});
+
+describe("lo que guarda el motor se lee como lo dibuja (D2, unión de láminas 2026-10-29)", () => {
+  it("una sola opción llega como texto (auto_unbox del JSON) y se lee encendida", () => {
+    expect(normalizarBarraExtra("top2box")).toEqual(["top2box"]);
+    expect(barraExtraDeTarjeta({ overrides: { barra_extra: "top2box" } })).toEqual(["top2box"]);
+  });
+  it("el bloque lee su barra de sus overrides cuando no la declara, y la declarada manda", () => {
+    expect(barraExtraDeBloque({ overrides: { barra_extra: "top2box" } })).toEqual(["top2box"]);
+    expect(barraExtraDeBloque({ barra_extra: false, overrides: { barra_extra: "top2box" } })).toBe(false);
+    expect(barraExtraDeBloque({ overrides: { barra_extra: null } })).toBeUndefined();
   });
 });

@@ -41,8 +41,12 @@ import { appearanceTokens, rangeParamsForNode } from "../canvas/previewInputs";
 import "../styles/xf-simulator.css";
 import { RecorridoPrueba, RespuestasPrueba } from "./simulador/PanelesPrueba";
 import { respuestasDadas, seccionesDelRecorrido } from "./simulador/modeloRecorrido";
-import { pendientesParaFinalizar, restriccionIncumplida, type Pendiente } from "./simulador/modeloFinalizar";
+import { esObligatoria, pendientesParaFinalizar, restriccionIncumplida, type Pendiente } from "./simulador/modeloFinalizar";
 import { FaltantesPrueba, PruebaFinalizada } from "./simulador/FinalizarPrueba";
+import { calcularValores, semillaNueva } from "./simulador/calculosPrueba";
+import { grillasDelFormulario, notasQueIntroducenGrilla, tituloSinRotulo } from "./simulador/modeloGrilla";
+import { GrillaPrueba } from "./simulador/GrillaPrueba";
+import { CLASE_DISPOSICION, disposicionOpciones } from "./simulador/disposicionOpciones";
 import { esNotaSinTexto, pistaLegible, textoPreguntaPlano, type LectorReferencias } from "../helpers/markdownPregunta";
 import { TextoPregunta } from "../helpers/markdownTexto";
 import { stripMarkdown } from "../helpers/markdown";
@@ -108,6 +112,12 @@ function readFormTitle(workbook: XlsformEditorWorkbook): string {
 
 const ALWAYS_VISIBLE: VisState = { visible: true, advanced: false };
 
+/** Rótulo de la sección que contiene a un grupo sin rótulo (una batería), si lo tiene. */
+function rotuloDe(structure: BuilderStructure, parentId: string | null): string | null {
+  const padre = parentId ? structure.sections.get(parentId) : undefined;
+  return padre && padre.kind !== "root" && stripMarkdown(padre.label ?? "").trim() ? padre.label : null;
+}
+
 // -----------------------------------------------------------------------------
 // Componente principal
 // -----------------------------------------------------------------------------
@@ -118,6 +128,13 @@ export function FormSimulator({
   onEditRow,
 }: FormSimulatorProps) {
   const [answers, setAnswers] = useState<Record<string, SimValue>>({});
+  // El sorteo de `once(random())` vale lo que dura la prueba; «Reiniciar» pide otra semilla.
+  const [semilla, setSemilla] = useState(semillaNueva);
+  // Respuestas más el valor de cada `calculate`: lo que leen las condiciones y las referencias `${x}`.
+  const contexto = useMemo<Record<string, SimValue>>(
+    () => ({ ...answers, ...calcularValores(structure?.outline ?? [], answers, semilla) }),
+    [structure, answers, semilla],
+  );
   const [pageIdx, setPageIdx] = useState(0);
   // E8: intentar finalizar marca las pendientes; con todo en regla la prueba queda finalizada.
   const [intentoFinalizar, setIntentoFinalizar] = useState(false);
@@ -135,13 +152,20 @@ export function FormSimulator({
     return map;
   }, [workbook]);
 
+  // Baterías table-list: se pintan como grilla y se llevan la nota que las presenta.
+  const grillas = useMemo(
+    () => (structure ? grillasDelFormulario(structure, (lista) => choicesByList.get(lista) ?? []) : new Map()),
+    [structure, choicesByList],
+  );
+
   // Páginas: una por sección con contenido renderizable (root incluido).
   const pages = useMemo<SimPage[]>(() => {
     if (!structure) return [];
+    const intros = notasQueIntroducenGrilla(grillas);
     const out: SimPage[] = [];
     Array.from(structure.sections.values()).forEach((meta) => {
       const nodes = structure.outline.filter(
-        (node) => node.sectionId === meta.id && isRenderable(node),
+        (node) => node.sectionId === meta.id && isRenderable(node) && !intros.has(node.rowIndex),
       );
       if (!nodes.length) return;
       out.push({
@@ -149,14 +173,16 @@ export function FormSimulator({
         title:
           meta.kind === "root"
             ? formTitle || "Inicio"
-            : stripMarkdown(meta.label ?? "").trim() && meta.label.trim() !== meta.name ? meta.label : "Sección sin título",
+            : stripMarkdown(meta.label ?? "").trim() && meta.label.trim() !== meta.name
+              ? meta.label
+              : tituloSinRotulo(rotuloDe(structure, meta.parentId), grillas.get(meta.id)?.intro ?? null),
         kind: meta.kind,
         nodes,
         order: meta.rowIndex ?? Math.min(...nodes.map((node) => node.rowIndex)),
       });
     });
     return out.sort((a, b) => a.order - b.order);
-  }, [structure, formTitle]);
+  }, [structure, formTitle, grillas]);
 
   // Visibilidad efectiva por sección: propia ∧ todos los ancestros.
   const sectionState = useMemo(() => {
@@ -173,7 +199,7 @@ export function FormSimulator({
       const parent = meta.parentId ? resolve(meta.parentId) : ALWAYS_VISIBLE;
       const node = meta.rowIndex != null ? structure.byRow.get(meta.rowIndex) : null;
       const own = node?.relevant
-        ? evaluateRelevance(node.relevant, answers)
+        ? evaluateRelevance(node.relevant, contexto)
         : ALWAYS_VISIBLE;
       const state: VisState = {
         visible: parent.visible && own.visible,
@@ -184,7 +210,7 @@ export function FormSimulator({
     };
     Array.from(structure.sections.keys()).forEach((id) => resolve(id));
     return map;
-  }, [structure, answers]);
+  }, [structure, contexto]);
 
   // Visibilidad efectiva por pregunta (sección ∧ relevant propio).
   const nodeState = useMemo(() => {
@@ -194,7 +220,7 @@ export function FormSimulator({
       if (!isRenderable(node)) return;
       const section = sectionState.get(node.sectionId) ?? ALWAYS_VISIBLE;
       const own = node.relevant
-        ? evaluateRelevance(node.relevant, answers)
+        ? evaluateRelevance(node.relevant, contexto)
         : ALWAYS_VISIBLE;
       map.set(node.rowIndex, {
         visible: section.visible && own.visible,
@@ -202,7 +228,7 @@ export function FormSimulator({
       });
     });
     return map;
-  }, [structure, sectionState, answers]);
+  }, [structure, sectionState, contexto]);
 
   const visiblePages = useMemo(
     () =>
@@ -241,6 +267,7 @@ export function FormSimulator({
 
   const reset = useCallback(() => {
     setAnswers({});
+    setSemilla(semillaNueva());
     setPageIdx(0);
     setIntentoFinalizar(false);
     setFinalizada(false);
@@ -264,17 +291,17 @@ export function FormSimulator({
   const lector = useMemo<LectorReferencias>(() => ({
     etiquetaDe: (name) => nodoDe.get(name)?.label,
     respuestaDe: (name) => {
-      const v = answers[name];
+      const v = contexto[name];
       if (!hasAnswer(v)) return undefined;
       const lista = nodoDe.get(name)?.typeInfo.listName;
       const ops = lista ? choicesByList.get(lista) ?? [] : [];
       const etiqueta = (c: string) => stripMarkdown(ops.find((o) => o.name === c)?.label || c);
       return Array.isArray(v) ? v.map(etiqueta).join(", ") : ops.length ? etiqueta(v as string) : (v as string);
     },
-  }), [nodoDe, answers, choicesByList]);
+  }), [nodoDe, contexto, choicesByList]);
 
   const esUltima = clampedIdx >= visiblePages.length - 1;
-  const pendientes = pendientesParaFinalizar(visiblePages, esRespondible, (node) => nodeState.get(node.rowIndex)?.visible ?? false, answers);
+  const pendientes = pendientesParaFinalizar(visiblePages, esRespondible, (node) => nodeState.get(node.rowIndex)?.visible ?? false, answers, (node) => esObligatoria(node, contexto));
   const pendientesSet = new Set(pendientes.map((p) => p.rowIndex));
   const irAPendiente = (p: Pendiente) => {
     setPageIdx(p.pagina);
@@ -344,7 +371,15 @@ export function FormSimulator({
             </header>
 
             <div className="pulso-xfsim-cards" data-qa-geometry-group="xlsform/prueba-preguntas" data-qa-geometry-contract="intrinsic">
-              {currentPage.nodes.map((node) => (
+              {grillas.get(currentPage.id) ? (
+                <GrillaPrueba
+                  grilla={grillas.get(currentPage.id)!}
+                  valores={answers}
+                  onAnswer={setAnswer}
+                  lector={lector}
+                  visible={(node) => nodeState.get(node.rowIndex)?.visible ?? true}
+                />
+              ) : currentPage.nodes.map((node) => (
                 <QuestionSlot
                   key={node.rowIndex}
                   node={node}
@@ -354,8 +389,9 @@ export function FormSimulator({
                   onAnswer={setAnswer}
                   onEdit={handleEdit}
                   lector={lector}
-                  error={restriccionIncumplida(node, answers[node.name], answers)}
+                  error={restriccionIncumplida(node, answers[node.name], contexto)}
                   marcarPendiente={intentoFinalizar && pendientesSet.has(node.rowIndex)}
+                  obligatoria={esObligatoria(node, contexto)}
                 />
               ))}
             </div>
@@ -419,6 +455,7 @@ function QuestionSlot({
   lector,
   error,
   marcarPendiente,
+  obligatoria,
 }: {
   node: BuilderNode;
   state: VisState;
@@ -431,12 +468,14 @@ function QuestionSlot({
   error: string | null;
   /** Al intentar finalizar: esta pregunta impide terminar. */
   marcarPendiente: boolean;
+  /** Obligatoria ahora: siempre, o porque se cumple su «obligatoria sólo si …». */
+  obligatoria: boolean;
 }) {
   const visible = state.visible;
   const accent = paletteForType(node.typeInfo.base);
   const Icon = iconForType(node.typeInfo.base);
   const answered = hasAnswer(value);
-  const pendingRequired = node.required && !answered && node.kind === "question";
+  const pendingRequired = obligatoria && !answered && node.kind === "question";
 
   return (
     <div
@@ -583,7 +622,7 @@ function QuestionControl({
         : [];
     return (
       <div
-        className="pulso-xfsim-options"
+        className={`pulso-xfsim-options${CLASE_DISPOSICION[disposicionOpciones(node)]}`}
         role={multi ? "group" : "radiogroup"}
         aria-label={nombre}
       >
@@ -636,7 +675,7 @@ function QuestionControl({
       typeof value === "string" && value.trim() !== "" ? value.trim().split(/\s+/) : [];
     return (
       <div className="pulso-xfsim-options" role="group" aria-label={nombre}>
-        <span className="pulso-xfsim-rank-help">Toca en orden de prioridad · vuelve a tocar para quitar</span>
+        <span className="pulso-xfsim-rank-help">Toca en orden de prioridad; vuelve a tocar para quitar</span>
         {items.map((item) => {
           const position = order.indexOf(item.name);
           const isSelected = position >= 0;

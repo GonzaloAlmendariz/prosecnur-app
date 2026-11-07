@@ -153,7 +153,8 @@ describe("M6/M7 · actores y chips de estado", () => {
     const general = leer("general.css");
     const regla = general.slice(general.indexOf(".cmg-actor {"), general.indexOf("}", general.indexOf(".cmg-actor {")));
     expect(regla).toContain("transform var(--motion-dur-press) var(--motion-ease-out)");
-    expect(leer("movimiento.css")).toMatch(/\.cmg-actor:active:not\(:disabled\) \{\s*transform: scale\(0\.97\);/);
+    // 5 nov 2026: la presión se escribe con el token común (`--mov-press`, 0.97) de app/movimiento.css.
+    expect(leer("movimiento.css")).toMatch(/\.cmg-actor:active:not\(:disabled\) \{\s*transform: scale\(var\(--mov-press, 0\.97\)\);/);
   });
 });
 
@@ -169,7 +170,13 @@ describe("M9 · contrato de movimiento de movimiento.css", () => {
   });
 
   it("los keyframes sólo tocan opacity y transform, y sólo declaran `from`", () => {
-    expect(keyframes.length).toBeGreaterThanOrEqual(6);
+    // 5 nov 2026: el fundido (`cmg-funde`) pasó al gesto común `pulso-mov-aparece` de app/movimiento.css;
+    // quedan aquí los propios del módulo (entradas de 4 px y el reparto que crece/reescala).
+    // 5 nov 2026, segundo lote: también las entradas de 4 px (`cmg-entra-a/b`) pasaron al gesto común
+    // `pulso-mov-sube-corto`; quedan aquí los del reparto (crece y reescala), que son propios del módulo.
+    expect(keyframes.length).toBeGreaterThanOrEqual(3);
+    expect(css).toContain("pulso-mov-aparece");
+    expect(css).toContain("pulso-mov-sube-corto");
     for (const k of keyframes) {
       expect(k).not.toMatch(/\bto\b\s*\{|%\s*\{/);
       const props = [...k.matchAll(/^\s*([a-z-]+):/gm)].map((m) => m[1]);

@@ -13,15 +13,18 @@ type Props = {
   nombre: (k: number) => string;
   onRanura: (k: number) => void;
   onCambiar: (k: number) => void;
+  /** Dónde va cada ranura en la lámina («Izquierda», «Derecha»; H6): el mismo nombre que el inspector y los avisos. */
+  lugar: (slot: string) => string;
 };
 
-export function RanurasSobreLamina({ ranuras, activa, nombre, onRanura, onCambiar }: Props) {
+export function RanurasSobreLamina({ ranuras, activa, nombre, onRanura, onCambiar, lugar }: Props) {
   if (!ranuras.length) return null;
   const n = ranuras.length;
   return (
     <div className="pulso-f6-ranuras-capa" role="group" aria-label="Gráficos de la lámina">
       {ranuras.map((r) => {
-        const etiqueta = `Gráfico ${r.k} de ${n}: ${nombre(r.k)}`;
+        const donde = lugar(r.slot);
+        const etiqueta = n > 1 ? `${donde}, gráfico ${r.k} de ${n}: ${nombre(r.k)}` : `Gráfico: ${nombre(r.k)}`;
         return (
           <button
             key={r.slot}
@@ -39,7 +42,7 @@ export function RanurasSobreLamina({ ranuras, activa, nombre, onRanura, onCambia
             onClick={() => onRanura(r.k)}
             onDoubleClick={() => onCambiar(r.k)}
           >
-            <span className="pulso-f6-ranura-etiqueta" aria-hidden="true">Gráfico {r.k}</span>
+            <span className="pulso-f6-ranura-etiqueta" aria-hidden="true">{n > 1 ? donde : "Gráfico"}</span>
           </button>
         );
       })}

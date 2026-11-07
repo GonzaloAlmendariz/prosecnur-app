@@ -1,4 +1,9 @@
+import { formatoDecimal } from "../../../../lib/formatoNumero";
 import { useEffect, useState, type ReactNode } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { Table2 } from "../../../../vendor/lucide-react";
+import { EstadoVacio } from "../../../../components/EstadoVacio";
+import { LoadingBlock, ErrorBlock } from "../../../../components/States";
 import { pctPerfil } from "./kpisDeAulas";
 
 import {
@@ -34,6 +39,9 @@ export function AulasTablasDeAvance(): ReactNode {
   const [tablas, setTablas] = useState<MonitoreoAulasAvanceTabla[] | null>(null);
   const [error, setError] = useState("");
   const [corte, setCorte] = useState("");
+  const [sinPlan, setSinPlan] = useState("");
+  const navegar = useNavigate();
+  const ubicacion = useLocation();
 
   useEffect(() => {
     let vivo = true;
@@ -42,6 +50,7 @@ export function AulasTablasDeAvance(): ReactNode {
         const res = await apiMonitoreoAulasAvanceTablas();
         if (!vivo) return;
         setTablas(res.tablas ?? []);
+        setSinPlan(res.sin_plan ? (res.vacio || "Todavía no hay plan de cursos-horario.") : "");
         // **El CORTE primero, no el titular.** Se prefería el titular y salía la
         // misma frase dos veces con tres líneas de por medio: como línea de la
         // sección y como nota de «Avance general», que es de donde sale. Encima
@@ -60,9 +69,9 @@ export function AulasTablasDeAvance(): ReactNode {
     // El fallo se dice con su causa, no con un panel vacío: sin esto la vista
     // se leería como «este estudio no tiene tablas», que es otra cosa.
     return (
-      <p className="mon-profile-muted aulas-tav-vacio" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-        No se pudieron leer las tablas de avance: {error}
-      </p>
+      <div data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
+        <ErrorBlock label="No se pudieron leer las tablas de avance" detail={error} />
+      </div>
     );
   }
   if (!tablas) {
@@ -72,18 +81,43 @@ export function AulasTablasDeAvance(): ReactNode {
     // tablas de avance...» como si fuera la pestaña. Con las tablas, su vacío o
     // su error, la marca desaparece y manda la de la página.
     return (
-      <p className="mon-profile-muted aulas-tav-vacio" aria-busy="true" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-        <span hidden data-audit-ready="false" />
-        Leyendo las tablas de avance...
-      </p>
+      <div data-audit-ready="false" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
+        <LoadingBlock label="Leyendo las tablas de avance…" variant="inline" />
+      </div>
+    );
+  }
+  if (sinPlan) {
+    // Sin plan no hay avance que tabular: es un estudio que todavía no importó su selección, no una
+    // falla. El motor lo dice con su causa y aquí va la salida (C3).
+    const irAFuentes = () => {
+      const params = new URLSearchParams(ubicacion.search);
+      params.set("seccion", "insumos");
+      params.set("pestana", "fuentes");
+      for (const clave of ["panel", "foco"]) params.delete(clave);
+      navegar({ pathname: ubicacion.pathname, search: `?${params.toString()}` });
+    };
+    return (
+      <div data-qa-geometry-capacity="owned" data-qa-geometry-member="true" data-qa-geometry-empty="legitimo">
+        <EstadoVacio
+          tamano="normal"
+          icono={<Table2 size={18} />}
+          titulo="Todavía no hay plan de cursos-horario."
+          descripcion={sinPlan}
+          accion={<button type="button" className="pulso-button pulso-button--secondary" onClick={irAFuentes}>Abrir Insumos › Fuentes</button>}
+        />
+      </div>
     );
   }
   if (!tablas.length) {
     return (
-      <p className="mon-profile-muted aulas-tav-vacio" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-        Todavía no hay tablas de avance. Aparecen cuando el estudio declara su
-        plan de cursos-horario y llegan las primeras respuestas.
-      </p>
+      <div data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
+        <EstadoVacio
+          tamano="normal"
+          icono={<Table2 size={18} />}
+          titulo="Todavía no hay tablas de avance."
+          descripcion="Aparecen cuando el estudio declara su plan de cursos-horario y llegan las primeras respuestas."
+        />
+      </div>
     );
   }
 
@@ -115,9 +149,9 @@ function Tabla({ tabla }: { tabla: MonitoreoAulasAvanceTabla }): ReactNode {
       {!filas.length ? (
         // El vacío lo redacta el motor, con su causa. No se inventa aquí uno
         // nuevo: la hoja y la pantalla dirían cosas distintas del mismo hueco.
-        <p className="mon-profile-muted aulas-tav-vacio" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-          {tabla.vacio || "Sin filas que mostrar todavía."}
-        </p>
+        <div data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
+          <EstadoVacio icono={<Table2 size={15} />} titulo={tabla.vacio || "Sin filas que mostrar todavía."} />
+        </div>
       ) : (
         <div className="aulas-tav-marco">
           <table className="aulas-tav-tabla">
@@ -222,5 +256,5 @@ function formatear(valor: string | number | null, tipo: "texto" | "numero" | "po
   }
   // Los conteos van sin decimal; lo fraccionario legítimo (tasas por aula) lo
   // trae ya redondeado el motor.
-  return n.toLocaleString("es-PE", { maximumFractionDigits: 1 });
+  return formatoDecimal(n, 1);
 }

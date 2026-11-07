@@ -4,7 +4,7 @@
   align-items: flex-start;
   color: var(--pulso-danger-fg);
   display: flex;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   gap: 6px;
   line-height: 1.4;
   margin: 0;
@@ -33,7 +33,7 @@
 .rec-campana-cabecera-sub {
   color: var(--pulso-text-muted);
   flex: 0 1 auto;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   max-width: 220px;
   min-width: 0;
   overflow: hidden;
@@ -48,7 +48,7 @@
 /* El motivo por el que «Crear campaña» no se puede pulsar todavía (F12). */
 .rec-nueva-pie-motivo {
   color: var(--pulso-text-soft);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   margin-right: auto;
 }
 
@@ -61,7 +61,7 @@
 .rec-camp-campo > .rec-nueva-contador {
   align-self: flex-end;
   color: var(--pulso-text-muted);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
   font-weight: var(--pulso-weight-regular);
 }

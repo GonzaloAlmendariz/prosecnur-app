@@ -140,8 +140,8 @@ describe("confirmar escribe por el flujo de grupos, sin tocar lo que no confirm�
 });
 
 describe("rotuloModulo: el módulo en palabras llanas", () => {
-  it("«MÓDULO B. EXPERIENCIA UNIVERSITARIA» se lee «B · Experiencia universitaria»", () => {
-    expect(rotuloModulo("MÓDULO B. EXPERIENCIA UNIVERSITARIA")).toEqual({ letra: "B", nombre: "Experiencia universitaria", corto: "B · Experiencia universitaria", grupo: "B. Experiencia universitaria" });
+  it("«MÓDULO B. EXPERIENCIA UNIVERSITARIA» se lee «B. Experiencia universitaria»", () => {
+    expect(rotuloModulo("MÓDULO B. EXPERIENCIA UNIVERSITARIA")).toEqual({ letra: "B", nombre: "Experiencia universitaria", corto: "B. Experiencia universitaria", grupo: "B. Experiencia universitaria" });
   });
   it("una etiqueta sin el patrón queda como está", () => {
     expect(rotuloModulo("Datos del hogar")).toEqual({ letra: "", nombre: "Datos del hogar", corto: "Datos del hogar", grupo: "Datos del hogar" });
@@ -183,19 +183,19 @@ describe("rotuloCortoSubtema: de 2 a 4 palabras desde el enunciado de la baterí
 
 describe("rotuloDePropuesta: el subtema se nombra con la letra de su módulo y su rótulo corto", () => {
   // TXT-21: el grupo que crea «Confirmar» se llama igual que lo que muestra la banda: es la etiqueta que ven los gráficos.
-  it("con padre: «B · Redes sociales y plataformas», también como nombre del grupo, y el enunciado entero para el tooltip", () => {
+  it("con padre: «B. Redes sociales y plataformas», también como nombre del grupo, y el enunciado entero para el tooltip", () => {
     const r = rotuloDePropuesta({ etiqueta: "¿Con qué frecuencia utilizas las siguientes redes sociales y plataformas digitales?", padreEtiqueta: "MÓDULO B. EXPERIENCIA UNIVERSITARIA" });
-    expect(r.corto).toBe("B · Redes sociales y plataformas");
+    expect(r.corto).toBe("B. Redes sociales y plataformas");
     expect(r.grupo).toBe(r.corto);
     expect(r.completo).toBe("¿Con qué frecuencia utilizas las siguientes redes sociales y plataformas digitales?");
   });
-  it("lo que repite el nombre del módulo no distingue: «Experiencia laboral» en «Experiencia universitaria» es «B · Laboral»", () => {
-    expect(rotuloDePropuesta({ etiqueta: "EXPERIENCIA LABORAL", padreEtiqueta: "MÓDULO B. EXPERIENCIA UNIVERSITARIA" }).corto).toBe("B · Laboral");
-    expect(rotuloDePropuesta({ etiqueta: "EXPERIENCIA UNIVERSITARIA", padreEtiqueta: "MÓDULO B. EXPERIENCIA UNIVERSITARIA" }).corto).toBe("B · Universitaria");
+  it("lo que repite el nombre del módulo no distingue: «Experiencia laboral» en «Experiencia universitaria» es «B. Laboral»", () => {
+    expect(rotuloDePropuesta({ etiqueta: "EXPERIENCIA LABORAL", padreEtiqueta: "MÓDULO B. EXPERIENCIA UNIVERSITARIA" }).corto).toBe("B. Laboral");
+    expect(rotuloDePropuesta({ etiqueta: "EXPERIENCIA UNIVERSITARIA", padreEtiqueta: "MÓDULO B. EXPERIENCIA UNIVERSITARIA" }).corto).toBe("B. Universitaria");
   });
   it("sin padre es el rótulo de módulo de siempre", () => {
     const r = rotuloDePropuesta({ etiqueta: "MÓDULO B. EXPERIENCIA UNIVERSITARIA" });
-    expect(r.corto).toBe("B · Experiencia universitaria");
+    expect(r.corto).toBe("B. Experiencia universitaria");
     expect(r.completo).toBe("MÓDULO B. EXPERIENCIA UNIVERSITARIA");
   });
 });

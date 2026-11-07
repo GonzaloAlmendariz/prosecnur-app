@@ -99,6 +99,8 @@ export type ProjectOverviewFacts = {
     interviews_count: number;
     quota_assigned: number;
     from_pilot: boolean;
+    /** ADR 0122 P2: `false` cuando el Planner dice que el estudio no hace hoja de ruta (conveniencia). */
+    aplica?: boolean;
   };
   /** Fichas del plan de unidades. Un backend anterior al ADR 0108 la publicaba
       como `recopiladores`; `normalizeProjectOverview` la mueve aquí. */
@@ -121,6 +123,11 @@ export type ProjectOverviewFacts = {
     /** Instrumentos vinculados al estudio. El borrador del editor es uno de
         ellos, así que con varios `questions_count` no describe el estudio. */
     instruments_count?: number;
+    /** Preguntas del borrador que tiene abierto el editor. Opcional: un backend
+        anterior no lo manda. */
+    draft_questions_count?: number;
+    /** La cifra sale del instrumento vinculado y no del borrador del editor. */
+    from_instrument?: boolean;
   };
   procesamiento?: {
     /** "unibase" | "multibase". */
@@ -143,6 +150,8 @@ export type ProjectOverviewFacts = {
 export type ProjectOverviewProject = {
   name: string;
   client: string;
+  /** Código del estudio declarado en el Planner (ADR 0122). Ausente en backends viejos. */
+  code?: string;
   project_file: string;
   has_project: boolean;
   processing_mode: string;

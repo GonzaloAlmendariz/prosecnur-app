@@ -157,7 +157,7 @@ export function buildOperationalStatusLabels(
       ? formatFieldPeriodLabel(config.field_period.start_date, config.field_period.end_date)
       : "Periodo",
     duplicates: config.duplicates.enabled
-      ? `Similitud · ${formatPercent(config.duplicates.similarity_threshold)}`
+      ? `Similitud: ${formatPercent(config.duplicates.similarity_threshold)}`
       : "Duplicados",
   };
 }
@@ -248,12 +248,12 @@ function formatFieldPeriodLabel(startDate: string, endDate: string): string {
   if (!start || !end) return "Campo";
 
   if (start.year === end.year && start.month === end.month) {
-    return `Campo · ${start.day}–${end.day} ${MONTHS_ES[start.month - 1]}`;
+    return `Campo: ${start.day}–${end.day} ${MONTHS_ES[start.month - 1]}`;
   }
   if (start.year === end.year) {
-    return `Campo · ${start.day} ${MONTHS_ES[start.month - 1]}–${end.day} ${MONTHS_ES[end.month - 1]}`;
+    return `Campo: ${start.day} ${MONTHS_ES[start.month - 1]}–${end.day} ${MONTHS_ES[end.month - 1]}`;
   }
-  return `Campo · ${start.day} ${MONTHS_ES[start.month - 1]} ${start.year}–${end.day} ${MONTHS_ES[end.month - 1]} ${end.year}`;
+  return `Campo: ${start.day} ${MONTHS_ES[start.month - 1]} ${start.year}–${end.day} ${MONTHS_ES[end.month - 1]} ${end.year}`;
 }
 
 const MONTHS_ES = [

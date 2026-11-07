@@ -1,0 +1,153 @@
+/* Pesas de composición (ADR 0126): la gramática de Acreditación › Por cuota
+ * llevada al núcleo. Anillo = referencia (universo, listado o reparto), punto
+ * = lo obtenido. La referencia escrita lleva el color del anillo: es la cifra
+ * contra la que se lee el resto. Sin color de alarma en la diferencia. Un
+ * perfil puede pintar el punto con su serie: --mon-pesas-obtenida. */
+
+.mon-pesas {
+  --mon-pesas-ref: var(--pulso-accent-steel);
+  --mon-pesas-obtenida-color: var(--mon-pesas-obtenida, var(--pulso-brand-navy));
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  margin: 0;
+}
+
+.mon-pesas-tabla {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mon-pesas-fila {
+  display: grid;
+  grid-template-columns: minmax(120px, 200px) minmax(140px, 1fr) 96px 104px 80px;
+  gap: var(--pulso-space-3);
+  align-items: center;
+  min-height: 40px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-pesas.is-compacta .mon-pesas-fila {
+  grid-template-columns: minmax(72px, 112px) minmax(96px, 1fr) 84px 64px;
+  gap: var(--pulso-space-2);
+}
+
+.mon-pesas-cuerpo {
+  display: flex;
+  flex-direction: column;
+}
+
+.mon-pesas-cuerpo > .mon-pesas-fila {
+  border-top: 1px solid var(--pulso-surface-3);
+}
+
+.mon-pesas-fila.is-eje {
+  min-height: 28px;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.mon-pesas-fila .is-num {
+  text-align: right;
+}
+
+.mon-pesas-fila.is-eje .is-referencia,
+.mon-pesas-fila .is-referencia {
+  color: var(--mon-pesas-ref);
+}
+
+.mon-pesas-fila:not(.is-eje) .is-referencia {
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-pesas-nombre {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.mon-pesas-nombre b {
+  font-weight: var(--pulso-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.mon-pesas-nombre small {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.mon-pesas-diferencia {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-pesas-escala {
+  position: relative;
+  align-self: stretch;
+}
+
+.mon-pesas-marca {
+  position: absolute;
+  bottom: 4px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.mon-pesas-pista {
+  position: relative;
+  height: 16px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.mon-pesas-tramo {
+  position: absolute;
+  top: 7px;
+  height: 2px;
+  background: color-mix(in srgb, var(--mon-pesas-obtenida-color) 35%, var(--pulso-surface));
+}
+
+.mon-pesas-anillo,
+.mon-pesas-punto {
+  position: absolute;
+  top: 2px;
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  transform: translateX(-50%);
+}
+
+.mon-pesas-anillo {
+  border: 2px solid var(--mon-pesas-ref);
+  background: var(--pulso-surface);
+}
+
+.mon-pesas-punto {
+  background: var(--mon-pesas-obtenida-color);
+}
+
+.mon-pesas-leyenda {
+  display: flex;
+  justify-content: center;
+  gap: var(--pulso-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.mon-pesas-leyenda li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mon-pesas-leyenda .mon-pesas-anillo,
+.mon-pesas-leyenda .mon-pesas-punto {
+  position: static;
+  transform: none;
+}

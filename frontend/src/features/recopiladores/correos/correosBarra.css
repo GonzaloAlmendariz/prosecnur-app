@@ -97,7 +97,7 @@
   border-radius: var(--pulso-radius-chip);
   color: var(--pulso-text-soft);
   flex: none;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 16px;
   padding: 0 6px;
   white-space: nowrap;
@@ -111,7 +111,7 @@
 /* El envío se lee como parte del nombre: «Encuesta · Recordatorio 1 ▾». */
 .rec-mail-barra--fina .rec-env-selector {
   align-items: center;
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   margin: 0;
   min-width: 0;
 }
@@ -167,7 +167,7 @@
 .rec-barra-icono:focus-visible,
 .rec-barra-ver-como:focus-visible,
 .rec-barra-menu-item:focus-visible {
-  outline: 2px solid var(--pulso-primary-focus);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 1px;
 }
 
@@ -187,7 +187,7 @@
   cursor: pointer;
   display: inline-flex;
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   gap: 5px;
   height: 32px;
   /* Un nombre largo no empuja la barra: se recorta con elipsis (el nombre
@@ -240,7 +240,7 @@
   cursor: pointer;
   display: flex;
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
   gap: var(--pulso-space-2);
   justify-content: flex-start;
   min-height: 0;
@@ -267,7 +267,7 @@
 
 .rec-barra-menu-item small {
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -307,7 +307,7 @@
   background: var(--pulso-surface);
   box-shadow: var(--pulso-shadow-low);
   flex: none;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.35;
   padding: 4px 6px 4px 10px;
 }

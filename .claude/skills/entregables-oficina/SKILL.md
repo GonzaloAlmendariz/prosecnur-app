@@ -91,15 +91,13 @@ resultado registrado y error de dominio estructurado.
 
 ## Cronograma, Gantt y export Excel
 
-El cronograma es parte de Bitácora, no una utilidad aislada:
+El cronograma salió de la app con el Planner (ADR 0124): no tiene pantalla y su
+backend queda dormido hasta retirarse. Mientras siga en `api/R/`:
 
 - `api/R/bitacora_cronograma.R` posee edición, dependencias, ciclos y vista por
   fases; `api/R/bitacora_fases.R` ancla cada fase a un módulo real.
 - `api/R/router_plan_trabajo.R` conserva import/export Excel y compatibilidad
   con cronogramas anteriores; `.plan_export_xlsx()` registra la salida.
-- `frontend/src/features/bitacora/CronogramaSection.tsx` ofrece compositor de
-  fases, lectura Gantt y lista. La fase elegida por el usuario manda sobre la
-  heurística textual.
 
 Al cambiar import/export, conserva IDs, dependencias, fase manual, fechas,
 hitos, responsables, ventanas sincronizables y round-trip. Valida engine,

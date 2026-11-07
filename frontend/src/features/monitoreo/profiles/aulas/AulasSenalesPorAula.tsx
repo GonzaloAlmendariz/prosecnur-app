@@ -36,7 +36,7 @@ function detalleDeLista(a: AulaMedida): string {
   if (a.tasaObservada != null) partes.push(`va en ${tasaEnPct(a.tasaObservada)}`);
   else if (a.efectivas != null) partes.push(`${fmt(a.efectivas)} efectivas`);
   if (a.facultad) partes.push(a.facultad);
-  return partes.join(" · ");
+  return partes.join(", ");
 }
 
 /* `detalleDePendiente()` se retiro el 2026-09-09 con la lista uno-a-uno que
@@ -48,7 +48,7 @@ function detalleDeLista(a: AulaMedida): string {
 function detalleDeRetirada(a: AulaMedida): string {
   const partes: string[] = [a.estadoOperativo ?? "sin estado escrito"];
   if (a.facultad) partes.push(a.facultad);
-  return partes.join(" · ");
+  return partes.join(", ");
 }
 
 /** La línea de un descuadre: los números que no cuadran, no una tasa armada con ellos. */
@@ -59,7 +59,7 @@ function detalleDeDescuadre(a: AulaMedida): string {
   }
   if (a.facultad) partes.push(a.facultad);
   if (a.numerador === "parte") partes.push("del parte");
-  return partes.join(" · ");
+  return partes.join(", ");
 }
 
 /**
@@ -265,11 +265,11 @@ export function AulasSenalesPorAula({
                       {/* N6: el denominador son los ELEGIBLES del aula, no sus
                           alumnos — el aforo completo es otro número. */}
                       {a.efectivas != null && a.elegibles != null
-                        ? ` · ${fmt(a.efectivas)} efectivas de ${fmt(a.elegibles)} elegibles`
+                        ? `, ${fmt(a.efectivas)} efectivas de ${fmt(a.elegibles)} elegibles`
                         : ""}
                       {/* El origen sólo cuando NO es el de la cabecera: marcarlo
                           siempre ahogaría la excepción, que es lo que informa. */}
-                      {a.numerador === "parte" ? " · del parte" : ""}
+                      {a.numerador === "parte" ? ", del parte" : ""}
                     </em>
                   </th>
                   <td>
@@ -323,7 +323,7 @@ export function AulasSenalesPorAula({
       {conformes.length > 0 ? (
         <details className="aulas-dt-conformes" open={filtrado}>
           <summary>
-            <strong>{fmt(conformes.length)}</strong> dentro de su margen · verlos uno a uno
+            <strong>{fmt(conformes.length)}</strong> dentro de su margen, verlos uno a uno
           </summary>
           <ul className="aulas-dt-lista">
             {conformes.map((a) => (
@@ -386,7 +386,7 @@ export function AulasSenalesPorAula({
             <ul className="aulas-dt-lista">
               {pendientes.map((a) => (
                 <li key={a.clave}>
-                  {a.codigo} <em>{[a.estadoOperativo ?? "sin estado escrito", detalleDeLista(a)].filter(Boolean).join(" · ")}</em>
+                  {a.codigo} <em>{[a.estadoOperativo ?? "sin estado escrito", detalleDeLista(a)].filter(Boolean).join(", ")}</em>
                 </li>
               ))}
             </ul>
@@ -403,9 +403,9 @@ export function AulasSenalesPorAula({
                     <span key={e.estado}>{i > 0 ? ", " : ""}{fmt(e.n)} {e.estado}</span>
                   ))}
                   {")"}
-                  {f.elegibles > 0 ? <> · {fmt(f.elegibles)} elegibles</> : null}
+                  {f.elegibles > 0 ? <>, {fmt(f.elegibles)} elegibles</> : null}
                   {f.tasaPrevista != null ? (
-                    <> · prevista {pctPerfil(f.tasaPrevista * 100)}</>
+                    <>, prevista {pctPerfil(f.tasaPrevista * 100)}</>
                   ) : null}
                 </em>
               </li>

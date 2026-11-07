@@ -7,6 +7,7 @@
  * ejemplos y cobertura.
  */
 import type { MonitoreoSource, MonitoreoSourceVariableStat } from "../../../../../api/client";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 export type OpcionDeCodigo = {
   nombre: string;
@@ -71,5 +72,5 @@ export function fuentesDeRespuestas(fuentes: readonly MonitoreoSource[] = []) {
 
 export function coberturaDe(opcion: OpcionDeCodigo | undefined) {
   if (!opcion || !opcion.total) return "";
-  return `${opcion.conValor.toLocaleString("es-PE")} de ${opcion.total.toLocaleString("es-PE")} respuestas traen un valor`;
+  return `${formatoConteo(opcion.conValor)} de ${formatoConteo(opcion.total)} respuestas traen un valor`;
 }

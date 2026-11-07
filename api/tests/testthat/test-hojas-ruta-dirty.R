@@ -1,0 +1,84 @@
+# L22: mirar Hojas de ruta no deja el proyecto «sin guardar». La página persiste
+# el workspace tras cada cambio de UI; sólo un cambio que no sea la posición de
+# la UI (ui_state) cuenta como edición.
+
+.hr_sesion_con_proyecto <- function() {
+  sid <- session_create()
+  s <- session_get(sid)
+  s$project_path <- tempfile(fileext = ".pulso")
+  .session_env[[sid]] <- s
+  sid
+}
+
+test_that("sembrar la corrida por defecto al leer no ensucia", {
+  sid <- .hr_sesion_con_proyecto()
+  on.exit(session_delete(sid))
+  .hojas_ruta_ensure_runs(sid)
+  expect_false(isTRUE(session_get(sid)$project_dirty))
+})
+
+test_that("cambiar sólo la etapa visible no ensucia; re-guardar la misma config tampoco", {
+  sid <- .hr_sesion_con_proyecto()
+  on.exit(session_delete(sid))
+  activa <- .hojas_ruta_active_run(sid)
+  .hojas_ruta_save_run(sid, activa$phase, ui_state = list(active_stage = "muestra"))
+  expect_false(isTRUE(session_get(sid)$project_dirty))
+  expect_identical(.hojas_ruta_active_run(sid)$run$ui_state$active_stage, "muestra")
+
+  # Ida y vuelta por JSON, como llega del cliente.
+  cfg <- jsonlite::fromJSON(jsonlite::toJSON(activa$run$config, auto_unbox = TRUE, null = "null"), simplifyVector = FALSE)
+  .hojas_ruta_save_run(sid, activa$phase, config = cfg)
+  expect_false(isTRUE(session_get(sid)$project_dirty))
+})
+
+test_that("cambiar la configuración sí ensucia y lo nombra", {
+  sid <- .hr_sesion_con_proyecto()
+  on.exit(session_delete(sid))
+  activa <- .hojas_ruta_active_run(sid)
+  cfg <- activa$run$config
+  cfg$sampling_method <- if (identical(cfg$sampling_method, "pps")) "sistematico" else "pps"
+  .hojas_ruta_save_run(sid, activa$phase, config = cfg)
+  s <- session_get(sid)
+  expect_true(isTRUE(s$project_dirty))
+  expect_identical(names(s$project_dirty_reasons), "hojas_ruta_runs")
+})
+
+test_that("un .pulso anterior a marco_elegible no queda «sin guardar» al re-guardar su misma config", {
+  sid <- .hr_sesion_con_proyecto()
+  on.exit(session_delete(sid))
+  activa <- .hojas_ruta_active_run(sid)
+  # La config como la guardaba una versión vieja: sin marco_elegible ni campos de no respuesta.
+  vieja <- activa$run$config
+  vieja$marco_elegible <- NULL
+  vieja$sample_size$visitas_cap <- NULL
+  s <- session_get(sid)
+  s$hojas_ruta_runs[[activa$phase]]$config <- vieja
+  s$project_dirty <- FALSE
+  .session_env[[sid]] <- s
+  .hojas_ruta_save_run(sid, activa$phase, config = vieja)
+  expect_false(isTRUE(session_get(sid)$project_dirty))
+  # Un cambio de verdad sí ensucia.
+  otra <- vieja
+  otra$seed <- as.integer(otra$seed %||% 1L) + 1L
+  .hojas_ruta_save_run(sid, activa$phase, config = otra)
+  expect_true(isTRUE(session_get(sid)$project_dirty))
+})
+
+test_that("un .pulso anterior a ciudades no queda «sin guardar»; agregar una ciudad sí ensucia", {
+  sid <- .hr_sesion_con_proyecto()
+  on.exit(session_delete(sid))
+  activa <- .hojas_ruta_active_run(sid)
+  vieja <- activa$run$config
+  vieja$ciudades <- NULL
+  s <- session_get(sid)
+  s$hojas_ruta_runs[[activa$phase]]$config <- vieja
+  s$project_dirty <- FALSE
+  .session_env[[sid]] <- s
+  .hojas_ruta_save_run(sid, activa$phase, config = vieja)
+  expect_false(isTRUE(session_get(sid)$project_dirty))
+  con_ciudad <- vieja
+  con_ciudad$ciudades <- list("0401")
+  .hojas_ruta_save_run(sid, activa$phase, config = con_ciudad)
+  expect_true(isTRUE(session_get(sid)$project_dirty))
+  expect_true("0401" %in% unlist(.hojas_ruta_active_run(sid)$run$config$ciudades))
+})

@@ -50,7 +50,7 @@ function eslabonDelSlot(
         titulo: [
           enlace?.estado === "enlace" ? enlace.titulo : null,
           slot.key !== "plataforma" ? sourceSheetField(primaria, "range") : null,
-        ].filter(Boolean).join(" · ") || undefined,
+        ].filter(Boolean).join(", ") || undefined,
       }
       : null,
     // «Sin sync» no se pinta: una fuente conectada que nunca se leyó lo dice su

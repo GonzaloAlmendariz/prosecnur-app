@@ -60,7 +60,7 @@
 .mon-exp-barra h3 {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 14px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -68,7 +68,7 @@
   justify-content: space-between;
   border-top: 1px solid var(--pulso-border);
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .mon-exp-volver,
@@ -83,7 +83,7 @@
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
 }
@@ -109,7 +109,7 @@
   background: transparent;
   color: var(--pulso-text-soft);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
 }
@@ -139,14 +139,6 @@
   display: block;
   width: 100%;
   height: 100%;
-}
-
-.mon-exp-vacio {
-  margin: auto;
-  padding: var(--pulso-space-4);
-  color: var(--pulso-text-soft);
-  font-size: 13px;
-  text-align: center;
 }
 
 .mon-exp-calles path {
@@ -201,7 +193,7 @@
 
 .mon-exp-punto text {
   fill: var(--pulso-surface);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   pointer-events: none;
 }
@@ -303,7 +295,7 @@
 .mon-exp-caso h4 {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -316,7 +308,7 @@
 
 .mon-exp-caso dt {
   color: var(--pulso-text-faint);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -325,29 +317,8 @@
 .mon-exp-caso dd {
   margin: 2px 0 0;
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   font-variant-numeric: tabular-nums;
-}
-
-.mon-exp-estado {
-  padding: 2px 9px;
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-  font-size: 12px;
-  font-weight: var(--pulso-weight-semibold);
-}
-
-.mon-exp-estado.is-observacion {
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
-}
-
-.mon-exp-estado.is-no_cuenta,
-.mon-exp-estado.is-anulado_efectiva,
-.mon-exp-estado.is-anulado_sin_consentimiento {
-  background: var(--pulso-danger-bg);
-  color: var(--pulso-danger-fg);
 }
 
 .mon-exp-lista {
@@ -372,7 +343,7 @@
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   text-align: left;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
@@ -395,7 +366,7 @@
   padding-bottom: var(--pulso-space-1);
   border-bottom: 1px solid var(--pulso-border);
   color: var(--pulso-text-soft);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -419,7 +390,7 @@
   background: var(--pulso-brand-navy);
   color: var(--pulso-surface);
   font: inherit;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   cursor: pointer;
 }

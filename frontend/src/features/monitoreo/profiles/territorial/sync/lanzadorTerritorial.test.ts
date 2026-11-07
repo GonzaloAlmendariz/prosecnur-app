@@ -89,7 +89,7 @@ describe("Actualizar territorial", () => {
     expect(useToasterStore.getState().toasts[0]).toMatchObject({
       tono: "exito",
       mensaje: "Actualizado",
-      detalle: "Ocurrencias de campo: 57 leídas · Kobo campo: 12 nuevas · Recalculado",
+      detalle: "Ocurrencias de campo: 57 leídas, Kobo campo: 12 nuevas. Recalculado",
     });
   });
 
@@ -110,7 +110,7 @@ describe("Actualizar territorial", () => {
     expect(useToasterStore.getState().toasts[0]).toMatchObject({
       tono: "aviso",
       mensaje: "Actualizado en parte",
-      detalle: "Kobo campo: sin nuevas · Ocurrencias de campo: falló · Recalculado",
+      detalle: "Kobo campo: sin nuevas, Ocurrencias de campo: falló. Recalculado",
     });
   });
 
@@ -123,7 +123,7 @@ describe("Actualizar territorial", () => {
     );
     expect(monitoreo.apiMonitoreoSync).not.toHaveBeenCalled();
     expect(pasos(store.reportes)).toEqual(["1/1"]);
-    expect(useToasterStore.getState().toasts[0]).toMatchObject({ detalle: "Ocurrencias de campo: 3 leídas · Recalculado" });
+    expect(useToasterStore.getState().toasts[0]).toMatchObject({ detalle: "Ocurrencias de campo: 3 leídas. Recalculado" });
   });
 
   it("sin ocurrencias declaradas, el Kobo y la hoja de ruta van por el camino común", async () => {
@@ -148,6 +148,6 @@ describe("Actualizar territorial", () => {
     await vi.advanceTimersByTimeAsync(2000);
     await hojas;
     expect(monitoreo.apiMonitoreoSheetsSyncAsync).toHaveBeenCalledWith(["ruta"]);
-    expect(useToasterStore.getState().toasts.map((t) => t.detalle)).toContain("1 hoja de Sheets: 40 registros · Recalculado");
+    expect(useToasterStore.getState().toasts.map((t) => t.detalle)).toContain("1 hoja de Sheets: 40 registros. Recalculado");
   });
 });

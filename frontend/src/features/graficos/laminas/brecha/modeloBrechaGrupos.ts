@@ -51,7 +51,7 @@ export function opcionesDe(variables: readonly VarWithSource[], ref: string): Op
 
 /**
  * Cuántos grupos admite la brecha entre grupos: dos en el recetario; hasta cuatro en el contraste del resumen ejecutivo
- * (ADR 0114: aperturas internas por ciclo o dedicación), que es lo que acepta `.p_dumbbell_grupos()`.
+ * (ADR 0134: aperturas internas por ciclo o dedicación), que es lo que acepta `.p_dumbbell_grupos()`.
  */
 export const MAX_GRUPOS_RECETARIO = 2;
 export const MAX_GRUPOS_RESUMEN = 4;

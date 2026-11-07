@@ -46,7 +46,11 @@
   "sm_multibase_import_independent",
   "sm_multibase_refresh",
   # ADR 0102: la base nace del formulario publicado (descarga SurveyMonkey).
-  "formulario_publicado_sm"
+  "formulario_publicado_sm",
+  # L9 (Meta B, 2026-10-28): la base integrada y el paquete de .sav dejaban la
+  # app congelada mientras importaban; corren igual que los demás imports.
+  "multi_integrated_import",
+  "sav_bundle_import"
 )
 
 # Kinds de job que cuentan como import de plataforma para el guard de
@@ -200,6 +204,29 @@
       )
     },
     formulario_publicado_sm = carga_formulario_publicado_importar(sid, parsed),
+    multi_integrated_import = {
+      profile_id <- trimws(.mi_scalar(
+        parsed$connection_profile_id %||% parsed$connectionProfileId %||% parsed$profile_id %||% parsed$profileId,
+        ""
+      ))
+      if (!nzchar(profile_id)) profile_id <- NULL
+      multi_integrated_import(
+        sid = sid,
+        guide_xlsform_file_id = .mi_scalar(parsed$guide_xlsform_file_id, ""),
+        origins = parsed$origins %||% list(),
+        origin_key_name = .mi_scalar(parsed$origin_key_name, "origen"),
+        base_name = .mi_scalar(parsed$base_name, "base_integrada"),
+        decisions = parsed$decisions %||% list(),
+        profile_id = profile_id
+      )
+    },
+    sav_bundle_import = sm_multibase_sav_bundle_import(
+      sid = sid,
+      file_id = parsed$file_id %||% parsed$sav_bundle_file_id,
+      file_base_map = parsed$file_base_map %||% parsed$sav_base_map %||% list(),
+      missing_policy = .sm_mb_scalar(parsed$missing_required_policy %||% parsed$missing_policy, "fill_blank_warn"),
+      expected_inspection_fingerprint = parsed$expected_inspection_fingerprint
+    ),
     stop_api(400, "E_CARGA_JOB_ACTION",
              sprintf("Import de plataforma no soportado en modo async: '%s'.", action))
   )
@@ -312,6 +339,31 @@
 # locale UTF-8; acá solo se siembra el sandbox y se corre el import real.
 # ---------------------------------------------------------------------------
 
+# Un fallo de red de la plataforma (timeout, conexión rechazada) no es un
+# api_error: llega como error de curl y, sin traducir, salía por el canal de
+# callr tal cual («in callr subprocess. Caused by error in curl_fetch_memory…»)
+# hasta la tarjeta de Carga (L5c). Se traduce a un error de dominio con texto
+# para la persona; cualquier otro error sigue su camino sin cambios.
+.carga_platform_error_de_red <- function(err, action) {
+  mensaje <- conditionMessage(err)
+  red <- grepl(
+    "Timeout was reached|timed out|time-out|Could not resolve host|Failed to connect|Connection refused|Couldn't connect",
+    mensaje,
+    ignore.case = TRUE
+  )
+  if (!red) return(NULL)
+  plataforma <- if (grepl("^kobo", action %||% "")) "KoboToolbox" else "SurveyMonkey"
+  list(
+    code = "E_CARGA_PLATAFORMA_SIN_RESPUESTA",
+    status = 504L,
+    message = sprintf(
+      "%s no respondió a tiempo. El estudio no cambió; revisa la conexión y vuelve a importar.",
+      plataforma
+    ),
+    details = list(plataforma = plataforma)
+  )
+}
+
 carga_platform_job_runner <- function(sid, action, state_path, parsed_path,
                                       secrets_path = NULL, progress_path = NULL) {
   report <- job_progress_writer(progress_path)
@@ -348,6 +400,11 @@ carga_platform_job_runner <- function(sid, action, state_path, parsed_path,
         message = conditionMessage(e),
         details = e$details
       ))
+    },
+    error = function(e) {
+      de_red <- .carga_platform_error_de_red(e, action)
+      if (is.null(de_red)) stop(e)
+      list(ok = FALSE, error = de_red)
     }
   )
   if (!isTRUE(outcome$ok)) {

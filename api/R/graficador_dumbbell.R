@@ -35,7 +35,7 @@
 #' @param umbral_brecha_pct Solo se rotulan las brechas de al menos este tamano,
 #'   en puntos porcentuales. El sufijo `_pct` evita que el patch de UI lo acote
 #'   a la escala 0-1 de las apiladas.
-#' @param estilo `recetario` (láminas 85 y 86) o `resumen`: el contraste del resumen ejecutivo (ADR 0114), con dos o
+#' @param estilo `recetario` (láminas 85 y 86) o `resumen`: el contraste del resumen ejecutivo (ADR 0134), con dos o
 #'   más grupos, una forma por grupo y la tabla de «Diferencia» y «Base» fuera del gráfico.
 #' @param universos Padrón de cada grupo (`list(Docentes = 123)` o «Docentes: 123; Estudiantes: 327») para escribir la
 #'   base como `n (cobertura %)`. Sin padrón de un grupo, su base va sólo con `n`. Sólo con `estilo = "resumen"`.
@@ -98,7 +98,7 @@ graficar_dumbbell <- function(
   escala_valor <- match.arg(escala_valor)
   orden <- match.arg(orden)
   estilo <- match.arg(estilo)
-  # ADR 0114: el contraste del resumen ejecutivo (dos o más grupos, formas por grupo y tabla de base) tiene su propia
+  # ADR 0134: el contraste del resumen ejecutivo (dos o más grupos, formas por grupo y tabla de base) tiene su propia
   # especificación (graficos_espec_contraste.R); el recetario (láminas 85 y 86) sigue abajo sin cambios.
   if (identical(estilo, "resumen")) {
     d <- data
@@ -298,7 +298,9 @@ graficar_dumbbell <- function(
          cifras_a = .pulso_fmt_pct_half_up(r2$.a, dec_p, escala = 1), cifras_b = .pulso_fmt_pct_half_up(r2$.b, dec_p, escala = 1),
          diferencia = r2$.dif, textos_diferencia = paste0(ifelse(r2$.dif >= 0, "+", ""), .pulso_fmt_half_up(r2$.dif, dec_p), " ", etiqueta_brecha),
          mostrar_diferencia = isTRUE(mostrar_brecha), encabezado_diferencia = encabezado_brecha, sentido_diferencia = sentido,
-         grupos = niveles_grupo, colores = unname(colores[niveles_grupo]), colores_cifra = colores_cifra,
+         # Con su nombre: el Word casa el color por público (`.word_colores_de_espec`); sin él caía al azul/celeste y el
+         # mismo público salía de otro color que en el PPT (Arte, competencias, 2026-10-28).
+         grupos = niveles_grupo, colores = stats::setNames(unname(colores[niveles_grupo]), niveles_grupo), colores_cifra = colores_cifra,
          leyenda = unname(etiquetas_leyenda),
          n_fila = unname(n_fila), eje = c(lo = lo, hi = hi, paso = paso), titulo_eje = titulo_eje)
   }, error = function(e) NULL)

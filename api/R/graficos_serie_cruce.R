@@ -115,12 +115,12 @@
   if (length(hit)) paste0(hit[1], "$", ref) else ref
 }
 
-#' Pie de la serie por niveles: los casos (sin ponderar) de cada nivel, «Casos por nivel: VI 119 · VII 122»
+#' Pie de la serie por niveles: los casos (sin ponderar) de cada nivel, «Casos por nivel: VI: 119, VII: 122»
 #' @keywords internal
 .serie_cruce_nota <- function(datos) {
   niv <- levels(datos$grupo)
   n <- vapply(niv, function(x) max(datos$n_casos[datos$grupo == x], na.rm = TRUE), 0)
-  paste0("Casos que respondieron, por nivel: ", paste(sprintf("%s: %s", niv, .dumbbell_fmt_casos(n)), collapse = " · "), ".")
+  paste0("Casos que respondieron, por nivel: ", paste(sprintf("%s: %s", niv, .dumbbell_fmt_casos(n)), collapse = ", "), ".")
 }
 
 #' Render de la serie por niveles del cruce
@@ -135,7 +135,7 @@
   # L10-9: letras de significancia entre niveles, con la prueba de las tablas de cruces (graficos_serie_significancia.R).
   sig <- .serie_sig_config(args_usuario)
   args_usuario$mostrar_significancia <- NULL; args_usuario$significancia_alpha <- NULL
-  letras <- if (sig$activo) .serie_sig_letras(datos, el$vars, sources, el$cruce, alpha = sig$alpha) else NULL
+  letras <- if (sig$activo) .serie_sig_letras(datos, el$vars, sources, el$cruce, alpha = sig$alpha, el = el) else NULL
   if (!is.null(letras)) {
     datos$sufijo <- letras$sufijo
     if (is.null(args_usuario$nota_pie)) args_usuario$nota_pie <- .sig_nota_pie_del_grafico(letras$nota)

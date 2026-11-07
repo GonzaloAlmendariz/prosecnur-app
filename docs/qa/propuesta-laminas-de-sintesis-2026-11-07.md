@@ -3,7 +3,7 @@
 Tipo: Propuesta de diseño
 Estado: En curso
 Fecha: 2026-11-07
-Autoridad: Gonzalo, 2026-11-07, tras ver los gráficos del resumen ejecutivo en el motor: «algo que todavía le falta a la aplicación es tener slides o tipos de gráficos que traten de resumir información que no solo abarque un par de variables, sino muestre tendencias… no hay intuitividad en torno a qué tan fácil es hacerlo… y creo que ahí es precisamente el fallo». Relacionada con [ADR 0114](../adrs/0114-los-graficos-del-resumen-ejecutivo-son-nativos.md)
+Autoridad: Gonzalo, 2026-11-07, tras ver los gráficos del resumen ejecutivo en el motor: «algo que todavía le falta a la aplicación es tener slides o tipos de gráficos que traten de resumir información que no solo abarque un par de variables, sino muestre tendencias… no hay intuitividad en torno a qué tan fácil es hacerlo… y creo que ahí es precisamente el fallo». Relacionada con [ADR 0134](../adrs/0134-los-graficos-del-resumen-ejecutivo-son-nativos.md)
 
 ## Lo que se vio en la app (acrconta, Procesamiento › Gráficos, 2026-11-07)
 
@@ -21,7 +21,7 @@ Autoridad: Gonzalo, 2026-11-07, tras ver los gráficos del resumen ejecutivo en 
 
 | Pregunta del estudio | Lámina | Regla de selección por defecto | Estado |
 |---|---|---|---|
-| ¿Cómo valora cada público el servicio, en conjunto? | Panorama de públicos | todas las preguntas de escala de cada base | Motor listo (ADR 0114); falta la regla en la UI |
+| ¿Cómo valora cada público el servicio, en conjunto? | Panorama de públicos | todas las preguntas de escala de cada base | Motor listo (ADR 0134); falta la regla en la UI |
 | ¿En qué preguntas difieren los públicos? | Contraste de públicos | preguntas comunes (matriz de equivalencias), las N de mayor diferencia | Motor listo; falta selección por regla y emparejado automático |
 | ¿Qué queda bajo el umbral? | Escala con Sin información aparte | preguntas con Top Two Box bajo la referencia | Motor listo; falta la regla |
 | ¿Qué se desconoce? | Escala ordenada por Sin información | las N de mayor Sin información | Motor listo; falta la regla |

@@ -36,7 +36,7 @@ describe("Control › Conciliación", () => {
   it("los códigos: en la base, reconocidos solos, conciliados y los que no se reconocen con sus respuestas", () => {
     expect(modelo.codigos).toMatchObject({ disponible: true, enBase: 42, reconocidos: 26, conciliados: 14 });
     expect(modelo.codigos.sinReconocer.map((item) => [item.codigo, item.casos, item.responseIds.length])).toEqual([["109", 2, 2], ["P4461", 1, 1]]);
-    expect(modelo.codigos.conciliaciones).toEqual([{ escrito: "P19", asignado: "P190 · Aplicador Uno" }]);
+    expect(modelo.codigos.conciliaciones).toEqual([{ escrito: "P19", asignado: "P190, Aplicador Uno" }]);
   });
 
   it("el padrón para elegir sale ordenado y sin DNI", () => {
@@ -47,7 +47,7 @@ describe("Control › Conciliación", () => {
     expect(modelo.umps).toMatchObject({ disponible: true, valores: 4, cruzan: 2, conciliados: 1 });
     expect(modelo.umps.sinCruce.map((item) => item.valor)).toEqual(["UMP 285", "01900"]);
     expect(modelo.umps.conciliaciones).toEqual([{ escrito: "UMP 2 ", asignado: "UMP 2, Ate" }]);
-    expect(modelo.ruta[0]).toMatchObject({ ump: "28", rotulo: "UMP 28 · Ate, manzana 0280" });
+    expect(modelo.ruta[0]).toMatchObject({ ump: "28", rotulo: "UMP 28, Ate, manzana 0280" });
   });
 
   it("conciliar un código manda un cambio por respuesta, auditado", () => {

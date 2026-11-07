@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
+import { toast } from "../../components/toasterStore";
 import { useEffect, useRef, useState } from "react";
 import {
   AlertCircle,
-  Check,
   CheckCircle2,
   ChevronDown,
   Database,
@@ -150,7 +150,7 @@ export function AnaliticaHeader({ prepBusy, prepError, variant = "bar" }: Analit
   const activeData = activeFirst?.data?.filename ?? "Base de datos no resuelta";
   const activeAvailableCount = activeBases?.filter((b) => b.available).length ?? 0;
   const sourceFilesSummary = activeAvailableCount > 1
-    ? `${activeAvailableCount} bases disponibles · instrumento y datos vinculados`
+    ? `${activeAvailableCount} bases disponibles, instrumento y datos vinculados`
     : "Instrumento y datos vinculados";
   const sourceTitle = panelVariant
     ? prepBusy
@@ -191,7 +191,7 @@ export function AnaliticaHeader({ prepBusy, prepError, variant = "bar" }: Analit
           )}{" "}
           <span>{guidance}</span>
           {!panelVariant && (
-            <div className="pulso-analitica-source-files" title={`Formulario: ${activeXls} · Base de datos: ${activeData}`}>
+            <div className="pulso-analitica-source-files" title={`Formulario: ${activeXls}, Base de datos: ${activeData}`}>
               {sourceFilesSummary}
             </div>
           )}
@@ -216,7 +216,9 @@ export function AnaliticaHeader({ prepBusy, prepError, variant = "bar" }: Analit
           active={fuenteActiva === "adaptados"}
           disabled={prepBusy || switching || !codificadaDisponible}
           bases={detalle?.codificada.bases ?? []}
-          description={codificadaDisponible ? "Codificación" : "Pendiente"}
+          // «Codificada Codificación» repetía la misma palabra (L28): con la
+          // fuente lista, el título basta; sólo se dice cuando está pendiente.
+          description={codificadaDisponible ? undefined : "Pendiente"}
           onSelect={selectFuente}
         />
       </div>
@@ -274,7 +276,6 @@ function AnaliticaTemplateMenu({
 }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState<"export" | "import" | null>(null);
-  const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
   const rootRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -297,7 +298,6 @@ function AnaliticaTemplateMenu({
 
   async function handleExport() {
     setError("");
-    setMsg("");
     setBusy("export");
     try {
       const payload = await onExport();
@@ -308,33 +308,30 @@ function AnaliticaTemplateMenu({
       a.download = `${filenamePrefix}_${Date.now()}.json`;
       a.click();
       URL.revokeObjectURL(a.href);
-      setMsg(exportSuccessLabel);
+      toast.exito(exportSuccessLabel);
       setOpen(false);
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setBusy(null);
-      window.setTimeout(() => setMsg(""), 2500);
     }
   }
 
   async function handleImport(file?: File) {
     if (!file) return;
     setError("");
-    setMsg("");
     setBusy("import");
     try {
       const text = await file.text();
       const parsed = JSON.parse(text);
       const okMsg = await onImport(parsed);
-      setMsg(okMsg ?? importSuccessLabel);
+      toast.exito(okMsg ?? importSuccessLabel);
       setOpen(false);
     } catch (e) {
       setError(`JSON inválido: ${(e as Error).message}`);
     } finally {
       setBusy(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
-      window.setTimeout(() => setMsg(""), 3000);
     }
   }
 
@@ -389,12 +386,7 @@ function AnaliticaTemplateMenu({
         onChange={(e) => void handleImport(e.target.files?.[0])}
       />
 
-      {msg && (
-        <span role="status" className="pulso-analitica-template-feedback is-ok">
-          <Check size={11} />
-          {msg}
-        </span>
-      )}
+      {/* L25: el resultado de exportar o importar la plantilla es un toast; aquí queda sólo el error. */}
       {error && (
         <span role="alert" className="pulso-analitica-template-feedback is-error">
           <AlertCircle size={11} />
@@ -420,16 +412,17 @@ function SourceButton({
   icon: ReactNode;
   active: boolean;
   disabled: boolean;
-  description: string;
+  description?: string;
   bases: AnaliticaFuenteBase[];
   onSelect: (source: FuentePreferida) => Promise<void>;
 }) {
   const first = bases.find((b) => b.available) ?? bases[0];
+  const encabezado = description ? `${title} - ${description}` : title;
   const xls = first?.xlsform?.filename ?? "Formulario XLSForm no resuelto";
   const data = first?.data?.filename ?? "Base de datos no resuelta";
   const titleAttr = bases.length > 1
-    ? `${title} - ${description}\n${bases.map((b) => `${b.nombre}: ${b.xlsform?.filename ?? "sin formulario XLSForm"} + ${b.data?.filename ?? "sin base de datos"}`).join("\n")}`
-    : `${title} - ${description}\n${xls}\n${data}`;
+    ? `${encabezado}\n${bases.map((b) => `${b.nombre}: ${b.xlsform?.filename ?? "sin formulario XLSForm"} + ${b.data?.filename ?? "sin base de datos"}`).join("\n")}`
+    : `${encabezado}\n${xls}\n${data}`;
 
   return (
     <button
@@ -445,7 +438,7 @@ function SourceButton({
       </span>
       <span className="pulso-analitica-source-option-copy">
         <strong>{title}</strong>
-        <span>{description}</span>
+        {description ? <span>{description}</span> : null}
       </span>
       {active ? <CheckCircle2 size={13} /> : null}
     </button>

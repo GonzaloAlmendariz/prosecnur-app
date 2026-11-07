@@ -223,7 +223,7 @@
 }
 
 .pulso-xlsform-frame .pulso-logic-tree-count {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text-soft);
   white-space: nowrap;
@@ -247,7 +247,7 @@
   min-width: 0;
   padding: 3px 10px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .pulso-xlsform-frame .pulso-logic-tree-main {
@@ -319,10 +319,9 @@
 }
 
 .pulso-xlsform-frame .pulso-logic-samevar-cols span {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.4px;
-  text-transform: uppercase;
   color: var(--pulso-text-soft);
   line-height: 1;
 }
@@ -383,7 +382,7 @@
 
 .pulso-xlsform-frame .pulso-logic-samevar .pulso-logic-valuemode-opt {
   padding: 3px 6px;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
 }
 
 .pulso-xlsform-frame .pulso-logic-samevar .pulso-logic-valueinput-control {
@@ -432,16 +431,15 @@
   border-radius: 50%;
   background: var(--pulso-primary);
   color: var(--pulso-surface);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   line-height: 1;
 }
 
 .pulso-xlsform-frame .pulso-logic-ifstep-label {
-  font-size: 11px;
+  font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.5px;
-  text-transform: uppercase;
   color: var(--pulso-text-soft);
 }
 
@@ -480,10 +478,9 @@
 }
 
 .pulso-xlsform-frame .pulso-logic-calc-readout dt {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.4px;
-  text-transform: uppercase;
   color: var(--pulso-text-soft);
 }
 
@@ -493,13 +490,13 @@
   gap: 6px;
   margin: 0;
   min-width: 0;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text);
 }
 
 .pulso-xlsform-frame .pulso-logic-calc-readout dd small {
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-medium);
   color: var(--pulso-text-soft);
   white-space: nowrap;
@@ -507,7 +504,7 @@
 
 .pulso-xlsform-frame .pulso-logic-calc-readout dd code {
   font-family: ui-monospace, monospace;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   padding: 1px 6px;
   border-radius: 5px;
   background: color-mix(in srgb, var(--pulso-primary) 8%, var(--pulso-surface));
@@ -581,7 +578,7 @@
 
 .pulso-xlsform-frame .pulso-logic-valuemode-opt {
   padding: 3px 7px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .pulso-xlsform-frame .pulso-logic-valueinput-control {
@@ -594,6 +591,26 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
+
+/* E19 paso 6: una fecha escrita o «Hoy» (today()) como valor de la condición. */
+.pulso-xlsform-frame .pulso-logic-valueinput-fecha { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.pulso-xlsform-frame .pulso-logic-valueinput-fecha > input { flex: 1; min-width: 0; }
+.pulso-xlsform-frame .pulso-logic-valueinput-hoy {
+  flex: 1; min-width: 0; padding: 5px 9px; border-radius: 7px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  background: var(--module-accent-soft, var(--pulso-primary-soft)); color: var(--module-accent, var(--pulso-primary));
+  font-size: var(--pulso-type-body-size); font-weight: var(--pulso-weight-semibold);
+}
+.pulso-xlsform-frame .pulso-logic-valueinput-hoy-boton {
+  flex: none; height: 28px; padding: 0 10px; border: 1px solid var(--pulso-border); border-radius: 8px;
+  background: var(--pulso-surface); color: var(--pulso-text-soft); cursor: pointer; white-space: nowrap;
+  font-size: var(--pulso-type-caption-size); font-weight: var(--pulso-weight-medium);
+}
+.pulso-xlsform-frame .pulso-logic-valueinput-hoy-boton:hover:not(:disabled) { border-color: var(--pulso-border-strong); color: var(--pulso-text); }
+.pulso-xlsform-frame .pulso-logic-valueinput-hoy-boton:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 1px; }
+/* Con fecha, el control va en su propia línea bajo «Valor | Pregunta»: en la columna angosta «Hoy, el día de la
+   entrevista» quedaba en «H». */
+.pulso-xlsform-frame .pulso-logic-valueinput:has(.pulso-logic-valueinput-fecha) { flex-wrap: wrap; }
+.pulso-xlsform-frame .pulso-logic-valueinput:has(.pulso-logic-valueinput-fecha) > .pulso-logic-valueinput-control { flex: 1 0 100%; min-width: 0; }

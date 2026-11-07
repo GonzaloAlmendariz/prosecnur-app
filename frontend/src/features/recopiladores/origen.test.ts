@@ -13,6 +13,7 @@ import { ORIGEN_CAMBIO_CRUDO, origenAlDia, origenDe, origenSinFuente } from "./o
 import {
   accionActualizar,
   avisoDeLaLista,
+  planVigente,
   avisoDeTruncado,
   detalleDeLaFuente,
   enlacesDeLaFuente,
@@ -113,14 +114,14 @@ describe("normalizeCollectionOrigen", () => {
 describe("de dónde salen", () => {
   it("nombra la fuente en el idioma de quien la usa", () => {
     const o = origenDe();
-    expect(tituloDeLaFuente(o)).toBe("Selección de cursos-horario · Cálculo de muestra");
-    expect(detalleDeLaFuente(o)).toBe("2,616 unidades · sorteo del 21/8/2026 · la lista no se edita aquí".replace("2,616", (2616).toLocaleString("es-PE")));
+    expect(tituloDeLaFuente(o)).toBe("Selección de cursos-horario, de Cálculo de muestra");
+    expect(detalleDeLaFuente(o)).toBe("2,616 unidades, sorteo del 21/8/2026 y la lista no se edita aquí".replace("2,616", (2616).toLocaleString("es-PE")));
   });
 
   it("si manda Monitoreo, lleva a su agenda", () => {
     const o = origenDe({ fuente: { ...ORIGEN_CAMBIO_CRUDO.fuente, modulo: "monitoreo", origen: "monitoreo_aulas_plan" } });
-    expect(tituloDeLaFuente(o)).toBe("Agenda de cursos-horario · Monitoreo");
-    expect(enlacesDeLaFuente(o).modulo?.to).toBe("/monitoreo?seccion=modelo");
+    expect(tituloDeLaFuente(o)).toBe("Agenda de cursos-horario, de Monitoreo");
+    expect(enlacesDeLaFuente(o).modulo?.to).toBe("/monitoreo?modo=aulas&seccion=control&pestana=agenda");
   });
 
   it("fecha corta y huella corta", () => {
@@ -176,7 +177,7 @@ describe("vigencia", () => {
     const a = accionActualizar(origenDe({ fuente_intermedia_desfasada: true }));
     expect(a?.deshabilitada).toBe(true);
     expect(a?.motivo).toContain("Monitoreo");
-    expect(a?.resolver?.to).toBe("/monitoreo?seccion=modelo");
+    expect(a?.resolver?.to).toBe("/monitoreo?modo=aulas&seccion=control&pestana=agenda");
   });
 
   it("sin plan no hay acción; sin fuente, deshabilitada", () => {
@@ -189,7 +190,7 @@ describe("la lista de diferencias", () => {
   it("todas, en orden: altas, bajas, cambios, roles", () => {
     const filas = filasDeDiferencias(origenDe(), "todas");
     expect(filas.map((f) => f.rotulo)).toEqual(["Entra", "Entra", "Cambia", "Cambia", "Rol"]);
-    expect(filas[0]).toMatchObject({ codigo: "CH 191", que: "Banco · Cálculo I · Ingeniería" });
+    expect(filas[0]).toMatchObject({ codigo: "CH 191", que: "Banco, Cálculo I, Ingeniería" });
     expect(filas[2]).toMatchObject({ codigo: "CH 19", que: "Aula", antes: "H-105", despues: "H-110" });
   });
 
@@ -253,6 +254,17 @@ describe("huella y vigencia en una línea", () => {
       sorteo_vigente: { run_id: "sel_otro", generado_at: "2026-09-03T10:15:00Z", desfasado: true },
     });
     expect(huellaYVigencia(o).cuando).toBe("");
+  });
+});
+
+describe("el plan al día (revamp v5): verde por conformidad, no por ausencia", () => {
+  it("sólo se afirma con los dos veredictos a la vista", () => {
+    expect(planVigente({ desfasado: false }, origenAlDia())).toBe(true);
+    expect(planVigente({ desfasado: true }, origenAlDia())).toBe(false);
+    expect(planVigente({ desfasado: false }, origenDe())).toBe(false);
+    expect(planVigente({ desfasado: false }, null)).toBe(false);
+    expect(planVigente(null, origenAlDia())).toBe(false);
+    expect(planVigente({ desfasado: false }, origenSinFuente())).toBe(false);
   });
 });
 

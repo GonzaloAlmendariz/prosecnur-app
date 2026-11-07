@@ -8,6 +8,7 @@ import type { AddMenuItem } from "../types";
 import { Sello } from "../kit";
 import { agruparAlta, baseDeClave } from "./familiasAlta";
 import "./addElementMenu.css";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 // 2026-10-20: cada tipo con su sello solo (sin recuadro), agrupado por familia con un rótulo chico (familiasAlta.ts).
 
@@ -178,11 +179,12 @@ export function AddElementMenu({
           </section>
         ))}
         {!visibleItems.length && (
-          <div className="pulso-add-element-menu-empty">
-            <IconSearch size={17} aria-hidden="true" />
-            <strong>Sin piezas con ese filtro</strong>
-            <span>Prueba con “selección”, “GPS”, “archivo”, “cálculo” o limpia la búsqueda.</span>
-          </div>
+          <EstadoVacio
+            className="pulso-add-element-menu-ancho"
+            icono={<IconSearch size={17} />}
+            titulo="Sin piezas con ese filtro"
+            descripcion="Prueba con «selección», «GPS», «archivo», «cálculo» o limpia la búsqueda."
+          />
         )}
       </div>
       <div className="pulso-add-element-menu-footer" aria-label="Atajos del selector">
@@ -238,6 +240,12 @@ export function describeAddMenuItem(item: AddMenuItem): {
         tag: "Solo cierre",
         tone: "logic",
         searchTerms: ["grupo", "seccion", "end", "cerrar", "cierre", "bloque"],
+      };
+    case "conjoint":
+      return {
+        tag: "Bloque",
+        tone: "logic",
+        searchTerms: ["conjoint", "experimento", "pares", "perfiles", "sorteo", "aleatorio", "atributos", "eleccion"],
       };
     case "note":
       return {

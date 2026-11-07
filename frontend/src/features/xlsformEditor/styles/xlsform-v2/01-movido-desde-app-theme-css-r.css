@@ -53,21 +53,6 @@
 
 /* ── Keyframes compartidos del módulo ──────────────────────────────────── */
 
-@keyframes pulso-xf-popover-in {
-  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-@keyframes pulso-xf-fade-in-up {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes pulso-xf-overlay-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
 @keyframes pulso-xf-sheet-in {
   from { opacity: 0; transform: translateY(10px) scale(0.99); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
@@ -115,7 +100,7 @@
 }
 
 .pulso-xlsform-frame .pulso-mode-toggle button:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-xlsform-frame .pulso-mode-toggle button.is-on {
@@ -160,7 +145,7 @@
 }
 
 .pulso-xlsform-frame .pulso-xlsform-toolbar-button:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-xlsform-frame .pulso-xlsform-toolbar-button.pulso-primary {
@@ -205,7 +190,7 @@
   gap: 6px;
   min-width: 0;
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   white-space: nowrap;
 }
@@ -282,7 +267,7 @@
 }
 
 .pulso-xlsform-frame .pulso-xf-target-toggle button {
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   white-space: nowrap;
 }
 
@@ -291,7 +276,7 @@
   align-items: center;
   gap: 6px;
   padding: 4px 8px;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-weight: var(--pulso-weight-medium);
   color: var(--pulso-text-soft);
   cursor: pointer;
@@ -316,7 +301,7 @@
 }
 
 .pulso-xlsform-frame .pulso-xlsform-history-button:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 /* ── Menú "Más vistas" → popover glass animado ─────────────────────────── */
@@ -327,7 +312,7 @@
   min-height: 26px;
   border-radius: 999px;
   padding: 4px 12px;
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   transition:
     border-color var(--motion-dur-fast) ease,
@@ -337,7 +322,7 @@
 }
 
 .pulso-xlsform-frame .pulso-more-views-trigger:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-xlsform-frame .pulso-more-views-menu {
@@ -350,7 +335,7 @@
   backdrop-filter: blur(16px) saturate(1.08);
   -webkit-backdrop-filter: blur(16px) saturate(1.08);
   transform-origin: top right;
-  animation: pulso-xf-popover-in var(--motion-dur-fast) var(--motion-ease-out);
+  animation: pulso-mov-emerge var(--motion-dur-fast) var(--motion-ease-out);
 }
 
 .pulso-xlsform-frame .pulso-more-views-item {
@@ -359,12 +344,12 @@
 }
 
 .pulso-xlsform-frame .pulso-more-views-item:active {
-  transform: scale(0.985);
+  transform: scale(var(--mov-press-tarjeta, 0.985));
 }
 
 /* Stagger sutil de los ítems al abrir el menú. */
 .pulso-xlsform-frame .pulso-more-views-item {
-  animation: pulso-xf-fade-in-up var(--motion-dur-fast) var(--motion-ease-out) backwards;
+  animation: pulso-mov-sube var(--motion-dur-fast) var(--motion-ease-out) backwards;
 }
 .pulso-xlsform-frame .pulso-more-views-item:nth-child(2) { animation-delay: 30ms; }
 .pulso-xlsform-frame .pulso-more-views-item:nth-child(3) { animation-delay: 60ms; }
@@ -385,23 +370,21 @@
 
 .pulso-xf-pdf-section-title {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-semibold);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   color: var(--pulso-text-muted);
 }
 
 .pulso-xf-pdf-section-note {
   margin: -4px 0 2px;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }
 
 .pulso-xf-pdf-empty {
   margin: 0;
   padding: 14px;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-muted);
   text-align: center;
   border: 1px dashed var(--pulso-border);
@@ -418,7 +401,7 @@
 }
 
 .pulso-xf-pdf-field-label {
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
@@ -485,7 +468,7 @@
 }
 
 .pulso-xf-pdf-card-text strong {
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
@@ -496,7 +479,7 @@
 
 .pulso-xf-pdf-card-text em {
   font-style: normal;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.35;
   color: var(--pulso-text-muted);
 }

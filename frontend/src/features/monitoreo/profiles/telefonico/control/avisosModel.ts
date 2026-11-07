@@ -19,6 +19,7 @@ import { filasDeBloque, filasDeHoja } from "../navegacion/bloques";
 import { llamadosPorFecha } from "./barridoModel";
 import { construirRespuestas, duracionLegible } from "./respuestasModel";
 import { atrasadosDe, construirNoBarridos, diasLegibles, UMBRALES_NO_BARRIDO } from "./noBarridosModel";
+import { formatoConteo } from "../../../../../lib/formatoNumero";
 
 type Fila = Record<string, unknown>;
 
@@ -133,9 +134,9 @@ function desgloseDe(grupo: readonly AcreditacionQualityAlertItem[]): Aviso["desg
 export function detalleDeEmpate(personas: ReadonlyArray<{ etiqueta: string; valor: number | null }>) {
   const tope = personas[0]?.valor;
   const empatados = personas.filter((persona) => persona.valor === tope).length;
-  const cifra = tope == null ? "" : ` (${tope.toLocaleString("es-PE")})`;
+  const cifra = tope == null ? "" : ` (${formatoConteo(tope)})`;
   if (empatados === personas.length) return `Todos con la misma cifra${cifra}.`;
-  return `${empatados.toLocaleString("es-PE")} empatan en la cifra más alta${cifra}.`;
+  return `${formatoConteo(empatados)} empatan en la cifra más alta${cifra}.`;
 }
 
 /** La alerta del motor que «Efectivo en la hoja sin Kobo» reemplaza (`monitoreo_engine.R`). */
@@ -227,7 +228,7 @@ export function construirAvisos(
       nivel: nivelDeTexto(texto(primera.Nivel)),
       titulo: TITULO_FUERTE[tipo] ?? texto(primera["Tipo alerta"]),
       detalle: grupo.length > 1
-        ? `${grupo.length.toLocaleString("es-PE")} avisos; el primero: ${texto(primera.Detalle ?? primera["Detalle del tipo de alerta"])}`
+        ? `${formatoConteo(grupo.length)} avisos; el primero: ${texto(primera.Detalle ?? primera["Detalle del tipo de alerta"])}`
         : texto(primera.Detalle ?? primera["Detalle del tipo de alerta"]),
       casos: grupo.length,
       unidad: "casos",
@@ -445,7 +446,7 @@ export function avisoDeNoBarridos(
     // aviso); el nivel y el detalle dicen cuántos ya son graves.
     titulo: `Casos asignados sin barrer hace ${aviso} días o más`,
     detalle: [
-      modelo.totales.graves ? `${modelo.totales.graves.toLocaleString("es-PE")} con ${grave} días o más` : "",
+      modelo.totales.graves ? `${formatoConteo(modelo.totales.graves)} con ${grave} días o más` : "",
       peor && peor.maxDias != null ? `el más antiguo, de ${peor.nombre}: ${diasLegibles(peor.maxDias).toLowerCase()} sin ningún intento` : "",
     ].filter(Boolean).join("; ").replace(/^./, (letra) => letra.toLocaleUpperCase("es")),
     casos: casos.length,

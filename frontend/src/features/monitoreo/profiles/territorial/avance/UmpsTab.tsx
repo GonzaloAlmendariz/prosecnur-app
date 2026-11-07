@@ -1,5 +1,7 @@
 import { memo, useMemo, useState } from "react";
 import { Download, Search, Target } from "lucide-react";
+import { EstadoVacio } from "../../../../../components/EstadoVacio";
+import { EstadoChip } from "../../../../../components/EstadoChip";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
 import { useFocoMonitoreo } from "../../../useMonitoreoDireccion";
 import { fmt } from "../rotulos";
@@ -7,7 +9,11 @@ import { ExploracionUmp } from "./ExploracionUmp";
 import { construirFichaDeUmp } from "./fichaUmpModel";
 import { construirHistoriaDeUmp } from "./historiaUmpModel";
 import { construirUmps, csvDeUmps, filtrarUmps, type FiltroDeUmps } from "./umpsModel";
+import { columnaPlanificada, type CeldaPlanificada } from "./asignacionPlanificadaModelo";
+import { useAsignacionPlanificada } from "./useAsignacionPlanificada";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
+import { avancePorZona } from "./porZonaModelo";
+import { ZonasConEquipo } from "./ZonasConEquipo";
 import "./umps.css";
 
 const ROTULO_DE_FILTRO: Record<FiltroDeUmps, string> = {
@@ -51,18 +57,26 @@ function UmpsTabImpl({
   const filas = useMemo(() => filtrarUmps(modelo.filas, filtro, busqueda), [busqueda, filtro, modelo.filas]);
   const ficha = useMemo(() => construirFichaDeUmp(avance, validacion, foco), [avance, foco, validacion]);
   const historia = useMemo(() => (ficha ? construirHistoriaDeUmp(avance, validacion, ficha.ump) : null), [avance, ficha, validacion]);
+  // B3: lo que Material asignó a cada UMP, contra quién respondió.
+  const asignacion = useAsignacionPlanificada(avance?.generated_at ?? "");
+  const planificado = useMemo(() => columnaPlanificada(asignacion), [asignacion]);
 
   if (!modelo.filas.length) {
     return (
       <section className="mon-umps mon-umps--vacio" data-audit-ready="vacio:sin-cuota" aria-label="UMP">
-        <div className="mon-umps-panel mon-umps-vacio">
+        <div className="mon-umps-panel">
           <RotuloDePestana />
-          <Target size={20} aria-hidden="true" />
-          <strong>Sin UMP en la cuota del corte</strong>
-          <span>Las UMP salen de la muestra de Hojas de ruta declarada en Modelo › Cuotas.</span>
-          <button type="button" className="mon-umps-boton" onClick={() => escribirFoco(null, { seccion: "modelo", pestana: "cuotas", panel: null })}>
-            Abrir Modelo › Cuotas
-          </button>
+          <EstadoVacio
+            tamano="normal"
+            icono={<Target size={18} />}
+            titulo="Sin UMP en la cuota del corte"
+            descripcion="Las UMP salen de la muestra de Hojas de ruta declarada en Modelo › Cuotas."
+            accion={
+              <button type="button" className="mon-umps-boton" onClick={() => escribirFoco(null, { seccion: "modelo", pestana: "cuotas", panel: null })}>
+                Abrir Modelo › Cuotas
+              </button>
+            }
+          />
         </div>
       </section>
     );
@@ -88,7 +102,9 @@ function UmpsTabImpl({
   const filtros: FiltroDeUmps[] = modelo.conOcurrencias
     ? ["todas", "pendientes", "subsanadas", "completas", "sin-parte"]
     : ["todas", "pendientes", "subsanadas", "completas"];
-  const columnas = 9 + (modelo.conOcurrencias ? 2 : 0);
+  const conPlanificado = planificado.tipo === "columna";
+  const conDeclarado = planificado.tipo === "columna" && planificado.conDeclarado;
+  const columnas = 9 + (modelo.conOcurrencias ? 2 : 0) + (conPlanificado ? 1 : 0) + (conDeclarado ? 1 : 0);
 
   return (
     <section
@@ -120,6 +136,8 @@ function UmpsTabImpl({
             CSV
           </button>
         </header>
+        {planificado.tipo === "aviso" ? <p className="mon-umps-planificado-aviso" role="status">{planificado.texto}</p> : null}
+        {planificado.tipo === "columna" ? <p className="mon-umps-planificado-aviso">{planificado.resumen}</p> : null}
         <div className="mon-umps-tabla-marco" data-qa-geometry-capacity="owned" tabIndex={0} aria-label="UMP del corte, con desplazamiento">
           <table className="mon-umps-tabla">
             <thead>
@@ -129,6 +147,8 @@ function UmpsTabImpl({
                 <th scope="col">Manzana</th>
                 <th scope="col">Tipo</th>
                 <th scope="col">Aplicador</th>
+                {conPlanificado ? <th scope="col">Planificado</th> : null}
+                {conDeclarado ? <th scope="col" title="Lo que declara campo en el Excel de asignación; no entra al avance">Declarado por campo</th> : null}
                 <th scope="col">Cuentan</th>
                 <th scope="col" className="is-num">En observación</th>
                 <th scope="col">Cuota</th>
@@ -153,6 +173,8 @@ function UmpsTabImpl({
                     <td>{fila.manzana}</td>
                     <td>{fila.tipo}</td>
                     <td>{fila.aplicador}</td>
+                    {conPlanificado ? <CeldaDePlanificado celda={planificado.porManzana.get(fila.idManzana)} /> : null}
+                    {conDeclarado ? <CeldaDeclarada celda={planificado.porManzana.get(fila.idManzana)} /> : null}
                     <td>
                       <span className="mon-umps-avance">
                         <span className="mon-umps-avance-barra" aria-hidden="true">
@@ -162,7 +184,7 @@ function UmpsTabImpl({
                       </span>
                     </td>
                     <td className="is-num">{fmt(fila.observacion)}</td>
-                    <td><span className={`mon-ter-chip ${fila.estado === "pendiente" ? "is-falta" : fila.estado === "subsanada" ? "is-info" : "is-ok"}`}>{fila.cuota}</span></td>
+                    <td><EstadoChip label={fila.cuota} tone={fila.estado === "pendiente" ? "warn" : fila.estado === "subsanada" ? "info" : "success"} /></td>
                     {modelo.conOcurrencias ? <td className="is-num">{fila.parte ? `${fmt(fila.parte.efectivas)} / ${fmt(fila.parte.intentos)}` : "Sin parte"}</td> : null}
                     {modelo.conOcurrencias ? <td className="is-num">{fila.parte?.tasa ?? "—"}</td> : null}
                   </tr>
@@ -181,4 +203,45 @@ function UmpsTabImpl({
   );
 }
 
-export const UmpsTab = memo(UmpsTabImpl);
+/** B3: a quién le asignó Material la UMP y si coincide con quien respondió. */
+function CeldaDePlanificado({ celda }: { celda: CeldaPlanificada | undefined }) {
+  if (!celda) return <td className="mon-umps-planificado"><span className="mon-umps-planificado--vacio">Sin asignar</span></td>;
+  const tono = celda.tono === "falta" ? "warn" : celda.tono === "ok" ? "success" : "info";
+  return (
+    <td className="mon-umps-planificado" title={celda.detalle}>
+      <span className="mon-umps-planificado-codigo">{celda.rotulo}</span>
+      <EstadoChip label={celda.texto} tone={tono} />
+    </td>
+  );
+}
+
+/** C7: el Estado que declara campo; si contradice a Kobo, en ámbar con la causa. */
+function CeldaDeclarada({ celda }: { celda: CeldaPlanificada | undefined }) {
+  const d = celda?.declarado;
+  if (!d) return <td className="mon-umps-planificado"><span className="mon-umps-planificado--vacio">Sin declarar</span></td>;
+  return (
+    <td className="mon-umps-planificado" title={[d.fechas, d.contraste].filter(Boolean).join(". ") || undefined}>
+      {d.estado ? <EstadoChip label={d.estado} tone={d.contraste ? "warn" : "info"} /> : null}
+      {d.conteo ? (
+        <span className={`mon-umps-conteo${d.conteo.distinto ? " is-distinto" : ""}`} title="Efectivas que campo transcribe del consolidado, contra las válidas que llegaron a Kobo">
+          {d.conteo.texto}
+        </span>
+      ) : null}
+      {d.coordinacion ? (
+        <span className={`mon-umps-conteo${d.coordinacion.distinto ? " is-distinto" : ""}`} title="Efectivas que declara coordinación en su registro, contra las válidas de Kobo. No se suman.">
+          {d.coordinacion.texto}
+        </span>
+      ) : null}
+    </td>
+  );
+}
+
+type PropsDeUmps = { avance: MonitoreoTerritorialDashboard | null; validacion: MonitoreoTerritorialDashboard | null };
+
+/** ADR 0125 A1: con envío por cuotas cada zona hace de UMP. */
+function UmpsSegunEnvio({ avance, validacion }: PropsDeUmps) {
+  const cuotas = useMemo(() => avancePorZona(avance?.cuotas), [avance]);
+  return cuotas ? <ZonasConEquipo cuotas={cuotas} /> : <UmpsTabImpl avance={avance} validacion={validacion} />;
+}
+
+export const UmpsTab = memo(UmpsSegunEnvio);

@@ -12,13 +12,13 @@
   background: var(--pulso-bg);
 }
 .pulso-cv2-resp-tramo-titulo {
-  font-size: 11px;
+  font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--pulso-text-soft);
 }
 .pulso-cv2-resp-tramo-n {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
 }

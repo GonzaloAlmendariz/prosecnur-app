@@ -103,7 +103,7 @@ const ICONOS: Readonly<Record<string, DibujoGrafico>> = {
       </Acento>
     </>
   ),
-  // Panorama de públicos (ADR 0114): una fila por público, un punto por pregunta y la mediana como línea vertical.
+  // Panorama de públicos (ADR 0134): una fila por público, un punto por pregunta y la mediana como línea vertical.
   p_panorama: () => (
     <>
       <Circulo cx={5.25} cy={6} r={1.5} tono="apoyo" />
@@ -231,6 +231,19 @@ const ICONOS: Readonly<Record<string, DibujoGrafico>> = {
     </>
   ),
   // Serie temporal (p89–90).
+  // Total y línea por nivel: la franja del total arriba y, abajo, una línea por serie con un punto por nivel.
+  p_lineas_nivel: () => (
+    <>
+      <Acento><Bloque x={3} y={3.75} w={9} h={3} tono="pleno" /></Acento>
+      <Bloque x={12.75} y={3.75} w={4.5} h={3} />
+      <Bloque x={18} y={3.75} w={3} h={3} tono="apoyo" />
+      <Trazo d="M3 20.25H21" />
+      <Trazo d="M4.5 13.5L12 11.25L19.5 9.75M4.5 17.25L12 16.5L19.5 15" />
+      <Circulo cx={4.5} cy={13.5} r={1.5} tono="apoyo" />
+      <Circulo cx={12} cy={11.25} r={1.5} tono="apoyo" />
+      <Circulo cx={19.5} cy={9.75} r={1.5} tono="apoyo" />
+    </>
+  ),
   p_serie_temporal: () => (
     <>
       <Trazo d="M3.75 3.75V20.25H20.25" />
@@ -361,6 +374,7 @@ const ICONOS: Readonly<Record<string, DibujoGrafico>> = {
 /** Graficadores que comparten el ícono de otro tipo porque el recetario los dibuja igual. */
 export const ALIAS_GRAFICO: Readonly<Record<string, string>> = {
   p_barras_apiladas: "p_barras_multiapiladas",
+  p_mapa_distribucion: "p_mapa_resultado_distrital",   // el mismo mapa por zonas; el glifo del selector sí es propio
 };
 
 /**

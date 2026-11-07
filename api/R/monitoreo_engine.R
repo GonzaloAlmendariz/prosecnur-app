@@ -3254,6 +3254,11 @@ monitoreo_territorial_enumerator_codes_workbook <- function(path, roster = list(
       pulso_code = .monitoreo_scalar(row$pulso_code[[1]] %||% "", ""),
       responses = as.integer(nrow(row)),
       valid_responses = as.integer(sum(row$source_effective %in% TRUE, na.rm = TRUE)),
+      # Lo que cuenta en el avance: efectivas validadas no anuladas (extensión de
+      # la decisión de 2h, Gonzalo 1 nov). `valid_responses` queda para el impacto
+      # de una anulación, que mide sobre la efectiva de la plataforma.
+      advance_valid_responses = as.integer(sum((row$advance_valid %in% TRUE) &
+        !(if (is.null(row$production_annulled)) rep(FALSE, nrow(row)) else row$production_annulled %in% TRUE), na.rm = TRUE)),
       umps = as.integer(length(umps)),
       districts = paste(districts, collapse = " · "),
       latest_activity = if (is.finite(latest)) as.character(latest) else "",
@@ -3440,9 +3445,9 @@ monitoreo_territorial_default_config <- function(data = NULL) {
     supervisor_var = pick(c("^supervisor$", "jefe_campo", "coordinador"), ""),
     kobo_user_var = pick(c("^_submitted_by$", "submitted_by", "username", "usuario_kobo"), "_submitted_by"),
     submission_time_var = pick(c("^kobo_timestamp_iso$", "^_submission_time$", "submission_time", "fecha", "end$"), "_submission_time"),
-    start_var = pick(c("^start$", "inicio", "start_time"), "start"),
-    end_var = pick(c("^end$", "fin", "end_time"), "end"),
-    duration_var = pick(c("^total_time$", "duration", "duracion", "tiempo"), ""),
+    start_var = pick(.MONITOREO_PATRONES_INICIO, "start"), # anclados: monitoreo_columnas_tiempo.R
+    end_var = pick(.MONITOREO_PATRONES_FIN, "end"),
+    duration_var = pick(.MONITOREO_PATRONES_DURACION, ""),
     platform_effective_var = "",
     platform_effective_values = list(),
     valid_statuses = list("submitted_via_web", "submitted_via_kobocollect", "submitted_via_enketo", "submitted"),
@@ -3744,9 +3749,9 @@ monitoreo_default_config <- function(data = NULL) {
   list(
     enumerator_var = pick(c("enumerador", "encuestador", "interviewer", "enumerator", "username", "submitted_by")),
     date_var = pick(c("^kobo_timestamp_iso$", "_submission_time", "submission_time", "date_modified", "date_created", "fecha", "end$")),
-    start_var = pick(c("^start$", "inicio", "start_time")),
-    end_var = pick(c("^end$", "fin", "end_time")),
-    duration_var = pick(c("^total_time$", "duration", "duracion", "tiempo")),
+    start_var = .monitoreo_columna_de_tiempo(pick(.MONITOREO_PATRONES_INICIO), data), # monitoreo_columnas_tiempo.R
+    end_var = .monitoreo_columna_de_tiempo(pick(.MONITOREO_PATRONES_FIN), data),
+    duration_var = pick(.MONITOREO_PATRONES_DURACION),
     status_var = status_var,
     valid_statuses = if (identical(status_var, "response_status")) c("completed") else c("completed", "complete", "valid", "approved", "aprobado"),
     id_var = pick(c("^_uuid$", "^_id$", "^response_id$", "submission_id", "uuid")),
@@ -3828,14 +3833,8 @@ monitoreo_normalize_config <- function(config = list(), data = NULL, previous_co
       if (is.finite(meta_pct) && meta_pct >= 0) {
         goal$meta_pct <- as.numeric(meta_pct)
       }
-      # `objetivo` declara si el actor se barre entero o si el minimo ES el
-      # acuerdo. La meta siempre fue un PISO interno, no el objetivo: sin este
-      # campo la UI daba por cerrado a un actor con universo por trabajar.
-      # Campo nuevo => whitelist explicita, o no sobrevive el round-trip .pulso.
-      objetivo <- .monitoreo_scalar(g$objetivo %||% g$objective %||% "", "")
-      if (objetivo %in% c("barrido", "minimo")) {
-        goal$objetivo <- objetivo
-      }
+      # `objetivo` y `caracter` (ADR 0126): whitelist en monitoreo_cuotas_caracter.R.
+      goal <- .monitoreo_goal_declarado(goal, g)
       goals[[length(goals) + 1L]] <- goal
     }
   }
@@ -3893,8 +3892,8 @@ monitoreo_normalize_config <- function(config = list(), data = NULL, previous_co
   list(
     enumerator_var = keep_col(config$enumerator_var %||% config$col_enumerador, defaults$enumerator_var),
     date_var = keep_col_or_default(config$date_var %||% config$fecha_var, defaults$date_var),
-    start_var = keep_col_or_default(config$start_var, defaults$start_var),
-    end_var = keep_col_or_default(config$end_var, defaults$end_var),
+    start_var = .monitoreo_columna_de_tiempo(keep_col_or_default(config$start_var, defaults$start_var), data),
+    end_var = .monitoreo_columna_de_tiempo(keep_col_or_default(config$end_var, defaults$end_var), data),
     duration_var = keep_col_or_default(config$duration_var %||% config$tiempo_var, defaults$duration_var),
     status_var = keep_col(config$status_var %||% config$estado_var, defaults$status_var),
     valid_statuses = as.list(.monitoreo_chr_vec(config$valid_statuses %||% defaults$valid_statuses)),
@@ -3913,6 +3912,7 @@ monitoreo_normalize_config <- function(config = list(), data = NULL, previous_co
     monitoreo_profile = .monitoreo_profile_con_reglas(profile, operational_model),
     acreditacion = acreditacion,
     client_report = .monitoreo_client_report_config(config),
+    publico_colores = .monitoreo_publico_colores(config$publico_colores %||% previous_config$publico_colores),
     territorial = territorial,
     aulas_universitarias = aulas
   )
@@ -4282,6 +4282,7 @@ monitoreo_normalize_sources <- function(sources = list()) {
       # Dimensiones que salen de una columna en vez de una constante; ver
       # monitoreo_source_dimension_vars.R.
       actor_var = .monitoreo_source_actor_var(src),
+      actor_map = as.list(.monitoreo_source_actor_map(src)), actor_por_padron = .monitoreo_source_actor_por_padron(src),
       dimension_vars = src$dimension_vars %||% src$dimensionVars %||% list(),
       declared_person_code_var = .monitoreo_scalar(
         src$declared_person_code_var %||%
@@ -4778,7 +4779,7 @@ monitoreo_sheets_oauth_exchange <- function(code, state = "", redirect_uri = "",
     if (nzchar(fallo_refresco)) {
       msg <- paste0(msg, " (y renovar el acceso tampoco funciono: ", fallo_refresco, ")")
     }
-    stop(msg, call. = FALSE)
+    stop(.monitoreo_google_http_error(msg, first$status_code))
   }
   parsed
 }
@@ -6151,7 +6152,7 @@ monitoreo_sync_sources <- function(sources, config = list(), since = NULL, progr
     ))
   }
   report("snapshot", percent = 82, message = "Uniendo fuentes en un snapshot local...", step = n_sources + 1L, steps = n_sources + 1L)
-  data <- .monitoreo_bind_rows(dfs)
+  data <- monitoreo_heredar_actor_del_padron(.monitoreo_bind_rows(dfs), config$monitoreo_profile) # una vez al armar el corte: lo ven todos los caminos
   report("config", percent = 85, message = "Recalculando variables y mapeos...")
   cfg <- monitoreo_normalize_config(config, data)
   dashboard <- NULL
@@ -7848,13 +7849,47 @@ monitoreo_enrich_kobo_datetime_columns <- function(data) {
   out
 }
 
+# Por fila: si es efectiva y si está en observación. Sale de `advance_valid` y
+# `observation_status`; un audit sin esas columnas (corte anterior, fixture)
+# cae a `validation_status`, donde «validada» + «revision» son las efectivas.
+.monitoreo_territorial_mascaras_efectivas <- function(audit) {
+  n <- if (is.data.frame(audit)) nrow(audit) else 0L
+  if (!n) return(list(efectiva = logical(0), observacion = logical(0)))
+  if ("advance_valid" %in% names(audit)) {
+    efectiva <- audit$advance_valid %in% TRUE
+    obs <- if ("observation_status" %in% names(audit)) audit$observation_status %in% "en_observacion" else rep(FALSE, n)
+    return(list(efectiva = efectiva, observacion = efectiva & obs))
+  }
+  status <- as.character(audit$validation_status %||% rep("", n))
+  list(efectiva = status %in% c("validada", "revision"), observacion = status %in% "revision")
+}
+
+# **Una sola cuenta de efectivas territoriales** (Gonzalo, 2026-11-02: «Ambos
+# deben contar las efectivas de Kobo, las observadas están en observación pero
+# no quitan la cuenta»). Home (`kpis$validas`) y Avance (`advance$validas`)
+# salían de dos sumas distintas —«validada» sola contra `advance_valid`— y
+# acnur_acg decía 1,028 en un lado y 1,283 en el otro. Estar en observación es
+# una marca de calidad aparte, con su conteo, que no resta de las efectivas.
+.monitoreo_territorial_efectivas <- function(audit) {
+  m <- .monitoreo_territorial_mascaras_efectivas(audit)
+  valid <- m$efectiva
+  observed <- m$observacion
+  list(
+    efectivas = as.integer(sum(valid)),
+    en_observacion = as.integer(sum(observed)),
+    no_validas = as.integer(sum(!valid))
+  )
+}
+
 .monitoreo_territorial_advance_progress <- function(district_goals, blocks, audit, target_total) {
   advance_valid <- audit$advance_valid %in% TRUE
-  observed_pending <- audit$observation_status %in% "en_observacion"
+  cuenta <- .monitoreo_territorial_efectivas(audit)
   approved <- rep(FALSE, nrow(audit))
 
   district_progress <- lapply(seq_len(nrow(district_goals)), function(i) {
-    district_key <- if ("advance_block_ubigeo" %in% names(audit) && any(nzchar(trimws(as.character(audit$advance_block_ubigeo %||% ""))), na.rm = TRUE)) {
+    # Sin manzanas enviadas (envío por cuotas) no hay manzana declarada que mande:
+    # el distrito sale del caso.
+    district_key <- if (is.data.frame(blocks) && nrow(blocks) && "advance_block_ubigeo" %in% names(audit) && any(nzchar(trimws(as.character(audit$advance_block_ubigeo %||% ""))), na.rm = TRUE)) {
       trimws(as.character(audit$advance_block_ubigeo %||% ""))
     } else {
       trimws(as.character(audit$ubigeo %||% ""))
@@ -7862,15 +7897,16 @@ monitoreo_enrich_kobo_datetime_columns <- function(data) {
     u <- as.character(district_goals$ubigeo[[i]])
     rows <- audit[district_key == u, , drop = FALSE]
     meta <- suppressWarnings(as.integer(district_goals$meta[[i]]))
-    valids <- sum(rows$advance_valid %in% TRUE, na.rm = TRUE)
+    c_d <- .monitoreo_territorial_efectivas(rows)
+    valids <- c_d$efectivas
     list(
       ubigeo = u,
       distrito = as.character(district_goals$distrito[[i]]),
       meta = if (is.finite(meta)) meta else NA_integer_,
       total = as.integer(nrow(rows)),
-      validas = as.integer(valids),
-      revision = as.integer(sum(rows$observation_status %in% "en_observacion", na.rm = TRUE)),
-      no_defendibles = as.integer(sum(!(rows$advance_valid %in% TRUE), na.rm = TRUE)),
+      validas = valids,
+      revision = c_d$en_observacion,
+      no_defendibles = c_d$no_validas,
       avance_pct = if (is.finite(meta) && meta > 0) round(100 * valids / meta, 1) else NA_real_,
       brecha = if (is.finite(meta)) as.integer(max(0, meta - valids)) else NA_integer_
     )
@@ -7890,13 +7926,13 @@ monitoreo_enrich_kobo_datetime_columns <- function(data) {
 
   list(
     total_respuestas = as.integer(nrow(audit)),
-    validas = as.integer(sum(advance_valid, na.rm = TRUE)),
-    observacion = as.integer(sum(observed_pending, na.rm = TRUE)),
+    validas = cuenta$efectivas,
+    observacion = cuenta$en_observacion,
     observacion_aprobada = as.integer(sum(approved, na.rm = TRUE)),
-    no_validas = as.integer(sum(!advance_valid, na.rm = TRUE)),
+    no_validas = cuenta$no_validas,
     meta = if (is.finite(target_total)) as.integer(target_total) else NA_integer_,
-    avance_pct = if (is.finite(target_total) && target_total > 0) round(100 * sum(advance_valid, na.rm = TRUE) / target_total, 1) else NA_real_,
-    brecha = if (is.finite(target_total)) as.integer(max(0, target_total - sum(advance_valid, na.rm = TRUE))) else NA_integer_,
+    avance_pct = if (is.finite(target_total) && target_total > 0) round(100 * cuenta$efectivas / target_total, 1) else NA_real_,
+    brecha = if (is.finite(target_total)) as.integer(max(0, target_total - cuenta$efectivas)) else NA_integer_,
     district_progress = district_progress,
     block_progress = .monitoreo_territorial_block_progress(blocks, audit, status_col = "advance_status", block_key_col = "advance_block_id"),
     daily = daily
@@ -8285,8 +8321,7 @@ monitoreo_enrich_kobo_datetime_columns <- function(data) {
     }
     block_variants <- unique(c(block_id, .monitoreo_territorial_block_id_variants(block_id)))
     rows <- audit[audit_key %in% block_variants, , drop = FALSE]
-    status <- if (status_col %in% names(rows)) rows[[status_col]] else rows$validation_status
-    cts <- .monitoreo_territorial_status_counts(status)
+    c_b <- .monitoreo_territorial_efectivas(rows)
     planned_responsible <- chr_cell(i, "responsable", chr_cell(i, "Responsable"))
     block_progress[[length(block_progress) + 1L]] <- list(
       id_manzana = block_id,
@@ -8336,11 +8371,12 @@ monitoreo_enrich_kobo_datetime_columns <- function(data) {
       nse_codigo = chr_cell(i, "nse_codigo"),
       nse_nivel = chr_cell(i, "nse_nivel"),
       meta = target,
-      validas = as.integer(cts[["validada"]]),
-      revision = as.integer(cts[["revision"]]),
-      no_defendibles = as.integer(cts[["no_defendible"]]),
-      avance_pct = if (is.finite(target) && target > 0) round(100 * cts[["validada"]] / target, 1) else NA_real_,
-      brecha = if (is.finite(target)) as.integer(max(0, target - cts[["validada"]])) else NA_integer_
+      # Efectivas, las en observación incluidas (cuenta única, 2026-11-02).
+      validas = c_b$efectivas,
+      revision = c_b$en_observacion,
+      no_defendibles = c_b$no_validas,
+      avance_pct = if (is.finite(target) && target > 0) round(100 * c_b$efectivas / target, 1) else NA_real_,
+      brecha = if (is.finite(target)) as.integer(max(0, target - c_b$efectivas)) else NA_integer_
     )
   }
   block_progress
@@ -10605,6 +10641,7 @@ monitoreo_territorial_occurrences_report <- function(data, cfg, context = NULL) 
     sex_targets <- integer(0)
     age_targets <- integer(0)
     cross_targets <- integer(0)
+    rangos_meta <- character(0)  # rangos de edad declarados, también los de meta 0
     if (nrow(block_marginal)) {
       sex_items <- quota_items_col(block_marginal, "sex_totals")
       labels <- vapply(sex_items, quota_item_label, character(1))
@@ -10614,6 +10651,7 @@ monitoreo_territorial_occurrences_report <- function(data, cfg, context = NULL) 
       labels <- vapply(age_items, quota_item_label, character(1))
       values <- vapply(age_items, quota_item_value, integer(1))
       age_targets <- aggregate_targets(labels, values)
+      rangos_meta <- labels
     }
     if (nrow(block_quota)) {
       cuota <- int_col(block_quota, "cuota", 0L)
@@ -10627,6 +10665,7 @@ monitoreo_territorial_occurrences_report <- function(data, cfg, context = NULL) 
       if (!length(age_targets)) {
         age_targets <- aggregate_targets(age_raw[nzchar(age_raw)], cuota[nzchar(age_raw)])
       }
+      if (!length(rangos_meta)) rangos_meta <- age_raw
       cross_labels <- paste(.monitoreo_territorial_quota_sex_label(sex_raw), age_raw)
       cross_ok <- nzchar(age_raw) & !(sex_key %in% c("", "total"))
       cross_targets <- aggregate_targets(cross_labels[cross_ok], cuota[cross_ok])
@@ -10652,6 +10691,17 @@ monitoreo_territorial_occurrences_report <- function(data, cfg, context = NULL) 
     age_rows <- adjust_quota_items(item_rows(age_targets, age_counts), id, "age")
     cross_rows <- adjust_quota_items(item_rows(cross_targets, cross_counts), id, "cross")
     observed_cross <- observed_cross_payload(consented_rows(all_rows), sex_targets, age_targets, id = id)
+    # 2h (Gonzalo, 1 nov): lo que se cruza con coordinación son las efectivas
+    # validadas (`advance_valid`, la base del avance), con todos los rangos de la
+    # meta —también los de meta 0— para que ningún caso caiga fuera de su celda.
+    rangos_meta <- unique(c(rangos_meta[!is.na(rangos_meta) & nzchar(rangos_meta)], names(age_targets)))
+    observed_valid_cross <- observed_cross_payload(valid_rows, sex_targets,
+      stats::setNames(vapply(rangos_meta, function(r) named_int_value(age_targets, r), integer(1)), rangos_meta), id = id)
+    observed_valid_cross$source <- "kobo_validadas"
+    # Sin meta o sin la variable en la base, ese marginal no se puede cruzar:
+    # todo caería en «Sin rango»/«Sin dato» y lo declarado se compararía con 0.
+    observed_valid_cross$sex_evaluable <- isTRUE(sex_available) && length(sex_targets) > 0L
+    observed_valid_cross$age_evaluable <- isTRUE(age_available) && length(rangos_meta) > 0L
     sex_missing_total <- missing_sum(sex_rows)
     age_missing_total <- missing_sum(age_rows)
     demographic_missing_total <- as.integer(sex_missing_total + age_missing_total)
@@ -10708,6 +10758,7 @@ monitoreo_territorial_occurrences_report <- function(data, cfg, context = NULL) 
       age = age_rows,
       cross = cross_rows,
       observed_cross = observed_cross,
+      observed_valid_cross = observed_valid_cross,
       missing = missing_items
     )
   }
@@ -14034,9 +14085,11 @@ monitoreo_territorial_occurrences_report <- function(data, cfg, context = NULL) 
   audit_responsible[!nzchar(audit_responsible)] <- fallback_responsible[!nzchar(audit_responsible)]
   audit_responsible[!nzchar(audit_responsible)] <- audit_chr("submitted_by")[!nzchar(audit_responsible)]
   audit_responsible_key <- vapply(audit_responsible, .monitoreo_territorial_route_sheet_responsible_key, character(1))
-  audit_valid <- audit_chr("validation_status") == "validada"
-  audit_review <- audit_chr("validation_status") == "revision"
-  audit_no_def <- audit_chr("validation_status") == "no_defendible"
+  # Efectivas, las en observación incluidas (cuenta única, 2026-11-02).
+  mascaras <- .monitoreo_territorial_mascaras_efectivas(audit)
+  audit_valid <- mascaras$efectiva
+  audit_review <- mascaras$observacion
+  audit_no_def <- !mascaras$efectiva
 
   block_variants <- function(id) unique(c(id, .monitoreo_territorial_block_id_variants(id)))
   rows_for_assignment <- function(block_id) {
@@ -14478,7 +14531,17 @@ monitoreo_territorial_reportes <- function(data, cfg, hojas_ruta_context = NULL,
     rep(TRUE, n)
   }
   advance_valid <- base_advance_valid & route_assignment_ok
-  observation_reasons <- .monitoreo_territorial_observation_reasons(geo$geo_estado, duration_status)
+  # Por cuotas no hay manzanas enviadas: el cruce del GPS con la ruta (sin cruce,
+  # lejos o en revisión) no tiene contra qué medirse y no es motivo de
+  # observación; «sin GPS» y la duración siguen siéndolo (ADR 0125 A1).
+  # Se apaga por la falta de manzanas, no por el tipo de envío: si un envío por
+  # cuotas trajera manzanas, su cruce real sigue contando.
+  sin_manzanas_cuotas <- identical(context$envio_kind %||% "", "cuotas") && !(is.data.frame(blocks) && nrow(blocks))
+  geo_para_observar <- geo$geo_estado
+  if (sin_manzanas_cuotas) {
+    geo_para_observar[geo_para_observar %in% c("geo_sin_cruce", "geo_revision", "geo_no_defendible")] <- ""
+  }
+  observation_reasons <- .monitoreo_territorial_observation_reasons(geo_para_observar, duration_status)
   has_observation <- advance_valid & (lengths(observation_reasons) > 0L)
   approval_reason <- rep("", n)
   approval_at <- rep("", n)
@@ -14501,7 +14564,8 @@ monitoreo_territorial_reportes <- function(data, cfg, hojas_ruta_context = NULL,
   add_issue(duplicated_id, "id_duplicado")
   add_issue(geo$geo_estado == "geo_no_defendible", "gps_no_defendible")
   add_issue(geo$geo_estado == "geo_sin_gps", "gps_sin_gps")
-  add_issue(geo$geo_estado == "geo_sin_cruce", "gps_sin_cruce")
+  # Sin manzanas con las que cruzar, «sin cruce» tampoco es incidencia del caso.
+  add_issue(geo$geo_estado == "geo_sin_cruce" & !sin_manzanas_cuotas, "gps_sin_cruce")
   add_issue(geo$geo_estado == "geo_revision", "gps_revision")
   add_issue(duration_review, "duracion_revision")
   add_issue(age_review, "edad_revision")
@@ -14625,24 +14689,30 @@ monitoreo_territorial_reportes <- function(data, cfg, hojas_ruta_context = NULL,
   audit <- audit_all[!annulled_mask, , drop = FALSE]
 
   target_total <- if (nrow(blocks)) sum(suppressWarnings(as.integer(blocks$entrevistas)), na.rm = TRUE) else cfg$objetivo_total
+  # ADR 0125 A1: por cuotas no hay manzanas; la meta es la suma de las zonas.
+  zonas_cuotas <- if (identical(context$envio_kind %||% "", "cuotas")) Filter(is.list, context$zonas %||% list()) else list()
+  if (length(zonas_cuotas)) target_total <- sum(vapply(zonas_cuotas, function(z) .monitoreo_int(z$n, 0L), integer(1)))
   if (!is.finite(target_total)) target_total <- NA_integer_
   gps_crossable <- audit$gps_parseable & nzchar(audit$ubigeo) & !audit$geo_estado %in% c("geo_sin_cruce")
   geo_counts <- table(factor(audit$geo_estado, levels = c("geo_ok", "geo_cerca", "geo_revision", "geo_no_defendible", "geo_sin_cruce", "geo_sin_gps")))
-  counts <- .monitoreo_territorial_status_counts(audit$validation_status)
+  cuenta <- .monitoreo_territorial_efectivas(audit)
   visible_duration <- audit$duration_seconds
   kpis <- list(
     total_respuestas = as.integer(nrow(audit)),
     consentidas = as.integer(sum(audit$source_effective %in% TRUE, na.rm = TRUE)),
-    validas = as.integer(counts[["validada"]]),
-    revision = as.integer(counts[["revision"]]),
-    no_defendibles = as.integer(counts[["no_defendible"]]),
+    # `validas` son las EFECTIVAS de Kobo, las en observación incluidas: la
+    # misma función que `advance$validas` (Gonzalo, 2026-11-02). `revision`
+    # es la marca de observación, con su conteo, no una resta.
+    validas = cuenta$efectivas,
+    # Llave propia: su presencia dice que `validas` ya trae las en observación.
+    # Un corte anterior no la tiene y su `validas` era sólo «validada»; los
+    # lectores (Home, Carga) reconstruyen ahí `validas + revision`.
+    efectivas = cuenta$efectivas,
+    revision = cuenta$en_observacion,
+    no_defendibles = cuenta$no_validas,
     meta = if (is.finite(target_total)) as.integer(target_total) else NA_integer_,
-    # Avance = lo LEVANTADO: validadas + en revision. Un caso en revision es
-    # trabajo de campo ya hecho pendiente de aprobar, no trabajo faltante;
-    # dejarlo fuera hacia que el tablero dijera 81.2% (975/1200) donde el
-    # operativo iba 107% (1283/1200), y que el home contradijera al PDF de
-    # avance. Los no defendibles SI quedan fuera: son descartes.
-    avance_pct = if (is.finite(target_total) && target_total > 0) round(100 * (counts[["validada"]] + counts[["revision"]]) / target_total, 1) else NA_real_,
+    # Los no defendibles quedan fuera: son descartes.
+    avance_pct = if (is.finite(target_total) && target_total > 0) round(100 * cuenta$efectivas / target_total, 1) else NA_real_,
     gps_crossable = as.integer(sum(gps_crossable, na.rm = TRUE)),
     geo_ok = as.integer(geo_counts[["geo_ok"]]),
     geo_cerca = as.integer(geo_counts[["geo_cerca"]]),
@@ -14685,6 +14755,18 @@ monitoreo_territorial_reportes <- function(data, cfg, hojas_ruta_context = NULL,
     data.frame(ubigeo = crosswalk$ubigeo, distrito = crosswalk$distrito, entrevistas = NA_integer_)
   }
   names(district_goals)[names(district_goals) == "entrevistas"] <- "meta"
+  # Por cuotas, la meta de cada distrito es la N de su zona: así Resumen,
+  # Distritos y Ritmo tienen su porcentaje y su silueta como con UMP.
+  if (length(zonas_cuotas)) {
+    u_z <- vapply(zonas_cuotas, function(z) .monitoreo_scalar(z$ubigeo %||% z$id_zona, ""), character(1))
+    nombre_xw <- crosswalk$distrito[match(u_z, crosswalk$ubigeo)]
+    district_goals <- data.frame(
+      ubigeo = u_z,
+      distrito = ifelse(is.na(nombre_xw) | !nzchar(nombre_xw), vapply(zonas_cuotas, function(z) .monitoreo_scalar(z$nombre, ""), character(1)), nombre_xw),
+      meta = vapply(zonas_cuotas, function(z) .monitoreo_int(z$n, 0L), integer(1)),
+      stringsAsFactors = FALSE
+    )
+  }
   advance <- .monitoreo_territorial_advance_progress(
     district_goals = district_goals,
     blocks = blocks,
@@ -14694,18 +14776,18 @@ monitoreo_territorial_reportes <- function(data, cfg, hojas_ruta_context = NULL,
   district_progress <- lapply(seq_len(nrow(district_goals)), function(i) {
     u <- as.character(district_goals$ubigeo[[i]])
     rows <- audit[audit$ubigeo == u, , drop = FALSE]
-    cts <- .monitoreo_territorial_status_counts(rows$validation_status)
+    c_d <- .monitoreo_territorial_efectivas(rows)
     meta <- suppressWarnings(as.integer(district_goals$meta[[i]]))
     list(
       ubigeo = u,
       distrito = as.character(district_goals$distrito[[i]]),
       meta = if (is.finite(meta)) meta else NA_integer_,
       total = as.integer(nrow(rows)),
-      validas = as.integer(cts[["validada"]]),
-      revision = as.integer(cts[["revision"]]),
-      no_defendibles = as.integer(cts[["no_defendible"]]),
-      avance_pct = if (is.finite(meta) && meta > 0) round(100 * (cts[["validada"]] + cts[["revision"]]) / meta, 1) else NA_real_,
-      brecha = if (is.finite(meta)) as.integer(max(0, meta - (cts[["validada"]] + cts[["revision"]]))) else NA_integer_
+      validas = c_d$efectivas,
+      revision = c_d$en_observacion,
+      no_defendibles = c_d$no_validas,
+      avance_pct = if (is.finite(meta) && meta > 0) round(100 * c_d$efectivas / meta, 1) else NA_real_,
+      brecha = if (is.finite(meta)) as.integer(max(0, meta - c_d$efectivas)) else NA_integer_
     )
   })
 
@@ -14718,7 +14800,7 @@ monitoreo_territorial_reportes <- function(data, cfg, hojas_ruta_context = NULL,
 
   team_rows <- split(audit, audit$responsible_display)
   team <- unname(lapply(team_rows, function(rows) {
-    cts <- .monitoreo_territorial_status_counts(rows$validation_status)
+    c_r <- .monitoreo_territorial_efectivas(rows)
     finite_duration <- rows$duration_seconds[is.finite(rows$duration_seconds)]
     duration_operational <- as.character(rows$duration_operational_status %||% rep("", nrow(rows)))
     if (length(duration_operational) < nrow(rows)) duration_operational <- rep_len(duration_operational, nrow(rows))
@@ -14741,9 +14823,9 @@ monitoreo_territorial_reportes <- function(data, cfg, hojas_ruta_context = NULL,
       submitted_by = rows$responsible_display[[1]],
       raw_submitted_by = rows$submitted_by[[1]],
       total = as.integer(nrow(rows)),
-      validas = as.integer(cts[["validada"]]),
-      revision = as.integer(cts[["revision"]]),
-      no_defendibles = as.integer(cts[["no_defendible"]]),
+      validas = c_r$efectivas,
+      revision = c_r$en_observacion,
+      no_defendibles = c_r$no_validas,
       duration_median = if (length(finite_duration)) round(stats::median(finite_duration, na.rm = TRUE), 1) else NA_real_,
       duration_p95 = if (length(finite_duration) > 1L) round(stats::quantile(finite_duration, 0.95, na.rm = TRUE, names = FALSE), 1) else NA_real_,
       duration_normal = as.integer(sum(is.finite(rows$duration_seconds) & duration_operational == "normal", na.rm = TRUE)),
@@ -14769,15 +14851,15 @@ monitoreo_territorial_reportes <- function(data, cfg, hojas_ruta_context = NULL,
   daily_rows <- split(audit, date_chr)
   daily <- unname(lapply(names(daily_rows), function(day) {
     rows <- daily_rows[[day]]
-    cts <- .monitoreo_territorial_status_counts(rows$validation_status)
+    c_d <- .monitoreo_territorial_efectivas(rows)
     labels <- rows$submission_date[.monitoreo_report_nonempty(rows$submission_date)]
     label <- if (length(labels)) labels[[1]] else ""
     list(
       date = day,
       date_label = if (nzchar(label)) label else if (identical(day, "sin_fecha")) "Sin fecha" else day,
       total = as.integer(nrow(rows)),
-      validas = as.integer(cts[["validada"]]),
-      revision = as.integer(cts[["revision"]])
+      validas = c_d$efectivas,
+      revision = c_d$en_observacion
     )
   }))
 
@@ -14958,6 +15040,9 @@ monitoreo_territorial_reportes <- function(data, cfg, hojas_ruta_context = NULL,
     phase_source_message = .monitoreo_scalar(phase_status$message, ""),
     kpis = kpis,
     advance = advance,
+    # Por cuotas el avance es por zona y celda, no por UMP (monitoreo_territorial_cuotas.R).
+    cuotas = if (identical(context$envio_kind %||% "", "cuotas")) monitoreo_territorial_avance_cuotas(
+      list(kind = "cuotas", zonas = context$zonas %||% list()), audit, context$asignacion_zonas %||% list(), sin_nombres = identical(.monitoreo_territorial_code_format(tcfg$enumerator_roster$code_format %||% "PXXX"), "DNI")) else NULL,
     source_coherence = list(
       asset_uid = .monitoreo_scalar(kobo_schema$asset_uid %||% tcfg$asset_uid, ""),
       asset_name = .monitoreo_scalar(kobo_schema$name %||% tcfg$kobo_asset_name, ""),
@@ -15179,6 +15264,7 @@ monitoreo_territorial_map_payload <- function(data, cfg, hojas_ruta_context = NU
 monitoreo_build_dashboard <- function(data, config = list(), include_reports = TRUE, territorial_context = NULL, kobo_schema = NULL, report_scope = "full", cached_acreditacion_reports = NULL) {
   if (is.null(data) || !is.data.frame(data)) data <- data.frame()
   cfg <- monitoreo_normalize_config(config, data)
+  data <- monitoreo_heredar_actor_del_padron(data, cfg$monitoreo_profile) # monitoreo_actor_por_padron.R
   n <- nrow(data)
   valid <- .monitoreo_valid_mask(data, cfg)
   valid_n <- sum(valid, na.rm = TRUE)
@@ -15824,7 +15910,7 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
     needs_raw <- !nzchar(raw_out) & nzchar(raw)
     if (any(needs_raw)) raw_out[needs_raw] <- raw[needs_raw]
   }
-  out <- ifelse(!is.na(parsed_out), as.character(as.Date(parsed_out)), raw_out)
+  out <- ifelse(!is.na(parsed_out), .monitoreo_dia_local(parsed_out, raw_out), raw_out) # día en la zona del estudio: monitoreo_fecha_local.R
   out[!nzchar(out) | is.na(out)] <- "Sin fecha"
   out
 }
@@ -16498,6 +16584,7 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
 }
 
 .monitoreo_report_summary_df <- function(data, profile, case_rollup = NULL) {
+  data <- monitoreo_heredar_actor_del_padron(data, profile) # monitoreo_actor_por_padron.R
   case_summary <- .monitoreo_acreditacion_summary_from_case_rollup(data, profile, case_rollup = case_rollup)
   if (is.data.frame(case_summary) && nrow(case_summary)) return(case_summary)
 
@@ -18839,72 +18926,11 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
   }
   answered_base_keys <- unique(answered_base_keys[nzchar(answered_base_keys)])
   answered_base_rows <- unique(answered_base_rows[nzchar(answered_base_rows)])
-  if (length(base_records)) {
-    for (base in base_records) {
-      base_row <- .monitoreo_scalar(base$row %||% "", "")
-      if (nzchar(base_row)) {
-        if (base_row %in% answered_base_rows) next
-      } else {
-        base_keys <- unlist(base$all_keys %||% list(base$key %||% ""), use.names = FALSE)
-        base_keys <- unique(base_keys[nzchar(base_keys)])
-        if (length(base_keys) && any(base_keys %in% answered_base_keys)) next
-      }
-      person <- base$person %||% ""
-      if (!nzchar(person)) person <- base$identifier %||% base$value %||% base$key %||% ""
-      cases[[length(cases) + 1L]] <- .monitoreo_internal_case_row(
-        actor = base$actor %||% "",
-        person_label = person,
-        case_key = base$key %||% "",
-        response_id = "",
-        date = base$date %||% "Sin fecha",
-        response_datetime = "",
-        source_id = base$source_id %||% "",
-        source_label = base$source %||% "",
-        channel = base$channel %||% "",
-        collector_id = "",
-        collector_name = base$responsible %||% "Sin responsable",
-        collector_type = "",
-        platform_state = "Sin respuesta",
-        base_result = "Cruzó",
-        base_record = base$identifier %||% "",
-        base_source = base$source %||% "",
-        base_status = base$status %||% "",
-        decision = "Pendiente de respuesta",
-        decision_reason = "Existe en la base del corte y no tiene respuesta de plataforma reconciliada.",
-        advancement = "pending",
-        issue_type = "sin_respuesta",
-        rule = "Caso en base sin respuesta reconciliada; queda para seguimiento operativo.",
-        pending_exit = FALSE,
-        recovery_collector = FALSE,
-        response_row = NA_integer_,
-        partial_answered_questions = 0L,
-        partial_total_questions = 0L,
-        partial_completion_pct = 0L,
-        partial_last_question = "",
-        partial_next_question = "",
-        duplicate_group_key = "",
-        duplicate_group_size = 1L,
-        counts_in_advance = FALSE,
-        duplicate_counting_status = "",
-        identity_status = "pendiente_base",
-        identity_label = .monitoreo_internal_identity_label("pendiente_base"),
-        channel_key_strategy = "base_sin_respuesta",
-        channel_key_strategy_label = "Base sin respuesta",
-        primary_identity_label = "Llave en base",
-        primary_identity_value = base$key %||% "",
-        secondary_identity_label = "Responsable",
-        secondary_identity_value = base$responsible %||% "",
-        review_priority = 10L,
-        phone_audit = I(list(list())),
-        assisted_review = I(list(list())),
-        check.names = FALSE,
-        stringsAsFactors = FALSE
-      )
-    }
-  }
-  if (!length(cases)) return(.monitoreo_internal_empty_queries())
+  # La base sin respuesta se arma por columnas: monitoreo_casos_pendientes.R.
+  pendientes <- .monitoreo_internal_pending_cases(base_records, answered_base_rows, answered_base_keys)
+  if (!length(cases) && !pendientes$n) return(.monitoreo_internal_empty_queries())
 
-  cases_df <- .monitoreo_internal_records_to_df(cases)
+  cases_df <- .monitoreo_internal_cases_df(cases, pendientes)
   key <- as.character(cases_df$case_key %||% "")
   actor_key <- vapply(as.character(cases_df$actor %||% ""), .monitoreo_report_unit_key, character(1))
   actor_key[!nzchar(actor_key) | is.na(actor_key)] <- "sin_actor"
@@ -19517,1010 +19543,6 @@ monitoreo_acreditacion_client_report_model <- function(data, config = list(), de
   )
   status <- attr(result, "status")
   invisible(is.null(status) || identical(as.integer(status), 0L))
-}
-
-monitoreo_acreditacion_client_report_pdf <- function(model, output_file, include_targets = FALSE, title = NULL) {
-  records_df <- function(records) {
-    records <- records %||% list()
-    if (!length(records)) return(data.frame())
-    rows <- lapply(records, function(row) as.data.frame(as.list(row), check.names = FALSE, stringsAsFactors = FALSE))
-    out <- tryCatch(do.call(rbind, rows), error = function(e) data.frame())
-    rownames(out) <- NULL
-    out
-  }
-  num <- function(x) {
-    out <- suppressWarnings(as.numeric(x))
-    out[!is.finite(out)] <- 0
-    out
-  }
-  one_num <- function(x, default = 0) {
-    out <- num(x)
-    if (!length(out)) return(default)
-    out[[1]]
-  }
-  pct_label <- function(x) {
-    x <- suppressWarnings(as.numeric(x))
-    if (!is.finite(x)) return("S/D")
-    sprintf("%.1f%%", if (abs(x) <= 1) x * 100 else x)
-  }
-  fmt <- function(x) formatC(as.integer(round(one_num(x))), big.mark = ",", format = "d")
-  fmt_sum <- function(x) formatC(as.integer(round(sum(num(x), na.rm = TRUE))), big.mark = ",", format = "d")
-  pct_value <- function(num_value, den_value) {
-    .monitoreo_client_report_pct(one_num(num_value), one_num(den_value))
-  }
-  state_pct <- function(value, total) {
-    value <- one_num(value, NA_real_)
-    total <- one_num(total, NA_real_)
-    if (!is.finite(value) || !is.finite(total) || total <= 0) return(NA_real_)
-    value / total
-  }
-  state_value_label <- function(value, total) {
-    fmt(value)
-  }
-  ellipsize <- function(x, max_chars = 64) {
-    x <- as.character(x %||% "")
-    x[is.na(x)] <- ""
-    vapply(x, function(item) {
-      if (nchar(item, type = "width") <= max_chars) return(item)
-      paste0(substr(item, 1L, max(1L, max_chars - 3L)), "...")
-    }, character(1))
-  }
-  actors <- records_df(model$actors)
-  daily_general <- records_df(model$daily_general)
-  daily_actor <- records_df(model$daily_actor)
-  sources <- records_df(model$sources)
-  channel_aliases <- model$client_report$channel_labels %||%
-    model$presentation$channel_labels %||%
-    model$channel_labels %||%
-    list()
-  channel_alias <- function(value) {
-    raw <- as.character(value %||% "")
-    if (!nzchar(raw) || is.na(raw)) raw <- "Sin canal"
-    key <- .monitoreo_text_key(raw)
-    label <- trimws(.monitoreo_scalar(channel_aliases[[key]], ""))
-    if (nzchar(label)) return(label)
-    if (grepl("whatsapp|whartsapp|wsp|personalizado", key, perl = TRUE)) return("Enlace personalizado")
-    raw
-  }
-  total_effective <- sum(num(actors$Efectivas), na.rm = TRUE)
-  total_partial <- sum(num(actors$Parciales), na.rm = TRUE)
-  total_refusal <- sum(.monitoreo_publication_platform_refusal_values(actors), na.rm = TRUE)
-  total_pending <- sum(num(actors$`Sin respuesta`), na.rm = TRUE)
-  total_universe <- sum(num(actors$Universo), na.rm = TRUE)
-  if (total_pending <= 0 && total_universe > 0) {
-    total_pending <- max(0, total_universe - total_effective - total_partial - total_refusal)
-  }
-  report_title <- title %||% "Reporte de avance"
-  generated_at <- as.character(model$generated_at %||% "")
-  pretty_stamp <- function(x) {
-    parsed <- .monitoreo_parse_time_vec(x)
-    if (length(parsed) && !is.na(parsed[[1]])) {
-      local_tz <- Sys.getenv("TZ", "")
-      if (!nzchar(local_tz)) local_tz <- "America/Lima"
-      month_labels <- c("Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic")
-      local_day <- as.POSIXlt(parsed[[1]], tz = local_tz)
-      return(sprintf("%02d %s %d", local_day$mday, month_labels[[local_day$mon + 1L]], local_day$year + 1900L))
-    }
-    x
-  }
-  pretty_day <- function(x, stacked = TRUE) {
-    parsed <- suppressWarnings(as.Date(as.character(x)))
-    month_labels <- c("ene.", "feb.", "mar.", "abr.", "may.", "jun.", "jul.", "ago.", "set.", "oct.", "nov.", "dic.")
-    out <- ifelse(
-      is.na(parsed),
-      as.character(x),
-      paste(month_labels[as.integer(format(parsed, "%m"))], as.integer(format(parsed, "%d")))
-    )
-    if (isTRUE(stacked)) out <- gsub(" ", "\n", out, fixed = TRUE)
-    out
-  }
-  generated_label <- pretty_stamp(generated_at)
-  # Ventana de recojo de respuestas (primer→último día con actividad), para el chip
-  # de cabecera. Solo fecha, formato corto.
-  campaign_day_label <- function(x) {
-    parsed <- suppressWarnings(as.Date(as.character(x)))
-    months <- c("ene.", "feb.", "mar.", "abr.", "may.", "jun.", "jul.", "ago.", "set.", "oct.", "nov.", "dic.")
-    if (!length(parsed) || is.na(parsed[[1]])) return("")
-    sprintf("%d %s %d", as.integer(format(parsed[[1]], "%d")), months[[as.integer(format(parsed[[1]], "%m"))]], as.integer(format(parsed[[1]], "%Y")))
-  }
-  campaign_window <- {
-    dg <- .monitoreo_workbook_df(model$daily_general %||% list())
-    if (nrow(dg) && "Fecha" %in% names(dg)) {
-      d <- suppressWarnings(as.Date(as.character(dg$Fecha)))
-      d <- d[!is.na(d)]
-      if (length(d)) list(start = campaign_day_label(min(d)), end = campaign_day_label(max(d)), days = length(unique(d))) else NULL
-    } else NULL
-  }
-  pulso_logo_path <- function() {
-    candidates <- c(
-      system.file("hojas_ruta", "assets", "logo_pulso.png", package = "prosecnurapp"),
-      file.path(getwd(), "api", "inst", "hojas_ruta", "assets", "logo_pulso.png"),
-      file.path(getwd(), "api", "inst", "manuales_qmd", "files_manuales", "img", "logo_pulso.png"),
-      file.path(getwd(), "inst", "hojas_ruta", "assets", "logo_pulso.png")
-    )
-    candidates <- candidates[nzchar(candidates) & file.exists(candidates)]
-    if (length(candidates)) candidates[[1]] else ""
-  }
-
-  dir.create(dirname(output_file), recursive = TRUE, showWarnings = FALSE)
-  grDevices::pdf(output_file, paper = "a4", width = 8.27, height = 11.69, onefile = TRUE)
-  pdf_device <- grDevices::dev.cur()
-  pdf_closed <- FALSE
-  close_pdf <- function() {
-    if (isTRUE(pdf_closed)) return(invisible(NULL))
-    tryCatch(
-      {
-        if (identical(grDevices::dev.cur(), pdf_device)) {
-          grDevices::dev.off()
-        } else {
-          grDevices::dev.off(pdf_device)
-        }
-      },
-      error = function(e) NULL
-    )
-    pdf_closed <<- TRUE
-    invisible(NULL)
-  }
-  on.exit(close_pdf(), add = TRUE)
-
-  ink <- "#152033"
-  muted <- "#667085"
-  faint <- "#98a2b3"
-  panel <- "#ffffff"
-  canvas <- "#f6f8fb"
-  border <- "#d8e1ee"
-  grid_line <- "#e9eef6"
-  accent <- "#be123c"
-  effective <- "#168a55"
-  partial_col <- "#b7791f"
-  refusal_col <- "#be123c"
-  pending_col <- "#98a2b3"
-  navy <- "#002457"  # navy canónico de marca (alineado a pulso_pdf_tokens/plotly)
-
-  page_no <- 0L
-  pdf_links <- list()
-  add_pdf_link <- function(target_page_index, x, y, w, h, label = "") {
-    if (!is.finite(target_page_index) || target_page_index < 0) return(invisible(NULL))
-    pdf_links[[length(pdf_links) + 1L]] <<- list(
-      source_page_index = as.integer(max(0L, page_no - 1L)),
-      target_page_index = as.integer(target_page_index),
-      x0 = as.numeric(x),
-      y0 = as.numeric(y),
-      x1 = as.numeric(x + w),
-      y1 = as.numeric(y + h),
-      label = as.character(label %||% "")
-    )
-    invisible(NULL)
-  }
-  rr <- function(x, y, w, h, fill = panel, col = border, lwd = 1, r = 0.016) {
-    grid::grid.roundrect(
-      x = grid::unit(x + w / 2, "npc"),
-      y = grid::unit(y + h / 2, "npc"),
-      width = grid::unit(w, "npc"),
-      height = grid::unit(h, "npc"),
-      r = grid::unit(r, "snpc"),
-      gp = grid::gpar(fill = fill, col = col, lwd = lwd)
-    )
-  }
-  txt <- function(label, x, y, size = 9, col = ink, face = "plain", just = c("left", "center"),
-                  rot = 0, lineheight = 1.05) {
-    label <- as.character(label %||% "")
-    grid::grid.text(
-      label,
-      x = grid::unit(x, "npc"),
-      y = grid::unit(y, "npc"),
-      just = just,
-      rot = rot,
-      gp = grid::gpar(fontsize = size, col = col, fontface = face, lineheight = lineheight)
-    )
-  }
-  line <- function(x0, y0, x1, y1, col = border, lwd = 1, lty = 1) {
-    grid::grid.segments(
-      x0 = grid::unit(x0, "npc"),
-      y0 = grid::unit(y0, "npc"),
-      x1 = grid::unit(x1, "npc"),
-      y1 = grid::unit(y1, "npc"),
-      gp = grid::gpar(col = col, lwd = lwd, lty = lty)
-    )
-  }
-  rect <- function(x, y, w, h, fill, col = NA, lwd = 1) {
-    grid::grid.rect(
-      x = grid::unit(x + w / 2, "npc"),
-      y = grid::unit(y + h / 2, "npc"),
-      width = grid::unit(w, "npc"),
-      height = grid::unit(h, "npc"),
-      gp = grid::gpar(fill = fill, col = col, lwd = lwd)
-    )
-  }
-  draw_chip <- function(x, y, label, fill = "#ffffff", col = border, text_col = ink, w = NULL) {
-    label <- as.character(label %||% "")
-    width <- w %||% max(0.072, min(0.22, 0.022 + nchar(label, type = "width") * 0.006))
-    rr(x, y - 0.015, width, 0.03, fill = fill, col = col, lwd = 0.8, r = 0.014)
-    txt(label, x + width / 2, y, size = 6.6, col = text_col, face = "bold", just = c("center", "center"))
-    invisible(width)
-  }
-  draw_pulso_logo <- function(x, y, height = 0.036) {
-    logo_aspect <- 1078 / 423
-    logo_width <- height * logo_aspect * (11.69 / 8.27)
-    path <- pulso_logo_path()
-    if (nzchar(path) && requireNamespace("png", quietly = TRUE)) {
-      img <- tryCatch(png::readPNG(path), error = function(e) NULL)
-      if (!is.null(img)) {
-        grid::grid.raster(
-          img,
-          x = grid::unit(x + logo_width / 2, "npc"),
-          y = grid::unit(y, "npc"),
-          width = grid::unit(logo_width, "npc"),
-          height = grid::unit(height, "npc"),
-          interpolate = TRUE
-        )
-        return(invisible(logo_width))
-      }
-    }
-    txt("PULSO", x, y + 0.006, size = 10.8, col = navy, face = "bold", just = c("left", "center"))
-    txt("PUCP", x, y - 0.013, size = 6.2, col = muted, face = "bold", just = c("left", "center"))
-    invisible(0.085)
-  }
-  draw_page <- function(section = "") {
-    page_no <<- page_no + 1L
-    grid::grid.newpage()
-    rect(0, 0, 1, 1, canvas, col = NA)
-    rect(0, 0.925, 1, 0.075, "#ffffff", col = NA)
-    rect(0, 0.925, 1, 0.005, navy, col = NA)
-    logo_w <- draw_pulso_logo(0.055, 0.960, height = 0.032)
-    title_x <- 0.055 + logo_w + 0.018
-    txt(ellipsize(report_title, 52), title_x, 0.958, size = 12.2, col = ink, face = "bold")
-    if (is.list(campaign_window)) {
-      draw_campaign_window_chip(0.660, 0.958, campaign_window)
-    } else {
-      txt(paste("Corte", generated_label), 0.945, 0.958, size = 7.2, col = muted, face = "bold", just = c("right", "center"))
-    }
-    line(0.055, 0.048, 0.945, 0.048, col = border, lwd = 0.7)
-    txt("Avance", 0.055, 0.025, size = 6.2, col = faint, face = "bold")
-    txt(generated_label, 0.500, 0.025, size = 6.2, col = faint, face = "bold", just = c("center", "center"))
-    txt(paste("Página", page_no), 0.945, 0.025, size = 6.2, col = faint, just = c("right", "center"))
-  }
-  # Chip de ventana de recojo de respuestas: inicio → fin + duración.
-  draw_campaign_window_chip <- function(x, y, win) {
-    soft <- "#eef4fa"; soft_border <- "#c7d7e8"
-    w <- 0.285; h <- 0.044
-    rr(x, y - h / 2, w, h, fill = "#ffffff", col = border, lwd = 0.9, r = 0.012)
-    rect(x, y - h / 2, 0.006, h, navy, col = NA)
-    txt("RECOJO DE RESPUESTAS", x + 0.016, y + h / 2 - 0.010, size = 5.0, col = muted, face = "bold", just = c("left", "center"))
-    days_txt <- if (is.finite(win$days) && win$days > 0) paste(fmt(win$days), "días") else ""
-    pill_w <- 0.066
-    if (nzchar(days_txt)) {
-      rr(x + w - pill_w - 0.012, y - 0.010, pill_w, 0.020, fill = soft, col = soft_border, lwd = 0.6, r = 0.010)
-      txt(days_txt, x + w - pill_w / 2 - 0.012, y, size = 6.2, col = navy, face = "bold", just = c("center", "center"))
-    }
-    by <- y - h / 2 + 0.013
-    sx <- x + 0.016
-    if (nzchar(win$start)) {
-      txt(win$start, sx, by, size = 6.8, col = navy, face = "bold", just = c("left", "center"))
-      # Portrait: el texto ocupa ~1.4× más npc que en landscape (página más angosta).
-      sx <- sx + max(0.086, 0.010 + nchar(win$start, type = "width") * 0.0075)
-    }
-    ax <- sx
-    line(ax, by, ax + 0.016, by, col = faint, lwd = 1.2)
-    grid::grid.polygon(x = grid::unit(c(ax + 0.016, ax + 0.011, ax + 0.011), "npc"),
-                       y = grid::unit(c(by, by + 0.0035, by - 0.0035), "npc"),
-                       gp = grid::gpar(fill = faint, col = NA))
-    sx <- ax + 0.026
-    if (nzchar(win$end)) {
-      txt(win$end, sx, by, size = 6.8, col = effective, face = "bold", just = c("left", "center"))
-    }
-  }
-  metric_box <- function(x, y, w, h, label, value, hint = "", tone = "neutral") {
-    tones <- list(
-      effective = c("#f0fdf4", "#91d8ad", effective),
-      progress = c("#fff7ed", "#f0d2a4", "#9a5b10"),
-      partial = c("#fff8ed", "#ead7b6", partial_col),
-      refusal = c("#fff1f4", "#efb8c5", refusal_col),
-      pending = c("#f8fbff", "#d9e3f0", pending_col),
-      base = c("#f8fbff", "#d9e3f0", navy),
-      neutral = c("#ffffff", border, ink)
-    )
-    pal <- tones[[tone]] %||% tones$neutral
-    rr(x, y, w, h, fill = pal[[1]], col = pal[[2]], lwd = 1.1, r = 0.016)
-    txt(label, x + 0.018, y + h - 0.025, size = 7.0, col = muted, face = "bold", just = c("left", "top"))
-    value_chars <- nchar(as.character(value), type = "width")
-    value_size <- if (value_chars > 15) 14.8 else if (value_chars > 12) 16.2 else 18.0
-    txt(value, x + 0.018, y + h * 0.40, size = value_size, col = ink, face = "bold")
-    if (nzchar(hint)) txt(hint, x + 0.018, y + 0.023, size = 6.2, col = muted, face = "bold", just = c("left", "bottom"))
-    rect(x, y, 0.0045, h, pal[[3]], col = NA)
-  }
-  actor_metric_tile <- function(x, y, w, h, label, value, tone = "neutral") {
-    tones <- list(
-      effective = c("#f0fdf4", "#b8e6ca", effective),
-      progress = c("#fff8ed", "#ead7b6", "#9a5b10"),
-      partial = c("#fff8ed", "#ead7b6", partial_col),
-      refusal = c("#fff1f4", "#efb8c5", refusal_col),
-      pending = c("#f8fbff", "#d9e3f0", pending_col),
-      base = c("#f8fbff", "#d9e3f0", navy),
-      neutral = c("#ffffff", "#e4ebf4", ink)
-    )
-    pal <- tones[[tone]] %||% tones$neutral
-    rr(x, y, w, h, fill = pal[[1]], col = pal[[2]], lwd = 0.85, r = 0.012)
-    rect(x, y, 0.0038, h, pal[[3]], col = NA)
-    label_size <- if (h >= 0.074) 5.4 else 4.9
-    txt(label, x + 0.012, y + h - 0.012, size = label_size, col = muted, face = "bold", just = c("left", "top"))
-    value_chars <- nchar(as.character(value), type = "width")
-    base_value_size <- if (h >= 0.074) 12.0 else 10.0
-    value_size <- if (value_chars > 14) base_value_size - 1.8 else if (value_chars > 11) base_value_size - 1.0 else base_value_size
-    txt(value, x + 0.012, y + 0.012, size = value_size, col = ink, face = "bold", just = c("left", "bottom"))
-  }
-  state_num <- function(x, default = 0) {
-    out <- suppressWarnings(as.numeric(x))
-    if (!length(out) || !is.finite(out[[1]])) return(default)
-    out[[1]]
-  }
-  actor_state <- function(row) {
-    universo <- state_num(row$Universo, 0)
-    efectivas <- state_num(row$Efectivas, 0)
-    parciales <- state_num(row$Parciales, 0)
-    rechazo <- state_num(.monitoreo_publication_platform_refusal_value(row, 0), 0)
-    sin_respuesta <- state_num(row$`Sin respuesta`, NA_real_)
-    if (!is.finite(sin_respuesta)) sin_respuesta <- max(0, universo - efectivas - parciales - rechazo)
-    referencia <- state_num(row$`Referencia operativa` %||% row$Meta, NA_real_)
-    raw_referencia_label <- row$`Referencia etiqueta`
-    referencia_label <- if (length(raw_referencia_label)) as.character(raw_referencia_label[[1]]) else ""
-    if (is.na(referencia_label) || !nzchar(trimws(referencia_label))) referencia_label <- "Mínimo a alcanzar"
-    list(
-      universo = max(0, universo),
-      efectivas = max(0, efectivas),
-      parciales = max(0, parciales),
-      rechazo = max(0, rechazo),
-      sin_respuesta = max(0, sin_respuesta),
-      referencia = referencia,
-      referencia_label = referencia_label
-    )
-  }
-  draw_state_composition <- function(x, y, w, h, state, compact = FALSE) {
-    total <- state$universo
-    visible_total <- sum(c(state$efectivas, state$parciales, state$rechazo, state$sin_respuesta), na.rm = TRUE)
-    if (!is.finite(total) || total <= 0) total <- visible_total
-    rr(x, y, w, h, fill = "#edf2f8", col = NA, lwd = 0, r = h / 2)
-    segments <- list(
-      list(value = state$efectivas, color = effective, label = "Efectivas", text = "#ffffff"),
-      list(value = state$parciales, color = partial_col, label = "Parciales", text = "#ffffff"),
-      list(value = state$rechazo, color = refusal_col, label = "Rechazo", text = "#ffffff"),
-      list(value = state$sin_respuesta, color = pending_col, label = "Sin respuesta", text = ink)
-    )
-    cursor <- x
-    if (is.finite(total) && total > 0) {
-      for (seg in segments) {
-        value <- seg$value
-        if (!is.finite(value) || value <= 0) next
-        seg_w <- min(x + w - cursor, w * value / total)
-        if (seg_w <= 0) next
-        rect(cursor, y, seg_w, h, seg$color, col = NA)
-        pct <- value / total
-        if (!isTRUE(compact) && is.finite(pct) && pct >= 0.03) {
-          label_text <- if (pct >= 0.08 && seg_w >= 0.095) paste(seg$label, pct_label(pct)) else pct_label(pct)
-          txt(label_text, cursor + seg_w / 2, y + h / 2, size = if (seg_w < 0.055) 4.4 else 5.2, col = seg$text, face = "bold", just = c("center", "center"))
-        }
-        cursor <- cursor + seg_w
-      }
-    }
-    if (!isTRUE(compact)) {
-      txt(paste("Base reportada:", fmt(total)), x, y - 0.014, size = 5.8, col = muted, face = "bold", just = c("left", "top"))
-      if (is.finite(state$referencia)) {
-        txt(paste0(state$referencia_label, ": ", fmt(state$referencia)), x + w, y - 0.014, size = 5.8, col = muted, face = "bold", just = c("right", "top"))
-      }
-    }
-  }
-  draw_progress_ring <- function(cx, cy, size, pct, caption = "AVANCE") {
-    pct_real <- suppressWarnings(as.numeric(pct))
-    fill_pct <- if (is.finite(pct_real)) max(0, min(1, pct_real)) else 0
-    grid::pushViewport(grid::viewport(x = grid::unit(cx, "npc"), y = grid::unit(cy, "npc"),
-                                      width = grid::unit(size, "snpc"), height = grid::unit(size, "snpc")))
-    grid::grid.circle(grid::unit(0.5, "npc"), grid::unit(0.5, "npc"), r = grid::unit(0.44, "snpc"),
-                      gp = grid::gpar(fill = NA, col = grid_line, lwd = 8.5))
-    if (fill_pct > 0) {
-      theta <- seq(pi / 2, pi / 2 - 2 * pi * fill_pct, length.out = max(8, ceiling(120 * fill_pct)))
-      grid::grid.lines(grid::unit(0.5 + 0.44 * cos(theta), "npc"), grid::unit(0.5 + 0.44 * sin(theta), "npc"),
-                       gp = grid::gpar(col = effective, lwd = 8.5, lineend = "round"))
-    }
-    grid::upViewport()
-    txt(pct_label(pct_real), cx, cy + 0.004, size = 11.5, col = ink, face = "bold", just = c("center", "center"))
-    txt(caption, cx, cy - size * 0.170, size = 5.2, col = muted, face = "bold", just = c("center", "center"))
-  }
-  draw_actor_overview_card <- function(row, x, y, w, h, target_page_index = NULL) {
-    actor <- as.character(row$Actor[[1]] %||% "")
-    state <- actor_state(row)
-    pct <- if (state$universo > 0) min(1, state$efectivas / state$universo) else 0
-    rr(x, y, w, h, fill = "#ffffff", col = border, lwd = 1.1, r = 0.018)
-    rect(x, y + h - 0.006, w, 0.006, navy, col = NA)
-    txt(ellipsize(actor, 32), x + 0.018, y + h - 0.034, size = 11.0, col = ink, face = "bold", just = c("left", "top"))
-    draw_chip(x + w - 0.118, y + h - 0.034, "Ver detalle", fill = "#f8fbff", col = "#d9e3f0", text_col = navy, w = 0.100)
-    txt(paste(fmt(state$efectivas), "efectivas de", fmt(state$universo)), x + 0.018, y + h - 0.067, size = 7.0, col = muted, face = "bold", just = c("left", "center"))
-    txt(pct_label(pct), x + w - 0.020, y + h - 0.067, size = 9.0, col = ink, face = "bold", just = c("right", "center"))
-    draw_state_composition(x + 0.018, y + h - 0.092, w - 0.036, 0.015, state, compact = TRUE)
-    # Zona inferior: anillo de avance + filas de estado (composición sofisticada,
-    # reemplaza la grilla de cajitas pastel).
-    content_top <- y + h - 0.112
-    content_bottom <- y + 0.026
-    ring_size <- min(0.150, max(0.098, (content_top - content_bottom) * 0.72))
-    ring_cx <- x + w * 0.205
-    ring_cy <- (content_top + content_bottom) / 2 + 0.006
-    draw_progress_ring(ring_cx, ring_cy, ring_size, pct)
-    divider_x <- x + w * 0.40
-    line(divider_x, content_bottom + 0.008, divider_x, content_top - 0.008, col = grid_line, lwd = 0.8)
-    rows <- list(
-      list(label = "Efectivas", value = state$efectivas, color = effective),
-      list(label = "Parciales", value = state$parciales, color = partial_col),
-      list(label = "Rechazo", value = state$rechazo, color = refusal_col),
-      list(label = "Sin respuesta", value = state$sin_respuesta, color = pending_col)
-    )
-    row_x <- divider_x + 0.026
-    row_step <- (content_top - content_bottom) / length(rows)
-    ry <- content_top - row_step / 2
-    for (r in rows) {
-      grid::grid.circle(grid::unit(row_x, "npc"), grid::unit(ry, "npc"), r = grid::unit(0.0042, "snpc"),
-                        gp = grid::gpar(fill = r$color, col = NA))
-      txt(r$label, row_x + 0.016, ry, size = 6.8, col = muted, face = "bold")
-      txt(fmt(r$value), x + w - 0.026, ry, size = 9.2, col = ink, face = "bold", just = c("right", "center"))
-      share <- if (state$universo > 0) sprintf("%.0f%%", 100 * r$value / state$universo) else ""
-      if (nzchar(share)) txt(share, x + w - 0.098, ry, size = 5.8, col = faint, face = "bold", just = c("right", "center"))
-      if (!identical(r$label, "Sin respuesta")) line(row_x, ry - row_step / 2, x + w - 0.026, ry - row_step / 2, col = grid_line, lwd = 0.5)
-      ry <- ry - row_step
-    }
-    if (!is.null(target_page_index)) add_pdf_link(target_page_index, x, y, w, h, actor)
-  }
-  actor_overview_layout <- function(n) {
-    n <- min(max(as.integer(n), 1L), 4L)
-    area_x <- 0.055
-    area_w <- 0.890
-    top_y <- 0.795
-    bottom_y <- 0.115
-    area_h <- top_y - bottom_y
-    gap_x <- 0.026
-    gap_y <- 0.028
-    half_w <- (area_w - gap_x) / 2
-    if (n == 1L) {
-      h <- min(0.500, area_h)
-      return(data.frame(x = area_x, y = top_y - h, w = area_w, h = h))
-    }
-    if (n == 2L) {
-      h <- (area_h - gap_y) / 2
-      return(data.frame(
-        x = c(area_x, area_x),
-        y = c(top_y - h, bottom_y),
-        w = c(area_w, area_w),
-        h = c(h, h)
-      ))
-    }
-    if (n == 3L) {
-      top_h <- 0.290
-      bottom_h <- area_h - top_h - gap_y
-      return(data.frame(
-        x = c(area_x, area_x, area_x + half_w + gap_x),
-        y = c(top_y - top_h, bottom_y, bottom_y),
-        w = c(area_w, half_w, half_w),
-        h = c(top_h, bottom_h, bottom_h)
-      ))
-    }
-    h <- (area_h - gap_y) / 2
-    data.frame(
-      x = c(area_x, area_x + half_w + gap_x, area_x, area_x + half_w + gap_x),
-      y = c(top_y - h, top_y - h, bottom_y, bottom_y),
-      w = rep(half_w, 4),
-      h = rep(h, 4)
-    )
-  }
-  draw_section_kicker <- function(label, y = 0.884) {
-    rect(0.055, y - 0.0065, 0.0048, 0.0145, navy, col = NA)
-    txt(label, 0.066, y, size = 6.6, col = navy, face = "bold", just = c("left", "center"))
-  }
-  draw_actor_overview_page <- function(df) {
-    draw_page()
-    draw_section_kicker("REPORTE EJECUTIVO")
-    txt("Avance por actor", 0.055, 0.855, size = 18, col = ink, face = "bold")
-    txt("Selecciona un grupo para ver su detalle diario y sus canales.", 0.055, 0.826, size = 7.6, col = muted, face = "bold")
-    if (!nrow(df)) {
-      rr(0.055, 0.520, 0.890, 0.160, fill = "#ffffff", col = border, lwd = 1.1)
-      txt("Sin actores reportados.", 0.500, 0.600, size = 8.5, col = muted, just = c("center", "center"))
-      return(invisible(NULL))
-    }
-    max_cards <- min(nrow(df), 4L)
-    layout <- actor_overview_layout(max_cards)
-    for (i in seq_len(max_cards)) {
-      draw_actor_overview_card(
-        df[i, , drop = FALSE],
-        layout$x[[i]],
-        layout$y[[i]],
-        layout$w[[i]],
-        layout$h[[i]],
-        target_page_index = i
-      )
-    }
-    if (nrow(df) > max_cards) {
-      txt(paste("+", nrow(df) - max_cards, "grupos adicionales en el detalle"), 0.055, 0.090, size = 6.5, col = muted, face = "bold")
-    }
-  }
-  draw_effective_trend <- function(df, x0, y0, w, h, title = "Avance diario", subtitle = "") {
-    if (!nrow(df)) {
-      rr(x0, y0, w, h, fill = "#ffffff", col = border, lwd = 1.1)
-      txt(title, x0 + 0.02, y0 + h - 0.03, size = 9.2, col = ink, face = "bold", just = c("left", "top"))
-      txt("Sin datos para mostrar.", x0 + w / 2, y0 + h / 2, size = 8, col = muted, just = c("center", "center"))
-      return(invisible(NULL))
-    }
-    if ("Fecha" %in% names(df)) {
-      ord <- order(suppressWarnings(as.Date(as.character(df$Fecha))), as.character(df$Fecha))
-      df <- df[ord, , drop = FALSE]
-    }
-    daily_col <- intersect(c("Nuevas efectivas", "Efectivas", "Nuevas UMP efectivas", "Total respuestas"), names(df))
-    daily_col <- if (length(daily_col)) daily_col[[1]] else ""
-    values <- if (nzchar(daily_col)) num(df[[daily_col]]) else rep(0, nrow(df))
-    accum_col <- intersect(c("Acumulado", "Efectivas acumuladas", "UMP efectivas acumuladas"), names(df))
-    accum <- if (length(accum_col)) num(df[[accum_col[[1]]]]) else cumsum(values)
-    n <- length(values)
-    if (!n || max(values, accum, na.rm = TRUE) <= 0) {
-      rr(x0, y0, w, h, fill = "#ffffff", col = border, lwd = 1.1)
-      txt(title, x0 + 0.02, y0 + h - 0.03, size = 9.2, col = ink, face = "bold", just = c("left", "top"))
-      txt("Sin datos para mostrar.", x0 + w / 2, y0 + h / 2, size = 8, col = muted, just = c("center", "center"))
-      return(invisible(NULL))
-    }
-    ymax_bar <- max(values, 1)
-    ymax_line <- max(accum, 1)
-    bar_axis_ticks <- if (ymax_bar <= 6) {
-      seq(0, ceiling(ymax_bar), by = 1)
-    } else {
-      pretty(c(0, ymax_bar), n = 4)
-    }
-    bar_axis_ticks <- sort(unique(bar_axis_ticks[bar_axis_ticks >= 0]))
-    if (!length(bar_axis_ticks)) bar_axis_ticks <- c(0, ymax_bar)
-    if (ymax_bar > 6) {
-      rounded_ticks <- sort(unique(as.numeric(round(bar_axis_ticks))))
-      rounded_ticks <- rounded_ticks[rounded_ticks >= 0]
-      if (length(rounded_ticks) >= 2L) bar_axis_ticks <- rounded_ticks
-    }
-    bar_axis_max <- max(max(bar_axis_ticks, na.rm = TRUE), ymax_bar, 1)
-    line_axis_ticks <- pretty(c(0, ymax_line), n = 4)
-    line_axis_ticks <- line_axis_ticks[line_axis_ticks >= 0]
-    if (!length(line_axis_ticks)) line_axis_ticks <- c(0, ymax_line)
-    line_axis_max <- max(max(line_axis_ticks, na.rm = TRUE), ymax_line, 1)
-    rr(x0, y0, w, h, fill = "#ffffff", col = border, lwd = 1.1)
-    chart_x0 <- x0 + 0.055
-    chart_y0 <- y0 + 0.075
-    chart_w <- w - 0.105
-    chart_h <- h - 0.122
-    txt(title, chart_x0, chart_y0 + chart_h + 0.032, size = 9.2, col = ink, face = "bold", just = c("left", "bottom"))
-    if (nzchar(subtitle)) txt(subtitle, chart_x0, chart_y0 + chart_h + 0.018, size = 6.4, col = muted, face = "bold", just = c("left", "bottom"))
-    bar_ticks <- sort(unique(bar_axis_ticks))
-    bar_ticks <- bar_ticks[bar_ticks >= 0 & bar_ticks <= bar_axis_max]
-    if (length(bar_ticks) > 6L) {
-      bar_ticks <- bar_ticks[unique(round(seq(1, length(bar_ticks), length.out = 6L)))]
-    }
-    bar_ticks <- sort(unique(as.numeric(round(bar_ticks))))
-    if (!length(bar_ticks) || length(bar_ticks) < 2L) bar_ticks <- c(0, ceiling(ymax_bar))
-    for (tick in bar_ticks) {
-      k <- if (bar_axis_max > 0) tick / bar_axis_max else 0
-      y <- chart_y0 + chart_h * k
-      line(chart_x0, y, chart_x0 + chart_w, y, col = grid_line, lwd = 0.55)
-      txt(fmt(tick), chart_x0 - 0.014, y, size = 5.8, col = faint, just = c("right", "center"))
-    }
-    txt(fmt(line_axis_max), chart_x0 + chart_w + 0.014, chart_y0 + chart_h, size = 5.8, col = "#43608b", just = c("left", "center"))
-    txt("0", chart_x0 + chart_w + 0.014, chart_y0, size = 5.8, col = "#43608b", just = c("left", "center"))
-    bar_w <- min(0.032, chart_w / max(4, n) * 0.60)
-    edge_pad <- max(bar_w / 2, 0.010)
-    xs <- if (n == 1L) {
-      chart_x0 + chart_w / 2
-    } else {
-      chart_x0 + edge_pad + (chart_w - edge_pad * 2) * (seq_len(n) - 1) / (n - 1)
-    }
-    bar_heights <- numeric(n)
-    min_visible_bar_h <- if (n <= 26L) 0.024 else 0.020
-    for (i in seq_len(n)) {
-      bh <- chart_h * values[[i]] / bar_axis_max
-      draw_h <- if (bh > 0) min(chart_h, max(bh, min_visible_bar_h)) else 0
-      bar_heights[[i]] <- draw_h
-      if (draw_h > 0) rect(xs[[i]] - bar_w / 2, chart_y0, bar_w, draw_h, effective, col = NA)
-    }
-    ys <- chart_y0 + chart_h * accum / line_axis_max
-    if (n > 1L) {
-      grid::grid.lines(
-        x = grid::unit(xs, "npc"),
-        y = grid::unit(ys, "npc"),
-        gp = grid::gpar(col = navy, lwd = 1.65, lineend = "round", linejoin = "round")
-      )
-    }
-    grid::grid.points(
-      x = grid::unit(xs, "npc"),
-      y = grid::unit(ys, "npc"),
-      pch = 21,
-      size = grid::unit(2.8, "mm"),
-      gp = grid::gpar(col = navy, fill = "#ffffff", lwd = 1)
-    )
-    label_size <- if (n <= 26L) 5.0 else 4.6
-    daily_label_y <- chart_y0 - 0.013
-    for (i in seq_len(n)) {
-      if (!is.finite(values[[i]]) || values[[i]] <= 0) next
-      txt(
-        fmt(values[[i]]),
-        xs[[i]],
-        daily_label_y,
-        size = label_size,
-        col = effective,
-        face = "bold",
-        just = c("center", "center")
-      )
-    }
-    label_dates <- if ("Fecha" %in% names(df)) suppressWarnings(as.Date(as.character(df$Fecha))) else rep(as.Date(NA), n)
-    label_weekday <- suppressWarnings(as.POSIXlt(label_dates)$wday)
-    accum_keep <- unique(c(1L, which(!is.na(label_weekday) & label_weekday == 1L), n))
-    accum_keep <- accum_keep[accum_keep >= 1L & accum_keep <= n]
-    if (!length(accum_keep)) accum_keep <- n
-    accum_label_y <- chart_y0 + chart_h + 0.008
-    for (i in accum_keep) {
-      if (!is.finite(accum[[i]]) || accum[[i]] <= 0) next
-      guide_bottom <- chart_y0 + max(0.002, bar_heights[[i]])
-      line(xs[[i]], accum_label_y - 0.004, xs[[i]], guide_bottom + 0.004, col = "#8aa0bd", lwd = 0.65, lty = 3)
-      txt(fmt(accum[[i]]), xs[[i]], accum_label_y, size = 5.2, col = navy, face = "bold", just = c("center", "bottom"))
-    }
-    labels <- pretty_day(as.character(df$Fecha %||% seq_len(n)), stacked = TRUE)
-    keep <- if (n <= 28L) seq_len(n) else unique(round(seq(1, n, length.out = 28L)))
-    txt(labels[keep], xs[keep], chart_y0 - 0.034, size = if (n <= 20L) 5.7 else 5.1,
-        col = muted, just = c("center", "center"), rot = 0, lineheight = 0.86)
-    invisible(NULL)
-  }
-
-  draw_actor_board <- function(df, x0, y0, w, h, title = "Avance por grupo") {
-    rr(x0, y0, w, h, fill = "#ffffff", col = border, lwd = 1.1)
-    txt(title, x0 + 0.02, y0 + h - 0.03, size = 9.2, col = ink, face = "bold", just = c("left", "top"))
-    if (!nrow(df)) {
-      txt("Sin actores reportados.", x0 + w / 2, y0 + h / 2, size = 8, col = muted, just = c("center", "center"))
-      return(invisible(NULL))
-    }
-    rows <- df[seq_len(min(nrow(df), 8L)), , drop = FALSE]
-    row_h <- min(0.052, (h - 0.078) / max(1, nrow(rows)))
-    label_x <- x0 + 0.02
-    bar_x <- x0 + 0.245
-    metric_x <- x0 + w - 0.150
-    bar_w <- max(0.260, metric_x - bar_x - 0.034)
-    y <- y0 + h - 0.084
-    for (i in seq_len(nrow(rows))) {
-      state <- actor_state(rows[i, , drop = FALSE])
-      pct <- if (state$universo > 0) min(1, state$efectivas / state$universo) else 0
-      txt(ellipsize(rows$Actor[[i]], 26), label_x, y + 0.014, size = 7.3, col = ink, face = "bold")
-      txt(paste(fmt(state$efectivas), "efectivas de", fmt(state$universo)), label_x, y - 0.007, size = 5.8, col = muted, face = "bold")
-      draw_state_composition(bar_x, y - 0.006, bar_w, 0.017, state, compact = TRUE)
-      txt(pct_label(pct), metric_x, y + 0.012, size = 7.0, col = ink, face = "bold", just = c("left", "center"))
-      txt(paste(fmt(state$sin_respuesta), "sin respuesta"), metric_x + 0.072, y + 0.012, size = 5.3, col = muted, face = "bold", just = c("left", "center"))
-      line(x0 + 0.02, y - row_h / 2, x0 + w - 0.02, y - row_h / 2, col = grid_line, lwd = 0.55)
-      y <- y - row_h
-    }
-    if (nrow(df) > nrow(rows)) txt(paste("+", nrow(df) - nrow(rows), "actores adicionales"), x0 + 0.02, y0 + 0.025, size = 6.2, col = muted, face = "bold")
-  }
-  channel_summary <- function(df) {
-    df <- .monitoreo_workbook_df(df)
-    if (!nrow(df)) return(list(rows = data.frame(), top_label = "", top_value = 0, top_share = NA_real_, last_date = ""))
-    df$.__eff <- num(df$Efectivas)
-    df <- df[df$.__eff > 0, , drop = FALSE]
-    if (!nrow(df)) return(list(rows = data.frame(), top_label = "", top_value = 0, top_share = NA_real_, last_date = ""))
-    channel <- vapply(as.character(df$Canal %||% ""), channel_alias, character(1))
-    grouped <- stats::aggregate(
-      df$.__eff,
-      by = list(Canal = channel),
-      FUN = sum
-    )
-    names(grouped)[names(grouped) == "x"] <- "Efectivas"
-    grouped <- grouped[order(-grouped$Efectivas, grouped$Canal), , drop = FALSE]
-    total <- sum(grouped$Efectivas, na.rm = TRUE)
-    date_values <- as.character(df$`Última efectiva` %||% df$`Última respuesta` %||% "")
-    date_values <- date_values[nzchar(date_values) & !is.na(date_values)]
-    list(
-      rows = grouped,
-      top_label = as.character(grouped$Canal[[1]] %||% ""),
-      top_value = one_num(grouped$Efectivas[[1]]),
-      top_share = if (total > 0) grouped$Efectivas[[1]] / total else NA_real_,
-      last_date = if (length(date_values)) date_values[[length(date_values)]] else ""
-    )
-  }
-  short_day <- function(x) {
-    parsed <- suppressWarnings(as.Date(as.character(x)))
-    months <- c("ene.", "feb.", "mar.", "abr.", "may.", "jun.", "jul.", "ago.", "set.", "oct.", "nov.", "dic.")
-    if (!length(parsed) || is.na(parsed[[1]])) return(as.character(x %||% ""))
-    paste(as.integer(format(parsed[[1]], "%d")), months[[as.integer(format(parsed[[1]], "%m"))]])
-  }
-  weekly_recent_summary <- function(df) {
-    df <- .monitoreo_workbook_df(df)
-    empty_last7 <- data.frame(Fecha = character(), `Avance del día` = numeric(), check.names = FALSE)
-    empty <- list(has_previous = FALSE, actual = 0, previous = 0, delta = 0, previous_date = "", last7 = empty_last7)
-    if (!nrow(df) || !"Fecha" %in% names(df)) return(empty)
-    df$.__date <- suppressWarnings(as.Date(as.character(df$Fecha)))
-    df <- df[!is.na(df$.__date), , drop = FALSE]
-    if (!nrow(df)) return(empty)
-    df <- df[order(df$.__date), , drop = FALSE]
-    daily_col <- intersect(c("Nuevas efectivas", "Efectivas", "Nuevas UMP efectivas", "Total respuestas"), names(df))
-    daily_col <- if (length(daily_col)) daily_col[[1]] else ""
-    df$.__daily <- if (nzchar(daily_col)) num(df[[daily_col]]) else rep(0, nrow(df))
-    accum_col <- intersect(c("Acumulado", "Efectivas acumuladas", "UMP efectivas acumuladas"), names(df))
-    df$.__accum <- if (length(accum_col)) num(df[[accum_col[[1]]]]) else cumsum(df$.__daily)
-    current_idx <- nrow(df)
-    current_date <- df$.__date[[current_idx]]
-    current_value <- df$.__accum[[current_idx]]
-    weekdays <- suppressWarnings(as.POSIXlt(df$.__date)$wday)
-    checkpoint_idx <- sort(unique(c(1L, which(!is.na(weekdays) & weekdays == 1L), current_idx)))
-    previous_candidates <- checkpoint_idx[df$.__date[checkpoint_idx] < current_date]
-    previous_idx <- if (length(previous_candidates)) previous_candidates[[length(previous_candidates)]] else NA_integer_
-    last7 <- if (is.finite(previous_idx)) {
-      df[df$.__date > df$.__date[[previous_idx]] & df$.__date <= current_date, c("Fecha", ".__date", ".__daily"), drop = FALSE]
-    } else {
-      tail(df[, c("Fecha", ".__date", ".__daily"), drop = FALSE], 7L)
-    }
-    if (!nrow(last7)) {
-      last7 <- df[current_idx, c("Fecha", ".__date", ".__daily"), drop = FALSE]
-    }
-    names(last7)[names(last7) == ".__daily"] <- "Avance del día"
-    list(
-      has_previous = is.finite(previous_idx),
-      actual = current_value,
-      previous = if (is.finite(previous_idx)) df$.__accum[[previous_idx]] else 0,
-      delta = if (is.finite(previous_idx)) current_value - df$.__accum[[previous_idx]] else 0,
-      previous_date = if (is.finite(previous_idx)) as.character(df$.__date[[previous_idx]]) else "",
-      last7 = last7
-    )
-  }
-  validate_actor_bottom_insights <- function(actor, summary, recent) {
-    issues <- character()
-    if (!nrow(.monitoreo_workbook_df(summary$rows))) issues <- c(issues, "canales")
-    if (!nrow(.monitoreo_workbook_df(recent$last7))) issues <- c(issues, "ritmo reciente")
-    list(
-      actor = as.character(actor %||% ""),
-      ok = !length(issues),
-      issues = issues
-    )
-  }
-  draw_actor_bottom_insights <- function(actor, sources_df, daily_df, x0, y0, w, h) {
-    summary <- channel_summary(sources_df)
-    recent <- weekly_recent_summary(daily_df)
-    validation <- validate_actor_bottom_insights(actor, summary, recent)
-    rr(x0, y0, w, h, fill = "#ffffff", col = border, lwd = 1.1)
-    title_y <- y0 + h - 0.028
-    content_top <- y0 + h - 0.064
-    content_bottom <- y0 + 0.026
-    txt("Canales y ritmo reciente", x0 + 0.020, title_y, size = 9.6, col = ink, face = "bold", just = c("left", "top"))
-
-    left_x <- x0 + 0.024
-    left_w <- w * 0.478
-    divider_x <- x0 + w * 0.535
-    right_x <- x0 + w * 0.568
-    right_w <- x0 + w - 0.024 - right_x
-    line(divider_x, content_bottom, divider_x, content_top, col = grid_line, lwd = 0.7)
-
-    txt("Canales", left_x, content_top - 0.004, size = 6.0, col = muted, face = "bold", just = c("left", "top"))
-    grouped <- summary$rows
-    if (nrow(grouped)) {
-      rows <- grouped[seq_len(min(nrow(grouped), 4L)), , drop = FALSE]
-      max_eff <- max(num(rows$Efectivas), 1)
-      row_top <- content_top - 0.032
-      row_bottom <- content_bottom + if (nrow(grouped) > nrow(rows)) 0.026 else 0.004
-      row_step <- min(0.036, max(0.024, (row_top - row_bottom) / max(1, nrow(rows))))
-      row_y <- row_top
-      label_w <- 0.170
-      value_w <- 0.036
-      bar_x <- left_x + label_w
-      bar_w <- max(0.060, left_w - label_w - value_w - 0.018)
-      value_x <- bar_x + bar_w + value_w
-      for (k in seq_len(nrow(rows))) {
-        txt(ellipsize(rows$Canal[[k]], 24), left_x, row_y, size = 6.7, col = ink, face = "bold", just = c("left", "center"))
-        txt(fmt(rows$Efectivas[[k]]), value_x, row_y, size = 6.9, col = ink, face = "bold", just = c("right", "center"))
-        rr(bar_x, row_y - 0.006, bar_w, 0.012, fill = "#edf2f8", col = NA, lwd = 0, r = 0.006)
-        rr(bar_x, row_y - 0.006, max(0.006, bar_w * one_num(rows$Efectivas[[k]]) / max_eff), 0.012, fill = effective, col = NA, lwd = 0, r = 0.006)
-        row_y <- row_y - row_step
-      }
-      if (nrow(grouped) > nrow(rows)) {
-        txt(paste("+", nrow(grouped) - nrow(rows), "canales adicionales"), left_x, content_bottom + 0.004, size = 5.8, col = muted, face = "bold")
-      }
-    } else {
-      txt("Sin canales reportados.", left_x, content_top - 0.060, size = 7.0, col = muted, face = "bold")
-    }
-
-    metric_h <- min(0.074, max(0.062, (content_top - content_bottom) * 0.44))
-    metric_y <- content_top - metric_h
-    strip_y <- content_bottom
-    strip_h <- max(0.075, metric_y - strip_y - 0.012)
-    rr(right_x, metric_y, right_w, metric_h, fill = "#f8fbff", col = "#e0e9f5", lwd = 0.85, r = 0.012)
-    txt("Desde último informe", right_x + 0.014, metric_y + metric_h - 0.014, size = 5.8, col = muted, face = "bold", just = c("left", "top"))
-    if (isTRUE(recent$has_previous)) {
-      delta_prefix <- if (one_num(recent$delta) > 0) "+" else ""
-      txt(paste0(delta_prefix, fmt(recent$delta)), right_x + 0.014, metric_y + metric_h * 0.36, size = 15.5, col = effective, face = "bold", just = c("left", "center"))
-      txt(
-        paste0(fmt(recent$actual), " acumuladas\n", fmt(recent$previous), " al ", short_day(recent$previous_date)),
-        right_x + 0.102,
-        metric_y + metric_h * 0.36,
-        size = 5.8,
-        col = muted,
-        face = "bold",
-        just = c("left", "center"),
-        lineheight = 1.00
-      )
-    } else {
-      txt("Sin reporte anterior", right_x + 0.014, metric_y + metric_h * 0.38, size = 8.2, col = muted, face = "bold")
-    }
-
-    rr(right_x, strip_y, right_w, strip_h, fill = "#ffffff", col = "#edf2f8", lwd = 0.7, r = 0.012)
-    txt(if (isTRUE(recent$has_previous)) "Desde último informe" else "Días disponibles", right_x + 0.014, strip_y + strip_h - 0.012, size = 5.8, col = muted, face = "bold", just = c("left", "top"))
-    last7 <- .monitoreo_workbook_df(recent$last7)
-    if (nrow(last7)) {
-      recent_col <- intersect(c("Avance del día", "Nuevas efectivas", "Efectivas", "Total respuestas"), names(last7))
-      recent_col <- if (length(recent_col)) recent_col[[1]] else ""
-      values <- if (nzchar(recent_col)) num(last7[[recent_col]]) else rep(0, nrow(last7))
-      max_val <- max(values, 1)
-      chart_x <- right_x + 0.018
-      chart_w <- right_w - 0.036
-      chart_y <- strip_y + 0.026
-      chart_h <- max(0.022, strip_h - 0.058)
-      slots <- nrow(last7)
-      xs <- if (slots == 1L) chart_x + chart_w / 2 else chart_x + chart_w * (seq_len(slots) - 1) / (slots - 1)
-      bar_w <- min(0.020, chart_w / max(7, slots) * 0.42)
-      for (j in seq_len(slots)) {
-        bar_h <- if (values[[j]] > 0) max(0.006, chart_h * values[[j]] / max_val) else 0
-        if (bar_h > 0) rect(xs[[j]] - bar_w / 2, chart_y, bar_w, bar_h, effective, col = NA)
-        txt(fmt(values[[j]]), xs[[j]], chart_y + chart_h + 0.006, size = 4.7, col = effective, face = "bold", just = c("center", "center"))
-        txt(gsub(" ", "\n", short_day(last7$Fecha[[j]]), fixed = TRUE), xs[[j]], strip_y + 0.012, size = 4.4, col = faint, just = c("center", "center"), lineheight = 0.84)
-      }
-    } else {
-      txt("Sin actividad reciente.", right_x + 0.014, strip_y + strip_h / 2, size = 6.6, col = muted, face = "bold")
-    }
-    if (!isTRUE(validation$ok)) {
-      txt("Bloque validado con información parcial.", x0 + w - 0.020, y0 + 0.016, size = 4.7, col = faint, face = "bold", just = c("right", "bottom"))
-    }
-  }
-  draw_wrapped_lines <- function(text, x, y, max_chars = 96, size = 6.6, col = muted,
-                                 face = "plain", line_step = 0.018) {
-    lines <- strwrap(as.character(text %||% ""), width = max_chars)
-    if (!length(lines)) return(y)
-    for (line_text in lines) {
-      txt(line_text, x, y, size = size, col = col, face = face, just = c("left", "top"))
-      y <- y - line_step
-    }
-    y
-  }
-  source_label <- function(value) {
-    value <- as.character(value %||% "")
-    value[is.na(value)] <- ""
-    value <- trimws(value)
-    ifelse(nzchar(value), value, "Fuente operativa")
-  }
-  source_col <- function(df, name, default = "") {
-    if (!is.data.frame(df) || !name %in% names(df)) return(rep(default, nrow(df)))
-    values <- as.character(df[[name]] %||% default)
-    values[is.na(values)] <- default
-    values
-  }
-  source_num_col <- function(df, name, default = 0) {
-    if (!is.data.frame(df) || !name %in% names(df)) return(rep(default, nrow(df)))
-    num(df[[name]])
-  }
-  draw_sources_page <- function() {
-    draw_page()
-    draw_section_kicker("TRAZABILIDAD")
-    txt("Corte y fuentes", 0.055, 0.855, size = 18, col = ink, face = "bold")
-    txt("Trazabilidad resumida del reporte cliente y criterio canónico usado para el avance.", 0.055, 0.826, size = 7.6, col = muted, face = "bold")
-
-    metric_box(0.055, 0.735, 0.205, 0.070, "Corte publicado", generated_label, "", "base")
-    metric_box(0.280, 0.735, 0.205, 0.070, "Universo", state_value_label(total_universe, total_universe), "", "base")
-    metric_box(0.505, 0.735, 0.205, 0.070, "Efectivas", state_value_label(total_effective, total_universe), "", "effective")
-    metric_box(0.730, 0.735, 0.205, 0.070, "Sin respuesta", state_value_label(total_pending, total_universe), "", "pending")
-
-    rr(0.055, 0.565, 0.890, 0.130, fill = "#ffffff", col = border, lwd = 1.1)
-    txt("Fuente de verdad", 0.075, 0.667, size = 9.2, col = ink, face = "bold", just = c("left", "top"))
-    y <- 0.638
-    y <- draw_wrapped_lines(
-      "La base oficial define el universo. Solo respuestas cruzadas contra un caso canónico de esa base suman como efectivas.",
-      0.075, y, max_chars = 118, size = 6.8, col = muted, face = "bold", line_step = 0.019
-    )
-    draw_wrapped_lines(
-      "Las respuestas de SurveyMonkey u otros canales se deduplican por actor + caso canónico; los canales no duplican personas.",
-      0.075, y - 0.004, max_chars = 118, size = 6.8, col = muted, face = "bold", line_step = 0.019
-    )
-
-    rr(0.055, 0.310, 0.890, 0.235, fill = "#ffffff", col = border, lwd = 1.1)
-    txt("Fuentes de respuestas", 0.075, 0.532, size = 9.2, col = ink, face = "bold", just = c("left", "top"))
-    source_rows <- .monitoreo_workbook_df(sources)
-    if (nrow(source_rows)) {
-      source_rows$.__eff <- source_num_col(source_rows, "Efectivas")
-      source_rows <- source_rows[order(
-        -source_rows$.__eff,
-        source_col(source_rows, "Actor", "Sin actor"),
-        source_col(source_rows, "Canal", "Sin canal"),
-        source_col(source_rows, "Fuente", "Fuente operativa")
-      ), , drop = FALSE]
-      rows <- source_rows[seq_len(min(7L, nrow(source_rows))), , drop = FALSE]
-      header_y <- 0.500
-      rect(0.070, header_y - 0.012, 0.860, 0.026, navy, col = NA)
-      txt("Actor", 0.078, header_y, size = 5.8, col = "#ffffff", face = "bold")
-      txt("Canal", 0.225, header_y, size = 5.8, col = "#ffffff", face = "bold")
-      txt("Fuente", 0.385, header_y, size = 5.8, col = "#ffffff", face = "bold")
-      txt("Efectivas", 0.790, header_y, size = 5.8, col = "#ffffff", face = "bold", just = c("right", "center"))
-      txt("Última completa", 0.922, header_y, size = 5.8, col = "#ffffff", face = "bold", just = c("right", "center"))
-      row_y <- 0.463
-      for (i in seq_len(nrow(rows))) {
-        if (i %% 2 == 0) rect(0.070, row_y - 0.0125, 0.860, 0.025, "#f4f7fb", col = NA)
-        actor <- source_col(rows, "Actor", "Sin actor")[[i]]
-        channel <- channel_alias(source_col(rows, "Canal", "Sin canal")[[i]])
-        source <- source_label(source_col(rows, "Fuente", "")[[i]])
-        last_effective <- source_col(rows, "Última efectiva", "")[[i]]
-        if (!nzchar(last_effective)) last_effective <- source_col(rows, "Última respuesta", "")[[i]]
-        txt(ellipsize(actor, 24), 0.075, row_y, size = 6.2, col = ink, face = "bold", just = c("left", "center"))
-        txt(ellipsize(channel, 24), 0.225, row_y, size = 6.1, col = ink, just = c("left", "center"))
-        txt(ellipsize(source, 44), 0.385, row_y, size = 6.1, col = ink, just = c("left", "center"))
-        txt(fmt(source_num_col(rows, "Efectivas")[[i]]), 0.790, row_y, size = 6.1, col = ink, face = "bold", just = c("right", "center"))
-        txt(ellipsize(last_effective, 18), 0.925, row_y, size = 5.8, col = muted, face = "bold", just = c("right", "center"))
-        row_y <- row_y - 0.025
-      }
-      if (nrow(source_rows) > nrow(rows)) {
-        txt(paste("+", nrow(source_rows) - nrow(rows), "fuentes adicionales en el workbook cliente"), 0.075, 0.343, size = 5.7, col = muted, face = "bold")
-      }
-    } else {
-      txt("Sin fuentes reportadas en el modelo.", 0.075, 0.455, size = 7.0, col = muted, face = "bold")
-    }
-
-    rr(0.055, 0.115, 0.890, 0.180, fill = "#ffffff", col = border, lwd = 1.1)
-    txt("Lectura para cliente", 0.075, 0.267, size = 9.2, col = ink, face = "bold", just = c("left", "top"))
-    draw_wrapped_lines(
-      "Este PDF resume el avance ejecutivo. El detalle completo del corte, fuentes, canales y registros auditables queda en el XLSX/Sheet cliente e interno generado desde el mismo motor.",
-      0.075, 0.235, max_chars = 118, size = 6.8, col = muted, face = "bold", line_step = 0.019
-    )
-    draw_wrapped_lines(
-      "No se usa el Apps Script viejo como fuente de verdad para estos conteos.",
-      0.075, 0.175, max_chars = 118, size = 6.8, col = muted, face = "bold", line_step = 0.019
-    )
-  }
-
-  if (nrow(actors)) {
-    draw_actor_overview_page(actors)
-    for (i in seq_len(nrow(actors))) {
-      actor <- as.character(actors$Actor[[i]])
-      actor_daily_df <- daily_actor[daily_actor$Actor == actor, , drop = FALSE]
-      actor_sources <- sources[sources$Actor == actor, , drop = FALSE]
-      state <- actor_state(actors[i, , drop = FALSE])
-      draw_page()
-      draw_section_kicker("DETALLE POR ACTOR")
-      txt(ellipsize(actor, 58), 0.055, 0.855, size = 18, col = ink, face = "bold")
-      metric_box(0.055, 0.735, 0.205, 0.070, "Efectivas", state_value_label(state$efectivas, state$universo), "", "effective")
-      metric_box(0.280, 0.735, 0.205, 0.070, "Parciales", state_value_label(state$parciales, state$universo), "", "partial")
-      metric_box(0.505, 0.735, 0.205, 0.070, "Rechazo", state_value_label(state$rechazo, state$universo), "", "refusal")
-      metric_box(0.730, 0.735, 0.205, 0.070, "Sin respuesta", state_value_label(state$sin_respuesta, state$universo), "", "pending")
-      draw_state_composition(0.055, 0.690, 0.890, 0.020, state, compact = FALSE)
-      draw_effective_trend(actor_daily_df, 0.055, 0.380, 0.890, 0.250, "Avance diario")
-      draw_actor_bottom_insights(actor, actor_sources, actor_daily_df, 0.055, 0.095, 0.890, 0.260)
-    }
-  }
-
-  draw_page()
-  draw_section_kicker("VISIÓN AGREGADA")
-  txt("Avance general", 0.055, 0.855, size = 18, col = ink, face = "bold")
-  txt("Vista agregada del corte luego del detalle por actor.", 0.055, 0.826, size = 7.6, col = muted, face = "bold")
-  total_state <- list(
-    universo = total_universe,
-    efectivas = total_effective,
-    parciales = total_partial,
-    rechazo = total_refusal,
-    sin_respuesta = total_pending,
-    referencia = sum(num(actors$`Referencia operativa` %||% actors$Meta), na.rm = TRUE),
-    referencia_label = "Mínimo a alcanzar"
-  )
-  if (!is.finite(total_state$referencia) || total_state$referencia <= 0) total_state$referencia <- NA_real_
-  metric_box(0.055, 0.735, 0.205, 0.070, "Efectivas", state_value_label(total_effective, total_universe), "", "effective")
-  metric_box(0.280, 0.735, 0.205, 0.070, "Parciales", state_value_label(total_partial, total_universe), "", "partial")
-  metric_box(0.505, 0.735, 0.205, 0.070, "Rechazo", state_value_label(total_refusal, total_universe), "", "refusal")
-  metric_box(0.730, 0.735, 0.205, 0.070, "Sin respuesta", state_value_label(total_pending, total_universe), "", "pending")
-  draw_state_composition(0.055, 0.690, 0.890, 0.020, total_state, compact = FALSE)
-  draw_effective_trend(
-    daily_general,
-    0.055, 0.400, 0.890, 0.245,
-    "Avance diario"
-  )
-  if (nrow(actors)) {
-    draw_actor_board(actors, 0.055, 0.110, 0.890, 0.270, "Avance por grupo")
-  }
-  draw_sources_page()
-  close_pdf()
-  if (length(pdf_links)) .monitoreo_pdf_add_internal_links(output_file, pdf_links)
-  invisible(output_file)
 }
 
 # Compacta el reporte completo de ocurrencias de campo (monitoreo_territorial_
@@ -21506,12 +20528,12 @@ monitoreo_territorial_advance_report_pdf <- function(model, output_file, include
   if (one_num(validas) <= 0 && is.finite(total_design_surveys) && total_design_surveys > 0) {
     validas <- total_design_surveys
   }
-  if (one_num(validas) > 0) {
-    if (is.finite(total_target_surveys) && total_target_surveys > 0) meta_encuestas <- total_target_surveys
-    brecha_encuestas <- if (one_num(meta_encuestas) > 0) max(0, one_num(meta_encuestas) - one_num(validas)) else 0
-    avance_pct <- pct_from(validas, meta_encuestas)
-    ump_pct <- pct_from(ump_efectivas, meta_ump)
-  }
+  if (one_num(validas) > 0 && is.finite(total_target_surveys) && total_target_surveys > 0) meta_encuestas <- total_target_surveys
+  if (one_num(validas) > 0) ump_pct <- pct_from(ump_efectivas, meta_ump)
+  # Por distrito y sin compensar: lo que sobra en uno no cubre lo que falta en otro (monitoreo_avance_sin_compensar.R).
+  sin_comp <- .monitoreo_territorial_avance_sin_compensar(client_district_rows, district_observed_surveys, district_target_surveys, cell_value, validas, meta_encuestas)
+  if (one_num(validas) > 0 || sin_comp$minimo > 0) brecha_encuestas <- sin_comp$faltan
+  if (one_num(validas) > 0 || sin_comp$minimo > 0) avance_pct <- sin_comp$pct
   draw_client_district_progress <- function(df, x, y, w, h, title = "Avance por distrito") {
     rr(x, y, w, h, fill = "#ffffff", col = border, lwd = 1.05, r = 0.016)
     txt(title, x + 0.020, y + h - 0.030, size = 10.5, col = ink, face = "bold", just = c("left", "top"))
@@ -21603,7 +20625,7 @@ monitoreo_territorial_advance_report_pdf <- function(model, output_file, include
       caption_size = 4.9,
       stroke = 8.2
     )
-    main_metric <- if (one_num(meta_encuestas) > 0) paste0(fmt(validas), " / ", fmt(meta_encuestas)) else fmt(validas)
+    main_metric <- if (sin_comp$minimo > 0) paste0(fmt(sin_comp$cubierto), " / ", fmt(sin_comp$minimo)) else fmt(validas)
     # Escala el tamaño al ancho para no chocar con el anillo (p. ej. "1,283 / 1,200").
     main_nchar <- nchar(main_metric, type = "width")
     main_size <- if (main_nchar > 11L) 13.5 else if (main_nchar > 8L) 18.0 else 24.0
@@ -36989,7 +36011,7 @@ monitoreo_deliverables_preflight <- function(family = "territorial",
 
 monitoreo_deliverables_territorial_drift_report <- function(expected_umps = data.frame(),
                                                             metrics = data.frame(),
-                                                            out_dir = file.path("tmp", "qa", "monitoreo-deliverables"),
+                                                            out_dir = file.path(tempdir(), "prosecnur", "monitoreo-deliverables"),
                                                             source = "",
                                                             cut = "",
                                                             project = "") {
@@ -37498,7 +36520,7 @@ monitoreo_deliverables_territorial_drift_report <- function(expected_umps = data
 
 monitoreo_deliverables_territorial_operational_package_review <- function(package_rows = data.frame(),
                                                                          drift = list(),
-                                                                         out_dir = file.path("tmp", "qa", "monitoreo-deliverables"),
+                                                                         out_dir = file.path(tempdir(), "prosecnur", "monitoreo-deliverables"),
                                                                          source = "",
                                                                          cut = "",
                                                                          project = "",
@@ -38391,7 +37413,7 @@ monitoreo_deliverables_evidence_pack <- function(out_dir,
 }
 
 monitoreo_deliverables_performance_summary <- function(items,
-                                                       out_dir = file.path("tmp", "qa", "monitoreo-deliverables")) {
+                                                       out_dir = file.path(tempdir(), "prosecnur", "monitoreo-deliverables")) {
   out_dir <- normalizePath(out_dir, mustWork = FALSE)
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
   perf_items <- .monitoreo_deliverables_performance_items(items)

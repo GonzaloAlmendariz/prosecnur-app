@@ -18,3 +18,17 @@ export const PANEL_CONFIGURACION: PanelDeclarado = {
   clase: "dialogo",
   alias: [{ param: "settings" }],
 };
+
+/** Paleta de comandos (L30): ⌘K en macOS, Ctrl+K en Windows, o `?panel=paleta`. */
+export const PANEL_PALETA: PanelDeclarado = {
+  id: "paleta",
+  label: "Ir a una vista",
+  clase: "dialogo",
+};
+
+/** Atajos de la app (L30): tecla «?» fuera de un campo, o `?panel=atajos-app`. Gráficos conserva su propio «?». */
+export const PANEL_ATAJOS_APP: PanelDeclarado = {
+  id: "atajos-app",
+  label: "Atajos de teclado",
+  clase: "dialogo",
+};

@@ -1,0 +1,228 @@
+# ADR 0131: Muestra probabilística urbana multiciudad
+
+Estado: Propuesto. Espera la decisión de Gonzalo. Revisión metodológica previa de `revisor-metodologico` (aprobado
+con supuestos, incorporados aquí); falta la revisión de `guardian-contratos` sobre el texto final.
+
+Implementación: paso 1 (reparto con la base 2025 y g_d) en backend desde el 2026-11-04, apagado por defecto; el resto, no iniciado. Estado vivo
+en `docs/qa/checklist-muestra-urbana-multiciudad-2026-11-04.md`.
+
+**Decisión de Gonzalo, 4/11, que corrige el §4:** la persona dentro de la vivienda se elige por **cuotas de sexo ×
+grupo de edad validadas por el INEI**, que siguen siendo meta (ADR 0126). Se descarta el sorteo en tablet. Por eso
+el diseño es probabilístico hasta la vivienda y por cuota en la persona, y el margen se informa como nominal en esa
+etapa (ADR 0116 §2). La cadena del peso del §6 pierde el factor `min(A_j, 5)`. El §4 queda como registro de la
+alternativa evaluada.
+
+Fecha: 2026-11-04
+
+Relación: extiende el [ADR 0117](0117-hojas-de-ruta-sorteo-pps-sistematico-por-distrito.md) (PPS sistemático) del
+distrito a la provincia como estrato explícito. Usa la cobertura del
+[ADR 0119](0119-hojas-de-ruta-cobertura-ciudades-principales.md) y el marco elegible del
+[ADR 0115](0115-hojas-de-ruta-marco-elegible.md). En este modo deja sin efecto la cláusula de margen nominal por
+cuotas del [ADR 0116](0116-hojas-de-ruta-no-respuesta-e-icc.md) §2. La cuota de sexo × edad pasa a referencial
+según el [ADR 0126](0126-cada-cuota-declara-si-es-meta-o-referencial.md).
+
+## Contexto
+
+Hojas de ruta sortea manzanas por PPS dentro de cada distrito y elige a la persona por cuota de sexo × edad. La
+última etapa no es probabilística y el margen que se informa es nominal. Para un estudio de hogares en Lima, Callao
+y las 25 ciudades del ADR 0119 con 1.500–1.800 adultos, hacen falta cuatro cosas que hoy no existen:
+
+1. **Un estrato que admita pocas rutas.** Con 1.800 entrevistas y 8 por ruta salen 225 rutas para 164 distritos.
+   Repartir rutas enteras por distrito deja distritos con 0 rutas: sus manzanas quedan con π = 0, el defecto que
+   el ADR 0117 corrigió a nivel de zona. Forzar al menos una ruta por distrito exige 164 rutas fijas.
+2. **Un reparto con la población actual.** Hoy el reparto entre distritos usa la población 2017 de 18+ por edad
+   simple (`hojas_ruta_engine.R:3912-3918`). El CPV 2025 (`pob25` en `territorios.json`, población total censada
+   por distrito) llega a R pero nadie lo lee. Por manzana sólo existe el CPV 2017.
+3. **Una selección probabilística dentro del hogar.** En el repo no hay Kish, cumpleaños ni sorteo de persona.
+4. **Una cadena de pesos.** Hojas publica π de la manzana titular (`hojas_ruta_sorteo_pps.R:197-218`) sólo en el
+   estado de la sesión. No calcula la probabilidad de vivienda ni la de los reemplazos. `ponderacion_engine.R` no
+   puede partir de un peso de diseño por caso y después calibrar.
+
+## Decisión
+
+### 1. Estrato explícito: la provincia
+
+- Las 27 provincias del registro son los estratos. Lima Metropolitana puede partirse en sus cinco áreas
+  interdistritales, con Callao aparte.
+- Dentro de cada estrato corre un PPS sistemático sobre la lista ordenada distrito → zona → manzana → `id_manzana`.
+  Distrito y zona son estratos implícitos: cada distrito recibe ⌊Σπ⌋ o ⌈Σπ⌉ rutas.
+- Cada estrato recibe al menos 2 rutas, para poder estimar la varianza. El resto se reparte en proporción.
+- El modo actual (distrito como estrato) sigue disponible: es un modo nuevo, no un reemplazo.
+
+#### 1b. Enmienda del 4/11: ciudades de inclusión forzosa y ciudades sorteadas
+
+Gonzalo, 4/11: «hay que tener cuidado de no ir a lugares solo por un par de rutas». Con el reparto proporcional y el
+mínimo de 2 rutas sumado encima, varias ciudades recibían 1 a 3 rutas y Lima Metropolitana quedaba con el 41–46 % de
+la muestra teniendo el 54 % de la población. Esta enmienda reemplaza la regla del mínimo de 2 rutas.
+
+- **Mínimo operativo por ciudad visitada: 6 rutas** (decisión de Gonzalo). Es un parámetro del estudio
+  (`rutas_minimas_ciudad`), con 6 por defecto.
+- **Ciudades de inclusión forzosa.** Una ciudad (provincia del registro; Lima Metropolitana y Callao siempre) entra
+  con certeza si su reparto proporcional a los adultos urbanos 2025 alcanza el mínimo operativo. Recibe su reparto
+  proporcional puro, sin piso añadido. Lima puede seguir partida en sus 5 áreas como estratos.
+  - **Ciudades fijas por decisión** (enmienda del 5/11): el estudio puede declarar en `sample_size$ciudades_fijas`
+    códigos de provincia que entran con certeza aunque su reparto no llegue al mínimo (caso: Cusco en la propuesta
+    conjoint). Reciben su reparto proporcional con piso del mínimo; el peso de diseño corrige la sobrerrepresentación.
+- **Ciudades sorteadas.** Las que quedan bajo el mínimo se agrupan por macrorregión (norte, centro, sur y oriente,
+  con la tabla de departamentos declarada en el código y aquí). En cada grupo g:
+  - rutas del grupo `R_g` = suma de los repartos proporcionales de sus ciudades;
+  - ciudades a visitar `h_g = max(1, ⌊R_g / mínimo⌋)`;
+  - las ciudades se sortean por PPS sistemático con la medida de tamaño `MOS_c`, la suma de la medida del sorteo
+    de las manzanas del marco elegible de la ciudad (con la base 2025, `M_i · g_d`, que equivale a los adultos
+    urbanos 2025): `π_c = h_g · MOS_c / MOS_g`. Con esa medida el grupo queda exactamente autoponderado,
+    `π_i = n_g · MOS_i / MOS_g` (decisión del 4/11). Una ciudad con `π_c ≥ 1` pasa a inclusión forzosa y se recalcula
+    el grupo;
+  - cada ciudad sorteada recibe `R_g / h_g` rutas (redondeo controlado), por lo que nunca baja del mínimo.
+- **Macrorregiones** (por departamento, `api/R/hojas_ruta_macrorregiones.R`; por confirmar con Gonzalo):
+  - norte: Tumbes, Piura, Lambayeque, La Libertad, Cajamarca y Áncash;
+  - centro: Lima (provincias), Callao, Ica, Junín, Pasco, Huánuco, Huancavelica y Ayacucho;
+  - sur: Arequipa, Moquegua, Tacna, Cusco, Puno y Apurímac;
+  - oriente: Amazonas, Loreto, San Martín, Ucayali y Madre de Dios.
+- **π de la manzana** = `π_c · π_manzana|ciudad`. En las ciudades forzosas `π_c = 1`. El diseño sigue siendo
+  probabilístico y autoponderado dentro de cada grupo; la ciudad sorteada representa a las no sorteadas de su grupo.
+- **Varianza:** en los grupos sorteados la ciudad es la unidad primaria. Un grupo con una sola ciudad sorteada se
+  colapsa con otro grupo para estimar la varianza, con regla declarada.
+- La semilla del sorteo de ciudades se guarda con la muestra, igual que la de manzanas.
+
+#### 1c. Enmienda del 5/11: distritos de inclusión forzosa y distritos sorteados
+
+Gonzalo, 5/11: «ir a un distrito solo para una encuesta es muy costoso, además cada ficha o ruta debe ser de un
+distrito en su totalidad». Con el PPS sistemático sobre la lista ordenada por distrito, muchos distritos chicos
+recibían 1 o 2 rutas. Se aplica dentro de cada ciudad (o área de Lima) la misma regla del §1b, un nivel más abajo.
+
+- **Mínimo operativo por distrito visitado: 3 rutas** (decisión de Gonzalo). Parámetro del estudio
+  (`rutas_minimas_distrito`), 3 por defecto.
+- **Distritos forzosos:** los que alcanzan el mínimo con su reparto proporcional dentro de la ciudad o área. Reciben
+  su reparto proporcional y dentro de ellos sigue el PPS sistemático de manzanas.
+- **Distritos sorteados:** los que quedan bajo el mínimo se agrupan dentro de su ciudad o área. Con `R_g` rutas del
+  grupo se visitan `h_g = max(1, ⌊R_g / mínimo⌋)` distritos, sorteados por PPS sistemático con su medida (`MOS_d`,
+  suma de la medida del marco elegible del distrito), y cada uno recibe `R_g / h_g` rutas por redondeo controlado, sin
+  bajar del mínimo. Si un grupo tiene menos rutas que el mínimo, se une al grupo de la ciudad o área más cercana en la
+  lista, o el distrito recibe el mínimo y el exceso se descuenta de los forzosos de la misma ciudad, con regla
+  declarada.
+- **π de la manzana** = `π_c · π_d · π_manzana|distrito`, con `π_d = 1` en los distritos forzosos. Se publica `π_d` y
+  la condición de cada distrito.
+- **Ruta dentro de un distrito:** la ruta, sus manzanas aledañas y su reemplazo pareado quedan en el distrito de la
+  titular. El motor lo verifica y avisa si alguna cruzara un límite distrital.
+- La semilla del sorteo de distritos se guarda con la muestra.
+
+### 2. Reparto y medida de tamaño con 2025
+
+- **Entre estratos:** proporcional a los adultos urbanos estimados para 2025,
+  `P̂_h = Σ_d pob25_d · u17_d · a17_d`, más el mínimo del §1.
+  - `u17_d` es la fracción del distrito que en 2017 cae en manzanas del marco.
+  - `a17_d` es la proporción de 18+ del distrito en 2017.
+  - Los dos son supuestos que se declaran. `pob25` incluye la parte rural del distrito y todas las edades, así que
+    no se usa sin ajustar.
+- **Dentro del estrato:** la medida de tamaño de la manzana es `MOS_i = M_i^2017 · g_d`, con
+  `g_d = P̂25_d / Σ_{i∈d} M_i^2017`, en la misma unidad que `M` (viviendas por defecto) sobre el marco completo
+  del distrito. Así `Σ_{i∈d} MOS_i = P̂25_d`.
+  - Corrección del 5/11: antes `g_d = P̂25_d / pob17_en_capa_d` dividía por personas aunque `M` fueran viviendas, y
+    la medida del distrito quedaba en `P̂25_d` × viviendas por persona (de 0,21 a 0,51 según el distrito). El diseño no
+    era autoponderado (Kish ≈ 1,02) y la π de las ciudades sorteadas no seguía a sus adultos (Cusco 0,339 frente a
+    0,390). Las π publicadas eran exactas para la medida que se usó.
+  - g_d es un factor por distrito conocido antes del sorteo, así que π sigue siendo exacta.
+  - Iguala el peso de cada distrito en la muestra con su peso en 2025.
+  - Esto no reemplaza el marco calibrado con Open Buildings del ADR 0119 §5.
+- **π de la manzana:** `π_i = n_h · MOS_i / Σ_{i∈h} MOS_i`, con las certezas resueltas por iteración. Con tope
+  (ADR 0120) el tope se aplica sobre MOS.
+
+### 3. Vivienda
+
+- Por ruta se registra: el conteo de viviendas particulares en campo (`V_i_campo`) de la titular y de cada aledaña
+  usada, el arranque, el salto y la disposición de cada visita (ADR 0116).
+- La probabilidad es `π_j|i = c_i / Ê_i`, con `Ê_i = V_i_campo · ê_i`: c_i son las completas y ê_i la tasa
+  observada de ocupación y elegibilidad.
+- Si falta el conteo de campo se usa `M_i`, marcado con `fuente_V = "marco_2017"`.
+- Las aledañas cuentan como parte del segmento de la UPM. Se informa el porcentaje de entrevistas hechas fuera de la
+  titular, con aviso si supera el 25 %.
+
+### 4. Persona: roster en tablet y sorteo aleatorio
+
+- El formulario lista a los adultos residentes habituales (inicial, sexo, edad); A_j es el número de filas.
+- Se sortea `sel = once(int(random() * A_j) + 1)`.
+- Se guardan A_j, el valor crudo del sorteo, `sel` y el roster entero. Kobo no acepta semilla en `random()`, así que
+  la reproducibilidad descansa en el valor guardado.
+- No se sustituye a la persona seleccionada. Se hacen al menos 3 visitas en horarios distintos; si no se logra, la
+  vivienda es no respuesta. A_j = 0 significa vivienda no elegible.
+- La probabilidad es `π_p|j = 1/A_j`. Para el peso, A_j se recorta a 5; el valor crudo se conserva.
+- En este modo la cuota de sexo × edad pasa a referencial (ADR 0126) y la ficha no la imprime como meta.
+- Se descartan Kish en papel y los métodos de cumpleaños: los de cumpleaños eligen mal en un 20–30 % de los casos
+  según la literatura, y el error favorece a quien abre la puerta.
+
+### 5. Reemplazos
+
+- Manzana no elegible (no residencial, demolida): no se reemplaza y se descuenta de la población.
+- Manzana inaccesible o rechazo del bloque: se usa el reemplazo pareado de la misma zona, que **hereda la π y el
+  estrato de la titular**, con el motivo registrado. El reemplazo en otra zona del mismo distrito cambia π y no va
+  por defecto.
+- Si un estrato supera el 10 % de reemplazos, se avisa. Sin reemplazo, se ajusta por no respuesta de UPM dentro del
+  estrato.
+
+### 6. Cadena del peso
+
+1. Peso de diseño: `d = (ΣMOS_h / (n_h · MOS_i)) · (Ê_i / c_i) · min(A_j, 5)`.
+2. Ajuste por no respuesta de UPM dentro del estrato.
+3. Calibración por raking, partiendo de d, a:
+   - adultos urbanos 2025 por provincia, o por distrito si tiene al menos 30 casos;
+   - sexo × grupo de edad por macrorregión, cuando existan márgenes 2025. Si no, la estructura 2017 envejecida,
+     declarando fuente y año.
+4. Recorte a 5 veces la media, seguido de una nueva calibración, en ciclo.
+5. Se publican `peso_diseno` (Horvitz-Thompson sobre el marco) y `peso_calibrado`, con deff de Kish y n efectivo.
+
+Para esto `ponderacion_engine.R` tiene que:
+
+- aceptar una columna de la base como peso base y luego calibrar (hoy los modos columna y calibración se excluyen);
+- ofrecer un peso de expansión con Σw = N̂ además del normalizado a media 1;
+- avisar cuando una categoría del margen no tiene casos, un estrato no está en `pop_sizes` o el raking no converge
+  (hoy los tres pasan en silencio);
+- calibrar después de recortar.
+
+### 7. Margen y efecto de diseño
+
+- Antes del campo el motor publica el margen con deff, a partir de un ICC de la biblioteca (ADR 0116 §2) y el
+  1 + CV²_w esperado. El margen nominal sólo sale rotulado «bajo MAS».
+- Después del campo, deff empírico con `survey::svydesign(ids = ~ruta, strata = ~estrato, weights = ~peso)`. La
+  varianza del sistemático se aproxima como estratificado con reemplazo de UPM, y se declara así (ADR 0117 §4).
+- Un estrato con una sola UPM se colapsa con una regla declarada, nunca con `lonely.psu` en silencio.
+
+### 8. Lo que declara el informe metodológico
+
+- Marco CPV 2017 de manzanas y viviendas, y NSE 2017.
+- g_d, u17_d y a17_d con su fuente.
+- Captación y cobertura cartográfica por distrito sorteado (ADR 0119 §7) y el porcentaje de `pob25` que queda
+  fuera del marco.
+- Protocolo de selección en el hogar.
+- Tasas AAPOR a partir de las disposiciones.
+- Reemplazos y entrevistas en aledañas.
+- Pasos del peso y metas de calibración con fuente y año.
+- El supuesto de cobertura: la población fuera del marco se parece a la de dentro en cada celda de calibración.
+
+## Alternativas descartadas
+
+- **Distrito como estrato explícito** (lo de hoy): deja distritos sin rutas o exige un mínimo de 164 rutas.
+- **Repartir con `pob25` sin ajustar:** mezcla la parte rural y todas las edades en una muestra de adultos urbanos.
+- **Repartir con 2025 y sortear con la medida 2017 sin g_d:** los distritos que crecieron quedan con menos muestra y
+  la calibración los infla, lo que sube el deff.
+- **Mantener la cuota de sexo × edad como meta:** la última etapa vuelve a ser por cuotas y el margen, nominal.
+
+## Preguntas abiertas
+
+- **Variante nacional urbana** (checklist ítem 6): estrato = departamento, con sus ciudades principales. Faltan
+  marcos para Amazonas, Apurímac, Huancavelica, Madre de Dios, Moquegua y Pasco, y varias ciudades no pasan los
+  umbrales del ADR 0119 §1.
+- Entrevistas por ruta: k = 8 contra el valor por defecto del motor, que es 6.
+- Márgenes 2025 de sexo × edad × educación: no se pudo leer REDATAM CPV 2025 de forma automática.
+
+## Cumplimiento
+
+Un commit por paso, cada uno con sus tests (invariantes en el checklist):
+
+1. Reparto entre estratos y g_d, en un archivo nuevo llamado desde los dos puntos de reparto de
+   `hojas_ruta_engine.R` (congelado; crece unas dos líneas). Debe cerrar la divergencia actual entre la vista previa
+   del tamaño y la cuota que se sortea.
+2. Estrato provincia con mínimo de 2 rutas y PPS sistemático con distrito y zona implícitos.
+3. Publicación de π de titulares y reemplazos en la muestra exportada.
+4. Selección en el hogar: declaración en el estudio, ficha, formulario y Monitoreo con la cuota referencial.
+5. Peso base más calibración en `ponderacion_engine.R`, con sus avisos.
+6. Margen con deff y varianza post-campo.

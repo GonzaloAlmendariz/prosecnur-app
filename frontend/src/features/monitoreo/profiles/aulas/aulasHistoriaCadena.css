@@ -234,20 +234,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Este vacío es un ESTADO del operativo —todo el plan en pie y nadie caído—,
-   no una laguna de datos, y se redacta como tal. */
-.mon-profile-page.is-aulas-flow .aulas-cadenas-vacio {
-  margin: 0;
-  padding: 12px 14px;
-  border-radius: 10px;
-  border-left: 3px solid var(--pulso-success-fg);
-  background: color-mix(in srgb, var(--pulso-success-fg) 6%, transparent);
-  font-size: var(--aulas-txt);
-  color: var(--pulso-text-soft);
-  line-height: 1.5;
-}
-.mon-profile-page.is-aulas-flow .aulas-cadenas-vacio strong { color: var(--pulso-text); }
-
 /* La salida de la fila, en COLUMNA PROPIA y no dentro de la tira: ahí viajaba
    con el scroll horizontal —quedaba fuera de vista justo en las cadenas
    largas— y su `margin-left: auto` se comía el padding derecho. */

@@ -27,6 +27,7 @@ import {
 } from "./marcoCards";
 import "../../didactica/didactica.css";
 import "./marco.css";
+import { Panel } from "../../../../components/Panel";
 
 export function MarcoPoblacionTab({
   workspace,
@@ -53,9 +54,9 @@ export function MarcoPoblacionTab({
   const etapasFallback: FlujoEtapa[] = [
     {
       id: "universo",
-      label: "Universo",
+      label: "Filas leídas",
       valor: inputRows > 0 ? fmtInt(inputRows) : undefined,
-      detalle: "filas leídas del archivo",
+      detalle: "del archivo, antes de depurar",
       estado: inputRows > 0 ? "ready" : "pending",
       merma: filasExcluidas > 0 ? { n: filasExcluidas, label: "filas excluidas" } : undefined,
     },
@@ -109,10 +110,12 @@ export function MarcoPoblacionTab({
       // haber terminado. Una vista con fetch propio tendría que condicionarlo.
       data-audit-ready="true"
     >
-      <section className="cmv2-panel cmv2-marco-poblacion-head" data-qa-geometry-member>
+      <Panel className="cmv2-marco-poblacion-head" data-qa-geometry-member>
         <div className="cmv2-marco-flujo-layout">
           <div className="cmv2-marco-flujo-main cmv2-marco-flujo-stagger">
             <FlujoVertical
+              geometryGroup="calc-muestra/marco-poblacion-flujo"
+              geometryContract="equal"
               etapas={etapas}
               orientacion="adaptive"
               ariaLabel="Del universo a la población objetivo"
@@ -129,12 +132,12 @@ export function MarcoPoblacionTab({
             />
           </div>
         </div>
-      </section>
+      </Panel>
 
       {hasMarco ? (
         <>
           <MarcoPoblacionInsights frame={frame} totalComp={totalComp} workspace={workspace} />
-          <div className="cmv2-dashboard-chart-grid">
+          <div className="cmv2-dashboard-chart-grid" data-qa-geometry-group="calc-muestra/marco-poblacion-graficos" data-qa-geometry-contract="intrinsic">
             <MarcoPoblacionFacultades frame={frame} totalComp={totalComp} workspace={workspace} />
             <MarcoPoblacionSexo frame={frame} totalComp={totalComp} workspace={workspace} />
           </div>

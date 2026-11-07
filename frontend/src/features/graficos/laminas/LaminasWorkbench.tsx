@@ -3,6 +3,7 @@
 // lee y se reescribe al id). `foco` es la fuente de verdad de la lámina
 // seleccionada; se refleja en `usePlanStore.select` para que el Editor anterior abra en la misma lámina.
 
+import { Presentation } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSession } from "../../../lib/SessionContext";
@@ -24,6 +25,7 @@ import { PanelAvisos } from "./PanelAvisos";
 import { useColoresPendientes } from "../estilo/ColoresPendientesAviso";
 import { useFijarBase } from "../useFijarBase";
 import { EditorAmplio } from "./EditorAmplio";
+import { DiferenciasPaneles } from "./diferencias/DiferenciasPaneles";
 import { agruparAvisos } from "./resumenInforme";
 import { construirEstructura } from "./modeloEstructura";
 import { tituloQueSale } from "./tituloQueSale";
@@ -50,6 +52,7 @@ import { useGraficosRegistry } from "../useGraficosRegistry";
 import type { GraficadorRef } from "../../../api/graficos";
 import "./movimiento.css";
 import "./laminasWorkbench.css";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 const panelDe = (l: Lateral) => (l === "estructura" ? PANEL_ESTRUCTURA_LAMINAS : PANEL_INSPECTOR_LAMINA);
 
@@ -269,12 +272,22 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
       <div className="pulso-f6-laminas-host">
       <div className="pulso-f6-laminas is-vacia" data-qa-surface="graficos/f6-laminas">
         <EstructuraInforme onCerrar={() => undefined} estructura={estructura} posicionActiva={null} onSeleccionar={irA} validacion={validacion} />
-        <div className="pulso-f6-vacio-informe" role="status">
-          <strong>El informe todavía no tiene láminas</strong>
-          <p>Inserta la primera lámina o arma el informe desde un plan sugerido; aquí verás cada lámina tal como sale.</p>
-          <div className="pulso-f6-vacio-acciones">
-            <button type="button" className="pulso-f6-boton" onClick={() => abrirSelectorLamina("insertar")}>Insertar la primera lámina</button>
-            <BotonArmarDesdeVacio />
+        <div className="pulso-f6-laminas-vacio" role="status">
+          {/* 5 nov 2026 (pulido de UI): el vacío dentro del marco de una lámina 16:9 — «aquí verás cada lámina tal
+              como sale» dicho con la forma, no sólo con la frase. */}
+          <div className="pulso-f6-lamina-fantasma">
+          <EstadoVacio
+            tamano="normal"
+            icono={<Presentation size={18} aria-hidden="true" />}
+            titulo="El informe todavía no tiene láminas"
+            descripcion="Inserta la primera lámina o arma el informe desde un plan sugerido; aquí verás cada lámina tal como sale."
+            accion={
+              <div className="pulso-f6-vacio-acciones">
+                <button type="button" className="pulso-f6-boton" onClick={() => abrirSelectorLamina("insertar")}>Insertar la primera lámina</button>
+                <BotonArmarDesdeVacio />
+              </div>
+            }
+          />
           </div>
         </div>
       </div>
@@ -379,6 +392,7 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
       </div>
       <EditorAmplio />
       {avisos.abierto && <PanelAvisos panel={avisos} grupos={grupos} estructura={estructura} onIr={irA} enfocarAlAbrir={inspectorModal} coloresPendientes={coloresPendientes} baseImplicita={baseImplicita} />}
+      <DiferenciasPaneles slideId={slide.id} estructura={estructura} onIr={irA} />
       {inspectorModal && (
         <button type="button" className="pulso-f6-velo pulso-f6-solo-compacto" aria-label="Cerrar ajustes" tabIndex={-1} onClick={cerrarInspectorConFoco} />
       )}

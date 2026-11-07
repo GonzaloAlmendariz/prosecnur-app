@@ -95,7 +95,7 @@
     if (is.na(et) || !nzchar(et)) cod else sprintf("%s (%s)", et, cod)
   }, character(1))
   extra <- if (length(fmt) > max_n) sprintf(" y %d más", length(fmt) - max_n) else ""
-  paste0(paste(utils::head(fmt, max_n), collapse = " · "), extra)
+  paste0(paste(utils::head(fmt, max_n), collapse = ", "), extra)
 }
 
 #' Detectar con cuántas versiones del formulario se recolectó una base
@@ -176,7 +176,7 @@ reglas_semilla_procedencia <- function(data, reglas_existentes = list()) {
     tipo = "fuera_catalogo",
     variables = list(det$columna),
     params = list(valores = list(det$vigente)),
-    nombre = "Procedencia · la base trae más de una versión del formulario",
+    nombre = "Procedencia: la base trae más de una versión del formulario",
     mensaje = sprintf(
       paste("Se recolectó con una versión anterior del formulario, no con la vigente (%s).",
             "Sus respuestas siguen los saltos y catálogos de aquella versión."),
@@ -273,7 +273,7 @@ reglas_semilla_dominio <- function(data, survey, choices, reglas_existentes = li
       tipo = "fuera_catalogo",
       variables = list(var),
       params = list(valores = as.list(c(catalogo, .semilla_valores_especiales))),
-      nombre = sprintf("Dominio · %s responde fuera de su lista", var_txt),
+      nombre = sprintf("Dominio: %s responde fuera de su lista", var_txt),
       mensaje = sprintf(
         "Responde %s, que no está entre las opciones de la pregunta.", fuera_txt
       ),
@@ -426,7 +426,7 @@ reglas_semilla_agente <- function(data, config = NULL, reglas_existentes = list(
     tipo = "fuera_catalogo",
     variables = list(col),
     params = list(valores = as.list(equipo)),
-    nombre = sprintf("Identidad del agente · %s tiene variantes del mismo nombre",
+    nombre = sprintf("Identidad del agente: %s tiene variantes del mismo nombre",
                      .semilla_nombrar_var(col, survey)),
     mensaje = "El nombre de quien recolectó no coincide con ninguno del equipo; revisar si es una variante mal escrita.",
     severidad = "advertencia",
@@ -446,7 +446,7 @@ reglas_semilla_agente <- function(data, config = NULL, reglas_existentes = list(
               "Se sugieren; conviene confirmar antes de unificar, porque dos",
               "nombres cercanos pueden ser dos personas."),
         .semilla_nombrar_var(col, survey), length(sospechosos),
-        paste(parecidos, collapse = " · ")
+        paste(parecidos, collapse = ", ")
       )
     )
   ))
@@ -492,7 +492,7 @@ reglas_semilla_continuidad <- function(data, reglas_existentes = list()) {
     tipo = "continuidad_secuencia",
     variables = list(col),
     params = list(),
-    nombre = sprintf("Continuidad · faltan %d envío%s en la secuencia",
+    nombre = sprintf("Continuidad: faltan %d envío%s en la secuencia",
                      length(faltan), if (length(faltan) == 1L) "" else "s"),
     mensaje = "Después de este caso hay un envío que el servidor numeró y no llegó a la base.",
     severidad = "advertencia",
@@ -608,7 +608,7 @@ reglas_semilla_periodo <- function(data, config = NULL, reglas_existentes = list
     variables = list(col),
     params = list(min = as.character(ini), max = as.character(fin),
                   timezone = "America/Lima"),
-    nombre = sprintf("Periodo de campo · %s fuera de %s a %s",
+    nombre = sprintf("Periodo de campo: %s fuera de %s a %s",
                      .semilla_nombrar_var(col), as.character(ini), as.character(fin)),
     mensaje = sprintf("Se registró fuera del periodo de trabajo de campo (%s a %s).",
                       as.character(ini), as.character(fin)),
@@ -796,7 +796,7 @@ reglas_semilla_rango_numerico <- function(data, survey, reglas_existentes = list
       tipo = "rango_num",
       variables = list(nm),
       params = list(min = 0),
-      nombre = sprintf("Valor negativo · %s", .semilla_nombrar_var(nm, survey)),
+      nombre = sprintf("Valor negativo: %s", .semilla_nombrar_var(nm, survey)),
       mensaje = "Se registró un valor negativo en una pregunta que no admite valores bajo cero.",
       severidad = "error",
       activa = TRUE,
@@ -855,7 +855,7 @@ reglas_semilla_fecha_declarada <- function(data, survey, reglas_existentes = lis
       tipo = "rango_fecha",
       variables = list(nm),
       params = list(max = as.character(cierre), timezone = "America/Lima"),
-      nombre = sprintf("Fecha posterior al campo · %s", .semilla_nombrar_var(nm, survey)),
+      nombre = sprintf("Fecha posterior al campo: %s", .semilla_nombrar_var(nm, survey)),
       mensaje = sprintf("La fecha declarada es posterior al último día de recolección (%s).",
                         as.character(cierre)),
       severidad = "error",

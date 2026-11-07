@@ -251,7 +251,7 @@ export function ClassroomReplacementChainPanel({
               <div className="cmv2-chain-titular">
                 <span className="cmv2-chain-code">{chain.code}</span>
                 <strong>{chain.titularLabel}</strong>
-                <small>{chain.faculty} · {fmtInt(chain.eligible)} elegibles</small>
+                <small>{chain.faculty}, {fmtInt(chain.eligible)} elegibles</small>
               </div>
             </div>
             <div className="cmv2-chain-route-slots" aria-label={`Reemplazos para ${chain.titularLabel}`}>
@@ -295,7 +295,7 @@ export function ClassroomReplacementChainPanel({
                       <strong>{slot.label}</strong>
                       <b>{slot.code || (slot.order ? `R${slot.order}` : slot.wave)}</b>
                     </span>
-                    <small>{classroomReplacementMatchLabel(slot.match)} · reemplaza {slot.titularCode}{slot.scoreDelta ? ` · impacto ${classroomNumberText({ value: slot.scoreDelta }, ["value"])}` : ""}</small>
+                    <small>{classroomReplacementMatchLabel(slot.match)}, reemplaza {slot.titularCode}{slot.scoreDelta ? `, impacto ${classroomNumberText({ value: slot.scoreDelta }, ["value"])}` : ""}</small>
                     {slot.warning && <em>{slot.warning}</em>}
                   </div>
                 );

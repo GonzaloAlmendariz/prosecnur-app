@@ -51,10 +51,10 @@ describe("editor directo de la matriz (ADR 0104)", () => {
   it("la columna «Escala» dice si coinciden y abre la armonización cuando no", () => {
     const html = render();
     expect(html).toContain(">Escala</th>");
-    expect(html).toContain("Escalas distintas · Armonizar");
+    expect(html).toContain("Escalas distintas: armonizar");
     expect(html).toContain("Misma escala");
     expect(html).toContain("Falta otra base");
-    expect(html).toContain('aria-label="Escalas distintas · Armonizar. Abrir la armonización de Uso de salud"');
+    expect(html).toContain('aria-label="Escalas distintas: armonizar. Abrir la armonización de Uso de salud"');
     expect(html).toContain('data-armon-abrir="0"');
   });
 

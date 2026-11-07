@@ -126,7 +126,7 @@
   )
 }
 
-.collection_store <- function(sid, state, monitoring_plan = NULL) {
+.collection_store <- function(sid, state) {
   valid <- collection_state_validate(state)
   .collection_assert_valid(
     valid, "E_COLLECTION_STATE_MUTATION_INVALID",
@@ -145,9 +145,9 @@
       )
     )
   }
+  # X8 (ADR 0122 §11): Material sólo escribe su propio estado. El plan de Monitoreo ya no
+  # se toca desde aquí; Monitoreo lee la entrega (collection_aulas_material.R) y la aplica.
   fresh$collection_state <- state
-  if (is.function(monitoring_plan)) monitoring_plan <- monitoring_plan(fresh)
-  if (!is.null(monitoring_plan)) fresh$monitoreo_aulas_plan <- monitoring_plan
   fresh <- .mark_project_dirty(fresh)
   .session_env[[sid]] <- fresh
   invisible(state)
@@ -173,7 +173,10 @@
 }
 
 .collection_seed_source <- function(s) {
-  monitoring_rows <- .collection_rows(s$monitoreo_aulas_plan)
+  # X7 detrás del interruptor por estudio (collection_aulas_siembra.R): en modo «calculo»
+  # el plan de Monitoreo no es fuente mientras Cálculo tenga sorteo.
+  desde_calculo <- identical(.collection_siembra_modo(s)$modo, "calculo") && .collection_hay_sorteo(s)
+  monitoring_rows <- if (desde_calculo) list() else .collection_rows(s$monitoreo_aulas_plan)
   if (length(monitoring_rows)) {
     return(list(
       rows = monitoring_rows,
@@ -209,6 +212,12 @@
     ))
   }
   list(rows = list(), source = NULL, module = NULL)
+}
+
+.collection_hay_sorteo <- function(s) {
+  selection <- s$calc_muestra_aulas_selection
+  rows <- if (is.list(selection) && !is.null(selection$selection)) .collection_rows(selection$selection) else .collection_rows(selection)
+  length(rows) > 0L
 }
 
 # `trimws()` exacto (mismos espacios, ambos extremos) sin su `match.arg()` ni
@@ -1149,15 +1158,10 @@ collection_handoff <- function(sid, expected_revision, deployment_fingerprint = 
   next_state$deployment$deployment_fingerprint <- fingerprint
   next_state$deployment$handoff <- receipt
   next_state$state_revision <- next_revision
-  monitoring_projection <- function(fresh) {
-    .collection_monitoring_handoff(
-      fresh$monitoreo_aulas_plan, current$plan, next_state$deployment, receipt
-    )
-  }
-  .collection_store(sid, next_state, monitoring_plan = monitoring_projection)
-  monitoring <- session_get(sid)$monitoreo_aulas_plan
+  .collection_store(sid, next_state)
   payload <- .collection_con_vigencia(.collection_payload(next_state), sid)
   payload$handoff <- receipt
-  payload$monitoring_rows <- monitoring
+  # Lo que Monitoreo traerá con «Traer la entrega»: la proyección, no una escritura.
+  payload$monitoring_rows <- .collection_monitoring_handoff(list(), current$plan, next_state$deployment, receipt)
   payload
 }

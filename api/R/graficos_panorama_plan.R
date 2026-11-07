@@ -1,5 +1,5 @@
 # =============================================================================
-# graficos_panorama_plan.R — constructor y render del panorama (ADR 0114)
+# graficos_panorama_plan.R — constructor y render del panorama (ADR 0134)
 # =============================================================================
 #
 # `p_panorama()` declara las preguntas de cada público; el render calcula el indicador de cada una (el porcentaje que

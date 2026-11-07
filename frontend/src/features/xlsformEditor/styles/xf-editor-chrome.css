@@ -61,28 +61,21 @@
   min-width: 0;
 }
 
-/* Conteo: «92 preguntas · 17 secciones · 24 listas», listas en segundo plano. */
+/* Conteo: indicadores Preguntas, Secciones y Listas (A8), separados del de «Formulario» por la misma línea. */
 .pulso-xlsform-frame .pulso-xf-cmd-metrics {
   display: inline-flex;
-  align-items: baseline;
-  gap: 5px;
+  align-items: center;
   flex: 0 0 auto;
-  padding-left: 10px;
-  border-left: 1px solid var(--pulso-border);
-  color: var(--pulso-text-soft);
-  font-size: 12px;
-  white-space: nowrap;
+  border-left: 1px solid color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 22%, var(--pulso-border));
 }
 
-.pulso-xlsform-frame .pulso-xf-cmd-metrics strong {
-  color: var(--pulso-text);
-  font-weight: var(--pulso-weight-bold);
+.pulso-xlsform-frame .pulso-xf-cmd-metrics .pulso-chrome-indicator-value {
   font-variant-numeric: tabular-nums;
 }
 
 .pulso-xlsform-frame .pulso-xf-cmd-secondary {
   color: var(--pulso-text-muted);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .pulso-xlsform-frame .pulso-xf-cmd-state {
@@ -170,7 +163,7 @@
     gap: 3px;
     min-height: 44px;
     padding: 6px 2px;
-    font-size: 10.5px;
+    font-size: var(--pulso-type-micro-size);
   }
 }
 
@@ -219,6 +212,17 @@
 
 /* ── Estado del formulario (U10) ─────────────────────────────────────────── */
 
+/* El panel del Popover del kit sin su relleno: la cabecera y la lista llevan
+ * el suyo, y la lista es la que desplaza. */
+.pulso-popover.pulso-diagnostics-panel {
+  display: flex;
+  flex-direction: column;
+  width: min(420px, calc(100vw - 24px));
+  max-height: min(560px, calc(100vh - 80px));
+  padding: 0;
+  overflow: hidden;
+}
+
 .pulso-diagnostics-popover-step {
   border: 1px solid var(--pulso-warn-border, var(--pulso-border));
   background: var(--pulso-warn-bg, var(--pulso-surface-2));
@@ -229,7 +233,7 @@
   min-height: 26px;
   padding: 3px 12px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 /* ── Compacto (≤ 1280): rótulos secundarios a nombre accesible ───────────── */
@@ -449,7 +453,7 @@
   border: 1px solid var(--pulso-border);
   border-radius: 10px;
   background: var(--pulso-surface);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-xlsform-frame .pulso-xf-sm-pendientes-cuerpo {
@@ -507,3 +511,111 @@
   field-sizing: content;
   max-height: 40vh;
 }
+
+/* ── L17 · D1: la banda es `ModuleCommandBar` ─────────────────────────────
+   El selector de formulario abre su menú dentro de la zona de contexto, y esa
+   zona recorta con `clip` en el canon. Aquí el menú no va en portal, así que la
+   zona deja ver lo que cae fuera; los hijos siguen sin envolver y en compacto
+   las métricas y la procedencia se recogen, que es lo que evita el desborde. */
+.pulso-xlsform-frame .pulso-xf-cmdbar > .pulso-command-bar-zone[data-zone="contexto"] {
+  overflow: visible;
+}
+
+/* El nombre de la pestaña activa del rail, al centro de la banda. */
+.pulso-xlsform-frame .pulso-xf-cmdbar .pulso-xf-cmd-pestana {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+  color: var(--module-accent, var(--pulso-primary));
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Mismo borde que el workbench de abajo: la clase vieja de la banda traía
+   `margin: 0 12px` y sin ella la barra sobresalía 12 px por cada lado. */
+.pulso-xlsform-frame .pulso-xf-cmdbar.pulso-module-command-bar {
+  margin-inline: 12px;
+}
+
+/* ── Barra a la altura de los otros módulos (editor-conjoint, 2026-11-06) ─────
+ * Pedido de Gonzalo: «Este topbar no está a la altura de los otros módulos, se ve aún muy tosco». Medido contra Hojas
+ * de ruta: allí el contexto es un indicador de 32 px con rótulo en versalitas, y cada control mide 28 px, radio 8,
+ * fondo blanco y borde fino. Aquí convivían 21, 26, 28 y 30 px, píldoras de 999 y botones fantasma. */
+.pulso-xlsform-frame .pulso-xf-cmdbar .pulso-xf-form-switcher-trigger.pulso-chrome-indicator {
+  max-width: min(360px, 28vw, 100%);
+  min-width: 0;
+  align-items: flex-start;
+  overflow: hidden;
+}
+.pulso-xlsform-frame .pulso-xf-cmdbar .pulso-xf-form-switcher-valor {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  min-width: 0;
+}
+.pulso-xlsform-frame .pulso-xf-cmdbar .pulso-xf-form-switcher-valor svg { flex: none; color: var(--module-accent, var(--pulso-primary)); }
+.pulso-xlsform-frame .pulso-xf-cmdbar .pulso-xf-form-switcher-valor svg:last-child { color: var(--pulso-text-soft); }
+.pulso-xlsform-frame .pulso-xf-cmdbar .pulso-xf-form-switcher-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+/* Deshacer y rehacer: un par unido, como los controles de icono de las otras barras. */
+.pulso-xlsform-frame .pulso-xf-cmd-state .pulso-xlsform-history-controls {
+  gap: 0;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  overflow: hidden;
+}
+.pulso-xlsform-frame .pulso-xf-cmd-state .pulso-xlsform-history-button {
+  width: 28px;
+  height: 26px;
+  border: 0;
+  border-radius: 0;
+  color: var(--pulso-text-soft);
+}
+.pulso-xlsform-frame .pulso-xf-cmd-state .pulso-xlsform-history-button + .pulso-xlsform-history-button { border-left: 1px solid var(--pulso-border); }
+.pulso-xlsform-frame .pulso-xf-cmd-state .pulso-xlsform-history-button:hover:not(:disabled) { background: var(--pulso-surface-2); color: var(--pulso-text); }
+.pulso-xlsform-frame .pulso-xf-cmd-state .pulso-xlsform-history-button:disabled { opacity: 0.4; }
+
+/* La pestaña activa, como la píldora elegida del riel de secciones de los otros módulos. */
+.pulso-xlsform-frame .pulso-xf-cmdbar .pulso-xf-cmd-pestana {
+  min-height: 30px;
+  padding: 0 14px;
+  background: var(--module-accent, var(--pulso-primary));
+  color: var(--pulso-surface);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-bold);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pulso-surface) 22%, transparent), var(--pulso-shadow-low);
+}
+
+/* Avisos, leyenda, agregar y exportar: 28 px, radio 8, fondo blanco y borde fino. */
+.pulso-xlsform-frame .pulso-xf-cmdbar .pulso-diagnostics-badge[class*="tone-"],
+.pulso-xlsform-frame .pulso-xf-cmdbar .xf-leyenda-boton,
+.pulso-xlsform-frame .pulso-xf-cmdbar .pulso-xf-intake-trigger {
+  min-height: 28px;
+  height: 28px;
+  padding-block: 0;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-medium);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pulso-surface) 82%, transparent), var(--pulso-shadow-low);
+}
+.pulso-xlsform-frame .pulso-xf-cmdbar .xf-leyenda-boton { width: 28px; padding: 0; }
+.pulso-xlsform-frame .pulso-xf-cmdbar .pulso-diagnostics-badge:hover,
+.pulso-xlsform-frame .pulso-xf-cmdbar .xf-leyenda-boton:hover,
+.pulso-xlsform-frame .pulso-xf-cmdbar .pulso-xf-intake-trigger:hover { border-color: var(--pulso-border-strong); }
+.pulso-xlsform-frame .pulso-xf-export-split .pulso-xf-export-main,
+.pulso-xlsform-frame .pulso-xf-export-split .pulso-xf-export-caret {
+  height: 28px;
+  box-shadow: none;
+  font-weight: var(--pulso-weight-semibold);
+}
+.pulso-xlsform-frame .pulso-xf-export-split .pulso-xf-export-main { border-start-start-radius: 8px; border-end-start-radius: 8px; }
+.pulso-xlsform-frame .pulso-xf-export-split .pulso-xf-export-caret { border-start-end-radius: 8px; border-end-end-radius: 8px; }

@@ -93,6 +93,24 @@ dirección lógica trata `/carga` como `{modulo: "procesamiento", seccion:
 "carga"}` igual que en cualquier otro módulo, y solo el mapeo a URL difiere.
 Serializar esa dirección devuelve `/carga`, no `/carga?seccion=carga`.
 
+#### Params de alcance (adenda, 2026-11-04)
+
+Junto a los cinco niveles y al `foco` hay **params de alcance**: dicen *desde
+dónde* se mira una vista, no un sexto nivel. Son reservados (un `extra` no
+puede escribirlos), cada uno tiene un único escritor en `direccion.ts` y un
+hook de lectura en `lib/navegacion/`.
+
+- `campana` (ADR 0111 §4): la campaña abierta de Material de campo. Entra en
+  `mismaDireccion`: la misma sección de dos campañas no es la misma vista.
+- `ciudad`: la ciudad a la que se bajó en el mapa nacional de Hojas de ruta
+  (`lima` o el código de provincia), en Población, Muestra, Manzanas y
+  Selección cuando el estudio tiene distritos en dos o más ciudades. Escritor
+  `conCiudad`, lector `useCiudad`. No es `foco` porque en Selección `foco` ya
+  es la UMP y conviven (`?seccion=seleccion&ciudad=0401&foco=<ump>`). Se
+  conserva al cambiar de sección y **no** entra en `mismaDireccion`: es
+  encuadre, la misma vista mirada desde otra ciudad. Territorio no la lee:
+  su atlas sigue por `foco`.
+
 ### 3. Los nombres viejos se leen, nunca se escriben
 
 `tab`, `stage`, `mesa`, `desk`, `tipo`, `step`, `reporte`, `perfil`, `agregar`,

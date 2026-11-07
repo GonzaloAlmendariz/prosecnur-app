@@ -194,10 +194,10 @@ export function marcoFueConstruido(
 export function notaEstadoDelMarco(
   frame: CalcMuestraAulasState["frame"] | null | undefined,
 ): string | null {
-  if (!marcoFueConstruido(frame)) return "sin construir · calcula elegibles";
+  if (!marcoFueConstruido(frame)) return "sin construir, calcula elegibles";
   const { status } = frameIntegrity(frame);
-  if (status === "inconsistent") return "frame incoherente · reconstruye";
-  if (status === "unverifiable") return "frame no verificable · reconstruye";
+  if (status === "inconsistent") return "marco incoherente; reconstrúyelo";
+  if (status === "unverifiable") return "marco no verificable; reconstrúyelo";
   return null;
 }
 

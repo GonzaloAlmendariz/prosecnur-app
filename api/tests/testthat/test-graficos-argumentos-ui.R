@@ -141,7 +141,12 @@ test_that("metadata de graficadores expone controles claros y sin duplicados", {
     #   `colores_list`     — muestra de color por foco, no HEX tecleado
     #   `orden_categorias` — filas que se suben y bajan, como los slides
     #   `categorias_escala`— marcar categorías sobre las escalas reales
-    "iconos_list", "colores_list", "orden_categorias", "categorias_escala"
+    #   `partes`           — filas rótulo + respuestas de la línea por nivel (antes `meta`, sin control)
+    "iconos_list", "colores_list", "orden_categorias", "categorias_escala", "partes",
+    #   `hallazgos_capitulos` — capítulos y hallazgos del resumen ejecutivo (ítem 2 de la v7.11 RV)
+    "hallazgos_capitulos",
+    #   `resumen_capitulos`   — capítulos y filas del resumen de diferencias (ítem 15 de la v7.23 RV)
+    "resumen_capitulos"
   )
   ui_grupo_soportado <- c(
     "datos", "lectura", "valores", "leyenda", "espacio", "tabla",
@@ -646,11 +651,13 @@ test_that("paletas configuradas pintan barras agrupadas simples por categoria", 
     "3" = "#F4A261"
   )
 
+  # ADR 0130 «una serie, un color»: una sola serie va monocroma salvo que se pida «Un color por opción».
   out <- tempfile(fileext = ".png")
   .render_agrupadas_args_ui(
     .fixture_agrupadas_args_ui(),
     out,
     colores_categorias = paleta,
+    colorear_por_opcion = TRUE,
     canvas_w_etiquetas = 0.28
   )
 
@@ -658,6 +665,12 @@ test_that("paletas configuradas pintan barras agrupadas simples por categoria", 
   expect_gt(.count_near_color_pixels(img, "#C1121F"), 100)
   expect_gt(.count_near_color_pixels(img, "#2A9D8F"), 100)
   expect_gt(.count_near_color_pixels(img, "#F4A261"), 100)
+
+  mono <- tempfile(fileext = ".png")
+  .render_agrupadas_args_ui(.fixture_agrupadas_args_ui(), mono, colores_categorias = paleta, canvas_w_etiquetas = 0.28)
+  img_mono <- png::readPNG(mono)
+  expect_equal(.count_near_color_pixels(img_mono, "#C1121F"), 0)
+  expect_equal(.count_near_color_pixels(img_mono, "#F4A261"), 0)
 })
 
 test_that("paletas configuradas pintan barras numericas simples por categoria", {
@@ -1393,7 +1406,10 @@ test_that("barras de PPT pueden mostrar porcentaje con frecuencia", {
     mostrar_valores = TRUE,
     umbral_posicion = 0.40,
     umbral_etiqueta = 0,
-    decimales = 0
+    decimales = 0,
+    # Con una sola serie la cifra va fuera salvo `cifras_dentro = TRUE` (003f07c34, CCSS 2026: dentro y grande o fuera y
+    # chica según la ruta). Aquí se pide dentro para probar el umbral de posición; el defecto se prueba abajo.
+    cifras_dentro = TRUE
   )
 
   labs_agrupadas <- unlist(lapply(
@@ -1414,6 +1430,12 @@ test_that("barras de PPT pueden mostrar porcentaje con frecuencia", {
   inside_agrupadas <- layer_agrupadas[layer_agrupadas$inside, , drop = FALSE]
   expect_equal(inside_agrupadas$valor_label, inside_agrupadas$.valor_plot / 2, tolerance = 1e-8)
   expect_equal(inside_agrupadas$hjust_label, rep(0.5, nrow(inside_agrupadas)))
+  # Sin `cifras_dentro`, la agrupada de una serie pone todas sus cifras fuera, también las de las barras largas.
+  p_fuera <- graficar_barras_agrupadas(data = df_agrupadas, var_categoria = "categoria", var_n = "N", cols_porcentaje = "pct",
+                                       etiquetas_series = c(pct = "Porcentaje"), cols_n = c(pct = "n"), mostrar_n_en_etiquetas = TRUE,
+                                       mostrar_valores = TRUE, umbral_posicion = 0.40, umbral_etiqueta = 0, decimales = 0)
+  layer_fuera <- Filter(function(layer) inherits(layer$geom, "GeomText"), p_fuera$layers)[[1]]$data
+  expect_false(any(layer_fuera$inside))
 
   p_agrupadas_100 <- graficar_barras_agrupadas(
     data = data.frame(
@@ -1569,11 +1591,11 @@ test_that("PPT usa textos pulidos para selección múltiple y Top 2 Box", {
   # 41 laminas (`.PPT_ROTULO_TOP_TWO_BOX`). Buscar «Top 2 Box» sobre ese mismo
   # entregable devolvia 0 columnas cuando tiene 40, que es lo que motivo el
   # cambio de forma.
-  expect_true(grepl(.PPT_ROTULO_TOP_TWO_BOX, xml, fixed = TRUE))
+  expect_true(grepl(toupper(.PPT_ROTULO_TOP_TWO_BOX), xml, fixed = TRUE))   # la lámina lo escribe en mayúsculas (G20)
   expect_false(grepl("N =", xml, fixed = TRUE))
-  # La selección múltiple se anuncia como en la lámina 73 del recetario (ADR 0093): el encabezado sobre las
-  # barras, no el aviso «Pregunta de opción múltiple» que el gráfico ggplot ponía de subtítulo.
-  expect_true(grepl("% de encuestados que marcó cada opción", xml, fixed = TRUE))
+  # Sin encabezado de fábrica sobre las barras (Gonzalo, 2026-10-29: «% de encuestados que marcó cada opción» deja de
+  # salir por defecto; lo escribe el analista), y tampoco el viejo aviso «Pregunta de opción múltiple».
+  expect_false(grepl("% de encuestados que marcó cada opción", xml, fixed = TRUE))
   expect_false(grepl("Pregunta de opción múltiple", xml, fixed = TRUE))
 })
 

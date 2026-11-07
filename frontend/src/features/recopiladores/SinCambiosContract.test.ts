@@ -45,7 +45,10 @@ describe("Recopiladores: el guardado que no cambió nada lo dice", () => {
     expect(shell).toContain("No había nada que guardar");
     // Guardar dos veces lo mismo es legítimo: es aviso, no error.
     const regla = css.slice(css.indexOf(".rec-sin-cambios {"));
-    expect(regla.slice(0, 400)).toMatch(/--pulso-warn-bg/);
-    expect(regla.slice(0, 400)).not.toMatch(/--pulso-danger/);
+    // Hasta su llave de cierre: con 400 caracteres fijos la ventana llegaba a la
+    // regla vecina (`.rec-notice`, que sí es de error) cuando se borró la de en medio.
+    const bloque = regla.slice(0, regla.indexOf("}"));
+    expect(bloque).toMatch(/--pulso-warn-bg/);
+    expect(bloque).not.toMatch(/--pulso-danger/);
   });
 });

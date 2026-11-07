@@ -37,6 +37,7 @@ import { ParticularidadesPanel } from "./ParticularidadesPanel";
 import { normalizeParticularidadesDecisiones } from "./particularidadesModel";
 import "../../didactica/didactica.css";
 import "./marco.css";
+import { Panel } from "../../../../components/Panel";
 
 const WEIGHTED_KEYS = ["eligible_n", "elegibles", "n_elegibles", "students_n", "matriculados", "total"];
 
@@ -130,11 +131,13 @@ export function MarcoAulasTab({
       // haber terminado. Una vista con fetch propio tendría que condicionarlo.
       data-audit-ready="true"
     >
-      <section className="cmv2-panel cmv2-marco-aulas-head" data-qa-geometry-member>
-        <div className="cmv2-marco-aulas-lead">
-          <span className="cmv2-eyebrow">Marco de cursos-horario</span>
-          <strong>De la matrícula elegible a las unidades que se pueden seleccionar</strong>
-        </div>
+      <Panel
+        className="cmv2-marco-aulas-head"
+        aria-labelledby="cmv2-marco-aulas-titulo"
+        eyebrow="Marco de cursos-horario"
+        title={<span id="cmv2-marco-aulas-titulo">De la matrícula elegible a las unidades que se pueden seleccionar</span>}
+        data-qa-geometry-member
+      >
         <CifraFila>
           <CifraMotor
             label="Cursos-horario válidos"
@@ -173,7 +176,7 @@ export function MarcoAulasTab({
             />
           </div>
         )}
-      </section>
+      </Panel>
 
       <MarcoAulasCapacidad frame={frame} workspace={workspace} />
 
@@ -183,7 +186,7 @@ export function MarcoAulasTab({
         onDecisiones={(next) => updateConfig({ particularidades_decisiones: next })}
       />
 
-      <div className="cmv2-dashboard-chart-grid">
+      <div className="cmv2-dashboard-chart-grid" data-qa-geometry-group="calc-muestra/marco-aulas-graficos" data-qa-geometry-contract="intrinsic">
         <ClassroomPlotCard
           title="Tamaño de los cursos-horario"
           subtitle={`elegibles por curso-horario, con bandas ${(config.grupos_tamano ?? []).map((g) => g.id).join("-") || "G1-G4"} y mínimo operativo`}

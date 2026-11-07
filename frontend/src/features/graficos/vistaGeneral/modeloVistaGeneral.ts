@@ -14,6 +14,7 @@ import {
   type LaminaEnEstructura,
   type NodoEstructura,
 } from "../laminas/modeloEstructura";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 export type RolTarjeta = "separador" | "subcapitulo" | "lamina";
 
@@ -375,7 +376,7 @@ export function moverAlCapitulo(
   const movidas = ids.filter((id) => mover.has(id));
   const sueltas = movidas.length - capitulos.reduce((n, c) => n + c.ids.length, 0);
   const partes = [
-    ...(capitulos.length === 1 ? [`el capítulo “${capitulos[0].titulo}”`] : capitulos.length > 1 ? [`${capitulos.length} capítulos`] : []),
+    ...(capitulos.length === 1 ? [`el capítulo “${capitulos[0].titulo}”`] : capitulos.length > 1 ? [`${formatoConteo(capitulos.length)} capítulos`] : []),
     ...(sueltas > 0 ? [sueltas === 1 ? "1 lámina" : `${sueltas} láminas`] : []),
   ];
   const que = partes.join(" y ");

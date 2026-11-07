@@ -50,8 +50,11 @@ export function VariablesDeControl({ filas, reporte }: { filas: readonly FilaDeC
                 <tbody key={`${grupo.actor}-${variable.variable}`} className={clasePublico(paleta, grupo.actor)}>
                   <tr className="acr-vc-grupo">
                     <th scope="colgroup" colSpan={7}>
-                      <i className="mon-publico-punto" aria-hidden="true" />
-                      {`${grupo.actor}, ${variable.variable}`}
+                      {/* Público y variable en su sitio, no unidos por una coma (Gonzalo, 30/10). */}
+                      <span className="acr-vc-grupo-nombre">
+                        <span className="acr-vc-grupo-publico"><i className="mon-publico-punto" aria-hidden="true" />{grupo.actor}</span>
+                        <strong>{variable.variable}</strong>
+                      </span>
                     </th>
                   </tr>
                   {variable.rows.map((fila) => (
@@ -77,7 +80,7 @@ export function VariablesDeControl({ filas, reporte }: { filas: readonly FilaDeC
             </table>
           </div>
         ) : (
-          <VacioDeBloque icono={<SlidersHorizontal size={15} />} titulo="El corte no trae variables de control." descripcion="Aparecen cuando el padrón declara año de egreso, dedicación o área." />
+          <VacioDeBloque icono={<SlidersHorizontal size={15} />} titulo="El corte no trae variables de control." descripcion="Se eligen en Modelo › Cuotas, con metas o en «Solo seguimiento», y aparecen aquí tras el siguiente corte." />
         )}
         {grupos.length ? (
           <span className="acr-av-leyenda is-centrada">

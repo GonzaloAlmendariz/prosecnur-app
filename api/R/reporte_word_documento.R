@@ -207,10 +207,11 @@
     options(prosecnur.word_rotulo_comun = comun_de[[i]], prosecnur.word_figura_en_curso = sprintf("Gráfico %d «%s»", figura, .word_txt1(e$title)))   # avisos del dibujo (R3)
     g <- tryCatch(.word_grafico(p), error = function(err) { avisar("El gráfico «", e$title %||% i, "» no se pudo dibujar: ", conditionMessage(err)); NULL })
     if (is.null(g)) next
+    if (!is.null(.tarjetas_de_figura(p))) attr(g, "alto") <- .word_tarjetas_alto_total(attr(g, "alto"), .tarjetas_de_figura(p))   # ADR 0129
     ancho <- attr(g, "ancho") %||% .std_word("pagina", "ancho_util")
     png <- .word_png(g, attr(g, "alto"), ancho = ancho)
     doc <- .word_figura(doc, figura, .word_oracion(e$title), png, alto = attr(g, "alto"), ancho = ancho, base = base_de(e),
-                        tabla = attr(p, "pulso_word_tabla"))   # radar entre públicos con `word_tabla`: tabla nativa encima de la figura
+                        tabla = attr(p, "pulso_word_tabla"), nota_sig = .lam_nota_sig_de(p), tarjetas = .tarjetas_de_figura(p))   # ADR 0128: la nota de diferencias   # radar entre públicos con `word_tabla`: tabla nativa encima de la figura
     figura <- figura + 1L
   }
   doc <- poner_como_leer(doc)      # un plan sin secciones igual lleva «Cómo leer» si tiene escalas

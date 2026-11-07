@@ -40,6 +40,10 @@ import { crearFantasma, type Fantasma } from "./fantasma";
 import {
   FILTROS_RAPIDOS,
   construirArbol,
+  esIdExperimento,
+  filaDeIdExperimento,
+  filaDeIdSorteo,
+  type ExperimentoEnEstructura,
   filtrarArbol,
   huecoEntre,
   lineaVecina,
@@ -61,6 +65,13 @@ import { itemsInsertar } from "./tiposInsertables";
 import { useFlip } from "./useFlip";
 import "./estructura.css";
 
+/** Clave del plegado de un sorteo: el código de su primer cálculo, que no cambia al mover o insertar filas. */
+function claveSorteo(structure: BuilderStructure | null, id: number): string {
+  const experimento = esIdExperimento(id);
+  const fila = experimento ? filaDeIdExperimento(id) : filaDeIdSorteo(id);
+  return `${experimento ? "experimento" : "sorteo"}:${structure?.byRow.get(fila)?.name || fila}`;
+}
+
 export type { AvisoFila } from "./PuntoAviso";
 export type { LimiteSeccion } from "./SeccionEstructura";
 
@@ -70,8 +81,6 @@ export type SurveyOutlineProps = {
   onSelect: (value: BuilderSelection) => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
-  canMoveUp: boolean;
-  canMoveDown: boolean;
   /** Aplica un arrastre concreto al workbook. */
   onApplyMove: (plan: RowMovePlan) => void;
   /** Avisos por fila, armados por la página desde los diagnósticos (contrato con la ficha: no cambiar la forma). */
@@ -86,6 +95,16 @@ export type SurveyOutlineProps = {
   formularioId?: string | null;
   /** Acción extra al final de la barra de búsqueda (ver BarraEstructura). */
   accionBarra?: ReactNode;
+  /** Par al que pertenece cada cálculo del sorteo de un experimento de elección por pares (C5). */
+  tareaDeSorteo?: (fila: number) => number | undefined;
+  /** Abre el diseño del experimento; con `fila`, el del experimento al que pertenece ese sorteo. */
+  onAbrirPares?: (fila?: number) => void;
+  /** Rótulo del sorteo que empieza en `fila` («Sorteo del par 3», «Sorteo de la viñeta 2»). */
+  rotuloSorteo?: (fila: number, n: number) => string;
+  /** Nombre de una pieza que arma un experimento, en vez de su texto con referencias. */
+  tituloFijo?: (fila: number) => string | undefined;
+  /** Experimentos del formulario: sus piezas de primer nivel y lo que dice su cabecera (C7, C11). */
+  experimentos?: readonly ExperimentoEnEstructura[];
 };
 
 const MARGEN_AUTOSCROLL = 44;
@@ -99,8 +118,6 @@ export function SurveyOutline({
   onSelect,
   onMoveUp,
   onMoveDown,
-  canMoveUp,
-  canMoveDown,
   onApplyMove,
   avisosPorFila,
   onInsertar,
@@ -108,6 +125,11 @@ export function SurveyOutline({
   limiteSeccion,
   formularioId = null,
   accionBarra,
+  tareaDeSorteo,
+  onAbrirPares,
+  rotuloSorteo,
+  tituloFijo,
+  experimentos,
 }: SurveyOutlineProps) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [arrastre, setArrastre] = useState<ArrastreEstructura | null>(null);
@@ -123,7 +145,7 @@ export function SurveyOutline({
   // Árbol, filtro y líneas visibles
   // ---------------------------------------------------------------------------
 
-  const arbol = useMemo(() => construirArbol(structure), [structure]);
+  const arbol = useMemo(() => construirArbol(structure, tareaDeSorteo, experimentos), [structure, tareaDeSorteo, experimentos]);
 
   const hechos = useMemo(() => {
     // Misma lectura que los diagnósticos (estadoLista): una lista existe si choices le da alguna opción.
@@ -176,6 +198,9 @@ export function SurveyOutline({
   const plegada = useCallback(
     (fila: number) => {
       if (filtrando) return false;
+      // Un experimento va abierto salvo que se pliegue; un sorteo va plegado salvo que se abra (en el store se anota
+      // lo contrario de su estado de entrada).
+      if (fila < 0) return esIdExperimento(fila) ? plegadas.has(claveSorteo(structure, fila)) : !plegadas.has(claveSorteo(structure, fila));
       const n = structure?.byRow.get(fila);
       return n ? plegadas.has(clavePlegado(n.name, fila)) : false;
     },
@@ -217,6 +242,14 @@ export function SurveyOutline({
       id = meta.parentId;
     }
   }, [selectedRow, structure, fijarPlegada]);
+  useEffect(() => {
+    if (selectedRow == null) return;
+    // Lo mismo con el experimento y el sorteo de un par: se abre la cabecera que esconde la pieza elegida.
+    for (const l of lineas) {
+      if ((l.tipo !== "sorteo" && l.tipo !== "experimento") || l.abierta || selectedRow < l.inicio! || selectedRow >= l.fin!) continue;
+      fijarPlegada(claveSorteo(structure, l.fila), l.tipo === "sorteo");
+    }
+  }, [selectedRow, lineas, structure, fijarPlegada]);
 
   // La fila elegida se trae a la vista sólo cuando cambia QUÉ pieza está elegida (o la movió el teclado). Un cambio
   // del workbook que sólo la renumera (arrastrar otra fila por encima, insertar, guardar) no debe mover la lista:
@@ -254,6 +287,11 @@ export function SurveyOutline({
   const onElegir = useCallback((fila: number) => ultimo.current.onSelect({ kind: "survey", rowIndex: fila }), []);
   const onPlegar = useCallback(
     (fila: number) => {
+      if (fila < 0) {
+        flip.capturar();
+        alternarPlegada(claveSorteo(structure, fila));
+        return;
+      }
       const n = structure?.byRow.get(fila);
       if (!n) return;
       flip.capturar();
@@ -261,8 +299,6 @@ export function SurveyOutline({
     },
     [structure, alternarPlegada, flip],
   );
-  const moverArriba = useCallback(() => ultimo.current.onMoveUp(), []);
-  const moverAbajo = useCallback(() => ultimo.current.onMoveDown(), []);
   const abrirInsertar = useCallback((destino: DestinoInsercion, ancla: HTMLElement) => setInsertando({ destino, ancla }), []);
   const hayInsertar = !!onInsertar;
 
@@ -421,6 +457,7 @@ export function SurveyOutline({
     const l = lineas.find((x) => x.fila === fila);
     if (!l) return { despuesDeFila: fila, seccionFila: null };
     if (l.tipo === "seccion" && l.abierta) return { despuesDeFila: null, seccionFila: fila };
+    if (l.tipo === "sorteo" || l.tipo === "experimento") return { despuesDeFila: l.fin! - 1, seccionFila: l.contenedor };
     return { despuesDeFila: fila, seccionFila: l.contenedor };
   }
 
@@ -435,11 +472,12 @@ export function SurveyOutline({
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       if (fila == null) onSelect({ kind: "settings" });
+      else if (fila < 0) onPlegar(fila);
       else onElegir(fila);
       return;
     }
     if (e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
-      if (fila == null || filtrando) return;
+      if (fila == null || fila < 0 || filtrando) return;
       e.preventDefault();
       const dir = e.key === "ArrowUp" ? "up" : "down";
       focoTrasMover.current = true;
@@ -468,16 +506,16 @@ export function SurveyOutline({
     }
     if (e.key === "ArrowLeft" && linea) {
       e.preventDefault();
-      if (linea.tipo === "seccion" && linea.abierta && !filtrando) onPlegar(linea.fila);
+      if (linea.tipo !== "fila" && linea.abierta && !filtrando) onPlegar(linea.fila);
       else if (linea.contenedor != null) enfocar(linea.contenedor);
       return;
     }
-    if (e.key === "ArrowRight" && linea?.tipo === "seccion") {
+    if (e.key === "ArrowRight" && linea && linea.tipo !== "fila") {
       e.preventDefault();
       if (!linea.abierta) onPlegar(linea.fila);
       else {
         const vecina = lineaVecina(lineas, linea.fila, 1);
-        if (vecina?.contenedor === linea.fila) enfocar(vecina.fila);
+        if (vecina && (vecina.contenedor === linea.fila || linea.tipo !== "seccion")) enfocar(vecina.fila);
       }
       return;
     }
@@ -502,17 +540,16 @@ export function SurveyOutline({
             arrastrable: !filtrando,
             plegada,
             avisos: avisosPorFila,
-            canMoveUp,
-            canMoveDown,
             limite: limiteSeccion,
             onElegir,
             onPlegar,
-            onMoveUp: moverArriba,
-            onMoveDown: moverAbajo,
             onInsertar: hayInsertar ? abrirInsertar : undefined,
+            onAbrirPares,
+            rotuloSorteo,
+            tituloFijo,
           }
         : null,
-    [structure, selectedRow, enRecorrido, arrastre, filtrando, plegada, avisosPorFila, canMoveUp, canMoveDown, limiteSeccion, onElegir, onPlegar, moverArriba, moverAbajo, hayInsertar, abrirInsertar],
+    [structure, selectedRow, enRecorrido, arrastre, filtrando, plegada, avisosPorFila, limiteSeccion, onElegir, onPlegar, hayInsertar, abrirInsertar, onAbrirPares, rotuloSorteo, tituloFijo],
   );
 
   const itemsMenu = useMemo(
@@ -622,7 +659,7 @@ export function SurveyOutline({
         </div>
       </DndContext>
       <p className="xfe-pie" aria-hidden="true">
-        <kbd>↑↓</kbd> recorre · <kbd>Enter</kbd> abre · <kbd>Alt ↑↓</kbd> mueve · <kbd>+</kbd> agrega
+        <kbd>↑↓</kbd> recorre, <kbd>Enter</kbd> abre, <kbd>Alt ↑↓</kbd> mueve, <kbd>+</kbd> agrega
       </p>
       {insertando ? (
         <AddElementMenu

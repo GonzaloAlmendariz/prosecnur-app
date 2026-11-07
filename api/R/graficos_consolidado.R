@@ -153,6 +153,7 @@ graficos_consolidado_draft_set <- function(sid, config, expected_revision) {
   src <- .graficos_apply_orden_categorias_sources(sid, src)
   # Mismo orden de dummies que la vista de Analítica y que el PPT por base.
   src <- tryCatch(.graficos_order_sm_dummy_sources(src), error = function(e) src)
+  src <- .graficos_sig_adjuntar_config(sid, src)   # ADR 0127: misma prueba que la tabla
   common <- intersect(names(src$data_sources), names(src$inst_sources))
   if (!is.null(source_order)) common <- source_order[source_order %in% common]
   list(data_sources = src$data_sources[common], inst_sources = src$inst_sources[common])
@@ -648,9 +649,12 @@ graficos_consolidado_preflight <- function(sid, config = NULL) {
 
 graficos_consolidado_job_runner <- function(data_path, inst_path, recipe_path,
                                              template_pptx, template_id, result_path,
-                                             progress_path = NULL) {
+                                             progress_path = NULL, estilo_cliente = list()) {
   .pkg_fn <- function(name) get(name, envir = asNamespace("prosecnurapp"), inherits = FALSE)
   report <- .pkg_fn("job_progress_writer")(progress_path)
+  # Logos y letra del cliente (graficos_estilo_cliente_worker.R), igual que el PPT de cada base (graficos_jobs.R).
+  ec <- .pkg_fn(".graficos_estilo_cliente_iniciar")(estilo_cliente, "ppt", template_pptx)
+  on.exit(options(ec$previas), add = TRUE)
   recipe <- readRDS(recipe_path)
   data_sources <- readRDS(data_path)
   inst_sources <- readRDS(inst_path)
@@ -691,6 +695,7 @@ graficos_consolidado_job_runner <- function(data_path, inst_path, recipe_path,
     auto_otros_slides = recipe$auto_otros_slides,
     mensajes_progreso = FALSE
   )
+  .pkg_fn(".graficos_estilo_cliente_cerrar_ppt")(ec, rebuilt)
   report("export", percent = 96, message = "Registrando PPT y procedencia...")
   # D8/H42: la receta se respeta tal cual —congelarla es el punto—, pero el
   # resultado declara si el suelo con el que se construyo sigue siendo el
@@ -734,7 +739,9 @@ attr(graficos_consolidado_job_runner, "prosecnur_job_function_name") <- "grafico
   s$files[[manifest_meta$file_id]]$sha256 <- manifest_sha
   s$files[[manifest_meta$file_id]]$role <- "manifest"
   .session_env[[sid]] <- s
-  list(
+  # ADR 0133: la copia junto al proyecto viaja en la respuesta; sin ella el front
+  # abría además el diálogo de guardado y el informe quedaba duplicado.
+  entregable_respuesta(list(
     ok = TRUE,
     file_id = ppt_meta$file_id,
     filename = ppt_meta$original_name,
@@ -745,7 +752,7 @@ attr(graficos_consolidado_job_runner, "prosecnur_job_function_name") <- "grafico
       list(role = "deliverable", file_id = ppt_meta$file_id, sha256 = ppt_sha),
       list(role = "manifest", file_id = manifest_meta$file_id, sha256 = manifest_sha)
     )
-  )
+  ), ppt_meta)
 }
 
 graficos_consolidado_start <- function(sid, config = NULL, presets = NULL, expected_revision = NULL) {
@@ -825,7 +832,7 @@ graficos_consolidado_start <- function(sid, config = NULL, presets = NULL, expec
       recipe_path = recipe_path,
       template_pptx = template,
       template_id = delivery$template_id
-    ),
+    ) |> c(.graficos_estilo_cliente_arg(sid, preflight$config, "ppt")),   # D5: logos y letra del cliente, como /ppt de cada base
     result_filename = .export_filename(sid, "informe_consolidado", "pptx"),
     on_complete = function(job) {
       .graficos_consolidado_register_artifacts(job$sid, job$result_path, job$result_data)

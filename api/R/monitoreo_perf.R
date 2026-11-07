@@ -269,7 +269,8 @@ monitoreo_perf_publication_tabs_key <- function(sid,
       list(synced_at = snapshot$synced_at %||% ""),
       snapshot$data,
       cfg,
-      report_scope = report_scope
+      report_scope = report_scope,
+      route_sig = .monitoreo_territorial_route_sig(sid, cfg)
     ),
     .monitoreo_scalar(audience, "client"),
     isTRUE(include_targets),

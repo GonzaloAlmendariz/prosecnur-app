@@ -2,6 +2,7 @@
 // La imagen la rasteriza el motor del export (`preview-slide`, vía el coordinador). Ranuras seleccionables sobre la
 // imagen, zoom y tira de miniaturas (parte 2); guías por capas encima de la hoja (plan F6 §8, `guias/`).
 
+import { nombreDeAtajo } from "../../../lib/teclado";
 import { useMemo, useRef, type CSSProperties, type KeyboardEvent, type ReactNode, type RefObject } from "react";
 import {
   AlertTriangle,
@@ -34,6 +35,7 @@ import type { VistaPreviaLamina } from "./usePreviewLamina";
 import { useLaminasUi, type ZoomVisor } from "./laminasStore";
 import { useMiniaturasLoteStore } from "./miniaturas/miniaturasStore";
 import { RanurasSobreLamina } from "./RanurasSobreLamina";
+import { nombreSlot } from "./selectores/etiquetas";
 import { ATRIBUTO_LIENZO } from "./selectores/focoAlCerrar";
 import type { RanuraSobreLamina } from "./ranurasLamina";
 import { BotonGuias } from "./guias/BotonGuias";
@@ -41,6 +43,7 @@ import { GuiasSobreLamina } from "./guias/GuiasSobreLamina";
 import { useGuiasUi } from "./guias/guiasStore";
 import { construirGuias, rolesPresentes } from "./guias/modeloGuias";
 import "./visorLamina.css";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 type Props = {
   slide: Slide;
@@ -79,7 +82,6 @@ type Props = {
   formas?: PreviewFormas | null;
 };
 
-const MOD = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘" : "Ctrl+";
 
 const ZOOMS: { valor: ZoomVisor; label: string; factor: number }[] = [
   { valor: "ajustar", label: "Ajustar", factor: 1 },
@@ -139,7 +141,7 @@ export function VisorLamina({
           type="button"
           className={`pulso-f6-boton${estructuraAbierta ? " is-activo" : ""}`}
           aria-pressed={estructuraAbierta}
-          title={`${estructuraAbierta ? "Ocultar" : "Mostrar"} la estructura (${MOD}1)`}
+          title={`${estructuraAbierta ? "Ocultar" : "Mostrar"} la estructura (${nombreDeAtajo("1")})`}
           onClick={onAlternarEstructura}
         >
           <ListTree size={15} aria-hidden="true" />
@@ -190,7 +192,7 @@ export function VisorLamina({
         {l && l.avisos.length > 0 && (
           <button type="button" className="pulso-f6-boton pulso-f6-visor-avisos" onClick={onVerAvisos}>
             <AlertTriangle size={14} aria-hidden="true" />
-            {l.avisos.length}
+            {formatoConteo(l.avisos.length)}
             <span className="pulso-f6-rotulo-medio">{l.avisos.length === 1 ? " aviso" : " avisos"}</span>
           </button>
         )}
@@ -207,7 +209,7 @@ export function VisorLamina({
         )}
         <button
           type="button"
-          className={`pulso-f6-boton${verComoQueda ? " is-activo" : ""}`}
+          className={`pulso-f6-boton pulso-f6-previsualizar${verComoQueda ? " is-activo" : ""}`}
           aria-pressed={verComoQueda}
           disabled={!prepOk && !verComoQueda}
           title={prepOk ? (verComoQueda ? "Volver a la maqueta" : "Ver la lámina como saldrá en el PowerPoint") : "Prepara la base en Analítica para previsualizar"}
@@ -244,7 +246,7 @@ export function VisorLamina({
           ref={ajustesRef}
           className={`pulso-f6-boton${ajustesAbiertos ? " is-activo" : ""}`}
           aria-pressed={ajustesAbiertos}
-          title={`${ajustesAbiertos ? "Ocultar" : "Mostrar"} los ajustes (${MOD}.)`}
+          title={`${ajustesAbiertos ? "Ocultar" : "Mostrar"} los ajustes (${nombreDeAtajo(".")})`}
           aria-controls="pulso-f6-inspector"
           onClick={onAbrirAjustes}
         >
@@ -269,10 +271,12 @@ export function VisorLamina({
               draggable={false}
             />
           ) : (
-            <MaquetaLamina slide={slide} lamina={lamina} ranuraActiva={ranuraActiva} onRanura={onRanura} onCambiar={onCambiarGrafico} onTexto={onTexto} />
+            <MaquetaLamina slide={slide} lamina={lamina} ranuraActiva={ranuraActiva} onRanura={onRanura} onCambiar={onCambiarGrafico} onTexto={onTexto}
+              onPrevisualizar={verComoQueda ? undefined : onAlternarComoQueda} prepOk={prepOk} />
           )}
           {src && <ZonasTextoLamina onTexto={onTexto} campos={camposTexto} zonas={zonasPortada(slide.tipo, varianteDe(slide)) ?? undefined} />}
-          {src && <RanurasSobreLamina ranuras={ranuras} activa={ranuraActiva} nombre={nombreRanura} onRanura={onRanura} onCambiar={onCambiarGrafico} />}
+          {src && <RanurasSobreLamina ranuras={ranuras} activa={ranuraActiva} nombre={nombreRanura} onRanura={onRanura} onCambiar={onCambiarGrafico}
+            lugar={(slot) => nombreSlot(slot, slidesById[slide.tipo])} />}
           {/* Las guías son del visor: nunca entran al entregable (D17). Sólo sobre el dibujo real del motor. */}
           {real && !cargando && <GuiasSobreLamina modelo={guias} resaltada={resaltada} hojaRef={hojaRef} />}
         </figure>

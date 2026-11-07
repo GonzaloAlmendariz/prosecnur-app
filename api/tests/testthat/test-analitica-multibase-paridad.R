@@ -552,5 +552,6 @@ test_that("el zip multibase se nombra limpio, sin el uuid de su ruta temporal", 
   outs <- list(list(path = f1, filename = "a.xlsx"), list(path = f2, filename = "b.xlsx"))
   z <- .zip_outputs(sid, outs, "libro_de_codigos", "codebook_multi")
   expect_false(grepl("^[0-9a-f]{8}-", z$filename))
-  expect_match(z$filename, "libro_de_codigos.*\\.zip$")
+  # ADR 0133: el ZIP se nombra por su kind (`kind_multi`), no por `zip_basename`.
+  expect_match(z$filename, "^Prosecnur_Codebook_multi_.*\\.zip$")
 })

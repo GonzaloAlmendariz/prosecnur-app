@@ -132,6 +132,25 @@ describe("M3 · vocabulario por tipo (los fallos medidos en la línea base)", ()
   });
 });
 
+describe("E13 · sorteos de nivel", () => {
+  const calc = nodo("t1A_curso", "calculate", "");
+  test("int(${r} * k) en cadena → sortea con la misma probabilidad", () => {
+    expect(texto("calculation", "if(int(${region} * 3) = 0, 'a', if(int(${region} * 3) = 1, 'b', 'c'))", calc))
+      .toBe("Sortea con la misma probabilidad entre «a», «b» o «c» con el número al azar de Región");
+  });
+  test("umbrales acumulados → sortea con sus porcentajes", () => {
+    expect(texto("calculation", "if(${region} < 0.2, 'no', if(${region} < 0.5, 'mae', 'pme'))", calc))
+      .toBe("Sortea entre «no» (20 %), «mae» (30 %) o «pme» (50 %) con el número al azar de Región");
+  });
+  test("un condicional delante se dice al final", () => {
+    expect(texto("calculation", "if(${gasto} = 'x', 'NA', if(int(${region} * 2) = 0, 'a', 'b'))", calc))
+      .toMatch(/^Sortea con la misma probabilidad entre «a» o «b» con el número al azar de Región; vale «NA» cuando /);
+  });
+  test("una cadena que no es sorteo sigue con la lectura de siempre", () => {
+    expect(texto("calculation", "if(int(${region} * 3) = 0, 'a', 'b')", calc)).not.toMatch(/^Sortea/);
+  });
+});
+
 describe("M4 · filtros de opciones", () => {
   const cascada = nodo("distrito", "select_one", "distritos");
   test("<columna> = ${pregunta} → coincide con la respuesta", () => {
@@ -148,6 +167,14 @@ describe("M4 · filtros de opciones", () => {
   });
   test("selected(${pregunta}, <columna>) → marcada en la pregunta", () => {
     expect(texto("choice_filter", "selected(${gasto},filter_Spent)", cascada)).toBe("Muestra las opciones cuya columna filter_Spent está marcada en En qué gastó");
+  });
+  test("selected(${pregunta}, name) → las opciones que se marcaron antes (concordancia)", () => {
+    expect(texto("choice_filter", "selected(${gasto}, name)", cascada)).toBe("Muestra las opciones que se marcaron en En qué gastó");
+  });
+  test("<columna> <= ${pregunta} y sus variantes se leen como comparación", () => {
+    expect(texto("choice_filter", "edad_min <= ${region}", cascada)).toBe("Muestra las opciones cuya columna edad_min es menor o igual que la respuesta de Región");
+    expect(texto("choice_filter", "${region} >= edad_min", cascada)).toBe(texto("choice_filter", "edad_min <= ${region}", cascada));
+    expect(texto("choice_filter", "edad_min > 17", cascada)).toBe("Muestra las opciones cuya columna edad_min es mayor que 17");
   });
   test("<columna> = literal", () => {
     expect(texto("choice_filter", "REF05CO= 'pp'", cascada)).toBe("Muestra siempre las mismas opciones: las marcadas con pp en la columna REF05CO");

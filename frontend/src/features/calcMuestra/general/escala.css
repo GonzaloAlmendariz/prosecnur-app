@@ -11,19 +11,6 @@
   --cmg-campo-h: calc(var(--pulso-control-height-lg) + var(--pulso-space-1));
 }
 
-.cmg-mesa .cmv2-panel {
-  padding: var(--pulso-space-5) var(--pulso-space-6);
-}
-
-.cmg-mesa .cmv2-panel-head {
-  margin-bottom: var(--pulso-space-4);
-}
-
-.cmg-mesa .cmg-panel-titulo,
-.cmg-mesa .cmv2-panel-head .cmg-panel-titulo {
-  font-size: 17px;
-}
-
 /* Ficha del estudio */
 .cmg-mesa .cmv2-form-grid {
   gap: var(--pulso-space-5) var(--pulso-space-6);
@@ -34,19 +21,19 @@
 }
 
 .cmg-mesa .cmv2-form-grid label span {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   letter-spacing: 0.04em;
 }
 
 .cmg-mesa :is(.cmv2-form-grid input, .cmv2-variable input, .cmv2-variable select, .cmg-campo input, .cmg-campo select) {
   min-height: var(--cmg-campo-h);
   padding: 0 var(--pulso-space-3);
-  font-size: 14px;
+  font-size: var(--pulso-type-body-size);
 }
 
-.cmg-mesa .cmv2-panel textarea {
+.cmg-mesa :is(.pulso-panel, .cmv2-form-grid, .cmg-propuesta-campo) textarea {
   padding: var(--pulso-space-3);
-  font-size: 14px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
 }
 
@@ -60,11 +47,11 @@
 }
 
 .cmg-mesa .cmg-campo > label {
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .cmg-mesa .cmg-campo small {
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 /* Variables de control: nombre, uso e interruptor en una fila con aire. */
@@ -84,7 +71,7 @@
   gap: var(--pulso-space-2);
   min-width: 96px;
   color: var(--pulso-text-soft);
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   white-space: nowrap;
 }
@@ -94,6 +81,12 @@
  * bajo ellas a 1710x1107 (MacBook Air 15"). */
 .cmg-mesa :is(.cmv2-shape-grid, .cmv2-method-grid, .cmg-metodos) {
   gap: var(--pulso-space-4);
+}
+
+/* Las técnicas declaran alto igual (`calc-muestra/general-tecnicas`, equal): a 1024 cada fila tomaba
+ * el alto de su descripción más larga y las tres filas diferían 20 px (P2, captura de Método › Técnica). */
+.cmg-mesa .cmv2-method-grid {
+  grid-auto-rows: 1fr;
 }
 
 .cmg-mesa :is(.cmv2-shape, .cmv2-method) {
@@ -107,49 +100,45 @@
 }
 
 .cmg-mesa :is(.cmv2-shape, .cmv2-method) strong {
-  font-size: 16px;
+  font-size: var(--pulso-type-title-size);
   line-height: 1.25;
 }
 
 .cmg-mesa :is(.cmv2-shape span, .cmv2-method small) {
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
 }
 
 .cmg-mesa .cmv2-method span {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 /* Acciones dentro de los paneles: del alto de los campos que acompañan. El
  * encabezado de la mesa conserva su escala compacta. */
-.cmg-mesa .cmv2-panel :is(.cmv2-primary, .cmv2-ghost) {
+.cmg-mesa .pulso-panel :is(.cmv2-primary, .cmv2-ghost) {
   min-height: var(--cmg-campo-h);
   padding-inline: var(--pulso-space-4);
-  font-size: 14px;
+  font-size: var(--pulso-type-body-size);
 }
 
 /* Tablas de la mesa (estratos, unidades, actores): filas con aire y cifras
  * legibles; el ancho mínimo y el dueño del scroll horizontal no cambian. */
 .cmg-mesa .cmv2-table :is(th, td) {
   padding: var(--pulso-space-3) var(--pulso-space-4);
-  font-size: 14px;
+  font-size: var(--pulso-type-body-size);
   vertical-align: middle;
 }
 
 .cmg-mesa .cmv2-table th {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .cmg-mesa .cmv2-table-input {
   min-height: var(--pulso-control-height-lg);
-  font-size: 14px;
+  font-size: var(--pulso-type-body-size);
 }
 
 @media (max-width: 1100px) {
-  .cmg-mesa .cmv2-panel {
-    padding: var(--pulso-space-4) var(--pulso-space-5);
-  }
-
   .cmg-mesa .cmg-parametros {
     gap: var(--pulso-space-5) var(--pulso-space-5);
   }
@@ -165,14 +154,6 @@
  * antes que la acción principal. En Parámetros «Recalcular» quedaba 50 px
  * bajo el pliegue a 1470x956. */
 @media (max-height: 1000px) {
-  .cmg-mesa .cmv2-panel {
-    padding-block: var(--pulso-space-4);
-  }
-
-  .cmg-mesa .cmv2-panel-head {
-    margin-bottom: var(--pulso-space-3);
-  }
-
   .cmg-mesa .cmg-parametros {
     row-gap: var(--pulso-space-4);
   }

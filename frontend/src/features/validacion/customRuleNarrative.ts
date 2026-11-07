@@ -82,7 +82,7 @@ export function describeCustomParams(
       }
       return "Define el periodo del operativo para esta fecha.";
     case "outliers_iqr":
-      return `Se marcan valores fuera del intervalo [Q1 − ${k ?? 1.5}·IQR, Q3 + ${k ?? 1.5}·IQR].`;
+      return `Se marcan valores fuera del intervalo [Q1 − ${k ?? 1.5} × IQR, Q3 + ${k ?? 1.5} × IQR].`;
     case "outliers_z":
       return `Se marcan valores cuyo |z-score| supere ${k ?? 3}.`;
     case "duplicados":

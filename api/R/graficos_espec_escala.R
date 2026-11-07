@@ -117,7 +117,7 @@ preparar_escala <- function(data, var_categoria, var_n, cols_porcentaje, etiquet
       i <- match(as.character(sufijos_etiqueta[[var_categoria]][k]), filas$id)
       j <- match(sufijos_etiqueta$.col_pct[k], cols_seg)
       suf <- as.character(sufijos_etiqueta$.sufijo[k])
-      if (!is.na(i) && !is.na(j) && unidades[i, j] > 0 && nzchar(suf)) cifras[i, j] <- paste(cifras[i, j], suf)
+      if (!is.na(i) && !is.na(j) && unidades[i, j] > 0 && nzchar(suf)) cifras[i, j] <- paste(cifras[i, j], trimws(suf))
     }
   }
   # Categorías en cero (C40 D2): el sustantivo sin casos recibe su piso; una especial (SIN INF, 90-99) en cero no se
@@ -136,6 +136,8 @@ preparar_escala <- function(data, var_categoria, var_n, cols_porcentaje, etiquet
   if (ncol(unidades) == 1L) anchos <- t(anchos)
   dimnames(anchos) <- dimnames(unidades)
   dibujar <- dibujar & (anchos > 0 | matrix(cero_visible, nrow(anchos), ncol(anchos), byrow = TRUE))
+  # B5 (CCSS 2026, lámina 22): una categoría que no se dibuja en ninguna fila no va a la leyenda («Otros» sin casos).
+  leyenda <- .espec_leyenda_con_casos(leyenda, dibujar)
 
   # ---- Top Two Box: suma de las cifras rotuladas (lámina 19) ------------------
   caja <- function(preset, labels, minimo, rotulo) {
@@ -166,6 +168,7 @@ preparar_escala <- function(data, var_categoria, var_n, cols_porcentaje, etiquet
       top2box = caja("top2box", top2box_labels, 3L, .PPT_ROTULO_TOP_TWO_BOX),
       top3box = caja("top3box", top3box_labels, 4L, "Top 3 Box"),
       bottom2box = caja("bottom2box", bottom2box_labels, 3L, "Bottom Two Box"))
+    box$cifras <- .sig_sufijos_en_box(box$cifras, box$preset, filas$id, sufijos_etiqueta, var_categoria)   # ADR 0128
     if (identical(barra_extra_preset, "top2box") && isTRUE(columna_bottom2box) && length(box$cols)) {
       box2 <- caja("bottom2box", bottom2box_labels, 3L, "Bottom Two Box")
     }
@@ -177,14 +180,16 @@ preparar_escala <- function(data, var_categoria, var_n, cols_porcentaje, etiquet
   grupos <- filas$grupo_id[!is.na(filas$grupo_id)]
   un_publico <- !length(grupos) || all(table(grupos) <= 1L)
   por_box <- !is.null(box$unidades) && (identical(orden, "top_two_box") || (identical(orden, "auto") && un_publico))
-  aplicado <- if (por_box) .espec_orden_por_box(origen, filas$es_total, box$unidades) else origen
+  invertir <- isTRUE(invertir_barras)
+  aplicado <- if (por_box) .espec_orden_por_box(origen, filas$es_total, box$unidades, invertir) else origen
 
   espec <- list(
     version = .ESPEC_ESCALA_VERSION, tipo = "escala",
     categorias = categorias, leyenda = leyenda, filas = filas,
     unidades = unidades, cifras = cifras, anchos = anchos, dibujar = dibujar,
     box = box, box2 = box2,
-    orden = list(criterio = if (por_box) "top_two_box" else "declarado", origen = origen, aplicado = aplicado),
+    orden = list(criterio = if (por_box) "top_two_box" else "declarado", origen = origen, aplicado = aplicado,
+                 invertir = invertir),
     redondeo = list(metodo = metodo, decimales = dec)
   )
   # ADR 0097: con una paleta del usuario la espec dice el color de cada rótulo; la dicotomía en que cae una escala de
@@ -195,11 +200,14 @@ preparar_escala <- function(data, var_categoria, var_n, cols_porcentaje, etiquet
 
 #' Orden por Top Two Box de mayor a menor (lámina 221 del recetario)
 #'
-#' La fila Total va primera; los empates conservan el orden de origen.
+#' La fila Total va primera; los empates conservan el orden de origen. Con `invertir` (el mando «Invertir el orden
+#' de las barras») el Top Two Box va de menor a mayor: sin esto el mando quedaba mudo en toda batería por variable,
+#' porque el compositor reordena después de que la espec invierte el origen (CCSS 2026-11-04, lámina 061).
 #' @keywords internal
-.espec_orden_por_box <- function(origen, es_total, unidades) {
+.espec_orden_por_box <- function(origen, es_total, unidades, invertir = FALSE) {
   resto <- origen[!es_total[origen]]
-  resto <- resto[order(-unidades[resto], match(resto, origen))]
+  clave <- if (isTRUE(invertir)) unidades[resto] else -unidades[resto]
+  resto <- resto[order(clave, match(resto, origen))]
   c(origen[es_total[origen]], resto)
 }
 
@@ -211,8 +219,21 @@ preparar_escala <- function(data, var_categoria, var_n, cols_porcentaje, etiquet
 #' @keywords internal
 .espec_ordenar_por_box <- function(espec) {
   if (is.null(espec$box$unidades)) return(espec)
-  espec$orden$aplicado <- .espec_orden_por_box(espec$orden$origen, espec$filas$es_total, espec$box$unidades)
+  espec$orden$aplicado <- .espec_orden_por_box(espec$orden$origen, espec$filas$es_total, espec$box$unidades,
+                                               isTRUE(espec$orden$invertir))
   espec$orden$criterio <- "top_two_box"
   espec
 }
 
+
+#' Categorías de la leyenda que se dibujan en al menos una fila
+#'
+#' Si ninguna se dibuja (todo en cero), la leyenda queda como venía: no hay barra que explicar pero tampoco se esconde.
+#' @param leyenda Índices de `categorias` en el orden de la leyenda. @param dibujar Matriz filas × categorías.
+#' @keywords internal
+.espec_leyenda_con_casos <- function(leyenda, dibujar) {
+  if (!length(leyenda) || !NROW(dibujar)) return(leyenda)
+  con <- colSums(as.matrix(dibujar) & TRUE) > 0
+  out <- leyenda[con[leyenda]]
+  if (length(out)) out else leyenda
+}

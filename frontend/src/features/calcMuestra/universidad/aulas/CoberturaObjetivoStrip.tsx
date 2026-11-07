@@ -48,7 +48,7 @@ export function CoberturaObjetivoStrip({ cobertura }: { cobertura: CoberturaObje
                 Con las tasas del diseño, los titulares rinden ≈{fmtInt(Math.round(esperadas))}{" "}
                 efectivas frente a {fmtInt(objetivo ?? 0)} de muestra objetivo
                 {cubiertos != null && ratio != null
-                  ? ` (sientan ${fmtInt(cubiertos)} estudiantes distintos, ×${ratio.toFixed(1).replace(".", ",")} la cuota en bruto)`
+                  ? ` (sientan ${fmtInt(cubiertos)} estudiantes distintos, ×${ratio.toFixed(1)} la cuota en bruto)`
                   : ""}
                 .
               </>

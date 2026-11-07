@@ -82,7 +82,8 @@ mount_monitoreo_telefonico <- function(pr) {
         sid = sid,
         kind = "monitoreo.telefonico_advance_pdf",
         func = pdf_job_runner,
-        args = list(model_path = model_path, include_targets = include_targets),
+        args = list(model_path = model_path, include_targets = include_targets,
+                    portada = monitoreo_aulas_portada_desde_body(parsed)),
         result_filename = filename,
         on_complete = function(j) {
           if (identical(j$status, "done") && !is.null(j$result_path) && file.exists(j$result_path)) {
@@ -117,7 +118,7 @@ mount_monitoreo_telefonico <- function(pr) {
       res$setHeader("Content-Type", "application/pdf")
       res$setHeader("Content-Length", as.character(n))
       modo <- if (is.character(inline) && length(inline) >= 1L && inline[[1]] %in% c("1", "true", "TRUE")) "inline" else "attachment"
-      res$setHeader("Content-Disposition", sprintf('%s; filename="%s"', modo, basename(meta$path)))
+      res$setHeader("Content-Disposition", .content_disposition(modo, basename(meta$path)))
       res$body <- bytes
       res
     }))

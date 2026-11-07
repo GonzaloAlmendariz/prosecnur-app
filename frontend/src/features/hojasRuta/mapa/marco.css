@@ -1,0 +1,61 @@
+/* Marco de la página de Hojas de ruta: lo que el lienzo heredaba de la hoja de la página
+   clásica (ADR 0114 §8). Se midió en vivo qué reglas de `hojasRuta.css` tocaban el DOM del
+   lienzo en sus cinco secciones; son estas, tal cual. */
+
+.hojas-ruta-frame {
+  /* El acento del módulo vive en la tabla de paletas de theme.css. */
+  --pulso-primary-focus: rgba(194, 65, 12, 0.15);
+  --pulso-primary-ring: rgba(194, 65, 12, 0.12);
+  gap: 8px;
+}
+
+.hojas-ruta-frame :is(input, select, textarea) {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.hojas-ruta-frame .pulso-page-frame-body {
+  min-height: 0;
+}
+
+@media (max-width: 1180px) {
+  .hojas-ruta-commandbar {
+    align-items: center;
+    gap: 6px;
+    padding: 4px 6px;
+    border-radius: 16px;
+    /* El rail (superficie prioritaria) tiene ancho garantizado para sus 5
+       etapas; el contexto se acota y hace scroll interno si no alcanza. */
+    grid-template-columns: minmax(0, 272px) minmax(0, 1fr) minmax(0, max-content);
+  }
+}
+
+/* B4 (lienzo): bajo 1080 px de barra ceden los indicadores de prioridad media (chrome.css) y
+   queda sólo el de la sección abierta (`alta`, HojasRutaMapaPage): la zona de contexto toma
+   su ancho justo en vez de los 272 px de arriba (C3), y la barra sigue diciendo algo del
+   estudio (antes se ocultaba entera y a 1024 no decía nada). */
+@container pulso-chrome (max-width: 1080px) {
+  .hr-mapa-frame .hojas-ruta-commandbar {
+    grid-template-columns: max-content minmax(0, 1fr) minmax(0, max-content);
+  }
+}
+
+/* «Enviar / Reenviar a Material» con un verde fino del módulo de Material de
+ * campo (Gonzalo, 3/11): la acción lleva la muestra a ese módulo y se nombra
+ * con su color y su mochila. Es la única acción de la barra. */
+.hojas-ruta-commandbar > .pulso-command-bar-zone[data-zone="acciones"] > .pulso-button--secondary:not(.hr-avisos-boton) {
+  border-color: var(--pulso-module-fieldkit-border);
+  background: var(--pulso-module-fieldkit-soft);
+  color: var(--pulso-module-fieldkit);
+}
+
+.hojas-ruta-commandbar > .pulso-command-bar-zone[data-zone="acciones"] > .pulso-button--secondary:not(.hr-avisos-boton):hover:not(:disabled) {
+  border-color: var(--pulso-module-fieldkit);
+  background: color-mix(in srgb, var(--pulso-module-fieldkit) 18%, var(--pulso-surface));
+}
+
+.hojas-ruta-commandbar > .pulso-command-bar-zone[data-zone="acciones"] > .pulso-button--secondary:not(.hr-avisos-boton):focus-visible {
+  outline: 2px solid var(--pulso-module-fieldkit);
+  outline-offset: 2px;
+}

@@ -38,7 +38,7 @@ import {
   type ExploradorBasePerfil,
   type ExploradorBaseResumen,
 } from "../../../../api/calcMuestraExploradorBase";
-import { EmptyState } from "../../../../components/States";
+import { EmptyState, LoadingBlock } from "../../../../components/States";
 import { fmtDec, fmtInt, fmtPct, rowsFrom } from "../../sharedCore";
 import { distribucionDe, inventarioVariables } from "./exploradorBasesModel";
 import { nombreDeColumna } from "./exploradorBasesNombres";
@@ -382,14 +382,14 @@ export function ExploradorBasesTab({
           ) : columnas.length ? (
             <>
               <strong>{fmtInt(filas)}</strong>
-              {acotada ? <> de {fmtInt(filasBase)}</> : null} filas ·{" "}
+              {acotada ? <> de {fmtInt(filasBase)}</> : null} filas,{" "}
               <strong>{fmtInt(columnas.length)}</strong> columnas
               {unidad === "estudiantes" && perfil?.estudiantes != null ? (
-                <> · {fmtInt(perfil.estudiantes)} estudiantes distintos</>
+                <>, {fmtInt(perfil.estudiantes)} estudiantes distintos</>
               ) : null}
               {fuente?.tipo === "marco"
-                ? " · lo que el motor derivó, no tu archivo"
-                : " · tal como se leyó, sin criterios"}
+                ? ", lo que el motor derivó, no tu archivo"
+                : ", tal como se leyó, sin criterios"}
             </>
           ) : null}
         </p>
@@ -417,7 +417,7 @@ export function ExploradorBasesTab({
                 <span>
                   {filtro.valores.length === 1
                     ? rotuloValor(filtro.columna, filtro.valores[0]!)
-                    : `${filtro.valores.length} valores`}
+                    : `${fmtInt(filtro.valores.length)} valores`}
                 </span>
               </button>
               <button
@@ -472,7 +472,7 @@ export function ExploradorBasesTab({
               <p>
                 {seleccionadosEnEdicion
                   ? `${fmtInt(seleccionadosEnEdicion)} de ${fmtInt(valoresEnEdicion.length)} elegidos`
-                  : `${fmtInt(valoresEnEdicion.length)} valores · elige los que quieras ver`}
+                  : `${fmtInt(valoresEnEdicion.length)} valores, elige los que quieras ver`}
               </p>
               <button type="button" onClick={() => setEditandoFiltro(null)}>
                 Listo
@@ -508,27 +508,25 @@ export function ExploradorBasesTab({
             hint={error}
           />
         </div>
+      ) : cargando && !columnas.length ? (
+        <LoadingBlock label="Leyendo la base… La primera lectura de una base grande tarda unos segundos." />
       ) : !columnas.length ? (
         <div className="cmv2-expb-vacio-marco">
           {/* Un cruce puede quedarse sin filas, y decir «esta base no trae
               columnas» sería culpar al archivo de lo que hizo el filtro. */}
           <EmptyState
             icon={<Compass size={22} aria-hidden="true" />}
-            title={cargando
-              ? "Leyendo la base…"
-              : filtros.length && !filas
-                ? "Ningún registro cumple estos filtros"
-                : "Esta base no trae columnas legibles"}
-            hint={cargando
-              ? "La primera lectura de una base grande tarda unos segundos; después los filtros son inmediatos."
-              : filtros.length && !filas
-                ? `De ${fmtInt(filasBase)} filas, ninguna cruza todas las condiciones activas.`
-                : "Revisa la hoja declarada en Datos › Fuentes."}
-            cta={!cargando && filtros.length && !filas ? (
+            title={filtros.length && !filas
+              ? "Ningún registro cumple estos filtros"
+              : "Esta base no trae columnas legibles"}
+            hint={filtros.length && !filas
+              ? `De ${fmtInt(filasBase)} filas, ninguna cruza todas las condiciones activas.`
+              : "Revisa la hoja declarada en Datos › Fuentes."}
+            cta={filtros.length && !filas ? (
               <button type="button" className="cmv2-expb-reconstruir" onClick={() => setFiltros([])}>
                 Quitar los filtros
               </button>
-            ) : !cargando && fuente?.tipo === "marco" && onReconstruir && !marcoConstruido ? (
+            ) : fuente?.tipo === "marco" && onReconstruir && !marcoConstruido ? (
               <button
                 type="button"
                 className="cmv2-expb-reconstruir"
@@ -566,7 +564,7 @@ export function ExploradorBasesTab({
                         type="button"
                         data-activa={activa?.columna === col.columna || undefined}
                         onClick={() => { setVariable(col.columna); setColaAbierta(false); }}
-                        title={`${col.titulo} · ${fmtPct(share)} con dato`}
+                        title={`${col.titulo}, ${fmtPct(share)} con dato`}
                       >
                         <span className="cmv2-expb-var">{col.titulo}</span>
                         {share < 0.995 ? (
@@ -601,8 +599,8 @@ export function ExploradorBasesTab({
                     <p>
                       {activa.tipo === "numerica"
                         ? "Numérica"
-                        : `Categórica · ${fmtInt(activa.distintos)} valores distintos${acotada ? " aquí" : ""}`}
-                      {activa.detalle ? <> · {activa.detalle}</> : null}
+                        : `Categórica, ${fmtInt(activa.distintos)} valores distintos${acotada ? " aquí" : ""}`}
+                      {activa.detalle ? <>, {activa.detalle}</> : null}
                     </p>
                   </div>
                   <dl className="cmv2-expb-chips">
@@ -667,7 +665,7 @@ export function ExploradorBasesTab({
                               type="button"
                               className="cmv2-expb-cat-label"
                               data-en-filtro={enFiltro || undefined}
-                              title={`${etiqueta} · filtrar por este valor`}
+                              title={`${etiqueta}, filtrar por este valor`}
                               onClick={() => alternarValor(activa.columna, categoria.clave)}
                             >
                               {etiqueta}

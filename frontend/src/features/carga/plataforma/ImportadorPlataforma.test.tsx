@@ -53,6 +53,7 @@ const exito = {
   nColumnas: 80,
   nBases: 2,
   basesHijas: [],
+  filtro: null,
   estudio: null,
   separado: null,
   unico: null,
@@ -72,7 +73,7 @@ describe("ImportadorPlataforma", () => {
   it("en curso: cuatro fases, avance, tiempo transcurrido, Cancelar y C1 declarado", () => {
     const html = render({ importacion: importacion({ estado: "en-curso", vivo, transcurridoMs: 48_000 }) });
     expect(html).toContain("Importación en curso");
-    expect(html).toContain("Descargando respuestas · 1,183 de 1,900 · 0:48 transcurridos");
+    expect(html).toContain("Descargando respuestas, 1,183 de 1,900, 0:48 transcurridos");
     expect(html).toMatch(/role="progressbar"[^>]*aria-valuenow="62"/);
     expect(html.match(/data-fase-estado=/g)).toHaveLength(4);
     expect(html).toContain('data-fase-estado="hecha"');
@@ -92,12 +93,19 @@ describe("ImportadorPlataforma", () => {
   it("importado: nombra la base y ofrece abrirla con flecha (nunca «Ir →»)", () => {
     const html = render({ importacion: importacion({ estado: "terminado", terminado: terminado({ tipo: "importado", ...exito }) }) });
     expect(html).toContain("quedó en la base acogida");
-    expect(html).toContain("1,900 registros · 80 columnas");
+    expect(html).toContain("1,900 registros, 80 columnas");
     expect(html).toContain("Abrir base acogida");
     expect(html).toContain("pulso-button--nav");
     expect(html).not.toMatch(/Ir\s*→/);
     expect(html).toContain('role="status"');
     expect(html).not.toContain("Reintentar");
+  });
+
+  it("importado con respuestas filtradas: dice cuántas quedaron fuera y por qué (L5b)", () => {
+    const filtro = { originales: 69, conservadas: 59, excluidas: 10, parciales: 8, sinConsentimiento: 2, otras: 0 };
+    const html = render({ importacion: importacion({ estado: "terminado", terminado: terminado({ tipo: "importado", ...exito, filtro }) }) });
+    expect(html).toContain("59 de 69 respuestas, fuera: 8 parciales, 2 sin consentimiento, 80 columnas");
+    expect(html).not.toContain("registros");
   });
 
   it("cancelado pero importado: avisa que la base quedó", () => {

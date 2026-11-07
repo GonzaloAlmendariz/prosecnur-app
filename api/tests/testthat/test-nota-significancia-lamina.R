@@ -36,6 +36,11 @@ source("setup-load-all.R")
   }))
 }
 
+test_that(".lam_nota_sig_de conserva el salto lógico entre contexto y marcas (ADR 0128)", {
+  p <- structure(list(), pulso_sig_nota = paste0("Con trama: X, con menos de 30\ncasos.", .SIG_NOTA_SALTO, "▲A  Mayor."))
+  expect_identical(.lam_nota_sig_de(p), "Con trama: X, con menos de 30 casos.\n▲A  Mayor.")
+})
+
 test_that(".lam_nota_sig_de junta las líneas del caption en un solo párrafo", {
   p <- structure(list(), pulso_sig_nota = "Las letras marcan al grupo.\nA = uno  |  B = dos")
   expect_identical(.lam_nota_sig_de(p), "Las letras marcan al grupo. A = uno  |  B = dos")
@@ -49,9 +54,10 @@ test_that("la apilada con cruces y significancia escribe la nota que explica las
   nota <- cajas[cajas$nombre == "Nota significancia", ]
   base <- cajas[cajas$nombre == "Base lamina", ]
   expect_equal(nrow(nota), 1L, info = paste(cajas$nombre, collapse = " | "))
-  expect_match(nota$texto, "Las letras marcan al grupo superado")
+  # ADR 0128: fuente única de textos y sin el mapa «A = …» en la nota: la letra va con el grupo, en su rótulo.
+  expect_match(nota$texto, "Mayor que el grupo de esa letra")
   expect_match(nota$texto, "Bonferroni")
-  expect_match(nota$texto, "A = Hasta secundaria completa")
+  expect_true(any(grepl("(A) Hasta secundaria completa", cajas$texto, fixed = TRUE)), info = paste(cajas$texto, collapse = " | "))
   # La nota termina donde empieza «Base:» (no la pisa) y nada de la lámina baja más que su borde superior.
   expect_lte(nota$y + nota$h, base$y + 1e-6)
   otras <- cajas[!cajas$nombre %in% c("Nota significancia", "Base lamina", "Folio lamina") & cajas$y > 2, ]
@@ -68,7 +74,8 @@ test_that("una nota larga ocupa dos líneas y reserva más espacio", {
   cajas <- .ns_cajas(x)
   nota <- cajas[cajas$nombre == "Nota significancia", ]
   expect_equal(nrow(nota), 1L)
-  expect_gt(nota$h, 0.3)   # dos líneas de 9 pt
+  # Reserva lo que mide su texto (una o dos líneas de 9 pt según el largo).
+  expect_equal(nota$h, .lam_nota_sig_alto(nota$texto), tolerance = 0.02)
   base <- cajas[cajas$nombre == "Base lamina", ]
   expect_lte(nota$y + nota$h, base$y + 1e-6)
   otras <- cajas[!cajas$nombre %in% c("Nota significancia", "Base lamina", "Folio lamina") & cajas$y > 2, ]
@@ -79,4 +86,31 @@ test_that("sin significancia la lámina no lleva nota ni reserva espacio", {
   skip_if_not_installed("officer"); skip_if_not_installed("rvg")
   x <- .ns_render(p_barras_apiladas("p1", cruces = "grupo"))
   expect_false("Nota significancia" %in% .ns_cajas(x)$nombre)
+})
+
+test_that("una leyenda de dos filas sube sobre la nota de significancia y no la pisa (CCSS v6, lámina 50)", {
+  skip_if_not_installed("officer"); skip_if_not_installed("rvg"); skip_if_not_installed("stringr")
+  set.seed(11)
+  ops <- c("No la uso", "Algunas veces al mes", "Uno o dos días por semana", "Tres o más días a la semana",
+           "Todos los días, en momentos puntuales", "Todos los días, a lo largo del día")
+  g <- rep(c("n6", "n7", "n8", "n9"), each = 100)
+  prob <- list(n6 = c(.6, .2, .1, .05, .03, .02), n7 = c(.3, .2, .1, .1, .1, .2), n8 = c(.5, .3, .05, .05, .05, .05),
+               n9 = c(.55, .2, .1, .1, .03, .02))
+  p1 <- unlist(lapply(names(prob), function(k) sample(as.character(1:6), 100, TRUE, prob = prob[[k]])))
+  fuente <- list(
+    data = data.frame(id = seq_along(g), p1 = p1, niv = g, stringsAsFactors = FALSE),
+    inst = list(survey = data.frame(type = c("integer", "select_one fr", "select_one nv"), name = c("id", "p1", "niv"),
+                                    label = c("id", "Frecuencia", "Nivel"), list_name = c(NA, "fr", "nv"),
+                                    stringsAsFactors = FALSE),
+                choices = data.frame(list_name = c(rep("fr", 6), rep("nv", 4)), name = c(as.character(1:6), "n6", "n7", "n8", "n9"),
+                                     label = c(ops, "Nivel 6", "Nivel 7", "Nivel 8", "Nivel 9"), stringsAsFactors = FALSE)))
+  x <- .ns_render(p_barras_apiladas("p1", cruces = "niv", mostrar_significancia = TRUE), fuente)
+  cajas <- .ns_cajas(x)
+  nota <- cajas[cajas$nombre == "Nota significancia", ]
+  ley <- cajas[cajas$nombre == "leyenda:texto", ]
+  # Sin marcas la lámina ya no lleva nota de «ninguna diferencia» (Gonzalo, RV v7, lámina 32): este fixture no marca, así
+  # que no hay nota que pisar. Si la hay (otra regla), la leyenda de dos filas sigue arriba de ella.
+  expect_gt(length(unique(round(ley$y, 2))), 1L)            # la leyenda va en dos filas
+  if (nrow(nota)) expect_true(all(ley$y + ley$h <= nota$y + 1e-6), info = paste(round(ley$y + ley$h, 2), collapse = " "))
+  expect_false(any(grepl("Ninguna diferencia|no se distinguen", cajas$texto)))
 })

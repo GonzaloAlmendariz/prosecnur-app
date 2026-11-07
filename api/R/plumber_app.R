@@ -106,33 +106,55 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
     pr <- mount_carga_columnas_anexadas(pr)
     pr <- mount_validacion(pr)
     pr <- mount_validacion_caso_valido_manual(pr)
+    pr <- mount_explorador_ficha(pr)          # E10/E11: ficha de la pregunta en Validación › Explorar
     pr <- mount_codificacion(pr)
     pr <- mount_codificacion_textos_en_otro(pr)
     pr <- mount_texto_abierto(pr)   # TXT-6/7: diccionario del proyecto por pregunta abierta
     pr <- mount_analitica(pr)
     pr <- mount_armonizada(pr)
     pr <- mount_ponderacion_bases(pr)
+    pr <- mount_ponderacion_metas_cpv2025(pr)  # ADR 0131 paso 5: metas de calibración del CPV 2025
     pr <- mount_analitica_codigos_especiales(pr)
     pr <- mount_analitica_universo(pr)
     pr <- mount_label_overrides(pr)
     pr <- mount_hojas_ruta(pr)
+    pr <- mount_hojas_ruta_geometria(pr)
+    pr <- mount_hojas_ruta_contornos(pr)
+    pr <- mount_hojas_ruta_marco_elegible(pr)
+    pr <- mount_hojas_ruta_icc(pr)
+    pr <- mount_hojas_ruta_semillas(pr)
+    pr <- mount_hojas_ruta_plan_campo(pr)
+    pr <- mount_hojas_ruta_bitacora(pr)
+    pr <- mount_hojas_ruta_vista_previa(pr)   # U15: ficha de una UMP y hoja del día
+    pr <- mount_hojas_ruta_cuotas(pr)         # cuotas por ficha sin re-sortear
+    pr <- mount_hojas_ruta_envio(pr)          # ADR 0118: foto de la muestra para Material de campo
     pr <- mount_calc_muestra(pr)
     pr <- mount_calc_muestra_general(pr)
     pr <- mount_plan_trabajo(pr)
     pr <- mount_diseno_estudio(pr)
     pr <- mount_bitacora(pr)
+    pr <- mount_planner(pr)                   # ADR 0122: fuera del modo público (trae el equipo)
+    pr <- mount_calc_muestra_representatividad(pr)  # ADR 0121 F4: declara en el Planner; fuera del modo público
     pr <- mount_recopiladores(pr)
     pr <- mount_monitoreo(pr)
     pr <- mount_monitoreo_telefonico(pr)
     pr <- mount_monitoreo_telefonico_discrepancias(pr)
     pr <- mount_monitoreo_supervision_rondas(pr)
+    pr <- mount_monitoreo_supervision_lotes(pr)      # ADR 0125 A3: el lote que Material convierte en campaña
+    pr <- mount_monitoreo_equipo_padron(pr)          # el padrón del equipo, del que asigna Material
     pr <- mount_monitoreo_mailchimp(pr)
     pr <- mount_monitoreo_cuotas(pr)
+    pr <- mount_monitoreo_acreditacion_pool(pr)   # personas asignables bajo demanda (Por resolver)
+    pr <- mount_monitoreo_publicar_ensayo(pr)
     pr <- mount_monitoreo_territorial_mapeo(pr)
     pr <- mount_monitoreo_territorial_casos_ump(pr)
+    pr <- mount_monitoreo_territorial_asignacion_planificada(pr)
+    pr <- mount_monitoreo_territorial_muestra_enviada(pr)
+    pr <- mount_monitoreo_aulas_entrega(pr)   # X8: Monitoreo trae la entrega de Material (ADR 0122 §11)
     pr <- mount_monitoreo_territorial_rechazos(pr)
     pr <- mount_monitoreo_aulas_plantilla(pr)
     pr <- mount_monitoreo_aulas_libro(pr)
+    pr <- mount_monitoreo_aulas_tablas_construidas(pr)   # ADR 0125: Monitoreo comprueba lo que Material construyó
     pr <- mount_monitoreo_aulas_avance(pr)
     pr <- mount_monitoreo_aulas_distribucion(pr)
     pr <- mount_graficos(pr)
@@ -143,6 +165,8 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
     pr <- mount_graficos_miniaturas(pr)
     pr <- mount_graficos_estilo(pr)
     pr <- mount_graficos_lineas(pr)
+    pr <- mount_graficos_diferencias(pr)   # ADR 0128: diferencias entre grupos
+    pr <- mount_graficos_propuesta(pr)   # H13: propuesta del motor para los resúmenes
     pr <- mount_dashboard(pr)
   }
 

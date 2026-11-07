@@ -30,7 +30,7 @@ NULL
 #' Avisos de una lamina con varios slots de grafico
 #'
 #' @param slots Lista nombrada slot -> lista del plan (con `$args`).
-#' @param tag Rótulo de la lámina para el mensaje (`.aviso_lamina()`, graficos_avisos_texto.R): «Lámina 9 · “Sexo”».
+#' @param tag Rótulo de la lámina para el mensaje (`.aviso_lamina()`, graficos_avisos_texto.R): «Lámina 9, “Sexo”».
 #' @param tipo Tipo de la lámina, para nombrar cada espacio como el selector («Inferior derecha»).
 #' @return Vector de avisos, vacio si la lamina esta bien.
 #' @keywords internal

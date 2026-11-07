@@ -7,6 +7,8 @@
 import { Fragment, type CSSProperties } from "react";
 import { useValorSwap } from "./useValorSwap";
 import "./ui.css";
+import { fmtInt } from "../../sharedCore";
+import { sinCorteEnGuion } from "./sinCorteEnGuion";
 
 function ValorEtapa({ valor }: { valor: string }) {
   const cambiando = useValorSwap(valor);
@@ -36,6 +38,7 @@ export function FlujoVertical({
   onEtapaClick,
   ariaLabel,
   geometryGroup,
+  geometryContract = "intrinsic",
 }: {
   etapas: FlujoEtapa[];
   orientacion?: "vertical" | "horizontal" | "adaptive";
@@ -43,6 +46,8 @@ export function FlujoVertical({
   ariaLabel?: string;
   /** Grupo de geometría (C1) si el llamador lo declara; sin él no cambia nada. */
   geometryGroup?: string;
+  /** `equal` cuando las etapas van en columnas parejas y se estiran a la misma altura (6 nov 2026). */
+  geometryContract?: "intrinsic" | "equal";
 }) {
   const Etapa = onEtapaClick ? "button" : "div";
   return (
@@ -54,7 +59,7 @@ export function FlujoVertical({
       role="list"
       aria-label={ariaLabel}
       data-qa-geometry-group={geometryGroup}
-      data-qa-geometry-contract={geometryGroup ? "intrinsic" : undefined}
+      data-qa-geometry-contract={geometryGroup ? geometryContract : undefined}
     >
       {etapas.map((etapa, i) => (
         <Fragment key={etapa.id}>
@@ -63,7 +68,7 @@ export function FlujoVertical({
               <span className="cmv2-uni-flujo-linea" />
               {etapas[i - 1].merma && (
                 <span className="cmv2-uni-flujo-merma">
-                  −{etapas[i - 1].merma!.n.toLocaleString("es-PE")} {etapas[i - 1].merma!.label}
+                  −{fmtInt(etapas[i - 1].merma!.n)} {etapas[i - 1].merma!.label}
                 </span>
               )}
             </div>
@@ -81,14 +86,14 @@ export function FlujoVertical({
           >
             <span className="cmv2-uni-flujo-dot" aria-hidden="true" />
             <span className="cmv2-uni-flujo-copy">
-              <span className="cmv2-uni-flujo-label">{etapa.label}</span>
+              <span className="cmv2-uni-flujo-label">{sinCorteEnGuion(etapa.label)}</span>
               {etapa.valor != null && <ValorEtapa valor={etapa.valor} />}
               {orientacion === "adaptive" && i > 0 && etapas[i - 1].merma && (
                 <span className="cmv2-uni-flujo-merma-inline">
-                  −{etapas[i - 1].merma!.n.toLocaleString("es-PE")} {etapas[i - 1].merma!.label}
+                  −{fmtInt(etapas[i - 1].merma!.n)} {etapas[i - 1].merma!.label}
                 </span>
               )}
-              {etapa.detalle && <span className="cmv2-uni-flujo-detalle">{etapa.detalle}</span>}
+              {etapa.detalle && <span className="cmv2-uni-flujo-detalle">{sinCorteEnGuion(etapa.detalle)}</span>}
             </span>
           </Etapa>
         </Fragment>

@@ -109,13 +109,13 @@ export function Step2_ListasEvaluativas() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <header>
-        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>
+        <h2 style={{ margin: 0, fontSize: "var(--pulso-type-kpi-size)", fontWeight: 800 }}>
           ¿Qué preguntas son evaluativas?
         </h2>
         <p
           style={{
             margin: "6px 0 0 0",
-            fontSize: 13,
+            fontSize: "var(--pulso-type-body-size)",
             color: "var(--pulso-text-soft)",
             lineHeight: 1.5,
             maxWidth: 720,
@@ -139,7 +139,7 @@ export function Step2_ListasEvaluativas() {
             border: "1px solid var(--pulso-danger-border)",
             background: "var(--pulso-danger-bg)",
             color: "var(--pulso-danger-fg)",
-            fontSize: 12,
+            fontSize: "var(--pulso-type-body-size)",
           }}
         >
           {error}
@@ -159,11 +159,11 @@ export function Step2_ListasEvaluativas() {
           }}
         >
           <ListChecks size={26} color="var(--pulso-text-soft)" />
-          <p style={{ marginTop: 8, fontSize: 13 }}>
+          <p style={{ marginTop: 8, fontSize: "var(--pulso-type-body-size)" }}>
             Tu instrumento no tiene preguntas <code>select_one</code> con listas tipo
             escala estándar.
           </p>
-          <p style={{ fontSize: 12, color: "var(--pulso-text-soft)" }}>
+          <p style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text-soft)" }}>
             Puedes seguir al siguiente paso, pero quizás no haya variables disponibles
             para asignar a bloques.
           </p>
@@ -244,14 +244,14 @@ export function Step2_ListasEvaluativas() {
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: "var(--pulso-text)" }}>
+                      <span style={{ fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 700, color: "var(--pulso-text)" }}>
                         {NOMBRES_HUMANOS[e.list_name] ?? e.list_name}
                       </span>
                       {e.es_default_evaluativa ? (
                         <span
                           title="Lista evaluativa estándar reconocida automáticamente"
                           style={{
-                            fontSize: 10,
+                            fontSize: "var(--pulso-type-micro-size)",
                             fontWeight: 700,
                             textTransform: "uppercase",
                             letterSpacing: 0.4,
@@ -268,7 +268,7 @@ export function Step2_ListasEvaluativas() {
                         <span
                           title="Lista del instrumento que no coincide con escalas evaluativas conocidas. Decide si es evaluativa o no (ej. demográfica)."
                           style={{
-                            fontSize: 10,
+                            fontSize: "var(--pulso-type-micro-size)",
                             fontWeight: 700,
                             textTransform: "uppercase",
                             letterSpacing: 0.4,
@@ -283,14 +283,11 @@ export function Step2_ListasEvaluativas() {
                         </span>
                       )}
                     </div>
-                    <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 2 }}>
-                      <code>{e.list_name}</code> · {e.n}{" "}
+                    <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", marginTop: 2 }}>
+                      <code>{e.list_name}</code>, {e.n}{" "}
                       {e.n === 1 ? "pregunta" : "preguntas"}
                       {tieneChoices && (
-                        <span>
-                          {" "}
-                          · {e.choices.length} opciones de respuesta
-                        </span>
+                        <span>, {e.choices.length} opciones de respuesta</span>
                       )}
                     </div>
                   </button>
@@ -308,7 +305,7 @@ export function Step2_ListasEvaluativas() {
                         borderRadius: 6,
                         border: "1px solid var(--pulso-border)",
                         background: "white",
-                        fontSize: 11,
+                        fontSize: "var(--pulso-type-caption-size)",
                         fontWeight: 600,
                         color: "var(--pulso-text)",
                         cursor: "pointer",
@@ -341,7 +338,7 @@ export function Step2_ListasEvaluativas() {
           padding: "10px 14px",
           borderRadius: 8,
           background: "var(--pulso-surface-2, #f4f5f9)",
-          fontSize: 12,
+          fontSize: "var(--pulso-type-body-size)",
         }}
       >
         <summary style={{ cursor: "pointer", fontWeight: 600 }}>

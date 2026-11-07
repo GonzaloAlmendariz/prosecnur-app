@@ -24,6 +24,7 @@ import { GenerateFooter, Section } from "../PaneKit";
 import { type FichaTecnicaConfig, useAnaliticaStore } from "../store";
 import { useReporteRun } from "../useReporteRun";
 
+import { EstadoVacio } from "../../../components/EstadoVacio";
 type FichaLayout = NonNullable<FichaTecnicaConfig["layout"]>;
 
 const LAYOUTS: Array<{ key: FichaLayout; label: string }> = [
@@ -47,7 +48,7 @@ export function FichaTecnicaPane() {
   const config = useAnaliticaStore((s) => s.config);
   const ficha = useAnaliticaStore((s) => s.config.ficha_tecnica);
   const setFichaTecnica = useAnaliticaStore((s) => s.setFichaTecnica);
-  const run = useReporteRun();
+  const run = useReporteRun("Ficha técnica", { articulo: "la", formato: "docx" });
   const [info, setInfo] = useState<AnaliticaFichaTecnicaInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingSlow, setLoadingSlow] = useState(false);
@@ -160,7 +161,7 @@ export function FichaTecnicaPane() {
             <strong>Ficha técnica</strong>
             <small>Resume diseño, muestra, fuentes y base longitudinal en un documento editable.</small>
           </div>
-          <div className="analitica-report-overview analitica-report-overview--ficha">
+          <div className="analitica-report-overview analitica-report-overview--ficha" data-qa-geometry-group="analitica/ficha-cifras" data-qa-geometry-contract="equal">
             {fichaStats.map((stat) => (
               <FichaStat key={stat.label} {...stat} />
             ))}
@@ -210,7 +211,7 @@ export function FichaTecnicaPane() {
             </div>
 
             <div className="analitica-ficha-layout">
-              <div className="analitica-ficha-editor">
+              <div className="analitica-ficha-editor" data-qa-geometry-group="analitica/ficha-editor" data-qa-geometry-contract="intrinsic">
                 {fieldsByGroup.map(([group, groupFields]) => (
                   <Section
                     key={group}
@@ -255,48 +256,34 @@ export function FichaTecnicaPane() {
                 <Section title="Exportar ficha" subtitle="La ficha se genera como documento Word independiente.">
                   <GenerateFooter
                     label="Generar ficha"
-                    busy={run.busy}
-                    jobId={run.jobId}
-                    fileId={run.fileId}
-                    downloadName={run.filename ?? "ficha_tecnica.docx"}
-                    error={run.error}
+                    run={run}
                     onGenerate={onGenerate}
-                    perBase={run.perBase}
-                    onJobDone={run.onJobDone}
-                    onJobError={run.onJobError}
-                    onJobCancelled={run.onJobCancelled}
                   />
                 </Section>
               </div>
 
-              <aside className="analitica-ficha-side" aria-label="Evidencia metodológica">
+              <aside className="analitica-ficha-side" aria-label="Evidencia metodológica" data-qa-geometry-group="analitica/ficha-evidencia" data-qa-geometry-contract="intrinsic">
                 <Section title="Indicadores metodológicos" subtitle="Lectura automática desde las fuentes disponibles del proyecto.">
                   {info?.kpis?.length ? (
-                    <div className="analitica-ficha-kpi-list">
+                    <div className="analitica-ficha-kpi-list" data-qa-geometry-group="analitica/ficha-indicadores" data-qa-geometry-contract="intrinsic">
                       {info.kpis.map((kpi) => (
                         <div className="analitica-ficha-kpi" key={`${kpi.source}-${kpi.label}`}>
                           <span className="analitica-ficha-kpi-icon"><Gauge size={14} /></span>
                           <div>
                             <span>{kpi.source}</span>
                             <strong>{kpi.value}</strong>
-                            <small>{kpi.label}{kpi.detail ? ` · ${kpi.detail}` : ""}</small>
+                            <small>{kpi.label}{kpi.detail ? `, ${kpi.detail}` : ""}</small>
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="analitica-empty">
-                      <span className="analitica-empty-icon" aria-hidden="true">
-                        <Gauge size={15} />
-                      </span>
-                      <strong>Sin indicadores automáticos</strong>
-                      <small>Los indicadores aparecerán cuando haya evidencia disponible.</small>
-                    </div>
+                    <EstadoVacio icono={<Gauge size={15} />} titulo="Sin indicadores automáticos" descripcion="Los indicadores aparecerán cuando haya evidencia disponible." />
                   )}
                 </Section>
 
                 <Section title="Fuentes de evidencia" subtitle="Contextos que alimentan la redacción sugerida.">
-                  <div className="analitica-ficha-source-list">
+                  <div className="analitica-ficha-source-list" data-qa-geometry-group="analitica/ficha-fuentes" data-qa-geometry-contract="intrinsic">
                     {(info?.sources ?? []).map((source) => (
                       <div className={`analitica-ficha-source ${source.available ? "is-on" : ""}`} key={source.key}>
                         <span>{source.available ? <CheckCircle2 size={13} /> : <BookOpenCheck size={13} />}</span>
@@ -337,7 +324,9 @@ function FichaLoadingState({ slow }: { slow: boolean }) {
   ];
 
   return (
-    <div className={`analitica-ficha-loading${slow ? " is-slow" : ""}`} role="status" aria-live="polite">
+    // `data-audit-ready="false"` mientras lee (patrón CargaDeBloque, readinessAnidada): el QA medía esta
+    // pantalla de espera creyendo que era la Ficha (6 nov 2026). Se desmonta al llegar el dato o el error.
+    <div className={`analitica-ficha-loading${slow ? " is-slow" : ""}`} role="status" aria-live="polite" data-audit-ready="false">
       <section className="analitica-ficha-loading-hero" aria-label="Preparando ficha técnica">
         <span className="analitica-ficha-loading-icon" aria-hidden="true">
           <FileText size={18} />

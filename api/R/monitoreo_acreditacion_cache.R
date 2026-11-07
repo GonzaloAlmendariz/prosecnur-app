@@ -31,8 +31,8 @@
 #   v1 -> v2: los controles del reporte pasan a respetar `interest_variables`.
 .MONITOREO_ACR_CACHE_SCHEMA <- "monitoreo_acreditacion_report_cache_v2"
 
-# Cuatro scopes por corte; el margen deja convivir un par de cortes recientes
-# sin que el `.pulso` crezca sin freno.
+# Tope de seguridad: la poda deja una entrada por scope (cuatro por familia),
+# así que en uso normal no se alcanza.
 .MONITOREO_ACR_CACHE_LIMIT <- 12L
 
 .monitoreo_acr_cache_families <- c("acreditacion", "telefonico")
@@ -93,11 +93,24 @@
   entry
 }
 
-#' Deja las entradas más recientes dentro del límite.
+#' Deja la entrada más reciente de cada scope, dentro del límite.
+#'
+#' Los datos del reporte (`display_data`) sólo dependen del estado de la sesión,
+#' así que por scope hay UNA clave vigente: la entrada anterior de ese scope es
+#' de otra configuración u otro corte y sólo volvería a servir si el estado
+#' regresara exactamente atrás. Guardarla costaba caro: 388 MB por entrada en un
+#' proyecto de 45 mil casos, que viajaban en el warm start y en el `.pulso`
+#' (test-monitoreo-acreditacion-cache-peso.R).
 .monitoreo_acr_cache_prune <- function(entries) {
-  if (!is.list(entries) || length(entries) <= .MONITOREO_ACR_CACHE_LIMIT) return(entries)
+  if (!is.list(entries) || length(entries) <= 1L) return(entries)
   stamps <- vapply(entries, function(entry) .monitoreo_scalar(entry$stored_at, ""), character(1))
-  entries[order(stamps, decreasing = TRUE)][seq_len(.MONITOREO_ACR_CACHE_LIMIT)]
+  # `stored_at` tiene resolución de segundos: en un empate gana la insertada
+  # después (una clave nueva se agrega al final de la lista).
+  entries <- entries[order(stamps, seq_along(entries), decreasing = TRUE)]
+  scopes <- vapply(entries, function(entry) .monitoreo_scalar(entry$report_scope, ""), character(1))
+  entries <- entries[!duplicated(scopes)]
+  if (length(entries) > .MONITOREO_ACR_CACHE_LIMIT) entries <- entries[seq_len(.MONITOREO_ACR_CACHE_LIMIT)]
+  entries
 }
 
 #' Guarda el dashboard recién construido bajo su clave.
@@ -125,7 +138,11 @@
 #'
 #' Lo entrante no pisa lo ya calculado en esta sesión: si una clave existe en
 #' ambos, gana la de la sesión, que se construyó con los datos que el usuario
-#' tiene delante.
+#' tiene delante. Entre claves distintas del mismo scope decide la poda, y ahí
+#' gana la más reciente: al abrir un `.pulso`, lo vigente es lo que trae el
+#' warm start. Si la configuración cambió mientras el warm start corría, puede
+#' quedar la entrada del worker y ese scope se reconstruye una vez; nunca se
+#' sirve, porque el lookup revalida la clave.
 .monitoreo_acr_cache_merge <- function(snapshot, incoming) {
   if (!is.list(incoming)) return(snapshot)
   if (!identical(.monitoreo_scalar(incoming$schema, ""), .MONITOREO_ACR_CACHE_SCHEMA)) return(snapshot)

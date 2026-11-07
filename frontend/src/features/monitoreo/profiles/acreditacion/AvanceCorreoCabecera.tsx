@@ -4,7 +4,7 @@ import { Loader2, Mail, RefreshCw } from "../../../../vendor/lucide-react";
 import { fechaCompleta, haceCuanto } from "./avanceCorreoMatriz";
 import { type AvanceDeLectura, cifra, nombreAudiencia, porcentaje } from "./avanceCorreoModelo";
 
-// Cabecera compacta de Avance › Correo: título, audiencia, frescura de la
+// Cabecera compacta de Control › Correo: título, audiencia, frescura de la
 // lectura y la acción primaria con su progreso dentro del propio botón. Sin
 // tarjeta-envoltorio: es la cabeza del panel.
 
@@ -52,7 +52,7 @@ export function AvanceCorreoCabecera({
       <div className="mon-correo-cabecera-titulo">
         <span className="mon-correo-cabecera-icono" aria-hidden><Mail size={16} /></span>
         <div>
-          <span className="mon-correo-versalita">Avance</span>
+          <span className="mon-correo-versalita">Control</span>
           <h2 id={idTitulo}>Correo</h2>
         </div>
       </div>
@@ -67,7 +67,7 @@ export function AvanceCorreoCabecera({
                   <option value="">Elige la audiencia</option>
                   {audiencias.map((a) => (
                     <option key={a.id} value={a.id}>
-                      {a.name || a.id}{a.member_count != null ? ` · ${cifra(a.member_count)} contactos` : ""}
+                      {a.name || a.id}{a.member_count != null ? `, ${cifra(a.member_count)} contactos` : ""}
                     </option>
                   ))}
                 </select>
@@ -83,7 +83,8 @@ export function AvanceCorreoCabecera({
           ) : (
             <>
               <span className="mon-correo-versalita">Audiencia</span>
-              <strong className="mon-correo-audiencia-nombre">{nombreAudiencia(listId, audiencias)}</strong>
+              {/* Sin la lista de audiencias no hay nombre: el identificador crudo no lo reemplaza (va en el title). */}
+              <strong className="mon-correo-audiencia-nombre" title={listId ? `Lista ${listId}` : undefined}>{audiencias.some((a) => a.id === listId) ? nombreAudiencia(listId, audiencias) : "Audiencia de Mailchimp"}</strong>
               <PulsoButton variant="ghost" size="sm" disabled={ocupado} onClick={onCambiar}>Cambiar</PulsoButton>
             </>
           )}

@@ -11,6 +11,11 @@ describe("origen del plan de Material de campo", () => {
     });
   });
 
+  it("un estudio de aulas todavía sin sorteo lleva a la Selección de Cálculo de muestra", () => {
+    expect(origenDelPlan({ modoDelCalculo: "general", macroFamilia: "encuesta_estudiantes" }).to)
+      .toBe("/calc-muestra?modo=opinion-universitaria&seccion=aulas");
+  });
+
   it("un proyecto con Hojas de ruta y sin Cálculo lleva a su Selección", () => {
     expect(origenDelPlan({ modoDelCalculo: "territorial", modulos: ["hojas-ruta"] }).to)
       .toBe("/hojas-ruta?seccion=seleccion");

@@ -1,5 +1,6 @@
-// Los editores propios de Inspector › Contenido (A10 W-B, C38): filas de la ficha técnica e ícono subido de una lámina
-// de población u objetivo. Cada cambio es un `updateSlidePayload` (un paso de deshacer) sobre su arg y nada más.
+// Los editores propios de Inspector › Lámina › Textos (A10 W-B, C38): filas de la ficha técnica, actores del objetivo e
+// ícono subido de una lámina de población u objetivo. Los ajustes de «Hallazgos clave» y «Resumen de diferencias» van en
+// sus propias secciones (PestanaLamina, H4). Cada cambio es un `updateSlidePayload` (un paso de deshacer) sobre su arg.
 
 import { ActoresObjetivo } from "./ActoresObjetivo";
 import type { Slide } from "../../../../api/graficos";

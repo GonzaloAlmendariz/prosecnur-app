@@ -1,0 +1,22 @@
+# Checklist — escenas de la pantalla de carga (2026-11-06)
+
+Indicaciones de Gonzalo sobre la versión 10 del artefacto (https://claude.ai/artifact/3cVPEhL8NGz3Nem4vSM5jg).
+Las escenas viven en el scratchpad de la sesión (`fondo-carga/src/escenas-a.js`, `escenas-b.js`, `app.js`); la regla
+de redacción vive en `CLAUDE.md` › «Redacción». Sólo Gonzalo da un ítem por terminado.
+
+| # | Indicación | Dónde vive | Estado |
+|---|---|---|---|
+| 1 | Sin sobreabstracción ni clichés en títulos y textos: decir las cosas como son («Condiciones de apertura», «Avisos de consistencia», «Materiales por campaña»), nunca «Qué pregunta abre a cuál», «Avisos que se resuelven», «Cada campaña con su material», «Una unidad, una ficha con su acceso» | Títulos, acciones y descripciones de las 35 escenas y de los 7 módulos | hecho (v11), por revisar |
+| 2 | Que la regla quede en el CLAUDE.md | `CLAUDE.md` › «Redacción»; memoria `feedback_no_sobreexplicar_en_la_ui.md` ampliada | hecho |
+| 3 | Formularios › la escena de lógica es la que peor se ve: rehacerla como condiciones de apertura | `ESCENAS.form` › `logica` | hecho (v11), por revisar |
+| 4 | Dashboard: quitar FODA y «índice hecho de sus partes»; mostrar la edición del tablero, cruces interactivos con selector de variables y cruces de cruces. Se quedan el tablero publicado, preguntas por fila y perfil de la muestra | `ESCENAS.dash` | hecho (v11), por revisar |
+| 5 | Monitoreo: no suponer Kobo; «Del Kobo a la meta» pasa a consistencia entre la plataforma y lo reportado en campo | `ESCENAS.monitoreo` › `cascada` y textos | hecho (v11), por revisar |
+| 6 | Hojas de ruta: falta algo de GPS (cómo se ven los puntos GPS) | `ESCENAS.rutas`: escena nueva de puntos GPS en lugar del reparto del N | hecho (v11), por revisar |
+| 7 | Otras escenas aún no terminan de verse bien | Todas; pasada escena por escena. Hechas: Procesamiento › Validación (tabla con casos, barrido por filas y reglas con conteo, v12); Hojas de ruta › Recorrido de la UMP según el impreso de la ficha UMP (v13); Monitoreo › Pendientes por distrito según Avance › Mapa (v15) | hecho (v15), por revisar |
+| 8 | «Este se sale del título y su animación se corta antes» (Marco y sorteo de titulares) | Rótulo «titulares sorteados» mal alineado; ritmo común de las escenas (`--k` al 80 % del ciclo). Chequeo automático en el artefacto: fin de la última pieza vs cierre y textos fuera del cuadro, en las 35 | hecho (v14), por revisar |
+| 9 | Módulos en orden, pero cuál de sus cinco escenas se muestra es aleatorio | Recorrido del proyecto (`escenaAlAzar`, sin repetir la última del módulo) | hecho (v16), por revisar |
+| 10 | Implementarlo en la app | `app/carga/` (escenas, RecorridoCarga), `PantallaDeCarga` disposición «recorrido», `BootGate`, `ModuleWarmupBoundary` con `CargaDeModulo`. Commits b06a85f5c y 8586b6c52; verificador: aprobado con pendientes | hecho, por revisar |
+| 11 | Matriz de QA visual de la carga del proyecto | Sonda de geometría en 1710×1107, 1440×1000, 1366×768, 1280×720 y 1024×600: sin choques ni cortes tras subir el margen inferior de la escena (a 1366×768 se cortaba 20 px) y su tope a 760 px. Movimiento reducido no se pudo emular en el navegador integrado: cubierto por CSS y el contrato de movimiento | hecho, por revisar |
+| 12 | «Por un milisegundo apareció la pantalla de carga antigua» | Era el selector de proyectos durante las fases «initializing» y «opening» (~75–200 ms). `BootGate` pinta la carga desde el primer cuadro cuando el arranque abre un proyecto (deep-link o archivo de lanzamiento, pedido una sola vez). Grabado cuadro a cuadro: ya no aparece | hecho, por revisar |
+| 13 | Warm start largo de módulo (Monitoreo con proyecto real) | Proyecto de referencia `acnur_acg` (copia). Abierto en Cálculo de muestra, sin Monitoreo preparado: al entrar a Monitoreo, la carga corta estuvo montada sin cortes 5 s con rótulos que avanzan («Preparando Monitoreo» → «Preparando Territorial») y luego la vista completa. La espera de minutos es el arranque del proyecto (3:30 con este estudio), que conserva lámina, fases y reloj | hecho, por revisar |
+| 14 | «En mi pantalla de 15" se ve un poco vacío» | `pantalla-de-carga.css`: la escena llena el ancho o el alto disponible, lo que se acabe primero, con tope de 1040 px (antes 44vw y 760 px). A 1512×945 pasa de 665×416 a 789×493. La columna de la izquierda ocupa la misma banda que el escaparate y se centra en ella. Medido en 1710×1107, 1512×945, 1440×1000, 1366×768, 1280×720 y 1024×600: sin cortes ni choques | hecho, por revisar |

@@ -117,7 +117,7 @@ function Lado({ lado, tope, hacia, facultad }: {
   const estado = lado.sobran > 0
     ? `sobran ${fmt(lado.sobran)}`
     : lado.cumple ? "meta cumplida" : `faltan ${fmt(lado.faltan)}`;
-  const lectura = `${facultad} · ${lado.sexo}: ${fmt(lado.observadas)} de ${fmt(lado.meta)} conseguidas · ${lado.avance} % · ${estado}`;
+  const lectura = `${facultad}, ${lado.sexo}: ${fmt(lado.observadas)} de ${fmt(lado.meta)} conseguidas, ${lado.avance} %, ${estado}`;
   return (
     <span className={`aulas-piramide-lado es-${hacia}`}>
       {/* **Un hover de verdad, no el `title` del navegador** (Gonzalo,

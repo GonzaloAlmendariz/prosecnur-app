@@ -9,15 +9,14 @@
    (dirección §2) y un flujo vertical propio: el espacio ENTRE bloques de tema
    distinto (14-18px) siempre mayor que DENTRO de cada bloque. Las clases
    cmv2-university-* de estos paneles solo las consumen los tabs de Definición. */
-.cmv2-panel.cmv2-university-sources,
-.cmv2-panel.cmv2-eligibility-panel {
+.pulso-panel.cmv2-university-sources {
   display: flex;
   flex-direction: column;
   gap: 14px;
   padding: 16px 18px;
 }
 
-.cmv2-panel.cmv2-university-variable-map {
+.pulso-panel.cmv2-university-variable-map {
   display: flex;
   flex-direction: column;
   gap: var(--cmv2-space-4);
@@ -28,19 +27,13 @@
   box-shadow: none;
 }
 
-.cmv2-panel.cmv2-university-category-map {
-  padding: 16px 18px;
-}
-
 /* El gap del panel reemplaza los márgenes históricos de las piezas internas. */
 .cmv2-university-sources .cmv2-source-mode-grid,
-.cmv2-university-sources .cmv2-source-mode-note,
-.cmv2-university-sources .cmv2-source-binding-list,
-.cmv2-eligibility-panel > .cmv2-classroom-note {
+.cmv2-university-sources .cmv2-source-binding-list {
   margin-top: 0;
 }
 
-.cmv2-university-variable-map .cmv2-panel-head {
+.cmv2-university-variable-map .pulso-panel-header {
   margin-bottom: 0;
 }
 
@@ -50,7 +43,7 @@
    y funde las aristas con un fade puro intercalado. Decorativa: nunca bloquea. */
 @media (prefers-reduced-motion: no-preference) {
   .cmv2-defi-stagger .cmv2-uni-flujo-etapa {
-    animation: cmv2-defi-enter 230ms var(--cmv2-ease-out, ease-out) both;
+    animation: pulso-mov-aparece 230ms var(--cmv2-ease-out, ease-out) both;
   }
 
   .cmv2-defi-stagger .cmv2-uni-flujo-etapa:nth-child(3) { animation-delay: 45ms; }
@@ -59,7 +52,7 @@
   .cmv2-defi-stagger .cmv2-uni-flujo-etapa:nth-child(n + 9) { animation-delay: 180ms; }
 
   .cmv2-defi-stagger .cmv2-uni-flujo-arista {
-    animation: cmv2-defi-fade 230ms var(--cmv2-ease-out, ease-out) both;
+    animation: pulso-mov-aparece 230ms var(--cmv2-ease-out, ease-out) both;
     animation-delay: 25ms;
   }
 
@@ -69,26 +62,12 @@
 }
 
 /* Fade-only: el wrapper del tab ya desliza (motion en capas, ui/ui.css). */
-@keyframes cmv2-defi-enter {
-  from {
-    opacity: 0;
-  }
-}
-
-@keyframes cmv2-defi-fade {
-  from {
-    opacity: 0;
-  }
-}
-
 /* Los campos del formulario transicionan borde y anillo de foco (el ring en sí
    lo da calcMuestra.css; aquí solo se suaviza la entrada/salida del foco). */
 .cmv2-defi-form .cmv2-compact-field input,
 .cmv2-defi-form .cmv2-compact-field textarea,
 .cmv2-university-sources .cmv2-compact-field input,
 .cmv2-university-sources .cmv2-compact-field select,
-.cmv2-eligibility-panel .cmv2-compact-field input,
-.cmv2-university-category-map .cmv2-category-meaning input,
 .cmv2-defi-var-card select {
   transition: border-color 150ms ease, box-shadow 150ms ease;
 }
@@ -96,7 +75,7 @@
 /* --- Estudio: hero de primera vez -------------------------------------------
    Aparece solo sin bases ni marco: pregunta directa + una tarjeta por insumo
    (estilo EmptyHome del editor XLSForm) + el recorrido completo ilustrado. */
-.cmv2-panel.cmv2-defi-hero {
+.pulso-panel.cmv2-defi-hero {
   display: grid;
   gap: 10px;
   padding: 16px 18px;
@@ -110,28 +89,11 @@
     var(--cmv2-surface-raised);
 }
 
-.cmv2-defi-hero-title {
-  margin: 0;
-  font-size: 17px;
-  font-weight: var(--pulso-weight-heavy);
-  letter-spacing: -0.2px;
-  line-height: 1.2;
-  color: var(--pulso-text);
-}
-
-.cmv2-defi-hero-lead {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.55;
-  color: var(--pulso-text-muted);
-  max-width: 68ch;
-}
-
 /* Subtítulo bajo el select de un rol dual-hoja (condicion_curso): aclara que la
    columna puede venir de cualquiera de las dos hojas. */
 .cmv2-defi-var-sheet-note {
   margin: 6px 0 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.45;
   color: var(--pulso-text-muted);
 }
@@ -213,14 +175,14 @@
 }
 
 .cmv2-defi-hero-card > strong {
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: -0.1px;
   color: var(--pulso-text);
 }
 
 .cmv2-defi-hero-card > span {
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.5;
   color: var(--pulso-text-muted);
 }
@@ -231,7 +193,7 @@
   align-items: center;
   gap: 7px;
   margin: 0;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.5;
   color: var(--pulso-text-muted);
 }
@@ -279,7 +241,7 @@
 
 .cmv2-defi-hero-guide p {
   margin: 0;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.5;
   color: var(--pulso-text-muted);
   max-width: 78ch;
@@ -304,7 +266,7 @@
 /* El form llena la altura de la fila (marcada por el mapa) y el textarea de
    alcance crece para ocupar el espacio: elimina el vacío en L y da sitio real
    para escribir el alcance del estudio (regla 8: sin espacio sin propósito). */
-.cmv2-defi-estudio-layout > .cmv2-panel {
+.cmv2-defi-estudio-layout > .pulso-panel {
   display: flex;
   flex-direction: column;
   padding: 16px 18px;
@@ -312,11 +274,6 @@
 
 /* Cabecera del formulario: mismo eyebrow de nivel panel que el mapa lateral,
    para que el protagonista no abra en seco con el primer campo. */
-.cmv2-defi-form-head {
-  display: flex;
-  align-items: center;
-  margin-bottom: 12px;
-}
 
 @media (max-width: 980px) {
   .cmv2-defi-estudio-layout {
@@ -328,7 +285,8 @@
 .cmv2-defi-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-rows: auto 1fr auto;
+  /* Título y cliente, la nota de la Ficha, el alcance (que se estira) y el resto. */
+  grid-template-rows: auto auto 1fr auto;
   gap: 10px;
   flex: 1;
 }
@@ -356,7 +314,7 @@
 
 /* Tinte sutil de acento: jerarquiza el mapa como "resumen vivo" frente al
    formulario plano de la izquierda. */
-.cmv2-panel.cmv2-defi-mapa {
+.pulso-panel.cmv2-defi-mapa {
   border-color: color-mix(in srgb, var(--cmv2-accent-border) 45%, var(--cmv2-border));
   background:
     linear-gradient(
@@ -370,18 +328,9 @@
 /* Menos cajas anidadas (dirección §1): dentro del mapa tintado y del flujo de
    elegibilidad, las etapas del FlujoVertical pierden el fondo de card y bajan
    el peso del borde — el panel es la superficie; la etapa, solo contorno. */
-.cmv2-defi-mapa .cmv2-uni-flujo-etapa,
-.cmv2-defi-eleg-flujo .cmv2-uni-flujo-etapa {
+.cmv2-defi-mapa .cmv2-uni-flujo-etapa {
   background: transparent;
   border-color: color-mix(in srgb, var(--cmv2-border) 60%, transparent);
-}
-
-.cmv2-defi-mapa-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  flex-wrap: wrap;
 }
 
 /* --- Bases: modos con popover, tarjetas y CTA ------------------------------- */
@@ -414,7 +363,7 @@
   border: none;
   background: none;
   padding: 0 2px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--cmv2-accent-fg);
   cursor: help;
@@ -442,13 +391,13 @@
 }
 
 .cmv2-defi-when-pop strong {
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--cmv2-accent);
 }
 
 .cmv2-defi-when-pop p {
   margin: 0;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.5;
 }
 
@@ -457,7 +406,7 @@
   padding-left: 16px;
   display: grid;
   gap: 2px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 
@@ -473,7 +422,7 @@
   border: 1px solid var(--cmv2-border);
   background: var(--cmv2-surface);
   color: var(--pulso-text-muted);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -559,7 +508,7 @@
   border: 1px solid var(--cmv2-accent-border);
   background: var(--cmv2-accent-soft);
   color: var(--cmv2-accent-fg);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-heavy);
   font-variant-numeric: tabular-nums;
 }
@@ -577,7 +526,7 @@
 }
 
 .cmv2-defi-upload-copy small {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -585,7 +534,7 @@
 }
 
 .cmv2-defi-upload-copy strong {
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: -0.1px;
   color: var(--pulso-text);
@@ -594,7 +543,7 @@
 /* Qué ES este archivo (y qué pasa si falta) — el concepto antes de la acción. */
 .cmv2-defi-upload-whatis {
   margin: 0;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.55;
   color: var(--pulso-text-muted);
   max-width: 78ch;
@@ -673,7 +622,7 @@
 }
 
 .cmv2-defi-dropzone:active:not(.is-disabled) {
-  transform: scale(0.995);
+  transform: scale(var(--mov-press-tarjeta, 0.985));
 }
 
 .cmv2-defi-dropzone:focus-within {
@@ -704,7 +653,7 @@
 }
 
 .cmv2-defi-dropzone-title {
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text);
 }
@@ -714,7 +663,7 @@
 }
 
 .cmv2-defi-dropzone-formats {
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-muted);
 }
 
@@ -751,7 +700,7 @@
 }
 
 .cmv2-defi-upload-stat > span {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -759,7 +708,7 @@
 }
 
 .cmv2-defi-upload-stat > strong {
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text);
@@ -771,12 +720,12 @@
    en esta superficie y aquí sería el propio defecto con otra forma. */
 .cmv2-defi-requisitos {
   margin: 0 0 2px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 
 .cmv2-defi-requisitos > span {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -788,14 +737,14 @@
 }
 
 .cmv2-defi-requisitos code {
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text);
   cursor: help;
 }
 
 /* Por qué la cifra de la vista previa es pequeña y dónde saldrá el total. */
 .cmv2-defi-upload-stat > small {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.35;
   color: var(--pulso-text-muted);
 }
@@ -810,7 +759,7 @@
  */
 .cmv2-defi-upload-cols-head {
   margin: 0;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 .cmv2-defi-upload-cols-head strong {
@@ -837,39 +786,9 @@
   border-radius: 999px;
   border: 1px solid var(--cmv2-border);
   background: var(--cmv2-control-bg);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text);
   overflow-wrap: anywhere;
-}
-
-/* Franja de compatibilidad: puente "subir → mapear" antes de construir. */
-.cmv2-defi-compat {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  padding: 8px 12px;
-  border: 1px solid var(--cmv2-border);
-  border-radius: 10px;
-  font-size: 11.5px;
-  font-weight: var(--pulso-weight-semibold);
-  line-height: 1.45;
-}
-
-.cmv2-defi-compat svg {
-  flex: none;
-}
-
-.cmv2-defi-compat.is-ok {
-  border-color: var(--pulso-success-border);
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-}
-
-.cmv2-defi-compat.is-warn {
-  border-color: var(--pulso-warn-border);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
 }
 
 /* CTA + su consecuencia juntos (proximidad, dirección §2): el hint acompaña al
@@ -884,7 +803,7 @@
 
 .cmv2-defi-build-hint {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.5;
   color: var(--pulso-text-muted);
   max-width: 62ch;
@@ -904,7 +823,7 @@
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-muted);
 }
@@ -925,13 +844,13 @@
 }
 
 .cmv2-defi-var-group-head small {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 
 .cmv2-defi-var-group-hint {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.35;
   color: var(--pulso-text-muted);
 }
@@ -1087,7 +1006,7 @@
 
 .cmv2-defi-var-card-head strong {
   min-width: 0;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.3;
   /* Alineación óptica con el ícono/chip (1px de padding + borde). */
@@ -1103,7 +1022,7 @@
   border-radius: 999px;
   border: 1px solid var(--cmv2-border);
   background: var(--cmv2-control-bg);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -1136,7 +1055,7 @@
   border-radius: 999px;
   border: 1px solid var(--cmv2-border);
   background: var(--cmv2-control-bg);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1183,13 +1102,13 @@
 }
 
 .cmv2-defi-why-pop strong {
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--cmv2-accent);
 }
 
 .cmv2-defi-why-pop p {
   margin: 0;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.5;
 }
 
@@ -1201,7 +1120,7 @@
   border: 1px solid var(--cmv2-border-strong);
   border-radius: 9px;
   background: var(--cmv2-surface);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text);
 }
 
@@ -1227,7 +1146,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-success-fg);
 }
@@ -1241,7 +1160,7 @@
   border: 1px solid var(--cmv2-accent-border);
   border-radius: 8px;
   background: var(--cmv2-accent-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--cmv2-accent-fg);
   cursor: pointer;
@@ -1268,7 +1187,7 @@
   border: 1px solid var(--cmv2-border);
   border-radius: 7px;
   background: none;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
   cursor: pointer;
   transition: border-color 150ms ease, color 150ms ease;
@@ -1285,7 +1204,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -1293,7 +1212,7 @@
 }
 
 .cmv2-defi-var-pending {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 
@@ -1314,7 +1233,7 @@
 
 .cmv2-defi-var-detail-note {
   margin: 0;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.45;
   color: var(--pulso-text-muted);
 }
@@ -1338,7 +1257,7 @@
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--cmv2-accent-border) 55%, var(--cmv2-border));
   background: color-mix(in srgb, var(--cmv2-accent-soft) 60%, var(--cmv2-control-bg));
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text);
 }
 
@@ -1384,7 +1303,7 @@
 }
 
 .cmv2-defi-var-numeric small {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1392,40 +1311,16 @@
 }
 
 .cmv2-defi-var-numeric b {
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-info-fg);
 }
 
 /* --- Cabecera de la pestaña Variables --------------------------------------- */
-.cmv2-defi-var-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.cmv2-defi-var-head-copy {
-  display: grid;
-  gap: 3px;
-  min-width: 0;
-  max-width: 60ch;
-}
-
-.cmv2-defi-var-head-copy p {
-  margin: 0;
-  font-size: 11.5px;
-  line-height: 1.45;
-  color: var(--pulso-text-muted);
-}
 
 /* El rail/contexto local ya nombra Variables. Se conserva la explicación
    operativa y se elimina el rótulo interior duplicado. */
-.cmv2-defi-var-head-copy > .cmv2-eyebrow {
-  display: none;
-}
 
 .cmv2-defi-var-sheet-note {
   grid-area: sheet;
@@ -1478,7 +1373,7 @@
   border: 1px solid var(--cmv2-accent-border);
   border-radius: 9px;
   background: var(--cmv2-accent-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--cmv2-accent-fg);
   cursor: pointer;
@@ -1496,211 +1391,6 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--cmv2-accent) 18%, transparent);
 }
 
-/* --- Categorías: elegibilidad como estrella --------------------------------- */
-.cmv2-defi-eleg-layout {
-  display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(0, 1.6fr);
-  gap: 16px;
-  align-items: start;
-}
-
-@media (max-width: 980px) {
-  .cmv2-defi-eleg-layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-.cmv2-defi-eleg-flujo {
-  display: grid;
-  gap: 8px;
-  align-content: start;
-}
-
-.cmv2-defi-motivos {
-  display: grid;
-  gap: 5px;
-}
-
-.cmv2-defi-motivos small {
-  font-size: 10.5px;
-  font-weight: var(--pulso-weight-semibold);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--pulso-text-muted);
-}
-
-.cmv2-defi-motivos-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.cmv2-defi-motivos-list span {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 5px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  border: 1px solid var(--pulso-warn-border);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
-  font-size: 10.5px;
-  font-weight: var(--pulso-weight-semibold);
-}
-
-.cmv2-defi-motivos-list span em {
-  font-style: normal;
-  font-variant-numeric: tabular-nums;
-}
-
-.cmv2-defi-criterios {
-  display: grid;
-  gap: 14px;
-}
-
-.cmv2-defi-cond {
-  display: grid;
-  gap: 6px;
-}
-
-/* Mismo eyebrow de sub-bloque que "Motivos principales": un solo estilo de
-   rótulo por nivel de jerarquía (dirección §8). */
-.cmv2-defi-cond > small {
-  font-size: 10.5px;
-  font-weight: var(--pulso-weight-semibold);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--pulso-text-muted);
-}
-
-.cmv2-defi-cond-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
-.cmv2-defi-cond-chip {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--cmv2-border-strong);
-  background: var(--cmv2-surface);
-  font-size: 11.5px;
-  font-weight: var(--pulso-weight-semibold);
-  color: var(--pulso-text);
-  cursor: pointer;
-  transition:
-    border-color var(--motion-dur-fast, 120ms) ease,
-    background var(--motion-dur-fast, 120ms) ease,
-    transform var(--motion-dur-press, 120ms) var(--motion-ease-out, ease-out);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .cmv2-defi-cond-chip:hover {
-    border-color: var(--cmv2-accent-border);
-  }
-}
-
-.cmv2-defi-cond-chip:active {
-  transform: scale(0.97);
-}
-
-.cmv2-defi-cond-chip[aria-pressed="true"] {
-  border-color: var(--pulso-success-border);
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-}
-
-.cmv2-defi-cond-chip em {
-  font-style: normal;
-  font-variant-numeric: tabular-nums;
-  font-weight: var(--pulso-weight-medium);
-  color: var(--pulso-text-muted);
-}
-
-.cmv2-defi-cond-chip[aria-pressed="true"] em {
-  color: inherit;
-}
-
-.cmv2-defi-cond-hint {
-  margin: 0;
-  font-size: 10.5px;
-  color: var(--pulso-text-muted);
-}
-
-.cmv2-defi-criterios-mins {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 8px;
-}
-
-/* --- Categorías: buscador del master-detail --------------------------------- */
-/* El detalle se remonta con key por variable: entra con fade corto. La lista
-   izquierda ya anima su selección (background 160ms) desde calcMuestra.css. */
-@media (prefers-reduced-motion: no-preference) {
-  .cmv2-university-category-map .cmv2-category-detail-card {
-    animation: cmv2-defi-fade 150ms var(--cmv2-ease-out, ease-out) both;
-  }
-}
-
-.cmv2-defi-cat-search {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border: 1px solid var(--cmv2-border-strong);
-  border-radius: 9px;
-  background: var(--cmv2-surface);
-}
-
-.cmv2-defi-cat-search svg {
-  flex: none;
-  color: var(--pulso-text-muted);
-}
-
-.cmv2-defi-cat-search input {
-  flex: 1;
-  min-width: 0;
-  border: none;
-  background: none;
-  font-size: 12px;
-  color: var(--pulso-text);
-  padding: 2px 0;
-}
-
-.cmv2-defi-cat-search input:focus {
-  outline: none;
-}
-
-.cmv2-defi-cat-search:focus-within {
-  outline: 2px solid var(--cmv2-accent);
-  outline-offset: 1px;
-}
-
-.cmv2-defi-cat-meta {
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  color: var(--pulso-text-muted);
-}
-
-/* --- Categorías: pulido del master-detail (clases exclusivas de este tab) --- */
-/* Cifras de conteo siempre tabulares: no bailan al editar ni al filtrar. */
-.cmv2-university-category-map .cmv2-category-raw small,
-.cmv2-university-category-map .cmv2-category-variable-meta em,
-.cmv2-university-category-map .cmv2-category-pane-head strong {
-  font-variant-numeric: tabular-nums;
-}
-
-/* Hover de fila del detalle: tinte suave de acento, solo con puntero fino;
-   la fila en edición conserva su tinte más fuerte de calcMuestra.css. */
-@media (hover: hover) and (pointer: fine) {
-  .cmv2-university-category-map .cmv2-category-detail-row:hover {
-    background: color-mix(in srgb, var(--cmv2-accent-soft) 26%, transparent);
-  }
-}
-
 /* Opción secundaria: lectura de una selección ya trabajada (no es un escenario
    de datos para armar el marco, §3.1.3). Discreta, bajo el picker de 2 modos. */
 .cmv2-source-historica {
@@ -1715,7 +1405,7 @@
   border-radius: var(--pulso-radius-chip);
   background: transparent;
   color: var(--pulso-text-muted);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   font-weight: var(--pulso-weight-medium);
   cursor: pointer;
 }
@@ -1754,7 +1444,7 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface);
   color: var(--cmv2-accent-fg);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   font-weight: var(--pulso-weight-medium);
   white-space: nowrap;
   cursor: pointer;
@@ -1767,14 +1457,14 @@
 .cmv2-defi-dti-hint {
   flex: 1 1 260px;
   min-width: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
   color: var(--pulso-text-muted);
 }
 
 .cmv2-defi-dti-error {
   flex-basis: 100%;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-danger-fg, var(--pulso-warn-fg));
 }
 
@@ -1801,7 +1491,7 @@
 
 .cmv2-defi-filtros-head h4 {
   margin: 2px 0 0;
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: 600;
   color: var(--pulso-text);
 }
@@ -1809,7 +1499,7 @@
 .cmv2-defi-filtros-head p {
   margin: 4px 0 0;
   max-width: 62ch;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 
@@ -1823,7 +1513,7 @@
   border-radius: 6px;
   background: var(--pulso-surface-2);
   color: var(--pulso-text);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: 500;
   cursor: pointer;
 }
@@ -1833,7 +1523,7 @@
   padding: var(--pulso-space-3);
   border: 1px dashed var(--pulso-border-soft);
   border-radius: 6px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 
@@ -1854,7 +1544,7 @@
   height: 18px;
   border-radius: 999px;
   background: var(--pulso-surface-3);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text-muted);
 }
@@ -1970,7 +1660,7 @@
   border-radius: 6px;
   background: var(--pulso-surface-2);
   color: var(--pulso-text);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .cmv2-defi-filtro-confirm {
@@ -1981,7 +1671,7 @@
 }
 
 .cmv2-defi-filtro-ok {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: 600;
   color: var(--pulso-success-fg);
 }
@@ -1992,7 +1682,7 @@
   border-radius: 6px;
   background: var(--pulso-surface-2);
   color: var(--pulso-text);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   cursor: pointer;
 }
 
@@ -2015,7 +1705,7 @@
 }
 
 .cmv2-defi-filtros-grid small {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -2024,7 +1714,7 @@
 
 .cmv2-defi-filtros-meaning {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 
@@ -2041,7 +1731,7 @@
 .cmv2-source-optional-head p {
   margin: 4px 0 0;
   max-width: 74ch;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 
@@ -2056,7 +1746,7 @@
 }
 
 .cmv2-defi-var-motor-copy {
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
   white-space: nowrap;
   overflow: hidden;
@@ -2067,5 +1757,19 @@
   color: var(--pulso-text);
   font-weight: var(--pulso-weight-semibold);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
+}
+
+/* Título y cliente leídos de la Ficha del estudio (ADR 0124): no se editan aquí. */
+.cmv2-defi-identidad-leida b {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.cmv2-defi-identidad-nota {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
 }

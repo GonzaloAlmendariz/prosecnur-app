@@ -11,6 +11,7 @@ import { destacadasDe } from "../DestacarRespuestas";
 import { GRAFICOS_CON_RESALTE, resaltaMayor } from "../ResaltarGrafico";
 import type { OpcionMaqueta, RanuraMaqueta } from "../modeloMaqueta";
 import { categoriasQueSalen, type ConteoCategoria } from "./categoriasQueSalen";
+import { formatoConteo } from "../../../../lib/formatoNumero";
 
 /** Aviso de la ficha cuando el Top Two Box está encendido sin sus respuestas (el PowerPoint sale sin la columna). */
 export const TTB_SIN_RESPUESTAS = "Top Two Box sin respuestas elegidas";
@@ -130,7 +131,7 @@ const ORDEN_DIVERGENTES: Readonly<Record<string, string>> = {
   sin_informacion: "Por Sin información", declarado: "Orden declarado",
 };
 
-/** Dónde va la base en el contraste con tabla de base (ADR 0114), salvo «Automático», que es el de por defecto. */
+/** Dónde va la base en el contraste con tabla de base (ADR 0134), salvo «Automático», que es el de por defecto. */
 const BASE_EN: Readonly<Record<string, string>> = {
   leyenda: "Base en la leyenda", tabla: "Base en la tabla",
 };
@@ -146,7 +147,8 @@ const DESTACADO: Readonly<Record<string, string>> = {
  */
 export function ajustesDelGlifo(graficador: string, args: Readonly<Record<string, unknown>>, grupos: boolean): { glifo: OpcionesGlifo; ajustes: string[] } {
   const v = lectorArgs(args);
-  const glifo: OpcionesGlifo = { grupos, significancia: v("mostrar_significancia") === true };
+  // ADR 0128: sólo con un cruce hay grupos que comparar; sin él el motor no marca nada y la maqueta tampoco (C1).
+  const glifo: OpcionesGlifo = { grupos, significancia: grupos && v("mostrar_significancia") === true };
   const ajustes: string[] = [];
   if (GRAFICOS_CON_RESALTE.has(graficador)) {
     // D1: las respuestas elegidas mandan sobre «la mayor» (como en la lámina nativa).
@@ -183,7 +185,7 @@ export function ajustesDelGlifo(graficador: string, args: Readonly<Record<string
     case "p_barras_divergentes": {
       glifo.neutro = v("incluir_neutro") !== false;
       if (!glifo.neutro) ajustes.push("Sin el neutro partido");
-      // ADR 0114: la escala del resumen ejecutivo y su orden («Por acuerdo» es el del registro).
+      // ADR 0134: la escala del resumen ejecutivo y su orden («Por acuerdo» es el del registro).
       if (v("estilo") === "resumen") ajustes.push("Escala con Sin información aparte");
       const orden = ORDEN_DIVERGENTES[String(v("orden") ?? "")];
       if (orden) ajustes.push(orden);
@@ -202,7 +204,7 @@ export function ajustesDelGlifo(graficador: string, args: Readonly<Record<string
       break;
     }
     case "p_panorama": {
-      // ADR 0114: la referencia punteada; 60 es el default del registro.
+      // ADR 0134: la referencia punteada; 60 es el default del registro.
       const ref = Number(v("referencia"));
       if (v("referencia") !== undefined && v("referencia") !== null && Number.isFinite(ref) && ref !== 60) ajustes.push(`Referencia ${ref} %`);
       break;
@@ -213,8 +215,9 @@ export function ajustesDelGlifo(graficador: string, args: Readonly<Record<string
       break;
     case "p_radar": {
       // Entre públicos manda lo que el motor dibuja de verdad (formaRadar.ts): con menos de 5 criterios, líneas y puntos y
-      // sin tabla. En los demás modos, el radar con su tabla. `mostrar_tabla: false` (viejo) equivale a `tabla = "no"`.
-      if (v("modo") !== "publicos") { glifo.tabla = true; break; }
+      // sin tabla. En los demás modos, el radar solo: el motor apaga su tabla (`mostrar_tabla_derecha = FALSE`,
+      // p_radar_split.R) y la lámina lo centra. `mostrar_tabla: false` (viejo) equivale a `tabla = "no"`.
+      if (v("modo") !== "publicos") { glifo.tabla = false; break; }
       const tabla = v("tabla") ?? (v("mostrar_tabla") === false ? "no" : undefined);
       const f = formaEfectivaRadar({ forma: v("forma"), fallback_pocos: v("fallback_pocos"), tabla, nCriterios: criteriosDelRadar(args) });
       glifo.formaRadar = f.forma;
@@ -256,7 +259,9 @@ export function ajustesDelGlifo(graficador: string, args: Readonly<Record<string
     }
     case "p_tabla": {
       const u = entero(v("umbral_rojo_pct"));
-      if (u) { glifo.rojo = true; ajustes.push(`En rojo bajo ${u} %`); }
+      // La tabla nativa del PPT no pinta rojo (.lam_tabla_ttb); sólo el Word, que dibuja el gráfico de la ruta anterior
+      // (sin renderer «tabla» en reporte_word_graficos_despacho.R). La maqueta es la lámina: sin rojo, y el ajuste lo dice.
+      if (u) ajustes.push(`En rojo bajo ${u} %, sólo en el Word`);
       break;
     }
     default:
@@ -336,7 +341,7 @@ export function fichaDeRanura(r: RanuraMaqueta, nombreTipo: string | null, conte
   if (conTtb) ajustes.push(conTtb === salen.length ? "Top Two Box" : "Top Two Box en un bloque");
   const btb = conTtb > 0 && r.twoBox.btb && !ttbSinRespuestas;
   if (btb) ajustes.push("Bottom Two Box");
-  if (salen.length > 1) ajustes.push(`${salen.length} bloques`);
+  if (salen.length > 1) ajustes.push(`${formatoConteo(salen.length)} bloques`);
   if (cruce) ajustes.push(`Por grupos: ${cruce}`);
   ajustes.push(...ajustesComunes(r.args));
   const eje = ejeDe(r.args);

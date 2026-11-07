@@ -86,7 +86,7 @@ describe("vocabulario de bloques", () => {
   });
 
   it("la careta y los renglones dicen qué pintan", () => {
-    expect(resumenDelBloque({ type: "brand_strip", assets: ["a", "b"], align: "left" })).toBe("2 logos · a la izquierda");
+    expect(resumenDelBloque({ type: "brand_strip", assets: ["a", "b"], align: "left" })).toBe("2 logos, a la izquierda");
     expect(resumenDelBloque({ type: "form_lines", rows: [{}, {}, {}] })).toBe("3 renglones que se llenan a mano");
     expect(resumenDelBloque({ type: "heading" })).toBe("");
   });

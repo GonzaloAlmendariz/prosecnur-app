@@ -18,7 +18,7 @@
 .cmv2-ref-tau-head > span {
   grid-column: 1 / -1;
   color: var(--cmv2-accent, var(--pulso-primary));
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -28,12 +28,12 @@
   min-width: 0;
   overflow-wrap: anywhere;
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .cmv2-ref-tau-head small {
   color: var(--pulso-text-muted);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
 }
 
 .cmv2-ref-tau-comparison {
@@ -55,12 +55,12 @@
 
 .cmv2-ref-tau-comparison span {
   color: var(--pulso-text-muted);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
 }
 
 .cmv2-ref-tau-comparison strong {
   color: var(--pulso-text);
-  font-size: 18px;
+  font-size: var(--pulso-type-kpi-size);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
@@ -85,7 +85,7 @@
   justify-content: space-between;
   gap: 3px 8px;
   color: var(--pulso-text-muted);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
 }
 
 .cmv2-ref-tau-chain article strong {
@@ -98,18 +98,9 @@
   gap: 1px;
   margin: 0;
   color: var(--pulso-text-muted);
-  font-size: 9.5px;
+  font-size: var(--pulso-type-micro-size);
   font-variant-numeric: tabular-nums;
   line-height: 1.4;
-}
-
-.cmv2-ref-tau-empty {
-  min-height: 46px;
-  margin: 0;
-  align-content: center;
-  color: var(--pulso-text-muted);
-  font-size: 11px;
-  line-height: 1.5;
 }
 
 .cmv2-ref-tau-alert {
@@ -119,7 +110,7 @@
   border-radius: 8px;
   background: var(--pulso-warn-bg);
   color: var(--pulso-warn-fg);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.4;
 }

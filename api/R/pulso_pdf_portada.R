@@ -185,6 +185,7 @@ pulso_pdf_portada <- function(portada, tokens = pulso_pdf_tokens(),
   img <- tryCatch(png::readPNG(path), error = function(e) NULL)
   if (is.null(img)) return(FALSE)
   img_h <- dim(img)[1]; img_w <- dim(img)[2]
+  width_npc <- width_npc * .pulso_pdf_logo_escala(path)
   h_npc <- width_npc * (img_h / img_w) * (geo$page_w / geo$page_h)
   # El logo canónico es oscuro sobre transparente; sobre la banda navy se pinta
   # su silueta en blanco usando el canal alfa, que es lo que hace el manual de

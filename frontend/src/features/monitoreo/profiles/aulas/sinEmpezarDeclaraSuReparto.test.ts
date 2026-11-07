@@ -86,7 +86,7 @@ describe("«Agendado» se separa cuando el tramo mezcla estados", () => {
   it("con 13 agendadas y 9 sin contactar, dice el reparto", () => {
     const k = sinEmpezar(conEstado(13, 9));
     expect(k?.value).toBe("22");
-    expect(k?.pista).toBe("13 con cita · 9 sin contactar todavía");
+    expect(k?.pista).toBe("13 con cita, 9 sin contactar todavía");
   });
 
   it("con todas agendadas no inventa un reparto", () => {

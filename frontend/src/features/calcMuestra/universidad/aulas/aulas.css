@@ -32,7 +32,7 @@
 }
 
 .cmv2-solidez-kicker {
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-semibold, 600);
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -46,47 +46,18 @@
 
 .cmv2-aulas-nota-suave {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.55;
   color: var(--pulso-text-muted);
   max-width: 78ch;
 }
 
 .cmv2-aulas-nota-suave {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 /* Los chips de término inline no deben inflar la línea del encabezado. */
 .cmv2-aulas-stack .cmv2-subhead .cmv2-uni-term {
-  min-height: 0;
-}
-
-/* --- Contenido de los popovers metodológicos -------------------------------- */
-.cmv2-aulas-chip-pop {
-  display: grid;
-  gap: 6px;
-  max-width: 340px;
-}
-
-.cmv2-aulas-chip-pop strong {
-  color: var(--pulso-text);
-  font-size: 12px;
-  font-weight: var(--pulso-weight-black);
-  line-height: 1.3;
-}
-
-.cmv2-aulas-chip-pop p {
-  margin: 0;
-  color: var(--pulso-text-muted);
-  font-size: 11.5px;
-  line-height: 1.5;
-}
-
-.cmv2-aulas-chip-pop .cmv2-uni-formula {
-  padding: 6px 8px;
-}
-
-.cmv2-aulas-chip-pop .cmv2-uni-term {
   min-height: 0;
 }
 
@@ -117,119 +88,19 @@
 
 .cmv2-aulas-cuota-head strong {
   color: var(--pulso-text);
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-black);
 }
 
 .cmv2-aulas-cuota-head small {
   color: var(--pulso-text-soft);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
-}
-
-.cmv2-aulas-cuota-fila {
-  display: grid;
-  grid-template-columns: minmax(140px, 220px) minmax(0, 1fr);
-  gap: 10px;
-  align-items: center;
-  padding: 4px 6px;
-  border-radius: 8px;
-}
-
-.cmv2-aulas-cuota-fila:nth-child(odd) {
-  background: var(--cmv2-surface);
-}
-
-@media (max-width: 900px) {
-  .cmv2-aulas-cuota-fila {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-.cmv2-aulas-cuota-facultad {
-  overflow: hidden;
-  color: var(--pulso-text);
-  font-size: 11.5px;
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1.25;
-  text-overflow: ellipsis;
-}
-
-.cmv2-aulas-cuota-fila .cmv2-uni-flujo[data-orientacion="horizontal"] {
-  gap: 2px;
-}
-
-/* --- Método: tarjeta canónica única (elección + métricas + acción, QA H1) ---- */
-.cmv2-aulas-method-card {
-  position: relative;
-  display: grid;
-  align-content: start;
-  padding: 0;
 }
 
 .cmv2-aulas-stack .cmv2-classroom-method-grid,
 .cmv2-aulas-neff-layout > .cmv2-uni-cifra-fila {
   grid-auto-rows: 1fr;
-}
-
-.cmv2-aulas-method-pick {
-  display: block;
-  width: 100%;
-  min-height: 108px;
-  padding: 11px;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  text-align: left;
-  white-space: normal;
-  cursor: pointer;
-}
-
-/* Un solo elemento dominante por tarjeta (QA H8): el nombre humano manda; el
-   rol (eyebrow) acompaña en gris sin competir. */
-.cmv2-aulas-method-pick strong {
-  font-size: 13.5px;
-}
-
-.cmv2-aulas-method-reco {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  width: fit-content;
-  margin-top: 5px;
-  padding: 2px 8px;
-  border: 1px solid var(--cmv2-accent-border);
-  border-radius: 999px;
-  background: var(--cmv2-accent-soft);
-  color: var(--cmv2-accent-fg);
-  font-size: 10px;
-  font-weight: var(--pulso-weight-bold);
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.cmv2-aulas-method-card .cmv2-classroom-quality-metrics {
-  padding: 0 11px;
-}
-
-.cmv2-aulas-method-card.is-recommended {
-  border-color: var(--cmv2-accent-border);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.9), transparent),
-    color-mix(in srgb, var(--cmv2-accent-soft) 55%, var(--pulso-surface));
-}
-
-.cmv2-aulas-method-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 10px 11px 11px;
-}
-
-.cmv2-aulas-method-foot .cmv2-aulas-method-formula {
-  margin: 0;
 }
 
 /*
@@ -254,127 +125,16 @@
   gap: 8px;
   padding: 9px 12px;
   border-bottom: 1px solid var(--cmv2-border);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text);
 }
 .cmv2-method-comparator-head span {
   margin-left: auto;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-muted);
   font-variant-numeric: tabular-nums;
 }
 .cmv2-method-comparator-body { padding: 10px 12px 12px; display: grid; gap: 12px; }
-
-.cmv2-aulas-method-formula {
-  display: inline-flex;
-  gap: 4px;
-  align-items: center;
-  justify-self: start;
-  min-height: 0;
-  margin: 0 11px 10px;
-  padding: 2px 8px;
-  border: 1px solid var(--cmv2-accent-border);
-  border-radius: 999px;
-  background: var(--cmv2-surface);
-  color: var(--cmv2-accent-fg);
-  font-size: 10.5px;
-  font-weight: var(--pulso-weight-heavy);
-  cursor: help;
-  transition:
-    background var(--motion-dur-fast) var(--motion-ease-out),
-    border-color var(--motion-dur-fast) var(--motion-ease-out),
-    transform var(--motion-dur-press, 120ms) var(--motion-ease-out);
-}
-
-@media (hover: hover) {
-  .cmv2-aulas-method-formula:hover {
-    border-color: color-mix(in srgb, var(--cmv2-accent) 38%, var(--pulso-border));
-    background: var(--cmv2-accent-soft);
-  }
-}
-
-.cmv2-aulas-method-formula[aria-expanded="true"] {
-  border-color: color-mix(in srgb, var(--cmv2-accent) 38%, var(--pulso-border));
-  background: var(--cmv2-accent-soft);
-}
-
-.cmv2-aulas-method-formula:active {
-  transform: scale(0.96);
-}
-
-/* --- Recta numérica del salto sistemático -------------------------------------- */
-.cmv2-aulas-recta {
-  display: grid;
-  gap: 4px;
-  padding: 11px;
-  border: 1px solid var(--cmv2-border);
-  border-radius: 10px;
-  background: var(--cmv2-surface);
-}
-
-.cmv2-aulas-recta-head strong {
-  display: block;
-  color: var(--pulso-text);
-  font-size: 12.5px;
-  font-weight: var(--pulso-weight-black);
-}
-
-.cmv2-aulas-recta-head small {
-  display: block;
-  margin-top: 2px;
-  color: var(--pulso-text-soft);
-  font-size: 10.5px;
-  font-weight: var(--pulso-weight-bold);
-  line-height: 1.4;
-}
-
-.cmv2-aulas-recta svg {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-
-.cmv2-aulas-recta-linea {
-  stroke: var(--cmv2-border-strong);
-  stroke-width: 1.5;
-}
-
-.cmv2-aulas-recta-tick {
-  stroke: var(--cmv2-border-strong);
-  stroke-width: 1;
-}
-
-.cmv2-aulas-recta-tick.is-salto {
-  stroke: var(--cmv2-accent-fg);
-  stroke-width: 2;
-}
-
-.cmv2-aulas-recta-punto {
-  fill: var(--cmv2-accent-soft);
-  stroke: var(--cmv2-accent-fg);
-  stroke-width: 1.6;
-}
-
-.cmv2-aulas-recta-flecha {
-  fill: var(--cmv2-accent-fg);
-}
-
-.cmv2-aulas-recta-etiqueta {
-  fill: var(--cmv2-accent-fg);
-  font-size: 10px;
-  font-weight: var(--pulso-weight-heavy);
-}
-
-.cmv2-aulas-recta-eje {
-  fill: var(--pulso-text-soft);
-  font-size: 10px;
-  font-weight: var(--pulso-weight-bold);
-}
-
-.cmv2-aulas-recta-eje.is-k {
-  fill: var(--pulso-text-muted);
-  font-weight: var(--pulso-weight-heavy);
-}
 
 /* --- Simulación: estabilidad de pesos e histograma π MC ------------------------ */
 .cmv2-aulas-neff {
@@ -438,7 +198,7 @@
   display: flex;
   justify-content: space-between;
   color: var(--pulso-text-soft);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
 }
@@ -487,7 +247,7 @@
 
 .cmv2-aulas-histo-bin strong {
   color: var(--pulso-text);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   line-height: 1;
   min-height: 11px;
@@ -497,7 +257,7 @@
   overflow: hidden;
   max-width: 100%;
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -510,7 +270,7 @@
   gap: 12px;
   padding: 2px 2px 0;
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -569,7 +329,7 @@
 .cmv2-profile-dimension {
   margin: 10px 2px 2px;
   color: var(--cmv2-accent-fg);
-  font-size: 9.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -595,8 +355,6 @@
 }
 
 /* --- Grafo de repetidos (SVG movido, sin hex) ------------------------------------ */
-
-
 
 /* --- Auditoría: grid de fórmulas -------------------------------------------------- */
 .cmv2-aulas-formulas {
@@ -650,9 +408,13 @@
 /* L27: la modalidad son tres opciones excluyentes → segmentado del kit sobre
    GlidingRadioGroup (teclado con flechas, indicador que se desliza). Tres
    columnas iguales; el texto parte en dos líneas antes que recortarse. */
-.cmv2-aulas-modalidad {
+.cmv2-aulas-modalidad.pulso-gliding-tab-list {
+  /* Con dos clases, para no empatar con el kit (contrato `indicadorDelKit`). */
   --pulso-gliding-indicator-bg: linear-gradient(180deg, color-mix(in srgb, var(--cmv2-accent) 88%, var(--pulso-surface) 12%), var(--cmv2-accent));
   --pulso-gliding-indicator-shadow: 0 2px 8px color-mix(in srgb, var(--cmv2-accent) 26%, transparent);
+}
+
+.cmv2-aulas-modalidad {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 2px;
@@ -669,7 +431,7 @@
   border-radius: 7px;
   background: transparent;
   color: var(--pulso-text-muted);
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.2;
   cursor: pointer;
@@ -681,7 +443,7 @@
 }
 
 .cmv2-aulas-modalidad > button:focus-visible {
-  outline: 2px solid var(--pulso-primary);
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
   outline-offset: 1px;
 }
 
@@ -711,27 +473,6 @@
   margin-top: 0;
 }
 
-/* Tarjetas de método: borde acento con transición de 150ms y elevación al
-   hover; la selección activa refuerza el borde. */
-.cmv2-classroom-method-card.cmv2-aulas-method-card {
-  transition:
-    border-color 150ms var(--motion-ease-out, ease-out),
-    background 150ms var(--motion-ease-out, ease-out),
-    box-shadow 150ms var(--motion-ease-out, ease-out),
-    transform var(--motion-dur-press, 120ms) var(--motion-ease-out, ease-out);
-}
-
-.cmv2-classroom-method-card.cmv2-aulas-method-card.is-active {
-  border-color: color-mix(in srgb, var(--cmv2-accent) 42%, var(--pulso-border));
-}
-
-@media (hover: hover) {
-  .cmv2-classroom-method-card.cmv2-aulas-method-card:hover {
-    border-color: color-mix(in srgb, var(--cmv2-accent) 30%, var(--pulso-border));
-    box-shadow: 0 4px 14px -8px color-mix(in srgb, var(--cmv2-accent) 55%, transparent);
-  }
-}
-
 /* "Sello" de reproducibilidad de Sustento técnico. */
 .cmv2-aulas-stack .cmv2-aulas-sello {
   border-color: color-mix(in srgb, var(--cmv2-accent) 24%, var(--pulso-border));
@@ -742,31 +483,6 @@
 }
 
 /* Fade-only: el wrapper del tab ya desliza (motion en capas, ui/ui.css). */
-@keyframes cmv2-aulas-enter {
-  from {
-    opacity: 0;
-  }
-}
-
-@keyframes cmv2-aulas-enter-izq {
-  from {
-    opacity: 0;
-  }
-}
-
-@keyframes cmv2-aulas-pop {
-  from {
-    opacity: 0;
-    transform: scale(0.97);
-  }
-}
-
-@keyframes cmv2-aulas-fade {
-  from {
-    opacity: 0;
-  }
-}
-
 @keyframes cmv2-aulas-crecer-x {
   from {
     transform: scaleX(0);
@@ -779,13 +495,6 @@
   }
 }
 
-@keyframes cmv2-aulas-tick-on {
-  from {
-    opacity: 0;
-    transform: scale(0.6);
-  }
-}
-
 @keyframes cmv2-aulas-desplegar {
   from {
     opacity: 0;
@@ -795,17 +504,6 @@
 
 @media (prefers-reduced-motion: no-preference) {
   /* --- Objetivo: cascada de la traducción por facultad ----------------------- */
-  .cmv2-aulas-cuota-flujos > .cmv2-aulas-cuota-fila {
-    animation: cmv2-aulas-enter 200ms var(--cmv2-ease-out, ease-out) both;
-  }
-
-  .cmv2-aulas-cuota-flujos > .cmv2-aulas-cuota-fila:nth-child(3) { animation-delay: 30ms; }
-  .cmv2-aulas-cuota-flujos > .cmv2-aulas-cuota-fila:nth-child(4) { animation-delay: 60ms; }
-  .cmv2-aulas-cuota-flujos > .cmv2-aulas-cuota-fila:nth-child(5) { animation-delay: 90ms; }
-  .cmv2-aulas-cuota-flujos > .cmv2-aulas-cuota-fila:nth-child(6) { animation-delay: 120ms; }
-  .cmv2-aulas-cuota-flujos > .cmv2-aulas-cuota-fila:nth-child(7) { animation-delay: 150ms; }
-  .cmv2-aulas-cuota-flujos > .cmv2-aulas-cuota-fila:nth-child(8) { animation-delay: 180ms; }
-  .cmv2-aulas-cuota-flujos > .cmv2-aulas-cuota-fila:nth-child(n + 9) { animation-delay: 210ms; }
 
   /* PanelAvanzado: el body entra con slide-down + fade al abrir (details no
      anima height nativo; animar el contenido al montar es el camino limpio). */
@@ -813,17 +511,9 @@
     animation: cmv2-aulas-desplegar 200ms var(--cmv2-ease-out, ease-out) both;
   }
 
-  /* --- Método: ticks del salto sistemático en secuencia ("1 de cada k") ------ */
-  .cmv2-aulas-recta g[data-salto] {
-    transform-box: fill-box;
-    transform-origin: center;
-    animation: cmv2-aulas-tick-on 240ms var(--cmv2-ease-out, ease-out) both;
-    animation-delay: calc(var(--cmv2-salto-i, 0) * 25ms);
-  }
-
   /* Callout de recomendación del motor: fade + scale(0.97). */
   .cmv2-aulas-stack .cmv2-classroom-reco-panel {
-    animation: cmv2-aulas-pop 200ms var(--cmv2-ease-out, ease-out) both;
+    animation: pulso-mov-escala 200ms var(--cmv2-ease-out, ease-out) both;
   }
 
   /* --- Simulación: n_eff crece una vez; histograma π MC en cascada ----------- */
@@ -842,23 +532,20 @@
   .cmv2-aulas-histo-bin:nth-child(4) i { animation-delay: 45ms; }
   .cmv2-aulas-histo-bin:nth-child(5) i { animation-delay: 60ms; }
   .cmv2-aulas-histo-bin:nth-child(6) i { animation-delay: 75ms; }
-  .cmv2-aulas-histo-bin:nth-child(7) i { animation-delay: 90ms; }
-  .cmv2-aulas-histo-bin:nth-child(8) i { animation-delay: 105ms; }
-  .cmv2-aulas-histo-bin:nth-child(9) i { animation-delay: 120ms; }
-  .cmv2-aulas-histo-bin:nth-child(10) i { animation-delay: 135ms; }
+  .cmv2-aulas-histo-bin:nth-child(n + 7) i { animation-delay: 90ms; }
 
   /* --- Selección: primero la banda de tolerancia (fade), luego las barras
          crecen dentro (scaleX, stagger por fila). Las filas de la TABLA no se
          animan a propósito: lista larga = ruido. -------------------------------- */
   .cmv2-aulas-stack .cmv2-profile-track .cmv2-aulas-tol-banda {
-    animation: cmv2-aulas-fade 250ms var(--cmv2-ease-out, ease-out) both;
+    animation: pulso-mov-aparece 250ms var(--cmv2-ease-out, ease-out) both;
   }
 
   .cmv2-aulas-stack .cmv2-profile-track .is-frame,
   .cmv2-aulas-stack .cmv2-profile-track .is-selected {
     transform-origin: left center;
     animation: cmv2-aulas-crecer-x 350ms var(--cmv2-ease-out, ease-out) both;
-    animation-delay: calc(120ms + var(--cmv2-aulas-fila, 0) * 20ms);
+    animation-delay: min(90ms, calc(var(--cmv2-aulas-fila, 0) * 20ms));
   }
 
   /* `nth-of-type` y no `nth-child`: entre las filas va el rótulo de dimensión
@@ -877,24 +564,14 @@
 
   /* --- Reemplazos: olas M1 → M9 encendidas de izquierda a derecha ------------- */
   .cmv2-aulas-olas .cmv2-uni-flujo > * {
-    animation: cmv2-aulas-enter-izq 220ms var(--cmv2-ease-out, ease-out) both;
+    animation: pulso-mov-aparece 220ms var(--cmv2-ease-out, ease-out) both;
   }
 
   .cmv2-aulas-olas .cmv2-uni-flujo > *:nth-child(2) { animation-delay: 20ms; }
   .cmv2-aulas-olas .cmv2-uni-flujo > *:nth-child(3) { animation-delay: 40ms; }
   .cmv2-aulas-olas .cmv2-uni-flujo > *:nth-child(4) { animation-delay: 60ms; }
   .cmv2-aulas-olas .cmv2-uni-flujo > *:nth-child(5) { animation-delay: 80ms; }
-  .cmv2-aulas-olas .cmv2-uni-flujo > *:nth-child(6) { animation-delay: 100ms; }
-  .cmv2-aulas-olas .cmv2-uni-flujo > *:nth-child(7) { animation-delay: 120ms; }
-  .cmv2-aulas-olas .cmv2-uni-flujo > *:nth-child(8) { animation-delay: 140ms; }
-  .cmv2-aulas-olas .cmv2-uni-flujo > *:nth-child(9) { animation-delay: 160ms; }
-  .cmv2-aulas-olas .cmv2-uni-flujo > *:nth-child(10) { animation-delay: 180ms; }
-  .cmv2-aulas-olas .cmv2-uni-flujo > *:nth-child(11) { animation-delay: 200ms; }
-  .cmv2-aulas-olas .cmv2-uni-flujo > *:nth-child(12) { animation-delay: 220ms; }
-  .cmv2-aulas-olas .cmv2-uni-flujo > *:nth-child(13) { animation-delay: 240ms; }
-  .cmv2-aulas-olas .cmv2-uni-flujo > *:nth-child(14) { animation-delay: 260ms; }
-  .cmv2-aulas-olas .cmv2-uni-flujo > *:nth-child(15) { animation-delay: 280ms; }
-  .cmv2-aulas-olas .cmv2-uni-flujo > *:nth-child(n + 16) { animation-delay: 300ms; }
+  .cmv2-aulas-olas .cmv2-uni-flujo > *:nth-child(n + 6) { animation-delay: 90ms; }
 
 }
 
@@ -929,7 +606,7 @@
   border-radius: 999px;
   background: var(--cmv2-surface);
   color: var(--cmv2-accent-fg);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-bold);
   line-height: 1;
   cursor: pointer;
@@ -966,7 +643,6 @@
 
 /* --- Pie de la tabla de selección: contador honesto + "mostrar más" ----------
    Barra discreta: hairline superior, texto muted tabular y botón compacto. */
-
 
 /* =============================================================================
    Inspector de aula seleccionada (pestaña Aulas titulares).
@@ -1071,16 +747,16 @@
 
 .cmv2-aulas-inspector-titulo strong {
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-black);
   line-height: 1.25;
 }
 
-.cmv2-aulas-inspector-titulo code {
+.cmv2-aulas-inspector-codigo {
   overflow: hidden;
   color: var(--pulso-text-soft);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 10px;
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -1092,7 +768,7 @@
   border-radius: 999px;
   background: var(--cmv2-accent-soft);
   color: var(--cmv2-accent-fg);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-black);
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -1159,7 +835,7 @@
 
 .cmv2-aulas-inspector-eyebrow {
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-black);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -1174,14 +850,14 @@
 
 .cmv2-aulas-inspector-dato span {
   color: var(--pulso-text-muted);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-bold);
 }
 
 .cmv2-aulas-inspector-dato strong {
   min-width: 0;
   color: var(--pulso-text);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.35;
   overflow-wrap: anywhere;
@@ -1205,13 +881,13 @@
 
 .cmv2-aulas-inspector-pi span {
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
 }
 
 .cmv2-aulas-inspector-pi strong {
   color: var(--cmv2-accent-fg);
-  font-size: 18px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: var(--pulso-weight-black);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
@@ -1224,7 +900,7 @@
   align-items: flex-start;
   margin: 0;
   color: var(--pulso-text-muted);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.5;
 }
 
@@ -1286,8 +962,8 @@
   border-radius: 6px;
   background: color-mix(in srgb, var(--cmv2-accent-soft) 70%, #fff);
   color: var(--cmv2-accent-fg);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-black);
   white-space: nowrap;
 }
@@ -1296,7 +972,7 @@
   grid-area: label;
   overflow: hidden;
   color: var(--pulso-text);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.3;
   white-space: nowrap;
@@ -1306,7 +982,7 @@
 .cmv2-aulas-inspector-eslabon small {
   grid-area: detail;
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   line-height: 1.3;
 }
@@ -1336,7 +1012,7 @@
   padding-top: 9px;
   border-top: 1px dashed var(--cmv2-border);
   color: var(--pulso-text-soft);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   line-height: 1.45;
 }
 
@@ -1377,7 +1053,7 @@
 /* --- Entrada de pestaña: un solo fade + translateY en el contenedor ---------- */
 @media (prefers-reduced-motion: no-preference) {
   .cmv2-aulas-stack {
-    animation: cmv2-aulas-enter 180ms var(--cmv2-ease-out, ease-out) both;
+    animation: pulso-mov-aparece 180ms var(--cmv2-ease-out, ease-out) both;
   }
 }
 
@@ -1385,7 +1061,7 @@
 .cmv2-aulas-stack .cmv2-classroom-table th {
   border-bottom: 1px solid var(--cmv2-border-strong);
   color: var(--pulso-text-muted);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.05em;
 }
@@ -1410,7 +1086,7 @@
 }
 
 .cmv2-aulas-stack .cmv2-simulation-grid strong {
-  font-size: 20px;
+  font-size: var(--pulso-type-kpi-size);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
 }
@@ -1448,14 +1124,14 @@
 
 .cmv2-aulas-stack .cmv2-aulas-preguntas h4 {
   margin: 0;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: 600;
   color: var(--cmv2-text, var(--pulso-text));
 }
 
 .cmv2-aulas-stack .cmv2-aulas-preguntas p {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.5;
   color: var(--cmv2-text-soft, var(--pulso-text-muted));
 }
@@ -1467,7 +1143,7 @@
 
 .cmv2-aulas-stack .cmv2-aulas-preguntas-pie {
   margin: 0;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.5;
   color: var(--pulso-text-muted);
   max-width: 88ch;
@@ -1475,7 +1151,7 @@
 
 .cmv2-aulas-stack .cmv2-simulation-method-detail {
   margin: 2px 0 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.45;
   color: var(--cmv2-text-soft, var(--pulso-text-muted));
 }
@@ -1483,7 +1159,7 @@
 /* El rango se dibujaba como barra muda: sin rótulo, un lector no sabe si mide
    percentiles, error o corridas. La barra queda y encima va lo que representa. */
 .cmv2-aulas-stack .cmv2-simulation-range-label {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.35;
   color: var(--cmv2-text-soft, var(--pulso-text-muted));
   font-variant-numeric: tabular-nums;
@@ -1517,14 +1193,14 @@
 }
 
 .cmv2-aulas-stack .cmv2-representativity-metric-families > section > header strong {
-  font-size: 13px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: 600;
   letter-spacing: 0.01em;
 }
 
 .cmv2-aulas-stack .cmv2-representativity-metric-families > section > header p {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.45;
   color: var(--cmv2-text-soft, var(--pulso-text-muted));
   max-width: 68ch;
@@ -1541,7 +1217,7 @@
 }
 
 .cmv2-aulas-stack .cmv2-representativity-metric-grid strong {
-  font-size: 21px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: var(--pulso-weight-black);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
@@ -1589,7 +1265,7 @@
 }
 
 .cmv2-aulas-stack .cmv2-coverage-panel strong {
-  font-size: 20px;
+  font-size: var(--pulso-type-kpi-size);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
 }
@@ -1660,29 +1336,6 @@
   opacity: 0.85;
 }
 
-/* --- Comparar métodos: chip "fórmula" terciario, tarjeta activa radio-card --- */
-.cmv2-aulas-method-formula {
-  border-color: transparent;
-  background: transparent;
-  color: var(--pulso-text-muted);
-}
-
-.cmv2-aulas-method-pick:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--cmv2-accent) 55%, transparent);
-  outline-offset: -2px;
-  border-radius: inherit;
-}
-
-.cmv2-classroom-method-card.cmv2-aulas-method-card.is-active {
-  box-shadow:
-    inset 3px 0 0 var(--cmv2-accent-fg),
-    inset 0 0 0 1px color-mix(in srgb, var(--cmv2-accent-border) 50%, transparent);
-}
-
-.cmv2-classroom-method-card.cmv2-aulas-method-card.is-active small {
-  color: var(--cmv2-accent-fg);
-}
-
 /* Tarjetas de resumen del comparador: métricas como mini stat-tiles y la
    Recomendada con tinte + filo (mismo lenguaje radio-card de la selección). */
 .cmv2-aulas-stack .cmv2-classroom-quality-metrics span {
@@ -1692,7 +1345,7 @@
 }
 
 .cmv2-aulas-stack .cmv2-classroom-quality-metrics strong {
-  font-size: 15px;
+  font-size: var(--pulso-type-title-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1741,7 +1394,7 @@
 }
 
 .cmv2-aulas-stack .cmv2-did-aulas-method-metric dd {
-  font-size: 16px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: -0.01em;
 }
@@ -1771,7 +1424,7 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .cmv2-did-chain-toggle:active {
-    transform: scale(0.97);
+    transform: scale(var(--mov-press, 0.97));
   }
 
   .cmv2-did-chain-toggle {
@@ -1808,8 +1461,8 @@
 /* Evidencia reproducible declarada por significado: semilla, firmas del marco
    y corrida de selección se leen carácter por carácter. */
 .cmv2-aulas-repro .cmv2-uni-cifra[data-monospace="true"] .cmv2-uni-cifra-valor {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0;
 }
@@ -1835,7 +1488,7 @@
   border-radius: var(--pulso-radius-md, 8px);
   background: var(--pulso-surface-muted, var(--pulso-surface-2));
   border: 1px solid var(--pulso-border);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.5;
   color: var(--pulso-text-muted);
 }
@@ -1882,13 +1535,14 @@
     var(--cmv2-surface);
 }
 
+/* El aviso de etapa: recorrido arriba, causa con su acción en medio y lo que
+   la pestaña entregará abajo (recorridoEtapa.css). */
 .cmv2-aulas-stage-notice {
   display: grid;
-  grid-template-columns: 38px minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--pulso-space-4);
   min-width: 0;
-  padding: 13px 14px;
+  padding: var(--pulso-space-4) var(--pulso-space-5);
   border: 1px solid var(--cmv2-accent-border);
   border-radius: var(--pulso-radius-card);
   background: var(--cmv2-surface);
@@ -1930,7 +1584,7 @@
 
 .cmv2-aulas-stage-copy small {
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -1938,7 +1592,7 @@
 
 .cmv2-aulas-stage-copy strong {
   color: var(--pulso-text);
-  font-size: 13.5px;
+  font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-black);
   line-height: 1.25;
 }
@@ -1947,11 +1601,19 @@
   max-width: 86ch;
   margin: 0;
   color: var(--pulso-text-muted);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.45;
 }
 
-.cmv2-aulas-stage-notice > button {
+.cmv2-aulas-stage-cuerpo {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+}
+
+.cmv2-aulas-stage-cuerpo > button {
   min-width: 132px;
   white-space: nowrap;
 }
@@ -1959,14 +1621,6 @@
 .cmv2-aulas-evidence-stack {
   display: grid;
   gap: 10px;
-}
-
-.cmv2-aulas-method-explainer {
-  margin-top: 10px;
-}
-
-.cmv2-aulas-method-explainer > .cmv2-aulas-recta {
-  margin: 10px;
 }
 
 /* El DOM mantiene la agrupación histórica para las regresiones, pero la ficha
@@ -1980,34 +1634,30 @@
   order: -2;
 }
 
-.cmv2-aulas-audit-main > .cmv2-subhead:first-child,
-.cmv2-aulas-audit-main > .cmv2-classroom-empty:first-of-type {
+.cmv2-aulas-audit-main > .cmv2-subhead:first-child {
   order: -1;
 }
 
 @media (max-width: 900px) {
-  .cmv2-aulas-stage-notice {
+  .cmv2-aulas-stage-cuerpo {
     grid-template-columns: 38px minmax(0, 1fr);
     align-items: start;
   }
 
-  .cmv2-aulas-stage-notice > button {
+  .cmv2-aulas-stage-cuerpo > button {
     grid-column: 2;
     justify-self: start;
     min-width: 0;
   }
 
-  .cmv2-aulas-method-pick {
-    min-height: 96px;
-  }
 }
 
 @media (max-width: 640px) {
-  .cmv2-aulas-stage-notice {
+  .cmv2-aulas-stage-cuerpo {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .cmv2-aulas-stage-notice > button {
+  .cmv2-aulas-stage-cuerpo > button {
     grid-column: 1;
     width: 100%;
   }
@@ -2027,7 +1677,7 @@
 /* F38 · La causa de un remedio apagado se lee, no se adivina. */
 .cmv2-aulas-stage-blocked {
   margin: 4px 0 0;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 
@@ -2052,10 +1702,10 @@
   margin-bottom: 10px;
 }
 .cmv2-margen-card > header strong,
-.cmv2-sexo-card > header strong { font-size: 13px; color: var(--pulso-text); }
+.cmv2-sexo-card > header strong { font-size: var(--pulso-type-body-size); color: var(--pulso-text); }
 .cmv2-margen-card > header span,
 .cmv2-sexo-card > header span {
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.45;
   color: var(--pulso-text-muted);
 }
@@ -2069,7 +1719,7 @@
 .cmv2-sexo-tabla {
   width: 100%;
   border-collapse: collapse;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
 }
 .cmv2-margen-tabla th,
@@ -2085,7 +1735,7 @@
 .cmv2-sexo-tabla thead th {
   color: var(--pulso-text-muted);
   font-weight: var(--pulso-weight-semibold);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
@@ -2111,7 +1761,7 @@
 .cmv2-margen-aviso,
 .cmv2-sexo-aviso {
   margin: 8px 0 0;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.45;
   color: var(--pulso-warn-fg);
 }
@@ -2173,7 +1823,7 @@
 /* Ranking de solape (reemplaza al pseudo-grafo, 2026-08-20). Solo tokens. */
 .cmv2-overlap-rank-glosa {
   margin: 4px 0 8px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.5;
   color: var(--pulso-text-muted);
 }
@@ -2191,14 +1841,14 @@
   grid-template-columns: minmax(0, 1fr) 64px auto;
   gap: 8px;
   align-items: center;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .cmv2-overlap-rank-etq { display: grid; min-width: 0; }
-.cmv2-overlap-rank-etq b { color: var(--pulso-text); font-size: 11px; }
+.cmv2-overlap-rank-etq b { color: var(--pulso-text); font-size: var(--pulso-type-caption-size); }
 .cmv2-overlap-rank-etq small {
   color: var(--pulso-text-muted);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2222,15 +1872,14 @@
 .cmv2-overlap-rank-n {
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text);
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
 }
 
 .cmv2-overlap-rank-resto {
   grid-template-columns: 1fr;
   color: var(--pulso-text-muted);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
 }
-
 
 /* Ajuste frente al marco: barras pareadas (adios al «partido»), 2026-08-20. */
 .cmv2-profile-track.cmv2-profile-par {
@@ -2310,7 +1959,7 @@
 
 .cmv2-classroom-risk-resumen p {
   margin: 0;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.5;
   color: var(--pulso-text-soft);
 }

@@ -21,25 +21,22 @@ source("setup-load-all.R")
                          base = "Base: 397 respuestas", folio = 14)$doc
 }
 
-test_that("la partida deja el mismo margen a izquierda y derecha, alineado con el texto del título", {
+# Revisión del PPT v7.23 de CCSS, ítem 11 (Gonzalo: «pensé que el gráfico dicotómico ya había desaparecido; aquí debe haber
+# un gráfico apilado clásico»): la lámina ya no dibuja la franja partida, ni cuando el plan la pide. Antes estos tests
+# medían sus márgenes sobre la lámina; la regla de márgenes queda en su geometría (`.lam_dicotomia_partida_geo`), que es
+# lo único que sigue en pie de la pieza.
+
+test_that("v7.23 ítem 11: la lámina con estilo «partida» sale como apilada clásica, sin la franja", {
+  doc <- .mp_lamina()
+  expect_equal(nrow(.mp_formas(doc, "dicotomia:segmento")), 0L)
+  expect_equal(nrow(.mp_formas(doc, "dicotomia:cifra")), 0L)
+  expect_equal(nrow(.mp_formas(doc, "segmento")), 2L)
+})
+
+test_that("la geometría de la partida deja el mismo margen a izquierda y derecha, alineado con el texto del título", {
   W <- .std_geom("ancho"); ml <- .std_geom("margen_izq")
-  b <- .mp_formas(.mp_lamina(), "dicotomia:segmento")
-  expect_equal(nrow(b), 2L)
-  x0 <- min(b$x); x1 <- max(b$x + b$w)
-  expect_equal(x0, ml + 0.1, tolerance = 0.01)            # borde del texto del título
-  expect_equal(W - x1, x0, tolerance = 0.01)              # margen derecho = margen izquierdo
-  expect_gt(W - x1, .std_geom("margen_der") + 0.1)        # ya no pega al borde derecho
-})
-
-test_that("la cifra de la izquierda y la de la derecha caen sobre los bordes de la barra", {
-  b <- .mp_formas(.mp_lamina(), "dicotomia:segmento"); c <- .mp_formas(.mp_lamina(), "dicotomia:cifra")
-  expect_equal(min(c$x) + 0.1, min(b$x), tolerance = 0.01)
-  expect_equal(max(c$x + c$w) - 0.1, max(b$x + b$w), tolerance = 0.01)
-})
-
-test_that("el bloque queda centrado verticalmente en la zona de datos", {
-  yt <- .std_geom("zona_datos_y0"); yf <- .std_geom("contenido_y1")
-  b <- .mp_formas(.mp_lamina(), "dicotomia:segmento"); p <- .mp_formas(.mp_lamina(), "panel:pregunta")
-  arriba <- min(p$y) - yt; abajo <- yf - max(b$y + b$h)
-  expect_lt(abs(arriba - abajo), 0.1)
+  g <- .lam_dicotomia_partida_geo(TRUE)
+  expect_equal(g$x, ml + 0.1, tolerance = 0.01)            # borde del texto del título
+  expect_equal(W - (g$x + g$w), g$x, tolerance = 0.01)      # margen derecho = margen izquierdo
+  expect_gt(W - (g$x + g$w), .std_geom("margen_der") + 0.1)
 })

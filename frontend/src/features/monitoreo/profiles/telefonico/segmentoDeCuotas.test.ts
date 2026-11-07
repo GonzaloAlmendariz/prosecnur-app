@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { contarSegmentos, nombreDelSegmento, pluralDelSegmento } from "./segmentoDeCuotas";
+import { contarSegmentos, nombreDelSegmento, pluralDelSegmento, variableDeCuotas } from "./segmentoDeCuotas";
 
 describe("nombreDelSegmento", () => {
   it("toma la variable que el corte declara", () => {
@@ -57,5 +57,29 @@ describe("contarSegmentos", () => {
     expect(contarSegmentos(2, "Actor")).toBe("2 actores");
     expect(contarSegmentos(1, "Actor")).toBe("1 actor");
     expect(contarSegmentos(3, "Sede")).toBe("3 sedes");
+  });
+});
+
+describe("variableDeCuotas: una sola variable para Cuotas, Ritmo y la barra", () => {
+  it("con metas por sexo y un listado por sede, gana sexo (la que tiene metas), aunque sede tenga más filas", () => {
+    const filas = [
+      { variable: "Sede", meta: null }, { variable: "Sede", meta: null }, { variable: "Sede", meta: null },
+      { variable: "Sexo", meta: 40 }, { variable: "Sexo", meta: 35 },
+    ];
+    expect(variableDeCuotas(filas)).toBe("Sexo");
+  });
+
+  it("entre las que tienen meta, un nombre de eje (sede, actor…) gana a la más frecuente", () => {
+    const filas = [
+      { variable: "Edad", meta: 10 }, { variable: "Edad", meta: 10 }, { variable: "Edad", meta: 10 },
+      { variable: "Sede", meta: 20 }, { variable: "Sede", meta: 20 },
+    ];
+    expect(variableDeCuotas(filas)).toBe("Sede");
+  });
+
+  it("sin ninguna meta cae a la más frecuente y, ante empate, a la primera del motor", () => {
+    expect(variableDeCuotas([{ variable: "dim_actor" }, { variable: "Grupo etario" }, { variable: "dim_actor" }])).toBe("dim_actor");
+    expect(variableDeCuotas([{ variable: "dim_actor", meta: "80" }, { variable: "Intro/proyecto_ppl", meta: "80" }])).toBe("dim_actor");
+    expect(variableDeCuotas([], "")).toBe("");
   });
 });

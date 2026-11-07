@@ -118,7 +118,9 @@
   max-height: 100%;
 }
 
-@media (max-width: 1200px), (max-height: 720px) {
+/* Sólo el ancho apila: a 1280x720 apilar por alto dejaba la cuota elegida fuera
+ * de la vista, debajo de una lista a todo el ancho (QA 30/10). */
+@media (max-width: 1100px) {
   .acr-ps.is-cuotas { grid-template-columns: minmax(0, 1fr); }
 }
 
@@ -198,14 +200,14 @@
   align-items: center;
   padding: 0 var(--pulso-space-3);
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .acr-mo-eje-texto {
   position: absolute;
   top: 0;
   color: var(--pulso-text-faint);
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -244,7 +246,7 @@
   flex-direction: column;
   gap: var(--pulso-space-4);
   color: var(--pulso-text);
-  font-size: 13px;
+  font-size: var(--pulso-type-body-size);
   line-height: 1.35;
 }
 
@@ -273,7 +275,7 @@
   margin: 0;
   padding: 0 var(--pulso-space-5) var(--pulso-space-4);
   list-style: none;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .acr-mo-reparto-leyenda li {
@@ -324,18 +326,13 @@
   gap: var(--pulso-space-4);
   padding: var(--pulso-space-4) var(--pulso-space-5) var(--pulso-space-5);
   border: 1px solid color-mix(in srgb, var(--pulso-border) 80%, var(--pulso-surface));
-  border-left: 4px solid var(--pulso-border);
   border-radius: var(--pulso-radius-card);
   background: var(--pulso-surface);
   box-shadow: var(--pulso-shadow-soft);
 }
 
-/* El estado va en el borde lateral sólido (un `border` real, como las tarjetas
- * de cuotas por UMP del Territorial) y en el chip; nunca en sombra inset ni en
- * un fondo teñido de toda la tarjeta. */
-.acr-mo-tarjeta.is-cumplida { border-left-color: var(--pulso-success-fg); }
-.acr-mo-tarjeta.is-en-curso { border-left-color: var(--pulso-warn-fg); }
-.acr-mo-tarjeta.is-abierta { border-left-color: var(--pulso-brand-navy); }
+/* El estado va sólo en el chip (Gonzalo, 30/10: fuera la franja lateral); nunca
+ * en sombra inset ni en un fondo teñido de toda la tarjeta. */
 .acr-mo-tarjeta.is-cambiada { box-shadow: 0 0 0 2px color-mix(in srgb, var(--pulso-module-monitoring) 30%, transparent); }
 
 .acr-mo-tarjeta-cabecera {
@@ -352,48 +349,48 @@
 }
 
 .acr-mo-tarjeta-cabecera strong {
-  font-size: 17px;
-}
-
-.acr-mo-estado.is-cumplida {
-  border-color: color-mix(in srgb, var(--pulso-success-fg) 35%, var(--pulso-surface));
-  background: color-mix(in srgb, var(--pulso-success-fg) 10%, var(--pulso-surface));
-  color: var(--pulso-success-fg);
-}
-
-.acr-mo-estado.is-en-curso {
-  border-color: color-mix(in srgb, var(--pulso-warn-fg) 35%, var(--pulso-surface));
-  background: color-mix(in srgb, var(--pulso-warn-fg) 10%, var(--pulso-surface));
-  color: var(--pulso-warn-fg);
+  font-size: var(--pulso-type-title-size);
 }
 
 .acr-mo-teselas {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--pulso-space-3);
+  border-block: 1px solid color-mix(in srgb, var(--pulso-border) 60%, var(--pulso-surface));
 }
 
+/* Celdas planas con una línea fina entre ellas (K4: nada de caja dentro de la tarjeta);
+ * sólo las entradas llevan borde, porque se editan. */
 .acr-mo-tesela {
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   gap: 6px;
   min-width: 0;
   padding: var(--pulso-space-3) var(--pulso-space-4);
-  border: 1px solid color-mix(in srgb, var(--pulso-border) 70%, var(--pulso-surface));
-  border-radius: var(--pulso-radius-card);
-  background: var(--pulso-surface-2);
+}
+
+.acr-mo-tesela + .acr-mo-tesela {
+  border-left: 1px solid color-mix(in srgb, var(--pulso-border) 60%, var(--pulso-surface));
+}
+
+.acr-mo-tesela:first-child {
+  padding-left: 0;
+}
+
+.acr-mo-tesela:last-child {
+  padding-right: 0;
 }
 
 .acr-mo-tesela small {
   color: var(--pulso-text-faint);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
 .acr-mo-tesela b {
-  font-size: 20px;
+  font-size: var(--pulso-type-kpi-size);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -401,7 +398,7 @@
   width: 100%;
   min-width: 0;
   height: 32px;
-  font-size: 16px;
+  font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-bold);
   background: var(--pulso-surface);
 }
@@ -414,7 +411,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 .acr-mo-tarjeta-pie .acr-av-pista {

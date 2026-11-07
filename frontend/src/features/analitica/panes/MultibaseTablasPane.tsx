@@ -18,7 +18,7 @@ export function MultibaseTablasPane() {
   const frec = useAnaliticaStore((s) => s.config.frecuencias);
   const setMultibase = useAnaliticaStore((s) => s.setMultibase);
   const setFrecuencias = useAnaliticaStore((s) => s.setFrecuencias);
-  const run = useReporteRun();
+  const run = useReporteRun("Tablas multibase", { articulo: "las", formato: "xlsx", porBase: false });
   const [info, setInfo] = useState<{
     available: boolean;
     base_name?: string;
@@ -158,18 +158,11 @@ export function MultibaseTablasPane() {
 
         <GenerateFooter
           label="Generar tablas multibase"
-          busy={run.busy}
-          jobId={run.jobId}
-          fileId={run.fileId}
-          downloadName={run.filename ?? "tablas_multibase.xlsx"}
-          error={run.error || infoError}
+          run={run}
+          error={infoError}
           onGenerate={onGenerate}
           disabled={!info?.available}
           disabledHint={!info?.available ? "Este reporte se activa cuando la base integrada tiene una llave con dos o más valores." : undefined}
-          perBase={run.perBase}
-          onJobDone={run.onJobDone}
-          onJobError={run.onJobError}
-          onJobCancelled={run.onJobCancelled}
         />
       </div>
     </Panel>
@@ -256,7 +249,7 @@ function Metric({
   return (
     <div className="analitica-stat">
       <span className="analitica-stat-label">{label}</span>
-      <span className="analitica-stat-value" style={compact ? { fontSize: 13, paddingTop: 2 } : undefined}>
+      <span className="analitica-stat-value" style={compact ? { fontSize: "var(--pulso-type-body-size)", paddingTop: 2 } : undefined}>
         {value}
         {suffix && <small>{suffix}</small>}
       </span>

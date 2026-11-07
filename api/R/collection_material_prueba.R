@@ -197,7 +197,7 @@ collection_material_prueba_snapshot <- function(sid, codigo, etiqueta = NULL) {
   # El nombre del archivo dice que es una prueba. Una hoja indistinguible de las
   # 1.512 puede colarse en el reparto, y entonces alguien aplica un aula entera
   # contra un colector que no existe en el plan.
-  snapshot$output_filename <- .export_filename(sid, paste0("ficha_prueba_", tolower(codigo)), "pdf")
+  snapshot$output_filename <- entregable_nombre(sid, "Ficha de prueba", "pdf", detalle = codigo)
   snapshot$audience <- "internal"
   snapshot
 }

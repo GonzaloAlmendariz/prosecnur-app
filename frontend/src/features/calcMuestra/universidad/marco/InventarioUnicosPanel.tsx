@@ -6,11 +6,12 @@
  * está matriculado), así que el valor de la vista es hacer legible ese colapso.
  * La lógica vive en inventarioUnicosModel.ts; aquí solo se presenta.
  */
-import { CalendarRange, GitMerge, Rows3, Users } from "lucide-react";
+import { CalendarRange, GitMerge, Users } from "lucide-react";
 import type { ReactNode } from "react";
 import type { CalcMuestraAulasState } from "../../../../api/client";
 import { fmtDec, fmtInt } from "../../sharedCore";
 import { computeInventarioUnicos, type DedupTrack } from "./inventarioUnicosModel";
+import { Panel } from "../../../../components/Panel";
 
 function DedupTrackCard({
   tono,
@@ -91,22 +92,18 @@ export function InventarioUnicosPanel({
   const { filasLeidas, alumnos, cursosHorario, matriculasElegibles, matriculasPorAlumno } = inventario;
 
   return (
-    <section className="cmv2-panel cmv2-inv" aria-label="Inventario de únicos de la base leída">
-      <header className="cmv2-inv-head">
-        <span className="cmv2-inv-head-icon" aria-hidden="true"><Rows3 size={15} /></span>
-        <div>
-          <strong>Inventario de únicos</strong>
-          <small>
-            La base cruda se repite: un mismo curso-horario aparece en varias filas (más de un docente o
-            carrera) y un mismo alumno aparece una vez por cada curso-horario en que está matriculado. Valida
-            aquí a cuántas unidades únicas colapsa antes de aplicar criterios.
-          </small>
-        </div>
+    <Panel
+      className="cmv2-inv"
+      aria-labelledby="cmv2-inv-titulo"
+      title={<span id="cmv2-inv-titulo">Inventario de únicos</span>}
+      hint="La base cruda se repite: un mismo curso-horario aparece en varias filas (más de un docente o carrera) y un mismo alumno aparece una vez por cada curso-horario en que está matriculado. Valida aquí a cuántas unidades únicas colapsa antes de aplicar criterios."
+      actions={
         <div className="cmv2-inv-head-crudo" role="img" aria-label={`${fmtInt(filasLeidas)} filas leídas`}>
           <b>{fmtInt(filasLeidas)}</b>
           <span>filas leídas</span>
         </div>
-      </header>
+      }
+    >
 
       <div className="cmv2-inv-tracks">
         <DedupTrackCard
@@ -116,7 +113,7 @@ export function InventarioUnicosPanel({
           unidadPlural="Alumnos"
           filasLeidas={filasLeidas}
           track={alumnos}
-          razonLeyenda="filas por alumno (matriculado en varios cursos-horario)"
+          razonLeyenda="filas por alumno (matriculado en varios cursos‑horario)"
           nota="Deduplicación por estudiante sobre todas las filas leídas, sin filtrar por elegibilidad."
         />
         <DedupTrackCard
@@ -126,7 +123,7 @@ export function InventarioUnicosPanel({
           unidadPlural="Cursos-horario"
           filasLeidas={filasLeidas}
           track={cursosHorario}
-          razonLeyenda="filas por curso-horario (repetido por docentes, carreras y alumnos matriculados)"
+          razonLeyenda="filas por curso‑horario (repetido por docentes, carreras y alumnos matriculados)"
           nota="Cada curso-horario se colapsa a UNA unidad, uniendo sus filas de docente y carrera."
         />
       </div>
@@ -141,6 +138,6 @@ export function InventarioUnicosPanel({
           : por eso la base tiene muchas más filas que alumnos o cursos-horario.
         </p>
       )}
-    </section>
+    </Panel>
   );
 }

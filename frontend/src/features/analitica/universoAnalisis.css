@@ -6,7 +6,7 @@
   align-items: baseline;
   gap: 2px 8px;
   margin-top: 4px;
-  font-size: 12px;
+  font-size: var(--pulso-type-body-size);
   color: var(--pulso-text);
   font-variant-numeric: tabular-nums;
 }
@@ -26,4 +26,10 @@
 /* Panel «Qué casos cuentan»: una sección por base. */
 .pulso-universo-base { padding: 10px 0; border-bottom: 1px solid var(--pulso-border); }
 .pulso-universo-base:last-child { border-bottom: 0; }
-.pulso-universo-base h3 { margin: 0 0 4px; font-size: 13px; color: var(--pulso-text); }
+.pulso-universo-base h3 { margin: 0 0 4px; font-size: var(--pulso-type-body-size); color: var(--pulso-text); }
+
+/* 5 nov 2026 (pulido de UI): las líneas son EstadoChip del kit; aquí sólo se alinean con su acción. */
+.pulso-analitica-universo-banda .pulso-universo {
+  align-items: center;
+  margin-top: 0;
+}

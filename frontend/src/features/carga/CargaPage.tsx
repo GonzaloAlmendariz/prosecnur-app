@@ -3,7 +3,7 @@ import type { CambiosDeRespuestas } from "../../api/estudio";
 import { RespuestasResumen, type DataPreview } from "./RespuestasResumen";
 import {
   AlertTriangle, ArrowRight, ArrowRightLeft, CheckCircle2, ClipboardCheck, CloudDownload,
-  Database, FileSpreadsheet, FileWarning, Download, Info, Loader2, RefreshCw, Search, ShieldCheck,
+  Database, FileSpreadsheet, FileWarning, Download, Loader2, RefreshCw, Search,
   Table2, Trash2, Upload, UploadCloud,
 } from "lucide-react";
 import {
@@ -13,8 +13,6 @@ import {
   apiCargaReview,
   apiCargaReviewSummary,
   apiCargaReviewReconciliation,
-  apiCargaImportKoboAsync,
-  apiCargaImportSurveyMonkeyAsync,
   apiCargaData,
   apiCargaExportNormalized,
   apiCargaConfirmChoiceMapping,
@@ -31,7 +29,6 @@ import {
   CargaMonitoreoHandoffStatus,
   CargaPlatformImportResult,
   CargaPlatformProvider,
-  ChoiceCodeMap,
   ChoiceCodeMapReview,
   ConnectionTokenState,
   CargaReviewPayload,
@@ -49,7 +46,7 @@ import {
   downloadUrl,
   uploadKindForDataFile,
 } from "../../api/client";
-import { apiCargaAgregarFuenteSm, apiCargaImportKoboSeparadaAsync, apiCargaImportSurveyMonkeySeparadaAsync, apiCargaVistaPreviaFuenteSm, type VistaPreviaFuente } from "../../api/xlsformEditor";
+import { apiCargaAgregarFuenteSm, apiCargaVistaPreviaFuenteSm, type VistaPreviaFuente } from "../../api/xlsformEditor";
 import { nombreCortoDeEncuesta, nombreLibreDeBase } from "./importSeparadoModel";
 import { BasesDelEstudio } from "./fuentes/BasesDelEstudio";
 import { NuevaBaseArchivos } from "./fuentes/NuevaBaseArchivos";
@@ -66,6 +63,7 @@ import { BasesPanel } from "./BasesPanel";
 import { InstrumentRevisionBindingNotice } from "./InstrumentRevisionBindingNotice";
 import { EsquemaBaseSelector } from "./EsquemaBaseSelector";
 import { ReconciliacionExtraDialog } from "./ReconciliacionExtraDialog";
+import { ChoiceMappingReviewDialog } from "./ChoiceMappingReviewDialog";
 import { summaryLabel as reconSummaryLabel } from "./reconciliacionModel";
 import { ProcessingSheetViewer } from "../procesamiento/ProcessingSheetViewer";
 import { repeatContextFromBase } from "../../lib/rosterExplorer";
@@ -106,7 +104,6 @@ import { CargaPlatformImportPanel } from "./CargaPlatformImportPanel";
 import { CargaHidratando } from "./CargaHidratando";
 import { marcaReadinessCarga, resolverHidratacionCarga } from "./cargaHidratacion";
 import { useEstudioCarga } from "./useEstudioCarga";
-import { esperarResultadoImport, textoDeProgresoImport } from "./importEnSegundoPlano";
 import {
   CARGA_REVISION_SIN_LEER,
   baseRevisadaElegida,
@@ -114,8 +111,11 @@ import {
   type CargaRevisionLectura,
 } from "./cargaRevisionLecturaModel";
 import { baseDeLaDireccion } from "./fuentesEmparejamientoModel";
+import { ImportadorPlataforma } from "./plataforma/ImportadorPlataforma";
+import { exitoDe, useImportsDeCarga } from "./plataforma/useImportsDeCarga";
 import { EstadoVacio } from "../../components/EstadoVacio";
 import { Switch } from "../../components/Switch";
+import { formatoConteo } from "../../lib/formatoNumero";
 
 // Fase 1 — Carga de insumos.
 //
@@ -218,14 +218,6 @@ function markChoiceMappingConfirmed(preview: DataPreview | null): DataPreview | 
   };
 }
 
-function normalizedChoiceCode(value: string): string {
-  return String(value ?? "").replace(/^0+([0-9]+)$/, "$1");
-}
-
-function choiceMapChangedItems(map: ChoiceCodeMap) {
-  return map.mappings.filter((item) => normalizedChoiceCode(item.source_code) !== normalizedChoiceCode(item.xls_code));
-}
-
 function reviewReconciliationInfo(review: CargaReviewPayload): ReconciliacionInfo {
   return {
     ok: true,
@@ -286,6 +278,15 @@ export default function CargaPage() {
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [platformError, setPlatformError] = useState("");
   const [platformMessage, setPlatformMessage] = useState("");
+  // L5b: los imports de plataforma corren en el store (sobreviven a cambiar de
+  // pestaña y se cancelan); aquí solo se aplica lo que dejaron en el estudio.
+  const importsPlataforma = useImportsDeCarga(({ terminado }) => {
+    const exito = exitoDe(terminado);
+    if (!exito) return;
+    if (exito.unico) applyPlatformImportResult(exito.unico);
+    if (exito.estudio) void onEstudioChanged(exito.estudio);
+    void refresh();
+  });
   const [detectedKoboSource, setDetectedKoboSource] = useState<DetectedKoboSource | null>(null);
   const [processingSuggestions, setProcessingSuggestions] = useState<EstudioProcessingSuggestions | null>(null);
   const [monitoringReviewed, setMonitoringReviewed] = useState(false);
@@ -506,39 +507,27 @@ export default function CargaPage() {
         // «Bases separadas»: la encuesta entra como una base NUEVA con nombre corto («docentes»), sin tocar las demás.
         if (topologyResolution.mode === "multi" && sourceStrategy === "separate") {
           const baseName = nombreLibreDeBase(nombreCortoDeEncuesta(survey.nickname || survey.title), Object.keys(estudio?.bases ?? {}));
-          setBusy(`Importando ${survey.title} como la base «${baseName}»…`);
-          const startSep = await apiCargaImportSurveyMonkeySeparadaAsync({
-            survey_id: survey.id,
-            title: survey.title,
-            connection_profile_id: activeSmProfile?.id || "",
-            source_alias: survey.nickname || survey.title,
-            response_statuses: includePartials ? ["completed", "partial"] : ["completed"],
-            keep_missing_status: false,
-            base_name: baseName,
+          await importsPlataforma.lanzar("surveymonkey", "separada", {
+            id: survey.id,
+            titulo: survey.title,
+            alias: survey.nickname || survey.title,
+            perfilId: activeSmProfile?.id || "",
+            baseUrl: "",
+            baseNombre: baseName,
+            incluirParciales: includePartials,
           });
-          const sep = await esperarResultadoImport<{ ok: boolean; base_name: string; n_filas: number; estudio: EstudioPayload }>(startSep.job_id, {
-            onProgress: (p) => setBusy(textoDeProgresoImport(`Importando ${survey.title}`, p)),
-          });
-          await onEstudioChanged(sep.estudio);
-          setPlatformMessage(`${survey.title} quedó como la base «${sep.base_name}» con ${sep.n_filas} respuestas.`);
           return;
         }
-        setBusy(`Importando ${survey.title} desde SurveyMonkey…`);
-        // Import como job en segundo plano (async: true): la app queda usable
-        // durante el pull y el resultado es el mismo payload síncrono.
-        const start = await apiCargaImportSurveyMonkeyAsync({
-          survey_id: survey.id,
-          title: survey.title,
-          connection_profile_id: activeSmProfile?.id || "",
-          source_alias: survey.nickname || survey.title,
-          response_statuses: includePartials ? ["completed", "partial"] : ["completed"],
-          keep_missing_status: false,
+        await importsPlataforma.lanzar("surveymonkey", "unica", {
+          id: survey.id,
+          titulo: survey.title,
+          alias: survey.nickname || survey.title,
+          perfilId: activeSmProfile?.id || "",
+          baseUrl: "",
+          baseNombre: "",
+          incluirParciales: includePartials,
         });
-        const result = await esperarResultadoImport<CargaPlatformImportResult>(start.job_id, {
-          onProgress: (p) => setBusy(textoDeProgresoImport(`Importando ${survey.title}`, p)),
-        });
-        applyPlatformImportResult(result);
-        setPlatformMessage(`${survey.title} quedó cargada como formulario y respuestas.`);
+        return;
       } else {
         const asset = koboAssets.find((item) => item.uid === selectedAssetUid);
         if (!asset) {
@@ -548,33 +537,27 @@ export default function CargaPage() {
         const baseUrl = activeKoboProfile?.base_url || koboConnection?.active_profile_base_url || "https://kf.kobotoolbox.org";
         if (topologyResolution.mode === "multi" && sourceStrategy === "separate") {
           const baseName = nombreLibreDeBase(nombreCortoDeEncuesta(asset.name), Object.keys(estudio?.bases ?? {}));
-          setBusy(`Importando ${asset.name} como la base «${baseName}»…`);
-          const startSep = await apiCargaImportKoboSeparadaAsync({
-            asset_uid: asset.uid,
-            title: asset.name,
-            base_url: baseUrl,
-            connection_profile_id: activeKoboProfile?.id || "",
-            base_name: baseName,
+          await importsPlataforma.lanzar("kobo", "separada", {
+            id: asset.uid,
+            titulo: asset.name,
+            alias: null,
+            perfilId: activeKoboProfile?.id || "",
+            baseUrl,
+            baseNombre: baseName,
+            incluirParciales: false,
           });
-          const sep = await esperarResultadoImport<{ ok: boolean; base_name: string; n_filas: number; estudio: EstudioPayload }>(startSep.job_id, {
-            onProgress: (p) => setBusy(textoDeProgresoImport(`Importando ${asset.name}`, p)),
-          });
-          await onEstudioChanged(sep.estudio);
-          setPlatformMessage(`${asset.name} quedó como la base «${sep.base_name}» con ${sep.n_filas} respuestas.`);
           return;
         }
-        setBusy(`Importando ${asset.name} desde KoboToolbox…`);
-        const start = await apiCargaImportKoboAsync({
-          asset_uid: asset.uid,
-          title: asset.name,
-          base_url: baseUrl,
-          connection_profile_id: activeKoboProfile?.id || "",
+        await importsPlataforma.lanzar("kobo", "unica", {
+          id: asset.uid,
+          titulo: asset.name,
+          alias: null,
+          perfilId: activeKoboProfile?.id || "",
+          baseUrl,
+          baseNombre: "",
+          incluirParciales: false,
         });
-        const result = await esperarResultadoImport<CargaPlatformImportResult>(start.job_id, {
-          onProgress: (p) => setBusy(textoDeProgresoImport(`Importando ${asset.name}`, p)),
-        });
-        applyPlatformImportResult(result);
-        setPlatformMessage(`${asset.name} quedó cargado como formulario y respuestas.`);
+        return;
       }
       await refresh();
     } catch (e: unknown) {
@@ -613,20 +596,16 @@ export default function CargaPage() {
       setPlatformError("Conecta KoboToolbox en Configuración para importar la fuente detectada.");
       return;
     }
-    setBusy(`Importando ${source.name || source.asset_uid} desde KoboToolbox…`);
     try {
-      const start = await apiCargaImportKoboAsync({
-        asset_uid: source.asset_uid,
-        title: source.name || source.source_title,
-        base_url: source.base_url || activeKoboProfile?.base_url || "https://kobo.unhcr.org",
-        connection_profile_id: source.connection_profile_id || activeKoboProfile?.id || "",
+      await importsPlataforma.lanzar("kobo", "unica", {
+        id: source.asset_uid,
+        titulo: source.name || source.source_title || source.asset_uid,
+        alias: null,
+        perfilId: source.connection_profile_id || activeKoboProfile?.id || "",
+        baseUrl: source.base_url || activeKoboProfile?.base_url || "https://kobo.unhcr.org",
+        baseNombre: "",
+        incluirParciales: false,
       });
-      const result = await esperarResultadoImport<CargaPlatformImportResult>(start.job_id, {
-        onProgress: (p) => setBusy(textoDeProgresoImport(`Importando ${source.name || source.asset_uid}`, p)),
-      });
-      applyPlatformImportResult(result);
-      setPlatformMessage(`${source.name || source.asset_uid} quedó cargado como formulario y respuestas.`);
-      await refresh();
     } catch (e: unknown) {
       setPlatformError((e as Error).message);
     } finally {
@@ -686,11 +665,11 @@ export default function CargaPage() {
     const sourceLabel = selectedSource?.label || handoffStatus.source.label || "trabajo de campo";
     const processable = selectedSource?.counts.processable ?? handoffStatus.counts.processable;
     const replacement = handoffStatus.existing_base.present
-      ? ` Reemplazará la base actual de ${handoffStatus.existing_base.n_filas.toLocaleString("es-PE")} filas.`
+      ? ` Reemplazará la base actual de ${formatoConteo(handoffStatus.existing_base.n_filas)} filas.`
       : " Creará la base de procesamiento con esta fuente.";
     if (!window.confirm(
       `¿Traer «${sourceLabel}» a Procesamiento?\n\n` +
-      `${processable.toLocaleString("es-PE")} respuestas procesables.${replacement}`,
+      `${formatoConteo(processable)} respuestas procesables.${replacement}`,
     )) return;
     setError("");
     setHandoffMessage("");
@@ -704,12 +683,12 @@ export default function CargaPage() {
       // versiones viejas del formulario: ofrece reconciliarlas.
       await loadReconciliacion(true);
       const fr = result.filter_report ?? {};
-      const nf = (n?: number) => (n ?? 0).toLocaleString("es-PE");
+      const nf = (n?: number) => formatoConteo(n ?? 0);
       const traidas = result.data?.n_filas ?? fr.filas_incluidas ?? 0;
       const desglose = [
         fr.validada != null ? `${nf(fr.validada)} validadas` : null,
         fr.revision ? `${nf(fr.revision)} en revisión` : null,
-      ].filter(Boolean).join(" · ");
+      ].filter(Boolean).join(", ");
       const excluidas = fr.no_defendible_excluidos
         ? ` ${nf(fr.no_defendible_excluidos)} excluidas por no defendibles.`
         : "";
@@ -1240,9 +1219,16 @@ export default function CargaPage() {
               onAssetSelect={setSelectedAssetUid}
               includePartials={includePartials}
               onIncludePartialsChange={setIncludePartials}
-              busy={!!busy}
+              busy={!!busy || importsPlataforma.jobEnCurso}
               error={platformError}
               message={platformMessage}
+              importador={importsPlataforma.activo ? (
+                <ImportadorPlataforma
+                  proveedor={importsPlataforma.activo.proveedor}
+                  estrategia={importsPlataforma.activo.estrategia}
+                  importacion={importsPlataforma.activo.importacion}
+                />
+              ) : null}
               detectedKoboSource={detectedKoboSource}
               onImportDetectedKoboSource={() => void onImportDetectedKoboSource()}
               onImport={() => void onPlatformImport()}
@@ -1379,7 +1365,7 @@ export default function CargaPage() {
           </span>
           <div className="pulso-recon-panel-copy">
             <span className="pulso-recon-panel-title">
-              Variables extra{cargaReview?.base_nombre ? ` · ${cargaReview.base_nombre}` : " en la data"}
+              Variables extra{cargaReview?.base_nombre ? ` de ${cargaReview.base_nombre}` : " en la data"}
             </span>
             <span className="pulso-recon-panel-summary">{reconSummaryLabel(reconInfo)}</span>
           </div>
@@ -1756,7 +1742,7 @@ export default function CargaPage() {
                 </>
               }
               accept=".xlsx,.xls,.csv,.sav,.zip,application/x-spss-sav,application/octet-stream,application/zip,application/x-zip-compressed"
-              acceptLabel=".xlsx · .csv · .sav · .zip"
+              acceptLabel=".xlsx, .csv, .sav o .zip"
               done={hasData}
               busy={!!busy}
               disabled={!!busy || !hasXlsform}
@@ -1921,8 +1907,8 @@ function FieldWorkHandoffCallout({
   const filteredByValidity =
     source.validity !== undefined && source.validity !== "" && source.validity !== "all_rows";
   const countLine = filteredByValidity
-    ? `${processable.toLocaleString("es-PE")} respuestas validadas listas para procesar.`
-    : `${processable.toLocaleString("es-PE")} respuestas listas para procesar.`;
+    ? `${formatoConteo(processable)} respuestas validadas listas para procesar.`
+    : `${formatoConteo(processable)} respuestas listas para procesar.`;
   // Si ya hay una base cruda cargada (import previo sin filtrar), el traer la
   // reemplaza en sitio por la selección validada — lo decimos con claridad.
   const replacing =
@@ -1949,21 +1935,21 @@ function FieldWorkHandoffCallout({
         </strong>
         {studyLabel ? (
           <span className="pulso-carga-handoff-study">
-            {studyLabel}{selectedSource?.kind ? ` · ${selectedSource.kind}` : ""}
+            {studyLabel}{selectedSource?.kind ? `, ${selectedSource.kind}` : ""}
           </span>
         ) : null}
         <p className="pulso-carga-handoff-count">
           {countLine}
           {excluded > 0 ? (
             <span className="pulso-carga-handoff-aside">
-              {" "}{excluded.toLocaleString("es-PE")} quedan fuera por no ser defendibles.
+              {" "}{formatoConteo(excluded)} quedan fuera por no ser defendibles.
             </span>
           ) : null}
         </p>
         {replacing ? (
           <span className="pulso-carga-handoff-note is-warning">
             <AlertTriangle size={13} aria-hidden="true" />
-            Reemplaza la base actual ({replacedRows.toLocaleString("es-PE")} sin filtrar)
+            Reemplaza la base actual ({formatoConteo(replacedRows)} sin filtrar)
             por esta selección validada.
           </span>
         ) : null}
@@ -2102,6 +2088,7 @@ function PlatformImportPanel({
   busy,
   error,
   message,
+  importador,
   detectedKoboSource,
   onImportDetectedKoboSource,
   onImport,
@@ -2132,6 +2119,8 @@ function PlatformImportPanel({
   busy: boolean;
   error: string;
   message: string;
+  /** L5b: la tarjeta del import en curso o del último desenlace. */
+  importador?: ReactNode;
   detectedKoboSource: DetectedKoboSource | null;
   onImportDetectedKoboSource: () => void;
   onImport: () => void;
@@ -2221,7 +2210,7 @@ function PlatformImportPanel({
           >
             {profiles.length > 0 ? profiles.map((profile) => (
               <option key={profile.id || profile.alias} value={profile.id}>
-                {profile.alias}{profile.base_url ? ` · ${profile.base_url.replace(/^https?:\/\//, "")}` : ""}
+                {profile.alias}{profile.base_url ? ` (${profile.base_url.replace(/^https?:\/\//, "")})` : ""}
               </option>
             )) : (
               <option value="">Sin perfil conectado</option>
@@ -2272,18 +2261,17 @@ function PlatformImportPanel({
         />
       )}
 
+      {importador}
       {error && <div className="pulso-platform-alert is-error">{error}</div>}
       {message && !error && <div className="pulso-platform-alert">{message}</div>}
 
       <div className="pulso-platform-list" aria-label={`Catálogo ${providerName}`}>
         {rowsCount === 0 ? (
-          <div className="pulso-platform-empty">
-            <span className="pulso-platform-empty-icon" aria-hidden="true">
-              <Search size={15} />
-            </span>
-            <strong>{hasConnection ? "Catálogo pendiente" : `Sin conexión con ${providerName}`}</strong>
-            <small>{hasConnection ? "Actualiza el catálogo para ver fuentes disponibles." : "Elige una conexión antes de importar."}</small>
-          </div>
+          <EstadoVacio
+            icono={<Search size={15} />}
+            titulo={hasConnection ? "Catálogo pendiente" : `Sin conexión con ${providerName}`}
+            descripcion={hasConnection ? "Actualiza el catálogo para ver fuentes disponibles." : "Elige una conexión antes de importar."}
+          />
         ) : isSurveyMonkey ? (
           smSurveys.map((survey) => (
             <button
@@ -2297,8 +2285,8 @@ function PlatformImportPanel({
                 <strong>{survey.title}</strong>
                 <small>
                   Survey ID {survey.id}
-                  {survey.nickname ? ` · ${survey.nickname}` : ""}
-                  {survey.date_modified ? ` · ${survey.date_modified.slice(0, 10)}` : ""}
+                  {survey.nickname ? `, ${survey.nickname}` : ""}
+                  {survey.date_modified ? `, ${survey.date_modified.slice(0, 10)}` : ""}
                 </small>
               </span>
               <span className="pulso-platform-row-count">
@@ -2319,7 +2307,7 @@ function PlatformImportPanel({
                 <strong>{asset.name}</strong>
                 <small>
                   Asset {asset.uid}
-                  {asset.date_modified ? ` · ${asset.date_modified.slice(0, 10)}` : ""}
+                  {asset.date_modified ? `, ${asset.date_modified.slice(0, 10)}` : ""}
                 </small>
               </span>
               <span className={`pulso-platform-row-count${asset.deployment_active ? " is-live" : ""}`}>
@@ -2383,8 +2371,8 @@ function CargaBaseSheetPane({
       : "Agrega al menos una base para ver sus respuestas cargadas."
     : "Carga el formulario y las respuestas para ver la base completa.";
   const sourceLabel = isMultiBase && activeBase
-    ? `Carga · ${cargaBaseLabel(activeBase)} · antes de validación, limpieza y codificación`
-    : "Carga · antes de validación, limpieza y codificación";
+    ? `Carga de ${cargaBaseLabel(activeBase)}, antes de validación, limpieza y codificación`
+    : "Carga, antes de validación, limpieza y codificación";
 
   if (!enabled) {
     return (
@@ -2442,9 +2430,9 @@ function cargaBaseLabel(base: EstudioBase) {
 }
 
 function cargaBaseMeta(base: EstudioBase) {
-  const rows = typeof base.n_filas === "number" ? base.n_filas.toLocaleString("es-PE") : "sin conteo";
-  const cols = typeof base.n_columnas === "number" ? base.n_columnas.toLocaleString("es-PE") : "sin columnas";
-  return `${base.nombre} · ${rows} filas · ${cols} columnas`;
+  const rows = typeof base.n_filas === "number" ? formatoConteo(base.n_filas) : "sin conteo";
+  const cols = typeof base.n_columnas === "number" ? formatoConteo(base.n_columnas) : "sin columnas";
+  return `${base.nombre}: ${rows} filas y ${cols} columnas`;
 }
 
 // =====================================================================
@@ -2568,158 +2556,6 @@ function ResumenStat({ label, value }: { label: string; value: number | string }
         {value}
       </strong>
     </div>
-  );
-}
-
-function ChoiceMappingReviewDialog({
-  review,
-  busy,
-  onClose,
-  onConfirm,
-}: {
-  review: ChoiceCodeMapReview;
-  busy: boolean;
-  onClose: () => void;
-  onConfirm: () => Promise<void>;
-}) {
-  const needsConfirmation = review.requires_confirmation;
-  const changedCounts = review.maps.map((map) => choiceMapChangedItems(map).length);
-  const totalChangedOptions = changedCounts.reduce((sum, count) => sum + count, 0);
-  const allHighConfidence = review.maps.every((map) => map.high_confidence);
-  return (
-    <div className="pulso-choice-map-backdrop" role="presentation">
-      <div
-        className="pulso-choice-map-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="choice-map-title"
-      >
-        <div className="pulso-choice-map-head">
-          <span aria-hidden="true" className="pulso-choice-map-head-icon">
-            {needsConfirmation ? <ArrowRightLeft size={18} /> : <ShieldCheck size={18} />}
-          </span>
-          <div>
-            <p className="pulso-choice-map-kicker">
-              Preparación de respuestas
-            </p>
-            <h2 id="choice-map-title">
-              Usar mapeo recomendado
-            </h2>
-          </div>
-        </div>
-
-        <div className="pulso-choice-map-explain">
-          <Info size={16} />
-          <p>
-            Pulso detectó diferencias entre los códigos de origen y los valores finales del formulario. Las
-            etiquetas coinciden, pero algunos códigos no. Al confirmar, las respuestas se ajustan hacia el
-            formulario y las reglas usan ese mismo puente para interpretar C1, C2, C3.
-          </p>
-        </div>
-
-        <div className="pulso-choice-map-summary">
-          <div>
-            <span>Preguntas afectadas</span>
-            <strong>{review.maps.length}</strong>
-          </div>
-          <div>
-            <span>Opciones ajustadas</span>
-            <strong>{totalChangedOptions}</strong>
-          </div>
-          <div>
-            <span>Confianza</span>
-            <strong>{allHighConfidence ? "Alta" : "Requiere revisión"}</strong>
-          </div>
-        </div>
-
-        <p className="pulso-choice-map-guidance">
-          Revisa solo si algo te llama la atención. Si las etiquetas son las correctas, la acción esperada es usar el mapeo recomendado.
-        </p>
-
-        <div className="pulso-choice-map-list">
-          {review.maps.map((map, index) => (
-            <ChoiceMappingCard
-              key={`${map.variable}-${map.list_name}`}
-              map={map}
-              defaultOpen={!map.high_confidence || index === 0}
-            />
-          ))}
-        </div>
-
-        <div className="pulso-choice-map-actions">
-          <button
-            type="button"
-            className="pulso-choice-map-secondary"
-            onClick={onClose}
-            disabled={busy}
-          >
-            Cerrar y revisar luego
-          </button>
-          {needsConfirmation && (
-            <button
-              type="button"
-              className="pulso-choice-map-primary"
-              onClick={onConfirm}
-              disabled={busy}
-            >
-              <ShieldCheck size={15} />
-              Usar este mapeo
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ChoiceMappingCard({ map, defaultOpen }: { map: ChoiceCodeMap; defaultOpen?: boolean }) {
-  const changedRows = choiceMapChangedItems(map);
-  const visibleRows = changedRows.length > 0 ? changedRows : map.mappings.slice(0, 4);
-  const unchangedRows = Math.max(0, map.mappings.length - changedRows.length);
-  return (
-    <details className="pulso-choice-map-card" open={defaultOpen}>
-      <summary className="pulso-choice-map-card-head">
-        <div>
-          <h3>
-            <code>{map.variable}</code> {map.label}
-          </h3>
-          <p>
-            {changedRows.length} ajuste(s) de código · {map.type === "select_multiple" ? "selección múltiple" : "selección única"} · lista <code>{map.list_name}</code>
-          </p>
-        </div>
-        <span className={`pulso-choice-map-confidence${map.high_confidence ? " is-high" : " is-review"}`}>
-          {map.high_confidence ? "Alta confianza" : "Revisar"}
-        </span>
-      </summary>
-
-      <div className="pulso-choice-map-table" role="table" aria-label={`Mapeo de ${map.variable}`}>
-        <div className="pulso-choice-map-row is-head" role="row">
-          <span role="columnheader">Código origen SM/SAV</span>
-          <span role="columnheader">Etiqueta detectada</span>
-          <span role="columnheader">Valor final del formulario</span>
-        </div>
-        {visibleRows.map((item, idx) => (
-          <div className="pulso-choice-map-row" role="row" key={`${item.source_code}-${item.xls_code}-${idx}`}>
-            <span role="cell">
-              <code>C{item.source_code}</code>
-            </span>
-            <span role="cell">
-              {item.source_label || item.xls_label}
-            </span>
-            <span role="cell">
-              <code>{item.xls_code}</code>
-              {item.xls_label && <em>{item.xls_label}</em>}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      {unchangedRows > 0 && (
-        <p className="pulso-choice-map-more">
-          {unchangedRows} opción(es) ya coincidían o no necesitaban cambio.
-        </p>
-      )}
-    </details>
   );
 }
 

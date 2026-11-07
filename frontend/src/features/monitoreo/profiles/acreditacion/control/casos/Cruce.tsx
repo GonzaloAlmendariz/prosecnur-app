@@ -3,15 +3,18 @@ import { GitMerge } from "lucide-react";
 import type { MonitoreoInternalQueries } from "../../../../../../api/client";
 import { fmt } from "../../formato";
 import { useTamano } from "../../avance/graficosDeAvance";
-import { COLUMNAS, conteoPor, dibujarFlujo, type EnlaceDeFlujo } from "./flujoDeCruce";
+import { COLUMNAS, conteoPor, dibujarFlujo, esSinRespuesta, flujoDeRespuestas, type EnlaceDeFlujo } from "./flujoDeCruce";
 import "../../avance/avance.css";
 import "./cruce.css";
 import { CabeceraDeTarjeta } from "../../navegacion/rotuloDePestana";
 import { PestanaSinContenido, VacioDeBloque } from "../../piezas/AvisoDeTarjeta";
 
 /** Rótulos que el motor publica con su nombre interno de etapa. */
+// «Llave usada» es lo que pone el motor cuando la respuesta cruzó por la llave
+// configurada del estudio; como fila de «Llave usada» repetía el título.
 const ROTULO_DE_LLAVE: Record<string, string> = {
   "Llave en base": "Llave del padrón, sin respuesta",
+  "Llave usada": "Llave configurada",
 };
 
 function Lista({ titulo, filas }: { titulo: string; filas: Array<{ rotulo: string; casos: number }> }) {
@@ -36,6 +39,34 @@ function Lista({ titulo, filas }: { titulo: string; filas: Array<{ rotulo: strin
         </div>
       ) : <VacioDeBloque icono={<GitMerge size={15} />} titulo="El corte no trae esta lectura." descripcion="Se publica con el cruce del padrón al actualizar." />}
     </section>
+  );
+}
+
+/**
+ * Una lectura con una sola categoría es un dato, no un desglose (K1, 30/10:
+ * tres tarjetas con una barra al 100 % cada una). Esas van juntas en una ficha
+ * «Cómo se cruzó»; sólo las que reparten casos llevan su tarjeta con barras.
+ */
+function LecturasDelCruce({ lecturas }: { lecturas: ReadonlyArray<{ titulo: string; filas: Array<{ rotulo: string; casos: number }> }> }) {
+  const unicas = lecturas.filter((lectura) => lectura.filas.length === 1);
+  const resto = lecturas.filter((lectura) => lectura.filas.length !== 1);
+  return (
+    <>
+      {unicas.length ? (
+        <section className="acr-av-panel acr-cr-lista-tarjeta" aria-label="Cómo se cruzó">
+          <header className="acr-av-panel-cabecera"><h3>Cómo se cruzó</h3></header>
+          <dl className="acr-cr-datos">
+            {unicas.map((lectura) => (
+              <div key={lectura.titulo}>
+                <dt>{lectura.titulo}</dt>
+                <dd><span>{lectura.filas[0].rotulo}</span><b className="acr-av-num">{`${fmt(lectura.filas[0].casos)} casos`}</b></dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      ) : null}
+      {resto.map((lectura) => <Lista key={lectura.titulo} titulo={lectura.titulo} filas={lectura.filas} />)}
+    </>
   );
 }
 
@@ -84,8 +115,12 @@ function Diagrama({ enlaces }: { enlaces: readonly EnlaceDeFlujo[] }) {
  * de cada canal, persona por persona (`case_rollup`).
  */
 export function Cruce({ consultas }: { consultas: MonitoreoInternalQueries }) {
-  const enlaces = consultas.flow?.links ?? [];
-  const personas = consultas.case_rollup?.length ? consultas.case_rollup : consultas.cases;
+  // Sólo las respuestas: el padrón que aún no respondió se dice aparte (ver flujoDeRespuestas).
+  const { enlaces, sinRespuesta } = useMemo(() => flujoDeRespuestas(consultas.flow?.links ?? []), [consultas.flow?.links]);
+  const personas = useMemo(
+    () => (consultas.case_rollup?.length ? consultas.case_rollup : consultas.cases).filter((caso) => !esSinRespuesta(caso)),
+    [consultas.case_rollup, consultas.cases],
+  );
   const registros = useMemo(() => dibujarFlujo(enlaces, 1, 1).registros, [enlaces]);
   const fuera = useMemo(
     () => enlaces.filter((enlace) => enlace.source === "Fuera de base").reduce((suma, enlace) => suma + enlace.value, 0),
@@ -103,7 +138,12 @@ export function Cruce({ consultas }: { consultas: MonitoreoInternalQueries }) {
 
   if (!enlaces.length) {
     return (
-      <PestanaSinContenido titulo="De la respuesta al avance" icono={<GitMerge size={18} />} motivo="El corte todavía no trae el cruce del padrón con las respuestas." descripcion="Se calcula al actualizar, con el padrón y las encuestas de cada público." />
+      <PestanaSinContenido
+        titulo="De la respuesta al avance"
+        icono={<GitMerge size={18} />}
+        motivo={sinRespuesta > 0 ? "Todavía no llega ninguna respuesta." : "El corte todavía no trae el cruce del padrón con las respuestas."}
+        descripcion={sinRespuesta > 0 ? `${fmt(sinRespuesta)} personas del padrón esperan responder.` : "Se calcula al actualizar, con el padrón y las encuestas de cada público."}
+      />
     );
   }
   return (
@@ -112,9 +152,10 @@ export function Cruce({ consultas }: { consultas: MonitoreoInternalQueries }) {
         <CabeceraDeTarjeta primera>
           <h3>
             De la respuesta al avance
-            <span className="acr-av-tenue" title={`${fmt(registros - fuera)} personas del padrón y ${fmt(fuera)} ${fuera === 1 ? "respuesta" : "respuestas"} fuera de él`}>
-              {`${fmt(registros)} registros`}
+            <span className="acr-av-tenue" title={`${fmt(registros - fuera)} del padrón y ${fmt(fuera)} fuera de él`}>
+              {`${fmt(registros)} ${registros === 1 ? "respuesta" : "respuestas"}`}
             </span>
+            {sinRespuesta > 0 ? <span className="acr-av-tenue">{`${fmt(sinRespuesta)} del padrón sin responder`}</span> : null}
           </h3>
         </CabeceraDeTarjeta>
         <div className="acr-cr-cuerpo" data-qa-geometry-capacity="owned">
@@ -122,9 +163,11 @@ export function Cruce({ consultas }: { consultas: MonitoreoInternalQueries }) {
         </div>
       </section>
       <aside className="acr-cr-derecha acr-cr-pila" aria-label="Llave y estrategia">
-        <Lista titulo="Llave usada" filas={llave} />
-        <Lista titulo="Cómo cruzó con el padrón" filas={cruce} />
-        <Lista titulo="Estrategia por canal" filas={estrategia} />
+        <LecturasDelCruce lecturas={[
+          { titulo: "Llave usada", filas: llave },
+          { titulo: "Cómo cruzó con el padrón", filas: cruce },
+          { titulo: "Estrategia por canal", filas: estrategia },
+        ]} />
       </aside>
     </div>
   );

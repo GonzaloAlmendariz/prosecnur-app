@@ -56,23 +56,56 @@
   sub("^(Mediana:) [^ ]+", paste("\\1", .cifra_mediana(espec$mediana, FALSE)), t)
 }
 
-#' Histograma (`g_hist()`): una columna por valor con su frecuencia encima, el valor debajo y la mediana como triángulo
-#' coral bajo su valor; el texto de la mediana arriba a la derecha (ya truncado por la espec)
+#' Histograma (`g_hist()`): una columna por valor con su frecuencia encima, el valor debajo y la mediana marcada
+#'
+#' Gonzalo, 2026-11-04 (revisión del PPT v7.11, lámina 11): la mediana va como línea fina rotulada, igual que en la lámina.
+#' Con `marca_mediana = "linea"` (defecto) una línea coral baja desde «Mediana: N años», centrado sobre la mediana, hasta
+#' la cifra de su barra, sin entrar en la barra. Con `"triangulo"` queda la forma anterior: el triángulo bajo su valor y el
+#' texto arriba a la derecha.
 #' @keywords internal
 .word_g_hist <- function(espec) {
   navy <- .std_word("colores", "titulos"); T <- .WORD_TINTA
   k <- seq_along(espec$rotulos); v <- espec$valores; mx <- max(v, na.rm = TRUE)
-  d <- data.frame(k = k, v = v, cifra = espec$cifras, rot = espec$rotulos)
+  # Misma jerarquía que la lámina (graficador_histograma_lamina.R, revisión del PPT v7.11): el porcentaje arriba en negrita, los
+  # casos debajo y tenues. Revisión del PPT v7.23, ítem 3: un solo azul para todas las barras y sus porcentajes (ya no
+  # hay barras tenues de pocos casos).
+  cf <- .lam_hist_cifras(as.character(espec$cifras))
+  tenue <- .std_color("texto_tenue")
+  d <- data.frame(k = k, v = v, pct = cf$pct, casos = cf$casos, rot = espec$rotulos, stringsAsFactors = FALSE)
+  dc <- d[nzchar(d$pct), , drop = FALSE]
   g <- ggplot2::ggplot(d) +
-    ggplot2::geom_rect(ggplot2::aes(xmin = .data$k - 0.46, xmax = .data$k + 0.46, ymin = 0, ymax = .data$v), fill = T$navy) +
-    ggplot2::geom_text(data = d[nzchar(d$cifra), , drop = FALSE], ggplot2::aes(x = .data$k, y = .data$v + mx * 0.04, label = .data$cifra), vjust = 0,
+    ggplot2::geom_rect(ggplot2::aes(xmin = .data$k - 0.47, xmax = .data$k + 0.47, ymin = 0, ymax = .data$v), fill = T$navy) +
+    ggplot2::geom_text(data = dc, ggplot2::aes(x = .data$k, y = .data$v + mx * (if (cf$con_casos) 0.11 else 0.04), label = .data$pct), vjust = 0,
                        size = .word_pt(8.5, "cifra"), fontface = .word_cara("cifras"), colour = navy, family = "Arial") +
+    (if (cf$con_casos) ggplot2::geom_text(data = dc, ggplot2::aes(x = .data$k, y = .data$v + mx * 0.03, label = .data$casos), vjust = 0,
+                       size = .word_pt(7, "rotulo"), colour = tenue, family = "Arial")) +
     ggplot2::geom_text(ggplot2::aes(x = .data$k, y = -mx * 0.07, label = .data$rot), size = .word_pt(8.5, "rotulo"), colour = navy, family = "Arial") +
-    ggplot2::annotate("point", x = espec$x_mediana + 1, y = -mx * 0.17, shape = 17, size = 2.6, colour = T$coral) +
-    ggplot2::annotate("text", x = max(k) + 0.5, y = mx * 1.12, label = .word_texto_mediana(espec), hjust = 1, size = .word_pt(9, "cifra"), fontface = "bold",
-                      colour = T$coral, family = "Arial") +
-    ggplot2::scale_y_continuous(limits = c(-mx * 0.22, mx * 1.16), expand = c(0, 0)) + ggplot2::scale_x_continuous(expand = c(0.01, 0)) + .word_tema()
+    .word_hist_mediana(espec, k, v, mx, T$coral) +
+    ggplot2::scale_y_continuous(limits = c(-mx * 0.22, mx * (if (.word_hist_linea(espec)) 1.3 else 1.16)), expand = c(0, 0)) +
+    ggplot2::scale_x_continuous(expand = c(0.01, 0)) + .word_tema()
   attr(g, "alto") <- 2.5 - 0.22; g          # el recetario la inserta a 2.5 in con el pie (recetario_word.R:357)
+}
+
+#' ¿La mediana del histograma del Word va como línea? (defecto; `marca_mediana = "triangulo"` la pide como antes)
+#' @keywords internal
+.word_hist_linea <- function(espec) !identical(.lam_hist_marca(espec$marca_mediana), "triangulo")
+
+#' Capas de la mediana del histograma del Word: la línea fina rotulada o el triángulo
+#' @keywords internal
+.word_hist_mediana <- function(espec, k, v, mx, coral) {
+  xm <- espec$x_mediana + 1; texto <- .word_texto_mediana(espec)
+  if (!.word_hist_linea(espec)) {
+    return(list(ggplot2::annotate("point", x = xm, y = -mx * 0.17, shape = 17, size = 2.6, colour = coral),
+                ggplot2::annotate("text", x = max(k) + 0.5, y = mx * 1.12, label = texto, hjust = 1, size = .word_pt(9, "cifra"),
+                                  fontface = "bold", colour = coral, family = "Arial")))
+  }
+  # La línea sale bajo el rótulo y llega a la cifra de la barra de la mediana; entre dos valores, baja por el hueco a la base.
+  centro <- abs(k - xm) < 0.25
+  y_fin <- if (any(centro)) v[which(centro)[1]] + mx * 0.13 else 0
+  hj <- if (xm <= 1.5) 0 else if (xm >= max(k) - 0.5) 1 else 0.5
+  list(ggplot2::annotate("segment", x = xm, xend = xm, y = mx * 1.2, yend = y_fin, colour = coral, linewidth = 0.35),
+       ggplot2::annotate("text", x = xm, y = mx * 1.22, label = texto, hjust = hj, vjust = 0, size = .word_pt(9, "cifra"),
+                         fontface = "bold", colour = coral, family = "Arial"))
 }
 
 #' Promedio por grupo (`g_promedios()`): columnas desde cero, la mayor en azul oscuro y la cifra encima

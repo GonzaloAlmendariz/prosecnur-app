@@ -11,6 +11,7 @@
 //   3. `${var} <op> ${otherVar}`        → kind=compare con ref como rhs
 //   4. `selected(${var}, 'value')`      → kind=selected
 //   5. `not(selected(${var}, 'value'))` → kind=not_selected
+//   6. `count-selected(${var}) <op> N`  → kind=count (cuántas opciones marcó)
 //
 // Cualquier otra forma se considera "compleja" y se trata con el árbol
 // AND/OR/NOT directamente — no se aplana.
@@ -63,6 +64,17 @@ export function tryFlattenCondition(expr: Expr): FlatCondition | null {
       };
     }
   }
+  // Patrón 6: count-selected(${var}) <op> N
+  if (expr.kind === "compare" && expr.left.kind === "call" && expr.left.name === "count-selected" &&
+      expr.left.args.length === 1 && expr.left.args[0]!.kind === "ref" && expr.right.kind === "literal" &&
+      (expr.op === ">=" || expr.op === "<=" || expr.op === "=")) {
+    const label = { ">=": "marcó al menos", "<=": "marcó máximo", "=": "marcó exactamente" }[expr.op];
+    return {
+      variableName: (expr.left.args[0] as Extract<Expr, { kind: "ref" }>).name,
+      predicate: { kind: "count", op: expr.op, label },
+      value: { kind: "literal", raw: String(expr.right.value) },
+    };
+  }
   // Patrones 1-3: compare con ref como lhs
   if (expr.kind === "compare" && expr.left.kind === "ref") {
     const variableName = expr.left.name;
@@ -91,9 +103,20 @@ export function tryFlattenCondition(expr: Expr): FlatCondition | null {
         value: { kind: "ref", variableName: expr.right.name },
       };
     }
+    // `${fecha} < today()`: la fecha de hoy viaja como el literal HOY (E19 paso 6).
+    if (expr.right.kind === "call" && expr.right.name === "today" && expr.right.args.length === 0) {
+      return {
+        variableName,
+        predicate: { kind: "compare", op: expr.op, label: opLabel(expr.op) },
+        value: { kind: "literal", raw: HOY },
+      };
+    }
   }
   return null;
 }
+
+/** Valor literal que representa «hoy» (`today()`) en una condición sobre una fecha. */
+export const HOY = "today()";
 
 /**
  * Convierte una `FlatCondition` de vuelta al AST. Inversa exacta de
@@ -109,12 +132,22 @@ export function expandCondition(cond: FlatCondition): Expr {
       right: { kind: "literal", value: "" },
     };
   }
-  // Si la pred es selected/not_selected, ignoramos el operador del compare.
+  // Si la pred es selected/not_selected, ignoramos el operador del compare. Su valor es SIEMPRE un código de opción:
+  // va como texto, `selected(${x}, '1')`, nunca como el número 1 (E19 paso 4).
   if (cond.predicate.kind === "selected") {
     return {
       kind: "call",
       name: "selected",
-      args: [lhs, valueExpr(cond.value)],
+      args: [lhs, codigoExpr(cond.value)],
+    };
+  }
+  if (cond.predicate.kind === "count") {
+    const n = cond.value.kind === "literal" && /^\d+$/.test(cond.value.raw.trim()) ? Number(cond.value.raw.trim()) : 1;
+    return {
+      kind: "compare",
+      op: cond.predicate.op,
+      left: { kind: "call", name: "count-selected", args: [lhs] },
+      right: { kind: "literal", value: n },
     };
   }
   if (cond.predicate.kind === "not_selected") {
@@ -123,7 +156,7 @@ export function expandCondition(cond: FlatCondition): Expr {
       operand: {
         kind: "call",
         name: "selected",
-        args: [lhs, valueExpr(cond.value)],
+        args: [lhs, codigoExpr(cond.value)],
       },
     };
   }
@@ -312,12 +345,18 @@ export function expandMultiSelected(variableName: string, values: string[]): Log
   };
 }
 
+/** Código de opción como literal de texto (referencias a otra pregunta, tal cual). */
+function codigoExpr(v: FlatCondition["value"]): Expr {
+  return v.kind === "ref" ? { kind: "ref", name: v.variableName } : { kind: "literal", value: v.raw };
+}
+
 function valueExpr(v: FlatCondition["value"]): Expr {
   if (v.kind === "ref") return { kind: "ref", name: v.variableName };
   // Detección heurística de tipo del literal — si es un número parseable
   // sin perder precisión, lo emitimos como número; si es 'true'/'false'
   // lo emitimos boolean; si no, string.
   const raw = v.raw;
+  if (raw === HOY) return { kind: "call", name: "today", args: [] };
   if (raw === "true" || raw === "false") {
     return { kind: "literal", value: raw === "true" };
   }

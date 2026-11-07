@@ -26,13 +26,13 @@
 @media (prefers-reduced-motion: no-preference) {
   .cmg-mesa .cmg-pestana-cuerpo[data-entrada="montaje"],
   .cmg-mesa .cmg-pestana-cuerpo[data-entrada="a"] {
-    animation: cmg-entra-a var(--motion-dur-fast) var(--motion-ease-out) backwards;
+    animation: pulso-mov-sube-corto var(--motion-dur-fast) var(--motion-ease-out) backwards;
   }
 
   /* Mismo movimiento con otro nombre: cambiar el nombre reinicia la
      animación sin re-montar el cuerpo (useEntradaPorCambio). */
   .cmg-mesa .cmg-pestana-cuerpo[data-entrada="b"] {
-    animation: cmg-entra-b var(--motion-dur-fast) var(--motion-ease-out) backwards;
+    animation: pulso-mov-sube-corto var(--motion-dur-fast) var(--motion-ease-out) backwards;
   }
 
   /* En Acreditación › Selección el panel de la sección ya entra al montar;
@@ -45,7 +45,7 @@
    * Cifras de la banda «Diseño vigente», pasos de la memoria y tarjetas de
    * actor. Sólo funden: el contenedor ya desliza (movimiento en capas). */
   :is(.cmg-banda-cifras > .cmv2-uni-cifra-fila, .cmg-memoria-pasos, .cmg-actores-lista) > * {
-    animation: cmg-funde var(--motion-dur-base) var(--motion-ease-out) backwards;
+    animation: pulso-mov-aparece var(--motion-dur-base) var(--motion-ease-out) backwards;
   }
 
   :is(.cmg-banda-cifras > .cmv2-uni-cifra-fila, .cmg-memoria-pasos, .cmg-actores-lista) > :nth-child(2) { animation-delay: 40ms; }
@@ -58,12 +58,12 @@
    * Escalonado de 30 ms (aulas usa 28; la vara de cascada es 30–80 ms); `--cmv2-flujo-index` lo
    * pone FlujoVertical. La arista k (hijo 2k) llega con la etapa k. */
   .cmg-cadena-n .cmv2-uni-flujo > .cmv2-uni-flujo-etapa {
-    animation: cmg-funde var(--motion-dur-base) var(--motion-ease-out) backwards;
+    animation: pulso-mov-aparece var(--motion-dur-base) var(--motion-ease-out) backwards;
     animation-delay: min(calc(var(--cmv2-flujo-index, 0) * 30ms), 180ms);
   }
 
   .cmg-cadena-n .cmv2-uni-flujo > .cmv2-uni-flujo-arista {
-    animation: cmg-funde var(--motion-dur-base) var(--motion-ease-out) backwards;
+    animation: pulso-mov-aparece var(--motion-dur-base) var(--motion-ease-out) backwards;
   }
 
   .cmg-cadena-n .cmv2-uni-flujo > .cmv2-uni-flujo-arista:nth-child(2) { animation-delay: 30ms; }
@@ -99,27 +99,7 @@
 
   /* --- M6 · Press de la tarjeta de actor -------------------------------------- */
   .cmg-actor:active:not(:disabled) {
-    transform: scale(0.97);
-  }
-}
-
-@keyframes cmg-entra-a {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-}
-
-@keyframes cmg-entra-b {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-}
-
-@keyframes cmg-funde {
-  from {
-    opacity: 0;
+    transform: scale(var(--mov-press, 0.97));
   }
 }
 

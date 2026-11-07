@@ -1,0 +1,20 @@
+/* M2 (pasada a 1024×600): lo que se cortaba con «…» y no debía. */
+
+/* Nombres largos de distrito («San Juan de Lurigancho») pasan a dos líneas en vez de cortarse. */
+.hr-sorteo-dist-copia strong { white-space: normal; overflow-wrap: anywhere; line-height: 1.25; }
+.hr-muestra-rep-cab strong.hr-muestra-rep-nombre { white-space: normal; line-height: 1.25; }
+
+/* Angosto, los rótulos de las cifras del inspector («Peor margen», «Entrevistas») bajan de línea. */
+@media (max-width: 1279px) {
+  /* Sin partir una palabra: el ancestro hereda overflow-wrap:anywhere. Antes se separaba con guion
+     («Entre-vistas»); ahora la cuadrícula baja a dos columnas antes de que una palabra no quepa (mapaPage.css). */
+  .hr-mapa-cifras small { white-space: normal; line-height: 1.2; overflow-wrap: normal; }
+  /* Los chips de zona («Moderna 12») ceden relleno antes que letras. */
+  .hr-mapa-zonas .hr-mapa-zona { padding: 0 8px; gap: 5px; }
+  /* La línea de cada ciudad del atlas («Lambayeque · 541 mil hab.») baja de línea antes que cortarse. */
+  .hr-atlas-ciudad small { white-space: normal; line-height: 1.3; }
+  /* El antetítulo en versalitas del inspector («LIMA METROPOLITANA Y CALLAO») aprieta el espaciado antes de cortarse. */
+  .hr-ins-sobre { letter-spacing: 0.04em; }
+  /* «Corrección por población finita (FPC)» no cabe en el inspector de Muestra a 1024: baja de línea en vez de desbordar. */
+  .hr-muestra-fpc .pulso-switch-field-label { white-space: normal; }
+}

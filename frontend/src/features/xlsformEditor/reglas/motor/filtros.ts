@@ -3,6 +3,8 @@
 //   Bureau = ${Bureau}                    → Muestra las opciones cuya columna Bureau coincide con la respuesta de ‹Bureau›
 //   selected(${gasto}, filter_Spent)      → Muestra las opciones cuya columna filter_Spent está marcada en ‹Gasto›
 //   selected(filter_Q, ${Q})              → Muestra las opciones cuya columna filter_Q incluye la respuesta de ‹Q›
+//   selected(${medios}, name)             → Muestra las opciones que se marcaron en ‹Medios›
+//   edad_min <= ${edad}                   → Muestra las opciones cuya columna edad_min es menor o igual que la respuesta de ‹Edad›
 //   REF02CO = 'kk'                        → Muestra siempre las mismas opciones: las marcadas con kk en la columna REF02CO
 //   ${pais} = 'PER' and (name = '1' or …) → Muestra solo las opciones ‹A›, ‹B› … cuando ‹País› es ‹Perú›
 
@@ -18,6 +20,8 @@ type Clausula =
   // La columna de la opción lista varios valores separados por espacio (forma compacta del filtro por opción).
   | { tipo: "incluye"; columna: string; ref: string }
   | { tipo: "igual"; columna: string; valor: string; negada: boolean }
+  // Columna numérica de la opción contra una respuesta o un número: `edad_min <= ${edad}`.
+  | { tipo: "compara"; columna: string; op: "<" | "<=" | ">" | ">="; ref: string | null; valor: string | null }
   | { tipo: "opciones"; valores: string[] };
 
 const campo = (e: Expr | undefined): string | null =>
@@ -41,6 +45,17 @@ function clausula(e: Expr): Clausula | null {
       if (col === "name" && e.op === "=") return { tipo: "opciones", valores: [String(otro.value)] };
       return { tipo: "igual", columna: col, valor: String(otro.value), negada: e.op === "!=" };
     }
+    return null;
+  }
+  if (e.kind === "compare" && (e.op === "<" || e.op === "<=" || e.op === ">" || e.op === ">=")) {
+    const izquierda = campo(e.left) !== null;
+    const col = izquierda ? campo(e.left) : campo(e.right);
+    const otro = izquierda ? e.right : e.left;
+    if (col === null) return null;
+    // Con la columna a la derecha se lee al revés: `${edad} >= edad_min` es `edad_min <= ${edad}`.
+    const op = izquierda ? e.op : ({ "<": ">", "<=": ">=", ">": "<", ">=": "<=" } as const)[e.op];
+    if (otro.kind === "ref") return { tipo: "compara", columna: col, op, ref: otro.name, valor: null };
+    if (otro.kind === "literal") return { tipo: "compara", columna: col, op, ref: null, valor: String(otro.value) };
     return null;
   }
   if (e.kind === "call" && e.name === "selected" && e.args.length === 2) {
@@ -77,7 +92,14 @@ function frasear(c: Clausula, ctx: Contexto, lista: string, sola: boolean): Fras
       return [...cols, t(c.negada ? "no coincide con" : "coincide con"), ...(sola ? [t("la respuesta de")] : []), pregunta(c.ref, ctx)];
     }
     case "marcada":
+      // `selected(${q}, name)`: las mismas opciones que se marcaron antes («cuyo código está marcada» no concordaba).
+      if (c.columna === "name") return [t("que se marcaron en"), pregunta(c.ref, ctx)];
       return [...columna(c.columna), t("está marcada en"), pregunta(c.ref, ctx)];
+    case "compara": {
+      const verbo = { "<": "es menor que", "<=": "es menor o igual que", ">": "es mayor que", ">=": "es mayor o igual que" }[c.op];
+      const contra = c.ref !== null ? [...(sola ? [t("la respuesta de")] : []), pregunta(c.ref, ctx)] : [v(literalLegible(c.valor ?? ""))];
+      return [...columna(c.columna), t(verbo), ...contra];
+    }
     case "incluye":
       return [...columna(c.columna), t("incluye"), ...(sola ? [t("la respuesta de")] : []), pregunta(c.ref, ctx)];
     case "igual":

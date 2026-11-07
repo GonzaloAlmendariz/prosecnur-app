@@ -7,9 +7,9 @@ source("setup-load-all.R")
 
 .FAMILIAS_F6 <- c("categorias", "escalas", "numeros", "comparar", "dimensiones", "territorio", "texto")
 
-test_that("los 32 graficadores declaran familia del editor y salida, con motivo cuando no es nativa", {
+test_that("los 34 graficadores declaran familia del editor y salida, con motivo cuando no es nativa", {
   m <- .GRAFICADORES_META
-  expect_length(m, 32L)
+  expect_length(m, 34L)
   for (nm in names(m)) {
     expect_true(m[[nm]]$familia_editor %in% .FAMILIAS_F6, info = nm)
     expect_true(is.logical(m[[nm]]$salida_nativa) && length(m[[nm]]$salida_nativa) == 1L && !is.na(m[[nm]]$salida_nativa), info = nm)
@@ -86,7 +86,8 @@ test_that("la salida declarada coincide con cómo sale la lámina en el motor re
     p_lollipop = p_lollipop("cat"),
     p_nube_palabras = p_nube_palabras("txt"),
     p_puntos_comparativos = p_puntos_comparativos("e", cruces = "g", corte = c("3", "4")),
-    p_tabla = p_tabla(modo = "box", vars = c("e", "e2"), box_labels = c("3", "4"))   # dos filas: antes salía «Sin datos» (exigía 3 ejes)
+    p_tabla = p_tabla(modo = "box", vars = c("e", "e2"), box_labels = c("3", "4")),   # dos filas: antes salía «Sin datos» (exigía 3 ejes)
+    p_lineas_nivel = p_lineas_nivel("a", cruce = "cat", series = list(list(rotulo = "Sí", codigos = "1")))   # total y línea por nivel
   )
   slides <- lapply(names(casos), function(nm) p_slide_1_grafico(casos[[nm]], titulo = nm))
   out <- tempfile(fileext = ".pptx")

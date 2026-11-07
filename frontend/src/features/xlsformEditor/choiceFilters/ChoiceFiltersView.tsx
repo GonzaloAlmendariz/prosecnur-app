@@ -24,6 +24,7 @@ import type { PreguntaDestino } from "./NuevoFiltroDialogo";
 import type { PreguntaElegible } from "./SelectorPreguntaFiltro";
 import "../kit/riel.css";
 import "../styles/xf-choice-filters.css";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 
 const ID_DETALLE = "xf-xcf-detalle";
 
@@ -75,7 +76,14 @@ export function ChoiceFiltersView({
       const fila = porNombre.get(name)?.rowIndex ?? Infinity;
       return seleccion.filter((n) => n.rowIndex < fila).map(elegible);
     };
-    return { filtros, frases: frasesDeFiltros(structure, choicesColumns, choicesRows), porNombre, destinos, candidatasDe };
+    // «Según un número» (E19 paso 5): enteros, decimales y cálculos anteriores a la pregunta filtrada.
+    const numericasDe = (name: string): PreguntaElegible[] => {
+      const fila = porNombre.get(name)?.rowIndex ?? Infinity;
+      return (structure?.outline ?? [])
+        .filter((n) => n.rowIndex < fila && ["integer", "decimal", "calculate"].includes(n.typeInfo.base))
+        .map((n) => ({ name: n.name, titulo: tituloDePregunta(n, porNombre), baseType: n.typeInfo.base }));
+    };
+    return { filtros, frases: frasesDeFiltros(structure, choicesColumns, choicesRows), porNombre, destinos, candidatasDe, numericasDe };
   }, [open, structure, choicesColumns, choicesRows]);
 
   if (!open) return null;
@@ -94,17 +102,18 @@ export function ChoiceFiltersView({
           <span>{filtros.length === 1 ? "1 pregunta filtra sus opciones" : `${filtros.length} preguntas filtran sus opciones`}</span>
         </div>
         {puedeEditar && model && workbook ? (
-          <NuevoFiltro preguntas={model.destinos} candidatasDe={model.candidatasDe} workbook={workbook} onAbrir={(n) => { setEditando(null); onSeleccionar(n); }}
+          <NuevoFiltro preguntas={model.destinos} candidatasDe={model.candidatasDe} numericasDe={model.numericasDe} workbook={workbook} onAbrir={(n) => { setEditando(null); onSeleccionar(n); }}
             onCrear={(wb, n) => { escribir(wb); setEditando(null); onSeleccionar(n); }} />
         ) : null}
       </header>
 
       {!actual ? (
-        <div className="xcf-vacio">
-          <span className="xcf-vacio__icono" aria-hidden="true"><SlidersHorizontal size={26} /></span>
-          <strong>Ninguna pregunta filtra sus opciones.</strong>
-          {puedeEditar ? <p>Usa «Nuevo filtro» para crear el primero.</p> : null}
-        </div>
+        <EstadoVacio
+          tamano="normal"
+          icono={<SlidersHorizontal size={20} />}
+          titulo="Ninguna pregunta filtra sus opciones"
+          descripcion={puedeEditar ? "Usa «Nuevo filtro» para crear el primero." : undefined}
+        />
       ) : (
         <div className="xcf-gestion" data-qa-geometry-group="xlsform/filtros-gestion" data-qa-geometry-contract="intrinsic">
           <ListaFiltros filtros={filtros} frases={model!.frases} actual={actual.fila} idDetalle={ID_DETALLE}
@@ -122,7 +131,7 @@ export function ChoiceFiltersView({
             onEditar={onEditar}
             aviso={focoPerdido ? <p className="xcf-aviso" role="status">No hay un filtro en <code>{seleccionada}</code>. Se muestra el primero de la lista.</p> : null}
             editor={editando === actual.fila && workbook ? (
-              <EditorIntencion analisis={actual} workbook={workbook} candidatas={model!.candidatasDe(actual.pregunta)}
+              <EditorIntencion analisis={actual} workbook={workbook} candidatas={model!.candidatasDe(actual.pregunta)} numericas={model!.numericasDe(actual.pregunta)}
                 onCancelar={() => setEditando(null)} onGuardar={(wb) => { escribir(wb); setEditando(null); }} />
             ) : null}
           />

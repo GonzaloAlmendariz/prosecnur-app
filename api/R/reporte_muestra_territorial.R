@@ -19,6 +19,8 @@
 #' @param formato `"html"` (default) o `"pdf"`.
 #' @param quiet Reduce salida de `quarto_render`.
 #' @param progress_path Ruta del archivo de progreso del job.
+#' @param insumos_marco Insumos de la sesión para las secciones de marco
+#'   elegible, margen y plan de campo (`.reporte_mt_insumos_sesion()`, U16).
 #' @return Invisiblemente la ruta del archivo generado.
 #' @export
 reporte_muestra_territorial <- function(config,
@@ -30,7 +32,8 @@ reporte_muestra_territorial <- function(config,
                                         output_file,
                                         formato = c("html", "pdf"),
                                         quiet = FALSE,
-                                        progress_path = NULL) {
+                                        progress_path = NULL,
+                                        insumos_marco = NULL) {
   formato <- match.arg(formato)
 
   if (!requireNamespace("quarto", quietly = TRUE)) {
@@ -64,7 +67,8 @@ reporte_muestra_territorial <- function(config,
     population          = population,
     sample_size_preview = sample_size_preview,
     quota               = quota,
-    decision_log        = decision_log
+    decision_log        = decision_log,
+    secciones_marco     = reporte_mt_secciones_modelo(config, sample_size_preview, insumos_marco, territorios, decision_log, quota)
   )
   path_rds <- file.path(tmp_root, "bundle_muestra_territorial.rds")
   saveRDS(bundle, file = path_rds, version = 3)
@@ -152,7 +156,8 @@ muestra_territorial_render_job <- function(config, territorios, population,
                                             sample_size_preview, quota,
                                             decision_log, formato = "html",
                                             result_path = NULL,
-                                            progress_path = NULL) {
+                                            progress_path = NULL,
+                                            insumos_marco = NULL) {
   if (is.null(result_path) || !nzchar(result_path)) {
     stop("result_path requerido para el job de reporte.", call. = FALSE)
   }
@@ -166,7 +171,8 @@ muestra_territorial_render_job <- function(config, territorios, population,
     output_file         = result_path,
     formato             = formato,
     quiet               = TRUE,
-    progress_path       = progress_path
+    progress_path       = progress_path,
+    insumos_marco       = insumos_marco
   )
   list(ok = TRUE, path = result_path, formato = formato,
        generated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))

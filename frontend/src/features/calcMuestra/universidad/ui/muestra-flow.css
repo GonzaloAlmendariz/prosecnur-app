@@ -9,7 +9,9 @@
 
 .cmv2-muestra-flow {
   --cmv2-flow-badge: 56px;
-  --cmv2-flow-node: 88px;
+  /* 100 px: a 88 los rótulos se partían en pedazos con huérfanas («qué
+     columna es / qué»); los conectores ceden el ancho, que les sobra. */
+  --cmv2-flow-node: 100px;
   min-width: 0;
   width: 100%;
 }
@@ -19,7 +21,9 @@
   align-items: flex-start;
   width: 100%;
   margin: 0;
-  padding: 2px 0 4px;
+  /* 18 px arriba: la pastilla «Lo siguiente» sube 13 px sobre el círculo y con
+     2 px cruzaba el borde de la tarjeta. */
+  padding: 18px 0 4px;
   list-style: none;
 }
 
@@ -110,7 +114,7 @@
   border-radius: 9px;
   background: var(--cmv2-accent);
   color: var(--cmv2-surface, var(--pulso-surface));
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: 0.02em;
   white-space: nowrap;
@@ -124,17 +128,18 @@
   gap: 1px;
   text-align: center;
   line-height: 1.2;
+  text-wrap: balance;
 }
 
 .cmv2-muestra-flow-label strong {
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-bold);
   letter-spacing: -0.1px;
   color: var(--pulso-text);
 }
 
 .cmv2-muestra-flow-label small {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text-muted);
 }
 
@@ -174,7 +179,7 @@
   bottom: calc(50% + 6px);
   left: 50%;
   transform: translateX(-50%);
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-style: italic;
   letter-spacing: 0.1px;
   color: var(--pulso-text-muted);
@@ -185,7 +190,7 @@
 /* --- Compacto: convive con contenido (menos aire) -------------------------- */
 .cmv2-muestra-flow[data-compacto="true"] {
   --cmv2-flow-badge: 46px;
-  --cmv2-flow-node: 76px;
+  --cmv2-flow-node: 92px;
 }
 
 .cmv2-muestra-flow[data-compacto="true"] .cmv2-muestra-flow-glyph {
@@ -194,32 +199,53 @@
 }
 
 .cmv2-muestra-flow[data-compacto="true"] .cmv2-muestra-flow-label strong {
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
 }
 
 .cmv2-muestra-flow[data-compacto="true"] .cmv2-muestra-flow-label small {
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
+}
+
+/* --- Pantallas bajas (D6, 1280×720): el recorrido es un indicador de avance,
+   no una segunda botonera (D5: la barra superior manda). Se reduce a una
+   franja delgada —glifo chico y título— para devolverle alto al contenido. */
+@media (max-height: 760px) {
+  .cmv2-muestra-flow[data-compacto="true"] {
+    --cmv2-flow-badge: 30px;
+    --cmv2-flow-node: 84px;
+  }
+
+  .cmv2-muestra-flow[data-compacto="true"] .cmv2-muestra-flow-glyph {
+    width: 18px;
+    height: 18px;
+  }
+
+  .cmv2-muestra-flow[data-compacto="true"] .cmv2-muestra-flow-label small,
+  .cmv2-muestra-flow[data-compacto="true"] .cmv2-muestra-flow-link-copy {
+    display: none;
+  }
+
+  /* El pin va entero SOBRE el halo (que sobresale 6 px del círculo): a −13 px
+     se montaba encima de la insignia chica y la tapaba. */
+  .cmv2-muestra-flow[data-compacto="true"] .cmv2-muestra-flow-pin {
+    top: -26px;
+    padding: 1px 7px;
+    font-size: var(--pulso-type-micro-size);
+    line-height: 1.4;
+  }
+
+  .cmv2-muestra-flow[data-compacto="true"] .cmv2-muestra-flow-track {
+    padding: 26px 0 2px;
+  }
 }
 
 /* --- Motion ---------------------------------------------------------------- */
 @media (prefers-reduced-motion: no-preference) {
   .cmv2-muestra-flow-node {
-    animation: cmv2-muestra-flow-in 260ms var(--cmv2-ease-out, cubic-bezier(0.23, 1, 0.32, 1)) both;
+    animation: pulso-mov-sube 260ms var(--cmv2-ease-out, cubic-bezier(0.23, 1, 0.32, 1)) both;
   }
   .cmv2-muestra-flow-link {
-    animation: cmv2-muestra-flow-fade 260ms var(--cmv2-ease-out, cubic-bezier(0.23, 1, 0.32, 1)) 180ms both;
+    animation: pulso-mov-aparece 260ms var(--cmv2-ease-out, cubic-bezier(0.23, 1, 0.32, 1)) 180ms both;
   }
 }
 
-@keyframes cmv2-muestra-flow-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-}
-
-@keyframes cmv2-muestra-flow-fade {
-  from {
-    opacity: 0;
-  }
-}

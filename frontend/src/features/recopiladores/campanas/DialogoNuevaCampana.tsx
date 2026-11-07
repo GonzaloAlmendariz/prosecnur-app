@@ -1,8 +1,10 @@
 // «Nueva campaña» (ADR 0111 §2): primero el tipo, después lo que ese tipo pide.
 //
-// Panel direccionable `?panel=nueva-campana` (clase «dialogo»). Los tres tipos
-// se ven siempre: territorial deshabilitado con su motivo, aulas deshabilitado
-// si el proyecto ya tiene la suya. Un correo nace de una plantilla real, en
+// Panel direccionable `?panel=nueva-campana` (clase «dialogo»). Se ven los tipos
+// que el estudio declara en el Planner (todos si no declaró perfiles, ADR 0122 P2);
+// el que no se puede crear dice por qué (aulas y territorial
+// si el proyecto ya tiene la suya; territorial sin muestra enviada desde Hojas
+// de ruta). La territorial pide la fase cuando piloto y campo real tienen envío. Un correo nace de una plantilla real, en
 // blanco o de un correo existente (abre «Importar un correo existente»).
 //
 // Contrato de Superficie:
@@ -13,8 +15,10 @@
 
 import * as Dialog from "@radix-ui/react-dialog";
 import { useEffect, useId, useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 
 import type { RegistroDeCampanas, TipoDeCampana } from "../../../api/materialCampanas";
+import type { FaseTerritorial } from "../../../api/materialTerritorial";
 import { MAIL_PLATFORMS, type MailPlatform, type MailPreset } from "../../../api/materialMail";
 import { PulsoButton } from "../../../components/PulsoButton";
 import type { ControlPanel } from "../../../lib/navegacion/paneles";
@@ -26,12 +30,15 @@ import { origenDePreset } from "../correos/modeloCorreo";
 import { AvisoDeNombreRepetido } from "./AvisoDeNombreRepetido";
 import { hrefDeCampana } from "./direccionDeCampanas";
 import { useFocoDeRetorno } from "./focoDeRetorno";
-import { NOMBRE_CAMPANA_AULAS, QUE_ES_EL_TIPO, ROTULO_DEL_TIPO, disponibilidadDe } from "./modeloRegistro";
+import { NOMBRE_CAMPANA_AULAS, NOMBRE_CAMPANA_TELEFONICA, NOMBRE_CAMPANA_TERRITORIAL, NOMBRE_DE_ACREDITACION, QUE_ES_EL_TIPO, ROTULO_DE_FASE, ROTULO_DEL_TIPO, disponibilidadDe, fechaCorta } from "./modeloRegistro";
+import { eleccionDeFase, faseParaCrear } from "../territorial/fasesDelEnvio";
+import { useEnviosTerritoriales } from "../territorial/useEnviosTerritoriales";
 import { campanaHomonima } from "./nombreUnico";
 import { ICONO_DEL_TIPO } from "./TarjetaDeCampana";
 import type { FuenteDelRegistro } from "./useRegistroDeCampanas";
 import "../correos/correosCampanas.css";
 import "./campanas.css";
+import { CargaDeBloque } from "../../../components/CargaDeBloque";
 
 export type Resultado = { ok: true } | { ok: false; mensaje: string };
 
@@ -43,12 +50,22 @@ type Props = {
   miniaturas: Record<string, string | null>;
   ocupado: boolean;
   onCrearAulas: (name: string) => Promise<Resultado>;
+  /** `fase` es `null` cuando el backend debe usar la activa (ninguna fase con envío conocida). */
+  onCrearTerritorial: (name: string, fase: FaseTerritorial | null) => Promise<Resultado>;
+  /** En acreditación, `ronda` es el público y la ronda del Modelo que abre (ADR 0125 §5). */
+  onCrearTelefonica: (name: string, ronda?: { publico: string; ronda: number }) => Promise<Resultado>;
+  /** ADR 0125 A4: el Planner fija `material.proposito`; en acreditación los nombres lo dicen. */
+  proposito?: "acreditacion" | null;
+  /** ADR 0125 A3: una supervisión por lote de Monitoreo. */
+  onCrearSupervision: (name: string, lote: string) => Promise<Resultado>;
   onCrearCorreo: (input: { name: string; actor: string; origen: string; platform: MailPlatform }) => Promise<Resultado>;
   /** «Desde un correo existente…»: cambia este diálogo por el de importar. */
   onImportar: (platform: MailPlatform) => void;
+  /** El tipo con que se abre (elegido en el vacío de la lista); sin él, el diálogo empieza por elegir. */
+  tipoInicial?: TipoDeCampana | null;
 };
 
-const TIPOS: readonly TipoDeCampana[] = ["aulas", "territorial", "correo"];
+const TIPOS: readonly TipoDeCampana[] = ["aulas", "territorial", "telefonica", "supervision", "correo"];
 
 function Miniatura({ html, titulo }: { html: string | null | undefined; titulo: string }) {
   return (
@@ -58,7 +75,7 @@ function Miniatura({ html, titulo }: { html: string | null | undefined; titulo: 
   );
 }
 
-/** Los tres tipos, siempre a la vista; el que no se puede crear dice por qué. */
+/** Los tipos del estudio a la vista; el que no se puede crear dice por qué. */
 export function TiposDeCampana({ registro, elegido, ocupado, onElegir }: {
   registro: RegistroDeCampanas | null;
   elegido: TipoDeCampana | null;
@@ -67,13 +84,15 @@ export function TiposDeCampana({ registro, elegido, ocupado, onElegir }: {
 }) {
   const ids = useId();
   return (
+    <>
     <ul
       className="rec-nueva-tipos"
       data-qa-geometry-group="material-campo/campanas/nueva-tipos"
       data-qa-geometry-contract="equal"
       aria-label="Tipo de campaña"
     >
-      {TIPOS.map((t) => {
+      {/* ADR 0122 P2: sólo los tipos que el estudio declara en el Planner. */}
+      {TIPOS.filter((t) => !registro || disponibilidadDe(registro, t).del_estudio !== false).map((t) => {
         const disp = registro ? disponibilidadDe(registro, t) : { disponible: false, motivo: null };
         const Icono = ICONO_DEL_TIPO[t];
         return (
@@ -95,10 +114,18 @@ export function TiposDeCampana({ registro, elegido, ocupado, onElegir }: {
         );
       })}
     </ul>
+    {/* Checklist F18: el territorial sin envío dice por qué y lleva a donde se envía (no cabe dentro del botón deshabilitado). */}
+    {/* Revisión con ojo de usuario (1 nov 2026): elegido otro tipo, el enlace a Hojas de ruta ya no viene al caso. */}
+    {!elegido && registro && /env[ií]a la muestra/i.test(disponibilidadDe(registro, "territorial").motivo ?? "") ? (
+      <p className="rec-nueva-ir-hojas">
+        <Link to="/hojas-ruta?seccion=seleccion&panel=salidas">Enviar la muestra desde Hojas de ruta › Entrega</Link>
+      </p>
+    ) : null}
+    </>
   );
 }
 
-export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniaturas, ocupado, onCrearAulas, onCrearCorreo, onImportar }: Props) {
+export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniaturas, ocupado, onCrearAulas, onCrearTerritorial, onCrearTelefonica, proposito = null, onCrearSupervision, onCrearCorreo, onImportar, tipoInicial = null }: Props) {
   const ids = useId();
   const { abierto, cerrar } = panel;
   const [tipo, setTipo] = useState<TipoDeCampana | null>(null);
@@ -107,10 +134,22 @@ export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniatur
   const [origen, setOrigen] = useState<string>(ORIGEN_EN_BLANCO);
   const [plataforma, setPlataforma] = useState<MailPlatform>("mailchimp");
   const [error, setError] = useState("");
+  const [fase, setFase] = useState<FaseTerritorial | null>(null);
+  const [lote, setLote] = useState<string | null>(null);
+  const [rondaElegida, setRondaElegida] = useState<string | null>(null);
+  const rondasLibres = registro?.tipos.find((t) => t.tipo === "telefonica")?.rondas_libres ?? [];
+  const ronda = rondasLibres.find((r) => r.id === rondaElegida) ?? null;
+  const lotesLibres = registro?.tipos.find((t) => t.tipo === "supervision")?.lotes_libres ?? [];
+  const territorialDisponible = registro ? disponibilidadDe(registro, "territorial").disponible : false;
+  const envios = useEnviosTerritoriales(abierto && territorialDisponible);
+  const eleccion = eleccionDeFase(envios.envios);
 
   useEffect(() => {
     if (abierto) return;
     setTipo(null);
+    setFase(null);
+    setLote(null);
+    setRondaElegida(null);
     setNombre("");
     setActor("");
     setError("");
@@ -128,16 +167,38 @@ export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniatur
   const elegir = (t: TipoDeCampana) => {
     setTipo(t);
     setError("");
-    setNombre(t === "aulas" ? NOMBRE_CAMPANA_AULAS : "");
+    const deAcreditacion = proposito === "acreditacion" ? NOMBRE_DE_ACREDITACION[t] : undefined;
+    setNombre(deAcreditacion ?? (t === "aulas" ? NOMBRE_CAMPANA_AULAS : t === "territorial" ? NOMBRE_CAMPANA_TERRITORIAL : t === "telefonica" ? NOMBRE_CAMPANA_TELEFONICA : ""));
+    if (t === "telefonica" && rondasLibres.length === 1) setRondaElegida(rondasLibres[0].id);
+    // Con un solo lote libre, ya está elegido.
+    if (t === "supervision" && lotesLibres.length === 1) elegirLote(lotesLibres[0].lote_id);
+  };
+  // Abierto desde el vacío de la lista con un tipo ya elegido: se elige al abrir, una vez.
+  useEffect(() => {
+    if (abierto && tipoInicial && !tipo) elegir(tipoInicial);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sólo al abrir
+  }, [abierto, tipoInicial]);
+  const elegirLote = (id: string) => {
+    setLote(id);
+    setNombre((n) => (n.trim() && !n.startsWith("Supervisión ") ? n : `Supervisión ${id.replace(/^ronda-/, "ronda ")}`));
   };
 
   const problema = nombre.trim() ? problemaDelNombre(nombre) ?? (tipo === "correo" ? problemaDelActor(actor) : null) : null;
   // F1: el nombre no se repite; la campaña que ya lo usa se ofrece para abrirla.
   const homonima = tipo && registro ? campanaHomonima(nombre, registro.campaigns) : null;
   // F12: por qué «Crear campaña» todavía no se puede pulsar, dicho junto al botón.
+  const faltaFase = tipo === "territorial" && eleccion.tipo === "elegir" && !fase;
+  const faltaLote = tipo === "supervision" && !lote;
+  const faltaRonda = tipo === "telefonica" && rondasLibres.length > 0 && !ronda;
   const motivo = !tipo
     ? "Elige un tipo para seguir."
-    : !nombre.trim()
+    : faltaFase
+      ? "Elige de qué fase se lee la muestra."
+      : faltaLote
+      ? "Elige el lote de Monitoreo que se supervisa."
+      : faltaRonda
+      ? "Elige el público y la ronda del Modelo."
+      : !nombre.trim()
       ? "Escribe el nombre de la campaña para crearla."
       : homonima
         ? "Cambia el nombre: ya lo usa otra campaña."
@@ -146,11 +207,17 @@ export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniatur
 
   const crear = async (e: FormEvent) => {
     e.preventDefault();
-    if (!tipo || problema || homonima || !nombre.trim()) return;
+    if (!tipo || problema || homonima || !nombre.trim() || faltaFase || faltaLote || faltaRonda) return;
     setError("");
     const out = tipo === "aulas"
       ? await onCrearAulas(nombre)
-      : await onCrearCorreo({ name: nombre, actor, origen, platform: plataforma });
+      : tipo === "territorial"
+        ? await onCrearTerritorial(nombre, faseParaCrear(eleccion, fase))
+        : tipo === "telefonica"
+        ? await onCrearTelefonica(nombre, ronda ? { publico: ronda.publico, ronda: ronda.ronda } : undefined)
+        : tipo === "supervision" && lote
+        ? await onCrearSupervision(nombre, lote)
+        : await onCrearCorreo({ name: nombre, actor, origen, platform: plataforma });
     if (!out.ok) setError(out.mensaje);
   };
 
@@ -205,6 +272,125 @@ export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniatur
               </div>
             ) : null}
 
+            {/* Revisión con ojo de usuario (1 nov 2026): Telefónica no tenía paso; se creaba sin poder nombrarla
+                ni saber qué seguía. */}
+            {tipo === "telefonica" ? (
+              <div className="rec-nueva-paso">
+                {rondasLibres.length ? (
+                  <fieldset className="rec-nueva-plataformas">
+                    <legend>Ronda del Modelo</legend>
+                    <span className="rec-nueva-plataformas-opciones">
+                      {rondasLibres.map((r) => (
+                        <label key={r.id} className={`rec-nueva-plataforma${rondaElegida === r.id ? " is-on" : ""}`}>
+                          <input type="radio" name={`${ids}-ronda`} value={r.id} checked={rondaElegida === r.id} onChange={() => setRondaElegida(r.id)} />
+                          <span>
+                            <b>{r.etiqueta}, ronda {r.ronda}</b>
+                            <small>{r.viene_de ? `Viene de «${registro?.campaigns.find((c) => c.id === r.viene_de)?.name ?? r.viene_de}»` : r.ronda > 1 ? "La ronda anterior no es telefónica" : "Primera ronda"}</small>
+                          </span>
+                        </label>
+                      ))}
+                    </span>
+                  </fieldset>
+                ) : null}
+                <label className="rec-camp-campo rec-nueva-campo">
+                  <span>Nombre de la campaña</span>
+                  <input
+                    value={nombre}
+                    maxLength={LARGO_NOMBRE}
+                    autoFocus
+                    aria-invalid={problema || homonima ? true : undefined}
+                    aria-describedby={homonima ? `${ids}-repetido` : undefined}
+                    onChange={(e) => setNombre(e.target.value)}
+                  />
+                </label>
+                {homonima ? <AvisoDeNombreRepetido id={`${ids}-repetido`} campana={homonima} href={homonima.archived ? null : hrefDeCampana(homonima)} /> : null}
+                <p className="rec-nueva-pie-nota">
+                  En la campaña declaras cuántos casos entrega el cliente y quién llama; de ahí sale la plantilla del barrido que llena el equipo y lee Monitoreo.
+                </p>
+              </div>
+            ) : null}
+
+            {tipo === "supervision" ? (
+              <div className="rec-nueva-paso">
+                <fieldset className="rec-nueva-plataformas">
+                  <legend>Lote de Monitoreo</legend>
+                  <span className="rec-nueva-plataformas-opciones">
+                    {lotesLibres.map((l) => (
+                      <label key={l.lote_id} className={`rec-nueva-plataforma${lote === l.lote_id ? " is-on" : ""}`}>
+                        <input type="radio" name={`${ids}-lote`} value={l.lote_id} checked={lote === l.lote_id} onChange={() => elegirLote(l.lote_id)} />
+                        <span>
+                          <b>{l.lote_id.replace(/^ronda-/, "Ronda ")}, {l.casos.toLocaleString("es-PE")} {l.casos === 1 ? "caso" : "casos"}</b>
+                          <small>{l.criterio}</small>
+                        </span>
+                      </label>
+                    ))}
+                  </span>
+                </fieldset>
+                <label className="rec-camp-campo rec-nueva-campo">
+                  <span>Nombre de la campaña</span>
+                  <input
+                    value={nombre}
+                    maxLength={LARGO_NOMBRE}
+                    aria-invalid={problema || homonima ? true : undefined}
+                    aria-describedby={homonima ? `${ids}-repetido` : undefined}
+                    onChange={(e) => setNombre(e.target.value)}
+                  />
+                </label>
+                {homonima ? <AvisoDeNombreRepetido id={`${ids}-repetido`} campana={homonima} href={homonima.archived ? null : hrefDeCampana(homonima)} /> : null}
+                <p className="rec-nueva-pie-nota">
+                  Monitoreo eligió a quién supervisar y cuándo. En la campaña eliges qué columnas del barrido y de los resultados lleva la base; las tres de la supervisión van siempre y las lee Monitoreo.
+                </p>
+              </div>
+            ) : null}
+
+            {tipo === "territorial" ? (
+              <div className="rec-nueva-paso">
+                <label className="rec-camp-campo rec-nueva-campo">
+                  <span>Nombre de la campaña</span>
+                  <input
+                    value={nombre}
+                    maxLength={LARGO_NOMBRE}
+                    autoFocus
+                    aria-invalid={problema || homonima ? true : undefined}
+                    aria-describedby={homonima ? `${ids}-repetido` : undefined}
+                    onChange={(e) => setNombre(e.target.value)}
+                  />
+                </label>
+                {homonima ? <AvisoDeNombreRepetido id={`${ids}-repetido`} campana={homonima} href={homonima.archived ? null : hrefDeCampana(homonima)} /> : null}
+                {envios.cargando ? <CargaDeBloque label="Leyendo qué muestra envió Hojas de ruta…" /> : null}
+                {envios.error ? <p className="rec-nueva-pie-nota" role="alert">{envios.error}</p> : null}
+                {eleccion.tipo === "elegir" && envios.envios ? (
+                  <fieldset className="rec-nueva-plataformas">
+                    <legend>Muestra de</legend>
+                    <span className="rec-nueva-plataformas-opciones">
+                      {(["field", "pilot"] as const).map((f) => {
+                        const meta = envios.envios?.[f];
+                        const cuando = meta?.enviado_at ? fechaCorta(meta.enviado_at) : null;
+                        return (
+                          <label key={f} className={`rec-nueva-plataforma${fase === f ? " is-on" : ""}`}>
+                            <input type="radio" name={`${ids}-fase`} value={f} checked={fase === f} onChange={() => setFase(f)} />
+                            <span>
+                              <b>{ROTULO_DE_FASE[f]}</b>
+                              <small>
+                                {meta ? `${meta.n_titulares.toLocaleString("es-PE")} titulares y ${meta.n_reemplazos.toLocaleString("es-PE")} reemplazos` : ""}
+                                {cuando ? `, enviada el ${cuando}` : ""}
+                              </small>
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </span>
+                  </fieldset>
+                ) : null}
+                <p className="rec-nueva-pie-nota">
+                  {eleccion.tipo === "unica"
+                    ? `Las UMP salen de la muestra de ${ROTULO_DE_FASE[eleccion.fase].toLowerCase()} que envió Hojas de ruta. `
+                    : "Las UMP salen de la muestra que envió Hojas de ruta. "}
+                  Si allá cambia, la campaña lo avisa hasta que se reenvíe.
+                </p>
+              </div>
+            ) : null}
+
             {tipo === "correo" ? (
               <div className="rec-nueva-paso">
                 <span className="rec-nueva-campos">
@@ -253,7 +439,7 @@ export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniatur
                         <button type="button" className="rec-nueva-origen" aria-pressed={origen === p.preset_id} onClick={() => setOrigen(p.preset_id)}>
                           <Miniatura html={miniaturas[p.preset_id]} titulo={p.title} />
                           <b>{p.title}</b>
-                          {origenDePreset(p.preset_id) ? <small>Plantilla real · {origenDePreset(p.preset_id)}</small> : null}
+                          {origenDePreset(p.preset_id) ? <small>Plantilla real de {origenDePreset(p.preset_id)}</small> : null}
                         </button>
                       </li>
                     ))}
@@ -291,7 +477,7 @@ export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniatur
               size="sm"
               type="submit"
               form={`${ids}-form`}
-              disabled={!tipo || ocupado || !nombre.trim() || Boolean(problema) || Boolean(homonima)}
+              disabled={!tipo || ocupado || !nombre.trim() || Boolean(problema) || Boolean(homonima) || faltaFase}
               aria-describedby={motivo ? `${ids}-motivo` : undefined}
             >
               {ocupado ? <Loader2 size={14} className="pulso-spin" aria-hidden /> : <Plus size={14} aria-hidden />}

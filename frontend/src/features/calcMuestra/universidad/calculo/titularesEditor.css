@@ -16,7 +16,7 @@
   min-width: 18px; height: 18px; padding: 0;
   border: 1px solid var(--pulso-border); border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface-2); color: var(--pulso-text-soft);
-  font-size: 12px; line-height: 1; cursor: pointer;
+  font-size: var(--pulso-type-body-size); line-height: 1; cursor: pointer;
 }
 .cmv2-titulares-stepper button:hover:not(:disabled) { color: var(--pulso-text); border-color: var(--pulso-text-faint); }
 .cmv2-titulares-stepper button:disabled { opacity: 0.35; cursor: default; }
@@ -24,7 +24,7 @@
 /* Mientras la fijación no se recalcula, la celda muestra el número FIJADO y
    dice cuál era el de la fórmula. Sin esta línea los dos números se
    confundirían en uno. */
-.cmv2-titulares-pendiente { flex-basis: 100%; color: var(--pulso-text-muted); font-size: 11px; }
+.cmv2-titulares-pendiente { flex-basis: 100%; color: var(--pulso-text-muted); font-size: var(--pulso-type-caption-size); }
 
 /* El motivo de una agregación operativa. Cuando falta, la celda lo dice: es la
    única de las tres procedencias que no tiene un criterio detrás, así que sin
@@ -35,7 +35,7 @@
   padding: 1px 6px; border-radius: var(--pulso-radius-chip);
   border: 1px solid var(--pulso-warn-border, var(--pulso-border));
   background: var(--pulso-warn-bg); color: var(--pulso-warn-fg);
-  font-size: 11px; cursor: pointer;
+  font-size: var(--pulso-type-caption-size); cursor: pointer;
 }
 .cmv2-titulares-nota:not([data-falta]) {
   background: transparent; border-color: transparent;
@@ -45,7 +45,7 @@
 
 .cmv2-titulares-nota-edit { flex-basis: 100%; }
 .cmv2-titulares-nota-edit input {
-  width: 100%; max-width: 26ch; font-size: 11px; padding: 1px 6px;
+  width: 100%; max-width: 26ch; font-size: var(--pulso-type-caption-size); padding: 1px 6px;
   border: 1px solid var(--pulso-border); border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface); color: var(--pulso-text);
 }

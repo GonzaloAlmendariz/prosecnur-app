@@ -15,7 +15,7 @@ type Props = {
 function Control({ e, valor, onCambio, compacto }: { e: Entrada; valor: string | string[] | undefined; onCambio: (v: string | string[]) => void; compacto: boolean }) {
   const id = `xcf-vista-${e.nombre}`;
   const rotulo = compacto
-    ? <label htmlFor={id} className="xcf-vista__rot" title={`${e.nombre} · ${e.etiqueta}`}><code>{e.nombre}</code></label>
+    ? <label htmlFor={id} className="xcf-vista__rot" title={`${e.nombre}: ${e.etiqueta}`}><code>{e.nombre}</code></label>
     : <label htmlFor={id} className="xcf-vista__rot"><span>{e.etiqueta}</span> <code>{e.nombre}</code></label>;
   if (!e.respuestas) {
     return <div className="xcf-vista__par" data-qa-geometry-member="">{rotulo}<input id={id} className="xcf-input" value={typeof valor === "string" ? valor : ""} placeholder="Valor de la respuesta" onChange={(x) => onCambio(x.target.value)} /></div>;
@@ -51,6 +51,11 @@ export function VistaEncuestado({ a, choices, respuestas, onRespuesta, destello 
   const visibles = opcionesVisibles(a, choices, respuestas);
   const compacto = a.entradas.length > 3;
   const multiple = a.baseType === "select_multiple";
+  // A3 (2026-11-07): antes de responder la pregunta de la que depende, la lista vacía no es un error.
+  const sinResponder = a.entradas.length > 0 && a.entradas.every((e) => {
+    const v = respuestas[e.nombre];
+    return v == null || v === "" || (Array.isArray(v) && v.length === 0);
+  });
   return (
     <section className="xcf-vista" aria-labelledby="xcf-vista-titulo">
       <h4 id="xcf-vista-titulo" className="xcf-vista__titulo">Qué ve el encuestado</h4>
@@ -75,6 +80,8 @@ export function VistaEncuestado({ a, choices, respuestas, onRespuesta, destello 
                   <li key={o.codigo}><span className={multiple ? "xcf-vista__glifo is-cuadro" : "xcf-vista__glifo"} aria-hidden="true" />{o.etiqueta}</li>
                 ))}
               </ul>
+            ) : sinResponder ? (
+              <p className="xcf-nota" aria-live="polite">Elige una respuesta arriba para ver las opciones.</p>
             ) : <div className="xcf-vista__vacia" aria-live="polite">La pregunta se muestra sin opciones.</div>}
             <div className="xcf-nota">{visibles?.length ?? 0} de {a.opciones.length} opciones</div>
           </>

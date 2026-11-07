@@ -44,17 +44,22 @@ function medidaDePestana(
   const kpis = dashboard.kpis ?? null;
   const cuenta = (v: number) => (v > 0 ? String(v) : undefined);
 
-  if (seccion === "modelo" && key === "agenda") {
+  // Las ramas usan la dirección PÚBLICA (revamp, 2026-10-23): Control ›
+  // Agenda es la antigua Agenda › Agenda, Control › Registro la antigua
+  // Validación › Registro de campo, Modelo › Muestra la antigua Consultas ›
+  // Reemplazos, Avance › Por facultad la antigua Avance › Metas y Control ›
+  // Brechas la antigua Consultas › Brechas.
+  if (seccion === "control" && key === "agenda") {
     // Pendiente = lo que aún no tiene STATUS MUESTRA resuelto.
     const filas = n(dashboard.agenda);
     return { estado: filas ? "listo" : "parcial" };
   }
-  // **La sección es `calidad`, no `modelo`.** La pestaña se declara en el
-  // catálogo como `pestana("aulas", "calidad", "registro", "Registro de campo",
-  // …)`, así que esta rama no casaba nunca: la medida estaba escrita, con su
-  // comentario y su intención, y «Registro de campo» salía sin badge. Es la
-  // única de las siete ramas del rail que apuntaba a una pestaña inexistente.
-  if (seccion === "calidad" && key === "registro") {
+  // **La sección es la del catálogo, no la que uno recuerda.** Esta rama
+  // apuntó un tiempo a `modelo/registro` cuando la pestaña era
+  // `calidad/registro`: la medida estaba escrita, con su comentario y su
+  // intención, y «Registro de campo» salía sin badge. Hoy es `control/registro`;
+  // el guard de `railDeAulas.test.ts` exige que cada rama case con el catálogo.
+  if (seccion === "control" && key === "registro") {
     /**
      * Pendiente = cursos-horario sin parte de campo. Nunca «listo»: siempre
      * puede entrar otra aplicación.
@@ -82,7 +87,7 @@ function medidaDePestana(
   // La rama de «estratos» se fue con su pestaña el 2026-09-09: Gonzalo no
   // conceptualiza el avance por mayoría de sexo del aula, así que el rail no
   // tiene por qué contar brechas de un eje que nadie mira.
-  if (seccion === "avance" && key === "cuotas") {
+  if (seccion === "avance" && key === "porfacultad") {
     const total = Number(kpis?.quota_cells ?? 0);
     const ok = Number(kpis?.quota_cells_ok ?? 0);
     if (!total) return { estado: "parcial" };
@@ -91,7 +96,7 @@ function medidaDePestana(
     // configurar.
     return { badge: cuenta(faltan), estado: ok === total ? "listo" : ok === 0 ? "bloqueado" : "parcial" };
   }
-  if (seccion === "consultas" && key === "reemplazos") {
+  if (seccion === "modelo" && key === "muestra") {
     /**
      * **Cadenas MOVIDAS, no filas de la lista.**
      *
@@ -114,7 +119,7 @@ function medidaDePestana(
     )).length;
     return { badge: cuenta(movidas), estado: movidas ? "parcial" : "listo" };
   }
-  if (seccion === "consultas" && key === "brechas") {
+  if (seccion === "control" && key === "brechas") {
     const filas = n(dashboard.brechas);
     return { badge: cuenta(filas), estado: filas ? "bloqueado" : "listo" };
   }
@@ -124,8 +129,9 @@ function medidaDePestana(
 /**
  * Construye el rail de la sección activa.
  *
- * @returns vacío cuando la sección no tiene pestañas —Fuentes y Validación son
- *   hojas del árbol—, y el shell dibuja el rail sin lista.
+ * @returns vacío cuando la sección no existe en el modo, y el shell dibuja el
+ *   rail sin lista. `seccion` es la sección PÚBLICA (Insumos, Modelo, Control,
+ *   Avance).
  */
 /**
  * **Qué pestañas existen en ESTE estudio, que no es lo mismo que en el perfil.**
@@ -144,10 +150,26 @@ function existeEnEsteEstudio(
   key: string,
   dashboard: MonitoreoAulasDashboard | null,
 ): boolean {
-  if (seccion === "calidad" && key === "alumnos") {
+  if (seccion === "control" && key === "alumnos") {
     return Boolean(dashboard?.cruce_por_carrera?.aplica);
   }
   return true;
+}
+
+/**
+ * El rótulo que declara el eje del estudio, cuando la pestaña lo lleva: Avance ›
+ * «Por facultad» se llama «Por nivel» en un estudio cuya cuota es por nivel
+ * (aulas.md, A2: «el rótulo es el eje que declara el proyecto»). `null` cuando
+ * vale el del catálogo.
+ */
+export function rotuloDePestanaAulas(
+  seccion: string,
+  key: string,
+  dashboard: MonitoreoAulasDashboard | null,
+): string | null {
+  if (seccion !== "avance" || key !== "porfacultad") return null;
+  const etiqueta = String(dashboard?.avance_cuota?.eje?.etiqueta ?? "").trim();
+  return etiqueta ? `Por ${etiqueta.toLocaleLowerCase("es")}` : null;
 }
 
 export function railDeAulas(
@@ -158,7 +180,7 @@ export function railDeAulas(
     .filter((pestana) => existeEnEsteEstudio(seccion, pestana.key, dashboard))
     .map((pestana) => ({
     key: pestana.key,
-    label: pestana.label,
+    label: rotuloDePestanaAulas(seccion, pestana.key, dashboard) ?? pestana.label,
     detail: pestana.detail,
     icon: pestana.icon,
     ...medidaDePestana(seccion, pestana.key, dashboard),

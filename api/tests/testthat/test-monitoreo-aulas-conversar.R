@@ -375,6 +375,24 @@ test_that("si la lectura falla no se publica nada: lectura_fallo y cero escritur
   expect_identical(sum(grepl("batchUpdate", .macl_urls(mock$env$calls))), 0L)
 })
 
+# --- 3b. documento vacío: construir es de Material (ADR 0125, opción a) ------
+
+test_that("un documento sin ninguna pestaña del libro no se siembra: sin_construir y cero escrituras", {
+  mock <- .macl_sheets_mock()
+  # Sin sembrar nada: el documento responde pero no tiene pestañas del libro.
+  testthat::local_mocked_bindings(.monitoreo_google_api = mock$handler)
+  cfg <- .macl_cfg()
+  sid <- .macl_sesion(cfg)
+  on.exit(session_delete(sid), add = TRUE)
+
+  res <- monitoreo_aulas_conversar_libro(sid, cfg)
+
+  expect_false(isTRUE(res[["conversado"]]))
+  expect_identical(as.character(res[["motivo"]] %||% ""), "sin_construir")
+  expect_match(as.character(res[["mensaje"]] %||% ""), "Material")
+  expect_identical(sum(grepl("batchUpdate", .macl_urls(mock$env$calls))), 0L)
+})
+
 # --- 4. la publicación falla: la mitad buena no se revierte ------------------
 
 test_that("si la publicación falla lo leído se conserva en sesión", {

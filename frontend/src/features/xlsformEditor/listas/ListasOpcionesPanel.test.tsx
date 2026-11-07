@@ -64,8 +64,8 @@ describe("ListasOpcionesPanel", () => {
   test("vacío legítimo sin escalas repetidas", () => {
     const w = wb([["sexo", "1", "Hombre"]], [["select_one sexo", "sexo", ""]]);
     const html = renderToStaticMarkup(<ListasOpcionesPanel workbook={w} control={control(w)} />);
-    expect(html).toContain("No hay escalas repetidas.");
-    expect(html).toContain('data-qa-geometry-capacity="owned"');
+    expect(html).toContain("No hay escalas repetidas");
+    expect(html).toContain('data-estado-vacio');
     expect(html).not.toContain("xlsform-listas-grupos");
   });
 
@@ -85,7 +85,7 @@ describe("ListasOpcionesPanel", () => {
     expect(html).toContain("Entre formularios del proyecto");
     expect(html).toContain(TEXTO_ENTRE_FORMULARIOS);
     expect(html).toContain('data-qa-geometry-group="xlsform-listas-entre"');
-    expect(html).toContain("Igual en Docentes · se llama «genero» allí");
+    expect(html).toContain("Igual en Docentes; se llama «genero» allí");
     expect(html).toContain("Renombrar como «genero»");
     expect(html).toContain('data-qa-geometry-group="xlsform-listas-codigos"');
     expect(html).toContain("Misma escala con códigos distintos en Docentes (SIN INF: 5 aquí, 99 allá)");

@@ -260,8 +260,7 @@ mount_dashboard <- function(pr) {
       res$setHeader("Content-Type",
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
       res$setHeader("Content-Length", as.character(n))
-      res$setHeader("Content-Disposition",
-                    sprintf('attachment; filename="%s"', filename))
+      res$setHeader("Content-Disposition", .content_disposition("attachment", filename))
       res$body <- bytes
       res
     })) |>
@@ -302,8 +301,7 @@ mount_dashboard <- function(pr) {
                       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
       }
       res$setHeader("Content-Length", as.character(n))
-      res$setHeader("Content-Disposition",
-                    sprintf('attachment; filename="%s"', filename))
+      res$setHeader("Content-Disposition", .content_disposition("attachment", filename))
       res$body <- bytes
       res
     })) |>

@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { normalizeMonitoreoCuotasEstado } from "../../../../api/monitoreoCuotas";
+import { claveDeSeguida } from "./seguidas";
 import { AvanceCuotasPanel, type AvanceCuotasPanelProps } from "./AvanceCuotasPanel";
 import { AvanceCuotasVista, type AvanceCuotasVistaProps } from "./AvanceCuotasVista";
 import { borradorDeCuota, borradorNuevo, ESTADO_CUOTAS_INICIAL, type EstadoCuotas } from "./avanceCuotasModelo";
@@ -92,11 +93,11 @@ describe("vista de Avance › Cuotas", () => {
     expect(html).toContain('data-qa-scroll-owner="monitoreo-cuotas"');
     expect(html.match(/class="mon-cuotas-indicador"/g)).toHaveLength(3);
     expect(html).toContain("0 de 3 categorías cumplidas");
-    expect(sinSeparador(html)).toContain("59|2 % · 481 de 812");
+    expect(sinSeparador(html)).toContain("59|2 %, 481 de 812");
     // Detalle de la primera cuota: TPA con su meta, lo que falta y la tasa con base.
     expect(html).toContain("TPA");
     expect(html).toContain("faltan 255");
-    expect(sinSeparador(html)).toContain("18|1 % · 350 de 1|939 en la base");
+    expect(sinSeparador(html)).toContain("18|1 %, 350 de 1|939 en la base");
     expect(html).toContain("Agregar cuota");
   });
 
@@ -144,7 +145,8 @@ describe("panel de configuración", () => {
     const html = pintaPanel();
     expect(html).toContain('data-pulso-panel="cuota"');
     expect(html).toContain('role="dialog"');
-    expect(html).toContain("Docentes Campus · Dedicación");
+    expect(html).toMatch(/<h2[^>]*>Dedicación<\/h2><small[^>]*>Docentes Campus<\/small>/);
+    expect(html).not.toContain("Docentes Campus · Dedicación");
     expect(sinSeparador(html)).toContain("Suma de metas <strong>812</strong>");
     expect(html).toContain("meta del público <strong>811</strong>");
     expect(html).toContain("1 sobre la meta del público");
@@ -161,6 +163,23 @@ describe("panel de configuración", () => {
     expect(html).toContain("Elige la variable de la cuota.");
     expect(html).not.toContain("Quitar cuota");
     expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Guardar/);
+  });
+
+  it("una variable nueva puede ir sólo en seguimiento; editar una cuota no ofrece ese uso", () => {
+    const nueva = pintaPanel({ borrador: borradorNuevo(ESTADO.publicos), onSeguir: noop });
+    expect(nueva).toContain("Con metas");
+    expect(nueva).toContain("Solo seguimiento");
+    expect(nueva).not.toMatch(/<option[^>]*>[^<]*·/);
+    expect(pintaPanel({ onSeguir: noop })).not.toContain("Solo seguimiento");
+    expect(pintaPanel({ borrador: borradorNuevo(ESTADO.publicos) })).not.toContain("Solo seguimiento");
+  });
+
+  it("una variable ya seguida abre en «Solo seguimiento» y se puede dejar de seguir", () => {
+    const borrador = { ...borradorNuevo(ESTADO.publicos), actor: "Docentes Campus", variable: "Dedicación" };
+    const html = pintaPanel({ borrador, onSeguir: noop, onDejarDeSeguir: noop, seguidas: new Set([claveDeSeguida("docentes campus", "DEDICACIÓN")]) });
+    expect(html).toContain("Esta variable ya está en seguimiento");
+    expect(html).toContain("Dejar de seguir");
+    expect(html).not.toContain("Seguir variable");
   });
 
   it("con muchas categorías la tabla trae filtro y va completa", () => {

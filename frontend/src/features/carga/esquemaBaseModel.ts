@@ -70,7 +70,7 @@ export function repeatGroupOfMother(bases: EsquemaBasesMap | null | undefined, n
 export function esquemaOptionLabel(bases: EsquemaBasesMap | null | undefined, name: string): string {
   const map = bases ?? {};
   const base = map[name];
-  if (base && isRepeatChildBase(base)) return `${name} · base repetible`;
-  if (isRepeatMother(map, name)) return `${name} · con grupo repetible`;
+  if (base && isRepeatChildBase(base)) return `${name}, base repetible`;
+  if (isRepeatMother(map, name)) return `${name}, con grupo repetible`;
   return name;
 }

@@ -1,7 +1,9 @@
 import { forwardRef, useRef, useState, type CSSProperties } from "react";
+import { accionVisible } from "./siguienteAccion";
+import { useImportEnCurso } from "./importEnCurso";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as Popover from "@radix-ui/react-popover";
-import { MoreHorizontal, TriangleAlert } from "lucide-react";
+import { ArrowRight, MoreHorizontal, TriangleAlert } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { homeModuleVars, type ProsecnurModuleMeta } from "../../lib/modules";
 import type { ModuleCardView, ModuleCardViz } from "./moduleCardModel";
@@ -134,22 +136,6 @@ function StatView({
   );
 }
 
-function DateView({ viz, sub }: { viz: Extract<ModuleCardViz, { kind: "date" }>; sub: string }) {
-  return (
-    <span className="home-mc-viz">
-      <span className={`home-mc-daychip is-${viz.tone}`} aria-hidden="true">
-        <span className="home-mc-daychip-month">{viz.month || "fecha"}</span>
-        <span className="home-mc-daychip-day">{viz.day || "?"}</span>
-      </span>
-      <span className="home-mc-stat">
-        <span className="home-mc-stat-label">{viz.label}</span>
-        <span className="home-mc-date-title">{sub}</span>
-        <span className={`home-mc-countdown is-${viz.tone}`}>{viz.countdown}</span>
-      </span>
-    </span>
-  );
-}
-
 export const ModuleStatusCard = forwardRef<
   HTMLDivElement,
   {
@@ -166,6 +152,9 @@ export const ModuleStatusCard = forwardRef<
   const cancelRef = useRef<HTMLButtonElement>(null);
   const [menuState, setMenuState] = useState<MissionControlMenuState>({ kind: "closed" });
   const [showProgress, setShowProgress] = useState(false);
+  // L31b: el import de plataforma que corre en Carga se ve en la tarjeta de Procesamiento.
+  const importando = useImportEnCurso();
+  const enCurso = module.slug === "procesamiento" ? importando : null;
 
   function applyMenuEvent(event: MissionControlMenuEvent) {
     const transition = transitionMissionControlMenu(menuState, event);
@@ -236,7 +225,6 @@ export const ModuleStatusCard = forwardRef<
             activityFirst={view.emphasis === "activity"}
           />
         )}
-        {view.viz.kind === "date" && <DateView viz={view.viz} sub={view.sub} />}
 
         {/* Línea de metadatos, no tres mini-stats. Los facts de módulos
             distintos no son comparables entre sí (nadie compara "universo" de
@@ -244,11 +232,40 @@ export const ModuleStatusCard = forwardRef<
             columnas con cifras grandes era ruido: es material de contexto y va
             como pie discreto, al estilo del pie de Finder. El CTA se fue
             porque la tarjeta entera ya es el botón. */}
+        {/* El renglón se reserva aunque no haya acción: así todas las tarjetas
+            miden lo mismo (contrato `equal` del grupo). */}
+        <span
+          className={`home-mc-siguiente${enCurso ? " is-importando" : ""}`}
+          aria-hidden={enCurso || accionVisible(view.action) ? undefined : true}
+        >
+          {enCurso ? (
+            <>
+              <span className="home-mc-import-barra" aria-hidden="true">
+                <span style={{ transform: `scaleX(${(enCurso.percent ?? 0) / 100})` }} />
+              </span>
+              {/* El avance va primero: el nombre de la encuesta suele ser largo y es lo que se trunca. */}
+              <span className="home-mc-import-texto" title={`Importando ${enCurso.etiqueta}`}>
+                {[
+                  `Importando: ${enCurso.fase}`,
+                  enCurso.percent != null ? `${enCurso.percent} %` : null,
+                  enCurso.otros > 0 ? `${enCurso.otros} más` : null,
+                  enCurso.etiqueta,
+                ].filter(Boolean).join(", ")}
+              </span>
+            </>
+          ) : accionVisible(view.action) && (
+            <>
+              <ArrowRight size={12} aria-hidden="true" />
+              {accionVisible(view.action)}
+            </>
+          )}
+        </span>
+
         {view.facts.length > 0 && (
           <span className="home-mc-foot" aria-label={`Datos de ${cardTitle}`}>
             {view.facts.slice(0, 4).map((fact, index) => (
               <span className="home-mc-fact" key={fact.label}>
-                {index > 0 && <span className="home-mc-fact-dot" aria-hidden="true">·</span>}
+                {index > 0 && <span className="home-mc-fact-dot" aria-hidden="true" />}
                 <strong>{fact.value}</strong>
                 <span>{fact.label}</span>
               </span>
@@ -359,7 +376,7 @@ export const ModuleStatusCard = forwardRef<
             </Dialog.Description>
             <div className="home-confirm-actions">
               <Dialog.Close asChild>
-                <button ref={cancelRef} type="button" className="plan-button">
+                <button ref={cancelRef} type="button" className="pulso-button pulso-button--secondary pulso-button--md">
                   Cancelar
                 </button>
               </Dialog.Close>

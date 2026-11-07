@@ -1,7 +1,6 @@
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { ComponentType, CSSProperties } from "react";
 import { AlertCircle } from "lucide-react";
-import { LoadingBlock } from "../../components/States";
 import { apiMonitoreoConfig, apiMonitoreoState, apiProjectOverview, type MonitoreoState } from "../../api/client";
 import { MODULE_TONES } from "../../lib/modules";
 import { marcarCargaExitosa, recargarSiElBuildCambio } from "../../lib/lazyWithReload";
@@ -10,7 +9,11 @@ import type { MonitoreoFamilyId, MonitoreoFamilyModule } from "./profiles/types"
 import { MonitoreoModeChoice } from "./MonitoreoModeChoice";
 import type { MonitoreoModo, MonitoreoModoDefinicion } from "./core/monitoreoRegistry";
 import { sugerirModoDeMonitoreo, type SugerenciaDeModo } from "./core/sugerenciaDeModo";
+import { decidirAterrizajeDeMonitoreo } from "./core/aterrizajeDeMonitoreo";
+import { usePlannerModos } from "../estudio/usePlannerModos";
+import { PerfilNoDeclarado } from "../estudio/PerfilNoDeclarado";
 import "./MonitoreoShell.css";
+import { CargaDeModulo } from "../../components/CargaDeModulo";
 
 function familyFromState(state: MonitoreoState | null): MonitoreoFamilyId {
   return normalizeMonitoreoFamily(
@@ -31,7 +34,7 @@ function routeSelectedFromState(state: MonitoreoState | null): boolean {
 function ShellFallback({ label = "Preparando monitoreo" }: { label?: string }) {
   return (
     <div className="mon-shell-fallback" style={MODULE_TONES.monitoreo as CSSProperties}>
-      <LoadingBlock label={label} />
+      <CargaDeModulo label={label} modulo="monitoreo" />
     </div>
   );
 }
@@ -43,6 +46,11 @@ export default function MonitoreoShell() {
   const [error, setError] = useState("");
   const [busyFamily, setBusyFamily] = useState<MonitoreoModo | null>(null);
   const [sugerencia, setSugerencia] = useState<SugerenciaDeModo | null>(null);
+  // ADR 0122 P2: el modo lo fijan los perfiles declarados en el Planner.
+  const { modos: plannerModos, error: plannerError } = usePlannerModos();
+  const familiaElegida = state && routeSelectedFromState(state) ? familyFromState(state) : null;
+  const aterrizaje = decidirAterrizajeDeMonitoreo(plannerModos, plannerError, familiaElegida);
+  const puedeAbrir = aterrizaje.tipo === "abrir" || aterrizaje.tipo === "respaldo";
 
   useEffect(() => {
     let cancelled = false;
@@ -75,7 +83,7 @@ export default function MonitoreoShell() {
   }, []);
 
   useEffect(() => {
-    if (!state || !routeSelectedFromState(state)) {
+    if (!state || !routeSelectedFromState(state) || !puedeAbrir) {
       setProfile(null);
       setPage(null);
       return;
@@ -107,7 +115,7 @@ export default function MonitoreoShell() {
     return () => {
       cancelled = true;
     };
-  }, [state]);
+  }, [state, puedeAbrir]);
 
   const chooseMode = async (mode: MonitoreoModoDefinicion) => {
     if (!state || busyFamily) return;
@@ -133,6 +141,18 @@ export default function MonitoreoShell() {
     }
   };
 
+  // D7b (coordinación, 2 nov, reversible): el modo «lo determina el estudio,
+  // no un click» y el tipo vive en la Ficha (ADR 0124). Con un tipo declarado y
+  // la config todavía sin él, Monitoreo entra solo, una vez; si falla, vuelve
+  // la tarjeta con el error para elegir a mano.
+  const autoAlineado = useRef(false);
+  useEffect(() => {
+    if (!state || aterrizaje.tipo !== "alinear" || busyFamily || autoAlineado.current) return;
+    autoAlineado.current = true;
+    void chooseMode(aterrizaje.modo);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, aterrizaje.tipo]);
+
   const label = useMemo(
     () => profile?.label ?? (state ? familyFromState(state) : "Monitoreo"),
     [profile, state],
@@ -150,6 +170,34 @@ export default function MonitoreoShell() {
     );
   }
 
+  if (state && aterrizaje.tipo === "cargando") return <ShellFallback label="Leyendo el tipo del estudio" />;
+  if (state && aterrizaje.tipo === "sin-perfil") {
+    return (
+      <div className="mon-shell-fallback" style={MODULE_TONES.monitoreo as CSSProperties}>
+        <PerfilNoDeclarado detalle="Monitoreo abre en el modo que fija el tipo del estudio." />
+      </div>
+    );
+  }
+  // Alinear: entra solo (arriba); mientras guarda, y salvo que falle, no pregunta.
+  if (state && aterrizaje.tipo === "alinear" && !error) {
+    return <ShellFallback label={`Abriendo ${aterrizaje.modo.label}, el tipo que declara la ficha`} />;
+  }
+  // Elegir (el Planner deja más de un modo) o alinear que falló: un clic lo fija.
+  if (state && (aterrizaje.tipo === "alinear" || aterrizaje.tipo === "elegir")) {
+    const modos = aterrizaje.tipo === "alinear" ? [aterrizaje.modo] : aterrizaje.modos;
+    return (
+      <MonitoreoModeChoice
+        modes={modos}
+        busyFamily={busyFamily}
+        error={error}
+        sugerencia={aterrizaje.tipo === "alinear"
+          ? { family: aterrizaje.modo.family, motivo: "Es el tipo que declara la ficha del estudio." } as SugerenciaDeModo
+          : null}
+        onChoose={(mode) => void chooseMode(mode)}
+      />
+    );
+  }
+
   if (state && !routeSelectedFromState(state)) {
     return (
       <MonitoreoModeChoice
@@ -164,7 +212,7 @@ export default function MonitoreoShell() {
   if (!Page) return <ShellFallback label={`Preparando ${label}`} />;
 
   return (
-    <Suspense fallback={<LoadingBlock label={`Abriendo ${label}...`} />}>
+    <Suspense fallback={<CargaDeModulo label={`Abriendo ${label}…`} modulo="monitoreo" />}>
       <Page />
     </Suspense>
   );

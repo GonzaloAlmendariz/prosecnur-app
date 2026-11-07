@@ -11,7 +11,7 @@
   border: 1px solid var(--pulso-warn-fg, #aa7300);
   background: white;
   border-radius: 6px;
-  font-size: 12px;
+  font-size: var(--pulso-type-subtitle-size);
   color: var(--pulso-warn-fg, #aa7300);
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
@@ -41,19 +41,9 @@
 
 /* ── Keyframes propios ─────────────────────────────────────────────────── */
 
-@keyframes pulso-xfi-pop-in {
-  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-
 @keyframes pulso-xfi-pop-in-up {
   from { opacity: 0; transform: translateY(6px) scale(0.97); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-@keyframes pulso-xfi-fade-up {
-  from { opacity: 0; transform: translateY(5px); }
-  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* ── Utilidades nuevas (sin scope: también sirven en el lienzo enfocado) ── */
@@ -61,7 +51,7 @@
 /* Input monoespaciado para campos técnicos (name, parameters, repeat_count). */
 .pulso-xfi-mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12.5px;
+  font-size: var(--pulso-type-body-size);
 }
 
 input.pulso-xfi-mono.is-invalid {
@@ -80,7 +70,7 @@ input.pulso-xfi-mono.is-invalid {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   color: var(--pulso-warn-fg);
 }
 
@@ -102,7 +92,7 @@ input.pulso-xfi-mono.is-invalid {
   align-items: center;
   gap: 4px;
   flex: 0 0 auto;
-  animation: pulso-xfi-pop-in var(--motion-dur-fast) var(--motion-ease-out);
+  animation: pulso-mov-emerge var(--motion-dur-fast) var(--motion-ease-out);
 }
 
 .pulso-xfi-namefield-apply {
@@ -115,7 +105,7 @@ input.pulso-xfi-mono.is-invalid {
   border: 1px solid var(--pulso-primary);
   background: var(--pulso-primary);
   color: #fff;
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-bold);
   cursor: pointer;
   transition:
@@ -131,7 +121,7 @@ input.pulso-xfi-mono.is-invalid {
 }
 
 .pulso-xfi-namefield-apply:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-xfi-namefield-revert {
@@ -152,7 +142,7 @@ input.pulso-xfi-mono.is-invalid {
 }
 
 .pulso-xfi-namefield-revert:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -163,14 +153,14 @@ input.pulso-xfi-mono.is-invalid {
 }
 
 .pulso-xfi-namefield-pending {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.45;
   color: var(--pulso-text-soft);
 }
 
 .pulso-xfi-namefield-pending code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   color: var(--pulso-text);
   background: var(--pulso-surface-2);
   border-radius: 4px;
@@ -182,9 +172,8 @@ input.pulso-xfi-mono.is-invalid {
   display: inline-flex;
   align-items: baseline;
   gap: 5px;
-  font-size: 10px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
-  text-transform: uppercase;
   letter-spacing: 0.6px;
   color: var(--pulso-text-muted, #9aa4b2);
 }
@@ -206,7 +195,7 @@ input.pulso-xfi-mono.is-invalid {
   border: 1px solid var(--pulso-border);
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
-  font-size: 10.5px;
+  font-size: var(--pulso-type-micro-size);
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.5;
   white-space: nowrap;
@@ -229,7 +218,7 @@ input.pulso-xfi-mono.is-invalid {
 }
 
 .pulso-inspector.pulso-xfi .pulso-inspector-field-hint {
-  font-size: 11px;
+  font-size: var(--pulso-type-caption-size);
   line-height: 1.4;
 }
 
@@ -258,7 +247,7 @@ input.pulso-xfi-mono.is-invalid {
   padding: 5px 8px;
   border: 0;
   border-radius: 999px;
-  font-size: 11.5px;
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-soft);
   transition:
@@ -273,7 +262,7 @@ input.pulso-xfi-mono.is-invalid {
 }
 
 .pulso-inspector.pulso-xfi .pulso-inspector-tab-trigger:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-inspector.pulso-xfi .pulso-inspector-tab-trigger.is-active {
@@ -294,12 +283,12 @@ input.pulso-xfi-mono.is-invalid {
 
 /* Entrada suave del contenido de la tab activa. */
 .pulso-inspector.pulso-xfi .pulso-inspector-tab {
-  animation: pulso-xfi-fade-up var(--motion-dur-base) var(--motion-ease-out) both;
+  animation: pulso-mov-sube-corto var(--motion-dur-base) var(--motion-ease-out) both;
 }
 
-.pulso-inspector.pulso-xfi .pulso-inspector-tab > .pulso-inspector-block:nth-child(2) { animation: pulso-xfi-fade-up var(--motion-dur-base) var(--motion-ease-out) 40ms both; }
-.pulso-inspector.pulso-xfi .pulso-inspector-tab > .pulso-inspector-block:nth-child(3) { animation: pulso-xfi-fade-up var(--motion-dur-base) var(--motion-ease-out) 80ms both; }
-.pulso-inspector.pulso-xfi .pulso-inspector-tab > .pulso-inspector-block:nth-child(4) { animation: pulso-xfi-fade-up var(--motion-dur-base) var(--motion-ease-out) 120ms both; }
+.pulso-inspector.pulso-xfi .pulso-inspector-tab > .pulso-inspector-block:nth-child(2) { animation: pulso-mov-sube-corto var(--motion-dur-base) var(--motion-ease-out) 40ms both; }
+.pulso-inspector.pulso-xfi .pulso-inspector-tab > .pulso-inspector-block:nth-child(3) { animation: pulso-mov-sube-corto var(--motion-dur-base) var(--motion-ease-out) 80ms both; }
+.pulso-inspector.pulso-xfi .pulso-inspector-tab > .pulso-inspector-block:nth-child(4) { animation: pulso-mov-sube-corto var(--motion-dur-base) var(--motion-ease-out) 120ms both; }
 
 /* ── Inputs: transición de borde + focus ring coherente ────────────────── */
 
@@ -376,7 +365,7 @@ input.pulso-xfi-mono.is-invalid {
 .pulso-inspector.pulso-xfi .pulso-catalogchip-empty:active:not(:disabled),
 .pulso-inspector.pulso-xfi .pulso-catalogchip-pop-create:active:not(:disabled),
 .pulso-inspector.pulso-xfi .pulso-inspector-conditional-required-trigger:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-inspector.pulso-xfi button:focus-visible {
@@ -415,7 +404,7 @@ input.pulso-xfi-mono.is-invalid {
 }
 
 .pulso-inspector.pulso-xfi .pulso-typepicker-trigger:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 .pulso-inspector.pulso-xfi .pulso-typepicker-trigger:focus-visible {
@@ -432,12 +421,12 @@ input.pulso-xfi-mono.is-invalid {
   border-radius: 14px;
   box-shadow: var(--pulso-shadow-popover, 0 10px 30px rgba(15, 23, 42, 0.15));
   transform-origin: top center;
-  animation: pulso-xfi-pop-in var(--motion-dur-fast) var(--motion-ease-out) both;
+  animation: pulso-mov-emerge var(--motion-dur-fast) var(--motion-ease-out) both;
 }
 
 /* Stagger sutil de las familias de tipos al abrir (máx 6). */
 .pulso-inspector.pulso-xfi .pulso-typepicker-family {
-  animation: pulso-xfi-fade-up var(--motion-dur-base) var(--motion-ease-out) both;
+  animation: pulso-mov-sube-corto var(--motion-dur-base) var(--motion-ease-out) both;
 }
 .pulso-inspector.pulso-xfi .pulso-typepicker-family:nth-child(2) { animation-delay: 30ms; }
 .pulso-inspector.pulso-xfi .pulso-typepicker-family:nth-child(3) { animation-delay: 60ms; }
@@ -453,7 +442,7 @@ input.pulso-xfi-mono.is-invalid {
 }
 
 .pulso-inspector.pulso-xfi .pulso-typepicker-item:active {
-  transform: scale(0.97);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 /* ── CatalogChip ───────────────────────────────────────────────────────── */
@@ -474,7 +463,7 @@ input.pulso-xfi-mono.is-invalid {
   border-radius: 14px;
   box-shadow: var(--pulso-shadow-popover, 0 10px 30px rgba(15, 23, 42, 0.15));
   transform-origin: top center;
-  animation: pulso-xfi-pop-in var(--motion-dur-fast) var(--motion-ease-out) both;
+  animation: pulso-mov-emerge var(--motion-dur-fast) var(--motion-ease-out) both;
 }
 
 .pulso-inspector.pulso-xfi .pulso-catalogchip-pop-item {
@@ -485,7 +474,7 @@ input.pulso-xfi-mono.is-invalid {
 }
 
 .pulso-inspector.pulso-xfi .pulso-catalogchip-pop-item:active {
-  transform: scale(0.98);
+  transform: scale(var(--mov-press, 0.97));
 }
 
 /* ── Builder de lógica ─────────────────────────────────────────────────── */
@@ -515,7 +504,7 @@ input.pulso-xfi-mono.is-invalid {
   border-radius: 14px;
   box-shadow: var(--pulso-shadow-popover, 0 10px 30px rgba(15, 23, 42, 0.15));
   transform-origin: top center;
-  animation: pulso-xfi-pop-in var(--motion-dur-fast) var(--motion-ease-out) both;
+  animation: pulso-mov-emerge var(--motion-dur-fast) var(--motion-ease-out) both;
 }
 
 .pulso-inspector.pulso-xfi .pulso-logic-predicate-pop {
@@ -525,7 +514,7 @@ input.pulso-xfi-mono.is-invalid {
 
 .pulso-inspector.pulso-xfi .pulso-logic-predicate-pop.is-down {
   transform-origin: top center;
-  animation: pulso-xfi-pop-in var(--motion-dur-fast) var(--motion-ease-out) both;
+  animation: pulso-mov-emerge var(--motion-dur-fast) var(--motion-ease-out) both;
 }
 
 .pulso-inspector.pulso-xfi .pulso-logic-predicate-pop.is-up {
