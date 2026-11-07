@@ -185,12 +185,13 @@ export function trenzaGeometria(op: TrenzaOpciones = {}): TrenzaGeometria {
 
 /* ------------------------------------------------------------------ movimiento ----------------------------------- */
 
-/** Dos séptimos de vuelta cada 3,4 s: con siete hilos la forma se repite cada 1,7 s, así que el giro no tiene corte. */
-export const GIRO_RAD_POR_MS = (TAU / 7) / 1700;
+/** Dos séptimos de vuelta cada 2,4 s: con siete hilos la forma se repite cada 1,2 s, así que el giro no tiene corte.
+ *  (7 nov 2026, Gonzalo: «la animación es un poquito lenta»; antes 3,4 s). */
+export const GIRO_RAD_POR_MS = (TAU / 7) / 1200;
 /** La cuerda se suelta y se vuelve a apretar en un ciclo propio, que no coincide con el giro. */
-export const RESPIRACION_MS = 5200;
+export const RESPIRACION_MS = 4000;
 /** Entrada: de hilos rectos a cuerda. */
-export const ENTRADA_MS = 1400;
+export const ENTRADA_MS = 1000;
 
 const easeInOut = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
 

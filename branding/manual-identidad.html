@@ -2208,7 +2208,7 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
             <div class="m-btn-row">
               <button class="m-btn-ghost m-brand-play" type="button">Reproducir firma</button>
             </div>
-            <p class="m-spec-line">hilos rectos → cuerda · 1400 ms · in-out · el giro se asienta en la pose quieta (excepción motion-isotipo-trenza)</p>
+            <p class="m-spec-line">hilos rectos → cuerda · 1000 ms · in-out · el giro se asienta en la pose quieta (excepción motion-isotipo-trenza)</p>
           </div>
         </div>
       </div>
@@ -2344,9 +2344,9 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
               <tr>
                 <td>Firma del isotipo</td>
                 <td>Hilos rectos → cuerda</td>
-                <td>1400 ms; en carga, giro continuo</td>
+                <td>1000 ms; en carga, giro continuo</td>
                 <td>In-out</td>
-                <td>En carga la cuerda gira sin corte (dos séptimos de vuelta cada 3,4 s) y respira cada 5,2 s; en el selector se asienta en la pose quieta.</td>
+                <td>En carga la cuerda gira sin corte (dos séptimos de vuelta cada 2,4 s) y respira cada 4 s; en el selector se asienta en la pose quieta.</td>
               </tr>
             </tbody>
           </table>
@@ -3343,7 +3343,7 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
           Reproducir
         </button>
       </div>
-      <p class="bb-spec">Navy pleno: la única pantalla oscura del producto. La firma del isotipo es la animación de arranque — los siete hilos se tuercen en 1,4 s y se asientan en la pose quieta, wordmark en fade + rise, progreso con ease estándar.</p>
+      <p class="bb-spec">Navy pleno: la única pantalla oscura del producto. La firma del isotipo es la animación de arranque — los siete hilos se tuercen en 1 s y se asientan en la pose quieta, wordmark en fade + rise, progreso con ease estándar.</p>
       <div class="p-win" data-p-mock>
         <div class="p-titlebar">
           <span class="p-tl"></span><span class="p-tl"></span><span class="p-tl"></span>
@@ -3726,7 +3726,7 @@ body{background:var(--bk-canvas);color:var(--bk-ink);font-family:var(--bk-font);
         <div class="bb-scroll"><table class="bb-table">
           <thead><tr><th>#</th><th>Dónde</th><th>Cambio</th></tr></thead>
           <tbody>
-            <tr><td>✓</td><td><code>frontend/src/app/Layout.tsx</code> (BrandMark) y <code>BootGate.tsx</code> (BootBrandMark)</td><td>Dibujan la Trenza desde <code>app/marca/trenzaGeometria.ts</code> (ADR 0132); el selector muestra la <strong>firma de arranque</strong>: los hilos se tuercen en 1,4&#8239;s y se asientan, con vía reducida. Las cargas usan <code>IsotipoCarga</code>, que gira sin desaparecer</td></tr>
+            <tr><td>✓</td><td><code>frontend/src/app/Layout.tsx</code> (BrandMark) y <code>BootGate.tsx</code> (BootBrandMark)</td><td>Dibujan la Trenza desde <code>app/marca/trenzaGeometria.ts</code> (ADR 0132); el selector muestra la <strong>firma de arranque</strong>: los hilos se tuercen en 1&#8239;s y se asientan, con vía reducida. Las cargas usan <code>IsotipoCarga</code>, que gira sin desaparecer</td></tr>
             <tr><td>✓</td><td><code>packaging/windows/brand/icon.svg · header.svg · wizard.svg</code></td><td>Recompuestos con la marca canónica (gradiente vertical, lockup horizontal, mono blanco con knockout); raster del icono byte-idéntico al canónico</td></tr>
             <tr><td>✓</td><td><code>packaging/macos/build-dmg.sh</code> (pipeline del <code>.icns</code>)</td><td>El Dock se genera desde <code>prosecnur-appicon.svg</code> (retícula macOS 82.4%); el <code>.ico</code> de Windows conserva el full-bleed</td></tr>
           </tbody>
@@ -4208,12 +4208,13 @@ function trenzaGeometria(op                 = {})                  {
 
 /* ------------------------------------------------------------------ movimiento ----------------------------------- */
 
-/** Dos séptimos de vuelta cada 3,4 s: con siete hilos la forma se repite cada 1,7 s, así que el giro no tiene corte. */
-const GIRO_RAD_POR_MS = (TAU / 7) / 1700;
+/** Dos séptimos de vuelta cada 2,4 s: con siete hilos la forma se repite cada 1,2 s, así que el giro no tiene corte.
+ *  (7 nov 2026, Gonzalo: «la animación es un poquito lenta»; antes 3,4 s). */
+const GIRO_RAD_POR_MS = (TAU / 7) / 1200;
 /** La cuerda se suelta y se vuelve a apretar en un ciclo propio, que no coincide con el giro. */
-const RESPIRACION_MS = 5200;
+const RESPIRACION_MS = 4000;
 /** Entrada: de hilos rectos a cuerda. */
-const ENTRADA_MS = 1400;
+const ENTRADA_MS = 1000;
 
 const easeInOut = (x        ) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
 

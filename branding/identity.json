@@ -6,7 +6,7 @@
     "mode": "reconstruction",
     "status": "frozen",
     "version": "1.5.0",
-    "manifest_hash": "sha256:b70a046d7880e1f73217c9b8cda0e7109dca982a1c3417c5d9b573ee5b35345d",
+    "manifest_hash": "sha256:1f1b93f3d9798d6b531b05899e3f991f573107f9debf909b54f9c06f039f8e7c",
     "owners": [
       "Gonzalo Almendáriz (PULSO PUCP)"
     ]
@@ -843,7 +843,7 @@
         "Dos tintas a la vez (contenedor + blanco). El contenedor es navy; sólo en la pantalla de carga de un módulo (carga del proyecto con destino en un módulo y carga de módulo) toma el acento de ese módulo. Los módulos conservan su propio ícono: el isotipo no los reemplaza",
         "Clearspace: ¼ de la altura del isotipo",
         "Usos incorrectos: no recolorear fuera de los acentos de módulo, no deformar, no rotar, no aplicar efectos, no redibujar; sobre fondos oscuros siempre la variante invertida o el mono blanco",
-        "Movimiento (IsotipoCarga): en la carga los hilos se tuercen en 1,4 s y la cuerda queda girando sin corte, dos séptimos de vuelta cada 3,4 s, con una respiración de 5,2 s; nunca desaparece. Firma de arranque (BootBrandMark): la misma entrada, que se asienta en la pose quieta. Con movimiento reducido, pose quieta"
+        "Movimiento (IsotipoCarga): en la carga los hilos se tuercen en 1 s y la cuerda queda girando sin corte, dos séptimos de vuelta cada 2,4 s, con una respiración de 4 s; nunca desaparece. Firma de arranque (BootBrandMark): la misma entrada, que se asienta en la pose quieta. Con movimiento reducido, pose quieta"
       ]
     },
     "iconography": {
@@ -881,7 +881,7 @@
         "Cinco easings: salida cubic-bezier(0.23,1,0.32,1) (dominante) · estándar cubic-bezier(0.2,0,0,1) · drawer cubic-bezier(0.32,0.72,0,1) · productivo cubic-bezier(0.16,1,0.3,1) · in-out cubic-bezier(0.77,0,0.175,1)",
         "Rutas: enter y+8px, forward x+12px, back x-12px",
         "Firma de PageFrame (transición base de toda ruta): cuerpo 190ms / header 150ms / toolbar 160ms con easing de salida",
-        "Firma de marca (ADR 0132): en la carga los hilos de la Trenza se tuercen en 1,4 s y la cuerda gira sin corte con una respiración de 5,2 s; en el selector de proyecto la misma entrada se asienta en la pose quieta (excepción gobernada motion-isotipo-trenza)",
+        "Firma de marca (ADR 0132): en la carga los hilos de la Trenza se tuercen en 1 s y la cuerda gira sin corte con una respiración de 4 s; en el selector de proyecto la misma entrada se asienta en la pose quieta (excepción gobernada motion-isotipo-trenza)",
         "Firma de diagramas y árboles: «orbit-in + edge-draw» del dashboard — nodos 620ms con easing productivo + aristas por stroke-dashoffset 680ms (excepción gobernada al tope de 420ms de la escala de tokens; ver governance.exceptions)",
         "La escala de tokens no supera 420ms; toda animación respeta prefers-reduced-motion"
       ],
@@ -1016,7 +1016,7 @@
       },
       {
         "id": "motion-isotipo-trenza",
-        "reason": "El isotipo «Trenza» es el indicador de espera de la carga del proyecto, la carga de módulo y el bloque de carga (ADR 0132): su entrada dura 1400ms, la cuerda gira sin fin y respira cada 5200ms mientras dure la espera, como un spinner. Supera el tope de 680ms y se anima por requestAnimationFrame, no por tokens CSS. Con prefers-reduced-motion queda en la pose quieta.",
+        "reason": "El isotipo «Trenza» es el indicador de espera de la carga del proyecto, la carga de módulo y el bloque de carga (ADR 0132): su entrada dura 1000ms, la cuerda gira sin fin y respira cada 4000ms mientras dure la espera, como un spinner. Supera el tope de 680ms y se anima por requestAnimationFrame, no por tokens CSS. Con prefers-reduced-motion queda en la pose quieta.",
         "owner": "Gonzalo Almendáriz (PULSO PUCP)",
         "expires": "2027-11-07"
       }
@@ -1032,7 +1032,7 @@
           "ownership": "manual_template",
           "status": "current",
           "identity_version": "1.5.0",
-          "manifest_hash": "sha256:b70a046d7880e1f73217c9b8cda0e7109dca982a1c3417c5d9b573ee5b35345d"
+          "manifest_hash": "sha256:1f1b93f3d9798d6b531b05899e3f991f573107f9debf909b54f9c06f039f8e7c"
         },
         {
           "id": "prosecnur-brand-css",
@@ -1041,7 +1041,7 @@
           "ownership": "manual_template",
           "status": "current",
           "identity_version": "1.5.0",
-          "manifest_hash": "sha256:b70a046d7880e1f73217c9b8cda0e7109dca982a1c3417c5d9b573ee5b35345d"
+          "manifest_hash": "sha256:1f1b93f3d9798d6b531b05899e3f991f573107f9debf909b54f9c06f039f8e7c"
         }
       ]
     },
@@ -1117,7 +1117,7 @@
       "ownership": "generated",
       "status": "current",
       "identity_version": "1.5.0",
-      "manifest_hash": "sha256:b70a046d7880e1f73217c9b8cda0e7109dca982a1c3417c5d9b573ee5b35345d"
+      "manifest_hash": "sha256:1f1b93f3d9798d6b531b05899e3f991f573107f9debf909b54f9c06f039f8e7c"
     },
     {
       "id": "identity-reference-doc",
@@ -1126,7 +1126,7 @@
       "ownership": "generated",
       "status": "current",
       "identity_version": "1.5.0",
-      "manifest_hash": "sha256:b70a046d7880e1f73217c9b8cda0e7109dca982a1c3417c5d9b573ee5b35345d"
+      "manifest_hash": "sha256:1f1b93f3d9798d6b531b05899e3f991f573107f9debf909b54f9c06f039f8e7c"
     }
   ],
   "extensions": {

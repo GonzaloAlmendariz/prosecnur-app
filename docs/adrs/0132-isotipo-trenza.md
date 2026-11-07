@@ -60,10 +60,10 @@ cuerda cierra en punta a cada lado, la pregunta y el resultado, y cruza el conte
 
 ### 3. El movimiento (`IsotipoCarga`)
 
-- **Carga:** los siete hilos parten rectos y se tuercen en 1,4 s. El giro arranca en cero y acelera de forma
+- **Carga:** los siete hilos parten rectos y se tuercen en 1 s. El giro arranca en cero y acelera de forma
   pareja, así que al terminar la entrada ya va a velocidad constante y no hay salto. Desde ahí la cuerda gira sin
-  fin, dos séptimos de vuelta cada 3,4 s: con siete hilos la forma se repite cada 1,7 s, así que no hay corte. Una
-  respiración de 5,2 s suelta la cuerda un 14 % y la vuelve a apretar. **Nunca desaparece.**
+  fin, dos séptimos de vuelta cada 2,4 s: con siete hilos la forma se repite cada 1,2 s, así que no hay corte. Una
+  respiración de 4 s suelta la cuerda un 14 % y la vuelve a apretar. **Nunca desaparece.**
 - **Firma de arranque** (`BootBrandMark`, selector de proyecto): la misma entrada, que se asienta exactamente en
   la pose quieta y se detiene.
 - Con `prefers-reduced-motion`, o en error (`detenido`), queda en la pose quieta.
@@ -101,8 +101,8 @@ cuerda cierra en punta a cada lado, la pregunta y el resultado, y cruza el conte
 
 ## Notas
 
-- El movimiento del isotipo supera el tope de 680 ms de la escala (entrada de 1,4 s, giro continuo, respiración
-  de 5,2 s). Es la excepción gobernada `motion-isotipo-trenza` de `identity.json`: es un indicador de espera, como
+- El movimiento del isotipo supera el tope de 680 ms de la escala (entrada de 1 s, giro continuo, respiración
+  de 4 s). Es la excepción gobernada `motion-isotipo-trenza` de `identity.json`: es un indicador de espera, como
   el spinner, y tiene vía reducida obligatoria.
 - El generador importa el `.ts` con el type stripping de Node 25. Con un Node anterior, correrlo con
   `node --experimental-strip-types`.
