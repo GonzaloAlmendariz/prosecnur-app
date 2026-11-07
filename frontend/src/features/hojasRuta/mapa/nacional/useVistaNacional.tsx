@@ -4,7 +4,7 @@ import { formatoConteo, formatoDecimal } from "../../../../lib/formatoNumero";
 import { useCiudad } from "../../../../lib/navegacion/useCiudad";
 import type { ContornoDistrito } from "../lienzo/capas";
 import type { EncuadreLienzo, UtilLienzo } from "../lienzo/LienzoMapa";
-import type { LimiteNombrado, LimitesPeru } from "../lienzo/limites";
+import { limitesALaEscala, type LimiteNombrado, type LimitesPeru, type NivelesLimites } from "../lienzo/limites";
 import { unirCajas } from "../lienzo/piezas";
 import { nombreDistrito } from "../nombres";
 import { useLienzoHojasRuta } from "../store";
@@ -25,7 +25,8 @@ type Entrada = {
   /** Los territorios del estudio (sólo los confirmados). */
   territorios: readonly HojasRutaTerritory[];
   contornos: readonly ContornoDistrito[];
-  departamentos: readonly LimiteNombrado[];
+  /** Los departamentos en sus dos niveles: el encuadre usa el nacional y el trazo, el de la escala. */
+  niveles: NivelesLimites;
   objetivoPorUbigeo?: Readonly<Record<string, number>>;
   /** Filas del tamaño vigente: entrevistas y margen por distrito. */
   tamanoFilas?: readonly { ubigeo: string; nUsado: number; margen: number | null }[];
@@ -56,7 +57,8 @@ export type VistaNacional = {
 export function useVistaNacional(e: Entrada): VistaNacional {
   const [ciudadParam, setCiudad] = useCiudad();
   const { distritoEnfocado, setDistritoEnfocado } = useLienzoHojasRuta();
-  const { seccion, atlas, confirmados, territorios, contornos, departamentos, objetivoPorUbigeo, tamanoFilas, titulares, ump } = e;
+  const { seccion, atlas, confirmados, territorios, contornos, niveles, objetivoPorUbigeo, tamanoFilas, titulares, ump } = e;
+  const departamentos = niveles.nacional.departamentos;
 
   const ciudades = useMemo(() => ciudadesConDistritos(confirmados, atlas), [confirmados, atlas]);
   const nivel = useMemo(() => nivelDelMapa({ seccion, ciudades, ciudad: ciudadParam, distrito: distritoEnfocado, confirmados }), [seccion, ciudades, ciudadParam, distritoEnfocado, confirmados]);
@@ -124,9 +126,9 @@ export function useVistaNacional(e: Entrada): VistaNacional {
 
   const dibujarFondo = useCallback(
     (ctx: CanvasRenderingContext2D, u: UtilLienzo) => {
-      if (nivel?.nivel === "nacional") dibujarDepartamentosDelEstudio(ctx, u, departamentos, depsEstudio);
+      if (nivel?.nivel === "nacional") dibujarDepartamentosDelEstudio(ctx, u, limitesALaEscala(niveles, u.camara.s).departamentos, depsEstudio);
     },
-    [nivel, departamentos, depsEstudio],
+    [nivel, niveles, depsEstudio],
   );
   const dibujarMundo = useCallback(
     (ctx: CanvasRenderingContext2D, u: UtilLienzo) => {

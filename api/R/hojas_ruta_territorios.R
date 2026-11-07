@@ -115,7 +115,8 @@ hojas_ruta_territorios <- function() {
   agg$cobertura_nivel <- campo("nivel")
   agg$cobertura_cartografica <- suppressWarnings(as.numeric(campo("cobertura_cartografica")))
   agg$captacion <- suppressWarnings(as.numeric(campo("captacion")))
-  cbind(agg, hojas_ruta_reparto_base_columnas(agg$ubigeo))  # ADR 0131 §2: la UI reparte con P̂25
+  # ADR 0131 §2: la UI reparte con P̂25. El NSE predominante colorea los distritos de la ciudad abierta.
+  cbind(agg, hojas_ruta_reparto_base_columnas(agg$ubigeo), hojas_ruta_nse_columnas(agg$ubigeo))
 }
 
 # Cobertura de un distrito (ADR 0119 §7): nivel de su provincia más las cifras del distrito.

@@ -61,6 +61,18 @@ export function encuadre(caja: Caja, t: Tamano, pad = 0.1, tapadoAbajo = 0): Cam
 }
 
 /**
+ * La cámara dentro de un límite (la ciudad abierta): no se aleja más que su encuadre con un margen `pad` por
+ * lado, y su centro no sale de la caja. Con una ciudad en foco, alejarse hasta ver otra cargaba sus mapas sin
+ * que nadie los pidiera (revisión del 7 nov 2026); al Perú se vuelve con la miga o «Todo el Perú».
+ */
+export function acotarACaja(c: Camara, t: Tamano, limite: { caja: Caja; pad?: number } | null | undefined): Camara {
+  if (!limite || !t.w || !t.h) return c;
+  const [x0, y0, x1, y1] = limite.caja;
+  const s = Math.max(c.s, encuadre(limite.caja, t, limite.pad ?? 0.25).s);
+  return { s, x: Math.min(x1, Math.max(x0, c.x)), y: Math.min(y1, Math.max(y0, c.y)) };
+}
+
+/**
  * Zoom con la rueda anclado al cursor: el punto del mundo bajo el cursor queda
  * bajo el cursor. `deltaMode` 1 (líneas) se lleva a píxeles; el salto por
  * evento se acota para que un ratón con muescas grandes no salte de escala.

@@ -558,6 +558,8 @@ export type HojasRutaTerritory = {
   /** Adultos urbanos estimados 2025: pob25 · u17 · a17. */
   p25?: number | null;
   g?: number | null;
+  /** NSE que predomina entre los hogares del distrito, 1 (Alto) a 5 (Bajo); null sin NSE empaquetado. */
+  nse_predominante?: number | null;
 };
 
 export type HojasRutaAlert = {

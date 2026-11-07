@@ -15,7 +15,9 @@ describe("barra de Hojas de ruta (maqueta, lámina 0)", () => {
   });
   it("el botón Diseño resume N, k y estrato y cuenta los grupos sin aplicar", () => {
     const c = { n_objetivo: 1800, entrevistas_por_manzana: 8, sample_size: { estrato: "provincia" } } as unknown as HojasRutaIntegratedConfig;
-    expect(resumenDiseno(c, 1200)).toBe("1,200, 8 por ruta, por provincia");
+    expect(resumenDiseno(c, 1200, 8)).toBe("1,200, 8 por ruta, por provincia");
+    // Un estudio sin distritos no tiene diseño: los valores por defecto no se presentan como decididos.
+    expect(resumenDiseno(c, 6, 0)).toBe("Por definir");
     expect(cambiosSinAplicar({ rangos: null, cortes: {}, muestra: {}, sorteo: null })).toBe(2);
     expect(cambiosSinAplicar({ rangos: null, cortes: null, muestra: null, sorteo: null })).toBe(0);
   });

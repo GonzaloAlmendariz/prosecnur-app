@@ -27,6 +27,16 @@ export const ESCALA_SIN_LIMITES = 0.004;
 export const ESCALA_PROVINCIAS = 0.0012;
 /** Por debajo de esta escala (más lejos que Lima entera) se rotulan los departamentos. */
 export const ESCALA_NOMBRES_DEPARTAMENTO = 0.003;
+/**
+ * Desde esta escala (unos 2 km por píxel) el trazo nacional, simplificado a 3 km, se ve quebrado y va el
+ * fino (400 m). Los dos niveles salen del mismo pipeline con topología compartida (build_limites_peru.R):
+ * dentro de un nivel, la frontera de dos departamentos es una sola línea.
+ */
+export const ESCALA_DETALLE = 0.0005;
+
+export type NivelesLimites = { nacional: LimitesPeru; fino: LimitesPeru | null };
+/** El nivel que se dibuja a esa escala; mientras el fino no llega, el nacional. */
+export const limitesALaEscala = (n: NivelesLimites, s: number): LimitesPeru => (n.fino && s >= ESCALA_DETALLE ? n.fino : n.nacional);
 
 function anillos(crudo: AnillosCrudos): number[][] {
   if (!Array.isArray(crudo)) return [];

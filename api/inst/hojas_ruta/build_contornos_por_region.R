@@ -12,7 +12,9 @@
 #   - api/inst/hojas_ruta/contornos/<región>.json.gz: distritos de las ciudades de la
 #     región (mismo esquema de propiedades que las entradas) y sus provincias.
 #   - frontend/src/features/hojasRuta/peruDepartamentos.json: país y departamentos con
-#     su código, simplificados para leerse a escala nacional (presupuesto 60 KB).
+#     su código en el nivel nacional de limitesPeru.json (presupuesto 60 KB, va en el bundle).
+#   - frontend/src/features/hojasRuta/peruDepartamentosDetalle.json: los mismos en el nivel
+#     fino, para cuando un departamento llena la pantalla (chunk aparte, se pide al acercarse).
 #   - frontend/src/features/hojasRuta/ciudadesIndice.json: una entrada por ciudad (código,
 #     nombre, departamento, regiones que la cargan, ubigeos, centro y silueta simplificada)
 #     para el atlas de Territorio (presupuesto 40 KB).
@@ -125,31 +127,24 @@ for (r in regiones) {
 sobran <- setdiff(basename(old), paste0(regiones, ".json.gz"))
 if (length(sobran)) unlink(file.path(out_dir, sobran))
 
-# País y departamentos para el bundle: simplificados para escala nacional.
-sf::sf_use_s2(FALSE)
-CRS_PLANO <- 32718
-poligono <- function(anillos) {
-  rings <- lapply(anillos, function(r) { m <- do.call(rbind, lapply(r, function(p) as.numeric(unlist(p)))); if (!all(m[1, ] == m[nrow(m), ])) m <- rbind(m, m[1, ]); m })
-  sf::st_multipolygon(lapply(rings, function(r) list(r)))
-}
-simplificar <- function(anillos, tol) {
-  g <- sf::st_transform(sf::st_sfc(poligono(anillos), crs = 4326), CRS_PLANO)
-  g <- sf::st_simplify(sf::st_buffer(g, 0), dTolerance = tol, preserveTopology = TRUE)
-  g <- sf::st_transform(g, 4326)
-  partes <- sf::st_cast(sf::st_cast(g, "MULTIPOLYGON"), "POLYGON")
-  area <- as.numeric(sf::st_area(sf::st_transform(partes, CRS_PLANO)))
-  partes <- partes[area >= 2e7 | area == max(area)]  # islas de menos de 20 km² no se leen a escala país
-  lapply(partes, function(p) round(unclass(p)[[1]][, 1:2], 2))
-}
-peru <- list(
-  fuente = limites$fuente,
-  pais = simplificar(limites$pais, 3000),
-  departamentos = lapply(limites$departamentos, function(d) {
-    list(codigo = codigo_de(d$nombre), nombre = d$nombre, rotulo = d$rotulo, anillos = simplificar(d$anillos, 3000))
+# País y departamentos para el lienzo, en los dos niveles que ya simplificó build_limites_peru.R con
+# topología compartida: aquí no se vuelve a simplificar (simplificar cada departamento por su cuenta
+# dejaba dos trazos distintos en cada frontera). El nacional va en el bundle; el fino, en un chunk
+# aparte que el lienzo pide al acercarse.
+if (is.null(limites$nacional)) stop("limitesPeru.json sin nivel nacional: corre antes build_limites_peru.R", call. = FALSE)
+rotulos <- setNames(lapply(limites$departamentos, `[[`, "rotulo"), vapply(limites$departamentos, `[[`, "", "nombre"))
+nivel <- function(pais, departamentos) {
+  deps <- lapply(departamentos, function(d) {
+    list(codigo = codigo_de(d$nombre), nombre = d$nombre, rotulo = rotulos[[d$nombre]], anillos = d$anillos)
   })
-)
-peru$departamentos <- peru$departamentos[order(vapply(peru$departamentos, `[[`, "", "codigo"))]
+  list(fuente = limites$fuente, pais = pais, departamentos = deps[order(vapply(deps, `[[`, "", "codigo"))])
+}
+sf::sf_use_s2(FALSE)
+CRS_PLANO <- 32718  # para el índice de ciudades
+peru <- nivel(limites$nacional$pais, limites$nacional$departamentos)
 writeLines(jsonlite::toJSON(peru, auto_unbox = TRUE, digits = NA), out_peru, useBytes = TRUE)
+out_peru_detalle <- file.path(front, "peruDepartamentosDetalle.json")
+writeLines(jsonlite::toJSON(nivel(limites$pais, limites$departamentos), auto_unbox = TRUE, digits = NA), out_peru_detalle, useBytes = TRUE)
 
 # Índice de ciudades para el atlas (dirección A, R1b): una entrada por ciudad con su
 # centro y una silueta simplificada para la tarjeta y la columna del estudio. Las cifras
@@ -194,4 +189,4 @@ cat(sprintf("%d ciudades -> %s (%.0f KB)\n", length(indice), out_indice, file.si
 
 pesos <- file.size(file.path(out_dir, paste0(regiones, ".json.gz")))
 cat(sprintf("%d regiones -> %s (%.0f KB gzip en total, máx %.0f KB)\n", length(regiones), out_dir, sum(pesos) / 1024, max(pesos) / 1024))
-cat(sprintf("país + %d departamentos -> %s (%.0f KB)\n", length(peru$departamentos), out_peru, file.size(out_peru) / 1024))
+cat(sprintf("país + %d departamentos -> %s (%.0f KB) y %s (%.0f KB)\n", length(peru$departamentos), out_peru, file.size(out_peru) / 1024, out_peru_detalle, file.size(out_peru_detalle) / 1024))

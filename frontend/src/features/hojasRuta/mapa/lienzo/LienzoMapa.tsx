@@ -5,6 +5,7 @@ import "./lienzoMapa.css";
 import {
   aMundo,
   aPantalla,
+  acotarACaja,
   arrastre,
   cajaVisible,
   debeVolar,
@@ -106,6 +107,8 @@ type Props = {
   anclaZoom?: readonly [number, number] | null;
   /** Ficha flotante bajo la miga (la del distrito en la vista nacional). */
   ficha?: ReactNode;
+  /** Caja de la que la cámara no sale ni se aleja (la ciudad abierta); `null`, sin límite. */
+  limiteCamara?: { caja: Caja; pad?: number } | null;
 };
 
 const COSTO_PARA_REUTILIZAR_MS = 18;
@@ -177,8 +180,11 @@ export function LienzoMapa({
   controles,
   anclaZoom = null,
   ficha,
+  limiteCamara = null,
 }: Props) {
   const lienzoRef = useRef<HTMLCanvasElement | null>(null);
+  const limiteRef = useRef(limiteCamara);
+  limiteRef.current = limiteCamara;
   const escalaRef = useRef<HTMLDivElement | null>(null);
   const baseRef = useRef<HTMLCanvasElement | null>(null);
   const estado = useRef({
@@ -466,7 +472,7 @@ export function LienzoMapa({
           e.vuelo = 0;
           marcarVuelo(vueloRef.current, false);
           e.manual = true;
-          e.camara = arrastre(e.arrastre.camara, dx, dy);
+          e.camara = acotarACaja(arrastre(e.arrastre.camara, dx, dy), e.tamano, limiteRef.current);
           marcarInteraccion();
           pintar();
         }
@@ -493,7 +499,7 @@ export function LienzoMapa({
       marcarVuelo(vueloRef.current, false);
       const [x, y] = local(ev);
       e.manual = true;
-      e.camara = zoomRueda(e.camara, e.tamano, x, y, ev.deltaY, ev.deltaMode, ev.ctrlKey);
+      e.camara = acotarACaja(zoomRueda(e.camara, e.tamano, x, y, ev.deltaY, ev.deltaMode, ev.ctrlKey), e.tamano, limiteRef.current);
       marcarInteraccion();
       pintar();
     };
@@ -515,7 +521,7 @@ export function LienzoMapa({
     const e = estado.current;
     e.manual = true;
     // Con una UMP enfocada, «+» acerca a ella y no al centro del lienzo (B12).
-    volar({ ...e.camara, ...(anclaZoom ? { x: anclaZoom[0], y: anclaZoom[1] } : {}), s: e.camara.s * factor }, true);
+    volar(acotarACaja({ ...e.camara, ...(anclaZoom ? { x: anclaZoom[0], y: anclaZoom[1] } : {}), s: e.camara.s * factor }, e.tamano, limiteRef.current), true);
   };
 
   return (
