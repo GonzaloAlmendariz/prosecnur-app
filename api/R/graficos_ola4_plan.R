@@ -696,7 +696,8 @@ p_dumbbell <- function(vars,
   # el padrón se empareja sin mayúsculas, así que «docentes: 123» sigue casando.
   if (identical(args$estilo, "resumen") && is.null(el$cruce)) levels(args$data$grupo) <- .radar_mb_capitalizar(levels(args$data$grupo))
   args <- .keep_formals(graficar_dumbbell, args, contexto = "graficar_dumbbell")
-  .regla_preguntas_en_espec(do.call(graficar_dumbbell, args), ap$texto)
+  p <- .dumbbell_con_grupo_chico(do.call(graficar_dumbbell, args), el)   # «Grupo chico: 24 docentes TC.»
+  .regla_preguntas_en_espec(p, ap$texto)
 }
 
 # --- Lollipop ---------------------------------------------------------------

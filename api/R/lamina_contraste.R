@@ -175,7 +175,7 @@
   # Quién menos quién va en el pie, junto a la base: la columna no tiene ancho para decirlo.
   sentido <- if (k == 2L) paste0("Diferencia: ", espec$sentido_diferencia, ", en puntos") else "Diferencia: el grupo mayor menos el menor, en puntos"
   # ADR 0135: con regla de preguntas, cómo se eligieron va al final de la nota («Se muestran las 13 de mayor diferencia…»).
-  doc <- .lam_pie(doc, .lam_unir_base(espec$nota_base, base, sentido, espec$texto_regla), folio)
+  doc <- .lam_pie(doc, .lam_unir_base(espec$nota_base, base, sentido, espec$nota_grupo_chico, espec$texto_regla), folio)
   list(doc = por_lamina(doc), partes = 1L)
 }
 
