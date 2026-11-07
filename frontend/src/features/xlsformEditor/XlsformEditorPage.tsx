@@ -171,10 +171,9 @@ import { deriveEditorHeaderStatus } from "./shell/editorHeaderStatus";
 import { contextoResumen } from "./resumen/contextoResumen";
 import { PestanaImpreso } from "./impreso/PestanaImpreso";
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
-import { MontajeConjoint } from "./conjoint/MontajeConjoint";
+import { FOCO_NUEVO_PARES, FOCO_PARES, PestanaExperimentos } from "./pestanas/PestanaExperimentos";
 import { conEjemploParaPapel } from "./cuestionario/ejemploSorteo";
 import { itemAltaConjoint } from "./conjoint/altaConjoint";
-import { PANEL_EXPERIMENTO_CONJOINT, useModoPanelPares } from "./conjoint/estadoPanelConjoint";
 import { leerConjoint } from "./conjoint/leerConjoint";
 import { esperarExportPapel, textoExportando } from "./shell/paperExportJob";
 import { ToastDeck, useToastDeck } from "./shell/ToastDeck";
@@ -326,7 +325,6 @@ export default function XlsformEditorPage() {
   const fijarFocoEnSitio = useCallback((valor: string | null) => fijarFoco(valor, { replace: true }), [fijarFoco]);
   /** Editor de listas (ContextLens de catálogos): panel direccionable. */
   const catalogosPanel = usePanelDireccionable(PANEL_CATALOGOS);
-  const conjointPanel = usePanelDireccionable(PANEL_EXPERIMENTO_CONJOINT);
   const catalogsLensOpen = catalogosPanel.abierto;
   // Los atajos de teclado se registran una vez: leen la pestaña por ref.
   const irPestanaRef = useRef(irPestana);
@@ -2529,7 +2527,7 @@ export default function XlsformEditorPage() {
       action: t.key === "section" || t.key === "repeat" ? () => addSection(undefined, t.base) : () => addQuestion(t.base),
       group: t.group,
     })),
-    itemAltaConjoint(conjointPanel.abrir),
+    itemAltaConjoint(() => pestanaEditor.irConFoco("experimentos", FOCO_NUEVO_PARES)),
     {
       key: "section_end",
       label: "Cerrar sección",
@@ -2805,10 +2803,7 @@ export default function XlsformEditorPage() {
                         formularioId={activeFormId}
                         tareaDeSorteo={tareaDeSorteo}
                         experimento={experimentoPares}
-                        onAbrirPares={() => {
-                          useModoPanelPares.getState().fijar(true);
-                          conjointPanel.abrir();
-                        }}
+                        onAbrirPares={() => pestanaEditor.irConFoco("experimentos", FOCO_PARES)}
                         accionBarra={
                           // En pantallas bajas la cabecera «Estructura» se esconde para dar alto a la lista (I2) y
                           // «Añadir pieza» pasa a la barra de búsqueda.
@@ -2925,6 +2920,9 @@ export default function XlsformEditorPage() {
             {pestana === "restricciones" && (
               <PestanaRestricciones structure={structure} scope={logicScope} seleccionada={pestanaEditor.foco} onSeleccionar={fijarFocoEnSitio} onEditar={irAFila} onCampo={updateSurveyField} onCampos={updateSurveyFields} catalogs={catalogs} />
             )}
+            {pestana === "experimentos" && workbook && (
+              <PestanaExperimentos workbook={workbook} structure={structure} selection={selection} updateWorkbook={updateWorkbook} seleccionada={pestanaEditor.foco} onSeleccionar={fijarFocoEnSitio} onEditar={irAFila} />
+            )}
             {pestana === "calculos" && (
               <PestanaCalculos structure={structure} scope={logicScope} seleccionada={pestanaEditor.foco} onSeleccionar={fijarFocoEnSitio} onEditar={irAFila} onCampo={updateSurveyField} catalogs={catalogs}
                 onNuevo={workbook ? () => { const nombre = addQuestion("calculate", workbook.survey.rows.length - 1); if (nombre) fijarFocoEnSitio(nombre); } : undefined}
@@ -3022,13 +3020,6 @@ export default function XlsformEditorPage() {
           contenido editable y el flag `firstUseDone` no está seteado. */}
       {workbook && hasEditableContent && <Coachmarks />}
 
-      <MontajeConjoint
-        workbook={workbook}
-        structure={structure}
-        selection={selection}
-        updateWorkbook={updateWorkbook}
-        onInsertado={(rowIndex) => selectBuilderFocus({ kind: "survey", rowIndex })}
-      />
       <LogicaExternaDialogo control={logicaExterna} formName={forms.find((f) => f.id === logicaExterna.formId)?.name ?? null} />
 	      {smLogicDialogOpen && workbook ? createPortal((
 	        <SurveyMonkeyLogicPopup

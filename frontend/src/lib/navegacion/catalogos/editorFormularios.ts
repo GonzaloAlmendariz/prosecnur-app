@@ -2,6 +2,7 @@ import {
   Calculator,
   CirclePlay,
   FilePen,
+  FlaskConical,
   FileText,
   Gauge,
   Layers3,
@@ -29,6 +30,7 @@ export type EditorFormulariosPestanaId =
   | "restricciones"
   | "calculos"
   | "filtros"
+  | "experimentos"
   | "probar"
   | "resumen"
   | "impreso";
@@ -73,6 +75,9 @@ export const EDITOR_FORMULARIOS_PESTANAS: readonly PestanaEditorFormularios[] = 
   pestana("restricciones", "Restricciones", "Qué respuesta acepta cada pregunta", ShieldCheck),
   pestana("calculos", "Cálculos", "Variables que se obtienen de otras respuestas", Calculator),
   pestana("filtros", "Filtros de opciones", "Qué respuesta habilita qué opción", SlidersHorizontal),
+  // 2026-11-07 (elección por pares C8): los experimentos de encuesta tienen su pestaña; el de elección por pares deja
+  // de ser panel lateral.
+  pestana("experimentos", "Experimentos", "Experimentos de encuesta: diseño, sorteo y un ejemplo", FlaskConical),
   pestana("probar", "Probar formulario", "Llénalo como encuestado y sigue los saltos", CirclePlay),
   pestana("resumen", "Resumen", "Tipos de pregunta, secciones y salud", Gauge),
   pestana("impreso", "Impreso", "El cuestionario en PDF y Word", FileText),

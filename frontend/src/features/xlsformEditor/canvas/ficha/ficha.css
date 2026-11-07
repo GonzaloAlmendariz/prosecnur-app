@@ -401,3 +401,8 @@ button.xfh-regla__fila:focus-visible { outline: var(--mov-foco, 2px solid var(--
 .xfh-regla .xfh-oblig .pulso-logic-condition-row:not(.is-headless).has-presence .pulso-logic-condition-piece:not(.pulso-logic-condition-var) { grid-column: 1 / 3; }
 .xfh-oblig .pulso-logic-predicate-copy { min-width: 0; }
 .xfh-oblig .pulso-logic-predicate-copy strong { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Tabla de un par (C9, 2026-11-07): como la ve el encuestado, con un sorteo de ejemplo; el markdown queda abajo. */
+.xfh-tabla-par { font-size: var(--pulso-type-body-size); }
+.xfh-tabla-par__pie { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--pulso-text-soft); font-size: var(--pulso-type-caption-size); }
+.xfh-tabla-par__xls { display: block; white-space: pre-wrap; overflow-wrap: anywhere; font-size: var(--pulso-type-caption-size); color: var(--pulso-text-muted); }

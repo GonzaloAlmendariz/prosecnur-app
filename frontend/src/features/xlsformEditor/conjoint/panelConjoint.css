@@ -1,4 +1,4 @@
-/* Panel «Experimento de elección por pares» (E7b editor-conjoint; reparto y alineación, 2026-11-07). */
+/* Diseño del experimento de elección por pares (E7b editor-conjoint; reparto y alineación y pestaña, 2026-11-07). */
 .xfe-conjoint {
   display: flex;
   flex-direction: column;
@@ -190,4 +190,57 @@
   align-items: center;
   gap: 6px;
   align-self: flex-start;
+}
+
+/* Pestaña Experimentos (C8, 2026-11-07): el diseño a la izquierda y, a la derecha, el par de muestra con el botón
+   que lo aplica, fijos mientras se recorre el diseño. Bajo 1180 px van uno debajo del otro. */
+.xfe-conjoint-pagina {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: 24px;
+  align-items: start;
+}
+
+.xfe-conjoint-lateral {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 12px;
+  background: var(--pulso-surface);
+}
+
+.xfe-conjoint-lateral .xfe-conjoint__bloque {
+  padding-bottom: 12px;
+}
+
+.xfe-conjoint-lateral button:not(.pulso-primary) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+}
+
+.xfe-conjoint-lateral__aplicar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.xfe-conjoint-lateral__aplicar .pulso-primary {
+  width: 100%;
+  justify-content: center;
+}
+
+.xfe-conjoint-lateral__cifras {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+@media (max-width: 1180px) {
+  .xfe-conjoint-pagina { grid-template-columns: minmax(0, 1fr); }
+  .xfe-conjoint-lateral { position: static; }
 }

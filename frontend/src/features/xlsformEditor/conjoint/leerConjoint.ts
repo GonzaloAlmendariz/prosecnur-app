@@ -162,7 +162,8 @@ const sufijoComun = (xs: string[]) => {
   return s.replace(/^[^A-Za-z0-9]+/, "");
 };
 
-export function leerConjoint(wb: XlsformEditorWorkbook | null): LecturaConjoint | null {
+/** Sólo lee la hoja survey: la ficha, que no tiene choices a mano, también lo puede llamar. */
+export function leerConjoint(wb: Pick<XlsformEditorWorkbook, "survey"> | null): LecturaConjoint | null {
   if (!wb) return null;
   const survey = wb.survey;
   const filas: Fila[] = survey.rows.map((_, i) => {

@@ -4,10 +4,10 @@ import { PANELES_POR_MODULO } from "../../../lib/navegacion/manifiesto";
 import { PESTANAS_EDITOR, resolverPestanaEditor } from "./pestanaEditor";
 
 describe("pestañas del editor de formularios", () => {
-  test("once pestañas en el rail, en el orden de trabajo, con Impreso al final", () => {
+  test("doce pestañas en el rail, en el orden de trabajo, con Impreso al final", () => {
     // 2026-10-16: «Listas de opciones» deja de ser panel lateral y es pestaña, junto al Editor XLSForm.
     expect(PESTANAS_EDITOR.map((p) => p.key)).toEqual([
-      "constructor", "hojas", "opciones", "cuestionario", "logica", "restricciones", "calculos", "filtros", "probar", "resumen", "impreso",
+      "constructor", "hojas", "opciones", "cuestionario", "logica", "restricciones", "calculos", "filtros", "experimentos", "probar", "resumen", "impreso",
     ]);
     for (const p of PESTANAS_EDITOR) {
       expect(p.to).toBe(`/editor-xlsform?pestana=${p.key}`);

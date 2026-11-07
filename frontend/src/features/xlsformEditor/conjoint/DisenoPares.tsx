@@ -1,9 +1,9 @@
-// Panel «Experimento de elección por pares» (conjoint) (E7b editor-conjoint, 2026-11-06). Se arma el diseño en cuatro bloques, cada uno con
-// lo que hace a la vista, se ve un par sorteado tal como lo verá el encuestado y se inserta en el formulario.
+// Diseño de un experimento de elección por pares (conjoint), en la pestaña Experimentos (checklist elección por
+// pares C8, 2026-11-07; antes era un panel lateral, E7b). Se arma en tres bloques, a la derecha se ve un par sorteado
+// tal como lo verá el encuestado, y se inserta en el formulario o, si ya existe, se reemplaza con sus mismos nombres.
 
 import { useMemo, useReducer, useState } from "react";
-import { Plus, Shuffle, Trash2 } from "lucide-react";
-import { Sideover } from "../../../components/Sideover";
+import { Plus, Shuffle, Trash2 } from "../../../vendor/lucide-react";
 import { PulsoField, PulsoFieldRow } from "../../../components/PulsoField";
 import { PulsoInput } from "../../../components/PulsoInput";
 import { PulsoSelect } from "../../../components/PulsoSelect";
@@ -14,7 +14,7 @@ import "../helpers/markdownTabla.css";
 import { calcularValores, semillaNueva } from "../shell/simulador/calculosPrueba";
 import type { BuilderNode } from "../types";
 import { generarConjoint, validarDiseno, type DisenoConjoint } from "./modeloConjoint";
-import { PANEL_EXPERIMENTO_CONJOINT, disenoInicial, reducirConjoint } from "./estadoPanelConjoint";
+import { disenoInicial, reducirConjoint } from "./estadoPanelConjoint";
 import "./panelConjoint.css";
 
 /** Un par sorteado del diseño, como lo verá el encuestado (tabla con los textos ya puestos). */
@@ -33,9 +33,9 @@ function parDeMuestra(d: DisenoConjoint, semilla: number): string | null {
   return conTablasHtml(tabla.replace(/\$\{([^}]+)\}/g, (_m, n: string) => valores[n] ?? ""), renderMarkdownInline);
 }
 
-export function PanelConjoint({ prefijoSugerido, existente, onInsertar }: {
+export function DisenoPares({ prefijoSugerido, existente, onInsertar }: {
   prefijoSugerido: string;
-  /** El experimento que ya tiene el formulario (C5): el panel lo edita en vez de crear uno. */
+  /** El experimento que ya tiene el formulario (C5): se edita en vez de crear uno. */
   existente?: { diseno: DisenoConjoint; fiel: boolean; motivo: string | null } | null;
   /** Inserta (o, con `existente`, reemplaza) el diseño; devuelve los motivos si no se pudo. */
   onInsertar: (d: DisenoConjoint) => string[];
@@ -56,18 +56,7 @@ export function PanelConjoint({ prefijoSugerido, existente, onInsertar }: {
   const insertar = () => setRechazo(onInsertar({ ...d, intro: d.intro?.trim() || undefined }));
 
   return (
-    <Sideover
-      panel={PANEL_EXPERIMENTO_CONJOINT}
-      title="Experimento de elección por pares"
-      subtitle="Pares de perfiles con atributos sorteados, para medir qué pesa en la elección"
-      icon={<Shuffle size={16} />}
-      footerStatus={cifras ? `${cifras.calculos} cálculos y ${cifras.paginas} páginas` : `${problemas.length} por corregir`}
-      footer={
-        <button type="button" className="pulso-primary" onClick={insertar} disabled={problemas.length > 0 || Boolean(bloqueo)}>
-          {editando ? "Aplicar cambios" : "Insertar en el formulario"}
-        </button>
-      }
-    >
+    <div className="xfe-conjoint-pagina">
       <div className="xfe-conjoint">
         <section className="xfe-conjoint__bloque" aria-labelledby="xfe-cj-tareas">
           <h3 id="xfe-cj-tareas">1. Pares</h3>
@@ -178,19 +167,6 @@ export function PanelConjoint({ prefijoSugerido, existente, onInsertar }: {
           <PulsoSwitch label="Sortear el orden por encuestado" checked={Boolean(d.ordenAleatorio)} onCheckedChange={(v) => despachar({ tipo: "general", cambios: { ordenAleatorio: v } })} />
         </section>
 
-        <section className="xfe-conjoint__bloque" aria-labelledby="xfe-cj-muestra">
-          <h3 id="xfe-cj-muestra">4. Un par de muestra</h3>
-          <p className="xfe-conjoint__explica">Así verá el encuestado un par. Cada sorteo es otra entrevista.</p>
-          {muestra ? (
-            <div className="xfe-conjoint__muestra" dangerouslySetInnerHTML={{ __html: muestra }} />
-          ) : (
-            <p className="xfe-conjoint__vacio">El par aparece cuando el diseño no tiene nada por corregir.</p>
-          )}
-          <button type="button" onClick={() => setSemilla(semillaNueva())} disabled={!muestra}>
-            <Shuffle size={13} /> Otro sorteo
-          </button>
-        </section>
-
         {problemas.length || rechazo.length || bloqueo ? (
           <section className="xfe-conjoint__avisos" role="status">
             <strong>Por corregir</strong>
@@ -202,6 +178,28 @@ export function PanelConjoint({ prefijoSugerido, existente, onInsertar }: {
           </section>
         ) : null}
       </div>
-    </Sideover>
+      <aside className="xfe-conjoint-lateral" aria-label="Par de muestra y aplicar">
+        <section className="xfe-conjoint__bloque" aria-labelledby="xfe-cj-muestra">
+          <h3 id="xfe-cj-muestra">Un par de muestra</h3>
+          <p className="xfe-conjoint__explica">Así verá el encuestado un par. Cada sorteo es otra entrevista.</p>
+          {muestra ? (
+            <div className="xfe-conjoint__muestra" dangerouslySetInnerHTML={{ __html: muestra }} />
+          ) : (
+            <p className="xfe-conjoint__vacio">El par aparece cuando el diseño no tiene nada por corregir.</p>
+          )}
+          <button type="button" onClick={() => setSemilla(semillaNueva())} disabled={!muestra}>
+            <Shuffle size={13} /> Otro sorteo
+          </button>
+        </section>
+        <div className="xfe-conjoint-lateral__aplicar">
+          <span className="xfe-conjoint-lateral__cifras">
+            {cifras ? `${cifras.calculos} cálculos y ${cifras.paginas} ${cifras.paginas === 1 ? "página" : "páginas"}` : `${problemas.length} por corregir`}
+          </span>
+          <button type="button" className="pulso-primary" onClick={insertar} disabled={problemas.length > 0 || Boolean(bloqueo)}>
+            {editando ? "Aplicar cambios" : "Insertar en el formulario"}
+          </button>
+        </div>
+      </aside>
+    </div>
   );
 }
