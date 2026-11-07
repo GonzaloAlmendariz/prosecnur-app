@@ -1,0 +1,101 @@
+# ADR 0135: Las láminas de resumen eligen sus preguntas con una regla
+
+Estado: Propuesto (en implementación; espera la ratificación de Gonzalo)
+
+Implementacion: En curso en la rama `claude/estudio-laminas-sintesis`
+
+Fecha: 2026-11-07
+
+Relación: extiende [ADR 0134](0134-los-graficos-del-resumen-ejecutivo-son-nativos.md); **enmienda** [ADR 0104](0104-la-matriz-se-arma-en-la-app.md)
+§2 y §4 en lo que toca a Gráficos; respeta [ADR 0103](0103-la-matriz-de-equivalencias-solo-declara-equivalencias.md)
+(«la matriz sugiere, la lámina decide»). Propuesta: `docs/qa/propuesta-laminas-de-sintesis-2026-11-07.md`. Checklist:
+`docs/qa/checklist-estudio-laminas-sintesis-2026-11-07.md`.
+
+## Contexto
+
+Con el motor del ADR 0134 un panorama de tres públicos pedía 157 clics: las preguntas se agregaban una por una. Además,
+el analista tenía que saber de antemano que lo que buscaba se llamaba «Panorama de públicos» o «Brecha entre dos grupos»
+con el estilo «resumen». La maqueta `graficos-sintesis`, revisada por Gonzalo en cuatro rondas, fija el camino: se elige
+por la pregunta del estudio y las preguntas de una lámina de resumen salen de una regla visible.
+
+Decisiones de Gonzalo del 2026-11-07:
+
+- Entra primero el selector por intención y después el mazo «Resumen ejecutivo», que se construye sobre él.
+- El título lo escribe siempre el analista; el motor no lo sugiere.
+- La lámina de tendencia entre mediciones queda fuera.
+- El emparejado entre públicos vuelve a sugerir por el texto, para confirmar fila por fila.
+- El cierre toma sus cifras de otras láminas por referencia viva.
+
+## Decisión
+
+1. **Tres clases de tipo.** Un *gráfico* es una pieza de uso general que va en cualquier lámina. Una *lámina* es una
+   composición. Una *lámina de resumen* elige sus preguntas con una regla. La clase se declara en el catálogo de cada
+   tipo (`clase`: `grafico`, `lamina` o `resumen`) y la interfaz la muestra en el selector, el catálogo y el inspector.
+2. **La regla.** El arg `regla` de los graficadores de resumen es una lista:
+   `{tipo, n, umbral, agregar, quitar}`. Los tipos son:
+   - `todas`: todas las candidatas.
+   - `comunes`: preguntas presentes en todos los públicos.
+   - `mayor_diferencia`: las `n` de mayor diferencia. Con dos grupos se mide el valor absoluto del primero menos el
+     segundo; con tres o más, la distancia entre el mayor y el menor, con la misma definición que `contraste/1`.
+   - `diferencia_minima`: las de diferencia de al menos `umbral` puntos.
+   - `mayor_sin_info`: las `n` con más «Sin información».
+   - `bajo_umbral`: las que tienen el indicador bajo `umbral` en algún público.
+   - `extremos`: las `n` más altas y las `n` más bajas.
+   - `a_mano`: sólo la lista de `agregar`.
+
+   `agregar` y `quitar` son el ajuste a mano y se aplican después de la regla.
+   - El orden empata de forma determinista: primero por métrica y después por el orden del instrumento.
+   - Sin `regla` el graficador conserva su contrato actual (las `vars` declaradas), así que ningún plan cambia.
+3. **Función pura compartida.** `.regla_preguntas_evaluar(indicadores, regla, universo)` en
+   `api/R/graficos_regla_preguntas.R` recibe la tabla `(tema, etiqueta, grupo, valor, sin_info, n)` y devuelve los temas
+   elegidos en orden, el total de candidatas, la métrica de cada tema y **el texto de la regla para la nota**, por
+   ejemplo «Se muestran las 13 de mayor diferencia, de 47 preguntas comunes». La usan el render, la lámina nativa y el
+   endpoint de conteo, así que la nota, la lámina y el contador nunca discrepan. «Sin información» se detecta con
+   `.graficos_no_sustantivos`, un solo detector.
+4. **Conteo en vivo.** `POST /api/graficos/resumenes/regla` recibe `{graficador, args}` y devuelve
+   `{total, seleccionadas, candidatas: [{tema, etiqueta, metrica, seleccionada}], texto_regla, avisos}`. Las candidatas
+   sirven para el ajuste a mano en el inspector.
+5. **Universo de candidatas por tipo.**
+   - Panorama, escala, aperturas y fortalezas: las preguntas de escala de cada base. Una pregunta de escala es una
+     `select_one` de diseño independiente con el corte y al menos cuatro opciones sustantivas.
+   - Contraste entre públicos: los pares comunes. Lo son las filas declaradas en la matriz de equivalencias (sin
+     `sugerida`, con la misma firma de escala) y los pares confirmados en la lámina. Si las bases comparten instrumento,
+     los pares son las variables del mismo nombre.
+6. **Láminas de resumen nuevas**, cada una con especificación pura, lámina nativa y test:
+   - **Fortalezas y alertas** (`p_fortalezas`, `fortalezas/1`): las `n` más altas y las `n` más bajas de un público,
+     lado a lado.
+   - **Cobertura y participación** (`p_cobertura`, `cobertura/1`): por público, los casos, el padrón, la cobertura y la
+     meta. El padrón y la meta se *proponen* desde Cálculo de muestra (`marco_validado`, `meta`) y, si no hay, desde
+     Monitoreo (`Universo`, `Meta`), con su origen a la vista. El analista los confirma y quedan escritos en el payload
+     (`universos`, `metas`), porque el render no tiene sesión. Nada se infiere: sin padrón confiable, sólo `n`.
+   - **Cierre con hallazgos** (`p_slide_cierre_hallazgos`): de tres a cinco hallazgos `{lamina, cifra, texto}`. La cifra
+     es una **referencia viva**: el id de la lámina de origen y la clave estable de una cifra de su especificación (por
+     ejemplo `diferencia:<tema>`, `mediana:<publico>`, `bajo:<publico>`, `cobertura:<publico>`). Al exportar, la cifra se
+     lee de esa lámina con su mismo cálculo y nunca se recalcula aparte. El texto lo escribe el analista. Si la lámina
+     de origen desaparece o la cifra cambió desde que se escribió el texto, la lámina avisa.
+7. **Enmienda al ADR 0104 (Gráficos).** En la revisión del emparejado entre públicos, una pregunta sin par puede recibir
+   una sugerencia por parecido de texto (`sugerida`), con estas condiciones:
+   - Se confirma, se cambia o se descarta **fila por fila**. No hay confirmación en bloque.
+   - No entra en la lámina ni en la regla mientras no se confirme.
+   - «Guardar lo confirmado en la matriz» funde lo confirmado en la declaración (GET, unión, POST), sin reemplazarla.
+
+   Carga › Equivalencias sigue sin «Proponer emparejados».
+8. **Inspector uniforme.** La configuración de cada gráfico vive en el inspector, en las pestañas Lámina y Gráfico, con
+   las secciones **Datos, Cálculo y Aspecto** para todos los graficadores. Empieza por los de resumen. Cada control lleva
+   su rótulo y un «?», sin párrafos de ayuda debajo.
+9. **Fuera de este ADR**: la tendencia entre mediciones y los títulos sugeridos.
+
+## Consecuencias
+
+- `p_panorama`, `p_dumbbell` (estilo `resumen`) y `p_barras_divergentes` (estilo `resumen`) ganan `regla`.
+- Aparecen tres tipos nuevos en el registro y los contratos que enumeran tipos suben sus conteos.
+- Se suma un error `E_REGLA_INVALIDA`.
+- Un padrón confirmado en la lámina puede envejecer si Cálculo de muestra cambia. La tarjeta muestra el origen y avisa
+  cuando ya no coincide.
+
+## Cumplimiento
+
+- `test-graficos-regla-preguntas.R`: cada tipo de regla, desempate, ajuste a mano y texto.
+- Tests de especificación y lámina nativa de los tres tipos nuevos.
+- Contratos del registro y del front.
+- QA con las cifras del resumen de Arte junto al PDF.
