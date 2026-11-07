@@ -8,7 +8,9 @@ import type { BuilderNode } from "../types";
 import { PiezasLectura } from "../kit/CuerpoPanelMarca";
 import { LECTURA_FILA_ROTA } from "../reglas/motor/filaRota";
 import { EditarEnConstructor } from "../shell/EditarEnConstructor";
-import { alternarFijaCascada, conExpresion, marcarCascada, marcarFijo, reemplazarCodigos, renombrarColumna } from "./escrituraFiltros";
+import { alternarFijaCascada, conExpresion, fijarNumeroOpcion, leerComparacion, marcarCascada, marcarFijo, reemplazarCodigos, renombrarColumna } from "./escrituraFiltros";
+import { ColumnaNumerica } from "./ColumnaNumerica";
+import { stripMarkdown } from "../helpers/markdown";
 import type { FraseFiltro } from "./fraseFiltro";
 import { ChipEstado } from "./ListaFiltros";
 import { ListaFija } from "./ListaFija";
@@ -127,6 +129,12 @@ export function DetalleFiltro({ id, a, frase, workbook, porNombre, candidatas, o
     }
     if (a.tipo === "fijo" && a.fijo && workbook) {
       return <ListaFija a={a} choices={choices} editable={editable} onMarcar={(cods, v) => escribir(marcarFijo(workbook, a.fila, a.lista, a.fijo!, cods, v))} />;
+    }
+    const comparacion = workbook ? leerComparacion(a.expresion) : null;
+    if (comparacion && workbook) {
+      return <ColumnaNumerica a={a} choices={choices} columna={comparacion.columna} operador={comparacion.operador}
+        pregunta={porNombre.get(comparacion.pregunta)?.label ? stripMarkdown(porNombre.get(comparacion.pregunta)!.label) : comparacion.pregunta}
+        editable={editable} onNumero={(cod, v) => escribir(fijarNumeroOpcion(workbook, a.lista, comparacion.columna, cod, v))} />;
     }
     return <OpcionesDeExpresion a={a} resaltadas={resaltadas} />;
   })();

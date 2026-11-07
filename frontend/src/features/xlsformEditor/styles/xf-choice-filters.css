@@ -580,3 +580,11 @@
   .xcf *,
   .xcf-dialogo-kit * { transition: none !important; animation: none !important; }
 }
+
+/* Comparación numérica: cada opción con su número (E11, 2026-11-06). */
+.xcf-numeros { display: grid; margin: 0; padding: 0; list-style: none; border: 1px solid var(--pulso-border); border-radius: 10px; overflow: hidden; }
+.xcf-numeros li { display: grid; grid-template-columns: minmax(0, 1fr) 96px; align-items: center; gap: 12px; min-height: 40px; padding: 4px 12px; }
+.xcf-numeros li + li { border-top: 1px solid var(--pulso-border); }
+.xcf-numeros li.is-vacia { background: var(--pulso-warn-bg); }
+.xcf-numeros__texto { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--pulso-type-body-size); color: var(--pulso-text); }
+.xcf-numeros__valor { text-align: right; font-variant-numeric: tabular-nums; }

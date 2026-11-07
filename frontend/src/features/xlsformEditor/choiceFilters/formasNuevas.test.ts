@@ -3,7 +3,7 @@
 // columna, y un filtro que al abrirlo cae en «Escribir la expresión».
 import { describe, expect, it } from "vitest";
 import type { XlsformEditorWorkbook } from "../../../api/multiIntegrado";
-import { escribirIntento, formaDe, intentoCompleto, leerComparacion } from "./escrituraFiltros";
+import { escribirIntento, fijarNumeroOpcion, formaDe, intentoCompleto, leerComparacion } from "./escrituraFiltros";
 import { intentoInicial } from "./IntencionFiltro";
 import { analizarFiltro, nombreDeTipo } from "./modeloFiltros";
 import { parseBuilderStructure } from "../parsing/buildIndex";
@@ -57,5 +57,16 @@ describe("según un número", () => {
   it("sin pregunta o con la columna name no está completa", () => {
     expect(intentoCompleto({ forma: "comparacion", columna: "edad_min", operador: "<=", pregunta: "" })).toBe(false);
     expect(intentoCompleto({ forma: "comparacion", columna: "name", operador: "<=", pregunta: "edad" })).toBe(false);
+  });
+});
+
+describe("número de una opción", () => {
+  it("escribe sólo la celda de esa opción en esa lista", () => {
+    const w = escribirIntento(wb, 3, "cargo", { forma: "comparacion", columna: "edad_min", operador: "<=", pregunta: "edad" });
+    const w2 = fijarNumeroOpcion(w, "cargo", "edad_min", "jefe", " 30 ");
+    const i = w2.choices.columns.indexOf("edad_min");
+    expect(w2.choices.rows.find((r) => r[1] === "jefe")![i]).toBe("30");
+    expect(w2.choices.rows.find((r) => r[1] === "practicante")![i]).toBe("");
+    expect(w2.choices.rows.find((r) => r[1] === "tv")![i]).toBe("");
   });
 });

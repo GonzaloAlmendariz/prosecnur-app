@@ -46,6 +46,11 @@ function editarCeldas(wb: XlsformEditorWorkbook, lista: string, columna: string,
   return cambio ? { ...wb, choices: { ...choices, rows } } : wb;
 }
 
+/** El número de una opción en la columna de una comparación numérica (`edad_min <= ${edad}`). */
+export function fijarNumeroOpcion(wb: XlsformEditorWorkbook, lista: string, columna: string, codigo: string, valor: string): XlsformEditorWorkbook {
+  return editarCeldas(wb, lista, columna, (c) => (c === codigo ? valor.trim() : null));
+}
+
 /**
  * Marca o desmarca la respuesta de la madre en una opción de la cascada. Con `igual` y `marcada` la celda guarda una
  * respuesta (marcar otra la reemplaza); con `incluye` guarda varias separadas por espacio.
