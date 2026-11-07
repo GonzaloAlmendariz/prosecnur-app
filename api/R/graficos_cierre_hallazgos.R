@@ -23,6 +23,7 @@
 .CIERRE_HALLAZGOS_MIN <- 3L
 .CIERRE_SIN_ORIGEN <- "La lámina de origen ya no está."
 .CIERRE_SIN_CIFRA <- "La cifra ya no está en su lámina de origen."
+.CIERRE_VACIO <- "El cierre no tiene hallazgos."
 
 #' Normaliza los hallazgos del payload: lista de `{lamina, cifra, texto, cifra_al_escribir?}`
 #' @keywords internal
@@ -51,7 +52,7 @@
 p_slide_cierre_hallazgos <- function(hallazgos = list(), titulo = NULL, etiqueta = NULL, base = NULL, meta = list()) {
   .ppt_chk_meta(meta)
   hs <- .cierre_hallazgos_normalizar(hallazgos)
-  if (!length(hs)) .plan_spec_abort("Cierre con hallazgos: escribe al menos un hallazgo con su lámina, su cifra y su frase.")
+  # Sin hallazgos (recién insertado) la lámina se dibuja con sus tarjetas vacías y avisa; no aborta el mazo.
   if (length(hs) > .CIERRE_HALLAZGOS_MAX) .plan_spec_abort("Cierre con hallazgos: van de tres a cinco hallazgos y llegaron ", length(hs), ".")
   etiqueta <- .ppt_norm_text1(etiqueta, blank = NULL) %||% "Resumen ejecutivo"
   meta$antetitulo <- meta$antetitulo %||% etiqueta
@@ -113,6 +114,12 @@ p_slide_cierre_hallazgos <- function(hallazgos = list(), titulo = NULL, etiqueta
 .espec_cierre_hallazgos <- function(resueltos) {
   avisos <- character(0)
   n <- length(resueltos)
+  if (!n) {
+    # Tres tarjetas vacías: el marco sin cifra ni frase (nada inventado).
+    vacia <- list(texto = "", cifra = NULL, unidad = "", rotulo = "", valor = NULL, aviso = NULL, lamina = "", clave = "", vacio = TRUE)
+    return(list(version = "cierre_hallazgos/1", tipo = "cierre_hallazgos", hallazgos = rep(list(vacia), .CIERRE_HALLAZGOS_MIN),
+                avisos = .CIERRE_VACIO))
+  }
   if (n < .CIERRE_HALLAZGOS_MIN) avisos <- c(avisos, sprintf("El cierre lleva de tres a cinco hallazgos y tiene %d.", n))
   for (r in resueltos) if (!is.null(r$aviso)) avisos <- c(avisos, sprintf("«%s»: %s", r$texto, r$aviso))
   list(version = "cierre_hallazgos/1", tipo = "cierre_hallazgos", hallazgos = resueltos, avisos = unique(avisos))
@@ -127,7 +134,7 @@ p_slide_cierre_hallazgos <- function(hallazgos = list(), titulo = NULL, etiqueta
   plan <- c(plan, getOption("prosecnur.cierre_plan", list()))
   render <- dynGet(".render_element", ifnotfound = NULL)
   esp <- .espec_cierre_hallazgos(.cierre_resolver(el$hallazgos %||% list(), plan, if (is.function(render)) render else NULL))
-  for (a in esp$avisos) warning(paste0("Cierre con hallazgos: ", a), call. = FALSE)
+  for (a in esp$avisos) warning(if (identical(a, .CIERRE_VACIO)) a else paste0("Cierre con hallazgos: ", a), call. = FALSE)
   .cierre_ggplot(esp)
 }
 
@@ -136,6 +143,7 @@ p_slide_cierre_hallazgos <- function(hallazgos = list(), titulo = NULL, etiqueta
 .cierre_ggplot <- function(esp) {
   hs <- esp$hallazgos
   etq <- vapply(hs, function(h) {
+    if (isTRUE(h$vacio)) return("")
     cifra <- if (is.null(h$cifra)) "—" else paste(c(h$cifra, if (nzchar(h$unidad) && !grepl("%$", h$cifra)) h$unidad), collapse = " ")
     paste0(cifra, "  ", h$texto, if (!is.null(h$aviso)) paste0("\n(", h$aviso, ")") else "")
   }, "")

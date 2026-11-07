@@ -103,8 +103,8 @@ test_that("sin lámina de origen o sin la cifra, el hallazgo avisa y no inventa;
   expect_true(any(grepl("La lámina de origen ya no está", r$avisos, fixed = TRUE)))
 })
 
-test_that("el constructor pide de uno a cinco hallazgos (el render avisa bajo tres)", {
-  expect_error(p_slide_cierre_hallazgos(), "al menos un hallazgo")
+test_that("el constructor acepta hasta cinco hallazgos (el render avisa bajo tres y sin ninguno)", {
+  expect_identical(length(p_slide_cierre_hallazgos()$slots$plot$hallazgos), 0L)
   seis <- rep(list(list(lamina = "a", cifra = "b", texto = "c")), 6)
   expect_error(p_slide_cierre_hallazgos(hallazgos = seis), "de tres a cinco")
   s <- p_slide_cierre_hallazgos(hallazgos = list(lamina = "a", cifra = "b", texto = "c"))   # un hallazgo suelto, como lo desenvuelve el JSON
@@ -197,4 +197,26 @@ test_that("HTTP: POST /api/graficos/resumenes/cifras devuelve las cifras con cla
   r2 <- .ch_http(sid, '{"graficador": "p_barras_agrupadas", "args": {"var": "docentes$q1"}}')
   expect_identical(r2$status, 400L); expect_identical(r2$body$error$code %||% r2$body$code, "E_CIFRAS_INVALIDO")
   expect_true("E_CIFRAS_INVALIDO" %in% errores_registrados()$codigo)
+})
+
+test_that("sin hallazgos el cierre dibuja tres tarjetas vacías y avisa en la lámina, sin abortar el mazo", {
+  skip_if_not_installed("officer")
+  out <- tempfile(fileext = ".pptx"); on.exit(unlink(out), add = TRUE)
+  plan <- c(.ch_origenes(), list(p_slide_cierre_hallazgos(hallazgos = list())))
+  r <- .ch_correr(plan, path = out)
+  expect_true("El cierre no tiene hallazgos." %in% r$avisos)
+  expect_true(file.exists(out))
+  x <- xml2::read_xml(unz(out, "ppt/slides/slide4.xml"))
+  nombres <- xml2::xml_attr(xml2::xml_find_all(x, "//p:cNvPr"), "name")
+  expect_true("prosecnur:grafico:cierre_hallazgos" %in% nombres)
+  expect_false(any(c("cierre:cifra", "cierre:texto", "cierre:aviso", "cierre:rotulo") %in% nombres))
+  textos <- trimws(xml2::xml_text(xml2::xml_find_all(x, "//p:grpSp[p:nvGrpSpPr/p:cNvPr[@name='prosecnur:grafico:cierre_hallazgos']]//a:t")))
+  expect_false(any(nzchar(textos)))
+  # La especificación: tres tarjetas vacías, sin cifra ni frase.
+  esp <- .espec_cierre_hallazgos(list())
+  expect_length(esp$hallazgos, 3L)
+  expect_true(all(vapply(esp$hallazgos, function(h) isTRUE(h$vacio) && is.null(h$cifra) && !nzchar(h$texto), TRUE)))
+  # El rearmado desde el JSON del editor (vista previa recién insertada) no falla.
+  s <- .rebuild_slide(list(tipo = "p_slide_cierre_hallazgos", payload = list(hallazgos = list())))
+  expect_s3_class(s, "ppt_slide")
 })

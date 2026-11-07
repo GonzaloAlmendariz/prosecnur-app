@@ -6,7 +6,7 @@
 # grande leída de su lámina de origen, debajo qué cifra es (el rótulo de su lámina) y la frase del analista. Sin
 # intervalos. Un hallazgo sin cifra (la lámina de origen ya no está, o ya no tiene esa cifra) lleva su aviso en lugar de
 # la cifra; uno cuya cifra cambió desde que se escribió la frase, el aviso al pie de la tarjeta. Tres tarjetas van en una
-# fila; cuatro, en dos por dos; cinco, tres arriba y dos abajo.
+# fila; cuatro, en dos por dos; cinco, tres arriba y dos abajo. Sin hallazgos, tres tarjetas vacías.
 
 #' ¿La especificación es del cierre con hallazgos y tiene de uno a cinco?
 #' @keywords internal
@@ -51,6 +51,7 @@
       i <- i + 1L; hl <- hs[[i]]; l <- xi + (c - 1L) * (w + sep)
       pad <- 0.28; wi <- w - 2 * pad
       .lam_halla_marco(lz, l, t, w, h)
+      if (isTRUE(hl$vacio)) next   # cierre sin hallazgos: la tarjeta vacía, sin cifra ni frase
       cifra <- .lam_cierre_hallazgos_cifra(hl)
       y <- t + 0.12
       if (!is.null(cifra)) {
