@@ -43,3 +43,11 @@ describe("capa de distritos de la ciudad abierta (revisión del 7 nov 2026)", ()
     expect(rangosDensidad([1_000, 2_500, 5_000, 12_000])).toEqual(["menos de 1,000", "1,000 a 2,500", "2,500 a 5,000", "5,000 a 12,000", "12,000 o más"]);
   });
 });
+
+describe("leyenda escalonada", () => {
+  it("los cortes van en corto, con punto decimal", async () => {
+    const { corteCorto } = await import("./CapaDistritosControles");
+    expect([948, 8169, 13995, 17795].map(corteCorto)).toEqual(["950", "8.2 mil", "14 mil", "18 mil"]);
+    expect(corteCorto(1000)).toBe("1 mil");
+  });
+});

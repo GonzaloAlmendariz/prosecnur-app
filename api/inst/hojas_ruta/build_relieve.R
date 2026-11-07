@@ -28,7 +28,7 @@ front <- file.path(repo_root, "frontend", "src", "features", "hojasRuta")
 out_dir <- file.path(repo_root, "frontend", "public", "relieve")
 out_indice <- file.path(front, "relieveIndice.json")
 
-FUENTE <- "Relieve: Copernicus DEM GLO-90, ESA"
+FUENTE <- "Relieve: Copernicus DEM, ESA"  # corta: a 1024 px la cita cruzaba todo el mapa
 BASE <- "https://copernicus-dem-90m.s3.amazonaws.com"
 NATIVO <- 1 / 1200       # 3 segundos de arco, unos 90 m
 LADO_MAX <- 1600          # píxeles: Lima sale a ~130 m por píxel

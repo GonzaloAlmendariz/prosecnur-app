@@ -950,7 +950,8 @@ export default function HojasRutaMapaPage() {
           encuadreObjetivo={!estado ? null : enTerritorio && cajaTerritorio ? { caja: cajaTerritorio, pad: enAtlas ? 0.04 : 0.08, tapadoAbajo: enAtlas ? 0.07 : 0, clave: `territorio:${ciudadAbierta ?? `pe:${departamentoEnfocado ?? ""}:${ciudadEnfocada ?? ""}`}:${(ciudadAbierta || ciudadEnfocada) && regionesCargando.length ? "silueta" : "distritos"}`, animar: true } : cajaEnfocada ? { caja: cajaEnfocada, pad: 2.2, clave: `ump:${umpEnfocada}:${cajon ? "cajon" : "libre"}`, animar: true, tapadoAbajo: cajon ? 0.5 : 0 } : nacional.encuadre ? (cajon && nav.seccion === "seleccion" ? { ...nacional.encuadre, clave: `${nacional.encuadre.clave}:cajon`, tapadoAbajo: 0.5 } : nacional.encuadre) : (caja ? { caja, pad: 0.08, clave: `${nav.seccion}:${confirmados.join(",") || "lima"}:${contornosConfirmados}`, animar: false } : null)}
           ficha={(() => {
             const t = enAtlas && ciudadEnfocada && distritoEnfocado ? estado?.territories.find((x) => x.ubigeo === distritoEnfocado && ciudadDeUbigeo(x.ubigeo) === ciudadEnfocada) : undefined;
-            return t ? <FichaDistritoAtlas territorio={t} ciudad={atlas.find((c) => c.codigo === ciudadEnfocada)?.nombre ?? ""} onCerrar={() => setDistritoEnfocado(null)} /> : nacional.ficha;
+            const contorno = t ? contornos.find((c) => c.ubigeo === t.ubigeo) : undefined;
+            return t ? <FichaDistritoAtlas territorio={t} ciudad={atlas.find((c) => c.codigo === ciudadEnfocada)?.nombre ?? ""} areaKm2={contorno ? areaKm2(contorno.anillos) : null} onCerrar={() => setDistritoEnfocado(null)} /> : nacional.ficha;
           })()}
           dibujarFondo={dibujarFondo}
           dibujarMundo={dibujarMundo}

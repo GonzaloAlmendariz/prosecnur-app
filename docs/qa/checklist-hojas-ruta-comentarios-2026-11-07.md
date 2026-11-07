@@ -17,6 +17,9 @@ Doc vivo (gate 5 de CLAUDE.md). Un ítem por indicación; sólo Gonzalo da el lo
 | H11 | El problema ahora es el rótulo de los nombres | `lienzo/capas.ts` (`dibujarNombresFuera`, `esOscuro`): tinta según el relleno (blanca sobre oscuro, oscura sobre claro), halo fino del color del distrito, peso medio; `territorio/capaDistritos.ts` (`rellenoDistrito`) | Hecho y verificado en vivo (atlas de Lima en las cuatro capas y acercado al centro) |
 | H12 | Probar cómo se ve con las otras vistas: viviendas, manzanas y a nivel distrito | Recorrido en `tmp/paletas-mapa/recorrido-capas.png`. Hallazgo corregido: con Viviendas o NSE por manzana el distrito llevaba su color de identidad (el verde de Ate) y competía con las manzanas; ahora queda en gris neutro (`HojasRutaMapaPage.tsx`, `capaContraste`) | Hecho y verificado en vivo (Ate con Manzanas, Viviendas y NSE, a escala de ciudad y de distrito) |
 | H13 | No debería poder alejarme tanto (mapa del Perú) | `HojasRutaMapaPage.tsx`: `limiteCamara` usa la caja del Perú cuando no hay ciudad abierta | Hecho y verificado en vivo: alejado al máximo, el Perú llena el alto del mapa y no sale de la pantalla al arrastrar |
+| H14 | «Sigue mejorando»: los nombres de distrito sin tildes («Ancon», «Lurin», «Mi Peru») | `mapa/nombres.ts` (`TILDES`, por palabra, para los 158 distritos con cartografía); el buscador ya ignoraba tildes | Hecho y verificado en vivo |
+| H15 | «Sigue mejorando»: la leyenda de densidad ocupaba dos renglones | `territorio/CapaDistritosControles.tsx` (`leyendaCapaDistritos`, `corteCorto`), `territorio/capaDistritos.css`: escalonada, color y corte en fila; los rangos completos en el texto accesible | Hecho y verificado en vivo |
+| H16 | «Sigue mejorando»: la ficha del distrito no decía la densidad que pinta la capa | `FichaDistritoAtlas` (`previa`), `FichaDistritoNacional.tsx`, `nacional.css` | Hecho y verificado en vivo |
 
 ## H1: diagnóstico y arreglo
 
@@ -132,3 +135,11 @@ ColorBrewer (Brewer et al., estudio de mapas de mortalidad), CARTOColors, Paul T
 - **Nombres de distritos partidos** (Moche, Salaverry): la tinta según el relleno sólo si el nombre cae dentro de su
   distrito.
 - **A escala de calle** el relieve casi no se nota (va suavizado): no estorba a las manzanas.
+
+## H14 a H16: verificación
+
+En vivo con acnur_acg: la lista y el mapa de Lima dicen «Ancón», «Lurín», «Rímac», «Jesús María», «San Martín de Porres» y
+«Villa María del Triunfo» (ninguno sin tilde); la leyenda de Población cabe en un renglón («■ 950 ■ 8.2 mil ■ 14 mil ■
+18 mil ■»); la ficha de Rímac dice «13,995 habitantes por km²» sobre «NSE predominante: medio». A 1024x600 la leyenda se
+oculta (diseño angosto previo) y la cita de fuentes se acortó a «Relieve: Copernicus DEM, ESA», porque cruzaba todo el
+mapa.
