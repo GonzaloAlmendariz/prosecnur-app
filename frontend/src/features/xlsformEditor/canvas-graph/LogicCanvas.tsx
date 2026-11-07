@@ -856,7 +856,7 @@ export function LogicCanvas({
                   {stats.visible} {stats.visible === 1 ? "nodo visible" : "nodos visibles"},{" "}
                   {stats.edges} {stats.edges === 1 ? "conexión" : "conexiones"}
                   {graph && graph.calculosOmitidos > 0 ? (
-                    <>. {graph.calculosOmitidos} {graph.calculosOmitidos === 1 ? "cálculo no condiciona" : "cálculos no condicionan"} ninguna pregunta: se ven en Cálculos</>
+                    <span title="No condicionan ninguna pregunta; se editan en Cálculos.">. Fuera del mapa: {graph.calculosOmitidos} {graph.calculosOmitidos === 1 ? "cálculo" : "cálculos"}</span>
                   ) : null}
                 </>
               )}

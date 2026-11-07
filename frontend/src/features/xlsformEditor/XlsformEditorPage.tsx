@@ -2872,7 +2872,7 @@ export default function XlsformEditorPage() {
                 structure={structure}
                 catalogs={catalogs}
                 onEditarEnConstructor={irAFila}
-                acciones={(
+                acciones={source?.kind === "surveymonkey" || smLogicRules.length > 0 || smVisualLogicRules.length > 0 ? (
                   <button
                     type="button"
                     className="pulso-graph-allbutton"
@@ -2884,7 +2884,7 @@ export default function XlsformEditorPage() {
                   >
                     Lógica de SurveyMonkey
                   </button>
-                )}
+                ) : undefined}
                 onSetRelevant={(rowIndex, expression) => {
                   // El canvas declara/edita/elimina relaciones de visibilidad
                   // (relevant). Una expresión vacía ELIMINA la condición (el
