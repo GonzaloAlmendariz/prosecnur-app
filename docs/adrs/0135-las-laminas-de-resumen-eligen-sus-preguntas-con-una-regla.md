@@ -103,6 +103,16 @@ Decisiones de Gonzalo del 2026-11-07:
 - Sin declarar, el reparto deja la mitad de los niveles sustantivos en cada lado (`floor(k/2)`) y el central como neutro
   si son impares; en escalas de 4 y 5 puntos coincide con el recetario, y en las de 3, 7 u 11 corrige el sesgo que
   dejaba sólo dos niveles en desacuerdo.
+- Un rótulo ambiguo («Rechazo», «No conoce», «No uso») sigue siendo nivel si otra opción de la misma lista comparte su
+  raíz («Rechazo totalmente», «Conoce poco», «Uso poco»): regla de hermanos.
+- Un código 90 a 99 es siempre no sustantivo salvo que la lista lo declare `especial = no`; «Sin opinión» como punto
+  medio de una escala va a Sin información y la escala queda sin neutro (decisión, no error).
+- Cada cifra se redondea por separado y el total de cada lado es la suma de lo rotulado (como en la lámina 71): con
+  empates en ,5 la suma puede llegar a 102.
+- Una lámina guardada con `n_negativas` explícito (el recetario fija 2) conserva su reparto; las nuevas sin declarar
+  usan la mitad por lado, y el campo de la UI muestra el valor que se aplica.
+- La regla de las láminas de resumen sólo considera escalas de al menos cuatro opciones sustantivas que forman batería
+  o están declaradas ordinales; una escala de tres puntos se dibuja, pero ninguna regla la elige.
 - Pendiente: el dibujo de respaldo (ggplot) apila el gris de «Sin información» detrás del acuerdo; la lámina nativa no.
 
 ### Precisiones de la implementación
