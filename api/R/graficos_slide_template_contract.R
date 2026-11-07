@@ -18,6 +18,7 @@
   estandar = character(),
   resumen_diferencias = c(title = "titulo", base = "base"),
   hallazgos = c(title = "titulo", base = "base"),
+  cierre_hallazgos = c(title = "titulo", base = "base"),
   text_slide = c(title = "titulo", text = "texto"),
   technical_table = c(title = "titulo", table = "filas", footer = "pie"),
   slide_1 = c(title = "titulo", plot = "grafico", base = "base", right = "pie"),
@@ -472,10 +473,10 @@
 
   render_keys <- vapply(metadata, function(meta) as.character(meta$render_key %||% "")[1], character(1))
   # El número es una cuenta declarada, no un tope: sube cuando se añade una
-  # lámina (las últimas, el resumen de diferencias y los hallazgos clave, en 2026-11-04). Lo que protege de verdad
+  # lámina (la última, el cierre con hallazgos del ADR 0135, en 2026-11-07). Lo que protege de verdad
   # es el `anyDuplicated`, que caza dos láminas compartiendo renderer.
-  if (length(render_keys) != 36L || any(!nzchar(render_keys)) || anyDuplicated(render_keys)) {
-    stop("El metadata de slides debe declarar 36 `render_key` únicos.", call. = FALSE)
+  if (length(render_keys) != 37L || any(!nzchar(render_keys)) || anyDuplicated(render_keys)) {
+    stop("El metadata de slides debe declarar 37 `render_key` únicos.", call. = FALSE)
   }
 
   contract <- .ppt_slide_template_manual_contracts(.PPT_CONTRACT)

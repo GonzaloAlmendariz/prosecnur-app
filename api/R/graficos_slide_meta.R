@@ -9,7 +9,8 @@
 #' Claves de `meta` que el motor lee hoy (documentación del contrato; una clave desconocida se conserva igual)
 #' @keywords internal
 .SLIDE_META_CLAVES <- c("variante", "composicion", "iconos", "actores", "actores_iconos", "antetitulo", "nivel", "numero", "rotulo",
-                        "metodo", "motor_nativo", "word_heading_level", "dependencia", "notas")   # dependencia: graficos_dependencia.R; notas: lamina_notas_orador.R
+                        "metodo", "motor_nativo", "word_heading_level", "dependencia", "notas",   # dependencia: graficos_dependencia.R; notas: lamina_notas_orador.R
+                        "lamina_id")   # el id de la lámina en el plan del editor (referencia viva del cierre, graficos_cierre_hallazgos.R)
 
 #' `meta` lista para el motor: las listas de escalares pasan a vectores y lo vacío se descarta
 #' @keywords internal
@@ -32,4 +33,17 @@
   if (!"meta" %in% names(payload)) return(payload)
   payload$meta <- .graficos_normalizar_meta(payload$meta)
   payload
+}
+
+#' La lámina rearmada con el id que tenía en el plan del editor (`meta$lamina_id`)
+#'
+#' Los rearmados del plan JSON (`.graficos_rebuild_slide_json`, `.rebuild_slide`, `.mini_rebuild_slide`) perdían `s$id`, y
+#' el cierre con hallazgos lo necesita para encontrar su lámina de origen (ADR 0135, punto 6). Un id ya declarado en la
+#' `meta` de la lámina se respeta; sin id, la lámina sale igual que antes.
+#' @keywords internal
+.graficos_slide_con_id <- function(slide, id) {
+  id <- as.character(unlist(id %||% ""))[1]
+  if (!inherits(slide, "ppt_slide") || is.na(id) || !nzchar(trimws(id))) return(slide)
+  if (is.null((slide$meta %||% list())$lamina_id)) slide$meta$lamina_id <- trimws(id)
+  slide
 }

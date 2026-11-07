@@ -50,7 +50,7 @@ test_that("cada lámina del registro nombra su tipo del estándar, y las de estr
     expect_identical(e$nombre, .std_tipo_lamina(nm)$nombre)
   }
   sin <- setdiff(names(por_nombre), ids_std)
-  expect_length(sin, 14L)                                                   # portada, índice, separador, ficha, cierre, reglas de la identidad, resumen de diferencias, hallazgos…
+  expect_length(sin, 15L)                                                   # portada, índice, separador, ficha, cierre, reglas de la identidad, resumen de diferencias, hallazgos, cierre con hallazgos…
   for (nm in sin) expect_identical(por_nombre[[nm]]$estandar, NA, info = nm)
   expect_identical(por_nombre$p_slide_1_grafico$estandar$nombre, "Un gráfico")
 })

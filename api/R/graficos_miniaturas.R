@@ -189,6 +189,10 @@
     version_paquete = comun$version_paquete
   )
   ctx$avisos_previos <- avisos_previos
+  # Las láminas de origen del cierre con hallazgos, calificadas como la lámina (graficos_cierre_hallazgos.R).
+  if (identical(as.character(slide$tipo %||% "")[1], "p_slide_cierre_hallazgos")) {
+    ctx$plan_slides <- .graficos_calificar_refs_plan(list(slides = comun$plan_slides), comun$base)$slides
+  }
   ctx
 }
 
@@ -282,7 +286,7 @@
   payload <- payload[names(payload) %in% names(formals(fn))]
   payload <- payload[!vapply(payload, .mini_vacio, logical(1))]
   payload <- .graficos_fill_blank_graf_slots(payload, fn, slide_registry[[tipo0]]$grafs)
-  do.call(fn, payload)
+  .graficos_slide_con_id(do.call(fn, payload), s0$id)
 }
 
 #' Arma el mini-PPTX de una lámina con el motor del export
@@ -298,6 +302,9 @@
   conteo <- new.env(parent = emptyenv())
   slide_r <- .mini_rebuild_slide(ctx$slide, icon_registry = ctx$icon_registry, conteo = conteo,
                                  fuentes = list(data_sources = ctx$data_sources, inst_sources = ctx$inst_sources))
+  # El cierre con hallazgos lee sus cifras de otras láminas: el mini-plan no las tiene (graficos_cierre_hallazgos.R).
+  origen <- .cierre_plan_preview(ctx$slide, ctx$plan_slides, function(s) .mini_rebuild_slide(s, icon_registry = ctx$icon_registry))
+  if (length(origen)) { op_cierre <- options(prosecnur.cierre_plan = origen); on.exit(options(op_cierre), add = TRUE) }
   # Cada degradación al canvas «Sin datos» señala `pulso_lamina_degradada` (reporte_plan_condiciones.R): se cuentan por
   # la condición, no por el texto del aviso.
   degradados <- 0L

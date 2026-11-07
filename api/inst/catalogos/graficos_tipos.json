@@ -216,6 +216,12 @@
       "categoria": "1grafico",
       "estandar": null,
       "en_selector": true
+    },
+    {
+      "name": "p_slide_cierre_hallazgos",
+      "categoria": "1grafico",
+      "estandar": null,
+      "en_selector": true
     }
   ],
   "graficadores": [

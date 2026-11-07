@@ -162,6 +162,7 @@
   # ADR 0135: fortalezas y alertas, y cobertura y participación, si caben.
   if (identical(espec$tipo, "fortalezas")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_fortalezas_cabe(espec)))
   if (identical(espec$tipo, "cobertura")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_cobertura_cabe(espec)))
+  if (identical(espec$tipo, "cierre_hallazgos")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_cierre_hallazgos_cabe(espec)))
   if (identical(espec$tipo, "categorica") && identical(espec$forma, "lollipop")) {
     return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_lollipop_cabe(espec)))
   }
@@ -345,6 +346,11 @@
     f <- if (identical(espec$tipo, "contraste")) .lam_laminas_contraste else .lam_laminas_panorama
     return(f(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo), base = .lam_unir_base(texto(base), texto(pie)),
              folio = length(doc) + 1L, sub = texto(subtitulo), layout = layout, master = master, por_lamina = por_lamina)$doc)
+  }
+  if (identical(espec$tipo, "cierre_hallazgos")) {   # ADR 0135: las cifras vienen de otras láminas; la base, sólo si se escribe
+    return(.lam_laminas_cierre_hallazgos(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
+                                         base = .lam_unir_base(texto(como_texto(slots$base)), texto(pie)), folio = length(doc) + 1L,
+                                         sub = texto(subtitulo), layout = layout, master = master, por_lamina = por_lamina)$doc)
   }
   if (espec$tipo %in% c("fortalezas", "cobertura")) {   # ADR 0135 (lamina_fortalezas.R, lamina_cobertura.R)
     # La base es la del público (fortalezas) o la de cada público (cobertura): la automática de la encuesta entera se

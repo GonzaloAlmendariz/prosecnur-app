@@ -18,6 +18,11 @@
 #   la muestra y, al confirmarla, escribe `universos` y `metas` en el payload.
 
 #
+#   POST /api/graficos/resumenes/cifras   {graficador, args, scope?}
+#     -> {ok, tipo, cifras: [{clave, rotulo, texto, valor, unidad}], avisos}
+#   Las cifras con clave estable de un gráfico de resumen (graficos_cifras_clave.R), renderizado con el motor del export y
+#   los presets de la vista previa: el cierre con hallazgos las ofrece para elegir.
+#
 #   POST /api/graficos/resumenes/emparejado   {bases: [A, B], vars?, scope?}
 #     -> {ok, bases, preguntas: [{tema, base, var, etiqueta, estado, par?, sugerencias}]}
 #   Revisión del emparejado entre públicos (graficos_emparejado_sugerido.R, ADR 0135 §7). Sólo lectura: lee la matriz
@@ -37,6 +42,16 @@ mount_graficos_regla <- function(pr) {
       if (!is.list(args)) .regla_preguntas_falla("`args` debe ser un objeto.")
       fuentes <- .graficos_preview_fuentes(sid, parsed)
       .regla_preguntas_conteo(graficador, args, fuentes)
+    })) |>
+    plumber::pr_post("/api/graficos/resumenes/cifras", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      session_get(sid)
+      parsed <- .graficos_preview_leer_body(req)
+      fuentes <- .graficos_preview_fuentes(sid, parsed)
+      comun <- .graficos_preview_comun(sid, parsed, fuentes)
+      presets <- if (length(comun$presets_json)) .build_presets(comun$presets_json) else NULL
+      .graficos_cifras_de_grafico(parsed[["graficador"]], parsed[["args"]] %||% list(),
+                                  list(data_sources = comun$data_sources, inst_sources = comun$inst_sources), presets)
     })) |>
     plumber::pr_post("/api/graficos/resumenes/emparejado", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)

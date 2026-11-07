@@ -516,7 +516,7 @@
       (length(v) == 1L && is.atomic(v) && is.na(v))
   }, logical(1))]
   payload <- .graficos_fill_blank_graf_slots(payload, fn, slide_registry[[tipo]]$grafs)
-  do.call(fn, payload)
+  .graficos_slide_con_id(do.call(fn, payload), s$id)   # el cierre con hallazgos busca su origen por id
 }
 
 .graficos_valid_data_cache <- function(x) {
@@ -1106,7 +1106,7 @@
       (length(v) == 1L && is.list(v) && is.null(v[[1]])) ||
       (length(v) == 1L && is.atomic(v) && is.na(v))
   }, logical(1))]
-  do.call(fn, payload)
+  .graficos_slide_con_id(do.call(fn, payload), s$id)
 }
 
 .build_presets <- function(presets_json) {

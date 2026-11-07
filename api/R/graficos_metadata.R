@@ -36,6 +36,8 @@
 # "resumen_capitulos" → capítulos {titulo, filas: [{var, fila, rotulo}]} del resumen de diferencias
 # "hallazgos_capitulos" → capítulos {titulo, titular, cifras: [{var, fila, texto, comparacion}]} del resumen ejecutivo
 # "partes"           → filas {rotulo, codigos} de la pregunta elegida (líneas por nivel); conserva `y` y `color`
+# "cierre_hallazgos" → hallazgos {lamina, cifra, texto, cifra_al_escribir?} del cierre (ADR 0135); las cifras de cada
+#                      lámina salen de POST /api/graficos/resumenes/cifras
 # "regla_preguntas"  → regla {tipo, n, umbral, agregar, quitar} con que una lámina de resumen elige sus preguntas
 #                      (ADR 0135); el conteo en vivo sale de POST /api/graficos/resumenes/regla
 # "meta"             → objeto libre; casi nunca se expone en UI
@@ -1137,6 +1139,23 @@
       list(name = "capitulos", label = "Capítulos y hallazgos", tipo_input = "hallazgos_capitulos", grupo = "datos",
            depende = list(arg = "modo", valores = list("resumen", "titulares")),
            descripcion = "Por capítulo, sus hallazgos: la pregunta, la respuesta que se cuenta, el texto que sigue a la cifra y la comparación (automática, ninguna o escrita).")
+    ))
+  ),
+
+  # ADR 0135, punto 6: el cierre del resumen ejecutivo. Sus cifras son referencias vivas a otras láminas del mazo
+  # (graficos_cierre_hallazgos.R); el control lista las cifras de cada lámina con POST /api/graficos/resumenes/cifras.
+  p_slide_cierre_hallazgos = list(
+    titulo_humano = "Cierre con hallazgos",
+    descripcion   = "De tres a cinco hallazgos, cada uno con una cifra tomada de otra lámina del mazo y la frase que escribes.",
+    icono_ui      = "Flag",
+    categoria     = "1grafico",
+    render_key    = "cierre_hallazgos",
+    en_selector   = TRUE,
+    blueprint     = list(kind = "single", ppt_layout = "Graficos2", structure_label = "Cierre con hallazgos"),
+    slot_specs    = list(),
+    args = c(.args_slide_titulos_base(c("titulo", "etiqueta", "base")), list(
+      list(name = "hallazgos", label = "Hallazgos", tipo_input = "cierre_hallazgos", grupo = "datos",
+           descripcion = "De tres a cinco: la lámina de origen, su cifra y tu frase. La cifra se lee de esa lámina al exportar.")
     ))
   )
 )
