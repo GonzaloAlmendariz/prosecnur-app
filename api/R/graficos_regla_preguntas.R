@@ -364,7 +364,7 @@
 .regla_preguntas_conteo <- function(graficador, args, sources) {
   graficador <- trimws(as.character(graficador %||% "")[1])
   if (is.na(graficador) || !graficador %in% c("p_panorama", "p_dumbbell", "p_barras_divergentes", "p_fortalezas")) {
-    .regla_preguntas_falla(sprintf("El gráfico «%s» no elige sus preguntas con una regla.", graficador %||% ""))
+    .regla_preguntas_falla("Este gráfico no elige sus preguntas con una regla.")
   }
   # Sin fuentes del estudio no hay nada que contar: es el 409 de siempre de Gráficos, no una regla inválida.
   if (!.graficos_sources_usable(sources$data_sources %||% list(), sources$inst_sources %||% list())) {
@@ -376,6 +376,8 @@
     return(list(ok = TRUE, total = 0L, seleccionadas = list(), candidatas = list(), texto_regla = "",
                 avisos = list("Faltan datos del gráfico para contar sus preguntas.")))
   }
+  # Un borrador incompleto se reconstruye como gráfico vacío: se dice qué falta, nunca su tipo interno.
+  if (!el$.element_type %in% c("panorama", "dumbbell", "barras_divergentes", "fortalezas")) .regla_preguntas_falta_dato(graficador, args)
   r <- .regla_preguntas_de_elemento(el, sources, regla = el$regla)
   ev <- r$evaluacion
   cand <- ev$candidatas

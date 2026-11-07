@@ -620,7 +620,7 @@ p_barras_divergentes <- function(vars = NULL,
 #' @param universos_no_confiables Lo tecleado como padrón de un grupo con «Padrón confiable» apagado («Docentes TC:
 #'   24»): se conserva en el elemento y no entra a ningún cálculo (graficos_padron_confiable.R).
 #' @export
-p_dumbbell <- function(vars,
+p_dumbbell <- function(vars = NULL,
                        corte,
                        corte_etiqueta = NULL,
                        orden = NULL,
@@ -639,7 +639,8 @@ p_dumbbell <- function(vars,
                        separar_tras = NULL,
                        base_en = NULL,
                        regla = NULL,
-                       universos_no_confiables = NULL) {
+                       universos_no_confiables = NULL,
+                       bases = NULL) {
   no_confiables <- .graficos_universos_no_confiables(universos_no_confiables, "p_dumbbell()")
   # G17: con `cruce` y `grupos` la brecha es entre dos grupos de una misma base (graficos_dumbbell_grupos.R).
   if (!is.null(cruce)) {
@@ -647,6 +648,28 @@ p_dumbbell <- function(vars,
                              overrides, base, filtros, etiqueta_brecha, cruce, grupos, estilo, universos, separar_tras, base_en)
     el$universos_no_confiables <- no_confiables
     return(.regla_preguntas_en_constructor(el, regla, "p_dumbbell()"))   # ADR 0135
+  }
+  # ADR 0135: sin temas, el contraste los arma solo desde `bases` o, con una regla, desde las dos bases del estudio
+  # (graficos_dumbbell_auto.R).
+  diferido <- FALSE
+  if (.dumbbell_sin_temas(vars)) {
+    par <- .dumbbell_bases_contraste(bases)
+    if (is.null(.regla_preguntas_normalizar(regla))) {
+      if (is.null(par)) .plan_spec_abort("p_dumbbell(): declara los temas en `vars` o los dos públicos en `bases`.")
+      regla <- list(tipo = "comunes")
+    }
+    if (is.null(par)) diferido <- TRUE else vars <- .dumbbell_vars_de_bases(par)
+  }
+  if (diferido) {
+    if (!length(.radar_mb_codigos(corte))) .plan_spec_abort("p_dumbbell(): `corte` debe traer al menos un codigo de la escala.")
+    if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
+    ov <- .dumbbell_slot_overrides(overrides, orden, mostrar_brecha, umbral_brecha_pct, etiqueta_brecha)
+    ov <- .dumbbell_resumen_overrides(ov, estilo, universos, separar_tras, base_en)
+    el <- list(.element_type = "dumbbell", var = NULL, vars = NULL, corte = .graf_corte_unido(corte),
+               corte_etiqueta = as.character(corte_etiqueta %||% "")[1], title_slide = titulo, overrides = ov, base = base,
+               filtros = .ppt_norm_filters(filtros), universos_no_confiables = no_confiables)
+    class(el) <- c("ppt_element", "list")
+    return(.regla_preguntas_en_constructor(el, regla, "p_dumbbell()"))
   }
   vars <- .graf_aplicar_titulos_grupo(vars, titulos_grupo, "p_dumbbell()")
   if (!is.list(vars) || !length(vars)) {

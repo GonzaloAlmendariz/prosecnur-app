@@ -178,6 +178,7 @@
 #' @keywords internal
 .regla_preguntas_ind_dumbbell_bases <- function(el, sources) {
   codigos <- .radar_mb_codigos(el$corte)
+  if (.dumbbell_sin_temas(el$vars)) el$vars <- .dumbbell_vars_desde_fuentes(el, sources)   # graficos_dumbbell_auto.R
   temas <- list(); motivos <- list()
   for (t in names(el$vars)) {
     refs <- as.character(el$vars[[t]])
@@ -324,7 +325,7 @@
     fortalezas = .regla_preguntas_ind_panorama(el, sources, tipo),   # un público: las preguntas de escala de su base
     dumbbell = if (!is.null(el$cruce)) .regla_preguntas_ind_dumbbell_cruce(el, sources) else .regla_preguntas_ind_dumbbell_bases(el, sources),
     barras_divergentes = .regla_preguntas_ind_divergentes(el, sources, preset = preset),
-    .regla_preguntas_falla(sprintf("El gráfico «%s» no elige sus preguntas con una regla.", et))
+    .regla_preguntas_falla("Este gráfico no elige sus preguntas con una regla.")
   )
 }
 
