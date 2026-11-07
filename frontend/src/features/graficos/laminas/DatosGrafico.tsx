@@ -63,6 +63,7 @@ import { CitasAprobadas } from "./citas/CitasAprobadas";
 import { ObjetivoDimension } from "./ObjetivoDimension";
 import { CortesNumericos } from "./CortesNumericos";
 import { PartesLineas } from "./PartesLineas";
+import { AgruparLista } from "./AgruparLista";
 import { Segmentado } from "../subpestanas/Segmentado";
 import { opcionesNumeroEnBotones } from "./numerosEnBotones";
 import { graficadorToPresetType } from "../graficadorPresetMap";
@@ -193,6 +194,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
     <Fragment key={c.arg.name}>
       {/* H2: la ayuda de «Pista gris» describe la opción elegida, no siempre «Automática». */}
       <Fila campo={{ ...c, ayuda: ayudaDeLaOpcion(c, alcance(c).valor) }} graficador={valor.graficador} valor={alcance(c).valor} sello={alcance(c).sello} categorias={categoriasDe(c.arg.name)}
+            args={args}
             onCambio={(v) => set(valor.graficador === "p_radar" && c.arg.name === "modo" && typeof v === "string" ? patchModoRadar(args.modo, v) : { [c.arg.name]: v })} />
       {/* H2: «Un color por opción» encendido sobre una lista sin colores dice por qué no se ve. */}
       {c.arg.name === "colorear_por_opcion" && interruptorEncendido(c.arg, alcance(c).valor) && <AvisoColorPorOpcion valor={valor} />}
@@ -356,8 +358,10 @@ type CategoriasFila = {
   sustantivo?: Sustantivo;
 };
 
-function Fila({ campo, graficador, valor, onCambio, sello, categorias }: {
+function Fila({ campo, graficador, valor, onCambio, sello, categorias, args }: {
   campo: CampoDato; graficador: string; valor: unknown; onCambio: (v: unknown) => void; sello?: ReactNode;
+  /** Los args del gráfico, para los controles que leen otros args (las preguntas del mapa en «Agrupar en la lista»). */
+  args: Readonly<Record<string, unknown>>;
   /** Para los campos de códigos que son categorías de una pregunta: cuál y cómo se marcan. */
   categorias?: CategoriasFila;
 }) {
@@ -467,6 +471,9 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias }: {
         {nota}
       </div>
     );
+  }
+  if (control === "grupos_lista") {
+    return <AgruparLista id={id} etiqueta={etiqueta} nota={nota} valor={valor} args={args} onCambio={onCambio} />;
   }
   if (control === "partes") {
     return <PartesLineas id={id} arg={arg.name} etiqueta={etiqueta} nota={nota} valor={valor} variable={categorias?.variable ?? ""}

@@ -12,10 +12,11 @@
 
 import type { ArgMetadata } from "../../../api/graficos";
 import { argAplica } from "../argDependencias";
+import { preguntasDelMapa } from "./modeloAgruparLista";
 
 export type ControlDato =
   | "variable" | "variable_opcional" | "variables" | "interruptor" | "numero" | "opciones" | "texto" | "codigos" | "nombres_base"
-  | "partes";
+  | "partes" | "grupos_lista";
 
 type Valores = Readonly<Record<string, unknown>>;
 
@@ -170,6 +171,16 @@ const LISTA_BLANCA: Record<string, Entrada> = {
     rotulo: "Juntar con",
     ayuda: "Suma sus respuestas en el mismo mapa, como el distrito del Callao al de Lima.",
     soloEn: ["p_mapa_distribucion"],
+  },
+  // CCSS Perfil 2026: la lista decía «Callao 12» y el resto del Callao caía en «Otros distritos». Filas con rótulo y las
+  // preguntas del propio mapa (AgruparLista.tsx); se guarda la lista con nombre que lee el motor, nunca el texto, así
+  // que un valor guardado como lista con nombre se lee y no lo pisa un campo de texto.
+  agrupar_lista: {
+    rotulo: "Agrupar en la lista",
+    ayuda: "Suma en una sola fila de la lista las áreas de las preguntas marcadas. El mapa no cambia.",
+    control: "grupos_lista",
+    soloEn: ["p_mapa_distribucion"],
+    cuando: (v) => preguntasDelMapa(v).length > 0 || (v.agrupar_lista !== undefined && v.agrupar_lista !== null),
   },
   medida: { rotulo: "Qué se pinta", soloEn: ["p_mapa_distribucion"] },
   unidad: { rotulo: "Se cuentan", soloEn: ["p_mapa_distribucion"] },
