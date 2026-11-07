@@ -10,6 +10,7 @@ const path = require("node:path");
 const { createCloseGuard, createStdioMirror } = require("./lifecycle.cjs");
 const { resolvePreviewRendererDir } = require("./preview-renderer.cjs");
 const { createHfPublishBroker } = require("./hf-publish-broker.cjs");
+const { crearHandlersEntregable, esMotivoPropio, instalarDescargas } = require("./descargas.cjs");
 const {
   buildContentSecurityPolicy,
   canPersistSecret,
@@ -983,6 +984,31 @@ function registerIpcHandlers() {
     app.quit();
     return true;
   });
+
+  // «Mostrar en la carpeta» y «Abrir» de un entregable (ADR 0133, fase 3). La
+  // ruta llega del renderer: descargas.cjs la valida (absoluta, sin `..`,
+  // archivo real con extensión de entregable, dentro de Descargas o de
+  // `<proyecto>/Entregables`) antes de tocar `shell`. El rechazo se registra
+  // sin la ruta.
+  const entregables = crearHandlersEntregable({
+    shell,
+    downloadsDir: () => app.getPath("downloads"),
+  });
+  const rutaDelPayload = (args) =>
+    args && typeof args === "object" && typeof args.ruta === "string" ? args.ruta : undefined;
+  const registrarRechazo = (canal, resultado) => {
+    if (resultado && resultado.ok === false) {
+      const motivo = esMotivoPropio(resultado.motivo) ? resultado.motivo : "error del sistema";
+      writeLog(`[entregable] ${canal} rechazado: ${motivo}\n`);
+    }
+    return resultado;
+  };
+
+  trustedHandle("entregable:mostrarEnCarpeta", (_event, args) =>
+    registrarRechazo("mostrarEnCarpeta", entregables.mostrarEnCarpeta(rutaDelPayload(args))));
+
+  trustedHandle("entregable:abrir", async (_event, args) =>
+    registrarRechazo("abrir", await entregables.abrir(rutaDelPayload(args))));
 }
 
 // Helper para enviar comandos del menú al renderer. Se usa desde
@@ -1841,6 +1867,18 @@ function installCsp() {
     (_webContents, _permission, callback) => callback(false),
   );
   session.defaultSession.setPermissionCheckHandler(() => false);
+  // Descargas sin diálogo (ADR 0133, fase 3): lo que el renderer descarga va a
+  // Descargas del sistema con el mismo nombre y sin sobrescribir; al terminar
+  // se avisa al renderer para ofrecer «Abrir» y «Mostrar en la carpeta».
+  instalarDescargas(session.defaultSession, {
+    downloadsDir: () => app.getPath("downloads"),
+    registrar: writeLog,
+    notificar: (descarga) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send("descarga:terminada", descarga);
+      }
+    },
+  });
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     const csp = buildContentSecurityPolicy({
       isDev: ELECTRON_DEV,
