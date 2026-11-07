@@ -10,6 +10,7 @@
 
 import type { Slide } from "../../../../api/graficos";
 import { esEntreGrupos } from "../brecha/modeloBrechaGrupos";
+import { conPropuesta } from "../gruposPadron/modeloPadron";
 import type { ClavePreset, EstudioDelSelector, PresetLamina } from "./opcionesLamina";
 
 export type ClaseTarjeta = "grafico" | "lamina" | "resumen";
@@ -67,6 +68,15 @@ export const todasDeLasBases = (bases: readonly string[]): string[] => bases.map
 const basePrincipal = (e: EstudioDelSelector): string | null =>
   e.baseActiva && e.bases.includes(e.baseActiva) ? e.baseActiva : e.bases[0] ?? null;
 
+/** Los args con que nace la cobertura: todas las bases y la propuesta de padrón y meta que haya. */
+export function coberturaPorDefecto(e: EstudioDelSelector): Record<string, unknown> {
+  if (!e.bases.length) return {};
+  const propuesta = conPropuesta({}, e.padron ?? [], e.bases, true, false);
+  const out: Record<string, unknown> = { bases: [...e.bases] };
+  for (const [k, v] of Object.entries(propuesta)) if (v !== null && v !== undefined) out[k] = v;
+  return out;
+}
+
 export const TARJETAS_CONTAR: readonly TarjetaContar[] = [
   {
     clave: "p_slide_1_grafico:panorama",
@@ -110,7 +120,9 @@ export const TARJETAS_CONTAR: readonly TarjetaContar[] = [
     descripcion: "Por público, los casos, el padrón, la cobertura y la meta.",
     pide: "El padrón y la meta de cada público",
     parche: {},
-    grafico: { graficador: "p_cobertura", args: {} },
+    // U3: nace con todas las bases del estudio y, si Cálculo de muestra o Monitoreo los declaran, con su padrón y su
+    // meta ya escritos (la propuesta; en la tarjeta se ven con su origen y se cambian).
+    grafico: { graficador: "p_cobertura", args: {}, porDefecto: (e) => coberturaPorDefecto(e) },
     coincide: conGrafico("p_cobertura"),
   },
   {

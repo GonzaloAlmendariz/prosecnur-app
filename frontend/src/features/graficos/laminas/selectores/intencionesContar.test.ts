@@ -110,6 +110,20 @@ describe("ADR 0135 §2: las láminas de resumen nacen con su regla", () => {
   it("fortalezas: las preguntas de la base activa; la regla la pone el constructor", () => {
     expect(insertar("p_slide_1_grafico:fortalezas").args).toEqual({ vars: ["estudiantes$*"] });
   });
+  it("cobertura: todas las bases del estudio y la propuesta de padrón y meta que haya (U3)", () => {
+    expect(insertar("p_slide_1_grafico:cobertura").args).toEqual({ bases: ["docentes", "estudiantes", "administrativos"] });
+    const conPropuesta: EstudioDelSelector = { ...ESTUDIO, padron: [
+      { base: "docentes", padron: 123, padron_origen: "Cálculo de muestra: marco validado (Docentes)", meta: 60, meta_unidad: "porcentaje", meta_origen: "", motivo: "" },
+      { base: "administrativos", padron: 90, padron_origen: "Monitoreo: universo (Administrativos)", meta: 74, meta_unidad: "casos", meta_origen: "", motivo: "" },
+      { base: "estudiantes", padron: null, padron_origen: "", meta: null, meta_unidad: null, meta_origen: "", motivo: "Sin padrón declarado." },
+    ] };
+    expect(insertar("p_slide_1_grafico:cobertura", conPropuesta).args).toEqual({
+      bases: ["docentes", "estudiantes", "administrativos"],
+      universos: "Docentes: 123; Administrativos: 90",
+      metas: "Docentes: 60%; Administrativos: 74",
+    });
+    expect(insertar("p_slide_1_grafico:cobertura", { bases: [], baseActiva: null }).args).toEqual({});
+  });
   it("sin bases conocidas no inventa vars; lo ya configurado no se pisa", () => {
     expect(insertar("p_slide_1_grafico:panorama", { bases: [], baseActiva: null }).args).toEqual({ regla: { tipo: "todas" } });
     const slide = { tipo: "p_slide_1_grafico" as const, payload: { grafico: { graficador: "p_panorama", args: { vars: ["docentes$p1"], regla: { tipo: "bajo_umbral", umbral: 50 } } } } };

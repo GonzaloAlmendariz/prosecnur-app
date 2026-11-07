@@ -17,6 +17,9 @@ import { BASE_DERIVADA } from "../../iconos/composicion";
 import { payloadPorDefecto, usePlanStore } from "../../store";
 import { useGraficosRegistry } from "../../useGraficosRegistry";
 import { useVariables } from "../../useVariables";
+import { useLocation } from "react-router-dom";
+import { useGraficosReportScope } from "../../reportScope";
+import { propuestasDe, usePadronPropuesto } from "../gruposPadron/usePadronPropuesto";
 import { graficosDeLamina, graficosPorSlot, planearCambioTipo, requiereConfirmacion, type CambioTipoLamina } from "./cambioTipoLamina";
 import { DetalleTarjetaContar } from "./DetalleTarjetaContar";
 import { DetalleTipoLamina } from "./DetalleTipoLamina";
@@ -60,8 +63,12 @@ export function SelectorTipoLamina({ slide, posicion, cerrar }: Props) {
   // ADR 0135 §2: las láminas de resumen nacen con su regla y, si dependen de las bases, con sus `vars` (`base$*`).
   const { sources, baseActiva } = useVariables();
   const nombresBases = sources.map((s) => s.name).join("|");
+  // U3: la cobertura nace con la propuesta de padrón y meta; se pide sólo si el registro ofrece la cobertura.
+  const scope = useGraficosReportScope(useLocation().search);
+  const conCobertura = registry ? "p_cobertura" in graficadoresById : CATALOGO_GRAFICOS.some((g) => g.name === "p_cobertura");
+  const padron = propuestasDe(usePadronPropuesto(scope, conCobertura && nombresBases !== ""));
   const estudio = useMemo<EstudioDelSelector>(
-    () => ({ bases: nombresBases ? nombresBases.split("|") : [], baseActiva }), [nombresBases, baseActiva]);
+    () => ({ bases: nombresBases ? nombresBases.split("|") : [], baseActiva, padron }), [nombresBases, baseActiva, padron]);
 
   const modo = ui.modoLamina === "cambiar" && slide ? "cambiar" : "insertar";
   const tipoActual = modo === "cambiar" && slide ? slide.tipo : null;

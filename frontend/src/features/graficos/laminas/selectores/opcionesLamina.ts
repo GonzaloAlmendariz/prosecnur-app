@@ -7,6 +7,7 @@
 // (un `undefined` borra la clave). La tarjeta del tipo puede tener su propio parche: «Hallazgos clave» son las cifras
 // (`modo: "cifras"`), así que elegirla desde un resumen ejecutivo deja de ser un resumen.
 
+import type { PadronPropuesto } from "../../../../api/graficosPadron";
 import type { GraficadorRef, Slide, SlideType } from "../../../../api/graficos";
 import { esGraficadorRef, type CambioTipoLamina } from "./cambioTipoLamina";
 import { TARJETAS_CONTAR, type ClaseTarjeta } from "./intencionesContar";
@@ -18,8 +19,11 @@ export type OpcionLamina = SlideType | ClavePreset;
 
 type Parche = Readonly<Record<string, unknown>>;
 
-/** Lo que el selector sabe del estudio al insertar: sus bases y la activa (useVariables). */
-export type EstudioDelSelector = { bases: readonly string[]; baseActiva: string | null };
+/**
+ * Lo que el selector sabe del estudio al insertar: sus bases y la activa (useVariables) y, si ya se leyó, la propuesta de
+ * padrón y meta por base (ADR 0135 §6), con la que nace la cobertura.
+ */
+export type EstudioDelSelector = { bases: readonly string[]; baseActiva: string | null; padron?: readonly PadronPropuesto[] };
 
 export const SIN_ESTUDIO: EstudioDelSelector = { bases: [], baseActiva: null };
 
