@@ -155,3 +155,35 @@ test_that("H5: el pie de la escala del resumen dice sobre qué es el porcentaje"
   expect_identical(.dns_espec(src)$nota_porcentaje, "Porcentaje sobre el total de respondientes.")
   expect_null(.dns_espec(src, estilo = "recetario")$nota_porcentaje)
 })
+
+# ---- Re-revisión metodológica de afcd0f8e3 (N1, N2) ----------------------------
+
+test_that("N1: el salto de 2 sólo une un hueco interior; una punta suelta es Sin información", {
+  skip_if_not_installed("ggplot2")
+  f <- .divergentes_especiales
+  expect_identical(f(c(paste("N", 1:7), "Prefiero no responder"), c(as.character(1:7), "9")), c(rep(FALSE, 7), TRUE))
+  expect_identical(f(c("a", "b", "c", "d", "Sin opinión"), c("1", "2", "3", "4", "6")), c(rep(FALSE, 4), TRUE))
+  expect_identical(f(c("a", "b", "c", "No precisa"), c("1", "2", "3", "5")), c(rep(FALSE, 3), TRUE))
+  expect_identical(f(c("a", "b", "c", "d", "e", "Algo sustantivo"), c("1", "2", "3", "4", "5", "7")), c(rep(FALSE, 5), TRUE))
+  expect_false(any(f(c("a", "b", "d", "e"), c("1", "2", "4", "5"))))
+  # Los rótulos de no respuesta también se reconocen contiguos a la escala.
+  expect_identical(f(c("a", "b", "c", "d", "e", "Prefiero no decir"), as.character(1:6)), c(rep(FALSE, 5), TRUE))
+  # Ruta real 1-7 + 9: la lámina y la regla ven Sin información; el acuerdo no suma el 9.
+  src <- .dns_fuentes(c(as.character(1:7), "9"), c(paste("Nivel", 1:7), "Prefiero no responder"),
+                      list(a = c(2, 2, 2, 4, 4, 3, 3, 20)))
+  e <- .dns_espec(src)
+  expect_identical(e$categorias$lado[8], "sin_inf")
+  el <- p_barras_divergentes(vars = "b$*", orden = "declarado", regla = list(tipo = "mayor_sin_info", n = 1))
+  ind <- .regla_preguntas_indicadores(el, src)$indicadores
+  expect_gt(ind$sin_info, 0)
+  expect_equal(ind$sin_info, 50)
+})
+
+test_that("N2: «Otro» no entra a la escala aunque sea contiguo; «Ninguno» sí", {
+  skip_if_not_installed("ggplot2")
+  expect_identical(.divergentes_especiales(c("a", "b", "c", "d", "e", "Otro"), as.character(1:6)), c(rep(FALSE, 5), TRUE))
+  expect_true(.divergentes_especiales("Otros", NA))
+  expect_false(.divergentes_especiales("Ninguna confianza", NA))
+  src <- .dns_fuentes(as.character(1:6), c(.dns_lik5, "Otro"), list(a = c(2, 3, 5, 10, 10, 10)))
+  expect_identical(.dns_espec(src)$categorias$lado, c("neg", "neg", "neu", "pos", "pos", "sin_inf"))
+})

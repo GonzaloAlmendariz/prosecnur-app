@@ -22,10 +22,15 @@
 # horarios» + 7 «No sabía que los/as docentes tuvieran horario de atención», contiguos a la escala, recibían el verde
 # más intenso de una rampa de siete. Sólo por arriba: un «Ninguno» que abre una escala de frecuencia sigue en ella.
 
-.NO_SUSTANTIVOS_ROTULO_EXTRA <- "^(no tengo informaci|no lo s[eé]|no s[eé]\\b|no uso|no utilic|no conozco|desconozco|no aplica|sin informaci|ns ?/ ?n[rco])"
+.NO_SUSTANTIVOS_ROTULO_EXTRA <- paste0("^(no tengo informaci|no lo s[eé]|no s[eé]\\b|no uso|no utilic|no conozco|desconozco|no aplica|sin informaci|ns ?/ ?n[rco]|",
+                                       "prefiero no (responder|decir)|no precisa|sin opini|no contesta|rechaz|no recuerda|no corresponde)")
 .NO_SUSTANTIVOS_ROTULO_COLA <- paste0("^(no tengo informaci|no lo s[eé]|no s[eé]\\b|no sab[ií]a|no conoc[ií]a|no conozco|desconozco|",
                                       "no aplica|sin informaci|ns ?/ ?n[rco]|no responde|no opina|",
-                                      "no he (acudido|asistido|usado|utilizado|ido|participado|tenido)|no uso|no utilic)")
+                                      "no he (acudido|asistido|usado|utilizado|ido|participado|tenido)|no uso|no utilic|",
+                                      "prefiero no (responder|decir)|no precisa|sin opini|no contesta|rechaz|no recuerda|no corresponde)")
+# Con `residuales = FALSE` (la escala divergente) «Ninguno/Ninguna» es el extremo de la escala, pero «Otro» sigue siendo
+# residual: cuenta por rótulo y, contiguo a la escala por arriba, se recorta de su punta como una no respuesta.
+.NO_SUSTANTIVOS_RESIDUALES_ESCALA <- "^(Otro|Otros|Otra|Otras|No sabe|Prefiero no)\\b"
 .NO_SUSTANTIVOS_COLS_META <- c("especial", "no_sustantivo", "valor_especial", "special", "es_especial")
 .NO_SUSTANTIVOS_META_SI <- c("1", "true", "t", "si", "sí", "yes", "x", "especial")
 .NO_SUSTANTIVOS_META_NO <- c("0", "false", "f", "no", "n")
@@ -63,6 +68,12 @@
   mejor <- which.max(largo)   # empate: la primera (la de códigos menores)
   if (largo[mejor] < 2L) return(NULL)
   run <- v[corte == mejor]
+  # El salto de 2 sólo une un hueco INTERIOR (1, 2, 4, 5): una punta separada por un salto de 2 y sin vecino
+  # consecutivo (el 9 tras una 1-7, el 6 tras una 1-4) no es parte de la escala.
+  if (salto_max > 1L) {
+    while (length(run) >= 3L && run[2] - run[1] > 1) run <- run[-1]
+    while (length(run) >= 3L && run[length(run)] - run[length(run) - 1L] > 1) run <- run[-length(run)]
+  }
   esp <- suppressWarnings(as.numeric(especiales)); esp <- esp[is.finite(esp)]
   while (length(run) && run[1] %in% esp) run <- run[-1]
   while (length(run) && run[length(run)] %in% esp) run <- run[-length(run)]
@@ -75,8 +86,9 @@
 #' `residuales = FALSE` no cuenta `.CATEGORIAS_RESIDUALES` («Ninguno», «Otro»…): en una escala ordinal «Ninguna confianza»
 #' o «Ninguno» es su extremo, no una no respuesta (revisión metodológica de la oleada 3, ADR 0135 §3).
 .graficos_no_sustantivos_rotulo <- function(etiquetas, residuales = TRUE) {
+  re_res <- if (isTRUE(residuales)) .CATEGORIAS_RESIDUALES else .NO_SUSTANTIVOS_RESIDUALES_ESCALA
   casa <- function(e) {
-    (isTRUE(residuales) & grepl(.CATEGORIAS_RESIDUALES, e, ignore.case = TRUE)) | grepl(.DIVERGENTES_ESPECIAL, e, ignore.case = TRUE) |
+    grepl(re_res, e, ignore.case = TRUE, perl = TRUE) | grepl(.DIVERGENTES_ESPECIAL, e, ignore.case = TRUE) |
       grepl(.NO_SUSTANTIVOS_ROTULO_EXTRA, tolower(.box_norm_etiqueta(e)), perl = TRUE)
   }
   vapply(as.character(etiquetas), function(e) {
@@ -91,10 +103,12 @@
 #' Sólo códigos cuyo rótulo se conoce (`v`, `etiquetas`) y que la metadata no declara de la escala; la escala que queda
 #' conserva al menos dos puntos.
 #' @keywords internal
-.graficos_no_sustantivos_recortar_cola <- function(rango, v, etiquetas, sustantivos = character(0)) {
+.graficos_no_sustantivos_recortar_cola <- function(rango, v, etiquetas, sustantivos = character(0), residuales = TRUE) {
   if (is.null(rango)) return(rango)
   norm <- tolower(.box_norm_etiqueta(ifelse(is.na(etiquetas), "", etiquetas)))
-  cola <- v[is.finite(v) & grepl(.NO_SUSTANTIVOS_ROTULO_COLA, norm, perl = TRUE) &
+  es_cola <- grepl(.NO_SUSTANTIVOS_ROTULO_COLA, norm, perl = TRUE)
+  if (!isTRUE(residuales)) es_cola <- es_cola | grepl(.NO_SUSTANTIVOS_RESIDUALES_ESCALA, norm, ignore.case = TRUE, perl = TRUE)
+  cola <- v[is.finite(v) & es_cola &
               !(as.character(v) %in% trimws(as.character(sustantivos %||% character(0))))]
   while (rango[2] %in% cola && rango[2] - 1 > rango[1]) rango[2] <- rango[2] - 1
   rango
@@ -120,7 +134,7 @@
   # Los que la metadata ya declaró no alargan la escala por sus puntas (un 9 marcado especial no alarga una 1-8).
   rango <- .graficos_no_sustantivos_rango(trimws(as.character(codigos_lista)), especiales, salto_max = salto_max)
   v <- suppressWarnings(as.numeric(codigos))
-  rango <- .graficos_no_sustantivos_recortar_cola(rango, v, etiquetas, sustantivos)
+  rango <- .graficos_no_sustantivos_recortar_cola(rango, v, etiquetas, sustantivos, residuales = residuales)
   dentro <- if (is.null(rango)) rep(FALSE, length(codigos)) else (is.finite(v) & v >= rango[1] & v <= rango[2])
   fuera <- if (is.null(rango)) rep(FALSE, length(codigos)) else (is.finite(v) & !dentro)
   rotulo <- .graficos_no_sustantivos_rotulo(etiquetas, residuales = residuales)
