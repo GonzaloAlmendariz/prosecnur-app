@@ -1,0 +1,155 @@
+/* Grupos internos y padrón por público (GruposPadron.tsx, PadronPublicos.tsx). El marco de la lista es el Panel del kit;
+   aquí sólo hay filas planas con separador. La lista es dueña de su scroll (C4): un cruce con quince opciones se recorre
+   dentro, sin estirar la tarjeta. Sólo tokens. */
+
+.pulso-f6-grupos,
+.pulso-f6-publicos {
+  gap: var(--pulso-space-2);
+}
+
+.pulso-f6-grupos-cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-f6-grupos-tope {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-f6-grupos-tope.is-lleno {
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-f6-grupos-lista {
+  display: grid;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.pulso-f6-grupos-filas {
+  display: grid;
+  max-height: 420px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+}
+
+.pulso-f6-grupos-fila {
+  display: grid;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-top: 1px solid var(--pulso-border);
+  font-size: var(--pulso-type-body-size);
+}
+
+.pulso-f6-grupos-fila:first-child {
+  border-top: 0;
+}
+
+.pulso-f6-grupos-fila.is-incluido {
+  background: var(--module-accent-soft);
+}
+
+.pulso-f6-grupos-fila .is-chico {
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-f6-publicos-nombre {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+/* Padrón y meta: rótulo corto, número angosto y su interruptor o unidad; en un inspector angosto bajan de línea. */
+.pulso-f6-padron {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-f6-padron-rotulo {
+  min-width: 3.5em;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-f6-publicos-propuesta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-f6-publicos-propuesta .pulso-f6-dato-ayuda,
+.pulso-f6-grupos-fila > .pulso-f6-dato-ayuda {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+}
+
+.pulso-f6-grupos-base {
+  display: grid;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+}
+
+.pulso-f6-grupos-base-rotulo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-f6-grupos-base-texto {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+/* Filas extra: cifra angosta, rótulo y quitar en una línea; el detalle debajo, a todo el ancho. */
+.pulso-f6-extras {
+  display: grid;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-f6-extras-filas {
+  display: grid;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-f6-extras-fila {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  padding-bottom: var(--pulso-space-2);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-f6-extras-detalle {
+  grid-column: 1 / -1;
+}

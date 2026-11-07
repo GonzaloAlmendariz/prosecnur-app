@@ -86,6 +86,8 @@ import { argDeCruce, valorDeCruce } from "./diferencias/modeloDiferencias";
 import { interruptorAplica, interruptorGuardado, parcheInterruptor } from "./diferencias/interruptorDelGrafico";
 import { revelarYEnfocar } from "../revelarFila";
 import { ReglaPreguntas } from "./reglaPreguntas/ReglaPreguntas";
+import { PadronPublicos } from "./gruposPadron/PadronPublicos";
+import { llevaPadronPublicos } from "./gruposPadron/modeloPadron";
 import type { ReglaPreguntas as Regla } from "../../../api/graficosRegla";
 import "./datosGrafico.css";
 import { formatoConteo } from "../../../lib/formatoNumero";
@@ -110,7 +112,11 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
   const cifra = valor.graficador === "p_cifra";
   // O3b-b: las citas aprobadas tienen su tarjeta de aprobación (candidatas, recorte, corrección y [sic]).
   const citas = valor.graficador === "p_citas";
+  // ADR 0135 §6: el padrón de cada grupo o público (y en la cobertura, los públicos, la meta y las filas extra) se edita
+  // en su control (GruposPadron, PadronPublicos), no como texto suelto.
+  const padronPropio = (valor.graficador === "p_dumbbell" && args.estilo === "resumen") || llevaPadronPublicos(valor.graficador, args);
   const delEditor = (name: string) => (cifra && name !== "var") || (citas && name === "citas_aprobadas") ||
+    (padronPropio && (name === "universos" || name === "bases" || name === "metas" || name === "extras")) ||
     (radarPublicos || serie) && (name === "vars" || name === "orden_periodos" || (name === "corte" && conCasillas));
   const formaRadar = radarPublicos ? formaEfectivaRadar({ forma: args.forma, fallback_pocos: args.fallback_pocos, tabla: args.tabla, nCriterios: criteriosDelRadar(args) }).forma : "radar";
   const campos = camposDeDatos(meta?.args ?? [], args, valor.graficador)
@@ -268,6 +274,9 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
         {valor.graficador === "p_dim_heatmap_criterios" && <CriteriosGrafico valor={args.config_criterios} onCambio={(c) => set({ config_criterios: c })} />}
         {serie && <EditorTemasEquivalentes tipo="serie" args={args} onCambio={set} />}
         {delGrupo("datos")}
+        {valor.graficador !== "p_dumbbell" && llevaPadronPublicos(valor.graficador, args) && (
+          <PadronPublicos graficador={valor.graficador} args={args} scope={scope} onCambio={set} />
+        )}
         {cifra && <CifraGrafico args={args} variable={variable && !sinBaseCompartido ? varCalificada(variable, baseActiva, scope) : ""} scope={scope} onCambio={set} />}
         {citas && <CitasAprobadas args={args} variable={variable && !sinBaseCompartido ? varCalificada(variable, baseActiva, scope) : ""} onCambio={set} />}
         {sinBaseCompartido && <NotaBaseCompartido />}

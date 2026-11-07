@@ -1,0 +1,92 @@
+// Grupos internos de las aperturas (p_dumbbell estilo resumen con cruce; ADR 0135 §6, maqueta graficos-sintesis,
+// Grupos). Modelo puro: qué grupos entran (hasta cuatro, en el orden en que se eligen), su padrón, el aviso del grupo
+// chico y la línea «Base:» de la nota escrita con el mismo formato que el motor:
+//   - `.contraste_base_texto`: «115 (93%)» con padrón confiable que lo cubre; «115» sin él (graficos_espec_contraste.R).
+//   - `nota_base`: «Base: » y los grupos separados por «; ».
+//   - `.dumbbell_nota_grupo_chico`: «Grupo chico: 24 docentes TC.» o «Grupos chicos: …; ….» (umbral 30).
+// La vista previa usa los casos de cada grupo en el cruce. El motor usa los de cada pregunta, que pueden ser menos (quien
+// no respondió una pregunta no cuenta en su base); cuando cambian de pregunta a pregunta, el pie da su rango.
+
+import { formatoConteo } from "../../../../lib/formatoNumero";
+import { gruposElegidos, MAX_GRUPOS_RESUMEN, type Opcion } from "../brecha/modeloBrechaGrupos";
+import { padronDe, UMBRAL_GRUPO_CHICO, type Padron } from "./modeloPadron";
+
+type Args = Readonly<Record<string, unknown>>;
+
+export type FilaGrupo = {
+  codigo: string;
+  etiqueta: string;
+  /** Casos del grupo en el cruce; `null` si no hay conteo. */
+  n: number | null;
+  incluido: boolean;
+  /** Fuera y con el tope lleno: no se puede encender. */
+  bloqueado: boolean;
+  padron: Padron;
+  chico: boolean;
+};
+
+/** Las filas de la lista: una por opción del cruce, en el orden del instrumento. */
+export function filasGrupos(opciones: readonly Opcion[], conteos: ReadonlyMap<string, number> | null, args: Args, tope = MAX_GRUPOS_RESUMEN): FilaGrupo[] {
+  const elegidos = gruposElegidos(args);
+  const lleno = elegidos.length >= tope;
+  return opciones.map((o) => {
+    const incluido = elegidos.includes(o.codigo);
+    const n = conteos?.get(o.codigo) ?? null;
+    return {
+      codigo: o.codigo, etiqueta: o.etiqueta, n, incluido, bloqueado: !incluido && lleno,
+      padron: padronDe(args, o.etiqueta), chico: n !== null && n < UMBRAL_GRUPO_CHICO,
+    };
+  });
+}
+
+/** Encender agrega el grupo al final (el orden de la lámina es el de elección); apagar lo quita. Nunca pasa del tope. */
+export function alternarGrupo(args: Args, codigo: string, incluir: boolean, tope = MAX_GRUPOS_RESUMEN): Record<string, unknown> {
+  const actuales = gruposElegidos(args);
+  if (incluir) {
+    if (actuales.includes(codigo) || actuales.length >= tope) return { grupos: actuales };
+    return { grupos: [...actuales, codigo] };
+  }
+  return { grupos: actuales.filter((g) => g !== codigo) };
+}
+
+/** Los grupos incluidos en el orden de la lámina (el de `grupos`), no el de la lista. */
+export function incluidosEnOrden(filas: readonly FilaGrupo[], args: Args): FilaGrupo[] {
+  return gruposElegidos(args).flatMap((c) => filas.filter((f) => f.codigo === c));
+}
+
+const pct = (n: number, u: number) => Math.floor((100 * n) / u + 0.5 + 1e-9);
+
+/** La base de un grupo como la escribe el motor: «91 (88%)» con padrón confiable que lo cubre; si no, «91». */
+export function baseDeGrupo(n: number, padron: Padron): string {
+  const u = padron.confiable ? padron.valor : null;
+  if (u === null || u <= 0 || n > u) return formatoConteo(n);
+  return `${formatoConteo(n)} (${pct(n, u)}%)`;
+}
+
+/**
+ * La línea «Base:» que irá en la nota, o `null` si no hay dos grupos con conteo (la vista previa no inventa una base).
+ */
+export function lineaBase(incluidos: readonly FilaGrupo[]): string | null {
+  if (incluidos.length < 2 || incluidos.some((f) => f.n === null)) return null;
+  return `Base: ${incluidos.map((f) => `${f.etiqueta} ${baseDeGrupo(f.n as number, f.padron)}`).join("; ")}`;
+}
+
+/** Cómo nombra el motor a los casos del cruce: la base en minúscula («docentes»); sin base, «casos». */
+export function unidadDeCruce(cruce: string): string {
+  const i = cruce.indexOf("$");
+  const base = i > 0 ? cruce.slice(0, i).trim() : "";
+  return base ? base.toLowerCase() : "casos";
+}
+
+/** El aviso del grupo chico con el texto del pie del motor, o `null` si ningún grupo incluido queda bajo 30. */
+export function notaGrupoChico(incluidos: readonly FilaGrupo[], unidad: string): string | null {
+  const chicos = incluidos.filter((f) => f.chico && f.n !== null);
+  if (!chicos.length) return null;
+  const piezas = chicos.map((f) => `${formatoConteo(f.n)} ${unidad} ${f.etiqueta}`);
+  return `${chicos.length === 1 ? "Grupo chico" : "Grupos chicos"}: ${piezas.join("; ")}.`;
+}
+
+/** «3 de 4». */
+export function textoTope(incluidos: number, tope = MAX_GRUPOS_RESUMEN): string {
+  return `${incluidos} de ${tope}`;
+}

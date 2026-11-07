@@ -3,7 +3,11 @@
 // de la matriz de equivalencias; se arma con los temas por público (EditorTemasEquivalentes), que la matriz sugiere.
 
 import { useId } from "react";
+import { useLocation } from "react-router-dom";
 import { Plus, X } from "../../../../vendor/lucide-react";
+import { useGraficosReportScope } from "../../reportScope";
+import { GruposPadron } from "../gruposPadron/GruposPadron";
+import { PadronPublicos } from "../gruposPadron/PadronPublicos";
 import VariablePicker from "../../VariablePicker";
 import { EditorTemasEquivalentes } from "../../temasEquivalentes/EditorTemasEquivalentes";
 import { useVariables } from "../../useVariables";
@@ -32,6 +36,10 @@ export function BrechaEntreGrupos({ args, onCambio }: Props) {
   const escala = grupos && preguntas.length ? opcionesDe(variables, preguntas[0]) : [];
   const corte = new Set(corteDe(args));
   const falta = grupos ? faltaEnBrecha(args) : null;
+  // ADR 0135 §6: en el contraste del resumen los grupos se eligen con su padrón (GruposPadron) y, entre bases, cada
+  // público lleva el suyo con la propuesta de Cálculo de muestra o Monitoreo (PadronPublicos).
+  const resumen = args.estilo === "resumen";
+  const scope = useGraficosReportScope(useLocation().search);
 
   return (
     <div className="pulso-f6-brecha" data-qa-geometry-group="graficos/f6-brecha" data-qa-geometry-contract="intrinsic">
@@ -44,17 +52,19 @@ export function BrechaEntreGrupos({ args, onCambio }: Props) {
       </div>
 
       {!grupos && <EditorTemasEquivalentes tipo="brecha" args={args} onCambio={onCambio} />}
+      {!grupos && resumen && <PadronPublicos graficador="p_dumbbell" args={args} scope={scope} onCambio={onCambio} />}
 
       {grupos && (
         <>
           <div className="pulso-f6-dato is-apilado">
-            <span className="pulso-f6-dato-rotulo">Grupos de</span>
+            <span className="pulso-f6-dato-rotulo">{resumen ? "Dividir por" : "Grupos de"}</span>
             <div className="pulso-f6-dato-control">
               <VariablePicker value={cruce || null} allowEmpty filter={esSelectOne} placeholder="Elige la pregunta (ej. sexo)…"
                               onChange={(v) => onCambio(conCruce(variables, v))} />
             </div>
           </div>
-          {cruce && (
+          {cruce && resumen && <GruposPadron args={args} cruce={cruce} opciones={opcionesCruce} scope={scope} onCambio={onCambio} />}
+          {cruce && !resumen && (
             <div className="pulso-f6-dato is-apilado">
               <span className="pulso-f6-dato-rotulo">
                 {varios ? "Los grupos (hasta cuatro)" : "Los dos grupos"}
