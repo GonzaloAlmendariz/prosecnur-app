@@ -1,4 +1,5 @@
-// Inserta un experimento conjoint generado en el formulario (E7b editor-conjoint, 2026-11-06).
+// Inserta y reemplaza experimentos en el formulario: elección por pares (E7b editor-conjoint, 2026-11-06) y viñetas
+// (checklist elección por pares C10, 2026-11-07).
 // Las filas de `generarConjoint` entran juntas en el lugar del «+» y su lista de elección se agrega a choices. Si un
 // nombre ya existe en el formulario no se inserta nada: un conjoint a medias es peor que ninguno.
 
@@ -7,6 +8,8 @@ import { deleteRow, insertRecord, rowToRecord } from "../parsing/sheetUtils";
 import type { BuilderStructure, XlsformEditorWorkbook } from "../types";
 import type { LecturaConjoint } from "./leerConjoint";
 import { generarConjoint, validarDiseno, type DisenoConjoint } from "./modeloConjoint";
+import { generarVinetas, validarVinetas, type DisenoVinetas } from "./modeloVinetas";
+import type { LecturaVinetas } from "./leerVinetas";
 
 export type ResultadoConjoint =
   | { ok: true; rowIndex: number; filas: number; calculos: number }
@@ -40,40 +43,29 @@ export function insertarConjoint(
   const problemas = validarDiseno(diseno);
   if (problemas.length) return { ok: false, motivos: problemas };
   const { survey, choices } = generarConjoint(diseno);
-  const usados = columnaDe(draft, "survey", "name");
-  const choque = survey.map((f) => f.name).filter((n) => n && usados.has(n));
-  const listas = columnaDe(draft, "choices", "list_name");
-  if (choque.length || listas.has(choices[0]!.list_name)) {
-    return {
-      ok: false,
-      motivos: [`El prefijo «${diseno.prefijo}» ya se usa en el formulario (${choque[0] ?? choices[0]!.list_name}). Elige otro, por ejemplo «${prefijoLibre(draft, diseno.prefijo)}».`],
-    };
-  }
-  const indice = indiceInsercion(structure, destino, draft.survey.rows.length);
-  survey.forEach((f, i) => insertRecord(draft.survey, indice + i, { ...f }));
-  choices.forEach((c) => insertRecord(draft.choices, draft.choices.rows.length, { ...c }));
-  return { ok: true, rowIndex: indice, filas: survey.length, calculos: survey.filter((f) => f.type === "calculate").length };
+  return insertarBloque(draft, structure, destino, survey, choices, diseno.prefijo);
 }
 
+/** Lo que un reemplazo necesita saber del experimento ya escrito, sea de pares o de viñetas. */
+export type BloqueEscrito = { filas: readonly number[]; ancla: number; lista: string; fiel: boolean; motivo: string | null };
+
 /**
- * Reemplaza un experimento ya escrito por el diseño editado (checklist elección por pares C5). Conserva los nombres
- * que el experimento tenía (`lectura.nombres`), así que las variables que ya se analizan no cambian. Entra donde estaba
- * su primer par (o su introducción); su lista de elección se reescribe en el mismo lugar. No hace nada si una variable que desaparece se
- * usa fuera del experimento, o si un nombre nuevo choca con otra fila.
+ * Reemplaza un experimento ya escrito por las filas de su diseño editado (checklist elección por pares C5 y C10). Las
+ * filas nuevas traen los nombres que el experimento tenía, así que las variables que ya se analizan no cambian. Entra
+ * donde estaba su primer par o viñeta (o su introducción); su lista se reescribe en el mismo lugar. No hace nada si una
+ * variable que desaparece se usa fuera del experimento, o si un nombre nuevo choca con otra fila.
  */
-export function reemplazarConjoint(
+export function reemplazarBloque(
   draft: XlsformEditorWorkbook,
-  lectura: LecturaConjoint,
-  diseno: DisenoConjoint,
+  bloque: BloqueEscrito,
+  survey: readonly Record<string, string>[],
+  choices: readonly Record<string, string>[],
 ): ResultadoConjoint {
-  if (!lectura.fiel) return { ok: false, motivos: [lectura.motivo ?? "El experimento no se puede editar desde aquí."] };
-  const problemas = validarDiseno(diseno);
-  if (problemas.length) return { ok: false, motivos: problemas };
-  const { survey, choices } = generarConjoint(diseno, lectura.nombres);
-  const quitar = new Set(lectura.filas);
+  if (!bloque.fiel) return { ok: false, motivos: [bloque.motivo ?? "El experimento no se puede editar desde aquí."] };
+  const quitar = new Set(bloque.filas);
   const nombre = (i: number) => (rowToRecord(draft.survey, i).name ?? "").trim();
-  const viejos = new Set(lectura.filas.map(nombre).filter(Boolean));
-  const nuevos = new Set(survey.map((f) => f.name).filter(Boolean));
+  const viejos = new Set(bloque.filas.map(nombre).filter(Boolean));
+  const nuevos = new Set(survey.map((f) => f.name ?? "").filter(Boolean));
 
   const motivos: string[] = [];
   const choque = [...nuevos].find((n) => !viejos.has(n) && draft.survey.rows.some((_, i) => !quitar.has(i) && nombre(i) === n));
@@ -88,16 +80,71 @@ export function reemplazarConjoint(
   }
   if (motivos.length) return { ok: false, motivos };
 
-  // Entra donde empezaban los pares (o su introducción): el sorteo que estuviera suelto más arriba se recoge adentro.
-  const ancla = lectura.intro ?? lectura.pares[0]!.grupo;
-  const indice = ancla - lectura.filas.filter((i) => i < ancla).length;
+  // Entra donde empezaba el experimento: el sorteo que estuviera suelto más arriba se recoge adentro.
+  const indice = bloque.ancla - bloque.filas.filter((i) => i < bloque.ancla).length;
   [...quitar].sort((a, b) => b - a).forEach((i) => deleteRow(draft.survey, i));
   survey.forEach((f, k) => insertRecord(draft.survey, indice + k, { ...f }));
 
-  const lista = lectura.nombres.lista;
-  const deLista = draft.choices.rows.map((_, i) => i).filter((i) => (rowToRecord(draft.choices, i).list_name ?? "").trim() === lista);
+  const deLista = draft.choices.rows.map((_, i) => i).filter((i) => (rowToRecord(draft.choices, i).list_name ?? "").trim() === bloque.lista);
   const enChoices = deLista.length ? deLista[0]! : draft.choices.rows.length;
   deLista.sort((a, b) => b - a).forEach((i) => deleteRow(draft.choices, i));
   choices.forEach((c, k) => insertRecord(draft.choices, enChoices + k, { ...c }));
   return { ok: true, rowIndex: indice, filas: survey.length, calculos: survey.filter((f) => f.type === "calculate").length };
+}
+
+/** El experimento de elección por pares ya escrito, con el diseño editado. */
+export function reemplazarConjoint(
+  draft: XlsformEditorWorkbook,
+  lectura: LecturaConjoint,
+  diseno: DisenoConjoint,
+): ResultadoConjoint {
+  if (!lectura.fiel) return { ok: false, motivos: [lectura.motivo ?? "El experimento no se puede editar desde aquí."] };
+  const problemas = validarDiseno(diseno);
+  if (problemas.length) return { ok: false, motivos: problemas };
+  const { survey, choices } = generarConjoint(diseno, lectura.nombres);
+  const ancla = lectura.intro ?? lectura.pares[0]!.grupo;
+  return reemplazarBloque(draft, { filas: lectura.filas, ancla, lista: lectura.nombres.lista, fiel: lectura.fiel, motivo: lectura.motivo }, survey, choices);
+}
+
+/** Inserta filas nuevas de un experimento en el lugar del «+» y agrega su lista. Nada si un nombre ya existe. */
+export function insertarBloque(
+  draft: XlsformEditorWorkbook,
+  structure: BuilderStructure,
+  destino: DestinoInsercion,
+  survey: readonly Record<string, string>[],
+  choices: readonly Record<string, string>[],
+  prefijo: string,
+): ResultadoConjoint {
+  const usados = columnaDe(draft, "survey", "name");
+  const choque = survey.map((f) => f.name ?? "").filter((n) => n && usados.has(n));
+  const listas = columnaDe(draft, "choices", "list_name");
+  const lista = choices[0]?.list_name ?? "";
+  if (choque.length || (lista && listas.has(lista))) {
+    return {
+      ok: false,
+      motivos: [`El prefijo «${prefijo}» ya se usa en el formulario (${choque[0] ?? lista}). Elige otro, por ejemplo «${prefijoLibre(draft, prefijo)}».`],
+    };
+  }
+  const indice = indiceInsercion(structure, destino, draft.survey.rows.length);
+  survey.forEach((f, i) => insertRecord(draft.survey, indice + i, { ...f }));
+  choices.forEach((c) => insertRecord(draft.choices, draft.choices.rows.length, { ...c }));
+  return { ok: true, rowIndex: indice, filas: survey.length, calculos: survey.filter((f) => f.type === "calculate").length };
+}
+
+/** Un experimento de viñetas nuevo, en el lugar del «+». */
+export function insertarVinetas(draft: XlsformEditorWorkbook, structure: BuilderStructure, destino: DestinoInsercion, diseno: DisenoVinetas): ResultadoConjoint {
+  const problemas = validarVinetas(diseno);
+  if (problemas.length) return { ok: false, motivos: problemas };
+  const { survey, choices } = generarVinetas(diseno);
+  return insertarBloque(draft, structure, destino, survey, choices, diseno.prefijo);
+}
+
+/** El experimento de viñetas ya escrito, con el diseño editado. */
+export function reemplazarVinetas(draft: XlsformEditorWorkbook, lectura: LecturaVinetas, diseno: DisenoVinetas): ResultadoConjoint {
+  if (!lectura.fiel) return { ok: false, motivos: [lectura.motivo ?? "El experimento no se puede editar desde aquí."] };
+  const problemas = validarVinetas(diseno);
+  if (problemas.length) return { ok: false, motivos: problemas };
+  const { survey, choices } = generarVinetas(diseno, lectura.nombres);
+  const ancla = lectura.intro ?? lectura.vinetas[0]!.grupo;
+  return reemplazarBloque(draft, { filas: lectura.filas, ancla, lista: lectura.nombres.lista, fiel: lectura.fiel, motivo: lectura.motivo }, survey, choices);
 }

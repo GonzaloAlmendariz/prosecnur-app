@@ -97,8 +97,10 @@ export type SurveyOutlineProps = {
   accionBarra?: ReactNode;
   /** Par al que pertenece cada cálculo del sorteo de un experimento de elección por pares (C5). */
   tareaDeSorteo?: (fila: number) => number | undefined;
-  /** Abre el panel del experimento con el diseño leído. */
-  onAbrirPares?: () => void;
+  /** Abre el diseño del experimento; con `fila`, el del experimento al que pertenece ese sorteo. */
+  onAbrirPares?: (fila?: number) => void;
+  /** Rótulo del sorteo que empieza en `fila` («Sorteo del par 3», «Sorteo de la viñeta 2»). */
+  rotuloSorteo?: (fila: number, n: number) => string;
   /** Piezas del experimento (introducción y pares) y lo que dice su cabecera (C7). */
   experimento?: ExperimentoEnEstructura & { resumen: string };
 };
@@ -123,6 +125,7 @@ export function SurveyOutline({
   accionBarra,
   tareaDeSorteo,
   onAbrirPares,
+  rotuloSorteo,
   experimento,
 }: SurveyOutlineProps) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -540,9 +543,10 @@ export function SurveyOutline({
             onInsertar: hayInsertar ? abrirInsertar : undefined,
             onAbrirPares,
             resumenPares: experimento?.resumen,
+            rotuloSorteo,
           }
         : null,
-    [structure, selectedRow, enRecorrido, arrastre, filtrando, plegada, avisosPorFila, limiteSeccion, onElegir, onPlegar, hayInsertar, abrirInsertar, onAbrirPares, experimento],
+    [structure, selectedRow, enRecorrido, arrastre, filtrando, plegada, avisosPorFila, limiteSeccion, onElegir, onPlegar, hayInsertar, abrirInsertar, onAbrirPares, rotuloSorteo, experimento],
   );
 
   const itemsMenu = useMemo(

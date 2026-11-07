@@ -172,10 +172,11 @@ import { deriveEditorHeaderStatus } from "./shell/editorHeaderStatus";
 import { contextoResumen } from "./resumen/contextoResumen";
 import { PestanaImpreso } from "./impreso/PestanaImpreso";
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
-import { FOCO_NUEVO_PARES, FOCO_PARES, PestanaExperimentos } from "./pestanas/PestanaExperimentos";
+import { FOCO_NUEVO_PARES, FOCO_PARES, FOCO_VINETAS, PestanaExperimentos } from "./pestanas/PestanaExperimentos";
 import { conEjemploParaPapel } from "./cuestionario/ejemploSorteo";
 import { itemAltaConjoint } from "./conjoint/altaConjoint";
 import { leerConjoint } from "./conjoint/leerConjoint";
+import { leerVinetas } from "./conjoint/leerVinetas";
 import { esperarExportPapel, textoExportando } from "./shell/paperExportJob";
 import { ToastDeck, useToastDeck } from "./shell/ToastDeck";
 import { EditorCommandBar } from "./shell/EditorCommandBar";
@@ -928,9 +929,14 @@ export default function XlsformEditorPage() {
   const structure = xlsformIndex?.structure ?? null;
   // Experimento de elección por pares ya escrito (C5): Estructura pliega el sorteo de cada par y lo abre en el panel.
   const lecturaPares = useMemo(() => leerConjoint(workbook), [workbook]);
+  const lecturaVinetas = useMemo(() => leerVinetas(workbook), [workbook]);
   const tareaDeSorteo = useMemo(
-    () => (lecturaPares ? (fila: number) => lecturaPares.sorteo.get(fila) : undefined),
-    [lecturaPares],
+    () => (lecturaPares || lecturaVinetas ? (fila: number) => lecturaPares?.sorteo.get(fila) ?? lecturaVinetas?.sorteo.get(fila) : undefined),
+    [lecturaPares, lecturaVinetas],
+  );
+  const rotuloSorteo = useCallback(
+    (fila: number, n: number) => (lecturaVinetas?.sorteo.has(fila) ? `Sorteo de la viñeta ${n}` : `Sorteo del par ${n}`),
+    [lecturaVinetas],
   );
   const experimentoPares = useMemo(() => {
     if (!lecturaPares) return undefined;
@@ -2804,7 +2810,8 @@ export default function XlsformEditorPage() {
                         formularioId={activeFormId}
                         tareaDeSorteo={tareaDeSorteo}
                         experimento={experimentoPares}
-                        onAbrirPares={() => pestanaEditor.irConFoco("experimentos", FOCO_PARES)}
+                        rotuloSorteo={rotuloSorteo}
+                        onAbrirPares={(fila) => pestanaEditor.irConFoco("experimentos", fila != null && lecturaVinetas?.sorteo.has(fila) ? FOCO_VINETAS : FOCO_PARES)}
                         accionBarra={
                           // En pantallas bajas la cabecera «Estructura» se esconde para dar alto a la lista (I2) y
                           // «Añadir pieza» pasa a la barra de búsqueda.

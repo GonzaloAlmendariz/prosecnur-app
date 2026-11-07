@@ -36,14 +36,14 @@ export type LecturaConjoint = {
   motivo: string | null;
 };
 
-type Fila = { i: number; type: string; name: string; label: string; calculation: string; appearance: string; required: string };
+export type Fila = { i: number; type: string; name: string; label: string; calculation: string; appearance: string; required: string };
 
 const LIT = String.raw`('(?:[^']*)'|"(?:[^"]*)")`;
 const desLit = (s: string) => s.slice(1, -1);
 const REF = String.raw`\$\{([^}]+)\}`;
 
 /** `if(${N} = 'c', 'texto', …'—')`: la variable del nivel y sus niveles con su texto. */
-function leerTexto(f: string): { nivel: string; niveles: NivelConjoint[] } | null {
+export function leerTexto(f: string): { nivel: string; niveles: NivelConjoint[] } | null {
   const re = new RegExp(String.raw`^if\(${REF} = ${LIT}, ${LIT}, `);
   const niveles: NivelConjoint[] = [];
   let nivel: string | null = null;
@@ -62,7 +62,7 @@ function leerTexto(f: string): { nivel: string; niveles: NivelConjoint[] } | nul
 }
 
 /** Fórmula del nivel: condición «se omite si», número al azar, códigos y pesos. */
-function leerNivel(f: string): { azar: string; codigos: string[]; pesos: number[] | null; omiteSi: { base: string; noEs: string[] } | null } | null {
+export function leerNivel(f: string): { azar: string; codigos: string[]; pesos: number[] | null; omiteSi: { base: string; noEs: string[] } | null } | null {
   let resto = f.trim();
   let omiteSi: { base: string; noEs: string[] } | null = null;
   const cond = new RegExp(String.raw`^if\(((?:${REF} = ${LIT})(?: or ${REF} = ${LIT})*), 'NA', `).exec(resto);
@@ -111,7 +111,7 @@ function leerNivel(f: string): { azar: string; codigos: string[]; pesos: number[
 }
 
 /** La tabla de dos perfiles de una nota: encabezados y, por fila, el rótulo y la variable de cada perfil. */
-function leerTabla(label: string): { perfiles: [string, string]; filas: { rotulo: string; a: string; b: string }[] } | null {
+export function leerTabla(label: string): { perfiles: [string, string]; filas: { rotulo: string; a: string; b: string }[] } | null {
   const lineas = label.trim().split("\n").map((l) => l.trim());
   const celdas = (l: string) => (l.startsWith("|") && l.endsWith("|") ? l.slice(1, -1).split("|").map((c) => c.trim()) : null);
   const cab = celdas(lineas[0] ?? "");
@@ -128,7 +128,7 @@ function leerTabla(label: string): { perfiles: [string, string]; filas: { rotulo
 }
 
 /** Plantilla por par a partir de los nombres del par 1 y del 2 («tarea1» y «tarea2» → «tarea{t}»). */
-function porPar(n1: string, n2: string | undefined): ((t: number) => string) | null {
+export function porPar(n1: string, n2: string | undefined): ((t: number) => string) | null {
   if (n2 == null) {
     const k = n1.lastIndexOf("1");
     return k < 0 ? null : (t) => `${n1.slice(0, k)}${t}${n1.slice(k + 1)}`;
@@ -156,7 +156,7 @@ function porVariable(muestra: string, clave: string, n2: string | undefined): ((
   return (t, p, c) => `${marca.slice(0, j)}${t}${p}${marca.slice(j + 2)}`.replace("\u0000", c);
 }
 
-const sufijoComun = (xs: string[]) => {
+export const sufijoComun = (xs: string[]) => {
   let s = xs[0] ?? "";
   for (const x of xs) while (s && !x.endsWith(s)) s = s.slice(1);
   return s.replace(/^[^A-Za-z0-9]+/, "");

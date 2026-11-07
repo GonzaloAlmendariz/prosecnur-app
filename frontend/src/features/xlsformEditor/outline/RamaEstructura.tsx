@@ -25,8 +25,9 @@ export type ValorEstructura = {
   onElegir: (fila: number) => void;
   onPlegar: (fila: number) => void;
   onInsertar?: AbrirInsertar;
-  /** Abre el panel del experimento de elección por pares con el diseño leído (C5). */
-  onAbrirPares?: () => void;
+  /** Abre el diseño del experimento; con `fila`, el del experimento de ese sorteo (C5, C10). */
+  onAbrirPares?: (fila?: number) => void;
+  rotuloSorteo?: (fila: number, n: number) => string;
   /** «8 pares, 5 atributos»: lo que dice la cabecera del experimento (C7). */
   resumenPares?: string;
 };
@@ -92,7 +93,7 @@ export function RamaEstructura({
                 abierta={abierto}
                 enRecorrido={c.enRecorrido === h.id}
                 onPlegar={c.onPlegar}
-                onAbrirDiseno={c.onAbrirPares}
+                onAbrirDiseno={c.onAbrirPares ? () => c.onAbrirPares?.() : undefined}
               >
                 {abierto ? <RamaEstructura hijos={h.hijos} contenedor={contenedor} finSlot={-1} /> : null}
               </FilaAgrupada>
@@ -108,13 +109,13 @@ export function RamaEstructura({
               <FilaAgrupada
                 id={h.id}
                 variante="sorteo"
-                titulo={`Sorteo del par ${h.tarea}`}
+                titulo={c.rotuloSorteo?.(fila, h.tarea) ?? `Sorteo del par ${h.tarea}`}
                 conteo={n}
                 conteoLargo={`${n} cálculos que sortean los dos perfiles`}
                 abierta={abierto}
                 enRecorrido={c.enRecorrido === h.id}
                 onPlegar={c.onPlegar}
-                onAbrirDiseno={c.onAbrirPares}
+                onAbrirDiseno={c.onAbrirPares ? () => c.onAbrirPares?.(fila) : undefined}
               >
                 {/* finSlot -1: el hueco de después lo pinta la rama de afuera. */}
                 {abierto ? <RamaEstructura hijos={h.hijos} contenedor={contenedor} finSlot={-1} /> : null}

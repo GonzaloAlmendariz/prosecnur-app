@@ -10,6 +10,7 @@ import { insertRecord, makeSheet } from "../parsing/sheetUtils";
 import type { XlsformEditorWorkbook } from "../types";
 import { FichaConstructor, type AccionesFicha } from "../canvas/ficha/FichaConstructor";
 import { generarConjoint, type DisenoConjoint } from "../conjoint/modeloConjoint";
+import { generarVinetas, vinetasIniciales } from "../conjoint/modeloVinetas";
 import { PestanaExperimentos } from "./PestanaExperimentos";
 
 const diseno: DisenoConjoint = {
@@ -52,6 +53,18 @@ describe("pestaña Experimentos", () => {
     expect(html).toContain("Aplicar cambios");
     expect(html).toContain("35 años");
     expect(html).toContain("Ver en el Constructor");
+  });
+
+  test("con viñetas en el formulario las lista y abre su diseño; también se pueden agregar", () => {
+    const wb = formulario(false);
+    const { survey, choices } = generarVinetas(vinetasIniciales("vi"));
+    survey.forEach((f, i) => insertRecord(wb.survey, i + 1, { ...f }));
+    choices.forEach((c, i) => insertRecord(wb.choices, i, { ...c }));
+    const html = pintar(wb);
+    expect(html).toContain("4 viñetas, 2 atributos");
+    expect(html).toContain("Escenario");
+    expect(html).toContain("Aplicar cambios");
+    expect(html).toContain("Un escenario con atributos sorteados; se califica");
   });
 
   test("sin experimento abre uno nuevo para insertar", () => {

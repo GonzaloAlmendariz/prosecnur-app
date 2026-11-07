@@ -43,7 +43,7 @@ export const SIN_NIVEL = "—";
 const NOMBRE = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const PERFILES = ["A", "B"] as const;
 
-const ref = (n: string) => "${" + n + "}";
+export const ref = (n: string) => "${" + n + "}";
 
 /** Literal XPath: comillas simples salvo que el texto las traiga; si trae ambas, el apóstrofo pasa a tipográfico. */
 export function literal(texto: string): string {
@@ -59,8 +59,14 @@ export function validarDiseno(d: DisenoConjoint): string[] {
   if (!Number.isInteger(d.tareas) || d.tareas < 1 || d.tareas > 30) out.push("El número de pares va de 1 a 30.");
   if (d.atributos.length < 2) out.push("El experimento necesita al menos dos atributos.");
   if (!d.pregunta.trim()) out.push("Falta la pregunta de elección.");
+  return [...out, ...validarAtributos(d.atributos)];
+}
+
+/** Problemas de los atributos y sus niveles; los comparten todos los experimentos que sortean atributos. */
+export function validarAtributos(atributos: readonly AtributoConjoint[]): string[] {
+  const out: string[] = [];
   const vistos = new Set<string>();
-  d.atributos.forEach((a, i) => {
+  atributos.forEach((a, i) => {
     const nombre = a.rotulo || a.clave || `#${i + 1}`;
     if (!NOMBRE.test(a.clave)) out.push(`La clave de «${nombre}» no sirve como nombre de variable.`);
     if (vistos.has(a.clave)) out.push(`La clave «${a.clave}» se repite.`);
@@ -78,9 +84,9 @@ export function validarDiseno(d: DisenoConjoint): string[] {
       if (Math.abs(suma - 1) > 0.001 || conPeso.some((p) => (p ?? 0) <= 0)) out.push(`«${nombre}»: los pesos deben ser positivos y sumar 1 (suman ${Math.round(suma * 1000) / 1000}).`);
     }
     if (a.soloSi) {
-      const base = d.atributos.findIndex((b) => b.clave === a.soloSi!.atributo);
+      const base = atributos.findIndex((b) => b.clave === a.soloSi!.atributo);
       if (base < 0 || base >= i) out.push(`«${nombre}» depende de «${a.soloSi.atributo}», que debe ir antes en la lista.`);
-      else if (a.soloSi.noEs.some((c) => !d.atributos[base]!.niveles.some((n) => n.codigo === c))) out.push(`«${nombre}» depende de un nivel que «${a.soloSi.atributo}» no tiene.`);
+      else if (a.soloSi.noEs.some((c) => !atributos[base]!.niveles.some((n) => n.codigo === c))) out.push(`«${nombre}» depende de un nivel que «${a.soloSi.atributo}» no tiene.`);
     }
     vistos.add(a.clave);
   });
@@ -88,7 +94,7 @@ export function validarDiseno(d: DisenoConjoint): string[] {
 }
 
 /** Fórmula del nivel: equiprobable o por umbrales acumulados. */
-function formulaNivel(r: string, niveles: NivelConjoint[]): string {
+export function formulaNivel(r: string, niveles: NivelConjoint[]): string {
   const k = niveles.length;
   if (niveles.every((n) => n.peso != null)) {
     let acumulado = 0;
@@ -102,13 +108,13 @@ function formulaNivel(r: string, niveles: NivelConjoint[]): string {
   return expr;
 }
 
-function formulaTexto(variable: string, niveles: NivelConjoint[]): string {
+export function formulaTexto(variable: string, niveles: NivelConjoint[]): string {
   let expr = literal(SIN_NIVEL);
   for (let i = niveles.length - 1; i >= 0; i -= 1) expr = `if(${ref(variable)} = ${literal(niveles[i]!.codigo)}, ${literal(niveles[i]!.texto)}, ${expr})`;
   return expr;
 }
 
-const fila = (p: Partial<FilaSurveyConjoint> & Pick<FilaSurveyConjoint, "type" | "name">): FilaSurveyConjoint => ({
+export const fila = (p: Partial<FilaSurveyConjoint> & Pick<FilaSurveyConjoint, "type" | "name">): FilaSurveyConjoint => ({
   label: "",
   calculation: "",
   appearance: "",
