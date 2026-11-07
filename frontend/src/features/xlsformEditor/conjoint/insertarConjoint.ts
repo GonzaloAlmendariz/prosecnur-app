@@ -12,6 +12,8 @@ import { generarVinetas, validarVinetas, type DisenoVinetas } from "./modeloVine
 import type { LecturaVinetas } from "./leerVinetas";
 import type { LecturaVersiones } from "./leerVersiones";
 import { generarVersiones, validarVersiones, type DisenoVersiones } from "./modeloVersiones";
+import type { LecturaLista } from "./leerLista";
+import { generarLista, validarLista, type DisenoLista } from "./modeloLista";
 
 export type ResultadoConjoint =
   | { ok: true; rowIndex: number; filas: number; calculos: number }
@@ -169,4 +171,19 @@ export function reemplazarVersiones(draft: XlsformEditorWorkbook, lectura: Lectu
   const problemas = validarVersiones(diseno, listasDe(draft));
   if (problemas.length) return { ok: false, motivos: problemas };
   return reemplazarBloque(draft, { filas: lectura.filas, ancla: lectura.filas[0]!, lista: "", fiel: true, motivo: null }, generarVersiones(diseno), []);
+}
+
+/** Un experimento de lista nuevo, en el lugar del «+» (C14). */
+export function insertarLista(draft: XlsformEditorWorkbook, structure: BuilderStructure, destino: DestinoInsercion, diseno: DisenoLista): ResultadoConjoint {
+  const problemas = validarLista(diseno);
+  if (problemas.length) return { ok: false, motivos: problemas };
+  return insertarBloque(draft, structure, destino, generarLista(diseno), [], diseno.prefijo);
+}
+
+/** El experimento de lista ya escrito, con el diseño editado. */
+export function reemplazarLista(draft: XlsformEditorWorkbook, lectura: LecturaLista, diseno: DisenoLista): ResultadoConjoint {
+  if (!lectura.fiel) return { ok: false, motivos: [lectura.motivo ?? "El experimento no se puede editar desde aquí."] };
+  const problemas = validarLista(diseno);
+  if (problemas.length) return { ok: false, motivos: problemas };
+  return reemplazarBloque(draft, { filas: lectura.filas, ancla: lectura.filas[0]!, lista: "", fiel: true, motivo: null }, generarLista(diseno), []);
 }

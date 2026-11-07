@@ -142,6 +142,7 @@ export function RamaEstructura({
               onElegir={c.onElegir}
               onPlegar={c.onPlegar}
               onInsertar={c.onInsertar}
+              tituloFijo={c.tituloFijo?.(fila)}
             >
               {abierta ? (
                 h.hijos.length || hueco?.contenedor === fila ? (

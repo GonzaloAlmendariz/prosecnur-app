@@ -271,3 +271,9 @@
 .xfe-conjoint__codigo.is-version { align-self: flex-start; width: auto; }
 .xfe-conjoint__trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; align-items: end; }
 .xfe-conjoint__trio > .pulso-field { flex: none; }
+
+/* Experimento de lista (C14, 2026-11-07): la lista de cada grupo, con la afirmación sensible marcada. */
+.xfe-conjoint__grupo { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 10px; background: var(--pulso-surface-2); }
+.xfe-conjoint__grupo strong { font-size: var(--pulso-type-caption-size); color: var(--pulso-text-soft); font-weight: var(--pulso-weight-semibold); }
+.xfe-conjoint__grupo ul { margin: 0; padding-left: 18px; line-height: 1.45; }
+.xfe-conjoint__grupo li.is-sensible { color: var(--module-accent, var(--pulso-primary)); font-weight: var(--pulso-weight-semibold); }

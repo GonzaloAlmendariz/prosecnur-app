@@ -42,6 +42,8 @@ export type SeccionEstructuraProps = {
   onElegir: (rowIndex: number) => void;
   onPlegar: (rowIndex: number) => void;
   onInsertar?: AbrirInsertar;
+  /** Nombre de la sección cuando la arma un experimento y no tiene rótulo («Página de la lista»). */
+  tituloFijo?: string;
   children: ReactNode;
 };
 
@@ -59,10 +61,11 @@ export function SeccionEstructura({
   onElegir,
   onPlegar,
   onInsertar,
+  tituloFijo,
   children,
 }: SeccionEstructuraProps) {
   const idHijos = useId();
-  const titulo = tituloDe(node);
+  const titulo = tituloFijo ?? tituloDe(node);
   const tituloSinRefs = tituloPlano(titulo);
   const repite = node.kind === "repeat";
   const nombreTipo = repite ? "repetición" : "sección";

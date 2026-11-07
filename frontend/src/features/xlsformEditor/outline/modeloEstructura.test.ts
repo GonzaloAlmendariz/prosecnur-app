@@ -317,3 +317,17 @@ test("dos experimentos, dos cabeceras: cada una con sus piezas (C11)", () => {
     "fila", "Experimento de elección por pares:1", "Experimento de viñetas:2",
   ]);
 });
+
+test("una cabecera junta también un sorteo de primer nivel (versiones y lista, C14)", () => {
+  // 0 q0 · 1 r · 2 version · 3 texto · 4 P5 · 5 q9
+  const s = parseBuilderStructure(hoja([
+    ["text", "q0", "Antes"],
+    ["calculate", "vs_r", ""], ["calculate", "vs_version", ""], ["calculate", "vs_texto", ""],
+    ["integer", "P5", "${vs_texto}"],
+    ["text", "q9", "Después"],
+  ]));
+  const a = construirArbol(s, (f) => (f >= 1 && f <= 3 ? 1 : undefined), [{ filas: new Set([1, 2, 3, 4]), titulo: "Versiones al azar", resumen: "P5: 2 versiones" }]);
+  expect(a.hijos.map((h) => h.tipo)).toEqual(["fila", "experimento", "fila"]);
+  const e = a.hijos[1]!;
+  expect(e.tipo === "experimento" && e.hijos.map((h) => h.tipo).join()).toBe("sorteo,fila");
+});

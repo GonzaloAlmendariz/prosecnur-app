@@ -12,6 +12,7 @@ import { FichaConstructor, type AccionesFicha } from "../canvas/ficha/FichaConst
 import { generarConjoint, type DisenoConjoint } from "../conjoint/modeloConjoint";
 import { generarVinetas, vinetasIniciales } from "../conjoint/modeloVinetas";
 import { generarVersiones } from "../conjoint/modeloVersiones";
+import { generarLista, listaInicial } from "../conjoint/modeloLista";
 import { PestanaExperimentos } from "./PestanaExperimentos";
 
 const diseno: DisenoConjoint = {
@@ -77,6 +78,15 @@ describe("pestaña Experimentos", () => {
     expect(html).toContain("P5: 2 versiones");
     expect(html).toContain("Versiones al azar");
     expect(html).toContain("¿Apoya, aunque cueste?");
+    expect(html).toContain("Aplicar cambios");
+  });
+
+  test("un experimento de lista se lista y abre su diseño, con lo que ve cada grupo (C14)", () => {
+    const wb = formulario(false);
+    generarLista(listaInicial("ls")).forEach((f, i) => insertRecord(wb.survey, i + 1, { ...f }));
+    const html = pintar(wb);
+    expect(html).toContain("3 afirmaciones y 1 sensible");
+    expect(html).toContain("Con la afirmación sensible, 50%");
     expect(html).toContain("Aplicar cambios");
   });
 

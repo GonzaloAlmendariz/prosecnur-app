@@ -172,12 +172,13 @@ import { deriveEditorHeaderStatus } from "./shell/editorHeaderStatus";
 import { contextoResumen } from "./resumen/contextoResumen";
 import { PestanaImpreso } from "./impreso/PestanaImpreso";
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
-import { FOCO_NUEVO_PARES, FOCO_PARES, FOCO_VINETAS, focoVersiones, PestanaExperimentos } from "./pestanas/PestanaExperimentos";
+import { FOCO_NUEVO_PARES, FOCO_PARES, FOCO_VINETAS, focoLista, focoVersiones, PestanaExperimentos } from "./pestanas/PestanaExperimentos";
 import { conEjemploParaPapel } from "./cuestionario/ejemploSorteo";
 import { itemAltaConjoint } from "./conjoint/altaConjoint";
 import { leerConjoint } from "./conjoint/leerConjoint";
 import { leerVinetas } from "./conjoint/leerVinetas";
 import { leerVersiones } from "./conjoint/leerVersiones";
+import { leerLista } from "./conjoint/leerLista";
 import { esperarExportPapel, textoExportando } from "./shell/paperExportJob";
 import { ToastDeck, useToastDeck } from "./shell/ToastDeck";
 import { EditorCommandBar } from "./shell/EditorCommandBar";
@@ -932,13 +933,23 @@ export default function XlsformEditorPage() {
   const lecturaPares = useMemo(() => leerConjoint(workbook), [workbook]);
   const lecturaVinetas = useMemo(() => leerVinetas(workbook), [workbook]);
   const lecturasVersiones = useMemo(() => leerVersiones(workbook), [workbook]);
+  const lecturasLista = useMemo(() => leerLista(workbook), [workbook]);
+  // Cálculos del sorteo de cada experimento: se pliegan en Estructura con su rótulo (C5, C10, C12, C14).
+  const sorteoUnico = useMemo(() => {
+    const m = new Map<number, string>();
+    lecturasVersiones.forEach((l) => l.calculos.forEach((f) => m.set(f, "Sorteo de la versión")));
+    lecturasLista.forEach((l) => l.filas.slice(0, 2).forEach((f) => m.set(f, "Sorteo del grupo")));
+    return m;
+  }, [lecturasVersiones, lecturasLista]);
   const tareaDeSorteo = useMemo(
-    () => (lecturaPares || lecturaVinetas ? (fila: number) => lecturaPares?.sorteo.get(fila) ?? lecturaVinetas?.sorteo.get(fila) : undefined),
-    [lecturaPares, lecturaVinetas],
+    () => (lecturaPares || lecturaVinetas || sorteoUnico.size
+      ? (fila: number) => lecturaPares?.sorteo.get(fila) ?? lecturaVinetas?.sorteo.get(fila) ?? (sorteoUnico.has(fila) ? 1 : undefined)
+      : undefined),
+    [lecturaPares, lecturaVinetas, sorteoUnico],
   );
   const rotuloSorteo = useCallback(
-    (fila: number, n: number) => (lecturaVinetas?.sorteo.has(fila) ? `Sorteo de la viñeta ${n}` : `Sorteo del par ${n}`),
-    [lecturaVinetas],
+    (fila: number, n: number) => sorteoUnico.get(fila) ?? (lecturaVinetas?.sorteo.has(fila) ? `Sorteo de la viñeta ${n}` : `Sorteo del par ${n}`),
+    [lecturaVinetas, sorteoUnico],
   );
   // La tabla de un par y el escenario de una viñeta se nombran por lo que son, no por su texto con referencias (C11).
   const tituloFijo = useMemo(() => {
@@ -946,8 +957,13 @@ export default function XlsformEditorPage() {
     lecturaPares?.pares.forEach((p) => m.set(p.tabla, `Tabla del par ${p.tarea}`));
     lecturaVinetas?.vinetas.forEach((v) => m.set(v.nota, `Escenario de la viñeta ${v.vineta}`));
     lecturasVersiones.forEach((l) => m.set(l.pregunta, `Pregunta con ${l.diseno.versiones.length} versiones`));
+    lecturasLista.forEach((l) => {
+      if (l.pagina != null) m.set(l.pagina, "Página de la lista");
+      m.set(l.control, "Lista del grupo de control");
+      m.set(l.tratamiento, "Lista con la afirmación sensible");
+    });
     return m.size ? (fila: number) => m.get(fila) : undefined;
-  }, [lecturaPares, lecturaVinetas, lecturasVersiones]);
+  }, [lecturaPares, lecturaVinetas, lecturasVersiones, lecturasLista]);
   // Cada experimento lleva su cabecera en Estructura (C7 pares, C11 viñetas).
   const experimentosEstructura = useMemo(() => {
     const out: { filas: Set<number>; titulo: string; resumen: string }[] = [];
@@ -966,8 +982,11 @@ export default function XlsformEditorPage() {
     for (const l of lecturasVersiones) {
       out.push({ filas: new Set(l.filas), titulo: "Versiones al azar", resumen: `${l.diseno.pregunta}: ${l.diseno.versiones.length} versiones` });
     }
+    for (const l of lecturasLista) {
+      out.push({ filas: new Set(l.primerNivel), titulo: "Experimento de lista", resumen: `${l.diseno.controles.length} afirmaciones y 1 sensible` });
+    }
     return out;
-  }, [lecturaPares, lecturaVinetas, lecturasVersiones]);
+  }, [lecturaPares, lecturaVinetas, lecturasVersiones, lecturasLista]);
 
   // Candidatos de matriz para el selector de exportación a PDF: runs contiguos
   // de select_one/select_multiple con misma lista dentro de la misma sección.
@@ -2836,6 +2855,11 @@ export default function XlsformEditorPage() {
                         tituloFijo={tituloFijo}
                         onAbrirPares={(fila) => {
                           const vs = fila == null ? undefined : lecturasVersiones.find((l) => l.filas.includes(fila));
+                          const ls = fila == null ? undefined : lecturasLista.find((l) => l.filas.includes(fila));
+                          if (ls) {
+                            pestanaEditor.irConFoco("experimentos", focoLista(ls.diseno.prefijo));
+                            return;
+                          }
                           const vin = fila != null && lecturaVinetas && (lecturaVinetas.sorteo.has(fila) || lecturaVinetas.filas.includes(fila));
                           pestanaEditor.irConFoco("experimentos", vs ? focoVersiones(vs.diseno.pregunta) : vin ? FOCO_VINETAS : FOCO_PARES);
                         }}

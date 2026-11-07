@@ -1,10 +1,14 @@
 // Pestaña Experimentos del editor (checklist elección por pares C8 y C10, 2026-11-07). A la izquierda, los experimentos
-// que ya tiene el formulario y los que se pueden agregar; a la derecha, el diseño del elegido. Hay tres tipos: elección
-// por pares (conjoint), viñetas (encuesta factorial) y versiones al azar (split-sample, C12).
+// que ya tiene el formulario y los que se pueden agregar; a la derecha, el diseño del elegido. Hay cuatro tipos:
+// elección por pares (conjoint), viñetas (encuesta factorial), versiones al azar (split-sample, C12) y lista (técnica
+// de conteo de ítems, C14).
 
 import { useMemo } from "react";
 import { leerConjoint } from "../conjoint/leerConjoint";
-import { insertarConjoint, insertarVersiones, insertarVinetas, listasDe, prefijoLibre, reemplazarConjoint, reemplazarVersiones, reemplazarVinetas } from "../conjoint/insertarConjoint";
+import { insertarConjoint, insertarLista, insertarVersiones, insertarVinetas, listasDe, prefijoLibre, reemplazarConjoint, reemplazarLista, reemplazarVersiones, reemplazarVinetas } from "../conjoint/insertarConjoint";
+import { leerLista } from "../conjoint/leerLista";
+import type { DisenoLista } from "../conjoint/modeloLista";
+import { DisenoLista as DisenoListaPanel } from "../conjoint/DisenoLista";
 import { leerVersiones } from "../conjoint/leerVersiones";
 import type { DisenoVersiones } from "../conjoint/modeloVersiones";
 import { DisenoVersiones as DisenoVersionesPanel } from "../conjoint/DisenoVersiones";
@@ -27,6 +31,9 @@ export const FOCO_NUEVO_VINETAS = "nuevo:vinetas";
 export const FOCO_NUEVO_VERSIONES = "nuevo:versiones";
 /** Foco de una pregunta con versiones al azar: puede haber varias, se distinguen por su código. */
 export const focoVersiones = (pregunta: string) => `versiones:${pregunta}`;
+export const FOCO_NUEVO_LISTA = "nuevo:lista";
+/** Foco de un experimento de lista: puede haber varios, se distinguen por su prefijo. */
+export const focoLista = (prefijo: string) => `lista:${prefijo}`;
 
 export function PestanaExperimentos({ workbook, structure, selection, updateWorkbook, seleccionada, onSeleccionar, onEditar }: {
   workbook: XlsformEditorWorkbook;
@@ -41,16 +48,18 @@ export function PestanaExperimentos({ workbook, structure, selection, updateWork
   const lectura = useMemo(() => leerConjoint(workbook), [workbook]);
   const lecturaV = useMemo(() => leerVinetas(workbook), [workbook]);
   const lecturasVs = useMemo(() => leerVersiones(workbook), [workbook]);
+  const lecturasLs = useMemo(() => leerLista(workbook), [workbook]);
   const listas = useMemo(() => listasDe(workbook), [workbook]);
   const validos = [
-    FOCO_NUEVO_PARES, FOCO_NUEVO_VINETAS, FOCO_NUEVO_VERSIONES,
+    FOCO_NUEVO_PARES, FOCO_NUEVO_VINETAS, FOCO_NUEVO_VERSIONES, FOCO_NUEVO_LISTA,
     ...(lectura ? [FOCO_PARES] : []), ...(lecturaV ? [FOCO_VINETAS] : []),
     ...lecturasVs.map((l) => focoVersiones(l.diseno.pregunta)),
+    ...lecturasLs.map((l) => focoLista(l.diseno.prefijo)),
   ];
   const foco = seleccionada && validos.includes(seleccionada)
     ? seleccionada
-    : lectura ? FOCO_PARES : lecturaV ? FOCO_VINETAS : lecturasVs[0] ? focoVersiones(lecturasVs[0].diseno.pregunta) : FOCO_NUEVO_PARES;
-  const cuantos = (lectura ? 1 : 0) + (lecturaV ? 1 : 0) + lecturasVs.length;
+    : lectura ? FOCO_PARES : lecturaV ? FOCO_VINETAS : lecturasVs[0] ? focoVersiones(lecturasVs[0].diseno.pregunta) : lecturasLs[0] ? focoLista(lecturasLs[0].diseno.prefijo) : FOCO_NUEVO_PARES;
+  const cuantos = (lectura ? 1 : 0) + (lecturaV ? 1 : 0) + lecturasVs.length + lecturasLs.length;
 
   const grupos: ReglaListaGrupo[] = [
     {
@@ -84,6 +93,14 @@ export function PestanaExperimentos({ workbook, structure, selection, updateWork
           resumen: `${l.diseno.pregunta}: ${l.diseno.versiones.length} versiones`,
           aviso: !l.fiel,
         })),
+        ...lecturasLs.map((l) => ({
+          key: focoLista(l.diseno.prefijo),
+          baseType: "note",
+          numero: "",
+          titulo: "Lista",
+          resumen: `${l.diseno.controles.length} afirmaciones y 1 sensible`,
+          aviso: !l.fiel,
+        })),
       ],
     },
     {
@@ -106,6 +123,12 @@ export function PestanaExperimentos({ workbook, structure, selection, updateWork
         numero: "",
         titulo: "Versiones al azar",
         resumen: "Una pregunta en varias redacciones; a cada uno le toca una",
+      }, {
+        key: FOCO_NUEVO_LISTA,
+        baseType: "note",
+        numero: "",
+        titulo: "Lista",
+        resumen: "Cuántas afirmaciones son ciertas, con y sin una sensible",
       }],
     },
   ];
@@ -143,10 +166,17 @@ export function PestanaExperimentos({ workbook, structure, selection, updateWork
     return escribir((draft) => (existente ? reemplazarVersiones(draft, existente, d) : insertarVersiones(draft, structure, destino, d)), focoVersiones(d.pregunta));
   };
   const esVersiones = foco === FOCO_NUEVO_VERSIONES || Boolean(lecturaVs);
+  const lecturaLs = lecturasLs.find((l) => focoLista(l.diseno.prefijo) === foco) ?? null;
+  const aplicarLista = (d: DisenoLista): string[] => {
+    if (!structure) return ["El formulario todavía no está listo."];
+    const existente = lecturaLs;
+    return escribir((draft) => (existente ? reemplazarLista(draft, existente, d) : insertarLista(draft, structure, destino, d)), focoLista(d.prefijo));
+  };
+  const esLista = foco === FOCO_NUEVO_LISTA || Boolean(lecturaLs);
   const esVinetas = foco === FOCO_VINETAS || foco === FOCO_NUEVO_VINETAS;
   const existente = foco === FOCO_PARES ? lectura : null;
   const existenteV = foco === FOCO_VINETAS ? lecturaV : null;
-  const primeraFila = existente ? existente.pares[0]!.grupo : existenteV ? existenteV.vinetas[0]!.grupo : lecturaVs ? lecturaVs.pregunta : null;
+  const primeraFila = existente ? existente.pares[0]!.grupo : existenteV ? existenteV.vinetas[0]!.grupo : lecturaVs ? lecturaVs.pregunta : lecturaLs ? lecturaLs.conteo : null;
   return (
     <PestanaReglas
       titulo="Experimentos"
@@ -163,7 +193,7 @@ export function PestanaExperimentos({ workbook, structure, selection, updateWork
     >
       <div className="xfp-encabezado">
         <span className="xfp-encabezado__ruta">{primeraFila != null ? "Experimento" : "Experimento nuevo"}</span>
-        <h2 className="xfp-encabezado__titulo">{esVersiones ? "Versiones al azar" : esVinetas ? "Viñetas" : "Elección por pares"}</h2>
+        <h2 className="xfp-encabezado__titulo">{esLista ? "Lista" : esVersiones ? "Versiones al azar" : esVinetas ? "Viñetas" : "Elección por pares"}</h2>
         {primeraFila != null ? (
           <span className="xfp-encabezado__accion">
             <button type="button" className="xfp-boton" onClick={() => onEditar(primeraFila)}>
@@ -172,7 +202,14 @@ export function PestanaExperimentos({ workbook, structure, selection, updateWork
           </span>
         ) : null}
       </div>
-      {esVersiones ? (
+      {esLista ? (
+        <DisenoListaPanel
+          key={lecturaLs ? `lista-${lecturaLs.diseno.prefijo}-${lecturaLs.diseno.controles.length}` : "nuevo-lista"}
+          prefijoSugerido={prefijoLibre(workbook, "ls")}
+          existente={lecturaLs}
+          onInsertar={aplicarLista}
+        />
+      ) : esVersiones ? (
         <DisenoVersionesPanel
           key={lecturaVs ? `versiones-${lecturaVs.diseno.pregunta}-${lecturaVs.diseno.versiones.length}` : "nuevo-versiones"}
           prefijoSugerido={prefijoLibre(workbook, "vs")}

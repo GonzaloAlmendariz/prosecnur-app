@@ -69,13 +69,16 @@ export const filaDeIdSorteo = (id: number) => -id - 1;
  * algo ajeno queda en medio, no las junta: la cabecera mentiría sobre lo que contiene. */
 function agruparExperimento(structure: BuilderStructure, hijos: NodoArbol[], exp: ExperimentoEnEstructura): NodoArbol[] {
   const filas = exp.filas;
-  const enHijos = hijos.map((h) => h.tipo !== "sorteo" && h.tipo !== "experimento" && filas.has(h.nodo.rowIndex));
+  // Un sorteo cuenta si todos sus cálculos son del experimento (versiones y lista tienen el suyo en el primer nivel).
+  const enHijos = hijos.map((h) =>
+    h.tipo === "sorteo" ? h.hijos.every((f) => filas.has(f.nodo.rowIndex)) : h.tipo !== "experimento" && filas.has(h.nodo.rowIndex));
+  const cubre = (h: NodoArbol) => (h.tipo === "sorteo" ? h.hijos.length : 1);
   const primero = enHijos.indexOf(true);
   if (primero >= 0) {
     const ultimo = enHijos.lastIndexOf(true);
     const tramo = hijos.slice(primero, ultimo + 1);
     const total = [...filas].length;
-    if (enHijos.slice(primero, ultimo + 1).every(Boolean) && tramo.length === total) {
+    if (enHijos.slice(primero, ultimo + 1).every(Boolean) && tramo.reduce((n, h) => n + cubre(h), 0) === total) {
       const fin = tramo[tramo.length - 1]!;
       const nodo: NodoExperimento = {
         tipo: "experimento",
