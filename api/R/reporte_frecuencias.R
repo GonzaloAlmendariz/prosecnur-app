@@ -425,9 +425,19 @@
   NULL
 }
 
+#' ¿La variable es el comodín `*` de `base$*` (o la ref entera)?
+#' @noRd
+.titulo_var_es_comodin <- function(var) {
+  v <- trimws(as.character(var %||% "")[1])
+  !is.na(v) && (identical(v, "*") || grepl("\\$\\*$", v))
+}
+
 #' @noRd
 titulo_var <- function(var, dic_vars = NULL, labels_override = NULL,
                        orders_list = NULL, df = NULL) {
+  # `base$*` declara todas las preguntas de una base (láminas de resumen, ADR 0135): no tiene enunciado y la lámina sin
+  # título sale sin título, nunca con «*».
+  if (.titulo_var_es_comodin(var)) return(NULL)
   if (grepl("_recod$", var)) {
     original <- sub("_recod$", "", var)
     original_label <- .lookup_variable_label(
