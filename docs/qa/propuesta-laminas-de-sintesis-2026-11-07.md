@@ -1,7 +1,7 @@
 # Propuesta: láminas de síntesis que se piden por la pregunta del estudio
 
 Tipo: Propuesta de diseño
-Estado: Para decidir
+Estado: En curso
 Fecha: 2026-11-07
 Autoridad: Gonzalo, 2026-11-07, tras ver los gráficos del resumen ejecutivo en el motor: «algo que todavía le falta a la aplicación es tener slides o tipos de gráficos que traten de resumir información que no solo abarque un par de variables, sino muestre tendencias… no hay intuitividad en torno a qué tan fácil es hacerlo… y creo que ahí es precisamente el fallo». Relacionada con [ADR 0114](../adrs/0114-los-graficos-del-resumen-ejecutivo-son-nativos.md)
 
