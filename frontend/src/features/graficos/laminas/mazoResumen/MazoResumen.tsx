@@ -119,6 +119,7 @@ export function MazoResumen({ posicion, cerrar }: Props) {
           indicador={mazo.indicador}
           referencia={ui.referencia}
           onPublico={(b) => ui.alternarPublico(b, mazo.bases)}
+          onMoverPublico={(b, d) => ui.moverPublico(b, d, mazo.bases)}
           onIndicador={ui.elegirIndicador}
           onReferencia={ui.ponerReferencia}
         />

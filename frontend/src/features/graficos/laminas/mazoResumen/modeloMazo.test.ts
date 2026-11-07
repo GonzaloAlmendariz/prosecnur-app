@@ -4,7 +4,7 @@ import { payloadPorDefecto, SLIDE_GRAF_SLOTS, usePlanStore } from "../../store";
 import { conOpcion, type EstudioDelSelector } from "../selectores/opcionesLamina";
 import {
   alternarPublico, escalaDominante, escalasPorPublico, FALTA_DIVIDE, indicadoresDelEstudio, insertarTras, laminaDePropuesta,
-  laminasDelMazo, listaPublicos, proponerMazo, reglaEnPalabras, rotuloInsertar, type EntradaMazo,
+  laminasDelMazo, listaPublicos, moverPublico, ordenPublicos, proponerMazo, reglaEnPalabras, rotuloInsertar, type EntradaMazo,
 } from "./modeloMazo";
 
 const ARGS: Record<string, string[]> = {
@@ -74,9 +74,20 @@ describe("el mazo propone en orden (ADR 0135; maqueta Mazo)", () => {
     expect(s?.payload).toMatchObject({ titulo: "", hallazgos: [] });
   });
 
-  it("los públicos respetan el orden del estudio aunque lleguen en otro", () => {
-    const p = proponerMazo(entrada({ publicos: ["estudiantes", "docentes"] })).find((x) => x.id === "panorama");
-    expect(p?.args.vars).toEqual(["docentes$*", "estudiantes$*"]);
+  it("los públicos respetan el orden elegido en la franja (el del panorama y la cobertura)", () => {
+    const props = proponerMazo(entrada({ publicos: ["estudiantes", "docentes"] }));
+    expect(props.find((x) => x.id === "panorama")?.args.vars).toEqual(["estudiantes$*", "docentes$*"]);
+    expect(props.find((x) => x.id === "cobertura")?.args.bases).toEqual(["estudiantes", "docentes"]);
+    expect(props.filter((x) => x.clase === "fortalezas").map((x) => x.id)).toEqual(["fortalezas:estudiantes", "fortalezas:docentes"]);
+    expect(proponerMazo(entrada({ publicos: ["otra", "docentes"] })).find((x) => x.id === "panorama")?.args.vars).toEqual(["docentes$*"]);
+  });
+
+  it("el orden de los públicos: lo elegido, una base nueva detrás, y mover uno no se sale de la lista", () => {
+    expect(ordenPublicos(null, ["a", "b", "c"])).toEqual(["a", "b", "c"]);
+    expect(ordenPublicos(["c", "a", "x"], ["a", "b", "c"])).toEqual(["c", "a", "b"]);
+    expect(moverPublico(["a", "b", "c"], "c", -1)).toEqual(["a", "c", "b"]);
+    expect(moverPublico(["a", "b", "c"], "a", -1)).toEqual(["a", "b", "c"]);
+    expect(alternarPublico(["c", "a"], "b", ["c", "a", "b"])).toEqual(["c", "a", "b"]);
   });
 });
 

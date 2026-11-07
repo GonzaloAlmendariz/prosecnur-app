@@ -48,7 +48,7 @@ export type IndicadorMazo = { id: string; etiqueta: string; rotulo: string; codi
 
 export type EntradaMazo = {
   estudio: EstudioDelSelector;
-  /** Las bases que entran, en el orden del estudio. */
+  /** Las bases que entran, en el orden que el analista eligió en la franja (el de las filas del panorama). */
   publicos: readonly string[];
   graficadores: ReadonlySet<string>;
   laminas: ReadonlySet<string>;
@@ -244,7 +244,7 @@ const anteDeUno = (ante: string, base: string, varios: boolean) => (varios ? `${
 
 /** Las láminas que el mazo propone, en orden. Sin públicos, ninguna. */
 export function proponerMazo(e: EntradaMazo): PropuestaMazo[] {
-  const publicos = e.estudio.bases.filter((b) => e.publicos.includes(b));
+  const publicos = e.publicos.filter((b, i) => e.estudio.bases.includes(b) && e.publicos.indexOf(b) === i);
   if (!publicos.length) return [];
   const principal = basePrincipal(publicos, e.estudio.baseActiva) as string;
   const varios = publicos.length > 1;
@@ -358,7 +358,27 @@ export function rotuloInsertar(n: number): string {
   return `Insertar ${formatoConteo(n)} ${n === 1 ? "lámina" : "láminas"}`;
 }
 
-/** Los públicos al encender o apagar uno, en el orden del estudio; el último no se apaga. */
+/**
+ * Todas las bases en el orden elegido: las de `orden` que siguen en el estudio y, detrás, las que el orden no nombra (una
+ * base nueva). Sin orden, el del estudio.
+ */
+export function ordenPublicos(orden: readonly string[] | null, todas: readonly string[]): string[] {
+  if (!orden) return [...todas];
+  const vistas = orden.filter((b, i) => todas.includes(b) && orden.indexOf(b) === i);
+  return [...vistas, ...todas.filter((b) => !vistas.includes(b))];
+}
+
+/** El orden con `base` un lugar antes (-1) o después (1). */
+export function moverPublico(orden: readonly string[], base: string, d: -1 | 1): string[] {
+  const i = orden.indexOf(base);
+  const j = i + d;
+  if (i < 0 || j < 0 || j >= orden.length) return [...orden];
+  const out = [...orden];
+  [out[i], out[j]] = [out[j], out[i]];
+  return out;
+}
+
+/** Los públicos al encender o apagar uno, en el orden de `todas` (el elegido); el último no se apaga. */
 export function alternarPublico(actuales: readonly string[], base: string, todas: readonly string[]): string[] {
   const set = new Set(actuales);
   if (set.has(base)) {

@@ -307,10 +307,11 @@
   min-width: 0;
 }
 
+/* Q2-2: el nombre parte entre palabras; sólo una palabra que no cabe entera se corta. */
 .pulso-f6-tarjeta-cuerpo .pulso-f6-tarjeta-nombre {
   line-height: 1.3;
   white-space: normal;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .pulso-f6-tarjeta-uso {

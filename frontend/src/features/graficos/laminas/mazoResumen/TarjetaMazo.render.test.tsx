@@ -49,6 +49,11 @@ describe("TarjetaMazo", () => {
     expect(estado.activo[0]).toBe(true);
   });
 
+  it("Q2-2: el antetítulo va arriba y el tipo con su clase debajo, en la misma columna", () => {
+    const html = pintar(CONTRASTE);
+    expect(html).toMatch(/class="pulso-f6-mazo-cabeza-texto"><span class="pulso-f6-mazo-antetitulo">Docentes y estudiantes<\/span><span class="pulso-f6-mazo-tipo"/);
+  });
+
   it("con el conteo del motor, su texto tal cual", () => {
     const html = pintar(CONTRASTE, {
       conteo: {

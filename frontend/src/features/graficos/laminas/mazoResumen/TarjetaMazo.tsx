@@ -47,10 +47,13 @@ export function TarjetaMazo({ numero, propuesta: p, incluida, editando, scope, o
     >
       <div className="pulso-f6-mazo-tarjeta-cabeza">
         <span className="pulso-f6-mazo-numero" aria-hidden="true">{numero}</span>
-        <span className="pulso-f6-mazo-antetitulo">{p.antetitulo}</span>
-        <span className="pulso-f6-mazo-tipo" data-clase-tarjeta={p.claseTarjeta}>
-          <span id={`${id}-nombre`} className="pulso-f6-mazo-tipo-nombre">{p.nombre}</span>
-          <span className="pulso-f6-mazo-tipo-clase">{ROTULO_CLASE[p.claseTarjeta]}</span>
+        {/* Q2-2: el antetítulo arriba y, debajo, el tipo con su clase. En dos columnas partían palabras («ESTUDIANTE S»). */}
+        <span className="pulso-f6-mazo-cabeza-texto">
+          <span className="pulso-f6-mazo-antetitulo">{p.antetitulo}</span>
+          <span className="pulso-f6-mazo-tipo" data-clase-tarjeta={p.claseTarjeta}>
+            <span id={`${id}-nombre`} className="pulso-f6-mazo-tipo-nombre">{p.nombre}</span>
+            <span className="pulso-f6-mazo-tipo-clase">{ROTULO_CLASE[p.claseTarjeta]}</span>
+          </span>
         </span>
       </div>
       <span className="pulso-f6-mazo-miniatura">

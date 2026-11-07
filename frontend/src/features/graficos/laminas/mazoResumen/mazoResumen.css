@@ -44,6 +44,22 @@
   gap: var(--pulso-space-1) var(--pulso-space-3);
   min-height: 32px;
   align-items: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Cada público con su interruptor y, al lado, las flechas que lo mueven antes o después (el orden del panorama). */
+.pulso-f6-mazo-publico {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+}
+
+.pulso-f6-mazo-publico-orden {
+  display: inline-flex;
+  gap: 2px;
 }
 
 .pulso-f6-mazo-indicador {
@@ -114,24 +130,30 @@
   font-variant-numeric: tabular-nums;
 }
 
-.pulso-f6-mazo-antetitulo {
+.pulso-f6-mazo-cabeza-texto {
+  display: grid;
   flex: 1 1 auto;
+  gap: 2px;
   min-width: 0;
   padding-top: 3px;
+}
+
+.pulso-f6-mazo-antetitulo {
+  min-width: 0;
   color: var(--pulso-text-soft);
   font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .pulso-f6-mazo-tipo {
-  display: grid;
-  flex: 0 1 auto;
-  justify-items: end;
-  max-width: 55%;
-  text-align: right;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--pulso-space-2);
+  min-width: 0;
 }
 
 .pulso-f6-mazo-tipo-nombre {
@@ -178,7 +200,7 @@
   color: var(--pulso-text-soft);
   font-size: var(--pulso-type-caption-size);
   line-height: 1.4;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .pulso-f6-mazo-regla[aria-busy="true"] {
@@ -190,7 +212,7 @@
   font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.4;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .pulso-f6-mazo-acciones {

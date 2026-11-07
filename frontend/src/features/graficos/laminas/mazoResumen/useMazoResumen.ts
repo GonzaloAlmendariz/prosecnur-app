@@ -10,7 +10,7 @@ import { propuestasDe, usePadronPropuesto } from "../gruposPadron/usePadronPropu
 import type { EstudioDelSelector } from "../selectores/opcionesLamina";
 import { useMazoResumenUi } from "./mazoResumenStore";
 import {
-  escalaDominante, escalasPorPublico, indicadoresDelEstudio, insertarTras, laminasDelMazo, proponerMazo,
+  escalaDominante, escalasPorPublico, indicadoresDelEstudio, insertarTras, laminasDelMazo, ordenPublicos, proponerMazo,
   type IndicadorMazo, type PropuestaMazo,
 } from "./modeloMazo";
 
@@ -20,7 +20,7 @@ export type MazoResumen = {
   cargando: boolean;
   error: string;
   scope: "active" | "consolidated";
-  /** Todas las bases del estudio y las que entran. */
+  /** Todas las bases del estudio en el orden elegido, y las que entran en ese orden. */
   bases: string[];
   publicos: string[];
   /** Preguntas de escala por público (estimación del editor). */
@@ -42,7 +42,9 @@ export function useMazoResumen(activo: boolean): MazoResumen {
   const nombresBases = bases.join("|");
   const conCobertura = !!registry && "p_cobertura" in graficadoresById;
   const padron = propuestasDe(usePadronPropuesto(scope, activo && conCobertura && nombresBases !== ""));
-  const publicos = ui.publicos ? bases.filter((b) => ui.publicos?.includes(b)) : bases;
+  // Las bases en el orden elegido en la franja; las que entran, en ese orden.
+  const ordenadas = ordenPublicos(ui.orden, bases);
+  const publicos = ui.publicos ? ordenadas.filter((b) => ui.publicos?.includes(b)) : ordenadas;
   const escalas = escalasPorPublico(sources, publicos);
   const indicadores = indicadoresDelEstudio(escalaDominante(sources, publicos));
   const indicador = indicadores.find((i) => i.id === ui.indicador) ?? indicadores[0] ?? null;
@@ -80,7 +82,7 @@ export function useMazoResumen(activo: boolean): MazoResumen {
     cargando: loading || (!registry && !errorRegistro),
     error: error || (!registry ? errorRegistro : ""),
     scope,
-    bases,
+    bases: ordenadas,
     publicos,
     escalas,
     indicadores,
