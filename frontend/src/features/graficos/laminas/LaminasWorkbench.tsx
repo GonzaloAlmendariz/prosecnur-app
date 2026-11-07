@@ -12,6 +12,7 @@ import { useDeclaracionAplicada } from "../useDeclaracionAplicada";
 import { conNivel } from "../../../lib/navegacion/direccion";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import { searchConPanel, searchSinPanel, usePanelDireccionable, type PanelDeclarado } from "../../../lib/navegacion/paneles";
+import { PANEL_EMPAREJADO } from "./emparejado/panelEmparejado";
 import { PANEL_AVISOS_INFORME, PANEL_ESTRUCTURA_LAMINAS, PANEL_INSPECTOR_LAMINA } from "../panelesGraficos";
 import { parseGraficosReportScope } from "../reportScope";
 import { leerSlideMeta } from "../slideMeta";
@@ -181,7 +182,8 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
 
   // Selectores de tipo (F6.2): abren sobre el lateral (que sigue en la sesión) y cierran en UNA navegación que quita el
   // panel, deja el foco en la lámina o ranura resultante y repone el lateral: dos `navigate` seguidos se pisan.
-  const panelSelector = esPanelSelector(direccion.panel) || direccion.panel === PANEL_RESUMEN_EJECUTIVO.id;
+  // «Revisar emparejado» (ADR 0135 §7) se abre desde el inspector y es el modal mientras está abierto.
+  const panelSelector = esPanelSelector(direccion.panel) || direccion.panel === PANEL_RESUMEN_EJECUTIVO.id || direccion.panel === PANEL_EMPAREJADO.id;
   const abrirSelectorLamina = useCallback((modo: ModoSelectorLamina) => {
     useSelectoresUi.getState().prepararLamina(modo);
     navigate({ pathname: location.pathname, search: searchConPanel(location.search, PANEL_TIPO_LAMINA) }, { replace: true });

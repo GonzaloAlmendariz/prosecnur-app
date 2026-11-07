@@ -8,6 +8,7 @@ import { Plus, X } from "../../../../vendor/lucide-react";
 import { useGraficosReportScope } from "../../reportScope";
 import { GruposPadron } from "../gruposPadron/GruposPadron";
 import { PadronPublicos } from "../gruposPadron/PadronPublicos";
+import { EntradaEmparejado } from "../emparejado/EntradaEmparejado";
 import VariablePicker from "../../VariablePicker";
 import { EditorTemasEquivalentes } from "../../temasEquivalentes/EditorTemasEquivalentes";
 import { useVariables } from "../../useVariables";
@@ -52,6 +53,7 @@ export function BrechaEntreGrupos({ args, onCambio }: Props) {
       </div>
 
       {!grupos && <EditorTemasEquivalentes tipo="brecha" args={args} onCambio={onCambio} />}
+      {!grupos && resumen && <EntradaEmparejado args={args} scope={scope} onCambio={onCambio} />}
       {!grupos && resumen && <PadronPublicos graficador="p_dumbbell" args={args} scope={scope} onCambio={onCambio} />}
 
       {grupos && (
