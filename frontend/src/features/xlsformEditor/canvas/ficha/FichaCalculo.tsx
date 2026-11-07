@@ -9,7 +9,7 @@ import { leerRegla } from "../../reglas/leerRegla";
 import { AvisosFicha } from "./AvisosFicha";
 import { CabeceraDesdeDatos, dondeEsta } from "./CabeceraFicha";
 import { CampoCodigo } from "./CampoCodigo";
-import { etiquetaEscrita, plural } from "./modeloFicha";
+import { etiquetaEscrita } from "./modeloFicha";
 import { BloqueFicha, BotonIr, CampoTexto, CodigoXlsform, Lectura } from "./piezasFicha";
 import { ReglasFicha } from "./ReglasFicha";
 import type { DatosFicha } from "./tiposFicha";
@@ -59,7 +59,6 @@ export function FichaCalculo({ datos }: { datos: DatosFicha }) {
         ) : (
           <p className="xfh-aviso-suave">Ninguna pregunta usa este valor todavía. Se guarda igual en la base.</p>
         )}
-        {usos.length ? <small className="xfh-det__sub">{plural(usos.length, "uso", "usos")} en el formulario</small> : null}
       </BloqueFicha>
       <BloqueFicha titulo="Etiqueta y código">
         <div className="xfh-dos-campos">
