@@ -5,7 +5,8 @@ import { createContext, Fragment, useContext } from "react";
 import type { BuilderStructure } from "../types";
 import type { AbrirInsertar } from "./BotonInsertar";
 import { contarPiezas, type Hueco, type NodoArbol } from "./modeloEstructura";
-import { FilaSorteo } from "./FilaSorteo";
+import { FilaAgrupada } from "./FilaAgrupada";
+import { formatoConteo } from "../../../lib/formatoNumero";
 import { OutlineRow } from "./OutlineRow";
 import type { AvisoFila } from "./PuntoAviso";
 import { SeccionEstructura, type LimiteSeccion } from "./SeccionEstructura";
@@ -26,6 +27,8 @@ export type ValorEstructura = {
   onInsertar?: AbrirInsertar;
   /** Abre el panel del experimento de elección por pares con el diseño leído (C5). */
   onAbrirPares?: () => void;
+  /** «8 pares, 5 atributos»: lo que dice la cabecera del experimento (C7). */
+  resumenPares?: string;
 };
 
 export const ContextoEstructura = createContext<ValorEstructura | null>(null);
@@ -74,14 +77,40 @@ export function RamaEstructura({
             </Fragment>
           );
         }
-        if (h.tipo === "sorteo") {
+        if (h.tipo === "experimento") {
           const abierto = !c.plegada(h.id);
           return (
             <Fragment key={h.id}>
-              <FilaSorteo
+              {/* Abierta, el hueco de su primera pieza lo pinta la rama de adentro; plegada, va aquí. */}
+              {abierto ? null : huecoEn(fila)}
+              <FilaAgrupada
                 id={h.id}
-                tarea={h.tarea}
-                calculos={h.hijos.length}
+                variante="experimento"
+                titulo="Experimento de elección por pares"
+                conteo={c.resumenPares ?? ""}
+                conteoLargo={c.resumenPares ?? ""}
+                abierta={abierto}
+                enRecorrido={c.enRecorrido === h.id}
+                onPlegar={c.onPlegar}
+                onAbrirDiseno={c.onAbrirPares}
+              >
+                {abierto ? <RamaEstructura hijos={h.hijos} contenedor={contenedor} finSlot={-1} /> : null}
+              </FilaAgrupada>
+            </Fragment>
+          );
+        }
+        if (h.tipo === "sorteo") {
+          const abierto = !c.plegada(h.id);
+          const n = formatoConteo(h.hijos.length);
+          return (
+            <Fragment key={h.id}>
+              {abierto ? null : huecoEn(fila)}
+              <FilaAgrupada
+                id={h.id}
+                variante="sorteo"
+                titulo={`Sorteo del par ${h.tarea}`}
+                conteo={n}
+                conteoLargo={`${n} cálculos que sortean los dos perfiles`}
                 abierta={abierto}
                 enRecorrido={c.enRecorrido === h.id}
                 onPlegar={c.onPlegar}
@@ -89,7 +118,7 @@ export function RamaEstructura({
               >
                 {/* finSlot -1: el hueco de después lo pinta la rama de afuera. */}
                 {abierto ? <RamaEstructura hijos={h.hijos} contenedor={contenedor} finSlot={-1} /> : null}
-              </FilaSorteo>
+              </FilaAgrupada>
             </Fragment>
           );
         }

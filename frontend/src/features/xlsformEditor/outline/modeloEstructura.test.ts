@@ -253,3 +253,49 @@ describe("sorteo de un par", () => {
     expect(huecoEntre(s, ls, i)).toEqual({ indice: 7, contenedor: null });
   });
 });
+
+// C7 (elección por pares, 2026-11-07). Mata: pares que se ven como secciones sueltas, una cabecera que se traga una
+// pregunta ajena puesta entre dos pares, y un experimento plegado cuyos pares siguen en las líneas del teclado.
+describe("experimento de elección por pares", () => {
+  // 0 q0 · 1 intro · 2 begin P1 · 3 r1 · 4 tabla1 · 5 end · 6 begin P2 · 7 r2 · 8 tabla2 · 9 end · 10 q9
+  const filasExp = [
+    ["text", "q0", "Antes"],
+    ["note", "intro", "Le mostraré dos personas"],
+    ["begin_group", "tarea1", "Par 1 de 2"],
+    ["calculate", "t1A_r_x", ""],
+    ["note", "t1_tabla", "Tabla"],
+    ["end_group", "", ""],
+    ["begin_group", "tarea2", "Par 2 de 2"],
+    ["calculate", "t2A_r_x", ""],
+    ["note", "t2_tabla", "Tabla"],
+    ["end_group", "", ""],
+    ["text", "q9", "Después"],
+  ];
+  const tarea = (f: number) => (f === 3 ? 1 : f === 7 ? 2 : undefined);
+  const exp = { filas: new Set([1, 2, 6]) };
+
+  test("la introducción y los pares quedan bajo una cabecera, con su sorteo adentro", () => {
+    const a = construirArbol(parseBuilderStructure(hoja(filasExp)), tarea, exp);
+    expect(a.hijos.map((h) => h.tipo)).toEqual(["fila", "experimento", "fila"]);
+    const e = a.hijos[1]!;
+    if (e.tipo !== "experimento") return;
+    expect(e.hijos.map((h) => h.nodo.name)).toEqual(["intro", "tarea1", "tarea2"]);
+    expect(e.finSlot).toBe(10);
+    const par1 = e.hijos[1]!;
+    expect(par1.tipo === "seccion" && par1.hijos[0]!.tipo === "sorteo").toBe(true);
+  });
+
+  test("con una pregunta ajena entre dos pares no se junta nada", () => {
+    const con = [...filasExp.slice(0, 6), ["text", "ajena", "Otra"], ...filasExp.slice(6)];
+    const a = construirArbol(parseBuilderStructure(hoja(con)), undefined, { filas: new Set([1, 2, 7]) });
+    expect(a.hijos.some((h) => h.tipo === "experimento")).toBe(false);
+  });
+
+  test("plegado, sus pares salen de las líneas; el hueco de después cae tras el último par", () => {
+    const s = parseBuilderStructure(hoja(filasExp));
+    const a = construirArbol(s, tarea, exp);
+    const ls = lineasVisibles(a, (f) => f < 0);
+    expect(ls.map((l) => l.tipo)).toEqual(["fila", "experimento", "fila"]);
+    expect(huecoEntre(s, ls, 2)).toEqual({ indice: 10, contenedor: null });
+  });
+});

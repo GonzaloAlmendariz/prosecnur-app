@@ -933,6 +933,14 @@ export default function XlsformEditorPage() {
     () => (lecturaPares ? (fila: number) => lecturaPares.sorteo.get(fila) : undefined),
     [lecturaPares],
   );
+  const experimentoPares = useMemo(() => {
+    if (!lecturaPares) return undefined;
+    const filas = new Set(lecturaPares.pares.map((p) => p.grupo));
+    if (lecturaPares.intro != null) filas.add(lecturaPares.intro);
+    const n = lecturaPares.pares.length;
+    const a = lecturaPares.diseno.atributos.length;
+    return { filas, resumen: `${n} ${n === 1 ? "par" : "pares"}, ${a} atributos` };
+  }, [lecturaPares]);
 
   // Candidatos de matriz para el selector de exportación a PDF: runs contiguos
   // de select_one/select_multiple con misma lista dentro de la misma sección.
@@ -2796,6 +2804,7 @@ export default function XlsformEditorPage() {
                         onMoverFila={(rowIndex, direccion) => moveSelection(direccion, rowIndex)}
                         formularioId={activeFormId}
                         tareaDeSorteo={tareaDeSorteo}
+                        experimento={experimentoPares}
                         onAbrirPares={() => {
                           useModoPanelPares.getState().fijar(true);
                           conjointPanel.abrir();

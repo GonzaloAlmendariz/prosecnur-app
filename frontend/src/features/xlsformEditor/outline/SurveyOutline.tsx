@@ -40,7 +40,10 @@ import { crearFantasma, type Fantasma } from "./fantasma";
 import {
   FILTROS_RAPIDOS,
   construirArbol,
+  esIdExperimento,
+  filaDeIdExperimento,
   filaDeIdSorteo,
+  type ExperimentoEnEstructura,
   filtrarArbol,
   huecoEntre,
   lineaVecina,
@@ -64,8 +67,9 @@ import "./estructura.css";
 
 /** Clave del plegado de un sorteo: el código de su primer cálculo, que no cambia al mover o insertar filas. */
 function claveSorteo(structure: BuilderStructure | null, id: number): string {
-  const fila = filaDeIdSorteo(id);
-  return `sorteo:${structure?.byRow.get(fila)?.name || fila}`;
+  const experimento = esIdExperimento(id);
+  const fila = experimento ? filaDeIdExperimento(id) : filaDeIdSorteo(id);
+  return `${experimento ? "experimento" : "sorteo"}:${structure?.byRow.get(fila)?.name || fila}`;
 }
 
 export type { AvisoFila } from "./PuntoAviso";
@@ -95,6 +99,8 @@ export type SurveyOutlineProps = {
   tareaDeSorteo?: (fila: number) => number | undefined;
   /** Abre el panel del experimento con el diseño leído. */
   onAbrirPares?: () => void;
+  /** Piezas del experimento (introducción y pares) y lo que dice su cabecera (C7). */
+  experimento?: ExperimentoEnEstructura & { resumen: string };
 };
 
 const MARGEN_AUTOSCROLL = 44;
@@ -117,6 +123,7 @@ export function SurveyOutline({
   accionBarra,
   tareaDeSorteo,
   onAbrirPares,
+  experimento,
 }: SurveyOutlineProps) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [arrastre, setArrastre] = useState<ArrastreEstructura | null>(null);
@@ -132,7 +139,7 @@ export function SurveyOutline({
   // Árbol, filtro y líneas visibles
   // ---------------------------------------------------------------------------
 
-  const arbol = useMemo(() => construirArbol(structure, tareaDeSorteo), [structure, tareaDeSorteo]);
+  const arbol = useMemo(() => construirArbol(structure, tareaDeSorteo, experimento), [structure, tareaDeSorteo, experimento]);
 
   const hechos = useMemo(() => {
     // Misma lectura que los diagnósticos (estadoLista): una lista existe si choices le da alguna opción.
@@ -185,8 +192,9 @@ export function SurveyOutline({
   const plegada = useCallback(
     (fila: number) => {
       if (filtrando) return false;
-      // Un sorteo (id negativo) va plegado salvo que se haya abierto: en el store se anota abierto.
-      if (fila < 0) return !plegadas.has(claveSorteo(structure, fila));
+      // Un experimento va abierto salvo que se pliegue; un sorteo va plegado salvo que se abra (en el store se anota
+      // lo contrario de su estado de entrada).
+      if (fila < 0) return esIdExperimento(fila) ? plegadas.has(claveSorteo(structure, fila)) : !plegadas.has(claveSorteo(structure, fila));
       const n = structure?.byRow.get(fila);
       return n ? plegadas.has(clavePlegado(n.name, fila)) : false;
     },
@@ -229,10 +237,13 @@ export function SurveyOutline({
     }
   }, [selectedRow, structure, fijarPlegada]);
   useEffect(() => {
-    if (selectedRow == null || !tareaDeSorteo?.(selectedRow)) return;
-    const l = lineas.find((x) => x.tipo === "sorteo" && x.inicio! <= selectedRow && selectedRow < x.fin!);
-    if (l && !l.abierta) fijarPlegada(claveSorteo(structure, l.fila), true);
-  }, [selectedRow, tareaDeSorteo, lineas, structure, fijarPlegada]);
+    if (selectedRow == null) return;
+    // Lo mismo con el experimento y el sorteo de un par: se abre la cabecera que esconde la pieza elegida.
+    for (const l of lineas) {
+      if ((l.tipo !== "sorteo" && l.tipo !== "experimento") || l.abierta || selectedRow < l.inicio! || selectedRow >= l.fin!) continue;
+      fijarPlegada(claveSorteo(structure, l.fila), l.tipo === "sorteo");
+    }
+  }, [selectedRow, lineas, structure, fijarPlegada]);
 
   // La fila elegida se trae a la vista sólo cuando cambia QUÉ pieza está elegida (o la movió el teclado). Un cambio
   // del workbook que sólo la renumera (arrastrar otra fila por encima, insertar, guardar) no debe mover la lista:
@@ -440,7 +451,7 @@ export function SurveyOutline({
     const l = lineas.find((x) => x.fila === fila);
     if (!l) return { despuesDeFila: fila, seccionFila: null };
     if (l.tipo === "seccion" && l.abierta) return { despuesDeFila: null, seccionFila: fila };
-    if (l.tipo === "sorteo") return { despuesDeFila: l.fin! - 1, seccionFila: l.contenedor };
+    if (l.tipo === "sorteo" || l.tipo === "experimento") return { despuesDeFila: l.fin! - 1, seccionFila: l.contenedor };
     return { despuesDeFila: fila, seccionFila: l.contenedor };
   }
 
@@ -498,7 +509,7 @@ export function SurveyOutline({
       if (!linea.abierta) onPlegar(linea.fila);
       else {
         const vecina = lineaVecina(lineas, linea.fila, 1);
-        if (vecina && (vecina.contenedor === linea.fila || linea.tipo === "sorteo")) enfocar(vecina.fila);
+        if (vecina && (vecina.contenedor === linea.fila || linea.tipo !== "seccion")) enfocar(vecina.fila);
       }
       return;
     }
@@ -528,9 +539,10 @@ export function SurveyOutline({
             onPlegar,
             onInsertar: hayInsertar ? abrirInsertar : undefined,
             onAbrirPares,
+            resumenPares: experimento?.resumen,
           }
         : null,
-    [structure, selectedRow, enRecorrido, arrastre, filtrando, plegada, avisosPorFila, limiteSeccion, onElegir, onPlegar, hayInsertar, abrirInsertar, onAbrirPares],
+    [structure, selectedRow, enRecorrido, arrastre, filtrando, plegada, avisosPorFila, limiteSeccion, onElegir, onPlegar, hayInsertar, abrirInsertar, onAbrirPares, experimento],
   );
 
   const itemsMenu = useMemo(

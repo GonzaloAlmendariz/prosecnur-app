@@ -14,7 +14,7 @@ import type { BuilderNode, BuilderStructure } from "../types";
 import type { RowMovePlan } from "./outlineUtils";
 import { formatoConteo } from "../../../lib/formatoNumero";
 
-export type NodoArbol = NodoFila | NodoSeccion | NodoSorteo;
+export type NodoArbol = NodoFila | NodoSeccion | NodoSorteo | NodoExperimento;
 export type NodoFila = { tipo: "fila"; nodo: BuilderNode };
 export type NodoSeccion = {
   tipo: "seccion";
@@ -37,11 +37,53 @@ export type NodoSorteo = {
   /** Índice de inserción justo después del último cálculo. */
   finSlot: number;
 };
+/**
+ * Un experimento de elección por pares (C7, 2026-11-07): su introducción y sus pares se ven bajo una sola cabecera.
+ * Es sólo de la Estructura: en el XLSForm cada par sigue siendo su propia página, sin grupo que los contenga.
+ */
+export type NodoExperimento = {
+  tipo: "experimento";
+  id: number;
+  /** Primera pieza del experimento (su introducción o el primer par). */
+  nodo: BuilderNode;
+  hijos: NodoArbol[];
+  finSlot: number;
+};
 export type ArbolEstructura = { hijos: NodoArbol[]; finSlot: number };
+export type ExperimentoEnEstructura = { filas: ReadonlySet<number> };
+
+const BASE_EXPERIMENTO = 1_000_000;
+export const idExperimento = (primeraFila: number) => -(BASE_EXPERIMENTO + primeraFila);
+export const esIdExperimento = (id: number) => id <= -BASE_EXPERIMENTO;
+export const filaDeIdExperimento = (id: number) => -id - BASE_EXPERIMENTO;
 
 /** Id de la línea de un sorteo a partir de su primera fila (siempre negativo). */
 export const idSorteo = (primeraFila: number) => -(primeraFila + 1);
 export const filaDeIdSorteo = (id: number) => -id - 1;
+
+/** Junta bajo una cabecera las piezas seguidas del experimento (introducción y pares) de un mismo contenedor. Si
+ * algo ajeno queda en medio, no las junta: la cabecera mentiría sobre lo que contiene. */
+function agruparExperimento(structure: BuilderStructure, hijos: NodoArbol[], filas: ReadonlySet<number>): NodoArbol[] {
+  const enHijos = hijos.map((h) => h.tipo !== "sorteo" && h.tipo !== "experimento" && filas.has(h.nodo.rowIndex));
+  const primero = enHijos.indexOf(true);
+  if (primero >= 0) {
+    const ultimo = enHijos.lastIndexOf(true);
+    const tramo = hijos.slice(primero, ultimo + 1);
+    const total = [...filas].length;
+    if (enHijos.slice(primero, ultimo + 1).every(Boolean) && tramo.length === total) {
+      const fin = tramo[tramo.length - 1]!;
+      const nodo: NodoExperimento = {
+        tipo: "experimento",
+        id: idExperimento(tramo[0]!.nodo.rowIndex),
+        nodo: tramo[0]!.nodo,
+        hijos: tramo,
+        finSlot: finDeBloque(structure, fin.nodo.rowIndex) + 1,
+      };
+      return [...hijos.slice(0, primero), nodo, ...hijos.slice(ultimo + 1)];
+    }
+  }
+  return hijos.map((h) => (h.tipo === "seccion" ? { ...h, hijos: agruparExperimento(structure, h.hijos, filas) } : h));
+}
 
 /** Junta en un NodoSorteo los cálculos seguidos de un mismo par. */
 function agruparSorteo(hijos: NodoArbol[], tareaDe: (fila: number) => number | undefined): NodoArbol[] {
@@ -75,6 +117,7 @@ export function finDeBloque(structure: BuilderStructure, row: number): number {
 export function construirArbol(
   structure: BuilderStructure | null,
   tareaDeSorteo?: (fila: number) => number | undefined,
+  experimento?: ExperimentoEnEstructura,
 ): ArbolEstructura {
   if (!structure) return { hijos: [], finSlot: 0 };
   const raiz: ArbolEstructura = { hijos: [], finSlot: 0 };
@@ -93,7 +136,9 @@ export function construirArbol(
   }
   const ultimo = raiz.hijos[raiz.hijos.length - 1];
   raiz.finSlot = ultimo ? finDeBloque(structure, ultimo.nodo.rowIndex) + 1 : 0;
-  return tareaDeSorteo ? { ...raiz, hijos: agruparSorteo(raiz.hijos, tareaDeSorteo) } : raiz;
+  const conSorteo = tareaDeSorteo ? agruparSorteo(raiz.hijos, tareaDeSorteo) : raiz.hijos;
+  const hijos = experimento?.filas.size ? agruparExperimento(structure, conSorteo, experimento.filas) : conSorteo;
+  return { ...raiz, hijos };
 }
 
 /** Cuenta las piezas que no son secciones; con `cuenta`, sólo las que cumplen (p. ej. las mismas preguntas que el
@@ -225,12 +270,12 @@ export function textoDestino(
 export type Linea = {
   /** Fila del survey; en un sorteo, su id negativo. */
   fila: number;
-  tipo: "fila" | "seccion" | "sorteo";
+  tipo: "fila" | "seccion" | "sorteo" | "experimento";
   /** Apertura de la sección que la contiene (null = el formulario). */
   contenedor: number | null;
   /** Para una sección o un sorteo: si muestra su contenido. */
   abierta: boolean;
-  /** Para un sorteo: primera fila y el índice justo después de la última. */
+  /** Para un sorteo o un experimento: primera fila y el índice justo después de la última. */
   inicio?: number;
   fin?: number;
 };
@@ -250,9 +295,9 @@ export function lineasVisibles(
         out.push({ fila, tipo: "fila", contenedor, abierta: false });
         continue;
       }
-      if (h.tipo === "sorteo") {
+      if (h.tipo === "sorteo" || h.tipo === "experimento") {
         const abierto = !plegada(h.id);
-        out.push({ fila: h.id, tipo: "sorteo", contenedor, abierta: abierto, inicio: fila, fin: h.finSlot });
+        out.push({ fila: h.id, tipo: h.tipo, contenedor, abierta: abierto, inicio: fila, fin: h.finSlot });
         if (abierto) recorrer(h.hijos, contenedor);
         continue;
       }
@@ -288,11 +333,12 @@ export type Hueco = { indice: number; contenedor: number | null };
 export function huecoEntre(structure: BuilderStructure, lineas: readonly Linea[], siguiente: number): Hueco | null {
   const L = lineas[siguiente];
   if (L && L.tipo === "fila") return { indice: L.fila, contenedor: L.contenedor };
-  if (L && L.tipo === "sorteo") return { indice: L.inicio!, contenedor: L.contenedor };
+  if (L && (L.tipo === "sorteo" || L.tipo === "experimento")) return { indice: L.inicio!, contenedor: L.contenedor };
   const prev = lineas[siguiente - 1];
   if (!prev) return L ? { indice: L.fila, contenedor: L.contenedor } : null;
   if (prev.tipo === "fila") return { indice: prev.fila + 1, contenedor: prev.contenedor };
-  if (prev.tipo === "sorteo") return { indice: prev.fin!, contenedor: prev.contenedor };
+  if (prev.tipo === "sorteo" || (prev.tipo === "experimento" && !prev.abierta)) return { indice: prev.fin!, contenedor: prev.contenedor };
+  if (prev.tipo === "experimento") return { indice: prev.inicio!, contenedor: prev.contenedor };
   if (prev.abierta) return { indice: prev.fila + 1, contenedor: prev.fila };
   return { indice: finDeBloque(structure, prev.fila) + 1, contenedor: prev.contenedor };
 }

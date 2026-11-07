@@ -287,13 +287,16 @@
 .pulso-xlsform-frame .xfe-arbol .pulso-outline-row:hover:not(.is-dragging) { --xfk-fondo: var(--pulso-surface); }
 .pulso-xlsform-frame .xfe-arbol .pulso-outline-row.is-active { --xfk-fondo: var(--xls-sidebar-selected, var(--pulso-primary-soft)); }
 
-/* Sorteo de un par (C5, 2026-11-07): misma cabecera que una sección, con su botón «Diseño» al final. */
-.xfe-seccion.is-sorteo .xfe-sorteo-cab { display: flex; align-items: center; gap: 6px; }
-.xfe-seccion.is-sorteo .xfe-sorteo-cab .pulso-outline-body { flex: 1; min-width: 0; }
-.xfe-seccion.is-sorteo .xfe-sello { color: var(--module-accent, var(--pulso-primary)); }
-.xfe-sorteo-cab__diseno {
+/* Experimento de elección por pares y sorteo de un par (C5 y C7, 2026-11-07): misma cabecera que una sección, con
+   su botón «Diseño» al final. Son agrupaciones de la Estructura, no grupos del XLSForm. */
+.xfe-agrupada-cab { display: flex; align-items: center; gap: 6px; }
+.xfe-agrupada-cab .pulso-outline-body { flex: 1; min-width: 0; }
+.xfe-seccion.is-sorteo .xfe-sello,
+.xfe-seccion.is-experimento .xfe-sello { color: var(--module-accent, var(--pulso-primary)); }
+.xfe-seccion.is-experimento .xfe-sec-cab__conteo { white-space: nowrap; }
+.xfe-agrupada-cab__diseno {
   flex: none; height: 24px; min-height: 0; margin-right: 8px; padding: 0 9px; border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius); background: var(--pulso-surface); color: var(--pulso-text-muted);
   font: inherit; font-size: var(--pulso-type-caption-size); cursor: pointer; box-shadow: none;
 }
-.xfe-sorteo-cab__diseno:hover { border-color: var(--module-accent, var(--pulso-primary)); color: var(--module-accent, var(--pulso-primary)); }
+.xfe-agrupada-cab__diseno:hover { border-color: var(--module-accent, var(--pulso-primary)); color: var(--module-accent, var(--pulso-primary)); }
