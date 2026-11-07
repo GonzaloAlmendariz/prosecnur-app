@@ -7,7 +7,10 @@ Doc vivo (gate 5 de CLAUDE.md). Un ítem por indicación; sólo Gonzalo da el lo
 | H1 | Las siluetas se ven de mala calidad y no se alinean (el contorno de Ayacucho no calza con el de sus vecinos; en Lima, la costa del país no calza con los distritos) | `api/inst/hojas_ruta/build_limites_peru.R` → `build_contornos_por_region.R` → `peruDepartamentos.json` (nacional) + `peruDepartamentosDetalle.json` (fino); `mapa/lienzo/limites.ts` (`limitesALaEscala`), `useLimitesFinos.ts` | Hecho y verificado en vivo (acnur_acg): Ayacucho y la costa de Lima con una sola línea; gate del área verde |
 | H2 | ¿Por qué ya hay un diseño configurado («6, 6 por ruta, por distrito») si recién entro al estudio? | `mapa/ajustes/BotonDiseno.tsx` (`resumenDiseno`); la página le pasa los distritos confirmados | Hecho: sin distritos dice «Por definir». Test en `barraDiseno.test.ts`; en vivo sólo se vio el caso con distritos (acnur_acg ya tiene 6) |
 | H3 | Al entrar a una ciudad en Territorio no deja verla con las capas NSE, viviendas o población | Atlas con ciudad abierta: `territorio/capaDistritos.ts` + `CapaDistritosControles.tsx`; NSE por distrito en `api/R/hojas_ruta_nse_distrito.R` (sumado a los territorios) | Hecho a nivel de distrito (pedido de Gonzalo: nada pesado) y verificado en vivo con Arequipa: Población y NSE |
-| H4 | Con una ciudad abierta (la del clic, no una elegida para el estudio) no debería poder alejarme y ver otra; se vuelve con el selector de territorio | `lienzo/camara.ts` (`acotarACaja`), prop `limiteCamara` de `LienzoMapa`; la página la fija con la ciudad abierta en Territorio | Hecho y verificado en vivo con Arequipa: la rueda se detiene en el encuadre de la ciudad, el arrastre no la saca y la miga «Perú» vuelve al país; test `limiteCamara.test.ts` |
+| H4 | Con una ciudad abierta (la del clic, no una elegida para el estudio) no debería poder alejarme y ver otra; se vuelve con el selector de territorio | `lienzo/camara.ts` (`acotarACaja`), prop `limiteCamara` de `LienzoMapa`; la página la fija con la ciudad abierta en Territorio | Hecho y verificado en vivo con Arequipa: la rueda se detiene apenas pasado el encuadre de la ciudad y la ciudad no sale de la pantalla (ajustado tras la revisión: el primer límite dejaba Lima media fuera a 20 km) y la miga «Perú» vuelve al país; test `limiteCamara.test.ts` |
+| H5 | La paleta del mapa se ve tosca y poco elegante (NSE, y en general todas las del mapa). Gonzalo: «con las recomendaciones profesionales y como lo hacen los organismos más profesionales» | `app/tokens-datos.css` (`--pulso-nse-*`, `--pulso-mapa-viv-*`, `--pulso-mapa-tono-*`); densidad y clases en `territorio/capaDistritos.ts`; leyenda por rangos en `CapaDistritosControles.tsx`; bordes en `HojasRutaMapaPage.tsx` | Hecho y verificado en vivo con Lima: NSE divergente, población por densidad con leyenda por rangos, bordes blancos y tonos Tol en «Elegir distritos» (`tmp/paletas-mapa/resultado-paletas.png`) |
+| H6 | Al abrir una ciudad y hacer clic en un distrito, el mapa vuelve al Perú | Clic del atlas en `HojasRutaMapaPage.tsx` (antes buscaba el círculo de la ciudad y, si no, el departamento); ficha `FichaDistritoAtlas` en `territorio/CapaDistritosControles.tsx` | Hecho y verificado en vivo: con Lima abierta, clic en Lurigancho y en el Cercado abre la ficha del distrito (con su NSE) y la ciudad sigue abierta |
+| H7 | En la ciudad del estudio, con una capa por distrito, el distrito confirmado pinta su fondo y sus manzanas quedan grises encima | `HojasRutaMapaPage.tsx`: el lienzo recibía las manzanas de los confirmados también con la coropleta activa | Hecho y verificado en vivo: con una capa por distrito no se dibujan las manzanas y cada distrito confirmado muestra su color |
 
 ## H1: diagnóstico y arreglo
 
@@ -62,3 +65,40 @@ la miga («Perú ›») o «Todo el Perú».
   transversales: errors-registry, namespace-contract y demás).
 - En vivo con acnur_acg (backend propio en 8841, 1440x1000): Arequipa abierta en el atlas con Población y NSE por
   distrito; límite de la cámara; regreso por la miga.
+
+## H5: diagnóstico y propuestas
+
+- **Medido** (validador de paletas de la skill dataviz, superficie `#fafbff`, todos contra todos porque es un mapa): la
+  paleta actual del NSE falla. Alto (violeta) y Medio alto (azul) son el mismo color para un deuteranope (ΔE 0,4) y casi
+  iguales con visión normal (12,4); el verde azulado de Medio casi no tiene croma. Son colores de interfaz a plena
+  saturación, sin relación entre sí ni con el terracota del módulo.
+- **Forma.** El NSE tiene orden y un centro (Medio): va en divergente, dos tonos que se alejan de un gris cálido. No es
+  «intensidad de un solo tono», que Gonzalo descartó para el NSE.
+- **A, validada estricta:** Alto `#2c4c84`, Medio alto `#6a8cc0`, Medio `#b9b4aa`, Medio bajo `#bd7a1c`, Bajo `#6f4507`
+  (ΔE 15 con daltonismo, 17 con visión normal). Población y viviendas en la secuencia azul de datos v3 sin su escalón
+  más claro. En Lima los extremos oscuros pesan: el marrón de Bajo ocupa los distritos grandes.
+- **B, más suave:** Alto `#3d5f96`, Medio alto `#86a2cb`, Medio `#c4bfb5`, Medio bajo `#cf9445`, Bajo `#97621f` (ΔE 11
+  con daltonismo, 13 con visión normal: se distinguen, con la leyenda y la ficha de apoyo). Población y viviendas
+  `#a9c0f0` a `#1d3770`, menos saturada.
+- **Al aplicar:** los mismos tokens pintan la capa por manzana (Viviendas y NSE), así que cambia también ahí. Pendiente
+  en la misma tanda: bordes blancos finos entre distritos coloreados y bajar la saturación de los tonos de distrito
+  del estudio (`--pulso-mapa-tono-*`).
+
+## H5: lo aplicado (decisión: recomendaciones profesionales)
+
+Referencias revisadas: ONS (service manual y guía geoespacial), Banco Mundial (guía de visualización), Datawrapper,
+ColorBrewer (Brewer et al., estudio de mapas de mortalidad), CARTOColors, Paul Tol (SRON), INEI (planos estratificados).
+
+- **NSE divergente** (propuesta B): Alto `#3d5f96`, Medio alto `#86a2cb`, Medio `#c4bfb5`, Medio bajo `#cf9445`,
+  Bajo `#97621f`; sin dato `#e1e4ea`. Medidas comparables a ColorBrewer BrBG y CARTO Earth, con el centro visible.
+- **Población y viviendas por densidad** (por km²), nunca totales: regla de la ONS para coropletas. El área sale del
+  contorno del distrito, con los huecos descontados y corregida por latitud (el lienzo usa la escala de Lima).
+  Para Lima el contorno es el distrito del IMP; en las demás ciudades, la huella urbana: dentro de una ciudad la base es
+  la misma.
+- **Cinco clases por cuantiles** (la cifra habitual de la ONS), y la leyenda da el **rango de cada clase**.
+- **Rampa de cantidades** en el azul de datos de la dirección v3, menos saturado (`#b7c9ec` a `#253f7a`); la densidad
+  usa los cinco escalones más oscuros (el más claro no llega a 2:1 sobre el fondo). La capa de viviendas por manzana
+  usa la misma rampa.
+- **Bordes blancos finos** entre distritos coloreados.
+- **Tonos de los distritos del estudio**: paleta «muted» de Paul Tol, categórica y apta para daltonismo, en el orden que
+  maximiza la separación entre vecinos (ΔE 12,9 con daltonismo; 17,8 con visión normal).

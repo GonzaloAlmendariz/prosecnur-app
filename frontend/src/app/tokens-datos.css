@@ -12,8 +12,13 @@
 }
 
 /* Lienzo cartográfico de Hojas de ruta (ADR 0114). El Canvas lee estos tokens
- * con getComputedStyle: el mapa no lleva hex propios. NSE con los mismos tonos
- * que la leyenda vigente del módulo (Alto violeta … Bajo rojo). */
+ * con getComputedStyle: el mapa no lleva hex propios.
+ * NSE en divergente (revisión del 7 nov 2026): azules hacia Alto, ocres hacia Bajo y un gris
+ * cálido en Medio, como las paletas divergentes de ColorBrewer o CARTO para un dato con orden y
+ * centro. El centro va tintado y no casi blanco como en esas paletas: sobre el fondo del mapa,
+ * un Medio casi blanco se perdía. La anterior (violeta, azul, verde, naranja, rojo) confundía Alto
+ * con Medio alto para un deuteranope (ΔE 0,4); esta da ΔE 11 con daltonismo y 13 con visión
+ * normal, en el rango de ColorBrewer BrBG y CARTO Earth. Sin dato, gris claro. */
 :root {
   --pulso-mapa-fondo: #fafbff;
   --pulso-mapa-distrito: #e6eaf0;
@@ -28,41 +33,44 @@
   --pulso-mapa-via-borde: #cfd6e0;
   --pulso-mapa-reemplazo: #c4ccd8;
   --pulso-mapa-reemplazo-borde: #6b7686;
-  --pulso-nse-0: #94a3b8;
-  --pulso-nse-1: #7c3aed;
-  --pulso-nse-2: #2563eb;
-  --pulso-nse-3: #0f766e;
-  --pulso-nse-4: #d97706;
-  --pulso-nse-5: #dc2626;
+  --pulso-nse-0: #e1e4ea;
+  --pulso-nse-1: #3d5f96;
+  --pulso-nse-2: #86a2cb;
+  --pulso-nse-3: #c4bfb5;
+  --pulso-nse-4: #cf9445;
+  --pulso-nse-5: #97621f;
 }
 
 /* Identidad por distrito en el lienzo de Hojas de ruta (brecha B9): el distrito
  * confirmado N toma el tono N (en el orden de confirmación), en el relleno y en la
- * franja de su rótulo. Ocho matices bien separados (azul, verde azulado, ciruela, oliva,
- * violeta, mostaza, celeste, marrón): la paleta anterior tenía cuatro azules que en el
- * mapa no se distinguían (Gonzalo). Ninguno es terracota ni naranja, que son del módulo y
- * de la capa Viviendas. Del noveno en adelante el tono se genera (lienzo/tonos.ts). */
+ * franja de su rótulo. Paleta «muted» de Paul Tol (SRON), categórica y apta para daltonismo, en el
+ * orden que maximiza la separación entre vecinos (ΔE 12,9 con daltonismo, 17,8 con visión normal);
+ * los dos más claros van al final. Reemplaza ocho tonos saturados de interfaz (revisión del 7 nov
+ * 2026: «tosca»). Ninguno es terracota, que es del módulo. Del noveno en adelante el tono se genera
+ * (lienzo/tonos.ts). */
 :root {
-  --pulso-mapa-tono-0: #2f6fd6;
-  --pulso-mapa-tono-1: #16998a;
-  --pulso-mapa-tono-2: #b0458f;
-  --pulso-mapa-tono-3: #6e9a2c;
-  --pulso-mapa-tono-4: #7a52c7;
-  --pulso-mapa-tono-5: #c99a12;
-  --pulso-mapa-tono-6: #3aa3cf;
-  --pulso-mapa-tono-7: #8a6142;
+  --pulso-mapa-tono-0: #44aa99;
+  --pulso-mapa-tono-1: #aa4499;
+  --pulso-mapa-tono-2: #332288;
+  --pulso-mapa-tono-3: #117733;
+  --pulso-mapa-tono-4: #999933;
+  --pulso-mapa-tono-5: #882255;
+  --pulso-mapa-tono-6: #88ccee;
+  --pulso-mapa-tono-7: #ddcc77;
 }
 
-/* Viviendas por manzana como escala de INTENSIDAD naranja (Gonzalo: la intensidad
- * le sirve para una cantidad, no para el NSE, que es categórico y usa --pulso-nse-*).
- * 1 = pocas viviendas, 6 = muchas; la manzana sin viviendas va en --pulso-surface. */
+/* Cantidades como escala de INTENSIDAD de un solo tono (Gonzalo: la intensidad le sirve para
+ * una cantidad, no para el NSE, que usa --pulso-nse-*). Azul de datos de la dirección v3
+ * («los datos no se pintan con el acento del módulo»), menos saturado: el naranja anterior se
+ * confundía con el terracota del módulo. Viviendas por manzana usa 1..6 (sin viviendas va en
+ * --pulso-surface); la densidad por distrito del atlas usa 2..6 (el 1 no llega a 2:1 sobre el fondo). */
 :root {
-  --pulso-mapa-viv-1: #fdebdc;
-  --pulso-mapa-viv-2: #fbcfa8;
-  --pulso-mapa-viv-3: #f6a46a;
-  --pulso-mapa-viv-4: #e57a3a;
-  --pulso-mapa-viv-5: #bd551d;
-  --pulso-mapa-viv-6: #7c2d12;
+  --pulso-mapa-viv-1: #b7c9ec;
+  --pulso-mapa-viv-2: #94afe3;
+  --pulso-mapa-viv-3: #7393d3;
+  --pulso-mapa-viv-4: #5476bd;
+  --pulso-mapa-viv-5: #3a5aa0;
+  --pulso-mapa-viv-6: #253f7a;
 }
 
 /* Diferencias entre grupos (ADR 0128; propuesta de significancia §4.3): la cápsula ▲A de la lámina, en los mismos

@@ -97,7 +97,8 @@ export const useLienzoHojasRuta = create<EstadoLienzo>((set) => ({
   setEscenariosMuestra: (escenariosMuestra) => set({ escenariosMuestra }),
   setZonaFiltro: (zonaFiltro) => set({ zonaFiltro }),
   setDistritoEnfocado: (distritoEnfocado) => set({ distritoEnfocado }),
-  setCiudadEnfocada: (ciudadEnfocada) => set({ ciudadEnfocada }),
+  // Otra ciudad (o ninguna): la ficha del distrito de la anterior se cierra.
+  setCiudadEnfocada: (ciudadEnfocada) => set({ ciudadEnfocada, distritoEnfocado: null }),
   setDepartamentoEnfocado: (departamentoEnfocado) => set({ departamentoEnfocado }),
   setManzanaEnfocada: (manzanaEnfocada) => set({ manzanaEnfocada }),
   setBusquedaUmp: (busquedaUmp) => set({ busquedaUmp }),

@@ -61,15 +61,25 @@ export function encuadre(caja: Caja, t: Tamano, pad = 0.1, tapadoAbajo = 0): Cam
 }
 
 /**
- * La cámara dentro de un límite (la ciudad abierta): no se aleja más que su encuadre con un margen `pad` por
- * lado, y su centro no sale de la caja. Con una ciudad en foco, alejarse hasta ver otra cargaba sus mapas sin
- * que nadie los pidiera (revisión del 7 nov 2026); al Perú se vuelve con la miga o «Todo el Perú».
+ * La cámara dentro de un límite (la ciudad abierta). Con una ciudad en foco, alejarse hasta ver otra cargaba
+ * sus mapas sin que nadie los pidiera (revisión del 7 nov 2026); al Perú se vuelve con la miga o «Todo el Perú».
+ * - Alejarse se detiene apenas pasado el encuadre de la ciudad (`pad`, 10 % por lado).
+ * - Desplazarse no la saca de la pantalla: si la ciudad es más grande que lo visible, la vista no pasa de sus
+ *   bordes más ese margen; si es más chica, la ciudad entera queda dentro de la vista. Con sólo acotar el
+ *   centro a la caja, Lima quedaba media fuera de pantalla a 20 km de escala.
  */
 export function acotarACaja(c: Camara, t: Tamano, limite: { caja: Caja; pad?: number } | null | undefined): Camara {
   if (!limite || !t.w || !t.h) return c;
+  const pad = limite.pad ?? 0.1;
   const [x0, y0, x1, y1] = limite.caja;
-  const s = Math.max(c.s, encuadre(limite.caja, t, limite.pad ?? 0.25).s);
-  return { s, x: Math.min(x1, Math.max(x0, c.x)), y: Math.min(y1, Math.max(y0, c.y)) };
+  const s = Math.max(c.s, encuadre(limite.caja, t, pad).s);
+  const eje = (centro: number, a: number, b: number, mitadVista: number) => {
+    const m = (b - a) * pad;
+    const lo = a - m + mitadVista;
+    const hi = b + m - mitadVista;
+    return Math.min(Math.max(lo, hi), Math.max(Math.min(lo, hi), centro));
+  };
+  return { s, x: eje(c.x, x0, x1, t.w / 2 / s), y: eje(c.y, y0, y1, t.h / 2 / s) };
 }
 
 /**

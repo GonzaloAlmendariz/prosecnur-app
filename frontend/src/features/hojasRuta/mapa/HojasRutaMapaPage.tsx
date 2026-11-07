@@ -75,8 +75,8 @@ import { SeleccionCajon, SeleccionEstructura, SeleccionInspector } from "./selec
 import { SalidasPanel } from "./seleccion/SalidasPanel";
 import { AjustesDisenoHost } from "./ajustes/AjustesDisenoHost";
 import { BotonDiseno } from "./ajustes/BotonDiseno";
-import { escalaDistritos } from "./territorio/capaDistritos";
-import { leyendaCapaDistritos, SelectorCapaDistritos } from "./territorio/CapaDistritosControles";
+import { areaKm2, escalaDistritos } from "./territorio/capaDistritos";
+import { FichaDistritoAtlas, leyendaCapaDistritos, SelectorCapaDistritos } from "./territorio/CapaDistritosControles";
 import { alcanceEstudio, seccionLista } from "./ajustes/barraDiseno";
 import { useSeleccionDireccion } from "./seleccion/useSeleccionDireccion";
 import "./marco.css";
@@ -541,10 +541,12 @@ export default function HojasRutaMapaPage() {
     return unirCajas(contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadAbierta).map((c) => c.caja)) ?? atlas.find((c) => c.codigo === ciudadAbierta)?.caja ?? null;
   }, [enAtlas, ciudadAbierta, contornos, atlas, departamentoEnfocado, ciudadEnfocada]);
   // La ciudad abierta en el atlas, coloreada por distrito (población, viviendas o NSE): sin leer sus manzanas.
-  const escalaCiudad = useMemo(
-    () => (enAtlas && ciudadEnfocada ? escalaDistritos(capaDistritos, (estado?.territories ?? []).filter((t) => ciudadDeUbigeo(t.ubigeo) === ciudadEnfocada)) : null),
-    [enAtlas, ciudadEnfocada, capaDistritos, estado],
-  );
+  // Densidad por km²: el área sale del contorno de cada distrito (el de la cartografía del lienzo).
+  const escalaCiudad = useMemo(() => {
+    if (!enAtlas || !ciudadEnfocada) return null;
+    const areas = new Map(contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadEnfocada).map((c) => [c.ubigeo, areaKm2(c.anillos)]));
+    return escalaDistritos(capaDistritos, (estado?.territories ?? []).filter((t) => ciudadDeUbigeo(t.ubigeo) === ciudadEnfocada), areas);
+  }, [enAtlas, ciudadEnfocada, capaDistritos, estado, contornos]);
   const contornosAbiertos = useMemo(() => (ciudadAbierta ? contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadAbierta) : contornos), [contornos, ciudadAbierta]);
   // Vista nacional (Población, Muestra, Manzanas y Selección con distritos en 2+ ciudades): Perú › ciudad › distrito.
   const limitesFinos = useLimitesFinos();
@@ -571,9 +573,12 @@ export default function HojasRutaMapaPage() {
         // fondo y borde de 0.9, sobre el fondo blanco los distritos se leían como trazos sueltos (revisión de
         // UI, 2 nov 2026: «todas las ciudades deben verse así de bien», como Lima).
         if (ciudadEnfocada) dibujarContornos(ctx, u, contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadEnfocada), (c) => {
-          const k = escalaCiudad?.clase.get(c.ubigeo) ?? 0;
-          const relleno = !escalaCiudad ? mezclar(u.colores.fondo, u.colores.acento, 0.07) : escalaCiudad.capa === "nse" ? u.colores.nse[k] : k ? u.colores.densidad[k] : u.colores.fondo;
-          return { relleno, borde: mezclar(u.colores.distritoBorde, u.colores.acento, 0.45), grosor: 1 };
+          if (!escalaCiudad) return { relleno: mezclar(u.colores.fondo, u.colores.acento, 0.07), borde: mezclar(u.colores.distritoBorde, u.colores.acento, 0.45), grosor: 1 };
+          // Coropleta: borde blanco fino entre distritos, como en los mapas de la ONS o Datawrapper. La densidad usa
+          // los cinco escalones más oscuros de la rampa (densidad[2..6]); el primero no llega a 2:1 sobre el fondo.
+          const k = escalaCiudad.clase.get(c.ubigeo) ?? 0;
+          const relleno = escalaCiudad.capa === "nse" ? u.colores.nse[k] : k ? u.colores.densidad[k + 1] : u.colores.nse[0];
+          return { relleno, borde: u.colores.fondo, grosor: 1.2 };
         });
         return;
       }
@@ -909,13 +914,17 @@ export default function HojasRutaMapaPage() {
           ariaLabel="Mapa del territorio del estudio"
           miga={enAtlas ? <MigaAtlas total={atlas.length} departamento={departamentoEnfocado} ciudad={atlas.find((c) => c.codigo === ciudadEnfocada) ?? null} distritos={contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadEnfocada).length} cargando={regionesCargando.length > 0} enEstudio={Boolean(ciudadEnfocada && enEstudio.includes(ciudadEnfocada))} onPeru={() => { setCiudadEnfocada(null); setDepartamentoEnfocado(null); }} onDepartamento={(d) => { setCiudadEnfocada(null); setDepartamentoEnfocado(d); }} /> : enTerritorio && ciudadAbierta ? <><b>{atlas.find((c) => c.codigo === ciudadAbierta)?.nombre}</b>{regionesCargando.length ? "(cargando su mapa…)" : <span className="hr-lienzo-miga-ayuda">(clic en un distrito para ver su ficha)</span>}</> : nacional.miga ? <>{nacional.miga}{regionesCargando.length && nacional.nivel?.nivel !== "nacional" ? <span className="hr-lienzo-miga-ayuda">(cargando sus distritos…)</span> : null}</> : migaLienzo(nav.seccion as SeccionLienzo, confirmados.length, titularEnfocada ? { distrito: nombreDistrito(titularEnfocada.distrito), ump: codigoDeUmp(titularEnfocada) } : null, atlas.filter((c) => enEstudio.includes(c.codigo)).map((c) => c.nombre))}
           leyenda={escalaCiudad ? leyendaCapaDistritos(escalaCiudad) : enAtlas ? <><span className="hr-atlas-punto" aria-hidden="true" /> Con cartografía <span className="hr-atlas-punto" data-en-estudio aria-hidden="true" /> En el estudio</> : nacional.nivel?.nivel === "nacional" ? <><span className="hr-atlas-punto" data-en-estudio aria-hidden="true" /> Ciudad del estudio</> : leyendaLienzo(nav.seccion as SeccionLienzo, { zonasCortas: zonasCortas.size > 0, areas: (configSorteo?.marco_elegible?.areas_excluidas ?? []).length > 0, capa: capaMapa })}
-          distritos={enPoblacion || enMuestra ? [] : distritos}
+          // Con una capa por distrito, las manzanas de los confirmados tapaban el color de su distrito.
+          distritos={enPoblacion || enMuestra || escalaCiudad ? [] : distritos}
           capa={conSelectorDeCapa(nav.seccion as SeccionLienzo) ? capaMapa : "manzanas"}
           anclaZoom={centroEnfocado}
           limiteCamara={enTerritorio && cajaTerritorio && (ciudadAbierta || ciudadEnfocada) ? { caja: cajaTerritorio } : null}
           controles={enAtlas && ciudadEnfocada ? <SelectorCapaDistritos capa={capaDistritos} onCapa={setCapaDistritos} /> : !enAtlas && nacional.nivel?.nivel !== "nacional" && conSelectorDeCapa(nav.seccion as SeccionLienzo) ? <SelectorCapa capa={capaMapa} onCapa={setCapaMapa} /> : undefined}
           encuadreObjetivo={!estado ? null : enTerritorio && cajaTerritorio ? { caja: cajaTerritorio, pad: enAtlas ? 0.04 : 0.08, tapadoAbajo: enAtlas ? 0.07 : 0, clave: `territorio:${ciudadAbierta ?? `pe:${departamentoEnfocado ?? ""}:${ciudadEnfocada ?? ""}`}:${(ciudadAbierta || ciudadEnfocada) && regionesCargando.length ? "silueta" : "distritos"}`, animar: true } : cajaEnfocada ? { caja: cajaEnfocada, pad: 2.2, clave: `ump:${umpEnfocada}:${cajon ? "cajon" : "libre"}`, animar: true, tapadoAbajo: cajon ? 0.5 : 0 } : nacional.encuadre ? (cajon && nav.seccion === "seleccion" ? { ...nacional.encuadre, clave: `${nacional.encuadre.clave}:cajon`, tapadoAbajo: 0.5 } : nacional.encuadre) : (caja ? { caja, pad: 0.08, clave: `${nav.seccion}:${confirmados.join(",") || "lima"}:${contornosConfirmados}`, animar: false } : null)}
-          ficha={nacional.ficha}
+          ficha={(() => {
+            const t = enAtlas && ciudadEnfocada && distritoEnfocado ? estado?.territories.find((x) => x.ubigeo === distritoEnfocado && ciudadDeUbigeo(x.ubigeo) === ciudadEnfocada) : undefined;
+            return t ? <FichaDistritoAtlas territorio={t} ciudad={atlas.find((c) => c.codigo === ciudadEnfocada)?.nombre ?? ""} onCerrar={() => setDistritoEnfocado(null)} /> : nacional.ficha;
+          })()}
           dibujarFondo={dibujarFondo}
           dibujarMundo={dibujarMundo}
           dibujarPantalla={dibujarPantalla}
@@ -946,6 +955,12 @@ export default function HojasRutaMapaPage() {
                 }
               : enAtlas
               ? ([x, y], u) => {
+                  // Con una ciudad abierta, el clic en uno de sus distritos abre su ficha y la ciudad sigue abierta.
+                  const enCiudad = ciudadEnfocada ? distritoEnPunto(contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadEnfocada), x, y) : null;
+                  if (enCiudad) {
+                    setDistritoEnfocado(enCiudad.ubigeo !== distritoEnfocado ? enCiudad.ubigeo : null);
+                    return;
+                  }
                   // El mapa informa: un clic abre la tarjeta de la ciudad en el inspector.
                   const [px, py] = u.aPantalla(x, y);
                   const c = ciudadEnPantalla(u, atlas, px, py);

@@ -1,7 +1,19 @@
 import type { ReactNode } from "react";
+import type { HojasRutaTerritory } from "../../../../api/hojasRuta";
 import { formatoConteo } from "../../../../lib/formatoNumero";
 import { leyendaLienzo } from "../lienzo/flotantes";
-import { CAPAS_DISTRITOS, type CapaDistritos, type EscalaDistritos } from "./capaDistritos";
+import { FichaDistritoNacional } from "../nacional/FichaDistritoNacional";
+import { CAPAS_DISTRITOS, NOMBRE_NSE, type CapaDistritos, type EscalaDistritos } from "./capaDistritos";
+
+/**
+ * Ficha del distrito al que se hace clic con una ciudad abierta en el atlas. Antes ese clic caía en «fuera de
+ * una ciudad» y devolvía al Perú (revisión del 7 nov 2026); ahora la ciudad sigue abierta y el distrito se lee.
+ */
+export function FichaDistritoAtlas({ territorio, ciudad, onCerrar }: { territorio: HojasRutaTerritory; ciudad: string; onCerrar: () => void }) {
+  const nse = territorio.nse_predominante;
+  const linea = typeof nse === "number" && nse >= 1 && nse <= 5 ? `NSE predominante: ${NOMBRE_NSE[nse].toLowerCase()}` : null;
+  return <FichaDistritoNacional territorio={territorio} ciudad={ciudad} linea={linea} onCerrar={onCerrar} />;
+}
 
 /** Selector de la capa de distritos de la ciudad abierta en el atlas (mismo control que el de manzanas). */
 export function SelectorCapaDistritos({ capa, onCapa }: { capa: CapaDistritos; onCapa: (c: CapaDistritos) => void }) {
@@ -14,18 +26,27 @@ export function SelectorCapaDistritos({ capa, onCapa }: { capa: CapaDistritos; o
   );
 }
 
-// Los mismos escalones que la capa de viviendas por manzana (nombres literales: el contrato de tokens no lee nombres armados).
-const RAMPA = ["--pulso-mapa-viv-1", "--pulso-mapa-viv-2", "--pulso-mapa-viv-3", "--pulso-mapa-viv-4", "--pulso-mapa-viv-5", "--pulso-mapa-viv-6"];
+// Las cinco clases toman los cinco escalones más oscuros de la rampa (el primero no llega a 2:1 contra el fondo
+// del mapa). Nombres literales: el contrato de tokens no lee nombres armados.
+export const RAMPA_DENSIDAD = ["--pulso-mapa-viv-2", "--pulso-mapa-viv-3", "--pulso-mapa-viv-4", "--pulso-mapa-viv-5", "--pulso-mapa-viv-6"] as const;
+
+const cifra = (v: number) => formatoConteo(Math.round(v));
+
+/** Rango de cada clase de densidad, como en las leyendas de la ONS: «menos de 4,120», «4,120 a 9,800», «22,000 o más». */
+export function rangosDensidad(cortes: readonly number[]): string[] {
+  if (!cortes.length) return [];
+  return [`menos de ${cifra(cortes[0])}`, ...cortes.slice(1).map((c, i) => `${cifra(cortes[i])} a ${cifra(c)}`), `${cifra(cortes[cortes.length - 1])} o más`];
+}
 
 export function leyendaCapaDistritos(escala: EscalaDistritos): ReactNode {
   if (escala.capa === "nse") return <><span>NSE predominante</span>{leyendaLienzo("territorio", { capa: "nse" })}</>;
+  const rangos = rangosDensidad(escala.cortes);
   return (
     <>
-      <span>{escala.capa === "poblacion" ? "Habitantes por distrito" : "Viviendas por distrito"}</span>
-      <span className="hr-lienzo-rampa" aria-hidden="true">
-        {RAMPA.map((t) => <i key={t} style={{ background: `var(${t})` }} />)}
-      </span>
-      <span>{formatoConteo(escala.min)} → {formatoConteo(escala.max)}</span>
+      <span>{escala.capa === "poblacion" ? "Habitantes por km²" : "Viviendas por km²"}</span>
+      {rangos.map((r, i) => (
+        <span key={RAMPA_DENSIDAD[i]}><i style={{ background: `var(${RAMPA_DENSIDAD[i]})` }} />{r}</span>
+      ))}
     </>
   );
 }

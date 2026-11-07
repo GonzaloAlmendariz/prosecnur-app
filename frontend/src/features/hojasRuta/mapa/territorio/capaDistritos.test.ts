@@ -1,27 +1,45 @@
 import { describe, expect, it } from "vitest";
 import type { HojasRutaTerritory } from "../../../../api/hojasRuta";
-import { escalaDistritos } from "./capaDistritos";
+import { areaKm2, escalaDistritos } from "./capaDistritos";
+import { rangosDensidad } from "./CapaDistritosControles";
 
 const t = (ubigeo: string, poblacion: number, nse: number | null): HojasRutaTerritory =>
   ({ ubigeo, departamento: "LIMA", provincia: "LIMA", distrito: ubigeo, viviendas: poblacion / 4, poblacion, manzanas: 10, nse_predominante: nse }) as HojasRutaTerritory;
 
-const ciudad = [t("150101", 270_000, 3), t("150122", 100_000, 1), t("150106", 380_000, 5), t("150132", 1_100_000, 5), t("150104", 30_000, null)];
+// Un cuadrado de lado L metros en el mundo del lienzo (cerca del origen: sin corrección de latitud).
+const cuadrado = (x: number, y: number, l: number) => [x, y, x + l, y, x + l, y + l, x, y + l];
 
 describe("capa de distritos de la ciudad abierta (revisión del 7 nov 2026)", () => {
-  it("«Distritos» no colorea", () => {
-    expect(escalaDistritos("distritos", ciudad)).toBeNull();
+  it("el área descuenta los huecos", () => {
+    expect(areaKm2([cuadrado(0, 0, 10_000)])).toBeCloseTo(100, 0);
+    expect(areaKm2([cuadrado(0, 0, 10_000), cuadrado(2_000, 2_000, 5_000)])).toBeCloseTo(75, 0);
   });
 
-  it("población: el más poblado en la clase más alta, el menos en la más baja", () => {
-    const e = escalaDistritos("poblacion", ciudad)!;
-    const clases = ciudad.map((d) => e.clase.get(d.ubigeo)!);
-    expect(Math.max(...clases)).toBe(e.clase.get("150132"));
-    expect(Math.min(...clases)).toBe(e.clase.get("150104"));
-    expect([e.min, e.max]).toEqual([30_000, 1_100_000]);
+  it("«Distritos» no colorea", () => {
+    expect(escalaDistritos("distritos", [], new Map())).toBeNull();
+  });
+
+  it("población por densidad, no por total: el distrito grande y poco poblado queda abajo", () => {
+    const ciudad = [t("A", 1_000_000, 5), t("B", 300_000, 3), t("C", 200_000, 1), t("D", 100_000, 2), t("E", 50_000, null)];
+    // A tiene el mayor total pero un área enorme; C, poca gente en muy poco espacio.
+    const areas = new Map([["A", 500], ["B", 30], ["C", 4], ["D", 20], ["E", 10]]);
+    const e = escalaDistritos("poblacion", ciudad, areas)!;
+    expect(e.clase.get("A")).toBe(1);
+    expect(e.clase.get("C")).toBe(5);
+    expect(e.cortes).toHaveLength(4);
+  });
+
+  it("un distrito sin contorno queda sin dato", () => {
+    const e = escalaDistritos("viviendas", [t("A", 1_000, 1)], new Map())!;
+    expect(e.clase.get("A")).toBe(0);
   });
 
   it("NSE: el nivel predominante tal cual (1 = Alto) y 0 sin dato", () => {
-    const e = escalaDistritos("nse", ciudad)!;
-    expect(["150122", "150101", "150106", "150104"].map((u) => e.clase.get(u))).toEqual([1, 3, 5, 0]);
+    const e = escalaDistritos("nse", [t("A", 1, 1), t("B", 1, 3), t("C", 1, 5), t("D", 1, null)], new Map())!;
+    expect(["A", "B", "C", "D"].map((u) => e.clase.get(u))).toEqual([1, 3, 5, 0]);
+  });
+
+  it("la leyenda da el rango de cada una de las cinco clases", () => {
+    expect(rangosDensidad([1_000, 2_500, 5_000, 12_000])).toEqual(["menos de 1,000", "1,000 a 2,500", "2,500 a 5,000", "5,000 a 12,000", "12,000 o más"]);
   });
 });

@@ -136,7 +136,7 @@ function leerColores(): ColoresLienzo {
     acento: v("--pulso-module-routes"),
     aviso: v("--pulso-warn-accent"),
     error: v("--pulso-danger-fg"),
-    // la densidad arranca en blanco para «sin viviendas» y sigue la intensidad naranja; el NSE es categórico
+    // la densidad arranca en blanco para «sin viviendas» y sigue la intensidad de un tono; el NSE es divergente
     densidad: ["--pulso-surface", "--pulso-mapa-viv-1", "--pulso-mapa-viv-2", "--pulso-mapa-viv-3", "--pulso-mapa-viv-4", "--pulso-mapa-viv-5", "--pulso-mapa-viv-6"].map(v),
     nse: ["--pulso-nse-0", "--pulso-nse-1", "--pulso-nse-2", "--pulso-nse-3", "--pulso-nse-4", "--pulso-nse-5"].map(v),
     tonos: ["--pulso-mapa-tono-0", "--pulso-mapa-tono-1", "--pulso-mapa-tono-2", "--pulso-mapa-tono-3", "--pulso-mapa-tono-4", "--pulso-mapa-tono-5", "--pulso-mapa-tono-6", "--pulso-mapa-tono-7"].map(v),
