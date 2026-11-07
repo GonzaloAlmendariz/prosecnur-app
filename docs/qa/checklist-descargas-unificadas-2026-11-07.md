@@ -11,7 +11,7 @@ guardado. Orden: censo → prototipo (artifact) → implementación.
 | 3 | Unificar el nombrado de los archivos | `Estudio_Entregable[_Base][_Detalle]_Fecha.ext`, rótulo por salida en el prototipo (vista «Nombre»); extiende `.export_filename()`. Decidido: palabras `Frecuencias_por_base`, tildes y ñ transliteradas, fecha `07_11_26` (la de `.export_filename()`) | decidido; espera implementación |
 | 4 | Unificar la ubicación del guardado | Decidido: `Entregables\<Módulo>\` junto al .pulso en escritorio, sin diálogo; descargas en navegador (vista «Ubicación») | decidido |
 | 5 | Prototipo como artifact | https://claude.ai/artifact/8S4BRaszzE1tChaRcAUVRk | publicado; espera revisión |
-| 6 | Implementar | Fases en la vista «Decisiones»: defectos → `entregable_registrar()` + ADR → Electron → `useGeneracion` → migración con ratchet | en curso: fases 1 (`318e66b33`), 2 (`eecc17c8f`, ADR 0133) y 3 (`dbee82353`) hechas; fases 4 y 5 pendientes |
+| 6 | Implementar | Fases en la vista «Decisiones»: defectos → `entregable_registrar()` + ADR → Electron → `useGeneracion` → migración con ratchet | en curso: fases 1 (`318e66b33`), 2 (`eecc17c8f`, ADR 0133), 3 (`dbee82353`) y 4 (`49723ab95`) hechas; fase 5 (migración de los demás módulos) pendiente |
 
 ## Fase 1: defectos (commit `318e66b33`)
 
@@ -55,9 +55,26 @@ Verificación: el verificador rechazó la primera entrega porque el informe comp
 | Descargas ilegible (EPERM de macOS) → diálogo y aviso igual | `instalarDescargas` | hecho y probado en Electron real |
 | «Abrir» y «Mostrar en la carpeta» solo para entregables en Descargas o `<proyecto>/Entregables` | `rutaPermitida`, `crearHandlersEntregable`, IPC con `trustedHandle` | hecho; rechazos probados en Electron real |
 | Rutas UNC y flujos NTFS rechazados antes de tocar disco; el log no copia rutas ni textos del sistema | `rutaPermitida`, `esMotivoPropio` | hecho (hallazgos del verificador) |
-| Puente en el front con respaldo inerte en navegador | `frontend/src/lib/escritorio.ts`, `features/project/types.ts` | hecho; sin consumidores hasta la fase 4 |
+| Puente en el front con respaldo inerte en navegador | `frontend/src/lib/escritorio.ts`, `features/project/types.ts` | hecho; lo consume el kit de la fase 4 |
 
 Gates: `pnpm -C desktop test` 69/69; `escritorio.test.ts` 19/19; `tsc` limpio; audit limpio; `make gate-front` 743/744 con un timeout por contención de la máquina (`GlidingTabList` 9/9 aislado). Pendiente de probar a mano, sobre todo en Windows: generar sin proyecto guardado, descargar dos veces y ver `X` y `X_2` en Descargas sin diálogo; «Abrir» y «Mostrar en la carpeta»; la marca de «archivo de Internet» (Vista protegida de Office). Riesgo aceptado: `.xls` sigue en la lista porque la app genera la carga de campo de aulas en ese formato.
+
+## Fase 4: contenedor de archivo y bandeja (commit `49723ab95`)
+
+| Pieza | Dónde vive | Estado |
+|---|---|---|
+| `useGeneracion` (sync y job con avance real, cancelar, fallo legible) | `frontend/src/components/entregables/useGeneracion.ts` | hecho |
+| Contenedor de archivo en tres formas (bloque, anclada, fila), acciones neutras, una sola señal | `ContenedorEntregable.tsx`, `entregables.css` | hecho; QA visual r2 conforme |
+| Bandeja «Entregables» en la barra superior | `BandejaEntregables.tsx`, `bandejaStore.ts`, `app/Layout.tsx` | hecho; QA visual conforme |
+| Piloto bloque: Analítica (8 panes, pie «Generar») | `PaneKit.tsx`, `useReporteRun.ts` | hecho |
+| Piloto anclada: Gráficos (menú «Exportar»), sin colapso a ícono al exportar | `ExportarInformeMenu.tsx`, `editor-v2.css` (4 selectores, sin crecer) | hecho |
+| Ratchet de entregas propias | `entregablesRatchet.contract.test.ts`, BASE 41 (antes 43) | hecho; baja con cada módulo migrado |
+
+QA visual: la primera ronda rechazó (bloque estirado a todo el alto, disparador de Gráficos colapsado a 1024, foco invisible); la segunda, con fallos reales provocados por la API, dio 31 PASS y 0 FAIL a 1440x1000 y 1024x600. Gates: `tsc` limpio, vitest de kit, Analítica y Gráficos 2345/2345, `make gate-front` 750/750, audit limpio. Pendiente: Electron real (Abrir, Mostrar en la carpeta, Guardar como, aviso de descarga) y el foco de «Cancelar» a 1024. Observaciones bajas: a 1024 el contenedor queda al ras del borde inferior (falta `scroll-margin-bottom`); la anclada tapa «Ver avisos» hasta que se cierra.
+
+## Fase 5: migración (pendiente)
+
+Los 41 archivos que el ratchet aún cuenta, módulo por módulo, hasta 0: Material de campo, Monitoreo, Hojas de ruta, Cálculo de muestra, Codificación, Carga, Validación (incluye ofrecer la base limpia de «Cerrar y generar base»), Editor XLSForm, Correos y Dashboard. Al migrar cada flujo se retira su `guardar = FALSE` transitorio del catálogo y su nombre propio pasa a `entregable_nombre()`. Decisión pendiente: el «Actualizar» de aulas que también publica en Sheets.
 
 ## Notas
 
