@@ -251,3 +251,36 @@ test_that("U6: la regla de las láminas de resumen usa el mismo detector (0 «Pr
   inst$choices$label <- c("No responde", .dns_lik5)
   expect_identical(.regla_preguntas_escala(inst, "a")$no_sustantivo, c(TRUE, rep(FALSE, 5)))
 })
+
+# ---- Cuarta revisión metodológica de 2130f7e54 (H1 regla de hermanos, H2 formas de no respuesta) ----------------
+
+test_that("H1: una raíz ambigua es nivel si otra opción de la lista la contiene", {
+  skip_if_not_installed("ggplot2")
+  f <- .divergentes_especiales
+  rech <- c("Rechazo totalmente", "Rechazo", "Ni acepto ni rechazo", "Acepto", "Acepto totalmente")
+  expect_false(any(f(rech, as.character(1:5))))
+  expect_identical(.dns_lados(as.character(1:5), rech, c(2, 2, 1, 1, 2))$lado, c("neg", "neg", "neu", "pos", "pos"))
+  con <- c("No conoce nada", "Conoce poco", "Conoce algo", "Conoce bien")
+  expect_identical(.dns_lados(as.character(1:4), con, c(4, 1, 1, 2))$lado, c("neg", "neg", "pos", "pos"))
+  expect_false(any(f(c("No conoce", "Conoce poco", "Conoce algo", "Conoce bien"), as.character(1:4))))
+  expect_false(any(f(c("Desconozco", "Conozco poco", "Conozco algo", "Conozco mucho"), as.character(1:4))))
+  expect_false(any(f(c("No uso", "Uso poco", "Uso bastante", "Uso mucho"), as.character(1:4))))
+  expect_false(any(f(c("No he participado", "Una vez", "Algunas veces", "Muchas veces"), as.character(1:4))))
+  expect_false(any(f(c("No se cumple", "Se cumple poco", "Se cumple bastante", "Se cumple totalmente"), as.character(1:4))))
+  # Sueltas, sin hermana: siguen siendo Sin información.
+  expect_identical(f(c(.dns_lik5, "Rechazo"), as.character(1:6)), c(rep(FALSE, 5), TRUE))
+  expect_identical(f(c(.dns_lik5, "Desconoce"), as.character(1:6)), c(rep(FALSE, 5), TRUE))
+  expect_identical(f(c(.dns_lik5, "No conoce"), as.character(1:6)), c(rep(FALSE, 5), TRUE))
+  expect_identical(f(c(.dns_lik5, "Rechazo a responder"), as.character(1:6)), c(rep(FALSE, 5), TRUE))
+  expect_identical(f(c(.dns_lik5, "No he acudido a esos horarios"), as.character(1:6)), c(rep(FALSE, 5), TRUE))
+})
+
+test_that("H2: NS, NR, «No opino», «No tengo opinión», «Sin respuesta» y «(No leer) No sabe» son Sin información", {
+  f <- .divergentes_especiales
+  for (r in c("NS", "NR", "No opino", "No tengo opinión", "Sin respuesta", "(No leer) No sabe", "No sabe/No opina", "Ns/Nc")) {
+    expect_identical(f(c(.dns_lik5, r), as.character(1:6)), c(rep(FALSE, 5), TRUE), label = r)
+  }
+  # «No sé» suelto sí; «No se cumple» como nivel no.
+  expect_true(f("No sé", "6"))
+  expect_false(f("No se cumple", "1"))
+})

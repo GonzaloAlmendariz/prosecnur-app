@@ -38,12 +38,24 @@
 # siguen en la escala; «Ninguna de las anteriores» no. Un rótulo de no respuesta que esta lista no conozca queda como
 # nivel: la salida es declararlo en `choices$especial`. Se compara en minúsculas y sin tildes (`.box_norm_etiqueta`).
 .NO_SUSTANTIVOS_ROTULO_ESCALA <- paste0("^(", paste(c(
-  "prefiero no (responder|decir|contestar)", "no precisa", "sin opini", "no tiene opini", "no opina", "no contesta",
-  "no responde", "no (quiere|desea) (responder|contestar)", "rechaz", "ns ?/ ?n[rcos]", "no se\\b", "no lo se\\b",
-  "no sabe\\b", "no sabria", "no sabia", "desconoc", "no conoc", "no tengo informaci", "sin informaci", "sin inf\\b",
-  "no aplica", "no corresponde", "no recuerda", "no uso", "no utilic",
-  "no he (acudido|asistido|usado|utilizado|ido|participado|tenido)",
+  "prefiero no (responder|decir|contestar)", "no precisa", "sin opini", "no tiene opini", "no tengo opini", "no opina",
+  "no opino", "no contesta", "no responde", "no (quiere|desea) (responder|contestar)", "rechaz[oa] (a )?(responder|contestar)",
+  "ns ?/ ?n[rcos]", "ns$", "nr$", "no se$", "no lo se\\b", "no sabe\\b", "no sabria", "no sabia", "no tengo informaci",
+  "sin informaci", "sin inf\\b", "sin respuesta", "no aplica", "no corresponde", "no recuerda",
   "ningun[oa] de (los|las) (anteriores|opciones)", "otr[oa]s?$", "otro\\b"), collapse = "|"), ")")
+# Raíces ambiguas (cuarta revisión metodológica, H1): «Rechazo», «No conoce», «No uso», «No he participado» son una no
+# respuesta como opción suelta, pero el extremo de una escala si otra opción de la misma lista contiene la raíz
+# («Rechazo totalmente … Acepto totalmente», «No conoce / Conoce poco», «No uso / Uso poco»). Patrón -> raíz hermana.
+.NO_SUSTANTIVOS_RAICES_ESCALA <- list(
+  list(patron = "^rechaz[oa]?$", raiz = "rechaz"),
+  list(patron = "^(no (conoce|conozco)$|desconoc)", raiz = "conoc"),
+  list(patron = "^no (uso|utilizo|utilic|utiliz)", raiz = "\\b(us[oa]|usad|utiliz|utilic)"),
+  # «No he X» es el cero de una escala de frecuencia («Una vez», «Algunas veces», «Nunca»…) o de una del mismo verbo.
+  list(patron = "^no he (acudido|asistido)", raiz = "(acud|asist|\\bvez\\b|\\bveces\\b|nunca|siempre)"),
+  list(patron = "^no he (usado|utilizado)", raiz = "(\\b(us[oa]|usad|utiliz)|\\bvez\\b|\\bveces\\b|nunca|siempre)"),
+  list(patron = "^no he participado", raiz = "(particip|\\bvez\\b|\\bveces\\b|nunca|siempre)"),
+  list(patron = "^no he tenido", raiz = "(\\bten(go|ido|ia)|\\bvez\\b|\\bveces\\b|nunca|siempre)"),
+  list(patron = "^no he ido", raiz = "(\\b(fui|ido|voy)\\b|\\bvez\\b|\\bveces\\b|nunca|siempre)"))
 .NO_SUSTANTIVOS_COLS_META <- c("especial", "no_sustantivo", "valor_especial", "special", "es_especial")
 .NO_SUSTANTIVOS_META_SI <- c("1", "true", "t", "si", "sí", "yes", "x", "especial")
 .NO_SUSTANTIVOS_META_NO <- c("0", "false", "f", "no", "n")
@@ -227,7 +239,8 @@
 #' ¿Qué opciones de una ESCALA no son sustantivas? (barra divergente y regla de las láminas de resumen)
 #'
 #' Sin rango de códigos: (a) la metadata de la lista (`especiales`; `sustantivos` manda sobre todo), (b) códigos 90-99,
-#' (c) rótulo de no respuesta (`.NO_SUSTANTIVOS_ROTULO_ESCALA`); un rótulo compuesto con « / » cuenta si alguna parte casa.
+#' (c) rótulo de no respuesta (`.NO_SUSTANTIVOS_ROTULO_ESCALA`, o una raíz ambigua de `.NO_SUSTANTIVOS_RAICES_ESCALA` sin
+#' hermana en la lista); un rótulo compuesto con «/» cuenta si alguna parte casa.
 #' @param codigos Códigos (o rótulos, si no hay código) alineados con `etiquetas`.
 #' @return Lógico alineado con `codigos`.
 #' @keywords internal
@@ -238,11 +251,27 @@
   meta <- nzchar(codigos) & codigos %in% especiales
   meta_no <- nzchar(codigos) & codigos %in% setdiff(trimws(as.character(sustantivos %||% character(0))), especiales)
   cod9x <- grepl("^9[0-9]$", codigos)
-  rotulo <- vapply(etiquetas, function(e) {
-    if (is.na(e) || !nzchar(e)) return(FALSE)
-    partes <- trimws(strsplit(e, "\\s+/\\s+", perl = TRUE)[[1]])
-    norm <- tolower(.box_norm_etiqueta(c(e, partes[nzchar(partes)])))
-    any(grepl(.NO_SUSTANTIVOS_ROTULO_ESCALA, norm, perl = TRUE))
-  }, logical(1), USE.NAMES = FALSE)
+  formas <- lapply(etiquetas, .graficos_no_sustantivos_formas)
+  rotulo <- vapply(seq_along(formas), function(i) {
+    norm <- formas[[i]]
+    if (!length(norm)) return(FALSE)
+    if (any(grepl(.NO_SUSTANTIVOS_ROTULO_ESCALA, norm, perl = TRUE))) return(TRUE)
+    hermanas <- unlist(formas[-i], use.names = FALSE)
+    for (r in .NO_SUSTANTIVOS_RAICES_ESCALA) {
+      if (any(grepl(r$patron, norm, perl = TRUE)) && !any(grepl(r$raiz, hermanas, perl = TRUE))) return(TRUE)
+    }
+    FALSE
+  }, logical(1))
   (meta | cod9x | rotulo) & !meta_no
+}
+
+#' Formas comparables de un rótulo: entero y sus partes separadas por «/», en minúsculas, sin tildes y sin un paréntesis
+#' inicial de instrucción al encuestador («(No leer) No sabe» -> «no sabe»)
+#' @keywords internal
+.graficos_no_sustantivos_formas <- function(e) {
+  if (is.na(e) || !nzchar(trimws(e))) return(character(0))
+  partes <- trimws(strsplit(e, "\\s*/\\s*", perl = TRUE)[[1]])
+  norm <- trimws(tolower(.box_norm_etiqueta(c(e, partes[nzchar(partes)]))))
+  norm <- trimws(sub("^\\([^)]*\\)\\s*", "", norm))
+  unique(norm[nzchar(norm)])
 }
