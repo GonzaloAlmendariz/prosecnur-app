@@ -31,7 +31,7 @@ export const ROTULO_INDICE: Readonly<Record<SeccionTarjeta, string>> = TITULO_GR
  */
 export const SECCION_DE_CAMPO: Readonly<Record<string, SeccionTarjeta>> = {
   // Datos
-  var: "datos", vars: "datos", modo: "datos", scope: "datos", ubigeo: "datos", unit: "datos", coverage_mode: "datos",
+  var: "datos", vars: "datos", regla: "datos", modo: "datos", scope: "datos", ubigeo: "datos", unit: "datos", coverage_mode: "datos",
   area: "datos", juntar: "datos", agrupar_lista: "datos", medida: "datos", unidad: "datos", otra_respuesta: "datos",
   cruces: "datos", cruce: "datos", grupos: "datos", grupo: "datos", excluir_opciones: "datos", excluir_grupos: "datos",
   series: "datos", total_arriba: "datos", segmentos_total: "datos", grafico_sub: "datos", tabla_encabezados: "datos",

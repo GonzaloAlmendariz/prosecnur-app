@@ -10,7 +10,7 @@
 
 import type { Slide } from "../../../../api/graficos";
 import { esEntreGrupos } from "../brecha/modeloBrechaGrupos";
-import type { ClavePreset, PresetLamina } from "./opcionesLamina";
+import type { ClavePreset, EstudioDelSelector, PresetLamina } from "./opcionesLamina";
 
 export type ClaseTarjeta = "grafico" | "lamina" | "resumen";
 
@@ -50,6 +50,23 @@ const conGrafico = (graficador: string, cumple: (args: Args) => boolean = () => 
 
 const resumen = (args: Args) => args.estilo === "resumen";
 
+/**
+ * Las reglas con que arrancan las láminas de resumen (ADR 0135 §2): el analista nunca agrega las preguntas una por una.
+ * El panorama toma todas las de escala de cada base del estudio; la escala, las de la base activa.
+ */
+export const REGLA_POR_DEFECTO = {
+  panorama: { tipo: "todas" },
+  contraste: { tipo: "mayor_diferencia", n: 13 },
+  aperturas: { tipo: "mayor_diferencia", n: 10 },
+  escala: { tipo: "bajo_umbral", umbral: 60 },
+} as const;
+
+/** `base$*` de cada base: todas sus preguntas de escala (graficos_panorama_plan.R). */
+export const todasDeLasBases = (bases: readonly string[]): string[] => bases.map((b) => `${b}$*`);
+
+const basePrincipal = (e: EstudioDelSelector): string | null =>
+  e.baseActiva && e.bases.includes(e.baseActiva) ? e.baseActiva : e.bases[0] ?? null;
+
 export const TARJETAS_CONTAR: readonly TarjetaContar[] = [
   {
     clave: "p_slide_1_grafico:panorama",
@@ -60,7 +77,10 @@ export const TARJETAS_CONTAR: readonly TarjetaContar[] = [
     descripcion: "Cada pregunta es un punto por público, con la mediana y la referencia.",
     pide: "Las preguntas de escala de cada público",
     parche: {},
-    grafico: { graficador: "p_panorama", args: {} },
+    grafico: {
+      graficador: "p_panorama", args: {},
+      porDefecto: (e) => ({ regla: { ...REGLA_POR_DEFECTO.panorama }, ...(e.bases.length ? { vars: todasDeLasBases(e.bases) } : {}) }),
+    },
     coincide: conGrafico("p_panorama"),
   },
   {
@@ -72,7 +92,13 @@ export const TARJETAS_CONTAR: readonly TarjetaContar[] = [
     descripcion: "Las más altas y las más bajas de un público, lado a lado.",
     pide: "Un público y su batería de escala",
     parche: {},
-    grafico: { graficador: "p_fortalezas", args: {} },
+    grafico: {
+      graficador: "p_fortalezas", args: {},
+      porDefecto: (e) => {
+        const base = basePrincipal(e);
+        return base ? { vars: todasDeLasBases([base]) } : {};
+      },
+    },
     coincide: conGrafico("p_fortalezas"),
   },
   {
@@ -96,7 +122,7 @@ export const TARJETAS_CONTAR: readonly TarjetaContar[] = [
     descripcion: "Pares de puntos por pregunta, ordenados por diferencia.",
     pide: "Las preguntas comunes de la matriz de equivalencias",
     parche: {},
-    grafico: { graficador: "p_dumbbell", args: { estilo: "resumen", cruce: null } },
+    grafico: { graficador: "p_dumbbell", args: { estilo: "resumen", cruce: null }, porDefecto: () => ({ regla: { ...REGLA_POR_DEFECTO.contraste } }) },
     coincide: conGrafico("p_dumbbell", (a) => resumen(a) && !esEntreGrupos(a)),
   },
   {
@@ -133,7 +159,7 @@ export const TARJETAS_CONTAR: readonly TarjetaContar[] = [
     pide: "La pregunta que define los grupos",
     parche: {},
     // Sin `cruce: null`: la brecha arranca en «dos grupos» y el cruce se elige en Datos.
-    grafico: { graficador: "p_dumbbell", args: { estilo: "resumen", cruce: undefined } },
+    grafico: { graficador: "p_dumbbell", args: { estilo: "resumen", cruce: undefined }, porDefecto: () => ({ regla: { ...REGLA_POR_DEFECTO.aperturas } }) },
     coincide: conGrafico("p_dumbbell", (a) => resumen(a) && esEntreGrupos(a)),
   },
   {
@@ -145,7 +171,13 @@ export const TARJETAS_CONTAR: readonly TarjetaContar[] = [
     descripcion: "Barras divergentes con lo que se desconoce en una columna gris.",
     pide: "Una batería de acuerdo",
     parche: {},
-    grafico: { graficador: "p_barras_divergentes", args: { estilo: "resumen" } },
+    grafico: {
+      graficador: "p_barras_divergentes", args: { estilo: "resumen" },
+      porDefecto: (e) => {
+        const base = basePrincipal(e);
+        return { regla: { ...REGLA_POR_DEFECTO.escala }, ...(base ? { vars: todasDeLasBases([base]) } : {}) };
+      },
+    },
     coincide: conGrafico("p_barras_divergentes", resumen),
   },
   {
@@ -157,7 +189,8 @@ export const TARJETAS_CONTAR: readonly TarjetaContar[] = [
     descripcion: "La lámina 71 del recetario.",
     pide: "Una batería de acuerdo",
     parche: {},
-    grafico: { graficador: "p_barras_divergentes", args: { estilo: "recetario" } },
+    // La regla es del estilo resumen: el constructor la rechaza con «recetario», así que la tarjeta la borra.
+    grafico: { graficador: "p_barras_divergentes", args: { estilo: "recetario", regla: undefined } },
     coincide: conGrafico("p_barras_divergentes", (a) => !resumen(a)),
   },
 ];

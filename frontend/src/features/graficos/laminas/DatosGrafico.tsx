@@ -85,6 +85,8 @@ import { admiteTarjetas } from "./diferencias/modeloTarjetas";
 import { argDeCruce, valorDeCruce } from "./diferencias/modeloDiferencias";
 import { interruptorAplica, interruptorGuardado, parcheInterruptor } from "./diferencias/interruptorDelGrafico";
 import { revelarYEnfocar } from "../revelarFila";
+import { ReglaPreguntas } from "./reglaPreguntas/ReglaPreguntas";
+import type { ReglaPreguntas as Regla } from "../../../api/graficosRegla";
 import "./datosGrafico.css";
 import { formatoConteo } from "../../../lib/formatoNumero";
 
@@ -196,7 +198,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
     <Fragment key={c.arg.name}>
       {/* H2: la ayuda de «Pista gris» describe la opción elegida, no siempre «Automática». */}
       <Fila campo={{ ...c, ayuda: ayudaDeLaOpcion(c, alcance(c).valor) }} graficador={valor.graficador} valor={alcance(c).valor} sello={alcance(c).sello} categorias={categoriasDe(c.arg.name)}
-            args={args}
+            args={args} scope={scope}
             onCambio={(v) => set(valor.graficador === "p_radar" && c.arg.name === "modo" && typeof v === "string" ? patchModoRadar(args.modo, v) : { [c.arg.name]: v })} />
       {/* H2: «Un color por opción» encendido sobre una lista sin colores dice por qué no se ve. */}
       {c.arg.name === "colorear_por_opcion" && interruptorEncendido(c.arg, alcance(c).valor) && <AvisoColorPorOpcion valor={valor} />}
@@ -353,8 +355,10 @@ type CategoriasFila = {
   sustantivo?: Sustantivo;
 };
 
-function Fila({ campo, graficador, valor, onCambio, sello, categorias, args }: {
+function Fila({ campo, graficador, valor, onCambio, sello, categorias, args, scope }: {
   campo: CampoDato; graficador: string; valor: unknown; onCambio: (v: unknown) => void; sello?: ReactNode;
+  /** El alcance del informe (activo o compartido): el conteo de la regla se pide sobre las mismas fuentes que la vista previa. */
+  scope: "active" | "consolidated";
   /** Los args del gráfico, para los controles que leen otros args (las preguntas del mapa en «Agrupar en la lista»). */
   args: Readonly<Record<string, unknown>>;
   /** Para los campos de códigos que son categorías de una pregunta: cuál y cómo se marcan. */
@@ -464,6 +468,10 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias, args }: {
           onChange={(e) => onCambio(e.target.value === "" ? null : Number(e.target.value))} />
       </div>
     );
+  }
+  if (control === "regla_preguntas") {
+    return <ReglaPreguntas rotulo={rotulo} ayuda={texto} graficador={graficador} args={args} valor={valor} scope={scope}
+      onCambio={(r: Regla) => onCambio(r)} />;
   }
   if (control === "grupos_lista") {
     return <AgruparLista id={id} etiqueta={etiqueta} nota={null} valor={valor} args={args} onCambio={onCambio} />;

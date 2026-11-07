@@ -147,6 +147,19 @@ describe("C40 · ASIGNAR", () => {
     expect(campo(panorama, {}, "p_panorama", "corte")?.control).toBe("codigos");
     expect(nombres(panorama, {}, "p_radar")).not.toContain("referencia");
   });
+  // ADR 0135 §2: `regla` (tipo_input «regla_preguntas», grupo datos) en p_panorama, p_dumbbell y p_barras_divergentes,
+  // formal de los tres constructores; en la brecha y la divergente implica el estilo resumen.
+  it("ADR 0135 · la regla de preguntas: Datos de los tres graficadores de resumen, tras las preguntas", () => {
+    const regla = a("regla", "regla_preguntas");
+    const panorama = [a("vars", "variables_list"), regla, a("corte", "codigos_list"), a("referencia", "number", { default: 60 })];
+    expect(nombres(panorama, { vars: ["docentes$*"] }, "p_panorama")).toEqual(["vars", "regla", "corte", "referencia"]);
+    expect(campo(panorama, {}, "p_panorama", "regla")?.control).toBe("regla_preguntas");
+    const divergentes = [a("vars", "variables_list"), regla, a("estilo", "choice", { default: "recetario" })];
+    expect(nombres(divergentes, { estilo: "resumen" }, "p_barras_divergentes")).toEqual(["vars", "regla", "estilo"]);
+    expect(nombres(divergentes, { estilo: "recetario" }, "p_barras_divergentes")).toEqual(["vars", "estilo"]);
+    expect(nombres([...dumbbell, regla], { estilo: "resumen" }, "p_dumbbell")).toContain("regla");
+    expect(nombres([...dumbbell, regla], {}, "p_dumbbell")).not.toContain("regla");
+  });
   it("serie: orden de periodos siempre; cifras y su máximo sólo con tres o más mediciones", () => {
     expect(nombres(serie, dosOlas, "p_serie_temporal")).toEqual(["corte", "corte_etiqueta", "orden_periodos"]);
     expect(nombres(serie, tresOlas, "p_serie_temporal")).toEqual(

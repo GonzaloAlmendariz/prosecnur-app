@@ -169,8 +169,30 @@ describe("ADR 0135 §8: el «?» y los args que la tarjeta todavía no sabe dibu
     expect(textoAyuda("Hasta tres", null, "", "Hasta tres", "Líneas de la serie.")).toBe("Hasta tres. Líneas de la serie.");
     expect(textoAyuda(null, undefined, "  ")).toBe("");
   });
-  it("un tipo de control desconocido (la regla de preguntas, que llega en la oleada siguiente) no rompe la tarjeta", () => {
-    const regla = a("vars", "regla_preguntas" as unknown as ArgMetadata["tipo_input"]);
-    expect(camposDeDatos([regla, a("corte", "codigos_list")], {}, "p_panorama").map((c) => c.arg.name)).toEqual(["corte"]);
+  it("un tipo de control desconocido no rompe la tarjeta", () => {
+    const nuevo = a("vars", "tipo_que_no_existe" as unknown as ArgMetadata["tipo_input"]);
+    expect(camposDeDatos([nuevo, a("corte", "codigos_list")], {}, "p_panorama").map((c) => c.arg.name)).toEqual(["corte"]);
+  });
+});
+
+describe("ADR 0135 §2: la regla de preguntas en Datos", () => {
+  const regla = a("regla", "regla_preguntas");
+  const vars = a("vars", "variables_list");
+  it("en el panorama sale siempre, después de las preguntas y con su control", () => {
+    const campos = camposDeDatos([regla, vars], {}, "p_panorama");
+    expect(campos.map((c) => [c.arg.name, c.control])).toEqual([["vars", "variables"], ["regla", "regla_preguntas"]]);
+    expect(campos[1].rotulo).toBe("Regla de preguntas");
+  });
+  it("en la brecha y la divergente, sólo con el estilo resumen o con una regla ya guardada", () => {
+    expect(camposDeDatos([regla], { estilo: "recetario" }, "p_barras_divergentes")).toEqual([]);
+    expect(camposDeDatos([regla], {}, "p_dumbbell")).toEqual([]);
+    expect(camposDeDatos([regla], { estilo: "resumen" }, "p_dumbbell").map((c) => c.arg.name)).toEqual(["regla"]);
+    expect(camposDeDatos([regla], { regla: { tipo: "todas" } }, "p_barras_divergentes").map((c) => c.arg.name)).toEqual(["regla"]);
+  });
+  it("en Fortalezas y alertas sale siempre (sin regla rige la del constructor)", () => {
+    expect(camposDeDatos([vars, regla], {}, "p_fortalezas").map((c) => c.arg.name)).toEqual(["vars", "regla"]);
+  });
+  it("en otro graficador no sale aunque el registro la declare", () => {
+    expect(camposDeDatos([regla], { estilo: "resumen" }, "p_barras_agrupadas")).toEqual([]);
   });
 });

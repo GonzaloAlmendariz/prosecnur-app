@@ -1,0 +1,126 @@
+/* Regla de preguntas (ReglaPreguntas.tsx): los tipos en columna, la cifra, el conteo y la lista de candidatas. El marco
+   de la lista es el Panel del kit; aquí sólo hay filas planas. La lista es dueña de su scroll (C4): con 47 candidatas se
+   recorre dentro, sin estirar la tarjeta. */
+
+.pulso-f6-regla {
+  gap: var(--pulso-space-2);
+}
+
+.pulso-f6-regla-tipos.pulso-gliding-tab-list {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pulso-f6-regla-tipo {
+  min-height: 30px;
+  padding: 0 var(--pulso-space-2);
+  border: 0;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: var(--pulso-type-body-size);
+  text-align: left;
+  border-radius: var(--pulso-radius-chip);
+  cursor: pointer;
+  overflow-wrap: anywhere;
+  transition: background-color var(--motion-dur-fast) var(--motion-ease-out), color var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-f6-regla-tipo:hover {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+}
+
+/* Como la opción elegida del Segmentado de Gráficos: en vertical el kit no pinta el radio marcado (sólo aria-selected). */
+.pulso-f6-regla-tipo[aria-checked="true"] {
+  background: var(--module-accent-soft);
+  color: var(--module-accent);
+  font-weight: var(--pulso-weight-semibold);
+  box-shadow: inset 0 0 0 1px var(--module-accent);
+}
+
+.pulso-f6-regla-tipo:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: 1px;
+}
+
+.pulso-f6-regla-cifra {
+  padding-bottom: 0;
+}
+
+.pulso-f6-regla-resultado {
+  display: grid;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-f6-regla-conteo {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+}
+
+.pulso-f6-regla-cifra-grande {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-title-size);
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-f6-regla-texto {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.pulso-f6-regla-lista {
+  display: grid;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.pulso-f6-regla-cabeza {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-bottom: 1px solid var(--pulso-border);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-f6-regla-filas {
+  display: grid;
+  max-height: 320px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+}
+
+.pulso-f6-regla-fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  padding: var(--pulso-space-1) var(--pulso-space-3);
+  border-top: 1px solid var(--pulso-border);
+  font-size: var(--pulso-type-body-size);
+}
+
+.pulso-f6-regla-fila:first-child {
+  border-top: 0;
+}
+
+.pulso-f6-regla-metrica {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}

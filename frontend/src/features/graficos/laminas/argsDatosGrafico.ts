@@ -17,7 +17,7 @@ import { preguntasDelMapa } from "./modeloAgruparLista";
 
 export type ControlDato =
   | "variable" | "variable_opcional" | "variables" | "interruptor" | "numero" | "opciones" | "texto" | "codigos" | "nombres_base"
-  | "partes" | "grupos_lista";
+  | "partes" | "grupos_lista" | "regla_preguntas";
 
 type Valores = Readonly<Record<string, unknown>>;
 
@@ -136,6 +136,9 @@ const OTROS_POR_TOP_K = { siActivo: undefined, cuando: conTopK };
 /** Brecha y divergentes con el estilo del resumen ejecutivo (ADR 0134): los ajustes que sólo ese estilo dibuja. */
 export const esEstiloResumen = (v: Valores) => v.estilo === "resumen";
 const ESTILO_RESUMEN = ["p_dumbbell", "p_barras_divergentes"];
+/** Los graficadores de resumen que eligen sus preguntas con `regla` (ADR 0135 §2). */
+const GRAFICADORES_REGLA = ["p_panorama", "p_dumbbell", "p_barras_divergentes", "p_fortalezas"];
+const resumenOConRegla = (v: Valores) => esEstiloResumen(v) || (!!v.regla && typeof v.regla === "object");
 
 /** Orden de aparición = orden de las claves. */
 /** ¿El gráfico ya trae su lista de preguntas (`vars`)? Entonces la «Pregunta» suelta no aplica (catálogo, I1). */
@@ -186,6 +189,13 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   // I1 (catálogo del recetario, 2026-10-14): la lista de preguntas no tenía control y el inspector decía «Elige una
   // pregunta…» con seis preguntas en la lámina. Las multiapiladas, la brecha y la matriz la editan en su propia tarjeta.
   vars: { rotulo: "Preguntas", excepto: ["p_barras_multiapiladas", "p_dumbbell", "p_matriz_cuadrantes", "p_significancia_publicos"] },
+  // ADR 0135 §2: la lámina de resumen elige sus preguntas con una regla (reglaPreguntas/ReglaPreguntas.tsx). En la brecha
+  // y la divergente la regla es del estilo resumen (el constructor la rechaza con «recetario»); una ya guardada se muestra.
+  regla: {
+    rotulo: "Regla de preguntas",
+    soloEn: GRAFICADORES_REGLA,
+    porGraficador: { p_dumbbell: { cuando: resumenOConRegla }, p_barras_divergentes: { cuando: resumenOConRegla } },
+  },
   // En multiapiladas el modo se elige en «Bloques» (G12/U2, 2026-10-13): una fila «Modo» aparte era un segundo camino.
   modo: { rotulo: "Modo", excepto: ["p_barras_multiapiladas"] },
   // Mapa de cobertura territorial: la lámina nativa lee los cuatro (p_mapa_cobertura_territorial, graficador_mapa_cobertura.R).
@@ -501,6 +511,7 @@ const CONTROL_POR_TIPO: Partial<Record<ArgMetadata["tipo_input"], ControlDato>> 
   codigos_list: "codigos",
   base_labels: "nombres_base",
   partes: "partes",
+  regla_preguntas: "regla_preguntas",
 };
 
 export type CampoDato = {

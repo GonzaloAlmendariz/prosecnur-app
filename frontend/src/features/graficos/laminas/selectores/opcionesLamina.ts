@@ -18,11 +18,21 @@ export type OpcionLamina = SlideType | ClavePreset;
 
 type Parche = Readonly<Record<string, unknown>>;
 
+/** Lo que el selector sabe del estudio al insertar: sus bases y la activa (useVariables). */
+export type EstudioDelSelector = { bases: readonly string[]; baseActiva: string | null };
+
+export const SIN_ESTUDIO: EstudioDelSelector = { bases: [], baseActiva: null };
+
 /** El gráfico con que nace la tarjeta (ADR 0135 §1: la tarjeta, no el graficador, decide la clase). */
 export type GraficoDePreset = {
   graficador: string;
   /** Args de partida; un `undefined` borra la clave al aplicarlos sobre un gráfico del mismo tipo. */
   args: Readonly<Record<string, unknown>>;
+  /**
+   * Args que sólo se escriben si el gráfico no los tiene (ADR 0135 §2): la regla de preguntas con que arranca la lámina
+   * de resumen y, si dependen del estudio, sus `vars`. Lo ya configurado no se pisa.
+   */
+  porDefecto?: (estudio: EstudioDelSelector) => Readonly<Record<string, unknown>>;
   /** Ranura donde va (sin ella, la primera del tipo). */
   slot?: string;
 };
@@ -106,20 +116,22 @@ export function ranuraDePreset(preset: Pick<PresetLamina, "tipo" | "grafico">): 
  * El gráfico de la tarjeta sobre lo que ya hay en su ranura: si es el mismo graficador conserva sus args y sólo escribe
  * los de la tarjeta (el contraste pasa a ser aperturas sin perder sus preguntas); si es otro, lo reemplaza.
  */
-export function graficoConPreset(previo: unknown, g: GraficoDePreset): GraficadorRef {
-  if (esGraficadorRef(previo) && previo.graficador === g.graficador) {
-    return { graficador: g.graficador, args: conParche(previo.args ?? {}, g.args) };
+export function graficoConPreset(previo: unknown, g: GraficoDePreset, estudio: EstudioDelSelector = SIN_ESTUDIO): GraficadorRef {
+  const mismo = esGraficadorRef(previo) && previo.graficador === g.graficador;
+  const args = conParche(mismo ? previo.args ?? {} : {}, g.args);
+  for (const [k, v] of Object.entries(g.porDefecto?.(estudio) ?? {})) {
+    if (v !== undefined && (args[k] === undefined || args[k] === null)) args[k] = v;
   }
-  return { graficador: g.graficador, args: conParche({}, g.args) };
+  return { graficador: g.graficador, args };
 }
 
 /** El payload con la opción puesta (un `undefined` del parche borra la clave). */
-export function conOpcion(op: OpcionLamina, payload: Readonly<Record<string, unknown>>): Record<string, unknown> {
+export function conOpcion(op: OpcionLamina, payload: Readonly<Record<string, unknown>>, estudio: EstudioDelSelector = SIN_ESTUDIO): Record<string, unknown> {
   const preset = presetDe(op);
   const parche = preset?.parche ?? PARCHE_DEL_TIPO[op as SlideType];
   const out = parche ? conParche(payload, parche) : { ...payload };
   const slot = preset?.grafico ? ranuraDePreset(preset) : null;
-  if (preset?.grafico && slot) out[slot] = graficoConPreset(payload[slot], preset.grafico);
+  if (preset?.grafico && slot) out[slot] = graficoConPreset(payload[slot], preset.grafico, estudio);
   return out;
 }
 
@@ -127,9 +139,9 @@ export function conOpcion(op: OpcionLamina, payload: Readonly<Record<string, unk
  * El cambio de tipo con la tarjeta puesta. Cuando la tarjeta trae un gráfico distinto del que ocupa su ranura, el de
  * antes se pierde: entra en `sobrantes` para que el selector lo diga y pida confirmarlo antes de aplicar.
  */
-export function cambioConOpcion(op: OpcionLamina, cambio: CambioTipoLamina): CambioTipoLamina {
+export function cambioConOpcion(op: OpcionLamina, cambio: CambioTipoLamina, estudio: EstudioDelSelector = SIN_ESTUDIO): CambioTipoLamina {
   const preset = presetDe(op);
-  const payload = conOpcion(op, cambio.payload);
+  const payload = conOpcion(op, cambio.payload, estudio);
   const slot = preset?.grafico ? ranuraDePreset(preset) : null;
   if (!preset?.grafico || !slot) return { ...cambio, payload, mismoTipo: false };
   const previo = cambio.payload[slot];

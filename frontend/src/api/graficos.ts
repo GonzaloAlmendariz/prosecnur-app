@@ -264,6 +264,9 @@ export type ArgTipoInput =
   // resumen_capitulos: capítulos { titulo, filas: [{ var, fila?, rotulo, … }] } de «Resumen de diferencias»
   // (p_slide_resumen_diferencias). Lo que el editor no maneja (`top2box`, `base_rotulo`…) se conserva.
   | "resumen_capitulos"
+  // regla_preguntas: {tipo, n?, umbral?, agregar?, quitar?} con que una lámina de resumen elige sus preguntas
+  // (ADR 0135); el conteo en vivo es `apiGraficosConteoRegla` (graficosRegla.ts).
+  | "regla_preguntas"
   | "icono"
   | "overrides"
   | "filtros"

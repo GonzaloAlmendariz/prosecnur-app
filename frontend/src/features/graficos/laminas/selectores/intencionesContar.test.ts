@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { payloadPorDefecto } from "../../store";
 import { planearCambioTipo } from "./cambioTipoLamina";
-import { cambioConOpcion, conOpcion, presetDe, tipoDeOpcion } from "./opcionesLamina";
+import { cambioConOpcion, conOpcion, presetDe, tipoDeOpcion, type EstudioDelSelector } from "./opcionesLamina";
 import {
   casaBusqueda, INTENCIONES_CONTAR, presentacionDeGrafico, ROTULO_CLASE, TARJETAS_CONTAR, tarjetaContarDeLamina, tarjetasDe,
 } from "./intencionesContar";
@@ -50,15 +50,17 @@ describe("el gráfico de partida", () => {
   it("insertar la tarjeta escribe la lámina con su gráfico y su estilo", () => {
     expect(tipoDeOpcion("p_slide_1_grafico:contraste")).toBe("p_slide_1_grafico");
     const p = conOpcion("p_slide_1_grafico:contraste", payloadPorDefecto("p_slide_1_grafico"));
-    expect(p.grafico).toEqual({ graficador: "p_dumbbell", args: { estilo: "resumen", cruce: null } });
+    expect(p.grafico).toEqual({ graficador: "p_dumbbell", args: { estilo: "resumen", cruce: null, regla: { tipo: "mayor_diferencia", n: 13 } } });
     const a = conOpcion("p_slide_1_grafico:aperturas", payloadPorDefecto("p_slide_1_grafico"));
-    expect(a.grafico).toEqual({ graficador: "p_dumbbell", args: { estilo: "resumen" } });
+    expect(a.grafico).toEqual({ graficador: "p_dumbbell", args: { estilo: "resumen", regla: { tipo: "mayor_diferencia", n: 10 } } });
   });
 
   it("sobre el mismo graficador conserva sus preguntas y sólo escribe lo de la tarjeta", () => {
     const slide = { tipo: "p_slide_1_grafico" as const, payload: { titulo: "T", grafico: { graficador: "p_dumbbell", args: { estilo: "resumen", cruce: null, vars: { t1: ["a$p1", "b$p1"] } } } } };
     const c = cambioConOpcion("p_slide_1_grafico:aperturas", planearCambioTipo(slide, "p_slide_1_grafico"));
-    expect(c.payload.grafico).toEqual({ graficador: "p_dumbbell", args: { estilo: "resumen", vars: { t1: ["a$p1", "b$p1"] } } });
+    expect(c.payload.grafico).toEqual({
+      graficador: "p_dumbbell", args: { estilo: "resumen", vars: { t1: ["a$p1", "b$p1"] }, regla: { tipo: "mayor_diferencia", n: 10 } },
+    });
     expect(c.sobrantes).toEqual([]);
     expect(c.mismoTipo).toBe(false);
     expect(c.payload.titulo).toBe("T");
@@ -70,7 +72,7 @@ describe("el gráfico de partida", () => {
     const c = cambioConOpcion("p_slide_1_grafico:panorama", planearCambioTipo(slide, "p_slide_1_grafico"));
     expect(c.sobrantes).toEqual([{ slot: "grafico", grafico: pie }]);
     expect(c.conservados).toEqual([]);
-    expect(c.payload.grafico).toEqual({ graficador: "p_panorama", args: {} });
+    expect(c.payload.grafico).toEqual({ graficador: "p_panorama", args: { regla: { tipo: "todas" } } });
     expect(etiquetaBotonTarjeta({ modo: "cambiar", actual: false, sobrantes: 1, confirmando: true }).texto).toBe("Cambiar y quitar 1 gráfico");
   });
 
@@ -84,6 +86,40 @@ describe("el gráfico de partida", () => {
     expect(presentacionDeGrafico("p_pie", {})).toEqual({ nombre: null, clase: "grafico" });
     expect(etiquetaBotonTarjeta({ modo: "insertar", actual: false, sobrantes: 0, confirmando: false }).texto).toBe("Insertar lámina");
     expect(etiquetaBotonTarjeta({ modo: "cambiar", actual: true, sobrantes: 0, confirmando: false })).toEqual({ texto: "Es la lámina actual", deshabilitado: true });
+  });
+});
+
+describe("ADR 0135 §2: las láminas de resumen nacen con su regla", () => {
+  const ESTUDIO: EstudioDelSelector = { bases: ["docentes", "estudiantes", "administrativos"], baseActiva: "estudiantes" };
+  const insertar = (op: Parameters<typeof conOpcion>[0], estudio: EstudioDelSelector = ESTUDIO) =>
+    conOpcion(op, payloadPorDefecto("p_slide_1_grafico"), estudio).grafico as { graficador: string; args: Record<string, unknown> };
+
+  it("panorama: todas las de escala de cada base del estudio", () => {
+    expect(insertar("p_slide_1_grafico:panorama").args).toEqual({
+      regla: { tipo: "todas" }, vars: ["docentes$*", "estudiantes$*", "administrativos$*"],
+    });
+  });
+  it("contraste y aperturas: las de mayor diferencia, 13 y 10", () => {
+    expect(insertar("p_slide_1_grafico:contraste").args.regla).toEqual({ tipo: "mayor_diferencia", n: 13 });
+    expect(insertar("p_slide_1_grafico:aperturas").args.regla).toEqual({ tipo: "mayor_diferencia", n: 10 });
+  });
+  it("escala: bajo 60 % en las preguntas de la base activa", () => {
+    expect(insertar("p_slide_1_grafico:escala").args).toEqual({ estilo: "resumen", regla: { tipo: "bajo_umbral", umbral: 60 }, vars: ["estudiantes$*"] });
+    expect(insertar("p_slide_1_grafico:escala", { bases: ["unica"], baseActiva: null }).args.vars).toEqual(["unica$*"]);
+  });
+  it("fortalezas: las preguntas de la base activa; la regla la pone el constructor", () => {
+    expect(insertar("p_slide_1_grafico:fortalezas").args).toEqual({ vars: ["estudiantes$*"] });
+  });
+  it("sin bases conocidas no inventa vars; lo ya configurado no se pisa", () => {
+    expect(insertar("p_slide_1_grafico:panorama", { bases: [], baseActiva: null }).args).toEqual({ regla: { tipo: "todas" } });
+    const slide = { tipo: "p_slide_1_grafico" as const, payload: { grafico: { graficador: "p_panorama", args: { vars: ["docentes$p1"], regla: { tipo: "bajo_umbral", umbral: 50 } } } } };
+    const c = cambioConOpcion("p_slide_1_grafico:panorama", planearCambioTipo(slide, "p_slide_1_grafico"), ESTUDIO);
+    expect(c.payload.grafico).toEqual({ graficador: "p_panorama", args: { vars: ["docentes$p1"], regla: { tipo: "bajo_umbral", umbral: 50 } } });
+  });
+  it("la divergente del recetario borra la regla, que es del estilo resumen", () => {
+    const slide = { tipo: "p_slide_1_grafico" as const, payload: { grafico: { graficador: "p_barras_divergentes", args: { estilo: "resumen", vars: ["d$*"], regla: { tipo: "bajo_umbral", umbral: 60 } } } } };
+    const c = cambioConOpcion("p_slide_1_grafico:divergentes", planearCambioTipo(slide, "p_slide_1_grafico"), ESTUDIO);
+    expect(c.payload.grafico).toEqual({ graficador: "p_barras_divergentes", args: { estilo: "recetario", vars: ["d$*"] } });
   });
 });
 

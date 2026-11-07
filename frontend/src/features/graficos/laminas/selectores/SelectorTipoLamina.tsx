@@ -16,6 +16,7 @@ import { ESTANDAR_LAMINAS } from "../../iconos/estandarLaminas.generated";
 import { BASE_DERIVADA } from "../../iconos/composicion";
 import { payloadPorDefecto, usePlanStore } from "../../store";
 import { useGraficosRegistry } from "../../useGraficosRegistry";
+import { useVariables } from "../../useVariables";
 import { graficosDeLamina, graficosPorSlot, planearCambioTipo, requiereConfirmacion, type CambioTipoLamina } from "./cambioTipoLamina";
 import { DetalleTarjetaContar } from "./DetalleTarjetaContar";
 import { DetalleTipoLamina } from "./DetalleTipoLamina";
@@ -27,7 +28,9 @@ import { PANEL_TIPO_LAMINA } from "./panelesSelectores";
 import { useSelectoresUi } from "./selectoresStore";
 import { TarjetaTipoLamina } from "./TarjetaTipoLamina";
 import { conVariante, INTENCIONES, intencionDe, rotuloRanuras, varianteDe, variantesDe, type IntencionLamina } from "./tiposLamina";
-import { cambioConOpcion, conOpcion, opcionDeLamina, opcionesDe, presetDe, tipoDeOpcion, type OpcionLamina } from "./opcionesLamina";
+import {
+  cambioConOpcion, conOpcion, opcionDeLamina, opcionesDe, presetDe, tipoDeOpcion, type EstudioDelSelector, type OpcionLamina,
+} from "./opcionesLamina";
 import {
   casaBusqueda, INTENCIONES_CONTAR, intencionDeTarjeta, tarjetaContar, tarjetaContarDeLamina, tarjetasDe, type IntencionContarId,
 } from "./intencionesContar";
@@ -54,6 +57,11 @@ export function SelectorTipoLamina({ slide, posicion, cerrar }: Props) {
   const select = usePlanStore((s) => s.select);
   const grupo = useId();
   const focoInicialRef = useRef<HTMLInputElement>(null);
+  // ADR 0135 §2: las láminas de resumen nacen con su regla y, si dependen de las bases, con sus `vars` (`base$*`).
+  const { sources, baseActiva } = useVariables();
+  const nombresBases = sources.map((s) => s.name).join("|");
+  const estudio = useMemo<EstudioDelSelector>(
+    () => ({ bases: nombresBases ? nombresBases.split("|") : [], baseActiva }), [nombresBases, baseActiva]);
 
   const modo = ui.modoLamina === "cambiar" && slide ? "cambiar" : "insertar";
   const tipoActual = modo === "cambiar" && slide ? slide.tipo : null;
@@ -112,10 +120,10 @@ export function SelectorTipoLamina({ slide, posicion, cerrar }: Props) {
       const c = planearCambioTipo(slide, t, { clavesDestino: slidesById[t]?.args.map((a) => a.name) });
       // Otra tarjeta del mismo tipo (Hallazgos clave ⇄ Hallazgos por capítulo, Panorama ⇄ Contraste) es un cambio, con
       // su payload de partida; si trae otro gráfico, el de antes se avisa como sobrante.
-      m.set(op, op === actual || op === tarjeta ? c : cambioConOpcion(op, c));
+      m.set(op, op === actual || op === tarjeta ? c : cambioConOpcion(op, c, estudio));
     }
     return m;
-  }, [modo, slide, opciones, slidesById]);
+  }, [modo, slide, opciones, slidesById, estudio]);
   const conGraficos = modo === "cambiar" && !!slide && graficosDeLamina(slide).length > 0;
 
   const variantesDeTipo = (op: OpcionLamina) => {
@@ -143,7 +151,7 @@ export function SelectorTipoLamina({ slide, posicion, cerrar }: Props) {
     const tipo = tipoDeOpcion(candidato);
     const nombre = nombreDe(candidato);
     if (modo === "insertar") {
-      const base = { tipo, payload: conOpcion(candidato, payloadPorDefecto(tipo)) };
+      const base = { tipo, payload: conOpcion(candidato, payloadPorDefecto(tipo), estudio) };
       const payload = variante ? conVariante(base, variante) : base.payload;
       const indice = posicion ?? usePlanStore.getState().plan.slides.length;
       insertSlideAt(tipo, payload, indice);
