@@ -245,7 +245,7 @@ export function describeAddMenuItem(item: AddMenuItem): {
       return {
         tag: "Bloque",
         tone: "logic",
-        searchTerms: ["conjoint", "experimento", "perfiles", "sorteo", "aleatorio", "atributos", "eleccion"],
+        searchTerms: ["conjoint", "experimento", "pares", "perfiles", "sorteo", "aleatorio", "atributos", "eleccion"],
       };
     case "note":
       return {

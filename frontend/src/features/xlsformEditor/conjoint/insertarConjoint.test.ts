@@ -32,7 +32,13 @@ describe("insertar un conjoint", () => {
     if (!r.ok) return;
     expect(r.rowIndex).toBe(1);
     expect(rowToRecord(wb.survey, 0).name).toBe("nombre");
-    expect(rowToRecord(wb.survey, 1).name).toBe("cj_t1A_x_r");
+    // C2: el par abre su grupo y su sorteo va adentro, antes de la tabla.
+    expect(rowToRecord(wb.survey, 1).name).toBe("cj_tarea1");
+    expect(rowToRecord(wb.survey, 2).name).toBe("cj_t1A_x_r");
+    const tabla = wb.survey.rows.findIndex((_, i) => rowToRecord(wb.survey, i).name === "cj_t1_tabla");
+    const ultimoSorteo = wb.survey.rows.findIndex((_, i) => rowToRecord(wb.survey, i).name === "cj_t1B_y_txt");
+    expect(ultimoSorteo).toBeLessThan(tabla);
+    expect(wb.survey.rows.findIndex((_, i) => rowToRecord(wb.survey, i).name === "cj_t2A_x_r")).toBeGreaterThan(tabla);
     expect(rowToRecord(wb.survey, wb.survey.rows.length - 1).name).toBe("edad");
     expect(wb.survey.columns).toEqual(expect.arrayContaining(["calculation", "appearance", "required"]));
     expect(wb.choices.rows.filter((_, i) => rowToRecord(wb.choices, i).list_name === "cj_perfil")).toHaveLength(2);

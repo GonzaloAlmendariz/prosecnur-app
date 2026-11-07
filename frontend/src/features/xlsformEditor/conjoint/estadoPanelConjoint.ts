@@ -1,4 +1,4 @@
-// Panel «Experimento conjoint» (E7b editor-conjoint, 2026-11-06): su dirección y el estado del diseño que se edita.
+// Panel «Experimento de elección por pares» (conjoint) (E7b editor-conjoint, 2026-11-06): su dirección y el estado del diseño que se edita.
 // El estado vive en un reducer propio del panel, no en la página del editor.
 
 import type { PanelDeclarado } from "../../../lib/navegacion/paneles";
@@ -6,7 +6,7 @@ import type { AtributoConjoint, DisenoConjoint } from "./modeloConjoint";
 
 export const PANEL_EXPERIMENTO_CONJOINT: PanelDeclarado = {
   id: "experimento-conjoint",
-  label: "Experimento conjoint",
+  label: "Experimento de elección por pares",
   clase: "sideover",
 };
 

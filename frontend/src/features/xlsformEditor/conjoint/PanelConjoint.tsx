@@ -1,4 +1,4 @@
-// Panel «Experimento conjoint» (E7b editor-conjoint, 2026-11-06). Se arma el diseño en cuatro bloques, cada uno con
+// Panel «Experimento de elección por pares» (conjoint) (E7b editor-conjoint, 2026-11-06). Se arma el diseño en cuatro bloques, cada uno con
 // lo que hace a la vista, se ve un par sorteado tal como lo verá el encuestado y se inserta en el formulario.
 
 import { useMemo, useReducer, useState } from "react";
@@ -54,7 +54,7 @@ export function PanelConjoint({ prefijoSugerido, onInsertar }: {
   return (
     <Sideover
       panel={PANEL_EXPERIMENTO_CONJOINT}
-      title="Experimento conjoint"
+      title="Experimento de elección por pares"
       subtitle="Pares de perfiles con atributos sorteados, para medir qué pesa en la elección"
       icon={<Shuffle size={16} />}
       footerStatus={cifras ? `${cifras.calculos} cálculos y ${cifras.paginas} páginas` : `${problemas.length} por corregir`}
@@ -66,13 +66,13 @@ export function PanelConjoint({ prefijoSugerido, onInsertar }: {
     >
       <div className="xfe-conjoint">
         <section className="xfe-conjoint__bloque" aria-labelledby="xfe-cj-tareas">
-          <h3 id="xfe-cj-tareas">1. Tareas</h3>
+          <h3 id="xfe-cj-tareas">1. Pares</h3>
           <p className="xfe-conjoint__explica">
-            Cada tarea es una página con dos perfiles lado a lado y una pregunta de elección. Con más tareas por persona
+            Cada par es una página con dos perfiles lado a lado y una pregunta de elección. Con más pares por persona
             se obtienen más comparaciones con la misma muestra; lo usual va de 5 a 10.
           </p>
           <PulsoFieldRow geometryGroup="xlsform/conjoint-tareas" className="xfe-conjoint__fila">
-            <PulsoField label="Tareas por persona">
+            <PulsoField label="Pares por persona">
               <PulsoInput numeric type="number" min={1} max={30} value={d.tareas} onChange={(e) => despachar({ tipo: "general", cambios: { tareas: Number(e.target.value) } })} />
             </PulsoField>
             <PulsoField label="Perfil izquierdo">
@@ -175,7 +175,7 @@ export function PanelConjoint({ prefijoSugerido, onInsertar }: {
 
         <section className="xfe-conjoint__bloque" aria-labelledby="xfe-cj-muestra">
           <h3 id="xfe-cj-muestra">4. Un par de muestra</h3>
-          <p className="xfe-conjoint__explica">Así verá el encuestado una tarea. Cada sorteo es otra entrevista.</p>
+          <p className="xfe-conjoint__explica">Así verá el encuestado un par. Cada sorteo es otra entrevista.</p>
           {muestra ? (
             <div className="xfe-conjoint__muestra" dangerouslySetInnerHTML={{ __html: muestra }} />
           ) : (

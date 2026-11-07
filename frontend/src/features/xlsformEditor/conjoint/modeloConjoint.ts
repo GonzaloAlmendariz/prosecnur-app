@@ -1,10 +1,11 @@
-// Experimento conjoint como bloque del editor (checklist editor-conjoint, E7a, 2026-11-06).
+// Experimento de elección por pares (conjoint) como bloque del editor (checklist editor-conjoint, E7a, 2026-11-06;
+// nombre y orden de filas, checklist elección por pares C1–C2, 2026-11-07).
 // Quien diseña declara atributos, niveles, pesos y condiciones; aquí se generan las filas XLSForm que hacen el
 // sorteo dentro del formulario, sin escribir fórmulas:
 //   - un `once(random())` por atributo, tarea y perfil: el sorteo se fija una vez por entrevista;
 //   - el nivel sale de ese número (equiprobable con `int(r * k)`, o por umbrales acumulados si hay pesos);
 //   - un atributo condicional vale 'NA' cuando su condición no se cumple y se muestra «—»;
-//   - cada tarea es una página (`field-list`) con la tabla de perfiles lado a lado y la pregunta de elección;
+//   - cada par es una página (`field-list`) con su sorteo adentro, la tabla de perfiles lado a lado y la pregunta;
 //   - opcional: el orden de los atributos se sortea una vez por encuestado y se mantiene en todas sus tareas.
 
 export type NivelConjoint = { codigo: string; texto: string; peso?: number };
@@ -55,8 +56,8 @@ export function literal(texto: string): string {
 export function validarDiseno(d: DisenoConjoint): string[] {
   const out: string[] = [];
   if (!NOMBRE.test(d.prefijo)) out.push(`El prefijo «${d.prefijo}» no sirve como nombre de variable: usa letras, números y _.`);
-  if (!Number.isInteger(d.tareas) || d.tareas < 1 || d.tareas > 30) out.push("El número de tareas va de 1 a 30.");
-  if (d.atributos.length < 2) out.push("Un conjoint necesita al menos dos atributos.");
+  if (!Number.isInteger(d.tareas) || d.tareas < 1 || d.tareas > 30) out.push("El número de pares va de 1 a 30.");
+  if (d.atributos.length < 2) out.push("El experimento necesita al menos dos atributos.");
   if (!d.pregunta.trim()) out.push("Falta la pregunta de elección.");
   const vistos = new Set<string>();
   d.atributos.forEach((a, i) => {
@@ -115,19 +116,49 @@ const fila = (p: Partial<FilaSurveyConjoint> & Pick<FilaSurveyConjoint, "type" |
   ...p,
 });
 
-/** Nombres de las variables que se analizan: el código sorteado de cada atributo por tarea y perfil. */
-export function variableNivel(d: DisenoConjoint, tarea: number, perfil: "A" | "B", clave: string): string {
-  return `${d.prefijo}_t${tarea}${perfil}_${clave}`;
+/** Nombres de las filas del experimento. Los del editor salen del prefijo; uno ya escrito conserva los suyos. */
+export type NombresConjoint = {
+  azar: (tarea: number, perfil: "A" | "B", clave: string) => string;
+  nivel: (tarea: number, perfil: "A" | "B", clave: string) => string;
+  texto: (tarea: number, perfil: "A" | "B", clave: string) => string;
+  grupo: (tarea: number) => string;
+  tabla: (tarea: number) => string;
+  eleccion: (tarea: number) => string;
+  lista: string;
+  intro: string;
+};
+
+export function nombresDelEditor(prefijo: string): NombresConjoint {
+  const v = (t: number, perfil: "A" | "B", clave: string) => `${prefijo}_t${t}${perfil}_${clave}`;
+  return {
+    azar: (t, perfil, clave) => `${v(t, perfil, clave)}_r`,
+    nivel: v,
+    texto: (t, perfil, clave) => `${v(t, perfil, clave)}_txt`,
+    grupo: (t) => `${prefijo}_tarea${t}`,
+    tabla: (t) => `${prefijo}_t${t}_tabla`,
+    eleccion: (t) => `${prefijo}_t${t}_eleccion`,
+    lista: `${prefijo}_perfil`,
+    intro: `${prefijo}_intro`,
+  };
 }
 
-export function generarConjoint(d: DisenoConjoint): { survey: FilaSurveyConjoint[]; choices: FilaChoiceConjoint[] } {
+/** Nombres de las variables que se analizan: el código sorteado de cada atributo por tarea y perfil. */
+export function variableNivel(d: DisenoConjoint, tarea: number, perfil: "A" | "B", clave: string): string {
+  return nombresDelEditor(d.prefijo).nivel(tarea, perfil, clave);
+}
+
+export function generarConjoint(
+  d: DisenoConjoint,
+  nombres: NombresConjoint = nombresDelEditor(d.prefijo),
+): { survey: FilaSurveyConjoint[]; choices: FilaChoiceConjoint[] } {
   const problemas = validarDiseno(d);
   if (problemas.length) throw new Error(problemas.join(" "));
   const p = d.prefijo;
   const survey: FilaSurveyConjoint[] = [];
   const nAtr = d.atributos.length;
 
-  // Orden de los atributos, sorteado una vez por encuestado: posición = 1 + cuántos sacaron un número menor.
+  // Orden de los atributos, sorteado una vez por encuestado: posición = 1 + cuántos sacaron un número menor. Vale para
+  // todos los pares, así que va antes del primero.
   if (d.ordenAleatorio) {
     d.atributos.forEach((a) => survey.push(fila({ type: "calculate", name: `${p}_u_${a.clave}`, calculation: "once(random())" })));
     d.atributos.forEach((a) => {
@@ -147,56 +178,54 @@ export function generarConjoint(d: DisenoConjoint): { survey: FilaSurveyConjoint
     }
   }
 
-  // Sorteo de niveles por tarea y perfil.
+  if (d.intro?.trim()) survey.push(fila({ type: "note", name: nombres.intro, label: d.intro.trim() }));
+
+  // Cada par: su grupo con el sorteo de los dos perfiles adentro (C2), la tabla y la pregunta de elección.
+  const [rA, rB] = d.rotulosPerfil;
   for (let t = 1; t <= d.tareas; t += 1) {
+    survey.push(fila({ type: "begin_group", name: nombres.grupo(t), label: `Par ${t} de ${d.tareas}`, appearance: "field-list" }));
     for (const perfil of PERFILES) {
       for (const a of d.atributos) {
-        const v = variableNivel(d, t, perfil, a.clave);
-        survey.push(fila({ type: "calculate", name: `${v}_r`, calculation: "once(random())" }));
-        let calc = formulaNivel(`${v}_r`, a.niveles);
+        const v = nombres.nivel(t, perfil, a.clave);
+        const r = nombres.azar(t, perfil, a.clave);
+        survey.push(fila({ type: "calculate", name: r, calculation: "once(random())" }));
+        let calc = formulaNivel(r, a.niveles);
         if (a.soloSi) {
-          const base = ref(variableNivel(d, t, perfil, a.soloSi.atributo));
+          const base = ref(nombres.nivel(t, perfil, a.soloSi.atributo));
           const cond = a.soloSi.noEs.map((c) => `${base} = ${literal(c)}`).join(" or ");
           calc = `if(${cond}, 'NA', ${calc})`;
         }
         survey.push(fila({ type: "calculate", name: v, calculation: calc }));
-        survey.push(fila({ type: "calculate", name: `${v}_txt`, calculation: formulaTexto(v, a.niveles) }));
+        survey.push(fila({ type: "calculate", name: nombres.texto(t, perfil, a.clave), calculation: formulaTexto(v, a.niveles) }));
       }
       if (d.ordenAleatorio) {
         for (let k = 1; k <= nAtr; k += 1) {
           let celda = literal(SIN_NIVEL);
           for (let i = nAtr - 1; i >= 0; i -= 1) {
             const a = d.atributos[i]!;
-            celda = `if(${ref(`${p}_fila${k}`)} = ${literal(a.clave)}, ${ref(`${variableNivel(d, t, perfil, a.clave)}_txt`)}, ${celda})`;
+            celda = `if(${ref(`${p}_fila${k}`)} = ${literal(a.clave)}, ${ref(nombres.texto(t, perfil, a.clave))}, ${celda})`;
           }
           survey.push(fila({ type: "calculate", name: `${p}_t${t}${perfil}_celda${k}`, calculation: celda }));
         }
       }
     }
-  }
-
-  if (d.intro?.trim()) survey.push(fila({ type: "note", name: `${p}_intro`, label: d.intro.trim() }));
-
-  const [rA, rB] = d.rotulosPerfil;
-  for (let t = 1; t <= d.tareas; t += 1) {
     const lineas = [`| | ${rA} | ${rB} |`, "|---|---|---|"];
     for (let k = 1; k <= nAtr; k += 1) {
       if (d.ordenAleatorio) {
         lineas.push(`| ${ref(`${p}_fila${k}_rot`)} | ${ref(`${p}_t${t}A_celda${k}`)} | ${ref(`${p}_t${t}B_celda${k}`)} |`);
       } else {
         const a = d.atributos[k - 1]!;
-        lineas.push(`| ${a.rotulo} | ${ref(`${variableNivel(d, t, "A", a.clave)}_txt`)} | ${ref(`${variableNivel(d, t, "B", a.clave)}_txt`)} |`);
+        lineas.push(`| ${a.rotulo} | ${ref(nombres.texto(t, "A", a.clave))} | ${ref(nombres.texto(t, "B", a.clave))} |`);
       }
     }
-    survey.push(fila({ type: "begin_group", name: `${p}_tarea${t}`, label: `Par ${t} de ${d.tareas}`, appearance: "field-list" }));
-    survey.push(fila({ type: "note", name: `${p}_t${t}_tabla`, label: lineas.join("\n") }));
-    survey.push(fila({ type: `select_one ${p}_perfil`, name: `${p}_t${t}_eleccion`, label: d.pregunta.trim(), required: "yes" }));
+    survey.push(fila({ type: "note", name: nombres.tabla(t), label: lineas.join("\n") }));
+    survey.push(fila({ type: `select_one ${nombres.lista}`, name: nombres.eleccion(t), label: d.pregunta.trim(), required: "yes" }));
     survey.push(fila({ type: "end_group", name: "" }));
   }
 
   const choices: FilaChoiceConjoint[] = [
-    { list_name: `${p}_perfil`, name: "1", label: rA },
-    { list_name: `${p}_perfil`, name: "2", label: rB },
+    { list_name: nombres.lista, name: "1", label: rA },
+    { list_name: nombres.lista, name: "2", label: rB },
   ];
   return { survey, choices };
 }
