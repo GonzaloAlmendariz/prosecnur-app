@@ -98,7 +98,8 @@
 #' @keywords internal
 .regla_div_espec <- function(refs, el, a) {
   tabla <- .ola4_tabla_escala(refs, el$filtros %||% list(), excluir_opciones = a$excluir, n_negativas = a$n_negativas,
-                              incluir_neutro = a$incluir_neutro, direccion_escala = a$direccion)
+                              incluir_neutro = a$incluir_neutro, direccion_escala = a$direccion,
+                              firma_leyenda = el$.firma_leyenda)
   particion <- .divergentes_reparto(tabla$cols_porcentaje, a$n_negativas, a$incluir_neutro, reparto = tabla$reparto)
   .espec_divergentes(tabla$data, "categoria", tabla$cols_porcentaje, tabla$etiquetas_grupos, particion, "proporcion_1",
                      decimales = a$decimales, incluir_neutro = a$incluir_neutro, reparto_explicito = TRUE,

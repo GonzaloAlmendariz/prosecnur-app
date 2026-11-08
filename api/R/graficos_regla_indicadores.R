@@ -257,7 +257,8 @@
 
 #' Indicadores de la escala con «Sin información» aparte: el lado de acuerdo y el «Sin información» de cada pregunta
 #'
-#' Las preguntas de una divergente comparten escala: entre las candidatas sólo quedan las de la firma más frecuente.
+#' Las candidatas son las de la firma más frecuente y las de otra escala que se alinean con ella por posición (mismo
+#' número de opciones sustantivas, mismo sentido y mismo reparto: graficos_escala_armonizada.R); las demás salen con aviso.
 #' Las cifras salen de la tabla de la lámina (`.regla_div_medidas`, graficos_regla_divergentes.R): el Top Two Box y el
 #' «Sin información» que la lámina rotula, con sus exclusiones y su detector de la columna especial.
 #' @keywords internal
@@ -285,13 +286,23 @@
   firma_tab <- table(cands)
   # La firma más frecuente; con empate, la que aparece primero.
   firma <- if (length(cands)) cands[cands %in% names(firma_tab)[firma_tab == max(firma_tab)]][1] else NA_character_
+  a <- .regla_div_args(el, preset)
+  forma_de <- function(x) {
+    esc <- .regla_preguntas_escala(x$ctx$inst, x$ctx$resolved_variable)
+    .escala_arm_forma(esc$etiquetas, esc$no_sustantivo, a$n_negativas, a$incluir_neutro)
+  }
+  forma_mayoria <- if (!is.na(firma)) forma_de(info[[match(firma, firmas)]]) else NULL
   aptas <- integer(0)
   for (i in seq_along(refs)) {
     x <- info[[i]]
     if (!is.null(x$motivo)) { motivos[[length(motivos) + 1L]] <- x$motivo; next }
-    if (!identical(x$firma, firma)) { motivos[[length(motivos) + 1L]] <- "tienen otra escala que la mayoría"; next }
+    if (!identical(x$firma, firma)) {
+      motivo <- .escala_arm_motivo(forma_mayoria, forma_de(x))
+      if (!is.null(motivo)) { motivos[[length(motivos) + 1L]] <- motivo; next }
+    }
     aptas <- c(aptas, i)
   }
+  el$.firma_leyenda <- firma   # la leyenda es la escala más frecuente del universo, no de las elegidas
   med <- .regla_div_medidas(refs[aptas], el, sources, preset = preset)
   motivos <- c(motivos, med$motivos)
   filas <- list(); refs_tema <- list(); datos_cache <- list()
@@ -313,7 +324,7 @@
     refs_tema[[tema]] <- tema
   }
   list(indicadores = .regla_preguntas_rbind(filas), refs_por_tema = refs_tema, avisos = .regla_preguntas_avisos(motivos),
-       universo = "preguntas de escala", grupos_unidad = "públicos")
+       universo = "preguntas de escala", grupos_unidad = "públicos", firma_leyenda = firma)
 }
 
 #' Tabla de indicadores de un elemento ya construido (`p_panorama`, `p_dumbbell`, `p_barras_divergentes`, `p_fortalezas`)

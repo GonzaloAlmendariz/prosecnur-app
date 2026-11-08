@@ -307,7 +307,8 @@
   if (!is.null(criterio)) ev <- .regla_escala_ordenar(ev, ind$indicadores, criterio)
   elegidas <- ind$refs_por_tema[ev$temas]
   vars <- if (identical(el$.element_type, "dumbbell")) elegidas else unname(unlist(elegidas))
-  list(evaluacion = ev, vars = vars, avisos = c(ind$avisos, ev$avisos), indicadores = ind$indicadores)
+  list(evaluacion = ev, vars = vars, avisos = c(ind$avisos, ev$avisos), indicadores = ind$indicadores,
+       firma_leyenda = ind$firma_leyenda)
 }
 
 #' El render aplica la regla: el elemento con sus `vars` elegidas y el texto para la nota
@@ -319,7 +320,10 @@
   r <- .regla_preguntas_de_elemento(el, sources %||% .regla_preguntas_fuentes_render(contexto), preset = preset)
   if (!length(r$vars)) stop("La regla de preguntas no deja ninguna pregunta: ", r$evaluacion$texto, call. = FALSE)
   el$vars <- r$vars
-  if (identical(el$.element_type, "barras_divergentes")) el$var <- if (length(r$vars) == 1L) r$vars else NULL
+  if (identical(el$.element_type, "barras_divergentes")) {
+    el$var <- if (length(r$vars) == 1L) r$vars else NULL
+    el$.firma_leyenda <- r$firma_leyenda   # escalas alineadas: la leyenda es la del universo (graficos_escala_armonizada.R)
+  }
   list(el = el, texto = r$evaluacion$texto)
 }
 

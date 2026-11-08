@@ -287,7 +287,8 @@ p_barras_divergentes <- function(vars = NULL,
 .ola4_tabla_escala <- function(refs, filtros, excluir_opciones = NULL,
                                n_negativas = NULL,
                                incluir_neutro = TRUE,
-                               direccion_escala = c("negativo_positivo", "positivo_negativo")) {
+                               direccion_escala = c("negativo_positivo", "positivo_negativo"),
+                               firma_leyenda = NULL) {
   direccion_escala <- match.arg(direccion_escala)
   filas <- list()
   opciones_visibles <- character(0)
@@ -299,15 +300,31 @@ p_barras_divergentes <- function(vars = NULL,
   no_sustantivas <- character(0)
   meta_ns <- list()
   hubo_exclusion <- FALSE
+  forma_escala <- NULL
+  forma_ref <- NULL
+  armonizadas <- list()   # escalas alineadas por posición con la de la leyenda (graficos_escala_armonizada.R)
+  if (!length(refs)) return(NULL)
 
-  for (ref in refs) {
-    tab <- .ola4_tabla_opciones(
-      ref,
-      filtros,
-      excluir_opciones,
-      n_negativas = NULL,   # el reparto se fija abajo, sobre las sustantivas
-      incluir_neutro = incluir_neutro
-    )
+  tabs <- lapply(refs, function(ref) .ola4_tabla_opciones(
+    ref,
+    filtros,
+    excluir_opciones,
+    n_negativas = NULL,   # el reparto se fija abajo, sobre las sustantivas
+    incluir_neutro = incluir_neutro
+  ))
+  # La escala de la leyenda es la más frecuente del universo de la regla o, sin regla, de las filas (ADR 0135, oleada 9);
+  # se procesa primero y las filas conservan su orden.
+  firmas_tabs <- vapply(tabs, function(t) {
+    f <- attr(t, "ola4_firma_e1", exact = TRUE)
+    if (!length(f) || is.na(f[[1]])) NA_character_ else as.character(f[[1]])
+  }, character(1))
+  i_ref <- .escala_arm_referencia(firmas_tabs, firma_leyenda)
+  filas <- vector("list", length(refs))
+  names(filas) <- vapply(refs, function(r) as.character(r)[1], character(1))
+
+  for (i in c(i_ref, setdiff(seq_along(refs), i_ref))) {
+    ref <- refs[[i]]
+    tab <- tabs[[i]]
     escala_ref <- attr(tab, "ola4_escala_original", exact = TRUE)
     if (isTRUE(attr(tab, "excluded_any", exact = TRUE))) hubo_exclusion <- TRUE
     firma_ref <- attr(tab, "ola4_firma_e1", exact = TRUE)
@@ -349,6 +366,9 @@ p_barras_divergentes <- function(vars = NULL,
         incluir_neutro
       )
       ref_escala <- as.character(ref)[1]
+      if (!is.null(firma_ref) && length(opciones_ref)) {
+        forma_escala <- .escala_arm_forma(escala_original, es_ns, n_negativas, incluir_neutro)
+      }
     } else {
       if (xor(is.null(firma_escala), is.null(firma_ref))) {
         stop(
@@ -357,7 +377,17 @@ p_barras_divergentes <- function(vars = NULL,
           call. = FALSE
         )
       }
-      if (!is.null(firma_escala) && !identical(firma_ref, firma_escala)) {
+      forma_ref <- NULL
+      if (!is.null(firma_escala) && !identical(firma_ref, firma_escala) && !is.null(forma_escala)) {
+        forma_ref <- .escala_arm_forma_opciones(opciones_ref, attr(tab, "ola4_meta_especiales", exact = TRUE) %||% list(),
+                                                direccion_escala, n_negativas, incluir_neutro)
+        motivo <- .escala_arm_motivo(forma_escala, forma_ref)
+        if (!is.null(motivo)) {
+          stop("La pregunta `", as.character(ref)[1], "` no se alinea con la escala de `", ref_escala, "`: ", motivo, ".",
+               call. = FALSE)
+        }
+        armonizadas[[firma_ref]] <- .escala_arm_texto(forma_ref)
+      } else if (!is.null(firma_escala) && !identical(firma_ref, firma_escala)) {
         stop(
           "La pregunta `", as.character(ref)[1],
           "` no comparte la firma E1 código + etiqueta de `", ref_escala, "`.",
@@ -390,15 +420,21 @@ p_barras_divergentes <- function(vars = NULL,
         .escala_etiqueta_normalizada(etiquetas_ref)
       )
       idx_ref <- ifelse(!is.na(idx_codigo), idx_codigo, idx_etiqueta)
-      idx_canonico <- match(codigos_ref[idx_ref], codigos_canonicos)
-      if (anyNA(idx_ref) || anyNA(idx_canonico)) {
+      armonizada <- i != i_ref && !is.null(forma_ref)
+      opts_canon <- if (armonizada) {
+        # Por posición: el nivel j de su escala ocupa la columna j de la leyenda; lo especial, la columna especial.
+        .escala_arm_mapear(etiquetas_ref[idx_ref], forma_ref, forma_escala)
+      } else {
+        escala_original[match(codigos_ref[idx_ref], codigos_canonicos)]
+      }
+      if (anyNA(idx_ref) || anyNA(opts_canon)) {
         stop(
           "La pregunta `", as.character(ref)[1],
           "` devolvió frecuencias que no corresponden a su firma E1.",
           call. = FALSE
         )
       }
-      opts <- escala_original[idx_canonico]
+      opts <- opts_canon
     }
     reparto_ref <- reparto_original
     if (!any(reparto_ref$negativas %in% opts)) {
@@ -421,8 +457,9 @@ p_barras_divergentes <- function(vars = NULL,
     n <- suppressWarnings(as.numeric(tab$n))
     total <- sum(n, na.rm = TRUE)
     opciones_visibles <- unique(c(opciones_visibles, opts))
-    filas[[length(filas) + 1L]] <- stats::setNames(n / total, opts)
-    names(filas)[length(filas)] <- as.character(ref)[1]
+    # Dos especiales de una escala alineada caen en la misma columna: se suman.
+    por_nivel <- tapply(n, factor(opts, levels = unique(opts)), sum, na.rm = TRUE)
+    filas[[i]] <- stats::setNames(as.numeric(por_nivel) / total, names(por_nivel))
   }
   if (!length(filas)) return(NULL)
 
@@ -484,7 +521,9 @@ p_barras_divergentes <- function(vars = NULL,
     etiquetas_grupos = stats::setNames(niveles, cols),
     codigos_grupos = codigos,
     reparto = reparto_visible,
-    hubo_exclusion = hubo_exclusion
+    hubo_exclusion = hubo_exclusion,
+    ref_escala = ref_escala,
+    escalas_armonizadas = unname(unlist(armonizadas))
   )
 }
 
@@ -525,7 +564,8 @@ p_barras_divergentes <- function(vars = NULL,
     excluir_opciones = excluir_opciones,
     n_negativas = args_usuario$n_negativas,
     incluir_neutro = args_usuario$incluir_neutro %||% TRUE,
-    direccion_escala = args_usuario$direccion_escala %||% "negativo_positivo"
+    direccion_escala = args_usuario$direccion_escala %||% "negativo_positivo",
+    firma_leyenda = el$.firma_leyenda
   )
 
   refs_filas <- tabla$data$categoria
@@ -545,7 +585,7 @@ p_barras_divergentes <- function(vars = NULL,
   )
   # ADR 0097: la paleta de la lista de la escala, si es del usuario, pinta cada nivel por su etiqueta (la de un
   # perfil no cambia el recetario). Un color elegido en la tarjeta (`colores_grupos`) sigue mandando.
-  base_args$colores_grupos <- .ola4_paleta_niveles(el$vars[[1]], tabla$etiquetas_grupos)
+  base_args$colores_grupos <- .ola4_paleta_niveles(tabla$ref_escala %||% el$vars[[1]], tabla$etiquetas_grupos)
   args <- utils::modifyList(base_args, args_usuario)
   # El reparto derivado de la escala original no es reemplazable por presets o
   # overrides: hacerlo reintroduciria la reclasificacion por indices visibles.
@@ -553,7 +593,7 @@ p_barras_divergentes <- function(vars = NULL,
   args <- .regla_escala_orden_args(args, el)   # la regla fijó el orden: las filas van como las ordenó (ADR 0135)
   args <- .keep_formals(graficar_barras_divergentes, args, contexto = "graficar_barras_divergentes")
   p <- .regla_preguntas_en_espec(do.call(graficar_barras_divergentes, args), ap$texto)
-  .divergentes_nota_porcentaje(p, isTRUE(tabla$hubo_exclusion))
+  .divergentes_nota_porcentaje(p, isTRUE(tabla$hubo_exclusion), tabla$escalas_armonizadas)
 }
 
 #' El denominador de la escala del resumen, para su pie (ADR 0135 §3, como el mazo de Arte)
@@ -561,11 +601,12 @@ p_barras_divergentes <- function(vars = NULL,
 #' Sin exclusiones el porcentaje es sobre el total de respondientes (con «Sin información» en su columna); si una
 #' respuesta se excluyó, sobre quienes quedan.
 #' @keywords internal
-.divergentes_nota_porcentaje <- function(p, hubo_exclusion = FALSE) {
+.divergentes_nota_porcentaje <- function(p, hubo_exclusion = FALSE, escalas_armonizadas = character(0)) {
   esp <- attr(p, "pulso_espec", exact = TRUE)
   if (is.null(esp) || !identical(esp$estilo, "resumen")) return(p)
-  esp$nota_porcentaje <- if (isTRUE(hubo_exclusion)) "Porcentaje sobre quienes respondieron, sin contar las respuestas excluidas."
-                         else "Porcentaje sobre el total de respondientes."
+  esp$nota_porcentaje <- .escala_arm_nota(
+    if (isTRUE(hubo_exclusion)) "Porcentaje sobre quienes respondieron, sin contar las respuestas excluidas."
+    else "Porcentaje sobre el total de respondientes.", escalas_armonizadas)
   attr(p, "pulso_espec") <- esp
   # El respaldo (ggplot) escribe en su pie lo que trae `note_outside`: el denominador y la regla, como la nativa.
   attr(p, "note_outside") <- paste0(.lam_unir_base(esp$nota_porcentaje, esp$texto_regla), ".")
