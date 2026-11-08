@@ -9,7 +9,9 @@ import { DndContext } from "@dnd-kit/core";
 import { SortableContext, useSortable } from "@dnd-kit/sortable";
 import { ladoInsercion, sinDesplazar } from "./indicadorInsercion";
 import { CSS } from "@dnd-kit/utilities";
-import { ChevronRight, PanelLeftClose, Presentation, Search, SearchX } from "../../../vendor/lucide-react";
+import { ChevronRight, Presentation, Search, SearchX } from "../../../vendor/lucide-react";
+import { CabeceraPanel } from "../../../components/CabeceraPanel";
+import { PulsoButton } from "../../../components/PulsoButton";
 import { IconoTipo } from "../iconos/IconoTipo";
 import {
   contarLaminas,
@@ -32,7 +34,8 @@ import { formatoConteo } from "../../../lib/formatoNumero";
 export type MarcaValidacion = "error" | "warning";
 
 type Props = {
-  onCerrar: () => void;
+  /** Cierra el lateral (la X de la cabecera). Ausente, no hay X: el lienzo vacío no tiene a quién ceder el ancho. */
+  onCerrar?: () => void;
   /** Barra de acciones de la lámina activa (se monta bajo la búsqueda). */
   acciones?: ReactNode;
   estructura: Estructura;
@@ -80,28 +83,27 @@ export function EstructuraInforme({ onCerrar, acciones, estructura, posicionActi
 
   return (
     <aside className="pulso-f6-estructura" aria-label="Estructura del informe">
-      <header className="pulso-f6-col-head">
-        <h2>Estructura</h2>
-        <span className="pulso-f6-col-meta">{formatoConteo(estructura.laminas.length)} láminas</span>
-        <span className="pulso-f6-col-sp" />
-        <button
-          type="button"
-          className="pulso-f6-texto-boton"
-          onClick={() => fijarCerrados(todoCerrado ? [] : plegables)}
-          disabled={!plegables.length}
-        >
-          {todoCerrado ? "Abrir todo" : "Cerrar todo"}
-        </button>
-        <button
-          type="button"
-          className="pulso-f6-icono-boton"
-          aria-label="Ocultar la estructura"
-          title="Ocultar la estructura: la lámina gana su ancho"
-          onClick={onCerrar}
-        >
-          <PanelLeftClose size={16} aria-hidden="true" />
-        </button>
-      </header>
+      {/* Acabado W2-A: CabeceraPanel con la cuenta como dato, una sola acción de texto y la X del kit (antes un ícono de
+          «plegar panel», un tercer dialecto de cierre). Sin `onCerrar` (el lienzo vacío) no hay X. */}
+      <CabeceraPanel
+        className="pulso-f6-estructura-cabecera"
+        titulo="Estructura"
+        acciones={(
+          <>
+            <span className="pulso-f6-col-meta">{formatoConteo(estructura.laminas.length)} láminas</span>
+            <PulsoButton
+              variant="ghost"
+              size="sm"
+              onClick={() => fijarCerrados(todoCerrado ? [] : plegables)}
+              disabled={!plegables.length}
+            >
+              {todoCerrado ? "Abrir todo" : "Cerrar todo"}
+            </PulsoButton>
+          </>
+        )}
+        onCerrar={onCerrar}
+        etiquetaCerrar="Cerrar la estructura"
+      />
       <div className="pulso-f6-estructura-busca">
         <label className="pulso-f6-busca">
           <Search size={14} aria-hidden="true" />
