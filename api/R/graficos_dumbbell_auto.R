@@ -9,6 +9,8 @@
 #   - nada, con una regla: el render toma las dos bases del estudio; con tres o más, pide elegir el par.
 # Sin `vars` ni `bases` y sin regla, el borrador sigue siendo un gráfico vacío (`.dumbbell_borrador_sin_temas`).
 # Sin regla, unas `bases` declaradas implican la regla `comunes` (la lámina de resumen de todos los pares).
+# Aperturas internas (prueba con Arte, 2026-11-07): con `cruce` y una regla, sin `vars`, los temas son las preguntas de
+# escala de la base del cruce (`base$*`), sin la propia pregunta del cruce. Sin regla, el borrador sigue vacío.
 
 .DUMBBELL_AUTO_TEMA <- "Preguntas comunes"
 .DUMBBELL_MSG_PAR <- "El contraste compara dos públicos: elige cuáles."
@@ -46,12 +48,33 @@
   .dumbbell_vars_de_bases(b)
 }
 
-#' Un borrador de contraste sin temas, sin bases, sin cruce y sin regla se dibuja vacío (como antes de `bases`)
+#' Los temas de las aperturas internas cuando no se eligen: todas las preguntas de la base del cruce (`base$*`)
+#'
+#' El cruce se declara `base$variable` (`.dumbbell_grupos_datos` no resuelve uno sin base); sin base queda `$*` y el
+#' conteo lo reporta como pregunta fuera, sin caer en la primera base.
+#' @keywords internal
+.dumbbell_vars_de_cruce <- function(cruce) {
+  list(paste0(.graficos_ref_parts(trimws(as.character(cruce)[1]))$source, "$*"))
+}
+
+#' Un `vars: []` que la UI serializa junto a una regla no es una ref faltante: el contraste arma sus temas solo (desde
+#' `bases`, el cruce o las dos bases del estudio). Se quita antes del chequeo de refs del rearmado.
+#' @keywords internal
+.dumbbell_quitar_vars_vacias <- function(args, graficador_name) {
+  if (!identical(as.character(graficador_name %||% "")[1], "p_dumbbell") || !is.list(args) || is.null(args$vars)) return(args)
+  if (!.dumbbell_sin_temas(args$vars)) return(args)
+  if (is.null(tryCatch(.regla_preguntas_normalizar(args$regla), error = function(e) NULL))) return(args)
+  args$vars <- NULL
+  args
+}
+
+#' Un borrador de contraste sin temas, sin bases y sin regla se dibuja vacío (como antes de `bases`), tenga o no
+#' `cruce`: la lámina pide elegir las preguntas en vez de abortar el preview
 #' @keywords internal
 .dumbbell_borrador_sin_temas <- function(args, graficador_name) {
   if (!identical(as.character(graficador_name %||% "")[1], "p_dumbbell")) return(FALSE)
   vacio <- function(x) .dumbbell_sin_temas(x)
-  vacio(args$vars) && vacio(args$bases) && vacio(args$cruce) && is.null(tryCatch(.regla_preguntas_normalizar(args$regla), error = function(e) NULL))
+  vacio(args$vars) && vacio(args$bases) && is.null(tryCatch(.regla_preguntas_normalizar(args$regla), error = function(e) NULL))
 }
 
 #' El mensaje para el inspector cuando el gráfico aún no se puede contar (nunca el nombre interno del elemento)

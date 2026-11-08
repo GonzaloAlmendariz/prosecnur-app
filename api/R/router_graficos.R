@@ -446,6 +446,7 @@
   fn <- getExportedValue("prosecnurapp", graficador_name)
   args <- .graficos_unwrap_scalar_refs(g$args %||% list())
   args <- .graficos_drop_blank_optional_refs(args)
+  args <- .dumbbell_quitar_vars_vacias(args, graficador_name)   # graficos_dumbbell_auto.R
   if (.graficos_args_missing_required_ref(args, graficador_name) || .dumbbell_borrador_sin_temas(args, graficador_name)) {
     return(.graficos_blank_graph_element())
   }
@@ -1074,6 +1075,7 @@
   fn <- getExportedValue("prosecnurapp", graficador_name)
   args <- .graficos_unwrap_scalar_refs(g$args %||% list())
   args <- .graficos_drop_blank_optional_refs(args)
+  args <- .dumbbell_quitar_vars_vacias(args, graficador_name)   # graficos_dumbbell_auto.R
   if (.graficos_args_missing_required_ref(args, graficador_name) || .dumbbell_borrador_sin_temas(args, graficador_name)) {
     return(.graficos_blank_graph_element())
   }

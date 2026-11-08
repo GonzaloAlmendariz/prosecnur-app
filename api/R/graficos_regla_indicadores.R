@@ -217,17 +217,19 @@
   refs <- if (is.list(el$vars)) vapply(el$vars, function(x) as.character(unlist(x))[1], character(1)) else as.character(el$vars)
   nombres <- names(el$vars) %||% rep("", length(refs))
   motivos <- list(); vars <- list()
+  cx <- .graficos_consolidado_ref_context(el$cruce, sources)
   for (i in seq_along(refs)) {
     part <- .graficos_ref_parts(refs[i])
     if (identical(part$name, "*")) {
       vs <- .regla_preguntas_de_base(part$source, codigos, sources)
       if (is.null(vs)) { motivos[[length(motivos) + 1L]] <- "su base no está en el estudio"; next }
+      # La pregunta que define los grupos no se compara consigo misma.
+      if (isTRUE(cx$exists) && identical(part$source, cx$source)) vs <- setdiff(vs, cx$resolved_variable)
       vars <- c(vars, as.list(paste0(part$source, "$", vs)))
     } else vars <- c(vars, stats::setNames(list(refs[i]), nombres[i]))
   }
   temas <- if (length(vars)) .dumbbell_grupos_temas(vars, sources) else list()
   filas <- list(); refs_tema <- list()
-  cx <- .graficos_consolidado_ref_context(el$cruce, sources)
   for (i in seq_along(temas)) {
     t <- names(temas)[i]
     ctx <- .graficos_consolidado_ref_context(temas[[t]], sources)

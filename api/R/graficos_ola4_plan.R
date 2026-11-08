@@ -658,6 +658,8 @@ p_dumbbell <- function(vars = NULL,
   no_confiables <- .graficos_universos_no_confiables(universos_no_confiables, "p_dumbbell()")
   # G17: con `cruce` y `grupos` la brecha es entre dos grupos de una misma base (graficos_dumbbell_grupos.R).
   if (!is.null(cruce)) {
+    # ADR 0135: con regla y sin temas, las aperturas toman la base del cruce (graficos_dumbbell_auto.R).
+    if (.dumbbell_sin_temas(vars) && !is.null(.regla_preguntas_normalizar(regla))) vars <- .dumbbell_vars_de_cruce(cruce)
     el <- .p_dumbbell_grupos(vars, corte, corte_etiqueta, orden, mostrar_brecha, umbral_brecha_pct, titulo,
                              overrides, base, filtros, etiqueta_brecha, cruce, grupos, estilo, universos, separar_tras, base_en)
     el$universos_no_confiables <- no_confiables
