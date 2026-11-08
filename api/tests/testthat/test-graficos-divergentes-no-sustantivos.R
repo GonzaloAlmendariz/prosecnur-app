@@ -284,3 +284,35 @@ test_that("H2: NS, NR, «No opino», «No tengo opinión», «Sin respuesta» y 
   expect_true(f("No sé", "6"))
   expect_false(f("No se cumple", "1"))
 })
+
+# ---- Quinta revisión metodológica de 53c7a085e (H3 mitad negativa, H4 hermanas que ya son no respuesta) ----------
+
+test_that("H3: una raíz ambigua al final de una escala positiva es Sin información", {
+  skip_if_not_installed("ggplot2")
+  f <- .divergentes_especiales
+  frec <- c("Nunca", "Pocas veces", "A veces", "Siempre")
+  for (x in c("No he usado el servicio", "No he participado", "No he acudido")) {
+    expect_identical(f(c(frec, x), as.character(1:5)), c(rep(FALSE, 4), TRUE), label = x)
+  }
+  expect_identical(.dns_lados(as.character(1:5), c(frec, "No he usado el servicio"), c(2, 2, 3, 3, 10))$lado,
+                   c("neg", "neg", "pos", "pos", "sin_inf"))
+  expect_identical(f(c("Uso poco", "Uso bastante", "Uso mucho", "No uso"), as.character(1:4)), c(FALSE, FALSE, FALSE, TRUE))
+  expect_identical(f(c("No conoce nada", "Conoce poco", "Conoce algo", "Conoce bien", "Desconoce"), as.character(1:5)),
+                   c(rep(FALSE, 4), TRUE))
+  # Los cuatro casos de H1 siguen enteros, también con la lista invertida (positivo → negativo).
+  h1 <- list(c("Rechazo totalmente", "Rechazo", "Ni acepto ni rechazo", "Acepto", "Acepto totalmente"),
+             c("Desconozco", "Conozco poco", "Conozco algo", "Conozco mucho"),
+             c("No uso", "Uso poco", "Uso bastante", "Uso mucho"),
+             c("No he participado", "Una vez", "Algunas veces", "Muchas veces"))
+  for (x in h1) {
+    expect_false(any(f(x, as.character(seq_along(x)))), label = x[1])
+    expect_false(any(f(rev(x), as.character(seq_along(x)), direccion = "positivo_negativo")), label = paste("inv", x[1]))
+  }
+  # La lámina invertida: la tabla decide con la dirección y la especificación la respeta.
+  e <- .dns_espec(.dns_fuentes(as.character(1:4), rev(h1[[3]]), list(a = c(5, 5, 5, 5))), direccion_escala = "positivo_negativo")
+  expect_false("sin_inf" %in% e$categorias$lado)
+})
+
+test_that("H4: una forma que ya es no respuesta no salva a una raíz ambigua", {
+  expect_identical(.divergentes_especiales(c(.dns_lik5, "Rechaza responder", "Rechazo"), as.character(1:7)), c(rep(FALSE, 5), TRUE, TRUE))
+})

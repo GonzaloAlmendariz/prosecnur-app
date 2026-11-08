@@ -336,9 +336,12 @@ p_barras_divergentes <- function(vars = NULL,
         vapply(opciones_ref, function(x) as.character(x$codigo)[1], character(1))
       } else NULL
       meta_ns <- attr(tab, "ola4_meta_especiales", exact = TRUE) %||% list()
-      no_sustantivas <- escala_original[.divergentes_especiales(escala_original, codigos_escala,
-                                                                especiales = meta_ns$especiales %||% character(0),
-                                                                sustantivos = meta_ns$sustantivos %||% character(0))]
+      es_ns <- .divergentes_especiales(escala_original, codigos_escala, especiales = meta_ns$especiales %||% character(0),
+                                       sustantivos = meta_ns$sustantivos %||% character(0), direccion = direccion_escala)
+      no_sustantivas <- escala_original[es_ns]
+      # La especificación decide por estos códigos: la tabla ya conoce la dirección de la escala (quinta revisión, H3).
+      if (length(codigos_escala)) meta_ns <- list(especiales = unique(c(meta_ns$especiales, codigos_escala[es_ns])),
+                                                  sustantivos = codigos_escala[!es_ns])
       sustantivas <- setdiff(escala_reparto, no_sustantivas)
       reparto_original <- .divergentes_reparto(
         sustantivas,

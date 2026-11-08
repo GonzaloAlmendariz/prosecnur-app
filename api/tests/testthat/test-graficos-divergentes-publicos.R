@@ -67,3 +67,18 @@ test_that("la lámina rotula cada fila con su público, con la misma paleta y la
   expect_true(all(grepl(" \\((DOC|Est\\.|Adm\\.)\\)$", e2$filas)))
   expect_false(any(grepl("\\(", e3$filas)))
 })
+
+test_that("varios públicos con n desigual: cada fila con el denominador de su pregunta y su público", {
+  skip_if_not_installed("ggplot2")
+  mk <- function(n, k) data.frame(p1 = c(rep("4", k), rep("1", n - k)), p2 = rep(c("1", "4"), length.out = n), stringsAsFactors = FALSE)
+  inst <- .dp_inst(); inst$survey <- inst$survey[1:2, ]; inst$listas_ordinales_declaradas <- "lk"
+  src <- list(data_sources = list(docentes = mk(20, 18), estudiantes = mk(60, 17)), inst_sources = list(docentes = inst, estudiantes = inst))
+  plan <- p_plan(slides = list(p_slide_1_grafico(p_barras_divergentes(vars = c("docentes$p1", "estudiantes$p1"), estilo = "resumen",
+                                                                      orden = "declarado"), titulo = "n desigual")))
+  out <- suppressWarnings(reporte_ppt_plan(data = src$data_sources, instrumento = src$inst_sources, plan = plan, solo_lista = TRUE,
+                                           mensajes_progreso = FALSE))
+  e <- attr(out$rendered[[1]], "pulso_espec")
+  expect_identical(e$filas, c("Reglamentos (Doc.)", "Reglamentos (Est.)"))
+  t2b <- vapply(seq_along(e$filas), function(i) sum(e$unidades[i, e$categorias$lado == "pos"]), numeric(1)) / 10^e$decimales
+  expect_equal(t2b, c(90, 28))   # 18/20 y 17/60
+})

@@ -21,15 +21,16 @@
 #' @param codigos Códigos alineados con `rotulos` (o `NULL`/`NA`: decide el rótulo).
 #' @param codigos_lista Se acepta por compatibilidad; ya no decide.
 #' @param especiales,sustantivos Códigos que la metadata de la lista declara especiales o de la escala.
+#' @param direccion `negativo_positivo` o `positivo_negativo`: dónde está la mitad negativa (raíces ambiguas).
 #' @return Lógico alineado con `rotulos`.
 #' @keywords internal
 .divergentes_especiales <- function(rotulos, codigos = NULL, codigos_lista = NULL, especiales = character(0),
-                                    sustantivos = character(0)) {
+                                    sustantivos = character(0), direccion = "negativo_positivo") {
   rot <- trimws(as.character(rotulos)); rot[is.na(rot)] <- ""
   cod <- if (is.null(codigos)) rep(NA_character_, length(rot)) else trimws(as.character(codigos))
   hay <- !is.na(cod) & nzchar(cod)
   # `codigos_lista` ya no decide: el rango de códigos no dice qué es escala (graficos_no_sustantivos.R).
-  .graficos_no_sustantivos_escala(ifelse(hay, cod, ""), rot, especiales = especiales, sustantivos = sustantivos)
+  .graficos_no_sustantivos_escala(ifelse(hay, cod, ""), rot, especiales = especiales, sustantivos = sustantivos, direccion = direccion)
 }
 
 #' Especificación de unas barras divergentes

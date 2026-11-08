@@ -244,7 +244,8 @@
 #' @param codigos Códigos (o rótulos, si no hay código) alineados con `etiquetas`.
 #' @return Lógico alineado con `codigos`.
 #' @keywords internal
-.graficos_no_sustantivos_escala <- function(codigos, etiquetas, especiales = character(0), sustantivos = character(0)) {
+.graficos_no_sustantivos_escala <- function(codigos, etiquetas, especiales = character(0), sustantivos = character(0),
+                                            direccion = "negativo_positivo") {
   codigos <- trimws(as.character(codigos)); codigos[is.na(codigos)] <- ""
   etiquetas <- trimws(as.character(etiquetas))
   especiales <- trimws(as.character(especiales %||% character(0)))
@@ -252,17 +253,26 @@
   meta_no <- nzchar(codigos) & codigos %in% setdiff(trimws(as.character(sustantivos %||% character(0))), especiales)
   cod9x <- grepl("^9[0-9]$", codigos)
   formas <- lapply(etiquetas, .graficos_no_sustantivos_formas)
-  rotulo <- vapply(seq_along(formas), function(i) {
+  firme <- vapply(formas, function(norm) length(norm) > 0L && any(grepl(.NO_SUSTANTIVOS_ROTULO_ESCALA, norm, perl = TRUE)), logical(1))
+  fuera <- firme | meta | cod9x
+  # Quinta revisión (H3): una raíz ambigua sólo es nivel en la mitad negativa de la escala (según `direccion`), contada
+  # entre las opciones que no son ya no respuesta; al final de una escala positiva es una no respuesta.
+  pos <- cumsum(!fuera); k <- sum(!fuera)
+  mitad_neg <- if (identical(direccion, "positivo_negativo")) pos > k - k %/% 2L else pos <= k %/% 2L
+  hay_nunca <- any(grepl("\\bnunca\\b", unlist(formas), perl = TRUE))
+  ambigua <- vapply(seq_along(formas), function(i) {
     norm <- formas[[i]]
-    if (!length(norm)) return(FALSE)
-    if (any(grepl(.NO_SUSTANTIVOS_ROTULO_ESCALA, norm, perl = TRUE))) return(TRUE)
-    hermanas <- unlist(formas[-i], use.names = FALSE)
+    if (!length(norm) || fuera[i]) return(FALSE)
+    # H4: las formas que ya son no respuesta («Rechaza responder») no salvan a nadie.
+    hermanas <- unlist(formas[-i][!fuera[-i]], use.names = FALSE)
     for (r in .NO_SUSTANTIVOS_RAICES_ESCALA) {
-      if (any(grepl(r$patron, norm, perl = TRUE)) && !any(grepl(r$raiz, hermanas, perl = TRUE))) return(TRUE)
+      if (!any(grepl(r$patron, norm, perl = TRUE))) next
+      if (hay_nunca && any(grepl("^no he ", norm, perl = TRUE))) return(TRUE)   # «No he X» con «Nunca» en la lista
+      if (!mitad_neg[i] || !any(grepl(r$raiz, hermanas, perl = TRUE))) return(TRUE)
     }
     FALSE
   }, logical(1))
-  (meta | cod9x | rotulo) & !meta_no
+  (meta | cod9x | firme | ambigua) & !meta_no
 }
 
 #' Formas comparables de un rótulo: entero y sus partes separadas por «/», en minúsculas, sin tildes y sin un paréntesis
