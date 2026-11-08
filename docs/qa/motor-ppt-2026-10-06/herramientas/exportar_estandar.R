@@ -65,6 +65,9 @@ paletas <- list(
   actores = list(colores = c(Docentes = "#0B4F8C", Estudiantes = "#2A9D8F", Egresados = "#E9C46A", Autoridades = "#8E9DBD", Administrativos = "#081F5C", Empleadores = "#9DC3E6"),
                  rotulos = c("Docentes", "Estudiantes", "Egresados", "Autoridades", "Administrativos", "Empleadores"),
                  uso = "Cada público conserva su color en todo el informe; si el nombre ya está junto a la barra, no necesita color."),
+  # Grupos de un mismo público en el contraste de puntos del resumen ejecutivo (ADR 0134/0135).
+  grupos = list(colores = c("#0B4F8C", "#C8742B", "#2A9D8F", "#7B5BA6"),
+                uso = "Grupos de un mismo público en un contraste de puntos (dedicación, pertenencia, ciclo): cada grupo con su color y su forma, que lo distinguen también impreso en blanco y negro."),
   categorias = list(mayor = "#081F5C", resto = "#8E9DBD", residual = "#8A93A8",
                     rotulos = list(mayor = "La más elegida", resto = "Las demás", residual = "No sabe, Otros"),
                     uso = "Barras de una serie: la mayor en azul; las demás en el tono de apoyo; No sabe, Otros y similares al final en gris azulado."),
