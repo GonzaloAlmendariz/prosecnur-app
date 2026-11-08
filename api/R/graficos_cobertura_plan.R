@@ -61,7 +61,7 @@ p_cobertura <- function(bases = NULL,
 .render_cobertura <- function(el, preset_args = list()) {
   data_sources <- dynGet("data_sources", ifnotfound = NULL)
   if (!length(data_sources)) stop("cobertura: el render no expone las bases del estudio.", call. = FALSE)
-  bases <- el$bases %||% names(data_sources)
+  bases <- el$bases %||% .cobertura_bases_publico(names(data_sources))   # sin las ediciones de una serie (graficos_cobertura_publicos.R)
   faltan <- setdiff(bases, names(data_sources))
   if (length(faltan)) stop("cobertura: la base `", faltan[1], "` no está en el estudio.", call. = FALSE)
   datos <- data.frame(publico = .radar_mb_capitalizar(bases), casos = .cobertura_casos(bases, data_sources, el$filtros),
