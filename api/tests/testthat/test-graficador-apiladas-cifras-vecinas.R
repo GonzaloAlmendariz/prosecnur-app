@@ -15,6 +15,9 @@
                          label = c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo", "SIN INF",
                                    "Tiempo completo (TC)", "Tiempo parcial por asignaturas (TPA)", "Sí", "No"), stringsAsFactors = FALSE),
     orders_list = NULL)
+  # E5 (ola 2): como el render real (reporte_frecuencias.R), `orders_list` sale de las choices; sin eso los ejes decían
+  # «1»/«2» en vez de «Tiempo completo (TC)»/«Tiempo parcial por asignaturas (TPA)». Era el fixture, no el motor.
+  inst$orders_list <- .freq_augment_orders_list_from_choices(NULL, inst$survey, inst$choices)
   list(data = list(doc = d), instrumento = list(doc = inst))
 }
 
