@@ -300,7 +300,7 @@
   if (grepl("^poblacion", tipo)) especs <- lapply(especs, function(e) { if (is.list(e) && identical(e$tipo, "categorica")) e$en_poblacion <- TRUE; e })
   compartida <- .lam_mixta_compartida(especs, geo$paneles)
   # Ítems 18–20: un estilo para toda la lámina y, si hace falta, el alto repartido entre sus dos filas (lamina_perfil_panel.R).
-  plan <- .lam_perfil_plan(especs, geo, preguntas, publicos %||% vector("list", length(especs)), compartida)
+  plan <- .lam_perfil_plan(especs, geo, preguntas, publicos %||% vector("list", length(especs)), compartida, titulo = titulo, sub = sub)
   geo$paneles <- plan$geo$paneles; geo$filetes <- plan$geo$filetes; estilo <- plan$estilo
   P <- geo$paneles
   fines <- numeric(length(P))
@@ -401,12 +401,14 @@
 
 #' Qué paneles caben en piezas nativas (el resto va con su gráfico de respaldo)
 #' @keywords internal
-.lam_mixta_caben <- function(especs, geo, els = NULL, titulo_de_var = NULL, enc = NULL) {
+.lam_mixta_caben <- function(especs, geo, els = NULL, titulo_de_var = NULL, enc = NULL, titulo = NULL, sub = NULL) {
   # `enc`: los encabezados que la lámina dibujará (sin el público que G9/D3 quitan); sin ellos, los de cada gráfico.
   enc <- enc %||% .lam_mixta_encabezados(lapply(especs, function(e) e %||% list(tipo = "respaldo")), els, titulo_de_var)
   compartida <- .lam_mixta_compartida(lapply(especs, function(e) e %||% list(tipo = "respaldo")), geo$paneles)
   # Con el estilo y la geometría que dibujará la lámina (ítems 18–20, lamina_perfil_panel.R).
-  .lam_perfil_plan(especs, geo, enc$preguntas, enc$publicos, compartida)$caben
+  # Con el título, la geometría que dibujará la lámina (bajo su título y, si hace falta, estirada: lamina_perfil_alto.R).
+  if (!is.null(titulo)) geo <- .lam_mixta_geo_bajo_titulo(geo, titulo, sub)
+  .lam_perfil_plan(especs, geo, enc$preguntas, enc$publicos, compartida, titulo = titulo, sub = sub)$caben
 }
 
 #' Una lámina mixta del plan, en nativo (enganche de la composición y de `paneles_4`)
@@ -466,9 +468,10 @@
     mp <- (els[[k]]$overrides %||% list())$mostrar_publico
     if (isTRUE(mp)) enc$publicos[[k]] <- publicos_todos[[k]] else if (identical(mp, FALSE)) enc$publicos[k] <- list(NULL)
   }
-  caben <- .lam_mixta_caben(especs, .lam_mixta_geo(tipo), els, titulo_de_var, enc = enc)
+  titulo <- texto(slots$title %||% slide$title) %||% ""
+  caben <- .lam_mixta_caben(especs, .lam_mixta_geo(tipo), els, titulo_de_var, enc = enc, titulo = titulo)
   respaldo <- lapply(seq_along(rendered), function(k) if (caben[k] || .lam_es_cifra(especs[[k]])) NULL else rendered[[k]])
-  .lam_laminas_mixta(doc, especs, tipo, enc$preguntas, enc$publicos, respaldo = respaldo, titulo = texto(slots$title %||% slide$title) %||% "",
+  .lam_laminas_mixta(doc, especs, tipo, enc$preguntas, enc$publicos, respaldo = respaldo, titulo = titulo,
                      ante = texto((slide$meta %||% list())$antetitulo), base = base, folio = length(doc) + 1L)$doc
 }
 

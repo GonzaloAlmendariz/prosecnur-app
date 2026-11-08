@@ -99,7 +99,9 @@
   if (!is.null(.lam_mixta_geo(stype)) && .lam_compositor_aplica_mixta(unname(rendered), slide, stype, unname(els), helpers$title_of_var)) {
     # P4: el panel que no cabe en piezas nativas va con su gráfico; sin su nota al pie, que la lámina ya escribe en la base.
     especs_c <- lapply(unname(rendered), .lam_espec_de)
-    caben <- .lam_mixta_caben(especs_c, .lam_mixta_geo(stype), unname(els), helpers$title_of_var)
+    tit_c <- slots$title %||% slide$title; if (inherits(tit_c, "ppt_element_text")) tit_c <- tit_c$text
+    tit_c <- if (is.character(tit_c) && length(tit_c) && !is.na(tit_c[1])) tit_c[1] else NULL
+    caben <- .lam_mixta_caben(especs_c, .lam_mixta_geo(stype), unname(els), helpers$title_of_var, titulo = tit_c)
     para_lamina <- rendered
     enc_c <- if (any(!caben)) .lam_mixta_encabezados(especs_c, unname(els), helpers$title_of_var)
     for (i in which(!caben)) {

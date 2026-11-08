@@ -66,7 +66,7 @@
 #' se queda con su respaldo). La barra de la lámina es la más delgada de sus paneles de barras: una sola, como Contabilidad.
 #' @return Lista con `geo` (la geometría a dibujar), `estilo` y `caben` (lógico por panel).
 #' @keywords internal
-.lam_perfil_plan <- function(especs, geo, preguntas, publicos, compartida) {
+.lam_perfil_plan <- function(especs, geo, preguntas, publicos, compartida, titulo = NULL, sub = NULL) {
   geos <- function(est, g) lapply(seq_along(especs), function(k) .lam_perfil_panel_geo(especs[[k]], g$paneles[[k]], preguntas[[k]],
                                                                                       publicos[[k]], !compartida[k], est))
   tipo <- function(x) if (isTRUE(x$cabe)) x$tipo %||% "nativo" else "respaldo"
@@ -78,15 +78,17 @@
     est <- .lam_perfil_estilo(s)
     gs <- geos(est, geo); g <- geo
     t0 <- vapply(gs, tipo, "")
-    if (any(t0 == "respaldo")) {
-      g2 <- .lam_perfil_reparto(geo, especs, preguntas, publicos, compartida, est)
-      if (!identical(g2, geo)) {
-        gs2 <- geos(est, g2); t2 <- vapply(gs2, tipo, "")
-        nuevos <- t0 == "respaldo" & t2 == "barras"
-        # Lo que no pasa a barras se queda como estaba: el panel nativo conserva su forma y el de respaldo, su respaldo.
-        if (any(nuevos) && all(t2[t0 != "respaldo"] == t0[t0 != "respaldo"])) {
-          gs2[t0 == "respaldo" & !nuevos] <- list(list(cabe = FALSE)); gs <- gs2; g <- g2
-        }
+    # Primero el reparto en el alto del recetario; si algún panel sigue sin caber, el bloque estirado al alto libre de la
+    # lámina (O4 ola 3, lamina_perfil_alto.R) y otra vez el reparto.
+    for (base in list(geo, .lam_perfil_estirar(geo, titulo, sub))) {
+      if (!any(vapply(gs, tipo, "") == "respaldo")) break
+      g2 <- .lam_perfil_reparto(base, especs, preguntas, publicos, compartida, est)
+      if (identical(g2, geo)) next
+      gs2 <- geos(est, g2); t2 <- vapply(gs2, tipo, "")
+      nuevos <- t0 == "respaldo" & t2 == "barras"
+      # Lo que no pasa a barras se queda como estaba: el panel nativo conserva su forma y el de respaldo, su respaldo.
+      if (sum(nuevos) > sum(vapply(gs, tipo, "") == "barras" & t0 == "respaldo") && all(t2[t0 != "respaldo"] == t0[t0 != "respaldo"])) {
+        gs2[t0 == "respaldo" & !nuevos] <- list(list(cabe = FALSE)); gs <- gs2; g <- g2
       }
     }
     ok <- vapply(gs, function(x) isTRUE(x$cabe), TRUE)

@@ -139,7 +139,11 @@ composicion <- list(unidad = "in",
     grosor_frac = 0.7,               # fracción de la fila que ocupa la barra
     aire_fila = 0.06,                # aire mínimo entre dos barras
     aire_titulo = 0.18,              # de la pregunta (o su público) a la primera barra
-    margen_inf = 0.03),              # bajo la última barra
+    margen_inf = 0.03,               # bajo la última barra
+    # O4 ola 3 (lamina_perfil_alto.R): si un panel no cabe, el bloque sube hasta aquí bajo un título corto, nunca sobre
+    # la cabecera, y deja este aire bajo el título.
+    zona_y0_min = 1.15,
+    aire_bajo_titulo = 0.28),
   pie = list(base_x = 0.35, base_y = 7.06, base_negrita = TRUE),   # «Base:» y folio; la base en negrita (Gonzalo, 2026-10-30)
   portada_plantilla = list(         # encargo y fecha de la portada sobre «Title Slide», como Conta (ítem 26; lamina_portada_plantilla.R)
     encargo = list(left = 3.30, top = 5.50, width = 6.75, height = 0.56), fecha = list(left = 9.17, top = 6.21, width = 3.06, height = 0.40),

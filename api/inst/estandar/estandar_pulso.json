@@ -308,7 +308,9 @@
         "grosor_frac": 0.7,
         "aire_fila": 0.06,
         "aire_titulo": 0.18,
-        "margen_inf": 0.03
+        "margen_inf": 0.03,
+        "zona_y0_min": 1.15,
+        "aire_bajo_titulo": 0.28
       },
       "pie": {
         "base_x": 0.35,
