@@ -260,6 +260,8 @@ graficar_barras_divergentes <- function(
     levels = unique(as.character(df$.cat[order(df$.orden_apilado)]))
   )
 
+  df_si <- df[df$.lado == "sin_inf", , drop = FALSE]   # U5: «Sin información» va en su columna, no apilada al acuerdo
+  df <- df[df$.lado != "sin_inf", , drop = FALSE]
   colores <- .graficos_mk_palette(cols_porcentaje, pal_user = colores_grupos)
   names(colores) <- cols_porcentaje
   if (length(sin_inf) && is.null(colores_grupos)) colores[sin_inf] <- .graficos_no_sustantivo_color()
@@ -274,6 +276,8 @@ graficar_barras_divergentes <- function(
     tope <- max(por_lado$x, na.rm = TRUE) * 1.08
   }
   if (!is.finite(tope) || tope <= 0) tope <- 100
+  tope_ejes <- tope   # las marcas del eje no siguen a la columna de «Sin información»
+  col_si <- .divergentes_sin_inf_columna(df_si, df, tope); df_si <- col_si$df; tope <- col_si$tope   # graficador_divergentes_sin_inf.R
 
   p <- ggplot2::ggplot(
     df,
@@ -282,6 +286,10 @@ graficar_barras_divergentes <- function(
   ) +
     ggplot2::geom_col(width = grosor_barras, orientation = "y") +
     ggplot2::geom_vline(xintercept = 0, colour = color_ejes, linewidth = 0.5)
+  if (nrow(df_si)) {
+    p <- p + ggplot2::geom_tile(data = df_si, ggplot2::aes(x = .data$.x, y = .data$.item, width = .data$.w, fill = .data$.cat),
+                                height = grosor_barras, inherit.aes = FALSE)
+  }
 
   if (isTRUE(mostrar_valores)) {
     dec <- suppressWarnings(as.integer(valores_decimales)[1])
@@ -294,6 +302,12 @@ graficar_barras_divergentes <- function(
     # en 12 % mientras 87,5 % subía a 88 % en el mismo gráfico.
     lab$.lab <- .pulso_fmt_pct_half_up(lab$.valor, dec, escala = 1)
     lab$.lab[lab$.valor < umbral_etiqueta_pct] <- ""
+    if (nrow(df_si)) {
+      lab_si <- df_si; lab_si$.lab <- .pulso_fmt_pct_half_up(lab_si$.valor, dec, escala = 1)
+      lab_si$.lab[lab_si$.valor < umbral_etiqueta_pct] <- ""
+      p <- p + ggplot2::geom_text(data = lab_si, ggplot2::aes(x = .data$.x, y = .data$.item, label = .data$.lab), inherit.aes = FALSE,
+                                  size = size_valores, colour = color_texto_barras, family = font_family, fontface = face("valores"))
+    }
     p <- p + ggplot2::geom_text(
       data = lab,
       ggplot2::aes(x = .data$.signo, label = .data$.lab,
@@ -334,6 +348,7 @@ graficar_barras_divergentes <- function(
     ) +
     ggplot2::scale_x_continuous(
       limits = c(-tope, tope),
+      breaks = function(l) { b <- pretty(c(-tope_ejes, tope_ejes)); b[abs(b) <= tope_ejes] },
       labels = function(x) paste0(.pulso_fmt_half_up(abs(x), 0), "%")
     ) +
     ggplot2::labs(
