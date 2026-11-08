@@ -195,6 +195,20 @@ piense por él», con «controles profesionales, controles segmentados, sliders�
   el de los idénticos.
 - El cierre elige su cifra viéndola, agrupada por lámina y ordenable por valor.
 
+### Excluir grupos del cruce (2026-11-08)
+
+En barras apiladas, agrupadas y multiapiladas con cruce, el analista puede excluir grupos (`excluir_grupos`,
+`api/R/graficos_excluir_grupos.R`). La exclusión es un filtro sobre la columna que dibuja la lámina (la recodificada
+si existe): el grupo sale de las barras y de la base, el denominador de cada grupo que queda no cambia y el pie dice
+«Excluye el grupo …». Los pesos no se recalibran, las categorías especiales que sólo tenía el grupo excluido se van con
+él y «Base:» cuenta casos. Un rótulo ambiguo, excluir todos los grupos o un cruce de otra base avisan y no excluyen.
+
+Significancia: la prueba compara sólo los grupos mostrados, así que la corrección por comparaciones múltiples baja y
+puede aparecer una marca que la tabla de cruces, con todos los grupos, no muestra. Mientras el motor de significancia
+no acepte el número de comparaciones del cruce completo, la nota de la lámina termina en «Diferencias entre los grupos
+mostrados.» y el analista recibe un aviso. La paridad estricta con la tabla queda como decisión pendiente del ADR 0128.
+La leyenda dentro de la imagen de respaldo todavía no lleva esa frase.
+
 ## Consecuencias
 
 - `p_panorama`, `p_dumbbell` (estilo `resumen`) y `p_barras_divergentes` (estilo `resumen`) ganan `regla`.
