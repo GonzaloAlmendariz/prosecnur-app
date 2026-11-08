@@ -227,8 +227,14 @@
   disp <- fin - (y0 + 0.3) - (if (isTRUE(leyenda)) 0.15 + 0.3 * n_ley else 0.35)
   fila <- min(c(0.85, 0.66, 0.5)[min(n, 3L)], disp / n); g <- max(.std_piso_panel_in(), round(fila * 0.58, 2))   # piso de panel: 0,66 cm, como Contabilidad
   altos <- vapply(rot, function(r) .lam_alto_txt(r, wlab, size_lab, TRUE), 0)
+  # Ola 3: `.lam_likert_panel` agranda la fila a `g + aire_cifra_chica` si alguna cifra chica sale encima de su barra; la
+  # compuerta lo cuenta, o el panel «cabía» y se dibujaba más alto que su caja (la última fila bajo la leyenda compartida).
+  wb <- w - wlab - 0.12 - ttb
+  chica <- fila - g < .std_geom("aire_cifra_chica") &&
+    any(vapply(filas, function(i) isTRUE(.lam_tiene_peq(.lam_escala_seg(espec, i), wb)), TRUE))
+  fila_dib <- if (chica) g + .std_geom("aire_cifra_chica") else fila
   list(tipo = "escala", filas = filas, y0 = y0, fila = fila, g = g, wlab = wlab, size_lab = size_lab, ttb = ttb,
-       cabe = fila >= 0.4 && all(altos <= fila + 0.05) && ley_cabe)   # la leyenda no sale del panel (O8b)
+       cabe = fila >= 0.4 && all(altos <= fila + 0.05) && ley_cabe && n * fila_dib <= disp + 1e-6)   # la leyenda no sale del panel (O8b)
 }
 
 #' Un panel de lámina mixta: pregunta, público y el gráfico que afirma su especificación
@@ -417,7 +423,8 @@
 #' («178 respuestas») se nombra cuando el panel es de un solo público. La base de la lámina reúne las notas
 #' al pie de los gráficos si la lámina no trae la suya.
 #' @keywords internal
-.lam_composicion_mixta <- function(doc, tipo, rendered, els, slide, titulo_de_var = NULL, base = NULL, solo_base_declarada = FALSE) {
+.lam_composicion_mixta <- function(doc, tipo, rendered, els, slide, titulo_de_var = NULL, base = NULL, solo_base_declarada = FALSE,
+                                   redibujar = NULL) {
   texto <- function(x) if (is.null(x) || !length(x) || is.na(x[1]) || !nzchar(trimws(as.character(x)[1]))) NULL else trimws(as.character(x)[1])
   slots <- slide$slots %||% list()
   base <- if (isTRUE(solo_base_declarada)) texto(base) else
@@ -469,10 +476,12 @@
     if (isTRUE(mp)) enc$publicos[[k]] <- publicos_todos[[k]] else if (identical(mp, FALSE)) enc$publicos[k] <- list(NULL)
   }
   titulo <- texto(slots$title %||% slide$title) %||% ""
-  caben <- .lam_mixta_caben(especs, .lam_mixta_geo(tipo), els, titulo_de_var, enc = enc, titulo = titulo)
-  respaldo <- lapply(seq_along(rendered), function(k) if (caben[k] || .lam_es_cifra(especs[[k]])) NULL else rendered[[k]])
-  .lam_laminas_mixta(doc, especs, tipo, enc$preguntas, enc$publicos, respaldo = respaldo, titulo = titulo,
-                     ante = texto((slide$meta %||% list())$antetitulo), base = base, folio = length(doc) + 1L)$doc
+  # O1 (ola 3): el respaldo se dibuja con su cajón real y su nota de diferencias va al pie (lamina_mixtas_respaldo_alto.R).
+  r <- .lam_mixta_respaldos(especs, tipo, rendered, els, titulo_de_var, enc, titulo, redibujar, base_lamina = base)
+  viejo <- options(prosecnur.lam_reserva_pie = r$reserva); on.exit(options(viejo), add = TRUE)
+  .lam_laminas_mixta(doc, especs, tipo, enc$preguntas, enc$publicos, respaldo = r$respaldo, titulo = titulo,
+                     ante = texto((slide$meta %||% list())$antetitulo), base = base, folio = length(doc) + 1L,
+                     por_lamina = if (is.null(r$nota)) function(d) d else function(d) .lam_nota_sig_dibujar(d, r$nota))$doc
 }
 
 #' ¿Todos los gráficos de la lámina son del mismo público con el mismo n? (dos o más, sin contar las cifras sueltas)

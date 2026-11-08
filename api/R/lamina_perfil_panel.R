@@ -95,6 +95,20 @@
     if (is.null(mejor) || sum(ok) > sum(mejor$caben)) mejor <- list(geo = g, estilo = est, caben = ok, geos = gs)
     if (all(ok)) break
   }
+  # O1 (ola 3): si aun así un panel queda de respaldo, las dos filas se reparten el alto libre de la lámina según lo que pide
+  # cada una, sin cambiar la forma de ningún panel nativo (lamina_mixtas_respaldo_alto.R).
+  if (!all(mejor$caben)) {
+    g3 <- .lam_perfil_reparto_respaldo(.lam_perfil_estirar(mejor$geo, titulo, sub), especs, preguntas, publicos, compartida,
+                                       mejor$estilo, mejor$caben)
+    if (!identical(g3, mejor$geo)) {
+      gs3 <- geos(mejor$estilo, g3)
+      t_ant <- vapply(mejor$geos, tipo, ""); t_nue <- vapply(gs3, tipo, "")
+      # Los nativos conservan su forma; un respaldo que con el alto nuevo cabe en piezas nativas pasa a nativo.
+      if (all(t_nue[t_ant != "respaldo"] == t_ant[t_ant != "respaldo"])) {
+        mejor$geo <- g3; mejor$geos <- gs3; mejor$caben <- vapply(gs3, function(x) isTRUE(x$cabe), TRUE)
+      }
+    }
+  }
   barras <- Filter(function(x) isTRUE(x$cabe) && identical(x$tipo, "barras") && isTRUE(x$perfil), mejor$geos)
   if (length(barras)) mejor$estilo$grosor_in <- min(vapply(barras, `[[`, 0, "g"))
   mejor$geos <- NULL

@@ -64,7 +64,12 @@
 #' @keywords internal
 .lam_grilla_mixta <- function(doc, tipo, rendered, els, slide, titulo_de_var, declarada, migrada, base_auto) {
   b <- .lam_grilla_base(declarada, els, rendered, migrada, base_auto)
-  .lam_composicion_mixta(doc, tipo, b$rendered %||% rendered, els, slide, titulo_de_var, base = b$base, solo_base_declarada = b$solo)
+  # O1 (ola 3): el respaldo se vuelve a dibujar con su cajón real, con el render del motor que llama (reporte_ppt_plan).
+  motor <- parent.frame()
+  render <- tryCatch(get(".render_element", envir = motor, inherits = TRUE), error = function(e) NULL)
+  inyectar <- tryCatch(get(".inject_title_override", envir = motor, inherits = TRUE), error = function(e) identity)
+  .lam_composicion_mixta(doc, tipo, b$rendered %||% rendered, els, slide, titulo_de_var, base = b$base, solo_base_declarada = b$solo,
+                         redibujar = .lam_mixta_redibujador(els, if (is.function(render)) render, inyectar))
 }
 
 #' ¿`p_slide_2_graficos` va en nativo? Por la lámina de paneles si son escalas; si no, por la mixta de dos gráficos

@@ -121,7 +121,10 @@
     # La base: la declarada manda; si no, una sola si los paneles la comparten y ninguna en el pie si difieren (lamina_grilla_nativa.R).
     decl <- slots$base %||% slots$footer; if (inherits(decl, "ppt_element_text")) decl <- decl$text
     b <- .lam_grilla_base(if (is.character(decl) && length(decl) && nzchar(trimws(decl[1]))) decl[1], unname(els), unname(rendered), FALSE, function(e) NULL)
-    nativo <- .lam_composicion_mixta(doc, stype, unname(para_lamina), unname(els), slide, titulo_de_var = helpers$title_of_var, base = b$base, solo_base_declarada = b$solo)
+    redib <- .lam_mixta_redibujador(unname(els), function(el, ancho_slot, alto_slot) helpers$render_element(el, ancho_slot = ancho_slot, alto_slot = alto_slot),
+                                    helpers$inject_title_override)
+    nativo <- .lam_composicion_mixta(doc, stype, unname(para_lamina), unname(els), slide, titulo_de_var = helpers$title_of_var, base = b$base,
+                                     solo_base_declarada = b$solo, redibujar = redib)
     if (!is.null(nativo)) return(list(doc = nativo, rendered = unname(rendered), elementos = els))
   }
   tipo_std <- if (identical(stype, "graficos_2_vertical")) "p_slide_2_graficos_vertical" else stype
