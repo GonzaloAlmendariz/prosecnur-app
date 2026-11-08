@@ -326,6 +326,7 @@ p_barras_divergentes <- function(vars = NULL,
   i_ref <- .escala_arm_referencia(firmas_tabs, firma_leyenda)
   filas <- vector("list", length(refs))
   names(filas) <- vapply(refs, function(r) as.character(r)[1], character(1))
+  bases <- vector("list", length(refs))   # base de cada fila: suma de pesos y casos (graficos_cifras_detalle.R)
 
   excluidas_ley <- character(0)
   # El cuerpo corre dentro de `.ola4_con_fila` (sus asignaciones quedan en este marco): un fallo nombra su fila.
@@ -470,6 +471,7 @@ p_barras_divergentes <- function(vars = NULL,
 
     n <- suppressWarnings(as.numeric(tab$n))
     total <- sum(n, na.rm = TRUE)
+    bases[[i]] <- c(n = total, n_casos = if ("n_casos" %in% names(tab)) sum(suppressWarnings(as.numeric(tab$n_casos)), na.rm = TRUE) else NA_real_)
     opciones_visibles <- unique(c(opciones_visibles, opts))
     # Dos especiales de una escala alineada caen en la misma columna: se suman.
     por_nivel <- tapply(n, factor(opts, levels = unique(opts)), sum, na.rm = TRUE)
@@ -488,6 +490,10 @@ p_barras_divergentes <- function(vars = NULL,
     out[[cols[j]]] <- vapply(filas, function(f) unname(f[niveles[j]] %||% 0), numeric(1))
   }
   out[is.na(out)] <- 0
+  # La base de cada pregunta (ponderada y en casos) viaja como atributo de la tabla, que sigue siendo una columna por
+  # nivel: `.espec_divergentes` la lee y el detalle de cifras la publica (graficos_cifras_detalle.R).
+  attr(out, "ola4_n_pond") <- vapply(bases, function(b) if (length(b)) unname(b[["n"]]) else NA_real_, numeric(1))
+  attr(out, "ola4_n_casos") <- vapply(bases, function(b) if (length(b)) unname(b[["n_casos"]]) else NA_real_, numeric(1))
 
   id_por_nivel <- stats::setNames(cols, niveles)
   ids_visibles <- function(x) {

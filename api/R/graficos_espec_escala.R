@@ -190,7 +190,10 @@ preparar_escala <- function(data, var_categoria, var_n, cols_porcentaje, etiquet
     box = box, box2 = box2,
     orden = list(criterio = if (por_box) "top_two_box" else "declarado", origen = origen, aplicado = aplicado,
                  invertir = invertir),
-    redondeo = list(metodo = metodo, decimales = dec)
+    redondeo = list(metodo = metodo, decimales = dec),
+    # La proporción exacta de cada celda sobre su fila (lo que se redondea): el detalle de cifras recalcula con ella la
+    # suma por cada método de redondeo (graficos_cifras_detalle.R). La lámina no la lee.
+    proporciones = .espec_escala_proporciones(prop, dimnames(unidades))
   )
   # ADR 0097: con una paleta del usuario la espec dice el color de cada rótulo; la dicotomía en que cae una escala de
   # dos categorías lo lee (sin ella sigue la dicotómica del recetario).
@@ -236,4 +239,13 @@ preparar_escala <- function(data, var_categoria, var_n, cols_porcentaje, etiquet
   con <- colSums(as.matrix(dibujar) & TRUE) > 0
   out <- leyenda[con[leyenda]]
   if (length(out)) out else leyenda
+}
+
+#' Proporción de cada celda sobre la suma de su fila (una fila sin respuestas queda en cero)
+#' @keywords internal
+.espec_escala_proporciones <- function(prop, nombres) {
+  s <- rowSums(prop)
+  out <- prop / ifelse(s > 0, s, 1)
+  out <- matrix(out, nrow = nrow(prop), dimnames = nombres)
+  out
 }

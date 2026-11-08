@@ -539,6 +539,8 @@ graficar_barras_agrupadas <- function(
 ) {
   # Base en casos de la pregunta (una serie): la lámina nativa nombra con ella al público de la base.
   n_base_casos_agr <- if (!is.null(var_n_casos) && var_n_casos %in% names(data)) unique(suppressWarnings(as.numeric(data[[var_n_casos]]))) else NULL
+  # Base ponderada de una serie, antes de que `var_n` pase a casos: el detalle de cifras la publica (graficos_cifras_detalle.R).
+  n_base_pond_agr <- if (!is.null(var_n) && var_n %in% names(data)) unique(suppressWarnings(as.numeric(data[[var_n]]))) else NULL
   var_n <- .graficos_col_casos(data, var_n, var_n_casos)
   cols_n <- .graficos_cols_casos(data, cols_n, cols_n_casos)
 
@@ -980,6 +982,7 @@ graficar_barras_agrupadas <- function(
   # Gonzalo (2026-10-09): «si vamos a usar barras agrupadas es mejor que por defecto vayan de 0 a 100%». La lámina
   # nativa escala a 100 % salvo que se pida el eje libre, como ya hacía el eje de este ggplot.
   if (!is.null(espec_agrupada)) { espec_agrupada$escala_completa <- !isTRUE(usar_eje_libre); espec_agrupada$marcas_eje <- isTRUE(marcas_eje) && !isTRUE(usar_eje_libre); espec_agrupada$colorear_por_opcion <- isTRUE(colorear_por_opcion); espec_agrupada$pista <- pista_barras }
+  if (!is.null(espec_agrupada)) espec_agrupada <- .espec_categorica_detalle(espec_agrupada, n_base_pond_agr, "estandar", 0L)
   n_categorias <- length(cat_lvls)
   canvas_min_filas_eff <- suppressWarnings(as.numeric(canvas_min_filas)[1])
   if (!is.finite(canvas_min_filas_eff) || is.na(canvas_min_filas_eff) || canvas_min_filas_eff < 1) {
@@ -1365,6 +1368,7 @@ graficar_barras_agrupadas <- function(
                             n_base_casos = if (length(n_base_casos_agr) == 1L) n_base_casos_agr, casos = mostrar_n_en_etiquetas, resaltar = resaltar_mayor, resaltar_opciones = resaltar_opciones, residuales_gris = isTRUE(residuales_gris)),
         error = function(e) espec_agrupada)
       if (!is.null(espec_agrupada)) { espec_agrupada$escala_completa <- !isTRUE(usar_eje_libre); espec_agrupada$marcas_eje <- isTRUE(marcas_eje) && !isTRUE(usar_eje_libre); espec_agrupada$colorear_por_opcion <- isTRUE(colorear_por_opcion); espec_agrupada$pista <- pista_barras }
+      if (!is.null(espec_agrupada)) espec_agrupada <- .espec_categorica_detalle(espec_agrupada, n_base_pond_agr, "estandar", dec)
     }
 
     umbral_posicion_eff <- umbral_posicion

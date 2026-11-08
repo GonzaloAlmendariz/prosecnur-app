@@ -7,12 +7,15 @@
 # una vez (el router) y aquí renderiza cada lámina con `.graficos_cifras_de_grafico()`, el mismo cálculo del pedido
 # suelto, de modo que una cifra del lote y la del pedido suelto no pueden discrepar.
 #
-#   laminas: [{id, slide: {graficador, args}}]   (también vale {id, graficador, args})
+#   laminas: [{id, slide: {graficador, args}, caja?}]   (también vale {id, graficador, args, caja?})
 #   -> list(ok, por_lamina = list(<id> = list(tipo, cifras, avisos) | list(tipo = "", cifras = [], avisos = [],
 #                                                                         error = list(code, message))))
 #
-# `por_lamina` sale en el orden del pedido. Dos láminas con el mismo graficador y los mismos args se renderizan una
-# vez. El error de una lámina va en su entrada con su código E_* (los de `.graficos_cifras_de_grafico`); un fallo no
+# Con `detalle = TRUE` cada entrada trae además `detalle` (graficos_cifras_detalle.R); un mismo lote puede llevar
+# variantes de args (con y sin una exclusión) para el antes y el después en un solo viaje.
+#
+# `por_lamina` sale en el orden del pedido. Dos láminas con el mismo graficador, los mismos args y la misma caja se
+# renderizan una vez. El error de una lámina va en su entrada con su código E_* (los de `.graficos_cifras_de_grafico`); un fallo no
 # previsto sale como E_INTERNAL con su `error_id`, sin el mensaje técnico. Sólo tumban el lote los defectos del pedido
 # entero (sin láminas, ids vacíos o repetidos, más láminas que el tope): E_CIFRAS_INVALIDO.
 
@@ -31,7 +34,8 @@
     it <- if (is.list(it)) it else list()
     id <- trimws(as.character(it$id %||% "")[1])
     slide <- if (is.list(it$slide)) it$slide else it
-    list(id = if (is.na(id)) "" else id, graficador = slide$graficador, args = slide$args %||% list())
+    list(id = if (is.na(id)) "" else id, graficador = slide$graficador, args = slide$args %||% list(),
+         caja = it$caja %||% slide$caja)
   })
   ids <- vapply(items, `[[`, "", "id")
   if (any(!nzchar(ids))) stop_api(400, "E_CIFRAS_INVALIDO", "Cada lámina del lote necesita su `id`.")
@@ -43,22 +47,30 @@
 
 #' La entrada de una lámina que falló: su código y su mensaje, sin cifras
 #' @keywords internal
-.cifras_lote_error <- function(code, message) {
-  list(tipo = "", cifras = list(), avisos = list(), error = list(code = code, message = message))
+.cifras_lote_error <- function(code, message, detalle = FALSE) {
+  out <- list(tipo = "", cifras = list(), avisos = list(), error = list(code = code, message = message))
+  if (isTRUE(detalle)) out$detalle <- NA
+  out
 }
 
 #' Las cifras de una lámina, con su fallo atrapado (nunca aborta el lote)
 #' @keywords internal
-.cifras_lote_una <- function(graficador, args, fuentes, presets) {
+.cifras_lote_una <- function(graficador, args, fuentes, presets, detalle = FALSE, caja = NULL) {
   tryCatch({
-    r <- .graficos_cifras_de_grafico(graficador, if (is.list(args)) args else list(), fuentes, presets)
-    list(tipo = r$tipo, cifras = r$cifras, avisos = r$avisos)
+    r <- if (isTRUE(detalle)) {
+      .graficos_cifras_de_grafico(graficador, if (is.list(args)) args else list(), fuentes, presets, detalle = TRUE, caja = caja)
+    } else {
+      .graficos_cifras_de_grafico(graficador, if (is.list(args)) args else list(), fuentes, presets)
+    }
+    out <- list(tipo = r$tipo, cifras = r$cifras, avisos = r$avisos)
+    if (isTRUE(detalle)) out$detalle <- r$detalle
+    out
   }, api_error = function(e) {
-    .cifras_lote_error(e$code, conditionMessage(e))
+    .cifras_lote_error(e$code, conditionMessage(e), detalle)
   }, error = function(e) {
     error_id <- .api_error_id()
     message(sprintf("[prosecnur-app] E_INTERNAL %s: %s", error_id, conditionMessage(e)))
-    .cifras_lote_error("E_INTERNAL", sprintf("Error interno del servidor (ref. %s).", error_id))
+    .cifras_lote_error("E_INTERNAL", sprintf("Error interno del servidor (ref. %s).", error_id), detalle)
   })
 }
 
@@ -66,16 +78,18 @@
 #'
 #' @param laminas Lista de `{id, slide: {graficador, args}}`, como la manda el editor.
 #' @param fuentes,presets Fuentes del estudio y presets efectivos, preparados una vez para todo el lote.
-#' @return `list(ok = TRUE, por_lamina = list(<id> = list(tipo, cifras, avisos, error?)))`, en el orden del pedido.
+#' @param detalle Si `TRUE`, cada entrada trae `detalle` (`.graficos_cifras_de_grafico(detalle = TRUE)`).
+#' @return `list(ok = TRUE, por_lamina = list(<id> = list(tipo, cifras, avisos, detalle?, error?)))`, en el orden del pedido.
 #' @keywords internal
-.graficos_cifras_lote <- function(laminas, fuentes, presets = NULL) {
+.graficos_cifras_lote <- function(laminas, fuentes, presets = NULL, detalle = FALSE) {
   items <- .cifras_lote_items(laminas)
   memo <- list()
   por_lamina <- list()
   for (it in items) {
     llave <- paste0(as.character(it$graficador %||% "")[1], "|",
-                    jsonlite::toJSON(it$args, auto_unbox = TRUE, null = "null", digits = NA))
-    if (is.null(memo[[llave]])) memo[[llave]] <- .cifras_lote_una(it$graficador, it$args, fuentes, presets)
+                    jsonlite::toJSON(it$args, auto_unbox = TRUE, null = "null", digits = NA), "|",
+                    if (isTRUE(detalle)) jsonlite::toJSON(it$caja, null = "null") else "")
+    if (is.null(memo[[llave]])) memo[[llave]] <- .cifras_lote_una(it$graficador, it$args, fuentes, presets, detalle, it$caja)
     por_lamina[[it$id]] <- memo[[llave]]
   }
   list(ok = TRUE, por_lamina = por_lamina)

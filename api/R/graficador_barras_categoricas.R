@@ -448,6 +448,8 @@ graficar_barras_categoricas <- function(
   ), error = function(e) { message("[espec categorica] ", conditionMessage(e)); NULL })
   # La nota del gráfico («Base: 176 respuestas») vivía sólo en el caption del ggplot; la lámina nativa la necesita.
   if (!is.null(espec_categorica)) { espec_categorica$nota <- label_note; espec_categorica$pista <- pista_barras }
+  # El redondeo de las cifras, para el detalle de cifras (graficos_cifras_detalle.R); la lámina no lo lee.
+  if (!is.null(espec_categorica)) espec_categorica <- .espec_categorica_detalle(espec_categorica, NULL, metodo_redondeo, decimales)
 
   if (identical(orientacion, "horizontal")) {
     p <- .graficar_categoricas_horizontal(df, paleta_propia = paleta_propia, ancho = ancho, alto = alto,

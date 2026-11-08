@@ -113,6 +113,14 @@
        unidades = U[o, , drop = FALSE], cifras = cifras[o, , drop = FALSE],
        total_neg = tn[o], total_pos = tp[o], cifras_neg = .pulso_fmt_pct_unidades(tn[o], dec), cifras_pos = .pulso_fmt_pct_unidades(tp[o], dec),
        decimales = dec)
+  # Lo que el detalle de cifras necesita y la lámina no rotula (graficos_cifras_detalle.R): la proporción exacta de cada
+  # celda (para la suma con cada método de redondeo) y la base de cada fila, ponderada y en casos, si la tabla la trae.
+  espec$proporciones <- P[o, , drop = FALSE]
+  base_attr <- function(nm) {
+    v <- attr(data, nm, exact = TRUE)
+    if (length(v) == nrow(data)) suppressWarnings(as.numeric(v))[o] else NULL
+  }
+  espec$n <- base_attr("ola4_n_pond"); espec$n_casos <- base_attr("ola4_n_casos")
   if (!is.null(por_rotulo)) espec$colores <- por_rotulo
   espec$estilo <- if (identical(estilo, "resumen")) "resumen" else "recetario"
   espec

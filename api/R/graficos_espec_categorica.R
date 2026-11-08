@@ -66,6 +66,19 @@ preparar_categorica <- function(rotulos, valores, cifras, n = NULL, residuales_a
        residuales_gris = isTRUE(residuales_gris))
 }
 
+#' Lo que el detalle de cifras lee de una categórica y la lámina no (graficos_cifras_detalle.R)
+#'
+#' `redondeo` (método y decimales de las cifras) y, si el graficador la conoce, `n_base_pond`: la base ponderada de la serie
+#' (las agrupadas cambian `n` por casos antes de rotular, así que no se puede deducir de `n / valores`).
+#' @keywords internal
+.espec_categorica_detalle <- function(espec, n_base = NULL, metodo = "estandar", decimales = 0L) {
+  dec <- suppressWarnings(as.integer(decimales)[1]); if (!is.finite(dec) || dec < 0L) dec <- 0L
+  espec$redondeo <- list(metodo = .pulso_pct_metodo(metodo), decimales = dec)
+  nb <- suppressWarnings(as.numeric(n_base))
+  if (length(nb) == 1L && is.finite(nb)) espec$n_base_pond <- nb
+  espec
+}
+
 # ---- casos sin ponderar (contrato base-sin-ponderar F6, I1) ------------------
 #
 # Con ponderación, `n` es la suma de pesos: sirve para el porcentaje y no para decir cuántos respondieron. Toda cifra
