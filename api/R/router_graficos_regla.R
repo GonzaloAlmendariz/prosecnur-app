@@ -23,6 +23,9 @@
 #     -> {ok, tipo, cifras: [{clave, rotulo, texto, valor, unidad}], avisos}
 #   Las cifras con clave estable de un gráfico de resumen (graficos_cifras_clave.R), renderizado con el motor del export y
 #   los presets de la vista previa: el cierre con hallazgos las ofrece para elegir.
+#   Con `laminas` en vez de `graficador` es un lote (graficos_cifras_lote.R): fuentes y presets se preparan una vez.
+#   POST /api/graficos/resumenes/cifras   {laminas: [{id, slide: {graficador, args}}], scope?}
+#     -> {ok, por_lamina: {<id>: {tipo, cifras, avisos, error?: {code, message}}}}   el error de una lámina va en su entrada
 #
 #   POST /api/graficos/resumenes/emparejado   {bases: [A, B], vars?, scope?}
 #     -> {ok, bases, preguntas: [{tema, base, var, etiqueta, estado, par?, sugerencias}]}
@@ -51,8 +54,9 @@ mount_graficos_regla <- function(pr) {
       fuentes <- .graficos_preview_fuentes(sid, parsed)
       comun <- .graficos_preview_comun(sid, parsed, fuentes)
       presets <- if (length(comun$presets_json)) .build_presets(comun$presets_json) else NULL
-      .graficos_cifras_de_grafico(parsed[["graficador"]], parsed[["args"]] %||% list(),
-                                  list(data_sources = comun$data_sources, inst_sources = comun$inst_sources), presets)
+      fuentes_motor <- list(data_sources = comun$data_sources, inst_sources = comun$inst_sources)
+      if (!is.null(parsed[["laminas"]])) return(.graficos_cifras_lote(parsed[["laminas"]], fuentes_motor, presets))
+      .graficos_cifras_de_grafico(parsed[["graficador"]], parsed[["args"]] %||% list(), fuentes_motor, presets)
     })) |>
     plumber::pr_post("/api/graficos/resumenes/emparejado", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
