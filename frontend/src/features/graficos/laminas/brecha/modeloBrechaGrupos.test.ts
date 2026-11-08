@@ -3,6 +3,7 @@ import type { VarWithSource } from "../../useVariables";
 import {
   aEntreBases, aEntreGrupos, baseDelCruce, conCorte, conCruce, conGrupo, conPreguntas, corteDe, esEntreGrupos, faltaEnBrecha, FALTAN_GRUPOS,
   gruposDe, gruposPorDefecto, maxGrupos, mismaBase, opcionesDe, opcionesDeGrupo, preguntasDe,
+  brechaSinPreguntas, comodinDelCruce, conComodinDeLaRegla, preguntasPorRegla, soloComodinDelCruce,
 } from "./modeloBrechaGrupos";
 
 const v = (source: string, name: string, choices: [string, string][] = []): VarWithSource =>
@@ -114,10 +115,50 @@ describe("las aperturas del resumen con `base$*` (Q4-3 y Q4-4 de la prueba con A
     expect(gruposPorDefecto(opciones, null)).toEqual([]);
   });
 
-  it("con regla y sin preguntas declaradas no pide preguntas: el motor toma las de la base del cruce", () => {
-    const sinVars = { ...aperturas, vars: undefined, cruce: "docentes$p3", grupos: ["1", "2"] };
-    expect(faltaEnBrecha(sinVars)).toBeNull();
-    expect(faltaEnBrecha({ ...sinVars, regla: undefined })).toMatch(/al menos una pregunta/);
-    expect(faltaEnBrecha({ ...sinVars, grupos: [] })).toBe(FALTAN_GRUPOS);
+  it("con regla y sin preguntas declaradas no pide preguntas: `vars` lleva el `base$*` de la base del cruce", () => {
+    const conComodin = { ...aperturas, cruce: "docentes$p3", grupos: ["1", "2"] };
+    expect(preguntasPorRegla(conComodin)).toBe(true);
+    expect(faltaEnBrecha(conComodin)).toBeNull();
+    expect(faltaEnBrecha({ ...conComodin, grupos: [] })).toBe(FALTAN_GRUPOS);
+    // R8-1: sin `vars` el router la toma como borrador y la lámina sale vacía; se dice, no se calla.
+    const sinVars = { ...conComodin, vars: [] };
+    expect(preguntasPorRegla(sinVars)).toBe(false);
+    expect(brechaSinPreguntas(sinVars)).toBe(true);
+    expect(faltaEnBrecha(sinVars)).toMatch(/al menos una pregunta/);
+    expect(brechaSinPreguntas(conComodin)).toBe(false);
+  });
+});
+
+describe("R8-1: la regla elige sobre el `base$*` del cruce, que se guarda en `vars`", () => {
+  const resumen = { estilo: "resumen", regla: { tipo: "mayor_diferencia", n: 10 }, corte: "4,5", grupos: ["1", "2"] };
+
+  it("elegir el cruce con regla y sin preguntas escribe el `base$*` de su base", () => {
+    expect(comodinDelCruce(vars, "docentes$p3")).toBe("docentes$*");
+    expect(comodinDelCruce(vars, "")).toBe("");
+    const args = { ...resumen, cruce: "", vars: [] };
+    expect(conComodinDeLaRegla(vars, "p_dumbbell", args, { cruce: "docentes$p3" })).toEqual({ cruce: "docentes$p3", vars: ["docentes$*"] });
+  });
+
+  it("encender la regla después del cruce también lo escribe; quitar la última pregunta vuelve al `base$*`", () => {
+    const args = { estilo: "resumen", cruce: "docentes$p3", grupos: ["1", "2"], vars: [] };
+    expect(conComodinDeLaRegla(vars, "p_dumbbell", args, { regla: { tipo: "comunes" } })).toEqual({ regla: { tipo: "comunes" }, vars: ["docentes$*"] });
+    const conPregunta = { ...resumen, cruce: "docentes$p3", vars: ["docentes$p12_1"] };
+    expect(conComodinDeLaRegla(vars, "p_dumbbell", conPregunta, { vars: [] })).toEqual({ vars: ["docentes$*"] });
+  });
+
+  it("no toca preguntas declaradas, listas de públicos, el recetario, la forma entre bases ni otro graficador", () => {
+    const base = { ...resumen, cruce: "docentes$p3" };
+    expect(conComodinDeLaRegla(vars, "p_dumbbell", { ...base, vars: ["docentes$p12_1"] }, { corte: "5" })).toEqual({ corte: "5" });
+    expect(conComodinDeLaRegla(vars, "p_dumbbell", { ...base, vars: ["docentes$*", "estudiantes$*"] }, { corte: "5" })).toEqual({ corte: "5" });
+    expect(conComodinDeLaRegla(vars, "p_dumbbell", { ...base, estilo: "recetario", vars: [] }, { corte: "5" })).toEqual({ corte: "5" });
+    expect(conComodinDeLaRegla(vars, "p_dumbbell", { ...base, vars: [] }, aEntreBases())).toEqual(aEntreBases());
+    expect(conComodinDeLaRegla(vars, "p_panorama", { ...base, vars: [] }, { corte: "5" })).toEqual({ corte: "5" });
+  });
+
+  it("si el cruce pasa a otra base, el `base$*` la sigue", () => {
+    const otras = [...vars, v("estudiantes", "sexo", [["1", "H"], ["2", "M"]])];
+    const args = { ...resumen, cruce: "docentes$p3", vars: ["docentes$*"] };
+    expect(soloComodinDelCruce(otras, args)).toBe(true);
+    expect(conComodinDeLaRegla(otras, "p_dumbbell", args, { cruce: "estudiantes$sexo", grupos: [] })).toEqual({ cruce: "estudiantes$sexo", grupos: [], vars: ["estudiantes$*"] });
   });
 });

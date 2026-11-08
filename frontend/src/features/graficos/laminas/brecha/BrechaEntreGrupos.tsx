@@ -17,8 +17,9 @@ import { PublicosGrafico } from "../publicosGrafico/PublicosGrafico";
 import { usaPublicos } from "../publicosGrafico/modeloPublicos";
 import { cargarCategorias } from "../useCategoriasGrafico";
 import {
-  aEntreBases, aEntreGrupos, baseDelCruce, conCorte, conCruce, conGrupo, conPreguntas, corteDe, esEntreGrupos, faltaEnBrecha,
-  gruposDe, gruposPorDefecto, maxGrupos, mismaBase, opcionesDe, opcionesDeGrupo, preguntasDe, preguntasPorRegla,
+  aEntreBases, aEntreGrupos, baseDelCruce, brechaSinPreguntas, comodinDelCruce, conCorte, conCruce, conGrupo, conPreguntas, corteDe,
+  esEntreGrupos, faltaEnBrecha, gruposDe, gruposPorDefecto, maxGrupos, mismaBase, opcionesDe, opcionesDeGrupo, preguntasDeclaradas,
+  preguntasPorRegla, soloComodinDelCruce,
 } from "./modeloBrechaGrupos";
 import "./brechaEntreGrupos.css";
 import { AyudaGlobo } from "../AyudaGlobo";
@@ -34,7 +35,8 @@ export function BrechaEntreGrupos({ args, onCambio }: Props) {
   const { variables } = useVariables();
   const grupos = esEntreGrupos(args);
   const cruce = typeof args.cruce === "string" ? args.cruce : "";
-  const preguntas = preguntasDe(args);
+  // Las elegidas una por una; el `base$*` del cruce no es una fila (R8-1).
+  const preguntas = preguntasDeclaradas(args);
   const opcionesCruce = cruce ? opcionesDe(variables, cruce) : [];
   const casillas = gruposDe(args);
   const varios = maxGrupos(args) > 2;
@@ -45,9 +47,10 @@ export function BrechaEntreGrupos({ args, onCambio }: Props) {
   // público lleva el suyo con la propuesta de Cálculo de muestra o Monitoreo (PadronPublicos).
   const resumen = args.estilo === "resumen";
   const scope = useGraficosReportScope(useLocation().search);
-  const porPublicos = grupos && usaPublicos(args.vars);
+  const porPublicos = grupos && usaPublicos(args.vars) && !soloComodinDelCruce(variables, args);
   const deLaRegla = grupos && !!cruce && preguntasPorRegla(args);
   const baseCruce = cruce ? baseDelCruce(variables, cruce) : "";
+  const sinPreguntas = grupos && brechaSinPreguntas(args) && !!baseCruce;
   // Q4-4: en el resumen, al elegir la pregunta que divide arrancan encendidos hasta cuatro grupos con respuestas. Se
   // espera su conteo y se aplica todo en un solo cambio (un Ctrl+Z); una respuesta vieja de otro cruce no pisa la última.
   const pedido = useRef(0);
@@ -137,10 +140,18 @@ export function BrechaEntreGrupos({ args, onCambio }: Props) {
                 <VariablePicker value={null} allowEmpty filter={esSelectOne} placeholder="Agregar pregunta…"
                                 onChange={(v) => v && onCambio(conPreguntas(variables, [...preguntas, v]))} />
               </div>
+              {sinPreguntas && (
+                <p className="pulso-f6-dato-ayuda is-aviso" role="status">
+                  {"La lámina sale vacía: no tiene preguntas. "}
+                  <button type="button" className="pulso-f6-texto-boton" onClick={() => onCambio({ vars: [comodinDelCruce(variables, cruce)] })}>
+                    {`Usar las de escala de ${publicoEnFrase(baseCruce)}`}
+                  </button>
+                </p>
+              )}
               {deLaRegla && baseCruce && (
                 <span className="pulso-f6-dato-ayuda">{`Todas las de escala de ${publicoEnFrase(baseCruce)}; la regla elige cuáles salen.`}</span>
               )}
-              {!preguntas.length && !deLaRegla && <span className="pulso-f6-dato-ayuda"><Plus size={12} aria-hidden="true" /> Preguntas con la misma escala, de la base del cruce.</span>}
+              {!preguntas.length && !deLaRegla && !sinPreguntas && <span className="pulso-f6-dato-ayuda"><Plus size={12} aria-hidden="true" /> Preguntas con la misma escala, de la base del cruce.</span>}
             </div>
           )}
           {falta && <p className="pulso-f6-dato-ayuda is-aviso" role="status">{falta}</p>}

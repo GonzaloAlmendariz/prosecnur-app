@@ -97,6 +97,7 @@ import { argDeCruce, valorDeCruce } from "./diferencias/modeloDiferencias";
 import { interruptorAplica, interruptorGuardado, parcheInterruptor } from "./diferencias/interruptorDelGrafico";
 import { revelarYEnfocar } from "../revelarFila";
 import { ReglaPreguntas } from "./reglaPreguntas/ReglaPreguntas";
+import { conComodinDeLaRegla } from "./brecha/modeloBrechaGrupos";
 import { PadronPublicos } from "./gruposPadron/PadronPublicos";
 import { llevaPadronPublicos } from "./gruposPadron/modeloPadron";
 import type { ReglaPreguntas as Regla } from "../../../api/graficosRegla";
@@ -145,7 +146,8 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
     .filter((c) => !(conOrden && ORDEN_ANTERIOR.has(c.arg.name)) && !delEditor(c.arg.name));
   const scope = useGraficosReportScope(useLocation().search);
   const baseActiva = useSession().state?.active_base;
-  const set = (patch: Record<string, unknown>) => updateSlotArgs(slideId, slot, patch);
+  // R8-1: en la brecha del resumen con regla, `vars` lleva el `base$*` del cruce (si no, el router la dibuja vacía).
+  const set = (patch: Record<string, unknown>) => updateSlotArgs(slideId, slot, conComodinDeLaRegla(variables, valor.graficador, args, patch));
   const presets = usePlanStore((s) => s.presets) as Record<string, Record<string, unknown>>;
   const slidesPlan = usePlanStore((s) => s.plan.slides);
   const aplicarAlTipo = usePlanStore((s) => s.aplicarAjusteAlTipo);

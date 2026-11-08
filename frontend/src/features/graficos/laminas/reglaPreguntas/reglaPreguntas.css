@@ -57,6 +57,9 @@
   font-size: var(--pulso-type-body-size);
 }
 
+/* R8-1: la brecha sin `vars` sale vacía; el conteo no la promete. */
+.pulso-f6-regla-conteo.is-vacia { color: var(--pulso-warn-fg); }
+
 .pulso-f6-regla-cifra-grande {
   color: var(--pulso-text);
   font-size: var(--pulso-type-title-size);

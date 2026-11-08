@@ -16,6 +16,7 @@ import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { ErrorBlock } from "../../../../components/States";
 import { AyudaGlobo } from "../AyudaGlobo";
+import { brechaSinPreguntas } from "../brecha/modeloBrechaGrupos";
 import { CorteRegla } from "./CorteRegla";
 import { LimiteLamina } from "./LimiteLamina";
 import { ListaCandidatas, type Resaltada } from "./ListaCandidatas";
@@ -80,6 +81,8 @@ export function ReglaPreguntas({ rotulo, ayuda, graficador, args, valor, scope, 
   const limite = estadoLimite(conteo, conteo?.tope_filas ?? topes.current[graficador], seleccionadas.length);
   const etiquetas = new Map((conteo?.candidatas ?? []).map((c) => [c.tema, c.etiqueta]));
   const proyectada = !!vista?.proyectada;
+  // R8-1: la brecha guardada sin `vars` sale vacía aunque la regla cuente; no se promete «13 de 73 en la lámina».
+  const saleVacia = graficador === "p_dumbbell" && brechaSinPreguntas(args);
 
   // La cifra de cada tipo, para devolverla al volver a él (R3). Un ref y no estado: nada se pinta con ella.
   const cifras = useRef<CifrasRecordadas>({});
@@ -125,10 +128,14 @@ export function ReglaPreguntas({ rotulo, ayuda, graficador, args, valor, scope, 
 
       {regla && reglaViva && !error && conteo && vista && (
         <div className="pulso-f6-regla-resultado" aria-busy={cargando || undefined}>
-          <p className="pulso-f6-regla-conteo" role="status">
-            <strong className="pulso-f6-regla-cifra-grande">{textoVisto}</strong>
-            <span> en la lámina</span>
-          </p>
+          {saleVacia ? (
+            <p className="pulso-f6-regla-conteo is-vacia" role="status">La lámina sale vacía: faltan sus preguntas.</p>
+          ) : (
+            <p className="pulso-f6-regla-conteo" role="status">
+              <strong className="pulso-f6-regla-cifra-grande">{textoVisto}</strong>
+              <span> en la lámina</span>
+            </p>
+          )}
           {conteo.texto_regla && <p className={`pulso-f6-regla-texto${proyectada ? " is-desfasado" : ""}`}>{conteo.texto_regla}</p>}
           {limite && !cifra && <LimiteLamina limite={limite} />}
           {avisosFueraDelLimite(conteo.avisos, limite).map((a) => <span key={a} className="pulso-f6-dato-ayuda" role="note">{a}</span>)}

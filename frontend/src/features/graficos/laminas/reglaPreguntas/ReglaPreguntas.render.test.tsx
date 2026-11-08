@@ -156,4 +156,15 @@ describe("ReglaPreguntas", () => {
     expect(html).not.toMatch(/\d+ de \d+/);
     expect(html).not.toContain("Sin dato");
   });
+
+  it("R8-1: la brecha guardada sin preguntas no promete «N de M en la lámina»", () => {
+    estado.actual = CONTEO;
+    const regla = { tipo: "mayor_diferencia", n: 2 };
+    const html = renderToStaticMarkup(
+      <ReglaPreguntas rotulo="Regla de preguntas" ayuda="" graficador="p_dumbbell"
+        args={{ estilo: "resumen", regla, cruce: "docentes$p6", grupos: ["1", "2"], vars: [] }} valor={regla} scope="active" onCambio={() => undefined} />,
+    );
+    expect(html).toContain("La lámina sale vacía: faltan sus preguntas.");
+    expect(html).not.toContain("</strong><span> en la lámina");
+  });
 });

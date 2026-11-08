@@ -4,6 +4,7 @@
 
 import type { VarWithSource } from "../../useVariables";
 import { parseVarRef } from "../../useVariables";
+import { esComodin, usaPublicos } from "../publicosGrafico/modeloPublicos";
 
 type Args = Readonly<Record<string, unknown>>;
 export type Opcion = { codigo: string; etiqueta: string };
@@ -116,9 +117,63 @@ export function baseDelCruce(variables: readonly VarWithSource[], cruce: string)
   return parseVarRef(cruce).source || variableDe(variables, cruce)?.source || "";
 }
 
-/** ¿Las preguntas salen de la regla sin declararlas? El resumen con regla toma `base$*` de la base del cruce (motor). */
+/** Las preguntas elegidas una por una: las de `vars` que no son `base$*`. */
+export function preguntasDeclaradas(args: Args): string[] {
+  return preguntasDe(args).filter((r) => !esComodin(r));
+}
+
+/** `base$*` de la base del cruce (todas sus preguntas de escala); "" sin cruce. */
+export function comodinDelCruce(variables: readonly VarWithSource[], cruce: string): string {
+  const base = cruce ? baseDelCruce(variables, cruce) : "";
+  return base ? `${base}$*` : "";
+}
+
+const conRegla = (args: Args): boolean => !!args.regla && typeof args.regla === "object";
+
+/**
+ * ¿Las preguntas salen de la regla sin declararlas? En el resumen con regla, `vars` lleva `base$*` de la base del cruce
+ * y la regla elige cuáles salen (R8-1: con `vars: []` el router lo toma como borrador y la lámina salía vacía).
+ */
 export function preguntasPorRegla(args: Args): boolean {
-  return args.estilo === "resumen" && !!args.regla && typeof args.regla === "object" && !preguntasDe(args).length;
+  return args.estilo === "resumen" && conRegla(args) && !preguntasDeclaradas(args).length && usaPublicos(args.vars);
+}
+
+/**
+ * ¿`vars` es sólo el `base$*` de la base del cruce? Entonces la tarjeta muestra «Preguntas» con la nota de la regla, no
+ * la lista de públicos (que es para comparar públicos distintos).
+ */
+export function soloComodinDelCruce(variables: readonly VarWithSource[], args: Args): boolean {
+  const comodin = comodinDelCruce(variables, texto(args.cruce));
+  const v = Array.isArray(args.vars) ? args.vars.map(texto).filter(Boolean) : [];
+  return !!comodin && v.length === 1 && v[0] === comodin;
+}
+
+/**
+ * La lámina guardada antes de R8-1 (resumen con regla y cruce, `vars` vacío): sale vacía aunque la regla cuente. La
+ * tarjeta lo dice y ofrece tomar las de escala de la base del cruce.
+ */
+export function brechaSinPreguntas(args: Args): boolean {
+  return esEntreGrupos(args) && args.estilo === "resumen" && conRegla(args) && !!texto(args.cruce) && !preguntasDe(args).length;
+}
+
+/**
+ * R8-1: el cambio que se guarda en una brecha entre grupos del resumen. Con regla, cruce y sin preguntas declaradas,
+ * `vars` lleva el `base$*` de la base del cruce (y lo cambia si el cruce pasa a otra base): la regla cuenta sobre esas
+ * preguntas y el router las dibuja. Cualquier otro caso pasa el cambio tal cual.
+ */
+export function conComodinDeLaRegla(
+  variables: readonly VarWithSource[], graficador: string, args: Args, patch: Record<string, unknown>,
+): Record<string, unknown> {
+  if (graficador !== "p_dumbbell") return patch;
+  const junto: Args = { ...args, ...patch };
+  if (!esEntreGrupos(junto) || junto.estilo !== "resumen" || !conRegla(junto)) return patch;
+  const comodin = comodinDelCruce(variables, texto(junto.cruce));
+  if (!comodin || preguntasDeclaradas(junto).length) return patch;
+  const v = Array.isArray(junto.vars) ? junto.vars.map(texto).filter(Boolean) : [];
+  if (v.length === 1 && v[0] === comodin) return patch;
+  // Sólo se reemplaza lo vacío o un `base$*` de otra base (el cruce cambió): una lista de públicos se respeta.
+  if (v.length > 1) return patch;
+  return { ...patch, vars: [comodin] };
 }
 
 /**
@@ -165,7 +220,7 @@ export function faltaEnBrecha(args: Args): string | null {
     return "Recetario compara dos grupos: quita los demás o elige «Contraste de públicos» en Estilo.";
   }
   if (!a || !b) return tope > MAX_GRUPOS_RECETARIO ? FALTAN_GRUPOS : "Elige los dos grupos que se comparan.";
-  if (!preguntasDe(args).length && !preguntasPorRegla(args)) return "Agrega al menos una pregunta.";
+  if (!preguntasDeclaradas(args).length && !usaPublicos(args.vars)) return "Agrega al menos una pregunta.";
   if (!corteDe(args).length) return "Marca qué respuestas suman el indicador.";
   return null;
 }
