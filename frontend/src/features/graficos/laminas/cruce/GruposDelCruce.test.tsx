@@ -9,6 +9,8 @@ import { detalle, fila } from "../cifrasInspector/fixturaDetalle.test-utils";
 
 const lote = vi.hoisted(() => vi.fn());
 vi.mock("../../../../api/graficosCifras", async (original) => ({ ...(await original<object>()), apiGraficosCifrasDetalleLote: lote }));
+// R7-16: la lista ORIGINAL de la pregunta numera Selva como 2; el recodificado que agrupa el render la renumera. Si el
+// componente leyera esta lista, mandaría «2» y excluiría otro grupo.
 vi.mock("../useCategoriasGrafico", () => ({ useCategoriasGrafico: () => ({ fase: "lista", reintentar: () => undefined, datos: { categorias: [
   { codigo: "1", etiqueta: "Lima", n: 300, pct: 0, residual: false }, { codigo: "2", etiqueta: "Selva", n: 12, pct: 0, residual: false },
 ] } }) }));
@@ -16,7 +18,7 @@ vi.mock("../useCategoriasGrafico", () => ({ useCategoriasGrafico: () => ({ fase:
 import { olvidarDetalles } from "../cifrasInspector/cacheDetalle";
 import { ESPERA_DETALLE_MS } from "../cifrasInspector/useDetalleCifras";
 import { GruposDelCruce } from "./GruposDelCruce";
-import { gruposDe } from "./modeloGrupos";
+import { conGrupoExcluido, gruposDe } from "./modeloGrupos";
 
 const CATS = [{ clave: "Sí", valor: 60 }, { clave: "No", valor: 40 }];
 const POR_GRUPO = detalle(CATS, { forma: "escala", filas: [fila("Total", CATS, { esTotal: true }, 312), fila("Lima", CATS, {}, 300), fila("Selva", CATS, {}, 12)] });
@@ -26,7 +28,7 @@ let host: HTMLDivElement;
 let root: Root;
 const excluidos: string[] = [];
 const pintar = (conExcluir: boolean) => act(() => root.render(
-  <GruposDelCruce graficador="p_barras_apiladas" scope="active" args={{ var: "p1", cruces: "region" }} variableCruce="b$region"
+  <GruposDelCruce graficador="p_barras_apiladas" scope="active" args={{ var: "p1", cruces: "region" }}
     onExcluir={conExcluir ? (c) => { excluidos.push(c); } : undefined} />,
 ));
 const esperar = async () => {
@@ -57,7 +59,18 @@ describe("grupos del cruce", () => {
     const fichas = [...host.querySelectorAll(".pulso-f6-cat")].map((e) => e.textContent);
     expect(fichas).toEqual(["Liman=300", "Selvan=12pocos casos"]);
     act(() => { host.querySelector<HTMLButtonElement>('[data-qa="grupo-pocos"]')!.click(); });
-    expect(excluidos).toEqual(["2"]);
+    // R7-16: el rótulo del grupo que se ve, no el código de la lista original.
+    expect(excluidos).toEqual(["Selva"]);
+  });
+  it("R7-16: con un recodificado que renumera, se manda el rótulo del grupo mostrado y se suma sin partir por comas", async () => {
+    respuesta = detalle(CATS, { forma: "escala", filas: [fila("Total", CATS, { esTotal: true }, 312), fila("1", CATS, { rotulo: "Lima" }, 300), fila("7", CATS, { rotulo: "Selva, Amazonía" }, 12)] });
+    pintar(true);
+    await esperar();
+    act(() => { host.querySelector<HTMLButtonElement>('[data-qa="grupo-pocos"]')!.click(); });
+    expect(excluidos).toEqual(["Selva, Amazonía"]);
+    expect(conGrupoExcluido(["3"], "Selva, Amazonía")).toEqual(["3", "Selva, Amazonía"]);
+    expect(conGrupoExcluido(["Selva, Amazonía"], "Selva, Amazonía")).toEqual(["Selva, Amazonía"]);
+    expect(conGrupoExcluido(undefined, "Selva")).toEqual(["Selva"]);
   });
   it("sin Excluir grupos en el gráfico, las fichas sólo informan", async () => {
     pintar(false);

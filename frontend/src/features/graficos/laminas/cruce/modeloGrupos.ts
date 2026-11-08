@@ -23,10 +23,10 @@ export function gruposDe(det: DetalleCifras | null): Grupo[] {
   });
 }
 
-const norm = (s: string) => s.trim().toLocaleLowerCase("es");
-
-/** El código del grupo en la pregunta del cruce, por su etiqueta; null si no se encuentra. */
-export function codigoDeGrupo(rotulo: string, categorias: readonly { codigo: string; etiqueta: string }[]): string | null {
-  const c = categorias.find((x) => norm(x.etiqueta) === norm(rotulo) || norm(x.codigo) === norm(rotulo));
-  return c?.codigo ?? null;
+/** R7-16: `excluir_grupos` guarda rótulos; un plan viejo con códigos sigue funcionando (el motor casa primero el código).
+ *  Agregar un rótulo a lo guardado sin partir por comas (un rótulo puede llevarlas) y sin repetirlo. */
+export function conGrupoExcluido(guardado: unknown, rotulo: string): string[] {
+  const lista = (Array.isArray(guardado) ? guardado : typeof guardado === "string" && guardado.trim() ? [guardado] : [])
+    .map((v) => (typeof v === "string" || typeof v === "number" ? String(v).trim() : "")).filter(Boolean);
+  return lista.includes(rotulo) ? lista : [...lista, rotulo];
 }

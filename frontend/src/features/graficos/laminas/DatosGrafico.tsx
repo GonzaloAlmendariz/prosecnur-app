@@ -105,7 +105,7 @@ import { LadosEscala } from "./divergentes/LadosEscala";
 import { MaximoCategorias } from "./recorte/MaximoCategorias";
 import { ARGS_RECORTE } from "./recorte/modeloRecorte";
 import { GruposDelCruce } from "./cruce/GruposDelCruce";
-import { ARGS_CRUCE } from "./cruce/modeloGrupos";
+import { ARGS_CRUCE, conGrupoExcluido } from "./cruce/modeloGrupos";
 import { baseDeLaPregunta, cruceEnOtraBase, textoCruceEnOtraBase } from "./cruce/baseDelCruce";
 import { ARGS_LADOS, llevaLados } from "./divergentes/modeloLados";
 import { conDetalle } from "./cifrasInspector/modeloCifras";
@@ -219,7 +219,8 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
       return { variable: varCalificada(variable || primera, baseActiva, scope), scope, modo: name === "corte" ? "elegir" : "excluir" };
     }
     // R6-15: sin `grupo` (histograma), los grupos son los del cruce (`cruces`) de las barras.
-    if (name === "excluir_grupos") return { variable: grupoVar ? varCalificada(grupoVar, baseActiva, scope) : "", scope, modo: "excluir", sustantivo: GRUPO };
+    // R7-16: por rótulo (los códigos de la lista original no son los del recodificado que agrupa el render).
+    if (name === "excluir_grupos") return { variable: grupoVar ? varCalificada(grupoVar, baseActiva, scope) : "", scope, modo: "excluir", sustantivo: GRUPO, porEtiqueta: true };
     // Línea por nivel: los niveles del eje son las categorías de su `cruce` (U5).
     if (name === "grupos" && valor.graficador === "p_lineas_nivel") {
       const niveles = typeof args.cruce === "string" ? args.cruce : "";
@@ -243,7 +244,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
       {/* H2: «Un color por opción» encendido sobre una lista sin colores dice por qué no se ve. */}
       {c.arg.name === "colorear_por_opcion" && interruptorEncendido(c.arg, alcance(c).valor) && <AvisoColorPorOpcion valor={valor} />}
       {/* Oleada I2, ítem 7: elegido el cruce, sus grupos con su n; un clic manda uno de pocos casos a Excluir grupos. */}
-      {ARGS_CRUCE.has(c.arg.name) && cruce && <GruposDelCruce graficador={valor.graficador} scope={scope} args={args} variableCruce={varCalificada(cruce, baseActiva, scope)} onExcluir={(meta?.args ?? []).some((a) => a.name === "excluir_grupos") ? (cod) => set({ excluir_grupos: [...textoACodigos(codigosATexto(args.excluir_grupos)), cod] }) : undefined} />}
+      {ARGS_CRUCE.has(c.arg.name) && cruce && <GruposDelCruce graficador={valor.graficador} scope={scope} args={args} onExcluir={(meta?.args ?? []).some((a) => a.name === "excluir_grupos") ? (rotulo) => set({ excluir_grupos: conGrupoExcluido(args.excluir_grupos, rotulo) }) : undefined} />}
       {radarPublicos && c.arg.name === "forma" && <NotaFormaRadar args={args} />}
       {radarPublicos && c.arg.name === "modo" && <EditorTemasEquivalentes tipo="radar" args={args} onCambio={set} />}
     </Fragment>
@@ -402,6 +403,8 @@ type CategoriasFila = {
   /** «elegir» donde nada guardado es todos (H9). */
   vacioEsTodos?: boolean;
   sustantivo?: Sustantivo;
+  /** Guarda rótulos, no códigos (Excluir grupos, R7-16). */
+  porEtiqueta?: boolean;
 };
 
 function Fila({ campo, graficador, valor, onCambio, sello, categorias, args, scope, sinCifra = false, basePregunta = null }: {
@@ -574,7 +577,7 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias, args, sco
     if (arg.name === "excluir_opciones" && conDetalle(graficador)) return <ExcluirRespuestas id={id} etiqueta={etiquetaFichas} variable={categorias.variable} scope={categorias.scope} graficador={graficador} args={args} argName={arg.name} valor={valor} textoRespaldo={comoTexto} onCambio={onCambio} />;
     return (
       <SelectorCategorias id={id} etiqueta={etiquetaFichas} variable={categorias.variable} scope={categorias.scope} graficador={graficador}
-        valor={valor} modo={categorias.modo} vacioEsTodos={categorias.vacioEsTodos} sustantivo={categorias.sustantivo} textoRespaldo={comoTexto}
+        valor={valor} modo={categorias.modo} vacioEsTodos={categorias.vacioEsTodos} sustantivo={categorias.sustantivo} porEtiqueta={categorias.porEtiqueta} textoRespaldo={comoTexto}
         nota={null}
         onCambio={(cods) => onCambio(arg.name === "corte" && CORTE_EN_CADENA.has(graficador) ? cods.join(",") : cods)} />
     );
