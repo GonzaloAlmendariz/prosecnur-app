@@ -94,3 +94,16 @@ test_that("sin grupos no hay detalle de cruce", {
   expect_null(.cifras_detalle_agrupadas_cruce(structure(list(), pulso_barras_series = "Total")))
   expect_null(.cifras_detalle_agrupadas_cruce(structure(list(), class = "x")))
 })
+
+test_that("agrupada con cruce: dos grupos con el mismo rótulo conservan cada uno su n (por posición, B6)", {
+  p <- structure(list(), pulso_barras_series = c("Otro", "Mujer", "Otro"), pulso_barras_cruce = "doc$sexo",
+                 pulso_barras_bases = c(Otro = 10, Mujer = 40, Otro = 4))
+  det <- .cifras_detalle_agrupadas_cruce(p, "Base: 54")
+  expect_identical(vapply(det$filas, function(f) f$base$n_casos, 0), c(10, 40, 4))
+  expect_identical(vapply(det$filas, `[[`, "", "rotulo"), c("Otro", "Mujer", "Otro"))
+  # Si las bases no traen una por grupo, se buscan por rótulo y se avisa.
+  q <- structure(list(), pulso_barras_series = c("Hombre", "Mujer"), pulso_barras_cruce = "doc$sexo",
+                 pulso_barras_bases = c(Mujer = 40))
+  expect_message(d2 <- .cifras_detalle_agrupadas_cruce(q), "busca por rótulo")
+  expect_identical(vapply(d2$filas, function(f) f$base$n_casos, 0), c(NA_real_, 40))
+})

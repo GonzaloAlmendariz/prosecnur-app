@@ -244,9 +244,17 @@
   series <- as.character(attr(p, "pulso_barras_series", exact = TRUE) %||% character(0))
   bases <- attr(p, "pulso_barras_bases", exact = TRUE)
   if (length(series) < 2L || is.null(attr(p, "pulso_barras_cruce", exact = TRUE))) return(NULL)
-  n_de <- function(s) if (!is.null(bases) && s %in% names(bases)) .cifras_det_num(bases[[s]]) else NA_real_
-  filas <- lapply(series, function(s) {
-    list(clave = s, rotulo = s, es_total = FALSE, base = .cifras_det_base(NA_real_, n_de(s)), valores = list(),
+  # Por posición: el render llena series y bases en el mismo recorrido de grupos, y dos grupos con el mismo rótulo
+  # (recodificados a un mismo texto) tomarían por nombre el n del primero. Si los largos no casan, por nombre y se avisa.
+  n <- if (!is.null(bases) && length(bases) == length(series)) {
+    vapply(seq_along(series), function(i) .cifras_det_num(bases[[i]]), numeric(1))
+  } else {
+    if (!is.null(bases)) .pulso_aviso("La agrupada con cruce no publica un n por cada grupo; el detalle los busca por rótulo.")
+    vapply(series, function(s) if (!is.null(bases) && s %in% names(bases)) .cifras_det_num(bases[[s]]) else NA_real_, numeric(1))
+  }
+  filas <- lapply(seq_along(series), function(i) {
+    s <- series[[i]]
+    list(clave = s, rotulo = s, es_total = FALSE, base = .cifras_det_base(NA_real_, n[[i]]), valores = list(),
          sumas = NA, caja = NA, lados = NA)
   })
   base_texto <- as.character(base_texto %||% "")[1]
