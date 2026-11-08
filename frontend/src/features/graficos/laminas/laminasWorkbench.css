@@ -207,6 +207,9 @@
   min-width: 0;
 }
 
+/* F1/F2 heredados (.pulso-f6-texto-boton, .pulso-f6-boton, .pulso-f6-icono-boton). Acabado de Láminas (W2-A,
+   2026-11-08): la estructura de la superficie (barras, visor, inspector, avisos, estructura, tira, guías y selectores)
+   ya no los usa; siguen aquí sólo para el contenido de las tarjetas, que migra la oleada W2-B. Nada nuevo los usa. */
 .pulso-f6-texto-boton {
   flex: none;
   border: 0;
@@ -342,4 +345,102 @@
   width: min(100%, 520px);
   border: 0;
   background: transparent;
+}
+
+/* ---- Acabado de Láminas (contrato A/B/D, oleada W2-A, 2026-11-08) ----
+   Gramática de controles de la superficie: barras, visor, inspector, avisos, estructura, tira, guías y selectores.
+   - Primario: PulsoButton primary, uno por superficie («+ Lámina», el CTA del selector).
+   - Secundario: PulsoButton secondary de 28. Pulsado (aria-pressed o el disparador de un popover abierto) = tinte
+     --module-accent-soft con --module-accent-border: un solo lenguaje de pulsado; «Previsualizar» ya no va lleno.
+   - Ícono: PulsoButton icon tone="quiet" (kit-boton-quieto.css); pulsado, el mismo tinte.
+   - Deshabilitado honesto: surface-3 / text-faint / border, nunca opacidad sobre el acento.
+   - Un solo anillo de foco (--mov-foco), sin el halo global ni la sombra o el salto del hover global.
+   Los selectores y el panel de guías viven en un portal fuera de .pulso-f6-laminas-host: por eso la lista de raíces. */
+:is(.pulso-f6-laminas-host, .pulso-f6-barra-host, .pulso-f6-selector, .pulso-f6-guias-panel) .pulso-button:is(.pulso-button--primary, .pulso-button--secondary, .pulso-button--ghost, .pulso-button--link) {
+  border-radius: var(--pulso-control-radius);
+  box-shadow: none;
+}
+
+:is(.pulso-f6-laminas-host, .pulso-f6-barra-host, .pulso-f6-selector, .pulso-f6-guias-panel) .pulso-button:is(.pulso-button--primary, .pulso-button--secondary) > svg {
+  width: var(--pulso-icon-size-md);
+  height: var(--pulso-icon-size-md);
+}
+
+:is(.pulso-f6-laminas-host, .pulso-f6-barra-host, .pulso-f6-selector, .pulso-f6-guias-panel) .pulso-button.pulso-button--sm:is(.pulso-button--primary, .pulso-button--secondary) > svg {
+  width: var(--pulso-icon-size-sm);
+  height: var(--pulso-icon-size-sm);
+}
+
+:is(.pulso-f6-laminas-host, .pulso-f6-barra-host, .pulso-f6-selector, .pulso-f6-guias-panel) .pulso-button:is(.pulso-button--primary, .pulso-button--secondary, .pulso-button--ghost, .pulso-button--link):hover:not(:disabled) {
+  box-shadow: none;
+}
+
+:is(.pulso-f6-laminas-host, .pulso-f6-barra-host, .pulso-f6-selector, .pulso-f6-guias-panel) .pulso-button:hover:not(:disabled):not(:active) {
+  transform: none;
+}
+
+:is(.pulso-f6-laminas-host, .pulso-f6-barra-host, .pulso-f6-selector, .pulso-f6-guias-panel) .pulso-button.pulso-button--secondary:is([aria-pressed="true"], [aria-expanded="true"], .is-activo),
+:is(.pulso-f6-laminas-host, .pulso-f6-barra-host, .pulso-f6-selector, .pulso-f6-guias-panel) .pulso-button.pulso-button--secondary:is([aria-pressed="true"], [aria-expanded="true"], .is-activo):hover:not(:disabled) {
+  border-color: var(--module-accent-border);
+  background: var(--module-accent-soft);
+  color: var(--pulso-button-accent-strong);
+}
+
+:is(.pulso-f6-laminas-host, .pulso-f6-barra-host, .pulso-f6-selector, .pulso-f6-guias-panel) .pulso-button.pulso-button--icon.pulso-button--quiet:is([aria-pressed="true"], [aria-expanded="true"]) {
+  background: var(--module-accent-soft);
+  color: var(--pulso-button-accent-strong);
+}
+
+:is(.pulso-f6-laminas-host, .pulso-f6-barra-host, .pulso-f6-selector, .pulso-f6-guias-panel) .pulso-button:is(.pulso-button--primary, .pulso-button--secondary, .pulso-button--ghost, .pulso-button--link):focus-visible {
+  outline: var(--mov-foco);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+:is(.pulso-f6-laminas-host, .pulso-f6-barra-host, .pulso-f6-selector, .pulso-f6-guias-panel) .pulso-button:is(.pulso-button--primary, .pulso-button--secondary):is(:disabled, [aria-disabled="true"]) {
+  opacity: 1;
+  border-color: var(--pulso-border);
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-faint);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* Botones propios de la superficie (filas, tira, pestañas, chips, menú): el mismo anillo único, sin el halo global
+   ni la sombra o el salto del hover global. Especificidad (0,1,1) a propósito: gana al global `button:where(...)`
+   (0,0,1) y cede ante las reglas de estado de cada pieza (`.pulso-f6-lamina.is-activa` pinta su barra con una sombra
+   interior, 0,2,0). El menú ⋯ marca el foco con su fondo (barraLaminas.css) y sólo pierde el halo. */
+button:where(.pulso-f6-parte, .pulso-f6-nodo-cabeza, .pulso-f6-lamina, .pulso-f6-miniatura, .pulso-f6-miniatura-reintentar, .pulso-f6-inspector-tab, .pulso-f6-inspector-avisos-chip, .pulso-f6-selector-grafico-opcion, .pulso-f6-guias-rol, .pulso-f6-guias-elemento):focus-visible {
+  outline: var(--mov-foco);
+  box-shadow: none;
+}
+
+button:where(.pulso-f6-parte, .pulso-f6-nodo-cabeza, .pulso-f6-lamina, .pulso-f6-miniatura, .pulso-f6-miniatura-reintentar, .pulso-f6-inspector-tab, .pulso-f6-inspector-avisos-chip, .pulso-f6-selector-grafico-opcion, .pulso-f6-guias-rol, .pulso-f6-guias-elemento, .pulso-f6-mas-menu button):hover {
+  box-shadow: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  button:where(.pulso-f6-parte, .pulso-f6-nodo-cabeza, .pulso-f6-lamina, .pulso-f6-miniatura, .pulso-f6-miniatura-reintentar, .pulso-f6-inspector-tab, .pulso-f6-inspector-avisos-chip, .pulso-f6-selector-grafico-opcion, .pulso-f6-guias-rol, .pulso-f6-guias-elemento, .pulso-f6-mas-menu button):hover:not(:active) {
+    transform: none;
+  }
+}
+
+.pulso-f6-mas-menu button:focus-visible {
+  box-shadow: none;
+}
+
+/* Un enlace de fila («Lámina N», «Completar todos los colores»): texto del acento a la altura de su renglón, sin caja. */
+:is(.pulso-f6-laminas-host, .pulso-f6-guias-panel) .pulso-button.pulso-button--link.pulso-f6-enlace-fila {
+  height: auto;
+  min-height: 0;
+  padding: 0 2px;
+  border: 0;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+:is(.pulso-f6-laminas-host, .pulso-f6-guias-panel) .pulso-button.pulso-button--link.pulso-f6-enlace-fila:hover:not(:disabled) {
+  background: transparent;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
