@@ -5,7 +5,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ApiError } from "../../../../api/core";
-import { apiGraficosConteoRegla, type ConteoRegla } from "../../../../api/graficosRegla";
+import type { ConteoRegla } from "../../../../api/graficosRegla";
+import { conteoEnCache, pedirConteoRegla } from "./cacheConteoRegla";
+import { pedidoDeFirma } from "./pedidoDeFirma";
 import { firmaPedidoRegla, firmaUniversoRegla, mismoConteo } from "./modeloReglaPreguntas";
 
 export const ESPERA_CONTEO_MS = 350;
@@ -38,19 +40,7 @@ export function mensajeDeError(e: unknown): { mensaje: string; codigo: string | 
   return { mensaje: e instanceof Error ? e.message : "No se pudo contar las preguntas.", codigo: null };
 }
 
-/** El pedido que la firma describe (graficador|scope|args en JSON estable). */
-export function pedidoDeFirma(firma: string): { graficador: string; scope: string; args: Args } | null {
-  const a = firma.indexOf("|");
-  const b = a < 0 ? -1 : firma.indexOf("|", a + 1);
-  if (a < 0 || b < 0) return null;
-  try {
-    const args = JSON.parse(firma.slice(b + 1)) as unknown;
-    if (!args || typeof args !== "object" || Array.isArray(args)) return null;
-    return { graficador: firma.slice(0, a), scope: firma.slice(a + 1, b), args: args as Args };
-  } catch {
-    return null;
-  }
-}
+export { pedidoDeFirma } from "./pedidoDeFirma";
 
 /** `activo` en falso (sin regla guardada) no pide nada. */
 export function useConteoRegla(graficador: string, args: Args, scope: "active" | "consolidated", activo: boolean): ConteoEnVivo {
@@ -61,22 +51,24 @@ export function useConteoRegla(graficador: string, args: Args, scope: "active" |
     const pedido = firma ? pedidoDeFirma(firma) : null;
     if (!pedido) return;
     const delUniverso = firmaUniversoRegla(pedido.graficador, pedido.args, pedido.scope);
-    const control = new AbortController();
-    let vivo = true;
-    const espera = setTimeout(() => {
-      apiGraficosConteoRegla(
-        { graficador: pedido.graficador, args: pedido.args, ...(pedido.scope === "consolidated" ? { scope: "consolidated" as const } : {}) },
-        { signal: control.signal },
-      ).then((conteo) => {
-        if (!vivo) return;
-        setEstado((prev) => (prev.firma === firma && !prev.error && mismoConteo(prev.conteo, conteo) ? prev : { firma, universo: delUniverso, conteo, error: null, codigo: null }));
-      }, (e: unknown) => {
-        if (!vivo || control.signal.aborted) return;
-        const { mensaje, codigo } = mensajeDeError(e);
+    let soltar: (() => void) | null = null;
+    const pedir = () => {
+      // La caché de módulo comparte el pedido con la maqueta (y con otra tarjeta de la misma firma): uno solo en vuelo.
+      soltar = pedirConteoRegla(firma, (r) => {
+        if (r.conteo) {
+          const conteo = r.conteo;
+          setEstado((prev) => (prev.firma === firma && !prev.error && mismoConteo(prev.conteo, conteo) ? prev : { firma, universo: delUniverso, conteo, error: null, codigo: null }));
+          return;
+        }
+        const { mensaje, codigo } = mensajeDeError(r.error);
         setEstado((prev) => (prev.firma === firma && prev.error === mensaje ? prev : { firma, universo: delUniverso, conteo: null, error: mensaje, codigo }));
       });
-    }, ESPERA_CONTEO_MS);
-    return () => { vivo = false; clearTimeout(espera); control.abort(); };
+    };
+    // Con el conteo ya en caché no hay espera: el arrastre de la cifra la necesita para no pedir en cada paso; lo ya
+    // contado, no.
+    if (conteoEnCache(firma)) { pedir(); return () => soltar?.(); }
+    const espera = setTimeout(pedir, ESPERA_CONTEO_MS);
+    return () => { clearTimeout(espera); soltar?.(); };
   }, [firma]);
   const actual = !!firma && estado.firma === firma;
   return {
@@ -85,4 +77,51 @@ export function useConteoRegla(graficador: string, args: Args, scope: "active" |
     error: actual ? estado.error : null,
     codigo: actual ? estado.codigo : null,
   };
+}
+
+/**
+ * El total que elige cada firma, para quien sólo necesita el número (la ficha de la maqueta: «Las 22 bajo 60%»). Va por
+ * la misma caché que `useConteoRegla`, así que el inspector y la maqueta abiertos a la vez hacen un solo pedido. Mientras
+ * una firma no responde (o si responde con error), no está en el mapa: la ficha dice la regla sin número.
+ */
+export function useTotalesRegla(firmas: readonly string[]): ReadonlyMap<string, number> {
+  // El efecto depende del texto (las firmas unidas), no del arreglo, que la maqueta re-arma en cada render.
+  const clave = useMemo(() => [...new Set(firmas.filter(Boolean))].sort().join("\n"), [firmas]);
+  const [totales, setTotales] = useState<ReadonlyMap<string, number>>(() => totalesEnCache(clave));
+  useEffect(() => {
+    const lista = clave ? clave.split("\n") : [];
+    // Lo ya contado entra sin esperar; lo que falta, tras la misma espera que el inspector (que comparte el pedido).
+    setTotales((prev) => conMismos(prev, totalesEnCache(clave)));
+    const sueltas: Array<() => void> = [];
+    const pedir = () => {
+      for (const firma of lista) {
+        sueltas.push(pedirConteoRegla(firma, (r) => {
+          if (!r.conteo) return;
+          const total = r.conteo.total;
+          setTotales((prev) => (prev.get(firma) === total ? prev : new Map([...prev, [firma, total]])));
+        }));
+      }
+    };
+    const faltan = lista.some((f) => !conteoEnCache(f));
+    const espera = faltan ? setTimeout(pedir, ESPERA_CONTEO_MS) : null;
+    if (!faltan) pedir();
+    return () => { if (espera) clearTimeout(espera); for (const s of sueltas) s(); };
+  }, [clave]);
+  return totales;
+}
+
+function totalesEnCache(clave: string): ReadonlyMap<string, number> {
+  const m = new Map<string, number>();
+  for (const f of clave ? clave.split("\n") : []) {
+    const c = conteoEnCache(f);
+    if (c) m.set(f, c.total);
+  }
+  return m;
+}
+
+/** Sólo las firmas vigentes; sin cambios, el mismo mapa (no re-renderiza). */
+function conMismos(prev: ReadonlyMap<string, number>, enCache: ReadonlyMap<string, number>): ReadonlyMap<string, number> {
+  const out = new Map(enCache);
+  if (out.size === prev.size && [...out].every(([k, v]) => prev.get(k) === v)) return prev;
+  return out;
 }

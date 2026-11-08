@@ -5,6 +5,7 @@
 
 import { dependenciaDe, quienesPorDefecto } from "./DependenciaLamina";
 import { useMemo } from "react";
+import { useLocation } from "react-router-dom";
 import type { Slide } from "../../../api/graficos";
 import { ComposicionLamina } from "../iconos/ComposicionLamina";
 import { composicionDe } from "../iconos/composicion";
@@ -21,6 +22,9 @@ import { FichaRanura } from "./maqueta/FichaRanura";
 import { AvisoMaqueta } from "./maqueta/AvisoMaqueta";
 import { LlaveDependencia } from "./maqueta/LlaveDependencia";
 import { useConteosMaqueta } from "./maqueta/useConteosMaqueta";
+import { firmaReglaDeRanura } from "./maqueta/reglaDeRanura";
+import { useTotalesRegla } from "./reglaPreguntas/useConteoRegla";
+import { useGraficosReportScope } from "../reportScope";
 import { datosEstructura } from "./maqueta/datosEstructura";
 import { varianteDe } from "./selectores/tiposLamina";
 import { camposTextoDe, ZonasTextoLamina, zonasPortada, type CampoTextoLamina } from "./ZonasTextoLamina";
@@ -56,6 +60,10 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
   const vinculos = usePlanStore((s) => s.paletasVinculos);
   const ranuras = useMemo(() => ranurasDeMaqueta(slide, variables, presets, { paletas, vinculos }), [slide, variables, presets, paletas, vinculos]);
   const { conteos, listos: conteosListos } = useConteosMaqueta(ranuras);
+  // M3: cuántas elige la regla de cada gráfico de resumen, por la misma caché que el inspector (un solo pedido).
+  const scope = useGraficosReportScope(useLocation().search);
+  const firmasRegla = useMemo(() => ranuras.map((r) => firmaReglaDeRanura(r, scope)), [ranuras, scope]);
+  const totalesRegla = useTotalesRegla(firmasRegla);
   const dep = dependenciaDe(slide);
   const rectDe = dep ? ranuras.find((r) => r.slot === dep.de)?.rect : undefined;
   const rectA = dep ? ranuras.find((r) => r.slot === dep.a)?.rect : undefined;
@@ -118,7 +126,7 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
         if (r.k === null) {
           return <span key={i} className="pulso-f6-maqueta-ranura is-cifra" style={estilo} aria-hidden="true"><span className="pulso-f6-maqueta-cifras">Cifras</span></span>;
         }
-        const base = fichaDeRanura(r, nombreTipo, r.variable ? conteos.get(r.variable) : null);
+        const base = fichaDeRanura(r, nombreTipo, r.variable ? conteos.get(r.variable) : null, totalesRegla.get(firmasRegla[i]) ?? null);
         // Dependencia entre los dos gráficos: el dependiente dice quiénes lo responden; el independiente, a quién habilita.
         const ficha = !dep ? base : r.slot === dep.a
           ? { ...base, ajustes: [`Sólo quienes ${quienes.replace(/^que\s+/, "")}`, ...base.ajustes] }

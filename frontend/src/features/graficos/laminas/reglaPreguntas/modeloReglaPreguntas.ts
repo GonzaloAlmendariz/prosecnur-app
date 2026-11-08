@@ -235,6 +235,26 @@ export function reglaEnCorto(regla: ReglaPreguntas, grupos: number): string {
   }
 }
 
+/**
+ * La regla en corto con cuántas elige el motor (M3, la ficha de la maqueta): «Las 22 bajo 60% en algún público». Sin
+ * `total` (el conteo no llegó), la regla sola, igual que `reglaEnCorto`. Las reglas que ya dicen su número (extremos, a
+ * mano) no lo repiten.
+ */
+export function reglaConConteo(regla: ReglaPreguntas, grupos: number, total: number | null | undefined): string {
+  const corto = reglaEnCorto(regla, grupos);
+  if (total === null || total === undefined || !Number.isFinite(total) || regla.tipo === "extremos" || regla.tipo === "a_mano") return corto;
+  const cifra = formatoConteo(valorCifra(regla) ?? 0);
+  const cuantas = total === 0 ? "Ninguna" : total === 1 ? "Una" : `Las ${formatoConteo(total)}`;
+  switch (regla.tipo) {
+    case "todas": return total === 1 ? "Una pregunta de escala" : `${cuantas} preguntas de escala`;
+    case "comunes": return total === 1 ? "Una pregunta común" : `${cuantas} preguntas comunes`;
+    case "mayor_diferencia": return `${cuantas} de mayor diferencia`;
+    case "diferencia_minima": return `${cuantas} con diferencia de al menos ${cifra} puntos`;
+    case "mayor_sin_info": return `${cuantas} de más Sin información`;
+    case "bajo_umbral": return `${cuantas} bajo ${cifra}% ${grupos > 1 ? "en algún público" : "del indicador"}`;
+  }
+}
+
 /** JSON con las claves ordenadas: dos objetos con lo mismo dan el mismo texto. */
 export function jsonEstable(v: unknown): string {
   if (Array.isArray(v)) return `[${v.map(jsonEstable).join(",")}]`;

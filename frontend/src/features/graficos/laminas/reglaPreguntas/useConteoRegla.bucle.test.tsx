@@ -14,6 +14,7 @@ vi.mock("../../../../api/graficosRegla", () => ({ apiGraficosConteoRegla: contar
 
 import { ESPERA_CONTEO_MS, mensajeDeError, pedidoDeFirma, useConteoRegla } from "./useConteoRegla";
 import { firmaPedidoRegla } from "./modeloReglaPreguntas";
+import { olvidarConteosRegla } from "./cacheConteoRegla";
 import { ApiError } from "../../../../api/core";
 
 let renders = 0;
@@ -35,7 +36,7 @@ const contenedor = () => ({ nodeType: 1, tagName: "DIV", namespaceURI: "http://w
 
 let root: Root | null = null;
 beforeEach(() => { vi.useFakeTimers(); });
-afterEach(() => { act(() => root?.unmount()); root = null; renders = 0; ultimo = null; n = 2; vars = ["docentes$*", "estudiantes$*"]; contar.mockClear(); vi.useRealTimers(); });
+afterEach(() => { act(() => root?.unmount()); root = null; renders = 0; ultimo = null; n = 2; vars = ["docentes$*", "estudiantes$*"]; contar.mockClear(); olvidarConteosRegla(); vi.useRealTimers(); });
 
 describe("useConteoRegla", () => {
   it("se aquieta: una sola lectura aunque `args` sea un objeto nuevo en cada render", async () => {

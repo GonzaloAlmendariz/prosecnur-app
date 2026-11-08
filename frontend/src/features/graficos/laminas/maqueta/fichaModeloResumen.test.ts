@@ -50,6 +50,11 @@ describe("M3: la ficha de una lámina con regla resume la regla", () => {
     const f = fichaDeRanura(ranura("p_barras_divergentes", { vars, regla: { tipo: "bajo_umbral", umbral: 60 } }), "Escala");
     expect(f.preguntas).toEqual(["Bajo 60% en algún público"]);
   });
+  it("con el conteo del motor dice cuántas elige; sin él, la regla sola", () => {
+    const r = ranura("p_barras_divergentes", { vars, regla: { tipo: "bajo_umbral", umbral: 60 } });
+    expect(fichaDeRanura(r, "Escala", null, 22).preguntas).toEqual(["Las 22 bajo 60% en algún público"]);
+    expect(fichaDeRanura(r, "Escala", null, null).preguntas).toEqual(["Bajo 60% en algún público"]);
+  });
   it("el contraste dice cuántas y con qué criterio", () => {
     const f = fichaDeRanura(ranura("p_dumbbell", { regla: { tipo: "mayor_diferencia", n: 13 } }), "Brecha");
     expect(f.preguntas).toEqual(["Las 13 de mayor diferencia"]);
