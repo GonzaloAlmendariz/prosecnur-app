@@ -146,12 +146,15 @@ describe("R5-1: la miniatura lleva lo que el gráfico necesita para dibujarse", 
     expect(laminasDelSelector(["p_slide_1_grafico:contraste"], DOS, SIN_INDICADOR, "g")).toEqual([]);
     expect(notasDelSelector(["p_slide_1_grafico:contraste"], DOS, SIN_INDICADOR)["p_slide_1_grafico:contraste"])
       .toBe("Sin vista previa: marca qué respuestas suman el indicador.");
-    // Los temas de la matriz no tienen muestra: falta elegir preguntas.
+    // El mapa de calor por cruce pide una pregunta y un cruce, no una lista: sin muestra, falta elegir preguntas.
     const conOpcionUnica: EstadoInventario = {
       estado: "listo",
       publicos: (DOS.estado === "listo" ? DOS.publicos : []).map((p) => ({ ...p, preguntas: { ...p.preguntas, opcion_unica: 5 } })),
     };
-    expect(notasDelSelector(["p_slide_1_grafico:significancia"], conOpcionUnica, ESTUDIO, FUENTES)["p_slide_1_grafico:significancia"]).toBe(NOTA_SIN_PREGUNTAS);
+    expect(notasDelSelector(["p_slide_1_grafico:mapa_calor"], conOpcionUnica, ESTUDIO, FUENTES)["p_slide_1_grafico:mapa_calor"]).toBe(NOTA_SIN_PREGUNTAS);
+    // ADR 0137: una tarjeta con un tipo retirado no pide ni lleva nota: no se ofrece.
+    expect(notasDelSelector(["p_slide_1_grafico:significancia"], conOpcionUnica, ESTUDIO, FUENTES)).toEqual({});
+    expect(laminasDelSelector(["p_slide_1_grafico:significancia"], conOpcionUnica, ESTUDIO, "g", FUENTES)).toEqual([]);
     // Las aperturas piden la pregunta que divide.
     expect(notasDelSelector(["p_slide_1_grafico:aperturas"], UNO, ESTUDIO)["p_slide_1_grafico:aperturas"]).toMatch(/^Sin vista previa: elige la variable que divide a los grupos/);
     // Las completas no llevan nota.

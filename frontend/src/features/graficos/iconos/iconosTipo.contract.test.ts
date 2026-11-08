@@ -60,11 +60,11 @@ describe("cobertura frente al registro", () => {
     expect(Object.values(ALIAS_GRAFICO).every((b) => b in ICONOS_GRAFICO)).toBe(true);
   });
 
-  it("67 íconos dibujados: 22 del recetario + 12 de estructura (con las reglas de la identidad, el resumen de diferencias, los hallazgos clave y el cierre con hallazgos) + 33 gráficos (con el total, línea por nivel, el panorama de públicos, fortalezas y cobertura) (con las citas, TXT-4) (con la dicotómica, G10, la matriz de cuadrantes, G16, y las diferencias significativas, p112; la pregunta filtro es pieza interna de la dependencia y no se elige)", () => {
+  it("68 íconos dibujados: 22 del recetario + 12 de estructura (con las reglas de la identidad, el resumen de diferencias, los hallazgos clave y el cierre con hallazgos) + 34 gráficos (con el mapa de calor por cruce, ADR 0137) (con el total, línea por nivel, el panorama de públicos, fortalezas y cobertura) (con las citas, TXT-4) (con la dicotómica, G10, la matriz de cuadrantes, G16, y las diferencias significativas, p112; la pregunta filtro es pieza interna de la dependencia y no se elige)", () => {
     const delEstandar = Object.keys(ICONOS_LAMINA).filter((t) => t in RANURAS_ESTANDAR);
     expect(delEstandar).toHaveLength(22);
     expect(Object.keys(ICONOS_LAMINA).length - delEstandar.length).toBe(12);
-    expect(Object.keys(ICONOS_GRAFICO)).toHaveLength(33);   // + p_citas (TXT-4), + p_lineas_nivel, + p_panorama, + p_fortalezas, + p_cobertura
+    expect(Object.keys(ICONOS_GRAFICO)).toHaveLength(34);   // + p_heatmap_cruce (ADR 0137), + p_citas (TXT-4), + p_lineas_nivel, + p_panorama, + p_fortalezas, + p_cobertura
     expect(Object.keys(ALIAS_LAMINA)).toHaveLength(3);
   });
 });

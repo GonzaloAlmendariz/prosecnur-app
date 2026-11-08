@@ -114,6 +114,8 @@ export const CATALOGO_GRAFICOS: readonly TipoGraficoCatalogo[] = [
     usa: { pregunta: ["escala", "multiple"], publicos: "uno_o_varios", padron: false, cruce: true } },
   { name: "p_tabla", familia_editor: "comparar", salida: "nativa", en_selector: true,
     usa: { pregunta: ["escala", "multiple"], publicos: "uno", padron: false, cruce: true } },
+  { name: "p_heatmap_cruce", familia_editor: "comparar", salida: "nativa", en_selector: true,
+    usa: { pregunta: ["escala", "opcion_unica"], publicos: "uno", padron: false, cruce: true } },
   { name: "p_dim_radar", familia_editor: "dimensiones", salida: "nativa", en_selector: true,
     usa: { pregunta: ["escala"], publicos: "uno", padron: false, cruce: true } },
   { name: "p_dim_heatmap", familia_editor: "dimensiones", salida: "nativa", en_selector: true,

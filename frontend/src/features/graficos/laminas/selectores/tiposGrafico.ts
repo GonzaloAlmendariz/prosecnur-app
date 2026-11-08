@@ -5,6 +5,7 @@
 import type { GraficadorCategoria, GraficadorMetadata } from "../../../../api/graficos";
 import { CATALOGO_GRAFICOS, type SalidaGrafico } from "../../iconos/catalogoTipos.generated";
 import { esSlotCifra } from "../../iconos/composicion";
+import { TIPOS_RETIRADOS_0137 } from "../../retirados";
 
 export type FamiliaGrafico = "categorias" | "escalas" | "numeros" | "comparar" | "dimensiones" | "territorio" | "texto";
 
@@ -50,9 +51,33 @@ export const ETIQUETA_SALIDA: Record<SalidaGrafico, { corto: string; largo: stri
   ruta_anterior: { corto: "Imagen", largo: "Este gráfico sale como imagen y no se puede editar en PowerPoint." },
 };
 
-/** Lo que se ofrece en la familia: lo que el registro no retira del selector, en su orden. */
+/** Lo que se ofrece en la familia: lo que el registro no retira del selector, en su orden. Los tipos retirados por el
+ *  ADR 0137 llegan con `en_selector` intacto en la fase 1: se quitan por nombre. */
 export function graficosDeFamilia(graficadores: readonly GraficadorMetadata[], familia: FamiliaGrafico): GraficadorMetadata[] {
-  return graficadores.filter((g) => g.en_selector !== false && POR_NOMBRE.get(g.name)?.en_selector !== false && familiaDe(g) === familia);
+  return graficadores.filter((g) => g.en_selector !== false && POR_NOMBRE.get(g.name)?.en_selector !== false
+    && !TIPOS_RETIRADOS_0137.has(g.name) && familiaDe(g) === familia);
+}
+
+/**
+ * Las familias que el selector muestra: las que tienen algún gráfico (C3: una familia vacía no ocupa una fila; tras el
+ * ADR 0137 «Dimensiones» queda sin tipos). Sin catálogo todavía (`cargado = false`) van todas, para no vaciar la columna
+ * mientras carga.
+ */
+export function familiasVisibles(
+  porFamilia: ReadonlyMap<FamiliaGrafico, readonly unknown[]>,
+  cargado: boolean,
+): ReadonlyArray<(typeof FAMILIAS_GRAFICO)[number]> {
+  if (!cargado) return FAMILIAS_GRAFICO;
+  const visibles = FAMILIAS_GRAFICO.filter((f) => (porFamilia.get(f.id)?.length ?? 0) > 0);
+  return visibles.length ? visibles : FAMILIAS_GRAFICO;
+}
+
+/** La familia pedida si se muestra; si no (la de un tipo retirado), la primera que se muestra. */
+export function familiaVisible(
+  pedida: FamiliaGrafico,
+  visibles: ReadonlyArray<{ id: FamiliaGrafico }>,
+): FamiliaGrafico {
+  return visibles.some((f) => f.id === pedida) ? pedida : visibles[0]?.id ?? pedida;
 }
 
 export type Encaje = { cabe: boolean; nota: string | null };

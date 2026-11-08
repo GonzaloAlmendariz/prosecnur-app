@@ -36,6 +36,7 @@ import { useSession } from "../../../lib/SessionContext";
 import { OrdenCategoriasGrafico } from "./OrdenCategoriasGrafico";
 import { TwoBoxGrafico } from "./tarjetaGrafico/TwoBoxGrafico";
 import { CasosGrafico } from "./CasosGrafico";
+import { TopTwoBoxCruce } from "./heatmapCruce/TopTwoBoxCruce";
 import { ListaPreguntas } from "./ListaPreguntas";
 import { PublicosGrafico } from "./publicosGrafico/PublicosGrafico";
 import { usaPublicos } from "./publicosGrafico/modeloPublicos";
@@ -344,6 +345,11 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
         {delGrupo("calculo")}
         {campos.some(deLados) && <LadosEscala id={`${slideId}-${slot}-lados`} graficador={valor.graficador} scope={scope} args={args} onCambio={set} respaldo={campos.filter(deLados).map(filaDe)} />}
         <TwoBoxGrafico slideId={slideId} slot={slot} valor={valor} onAbrirBloques={() => abrirEditorAmplio({ tipo: "bloques", slideId, slot })} />
+        {/* ADR 0137: la columna Top Two Box del mapa de calor por cruce, que el motor lee de `overrides`. */}
+        {valor.graficador === "p_heatmap_cruce" && (
+          <TopTwoBoxCruce id={`${slideId}-${slot}-top2box`} args={args} scope={scope}
+            variable={variable && !sinBaseCompartido ? varCalificada(variable, baseActiva, scope) : ""} onCambio={set} />
+        )}
         {/* R4: método y decimales propios, como excepción a la regla del informe. */}
         <RedondeoDelGrafico graficador={valor.graficador} args={args} scope={scope} onCambio={(ov) => set({ overrides: ov })} />
         {conTarjetas && <TarjetasDiferencias slideId={slideId} slot={slot} />}

@@ -145,10 +145,11 @@ describe("metadataSanitizers", () => {
   });
 
   test("convierte raíces malformadas en catálogos vacíos sin inventar defaults locales", () => {
-    expect(normalizeGraficosRegistry(null)).toEqual({ slides: [], graficadores: [] });
-    expect(normalizeGraficosRegistry({ slides: {}, graficadores: "fallo" })).toEqual({
+    expect(normalizeGraficosRegistry(null)).toEqual({ slides: [], graficadores: [], retirados: [] });
+    expect(normalizeGraficosRegistry({ slides: {}, graficadores: "fallo", retirados: "fallo" })).toEqual({
       slides: [],
       graficadores: [],
+      retirados: [],
     });
   });
 

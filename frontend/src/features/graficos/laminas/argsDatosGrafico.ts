@@ -270,7 +270,11 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   // En «Total y línea por nivel» el cruce no divide: es el eje, con un punto por nivel (registro: «Niveles del eje»).
   cruce: {
     rotulo: "Dividir por", ayuda: "Sin dividir, el gráfico muestra una sola serie.", excepto: ["p_barras_multiapiladas", "p_dumbbell"],
-    textosEn: { p_lineas_nivel: () => ({ rotulo: "Niveles del eje", ayuda: "Un punto por nivel, de menor a mayor." }) },
+    textosEn: {
+      p_lineas_nivel: () => ({ rotulo: "Niveles del eje", ayuda: "Un punto por nivel, de menor a mayor." }),
+      // ADR 0137: en el mapa de calor por cruce el cruce no es opcional; sus grupos son las filas de la tabla.
+      p_heatmap_cruce: () => ({ rotulo: "Cruce", ayuda: "Sus grupos van en las filas, después del Total." }),
+    },
   },
   // U5 del checklist del mazo (2026-11-05): los textos y los niveles de la línea por nivel se escribían a mano en el plan.
   // Formales de p_lineas_nivel (graficos_lineas_nivel.R) y declarados en el registro (graficos_metadata.R). El texto vacío

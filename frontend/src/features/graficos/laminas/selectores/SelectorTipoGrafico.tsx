@@ -21,7 +21,8 @@ import { nombreSlot } from "./etiquetas";
 import { PANEL_TIPO_GRAFICO } from "./panelesSelectores";
 import { useSelectoresUi } from "./selectoresStore";
 import { TarjetaTipoGrafico } from "./TarjetaTipoGrafico";
-import { encajeEnRanura, FAMILIAS_GRAFICO, familiaInicial, graficosDeFamilia, salidaDe } from "./tiposGrafico";
+import { encajeEnRanura, FAMILIAS_GRAFICO, familiaInicial, familiasVisibles, familiaVisible, graficosDeFamilia, salidaDe } from "./tiposGrafico";
+import { esTipoRetirado } from "../../retirados";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { CargaDeBloque } from "../../../../components/CargaDeBloque";
 import { formatoConteo } from "../../../../lib/formatoNumero";
@@ -52,12 +53,15 @@ export function SelectorTipoGrafico({ slide, posicion, ranura, cerrar }: Props) 
   const valor = slide && slot ? (slide.payload as Record<string, unknown>)[slot] : undefined;
   const actual: GraficadorRef | null = esGraficadorRef(valor) ? valor : null;
   const metaActual = actual ? graficadoresById[actual.graficador] ?? { name: actual.graficador } : null;
-  const familia = ui.familia ?? familiaInicial(metaActual, slot);
+  // ADR 0137: un tipo retirado no abre en su familia (puede haber desaparecido) y, al cambiarlo, sus datos no pasan.
+  const actualRetirado = !!actual && esTipoRetirado(actual.graficador, registry);
 
   const porFamilia = useMemo(() => {
     const todos = registry?.graficadores ?? [];
     return new Map(FAMILIAS_GRAFICO.map((f) => [f.id, graficosDeFamilia(todos, f.id)]));
   }, [registry]);
+  const familias = familiasVisibles(porFamilia, !!registry);
+  const familia = familiaVisible(ui.familia ?? familiaInicial(actualRetirado ? null : metaActual, slot), familias);
   const lista = porFamilia.get(familia) ?? [];
   const candidato: GraficadorMetadata | null = (ui.candidatoGrafico ? lista.find((g) => g.name === ui.candidatoGrafico) : undefined)
     ?? (actual ? lista.find((g) => g.name === actual.graficador) : undefined)
@@ -81,9 +85,11 @@ export function SelectorTipoGrafico({ slide, posicion, ranura, cerrar }: Props) 
   const aplicar = (g: GraficadorMetadata | null) => {
     if (!g || !slide || !slot || bloqueoDe(g) || g.name === actual?.graficador) return;
     const id = slide.id;
-    setSlot(id, slot, compatibleGraficadorRef(g, actual));
+    setSlot(id, slot, compatibleGraficadorRef(g, actualRetirado ? null : actual));
     toast.exito(`${rotuloRanura.charAt(0).toUpperCase()}${rotuloRanura.slice(1)}: ${graficadorDisplayName(g.name, g)}`, {
-      detalle: actual ? `Reemplaza a ${graficadorDisplayName(actual.graficador, graficadoresById[actual.graficador])}; se conservan sus datos compatibles.` : undefined,
+      detalle: actual
+        ? `Reemplaza a ${graficadorDisplayName(actual.graficador, graficadoresById[actual.graficador])}; ${actualRetirado ? "sus datos no pasan al nuevo tipo" : "se conservan sus datos compatibles"}.`
+        : undefined,
       accion: { label: "Deshacer", onSelect: () => undo() },
     });
     cerrarYOlvidar();
@@ -106,14 +112,16 @@ export function SelectorTipoGrafico({ slide, posicion, ranura, cerrar }: Props) 
       antetitulo={posicion && rotuloRanura && slots.length > 1 ? `Lámina ${posicion}, ${rotuloRanura}` : posicion ? `Lámina ${posicion}` : "Gráfico"}
       titulo="¿Qué gráfico?"
       descripcion={actual
-        ? `Hoy: ${graficadorDisplayName(actual.graficador, graficadoresById[actual.graficador])}. Al cambiarlo se conservan los datos que el nuevo entienda.`
+        ? actualRetirado
+          ? `Hoy: ${graficadorDisplayName(actual.graficador, graficadoresById[actual.graficador])}, un tipo retirado. Al cambiarlo se empieza sin sus datos.`
+          : `Hoy: ${graficadorDisplayName(actual.graficador, graficadoresById[actual.graficador])}. Al cambiarlo se conservan los datos que el nuevo entienda.`
         : "Elige cómo se dibuja la pregunta de esta ranura."}
       focoInicialRef={focoInicialRef}
       destinoAlCerrar={() => destinoAlCerrarEnDocumento(k)}
       pregunta={(
         <fieldset className="pulso-f6-opciones">
           <legend className="pulso-f6-selector-leyenda">Familia</legend>
-          {FAMILIAS_GRAFICO.map((f) => {
+          {familias.map((f) => {
             const n = porFamilia.get(f.id)?.length ?? 0;
             return (
               <label key={f.id} className="pulso-f6-opcion">

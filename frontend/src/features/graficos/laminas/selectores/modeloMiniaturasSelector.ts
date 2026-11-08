@@ -18,6 +18,7 @@ import { esPreguntaDeEscala } from "../mazoResumen/modeloMazo";
 import type { EntradaMiniatura, LaminaClave } from "../miniaturas/loteMiniaturas";
 import { cruzarConEstudio, usaDeTarjeta, type CruceConEstudio, type EstadoInventario } from "./fichaDatos";
 import { conOpcion, presetDe, ranuraDePreset, tipoDeOpcion, type EstudioDelSelector, type OpcionLamina } from "./opcionesLamina";
+import { TIPOS_RETIRADOS_0137 } from "../../retirados";
 
 export type LaminaDelSelector = LaminaClave & { opcion: OpcionLamina; slide: Slide };
 
@@ -34,7 +35,8 @@ export type FuenteSelector = { name: string; variables: readonly Pick<VarInfo, "
 export const PREGUNTAS_MUESTRA = 6;
 
 /** Gráficos cuyas preguntas no son una lista (temas de la matriz, dimensiones): sin elegirlas no hay muestra. */
-const SIN_MUESTRA: ReadonlySet<string> = new Set(["p_significancia_publicos", "p_dim_heatmap_criterios"]);
+// El mapa de calor por cruce pide una pregunta y un cruce, no una lista: una muestra de `vars` no le sirve (ADR 0137).
+const SIN_MUESTRA: ReadonlySet<string> = new Set(["p_significancia_publicos", "p_dim_heatmap_criterios", "p_heatmap_cruce"]);
 
 export const NOTA_SIN_PREGUNTAS = "Sin vista previa: falta elegir preguntas.";
 
@@ -59,7 +61,8 @@ export function opcionesQuePiden(
  * suficiente para ese gráfico. Mientras se lee el estudio, o si no se pudo leer, no: queda el glifo.
  */
 export function puedePedir(op: OpcionLamina, inventario: EstadoInventario): boolean {
-  if (!presetDe(op)?.grafico) return false;
+  const grafico = presetDe(op)?.grafico;
+  if (!grafico || TIPOS_RETIRADOS_0137.has(grafico.graficador)) return false;   // ADR 0137: un retirado sale en blanco
   const usa = usaDeTarjeta(presetDe(op));
   if (!usa || inventario.estado !== "listo") return false;
   return cruzarConEstudio(usa, inventario.publicos).alcanza;
@@ -188,6 +191,7 @@ export function notasDelSelector(
 
 export const ERROR_SIN_GRAFICO = "Sin vista previa: el gráfico salió sin datos.";
 export const ERROR_SIN_IMAGEN = "Sin vista previa: no se pudo dibujar la imagen.";
+export const ERROR_TIPO_RETIRADO = "Sin vista previa: el tipo de gráfico está retirado.";
 
 /**
  * El hueco de una tarjeta: imagen de su clave vigente (o la anterior mientras se rehace) o, con error, la nota. Una
@@ -197,6 +201,7 @@ export const ERROR_SIN_IMAGEN = "Sin vista previa: no se pudo dibujar la imagen.
 export function miniaturaDeEntrada(e: EntradaMiniatura | undefined): MiniaturaSelector {
   if (!e) return { src: null, error: null };
   if (e.estado === "error") return { src: null, error: e.error ?? "No se pudo dibujar la vista previa." };
+  if (e.retirado) return { src: null, error: ERROR_TIPO_RETIRADO };
   if (e.estado === "sin_imagen") return { src: null, error: ERROR_SIN_IMAGEN };
   const todosVacios = !!e.vacios && e.vacios.pedidos > 0 && e.vacios.vacios >= e.vacios.pedidos;
   if (e.estado === "sin_datos" || todosVacios) {

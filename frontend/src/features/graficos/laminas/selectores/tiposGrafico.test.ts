@@ -2,7 +2,8 @@
 import { describe, expect, it } from "vitest";
 import type { GraficadorMetadata } from "../../../../api/graficos";
 import { CATALOGO_GRAFICOS } from "../../iconos/catalogoTipos.generated";
-import { encajeEnRanura, FAMILIAS_GRAFICO, familiaDe, familiaInicial, graficosDeFamilia, salidaDe } from "./tiposGrafico";
+import { TIPOS_RETIRADOS_0137 } from "../../retirados";
+import { encajeEnRanura, FAMILIAS_GRAFICO, familiaDe, familiaInicial, familiasVisibles, familiaVisible, graficosDeFamilia, salidaDe } from "./tiposGrafico";
 
 const meta = (name: string, extra: Partial<GraficadorMetadata> = {}): GraficadorMetadata => ({
   name, titulo_humano: name, descripcion: "", icono_ui: "", args: [], args_extra: [], ...extra,
@@ -18,8 +19,22 @@ describe("familias", () => {
     const todos = CATALOGO_GRAFICOS.map((g) => meta(g.name));
     const ofrecidos = FAMILIAS_GRAFICO.flatMap((f) => graficosDeFamilia(todos, f.id).map((g) => g.name));
     expect(new Set(ofrecidos).size).toBe(ofrecidos.length);
-    expect([...ofrecidos].sort()).toEqual(CATALOGO_GRAFICOS.filter((g) => g.en_selector).map((g) => g.name).sort());
+    expect([...ofrecidos].sort()).toEqual(CATALOGO_GRAFICOS.filter((g) => g.en_selector && !TIPOS_RETIRADOS_0137.has(g.name)).map((g) => g.name).sort());
     expect(ofrecidos).not.toContain("p_dim_foda");
+  });
+
+  it("ADR 0137: los retirados no se ofrecen y «Dimensiones», sin tipos, desaparece del selector (C3)", () => {
+    const todos = CATALOGO_GRAFICOS.map((g) => meta(g.name));
+    const porFamilia = new Map(FAMILIAS_GRAFICO.map((f) => [f.id, graficosDeFamilia(todos, f.id)]));
+    for (const g of TIPOS_RETIRADOS_0137) expect([...porFamilia.values()].flat().map((m) => m.name)).not.toContain(g);
+    expect(porFamilia.get("dimensiones")).toEqual([]);
+    const visibles = familiasVisibles(porFamilia, true);
+    expect(visibles.map((f) => f.id)).not.toContain("dimensiones");
+    expect(porFamilia.get("comparar")?.map((g) => g.name)).toContain("p_heatmap_cruce");
+    // Sin catálogo todavía no se vacía la columna; la familia de un retirado cae en la primera visible.
+    expect(familiasVisibles(new Map(), false)).toHaveLength(FAMILIAS_GRAFICO.length);
+    expect(familiaVisible("dimensiones", visibles)).toBe(visibles[0].id);
+    expect(familiaVisible("comparar", visibles)).toBe("comparar");
   });
 
   it("un graficador fuera del catálogo toma la familia de su categoría", () => {

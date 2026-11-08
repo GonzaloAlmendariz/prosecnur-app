@@ -90,7 +90,7 @@ describe("graficos por lámina (campo aditivo, opcional)", () => {
       { slide_id: "b", estado: "ok", miniatura: { file_id: "g" } },
       { slide_id: "c", estado: "ok", miniatura: { file_id: "h" }, graficos: {} },
     ] });
-    expect(r.laminas[0].graficos).toEqual({ pedidos: 2, vacios: 2, motivo: "n=0" });
+    expect(r.laminas[0].graficos).toEqual({ pedidos: 2, vacios: 2, motivo: "n=0", motivos: ["n=0"] });
     expect(r.laminas[1].graficos).toBeNull();
     expect(r.laminas[2].graficos).toBeNull();
   });

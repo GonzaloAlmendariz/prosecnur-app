@@ -96,6 +96,7 @@ describe("bibliotecas de Gráficos degradadas L5", () => {
     const registryA: Registry = {
       slides: [],
       graficadores: [graficador()],
+      retirados: [],
     };
     const snapshotA: GraficosRegistrySnapshot = {
       sid: "sid-a",

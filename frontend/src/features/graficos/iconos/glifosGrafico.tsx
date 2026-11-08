@@ -883,6 +883,34 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
       ))}
     </>
   ),
+  // Mapa de calor por cruce (L10-6 y L10-10, CCSS Perfil): el Total y cada grupo del cruce en filas, las opciones de la
+  // pregunta en columnas, más intensa la celda mayor; la columna Top Two Box aparte, tras un filete y en verde.
+  p_heatmap_cruce: (o) => {
+    const valores = [[3, 4, 2, 1], [4, 3, 2, 1], [2, 4, 3, 1], [3, 3, 2, 2]];
+    const ttb = o?.ttb ?? true;
+    const paso = ttb ? 20 : 24;
+    const ancho = paso - 2;
+    const finCeldas = 46 + 4 * paso;
+    return (
+      <>
+        {[0, 1, 2, 3].map((j) => <Rotulo key={j} x={46 + j * paso + 3} y={10} w={ancho - 6} />)}
+        {valores.map((fila, i) => {
+          const y = 18 + i * 18 + (i > 0 ? 3 : 0);
+          return (
+            <g key={i}>
+              <Rotulo x={12} y={y + 6.5} w={i === 0 ? 18 : 28} />
+              {fila.map((v, j) => (
+                <Barra key={j} x={46 + j * paso} y={y} w={ancho} h={16} t={(["e4", "e3", "e2", "e1"] as const)[v - 1]} rx={1} />
+              ))}
+              {ttb && <Valor x={finCeldas + 8} y={y + 6.25} w={14} verde />}
+            </g>
+          );
+        })}
+        <path d={`M12 37.5H${finCeldas - 2}`} className="pulso-glifo__rejilla" />
+        {ttb && <path d={`M${finCeldas + 3} 8V90`} className="pulso-glifo__rejilla" />}
+      </>
+    );
+  },
 };
 
 export const GLIFOS_GRAFICO = GLIFOS;

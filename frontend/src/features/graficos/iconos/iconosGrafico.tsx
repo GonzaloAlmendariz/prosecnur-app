@@ -393,6 +393,22 @@ const ICONOS: Readonly<Record<string, DibujoGrafico>> = {
       <Trazo d="M3 11.25H21M3 15.375H21M9.75 11.25V19.5" />
     </>
   ),
+  // Mapa de calor por cruce (L10-6, CCSS Perfil): los grupos del cruce en filas, con su rótulo a la izquierda, y las
+  // opciones de la pregunta en columnas; la celda mayor en el acento.
+  p_heatmap_cruce: () => (
+    <>
+      <Trazo d="M3.75 6.75H6.75M3.75 12H6.75M3.75 17.25H6.75" />
+      <Acento><Bloque x={8.25} y={4.875} w={3.75} h={3.75} tono="pleno" /></Acento>
+      <Bloque x={12.75} y={4.875} w={3.75} h={3.75} tono="lleno" />
+      <Bloque x={17.25} y={4.875} w={3.75} h={3.75} tono="apoyo" />
+      <Bloque x={8.25} y={10.125} w={3.75} h={3.75} tono="lleno" />
+      <Bloque x={12.75} y={10.125} w={3.75} h={3.75} tono="apoyo" />
+      <Bloque x={17.25} y={10.125} w={3.75} h={3.75} tono="lleno" />
+      <Bloque x={8.25} y={15.375} w={3.75} h={3.75} tono="apoyo" />
+      <Bloque x={12.75} y={15.375} w={3.75} h={3.75} tono="lleno" />
+      <Bloque x={17.25} y={15.375} w={3.75} h={3.75} tono="apoyo" />
+    </>
+  ),
 };
 
 /** Graficadores que comparten el ícono de otro tipo porque el recetario los dibuja igual. */

@@ -17,6 +17,7 @@ const GRAFICADOR_LABELS: Record<string, string> = {
   p_media_rango: "Media y rango",
   p_radar: "Radar",
   p_tabla: "Tabla",
+  p_heatmap_cruce: "Mapa de calor por cruce",
   p_radar_tabla: "Radar + tabla",
   p_dim_radar: "Radar por dimensiones",
   p_dim_radar_tabla: "Radar + tabla por dimensiones",

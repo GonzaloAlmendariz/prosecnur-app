@@ -32,6 +32,9 @@ import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import "./inspectorLamina.css";
 import { EstadoVacio } from "../../../components/EstadoVacio";
 import { formatoConteo } from "../../../lib/formatoNumero";
+import { toast } from "../../../components/toasterStore";
+import { fichaRetirado, reemplazoDirecto } from "../retirados";
+import { RanuraRetirada } from "./retirados/RanuraRetirada";
 
 // G14 (Gonzalo, 2026-10-13): dos pestañas, cada una con una función: «Lámina» (qué es, su composición y sus textos en el
 // orden en que salen) y «Gráfico» (un gráfico a la vez). La lámina de estructura no tiene «Gráfico». «Revisión» se quitó
@@ -150,7 +153,9 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onCambiarGrafico }: {
   onRanura: (r: number | null) => void;
   onCambiarGrafico: (k: number) => void;
 }) {
-  const { graficadoresById, slidesById } = useGraficosRegistry();
+  const { registry, graficadoresById, slidesById } = useGraficosRegistry();
+  const setSlot = usePlanStore((s) => s.setSlot);
+  const undo = usePlanStore((s) => s.undo);
   const { irA } = useSeccion("procesamiento");
   if (slots.length === 0) {
     return (
@@ -188,9 +193,12 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onCambiarGrafico }: {
           if (k !== activo) return null;
           const valor = payload[slot] as GraficadorRef | undefined;
           const tecnico = valor?.graficador ?? "";
+          // ADR 0137: un tipo retirado se nombra con su ficha y no abre su tarjeta de datos.
+          const retirado = tecnico ? fichaRetirado(tecnico, registry) : null;
           // ADR 0135 §1: el inspector dice la clase de lo que hay en la ranura y lo nombra como su tarjeta.
-          const presentacion = tecnico ? presentacionDeGrafico(tecnico, (valor?.args ?? {}) as Record<string, unknown>) : null;
-          const nombre = tecnico ? presentacion?.nombre ?? graficadorDisplayName(tecnico, graficadoresById[tecnico]) : "Sin gráfico";
+          const presentacion = tecnico && !retirado ? presentacionDeGrafico(tecnico, (valor?.args ?? {}) as Record<string, unknown>) : null;
+          const nombre = retirado ? retirado.titulo_humano
+            : tecnico ? presentacion?.nombre ?? graficadorDisplayName(tecnico, graficadoresById[tecnico]) : "Sin gráfico";
           const abierta = true;
           const rotulo = slots.length > 1 ? `gráfico (${nombreSlot(slot, slidesById[slide.tipo]).toLowerCase()})` : "gráfico";
           return (
@@ -220,7 +228,18 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onCambiarGrafico }: {
                   </PulsoButton>
                 )}
               </div>
-              {abierta && tecnico && valor && (
+              {abierta && retirado && (
+                <RanuraRetirada id={`${slide.id}-${slot}-retirado`} ficha={retirado} reemplazo={reemplazoDirecto(retirado, graficadoresById)}
+                  onCambiarPor={(graficador) => {
+                    // Cambiar descarta los args del tipo retirado (ADR 0137): el nuevo empieza en blanco.
+                    setSlot(slide.id, slot, { graficador, args: {} });
+                    toast.exito(`${rotulo.charAt(0).toUpperCase()}${rotulo.slice(1)}: ${graficadorDisplayName(graficador, graficadoresById[graficador])}`, {
+                      detalle: `Reemplaza a "${retirado.titulo_humano}"; sus datos no pasan al nuevo tipo.`,
+                      accion: { label: "Deshacer", onSelect: () => undo() },
+                    });
+                  }} />
+              )}
+              {abierta && tecnico && valor && !retirado && (
                 <div className="pulso-f6-ranura-cuerpo-datos">
                   <DatosGrafico slideId={slide.id} slot={slot} valor={valor} />
                 </div>

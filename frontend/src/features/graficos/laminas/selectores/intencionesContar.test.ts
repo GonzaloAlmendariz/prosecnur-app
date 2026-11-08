@@ -9,7 +9,7 @@ import {
 } from "./intencionesContar";
 import { etiquetaBotonTarjeta } from "./detalleLamina";
 
-const HOY = new Set(["p_panorama", "p_dumbbell", "p_barras_divergentes", "p_significancia_publicos", "p_dim_heatmap_criterios"]);
+const HOY = new Set(["p_panorama", "p_dumbbell", "p_barras_divergentes", "p_heatmap_cruce", "p_significancia_publicos", "p_dim_heatmap_criterios"]);
 const LAMINAS = new Set(["p_slide_1_grafico"]);
 const claves = (id: string, g = HOY) => tarjetasDe(INTENCIONES_CONTAR.find((i) => i.id === id)!, g, LAMINAS).map((t) => t.clave);
 
@@ -37,10 +37,19 @@ describe("intenciones de «¿Qué quieres contar?»", () => {
   });
 
   it("comparar, ver dentro y leer una escala ofrecen sus tarjetas; el contraste está en dos intenciones", () => {
-    expect(claves("comparar")).toEqual(["p_slide_1_grafico:contraste", "p_slide_1_grafico:significancia", "p_slide_1_grafico:dimensiones"]);
-    expect(claves("dentro")).toEqual(["p_slide_1_grafico:aperturas", "p_slide_1_grafico:contraste"]);
+    // ADR 0137: la tabla de letras y el mapa por dimensión no se ofrecen aunque el registro los traiga.
+    expect(claves("comparar")).toEqual(["p_slide_1_grafico:contraste"]);
+    expect(claves("dentro")).toEqual(["p_slide_1_grafico:aperturas", "p_slide_1_grafico:mapa_calor", "p_slide_1_grafico:contraste"]);
     expect(claves("escala")).toEqual(["p_slide_1_grafico:escala", "p_slide_1_grafico:divergentes"]);
     expect(claves("comparar", new Set(["p_dumbbell"]))).toEqual(["p_slide_1_grafico:contraste"]);
+  });
+
+  it("ADR 0137: ninguna intención ofrece una tarjeta con un tipo retirado; el mapa de calor por cruce entra con su graficador", () => {
+    const todas = INTENCIONES_CONTAR.flatMap((i) => tarjetasDe(i, HOY, LAMINAS));
+    expect(todas.map((t) => t.grafico?.graficador)).not.toContain("p_significancia_publicos");
+    expect(todas.map((t) => t.grafico?.graficador)).not.toContain("p_dim_heatmap_criterios");
+    expect(claves("dentro", new Set(["p_dumbbell"]))).not.toContain("p_slide_1_grafico:mapa_calor");
+    expect(tarjetaContar("p_slide_1_grafico:mapa_calor")?.grafico).toEqual({ graficador: "p_heatmap_cruce", args: {} });
   });
 
   it("cada tarjeta declara su clase, una línea corta sin punto medio y lo que pide", () => {

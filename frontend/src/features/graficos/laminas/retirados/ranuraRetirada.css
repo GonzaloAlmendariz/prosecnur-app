@@ -1,0 +1,12 @@
+/* Ranura con un tipo de gráfico retirado (ADR 0137). Hereda la tarjeta de aviso del inspector (.pulso-f6-tarjeta.is-ruta);
+   aquí sólo el ícono en el tono del aviso (el acento queda para selección y foco) y la fila de la acción. */
+.pulso-f6-ranura-retirada .pulso-f6-tarjeta-icono {
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-f6-ranura-retirada-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  margin-top: var(--pulso-space-2);
+}

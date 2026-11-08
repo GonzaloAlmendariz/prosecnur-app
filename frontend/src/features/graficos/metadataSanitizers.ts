@@ -10,6 +10,7 @@ import type {
   GraficadorCategoria,
   GraficadorDataRequirement,
   GraficadorMetadata,
+  GraficadorRetirado,
   PresetCalculosMeta,
   PresetsRegistry,
   Registry,
@@ -424,6 +425,37 @@ function normalizeGraficadorMetadata(value: unknown): GraficadorMetadata {
   };
 }
 
+/** Una ficha de `retirados` (ADR 0137); sin `name` no identifica nada y se descarta. */
+function normalizeGraficadorRetirado(value: unknown): GraficadorRetirado | null {
+  const raw = asRecord(value);
+  if (!raw) return null;
+  const name = safeText(raw.name).trim();
+  if (!name) return null;
+  const reemplazo = asRecord(raw.reemplazo) ?? {};
+  return {
+    name,
+    titulo_humano: safeText(raw.titulo_humano, name).trim() || name,
+    adr: safeText(raw.adr).trim(),
+    reemplazo: {
+      texto: safeText(reemplazo.texto).trim(),
+      graficador: safeText(reemplazo.graficador).trim(),
+    },
+  };
+}
+
+function normalizeGraficadoresRetirados(value: unknown): GraficadorRetirado[] {
+  if (!Array.isArray(value)) return [];
+  const vistos = new Set<string>();
+  const salida: GraficadorRetirado[] = [];
+  for (const item of value) {
+    const ficha = normalizeGraficadorRetirado(item);
+    if (!ficha || vistos.has(ficha.name)) continue;
+    vistos.add(ficha.name);
+    salida.push(ficha);
+  }
+  return salida;
+}
+
 export function normalizeGraficosRegistry(value: unknown): Registry {
   const registry = asRecord(value) ?? {};
   return {
@@ -431,6 +463,8 @@ export function normalizeGraficosRegistry(value: unknown): Registry {
     graficadores: Array.isArray(registry.graficadores)
       ? registry.graficadores.map(normalizeGraficadorMetadata)
       : [],
+    // ADR 0137: aditivo; un backend anterior no lo trae.
+    retirados: normalizeGraficadoresRetirados(registry.retirados),
   };
 }
 

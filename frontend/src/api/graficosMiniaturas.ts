@@ -48,8 +48,12 @@ export type MiniaturaImagen = {
 };
 
 /** Cuántos gráficos pidió la lámina y cuántos quedaron vacíos (aditivo; puede no venir). `motivo` es texto libre del
- *  backend (borrador incompleto, variable fuera de la base, n = 0…): se muestra, no se interpreta. */
-export type MiniaturaGraficos = { pedidos: number; vacios: number; motivo: string | null };
+ *  backend (borrador incompleto, variable fuera de la base, n = 0…): se muestra, no se interpreta. `motivos` son los
+ *  códigos tal como llegan (el backend manda un arreglo); de ellos sólo se interpreta `tipo_retirado` (ADR 0137). */
+export type MiniaturaGraficos = { pedidos: number; vacios: number; motivo: string | null; motivos: string[] };
+
+/** Código de motivo de una ranura con un tipo de gráfico retirado (ADR 0137, graficos_miniaturas.R). */
+export const MOTIVO_TIPO_RETIRADO = "tipo_retirado";
 
 export type MiniaturaLamina = {
   slide_id: string;
@@ -131,7 +135,8 @@ function normalizarGraficos(v: unknown): MiniaturaGraficos | null {
   if (!("pedidos" in g) && !("vacios" in g)) return null;
   const pedidos = Math.max(0, entero(g.pedidos));
   const vacios = Math.min(pedidos, Math.max(0, entero(g.vacios)));
-  return { pedidos, vacios, motivo: textoONulo(g.motivo) };
+  const motivos = arreglo(g.motivo).map(texto).filter(Boolean);
+  return { pedidos, vacios, motivo: textoONulo(g.motivo), motivos };
 }
 
 function normalizarLamina(v: unknown, k: number): MiniaturaLamina | null {

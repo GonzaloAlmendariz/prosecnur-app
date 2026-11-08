@@ -19,7 +19,7 @@
 //    pendiente vuelve a «sin pedir» y se pide en el siguiente plan: nadie intentó dibujarlo, así que no «falló».
 //  - Los errores no se reintentan solos (evita un bucle contra un motor que falla): sólo con «Reintentar» o al editar.
 
-import type { MiniaturaEstado, MiniaturasLote } from "../../../../api/graficosMiniaturas";
+import { MOTIVO_TIPO_RETIRADO, type MiniaturaEstado, type MiniaturasLote } from "../../../../api/graficosMiniaturas";
 
 export type EntradaMiniatura = {
   estado: MiniaturaEstado;
@@ -35,6 +35,8 @@ export type EntradaMiniatura = {
   error: string | null;
   /** Gráficos vacíos de una lámina que sí salió (parcial: «1 de 2 gráficos sin datos»); null si no aplica o no vino. */
   vacios?: { vacios: number; pedidos: number; motivo: string | null } | null;
+  /** Algún gráfico de la lámina es de un tipo retirado (ADR 0137): sale en blanco a propósito, no por falta de datos. */
+  retirado?: boolean;
 };
 
 export type Entradas = Record<string, EntradaMiniatura>;
@@ -128,7 +130,7 @@ export function fusionarLote(entradas: Entradas, lote: MiniaturasLote, vigente: 
     const prev = (sig ?? entradas)[id];
     if (prev && prev.estado === e.estado && prev.src === e.src && prev.error === e.error && prev.clave === e.clave && prev.anterior === e.anterior && (prev.imagen ?? null) === (e.imagen ?? null)
       && (prev.vacios?.vacios ?? 0) === (e.vacios?.vacios ?? 0) && (prev.vacios?.pedidos ?? 0) === (e.vacios?.pedidos ?? 0)
-      && (prev.vacios?.motivo ?? null) === (e.vacios?.motivo ?? null)) return;
+      && (prev.vacios?.motivo ?? null) === (e.vacios?.motivo ?? null) && !!prev.retirado === !!e.retirado) return;
     sig = sig ?? { ...entradas };
     sig[id] = e;
   };
@@ -152,7 +154,11 @@ export function fusionarLote(entradas: Entradas, lote: MiniaturasLote, vigente: 
       const g = l.graficos;
       const vacios = g && g.vacios > 0 ? { vacios: g.vacios, pedidos: g.pedidos, motivo: g.motivo } : null;
       const grande = l.imagen && l.estado !== "sin_imagen" ? src(l.imagen.url) : null;
-      poner(l.slide_id, { estado: l.estado, clave, src: l.estado === "sin_imagen" ? null : imagen, imagen: grande, anterior: null, error: null, vacios });
+      const retirado = !!g?.motivos.includes(MOTIVO_TIPO_RETIRADO);
+      poner(l.slide_id, {
+        estado: l.estado, clave, src: l.estado === "sin_imagen" ? null : imagen, imagen: grande, anterior: null, error: null, vacios,
+        ...(retirado ? { retirado } : {}),
+      });
     }
   }
   if (terminado) {
@@ -205,6 +211,7 @@ export function olvidarPendientes(entradas: Entradas, claves: Record<string, str
 /** Aviso discreto de una lámina con parte de sus gráficos vacíos («1 de 2 gráficos sin datos»); null si no aplica. */
 export function avisoVacios(e: EntradaMiniatura | undefined): string | null {
   const v = e?.vacios;
-  if (!e || !v || v.vacios <= 0 || v.pedidos <= 0 || (e.estado !== "ok" && e.estado !== "sin_imagen")) return null;
+  // Un tipo retirado lo dice su propia marca («Tipo retirado»), no un «sin datos» que mandaría a buscar datos.
+  if (!e || e.retirado || !v || v.vacios <= 0 || v.pedidos <= 0 || (e.estado !== "ok" && e.estado !== "sin_imagen")) return null;
   return `${v.vacios} de ${v.pedidos} gráfico${v.pedidos === 1 ? "" : "s"} sin datos`;
 }

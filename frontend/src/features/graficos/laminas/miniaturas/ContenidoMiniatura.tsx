@@ -1,6 +1,7 @@
 // Contenido de una miniatura de la tira según el estado del lote (contrato §2.4 y §6.3). Toda variante ocupa la MISMA
 // caja 16:9 que fija la tira (C2): el esqueleto de `pendiente`, el PNG de `ok`, la composición SVG de `sin_imagen`, la
-// marca «Sin datos» y el aviso de `error` no cambian el tamaño de la miniatura ni el de la fila.
+// marca «Sin datos», la de «Tipo retirado» (ADR 0137) y el aviso de `error` no cambian el tamaño de la miniatura ni el de
+// la fila.
 
 import type { Slide } from "../../../../api/graficos";
 import { ImageOff } from "../../../../vendor/lucide-react";
@@ -24,6 +25,14 @@ type Props = { vista: VistaMiniatura; src: string | null; slide: Slide | undefin
 export function ContenidoMiniatura({ vista, src, slide, lamina }: Props) {
   // La tira muestra el dibujo de la composición (tipo de lámina y glifo de cada gráfico), no la imagen reducida: a ese
   // tamaño se lee mejor y no depende de que el motor haya dibujado nada. La imagen real vive en el visor.
+  if (vista === "retirado") {
+    return (
+      <>
+        {slide ? <Composicion slide={slide} /> : src ? <img src={src} alt="" draggable={false} className="is-sin-datos" /> : null}
+        <span className="pulso-f6-miniatura-marca" aria-hidden="true">Tipo retirado</span>
+      </>
+    );
+  }
   if (slide && vista !== "error" && vista !== "sin_datos") return <Composicion slide={slide} />;
   if (vista === "imagen" || vista === "actualizando") {
     return <img src={src ?? undefined} alt="" draggable={false} className={vista === "actualizando" ? "is-actualizando" : undefined} />;

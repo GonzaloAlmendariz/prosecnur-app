@@ -398,9 +398,20 @@ export type GraficadorMetadata = {
   args_extra: string[];
 };
 
+/** Tipo de gráfico retirado (ADR 0137, fase 1): un plan guardado lo conserva y la ranura sale en blanco con aviso. */
+export type GraficadorRetirado = {
+  name: string;
+  titulo_humano: string;
+  adr: string;
+  /** `graficador` vacío: el reemplazo no es un tipo del registro (las tarjetas de diferencias, el FODA del Dashboard). */
+  reemplazo: { texto: string; graficador: string };
+};
+
 export type Registry = {
   slides: SlideMetadata[];
   graficadores: GraficadorMetadata[];
+  /** Aditivo en GET /api/graficos/registry; el normalizador lo deja en `[]` si no llega. */
+  retirados: GraficadorRetirado[];
 };
 
 export type VarInfo = {

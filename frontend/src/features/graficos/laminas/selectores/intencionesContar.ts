@@ -12,6 +12,7 @@ import type { Slide } from "../../../../api/graficos";
 import { esEntreGrupos } from "../brecha/modeloBrechaGrupos";
 import { conPropuesta } from "../gruposPadron/modeloPadron";
 import type { ClavePreset, EstudioDelSelector, PresetLamina } from "./opcionesLamina";
+import { TIPOS_RETIRADOS_0137 } from "../../retirados";
 
 export type ClaseTarjeta = "grafico" | "lamina" | "resumen";
 
@@ -168,6 +169,21 @@ export const TARJETAS_CONTAR: readonly TarjetaContar[] = [
     coincide: conGrafico("p_dumbbell", (a) => resumen(a) && !esEntreGrupos(a)),
   },
   {
+    // ADR 0137 (decisión 1): la variante pregunta × cruce del mapa de calor de dimensiones, como tipo propio.
+    clave: "p_slide_1_grafico:mapa_calor",
+    tipo: "p_slide_1_grafico",
+    nombre: "Mapa de calor por cruce",
+    clase: "grafico",
+    uso: "Una pregunta por los grupos de otra, en tonos",
+    descripcion: "El Total y cada grupo en las filas, las opciones en las columnas; cada fila suma 100 %.",
+    pide: "Una pregunta de respuesta única y el cruce",
+    parche: {},
+    grafico: { graficador: "p_heatmap_cruce", args: {} },
+    coincide: conGrafico("p_heatmap_cruce"),
+  },
+  // Las dos tarjetas que siguen nacen con un tipo retirado por el ADR 0137: ninguna intención las ofrece. Quedan para
+  // reconocer («Actual») las láminas que ya los usan; la fase 2 las borra.
+  {
     clave: "p_slide_1_grafico:significancia",
     tipo: "p_slide_1_grafico",
     nombre: "Diferencias significativas",
@@ -266,13 +282,13 @@ export const INTENCIONES_CONTAR: readonly IntencionContar[] = [
     id: "comparar",
     nombre: "Comparar públicos",
     ayuda: "Dónde difieren los públicos.",
-    tarjetas: ["p_slide_1_grafico:contraste", "p_slide_1_grafico:significancia", "p_slide_1_grafico:dimensiones"],
+    tarjetas: ["p_slide_1_grafico:contraste"],
   },
   {
     id: "dentro",
     nombre: "Ver dentro de un público",
     ayuda: "Qué grupo interno es más crítico.",
-    tarjetas: ["p_slide_1_grafico:aperturas", "p_slide_1_grafico:contraste"],
+    tarjetas: ["p_slide_1_grafico:aperturas", "p_slide_1_grafico:mapa_calor", "p_slide_1_grafico:contraste"],
   },
   {
     id: "escala",
@@ -291,6 +307,7 @@ export function tarjetaContar(clave: string | null | undefined): TarjetaContar |
  * registro cargado, los del catálogo generado) y `laminas`, los tipos de lámina.
  */
 export function tarjetaDisponible(t: Pick<TarjetaContar, "tipo" | "grafico">, graficadores: ReadonlySet<string>, laminas: ReadonlySet<string>): boolean {
+  if (t.grafico && TIPOS_RETIRADOS_0137.has(t.grafico.graficador)) return false;   // ADR 0137
   return laminas.has(t.tipo) && (!t.grafico || graficadores.has(t.grafico.graficador));
 }
 
