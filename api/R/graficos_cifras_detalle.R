@@ -11,6 +11,9 @@
 #   categorica/1    p_barras_categoricas, p_barras_agrupadas de una serie: una fila («total»).
 #   escala/1        p_barras_apiladas, p_barras_multiapiladas: una fila por barra, en el orden de la lámina.
 #   divergentes/1   p_barras_divergentes: una fila por pregunta, con sus lados.
+#   agrupadas_cruce/1  p_barras_agrupadas con «Dividir por» (forma `categorica`): una fila por grupo con su n, leída de
+#                   lo que el render deja en el gráfico (`pulso_barras_series`, `pulso_barras_bases`). Esa lámina no
+#                   publica especificación con varias series, así que sus filas no traen cifras por categoría.
 #
 # Reglas (las de la lámina, ADR 0093):
 #   - `valor` de una categoría es la cifra rotulada (su redondeo y sus decimales); `texto`, la cifra tal cual se lee
@@ -224,4 +227,30 @@
   switch(tipo, categorica = .cifras_detalle_categorica(espec, base_texto, caja),
          escala = .cifras_detalle_escala(espec, base_texto, caja),
          divergentes = .cifras_detalle_divergentes(espec, base_texto, caja))
+}
+
+#' El detalle de una agrupada con cruce (`agrupadas_cruce/1`): una fila por grupo, con su n
+#'
+#' La agrupada con varias series no publica especificación (`pulso_espec` sólo existe con una serie) y su lámina sale
+#' como imagen. Lo que el render sí deja en el gráfico son los grupos que dibujó, en su orden (`pulso_barras_series`),
+#' y los casos de cada uno (`pulso_barras_bases`, `group_totals_casos` de `.render_barras_agrupadas`): con ellos el
+#' inspector muestra cada grupo con su n y su «pocos casos», ya con los filtros y los grupos excluidos. No hay cifras
+#' por categoría ni base ponderada por grupo: no se recalculan aparte (la regla de este archivo), así que `valores` va
+#' vacío y `n_ponderado` en `NA`.
+#' @param p Gráfico renderizado. @param base_texto La «Base: N» de la lámina.
+#' @return El detalle, o `NULL` si el gráfico no trae al menos dos grupos.
+#' @keywords internal
+.cifras_detalle_agrupadas_cruce <- function(p, base_texto = "") {
+  series <- as.character(attr(p, "pulso_barras_series", exact = TRUE) %||% character(0))
+  bases <- attr(p, "pulso_barras_bases", exact = TRUE)
+  if (length(series) < 2L || is.null(attr(p, "pulso_barras_cruce", exact = TRUE))) return(NULL)
+  n_de <- function(s) if (!is.null(bases) && s %in% names(bases)) .cifras_det_num(bases[[s]]) else NA_real_
+  filas <- lapply(series, function(s) {
+    list(clave = s, rotulo = s, es_total = FALSE, base = .cifras_det_base(NA_real_, n_de(s)), valores = list(),
+         sumas = NA, caja = NA, lados = NA)
+  })
+  base_texto <- as.character(base_texto %||% "")[1]
+  list(forma = "categorica", version = "agrupadas_cruce/1",
+       base = .cifras_det_base_comun(lapply(filas, `[[`, "base"), if (is.na(base_texto)) "" else base_texto),
+       redondeo = list(metodo = "estandar", decimales = 0L), categorias = list(), filas = filas)
 }

@@ -142,7 +142,11 @@
     warning = function(w) { avisos <<- c(avisos, conditionMessage(w)); invokeRestart("muffleWarning") })
   esp <- attr(out$rendered[[1]], "pulso_espec", exact = TRUE)
   cifras <- .cifras_clave(esp)
-  det <- if (isTRUE(detalle)) .cifras_detalle(esp, (out$render_meta[[1]] %||% list())$base %||% "", caja) else NULL
+  base_lamina <- if (isTRUE(detalle)) (out$render_meta[[1]] %||% list())$base %||% "" else ""   # sin detalle no hay render_meta
+  det <- if (isTRUE(detalle)) .cifras_detalle(esp, base_lamina, caja) else NULL
+  if (isTRUE(detalle) && is.null(det) && identical(graficador, "p_barras_agrupadas")) {
+    det <- .cifras_detalle_agrupadas_cruce(out$rendered[[1]], base_lamina)   # con «Dividir por»: los grupos y su n
+  }
   if (isTRUE(detalle) && is.null(det)) avisos <- c(avisos, "La lámina no publica el detalle de sus cifras con esta configuración.")
   if (!length(cifras) && !isTRUE(detalle)) avisos <- c(avisos, "La lámina no dibujó cifras con estos datos.")
   res <- list(ok = TRUE, tipo = as.character(esp$version %||% "")[1], cifras = cifras, avisos = as.list(unique(avisos)))
