@@ -1,0 +1,83 @@
+/* CabeceraPanel — cabecera de toda superficie con X (contrato B, 8 nov 2026).
+ *
+ * Rejilla de cuatro pistas fijas: [ícono] [texto 1fr] [acciones] [X]. Las
+ * pistas vacías miden 0 porque la separación va en márgenes de cada pieza, no
+ * en column-gap (un gap dejaría huecos cuando falta el ícono o las acciones).
+ * Ícono, acciones y X viven en la fila 1, cuyo alto mínimo es el de la X: así
+ * la X queda centrada en la línea del título aunque haya subtítulo. */
+
+.pulso-cabecera-panel {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-rows: minmax(var(--pulso-close-size), auto);
+  align-content: center;
+  align-items: center;
+  column-gap: 0;
+  row-gap: 0;
+  min-height: var(--pulso-panel-head-h);
+  min-width: 0;
+  padding-block: var(--pulso-space-2);
+  padding-inline: var(--pulso-space-3);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-cabecera-panel--con-subtitulo {
+  grid-template-rows: minmax(var(--pulso-close-size), auto) auto;
+}
+
+.pulso-cabecera-panel__icono {
+  grid-column: 1;
+  grid-row: 1;
+  display: inline-flex;
+  align-items: center;
+  margin-inline-end: var(--pulso-space-2);
+  color: var(--pulso-text-soft);
+  line-height: 0;
+}
+
+.pulso-cabecera-panel__icono > svg {
+  width: var(--pulso-icon-size-md);
+  height: var(--pulso-icon-size-md);
+}
+
+.pulso-cabecera-panel__titulo {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-title-size);
+  font-weight: var(--pulso-type-title-weight);
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-cabecera-panel__subtitulo {
+  grid-column: 2;
+  grid-row: 2;
+  min-width: 0;
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-type-caption-weight);
+  line-height: 1.35;
+}
+
+.pulso-cabecera-panel__acciones {
+  grid-column: 3;
+  grid-row: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  margin-inline-start: var(--pulso-space-2);
+}
+
+.pulso-cabecera-panel__cerrar {
+  grid-column: 4;
+  grid-row: 1;
+  justify-self: end;
+  margin-inline-start: var(--pulso-space-1);
+}
