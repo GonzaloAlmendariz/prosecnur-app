@@ -70,12 +70,18 @@
   # El ancho de slot se toma del layout, que es quien sabe cuánto mide cada
   # hueco: pasarlo fijo aquí volvería a acoplar la disposición al código.
   anchos <- vapply(nombres, function(nm) .composicion_ancho_slot(doc, contract, nm), numeric(1))   # reporte_slides_composicion_ancho.R
+  # El alto sólo llega a los lienzos de escala (apiladas y multiapiladas): anclan leyenda y base al alto que creen tener y,
+  # dibujados para 6 in y pegados en 2.57, la base caía sobre la leyenda. Las agrupadas con alto real encogen y ocultan
+  # cifras (render 2026-11-08), así que siguen con el de su firma.
+  altos <- lapply(nombres, function(nm) {
+    if (.composicion_recibe_alto(els[[nm]])) .composicion_alto_slot(doc, contract, nm)
+  })
 
   rendered <- list()
   for (i in seq_along(nombres)) {
     nm <- nombres[[i]]
     p <- helpers$render_element(helpers$inject_title_override(els[[nm]]),
-                                ancho_slot = anchos[[i]])
+                                ancho_slot = anchos[[i]], alto_slot = altos[[i]])
     if (is.null(p)) {
       p <- helpers$canvas_render_nulo(
         stype, ": no se pudo renderizar ", nm,

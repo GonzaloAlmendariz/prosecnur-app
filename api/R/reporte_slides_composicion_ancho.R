@@ -18,6 +18,29 @@
   if (length(w) && is.finite(w) && w > 0) w else respaldo
 }
 
+#' Alto físico (in) del slot `nm` de una composición
+#'
+#' Espejo de `.composicion_ancho_slot`: primero `loc$height` del contrato; si no hay, el alto del marcador del layout; si
+#' tampoco, `NULL` (el graficador se queda con el alto de su firma). Sin él, el panel de apiladas de `graficos_2_vertical`
+#' se dibujaba para 6 in y se pegaba en 2.57: la leyenda y la base, ancladas al alto supuesto, se montaban al reducir.
+#' @return Alto en pulgadas, o `NULL`.
+#' @keywords internal
+.composicion_alto_slot <- function(doc, contract, nm) {
+  spec <- contract$slots[[nm]]
+  h <- suppressWarnings(as.numeric((spec$loc %||% list())$height)[1])
+  if (length(h) && is.finite(h) && h > 0) return(h)
+  props <- tryCatch(officer::layout_properties(doc, layout = contract$layout), error = function(e) NULL)
+  sel <- if (!is.null(props) && !is.null(spec)) tryCatch(.ppt_slide_template_select_placeholder(props, spec), error = function(e) NULL)
+  h <- suppressWarnings(as.numeric(sel$cy %||% NA)[1])
+  if (length(h) && is.finite(h) && h > 0) h else NULL
+}
+
+#' ¿El elemento recibe el alto real de su slot? Sólo los lienzos de escala (`barras_apiladas`, `barras_multiapiladas`).
+#' @keywords internal
+.composicion_recibe_alto <- function(el) {
+  inherits(el, "ppt_element") && (el$.element_type %||% "") %in% c("barras_apiladas", "barras_multiapiladas")
+}
+
 #' A12: alto físico (in) del cajón de respaldo del panel `k` de una lámina mixta
 #'
 #' Es el rectángulo que `.lam_mixta_respaldo_caja` le da al gráfico: el panel de `.lam_mixta_geo(tipo)` menos su encabezado
