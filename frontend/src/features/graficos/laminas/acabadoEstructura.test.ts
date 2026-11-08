@@ -239,3 +239,19 @@ describe("R9-5: los títulos de las cabeceras no se recortan por sus acciones", 
     expect(src).toMatch(/variant="icon" tone="quiet" className="pulso-f6-avisos-sin-titulo" aria-label="Siguiente lámina sin título"/);
   });
 });
+
+describe("R9-7: «Armar desde un plan sugerido» en el dialecto del kit", () => {
+  const src = sinComentarios(leer("../SuggestedPlanButton.tsx"));
+  const popover = src.slice(src.indexOf('className="pulso-gv2-suggest-popover"'));
+  it("cabecera del kit con la X; sin «Cancelar» al pie", () => {
+    expect(popover).toMatch(/<CabeceraPanel\b[\s\S]*onCerrar=\{cerrarDevolviendoFoco\}/);
+    expect(popover).not.toMatch(/>\s*Cancelar\s*</);
+    expect(popover).not.toMatch(/<X\b/);
+  });
+  it("los tres segmentados son RadioSegmentado y las acciones PulsoButton con un solo primario", () => {
+    expect(popover.match(/<RadioSegmentado\b/g)).toHaveLength(3);
+    expect(popover).not.toMatch(/role="radiogroup"/);
+    expect(popover.match(/variant="primary"/g)).toHaveLength(1);
+    expect(popover).not.toMatch(/<button\b/);
+  });
+});

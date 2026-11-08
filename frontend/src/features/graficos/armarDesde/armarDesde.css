@@ -52,3 +52,79 @@
 .pulso-gv2-suggest-popover:focus {
   outline: none;
 }
+
+/* R9-7 (acabado): el popover entra en el dialecto del kit. CabeceraPanel con la X (sin «Cancelar»), segmentados
+   RadioSegmentado y PulsoButton; el radio de tarjeta y sin el tinte del acento en el bloque ACNUR (el acento queda para
+   la selección y el único primario). La cabecera queda fija arriba mientras el cuerpo se desplaza (C4). */
+.pulso-gv2-suggest-root .pulso-gv2-suggest-popover {
+  padding: 0 var(--pulso-space-3) var(--pulso-space-3);
+  border-radius: var(--pulso-radius-card);
+}
+
+.pulso-gv2-suggest-popover > .pulso-gv2-suggest-cabecera {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0 calc(-1 * var(--pulso-space-3)) var(--pulso-space-3);
+  background: var(--pulso-material-bg-strong);
+}
+
+.pulso-gv2-suggest-popover .pulso-f6-segmento-rotulo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+}
+
+.pulso-gv2-suggest-popover .pulso-f6-segmento-rotulo > svg {
+  flex: none;
+  width: var(--pulso-icon-size-sm);
+  height: var(--pulso-icon-size-sm);
+}
+
+.pulso-gv2-suggest-root .pulso-gv2-suggest-acnur {
+  border-color: var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-f6-armar-regenerar {
+  width: 100%;
+  justify-content: center;
+}
+
+.pulso-f6-armar-datos-cabeza {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-f6-armar-datos-cabeza > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pulso-f6-armar-datos-cabeza > div > strong {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-f6-armar-datos-cabeza > div > span {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-micro-size);
+}
+
+.pulso-f6-armar-datos-cabeza > .pulso-button {
+  flex: none;
+}
+
+/* Un solo primario al pie, a la derecha; el secundario a su lado. Sin «Cancelar»: la X y Escape cierran. */
+.pulso-f6-armar-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--pulso-space-2);
+  margin-top: var(--pulso-space-3);
+}

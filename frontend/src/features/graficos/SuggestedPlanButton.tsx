@@ -5,7 +5,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { BarChart3, Check, Download, GitMerge, LayoutTemplate, Loader2, Map, RefreshCw, Wand2, X } from "../../vendor/lucide-react";
+import { BarChart3, Check, Download, GitMerge, LayoutTemplate, Loader2, Map, RefreshCw, Wand2 } from "../../vendor/lucide-react";
 import {
   apiGraficosPlanSugerido,
   type GraficosSuggestedPlanResponse,
@@ -35,6 +35,9 @@ import { enfocarSinDesplazar } from "./laminas/enfocarSinDesplazar";
 import "./armarDesde/armarDesde.css";
 import { contenidoPropuesto, tituloPropuesto } from "./armarDesde/vistaPreviaPropuesta";
 import { formatoConteo } from "../../lib/formatoNumero";
+import { CabeceraPanel } from "../../components/CabeceraPanel";
+import { PulsoButton } from "../../components/PulsoButton";
+import { RadioSegmentado } from "./subpestanas/RadioSegmentado";
 
 function newSlideId(prefix = "sug") {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
@@ -310,73 +313,45 @@ export function SuggestedPlanButton() {
 
       {open && (
         <div ref={dialogoRef} tabIndex={-1} className="pulso-gv2-suggest-popover" role="dialog" aria-label={PANEL_ARMAR_DESDE.label} {...panel.props}>
-          <div className="pulso-gv2-suggest-head">
-            <div>
-              <strong>Armar desde un plan sugerido</strong>
-              <span>{motivo ?? "Elige un plan base y previsualízalo antes de aplicarlo al plan actual."}</span>
-            </div>
-            <button type="button" onClick={cerrarDevolviendoFoco} aria-label="Cerrar">
-              <X size={13} />
-            </button>
-          </div>
+          {/* R9-7: la cabecera y la X del kit; «Cancelar» sale del pie (la X y Escape cierran). */}
+          <CabeceraPanel
+            className="pulso-gv2-suggest-cabecera"
+            titulo="Armar desde un plan sugerido"
+            subtitulo={motivo ?? "Elige un plan base y previsualízalo antes de aplicarlo al plan actual."}
+            onCerrar={cerrarDevolviendoFoco}
+            etiquetaCerrar="Cerrar plan sugerido"
+          />
 
           {!motivo && (<>
 
           <div className="pulso-gv2-suggest-options" aria-label="Opciones del plan sugerido">
-            <div className="pulso-gv2-suggest-profile" role="radiogroup" aria-label="Perfil de plantilla">
-              <button
-                type="button"
-                className={profileId === "auto" ? "is-active" : ""}
-                aria-pressed={profileId === "auto"}
-                onClick={() => {
-                  setProfileId("auto");
-                  setResult(null);
-                }}
-              >
-                <Wand2 size={13} /> Automático
-              </button>
-              <button
-                type="button"
-                className={profileId === "acnur_kobo_cruncher_plus" ? "is-active" : ""}
-                aria-pressed={profileId === "acnur_kobo_cruncher_plus"}
-                onClick={() => {
-                  setProfileId("acnur_kobo_cruncher_plus");
-                  setResult(null);
-                }}
-              >
-                <BarChart3 size={13} /> ACNUR
-              </button>
-            </div>
+            <RadioSegmentado
+              etiqueta="Perfil de plantilla"
+              ancho
+              valor={profileId}
+              onCambiar={(k) => { setProfileId(k); setResult(null); }}
+              opciones={[
+                { clave: "auto", rotulo: <><Wand2 aria-hidden="true" /> Automático</> , titulo: "Automático" },
+                { clave: "acnur_kobo_cruncher_plus", rotulo: <><BarChart3 aria-hidden="true" /> ACNUR</>, titulo: "ACNUR" },
+              ]}
+            />
 
             {profileId === "acnur_kobo_cruncher_plus" && (
               <div className="pulso-gv2-suggest-acnur">
-                <div className="pulso-gv2-suggest-mode" role="radiogroup" aria-label="Modo ACNUR">
-                  <button
-                    type="button"
-                    className={acnurMode === "general" ? "is-active" : ""}
-                    aria-pressed={acnurMode === "general"}
-                    onClick={() => {
-                      setAcnurMode("general");
-                      setResult(null);
-                    }}
-                  >
-                    <BarChart3 size={13} /> General
-                  </button>
-                  <button
-                    type="button"
-                    className={acnurMode === "territorial" ? "is-active" : ""}
-                    aria-pressed={acnurMode === "territorial"}
-                    disabled={!canIncludeCoverageMaps}
-                    title={!canIncludeCoverageMaps ? coverageDisabledReason : undefined}
-                    onClick={() => {
-                      setAcnurMode("territorial");
-                      setComparisonMode("paired_district");
-                      setResult(null);
-                    }}
-                  >
-                    <Map size={13} /> Territorial
-                  </button>
-                </div>
+                <RadioSegmentado
+                  etiqueta="Modo ACNUR"
+                  ancho
+                  valor={acnurMode}
+                  onCambiar={(k) => {
+                    setAcnurMode(k);
+                    if (k === "territorial") setComparisonMode("paired_district");
+                    setResult(null);
+                  }}
+                  opciones={[
+                    { clave: "general", rotulo: <><BarChart3 aria-hidden="true" /> General</>, titulo: "General" },
+                    { clave: "territorial", rotulo: <><Map aria-hidden="true" /> Territorial</>, titulo: !canIncludeCoverageMaps ? coverageDisabledReason : "Territorial", deshabilitada: !canIncludeCoverageMaps },
+                  ]}
+                />
                 {acnurMode === "general" ? (
                   <div className="pulso-gv2-suggest-option-text">
                     <strong>ACNUR general</strong>
@@ -388,36 +363,21 @@ export function SuggestedPlanButton() {
                       <strong>ACNUR territorial</strong>
                       <small>Agrega mapas al inicio. Puedes activar o quitar el comparativo.</small>
                     </span>
-                    <div className="pulso-gv2-suggest-comparison-segment" role="radiogroup" aria-label="Comparativo territorial">
-                      {COMPARISON_MODE_OPTIONS.map((option) => (
-                        <button
-                          key={option.value}
-                          type="button"
-                          className={comparisonMode === option.value ? "is-active" : ""}
-                          aria-pressed={comparisonMode === option.value}
-                          title={option.hint}
-                          onClick={() => {
-                            setComparisonMode(option.value);
-                            setResult(null);
-                          }}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
+                    <RadioSegmentado
+                      etiqueta="Comparativo territorial"
+                      ancho
+                      valor={comparisonMode}
+                      onCambiar={(k) => { setComparisonMode(k); setResult(null); }}
+                      opciones={COMPARISON_MODE_OPTIONS.map((o) => ({ clave: o.value, rotulo: o.label, titulo: o.hint }))}
+                    />
                   </div>
                 )}
               </div>
             )}
-            <button
-              type="button"
-              className="pulso-gv2-suggest-regenerate"
-              onClick={generate}
-              disabled={busy}
-            >
-              {busy ? <Loader2 size={12} className="pulso-spin" /> : <RefreshCw size={12} />}
+            <PulsoButton variant="secondary" size="sm" className="pulso-f6-armar-regenerar" onClick={generate} disabled={busy}>
+              {busy ? <Loader2 className="pulso-spin" aria-hidden="true" /> : <RefreshCw aria-hidden="true" />}
               Actualizar propuesta
-            </button>
+            </PulsoButton>
           </div>
 
           {busy && (
@@ -457,14 +417,14 @@ export function SuggestedPlanButton() {
 
               {result.report_inputs && (
                 <section className="pulso-gv2-suggest-inputs" aria-label="Datos que usará el informe">
-                  <div className="pulso-gv2-suggest-inputs-head">
+                  <div className="pulso-f6-armar-datos-cabeza">
                     <div>
                       <strong>Datos que usará el informe</strong>
                       <span>Revisa estos datos antes de aplicar el plan.</span>
                     </div>
-                    <button type="button" onClick={downloadRecipe}>
-                      <Download size={12} /> Descargar guía
-                    </button>
+                    <PulsoButton variant="ghost" size="sm" onClick={downloadRecipe}>
+                      <Download aria-hidden="true" /> Descargar guía
+                    </PulsoButton>
                   </div>
 
                   <dl className="pulso-gv2-suggest-inputs-summary">
@@ -545,16 +505,13 @@ export function SuggestedPlanButton() {
                 </label>
               )}
 
-              <div className="pulso-gv2-suggest-actions">
-                <button type="button" onClick={replacePlan} className="is-primary">
-                  <Check size={12} /> Reemplazar plan actual
-                </button>
-                <button type="button" onClick={mergePlan}>
-                  <GitMerge size={12} /> Fusionar al final
-                </button>
-                <button type="button" onClick={cerrarDevolviendoFoco}>
-                  Cancelar
-                </button>
+              <div className="pulso-f6-armar-acciones">
+                <PulsoButton variant="secondary" onClick={mergePlan}>
+                  <GitMerge aria-hidden="true" /> Fusionar al final
+                </PulsoButton>
+                <PulsoButton variant="primary" onClick={replacePlan}>
+                  <Check aria-hidden="true" /> Reemplazar plan actual
+                </PulsoButton>
               </div>
             </>
           )}
