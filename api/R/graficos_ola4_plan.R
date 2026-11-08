@@ -619,6 +619,8 @@ p_barras_divergentes <- function(vars = NULL,
   # overrides: hacerlo reintroduciria la reclasificacion por indices visibles.
   args$reparto <- tabla$reparto
   args <- .regla_escala_orden_args(args, el)   # la regla fijó el orden: las filas van como las ordenó (ADR 0135)
+  # E1b (ola 2): la cifra de la imagen al cuerpo del preset, nunca más chica (`.std_pt("cifra")`).
+  args$size_valores <- max(suppressWarnings(as.numeric(args$size_valores %||% 0)[1]), .std_pt("cifra") * 25.4 / 72, na.rm = TRUE)
   args <- .keep_formals(graficar_barras_divergentes, args, contexto = "graficar_barras_divergentes")
   p <- .regla_preguntas_en_espec(do.call(graficar_barras_divergentes, args), ap$texto)
   esp <- attr(p, "pulso_espec", exact = TRUE)

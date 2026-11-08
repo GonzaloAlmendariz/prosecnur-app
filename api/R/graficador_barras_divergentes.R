@@ -101,7 +101,9 @@
 #' @param cols_porcentaje Columnas de porcentaje, EN EL ORDEN DE LA ESCALA (de
 #'   peor a mejor). El orden es la declaracion: de el sale que cae a cada lado.
 #' @param etiquetas_grupos Etiquetas visibles de cada categoria.
-#' @param umbral_etiqueta_pct Segmentos por debajo de este PORCENTAJE no llevan
+#' @param ancho Ancho del lienzo en pulgadas (lo pone la lámina): mide si cada cifra cabe en su segmento (E1b, ola 2).
+#' @param umbral_etiqueta_pct Se conserva por compatibilidad; desde la ola 2 (E1b) la imagen escribe toda cifra
+#'   (la que no cabe va fuera con guía), como la lámina nativa. Antes: segmentos por debajo de este PORCENTAJE no llevaban
 #'   cifra. El sufijo `_pct` no es decorativo: el patch de UI acota todo arg
 #'   `umbral_*` a la escala 0-1 de las apiladas, y este va en puntos
 #'   porcentuales.
@@ -163,7 +165,8 @@ graficar_barras_divergentes <- function(
     reparto = NULL,
     codigos_grupos = NULL,
     estilo = c("recetario", "resumen"),
-    orden = c("top_two_box", "sin_informacion", "declarado")
+    orden = c("top_two_box", "sin_informacion", "declarado"),
+    ancho = NULL
 ) {
   escala_valor <- match.arg(escala_valor)
   estilo <- match.arg(estilo)
@@ -314,21 +317,33 @@ graficar_barras_divergentes <- function(
     # Regla de la casa: el 0,5 sube. `round()` redondea al par y dejaba 12,5 %
     # en 12 % mientras 87,5 % subía a 88 % en el mismo gráfico.
     lab$.lab <- .pulso_fmt_pct_half_up(lab$.valor, dec, escala = 1)
-    lab$.lab[lab$.valor < umbral_etiqueta_pct] <- ""
+    # E1b (ola 2): ninguna cifra se oculta; la que no cabe va fuera con su guía (graficador_barras_divergentes_cifras.R).
+    lab$.lab[!is.finite(lab$.valor) | lab$.valor <= 0] <- ""
     if (nrow(df_si)) {
       lab_si <- df_si; lab_si$.lab <- .pulso_fmt_pct_half_up(lab_si$.valor, dec, escala = 1)
-      lab_si$.lab[lab_si$.valor < umbral_etiqueta_pct] <- ""
+      lab_si$.lab[!is.finite(lab_si$.valor) | lab_si$.valor <= 0] <- ""
       p <- p + ggplot2::geom_text(data = lab_si, ggplot2::aes(x = .data$.x, y = .data$.item, label = .data$.lab), inherit.aes = FALSE,
                                   size = size_valores, colour = color_texto_barras, family = font_family, fontface = face("valores"))
     }
+    # E1b (ola 2): posiciones explícitas, medidas en pulgadas con el ancho del lienzo; dentro si caben, si no encima de
+    # su barra con guía.
+    size_pt <- size_valores * 72 / 25.4
+    rango_x <- 2 * tope * (if (isTRUE(mostrar_saldo)) 1.18 else 1) * 1.1
+    lab <- .divergentes_cifras_posiciones(lab, df, size_pt, .divergentes_in_por_unidad(ancho, levels(df$.item), size_ejes, rango_x),
+                                          grosor_barras)
+    dentro <- lab[lab$.dentro, , drop = FALSE]; fuera <- lab[!lab$.dentro & nzchar(lab$.lab), , drop = FALSE]
     p <- p + ggplot2::geom_text(
-      data = lab,
-      ggplot2::aes(x = .data$.signo, label = .data$.lab,
-                   group = .data$.orden_apilado),
-      position = ggplot2::position_stack(vjust = 0.5),
+      data = dentro, ggplot2::aes(x = .data$.x, y = .data$.y, label = .data$.lab), inherit.aes = FALSE,
       size = size_valores, colour = color_texto_barras,
       family = font_family, fontface = face("valores"), na.rm = TRUE
     )
+    if (nrow(fuera)) {
+      p <- p +
+        ggplot2::geom_segment(data = fuera, ggplot2::aes(x = .data$.gx, xend = .data$.x, y = .data$.gy0, yend = .data$.gy1),
+                              inherit.aes = FALSE, colour = .std_color("texto_tenue"), linewidth = 0.3) +
+        ggplot2::geom_text(data = fuera, ggplot2::aes(x = .data$.x, y = .data$.y, label = .data$.lab), inherit.aes = FALSE,
+                           vjust = 0, size = size_valores, colour = color_ejes, family = font_family, fontface = face("valores"))
+    }
   }
 
   if (isTRUE(mostrar_saldo)) {
