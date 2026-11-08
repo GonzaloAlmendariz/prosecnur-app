@@ -29,12 +29,13 @@ describe("ronda 5: geometría en CSS", () => {
     expect(leer("laminasWorkbench.css")).toContain("@container pulso-f6-laminas (max-width: 1120px)");
   });
 
-  it("R5-8: el chip «Actualizando» va en la esquina inferior izquierda de la hoja", () => {
-    const chip = regla(leer("visorLamina.css"), ".pulso-f6-hoja-actualizando {");
-    expect(chip).toMatch(/bottom:/);
-    expect(chip).toMatch(/left:/);
-    expect(chip).not.toMatch(/\btop:/);
-    expect(chip).not.toMatch(/\bright:/);
+  it("R7-2: el chip «Actualizando» vive en la barra del visor, no sobre la hoja", () => {
+    const css = leer("visorLamina.css");
+    expect(css).not.toContain(".pulso-f6-hoja-actualizando");
+    expect(regla(css, ".pulso-f6-barra-actualizando {")).not.toMatch(/position:\s*absolute/);
+    const tsx = leer("VisorLamina.tsx");
+    const barra = tsx.slice(tsx.indexOf('<header className="pulso-f6-visor-barra">'), tsx.indexOf("</header>"));
+    expect(barra).toContain("pulso-f6-barra-actualizando");
   });
 
   it("R5-10: con el foco en el asa y sin puntero ni arrastre, el número se ve (el glifo se apaga)", () => {

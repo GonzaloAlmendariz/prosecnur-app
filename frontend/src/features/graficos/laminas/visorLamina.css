@@ -116,22 +116,16 @@
   user-select: none;
 }
 
-/* Hallazgo 7 (auditoría de Arte): mientras llega la vista previa nueva, la anterior se queda NÍTIDA y un chip pequeño en
-   la esquina dice «Actualizando». Antes la hoja entera se desenfocaba en cada cambio y no se podía leer. El chip espera
-   150 ms para no asomar en respuestas rápidas. La piel es la del chip de estado de la barra (`.pulso-f6-chip-estado`).
-   R5-8: en la esquina inferior izquierda; arriba a la derecha tapaba el logo de la plantilla. */
-.pulso-f6-hoja-actualizando {
-  position: absolute;
-  bottom: var(--pulso-space-2);
-  left: var(--pulso-space-2);
-  z-index: 2;
-  box-shadow: var(--pulso-shadow-low);
-  pointer-events: none;
+/* Hallazgo 7 (auditoría de Arte): mientras llega la vista previa nueva, la anterior se queda NÍTIDA y un chip dice
+   «Actualizando». Espera 150 ms para no asomar en respuestas rápidas. R7-2: vive en la barra del visor, junto a «Lámina N
+   de M» (como «Generando»); sobre la hoja tapaba la base del pie y, antes (R5-8), el logo. */
+.pulso-f6-barra-actualizando {
+  flex: none;
   transition: opacity var(--motion-dur-fast) var(--motion-ease-out) var(--motion-delay-pendiente);
 }
 
 @starting-style {
-  .pulso-f6-hoja-actualizando {
+  .pulso-f6-barra-actualizando {
     opacity: 0;
   }
 }

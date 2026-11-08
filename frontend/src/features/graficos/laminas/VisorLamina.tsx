@@ -115,7 +115,7 @@ export function VisorLamina({
   // En maqueta no se muestra ninguna imagen; en «cómo queda», la del motor o, mientras llega, la del lote. Con un dato
   // obligatorio pendiente (Q4-4) no hay dibujo que mostrar: la maqueta dice qué falta.
   const falta = faltaEnLamina(slide);
-  // Hallazgo 7: mientras llega la imagen nueva, la anterior se queda nítida con un chip «Actualizando» (presentacionPreview.ts).
+  // Hallazgo 7: mientras llega la imagen nueva, la anterior se queda nítida y la barra dice «Actualizando» (presentacionPreview.ts).
   const presentacion = presentacionPreview({ verComoQueda, falta, fase: vista.fase, imagenMotor: real, imagenLote, error: vista.error });
   const src = presentacion.src;
   const { slidesById } = useGraficosRegistry();
@@ -187,6 +187,14 @@ export function VisorLamina({
             Generando
             {vista.progreso?.porcentaje != null ? `, ${Math.round(vista.progreso.porcentaje)} %` : ""}
             {vista.progreso?.mensaje ? <span className="pulso-sr-only">: {vista.progreso.mensaje}</span> : null}
+          </span>
+        )}
+        {/* R7-2: «Actualizando» va en la barra, junto a «Lámina N de M», como «Generando»; sobre la hoja tapaba la base. */}
+        {presentacion.actualizando && (
+          <span className="pulso-f6-chip-estado is-neutro pulso-f6-barra-actualizando" role="status">
+            <Loader2 size={13} className="pulso-spin" aria-hidden="true" />
+            <span className="pulso-f6-rotulo-estrecho">Actualizando</span>
+            {vista.progreso?.porcentaje != null ? <span className="pulso-sr-only">, {Math.round(vista.progreso.porcentaje)} %</span> : null}
           </span>
         )}
         {nPartes > 1 && l && (
@@ -297,13 +305,6 @@ export function VisorLamina({
             lugar={(slot) => nombreSlot(slot, slidesById[slide.tipo])} />}
           {/* Las guías son del visor: nunca entran al entregable (D17). Sólo sobre el dibujo real del motor. */}
           {real && !cargando && <GuiasSobreLamina modelo={guias} resaltada={resaltada} hojaRef={hojaRef} />}
-          {presentacion.actualizando && (
-            <span className="pulso-f6-chip-estado is-neutro pulso-f6-hoja-actualizando" role="status">
-              <Loader2 size={12} className="pulso-spin" aria-hidden="true" />
-              Actualizando
-              {vista.progreso?.porcentaje != null ? <span className="pulso-sr-only">, {Math.round(vista.progreso.porcentaje)} %</span> : null}
-            </span>
-          )}
         </figure>
         {presentacion.dibujandoPrimera && (
           <p className="pulso-f6-lienzo-aviso is-info" role="status">
