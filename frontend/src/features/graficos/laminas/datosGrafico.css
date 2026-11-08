@@ -202,10 +202,12 @@
   background: var(--pulso-primary-soft);
   color: var(--pulso-primary);
 }
+/* R7-14: lo destacado es una elección, no un error: el acento del módulo, como las fichas elegidas (no el rojo). */
 .pulso-f6-destacar-opcion[aria-pressed="true"] {
-  border-color: var(--pulso-danger-fg);
-  background: var(--pulso-danger-bg);
-  color: var(--pulso-danger-fg);
+  border-color: var(--module-accent);
+  background: var(--module-accent-soft);
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
 }
 @media (prefers-reduced-motion: reduce) { .pulso-f6-destacar-opcion { transition: none; } }
 
