@@ -160,7 +160,7 @@
 
 .rec-trato-registro-cuenta {
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--pulso-type-caption-size);
   margin: 0;
 }
 
@@ -173,6 +173,6 @@
 }
 
 .rec-trato-registro-lista {
-  font-size: 12px;
+  font-size: var(--pulso-type-caption-size);
   overflow-wrap: anywhere;
 }

@@ -6,6 +6,7 @@ import { useId, useState } from "react";
 
 import type { MailTemplate } from "../../../api/materialMail";
 import { PulsoButton } from "../../../components/PulsoButton";
+import { copiarTexto } from "../../../lib/portapapeles";
 import { Copy } from "../../../vendor/lucide-react";
 import { Segmented } from "../../xlsformEditor/kit";
 import { conRegistro, registroDe, variante, variantesDelCorreo } from "./modeloRegistro";
@@ -26,7 +27,7 @@ export function TratoDeLaCampana({ template, onEditar }: Props) {
   const lista = variante(tu, usted);
   const copiar = async () => {
     try {
-      await navigator.clipboard.writeText(lista);
+      await copiarTexto(lista);
       setCopiada(true);
     } catch {
       setCopiada(false);

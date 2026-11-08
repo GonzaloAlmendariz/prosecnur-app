@@ -13,6 +13,7 @@ import { useEffect, useId, useState } from "react";
 import type { MailCampaignSummary } from "../../../api/materialMail";
 import type { MailHermana, ParteHermana } from "../../../api/materialMailHermanas";
 import { PulsoButton } from "../../../components/PulsoButton";
+import { formatoConteo } from "../../../lib/formatoNumero";
 import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import type { ControlPanel } from "../../../lib/navegacion/paneles";
 import { Loader2 } from "../../../vendor/lucide-react";
@@ -143,7 +144,7 @@ export function AplicarAHermanas({ panel, origen, campanas, sinGuardar, onAplica
                 ) : null}
                 {conProblemas.length ? (
                   <p className="rec-camp-mensaje is-error" role="alert">
-                    {conProblemas.length === 1 ? "Una campaña quedaría inválida" : `${conProblemas.length} campañas quedarían inválidas`}: corrígelo antes de aplicar.
+                    {conProblemas.length === 1 ? "Una campaña quedaría inválida" : `${formatoConteo(conProblemas.length)} campañas quedarían inválidas`}: corrígelo antes de aplicar.
                   </p>
                 ) : null}
                 <ul className="rec-hermanas-resumen" aria-label="Qué cambia en cada campaña">
@@ -172,7 +173,7 @@ export function AplicarAHermanas({ panel, origen, campanas, sinGuardar, onAplica
               <PulsoButton variant="primary" size="sm" disabled={fase.paso === "aplicando" || conProblemas.length > 0 || !conCambios.length}
                 onClick={() => void aplicar()}>
                 {fase.paso === "aplicando" ? <Loader2 size={14} className="pulso-spin" aria-hidden /> : null}
-                {conCambios.length ? ` Aplicar a ${conCambios.length} ${conCambios.length === 1 ? "campaña" : "campañas"}` : " Ya están iguales"}
+                {conCambios.length ? ` Aplicar a ${formatoConteo(conCambios.length)} ${conCambios.length === 1 ? "campaña" : "campañas"}` : " Ya están iguales"}
               </PulsoButton>
             )}
           </div>
