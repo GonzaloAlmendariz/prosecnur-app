@@ -67,6 +67,10 @@
     els[[nm]] <- el
   }
 
+  # A7 (ola 4): sin base en el pie, los huecos de la vertical llegan hasta donde empezaría la base
+  # (reporte_slides_composicion_alto_libre.R).
+  contract <- .composicion_vertical_alto_libre(doc, contract, slide, stype)
+
   # El ancho de slot se toma del layout, que es quien sabe cuánto mide cada
   # hueco: pasarlo fijo aquí volvería a acoplar la disposición al código.
   anchos <- vapply(nombres, function(nm) .composicion_ancho_slot(doc, contract, nm), numeric(1))   # reporte_slides_composicion_ancho.R
