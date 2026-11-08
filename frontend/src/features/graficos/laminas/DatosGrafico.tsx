@@ -101,6 +101,8 @@ import { ExcluirRespuestas } from "./excluirConCifra/ExcluirRespuestas";
 import { LadosEscala } from "./divergentes/LadosEscala";
 import { MaximoCategorias } from "./recorte/MaximoCategorias";
 import { ARGS_RECORTE } from "./recorte/modeloRecorte";
+import { GruposDelCruce } from "./cruce/GruposDelCruce";
+import { ARGS_CRUCE } from "./cruce/modeloGrupos";
 import { ARGS_LADOS, llevaLados } from "./divergentes/modeloLados";
 import { conDetalle } from "./cifrasInspector/modeloCifras";
 import "./datosGrafico.css";
@@ -227,6 +229,8 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
             onCambio={(v) => set(valor.graficador === "p_radar" && c.arg.name === "modo" && typeof v === "string" ? patchModoRadar(args.modo, v) : { [c.arg.name]: v })} />
       {/* H2: «Un color por opción» encendido sobre una lista sin colores dice por qué no se ve. */}
       {c.arg.name === "colorear_por_opcion" && interruptorEncendido(c.arg, alcance(c).valor) && <AvisoColorPorOpcion valor={valor} />}
+      {/* Oleada I2, ítem 7: elegido el cruce, sus grupos con su n; un clic manda uno de pocos casos a Excluir grupos. */}
+      {ARGS_CRUCE.has(c.arg.name) && cruce && <GruposDelCruce graficador={valor.graficador} scope={scope} args={args} variableCruce={varCalificada(cruce, baseActiva, scope)} onExcluir={(meta?.args ?? []).some((a) => a.name === "excluir_grupos") ? (cod) => set({ excluir_grupos: [...textoACodigos(codigosATexto(args.excluir_grupos)), cod] }) : undefined} />}
       {radarPublicos && c.arg.name === "forma" && <NotaFormaRadar args={args} />}
       {radarPublicos && c.arg.name === "modo" && <EditorTemasEquivalentes tipo="radar" args={args} onCambio={set} />}
     </Fragment>

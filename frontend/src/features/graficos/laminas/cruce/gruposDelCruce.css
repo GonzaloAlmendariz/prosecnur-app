@@ -1,0 +1,14 @@
+/* Grupos de «Dividir por» (oleada I2, ítem 7): las fichas del selector de categorías, informativas salvo la de pocos
+   casos cuando se puede excluir. */
+.pulso-f6-cat.is-estatico { cursor: default; }
+.pulso-f6-cat.is-estatico:hover { border-color: var(--pulso-border); }
+.pulso-f6-grupos-pocos {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--pulso-warn-fg);
+  font-size: var(--pulso-type-caption-size);
+}
+.pulso-f6-grupos .pulso-f6-cats { transition: opacity var(--motion-dur-fast) var(--motion-ease-out); }
+.pulso-f6-grupos .pulso-f6-cats.is-anterior { opacity: 0.55; }
+@media (prefers-reduced-motion: reduce) { .pulso-f6-grupos .pulso-f6-cats { transition: none; } }
