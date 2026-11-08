@@ -170,7 +170,7 @@ export function origenesDelPlan(slides: readonly Slide[]): OrigenCifras[] {
  * `cifras` es `null` mientras no hayan llegado.
  */
 export function avisoHallazgo(h: HallazgoCierre, origenes: readonly OrigenCifras[], cifras: readonly CifraClave[] | null): string | null {
-  if (!h.lamina) return h.cifra || h.texto ? "Falta elegir la lámina" : null;
+  if (!h.lamina) return h.cifra || h.texto ? "Falta elegir la cifra" : null;
   if (!origenes.some((o) => o.id === h.lamina)) return SIN_ORIGEN;
   if (!h.cifra) return "Falta elegir la cifra";
   if (cifras && !cifras.some((c) => c.clave === h.cifra)) return SIN_CIFRA;
@@ -191,6 +191,20 @@ export function conLamina(h: HallazgoCierre, lamina: string): HallazgoCierre {
 /** Elegir una cifra guarda también cómo se leía, para que el motor avise si cambia. */
 export function conCifra(h: HallazgoCierre, cifra: CifraClave | null): HallazgoCierre {
   return cifra ? { ...h, cifra: cifra.clave, cifraAlEscribir: cifra.texto } : { ...h, cifra: "", cifraAlEscribir: "" };
+}
+
+/** Elegir en «Elegir cifra» fija la lámina y la cifra de una vez, con cómo se leía la cifra. */
+export function conCifraDe(h: HallazgoCierre, lamina: string, cifra: CifraClave): HallazgoCierre {
+  return conCifra(conLamina(h, lamina), cifra);
+}
+
+/**
+ * La cifra cambió desde que se eligió (`cifra_al_escribir`): el mismo aviso que pone el motor en la lámina
+ * (graficos_cierre_hallazgos.R). `null` si no se guardó cómo se leía o si todavía no llegó la de hoy.
+ */
+export function avisoCifraCambio(h: HallazgoCierre, hoy: Pick<CifraClave, "texto"> | null): string | null {
+  if (!h.cifraAlEscribir || !hoy || hoy.texto === h.cifraAlEscribir) return null;
+  return `La cifra cambió desde que se escribió el texto: era ${h.cifraAlEscribir} y hoy es ${hoy.texto}.`;
 }
 
 /** Cuántas filas tienen lámina presente, cifra y frase (la cifra que ya no está la avisa cada fila al leerla). */
