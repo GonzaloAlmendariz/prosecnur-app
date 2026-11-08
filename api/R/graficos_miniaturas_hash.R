@@ -147,8 +147,11 @@
   # Estilo del cliente resuelto (A6 R3): letra K13 y sha256 de cada logo. Sólo si hay: sin estilo, la huella no cambia.
   estilo <- .graficos_estilo_cliente_huella(ctx$estilo_cliente)
   if (length(estilo)) d$estilo_cliente <- estilo
+  a <- list(slide = ctx$slide, folio = as.integer(ctx$folio %||% 1L))
+  origen <- .mini_huella_origen_cierre(ctx)   # el cierre lee sus cifras de otras láminas
+  if (length(origen)) a$origen <- origen
   list(
-    a = list(slide = ctx$slide, folio = as.integer(ctx$folio %||% 1L)),
+    a = a,
     b = list(scope = ctx$scope, base = ctx$base %||% "", bases = as.character(ctx$bases %||% character())),
     c = huella,
     d = d,
@@ -167,4 +170,12 @@
   h <- .mini_digest(as.list(grupos))
   attr(h, "grupos") <- grupos
   h
+}
+
+#' Las láminas de origen que un cierre con hallazgos referencia (por id), para su huella; vacío en otro tipo
+#' @keywords internal
+.mini_huella_origen_cierre <- function(ctx) {
+  if (!identical(as.character(ctx$tipo %||% "")[1], "p_slide_cierre_hallazgos") || !length(ctx$plan_slides)) return(list())
+  ids <- unique(vapply(.cierre_hallazgos_normalizar((ctx$slide$payload %||% list())$hallazgos), `[[`, "", "lamina"))
+  Filter(function(s) as.character(s$id %||% "")[1] %in% ids, ctx$plan_slides)
 }

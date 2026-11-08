@@ -189,9 +189,11 @@
     version_paquete = comun$version_paquete
   )
   ctx$avisos_previos <- avisos_previos
-  # Las láminas de origen del cierre con hallazgos, calificadas como la lámina (graficos_cierre_hallazgos.R).
+  # Las láminas de origen del cierre con hallazgos, calificadas como la lámina (graficos_cierre_hallazgos.R). Entran en
+  # la huella: si cambia una lámina de origen, la miniatura del cierre se rehace.
   if (identical(as.character(slide$tipo %||% "")[1], "p_slide_cierre_hallazgos")) {
     ctx$plan_slides <- .graficos_calificar_refs_plan(list(slides = comun$plan_slides), comun$base)$slides
+    ctx$hash <- as.character(.mini_hash_lamina(ctx))
   }
   ctx
 }
@@ -340,6 +342,10 @@
   if (is.data.frame(ds)) ds <- list(.base = ds)
   if (!length(ds)) return(NA_character_)
   refs <- .graficos_collect_refs_from_args(args)
+  # `base$*` (láminas de resumen) no es una variable: está en la base si la base está (ADR 0135).
+  comodin <- grepl("\\$\\*$", refs)
+  if (any(comodin & !sub("\\$\\*$", "", refs) %in% names(ds))) return("variable_fuera_de_base")
+  refs <- refs[!comodin]
   if (!length(refs)) return(NA_character_)
   calificar <- function(r) {
     if (grepl("$", r, fixed = TRUE)) return(r)
