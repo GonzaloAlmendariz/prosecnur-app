@@ -47,6 +47,7 @@ export function ElegirCifra({ fila, nombre, origenes, cifrasPorOrigen, lamina, c
   const { abrir, cerrar, buscar, ordenar, activar } = useElegirCifraUi.getState();
   const disparador = useRef<HTMLButtonElement>(null);
   const lista = useRef<HTMLDivElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
 
   const origen = origenes.find((o) => o.id === lamina) ?? null;
   const grupos = abierta
@@ -74,6 +75,14 @@ export function ElegirCifra({ fila, nombre, origenes, cifrasPorOrigen, lamina, c
     }
     if (typeof el.scrollIntoView === "function") el.scrollIntoView({ block: "nearest" });
   }, [activaVisible]);
+
+  // R6-12: el autofoco del buscador sólo trae el buscador; a 1024x600 se veían ~73 px de un panel de 240. Al abrir, el
+  // panel entero entra en la vista, lo justo (`nearest`, con el `scroll-margin-top` del CSS bajo el índice fijo).
+  useEffect(() => {
+    if (!abierta) return;
+    const el = panel.current;
+    if (el && typeof el.scrollIntoView === "function") el.scrollIntoView({ block: "nearest" });
+  }, [abierta]);
 
   const cerrarYVolver = () => {
     cerrar();
@@ -135,7 +144,7 @@ export function ElegirCifra({ fila, nombre, origenes, cifrasPorOrigen, lamina, c
       {origen && <span className="pulso-f6-elegir-cifra-origen">{origen.nombre}</span>}
 
       {abierta && (
-        <div id={`${id}-panel`} className="pulso-f6-elegir-cifra-panel"
+        <div ref={panel} id={`${id}-panel`} className="pulso-f6-elegir-cifra-panel"
           data-qa-geometry-group="graficos/f6-elegir-cifra" data-qa-geometry-contract="intrinsic">
           <div className="pulso-f6-elegir-cifra-barra" data-qa-geometry-member>
             <PulsoInput size="sm" type="search" role="combobox" autoFocus value={busqueda} placeholder="Pregunta o cifra" aria-label={`Buscar cifra del ${nombre}`}

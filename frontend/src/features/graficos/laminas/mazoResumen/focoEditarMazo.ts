@@ -12,3 +12,15 @@ export function botonEditarDe(raiz: ParentNode | null, id: string): HTMLElement 
 export function volverAlEditar(raiz: () => ParentNode | null, id: string, programar: (f: () => void) => void = requestAnimationFrame): void {
   programar(() => botonEditarDe(raiz(), id)?.focus());
 }
+
+/**
+ * R6-11: al abrir el lateral la columna de tarjetas se angosta y la grilla se reacomoda; a 1024 px la tarjeta en edición
+ * quedaba fuera de la vista. En el cuadro siguiente (con el lateral ya montado) se trae la tarjeta `aria-current` a la
+ * vista, lo justo (`nearest`): si ya se ve, no se mueve nada.
+ */
+export function revelarEnEdicion(raiz: () => ParentNode | null, programar: (f: () => void) => void = requestAnimationFrame): void {
+  programar(() => {
+    const tarjeta = raiz()?.querySelector<HTMLElement>('[aria-current="true"]');
+    if (tarjeta && typeof tarjeta.scrollIntoView === "function") tarjeta.scrollIntoView({ block: "nearest", inline: "nearest" });
+  });
+}

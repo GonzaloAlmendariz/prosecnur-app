@@ -97,6 +97,19 @@ describe("Elegir cifra", () => {
     ]);
   });
 
+  it("R6-12: al abrirse, el panel entero entra en la vista (no sólo el buscador)", () => {
+    montar();
+    const llamadas: { clase: string; opciones: unknown }[] = [];
+    const original = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = function (this: HTMLElement, o?: boolean | ScrollIntoViewOptions) { llamadas.push({ clase: this.className, opciones: o }); };
+    try {
+      act(() => disparadores()[0].click());
+    } finally {
+      HTMLElement.prototype.scrollIntoView = original;
+    }
+    expect(llamadas).toContainEqual({ clase: "pulso-f6-elegir-cifra-panel", opciones: { block: "nearest" } });
+  });
+
   it("el segmentado cambia al orden de la lámina", () => {
     montar();
     act(() => disparadores()[0].click());

@@ -3,7 +3,7 @@
 // analista marca las que quiere y las inserta en un solo paso de deshacer detrás de la lámina del foco (al final si el
 // informe está vacío). Las láminas nacen sin título ni antetítulo: los escribe el analista.
 
-import { useCallback, useId, useMemo, useRef, type RefObject } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, type RefObject } from "react";
 import { ListChecks, Presentation } from "../../../../vendor/lucide-react";
 import { CargaDeBloque } from "../../../../components/CargaDeBloque";
 import { OverlayBase } from "../../../../components/Dialog";
@@ -25,7 +25,7 @@ import { SeleccionMazo } from "./SeleccionMazo";
 import { ListaTarjetasMazo } from "./ListaTarjetasMazo";
 import { useMazoResumen } from "./useMazoResumen";
 import { useMiniaturasMazo } from "./useMiniaturasMazo";
-import { volverAlEditar } from "./focoEditarMazo";
+import { revelarEnEdicion, volverAlEditar } from "./focoEditarMazo";
 import "./mazoResumen.css";
 
 /** El toast de la inserción dura más que uno de éxito: trae «Deshacer» y el analista tiene que alcanzar a verlo. */
@@ -57,6 +57,10 @@ export function MazoResumen({ posicion, cerrar }: Props) {
     if (!id) return;
     volverAlEditar(() => columna.current, id);
   }, []);
+
+  // R6-11: con el lateral abierto la tarjeta en edición queda a la vista (a 1024 px la grilla la dejaba fuera).
+  const idEnEdicion = enEdicion && graficadorEnEdicion ? enEdicion.id : null;
+  useEffect(() => { if (idEnEdicion) revelarEnEdicion(() => columna.current); }, [idEnEdicion]);
 
   const n = mazo.elegidas.length;
   const sinEscala = mazo.publicos.length > 0 && mazo.publicos.every((b) => (mazo.escalas[b] ?? 0) === 0);

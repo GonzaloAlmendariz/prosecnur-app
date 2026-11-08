@@ -8,7 +8,7 @@ vi.mock("../reglaPreguntas/useConteoRegla", () => ({
   useConteoRegla: () => ({ conteo: null, cargando: false, error: null, codigo: null }),
 }));
 
-import { botonEditarDe, volverAlEditar } from "./focoEditarMazo";
+import { botonEditarDe, revelarEnEdicion, volverAlEditar } from "./focoEditarMazo";
 import { TarjetaMazo } from "./TarjetaMazo";
 
 const CONTRASTE: PropuestaMazo = {
@@ -38,6 +38,19 @@ describe("M7: la tarjeta en edición y el foco al cerrar la regla", () => {
     expect((document.activeElement as HTMLElement).textContent).toBe("Editar");
     expect(botonEditarDe(raiz, "otra")).toBeNull();
     expect(botonEditarDe(null, "contraste")).toBeNull();
+    raiz.remove();
+  });
+  it("R6-11: al abrir el lateral trae a la vista la tarjeta en edición, lo justo", () => {
+    const raiz = document.createElement("div");
+    raiz.innerHTML = pintar(false) + pintar(true);
+    document.body.appendChild(raiz);
+    const actual = raiz.querySelector<HTMLElement>('[aria-current="true"]')!;
+    const llamadas: unknown[] = [];
+    actual.scrollIntoView = ((o?: ScrollIntoViewOptions) => { llamadas.push(o); }) as typeof actual.scrollIntoView;
+    revelarEnEdicion(() => raiz, (f) => f());
+    expect(llamadas).toEqual([{ block: "nearest", inline: "nearest" }]);
+    // Sin tarjeta en edición (o sin raíz) no hace nada.
+    expect(() => revelarEnEdicion(() => null, (f) => f())).not.toThrow();
     raiz.remove();
   });
 });
