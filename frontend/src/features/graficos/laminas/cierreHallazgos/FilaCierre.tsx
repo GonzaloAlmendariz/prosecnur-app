@@ -1,20 +1,19 @@
-// Un hallazgo del cierre (CierreHallazgos): la lámina de origen, una de sus cifras (con el texto tal como sale en esa
-// lámina) y la frase del analista, que nace vacía. Si la lámina ya no está o ya no tiene la cifra, la fila lo dice y no
-// muestra una cifra inventada.
+// Un hallazgo del cierre (CierreHallazgos): una cifra de una lámina de resumen, elegida con «Elegir cifra» (lámina y
+// cifra en un solo control), y la frase del analista, que nace vacía. La cifra se muestra viva, leída de su lámina. Si la
+// lámina ya no está o ya no tiene la cifra, la fila lo dice y no muestra una cifra inventada; si la cifra cambió desde
+// que se eligió, también.
 
 import { useId } from "react";
 import { ArrowDown, ArrowUp, X } from "../../../../vendor/lucide-react";
-import { PulsoSelect } from "../../../../components/PulsoSelect";
-import { useCifrasDeOrigen } from "./useCifrasDeOrigen";
-import {
-  avisoHallazgo, cifraConUnidad, conCifra, conLamina, type HallazgoCierre, type OrigenCifras,
-} from "./modeloCierre";
+import { ElegirCifra } from "./ElegirCifra";
+import type { CifrasLeidas } from "./modeloElegirCifra";
+import { avisoCifraCambio, avisoHallazgo, conCifraDe, type HallazgoCierre, type OrigenCifras } from "./modeloCierre";
 
 type Props = {
   hallazgo: HallazgoCierre;
   numero: number;
   origenes: readonly OrigenCifras[];
-  scope: "active" | "consolidated";
+  cifrasPorOrigen: Readonly<Record<string, CifrasLeidas>>;
   primero: boolean;
   ultimo: boolean;
   onCambio: (h: HallazgoCierre) => void;
@@ -22,15 +21,14 @@ type Props = {
   onQuitar: () => void;
 };
 
-export function FilaCierre({ hallazgo: h, numero, origenes, scope, primero, ultimo, onCambio, onMover, onQuitar }: Props) {
+export function FilaCierre({ hallazgo: h, numero, origenes, cifrasPorOrigen, primero, ultimo, onCambio, onMover, onQuitar }: Props) {
   const id = useId();
-  const origen = origenes.find((o) => o.id === h.lamina) ?? null;
-  const { cifras, cargando, error } = useCifrasDeOrigen(origen, scope);
-  const lista = cifras?.cifras ?? null;
+  const vivas = h.lamina ? cifrasPorOrigen[h.lamina] : undefined;
+  const lista = vivas?.cifras ?? null;
   const aviso = avisoHallazgo(h, origenes, lista);
   const elegida = lista?.find((c) => c.clave === h.cifra) ?? null;
+  const cambio = avisoCifraCambio(h, elegida);
   const nombre = `hallazgo ${numero}`;
-  const sinCifras = !!lista && lista.length === 0;
 
   return (
     <div className={`pulso-f6-hallazgo pulso-f6-cierre-fila${aviso ? " is-incompleto" : ""}`} role="group" aria-label={`Hallazgo ${numero}`}
@@ -51,30 +49,11 @@ export function FilaCierre({ hallazgo: h, numero, origenes, scope, primero, ulti
       </div>
 
       <div className="pulso-f6-campo">
-        <span id={`${id}-lamina`} className="pulso-f6-hallazgo-rotulo">Lámina</span>
-        <PulsoSelect size="sm" value={origen ? origen.id : undefined} describedBy={`${id}-lamina`} ariaLabel={`Lámina del ${nombre}`}
-          placeholder={h.lamina && !origen ? "Elige otra lámina" : "Elige una lámina"} invalid={!!h.lamina && !origen}
-          onValueChange={(v) => onCambio(conLamina(h, v))}
-          options={origenes.map((o) => ({ value: o.id, label: o.nombre, textValue: o.nombre }))} />
-      </div>
-
-      <div className="pulso-f6-campo">
         <span id={`${id}-cifra`} className="pulso-f6-hallazgo-rotulo">Cifra</span>
-        <PulsoSelect size="sm" value={elegida ? elegida.clave : undefined} describedBy={`${id}-cifra`} ariaLabel={`Cifra del ${nombre}`}
-          disabled={!origen || cargando || sinCifras || !!error}
-          placeholder={!origen ? "Primero elige la lámina" : cargando ? "Leyendo las cifras" : sinCifras ? "Esta lámina no dibujó cifras" : "Elige una cifra"}
-          onValueChange={(v) => onCambio(conCifra(h, lista?.find((c) => c.clave === v) ?? null))}
-          options={(lista ?? []).map((c) => ({
-            value: c.clave,
-            textValue: `${cifraConUnidad(c)} ${c.rotulo}`,
-            label: (
-              <span className="pulso-f6-cierre-opcion">
-                <strong className="pulso-f6-cierre-cifra">{cifraConUnidad(c)}</strong>
-                <span>{c.rotulo}</span>
-              </span>
-            ),
-          }))} />
-        {error && <span className="pulso-f6-dato-ayuda is-aviso" role="note">{error}</span>}
+        <ElegirCifra fila={h.clave} nombre={nombre} origenes={origenes} cifrasPorOrigen={cifrasPorOrigen} lamina={h.lamina} clave={h.cifra}
+          elegida={elegida} describedBy={`${id}-cifra`} invalid={!!h.lamina && !origenes.some((o) => o.id === h.lamina)}
+          onElegir={(lamina, cifra) => onCambio(conCifraDe(h, lamina, cifra))} />
+        {vivas?.error && <span className="pulso-f6-dato-ayuda is-aviso" role="note">{vivas.error}</span>}
       </div>
 
       <div className="pulso-f6-campo">
@@ -84,6 +63,7 @@ export function FilaCierre({ hallazgo: h, numero, origenes, scope, primero, ulti
       </div>
 
       {aviso && <span className="pulso-f6-dato-ayuda is-aviso" role="note">{aviso}</span>}
+      {!aviso && cambio && <span className="pulso-f6-dato-ayuda is-aviso" role="note">{cambio}</span>}
     </div>
   );
 }

@@ -11,7 +11,9 @@ import { usePlanStore } from "../../store";
 import type { CifrasEnVivo } from "./useCifrasDeOrigen";
 
 const estado = vi.hoisted(() => ({ actual: { cifras: null, cargando: false, error: null } as CifrasEnVivo }));
-vi.mock("./useCifrasDeOrigen", () => ({ useCifrasDeOrigen: () => estado.actual }));
+vi.mock("./useCifrasDeOrigen", () => ({
+  useCifrasDeOrigenes: (origenes: readonly { id: string }[]) => Object.fromEntries(origenes.map((o) => [o.id, estado.actual])),
+}));
 
 import { CierreHallazgos } from "./CierreHallazgos";
 import { useLaminasUi } from "../laminasStore";
@@ -72,7 +74,7 @@ describe("CierreHallazgos", () => {
       frase.dispatchEvent(new Event("input", { bubbles: true }));
     });
     expect(payloadCierre().hallazgos).toEqual([{ lamina: "", cifra: "", texto: "Los docentes valoran más" }]);
-    expect(host.textContent).toContain("Falta elegir la lámina");
+    expect(host.textContent).toContain("Falta elegir la cifra");
   });
 
   it("la lámina de origen que ya no está se avisa en la fila", () => {

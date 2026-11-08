@@ -1,9 +1,10 @@
-// Las cifras con clave de una lámina de origen del cierre (POST /api/graficos/resumenes/cifras, ADR 0135 §6). El efecto
-// depende de la FIRMA del pedido (graficador|scope|args en JSON estable), no del objeto `args`: el inspector lo re-arma en
-// cada render y, con el objeto como dependencia, efecto → estado → render → objeto nuevo → efecto sin fin (el bucle de
-// useConteosMaqueta.ts). Dos filas que toman cifras de la misma lámina comparten el pedido.
+// Las cifras con clave de las láminas de origen del cierre (POST /api/graficos/resumenes/cifras, ADR 0135 §6): las que
+// usan sus filas y, con «Elegir cifra» abierto, todas las del informe. El efecto depende de las FIRMAS de los pedidos
+// (graficador|scope|args en JSON estable), no de los objetos `args`: el inspector los re-arma en cada render y, con el
+// objeto como dependencia, efecto → estado → render → objeto nuevo → efecto sin fin (el bucle de useConteosMaqueta.ts).
+// Dos filas que toman cifras de la misma lámina comparten el pedido.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { apiGraficosCifras, type CifrasDeGrafico } from "../../../../api/graficosCifras";
 import { firmaPedidoRegla } from "../reglaPreguntas/modeloReglaPreguntas";
 import { mensajeDeError, pedidoDeFirma } from "../reglaPreguntas/useConteoRegla";
@@ -16,9 +17,7 @@ export type CifrasEnVivo = {
   error: string | null;
 };
 
-type Estado = { firma: string; cifras: CifrasDeGrafico | null; error: string | null };
-
-const VACIO: Estado = { firma: "", cifras: null, error: null };
+type Leido = { cifras: CifrasDeGrafico | null; error: string | null };
 
 // Pedidos en curso o resueltos por firma; acotado para no crecer con cada cambio de args.
 const EN_VUELO = new Map<string, Promise<CifrasDeGrafico>>();
@@ -41,25 +40,35 @@ function pedir(firma: string): Promise<CifrasDeGrafico> | null {
   return promesa;
 }
 
-/** Sin origen no pide nada. */
-export function useCifrasDeOrigen(origen: { graficador: string; args: Args } | null, scope: "active" | "consolidated"): CifrasEnVivo {
-  const firma = useMemo(() => (origen ? firmaPedidoRegla(origen.graficador, origen.args, scope) : ""), [origen, scope]);
-  const [estado, setEstado] = useState<Estado>(VACIO);
+type Origen = { id: string; graficador: string; args: Args };
+
+const CARGANDO: CifrasEnVivo = { cifras: null, cargando: true, error: null };
+
+/** Las cifras de cada origen, por su id. Un origen todavía sin respuesta sale `cargando`. */
+export function useCifrasDeOrigenes(origenes: readonly Origen[], scope: "active" | "consolidated"): Readonly<Record<string, CifrasEnVivo>> {
+  const firmas = origenes.map((o) => [o.id, firmaPedidoRegla(o.graficador, o.args, scope)] as const);
+  const clave = JSON.stringify([...new Set(firmas.map(([, f]) => f))].sort());
+  const [leidos, setLeidos] = useState<Readonly<Record<string, Leido>>>({});
   useEffect(() => {
-    if (!firma) return;
-    const promesa = pedir(firma);
-    if (!promesa) return;
     let vivo = true;
-    promesa.then(
-      (cifras) => { if (vivo) setEstado((prev) => (prev.firma === firma && prev.cifras === cifras ? prev : { firma, cifras, error: null })); },
-      (e: unknown) => {
-        if (!vivo) return;
-        const { mensaje } = mensajeDeError(e);
-        setEstado((prev) => (prev.firma === firma && prev.error === mensaje ? prev : { firma, cifras: null, error: mensaje }));
-      },
-    );
+    for (const firma of JSON.parse(clave) as string[]) {
+      const promesa = pedir(firma);
+      if (!promesa) continue;
+      promesa.then(
+        (cifras) => { if (vivo) setLeidos((prev) => (prev[firma]?.cifras === cifras ? prev : { ...prev, [firma]: { cifras, error: null } })); },
+        (e: unknown) => {
+          if (!vivo) return;
+          const { mensaje } = mensajeDeError(e);
+          setLeidos((prev) => (prev[firma]?.error === mensaje ? prev : { ...prev, [firma]: { cifras: null, error: mensaje } }));
+        },
+      );
+    }
     return () => { vivo = false; };
-  }, [firma]);
-  const actual = !!firma && estado.firma === firma;
-  return { cifras: actual ? estado.cifras : null, cargando: !!firma && !actual, error: actual ? estado.error : null };
+  }, [clave]);
+  const out: Record<string, CifrasEnVivo> = {};
+  for (const [id, firma] of firmas) {
+    const l = leidos[firma];
+    out[id] = l ? { cifras: l.cifras, cargando: false, error: l.error } : CARGANDO;
+  }
+  return out;
 }
