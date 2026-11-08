@@ -87,6 +87,17 @@ describe("PreguntaClave", () => {
     expect(host.textContent).toContain("solo cuentan las láminas de un gráfico.");
   });
 
+  it("R6-14: en una lámina del resumen ejecutivo no ofrece «Pregunta clave» ni dice que no entra al resumen", () => {
+    usePlanStore.setState({ plan: { slides: [...LAMINAS, { id: "s9", tipo: "p_slide_1_grafico", payload: {}, origen: "resumen" }] as never[] } });
+    act(() => root.render(<PreguntaClave slideId="s9" graficador="p_barras_agrupadas" args={{ var: "P1" }} />));
+    expect(host.innerHTML).toBe("");
+    // Sin origen, la reconoce por lo que lee: las de escala de un público o una regla.
+    act(() => root.render(<PreguntaClave slideId="s1" graficador="p_barras_divergentes" args={{ vars: ["docentes$*"] }} />));
+    expect(host.textContent).not.toContain("no entra al resumen");
+    act(() => root.render(<PreguntaClave slideId="s1" graficador="p_dumbbell" args={{ estilo: "resumen", var: "P1", regla: { tipo: "mayor_diferencia", n: 5 } }} />));
+    expect(host.innerHTML).toBe("");
+  });
+
   it("si ya estaba marcada en un gráfico que no cuenta, deja quitarla y dice por qué", () => {
     usePlanStore.setState({ plan: { slides: LAMINAS, preguntas_clave: ["P1"] } });
     act(() => root.render(<PreguntaClave slideId="s1" graficador="p_lineas_nivel" args={{ var: "P1" }} />));

@@ -13,7 +13,7 @@ import { usePlanStore } from "../../store";
 import { parseVarRef, useVariables } from "../../useVariables";
 import { formatoConteo } from "../../../../lib/formatoNumero";
 import { preguntasConEtiqueta } from "../etiquetasPorPregunta";
-import { useMotivoNoCuenta } from "./useMotivoNoCuenta";
+import { useEsGraficoDeResumen, useMotivoNoCuenta } from "./useMotivoNoCuenta";
 import {
   AYUDA_CLAVE, conClave, conClaves, esClave, leerPreguntasClave, marcadasDe, preguntasDelGrafico, TEXTO_NO_CUENTA,
 } from "./modeloPreguntasClave";
@@ -29,8 +29,10 @@ export function PreguntaClave({ slideId, graficador, args }: Props) {
   const setPreguntasClave = usePlanStore((s) => s.setPreguntasClave);
   const { variables } = useVariables();
   const motivo = useMotivoNoCuenta(slideId, graficador, args);
+  // R6-14: una lámina del resumen ejecutivo no es una pregunta que marcar; no dice «no entra al resumen».
+  const deResumen = useEsGraficoDeResumen(slideId, graficador, args);
   const refs = preguntasDelGrafico(graficador, args);
-  if (!refs.length) return null;
+  if (!refs.length || deResumen) return null;
   const marcar = (ref: string, v: boolean) => setPreguntasClave(conClave(claves, ref, v));
   const n = marcadasDe(claves, refs);
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Slide } from "../../../../api/graficos";
 import {
+  esGraficoDeResumen, ORIGEN_LAMINA_RESUMEN,
   conClave, conClaves, esClave, leerPreguntasClave, marcadasDe, motivoNoCuenta, preguntasDelGrafico, primerGraficoConPregunta,
 } from "./modeloPreguntasClave";
 
@@ -57,5 +58,20 @@ describe("modeloPreguntasClave (H14)", () => {
     expect(motivoNoCuenta(bateria)).toBe("sin_two_box");
     expect(motivoNoCuenta({ ...bateria, conTwoBox: true })).toBeNull();
     expect(motivoNoCuenta({ ...bateria, args: { vars: ["A"] } })).toBeNull();
+  });
+});
+
+describe("R6-14: lámina del resumen ejecutivo", () => {
+  it("se reconoce por su origen, su graficador, su estilo, su regla o sus base$*; una pregunta suelta no", () => {
+    expect(esGraficoDeResumen({ origen: "resumen", graficador: "p_barras_agrupadas", args: { var: "p1" } })).toBe(true);
+    expect(esGraficoDeResumen({ graficador: "p_panorama", args: {} })).toBe(true);
+    expect(esGraficoDeResumen({ graficador: "p_dumbbell", args: { estilo: "resumen" } })).toBe(true);
+    expect(esGraficoDeResumen({ graficador: "p_barras_divergentes", args: { regla: { tipo: "bajo_umbral" } } })).toBe(true);
+    expect(esGraficoDeResumen({ graficador: "p_barras_multiapiladas", args: { vars: ["docentes$*"] } })).toBe(true);
+    expect(esGraficoDeResumen({ graficador: "p_barras_agrupadas", args: { var: "p1", cruces: ["sexo"] } })).toBe(false);
+  });
+  it("el origen es el que pone el mazo", async () => {
+    const { ORIGEN_RESUMEN } = await import("../mazoResumen/modeloMazo");
+    expect(ORIGEN_LAMINA_RESUMEN).toBe(ORIGEN_RESUMEN);
   });
 });

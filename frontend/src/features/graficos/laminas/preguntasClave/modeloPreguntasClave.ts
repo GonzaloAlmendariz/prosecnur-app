@@ -113,3 +113,23 @@ export const TEXTO_NO_CUENTA: Readonly<Record<MotivoNoCuenta, string>> = {
   cruce: "Esta pregunta no entra al resumen ejecutivo: solo cuentan los gráficos sin «Dividir por».",
   sin_two_box: "Estas preguntas no entran al resumen ejecutivo: una batería cuenta solo con su Top Two Box.",
 };
+
+// ---- Láminas de resumen -------------------------------------------------------------------------------------------
+// R6-14: una lámina del resumen ejecutivo (panorama, contraste, escala, aperturas, fortalezas, cobertura) no es una
+// pregunta que marcar: lee todas las de escala de sus públicos (`base$*`) o las elige con una regla. Decía «Esta pregunta
+// no entra al resumen ejecutivo» siendo ella misma del resumen. En esas láminas la tarjeta no ofrece «Pregunta clave».
+
+/** El `origen` que el mazo pone a las láminas que inserta (`ORIGEN_RESUMEN`, mazoResumen/modeloMazo.ts). */
+export const ORIGEN_LAMINA_RESUMEN = "resumen";
+
+const GRAFICOS_DE_RESUMEN: ReadonlySet<string> = new Set(["p_panorama", "p_fortalezas", "p_cobertura"]);
+
+const listaDe = (v: unknown): unknown[] => (Array.isArray(v) ? v : v === undefined || v === null ? [] : [v]);
+
+/** ¿Es un gráfico del resumen ejecutivo? Por su origen, su graficador, su estilo «resumen», su regla o sus `base$*`. */
+export function esGraficoDeResumen(p: { origen?: string | null; graficador: string; args: Args }): boolean {
+  if (p.origen === ORIGEN_LAMINA_RESUMEN || GRAFICOS_DE_RESUMEN.has(p.graficador) || p.args.estilo === "resumen") return true;
+  const regla = p.args.regla;
+  if (regla && typeof regla === "object" && !Array.isArray(regla) && typeof (regla as Record<string, unknown>).tipo === "string") return true;
+  return [...listaDe(p.args.var), ...listaDe(p.args.vars)].some((v) => typeof v === "string" && v.trim().endsWith("$*"));
+}
