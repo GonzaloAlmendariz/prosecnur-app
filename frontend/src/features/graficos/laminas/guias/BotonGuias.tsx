@@ -4,9 +4,11 @@
 
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type MutableRefObject, type RefObject } from "react";
 import { createPortal } from "react-dom";
-import { BoxSelect, Layers, LayoutTemplate, MoveHorizontal, Ruler, Type, X } from "../../../../vendor/lucide-react";
+import { BoxSelect, Layers, LayoutTemplate, MoveHorizontal, Ruler, Type } from "../../../../vendor/lucide-react";
 import type { LucideIcon } from "../../../../vendor/lucide-react";
 import { Switch } from "../../../../components/Switch";
+import { CabeceraPanel } from "../../../../components/CabeceraPanel";
+import { PulsoButton } from "../../../../components/PulsoButton";
 import { usePanelDireccionable } from "../../../../lib/navegacion/paneles";
 import { escucharEscape } from "../cierreConEscape";
 import { capasEncendidas, useGuiasUi } from "./guiasStore";
@@ -56,10 +58,11 @@ export function BotonGuias({ modelo, roles, disponible, hayRanuras }: Props) {
 
   return (
     <>
-      <button
+      {/* Acabado W2-A: secundario de la barra; con capas encendidas o el panel abierto toma el único tinte de pulsado. */}
+      <PulsoButton
         ref={botonRef}
-        type="button"
-        className={`pulso-f6-boton pulso-f6-guias-boton${encendidas > 0 ? " is-activo" : ""}`}
+        variant="secondary"
+        className={`pulso-f6-guias-boton${encendidas > 0 ? " is-activo" : ""}`}
         aria-haspopup="dialog"
         aria-expanded={panel.abierto}
         aria-controls={panel.abierto ? panelId : undefined}
@@ -67,10 +70,10 @@ export function BotonGuias({ modelo, roles, disponible, hayRanuras }: Props) {
         title="Guías de la lámina: cajas, espacios, tipografía, medidas y ranuras"
         onClick={alternar}
       >
-        <Layers size={14} aria-hidden="true" />
+        <Layers aria-hidden="true" />
         <span className="pulso-f6-rotulo-medio">Guías</span>
         {encendidas > 0 && <span className="pulso-f6-guias-cuenta" aria-hidden="true">{encendidas}</span>}
-      </button>
+      </PulsoButton>
       <PanelGuias
         id={panelId}
         abierto={panel.abierto}
@@ -151,15 +154,18 @@ function PanelGuias({ id, abierto, propsPanel, ancla, enfocarAlAbrir, onCerrar, 
       data-ancla={anclado ?? undefined}
       {...propsPanel}
     >
-      <header className="pulso-f6-guias-panel-cabeza">
-        <h2 id={tituloId}>Guías de la lámina</h2>
-        <button type="button" className="pulso-f6-texto-boton" disabled={encendidas === 0} onClick={apagarCapas}>
-          Apagar todas
-        </button>
-        <button type="button" className="pulso-f6-icono-boton" aria-label="Cerrar las guías" onClick={() => onCerrar(true)}>
-          <X size={15} aria-hidden="true" />
-        </button>
-      </header>
+      <CabeceraPanel
+        className="pulso-f6-guias-panel-cabeza"
+        titulo="Guías de la lámina"
+        tituloId={tituloId}
+        acciones={(
+          <PulsoButton variant="ghost" size="sm" disabled={encendidas === 0} onClick={apagarCapas}>
+            Apagar todas
+          </PulsoButton>
+        )}
+        onCerrar={() => onCerrar(true)}
+        etiquetaCerrar="Cerrar las guías"
+      />
 
       <div className="pulso-f6-guias-panel-cuerpo" data-qa-geometry-group="graficos/f6-guias-panel" data-qa-geometry-contract="intrinsic">
         <ul className="pulso-f6-guias-capas" aria-label="Capas" data-qa-geometry-group="graficos/f6-guias-capas" data-qa-geometry-contract="equal">
@@ -199,7 +205,7 @@ function PanelGuias({ id, abierto, propsPanel, ancla, enfocarAlAbrir, onCerrar, 
               })}
             </div>
             {rolesOcultos.length > 0 && (
-              <button type="button" className="pulso-f6-texto-boton" onClick={mostrarTodos}>Mostrar todos los roles</button>
+              <PulsoButton variant="ghost" size="sm" className="pulso-f6-guias-mostrar-todos" onClick={mostrarTodos}>Mostrar todos los roles</PulsoButton>
             )}
           </fieldset>
         )}

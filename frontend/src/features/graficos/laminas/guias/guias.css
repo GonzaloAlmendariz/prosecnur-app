@@ -4,11 +4,7 @@
 
 /* ---- botón ------------------------------------------------------------- */
 
-.pulso-f6-guias-boton.is-activo {
-  background: var(--module-accent-soft);
-  border-color: var(--module-accent-border);
-  color: var(--module-accent);
-}
+/* El tinte de «Guías» con capas encendidas es el pulsado común de la superficie (laminasWorkbench.css, `.is-activo`). */
 
 .pulso-f6-guias-cuenta {
   display: inline-grid;
@@ -253,20 +249,9 @@
   transition-duration: var(--motion-dur-salida-corta);
 }
 
-.pulso-f6-guias-panel-cabeza {
+/* Acabado W2-A: la cabecera es CabeceraPanel (título en type-title, «Apagar todas» y la X en la primera fila). */
+.pulso-f6-guias-panel > .pulso-f6-guias-panel-cabeza {
   flex: none;
-  display: flex;
-  align-items: center;
-  gap: var(--pulso-space-2);
-  padding: var(--pulso-space-2) var(--pulso-space-2) var(--pulso-space-2) var(--pulso-space-4);
-  border-bottom: 1px solid var(--pulso-border);
-}
-
-.pulso-f6-guias-panel-cabeza h2 {
-  flex: 1;
-  margin: 0;
-  font-size: var(--pulso-type-subtitle-size);
-  font-weight: var(--pulso-weight-semibold);
 }
 
 /* El cuerpo es el único dueño de desplazamiento del panel (C4): con poco alto se recorre entero. */
