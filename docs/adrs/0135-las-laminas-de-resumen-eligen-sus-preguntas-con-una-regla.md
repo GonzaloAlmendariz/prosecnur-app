@@ -121,14 +121,16 @@ Decisiones de Gonzalo del 2026-11-07:
 - **Escalas distintas en una lámina** (como la p. 4 del resumen de Arte, que junta acuerdo y satisfacción). La leyenda
   es la escala más frecuente del universo de la regla (si la regla elige filas de una sola escala, la de esas filas).
   Otra escala se alinea **por posición** sólo si: tiene el mismo número de opciones sustantivas; su tema es acuerdo,
-  satisfacción, importancia, confianza, utilidad o probabilidad (frecuencia y temas no reconocidos quedan fuera, porque
-  «nunca/nada» no dice si el polo es bueno o malo); va en el mismo sentido negativo a positivo; reparte igual sus
+  satisfacción, importancia, confianza, utilidad o probabilidad, y la leyenda también lo es (frecuencia y temas no
+  reconocidos sólo se juntan con su misma firma, porque «nunca/nada» no dice si el polo es bueno o malo; «Desconfío
+  mucho … Confío mucho» tiene tema pero un sentido que no se reconoce y queda fuera); va en el mismo sentido negativo a positivo; reparte igual sus
   niveles; si tiene punto medio, éste es neutral en ambas («ni … ni», neutral, indiferente) o son del mismo tema; y no
   trae una opción sin información que la leyenda no tenga (con más de una, deben coincidir por etiqueta). Cada fila
   conserva su cifra y su base; sólo cambia la columna donde cae cada nivel. El pie agrega «en <tema>, de <extremo
   negativo> a <extremo positivo>» por cada escala alineada, sin decir qué fila usa cuál. Una exclusión de opciones se
   traduce a la escala alineada por posición (sustantiva) o por ser especial, para que todas las filas compartan
-  denominador. Lo que no se alinea queda fuera con su causa: «otro número de opciones», «de tema no reconocido»,
+  denominador; una exclusión que no está en la escala de la leyenda no se aplica a ninguna fila y se avisa («La
+  exclusión "No sabe" no está en la escala de la leyenda y no se aplica.»). Lo que no se alinea queda fuera con su causa: «otro número de opciones», «de tema no reconocido»,
   «sentido contrario», «reparten sus niveles distinto», «su punto medio no es neutral», «opciones sin información
   distintas». Medido en Arte: el universo pasa de 145 a 157 y las dos filas de satisfacción coinciden con la p. 4.
 - Con regla, una fila que no se puede calcular (sin respuestas, vacía tras las exclusiones) queda fuera con aviso y el
