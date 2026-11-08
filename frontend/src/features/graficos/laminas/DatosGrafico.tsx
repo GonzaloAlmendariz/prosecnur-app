@@ -56,6 +56,8 @@ import { NombresPorBase } from "./datosBase/NombresPorBase";
 import { RedondeoDelGrafico } from "./RedondeoDelGrafico";
 import { grupoDeCampo, seccionAbierta, seccionDeClave, type SeccionTarjeta } from "./gruposTarjeta";
 import { SeccionPlegable } from "./tarjetaGrafico/SeccionPlegable";
+import { resumenPlegado } from "./tarjetaGrafico/resumenPlegado";
+import { ARG_CALCULOS_PROPIOS } from "./modeloRedondeoGrafico";
 import { IndiceSecciones } from "./tarjetaGrafico/IndiceSecciones";
 import { irASeccion } from "./tarjetaGrafico/irASeccion";
 import { esPropio, ranurasDelTipo, SIN_ALCANCE, valorDelTipo } from "./modeloAlcance";
@@ -174,6 +176,11 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
   };
   // El pie de la tarjeta lleva todos los cambios propios de una vez (los mismos que muestran la marca).
   const propios = tipo ? campos.filter((c) => alcance(c).propio) : [];
+  // Ítem 12: la cabecera plegada dice lo propio de adentro; el redondeo propio va por su marca en `overrides` (R4).
+  const redondeoPropio = (args.overrides as Record<string, unknown> | undefined)?.[ARG_CALCULOS_PROPIOS] === true;
+  const resumenDe = (g: SeccionTarjeta) => resumenPlegado([
+    ...propios.filter((c) => grupoDeCampo(c.arg.name) === g).map((c) => c.rotulo), ...(g === "calculo" && redondeoPropio ? ["Redondeo"] : []),
+  ]);
   const aplicarTodos = () => {
     if (!tipo || !propios.length) return;
     aplicarAlTipo(tipo, Object.fromEntries(propios.map((c) => [c.arg.name, args[c.arg.name]])));
@@ -303,7 +310,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
         <PublicoGrafico slideId={slideId} slot={slot} valor={valor} />
       </SeccionPlegable>
       {/* Cálculo: qué se cuenta y cómo (indicador, Two Box, redondeo y diferencias entre grupos). */}
-      <SeccionPlegable seccion="calculo">
+      <SeccionPlegable seccion="calculo" resumen={resumenDe("calculo")}>
         {delGrupo("calculo")}
         <TwoBoxGrafico slideId={slideId} slot={slot} valor={valor} onAbrirBloques={() => abrirEditorAmplio({ tipo: "bloques", slideId, slot })} />
         {/* R4: método y decimales propios, como excepción a la regla del informe. */}
@@ -322,7 +329,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
         )}
       </SeccionPlegable>
       {/* Aspecto: orden, cifras, colores y el Word. */}
-      <SeccionPlegable seccion="aspecto">
+      <SeccionPlegable seccion="aspecto" resumen={resumenDe("aspecto")}>
         {conOrden && variable && !sinBaseCompartido && (
           <OrdenCategoriasGrafico variable={varCalificada(variable, baseActiva, scope)} graficador={valor.graficador} args={args} scope={scope} onCambio={(o) => set({ orden_categorias: o })} />
         )}

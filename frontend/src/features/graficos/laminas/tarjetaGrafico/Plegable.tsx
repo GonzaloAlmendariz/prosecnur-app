@@ -5,6 +5,7 @@
 
 import { useEffect, useId, useLayoutEffect, useRef, type ReactNode } from "react";
 import { ChevronDown } from "../../../../vendor/lucide-react";
+import type { ResumenPlegado } from "./resumenPlegado";
 
 type Props = {
   /** Clave de la sección: `data-seccion-tarjeta`, a la que salta el índice (irASeccion). */
@@ -13,10 +14,12 @@ type Props = {
   abierta: boolean;
   onAlternar: () => void;
   onAbrir: () => void;
+  /** Ítem 12: lo propio de adentro («2 propios»), que la cabecera dice mientras la sección está plegada. */
+  resumen?: ResumenPlegado | null;
   children: ReactNode;
 };
 
-export function Plegable({ clave, titulo, abierta, onAlternar, onAbrir, children }: Props) {
+export function Plegable({ clave, titulo, abierta, onAlternar, onAbrir, resumen, children }: Props) {
   const id = useId();
   const cuerpo = useRef<HTMLDivElement>(null);
 
@@ -41,6 +44,7 @@ export function Plegable({ clave, titulo, abierta, onAlternar, onAbrir, children
         <button type="button" id={`${id}-boton`} className="pulso-f6-grupo-boton" aria-expanded={abierta} aria-controls={`${id}-cuerpo`}
           onClick={onAlternar}>
           <span className="pulso-f6-grupo-rotulo">{titulo}</span>
+          {!abierta && resumen ? <span className="pulso-f6-grupo-resumen" title={resumen.detalle}>{resumen.texto}</span> : null}
           <ChevronDown size={16} aria-hidden="true" className="pulso-f6-grupo-chevron" />
         </button>
       </h4>

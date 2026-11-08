@@ -23,6 +23,17 @@ afterEach(() => {
 });
 
 describe("SeccionPlegable", () => {
+  test("ítem 12: plegada, la cabecera dice lo propio de adentro; abierta, lo calla", () => {
+    const resumen = { texto: "2 propios", detalle: "Sólo de este gráfico: Orden, Máximo de categorías." };
+    act(() => root.render(<SeccionPlegable seccion="aspecto" resumen={resumen}><input aria-label="Orden" /></SeccionPlegable>));
+    const boton = host.querySelector<HTMLButtonElement>("button[aria-expanded]")!;
+    const chip = () => boton.querySelector<HTMLElement>(".pulso-f6-grupo-resumen");
+    expect(boton.getAttribute("aria-expanded")).toBe("false");
+    expect(chip()?.textContent).toBe("2 propios");
+    expect(chip()?.title).toBe(resumen.detalle);
+    act(() => boton.click());
+    expect(chip()).toBeNull();
+  });
   test("Cálculo arranca cerrada, se abre con su botón y se recuerda en el store", () => {
     act(() => root.render(<SeccionPlegable seccion="calculo"><input aria-label="Decimales" /></SeccionPlegable>));
     const boton = host.querySelector<HTMLButtonElement>("button[aria-expanded]")!;

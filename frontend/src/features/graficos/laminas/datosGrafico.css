@@ -443,3 +443,20 @@
   white-space: normal;
   overflow-wrap: anywhere;
 }
+
+/* Ítem 12 (2026-11-08): la cabecera plegada dice lo propio de adentro («2 propios»), en el tono del módulo y empujando el
+   chevron a la derecha. Parte línea si no cabe (C4). */
+.pulso-f6-grupo-rotulo { flex: 1 1 auto; text-align: left; }
+.pulso-f6-grupo-resumen {
+  flex: none;
+  max-width: 60%;
+  padding: 0 var(--pulso-space-2);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--module-accent-soft);
+  color: var(--module-accent);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: normal;
+  text-transform: none;
+  overflow-wrap: anywhere;
+}

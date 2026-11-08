@@ -5,17 +5,18 @@ import { useCallback, type ReactNode } from "react";
 import { useLaminasUi } from "../laminasStore";
 import { seccionAbierta, TITULO_GRUPO, type SeccionTarjeta } from "../gruposTarjeta";
 import { Plegable } from "./Plegable";
+import type { ResumenPlegado } from "./resumenPlegado";
 
-type Props = { seccion: SeccionTarjeta; children: ReactNode };
+type Props = { seccion: SeccionTarjeta; resumen?: ResumenPlegado | null; children: ReactNode };
 
-export function SeccionPlegable({ seccion, children }: Props) {
+export function SeccionPlegable({ seccion, resumen, children }: Props) {
   const abierta = useLaminasUi((s) => seccionAbierta(s.seccionesTarjeta, seccion));
   const alternar = useLaminasUi((s) => s.alternarSeccionTarjeta);
   const abrir = useLaminasUi((s) => s.abrirSeccionTarjeta);
   const onAlternar = useCallback(() => alternar(seccion), [alternar, seccion]);
   const onAbrir = useCallback(() => abrir(seccion), [abrir, seccion]);
   return (
-    <Plegable clave={seccion} titulo={TITULO_GRUPO[seccion]} abierta={abierta} onAlternar={onAlternar} onAbrir={onAbrir}>
+    <Plegable clave={seccion} titulo={TITULO_GRUPO[seccion]} abierta={abierta} onAlternar={onAlternar} onAbrir={onAbrir} resumen={resumen}>
       {children}
     </Plegable>
   );
