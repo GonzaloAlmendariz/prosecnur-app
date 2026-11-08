@@ -84,12 +84,13 @@ export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = 
   const totalBloquean = grupos.bloquean.length + (laminasSinColor ? 1 : 0);
   const fila = (i: ValidationIssue, k: number) => (
     <li key={`${i.code}-${i.slideId ?? ""}-${i.slotName ?? ""}-${k}`}>
-      <span>{i.message}</span>
+      {/* W1B-C8: el enlace va antes del texto para quedar en el primer renglón de la tarjeta (panelAvisos.css). */}
       {i.slideId && posicionDe.has(i.slideId) && (
-        <button type="button" className="pulso-f6-texto-boton" onClick={() => ir(i.slideId)}>
+        <button type="button" className="pulso-f6-texto-boton pulso-f6-avisos-ir" onClick={() => ir(i.slideId)}>
           Lámina {posicionDe.get(i.slideId)}
         </button>
       )}
+      <span>{i.message}</span>
     </li>
   );
 
@@ -170,10 +171,10 @@ export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = 
             <ul data-qa-geometry-group="graficos/f6-avisos-motor" data-qa-geometry-contract="intrinsic">
               {grupos.motor.flatMap((m) => m.avisos.map((a, k) => (
                 <li key={`${m.slideId}-${k}`}>
-                  <span>{avisoConLaminaActual(a, posicionDe.get(m.slideId))}</span>
-                  <button type="button" className="pulso-f6-texto-boton" onClick={() => ir(m.slideId)}>
+                  <button type="button" className="pulso-f6-texto-boton pulso-f6-avisos-ir" onClick={() => ir(m.slideId)}>
                     Lámina {posicionDe.get(m.slideId)}
                   </button>
+                  <span>{avisoConLaminaActual(a, posicionDe.get(m.slideId))}</span>
                 </li>
               )))}
             </ul>

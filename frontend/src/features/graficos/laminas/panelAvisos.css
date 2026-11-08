@@ -90,6 +90,18 @@
   overflow-wrap: anywhere;
 }
 
+/* W1B-C8: la tarjeta con «Lámina N» lleva el enlace en su primer renglón, a la derecha, y el texto usa todo el ancho
+   debajo (antes, en dos columnas, el enlace se quedaba su columna de arriba abajo y el texto caía en una franja). */
+.pulso-f6-avisos-grupo li:has(> .pulso-f6-avisos-ir) {
+  display: flow-root;
+}
+
+.pulso-f6-avisos-ir {
+  float: inline-end;
+  margin-inline-start: var(--pulso-space-2);
+  white-space: nowrap;
+}
+
 /* Fila con una acción masiva de rótulo largo («Fijar la base principal en todas las láminas»): el texto ocupa el ancho
    y la acción va debajo; en dos columnas el texto quedaba en una franja de una palabra por renglón. */
 .pulso-f6-avisos-grupo li.is-accion {
