@@ -38,6 +38,16 @@ describe("las láminas de origen", () => {
     expect(nombreDeOrigen(lamina("x", null, { meta: { antetitulo: "Cobertura" } }), 7, null)).toBe("Lámina 7: Cobertura");
   });
 
+  it("F1: el nombre que el mazo guardó en meta.nombre manda sobre el del tipo; el título escrito, sobre los dos", () => {
+    const escala = (meta: Record<string, unknown>, titulo = ""): Slide => ({
+      id: "s26", tipo: "p_slide_1_grafico",
+      payload: { titulo, grafico: { graficador: "p_barras_divergentes", args: { estilo: "resumen", vars: ["docentes$*"] } }, meta },
+    });
+    expect(nombreDeOrigen(escala({ nombre: "Escala bajo 60%, Docentes" }), 26, { graficador: "p_barras_divergentes", args: {} }))
+      .toBe("Lámina 26: Escala bajo 60%, Docentes");
+    expect(nombreDeOrigen(escala({ nombre: "Escala bajo 60%, Docentes" }, "Lo que preocupa"), 26, null)).toBe("Lámina 26: Lo que preocupa");
+  });
+
   it("dos láminas del mismo gráfico se distinguen por su antetítulo, su regla o su público (Q4-1)", () => {
     const g = (graficador: string, args: Record<string, unknown>, antetitulo: string, extra: Record<string, unknown> = {}): Slide => ({
       id: antetitulo, tipo: "p_slide_1_grafico", payload: { titulo: "", grafico: { graficador, args }, meta: { antetitulo }, ...extra },

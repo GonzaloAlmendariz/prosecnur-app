@@ -17,6 +17,7 @@ import { REFERENCIA_POR_DEFECTO, unirPublicos } from "../mazoResumen/modeloMazo"
 import { publicosDe } from "../publicosGrafico/modeloPublicos";
 import { jsonEstable, leerRegla } from "../reglaPreguntas/modeloReglaPreguntas";
 import { presentacionDeGrafico } from "../selectores/intencionesContar";
+import { nombreSinTitulo } from "../tituloQueSale";
 
 export const MIN_HALLAZGOS = 3;
 export const MAX_HALLAZGOS = 5;
@@ -133,11 +134,15 @@ function publicosDelGrafico(args: Readonly<Record<string, unknown>>): string[] {
 /**
  * Cómo se nombra una lámina de origen (Q4-1 de la prueba con Arte): su título si el analista lo escribió; si no, lo que
  * la distingue de las demás láminas del mismo gráfico. «Lámina 26: Brechas, escala bajo 60%» (antetítulo y regla),
- * «Lámina 29: Fortalezas y alertas, docentes» (tarjeta y público, cuando el antetítulo sólo dice el público).
+ * «Lámina 29: Fortalezas y alertas, docentes» (tarjeta y público, cuando el antetítulo sólo dice el público). Antes que
+ * eso, el nombre que el mazo guardó en `meta.nombre` (F1).
  */
 export function nombreDeOrigen(slide: Slide, numero: number, grafico: GraficadorRef | null): string {
   const titulo = tituloDeLamina(slide.payload);
   if (titulo) return `Lámina ${numero}: ${titulo}`;
+  // F1: el nombre que el mazo le dio al insertarla (`meta.nombre`, con su público) manda, como en la Estructura.
+  const delMazo = leerSlideMeta(slide).nombre;
+  if (typeof delMazo === "string" && delMazo.trim()) return `Lámina ${numero}: ${nombreSinTitulo(slide)}`;
   const tarjeta = grafico ? presentacionDeGrafico(grafico.graficador, grafico.args ?? {}).nombre ?? "" : "";
   const ante = texto(leerSlideMeta(slide).antetitulo);
   const args = grafico?.args ?? {};
