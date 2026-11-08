@@ -95,6 +95,10 @@
     rendered[[nm]] <- p
   }
 
+  # A4 (ola 4): la divergente mide la barra de la apilada vecina (reporte_slides_composicion_grosor.R).
+  rendered <- .composicion_grosor_comun(rendered, els, anchos, altos, function(el, ancho_slot, alto_slot)
+    helpers$render_element(helpers$inject_title_override(el), ancho_slot = ancho_slot, alto_slot = alto_slot))
+
   if (isTRUE(solo_lista)) {
     return(list(doc = doc, rendered = unname(rendered), elementos = els))
   }

@@ -173,6 +173,7 @@ graficar_barras_divergentes <- function(
   estilo <- match.arg(estilo)
   orden <- match.arg(orden)
   leyenda_posicion <- match.arg(leyenda_posicion)
+  grosor_barras_pedido <- max(grosor_barras, 0.92)   # A4 (ola 4): techo al igualar la barra de la lámina
   face <- .graficos_face_de(textos_negrita)
   # G-b (ola 3): sin elección del analista, las cifras van en negrita, como en la apilada y la lámina nativa.
   if (is.null(textos_negrita)) { face0 <- face; face <- function(rol) if (identical(rol, "valores")) "bold" else face0(rol) }
@@ -453,5 +454,16 @@ graficar_barras_divergentes <- function(
       ggplot2::theme(axis.text.y = ggplot2::element_text(hjust = 1, lineheight = 0.95))
   }
   attr(out, "pulso_espec") <- espec_div
+  # A4 (ola 4): en una composición, la barra mide lo de la apilada vecina (reporte_slides_composicion_grosor.R); nunca más
+  # gruesa que lo que deja su aire.
+  objetivo <- getOption(.COMPOSICION_GROSOR_OPCION)
+  if (!is.null(objetivo) && !is.null(alto)) {
+    frac <- .divergentes_grosor_para_objetivo(out, alto, length(unique(as.character(df$.item))), objetivo)
+    if (is.finite(frac) && abs(frac - grosor_barras) > 0.01) {
+      viejo <- options(stats::setNames(list(NULL), .COMPOSICION_GROSOR_OPCION)); on.exit(options(viejo), add = TRUE)
+      mc <- match.call(); mc$grosor_barras <- max(0.2, min(grosor_barras_pedido, frac))
+      return(eval(mc, parent.frame()))
+    }
+  }
   out
 }
