@@ -103,8 +103,8 @@ export function GruposPadron({ args, cruce, opciones, scope, onCambio }: Props) 
       {base && (
         <div className="pulso-f6-grupos-base">
           <span className="pulso-f6-grupos-base-rotulo">
-            Así sale la base en la nota
-            <AyudaGlobo rotulo="Así sale la base en la nota" detalle={AYUDA_BASE} />
+            Base en la nota
+            <AyudaGlobo rotulo="Base en la nota" detalle={AYUDA_BASE} />
           </span>
           <p className="pulso-f6-grupos-base-texto" aria-live="polite">{base}</p>
         </div>
