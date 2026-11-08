@@ -4,6 +4,8 @@
 // - Barras agrupadas y categóricas (D1 de checklist-poblacion-y-filtro, Gonzalo 2026-10-14: «mantener un solo color por
 //   defecto y tener la posibilidad de resaltar alguna opción si se desea»): `overrides.resaltar_opciones`; las elegidas en
 //   azul con su rótulo en negrita y las demás en tenue, como el realce del recetario. Sin ninguna, un solo color.
+// - Ítem 10 de la oleada del inspector (2026-11-08): en esas dos, «La más alta» es la primera ficha; reemplaza al
+//   interruptor «Resaltar la barra más alta» y es excluyente con las respuestas (realce.ts).
 
 import { useId } from "react";
 import type { GraficadorRef } from "../../../api/graficos";
@@ -11,6 +13,7 @@ import { usePlanStore } from "../store";
 import { parseVarRef, useVariables } from "../useVariables";
 import { rotuloVisible } from "./rotuloCortoDeLista";
 import { useRotulosCortos } from "./useRotulosCortos";
+import { conMayorAlternada, conRespuestasDestacadas, GRAFICOS_CON_RESALTE, mayorActiva } from "./realce";
 
 /** Dónde guarda cada gráfico lo que se destaca. */
 const DONDE: Readonly<Record<string, "arg" | "override">> = {
@@ -41,22 +44,29 @@ export function DestacarRespuestas({ slideId, slot, valor }: { slideId: string; 
   const ref = typeof args.var === "string" ? parseVarRef(args.var) : null;
   const variable = ref ? variables.find((v) => v.name === ref.name && (!ref.source || v.source === ref.source)) : undefined;
   const respuestas = (variable?.choices ?? []).map((c) => String(c.label ?? c.name)).filter(Boolean);
-  if (!respuestas.length) return null;
-  const elegidas = new Set(destacadasDe(valor.graficador, args));
+  const conMayor = GRAFICOS_CON_RESALTE.has(valor.graficador);
+  if (!respuestas.length && !conMayor) return null;
+  const guardadas = destacadasDe(valor.graficador, args);
+  const elegidas = new Set(guardadas);
+  const mayor = conMayor && mayorActiva(args, guardadas);
   const alternar = (r: string) => {
     const siguiente = respuestas.filter((x) => (x === r ? !elegidas.has(x) : elegidas.has(x)));
     if (donde === "arg") {
       updateSlotArgs(slideId, slot, { resaltar: siguiente.length ? siguiente : null });
       return;
     }
-    const ov: Record<string, unknown> = { ...(args.overrides && typeof args.overrides === "object" ? (args.overrides as Record<string, unknown>) : {}) };
-    if (siguiente.length) ov.resaltar_opciones = siguiente; else delete ov.resaltar_opciones;
-    updateSlotArgs(slideId, slot, { overrides: ov });
+    updateSlotArgs(slideId, slot, { overrides: conRespuestasDestacadas(args, siguiente) });
   };
   return (
     <div className="pulso-f6-dato is-apilado" data-qa="destacar-respuestas">
       <span className="pulso-f6-dato-rotulo" id={id}>Destacar</span>
       <div className="pulso-f6-destacar" role="group" aria-labelledby={id}>
+        {conMayor && (
+          <button type="button" className="pulso-f6-destacar-opcion is-mayor" aria-pressed={mayor} data-qa="resaltar-mayor"
+            onClick={() => updateSlotArgs(slideId, slot, { overrides: conMayorAlternada(args, guardadas) })}>
+            La más alta
+          </button>
+        )}
         {respuestas.map((r) => {
           // U14: se ve el corto del estudio; lo que se guarda sigue siendo el rótulo completo.
           const v = rotuloVisible(cortos, r);
@@ -66,7 +76,7 @@ export function DestacarRespuestas({ slideId, slot, valor }: { slideId: string; 
           );
         })}
       </div>
-      {donde === "override" && elegidas.size === 0 && <span className="pulso-f6-dato-ayuda">Sin elegir, todas van del mismo color.</span>}
+      {donde === "override" && elegidas.size === 0 && !mayor && <span className="pulso-f6-dato-ayuda">Sin elegir, todas van del mismo color.</span>}
     </div>
   );
 }

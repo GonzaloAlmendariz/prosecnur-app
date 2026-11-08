@@ -192,7 +192,7 @@
   font: inherit;
   font-size: var(--pulso-type-body-size);
   cursor: pointer;
-  transition: background-color 160ms ease-out, border-color 160ms ease-out, color 160ms ease-out;
+  transition: background-color 160ms ease-out, border-color 160ms ease-out, color 160ms ease-out, transform 160ms ease-out;
 }
 .pulso-f6-destacar-opcion:hover { border-color: var(--pulso-border-strong); }
 /* «Al centro» de la dona: una sola respuesta, en el tono principal (no es un énfasis). */
@@ -460,3 +460,9 @@
   text-transform: none;
   overflow-wrap: anywhere;
 }
+
+/* Ítem 10 (2026-11-08): «La más alta» abre las fichas de «Destacar»; encendida, en el tono de énfasis como las respuestas
+   destacadas (el realce es uno solo). Un poco de aire la separa de las respuestas. */
+.pulso-f6-destacar-opcion.is-mayor { font-weight: var(--pulso-weight-semibold); }
+.pulso-f6-destacar-opcion.is-mayor + .pulso-f6-destacar-opcion { margin-inline-start: var(--pulso-space-1); }
+.pulso-f6-destacar-opcion:active { transform: scale(var(--mov-press)); }

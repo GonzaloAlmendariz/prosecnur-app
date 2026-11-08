@@ -43,7 +43,6 @@ import { NotaFormaRadar } from "./NotaFormaRadar";
 import { DonaCentro } from "./DonaCentro";
 import { PublicoGrafico } from "./PublicoGrafico";
 import { SignificanciaPublicos } from "./SignificanciaPublicos";
-import { ResaltarGrafico } from "./ResaltarGrafico";
 import { EtiquetaCortaPregunta, EtiquetasCortasPreguntas } from "./EtiquetasCortas";
 import { PreguntaClave } from "./preguntasClave/PreguntaClave";
 import { LetraYEjeAgrupadas } from "./tarjetaGrafico/LetraYEjeAgrupadas";
@@ -334,7 +333,6 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
           <OrdenCategoriasGrafico variable={varCalificada(variable, baseActiva, scope)} graficador={valor.graficador} args={args} scope={scope} onCambio={(o) => set({ orden_categorias: o })} />
         )}
         {delGrupo("aspecto")}
-        <ResaltarGrafico slideId={slideId} slot={slot} valor={valor} />
         <DestacarRespuestas slideId={slideId} slot={slot} valor={valor} />
         {/* U12: letra de categorías y cifras y eje libre, que la lámina nativa lee de `overrides`. */}
         <LetraYEjeAgrupadas key={`${slideId}:${slot}`} graficador={valor.graficador} args={args} onCambio={(ov) => set({ overrides: ov })} />
