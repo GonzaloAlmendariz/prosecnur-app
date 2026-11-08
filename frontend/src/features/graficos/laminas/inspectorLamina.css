@@ -420,32 +420,71 @@ textarea.pulso-f6-input {
   min-width: 0;
 }
 
-/* Selector de gráfico de la pestaña «Gráfico»: uno a la vez. */
+/* Selector de gráfico de la pestaña «Gráfico»: uno a la vez. W1B-C4: una grilla con la forma de la composición y celdas
+   iguales a todo el ancho (antes píldoras sueltas que partían renglón donde cayera). Dos o cuatro ranuras, dos columnas
+   (2×1, 2×2); tres o seis, tres columnas (3×1, 3×2). */
 .pulso-f6-selector-grafico {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--pulso-space-1);
+  min-width: 0;
+}
+
+.pulso-f6-selector-grafico:has(> :nth-child(3):last-child),
+.pulso-f6-selector-grafico:has(> :nth-child(5)) {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .pulso-f6-selector-grafico-opcion {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
+  gap: var(--pulso-space-2);
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: var(--pulso-control-height-md);
+  padding: var(--pulso-space-1) var(--pulso-space-2);
   border: 1px solid var(--pulso-border);
-  border-radius: 999px;
+  border-radius: var(--pulso-control-radius);
   background: var(--pulso-surface);
   color: var(--pulso-text-soft);
   font: inherit;
   font-size: var(--pulso-type-body-size);
+  line-height: 1.25;
+  text-align: left;
+  overflow-wrap: break-word;
   cursor: pointer;
+  transition:
+    background-color var(--motion-dur-fast) var(--motion-ease-out),
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    color var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-f6-selector-grafico-opcion > svg {
+  flex: none;
+  width: var(--pulso-icon-size-sm);
+  height: var(--pulso-icon-size-sm);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-f6-selector-grafico-opcion:not(.is-activa):hover {
+    background: var(--pulso-surface-3);
+  }
+}
+
+.pulso-f6-selector-grafico-opcion:focus-visible {
+  outline: var(--mov-foco);
+  outline-offset: 1px;
 }
 
 .pulso-f6-selector-grafico-opcion.is-activa {
-  border-color: var(--module-accent);
+  border-color: var(--module-accent-border);
   background: var(--module-accent-soft);
-  color: var(--module-accent);
+  color: var(--pulso-text);
   font-weight: var(--pulso-weight-semibold);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-f6-selector-grafico-opcion { transition: none; }
 }
 
 .pulso-f6-inspector-apartado {

@@ -18,7 +18,7 @@ type Props = {
 export function IndicePlegables({ tarjeta, entradas, etiqueta, onAbrir }: Props) {
   return (
     <nav className="pulso-f6-indice-tarjeta" aria-label={etiqueta} data-indice-tarjeta=""
-      data-qa-geometry-group="graficos/f6-indice-tarjeta" data-qa-geometry-contract="intrinsic">
+      data-qa-geometry-group="graficos/f6-indice-tarjeta" data-qa-geometry-contract="equal">
       {entradas.map((e) => (
         <PulsoButton key={e.clave} variant="secondary" size="sm" className="pulso-f6-indice-tarjeta-ir" data-ir={e.clave}
           // La altura es la del control del kit (--pulso-control-height-sm), no un hueco del contenido.

@@ -309,15 +309,18 @@
   /* El borde pegado es el del contenido del cuerpo: se sube su padding para que no asome nada encima. */
   top: calc(-1 * var(--pulso-space-3));
   z-index: 1;
-  display: flex;
-  flex-wrap: wrap;
+  /* W1B-C4: Datos / Cálculo / Aspecto a todo el ancho y en partes iguales (antes tres botones a la izquierda y el 63 % de
+     la fila vacío). Una sección oculta (display: none, abajo) no abre columna: con dos, mitades. */
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   gap: var(--pulso-space-1);
   min-width: 0;
   padding: var(--pulso-space-2) 0;
   background: var(--pulso-surface);
   box-shadow: inset 0 -1px 0 var(--pulso-border);
 }
-.pulso-f6-indice-tarjeta-ir { flex: none; }
+.pulso-f6-indice-tarjeta-ir { justify-content: center; width: 100%; min-width: 0; }
 .pulso-f6-datos:not(:has(> [data-seccion-tarjeta="datos"] > .pulso-f6-grupo-cuerpo > *)) [data-ir="datos"],
 .pulso-f6-datos:not(:has(> [data-seccion-tarjeta="calculo"] > .pulso-f6-grupo-cuerpo > *)) [data-ir="calculo"],
 .pulso-f6-datos:not(:has(> [data-seccion-tarjeta="aspecto"] > .pulso-f6-grupo-cuerpo > *)) [data-ir="aspecto"] {

@@ -162,7 +162,8 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onCambiarGrafico }: {
   return (
     <div className="pulso-f6-pila" data-qa-geometry-group="graficos/f6-graficos" data-qa-geometry-contract="intrinsic">
       {slots.length > 1 && (
-        <div className="pulso-f6-selector-grafico" role="tablist" aria-label="Gráfico de la lámina" data-gliding-opt-out="Elige cuál de los gráficos de la lámina se edita (1 a 4 chips con el ícono de su tipo); no es el recorrido del módulo y la opción activa se marca con su propio fondo.">
+        <div className="pulso-f6-selector-grafico" role="tablist" aria-label="Gráfico de la lámina"
+          data-qa-geometry-group="graficos/f6-selector-grafico" data-qa-geometry-contract="equal" data-gliding-opt-out="Elige cuál de los gráficos de la lámina se edita (1 a 4 chips con el ícono de su tipo); no es el recorrido del módulo y la opción activa se marca con su propio fondo.">
           {slots.map((slot, i) => {
             const v = payload[slot] as GraficadorRef | undefined;
             return (
