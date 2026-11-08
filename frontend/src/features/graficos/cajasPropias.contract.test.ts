@@ -60,7 +60,7 @@ const SNAPSHOT: Record<string, number> = {
   "laminas/tiraMiniaturas.css": 3,
   "laminas/visorLamina.css": 3,
   "lineaFijadaRecetario.css": 2,
-  "multiapiladas/multiapiladas.css": 4,
+  "multiapiladas/multiapiladas.css": 3,
   "subpestanas/subpestanas.css": 1,
   "temasEquivalentes/temasEquivalentes.css": 3,
   "v2/styles/editor-v2.css": 317,

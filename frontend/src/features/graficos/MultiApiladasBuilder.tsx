@@ -45,6 +45,8 @@ import { formatoConteo } from "../../lib/formatoNumero";
 import { CargaDeBloque } from "../../components/CargaDeBloque";
 import { textoPlano } from "./textoPlano";
 import { PulsoButton } from "../../components/PulsoButton";
+import { Panel } from "../../components/Panel";
+import { Alert } from "../../components/Alert";
 import { RadioSegmentado } from "./subpestanas/RadioSegmentado";
 
 type Props = {
@@ -484,7 +486,7 @@ function BlockEditor({
   }
 
   return (
-    <div className="pulso-mapi-bloque">
+    <Panel className="pulso-mapi-bloque" aria-label={`Bloque ${index + 1}`}>
       <div className="pulso-mapi-bloque-cabeza">
         <strong className="pulso-mapi-bloque-titulo">Bloque {index + 1}</strong>
         <RadioSegmentado<Intent>
@@ -576,7 +578,7 @@ function BlockEditor({
         )
       )}
       <BlockSettings block={block} onChange={onChange} refs={refsDeBloque(block)} variables={variables} multi={multi} laminaArgs={laminaArgs} />
-    </div>
+    </Panel>
   );
 }
 
@@ -996,10 +998,9 @@ function ScaleInline({ refs, variables, multi }: { refs: string[]; variables: Va
 
 function RequirementPanel({ title, text }: { title: string; text: string }) {
   return (
-    <div className="pulso-mapi-requisito" role="note">
-      <strong><AlertCircle aria-hidden="true" /> {title}</strong>
-      <p>{text}</p>
-    </div>
+    <Alert kind="warn">
+      <strong>{title}</strong> {text}
+    </Alert>
   );
 }
 

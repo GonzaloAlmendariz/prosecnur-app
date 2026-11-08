@@ -68,7 +68,8 @@
 .pulso-mapi-campo > .pulso-f6-input { width: 100%; min-width: 0; }
 .pulso-mapi-par { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--pulso-space-2); }
 .pulso-mapi-bloques { display: flex; flex-direction: column; gap: var(--pulso-space-2); }
-.pulso-mapi-bloque { display: flex; flex-direction: column; gap: var(--pulso-space-2); min-width: 0; padding: var(--pulso-space-2) var(--pulso-space-3); border: 1px solid var(--pulso-border); border-radius: var(--pulso-radius-card); background: var(--pulso-surface); }
+/* El bloque es el Panel del kit (su marco y su relleno); aquí sólo su orden interno. */
+.pulso-mapi-bloque.pulso-panel { display: flex; flex-direction: column; gap: var(--pulso-space-2); min-width: 0; }
 .pulso-mapi-bloque-cabeza { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--pulso-space-2); min-height: var(--pulso-control-height-sm); }
 .pulso-mapi-bloque-titulo { font-size: var(--pulso-type-body-size); font-weight: var(--pulso-weight-semibold); white-space: nowrap; }
 .pulso-mapi-bloque-cabeza > .pulso-f6-segmento { justify-self: start; }
@@ -81,7 +82,8 @@
 .pulso-mapi-fila-publico { color: var(--pulso-text-soft); font-size: var(--pulso-type-caption-size); font-weight: var(--pulso-weight-semibold); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pulso-mapi-fila-etiqueta { min-width: 0; color: var(--pulso-text); font-size: var(--pulso-type-body-size); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pulso-mapi-fila-codigo { color: var(--pulso-text-soft); font-size: var(--pulso-type-micro-size); white-space: nowrap; }
-.pulso-mapi-plegable { border: 1px solid var(--pulso-border); border-radius: var(--pulso-control-radius); padding: 0 var(--pulso-space-2); background: var(--pulso-surface); }
+/* Plegable sin caja: un filete arriba lo separa (no suma un nivel de marco dentro del bloque). */
+.pulso-mapi-plegable { border-top: 1px solid var(--pulso-border); }
 .pulso-mapi-plegable > summary { display: flex; align-items: center; min-height: var(--pulso-control-height-sm); cursor: pointer; font-size: var(--pulso-type-caption-size); font-weight: var(--pulso-weight-semibold); }
 .pulso-mapi-plegable[open] { padding-bottom: var(--pulso-space-2); }
 .pulso-mapi-plegable-cuerpo { display: flex; flex-direction: column; gap: var(--pulso-space-2); }
@@ -90,10 +92,6 @@
 .pulso-mapi-escala[data-tono="error"] { color: var(--pulso-danger-fg); }
 .pulso-mapi-escala[data-tono="idle"] { color: var(--pulso-text-soft); }
 .pulso-mapi-escala > svg { width: var(--pulso-icon-size-sm); height: var(--pulso-icon-size-sm); flex: none; }
-.pulso-mapi-requisito { padding: var(--pulso-space-2) var(--pulso-space-3); border: 1px solid var(--pulso-warn-border); border-radius: var(--pulso-radius-card); background: var(--pulso-warn-bg); }
-.pulso-mapi-requisito > strong { display: flex; align-items: center; gap: var(--pulso-space-2); font-size: var(--pulso-type-body-size); }
-.pulso-mapi-requisito > strong > svg { width: var(--pulso-icon-size-sm); height: var(--pulso-icon-size-sm); flex: none; }
-.pulso-mapi-requisito > p { margin: var(--pulso-space-1) 0 0; color: var(--pulso-text-soft); font-size: var(--pulso-type-body-size); line-height: 1.45; }
 /* El disparador del selector de preguntas, dentro del editor: 36 de alto, el radio único y sin degradado ni sombra. */
 .pulso-gv2-multi-builder .pulso-gv2-variable-trigger { min-height: var(--pulso-control-height-lg); grid-template-columns: var(--pulso-control-height-sm) minmax(0, 1fr) auto var(--pulso-icon-size-md); padding: 3px var(--pulso-space-2); border-color: var(--pulso-border); border-radius: var(--pulso-control-radius); background: var(--pulso-surface); }
 .pulso-gv2-multi-builder .pulso-gv2-variable-trigger:hover:not(:disabled) { border-color: var(--pulso-border-strong); box-shadow: none; }
