@@ -86,7 +86,7 @@ export function TextosLamina({ slide, lamina, contenido, especial }: Props) {
             placeholder={(seccionActiva && lamina.antetituloHeredado) || "Sin antetítulo"}
             onChange={(e) => updatePayload(slide.id, { meta: conSlideMeta(slide, { antetitulo: e.target.value }).payload.meta })}
           />
-          <span className="pulso-f6-ayuda">
+          <span className="pulso-f6-ayuda-texto">
             {lamina.antetituloHeredado && seccionActiva
               ? `Vacío, hereda “${lamina.antetituloHeredado}” del separador.`
               : lamina.antetituloHeredado
@@ -161,7 +161,7 @@ function CampoTexto({ campo, valor, placeholder, ayuda = null, onCambio }: {
         <input id={id} data-campo={campo.name} className="pulso-f6-input" value={valor} placeholder={placeholder}
           aria-describedby={textoAyuda ? idAyuda : undefined} onChange={(e) => onCambio(e.target.value)} />
       )}
-      {textoAyuda && <span id={idAyuda} className="pulso-f6-ayuda">{textoAyuda}</span>}
+      {textoAyuda && <span id={idAyuda} className="pulso-f6-ayuda-texto">{textoAyuda}</span>}
     </div>
   );
 }

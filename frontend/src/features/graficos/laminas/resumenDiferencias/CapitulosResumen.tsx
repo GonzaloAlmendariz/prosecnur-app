@@ -64,11 +64,11 @@ export function CapitulosResumen({ valor, automatica, calificar, scope, onCambio
       data-campo="capitulos" data-qa="capitulos-resumen" data-qa-geometry-group="graficos/f6-resumen-capitulos-bloque" data-qa-geometry-contract="intrinsic">
       <div className="pulso-f6-especial-cabeza" data-qa-geometry-member>
         <h3 id={idTitulo} className={conTitulo ? "pulso-f6-subtitulo" : "pulso-sr-only"}>Capítulos y filas</h3>
-        <span className="pulso-f6-ayuda">
+        <span className="pulso-f6-ayuda-texto">
           {automatica ? "Las propone el motor" : conteoResumen(filas, completos, capitulos.length)}
         </span>
       </div>
-      <span id={idAyuda} className="pulso-f6-ayuda">
+      <span id={idAyuda} className="pulso-f6-ayuda-texto">
         {automatica ? "Marca las que quedan y edita a partir de ellas." : "Pregunta, respuesta que se cuenta y rótulo de cada fila."}
       </span>
       {propuesta}

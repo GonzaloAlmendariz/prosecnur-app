@@ -128,7 +128,7 @@ export function EditorIndiceVista({ indice, estructura, onAplicar: aplicar, onAb
     <section className="pulso-f6-indice" aria-labelledby={idTitulo} data-qa-geometry-group="graficos/f6-indice" data-qa-geometry-contract="intrinsic">
       <div className="pulso-f6-indice-cabeza">
         <h3 id={idTitulo} className="pulso-f6-subtitulo">Capítulos del índice</h3>
-        <span className="pulso-f6-ayuda">{n === 0 ? "Ninguno" : `${n} ${n === 1 ? "capítulo" : "capítulos"}`}</span>
+        <span className="pulso-f6-ayuda-texto">{n === 0 ? "Ninguno" : `${n} ${n === 1 ? "capítulo" : "capítulos"}`}</span>
       </div>
 
       {desfasado && (
@@ -152,7 +152,7 @@ export function EditorIndiceVista({ indice, estructura, onAplicar: aplicar, onAb
           Tomar los capítulos del informe
         </button>
         {capitulosInforme === 0 && (
-          <span id={idMotivo} className="pulso-f6-ayuda">El informe todavía no tiene separadores de capítulo.</span>
+          <span id={idMotivo} className="pulso-f6-ayuda-texto">El informe todavía no tiene separadores de capítulo.</span>
         )}
       </div>
 
@@ -177,7 +177,7 @@ export function EditorIndiceVista({ indice, estructura, onAplicar: aplicar, onAb
         />
       ) : (
         <>
-          <span className="pulso-f6-ayuda" id={idAyuda}>Usa Alt + ↑/↓ sobre un capítulo para moverlo.</span>
+          <span className="pulso-f6-ayuda-texto" id={idAyuda}>Usa Alt + ↑/↓ sobre un capítulo para moverlo.</span>
           <ol className="pulso-f6-indice-lista" aria-describedby={idAyuda} data-qa-geometry-group="graficos/f6-indice-capitulos" data-qa-geometry-contract="intrinsic">
             {indice.capitulos.map((c, i) => {
               const nombre = c.titulo.trim() || "Capítulo sin título";

@@ -100,9 +100,9 @@ function ListaActores({ actores, onCambio }: { actores: Actor[]; onCambio: (acto
       data-qa-geometry-group="graficos/f6-actores" data-qa-geometry-contract="intrinsic">
       <div className="pulso-f6-especial-cabeza">
         <h3 id={idTitulo} className="pulso-f6-subtitulo">Actores consultados</h3>
-        <span className="pulso-f6-ayuda">{actores.length === 0 ? "Ninguno" : `${formatoConteo(actores.length)} de ${MAX_ACTORES}`}</span>
+        <span className="pulso-f6-ayuda-texto">{actores.length === 0 ? "Ninguno" : `${formatoConteo(actores.length)} de ${MAX_ACTORES}`}</span>
       </div>
-      <span id={idAyuda} className="pulso-f6-ayuda">Cada uno sale con su ícono bajo el objetivo; sin actores, la lámina va sin esa fila.</span>
+      <span id={idAyuda} className="pulso-f6-ayuda-texto">Cada uno sale con su ícono bajo el objetivo; sin actores, la lámina va sin esa fila.</span>
       {actores.length > 0 && (
         <ol ref={lista} className="pulso-f6-filas" data-qa-geometry-group="graficos/f6-actores-filas" data-qa-geometry-contract="intrinsic">
           {actores.map((a, i) => {
@@ -138,7 +138,7 @@ function ListaActores({ actores, onCambio }: { actores: Actor[]; onCambio: (acto
         <Plus size={15} aria-hidden="true" />
         Añadir actor
       </button>
-      {lleno && <span className="pulso-f6-ayuda">La lámina admite hasta {MAX_ACTORES} actores.</span>}
+      {lleno && <span className="pulso-f6-ayuda-texto">La lámina admite hasta {MAX_ACTORES} actores.</span>}
       <span className="pulso-sr-only" aria-live="polite">{anuncio}</span>
 
       <Dialog.Root modal open={panel.abierto} onOpenChange={(siguiente) => { if (!siguiente && panel.abierto) panel.cerrar(); }}>
@@ -186,9 +186,9 @@ function ListaDimensiones({ dimensiones, onCambio }: { dimensiones: string[]; on
       data-qa-geometry-group="graficos/f6-dimensiones" data-qa-geometry-contract="intrinsic">
       <div className="pulso-f6-especial-cabeza">
         <h3 id={idTitulo} className="pulso-f6-subtitulo">Dimensiones</h3>
-        <span className="pulso-f6-ayuda">{dimensiones.length === 0 ? "Ninguna" : `${formatoConteo(dimensiones.length)} de ${MAX_DIMENSIONES}`}</span>
+        <span className="pulso-f6-ayuda-texto">{dimensiones.length === 0 ? "Ninguna" : `${formatoConteo(dimensiones.length)} de ${MAX_DIMENSIONES}`}</span>
       </div>
-      <span className="pulso-f6-ayuda">Van en tarjetas bajo Conocer la percepción sobre.</span>
+      <span className="pulso-f6-ayuda-texto">Van en tarjetas bajo Conocer la percepción sobre.</span>
       {dimensiones.length > 0 && (
         <ol ref={lista} className="pulso-f6-filas" data-qa-geometry-group="graficos/f6-dimensiones-filas" data-qa-geometry-contract="intrinsic">
           {dimensiones.map((d, i) => (
@@ -211,7 +211,7 @@ function ListaDimensiones({ dimensiones, onCambio }: { dimensiones: string[]; on
         <Plus size={15} aria-hidden="true" />
         Añadir dimensión
       </button>
-      {lleno && <span className="pulso-f6-ayuda">La lámina admite hasta {MAX_DIMENSIONES} dimensiones.</span>}
+      {lleno && <span className="pulso-f6-ayuda-texto">La lámina admite hasta {MAX_DIMENSIONES} dimensiones.</span>}
     </section>
   );
 }

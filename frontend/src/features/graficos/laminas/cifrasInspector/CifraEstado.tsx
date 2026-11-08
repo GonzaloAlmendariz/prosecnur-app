@@ -18,7 +18,7 @@ type Props = {
 export function CifraEstado({ texto, vigente, esperando = !vigente, qa, className }: Props) {
   if (!texto && !esperando) return null;
   return (
-    <span className={["pulso-f6-cifra", !vigente ? "is-anterior" : "", className].filter(Boolean).join(" ")}
+    <span className={["pulso-f6-cifra-estado", !vigente ? "is-anterior" : "", className].filter(Boolean).join(" ")}
       role="status" aria-busy={esperando || undefined} data-qa={qa}>
       {texto ?? <Skeleton forma="texto" ancho="8ch" className="pulso-f6-cifra-silueta" />}
     </span>

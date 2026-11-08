@@ -64,12 +64,12 @@ export function CapitulosHallazgos({ valor, modo, automatica, calificar, scope, 
       data-campo="capitulos" data-qa="capitulos-hallazgos" data-qa-geometry-group="graficos/f6-hallazgos" data-qa-geometry-contract="intrinsic">
       <div className="pulso-f6-especial-cabeza" data-qa-geometry-member>
         <h3 id={idTitulo} className={conTitulo ? "pulso-f6-subtitulo" : "pulso-sr-only"}>Capítulos y hallazgos</h3>
-        <span className="pulso-f6-ayuda">
+        <span className="pulso-f6-ayuda-texto">
           {automatica ? "Los propone el motor"
             : capitulos.length === 0 ? "Ninguno" : `${formatoConteo(completos)} de ${formatoConteo(capitulos.length)} ${capitulos.length === 1 ? "sale" : "salen"}`}
         </span>
       </div>
-      <span id={idAyuda} className="pulso-f6-ayuda">
+      <span id={idAyuda} className="pulso-f6-ayuda-texto">
         {automatica ? "Marca los que quedan y edita a partir de ellos." : "Pregunta, respuesta, texto y comparación de cada hallazgo."}
       </span>
       {propuesta}

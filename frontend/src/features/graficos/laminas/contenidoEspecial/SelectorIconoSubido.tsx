@@ -30,7 +30,7 @@ export function SelectorIconoSubido({ arg, valor, iconos, onCambio }: Props) {
     <fieldset className="pulso-f6-especial pulso-f6-icono-subido" aria-describedby={idAyuda}
       data-qa-geometry-group="graficos/f6-icono-subido" data-qa-geometry-contract="intrinsic">
       <legend className="pulso-f6-subtitulo">{rotulo}</legend>
-      <span id={idAyuda} className="pulso-f6-ayuda">
+      <span id={idAyuda} className="pulso-f6-ayuda-texto">
         {elegido.estado === "subido" ? `Sale “${nombreIcono(elegido.icono)}”.`
           : elegido.estado === "desconocido" ? "El plan nombra un ícono que ya no está entre los subidos."
             : "La lámina sale sin ícono."}

@@ -183,7 +183,7 @@ textarea.pulso-f6-input {
   outline-offset: 0;
 }
 
-.pulso-f6-ayuda {
+.pulso-f6-ayuda-texto {
   display: block;
   font-size: var(--pulso-type-caption-size);
   line-height: 1.4;

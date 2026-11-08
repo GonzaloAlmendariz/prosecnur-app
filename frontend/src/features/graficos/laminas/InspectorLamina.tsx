@@ -256,7 +256,7 @@ function SalidaDelGrafico({ slide, visor }: { slide: Slide; visor: LaminaVisor |
         </div>
       )}
       {estado && visor && visor.partes.length > 1 && (
-        <p className="pulso-f6-ayuda">
+        <p className="pulso-f6-ayuda-texto">
           Sale en {formatoConteo(visor.partes.length)} láminas: {visor.partes.map((p) => `${p.indice}${p.continuacion ? " (cont.)" : ""}`).join(", ")}.
         </p>
       )}
