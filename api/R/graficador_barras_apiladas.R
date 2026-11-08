@@ -3283,6 +3283,8 @@ graficar_barras_apiladas <- function(
   if (isTRUE(mostrar_barra_extra) && !is.null(titulo_extra_int) && nzchar(titulo_extra_int)) {
     # Reserva mínima compacta para que el título de barra extra no aleje el gráfico.
     top_in <- max(top_in, max(0.09, (size_titulo_extra %||% 9) * 0.012))
+    # E4 (ola 2): con una cifra elevada en la primera fila la cabecera se aleja (graficador_barras_apiladas_cabecera_aire.R).
+    if (.apiladas_arriba_en_fila1(if (exists("df_lab", inherits = FALSE)) df_lab)) top_in <- top_in + .APILADAS_CABECERA_AIRE_IN
   }
   if (!is.null(t2b_comparativo)) {
     # El encabezado de períodos es una celda con rejilla, no una línea de texto:
