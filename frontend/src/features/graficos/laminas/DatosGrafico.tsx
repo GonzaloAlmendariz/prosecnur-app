@@ -24,6 +24,7 @@ import {
   CORTE_EN_CADENA,
   AYUDA_CODIGOS,
   interruptorEncendido,
+  propiosDeAspecto,
   type CampoDato,
 } from "./argsDatosGrafico";
 import { useLaminasUi } from "./laminasStore";
@@ -38,7 +39,7 @@ import { ListaPreguntas } from "./ListaPreguntas";
 import { PublicosGrafico } from "./publicosGrafico/PublicosGrafico";
 import { usaPublicos } from "./publicosGrafico/modeloPublicos";
 import { CriteriosGrafico } from "./CriteriosGrafico";
-import { DestacarRespuestas } from "./DestacarRespuestas";
+import { DestacarRespuestas, destacadasDe, GRAFICOS_CON_DESTACADAS } from "./DestacarRespuestas";
 import { criteriosDelRadar, formaEfectivaRadar, rotuloTablaAuto } from "./formaRadar";
 import { NotaFormaRadar } from "./NotaFormaRadar";
 import { DonaCentro } from "./DonaCentro";
@@ -186,8 +187,14 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
   const propios = tipo ? campos.filter((c) => alcance(c).propio) : [];
   // Ítem 12: la cabecera plegada dice lo propio de adentro; el redondeo propio va por su marca en `overrides` (R4).
   const redondeoPropio = (args.overrides as Record<string, unknown> | undefined)?.[ARG_CALCULOS_PROPIOS] === true;
+  // R6-4: en Aspecto también el orden, la letra, el espacio, el eje libre y lo destacado, que no son campos del registro.
+  const aspectoPropio = propiosDeAspecto({
+    graficador: valor.graficador, args, conOrden,
+    destacadas: GRAFICOS_CON_DESTACADAS.has(valor.graficador) ? destacadasDe(valor.graficador, args) : null,
+  });
   const resumenDe = (g: SeccionTarjeta) => resumenPlegado([
     ...propios.filter((c) => grupoDeCampo(c.arg.name) === g).map((c) => c.rotulo), ...(g === "calculo" && redondeoPropio ? ["Redondeo"] : []),
+    ...(g === "aspecto" ? aspectoPropio : []),
   ]);
   const aplicarTodos = () => {
     if (!tipo || !propios.length) return;
@@ -380,6 +387,22 @@ function Ayuda({ id, rotulo, detalle }: { id?: string; rotulo: string; detalle: 
   return <AyudaGlobo id={id} rotulo={rotulo} detalle={detalle} />;
 }
 
+/**
+ * R6-9: el rótulo y su «?» en un solo bloque de texto, con la última palabra pegada al «?». En el rótulo (inline-flex)
+ * el texto suelto era su propio ítem: al partirse en dos líneas ocupaba todo el ancho y el «?» quedaba despegado, a la
+ * derecha de la caja. Así el «?» sigue a la última palabra y baja con ella.
+ */
+export function rotuloConAyuda(rotulo: string, ayuda: ReactNode): ReactNode {
+  if (!ayuda) return rotulo;
+  const corte = rotulo.trimEnd().lastIndexOf(" ");
+  return (
+    <span className="pulso-f6-rotulo-texto">
+      {corte > 0 ? rotulo.slice(0, corte + 1) : null}
+      <span style={{ whiteSpace: "nowrap" }}>{corte > 0 ? rotulo.slice(corte + 1).trimEnd() : rotulo.trimEnd()}{"\u00a0"}{ayuda}</span>
+    </span>
+  );
+}
+
 type CategoriasFila = {
   variable: string; scope: "active" | "consolidated"; modo: "excluir" | "elegir";
   /** Lo que dice la marca, si no es «se excluye» ni «forma el corte». */
@@ -415,8 +438,7 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias, args, sco
   const deslizable = control === "numero" ? campoDeslizable(arg) : null;
   const etiqueta = (
     <label className="pulso-f6-dato-rotulo" htmlFor={id}>
-      {rotulo}
-      {globo}
+      {rotuloConAyuda(rotulo, texto ? globo : null)}
       {sello}
     </label>
   );
@@ -467,7 +489,7 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias, args, sco
     const encendido = interruptorEncendido(arg, valor);
     return (
       <div className="pulso-f6-dato">
-        <span className="pulso-f6-dato-rotulo" id={id}>{rotulo}{globo}{sello}</span>
+        <span className="pulso-f6-dato-rotulo" id={id}>{rotuloConAyuda(rotulo, texto ? globo : null)}{sello}</span>
         <Switch checked={encendido} ariaLabel={rotulo} onToggle={() => onCambio(!encendido)} />
       </div>
     );
@@ -496,7 +518,7 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias, args, sco
     const actual = typeof valor === "number" ? valor : typeof arg.default === "number" ? arg.default : enBotones[0].valor;
     return (
       <div className="pulso-f6-dato">
-        <span className="pulso-f6-dato-rotulo" id={id}>{rotulo}{globo}{sello}</span>
+        <span className="pulso-f6-dato-rotulo" id={id}>{rotuloConAyuda(rotulo, texto ? globo : null)}{sello}</span>
         <Segmentado etiqueta={rotulo} valor={String(actual)} opciones={enBotones.map((o) => ({ clave: String(o.valor), rotulo: o.rotulo }))}
           onCambiar={(k) => onCambio(Number(k))} />
       </div>
@@ -550,7 +572,7 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias, args, sco
     // Con la pregunta elegida, sus categorías como fichas; el texto queda de respaldo (sin lista).
     if (!categorias) return comoTexto;
     // Oleada I2, ítem 1: la ayuda de escribir códigos es del respaldo; las fichas no la llevan.
-    const etiquetaFichas = ayuda === AYUDA_CODIGOS ? <label className="pulso-f6-dato-rotulo" htmlFor={id}>{rotulo}<Ayuda id={idAyuda} rotulo={rotulo} detalle={textoAyuda(marcas, detalle)} />{sello}</label> : etiqueta;
+    const etiquetaFichas = ayuda === AYUDA_CODIGOS ? <label className="pulso-f6-dato-rotulo" htmlFor={id}>{rotuloConAyuda(rotulo, textoAyuda(marcas, detalle) ? <Ayuda id={idAyuda} rotulo={rotulo} detalle={textoAyuda(marcas, detalle)} /> : null)}{sello}</label> : etiqueta;
     if (arg.name === "excluir_opciones" && conDetalle(graficador)) return <ExcluirRespuestas id={id} etiqueta={etiquetaFichas} variable={categorias.variable} scope={categorias.scope} graficador={graficador} args={args} argName={arg.name} valor={valor} textoRespaldo={comoTexto} onCambio={onCambio} />;
     return (
       <SelectorCategorias id={id} etiqueta={etiquetaFichas} variable={categorias.variable} scope={categorias.scope} graficador={graficador}
@@ -568,7 +590,7 @@ function FilaTexto({ rotulo, ayuda, placeholder = null, valor, onCambio, sello }
   const id = useId();
   return (
     <div className="pulso-f6-dato is-apilado">
-      <label className="pulso-f6-dato-rotulo" htmlFor={id}>{rotulo}<Ayuda id={`${id}-ayuda`} rotulo={rotulo} detalle={ayuda} />{sello}</label>
+      <label className="pulso-f6-dato-rotulo" htmlFor={id}>{rotuloConAyuda(rotulo, ayuda ? <Ayuda id={`${id}-ayuda`} rotulo={rotulo} detalle={ayuda} /> : null)}{sello}</label>
       <input id={id} className="pulso-f6-input" value={valor} placeholder={placeholder ?? undefined}
         aria-describedby={ayuda ? `${id}-ayuda` : undefined} onChange={(e) => onCambio(e.target.value)} />
     </div>

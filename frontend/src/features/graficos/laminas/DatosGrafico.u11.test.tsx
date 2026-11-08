@@ -4,7 +4,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import type { ArgMetadata, GraficadorRef } from "../../../api/graficos";
-import { DatosGrafico } from "./DatosGrafico";
+import { DatosGrafico, rotuloConAyuda } from "./DatosGrafico";
 
 const a = (name: string, tipo_input: ArgMetadata["tipo_input"], extra: Partial<ArgMetadata> = {}): ArgMetadata =>
   ({ name, label: name, tipo_input, grupo: "datos", descripcion: "", ...extra });
@@ -80,5 +80,16 @@ describe("DatosGrafico, U-c espacio para las etiquetas", () => {
     const campo = fila(pintar("p_barras_agrupadas", { var: "p1", overrides: { canvas_w_etiquetas: 0.3 } }));
     expect(campo).toMatch(/class="pulso-f6-input pulso-f6-regla-numero" value="30"/);
     expect(campo).toMatch(/type="range"[^>]*value="30"/);
+  });
+});
+
+describe("R6-9: el «?» va pegado a la última palabra del rótulo", () => {
+  it("la última palabra y el «?» en un tramo que no se parte; el resto del rótulo puede bajar de línea", () => {
+    const html = renderToStaticMarkup(<>{rotuloConAyuda("Pista gris hasta el 100%", <button type="button">?</button>)}</>);
+    expect(html).toBe('<span class="pulso-f6-rotulo-texto">Pista gris hasta el <span style="white-space:nowrap">100%\u00a0<button type="button">?</button></span></span>');
+  });
+  it("sin «?» queda el texto tal cual; una sola palabra va entera junto al «?»", () => {
+    expect(rotuloConAyuda("Orden", null)).toBe("Orden");
+    expect(renderToStaticMarkup(<>{rotuloConAyuda("Orden", <i>?</i>)}</>)).toContain('<span style="white-space:nowrap">Orden\u00a0<i>?</i></span>');
   });
 });

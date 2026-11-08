@@ -14,6 +14,9 @@
 import type { ArgMetadata } from "../../../api/graficos";
 import { argAplica } from "../argDependencias";
 import { preguntasDelMapa } from "./modeloAgruparLista";
+import { leerOrden, ordenAGuardar } from "./ordenCategorias";
+import { GRAFICOS_CON_RESALTE, mayorActiva } from "./realce";
+import { GRAFICADORES_LETRA_Y_EJE, leerLetraYEje } from "./tarjetaGrafico/letraYEje";
 
 export type ControlDato =
   | "variable" | "variable_opcional" | "variables" | "interruptor" | "numero" | "opciones" | "texto" | "codigos" | "nombres_base"
@@ -167,18 +170,31 @@ export function camposDeLaListaBlanca(): string[] {
 
 const conPunto = (t: string): string => (/[.!?…]$/.test(t) ? t : `${t}.`);
 
+/** Una frase comparable: sin caja, tildes, espacios dobles ni el punto final. */
+const fraseComparable = (t: string): string =>
+  t.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().replace(/\s+/g, " ").replace(/[.!?…]+$/, "").trim();
+
+/** Las frases de un texto: se corta tras «.», «!» o «?» seguidos de espacio (no tras «…;» de una enumeración). */
+const frasesDe = (t: string): string[] => t.split(/(?<=[.!?])\s+/).map((f) => f.trim()).filter(Boolean);
+
 /**
  * El texto del «?» de un control (ADR 0135 §8): la guarda de la tarjeta, lo que significa marcar y la descripción del
  * registro, sin repetir y cada uno con su punto. Vacío si no hay nada que decir (entonces no hay «?»).
+ *
+ * R6-8: se deduplica por FRASE, no por parte: la ayuda de la tarjeta y la descripción del registro suelen compartir una
+ * frase («Residuales en gris»: la descripción repite la ayuda y le suma otra), y una frase ya dicha —o contenida en una
+ * ya dicha— no se repite.
  */
 export function textoAyuda(...partes: readonly (string | null | undefined)[]): string {
-  const vistas = new Set<string>();
+  const vistas: string[] = [];
   const salida: string[] = [];
   for (const p of partes) {
-    const t = p?.trim();
-    if (!t || vistas.has(t)) continue;
-    vistas.add(t);
-    salida.push(conPunto(t));
+    for (const f of frasesDe(p?.trim() ?? "")) {
+      const c = fraseComparable(f);
+      if (!c || vistas.some((v) => v.includes(c))) continue;
+      vistas.push(c);
+      salida.push(conPunto(f));
+    }
   }
   return salida.join(" ");
 }
@@ -715,4 +731,23 @@ export function notaParte(f: Pick<FilaParte, "resto">): string | null {
 /** ¿Lo guardado y el borrador de la tarjeta dicen lo mismo al motor? Si no, cambió afuera (deshacer, el plan). */
 export function mismasPartes(valor: unknown, filas: readonly FilaParte[], arg: string): boolean {
   return JSON.stringify(filasAPartes(partesAFilas(valor), arg)) === JSON.stringify(filasAPartes(filas, arg));
+}
+
+/**
+ * R6-4: los ajustes de Aspecto que no son campos del registro y también son propios del gráfico, para la cabecera
+ * plegada: el orden elegido («Orden»), la letra, el espacio de las etiquetas y el eje libre de las agrupadas (que viajan
+ * en `overrides`, letraYEje.ts) y lo destacado. `destacadas`: lo que el gráfico destaca (`destacadasDe`), `null` si el
+ * gráfico no destaca.
+ */
+export function propiosDeAspecto(p: { graficador: string; args: Readonly<Record<string, unknown>>; conOrden: boolean; destacadas: readonly string[] | null }): string[] {
+  const out: string[] = [];
+  if (p.conOrden && ordenAGuardar(leerOrden(p.args)) !== null) out.push("Orden");
+  if (p.destacadas && (p.destacadas.length > 0 || (GRAFICOS_CON_RESALTE.has(p.graficador) && mayorActiva({ ...p.args }, p.destacadas)))) out.push("Destacar");
+  if (GRAFICADORES_LETRA_Y_EJE.has(p.graficador)) {
+    const l = leerLetraYEje(p.args);
+    if (l.rotuloPt !== null || l.cifraPt !== null) out.push("Letra");
+    if (l.etiquetasPct !== null) out.push("Espacio para las etiquetas");
+    if (l.ejeLibre) out.push("Eje libre");
+  }
+  return out;
 }

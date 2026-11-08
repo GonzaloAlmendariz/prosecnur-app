@@ -4,7 +4,7 @@ import {
   ayudaDeLaOpcion,
   textoAyuda,
   avisoParte, camposDeDatos, codigosATexto, conEtiquetaCorta, filasAPartes, leerEtiquetaCorta, mismasPartes, notaParte, partesAFilas,
-  textoACodigos,
+  textoACodigos, propiosDeAspecto,
 } from "./argsDatosGrafico";
 
 const a = (name: string, tipo_input: ArgMetadata["tipo_input"], grupo: ArgMetadata["grupo"] = "datos"): ArgMetadata =>
@@ -174,6 +174,14 @@ describe("ADR 0135 §8: el «?» y los args que la tarjeta todavía no sabe dibu
     expect(textoAyuda("Hasta tres", null, "", "Hasta tres", "Líneas de la serie.")).toBe("Hasta tres. Líneas de la serie.");
     expect(textoAyuda(null, undefined, "  ")).toBe("");
   });
+  it("R6-8: no repite una frase que la descripción del registro comparte con la ayuda («Residuales en gris»)", () => {
+    const ayuda = "Pinta de gris “Prefiero no responder”, “No sabe”, “Otros”…; apagado por defecto.";
+    const registro = "Pinta de gris “Prefiero no responder”, “No sabe”, “Otros”…; apagado por defecto. Siguen al final de la lista, con o sin gris.";
+    expect(textoAyuda(ayuda, null, registro)).toBe(`${ayuda} Siguen al final de la lista, con o sin gris.`);
+    // Sin distinguir caja, tildes ni el punto final; y una frase contenida en otra ya dicha tampoco se repite.
+    expect(textoAyuda("Automática: en toda barra", "automatica: en toda barra.")).toBe("Automática: en toda barra.");
+    expect(textoAyuda("La escala va de 0 a 100% siempre.", "La escala va de 0 a 100%")).toBe("La escala va de 0 a 100% siempre.");
+  });
   it("un tipo de control desconocido no rompe la tarjeta", () => {
     const nuevo = a("vars", "tipo_que_no_existe" as unknown as ArgMetadata["tipo_input"]);
     expect(camposDeDatos([nuevo, a("corte", "codigos_list")], {}, "p_panorama").map((c) => c.arg.name)).toEqual(["corte"]);
@@ -199,5 +207,23 @@ describe("ADR 0135 §2: la regla de preguntas en Datos", () => {
   });
   it("en otro graficador no sale aunque el registro la declare", () => {
     expect(camposDeDatos([regla], { estilo: "resumen" }, "p_barras_agrupadas")).toEqual([]);
+  });
+});
+
+describe("R6-4: la cabecera plegada de Aspecto cuenta lo propio que no es campo del registro", () => {
+  const base = { graficador: "p_barras_agrupadas", conOrden: true, destacadas: [] as string[] };
+  it("sin nada propio, nada", () => {
+    expect(propiosDeAspecto({ ...base, args: {} })).toEqual([]);
+  });
+  it("el orden elegido, lo destacado, la letra, el espacio y el eje libre", () => {
+    const args = {
+      orden_categorias: { modo: "frecuencia", lista: [], invertir: false },
+      overrides: { size_ejes: 14, canvas_w_etiquetas: 0.3, usar_eje_libre: true },
+    };
+    expect(propiosDeAspecto({ ...base, args, destacadas: ["Sí"] })).toEqual(["Orden", "Destacar", "Letra", "Espacio para las etiquetas", "Eje libre"]);
+  });
+  it("«La más alta» cuenta como destacar; un gráfico que no destaca ni lleva letra no suma eso", () => {
+    expect(propiosDeAspecto({ ...base, args: { overrides: { resaltar_mayor: true } } })).toEqual(["Destacar"]);
+    expect(propiosDeAspecto({ graficador: "p_torta", conOrden: false, destacadas: null, args: { overrides: { size_ejes: 14 } } })).toEqual([]);
   });
 });
