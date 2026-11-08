@@ -255,6 +255,12 @@
     if (is.na(graf_ref) || !nzchar(trimws(graf_ref))) return(NULL)
     contar("pedidos")
     graficador_name <- .graficos_resolve_graficador_name(g$graficador, graficador_registry)
+    retiro <- .graficos_retirado_resolver(graficador_name, .graficos_unwrap_scalar_refs(g$args %||% list()))   # ADR 0137
+    if (identical(retiro$accion, "blanco")) {
+      anotar("tipo_retirado")
+      return(retiro$elemento)
+    }
+    if (identical(retiro$accion, "redirigir")) { graficador_name <- retiro$graficador; g$args <- retiro$args }
     if (!(graficador_name %in% graficador_registry)) stop(sprintf("Graficador no registrado: %s", g$graficador))
     fn <- getExportedValue("prosecnurapp", graficador_name)
     args <- .graficos_unwrap_scalar_refs(g$args %||% list())
@@ -270,7 +276,7 @@
       anotar("borrador_incompleto")
       return(.graficos_blank_graph_element())
     }
-    el <- do.call(fn, args)
+    el <- .graficos_retirado_marcar(do.call(fn, args), retiro)
     anotar(.mini_motivo_grafico(args, el, fuentes))
     el
   }
@@ -372,7 +378,7 @@
 
 #' Resumen de los gráficos de una lámina: pedidos, vacíos y motivos
 #'
-#' Vacíos = los diagnosticados en el rebuild (`borrador_incompleto`, `variable_fuera_de_base`, `n0`) más las
+#' Vacíos = los diagnosticados en el rebuild (`borrador_incompleto`, `tipo_retirado`, `variable_fuera_de_base`, `n0`) más las
 #' degradaciones que el motor señaló sin diagnóstico previo (`degradado`). Una ref fuera de la base ya se degrada por sí
 #' misma: esas señales no se cuentan dos veces.
 #' @keywords internal

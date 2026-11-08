@@ -12,12 +12,12 @@ source("setup-load-all.R")
   if (is.na(hit)) cands[[1]] else hit
 }
 
-test_that("el catálogo en memoria lista los 37 tipos de lámina y los 36 graficadores del registro, en su orden", {
+test_that("el catálogo en memoria lista los 37 tipos de lámina y los 37 graficadores del registro, en su orden", {
   cat <- .graficos_tipos_catalogo()
   expect_identical(vapply(cat$slides, `[[`, "", "name"), names(.SLIDES_META))
   expect_identical(vapply(cat$graficadores, `[[`, "", "name"), names(.GRAFICADORES_META))
   expect_length(cat$slides, 37L)   # 37 con el cierre con hallazgos (ADR 0135)
-  expect_length(cat$graficadores, 36L)   # 36 con p_lineas_nivel, p_panorama, p_fortalezas y p_cobertura
+  expect_length(cat$graficadores, 37L)   # 37 con p_lineas_nivel, p_panorama, p_fortalezas, p_cobertura y p_heatmap_cruce (ADR 0137)
   por <- setNames(cat$slides, vapply(cat$slides, `[[`, "", "name"))
   expect_identical(por$p_slide_1_grafico$estandar, "p_slide_1_grafico")
   expect_identical(por$p_slide_portada$estandar, NA)
@@ -34,7 +34,7 @@ test_that("el JSON versionado es exactamente el que genera el metadata de hoy (r
                    info = "Regenera con: Rscript api/scripts/generar_graficos_tipos.R")
   j <- jsonlite::fromJSON(ruta, simplifyVector = FALSE)
   expect_length(j$slides, 37L)
-  expect_length(j$graficadores, 36L)
+  expect_length(j$graficadores, 37L)
   expect_null(j$slides[[1]]$estandar)                                       # portada: null en el JSON
 })
 

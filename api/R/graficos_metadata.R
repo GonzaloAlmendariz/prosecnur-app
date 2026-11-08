@@ -2517,6 +2517,28 @@
     ), .args_graf_comunes())
   ),
 
+  # ADR 0137 (decisión 1 de Gonzalo): la variante pregunta × cruce de `p_dim_heatmap` como tipo propio
+  # (graficos_heatmap_cruce.R). Las cifras son las de L10-6 y L10-10 de CCSS Perfil.
+  p_heatmap_cruce = list(
+    titulo_humano = "Mapa de calor por cruce",
+    descripcion   = "Tabla de calor de una pregunta por los grupos de otra: el Total y cada grupo en las filas, las opciones en las columnas; cada fila suma 100 %.",
+    icono_ui      = "LayoutGrid",
+    categoria     = "comparison",
+    blueprint     = "dimension-heatmap",
+    args = c(list(
+      list(name = "var",   label = "Pregunta", tipo_input = "variable", grupo = "datos",
+           descripcion = "Pregunta de respuesta única: sus opciones van en las columnas, en el orden del instrumento."),
+      list(name = "cruce", label = "Cruce",    tipo_input = "variable", grupo = "datos",
+           descripcion = "Pregunta de respuesta única de la misma base: sus grupos van en las filas, después del Total."),
+      # `via_overrides`: `p_heatmap_cruce()` los lee de `overrides` (graficos_heatmap_top2box.R).
+      list(name = "top2box", label = "Columna Top Two Box", tipo_input = "bool", grupo = "valores", via_overrides = TRUE,
+           descripcion = "Vacío: encendida si la escala es ordinal de cuatro o más puntos. Suma las categorías de \"Categorías del Top 2 Box\"; sin ellas se omite y se avisa."),
+      list(name = "top2box_labels", label = "Categorías del Top 2 Box", tipo_input = "categorias_escala", grupo = "valores",
+           via_overrides = TRUE, ejemplo = "ej. De acuerdo, Totalmente de acuerdo",
+           descripcion = "Qué categorías suman al Top 2 Box, por su nombre exacto tal como aparece en la escala.")
+    ), .args_graf_comunes())
+  ),
+
   # ---- Dimensiones (requieren reporte_dimensiones previo) -----------------
 
   p_dim_radar = list(
@@ -2755,6 +2777,7 @@
   p_serie_temporal = list("comparar", "nativa", condicion = "Con dos mediciones o niveles; con tres o más va dibujada dentro de una lámina estándar."),
   p_radar = list("comparar", "nativa", condicion = "Si los ejes o la tabla no caben, sale por la ruta anterior."),
   p_tabla = list("comparar", "nativa", condicion = "Con más de seis públicos, o filas que no caben en la lámina, va por la ruta anterior."),   # G11: láminas 197/225 del diseño
+  p_heatmap_cruce = list("comparar", "nativa", condicion = "Si la tabla no cabe en la lámina, sale por la ruta anterior."),   # ADR 0137
   p_dim_radar = list("dimensiones", "nativa", condicion = "Con menos de tres ejes sale como barras, por la ruta anterior."),   # G11: ya salía nativo (medido 2026-10-13)
   p_dim_heatmap = list("dimensiones", "nativa", condicion = "Con brechas declaradas sale por la ruta anterior."),
   p_dim_comparativo_radarbar = list("dimensiones", "nativa", condicion = "Con brechas o con la columna Total sale por la ruta anterior."),
@@ -2809,6 +2832,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
   p_serie_temporal = "serie_temporal",
   p_radar = "radar_tabla",
   p_tabla = "radar_tabla",
+  p_heatmap_cruce = "",   # no lee presets: dibuja con los tamaños del recetario
   p_dim_radar = "dim_radar",
   p_dim_heatmap = "dim_heatmap",
   p_dim_comparativo_radarbar = "",
@@ -6286,5 +6310,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
     )
   })
   familias_editor <- lapply(names(.GRAFICOS_FAMILIAS_EDITOR), function(id) list(id = id, label = .GRAFICOS_FAMILIAS_EDITOR[[id]]))
-  list(slides = slides, graficadores = graficadores, familias_editor = familias_editor)
+  # `retirados` (ADR 0137, aditivo): los tipos retirados con su nombre y su reemplazo (graficos_retirados.R).
+  list(slides = slides, graficadores = graficadores, familias_editor = familias_editor,
+       retirados = .graficos_retirados_payload())
 }

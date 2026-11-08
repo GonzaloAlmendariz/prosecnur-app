@@ -440,6 +440,9 @@
   graf_ref <- as.character(g$graficador %||% NA_character_)[1]
   if (is.na(graf_ref) || !nzchar(trimws(graf_ref))) return(NULL)
   graficador_name <- .graficos_resolve_graficador_name(g$graficador, graficador_registry)
+  retiro <- .graficos_retirado_resolver(graficador_name, .graficos_unwrap_scalar_refs(g$args %||% list()))   # ADR 0137
+  if (identical(retiro$accion, "blanco")) return(retiro$elemento)
+  if (identical(retiro$accion, "redirigir")) { graficador_name <- retiro$graficador; g$args <- retiro$args }
   if (!(graficador_name %in% graficador_registry)) {
     stop(sprintf("Graficador no registrado: %s", g$graficador), call. = FALSE)
   }
@@ -452,7 +455,7 @@
   }
   args <- .clean_rebuild_args(args, fn)
   if (.graficos_args_faltan_requeridos(fn, args)) return(.graficos_blank_graph_element())
-  do.call(fn, args)
+  .graficos_retirado_marcar(do.call(fn, args), retiro)
 }
 
 # B36/G-12: una lamina borrador (slot de grafico REQUERIDO sin graficador)
@@ -1069,6 +1072,9 @@
   graf_ref <- as.character(g$graficador %||% NA_character_)[1]
   if (is.na(graf_ref) || !nzchar(trimws(graf_ref))) return(NULL)
   graficador_name <- .graficos_resolve_graficador_name(g$graficador)
+  retiro <- .graficos_retirado_resolver(graficador_name, .graficos_unwrap_scalar_refs(g$args %||% list()))   # ADR 0137
+  if (identical(retiro$accion, "blanco")) return(retiro$elemento)
+  if (identical(retiro$accion, "redirigir")) { graficador_name <- retiro$graficador; g$args <- retiro$args }
   if (!(graficador_name %in% .GRAFICADOR_REGISTRY)) {
     stop_api(400, "E_UNKNOWN_GRAF", sprintf("Graficador no registrado: %s", g$graficador))
   }
@@ -1081,7 +1087,7 @@
   }
   args <- .clean_rebuild_args(args, fn)
   if (.graficos_args_faltan_requeridos(fn, args)) return(.graficos_blank_graph_element())
-  do.call(fn, args)
+  .graficos_retirado_marcar(do.call(fn, args), retiro)
 }
 
 .rebuild_slide <- function(s) {
@@ -1121,7 +1127,7 @@
   # directamente sin pasar por `.graficos_config_get()`. Poner el reverso solo
   # en el getter dejaba fuera justo el camino que dibuja el mazo: medido, los
   # titulos de bloque de la lamina 66 salian planos.
-  presets_json <- .graficos_presets_con_defaults(presets_json)
+  presets_json <- .graficos_retirados_quitar_presets(.graficos_presets_con_defaults(presets_json))   # ADR 0137: los dim_* se ignoran sin aviso
   args <- lapply(presets_json, as.list)
   supported <- setdiff(names(formals(p_presets)), "...")
   extension_keys <- intersect(
@@ -1189,6 +1195,8 @@
       graf_name <- as.character(slot$graficador %||% "")
       if (!nzchar(graf_name)) {
         warns <- c(warns, sprintf("%s: el espacio «%s» está sin gráfico", tag, espacio))
+      } else if (.graficos_es_retirado(graf_name)) {
+        warns <- c(warns, .graficos_retirado_aviso_validacion(tag, espacio, slot, inst_sources))   # ADR 0137: advierte, no bloquea
       } else if (!(graf_name %in% .GRAFICADOR_REGISTRY)) {
         resolved_graf_name <- .graficos_resolve_graficador_name(graf_name)
         if (!(resolved_graf_name %in% .GRAFICADOR_REGISTRY)) {
@@ -2664,7 +2672,7 @@ mount_graficos <- function(pr) {
       # en su store al montar GraficosPage y escribe cambios vía autosave
       # contra POST /config (debounce 2s).
       sid <- session_header(req)
-      avisos <- .graficos_config_migrar_sesion(sid)   # persiste la migración de la población antigua y la avisa una vez
+      avisos <- c(.graficos_config_migrar_sesion(sid), .graficos_heatmap_cruce_migrar_sesion(sid))   # persisten su migración y la avisan una vez
       cfg <- .graficos_normalize_config(.graficos_config_get(sid), sid = sid, include_legacy_aliases = TRUE)
       # `defaults` (ADR 0094, decisión 5a): aditivo y no persistido; «Modificado» compara contra él.
       defaults <- c(.graficos_config_defaults_publicos(), list(estilo_cliente = .graficos_estilo_cliente_defaults_publicos(sid, cfg$profile_id)))

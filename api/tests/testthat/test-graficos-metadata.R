@@ -222,6 +222,7 @@ source("setup-load-all.R")
   p_serie_temporal = c(categoria = "comparison", blueprint = "line-series"),
   p_radar = c(categoria = "comparison", blueprint = "radar"),
   p_tabla = c(categoria = "comparison", blueprint = "table"),
+  p_heatmap_cruce = c(categoria = "comparison", blueprint = "dimension-heatmap"),   # ADR 0137: la variante pregunta × cruce
   p_dim_radar = c(categoria = "dimensions", blueprint = "dimension-radar"),
   p_dim_heatmap = c(categoria = "dimensions", blueprint = "dimension-heatmap"),
   p_dim_comparativo_radarbar = c(categoria = "dimensions", blueprint = "dimension-radar-bars"),
@@ -261,6 +262,7 @@ source("setup-load-all.R")
   p_serie_temporal = "serie_temporal",
   p_radar = "radar_tabla",
   p_tabla = "radar_tabla",
+  p_heatmap_cruce = "",
   p_dim_radar = "dim_radar",
   p_dim_heatmap = "dim_heatmap",
   p_dim_comparativo_radarbar = "",
@@ -293,9 +295,9 @@ source("setup-load-all.R")
 test_that("registry: cada slide y graficador expone el shape completo con nombres únicos y reales", {
   reg <- .graficos_registry_payload()
   # `familias_editor` (K4, plan F6 §5.2): el orden de las familias del selector «Tipo de gráfico».
-  expect_setequal(names(reg), c("slides", "graficadores", "familias_editor"))
+  expect_setequal(names(reg), c("slides", "graficadores", "familias_editor", "retirados"))   # `retirados`: ADR 0137
   expect_length(reg$slides, 37L)
-  expect_length(reg$graficadores, 36L)
+  expect_length(reg$graficadores, 37L)
 
   slide_names <- vapply(reg$slides, function(s) s$name, character(1))
   graf_names <- vapply(reg$graficadores, function(g) g$name, character(1))
@@ -326,7 +328,7 @@ test_that("registry: cada slide y graficador expone el shape completo con nombre
   }
 })
 
-test_that("registry G2-L1: los 36 graficadores publican contrato operativo cerrado", {
+test_that("registry G2-L1: los 37 graficadores publican contrato operativo cerrado", {
   reg <- .graficos_registry_payload()
   by_name <- stats::setNames(
     reg$graficadores,
@@ -410,12 +412,12 @@ test_that("registry G2-L1: los 36 graficadores publican contrato operativo cerra
   expect_true(all(vapply(direct, `[[`, character(1), "data_requirement") == "var_or_vars"))
 })
 
-test_that("registry G2-L1: getExportedValue acredita los 36 constructores públicos", {
+test_that("registry G2-L1: getExportedValue acredita los 37 constructores públicos", {
   exported <- lapply(.graf_names(), function(name) {
     tryCatch(getExportedValue("prosecnurapp", name), error = identity)
   })
   names(exported) <- .graf_names()
-  expect_length(exported, 36L)
+  expect_length(exported, 37L)
   for (name in names(exported)) {
     expect_true(is.function(exported[[name]]), label = name)
   }
@@ -570,7 +572,7 @@ test_that("registry L4: slot_specs es la única autoría y el wire conserva nomb
   expect_setequal(unique(roles), c("chart", "icon"))
 })
 
-test_that("registry L4: los 36 graficadores publican categoría y blueprint exactos", {
+test_that("registry L4: los 37 graficadores publican categoría y blueprint exactos", {
   reg <- .graficos_registry_payload()
   expect_identical(.graf_names(), names(.gm_graficadores))
   wire_by_name <- stats::setNames(

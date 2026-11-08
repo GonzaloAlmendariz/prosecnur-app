@@ -54,6 +54,7 @@
   p_serie_temporal            = list(pregunta = "opcion_unica", publicos = "uno_o_varios"),   # una base por medición
   p_radar                     = list(pregunta = c("escala", "multiple"), publicos = "uno_o_varios"),   # modos `publicos` y `sm`
   p_tabla                     = list(pregunta = c("escala", "multiple"), publicos = "uno"),   # modo `sm`
+  p_heatmap_cruce             = list(pregunta = c("escala", "opcion_unica"), publicos = "uno"),   # ADR 0137: una pregunta por un cruce
   p_dim_radar                 = list(pregunta = "escala",       publicos = "uno"),
   p_dim_heatmap               = list(pregunta = "escala",       publicos = "uno"),
   p_dim_comparativo_radarbar  = list(pregunta = "escala",       publicos = "uno"),
