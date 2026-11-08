@@ -150,11 +150,18 @@ describe("conteo y firma", () => {
     expect(presetDelGraficador("p_fortalezas", presets)).toEqual({});
   });
 
-  it("el universo de la regla no cambia con la regla y sí con la lámina (B8)", () => {
+  it("el universo de la regla no cambia con la cifra ni el ajuste a mano y sí con la lámina (B8)", () => {
     const a = firmaUniversoRegla("p_panorama", { vars: ["d$*"], regla: { tipo: "mayor_diferencia", n: 3 } }, "active");
-    expect(firmaUniversoRegla("p_panorama", { vars: ["d$*"], regla: { tipo: "bajo_umbral", umbral: 60, quitar: ["p1"] } }, "active")).toBe(a);
+    expect(firmaUniversoRegla("p_panorama", { vars: ["d$*"], regla: { tipo: "mayor_diferencia", n: 8, quitar: ["p1"] } }, "active")).toBe(a);
     expect(firmaUniversoRegla("p_panorama", { vars: ["e$*"], regla: { tipo: "mayor_diferencia", n: 3 } }, "active")).not.toBe(a);
     expect(firmaUniversoRegla("p_dumbbell", { vars: ["d$*"] }, "active")).not.toBe(a);
+  });
+  it("R6-13: con otro tipo de regla es otro universo (otras candidatas y otra métrica)", () => {
+    const a = firmaUniversoRegla("p_panorama", { vars: ["d$*"], regla: { tipo: "mayor_diferencia", n: 3 } }, "active");
+    expect(firmaUniversoRegla("p_panorama", { vars: ["d$*"], regla: { tipo: "bajo_umbral", umbral: 60 } }, "active")).not.toBe(a);
+    expect(firmaUniversoRegla("p_panorama", { vars: ["d$*"], regla: { tipo: "todas" } }, "active")).not.toBe(a);
+    // Sin tipo es el universo de las preguntas declaradas.
+    expect(firmaUniversoRegla("p_panorama", { vars: ["d$*"], regla: {} }, "active")).toBe(firmaUniversoRegla("p_panorama", { vars: ["d$*"] }, "active"));
   });
   it("dos conteos iguales son el mismo; el normalizador cae a valores seguros", () => {
     const c = normalizarConteoRegla({ total: "47", seleccionadas: ["p1"], candidatas: [{ tema: "p1", metrica: 12.5, seleccionada: true }, { etiqueta: "sin tema" }], texto_regla: "Se muestra 1.", avisos: "Uno" });

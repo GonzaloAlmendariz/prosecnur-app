@@ -20,11 +20,12 @@ import { ApiError } from "../../../../api/core";
 let renders = 0;
 let ultimo: ReturnType<typeof useConteoRegla> | null = null;
 let n = 2;
+let tipo = "mayor_diferencia";
 let vars = ["docentes$*", "estudiantes$*"];
 function Tarjeta() {
   renders += 1;
   // Como DatosGrafico: los args se arman de nuevo en cada render.
-  ultimo = useConteoRegla("p_dumbbell", { estilo: "resumen", vars, regla: { tipo: "mayor_diferencia", n } }, "active", true);
+  ultimo = useConteoRegla("p_dumbbell", { estilo: "resumen", vars, regla: { tipo, n } }, "active", true);
   return null;
 }
 
@@ -36,7 +37,7 @@ const contenedor = () => ({ nodeType: 1, tagName: "DIV", namespaceURI: "http://w
 
 let root: Root | null = null;
 beforeEach(() => { vi.useFakeTimers(); });
-afterEach(() => { act(() => root?.unmount()); root = null; renders = 0; ultimo = null; n = 2; vars = ["docentes$*", "estudiantes$*"]; contar.mockClear(); olvidarConteosRegla(); vi.useRealTimers(); });
+afterEach(() => { act(() => root?.unmount()); root = null; renders = 0; ultimo = null; n = 2; tipo = "mayor_diferencia"; vars = ["docentes$*", "estudiantes$*"]; contar.mockClear(); olvidarConteosRegla(); vi.useRealTimers(); });
 
 describe("useConteoRegla", () => {
   it("se aquieta: una sola lectura aunque `args` sea un objeto nuevo en cada render", async () => {
@@ -86,6 +87,22 @@ describe("useConteoRegla", () => {
     for (let i = 0; i < 10; i += 1) await act(async () => { await Promise.resolve(); });
     expect(contar).toHaveBeenCalledTimes(2);
     expect(ultimo?.cargando).toBe(false);
+    expect(ultimo?.conteo).not.toBeNull();
+  });
+
+  it("R6-13: con un tipo de regla nuevo no presta el conteo del anterior: carga hasta que llega el suyo", async () => {
+    await act(async () => { root = createRoot(contenedor()); root.render(<Tarjeta />); });
+    await act(async () => { vi.advanceTimersByTime(ESPERA_CONTEO_MS); });
+    for (let i = 0; i < 10; i += 1) await act(async () => { await Promise.resolve(); });
+    expect(ultimo?.conteo).not.toBeNull();
+    // Misma lámina, otro modo: las métricas del conteo anterior no son las de este tipo («0 de 157», «Sin dato: 157»).
+    tipo = "mayor_sin_info";
+    await act(async () => { root?.render(<Tarjeta />); });
+    expect(ultimo?.cargando).toBe(true);
+    expect(ultimo?.conteo).toBeNull();
+    await act(async () => { vi.advanceTimersByTime(ESPERA_CONTEO_MS); });
+    for (let i = 0; i < 10; i += 1) await act(async () => { await Promise.resolve(); });
+    expect(contar).toHaveBeenCalledTimes(2);
     expect(ultimo?.conteo).not.toBeNull();
   });
 

@@ -307,13 +307,19 @@ export function firmaPedidoRegla(graficador: string, args: Args, scope: string, 
 }
 
 /**
- * La identidad del universo de candidatas: el pedido sin la regla. Cambia con la lámina (otro graficador u otras
- * `vars`, bases o filtros) y no con la cifra ni el ajuste a mano. Un conteo de otro universo no se muestra mientras
- * llega el nuevo (B8: al pasar de una lámina a otra se veían el conteo, la nota y la cabecera de la anterior).
+ * La identidad del universo de candidatas: el pedido sin la cifra ni el ajuste a mano de la regla, pero con su TIPO.
+ * Cambia con la lámina (otro graficador u otras `vars`, bases o filtros) y con el tipo de regla; no con la cifra ni con
+ * el ajuste a mano. Un conteo de otro universo no se muestra mientras llega el nuevo (B8: al pasar de una lámina a otra se
+ * veían el conteo, la nota y la cabecera de la anterior).
+ *
+ * R6-13: el tipo cambia las candidatas (bajo un umbral cada fila es una pregunta de un público) y su métrica (la de
+ * «Todas» es nula). Con el conteo del tipo anterior, la proyección del cliente decía «0 de 157» y «Sin dato: 157», y el
+ * chip del límite guardaba el title del modo anterior: con un tipo nuevo se espera su conteo y se muestra la carga.
  */
 export function firmaUniversoRegla(graficador: string, args: Args, scope: string, preset?: Readonly<Record<string, unknown>>): string {
-  const { regla: _regla, ...resto } = args;
-  return firmaPedidoRegla(graficador, resto, scope, preset);
+  const { regla, ...resto } = args;
+  const tipo = regla && typeof regla === "object" && !Array.isArray(regla) ? (regla as Record<string, unknown>).tipo : null;
+  return firmaPedidoRegla(graficador, typeof tipo === "string" && tipo ? { ...resto, regla: { tipo } } : resto, scope, preset);
 }
 
 /** ¿Dos conteos dicen lo mismo? Sin cambios no se vuelve a guardar el estado. */

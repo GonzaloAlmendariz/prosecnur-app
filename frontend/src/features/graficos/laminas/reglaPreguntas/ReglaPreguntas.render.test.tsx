@@ -149,4 +149,11 @@ describe("ReglaPreguntas", () => {
     expect(pos("Trámites claros")).toBeLessThan(pos("Bienestar psicológico"));
     expect(html.match(/>Empate</g)).toHaveLength(2);
   });
+  it("R6-13: con un tipo nuevo y el conteo en camino, carga en vez de un número falso", () => {
+    // useConteoRegla ya no presta el conteo del tipo anterior: llega `conteo: null` con `cargando`.
+    const html = pintar({ tipo: "mayor_sin_info", n: 5 }, { conteo: null, cargando: true, error: null, codigo: null });
+    expect(html).toContain("Contando las preguntas");
+    expect(html).not.toMatch(/\d+ de \d+/);
+    expect(html).not.toContain("Sin dato");
+  });
 });
