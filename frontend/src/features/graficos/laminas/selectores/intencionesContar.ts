@@ -70,6 +70,9 @@ export const REGLA_POR_DEFECTO = {
 /** `base$*` de cada base: todas sus preguntas de escala (graficos_panorama_plan.R). */
 export const todasDeLasBases = (bases: readonly string[]): string[] => bases.map((b) => `${b}$*`);
 
+/** El par con que nace el contraste entre públicos: las dos primeras bases, en su orden; con menos de dos, ninguno. */
+export const parDelContraste = (bases: readonly string[]): string[] | null => (bases.length >= 2 ? bases.slice(0, 2) : null);
+
 const basePrincipal = (e: EstudioDelSelector): string | null =>
   e.baseActiva && e.bases.includes(e.baseActiva) ? e.baseActiva : e.bases[0] ?? null;
 
@@ -139,7 +142,15 @@ export const TARJETAS_CONTAR: readonly TarjetaContar[] = [
     descripcion: "Pares de puntos por pregunta, ordenados por diferencia.",
     pide: "Las preguntas comunes de la matriz de equivalencias",
     parche: {},
-    grafico: { graficador: "p_dumbbell", args: { estilo: "resumen", cruce: null }, porDefecto: () => ({ regla: { ...REGLA_POR_DEFECTO.contraste } }) },
+    // El par que compara (`bases`, graficos_dumbbell_auto.R): las dos primeras bases del estudio, en su orden. Con tres
+    // o más el motor pide elegirlo; así nace elegido y se cambia en «Públicos que se comparan».
+    grafico: {
+      graficador: "p_dumbbell", args: { estilo: "resumen", cruce: null },
+      porDefecto: (e) => {
+        const par = parDelContraste(e.bases);
+        return { regla: { ...REGLA_POR_DEFECTO.contraste }, ...(par ? { bases: par } : {}) };
+      },
+    },
     coincide: conGrafico("p_dumbbell", (a) => resumen(a) && !esEntreGrupos(a)),
   },
   {
@@ -176,7 +187,8 @@ export const TARJETAS_CONTAR: readonly TarjetaContar[] = [
     pide: "La pregunta que define los grupos",
     parche: {},
     // Sin `cruce: null`: la brecha arranca en «dos grupos» y el cruce se elige en Datos.
-    grafico: { graficador: "p_dumbbell", args: { estilo: "resumen", cruce: undefined }, porDefecto: () => ({ regla: { ...REGLA_POR_DEFECTO.aperturas } }) },
+    // Dentro de un público no hay par: el `bases` que traiga del contraste se borra.
+    grafico: { graficador: "p_dumbbell", args: { estilo: "resumen", cruce: undefined, bases: undefined }, porDefecto: () => ({ regla: { ...REGLA_POR_DEFECTO.aperturas } }) },
     coincide: conGrafico("p_dumbbell", (a) => resumen(a) && esEntreGrupos(a)),
   },
   {

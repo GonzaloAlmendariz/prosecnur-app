@@ -133,7 +133,7 @@ export function RevisarEmparejado({ bases, basesEstudio, remoto, recargar, filas
   const cuerpo = basesEstudio < 2 ? (
     <EstadoVacio icono={<Users size={16} aria-hidden="true" />} titulo="El estudio tiene un solo público" />
   ) : bases.length !== 2 ? (
-    <EstadoVacio icono={<Users size={16} aria-hidden="true" />} titulo="Elige las dos bases que se comparan" />
+    <EstadoVacio icono={<Users size={16} aria-hidden="true" />} titulo="Elige los dos públicos que se comparan" />
   ) : remoto.fase === "error" ? (
     <ErrorBlock label="No se pudo leer el emparejado" detail={remoto.mensaje} />
   ) : !lista ? (

@@ -160,6 +160,16 @@ describe("C40 · ASIGNAR", () => {
     expect(nombres([...dumbbell, regla], { estilo: "resumen" }, "p_dumbbell")).toContain("regla");
     expect(nombres([...dumbbell, regla], {}, "p_dumbbell")).not.toContain("regla");
   });
+  // graficos_dumbbell_auto.R: el par del contraste entre públicos va en `bases`. Lo edita «Públicos que se comparan»
+  // (EditorTemasEquivalentes), no una fila suelta de la tarjeta, y editar otro arg no lo descarta.
+  it("ADR 0135 · dumbbell: `bases` no sale como fila genérica y sobrevive a editar otro arg", () => {
+    const conBases = [...dumbbell, a("bases", "codigos_list")];
+    expect(nombres(conBases, { estilo: "resumen" }, "p_dumbbell")).not.toContain("bases");
+    expect(nombres(conBases, {}, "p_dumbbell")).not.toContain("bases");
+    expect(esRetirado("bases", "p_dumbbell")).toBe(false);
+    expect(mergeSlotArgsPatch({ estilo: "resumen", bases: ["docentes", "estudiantes"] }, { orden: "brecha" }))
+      .toEqual({ estilo: "resumen", bases: ["docentes", "estudiantes"], orden: "brecha" });
+  });
   it("serie: orden de periodos siempre; cifras y su máximo sólo con tres o más mediciones", () => {
     expect(nombres(serie, dosOlas, "p_serie_temporal")).toEqual(["corte", "corte_etiqueta", "orden_periodos"]);
     expect(nombres(serie, tresOlas, "p_serie_temporal")).toEqual(

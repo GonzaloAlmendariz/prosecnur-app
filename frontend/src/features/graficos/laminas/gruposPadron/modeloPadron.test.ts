@@ -78,6 +78,9 @@ describe("públicos", () => {
     expect(publicosDe("p_dumbbell", { vars: { t1: ["estudiantes$p1", "docentes$p1"] } }, [])).toEqual(["estudiantes", "docentes"]);
     expect(publicosDe("p_fortalezas", { vars: ["docentes$*"] }, [])).toEqual(["docentes"]);
     expect(publicosDe("p_dumbbell", { vars: [] }, ["a"])).toEqual([]);
+    // El par del contraste declarado en `bases` manda; incompleto, no cuenta.
+    expect(publicosDe("p_dumbbell", { bases: ["estudiantes", "administrativos"] }, [])).toEqual(["estudiantes", "administrativos"]);
+    expect(publicosDe("p_dumbbell", { bases: ["estudiantes", ""], vars: { t1: ["docentes$p1", "estudiantes$p1"] } }, [])).toEqual(["docentes", "estudiantes"]);
   });
 
   it("incluir y sacar públicos de la cobertura, sin dejarla vacía", () => {

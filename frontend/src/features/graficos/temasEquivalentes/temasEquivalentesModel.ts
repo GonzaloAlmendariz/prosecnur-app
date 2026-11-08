@@ -123,10 +123,14 @@ export function avisoCriteriosRadar(n: number): string | null {
 }
 
 /** Brecha entre dos bases: exactamente dos, y cada tema con su pregunta en las dos y en ese orden. */
-export function faltaEnBrechaBases(temas: readonly TemaPublicos[], bases: readonly string[], variables: readonly VarWithSource[]): string[] {
+export function faltaEnBrechaBases(
+  temas: readonly TemaPublicos[], bases: readonly string[], variables: readonly VarWithSource[], temasDelPar = false,
+): string[] {
   const out: string[] = [];
-  if (bases.length !== 2 || bases[0] === bases[1]) out.push("Elige las dos bases que se comparan.");
-  if (!temas.length) out.push("Agrega al menos un tema.");
+  const par = bases.length === 2 && !!bases[0] && !!bases[1] && bases[0] !== bases[1];
+  if (!par) out.push(temasDelPar ? "Elige los dos públicos que se comparan." : "Elige las dos bases que se comparan.");
+  // En el contraste entre públicos, sin temas el motor empareja las preguntas comunes del par (graficos_dumbbell_auto.R).
+  if (!temas.length && !(temasDelPar && par)) out.push("Agrega al menos un tema.");
   if (bases.length === 2 && bases[0] !== bases[1]) {
     temas.forEach((t, i) => {
       const fuentes = t.vars.map((r) => parseVarRef(r).source ?? "");
@@ -199,6 +203,39 @@ export function basesDeBrecha(temas: readonly TemaPublicos[]): string[] {
     if (f) return [f];
   }
   return [];
+}
+
+/**
+ * El par que el contraste entre públicos declara en `bases` (graficos_dumbbell_auto.R), tal como está: dos casillas,
+ * vacías las que faltan. `null` si el arg no está.
+ */
+export function parDeclarado(args: Readonly<Record<string, unknown>>): [string, string] | null {
+  if (!Array.isArray(args.bases)) return null;
+  const [a, b] = args.bases.map(texto);
+  return [a ?? "", b ?? ""];
+}
+
+/**
+ * Las dos bases del contraste, en orden: las de `bases` si son dos distintas; si no, las de sus temas; si no, las del
+ * estudio cuando tiene exactamente dos (lo que hace el motor sin `bases`). Si no, ninguna: falta elegirlas.
+ */
+export function basesDelPar(args: Readonly<Record<string, unknown>>, basesEstudio: readonly string[]): string[] {
+  const declarado = parDeclarado(args);
+  if (declarado && declarado[0] && declarado[1] && declarado[0] !== declarado[1]) return [...declarado];
+  const guardadas = basesDeBrecha(argsATemas(args));
+  if (guardadas.length === 2 && guardadas[0] !== guardadas[1]) return guardadas;
+  return basesEstudio.length === 2 ? [...basesEstudio] : [];
+}
+
+/**
+ * El par al elegir la base `k`. Elegir como primera la que era la segunda las intercambia: la brecha cambia de signo y
+ * las preguntas se conservan.
+ */
+export function elegirEnPar(par: readonly string[], k: 0 | 1, base: string): [string, string] {
+  const next: [string, string] = [par[0] ?? "", par[1] ?? ""];
+  if (base && next[1 - k] === base) next[1 - k] = next[k];
+  next[k] = base;
+  return next;
 }
 
 /**

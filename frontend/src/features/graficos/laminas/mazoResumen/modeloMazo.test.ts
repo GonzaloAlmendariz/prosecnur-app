@@ -132,6 +132,22 @@ describe("la franja y la regla", () => {
     expect(sinOrden.find((p) => p.id === "escala_sin_info")?.args.orden).toBeUndefined();
   });
 
+  it("contraste con tres públicos: UN par, los dos primeros de la franja, con `bases` y su antetítulo (prueba con Arte)", () => {
+    const tres: EstudioDelSelector = { bases: ["docentes", "estudiantes", "administrativos"], baseActiva: "estudiantes" };
+    const ps = proponerMazo(entrada({ estudio: tres, publicos: tres.bases }));
+    const c = ps.find((p) => p.id === "contraste");
+    expect(c?.args).toMatchObject({ estilo: "resumen", bases: ["docentes", "estudiantes"], regla: { tipo: "mayor_diferencia", n: 13 } });
+    expect(c?.antetitulo).toBe("Docentes y estudiantes");
+    expect(c?.reglaEnPalabras).toBe("Las 13 de mayor diferencia, de docentes y estudiantes");
+    // Reordenar la franja cambia el par.
+    const otro = proponerMazo(entrada({ estudio: tres, publicos: ["administrativos", "docentes", "estudiantes"] })).find((p) => p.id === "contraste");
+    expect(otro?.args.bases).toEqual(["administrativos", "docentes"]);
+    expect(otro?.antetitulo).toBe("Administrativos y docentes");
+    // La lámina que entra lleva el par en el payload del gráfico.
+    const lamina = c && laminaDePropuesta(c, "s-1");
+    expect(JSON.stringify(lamina?.payload)).toContain('"bases":["docentes","estudiantes"]');
+  });
+
   it("una regla editada en el mazo manda sobre la de partida", () => {
     const ps = proponerMazo(entrada({ reglas: { contraste: { tipo: "diferencia_minima", umbral: 15 } } }));
     const c = ps.find((p) => p.id === "contraste");

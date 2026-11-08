@@ -113,6 +113,14 @@ describe("ADR 0135 §2: las láminas de resumen nacen con su regla", () => {
     expect(insertar("p_slide_1_grafico:contraste").args.regla).toEqual({ tipo: "mayor_diferencia", n: 13 });
     expect(insertar("p_slide_1_grafico:aperturas").args.regla).toEqual({ tipo: "mayor_diferencia", n: 10 });
   });
+  it("contraste: nace con el par de las dos primeras bases; con una sola no lo inventa; aperturas no lleva par", () => {
+    expect(insertar("p_slide_1_grafico:contraste").args.bases).toEqual(["docentes", "estudiantes"]);
+    expect(insertar("p_slide_1_grafico:contraste", { bases: ["unica"], baseActiva: "unica" }).args.bases).toBeUndefined();
+    expect(insertar("p_slide_1_grafico:contraste", { bases: [], baseActiva: null }).args.bases).toBeUndefined();
+    const slide = { tipo: "p_slide_1_grafico" as const, payload: { grafico: { graficador: "p_dumbbell", args: { estilo: "resumen", bases: ["docentes", "estudiantes"] } } } };
+    const aperturas = conOpcion("p_slide_1_grafico:aperturas", slide.payload, ESTUDIO).grafico as { args: Record<string, unknown> };
+    expect(aperturas.args).not.toHaveProperty("bases");
+  });
   it("escala: bajo 60 % en las preguntas de la base activa", () => {
     expect(insertar("p_slide_1_grafico:escala").args).toEqual({ estilo: "resumen", regla: { tipo: "bajo_umbral", umbral: 60 }, vars: ["estudiantes$*"] });
     expect(insertar("p_slide_1_grafico:escala", { bases: ["unica"], baseActiva: null }).args.vars).toEqual(["unica$*"]);

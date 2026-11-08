@@ -81,9 +81,9 @@ export function corteDe(args: Args): string[] {
   return lista(args.corte).flatMap((c) => c.split(/[,;|]/)).map((c) => c.trim()).filter(Boolean);
 }
 
-/** Pasar a «entre dos grupos»: se vacían las preguntas por base (otra forma) y se pide el cruce. */
+/** Pasar a «entre dos grupos»: se vacían las preguntas por base (otra forma) y el par de públicos, y se pide el cruce. */
 export function aEntreGrupos(): Record<string, unknown> {
-  return { cruce: "", grupos: [], vars: [] };
+  return { cruce: "", grupos: [], vars: [], bases: null };
 }
 
 /** Volver a «entre dos bases»: sin cruce ni grupos; los temas por base se arman en EditorTemasEquivalentes (P21). */

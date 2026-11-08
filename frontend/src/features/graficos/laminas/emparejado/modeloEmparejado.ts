@@ -15,7 +15,7 @@ import type { VarInfo } from "../../../../api/graficos";
 import type { Emparejado, PreguntaDeBase, PreguntaEmparejado } from "../../../../api/graficosEmparejado";
 import { formatoConteo } from "../../../../lib/formatoNumero";
 import { claveTema, type TemaPublicos } from "../../multiapiladas/temasPublicos";
-import { argsATemas, basesDeBrecha, esSelectOne } from "../../temasEquivalentes/temasEquivalentesModel";
+import { basesDelPar, esSelectOne } from "../../temasEquivalentes/temasEquivalentesModel";
 
 export type EstadoEmparejado = "matriz" | "confirmado" | "sugerido" | "sin_par";
 export type FiltroEmparejado = "todas" | "por_confirmar" | "sin_par";
@@ -45,13 +45,11 @@ export const ROTULO_ESTADO: Record<EstadoEmparejado, string> = {
 export const refDe = (p: PreguntaDeBase): string => `${p.base}$${p.var}`;
 
 /**
- * Las dos bases del contraste: las de sus temas, en su orden; si ningún tema tiene las dos todavía y el estudio tiene
- * exactamente dos bases, ésas. Si no, ninguna: falta elegirlas en la tarjeta.
+ * Las dos bases del contraste: las declaradas en `bases`; si no, las de sus temas, en su orden; si ningún tema tiene
+ * las dos todavía y el estudio tiene exactamente dos bases, ésas. Si no, ninguna: falta elegirlas en la tarjeta.
  */
 export function basesDelContraste(args: Readonly<Record<string, unknown>>, basesEstudio: readonly string[]): string[] {
-  const guardadas = basesDeBrecha(argsATemas(args));
-  if (guardadas.length === 2 && guardadas[0] !== guardadas[1]) return guardadas;
-  return basesEstudio.length === 2 ? [...basesEstudio] : [];
+  return basesDelPar(args, basesEstudio);
 }
 
 export type FuenteVariables = { name: string; variables: readonly VarInfo[] };

@@ -198,13 +198,18 @@ const unicas = (xs: readonly string[]) => [...new Set(xs.filter(Boolean))];
 /**
  * Las bases que son públicos de la lámina, en su orden:
  *   - cobertura: todas las del estudio (las que entran las marca `bases`);
- *   - contraste entre bases: las del primer tema (cada tema declara las mismas, en el mismo orden);
+ *   - contraste entre bases: el par declarado en `bases` (graficos_dumbbell_auto.R) o, sin él, las del primer tema
+ *     (cada tema declara las mismas, en el mismo orden);
  *   - fortalezas: la base de sus preguntas (un solo público).
  */
 export function publicosDe(graficador: string, args: Args, basesEstudio: readonly string[]): string[] {
   if (graficador === "p_cobertura") {
     const elegidas = basesDeCobertura(args);
     return unicas([...basesEstudio, ...elegidas]);
+  }
+  if (graficador === "p_dumbbell" && Array.isArray(args.bases)) {
+    const par = unicas(args.bases.map((b) => (typeof b === "string" ? b.trim() : "")));
+    if (par.length === 2) return par;
   }
   const vars = args.vars;
   if (graficador === "p_fortalezas") return unicas((Array.isArray(vars) ? vars : [vars]).map(fuenteDe)).slice(0, 1);

@@ -8,9 +8,10 @@ import { ordenEfectivo, resumenOrdenSerie } from "../../carga/armonizacionModel"
 import { nombrePublico, type TemaPublicos } from "../multiapiladas/temasPublicos";
 import { TemasPorPublico } from "../multiapiladas/TemasPorPublico";
 import { useVariables } from "../useVariables";
+import { AyudaGlobo } from "../laminas/AyudaGlobo";
 import { ExplicaTemas, type TipoTemas } from "./ExplicaTemas";
 import {
-  argsATemas, basesDeBrecha, codigosComunes, conBases, conCodigo, corteGuardado, avisoCriteriosRadar, faltaEnBrechaBases, faltaEnRadarPublicos, REGLA_CRITERIOS_RADAR,
+  argsATemas, basesDeBrecha, basesDelPar, codigosComunes, conBases, conCodigo, elegirEnPar, parDeclarado, corteGuardado, avisoCriteriosRadar, faltaEnBrechaBases, faltaEnRadarPublicos, REGLA_CRITERIOS_RADAR,
   faltaEnSerie, esSelectOne, temasAArgs,
 } from "./temasEquivalentesModel";
 import { useEquivalenciasDeTemas } from "./useEquivalenciasDeTemas";
@@ -32,10 +33,13 @@ export function EditorTemasEquivalentes({ tipo, args, onCambio }: Props) {
   const temas = argsATemas(args);
   const basesEstudio = sources.map((s) => s.name);
   const guardadas = basesDeBrecha(temas);
-  // La brecha guarda sus dos bases en el orden de las preguntas; mientras ningún tema las tiene a las dos, la elección
-  // vive aquí (el contrato de args no tiene dónde guardarla).
+  // El contraste entre públicos (estilo resumen) guarda su par en `bases` (graficos_dumbbell_auto.R): lo leen el
+  // emparejado, el conteo de la regla y el motor. En el recetario `bases` sin preguntas implicaría una regla que ese
+  // estilo rechaza, así que ahí la brecha guarda sus bases en el orden de las preguntas y, mientras ningún tema tiene
+  // las dos, la elección vive aquí.
+  const resumen = tipo === "brecha" && args.estilo === "resumen";
   const [elegidas, setElegidas] = useState<string[]>(guardadas);
-  const basesBrecha = guardadas.length === 2 ? guardadas : elegidas;
+  const basesBrecha = resumen ? parDeclarado(args) ?? basesDelPar(args, basesEstudio) : guardadas.length === 2 ? guardadas : elegidas;
   const periodos = ordenEfectivo(eq.periodos, eq.bases.length ? eq.bases : basesEstudio);
 
   const publicos = tipo === "radar" ? basesEstudio : tipo === "brecha" ? basesBrecha.filter(Boolean) : periodos;
@@ -47,17 +51,16 @@ export function EditorTemasEquivalentes({ tipo, args, onCambio }: Props) {
   };
 
   const elegirBase = (k: 0 | 1, base: string) => {
-    const next = [basesBrecha[0] ?? "", basesBrecha[1] ?? ""];
-    // Elegir como primera la que era la segunda las intercambia: la brecha cambia de signo, las preguntas se conservan.
-    if (base && next[1 - k] === base) next[1 - k] = next[k];
-    next[k] = base;
+    const next = elegirEnPar(basesBrecha, k, base);
+    const preguntas = temas.length ? { ...temasAArgs(conBases(temas, next.filter(Boolean))), cruce: null, grupos: null } : {};
+    if (resumen) { onCambio({ ...preguntas, bases: next }); return; }
     setElegidas(next);
-    if (temas.length) conTemas(conBases(temas, next.filter(Boolean)));
+    if (temas.length) onCambio(preguntas);
   };
 
   const problemas =
     tipo === "radar" ? faltaEnRadarPublicos(temas, variables)
-      : tipo === "brecha" ? faltaEnBrechaBases(temas, basesBrecha.filter(Boolean), variables)
+      : tipo === "brecha" ? faltaEnBrechaBases(temas, basesBrecha.filter(Boolean), variables, resumen)
         : faltaEnSerie(temas, periodos, variables);
   const escala = codigosComunes(temas, variables);
   const corte = corteGuardado(args.corte);
@@ -76,23 +79,26 @@ export function EditorTemasEquivalentes({ tipo, args, onCambio }: Props) {
 
       {tipo === "brecha" && (
         <div className="pulso-f6-dato is-apilado">
-          <span className="pulso-f6-dato-rotulo" id={`${id}-bases`}>Bases que se comparan</span>
+          <span className="pulso-f6-dato-rotulo" id={`${id}-bases`}>
+            Públicos que se comparan
+            <AyudaGlobo
+              rotulo="Públicos que se comparan"
+              detalle={`${p1 && p2
+                ? `La brecha es ${nombrePublico(p1)} menos ${nombrePublico(p2)}: si ${nombrePublico(p1)} está arriba, sale con signo +.`
+                : "La brecha es el primer público menos el segundo."}${resumen ? " Sin temas elegidos, entran las preguntas con el mismo nombre y la misma escala en los dos." : ""}`}
+            />
+          </span>
           <div className="pulso-teq-bases" role="group" aria-labelledby={`${id}-bases`}>
             {([0, 1] as const).map((k) => (
               <label key={k}>
-                {k === 0 ? "Primera" : "Segunda"}
+                {k === 0 ? "Primero" : "Segundo"}
                 <select className="pulso-f6-input pulso-f6-dato-select" value={k === 0 ? p1 : p2} onChange={(e) => elegirBase(k, e.target.value)}>
-                  <option value="">{k === 0 ? "Primera base…" : "Segunda base…"}</option>
+                  <option value="">{k === 0 ? "Primer público…" : "Segundo público…"}</option>
                   {basesEstudio.map((b) => <option key={b} value={b}>{nombrePublico(b)}</option>)}
                 </select>
               </label>
             ))}
           </div>
-          <span className="pulso-f6-dato-ayuda">
-            {p1 && p2
-              ? `La brecha es ${nombrePublico(p1)} menos ${nombrePublico(p2)}: si ${nombrePublico(p1)} está arriba, sale con signo +.`
-              : "La brecha es la primera base menos la segunda."}
-          </span>
         </div>
       )}
 

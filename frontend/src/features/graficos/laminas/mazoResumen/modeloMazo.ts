@@ -271,12 +271,16 @@ export function proponerMazo(e: EntradaMazo): PropuestaMazo[] {
     out.push(cerrar(e, { id: "panorama", clase: "panorama", tarjeta: panorama.clave, t: panorama, antetitulo: "Panorama", args, publicosRegla: publicos }));
   }
 
+  // El contraste compara UN par (graficos_dumbbell_auto.R): los dos primeros públicos de la franja. Para cambiarlo se
+  // reordena la franja o se elige en la tarjeta, «Públicos que se comparan».
   const contraste = disponible(TARJETA.contraste);
   if (contraste && varios) {
-    const args = argsDeTarjeta(contraste, estudio);
+    const par = publicos.slice(0, 2);
+    const args = argsDeTarjeta(contraste, { ...estudio, bases: par });
+    args.bases = par;
     args.regla = { tipo: "mayor_diferencia", n: N_CONTRASTE };
     out.push(cerrar(e, {
-      id: "contraste", clase: "contraste", tarjeta: contraste.clave, t: contraste, antetitulo: listaPublicos(publicos), args, publicosRegla: publicos,
+      id: "contraste", clase: "contraste", tarjeta: contraste.clave, t: contraste, antetitulo: listaPublicos(par), args, publicosRegla: par,
     }));
   }
 
