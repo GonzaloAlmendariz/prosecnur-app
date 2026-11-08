@@ -123,3 +123,84 @@ test_that("el conteo en vivo, con el instrumento leído de un XLSForm, da las ci
   metrica <- vapply(r$candidatas, function(cd) cd$metrica, 0)
   expect_equal(unname(metrica), lam$valor)
 })
+
+# ADR 0135 (decisión del 2026-11-07): en la escala del resumen la regla fija el orden de las filas si el slot no lo
+# declaró. Fixture: Top Two Box a1 75, a2 50, a3 70, a4 25; «Sin información» a1 0, a2 10, a3 20, a4 20.
+.rd_pie_ttb <- "Ordenado por Top Two Box, de menor a mayor."
+.rd_pie_si <- "Ordenado por Sin información."
+
+test_that("bajo_umbral sin orden declarado: Top Two Box de menor a mayor en la regla, el conteo, la lámina y su pie", {
+  skip_if_not_installed("ggplot2")
+  src <- .rd_fuentes("Sin información")
+  el <- p_barras_divergentes(vars = "docentes$*", regla = list(tipo = "bajo_umbral", umbral = 72))
+  r <- .regla_preguntas_de_elemento(el, src)
+  expect_identical(r$evaluacion$temas, c("docentes$a4", "docentes$a2", "docentes$a3"))   # 25, 50, 70
+  expect_true(endsWith(r$evaluacion$texto, .rd_pie_ttb))
+  esp <- .rd_espec_render(el, src)
+  expect_identical(esp$filas, c("Salud", "Biblioteca", "Tutoría"))   # antes: Tutoría, Biblioteca, Salud (de mayor a menor)
+  expect_identical(esp$texto_regla, r$evaluacion$texto)
+  # El conteo devuelve las seleccionadas en el orden de la lámina y la misma nota.
+  cnt <- .regla_preguntas_conteo("p_barras_divergentes", list(vars = list("docentes$*"), estilo = "resumen",
+                                                              regla = list(tipo = "bajo_umbral", umbral = 72)), src)
+  expect_identical(unlist(cnt$seleccionadas), r$evaluacion$temas)
+  expect_identical(cnt$texto_regla, r$evaluacion$texto)
+  # Una agregada a mano entra en su lugar por Top Two Box, no al final.
+  el2 <- p_barras_divergentes(vars = "docentes$*", regla = list(tipo = "bajo_umbral", umbral = 60, agregar = list("docentes$a3")))
+  expect_identical(.regla_preguntas_de_elemento(el2, src)$evaluacion$temas, c("docentes$a4", "docentes$a2", "docentes$a3"))
+  expect_identical(.rd_espec_render(el2, src)$filas, c("Salud", "Biblioteca", "Tutoría"))
+})
+
+test_that("el respaldo (ggplot) dibuja las filas en el orden de la regla y su pie dice el criterio", {
+  skip_if_not_installed("ggplot2")
+  src <- .rd_fuentes("Sin información")
+  el <- p_barras_divergentes(vars = "docentes$*", regla = list(tipo = "bajo_umbral", umbral = 72))
+  plan <- p_plan(slides = list(p_slide_1_grafico(el, titulo = "Escala")))
+  p <- suppressWarnings(reporte_ppt_plan(data = src$data_sources, instrumento = src$inst_sources, plan = plan,
+                                         solo_lista = TRUE, mensajes_progreso = FALSE))$rendered[[1]]
+  # El eje y va de abajo arriba: la primera fila de la lámina es el último nivel.
+  niveles <- rev(levels(ggplot2::ggplot_build(p)$plot$data$.item))
+  expect_identical(niveles, c("Salud", "Biblioteca", "Tutoría"))
+  expect_true(endsWith(attr(p, "note_outside"), "Ordenado por Top Two Box, de menor a mayor."))
+})
+
+test_that("mayor_sin_info sin orden declarado: por Sin información y lo dice el pie; desempata el Top Two Box", {
+  skip_if_not_installed("ggplot2")
+  src <- .rd_fuentes("Sin información")
+  el <- p_barras_divergentes(vars = "docentes$*", regla = list(tipo = "mayor_sin_info", n = 3))
+  r <- .regla_preguntas_de_elemento(el, src)
+  expect_identical(r$evaluacion$temas, c("docentes$a3", "docentes$a4", "docentes$a2"))   # 20 (TTB 70), 20 (TTB 25), 10
+  expect_true(endsWith(r$evaluacion$texto, .rd_pie_si))
+  esp <- .rd_espec_render(el, src)
+  expect_identical(esp$filas, c("Tutoría", "Salud", "Biblioteca"))   # por Top Two Box habría sido Tutoría, Biblioteca, Salud
+  expect_identical(esp$texto_regla, r$evaluacion$texto)
+})
+
+test_that("un orden declarado se respeta y el pie no dice un criterio que no fijó la regla", {
+  skip_if_not_installed("ggplot2")
+  src <- .rd_fuentes("Sin información")
+  el <- p_barras_divergentes(vars = "docentes$*", orden = "top_two_box", regla = list(tipo = "bajo_umbral", umbral = 72))
+  r <- .regla_preguntas_de_elemento(el, src)
+  expect_false(grepl("Ordenado por", r$evaluacion$texto, fixed = TRUE))
+  esp <- .rd_espec_render(el, src)
+  expect_identical(esp$filas, c("Tutoría", "Biblioteca", "Salud"))
+  expect_false(grepl("Ordenado por", esp$texto_regla, fixed = TRUE))
+  # Otra regla tampoco fija orden.
+  el_ext <- p_barras_divergentes(vars = "docentes$*", regla = list(tipo = "extremos", n = 1))
+  expect_null(.regla_escala_orden_fijado(el_ext))
+  expect_false(grepl("Ordenado por", .regla_preguntas_de_elemento(el_ext, src)$evaluacion$texto, fixed = TRUE))
+  # Ni el contraste ni el panorama: sólo la escala del resumen.
+  expect_null(.regla_escala_orden_fijado(list(.element_type = "dumbbell", overrides = list(estilo = "resumen"),
+                                              regla = list(tipo = "bajo_umbral", umbral = 50))))
+})
+
+test_that("la lámina nativa escribe el criterio en su pie, cerrado con punto", {
+  skip_if_not_installed("officer"); skip_if_not_installed("ggplot2")
+  src <- .rd_fuentes("Sin información")
+  el <- p_barras_divergentes(vars = "docentes$*", regla = list(tipo = "bajo_umbral", umbral = 72))
+  out <- tempfile(fileext = ".pptx"); on.exit(unlink(out), add = TRUE)
+  suppressWarnings(reporte_ppt_plan(data = src$data_sources, instrumento = src$inst_sources, path_ppt = out,
+                                    plan = p_plan(slides = list(p_slide_1_grafico(el, titulo = "Escala"))), mensajes_progreso = FALSE))
+  xml <- .pptx_leer_parte(out, .pptx_slide_paths(out)[1])
+  expect_identical(.pptx_lamina_estado(xml), "nativa")
+  expect_match(xml, "de 4 preguntas de escala. Ordenado por Top Two Box, de menor a mayor.<", fixed = TRUE)
+})

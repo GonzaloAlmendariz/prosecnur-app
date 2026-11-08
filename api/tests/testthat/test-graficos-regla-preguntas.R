@@ -330,7 +330,7 @@ test_that("en la ruta real el render aplica la regla y la espec lleva el texto d
   expect_identical(esp[[2]]$texto_regla, "Se muestran las 2 de mayor diferencia, de 5 preguntas comunes.")
   expect_length(esp[[3]]$filas, 2L)
   expect_identical(esp[[3]]$estilo, "resumen")
-  expect_identical(esp[[3]]$texto_regla, "Se muestran las 2 con más Sin información, de 5 preguntas de escala.")
+  expect_identical(esp[[3]]$texto_regla, "Se muestran las 2 con más Sin información, de 5 preguntas de escala. Ordenado por Sin información.")
   # Sin regla, el contrato de siempre: todas las declaradas y ningún texto de regla.
   expect_identical(esp[[4]]$total, c(5L, 5L))
   expect_null(esp[[4]]$texto_regla)

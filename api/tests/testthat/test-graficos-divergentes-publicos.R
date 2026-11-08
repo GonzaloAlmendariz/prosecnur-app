@@ -61,7 +61,9 @@ test_that("la lámina rotula cada fila con su público, con la misma paleta y la
                                            solo_lista = TRUE, mensajes_progreso = FALSE))
   e1 <- attr(out$rendered[[1]], "pulso_espec"); e2 <- attr(out$rendered[[2]], "pulso_espec"); e3 <- attr(out$rendered[[3]], "pulso_espec")
   expect_setequal(e1$filas, c("Biblioteca (Doc.)", "Tutoría (Doc.)", "Biblioteca (Est.)", "Salud (Est.)", "Salud (Adm.)"))
-  expect_identical(e1$texto_regla, "Se muestran las 5 bajo 60%, de 12 preguntas de escala.")
+  # La regla fijó el orden (ADR 0135, 2026-11-07): Top Two Box de menor a mayor, y el pie lo dice.
+  expect_identical(e1$texto_regla, "Se muestran las 5 bajo 60%, de 12 preguntas de escala. Ordenado por Top Two Box, de menor a mayor.")
+  expect_false(is.unsorted(e1$total_pos))
   expect_identical(e1$categorias$lado, e3$categorias$lado)
   expect_identical(e1$categorias$color, e3$categorias$color)
   expect_true(all(grepl(" \\((DOC|Est\\.|Adm\\.)\\)$", e2$filas)))

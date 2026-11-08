@@ -550,6 +550,7 @@ p_barras_divergentes <- function(vars = NULL,
   # El reparto derivado de la escala original no es reemplazable por presets o
   # overrides: hacerlo reintroduciria la reclasificacion por indices visibles.
   args$reparto <- tabla$reparto
+  args <- .regla_escala_orden_args(args, el)   # la regla fijó el orden: las filas van como las ordenó (ADR 0135)
   args <- .keep_formals(graficar_barras_divergentes, args, contexto = "graficar_barras_divergentes")
   p <- .regla_preguntas_en_espec(do.call(graficar_barras_divergentes, args), ap$texto)
   .divergentes_nota_porcentaje(p, isTRUE(tabla$hubo_exclusion))
@@ -567,7 +568,7 @@ p_barras_divergentes <- function(vars = NULL,
                          else "Porcentaje sobre el total de respondientes."
   attr(p, "pulso_espec") <- esp
   # El respaldo (ggplot) escribe en su pie lo que trae `note_outside`: el denominador y la regla, como la nativa.
-  attr(p, "note_outside") <- .lam_unir_base(esp$nota_porcentaje, esp$texto_regla)
+  attr(p, "note_outside") <- paste0(.lam_unir_base(esp$nota_porcentaje, esp$texto_regla), ".")
   p
 }
 

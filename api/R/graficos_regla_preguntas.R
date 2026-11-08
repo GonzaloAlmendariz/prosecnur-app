@@ -302,6 +302,9 @@
   dec <- suppressWarnings(as.integer((el$overrides %||% list())$valores_decimales %||% 0L)[1])
   ev <- .regla_preguntas_evaluar(ind$indicadores, regla, universo = ind$universo, grupos_unidad = ind$grupos_unidad,
                                  decimales = if (is.finite(dec)) dec else 0L)
+  # La escala del resumen: `bajo_umbral` y `mayor_sin_info` fijan el orden de las filas (graficos_regla_orden_escala.R).
+  criterio <- .regla_escala_orden_fijado(el, regla)
+  if (!is.null(criterio)) ev <- .regla_escala_ordenar(ev, ind$indicadores, criterio)
   elegidas <- ind$refs_por_tema[ev$temas]
   vars <- if (identical(el$.element_type, "dumbbell")) elegidas else unname(unlist(elegidas))
   list(evaluacion = ev, vars = vars, avisos = c(ind$avisos, ev$avisos), indicadores = ind$indicadores)
