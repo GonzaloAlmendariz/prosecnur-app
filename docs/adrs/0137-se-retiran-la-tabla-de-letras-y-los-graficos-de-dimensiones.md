@@ -1,6 +1,6 @@
 # ADR 0137: se retiran la tabla de letras entre públicos y los gráficos de dimensiones
 
-Estado: Aceptado (Gonzalo, 2026-11-08). La Fase 2 borra archivos: su commit requiere la confirmación de Gonzalo (gate 3)
+Estado: Aceptado (Gonzalo, 2026-11-08). Fase 1 hecha (55c0e7a9b, 126486ee6). Fase 2 (borrado) autorizada por Gonzalo el 2026-11-09: «Sí, borra»
 Fecha: 2026-11-08
 Autoridad: Gonzalo, sobre el catálogo de láminas: «Pensé que esta forma de mostrar significancia ya estaba desfasada en
 favor de otra más moderna con tarjetas»; «Creo que gráficos exclusivos para dimensiones ya ni tienen cabida en la app»;
