@@ -106,7 +106,7 @@ import { MaximoCategorias } from "./recorte/MaximoCategorias";
 import { ARGS_RECORTE } from "./recorte/modeloRecorte";
 import { GruposDelCruce } from "./cruce/GruposDelCruce";
 import { ARGS_CRUCE, conGrupoExcluido } from "./cruce/modeloGrupos";
-import { baseDeLaPregunta, cruceEnOtraBase, textoCruceEnOtraBase } from "./cruce/baseDelCruce";
+import { baseDeLaPregunta, cruceEnOtraBase, patchFijarBaseCruce, textoCruceEnOtraBase, type VariableDeBase } from "./cruce/baseDelCruce";
 import { ARGS_LADOS, llevaLados } from "./divergentes/modeloLados";
 import { conDetalle } from "./cifrasInspector/modeloCifras";
 import "./datosGrafico.css";
@@ -154,7 +154,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
   // En el informe compartido una pregunta sin base no se califica con la activa: se pide elegirla (H9).
   const sinBaseCompartido = faltaBaseEnCompartido(variable, scope);
   // R7-1: «Dividir por» ofrece sólo las preguntas de la base de la pregunta del gráfico.
-  const basePregunta = baseDeLaPregunta(variable ? { var: varCalificada(variable, baseActiva, scope) } : args);
+  const basePregunta = baseDeLaPregunta(variable ? { var: varCalificada(variable, baseActiva, scope) } : args, variables);
   const esMulti = valor.graficador === "p_barras_multiapiladas";
   // Las láminas de equivalencias traen `vars` por tema ({ tema_1: [docentes$p1, estudiantes$p1], … }): se cuentan los temas.
   const varsPorTema = !Array.isArray(args.vars) && args.vars && typeof args.vars === "object" ? (args.vars as Record<string, unknown>) : null;
@@ -239,7 +239,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
     <Fragment key={`${slideId}:${slot}:${c.arg.name}`}>
       {/* H2: la ayuda de «Pista gris» describe la opción elegida, no siempre «Automática». */}
       <Fila campo={{ ...c, ayuda: ayudaDeLaOpcion(c, alcance(c).valor) }} graficador={valor.graficador} valor={alcance(c).valor} sello={alcance(c).sello} categorias={categoriasDe(c.arg.name)}
-            args={args} scope={scope} basePregunta={basePregunta}
+            args={args} scope={scope} basePregunta={basePregunta} variables={variables}
             onCambio={(v) => set(valor.graficador === "p_radar" && c.arg.name === "modo" && typeof v === "string" ? patchModoRadar(args.modo, v) : { [c.arg.name]: v })} />
       {/* H2: «Un color por opción» encendido sobre una lista sin colores dice por qué no se ve. */}
       {c.arg.name === "colorear_por_opcion" && interruptorEncendido(c.arg, alcance(c).valor) && <AvisoColorPorOpcion valor={valor} />}
@@ -407,10 +407,12 @@ type CategoriasFila = {
   porEtiqueta?: boolean;
 };
 
-function Fila({ campo, graficador, valor, onCambio, sello, categorias, args, scope, sinCifra = false, basePregunta = null }: {
+function Fila({ campo, graficador, valor, onCambio, sello, categorias, args, scope, sinCifra = false, basePregunta = null, variables = [] }: {
   campo: CampoDato; graficador: string; valor: unknown; onCambio: (v: unknown) => void; sello?: ReactNode;
   /** La base de la pregunta del gráfico: «Dividir por» sólo ofrece las suyas (R7-1). */
   basePregunta?: string | null;
+  /** Las preguntas del estudio, para saber si el cruce existe en la base de la pregunta (R7-18). */
+  variables?: readonly VariableDeBase[];
   /** Oleada I2, ítem 5: el control de siempre, sin la línea de corte (el respaldo de MaximoCategorias). */
   sinCifra?: boolean;
   /** El alcance del informe (activo o compartido): el conteo de la regla se pide sobre las mismas fuentes que la vista previa. */
@@ -439,10 +441,10 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias, args, sco
       {sello}
     </label>
   );
-  if (control === "numero" && ARGS_RECORTE.has(arg.name) && conDetalle(graficador) && !sinCifra) return <MaximoCategorias id={id} rotulo={rotulo} marcas={<>{globo}{sello}</>} graficador={graficador} scope={scope} args={args} argName={arg.name} valor={valor} porDefecto={arg.default} min={typeof arg.min === "number" ? arg.min : 1} onCambio={onCambio} respaldo={<Fila campo={campo} graficador={graficador} valor={valor} onCambio={onCambio} sello={sello} categorias={categorias} args={args} scope={scope} basePregunta={basePregunta} sinCifra />} />;
+  if (control === "numero" && ARGS_RECORTE.has(arg.name) && conDetalle(graficador) && !sinCifra) return <MaximoCategorias id={id} rotulo={rotulo} marcas={<>{globo}{sello}</>} graficador={graficador} scope={scope} args={args} argName={arg.name} valor={valor} porDefecto={arg.default} min={typeof arg.min === "number" ? arg.min : 1} onCambio={onCambio} respaldo={<Fila campo={campo} graficador={graficador} valor={valor} onCambio={onCambio} sello={sello} categorias={categorias} args={args} scope={scope} basePregunta={basePregunta} variables={variables} sinCifra />} />;
   if (control === "variable" || control === "variable_opcional") {
     const esCruce = ARGS_CRUCE.has(arg.name);
-    const otraBase = esCruce ? cruceEnOtraBase(args) : null;
+    const otraBase = esCruce ? cruceEnOtraBase(args, variables) : null;
     return (
       <div className="pulso-f6-dato is-apilado" data-campo={arg.name}>
         {etiqueta}
@@ -455,7 +457,14 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias, args, sco
             soloBase={esCruce ? basePregunta : null}
           />
         </div>
-        {otraBase && <span className="pulso-f6-dato-ayuda is-aviso" role="alert">{textoCruceEnOtraBase(otraBase)}</span>}
+        {otraBase && (
+          <span className="pulso-f6-dato-ayuda is-aviso" role={otraBase.existeEnBasePregunta ? "note" : "alert"} data-qa="cruce-otra-base">
+            {textoCruceEnOtraBase(otraBase)}
+            {otraBase.existeEnBasePregunta && (
+              <>{" "}<button type="button" className="pulso-f6-texto-boton" onClick={() => onCambio(patchFijarBaseCruce(args, otraBase)[otraBase.arg])}>Fijar base</button></>
+            )}
+          </span>
+        )}
       </div>
     );
   }
