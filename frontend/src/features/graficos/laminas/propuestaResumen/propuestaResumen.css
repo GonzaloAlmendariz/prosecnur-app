@@ -8,16 +8,9 @@
   min-width: 0;
 }
 
-.pulso-f6-propuesta-cabeza {
-  display: flex;
-  align-items: center;
-  gap: var(--pulso-space-2);
-  min-width: 0;
-}
-
-.pulso-f6-propuesta-cabeza h4 {
-  flex: 1 1 auto;
-  margin: 0;
+.pulso-f6-propuesta-cabeza.pulso-cabecera-panel {
+  /* W2-B: CabeceraPanel dentro de la tarjeta: sin sangría propia, alineada al resto del inspector. */
+  padding-inline: 0;
 }
 
 .pulso-f6-propuesta-n,

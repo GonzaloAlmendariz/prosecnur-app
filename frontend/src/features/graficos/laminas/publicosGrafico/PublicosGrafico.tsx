@@ -42,15 +42,15 @@ export function PublicosGrafico({ id, graficador, valor, describe, onCambio }: P
             </span>
             {publicos.length > 1 && (
               <>
-                <PulsoButton variant="icon" size="sm" aria-label={`Mover ${nombre(b)} antes`} disabled={i === 0}
+                <PulsoButton variant="icon" tone="quiet" size="sm" aria-label={`Mover ${nombre(b)} antes`} disabled={i === 0}
                   onClick={() => poner(moverPublicoEn(publicos, i, -1))}>
                   <ArrowUp size={13} aria-hidden="true" />
                 </PulsoButton>
-                <PulsoButton variant="icon" size="sm" aria-label={`Mover ${nombre(b)} después`} disabled={i === publicos.length - 1}
+                <PulsoButton variant="icon" tone="quiet" size="sm" aria-label={`Mover ${nombre(b)} después`} disabled={i === publicos.length - 1}
                   onClick={() => poner(moverPublicoEn(publicos, i, 1))}>
                   <ArrowDown size={13} aria-hidden="true" />
                 </PulsoButton>
-                <PulsoButton variant="icon" size="sm" intent="remove" aria-label={`Quitar ${nombre(b)}`}
+                <PulsoButton variant="icon" tone="quiet" size="sm" intent="remove" aria-label={`Quitar ${nombre(b)}`}
                   onClick={() => poner(publicos.filter((x) => x !== b))}>
                   <X size={13} aria-hidden="true" />
                 </PulsoButton>

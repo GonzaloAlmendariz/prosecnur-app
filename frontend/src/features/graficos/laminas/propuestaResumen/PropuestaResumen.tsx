@@ -13,7 +13,8 @@ import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoSwitch } from "../../../../components/PulsoSwitch";
 import { formatoConteo } from "../../../../lib/formatoNumero";
 import { useVariables } from "../../useVariables";
-import { ListChecks, PencilLine, RefreshCw, X } from "../../../../vendor/lucide-react";
+import { ListChecks, PencilLine, RefreshCw } from "../../../../vendor/lucide-react";
+import { CabeceraPanel } from "../../../../components/CabeceraPanel";
 import {
   alternar,
   avisoNadaMarcado,
@@ -115,6 +116,8 @@ export function PropuestaResumen({ slide, scope, automatica, valor, onAplicar }:
     );
   }
 
+  // W2-B (contrato B): la X y Escape cierran igual, y el foco vuelve a «Traer la propuesta del motor» (efecto de enfocar).
+  const cerrar = () => cambiar({ abierta: false, pendiente: null, aviso: "", enfocar: true });
   const escritos = escritosQueSalen(tipo, valor).length;
   const total = datos ? totalElementos(datos) : 0;
   const quedan = datos ? cuantosQuedan(datos, marcados) : 0;
@@ -122,15 +125,17 @@ export function PropuestaResumen({ slide, scope, automatica, valor, onAplicar }:
 
   return (
     <section className="pulso-f6-propuesta" aria-labelledby={idTitulo} data-qa="propuesta-motor"
-      data-qa-geometry-group="graficos/f6-propuesta" data-qa-geometry-contract="intrinsic">
-      <div className="pulso-f6-propuesta-cabeza" data-qa-geometry-member>
-        <h4 id={idTitulo} className="pulso-f6-dato-rotulo">Lo que propone el motor</h4>
-        {datos && total > 0 && <span className="pulso-f6-propuesta-n">{conteoQuedan(quedan, total)}</span>}
-        {!automatica && (
-          <PulsoButton variant="icon" size="sm" aria-label="Cerrar la propuesta" onClick={() => cambiar({ abierta: false, pendiente: null, aviso: "" })}>
-            <X size={14} aria-hidden="true" />
-          </PulsoButton>
-        )}
+      data-qa-geometry-group="graficos/f6-propuesta" data-qa-geometry-contract="intrinsic"
+      onKeyDown={automatica ? undefined : (e) => {
+        // Un menú o diálogo de dentro atiende su propio Escape (defaultPrevented); si no, Escape cierra la propuesta.
+        if (e.key !== "Escape" || e.defaultPrevented) return;
+        e.preventDefault();
+        cerrar();
+      }}>
+      <div data-qa-geometry-member>
+        <CabeceraPanel className="pulso-f6-propuesta-cabeza" nivel={3} tituloId={idTitulo} titulo="Lo que propone el motor"
+          subtitulo={datos && total > 0 ? <span className="pulso-f6-propuesta-n">{conteoQuedan(quedan, total)}</span> : undefined}
+          onCerrar={automatica ? undefined : cerrar} etiquetaCerrar="Cerrar la propuesta" />
       </div>
       <div aria-live="polite" className="pulso-f6-propuesta-estado" data-qa-geometry-member>
         {estado.fase === "cargando" && <CargaDeBloque label="Calculando la propuesta del motor. Tarda unos segundos." />}

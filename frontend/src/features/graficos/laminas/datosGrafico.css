@@ -153,9 +153,22 @@
 
 /* La pregunta elegida se lee entera: el selector de variable deja de recortar su texto dentro de la tarjeta. */
 .pulso-f6-dato-control .pulso-gv2-variable-trigger {
+  /* W2-B (D3): dentro de la tarjeta abierta el disparador no suma un tercer marco: relleno suave, sin borde propio;
+     el borde aparece al pasar el puntero y el foco lleva el anillo único. */
+  border-color: transparent;
+  background: var(--pulso-surface-2);
   height: auto;
   min-height: var(--pulso-control-height-lg);
   align-items: flex-start;
+}
+
+.pulso-f6-dato-control .pulso-gv2-variable-trigger:hover {
+  border-color: var(--pulso-border);
+}
+
+.pulso-f6-dato-control .pulso-gv2-variable-trigger:focus-visible {
+  outline: var(--mov-foco);
+  outline-offset: 1px;
 }
 
 .pulso-f6-dato-control .pulso-gv2-variable-trigger-copy,
@@ -254,7 +267,7 @@
 .pulso-f6-grupo:not(:has(> .pulso-f6-grupo-cuerpo > *)) { display: none; }
 .pulso-f6-grupo-titulo {
   margin: 0;
-  color: var(--module-accent);
+  color: var(--pulso-text-faint); /* W2-B (D1): el antetítulo es neutro; el acento queda para selección y foco. */
   font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.06em;

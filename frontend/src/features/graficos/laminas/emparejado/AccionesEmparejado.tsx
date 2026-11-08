@@ -42,21 +42,21 @@ export function AccionesEmparejado({ fila, buscando, activa, onConfirmar, onBusc
       )}
       {(fila.estado === "sugerido" || fila.estado === "confirmado") && (
         <BotonConAtajo ayuda="Cambiar el par">
-          <PulsoButton variant="icon" size="sm" onClick={onBuscar} aria-label={`Cambiar el par de ${de}`}>
+          <PulsoButton variant="icon" tone="quiet" size="sm" onClick={onBuscar} aria-label={`Cambiar el par de ${de}`}>
             <Pencil size={13} aria-hidden="true" />
           </PulsoButton>
         </BotonConAtajo>
       )}
       {fila.estado === "sugerido" && (
         <BotonConAtajo ayuda="Descartar la sugerencia" atajo={tecla(ATAJO.quitar)}>
-          <PulsoButton variant="icon" size="sm" intent="remove" onClick={onDescartar} aria-label={`Descartar la sugerencia para ${de}`} aria-keyshortcuts={tecla("X")}>
+          <PulsoButton variant="icon" tone="quiet" size="sm" intent="remove" onClick={onDescartar} aria-label={`Descartar la sugerencia para ${de}`} aria-keyshortcuts={tecla("X")}>
             <X size={13} aria-hidden="true" />
           </PulsoButton>
         </BotonConAtajo>
       )}
       {fila.estado === "confirmado" && (
         <BotonConAtajo ayuda="Quitar de la lámina" atajo={tecla(ATAJO.quitar)}>
-          <PulsoButton variant="icon" size="sm" intent="remove" onClick={onQuitar} aria-label={`Quitar de la lámina el par de ${de}`} aria-keyshortcuts={tecla("X")}>
+          <PulsoButton variant="icon" tone="quiet" size="sm" intent="remove" onClick={onQuitar} aria-label={`Quitar de la lámina el par de ${de}`} aria-keyshortcuts={tecla("X")}>
             <Link2Off size={13} aria-hidden="true" />
           </PulsoButton>
         </BotonConAtajo>

@@ -5,11 +5,12 @@
 // arma el CSV en el cliente.
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { Download, RotateCcw, X } from "../../../../vendor/lucide-react";
+import { Download, RotateCcw } from "../../../../vendor/lucide-react";
 import type { ControlPanel } from "../../../../lib/navegacion/paneles";
 import type { LaminaDiferencias } from "../../../../api/graficosDiferencias";
 import { PulsoTable, type PulsoTableColumna } from "../../../../components/PulsoTable";
 import { PulsoButton } from "../../../../components/PulsoButton";
+import { CabeceraPanel } from "../../../../components/CabeceraPanel";
 import { Skeleton } from "../../../../components/Skeleton";
 import { formatoConteo } from "../../../../lib/formatoNumero";
 import { usePanelDireccionable } from "../../../../lib/navegacion/paneles";
@@ -89,15 +90,13 @@ export function RevisionDiferenciasPanel({ panel, estructura, slideIdActual, onI
       data-qa-geometry-group="graficos/diferencias-informe"
       data-qa-geometry-contract="intrinsic"
     >
-      <header className="pulso-f6-col-head" data-qa-geometry-member="">
-        <h2>Diferencias del informe</h2>
-        <span className="pulso-f6-col-sp" />
-        <PulsoButton variant="secondary" size="sm" onClick={exportar} disabled={!datos || datos.laminas.length === 0}>
-          <Download size={14} aria-hidden="true" /> Exportar revisión
-        </PulsoButton>
-        <PulsoButton variant="icon" size="sm" aria-label="Cerrar diferencias del informe" onClick={cerrar}>
-          <X size={16} aria-hidden="true" />
-        </PulsoButton>
+      <header data-qa-geometry-member="">
+        <CabeceraPanel titulo="Diferencias del informe" onCerrar={cerrar} etiquetaCerrar="Cerrar diferencias del informe"
+          acciones={(
+            <PulsoButton variant="secondary" size="sm" onClick={exportar} disabled={!datos || datos.laminas.length === 0}>
+              <Download size={14} aria-hidden="true" /> Exportar revisión
+            </PulsoButton>
+          )} />
       </header>
       <div className="pulso-sig-revision-cuerpo" data-qa-geometry-member="" data-qa-scroll-owner="diferencias-informe">
         {carga?.estado === "error" ? (

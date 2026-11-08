@@ -11,6 +11,7 @@ import { Check, ChevronLeft, ChevronRight, Copy, X } from "../../../../vendor/lu
 import type { LaminaDiferencias, ParDiferencias, ReglaDiferencias } from "../../../../api/graficosDiferencias";
 import { PulsoTable, type PulsoTableColumna } from "../../../../components/PulsoTable";
 import { PulsoButton } from "../../../../components/PulsoButton";
+import { CabeceraPanel } from "../../../../components/CabeceraPanel";
 import { toast } from "../../../../components/toasterStore";
 import { usePanelDireccionable } from "../../../../lib/navegacion/paneles";
 import { copiarTexto } from "../../../../lib/portapapeles";
@@ -149,11 +150,7 @@ function CapaPorQue({ slideId, cerrarPanel, panelProps }: { slideId: string; cer
       data-qa-geometry-contract="intrinsic"
     >
       <header className="pulso-sig-porque-cabeza" data-qa-geometry-member="">
-        <h2>Diferencias de esta lámina</h2>
-        <span className="pulso-sig-espacio" />
-        <PulsoButton variant="icon" size="sm" aria-label="Cerrar «Por qué»" onClick={cerrar}>
-          <X size={16} aria-hidden="true" />
-        </PulsoButton>
+        <CabeceraPanel titulo="Diferencias de esta lámina" onCerrar={cerrar} etiquetaCerrar="Cerrar diferencias de esta lámina" />
       </header>
       <div className="pulso-sig-porque-cuerpo" data-qa-geometry-member="">
         {carga?.estado === "error" ? (
@@ -195,10 +192,10 @@ function DetallePar({ lamina, regla, par, indice, total, onMover }: {
         <strong>{par.fila}</strong>
         <span className="pulso-sig-espacio" />
         <span className="pulso-sig-texto">{indice + 1} de {total}</span>
-        <PulsoButton variant="icon" size="sm" aria-label="Par anterior" onClick={() => onMover(-1)} disabled={total < 2}>
+        <PulsoButton variant="icon" tone="quiet" size="sm" aria-label="Par anterior" onClick={() => onMover(-1)} disabled={total < 2}>
           <ChevronLeft size={14} aria-hidden="true" />
         </PulsoButton>
-        <PulsoButton variant="icon" size="sm" aria-label="Par siguiente" onClick={() => onMover(1)} disabled={total < 2}>
+        <PulsoButton variant="icon" tone="quiet" size="sm" aria-label="Par siguiente" onClick={() => onMover(1)} disabled={total < 2}>
           <ChevronRight size={14} aria-hidden="true" />
         </PulsoButton>
       </div>

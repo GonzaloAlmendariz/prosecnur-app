@@ -277,8 +277,9 @@ textarea.pulso-f6-input {
 }
 
 .pulso-f6-ranura.is-abierta {
+  /* W2-B (contrato D3): la tarjeta abierta se marca con el borde del acento, sin el anillo de 2 px por fuera: dos
+     niveles de marco como mucho. */
   border-color: var(--module-accent-border);
-  box-shadow: 0 0 0 2px var(--module-accent-soft);
 }
 
 .pulso-f6-ranura-fila {

@@ -117,8 +117,9 @@ export function VistaComparar({ columnas, inventario, laminasResumen = 0, modo, 
                 <X size={14} aria-hidden="true" />
                 Quitar
               </PulsoButton>
+              {/* W2-B: un solo primario por superficie, el CTA del pie del selector; aquí, dos columnas, secundario. */}
               <PulsoButton
-                variant="primary"
+                variant="secondary"
                 size="sm"
                 disabled={modo === "cambiar" && c.actual}
                 onClick={() => onUsar(c.opcion)}

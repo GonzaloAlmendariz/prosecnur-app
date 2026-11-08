@@ -6,8 +6,7 @@
 
 import { useEffect, useRef } from "react";
 import type { ReglaPreguntas as Regla } from "../../../../api/graficosRegla";
-import { X } from "../../../../vendor/lucide-react";
-import { PulsoButton } from "../../../../components/PulsoButton";
+import { CabeceraPanel } from "../../../../components/CabeceraPanel";
 import { ReglaPreguntas } from "../reglaPreguntas/ReglaPreguntas";
 import { listaPublicos, type PropuestaMazo } from "./modeloMazo";
 
@@ -21,10 +20,15 @@ type Props = {
 
 export function EdicionReglaMazo({ id, propuesta: p, scope, onRegla, onCerrar }: Props) {
   const ref = useRef<HTMLElement>(null);
-  const titulo = useRef<HTMLHeadingElement>(null);
+  const cabecera = useRef<HTMLDivElement>(null);
 
-  // Al abrir (o al pasar a otra tarjeta), el foco entra al lateral.
-  useEffect(() => { titulo.current?.focus(); }, [p.id]);
+  // Al abrir (o al pasar a otra tarjeta), el foco entra al lateral: a su título, que se vuelve enfocable sólo por código.
+  useEffect(() => {
+    const t = cabecera.current?.querySelector<HTMLElement>(".pulso-cabecera-panel__titulo");
+    if (!t) return;
+    t.tabIndex = -1;
+    t.focus();
+  }, [p.id]);
 
   // Escape en captura sobre window: llega antes que el listener del diálogo (Radix escucha en document) y, si el foco
   // está dentro del lateral, lo consume. Un menú desplegado de la regla vive en un portal fuera del lateral: su Escape
@@ -43,15 +47,9 @@ export function EdicionReglaMazo({ id, propuesta: p, scope, onRegla, onCerrar }:
   return (
     <aside ref={ref} id={id} className="pulso-f6-mazo-lateral" aria-labelledby={`${id}-titulo`} data-qa-geometry-member
       data-qa-geometry-capacity="owned">
-      <div className="pulso-f6-mazo-lateral-cabeza">
-        <span className="pulso-f6-mazo-lateral-texto">
-          <span className="pulso-f6-mazo-lee">{listaPublicos(p.publicos)}</span>
-          <h3 ref={titulo} id={`${id}-titulo`} className="pulso-f6-mazo-lateral-titulo" tabIndex={-1}>{p.nombre}</h3>
-        </span>
-        <PulsoButton variant="icon" size="sm" aria-label="Cerrar la regla" onClick={onCerrar}>
-          <X size={14} aria-hidden="true" />
-        </PulsoButton>
-      </div>
+      {/* W2-B: la gramática única de cierre (CabeceraPanel + BotonCerrar); quién lee la lámina va de subtítulo. */}
+      <CabeceraPanel ref={cabecera} className="pulso-f6-mazo-lateral-cabeza" nivel={3} tituloId={`${id}-titulo`}
+        titulo={p.nombre} subtitulo={listaPublicos(p.publicos)} onCerrar={onCerrar} etiquetaCerrar="Cerrar la regla de preguntas" />
       <ReglaPreguntas
         rotulo="Regla de preguntas"
         ayuda="Cómo se eligen las preguntas de esta lámina. Se puede cambiar después en Datos."

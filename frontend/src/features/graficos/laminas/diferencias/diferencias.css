@@ -398,18 +398,8 @@
 }
 
 .pulso-sig-porque-cabeza {
-  display: flex;
-  align-items: center;
-  gap: var(--pulso-space-2);
-  padding: var(--pulso-space-2) var(--pulso-space-3);
-  border-bottom: 1px solid var(--pulso-border);
-}
-
-.pulso-sig-porque-cabeza h2 {
-  margin: 0;
-  font-size: var(--pulso-type-subtitle-size);
-  font-weight: var(--pulso-weight-semibold);
-  color: var(--pulso-text);
+  /* W2-B: el marco (alto, filete, X) lo pone CabeceraPanel. */
+  display: block;
 }
 
 .pulso-sig-porque-cuerpo {

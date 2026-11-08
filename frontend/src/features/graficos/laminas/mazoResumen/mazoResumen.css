@@ -165,28 +165,13 @@
   background: var(--pulso-surface-2);
 }
 
-.pulso-f6-mazo-lateral-cabeza {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--pulso-space-2);
-  min-width: 0;
+/* La cabecera del lateral es CabeceraPanel (W2-B): sin sangría propia, alineada al cuerpo del lateral. */
+.pulso-f6-mazo-lateral > .pulso-cabecera-panel.pulso-f6-mazo-lateral-cabeza {
+  padding-inline: 0;
+  padding-block-start: 0;
 }
 
-.pulso-f6-mazo-lateral-texto {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-
-.pulso-f6-mazo-lateral-titulo {
-  margin: 0;
-  color: var(--pulso-text);
-  font-size: var(--pulso-type-body-size);
-  font-weight: var(--pulso-weight-semibold);
-}
-
-.pulso-f6-mazo-lateral-titulo:focus-visible {
+.pulso-f6-mazo-lateral-cabeza .pulso-cabecera-panel__titulo:focus-visible {
   outline: var(--mov-foco);
   outline-offset: 2px;
 }

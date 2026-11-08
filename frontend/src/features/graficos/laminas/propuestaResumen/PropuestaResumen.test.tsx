@@ -160,6 +160,27 @@ describe("PropuestaResumen", () => {
     expect(capitulos.map((c) => c.titulo)).toEqual(["Mío", "Crianza", "Vida universitaria"]);
   });
 
+  it("W2-B: la propuesta abierta se cierra con la X del kit o con Escape, y el foco vuelve a «Traer»", async () => {
+    pedir.mockResolvedValue(PROPUESTA);
+    await montar({ seleccion: "manual", capitulos: [] });
+    await act(async () => { boton("Traer la propuesta del motor").click(); });
+    await act(async () => { await Promise.resolve(); });
+    const x = host.querySelector<HTMLButtonElement>('.pulso-cabecera-panel button[aria-label="Cerrar la propuesta"]');
+    expect(x).not.toBeNull();
+    expect(x?.classList.contains("pulso-button--quiet")).toBe(true);
+    // Escape desde dentro de la propuesta (el foco en una casilla) la cierra.
+    const dentro = casillas()[0];
+    act(() => { dentro.focus(); dentro.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); });
+    expect(host.querySelector('[data-qa="propuesta-motor"]')).toBeNull();
+    expect(document.activeElement?.textContent).toContain("Traer la propuesta del motor");
+    // La X hace lo mismo.
+    await act(async () => { boton("Traer la propuesta del motor").click(); });
+    await act(async () => { await Promise.resolve(); });
+    act(() => { host.querySelector<HTMLButtonElement>('button[aria-label="Cerrar la propuesta"]')!.click(); });
+    expect(host.querySelector('[data-qa="propuesta-motor"]')).toBeNull();
+    expect(document.activeElement?.textContent).toContain("Traer la propuesta del motor");
+  });
+
   it("un error del motor se dice en lenguaje de analista y se puede reintentar", async () => {
     pedir.mockRejectedValueOnce(new ApiError("E_PROPUESTA_LAMINA_INVALIDA", "La lámina no se pudo leer: x"));
     await montar({ seleccion: "auto" });
