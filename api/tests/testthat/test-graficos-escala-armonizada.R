@@ -261,6 +261,9 @@ test_that("más de 20 filas: el conteo y el render avisan que la lámina nativa 
                    "22 preguntas bajo 60%; la lámina nativa admite 20 y la escala sale como imagen.")
   expect_null(.divergentes_aviso_tope(20, "Se muestran las 20 bajo 60%, de 157 preguntas de escala."))
   expect_identical(.divergentes_aviso_tope(21, NULL), "21 preguntas; la lámina nativa admite 20 y la escala sale como imagen.")
+  # R6-13: la regla «todas» ya dice «preguntas»; no se repite la palabra.
+  expect_identical(.divergentes_aviso_tope(157, "Se muestran las 157 preguntas de escala, ordenadas por Top Two Box."),
+                   "157 preguntas de escala; la lámina nativa admite 20 y la escala sale como imagen.")
   src <- .ea_fuentes(list(lk = 22L), pos = rep(5L, 22L))
   el <- p_barras_divergentes(vars = "arte$*", estilo = "resumen", regla = list(tipo = "bajo_umbral", umbral = 60))
   r <- .regla_preguntas_de_elemento(el, src)

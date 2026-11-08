@@ -24,7 +24,7 @@
   if (!is.na(n) && n > .LAM_DIV_RESUMEN_MAX_FILAS) {
     criterio <- sub("^Se muestran las [0-9]+ ([^,.]+)[,.].*$", "\\1", as.character(texto_regla %||% "")[1])
     que <- if (nzchar(criterio) && !identical(criterio, as.character(texto_regla %||% "")[1])) {
-      sprintf("%d preguntas %s", n, criterio)
+      if (startsWith(criterio, "preguntas ")) sprintf("%d %s", n, criterio) else sprintf("%d preguntas %s", n, criterio)
     } else sprintf("%d preguntas", n)
     avisos <- c(avisos, sprintf("%s; la lámina nativa admite %d y la escala sale como imagen.", que, .LAM_DIV_RESUMEN_MAX_FILAS))
   }
