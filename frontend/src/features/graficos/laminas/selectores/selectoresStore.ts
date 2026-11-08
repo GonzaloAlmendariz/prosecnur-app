@@ -54,8 +54,14 @@ type SelectoresUi = {
   elegirGrafico: (nombre: string) => void;
 };
 
+/**
+ * El modo con que arranca el selector cuando nadie lo pidió: abrir `?panel=tipo-lamina` por enlace, sin intención,
+ * inserta. «Cambiar» sólo cuando quien abre lo pide sobre la lámina del foco (InspectorLamina → «Cambiar»).
+ */
+export const MODO_LAMINA_POR_DEFECTO: ModoSelectorLamina = "insertar";
+
 export const useSelectoresUi = create<SelectoresUi>((set) => ({
-  modoLamina: "cambiar",
+  modoLamina: MODO_LAMINA_POR_DEFECTO,
   contar: null,
   porTipo: null,
   intencion: null,

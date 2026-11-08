@@ -31,7 +31,7 @@ import { DialogoSelector } from "./DialogoSelector";
 import { destinoAlCerrarEnDocumento } from "./focoAlCerrar";
 import { nombreCampo, nombreGrafico, nombreLamina, nombreSlot } from "./etiquetas";
 import { PANEL_TIPO_LAMINA } from "./panelesSelectores";
-import { useSelectoresUi } from "./selectoresStore";
+import { MODO_LAMINA_POR_DEFECTO, useSelectoresUi } from "./selectoresStore";
 import { TarjetaTipoLamina } from "./TarjetaTipoLamina";
 import { conVariante, INTENCIONES, intencionDe, rotuloRanuras, varianteDe, variantesDe, type IntencionLamina } from "./tiposLamina";
 import {
@@ -158,9 +158,15 @@ export function SelectorTipoLamina({ slide, posicion, cerrar, onArmarResumen }: 
   const variante = candidato ? ui.variante ?? varianteInicial(candidato) : null;
   const cambio = candidato ? cambios.get(candidato) ?? null : null;
 
-  // Cerrar por fuera (Escape, velo, otro enlace) deja el selector listo para la próxima vez.
+  // Cerrar por fuera (Escape, velo, otro enlace, «atrás») deja el selector listo para la próxima vez: sin confirmación
+  // pendiente y en el modo por defecto, para que un enlace posterior sin intención no herede un «cambiar».
+  const estabaAbiertoRef = useRef(panel.abierto);
   useEffect(() => {
-    if (!panel.abierto) useSelectoresUi.getState().setConfirmando(false);
+    if (!panel.abierto) {
+      useSelectoresUi.getState().setConfirmando(false);
+      if (estabaAbiertoRef.current) useSelectoresUi.getState().prepararLamina(MODO_LAMINA_POR_DEFECTO);
+    }
+    estabaAbiertoRef.current = panel.abierto;
   }, [panel.abierto]);
 
   // Al salir de la vista partida, el botón que la abrió ya no existe: el foco vuelve a «Ver lado a lado» o, si la barra
@@ -178,7 +184,8 @@ export function SelectorTipoLamina({ slide, posicion, cerrar, onArmarResumen }: 
   }, [viendo]);
 
   const cerrarYOlvidar = (pos?: number) => {
-    useSelectoresUi.getState().prepararLamina("cambiar");
+    // Lo que queda para la próxima apertura sin intención (un enlace): insertar, nunca «cambiar» heredado.
+    useSelectoresUi.getState().prepararLamina(MODO_LAMINA_POR_DEFECTO);
     cerrar(pos);
   };
 
