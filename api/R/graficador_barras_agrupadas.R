@@ -1851,13 +1851,20 @@ graficar_barras_agrupadas <- function(
   has_legend <- isTRUE(mostrar_leyenda) && n_items_ley > 0
   leg_grob <- NULL
   if (has_legend) {
-    leg_grob <- cowplot::get_legend(
-      p_for_legend + ggplot2::theme(
-        legend.position  = if (legend_is_side) "right" else "bottom",
-        legend.direction = if (legend_is_side) "vertical" else "horizontal",
-        legend.box       = if (legend_is_side) "vertical" else "horizontal"
-      )
-    )
+    # Q1 (ola 2): la fila de la leyenda no puede medir más que el lienzo; si no cabe se parte en filas
+    # (graficador_barras_agrupadas_leyenda.R).
+    ley <- .agrupadas_leyenda_que_cabe(function(k) cowplot::get_legend(
+      p_for_legend + ggplot2::guides(fill = ggplot2::guide_legend(
+        byrow = TRUE, ncol = if (legend_is_side) 1L else k, reverse = invertir_leyenda,
+        keywidth = grid::unit(legend_key_cm, "cm"), keyheight = grid::unit(legend_key_cm, "cm"))) +
+        ggplot2::theme(
+          legend.position  = if (legend_is_side) "right" else "bottom",
+          legend.direction = if (legend_is_side) "vertical" else "horizontal",
+          legend.box       = if (legend_is_side) "vertical" else "horizontal"
+        )
+    ), n_items_ley, if (legend_is_side) 1L else n_por_fila, if (legend_is_side) NA_real_ else ancho)
+    leg_grob <- ley$grob
+    canvas_h_legend_in <- canvas_h_legend_in + ley$extra_h_in
   }
 
   # etiquetas y extra (texto)
