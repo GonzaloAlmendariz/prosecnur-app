@@ -163,3 +163,19 @@
   min-width: 0;
   font-size: var(--pulso-type-caption-size);
 }
+
+/* X5: la cobertura del grupo frente a su padrón, bajo el padrón; cifra tabular, sin caja. */
+.pulso-f6-grupos-cobertura {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.pulso-f6-grupos-cobertura.is-nota {
+  color: var(--pulso-text-faint);
+}
+
+.pulso-f6-grupos-cobertura.is-aviso {
+  color: var(--pulso-warn-fg);
+}

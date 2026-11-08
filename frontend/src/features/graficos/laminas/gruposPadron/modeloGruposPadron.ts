@@ -56,11 +56,32 @@ export function incluidosEnOrden(filas: readonly FilaGrupo[], args: Args): FilaG
 
 const pct = (n: number, u: number) => Math.floor((100 * n) / u + 0.5 + 1e-9);
 
+/**
+ * La relación del grupo con su padrón, con la regla del motor (`.contraste_base_texto`): sin n o sin padrón no hay
+ * nada que mostrar; una n mayor que el padrón no lleva cobertura; con el padrón no confiable la cobertura se calcula
+ * igual pero no va en la base.
+ */
+export type CoberturaGrupo =
+  | { tipo: "en-base" | "fuera-de-base"; n: number; padron: number; pct: number }
+  | { tipo: "supera"; n: number; padron: number };
+
+export function coberturaDeGrupo(n: number | null, padron: Padron): CoberturaGrupo | null {
+  const u = padron.valor;
+  if (n === null || u === null || u <= 0) return null;
+  if (n > u) return { tipo: "supera", n, padron: u };
+  return { tipo: padron.confiable ? "en-base" : "fuera-de-base", n, padron: u, pct: pct(n, u) };
+}
+
+/** «Cobertura 88%», «Cobertura 88%, no va en la base» o «139 supera el padrón (120): la base va sin cobertura». */
+export function textoCobertura(c: CoberturaGrupo): string {
+  if (c.tipo === "supera") return `${formatoConteo(c.n)} supera el padrón (${formatoConteo(c.padron)}): la base va sin cobertura`;
+  return c.tipo === "en-base" ? `Cobertura ${c.pct}%` : `Cobertura ${c.pct}%, no va en la base`;
+}
+
 /** La base de un grupo como la escribe el motor: «91 (88%)» con padrón confiable que lo cubre; si no, «91». */
 export function baseDeGrupo(n: number, padron: Padron): string {
-  const u = padron.confiable ? padron.valor : null;
-  if (u === null || u <= 0 || n > u) return formatoConteo(n);
-  return `${formatoConteo(n)} (${pct(n, u)}%)`;
+  const c = coberturaDeGrupo(n, padron);
+  return c?.tipo === "en-base" ? `${formatoConteo(n)} (${c.pct}%)` : formatoConteo(n);
 }
 
 /**

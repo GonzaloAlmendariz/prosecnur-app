@@ -34,6 +34,7 @@ describe("GruposPadron", () => {
     expect(html).not.toContain('aria-label="Padrón de Contratado"');
     expect(html).toContain("Grupo chico: 24 docentes TC.");
     expect(html).toContain("Base: TC 24; TP 91 (88%)");
+    expect(html).toContain('data-cobertura="en-base">Cobertura 88%');
   });
 
   it("sin conteo no hay base ni grupo chico", () => {

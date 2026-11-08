@@ -11,6 +11,7 @@ import { formatoConteoDe } from "../../../../lib/formatoNumero";
 import { AyudaGlobo } from "../AyudaGlobo";
 import { MAX_GRUPOS_RESUMEN, type Opcion } from "../brecha/modeloBrechaGrupos";
 import { useCategoriasGrafico } from "../useCategoriasGrafico";
+import { CoberturaGrupo } from "./CoberturaGrupo";
 import { FilaPadron } from "./FilaPadron";
 import {
   alternarGrupo, filasGrupos, incluidosEnOrden, lineaBase, notaGrupoChico, textoTope, unidadDeCruce,
@@ -69,8 +70,11 @@ export function GruposPadron({ args, cruce, opciones, scope, onCambio }: Props) 
                 )}
                 onCheckedChange={(v) => onCambio(alternarGrupo(args, f.codigo, v))} />
               {f.incluido && (
-                <FilaPadron nombre={f.etiqueta} padron={f.padron}
-                  onCambio={(p) => onCambio(conPadron(args, f.etiqueta, p, guarda))} />
+                <>
+                  <FilaPadron nombre={f.etiqueta} padron={f.padron}
+                    onCambio={(p) => onCambio(conPadron(args, f.etiqueta, p, guarda))} />
+                  <CoberturaGrupo n={f.n} padron={f.padron} />
+                </>
               )}
             </li>
           ))}
