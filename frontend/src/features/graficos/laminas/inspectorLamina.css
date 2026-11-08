@@ -548,6 +548,5 @@ textarea.pulso-f6-input {
   text-transform: uppercase;
 }
 
-.pulso-f6-ranura-clase[data-clase-tarjeta="resumen"] {
-  color: var(--module-accent);
-}
+/* R9-13 (contrato D1-D2): «Lámina de resumen» es un antetítulo y va en text-faint como las demás clases; el acento queda
+   para la selección, el foco, la procedencia y el único CTA. */

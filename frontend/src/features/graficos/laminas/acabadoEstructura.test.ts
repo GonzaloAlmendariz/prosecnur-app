@@ -283,3 +283,10 @@ describe("R9-10: el mazo del resumen, en lo que se resuelve dentro de Láminas",
     expect(css).not.toMatch(/border-radius:\s*5px/);
   });
 });
+
+describe("R9-13: el antetítulo «Lámina de resumen» no va en el acento", () => {
+  it.each(["selectores/selectores.css", "inspectorLamina.css"])("%s no pinta la clase «resumen» con --module-accent", (hoja) => {
+    const css = sinComentarios(leer(hoja));
+    expect(css).not.toMatch(/\[data-clase-tarjeta="resumen"\][^{]*\{[^}]*--module-accent/);
+  });
+});
