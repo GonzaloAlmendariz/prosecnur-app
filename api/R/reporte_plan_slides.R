@@ -1674,8 +1674,8 @@ p_slide_resumen_diferencias <- function(capitulos = list(), titulo = NULL, etiqu
 #' lámina. Ver `graficos_hallazgos.R` y `graficos_hallazgos_resumen.R`.
 #'
 #' @param cifras Lista de `list(var, fila | filas | top2box, texto, comparacion, grafico, base, filtros)`.
-#' @param titulo Título de la lámina.
-#' @param etiqueta Antetítulo («Capítulo 4»). En los modos de resumen, «Resumen ejecutivo» por defecto.
+#' @param titulo Título de la lámina. Vacío por defecto en todos los modos: el título lo escribe el analista.
+#' @param etiqueta Antetítulo («Capítulo 4»). Vacío por defecto; una lámina guardada con el suyo lo conserva.
 #' @param modo «cifras», «cifras_con_graficos», «resumen» o «titulares».
 #' @param grafico_ancho En el modo con gráficos, un gráfico de ancho completo `list(graficador, args, titulo, base)`.
 #' @param capitulos Modos de resumen con selección manual: lista de `list(titulo, titular, cifras)`.
@@ -1701,13 +1701,13 @@ p_slide_hallazgos <- function(cifras = list(), titulo = NULL, etiqueta = NULL, m
     if (!is.list(capitulos)) .plan_spec_abort("p_slide_hallazgos(): `capitulos` debe ser una lista.")
     if (identical(seleccion, "manual") && !length(capitulos)) .plan_spec_abort("Hallazgos clave: ", .HALLAZGOS_SIN_CAPITULOS)
   } else if (!is.list(cifras) || !length(cifras)) .plan_spec_abort("p_slide_hallazgos(): declara al menos una cifra en `cifras`.")
-  etiqueta <- .ppt_norm_text1(etiqueta, blank = NULL) %||% if (resumen) "Resumen ejecutivo"
+  etiqueta <- .ppt_norm_text1(etiqueta, blank = NULL)   # sin rótulo inventado: el render no dibuja los vacíos (.lam_titulo)
   if (!is.null(etiqueta)) meta$antetitulo <- meta$antetitulo %||% etiqueta
   el <- .el_hallazgos(cifras = cifras, modo = modo, grafico_ancho = grafico_ancho, cruces = cruces, rotulos = rotulos,
                       cortos = cortos, tautologicos = tautologicos, publico = publico, fuente = fuente, capitulos = capitulos,
                       seleccion = seleccion, max_por_capitulo = max_por_capitulo, max_por_lamina = max_por_lamina,
                       tambien = isTRUE(as.logical(unlist(tambien))[1]), titulos = titulos)
-  p_slide_1_grafico(el, titulo = titulo %||% if (resumen) "Principales hallazgos" else "Hallazgos clave", base = base, meta = meta)
+  p_slide_1_grafico(el, titulo = titulo, base = base, meta = meta)
 }
 
 #' Lámina de perfil con tres gráficos: dos apilados y uno alto

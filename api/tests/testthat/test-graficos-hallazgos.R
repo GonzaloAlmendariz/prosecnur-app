@@ -201,6 +201,19 @@ test_that("el gráfico de apoyo sin cruce va en el orden del instrumento; mayor_
   list(nombres = xml2::xml_attr(xml2::xml_find_all(xml, "//p:cNvPr"), "name"), textos = xml2::xml_text(xml2::xml_find_all(xml, "//a:t")))
 }
 
+test_that("PPT sin título ni antetítulo: no queda ningún rótulo fantasma", {
+  skip_if_not_installed("officer")
+  r <- .hz_render(p_slide_hallazgos(cifras = .hz_cifras(), rotulos = .hz_rot, base = "Base: 400 casos."))
+  expect_true("prosecnur:grafico:hallazgos" %in% r$nombres)
+  expect_false(any(grepl("Hallazgos clave|Principales hallazgos|Resumen ejecutivo|RESUMEN EJECUTIVO", r$textos)))
+  expect_false("Antetitulo lamina" %in% r$nombres)   # sin antetítulo, ni su cuadro
+  expect_false("titulo:barra" %in% r$nombres)        # la barra de acento no queda sola
+  # Con los suyos escritos, la cabecera sale entera.
+  e <- .hz_render(p_slide_hallazgos(cifras = .hz_cifras(), titulo = "Lo que deja el estudio", etiqueta = "Síntesis", rotulos = .hz_rot))
+  expect_true(all(c("titulo:barra", "Antetitulo lamina", "Titulo lamina") %in% e$nombres))
+  expect_true(all(c("Lo que deja el estudio", "SÍNTESIS") %in% e$textos))
+})
+
 test_that("PPT, modo «cifras»: tarjetas con la cifra, la barra del intervalo, la comparación, la leyenda, la nota y la base", {
   skip_if_not_installed("officer")
   r <- .hz_render(p_slide_hallazgos(cifras = .hz_cifras(), titulo = "Hallazgos clave", rotulos = .hz_rot, base = "Base: 400 casos."))
@@ -251,10 +264,14 @@ test_that("sin motor nativo y en el Word va el respaldo en ggplot con la espec; 
   suppressMessages(.halla_modelo(el, .hz_fuente(), .hz_sig(), plan))
 }
 
-test_that("resumen: el antetítulo es «Resumen ejecutivo» y la selección manual pide capítulos", {
-  s <- p_slide_hallazgos(modo = "resumen", capitulos = .hz_caps())
-  expect_identical(s$meta$antetitulo, "Resumen ejecutivo")
-  expect_identical(s$title, "Principales hallazgos")
+test_that("resumen: sin antetítulo ni título inventados, los escritos se conservan, y la selección manual pide capítulos", {
+  # La app no escribe títulos: ni «Resumen ejecutivo», ni «Principales hallazgos», ni «Hallazgos clave».
+  for (m in c("cifras", "resumen", "titulares")) {
+    s <- if (identical(m, "cifras")) p_slide_hallazgos(cifras = .hz_cifras()) else p_slide_hallazgos(modo = m, capitulos = .hz_caps())
+    expect_null(s$meta$antetitulo); expect_null(s$title)
+  }
+  escrita <- p_slide_hallazgos(modo = "resumen", capitulos = .hz_caps(), titulo = "Lo que deja el estudio", etiqueta = "Síntesis")
+  expect_identical(escrita$title, "Lo que deja el estudio"); expect_identical(escrita$meta$antetitulo, "Síntesis")
   expect_error(p_slide_hallazgos(modo = "resumen"), "escribe al menos un capítulo con un hallazgo completo", fixed = TRUE)
   expect_silent(p_slide_hallazgos(modo = "resumen", seleccion = "auto"))
   modos <- vapply(Filter(function(a) identical(a$name, "modo"), .SLIDES_META$p_slide_hallazgos$args)[[1]]$choices, `[[`, "", "value")
@@ -332,7 +349,8 @@ test_that("PPT, modo «resumen»: tabla por capítulo con cifra, frase, pastilla
                     "resumen_ejecutivo:pastilla:texto", "resumen_ejecutivo:sin_diferencias",
                     "prosecnur:leyenda_diferencias", "Base lamina") %in% r$nombres))
   expect_false(any(c("Nota significancia", "resumen_ejecutivo:encabezado", "resumen_ejecutivo:intervalo") %in% r$nombres))
-  expect_true(all(c("RESUMEN EJECUTIVO", "CAPÍTULO UNO", "dice que sí a q") %in% r$textos))
+  expect_true(all(c("CAPÍTULO UNO", "dice que sí a q") %in% r$textos))
+  expect_false("RESUMEN EJECUTIVO" %in% r$textos)   # el antetítulo ya no se inventa: lo escribe el analista
   expect_false(any(c("CIFRA", "HALLAZGO", "DIFERENCIA PRINCIPAL FRENTE AL RESTO") %in% r$textos))
   expect_false(any(grepl("Intervalo de", r$textos, fixed = TRUE)))
   expect_true(any(grepl("^Economía y Finanzas [0-9]+%$", r$textos)))   # sin `cortos`, el rótulo entero
