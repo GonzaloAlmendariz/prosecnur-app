@@ -4,6 +4,7 @@ import {
 } from "react";
 import { ArrowRight } from "../vendor/lucide-react";
 import "./kit-buttons.css";
+import "./kit-boton-quieto.css";
 
 export type PulsoButtonVariant =
   | "primary"
@@ -56,6 +57,15 @@ type IconPulsoButtonProps = NativeButtonProps & {
    * hover. Sale como `data-intent="remove"`.
    */
   intent?: "remove";
+  /**
+   * Botón de ícono QUIETO (`pulso-button--quiet`, kit-boton-quieto.css): sin
+   * borde ni sombra en reposo, `--pulso-surface-3` al hover, 28 px a la vista
+   * y 32 al puntero, radio `--pulso-control-radius` y un único anillo de foco
+   * (`--mov-foco`). Ícono de 16 px en `md`, 14 en `sm` (filas densas). Es el
+   * botón de ícono de barras, cabeceras y filas; la X de cerrar es
+   * `BotonCerrar`, que lo usa por dentro.
+   */
+  tone?: "quiet";
   "aria-label": string;
 };
 
@@ -73,7 +83,8 @@ export type PulsoButtonProps =
  * - `icon` (K2): caja hairline con superficie en reposo (28 px en `sm`/`md`,
  *   36 en `lg` con la escala actual de `--pulso-control-height-*`), más
  *   contraste al hover; `intent="remove"` enrojece solo al hover. Exige
- *   `aria-label`.
+ *   `aria-label`. `tone="quiet"` lo deja sin caja en reposo (barras,
+ *   cabeceras, filas).
  * - `link` (K3): botón de texto SIN subrayado que gana caja al hover; dos
  *   vecinos se separan con un filete fino. Dentro de prosa (`p`) vuelve al
  *   subrayado al hover.
@@ -94,11 +105,13 @@ export const PulsoButton = forwardRef<HTMLButtonElement, PulsoButtonProps>(
       nav: _nav,
       confirm: _confirm,
       intent: _intent,
+      tone: _tone,
       ...buttonProps
-    } = rest as typeof rest & { nav?: boolean; confirm?: boolean; intent?: "remove" };
+    } = rest as typeof rest & { nav?: boolean; confirm?: boolean; intent?: "remove"; tone?: "quiet" };
     const nav = props.variant !== "icon" && props.variant !== "danger" && props.nav === true;
     const confirm = props.variant === "danger" && props.confirm === true;
     const intent = props.variant === "icon" ? props.intent : undefined;
+    const quiet = props.variant === "icon" && props.tone === "quiet";
 
     return (
       <button
@@ -111,6 +124,7 @@ export const PulsoButton = forwardRef<HTMLButtonElement, PulsoButtonProps>(
           `pulso-button--${variant}`,
           `pulso-button--${size}`,
           confirm ? "pulso-button--danger-confirm" : null,
+          quiet ? "pulso-button--quiet" : null,
           nav ? "pulso-button--nav" : null,
           className,
         ].filter(Boolean).join(" ")}

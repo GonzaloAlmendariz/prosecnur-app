@@ -107,7 +107,7 @@ describe("PulsoButton", () => {
     expect(styles).toContain(".pulso-button--icon");
     expect(styles).toContain("var(--pulso-danger-bg)");
     expect(styles).toContain("var(--pulso-danger-fg)");
-    expect(styles).toContain("transform: scale(0.98);");
+    expect(styles).toContain("transform: scale(var(--mov-press, 0.97));");
     expect(styles).toMatch(
       /@media \(prefers-reduced-motion: reduce\)[\s\S]*?transform: none;/,
     );

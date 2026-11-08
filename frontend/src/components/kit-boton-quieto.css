@@ -1,0 +1,104 @@
+/* Botón de ícono quieto — PulsoButton variant="icon" tone="quiet".
+ *
+ * Acabado de Gráficos › Láminas (contrato A, 8 nov 2026): el botón de ícono de
+ * barras, cabeceras y filas no lleva caja en reposo. La caja aparece al hover
+ * (`--pulso-surface-3`), el foco es UN anillo (`--mov-foco`) y no hereda ni el
+ * halo navy global (`button:where(:focus-visible)`, `.pulso-button:focus-visible`)
+ * ni la sombra/gradiente del hover global de theme.css.
+ *
+ * Geometría: 28 px a la vista (`--pulso-control-height-sm`) y 32 al puntero
+ * (`--pulso-close-hit`) con un ::before transparente que desborda la caja.
+ *
+ * Especificidad: `.pulso-button.pulso-button--icon.pulso-button--quiet` (0,3,0)
+ * gana a `.pulso-button.pulso-button--icon` de kit-buttons.css (0,2,0) sin
+ * depender del orden de las hojas en el bundle. */
+
+.pulso-button.pulso-button--icon.pulso-button--quiet {
+  --pulso-button-height: var(--pulso-control-height-sm);
+  --pulso-quiet-icon: var(--pulso-icon-size-md);
+  position: relative;
+  box-sizing: border-box;
+  width: var(--pulso-button-height);
+  min-width: var(--pulso-button-height);
+  height: var(--pulso-button-height);
+  min-height: var(--pulso-button-height);
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--pulso-control-radius);
+  background: transparent;
+  color: var(--pulso-text-soft);
+  box-shadow: none;
+  line-height: 0;
+  transition:
+    background-color var(--motion-dur-fast) var(--motion-ease-out),
+    color var(--motion-dur-fast) var(--motion-ease-out),
+    transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-button.pulso-button--icon.pulso-button--quiet.pulso-button--sm {
+  --pulso-quiet-icon: var(--pulso-icon-size-sm);
+}
+
+.pulso-button.pulso-button--icon.pulso-button--quiet.pulso-button--lg {
+  --pulso-button-height: var(--pulso-control-height-lg);
+}
+
+/* Área de impacto de 32 px centrada sobre la caja de 28. En lg (36) la caja ya
+ * supera el mínimo y el ::before no crece hacia adentro. */
+.pulso-button.pulso-button--icon.pulso-button--quiet::before {
+  content: "";
+  position: absolute;
+  inset: min(0px, calc((var(--pulso-button-height) - var(--pulso-close-hit)) / 2));
+  border-radius: inherit;
+  background: transparent;
+}
+
+.pulso-button.pulso-button--icon.pulso-button--quiet > svg {
+  width: var(--pulso-quiet-icon);
+  height: var(--pulso-quiet-icon);
+  flex: none;
+}
+
+.pulso-button.pulso-button--icon.pulso-button--quiet:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text);
+  box-shadow: none;
+}
+
+/* El hover global levanta 1 px; el quieto no se mueve, solo cede al apretar. */
+.pulso-button.pulso-button--icon.pulso-button--quiet:hover:not(:disabled):not(:active) {
+  transform: none;
+}
+
+.pulso-button.pulso-button--icon.pulso-button--quiet[data-intent="remove"]:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-button.pulso-button--icon.pulso-button--quiet:focus-visible {
+  outline: var(--mov-foco);
+  outline-offset: 1px;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.pulso-button.pulso-button--icon.pulso-button--quiet:disabled {
+  opacity: 1;
+  border-color: var(--pulso-border);
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-faint);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-button.pulso-button--icon.pulso-button--quiet {
+    transition: none;
+  }
+
+  .pulso-button.pulso-button--icon.pulso-button--quiet:active:not(:disabled) {
+    transform: none;
+  }
+}
