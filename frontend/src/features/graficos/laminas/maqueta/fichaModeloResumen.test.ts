@@ -1,6 +1,6 @@
 // ADR 0134: lo que la ficha de la maqueta dice de los gráficos del resumen ejecutivo.
 import { describe, expect, it } from "vitest";
-import { ajustesDelGlifo } from "./fichaModelo";
+import { ajustesDelGlifo, fichaDeRanura } from "./fichaModelo";
 
 const ajustes = (g: string, args: Record<string, unknown>) => ajustesDelGlifo(g, args, false).ajustes;
 
@@ -23,5 +23,14 @@ describe("ficha · resumen ejecutivo (ADR 0134)", () => {
     expect(ajustes("p_panorama", {})).toEqual([]);
     expect(ajustes("p_panorama", { referencia: 60 })).toEqual([]);
     expect(ajustes("p_panorama", { referencia: 70 })).toEqual(["Referencia 70 %"]);
+  });
+});
+
+describe("la ficha de la cobertura", () => {
+  it("muestra los públicos como públicos, sin «y N preguntas más»", () => {
+    const r = { graficador: "p_cobertura", preguntas: [{ titulo: "Docentes", opciones: [] }, { titulo: "Estudiantes", opciones: [] }, { titulo: "Administrativos", opciones: [] }], bases: [], pinta: "uno", resaltaMayor: false, mismaEscala: true, masPreguntas: 2, twoBox: { ttb: false, btb: false }, args: { bases: ["docentes", "estudiantes", "administrativos"] } } as unknown as Parameters<typeof fichaDeRanura>[0];
+    const f = fichaDeRanura(r, "Cobertura y participación");
+    expect(f.preguntas).toEqual([]);
+    expect(f.publicos).toEqual(["Docentes", "Estudiantes", "Administrativos"]);
   });
 });

@@ -283,6 +283,15 @@ function preguntasVisibles(r: RanuraMaqueta, titulos: string[]): string[] {
  * de su pregunta (`GET /api/graficos/categorias`); con ellos la leyenda lista sólo lo que el motor dibuja (CCSS-UI-3).
  */
 export function fichaDeRanura(r: RanuraMaqueta, nombreTipo: string | null, conteos?: readonly ConteoCategoria[] | null): FichaInfo {
+  const ficha = fichaBase(r, nombreTipo, conteos);
+  // La cobertura lee públicos (`bases`), no preguntas: la ficha los muestra como públicos y no dice «y N preguntas más».
+  if (r.graficador === "p_cobertura" && ficha.preguntas.length) {
+    return { ...ficha, publicos: [...ficha.preguntas, ...ficha.publicos.filter((p) => !ficha.preguntas.includes(p))], preguntas: [] };
+  }
+  return ficha;
+}
+
+function fichaBase(r: RanuraMaqueta, nombreTipo: string | null, conteos?: readonly ConteoCategoria[] | null): FichaInfo {
   const base = { graficador: r.graficador, lectura: null, preguntas: [], publicos: [], leyendas: [], ajustes: [], avisos: [], forma: null, glifo: {} } as const;
   if (!r.graficador) return { ...base, tipo: "Elegir gráfico", vacia: true, faltaPregunta: false, preguntas: [], publicos: [], leyendas: [], ajustes: [], avisos: [] };
   const tipoNombre = nombreTipo ?? "Gráfico";
