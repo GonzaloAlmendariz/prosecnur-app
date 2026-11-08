@@ -316,3 +316,12 @@ test_that("H3: una raíz ambigua al final de una escala positiva es Sin informac
 test_that("H4: una forma que ya es no respuesta no salva a una raíz ambigua", {
   expect_identical(.divergentes_especiales(c(.dns_lik5, "Rechaza responder", "Rechazo"), as.character(1:7)), c(rep(FALSE, 5), TRUE, TRUE))
 })
+
+test_that("«Acepto» es hermana de «Rechazo»: la escala de tres puntos queda entera", {
+  skip_if_not_installed("ggplot2")
+  x <- c("Rechazo", "Indiferente", "Acepto")
+  expect_false(any(.divergentes_especiales(x, as.character(1:3))))
+  expect_identical(.dns_lados(as.character(1:3), x, c(5, 5, 10))$lado, c("neg", "neu", "pos"))
+  # Suelta al final de una likert sigue siendo Sin información.
+  expect_identical(.divergentes_especiales(c(.dns_lik5, "Rechazo"), as.character(1:6)), c(rep(FALSE, 5), TRUE))
+})

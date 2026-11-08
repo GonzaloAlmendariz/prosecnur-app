@@ -47,7 +47,7 @@
 # respuesta como opción suelta, pero el extremo de una escala si otra opción de la misma lista contiene la raíz
 # («Rechazo totalmente … Acepto totalmente», «No conoce / Conoce poco», «No uso / Uso poco»). Patrón -> raíz hermana.
 .NO_SUSTANTIVOS_RAICES_ESCALA <- list(
-  list(patron = "^rechaz[oa]?$", raiz = "rechaz"),
+  list(patron = "^rechaz[oa]?$", raiz = "(rechaz|acept)"),   # «Rechazo / Indiferente / Acepto»
   list(patron = "^(no (conoce|conozco)$|desconoc)", raiz = "conoc"),
   list(patron = "^no (uso|utilizo|utilic|utiliz)", raiz = "\\b(us[oa]|usad|utiliz|utilic)"),
   # «No he X» es el cero de una escala de frecuencia («Una vez», «Algunas veces», «Nunca»…) o de una del mismo verbo.
