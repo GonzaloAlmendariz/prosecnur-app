@@ -1,6 +1,9 @@
 // @vitest-environment happy-dom
 // Ítem 8 (2026-11-08): las paletas con nombre como muestras pintadas sobre las respuestas de ESTA pregunta. Pasar el
 // cursor pinta la barra de arriba sin escribir en el plan; el clic elige en un solo paso (setPaletasYVinculos).
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -15,6 +18,8 @@ const fila = (id: string, nombre: string, clave: string | null, colores: Record<
 });
 const PROPIA = fila("f1", "Sí / No", null, { "Sí": "#111111", "No": "#222222" }, grupo("g1", ["Sí", "No"], ["b1$p1", "b1$p2", "b1$p3"]));
 const MARCA = fila("f2", "Marca", "marca", { "SI": "#aa0000", "No": "#00aa00" }, grupo("g2", ["Si", "No"], ["b1$p9"]));
+// No nombra «Sí» ni «No»: va detrás de Marca aunque llegue antes (R6-3).
+const ACUERDO = fila("f3", "Acuerdo con un nombre largo que no cabe en la tarjeta", "acuerdo", { "Muy de acuerdo": "#0000aa" }, grupo("g3", ["Muy de acuerdo"], ["b1$p8"]));
 
 const escrituras: unknown[] = [];
 const ESTADO = {
@@ -26,7 +31,7 @@ vi.mock("../../store", () => ({ usePlanStore: (sel: (s: typeof ESTADO) => unknow
 vi.mock("react-router-dom", () => ({ useLocation: () => ({ search: "", pathname: "/graficos" }), useNavigate: () => () => undefined }));
 vi.mock("../../../../lib/SessionContext", () => ({ useSession: () => ({ state: { active_base: "b1" } }) }));
 vi.mock("../../reportScope", () => ({ useGraficosReportScope: () => "active" }));
-vi.mock("../../estilo/usePaletasRespuestas", () => ({ usePaletasRespuestas: () => ({ listas: [], filas: [PROPIA, MARCA] }) }));
+vi.mock("../../estilo/usePaletasRespuestas", () => ({ usePaletasRespuestas: () => ({ listas: [], filas: [PROPIA, ACUERDO, MARCA] }) }));
 
 let host: HTMLDivElement;
 let root: Root;
@@ -65,5 +70,43 @@ describe("PaletaDelGrafico con muestras", () => {
   it("el clic elige en un solo paso deshacible", () => {
     act(() => muestra().click());
     expect(escrituras.map((e) => (e as unknown[])[0])).toEqual(["setPaletasYVinculos"]);
+  });
+  it("R6-3: la paleta que no nombra estas respuestas va al final, marcada, y no promete un cambio", () => {
+    const radios = [...host.querySelectorAll<HTMLButtonElement>('[role="radio"]')];
+    expect(radios.map((r) => r.querySelector(".pulso-pg-muestra-nombre")?.textContent)).toEqual(["Marca", "Acuerdo con un nombre largo que no cabe en la tarjeta"]);
+    expect(radios[1].classList.contains("is-ajena")).toBe(true);
+    expect(radios[1].getAttribute("aria-label")).toContain("No nombra estas respuestas");
+    expect(radios[1].textContent).not.toContain("Cambia");
+    expect(radios[0].classList.contains("is-ajena")).toBe(false);
+  });
+});
+
+// R6-1: el alto de la cabecera no puede cambiar con la vista previa (pasaba de 18 a 41 px y oscilaba bajo el cursor).
+// happy-dom no mide, así que se prueba lo que fija el alto: la misma estructura en las dos fases (nada se agrega ni se
+// quita) y la regla de una línea —sin partir, nombre recortado, sello que no encoge—.
+const css = fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "paletaDelGrafico.css"), "utf8");
+
+describe("R6-1: la cabecera de la paleta no cambia de alto con la vista previa", () => {
+  const forma = () => {
+    const cab = host.querySelector<HTMLElement>(".pulso-pg-cabecera")!;
+    return [...cab.children].map((c) => `${c.tagName}.${[...c.classList].filter((k) => k !== "is-vista").join(".")}`);
+  };
+  const regla = (sel: string) => css.match(new RegExp(`(?:^|\\n)${sel.replace(/\./g, "\\.")} \\{([^}]*)\\}`))?.[1] ?? "";
+  it("la misma estructura con y sin vista previa, y el nombre entero en el title", () => {
+    const sin = forma();
+    act(() => { muestra().dispatchEvent(new MouseEvent("mouseover", { bubbles: true })); });
+    expect(forma()).toEqual(sin);
+    expect(host.querySelector(".pulso-pg-nombre")?.getAttribute("title")).toBe("Vista previa: Marca");
+  });
+  it("una sola línea: la cabecera no parte, el nombre se recorta y el sello no encoge", () => {
+    expect(regla(".pulso-pg-cabecera")).toMatch(/flex-wrap:\s*nowrap/);
+    const nombre = regla(".pulso-pg-nombre");
+    expect(nombre).toMatch(/white-space:\s*nowrap/);
+    expect(nombre).toMatch(/text-overflow:\s*ellipsis/);
+    expect(nombre).toMatch(/min-width:\s*0/);
+    expect(regla(".pulso-pg-cabecera .pulso-cr-sello")).toMatch(/flex-shrink:\s*0/);
+  });
+  it("R6-2: el nombre de la muestra parte en líneas en vez de montarse sobre el alcance", () => {
+    expect(css).toMatch(/\.pulso-pg-muestra-nombre \{[^}]*white-space:\s*normal/);
   });
 });

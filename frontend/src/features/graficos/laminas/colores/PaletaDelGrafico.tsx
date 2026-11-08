@@ -96,7 +96,9 @@ export function PaletaDelGrafico({ valor }: Props) {
         return (
           <div key={fila.id} className="pulso-pg-cuerpo">
             <div className="pulso-pg-cabecera">
-              <span className={`pulso-pg-nombre${destino ? " is-vista" : ""}`} aria-live="polite">
+              {/* R6-1: una línea con el nombre recortado (completo en el title); el sello no se mueve ni baja. */}
+              <span className={`pulso-pg-nombre${destino ? " is-vista" : ""}`} aria-live="polite"
+                title={destino ? `Vista previa: ${destino.nombre}` : fila.nombre}>
                 {destino ? `Vista previa: ${destino.nombre}` : fila.nombre}
               </span>
               {fila.clave ? <span className="pulso-cr-sello">Paleta con nombre</span> : null}

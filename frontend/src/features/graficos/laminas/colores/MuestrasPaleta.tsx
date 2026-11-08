@@ -8,7 +8,7 @@
 
 import { useRef, type KeyboardEvent } from "react";
 import type { FilaPaleta } from "../../estilo/modeloPaletasConNombre";
-import { alcanceDeLaPaleta, coloresConPaleta } from "./vistaPaleta";
+import { ALCANCE_AJENA, alcanceDeLaPaleta, coloresConPaleta, muestrasEnOrden } from "./vistaPaleta";
 
 type Props = {
   /** Las respuestas de esta pregunta y los colores que tienen hoy. */
@@ -25,8 +25,9 @@ type Props = {
 
 export function MuestrasPaleta({ opciones, propios, paletas, enUso, preguntas, onVista, onElegir }: Props) {
   const grupo = useRef<HTMLDivElement>(null);
-  const conClave = paletas.filter((p): p is FilaPaleta & { clave: string } => !!p.clave);
-  const foco = Math.max(0, conClave.findIndex((p) => p.clave === enUso));
+  // R6-3: las que nombran estas respuestas primero; las que no, al final y marcadas.
+  const conClave = muestrasEnOrden(opciones, paletas.filter((p): p is FilaPaleta & { clave: string } => !!p.clave));
+  const foco = Math.max(0, conClave.findIndex((m) => m.paleta.clave === enUso));
 
   const onTecla = (e: KeyboardEvent<HTMLDivElement>) => {
     const radios = [...(grupo.current?.querySelectorAll<HTMLButtonElement>("[role=radio]") ?? [])];
@@ -43,13 +44,14 @@ export function MuestrasPaleta({ opciones, propios, paletas, enUso, preguntas, o
       onMouseLeave={() => onVista(null)}
       onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) onVista(null); }}
       data-qa-geometry-group="graficos/f6-paleta-muestras" data-qa-geometry-contract="intrinsic">
-      {conClave.map((p, i) => {
+      {conClave.map(({ paleta: p, ajena }, i) => {
         const elegida = p.clave === enUso;
         const colores = coloresConPaleta(opciones, propios, p);
-        const alcance = alcanceDeLaPaleta(elegida, preguntas);
+        const alcance = ajena && !elegida ? ALCANCE_AJENA : alcanceDeLaPaleta(elegida, preguntas);
         return (
           <button key={p.id} type="button" role="radio" aria-checked={elegida} tabIndex={i === foco ? 0 : -1}
-            className={`pulso-pg-muestra${elegida ? " is-elegida" : ""}`} aria-label={`${p.nombre}. ${alcance}`}
+            className={`pulso-pg-muestra${elegida ? " is-elegida" : ""}${ajena ? " is-ajena" : ""}`}
+            aria-label={`${p.nombre}. ${ajena && !elegida ? "No nombra estas respuestas" : alcance}`}
             data-qa-geometry-member="paleta"
             onMouseEnter={() => onVista(p.clave)} onFocus={() => onVista(p.clave)}
             onClick={() => { if (!elegida) onElegir(p.clave); }}>

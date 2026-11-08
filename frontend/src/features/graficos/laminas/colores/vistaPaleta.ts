@@ -25,3 +25,21 @@ export function alcanceDeLaPaleta(enUso: boolean, preguntas: number): string {
   if (enUso) return "En uso";
   return preguntas === 1 ? "Cambia 1 pregunta" : `Cambia ${preguntas} preguntas`;
 }
+
+/** Cuántas de estas respuestas nombra la paleta (sin distinguir caja, tildes ni espacios, como el motor). */
+export function respuestasEnComun(opciones: readonly string[], destino: Pick<FilaPaleta, "colores">): number {
+  const nombradas = new Set(Object.keys(destino.colores).map(normalizarEtiquetaPaleta));
+  return opciones.filter((o) => nombradas.has(normalizarEtiquetaPaleta(o))).length;
+}
+
+/**
+ * R6-3: las paletas en el orden de las muestras. Las que nombran alguna de estas respuestas primero (en su orden); las que
+ * no nombran ninguna, al final: elegirlas no cambiaría ningún color de esta pregunta y su muestra sería igual a la barra.
+ */
+export function muestrasEnOrden<T extends Pick<FilaPaleta, "colores">>(opciones: readonly string[], paletas: readonly T[]): { paleta: T; ajena: boolean }[] {
+  const con = paletas.map((paleta) => ({ paleta, ajena: respuestasEnComun(opciones, paleta) === 0 }));
+  return [...con.filter((x) => !x.ajena), ...con.filter((x) => x.ajena)];
+}
+
+/** Lo que dice la muestra de una paleta que no nombra estas respuestas, en lugar de cuántas preguntas cambian. */
+export const ALCANCE_AJENA = "Para otras respuestas";
