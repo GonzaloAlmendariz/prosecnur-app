@@ -338,6 +338,7 @@ graficar_barras_divergentes <- function(
       FUN = sum
     )
     names(saldo) <- c(".item", ".saldo")
+    saldo$.saldo <- .divergentes_saldo_rotulado(saldo$.item, saldo$.saldo, espec_div)   # ADR 0135: sobre lo rotulado
     saldo$.lab <- paste0(
       ifelse(saldo$.saldo > 0, "+", ""),
       .pulso_fmt_half_up(saldo$.saldo, 0), " pp"
