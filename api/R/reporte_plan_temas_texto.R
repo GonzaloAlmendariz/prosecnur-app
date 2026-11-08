@@ -190,6 +190,7 @@
 #' (y entonces la base sale como siempre)
 #' @keywords internal
 .plan_tt_caption <- function(el, formato, resolve_ref, filter_data) {
+  if (.plan_base_escrita_por_grupo(el)) return("")   # la lámina ya escribe la base de cada grupo (reporte_plan_base_comodin.R)
   comodin <- .plan_base_comodin_caption(el, formato)   # `base$*` de las láminas de resumen (reporte_plan_base_comodin.R)
   if (!is.null(comodin)) return(comodin)
   if (!inherits(el, "ppt_element") || !identical(el$.element_type %||% "", "barras_agrupadas")) return(NULL)

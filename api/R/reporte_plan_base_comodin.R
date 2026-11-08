@@ -37,3 +37,16 @@
   if (!is.function(base_de) || !length(refs)) return(NULL)
   tryCatch(base_de(refs = refs, filtros = el$filtros %||% list(), formato = formato %||% "Base: %s"), error = function(e) NULL)
 }
+
+#' ¿La lámina de resumen escribe ya la base de cada grupo? (contraste del resumen, fortalezas y alertas, cobertura)
+#'
+#' Arte (2026-11-07): el contraste salía con «Base: Docentes 115; Estudiantes 176 a 279» (suya) y además «Base: 115
+#' docentes y 279 estudiantes» (la automática de `base$*`). Una lámina que escribe la base por grupo no recibe la
+#' genérica, ni nativa ni por el respaldo. El Word sí la recibe: su figura va sin pie y la base es su párrafo.
+#' @keywords internal
+.plan_base_escrita_por_grupo <- function(el) {
+  if (!inherits(el, "ppt_element") || .base_es_para_word()) return(FALSE)
+  et <- as.character(el$.element_type %||% "")[1]
+  if (et %in% c("fortalezas", "cobertura")) return(TRUE)
+  identical(et, "dumbbell") && identical((el$overrides %||% list())$estilo, "resumen")
+}
