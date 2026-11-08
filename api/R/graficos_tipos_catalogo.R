@@ -8,7 +8,8 @@
 # test-graficos-tipos-catalogo.R falla si el archivo versionado se desvía del metadata.
 
 #' Catálogo de tipos: láminas y graficadores en el orden del registro
-#' @return `list(fuente, slides, graficadores)`; `estandar` es el id del tipo del recetario o `NA` (sin ranuras).
+#' @return `list(fuente, slides, graficadores)`; `estandar` es el id del tipo del recetario o `NA` (sin ranuras); `usa`,
+#'   qué datos usa cada graficador (`{pregunta, publicos, padron, cruce}`, graficos_tipos_usa.R).
 #' @keywords internal
 .graficos_tipos_catalogo <- function() {
   slides <- lapply(names(.SLIDES_META), function(nm) {
@@ -18,7 +19,8 @@
   })
   graficadores <- lapply(names(.GRAFICADORES_META), function(nm) {
     m <- .GRAFICADORES_META[[nm]]
-    list(name = nm, familia_editor = m$familia_editor, salida = m$salida, en_selector = m$en_selector)
+    list(name = nm, familia_editor = m$familia_editor, salida = m$salida, en_selector = m$en_selector,
+         usa = .graficos_tipos_usa(nm, m))   # qué datos usa (graficos_tipos_usa.R)
   })
   list(
     fuente = "Generado desde api/R/graficos_metadata.R por api/scripts/generar_graficos_tipos.R; no editar a mano.",

@@ -655,6 +655,7 @@ errores_registrados <- function() {
     "E_LINEA_VISUAL_NO_GUARDADA",                             "graficos_lineas_visuales.R",        "500",
     "E_LINEA_VISUAL_TOPE",                                    "graficos_lineas_visuales.R",        "409",
     "E_GRAFICOS_CONSOLIDADO_SCOPE",                          "graficos_consolidado.R",            "500",
+    "E_GRAFICOS_INVENTARIO_SCOPE",                           "graficos_inventario.R",             "400",
     "E_GRAFICOS_PLAN_EQUIVALENCIAS_RETIRADO",                "graficos_plan_consolidado.R",       "410",
     "E_GRAFICOS_PLAN_SCOPE",                                 "graficos_plan_consolidado.R",       "400",
     "E_GRAFICOS_SHARE_BAD_BASE64",                           "graficos_share.R",                  "400",
