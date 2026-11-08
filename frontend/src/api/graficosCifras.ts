@@ -139,7 +139,8 @@ export async function apiGraficosCifrasLote(
 // ---- Detalle de cifras (el antes y el después del inspector) ------------------------------------------------------
 //
 // Contrato: `api/R/router_graficos_regla.R` y `api/R/graficos_cifras_detalle.R`. Con `detalle: true` la misma ruta
-// acepta también los categóricos, apilados y divergentes (p_barras_categoricas, p_barras_agrupadas de una serie,
+// acepta también los categóricos, apilados y divergentes (p_barras_categoricas; p_barras_agrupadas: con una serie,
+// cifras por categoría; con cruce (agrupadas_cruce/1), una fila por grupo con su n y sin cifras por categoría;
 // p_barras_apiladas, p_barras_multiapiladas, p_barras_divergentes) y cada respuesta trae `detalle`, leído de la
 // especificación que dibuja la lámina: sus pesos, filtros, universo y exclusiones. Nunca se aproxima con
 // `/api/graficos/categorias`.
