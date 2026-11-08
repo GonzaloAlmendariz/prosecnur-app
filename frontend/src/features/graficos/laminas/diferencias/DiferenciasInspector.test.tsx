@@ -42,7 +42,7 @@ function pintar(estado: EstadoInspector, extra: Partial<Parameters<typeof Difere
 }
 
 describe("los seis estados del inspector de diferencias", () => {
-  it("con marcas: resumen en vivo, bases, trama del grupo chico y «Ver por qué»", () => {
+  it("con marcas: resumen en vivo, bases, grupo chico como referencia y «Ver por qué»", () => {
     const html = pintar("con_marcas", { lamina: LAMINA, regla: { ...REGLA_DIFERENCIAS_POR_DEFECTO } });
     expect(html).toContain('data-estado="con_marcas"');
     expect(html).toContain('data-audit-ready="graficos-diferencias"');
@@ -51,6 +51,8 @@ describe("los seis estados del inspector de diferencias", () => {
     expect(html).toContain("1 bajo el umbral");
     expect(html).toContain("Compara los 3 grupos de Zona entre sí (bases 120, 95 y 8).");
     expect(html).toContain("Isla: n = 8, no se compara");
+    expect(html).toContain("Los grupos con menos de 30 casos se muestran como referencia y no se comparan.");
+    expect(html).not.toContain("Con trama");
     expect(html).toContain("Ver por qué");
     expect(html).toContain("Regla del informe: Prueba z, Bonferroni");
   });

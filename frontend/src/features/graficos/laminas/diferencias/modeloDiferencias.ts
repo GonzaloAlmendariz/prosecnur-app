@@ -142,6 +142,14 @@ export function gruposNoComparables(grupos: readonly GrupoDiferencias[]): string
   return grupos.filter((g) => !g.comparable).map((g) => `${g.etiqueta}: ${g.motivo ?? (g.n !== null ? `n = ${formatoConteo(g.n)}, no se compara` : "no se compara")}`);
 }
 
+/**
+ * La nota de los grupos chicos, con lo que se ve en la lámina (espejo de `.sig_texto_bases_chicas` del motor). El umbral
+ * es la base mínima de la regla del estudio. Antes decía «Con trama: …», una trama que ningún motor dibuja.
+ */
+export function notaBasesChicas(baseMinima: number): string {
+  return `Los grupos con menos de ${formatoConteo(baseMinima)} casos se muestran como referencia y no se comparan.`;
+}
+
 /** La redacción de las marcadas de una lámina, en el orden de sus filas. */
 export function redaccionLamina(pares: readonly ParDiferencias[]): string {
   return pares.filter(esMarcado).map((p) => p.redaccion.trim()).filter(Boolean).join(" ");

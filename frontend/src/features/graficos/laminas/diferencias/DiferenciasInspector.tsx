@@ -7,7 +7,7 @@
 
 import { useId } from "react";
 import { AlertTriangle, Copy, Plus, RotateCcw } from "../../../../vendor/lucide-react";
-import type { LaminaDiferencias, ReglaDiferencias } from "../../../../api/graficosDiferencias";
+import { REGLA_DIFERENCIAS_POR_DEFECTO, type LaminaDiferencias, type ReglaDiferencias } from "../../../../api/graficosDiferencias";
 import { Switch } from "../../../../components/Switch";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { Skeleton } from "../../../../components/Skeleton";
@@ -23,6 +23,7 @@ import {
   descripcionComparacion,
   estadoInspector,
   gruposNoComparables,
+  notaBasesChicas,
   parInicial,
   redaccionLamina,
   resumenRegla,
@@ -125,7 +126,7 @@ export function DiferenciasInspectorVista(props: VistaProps) {
   );
 }
 
-function CuerpoPorEstado({ estado, lamina, errorCarga, etiquetaCruce, onAgregarCruce, onQuitarCruce, onReintentar, onAbrirRegla, onVerPorQue }: VistaProps) {
+function CuerpoPorEstado({ estado, lamina, regla, errorCarga, etiquetaCruce, onAgregarCruce, onQuitarCruce, onReintentar, onAbrirRegla, onVerPorQue }: VistaProps) {
   switch (estado) {
     case "apagado":
       return <p className="pulso-sig-texto">Este gráfico no marca diferencias. Enciéndelo para compararlas entre los grupos del cruce.</p>;
@@ -176,12 +177,12 @@ function CuerpoPorEstado({ estado, lamina, errorCarga, etiquetaCruce, onAgregarC
       );
     case "ninguna":
     case "con_marcas":
-      return lamina ? <Resumen lamina={lamina} estado={estado} etiquetaCruce={etiquetaCruce} onQuitarCruce={onQuitarCruce} onVerPorQue={onVerPorQue} /> : null;
+      return lamina ? <Resumen lamina={lamina} regla={regla} estado={estado} etiquetaCruce={etiquetaCruce} onQuitarCruce={onQuitarCruce} onVerPorQue={onVerPorQue} /> : null;
   }
 }
 
-function Resumen({ lamina, estado, etiquetaCruce, onQuitarCruce, onVerPorQue }: {
-  lamina: LaminaDiferencias; estado: "ninguna" | "con_marcas"; etiquetaCruce: string | null; onQuitarCruce: () => void; onVerPorQue: () => void;
+function Resumen({ lamina, regla, estado, etiquetaCruce, onQuitarCruce, onVerPorQue }: {
+  lamina: LaminaDiferencias; regla: ReglaDiferencias | null; estado: "ninguna" | "con_marcas"; etiquetaCruce: string | null; onQuitarCruce: () => void; onVerPorQue: () => void;
 }) {
   const c = conteosLamina(lamina);
   const chicos = gruposNoComparables(lamina.grupos);
@@ -199,7 +200,11 @@ function Resumen({ lamina, estado, etiquetaCruce, onQuitarCruce, onVerPorQue }: 
         <li className="pulso-sig-chip">{c.bajoUmbral} bajo el umbral</li>
       </ul>
       <p className="pulso-sig-texto">{estado === "ninguna" ? (lamina.nota || "Ninguna diferencia entre grupos es significativa. La nota lo dice en la lámina.") : descripcionComparacion(lamina, etiquetaCruce)}</p>
-      {chicos.length > 0 && <p className="pulso-sig-texto is-trama">Con trama: {chicos.join("; ")}.</p>}
+      {chicos.length > 0 && (
+        <p className="pulso-sig-texto is-referencia">
+          {notaBasesChicas((regla ?? REGLA_DIFERENCIAS_POR_DEFECTO).base_minima)} {chicos.join("; ")}.
+        </p>
+      )}
       {estado === "con_marcas" ? (
         <div className="pulso-sig-acciones">
           <PulsoButton variant="secondary" size="sm" data-pulso-abre-panel={PANEL_DIFERENCIAS_LAMINA.id} data-sig-ancla="" onClick={onVerPorQue}>

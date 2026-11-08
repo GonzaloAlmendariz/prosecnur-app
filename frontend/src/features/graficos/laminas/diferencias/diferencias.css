@@ -42,7 +42,7 @@
   overflow-wrap: anywhere;
 }
 
-.pulso-sig-texto.is-trama {
+.pulso-sig-texto.is-referencia {
   padding-left: var(--pulso-space-2);
   border-left: 3px solid var(--pulso-sig-trama);
 }

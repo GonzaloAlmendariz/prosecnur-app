@@ -16,6 +16,7 @@ import {
   opcionesAlfa,
   opcionesUmbral,
   parInicial,
+  notaBasesChicas,
   partirNota,
   queRevisar,
   resumenRegla,
@@ -88,11 +89,15 @@ describe("una lámina", () => {
 });
 
 describe("la nota", () => {
+  it("los grupos chicos se nombran por lo que se ve, con la base mínima de la regla", () => {
+    expect(notaBasesChicas(30)).toBe("Los grupos con menos de 30 casos se muestran como referencia y no se comparan.");
+    expect(notaBasesChicas(50)).toContain("menos de 50 casos");
+  });
   it("parte la cápsula del texto, con y sin corchetes; la frágil es △", () => {
-    expect(partirNota("▲A  Mayor que el grupo de esa letra.\n[△A]  Frágil: igual.\nCon trama: B.")).toEqual([
+    expect(partirNota("▲A  Mayor que el grupo de esa letra.\n[△A]  Frágil: igual.\nLos grupos con menos de 30 casos se muestran como referencia y no se comparan.")).toEqual([
       { capsula: { letras: "A", fragil: false }, texto: "Mayor que el grupo de esa letra." },
       { capsula: { letras: "A", fragil: true }, texto: "Frágil: igual." },
-      { capsula: null, texto: "Con trama: B." },
+      { capsula: null, texto: "Los grupos con menos de 30 casos se muestran como referencia y no se comparan." },
     ]);
   });
 });
