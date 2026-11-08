@@ -142,6 +142,17 @@ Decisiones de Gonzalo del 2026-11-07:
   preguntas de su base (batería) o que el estudio declara ordinal; una demográfica de cuatro o más opciones (edad, grado)
   no lo es. Medido en Arte: sin este criterio entraban 3, 2 y 1 preguntas demográficas por público.
 
+### Rótulos y tope de la escala (prueba con Arte, 2026-11-07)
+
+- Las láminas de resumen usan el rótulo corto del estudio si existe; si no, el rótulo completo en hasta tres líneas,
+  con la letra bajando hasta 10,5 pt y recorte con «…» que conserva el sufijo del público. Una oración larga ya no manda
+  la lámina a imagen. Medido en Arte: con los rótulos completos de 100 a 200 caracteres, el respaldo ggplot dejaba el
+  panel en cero (un rectángulo de color sin marcas).
+- La escala del resumen admite hasta 20 filas en la lámina nativa (el resumen de Arte tiene 18); **enmienda el tope de
+  14 del ADR 0134 §5 para esta lámina**. En estilo resumen la columna del no sustantivo se rotula siempre «Sin
+  información».
+- Con la regla «mayor diferencia», el contraste ordena por la diferencia absoluta, la brecha más grande arriba.
+
 ## Consecuencias
 
 - `p_panorama`, `p_dumbbell` (estilo `resumen`) y `p_barras_divergentes` (estilo `resumen`) ganan `regla`.
