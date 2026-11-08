@@ -329,11 +329,7 @@
     fines[k] <- .lam_panel_mixto(lz, especs[[k]], p$x, p$y, p$w, p$h, preguntas[[k]] %||% NULL,
                                  (publicos %||% list())[k][[1]] %||% NULL, leyenda = !compartida[k], receta = p$receta, estilo = estilo)
   }
-  if (any(compartida)) {
-    e1 <- especs[[which(compartida)[1]]]; ley <- e1$leyenda
-    .lam_leyenda(lz, .std_geom("contenido_y1") - 0.05, e1$categorias$rotulo[ley], e1$categorias$color[ley],
-                 centrar_en = .std_geom("ancho") / 2)
-  }
+  if (any(compartida)) .lam_mixta_leyenda_compartida(lz, especs, P, compartida, respaldo, fines)   # G7 (ola 2)
   for (f in geo$filetes) {
     if (identical(f$tipo, "v")) .lam_separador_v(lz, f$x, f$y0, f$y1) else .lam_separador_h(lz, f$x0, f$x1, f$y)
   }
