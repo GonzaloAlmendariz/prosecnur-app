@@ -1,9 +1,11 @@
 /* Segmentado de Gráficos (RadioSegmentado.tsx, acabado de Láminas W2-B). Riel surface-2 con su filete, pulgar BLANCO
    con filete que se desliza (el indicador de GlidingTabList), 28 px de alto y el radio único de control. Sin sombras:
-   un control no flota (contrato D4). El acento sólo marca el foco; la opción elegida va en el texto fuerte. */
+   un control no flota (contrato D4). El acento sólo marca el foco; la opción elegida va en el texto fuerte.
+   R9-4 (contraste): el riel va en surface-3 y el pulgar lleva el filete text-faint (4,6:1 sobre el riel): el blanco sobre
+   surface-2 daba 1,03:1 y el filete border-strong 1,43:1, por debajo del 3:1 no textual. */
 .pulso-f6-segmento.pulso-gliding-tab-list {
   --pulso-gliding-indicator-bg: var(--pulso-surface);
-  --pulso-gliding-indicator-border: var(--pulso-border-strong);
+  --pulso-gliding-indicator-border: var(--pulso-text-faint);
   --pulso-gliding-indicator-shadow: none;
   --pulso-f6-segmento-holgura: 2px;
   box-sizing: border-box;
@@ -17,7 +19,7 @@
   height: var(--pulso-control-height-sm);
   padding: var(--pulso-f6-segmento-holgura);
   border-radius: var(--pulso-control-radius);
-  background: var(--pulso-surface-2);
+  background: var(--pulso-surface-3);
   box-shadow: inset 0 0 0 1px var(--pulso-border);
 }
 

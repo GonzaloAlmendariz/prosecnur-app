@@ -1,5 +1,5 @@
 // Mata: volver al Segmentado propio de 22 px (un tab stop por opción, sin pulgar) o perder aria-checked en los segmentados
-// de Gráficos. Acabado de Láminas W2-B: el segmentado es el GlidingRadioGroup del kit con pulgar blanco sobre surface-2.
+// de Gráficos. Acabado de Láminas W2-B: el segmentado es el GlidingRadioGroup del kit con pulgar blanco sobre surface-3 (R9-4).
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -26,12 +26,13 @@ describe("RadioSegmentado", () => {
     expect(html).toMatch(/disabled=""[^>]*data-gliding-key="c"/);
   });
 
-  it("pulgar blanco sobre riel surface-2, 28 px, radio de control y sin sombra", () => {
+  it("pulgar blanco sobre riel surface-3 con filete de 3:1, 28 px, radio de control y sin sombra (R9-4)", () => {
     const css = fs.readFileSync(path.join(dir, "radioSegmentado.css"), "utf8");
     const raiz = css.slice(css.indexOf(".pulso-f6-segmento.pulso-gliding-tab-list {"), css.indexOf("}", css.indexOf(".pulso-f6-segmento.pulso-gliding-tab-list {")));
     expect(raiz).toContain("--pulso-gliding-indicator-bg: var(--pulso-surface)");
     expect(raiz).toContain("--pulso-gliding-indicator-shadow: none");
-    expect(raiz).toContain("background: var(--pulso-surface-2)");
+    expect(raiz).toContain("background: var(--pulso-surface-3)");
+    expect(raiz).toContain("--pulso-gliding-indicator-border: var(--pulso-text-faint)");
     expect(raiz).toContain("height: var(--pulso-control-height-sm)");
     expect(raiz).toContain("border-radius: var(--pulso-control-radius)");
   });
