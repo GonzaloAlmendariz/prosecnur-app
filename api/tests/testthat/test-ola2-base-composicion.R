@@ -31,7 +31,7 @@ test_that("G8/Q2: en la lámina de dos gráficos la exclusión también llega al
     derecha = p_barras_agrupadas(var = "doc$sx"))))
   cajas <- .ola2_cajas(pth, 1L)
   pie <- cajas$texto[startsWith(cajas$texto, "Base:")]
-  expect_identical(pie, "Base: 77. Excluye el grupo Derecho")
+  expect_identical(pie, "Base: 77. Excluye el grupo Derecho.")   # A6 (ola 4): cierra con punto
   expect_true("64 respuestas" %in% cajas$texto)
 })
 
