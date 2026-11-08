@@ -82,7 +82,10 @@
   gap: var(--pulso-space-1);
 }
 
-.pulso-f6-barra-avisos.is-bloquea {
+/* «N avisos» con algo que bloquea la exportación: el tono de peligro gana al secundario en reposo y al hover. Abierto
+   (aria-expanded) toma el tinte de pulsado de la superficie, como cualquier disparador abierto. */
+.pulso-f6-barra .pulso-button.pulso-f6-barra-avisos.is-bloquea:not([aria-expanded="true"]),
+.pulso-f6-barra .pulso-button.pulso-f6-barra-avisos.is-bloquea:not([aria-expanded="true"]):hover:not(:disabled) {
   border-color: var(--pulso-danger-border);
   background: var(--pulso-danger-bg);
   color: var(--pulso-danger-fg);

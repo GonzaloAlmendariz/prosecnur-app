@@ -10,6 +10,7 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboa
 import { useLocation } from "react-router-dom";
 import { AlertTriangle, Archive, FileJson, Layers3, MoreHorizontal, Palette, Redo2, RotateCcw, Scale, Undo2 } from "../../../vendor/lucide-react";
 import { SaveStatusIndicator } from "../../../components/SaveStatusIndicator";
+import { PulsoButton } from "../../../components/PulsoButton";
 import { useSession } from "../../../lib/SessionContext";
 import { usePanelDireccionable } from "../../../lib/navegacion/paneles";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
@@ -36,6 +37,7 @@ import { agruparAvisos, rotuloLaminasYPartes, totalAvisos } from "./resumenInfor
 import { useColoresPendientes } from "../estilo/ColoresPendientesAviso";
 import { useDeclaracionAplicada } from "../useDeclaracionAplicada";
 import "./movimiento.css";
+import "./laminasWorkbench.css";
 import "./barraLaminas.css";
 
 type Props = Omit<ExportarInformeMenuProps, "canExportFinal"> & {
@@ -109,10 +111,10 @@ export function BarraLaminas({ canExport, onIrEditorAnterior: _sinUso, ...export
           <span role="group" aria-label="Conflicto del informe compartido" className="pulso-f6-barra-grupo">
             <SaveStatusIndicator state="error" />
             <span className="pulso-sr-only">{MENSAJE_CONFLICTO_BORRADOR}</span>
-            <button type="button" className="pulso-f6-boton" title={MENSAJE_CONFLICTO_BORRADOR}
+            <PulsoButton variant="secondary" title={MENSAJE_CONFLICTO_BORRADOR}
               disabled={recargando} onClick={() => { void recargarBorradorCompartido(); }}>
               {ACCION_RECARGAR_BORRADOR}
-            </button>
+            </PulsoButton>
           </span>
         ) : (
           // H10: «Guardado» aquí y «sin guardar» en el proyecto se leían como contradicción. Esta marca dice si el
@@ -126,25 +128,25 @@ export function BarraLaminas({ canExport, onIrEditorAnterior: _sinUso, ...export
 
       <div className="pulso-f6-barra-acciones">
         <span className="pulso-f6-barra-ancho pulso-f6-barra-grupo">
-          <button type="button" className="pulso-f6-icono-boton" onClick={undo} disabled={past === 0}
+          <PulsoButton variant="icon" tone="quiet" onClick={undo} disabled={past === 0}
             aria-label="Deshacer" title={past === 0 ? "Nada que deshacer" : `Deshacer (${MOD}+Z)`}>
-            <Undo2 size={16} aria-hidden="true" />
-          </button>
-          <button type="button" className="pulso-f6-icono-boton" onClick={redo} disabled={future === 0}
+            <Undo2 aria-hidden="true" />
+          </PulsoButton>
+          <PulsoButton variant="icon" tone="quiet" onClick={redo} disabled={future === 0}
             aria-label="Rehacer" title={future === 0 ? "Nada que rehacer" : `Rehacer (${MOD}+Shift+Z)`}>
-            <Redo2 size={16} aria-hidden="true" />
-          </button>
+            <Redo2 aria-hidden="true" />
+          </PulsoButton>
         </span>
-        <button
-          type="button"
-          className={`pulso-f6-boton pulso-f6-barra-avisos${grupos.bloquean.length || sinColor ? " is-bloquea" : ""}`}
+        <PulsoButton
+          variant="secondary"
+          className={`pulso-f6-barra-avisos${grupos.bloquean.length || sinColor ? " is-bloquea" : ""}`}
           aria-expanded={avisosPanel.abierto}
           onClick={avisosPanel.alternar}
           title={grupos.bloquean.length || sinColor ? `${grupos.bloquean.length + (sinColor ? 1 : 0)} bloquean la exportación` : "Avisos del informe"}
         >
-          <AlertTriangle size={14} aria-hidden="true" />
+          <AlertTriangle aria-hidden="true" />
           {nAvisos === 1 ? "1 aviso" : `${nAvisos} avisos`}
-        </button>
+        </PulsoButton>
         <span className="pulso-f6-barra-cobertura"><PlanCoverageBadge conNombre /></span>
         <SuggestedPlanButton />
         <ExportarInformeMenu {...exportar} canExportFinal={canExport && validator.canExport} />
@@ -260,10 +262,10 @@ function MenuMas({ undo, redo, compartir, vaciar, onIrEstilo, onDiferencias, dis
   };
   return (
     <div className="pulso-f6-mas" ref={ref}>
-      <button ref={disparadorRef} type="button" className="pulso-f6-icono-boton" aria-label="Más acciones" aria-haspopup="menu"
+      <PulsoButton ref={disparadorRef} variant="icon" tone="quiet" aria-label="Más acciones" aria-haspopup="menu"
         aria-expanded={abierto} onClick={() => setAbierto((v) => !v)}>
-        <MoreHorizontal size={16} aria-hidden="true" />
-      </button>
+        <MoreHorizontal aria-hidden="true" />
+      </PulsoButton>
       {abierto && (
         <div className="pulso-f6-mas-menu" role="menu" aria-label="Más acciones" ref={menuRef} onKeyDown={navegar}>
           <button type="button" role="menuitem" className="pulso-f6-solo-compacto-barra" disabled={undo.disabled} onClick={item(undo.run)}>
