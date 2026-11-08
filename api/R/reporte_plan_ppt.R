@@ -2999,7 +2999,7 @@ reporte_ppt_plan <- function(
       .extract_ref_values(el$vars %||% NULL)
     )
     refs <- unique(refs[!is.na(refs) & nzchar(trimws(refs))])
-    for (ref in refs) {
+    for (ref in if (.plan_titulo_inferible(el)) refs else character(0)) {   # R8-6: un resumen no lleva título inferido
       src <- if (grepl("\\$", ref)) NULL else el$source %||% NULL
       title <- tryCatch(.word_clean_inferred_title(.plan_con_etiquetas_cortas(el, .title_of_var(ref, source = src))), error = function(e) NULL)
       if (!is.null(title)) return(title)
@@ -7837,7 +7837,7 @@ reporte_ppt_plan <- function(
       }
 
       # Resolver titulo del slide si no viene
-      if (is.null(title_slide)) {
+      if (is.null(title_slide) && .plan_titulo_inferible(el_plot)) {   # R8-6: un resumen no lleva título inferido
         title_slide <- el_plot$title_slide %||% {
           if (!is.null(el_plot$var)) .plan_con_etiquetas_cortas(el_plot, .title_of_var(el_plot$var)) else {
             v1 <- el_plot$vars %||% NULL
@@ -7968,7 +7968,7 @@ reporte_ppt_plan <- function(
         .resolve_word_title <- function(el, fallback) {
           if (!is.null(el$title_slide)) return(el)
           if (!is.null(el$overrides$titulo)) return(el)
-          var_lbl <- if (!is.null(el$var) && nzchar(trimws(el$var)))
+          var_lbl <- if (!is.null(el$var) && nzchar(trimws(el$var)) && .plan_titulo_inferible(el))
             tryCatch(.plan_con_etiquetas_cortas(el, .title_of_var(el$var)), error = function(e) NULL)
           else NULL
           el$title_slide <- var_lbl %||% fallback
@@ -8062,7 +8062,7 @@ reporte_ppt_plan <- function(
 
       if (isTRUE(build_render_meta)) .push_render_meta_for_element(el_plot, p)
 
-      if (is.null(title_slide)) {
+      if (is.null(title_slide) && .plan_titulo_inferible(el_plot)) {   # R8-6: un resumen no lleva título inferido
         title_slide <- el_plot$title_slide %||% {
           if (!is.null(el_plot$var)) .plan_con_etiquetas_cortas(el_plot, .title_of_var(el_plot$var)) else {
             v1 <- el_plot$vars %||% NULL
@@ -8176,7 +8176,7 @@ reporte_ppt_plan <- function(
         .resolve_word_title <- function(el, fallback) {
           if (!is.null(el$title_slide)) return(el)
           if (!is.null(el$overrides$titulo)) return(el)
-          var_lbl <- if (!is.null(el$var) && nzchar(trimws(el$var)))
+          var_lbl <- if (!is.null(el$var) && nzchar(trimws(el$var)) && .plan_titulo_inferible(el))
             tryCatch(.plan_con_etiquetas_cortas(el, .title_of_var(el$var)), error = function(e) NULL)
           else NULL
           el$title_slide <- var_lbl %||% fallback
@@ -8302,7 +8302,7 @@ reporte_ppt_plan <- function(
         .resolve_word_title_el <- function(el, fallback) {
           if (!is.null(el$title_slide)) return(el)
           if (!is.null(el$overrides$titulo)) return(el)
-          var_lbl <- if (!is.null(el$var) && nzchar(trimws(el$var)))
+          var_lbl <- if (!is.null(el$var) && nzchar(trimws(el$var)) && .plan_titulo_inferible(el))
             tryCatch(.plan_con_etiquetas_cortas(el, .title_of_var(el$var)), error = function(e) NULL)
           else NULL
           el$title_slide <- var_lbl %||% fallback
@@ -8475,7 +8475,7 @@ reporte_ppt_plan <- function(
         .resolve_word_title_el <- function(el, fallback) {
           if (!is.null(el$title_slide)) return(el)
           if (!is.null(el$overrides$titulo)) return(el)
-          var_lbl <- if (!is.null(el$var) && nzchar(trimws(el$var)))
+          var_lbl <- if (!is.null(el$var) && nzchar(trimws(el$var)) && .plan_titulo_inferible(el))
             tryCatch(.plan_con_etiquetas_cortas(el, .title_of_var(el$var)), error = function(e) NULL)
           else NULL
           el$title_slide <- var_lbl %||% fallback
@@ -8579,7 +8579,7 @@ reporte_ppt_plan <- function(
       if (isTRUE(build_render_meta)) .push_render_meta_for_element(el_plot, p)
 
       # inferir titulo si no viene
-      if (is.null(title_slide)) {
+      if (is.null(title_slide) && .plan_titulo_inferible(el_plot)) {   # R8-6: un resumen no lleva título inferido
         title_slide <- el_plot$title_slide %||% {
           if (!is.null(el_plot$var)) .plan_con_etiquetas_cortas(el_plot, .title_of_var(el_plot$var)) else {
             v1 <- el_plot$vars %||% NULL
@@ -8673,7 +8673,7 @@ reporte_ppt_plan <- function(
 
       if (isTRUE(build_render_meta)) .push_render_meta_for_element(el_plot, p)
 
-      if (is.null(title_slide)) {
+      if (is.null(title_slide) && .plan_titulo_inferible(el_plot)) {   # R8-6: un resumen no lleva título inferido
         title_slide <- el_plot$title_slide %||% {
           if (!is.null(el_plot$var)) .plan_con_etiquetas_cortas(el_plot, .title_of_var(el_plot$var)) else {
             v1 <- el_plot$vars %||% NULL
