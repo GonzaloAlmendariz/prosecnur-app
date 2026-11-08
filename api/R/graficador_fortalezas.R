@@ -97,20 +97,27 @@ graficar_fortalezas <- function(
                y = rev(seq_along(cl$rotulos)), stringsAsFactors = FALSE)
   }))
   filas$columna <- factor(filas$columna, levels = unname(.FORTALEZAS_COLUMNAS))
+  # El rótulo va a la izquierda del cero, partido en 2.3 in y hasta tres líneas con «…»: entero, un enunciado de 200
+  # caracteres se salía por la izquierda del panel y se montaba sobre las barras y las cifras (Arte, 2026-11-07).
+  filas$rotulo <- .gg_rotulos_resumen(filas$rotulo, 2.3, 9, .gg_rotulos_max_lineas(max(filas$y), alto = 4.6, size = 9))
   colores <- stats::setNames(vapply(espec$columnas, `[[`, "", "color"), unname(.FORTALEZAS_COLUMNAS))
   p <- ggplot2::ggplot(filas, ggplot2::aes(y = .data$y)) +
     ggplot2::geom_col(ggplot2::aes(x = .data$valor, fill = .data$columna), orientation = "y", width = 0.62, show.legend = FALSE) +
     ggplot2::geom_text(ggplot2::aes(x = .data$valor, label = .data$cifra), hjust = -0.15, size = 3.2, colour = .std_color("azul"), family = font_family) +
-    ggplot2::geom_text(ggplot2::aes(x = -2, label = .data$rotulo), hjust = 1, size = 3.1, colour = .std_color("azul"), family = font_family) +
+    ggplot2::geom_text(ggplot2::aes(x = -2, label = .data$rotulo), hjust = 1, size = 9 / ggplot2::.pt, lineheight = 0.95,
+                       colour = .std_color("azul"), family = font_family) +
     ggplot2::facet_wrap(~columna, nrow = 1) +
     ggplot2::scale_fill_manual(values = colores) +
     ggplot2::scale_x_continuous(limits = c(-75, 112), breaks = NULL, expand = c(0, 0)) +
     ggplot2::scale_y_continuous(breaks = NULL) +
-    ggplot2::labs(title = titulo, subtitle = subtitulo, caption = .lam_unir_base(espec$nota_base, nota_pie), x = NULL, y = NULL) +
+    ggplot2::labs(title = titulo, subtitle = subtitulo, caption = NULL, x = NULL, y = NULL) +
     ggplot2::theme_minimal(base_family = font_family) +
     ggplot2::theme(panel.grid = ggplot2::element_blank(),
                    strip.text = ggplot2::element_text(face = "bold", colour = .std_color("azul"), size = 12, hjust = 0.5),
                    plot.background = ggplot2::element_rect(fill = NA, colour = NA))
   attr(p, "pulso_espec") <- espec
+  # La base del público va al pie de la lámina, abajo a la izquierda (`note_outside`), no dentro del dibujo.
+  nota <- .lam_unir_base(espec$nota_base, nota_pie)
+  if (nzchar(nota)) attr(p, "note_outside") <- nota
   p
 }

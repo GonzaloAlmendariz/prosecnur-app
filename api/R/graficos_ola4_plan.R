@@ -499,6 +499,8 @@ p_barras_divergentes <- function(vars = NULL,
   vapply(refs, function(r) {
     i <- match(r, vals)
     if (!is.na(i) && length(nombres) >= i && !is.na(nombres[i]) && nzchar(trimws(nombres[i]))) return(trimws(nombres[i]))
+    corto <- .resumen_rotulo_corto(r, NA_character_)   # nombre corto de la pregunta (overrides$etiquetas_vars)
+    if (!is.na(corto)) return(corto)
     if (!is.function(resolver)) return(r)
     ctx <- tryCatch(resolver(r, arg_name = "vars"), error = function(e) NULL)
     if (is.null(ctx) || !is.data.frame(ctx$survey)) return(r)
@@ -564,6 +566,8 @@ p_barras_divergentes <- function(vars = NULL,
   esp$nota_porcentaje <- if (isTRUE(hubo_exclusion)) "Porcentaje sobre quienes respondieron, sin contar las respuestas excluidas."
                          else "Porcentaje sobre el total de respondientes."
   attr(p, "pulso_espec") <- esp
+  # El respaldo (ggplot) escribe en su pie lo que trae `note_outside`: el denominador y la regla, como la nativa.
+  attr(p, "note_outside") <- .lam_unir_base(esp$nota_porcentaje, esp$texto_regla)
   p
 }
 
@@ -764,9 +768,10 @@ p_dumbbell <- function(vars = NULL,
   sources <- list(data_sources = data_sources, inst_sources = inst_sources)
   ap <- .regla_preguntas_aplicar_render(el, "dumbbell", sources); el <- ap$el   # ADR 0135
   if (!is.null(el$cruce)) {
-    temas <- .dumbbell_grupos_temas(el$vars, sources)
+    temas <- .resumen_temas_cortos(.dumbbell_grupos_temas(el$vars, sources))   # nombre corto de la pregunta (lamina_rotulo_resumen.R)
     datos <- .dumbbell_grupos_datos(temas, el$corte, el$cruce, el$grupos, sources, filtros = el$filtros %||% list())
   } else {
+    el$vars <- .resumen_temas_cortos(el$vars)   # nombre corto de la pregunta (lamina_rotulo_resumen.R)
     datos <- .radar_mb_datos(el$vars, el$corte, sources, filtros = el$filtros %||% list())
     fuentes <- .ola4_fuentes_de_refs(el$vars[[1]], "dumbbell", names(el$vars)[[1]])
     .ola4_validar_matriz_multibase(datos, names(el$vars), fuentes, "dumbbell")

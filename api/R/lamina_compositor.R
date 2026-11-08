@@ -339,6 +339,12 @@
              folio = length(doc) + 1L, sub = texto(subtitulo), unidad_n = unidad, layout = layout, master = master, por_lamina = por_lamina,
              rotulo_centro = espec$frase_centro)$doc)
   }
+  # La base por grupo del contraste y de las fortalezas, y el denominador y la regla de la escala del resumen, viajan en
+  # `note_outside` para el respaldo; la lámina nativa los escribe desde su espec, así que como nota del pie no se repiten
+  # (queda la nota que declare la lámina).
+  if ((espec$tipo %in% c("contraste", "fortalezas") || (identical(espec$tipo, "divergentes") && identical(espec$estilo, "resumen"))) &&
+      !is.null(texto(attr(p, "note_outside", exact = TRUE))) &&
+      startsWith(texto(pie) %||% "", texto(attr(p, "note_outside", exact = TRUE)))) pie <- texto(el_plot$overrides$nota_pie %||% el_plot$nota_pie)
   if (espec$tipo %in% c("contraste", "panorama")) {   # ADR 0134 (lamina_contraste.R)
     # La base del contraste es la de cada grupo, en el pie (abajo a la izquierda): la automática de la encuesta entera
     # («Base: 300») no describe a ningún grupo y se descarta; una base escrita en la lámina se respeta.

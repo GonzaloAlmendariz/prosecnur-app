@@ -66,7 +66,7 @@ p_fortalezas <- function(vars,
   # El rótulo es el de la pregunta, sin el público: la lámina es de uno solo.
   filas$rotulo <- vapply(filas$tema, function(t) {
     ctx <- .graficos_consolidado_ref_context(t, sources)
-    .regla_preguntas_rotulo(ctx$inst, ctx$resolved_variable)
+    .resumen_rotulo_corto(t, .regla_preguntas_rotulo(ctx$inst, ctx$resolved_variable))   # nombre corto de la pregunta
   }, "")
   list(filas = filas, texto = r$evaluacion$texto, publico = .radar_mb_capitalizar(as.character(filas$grupo[1])))
 }

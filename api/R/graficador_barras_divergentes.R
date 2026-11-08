@@ -240,7 +240,10 @@ graficar_barras_divergentes <- function(
   }
   df <- do.call(rbind, filas)
 
-  df$.item <- factor(df$.item, levels = rev(items))
+  # Estilo resumen: las filas en el orden de la especificación (por Top Two Box o «Sin información»), como la nativa.
+  resumen <- identical(estilo, "resumen") && !is.null(espec_div)
+  orden_items <- if (resumen && setequal(as.character(espec_div$filas), items)) as.character(espec_div$filas) else items
+  df$.item <- factor(df$.item, levels = rev(unique(orden_items)))
   # La escala tiene que leerse del cero hacia afuera en los dos sentidos: lo mas
   # extremo, mas lejos del eje. `geom_col` apila cada lado en sentido contrario
   # al otro, asi que el orden se resuelve por LADO y no con un unico factor:
@@ -265,6 +268,13 @@ graficar_barras_divergentes <- function(
   colores <- .graficos_mk_palette(cols_porcentaje, pal_user = colores_grupos)
   names(colores) <- cols_porcentaje
   if (length(sin_inf) && is.null(colores_grupos)) colores[sin_inf] <- .graficos_no_sustantivo_color()
+  # Estilo resumen (ADR 0134 §4): la paleta Likert y los rótulos de la especificación, sin saldo, como la lámina nativa.
+  if (resumen) {
+    colores <- stats::setNames(as.character(espec_div$categorias$color), espec_div$categorias$col)[cols_porcentaje]
+    etiquetas <- stats::setNames(as.character(espec_div$categorias$rotulo), espec_div$categorias$col)[cols_porcentaje]
+    mostrar_saldo <- FALSE
+    if (identical(toupper(color_texto_barras), "#FFFFFF")) color_texto_barras <- .std_color("azul")   # cifras en texto oscuro
+  }
 
   tope <- suppressWarnings(as.numeric(limite_x)[1])
   if (!is.finite(tope)) {
@@ -378,6 +388,13 @@ graficar_barras_divergentes <- function(
       panel.grid.major.x = ggplot2::element_line(colour = "#E3E8EF", linewidth = 0.3),
       plot.margin = ggplot2::margin(10, 16, 8, 12)
     )
+  # Estilo resumen: los rótulos (enunciados enteros con varios públicos) van partidos en 4 in y hasta tres líneas con
+  # «…»; enteros, el eje se quedaba con todo el ancho y el panel salía vacío (Arte, 2026-11-07).
+  if (identical(estilo, "resumen")) {
+    max_lin <- .gg_rotulos_max_lineas(length(items))
+    out <- out + ggplot2::scale_y_discrete(labels = function(x) .gg_rotulos_resumen(x, 4, size_ejes, max_lin)) +
+      ggplot2::theme(axis.text.y = ggplot2::element_text(hjust = 1, lineheight = 0.95))
+  }
   attr(out, "pulso_espec") <- espec_div
   out
 }

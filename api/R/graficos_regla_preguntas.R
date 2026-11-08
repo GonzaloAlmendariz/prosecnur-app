@@ -324,6 +324,9 @@
   if (is.null(texto) || is.null(p)) return(p)
   espec <- attr(p, "pulso_espec", exact = TRUE)
   if (is.list(espec)) { espec$texto_regla <- texto; attr(p, "pulso_espec") <- espec }
+  # El respaldo escribe en el pie lo que trae `note_outside` (la base por grupo): la regla va al final, como en la nativa.
+  nota <- attr(p, "note_outside", exact = TRUE)
+  if (!is.null(nota)) attr(p, "note_outside") <- .lam_unir_base(nota, texto)
   p
 }
 

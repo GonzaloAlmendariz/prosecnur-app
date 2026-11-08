@@ -55,16 +55,23 @@
     ggplot2::scale_shape_manual(values = formas_gg, labels = espec$leyenda %||% espec$grupos, name = NULL) +
     ggplot2::scale_x_continuous(limits = c(eje[["lo"]], max(x_tabla) + ancho * 0.12), breaks = seq(eje[["lo"]], eje[["hi"]], by = eje[["paso"]]),
                                 labels = function(x) paste0(x, "%"), expand = c(0, 0)) +
-    ggplot2::scale_y_continuous(breaks = centro, labels = espec$rotulos, expand = ggplot2::expansion(add = c(0.6, paso * 1.3))) +
+    # Los rótulos van partidos en una columna de 4 in y hasta tres líneas, con «…» si no caben: un enunciado entero de
+    # 200 caracteres se quedaba con todo el ancho, el panel quedaba en negativo y rvg pintaba un rectángulo del color de
+    # un grupo sobre la lámina, sin puntos (Arte, 2026-11-07).
+    ggplot2::scale_y_continuous(breaks = centro, labels = .gg_rotulos_resumen(espec$rotulos, 4, 10, .gg_rotulos_max_lineas(n * paso)),
+                                expand = ggplot2::expansion(add = c(0.6, paso * 1.3))) +
     ggplot2::coord_cartesian(clip = "off") +
-    ggplot2::labs(title = titulo, subtitle = subtitulo, caption = .lam_unir_base(espec$nota_base, nota_pie), x = NULL, y = NULL) +
+    # La base de cada grupo va al pie de la lámina, abajo a la izquierda (`note_outside`), no dentro del dibujo.
+    ggplot2::labs(title = titulo, subtitle = subtitulo, caption = NULL, x = NULL, y = NULL) +
     ggplot2::theme_minimal(base_family = font_family) +
     ggplot2::theme(legend.position = "top", legend.justification = "left",
                    panel.grid.minor = ggplot2::element_blank(), panel.grid.major.y = ggplot2::element_blank(),
                    panel.grid.major.x = ggplot2::element_line(colour = .PULSO_COLOR_GRID, linewidth = 0.3),
-                   axis.text.y = ggplot2::element_text(colour = .std_color("azul"), size = 10),
+                   axis.text.y = ggplot2::element_text(colour = .std_color("azul"), size = 10, hjust = 1, lineheight = 0.95),
                    axis.text.x = ggplot2::element_text(colour = .std_color("texto_tenue"), size = 9),
                    plot.background = ggplot2::element_rect(fill = NA, colour = NA))
   attr(p, "pulso_espec") <- espec
+  nota <- .lam_unir_base(espec$nota_base, nota_pie)
+  if (nzchar(nota)) attr(p, "note_outside") <- nota
   p
 }

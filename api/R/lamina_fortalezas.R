@@ -15,6 +15,9 @@
   g_ <- .std_geom; ml <- g_("margen_izq"); fin <- g_("ancho") - g_("margen_der")
   gap <- 0.6; w <- (fin - ml - gap) / 2
   wr <- min(3.1, w * 0.5)
+  # Con rótulos de más de dos líneas la columna de rótulos toma hasta el 60 % de la columna (la barra conserva ~1.6 in).
+  todos <- unlist(lapply(espec$columnas, `[[`, "rotulos"))
+  if (length(todos) && any(.lam_lineas_tinta(todos, wr + 0.1, 12, FALSE) > 2L)) wr <- w * 0.6
   n <- max(1L, max(vapply(espec$columnas, function(cl) length(cl$rotulos), 0L)))
   zona0 <- g_("zona_datos_y0") - 0.05; zona1 <- g_("contenido_y1") - 0.35
   cab <- 0.6
@@ -25,16 +28,20 @@
        g = min(0.34, h * 0.55))
 }
 
-#' ¿La lámina cabe? Hasta ocho filas por columna y cada rótulo en dos líneas como mucho (12 pt)
+#' Líneas que admite el rótulo de una fila (12 pt): las que caben en su alto, entre dos y tres
+#' @keywords internal
+.lam_fortalezas_max_lineas <- function(ge) as.integer(max(2L, min(3L, floor((ge$h - 0.1) / (12 * 1.2 / 72)))))
+
+#' ¿La lámina cabe? Hasta ocho filas por columna
+#'
+#' Un rótulo largo ya no la manda a la imagen (Arte, 2026-11-07): va en las líneas que admite su fila (dos con ocho
+#' filas, tres con menos) y, si no cabe, la última termina en «…» (`.lam_rotulo_recortar`).
 #' @keywords internal
 .lam_fortalezas_cabe <- function(espec) {
   cols <- espec$columnas %||% list()
   if (length(cols) != 2L) return(FALSE)
   filas <- vapply(cols, function(cl) length(cl$rotulos), 0L)
-  if (!sum(filas) || any(filas > .FORTALEZAS_FILAS_MAX)) return(FALSE)
-  ge <- .lam_fortalezas_geom(espec)
-  todos <- unlist(lapply(cols, `[[`, "rotulos"))
-  all(vapply(todos, function(t) .lam_lineas_tinta(t, ge$wr + 0.1, 12, FALSE) <= 2L, TRUE))
+  sum(filas) > 0L && all(filas <= .FORTALEZAS_FILAS_MAX)
 }
 
 #' Lámina de fortalezas y alertas (`fortalezas/1`)
@@ -47,6 +54,7 @@
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()
+  max_lin <- .lam_fortalezas_max_lineas(ge); recortados <- 0L
   for (j in seq_along(espec$columnas)) {
     cl <- espec$columnas[[j]]; x <- ge$xs[j]
     # Encabezado de la columna: su tono, su nombre y un filete en el mismo tono.
@@ -58,7 +66,8 @@
       yc <- ge$y0 + ge$cab + (i - 0.5) * ge$h
       # El cuadro ocupa la fila entera y centra su texto: una o dos líneas quedan centradas con la barra sin depender
       # de cuántas líneas estime la medición (LibreOffice y PowerPoint parten distinto en la frontera).
-      .lam_txt(lz, cl$rotulos[i], x - 0.1, yc - ge$h / 2, ge$wr + 0.1, ge$h, 12, azul, nombre = "fortalezas:rotulo", anclaje = "ctr")
+      rr <- .lam_rotulo_recortar(cl$rotulos[i], ge$wr + 0.1, 12, max_lin); recortados <- recortados + rr$recortado
+      .lam_txt(lz, rr$texto, x - 0.1, yc - ge$h / 2, ge$wr + 0.1, ge$h, 12, azul, nombre = "fortalezas:rotulo", anclaje = "ctr")
       .lam_caja(lz, xb, yc - ge$g / 2, wb, ge$g, pista, nombre = "fortalezas:pista", borde = NA)
       lb <- max(0.01, wb * max(0, min(100, cl$valores[i])) / 100)
       .lam_caja(lz, xb, yc - ge$g / 2, lb, ge$g, cl$color, nombre = "fortalezas:barra", borde = NA)
@@ -71,6 +80,7 @@
       }
     }
   }
+  .lam_rotulos_aviso(recortados)
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:fortalezas")
   nota <- sprintf("Barras: %s de cada pregunta", espec$indicador %||% "Top Two Box")
   doc <- .lam_pie(doc, .lam_unir_base(espec$nota_base, base, espec$texto_regla, nota), folio)

@@ -74,17 +74,66 @@
   c(1.2, if (con_base) vapply(seq_along(espec$grupos), function(j) .lam_puntos_ancho_col(espec$grupos[j], espec$bases[, j]), 0))
 }
 
-#' ¿El contraste cabe en una lámina? Hasta 14 filas de pares, o 24 sub-filas con los grupos, y rótulos en dos líneas
+#' Geometría del contraste con sus rótulos: letra, ancho de la columna, alto de cada fila y rótulos recortados
+#'
+#' ADR 0135, oleada 5 (Arte, 13 pares con el enunciado entero por rótulo): un rótulo va en hasta tres líneas y su fila
+#' crece lo que el rótulo pide; el resto del alto se reparte por igual. Se prueba primero la letra de la lámina
+#' (11.5 pt) y luego 11 y 10.5 pt, y con cada letra la columna de rótulos se ensancha de a 0.1 in hasta dejar 3.5 in de
+#' área de puntos. Gana la primera combinación en que todo cabe sin recortar; si ninguna, la columna más ancha a
+#' 10.5 pt con los rótulos de más de tres líneas recortados con «…». Si ni así caben las filas, la lámina no cabe.
+#' @return Lista con `cabe` y, si cabe, `size`, `m` (marco de `.lam_puntos_marco`), `alturas`, `u`, `pasos`, `textos`,
+#'   `recortados`, `anchos`, `cab`, `zona0` y `zona1`.
+#' @keywords internal
+.lam_contraste_geom <- function(espec) {
+  g_ <- .std_geom
+  n <- length(espec$rotulos); k <- length(espec$grupos); par <- identical(espec$modo, "par")
+  anchos <- .lam_contraste_anchos(espec); con_base <- length(anchos) > 1L
+  # La leyenda (izquierda) y el encabezado «Diferencia» (derecha) no se cruzan: sin columnas de base comparten franja.
+  cab <- if (con_base) 0.95 else 0.6
+  zona0 <- g_("zona_datos_y0") - 0.05; zona1 <- g_("contenido_y1") - 0.35
+  disponible <- zona1 - zona0 - cab
+  pasos <- if (par) rep(1, n) else rep(k + 0.7, n)
+  u_min <- if (par) 0.22 else 0.14; u_max <- if (par) 0.5 else 0.28
+  base_m <- .lam_puntos_marco(espec$rotulos, anchos, size_rot = 11.5, tope_rot = 3.8)
+  w_max <- (base_m$xt - 0.5) - 3.5 - 0.25 - base_m$ml
+  prueba <- function(size, w, recortar) {
+    rr <- lapply(espec$rotulos, function(t) .lam_rotulo_recortar(t, w, size, 3L))
+    if (!recortar && any(vapply(rr, `[[`, TRUE, "recortado"))) return(NULL)
+    lh <- size * 1.2 / 72
+    necesita <- vapply(rr, function(r) length(r$lineas), 0L) * lh + 0.05
+    alto <- function(u) sum(pmax(pasos * u, necesita))
+    if (alto(u_min) > disponible + 1e-9) return(NULL)
+    # El paso común más grande (hasta u_max) con el que las filas, cada una con su rótulo, caben en el alto.
+    lo <- u_min; hi <- u_max
+    if (alto(hi) <= disponible) lo <- hi else for (it in 1:40) { mid <- (lo + hi) / 2; if (alto(mid) <= disponible) lo <- mid else hi <- mid }
+    list(size = size, w = w, u = lo, alturas = pmax(pasos * lo, necesita), textos = vapply(rr, `[[`, "", "texto"),
+         recortados = sum(vapply(rr, `[[`, TRUE, "recortado")))
+  }
+  elegido <- NULL
+  for (size in c(11.5, 11, 10.5)) {
+    w0 <- .lam_puntos_marco(espec$rotulos, anchos, size_rot = size, tope_rot = 3.8)$wrot
+    for (w in unique(c(seq(w0, max(w0, w_max), by = 0.1), max(w0, w_max)))) {
+      elegido <- prueba(size, w, FALSE); if (!is.null(elegido)) break
+    }
+    if (!is.null(elegido)) break
+  }
+  if (is.null(elegido) && w_max >= 1.4) elegido <- prueba(10.5, w_max, TRUE)
+  if (is.null(elegido)) return(list(cabe = FALSE))
+  m <- base_m
+  m$wrot <- elegido$w; m$xl <- m$ml + m$wrot + 0.25
+  c(list(cabe = (m$xr - m$xl) >= 3.5 - 1e-6, m = m, pasos = pasos, anchos = anchos, cab = cab, zona0 = zona0, zona1 = zona1),
+    elegido[c("size", "u", "alturas", "textos", "recortados")])
+}
+
+#' ¿El contraste cabe en una lámina? Hasta 14 filas de pares, o 27 sub-filas con los grupos, con sus rótulos en hasta
+#' tres líneas (`.lam_contraste_geom`)
 #' @keywords internal
 .lam_contraste_cabe <- function(espec) {
   n <- length(espec$rotulos); k <- length(espec$grupos)
   if (n < 1L || k < 2L || k > 4L) return(FALSE)
   filas <- if (identical(espec$modo, "par")) n else n * k + (n - 1L) * 0.7
   if (filas > (if (identical(espec$modo, "par")) 14 else 27)) return(FALSE)   # 27 sub-filas: 0.14 in cada una
-  anchos <- .lam_contraste_anchos(espec)
-  m <- .lam_puntos_marco(espec$rotulos, anchos)
-  # El área de puntos no baja de 3.5 in y ningún rótulo pasa de dos líneas.
-  (m$xr - m$xl) >= 3.5 && all(vapply(espec$rotulos, function(t) .lam_lineas_tinta(t, m$wrot, 12, FALSE) <= 2L, TRUE))
+  isTRUE(.lam_contraste_geom(espec)$cabe)
 }
 
 #' Lámina del contraste de públicos (`contraste/1`)
@@ -98,19 +147,21 @@
   force(folio)
   g_ <- .std_geom; azul <- .std_color("azul"); suave <- .std_color("texto_suave")
   n <- length(espec$rotulos); k <- length(espec$grupos); par <- identical(espec$modo, "par")
-  anchos <- .lam_contraste_anchos(espec); con_base <- length(anchos) > 1L
-  m <- .lam_puntos_marco(espec$rotulos, anchos)
+  # Letra, columna de rótulos y alto de cada fila (un rótulo de hasta tres líneas agranda su fila): .lam_contraste_geom.
+  ge <- .lam_contraste_geom(espec)
+  if (!isTRUE(ge$cabe)) stop("El contraste no cabe en una lámina.", call. = FALSE)
+  anchos <- ge$anchos; con_base <- length(anchos) > 1L; m <- ge$m
   eje <- espec$eje; px <- function(v) m$xl + (m$xr - m$xl) * (v - eje[["lo"]]) / (eje[["hi"]] - eje[["lo"]])
   # Sin columnas de base la cabecera es una sola línea («Diferencia») y la leyenda baja hasta ella.
-  cab <- if (con_base) 0.95 else 0.7
-  zona0 <- g_("zona_datos_y0") - 0.05; zona1 <- g_("contenido_y1") - 0.35
-  # Altura de cada pregunta: un paso por fila en pares; k sub-filas y un respiro entre preguntas con grupos.
-  pasos <- if (par) rep(1, n) else rep(k + 0.7, n)
-  u <- (zona1 - zona0 - cab) / sum(pasos); u <- min(u, if (par) 0.5 else 0.28)
+  cab <- ge$cab; zona0 <- ge$zona0; zona1 <- ge$zona1
+  # Altura de cada pregunta: un paso por fila en pares, k sub-filas y un respiro entre preguntas con grupos, o lo que
+  # pida su rótulo si es más.
+  pasos <- ge$pasos; u <- ge$u; alturas <- ge$alturas
+  .lam_rotulos_aviso(ge$recortados)
   # Con pocas filas el bloque entero (leyenda, cabecera, filas y eje) se centra en la zona de datos: no queda arriba
   # con media lámina vacía debajo.
-  holgura <- (zona1 - zona0 - cab) - u * sum(pasos)
-  y_ley <- zona0 + max(0, holgura) / 2; y0 <- y_ley + cab; y1 <- y0 + u * sum(pasos)
+  holgura <- (zona1 - zona0 - cab) - sum(alturas)
+  y_ley <- zona0 + max(0, holgura) / 2; y0 <- y_ley + cab; y1 <- y0 + sum(alturas)
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()
@@ -122,21 +173,22 @@
   tope <- y0
   centros <- numeric(n)
   for (i in seq_len(n)) {
-    h <- pasos[i] * u
+    h <- alturas[i]
     if (i %% 2L == 1L) .lam_caja(lz, xp0, tope, xp1 - xp0, h, banda, nombre = "puntos:banda")
     centros[i] <- tope + h / 2; tope <- tope + h
   }
   .lam_puntos_eje(lz, px, eje, y0, y1)
   # Separadores entre bloques de preguntas (de salida / genéricas): una línea punteada a lo ancho.
   for (s in espec$separadores %||% integer(0)) {
-    ys <- y0 + sum(pasos[seq_len(s)]) * u
+    ys <- y0 + sum(alturas[seq_len(s)])
     .lam_linea(lz, m$ml, ys, m$fin, ys, .std_color("texto_tenue"), pt = 0.9, nombre = "puntos:separador", dash = "dash")
   }
   seg <- .lam_aclarar(.std_color("tenue"), 0.4)
   for (i in seq_len(n)) {
     yc <- centros[i]
-    hr <- .lam_alto_tinta(espec$rotulos[i], m$wrot, 11.5, FALSE)
-    .lam_txt(lz, espec$rotulos[i], m$ml, yc - hr / 2 - 0.02, m$wrot, hr, 11.5, azul, align = "right", nombre = "puntos:rotulo")
+    # El cuadro ocupa la fila y centra su texto: hasta tres líneas, la última con «…» si el rótulo no cabe.
+    .lam_txt(lz, ge$textos[i], m$ml, yc - alturas[i] / 2, m$wrot, alturas[i], ge$size, azul, align = "right", nombre = "puntos:rotulo",
+             anclaje = "ctr")
     v <- espec$valores[i, ]
     if (par) {
       lo <- min(v); hi <- max(v)

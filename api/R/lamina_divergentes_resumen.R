@@ -33,13 +33,20 @@
        xa = ml + wq + 0.2, xb = fin - wsi - (if (hay_si) 0.45 else 0))
 }
 
-#' ¿La escala del resumen cabe? Hasta 14 afirmaciones en dos líneas como mucho y una sola columna especial
+#' Líneas que admite la afirmación de una fila (12 pt): las que caben en su alto, entre dos y tres
+#' @keywords internal
+.lam_div_resumen_max_lineas <- function(ge) as.integer(max(2L, min(3L, floor((ge$fila - 0.04) / (12 * 1.2 / 72)))))
+
+#' ¿La escala del resumen cabe? Hasta 14 afirmaciones y una sola columna especial
+#'
+#' Una afirmación larga ya no la manda a la imagen (Arte, 2026-11-07): va en las líneas que admite su fila y, si no
+#' cabe, la última termina en «…» (`.lam_rotulo_recortar`).
 #' @keywords internal
 .lam_divergentes_resumen_cabe <- function(espec) {
   n <- length(espec$filas)
   if (n < 1L || n > 14L || sum(espec$categorias$lado == "sin_inf") > 1L) return(FALSE)
   ge <- .lam_div_resumen_geom(espec)
-  (ge$xb - ge$xa) >= 4.5 && all(vapply(espec$filas, function(t) .lam_lineas_tinta(t, ge$wq, 12, FALSE) <= 2L, TRUE))
+  (ge$xb - ge$xa) >= 4.5
 }
 
 #' Lámina de la escala con «Sin información» aparte (estilo resumen)
@@ -83,10 +90,12 @@
     .lam_txt(lz, C$rotulo[si[1]], xsi + 0.12, yl + 0.3 - hl, ge$wsi, hl, 11, azul, nombre = "leyenda:texto")
   }
   max_si <- if (ge$hay_si) max(1, max(U[, si[1]])) else 1
+  max_lin <- .lam_div_resumen_max_lineas(ge); recortados <- 0L
   for (i in seq_len(n)) {
     yb <- y0 + (i - 1) * fila + (fila - g) / 2; yc <- yb + g / 2
-    hp <- .lam_alto_tinta(espec$filas[i], ge$wq, 12, FALSE)
-    .lam_txt(lz, espec$filas[i], ge$ml, yc - hp / 2 - 0.02, ge$wq, hp, 12, azul, align = "right", nombre = "divergentes:afirmacion")
+    rr <- .lam_rotulo_recortar(espec$filas[i], ge$wq, 12, max_lin); recortados <- recortados + rr$recortado
+    hp <- .lam_alto_tinta(rr$texto, ge$wq, 12, FALSE)
+    .lam_txt(lz, rr$texto, ge$ml, yc - hp / 2 - 0.02, ge$wq, hp, 12, azul, align = "right", nombre = "divergentes:afirmacion")
     mitad <- mitades[i]
     segs <- list()
     for (k in neu) segs[[length(segs) + 1L]] <- list(k = k, x = xc - mitad * px, w = 2 * mitad * px, lado = "neu")
@@ -121,6 +130,7 @@
   }
   # La línea central va encima de los segmentos (separa los lados), de la primera a la última fila.
   .lam_caja(lz, xc - 0.008, y0 - 0.04, 0.016, n * fila + 0.08, azul, nombre = "divergentes:centro")
+  .lam_rotulos_aviso(recortados)
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:divergentes")
   # ADR 0135: con regla de preguntas, cómo se eligieron va tras la base; sin ella la nota no cambia.
   # ADR 0135 §3: el denominador va tras la base («Porcentaje sobre el total de respondientes.»), como en el mazo de Arte.
