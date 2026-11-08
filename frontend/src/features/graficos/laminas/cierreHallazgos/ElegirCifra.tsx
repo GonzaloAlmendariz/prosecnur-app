@@ -78,10 +78,25 @@ export function ElegirCifra({ fila, nombre, origenes, cifrasPorOrigen, lamina, c
 
   // R6-12: el autofoco del buscador sólo trae el buscador; a 1024x600 se veían ~73 px de un panel de 240. Al abrir, el
   // panel entero entra en la vista, lo justo (`nearest`, con el `scroll-margin-top` del CSS bajo el índice fijo).
+  // R8-2: el panel crece DESPUÉS, cuando llegan las cifras (54 px quedaban fuera a 1024x600). Mientras está abierto, cada
+  // cambio de alto lo vuelve a traer; si quien lo usa mueve el scroll con la rueda o el dedo, se le deja de pelear.
   useEffect(() => {
     if (!abierta) return;
     const el = panel.current;
-    if (el && typeof el.scrollIntoView === "function") el.scrollIntoView({ block: "nearest" });
+    if (!el || typeof el.scrollIntoView !== "function") return;
+    const traer = () => el.scrollIntoView({ block: "nearest" });
+    traer();
+    if (typeof ResizeObserver === "undefined") return;
+    const observador = new ResizeObserver(traer);
+    observador.observe(el);
+    const soltar = () => observador.disconnect();
+    window.addEventListener("wheel", soltar, { capture: true, passive: true, once: true });
+    window.addEventListener("touchstart", soltar, { capture: true, passive: true, once: true });
+    return () => {
+      observador.disconnect();
+      window.removeEventListener("wheel", soltar, { capture: true });
+      window.removeEventListener("touchstart", soltar, { capture: true });
+    };
   }, [abierta]);
 
   const cerrarYVolver = () => {

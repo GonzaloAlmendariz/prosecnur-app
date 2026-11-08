@@ -110,6 +110,33 @@ describe("Elegir cifra", () => {
     expect(llamadas).toContainEqual({ clase: "pulso-f6-elegir-cifra-panel", opciones: { block: "nearest" } });
   });
 
+  it("R8-2: cuando el panel crece (llegan las cifras) vuelve a entrar en la vista; tras la rueda, ya no", () => {
+    montar();
+    const llamadas: string[] = [];
+    const original = HTMLElement.prototype.scrollIntoView;
+    const OriginalRO = globalThis.ResizeObserver;
+    let avisar: (() => void) | null = null;
+    class RO {
+      constructor(cb: () => void) { avisar = cb; }
+      observe() { /* sin geometría en jsdom */ }
+      disconnect() { avisar = null; }
+      unobserve() { /* nada */ }
+    }
+    globalThis.ResizeObserver = RO as unknown as typeof ResizeObserver;
+    HTMLElement.prototype.scrollIntoView = function (this: HTMLElement) { llamadas.push(this.className); };
+    try {
+      act(() => disparadores()[0].click());
+      const antes = llamadas.filter((c) => c === "pulso-f6-elegir-cifra-panel").length;
+      act(() => avisar?.());
+      expect(llamadas.filter((c) => c === "pulso-f6-elegir-cifra-panel").length).toBe(antes + 1);
+      act(() => { window.dispatchEvent(new Event("wheel")); });
+      expect(avisar).toBeNull();
+    } finally {
+      HTMLElement.prototype.scrollIntoView = original;
+      globalThis.ResizeObserver = OriginalRO;
+    }
+  });
+
   it("el segmentado cambia al orden de la lámina", () => {
     montar();
     act(() => disparadores()[0].click());
