@@ -8,9 +8,12 @@
   min-width: 0;
 }
 
+/* W1B-C2 (acabado, 2026-11-08): toda fila de rótulo + control usa la misma columna de control, así los controles de una
+   tarjeta arrancan y terminan en el mismo borde en lugar de medir cada uno lo que pide su texto. */
 .pulso-f6-dato {
+  --pulso-f6-col-control: 180px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) var(--pulso-f6-col-control);
   align-items: center;
   gap: var(--pulso-space-1) var(--pulso-space-3);
   min-width: 0;
@@ -117,23 +120,32 @@
   min-width: 0;
 }
 
-.pulso-f6-dato .pulso-f6-dato-select {
-  /* max-content: con width:100% del input genérico el select se encogía dentro de la columna auto y cortaba su texto. */
-  width: max-content;
-  /* Un modo con nombre largo («Varias preguntas de la misma escala») se lee entero sin pisar el rótulo. Tope fijo: un
-     porcentaje aquí se resuelve contra la columna auto, que mide lo que mide el select, y lo encogía. */
-  max-width: 250px;
+/* W1B-C2: el control llena su columna (antes cada uno con su ancho: select a max-content con tope de 250, número de
+   100, paso de 64, corte de 76). El texto largo de un select se lee en su lista; el interruptor queda a la derecha. */
+.pulso-f6-dato > :is(.pulso-f6-dato-select, .pulso-f6-dato-numero, .pulso-f6-dato-accion, .pulso-f6-numero-fila, .pulso-f6-seg) {
+  justify-self: stretch;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
-.pulso-f6-dato-numero {
-  width: 100px;
-  min-width: 100px;
+.pulso-f6-dato > .pulso-switch {
+  justify-self: end;
 }
 
 .pulso-f6-dato-accion {
-  max-width: 100%;
   white-space: normal;
   text-align: left;
+}
+
+.pulso-f6-dato > .pulso-f6-seg {
+  display: flex;
+}
+
+.pulso-f6-dato > .pulso-f6-seg > .pulso-f6-seg-op {
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 /* Tarjeta de gráfico expandida: UNA superficie (cabecera + filas). */
@@ -360,7 +372,8 @@
 
 /* Cortes numéricos (CortesNumericos.tsx): un campo por corte, en fila. */
 .pulso-f6-cortes { display: flex; flex-wrap: wrap; gap: var(--pulso-space-2); }
-.pulso-f6-cortes .pulso-f6-cortes-campo { flex: 0 0 76px; width: 76px; text-align: center; font-variant-numeric: tabular-nums; }
+/* W1B-C2: los cortes se reparten el ancho de la fila en partes iguales (antes 76 px cada uno). */
+.pulso-f6-cortes .pulso-f6-cortes-campo { flex: 1 1 0; min-width: 7ch; width: auto; text-align: center; font-variant-numeric: tabular-nums; }
 
 /* Aviso de criterios del radar (NotaFormaRadar.tsx): se lee como advertencia, sin caja. */
 .pulso-f6-dato-ayuda.is-aviso { color: var(--pulso-warn-fg); }
@@ -378,17 +391,17 @@
   gap: var(--pulso-space-1, 4px);
 }
 
+/* W1B-C2: la cifra ocupa lo que dejan los dos pasos dentro de la columna de control (antes 64 px; «Automático», 13ch). */
 .pulso-f6-numero-fila .pulso-f6-dato-numero {
-  width: 64px;
-  min-width: 64px;
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
 
-/* «Espacio para las etiquetas» (U-c): vacío dice «Automático», que no cabe en los 64px de una cifra. */
-.pulso-f6-dato.is-automatico .pulso-f6-numero-fila .pulso-f6-dato-numero {
-  width: 13ch;
-  min-width: 13ch;
+.pulso-f6-numero-fila > .pulso-f6-numero-paso {
+  flex: none;
 }
 
 .pulso-f6-numero-paso:disabled {
