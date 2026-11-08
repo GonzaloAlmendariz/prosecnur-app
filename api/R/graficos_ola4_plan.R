@@ -539,7 +539,8 @@ p_barras_divergentes <- function(vars = NULL,
     reparto = reparto_visible,
     hubo_exclusion = hubo_exclusion,
     ref_escala = ref_escala,
-    escalas_armonizadas = unname(unlist(armonizadas))
+    escalas_armonizadas = unname(unlist(armonizadas)),
+    opciones_leyenda = opciones_e1
   )
 }
 
@@ -585,6 +586,7 @@ p_barras_divergentes <- function(vars = NULL,
     firma_leyenda = el$.firma_leyenda
   )
   for (av in .ola4_avisos_omitidas(tabla$omitidas)) .pulso_aviso(av)
+  for (av in .escala_arm_avisos_exclusion(.escala_arm_excluir_declaradas(base_preset, el), tabla$opciones_leyenda)) .pulso_aviso(av)
   if (is.null(tabla$data)) stop("La escala no deja ninguna pregunta que se pueda dibujar.", call. = FALSE)
 
   refs_filas <- tabla$data$categoria

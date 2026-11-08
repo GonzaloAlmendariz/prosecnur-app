@@ -323,8 +323,9 @@
                                               stringsAsFactors = FALSE)
     refs_tema[[tema]] <- tema
   }
-  list(indicadores = .regla_preguntas_rbind(filas), refs_por_tema = refs_tema, avisos = .regla_preguntas_avisos(motivos),
-       universo = "preguntas de escala", grupos_unidad = "públicos", firma_leyenda = firma)
+  list(indicadores = .regla_preguntas_rbind(filas), refs_por_tema = refs_tema,
+       avisos = c(.regla_preguntas_avisos(motivos), med$avisos), universo = "preguntas de escala", grupos_unidad = "públicos",
+       firma_leyenda = firma)
 }
 
 #' Tabla de indicadores de un elemento ya construido (`p_panorama`, `p_dumbbell`, `p_barras_divergentes`, `p_fortalezas`)

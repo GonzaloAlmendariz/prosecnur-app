@@ -19,7 +19,8 @@ source("setup-load-all.R")
   frec = c("Nunca", "Casi nunca", "Casi siempre", "Siempre", "Sin información"),
   lk2 = c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo", "No sabe", "No aplica"),
   sat2 = c("Muy insatisfecho", "Insatisfecho", "Satisfecho", "Muy satisfecho", "No sabe", "No aplica"),
-  sat_ns = c("Muy insatisfecho", "Insatisfecho", "Satisfecho", "Muy satisfecho", "No sabe")
+  sat_ns = c("Muy insatisfecho", "Insatisfecho", "Satisfecho", "Muy satisfecho", "No sabe"),
+  conf = c("Nada de confianza", "Poca confianza", "Bastante confianza", "Mucha confianza", "No sabe")
 )
 .ea_cod_fijos <- list(lk2 = c("1", "2", "3", "4", "98", "99"), sat2 = c("1", "2", "3", "4", "98", "99"))
 .ea_codigos <- function(lista) {
@@ -269,4 +270,44 @@ test_that("más de 20 filas: el conteo y el render avisan que la lámina nativa 
   expect_message(suppressWarnings(reporte_ppt_plan(data = src$data_sources, instrumento = src$inst_sources, plan = plan,
                                                    solo_lista = TRUE, mensajes_progreso = FALSE)),
                  "22 preguntas bajo 60%; la lámina nativa admite 20", fixed = TRUE)
+})
+
+# ---- Re-revisión de bd32813f0 --------------------------------------------------------------------------------------
+
+test_that("C1: si la leyenda es de frecuencia o de un tema no reconocido, sólo se junta su misma firma", {
+  skip_if_not_installed("ggplot2")
+  for (ley in c("frec", "preoc")) {
+    por <- stats::setNames(list(4L, 3L), c(ley, "sat"))
+    src <- .ea_fuentes(por)
+    el <- p_barras_divergentes(vars = "arte$*", estilo = "resumen", regla = list(tipo = "todas"))
+    r <- .regla_preguntas_de_elemento(el, src)
+    expect_identical(r$evaluacion$total, 4L, label = ley)
+    expect_true("3 preguntas quedan fuera: tienen otra escala que la mayoría, de tema no reconocido." %in% r$avisos, label = ley)
+    expect_false(any(grepl("^arte\\$sat_", r$vars)), label = ley)
+    e <- .ea_render(src, el)
+    expect_identical(e$categorias$rotulo[e$categorias$lado != "sin_inf"], .ea_listas[[ley]][1:4], label = ley)
+    expect_identical(e$nota_porcentaje, "Porcentaje sobre el total de respondientes.", label = ley)
+  }
+})
+
+test_that("C2: una exclusión que no está en la escala de la leyenda no se aplica y se avisa", {
+  aviso <- "La exclusión \"No sabe\" no está en la escala de la leyenda y no se aplica."
+  src <- .ea_fuentes(list(lk = 4L, conf = 3L))
+  el <- p_barras_divergentes(vars = "arte$*", estilo = "resumen", excluir_opciones = "No sabe", orden = "declarado",
+                             regla = list(tipo = "todas"))
+  r <- .regla_preguntas_de_elemento(el, src)
+  expect_identical(r$evaluacion$total, 7L)
+  expect_true(aviso %in% r$avisos)
+  skip_if_not_installed("ggplot2")
+  plan <- p_plan(slides = list(p_slide_1_grafico(el, titulo = "Escala")))
+  expect_message(out <- suppressWarnings(reporte_ppt_plan(data = src$data_sources, instrumento = src$inst_sources, plan = plan,
+                                                          solo_lista = TRUE, mensajes_progreso = FALSE)), aviso, fixed = TRUE)
+  e <- attr(out$rendered[[1]], "pulso_espec")
+  # No se aplica a ninguna fila: «No sabe» de confianza sigue en «Sin información», sobre 20.
+  si <- vapply(seq_along(e$filas), function(i) sum(e$unidades[i, e$categorias$lado == "sin_inf"]), numeric(1)) / 10^e$decimales
+  expect_true(all(si == 10))
+  expect_identical(e$nota_porcentaje, "Porcentaje sobre el total de respondientes; en confianza, de nada de confianza a mucha confianza.")
+  # Una exclusión que sí está en la leyenda no avisa.
+  expect_length(.escala_arm_avisos_exclusion("Sin información", lapply(seq_along(.ea_listas$lk), function(i)
+    list(codigo = .ea_codigos("lk")[i], etiqueta = .ea_listas$lk[i]))), 0L)
 })

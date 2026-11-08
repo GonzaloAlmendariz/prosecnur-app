@@ -81,7 +81,10 @@
 .escala_arm_motivo <- function(forma_ref, forma) {
   if (!identical(forma$k, forma_ref$k)) return("tienen otro número de opciones que la escala de la mayoría")
   # H2: el tema va antes que el sentido: «Muy grave … Nada grave» no es «sentido contrario», es otra escala.
-  if (is.na(forma$tema) || !forma$tema %in% .ESCALA_ARM_TEMAS_ALINEABLES) {
+  # Re-revisión de bd32813f0 (C1): la leyenda también tiene que ser de un tema alineable; si es de frecuencia o de un
+  # tema no reconocido, sólo se juntan las de su misma firma.
+  alineable <- function(f) !is.na(f$tema) && f$tema %in% .ESCALA_ARM_TEMAS_ALINEABLES
+  if (!alineable(forma) || !alineable(forma_ref)) {
     return("tienen otra escala que la mayoría, de tema no reconocido")
   }
   if (is.na(forma$sentido) || is.na(forma_ref$sentido)) return("tienen otra escala que la mayoría, de sentido no reconocido")
@@ -186,6 +189,30 @@
   textos <- unique(as.character(textos)); textos <- textos[!is.na(textos) & nzchar(textos)]
   if (!length(textos)) return(nota)
   paste0(sub("[.[:space:]]+$", "", nota), "; ", paste(textos, collapse = "; "), ".")
+}
+
+#' Exclusiones declaradas en la lámina (preset, tarjeta y constructor), sin los códigos especiales que se expanden
+#' @keywords internal
+.escala_arm_excluir_declaradas <- function(preset, el) {
+  .reporte_plan_excluir_opciones((preset %||% list())$excluir_opciones %||% NULL,
+                                 (el$overrides %||% list())$excluir_opciones %||% NULL, el$excluir_opciones %||% NULL)
+}
+
+#' Re-revisión de bd32813f0 (C2): una exclusión que no está en la escala de la leyenda no se aplica a ninguna fila
+#' (las alineadas heredan las de la leyenda, H4), y se avisa.
+#' @param declaradas Lo que la lámina declara excluir (`.escala_arm_excluir_declaradas`).
+#' @param opciones Lista `{codigo, etiqueta}` de la escala de la leyenda; sin ella (escala sin firma) no se avisa.
+#' @return Los avisos, uno por exclusión sin efecto.
+#' @keywords internal
+.escala_arm_avisos_exclusion <- function(declaradas, opciones) {
+  declaradas <- unique(trimws(as.character(unlist(declaradas %||% character(0)))))
+  declaradas <- declaradas[!is.na(declaradas) & nzchar(declaradas)]
+  if (!length(declaradas) || !length(opciones)) return(character(0))
+  et <- vapply(opciones, function(x) as.character(x$etiqueta)[1], character(1))
+  cd <- vapply(opciones, function(x) as.character(x$codigo)[1], character(1))
+  conocidas <- .reporte_plan_norm_option_alias(c(et, cd))
+  fuera <- declaradas[!.reporte_plan_norm_option_alias(declaradas) %in% conocidas]
+  sprintf("La exclusión \"%s\" no está en la escala de la leyenda y no se aplica.", fuera)
 }
 
 #' Forma de la escala de una tabla de frecuencias (sus opciones E1 y sus especiales, con el detector único)

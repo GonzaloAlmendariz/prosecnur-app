@@ -90,6 +90,7 @@
   args <- utils::modifyList(as.list(base_preset %||% list()), as.list(el$overrides %||% list()))
   dec <- suppressWarnings(as.integer(args$valores_decimales %||% 0L)[1]); if (!is.finite(dec) || dec < 0L) dec <- 0L
   list(excluir = .reporte_plan_excluir_cascada(base_preset, el$overrides %||% list(), el),
+       declaradas = .escala_arm_excluir_declaradas(base_preset, el),
        n_negativas = args$n_negativas, incluir_neutro = args$incluir_neutro %||% TRUE,
        direccion = args$direccion_escala %||% "negativo_positivo", decimales = dec)
 }
@@ -106,6 +107,7 @@
                             decimales = a$decimales, incluir_neutro = a$incluir_neutro, reparto_explicito = TRUE,
                             codigos = tabla$codigos_grupos, orden = "declarado")
   attr(esp, "omitidas") <- tabla$omitidas
+  attr(esp, "opciones_leyenda") <- tabla$opciones_leyenda
   esp
 }
 
@@ -127,10 +129,11 @@
     omitidas <- attr(esp, "omitidas", exact = TRUE) %||% list()
     motivos <- as.list(unname(unlist(omitidas)))
     validas <- setdiff(refs, names(omitidas))
-    if (!length(validas) || is.null(esp$categorias)) return(list(medidas = vacio, motivos = motivos))
+    avisos <- .escala_arm_avisos_exclusion(a$declaradas, attr(esp, "opciones_leyenda", exact = TRUE))   # C2
+    if (!length(validas) || is.null(esp$categorias)) return(list(medidas = vacio, motivos = motivos, avisos = avisos))
     lado <- esp$categorias$lado; U <- esp$unidades; k <- 10^esp$decimales
     list(medidas = data.frame(ref = validas, valor = esp$total_pos / k,
                               sin_info = rowSums(U[, lado == "sin_inf", drop = FALSE]) / k, stringsAsFactors = FALSE),
-         motivos = motivos)
+         motivos = motivos, avisos = avisos)
   })
 }
