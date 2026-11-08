@@ -531,6 +531,28 @@
   }
 }
 
+/* R9-6 (C1: un solo lateral): en el marco ancho la revisión entra en la columna del lateral, como Avisos, y la lámina se
+   re-encaja en lo que queda; antes flotaba encima y cortaba la hoja en x≈810. Estructura e Inspector miden 0 mientras
+   está abierta (lateralVisible). La lámina conserva al menos el 60 % del ancho a 1440. */
+@container pulso-f6-laminas (min-width: 1121px) {
+  .pulso-f6-laminas:has(> .pulso-sig-revision),
+  .pulso-f6-laminas.is-sin-estructura.is-sin-inspector:has(> .pulso-sig-revision) {
+    --pulso-revision-ancho: clamp(360px, 36cqi, 520px);
+    grid-template-columns: 0px minmax(0, 1fr) 0px var(--pulso-revision-ancho);
+  }
+
+  .pulso-f6-laminas > .pulso-sig-revision {
+    position: relative;
+    grid-column: 4;
+    grid-row: 1;
+    z-index: auto;
+    width: auto;
+    min-width: 0;
+    min-height: 0;
+    box-shadow: none;
+  }
+}
+
 .pulso-sig-revision-cuerpo {
   flex: 1;
   min-height: 0;

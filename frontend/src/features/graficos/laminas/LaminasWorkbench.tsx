@@ -13,7 +13,7 @@ import { conNivel } from "../../../lib/navegacion/direccion";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import { searchConPanel, searchSinPanel, usePanelDireccionable, type PanelDeclarado } from "../../../lib/navegacion/paneles";
 import { PANEL_EMPAREJADO } from "./emparejado/panelEmparejado";
-import { PANEL_AVISOS_INFORME, PANEL_ESTRUCTURA_LAMINAS, PANEL_INSPECTOR_LAMINA } from "../panelesGraficos";
+import { PANEL_AVISOS_INFORME, PANEL_DIFERENCIAS_INFORME, PANEL_ESTRUCTURA_LAMINAS, PANEL_INSPECTOR_LAMINA } from "../panelesGraficos";
 import { parseGraficosReportScope } from "../reportScope";
 import { leerSlideMeta } from "../slideMeta";
 import { SLIDE_GRAF_SLOTS, usePlanStore } from "../store";
@@ -85,6 +85,7 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
   const { issues } = usePlanValidator();
   const inspector = usePanelDireccionable(PANEL_INSPECTOR_LAMINA);
   const avisos = usePanelDireccionable(PANEL_AVISOS_INFORME);
+  const revisionDiferencias = usePanelDireccionable(PANEL_DIFERENCIAS_INFORME);
   const colores = useColoresPendientes();
   const coloresPendientes = { laminas: new Set(colores.pendientes.map((p) => p.slideId)).size, completar: colores.completar };
   const baseImplicita = useFijarBase();
@@ -175,7 +176,8 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
   const lateral = resolucion.lateral;
   // C1 del acabado (2026-11-08): un solo lateral. Avisos reemplaza al Inspector Y a la Estructura mientras está abierto;
   // al cerrarlo, el recordado vuelve (lateralLaminas.ts).
-  const visible = lateralVisible(lateral, avisos.abierto);
+  // R9-6: la revisión de diferencias también reemplaza al lateral (antes se montaba encima y cortaba la lámina).
+  const visible = lateralVisible(lateral, avisos.abierto || revisionDiferencias.abierto);
   useEffect(() => {
     if (resolucion.actualizarPreferencia) setLateralPreferido(lateral);
     if (resolucion.escribirEnUrl && lateral) {

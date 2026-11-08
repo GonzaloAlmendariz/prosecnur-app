@@ -33,8 +33,14 @@ describe("ronda 5: geometría en CSS", () => {
     const css = leer("panelAvisos.css");
     expect(css).not.toMatch(/var\(--pulso-inspector-ancho\)\s+var\(--pulso-avisos-ancho\)/);
     const tsx = leer("LaminasWorkbench.tsx");
-    expect(tsx).toContain("lateralVisible(lateral, avisos.abierto)");
+    expect(tsx).toContain("lateralVisible(lateral, avisos.abierto || revisionDiferencias.abierto)");
     expect(tsx).not.toMatch(/className=\{`pulso-f6-laminas\$\{lateral ===/);
+  });
+
+  it("R9-6: la revisión de diferencias reemplaza al lateral en su columna, no flota sobre la lámina", () => {
+    const css = leer("diferencias/diferencias.css");
+    expect(css).toMatch(/\.pulso-f6-laminas:has\(> \.pulso-sig-revision\)[\s\S]{0,200}grid-template-columns: 0px minmax\(0, 1fr\) 0px var\(--pulso-revision-ancho\)/);
+    expect(css).toMatch(/\.pulso-f6-laminas > \.pulso-sig-revision \{[^}]*position: relative;[^}]*grid-column: 4;/);
   });
 
   it("R7-2: el chip «Actualizando» vive en la barra del visor, no sobre la hoja", () => {

@@ -38,6 +38,7 @@ export function resolverLateral(panelUrl: string | null | undefined, preferido: 
  * 60 % del ancho útil. Con Avisos abierto no se ve ningún otro lateral; la preferencia sigue en la sesión, así que al
  * cerrar Avisos el lateral recordado vuelve.
  */
-export function lateralVisible(lateral: Lateral | null, avisosAbierto: boolean): Lateral | null {
-  return avisosAbierto ? null : lateral;
+export function lateralVisible(lateral: Lateral | null, otroPanelAbierto: boolean): Lateral | null {
+  // R9-6: «otro panel» es Avisos o la Revisión de diferencias; los dos ocupan la columna del lateral.
+  return otroPanelAbierto ? null : lateral;
 }
