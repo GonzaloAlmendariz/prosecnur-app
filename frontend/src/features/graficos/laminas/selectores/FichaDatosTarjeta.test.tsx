@@ -45,6 +45,11 @@ describe("FichaDatosTarjeta", () => {
     expect(lista.getAttribute("data-qa-geometry-group")).toBe("graficos/f6-ficha-datos");
     expect(lista.getAttribute("data-qa-geometry-contract")).toBe("intrinsic");
     expect(lista.querySelectorAll(":scope > [data-qa-geometry-member]")).toHaveLength(3);
+    // R5-9 (C1): los públicos son su propio grupo intrínseco, con cada chip como miembro.
+    const publicos = fila("publicos")!.querySelector("ul")!;
+    expect(publicos.getAttribute("data-qa-geometry-group")).toBe("graficos/f6-ficha-publicos");
+    expect(publicos.getAttribute("data-qa-geometry-contract")).toBe("intrinsic");
+    expect(publicos.querySelectorAll(":scope > li.is-publico[data-qa-geometry-member]")).toHaveLength(2);
   });
 
   it("S1: el contraste con un solo público dice «Varios» y avisa en una línea", () => {

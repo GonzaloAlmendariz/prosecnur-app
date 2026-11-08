@@ -35,4 +35,19 @@ describe("título que va a salir", () => {
     const enBlanco = { ...escala, payload: { ...escala.payload, meta: { nombre: "  " } } } as Slide;
     expect(nombreEnEstructura(enBlanco, v, "Un gráfico")).toBe("Panorama de públicos");
   });
+  test("R5-6: sin título escrito, el nombre del mazo gana sobre el respaldo de su primera pregunta", () => {
+    const escala = {
+      id: "i", tipo: "p_slide_1_grafico",
+      payload: { titulo: "", meta: { nombre: "Escala bajo 60%, Docentes" }, grafico: { graficador: "p_barras_categoricas", args: { var: "docentes$p3" } } },
+    } as Slide;
+    // El respaldo («¿Cuál es su género?») ya no se presenta como su título ni la nombra en la Estructura.
+    expect(tituloQueSale(escala, v, "Un gráfico")).toBe("");
+    expect(nombreEnEstructura(escala, v, "Un gráfico")).toBe("Escala bajo 60%, Docentes");
+    // Con título escrito, manda el escrito.
+    const conTitulo = { ...escala, payload: { ...escala.payload, titulo: "Clima" } } as Slide;
+    expect(tituloQueSale(conTitulo, v, "Un gráfico")).toBe("Clima");
+    // Sin nombre del mazo, el respaldo de siempre.
+    const sinNombre = { ...escala, payload: { ...escala.payload, meta: {} } } as Slide;
+    expect(tituloQueSale(sinNombre, v, "Un gráfico")).toBe("¿Cuál es su género?");
+  });
 });

@@ -6,7 +6,8 @@
 
 import { useEffect, useMemo, useRef, type CSSProperties, type ReactNode } from "react";
 import { DndContext } from "@dnd-kit/core";
-import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { SortableContext, useSortable } from "@dnd-kit/sortable";
+import { ladoInsercion, sinDesplazar } from "./indicadorInsercion";
 import { CSS } from "@dnd-kit/utilities";
 import { ChevronRight, PanelLeftClose, Presentation, Search, SearchX } from "../../../vendor/lucide-react";
 import { IconoTipo } from "../iconos/IconoTipo";
@@ -127,7 +128,7 @@ export function EstructuraInforme({ onCerrar, acciones, estructura, posicionActi
           <EstadoVacio icono={<SearchX size={16} aria-hidden="true" />} titulo={`Ninguna lámina coincide con «${consulta.trim()}»`} />
         ) : (
           <DndContext {...orden}>
-            <SortableContext items={visibles} strategy={verticalListSortingStrategy}>
+            <SortableContext items={visibles} strategy={sinDesplazar}>
               <ul className="pulso-f6-arbol" data-qa-geometry-group="graficos/f6-estructura-nodos" data-qa-geometry-contract="intrinsic">
                 {nodos.map((nodo) => (
                   <NodoArbol
@@ -214,13 +215,15 @@ function FilaLamina({ lamina, activa, sangria, resumen, validacion, onSelecciona
     : lamina.ranuras === 0 && lamina.titulo === lamina.tipoLabel
       ? rolDeEstructura(lamina.tipo)   // sin título propio, el tipo ya es el título: debajo, su papel en el informe
       : lamina.tipoLabel;
-  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: lamina.id });
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging, index, activeIndex, overIndex } = useSortable({ id: lamina.id });
   const estilo: CSSProperties = { transform: CSS.Translate.toString(transform), transition };
+  // R5-7: las vecinas no se corren; la fila de destino marca dónde entra la lámina.
+  const lado = ladoInsercion(index, activeIndex, overIndex);
   return (
     <li
       ref={setNodeRef}
       style={estilo}
-      className={`pulso-f6-fila-ordenable is-sangria-${sangria}${isDragging ? " is-arrastrando" : ""}`}
+      className={`pulso-f6-fila-ordenable is-sangria-${sangria}${isDragging ? " is-arrastrando" : ""}${lado ? ` is-destino-${lado}` : ""}`}
       data-qa-geometry-member
     >
       <AsaLamina ref={setActivatorNodeRef} donde="estructura" etiqueta={`Mover ${nombreParaMover(lamina)}`} {...attributes} {...listeners} />

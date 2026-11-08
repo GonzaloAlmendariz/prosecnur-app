@@ -7,7 +7,8 @@
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { DndContext } from "@dnd-kit/core";
-import { horizontalListSortingStrategy, SortableContext, useSortable } from "@dnd-kit/sortable";
+import { SortableContext, useSortable } from "@dnd-kit/sortable";
+import { ladoInsercion, sinDesplazar } from "./indicadorInsercion";
 import { CSS } from "@dnd-kit/utilities";
 import { RotateCw } from "../../../vendor/lucide-react";
 import { usePlanStore } from "../store";
@@ -72,7 +73,7 @@ export function TiraMiniaturas({ estructura, posicionActiva, onIr }: Props) {
       {/* La región viva va FUERA del nav con aria-busy: varios lectores callan las regiones bajo un ancestro ocupado. */}
       <span className="pulso-sr-only" role="status">{visible ? anuncio.current.texto : ""}</span>
       <DndContext {...orden}>
-      <SortableContext items={ids} strategy={horizontalListSortingStrategy}>
+      <SortableContext items={ids} strategy={sinDesplazar}>
       <nav
         ref={ref}
         className="pulso-f6-tira"
@@ -142,10 +143,12 @@ export function TiraMiniaturas({ estructura, posicionActiva, onIr }: Props) {
 
 /** Una miniatura ordenable: el `li` se desplaza (sólo transform) y el asa es lo único que inicia el arrastre. */
 function ItemTira({ lamina, children }: { lamina: LaminaEnEstructura; children: ReactNode }) {
-  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: lamina.id });
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging, index, activeIndex, overIndex } = useSortable({ id: lamina.id });
   const estilo: CSSProperties = { transform: CSS.Translate.toString(transform), transition };
+  // R5-7: las vecinas no se corren por debajo de las cabeceras de grupo; la de destino marca dónde entra.
+  const lado = ladoInsercion(index, activeIndex, overIndex);
   return (
-    <li ref={setNodeRef} style={estilo} className={`pulso-f6-tira-item${isDragging ? " is-arrastrando" : ""}`} data-qa-geometry-member>
+    <li ref={setNodeRef} style={estilo} className={`pulso-f6-tira-item${isDragging ? " is-arrastrando" : ""}${lado ? ` is-destino-${lado}` : ""}`} data-qa-geometry-member>
       {children}
       <AsaLamina ref={setActivatorNodeRef} donde="tira" etiqueta={`Mover ${nombreParaMover(lamina)}`} {...attributes} {...listeners} />
     </li>

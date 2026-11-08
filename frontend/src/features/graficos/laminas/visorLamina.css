@@ -118,11 +118,12 @@
 
 /* Hallazgo 7 (auditoría de Arte): mientras llega la vista previa nueva, la anterior se queda NÍTIDA y un chip pequeño en
    la esquina dice «Actualizando». Antes la hoja entera se desenfocaba en cada cambio y no se podía leer. El chip espera
-   150 ms para no asomar en respuestas rápidas. La piel es la del chip de estado de la barra (`.pulso-f6-chip-estado`). */
+   150 ms para no asomar en respuestas rápidas. La piel es la del chip de estado de la barra (`.pulso-f6-chip-estado`).
+   R5-8: en la esquina inferior izquierda; arriba a la derecha tapaba el logo de la plantilla. */
 .pulso-f6-hoja-actualizando {
   position: absolute;
-  top: var(--pulso-space-2);
-  right: var(--pulso-space-2);
+  bottom: var(--pulso-space-2);
+  left: var(--pulso-space-2);
   z-index: 2;
   box-shadow: var(--pulso-shadow-low);
   pointer-events: none;

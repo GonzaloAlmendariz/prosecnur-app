@@ -66,10 +66,12 @@ export function FichaDatosTarjeta({ usa, inventario, grupo, difiere }: Props) {
             <span className="pulso-f6-datos-cuantos" data-publicos={usa.publicos}>{ROTULO_PUBLICOS[usa.publicos]}</span>
             {usa.padron && <span className="pulso-f6-chip pulso-f6-dato-chip is-secundario" data-padron="">Usa padrón</span>}
             {cruce && cruce.publicos.length > 0 && (
-              <ul className="pulso-f6-datos-chips" aria-label="Públicos del estudio">
+              // R5-9 (C1): los públicos son un grupo intrínseco; cada chip mide lo que su nombre y su n.
+              <ul className="pulso-f6-datos-chips" aria-label="Públicos del estudio"
+                data-qa-geometry-group={`graficos/f6-ficha-publicos${grupo ? `-${grupo}` : ""}`} data-qa-geometry-contract="intrinsic">
                 {cruce.publicos.map((p) => (
                   <li key={p.base} className="pulso-f6-chip pulso-f6-dato-chip is-publico" data-base={p.base}
-                    data-sin-preguntas={p.preguntas === 0 ? "" : undefined}>
+                    data-sin-preguntas={p.preguntas === 0 ? "" : undefined} data-qa-geometry-member>
                     {p.publico}
                     <span className="pulso-f6-dato-n">n = {formatoConteo(p.n)}</span>
                   </li>

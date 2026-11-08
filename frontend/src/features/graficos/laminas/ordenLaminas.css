@@ -71,9 +71,15 @@
   }
 
   .pulso-f6-fila-ordenable:hover .pulso-f6-lamina-pos,
-  .pulso-f6-fila-ordenable:focus-within .pulso-f6-lamina-pos,
+  .pulso-f6-fila-ordenable:has(> .pulso-f6-lamina:focus-visible) .pulso-f6-lamina-pos,
   .pulso-f6-fila-ordenable.is-arrastrando .pulso-f6-lamina-pos {
     visibility: hidden;
+  }
+
+  /* R5-10: soltada la lámina, el foco se queda en el asa. Sin puntero encima ni arrastre en curso, el número (su lugar
+     nuevo) se ve dentro del anillo de foco del asa en vez del glifo, que lo tapaba. */
+  .pulso-f6-fila-ordenable:not(:hover):not(.is-arrastrando) > .pulso-f6-asa-lamina.is-estructura:focus > svg {
+    opacity: 0;
   }
 }
 
@@ -96,6 +102,51 @@
 
 .pulso-f6-tira-item.is-arrastrando > .pulso-f6-miniatura {
   box-shadow: var(--pulso-shadow-med);
+}
+
+/* R5-7: las vecinas no se desplazan (indicadorInsercion.ts); la fila de destino marca con una línea del acento dónde
+   entra la lámina: arriba o abajo en la Estructura, a la izquierda o a la derecha en la tira. La línea va encima, sin
+   cambiar el marco de la fila (C2). */
+.pulso-f6-fila-ordenable.is-destino-antes::before,
+.pulso-f6-fila-ordenable.is-destino-despues::after,
+.pulso-f6-tira-item.is-destino-antes::before,
+.pulso-f6-tira-item.is-destino-despues::after {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  border-radius: 1px;
+  background: var(--module-accent);
+  pointer-events: none;
+}
+
+.pulso-f6-fila-ordenable.is-destino-antes::before,
+.pulso-f6-fila-ordenable.is-destino-despues::after {
+  left: var(--pulso-space-1);
+  right: var(--pulso-space-1);
+  height: 2px;
+}
+
+.pulso-f6-fila-ordenable.is-destino-antes::before {
+  top: -1px;
+}
+
+.pulso-f6-fila-ordenable.is-destino-despues::after {
+  bottom: -1px;
+}
+
+.pulso-f6-tira-item.is-destino-antes::before,
+.pulso-f6-tira-item.is-destino-despues::after {
+  top: 0;
+  bottom: 0;
+  width: 2px;
+}
+
+.pulso-f6-tira-item.is-destino-antes::before {
+  left: calc(-1 * var(--pulso-space-1) - 1px);
+}
+
+.pulso-f6-tira-item.is-destino-despues::after {
+  right: calc(-1 * var(--pulso-space-1) - 1px);
 }
 
 /* Movimiento reducido: las vecinas saltan a su lugar sin deslizarse. La transición la escribe dnd-kit en línea; por
