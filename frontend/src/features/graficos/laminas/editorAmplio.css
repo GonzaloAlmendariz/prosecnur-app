@@ -40,3 +40,8 @@
   overflow-x: hidden;
   padding: var(--pulso-space-3) var(--pulso-space-4);
 }
+
+/* Acabado W2-A: la cabecera es CabeceraPanel (título y X en la misma línea); no cede alto. */
+.pulso-f6-editor-amplio > .pulso-f6-editor-amplio-cabecera {
+  flex: none;
+}
