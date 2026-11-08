@@ -38,7 +38,7 @@
 #'
 #' `filas` = índices de la especificación, en el orden en que se dibujan.
 #' @keywords internal
-.lam_likert_panel <- function(lz, espec, x, y, w, filas, g = 0.34, fila = 0.66, wlab = 1.45, size_lab = 11) {
+.lam_likert_panel <- function(lz, espec, x, y, w, filas, g = 0.34, fila = 0.66, wlab = 1.45, size_lab = 11, altos = NULL) {
   ttb_col <- !is.null(espec$box$unidades)
   verde <- .std_color("verde_top_two_box")
   wttb <- if (ttb_col) .std_geom("columna_top_two_box") else 0
@@ -55,7 +55,10 @@
   if (any(vapply(filas, function(i) .lam_tiene_peq(.lam_escala_seg(espec, i), wb), TRUE)) && fila - g < .std_geom("aire_cifra_chica")) {
     fila <- g + .std_geom("aire_cifra_chica")
   }
-  for (i in filas) {
+  # G2 (ola 2): `altos` da el alto de cada fila (el rótulo envuelto manda si es más alto que la fila; lamina_paneles_vertical_alto.R).
+  altos <- if (length(altos) == length(filas)) pmax(altos, fila) else rep(fila, length(filas))
+  for (j in seq_along(filas)) {
+    i <- filas[[j]]; fila <- altos[j]
     yb <- yy + (fila - g) / 2 + 0.05
     lab <- espec$filas$rotulo[i]; h <- .lam_alto_txt(lab, wlab, size_lab, TRUE)
     .lam_txt(lz, lab, x, yb + g / 2 - h / 2, wlab, h, size_lab, .std_color("azul"), bold = TRUE, align = "right", nombre = "panel:rotulo")
@@ -122,15 +125,17 @@
                                   layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
   force(folio)
   g_ <- .std_geom; ml <- g_("margen_izq"); w <- g_("ancho") - ml - g_("margen_der")
-  geo <- .lam_vertical_geo(especs)
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante)
   lz <- .lam_lienzo()
-  y <- g_("zona_datos_y0") - 0.05
+  # G1/G2 (ola 2): el alto libre se reparte y cada fila mide al menos su rótulo (lamina_paneles_vertical_alto.R).
+  pl <- .lam_vertical_plan(especs, preguntas)
+  y <- pl$y0
   for (k in seq_along(especs)) {
-    if (k > 1) y <- y + 0.2
-    .lam_panel_titulo(lz, ml, y, w, preguntas[[k]])
-    y <- .lam_likert_panel(lz, especs[[k]], ml, y + 0.4, w, especs[[k]]$orden$aplicado, g = geo$g, fila = geo$fila, wlab = 1.6)
+    if (k > 1) y <- y + pl$gap
+    if (pl$pregunta_alto[k] > 0) .lam_panel_titulo(lz, ml, y, w, preguntas[[k]])
+    y <- .lam_likert_panel(lz, especs[[k]], ml, y + pl$pregunta_alto[k], w, especs[[k]]$orden$aplicado, g = pl$g, fila = pl$fila,
+                           wlab = pl$wlab, size_lab = pl$size_lab, altos = pl$altos[[k]])
   }
   e1 <- especs[[1]]; ley <- e1$leyenda
   .lam_leyenda(lz, y + 0.02, e1$categorias$rotulo[ley], e1$categorias$color[ley], centrar_en = g_("ancho") / 2)

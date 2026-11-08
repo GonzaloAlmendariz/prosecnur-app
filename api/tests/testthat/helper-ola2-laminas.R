@@ -140,3 +140,26 @@
     inferior_izquierda = p_barras_agrupadas(var = "doc$sx"), inferior_derecha = p_barras_agrupadas(var = "doc$p18")))
   .ola2_pptx(fx, sl)
 }
+
+# G1/G2 (captura «H. 2 vertical multiapilada SIN INF»): dos multiapiladas por variables en vertical, la segunda con
+# enunciados largos como los de la captura (sus filas son las preguntas; los bloques no llevan pregunta propia).
+.ola2_vertical_largos <- function() {
+  set.seed(3)
+  lk <- function(p) sample(c("1", "2", "3", "4", "9"), 120, TRUE, prob = p)
+  d <- data.frame(a1 = lk(c(.03, .03, .53, .37, .04)), a2 = lk(c(.03, .08, .75, .09, .05)),
+                  b1 = lk(c(.01, .02, .44, .49, .04)), b2 = lk(c(.01, .05, .52, .38, .04)), stringsAsFactors = FALSE)
+  survey <- data.frame(name = c("a1", "a2", "b1", "b2"), type = "select_one lk", list_name = "lk",
+    label = c("Existe un buen clima laboral en la Unidad.", "El reglamento de la carrera profesoral es pertinente.",
+              "Existen mecanismos periódicos de evaluación docente (encuestas) para valorar la calidad del desempeño docente.",
+              "Las evaluaciones de los(as) estudiantes a los(as) docentes (encuestas) son útiles y contemplan los aspectos centrales de la labor docente."),
+    stringsAsFactors = FALSE)
+  choices <- data.frame(list_name = "lk", name = c("1", "2", "3", "4", "9"),
+                        label = c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo", "SIN INF"),
+                        stringsAsFactors = FALSE)
+  fx <- list(data = list(doc = d), inst = list(doc = .ola2_instrumento(survey, choices)))
+  t2 <- list(top2box_labels = c("De acuerdo", "Totalmente de acuerdo"))
+  .ola2_pptx(fx, list(p_slide_2_graficos_vertical(
+    titulo = "Dos multiapiladas en vertical",
+    superior = p_barras_multiapiladas(modo = "var", vars = c("doc$a1", "doc$a2"), overrides = t2),
+    inferior = p_barras_multiapiladas(modo = "var", vars = c("doc$b1", "doc$b2"), overrides = t2))))
+}
