@@ -23,12 +23,13 @@
 /* Sin cifra de referencia (la lámina la calcula): sólo «Auto»; el número vuelve al mover la pista. */
 .pulso-f6-numdesl.is-sin-cifra .pulso-f6-regla-numero { visibility: hidden; }
 
+/* «Auto» sin marco propio (una píldora de fondo, no una caja): marcado, en el tono del módulo; si no, un texto que vuelve. */
 .pulso-f6-numdesl-vacio {
   height: 22px;
   padding: 0 var(--pulso-space-2);
-  border: 1px solid var(--pulso-border);
+  border: 0;
   border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface);
+  background: transparent;
   color: var(--pulso-text-soft);
   font: inherit;
   font-size: var(--pulso-type-caption-size);
@@ -36,7 +37,6 @@
 }
 
 .pulso-f6-numdesl-vacio[aria-pressed="true"] {
-  border-color: var(--module-accent);
   background: var(--module-accent-soft);
   color: var(--module-accent);
   font-weight: var(--pulso-weight-semibold);
@@ -51,5 +51,5 @@
 }
 
 @media (hover: hover) {
-  .pulso-f6-numdesl-vacio[aria-pressed="false"]:hover { border-color: var(--pulso-border-strong); }
+  .pulso-f6-numdesl-vacio[aria-pressed="false"]:hover { color: var(--module-accent); text-decoration: underline; }
 }

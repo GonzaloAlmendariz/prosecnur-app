@@ -2,6 +2,8 @@
 // ajustes de adentro son propios de este gráfico (distintos de los de su tipo), para saber sin abrirla si hay algo que
 // mirar. Sale de los `propios` de DatosGrafico agrupados por sección (gruposTarjeta.ts). Puro.
 
+import { formatoConteo } from "../../../../lib/formatoNumero";
+
 export type ResumenPlegado = { texto: string; detalle: string };
 
 /** Un rótulo corto se nombra («Redondeo propio»); uno largo o varios, se cuentan («2 propios»). */
@@ -12,5 +14,5 @@ export function resumenPlegado(rotulos: readonly string[]): ResumenPlegado | nul
   if (!unicos.length) return null;
   const detalle = `Sólo de este gráfico: ${unicos.join(", ")}.`;
   if (unicos.length === 1) return { texto: unicos[0].length <= NOMBRABLE ? `${unicos[0]} propio` : "1 propio", detalle };
-  return { texto: `${unicos.length} propios`, detalle };
+  return { texto: `${formatoConteo(unicos.length)} propios`, detalle };
 }
