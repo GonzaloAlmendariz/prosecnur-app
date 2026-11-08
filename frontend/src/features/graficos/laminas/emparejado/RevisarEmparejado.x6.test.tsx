@@ -65,7 +65,7 @@ beforeEach(() => {
   document.body.appendChild(host);
   root = createRoot(host);
   ultimoPatch = null;
-  useEmparejadoUi.setState({ filtro: "todas", descartadas: {}, buscando: null, activa: null, guardado: { fase: "inactivo" } });
+  useEmparejadoUi.setState({ filtro: "todas", coincidencia: "todas", descartadas: {}, buscando: null, activa: null, guardado: { fase: "inactivo" } });
 });
 
 afterEach(() => {
@@ -122,5 +122,26 @@ describe("evidencia del par", () => {
     expect(useEmparejadoUi.getState().activa).toBe("docentes$p5");
     expect(evidencia()?.textContent).toContain("Sin par");
     expect(evidencia()?.querySelectorAll("mark")).toHaveLength(0);
+  });
+});
+
+describe("filtro por coincidencia", () => {
+  const radios = (grupo: string) =>
+    [...document.querySelectorAll<HTMLButtonElement>(`[role='radiogroup'][aria-label='${grupo}'] [role='radio']`)];
+
+  it("cuatro segmentos con su conteo", () => {
+    abrir();
+    expect(radios("Coincidencia del par").map((b) => b.textContent)).toEqual(["Todas (5)", "Idéntico (2)", "Parecido (1)", "Distinto (1)"]);
+  });
+
+  it("un segmento acota las filas y el filtro por estado recalcula los conteos", async () => {
+    abrir();
+    await clic(radios("Coincidencia del par").find((b) => b.textContent?.startsWith("Idéntico")));
+    expect(filas().map(chipDe)).toEqual(["Idéntico", "Idéntico"]);
+    await clic(radios("Coincidencia del par").find((b) => b.textContent?.startsWith("Distinto")));
+    expect(filas().map((tr) => tr.textContent?.includes("eficazmente"))).toEqual([true]);
+    await clic(radios("Qué preguntas mostrar").find((b) => b.textContent?.startsWith("Sin par")));
+    expect(radios("Coincidencia del par").map((b) => b.textContent)).toEqual(["Todas (1)", "Idéntico (0)", "Parecido (0)", "Distinto (0)"]);
+    expect(document.querySelector(".pulso-table-vacio")?.textContent).toBe("Ningún par distinto.");
   });
 });

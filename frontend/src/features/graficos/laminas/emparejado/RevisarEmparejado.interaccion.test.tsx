@@ -74,7 +74,7 @@ beforeEach(() => {
   api.guardadas = [];
   avisos.exito = [];
   ultimoPatch = null;
-  useEmparejadoUi.setState({ filtro: "todas", descartadas: {}, buscando: null, guardado: { fase: "inactivo" } });
+  useEmparejadoUi.setState({ filtro: "todas", coincidencia: "todas", descartadas: {}, buscando: null, activa: null, guardado: { fase: "inactivo" } });
 });
 
 afterEach(() => {

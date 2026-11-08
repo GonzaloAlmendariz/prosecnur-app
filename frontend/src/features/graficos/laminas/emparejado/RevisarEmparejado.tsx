@@ -18,7 +18,10 @@ import { toast } from "../../../../components/toasterStore";
 import { formatoConteo } from "../../../../lib/formatoNumero";
 import { nombrePublico, type TemaPublicos } from "../../multiapiladas/temasPublicos";
 import { Segmentado } from "../../subpestanas/Segmentado";
-import { coincidenciasDe } from "./coincidencia";
+import {
+  COINCIDENCIAS, coincidenciasDe, contarCoincidencias, filtrarPorCoincidencia, ROTULO_COINCIDENCIA, rotuloFiltroCoincidencia,
+  type FiltroCoincidencia,
+} from "./coincidencia";
 import { EvidenciaPar } from "./EvidenciaPar";
 import { useEmparejadoUi } from "./emparejadoStore";
 import {
@@ -46,6 +49,7 @@ type Props = {
 };
 
 const FILTROS: readonly FiltroEmparejado[] = ["todas", "por_confirmar", "sin_par"];
+const FILTROS_COINCIDENCIA: readonly FiltroCoincidencia[] = ["todas", ...COINCIDENCIAS];
 
 const VACIO_FILTRO: Record<FiltroEmparejado, string> = {
   todas: "Sin preguntas de escala.",
@@ -71,7 +75,9 @@ function enfocarAcciones(claves: readonly string[]) {
 export function RevisarEmparejado({ bases, basesEstudio, remoto, recargar, filas, conteo, temas, fuentes, onTemas, retorno }: Props) {
   const ui = useEmparejadoUi();
   const coincidencias = coincidenciasDe(filas);
-  const visibles = filtrarFilas(filas, ui.filtro);
+  const porEstado = filtrarFilas(filas, ui.filtro);
+  const conteoCoincidencia = contarCoincidencias(porEstado, coincidencias);
+  const visibles = filtrarPorCoincidencia(porEstado, coincidencias, ui.coincidencia);
   // La fila activa sólo cuenta mientras se ve: un filtro que la esconde también esconde su evidencia.
   const activa = visibles.find((f) => f.clave === ui.activa) ?? null;
   const ocupadas = preguntasOcupadas(filas);
@@ -149,7 +155,7 @@ export function RevisarEmparejado({ bases, basesEstudio, remoto, recargar, filas
     <TablaEmparejado
       filas={visibles}
       bases={bases}
-      vacio={VACIO_FILTRO[ui.filtro]}
+      vacio={ui.coincidencia === "todas" ? VACIO_FILTRO[ui.filtro] : `Ningún par ${ROTULO_COINCIDENCIA[ui.coincidencia].toLowerCase()}.`}
       coincidencias={coincidencias}
       buscando={ui.buscando}
       activa={activa?.clave ?? null}
@@ -184,12 +190,20 @@ export function RevisarEmparejado({ bases, basesEstudio, remoto, recargar, filas
       className="pulso-f6-emp"
       flush
       stepper={lista && filas.length > 0 ? (
-        <Segmentado
-          etiqueta="Qué preguntas mostrar"
-          opciones={FILTROS.map((clave) => ({ clave, rotulo: rotuloFiltro(clave, conteo) }))}
-          valor={ui.filtro}
-          onCambiar={ui.filtrar}
-        />
+        <div className="pulso-f6-emp-filtros">
+          <Segmentado
+            etiqueta="Qué preguntas mostrar"
+            opciones={FILTROS.map((clave) => ({ clave, rotulo: rotuloFiltro(clave, conteo) }))}
+            valor={ui.filtro}
+            onCambiar={ui.filtrar}
+          />
+          <Segmentado
+            etiqueta="Coincidencia del par"
+            opciones={FILTROS_COINCIDENCIA.map((clave) => ({ clave, rotulo: rotuloFiltroCoincidencia(clave, conteoCoincidencia) }))}
+            valor={ui.coincidencia}
+            onCambiar={ui.filtrarCoincidencia}
+          />
+        </div>
       ) : undefined}
       footerStatus={estadoPie}
       footer={guardado.fase === "confirmar" ? (

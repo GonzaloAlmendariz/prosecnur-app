@@ -191,3 +191,12 @@
 .pulso-f6-emp-tabla {
   min-width: 0;
 }
+
+/* Los dos filtros en la banda del stepper: estado y coincidencia, que se parten en dos líneas si no caben. */
+.pulso-f6-emp-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2) var(--pulso-space-4);
+  min-width: 0;
+}
