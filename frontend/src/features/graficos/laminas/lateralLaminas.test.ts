@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolverLateral } from "./lateralLaminas";
+import { lateralVisible, resolverLateral } from "./lateralLaminas";
 
 describe("resolverLateral", () => {
   it("la URL manda y pone al día la preferencia", () => {
@@ -13,5 +13,16 @@ describe("resolverLateral", () => {
   it("un panel ajeno (avisos, biblioteca) no cierra el lateral recordado", () => {
     expect(resolverLateral("biblioteca-graficadores", "inspector")).toEqual({ lateral: "inspector", escribirEnUrl: false, actualizarPreferencia: false });
     expect(resolverLateral("avisos", "estructura").lateral).toBe("estructura");
+  });
+});
+
+describe("lateralVisible (R7-3)", () => {
+  it("con Avisos abierto el Inspector no se ve; al cerrarlo vuelve", () => {
+    expect(lateralVisible("inspector", true)).toBeNull();
+    expect(lateralVisible("inspector", false)).toBe("inspector");
+  });
+  it("la Estructura convive con Avisos", () => {
+    expect(lateralVisible("estructura", true)).toBe("estructura");
+    expect(lateralVisible(null, true)).toBeNull();
   });
 });

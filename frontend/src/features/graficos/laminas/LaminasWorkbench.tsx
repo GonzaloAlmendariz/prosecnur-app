@@ -34,7 +34,7 @@ import { useVariables } from "../useVariables";
 import { focoDeId, resolverFocoLamina } from "../focoLamina";
 import { useLaminasUi } from "./laminasStore";
 import { reconciliarSeleccion, vecinaAlEliminar } from "./seleccionLamina";
-import { esLateral, resolverLateral, type Lateral } from "./lateralLaminas";
+import { esLateral, lateralVisible, resolverLateral, type Lateral } from "./lateralLaminas";
 import { useAnchoCompacto, useSideoverModal } from "./useSideoverModal";
 import { useReencajeLienzo } from "./useReencajeLienzo";
 import { AccionesLamina } from "./AccionesLamina";
@@ -172,6 +172,8 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
   // Estructura ⇄ Inspector (excluyentes): la URL dice cuál, la sesión lo recuerda. Ver lateralLaminas.ts.
   const resolucion = resolverLateral(direccion.panel, lateralPreferido);
   const lateral = resolucion.lateral;
+  // R7-3: Avisos reemplaza al Inspector mientras está abierto; al cerrarlo, el recordado vuelve (lateralLaminas.ts).
+  const visible = lateralVisible(lateral, avisos.abierto);
   useEffect(() => {
     if (resolucion.actualizarPreferencia) setLateralPreferido(lateral);
     if (resolucion.escribirEnUrl && lateral) {
@@ -185,7 +187,8 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
     setLateralPreferido(l);
     navigate({ pathname: location.pathname, search: searchConLateral(location.search, l) }, { replace: true });
   }, [location.pathname, location.search, navigate, searchConLateral, setLateralPreferido]);
-  const alternarLateral = useCallback((l: Lateral) => ponerLateral(lateral === l ? null : l), [lateral, ponerLateral]);
+  // Sobre lo que se ve: con Avisos abierto, «Ajustes» abre el Inspector (y cierra Avisos, que comparte el slot `panel`).
+  const alternarLateral = useCallback((l: Lateral) => ponerLateral(visible === l ? null : l), [visible, ponerLateral]);
 
   // Selectores de tipo (F6.2): abren sobre el lateral (que sigue en la sesión) y cierran en UNA navegación que quita el
   // panel, deja el foco en la lámina o ranura resultante y repone el lateral: dos `navigate` seguidos se pisan.
@@ -236,18 +239,15 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
   // Bajo 1120 px de contenedor (mismo umbral que el CSS) el inspector se superpone a la lámina: es un diálogo modal.
   const compacto = useAnchoCompacto(hostRef, 1120);
   // Con un selector abierto, su diálogo es el modal: el inspector suelta su trampa de foco y su Escape.
-  const inspectorModal = compacto && lateral === "inspector" && !panelSelector;
+  const inspectorModal = compacto && visible === "inspector" && !panelSelector;
   const cerrarInspector = useCallback(() => ponerLateral(null), [ponerLateral]);
   // La X y el velo cierran por la misma vía que Escape: el foco vuelve a «Ajustes» (D2).
   const cerrarInspectorConFoco = useSideoverModal({ activo: inspectorModal, contenedor: marcoInspectorRef, retorno: ajustesRef, onCerrar: cerrarInspector });
-  // Avisos e Inspector comparten el slot `panel`: abrir Avisos con el Inspector modal encima lo cierra (si no, Avisos
-  // quedaba sobre él con el foco atrapado abajo) y el foco pasa a Avisos.
-  const avisosDesdeModal = avisos.abierto && inspectorModal;
-  useEffect(() => {
-    if (avisosDesdeModal) setLateralPreferido(null);
-  }, [avisosDesdeModal, setLateralPreferido]);
+  // Avisos e Inspector comparten el slot `panel`: abrir Avisos esconde el Inspector (R7-3). En el compacto, donde el
+  // Inspector era modal, el foco pasa a Avisos.
+  const avisosDesdeModal = avisos.abierto && compacto && lateral === "inspector";
   // El lienzo se re-encaja con FLIP cuando un lateral entra o sale (contrato de movimiento F6, M11).
-  useReencajeLienzo(hostRef, lateral ?? "");
+  useReencajeLienzo(hostRef, visible ?? "");
 
   // «Siguiente sin título» (hallazgo 12): la próxima lámina con título editable y sin título escrito, con su campo abierto
   // en el lienzo. Sólo cuentan las que tienen cabecera de título (una portada o un separador no).
@@ -335,7 +335,7 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
   return (
     <div className="pulso-f6-laminas-host" ref={hostRef}>
     <div
-      className={`pulso-f6-laminas${lateral === "inspector" ? " is-inspector-abierto" : ""}${lateral === "estructura" ? "" : " is-sin-estructura"}${lateral === "inspector" ? "" : " is-sin-inspector"}`}
+      className={`pulso-f6-laminas${visible === "inspector" ? " is-inspector-abierto" : ""}${visible === "estructura" ? "" : " is-sin-estructura"}${visible === "inspector" ? "" : " is-sin-inspector"}`}
       data-qa-surface="graficos/f6-laminas"
     >
       <EstructuraInforme
@@ -392,9 +392,9 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
         onIr={irA}
         motorNativoApagado={leerSlideMeta(slide).motor_nativo === false}
         onAbrirAjustes={() => alternarLateral("inspector")}
-        ajustesAbiertos={lateral === "inspector"}
+        ajustesAbiertos={visible === "inspector"}
         ajustesRef={ajustesRef}
-        estructuraAbierta={lateral === "estructura"}
+        estructuraAbierta={visible === "estructura"}
         onAlternarEstructura={() => alternarLateral("estructura")}
         onVerAvisos={() => { setSeccion("estado"); ponerLateral("inspector"); }}
         ranuras={ranuras}
@@ -426,7 +426,7 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
         />
       </div>
       <EditorAmplio />
-      {avisos.abierto && <PanelAvisos panel={avisos} grupos={grupos} estructura={estructura} onIr={irA} enfocarAlAbrir={inspectorModal} coloresPendientes={coloresPendientes} baseImplicita={baseImplicita}
+      {avisos.abierto && <PanelAvisos panel={avisos} grupos={grupos} estructura={estructura} onIr={irA} enfocarAlAbrir={avisosDesdeModal} coloresPendientes={coloresPendientes} baseImplicita={baseImplicita}
         sinTitulo={{ cuantas: sinTitulo, siguiente: irSiguienteSinTitulo }} />}
       <DiferenciasPaneles slideId={slide.id} estructura={estructura} onIr={irA} />
       {inspectorModal && (

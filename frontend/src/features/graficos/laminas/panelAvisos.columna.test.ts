@@ -29,6 +29,14 @@ describe("ronda 5: geometría en CSS", () => {
     expect(leer("laminasWorkbench.css")).toContain("@container pulso-f6-laminas (max-width: 1120px)");
   });
 
+  it("R7-3: no hay plantilla con Inspector y Avisos a la vez (Avisos lo reemplaza)", () => {
+    const css = leer("panelAvisos.css");
+    expect(css).not.toMatch(/var\(--pulso-inspector-ancho\)\s+var\(--pulso-avisos-ancho\)/);
+    const tsx = leer("LaminasWorkbench.tsx");
+    expect(tsx).toContain("lateralVisible(lateral, avisos.abierto)");
+    expect(tsx).not.toMatch(/className=\{`pulso-f6-laminas\$\{lateral ===/);
+  });
+
   it("R7-2: el chip «Actualizando» vive en la barra del visor, no sobre la hoja", () => {
     const css = leer("visorLamina.css");
     expect(css).not.toContain(".pulso-f6-hoja-actualizando");

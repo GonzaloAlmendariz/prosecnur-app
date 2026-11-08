@@ -29,3 +29,12 @@ export function resolverLateral(panelUrl: string | null | undefined, preferido: 
   if (!panelUrl) return { lateral: preferido, escribirEnUrl: preferido !== null, actualizarPreferencia: false };
   return { lateral: preferido, escribirEnUrl: false, actualizarPreferencia: false };
 }
+
+/**
+ * R7-3: Avisos REEMPLAZA al Inspector, nunca se suman. A 1440 los dos juntos dejaban la lámina en 576 px y los botones de
+ * la barra (Miniaturas, Ajustes, Ajustar) quedaban bajo el inspector. Con Avisos abierto el Inspector no se ve; la
+ * preferencia sigue en la sesión, así que al cerrar Avisos vuelve. La Estructura sí convive con Avisos.
+ */
+export function lateralVisible(lateral: Lateral | null, avisosAbierto: boolean): Lateral | null {
+  return avisosAbierto && lateral === "inspector" ? null : lateral;
+}

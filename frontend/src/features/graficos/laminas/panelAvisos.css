@@ -108,7 +108,8 @@
 }
 
 /* R5-5: marco ancho. El panel entra en una cuarta columna del workbench y la lámina se re-encaja en lo que queda; no
-   se superpone. Las tres plantillas son las de laminasWorkbench.css con la columna de avisos al final. */
+   se superpone. Las plantillas son las de laminasWorkbench.css con la columna de avisos al final. R7-3: Avisos
+   reemplaza al Inspector (LaminasWorkbench, lateralVisible), así que no hay plantilla con los dos. */
 @container pulso-f6-laminas (min-width: 1121px) {
   .pulso-f6-laminas:has(> .pulso-f6-avisos-panel) {
     --pulso-avisos-ancho: clamp(320px, 26cqi, 380px);
@@ -117,10 +118,6 @@
 
   .pulso-f6-laminas.is-sin-estructura.is-sin-inspector:has(> .pulso-f6-avisos-panel) {
     grid-template-columns: 0px minmax(0, 1fr) 0px var(--pulso-avisos-ancho);
-  }
-
-  .pulso-f6-laminas.is-sin-estructura:not(.is-sin-inspector):has(> .pulso-f6-avisos-panel) {
-    grid-template-columns: 0px minmax(0, 1fr) var(--pulso-inspector-ancho) var(--pulso-avisos-ancho);
   }
 
   .pulso-f6-laminas > .pulso-f6-avisos-panel {
