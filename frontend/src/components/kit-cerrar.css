@@ -1,0 +1,18 @@
+/* BotonCerrar — la X del kit (contrato B del acabado de Láminas, 8 nov 2026).
+ *
+ * Se apoya en el botón quieto (kit-boton-quieto.css): sin caja en reposo,
+ * surface-3 al hover, un solo anillo de foco y 32 px de impacto con el ::before.
+ * Aquí solo se fija la caja de la X con sus tokens. Especificidad (0,4,0): gana
+ * al quieto (0,3,0) sin depender del orden de las hojas. */
+
+.pulso-button.pulso-button--icon.pulso-button--quiet.pulso-cerrar {
+  --pulso-button-height: var(--pulso-close-size);
+  --pulso-quiet-icon: var(--pulso-icon-size-md);
+  flex: none;
+  box-shadow: none;
+}
+
+.pulso-button.pulso-button--icon.pulso-button--quiet.pulso-cerrar--sm {
+  --pulso-button-height: calc(var(--pulso-close-size) - 2 * var(--pulso-space-1));
+  --pulso-quiet-icon: var(--pulso-icon-size-sm);
+}
