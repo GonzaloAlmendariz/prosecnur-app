@@ -62,6 +62,7 @@ import type { GraficadorRef } from "../../../api/graficos";
 import "./movimiento.css";
 import "./laminasWorkbench.css";
 import { EstadoVacio } from "../../../components/EstadoVacio";
+import { PulsoButton } from "../../../components/PulsoButton";
 
 const panelDe = (l: Lateral) => (l === "estructura" ? PANEL_ESTRUCTURA_LAMINAS : PANEL_INSPECTOR_LAMINA);
 
@@ -172,7 +173,8 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
   // Estructura ⇄ Inspector (excluyentes): la URL dice cuál, la sesión lo recuerda. Ver lateralLaminas.ts.
   const resolucion = resolverLateral(direccion.panel, lateralPreferido);
   const lateral = resolucion.lateral;
-  // R7-3: Avisos reemplaza al Inspector mientras está abierto; al cerrarlo, el recordado vuelve (lateralLaminas.ts).
+  // C1 del acabado (2026-11-08): un solo lateral. Avisos reemplaza al Inspector Y a la Estructura mientras está abierto;
+  // al cerrarlo, el recordado vuelve (lateralLaminas.ts).
   const visible = lateralVisible(lateral, avisos.abierto);
   useEffect(() => {
     if (resolucion.actualizarPreferencia) setLateralPreferido(lateral);
@@ -243,8 +245,8 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
   const cerrarInspector = useCallback(() => ponerLateral(null), [ponerLateral]);
   // La X y el velo cierran por la misma vía que Escape: el foco vuelve a «Ajustes» (D2).
   const cerrarInspectorConFoco = useSideoverModal({ activo: inspectorModal, contenedor: marcoInspectorRef, retorno: ajustesRef, onCerrar: cerrarInspector });
-  // Avisos e Inspector comparten el slot `panel`: abrir Avisos esconde el Inspector (R7-3). En el compacto, donde el
-  // Inspector era modal, el foco pasa a Avisos.
+  // Avisos y los laterales comparten el slot `panel`: abrir Avisos esconde el lateral abierto (R7-3, C1). En el
+  // compacto, donde el Inspector era modal, el foco pasa a Avisos.
   const avisosDesdeModal = avisos.abierto && compacto && lateral === "inspector";
   // El lienzo se re-encaja con FLIP cuando un lateral entra o sale (contrato de movimiento F6, M11).
   useReencajeLienzo(hostRef, visible ?? "");
@@ -283,7 +285,8 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
     onIr: irA,
     onMover: (dir) => { if (slide) moveSlide(slide.id, dir); },
     onBuscar: () => {
-      if (lateral !== "estructura" && lamina) ponerLateral("estructura");
+      // Sobre lo que se ve (C1): con Avisos abierto la Estructura recordada está oculta y hay que reabrirla.
+      if (visible !== "estructura" && lamina) ponerLateral("estructura");
       enfocarBusquedaEstructura();
     },
   });
@@ -304,7 +307,7 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
     return (
       <div className="pulso-f6-laminas-host">
       <div className="pulso-f6-laminas is-vacia" data-qa-surface="graficos/f6-laminas">
-        <EstructuraInforme onCerrar={() => undefined} estructura={estructura} posicionActiva={null} onSeleccionar={irA} validacion={validacion} />
+        <EstructuraInforme estructura={estructura} posicionActiva={null} onSeleccionar={irA} validacion={validacion} />
         <div className="pulso-f6-laminas-vacio" role="status">
           {/* 5 nov 2026 (pulido de UI): el vacío dentro del marco de una lámina 16:9 — «aquí verás cada lámina tal
               como sale» dicho con la forma, no sólo con la frase. */}
@@ -316,8 +319,8 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
             descripcion="Inserta la primera lámina o arma el informe desde un plan sugerido; aquí verás cada lámina tal como sale."
             accion={
               <div className="pulso-f6-vacio-acciones">
-                <button type="button" className="pulso-f6-boton" onClick={() => abrirSelectorLamina("insertar")}>Insertar la primera lámina</button>
-                <button type="button" className="pulso-f6-boton" onClick={abrirResumen} data-armar-resumen="">Armar el resumen ejecutivo</button>
+                <PulsoButton variant="primary" onClick={() => abrirSelectorLamina("insertar")}>Insertar la primera lámina</PulsoButton>
+                <PulsoButton variant="secondary" onClick={abrirResumen} data-armar-resumen="">Armar el resumen ejecutivo</PulsoButton>
                 <BotonArmarDesdeVacio />
               </div>
             }

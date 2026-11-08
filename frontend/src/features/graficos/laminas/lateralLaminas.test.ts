@@ -16,13 +16,23 @@ describe("resolverLateral", () => {
   });
 });
 
-describe("lateralVisible (R7-3)", () => {
+describe("lateralVisible (R7-3 y C1 del acabado)", () => {
   it("con Avisos abierto el Inspector no se ve; al cerrarlo vuelve", () => {
     expect(lateralVisible("inspector", true)).toBeNull();
     expect(lateralVisible("inspector", false)).toBe("inspector");
   });
-  it("la Estructura convive con Avisos", () => {
-    expect(lateralVisible("estructura", true)).toBe("estructura");
+  it("C1: la Estructura tampoco convive con Avisos; al cerrarlo vuelve", () => {
+    expect(lateralVisible("estructura", true)).toBeNull();
+    expect(lateralVisible("estructura", false)).toBe("estructura");
     expect(lateralVisible(null, true)).toBeNull();
+    expect(lateralVisible(null, false)).toBeNull();
+  });
+  it("C1: nunca hay dos laterales a la vez", () => {
+    for (const l of ["estructura", "inspector", null] as const) {
+      for (const avisos of [true, false]) {
+        const abiertos = [lateralVisible(l, avisos), avisos ? "avisos" : null].filter(Boolean);
+        expect(abiertos.length).toBeLessThanOrEqual(1);
+      }
+    }
   });
 });

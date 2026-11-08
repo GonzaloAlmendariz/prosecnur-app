@@ -119,15 +119,17 @@
   color: var(--pulso-text-faint);
 }
 
-/* R5-5: marco ancho. El panel entra en una cuarta columna del workbench y la lámina se re-encaja en lo que queda; no
-   se superpone. Las plantillas son las de laminasWorkbench.css con la columna de avisos al final. R7-3: Avisos
-   reemplaza al Inspector (LaminasWorkbench, lateralVisible), así que no hay plantilla con los dos. */
+/* R5-5: marco ancho. El panel entra en una columna del workbench y la lámina se re-encaja en lo que queda; no se
+   superpone. Decisión C1 del acabado (W2-A, 2026-11-08): Estructura, Inspector y Avisos son EXCLUYENTES, un solo
+   lateral junto al lienzo (LaminasWorkbench, lateralVisible). Con Avisos abierto las columnas de Estructura e
+   Inspector miden 0, así que no hay plantilla con dos laterales. */
 @container pulso-f6-laminas (min-width: 1121px) {
   .pulso-f6-laminas:has(> .pulso-f6-avisos-panel) {
     --pulso-avisos-ancho: clamp(320px, 26cqi, 380px);
-    grid-template-columns: var(--pulso-estructura-ancho) minmax(0, 1fr) 0px var(--pulso-avisos-ancho);
+    grid-template-columns: 0px minmax(0, 1fr) 0px var(--pulso-avisos-ancho);
   }
 
+  /* Gana a la plantilla sin laterales de laminasWorkbench.css (0,3,0), que es la que lleva el marco con Avisos. */
   .pulso-f6-laminas.is-sin-estructura.is-sin-inspector:has(> .pulso-f6-avisos-panel) {
     grid-template-columns: 0px minmax(0, 1fr) 0px var(--pulso-avisos-ancho);
   }

@@ -1,5 +1,6 @@
 // Estructura e Inspector son mutuamente excluyentes (decisión de Gonzalo, 2026-10-10: «o tengo la barra lateral del
-// orden del PPT abierta o tengo las configuraciones del otro lateral»). Cuál está abierto vive en la dirección
+// orden del PPT abierta o tengo las configuraciones del otro lateral»); desde el acabado de 2026-11-08 (C1) Avisos
+// también los excluye a los dos (`lateralVisible`). Cuál está abierto vive en la dirección
 // (`panel=estructura` | `panel=inspector`) y se recuerda por sesión; la lámina ocupa el resto.
 
 export type Lateral = "estructura" | "inspector";
@@ -31,10 +32,12 @@ export function resolverLateral(panelUrl: string | null | undefined, preferido: 
 }
 
 /**
- * R7-3: Avisos REEMPLAZA al Inspector, nunca se suman. A 1440 los dos juntos dejaban la lámina en 576 px y los botones de
- * la barra (Miniaturas, Ajustes, Ajustar) quedaban bajo el inspector. Con Avisos abierto el Inspector no se ve; la
- * preferencia sigue en la sesión, así que al cerrar Avisos vuelve. La Estructura sí convive con Avisos.
+ * Un solo lateral junto al lienzo (decisión C1 del acabado de Láminas, 2026-11-08): Estructura, Inspector y Avisos son
+ * MUTUAMENTE EXCLUYENTES. R7-3 ya hacía que Avisos reemplazara al Inspector (a 1440 los dos juntos dejaban la lámina en
+ * 576 px); ahora reemplaza también a la Estructura, que antes convivía con él, para que la lámina conserve al menos el
+ * 60 % del ancho útil. Con Avisos abierto no se ve ningún otro lateral; la preferencia sigue en la sesión, así que al
+ * cerrar Avisos el lateral recordado vuelve.
  */
 export function lateralVisible(lateral: Lateral | null, avisosAbierto: boolean): Lateral | null {
-  return avisosAbierto && lateral === "inspector" ? null : lateral;
+  return avisosAbierto ? null : lateral;
 }
