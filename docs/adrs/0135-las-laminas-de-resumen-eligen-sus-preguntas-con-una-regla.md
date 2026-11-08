@@ -207,7 +207,7 @@ Significancia: la prueba compara sólo los grupos mostrados, así que la correcc
 puede aparecer una marca que la tabla de cruces, con todos los grupos, no muestra. Mientras el motor de significancia
 no acepte el número de comparaciones del cruce completo, la nota de la lámina termina en «Diferencias entre los grupos
 mostrados.» y el analista recibe un aviso. La paridad estricta con la tabla queda como decisión pendiente del ADR 0128.
-La leyenda dentro de la imagen de respaldo todavía no lleva esa frase.
+En los paneles de 2 y 4 gráficos, que no escriben nota de significancia propia, la frase va al final del pie de la base.
 
 ## Consecuencias
 
