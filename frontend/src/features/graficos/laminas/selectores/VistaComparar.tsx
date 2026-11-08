@@ -1,9 +1,9 @@
 // Vista partida «Comparar» del selector de láminas (auditoría del selector, hallazgo 3): dos tarjetas lado a lado, cada
-// una con su hueco 16:9 (hoy el glifo o la composición; la miniatura con los datos del estudio llega después), su ficha
-// «Datos» y el botón que la usa, con el verbo del modo («Insertar esta» o «Cambiar a esta», S5). Lo que difiere entre las
-// dos (la clase y las filas de la ficha) se resalta (S6). Vive dentro del mismo diálogo en lugar de la galería y el
-// detalle: no es otro panel ni otro `?panel=`. Al montar, el foco pasa a su título (el botón que la abrió desaparece con
-// la galería).
+// una con su hueco 16:9 (la lámina con los datos del estudio o, mientras llega o si al estudio le falta algo, el glifo o
+// la composición), su ficha «Datos» y el botón que la usa, con el verbo del modo («Insertar esta» o «Cambiar a esta»,
+// S5). Lo que difiere entre las dos (la clase y las filas de la ficha) se resalta (S6). Vive dentro del mismo diálogo
+// en lugar de la galería y el detalle: no es otro panel ni otro `?panel=`. Al montar, el foco pasa a su título (el
+// botón que la abrió desaparece con la galería).
 
 import { useEffect, useId, useRef } from "react";
 import { ArrowLeft, Check, X } from "../../../../vendor/lucide-react";
@@ -17,6 +17,8 @@ import { SLIDE_GRAF_SLOTS } from "../../store";
 import { filasQueDifieren, type EstadoInventario } from "./fichaDatos";
 import { FichaDatosCierre } from "./FichaDatosCierre";
 import { FichaDatosTarjeta } from "./FichaDatosTarjeta";
+import { atributosHueco, HuecoMiniatura } from "./HuecoMiniatura";
+import type { MiniaturaSelector } from "./modeloMiniaturasSelector";
 import { ROTULO_CLASE, type ClaseTarjeta } from "./intencionesContar";
 import type { OpcionLamina } from "./opcionesLamina";
 import type { ModoSelectorLamina } from "./selectoresStore";
@@ -36,6 +38,8 @@ export type ColumnaComparar = {
   actual: boolean;
   /** Gráficos de la lámina actual que no caben (solo al cambiar). */
   sobrantes: number;
+  /** La lámina con los datos del estudio (useMiniaturasSelector); sin ella, el glifo o la composición. */
+  miniatura?: MiniaturaSelector;
 };
 
 type Props = {
@@ -76,10 +80,12 @@ export function VistaComparar({ columnas, inventario, laminasResumen = 0, modo, 
         {columnas.map((c, i) => (
           <Panel key={c.opcion} className="pulso-f6-comparar-columna" aria-labelledby={`${id}-${i}`}
             data-columna-comparar={c.opcion} data-qa-geometry-member>
-            <div className="pulso-f6-comparar-hueco" data-hueco-miniatura="">
-              {c.glifo
-                ? <GlifoGrafico tipo={c.glifo} titulo={`Esquema de “${c.nombre}”`} />
-                : <ComposicionLamina tipo={c.tipo} slots={SLIDE_GRAF_SLOTS[c.tipo] ?? []} titulo={`Composición de “${c.nombre}”`} />}
+            <div className="pulso-f6-comparar-hueco" data-hueco-miniatura="" {...atributosHueco(c.miniatura)}>
+              <HuecoMiniatura miniatura={c.miniatura} nombre={c.nombre}>
+                {c.glifo
+                  ? <GlifoGrafico tipo={c.glifo} titulo={`Esquema de “${c.nombre}”`} />
+                  : <ComposicionLamina tipo={c.tipo} slots={SLIDE_GRAF_SLOTS[c.tipo] ?? []} titulo={`Composición de “${c.nombre}”`} />}
+              </HuecoMiniatura>
             </div>
             <div className="pulso-f6-detalle-texto">
               <h4 id={`${id}-${i}`} className="pulso-f6-comparar-nombre">{c.nombre}</h4>

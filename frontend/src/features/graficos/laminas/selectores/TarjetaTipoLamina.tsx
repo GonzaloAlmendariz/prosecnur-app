@@ -23,7 +23,10 @@ type Props = {
   /** Cuántos gráficos admite (vacío en las tarjetas por intención, que traen su gráfico). */
   meta: string;
   uso: string;
-  /** Con un gráfico de partida, la miniatura es su glifo en vez de la composición. */
+  /**
+   * Con un gráfico de partida, la miniatura es su glifo en vez de la composición. Las tarjetas de la galería no piden
+   * la lámina real (sería un lote por tarjeta y satura el motor): sólo el detalle y «Comparar» (useMiniaturasSelector).
+   */
   glifo?: string;
   graficos: Readonly<Record<string, string>>;
   variante: string | null;

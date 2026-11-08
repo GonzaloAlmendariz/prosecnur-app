@@ -1,4 +1,5 @@
-// Detalle de una tarjeta de «¿Qué quieres contar?» (ADR 0135; maqueta graficos-sintesis, Main): la miniatura del gráfico,
+// Detalle de una tarjeta de «¿Qué quieres contar?» (ADR 0135; maqueta graficos-sintesis, Main): la lámina con los datos
+// del estudio (o, mientras llega o si al estudio le falta algo, el glifo del gráfico),
 // el nombre, su clase, qué responde, la ficha «Datos» (o qué pide, si la tarjeta no trae gráfico) y el botón. Sin
 // título sugerido (lo escribe siempre el analista) ni párrafos explicativos. Si la tarjeta reemplaza el gráfico de la lámina, lo dice antes y pide confirmarlo.
 
@@ -12,7 +13,9 @@ import { SLIDE_GRAF_SLOTS } from "../../store";
 import { AvisoCambio } from "./AvisoCambio";
 import type { CambioTipoLamina } from "./cambioTipoLamina";
 import { etiquetaBotonTarjeta } from "./detalleLamina";
+import { atributosHueco, HuecoMiniatura } from "./HuecoMiniatura";
 import { ROTULO_CLASE, type TarjetaContar } from "./intencionesContar";
+import type { MiniaturaSelector } from "./modeloMiniaturasSelector";
 import type { ModoSelectorLamina } from "./selectoresStore";
 
 type Props = {
@@ -26,12 +29,14 @@ type Props = {
   nombreCampo: (clave: string) => string;
   /** Ficha «Datos» (FichaDatosTarjeta): qué usa el gráfico y qué tiene el estudio. Sin ella, «Qué pide». */
   ficha?: ReactNode;
+  /** La lámina con los datos del estudio (useMiniaturasSelector); sin ella, el glifo. */
+  miniatura?: MiniaturaSelector;
   onAplicar: () => void;
   onVolver: () => void;
 };
 
 export function DetalleTarjetaContar({
-  tarjeta, modo, actual, cambio, confirmando, nombreGrafico, nombreSlot, nombreCampo, ficha, onAplicar, onVolver,
+  tarjeta, modo, actual, cambio, confirmando, nombreGrafico, nombreSlot, nombreCampo, ficha, miniatura, onAplicar, onVolver,
 }: Props) {
   const idAviso = useId();
   const sobrantes = cambio && !actual ? cambio.sobrantes : [];
@@ -40,10 +45,12 @@ export function DetalleTarjetaContar({
   const boton = etiquetaBotonTarjeta({ modo, actual, sobrantes: sobrantes.length, confirmando });
   return (
     <div className="pulso-f6-detalle" data-tarjeta-contar={tarjeta.clave}>
-      <div className="pulso-f6-detalle-lienzo is-grafico">
-        {tarjeta.grafico
-          ? <GlifoGrafico tipo={tarjeta.grafico.graficador} titulo={`Esquema de “${tarjeta.nombre}”`} />
-          : <ComposicionLamina tipo={tarjeta.tipo} slots={SLIDE_GRAF_SLOTS[tarjeta.tipo] ?? []} />}
+      <div className="pulso-f6-detalle-lienzo is-grafico" data-hueco-miniatura="" {...atributosHueco(miniatura)}>
+        <HuecoMiniatura miniatura={miniatura} nombre={tarjeta.nombre}>
+          {tarjeta.grafico
+            ? <GlifoGrafico tipo={tarjeta.grafico.graficador} titulo={`Esquema de “${tarjeta.nombre}”`} />
+            : <ComposicionLamina tipo={tarjeta.tipo} slots={SLIDE_GRAF_SLOTS[tarjeta.tipo] ?? []} />}
+        </HuecoMiniatura>
       </div>
       <div className="pulso-f6-detalle-texto">
         <h3>{tarjeta.nombre}</h3>

@@ -100,4 +100,21 @@ describe("VistaComparar", () => {
     expect(col.querySelector("[data-ficha-datos]")?.textContent).toContain("Cifras de otras láminas de resumen del informe");
     expect(col.textContent).toContain("El informe tiene 3 láminas de resumen.");
   });
+
+  it("el hueco pinta la lámina real si llegó y, con error, el glifo con la nota en `title`", () => {
+    const con: ColumnaComparar[] = [
+      { ...columnas[0], miniatura: { src: "/m.png", error: null } },
+      { ...columnas[1], miniatura: { src: null, error: "El motor no respondió." } },
+    ];
+    act(() => root.render(
+      <VistaComparar columnas={con} inventario={{ estado: "cargando" }} modo="insertar" onUsar={() => {}} onQuitar={() => {}} onVolver={() => {}} />,
+    ));
+    const [a, b] = [...host.querySelectorAll<HTMLElement>("[data-hueco-miniatura]")];
+    expect(a.getAttribute("data-miniatura")).toBe("imagen");
+    expect(a.querySelector("img")?.getAttribute("alt")).toBe("Vista previa de “Panorama de públicos” con los datos del estudio");
+    expect(b.getAttribute("data-miniatura")).toBe("error");
+    expect(b.getAttribute("title")).toBe("El motor no respondió.");
+    expect(b.querySelector("img")).toBeNull();
+    expect(b.querySelector("svg")).not.toBeNull();
+  });
 });

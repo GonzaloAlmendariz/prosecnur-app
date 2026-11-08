@@ -48,6 +48,8 @@ import { FichaDatosCierre } from "./FichaDatosCierre";
 import { FichaDatosTarjeta } from "./FichaDatosTarjeta";
 import { modoEfectivo, puedeEntrarEnComparacion } from "./modoYComparacion";
 import { useInventarioSelector } from "./useInventarioSelector";
+import { opcionesQuePiden } from "./modeloMiniaturasSelector";
+import { useMiniaturasSelector } from "./useMiniaturasSelector";
 import { VistaComparar, type ColumnaComparar } from "./VistaComparar";
 import { formatoConteo } from "../../../../lib/formatoNumero";
 
@@ -160,6 +162,11 @@ export function SelectorTipoLamina({ slide, posicion, cerrar, onArmarResumen }: 
     slide && op === opcionActual ? varianteDe(slide) : variantesDeTipo(op)?.defecto ?? null;
   const variante = candidato ? ui.variante ?? varianteInicial(candidato) : null;
   const cambio = candidato ? cambios.get(candidato) ?? null : null;
+  // La lámina real sólo para la enfocada o las dos comparadas; la galería se queda con sus glifos.
+  const miniaturas = useMiniaturasSelector({
+    opciones: opcionesQuePiden(candidato, comparar, ui.viendoComparacion && comparar.length === 2),
+    inventario: ui.inventario, estudio, scope, activo: panel.abierto,
+  });
 
   // Cerrar por fuera (Escape, velo, otro enlace, «atrás») deja el selector listo para la próxima vez: sin confirmación
   // pendiente y en el modo por defecto, para que un enlace posterior sin intención no herede un «cambiar».
@@ -267,6 +274,7 @@ export function SelectorTipoLamina({ slide, posicion, cerrar, onArmarResumen }: 
     return {
       opcion: op, tipo: t, nombre: nombreDe(op), clase: preset?.clase ?? "lamina", glifo: preset?.grafico?.graficador,
       usa: usaDe(op), usaSinGrafico: preset?.usaSinGrafico, admite: rotuloRanuras(t), actual: esActual(op), sobrantes: c && !c.mismoTipo ? c.sobrantes.length : 0,
+      miniatura: miniaturas[op],
     };
   };
 
@@ -434,6 +442,7 @@ export function SelectorTipoLamina({ slide, posicion, cerrar, onArmarResumen }: 
           nombreSlot={(s) => nombreSlot(s, slidesById[tarjetaCandidata.tipo] ?? metaOrigen)}
           nombreCampo={(c) => nombreCampo(c, metaOrigen)}
           ficha={fichaDe(candidato)}
+          miniatura={miniaturas[candidato]}
           onAplicar={aplicar}
           onVolver={() => ui.setConfirmando(false)}
         />
