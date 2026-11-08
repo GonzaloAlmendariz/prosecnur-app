@@ -71,6 +71,21 @@ describe("Lados de la escala", () => {
     expect(asa().getAttribute("aria-valuenow")).toBe("2");
     expect(cifra()).toBe("Negativo 21%, Positivo 79%");
   });
+  it("R8-12: con Sí/No dice cuál va al negativo y ofrece invertir o dejarlo así; dejarlo así lo guarda", async () => {
+    lote.mockImplementation(async (p: PedidoCifrasDetalleLote) => Object.fromEntries(p.laminas.map((l) => {
+      const cats = [{ clave: "Sí", valor: 30, lado: "neg" as const }, { clave: "No", valor: 70, lado: "pos" as const }];
+      return [l.id, { cifras: { tipo: "", cifras: [], avisos: [] }, error: null,
+        detalle: detalle(cats, { forma: "divergentes", filas: [fila("p1", cats, { lados: lados(30, 0, 70) })] }) }];
+    })));
+    pintar({});
+    await esperar();
+    const nota = host.querySelector('[data-qa="lados-dos-niveles"]');
+    expect(nota?.textContent).toContain("«Sí» va al lado negativo y «No» al positivo.");
+    const dejar = [...(nota?.querySelectorAll("button") ?? [])].find((b) => b.textContent === "dejarlo así") as HTMLButtonElement;
+    act(() => dejar.click());
+    expect(cambios.at(-1)).toEqual({ n_negativas: 1, incluir_neutro: true, direccion_escala: "negativo_positivo" });
+  });
+
   it("R8-8: al cambiar de pregunta no se ven los niveles de la anterior; la silueta hasta que llega el detalle nuevo", async () => {
     pintar({});
     await esperar();

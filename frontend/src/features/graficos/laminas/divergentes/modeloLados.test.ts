@@ -1,7 +1,7 @@
 // Ítem 4 de la oleada I2: el reparto que el control dibuja tiene que ser el del motor (`.divergentes_reparto`).
 import { describe, expect, it } from "vitest";
 import { detalle, fila, lados } from "../cifrasInspector/fixturaDetalle.test-utils";
-import { bordeVisual, kDesdeBorde, leerLados, parcheLados, repartoLados, sustantivas, textoLados, trasClicCentral } from "./modeloLados";
+import { bordeVisual, kDesdeBorde, leerLados, parcheLados, repartoLados, sustantivas, textoLados, trasClicCentral, avisoDosNiveles } from "./modeloLados";
 
 const NP = "negativo_positivo" as const;
 const PN = "positivo_negativo" as const;
@@ -44,5 +44,20 @@ describe("cifras de los lados", () => {
     expect(textoLados(d)).toBe("Negativo de 21% a 30%, Positivo de 50% a 64%");
     expect(textoLados(detalle(cats))).toBeNull();
     expect(textoLados(null)).toBeNull();
+  });
+});
+
+describe("R8-12: con dos respuestas se dice cuál va a cada lado hasta que el analista lo fije", () => {
+  const defecto = leerLados({}, 2);
+  it("sin nada guardado, «Sí» (la primera) va al negativo y se dice", () => {
+    expect(avisoDosNiveles({}, ["Sí", "No"], defecto)).toBe("«Sí» va al lado negativo y «No» al positivo.");
+  });
+  it("con los lados fijados, o con más de dos niveles, no se dice nada", () => {
+    expect(avisoDosNiveles({ n_negativas: 1 }, ["Sí", "No"], defecto)).toBeNull();
+    expect(avisoDosNiveles({ direccion_escala: "positivo_negativo" }, ["Sí", "No"], defecto)).toBeNull();
+    expect(avisoDosNiveles({}, ["Malo", "Regular", "Bueno"], leerLados({}, 3))).toBeNull();
+  });
+  it("invertido en vivo, el texto sigue lo que se ve", () => {
+    expect(avisoDosNiveles({}, ["Sí", "No"], { ...defecto, direccion: "positivo_negativo" })).toBe("«No» va al lado negativo y «Sí» al positivo.");
   });
 });

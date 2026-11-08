@@ -97,3 +97,19 @@ export function textoLados(det: DetalleCifras | null): string | null {
 export function preguntaDeLados(args: Readonly<Record<string, unknown>>): string {
   return JSON.stringify([args.var ?? null, args.vars ?? null]);
 }
+
+/**
+ * R8-12: con dos respuestas (Sí/No) el reparto por defecto pone la primera del orden en el lado negativo; el motor no
+ * sabe cuál es la positiva. Mientras el analista no lo fije (`n_negativas` o `direccion_escala` guardados), se le dice
+ * cómo queda para que lo confirme o lo invierta. `null` si no aplica.
+ */
+export function avisoDosNiveles(args: Readonly<Record<string, unknown>>, cats: readonly string[], vista: Lados): string | null {
+  if (cats.length !== 2) return null;
+  const fijado = (args.n_negativas !== undefined && args.n_negativas !== null && args.n_negativas !== "")
+    || (typeof args.direccion_escala === "string" && args.direccion_escala !== "");
+  if (fijado) return null;
+  const lados = repartoLados(2, vista);
+  const negativa = cats[lados.indexOf("neg")];
+  const positiva = cats[lados.indexOf("pos")];
+  return `«${negativa}» va al lado negativo y «${positiva}» al positivo.`;
+}

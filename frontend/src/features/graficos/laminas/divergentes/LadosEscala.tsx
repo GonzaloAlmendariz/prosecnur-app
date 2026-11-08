@@ -17,7 +17,7 @@ import { Skeleton } from "../../../../components/Skeleton";
 import { CifraEstado } from "../cifrasInspector/CifraEstado";
 import { useDetalleCifras } from "../cifrasInspector/useDetalleCifras";
 import { useCifraEnVivo } from "../reglaPreguntas/useCifraEnVivo";
-import { bordeVisual, central, kDesdeBorde, leerLados, parcheLados, preguntaDeLados, repartoLados, sustantivas, textoLados, trasClicCentral, type Lados } from "./modeloLados";
+import { avisoDosNiveles, bordeVisual, central, kDesdeBorde, leerLados, parcheLados, preguntaDeLados, repartoLados, sustantivas, textoLados, trasClicCentral, type Lados } from "./modeloLados";
 import "./ladosEscala.css";
 
 type Props = {
@@ -83,6 +83,8 @@ export function LadosEscala({ id, graficador, scope, args, onCambio, respaldo }:
     moverA(destino);
   };
   const idRotulo = `${id}-rotulo`;
+  const invertir = () => onCambio(parcheLados({ ...vista, direccion: vista.direccion === "positivo_negativo" ? "negativo_positivo" : "positivo_negativo" }));
+  const dosNiveles = avisoDosNiveles(args, cats, vista);
   return (
     <div className="pulso-f6-dato is-apilado pulso-f6-lados" data-campo="n_negativas"
       data-qa-geometry-group="graficos/f6-lados" data-qa-geometry-contract="intrinsic">
@@ -90,7 +92,7 @@ export function LadosEscala({ id, graficador, scope, args, onCambio, respaldo }:
         <span className="pulso-f6-dato-rotulo" id={idRotulo}>Lados de la escala<AyudaGlobo rotulo="Lados de la escala" detalle={AYUDA} /></span>
         <button type="button" className="pulso-f6-icono-boton" aria-pressed={vista.direccion === "positivo_negativo"}
           aria-label="Invertir los lados" title="Invertir los lados: los primeros niveles son los positivos"
-          onClick={() => onCambio(parcheLados({ ...vista, direccion: vista.direccion === "positivo_negativo" ? "negativo_positivo" : "positivo_negativo" }))}>
+          onClick={invertir}>
           <ArrowLeftRight size={14} aria-hidden="true" />
         </button>
       </div>
@@ -115,6 +117,14 @@ export function LadosEscala({ id, graficador, scope, args, onCambio, respaldo }:
             onKeyDown={alTeclear} onKeyUp={() => enVivo.soltar()} onBlur={() => enVivo.soltar()} />
         </span>
       </div>
+      {dosNiveles && (
+        <p className="pulso-f6-dato-ayuda pulso-f6-lados-dos" role="note" data-qa="lados-dos-niveles">
+          {`${dosNiveles} `}
+          <button type="button" className="pulso-f6-texto-boton" onClick={invertir}>Invertir</button>
+          {" o "}
+          <button type="button" className="pulso-f6-texto-boton" onClick={() => onCambio(parcheLados(vista))}>dejarlo así</button>
+        </p>
+      )}
       <CifraEstado texto={textoLados(cifras?.detalle ?? null)} vigente={!!cifras?.vigente} esperando={!!cifras && !cifras.vigente} qa="lados-cifra" />
     </div>
   );
