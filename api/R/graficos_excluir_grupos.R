@@ -21,20 +21,43 @@
 # (`.resolve_ref(cruce, source = ctx_var$source)`); un cruce calificado con otra base, o preguntas de varias bases, no se
 # filtran (la regla caería sobre una columna ajena) y se avisa.
 #
+# Columna del cruce: la que agrupa el render. Si la base trae `<cruce>_recod`, el render agrupa por ella
+# (`.reporte_plan_resolve_recod_var`, el mismo resolutor de `.resolve_ref`), así que los grupos se buscan en sus
+# categorías y la regla cae sobre ella; un código de la columna original que la recodificación fundió no se excluye.
+#
 # La lámina lo dice: «Excluye el grupo Otro» se anexa al pie del gráfico renderizado (`note_outside`, que leen la lámina
 # nativa, el respaldo y el Word; `.excluir_grupos_nota_al_grafico`, enganchado en `.plan_render_element_degradable`).
-# Sólo se nombran los grupos que tienen casos en la base; un grupo pedido que no existe se avisa y no se nombra.
+# Sólo se nombran los grupos con casos en la base ya filtrada por el analista; un grupo pedido que no existe, que es
+# ambiguo o que dejaría el gráfico sin grupos se avisa y no se excluye.
+#
+# Significancia (decisión del lead, 2026-11-08): excluir es ocultar, pero el render compara los grupos que recibe, así
+# que con Bonferroni por fila excluir un grupo baja la corrección y puede aparecer una marca que la tabla de cruces no
+# da (paridad del ADR 0128). Pasarle al motor el número de comparaciones del cruce completo exige tocar el motor de
+# significancia (`.sig_veredictos`) y el render congelado; se toma el respaldo: la nota de significancia dice
+# «Diferencias entre los grupos mostrados.» y se avisa al analista.
+#
+# Supuestos:
+#   - Los pesos no se recalibran: cada caso conserva su peso y los grupos que quedan suman lo que sumaban.
+#   - Las categorías especiales (90-99, SIN INF) del grupo excluido salen con él.
+#   - El pie «Base:» cuenta casos de los grupos que quedan (con valor en el cruce), no la suma de pesos.
+#   - Un cruce con algún valor que lleva coma: `.base_filtros_con_cruce` no agrega su regla «cruce con valor» y la base
+#     sin exclusión cuenta también las filas sin cruce; con la exclusión, el `notin` las deja fuera. Se deja así: es un
+#     caso de borde y la base con exclusión es la correcta.
 
 .EXCLUIR_GRUPOS_TIPOS <- c("barras_apiladas", "barras_agrupadas", "barras_multiapiladas")
 
 #' La referencia del cruce de un elemento que admite `excluir_grupos`, o `NULL`
 #' @keywords internal
-.excluir_grupos_cruce_ref <- function(el) {
+#'
+#' @param presets Presets del motor: la agrupada hereda el cruce de `presets$barras_agrupadas$args$cruces`, como su
+#'   render (`overrides$cruces %||% el$cruces %||% preset_args$cruces`).
+.excluir_grupos_cruce_ref <- function(el, presets = NULL) {
   tipo <- el$.element_type %||% ""
   ov <- el$overrides %||% list()
+  if (!is.list(presets)) presets <- NULL
   ref <- switch(tipo,
                 barras_multiapiladas = if ((el$modo %||% "") %in% c("cruce", "var_cruce")) el$cruce else NULL,
-                barras_agrupadas = ov$cruces %||% el$cruces,   # el orden de `.render_barras_agrupadas`
+                barras_agrupadas = ov$cruces %||% el$cruces %||% ((presets %||% list())$barras_agrupadas %||% list())$args$cruces,
                 barras_apiladas = el$cruces %||% ov$cruces,    # el de `.render_barras_apiladas`
                 NULL)
   ref <- trimws(as.character(unlist(ref, use.names = FALSE)))
@@ -69,22 +92,44 @@
   sprintf("Excluye %s %s.", if (length(rotulos) == 1L) "el grupo" else "los grupos", .excluir_grupos_enumerar(rotulos))
 }
 
+#' Clave de comparación de un rótulo: sin tildes, mayúsculas ni signos
+#'
+#' `stringi` (Latin-ASCII) y no `iconv(ASCII//TRANSLIT)`: en macOS el segundo escribe «Educación» como «educaci'on».
+#' @keywords internal
+.excluir_grupos_clave <- function(x) {
+  x <- stringi::stri_trans_general(enc2utf8(as.character(x)), "Latin-ASCII")
+  x <- gsub("[^a-z0-9]+", "_", tolower(trimws(x)))
+  gsub("^_+|_+$", "", x)
+}
+
 #' Traduce los grupos pedidos a códigos de la columna del cruce
 #'
-#' Un pedido casa por código, luego por rótulo (sin tildes, mayúsculas ni signos) y, si la base guarda rótulos, por el
-#' valor tal cual en la columna.
+#' Un pedido casa por código, luego por rótulo (`.excluir_grupos_clave`) y, si la base guarda rótulos o la columna no
+#' tiene lista, por el valor tal cual en la columna. Es ambiguo, y no se excluye, si casa con más de un código por rótulo
+#' o como código y a la vez como rótulo de OTRO código: se pide el código.
 #' @param pedidos Rótulos o códigos pedidos.
 #' @param cats `data.frame(codigo, etiqueta)` de la lista del cruce (`.goc_categorias`).
-#' @param presentes Valores (recortados) presentes en la columna del cruce.
-#' @return `list(codigos, rotulos, ausentes)`: los códigos con casos y su rótulo, y los pedidos sin casos.
+#' @param presentes Valores (recortados) presentes en la columna del cruce, con los filtros del gráfico.
+#' @return `list(codigos, rotulos, ausentes, ambiguos)`: los códigos con casos y su rótulo, los pedidos sin casos y los
+#'   ambiguos.
 #' @keywords internal
 .excluir_grupos_resolver <- function(pedidos, cats, presentes) {
-  codigos <- character(0); rotulos <- character(0); ausentes <- character(0)
+  codigos <- character(0); rotulos <- character(0); ausentes <- character(0); ambiguos <- character(0)
   cod_cat <- as.character(cats$codigo); eti_cat <- as.character(cats$etiqueta)
-  clave_eti <- .graficos_norm_text_key(eti_cat)
+  clave_eti <- .excluir_grupos_clave(eti_cat)
   for (p in pedidos) {
-    cand <- if (p %in% cod_cat) p else cod_cat[clave_eti == .graficos_norm_text_key(p) & nzchar(clave_eti)]
-    if (!length(cand) && p %in% presentes) cand <- p
+    clave_p <- .excluir_grupos_clave(p)
+    por_rotulo <- unique(cod_cat[nzchar(clave_eti) & nzchar(clave_p) & clave_eti == clave_p])
+    if (p %in% cod_cat) {
+      if (any(por_rotulo != p)) { ambiguos <- c(ambiguos, p); next }
+      cand <- p
+    } else if (length(por_rotulo) > 1L) {
+      ambiguos <- c(ambiguos, p); next
+    } else if (length(por_rotulo) == 1L) {
+      cand <- por_rotulo
+    } else {
+      cand <- if (p %in% presentes) p else character(0)
+    }
     cand <- cand[cand %in% presentes]
     if (!length(cand)) { ausentes <- c(ausentes, p); next }
     codigos <- c(codigos, cand)
@@ -92,7 +137,7 @@
     rotulos <- c(rotulos, ifelse(is.na(rot) | !nzchar(rot), cand, rot))
   }
   keep <- !duplicated(codigos)
-  list(codigos = codigos[keep], rotulos = rotulos[keep], ausentes = unique(ausentes))
+  list(codigos = codigos[keep], rotulos = rotulos[keep], ausentes = unique(ausentes), ambiguos = unique(ambiguos))
 }
 
 #' Filtros de un elemento como lista de reglas, o `NULL` si no se pueden convertir sin cambiar su sentido
@@ -117,19 +162,24 @@
   .base_filtros_como_reglas(filtros)
 }
 
-#' Aplica `excluir_grupos` a un elemento: la regla `notin` en sus filtros y la nota de la lámina
+#' Aplica `excluir_grupos` a un elemento: la regla `notin` en sus filtros y la marca para la nota de la lámina
 #'
 #' @param el Elemento del plan.
 #' @param data_sources,inst_sources Bases y sus instrumentos.
 #' @param default_source Base de las referencias sin calificar.
-#' @return El elemento, con `filtros` y `overrides$nota_pie` ajustados, o intacto si no hay nada que excluir.
+#' @param presets Presets del motor (el cruce heredado de la agrupada).
+#' @return El elemento, con `filtros` y `.excluir_grupos_aplicado` ajustados, o intacto si no hay nada que excluir.
 #' @keywords internal
-.excluir_grupos_elemento <- function(el, data_sources, inst_sources, default_source = NULL) {
+.excluir_grupos_elemento <- function(el, data_sources, inst_sources, default_source = NULL, presets = NULL) {
   pedidos <- trimws(as.character(unlist(el$excluir_grupos, use.names = FALSE)))
   pedidos <- unique(pedidos[!is.na(pedidos) & nzchar(pedidos)])
   el$excluir_grupos <- NULL   # se consume aquí: un segundo paso no la aplica dos veces
-  cruce_ref <- .excluir_grupos_cruce_ref(el)
-  if (!length(pedidos) || is.null(cruce_ref)) return(el)
+  if (!length(pedidos)) return(el)
+  cruce_ref <- .excluir_grupos_cruce_ref(el, presets)
+  if (is.null(cruce_ref)) {
+    .pulso_aviso(sprintf("Los grupos a excluir %s no se aplican: el gráfico no tiene \"Dividir por\".", .excluir_grupos_citar(pedidos)))
+    return(el)
+  }
 
   base_def <- el$source %||% default_source
   if (length(base_def) != 1L || is.na(base_def) || !nzchar(base_def)) base_def <- NA_character_
@@ -142,26 +192,54 @@
     return(el)
   }
   datos <- data_sources[[cr$base]]
-  if (!is.data.frame(datos) || !cr$var %in% names(datos)) return(el)   # el render ya avisa del cruce ausente
-  presentes <- trimws(as.character(datos[[cr$var]])); presentes <- unique(presentes[!is.na(presentes) & nzchar(presentes)])
-  res <- .excluir_grupos_resolver(pedidos, .goc_categorias(inst_sources[[cr$base]], cr$var), presentes)
-  if (length(res$ausentes)) {
-    .pulso_aviso(sprintf("\"%s\": no hay casos en los grupos a excluir %s.", cr$var, .excluir_grupos_citar(res$ausentes)))
+  col <- if (is.data.frame(datos)) .reporte_plan_resolve_recod_var(cr$var, datos) else cr$var   # la columna que agrupa el render
+  if (!is.data.frame(datos) || !col %in% names(datos)) {
+    .pulso_aviso(sprintf("\"%s\": la base no trae la columna del cruce; los grupos a excluir no se aplican.", cr$var))
+    return(el)
   }
-  con_coma <- grepl(",", res$codigos, fixed = TRUE)
-  if (any(con_coma)) {
-    .pulso_aviso(sprintf("\"%s\": el grupo %s lleva coma en su código y no se puede excluir.", cr$var, .excluir_grupos_citar(res$codigos[con_coma])))
-    res$codigos <- res$codigos[!con_coma]; res$rotulos <- res$rotulos[!con_coma]
-  }
-  if (!length(res$codigos)) return(el)
   reglas <- .excluir_grupos_filtros_reglas(el$filtros)
   if (is.null(reglas)) {
     .pulso_aviso(sprintf("\"%s\": los filtros de este gráfico no admiten excluir grupos; sale con todos los grupos.", cr$var))
     return(el)
   }
-  el$filtros <- c(reglas, list(list(variable = cr$var, op = "notin", value = paste(res$codigos, collapse = ","))))
-  el$.excluir_grupos_aplicado <- list(variable = cr$var, codigos = res$codigos, rotulos = res$rotulos)
+  # Los grupos presentes con los filtros del analista: un grupo que su filtro ya vació no se nombra en el pie.
+  filtrados <- tryCatch(suppressWarnings(.apply_named_filters_safe(datos, el$filtros %||% list())), error = function(e) datos)
+  presentes <- trimws(as.character(filtrados[[col]])); presentes <- unique(presentes[!is.na(presentes) & nzchar(presentes)])
+  res <- .excluir_grupos_resolver(pedidos, .goc_categorias(inst_sources[[cr$base]], col), presentes)
+  if (length(res$ambiguos)) {
+    .pulso_aviso(sprintf("\"%s\": %s nombra a más de un grupo y no se excluye; indica el código del grupo.", col, .excluir_grupos_citar(res$ambiguos)))
+  }
+  if (length(res$ausentes)) {
+    .pulso_aviso(sprintf("\"%s\": no hay casos en los grupos a excluir %s.", col, .excluir_grupos_citar(res$ausentes)))
+  }
+  con_coma <- grepl(",", res$codigos, fixed = TRUE)
+  if (any(con_coma)) {
+    .pulso_aviso(sprintf("\"%s\": el grupo %s lleva coma en su código y no se puede excluir.", col, .excluir_grupos_citar(res$codigos[con_coma])))
+    res$codigos <- res$codigos[!con_coma]; res$rotulos <- res$rotulos[!con_coma]
+  }
+  if (!length(res$codigos)) return(el)
+  if (!length(setdiff(presentes, res$codigos))) {
+    .pulso_aviso(sprintf("\"%s\": excluir %s deja el gráfico sin grupos; sale con todos.", col, .excluir_grupos_citar(res$rotulos)))
+    return(el)
+  }
+  el$filtros <- c(reglas, list(list(variable = col, op = "notin", value = paste(res$codigos, collapse = ","))))
+  el$.excluir_grupos_aplicado <- list(variable = col, codigos = res$codigos, rotulos = res$rotulos)
   el
+}
+
+.EXCLUIR_GRUPOS_NOTA_SIG <- "Diferencias entre los grupos mostrados."
+
+#' Con grupos excluidos, la nota de significancia dice que compara sólo los grupos mostrados (respaldo de la decisión 4)
+#'
+#' La lámina nativa escribe la nota de `attr(p, "pulso_sig_nota")` (lamina_nota_significancia.R). El caption que el
+#' graficador dibuja dentro de la imagen de respaldo no se reescribe.
+#' @keywords internal
+.excluir_grupos_nota_sig <- function(p, variable = "") {
+  sig <- trimws(as.character(attr(p, "pulso_sig_nota", exact = TRUE) %||% "")[1])
+  if (is.na(sig) || !nzchar(sig) || grepl(.EXCLUIR_GRUPOS_NOTA_SIG, sig, fixed = TRUE)) return(p)
+  attr(p, "pulso_sig_nota") <- paste(sub("([^.])$", "\\1.", sig), .EXCLUIR_GRUPOS_NOTA_SIG)
+  .pulso_aviso(sprintf("\"%s\": con grupos excluidos, las diferencias se marcan entre los grupos mostrados; la tabla de cruces compara todos los grupos.", variable))
+  p
 }
 
 #' Pone la nota de los grupos excluidos en el pie del gráfico renderizado
@@ -174,6 +252,7 @@
 .excluir_grupos_nota_al_grafico <- function(el, p) {
   ap <- if (is.list(el)) el$.excluir_grupos_aplicado else NULL
   if (is.null(p) || is.null(ap) || !length(ap$rotulos)) return(p)
+  p <- .excluir_grupos_nota_sig(p, ap$variable)
   nota <- .excluir_grupos_nota(ap$rotulos)
   previa <- attr(p, "note_outside", exact = TRUE) %||% (el$overrides %||% list())$nota_pie %||% el$nota_pie
   previa <- trimws(as.character(previa %||% "")[1])
@@ -189,14 +268,16 @@
 #' @param plan Plan (`ppt_plan`).
 #' @param data_sources,inst_sources Bases y sus instrumentos.
 #' @param default_source Base de las referencias sin calificar.
+#' @param presets Presets del motor; por defecto, los de `reporte_ppt_plan`, que llama.
 #' @return El plan con cada gráfico ajustado; las demás láminas intactas.
 #' @keywords internal
-.plan_excluir_grupos <- function(plan, data_sources, inst_sources, default_source = NULL) {
+.plan_excluir_grupos <- function(plan, data_sources, inst_sources, default_source = NULL, presets = NULL) {
   if (!length(plan)) return(plan)
+  if (is.null(presets)) presets <- get0("presets", envir = parent.frame(), inherits = FALSE)   # los de `reporte_ppt_plan`
   visitar <- function(x) {
     if (inherits(x, "ppt_element")) {
       if (is.null(x$excluir_grupos)) return(x)
-      return(.excluir_grupos_elemento(x, data_sources, inst_sources, default_source))
+      return(.excluir_grupos_elemento(x, data_sources, inst_sources, default_source, presets))
     }
     if (is.list(x) && !is.data.frame(x) && length(x)) {
       atr <- attributes(x)

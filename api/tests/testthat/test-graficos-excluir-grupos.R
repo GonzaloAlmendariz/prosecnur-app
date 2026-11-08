@@ -4,13 +4,13 @@ source("setup-load-all.R")
 # y de la base, la ruta de cifras con `detalle` lo refleja (el antes y el después del inspector) y la lámina lo dice en
 # su pie. La referencia es el mismo gráfico filtrado a mano a los grupos que quedan.
 
-.eg_inst <- function() {
+.eg_inst <- function(rotulo_mujer = "Mujer") {
   lk <- c("1", "2", "3", "4", "5", "9")
   survey <- data.frame(type = c("select_one lk", "select_one sx"), name = c("q1", "sexo"), label = c("Reglamentos", "Sexo"),
                        stringsAsFactors = FALSE)
   choices <- data.frame(list_name = c(rep("lk", 6), rep("sx", 3)), name = c(lk, "1", "2", "3"),
                         label = c("Muy en desacuerdo", "En desacuerdo", "Ni uno ni otro", "De acuerdo", "Muy de acuerdo",
-                                  "No sabe", "Hombre", "Mujer", "Otro"), stringsAsFactors = FALSE)
+                                  "No sabe", "Hombre", rotulo_mujer, "Otro"), stringsAsFactors = FALSE)
   x <- tempfile(fileext = ".xlsx")
   openxlsx::write.xlsx(list(survey = survey, choices = choices), x)
   suppressMessages(reporte_instrumento(x))
@@ -170,8 +170,134 @@ test_that("filtros: la lista nombrada pasa a reglas sin el NA fantasma; la coma 
   out <- .excluir_grupos_elemento(el, src$data_sources, src$inst_sources, "doc")
   expect_identical(out$filtros, list(list(variable = "q1", op = "in", value = "4,5"),
                                      list(variable = "sexo", op = "notin", value = "3")))
-  # Sin cruce no hay grupos: el elemento sale igual.
-  sin_cruce <- .excluir_grupos_elemento(p_barras_apiladas("doc$q1", excluir_grupos = "3"), src$data_sources, src$inst_sources, "doc")
+  # Sin cruce no hay grupos: el elemento sale igual y se avisa.
+  expect_message(sin_cruce <- .excluir_grupos_elemento(p_barras_apiladas("doc$q1", excluir_grupos = "3"), src$data_sources,
+                                                       src$inst_sources, "doc"), "no tiene \"Dividir por\"")
   expect_identical(sin_cruce$filtros, list())
   expect_null(sin_cruce$.excluir_grupos_aplicado)
+})
+
+# ---- revisión metodológica de b606cb545 -------------------------------------------------------------------------------
+
+test_that("agrupada y multiapilada: la base pasa de todos los grupos a los que quedan", {
+  skip_if_not_installed("openxlsx"); skip_if_not_installed("ggplot2")
+  d <- .eg_data()
+  todos <- .eg_render("p_barras_agrupadas", list(var = "doc$q1", cruces = "doc$sexo"))
+  sin <- .eg_render("p_barras_agrupadas", list(var = "doc$q1", cruces = "doc$sexo", excluir_grupos = list("Otro")))
+  expect_identical(todos$base, sprintf("Base: %d", sum(!is.na(d$sexo))))
+  expect_identical(sin$base, sprintf("Base: %d", sum(d$sexo %in% c("1", "2"))))
+  bt <- attr(todos$p, "pulso_barras_bases", exact = TRUE); bs <- attr(sin$p, "pulso_barras_bases", exact = TRUE)
+  expect_identical(unname(unlist(bs)), unname(unlist(bt))[seq_along(unlist(bs))])   # los grupos que quedan, con su n
+  mt <- .eg_det("p_barras_multiapiladas", list(modo = "cruce", var = "doc$q1", cruces = "doc$sexo"))
+  ms <- .eg_det("p_barras_multiapiladas", list(modo = "cruce", var = "doc$q1", cruces = "doc$sexo", excluir_grupos = list("3")))
+  expect_identical(.eg_filas(ms), .eg_filas(mt)[c("Hombre", "Mujer")])
+  expect_identical(c(mt$base$texto, ms$base$texto), sprintf("Base: %d", c(sum(!is.na(d$sexo)), sum(d$sexo %in% c("1", "2")))))
+})
+
+test_that("con pesos: los grupos que quedan no cambian y la base es la del filtro a mano (los pesos no se recalibran)", {
+  skip_if_not_installed("openxlsx"); skip_if_not_installed("ggplot2")
+  dw <- .eg_data(); set.seed(5); dw$peso <- round(runif(nrow(dw), 0.3, 2.5), 3)
+  srcw <- list(data_sources = list(doc = dw), inst_sources = list(doc = .eg_inst()))
+  wt <- .eg_det("p_barras_apiladas", list(var = "doc$q1", cruces = "doc$sexo"), src = srcw)
+  ws <- .eg_det("p_barras_apiladas", list(var = "doc$q1", cruces = "doc$sexo", excluir_grupos = list("3")), src = srcw)
+  wm <- .eg_det("p_barras_apiladas", list(var = "doc$q1", cruces = "doc$sexo", filtros = list(sexo = c("1", "2"))), src = srcw)
+  expect_identical(.eg_filas(ws), .eg_filas(wm))
+  expect_identical(.eg_filas(ws), .eg_filas(wt)[c("Hombre", "Mujer")])
+  expect_identical(ws$base, wm$base)
+  pond <- function(det) vapply(det$filas, function(f) f$base$n_ponderado, 0)
+  expect_equal(pond(ws), pond(wt)[1:2])
+  expect_equal(pond(ws), c(sum(dw$peso[dw$sexo %in% "1"]), sum(dw$peso[dw$sexo %in% "2"])))
+})
+
+test_that("recodificada: los grupos se buscan en la columna que agrupa el render (`_recod`)", {
+  skip_if_not_installed("openxlsx"); skip_if_not_installed("ggplot2")
+  d <- .eg_data(); d$sexo_recod <- ifelse(d$sexo %in% c("2", "3"), "2", d$sexo)   # Mujer + Otro -> 2
+  src <- list(data_sources = list(doc = d), inst_sources = list(doc = .eg_inst()))
+  # "3" ya no es un grupo de la lámina: se avisa y nada cambia (antes dejaba el grupo 2 con 42 en vez de 46).
+  el <- p_barras_apiladas("doc$q1", cruces = "doc$sexo", excluir_grupos = "3")
+  expect_message(o <- .excluir_grupos_elemento(el, src$data_sources, src$inst_sources, "doc"), "no hay casos")
+  expect_null(o$.excluir_grupos_aplicado)
+  todos <- .eg_det("p_barras_apiladas", list(var = "doc$q1", cruces = "doc$sexo"), src = src)
+  sin3 <- .eg_det("p_barras_apiladas", list(var = "doc$q1", cruces = "doc$sexo", excluir_grupos = list("3")), src = src)
+  expect_identical(.eg_filas(sin3), .eg_filas(todos))
+  # Un grupo de la recodificada sí se excluye, con la regla sobre ella, y el grupo que queda conserva su n.
+  o1 <- .excluir_grupos_elemento(p_barras_apiladas("doc$q1", cruces = "doc$sexo", excluir_grupos = "1"),
+                                 src$data_sources, src$inst_sources, "doc")
+  expect_identical(o1$filtros, list(list(variable = "sexo_recod", op = "notin", value = "1")))
+  sin1 <- .eg_det("p_barras_apiladas", list(var = "doc$q1", cruces = "doc$sexo", excluir_grupos = list("1")), src = src)
+  expect_length(sin1$filas, 1L)
+  expect_identical(.eg_filas(sin1), .eg_filas(todos)[2])
+  expect_identical(sin1$base$texto, sprintf("Base: %d", sum(d$sexo_recod %in% "2")))
+})
+
+test_that("rótulos con tilde y ambigüedad: la tilde no impide casar; lo ambiguo no se excluye", {
+  expect_identical(.excluir_grupos_clave(c("Educación", "EDUCACION ", "Otró")), c("educacion", "educacion", "otro"))
+  cats <- data.frame(codigo = c("1", "2"), etiqueta = c("Educación", "Ingeniería"), stringsAsFactors = FALSE)
+  r <- .excluir_grupos_resolver(c("educacion", "INGENIERIA"), cats, c("1", "2"))
+  expect_identical(r$codigos, c("1", "2"))
+  expect_identical(r$rotulos, c("Educación", "Ingeniería"))
+  # Dos códigos con el mismo rótulo normalizado.
+  r <- .excluir_grupos_resolver("otro", data.frame(codigo = c("1", "2", "3"), etiqueta = c("Hombre", "Otró", "Otro")), c("1", "2", "3"))
+  expect_identical(r$ambiguos, "otro"); expect_length(r$codigos, 0L)
+  # Código de uno y rótulo de otro: se pide el código.
+  r <- .excluir_grupos_resolver("1", data.frame(codigo = c("1", "2", "3"), etiqueta = c("3", "1", "2")), c("1", "2", "3"))
+  expect_identical(r$ambiguos, "1"); expect_length(r$codigos, 0L)
+  # Código que coincide con su propio rótulo: no es ambiguo.
+  r <- .excluir_grupos_resolver("1", data.frame(codigo = c("1", "2"), etiqueta = c("1", "2")), c("1", "2"))
+  expect_identical(r$codigos, "1")
+  skip_if_not_installed("openxlsx")
+  inst <- .eg_inst(rotulo_mujer = "Otró")   # dos grupos que se escriben igual sin tilde
+  src <- list(data_sources = list(doc = .eg_data()), inst_sources = list(doc = inst))
+  expect_message(o <- .excluir_grupos_elemento(p_barras_apiladas("doc$q1", cruces = "doc$sexo", excluir_grupos = "Otro"),
+                                               src$data_sources, src$inst_sources, "doc"), "más de un grupo")
+  expect_null(o$.excluir_grupos_aplicado)
+})
+
+test_that("excluir todos los grupos no se aplica; un grupo vaciado por el filtro del analista no se nombra", {
+  skip_if_not_installed("openxlsx")
+  src <- .eg_fuentes()
+  expect_message(o <- .excluir_grupos_elemento(p_barras_apiladas("doc$q1", cruces = "doc$sexo", excluir_grupos = c("1", "2", "3")),
+                                               src$data_sources, src$inst_sources, "doc"), "sin grupos")
+  expect_null(o$.excluir_grupos_aplicado); expect_identical(o$filtros, list())
+  el <- p_barras_apiladas("doc$q1", cruces = "doc$sexo", excluir_grupos = c("2", "3"), filtros = list(sexo = c("1", "2")))
+  expect_message(o <- .excluir_grupos_elemento(el, src$data_sources, src$inst_sources, "doc"), "no hay casos en los grupos a excluir \"3\"")
+  expect_identical(o$.excluir_grupos_aplicado$rotulos, "Mujer")
+})
+
+test_that("el cruce heredado del preset de la agrupada se resuelve; sin cruce se avisa", {
+  skip_if_not_installed("openxlsx")
+  presets <- list(barras_agrupadas = list(args = list(cruces = "doc$sexo")))
+  el <- p_barras_agrupadas("doc$q1", excluir_grupos = "3")
+  expect_identical(.excluir_grupos_cruce_ref(el, presets), "doc$sexo")
+  expect_null(.excluir_grupos_cruce_ref(el, NULL))
+  src <- .eg_fuentes()
+  o <- .excluir_grupos_elemento(el, src$data_sources, src$inst_sources, "doc", presets)
+  expect_identical(o$.excluir_grupos_aplicado$rotulos, "Otro")
+  expect_message(.excluir_grupos_elemento(el, src$data_sources, src$inst_sources, "doc", NULL), "no tiene \"Dividir por\"")
+})
+
+test_that("significancia: con un grupo excluido la nota dice que compara sólo los grupos mostrados (decisión 4, respaldo)", {
+  skip_if_not_installed("openxlsx"); skip_if_not_installed("ggplot2")
+  # Top Two Box: Hombre 84/140, Mujer 67/140, Otro 22/40. Con los tres grupos, Bonferroni sobre 3 pares no marca
+  # Hombre-Mujer (p = 0,042); sin Otro, sobre 1 par, sí. La tabla de cruces compara los tres.
+  mk <- function(n, k) c(rep("4", k - 10), rep("5", 10), rep("2", n - k - 10), rep("1", 10))
+  d <- data.frame(q1 = c(mk(140, 84), mk(140, 67), mk(40, 22)), sexo = c(rep("1", 140), rep("2", 140), rep("3", 40)),
+                  stringsAsFactors = FALSE)
+  src <- list(data_sources = list(doc = d), inst_sources = list(doc = .eg_inst()))
+  a <- list(modo = "cruce", var = "doc$q1", cruces = "doc$sexo", mostrar_significancia = TRUE, top2box = TRUE,
+            overrides = list(top2box_labels = list("De acuerdo", "Muy de acuerdo")))
+  todos <- .eg_render("p_barras_multiapiladas", a, src = src)
+  sin <- .eg_render("p_barras_multiapiladas", c(a, list(excluir_grupos = list("3"))), src = src)
+  nota <- function(r) as.character(attr(r$p, "pulso_sig_nota", exact = TRUE) %||% "")
+  expect_false(grepl(.EXCLUIR_GRUPOS_NOTA_SIG, nota(todos), fixed = TRUE))
+  expect_true(grepl("Bonferroni", nota(sin), fixed = TRUE))
+  expect_true(endsWith(nota(sin), .EXCLUIR_GRUPOS_NOTA_SIG))
+  # El aviso al analista, una vez por render.
+  p <- structure(list(), pulso_sig_nota = "Prueba z, p < 0.05 con corrección de Bonferroni")
+  expect_message(p2 <- .excluir_grupos_nota_sig(p, "sexo"), "entre los grupos mostrados")
+  expect_identical(attr(p2, "pulso_sig_nota"), "Prueba z, p < 0.05 con corrección de Bonferroni. Diferencias entre los grupos mostrados.")
+  expect_silent(p3 <- .excluir_grupos_nota_sig(p2, "sexo"))
+  expect_identical(attr(p3, "pulso_sig_nota"), attr(p2, "pulso_sig_nota"))
+  # Sin significancia, nada que decir.
+  expect_silent(.excluir_grupos_nota_sig(structure(list(), class = "x"), "sexo"))
 })
