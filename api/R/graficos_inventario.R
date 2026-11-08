@@ -3,7 +3,14 @@
 # =============================================================================
 #
 # El selector cruza el `usa` de cada tipo (graficos_tipos_usa.R) con lo que tiene el estudio. Por base:
-#   - el público (el nombre de la base) y su n (filas de la fuente procesada, ya con el universo de Analítica);
+#   - el público (el nombre de la base) y su n: las filas de la fuente con que Gráficos dibuja en ese scope.
+#       · Scope vacío (las bases del procesamiento, `.graficos_processing_sources`): ya con el universo de Analítica
+#         (`.graficos_aplicar_caso_valido`, «qué casos cuentan» de Validación).
+#       · Scope `consolidated` (`.graficos_consolidado_sources`): el export consolidado NO aplica ese universo, así que
+#         el n tampoco; contar aquí el universo de Analítica prometería en el selector un n que la lámina consolidada
+#         no dibuja. Si el consolidado debe filtrar por caso válido es una decisión de ese export, no del inventario
+#         (revisión metodológica de la regla, H7).
+#       · Es un conteo de filas SIN PONDERAR, y en una base hija de un repeat cuenta filas del repeat, no personas;
 #   - cuántas preguntas tiene de cada tipo. Los tipos no se solapan:
 #       escala        las de `.regla_preguntas_de_base` (el criterio del ADR 0135 §5: `select_one` de diseño
 #                     independiente, cuatro o más opciones sustantivas y lista de batería o declarada ordinal);
@@ -93,7 +100,8 @@
 #' @param s Estado de la sesión (para el padrón); `NULL` deja el padrón sin declarar.
 #' @param sources `list(data_sources, inst_sources)` (`.graficos_preview_fuentes`), una entrada por base.
 #' @return `list(ok, bases: [{base, publico, n, preguntas: {escala, opcion_unica, multiple, numerica, abierta},
-#'   padron: {declarado, valor, origen, motivo}}])`, en el orden de las fuentes.
+#'   padron: {declarado, valor, origen, motivo}}])`, en el orden de las fuentes. `n` son filas sin ponderar de la fuente
+#'   del scope (ver la cabecera: con el universo de Analítica sólo en el scope de las bases del procesamiento).
 #' @keywords internal
 .graficos_inventario <- function(s, sources) {
   bases <- names(sources$data_sources %||% list())

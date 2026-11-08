@@ -616,8 +616,8 @@ p_barras_divergentes <- function(vars = NULL,
   p <- .regla_preguntas_en_espec(do.call(graficar_barras_divergentes, args), ap$texto)
   esp <- attr(p, "pulso_espec", exact = TRUE)
   if (identical(esp$estilo, "resumen")) {
-    tope <- .divergentes_aviso_tope(length(esp$filas), ap$texto)   # graficos_escala_tope.R
-    if (!is.null(tope)) .pulso_aviso(tope)
+    # graficos_escala_tope.R: las dos causas del respaldo, más filas que el tope o más de una columna «Sin información»
+    for (av in .divergentes_aviso_tope(length(esp$filas), ap$texto, sum(esp$categorias$lado == "sin_inf"))) .pulso_aviso(av)
   }
   .divergentes_nota_porcentaje(p, isTRUE(tabla$hubo_exclusion), tabla$escalas_armonizadas)
 }

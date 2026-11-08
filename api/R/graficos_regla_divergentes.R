@@ -115,9 +115,10 @@
 #'
 #' @param refs Referencias calificadas (`base$variable`) que ya pasaron el universo de candidatas.
 #' @param preset Args del preset del tipo (el render los pasa; fuera del render, el preset de la pila o nada).
-#' @return `list(medidas = data.frame(ref, valor, sin_info), motivos)`: `valor` y `sin_info` en 0–100, iguales a la
-#'   suma de las unidades rotuladas del lado de acuerdo y de la columna especial. Una pregunta que la lámina no puede
-#'   dibujar (un lado vacío tras las exclusiones) sale con su motivo.
+#' @return `list(medidas = data.frame(ref, valor, sin_info), motivos, avisos, n_sin_inf)`: `valor` y `sin_info` en
+#'   0–100, iguales a la suma de las unidades rotuladas del lado de acuerdo y de las columnas especiales. Una pregunta
+#'   que la lámina no puede dibujar (un lado vacío tras las exclusiones) sale con su motivo. `n_sin_inf` cuenta las
+#'   columnas «Sin información» de la tabla (la lámina nativa admite una: `.lam_divergentes_resumen_cabe`).
 #' @keywords internal
 .regla_div_medidas <- function(refs, el, sources, preset = NULL) {
   a <- .regla_div_args(el, preset)
@@ -130,10 +131,10 @@
     motivos <- as.list(unname(unlist(omitidas)))
     validas <- setdiff(refs, names(omitidas))
     avisos <- .escala_arm_avisos_exclusion(a$declaradas, attr(esp, "opciones_leyenda", exact = TRUE))   # C2
-    if (!length(validas) || is.null(esp$categorias)) return(list(medidas = vacio, motivos = motivos, avisos = avisos))
+    if (!length(validas) || is.null(esp$categorias)) return(list(medidas = vacio, motivos = motivos, avisos = avisos, n_sin_inf = 0L))
     lado <- esp$categorias$lado; U <- esp$unidades; k <- 10^esp$decimales
     list(medidas = data.frame(ref = validas, valor = esp$total_pos / k,
                               sin_info = rowSums(U[, lado == "sin_inf", drop = FALSE]) / k, stringsAsFactors = FALSE),
-         motivos = motivos, avisos = avisos)
+         motivos = motivos, avisos = avisos, n_sin_inf = sum(lado == "sin_inf"))
   })
 }

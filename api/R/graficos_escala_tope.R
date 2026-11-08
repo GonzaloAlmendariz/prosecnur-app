@@ -6,19 +6,34 @@
 # (`.LAM_DIV_RESUMEN_MAX_FILAS`); `.lam_divergentes_resumen_cabe` la manda entonces al dibujo de respaldo (imagen en su
 # marco). Eso no se recorta ni pasa en silencio: el conteo de la regla y el render avisan con la causa.
 
-#' Aviso del tope de filas: «22 preguntas bajo 60%; la lámina nativa admite 20 y la escala sale como imagen.»
+#' Por qué la escala del resumen sale como imagen: las dos causas de `.lam_divergentes_resumen_cabe`
 #'
+#' - más filas que el tope: «22 preguntas bajo 60%; la lámina nativa admite 20 y la escala sale como imagen.»;
+#' - más de una columna «Sin información» (98 «No sabe» y 99 «No responde»): «Hay dos opciones sin información; la
+#'   lámina nativa admite una y la escala sale como imagen.» (revisión metodológica de la regla, H4).
+#'
+#' La geometría (`ge$xb - ge$xa`) no entra: depende de los rótulos que arma el render, y una afirmación larga ya no manda
+#' la lámina a la imagen.
 #' @param n Filas de la escala. @param texto_regla Nota de la regla («Se muestran las 22 bajo 60%, de 157 …»).
-#' @return El aviso o `NULL` si cabe.
+#' @param n_sin_inf Columnas «Sin información» de la tabla de la lámina (`.regla_div_medidas`, o la especificación).
+#' @return Los avisos (uno por causa) o `NULL` si cabe.
 #' @keywords internal
-.divergentes_aviso_tope <- function(n, texto_regla = NULL) {
+.divergentes_aviso_tope <- function(n, texto_regla = NULL, n_sin_inf = 0L) {
   n <- as.integer(n)[1]
-  if (is.na(n) || n <= .LAM_DIV_RESUMEN_MAX_FILAS) return(NULL)
-  criterio <- sub("^Se muestran las [0-9]+ ([^,.]+)[,.].*$", "\\1", as.character(texto_regla %||% "")[1])
-  que <- if (nzchar(criterio) && !identical(criterio, as.character(texto_regla %||% "")[1])) {
-    sprintf("%d preguntas %s", n, criterio)
-  } else sprintf("%d preguntas", n)
-  sprintf("%s; la lámina nativa admite %d y la escala sale como imagen.", que, .LAM_DIV_RESUMEN_MAX_FILAS)
+  avisos <- character(0)
+  if (!is.na(n) && n > .LAM_DIV_RESUMEN_MAX_FILAS) {
+    criterio <- sub("^Se muestran las [0-9]+ ([^,.]+)[,.].*$", "\\1", as.character(texto_regla %||% "")[1])
+    que <- if (nzchar(criterio) && !identical(criterio, as.character(texto_regla %||% "")[1])) {
+      sprintf("%d preguntas %s", n, criterio)
+    } else sprintf("%d preguntas", n)
+    avisos <- c(avisos, sprintf("%s; la lámina nativa admite %d y la escala sale como imagen.", que, .LAM_DIV_RESUMEN_MAX_FILAS))
+  }
+  si <- suppressWarnings(as.integer(n_sin_inf %||% 0L)[1])
+  if (is.finite(si) && si > 1L) {
+    cuantas <- if (si <= length(.REGLA_PREGUNTAS_NUMEROS)) .REGLA_PREGUNTAS_NUMEROS[si] else as.character(si)
+    avisos <- c(avisos, sprintf("Hay %s opciones sin información; la lámina nativa admite una y la escala sale como imagen.", cuantas))
+  }
+  if (length(avisos)) avisos else NULL
 }
 
 #' Tope de filas de la lámina nativa para un graficador con regla (el que publica `POST /api/graficos/resumenes/regla`)

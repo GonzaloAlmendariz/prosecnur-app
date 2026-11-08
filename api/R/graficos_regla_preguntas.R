@@ -225,9 +225,14 @@
   if (entre && !identical(grupos_unidad, "grupos")) universo <- "preguntas comunes"
   R <- matrix(.pulso_round_half_up(V, dec), nrow(V))
   dif <- rep(NA_real_, length(temas))
-  if (k >= 2L && any(completo)) dif[completo] <- abs(.contraste_diferencia(R[completo, , drop = FALSE]))
+  # La resta de dos cifras redondeadas vuelve a redondearse a los mismos decimales: 16,4 − 1,4 da 14,999999999999998 en
+  # punto flotante y la lámina rotula «15,0 pts». Sin este redondeo `diferencia_minima` 15 la dejaba fuera y, en
+  # `mayor_diferencia`, el flotante decidía un empate visible en vez del orden del instrumento.
+  if (k >= 2L && any(completo)) dif[completo] <- .pulso_round_half_up(abs(.contraste_diferencia(R[completo, , drop = FALSE])), dec)
   primero <- function(M) if (k) M[, 1] else rep(NA_real_, nrow(M))
-  media <- if (k) apply(R, 1, function(r) if (any(is.finite(r))) mean(r[is.finite(r)]) else NA_real_) else rep(NA_real_, length(temas))
+  # El promedio de `extremos` no se rotula, pero ordena: se le quita el ruido del flotante (dos promedios iguales en
+  # aritmética exacta empatan y los desempata el instrumento).
+  media <- if (k) apply(R, 1, function(r) if (any(is.finite(r))) round(mean(r[is.finite(r)]), dec + 6L) else NA_real_) else rep(NA_real_, length(temas))
   metrica <- switch(regla$tipo,
     mayor_diferencia = dif, diferencia_minima = dif,
     mayor_sin_info = if (k) apply(matrix(.pulso_round_half_up(S, dec), nrow(S)), 1, function(r) if (any(is.finite(r))) max(r[is.finite(r)]) else NA_real_) else rep(NA_real_, length(temas)),
@@ -298,18 +303,41 @@
 .regla_preguntas_de_elemento <- function(el, sources, regla = el$regla, preset = NULL) {
   regla <- .regla_preguntas_normalizar(regla)
   tipo <- (regla %||% list(tipo = "todas"))$tipo
+  preset <- .regla_preguntas_preset(el, preset)
   ind <- .regla_preguntas_indicadores(el, sources, tipo, preset = preset)
-  dec <- suppressWarnings(as.integer((el$overrides %||% list())$valores_decimales %||% 0L)[1])
   ev <- .regla_preguntas_evaluar(ind$indicadores, regla, universo = ind$universo, grupos_unidad = ind$grupos_unidad,
-                                 decimales = if (is.finite(dec)) dec else 0L)
+                                 decimales = .regla_preguntas_decimales(el, preset))
   # La escala del resumen: `bajo_umbral` y `mayor_sin_info` fijan el orden de las filas (graficos_regla_orden_escala.R).
   criterio <- .regla_escala_orden_fijado(el, regla)
   if (!is.null(criterio)) ev <- .regla_escala_ordenar(ev, ind$indicadores, criterio)
   elegidas <- ind$refs_por_tema[ev$temas]
   vars <- if (identical(el$.element_type, "dumbbell")) elegidas else unname(unlist(elegidas))
-  tope <- if (identical(el$.element_type, "barras_divergentes")) .divergentes_aviso_tope(length(vars), ev$texto)
-  list(evaluacion = ev, vars = vars, avisos = c(ind$avisos, ev$avisos, tope), indicadores = ind$indicadores,
-       firma_leyenda = ind$firma_leyenda)
+  # La escala del resumen sale como imagen con más de 20 filas o con más de una columna «Sin información»
+  # (`.lam_divergentes_resumen_cabe`): el conteo lo dice con la causa (graficos_escala_tope.R).
+  imagen <- if (identical(el$.element_type, "barras_divergentes")) .divergentes_aviso_tope(length(vars), ev$texto, ind$n_sin_inf)
+  list(evaluacion = ev, vars = vars, avisos = c(ind$avisos, ev$avisos, imagen), indicadores = ind$indicadores,
+       firma_leyenda = ind$firma_leyenda, motivos_imagen = imagen)
+}
+
+#' Los args del preset del tipo con que el render dibuja el elemento
+#'
+#' El render de la escala recibe el preset; los demás lo leen con `.ola4_preset` (la pila de `reporte_ppt_plan`). El
+#' endpoint de conteo no tiene esa pila: pasa el preset de la vista previa (`.regla_preguntas_conteo(presets = )`).
+#' @keywords internal
+.regla_preguntas_preset <- function(el, preset = NULL) {
+  if (length(preset)) return(as.list(preset))
+  .ola4_preset(as.character(el$.element_type %||% "")[1])
+}
+
+#' Decimales con que la lámina rotula sus cifras: los del preset del tipo y, encima, los de la lámina
+#'
+#' Es la misma mezcla del render (`modifyList(preset, overrides)`): con un preset `valores_decimales = 1` la lámina
+#' rotula 37,5 y la regla mide 37,5, no 38.
+#' @keywords internal
+.regla_preguntas_decimales <- function(el, preset = NULL) {
+  args <- utils::modifyList(as.list(preset %||% list()), as.list(el$overrides %||% list()))
+  dec <- suppressWarnings(as.integer(args$valores_decimales %||% 0L)[1])
+  if (!is.finite(dec) || dec < 0L) 0L else dec
 }
 
 #' El render aplica la regla: el elemento con sus `vars` elegidas y el texto para la nota
@@ -388,7 +416,7 @@
 #' @param args Args del constructor, como los guarda el slot.
 #' @param sources Fuentes del estudio.
 #' @keywords internal
-.regla_preguntas_conteo <- function(graficador, args, sources) {
+.regla_preguntas_conteo <- function(graficador, args, sources, presets = NULL) {
   graficador <- trimws(as.character(graficador %||% "")[1])
   if (is.na(graficador) || !graficador %in% c("p_panorama", "p_dumbbell", "p_barras_divergentes", "p_fortalezas")) {
     .regla_preguntas_falla("Este gráfico no elige sus preguntas con una regla.")
@@ -401,12 +429,16 @@
   el <- .rebuild_graf(list(graficador = graficador, args = args))
   if (is.null(el) || is.null(el$.element_type)) {
     return(list(ok = TRUE, total = 0L, seleccionadas = list(), candidatas = list(), texto_regla = "",
-                avisos = list("Faltan datos del gráfico para contar sus preguntas."), tope_filas = .regla_tope_filas(graficador)))
+                avisos = list("Faltan datos del gráfico para contar sus preguntas."), tope_filas = .regla_tope_filas(graficador),
+                cabe_nativa = NA, motivo_imagen = NA_character_))
   }
   # Un borrador incompleto se reconstruye como gráfico vacío: se dice qué falta, nunca su tipo interno.
   if (!el$.element_type %in% c("panorama", "dumbbell", "barras_divergentes", "fortalezas")) .regla_preguntas_falta_dato(graficador, args)
-  r <- .regla_preguntas_de_elemento(el, sources, regla = el$regla)
+  # Los presets de la vista previa (los mismos que /cifras y el render): sus exclusiones y sus decimales cambian las cifras.
+  preset <- if (is.list(presets)) presets[[el$.element_type]]$args else NULL
+  r <- .regla_preguntas_de_elemento(el, sources, regla = el$regla, preset = preset)
   ev <- r$evaluacion
+  es_escala <- identical(el$.element_type, "barras_divergentes")
   cand <- ev$candidatas
   list(
     ok = TRUE,
@@ -419,6 +451,10 @@
     )),
     texto_regla = ev$texto,
     avisos = as.list(r$avisos),
-    tope_filas = .regla_tope_filas(graficador)   # graficos_escala_tope.R; NA sale como null
+    tope_filas = .regla_tope_filas(graficador),   # graficos_escala_tope.R; NA sale como null
+    # ¿La lámina nativa dibuja lo elegido? Sólo la escala tiene esa restricción; los demás, null. Con FALSE el motivo
+    # dice por qué sale como imagen (más filas que el tope o más de una columna «Sin información»).
+    cabe_nativa = if (es_escala) !length(r$motivos_imagen) else NA,
+    motivo_imagen = if (es_escala && length(r$motivos_imagen)) paste(r$motivos_imagen, collapse = " ") else NA_character_
   )
 }

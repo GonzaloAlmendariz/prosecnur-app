@@ -171,3 +171,21 @@ test_that("el endpoint queda montado en la app", {
   src <- paste(readLines(test_path("..", "..", "R", "plumber_app.R"), warn = FALSE), collapse = "\n")
   expect_match(src, "mount_graficos_inventario(pr)", fixed = TRUE)
 })
+
+test_that("HTTP: n es el universo de Analítica en las bases del procesamiento y la fuente cruda en el consolidado (H7)", {
+  sid <- .inv_sesion(); on.exit(session_delete(sid), add = TRUE)
+  # «Qué casos cuentan» en docentes: q1 == "1" deja 5 de 30 filas.
+  s <- session_get(sid)
+  s$estudio$bases$docentes$validacion <- list(operational_config = list(caso_valido = list(enabled = TRUE, condiciones = list(
+    list(variable = "q1", operador = "==", valores = list("1"))))))
+  .session_env[[sid]] <- s
+  activa <- .inv_http(sid)
+  expect_identical(activa$status, 200L)
+  expect_identical(activa$body$bases[[1]]$n, 5L)    # el universo de Analítica (sin ponderar)
+  expect_identical(activa$body$bases[[2]]$n, 12L)   # la base sin criterio no cambia
+  # El consolidado no aplica el caso válido (tampoco su export): su n es el de la fuente que dibuja la lámina.
+  cons <- .inv_http(sid, "scope=consolidated")
+  expect_identical(cons$status, 200L)
+  expect_identical(cons$body$bases[[1]]$n, 30L)
+  expect_identical(cons$body$bases[[1]]$n, nrow(.graficos_consolidado_sources(sid)$data_sources$docentes))
+})

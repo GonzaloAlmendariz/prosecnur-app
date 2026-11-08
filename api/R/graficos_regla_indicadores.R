@@ -326,7 +326,7 @@
   }
   list(indicadores = .regla_preguntas_rbind(filas), refs_por_tema = refs_tema,
        avisos = c(.regla_preguntas_avisos(motivos), med$avisos), universo = "preguntas de escala", grupos_unidad = "públicos",
-       firma_leyenda = firma)
+       firma_leyenda = firma, n_sin_inf = med$n_sin_inf %||% 0L)
 }
 
 #' Tabla de indicadores de un elemento ya construido (`p_panorama`, `p_dumbbell`, `p_barras_divergentes`, `p_fortalezas`)
@@ -334,8 +334,10 @@
 #' @param el Elemento `ppt_element` del constructor.
 #' @param sources `list(data_sources, inst_sources)`.
 #' @param tipo Tipo de regla (decide si el panorama empareja por nombre).
-#' @param preset Args del preset del tipo; sólo la escala los usa (sus exclusiones y su reparto).
-#' @return `list(indicadores, refs_por_tema, avisos, universo, grupos_unidad)`.
+#' @param preset Args del preset del tipo; aquí sólo la escala los usa (sus exclusiones y su reparto). Sus decimales
+#'   los aplica la evaluación (`.regla_preguntas_decimales`).
+#' @return `list(indicadores, refs_por_tema, avisos, universo, grupos_unidad)`; la escala suma `firma_leyenda` y
+#'   `n_sin_inf` (columnas «Sin información» de su lámina).
 #' @keywords internal
 .regla_preguntas_indicadores <- function(el, sources, tipo = "todas", preset = NULL) {
   et <- as.character(el$.element_type %||% "")[1]

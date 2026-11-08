@@ -2,8 +2,11 @@
 //
 // Contrato: `api/R/router_graficos_regla.R` y `.regla_preguntas_conteo()` (graficos_regla_preguntas.R).
 //   POST /api/graficos/resumenes/regla  {graficador, args, scope?}
-//     -> {ok, total, seleccionadas, candidatas: [{tema, etiqueta, metrica, seleccionada}], texto_regla, avisos, tope_filas}
+//     -> {ok, total, seleccionadas, candidatas: [{tema, etiqueta, metrica, seleccionada}], texto_regla, avisos, tope_filas,
+//         cabe_nativa, motivo_imagen}
 // `tope_filas` es el tope de filas de la lámina nativa (20 en la escala del resumen) o `null` si el graficador no tiene.
+// `cabe_nativa` dice si la lámina nativa dibuja lo elegido: en la escala del resumen es `false` con más filas que el tope
+// o con más de una columna «Sin información» (98 y 99), y `motivo_imagen` trae la causa; `null` en los demás gráficos.
 // Una regla inválida responde 400 con `E_REGLA_PREGUNTAS_INVALIDA`. El normalizador es defensivo (patrón de
 // `normalizeGraficosShareInspect`): un campo que falta o que esta versión no conoce cae a un valor seguro.
 
@@ -42,6 +45,11 @@ export type ConteoRegla = {
   /** Filas que admite la lámina nativa para este graficador y estilo; `null` si no tiene tope. `normalizarConteoRegla`
    *  lo llena siempre; es opcional en el tipo sólo para que los conteos armados a mano (fixtures) sigan valiendo. */
   tope_filas?: number | null;
+  /** ¿La lámina nativa dibuja lo elegido? `false`: sale como imagen (ver `motivo_imagen`); `null`: el gráfico no tiene
+   *  esa restricción o el motor no lo dijo. Nunca se deduce de `tope_filas`: hay otra causa (dos «Sin información»). */
+  cabe_nativa?: boolean | null;
+  /** Por qué sale como imagen, en la redacción del motor; `null` si cabe o no aplica. */
+  motivo_imagen?: string | null;
 };
 
 export type PedidoConteoRegla = {
@@ -76,6 +84,12 @@ const comoTope = (v: unknown): number | null => {
   return n !== null && n >= 1 ? Math.floor(n) : null;
 };
 
+// Un booleano sólo si el motor lo escribió como tal (o como arreglo de uno, por el `auto_unbox`); lo demás es «no dicho».
+const comoBooleano = (v: unknown): boolean | null => {
+  const b = Array.isArray(v) && v.length === 1 ? v[0] : v;
+  return typeof b === "boolean" ? b : null;
+};
+
 export function normalizarConteoRegla(raw: unknown): ConteoRegla {
   const r = comoObjeto(raw);
   const total = comoNumero(r.total);
@@ -92,6 +106,8 @@ export function normalizarConteoRegla(raw: unknown): ConteoRegla {
     texto_regla: comoTexto(r.texto_regla),
     avisos: comoTextos(r.avisos),
     tope_filas: comoTope(r.tope_filas),
+    cabe_nativa: comoBooleano(r.cabe_nativa),
+    motivo_imagen: comoTexto(Array.isArray(r.motivo_imagen) && r.motivo_imagen.length === 1 ? r.motivo_imagen[0] : r.motivo_imagen) || null,
   };
 }
 

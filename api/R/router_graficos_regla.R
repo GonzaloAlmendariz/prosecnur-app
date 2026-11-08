@@ -8,10 +8,13 @@
 #
 #   POST /api/graficos/resumenes/regla   {graficador, args, scope?}
 #     -> {ok, total, seleccionadas: [tema], candidatas: [{tema, etiqueta, metrica, seleccionada}], texto_regla, avisos,
-#         tope_filas}   `tope_filas`: filas que admite la lámina nativa (20 en la escala del resumen) o null sin tope
+#         tope_filas, cabe_nativa, motivo_imagen}
+#   `tope_filas`: filas que admite la lámina nativa (20 en la escala del resumen) o null sin tope.
+#   `cabe_nativa`: en la escala del resumen, si la lámina nativa dibuja lo elegido (false con más filas que el tope o
+#   con más de una columna «Sin información»); null en los demás. `motivo_imagen`: la causa cuando es false, si no null.
 #
-# `scope` es el de la vista previa (`consolidated` o vacío): las fuentes salen de `.graficos_preview_fuentes`, que en
-# multibase trae todas las bases del estudio.
+# `scope` es el de la vista previa (`consolidated` o vacío): las fuentes y los presets salen de
+# `.graficos_resumenes_motor` (la vista previa; en multibase trae todas las bases del estudio), los mismos que /cifras.
 #
 #   GET /api/graficos/resumenes/padron?scope=
 #     -> {ok, bases: [{base, padron, padron_origen, meta, meta_unidad, meta_origen, motivo}]}
@@ -44,19 +47,16 @@ mount_graficos_regla <- function(pr) {
       }
       args <- parsed[["args"]] %||% list()
       if (!is.list(args)) .regla_preguntas_falla("`args` debe ser un objeto.")
-      fuentes <- .graficos_preview_fuentes(sid, parsed)
-      .regla_preguntas_conteo(graficador, args, fuentes)
+      motor <- .graficos_resumenes_motor(sid, parsed)   # mismas fuentes y presets que /cifras y el render
+      .regla_preguntas_conteo(graficador, args, motor$fuentes, motor$presets)
     })) |>
     plumber::pr_post("/api/graficos/resumenes/cifras", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       session_get(sid)
       parsed <- .graficos_preview_leer_body(req)
-      fuentes <- .graficos_preview_fuentes(sid, parsed)
-      comun <- .graficos_preview_comun(sid, parsed, fuentes)
-      presets <- if (length(comun$presets_json)) .build_presets(comun$presets_json) else NULL
-      fuentes_motor <- list(data_sources = comun$data_sources, inst_sources = comun$inst_sources)
-      if (!is.null(parsed[["laminas"]])) return(.graficos_cifras_lote(parsed[["laminas"]], fuentes_motor, presets))
-      .graficos_cifras_de_grafico(parsed[["graficador"]], parsed[["args"]] %||% list(), fuentes_motor, presets)
+      motor <- .graficos_resumenes_motor(sid, parsed)   # graficos_resumenes_motor.R
+      if (!is.null(parsed[["laminas"]])) return(.graficos_cifras_lote(parsed[["laminas"]], motor$fuentes, motor$presets))
+      .graficos_cifras_de_grafico(parsed[["graficador"]], parsed[["args"]] %||% list(), motor$fuentes, motor$presets)
     })) |>
     plumber::pr_post("/api/graficos/resumenes/emparejado", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)

@@ -137,10 +137,10 @@ describe("conteo y firma", () => {
   });
   it("dos conteos iguales son el mismo; el normalizador cae a valores seguros", () => {
     const c = normalizarConteoRegla({ total: "47", seleccionadas: ["p1"], candidatas: [{ tema: "p1", metrica: 12.5, seleccionada: true }, { etiqueta: "sin tema" }], texto_regla: "Se muestra 1.", avisos: "Uno" });
-    expect(c).toEqual({ total: 47, seleccionadas: ["p1"], candidatas: [{ tema: "p1", etiqueta: "p1", metrica: 12.5, seleccionada: true }], texto_regla: "Se muestra 1.", avisos: ["Uno"], tope_filas: null });
+    expect(c).toEqual({ total: 47, seleccionadas: ["p1"], candidatas: [{ tema: "p1", etiqueta: "p1", metrica: 12.5, seleccionada: true }], texto_regla: "Se muestra 1.", avisos: ["Uno"], tope_filas: null, cabe_nativa: null, motivo_imagen: null });
     expect(mismoConteo(c, normalizarConteoRegla(JSON.parse(JSON.stringify({ ...c }))))).toBe(true);
     expect(mismoConteo(c, { ...c, total: 48 })).toBe(false);
-    expect(normalizarConteoRegla(null)).toEqual({ total: 0, seleccionadas: [], candidatas: [], texto_regla: "", avisos: [], tope_filas: null });
+    expect(normalizarConteoRegla(null)).toEqual({ total: 0, seleccionadas: [], candidatas: [], texto_regla: "", avisos: [], tope_filas: null, cabe_nativa: null, motivo_imagen: null });
   });
 });
 

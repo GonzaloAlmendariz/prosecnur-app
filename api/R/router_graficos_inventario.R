@@ -9,6 +9,10 @@
 #     -> {ok, bases: [{base, publico, n, preguntas: {escala, opcion_unica, multiple, numerica, abierta},
 #                      padron: {declarado, valor, origen, motivo}}]}
 #
+# `n` son filas SIN PONDERAR de la fuente con que Gráficos dibuja en ese scope (en una base hija de un repeat, filas del
+# repeat). Con scope vacío ya trae el universo de Analítica («qué casos cuentan»); con `consolidated` no, porque el
+# export consolidado tampoco lo aplica (graficos_inventario.R).
+#
 # `scope` es el de la vista previa (`consolidated` o vacío); un scope desconocido responde 400
 # E_GRAFICOS_INVENTARIO_SCOPE, y sin fuentes procesadas, el 409 E_NO_VALID_RP_DATA de Gráficos.
 
