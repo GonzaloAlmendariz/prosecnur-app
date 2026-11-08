@@ -105,7 +105,7 @@ describe("Revisar emparejado", () => {
     expect(document.querySelector("[data-pulso-panel='emparejado']")).toBeNull();
   });
 
-  it("panel abierto: tabla del kit con un público por columna, cuatro estados y sin checkbox ni confirmación en bloque", () => {
+  it("panel abierto: tabla del kit con un público por columna, cuatro estados, sin casillas y sin otro lote que el de idénticos", () => {
     montar("?panel=emparejado");
     const panel = document.querySelector("[data-pulso-panel='emparejado']");
     expect(panel).toBeTruthy();

@@ -1,7 +1,8 @@
 // "Revisar emparejado" (`?panel=emparejado`; ADR 0135 §7, enmienda al ADR 0104 en Gráficos; maqueta graficos-sintesis,
 // Grupos). Una fila por pregunta del contraste entre públicos con su par y cómo se emparejó. Lo que se confirma aquí se
 // escribe en el payload de la lámina (`vars`/`titulos_grupo`, como EditorTemasEquivalentes) y la regla del contraste lo
-// cuenta; "Guardar lo confirmado en la matriz" lo funde en la declaración (GET, unión, POST) sin quitar nada.
+// cuenta; «Confirmar los idénticos (N)» confirma de una vez sólo las sugerencias de texto idéntico, y cada par se deshace
+// solo (X6); "Guardar lo confirmado en la matriz" lo funde en la declaración (GET, unión, POST) sin quitar nada.
 // La lógica vive en modeloEmparejado.ts.
 
 import type { RefObject } from "react";
@@ -23,6 +24,7 @@ import {
   type FiltroCoincidencia,
 } from "./coincidencia";
 import { EvidenciaPar } from "./EvidenciaPar";
+import { confirmarIdenticos, identicosPorConfirmar } from "./loteIdenticos";
 import { useEmparejadoUi } from "./emparejadoStore";
 import {
   avisoUnion, confirmadosDe, confirmarPar, filtrarFilas, hayCambiosEnUnion, opcionesDeBase, preguntasOcupadas, quitarPar,
@@ -82,6 +84,8 @@ export function RevisarEmparejado({ bases, basesEstudio, remoto, recargar, filas
   const activa = visibles.find((f) => f.clave === ui.activa) ?? null;
   const ocupadas = preguntasOcupadas(filas);
   const confirmados = confirmadosDe(filas);
+  // El lote mira todas las filas, no sólo las del filtro: el conteo del botón no cambia al filtrar.
+  const lote = identicosPorConfirmar(filas, coincidencias);
   const lista = remoto.fase === "lista";
   const guardado = ui.guardado;
   const ocupado = guardado.fase === "leyendo" || guardado.fase === "guardando";
@@ -98,6 +102,12 @@ export function RevisarEmparejado({ bases, basesEstudio, remoto, recargar, filas
     ui.buscar(null);
   });
   const quitar = (fila: FilaEmparejado) => tras(fila, () => { onTemas(quitarPar(temas, fila.clave)); ui.buscar(null); });
+  const confirmarLote = () => {
+    if (!lote.length) return;
+    onTemas(confirmarIdenticos(temas, bases, lote));
+    ui.buscar(null);
+    if (guardado.fase === "confirmar" || guardado.fase === "error") ui.ponerGuardado({ fase: "inactivo" });
+  };
   const descartar = (fila: FilaEmparejado) => tras(fila, () => ui.descartar(fila.clave));
   const elegir = (fila: FilaEmparejado, variable: string) => {
     if (!variable) {
@@ -212,9 +222,14 @@ export function RevisarEmparejado({ bases, basesEstudio, remoto, recargar, filas
           <PulsoButton variant="primary" onClick={() => void guardar()} disabled={!hayCambiosEnUnion(guardado.union)}>Guardar en la matriz</PulsoButton>
         </>
       ) : (
-        <PulsoButton variant="primary" onClick={() => void prepararGuardado()} disabled={!lista || confirmados.length === 0 || ocupado}>
-          Guardar lo confirmado en la matriz
-        </PulsoButton>
+        <>
+          <PulsoButton variant="secondary" onClick={confirmarLote} disabled={!lista || lote.length === 0 || ocupado}>
+            {`Confirmar los idénticos (${formatoConteo(lote.length)})`}
+          </PulsoButton>
+          <PulsoButton variant="primary" onClick={() => void prepararGuardado()} disabled={!lista || confirmados.length === 0 || ocupado}>
+            Guardar lo confirmado en la matriz
+          </PulsoButton>
+        </>
       )}
     >
       {/* Cuerpo flush (patrón maestro-detalle del kit): la región de la tabla es la única que desplaza y posee el vacío

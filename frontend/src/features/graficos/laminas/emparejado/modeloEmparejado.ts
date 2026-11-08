@@ -5,7 +5,8 @@
 //   - «Confirmado en esta lámina»: el par está en el payload del contraste (`vars`/`titulos_grupo`, la forma de
 //     EditorTemasEquivalentes), así que la regla del contraste ya lo cuenta como par común.
 //   - «Sugerido por el texto»: el backend propone una pregunta de la otra base por parecido de texto. No entra a la
-//     lámina ni a la regla hasta que el analista la confirma, fila por fila (no hay confirmación en bloque).
+//     lámina ni a la regla hasta que el analista la confirma, fila por fila. El único lote es «Confirmar los idénticos»
+//     (loteIdenticos.ts, X6): sólo pares de texto idéntico, y cada uno se deshace solo.
 //   - «Sin par»: sin sugerencia, o con la sugerencia descartada.
 // «Guardar lo confirmado en la matriz» funde los pares confirmados en la declaración (GET, unión, POST): completa o
 // agrega filas y nunca quita ni reemplaza las que ya estaban.

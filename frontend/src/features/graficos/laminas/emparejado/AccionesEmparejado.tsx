@@ -1,5 +1,5 @@
-// Las acciones de una fila de "Revisar emparejado" (ADR 0135 §7): se confirma, se cambia o se descarta fila por fila; no
-// hay confirmación en bloque. Una fila de la matriz no se edita aquí: la matriz se edita en Carga, Equivalencias.
+// Las acciones de una fila de "Revisar emparejado" (ADR 0135 §7): se confirma, se cambia o se descarta fila por fila; el
+// único lote es «Confirmar los idénticos» (X6), en el pie del diálogo. Una fila de la matriz no se edita aquí: la matriz se edita en Carga, Equivalencias.
 // Q4-5 (prueba con Arte, 1440x1000): «Confirmar · Cambiar · Descartar» no cabían en la columna y el tercero quedaba
 // cortado. La acción principal de la fila conserva su texto; las secundarias van como íconos con nombre y tooltip (C4).
 

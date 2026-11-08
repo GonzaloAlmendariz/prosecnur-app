@@ -145,3 +145,26 @@ describe("filtro por coincidencia", () => {
     expect(document.querySelector(".pulso-table-vacio")?.textContent).toBe("Ningún par distinto.");
   });
 });
+
+describe("Confirmar los idénticos", () => {
+  const botonLote = () =>
+    [...document.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent?.startsWith("Confirmar los idénticos"));
+
+  it("confirma de una vez sólo los idénticos, quedan marcados y cada uno se deshace solo", async () => {
+    abrir();
+    expect(botonLote()?.textContent).toBe("Confirmar los idénticos (2)");
+    await clic(botonLote());
+    expect(ultimoPatch?.vars).toEqual({
+      servicio_de_salud: ["docentes$p1", "estudiantes$q1"],
+      calidad_del_servicio: ["docentes$p2", "estudiantes$q2"],
+    });
+    expect(filas().map(estadoDe)).toEqual(["confirmado", "confirmado", "sugerido", "sugerido", "sin_par"]);
+    expect(filas().slice(0, 2).map(chipDe)).toEqual(["Idéntico", "Idéntico"]);
+    expect(botonLote()?.textContent).toBe("Confirmar los idénticos (0)");
+    expect(botonLote()?.disabled).toBe(true);
+    expect(document.body.textContent).toContain("2 pares confirmados en esta lámina");
+    await clic(filas()[0].querySelector<HTMLButtonElement>("[aria-label^='Quitar de la lámina']"));
+    expect(filas().map(estadoDe)).toEqual(["sugerido", "confirmado", "sugerido", "sugerido", "sin_par"]);
+    expect(botonLote()?.textContent).toBe("Confirmar los idénticos (1)");
+  });
+});
