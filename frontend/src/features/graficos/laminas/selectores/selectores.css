@@ -734,6 +734,42 @@
   align-self: center;
 }
 
+/* W1B-C7: bajo 1180 px la cabecera va en dos renglones. Arriba el título con la X; abajo el modo, el buscador (que se
+   queda con el sobrante) y la acción. En uno solo, a 1024 el título partía en dos líneas y el buscador se apretaba
+   entre el modo y la acción. Sólo orden y reparto: el marcado de DialogoSelector no cambia, y una pieza ausente (el
+   selector de gráfico no lleva modo) no deja hueco. */
+@media (max-width: 1180px) {
+  .pulso-f6-selector-cabecera {
+    flex-wrap: wrap;
+    align-items: center;
+    row-gap: var(--pulso-space-2);
+  }
+
+  .pulso-f6-selector-titulos {
+    order: 0;
+    flex: 1 1 calc(100% - var(--pulso-close-hit) - var(--pulso-space-3));
+  }
+
+  .pulso-f6-selector-cerrar {
+    order: 1;
+    align-self: flex-start;
+  }
+
+  .pulso-f6-selector-modo {
+    order: 2;
+  }
+
+  .pulso-f6-selector-buscador {
+    order: 3;
+    flex: 1 1 240px;
+    margin-left: 0;
+  }
+
+  .pulso-f6-selector-accion {
+    order: 4;
+  }
+}
+
 .pulso-f6-selector-buscar {
   position: relative;
   display: flex;
