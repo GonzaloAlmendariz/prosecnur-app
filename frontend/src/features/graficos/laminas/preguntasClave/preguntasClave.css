@@ -38,7 +38,8 @@
   white-space: normal;
 }
 
-/* En «Nombre corto de cada pregunta» (EtiquetasCortas.tsx), una tercera columna con el interruptor «Clave». */
+/* En «Nombre corto de cada pregunta» (EtiquetasCortas.tsx), el interruptor «Clave» en el renglón del enunciado, bajo el
+   rótulo «Clave» de la cabecera (W1B-C3). */
 .pulso-f6-etiquetas-cabeza {
   display: flex;
   align-items: baseline;
@@ -58,5 +59,11 @@
 }
 
 .pulso-f6-etiqueta-pregunta.is-con-clave {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "texto clave" "campo campo";
+}
+
+.pulso-f6-etiqueta-pregunta-clave {
+  grid-area: clave;
+  align-self: start;
 }

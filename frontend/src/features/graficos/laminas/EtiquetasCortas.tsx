@@ -65,14 +65,16 @@ export function EtiquetasCortasPreguntas({ args, onCambio, slideId }: Props & { 
           const texto = enunciado(ref);
           const campo = `${id}-p${i}`;
           return (
+            // W1B-C3: el enunciado a todo el ancho (dos líneas; entero en el title) con «Clave» en su renglón y el campo
+            // debajo, también a todo el ancho. En tres columnas el enunciado caía en una franja de tres palabras.
             <li key={ref} className={`pulso-f6-etiqueta-pregunta${conClaveCol ? " is-con-clave" : ""}`}>
-              <label htmlFor={campo} className="pulso-f6-etiqueta-pregunta-texto" title={parseVarRef(ref).name}>{texto}</label>
+              <label htmlFor={campo} className="pulso-f6-etiqueta-pregunta-texto" title={`${texto} (${parseVarRef(ref).name})`}>{texto}</label>
+              {conClaveCol && (
+                <PulsoSwitch size="sm" className="pulso-f6-etiqueta-pregunta-clave" ariaLabel={`Pregunta clave del estudio: ${texto}`}
+                  checked={esClave(claves, ref)} onCheckedChange={(v) => setPreguntasClave(conClave(claves, ref, v))} />
+              )}
               <CampoConBorrador id={campo} valor={leerEtiquetaCorta(args, ref)} placeholder={tituloDeGrupo(args, ref) || "Como en el instrumento"}
                 onCambio={(t) => onCambio(conEtiquetaCorta(args, ref, t))} />
-              {conClaveCol && (
-                <PulsoSwitch size="sm" ariaLabel={`Pregunta clave del estudio: ${texto}`} checked={esClave(claves, ref)}
-                  onCheckedChange={(v) => setPreguntasClave(conClave(claves, ref, v))} />
-              )}
             </li>
           );
         })}

@@ -409,23 +409,32 @@
   cursor: not-allowed;
 }
 
-/* U9: una etiqueta corta por pregunta en las multiapiladas. El enunciado entero, envuelto, y su campo al lado. */
-.pulso-f6-etiquetas-preguntas { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+/* U9: una etiqueta corta por pregunta en las multiapiladas. W1B-C3: el enunciado a todo el ancho, cortado en dos líneas
+   (entero en su title), y el campo debajo a todo el ancho; el interruptor «Clave» va en el renglón del enunciado
+   (preguntasClave.css). Antes, en dos o tres columnas, el enunciado caía en una franja de tres palabras por renglón. */
+.pulso-f6-etiquetas-preguntas { display: grid; gap: var(--pulso-space-3); margin: 0; padding: 0; list-style: none; }
 .pulso-f6-etiqueta-pregunta {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "texto" "campo";
   align-items: center;
-  gap: 6px;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
   min-width: 0;
 }
 .pulso-f6-etiqueta-pregunta-texto {
+  grid-area: texto;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  overflow-wrap: break-word;
   font-size: var(--pulso-type-body-size);
-  line-height: 1.3;
+  line-height: 1.35;
   color: var(--pulso-text-muted);
 }
-.pulso-f6-etiqueta-pregunta .pulso-f6-input { min-width: 0; width: 100%; }
+.pulso-f6-etiqueta-pregunta .pulso-f6-input { grid-area: campo; min-width: 0; width: 100%; }
 
 /* Un enlace dentro de una ayuda o un aviso de la tarjeta («asígnalos en Identidad › Colores»): es navegación, así que
    es un <a> con su subrayado, no un botón disfrazado. */
