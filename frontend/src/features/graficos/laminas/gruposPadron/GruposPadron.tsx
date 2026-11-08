@@ -65,6 +65,7 @@ export function GruposPadron({ args, cruce, opciones, scope, onCambio }: Props) 
         </span>
         <span className={incluidos.length >= MAX_GRUPOS_RESUMEN ? "pulso-f6-grupos-tope is-lleno" : "pulso-f6-grupos-tope"} aria-live="polite">
           {textoTope(incluidos.length)}
+          {incluidos.length >= MAX_GRUPOS_RESUMEN ? ": quita uno para incluir otro" : null}
         </span>
       </div>
       <Panel variant="subtle" noPadding className="pulso-f6-grupos-lista" data-qa-geometry-member>
