@@ -9,44 +9,11 @@
   background: var(--pulso-surface);
 }
 
-.pulso-f6-inspector-tipo {
+/* Acabado W2-A: la cabecera es CabeceraPanel (components/kit-cabecera-panel.css): ícono del tipo en text-soft (el
+   acento no se gasta en un ícono), título en type-title con elipsis, «Cambiar lámina» y la X en la primera fila. Aquí
+   sólo se fija que no ceda alto. */
+.pulso-f6-inspector > .pulso-f6-inspector-cabecera {
   flex: none;
-  display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) auto auto;
-  align-items: center;
-  gap: var(--pulso-space-2);
-  min-height: calc(var(--pulso-control-height-md) + 2 * var(--pulso-rail-bubble-offset));
-  padding: 0 var(--pulso-space-3);
-  box-shadow: inset 0 -1px 0 var(--pulso-border);
-}
-
-.pulso-f6-inspector-icono {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 32px;
-  border: 1px solid var(--module-accent-border);
-  border-radius: calc(var(--pulso-radius) / 2);
-  background: var(--module-accent-soft);
-  color: var(--module-accent);
-}
-
-.pulso-f6-inspector-tipo-texto {
-  display: grid;
-  min-width: 0;
-}
-
-.pulso-f6-inspector-tipo-texto strong {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  font-size: var(--pulso-type-title-size);
-  font-weight: var(--pulso-weight-semibold);
-}
-
-.pulso-f6-inspector-tipo-texto span {
-  font-size: var(--pulso-type-caption-size);
-  color: var(--pulso-text-faint);
 }
 
 .pulso-f6-inspector-tabs {

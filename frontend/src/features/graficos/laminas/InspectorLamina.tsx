@@ -1,12 +1,15 @@
 // Columna derecha de la pestaña Láminas (F6.1; dirección F6 §4.1 «Inspector»). Cuatro secciones fijas con tabs
 // reales: Contenido (abre por defecto, decisión provisional §10) · Composición · Gráficos · Estado. Lo que esta parte
 // no construye se declara como tal («todavía no está en Láminas»), sin mandar al Editor anterior (C32/O3).
-// «Cambiar» (cabecera y Composición) abre «¿Qué lámina?»; «Cambiar» de una ranura, «¿Qué gráfico?» (F6.2).
+// «Cambiar lámina» (cabecera) abre «¿Qué lámina?»; «Cambiar» de una ranura, «¿Qué gráfico?» (F6.2). El rótulo de la
+// cabecera (acabado W2-A) separa las dos acciones, que antes decían las dos «Cambiar».
 
 import { useId } from "react";
-import { BarChart3, FileText, X } from "../../../vendor/lucide-react";
+import { BarChart3, FileText } from "../../../vendor/lucide-react";
 import type { GraficadorRef, Slide } from "../../../api/graficos";
 import { GlidingTabList } from "../../../components/GlidingTabList";
+import { CabeceraPanel } from "../../../components/CabeceraPanel";
+import { PulsoButton } from "../../../components/PulsoButton";
 import { avisoDentroDeLamina } from "./avisoEnLamina";
 import { faltaEnLamina } from "./faltaLamina";
 import { DatosGrafico } from "./DatosGrafico";
@@ -74,21 +77,23 @@ export function InspectorLamina({
 
   return (
     <aside id="pulso-f6-inspector" className="pulso-f6-inspector" aria-label="Ajustes de la lámina">
-      <header className="pulso-f6-inspector-tipo">
-        <span className="pulso-f6-inspector-icono">
-          <IconoTipo clase="lamina" tipo={slide.tipo} size={24} className="pulso-icono-tipo--acento" />
-        </span>
-        <span className="pulso-f6-inspector-tipo-texto">
-          <strong id="pulso-f6-inspector-titulo">Lámina {lamina.posicion}: {lamina.tipoLabel}</strong>
-          <span>{conGraficos ? (lamina.antetituloHeredado ? `Capítulo: ${lamina.antetituloHeredado}` : "Sin capítulo") : rolDeEstructura(slide.tipo)}</span>
-        </span>
-        <button type="button" className="pulso-f6-boton pulso-f6-inspector-cambiar" onClick={onCambiarLamina} aria-label={`Cambiar el tipo de la lámina ${lamina.posicion}`}>
-          Cambiar
-        </button>
-        <button type="button" className="pulso-f6-icono-boton" aria-label="Ocultar los ajustes" title="Ocultar los ajustes: la lámina gana su ancho" onClick={onCerrar}>
-          <X size={16} aria-hidden="true" />
-        </button>
-      </header>
+      {/* Acabado W2-A: la cabecera de toda superficie con X es CabeceraPanel. «Cambiar lámina» se distingue del «Cambiar»
+          del gráfico por su rótulo; la X cierra el panel y devuelve el foco a «Ajustes» (useSideoverModal). */}
+      <CabeceraPanel
+        className="pulso-f6-inspector-cabecera"
+        tituloId="pulso-f6-inspector-titulo"
+        titulo={`Lámina ${lamina.posicion}: ${lamina.tipoLabel}`}
+        subtitulo={conGraficos ? (lamina.antetituloHeredado ? `Capítulo: ${lamina.antetituloHeredado}` : "Sin capítulo") : rolDeEstructura(slide.tipo)}
+        icono={<IconoTipo clase="lamina" tipo={slide.tipo} size={16} />}
+        acciones={(
+          <PulsoButton variant="secondary" size="sm" className="pulso-f6-inspector-cambiar" onClick={onCambiarLamina}
+            aria-label={`Cambiar el tipo de la lámina ${lamina.posicion}`}>
+            Cambiar lámina
+          </PulsoButton>
+        )}
+        onCerrar={onCerrar}
+        etiquetaCerrar="Cerrar ajustes"
+      />
 
       {/* H4: los avisos, plegados en un chip que se despliega. */}
       <AvisosLamina avisos={avisos} />
@@ -204,14 +209,15 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onCambiarGrafico }: {
                   </span>
                 </div>
                 {abierta && (
-                  <button
-                    type="button"
-                    className="pulso-f6-boton pulso-f6-ranura-cambiar"
+                  <PulsoButton
+                    variant="secondary"
+                    size="sm"
+                    className="pulso-f6-ranura-cambiar"
                     aria-label={`${tecnico ? "Cambiar" : "Elegir"} el ${rotulo.toLowerCase()}`}
                     onClick={() => onCambiarGrafico(k)}
                   >
                     {tecnico ? "Cambiar" : "Elegir"}
-                  </button>
+                  </PulsoButton>
                 )}
               </div>
               {abierta && tecnico && valor && (
@@ -252,10 +258,10 @@ function SalidaDelGrafico({ slide, visor }: { slide: Slide; visor: LaminaVisor |
             <strong>Sale como imagen</strong>
             <p>{motivoDeEstado(estado ?? "ruta_anterior", apagado, (visor?.avisos.length ?? 0) > 0)}</p>
             {apagado && (
-              <button type="button" className="pulso-f6-boton"
+              <PulsoButton variant="secondary" size="sm"
                 onClick={() => updatePayload(slide.id, { meta: conSlideMeta(slide, { motor_nativo: undefined }).payload.meta })}>
                 Volver a editable
-              </button>
+              </PulsoButton>
             )}
           </div>
         </div>
