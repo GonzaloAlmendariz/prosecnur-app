@@ -360,6 +360,24 @@
   }
 }
 
+/* R9-3: además de los umbrales, la barra sube de nivel mientras desborde (barraCompacta.ts). Mismo recorte a la vista:
+   el nombre accesible y el tooltip quedan. En el nivel 3 «Previsualizar» queda en su ícono. */
+.pulso-f6-visor-barra:is([data-compacta="1"], [data-compacta="2"], [data-compacta="3"]) .pulso-f6-rotulo-medio,
+.pulso-f6-visor-barra:is([data-compacta="2"], [data-compacta="3"]) .pulso-f6-rotulo-estrecho,
+.pulso-f6-visor-barra[data-compacta="3"] :is(.pulso-f6-rotulo-angosto, .pulso-f6-rotulo-ajustable) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.pulso-f6-visor-barra:is([data-compacta="2"], [data-compacta="3"]) > .pulso-f6-visor-tipo {
+  display: none;
+}
+
 /* Partes en selector (3 o más): ancho fijo por su opción más larga («Parte 6 de 6»), sin crecer con la cuenta. */
 .pulso-f6-partes-selector {
   flex: none;

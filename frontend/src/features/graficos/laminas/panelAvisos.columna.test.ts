@@ -42,7 +42,7 @@ describe("ronda 5: geometría en CSS", () => {
     expect(css).not.toContain(".pulso-f6-hoja-actualizando");
     expect(regla(css, ".pulso-f6-barra-actualizando {")).not.toMatch(/position:\s*absolute/);
     const tsx = leer("VisorLamina.tsx");
-    const barra = tsx.slice(tsx.indexOf('<header className="pulso-f6-visor-barra">'), tsx.indexOf("</header>"));
+    const barra = tsx.slice(tsx.indexOf('className="pulso-f6-visor-barra"'), tsx.indexOf("</header>"));
     expect(barra).toContain("pulso-f6-barra-actualizando");
   });
 

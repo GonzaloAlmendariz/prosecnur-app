@@ -95,7 +95,7 @@ describe("W2-B: cierre y acabado de las tarjetas", () => {
 
 describe("W2-A: jerarquía de la barra del visor", () => {
   const visor = sinComentarios(leer("VisorLamina.tsx"));
-  const barra = visor.slice(visor.indexOf('<header className="pulso-f6-visor-barra">'), visor.indexOf("</header>"));
+  const barra = visor.slice(visor.indexOf('<header ref={barraRef} className="pulso-f6-visor-barra"'), visor.indexOf("</header>"));
 
   it("«+ Lámina» es el único primario de la barra", () => {
     expect(barra.match(/variant="primary"/g)).toHaveLength(1);

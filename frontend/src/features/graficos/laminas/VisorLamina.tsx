@@ -47,6 +47,7 @@ import { construirGuias, rolesPresentes } from "./guias/modeloGuias";
 import { presentacionPreview } from "./presentacionPreview";
 import { useTituloEnLienzo } from "./modeloTituloLienzo";
 import { BotonConTecla } from "./BotonConTecla";
+import { useBarraCompacta } from "./barraCompacta";
 import "./visorLamina.css";
 import { formatoConteo } from "../../../lib/formatoNumero";
 
@@ -126,6 +127,8 @@ export function VisorLamina({
     [slide.tipo, slidesById],
   );
   const hojaRef = useRef<HTMLElement>(null);
+  const barraRef = useRef<HTMLElement>(null);
+  const compacta = useBarraCompacta(barraRef);
   const titulo = useTituloEnLienzo(slide);
   const capas = useGuiasUi((s) => s.capas);
   const rolesOcultos = useGuiasUi((s) => s.rolesOcultos);
@@ -146,7 +149,7 @@ export function VisorLamina({
   return (
     // Mientras el motor dibuja la vista previa pedida (U6), la vista no está lista: el QA espera la imagen, no la maqueta.
     <section className="pulso-f6-visor" aria-label="Visor de la lámina" data-audit-ready={cargando && prepOk && verComoQueda ? "false" : "true"}>
-      <header className="pulso-f6-visor-barra">
+      <header ref={barraRef} className="pulso-f6-visor-barra" data-compacta={compacta}>
         {/* Acabado W2-A: secundarios con un solo lenguaje de pulsado (aria-pressed); «+ Lámina» es EL primario; ‹ ›,
             descarga y miniaturas son íconos quietos. */}
         <BotonConTecla accion="estructura" ayuda={`${estructuraAbierta ? "Ocultar" : "Mostrar"} la estructura`}>
@@ -243,7 +246,7 @@ export function VisorLamina({
         >
           {verComoQueda && cargando ? <Loader2 className="pulso-spin" aria-hidden="true" /> : <Eye aria-hidden="true" />}
           {/* «Previsualizar» (Gonzalo, 2026-10-14): el dibujo real del PowerPoint vive aquí; el Informe muestra maquetas. */}
-          Previsualizar
+          <span className="pulso-f6-rotulo-ajustable">Previsualizar</span>
         </PulsoButton>
         {/* Las guías miden el dibujo del motor: sólo existen al previsualizar, no sobre la maqueta. */}
         {verComoQueda && (
