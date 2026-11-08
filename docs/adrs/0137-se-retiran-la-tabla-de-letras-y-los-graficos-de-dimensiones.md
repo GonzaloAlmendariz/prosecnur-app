@@ -55,8 +55,11 @@ Reemplazos sugeridos:
 
 ## Pendiente de Gonzalo
 
-1. `p_dim_heatmap` tiene además una variante pregunta × cruce (L10-6 y L10-10 de CCSS Perfil, 2026-10-24): es el único
-   mapa de calor del registro. O se retira con el resto, o esa variante pasa a un tipo propio («Mapa de calor por cruce»).
+1. ~~`p_dim_heatmap` tiene además una variante pregunta × cruce~~. **Decidido por Gonzalo el 2026-11-08: «Tipo propio».**
+   La variante pregunta × cruce (L10-6 y L10-10 de CCSS Perfil, 2026-10-24; `graficos_heatmap_pregunta_cruce.R`,
+   `graficos_heatmap_top2box.R`) pasa a un tipo nuevo, «Mapa de calor por cruce», antes de retirar `p_dim_heatmap`. Los
+   planes que usan `p_dim_heatmap` con una pregunta de respuesta única como objetivo se migran a ese tipo (es el único
+   caso con equivalente 1:1); el resto de `p_dim_heatmap` sale en blanco con aviso, como los demás.
 2. Las tarjetas comparan grupos de un cruce dentro de una base. La tabla de letras compara el mismo tema entre bases
    distintas. Al retirarla, la app se queda sin prueba de diferencias entre públicos, y ningún tipo vigente dibuja varios
    índices juntos por cruce. Hay que aceptarlo por escrito, o pedir que las tarjetas cubran la comparación entre públicos.
