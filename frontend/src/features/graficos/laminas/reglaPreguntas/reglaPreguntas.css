@@ -57,6 +57,12 @@
   font-size: var(--pulso-type-body-size);
 }
 
+/* R8-3 (C2): la zona del resultado reserva alto mientras llega el conteo; la primera vez, el de la carga y dos líneas. */
+.pulso-f6-regla-zona { display: grid; gap: var(--pulso-space-2); min-width: 0; }
+.pulso-f6-regla-zona:empty { display: none; }
+.pulso-f6-regla-zona.is-esperando { min-height: calc(3 * var(--pulso-control-height-md)); align-content: start; }
+.pulso-f6-regla-conteo.is-accion { color: var(--pulso-text); font-weight: var(--pulso-weight-semibold); }
+
 /* R8-1: la brecha sin `vars` sale vacía; el conteo no la promete. */
 .pulso-f6-regla-conteo.is-vacia { color: var(--pulso-warn-fg); }
 

@@ -167,4 +167,23 @@ describe("ReglaPreguntas", () => {
     expect(html).toContain("La lámina sale vacía: faltan sus preguntas.");
     expect(html).not.toContain("</strong><span> en la lámina");
   });
+
+  it("R8-3: «Elegidas a mano» sin ninguna dice la acción y muestra las candidatas apagadas, no el error del motor", () => {
+    const html = pintar({ tipo: "a_mano" });
+    expect(html).toContain("Elige al menos una pregunta.");
+    expect(html.match(/role="switch"/g)).toHaveLength(3);
+    expect(html).not.toMatch(/role="switch"[^>]*aria-checked="true"/);
+    expect(html).not.toContain("Se muestran las 2 de mayor diferencia");
+    const conError = pintar({ tipo: "a_mano" }, {
+      conteo: null, cargando: false, codigo: "E_REGLA_PREGUNTAS_INVALIDA",
+      error: "La regla «a_mano» necesita al menos una pregunta en `agregar`.",
+    });
+    expect(conError).not.toContain("necesita al menos una pregunta");
+    expect(conError).not.toContain("No se pudo contar");
+  });
+
+  it("R8-3 (C2): mientras se espera el conteo, la zona del resultado queda reservada", () => {
+    const html = pintar({ tipo: "mayor_diferencia", n: 2 }, { conteo: null, cargando: true, error: null, codigo: null });
+    expect(html).toContain("pulso-f6-regla-zona is-esperando");
+  });
 });

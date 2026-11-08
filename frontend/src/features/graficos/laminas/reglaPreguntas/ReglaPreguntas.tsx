@@ -8,9 +8,9 @@
 // que el cliente calcula con las métricas ya recibidas (repartoRegla.ts, vistaRegla.ts); al llegar la respuesta manda el
 // backend. La lógica vive en los módulos .ts; el pedido, en useConteoRegla.ts.
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { ListChecks } from "../../../../vendor/lucide-react";
-import type { ReglaPreguntas as Regla, TipoReglaPreguntas } from "../../../../api/graficosRegla";
+import { CODIGO_REGLA_INVALIDA, type ReglaPreguntas as Regla, type TipoReglaPreguntas } from "../../../../api/graficosRegla";
 import { CargaDeBloque } from "../../../../components/CargaDeBloque";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
@@ -21,7 +21,7 @@ import { CorteRegla } from "./CorteRegla";
 import { LimiteLamina } from "./LimiteLamina";
 import { ListaCandidatas, type Resaltada } from "./ListaCandidatas";
 import {
-  ajustadaAMano, campoCifra, conCifra, conTipo, gruposDeLaLamina, indicadorDe, recordarCifra, reglaEfectiva, rotuloMetrica, rotuloTipo,
+  ajustadaAMano, aManoVacia, argsDelConteo, campoCifra, conteoSinElegidas, ELIGE_UNA, conCifra, conTipo, gruposDeLaLamina, indicadorDe, recordarCifra, reglaEfectiva, rotuloMetrica, rotuloTipo,
   textoConteo, tiposOfrecidos, valorCifra, volverALaRegla, type CifrasRecordadas,
 } from "./modeloReglaPreguntas";
 import { avisosFueraDelLimite, estadoLimite } from "./limiteRegla";
@@ -52,7 +52,12 @@ export function ReglaPreguntas({ rotulo, ayuda, graficador, args, valor, scope, 
   const regla = reglaEfectiva(graficador, args, valor);
   const grupos = gruposDeLaLamina(graficador, args);
   const tipos = tiposOfrecidos(graficador, grupos, regla?.tipo ?? null);
-  const { conteo, cargando, error } = useConteoRegla(graficador, args, scope, !!regla);
+  // R8-3: «Elegidas a mano» vacía pide las candidatas con el tipo que las lista todas y ninguna sale encendida.
+  const vacia = aManoVacia(regla);
+  const pedido = useConteoRegla(graficador, argsDelConteo(graficador, args, regla), scope, !!regla);
+  const { cargando } = pedido;
+  const conteo = vacia && pedido.conteo ? conteoSinElegidas(pedido.conteo) : pedido.conteo;
+  const error = vacia && pedido.error && pedido.codigo === CODIGO_REGLA_INVALIDA ? null : pedido.error;
   const cifra = regla ? campoCifra(regla.tipo) : null;
   // Interruptores tocados que el motor todavía no confirma; se vacían cuando responde.
   const [filas, setFilas] = useState<Readonly<Record<string, boolean>>>(SIN_FILAS);
@@ -83,6 +88,15 @@ export function ReglaPreguntas({ rotulo, ayuda, graficador, args, valor, scope, 
   const proyectada = !!vista?.proyectada;
   // R8-1: la brecha guardada sin `vars` sale vacía aunque la regla cuente; no se promete «13 de 73 en la lámina».
   const saleVacia = graficador === "p_dumbbell" && brechaSinPreguntas(args);
+
+  // R8-3 (C2): mientras se espera el conteo, la zona del resultado guarda el alto que tuvo la última vez; al llegar no
+  // empuja todo lo de abajo 50 a 90 px. Un ref y no estado: se mide después de pintar y sólo se lee al esperar.
+  const zona = useRef<HTMLDivElement>(null);
+  const altoReservado = useRef(0);
+  const esperando = !!regla && !error && cargando;
+  useLayoutEffect(() => {
+    if (!esperando && zona.current) altoReservado.current = zona.current.offsetHeight;
+  });
 
   // La cifra de cada tipo, para devolverla al volver a él (R3). Un ref y no estado: nada se pinta con ella.
   const cifras = useRef<CifrasRecordadas>({});
@@ -122,13 +136,17 @@ export function ReglaPreguntas({ rotulo, ayuda, graficador, args, valor, scope, 
 
       {!regla && <span className="pulso-f6-dato-ayuda" role="note">Sin regla salen las preguntas declaradas.</span>}
 
+      <div ref={zona} className={`pulso-f6-regla-zona${esperando ? " is-esperando" : ""}`}
+        style={esperando && altoReservado.current ? { minHeight: altoReservado.current } : undefined}>
       {regla && error && <ErrorBlock label="No se pudo contar las preguntas" detail={error} />}
 
       {regla && !error && !conteo && cargando && <CargaDeBloque label="Contando las preguntas" />}
 
       {regla && reglaViva && !error && conteo && vista && (
         <div className="pulso-f6-regla-resultado" aria-busy={cargando || undefined}>
-          {saleVacia ? (
+          {vacia ? (
+            <p className="pulso-f6-regla-conteo is-accion" role="status">{ELIGE_UNA}</p>
+          ) : saleVacia ? (
             <p className="pulso-f6-regla-conteo is-vacia" role="status">La lámina sale vacía: faltan sus preguntas.</p>
           ) : (
             <p className="pulso-f6-regla-conteo" role="status">
@@ -154,6 +172,7 @@ export function ReglaPreguntas({ rotulo, ayuda, graficador, args, valor, scope, 
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { pedidoDeFirma } from "./pedidoDeFirma";
 import { describe, expect, it } from "vitest";
 import { normalizarConteoRegla } from "../../../../api/graficosRegla";
 import {
+  aManoVacia, argsDelConteo, conteoSinElegidas,
   ajustadaAMano, alternarFila, campoCifra, conCifra, conTipo, filaBloqueada, firmaPedidoRegla, firmaUniversoRegla, gruposDeLaLamina, jsonEstable, presetDelGraficador, leerRegla,
   limpiarRegla, mismoConteo, recordarCifra, reglaEfectiva, reglaEnCorto, rotuloMetrica, rotuloTipo, textoConteo, tiposOfrecidos, valorCifra, volverALaRegla,
 } from "./modeloReglaPreguntas";
@@ -202,5 +203,23 @@ describe("la regla en una línea (mazo y ficha de la maqueta)", () => {
     expect(reglaEnCorto({ tipo: "mayor_diferencia" }, 2)).toBe("Las 10 de mayor diferencia");
     expect(reglaEnCorto({ tipo: "diferencia_minima" }, 2)).toBe("Con diferencia de al menos 15 puntos");
     expect(reglaEnCorto({ tipo: "a_mano", agregar: ["a", "b"] }, 1)).toBe("2 elegidas a mano");
+  });
+});
+
+describe("R8-3: «Elegidas a mano» vacía", () => {
+  it("pide las candidatas con el tipo que las lista todas; con alguna elegida, la regla tal cual", () => {
+    const args = { estilo: "resumen", vars: ["docentes$*"] };
+    expect(aManoVacia({ tipo: "a_mano" })).toBe(true);
+    expect(aManoVacia({ tipo: "a_mano", agregar: ["p1"] })).toBe(false);
+    expect(argsDelConteo("p_dumbbell", args, { tipo: "a_mano" }).regla).toEqual({ tipo: "comunes" });
+    expect(argsDelConteo("p_panorama", args, { tipo: "a_mano" }).regla).toEqual({ tipo: "todas" });
+    expect(argsDelConteo("p_panorama", args, { tipo: "a_mano", agregar: ["p1"] })).toBe(args);
+  });
+
+  it("el conteo queda sin elegidas ni nota", () => {
+    const c = conteoSinElegidas({ total: 2, seleccionadas: ["a"], texto_regla: "Todas", avisos: [], candidatas: [{ tema: "a", etiqueta: "A", metrica: 1, seleccionada: true }] });
+    expect(c.seleccionadas).toEqual([]);
+    expect(c.texto_regla).toBe("");
+    expect(c.candidatas[0].seleccionada).toBe(false);
   });
 });

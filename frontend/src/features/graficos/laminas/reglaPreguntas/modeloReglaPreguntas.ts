@@ -97,6 +97,29 @@ export function reglaEfectiva(graficador: string, args: Args, valor: unknown): R
   return { tipo: "extremos", n: numero(args.n) ?? 5 };
 }
 
+/** «Elegidas a mano» sin ninguna elegida: el motor no la cuenta (pide al menos una en `agregar`). */
+export function aManoVacia(r: ReglaPreguntas | null): boolean {
+  return !!r && r.tipo === "a_mano" && !r.agregar?.length;
+}
+
+/** Lo que se dice en lugar del error crudo del motor: la acción que falta (R8-3). */
+export const ELIGE_UNA = "Elige al menos una pregunta.";
+
+/**
+ * R8-3: los args con que se pide el conteo. «Elegidas a mano» vacía se pide con el tipo que lista todas las candidatas
+ * («Todas las comunes» en la brecha, «Todas» en las demás) para que la lista aparezca y se pueda encender la primera; las
+ * demás reglas, tal cual.
+ */
+export function argsDelConteo(graficador: string, args: Args, r: ReglaPreguntas | null): Args {
+  if (!aManoVacia(r)) return args;
+  return { ...args, regla: { tipo: graficador === "p_dumbbell" ? "comunes" : "todas" } };
+}
+
+/** El conteo de «Elegidas a mano» vacía: las candidatas, ninguna elegida y sin la nota de otra regla. */
+export function conteoSinElegidas(c: ConteoRegla): ConteoRegla {
+  return { ...c, seleccionadas: [], texto_regla: "", candidatas: c.candidatas.map((x) => ({ ...x, seleccionada: false })) };
+}
+
 /** La regla sin claves vacías: lo que se guarda en el plan. */
 export function limpiarRegla(r: ReglaPreguntas): ReglaPreguntas {
   const out: ReglaPreguntas = { tipo: r.tipo };
