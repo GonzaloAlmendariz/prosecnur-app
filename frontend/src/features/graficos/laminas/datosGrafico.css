@@ -325,8 +325,16 @@
 }
 .pulso-f6-alcance-opciones button:hover, .pulso-f6-alcance-opciones button:focus-visible { background: var(--pulso-surface-2); outline: none; }
 .pulso-f6-alcance-opciones button.is-principal { color: var(--module-accent); font-weight: var(--pulso-weight-semibold); }
-.pulso-f6-alcance-pie { margin-top: var(--pulso-space-2); border-top: 1px solid var(--pulso-border); }
-.pulso-f6-alcance-pie .pulso-f6-dato-rotulo { color: var(--pulso-warn-fg); }
+/* Pie «Un ajuste es sólo de este gráfico» + «Aplicar a los N gráficos de …» (hallazgo 5 de la auditoría de Arte): en
+   dos columnas, el botón se quedaba el ancho y la frase caía en una columna de una palabra por renglón incluso a 1440.
+   Apilados, la frase ocupa el ancho del inspector (una o dos líneas) y el botón va debajo; ninguno se recorta (C4). */
+.pulso-f6-dato.pulso-f6-alcance-pie {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: start;
+  margin-top: var(--pulso-space-2);
+  border-top: 1px solid var(--pulso-border);
+}
+.pulso-f6-alcance-pie .pulso-f6-dato-rotulo { color: var(--pulso-warn-fg); overflow-wrap: normal; text-wrap: pretty; }
 
 /* Categorías de la pregunta como fichas (en lugar de códigos separados por comas). Excluir: la ficha marcada se apaga
    y se tacha. Elegir (corte): la marcada toma el color del módulo. */
