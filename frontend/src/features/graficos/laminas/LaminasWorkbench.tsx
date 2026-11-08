@@ -320,10 +320,12 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
             titulo="El informe todavía no tiene láminas"
             descripcion="Inserta la primera lámina o arma el informe desde un plan sugerido; aquí verás cada lámina tal como sale."
             accion={
+              // R9-14: un solo primario en el vacío, «Armar desde un plan sugerido» (arma el informe entero); insertar a
+              // mano y el resumen ejecutivo son secundarios.
               <div className="pulso-f6-vacio-acciones">
-                <PulsoButton variant="primary" onClick={() => abrirSelectorLamina("insertar")}>Insertar la primera lámina</PulsoButton>
-                <PulsoButton variant="secondary" onClick={abrirResumen} data-armar-resumen="">Armar el resumen ejecutivo</PulsoButton>
                 <BotonArmarDesdeVacio />
+                <PulsoButton variant="secondary" onClick={() => abrirSelectorLamina("insertar")}>Insertar la primera lámina</PulsoButton>
+                <PulsoButton variant="secondary" onClick={abrirResumen} data-armar-resumen="">Armar el resumen ejecutivo</PulsoButton>
               </div>
             }
           />

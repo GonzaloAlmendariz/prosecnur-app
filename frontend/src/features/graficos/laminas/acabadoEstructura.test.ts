@@ -290,3 +290,12 @@ describe("R9-13: el antetítulo «Lámina de resumen» no va en el acento", () =
     expect(css).not.toMatch(/\[data-clase-tarjeta="resumen"\][^{]*\{[^}]*--module-accent/);
   });
 });
+
+describe("R9-14: el vacío del informe tiene un solo primario", () => {
+  it("«Armar desde un plan sugerido» es el primario; insertar y el resumen son secundarios", () => {
+    const src = sinComentarios(leer("LaminasWorkbench.tsx"));
+    const acciones = src.slice(src.indexOf('<div className="pulso-f6-vacio-acciones">'), src.indexOf("</div>", src.indexOf('<div className="pulso-f6-vacio-acciones">')));
+    expect(acciones).toContain("<BotonArmarDesdeVacio />");
+    expect(acciones).not.toMatch(/variant="primary"/);
+  });
+});
