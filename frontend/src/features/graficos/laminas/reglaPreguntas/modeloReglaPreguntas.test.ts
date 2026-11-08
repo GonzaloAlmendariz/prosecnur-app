@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { normalizarConteoRegla } from "../../../../api/graficosRegla";
 import {
   ajustadaAMano, alternarFila, campoCifra, conCifra, conTipo, filaBloqueada, firmaPedidoRegla, firmaUniversoRegla, gruposDeLaLamina, jsonEstable, leerRegla,
-  limpiarRegla, mismoConteo, reglaEfectiva, rotuloMetrica, rotuloTipo, textoConteo, tiposOfrecidos, valorCifra, volverALaRegla,
+  limpiarRegla, mismoConteo, recordarCifra, reglaEfectiva, rotuloMetrica, rotuloTipo, textoConteo, tiposOfrecidos, valorCifra, volverALaRegla,
 } from "./modeloReglaPreguntas";
 
 describe("los tipos que ofrece cada graficador", () => {
@@ -136,5 +136,26 @@ describe("conteo y firma", () => {
     expect(mismoConteo(c, normalizarConteoRegla(JSON.parse(JSON.stringify({ ...c }))))).toBe(true);
     expect(mismoConteo(c, { ...c, total: 48 })).toBe(false);
     expect(normalizarConteoRegla(null)).toEqual({ total: 0, seleccionadas: [], candidatas: [], texto_regla: "", avisos: [], tope_filas: null });
+  });
+});
+
+describe("R3: la cifra de cada tipo se recuerda al cambiar de tipo y volver", () => {
+  it("volver a un tipo repone la cifra que tuvo, no la de partida", () => {
+    let recordadas = recordarCifra({}, { tipo: "mayor_diferencia", n: 13 });
+    const umbral = conTipo({ tipo: "mayor_diferencia", n: 13 }, "bajo_umbral", [], recordadas);
+    expect(umbral).toEqual({ tipo: "bajo_umbral", umbral: 60 });
+    recordadas = recordarCifra(recordadas, { tipo: "bajo_umbral", umbral: 58 });
+    expect(conTipo({ tipo: "bajo_umbral", umbral: 58 }, "mayor_diferencia", [], recordadas)).toEqual({ tipo: "mayor_diferencia", n: 13 });
+    expect(conTipo({ tipo: "mayor_diferencia", n: 13 }, "bajo_umbral", [], recordadas)).toEqual({ tipo: "bajo_umbral", umbral: 58 });
+  });
+  it("sin recuerdo, el N pasa entre tipos con N y el umbral toma el de partida", () => {
+    expect(conTipo({ tipo: "mayor_diferencia", n: 13 }, "extremos", [], {})).toEqual({ tipo: "extremos", n: 13 });
+    expect(conTipo({ tipo: "mayor_diferencia", n: 13 }, "diferencia_minima", [], {})).toEqual({ tipo: "diferencia_minima", umbral: 15 });
+  });
+  it("sin cambios devuelve el mismo objeto; los tipos sin cifra no se recuerdan", () => {
+    const r = recordarCifra({}, { tipo: "extremos", n: 4 });
+    expect(recordarCifra(r, { tipo: "extremos", n: 4 })).toBe(r);
+    expect(recordarCifra(r, { tipo: "todas" })).toBe(r);
+    expect(recordarCifra(r, null)).toBe(r);
   });
 });

@@ -1,10 +1,11 @@
 // La cifra de la regla (umbral, N o distancia) como slider con su valor escrito al lado. El slider recorre el eje del
 // reparto que va encima (misma pista, mismo ancho): arrastrar el pulgar es mover el corte. Flechas mueven un paso,
 // Shift + flecha (o RePág/AvPág) el paso grande, Inicio y Fin los extremos. El número admite todo el rango del campo,
-// aunque el slider se limite a lo que el reparto dibuja. Mientras se mueve sólo se avisa `onMover`; `onSoltar` confirma.
+// aunque el slider se limite a lo que el reparto dibuja. La pista no tiene paso nativo: el pulgar sigue al valor exacto
+// (un umbral escrito a mano, 58 con paso 5) y el arrastre cae en el paso (alPaso). Mientras se mueve sólo se avisa `onMover`; `onSoltar` confirma.
 
 import { useState, type KeyboardEvent, type ReactNode } from "react";
-import { valorPorTecla, type Recorrido } from "./repartoRegla";
+import { alPaso, valorPorTecla, type Recorrido } from "./repartoRegla";
 
 type Limites = { min: number; max: number };
 
@@ -64,8 +65,8 @@ export function CifraDeslizable({ id, rotulo, valor, recorrido, campo, paso, gra
       </div>
       {encima}
       <input id={id} type="range" className="pulso-f6-regla-rango" aria-labelledby={idRotulo}
-        min={pista.min} max={pista.max} step={paso} value={enPista} aria-valuetext={String(valor)}
-        onChange={(e) => onMover(acotar(Number(e.currentTarget.value)))}
+        min={pista.min} max={pista.max} step="any" value={enPista} aria-valuetext={String(valor)}
+        onChange={(e) => onMover(alPaso(Number(e.currentTarget.value), paso, valores))}
         onKeyDown={teclaEn(valores, enPista)}
         onPointerUp={onSoltar} onKeyUp={onSoltar} onBlur={onSoltar} />
       {debajo}

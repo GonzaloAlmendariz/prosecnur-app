@@ -200,6 +200,40 @@ export function valorPorTecla(tecla: string, shift: boolean, valor: number, l: {
   return null;
 }
 
+/**
+ * El valor de la pista llevado al paso de la cifra. La pista va sin paso nativo (`step="any"`) para que el pulgar se
+ * pare en el valor exacto que se escribió (58 con paso 5): con `step` el navegador lo redondeaba y el pulgar quedaba
+ * a 6 px de la línea del corte. Arrastrar sí cae en el paso; el teclado conserva los suyos (valorPorTecla).
+ */
+export function alPaso(v: number, paso: number, l: { min: number; max: number }): number {
+  const d = paso > 0 ? Math.round(v / paso) * paso : v;
+  // Sin el redondeo a 10 decimales, 0.1 + 0.2 sale 0.30000000000000004 con pasos fraccionarios.
+  return Math.min(l.max, Math.max(l.min, Number(d.toFixed(10))));
+}
+
+/**
+ * El rótulo del corte bajo el eje en las reglas por posición: el valor de la métrica donde cae, con su unidad, para que
+ * no se lea como un conteo junto a «Cuántas» («Corte 19» parecía 19 preguntas). Las diferencias van en puntos; el Sin
+ * información es un porcentaje; el promedio de Extremos va sin unidad (el indicador puede no ser un porcentaje).
+ */
+export function textoCorteEje(tipo: TipoReglaPreguntas, cortes: readonly string[]): string {
+  if (!cortes.length) return "";
+  const unidad = tipo === "mayor_diferencia" || tipo === "diferencia_minima" ? " pts" : tipo === "mayor_sin_info" ? "%" : "";
+  const valores = cortes.map((c) => `${c}${unidad}`);
+  return `${valores.length > 1 ? "Cortes" : "Corte"} en ${valores.join(" y ")}`;
+}
+
+/**
+ * Cuánto desplazar la lista para traer a la vista una fila resaltada desde el reparto; `null` si ya se ve entera (la
+ * lista no se mueve por una fila visible).
+ */
+export function desplazamientoParaFila(fila: { arriba: number; alto: number }, vista: { scrollTop: number; alto: number }): number | null {
+  const abajo = fila.arriba + fila.alto;
+  if (fila.arriba < vista.scrollTop) return fila.arriba;
+  if (abajo > vista.scrollTop + vista.alto) return abajo - vista.alto;
+  return null;
+}
+
 /** ¿La lámina ordena de menor a mayor? Bajo un umbral, la más crítica arriba (graficos_regla_orden_escala.R). */
 const ascendente = (tipo: TipoReglaPreguntas) => tipo === "bajo_umbral";
 

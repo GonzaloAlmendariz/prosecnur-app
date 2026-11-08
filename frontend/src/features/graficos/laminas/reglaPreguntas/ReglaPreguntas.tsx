@@ -20,8 +20,8 @@ import { CorteRegla } from "./CorteRegla";
 import { LimiteLamina } from "./LimiteLamina";
 import { ListaCandidatas, type Resaltada } from "./ListaCandidatas";
 import {
-  ajustadaAMano, campoCifra, conCifra, conTipo, gruposDeLaLamina, indicadorDe, reglaEfectiva, rotuloMetrica, rotuloTipo, textoConteo,
-  tiposOfrecidos, valorCifra, volverALaRegla,
+  ajustadaAMano, campoCifra, conCifra, conTipo, gruposDeLaLamina, indicadorDe, recordarCifra, reglaEfectiva, rotuloMetrica, rotuloTipo,
+  textoConteo, tiposOfrecidos, valorCifra, volverALaRegla, type CifrasRecordadas,
 } from "./modeloReglaPreguntas";
 import { estadoTope, marcasDeCorte, ordenFilas, repartoRegla, repiteElTope } from "./repartoRegla";
 import { useCifraEnVivo } from "./useCifraEnVivo";
@@ -81,7 +81,10 @@ export function ReglaPreguntas({ rotulo, ayuda, graficador, args, valor, scope, 
   const etiquetas = new Map((conteo?.candidatas ?? []).map((c) => [c.tema, c.etiqueta]));
   const proyectada = !!vista?.proyectada;
 
-  const elegir = (tipo: TipoReglaPreguntas) => onCambio(conTipo(regla, tipo, seleccionadas));
+  // La cifra de cada tipo, para devolverla al volver a él (R3). Un ref y no estado: nada se pinta con ella.
+  const cifras = useRef<CifrasRecordadas>({});
+  cifras.current = recordarCifra(cifras.current, regla);
+  const elegir = (tipo: TipoReglaPreguntas) => onCambio(conTipo(regla, tipo, seleccionadas, cifras.current));
   const alternar = (tema: string, encendida: boolean, nueva: Regla) => {
     setFilas((f) => ({ ...f, [tema]: !encendida }));
     onCambio(nueva);

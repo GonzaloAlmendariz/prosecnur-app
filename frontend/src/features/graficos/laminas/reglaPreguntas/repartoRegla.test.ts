@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import type { CandidataRegla } from "../../../../api/graficosRegla";
 import {
-  apilar, calculableLocal, estadoTope, repiteElTope, fraccionCorte, fraccionEje, marcasDeCorte, ordenFilas, posicionTope, recorridoSlider, repartoRegla,
+  alPaso, apilar, calculableLocal, desplazamientoParaFila, textoCorteEje, estadoTope, repiteElTope, fraccionCorte, fraccionEje, marcasDeCorte, ordenFilas, posicionTope, recorridoSlider, repartoRegla,
   seleccionLocal, techoRedondo, valorPorTecla,
 } from "./repartoRegla";
 import { enOrden, seleccionVista } from "./vistaRegla";
@@ -173,5 +173,35 @@ describe("el conteo optimista", () => {
   });
   it("sin cálculo local (Todas), el interruptor se aplica sobre lo del backend", () => {
     expect([...seleccionVista(conteo, null, true, { p4: false }).temas]).toEqual(["p2"]);
+  });
+});
+
+describe("R1: la pista sin paso nativo", () => {
+  it("el arrastre cae en el paso y se acota a lo que admite la pista", () => {
+    expect(alPaso(58.4, 5, { min: 0, max: 100 })).toBe(60);
+    expect(alPaso(57.4, 5, { min: 0, max: 100 })).toBe(55);
+    expect(alPaso(2.6, 1, { min: 1, max: 7 })).toBe(3);
+    expect(alPaso(0.2, 1, { min: 1, max: 7 })).toBe(1);
+    expect(alPaso(0.30000000000000004, 0.1, { min: 0, max: 1 })).toBe(0.3);
+  });
+});
+
+describe("R2: el rótulo del corte bajo el eje", () => {
+  it("lleva «en» y su unidad: no se lee como un conteo", () => {
+    expect(textoCorteEje("mayor_diferencia", ["19"])).toBe("Corte en 19 pts");
+    expect(textoCorteEje("mayor_sin_info", ["8.5"])).toBe("Corte en 8.5%");
+    expect(textoCorteEje("extremos", ["71.2", "40.3"])).toBe("Cortes en 71.2 y 40.3");
+    expect(textoCorteEje("mayor_diferencia", [])).toBe("");
+  });
+});
+
+describe("R4: la lista sólo se mueve por una fila que no se ve", () => {
+  const vista = { scrollTop: 100, alto: 200 };
+  it("una fila visible no mueve la lista", () => {
+    expect(desplazamientoParaFila({ arriba: 120, alto: 30 }, vista)).toBeNull();
+  });
+  it("una fila arriba o abajo de la vista la trae al borde más cercano", () => {
+    expect(desplazamientoParaFila({ arriba: 40, alto: 30 }, vista)).toBe(40);
+    expect(desplazamientoParaFila({ arriba: 290, alto: 30 }, vista)).toBe(120);
   });
 });

@@ -89,7 +89,8 @@ describe("ReglaPreguntas", () => {
     expect(html.match(/pulso-f6-regla-reparto-barra is-entra/g)).toHaveLength(2);
     expect(html).toContain("data-qa-geometry-member");
     expect(html.match(/class="pulso-f6-regla-minibarra( is-entra)?"/g)).toHaveLength(3);
-    expect(html).toContain("Corte 26");
+    expect(html).toContain("Corte en 26 pts");   // R2: con su unidad, para que no se lea como un conteo
+    expect(html).toMatch(/<input[^>]*type="range"[^>]*step="any"/);   // R1: el pulgar sigue al valor exacto
     expect(html).toContain(">1.º<");
     expect(html).toContain(">3.º<");
     expect(html).not.toContain("La lámina nativa admite");   // sin tope_filas no hay límite

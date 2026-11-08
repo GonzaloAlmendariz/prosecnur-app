@@ -10,7 +10,7 @@ import { LimiteLamina } from "./LimiteLamina";
 import { CifraDeslizable } from "./CifraDeslizable";
 import type { Resaltada } from "./ListaCandidatas";
 import { textoMetrica } from "./modeloReglaPreguntas";
-import { pasoGrande, recorridoSlider, type Reparto } from "./repartoRegla";
+import { pasoGrande, recorridoSlider, textoCorteEje, type Reparto } from "./repartoRegla";
 import { RepartoCandidatas } from "./RepartoCandidatas";
 
 type Props = {
@@ -54,7 +54,7 @@ export function CorteRegla({ id, tipo, campo, valor, reparto, rotuloMetrica, eti
             <span className="pulso-f6-regla-eje-rotulo">
               {rotuloMetrica}
               {conPuntos.modo === "posicion" && conPuntos.cortesValor.length > 0 && (
-                <> <span className="pulso-f6-regla-eje-corte">Corte {conPuntos.cortesValor.map(textoMetrica).join(" y ")}</span></>
+                <> <span className="pulso-f6-regla-eje-corte">{textoCorteEje(tipo, conPuntos.cortesValor.map(textoMetrica))}</span></>
               )}
             </span>
             <span>{conPuntos.modo === "umbral" ? String(conPuntos.ejeMax) : puesto(conPuntos.ejeMax)}</span>

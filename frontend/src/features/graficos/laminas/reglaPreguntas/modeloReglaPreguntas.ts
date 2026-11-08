@@ -105,14 +105,30 @@ export function limpiarRegla(r: ReglaPreguntas): ReglaPreguntas {
   return out;
 }
 
+/** La cifra que cada tipo tuvo la última vez, para devolverla al volver a él (R3: volver a un tipo reponía 10). */
+export type CifrasRecordadas = Partial<Record<TipoReglaPreguntas, number>>;
+
+/** Las recordadas con la cifra de la regla vigente; sin cambios, el mismo objeto. */
+export function recordarCifra(recordadas: CifrasRecordadas, r: ReglaPreguntas | null): CifrasRecordadas {
+  const v = r ? valorCifra(r) : null;
+  if (!r || v === null || recordadas[r.tipo] === v) return recordadas;
+  return { ...recordadas, [r.tipo]: v };
+}
+
 /**
  * Cambiar de tipo deja la regla limpia (el ajuste a mano era relativo a la anterior). «Elegidas a mano» arranca con lo
- * que la lámina muestra ahora: el backend pide al menos una en `agregar`, y nadie tiene que marcarlas de nuevo.
+ * que la lámina muestra ahora: el backend pide al menos una en `agregar`, y nadie tiene que marcarlas de nuevo. La cifra
+ * del tipo nuevo es la que tuvo la última vez (`recordadas`); si nunca tuvo, un N pasa de un tipo con N al otro y el
+ * umbral toma el de partida.
  */
-export function conTipo(actual: ReglaPreguntas | null, tipo: TipoReglaPreguntas, seleccionadas: readonly string[]): ReglaPreguntas {
+export function conTipo(
+  actual: ReglaPreguntas | null, tipo: TipoReglaPreguntas, seleccionadas: readonly string[], recordadas: CifrasRecordadas = {},
+): ReglaPreguntas {
   if (tipo === "a_mano") return limpiarRegla({ tipo, agregar: [...seleccionadas] });
   const previo = actual && actual.tipo === tipo ? actual : null;
-  return limpiarRegla({ tipo, n: previo?.n ?? actual?.n, umbral: previo?.umbral });
+  const recordada = recordadas[tipo];
+  if (CON_N.has(tipo)) return limpiarRegla({ tipo, n: previo?.n ?? recordada ?? actual?.n });
+  return limpiarRegla({ tipo, umbral: previo?.umbral ?? recordada });
 }
 
 export function conCifra(r: ReglaPreguntas, cifra: number | null): ReglaPreguntas {

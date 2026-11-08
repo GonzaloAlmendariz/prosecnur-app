@@ -9,7 +9,10 @@ import { Panel } from "../../../../components/Panel";
 import { PulsoSwitch } from "../../../../components/PulsoSwitch";
 import { MiniBarraMetrica } from "./MiniBarraMetrica";
 import { alternarFila, filaBloqueada, textoMetrica } from "./modeloReglaPreguntas";
-import type { MarcasCorte, Reparto } from "./repartoRegla";
+import { desplazamientoParaFila, type MarcasCorte, type Reparto } from "./repartoRegla";
+
+/** Lo que la lista espera antes de volver a su sitio al salir del reparto. */
+export const ESPERA_RETORNO_MS = 150;
 
 export type Resaltada = { tema: string; desde: "lista" | "reparto" } | null;
 
@@ -30,17 +33,28 @@ export function ListaCandidatas({ regla, filas, encendida, marcas, reparto, rotu
   const lista = useRef<HTMLUListElement>(null);
 
   // Resaltada desde el reparto: la fila se trae a la vista moviendo SÓLO la lista (scrollIntoView desplazaba también el
-  // inspector y la página).
+  // inspector y la página), y sólo si no se ve entera. Al salir del reparto la lista vuelve a donde estaba (R4: el hover
+  // la dejaba desplazada); si el cursor entra a la lista, se queda donde la dejó.
+  const scrollPrevio = useRef<number | null>(null);
   useEffect(() => {
     const ul = lista.current;
-    if (!resaltada || resaltada.desde !== "reparto" || !ul) return;
+    if (!ul) return;
+    if (!resaltada || resaltada.desde !== "reparto") {
+      if (resaltada || scrollPrevio.current === null) { scrollPrevio.current = null; return; }
+      // Una espera breve: pasar de un punto al vecino es salir y entrar, y la lista no tiene que ir y volver en medio.
+      const espera = setTimeout(() => {
+        if (scrollPrevio.current !== null) ul.scrollTop = scrollPrevio.current;
+        scrollPrevio.current = null;
+      }, ESPERA_RETORNO_MS);
+      return () => clearTimeout(espera);
+    }
     const fila = Array.from(ul.children).find((el) => el instanceof HTMLElement && el.dataset.tema === resaltada.tema);
     if (!(fila instanceof HTMLElement)) return;
     // La lista es `position: relative`: el offsetTop de la fila se mide desde ella.
-    const arriba = fila.offsetTop;
-    const abajo = arriba + fila.offsetHeight;
-    if (arriba < ul.scrollTop) ul.scrollTop = arriba;
-    else if (abajo > ul.scrollTop + ul.clientHeight) ul.scrollTop = abajo - ul.clientHeight;
+    const destino = desplazamientoParaFila({ arriba: fila.offsetTop, alto: fila.offsetHeight }, { scrollTop: ul.scrollTop, alto: ul.clientHeight });
+    if (destino === null) return;
+    if (scrollPrevio.current === null) scrollPrevio.current = ul.scrollTop;
+    ul.scrollTop = destino;
   }, [resaltada]);
 
   return (
