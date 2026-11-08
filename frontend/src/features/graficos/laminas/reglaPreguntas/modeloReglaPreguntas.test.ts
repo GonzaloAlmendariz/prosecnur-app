@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { normalizarConteoRegla } from "../../../../api/graficosRegla";
 import {
-  ajustadaAMano, alternarFila, campoCifra, conCifra, conTipo, filaBloqueada, firmaPedidoRegla, gruposDeLaLamina, jsonEstable, leerRegla,
+  ajustadaAMano, alternarFila, campoCifra, conCifra, conTipo, filaBloqueada, firmaPedidoRegla, firmaUniversoRegla, gruposDeLaLamina, jsonEstable, leerRegla,
   limpiarRegla, mismoConteo, reglaEfectiva, rotuloMetrica, rotuloTipo, textoConteo, tiposOfrecidos, valorCifra, volverALaRegla,
 } from "./modeloReglaPreguntas";
 
@@ -121,6 +121,12 @@ describe("conteo y firma", () => {
     expect(a).toBe(b);
     expect(firmaPedidoRegla("p_panorama", {}, "consolidated")).not.toBe(firmaPedidoRegla("p_panorama", {}, "active"));
     expect(JSON.parse(jsonEstable({ z: 1, a: [1, { y: 2, b: null }] }))).toEqual({ a: [1, { b: null, y: 2 }], z: 1 });
+  });
+  it("el universo de la regla no cambia con la regla y sí con la lámina (B8)", () => {
+    const a = firmaUniversoRegla("p_panorama", { vars: ["d$*"], regla: { tipo: "mayor_diferencia", n: 3 } }, "active");
+    expect(firmaUniversoRegla("p_panorama", { vars: ["d$*"], regla: { tipo: "bajo_umbral", umbral: 60, quitar: ["p1"] } }, "active")).toBe(a);
+    expect(firmaUniversoRegla("p_panorama", { vars: ["e$*"], regla: { tipo: "mayor_diferencia", n: 3 } }, "active")).not.toBe(a);
+    expect(firmaUniversoRegla("p_dumbbell", { vars: ["d$*"] }, "active")).not.toBe(a);
   });
   it("dos conteos iguales son el mismo; el normalizador cae a valores seguros", () => {
     const c = normalizarConteoRegla({ total: "47", seleccionadas: ["p1"], candidatas: [{ tema: "p1", metrica: 12.5, seleccionada: true }, { etiqueta: "sin tema" }], texto_regla: "Se muestra 1.", avisos: "Uno" });

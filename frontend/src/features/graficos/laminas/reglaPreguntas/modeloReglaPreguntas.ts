@@ -217,6 +217,16 @@ export function firmaPedidoRegla(graficador: string, args: Args, scope: string):
   return `${graficador}|${scope}|${jsonEstable(args)}`;
 }
 
+/**
+ * La identidad del universo de candidatas: el pedido sin la regla. Cambia con la lámina (otro graficador u otras
+ * `vars`, bases o filtros) y no con la cifra ni el ajuste a mano. Un conteo de otro universo no se muestra mientras
+ * llega el nuevo (B8: al pasar de una lámina a otra se veían el conteo, la nota y la cabecera de la anterior).
+ */
+export function firmaUniversoRegla(graficador: string, args: Args, scope: string): string {
+  const { regla: _regla, ...resto } = args;
+  return firmaPedidoRegla(graficador, resto, scope);
+}
+
 /** ¿Dos conteos dicen lo mismo? Sin cambios no se vuelve a guardar el estado. */
 export function mismoConteo(a: ConteoRegla | null, b: ConteoRegla | null): boolean {
   if (a === b) return true;

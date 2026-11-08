@@ -19,10 +19,11 @@ import { ApiError } from "../../../../api/core";
 let renders = 0;
 let ultimo: ReturnType<typeof useConteoRegla> | null = null;
 let n = 2;
+let vars = ["docentes$*", "estudiantes$*"];
 function Tarjeta() {
   renders += 1;
   // Como DatosGrafico: los args se arman de nuevo en cada render.
-  ultimo = useConteoRegla("p_dumbbell", { estilo: "resumen", regla: { tipo: "mayor_diferencia", n } }, "active", true);
+  ultimo = useConteoRegla("p_dumbbell", { estilo: "resumen", vars, regla: { tipo: "mayor_diferencia", n } }, "active", true);
   return null;
 }
 
@@ -34,7 +35,7 @@ const contenedor = () => ({ nodeType: 1, tagName: "DIV", namespaceURI: "http://w
 
 let root: Root | null = null;
 beforeEach(() => { vi.useFakeTimers(); });
-afterEach(() => { act(() => root?.unmount()); root = null; renders = 0; ultimo = null; n = 2; contar.mockClear(); vi.useRealTimers(); });
+afterEach(() => { act(() => root?.unmount()); root = null; renders = 0; ultimo = null; n = 2; vars = ["docentes$*", "estudiantes$*"]; contar.mockClear(); vi.useRealTimers(); });
 
 describe("useConteoRegla", () => {
   it("se aquieta: una sola lectura aunque `args` sea un objeto nuevo en cada render", async () => {
@@ -63,7 +64,25 @@ describe("useConteoRegla", () => {
     await act(async () => { vi.advanceTimersByTime(ESPERA_CONTEO_MS); });
     for (let i = 0; i < 10; i += 1) await act(async () => { await Promise.resolve(); });
     expect(contar).toHaveBeenCalledTimes(2);
-    expect(contar.mock.calls[1]).toEqual([{ graficador: "p_dumbbell", args: { estilo: "resumen", regla: { n: 5, tipo: "mayor_diferencia" } } }, expect.anything()]);
+    expect(contar.mock.calls[1]).toEqual([{ graficador: "p_dumbbell", args: { estilo: "resumen", regla: { n: 5, tipo: "mayor_diferencia" }, vars: ["docentes$*", "estudiantes$*"] } }, expect.anything()]);
+  });
+
+  it("B8: al pasar a otra lámina no muestra el conteo de la anterior mientras llega el nuevo", async () => {
+    await act(async () => { root = createRoot(contenedor()); root.render(<Tarjeta />); });
+    await act(async () => { vi.advanceTimersByTime(ESPERA_CONTEO_MS); });
+    for (let i = 0; i < 10; i += 1) await act(async () => { await Promise.resolve(); });
+    expect(ultimo?.conteo).not.toBeNull();
+    // Otra lámina: otras preguntas (y otra regla). El conteo anterior no se presta.
+    vars = ["egresados$*", "empleadores$*"];
+    n = 3;
+    await act(async () => { root?.render(<Tarjeta />); });
+    expect(ultimo?.cargando).toBe(true);
+    expect(ultimo?.conteo).toBeNull();
+    await act(async () => { vi.advanceTimersByTime(ESPERA_CONTEO_MS); });
+    for (let i = 0; i < 10; i += 1) await act(async () => { await Promise.resolve(); });
+    expect(contar).toHaveBeenCalledTimes(2);
+    expect(ultimo?.cargando).toBe(false);
+    expect(ultimo?.conteo).not.toBeNull();
   });
 
   it("el pedido se reconstruye de la firma y el error llega sin el código pegado", () => {

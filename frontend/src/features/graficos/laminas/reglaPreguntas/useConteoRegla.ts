@@ -6,14 +6,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { ApiError } from "../../../../api/core";
 import { apiGraficosConteoRegla, type ConteoRegla } from "../../../../api/graficosRegla";
-import { firmaPedidoRegla, mismoConteo } from "./modeloReglaPreguntas";
+import { firmaPedidoRegla, firmaUniversoRegla, mismoConteo } from "./modeloReglaPreguntas";
 
 export const ESPERA_CONTEO_MS = 350;
 
 type Args = Readonly<Record<string, unknown>>;
 
 export type ConteoEnVivo = {
-  /** El último conteo recibido (puede ser del pedido anterior mientras llega el nuevo). */
+  /**
+   * El último conteo recibido del MISMO universo (puede ser de la regla anterior mientras llega el nuevo, para que el
+   * corte y el conteo se proyecten en el cliente); de otra lámina, nunca: `null` y espera.
+   */
   conteo: ConteoRegla | null;
   /** El pedido actual todavía no respondió. */
   cargando: boolean;
@@ -21,9 +24,9 @@ export type ConteoEnVivo = {
   codigo: string | null;
 };
 
-type Estado = { firma: string; conteo: ConteoRegla | null; error: string | null; codigo: string | null };
+type Estado = { firma: string; universo: string; conteo: ConteoRegla | null; error: string | null; codigo: string | null };
 
-const VACIO: Estado = { firma: "", conteo: null, error: null, codigo: null };
+const VACIO: Estado = { firma: "", universo: "", conteo: null, error: null, codigo: null };
 
 /** El mensaje del backend sin el código que `ApiError` le pega al final. */
 export function mensajeDeError(e: unknown): { mensaje: string; codigo: string | null } {
@@ -52,10 +55,12 @@ export function pedidoDeFirma(firma: string): { graficador: string; scope: strin
 /** `activo` en falso (sin regla guardada) no pide nada. */
 export function useConteoRegla(graficador: string, args: Args, scope: "active" | "consolidated", activo: boolean): ConteoEnVivo {
   const firma = useMemo(() => (activo ? firmaPedidoRegla(graficador, args, scope) : ""), [activo, graficador, args, scope]);
+  const universo = useMemo(() => (activo ? firmaUniversoRegla(graficador, args, scope) : ""), [activo, graficador, args, scope]);
   const [estado, setEstado] = useState<Estado>(VACIO);
   useEffect(() => {
     const pedido = firma ? pedidoDeFirma(firma) : null;
     if (!pedido) return;
+    const delUniverso = firmaUniversoRegla(pedido.graficador, pedido.args, pedido.scope);
     const control = new AbortController();
     let vivo = true;
     const espera = setTimeout(() => {
@@ -64,18 +69,18 @@ export function useConteoRegla(graficador: string, args: Args, scope: "active" |
         { signal: control.signal },
       ).then((conteo) => {
         if (!vivo) return;
-        setEstado((prev) => (prev.firma === firma && !prev.error && mismoConteo(prev.conteo, conteo) ? prev : { firma, conteo, error: null, codigo: null }));
+        setEstado((prev) => (prev.firma === firma && !prev.error && mismoConteo(prev.conteo, conteo) ? prev : { firma, universo: delUniverso, conteo, error: null, codigo: null }));
       }, (e: unknown) => {
         if (!vivo || control.signal.aborted) return;
         const { mensaje, codigo } = mensajeDeError(e);
-        setEstado((prev) => (prev.firma === firma && prev.error === mensaje ? prev : { firma, conteo: null, error: mensaje, codigo }));
+        setEstado((prev) => (prev.firma === firma && prev.error === mensaje ? prev : { firma, universo: delUniverso, conteo: null, error: mensaje, codigo }));
       });
     }, ESPERA_CONTEO_MS);
     return () => { vivo = false; clearTimeout(espera); control.abort(); };
   }, [firma]);
   const actual = !!firma && estado.firma === firma;
   return {
-    conteo: firma ? estado.conteo : null,
+    conteo: firma && estado.universo === universo ? estado.conteo : null,
     cargando: !!firma && !actual,
     error: actual ? estado.error : null,
     codigo: actual ? estado.codigo : null,

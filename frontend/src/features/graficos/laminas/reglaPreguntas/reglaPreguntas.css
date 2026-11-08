@@ -45,10 +45,6 @@
   outline-offset: 1px;
 }
 
-.pulso-f6-regla-cifra {
-  padding-bottom: 0;
-}
-
 .pulso-f6-regla-resultado {
   display: grid;
   gap: var(--pulso-space-2);
@@ -126,4 +122,260 @@
   font-variant-numeric: tabular-nums;
   text-align: right;
   white-space: nowrap;
+}
+
+/* El corte: la cifra con su valor escrito, el reparto de las candidatas y la pista del slider en una sola columna.
+   El lienzo y el eje se sangran medio pulgar (9 px, el pulgar del range de theme.css mide 18 px) para que la pista que
+   recorre el pulgar y el eje del reparto sean el mismo tramo: arrastrar es mover la línea del corte. */
+.pulso-panel.pulso-f6-regla-corte {
+  display: grid;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+}
+
+.pulso-f6-regla-deslizador {
+  display: grid;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+}
+
+.pulso-f6-regla-deslizador-cabeza {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-f6-regla-deslizador-cabeza .pulso-f6-dato-rotulo {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.pulso-f6-input.pulso-f6-regla-numero {
+  flex: none;
+  width: 7ch;
+  min-width: 7ch;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-f6-regla-rango {
+  display: block;
+  min-width: 0;
+  margin: 0;
+  accent-color: var(--module-accent);
+}
+
+.pulso-f6-regla-rango::-webkit-slider-thumb {
+  background: var(--module-accent);
+}
+
+.pulso-f6-regla-rango::-moz-range-thumb {
+  background: var(--module-accent);
+}
+
+.pulso-f6-regla-rango:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: 2px;
+}
+
+.pulso-f6-regla-reparto-lienzo,
+.pulso-f6-regla-eje {
+  padding-inline: 9px;
+  min-width: 0;
+}
+
+.pulso-f6-regla-reparto-svg {
+  display: block;
+  overflow: visible;
+}
+
+.pulso-f6-regla-reparto-zona {
+  fill: var(--module-accent-soft);
+}
+
+.pulso-f6-regla-reparto-base {
+  stroke: var(--pulso-border);
+  stroke-width: 1;
+}
+
+.pulso-f6-regla-reparto-punto,
+.pulso-f6-regla-reparto-barra {
+  fill: var(--pulso-border-strong);
+  transition: fill var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-f6-regla-reparto-punto.is-entra,
+.pulso-f6-regla-reparto-barra.is-entra {
+  fill: var(--module-accent);
+}
+
+.pulso-f6-regla-reparto-corte {
+  stroke: var(--pulso-text);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 2;
+}
+
+.pulso-f6-regla-eje {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--pulso-space-2);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-f6-regla-eje-rotulo {
+  min-width: 0;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.pulso-f6-regla-eje-corte {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+
+/* Mientras el conteo es el local, la nota del motor es la de la cifra anterior: se atenúa hasta que llega la nueva. */
+.pulso-f6-regla-texto.is-desfasado {
+  color: var(--pulso-text-faint);
+}
+
+/* La fila con mini barra: la barra va bajo la pregunta, a todo el ancho de su columna. */
+.pulso-f6-regla-fila.con-barra {
+  grid-template-areas: "cifra pregunta" "marca barra";
+  row-gap: 2px;
+}
+
+.pulso-f6-regla-fila.con-barra > .pulso-f6-regla-metrica { grid-area: cifra; }
+.pulso-f6-regla-fila.con-barra > .pulso-f6-regla-minibarra { grid-area: barra; align-self: center; }
+.pulso-f6-regla-fila.con-barra > .pulso-f6-regla-empate { grid-area: marca; }
+.pulso-f6-regla-fila.con-barra > :not(.pulso-f6-regla-metrica):not(.pulso-f6-regla-minibarra):not(.pulso-f6-regla-empate) { grid-area: pregunta; min-width: 0; }
+
+.pulso-f6-regla-minibarra {
+  position: relative;
+  display: block;
+  height: 4px;
+  min-width: 0;
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+}
+
+.pulso-f6-regla-minibarra-relleno {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  border-radius: inherit;
+  background: var(--pulso-border-strong);
+  transition: background-color var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-f6-regla-minibarra.is-entra .pulso-f6-regla-minibarra-relleno {
+  background: var(--module-accent);
+}
+
+.pulso-f6-regla-minibarra-corte {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 1.5px;
+  margin-left: -0.75px;
+  background: var(--pulso-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-f6-regla-reparto-punto,
+  .pulso-f6-regla-reparto-barra,
+  .pulso-f6-regla-minibarra-relleno {
+    transition: none;
+  }
+}
+
+/* La fila resaltada desde el reparto (o el reparto desde la fila). */
+.pulso-f6-regla-fila.is-resaltada {
+  background: var(--pulso-surface-2);
+}
+
+/* La línea del corte entre las que entran por la regla y las que no, en el orden de la lámina. */
+.pulso-f6-regla-linea-corte {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  padding: 0 var(--pulso-space-3);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-f6-regla-linea-corte::before,
+.pulso-f6-regla-linea-corte::after {
+  content: "";
+  flex: 1 1 auto;
+  border-top: 1.5px dashed var(--pulso-text);
+}
+
+.pulso-f6-regla-linea-corte::before {
+  flex: 0 0 var(--pulso-space-2);
+}
+
+.pulso-f6-regla-linea-corte + .pulso-f6-regla-fila {
+  border-top: 0;
+}
+
+.pulso-f6-regla-empate {
+  justify-self: end;
+  color: var(--pulso-warn-fg);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* El aviso del tope de la lámina nativa, junto al corte: la marca repite el trazo de la línea del tope en el reparto. */
+.pulso-f6-regla-tope {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-1) var(--pulso-space-2);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.pulso-f6-regla-tope.is-desfasado {
+  color: var(--pulso-text-faint);
+}
+
+.pulso-f6-regla-tope-marca {
+  flex: none;
+  width: 0;
+  height: 0.9em;
+  border-left: 2px solid var(--pulso-warn-accent);
+}
+
+.pulso-f6-regla-reparto-tope {
+  stroke: var(--pulso-warn-accent);
+  stroke-width: 2;
+}
+
+/* Zona de toque de las barras y halo de los puntos: el puntero alcanza una marca de 2 px. */
+.pulso-f6-regla-reparto-toque {
+  fill: transparent;
+}
+
+.pulso-f6-regla-reparto-punto {
+  stroke: transparent;
+  stroke-width: 4px;
+}
+
+.pulso-f6-regla-reparto-punto.is-resaltada,
+.pulso-f6-regla-reparto-barra.is-resaltada {
+  fill: var(--pulso-text);
 }
