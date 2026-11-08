@@ -15,6 +15,8 @@ type Props = {
   propuestas: readonly PropuestaMazo[];
   elegidas: Readonly<Record<string, true>>;
   editando: string | null;
+  /** La imagen de cada propuesta, por id; sin entrada, el glifo. */
+  miniaturas: Readonly<Record<string, string | null>>;
   scope: "active" | "consolidated";
   idLateral: string;
   onAlternar: (id: string) => void;
@@ -22,14 +24,15 @@ type Props = {
   onOrdenar: (ids: string[]) => void;
 };
 
-type PropsItem = Omit<Props, "propuestas" | "elegidas" | "editando" | "onOrdenar"> & {
+type PropsItem = Omit<Props, "propuestas" | "elegidas" | "editando" | "miniaturas" | "onOrdenar"> & {
   numero: number;
   propuesta: PropuestaMazo;
   elegida: boolean;
   editando: boolean;
+  miniatura: string | null;
 };
 
-function ItemOrdenable({ numero, propuesta: p, elegida, editando, scope, idLateral, onAlternar, onEditar }: PropsItem) {
+function ItemOrdenable({ numero, propuesta: p, elegida, editando, miniatura, scope, idLateral, onAlternar, onEditar }: PropsItem) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: p.id });
   const estilo: CSSProperties = { transform: CSS.Translate.toString(transform), transition };
   return (
@@ -39,6 +42,7 @@ function ItemOrdenable({ numero, propuesta: p, elegida, editando, scope, idLater
         propuesta={p}
         elegida={elegida}
         editando={editando}
+        miniatura={miniatura}
         scope={scope}
         idLateral={idLateral}
         onAlternar={() => onAlternar(p.id)}
@@ -49,7 +53,7 @@ function ItemOrdenable({ numero, propuesta: p, elegida, editando, scope, idLater
   );
 }
 
-export function ListaTarjetasMazo({ propuestas, elegidas, editando, onOrdenar, ...resto }: Props) {
+export function ListaTarjetasMazo({ propuestas, elegidas, editando, miniaturas, onOrdenar, ...resto }: Props) {
   const { sensores, alEmpezar, alTerminar } = useArrastreMazo();
   const ids = propuestas.map((p) => p.id);
   const nombre = (id: string) => propuestas.find((p) => p.id === id)?.nombre ?? id;
@@ -74,7 +78,8 @@ export function ListaTarjetasMazo({ propuestas, elegidas, editando, onOrdenar, .
           data-qa-geometry-contract="equal"
         >
           {propuestas.map((p, i) => (
-            <ItemOrdenable key={p.id} numero={i + 1} propuesta={p} elegida={!!elegidas[p.id]} editando={editando === p.id} {...resto} />
+            <ItemOrdenable key={p.id} numero={i + 1} propuesta={p} elegida={!!elegidas[p.id]} editando={editando === p.id}
+              miniatura={miniaturas[p.id] ?? null} {...resto} />
           ))}
         </ul>
       </SortableContext>

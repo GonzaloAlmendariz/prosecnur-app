@@ -27,11 +27,13 @@ type Props = {
   idLateral: string;
   /** El asa para ordenar arrastrando (ListaTarjetasMazo); sin ella la tarjeta no se mueve. */
   asa?: ReactNode;
+  /** La miniatura real de la lámina (useMiniaturasMazo); sin ella, el glifo del tipo. */
+  miniatura?: string | null;
   onAlternar: () => void;
   onEditar: () => void;
 };
 
-export function TarjetaMazo({ numero, propuesta: p, elegida, editando, scope, idLateral, asa, onAlternar, onEditar }: Props) {
+export function TarjetaMazo({ numero, propuesta: p, elegida, editando, scope, idLateral, asa, miniatura, onAlternar, onEditar }: Props) {
   const id = useId();
   const conRegla = !!p.graficador && GRAFICADORES_CON_REGLA.has(p.graficador);
   const regla = conRegla && p.graficador ? reglaEfectiva(p.graficador, p.args, p.args.regla) : null;
@@ -66,8 +68,10 @@ export function TarjetaMazo({ numero, propuesta: p, elegida, editando, scope, id
           <span className="pulso-f6-mazo-elegir-caja" aria-hidden="true">{elegida && <Check size={13} strokeWidth={2.5} />}</span>
         </button>
       </div>
-      <span className="pulso-f6-mazo-miniatura">
-        {p.graficador
+      <span className={`pulso-f6-mazo-miniatura${miniatura ? " has-imagen" : ""}`}>
+        {miniatura
+          ? <img src={miniatura} alt="" loading="lazy" decoding="async" />
+          : p.graficador
           ? <GlifoGrafico tipo={p.graficador} />
           : <ComposicionLamina tipo={p.tipo} slots={SLIDE_GRAF_SLOTS[p.tipo] ?? []} />}
       </span>

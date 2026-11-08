@@ -385,11 +385,14 @@
   color: var(--module-accent);
 }
 
+/* La caja de la miniatura es 16:9 fija, con imagen o con el glifo mientras carga: la tarjeta no cambia de alto al llegar
+   la imagen (C2). */
 .pulso-f6-mazo-miniatura {
   display: flex;
   align-items: center;
   justify-content: center;
-  aspect-ratio: 16 / 7;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
   padding: var(--pulso-space-2);
   border-radius: var(--pulso-radius);
   background: var(--pulso-surface-2);
@@ -398,6 +401,17 @@
 .pulso-f6-mazo-miniatura > svg {
   max-width: 100%;
   max-height: 100%;
+}
+
+.pulso-f6-mazo-miniatura.has-imagen {
+  padding: 0;
+}
+
+.pulso-f6-mazo-miniatura > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .pulso-f6-mazo-regla {

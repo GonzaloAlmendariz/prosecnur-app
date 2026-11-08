@@ -17,7 +17,7 @@ const base: PropuestaMazo = {
 describe("ListaTarjetasMazo", () => {
   it("asa por tarjeta, en el orden recibido, sin casilla nativa", () => {
     const html = renderToStaticMarkup(
-      <ListaTarjetasMazo propuestas={[{ ...base, id: "contraste", nombre: "Contraste" }, base]} elegidas={{ panorama: true }} editando={null}
+      <ListaTarjetasMazo propuestas={[{ ...base, id: "contraste", nombre: "Contraste" }, base]} elegidas={{ panorama: true }} editando={null} miniaturas={{ panorama: "/m.png" }}
         scope="active" idLateral="lat" onAlternar={() => undefined} onEditar={() => undefined} onOrdenar={() => undefined} />,
     );
     expect(html).toContain('aria-label="Mover Contraste"');
@@ -26,5 +26,8 @@ describe("ListaTarjetasMazo", () => {
     expect(html).toContain('aria-roledescription="sortable"');
     expect(html.match(/aria-checked="true"/g)).toHaveLength(1);
     expect(html).not.toContain('type="checkbox"');
+    // La miniatura real donde llegó; el glifo donde no.
+    expect(html.match(/<img /g)).toHaveLength(1);
+    expect(html).toContain('src="/m.png"');
   });
 });

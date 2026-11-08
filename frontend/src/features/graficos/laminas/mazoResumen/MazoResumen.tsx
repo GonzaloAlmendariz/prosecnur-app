@@ -24,6 +24,7 @@ import { PANEL_RESUMEN_EJECUTIVO } from "./panelResumen";
 import { SeleccionMazo } from "./SeleccionMazo";
 import { ListaTarjetasMazo } from "./ListaTarjetasMazo";
 import { useMazoResumen } from "./useMazoResumen";
+import { useMiniaturasMazo } from "./useMiniaturasMazo";
 import "./mazoResumen.css";
 
 /** El toast de la inserción dura más que uno de éxito: trae «Deshacer» y el analista tiene que alcanzar a verlo. */
@@ -43,6 +44,7 @@ export function MazoResumen({ posicion, cerrar }: Props) {
   // Se resuelve al cerrar, con la lámina que quedó en pantalla (quien abrió el panel pudo desmontarse).
   const retorno = useMemo<RefObject<HTMLElement>>(() => ({ get current() { return destinoAlCerrarEnDocumento(null); } }), []);
 
+  const miniaturas = useMiniaturasMazo(mazo.propuestas, mazo.scope, panel.abierto && !mazo.cargando && !mazo.error);
   const idLateral = `${useId()}-lateral`;
   const columna = useRef<HTMLDivElement>(null);
   const enEdicion = mazo.propuestas.find((p) => p.id === ui.editando && !p.falta);
@@ -103,6 +105,7 @@ export function MazoResumen({ posicion, cerrar }: Props) {
       propuestas={mazo.propuestas}
       elegidas={ui.elegidas}
       editando={ui.editando}
+      miniaturas={miniaturas}
       scope={mazo.scope}
       idLateral={idLateral}
       onAlternar={ui.alternarElegida}

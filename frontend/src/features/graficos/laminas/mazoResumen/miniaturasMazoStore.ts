@@ -1,0 +1,51 @@
+// Estado UI efímero de las miniaturas de las tarjetas del mazo. Propio y no el singleton de la tira
+// (miniaturas/miniaturasStore.ts): son otras láminas (las propuestas, aún fuera del plan) y no deben entrar en el avance
+// ni en el anuncio de la tira. La caché real vive en el backend, por huella.
+
+import { create } from "zustand";
+import type { MiniaturasLote } from "../../../../api/graficosMiniaturas";
+import {
+  fallarLote, fusionarLote, marcarPedidas, olvidarPendientes, type Entradas, type LaminaClave, type LoteVigente,
+} from "../miniaturas/loteMiniaturas";
+
+type MiniaturasMazo = {
+  entradas: Entradas;
+  lotes: readonly LoteVigente[];
+  /** Hay un `POST /miniaturas` sin responder: no se lanza otro hasta saber su lote. */
+  enVuelo: boolean;
+  pedir: (pedidas: readonly LaminaClave[]) => void;
+  iniciarLote: (lote: LoteVigente) => void;
+  aplicarLote: (lote: MiniaturasLote, src: (url: string) => string) => void;
+  fallar: (claves: Record<string, string>, mensaje: string, loteId?: string) => void;
+  /** Suelta los lotes vivos (al cerrar el mazo): sus pendientes se olvidan. Devuelve sus jobs para cancelarlos. */
+  abandonarLotes: () => string[];
+  reiniciar: () => void;
+};
+
+export const useMiniaturasMazoStore = create<MiniaturasMazo>((set, get) => ({
+  entradas: {},
+  lotes: [],
+  enVuelo: false,
+  pedir: (pedidas) => set((s) => ({ entradas: marcarPedidas(s.entradas, pedidas), enVuelo: true })),
+  iniciarLote: (lote) => set((s) => ({ lotes: [...s.lotes.filter((l) => l.loteId !== lote.loteId), lote], enVuelo: false })),
+  aplicarLote: (lote, src) => set((s) => {
+    const propio = s.lotes.find((l) => l.loteId === lote.lote_id);
+    if (!propio) return s;
+    const entradas = fusionarLote(s.entradas, lote, propio, src);
+    const sigue = lote.status === "running";
+    if (entradas === s.entradas && sigue) return s;
+    return sigue ? { entradas } : { entradas, lotes: s.lotes.filter((l) => l !== propio) };
+  }),
+  fallar: (claves, mensaje, loteId) => set((s) => ({
+    entradas: fallarLote(s.entradas, { claves }, mensaje),
+    ...(loteId ? { lotes: s.lotes.filter((l) => l.loteId !== loteId) } : {}),
+    enVuelo: loteId ? s.enVuelo : false,
+  })),
+  abandonarLotes: () => {
+    const { lotes, entradas } = get();
+    if (!lotes.length) return [];
+    set({ entradas: lotes.reduce((e, l) => olvidarPendientes(e, l.claves), entradas), lotes: [] });
+    return lotes.map((l) => l.jobId).filter(Boolean);
+  },
+  reiniciar: () => set({ entradas: {}, lotes: [], enVuelo: false }),
+}));
