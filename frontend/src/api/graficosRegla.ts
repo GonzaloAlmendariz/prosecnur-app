@@ -2,7 +2,8 @@
 //
 // Contrato: `api/R/router_graficos_regla.R` y `.regla_preguntas_conteo()` (graficos_regla_preguntas.R).
 //   POST /api/graficos/resumenes/regla  {graficador, args, scope?}
-//     -> {ok, total, seleccionadas, candidatas: [{tema, etiqueta, metrica, seleccionada}], texto_regla, avisos}
+//     -> {ok, total, seleccionadas, candidatas: [{tema, etiqueta, metrica, seleccionada}], texto_regla, avisos, tope_filas}
+// `tope_filas` es el tope de filas de la lámina nativa (20 en la escala del resumen) o `null` si el graficador no tiene.
 // Una regla inválida responde 400 con `E_REGLA_PREGUNTAS_INVALIDA`. El normalizador es defensivo (patrón de
 // `normalizeGraficosShareInspect`): un campo que falta o que esta versión no conoce cae a un valor seguro.
 
@@ -38,6 +39,9 @@ export type ConteoRegla = {
   /** El texto que va en la nota de la lámina, tal como lo redacta el motor. */
   texto_regla: string;
   avisos: string[];
+  /** Filas que admite la lámina nativa para este graficador y estilo; `null` si no tiene tope. `normalizarConteoRegla`
+   *  lo llena siempre; es opcional en el tipo sólo para que los conteos armados a mano (fixtures) sigan valiendo. */
+  tope_filas?: number | null;
 };
 
 export type PedidoConteoRegla = {
@@ -66,6 +70,12 @@ const comoNumero = (v: unknown): number | null => {
   return Number.isFinite(n) ? n : null;
 };
 
+// Un tope es un entero positivo; cualquier otra cosa (ausente, 0, negativo, texto) es «sin tope», nunca un número inventado.
+const comoTope = (v: unknown): number | null => {
+  const n = comoNumero(Array.isArray(v) && v.length === 1 ? v[0] : v);
+  return n !== null && n >= 1 ? Math.floor(n) : null;
+};
+
 export function normalizarConteoRegla(raw: unknown): ConteoRegla {
   const r = comoObjeto(raw);
   const total = comoNumero(r.total);
@@ -81,6 +91,7 @@ export function normalizarConteoRegla(raw: unknown): ConteoRegla {
     candidatas,
     texto_regla: comoTexto(r.texto_regla),
     avisos: comoTextos(r.avisos),
+    tope_filas: comoTope(r.tope_filas),
   };
 }
 

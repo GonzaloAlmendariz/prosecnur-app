@@ -401,7 +401,7 @@
   el <- .rebuild_graf(list(graficador = graficador, args = args))
   if (is.null(el) || is.null(el$.element_type)) {
     return(list(ok = TRUE, total = 0L, seleccionadas = list(), candidatas = list(), texto_regla = "",
-                avisos = list("Faltan datos del gráfico para contar sus preguntas.")))
+                avisos = list("Faltan datos del gráfico para contar sus preguntas."), tope_filas = .regla_tope_filas(graficador)))
   }
   # Un borrador incompleto se reconstruye como gráfico vacío: se dice qué falta, nunca su tipo interno.
   if (!el$.element_type %in% c("panorama", "dumbbell", "barras_divergentes", "fortalezas")) .regla_preguntas_falta_dato(graficador, args)
@@ -418,6 +418,7 @@
       seleccionada = isTRUE(cand$seleccionada[i])
     )),
     texto_regla = ev$texto,
-    avisos = as.list(r$avisos)
+    avisos = as.list(r$avisos),
+    tope_filas = .regla_tope_filas(graficador)   # graficos_escala_tope.R; NA sale como null
   )
 }

@@ -20,3 +20,15 @@
   } else sprintf("%d preguntas", n)
   sprintf("%s; la lámina nativa admite %d y la escala sale como imagen.", que, .LAM_DIV_RESUMEN_MAX_FILAS)
 }
+
+#' Tope de filas de la lámina nativa para un graficador con regla (el que publica `POST /api/graficos/resumenes/regla`)
+#'
+#' La escala del resumen (`p_barras_divergentes`; la regla sólo existe en el estilo resumen) admite
+#' `.LAM_DIV_RESUMEN_MAX_FILAS`. Los demás no tienen un tope por número de preguntas: el panorama compara públicos, el
+#' contraste mide filas y sub-filas según los grupos y las fortalezas cuentan por columna (`.FORTALEZAS_FILAS_MAX`), así
+#' que un total no los describe y la respuesta lleva `null`.
+#' @return Entero o `NA_integer_` (la API lo escribe `null`).
+#' @keywords internal
+.regla_tope_filas <- function(graficador) {
+  if (identical(trimws(as.character(graficador %||% "")[1]), "p_barras_divergentes")) .LAM_DIV_RESUMEN_MAX_FILAS else NA_integer_
+}

@@ -126,9 +126,22 @@ test_that("HTTP (d): la regla que elige más de 20 filas avisa el tope de la lá
   expect_identical(r$body$total, 22L)
   expect_length(r$body$seleccionadas, 22L)
   expect_true("22 preguntas bajo 60%; la lámina nativa admite 20 y la escala sale como imagen." %in% .eh_avisos(r))
+  # El tope viaja siempre, para que la UI lo muestre junto al corte y avise sin esperar al motor.
+  expect_identical(r$body$tope_filas, 20L)
+  expect_identical(r$body$tope_filas, .LAM_DIV_RESUMEN_MAX_FILAS)
   # Con 20 o menos elegidas no hay aviso de tope.
   r2 <- .eh_http(sid, '{"graficador": "p_barras_divergentes", "args": {"vars": ["arte$*"], "estilo": "resumen",
                         "regla": {"tipo": "bajo_umbral", "umbral": 60, "quitar": ["arte$lk_1", "arte$lk_2"]}}}')
   expect_identical(r2$status, 200L)
   expect_false(any(grepl("admite 20", .eh_avisos(r2))))
+  expect_identical(r2$body$tope_filas, 20L)   # también cuando cabe
+})
+
+test_that("HTTP (d): un graficador sin tope por número de preguntas responde `tope_filas` null", {
+  sid <- .eh_sesion(list(arte = .eh_base(list(lk = 6L), pos = rep(5L, 6L)))); on.exit(session_delete(sid), add = TRUE)
+  r <- .eh_http(sid, '{"graficador": "p_panorama", "args": {"vars": ["arte$*"], "corte": ["3", "4"], "regla": {"tipo": "todas"}}}')
+  expect_identical(r$status, 200L)
+  expect_true("tope_filas" %in% names(r$body))
+  expect_null(r$body$tope_filas)
+  expect_true(is.na(.regla_tope_filas("p_fortalezas"))); expect_true(is.na(.regla_tope_filas("p_dumbbell")))
 })

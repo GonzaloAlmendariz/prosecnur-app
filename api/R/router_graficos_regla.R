@@ -7,7 +7,8 @@
 # usa el render, así que el contador y la lámina no discrepan); aquí sólo se valida la sesión y el pedido.
 #
 #   POST /api/graficos/resumenes/regla   {graficador, args, scope?}
-#     -> {ok, total, seleccionadas: [tema], candidatas: [{tema, etiqueta, metrica, seleccionada}], texto_regla, avisos}
+#     -> {ok, total, seleccionadas: [tema], candidatas: [{tema, etiqueta, metrica, seleccionada}], texto_regla, avisos,
+#         tope_filas}   `tope_filas`: filas que admite la lámina nativa (20 en la escala del resumen) o null sin tope
 #
 # `scope` es el de la vista previa (`consolidated` o vacío): las fuentes salen de `.graficos_preview_fuentes`, que en
 # multibase trae todas las bases del estudio.
