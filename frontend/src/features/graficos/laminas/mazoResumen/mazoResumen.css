@@ -138,7 +138,10 @@
   grid-template-columns: minmax(0, 1fr) 420px;
 }
 
+/* La columna es el contenedor de la grilla: con el lateral abierto en una ventana angosta (1024 px) cabe una sola
+   tarjeta por fila (M1). Se mide la columna y no la ventana: lo que importa es el ancho que le deja el lateral. */
 .pulso-f6-mazo-columna {
+  container: f6-mazo-columna / inline-size;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -188,17 +191,18 @@
   outline-offset: 2px;
 }
 
-.pulso-f6-mazo-editando {
-  flex: none;
-  align-self: center;
-  padding: 1px var(--pulso-space-2);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--module-accent-soft);
-  color: var(--module-accent);
-  font-size: var(--pulso-type-eyebrow-size);
-  font-weight: var(--pulso-weight-semibold);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+/* La tarjeta en edición se marca con una banda sobre su borde superior: no ocupa ancho en la cabeza (M1: la insignia
+   «Editando» dejaba 45 px y partía el texto letra por letra a 1024). Lo anuncia `aria-expanded` en «Editar». */
+.pulso-f6-mazo-tarjeta.is-editando.pulso-panel::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  right: var(--pulso-space-4);
+  left: var(--pulso-space-4);
+  height: 3px;
+  border-radius: 0 0 var(--pulso-radius-chip) var(--pulso-radius-chip);
+  background: var(--module-accent);
+  pointer-events: none;
 }
 
 .pulso-f6-mazo-tarjeta.is-editando.pulso-panel:not(.is-elegida) {
@@ -207,7 +211,7 @@
 
 .pulso-f6-mazo-tarjetas {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
   grid-auto-rows: 1fr;
   gap: var(--pulso-space-3);
   margin: 0;
@@ -218,6 +222,12 @@
 .pulso-f6-mazo-tarjetas > li {
   display: flex;
   min-width: 0;
+}
+
+@container f6-mazo-columna (max-width: 600px) {
+  .pulso-f6-mazo-tarjetas {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* La barra de elección: el conteo a la izquierda, «Elegir todas» y «Ninguna» a la derecha. */
@@ -371,18 +381,6 @@
   color: var(--pulso-text);
   font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
-}
-
-.pulso-f6-mazo-tipo-clase {
-  color: var(--pulso-text-faint);
-  font-size: var(--pulso-type-eyebrow-size);
-  font-weight: var(--pulso-weight-semibold);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.pulso-f6-mazo-tipo[data-clase-tarjeta="resumen"] .pulso-f6-mazo-tipo-clase {
-  color: var(--module-accent);
 }
 
 /* La caja de la miniatura es 16:9 fija, con imagen o con el glifo mientras carga: la tarjeta no cambia de alto al llegar

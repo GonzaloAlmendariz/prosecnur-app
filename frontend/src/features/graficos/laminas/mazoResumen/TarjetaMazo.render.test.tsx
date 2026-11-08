@@ -1,4 +1,4 @@
-// Tarjeta del mazo pintada: los públicos que lee, tipo con su clase, ningún título ni antetítulo sugerido, la regla con
+// Tarjeta del mazo pintada: los públicos que lee, el nombre de la lámina, ningún título ni antetítulo sugerido, la regla con
 // el texto del motor cuando llega y en palabras mientras tanto, el aviso de Aperturas en vez de la regla, la casilla de
 // la esquina (botón role="checkbox", nunca type="checkbox") y Editar.
 import { renderToStaticMarkup } from "react-dom/server";
@@ -39,7 +39,7 @@ describe("TarjetaMazo", () => {
     const html = pintar(CONTRASTE);
     expect(html).toContain("Docentes y estudiantes");
     expect(html).toContain("Contraste de públicos");
-    expect(html).toContain("Lámina de resumen");
+    expect(html).not.toContain("Lámina de resumen");   // M5: repetida en todas, no distinguía nada
     expect(html).not.toContain("Título por escribir");
     expect(html).not.toContain(">Quitar<");
     expect(html).not.toContain("Volver a incluir");
@@ -50,14 +50,14 @@ describe("TarjetaMazo", () => {
     expect(estado.activo[0]).toBe(true);
   });
 
-  it("Q2-2: los públicos van arriba y el tipo con su clase debajo, en la misma columna", () => {
+  it("Q2-2: los públicos van arriba y el nombre de la lámina debajo, en la misma columna", () => {
     const html = pintar(CONTRASTE);
     expect(html).toMatch(/class="pulso-f6-mazo-cabeza-texto"><span class="pulso-f6-mazo-lee">Docentes y estudiantes<\/span><span class="pulso-f6-mazo-tipo"/);
   });
 
   it("la casilla de la esquina: botón role=checkbox con el nombre de la lámina, sin elegir de partida", () => {
     const html = pintar(CONTRASTE);
-    expect(html).toMatch(/<button type="button" role="checkbox" aria-checked="false" aria-labelledby="[^"]+-nombre"/);
+    expect(html).toMatch(/<button type="button" role="checkbox" aria-checked="false" aria-label="Contraste de públicos, Docentes y estudiantes"/);
     expect(html).toContain('data-elegida="false"');
     const elegida = pintar(CONTRASTE, { elegida: true });
     expect(elegida).toContain('aria-checked="true"');
@@ -90,12 +90,21 @@ describe("TarjetaMazo", () => {
 
   it("editando: la tarjeta queda marcada, «Editar» controla el lateral y la regla NO se despliega en la tarjeta", () => {
     const html = pintar(CONTRASTE, { editando: true });
-    expect(html).toContain(">Editando<");
+    // M1: sin insignia que ocupe ancho en la cabeza; la marca es la clase (banda sobre el borde).
+    expect(html).not.toContain(">Editando<");
+    expect(html).toMatch(/class="[^"]*pulso-f6-mazo-tarjeta[^"]*is-editando/);
     expect(html).toContain('aria-expanded="true"');
     expect(html).toContain('aria-controls="lat"');
     expect(html).not.toContain("Regla de preguntas");
     expect(estado.activo[0]).toBe(false);
     expect(pintar(CONTRASTE)).not.toContain("aria-controls");
+  });
+
+  it("M4: tres Fortalezas y alertas se nombran distinto por su público", () => {
+    const fortalezas = (base: string) => pintar({ ...CONTRASTE, id: `fortalezas:${base}`, clase: "fortalezas", nombre: "Fortalezas y alertas", publicos: [base] });
+    const nombres = ["docentes", "estudiantes", "administrativos"].map((b) => fortalezas(b).match(/<section[^>]*aria-label="([^"]+)"/)?.[1]);
+    expect(nombres).toEqual(["Fortalezas y alertas, Docentes", "Fortalezas y alertas, Estudiantes", "Fortalezas y alertas, Administrativos"]);
+    expect(fortalezas("docentes")).toContain('aria-label="Editar Fortalezas y alertas, Docentes"');
   });
 
   it("la cobertura no tiene regla: la dice en palabras y no ofrece Editar", () => {

@@ -4,7 +4,7 @@ import { payloadPorDefecto, SLIDE_GRAF_SLOTS, usePlanStore } from "../../store";
 import { conOpcion, type EstudioDelSelector } from "../selectores/opcionesLamina";
 import {
   alternarPublico, contarElegidas, escalaDominante, escalasPorPublico, FALTA_DIVIDE, indicadoresDelEstudio, insertarTras,
-  laminaDePropuesta, laminasDelMazo, listaPublicos, mensajeInsertadas, moverA, ordenarPropuestas, ordenPublicos, proponerMazo,
+  laminaDePropuesta, laminasDelMazo, META_NOMBRE, nombreAccesible, listaPublicos, mensajeInsertadas, moverA, ordenarPropuestas, ordenPublicos, proponerMazo,
   publicoEnFrase, REFERENCIA_POR_DEFECTO, reglaEnPalabras, rotuloInsertar, textoElegidas, unirPublicos, type EntradaMazo,
 } from "./modeloMazo";
 
@@ -307,5 +307,26 @@ describe("un solo paso de deshacer", () => {
     expect(usePlanStore.getState().plan.slides).toHaveLength(1 + nuevas.length);
     usePlanStore.getState().undo();
     expect(usePlanStore.getState().plan.slides.map((s) => s.id)).toEqual(["a"]);
+  });
+});
+
+describe("M2: la lámina insertada se nombra como la propuesta", () => {
+  it("el nombre va en meta.nombre, sin título ni antetítulo", () => {
+    const p = {
+      id: "escala_umbral", clase: "escala_umbral", tarjeta: "p_slide_1_grafico:escala", tipo: "p_slide_1_grafico", nombre: "Escala bajo 60%",
+      claseTarjeta: "resumen", publicos: ["docentes"], graficador: "p_barras_divergentes", slot: "grafico", args: { estilo: "resumen" },
+      reglaEnPalabras: "", falta: null,
+    } as const satisfies Parameters<typeof laminaDePropuesta>[0];
+    const s = laminaDePropuesta({ ...p, publicos: [...p.publicos], args: { ...p.args } }, "s-1");
+    expect((s.payload.meta as Record<string, unknown>)[META_NOMBRE]).toBe("Escala bajo 60%");
+    expect(s.payload).toMatchObject({ titulo: "" });
+    expect(JSON.stringify(s.payload)).not.toContain("antetitulo");
+  });
+});
+
+describe("M4: el nombre accesible de la tarjeta lleva el público", () => {
+  it("«Fortalezas y alertas, Docentes»; sin públicos, el nombre solo", () => {
+    expect(nombreAccesible({ nombre: "Fortalezas y alertas", publicos: ["docentes"] })).toBe("Fortalezas y alertas, Docentes");
+    expect(nombreAccesible({ nombre: "Cierre con hallazgos", publicos: [] })).toBe("Cierre con hallazgos");
   });
 });

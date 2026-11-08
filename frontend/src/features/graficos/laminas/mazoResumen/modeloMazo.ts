@@ -109,6 +109,11 @@ export function basePrincipal(publicos: readonly string[], baseActiva: string | 
   return baseActiva && publicos.includes(baseActiva) ? baseActiva : publicos[0] ?? null;
 }
 
+/** El nombre accesible de una tarjeta: el de la lámina con sus públicos («Fortalezas y alertas, Docentes»). */
+export function nombreAccesible(p: Pick<PropuestaMazo, "nombre" | "publicos">): string {
+  return p.publicos.length ? `${p.nombre}, ${listaPublicos(p.publicos)}` : p.nombre;
+}
+
 // ---------------------------------------------------------------------------
 // La regla en palabras
 // ---------------------------------------------------------------------------
@@ -329,13 +334,22 @@ export function proponerMazo(e: EntradaMazo): PropuestaMazo[] {
 // Insertar
 // ---------------------------------------------------------------------------
 
-/** La lámina de una propuesta: payload de partida del tipo, su gráfico y el origen «resumen». Sin título ni antetítulo. */
+/** La clave de `payload.meta` con el nombre de la propuesta. El motor no la imprime (conserva las claves que no lee). */
+export const META_NOMBRE = "nombre";
+
+/**
+ * La lámina de una propuesta: payload de partida del tipo, su gráfico y el origen «resumen». Sin título ni antetítulo.
+ * M2: el nombre de la propuesta («Escala bajo 60%») va en `meta.nombre`, para que el editor la nombre como el mazo y no
+ * por el tipo de su gráfico («Escala con Sin información aparte»). No es un título: no sale en la lámina.
+ */
 export function laminaDePropuesta(p: PropuestaMazo, id: string): Slide {
   const payload: Args = payloadPorDefecto(p.tipo);
   if (p.graficador && p.slot) {
     const g: GraficadorRef = { graficador: p.graficador, args: { ...p.args } };
     payload[p.slot] = g;
   }
+  const meta = payload.meta && typeof payload.meta === "object" && !Array.isArray(payload.meta) ? (payload.meta as Args) : {};
+  payload.meta = { ...meta, [META_NOMBRE]: p.nombre };
   return { id, tipo: p.tipo, payload, origen: ORIGEN_RESUMEN };
 }
 
