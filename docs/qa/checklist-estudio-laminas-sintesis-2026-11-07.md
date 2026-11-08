@@ -73,12 +73,12 @@ Cada superficie se mide con tres criterios y pasa sólo con los tres:
 
 | # | Superficie | A | B | C | Estado |
 |---|---|---|---|---|---|
-| X1 | Selector de láminas | Abre en "cambiar" con chapas de pérdida al venir de "+ Lámina" | Glifo genérico; no dice escala, indicador, públicos ni cuántas preguntas | No permite comparar dos formas de mostrar lo mismo | Backend de "qué usa" e inventario en curso |
-| X2 | Regla de preguntas | Umbral en campo plano; conteo tarda ~3 s | Lista en orden de cuestionario, no en el de la lámina; muestra un momento la lista de la lámina anterior | No muestra el reparto ni dónde cae el corte; empates invisibles | En construcción |
-| X3 | Mazo del resumen ejecutivo | Sin arrastrar; "Editar" estira las 10 tarjetas a 880 px (C2) | "Título por escribir" repetido; glifos sin datos | Viene con las 10 incluidas e inserta con avisos falsos de `base$*` | Pendiente |
-| X4 | Lienzo e inspector | La vista previa tarda ~15 s y desenfoca todo; atajos ocultos | El título se edita lejos de donde se ve | Por medir | Pendiente |
+| X1 | Selector de láminas | Segmentado Insertar/Cambiar y Comparar dos (c8fd207de) | Ficha Datos con «Tu estudio» (6f9500ff3) | Faltas en una línea, sin bloquear | QA: rechazo C5 con un solo público; arreglos en curso |
+| X2 | Regla de preguntas | Slider con valor sobre el reparto, conteo en vivo (88e3bb781, 7410b28d4, 2af26554e) | Orden de la lámina, preguntas enteras, «Corte en N pts» | Reparto antes del corte, empates y tope a la vista | QA ronda 2: sólo el pulgar con umbral escrito; arreglado en 2af26554e, falta recaptura |
+| X3 | Mazo del resumen ejecutivo | Arrastrar, deshacer seguro, lateral de edición, franja plegada (6623f4348…dececb84f, 6a0cf8069) | Miniaturas reales (668d64953), públicos por tarjeta | Arranca sin elegir; sin antetítulos; sin avisos falsos (ba95a2e74, 6f81cf2b3) | QA ronda 2: dos fallas arregladas en 6a0cf8069; falta recaptura |
+| X4 | Lienzo e inspector | Vista previa sin blur, atajos visibles (oleada V en curso) | Título en el lienzo (en curso) | Por medir | En construcción |
 | X5 | Grupos con padrón | Por medir | El vacío de padrón no dice dónde declararlo | Por medir | Pendiente |
-| X6 | Emparejado | 104 pares uno por uno, sin lote ni teclado | Textos truncados, no se pueden comparar | Todos dicen "Sugerido por el texto" igual; no muestra la evidencia | Pendiente |
-| X7 | Cierre con hallazgos | Dos desplegables en cascada; la lista de Cifra tapa la pantalla | 40 renglones sin buscador ni orden | La cifra no se elige viéndola | Pendiente |
+| X6 | Emparejado | Filtro segmentado, lote de idénticos, J/K/Enter/X (6c099ccbf…69bd17939) | Dos textos enteros con lo distinto marcado | Coincidencia a la vista | QA: aprobado con pendientes (pares espejo duplicados); arreglos en curso |
+| X7 | Cierre con hallazgos | Combobox con buscador y teclado, cifras en un solo pedido (dfde4b630, 731b317ac) | Cifras agrupadas por lámina con su valor | La cifra se elige viéndola; sin título por defecto (84f430a87) | Falta QA visual |
 
 Auditoría completa (15 mejoras priorizadas, capturas en el scratchpad de la sesión): 2026-11-08.

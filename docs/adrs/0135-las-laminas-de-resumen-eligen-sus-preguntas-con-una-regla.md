@@ -172,6 +172,23 @@ Decisiones de Gonzalo del 2026-11-07:
   información».
 - Con la regla «mayor diferencia», el contraste ordena por la diferencia absoluta, la brecha más grande arriba.
 
+### El criterio es del analista (Gonzalo, 2026-11-08)
+
+Principio que rige estas superficies: «que el analista tenga las herramientas para pensar por sí mismo y no que el motor
+piense por él», con «controles profesionales, controles segmentados, sliders… arrastres, efectos inmediatos», sin
+«títulos clichés». Consecuencias ya implementadas:
+
+- Nada se inserta solo: el mazo arranca sin láminas elegidas, cada propuesta se elige con su casilla y la inserción se
+  deshace sin pisar otra edición. Las láminas nacen sin título ni antetítulo; el motor no escribe rótulos por defecto
+  (cierre y hallazgos incluidos) y la barra de acento sólo se dibuja si hay rótulo.
+- La regla muestra la materia antes del corte: reparto de todas las candidatas, corte arrastrable con su valor, conteo en
+  vivo, empates y el tope de la lámina nativa siempre a la vista.
+- Cada tipo dice qué datos usa (`usa`: preguntas, públicos, padrón, cruce) y el selector lo cruza con el inventario del
+  estudio («Tu estudio»); lo que falta se dice en una línea y no bloquea. Dos tipos se comparan lado a lado.
+- El emparejado muestra la evidencia de cada par (coincidencia y los dos textos con lo distinto marcado); el único lote es
+  el de los idénticos.
+- El cierre elige su cifra viéndola, agrupada por lámina y ordenable por valor.
+
 ## Consecuencias
 
 - `p_panorama`, `p_dumbbell` (estilo `resumen`) y `p_barras_divergentes` (estilo `resumen`) ganan `regla`.
