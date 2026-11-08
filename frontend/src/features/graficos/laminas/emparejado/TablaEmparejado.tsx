@@ -2,6 +2,7 @@
 // sus cuatro estados y las acciones de la fila. Es la PulsoTable del kit; el dueño del scroll vertical es el cuerpo del
 // diálogo (la tabla crece con sus filas).
 
+import type { SyntheticEvent } from "react";
 import type { VariableDeBase } from "../../../../api/equivalencias";
 import type { PreguntaDeBase } from "../../../../api/graficosEmparejado";
 import { PulsoTable, type PulsoTableColumna } from "../../../../components/PulsoTable";
@@ -19,6 +20,10 @@ type Props = {
   /** La coincidencia de cada fila por `clave` (coincidencia.ts). */
   coincidencias: ReadonlyMap<string, CoincidenciaDePar | null>;
   buscando: string | null;
+  /** La fila activa (su evidencia se ve bajo la tabla). */
+  activa: string | null;
+  /** Un clic o el foco dentro de una fila la vuelve activa. */
+  onActivar: (clave: string) => void;
   /** Opciones del buscador para la fila que busca su par. */
   opcionesDe: (fila: FilaEmparejado) => VariableDeBase[];
   /** Preguntas de la otra base ya confirmadas en la lámina: elegirlas las mueve. */
@@ -120,15 +125,24 @@ export function TablaEmparejado(p: Props) {
     },
   ];
 
+  // La fila se reconoce por su ancla (la celda de coincidencia): la tabla del kit no nombra sus filas.
+  const activarDesde = (e: SyntheticEvent<HTMLDivElement>) => {
+    const clave = (e.target as Element).closest("tr")?.querySelector("[data-emp-fila]")?.getAttribute("data-emp-fila");
+    if (clave && clave !== p.activa) p.onActivar(clave);
+  };
+
   return (
-    <PulsoTable
-      columnas={columnas}
-      filas={p.filas}
-      idDeFila={(f) => f.clave}
-      ariaLabel="Emparejado entre públicos"
-      densidad="compacta"
-      altoMaximo={100000}
-      vacio={p.vacio}
-    />
+    <div className="pulso-f6-emp-tabla" onClick={activarDesde} onFocus={activarDesde}>
+      <PulsoTable
+        columnas={columnas}
+        filas={p.filas}
+        idDeFila={(f) => f.clave}
+        ariaLabel="Emparejado entre públicos"
+        densidad="compacta"
+        seleccionada={p.activa}
+        altoMaximo={100000}
+        vacio={p.vacio}
+      />
+    </div>
   );
 }

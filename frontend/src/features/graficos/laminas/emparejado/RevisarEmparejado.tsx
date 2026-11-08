@@ -19,6 +19,7 @@ import { formatoConteo } from "../../../../lib/formatoNumero";
 import { nombrePublico, type TemaPublicos } from "../../multiapiladas/temasPublicos";
 import { Segmentado } from "../../subpestanas/Segmentado";
 import { coincidenciasDe } from "./coincidencia";
+import { EvidenciaPar } from "./EvidenciaPar";
 import { useEmparejadoUi } from "./emparejadoStore";
 import {
   avisoUnion, confirmadosDe, confirmarPar, filtrarFilas, hayCambiosEnUnion, opcionesDeBase, preguntasOcupadas, quitarPar,
@@ -71,6 +72,8 @@ export function RevisarEmparejado({ bases, basesEstudio, remoto, recargar, filas
   const ui = useEmparejadoUi();
   const coincidencias = coincidenciasDe(filas);
   const visibles = filtrarFilas(filas, ui.filtro);
+  // La fila activa sólo cuenta mientras se ve: un filtro que la esconde también esconde su evidencia.
+  const activa = visibles.find((f) => f.clave === ui.activa) ?? null;
   const ocupadas = preguntasOcupadas(filas);
   const confirmados = confirmadosDe(filas);
   const lista = remoto.fase === "lista";
@@ -149,6 +152,8 @@ export function RevisarEmparejado({ bases, basesEstudio, remoto, recargar, filas
       vacio={VACIO_FILTRO[ui.filtro]}
       coincidencias={coincidencias}
       buscando={ui.buscando}
+      activa={activa?.clave ?? null}
+      onActivar={ui.activar}
       opcionesDe={(f) => opcionesDeBase(fuentes, f.otraBase, firmaDe(f), ocupadas.matriz)}
       tomadasDe={(f) => tomadasEnBase(ocupadas.lamina, f)}
       onConfirmar={confirmar}
@@ -177,6 +182,7 @@ export function RevisarEmparejado({ bases, basesEstudio, remoto, recargar, filas
       returnFocusTo={retorno}
       dismissible={!ocupado}
       className="pulso-f6-emp"
+      flush
       stepper={lista && filas.length > 0 ? (
         <Segmentado
           etiqueta="Qué preguntas mostrar"
@@ -197,6 +203,8 @@ export function RevisarEmparejado({ bases, basesEstudio, remoto, recargar, filas
         </PulsoButton>
       )}
     >
+      {/* Cuerpo flush (patrón maestro-detalle del kit): la región de la tabla es la única que desplaza y posee el vacío
+          (C3, C4); la evidencia del par activo queda fija debajo y nunca tapa una fila. */}
       <div
         className="pulso-f6-emp-cuerpo"
         data-audit-ready={marca}
@@ -204,7 +212,12 @@ export function RevisarEmparejado({ bases, basesEstudio, remoto, recargar, filas
         data-qa-geometry-group="graficos/emparejado"
         data-qa-geometry-contract="intrinsic"
       >
-        <div className="pulso-f6-emp-contenido" data-qa-geometry-member>{cuerpo}</div>
+        <div className="pulso-f6-emp-contenido" data-qa-geometry-member data-qa-geometry-capacity="owned">{cuerpo}</div>
+        {lista && activa ? (
+          <div className="pulso-f6-emp-pie-evidencia" data-qa-geometry-member>
+            <EvidenciaPar fila={activa} bases={bases} coincidencia={coincidencias.get(activa.clave) ?? null} />
+          </div>
+        ) : null}
       </div>
     </Dialog>
   );
