@@ -10,7 +10,7 @@ const sumas = (est: number, rep: number, aplica = true): SumasDetalle => ({ lami
 describe("cifras del redondeo", () => {
   it("una fila: la suma estándar, la del reparto y la mayor", () => {
     const d = detalle(CATS, { filas: [fila("total", CATS, { sumas: sumas(99, 100) })] });
-    expect(cifrasRedondeo(d)).toEqual({ estandar: "Estándar: suma 99%", reparto: "Reparto: 100%", mayor: "La mayor: 62%" });
+    expect(cifrasRedondeo(d)).toEqual({ estandar: "Estándar: suma 99%", reparto: "Reparto: 100%", mayor: "La mayor: 62%", sumaEstandar: "99%", sumaReparto: "100%" });
   });
   it("respuesta múltiple: el reparto no aplica y no se dice", () => {
     const d = detalle(CATS, { filas: [fila("total", CATS, { sumas: sumas(130, 130, false) })] });

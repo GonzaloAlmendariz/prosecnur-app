@@ -40,12 +40,12 @@ export function sinRedondeo(args: Args): Args {
   return ov;
 }
 
-/** La excepción dicha para la lista bajo la regla: «Reparto a 100 % · Un decimal»; `null` si sigue al informe. */
+/** La excepción dicha para la lista bajo la regla: «Reparto a 100%, Un decimal»; `null` si sigue al informe. */
 export function describirRedondeo(args: Args, fila: FilaCalculo): string | null {
   const r = leerRedondeo(args, fila);
   if (!r.propio) return null;
   const partes: string[] = [];
-  if (fila.admiteMetodo) partes.push(r.metodo === METODO_REPARTO ? "Reparto a 100 %" : "Estándar");
+  if (fila.admiteMetodo) partes.push(r.metodo === METODO_REPARTO ? "Reparto a 100%" : "Estándar");
   if (fila.campoDecimales) partes.push(r.decimales === 0 ? "Sin decimales" : r.decimales === 1 ? "Un decimal" : `${r.decimales} decimales`);
   return partes.join(", ") || null;
 }

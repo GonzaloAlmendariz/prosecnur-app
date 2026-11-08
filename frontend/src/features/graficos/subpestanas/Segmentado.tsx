@@ -2,12 +2,13 @@
 // un solo punto de tabulación (la opción elegida) y las flechas mueven y eligen. Observación del verificador de la
 // fase Informe (2026-10-15): cada opción era un tab stop y las flechas no hacían nada.
 
-import { useRef, type KeyboardEvent } from "react";
+import { useRef, type KeyboardEvent, type ReactNode } from "react";
 import "./segmentado.css";
 
 type Props<K extends string> = {
   etiqueta: string;
-  opciones: readonly { clave: K; rotulo: string }[];
+  /** El rótulo admite una cifra dentro (R7-11: «Estándar 99%»). */
+  opciones: readonly { clave: K; rotulo: ReactNode }[];
   valor: K;
   onCambiar: (k: K) => void;
 };

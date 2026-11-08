@@ -29,7 +29,7 @@ export function useFilaCalculo(graficador: string): FilaCalculo | null {
   return filas.find((f) => f.preset === preset) ?? null;
 }
 
-const dichoMetodo = (m: string) => (m === METODO_REPARTO ? "reparto a 100 %" : "estándar");
+const dichoMetodo = (m: string) => (m === METODO_REPARTO ? "reparto a 100%" : "estándar");
 const dichoDecimales = (d: number) => (d === 0 ? "sin decimales" : d === 1 ? "un decimal" : `${d} decimales`);
 
 export function RedondeoDelGrafico({ graficador, args, scope = "active", onCambio }: {
@@ -62,7 +62,10 @@ export function RedondeoDelGraficoVista({ fila, args, onCambio, cifras = null }:
           {fila.admiteMetodo && (
             <Segmentado etiqueta="Método de este gráfico" valor={r.metodo === METODO_REPARTO ? METODO_REPARTO : METODO_ESTANDAR}
               onCambiar={(m) => onCambio(conRedondeo(args, fila, { metodo: m }))}
-              opciones={[{ clave: METODO_ESTANDAR, rotulo: "Estándar" }, { clave: METODO_REPARTO, rotulo: "Reparto a 100 %" }]} />
+              opciones={[
+                { clave: METODO_ESTANDAR, rotulo: <ConSuma rotulo="Estándar" suma={cifras?.sumaEstandar ?? null} vigente={!!cifras?.vigente} qa="redondeo-estandar" /> },
+                { clave: METODO_REPARTO, rotulo: <ConSuma rotulo="Reparto a 100%" suma={cifras?.sumaReparto ?? null} vigente={!!cifras?.vigente} qa="redondeo-reparto" /> },
+              ]} />
           )}
           {fila.campoDecimales && (
             <span className="pulso-f6-redondeo-decimales">
@@ -77,8 +80,20 @@ export function RedondeoDelGraficoVista({ fila, args, onCambio, cifras = null }:
       ) : (
         <span className="pulso-f6-dato-ayuda">Sigue la regla del informe: {delInforme}.</span>
       )}
-      {cifras && (cifras.estandar || !cifras.vigente) && <CifraEstado texto={cifras.estandar ?? null} vigente={cifras.vigente} qa="redondeo-estandar" />}
-      {cifras?.reparto && <CifraEstado texto={cifras.reparto} vigente={cifras.vigente} qa="redondeo-reparto" />}
+      {/* R7-11: con el método propio, cada suma va dentro de su segmento. Siguiendo al informe, una sola línea. */}
+      {!(r.propio && fila.admiteMetodo) && cifras && (cifras.estandar || !cifras.vigente) && (
+        <CifraEstado texto={[cifras.estandar, cifras.reparto].filter(Boolean).join(", ") || null} vigente={cifras.vigente} qa="redondeo-sumas" />
+      )}
     </div>
+  );
+}
+
+/** El rótulo de un método con lo que suma la lámina con él («Estándar 99%»); atenuado mientras llega lo nuevo. */
+function ConSuma({ rotulo, suma, vigente, qa }: { rotulo: string; suma: string | null; vigente: boolean; qa: string }) {
+  return (
+    <>
+      {rotulo}
+      {suma && <span className={`pulso-f6-cifra-pct pulso-f6-seg-suma${vigente ? "" : " is-anterior"}`} data-qa={qa}> {suma}</span>}
+    </>
   );
 }

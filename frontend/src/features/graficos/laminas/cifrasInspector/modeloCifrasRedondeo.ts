@@ -5,7 +5,11 @@
 import type { CifraDetalle, DetalleCifras } from "../../../../api/graficosCifras";
 import { filaPrincipal, mayorDe, textoPct } from "./modeloCifras";
 
-export type CifrasRedondeo = { estandar: string | null; reparto: string | null; mayor: string | null };
+export type CifrasRedondeo = {
+  estandar: string | null; reparto: string | null; mayor: string | null;
+  /** R7-11: sólo la suma, para ir dentro del segmento de cada método («99%», «de 99% a 101%»). */
+  sumaEstandar: string | null; sumaReparto: string | null;
+};
 
 function rango(cifras: readonly CifraDetalle[], dec: number): string | null {
   const vs = cifras.map((c) => c.valor).filter((v): v is number => typeof v === "number" && Number.isFinite(v));
@@ -28,5 +32,7 @@ export function cifrasRedondeo(det: DetalleCifras | null): CifrasRedondeo | null
     estandar: est ? `Estándar: suma ${est}` : null,
     reparto: rep ? `Reparto: ${rep}` : null,
     mayor: m ? `La mayor: ${textoPct(m.valor, dec)}` : null,
+    sumaEstandar: est,
+    sumaReparto: rep,
   };
 }

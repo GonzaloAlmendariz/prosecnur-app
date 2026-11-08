@@ -21,25 +21,29 @@ describe("tarjeta · redondeo del gráfico", () => {
   it("propio: método y decimales del gráfico, y la regla del informe al lado", () => {
     const html = pintar({ overrides: { calculos_propios: true, metodo_redondeo: "reparto", decimales: 1 } });
     expect(html).toMatch(/aria-checked="true"[^>]*>Propio/);
-    expect(html).toMatch(/aria-checked="true"[^>]*>Reparto a 100 %/);
+    expect(html).toMatch(/aria-checked="true"[^>]*>Reparto a 100%/);
     expect(html).toMatch(/aria-checked="true"[^>]*>Un decimal/);
     expect(html).toContain("Sólo este gráfico; el informe usa estándar, sin decimales.");
   });
   // Oleada I2, ítem 6: lo que suma la lámina con cada método, en dos líneas (sin «·»), y la mayor junto a los decimales.
-  it("con detalle: la suma de cada método y la mayor ya redondeada", () => {
+  it("R7-11: con detalle, la suma de cada método dentro de su segmento y la mayor ya redondeada; sin filas sueltas", () => {
+    const cifras = { estandar: "Estándar: suma 99%", reparto: "Reparto: 100%", mayor: "La mayor: 62%", sumaEstandar: "99%", sumaReparto: "100%", vigente: true };
     const html = renderToStaticMarkup(createElement(RedondeoDelGraficoVista, {
-      fila, args: { overrides: { calculos_propios: true, decimales: 0 } }, onCambio: () => undefined,
-      cifras: { estandar: "Estándar: suma 99%", reparto: "Reparto: 100%", mayor: "La mayor: 62%", vigente: true },
+      fila, args: { overrides: { calculos_propios: true, decimales: 0 } }, onCambio: () => undefined, cifras,
     }));
-    expect(html).toMatch(/data-qa="redondeo-estandar">Estándar: suma 99%</);
-    expect(html).toMatch(/data-qa="redondeo-reparto">Reparto: 100%</);
+    expect(html).toMatch(/role="radio"[^>]*>Estándar<span[^>]*data-qa="redondeo-estandar"> 99%<\/span><\/button>/);
+    expect(html).toMatch(/role="radio"[^>]*>Reparto a 100%<span[^>]*data-qa="redondeo-reparto"> 100%<\/span><\/button>/);
+    expect(html).not.toContain("redondeo-sumas");
+    // Siguiendo al informe, una sola línea con las dos sumas.
+    const delInforme = renderToStaticMarkup(createElement(RedondeoDelGraficoVista, { fila, args: {}, onCambio: () => undefined, cifras }));
+    expect(delInforme).toMatch(/data-qa="redondeo-sumas">Estándar: suma 99%, Reparto: 100%</);
     expect(html).toMatch(/data-qa="redondeo-mayor">La mayor: 62%</);
     expect(html).not.toContain("·");
   });
   it("sin detalle, sin cifras; mientras carga, una silueta", () => {
-    expect(pintar({})).not.toContain("redondeo-estandar");
+    expect(pintar({})).not.toContain("redondeo-sumas");
     const html = renderToStaticMarkup(createElement(RedondeoDelGraficoVista, { fila, args: {}, onCambio: () => undefined, cifras: { vigente: false } }));
-    expect(html).toMatch(/data-qa="redondeo-estandar"/);
+    expect(html).toMatch(/data-qa="redondeo-sumas"/);
     expect(html).toContain('aria-busy="true"');
   });
 });
