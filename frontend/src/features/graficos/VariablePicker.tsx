@@ -25,6 +25,9 @@ type Props = {
   /** Sin pastilla de base en una referencia sin prefijo: donde el motor la lee en la base del gráfico (los cruces de las
    *  tarjetas de diferencias, `.sig_var_local`; U15 del checklist de mandos del mazo). */
   sinAvisoDeBase?: boolean;
+  /** Sólo las preguntas de esta base: «Dividir por» en la base de la pregunta del gráfico (R7-1). Un valor guardado de
+   *  otra base se sigue mostrando en el disparador, para que se vea y se cambie. */
+  soloBase?: string | null;
 };
 
 // VariablePicker multi-base (v0.2+).
@@ -42,9 +45,9 @@ type Props = {
 // el analista lo guardó conscientemente así).
 
 export default function VariablePicker({
-  value, onChange, placeholder = "Selecciona variable…", filter, allowEmpty = false, ocultarBase = false, fuenteInicial, sinAvisoDeBase = false,
+  value, onChange, placeholder = "Selecciona variable…", filter, allowEmpty = false, ocultarBase = false, fuenteInicial, sinAvisoDeBase = false, soloBase = null,
 }: Props) {
-  const { sources, multi, variables, relacionBases, baseActiva, scope, loading, error } = useVariables();
+  const { sources: todas, multi, variables, relacionBases, baseActiva, scope, loading, error } = useVariables();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [draftSource, setDraftSource] = useState<string | null>(null);
@@ -62,9 +65,13 @@ export default function VariablePicker({
     [sinAvisoDeBase, value, multi, variables, baseActiva, relacionBases, scope],
   );
   const derivedVariable = useMemo(() => getDerivedReportVariable(value), [value]);
+  const sources = useMemo(
+    () => (soloBase && todas.some((s) => s.name === soloBase) ? todas.filter((s) => s.name === soloBase) : todas),
+    [soloBase, todas],
+  );
   const sourceKey = sources.map((source) => source.name).join("\u001F");
   const firstSourceName = (fuenteInicial && sources.some((source) => source.name === fuenteInicial) ? fuenteInicial : sources[0]?.name) ?? null;
-  const valueSource = parsed.source && sources.some((source) => source.name === parsed.source)
+  const valueSource = parsed.source && todas.some((source) => source.name === parsed.source)
     ? parsed.source
     : null;
 
@@ -72,7 +79,7 @@ export default function VariablePicker({
   // puede cambiarse libremente antes de confirmar otra variable.
   const pickerSource = draftSource && sources.some((source) => source.name === draftSource)
     ? draftSource
-    : (valueSource ?? firstSourceName);
+    : (valueSource && sources.some((source) => source.name === valueSource) ? valueSource : firstSourceName);
 
   useEffect(() => {
     const names = new Set(sourceKey.split("\u001F").filter(Boolean));
@@ -154,7 +161,7 @@ export default function VariablePicker({
   const visibleVars = filtered.slice(0, 120);
   const baseResuelta = estadoBase.tipo === "base-activa" || estadoBase.tipo === "en-otra-base" ? estadoBase.base : null;
   const selectedSourceName = valueSource ?? baseResuelta ?? pickerSource;
-  const selectedSource = sources.find((s) => s.name === selectedSourceName) ?? source;
+  const selectedSource = todas.find((s) => s.name === selectedSourceName) ?? source;
   const selectedVar = selectedSource?.variables.find((v) => safeText(v.name) === parsed.name) ?? null;
   const selectedLabel = selectedVar ? textoPlano(safeText(selectedVar.label, selectedVar.name)) : "";
   const selectedCode = selectedVar ? safeText(selectedVar.name) : "";

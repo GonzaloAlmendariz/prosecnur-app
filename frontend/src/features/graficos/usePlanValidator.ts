@@ -15,6 +15,7 @@ import { citaCorta, notasEnTitulo } from "./laminas/notaEnTitulo";
 import { indicesSinCapitulos } from "./indice/requisitoIndice";
 import { avisaTtbSinRespuestas } from "./laminas/ttbSinRespuestas";
 import { faltaEnLamina } from "./laminas/faltaLamina";
+import { cruceEnOtraBase, textoCruceEnOtraBase } from "./laminas/cruce/baseDelCruce";
 import { laBase, type RelacionBases } from "./relacionBases";
 import { baseImplicitaDe, basesPorNombre } from "./fijarBase";
 import { conteoBarrasMultiapiladas, excedeTope, laminasNecesarias, MAX_BARRAS_MULTIAPILADAS } from "./multiapiladas/topeBarras";
@@ -61,6 +62,10 @@ import { formatoConteo } from "../../lib/formatoNumero";
 //     dibujarse (laminas/faltaLamina.ts: el indicador de un contraste, los
 //     grupos de una brecha). Es ERROR: el motor aborta el dibujo; la maqueta
 //     ya lo decía, pero la barra contaba «0 avisos» (ronda 5).
+//   - "cruce-otra-base": «Dividir por» es de otra base que la pregunta del
+//     gráfico (laminas/cruce/baseDelCruce.ts). Es ERROR: el motor dibuja un
+//     muro de códigos sin avisar; el selector ya sólo ofrece la base de la
+//     pregunta, esto atrapa los planes guardados antes (R7-1).
 //
 // Severidad: "error" bloquea export; "warning" solo avisa.
 
@@ -82,7 +87,8 @@ export type ValidationIssue = {
     | "indice-sin-capitulos"
     | "ttb-sin-respuestas"
     | "radar-criterios"
-    | "lamina-incompleta";
+    | "lamina-incompleta"
+    | "cruce-otra-base";
   message: string;
   /** El mensaje sin «Lámina N, “título” (tipo)»: para mostrarlo dentro de la lámina (Inspector). */
   detalle?: string;
@@ -371,6 +377,18 @@ export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
       detalle: falta,
       slideId: slide.id,
     });
+  });
+
+  // 4e) «Dividir por» de otra base que la pregunta: uno por gráfico (R7-1) -----------------------------------------
+  slides.forEach((slide, indice) => {
+    const slots = slidesById[slide.tipo]?.slots ?? [];
+    for (const slot of slots) {
+      const graf = (slide.payload as Record<string, unknown>)[slot] as GraficadorRef | null | undefined;
+      const otra = graf?.graficador ? cruceEnOtraBase(graf.args ?? {}) : null;
+      if (!otra) continue;
+      const detalle = textoCruceEnOtraBase(otra);
+      issues.push({ severity: "error", code: "cruce-otra-base", message: `${rotuloLamina(slide, indice)}: ${detalle}`, detalle, slideId: slide.id, slotName: slot });
+    }
   });
 
   // 5) Índice sin capítulos: el motor no tiene qué listar (indice/requisitoIndice.ts) -----------------
