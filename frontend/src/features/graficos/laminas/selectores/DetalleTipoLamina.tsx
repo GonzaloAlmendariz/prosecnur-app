@@ -130,9 +130,10 @@ export function DetalleTipoLamina(props: Props) {
         <AvisoCambio id={idAviso} sobrantes={sobrantes} textos={textos} confirmando={confirmando}
           nombreGrafico={nombreGrafico} nombreSlot={nombreSlot} nombreCampo={nombreCampo} />
         <div className="pulso-f6-selector-acciones">
-          {confirmando && <PulsoButton variant="secondary" onClick={onVolver}>Elegir otra</PulsoButton>}
+          {confirmando && <PulsoButton variant="secondary" size="lg" onClick={onVolver}>Elegir otra</PulsoButton>}
           <PulsoButton
             variant="primary"
+            size="lg"
             className="pulso-f6-selector-aplicar"
             disabled={boton.deshabilitado}
             aria-describedby={hayPerdida ? idAviso : undefined}

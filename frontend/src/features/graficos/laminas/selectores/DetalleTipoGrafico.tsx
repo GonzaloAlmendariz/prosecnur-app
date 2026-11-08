@@ -57,7 +57,7 @@ export function DetalleTipoGrafico({ meta, nombre, ranura, encaje, bloqueo, esAc
             <strong><AlertTriangle size={14} aria-hidden="true" /> {motivo}</strong>
           </div>
         )}
-        <PulsoButton variant="primary" size="sm" disabled={esActual || !!motivo} onClick={onAplicar}>
+        <PulsoButton variant="primary" size="lg" disabled={esActual || !!motivo} onClick={onAplicar}>
           {esActual ? "Es el gráfico actual" : "Usar este gráfico"}
         </PulsoButton>
       </div>

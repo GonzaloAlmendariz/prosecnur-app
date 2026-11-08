@@ -1,10 +1,11 @@
-// Marco común de los diálogos «¿Qué lámina?» y «¿Qué gráfico?» (F6.2; dirección F6 §4.3–4.4): cabecera de 56 px y
+// Marco común de los diálogos «¿Qué lámina?» y «¿Qué gráfico?» (F6.2; dirección F6 §4.3–4.4): cabecera propia (lleva
+// antetítulo, modo, buscador y una acción, que CabeceraPanel no admite; la X sí es la del kit, BotonCerrar) y
 // tres columnas —la pregunta, las tarjetas y el detalle— cada una con su propio desplazamiento (C4). Diálogo modal de
 // Radix: Escape y el velo cierran, el foco entra en la primera opción y vuelve a quien lo abrió.
 
 import * as Dialog from "@radix-ui/react-dialog";
 import { useMemo, useRef, type ReactNode, type RefObject } from "react";
-import { X } from "../../../../vendor/lucide-react";
+import { BotonCerrar } from "../../../../components/BotonCerrar";
 import { useLibraryDialogA11y } from "../../useLibraryDialogA11y";
 import "./selectores.css";
 
@@ -84,8 +85,9 @@ export function DialogoSelector({
               {modo && <div className="pulso-f6-selector-modo">{modo}</div>}
               {buscador && <div className="pulso-f6-selector-buscador">{buscador}</div>}
               {accion && <div className="pulso-f6-selector-accion">{accion}</div>}
-              <Dialog.Close className="pulso-f6-icono-boton pulso-f6-selector-cerrar" aria-label="Cerrar sin cambiar">
-                <X size={16} aria-hidden="true" />
+              {/* La X del kit (BotonCerrar), alineada a la línea del título y no a la del antetítulo (selectores.css). */}
+              <Dialog.Close asChild>
+                <BotonCerrar className="pulso-f6-selector-cerrar" aria-label="Cerrar sin cambiar" />
               </Dialog.Close>
             </header>
             <div className="pulso-f6-selector-cuerpo" data-qa-geometry-group={`graficos/${auditReady}-columnas`} data-qa-geometry-contract="intrinsic">

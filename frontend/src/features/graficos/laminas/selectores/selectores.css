@@ -53,6 +53,25 @@
   min-width: 0;
 }
 
+/* Acabado W2-A (contrato B): la X va en la línea del TÍTULO, no en la del antetítulo. Las dos líneas tienen alto fijo
+   y la X baja exactamente lo que miden el antetítulo y el hueco, más la mitad de lo que el título le saca a la caja de
+   la X. Vale para la cabecera en un renglón y para la de dos renglones bajo 1180 px (W1B-C7), y para «Íconos del
+   índice», que comparte la cabecera. */
+.pulso-f6-selector {
+  --pulso-f6-selector-antetitulo-lh: 16px;
+  --pulso-f6-selector-titulo-lh: 24px;
+}
+
+.pulso-f6-selector-cabecera > .pulso-f6-selector-cerrar {
+  flex: none;
+  align-self: flex-start;
+  margin-top: calc(var(--pulso-f6-selector-antetitulo-lh) + 2px + (var(--pulso-f6-selector-titulo-lh) - var(--pulso-close-size)) / 2);
+}
+
+.pulso-f6-selector-antetitulo {
+  line-height: var(--pulso-f6-selector-antetitulo-lh);
+}
+
 .pulso-f6-selector-antetitulo,
 .pulso-f6-selector-leyenda {
   color: var(--pulso-text-faint);
@@ -66,6 +85,7 @@
   margin: 0;
   font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-semibold);
+  line-height: var(--pulso-f6-selector-titulo-lh);
 }
 
 .pulso-f6-selector-descripcion {
@@ -641,6 +661,13 @@
   flex: 1 1 0;
   justify-content: center;
   gap: var(--pulso-space-1);
+}
+
+/* El CTA del pie (contrato A): primario lg, uno por diálogo. Deshabilitado honesto (surface-3, text-faint, borde; nunca
+   opacidad sobre el acento): lo pinta la capa de acabado de laminasWorkbench.css, que incluye `.pulso-f6-selector`. */
+.pulso-f6-selector-pie > .pulso-button.pulso-button--primary {
+  flex: 1 1 100%;
+  justify-content: center;
 }
 
 @media (max-width: 1180px) {
