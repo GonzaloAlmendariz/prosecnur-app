@@ -322,3 +322,15 @@ describe("R9-16: una acción, una vez", () => {
     expect(sinComentarios(leer("brecha/BrechaEntreGrupos.tsx"))).toMatch(/faltaEnTarjeta === FALTA_CRUCE && conReglaDePreguntas \? null : faltaEnTarjeta/);
   });
 });
+
+describe("R9-18: el segmentado del selector lleva el radio único de control", () => {
+  it("controlModo.css: radio 8, riel surface-3, pulgar con filete text-faint y sin sombra", () => {
+    const css = sinComentarios(leer("selectores/controlModo.css"));
+    const raiz = css.slice(css.indexOf(".pulso-f6-modo.pulso-gliding-tab-list {"), css.indexOf("}", css.indexOf(".pulso-f6-modo.pulso-gliding-tab-list {")));
+    expect(raiz).toContain("border-radius: var(--pulso-control-radius)");
+    expect(raiz).toContain("background: var(--pulso-surface-3)");
+    expect(raiz).toContain("--pulso-gliding-indicator-border: var(--pulso-text-faint)");
+    expect(raiz).toContain("--pulso-gliding-indicator-shadow: none");
+    expect(css).not.toContain("var(--pulso-radius-card)");
+  });
+});

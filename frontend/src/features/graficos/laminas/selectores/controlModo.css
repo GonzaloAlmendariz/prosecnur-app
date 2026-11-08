@@ -1,8 +1,9 @@
 /* Control de modo del selector de láminas («Insertar detrás / Cambiar esta lámina») en la cabecera del diálogo.
    Se carga después de selectores.css (orden fijado en SelectorTipoLamina.tsx). */
 
-/* ---- Modo del selector (auditoría, hallazgo 14): segmentado de la cabecera, riel gris y la opción elegida en blanco
-   con el acento del módulo, como los demás segmentados ---- */
+/* ---- Modo del selector (auditoría, hallazgo 14): segmentado de la cabecera. R9-18: la misma piel que RadioSegmentado
+   (radioSegmentado.css): 28 de alto, el radio único de control (8, no 10), riel surface-3, pulgar blanco con filete
+   text-faint (3:1) y sin sombra; la opción elegida en el texto fuerte, el acento sólo en el foco ---- */
 
 .pulso-f6-selector-modo {
   flex: none;
@@ -11,23 +12,26 @@
 
 .pulso-f6-modo.pulso-gliding-tab-list {
   --pulso-gliding-indicator-bg: var(--pulso-surface);
-  --pulso-gliding-indicator-border: var(--pulso-border);
-  --pulso-gliding-indicator-shadow: 0 1px 3px color-mix(in srgb, var(--pulso-text) 14%, transparent);
+  --pulso-gliding-indicator-border: var(--pulso-text-faint);
+  --pulso-gliding-indicator-shadow: none;
+  box-sizing: border-box;
   display: inline-grid;
   grid-auto-columns: minmax(0, 1fr);
   grid-auto-flow: column;
   gap: 2px;
-  padding: 3px;
-  border-radius: var(--pulso-radius-card);
-  background: color-mix(in srgb, var(--pulso-text) 6%, var(--pulso-surface));
+  height: var(--pulso-control-height-sm);
+  padding: 2px;
+  border-radius: var(--pulso-control-radius);
+  background: var(--pulso-surface-3);
   box-shadow: inset 0 0 0 1px var(--pulso-border);
 }
 
 .pulso-f6-modo.pulso-gliding-tab-list > button {
-  min-height: var(--pulso-control-height-sm);
+  height: 100%;
+  min-height: 0;
   padding: 0 var(--pulso-space-3);
   border: 0;
-  border-radius: var(--pulso-radius);
+  border-radius: calc(var(--pulso-control-radius) - 2px);
   background: transparent;
   color: var(--pulso-text-soft);
   font: inherit;
@@ -42,7 +46,7 @@
 }
 
 .pulso-f6-modo.pulso-gliding-tab-list > button[aria-checked="true"] {
-  color: var(--module-accent);
+  color: var(--pulso-text);
 }
 
 .pulso-f6-modo.pulso-gliding-tab-list > button:disabled {
@@ -51,8 +55,9 @@
 }
 
 .pulso-f6-modo.pulso-gliding-tab-list > button:focus-visible {
-  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
-  outline-offset: -2px;
+  outline: var(--mov-foco);
+  outline-offset: 0;
+  box-shadow: none;
 }
 
 @media (prefers-reduced-motion: no-preference) {
