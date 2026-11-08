@@ -179,6 +179,12 @@ Códigos nuevos: `E_SIG_SIN_CONGLOMERADO` (422: se pidió Rao-Scott y la columna
 
 ## Notas
 
+- Excepción vigente (2026-11-08): con grupos excluidos en barras apiladas, agrupadas y multiapiladas, la prueba
+  compara sólo los grupos mostrados y la corrección por comparaciones baja; la lámina puede marcar una diferencia que la
+  tabla de cruces no marca. La nota de la lámina lo dice («Diferencias entre los grupos mostrados.»). Ver ADR 0135,
+  sección «Excluir grupos del cruce». La paridad estricta exige que el motor de significancia reciba el número de
+  comparaciones del cruce completo.
+
 - Las medias de dimensiones se corrigen dentro de la fila: no entran a la familia de BH del informe.
 - Las barras agrupadas dibujan la cápsula ▲A (pastilla y contorno punteado en la frágil); las apiladas y la columna del
   *top two box* llevan la marca como texto tras la cifra.
