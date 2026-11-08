@@ -1,11 +1,15 @@
 // Fila «Orden» de la tarjeta de un gráfico categórico, agrupado, de torta o de dona (D8; contrato
-// docs/qa/contrato-orden-categorias-f6-2026-10-10.md). Recetario por defecto —y dice qué modo aplica—, de mayor a menor,
-// Instrumento o Personalizado (lista arrastrable con ratón y con teclado; la clave es el código, se ve la etiqueta) e
-// «Invertir». Persiste en `args.orden_categorias` del gráfico. Encima de la lista, los avisos que el backend da de la
-// pregunta (decisión 4, §7): se ramifica por `codigo`, nunca por el texto.
+// docs/qa/contrato-orden-categorias-f6-2026-10-10.md). Persiste en `args.orden_categorias` del gráfico. Encima de la
+// lista, los avisos que el backend da de la pregunta (decisión 4, §7): se ramifica por `codigo`, nunca por el texto.
+//
+// Ítem 3 de la oleada del inspector (2026-11-08): el modo es un segmentado Recetario / Frecuencia / Instrumento y la
+// lista está siempre a la vista, en el orden en que se dibuja (ordenVisible.ts). Al pasar el cursor (o el foco) por un
+// segmento, la lista muestra ese orden sin guardarlo, y las filas se deslizan a su lugar (useReordenAnimado). Arrastrar
+// o mover cualquier fila pasa a «A mano» partiendo del orden visible; ese cuarto segmento sólo aparece mientras rige.
+// «Invertir» sigue siendo un interruptor.
 
-import { useId, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
-import { AlertTriangle, ArrowDown, ArrowUp, GripVertical, Info, Loader2, RefreshCw } from "../../../vendor/lucide-react";
+import { useId, useRef, useState, type DragEvent, type FocusEvent, type KeyboardEvent, type MouseEvent } from "react";
+import { AlertTriangle, ArrowDown, ArrowUp, GripVertical, Info, RefreshCw } from "../../../vendor/lucide-react";
 import { Switch } from "../../../components/Switch";
 import { AyudaGlobo } from "./AyudaGlobo";
 import type { GraficosCategorias } from "../../../api/graficos";
@@ -16,8 +20,6 @@ import {
   leerAvisosOrden,
   leerOrden,
   listaDesdeMostrado,
-  listaPersonalizada,
-  ordenMostrado,
   mover,
   NO_SE_DIBUJA,
   ordenAGuardar,
@@ -29,9 +31,12 @@ import {
   type NotaOrden,
   type OrdenCategorias,
 } from "./ordenCategorias";
+import { MODOS_FIJOS, ordenVisible, type ModoFijo } from "./ordenVisible";
+import { useReordenAnimado } from "./useReordenAnimado";
 import { useCategoriasGrafico } from "./useCategoriasGrafico";
 import { rotuloVisible } from "./rotuloCortoDeLista";
 import { useRotulosCortos } from "./useRotulosCortos";
+import { Segmentado } from "../subpestanas/Segmentado";
 import "./ordenCategorias.css";
 import { CargaDeBloque } from "../../../components/CargaDeBloque";
 import { formatoConteo } from "../../../lib/formatoNumero";
@@ -46,6 +51,18 @@ type Props = {
   onCambio: (orden: OrdenCategorias | null) => void;
 };
 
+const ROTULO_MODO: Readonly<Record<ModoOrden, string>> = {
+  recetario: "Recetario", frecuencia: "Frecuencia", instrumento: "Instrumento", personalizado: "A mano",
+};
+
+/** Qué orden dibuja cada modo, con palabras: el estado bajo el segmentado (y lo que dice la vista previa). */
+function ordenDicho(modo: ModoOrden, datos: GraficosCategorias | null, heredado: string | boolean | null, invertir: boolean): string {
+  if (modo === "recetario") return rotuloRecetario(datos, heredado);
+  if (modo === "frecuencia") return rotuloFrecuencia(invertir);
+  if (modo === "instrumento") return invertir ? "Como el instrumento, invertido" : "Como el instrumento";
+  return invertir ? "A mano, invertido" : "A mano";
+}
+
 export function OrdenCategoriasGrafico({ variable, graficador, args, scope, onCambio }: Props) {
   const id = useId();
   const estado = useCategoriasGrafico(variable, scope, graficador);
@@ -57,36 +74,36 @@ export function OrdenCategoriasGrafico({ variable, graficador, args, scope, onCa
   const datos = estado.fase === "lista" ? estado.datos : null;
   const { notas, escala } = leerAvisosOrden(datos);
   const escalaId = `${id}-escala`;
+  // El modo bajo el cursor o el foco: la lista lo muestra, nunca se guarda.
+  const [vista, setVista] = useState<ModoFijo | null>(null);
+  const vistaActiva = vista !== null && vista !== orden.modo ? vista : null;
 
   const guardar = (o: OrdenCategorias) => onCambio(ordenAGuardar(o));
-  const cambiarModo = (modo: ModoOrden) => {
-    if (modo === "personalizado" && datos) guardar({ ...orden, modo, lista: listaPersonalizada(orden.lista, datos) });
-    else guardar({ ...orden, modo });
+  const modos: ModoOrden[] = orden.modo === "personalizado" ? [...MODOS_FIJOS, "personalizado"] : [...MODOS_FIJOS];
+  const modoBajo = (e: MouseEvent<HTMLElement> | FocusEvent<HTMLElement>): ModoFijo | null => {
+    const radio = (e.target as HTMLElement).closest?.("[role=radio]");
+    const i = radio ? [...(radio.parentElement?.children ?? [])].indexOf(radio) : -1;
+    const m = modos[i];
+    return m && m !== "personalizado" ? m : null;
   };
+  const lista = datos && !escala ? ordenVisible(orden, datos, args, vistaActiva) : null;
+  const dicho = ordenDicho(vistaActiva ?? orden.modo, datos, vistaActiva ? null : nombreHeredado ?? heredado, orden.invertir);
 
   return (
     <div className="pulso-f6-dato is-apilado pulso-f6-orden" data-qa-geometry-group="graficos/f6-orden" data-qa-geometry-contract="intrinsic">
       <div className="pulso-f6-orden-cabeza">
-        <label className="pulso-f6-dato-rotulo" htmlFor={`${id}-modo`}>
+        <span className="pulso-f6-dato-rotulo" id={`${id}-modo`}>
           Orden
           {/* ADR 0135 §8: cómo se mueve una categoría va en el «?» del rótulo; la lista lo nombra en aria-describedby. */}
-          {orden.modo === "personalizado" && datos && !escala && (
-            <AyudaGlobo id={`${id}-mover`} rotulo="Orden" detalle={AYUDA_MOVER} />
-          )}
-        </label>
-        <select
-          id={`${id}-modo`}
-          className="pulso-f6-input pulso-f6-dato-select"
-          value={orden.modo}
-          disabled={escala !== null}
-          aria-describedby={escala ? escalaId : undefined}
-          onChange={(e) => cambiarModo(e.target.value as ModoOrden)}
-        >
-          <option value="recetario">{rotuloRecetario(datos, nombreHeredado ?? heredado)}</option>
-          <option value="frecuencia">{rotuloFrecuencia(orden.invertir)}</option>
-          <option value="instrumento">Instrumento</option>
-          <option value="personalizado" disabled={!datos}>Personalizado</option>
-        </select>
+          {datos && !escala && <AyudaGlobo id={`${id}-mover`} rotulo="Orden" detalle={AYUDA_MOVER} />}
+        </span>
+        {/* Deshabilitado como grupo (fieldset): el segmentado compartido no tiene estado deshabilitado propio. */}
+        <fieldset className="pulso-f6-orden-modos" disabled={escala !== null} aria-describedby={escala ? escalaId : undefined}
+          onMouseOver={(e) => setVista(modoBajo(e))} onMouseLeave={() => setVista(null)}
+          onFocus={(e) => setVista(modoBajo(e))} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setVista(null); }}>
+          <Segmentado etiqueta="Orden" valor={orden.modo} opciones={modos.map((m) => ({ clave: m, rotulo: ROTULO_MODO[m] }))}
+            onCambiar={(m) => { setVista(null); guardar({ ...orden, modo: m }); }} />
+        </fieldset>
       </div>
       {/* El Switch compartido no acepta aria-describedby: la nota se enlaza al grupo que lo contiene. */}
       <div
@@ -104,7 +121,12 @@ export function OrdenCategoriasGrafico({ variable, graficador, args, scope, onCa
         />
       </div>
       {escala && <NotaAviso nota={escala} id={escalaId} />}
-      {orden.modo === "recetario" && heredado && (
+      {!escala && (
+        <span className={`pulso-f6-dato-ayuda pulso-f6-orden-dicho${vistaActiva ? " is-vista" : ""}`} data-qa="orden-dicho">
+          {vistaActiva ? `Vista previa: ${dicho}` : dicho}
+        </span>
+      )}
+      {orden.modo === "recetario" && heredado && !vistaActiva && (
         <span className="pulso-f6-dato-ayuda" data-qa="orden-heredado" role="note">
           {nombreHeredado ? `Este gráfico trae el orden «${nombreHeredado}», elegido antes` : "Este gráfico trae un orden elegido antes"}; manda
           mientras no elijas otro.
@@ -116,13 +138,15 @@ export function OrdenCategoriasGrafico({ variable, graficador, args, scope, onCa
           {notas.map((n, i) => <li key={`${n.codigo}-${i}`}><NotaAviso nota={n} /></li>)}
         </ul>
       )}
-      {orden.modo === "personalizado" && datos && !escala && (
+      {datos && lista && (
         <ListaOrden
           datos={datos}
-          lista={ordenMostrado(orden.lista, datos, orden.invertir)}
-          invertido={orden.invertir}
+          lista={lista}
+          invertido={orden.invertir && orden.modo === "personalizado" && !vistaActiva}
+          vista={!!vistaActiva}
           ayudaId={`${id}-mover`}
-          onLista={(mostrado) => guardar({ ...orden, lista: listaDesdeMostrado(mostrado, orden.invertir) })}
+          // Mover cualquier fila pasa a «A mano» desde el orden que se ve: se guarda tal como queda dibujado.
+          onLista={(mostrado) => guardar({ ...orden, modo: "personalizado", lista: listaDesdeMostrado(mostrado, orden.invertir) })}
         />
       )}
     </div>
@@ -162,8 +186,8 @@ function EstadoDatos({ estado }: { estado: ReturnType<typeof useCategoriasGrafic
 
 export const AYUDA_MOVER = "Arrastra o usa Alt + ↑/↓ sobre una categoría para moverla.";
 
-function ListaOrden({ datos, lista, invertido, ayudaId, onLista }: {
-  datos: GraficosCategorias; lista: string[]; invertido: boolean; ayudaId: string; onLista: (l: string[]) => void;
+function ListaOrden({ datos, lista, invertido, vista, ayudaId, onLista }: {
+  datos: GraficosCategorias; lista: string[]; invertido: boolean; vista: boolean; ayudaId: string; onLista: (l: string[]) => void;
 }) {
   // U14: con el rótulo corto del estudio la lista dice lo que dirá la lámina; el completo queda en el title.
   const cortos = useRotulosCortos();
@@ -173,6 +197,7 @@ function ListaOrden({ datos, lista, invertido, ayudaId, onLista }: {
   const items = useRef(new Map<string, HTMLLIElement>());
   const [arrastrado, setArrastrado] = useState<number | null>(null);
   const [anuncio, setAnuncio] = useState("");
+  useReordenAnimado(items, lista);
 
   // `enfocar`: «item» devuelve el foco a la categoría (Alt+↑/↓); «subir»/«bajar» lo deja en ese botón de la fila movida
   // (o en el opuesto si quedó disabled en el borde, `botonTrasMover`): un disabled tiraba el foco a BODY.
@@ -205,7 +230,7 @@ function ListaOrden({ datos, lista, invertido, ayudaId, onLista }: {
   return (
     <>
       {invertido && <span className="pulso-f6-dato-ayuda" role="note">Se muestra invertida, tal como se dibuja.</span>}
-      <ol className="pulso-f6-orden-lista" aria-label="Orden personalizado de las categorías" aria-describedby={ayudaId}
+      <ol className={`pulso-f6-orden-lista${vista ? " is-vista" : ""}`} aria-label="Orden de las categorías" aria-describedby={ayudaId}
         data-qa-geometry-group="graficos/f6-orden-lista" data-qa-geometry-contract="intrinsic">
         {lista.map((codigo, i) => {
           const texto = etiqueta.get(codigo) ?? codigo;

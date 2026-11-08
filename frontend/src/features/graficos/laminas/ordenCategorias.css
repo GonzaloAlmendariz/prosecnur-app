@@ -10,6 +10,33 @@
   min-width: 0;
 }
 
+/* Ítem 3 (2026-11-08): el modo es un segmentado bajo el rótulo, a todo el ancho; sus opciones se reparten. El fieldset
+   sólo agrupa para deshabilitar (escalas): sin marco ni aire propios. */
+.pulso-f6-orden-cabeza {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--pulso-space-1);
+}
+
+.pulso-f6-orden-modos {
+  min-width: 0;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.pulso-f6-orden-modos .pulso-f6-seg { display: flex; min-width: 0; }
+.pulso-f6-orden-modos .pulso-f6-seg-op { flex: 1 1 auto; min-width: 0; }
+.pulso-f6-orden-modos:disabled .pulso-f6-seg { opacity: 0.55; }
+.pulso-f6-orden-modos:disabled .pulso-f6-seg-op { cursor: not-allowed; }
+
+/* Qué orden se dibuja, con palabras; en vista previa, en el tono del módulo. */
+.pulso-f6-orden-dicho.is-vista { color: var(--module-accent); }
+
+/* La lista en vista previa: el orden de otro modo, que no está guardado; el filete punteado lo dice. */
+.pulso-f6-orden-lista.is-vista .pulso-f6-orden-item { border-style: dashed; }
+
 .pulso-f6-orden-estado {
   display: inline-flex;
   align-items: center;

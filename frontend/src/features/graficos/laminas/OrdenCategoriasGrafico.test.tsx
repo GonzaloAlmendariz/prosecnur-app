@@ -82,7 +82,8 @@ describe("OrdenCategoriasGrafico · avisos de la pregunta (decisión 4, §7)", (
   const PREG = "Departamento académico al que pertenece:";
   const con = (avisos: GraficosCategorias["avisos"]) => { datos = { ...base, pregunta: PREG, avisos }; };
   const nota = (html: string, codigo: string) => html.match(new RegExp(`<span(?: id="([^"]+)")? class="([^"]+)" data-aviso="${codigo}">.*?<span>([^<]*)</span>`));
-  const select = (html: string) => html.match(/<select[^>]*>/)?.[0] ?? "";
+  // Ítem 3: el modo es un segmentado dentro de un fieldset, que es el que se deshabilita.
+  const select = (html: string) => html.match(/<fieldset[^>]*>/)?.[0] ?? "";
   const grupoInvertir = (html: string) => html.match(/<div class="pulso-f6-orden-invertir"[^>]*>/)?.[0] ?? "";
   const interruptor = (html: string) => html.match(/<button[^>]*role="switch"[^>]*>/)?.[0] ?? "";
 
@@ -146,9 +147,28 @@ describe("OrdenCategoriasGrafico · orden elegido antes (U4)", () => {
       <OrdenCategoriasGrafico variable="docentes$p7" graficador="p_barras_agrupadas" args={{ var: "p7", overrides: { orden_barras: "mayor_menor" } }}
         scope="active" onCambio={() => undefined} />,
     );
-    expect(html).toContain(">De mayor a menor, elegido antes</option>");
+    expect(html).toContain('data-qa="orden-dicho">De mayor a menor, elegido antes</span>');
     expect(html).toContain("Este gráfico trae el orden «De mayor a menor», elegido antes; manda mientras no elijas otro.");
     expect(html).not.toContain("Por defecto, orden elegido antes");
-    expect(html).toContain('<option value="frecuencia">De mayor a menor (frecuencia)</option>');
+    // La lista se ve en ese orden heredado (de mayor a menor), no en el del recetario.
+    expect(filas(html)).toEqual(["1. Alfa", "2. Beta", `3. Gama. ${NO_SE_DIBUJA}`, "4. Otro"]);
+  });
+});
+
+describe("OrdenCategoriasGrafico · segmentado y lista siempre visible (ítem 3)", () => {
+  const radios = (html: string) => [...html.matchAll(/role="radio" aria-checked="(true|false)"[^>]*>([^<]+)</g)].map((m) => `${m[2]}:${m[1]}`);
+
+  it("tres modos en segmentado, sin desplegable; «A mano» sólo aparece mientras rige", () => {
+    const html = pintar({ modo: "recetario" });
+    expect(html).not.toContain("<select");
+    expect(radios(html)).toEqual(["Recetario:true", "Frecuencia:false", "Instrumento:false"]);
+    expect(radios(pintar({ modo: "personalizado", lista: ["1"] }))).toEqual(["Recetario:false", "Frecuencia:false", "Instrumento:false", "A mano:true"]);
+  });
+
+  it("la lista se ve en cualquier modo, en el orden en que se dibuja", () => {
+    datos = { ...base, orden: { recetario: ["2", "1", "3", "0"], instrumento: ["1", "2", "3", "0"], frecuencia: ["1", "2", "3", "0"] } };
+    expect(filas(pintar({ modo: "instrumento", invertir: true })).map((f) => f.replace(/\. no se dibuja.*$/, ""))).toEqual(["1. Gama", "2. Beta", "3. Alfa", "4. Otro"]);
+    expect(pintar({ modo: "frecuencia" })).toContain('data-qa="orden-dicho">De mayor a menor (frecuencia)</span>');
+    expect(pintar({ modo: "recetario" })).toContain('aria-label="Orden de las categorías"');
   });
 });
