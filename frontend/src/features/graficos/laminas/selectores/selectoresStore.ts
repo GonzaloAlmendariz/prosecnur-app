@@ -78,7 +78,9 @@ export const useSelectoresUi = create<SelectoresUi>((set) => ({
     modoLamina, contar: null, porTipo: null, intencion: null, busqueda: "", candidato: null, variante: null, confirmando: false,
     comparar: [], viendoComparacion: false,
   }),
-  cambiarModoLamina: (modoLamina) => set({ modoLamina, candidato: null, variante: null, confirmando: false, comparar: [], viendoComparacion: false }),
+  // R5-11: pasar de «Insertar» a «Cambiar» (o al revés) no vacía «Comparar»: las tarjetas marcadas siguen siendo las
+  // que se están comparando; sólo cambia lo que hace «Usar esta».
+  cambiarModoLamina: (modoLamina) => set({ modoLamina, candidato: null, variante: null, confirmando: false }),
   // S6: marcar la segunda tarjeta no salta a la vista partida; la galería sigue y la barra ofrece «Ver lado a lado».
   // Quitar una la cierra.
   alternarComparar: (opcion) => set((s) => {

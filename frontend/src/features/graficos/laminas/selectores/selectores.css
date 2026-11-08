@@ -691,9 +691,26 @@
 /* S4: bajo 1180 px la cabecera no alcanza para títulos de dos líneas: el antetítulo va en una línea con elipsis
    («Insertar después de la lámina 22» no se parte) y la descripción, que repite lo que dicen las columnas, se oculta. */
 @media (max-width: 1180px) {
-  .pulso-f6-selector-antetitulo {
+  .pulso-f6-selector-antetitulo,
+  .pulso-f6-selector-antetitulo-cede {
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* R5-11: el número de la lámina no se recorta; cede la frase que lo precede. */
+  .pulso-f6-selector-antetitulo.is-partido {
+    display: flex;
+    gap: 0.35em;
+    min-width: 0;
+  }
+
+  .pulso-f6-selector-antetitulo-cede {
+    min-width: 0;
+  }
+
+  .pulso-f6-selector-antetitulo-fijo {
+    flex: none;
     white-space: nowrap;
   }
 

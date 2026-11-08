@@ -14,7 +14,11 @@ type Props = {
   /** `data-pulso-panel` del panel direccionable. */
   panelProps: { "data-pulso-panel": string };
   auditReady: string;
-  antetitulo: string;
+  /**
+   * Sobre el título. Con `fijo` (R5-11), esa parte no se recorta: a 1024 la línea va con elipsis y el número de la
+   * lámina («lámina 22») se perdía; ahora cede el resto («Insertar después de la…»).
+   */
+  antetitulo: string | { texto: string; fijo: string };
   titulo: string;
   descripcion: string;
   /** Lo que recibe el foco al abrir (la opción elegida de la primera columna). */
@@ -64,7 +68,14 @@ export function DialogoSelector({
           >
             <header className="pulso-f6-selector-cabecera">
               <div className="pulso-f6-selector-titulos">
-                <span className="pulso-f6-selector-antetitulo">{antetitulo}</span>
+                {typeof antetitulo === "string"
+                  ? <span className="pulso-f6-selector-antetitulo">{antetitulo}</span>
+                  : (
+                    <span className="pulso-f6-selector-antetitulo is-partido">
+                      <span className="pulso-f6-selector-antetitulo-cede">{antetitulo.texto}</span>{" "}
+                      <span className="pulso-f6-selector-antetitulo-fijo">{antetitulo.fijo}</span>
+                    </span>
+                  )}
                 <Dialog.Title className="pulso-f6-selector-titulo">{titulo}</Dialog.Title>
                 <Dialog.Description className="pulso-f6-selector-descripcion">{descripcion}</Dialog.Description>
               </div>

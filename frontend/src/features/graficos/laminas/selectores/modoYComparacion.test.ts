@@ -44,6 +44,18 @@ describe("store del selector", () => {
     expect(useSelectoresUi.getState()).toMatchObject({ modoLamina: "insertar", candidato: null, confirmando: false });
   });
 
+  it("R5-11: pasar a «Cambiar» no vacía «Comparar» ni cierra la vista partida", () => {
+    const s = useSelectoresUi.getState();
+    s.cambiarModoLamina("insertar");
+    s.alternarComparar("p_slide_1_grafico");
+    s.alternarComparar("p_slide_2_graficos");
+    s.verComparacion(true);
+    s.cambiarModoLamina("cambiar");
+    expect(useSelectoresUi.getState()).toMatchObject({
+      modoLamina: "cambiar", comparar: ["p_slide_1_grafico", "p_slide_2_graficos"], viendoComparacion: true,
+    });
+  });
+
   it("S6: la segunda tarjeta no salta a la vista partida; «Ver lado a lado» la abre, la tercera no entra y quitar una la cierra", () => {
     const s = useSelectoresUi.getState();
     s.alternarComparar("p_slide_1_grafico");

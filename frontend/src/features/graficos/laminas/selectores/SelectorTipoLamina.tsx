@@ -300,7 +300,9 @@ export function SelectorTipoLamina({ slide, posicion, cerrar, onArmarResumen }: 
       onCerrar={() => cerrarYOlvidar()}
       panelProps={panel.props}
       auditReady="f6-selector-lamina"
-      antetitulo={modo === "insertar" ? (posicion ? `Insertar después de la lámina ${posicion}` : "Primera lámina del informe") : `Lámina ${posicion}`}
+      antetitulo={modo === "insertar"
+        ? (posicion ? { texto: "Insertar después de la", fijo: `lámina ${posicion}` } : "Primera lámina del informe")
+        : `Lámina ${posicion}`}
       titulo="¿Qué quieres contar?"
       descripcion={modo === "insertar"
         ? "Elige por la pregunta del estudio o por el tipo de gráfico."
