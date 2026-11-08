@@ -28,3 +28,5 @@
 /* Junto al resumen de las fichas («Una excluida» y la base): si no caben en una línea, bajan. */
 .pulso-f6-cats-cabeza:has(.pulso-f6-cifra) { flex-wrap: wrap; }
 .pulso-f6-cats-resumen .pulso-f6-cifra { margin-inline-start: var(--pulso-space-2); }
+/* Orden: la fila con su % gana una columna antes de Subir y Bajar. */
+.pulso-f6-orden-item:has(> .pulso-f6-cifra-pct) { grid-template-columns: auto auto minmax(0, 1fr) auto auto auto; }

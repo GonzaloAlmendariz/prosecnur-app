@@ -6,6 +6,8 @@
 //   azul con su rótulo en negrita y las demás en tenue, como el realce del recetario. Sin ninguna, un solo color.
 // - Ítem 10 de la oleada del inspector (2026-11-08): en esas dos, «La más alta» es la primera ficha; reemplaza al
 //   interruptor «Resaltar la barra más alta» y es excluyente con las respuestas (realce.ts).
+// - Oleada I2, ítem 3: cada ficha lleva su % en la lámina y «La más alta» nombra la barra («La más alta (Sí, 62%)»),
+//   leídos del detalle del motor (cifrasInspector/). Sin detalle, las fichas quedan sin cifra.
 
 import { useId } from "react";
 import type { GraficadorRef } from "../../../api/graficos";
@@ -14,6 +16,9 @@ import { parseVarRef, useVariables } from "../useVariables";
 import { rotuloVisible } from "./rotuloCortoDeLista";
 import { useRotulosCortos } from "./useRotulosCortos";
 import { conMayorAlternada, conRespuestasDestacadas, GRAFICOS_CON_RESALTE, mayorActiva } from "./realce";
+import { useDetalleCifras } from "./cifrasInspector/useDetalleCifras";
+import { mayorDe, pctDe, textoPct } from "./cifrasInspector/modeloCifras";
+import "./cifrasInspector/cifrasInspector.css";
 
 /** Dónde guarda cada gráfico lo que se destaca. */
 const DONDE: Readonly<Record<string, "arg" | "override">> = {
@@ -33,8 +38,12 @@ export function destacadasDe(graficador: string, args: Readonly<Record<string, u
   return lista(ov.resaltar_opciones);
 }
 
-export function DestacarRespuestas({ slideId, slot, valor }: { slideId: string; slot: string; valor: GraficadorRef }) {
+export function DestacarRespuestas({ slideId, slot, valor, scope = "active" }: {
+  slideId: string; slot: string; valor: GraficadorRef; scope?: "active" | "consolidated";
+}) {
   const id = useId();
+  const argsDet = (valor.args ?? {}) as Record<string, unknown>;
+  const det = useDetalleCifras(DONDE[valor.graficador] ? valor.graficador : "", scope, [{ clave: "actual", args: argsDet }]).actual;
   const { variables } = useVariables();
   const updateSlotArgs = usePlanStore((s) => s.updateSlotArgs);
   const cortos = useRotulosCortos();
@@ -49,6 +58,9 @@ export function DestacarRespuestas({ slideId, slot, valor }: { slideId: string; 
   const guardadas = destacadasDe(valor.graficador, args);
   const elegidas = new Set(guardadas);
   const mayor = conMayor && mayorActiva(args, guardadas);
+  const detalle = det?.detalle ?? null;
+  const cifraMayor = mayorDe(detalle);
+  const anterior = det && !det.vigente ? " is-anterior" : "";
   const alternar = (r: string) => {
     const siguiente = respuestas.filter((x) => (x === r ? !elegidas.has(x) : elegidas.has(x)));
     if (donde === "arg") {
@@ -65,14 +77,21 @@ export function DestacarRespuestas({ slideId, slot, valor }: { slideId: string; 
           <button type="button" className="pulso-f6-destacar-opcion is-mayor" aria-pressed={mayor} data-qa="resaltar-mayor"
             onClick={() => updateSlotArgs(slideId, slot, { overrides: conMayorAlternada(args, guardadas) })}>
             La más alta
+            {cifraMayor && detalle && (
+              <span className={`pulso-f6-cifra-pct${anterior}`} data-qa="cifra-mayor"> ({cifraMayor.clave}, {textoPct(cifraMayor.valor, detalle.redondeo.decimales)})</span>
+            )}
           </button>
         )}
         {respuestas.map((r) => {
           // U14: se ve el corto del estudio; lo que se guarda sigue siendo el rótulo completo.
           const v = rotuloVisible(cortos, r);
+          const pct = pctDe(detalle, [r, v.texto]);
           return (
             <button key={r} type="button" className="pulso-f6-destacar-opcion" aria-pressed={elegidas.has(r)} title={v.completo ?? undefined}
-              onClick={() => alternar(r)}>{v.texto}</button>
+              onClick={() => alternar(r)}>
+              {v.texto}
+              {pct && <span className={`pulso-f6-cifra-pct${anterior}`} data-qa="cifra-ficha"> {pct}</span>}
+            </button>
           );
         })}
       </div>

@@ -336,7 +336,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
           <OrdenCategoriasGrafico variable={varCalificada(variable, baseActiva, scope)} graficador={valor.graficador} args={args} scope={scope} onCambio={(o) => set({ orden_categorias: o })} />
         )}
         {delGrupo("aspecto")}
-        <DestacarRespuestas slideId={slideId} slot={slot} valor={valor} />
+        <DestacarRespuestas slideId={slideId} slot={slot} valor={valor} scope={scope} />
         {/* U12: letra de categorías y cifras y eje libre, que la lámina nativa lee de `overrides`. */}
         <LetraYEjeAgrupadas key={`${slideId}:${slot}`} graficador={valor.graficador} args={args} onCambio={(ov) => set({ overrides: ov })} />
         <CasosGrafico slideId={slideId} slot={slot} valor={valor} />

@@ -7,6 +7,9 @@
 // segmento, la lista muestra ese orden sin guardarlo, y las filas se deslizan a su lugar (useReordenAnimado). Arrastrar
 // o mover cualquier fila pasa a «A mano» partiendo del orden visible; ese cuarto segmento sólo aparece mientras rige.
 // «Invertir» sigue siendo un interruptor.
+//
+// Oleada I2, ítem 3: cada fila lleva su % en la lámina, leído del detalle del motor (cifrasInspector/); sin detalle, sin
+// cifra. El % no cambia al reordenar: es de la categoría, no de su lugar.
 
 import { useId, useRef, useState, type DragEvent, type FocusEvent, type KeyboardEvent, type MouseEvent } from "react";
 import { AlertTriangle, ArrowDown, ArrowUp, GripVertical, Info, RefreshCw } from "../../../vendor/lucide-react";
@@ -38,6 +41,9 @@ import { rotuloVisible } from "./rotuloCortoDeLista";
 import { useRotulosCortos } from "./useRotulosCortos";
 import { Segmentado } from "../subpestanas/Segmentado";
 import "./ordenCategorias.css";
+import { useDetalleCifras, type EstadoDetalle } from "./cifrasInspector/useDetalleCifras";
+import { pctDe } from "./cifrasInspector/modeloCifras";
+import "./cifrasInspector/cifrasInspector.css";
 import { CargaDeBloque } from "../../../components/CargaDeBloque";
 import { formatoConteo } from "../../../lib/formatoNumero";
 
@@ -66,6 +72,7 @@ function ordenDicho(modo: ModoOrden, datos: GraficosCategorias | null, heredado:
 export function OrdenCategoriasGrafico({ variable, graficador, args, scope, onCambio }: Props) {
   const id = useId();
   const estado = useCategoriasGrafico(variable, scope, graficador);
+  const cifras = useDetalleCifras(graficador, scope, [{ clave: "actual", args }]).actual;
   const orden = leerOrden(args);
   const heredado = tieneOrdenHeredado(args);
   // U4: el orden elegido antes, con palabras («De mayor a menor»); elegir otro modo lo reemplaza y el valor anterior
@@ -145,6 +152,7 @@ export function OrdenCategoriasGrafico({ variable, graficador, args, scope, onCa
           invertido={orden.invertir && orden.modo === "personalizado" && !vistaActiva}
           vista={!!vistaActiva}
           ayudaId={`${id}-mover`}
+          cifras={cifras}
           // Mover cualquier fila pasa a «A mano» desde el orden que se ve: se guarda tal como queda dibujado.
           onLista={(mostrado) => guardar({ ...orden, modo: "personalizado", lista: listaDesdeMostrado(mostrado, orden.invertir) })}
         />
@@ -186,8 +194,9 @@ function EstadoDatos({ estado }: { estado: ReturnType<typeof useCategoriasGrafic
 
 export const AYUDA_MOVER = "Arrastra o usa Alt + ↑/↓ sobre una categoría para moverla.";
 
-function ListaOrden({ datos, lista, invertido, vista, ayudaId, onLista }: {
-  datos: GraficosCategorias; lista: string[]; invertido: boolean; vista: boolean; ayudaId: string; onLista: (l: string[]) => void;
+function ListaOrden({ datos, lista, invertido, vista, ayudaId, cifras, onLista }: {
+  datos: GraficosCategorias; lista: string[]; invertido: boolean; vista: boolean; ayudaId: string; cifras?: EstadoDetalle;
+  onLista: (l: string[]) => void;
 }) {
   // U14: con el rótulo corto del estudio la lista dice lo que dirá la lámina; el completo queda en el title.
   const cortos = useRotulosCortos();
@@ -236,6 +245,7 @@ function ListaOrden({ datos, lista, invertido, vista, ayudaId, onLista }: {
           const texto = etiqueta.get(codigo) ?? codigo;
           const larga = completa.get(codigo);
           const vacia = sinRespuestas.has(codigo);
+          const pct = pctDe(cifras?.detalle ?? null, [larga, texto, codigo]);
           return (
             <li
               key={codigo}
@@ -256,6 +266,7 @@ function ListaOrden({ datos, lista, invertido, vista, ayudaId, onLista }: {
                 {texto}
                 {vacia && <span className="pulso-f6-orden-sin-respuestas" aria-hidden="true">{NO_SE_DIBUJA}</span>}
               </span>
+              {pct && <span className={`pulso-f6-cifra-pct${cifras?.vigente ? "" : " is-anterior"}`} data-qa="cifra-orden">{pct}</span>}
               <button type="button" className="pulso-f6-icono-boton" {...{ [ATRIBUTO_ACCION_ORDEN]: "subir" }} aria-label={`Subir “${texto}”`} disabled={i === 0} onClick={() => moverA(i, i - 1, "subir")}>
                 <ArrowUp size={14} aria-hidden="true" />
               </button>
