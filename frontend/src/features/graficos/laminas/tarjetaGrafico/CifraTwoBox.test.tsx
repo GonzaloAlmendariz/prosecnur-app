@@ -43,28 +43,37 @@ beforeEach(() => {
 afterEach(() => { act(() => root.unmount()); vi.useRealTimers(); });
 
 describe("la cifra del Two Box", () => {
-  it("las dos cajas en un solo lote, y al marcar otra categoría la cifra cambia (el anterior atenuado mientras llega)", async () => {
-    pintar({ top: ["Muy de acuerdo", "De acuerdo"], bottom: ["Muy en desacuerdo"] });
+  it("las dos cajas en un solo lote, y al cambiar una categoría la cifra cambia (el anterior atenuado mientras llega)", async () => {
+    pintar({ top: ["Muy de acuerdo", "De acuerdo"], bottom: ["En desacuerdo", "Muy en desacuerdo"] });
     expect(cifra()?.getAttribute("aria-busy")).toBe("true");
     await esperar();
     expect(lote).toHaveBeenCalledTimes(1);
-    expect(cifra()?.textContent).toBe("Top Two Box 62%, Bottom Two Box 18%");
-    pintar({ top: ["Muy de acuerdo"], bottom: ["Muy en desacuerdo"] });
+    expect(cifra()?.textContent).toBe("Top Two Box 62%, Bottom Two Box 38%");
+    pintar({ top: ["Muy de acuerdo", "En desacuerdo"], bottom: ["En desacuerdo", "Muy en desacuerdo"] });
     expect(cifra()?.className).toContain("is-anterior");
-    expect(cifra()?.textContent).toBe("Top Two Box 62%, Bottom Two Box 18%");
+    expect(cifra()?.textContent).toBe("Top Two Box 62%, Bottom Two Box 38%");
     await esperar();
-    expect(cifra()?.textContent).toBe("Top Two Box 34%, Bottom Two Box 18%");
+    expect(cifra()?.textContent).toBe("Top Two Box 54%, Bottom Two Box 38%");
     // La de Bottom ya estaba en caché: sólo se pidió la nueva de Top.
     expect((lote.mock.calls[1][0] as PedidoCifrasDetalleLote).laminas).toHaveLength(1);
+  });
+  it("R7-13: con una sola categoría marcada no hay cifra de la caja (queda «Elige una categoría más.»)", async () => {
+    pintar({ top: ["Muy de acuerdo"] });
+    await esperar();
+    expect(cifra()).toBeNull();
+    expect(lote).not.toHaveBeenCalled();
+    pintar({ top: ["Muy de acuerdo"], bottom: ["En desacuerdo", "Muy en desacuerdo"] });
+    await esperar();
+    expect(cifra()?.textContent).toBe("Bottom Two Box 38%");
   });
   it("sin cajas o sin detalle no pinta nada", async () => {
     pintar({});
     expect(cifra()).toBeNull();
     lote.mockImplementation(async (p: PedidoCifrasDetalleLote) => Object.fromEntries(p.laminas.map((l) => [l.id, { cifras: { tipo: "", cifras: [], avisos: [] }, error: null, detalle: null }])));
-    pintar({ top: ["Muy de acuerdo"] });
+    pintar({ top: ["Muy de acuerdo", "De acuerdo"] });
     await esperar();
     expect(cifra()).toBeNull();
-    pintar({ top: ["Muy de acuerdo"] }, "p_pie");
+    pintar({ top: ["Muy de acuerdo", "De acuerdo"] }, "p_pie");
     expect(cifra()).toBeNull();
   });
   it("con varias barras, el rango", () => {

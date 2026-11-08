@@ -5,16 +5,18 @@
 import type { DetalleCifras } from "../../../../api/graficosCifras";
 import { filaPrincipal, textoPct } from "../cifrasInspector/modeloCifras";
 import type { VarianteDetalle } from "../cifrasInspector/useDetalleCifras";
+import { TOP2BOX_CANTIDAD } from "../../top2boxSeleccion";
 
 type Args = Readonly<Record<string, unknown>>;
 export type CajaTwoBox = "top" | "bottom";
 
 export const ROTULO_CAJA: Readonly<Record<CajaTwoBox, string>> = { top: "Top Two Box", bottom: "Bottom Two Box" };
 
-/** Una variante por caja encendida y con categorías elegidas. */
+/** Una variante por caja encendida y con sus dos categorías elegidas. R7-13: con una sola marcada no hay Two Box que
+ *  mostrar (la cifra de una categoría no es la caja); queda sólo «Elige una categoría más.». */
 export function variantesTwoBox(args: Args, cajas: Readonly<Partial<Record<CajaTwoBox, readonly string[]>>>): VarianteDetalle[] {
   return (Object.entries(cajas) as [CajaTwoBox, readonly string[] | undefined][])
-    .filter(([, e]) => e && e.length > 0)
+    .filter(([, e]) => e && e.length === TOP2BOX_CANTIDAD)
     .map(([clave, e]) => ({ clave, args, caja: e }));
 }
 
