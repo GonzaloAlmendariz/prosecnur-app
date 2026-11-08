@@ -243,7 +243,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
     <Fragment key={`${slideId}:${slot}:${c.arg.name}`}>
       {/* H2: la ayuda de «Pista gris» describe la opción elegida, no siempre «Automática». */}
       <Fila campo={{ ...c, ayuda: ayudaDeLaOpcion(c, alcance(c).valor) }} graficador={valor.graficador} valor={alcance(c).valor} sello={alcance(c).sello} categorias={categoriasDe(c.arg.name)}
-            args={args} scope={scope} basePregunta={basePregunta} variables={variables}
+            args={args} scope={scope} basePregunta={basePregunta} variables={variables} slideId={slideId}
             onCambio={(v) => set(valor.graficador === "p_radar" && c.arg.name === "modo" && typeof v === "string" ? patchModoRadar(args.modo, v)
               : valor.graficador === "p_barras_multiapiladas" ? sinGruposHuerfanos(args, { [c.arg.name]: v }) : { [c.arg.name]: v })} />
       {/* H2: «Un color por opción» encendido sobre una lista sin colores dice por qué no se ve. */}
@@ -417,8 +417,10 @@ type CategoriasFila = {
   porEtiqueta?: boolean;
 };
 
-function Fila({ campo, graficador, valor, onCambio, sello, categorias, args, scope, sinCifra = false, basePregunta = null, variables = [] }: {
+function Fila({ campo, graficador, valor, onCambio, sello, categorias, args, scope, sinCifra = false, basePregunta = null, variables = [], slideId }: {
   campo: CampoDato; graficador: string; valor: unknown; onCambio: (v: unknown) => void; sello?: ReactNode;
+  /** La lámina, para que la regla no prometa su conteo si la vista previa falló (R9-2). */
+  slideId?: string;
   /** La base de la pregunta del gráfico: «Dividir por» sólo ofrece las suyas (R7-1). */
   basePregunta?: string | null;
   /** Las preguntas del estudio, para saber si el cruce existe en la base de la pregunta (R7-18). */
@@ -569,7 +571,7 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias, args, sco
   }
   if (control === "regla_preguntas") {
     return <ReglaPreguntas rotulo={rotulo} ayuda={texto} graficador={graficador} args={args} valor={valor} scope={scope}
-      onCambio={(r: Regla) => onCambio(r)} />;
+      slideId={slideId} onCambio={(r: Regla) => onCambio(r)} />;
   }
   if (control === "grupos_lista") {
     return <AgruparLista id={id} etiqueta={etiqueta} nota={null} valor={valor} args={args} onCambio={onCambio} />;

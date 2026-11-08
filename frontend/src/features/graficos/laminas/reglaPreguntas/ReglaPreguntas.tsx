@@ -31,6 +31,7 @@ import { useConteoRegla } from "./useConteoRegla";
 import { enOrden, seleccionVista } from "./vistaRegla";
 import "./reglaPreguntas.css";
 import { PulsoButton } from "../../../../components/PulsoButton";
+import { useLaminasUi } from "../laminasStore";
 
 type Props = {
   rotulo: string;
@@ -41,11 +42,13 @@ type Props = {
   valor: unknown;
   scope: "active" | "consolidated";
   onCambio: (regla: Regla) => void;
+  /** La lámina: si su última vista previa falló, el conteo no promete «N de M en la lámina» (R9-2). */
+  slideId?: string;
 };
 
 const SIN_FILAS: Readonly<Record<string, boolean>> = {};
 
-export function ReglaPreguntas({ rotulo, ayuda, graficador, args, valor, scope, onCambio }: Props) {
+export function ReglaPreguntas({ rotulo, ayuda, graficador, args, valor, scope, onCambio, slideId }: Props) {
   const id = useId();
   const idRotulo = `${id}-rotulo`;
   const idAyuda = `${id}-ayuda`;
@@ -92,6 +95,14 @@ export function ReglaPreguntas({ rotulo, ayuda, graficador, args, valor, scope, 
   const proyectada = !!vista?.proyectada;
   // R8-1: la brecha guardada sin `vars` sale vacía aunque la regla cuente; no se promete «13 de 73 en la lámina».
   const saleVacia = graficador === "p_dumbbell" && brechaSinPreguntas(args);
+  // R9-2: si el motor no pudo dibujar la lámina, lo que sale no es «N de M»: es el error, con su motivo.
+  const fallo = useLaminasUi((s) => (slideId ? s.erroresPreview?.[slideId] ?? null : null));
+
+  // R9-9 (C2): la explicación de la regla reserva el alto más grande que ya tuvo en esta lámina; al cambiar de tipo, o
+  // cuando la cifra hace que parta en otra línea, no salta 18 px. Se mide el texto real, no dos líneas fijas.
+  const texto = useRef<HTMLParagraphElement>(null);
+  const altoTexto = useRef<{ graficador: string; alto: number }>({ graficador, alto: 0 });
+  if (altoTexto.current.graficador !== graficador) altoTexto.current = { graficador, alto: 0 };
 
   // R8-3 (C2): mientras se espera el conteo, la zona del resultado guarda el alto que tuvo la última vez; al llegar no
   // empuja todo lo de abajo 50 a 90 px. Un ref y no estado: se mide después de pintar y sólo se lee al esperar.
@@ -106,6 +117,7 @@ export function ReglaPreguntas({ rotulo, ayuda, graficador, args, valor, scope, 
   };
   useLayoutEffect(() => {
     if (!esperando && zona.current) altoReservado.current = zona.current.offsetHeight;
+    if (texto.current) altoTexto.current.alto = Math.max(altoTexto.current.alto, texto.current.scrollHeight);
   });
 
   // La cifra de cada tipo, para devolverla al volver a él (R3). Un ref y no estado: nada se pinta con ella.
@@ -162,6 +174,8 @@ export function ReglaPreguntas({ rotulo, ayuda, graficador, args, valor, scope, 
         <div className="pulso-f6-regla-resultado" aria-busy={cargando || undefined}>
           {vacia ? (
             <p className="pulso-f6-regla-conteo is-accion" role="status">{ELIGE_UNA}</p>
+          ) : fallo ? (
+            <p className="pulso-f6-regla-conteo is-vacia" role="alert">No se pudo dibujar la lámina: {fallo}</p>
           ) : saleVacia ? (
             <p className="pulso-f6-regla-conteo is-vacia" role="status">La lámina sale vacía: faltan sus preguntas.</p>
           ) : (
@@ -170,7 +184,10 @@ export function ReglaPreguntas({ rotulo, ayuda, graficador, args, valor, scope, 
               <span> en la lámina</span>
             </p>
           )}
-          {conteo.texto_regla && <p className={`pulso-f6-regla-texto${proyectada ? " is-desfasado" : ""}`}>{conteo.texto_regla}</p>}
+          {conteo.texto_regla && (
+            <p ref={texto} className={`pulso-f6-regla-texto${proyectada ? " is-desfasado" : ""}`}
+              style={altoTexto.current.alto ? { minHeight: altoTexto.current.alto } : undefined}>{conteo.texto_regla}</p>
+          )}
           {limite && !cifra && <LimiteLamina limite={limite} />}
           {avisosFueraDelLimite(conteo.avisos, limite).map((a) => <span key={a} className="pulso-f6-dato-ayuda" role="note">{a}</span>)}
           {conteo.candidatas.length === 0 ? (

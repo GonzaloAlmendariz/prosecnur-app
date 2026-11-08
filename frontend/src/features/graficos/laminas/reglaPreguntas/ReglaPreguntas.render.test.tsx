@@ -8,6 +8,9 @@ import type { ConteoEnVivo } from "./useConteoRegla";
 const estado = vi.hoisted(() => ({ actual: null as ConteoEnVivo | null }));
 vi.mock("./useConteoRegla", () => ({ useConteoRegla: () => estado.actual }));
 
+const ui = vi.hoisted(() => ({ erroresPreview: {} as Record<string, string> }));
+vi.mock("../laminasStore", () => ({ useLaminasUi: (sel: (s: typeof ui) => unknown) => sel(ui) }));
+
 import { ReglaPreguntas } from "./ReglaPreguntas";
 
 const CONTEO: ConteoEnVivo = {
@@ -197,5 +200,18 @@ describe("ReglaPreguntas", () => {
     expect(html).toContain("Elige la variable que divide a los grupos.");
     expect(html).toContain("Ir a «Dividir por»");
     expect(html).not.toContain("compara dos públicos");
+  });
+
+  it("R9-2: si la última vista previa falló, dice el error con su motivo y no «N de M en la lámina»", () => {
+    estado.actual = CONTEO;
+    ui.erroresPreview = { s1: "environments cannot be coerced to other types" };
+    const regla = { tipo: "mayor_diferencia", n: 2 };
+    const html = renderToStaticMarkup(
+      <ReglaPreguntas rotulo="Regla de preguntas" ayuda="" graficador="p_panorama" slideId="s1"
+        args={{ estilo: "resumen", regla }} valor={regla} scope="active" onCambio={() => undefined} />,
+    );
+    expect(html).toContain("No se pudo dibujar la lámina: environments cannot be coerced to other types");
+    expect(html).not.toContain("</strong><span> en la lámina");
+    ui.erroresPreview = {};
   });
 });

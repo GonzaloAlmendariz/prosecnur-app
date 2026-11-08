@@ -89,6 +89,7 @@ export function usePreviewLamina(slide: Slide | null, antetituloHeredado: string
   const scopeRules = usePlanStore((s) => s.scopeRules);
   const registrarResumen = useLaminasUi((s) => s.registrarResumen);
   const registrarMiniatura = useLaminasUi((s) => s.registrarMiniatura);
+  const registrarErrorPreview = useLaminasUi((s) => s.registrarErrorPreview);
   const [estado, setEstado] = useState<EstadoPreviewLamina>({ estado: "inactiva" });
   const [intento, setIntento] = useState(0);
   const [progreso, setProgreso] = useState<ProgresoPreview | null>(null);
@@ -119,7 +120,9 @@ export function usePreviewLamina(slide: Slide | null, antetituloHeredado: string
       if (!vigente) return;
       setEstado(e);
       if (e.estado !== "cargando") setProgreso(null);
+      if (e.estado === "error") registrarErrorPreview(id, e.mensaje);
       if (e.estado === "lista") {
+        registrarErrorPreview(id, null);
         const l = leerLaminaVisor(e.respuesta);
         registrarResumen(id, { estado: estadoDeLamina(l), partes: l.partes.length, avisos: l.avisos.length, avisosTexto: l.avisos });
         const primera = l.partes[0]?.imagen;

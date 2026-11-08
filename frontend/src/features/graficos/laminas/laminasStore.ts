@@ -46,6 +46,9 @@ type LaminasUiStore = {
   alternarNodo: (id: string) => void;
   fijarCerrados: (ids: string[]) => void;
   registrarResumen: (slideId: string, r: ResumenLamina) => void;
+  /** R9-2: el motivo de la última vista previa que falló, por lámina. Con él, el inspector no promete «N de M en la lámina». */
+  erroresPreview: Record<string, string>;
+  registrarErrorPreview: (slideId: string, motivo: string | null) => void;
   /** H4: qué secciones de la tarjeta del gráfico están abiertas; se recuerda mientras la app está abierta. */
   seccionesTarjeta: SeccionesAbiertas;
   alternarSeccionTarjeta: (s: SeccionTarjeta) => void;
@@ -109,6 +112,14 @@ export const useLaminasUi = create<LaminasUiStore>((set) => ({
   seccionRecienteLamina: null,
   avisosAbiertos: false,
   alternarAvisos: () => set((s) => ({ avisosAbiertos: !s.avisosAbiertos })),
+  erroresPreview: {},
+  registrarErrorPreview: (slideId, motivo) => set((s) => {
+    if ((s.erroresPreview[slideId] ?? null) === motivo) return s;
+    const erroresPreview = { ...s.erroresPreview };
+    if (motivo === null) delete erroresPreview[slideId];
+    else erroresPreview[slideId] = motivo;
+    return { erroresPreview };
+  }),
   registrarResumen: (slideId, r) => set((s) => {
     const prev = s.resumenes[slideId];
     if (prev && prev.estado === r.estado && prev.partes === r.partes && prev.avisos === r.avisos
