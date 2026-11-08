@@ -19,6 +19,8 @@ export type FilaGrupo = {
   /** Casos del grupo en el cruce; `null` si no hay conteo. */
   n: number | null;
   incluido: boolean;
+  /** Lugar en la lámina (1 = primero); `null` fuera. */
+  posicion: number | null;
   /** Fuera y con el tope lleno: no se puede encender. */
   bloqueado: boolean;
   padron: Padron;
@@ -30,10 +32,11 @@ export function filasGrupos(opciones: readonly Opcion[], conteos: ReadonlyMap<st
   const elegidos = gruposElegidos(args);
   const lleno = elegidos.length >= tope;
   return opciones.map((o) => {
-    const incluido = elegidos.includes(o.codigo);
+    const i = elegidos.indexOf(o.codigo);
+    const incluido = i >= 0;
     const n = conteos?.get(o.codigo) ?? null;
     return {
-      codigo: o.codigo, etiqueta: o.etiqueta, n, incluido, bloqueado: !incluido && lleno,
+      codigo: o.codigo, etiqueta: o.etiqueta, n, incluido, posicion: incluido ? i + 1 : null, bloqueado: !incluido && lleno,
       padron: padronDe(args, o.etiqueta), chico: n !== null && n < UMBRAL_GRUPO_CHICO,
     };
   });
@@ -47,6 +50,30 @@ export function alternarGrupo(args: Args, codigo: string, incluir: boolean, tope
     return { grupos: [...actuales, codigo] };
   }
   return { grupos: actuales.filter((g) => g !== codigo) };
+}
+
+/**
+ * Mueve un grupo incluido un lugar antes (-1) o después (+1) en la lámina; con dos, mover es invertir la diferencia.
+ * En el borde, o fuera de la lámina, devuelve el orden tal cual.
+ */
+export function moverGrupo(args: Args, codigo: string, delta: -1 | 1): Record<string, unknown> {
+  const actuales = gruposElegidos(args);
+  const i = actuales.indexOf(codigo);
+  const j = i + delta;
+  if (i < 0 || j < 0 || j >= actuales.length) return { grupos: actuales };
+  const nuevos = [...actuales];
+  [nuevos[i], nuevos[j]] = [nuevos[j], nuevos[i]];
+  return { grupos: nuevos };
+}
+
+/**
+ * La diferencia que calcula la lámina con los grupos de hoy: con dos, «TC menos TP» (el primero menos el segundo); con
+ * más, «el mayor menos el menor»; con menos de dos, `null`.
+ */
+export function textoDiferencia(incluidos: readonly FilaGrupo[]): string | null {
+  if (incluidos.length < 2) return null;
+  if (incluidos.length > 2) return "Diferencia: el mayor menos el menor";
+  return `Diferencia: ${incluidos[0].etiqueta} menos ${incluidos[1].etiqueta}`;
 }
 
 /** Los grupos incluidos en el orden de la lámina (el de `grupos`), no el de la lista. */

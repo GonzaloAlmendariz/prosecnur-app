@@ -204,3 +204,47 @@
   gap: var(--pulso-space-1) var(--pulso-space-2);
   margin: 0;
 }
+
+/* X5: el interruptor del grupo a la izquierda; su lugar en la lámina con Subir y Bajar a la derecha. */
+.pulso-f6-grupos-fila-cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-f6-grupos-orden {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+}
+
+.pulso-f6-grupos-posicion {
+  display: inline-grid;
+  place-items: center;
+  min-width: var(--pulso-control-height-sm);
+  height: var(--pulso-control-height-sm);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--module-accent);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-f6-grupos-mover[aria-disabled="true"] {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.pulso-f6-grupos-diferencia {
+  margin: 0;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-f6-grupos-fila .pulso-f6-grupos-mover[aria-disabled="true"]:hover {
+  background: transparent;
+  color: var(--pulso-text-soft);
+}
