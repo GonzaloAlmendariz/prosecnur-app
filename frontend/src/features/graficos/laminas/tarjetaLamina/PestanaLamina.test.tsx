@@ -94,6 +94,16 @@ describe("pestaña «Lámina» en secciones plegables", () => {
     expect(cuerpo.querySelector("input[value='Información general']")).not.toBeNull();
   });
 
+  test("R8-5 (C1): el cuerpo del inspector y cada sección declaran su grupo intrínseco; las tarjetas .pulso-f6-dato caen dentro", () => {
+    pintar({ modo: "resumen", seleccion: "manual", capitulos: real });
+    const cuerpo = host.querySelector<HTMLElement>(".pulso-f6-inspector-cuerpo")!;
+    expect(cuerpo.dataset.qaGeometryGroup).toBe("graficos/f6-inspector-cuerpo");
+    expect(cuerpo.dataset.qaGeometryContract).toBe("intrinsic");
+    const datos = [...cuerpo.querySelectorAll<HTMLElement>(".pulso-f6-dato")];
+    expect(datos.length).toBeGreaterThan(0);
+    for (const d of datos) expect(d.closest("[data-qa-geometry-group]")).not.toBeNull();
+  });
+
   test("el índice abre los capítulos y lo recuerda", () => {
     pintar({ modo: "resumen", seleccion: "manual", capitulos: real });
     const ir = host.querySelector<HTMLButtonElement>("nav [data-ir='capitulos']")!;

@@ -116,6 +116,10 @@ export function InspectorLamina({
 
       <div
         className="pulso-f6-inspector-cuerpo"
+        // R8-5 (C1): el cuerpo del inspector es el grupo de sus tarjetas (salida, gráficos, secciones con sus .pulso-f6-dato):
+        // secciones independientes que crecen con lo suyo. Cada sección plegable declara además su cuerpo (f6-grupo-cuerpo).
+        data-qa-geometry-group="graficos/f6-inspector-cuerpo"
+        data-qa-geometry-contract="intrinsic"
         role={conGraficos ? "tabpanel" : undefined}
         id={panelId(seccion)}
         aria-labelledby={conGraficos ? tabId(seccion) : undefined}
