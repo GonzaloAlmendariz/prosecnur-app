@@ -119,6 +119,10 @@ Decisiones de Gonzalo del 2026-11-07:
   sufijo del público; ordenar o cortar entre públicos compara porcentajes de bases de distinto tamaño, sin total
   combinado. La escala y sus especiales se toman de la primera referencia (las demás deben compartir la firma) y los
   mismos filtros se aplican a todas las bases.
+- La mitad negativa depende de la dirección declarada de la escala (`direccion_escala`): una lista invertida sin
+  declararla pinta la polaridad al revés, como ya pasaba. Con «Nunca» en la lista, «No he X» es no respuesta.
+- El detector quedó aprobado tras seis revisiones metodológicas (2026-11-07); los probes viven en el scratchpad de la
+  sesión y los casos, en `test-graficos-divergentes-no-sustantivos.R`.
 - Pendiente: el dibujo de respaldo (ggplot) apila el gris de «Sin información» detrás del acuerdo; la lámina nativa no.
 
 ### Precisiones de la implementación

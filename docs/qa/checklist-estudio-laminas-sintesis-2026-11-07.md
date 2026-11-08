@@ -38,7 +38,8 @@ Decisiones de Gonzalo al empezar (2026-11-07):
 
 Aprendido:
 
-- La escala pintaba «No tengo información suficiente» con código 9 como el verde más oscuro (acuerdo): sólo reconocía como especial los códigos 90 a 99. Se unifica el detector con `.graficos_no_sustantivos` (ADR 0135 §3), también en la lámina 71.
+- La escala pintaba «No tengo información suficiente» con código 9 como el verde más oscuro (acuerdo): sólo reconocía como especial los códigos 90 a 99. Tras seis revisiones metodológicas el detector decide sólo por lista declarada, 90 a 99 o rótulo de no respuesta (el rango de códigos dejó de decidir porque cada heurística rompía otro caso), con regla de hermanos para raíces ambiguas, y el reparto sin declarar es la mitad por lado. Aprobado el 2026-11-07 (f88160102).
+- En Arte entraban como escala tres preguntas demográficas de docentes (edad, grado, categoría), dos de estudiantes y una de administrativos: ahora una pregunta es de escala si su lista forma batería o el estudio la declara ordinal (2a89266fc).
 
 - La rama base `claude/vigilant-poitras-f29198` nació el 2026-10-28 y estaba 2046 commits detrás de `main`. Se integró
   `main` en `claude/estudio-laminas-sintesis`. El número 0114 ya estaba tomado en `main`, así que el ADR del resumen
