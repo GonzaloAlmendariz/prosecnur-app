@@ -8,12 +8,16 @@ import { PulsoTable, type PulsoTableColumna } from "../../../../components/Pulso
 import { nombrePublico } from "../../multiapiladas/temasPublicos";
 import { AccionesEmparejado } from "./AccionesEmparejado";
 import { BuscarPar } from "./BuscarPar";
+import { ChipCoincidencia } from "./ChipCoincidencia";
+import { ROTULO_COINCIDENCIA, type CoincidenciaDePar } from "./coincidencia";
 import { ROTULO_ESTADO, type FilaEmparejado } from "./modeloEmparejado";
 
 type Props = {
   filas: readonly FilaEmparejado[];
   bases: readonly string[];
   vacio: string;
+  /** La coincidencia de cada fila por `clave` (coincidencia.ts). */
+  coincidencias: ReadonlyMap<string, CoincidenciaDePar | null>;
   buscando: string | null;
   /** Opciones del buscador para la fila que busca su par. */
   opcionesDe: (fila: FilaEmparejado) => VariableDeBase[];
@@ -26,11 +30,13 @@ type Props = {
   onQuitar: (fila: FilaEmparejado) => void;
 };
 
-// Q4-5: la suma (860) cabe en el cuerpo del diálogo `lg` a 1440 y a 1024 sin desplazamiento horizontal (C4). El estado
-// más largo, «Confirmado en esta lámina», entra entero en su columna; las acciones, con «Confirmar» y dos íconos.
-export const ANCHO_BASE = 225;
+// Q4-5: la suma (900) cabe en el cuerpo del diálogo `lg` a 1440 y a 1024 sin desplazamiento horizontal (C4). El estado
+// más largo, «Confirmado en esta lámina», entra entero en su columna; las acciones, con «Confirmar» y dos íconos. La
+// columna de coincidencia (X6) sale de los textos, que se leen enteros en la evidencia del par.
+export const ANCHO_BASE = 200;
+export const ANCHO_COINCIDENCIA = 100;
 export const ANCHO_ESTADO = 210;
-export const ANCHO_ACCIONES = 200;
+export const ANCHO_ACCIONES = 190;
 
 function textoDe(fila: FilaEmparejado, base: string): PreguntaDeBase | null {
   if (fila.pregunta.base === base) return fila.pregunta;
@@ -70,6 +76,20 @@ export function TablaEmparejado(p: Props) {
 
   const columnas: PulsoTableColumna<FilaEmparejado>[] = [
     ...p.bases.map(columnaBase),
+    {
+      id: "coincidencia",
+      encabezado: "Coincidencia",
+      ancho: ANCHO_COINCIDENCIA,
+      valor: (f) => {
+        const c = p.coincidencias.get(f.clave);
+        return c ? ROTULO_COINCIDENCIA[c.clase] : null;
+      },
+      celda: (f) => (
+        <span className="pulso-f6-emp-ancla" data-emp-fila={f.clave} tabIndex={-1}>
+          <ChipCoincidencia coincidencia={p.coincidencias.get(f.clave) ?? null} />
+        </span>
+      ),
+    },
     {
       id: "estado",
       encabezado: "Cómo se emparejó",

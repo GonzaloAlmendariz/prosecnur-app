@@ -18,6 +18,7 @@ import { toast } from "../../../../components/toasterStore";
 import { formatoConteo } from "../../../../lib/formatoNumero";
 import { nombrePublico, type TemaPublicos } from "../../multiapiladas/temasPublicos";
 import { Segmentado } from "../../subpestanas/Segmentado";
+import { coincidenciasDe } from "./coincidencia";
 import { useEmparejadoUi } from "./emparejadoStore";
 import {
   avisoUnion, confirmadosDe, confirmarPar, filtrarFilas, hayCambiosEnUnion, opcionesDeBase, preguntasOcupadas, quitarPar,
@@ -68,6 +69,7 @@ function enfocarAcciones(claves: readonly string[]) {
 
 export function RevisarEmparejado({ bases, basesEstudio, remoto, recargar, filas, conteo, temas, fuentes, onTemas, retorno }: Props) {
   const ui = useEmparejadoUi();
+  const coincidencias = coincidenciasDe(filas);
   const visibles = filtrarFilas(filas, ui.filtro);
   const ocupadas = preguntasOcupadas(filas);
   const confirmados = confirmadosDe(filas);
@@ -145,6 +147,7 @@ export function RevisarEmparejado({ bases, basesEstudio, remoto, recargar, filas
       filas={visibles}
       bases={bases}
       vacio={VACIO_FILTRO[ui.filtro]}
+      coincidencias={coincidencias}
       buscando={ui.buscando}
       opcionesDe={(f) => opcionesDeBase(fuentes, f.otraBase, firmaDe(f), ocupadas.matriz)}
       tomadasDe={(f) => tomadasEnBase(ocupadas.lamina, f)}

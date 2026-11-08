@@ -85,3 +85,33 @@
   gap: var(--pulso-space-1) var(--pulso-space-2);
   min-width: 0;
 }
+
+/* Coincidencia del par (X6): un chip por clase, en el tono de su estado. Sin borde: el fondo basta en la fila. */
+.pulso-f6-emp-ancla {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  border-radius: var(--pulso-radius-chip);
+}
+
+.pulso-f6-emp-ancla:focus-visible {
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
+  outline-offset: 2px;
+}
+
+.pulso-f6-emp-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 var(--pulso-space-2);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+
+.pulso-f6-emp-chip[data-coincidencia="identico"] { background: var(--pulso-success-bg); color: var(--pulso-success-fg); }
+.pulso-f6-emp-chip[data-coincidencia="parecido"] { background: var(--pulso-info-bg); color: var(--pulso-info-fg); }
+.pulso-f6-emp-chip[data-coincidencia="distinto"] { background: var(--pulso-warn-bg); color: var(--pulso-warn-fg); }

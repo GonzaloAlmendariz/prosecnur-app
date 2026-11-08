@@ -52,7 +52,7 @@ vi.mock("../../../../components/toasterStore", () => ({ toast: { exito: (t: stri
 
 import { useEmparejadoUi } from "./emparejadoStore";
 import { EntradaEmparejado } from "./EntradaEmparejado";
-import { ANCHO_ACCIONES, ANCHO_BASE, ANCHO_ESTADO } from "./TablaEmparejado";
+import { ANCHO_ACCIONES, ANCHO_BASE, ANCHO_COINCIDENCIA, ANCHO_ESTADO } from "./TablaEmparejado";
 
 let host: HTMLDivElement;
 let root: Root;
@@ -111,7 +111,7 @@ describe("Revisar emparejado", () => {
     expect(panel).toBeTruthy();
     expect(document.querySelector("[data-qa-surface='graficos/emparejado']")?.getAttribute("data-audit-ready")).toBe("graficos-emparejado");
     const encabezados = [...document.querySelectorAll(".pulso-table th")].map((th) => th.textContent?.trim());
-    expect(encabezados).toEqual(["Docentes", "Estudiantes", "Cómo se emparejó", "Acciones"]);
+    expect(encabezados).toEqual(["Docentes", "Estudiantes", "Coincidencia", "Cómo se emparejó", "Acciones"]);
     const texto = document.body.textContent ?? "";
     expect(texto).toContain("En la matriz");
     expect(texto).toContain("Sugerido por el texto");
@@ -175,8 +175,8 @@ describe("Revisar emparejado", () => {
 });
 
 describe("la tabla de emparejado cabe sin desplazamiento horizontal (Q4-5, C4)", () => {
-  it("dos públicos, el estado y las acciones suman menos que el cuerpo del diálogo lg a 1024 (unos 900 px)", () => {
-    expect(2 * ANCHO_BASE + ANCHO_ESTADO + ANCHO_ACCIONES).toBeLessThanOrEqual(900);
+  it("dos públicos, la coincidencia, el estado y las acciones suman menos que el cuerpo del diálogo lg a 1024 (unos 900 px)", () => {
+    expect(2 * ANCHO_BASE + ANCHO_COINCIDENCIA + ANCHO_ESTADO + ANCHO_ACCIONES).toBeLessThanOrEqual(900);
   });
 
   it("las acciones secundarias son íconos con nombre accesible y tooltip; «Confirmar» conserva su texto", async () => {
