@@ -114,15 +114,36 @@
   height: 100%;
   object-fit: contain;
   user-select: none;
-  transition: opacity var(--motion-dur-fast) var(--motion-ease-out), filter var(--motion-dur-fast) var(--motion-ease-out);
 }
 
-.pulso-f6-hoja.is-desactualizada img {
-  opacity: 0.55;
-  filter: blur(var(--motion-blur-crossfade)) saturate(0.6);
-  /* Sólo a la ida y con retraso: si el motor responde en <150 ms no hay parpadeo; al llegar la imagen nueva el
-     desenfoque se suelta sin retraso y enmascara el cambio de src (M21). */
-  transition-delay: var(--motion-delay-pendiente);
+/* Hallazgo 7 (auditoría de Arte): mientras llega la vista previa nueva, la anterior se queda NÍTIDA y un chip pequeño en
+   la esquina dice «Actualizando». Antes la hoja entera se desenfocaba en cada cambio y no se podía leer. El chip espera
+   150 ms para no asomar en respuestas rápidas. */
+.pulso-f6-hoja-actualizando {
+  position: absolute;
+  top: var(--pulso-space-2);
+  right: var(--pulso-space-2);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  padding: 2px var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-material-bg-strong);
+  box-shadow: var(--pulso-shadow-low);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+  pointer-events: none;
+  transition: opacity var(--motion-dur-fast) var(--motion-ease-out) var(--motion-delay-pendiente);
+}
+
+@starting-style {
+  .pulso-f6-hoja-actualizando {
+    opacity: 0;
+  }
 }
 
 .pulso-f6-hoja-estado {
@@ -324,7 +345,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pulso-f6-hoja.is-desactualizada img { filter: saturate(0.6); }
   .pulso-f6-progreso i { animation: none; width: 60%; transform: none; }
 
   @starting-style {

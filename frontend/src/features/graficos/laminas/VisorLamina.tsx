@@ -43,6 +43,7 @@ import { BotonGuias } from "./guias/BotonGuias";
 import { GuiasSobreLamina } from "./guias/GuiasSobreLamina";
 import { useGuiasUi } from "./guias/guiasStore";
 import { construirGuias, rolesPresentes } from "./guias/modeloGuias";
+import { presentacionPreview } from "./presentacionPreview";
 import "./visorLamina.css";
 import { formatoConteo } from "../../../lib/formatoNumero";
 
@@ -113,7 +114,9 @@ export function VisorLamina({
   // En maqueta no se muestra ninguna imagen; en «cómo queda», la del motor o, mientras llega, la del lote. Con un dato
   // obligatorio pendiente (Q4-4) no hay dibujo que mostrar: la maqueta dice qué falta.
   const falta = faltaEnLamina(slide);
-  const src = verComoQueda && !falta ? real ?? imagenLote : null;
+  // Hallazgo 7: mientras llega la imagen nueva, la anterior se queda nítida con un chip «Actualizando» (presentacionPreview.ts).
+  const presentacion = presentacionPreview({ verComoQueda, falta, fase: vista.fase, imagenMotor: real, imagenLote, error: vista.error });
+  const src = presentacion.src;
   const { slidesById } = useGraficosRegistry();
   const camposTexto = useMemo(
     () => camposTextoDe(slide.tipo, slidesById[slide.tipo]?.args, composicionDe(slide.tipo, SLIDE_GRAF_SLOTS[slide.tipo] ?? []).fuente !== "estructura"),
@@ -172,10 +175,10 @@ export function VisorLamina({
             <span className="pulso-sr-only">: {motivoDeEstado(estado, motorNativoApagado, (l?.avisos.length ?? 0) > 0)}</span>
           </span>
         )}
-        {cargando && prepOk && (
+        {presentacion.dibujandoPrimera && prepOk && (
           <span className="pulso-f6-chip-estado is-neutro" role="status">
             <Loader2 size={13} className="pulso-spin" aria-hidden="true" />
-            {vista.desactualizada ? "Regenerando" : "Generando"}
+            Generando
             {vista.progreso?.porcentaje != null ? `, ${Math.round(vista.progreso.porcentaje)} %` : ""}
             {vista.progreso?.mensaje ? <span className="pulso-sr-only">: {vista.progreso.mensaje}</span> : null}
           </span>
@@ -266,7 +269,7 @@ export function VisorLamina({
         {...{ [ATRIBUTO_LIENZO]: lamina.posicion }}
         aria-label={`Lámina ${lamina.posicion}: ${lamina.titulo}. Flechas izquierda y derecha cambian de lámina${nPartes > 1 ? "; arriba y abajo, de parte" : ""}.`}
       >
-        <figure ref={hojaRef} className={`pulso-f6-hoja${cargando && real ? " is-desactualizada" : ""}`}>
+        <figure ref={hojaRef} className="pulso-f6-hoja" aria-busy={presentacion.actualizando || undefined}>
           {src ? (
             <img
               src={src}
@@ -282,14 +285,21 @@ export function VisorLamina({
             lugar={(slot) => nombreSlot(slot, slidesById[slide.tipo])} />}
           {/* Las guías son del visor: nunca entran al entregable (D17). Sólo sobre el dibujo real del motor. */}
           {real && !cargando && <GuiasSobreLamina modelo={guias} resaltada={resaltada} hojaRef={hojaRef} />}
+          {presentacion.actualizando && (
+            <span className="pulso-f6-hoja-actualizando" role="status">
+              <Loader2 size={12} className="pulso-spin" aria-hidden="true" />
+              Actualizando
+              {vista.progreso?.porcentaje != null ? <span className="pulso-sr-only">, {Math.round(vista.progreso.porcentaje)} %</span> : null}
+            </span>
+          )}
         </figure>
-        {cargando && (
+        {presentacion.dibujandoPrimera && (
           <p className="pulso-f6-lienzo-aviso is-info" role="status">
             <Loader2 size={14} className="pulso-spin" aria-hidden="true" />
             Dibujando la lámina…
           </p>
         )}
-        {vista.error && !falta && (
+        {presentacion.error && (
           <p className="pulso-f6-lienzo-aviso is-error" role="alert">
             <AlertTriangle size={14} aria-hidden="true" />
             No se pudo dibujar la lámina.
