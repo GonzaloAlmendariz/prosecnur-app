@@ -415,7 +415,12 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   // (pasada final 2026-10-15). Sin grupo elegido no hay grupos que excluir.
   // `grupo` salió de RETIRADOS: el histograma por grupos tiene su dibujo (c440f928b) y es el único que lo declara.
   grupo: { rotulo: "Dividir por", ayuda: "Sin dividir, un solo histograma.", soloEn: ["p_histograma"] },
-  excluir_grupos: { rotulo: "Excluir grupos", cuando: (v) => typeof v.grupo === "string" && v.grupo !== "" },
+  // R6-15: el histograma divide por `grupo`; las apiladas, agrupadas y multiapiladas (en modo cruce) por `cruces`
+  // (b606cb545 en el motor). La guarda sigue a la variable que divide (variableQueExcluye).
+  excluir_grupos: {
+    rotulo: "Excluir grupos", cuando: (v) => variableQueExcluye("", v) !== "",
+    porGraficador: { p_barras_multiapiladas: { cuando: (v) => variableQueExcluye("p_barras_multiapiladas", v) !== "" } },
+  },
   // Tabla (5a, ruta anterior): formales de p_tabla (p_radar_split.R); `sm_omit_na = TRUE` sin default en el registro.
   // `top_n` y `sm_omit_codes` siguen sin control: recortan antes del denominador (C40, D1).
   sm_omit_na: { rotulo: "Omitir sin respuesta", soloEn: TABLA, defecto: true },
@@ -750,4 +755,24 @@ export function propiosDeAspecto(p: { graficador: string; args: Readonly<Record<
     if (l.ejeLibre) out.push("Eje libre");
   }
   return out;
+}
+
+/** Los modos de la multiapilada en que el gráfico se divide por el cruce. */
+const MODOS_MULTI_CON_CRUCE: ReadonlySet<string> = new Set(["cruce", "var_cruce"]);
+
+const primerTexto = (v: unknown): string => {
+  const x = Array.isArray(v) ? v[0] : v;
+  return typeof x === "string" ? x.trim() : "";
+};
+
+/**
+ * R6-15: la variable cuyos grupos lista «Excluir grupos»: `grupo` (histograma) o, sin él, el primer `cruces` (apiladas,
+ * agrupadas y multiapiladas; el motor acepta códigos y rótulos). En la multiapilada sólo rige en modo cruce o var_cruce.
+ * Vacío si el gráfico no se divide.
+ */
+export function variableQueExcluye(graficador: string, args: Readonly<Record<string, unknown>>): string {
+  const grupo = primerTexto(args.grupo);
+  if (grupo) return grupo;
+  if (graficador === "p_barras_multiapiladas" && !MODOS_MULTI_CON_CRUCE.has(String(args.modo ?? ""))) return "";
+  return primerTexto(args.cruces) || primerTexto(args.cruce);
 }

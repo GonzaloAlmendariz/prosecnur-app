@@ -25,6 +25,7 @@ import {
   AYUDA_CODIGOS,
   interruptorEncendido,
   propiosDeAspecto,
+  variableQueExcluye,
   type CampoDato,
 } from "./argsDatosGrafico";
 import { useLaminasUi } from "./laminasStore";
@@ -204,7 +205,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
     });
   };
   // Excluir respuestas y Corte usan las categorías de la pregunta; Excluir grupos, las de la variable de grupo.
-  const grupoVar = typeof args.grupo === "string" ? args.grupo : "";
+  const grupoVar = variableQueExcluye(valor.graficador, args);
   const categoriasDe = (name: string): CategoriasFila | undefined => {
     if (name === "excluir_opciones" || name === "corte" || name === "series" || name === "segmentos_total") {
       // Varias preguntas de la misma escala (radar, divergentes): las categorías de la primera, que todas comparten.
@@ -213,6 +214,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
       if (!variable && !primera) return nVars > 0 ? undefined : { variable: "", scope, modo: name === "corte" ? "elegir" : "excluir" };
       return { variable: varCalificada(variable || primera, baseActiva, scope), scope, modo: name === "corte" ? "elegir" : "excluir" };
     }
+    // R6-15: sin `grupo` (histograma), los grupos son los del cruce (`cruces`) de las barras.
     if (name === "excluir_grupos") return { variable: grupoVar ? varCalificada(grupoVar, baseActiva, scope) : "", scope, modo: "excluir", sustantivo: GRUPO };
     // Línea por nivel: los niveles del eje son las categorías de su `cruce` (U5).
     if (name === "grupos" && valor.graficador === "p_lineas_nivel") {

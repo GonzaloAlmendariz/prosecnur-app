@@ -4,7 +4,7 @@ import {
   ayudaDeLaOpcion,
   textoAyuda,
   avisoParte, camposDeDatos, codigosATexto, conEtiquetaCorta, filasAPartes, leerEtiquetaCorta, mismasPartes, notaParte, partesAFilas,
-  textoACodigos, propiosDeAspecto,
+  textoACodigos, propiosDeAspecto, variableQueExcluye,
 } from "./argsDatosGrafico";
 
 const a = (name: string, tipo_input: ArgMetadata["tipo_input"], grupo: ArgMetadata["grupo"] = "datos"): ArgMetadata =>
@@ -225,5 +225,27 @@ describe("R6-4: la cabecera plegada de Aspecto cuenta lo propio que no es campo 
   it("«La más alta» cuenta como destacar; un gráfico que no destaca ni lleva letra no suma eso", () => {
     expect(propiosDeAspecto({ ...base, args: { overrides: { resaltar_mayor: true } } })).toEqual(["Destacar"]);
     expect(propiosDeAspecto({ graficador: "p_torta", conOrden: false, destacadas: null, args: { overrides: { size_ejes: 14 } } })).toEqual([]);
+  });
+});
+
+describe("R6-15: «Excluir grupos» en las barras con cruce", () => {
+  const args = [a("var", "variable"), a("cruces", "variable_opt"), a("excluir_grupos", "codigos_list", "filtro")];
+  const nombres = (g: string, v: Record<string, unknown>) => camposDeDatos(args, v, g).map((c) => c.arg.name);
+  it("aparece en la apilada y la agrupada con un cruce, y no sin él", () => {
+    expect(nombres("p_barras_apiladas", { var: "p1", cruces: ["sexo"] })).toContain("excluir_grupos");
+    expect(nombres("p_barras_agrupadas", { var: "p1", cruces: "sexo" })).toContain("excluir_grupos");
+    expect(nombres("p_barras_apiladas", { var: "p1" })).not.toContain("excluir_grupos");
+  });
+  it("en la multiapilada sólo con modo cruce o var_cruce", () => {
+    const multi = [...args, a("modo", "choice")];
+    const en = (v: Record<string, unknown>) => camposDeDatos(multi, v, "p_barras_multiapiladas").map((c) => c.arg.name);
+    expect(en({ modo: "cruce", var: "p1", cruces: ["sexo"] })).toContain("excluir_grupos");
+    expect(en({ modo: "var_cruce", vars: ["p1"], cruces: ["sexo"] })).toContain("excluir_grupos");
+    expect(en({ modo: "var", vars: ["p1"], cruces: ["sexo"] })).not.toContain("excluir_grupos");
+  });
+  it("la variable que lista: `grupo` primero; si no, el primer cruce", () => {
+    expect(variableQueExcluye("p_histograma", { grupo: "sexo", cruces: ["edad"] })).toBe("sexo");
+    expect(variableQueExcluye("p_barras_apiladas", { cruces: ["edad", "zona"] })).toBe("edad");
+    expect(variableQueExcluye("p_barras_multiapiladas", { modo: "var", cruces: ["edad"] })).toBe("");
   });
 });
