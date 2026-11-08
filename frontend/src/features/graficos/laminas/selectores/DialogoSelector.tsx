@@ -37,6 +37,11 @@ type Props = {
   /** Vista partida «Comparar»: si llega, ocupa el lugar de la galería y el detalle (opcional). */
   comparacion?: ReactNode;
   /**
+   * R9-19: una capa interna que Escape cierra antes que el diálogo (la vista «Comparar» vuelve a la lista). Si llega,
+   * Escape la llama y el selector sigue abierto; sin ella, Escape cierra el selector como siempre.
+   */
+  alEscape?: () => void;
+  /**
    * Adónde vuelve el foco si nadie lo abrió con un clic (se llegó por enlace) o si quien lo abrió ya no está: la lámina
    * o ranura del `foco` (`focoAlCerrar.ts`). Se resuelve al cerrar, con la lámina que quedó en pantalla.
    */
@@ -46,7 +51,7 @@ type Props = {
 
 export function DialogoSelector({
   abierto, onCerrar, panelProps, auditReady, antetitulo, titulo, descripcion, focoInicialRef, buscador, accion, modo, pregunta, galeria, detalle,
-  comparacion, destinoAlCerrar, className,
+  comparacion, alEscape, destinoAlCerrar, className,
 }: Props) {
   const anclaRef = useRef<HTMLSpanElement>(null);
   const destinoRef = useRef(destinoAlCerrar);
@@ -67,6 +72,11 @@ export function DialogoSelector({
             data-audit-ready={auditReady}
             data-qa-surface={`graficos/${auditReady}`}
             aria-modal="true"
+            onEscapeKeyDown={(e) => {
+              if (!alEscape) return;
+              e.preventDefault();
+              alEscape();
+            }}
           >
             <header className="pulso-f6-selector-cabecera">
               <div className="pulso-f6-selector-titulos">

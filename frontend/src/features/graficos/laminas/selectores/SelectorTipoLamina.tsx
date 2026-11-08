@@ -310,6 +310,8 @@ export function SelectorTipoLamina({ slide, posicion, cerrar, onArmarResumen }: 
       focoInicialRef={focoInicialRef}
       destinoAlCerrar={() => destinoAlCerrarEnDocumento(null)}
       modo={<ControlModoLamina modo={modo} hayLamina={!!slide} onModo={(m) => ui.cambiarModoLamina(m)} />}
+      // R9-19: en «Comparar», Escape vuelve a la lista; no cierra el selector entero.
+      alEscape={viendo ? () => ui.verComparacion(false) : undefined}
       comparacion={viendo ? (
         <VistaComparar
           columnas={comparar.map((op) => columnaComparar(op))}
