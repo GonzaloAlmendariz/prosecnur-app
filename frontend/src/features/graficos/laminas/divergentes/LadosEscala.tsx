@@ -17,7 +17,7 @@ import { Skeleton } from "../../../../components/Skeleton";
 import { CifraEstado } from "../cifrasInspector/CifraEstado";
 import { useDetalleCifras } from "../cifrasInspector/useDetalleCifras";
 import { useCifraEnVivo } from "../reglaPreguntas/useCifraEnVivo";
-import { bordeVisual, central, kDesdeBorde, leerLados, parcheLados, repartoLados, sustantivas, textoLados, trasClicCentral, type Lados } from "./modeloLados";
+import { bordeVisual, central, kDesdeBorde, leerLados, parcheLados, preguntaDeLados, repartoLados, sustantivas, textoLados, trasClicCentral, type Lados } from "./modeloLados";
 import "./ladosEscala.css";
 
 type Props = {
@@ -39,7 +39,13 @@ export function LadosEscala({ id, graficador, scope, args, onCambio, respaldo }:
   const arrastrando = useRef(false);
   // Las categorías salen del detalle de lo guardado (o del último que llegó).
   const base = useDetalleCifras(graficador, scope, [{ clave: "guardado", args }]).guardado;
-  const cats = sustantivas(base?.detalle ?? null);
+  // R8-8: el detalle que se conserva mientras llega el nuevo puede ser de OTRA pregunta (se cambió la pregunta): sus
+  // niveles no se muestran (~0,9 s con el texto anterior); la silueta, hasta que llegue el de la actual.
+  const pregunta = preguntaDeLados(args);
+  const preguntaDelDetalle = useRef<string | null>(null);
+  if (base?.vigente && base.detalle) preguntaDelDetalle.current = pregunta;
+  const ajeno = !!base && !base.vigente && preguntaDelDetalle.current !== null && preguntaDelDetalle.current !== pregunta;
+  const cats = ajeno ? [] : sustantivas(base?.detalle ?? null);
   const n = cats.length;
   const guardado = leerLados(args, Math.max(n, 2));
   const enVivo = useCifraEnVivo(guardado.k, `${n}|${guardado.direccion}|${guardado.incluirNeutro}`, (k) => onCambio(parcheLados({ ...guardado, k })));
@@ -49,7 +55,7 @@ export function LadosEscala({ id, graficador, scope, args, onCambio, respaldo }:
   // Mientras llega la primera cifra del borrador, la de lo guardado atenuada.
   const cifras = !enVivo.enVivo ? base : borrador && (borrador.detalle || borrador.vigente) ? borrador : base && { ...base, vigente: false };
   // Cargando: aún no llegó ningún detalle de lo guardado (ni uno anterior). Sin detalle: llegó y no hay.
-  const cargando = !!base && !base.sinDetalle && !base.detalle;
+  const cargando = !!base && !base.sinDetalle && (!base.detalle || ajeno);
   if (n < 2 && cargando) return <SiluetaLados />;
   if (n < 2) return <>{respaldo}</>;
 

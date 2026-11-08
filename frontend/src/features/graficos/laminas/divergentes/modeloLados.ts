@@ -92,3 +92,8 @@ export function textoLados(det: DetalleCifras | null): string | null {
   if (!neg || !pos) return null;
   return `Negativo ${neg}, Positivo ${pos}`;
 }
+
+/** R8-8: la pregunta de la divergente (`var` o `vars`), para saber de cuál es el detalle que se conserva. */
+export function preguntaDeLados(args: Readonly<Record<string, unknown>>): string {
+  return JSON.stringify([args.var ?? null, args.vars ?? null]);
+}

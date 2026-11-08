@@ -71,6 +71,20 @@ describe("Lados de la escala", () => {
     expect(asa().getAttribute("aria-valuenow")).toBe("2");
     expect(cifra()).toBe("Negativo 21%, Positivo 79%");
   });
+  it("R8-8: al cambiar de pregunta no se ven los niveles de la anterior; la silueta hasta que llega el detalle nuevo", async () => {
+    pintar({});
+    await esperar();
+    expect(host.querySelector('[data-qa="lados-silueta"]')).toBeNull();
+    pintar({ var: "p2" });
+    expect(host.querySelector('[data-qa="lados-silueta"]')).not.toBeNull();
+    expect(host.querySelector(".pulso-f6-lados-nivel")).toBeNull();
+    await esperar();
+    expect(host.querySelector('[data-qa="lados-silueta"]')).toBeNull();
+    // Mover el asa en la misma pregunta no vuelve a la silueta: el detalle anterior es de esta pregunta.
+    pintar({ var: "p2", n_negativas: 3 });
+    expect(host.querySelector('[data-qa="lados-silueta"]')).toBeNull();
+  });
+
   it("con la flecha el asa se mueve y la cifra se pide antes de confirmar; al rato se guarda", async () => {
     pintar({});
     await esperar();
