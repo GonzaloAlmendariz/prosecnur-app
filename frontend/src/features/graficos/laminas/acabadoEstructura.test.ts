@@ -255,3 +255,15 @@ describe("R9-7: «Armar desde un plan sugerido» en el dialecto del kit", () => 
     expect(popover).not.toMatch(/<button\b/);
   });
 });
+
+describe("R9-8: la maqueta no muestra un título generado como real", () => {
+  it("sin título escrito pinta el marcador «Título» atenuado, nunca el enunciado", () => {
+    const src = sinComentarios(leer("MaquetaLamina.tsx"));
+    expect(src).toMatch(/const tituloVisible = tituloDeLamina\(slide\.payload\) \|\| <span className="is-vacio">Título<\/span>;/);
+    expect(src).not.toMatch(/\btituloQueSale\(/);
+  });
+  it("el recorte a dos renglones no deja asomar el tercero por el relleno", () => {
+    const css = sinComentarios(leer("maquetaLamina.css"));
+    expect(css).toMatch(/\.pulso-f6-maqueta-zona\.pulso-f6-maqueta-titulo \{\s*padding-block: 0;/);
+  });
+});

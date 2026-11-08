@@ -89,6 +89,13 @@
   line-clamp: 2;
 }
 
+/* R9-8: el título editable es a la vez zona (con relleno) y caja recortada a dos renglones; el overflow recorta en la
+   caja de relleno, así que el relleno de abajo dejaba asomar la punta del tercer renglón. Sin relleno vertical, el corte
+   cae justo bajo el segundo. */
+.pulso-f6-maqueta-zona.pulso-f6-maqueta-titulo {
+  padding-block: 0;
+}
+
 .pulso-f6-maqueta-titulo-estructura {
   position: absolute;
   top: 40%;

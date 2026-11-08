@@ -29,7 +29,7 @@ import { useGraficosReportScope } from "../reportScope";
 import { datosEstructura } from "./maqueta/datosEstructura";
 import { varianteDe } from "./selectores/tiposLamina";
 import { camposTextoDe, ZonasTextoLamina, zonasPortada, type CampoTextoLamina } from "./ZonasTextoLamina";
-import { tituloQueSale } from "./tituloQueSale";
+import { tituloDeLamina } from "../rotuloLamina";
 import { antetituloQueSale, useAntetituloSeccionActivo } from "./antetituloQueSale";
 import { leerSlideMeta } from "../slideMeta";
 import { useTituloEnLienzo } from "./modeloTituloLienzo";
@@ -76,10 +76,10 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
   const formatoBase = typeof (presets.base as Record<string, unknown> | undefined)?.formato === "string" ? ((presets.base as Record<string, unknown>).formato as string) : undefined;
   const baseAuto = useMemo(() => baseAutomatica(slide, variables, formatoBase), [slide, variables, formatoBase]);
   const campos = camposTextoDe(slide.tipo, slidesById[slide.tipo]?.args, !estructura);
-  // El título que va a salir: el escrito o el de la pregunta del gráfico. Una lámina sin ninguno (varios temas sin
-  // enunciado) mostraba el nombre de su tipo, «Un gráfico», como si fuera su título; ahora se ve vacía, como el aviso pide.
-  // Sin ninguno, el marcador «Título», atenuado (hallazgo 12): el clic lo vuelve un campo vacío, sin título sugerido.
-  const tituloVisible = tituloQueSale(slide, variables, lamina.tipoLabel) || <span className="is-vacio">Título</span>;
+  // R9-8 (criterio del analista: ningún título generado se muestra como real): la maqueta sólo pinta el título ESCRITO.
+  // Sin él, el marcador «Título», atenuado (hallazgo 12); nunca el enunciado de la pregunta en el color del texto, que
+  // se leía como un título ya puesto. El clic lo vuelve un campo vacío, sin título sugerido.
+  const tituloVisible = tituloDeLamina(slide.payload) || <span className="is-vacio">Título</span>;
   const titulo = useTituloEnLienzo(slide);
   const conGrafico = ranuras.filter((r) => r.k !== null && r.graficador).length;
 
