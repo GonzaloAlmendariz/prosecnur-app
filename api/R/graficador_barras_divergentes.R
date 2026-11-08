@@ -149,7 +149,7 @@ graficar_barras_divergentes <- function(
 
     grosor_barras = 0.68,
     color_ejes = .std_color("azul"),
-    size_ejes = 9,
+    size_ejes = .std_pt("rotulo_categoria"),   # O3 (ola 3): el rótulo y la leyenda al cuerpo del estándar, como la apilada vecina
     size_valores = 3.0,
     color_texto_barras = "#FFFFFF",
     limite_x = NULL,
@@ -159,20 +159,23 @@ graficar_barras_divergentes <- function(
     color_subtitulo = .PULSO_COLOR_TEXTO,
     size_subtitulo = 9,
     color_nota_pie = .PULSO_COLOR_TEXTO,
-    size_nota_pie = 8,
+    size_nota_pie = .std_pt("base"),   # G-b (ola 3): «Base:» al cuerpo del estándar, como la apilada vecina
     textos_negrita = NULL,
     font_family = "Arial",
     reparto = NULL,
     codigos_grupos = NULL,
     estilo = c("recetario", "resumen"),
     orden = c("top_two_box", "sin_informacion", "declarado"),
-    ancho = NULL
+    ancho = NULL,
+    alto = NULL
 ) {
   escala_valor <- match.arg(escala_valor)
   estilo <- match.arg(estilo)
   orden <- match.arg(orden)
   leyenda_posicion <- match.arg(leyenda_posicion)
   face <- .graficos_face_de(textos_negrita)
+  # G-b (ola 3): sin elección del analista, las cifras van en negrita, como en la apilada y la lámina nativa.
+  if (is.null(textos_negrita)) { face0 <- face; face <- function(rol) if (identical(rol, "valores")) "bold" else face0(rol) }
 
   if (!is.data.frame(data) || !nrow(data)) {
     stop("`data` debe ser un data frame con al menos una fila.", call. = FALSE)
@@ -273,6 +276,13 @@ graficar_barras_divergentes <- function(
   colores <- .graficos_mk_palette(cols_porcentaje, pal_user = colores_grupos)
   names(colores) <- cols_porcentaje
   if (length(sin_inf) && is.null(colores_grupos)) colores[sin_inf] <- .graficos_no_sustantivo_color()
+  # O3 (ola 3): sin paleta del usuario, la de la escala del estándar (la de la especificación, la misma que la apilada y la
+  # lámina nativa), no la categórica en azules.
+  if (is.null(colores_grupos) && !is.null(espec_div) && !resumen) {
+    colores <- stats::setNames(as.character(espec_div$categorias$color), espec_div$categorias$col)[cols_porcentaje]
+    # Sobre los tonos claros de la escala la cifra blanca no se lee: va en el azul de texto, como en la apilada.
+    if (identical(toupper(color_texto_barras), "#FFFFFF")) color_texto_barras <- .std_color("azul")
+  }
   # Estilo resumen (ADR 0134 §4): la paleta Likert y los rótulos de la especificación, sin saldo, como la lámina nativa.
   if (resumen) {
     colores <- stats::setNames(as.character(espec_div$categorias$color), espec_div$categorias$col)[cols_porcentaje]
@@ -293,8 +303,19 @@ graficar_barras_divergentes <- function(
   }
   if (!is.finite(tope) || tope <= 0) tope <- 100
   tope_ejes <- tope   # las marcas del eje no siguen a la columna de «Sin información»
+  # G-c (ola 3): el lado izquierdo mide lo que llega el desacuerdo más largo, no lo mismo que el derecho: con el eje simétrico
+  # las barras empezaban a la mitad del lienzo y quedaba vacío el lado negativo. Un tope declarado (`limite_x`) se respeta.
+  izq <- if (is.finite(suppressWarnings(as.numeric(limite_x)[1]))) tope else .divergentes_tope_izquierdo(df, tope)
   col_si <- .divergentes_sin_inf_columna(df_si, df, tope); df_si <- col_si$df; tope <- col_si$tope   # graficador_divergentes_sin_inf.R
 
+  # O5 (ola 3): en una lámina baja la cifra que sale encima de su barra quedaba pegada a la barra de la fila de arriba; con el
+  # alto del lienzo la barra cede lo justo para dejar 0.03 in de aire (graficador_barras_divergentes_cifras.R).
+  if (isTRUE(mostrar_valores)) {
+    n_ley <- if (identical(leyenda_posicion, "ninguna") || !isTRUE(mostrar_leyenda)) 0L else
+      .divergentes_leyenda_filas(etiquetas[cols_porcentaje], size_ejes, ancho)
+    grosor_barras <- .divergentes_grosor_con_aire(df, df_si, grosor_barras, valores_decimales, size_valores * 72 / 25.4, size_ejes,
+                                                  tope, mostrar_saldo, ancho, alto, n_ley, izq = izq)
+  }
   p <- ggplot2::ggplot(
     df,
     ggplot2::aes(x = .data$.signo, y = .data$.item, fill = .data$.cat,
@@ -319,19 +340,25 @@ graficar_barras_divergentes <- function(
     lab$.lab <- .pulso_fmt_pct_half_up(lab$.valor, dec, escala = 1)
     # E1b (ola 2): ninguna cifra se oculta; la que no cabe va fuera con su guía (graficador_barras_divergentes_cifras.R).
     lab$.lab[!is.finite(lab$.valor) | lab$.valor <= 0] <- ""
-    if (nrow(df_si)) {
-      lab_si <- df_si; lab_si$.lab <- .pulso_fmt_pct_half_up(lab_si$.valor, dec, escala = 1)
-      lab_si$.lab[!is.finite(lab_si$.valor) | lab_si$.valor <= 0] <- ""
-      p <- p + ggplot2::geom_text(data = lab_si, ggplot2::aes(x = .data$.x, y = .data$.item, label = .data$.lab), inherit.aes = FALSE,
-                                  size = size_valores, colour = color_texto_barras, family = font_family, fontface = face("valores"))
-    }
     # E1b (ola 2): posiciones explícitas, medidas en pulgadas con el ancho del lienzo; dentro si caben, si no encima de
     # su barra con guía.
     size_pt <- size_valores * 72 / 25.4
-    rango_x <- 2 * tope * (if (isTRUE(mostrar_saldo)) 1.18 else 1) * 1.1
-    lab <- .divergentes_cifras_posiciones(lab, df, size_pt, .divergentes_in_por_unidad(ancho, levels(df$.item), size_ejes, rango_x),
-                                          grosor_barras)
+    rango_x <- (izq + tope * (if (isTRUE(mostrar_saldo)) 1.18 else 1)) * 1.1
+    in_u <- .divergentes_in_por_unidad(ancho, levels(df$.item), size_ejes, rango_x)
+    if (nrow(df_si)) {
+      lab_si <- df_si; lab_si$.lab <- .pulso_fmt_pct_half_up(lab_si$.valor, dec, escala = 1)
+      lab_si$.lab[!is.finite(lab_si$.valor) | lab_si$.valor <= 0] <- ""
+      # O3 (ola 3): la cifra de «Sin información» que no cabe en su columna sale encima con su guía (antes, blanca y cortada).
+      p <- .divergentes_sin_inf_cifras(p, lab_si, size_pt, in_u, grosor_barras, size_valores, color_texto_barras, color_ejes,
+                                       font_family, face("valores"))
+    }
+    lab <- .divergentes_cifras_posiciones(lab, df, size_pt, in_u, grosor_barras)
     dentro <- lab[lab$.dentro, , drop = FALSE]; fuera <- lab[!lab$.dentro & nzchar(lab$.lab), , drop = FALSE]
+    # La cifra de fuera del lado izquierdo que se corrió hacia afuera no queda fuera del eje (se borraría).
+    if (nrow(fuera) && any(fuera$.x < 0)) {
+      w_u <- (.ancho_texto_in(fuera$.lab, size_pt) + 0.06) / in_u
+      izq <- max(izq, max(-(fuera$.x - w_u / 2)[fuera$.x < 0]) * 1.03)
+    }
     p <- p + ggplot2::geom_text(
       data = dentro, ggplot2::aes(x = .data$.x, y = .data$.y, label = .data$.lab), inherit.aes = FALSE,
       size = size_valores, colour = color_texto_barras,
@@ -377,8 +404,8 @@ graficar_barras_divergentes <- function(
       labels = function(x) unname(etiquetas[x])
     ) +
     ggplot2::scale_x_continuous(
-      limits = c(-tope, tope),
-      breaks = function(l) { b <- pretty(c(-tope_ejes, tope_ejes)); b[abs(b) <= tope_ejes] },
+      limits = c(-izq, tope),
+      breaks = function(l) { b <- pretty(c(-tope_ejes, tope_ejes)); b[b <= tope_ejes & b >= -izq] },
       labels = function(x) paste0(.pulso_fmt_half_up(abs(x), 0), "%")
     ) +
     ggplot2::labs(
@@ -406,8 +433,18 @@ graficar_barras_divergentes <- function(
       panel.grid.minor = ggplot2::element_blank(),
       panel.grid.major.y = ggplot2::element_blank(),
       panel.grid.major.x = ggplot2::element_line(colour = "#E3E8EF", linewidth = 0.3),
+      # O3 (ola 3): sin fondo propio, el de la lámina (theme_minimal de ggplot2 4 pinta el lienzo de blanco).
+      plot.background = ggplot2::element_blank(),
+      # La leyenda se centra en el lienzo, no en el panel: centrada en el panel (corrido a la derecha por los rótulos) su
+      # última clave caía fuera del lienzo.
+      legend.location = "plot",
+      legend.background = ggplot2::element_blank(),
       plot.margin = ggplot2::margin(10, 16, 8, 12)
     )
+  # O3 (ola 3): con el cuerpo del estándar la leyenda de cinco niveles puede pasar del ancho del lienzo; la clave que cae fuera
+  # sale en el PPTX con geometría inválida (off 2147483647) y tapa la lámina. Se parte en las filas que hagan falta.
+  filas_ley <- .divergentes_leyenda_filas(etiquetas[if (resumen) setdiff(cols_porcentaje, sin_inf[-1]) else cols_porcentaje], size_ejes, ancho)
+  if (filas_ley > 1L) out <- out + ggplot2::guides(fill = ggplot2::guide_legend(nrow = filas_ley, byrow = TRUE))
   # Estilo resumen: los rótulos (enunciados enteros con varios públicos) van partidos en 4 in y hasta tres líneas con
   # «…»; enteros, el eje se quedaba con todo el ancho y el panel salía vacío (Arte, 2026-11-07).
   if (identical(estilo, "resumen")) {

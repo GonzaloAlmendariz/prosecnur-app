@@ -49,6 +49,13 @@
   if (length(fuera)) {
     w_u <- (.ancho_texto_in(lab$.lab[fuera], size_pt) + 0.06) / in_por_unidad
     names(w_u) <- fuera
+    # G-d (ola 3): ninguna cifra de fuera cruza la línea del cero: la de cada lado se queda entera en su lado.
+    margen0 <- 0.04 / in_por_unidad
+    for (k in seq_along(fuera)) {
+      r <- fuera[k]
+      if (lab$.lado[r] == "neu") next
+      if (lab$.x[r] < 0) lab$.x[r] <- min(lab$.x[r], -(w_u[k] / 2 + margen0)) else lab$.x[r] <- max(lab$.x[r], w_u[k] / 2 + margen0)
+    }
     for (it in unique(lab$.item[fuera])) for (neg in c(TRUE, FALSE)) {
       i <- fuera[lab$.item[fuera] == it & (lab$.x[fuera] < 0) == neg]
       if (length(i) < 2L) next
@@ -79,4 +86,48 @@
   a <- suppressWarnings(as.numeric(ancho)[1]); if (length(a) != 1L || !is.finite(a) || a <= 0) a <- 10
   col_rot <- max(c(0, .ancho_texto_in(as.character(rotulos), size_ejes))) + 0.3
   max(0.5, a - col_rot - 0.3) / max(1e-6, rango)
+}
+
+#' Grosor de la divergente imagen que deja aire entre una cifra de fuera y la barra de la fila de arriba (O5 ola 3)
+#'
+#' La cifra que no cabe en su segmento va encima de su barra (`.divergentes_cifras_posiciones`, 0.06 de fila sobre ella). En
+#' un lienzo bajo la fila mide ~0.45 in y la cifra de 14 pt llegaba a la barra de arriba. Con el alto del lienzo se mide la
+#' fila (el panel sin leyenda, eje, pie y márgenes, entre las filas más la expansión del eje discreto) y, sólo si alguna cifra
+#' de fuera tiene una fila encima, la barra baja lo justo para dejar `0.03 in`. Sin alto, el grosor no cambia.
+#' @return Grosor en unidades de fila.
+#' @keywords internal
+.divergentes_grosor_con_aire <- function(df, df_si, grosor, decimales, size_pt, size_ejes, tope, mostrar_saldo, ancho, alto, n_ley,
+                                         izq = tope) {
+  a <- suppressWarnings(as.numeric(alto)[1])
+  if (!length(a) || !is.finite(a) || a <= 0 || !nrow(df)) return(grosor)
+  n <- length(levels(df$.item) %||% unique(df$.item))
+  dec <- suppressWarnings(as.integer(decimales)[1]); if (!is.finite(dec) || dec < 0) dec <- 0L
+  lab <- df[df$.lado != "neu2", , drop = FALSE]
+  lab$.lab <- .pulso_fmt_pct_half_up(lab$.valor, dec, escala = 1)
+  lab$.lab[!is.finite(lab$.valor) | lab$.valor <= 0] <- ""
+  in_u <- .divergentes_in_por_unidad(ancho, levels(df$.item), size_ejes, (izq + tope * (if (isTRUE(mostrar_saldo)) 1.18 else 1)) * 1.1)
+  pos <- .divergentes_cifras_posiciones(lab, df, size_pt, in_u, grosor)
+  filas_fuera <- as.numeric(pos$.item[!pos$.dentro & nzchar(pos$.lab)])
+  if (!is.null(df_si) && nrow(df_si)) {
+    lsi <- .pulso_fmt_pct_half_up(df_si$.valor, dec, escala = 1)
+    afuera <- nzchar(lsi) & df_si$.valor > 0 & df_si$.w * in_u < .ancho_texto_in(lsi, size_pt) + 0.06
+    filas_fuera <- c(filas_fuera, as.numeric(df_si$.item[afuera]))
+  }
+  if (!any(filas_fuera < n)) return(grosor)   # sólo la fila de arriba: su cifra va al margen, no hay barra encima
+  panel <- a - (0.3 * n_ley + 0.3 + 0.25 + 0.25)
+  in_fila <- panel / (n + 1.2)
+  if (!is.finite(in_fila) || in_fila <= 0) return(grosor)
+  texto <- size_pt * 0.75 / 72   # alto de la tinta de «5%» (dígitos y signo, sin descendentes)
+  max(0.3, min(grosor, 1 - 0.06 - (texto + 0.03) / in_fila))
+}
+
+#' Límite izquierdo del eje de la divergente: lo que llega el desacuerdo más largo, con aire (G-c ola 3)
+#'
+#' El eje era simétrico (`-tope` a `tope`) y con poco desacuerdo la mitad izquierda del lienzo quedaba vacía. Ahora mide el
+#' lado negativo más largo más un 15 %, con un piso de un 12 % del tope para que se lean el cero y las cifras chicas.
+#' @keywords internal
+.divergentes_tope_izquierdo <- function(df, tope) {
+  neg <- df$.signo[df$.signo < 0]
+  largo <- if (length(neg)) max(stats::aggregate(abs(neg), by = list(df$.item[df$.signo < 0]), FUN = sum)$x) else 0
+  max(largo * 1.15, 0.12 * tope)
 }

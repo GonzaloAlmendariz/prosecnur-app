@@ -3267,6 +3267,10 @@ graficar_barras_apiladas <- function(
     w_extra <- w_extra_std
   }
 
+  # G-c (ola 3): el canal de rótulos mide lo que su rótulo más largo (graficador_barras_apiladas_canal.R); lo declarado es
+  # el tope y lo que sobra va a las barras.
+  canal <- .apiladas_canal_dinamico(w_etq, w_bars, etiquetas_vec, size_ejes_num, ancho_num, w_buf1)
+  w_etq <- canal$w_etq; w_bars <- canal$w_bars; w_buf1 <- canal$w_buf1
   x_legend_side0 <- if (identical(leyenda_posicion, "izquierda")) 0 else NA_real_
   x_group0 <- if (identical(leyenda_posicion, "izquierda")) w_legend_side else 0
   x_buf00  <- x_group0 + w_group
