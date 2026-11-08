@@ -20,7 +20,7 @@ import {
   Trash2,
   UsersRound,
   X,
-} from "lucide-react";
+} from "../../vendor/lucide-react";
 import { GraficadorRef } from "../../api/client";
 import { mergeMultiApiladasArgsPatch } from "./multiApiladasExtraBarModel";
 import { VarWithSource, formatVarRef, parseVarRef, useVariables } from "./useVariables";
@@ -44,6 +44,8 @@ import "./multiapiladas/multiapiladas.css";
 import { formatoConteo } from "../../lib/formatoNumero";
 import { CargaDeBloque } from "../../components/CargaDeBloque";
 import { textoPlano } from "./textoPlano";
+import { PulsoButton } from "../../components/PulsoButton";
+import { RadioSegmentado } from "./subpestanas/RadioSegmentado";
 
 type Props = {
   graf: GraficadorRef;
@@ -383,11 +385,12 @@ function MultiListBlocks({ args, onArgs, variables, multi, sourceCount, multiSou
 
   return (
     <BuilderSection title="Bloques verticales" hint="Cada bloque puede tener su propia escala. Un bloque no puede contener otros bloques.">
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div className="pulso-mapi-bloques">
         {normalized.map((block, index) => (
           <BlockEditor
             key={index}
             index={index}
+            ultimo={index === normalized.length - 1}
             block={block}
             variables={variables}
             multi={multi}
@@ -415,15 +418,10 @@ function MultiListBlocks({ args, onArgs, variables, multi, sourceCount, multiSou
         ))}
       </div>
       <div className="pulso-mapi-pie">
-        <button
-          type="button"
-          onClick={() => commit([...normalized, { modo: "var", vars: [] }])}
-          disabled={cupoBarras(conteo) < 1}
-          title={cupoBarras(conteo) < 1 ? MOTIVO_TOPE : undefined}
-          style={cupoBarras(conteo) < 1 ? { ...secondaryButtonStyle, opacity: 0.45, cursor: "default" } : secondaryButtonStyle}
-        >
-          <Plus size={12} /> Agregar bloque
-        </button>
+        <PulsoButton variant="secondary" size="sm" onClick={() => commit([...normalized, { modo: "var", vars: [] }])}
+          disabled={cupoBarras(conteo) < 1} title={cupoBarras(conteo) < 1 ? MOTIVO_TOPE : undefined}>
+          <Plus aria-hidden="true" /> Agregar bloque
+        </PulsoButton>
         <ConteoBarrasMultiapiladas conteo={conteo} />
       </div>
     </BuilderSection>
@@ -432,6 +430,7 @@ function MultiListBlocks({ args, onArgs, variables, multi, sourceCount, multiSou
 
 function BlockEditor({
   index,
+  ultimo,
   block,
   variables,
   multi,
@@ -446,6 +445,7 @@ function BlockEditor({
   onMove,
 }: {
   index: number;
+  ultimo: boolean;
   block: MultiBlock;
   variables: VarWithSource[];
   multi: boolean;
@@ -484,51 +484,44 @@ function BlockEditor({
   }
 
   return (
-    <div style={blockStyle}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <strong style={{ fontSize: "var(--pulso-type-body-size)" }}>Bloque {index + 1}</strong>
-        <div style={blockIntentSwitcherStyle} aria-label="Tipo de bloque">
-          {INTENTS.filter((item) => BLOQUE_SIN_GRUPOS.has(item.key) || item.key === blockIntent).map((item) => {
-            const active = item.key === blockIntent;
-            const disabled = item.requiresMulti && (!multi || sourceCount < 2);
-            return (
-              <button
-                key={item.key}
-                type="button"
-                disabled={disabled}
-                aria-pressed={active}
-                onClick={() => setBlockIntent(item.key)}
-                style={{
-                  ...blockIntentButtonStyle,
-                  ...(active ? blockIntentButtonActiveStyle : {}),
-                  ...(disabled ? blockIntentButtonDisabledStyle : {}),
-                }}
-              >
-                {item.corto}
-              </button>
-            );
-          })}
-        </div>
-        <button type="button" className="pulso-icon" onClick={() => onMove("up")} aria-label="Subir bloque"><ArrowUp size={12} /></button>
-        <button type="button" className="pulso-icon" onClick={() => onMove("down")} aria-label="Bajar bloque"><ArrowDown size={12} /></button>
-        <button type="button" className="pulso-icon pulso-icon-danger" onClick={onRemove} aria-label="Eliminar bloque"><Trash2 size={12} /></button>
+    <div className="pulso-mapi-bloque">
+      <div className="pulso-mapi-bloque-cabeza">
+        <strong className="pulso-mapi-bloque-titulo">Bloque {index + 1}</strong>
+        <RadioSegmentado<Intent>
+          etiqueta={`Tipo del bloque ${index + 1}`}
+          valor={blockIntent}
+          onCambiar={setBlockIntent}
+          opciones={INTENTS.filter((item) => BLOQUE_SIN_GRUPOS.has(item.key) || item.key === blockIntent).map((item) => ({
+            clave: item.key,
+            rotulo: item.corto,
+            deshabilitada: !!item.requiresMulti && (!multi || sourceCount < 2),
+            titulo: item.requiresMulti && (!multi || sourceCount < 2) ? multiSourceHint : undefined,
+          }))}
+        />
+        <span className="pulso-mapi-acciones">
+          <PulsoButton variant="icon" tone="quiet" size="sm" aria-label={`Subir el bloque ${index + 1}`} disabled={index === 0} onClick={() => onMove("up")}><ArrowUp aria-hidden="true" /></PulsoButton>
+          <PulsoButton variant="icon" tone="quiet" size="sm" aria-label={`Bajar el bloque ${index + 1}`} disabled={ultimo} onClick={() => onMove("down")}><ArrowDown aria-hidden="true" /></PulsoButton>
+          <PulsoButton variant="icon" tone="quiet" size="sm" intent="remove" aria-label={`Quitar el bloque ${index + 1}`} onClick={onRemove}><Trash2 aria-hidden="true" /></PulsoButton>
+        </span>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 100px", gap: 8 }}>
+      <div className="pulso-mapi-bloque-textos">
         <FieldLabel label="Título del bloque" compact>
-          <input value={title} onChange={(e) => onChange({ titulo: e.target.value })} style={inputStyle} />
+          <input className="pulso-f6-input" value={title} onChange={(e) => onChange({ titulo: e.target.value })} />
         </FieldLabel>
         <FieldLabel label="Subtítulo" compact>
-          <input value={subtitle} onChange={(e) => onChange({ subtitulo: e.target.value })} style={inputStyle} />
+          <input className="pulso-f6-input" value={subtitle} onChange={(e) => onChange({ subtitulo: e.target.value })} />
         </FieldLabel>
-        <FieldLabel label="Altura" compact help="Opcional. Cuánto alto ocupa este bloque frente a los demás.">
+        <FieldLabel label="Altura" compact>
           <input
+            className="pulso-f6-input"
             type="number"
             min={0.1}
             step={0.1}
             value={height}
+            placeholder="Auto"
+            title="Opcional. Cuánto alto ocupa este bloque frente a los demás."
             onChange={(e) => onChange({ altura_rel: e.target.value === "" ? null : Number(e.target.value) })}
-            style={inputStyle}
           />
         </FieldLabel>
       </div>
@@ -540,7 +533,7 @@ function BlockEditor({
         </>
       )}
       {blockIntent === "pregunta_grupos" && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        <div className="pulso-mapi-par">
           <FieldLabel label="Pregunta" compact>
             <SingleVarSelect value={typeof block.var === "string" ? block.var : ""} onChange={(v) => onChange({ modo: "cruce", var: v })} variables={variables} multi={multi} />
           </FieldLabel>
@@ -596,22 +589,19 @@ type BuilderSectionProps = {
 
 function BuilderSection({ title, hint, children }: { title: string; hint: string; children: React.ReactNode }) {
   return (
-    <section style={panelStyle}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-        <ListPlus size={14} color="var(--pulso-primary)" />
-        <strong style={{ fontSize: "var(--pulso-type-body-size)" }}>{title}</strong>
-      </div>
-      <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", lineHeight: 1.45, marginBottom: 10 }}>{hint}</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{children}</div>
+    <section className="pulso-mapi-seccion">
+      <h3 className="pulso-mapi-seccion-titulo"><ListPlus aria-hidden="true" />{title}</h3>
+      <p className="pulso-mapi-seccion-ayuda">{hint}</p>
+      <div className="pulso-mapi-seccion-cuerpo">{children}</div>
     </section>
   );
 }
 
 function FieldLabel({ label, help, compact, children }: { label: string; help?: string; compact?: boolean; children: React.ReactNode }) {
   return (
-    <label style={{ display: "flex", flexDirection: "column", gap: compact ? 3 : 5 }}>
-      <span style={{ fontSize: compact ? 10 : 11, fontWeight: 700, color: "var(--pulso-text)" }}>{label}</span>
-      {help && <span style={{ fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)", lineHeight: 1.35 }}>{help}</span>}
+    <label className={`pulso-mapi-campo${compact ? " is-compacto" : ""}`}>
+      <span className="pulso-mapi-campo-rotulo">{label}</span>
+      {help && <span className="pulso-mapi-campo-ayuda">{help}</span>}
       {children}
     </label>
   );
@@ -644,22 +634,31 @@ function MultiVarPicker({
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 5, minHeight: compact ? 22 : 28 }}>
-        {value.length === 0 && <span style={hintStyle}>Ninguna pregunta seleccionada.</span>}
-        {value.map((ref, index) => {
-          const info = findVar(ref, variables, multi);
-          return (
-            <span key={`${ref}-${index}`} style={chipStyle} aria-label={info?.label ?? ref}>
-              <span style={chipLabelStyle}>{info?.label ?? displayRef(ref, multi)}</span>
-              <code style={chipCodeStyle}>{displayRef(ref, multi)}</code>
-              <button type="button" className="pulso-icon" onClick={() => move(index, -1)} aria-label="Subir"><ArrowUp size={10} /></button>
-              <button type="button" className="pulso-icon" onClick={() => move(index, 1)} aria-label="Bajar"><ArrowDown size={10} /></button>
-              <button type="button" className="pulso-icon pulso-icon-danger" onClick={() => onChange(value.filter((_, i) => i !== index))} aria-label="Quitar"><Trash2 size={10} /></button>
-            </span>
-          );
-        })}
-      </div>
+    <div className="pulso-mapi-picker">
+      {value.length === 0 ? <span className="pulso-mapi-vacio">Ninguna pregunta seleccionada.</span> : (
+        // R9-1: una fila por pregunta a todo el ancho, con su público al lado: dos enunciados iguales de públicos
+        // distintos ya no se leen como la misma pregunta.
+        <ol className={`pulso-mapi-lista${multi ? " con-publico" : ""}`} aria-label="Preguntas elegidas">
+          {value.map((ref, index) => {
+            const info = findVar(ref, variables, multi);
+            const { source, name } = parseVarRef(ref);
+            const etiqueta = info?.label ?? name;
+            const nombre = displayRef(ref, multi);
+            return (
+              <li key={`${ref}-${index}`} className="pulso-mapi-fila">
+                {multi && <span className="pulso-mapi-fila-publico">{source ? rotuloFuente(source) : ""}</span>}
+                <span className="pulso-mapi-fila-etiqueta" title={etiqueta}>{etiqueta}</span>
+                <code className="pulso-mapi-fila-codigo">{name}</code>
+                <span className="pulso-mapi-acciones">
+                  <PulsoButton variant="icon" tone="quiet" size="sm" aria-label={`Subir ${nombre}`} disabled={index === 0} onClick={() => move(index, -1)}><ArrowUp aria-hidden="true" /></PulsoButton>
+                  <PulsoButton variant="icon" tone="quiet" size="sm" aria-label={`Bajar ${nombre}`} disabled={index === value.length - 1} onClick={() => move(index, 1)}><ArrowDown aria-hidden="true" /></PulsoButton>
+                  <PulsoButton variant="icon" tone="quiet" size="sm" intent="remove" aria-label={`Quitar ${nombre}`} onClick={() => onChange(value.filter((_, i) => i !== index))}><X aria-hidden="true" /></PulsoButton>
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      )}
       <VariableRespondentSummary refs={value} variables={variables} multi={multi} />
       <VariableChoicePopover
         variables={variables}
@@ -813,7 +812,6 @@ function VariableChoicePopover({
       <button
         type="button"
         className={`pulso-gv2-variable-trigger ${selected ? "has-value" : ""}`}
-        style={compact ? compactVariableTriggerStyle : undefined}
         onClick={toggleOpen}
         disabled={!!bloqueo}
         title={bloqueo}
@@ -952,9 +950,9 @@ function TitlesEditor({
 }) {
   if (!keys.length) return null;
   return (
-    <details style={{ border: "1px solid var(--pulso-border)", borderRadius: 7, padding: "7px 9px", background: "var(--pulso-surface)" }}>
-      <summary style={{ cursor: "pointer", fontSize: "var(--pulso-type-caption-size)", fontWeight: 700 }}>Títulos de los bloques</summary>
-      <div style={{ display: "flex", flexDirection: "column", gap: 7, marginTop: 8 }}>
+    <details className="pulso-mapi-plegable">
+      <summary>Títulos de los bloques</summary>
+      <div className="pulso-mapi-plegable-cuerpo">
         {keys.map((key) => {
           const info = findVar(key, variables, multi);
           return (
@@ -963,7 +961,7 @@ function TitlesEditor({
                 value={titles[key] ?? ""}
                 placeholder={info?.label ?? key}
                 onChange={(e) => onChange({ ...titles, [key]: e.target.value })}
-                style={inputStyle}
+                className="pulso-f6-input"
               />
             </FieldLabel>
           );
@@ -978,8 +976,8 @@ type Top2BoxScope = { refs: string[]; variables: VarWithSource[]; multi: boolean
 function BlockSettings({ block, onChange, refs, variables, multi, laminaArgs }: { block: MultiBlock; onChange: (patch: MultiBlock) => void } & Top2BoxScope) {
   const categorias = categoriasDeEscala(refs, (ref) => findVar(ref, variables, multi));
   return (
-    <details style={detailsStyle}>
-      <summary style={summaryStyle}>Ajustes de este bloque</summary>
+    <details className="pulso-mapi-plegable">
+      <summary>Ajustes de este bloque</summary>
       <BarraExtraBloque block={block} laminaArgs={laminaArgs} categorias={categorias} onChange={onChange} />
     </details>
   );
@@ -989,8 +987,8 @@ function ScaleInline({ refs, variables, multi }: { refs: string[]; variables: Va
   const scale = scaleSummary(refs, variables, multi);
   if (!refs.length) return null;
   return (
-    <div style={{ ...inlineStatusStyle, borderColor: toneColor(scale.tone), color: toneColor(scale.tone) }}>
-      {scale.tone === "ok" ? <CheckCircle2 size={13} /> : <AlertCircle size={13} />}
+    <div className="pulso-mapi-escala" data-tono={scale.tone}>
+      {scale.tone === "ok" ? <CheckCircle2 aria-hidden="true" /> : <AlertCircle aria-hidden="true" />}
       <span>{scale.message}</span>
     </div>
   );
@@ -998,11 +996,9 @@ function ScaleInline({ refs, variables, multi }: { refs: string[]; variables: Va
 
 function RequirementPanel({ title, text }: { title: string; text: string }) {
   return (
-    <div style={{ ...panelStyle, borderColor: "var(--pulso-warn-border)", background: "#fff9eb" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700, fontSize: "var(--pulso-type-subtitle-size)" }}>
-        <AlertCircle size={14} /> {title}
-      </div>
-      <div style={{ fontSize: "var(--pulso-type-subtitle-size)", color: "var(--pulso-text-soft)", lineHeight: 1.45, marginTop: 6 }}>{text}</div>
+    <div className="pulso-mapi-requisito" role="note">
+      <strong><AlertCircle aria-hidden="true" /> {title}</strong>
+      <p>{text}</p>
     </div>
   );
 }
@@ -1207,7 +1203,12 @@ function slugKey(text: string): string {
 function displayRef(ref: string, multi: boolean): string {
   const { source, name } = parseVarRef(ref);
   if (!multi || !source) return name;
-  return `${name} (${source.charAt(0).toUpperCase()}${source.slice(1).replace(/_/g, " ")})`;
+  return `${name} (${rotuloFuente(source)})`;
+}
+
+/** El público legible: «docentes» → «Docentes», «jefe_practica» → «Jefe practica». */
+function rotuloFuente(source: string): string {
+  return `${source.charAt(0).toUpperCase()}${source.slice(1).replace(/_/g, " ")}`;
 }
 
 function friendlyVarType(tipo: string) {
@@ -1221,163 +1222,5 @@ function friendlyVarType(tipo: string) {
   if (normalized.includes("date")) return "fecha";
   return normalized.replaceAll("_", " ");
 }
-
-function toneColor(tone: Tone | ValidationIssue["kind"]) {
-  if (tone === "idle") return "var(--pulso-text-soft)";
-  if (tone === "ok") return "var(--pulso-success-fg, #157347)";
-  if (tone === "error") return "var(--pulso-danger-fg, #b42318)";
-  return "var(--pulso-warn-fg, #96620f)";
-}
-
-const panelStyle: React.CSSProperties = {
-  border: "1px solid var(--pulso-border)",
-  borderRadius: 8,
-  background: "white",
-  padding: 12,
-};
-
-const blockStyle: React.CSSProperties = {
-  border: "1px solid var(--pulso-border)",
-  borderRadius: 8,
-  background: "var(--pulso-surface)",
-  padding: 10,
-  display: "flex",
-  flexDirection: "column",
-  gap: 9,
-};
-
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  border: "1px solid var(--pulso-border)",
-  borderRadius: 5,
-  padding: "6px 8px",
-  fontSize: "var(--pulso-type-body-size)",
-  background: "white",
-  color: "var(--pulso-text)",
-};
-
-const secondaryButtonStyle: React.CSSProperties = {
-  alignSelf: "flex-start",
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 6,
-  border: "1px solid var(--pulso-border)",
-  borderRadius: 6,
-  background: "white",
-  padding: "7px 10px",
-  fontSize: "var(--pulso-type-body-size)",
-  cursor: "pointer",
-};
-
-const chipStyle: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 4,
-  border: "1px solid var(--pulso-primary-border)",
-  background: "var(--pulso-primary-soft)",
-  color: "var(--pulso-primary)",
-  borderRadius: 6,
-  padding: "3px 5px",
-  fontSize: "var(--pulso-type-caption-size)",
-};
-
-const chipLabelStyle: React.CSSProperties = {
-  maxWidth: 220,
-  color: "var(--pulso-text)",
-  fontWeight: 800,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-};
-
-const chipCodeStyle: React.CSSProperties = {
-  maxWidth: 132,
-  padding: "1px 5px",
-  border: "1px solid color-mix(in srgb, var(--pulso-primary-border) 48%, var(--pulso-border))",
-  borderRadius: 999,
-  background: "rgba(255, 255, 255, 0.72)",
-  color: "var(--pulso-text-soft)",
-  fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-  fontSize: "var(--pulso-type-micro-size)",
-  fontWeight: 800,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-};
-
-const compactVariableTriggerStyle: React.CSSProperties = {
-  minHeight: 38,
-  padding: "5px 8px",
-  borderRadius: 10,
-};
-
-const blockIntentSwitcherStyle: React.CSSProperties = {
-  flex: 1,
-  minWidth: 0,
-  display: "flex",
-  flexWrap: "wrap",
-  gap: 5,
-};
-
-const blockIntentButtonStyle: React.CSSProperties = {
-  minHeight: 26,
-  padding: "4px 8px",
-  border: "1px solid var(--pulso-border)",
-  borderRadius: 999,
-  background: "rgba(255, 255, 255, 0.76)",
-  color: "var(--pulso-text-soft)",
-  fontSize: "var(--pulso-type-micro-size)",
-  fontWeight: 700,
-  cursor: "pointer",
-};
-
-const blockIntentButtonActiveStyle: React.CSSProperties = {
-  borderColor: "color-mix(in srgb, var(--pulso-primary) 42%, var(--pulso-border))",
-  background: "color-mix(in srgb, var(--pulso-primary-soft) 72%, #ffffff)",
-  color: "var(--pulso-primary)",
-};
-
-const blockIntentButtonDisabledStyle: React.CSSProperties = {
-  opacity: 0.48,
-  cursor: "not-allowed",
-};
-
-const hintStyle: React.CSSProperties = {
-  fontSize: "var(--pulso-type-caption-size)",
-  color: "var(--pulso-text-soft)",
-  fontStyle: "italic",
-};
-
-const inlineStatusStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 7,
-  border: "1px solid",
-  borderRadius: 7,
-  padding: "7px 9px",
-  fontSize: "var(--pulso-type-caption-size)",
-  background: "white",
-};
-
-const detailsStyle: React.CSSProperties = {
-  border: "1px solid var(--pulso-border)",
-  borderRadius: 7,
-  padding: "7px 9px",
-  background: "var(--pulso-surface)",
-};
-
-const summaryStyle: React.CSSProperties = {
-  cursor: "pointer",
-  fontSize: "var(--pulso-type-caption-size)",
-  fontWeight: 700,
-};
-
-const toggleStyle: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 7,
-  fontSize: "var(--pulso-type-subtitle-size)",
-  fontWeight: 600,
-};
 
 export { isDefaultTopicTitle as _isDefaultTopicTitle };

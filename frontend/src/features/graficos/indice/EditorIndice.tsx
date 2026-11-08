@@ -6,6 +6,7 @@
 import { useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { AlertTriangle, ArrowDown, ArrowUp, Ban, Info, ListOrdered, Plus, Sparkles, Trash2 } from "../../../vendor/lucide-react";
 import type { Slide } from "../../../api/graficos";
+import { PulsoButton } from "../../../components/PulsoButton";
 import { usePanelDireccionable } from "../../../lib/navegacion/paneles";
 import { construirEstructura, type EstructuraInforme } from "../laminas/modeloEstructura";
 import { ATRIBUTO_ACCION_ORDEN, enfocarTrasMover } from "../laminas/ordenCategorias";
@@ -141,16 +142,16 @@ export function EditorIndiceVista({ indice, estructura, onAplicar: aplicar, onAb
         </p>
       )}
       <div className="pulso-f6-indice-tomar">
-        <button
-          type="button"
-          className="pulso-f6-boton"
+        <PulsoButton
+          variant="secondary"
+          size="sm"
           aria-disabled={capitulosInforme === 0 || undefined}
           aria-describedby={capitulosInforme === 0 ? idMotivo : undefined}
           onClick={() => { if (capitulosInforme > 0) tomar(); }}
         >
-          <ListOrdered size={15} aria-hidden="true" />
+          <ListOrdered aria-hidden="true" />
           Tomar los capítulos del informe
-        </button>
+        </PulsoButton>
         {capitulosInforme === 0 && (
           <span id={idMotivo} className="pulso-f6-ayuda-texto">El informe todavía no tiene separadores de capítulo.</span>
         )}
@@ -212,17 +213,17 @@ export function EditorIndiceVista({ indice, estructura, onAplicar: aplicar, onAb
                       value={c.titulo}
                       onChange={(e) => aplicar(conCapitulo(indice, i, { titulo: e.target.value }))}
                     />
-                    <button type="button" className="pulso-f6-icono-boton" {...{ [ATRIBUTO_ACCION_ORDEN]: "subir" }}
+                    <PulsoButton variant="icon" tone="quiet" size="sm" {...{ [ATRIBUTO_ACCION_ORDEN]: "subir" }}
                       aria-label={`Subir «${nombre}»`} disabled={i === 0} onClick={() => mover(i, i - 1, "subir")}>
-                      <ArrowUp size={14} aria-hidden="true" />
-                    </button>
-                    <button type="button" className="pulso-f6-icono-boton" {...{ [ATRIBUTO_ACCION_ORDEN]: "bajar" }}
+                      <ArrowUp aria-hidden="true" />
+                    </PulsoButton>
+                    <PulsoButton variant="icon" tone="quiet" size="sm" {...{ [ATRIBUTO_ACCION_ORDEN]: "bajar" }}
                       aria-label={`Bajar «${nombre}»`} disabled={i === n - 1} onClick={() => mover(i, i + 1, "bajar")}>
-                      <ArrowDown size={14} aria-hidden="true" />
-                    </button>
-                    <button type="button" className="pulso-f6-icono-boton" aria-label={`Quitar «${nombre}»`} onClick={() => quitar(i)}>
-                      <Trash2 size={14} aria-hidden="true" />
-                    </button>
+                      <ArrowDown aria-hidden="true" />
+                    </PulsoButton>
+                    <PulsoButton variant="icon" tone="quiet" size="sm" intent="remove" aria-label={`Quitar «${nombre}»`} onClick={() => quitar(i)}>
+                      <Trash2 aria-hidden="true" />
+                    </PulsoButton>
                   </div>
                   <SubcapitulosEditor
                     numeroCapitulo={i + 1}
@@ -237,17 +238,18 @@ export function EditorIndiceVista({ indice, estructura, onAplicar: aplicar, onAb
         </>
       )}
 
-      <button
-        type="button"
-        className="pulso-f6-boton pulso-f6-indice-anadir"
+      <PulsoButton
+        variant="secondary"
+        size="sm"
+        className="pulso-f6-indice-anadir"
         onClick={() => {
           aplicar(conCapituloNuevo(indice));
           requestAnimationFrame(() => filas.current.get(n)?.querySelector<HTMLInputElement>("input")?.focus());
         }}
       >
-        <Plus size={15} aria-hidden="true" />
+        <Plus aria-hidden="true" />
         Añadir capítulo
-      </button>
+      </PulsoButton>
       <span className="pulso-sr-only" aria-live="polite">{anuncio}</span>
     </section>
   );

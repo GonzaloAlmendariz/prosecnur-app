@@ -5,6 +5,8 @@
 // casi nada»): debajo de la fila va una explicación corta de la opción elegida —un boceto de cómo sale el gráfico, qué
 // es cada barra y un ejemplo—, no un párrafo más.
 
+import { RadioSegmentado } from "../subpestanas/RadioSegmentado";
+
 /** Boceto de la opción: bloques (con título o sin él) y, en cada uno, los rótulos de sus barras. */
 export type BocetoQueCompara = { bloques: { titulo?: string; filas: string[] }[] };
 
@@ -54,15 +56,17 @@ export function QueCompara({ opciones, activa, onElegir }: { opciones: readonly 
   const actual = opciones.find((o) => o.key === activa);
   return (
     <div className="pulso-mapi-quecompara">
-      <span className="pulso-mapi-rotulo" id="pulso-mapi-quecompara">Qué compara</span>
-      <div className="pulso-mapi-segmentos" role="group" aria-labelledby="pulso-mapi-quecompara">
-        {opciones.map((o) => (
-          <button key={o.key} type="button" className="pulso-mapi-segmento" aria-pressed={o.key === activa}
-                  disabled={!!o.deshabilitada} title={o.deshabilitada ?? o.descripcion} onClick={() => onElegir(o.key)}>
-            {o.titulo}
-          </button>
-        ))}
-      </div>
+      <span className="pulso-mapi-rotulo" aria-hidden="true">Qué compara</span>
+      {/* R9-1: el segmentado del kit (RadioSegmentado), en partes iguales a todo el ancho; un rótulo largo parte línea. */}
+      <RadioSegmentado
+        etiqueta="Qué compara"
+        ancho
+        multilinea
+        valor={activa}
+        onCambiar={onElegir}
+        qaGrupo="graficos/mapi-que-compara"
+        opciones={opciones.map((o) => ({ clave: o.key, rotulo: o.titulo, titulo: o.deshabilitada ?? o.descripcion, deshabilitada: !!o.deshabilitada }))}
+      />
       {actual && (
         <div className="pulso-mapi-explica">
           {actual.boceto && <Boceto boceto={actual.boceto} />}

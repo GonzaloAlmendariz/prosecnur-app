@@ -23,21 +23,21 @@ const render = (temas: TemaPublicos[], cupo?: number) => renderToStaticMarkup(cr
 describe("«Públicos por tema» respeta el tope de seis barras", () => {
   it("con lugar, «Agregar tema» está activo y el conteo va a su lado", () => {
     const html = render([lleno(1)], 3);
-    expect(html).toMatch(/<button type="button" class="pulso-f6-boton pulso-mapi-agregar">/);
+    expect(html).toMatch(/<button type="button" class="pulso-button pulso-button--secondary pulso-button--sm pulso-mapi-agregar">/);
     expect(html).toContain("N de 6 barras");
   });
   it("con seis barras, «Agregar tema» se apaga y dice por qué", () => {
     const html = render([lleno(1), lleno(2)], 0);
-    expect(html).toMatch(/pulso-mapi-agregar" disabled="" title="Una multiapilada lleva hasta 6 barras\."/);
+    expect(html).toMatch(/<button disabled="" title="Una multiapilada lleva hasta 6 barras\." type="button" class="[^"]*pulso-mapi-agregar"/);
   });
   it("sin cupo, una línea vacía no ofrece selector, sugerencia ni lote", () => {
     const html = render([lleno(1), { key: "tema_2", title: "Tema 2", vars: ["docentes$p2"] }], 0);
     expect(html).toContain("Ya hay 6 barras.");
     expect(html).not.toContain("pulso-mapi-sugerencia");
-    expect(html).toMatch(/pulso-mapi-completar" disabled=""/);
+    expect(html).toMatch(/<button disabled=""[^>]*class="[^"]*pulso-mapi-completar"/);
   });
   it("sin tope declarado se comporta como antes", () => {
     const html = render([lleno(1), lleno(2), lleno(3)]);
-    expect(html).toMatch(/<button type="button" class="pulso-f6-boton pulso-mapi-agregar">/);
+    expect(html).toMatch(/<button type="button" class="pulso-button pulso-button--secondary pulso-button--sm pulso-mapi-agregar">/);
   });
 });

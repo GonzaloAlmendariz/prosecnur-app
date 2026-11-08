@@ -4,9 +4,10 @@
 
 import * as Dialog from "@radix-ui/react-dialog";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { AlertTriangle, Ban, Loader2, RefreshCw, Search, Sparkles, X } from "../../../vendor/lucide-react";
+import { AlertTriangle, Ban, Loader2, RefreshCw, Search, Sparkles } from "../../../vendor/lucide-react";
 import { apiGraficosElegirIconos, type ContextoIcono, type EleccionIcono } from "../../../api/graficosRecursos";
 import { PulsoButton } from "../../../components/PulsoButton";
+import { BotonCerrar } from "../../../components/BotonCerrar";
 import { usePanelDireccionable } from "../../../lib/navegacion/paneles";
 import { PANEL_ICONOS } from "../panelesGraficos";
 import { useLibraryDialogA11y } from "../useLibraryDialogA11y";
@@ -120,8 +121,8 @@ export function ContenidoBiblioteca({ panelProps, numero, titulo, actual, onCerr
             {actual === null ? "El índice no tiene capítulos: añade uno para elegir su ícono." : titulo ? `«${titulo}»` : t.sinTitulo}
           </Dialog.Description>
         </div>
-        <Dialog.Close className="pulso-f6-icono-boton pulso-f6-selector-cerrar" aria-label="Cerrar sin cambiar">
-          <X size={16} aria-hidden="true" />
+        <Dialog.Close asChild>
+          <BotonCerrar className="pulso-f6-selector-cerrar" aria-label="Cerrar sin cambiar" />
         </Dialog.Close>
       </header>
 
@@ -184,9 +185,9 @@ export function ContenidoBiblioteca({ panelProps, numero, titulo, actual, onCerr
             <p className="pulso-f6-iconos-estado is-error" role="alert">
               <AlertTriangle size={14} aria-hidden="true" />
               <span>No se pudo leer la biblioteca: {iconos.error}</span>
-              <button type="button" className="pulso-f6-texto-boton" onClick={iconos.reintentar}>
-                <RefreshCw size={12} aria-hidden="true" /> Reintentar
-              </button>
+              <PulsoButton variant="link" size="sm" onClick={iconos.reintentar}>
+                <RefreshCw aria-hidden="true" /> Reintentar
+              </PulsoButton>
             </p>
           ) : iconos.nombres === null ? (
             <CargaDeBloque label="Cargando íconos…" />

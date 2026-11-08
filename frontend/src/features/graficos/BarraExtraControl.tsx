@@ -10,6 +10,7 @@ import { AyudaGlobo } from "./laminas/AyudaGlobo";
 import { useId, useState } from "react";
 import { Loader2, RefreshCw } from "../../vendor/lucide-react";
 import { Switch } from "../../components/Switch";
+import { PulsoButton } from "../../components/PulsoButton";
 import {
   alternarOpcion,
   AYUDA_OPCION,
@@ -134,7 +135,7 @@ export function BarraExtraControl({
 
       {heredada && <p className="pulso-barra-extra-nota" data-qa={`${qa}-heredada`}>{heredada}</p>}
       {restablecer && (
-        <button type="button" className="pulso-f6-texto-boton pulso-barra-extra-restablecer" onClick={restablecer.onClick}>{restablecer.rotulo}</button>
+        <PulsoButton variant="ghost" size="sm" className="pulso-barra-extra-restablecer" onClick={restablecer.onClick}>{restablecer.rotulo}</PulsoButton>
       )}
     </div>
   );
@@ -159,7 +160,7 @@ function CategoriasDeBox({ caja, escala, etiquetas, delInforme, onChange }: {
     return (
       <p className="pulso-barra-extra-estado is-error" role="alert">
         {escala.mensaje}{" "}
-        <button type="button" className="pulso-f6-texto-boton" onClick={escala.reintentar}><RefreshCw size={12} aria-hidden="true" /> Reintentar</button>
+        <PulsoButton variant="link" size="sm" onClick={escala.reintentar}><RefreshCw aria-hidden="true" /> Reintentar</PulsoButton>
       </p>
     );
   }

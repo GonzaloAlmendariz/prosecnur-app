@@ -14,6 +14,7 @@ import { buscar, conRef, nombrePublico, refDePublico, otraEscala, type TemaPubli
 import { cabeOtroTema, MAX_BARRAS_MULTIAPILADAS, MOTIVO_TOPE } from "./topeBarras";
 import { aplicablesEnLote, SIN_MATRIZ, sugerenciasDeTema, type FuentesMatriz, type SugerenciaPublico } from "./sugerenciasMatriz";
 import { formatoConteo } from "../../../lib/formatoNumero";
+import { PulsoButton } from "../../../components/PulsoButton";
 
 export { conRef, nombrePublico, otraEscala, refDePublico, type TemaPublicos };
 
@@ -80,15 +81,15 @@ export function TemasPorPublico({ temas, publicos, variables, onChange, nuevoTem
                    onChange={(e) => onChange(lista.map((t, j) => (j === i ? { ...t, title: e.target.value } : t)))} />
             <span className="pulso-mapi-acciones">
               {lote.length > 0 && (
-                <button type="button" className="pulso-f6-boton pulso-mapi-completar" onClick={() => aplicar(lote)}
+                <PulsoButton variant="secondary" size="sm" className="pulso-mapi-completar" onClick={() => aplicar(lote)}
                         disabled={!loteCabe} title={loteCabe ? undefined : MOTIVO_TOPE}
                         aria-label={`Completar con la matriz ${lote.length === 1 ? "el público vacío" : `los ${formatoConteo(lote.length)} públicos vacíos`} de ${tema.title.trim() || "este tema"}`}>
-                  <Link2 size={12} aria-hidden="true" /> Completar con la matriz
-                </button>
+                  <Link2 aria-hidden="true" /> Completar con la matriz
+                </PulsoButton>
               )}
-              <button type="button" className="pulso-f6-icono-boton" aria-label="Subir el tema" disabled={i === 0} onClick={() => mover(i, -1)}><ArrowUp size={12} aria-hidden="true" /></button>
-              <button type="button" className="pulso-f6-icono-boton" aria-label="Bajar el tema" disabled={i === lista.length - 1} onClick={() => mover(i, 1)}><ArrowDown size={12} aria-hidden="true" /></button>
-              <button type="button" className="pulso-f6-icono-boton" aria-label="Quitar el tema" onClick={() => onChange(lista.filter((_, j) => j !== i))}><X size={12} aria-hidden="true" /></button>
+              <PulsoButton variant="icon" tone="quiet" size="sm" aria-label="Subir el tema" disabled={i === 0} onClick={() => mover(i, -1)}><ArrowUp aria-hidden="true" /></PulsoButton>
+              <PulsoButton variant="icon" tone="quiet" size="sm" aria-label="Bajar el tema" disabled={i === lista.length - 1} onClick={() => mover(i, 1)}><ArrowDown aria-hidden="true" /></PulsoButton>
+              <PulsoButton variant="icon" tone="quiet" size="sm" intent="remove" aria-label="Quitar el tema" onClick={() => onChange(lista.filter((_, j) => j !== i))}><X aria-hidden="true" /></PulsoButton>
             </span>
           </div>
           {publicos.map((p) => {
@@ -119,10 +120,10 @@ export function TemasPorPublico({ temas, publicos, variables, onChange, nuevoTem
         );
       })}
       <div className="pulso-mapi-pie">
-        <button type="button" className="pulso-f6-boton pulso-mapi-agregar" disabled={!otroTema} title={otroTema ? undefined : MOTIVO_TOPE}
+        <PulsoButton variant="secondary" size="sm" className="pulso-mapi-agregar" disabled={!otroTema} title={otroTema ? undefined : MOTIVO_TOPE}
                 onClick={() => onChange([...lista, nuevoTema(lista.length + 1)])}>
-          <Plus size={12} aria-hidden="true" /> Agregar tema
-        </button>
+          <Plus aria-hidden="true" /> Agregar tema
+        </PulsoButton>
         {pie}
       </div>
     </div>

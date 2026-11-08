@@ -3,6 +3,7 @@
 
 import { useEffect, useRef } from "react";
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "../../../vendor/lucide-react";
+import { PulsoButton } from "../../../components/PulsoButton";
 
 type Props = {
   numeroCapitulo: number;
@@ -41,22 +42,22 @@ export function SubcapitulosEditor({ numeroCapitulo, nombreCapitulo, subcapitulo
                 onChange={(e) => cambiar(i, e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); insertar(i + 1); } }}
               />
-              <button type="button" className="pulso-f6-icono-boton" aria-label={`Subir el subcapítulo ${numeroCapitulo}.${i + 1}`} disabled={i === 0} onClick={() => mover(i, i - 1)}>
-                <ArrowUp size={13} aria-hidden="true" />
-              </button>
-              <button type="button" className="pulso-f6-icono-boton" aria-label={`Bajar el subcapítulo ${numeroCapitulo}.${i + 1}`} disabled={i === filas.length - 1} onClick={() => mover(i, i + 1)}>
-                <ArrowDown size={13} aria-hidden="true" />
-              </button>
-              <button type="button" className="pulso-f6-icono-boton" aria-label={`Quitar el subcapítulo ${numeroCapitulo}.${i + 1}`} onClick={() => quitar(i)}>
-                <Trash2 size={13} aria-hidden="true" />
-              </button>
+              <PulsoButton variant="icon" tone="quiet" size="sm" aria-label={`Subir el subcapítulo ${numeroCapitulo}.${i + 1}`} disabled={i === 0} onClick={() => mover(i, i - 1)}>
+                <ArrowUp aria-hidden="true" />
+              </PulsoButton>
+              <PulsoButton variant="icon" tone="quiet" size="sm" aria-label={`Bajar el subcapítulo ${numeroCapitulo}.${i + 1}`} disabled={i === filas.length - 1} onClick={() => mover(i, i + 1)}>
+                <ArrowDown aria-hidden="true" />
+              </PulsoButton>
+              <PulsoButton variant="icon" tone="quiet" size="sm" intent="remove" aria-label={`Quitar el subcapítulo ${numeroCapitulo}.${i + 1}`} onClick={() => quitar(i)}>
+                <Trash2 aria-hidden="true" />
+              </PulsoButton>
             </li>
           ))}
         </ol>
       )}
-      <button type="button" className="pulso-f6-texto-boton pulso-f6-subcaps-agregar" onClick={() => insertar(filas.length)}>
-        <Plus size={13} aria-hidden="true" /> Agregar subcapítulo
-      </button>
+      <PulsoButton variant="ghost" size="sm" className="pulso-f6-subcaps-agregar" onClick={() => insertar(filas.length)}>
+        <Plus aria-hidden="true" /> Agregar subcapítulo
+      </PulsoButton>
     </div>
   );
 }

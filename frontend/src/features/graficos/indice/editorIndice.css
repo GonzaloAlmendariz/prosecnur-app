@@ -57,9 +57,13 @@
   min-width: 0;
 }
 
-.pulso-f6-indice-tomar .pulso-f6-boton[aria-disabled="true"] {
+.pulso-f6-indice-tomar .pulso-button[aria-disabled="true"] {
+  opacity: 1;
+  border-color: var(--pulso-border);
+  background: var(--pulso-surface-3);
   color: var(--pulso-text-faint);
-  cursor: default;
+  box-shadow: none;
+  cursor: not-allowed;
 }
 
 .pulso-f6-indice-avisos {

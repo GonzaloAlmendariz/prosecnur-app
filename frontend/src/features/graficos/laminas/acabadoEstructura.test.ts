@@ -184,3 +184,43 @@ describe("W2-A: acabado común de controles", () => {
     expect(cuerpo).toContain("box-shadow: none");
   });
 });
+
+/** R9-1: los árboles de graficos/ que se abren desde Láminas (editor amplio de multiapiladas, índice, barra extra, …). */
+const ALCANZADOS = [
+  "../MultiApiladasBuilder.tsx",
+  "../BarraExtraControl.tsx",
+  "../BarraExtraBloque.tsx",
+  ...todo("../multiapiladas"),
+  ...todo("../indice"),
+  ...todo("../temasEquivalentes"),
+  ...todo("../armarDesde"),
+  ...todo("../subpestanas"),
+];
+
+describe("R9-1: sin F1/F2 en lo que Láminas abre fuera de laminas/", () => {
+  it("recorre multiapiladas/, indice/ y los demás", () => {
+    expect(ALCANZADOS).toContain(path.join("../multiapiladas", "TemasPorPublico.tsx"));
+    expect(ALCANZADOS).toContain(path.join("../indice", "EditorIndice.tsx"));
+  });
+  it.each(ALCANZADOS)("%s no usa F1/F2, is-primario, .pulso-icon ni un botón de ícono con caja", (archivo) => {
+    const src = sinComentarios(leer(archivo));
+    expect(src).not.toMatch(/pulso-f6-(boton|icono-boton|texto-boton)\b/);
+    expect(src).not.toMatch(/\bis-primario\b/);
+    expect(src).not.toMatch(/className="pulso-icon\b/);
+    expect(src).not.toMatch(/variant="icon"(?![^>]*tone="quiet")[^>]*>/);
+    expect(src).not.toMatch(/subpestanas\/Segmentado"/);
+    expect(src).not.toMatch(/ButtonStyle\b/);
+  });
+  it("multiapiladas.css no trae su segmentado propio ni deshabilita con opacidad", () => {
+    const css = sinComentarios(leer("../multiapiladas/multiapiladas.css"));
+    expect(css).not.toMatch(/pulso-mapi-segmento/);
+    expect(css).not.toMatch(/opacity:\s*\.\d/);
+    expect(css).not.toMatch(/border-radius:\s*(6|7|10|12)px/);
+  });
+  it("«Qué compara» y el tipo de bloque son RadioSegmentado; cada pregunta elegida dice su público", () => {
+    expect(sinComentarios(leer("../multiapiladas/QueCompara.tsx"))).toMatch(/<RadioSegmentado\b[\s\S]*ancho/);
+    const builder = sinComentarios(leer("../MultiApiladasBuilder.tsx"));
+    expect(builder).toMatch(/<RadioSegmentado<Intent>/);
+    expect(builder).toMatch(/className="pulso-mapi-fila-publico"/);
+  });
+});
