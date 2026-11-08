@@ -24,6 +24,7 @@ vi.mock("../../../../api/graficosCifras", async (importOriginal) => ({
 }));
 
 import { useCifrasDeOrigenes, type CifrasEnVivo } from "./useCifrasDeOrigen";
+import { usePlanStore } from "../../store";
 
 type Origen = { id: string; graficador: string; args: Record<string, unknown> };
 let origenes: Origen[] = [];
@@ -88,5 +89,24 @@ describe("useCifrasDeOrigenes", () => {
     expect(lote.mock.calls[1][0].laminas.map((l) => l.args.n)).toEqual([11, 12]);
     expect(ultimo.a.cifras?.cifras[0].clave).toBe("c:10");
     expect(ultimo.c.cifras?.cifras[0].clave).toBe("c:12");
+  });
+
+  it("R5-12: el lote manda la config del editor y un cambio de preset vuelve a pedir en vez de servir cifras viejas", async () => {
+    const antes = usePlanStore.getState().presets;
+    try {
+      origenes = [{ id: "a", graficador: "p_panorama", args: { n: 20 } }];
+      await act(async () => { root = createRoot(contenedor()); root.render(<Visor />); });
+      await drenar();
+      expect(lote).toHaveBeenCalledTimes(1);
+      const pedido = lote.mock.calls[0][0] as PedidoCifrasLote & { config?: { presets?: unknown } };
+      expect(pedido.config?.presets).toBeDefined();
+      await act(async () => { usePlanStore.setState({ presets: { ...antes, panorama: { referencia: 70 } } }); });
+      await drenar();
+      expect(lote).toHaveBeenCalledTimes(2);
+      const segundo = lote.mock.calls[1][0] as PedidoCifrasLote & { config?: { presets?: Record<string, unknown> } };
+      expect(segundo.config?.presets?.panorama).toEqual({ referencia: 70 });
+    } finally {
+      usePlanStore.setState({ presets: antes });
+    }
   });
 });

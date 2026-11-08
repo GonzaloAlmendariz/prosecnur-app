@@ -169,6 +169,27 @@ describe("Confirmar los idénticos", () => {
   });
 });
 
+describe("aviso del lote en el pie", () => {
+  it("va en una línea con elipsis y el texto entero en title, para que el pie no crezca", async () => {
+    abrir();
+    const texto = "8 filas perdieron su sugerencia: su par ya se confirmó.";
+    await act(async () => { useEmparejadoUi.getState().ponerAvisoLote(texto); await Promise.resolve(); });
+    const aviso = document.querySelector<HTMLElement>(".pulso-dialog__status .pulso-f6-emp-aviso-lote");
+    expect(aviso?.getAttribute("role")).toBe("status");
+    expect(aviso?.getAttribute("title")).toBe(texto);
+    expect(aviso?.textContent).toBe(texto);
+  });
+
+  it("la hoja lo deja en una línea con elipsis y ancho acotado", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { dirname, join } = await import("node:path");
+    const { fileURLToPath } = await import("node:url");
+    const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "emparejado.css"), "utf8");
+    const regla = /\.pulso-f6-emp-aviso-lote\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
+    for (const d of ["white-space: nowrap", "text-overflow: ellipsis", "overflow: hidden", "max-width: 36ch"]) expect(regla).toContain(d);
+  });
+});
+
 describe("teclado", () => {
   const pulsar = async (key: string, objetivo: Element | null = document.activeElement) => {
     await act(async () => {

@@ -210,7 +210,8 @@ export function RevisarEmparejado({ bases, basesEstudio, remoto, recargar, filas
     : guardado.fase === "error" ? <span role="alert">{guardado.mensaje}</span>
       : guardado.fase === "leyendo" ? "Leyendo la matriz"
         : guardado.fase === "guardando" ? "Guardando en la matriz"
-          : ui.avisoLote ? <span role="status">{ui.avisoLote}</span>
+          // Una línea con elipsis y el texto entero en `title`: a dos líneas el pie crecía y la evidencia bajaba de alto.
+          : ui.avisoLote ? <span role="status" className="pulso-f6-emp-aviso-lote" title={ui.avisoLote}>{ui.avisoLote}</span>
             : conteo.confirmado ? `${formatoConteo(conteo.confirmado)} ${conteo.confirmado === 1 ? "par confirmado" : "pares confirmados"} en esta lámina`
             : "Nada confirmado en esta lámina";
 

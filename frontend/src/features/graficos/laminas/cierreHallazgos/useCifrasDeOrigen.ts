@@ -5,10 +5,14 @@
 // Dos filas que toman cifras de la misma lámina comparten el pedido. Las firmas que faltan van en UN pedido de lote
 // (apiGraficosCifrasLote): Plumber atiende en serie, así que N pedidos sueltos hacían esperar N renders seguidos. Cada
 // firma conserva su promesa en `EN_VUELO`, de modo que la caché y el «Leyendo las cifras» por grupo siguen por firma.
+// El pedido manda la config del editor, como `/regla` (R5-12), y la firma lleva el hash de `presets[tipo]`: el hook lee
+// los presets del store, así que un cambio de preset da firmas nuevas y no sirve cifras de antes.
 
 import { useEffect, useState } from "react";
 import { apiGraficosCifrasLote, errorDeEntrada, type CifrasDeGrafico } from "../../../../api/graficosCifras";
-import { firmaPedidoRegla } from "../reglaPreguntas/modeloReglaPreguntas";
+import { buildGraficosConfigFromStore } from "../../configSnapshot";
+import { usePlanStore } from "../../store";
+import { firmaPedidoRegla, presetDelGraficador } from "../reglaPreguntas/modeloReglaPreguntas";
 import { mensajeDeError, pedidoDeFirma } from "../reglaPreguntas/useConteoRegla";
 
 type Args = Readonly<Record<string, unknown>>;
@@ -50,6 +54,7 @@ function pedirTodas(firmas: readonly string[]): Map<string, Promise<CifrasDeGraf
   for (const [scope, laminas] of faltan) {
     const lote = apiGraficosCifrasLote({
       laminas: laminas.map((l, i) => ({ id: String(i), graficador: l.graficador, args: l.args })),
+      config: buildGraficosConfigFromStore(),
       ...(scope === "consolidated" ? { scope: "consolidated" as const } : {}),
     });
     laminas.forEach((l, i) => {
@@ -72,7 +77,8 @@ const CARGANDO: CifrasEnVivo = { cifras: null, cargando: true, error: null };
 
 /** Las cifras de cada origen, por su id. Un origen todavía sin respuesta sale `cargando`. */
 export function useCifrasDeOrigenes(origenes: readonly Origen[], scope: "active" | "consolidated"): Readonly<Record<string, CifrasEnVivo>> {
-  const firmas = origenes.map((o) => [o.id, firmaPedidoRegla(o.graficador, o.args, scope)] as const);
+  const presets = usePlanStore((s) => s.presets);
+  const firmas = origenes.map((o) => [o.id, firmaPedidoRegla(o.graficador, o.args, scope, presetDelGraficador(o.graficador, presets))] as const);
   const clave = JSON.stringify([...new Set(firmas.map(([, f]) => f))].sort());
   const [leidos, setLeidos] = useState<Readonly<Record<string, Leido>>>({});
   useEffect(() => {

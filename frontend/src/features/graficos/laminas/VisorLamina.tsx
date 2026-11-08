@@ -79,7 +79,7 @@ type Props = {
   onRanura: (k: number | null) => void;
   /** Doble clic en una ranura: abre «¿Qué gráfico?» para ella. */
   onCambiarGrafico: (k: number) => void;
-  /** «+ Lámina»: abre «¿Qué lámina?» para insertar una nueva después de ésta. */
+  /** «+ Lámina»: abre «¿Qué lámina?» para insertar una nueva después de esta. */
   onInsertarLamina: () => void;
   /** Formas y ranuras del estándar de la vista previa (K11, `normalizePreviewFormas`); sin ellas las guías lo dicen. */
   formas?: PreviewFormas | null;
@@ -163,7 +163,7 @@ export function VisorLamina({
         <button type="button" className="pulso-f6-icono-boton" aria-label="Lámina siguiente" disabled={lamina.posicion >= total} onClick={() => onIr(lamina.posicion + 1)}>
           <ChevronRight size={16} aria-hidden="true" />
         </button>
-        <BotonConTecla accion="insertar" ayuda="Insertar una lámina nueva después de ésta">
+        <BotonConTecla accion="insertar" ayuda="Insertar una lámina nueva después de esta">
           <button type="button" className="pulso-f6-boton is-primario" onClick={onInsertarLamina}>
             <Plus size={14} aria-hidden="true" />
             Lámina

@@ -14,6 +14,7 @@ import { tituloQueSale } from "./laminas/tituloQueSale";
 import { citaCorta, notasEnTitulo } from "./laminas/notaEnTitulo";
 import { indicesSinCapitulos } from "./indice/requisitoIndice";
 import { avisaTtbSinRespuestas } from "./laminas/ttbSinRespuestas";
+import { faltaEnLamina } from "./laminas/faltaLamina";
 import { laBase, type RelacionBases } from "./relacionBases";
 import { baseImplicitaDe, basesPorNombre } from "./fijarBase";
 import { conteoBarrasMultiapiladas, excedeTope, laminasNecesarias, MAX_BARRAS_MULTIAPILADAS } from "./multiapiladas/topeBarras";
@@ -56,6 +57,10 @@ import { formatoConteo } from "../../lib/formatoNumero";
 //   - "multiapiladas-tope": una multiapilada pasa de seis barras (Gonzalo,
 //     2026-10-14). Es ERROR: el motor la parte en «(cont.)» y la lámina no se
 //     ve como debe; el editor ya no deja agregar la séptima.
+//   - "lamina-incompleta": a la lámina le falta un dato obligatorio para
+//     dibujarse (laminas/faltaLamina.ts: el indicador de un contraste, los
+//     grupos de una brecha). Es ERROR: el motor aborta el dibujo; la maqueta
+//     ya lo decía, pero la barra contaba «0 avisos» (ronda 5).
 //
 // Severidad: "error" bloquea export; "warning" solo avisa.
 
@@ -76,7 +81,8 @@ export type ValidationIssue = {
     | "titulo-con-nota"
     | "indice-sin-capitulos"
     | "ttb-sin-respuestas"
-    | "radar-criterios";
+    | "radar-criterios"
+    | "lamina-incompleta";
   message: string;
   /** El mensaje sin «Lámina N, “título” (tipo)»: para mostrarlo dentro de la lámina (Inspector). */
   detalle?: string;
@@ -352,6 +358,19 @@ export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
       const aviso = avisoRadarDe(g);
       if (aviso) issues.push({ severity: "warning", code: "radar-criterios", message: `${rotuloLamina(slide, indice)}: ${aviso}.`, slideId: slide.id });
     }
+  });
+
+  // 4d) Lámina incompleta: el mismo texto que la maqueta (faltaLamina.ts), uno por lámina ----------------------------
+  slides.forEach((slide, indice) => {
+    const falta = faltaEnLamina(slide);
+    if (!falta) return;
+    issues.push({
+      severity: "error",
+      code: "lamina-incompleta",
+      message: `${rotuloLamina(slide, indice)}: ${falta.charAt(0).toLocaleLowerCase("es")}${falta.slice(1)}`,
+      detalle: falta,
+      slideId: slide.id,
+    });
   });
 
   // 5) Índice sin capítulos: el motor no tiene qué listar (indice/requisitoIndice.ts) -----------------

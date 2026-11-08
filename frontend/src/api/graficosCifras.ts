@@ -11,6 +11,9 @@
 //   POST /api/graficos/resumenes/cifras  {laminas: [{id, slide: {graficador, args}}], scope?}
 //     -> {ok, por_lamina: {<id>: {tipo, cifras, avisos, error?: {code, message}}}}
 // El error de una lámina viaja en su entrada (200 para el lote); sólo un lote mal formado responde 400.
+//
+// `config?` (suelto, lote y detalle): la config del editor (presets, paletas, overrides), como la vista previa y
+// `/regla` (R5-12). El backend la lee en `.graficos_resumenes_motor`: sin ella, las cifras salen con los presets guardados.
 
 import { ApiError, apiFetch, handle, headers } from "./core";
 
@@ -30,7 +33,15 @@ export type PedidoCifras = {
   graficador: string;
   args: Readonly<Record<string, unknown>>;
   scope?: "consolidated";
+  /** La config del editor (`buildGraficosConfigFromStore()`): el motor calcula con sus presets. */
+  config?: unknown;
 };
+
+/** `scope` y `config` cuando vienen; el cuerpo de siempre si no. */
+const extras = (p: { scope?: "consolidated"; config?: unknown }): Record<string, unknown> => ({
+  ...(p.scope ? { scope: p.scope } : {}),
+  ...(p.config !== undefined ? { config: p.config } : {}),
+});
 
 export const CODIGO_CIFRAS_INVALIDO = "E_CIFRAS_INVALIDO";
 
@@ -72,7 +83,7 @@ export async function apiGraficosCifras(pedido: PedidoCifras, request?: { signal
     await apiFetch("/api/graficos/resumenes/cifras", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ graficador: pedido.graficador, args: pedido.args, ...(pedido.scope ? { scope: pedido.scope } : {}) }),
+      body: JSON.stringify({ graficador: pedido.graficador, args: pedido.args, ...extras(pedido) }),
       signal: request?.signal,
     }),
   );
@@ -81,7 +92,7 @@ export async function apiGraficosCifras(pedido: PedidoCifras, request?: { signal
 
 export type LaminaCifras = { id: string; graficador: string; args: Readonly<Record<string, unknown>> };
 
-export type PedidoCifrasLote = { laminas: readonly LaminaCifras[]; scope?: "consolidated" };
+export type PedidoCifrasLote = { laminas: readonly LaminaCifras[]; scope?: "consolidated"; config?: unknown };
 
 /** Una lámina del lote: sus cifras o el error del motor (`code` E_* y su frase). */
 export type EntradaLoteCifras = { cifras: CifrasDeGrafico; error: { code: string; message: string } | null };
@@ -117,7 +128,7 @@ export async function apiGraficosCifrasLote(
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         laminas: pedido.laminas.map((l) => ({ id: l.id, slide: { graficador: l.graficador, args: l.args } })),
-        ...(pedido.scope ? { scope: pedido.scope } : {}),
+        ...extras(pedido),
       }),
       signal: request?.signal,
     }),
@@ -288,7 +299,7 @@ export async function apiGraficosCifrasDetalle(pedido: PedidoCifrasDetalle, requ
       body: JSON.stringify({
         graficador: pedido.graficador, args: pedido.args, detalle: true,
         ...(pedido.caja && pedido.caja.length ? { caja: pedido.caja } : {}),
-        ...(pedido.scope ? { scope: pedido.scope } : {}),
+        ...extras(pedido),
       }),
       signal: request?.signal,
     }),
@@ -298,7 +309,7 @@ export async function apiGraficosCifrasDetalle(pedido: PedidoCifrasDetalle, requ
 
 export type LaminaCifrasDetalle = LaminaCifras & { caja?: readonly string[] };
 
-export type PedidoCifrasDetalleLote = { laminas: readonly LaminaCifrasDetalle[]; scope?: "consolidated" };
+export type PedidoCifrasDetalleLote = { laminas: readonly LaminaCifrasDetalle[]; scope?: "consolidated"; config?: unknown };
 
 export type EntradaLoteDetalle = EntradaLoteCifras & { detalle: DetalleCifras | null };
 
@@ -323,7 +334,7 @@ export async function apiGraficosCifrasDetalleLote(
         laminas: pedido.laminas.map((l) => ({
           id: l.id, slide: { graficador: l.graficador, args: l.args }, ...(l.caja && l.caja.length ? { caja: l.caja } : {}),
         })),
-        ...(pedido.scope ? { scope: pedido.scope } : {}),
+        ...extras(pedido),
       }),
       signal: request?.signal,
     }),

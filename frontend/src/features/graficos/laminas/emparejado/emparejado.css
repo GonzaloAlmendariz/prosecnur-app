@@ -197,6 +197,18 @@
   box-decoration-break: clone;
 }
 
+/* El aviso del lote en el pie, en una línea: no más ancho que el estado de siempre («N pares confirmados en esta
+   lámina»), con elipsis y el texto entero en `title`. A dos líneas el pie crecía y la evidencia perdía 7 px (C2). */
+.pulso-f6-emp-aviso-lote {
+  display: inline-block;
+  max-width: 36ch;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
 .pulso-f6-emp-tabla {
   min-width: 0;
 }
