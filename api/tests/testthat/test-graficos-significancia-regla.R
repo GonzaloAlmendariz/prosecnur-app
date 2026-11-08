@@ -98,7 +98,13 @@ test_that("base mínima: un grupo con menos de 30 casos no se compara, ni sirve 
   expect_equal(ev$pares$veredicto, "no_comparable")
   expect_false(ev$grupos$comparable[ev$grupos$codigo == "B"])
   expect_match(ev$grupos$motivo[ev$grupos$codigo == "B"], "n = 20")
-  expect_match(.nota_plana(ev, .regla_test()), "Con trama: Chico")
+  # O2 (ola 3): la nota dice lo que se ve, con el umbral de la regla; ninguna trama.
+  expect_match(.nota_plana(ev, .regla_test()), "Los grupos con menos de 30 casos o de 8 aulas se muestran como referencia y no se comparan.",
+               fixed = TRUE)
+  simple <- .sig_regla_normalizar(list(base_minima = 50))   # el umbral sale de la regla del estudio (20, 30 o 50)
+  expect_identical(.sig_texto_bases_chicas(simple, "Chico"), "Los grupos con menos de 50 casos se muestran como referencia y no se comparan.")
+  expect_null(.sig_texto_bases_chicas(simple, character(0)))
+  expect_false(grepl("trama", .nota_plana(ev, .regla_test()), ignore.case = TRUE))
 })
 
 test_that("conglomerados mínimos: con menos de 8 aulas el grupo no se compara aunque tenga casos", {

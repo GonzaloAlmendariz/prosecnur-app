@@ -71,19 +71,22 @@
 }
 
 #' Línea de contexto de los grupos que no se comparan (base o conglomerados insuficientes)
+#'
+#' Q3 (ola 2) / O2 (ola 3): la nota decía «Con trama: …» y ningún motor dibuja esa trama, así que afirmaba lo que la lámina no
+#' muestra. Dice lo que se ve: el umbral de la regla del estudio y que esos grupos se muestran como referencia. Fuente única: el
+#' inspector de diferencias del frontend repite este texto.
+#' @param etiquetas Grupos que no se comparan; sin ninguno no hay línea.
 #' @keywords internal
 .sig_texto_bases_chicas <- function(regla, etiquetas) {
   etiquetas <- unique(as.character(etiquetas[nzchar(etiquetas)]))
   if (!length(etiquetas)) return(NULL)
-  lista <- if (length(etiquetas) == 1L) etiquetas else paste(paste(utils::head(etiquetas, -1), collapse = ", "), "y",
-                                                             utils::tail(etiquetas, 1))
   cond <- if (identical(regla$prueba, "rao_scott")) {
     sprintf("menos de %s casos o de %s %ss", .sig_num(regla$base_minima), regla$conglomerados_minimos,
             .sig_nombre_conglomerado(regla$conglomerado))
   } else {
     sprintf("menos de %s casos", .sig_num(regla$base_minima))
   }
-  sprintf("Con trama: %s, con %s. Se muestran como referencia y no se comparan.", lista, cond)
+  sprintf("Los grupos con %s se muestran como referencia y no se comparan.", cond)
 }
 
 #' Línea de contexto del *top two box*
