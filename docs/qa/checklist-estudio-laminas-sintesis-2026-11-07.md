@@ -56,3 +56,27 @@ Aprendido:
   ejecutivo pasó a 0134.
 - En esta app una ola es una base del proyecto. En acrconta, 2021 no es una base: son cifras agregadas en `Matriz-2.xlsx`
   y en el mazo. Quien retome Tendencia debe decidir si admite cifras tecleadas de otra ola.
+
+## Etapa de experiencia (desde 2026-11-08)
+
+Gonzalo: «Buscar que el analista pueda pensar, pero también tener controles profesionales, controles segmentados,
+sliders que permitan una interacción interesante, arrastres, efectos inmediatos… una UI que sea intuitiva y que permita
+al analista analizar, más no que haga las cosas por él de forma automática… como generar títulos clichés».
+
+Cada superficie se mide con tres criterios y pasa sólo con los tres:
+
+- A. Profesional: controles segmentados, sliders con su valor, arrastrar, efecto inmediato sin pedir la vista previa,
+  deshacer.
+- B. Intuitiva: dice qué datos usa y cómo se verá con los datos del estudio; los vacíos dicen qué hacer.
+- C. Criterio del analista: muestra materia (distribuciones, alternativas) y no decide por él; nada se inserta solo;
+  ningún texto generado que interprete (títulos, frases, antetítulos).
+
+| # | Superficie | A | B | C | Estado |
+|---|---|---|---|---|---|
+| X1 | Selector de láminas | Por medir | No dice qué datos usa ni cómo se verá con el estudio | Por medir | Auditoría en curso |
+| X2 | Regla de preguntas | El umbral es un campo numérico plano | Por medir | No muestra el reparto antes del corte | Auditoría en curso |
+| X3 | Mazo del resumen ejecutivo | Sin arrastrar ni deshacer | Por medir | Inserta láminas con antetítulos fijos | Auditoría en curso |
+| X4 | Inspector Datos, Cálculo y Aspecto | Por medir | Por medir | Por medir | Auditoría en curso |
+| X5 | Grupos con padrón | Por medir | Por medir | Por medir | Auditoría en curso |
+| X6 | Emparejado | Por medir | Por medir | Por medir | Auditoría en curso |
+| X7 | Cierre con hallazgos | Por medir | Por medir | Por medir | Auditoría en curso |
