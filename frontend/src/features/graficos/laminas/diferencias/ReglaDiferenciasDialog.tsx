@@ -24,7 +24,7 @@ import { toast } from "../../../../components/toasterStore";
 import { formatoConteo } from "../../../../lib/formatoNumero";
 import { usePanelDireccionable } from "../../../../lib/navegacion/paneles";
 import { PANEL_DIFERENCIAS_REGLA } from "../../panelesGraficos";
-import { Segmentado } from "../../subpestanas/Segmentado";
+import { RadioSegmentado } from "../../subpestanas/RadioSegmentado";
 import { CajaDiferencias } from "./CajaDiferencias";
 import { CodigoError } from "./CodigoError";
 import { CargaDeBloque } from "../../../../components/CargaDeBloque";
@@ -243,11 +243,11 @@ function FormularioRegla({ respuesta, borrador, previa, onCambiar, onRestablecer
           <FilaCerrada rotulo="Base mínima por grupo" valor={borrador.base_minima} opciones={opcionesBaseMinima(borrador.base_minima)} onCambiar={(base_minima) => onCambiar({ base_minima })} />
           <div className="pulso-sig-fila">
             <span className="pulso-sig-fila-rotulo">Diferencias frágiles</span>
-            <Segmentado<FragilesDiferencias> etiqueta="Diferencias frágiles" valor={borrador.fragiles} opciones={OPCIONES_FRAGILES} onCambiar={(fragiles) => onCambiar({ fragiles })} />
+            <RadioSegmentado<FragilesDiferencias> etiqueta="Diferencias frágiles" valor={borrador.fragiles} opciones={OPCIONES_FRAGILES} onCambiar={(fragiles) => onCambiar({ fragiles })} />
           </div>
           <div className="pulso-sig-fila">
             <span className="pulso-sig-fila-rotulo">Tendencia por nivel</span>
-            <Segmentado<TendenciaDiferencias> etiqueta="Prueba de tendencia por nivel" valor={borrador.tendencia ? "si" : "no"}
+            <RadioSegmentado<TendenciaDiferencias> etiqueta="Prueba de tendencia por nivel" valor={borrador.tendencia ? "si" : "no"}
               opciones={OPCIONES_TENDENCIA} onCambiar={(v) => onCambiar({ tendencia: v === "si" })} />
           </div>
         </section>
@@ -327,7 +327,7 @@ function FilaCerrada({ rotulo, valor, opciones, onCambiar }: {
   return (
     <div className="pulso-sig-fila">
       <span className="pulso-sig-fila-rotulo">{rotulo}</span>
-      <Segmentado etiqueta={rotulo} valor={String(valor)} opciones={opciones.map((o) => ({ clave: String(o.valor), rotulo: o.rotulo }))}
+      <RadioSegmentado etiqueta={rotulo} valor={String(valor)} opciones={opciones.map((o) => ({ clave: String(o.valor), rotulo: o.rotulo }))}
         onCambiar={(k) => onCambiar(Number(k))} />
     </div>
   );

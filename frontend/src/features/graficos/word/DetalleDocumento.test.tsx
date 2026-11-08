@@ -33,7 +33,7 @@ describe("Word › Documento", () => {
   it("sin decisiones: placeholders del recetario y «Cómo leer» automático", () => {
     const html = pintar();
     expect(html).toContain('placeholder="Encuesta de satisfacción estudiantil con los servicios de…"');
-    expect(html).toMatch(/aria-checked="true"[^>]*>Automático/);
+    expect(html).toMatch(/aria-checked="true"[^>]*>(?:<span[^>]*>)?Automático/);
     expect(html).toContain("Va solo con las explicaciones que el informe usa en 2 o más láminas.");
     expect(html).toContain("el contenido, el índice de gráficos");
   });
@@ -44,7 +44,7 @@ describe("Word › Documento", () => {
     const html = pintar();
     expect(html).toContain('value="Satisfacción 2026"');
     expect(html).toContain('value="Fuente: PULSO PUCP 2026."');
-    expect(html).toMatch(/aria-checked="true"[^>]*>Nunca/);
+    expect(html).toMatch(/aria-checked="true"[^>]*>(?:<span[^>]*>)?Nunca/);
     expect(html).toContain("El documento no lo lleva.");
   });
 });

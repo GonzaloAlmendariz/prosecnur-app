@@ -18,7 +18,7 @@ import { ErrorBlock } from "../../../../components/States";
 import { toast } from "../../../../components/toasterStore";
 import { formatoConteo } from "../../../../lib/formatoNumero";
 import { nombrePublico, type TemaPublicos } from "../../multiapiladas/temasPublicos";
-import { Segmentado } from "../../subpestanas/Segmentado";
+import { RadioSegmentado } from "../../subpestanas/RadioSegmentado";
 import {
   COINCIDENCIAS, coincidenciasDe, contarCoincidencias, filtrarPorCoincidencia, rotuloFiltroCoincidencia, vacioDeFiltros,
   type FiltroCoincidencia,
@@ -229,13 +229,13 @@ export function RevisarEmparejado({ bases, basesEstudio, remoto, recargar, filas
       flush
       stepper={lista && filas.length > 0 ? (
         <div className="pulso-f6-emp-filtros">
-          <Segmentado
+          <RadioSegmentado
             etiqueta="Qué preguntas mostrar"
             opciones={FILTROS.map((clave) => ({ clave, rotulo: rotuloFiltro(clave, conteo) }))}
             valor={ui.filtro}
             onCambiar={ui.filtrar}
           />
-          <Segmentado
+          <RadioSegmentado
             etiqueta="Coincidencia del par"
             opciones={FILTROS_COINCIDENCIA.map((clave) => ({ clave, rotulo: rotuloFiltroCoincidencia(clave, conteoCoincidencia) }))}
             valor={ui.coincidencia}

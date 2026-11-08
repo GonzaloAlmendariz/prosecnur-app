@@ -14,15 +14,15 @@ const pintar = (args: Record<string, unknown>) => renderToStaticMarkup(createEle
 describe("tarjeta · redondeo del gráfico", () => {
   it("por defecto sigue al informe y lo dice, sin mandos de método ni decimales", () => {
     const html = pintar({});
-    expect(html).toMatch(/aria-checked="true"[^>]*>Como el informe/);
+    expect(html).toMatch(/aria-checked="true"[^>]*>(?:<span[^>]*>)?Como el informe/);
     expect(html).toContain("Sigue la regla del informe: estándar, sin decimales.");
     expect(html).not.toContain("Método de este gráfico");
   });
   it("propio: método y decimales del gráfico, y la regla del informe al lado", () => {
     const html = pintar({ overrides: { calculos_propios: true, metodo_redondeo: "reparto", decimales: 1 } });
-    expect(html).toMatch(/aria-checked="true"[^>]*>Propio/);
-    expect(html).toMatch(/aria-checked="true"[^>]*>Reparto</);
-    expect(html).toMatch(/aria-checked="true"[^>]*>Un decimal/);
+    expect(html).toMatch(/aria-checked="true"[^>]*>(?:<span[^>]*>)?Propio/);
+    expect(html).toMatch(/aria-checked="true"[^>]*>(?:<span[^>]*>)?Reparto</);
+    expect(html).toMatch(/aria-checked="true"[^>]*>(?:<span[^>]*>)?Un decimal/);
     expect(html).toContain("Sólo este gráfico; el informe usa estándar, sin decimales.");
   });
   // Oleada I2, ítem 6: lo que suma la lámina con cada método, en dos líneas (sin «·»), y la mayor junto a los decimales.
@@ -31,8 +31,8 @@ describe("tarjeta · redondeo del gráfico", () => {
     const html = renderToStaticMarkup(createElement(RedondeoDelGraficoVista, {
       fila, args: { overrides: { calculos_propios: true, decimales: 0 } }, onCambio: () => undefined, cifras,
     }));
-    expect(html).toMatch(/role="radio"[^>]*>Estándar<span[^>]*data-qa="redondeo-estandar"> 99%<\/span><\/button>/);
-    expect(html).toMatch(/role="radio"[^>]*>Reparto<span[^>]*data-qa="redondeo-reparto"> 100%<\/span><\/button>/);
+    expect(html).toMatch(/role="radio"[^>]*><span[^>]*>Estándar<span[^>]*data-qa="redondeo-estandar"> 99%<\/span><\/span><\/button>/);
+    expect(html).toMatch(/role="radio"[^>]*><span[^>]*>Reparto<span[^>]*data-qa="redondeo-reparto"> 100%<\/span><\/span><\/button>/);
     // Nunca «Reparto a 100% 100%»: el rótulo no repite la cifra que va detrás.
     expect(html.replace(/<[^>]+>/g, "")).not.toMatch(/100%\s*100%/);
     expect(html).toContain("Reparto lleva cada barra a 100%");

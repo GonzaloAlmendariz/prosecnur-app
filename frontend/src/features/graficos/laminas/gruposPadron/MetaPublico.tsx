@@ -5,7 +5,7 @@
 import { useId, useState } from "react";
 import type { UnidadMeta } from "../../../../api/graficosPadron";
 import { PulsoInput } from "../../../../components/PulsoInput";
-import { Segmentado } from "../../subpestanas/Segmentado";
+import { RadioSegmentado } from "../../subpestanas/RadioSegmentado";
 import { numeroDeMeta, type Meta } from "./modeloPadron";
 
 type Props = {
@@ -32,7 +32,7 @@ export function MetaPublico({ nombre, meta, onCambio }: Props) {
           const valor = numeroDeMeta(e.target.value);
           onCambio(valor === null ? null : { valor, unidad });
         }} />
-      <Segmentado etiqueta={`Unidad de la meta de ${nombre}`} opciones={UNIDADES} valor={unidad}
+      <RadioSegmentado etiqueta={`Unidad de la meta de ${nombre}`} opciones={UNIDADES} valor={unidad}
         onCambiar={(u) => { setUnidadSinCifra(u); if (meta) onCambio({ valor: meta.valor, unidad: u }); }} />
     </div>
   );

@@ -45,9 +45,9 @@ describe("Vista general · interruptor de «Otros»", () => {
     expect(renderToStaticMarkup(createElement(EnlaceOtrosVista, { encendido: false, onIr: () => undefined }))).toContain("Sin respuestas Otros");
     expect(renderToStaticMarkup(createElement(EnlaceOtrosVista, { encendido: true, onIr: () => undefined }))).toContain("Con respuestas Otros");
     const regla = (v: boolean) => renderToStaticMarkup(createElement(SeccionOtros, { encendido: v, ayuda: "AYUDA", onCambiar: () => undefined }));
-    expect(regla(true)).toMatch(/aria-checked="true"[^>]*>Después de su gráfico/);
+    expect(regla(true)).toMatch(/aria-checked="true"[^>]*>(?:<span[^>]*>)?Después de su gráfico/);
     expect(regla(true)).toContain("AYUDA");
-    expect(regla(false)).toMatch(/aria-checked="true"[^>]*>No agregar/);
+    expect(regla(false)).toMatch(/aria-checked="true"[^>]*>(?:<span[^>]*>)?No agregar/);
     expect(regla(false)).toContain("no sale en el informe");
   });
 

@@ -3,7 +3,7 @@
 // propia línea, a todo el ancho; nunca se recorta (C4). Lo que decide si caben es opcionesEnSegmentado.ts.
 
 import type { ReactNode } from "react";
-import { Segmentado } from "../../subpestanas/Segmentado";
+import { RadioSegmentado } from "../../subpestanas/RadioSegmentado";
 import type { Segmentacion } from "../opcionesEnSegmentado";
 import { rotuloConAyuda } from "./rotuloConAyuda";
 
@@ -22,7 +22,7 @@ export function FilaSegmentada({ id, rotulo, marcas, segmentos, valor, onCambio,
   return (
     <div className={`pulso-f6-dato pulso-f6-dato-segmentado${segmentos.apilado ? " is-apilado" : ""}`} data-qa={qa}>
       <span className="pulso-f6-dato-rotulo" id={id}>{rotuloConAyuda(rotulo, marcas)}</span>
-      <Segmentado etiqueta={rotulo} valor={valor} opciones={segmentos.opciones} onCambiar={onCambio} />
+      <RadioSegmentado etiqueta={rotulo} ancho multilinea={segmentos.apilado} valor={valor} opciones={segmentos.opciones} onCambiar={onCambio} />
     </div>
   );
 }

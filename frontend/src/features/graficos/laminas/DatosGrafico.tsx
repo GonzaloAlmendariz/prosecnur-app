@@ -72,7 +72,7 @@ import { ObjetivoDimension } from "./ObjetivoDimension";
 import { CortesNumericos } from "./CortesNumericos";
 import { PartesLineas } from "./PartesLineas";
 import { AgruparLista } from "./AgruparLista";
-import { Segmentado } from "../subpestanas/Segmentado";
+import { RadioSegmentado } from "../subpestanas/RadioSegmentado";
 import { opcionesNumeroEnBotones } from "./numerosEnBotones";
 import { opcionesEnSegmentado } from "./opcionesEnSegmentado";
 import { campoDeslizable } from "./modeloNumeroDeslizable";
@@ -532,7 +532,7 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias, args, sco
     return (
       <div className="pulso-f6-dato">
         <span className="pulso-f6-dato-rotulo" id={id}>{rotuloConAyuda(rotulo, texto ? globo : null)}{sello}</span>
-        <Segmentado etiqueta={rotulo} valor={String(actual)} opciones={enBotones.map((o) => ({ clave: String(o.valor), rotulo: o.rotulo }))}
+        <RadioSegmentado etiqueta={rotulo} ancho valor={String(actual)} opciones={enBotones.map((o) => ({ clave: String(o.valor), rotulo: o.rotulo }))}
           onCambiar={(k) => onCambio(Number(k))} />
       </div>
     );

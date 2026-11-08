@@ -6,7 +6,7 @@ import { useId } from "react";
 import { Plus, X } from "../../../../vendor/lucide-react";
 import VariablePicker from "../../VariablePicker";
 import { parseVarRef, useVariables } from "../../useVariables";
-import { Segmentado } from "../../subpestanas/Segmentado";
+import { RadioSegmentado } from "../../subpestanas/RadioSegmentado";
 import { CortosGrupos } from "./CortosGrupos";
 import { CasosNombrados } from "./CasosNombrados";
 import { AyudaGlobo } from "../AyudaGlobo";
@@ -57,7 +57,7 @@ export function OpcionesTarjetas({ valor, ranura, scope, baseActiva, onCambio, e
               ? "Bajo la barra de la respuesta, sus grupos con su cifra. Hasta dos respuestas, sin panel aparte."
               : "En un panel junto al gráfico, una tarjeta por diferencia."} />
           </span>
-          <Segmentado etiqueta="Dónde van las diferencias" valor={donde} opciones={DONDE}
+          <RadioSegmentado etiqueta="Dónde van las diferencias" valor={donde} opciones={DONDE}
             onCambiar={(k) => onCambio({ modo: modoAGuardar(k) })} />
         </div>
       )}
@@ -66,7 +66,7 @@ export function OpcionesTarjetas({ valor, ranura, scope, baseActiva, onCambio, e
       <CasosNombrados valor={publico} onCambio={(p) => onCambio({ publico: p })} />
       <div className="pulso-f6-dato" data-qa-geometry-member="">
         <span className="pulso-f6-dato-rotulo">Máximo de tarjetas</span>
-        <Segmentado etiqueta="Máximo de tarjetas" valor={String(max)}
+        <RadioSegmentado etiqueta="Máximo de tarjetas" valor={String(max)}
           opciones={opcionesMax(ranura).map((n) => ({ clave: String(n), rotulo: n === porDefecto ? `${n} (por defecto)` : String(n) }))}
           onCambiar={(k) => onCambio({ max: maxAGuardar(Number(k), ranura) })} />
       </div>

@@ -5,7 +5,7 @@ import type { EstiloCliente } from "../../../api/graficosEstilo";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { Switch } from "../../../components/Switch";
 import { RotateCcw } from "../../../vendor/lucide-react";
-import { Segmentado } from "../subpestanas/Segmentado";
+import { RadioSegmentado } from "../subpestanas/RadioSegmentado";
 import { MarcaModificado } from "./SelloProcedencia";
 import {
   conCategorias, conLeyenda, conNegrita, leerCategorias, leerLeyenda, leerNegrita, legibilidadModificada, MODOS_CATEGORIAS,
@@ -57,14 +57,14 @@ export function SeccionLegibilidad({ estilo, onCambiar }: { estilo: EstiloClient
           ))}
           <div className="pulso-f6-leg-fila-ajuste is-apilada">
             <span id="f6-leg-categorias">Categorías</span>
-            <Segmentado etiqueta="Categorías en negrita" valor={leerCategorias(estilo)} opciones={MODOS_CATEGORIAS}
+            <RadioSegmentado etiqueta="Categorías en negrita" valor={leerCategorias(estilo)} opciones={MODOS_CATEGORIAS}
               onCambiar={(m) => onCambiar((e) => conCategorias(e, m))} />
           </div>
         </div>
 
         <div className="pulso-f6-leg-grupo" role="group" aria-labelledby="f6-leg-leyenda" data-qa-geometry-group="graficos/f6-leg-leyenda" data-qa-geometry-contract="intrinsic">
           <h4 id="f6-leg-leyenda" className="pulso-f6-estilo-subtitulo">Leyenda</h4>
-          <Segmentado etiqueta="Cómo se acomoda la leyenda" valor={leyenda} opciones={MODOS_LEYENDA}
+          <RadioSegmentado etiqueta="Cómo se acomoda la leyenda" valor={leyenda} opciones={MODOS_LEYENDA}
             onCambiar={(m) => onCambiar((e) => conLeyenda(e, m))} />
           <p className="pulso-f6-estilo-ayuda">{MODOS_LEYENDA.find((m) => m.clave === leyenda)?.detalle}</p>
           <MuestraLeyenda modo={leyenda} negrita={leerNegrita(estilo, "leyenda")} />

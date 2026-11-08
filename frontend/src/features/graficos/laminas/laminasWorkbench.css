@@ -410,17 +410,17 @@
    ni la sombra o el salto del hover global. Especificidad (0,1,1) a propósito: gana al global `button:where(...)`
    (0,0,1) y cede ante las reglas de estado de cada pieza (`.pulso-f6-lamina.is-activa` pinta su barra con una sombra
    interior, 0,2,0). El menú ⋯ marca el foco con su fondo (barraLaminas.css) y sólo pierde el halo. */
-button:where(.pulso-f6-parte, .pulso-f6-nodo-cabeza, .pulso-f6-lamina, .pulso-f6-miniatura, .pulso-f6-miniatura-reintentar, .pulso-f6-inspector-tab, .pulso-f6-inspector-avisos-chip, .pulso-f6-selector-grafico-opcion, .pulso-f6-guias-rol, .pulso-f6-guias-elemento):focus-visible {
+button:where(.pulso-f6-nodo-cabeza, .pulso-f6-lamina, .pulso-f6-miniatura, .pulso-f6-miniatura-reintentar, .pulso-f6-inspector-tab, .pulso-f6-inspector-avisos-chip, .pulso-f6-selector-grafico-opcion, .pulso-f6-guias-rol, .pulso-f6-guias-elemento):focus-visible {
   outline: var(--mov-foco);
   box-shadow: none;
 }
 
-button:where(.pulso-f6-parte, .pulso-f6-nodo-cabeza, .pulso-f6-lamina, .pulso-f6-miniatura, .pulso-f6-miniatura-reintentar, .pulso-f6-inspector-tab, .pulso-f6-inspector-avisos-chip, .pulso-f6-selector-grafico-opcion, .pulso-f6-guias-rol, .pulso-f6-guias-elemento, .pulso-f6-mas-menu button):hover {
+button:where(.pulso-f6-nodo-cabeza, .pulso-f6-lamina, .pulso-f6-miniatura, .pulso-f6-miniatura-reintentar, .pulso-f6-inspector-tab, .pulso-f6-inspector-avisos-chip, .pulso-f6-selector-grafico-opcion, .pulso-f6-guias-rol, .pulso-f6-guias-elemento, .pulso-f6-mas-menu button):hover {
   box-shadow: none;
 }
 
 @media (hover: hover) and (pointer: fine) {
-  button:where(.pulso-f6-parte, .pulso-f6-nodo-cabeza, .pulso-f6-lamina, .pulso-f6-miniatura, .pulso-f6-miniatura-reintentar, .pulso-f6-inspector-tab, .pulso-f6-inspector-avisos-chip, .pulso-f6-selector-grafico-opcion, .pulso-f6-guias-rol, .pulso-f6-guias-elemento, .pulso-f6-mas-menu button):hover:not(:active) {
+  button:where(.pulso-f6-nodo-cabeza, .pulso-f6-lamina, .pulso-f6-miniatura, .pulso-f6-miniatura-reintentar, .pulso-f6-inspector-tab, .pulso-f6-inspector-avisos-chip, .pulso-f6-selector-grafico-opcion, .pulso-f6-guias-rol, .pulso-f6-guias-elemento, .pulso-f6-mas-menu button):hover:not(:active) {
     transform: none;
   }
 }

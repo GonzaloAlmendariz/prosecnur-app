@@ -78,8 +78,8 @@ describe("OpcionesTarjetas (U1, U2)", () => {
     expect(html).toContain("Cómo se nombran los casos");
     expect(html).toContain('value="estudiantes"');
     expect(html).toContain('placeholder="personas encuestadas"');
-    expect(html).toContain('role="radiogroup" aria-label="Máximo de tarjetas"');
-    expect(html).toContain('aria-checked="true" tabindex="0" class="pulso-f6-seg-op is-activo">4 (por defecto)');
+    expect(html).toContain('aria-label="Máximo de tarjetas" role="radiogroup"');
+    expect(html).toMatch(/aria-checked="true" class="is-active"><span[^>]*>4 \(por defecto\)</);
   });
 
   it("sin cruces elegidos dice que van los del estudio; en una ranura el tope es 1 o 2", () => {
@@ -108,12 +108,15 @@ describe("OpcionesTarjetas (U1, U2)", () => {
     );
     expect(pintarDonde(true, false)).not.toContain('data-qa="tarjetas-donde"');
     const panel = pintarDonde(true, true);
-    expect(panel).toContain('role="radiogroup" aria-label="Dónde van las diferencias"');
-    expect(panel).toMatch(/aria-checked="true"[^>]*>Al lado del gráfico</);
+    expect(panel).toContain('aria-label="Dónde van las diferencias" role="radiogroup"');
+    expect(panel).toMatch(/aria-checked="true"[^>]*>(?:<span[^>]*>)?Al lado del gráfico</);
     const enLinea = pintarDonde({ activo: true, modo: "en_linea" }, true);
-    expect(enLinea).toMatch(/aria-checked="true"[^>]*>Bajo cada barra</);
+    expect(enLinea).toMatch(/aria-checked="true"[^>]*>(?:<span[^>]*>)?Bajo cada barra</);
     expect(enLinea).toContain("Hasta dos respuestas, sin panel aparte.");
     const bloque = enLinea.slice(enLinea.indexOf('data-qa="tarjetas-donde"'), enLinea.indexOf('data-qa="tarjetas-cruces"'));
-    expect(bloque).not.toMatch(/en_linea|[;·—]/);
+    // La clave interna sólo vive en el atributo del radio (data-gliding-key) y el «;» en el estilo del pulgar del kit;
+    // ninguno en el texto que se lee.
+    const texto = bloque.replace(/ (data-gliding-key|style)="[^"]*"/g, "");
+    expect(texto).not.toMatch(/en_linea|[;·—]/);
   });
 });

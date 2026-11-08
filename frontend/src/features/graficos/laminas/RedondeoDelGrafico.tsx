@@ -10,7 +10,7 @@ import { graficadorToPresetType } from "../graficadorPresetMap";
 import { usePlanStore } from "../store";
 import { usePresetsDefaults } from "../usePresetsDefaults";
 import { usePresetsMetadata } from "../usePresetsMetadata";
-import { Segmentado } from "../subpestanas/Segmentado";
+import { RadioSegmentado } from "../subpestanas/RadioSegmentado";
 import { filasCalculos, type FilaCalculo } from "../estiloInforme/modeloEstiloInforme";
 import { conRedondeo, leerRedondeo, METODO_ESTANDAR, METODO_REPARTO, sinRedondeo } from "./modeloRedondeoGrafico";
 import { useDetalleCifras } from "./cifrasInspector/useDetalleCifras";
@@ -58,13 +58,13 @@ export function RedondeoDelGraficoVista({ fila, args, onCambio, cifras = null }:
     <div className="pulso-f6-dato is-apilado pulso-f6-redondeo-grafico" role="group" aria-label="Redondeo de este gráfico">
       {/* R7-11: el segmento se llama «Reparto» y su suma va detrás; lo que hace el reparto va en el «?». */}
       <span className="pulso-f6-dato-rotulo">Redondeo<AyudaGlobo rotulo="Redondeo" detalle={AYUDA_REDONDEO} /></span>
-      <Segmentado etiqueta="Redondeo de este gráfico" valor={r.propio ? "propio" : "informe"}
+      <RadioSegmentado etiqueta="Redondeo de este gráfico" valor={r.propio ? "propio" : "informe"}
         onCambiar={(k) => onCambio(k === "propio" ? conRedondeo(args, fila, {}) : sinRedondeo(args))}
         opciones={[{ clave: "informe", rotulo: "Como el informe" }, { clave: "propio", rotulo: "Propio" }]} />
       {r.propio ? (
         <>
           {fila.admiteMetodo && (
-            <Segmentado etiqueta="Método de este gráfico" valor={r.metodo === METODO_REPARTO ? METODO_REPARTO : METODO_ESTANDAR}
+            <RadioSegmentado etiqueta="Método de este gráfico" valor={r.metodo === METODO_REPARTO ? METODO_REPARTO : METODO_ESTANDAR}
               onCambiar={(m) => onCambio(conRedondeo(args, fila, { metodo: m }))}
               opciones={[
                 { clave: METODO_ESTANDAR, rotulo: <ConSuma rotulo="Estándar" suma={cifras?.sumaEstandar ?? null} vigente={!!cifras?.vigente} qa="redondeo-estandar" /> },
@@ -73,7 +73,7 @@ export function RedondeoDelGraficoVista({ fila, args, onCambio, cifras = null }:
           )}
           {fila.campoDecimales && (
             <span className="pulso-f6-redondeo-decimales">
-              <Segmentado etiqueta="Decimales de este gráfico" valor={r.decimales >= 1 ? "1" : "0"}
+              <RadioSegmentado etiqueta="Decimales de este gráfico" valor={r.decimales >= 1 ? "1" : "0"}
                 onCambiar={(d) => onCambio(conRedondeo(args, fila, { decimales: Number(d) }))}
                 opciones={[{ clave: "0", rotulo: "Sin decimales" }, { clave: "1", rotulo: "Un decimal" }]} />
               {cifras && <CifraEstado texto={cifras.mayor ?? null} vigente={cifras.vigente} qa="redondeo-mayor" />}

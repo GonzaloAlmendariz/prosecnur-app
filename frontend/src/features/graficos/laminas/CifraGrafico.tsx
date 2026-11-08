@@ -6,7 +6,7 @@
 
 import { AyudaGlobo } from "./AyudaGlobo";
 import { useId } from "react";
-import { Segmentado } from "../subpestanas/Segmentado";
+import { RadioSegmentado } from "../subpestanas/RadioSegmentado";
 import { useCategoriasGrafico } from "./useCategoriasGrafico";
 import { MODOS_CIFRA, modosCifraDisponibles, type ModoCifra } from "./modeloCifra";
 import "./cifraGrafico.css";
@@ -35,7 +35,7 @@ export function CifraGrafico({ args, variable, scope, onCambio }: Props) {
     <div className="pulso-f6-cifra" data-qa-geometry-group="graficos/f6-cifra" data-qa-geometry-contract="intrinsic">
       <div className="pulso-f6-dato is-apilado">
         <span className="pulso-f6-dato-rotulo" aria-hidden="true">Qué cifra</span>
-        <Segmentado etiqueta="Qué cifra" opciones={opciones} valor={modo} onCambiar={(m) => onCambio({ modo: m })} />
+        <RadioSegmentado etiqueta="Qué cifra" ancho opciones={opciones} valor={modo} onCambiar={(m) => onCambio({ modo: m })} />
       </div>
 
       {modo === "porcentaje" && (

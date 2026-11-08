@@ -288,46 +288,6 @@
   color: var(--pulso-text-faint);
 }
 
-/* Alto por contenido: la línea mide lo que el texto y el relleno completa el control md (28 px). El marco es el del
-   texto (contrato intrinsic), sin interior vacío. */
-.pulso-f6-parte {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 40px;
-  padding: calc((var(--pulso-control-height-md) - 1.2em) / 2) var(--pulso-space-3);
-  line-height: 1.2;
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius);
-  background: var(--pulso-surface);
-  color: var(--pulso-text);
-  font-size: var(--pulso-type-body-size);
-  cursor: pointer;
-  /* La parte activa sigue a ↑/↓ y cambia en seco; sólo el :active global interpola (M1/M4). */
-  transition: transform var(--motion-dur-press) var(--motion-ease-out);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .pulso-f6-parte:not(.is-activa):hover {
-    background: var(--pulso-surface-3);
-    transition:
-      background-color var(--motion-dur-hover) var(--motion-ease-out),
-      transform var(--motion-dur-press) var(--motion-ease-out);
-  }
-}
-
-.pulso-f6-parte.is-activa {
-  background: var(--module-accent-soft);
-  border-color: var(--module-accent-border);
-  color: var(--module-accent);
-  font-weight: var(--pulso-weight-semibold);
-}
-
-.pulso-f6-parte:focus-visible {
-  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
-  outline-offset: var(--pulso-nav-focus-offset);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .pulso-f6-progreso i { animation: none; width: 60%; transform: none; }
 

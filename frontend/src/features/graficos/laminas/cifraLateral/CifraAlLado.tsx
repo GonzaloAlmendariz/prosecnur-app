@@ -9,7 +9,7 @@ import { useSession } from "../../../../lib/SessionContext";
 import { useGraficosReportScope } from "../../reportScope";
 import { leerSlideMeta } from "../../slideMeta";
 import { usePlanStore } from "../../store";
-import { Segmentado } from "../../subpestanas/Segmentado";
+import { RadioSegmentado } from "../../subpestanas/RadioSegmentado";
 import type { TipoComparacion } from "../hallazgos/modeloCapitulosHallazgos";
 import { varCalificada } from "../ordenCategorias";
 import { SelectorCategorias } from "../SelectorCategorias";
@@ -98,7 +98,7 @@ function CifraAlLadoEditor({ slide }: { slide: Slide }) {
           </div>
           <div className="pulso-f6-dato is-apilado" data-qa-geometry-member="">
             <span className="pulso-f6-dato-rotulo">Comparación</span>
-            <Segmentado etiqueta="Comparación de la cifra" opciones={COMPARACIONES} valor={cifra.comparacion}
+            <RadioSegmentado etiqueta="Comparación de la cifra" opciones={COMPARACIONES} valor={cifra.comparacion}
               onCambiar={(c) => cambiar({ comparacion: c })} />
             {cifra.comparacion === "escrita" && (
               <input className="pulso-f6-input" value={cifra.comparacionTexto} aria-label="Comparación escrita de la cifra"

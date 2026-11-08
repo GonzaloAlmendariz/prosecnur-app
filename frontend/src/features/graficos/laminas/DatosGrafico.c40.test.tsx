@@ -82,7 +82,7 @@ describe("DatosGrafico · C40", () => {
     expect(html).toMatch(/<option value="minmax" selected="">Mínimo a máximo<\/option>/);
     expect(ayudaDe(html, AYUDA_TIPO_RANGO)).toBe(true);
     // Decimales de la media: botones 0, 1 y 2 (tope del registro), con el 1 por defecto marcado (pasada final 2026-10-15).
-    const botones = [...html.matchAll(/role="radio" aria-checked="(true|false)"[^>]*>([^<]+)</g)].map((m) => `${m[2]}:${m[1]}`);
+    const botones = [...html.matchAll(/role="radio"[^>]*aria-checked="(true|false)"[^>]*>(?:<span[^>]*>)?([^<]+)</g)].map((m) => `${m[2]}:${m[1]}`);
     expect(botones).toEqual(expect.arrayContaining(["0:false", "1:true", "2:false"]));
     expect(botones).not.toContain("3:false");
     expect(pintar("p_media_rango", { tipo_rango: "iqr" })).toMatch(/<option value="iqr" selected="">/);
@@ -140,7 +140,9 @@ describe("DatosGrafico · C40", () => {
   it("ítem 9: tres opciones cortas van en segmentado y el hint de la elegida va al «?»", () => {
     const html = pintar("p_barras_categoricas", { pista_barras: "nunca" });
     expect(html).toContain(`role="radiogroup"`);
-    const radios = [...html.matchAll(/role="radio" aria-checked="(true|false)"[^>]*>([^<]+)</g)].map((m) => `${m[2]}:${m[1]}`);
+    // El índice Datos / Cálculo / Aspecto también es un segmentado (W2-B): se cuentan los radios después de su <nav>.
+    const sinIndice = html.slice(html.indexOf("</nav>"));
+    const radios = [...sinIndice.matchAll(/role="radio"[^>]*aria-checked="(true|false)"[^>]*>(?:<span[^>]*>)?([^<]+)</g)].map((m) => `${m[2]}:${m[1]}`);
     expect(radios).toEqual(["Automática:false", "Siempre:false", "Nunca:true"]);
     expect(html).not.toContain("<select");
     expect(html).toContain("Nunca: la barra sola, sin pista.");

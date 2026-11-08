@@ -39,7 +39,7 @@ import { useReordenAnimado } from "./useReordenAnimado";
 import { useCategoriasGrafico } from "./useCategoriasGrafico";
 import { rotuloVisible } from "./rotuloCortoDeLista";
 import { useRotulosCortos } from "./useRotulosCortos";
-import { Segmentado } from "../subpestanas/Segmentado";
+import { RadioSegmentado } from "../subpestanas/RadioSegmentado";
 import "./ordenCategorias.css";
 import { useDetalleCifras, type EstadoDetalle } from "./cifrasInspector/useDetalleCifras";
 import { pctDe } from "./cifrasInspector/modeloCifras";
@@ -90,9 +90,9 @@ export function OrdenCategoriasGrafico({ variable, graficador, args, scope, onCa
   const guardar = (o: OrdenCategorias) => onCambio(ordenAGuardar(o));
   const modos: ModoOrden[] = orden.modo === "personalizado" ? [...MODOS_FIJOS, "personalizado"] : [...MODOS_FIJOS];
   const modoBajo = (e: MouseEvent<HTMLElement> | FocusEvent<HTMLElement>): ModoFijo | null => {
-    const radio = (e.target as HTMLElement).closest?.("[role=radio]");
-    const i = radio ? [...(radio.parentElement?.children ?? [])].indexOf(radio) : -1;
-    const m = modos[i];
+    // La clave va en data-gliding-key (el radiogroup del kit tiene su pulgar como primer hijo: no se cuenta por índice).
+    const clave = (e.target as HTMLElement).closest?.("[role=radio]")?.getAttribute("data-gliding-key");
+    const m = modos.find((x) => x === clave);
     return m && m !== "personalizado" ? m : null;
   };
   const lista = datos && !escala ? ordenVisible(orden, datos, args, vistaActiva) : null;
@@ -114,11 +114,11 @@ export function OrdenCategoriasGrafico({ variable, graficador, args, scope, onCa
           {/* ADR 0135 §8: cómo se mueve una categoría va en el «?» del rótulo; la lista lo nombra en aria-describedby. */}
           {datos && !escala && <AyudaGlobo id={`${id}-mover`} rotulo="Orden" detalle={AYUDA_MOVER} />}
         </span>
-        {/* Deshabilitado como grupo (fieldset): el segmentado compartido no tiene estado deshabilitado propio. */}
+        {/* Deshabilitado como grupo (fieldset): con la escala fijada no se elige modo. */}
         <fieldset className="pulso-f6-orden-modos" disabled={escala !== null} aria-describedby={escala ? escalaId : undefined}
           onMouseOver={(e) => setVista(modoBajo(e))} onMouseLeave={() => setVista(null)}
           onFocus={(e) => setVista(modoBajo(e))} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setVista(null); }}>
-          <Segmentado etiqueta="Orden" valor={orden.modo} opciones={modos.map((m) => ({ clave: m, rotulo: ROTULO_MODO[m] }))}
+          <RadioSegmentado etiqueta="Orden" ancho valor={orden.modo} opciones={modos.map((m) => ({ clave: m, rotulo: ROTULO_MODO[m] }))}
             onCambiar={(m) => { setVista(null); guardar({ ...orden, modo: m }); }} />
         </fieldset>
       </div>

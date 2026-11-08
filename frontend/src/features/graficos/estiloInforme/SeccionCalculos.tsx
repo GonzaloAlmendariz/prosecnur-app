@@ -9,7 +9,7 @@ import { RotateCcw } from "../../../vendor/lucide-react";
 import { resolveGraphLucideIcon } from "../lucideRegistry";
 import { SelloProcedencia } from "../estilo/SelloProcedencia";
 import { CabeceraSeccion } from "./CabeceraSeccion";
-import { Segmentado } from "../subpestanas/Segmentado";
+import { RadioSegmentado } from "../subpestanas/RadioSegmentado";
 import { reglaGeneral } from "./reglaRedondeo";
 import { ExcepcionesRegla } from "./ExcepcionesRegla";
 import type { Excepcion } from "./excepcionesPlan";
@@ -144,7 +144,7 @@ function NotaAlPie({ nota, metodo, decimales, acciones }: { nota: { modo: ModoNo
     <div className="pulso-f6-regla-general" role="group" aria-label="Nota al pie del redondeo" data-qa-geometry-group="graficos/f6-regla-nota" data-qa-geometry-contract="intrinsic">
       <span className="pulso-f6-regla-lab">Nota al pie</span>
       <div>
-        <Segmentado etiqueta="Cuándo va la nota al pie" valor={nota.modo} onCambiar={acciones.onModoNota}
+        <RadioSegmentado etiqueta="Cuándo va la nota al pie" valor={nota.modo} onCambiar={acciones.onModoNota}
           opciones={[{ clave: "nunca", rotulo: "Nunca" }, { clave: "si_no_cierra", rotulo: "Sólo si una barra no suma 100 %" }, { clave: "siempre", rotulo: "Siempre" }]} />
         <p className="pulso-f6-informe-ayuda">
           {metodo === METODO_REPARTO && nota.modo === "si_no_cierra"
@@ -155,7 +155,7 @@ function NotaAlPie({ nota, metodo, decimales, acciones }: { nota: { modo: ModoNo
       {nota.modo !== "nunca" && (<>
         <span className="pulso-f6-regla-lab">Texto</span>
         <div>
-          <Segmentado etiqueta="Texto de la nota" valor={propio ? "propio" : "auto"}
+          <RadioSegmentado etiqueta="Texto de la nota" valor={propio ? "propio" : "auto"}
             onCambiar={(v) => acciones.onTextoNota(v === "propio" ? (nota.texto || automatico) : "")}
             opciones={[{ clave: "auto", rotulo: "Automático" }, { clave: "propio", rotulo: "Propio" }]} />
           {propio ? (
@@ -215,7 +215,7 @@ export function SeccionCalculos({
           <div className="pulso-f6-regla-general" role="group" aria-label="Regla para todo el informe" data-qa-geometry-group="graficos/f6-regla-general" data-qa-geometry-contract="intrinsic">
             <span className="pulso-f6-regla-lab">Método</span>
             <div>
-              <Segmentado etiqueta="Método de redondeo del informe" valor={general.metodo === METODO_REPARTO ? METODO_REPARTO : METODO_ESTANDAR}
+              <RadioSegmentado etiqueta="Método de redondeo del informe" valor={general.metodo === METODO_REPARTO ? METODO_REPARTO : METODO_ESTANDAR}
                 onCambiar={(m) => acciones.onMetodoEnTodas(m)}
                 opciones={[{ clave: METODO_ESTANDAR, rotulo: "Estándar" }, { clave: METODO_REPARTO, rotulo: "Reparto a 100 %" }]} />
               <p className="pulso-f6-informe-ayuda">
@@ -226,7 +226,7 @@ export function SeccionCalculos({
             </div>
             <span className="pulso-f6-regla-lab">Decimales</span>
             <div>
-              <Segmentado etiqueta="Decimales del informe" valor={general.decimales >= 1 ? "1" : "0"}
+              <RadioSegmentado etiqueta="Decimales del informe" valor={general.decimales >= 1 ? "1" : "0"}
                 onCambiar={(d) => acciones.onDecimalesEnTodas(Number(d))}
                 opciones={[{ clave: "0", rotulo: "Sin decimales" }, { clave: "1", rotulo: "Un decimal" }]} />
             </div>

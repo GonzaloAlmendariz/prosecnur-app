@@ -14,7 +14,7 @@ import { Skeleton } from "../../../../components/Skeleton";
 import { formatoConteo } from "../../../../lib/formatoNumero";
 import { usePanelDireccionable } from "../../../../lib/navegacion/paneles";
 import { PANEL_DIFERENCIAS_REGLA } from "../../panelesGraficos";
-import { Segmentado } from "../../subpestanas/Segmentado";
+import { RadioSegmentado } from "../../subpestanas/RadioSegmentado";
 import { capaVisibleFuera, destinoDelFoco, escucharEscape } from "../cierreConEscape";
 import { enfocarSinDesplazar } from "../enfocarSinDesplazar";
 import type { EstructuraInforme } from "../modeloEstructura";
@@ -125,7 +125,7 @@ export function RevisionDiferenciasPanel({ panel, estructura, slideIdActual, onI
               {r.sin_prueba > 0 && <li className="pulso-sig-chip is-peligro">{formatoConteo(r.sin_prueba)} sin prueba</li>}
             </ul>
             <div className="pulso-sig-revision-barra">
-              <Segmentado<FiltroRevision> etiqueta="Qué láminas mostrar" valor={filtro} opciones={OPCIONES_FILTRO} onCambiar={setFiltro} />
+              <RadioSegmentado<FiltroRevision> etiqueta="Qué láminas mostrar" valor={filtro} opciones={OPCIONES_FILTRO} onCambiar={setFiltro} />
               <span className="pulso-sig-espacio" />
               <PulsoButton variant="link" size="sm" data-pulso-abre-panel={PANEL_DIFERENCIAS_REGLA.id} onClick={regla.abrir}
                 title={`${resumenRegla(datos.regla)}${r.familia ? ` (familia de ${formatoConteo(r.familia)} comparaciones)` : ""}`}>

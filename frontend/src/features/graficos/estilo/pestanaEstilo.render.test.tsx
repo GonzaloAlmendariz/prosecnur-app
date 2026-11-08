@@ -89,7 +89,7 @@ describe("PestanaEstilo · markup", () => {
     expect(html).toContain("Reemplazar PNG");
     expect(html).toContain('accept="image/png,.png"');
     expect(html).toContain('aria-label="Volver al logo por defecto en contraportada"');
-    expect(html).toContain('role="radiogroup" aria-label="Dónde se guarda la identidad"');
+    expect(html).toContain('aria-label="Dónde se guarda la identidad" role="radiogroup"');
     expect(html).toContain('class="pulso-lista-partes" role="group" aria-label="Piezas de la identidad"');
   });
 

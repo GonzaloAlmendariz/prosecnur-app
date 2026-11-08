@@ -20,6 +20,7 @@ import {
 } from "../../../vendor/lucide-react";
 import { downloadUrl } from "../../../api/core";
 import { PulsoButton } from "../../../components/PulsoButton";
+import { RadioSegmentado } from "../subpestanas/RadioSegmentado";
 import { PulsoSelect } from "../../../components/PulsoSelect";
 import { IconoTipo } from "../iconos/IconoTipo";
 import type { PreviewFormas, Slide } from "../../../api/graficos";
@@ -362,20 +363,19 @@ function BotonesPartes({ lamina, activa, onParte }: { lamina: LaminaVisor; activ
       </span>
     );
   }
+  // Acabado W2-B: las partes son un valor que se elige, así que van en el segmentado del kit (pulgar blanco), no en
+  // botones pulsables sueltos.
   return (
-    <>
-      {lamina.partes.map((p) => (
-        <button
-          key={p.indice}
-          type="button"
-          className={`pulso-f6-parte${p.indice === activa ? " is-activa" : ""}`}
-          aria-pressed={p.indice === activa}
-          aria-label={`Parte ${p.indice}${p.continuacion ? ", continuación" : ""}`}
-          onClick={() => onParte(p.indice)}
-        >
-          {p.indice}{p.continuacion && <span className="pulso-f6-rotulo-estrecho"> (cont.)</span>}
-        </button>
-      ))}
-    </>
+    <RadioSegmentado
+      etiqueta="Parte de la lámina"
+      className="pulso-f6-partes-segmento"
+      valor={String(activa)}
+      onCambiar={(k) => onParte(Number(k))}
+      opciones={lamina.partes.map((p) => ({
+        clave: String(p.indice),
+        titulo: `Parte ${p.indice}${p.continuacion ? ", continuación" : ""}`,
+        rotulo: <>{p.indice}{p.continuacion && <span className="pulso-f6-rotulo-estrecho"> (cont.)</span>}</>,
+      }))}
+    />
   );
 }

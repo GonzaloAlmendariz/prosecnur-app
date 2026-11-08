@@ -4,7 +4,7 @@
 import { useId } from "react";
 import { ArrowDown, ArrowUp, X } from "../../../../vendor/lucide-react";
 import VariablePicker from "../../VariablePicker";
-import { Segmentado } from "../../subpestanas/Segmentado";
+import { RadioSegmentado } from "../../subpestanas/RadioSegmentado";
 import { SelectorCategorias } from "../SelectorCategorias";
 import { avisoHallazgo, notaRestoHallazgo, type HallazgoEditable, type TipoComparacion } from "./modeloCapitulosHallazgos";
 
@@ -77,7 +77,7 @@ export function HallazgoFila({ hallazgo: h, numero, nombre, primero, ultimo, cal
 
       <div className="pulso-f6-campo">
         <span className="pulso-f6-hallazgo-rotulo">Comparación</span>
-        <Segmentado etiqueta={`Comparación del ${nombre}`} opciones={COMPARACIONES} valor={h.comparacion}
+        <RadioSegmentado etiqueta={`Comparación del ${nombre}`} opciones={COMPARACIONES} valor={h.comparacion}
           onCambiar={(c) => onCambio({ comparacion: c })} />
         {h.comparacion === "escrita" && (
           <>

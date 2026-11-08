@@ -6,7 +6,7 @@ import { PublicoGrafico } from "./PublicoGrafico";
 const ESTADO = { plan: { slides: [{ id: "s1", tipo: "dos" }] }, updateSlotArgs: () => undefined };
 vi.mock("../store", () => ({ usePlanStore: (sel: (s: typeof ESTADO) => unknown) => sel(ESTADO), SLIDE_GRAF_SLOTS: { dos: ["g1", "g2"] } }));
 
-const radios = (html: string) => [...html.matchAll(/role="radio" aria-checked="(true|false)"[^>]*>([^<]+)</g)].map((m) => `${m[2]}:${m[1]}`);
+const radios = (html: string) => [...html.matchAll(/role="radio"[^>]*aria-checked="(true|false)"[^>]*>(?:<span[^>]*>)?([^<]+)</g)].map((m) => `${m[2]}:${m[1]}`);
 
 describe("PublicoGrafico en segmentado", () => {
   it("sin decidir marca «Automático» con la regla que rige, y no hay desplegable", () => {

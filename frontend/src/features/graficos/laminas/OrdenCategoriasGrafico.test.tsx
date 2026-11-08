@@ -156,7 +156,7 @@ describe("OrdenCategoriasGrafico · orden elegido antes (U4)", () => {
 });
 
 describe("OrdenCategoriasGrafico · segmentado y lista siempre visible (ítem 3)", () => {
-  const radios = (html: string) => [...html.matchAll(/role="radio" aria-checked="(true|false)"[^>]*>([^<]+)</g)].map((m) => `${m[2]}:${m[1]}`);
+  const radios = (html: string) => [...html.matchAll(/role="radio"[^>]*aria-checked="(true|false)"[^>]*>(?:<span[^>]*>)?([^<]+)</g)].map((m) => `${m[2]}:${m[1]}`);
 
   it("tres modos en segmentado, sin desplegable; «A mano» sólo aparece mientras rige", () => {
     const html = pintar({ modo: "recetario" });

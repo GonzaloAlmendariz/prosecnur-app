@@ -88,7 +88,7 @@ describe("«Hallazgos clave» en el inspector", () => {
     expect(html).toContain('aria-label="Hallazgo 1 del capítulo «Información general»"');
     expect(html).toMatch(/aria-pressed="true"[^>]*title="Código 2/);
     expect(html).toContain("estudió la secundaria en un colegio privado");
-    expect(html).toMatch(/role="radio" aria-checked="true"[^>]*>Automática/);
+    expect(html).toMatch(/role="radio"[^>]*aria-checked="true"[^>]*>(?:<span[^>]*>)?Automática/);
     expect(html).toContain("1 de 1 sale");
     // Sólo en «titulares» se pide el titular.
     expect(html).not.toContain("Titular del capítulo");

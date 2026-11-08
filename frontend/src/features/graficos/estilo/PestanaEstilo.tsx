@@ -48,7 +48,7 @@ import { ColoresRespuestas } from "./ColoresRespuestas";
 import { RotulosCortos } from "./RotulosCortos";
 import { cuantosRotulos } from "./modeloRotulosCortos";
 import { useSubpestana, type Subpestana } from "../subpestanas/Subpestanas";
-import { Segmentado } from "../subpestanas/Segmentado";
+import { RadioSegmentado } from "../subpestanas/RadioSegmentado";
 import { PREFIJO_PIEZA, PiezasIdentidad, type ClavePieza } from "./PiezasIdentidad";
 import { piezasIdentidad } from "./modeloPiezasIdentidad";
 import { SeccionLineaVisual } from "../estiloInforme/SeccionLineaVisual";
@@ -192,7 +192,7 @@ export default function PestanaEstilo() {
       <header className="pulso-f6-estilo-barra">
         <h2 className="pulso-f6-estilo-titulo">Identidad</h2>
         {scope !== "consolidated" && (<>
-          <Segmentado etiqueta="Dónde se guarda la identidad" valor={ambito}
+          <RadioSegmentado etiqueta="Dónde se guarda la identidad" valor={ambito}
             onCambiar={(nuevo) => { if (nuevo !== ambito) cambiar((e) => conAmbito(e, nuevo)); }}
             opciones={ESTILO_AMBITOS.map((id) => ({ clave: id, rotulo: id === "proyecto" ? "Todo el estudio" : ETIQUETA_AMBITO[id].titulo }))} />
           <span className="pulso-f6-estilo-sub" title={ETIQUETA_AMBITO[ambito].explicacion}>{subtitulo}</span>

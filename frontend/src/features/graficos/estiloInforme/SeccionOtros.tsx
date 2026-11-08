@@ -3,7 +3,7 @@
 // PowerPoint, tabla numerada en el Word). Sólo vale para todo el informe: no hay regla por tipo ni por gráfico.
 
 import { useId } from "react";
-import { Segmentado } from "../subpestanas/Segmentado";
+import { RadioSegmentado } from "../subpestanas/RadioSegmentado";
 import { CabeceraSeccion } from "./CabeceraSeccion";
 import { ROTULO_OTROS } from "../vistaGeneral/interruptorOtrosModel";
 
@@ -19,7 +19,7 @@ export function SeccionOtros({ encendido, ayuda, onCambiar }: { encendido: boole
     <section className="pulso-f6-informe-seccion" aria-labelledby={tituloId} data-qa-geometry-member data-seccion="otros">
       <CabeceraSeccion id={tituloId} titulo="Respuestas Otros" modificado={encendido}
         etiquetaVolver="Volver al valor por defecto de las respuestas Otros" onVolver={() => onCambiar(false)} />
-      <Segmentado etiqueta={ROTULO_OTROS} opciones={OPCIONES}
+      <RadioSegmentado etiqueta={ROTULO_OTROS} opciones={OPCIONES}
         valor={encendido ? "si" : "no"} onCambiar={(k) => onCambiar(k === "si")} />
       <p className="pulso-f6-informe-ayuda">
         {encendido ? ayuda : "Lo que escribieron en Otro (especifique) no sale en el informe."} Sólo para todo el informe: no hay

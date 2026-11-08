@@ -26,10 +26,6 @@
   border: 0;
 }
 
-.pulso-f6-orden-modos .pulso-f6-seg { display: flex; min-width: 0; }
-.pulso-f6-orden-modos .pulso-f6-seg-op { flex: 1 1 auto; min-width: 0; }
-.pulso-f6-orden-modos:disabled .pulso-f6-seg { opacity: 0.55; }
-.pulso-f6-orden-modos:disabled .pulso-f6-seg-op { cursor: not-allowed; }
 
 /* Qué orden se dibuja, con palabras; en vista previa, en el tono del módulo. */
 .pulso-f6-orden-dicho.is-vista { color: var(--module-accent); }

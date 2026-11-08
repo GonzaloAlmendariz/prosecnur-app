@@ -1,8 +1,6 @@
 /* Cifra destacada en su tarjeta (CifraGrafico.tsx): respuestas como lista de una sola elección y el texto que
    acompaña al número agrupado en un bloque suave. */
 .pulso-f6-cifra { display: flex; flex-direction: column; gap: var(--pulso-space-4); padding: var(--pulso-space-3) 0 var(--pulso-space-2); border-top: 1px solid var(--pulso-border); }
-.pulso-f6-cifra .pulso-f6-seg { display: flex; }
-.pulso-f6-cifra .pulso-f6-seg-op { flex: 1 1 0; }
 
 .pulso-f6-cifra-cats {
   display: flex; flex-direction: column; overflow: hidden;

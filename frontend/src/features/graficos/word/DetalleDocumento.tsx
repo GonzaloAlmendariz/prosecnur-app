@@ -5,7 +5,7 @@
 
 import { useEffect, useId, useState } from "react";
 import { usePlanStore } from "../store";
-import { Segmentado } from "../subpestanas/Segmentado";
+import { RadioSegmentado } from "../subpestanas/RadioSegmentado";
 import { tituloCortoWord } from "../vistaGeneral/paginasWord";
 
 type ComoLeer = "auto" | "si" | "no";
@@ -55,7 +55,7 @@ export function DetalleDocumento({ tituloInforme, resumen }: { tituloInforme: st
         data-qa-geometry-group="graficos/f6-w-como-leer" data-qa-geometry-contract="intrinsic">
         <h3 className="pulso-f6-w-titulo">Cómo leer este informe</h3>
         <p className="pulso-f6-informe-ayuda">Explica el Top Two Box, el redondeo, las escalas y las bases chicas antes de los resultados.</p>
-        <Segmentado etiqueta="Cómo leer este informe" valor={comoLeer}
+        <RadioSegmentado etiqueta="Cómo leer este informe" valor={comoLeer}
           onCambiar={(k) => setDw({ ...dw, como_leer: k === "auto" ? undefined : k === "si" })}
           opciones={[{ clave: "auto", rotulo: "Automático" }, { clave: "si", rotulo: "Siempre" }, { clave: "no", rotulo: "Nunca" }]} />
         <p className="pulso-f6-informe-ayuda">
