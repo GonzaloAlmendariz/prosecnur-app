@@ -215,8 +215,16 @@ test_that("recodificada: los grupos se buscan en la columna que agrupa el render
   src <- list(data_sources = list(doc = d), inst_sources = list(doc = .eg_inst()))
   # "3" ya no es un grupo de la lámina: se avisa y nada cambia (antes dejaba el grupo 2 con 42 en vez de 46).
   el <- p_barras_apiladas("doc$q1", cruces = "doc$sexo", excluir_grupos = "3")
-  expect_message(o <- .excluir_grupos_elemento(el, src$data_sources, src$inst_sources, "doc"), "no hay casos")
+  # El aviso dice por qué: la recodificación lo juntó con otro grupo (B4), no que no tenga casos.
+  msgs <- testthat::capture_messages(o <- .excluir_grupos_elemento(el, src$data_sources, src$inst_sources, "doc"))
+  expect_true(any(grepl("la recodificación juntó \"3\" con otro grupo", msgs, fixed = TRUE)), info = paste(msgs, collapse = " | "))
+  expect_false(any(grepl("no hay casos", msgs, fixed = TRUE)))
   expect_null(o$.excluir_grupos_aplicado)
+  # Por rótulo de la original también; un grupo que no existe en ninguna de las dos sigue sin casos.
+  expect_message(.excluir_grupos_elemento(p_barras_apiladas("doc$q1", cruces = "doc$sexo", excluir_grupos = "Otro"),
+                                          src$data_sources, src$inst_sources, "doc"), "juntó \"Otro\"")
+  expect_message(.excluir_grupos_elemento(p_barras_apiladas("doc$q1", cruces = "doc$sexo", excluir_grupos = "Mixto"),
+                                          src$data_sources, src$inst_sources, "doc"), "no hay casos en los grupos a excluir \"Mixto\"")
   todos <- .eg_det("p_barras_apiladas", list(var = "doc$q1", cruces = "doc$sexo"), src = src)
   sin3 <- .eg_det("p_barras_apiladas", list(var = "doc$q1", cruces = "doc$sexo", excluir_grupos = list("3")), src = src)
   expect_identical(.eg_filas(sin3), .eg_filas(todos))

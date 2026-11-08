@@ -140,6 +140,21 @@
   list(codigos = codigos[keep], rotulos = rotulos[keep], ausentes = unique(ausentes), ambiguos = unique(ambiguos))
 }
 
+#' Los pedidos sin casos en la columna recodificada que sí son grupos de la original: la recodificación los fundió
+#'
+#' Sólo con `<cruce>_recod`: el pedido se busca en la columna original, con los mismos filtros, por código o rótulo.
+#' @param ausentes Pedidos que no casaron con ningún grupo de `col`.
+#' @param var_original,col Columna del cruce declarada y la que agrupa el render.
+#' @param filtrados Base con los filtros del analista. @param inst Instrumento de la base.
+#' @return Los pedidos fundidos (subconjunto de `ausentes`).
+#' @keywords internal
+.excluir_grupos_fundidos <- function(ausentes, var_original, col, filtrados, inst) {
+  if (!length(ausentes) || identical(var_original, col) || !var_original %in% names(filtrados)) return(character(0))
+  orig <- trimws(as.character(filtrados[[var_original]])); orig <- unique(orig[!is.na(orig) & nzchar(orig)])
+  r <- .excluir_grupos_resolver(ausentes, .goc_categorias(inst, var_original), orig)
+  setdiff(ausentes, c(r$ausentes, r$ambiguos))
+}
+
 #' Filtros de un elemento como lista de reglas, o `NULL` si no se pueden convertir sin cambiar su sentido
 #'
 #' La lista nombrada (`list(sexo = "2")`) se convierte a reglas `in`; sus valores vacíos o `NA` no restringen nada y se
@@ -209,8 +224,14 @@
   if (length(res$ambiguos)) {
     .pulso_aviso(sprintf("\"%s\": %s nombra a más de un grupo y no se excluye; indica el código del grupo.", col, .excluir_grupos_citar(res$ambiguos)))
   }
-  if (length(res$ausentes)) {
-    .pulso_aviso(sprintf("\"%s\": no hay casos en los grupos a excluir %s.", col, .excluir_grupos_citar(res$ausentes)))
+  fundidos <- .excluir_grupos_fundidos(res$ausentes, cr$var, col, filtrados, inst_sources[[cr$base]])
+  if (length(fundidos)) {
+    .pulso_aviso(sprintf("\"%s\": la recodificación juntó %s con otro grupo y no se puede excluir por separado; excluye el grupo recodificado.",
+                         col, .excluir_grupos_citar(fundidos)))
+  }
+  ausentes <- setdiff(res$ausentes, fundidos)
+  if (length(ausentes)) {
+    .pulso_aviso(sprintf("\"%s\": no hay casos en los grupos a excluir %s.", col, .excluir_grupos_citar(ausentes)))
   }
   con_coma <- grepl(",", res$codigos, fixed = TRUE)
   if (any(con_coma)) {
