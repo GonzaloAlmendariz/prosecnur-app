@@ -35,6 +35,64 @@ describe("W2-A: sin botones F1/F2 en la estructura de Láminas", () => {
   });
 });
 
+/** Todos los TSX de laminas/, en cualquier profundidad (W2-B: las tarjetas también). */
+const todo = (sub = ""): string[] => fs.readdirSync(path.join(dir, sub), { withFileTypes: true }).flatMap((e) => {
+  const rel = path.join(sub, e.name);
+  if (e.isDirectory()) return todo(rel);
+  return /\.tsx$/.test(e.name) && !/\.test\./.test(e.name) ? [rel] : [];
+});
+
+describe("W2-B: sin botones F1/F2 en todo laminas/", () => {
+  const archivos = todo();
+  it("recorre el árbol entero", () => {
+    expect(archivos.length).toBeGreaterThan(150);
+    expect(archivos).toContain(path.join("tarjetaGrafico", "IndicePlegables.tsx"));
+  });
+  it.each(archivos)("%s no usa F1/F2, is-primario ni un botón de ícono con caja", (archivo) => {
+    const src = sinComentarios(leer(archivo));
+    expect(src).not.toMatch(/pulso-f6-(boton|icono-boton|texto-boton)\b/);
+    expect(src).not.toMatch(/\bis-primario\b/);
+    expect(src).not.toMatch(/variant="icon"(?![^>]*tone="quiet")[^>]*>/);
+    expect(src).not.toMatch(/subpestanas\/Segmentado"/);
+  });
+  it("las hojas de laminas/ no definen F1/F2 (sólo el bloque heredado de laminasWorkbench.css, para fuera de Láminas)", () => {
+    const hojas = (sub = ""): string[] => fs.readdirSync(path.join(dir, sub), { withFileTypes: true }).flatMap((e) => {
+      const rel = path.join(sub, e.name);
+      return e.isDirectory() ? hojas(rel) : e.name.endsWith(".css") && rel !== "laminasWorkbench.css" ? [rel] : [];
+    });
+    for (const h of hojas()) expect(sinComentarios(leer(h)), h).not.toMatch(/pulso-f6-(boton|icono-boton|texto-boton)\b/);
+  });
+});
+
+describe("W2-B: cierre y acabado de las tarjetas", () => {
+  it.each(["diferencias/PorQuePopover.tsx", "diferencias/RevisionDiferenciasPanel.tsx", "mazoResumen/EdicionReglaMazo.tsx", "propuestaResumen/PropuestaResumen.tsx"])(
+    "%s cierra con CabeceraPanel y no pinta una X de cierre propia", (archivo) => {
+      const src = sinComentarios(leer(archivo));
+      expect(src).toMatch(/<CabeceraPanel\b/);
+      // La X de «no cumple» de una condición es un ícono de estado, no un cierre: se mira la X dentro de un botón.
+      expect(src).not.toMatch(/<PulsoButton[^>]*aria-label="Cerrar[^>]*>\s*<X\b/);
+      expect(src).not.toMatch(/aria-label=\{?["`]Cerrar[^>]*>\s*<X\b/);
+    });
+  it("la propuesta cierra con Escape", () => {
+    expect(sinComentarios(leer("propuestaResumen/PropuestaResumen.tsx"))).toMatch(/e\.key !== "Escape"[\s\S]{0,80}cerrar\(\)/);
+  });
+  it("la tarjeta abierta no lleva anillo de 2 px y el antetítulo del grupo no va en el acento", () => {
+    const insp = sinComentarios(leer("inspectorLamina.css"));
+    const abierta = insp.slice(insp.indexOf(".pulso-f6-ranura.is-abierta {"), insp.indexOf("}", insp.indexOf(".pulso-f6-ranura.is-abierta {")));
+    expect(abierta).toContain("var(--module-accent-border)");
+    expect(abierta).not.toMatch(/box-shadow/);
+    const datos = sinComentarios(leer("datosGrafico.css"));
+    const titulo = datos.slice(datos.indexOf(".pulso-f6-grupo-titulo {"), datos.indexOf("}", datos.indexOf(".pulso-f6-grupo-titulo {")));
+    expect(titulo).toContain("var(--pulso-text-faint)");
+    expect(titulo).not.toContain("--module-accent");
+  });
+  it("«Usar» de la comparación es secundario", () => {
+    const src = sinComentarios(leer("selectores/VistaComparar.tsx"));
+    const i = src.indexOf("data-usar-comparada");
+    expect(src.slice(src.lastIndexOf("<PulsoButton", i), i)).toContain('variant="secondary"');
+  });
+});
+
 describe("W2-A: jerarquía de la barra del visor", () => {
   const visor = sinComentarios(leer("VisorLamina.tsx"));
   const barra = visor.slice(visor.indexOf('<header className="pulso-f6-visor-barra">'), visor.indexOf("</header>"));

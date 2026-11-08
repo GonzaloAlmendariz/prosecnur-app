@@ -206,11 +206,6 @@
     background: var(--pulso-surface-3);
     transition: background-color var(--motion-dur-hover) var(--motion-ease-out);
   }
-
-  .pulso-f6-icono-boton.is-peligro:hover:not(:disabled) {
-    background: var(--pulso-danger-bg);
-    color: var(--pulso-danger-fg);
-  }
 }
 
 .pulso-f6-lamina.is-activa {
@@ -219,8 +214,7 @@
 }
 
 .pulso-f6-lamina:focus-visible,
-.pulso-f6-nodo-cabeza:focus-visible,
-.pulso-f6-texto-boton:focus-visible {
+.pulso-f6-nodo-cabeza:focus-visible {
   outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
   outline-offset: calc(-1 * var(--pulso-nav-focus-outline-width));
 }

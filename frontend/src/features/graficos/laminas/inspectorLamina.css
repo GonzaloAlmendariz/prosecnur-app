@@ -179,10 +179,6 @@ textarea.pulso-f6-input {
   color: var(--pulso-text-faint);
 }
 
-.pulso-f6-pendiente .pulso-f6-texto-boton {
-  font-size: var(--pulso-type-caption-size);
-}
-
 .pulso-f6-tarjeta {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);

@@ -207,9 +207,10 @@
   min-width: 0;
 }
 
-/* F1/F2 heredados (.pulso-f6-texto-boton, .pulso-f6-boton, .pulso-f6-icono-boton). Acabado de Láminas (W2-A,
-   2026-11-08): la estructura de la superficie (barras, visor, inspector, avisos, estructura, tira, guías y selectores)
-   ya no los usa; siguen aquí sólo para el contenido de las tarjetas, que migra la oleada W2-B. Nada nuevo los usa. */
+/* F1/F2 heredados (.pulso-f6-texto-boton, .pulso-f6-boton, .pulso-f6-icono-boton). Acabado de Láminas (W2-A y W2-B,
+   2026-11-08): NINGÚN archivo de laminas/ los usa (guarda en acabadoEstructura.test.ts). Siguen aquí sólo por los
+   consumidores de fuera de Láminas (Vista general, índice, multiapiladas, compartir, BarraExtraControl), que migra
+   otra oleada; al quedar sin uso se borra este bloque. Nada nuevo los usa. */
 .pulso-f6-texto-boton {
   flex: none;
   border: 0;
@@ -291,7 +292,8 @@
 }
 
 .pulso-f6-boton:focus-visible,
-.pulso-f6-icono-boton:focus-visible {
+.pulso-f6-icono-boton:focus-visible,
+.pulso-f6-texto-boton:focus-visible {
   outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
   outline-offset: var(--pulso-nav-focus-offset);
 }
