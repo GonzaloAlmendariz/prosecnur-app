@@ -44,15 +44,50 @@ export function recorteDe(todas: DetalleCifras | null, vista: DetalleCifras | nu
   return { filas, otros: otro ? { clave: otro.categoria, valor: otro.valor } : null, corte: primera < 0 ? filas.length : primera, decimales: todas.redondeo.decimales };
 }
 
-/** «Fuera: Otro, No sabe (7%)», o con Otros «Otros = 7%»; null si nada queda fuera. */
+/** El rótulo de las filas que van a Otros (R7-10), en esta lista y en la de Orden. */
+export const EN_OTROS = "en Otros";
+
+export type FilaVista =
+  | { tipo: "categoria"; clave: string; valor: number | null; fuera: boolean; enOtros: boolean }
+  | { tipo: "otros"; clave: string; valor: number | null };
+
+/**
+ * R7-10: las filas como se ven. Con Otros, Otros es una fila más SOBRE la línea (el motor la cuenta entre las N), así
+ * que N es el número de filas visibles; debajo, las que van a Otros, marcadas. Sin Otros, la lista tal cual con lo que
+ * queda fuera. `corte` es la fila sobre la que va la línea.
+ */
+export function filasVista(r: Recorte): { filas: FilaVista[]; corte: number } {
+  if (!r.otros) {
+    return { filas: r.filas.map((f) => ({ tipo: "categoria", ...f, enOtros: false })), corte: r.corte };
+  }
+  const dentro = r.filas.filter((f) => !f.fuera).map((f): FilaVista => ({ tipo: "categoria", ...f, enOtros: false }));
+  const fuera = r.filas.filter((f) => f.fuera).map((f): FilaVista => ({ tipo: "categoria", ...f, enOtros: true }));
+  return { filas: [...dentro, { tipo: "otros", clave: r.otros.clave, valor: r.otros.valor }, ...fuera], corte: dentro.length + 1 };
+}
+
+/**
+ * Las categorías de la lista que el gráfico junta en Otros, por su clave en `categorias`: las que no salen en el detalle
+ * cuando el detalle trae una categoría que no es de la lista (Otros). Las excluidas y las vacías no cuentan.
+ */
+export function clavesEnOtros(
+  det: DetalleCifras | null, categorias: readonly { clave: string; rotulos: readonly string[] }[], fueraDeCuenta: ReadonlySet<string>,
+): Set<string> {
+  const fila = filaPrincipal(det);
+  if (!fila) return new Set();
+  const norm = (t: string) => t.trim().toLocaleLowerCase("es");
+  const enDetalle = new Set(fila.valores.map((v) => norm(v.categoria)));
+  const deLista = new Set(categorias.flatMap((c) => c.rotulos.map(norm)));
+  if (![...enDetalle].some((k) => !deLista.has(k))) return new Set();
+  return new Set(categorias
+    .filter((c) => !fueraDeCuenta.has(c.clave) && !c.rotulos.some((r) => enDetalle.has(norm(r))))
+    .map((c) => c.clave));
+}
+
+/** «Fuera: Otro, No sabe (7%)»; null si nada queda fuera o si el resto va a Otros (Otros es una fila, R7-10). */
 export function textoFuera(r: Recorte | null): string | null {
   if (!r) return null;
   const fuera = r.filas.filter((f) => f.fuera);
-  if (!fuera.length) return null;
-  if (r.otros) {
-    const pct = textoPct(r.otros.valor, r.decimales);
-    return pct ? `${r.otros.clave} = ${pct}` : null;
-  }
+  if (!fuera.length || r.otros) return null;
   const nombres = fuera.slice(0, NOMBRES_FUERA).map((f) => f.clave).join(", ");
   const resto = fuera.length > NOMBRES_FUERA ? ` y ${fuera.length - NOMBRES_FUERA} más` : "";
   const suma = fuera.reduce((s, f) => s + (f.valor ?? 0), 0);

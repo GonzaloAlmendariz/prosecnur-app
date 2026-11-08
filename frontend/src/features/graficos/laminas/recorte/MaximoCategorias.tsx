@@ -1,7 +1,7 @@
 // «Máximo de categorías» como slider sobre la lista ordenada (oleada I2, ítem 5): reusa CifraDeslizable y useCifraEnVivo
 // (la cifra se mueve en vivo y se confirma al soltar). Debajo, la lista completa en el orden de la lámina con el % de
-// cada categoría y una línea de corte; lo que queda fuera se atenúa y se resume («Fuera: Otro, No sabe (7%)», o
-// «Otros = 7%» si el resto se agrupa). Las categorías y cifras son del motor (modeloRecorte.ts); sin detalle, el control
+// cada categoría y una línea de corte; lo que queda fuera se atenúa y se resume («Fuera: Otro, No sabe (7%)»). R7-10: si
+// el resto se agrupa, «Otros 54%» es una fila SOBRE la línea (N = filas visibles) y las que van a Otros se marcan debajo. Las categorías y cifras son del motor (modeloRecorte.ts); sin detalle, el control
 // de siempre (`respaldo`).
 //
 // Superficie intrínseca (C1): crece con su lista; la línea se mueve con transform sobre filas de alto fijo.
@@ -12,7 +12,7 @@ import { useCifraEnVivo } from "../reglaPreguntas/useCifraEnVivo";
 import { CifraEstado } from "../cifrasInspector/CifraEstado";
 import { textoPct } from "../cifrasInspector/modeloCifras";
 import { useDetalleCifras } from "../cifrasInspector/useDetalleCifras";
-import { recorteDe, textoFuera, TODAS, variantesRecorte, VISTA } from "./modeloRecorte";
+import { EN_OTROS, filasVista, recorteDe, textoFuera, TODAS, variantesRecorte, VISTA } from "./modeloRecorte";
 import "../numeroDeslizable.css";
 import "../reglaPreguntas/reglaPreguntas.css";
 import "./recorte.css";
@@ -48,7 +48,9 @@ export function MaximoCategorias({ id, rotulo, marcas, graficador, scope, args, 
   const valorVisto = Math.min(max, Math.max(min, cifra.valor));
   const mover = (v: number) => { destino.current = onCambio; cifra.mover(v); };
   const vigente = !!vista?.vigente;
-  const estilo = { "--pulso-f6-corte": recorte.corte } as CSSProperties;
+  const visto = filasVista(recorte);
+  const estilo = { "--pulso-f6-corte": visto.corte } as CSSProperties;
+  const resumen = textoFuera(recorte);
   return (
     <div className="pulso-f6-dato pulso-f6-numdesl pulso-f6-recorte" data-campo={argName}
       data-qa-geometry-group="graficos/f6-recorte" data-qa-geometry-contract="intrinsic">
@@ -57,16 +59,22 @@ export function MaximoCategorias({ id, rotulo, marcas, graficador, scope, args, 
         onMover={mover} onSoltar={cifra.soltar} />
       {marcas ? <span className="pulso-f6-numdesl-marcas">{marcas}</span> : null}
       <ol className={`pulso-f6-recorte-lista${vigente ? "" : " is-anterior"}`} style={estilo} aria-label={`Categorías del gráfico, ${rotulo.toLowerCase()}`}>
-        {recorte.filas.map((f) => (
-          <li key={f.clave} className={`pulso-f6-recorte-fila${f.fuera ? " is-fuera" : ""}`}>
+        {visto.filas.map((f) => f.tipo === "otros" ? (
+          <li key={`otros:${f.clave}`} className="pulso-f6-recorte-fila is-otros" data-qa="recorte-otros">
             <span className="pulso-f6-recorte-nombre" title={f.clave}>{f.clave}</span>
             <span className="pulso-f6-cifra-pct">{textoPct(f.valor, recorte.decimales)}</span>
-            {f.fuera && <span className="pulso-sr-only">, fuera del gráfico</span>}
+          </li>
+        ) : (
+          <li key={f.clave} className={`pulso-f6-recorte-fila${f.fuera ? " is-fuera" : ""}`}>
+            <span className="pulso-f6-recorte-nombre" title={f.clave}>{f.clave}</span>
+            {f.enOtros && <span className="pulso-f6-recorte-en-otros" data-qa="recorte-en-otros">{EN_OTROS}</span>}
+            <span className="pulso-f6-cifra-pct">{textoPct(f.valor, recorte.decimales)}</span>
+            {f.fuera && !f.enOtros && <span className="pulso-sr-only">, fuera del gráfico</span>}
           </li>
         ))}
-        {recorte.corte < n && <li className="pulso-f6-recorte-linea" aria-hidden="true" />}
+        {visto.corte < visto.filas.length && <li className="pulso-f6-recorte-linea" aria-hidden="true" />}
       </ol>
-      <CifraEstado texto={textoFuera(recorte)} vigente={vigente} esperando={!!vista && !vista.vigente} qa="recorte-fuera" className="pulso-f6-recorte-estado" />
+      <CifraEstado texto={resumen} vigente={vigente} esperando={!!vista && !vista.vigente && resumen !== null} qa="recorte-fuera" className="pulso-f6-recorte-estado" />
     </div>
   );
 }

@@ -43,6 +43,8 @@ import { Segmentado } from "../subpestanas/Segmentado";
 import "./ordenCategorias.css";
 import { useDetalleCifras, type EstadoDetalle } from "./cifrasInspector/useDetalleCifras";
 import { pctDe } from "./cifrasInspector/modeloCifras";
+import { ARGS_RECORTE, clavesEnOtros, EN_OTROS } from "./recorte/modeloRecorte";
+import { codigosATexto, textoACodigos } from "./argsDatosGrafico";
 import "./cifrasInspector/cifrasInspector.css";
 import { CargaDeBloque } from "../../../components/CargaDeBloque";
 import { formatoConteo } from "../../../lib/formatoNumero";
@@ -94,6 +96,14 @@ export function OrdenCategoriasGrafico({ variable, graficador, args, scope, onCa
     return m && m !== "personalizado" ? m : null;
   };
   const lista = datos && !escala ? ordenVisible(orden, datos, args, vistaActiva) : null;
+  // R7-10: con un máximo de categorías, las que el gráfico junta en Otros se marcan «en Otros» (no quedan sin cifra).
+  const conMaximo = [...ARGS_RECORTE].some((a) => typeof args[a] === "number");
+  const cortos = useRotulosCortos();
+  const enOtros = datos && conMaximo ? clavesEnOtros(
+    cifras?.detalle ?? null,
+    datos.categorias.map((c) => ({ clave: c.codigo, rotulos: [c.etiqueta, rotuloVisible(cortos, c.etiqueta).texto, c.codigo] })),
+    new Set([...textoACodigos(codigosATexto(args.excluir_opciones)), ...categoriasSinRespuestas(datos)]),
+  ) : new Set<string>();
   const dicho = ordenDicho(vistaActiva ?? orden.modo, datos, vistaActiva ? null : nombreHeredado ?? heredado, orden.invertir);
 
   return (
@@ -154,6 +164,7 @@ export function OrdenCategoriasGrafico({ variable, graficador, args, scope, onCa
           vista={!!vistaActiva}
           ayudaId={`${id}-mover`}
           cifras={cifras}
+          enOtros={enOtros}
           // Mover cualquier fila pasa a «A mano» desde el orden que se ve: se guarda tal como queda dibujado.
           onLista={(mostrado) => guardar({ ...orden, modo: "personalizado", lista: listaDesdeMostrado(mostrado, orden.invertir) })}
         />
@@ -195,8 +206,10 @@ function EstadoDatos({ estado }: { estado: ReturnType<typeof useCategoriasGrafic
 
 export const AYUDA_MOVER = "Arrastra o usa Alt + ↑/↓ sobre una categoría para moverla.";
 
-function ListaOrden({ datos, lista, invertido, vista, ayudaId, cifras, onLista }: {
+function ListaOrden({ datos, lista, invertido, vista, ayudaId, cifras, enOtros, onLista }: {
   datos: GraficosCategorias; lista: string[]; invertido: boolean; vista: boolean; ayudaId: string; cifras?: EstadoDetalle;
+  /** Las categorías que el gráfico junta en Otros (R7-10). */
+  enOtros: ReadonlySet<string>;
   onLista: (l: string[]) => void;
 }) {
   // U14: con el rótulo corto del estudio la lista dice lo que dirá la lámina; el completo queda en el title.
@@ -268,6 +281,7 @@ function ListaOrden({ datos, lista, invertido, vista, ayudaId, cifras, onLista }
                 {vacia && <span className="pulso-f6-orden-sin-respuestas" aria-hidden="true">{NO_SE_DIBUJA}</span>}
               </span>
               {pct && <span className={`pulso-f6-cifra-pct${cifras?.vigente ? "" : " is-anterior"}`} data-qa="cifra-orden">{pct}</span>}
+              {!pct && enOtros.has(codigo) && <span className={`pulso-f6-cifra-pct${cifras?.vigente ? "" : " is-anterior"}`} data-qa="orden-en-otros">{EN_OTROS}</span>}
               <button type="button" className="pulso-f6-icono-boton" {...{ [ATRIBUTO_ACCION_ORDEN]: "subir" }} aria-label={`Subir “${texto}”`} disabled={i === 0} onClick={() => moverA(i, i - 1, "subir")}>
                 <ArrowUp size={14} aria-hidden="true" />
               </button>

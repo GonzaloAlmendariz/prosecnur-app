@@ -73,6 +73,13 @@ describe("Orden y Destacar con su %", () => {
     expect(lote).toHaveBeenCalledTimes(1);
     expect((lote.mock.calls[0][0] as PedidoCifrasDetalleLote).config).toBe(CONFIG);
   });
+  it("R7-10: con un máximo de categorías, la que va a Otros dice «en Otros» en la lista de Orden", async () => {
+    respuesta = detalle([{ clave: "Sí", valor: 62 }, { clave: "Otros", valor: 38 }]);
+    act(() => root.render(<OrdenCategoriasGrafico variable="b1$p1" graficador="p_barras_categoricas" args={{ var: "p1", max_categorias: 1 }} scope="active" onCambio={() => undefined} />));
+    await esperar();
+    expect(textos("cifra-orden")).toEqual(["62%"]);
+    expect(textos("orden-en-otros")).toEqual(["en Otros"]);
+  });
   it("sin detalle quedan como hoy", async () => {
     respuesta = null;
     pintar();

@@ -6,7 +6,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DetalleCifras, PedidoCifrasDetalleLote } from "../../../../api/graficosCifras";
 import { detalle } from "../cifrasInspector/fixturaDetalle.test-utils";
-import { recorteDe, textoFuera } from "./modeloRecorte";
+import { clavesEnOtros, recorteDe, textoFuera } from "./modeloRecorte";
 
 const lote = vi.hoisted(() => vi.fn());
 vi.mock("../../../../api/graficosCifras", async (original) => ({ ...(await original<object>()), apiGraficosCifrasDetalleLote: lote }));
@@ -67,10 +67,14 @@ describe("Máximo de categorías con su línea de corte", () => {
     expect(fuera()).toBe("Fuera: Otro, No sabe (7%)");
     expect(host.querySelector(".pulso-f6-recorte-linea")).not.toBeNull();
   });
-  it("con Otros, la cifra de Otros", async () => {
+  it("R7-10: con Otros, Otros es una fila sobre la línea y las que van a Otros se marcan debajo", async () => {
     pintar({ var: "p1", max_categorias: 3, agrupar_resto_en_otros: true });
     await esperar();
-    expect(fuera()).toBe("Otros = 7%");
+    const filas = [...host.querySelectorAll(".pulso-f6-recorte-fila")].map((e) => e.textContent);
+    expect(filas).toEqual(["Lima40%", "Cusco30%", "Piura23%", "Otros7%", "Otroen Otros4%", "No sabeen Otros3%"]);
+    // La línea va bajo Otros: cuatro filas visibles sobre ella.
+    expect((host.querySelector(".pulso-f6-recorte-lista") as HTMLElement).style.getPropertyValue("--pulso-f6-corte")).toBe("4");
+    expect(fuera()).toBeNull();
   });
   it("al mover el slider, la línea y la cifra siguen al borrador antes de guardar", async () => {
     pintar({ var: "p1", max_categorias: 3 });
@@ -89,6 +93,12 @@ describe("Máximo de categorías con su línea de corte", () => {
     pintar({ var: "p1", max_categorias: 3 });
     await esperar();
     expect(host.querySelector('[data-qa="respaldo"]')).not.toBeNull();
+  });
+  it("R7-10: las categorías que van a Otros, sin contar excluidas ni vacías; sin Otros en el detalle, ninguna", () => {
+    const cats = ["Lima", "Cusco", "Piura", "Otro"].map((c) => ({ clave: c, rotulos: [c] }));
+    const conOtros = detalle([{ clave: "Lima", valor: 40 }, { clave: "Otros", valor: 60 }]);
+    expect([...clavesEnOtros(conOtros, cats, new Set(["Otro"]))]).toEqual(["Cusco", "Piura"]);
+    expect(clavesEnOtros(detalle([{ clave: "Lima", valor: 40 }, { clave: "Cusco", valor: 60 }]), cats, new Set()).size).toBe(0);
   });
   it("nada fuera: sin línea ni frase", () => {
     const r = recorteDe(detalle(CATS), detalle(CATS));
