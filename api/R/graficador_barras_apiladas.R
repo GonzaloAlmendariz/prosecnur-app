@@ -2009,6 +2009,14 @@ graficar_barras_apiladas <- function(
       label_fit_scale <- max(0.55, min(1.35, label_fit_scale))
     }
   }
+  # Ancho físico de la barra para medir la cifra en pulgadas (graficador_barras_apiladas_ancho_cifra.R).
+  ancho_barras_cifra_in <- if (isTRUE(usar_canvas)) .apiladas_ancho_barras_in(
+    ancho, if (isTRUE(usar_grupos_canvas)) canvas_w_grupo else 0, if (isTRUE(usar_grupos_canvas)) canvas_w_buf_grupo_etq else 0,
+    if (missing(canvas_w_etiquetas)) .barras_ancho_etiquetas(cat_layout$.cat_label, size_ejes_num, ancho) else canvas_w_etiquetas,
+    canvas_w_buf_etq_bars, canvas_w_bars, canvas_w_buf_bars_extra, canvas_w_extra,
+    if (isTRUE(mostrar_leyenda) && legend_is_side) 0.18 else 0,
+    if (isTRUE(mostrar_barra_extra)) columna_extra_in else NA_real_) else NA_real_
+  cifra_negrita <- "porcentajes" %in% textos_negrita
 
   # ---------------------------------------------------------------------------
   # 2) BARRAS
@@ -2151,7 +2159,8 @@ graficar_barras_apiladas <- function(
           .mostrar = .valor_plot > umbral_ocultar_etiqueta_eff,
           .size_label = size_texto_barras,
           .label_fit_scale = label_fit_scale,
-          .label_fit_width = .estimate_label_fit_width_apiladas(lab, .size_label) * .label_fit_scale,
+          .label_fit_width = pmax(.estimate_label_fit_width_apiladas(lab, .size_label) * .label_fit_scale,
+                                  .apiladas_ancho_cifra_frac(lab, .size_label, cifra_negrita, ancho_barras_cifra_in)),
           .entra_segmento = .mostrar &
             is.finite(.valor_plot) &
             .valor_plot >= (.label_fit_width + 2 * fit_padding),
@@ -2344,7 +2353,8 @@ graficar_barras_apiladas <- function(
           ),
           .size_label = dplyr::if_else(.tamano_etq == "grande", size_texto_barras, size_texto_barras_peq),
           .label_fit_scale = label_fit_scale,
-          .label_fit_width = .estimate_label_fit_width_apiladas(lab, .size_label) * .label_fit_scale,
+          .label_fit_width = pmax(.estimate_label_fit_width_apiladas(lab, .size_label) * .label_fit_scale,
+                                  .apiladas_ancho_cifra_frac(lab, .size_label, cifra_negrita, ancho_barras_cifra_in)),
           .entra_segmento = .tamano_etq != "ninguna" &
             is.finite(.valor_plot) &
             .valor_plot >= (.label_fit_width + 2 * fit_padding),
