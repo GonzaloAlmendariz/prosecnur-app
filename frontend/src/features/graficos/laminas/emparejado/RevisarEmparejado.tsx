@@ -32,8 +32,10 @@ import {
   type FuenteVariables,
 } from "./modeloEmparejado";
 import { PANEL_EMPAREJADO } from "./panelEmparejado";
+import { ATAJO, filaVecina, type AccionTecla } from "./teclado";
 import { TablaEmparejado } from "./TablaEmparejado";
 import type { EstadoEmparejadoRemoto } from "./useEmparejado";
+import { useTecladoEmparejado } from "./useTecladoEmparejado";
 import "./emparejado.css";
 
 type Props = {
@@ -64,12 +66,24 @@ function mensajeDe(e: unknown): string {
   return e instanceof Error ? e.message : "No se pudo guardar en la matriz.";
 }
 
-/** Tras una acción la fila puede cambiar de botones o salir del filtro: el foco va a su primera acción o a la siguiente. */
-function enfocarAcciones(claves: readonly string[]) {
+type Destino = "acciones" | "ancla";
+
+/**
+ * Tras una acción la fila puede cambiar de botones o salir del filtro: el foco va a la misma fila o a la siguiente. Con el
+ * ratón, a su primera acción; con el teclado (X6), a su ancla, que la deja activa para seguir con J, K, Enter y X.
+ */
+function enfocarFila(claves: readonly string[], destino: Destino, activar: (clave: string) => void) {
   requestAnimationFrame(() => {
     for (const c of claves) {
-      const boton = document.querySelector<HTMLButtonElement>(`[data-emp-acciones="${CSS.escape(c)}"] button`);
-      if (boton) { boton.focus(); return; }
+      const sel = destino === "ancla" ? `[data-emp-fila="${CSS.escape(c)}"]` : `[data-emp-acciones="${CSS.escape(c)}"] button`;
+      const el = document.querySelector<HTMLElement>(sel);
+      if (!el) continue;
+      if (destino === "ancla") {
+        activar(c);
+        el.focus();
+        el.scrollIntoView?.({ block: "nearest" });
+      } else el.focus();
+      return;
     }
   });
 }
@@ -90,25 +104,39 @@ export function RevisarEmparejado({ bases, basesEstudio, remoto, recargar, filas
   const guardado = ui.guardado;
   const ocupado = guardado.fase === "leyendo" || guardado.fase === "guardando";
 
-  const tras = (fila: FilaEmparejado, accion: () => void) => {
+  const tras = (fila: FilaEmparejado, accion: () => void, destino: Destino = "acciones") => {
     const i = visibles.findIndex((f) => f.clave === fila.clave);
     accion();
     if (guardado.fase === "confirmar" || guardado.fase === "error") ui.ponerGuardado({ fase: "inactivo" });
-    enfocarAcciones([fila.clave, ...visibles.slice(i + 1).map((f) => f.clave), ...visibles.slice(0, Math.max(0, i)).map((f) => f.clave).reverse()]);
+    const orden = [fila.clave, ...visibles.slice(i + 1).map((f) => f.clave), ...visibles.slice(0, Math.max(0, i)).map((f) => f.clave).reverse()];
+    enfocarFila(orden, destino, ui.activar);
   };
 
-  const confirmar = (fila: FilaEmparejado, par: PreguntaDeBase) => tras(fila, () => {
+  const confirmar = (fila: FilaEmparejado, par: PreguntaDeBase, destino?: Destino) => tras(fila, () => {
     onTemas(confirmarPar(temas, bases, fila.pregunta, par, fila.pregunta.tema));
     ui.buscar(null);
-  });
-  const quitar = (fila: FilaEmparejado) => tras(fila, () => { onTemas(quitarPar(temas, fila.clave)); ui.buscar(null); });
+  }, destino);
+  const quitar = (fila: FilaEmparejado, destino?: Destino) => tras(fila, () => { onTemas(quitarPar(temas, fila.clave)); ui.buscar(null); }, destino);
   const confirmarLote = () => {
     if (!lote.length) return;
     onTemas(confirmarIdenticos(temas, bases, lote));
     ui.buscar(null);
     if (guardado.fase === "confirmar" || guardado.fase === "error") ui.ponerGuardado({ fase: "inactivo" });
   };
-  const descartar = (fila: FilaEmparejado) => tras(fila, () => ui.descartar(fila.clave));
+  const descartar = (fila: FilaEmparejado, destino?: Destino) => tras(fila, () => ui.descartar(fila.clave), destino);
+
+  // J y K recorren las filas visibles; Enter confirma y X descarta o quita el par de la fila activa (teclado.ts).
+  const alTeclado = (accion: AccionTecla) => {
+    if (accion === "siguiente" || accion === "anterior") {
+      const c = filaVecina(visibles.map((f) => f.clave), activa?.clave ?? null, accion === "siguiente" ? 1 : -1);
+      if (c) enfocarFila([c], "ancla", ui.activar);
+      return;
+    }
+    if (!activa || ui.buscando) return;
+    if (accion === "confirmar" && activa.estado === "sugerido" && activa.par) confirmar(activa, activa.par, "ancla");
+    else if (accion === "quitar" && activa.estado === "confirmado") quitar(activa, "ancla");
+    else if (accion === "quitar" && activa.estado === "sugerido") descartar(activa, "ancla");
+  };
   const elegir = (fila: FilaEmparejado, variable: string) => {
     if (!variable) {
       if (fila.estado === "confirmado") quitar(fila);
@@ -119,6 +147,7 @@ export function RevisarEmparejado({ bases, basesEstudio, remoto, recargar, filas
     const etiqueta = variableDe(fuentes, fila.otraBase, variable)?.label || variable;
     confirmar(fila, { base: fila.otraBase, var: variable, etiqueta });
   };
+  useTecladoEmparejado(lista && filas.length > 0 && !ocupado, alTeclado);
   const firmaDe = (fila: FilaEmparejado) => variableDe(fuentes, fila.pregunta.base, fila.pregunta.var)?.scale_signature;
 
   const leerUnion = async () => {
@@ -214,6 +243,19 @@ export function RevisarEmparejado({ bases, basesEstudio, remoto, recargar, filas
             onCambiar={ui.filtrarCoincidencia}
           />
         </div>
+      ) : undefined}
+      footerHint={lista && filas.length > 0 ? (
+        <>
+          <kbd className="pulso-dialog__kbd">{ATAJO.siguiente}</kbd>
+          <kbd className="pulso-dialog__kbd">{ATAJO.anterior}</kbd>
+          <span>cambian de fila</span>
+          {ocupado ? null : (
+            <>
+              <kbd className="pulso-dialog__kbd">Esc</kbd>
+              <span>cierra</span>
+            </>
+          )}
+        </>
       ) : undefined}
       footerStatus={estadoPie}
       footer={guardado.fase === "confirmar" ? (

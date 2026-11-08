@@ -168,3 +168,64 @@ describe("Confirmar los idénticos", () => {
     expect(botonLote()?.textContent).toBe("Confirmar los idénticos (1)");
   });
 });
+
+describe("teclado", () => {
+  const pulsar = async (key: string, objetivo: Element | null = document.activeElement) => {
+    await act(async () => {
+      (objetivo ?? document.body).dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+      await new Promise((r) => setTimeout(r, 20));
+    });
+  };
+  const activa = () => useEmparejadoUi.getState().activa;
+
+  it("J y K recorren las filas, con el foco en la fila y su evidencia", async () => {
+    abrir();
+    const panel = document.querySelector("[data-pulso-panel='emparejado']");
+    await pulsar("j", panel);
+    expect(activa()).toBe("docentes$p1");
+    expect(document.activeElement?.getAttribute("data-emp-fila")).toBe("docentes$p1");
+    await pulsar("j");
+    await pulsar("j");
+    expect(activa()).toBe("docentes$p3");
+    expect(evidencia()?.textContent).toContain("Calidad de la biblioteca central");
+    await pulsar("k");
+    expect(activa()).toBe("docentes$p2");
+  });
+
+  it("Enter confirma la fila activa y X la quita; la fila sigue activa", async () => {
+    abrir();
+    const panel = document.querySelector("[data-pulso-panel='emparejado']");
+    await pulsar("j", panel);
+    await pulsar("j");
+    await pulsar("j");
+    await pulsar("Enter");
+    expect(ultimoPatch?.vars).toEqual({ calidad_de_la_biblioteca: ["docentes$p3", "estudiantes$q3"] });
+    expect(estadoDe(filas()[2])).toBe("confirmado");
+    expect(activa()).toBe("docentes$p3");
+    await pulsar("x");
+    expect(estadoDe(filas()[2])).toBe("sugerido");
+    await pulsar("x");
+    expect(estadoDe(filas()[2])).toBe("sin_par");
+  });
+
+  it("no interfiere con los campos ni con Enter sobre un botón, y con el panel cerrado no escucha", async () => {
+    abrir();
+    const panel = document.querySelector("[data-pulso-panel='emparejado']");
+    const campo = document.createElement("input");
+    panel?.appendChild(campo);
+    await pulsar("j", campo);
+    expect(activa()).toBeNull();
+    await pulsar("j", panel);
+    const cambiar = filas()[0].querySelector<HTMLButtonElement>("[aria-label^='Cambiar el par']");
+    await pulsar("Enter", cambiar);
+    expect(ultimoPatch).toBeNull();
+    // MemoryRouter no relee initialEntries: se monta de nuevo sin `?panel=`.
+    act(() => root.unmount());
+    root = createRoot(host);
+    act(() => root.render(<MemoryRouter initialEntries={["/procesamiento"]}><Tarjeta /></MemoryRouter>));
+    expect(document.querySelector("[data-pulso-panel='emparejado'][data-state='open']")).toBeNull();
+    useEmparejadoUi.setState({ activa: null });
+    await pulsar("j", document.body);
+    expect(activa()).toBeNull();
+  });
+});

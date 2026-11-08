@@ -2,7 +2,7 @@
 // sus cuatro estados y las acciones de la fila. Es la PulsoTable del kit; el dueño del scroll vertical es el cuerpo del
 // diálogo (la tabla crece con sus filas).
 
-import type { SyntheticEvent } from "react";
+import { useMemo, useRef, type MutableRefObject, type SyntheticEvent } from "react";
 import type { VariableDeBase } from "../../../../api/equivalencias";
 import type { PreguntaDeBase } from "../../../../api/graficosEmparejado";
 import { PulsoTable, type PulsoTableColumna } from "../../../../components/PulsoTable";
@@ -48,22 +48,25 @@ function textoDe(fila: FilaEmparejado, base: string): PreguntaDeBase | null {
   return fila.par?.base === base ? fila.par : null;
 }
 
-export function TablaEmparejado(p: Props) {
+// Las columnas se arman una vez por par de bases y sus celdas leen las props vigentes por `ref`. La tabla del kit
+// monta cada celda como componente con la función de la columna: columnas nuevas en cada render remontaban las celdas
+// y el foco de un botón o del ancla se perdía al activar la fila (X6, teclado).
+function columnasDe(ref: MutableRefObject<Props>, bases: readonly string[]): PulsoTableColumna<FilaEmparejado>[] {
   const columnaBase = (base: string): PulsoTableColumna<FilaEmparejado> => ({
     id: `base-${base}`,
     encabezado: nombrePublico(base),
     ancho: ANCHO_BASE,
     valor: (f) => textoDe(f, base)?.etiqueta ?? null,
     celda: (f) => {
-      if (f.otraBase === base && p.buscando === f.clave) {
+      if (f.otraBase === base && ref.current.buscando === f.clave) {
         return (
           <BuscarPar
             base={base}
-            opciones={p.opcionesDe(f)}
+            opciones={ref.current.opcionesDe(f)}
             valor={f.estado === "sugerido" ? "" : f.par?.var ?? ""}
             contexto={f.pregunta.etiqueta}
-            tomadas={p.tomadasDe(f)}
-            onElegir={(v) => p.onElegir(f, v)}
+            tomadas={ref.current.tomadasDe(f)}
+            onElegir={(v) => ref.current.onElegir(f, v)}
           />
         );
       }
@@ -79,19 +82,19 @@ export function TablaEmparejado(p: Props) {
     },
   });
 
-  const columnas: PulsoTableColumna<FilaEmparejado>[] = [
-    ...p.bases.map(columnaBase),
+  return [
+    ...bases.map(columnaBase),
     {
       id: "coincidencia",
       encabezado: "Coincidencia",
       ancho: ANCHO_COINCIDENCIA,
       valor: (f) => {
-        const c = p.coincidencias.get(f.clave);
+        const c = ref.current.coincidencias.get(f.clave);
         return c ? ROTULO_COINCIDENCIA[c.clase] : null;
       },
       celda: (f) => (
         <span className="pulso-f6-emp-ancla" data-emp-fila={f.clave} tabIndex={-1}>
-          <ChipCoincidencia coincidencia={p.coincidencias.get(f.clave) ?? null} />
+          <ChipCoincidencia coincidencia={ref.current.coincidencias.get(f.clave) ?? null} />
         </span>
       ),
     },
@@ -114,16 +117,23 @@ export function TablaEmparejado(p: Props) {
       celda: (f) => (
         <AccionesEmparejado
           fila={f}
-          buscando={p.buscando === f.clave}
-          onConfirmar={() => f.par && p.onConfirmar(f, f.par)}
-          onBuscar={() => p.onBuscar(f)}
-          onCancelar={() => p.onBuscar(null)}
-          onDescartar={() => p.onDescartar(f)}
-          onQuitar={() => p.onQuitar(f)}
+          buscando={ref.current.buscando === f.clave}
+          onConfirmar={() => f.par && ref.current.onConfirmar(f, f.par)}
+          onBuscar={() => ref.current.onBuscar(f)}
+          onCancelar={() => ref.current.onBuscar(null)}
+          onDescartar={() => ref.current.onDescartar(f)}
+          onQuitar={() => ref.current.onQuitar(f)}
         />
       ),
     },
   ];
+}
+
+export function TablaEmparejado(p: Props) {
+  const ultimo = useRef(p);
+  ultimo.current = p;
+  const basesClave = p.bases.join("\u0000");
+  const columnas = useMemo(() => columnasDe(ultimo, basesClave.split("\u0000")), [basesClave]);
 
   // La fila se reconoce por su ancla (la celda de coincidencia): la tabla del kit no nombra sus filas.
   const activarDesde = (e: SyntheticEvent<HTMLDivElement>) => {

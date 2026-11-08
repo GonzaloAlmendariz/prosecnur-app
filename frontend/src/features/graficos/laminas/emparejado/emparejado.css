@@ -40,10 +40,13 @@
   color: var(--pulso-text-muted);
 }
 
+/* El nombre de la variable es un metadato: rol micro del kit, letra del sistema (P8, sin monoespaciada). */
 .pulso-f6-emp-codigo {
   flex: none;
   color: var(--pulso-text-faint);
   font-size: var(--pulso-type-micro-size);
+  font-weight: var(--pulso-type-micro-weight);
+  font-variant-numeric: tabular-nums;
 }
 
 .pulso-f6-emp-sin {
@@ -199,4 +202,19 @@
   align-items: center;
   gap: var(--pulso-space-2) var(--pulso-space-4);
   min-width: 0;
+}
+
+/* Globo de los botones de fila (BotonConAtajo): la acción y su tecla. En portal sobre el diálogo; sin animación. */
+.pulso-f6-emp-globo {
+  z-index: calc(var(--pulso-z-modal) + 20);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-1) var(--pulso-space-2);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-popover);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-caption-size);
+  white-space: nowrap;
 }

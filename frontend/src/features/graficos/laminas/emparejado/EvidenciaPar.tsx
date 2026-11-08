@@ -50,7 +50,7 @@ export function EvidenciaPar({ fila, bases, coincidencia }: Props) {
             <div key={base} className="pulso-f6-emp-evid-lado">
               <span className="pulso-f6-emp-evid-publico">
                 {nombrePublico(base)}
-                {q ? <code className="pulso-f6-emp-codigo">{q.var}</code> : null}
+                {q ? <span className="pulso-f6-emp-codigo">{q.var}</span> : null}
               </span>
               {q ? <Texto trozos={trozosDe(k, q)} /> : <span className="pulso-f6-emp-sin">Sin par</span>}
             </div>

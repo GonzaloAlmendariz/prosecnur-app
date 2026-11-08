@@ -179,11 +179,16 @@ describe("la tabla de emparejado cabe sin desplazamiento horizontal (Q4-5, C4)",
     expect(2 * ANCHO_BASE + ANCHO_COINCIDENCIA + ANCHO_ESTADO + ANCHO_ACCIONES).toBeLessThanOrEqual(900);
   });
 
-  it("las acciones secundarias son íconos con nombre accesible y tooltip; «Confirmar» conserva su texto", async () => {
+  it("las acciones secundarias son íconos con nombre accesible y globo con su tecla; «Confirmar» conserva su texto", async () => {
     montar("?panel=emparejado");
     const acciones = document.querySelector("[data-emp-acciones]");
     const botones = [...(acciones?.querySelectorAll("button") ?? [])];
     expect(botones.map((b) => b.textContent?.trim() || b.getAttribute("aria-label")?.split(" ")[0])).toEqual(["Confirmar", "Cambiar", "Descartar"]);
-    expect(botones.slice(1).every((b) => !!b.getAttribute("title"))).toBe(true);
+    // X6: el globo (no un `title` nativo) nombra la acción y su tecla; el botón la declara en aria-keyshortcuts.
+    expect(botones.map((b) => b.getAttribute("aria-keyshortcuts"))).toEqual(["Enter", null, "X"]);
+    await act(async () => { botones[2].focus(); await new Promise((r) => setTimeout(r, 0)); });
+    const globo = document.querySelector(".pulso-f6-emp-globo");
+    expect(globo?.textContent).toContain("Descartar la sugerencia");
+    expect(globo?.querySelector("kbd")?.textContent).toBe("X");
   });
 });
