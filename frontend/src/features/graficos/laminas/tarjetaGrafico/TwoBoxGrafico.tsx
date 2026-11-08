@@ -26,6 +26,8 @@ import {
   type CambioTwoBox,
   type Composicion,
 } from "./twoBox";
+import { CifraTwoBox } from "./CifraTwoBox";
+import { opcionesActivas } from "../../barraExtra";
 import "./tarjetaGrafico.css";
 
 type Props = { slideId: string; slot: string; valor: GraficadorRef; onAbrirBloques: () => void };
@@ -124,6 +126,13 @@ function BarraExtraDeEscala({ slideId, slot, valor, composicion }: PropsCuerpo) 
           ? { rotulo: "Volver a la del informe", onClick: () => cambiar({ valor: heredaDe }) }
           : undefined}
       />
+      {/* Oleada I2, ítem 2: la cifra de cada caja encendida, como la suma la lámina. */}
+      {escala.fase === "lista" && (
+        <CifraTwoBox graficador={valor.graficador} scope={scope} args={args} cajas={{
+          ...(opcionesActivas(mostrado).includes("top2box") ? { top: estado.top.etiquetas } : {}),
+          ...(opcionesActivas(mostrado).includes("bottom2box") ? { bottom: estado.bottom.etiquetas } : {}),
+        }} />
+      )}
     </div>
   );
 }
