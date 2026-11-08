@@ -42,6 +42,18 @@ export function agruparAvisos(issues: readonly ValidationIssue[], resumenes: Rea
   };
 }
 
+/**
+ * R7-9: el motor sella el aviso con el número que la lámina tenía al dibujarse («Lámina 25, "Gestión…": …»). Insertada
+ * otra antes, ese número miente: se reemplaza por la posición actual (la del enlace). Sin posición conocida, se quita.
+ */
+export function avisoConLaminaActual(texto: string, posicion: number | undefined): string {
+  const m = /^Lámina\s+\d+/.exec(texto);
+  if (!m) return texto;
+  if (posicion !== undefined) return `Lámina ${posicion}${texto.slice(m[0].length)}`;
+  const resto = texto.slice(m[0].length).replace(/^[,:\s]+/, "");
+  return resto ? `${resto.charAt(0).toLocaleUpperCase("es")}${resto.slice(1)}` : texto;
+}
+
 export function totalAvisos(g: GrupoAvisos): number {
   return g.bloquean.length + g.revisar.length + g.motor.reduce((t, m) => t + m.avisos.length, 0) + g.plan.length + g.equivalencias.length;
 }

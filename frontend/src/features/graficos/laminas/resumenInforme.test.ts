@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { ValidationIssue } from "../usePlanValidator";
 import type { EstructuraInforme } from "./modeloEstructura";
 import { PanelAvisos } from "./PanelAvisos";
-import { agruparAvisos, rotuloLaminasYPartes, totalAvisos, type GrupoAvisos } from "./resumenInforme";
+import { agruparAvisos, avisoConLaminaActual, rotuloLaminasYPartes, totalAvisos, type GrupoAvisos } from "./resumenInforme";
 
 describe("rotuloLaminasYPartes", () => {
   it("sin conocer todas las láminas sólo cuenta láminas", () => {
@@ -65,5 +65,17 @@ describe("avisos de equivalencias en el informe", () => {
     }));
     expect(html).toContain(SIN_MATRIZ);
     expect(html).toContain("Administrativos quedó fuera");
+  });
+});
+
+describe("avisoConLaminaActual (R7-9)", () => {
+  const sellado = 'Lámina 25, "GESTIÓN Y DESARROLLO": la columna "Top Two Box" se omite.';
+  it("insertada una lámina antes, el aviso dice el número actual, el del enlace", () => {
+    expect(avisoConLaminaActual(sellado, 26)).toBe('Lámina 26, "GESTIÓN Y DESARROLLO": la columna "Top Two Box" se omite.');
+    expect(avisoConLaminaActual("Lámina 3: sin datos.", 4)).toBe("Lámina 4: sin datos.");
+  });
+  it("sin posición conocida se quita el número; un aviso sin número queda igual", () => {
+    expect(avisoConLaminaActual("Lámina 3: sin datos.", undefined)).toBe("Sin datos.");
+    expect(avisoConLaminaActual("La columna se omite.", 7)).toBe("La columna se omite.");
   });
 });

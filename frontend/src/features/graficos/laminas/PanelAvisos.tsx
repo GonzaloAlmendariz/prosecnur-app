@@ -8,7 +8,7 @@ import { BotonConTecla } from "./BotonConTecla";
 import type { ControlPanel } from "../../../lib/navegacion/paneles";
 import type { ValidationIssue } from "../usePlanValidator";
 import type { EstructuraInforme } from "./modeloEstructura";
-import type { GrupoAvisos } from "./resumenInforme";
+import { avisoConLaminaActual, type GrupoAvisos } from "./resumenInforme";
 import { capaVisibleFuera, destinoDelFoco, escucharEscape } from "./cierreConEscape";
 import { useAvisosPlan } from "../avisosPlan";
 import { useAvisosExportacion } from "../avisosExportacion/avisosExportacionStore";
@@ -170,7 +170,7 @@ export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = 
             <ul data-qa-geometry-group="graficos/f6-avisos-motor" data-qa-geometry-contract="intrinsic">
               {grupos.motor.flatMap((m) => m.avisos.map((a, k) => (
                 <li key={`${m.slideId}-${k}`}>
-                  <span>{a}</span>
+                  <span>{avisoConLaminaActual(a, posicionDe.get(m.slideId))}</span>
                   <button type="button" className="pulso-f6-texto-boton" onClick={() => ir(m.slideId)}>
                     Lámina {posicionDe.get(m.slideId)}
                   </button>
