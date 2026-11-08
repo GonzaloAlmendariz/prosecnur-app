@@ -16,6 +16,7 @@ import { conRedondeo, leerRedondeo, METODO_ESTANDAR, METODO_REPARTO, sinRedondeo
 import { useDetalleCifras } from "./cifrasInspector/useDetalleCifras";
 import { cifrasRedondeo, type CifrasRedondeo } from "./cifrasInspector/modeloCifrasRedondeo";
 import { CifraEstado } from "./cifrasInspector/CifraEstado";
+import { AyudaGlobo } from "./AyudaGlobo";
 
 type Args = Record<string, unknown>;
 
@@ -28,6 +29,8 @@ export function useFilaCalculo(graficador: string): FilaCalculo | null {
   const preset = graficadorToPresetType(graficador);
   return filas.find((f) => f.preset === preset) ?? null;
 }
+
+export const AYUDA_REDONDEO = "Estándar redondea cada cifra por separado. Reparto lleva cada barra a 100%: el resto se reparte entre las cifras que más perdieron al redondear.";
 
 const dichoMetodo = (m: string) => (m === METODO_REPARTO ? "reparto a 100%" : "estándar");
 const dichoDecimales = (d: number) => (d === 0 ? "sin decimales" : d === 1 ? "un decimal" : `${d} decimales`);
@@ -53,7 +56,8 @@ export function RedondeoDelGraficoVista({ fila, args, onCambio, cifras = null }:
   const delInforme = [fila.admiteMetodo ? dichoMetodo(fila.metodo) : "", fila.campoDecimales ? dichoDecimales(fila.decimales) : ""].filter(Boolean).join(", ");
   return (
     <div className="pulso-f6-dato is-apilado pulso-f6-redondeo-grafico" role="group" aria-label="Redondeo de este gráfico">
-      <span className="pulso-f6-dato-rotulo">Redondeo</span>
+      {/* R7-11: el segmento se llama «Reparto» y su suma va detrás; lo que hace el reparto va en el «?». */}
+      <span className="pulso-f6-dato-rotulo">Redondeo<AyudaGlobo rotulo="Redondeo" detalle={AYUDA_REDONDEO} /></span>
       <Segmentado etiqueta="Redondeo de este gráfico" valor={r.propio ? "propio" : "informe"}
         onCambiar={(k) => onCambio(k === "propio" ? conRedondeo(args, fila, {}) : sinRedondeo(args))}
         opciones={[{ clave: "informe", rotulo: "Como el informe" }, { clave: "propio", rotulo: "Propio" }]} />
@@ -64,7 +68,7 @@ export function RedondeoDelGraficoVista({ fila, args, onCambio, cifras = null }:
               onCambiar={(m) => onCambio(conRedondeo(args, fila, { metodo: m }))}
               opciones={[
                 { clave: METODO_ESTANDAR, rotulo: <ConSuma rotulo="Estándar" suma={cifras?.sumaEstandar ?? null} vigente={!!cifras?.vigente} qa="redondeo-estandar" /> },
-                { clave: METODO_REPARTO, rotulo: <ConSuma rotulo="Reparto a 100%" suma={cifras?.sumaReparto ?? null} vigente={!!cifras?.vigente} qa="redondeo-reparto" /> },
+                { clave: METODO_REPARTO, rotulo: <ConSuma rotulo="Reparto" suma={cifras?.sumaReparto ?? null} vigente={!!cifras?.vigente} qa="redondeo-reparto" /> },
               ]} />
           )}
           {fila.campoDecimales && (

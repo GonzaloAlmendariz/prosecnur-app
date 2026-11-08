@@ -21,7 +21,7 @@ describe("tarjeta · redondeo del gráfico", () => {
   it("propio: método y decimales del gráfico, y la regla del informe al lado", () => {
     const html = pintar({ overrides: { calculos_propios: true, metodo_redondeo: "reparto", decimales: 1 } });
     expect(html).toMatch(/aria-checked="true"[^>]*>Propio/);
-    expect(html).toMatch(/aria-checked="true"[^>]*>Reparto a 100%/);
+    expect(html).toMatch(/aria-checked="true"[^>]*>Reparto</);
     expect(html).toMatch(/aria-checked="true"[^>]*>Un decimal/);
     expect(html).toContain("Sólo este gráfico; el informe usa estándar, sin decimales.");
   });
@@ -32,7 +32,10 @@ describe("tarjeta · redondeo del gráfico", () => {
       fila, args: { overrides: { calculos_propios: true, decimales: 0 } }, onCambio: () => undefined, cifras,
     }));
     expect(html).toMatch(/role="radio"[^>]*>Estándar<span[^>]*data-qa="redondeo-estandar"> 99%<\/span><\/button>/);
-    expect(html).toMatch(/role="radio"[^>]*>Reparto a 100%<span[^>]*data-qa="redondeo-reparto"> 100%<\/span><\/button>/);
+    expect(html).toMatch(/role="radio"[^>]*>Reparto<span[^>]*data-qa="redondeo-reparto"> 100%<\/span><\/button>/);
+    // Nunca «Reparto a 100% 100%»: el rótulo no repite la cifra que va detrás.
+    expect(html.replace(/<[^>]+>/g, "")).not.toMatch(/100%\s*100%/);
+    expect(html).toContain("Reparto lleva cada barra a 100%");
     expect(html).not.toContain("redondeo-sumas");
     // Siguiendo al informe, una sola línea con las dos sumas.
     const delInforme = renderToStaticMarkup(createElement(RedondeoDelGraficoVista, { fila, args: {}, onCambio: () => undefined, cifras }));
