@@ -84,3 +84,14 @@ test_that("el catálogo pinta con los colores del motor: Sí/No dicotómica, esc
                          .lam_colores_pie(5)))
   expect_true(all(todos %in% esperados))                                                 # ningún hex propio del catálogo
 })
+
+test_that("el título de la lámina de cobertura no afirma un resultado que sus datos no tienen (O6 ola 3)", {
+  # «La participación superó la meta en los tres públicos» era falso con sus propios datos: Estudiantes 43 % frente a una
+  # meta de 60 %. El título del catálogo es neutro y verdadero con cualquier dato.
+  plan <- .catalogo_recetario_plan()
+  cob <- Filter(function(s) any(vapply(Filter(is.list, s$payload), function(x) identical(x$graficador, "p_cobertura"), TRUE)), plan)
+  expect_length(cob, 1L)
+  expect_identical(cob[[1]]$payload$titulo, "Participación por público")
+  titulos <- unlist(lapply(plan, function(s) s$payload$titulo))
+  expect_false(any(grepl("superó la meta", titulos, fixed = TRUE)))
+})

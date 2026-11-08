@@ -288,8 +288,10 @@
     uno("Séptimo ciclo es el más satisfecho con la atención (91 %) y décimo el menos (47 %)", "En general, ¿qué tan satisfecho está con la atención en la Unidad?",
         .cr_g("p_barras_apiladas", var = "estudiantes$satisf_general", cruces = "estudiantes$ciclo", overrides = list(top2box_labels = sat)),
         "Barras apiladas por grupos", "una escala se compara entre los grupos de un cruce", 77),
-    # E9 (tabla de calor pregunta × cruce con Top Two Box) queda fuera: en un proyecto de varias bases el motor no la dibuja
-    # (`.heatmap_pc_espec` llama a `.tab_freq(var)` sin la fuente); ver «Estilos que el motor aún no produce» del checklist.
+    # ADR 0137: el mapa de calor por cruce es su propio tipo (antes E9 quedaba fuera del catálogo).
+    uno("Satisfacción con la atención por ciclo", "En general, ¿qué tan satisfecho está con la atención en la Unidad?",
+        .cr_g("p_heatmap_cruce", var = "estudiantes$satisf_general", cruce = "estudiantes$ciclo", overrides = list(top2box_labels = sat)),
+        "Mapa de calor por cruce", "lees una escala por los grupos de un cruce como tabla, con el Total y su Top Two Box", 77),
     uno("En los tres públicos, la biblioteca obtiene igual o más acuerdo que el bienestar estudiantil", Q_SERV,
         .cr_g("p_barras_multiapiladas", modo = "multilista", barra_extra = list("top2box"), top2box_labels = ttb, bloques = list(
           list(modo = "var", vars = as.list(paste0("docentes$serv_", 1:2)), titulo = "Docentes (escala de cinco puntos)"),
@@ -343,7 +345,7 @@
     uno("Lo más alto y lo más bajo para los estudiantes", NULL,
         .cr_g("p_fortalezas", vars = "estudiantes$*", corte = "3,4", n = 3),
         "Fortalezas y alertas", "quieres las preguntas más altas y las más bajas de un público, lado a lado (ADR 0135)"),
-    (cr_cobertura <- uno("La participación superó la meta en los tres públicos", NULL,
+    (cr_cobertura <- uno("Participación por público", NULL,
         .cr_g("p_cobertura", universos = "Estudiantes: 400; Docentes: 60; Egresados: 300", metas = "Estudiantes: 60%; Docentes: 60%; Egresados: 50%"),
         "Cobertura y participación", "dices cuántos respondieron frente al padrón y a la meta de la propuesta (ADR 0135)")),
     uno("Docentes, estudiantes y egresados coinciden en estados financieros, con 87 % cada uno", Q_COMP,
