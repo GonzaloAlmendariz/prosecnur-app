@@ -190,6 +190,8 @@
 #' (y entonces la base sale como siempre)
 #' @keywords internal
 .plan_tt_caption <- function(el, formato, resolve_ref, filter_data) {
+  comodin <- .plan_base_comodin_caption(el, formato)   # `base$*` de las láminas de resumen (reporte_plan_base_comodin.R)
+  if (!is.null(comodin)) return(comodin)
   if (!inherits(el, "ppt_element") || !identical(el$.element_type %||% "", "barras_agrupadas")) return(NULL)
   ov <- el$overrides %||% list()
   texto <- .plan_tt_var(ov)

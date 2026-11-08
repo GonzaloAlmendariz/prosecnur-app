@@ -37,3 +37,22 @@ test_that("un panorama y una escala con base$* y sin título salen sin título, 
     expect_false(any(trimws(textos) %in% c("*", "docentes$*", "estudiantes$*")), label = paste("lámina", k))
   }
 })
+
+test_that("la base de una lámina con base$* se calcula sobre las preguntas de escala de cada público, sin aviso", {
+  skip_if_not_installed("officer")
+  src <- .tc_fuentes()
+  src$data_sources$estudiantes <- src$data_sources$estudiantes[1:12, ]
+  plan <- p_plan(slides = list(p_slide_1_grafico(p_panorama(vars = c("docentes$*", "estudiantes$*"), corte = c("3", "4")), titulo = "P"),
+                               p_slide_1_grafico(p_barras_divergentes(vars = "docentes$*", estilo = "resumen", regla = list(tipo = "todas")),
+                                                 titulo = "E")))
+  out <- tempfile(fileext = ".pptx"); on.exit(unlink(out), add = TRUE)
+  avisos <- character(0)
+  withCallingHandlers(suppressMessages(reporte_ppt_plan(data = src$data_sources, instrumento = src$inst_sources, plan = plan,
+                                                        path_ppt = out, mensajes_progreso = FALSE)),
+                      warning = function(w) { avisos <<- c(avisos, conditionMessage(w)); invokeRestart("muffleWarning") })
+  expect_false(any(grepl("base", avisos, ignore.case = TRUE)))
+  base <- function(k) xml2::xml_text(xml2::xml_find_all(xml2::read_xml(unz(out, sprintf("ppt/slides/slide%d.xml", k))),
+                                                        "//p:sp[p:nvSpPr/p:cNvPr[@name='Base lamina']]"))
+  expect_match(base(1), "^Base: 20 docentes y 12 estudiantes\\.")
+  expect_match(base(2), "^Base: 20 docentes\\.")
+})
