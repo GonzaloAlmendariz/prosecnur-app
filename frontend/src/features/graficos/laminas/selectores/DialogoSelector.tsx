@@ -16,9 +16,10 @@ type Props = {
   auditReady: string;
   /**
    * Sobre el título. Con `fijo` (R5-11), esa parte no se recorta: a 1024 la línea va con elipsis y el número de la
-   * lámina («lámina 22») se perdía; ahora cede el resto («Insertar después de la…»).
+   * lámina («lámina 22») se perdía; ahora cede el resto («Insertar después de la…»). R7-15: con `corto`, en angosto
+   * va esa frase («Tras la lámina 22») en lugar de recortar la larga («Insertar des… lámina 22»).
    */
-  antetitulo: string | { texto: string; fijo: string };
+  antetitulo: string | { texto: string; fijo: string; corto?: string };
   titulo: string;
   descripcion: string;
   /** Lo que recibe el foco al abrir (la opción elegida de la primera columna). */
@@ -72,7 +73,8 @@ export function DialogoSelector({
                   ? <span className="pulso-f6-selector-antetitulo">{antetitulo}</span>
                   : (
                     <span className="pulso-f6-selector-antetitulo is-partido">
-                      <span className="pulso-f6-selector-antetitulo-cede">{antetitulo.texto}</span>{" "}
+                      <span className={`pulso-f6-selector-antetitulo-cede${antetitulo.corto ? " is-con-corto" : ""}`}>{antetitulo.texto}</span>
+                      {antetitulo.corto && <span className="pulso-f6-selector-antetitulo-corto">{antetitulo.corto}</span>}{" "}
                       <span className="pulso-f6-selector-antetitulo-fijo">{antetitulo.fijo}</span>
                     </span>
                   )}

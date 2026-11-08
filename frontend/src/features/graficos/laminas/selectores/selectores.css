@@ -688,6 +688,11 @@
   margin-left: auto;
 }
 
+/* R7-15: la frase corta del antetítulo sólo se ve en angosto (bajo 1180 px, abajo). */
+.pulso-f6-selector-antetitulo-corto {
+  display: none;
+}
+
 /* S4: bajo 1180 px la cabecera no alcanza para títulos de dos líneas: el antetítulo va en una línea con elipsis
    («Insertar después de la lámina 22» no se parte) y la descripción, que repite lo que dicen las columnas, se oculta. */
 @media (max-width: 1180px) {
@@ -710,6 +715,17 @@
   }
 
   .pulso-f6-selector-antetitulo-fijo {
+    flex: none;
+    white-space: nowrap;
+  }
+
+  /* R7-15: con frase corta, en angosto va «Tras la lámina 22» entera, no «Insertar des… lámina 22». */
+  .pulso-f6-selector-antetitulo-cede.is-con-corto {
+    display: none;
+  }
+
+  .pulso-f6-selector-antetitulo-corto {
+    display: inline;
     flex: none;
     white-space: nowrap;
   }
