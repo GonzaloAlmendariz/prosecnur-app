@@ -109,7 +109,8 @@ test_that("el constructor acepta hasta cinco hallazgos (el render avisa bajo tre
   expect_error(p_slide_cierre_hallazgos(hallazgos = seis), "de tres a cinco")
   s <- p_slide_cierre_hallazgos(hallazgos = list(lamina = "a", cifra = "b", texto = "c"))   # un hallazgo suelto, como lo desenvuelve el JSON
   expect_length(s$slots$plot$hallazgos, 1L)
-  expect_identical(s$meta$antetitulo, "Resumen ejecutivo")
+  # La app no escribe títulos: sin etiqueta ni título del analista, la lámina sale sin los dos.
+  expect_null(s$meta$antetitulo); expect_null(s$title)
   expect_match(.espec_cierre_hallazgos(list(list(texto = "x")))$avisos[1], "de tres a cinco hallazgos y tiene 1", fixed = TRUE)
 })
 
@@ -160,6 +161,36 @@ test_that("la lámina nativa: una tarjeta por hallazgo con la cifra y la frase, 
   for (t in c("80%", "pts", "de los docentes respondió la encuesta", "La lámina de origen ya no está.", "Lo que deja el estudio")) {
     expect_match(texto, t, fixed = TRUE)
   }
+})
+
+test_that("título y antetítulo: vacíos por defecto, sin rótulo fantasma; los escritos se conservan", {
+  skip_if_not_installed("officer"); skip_if_not_installed("ggplot2")
+  hs <- list(list(lamina = "cob", cifra = "tasa:Docentes", texto = "de los docentes respondió"),
+             list(lamina = "cob", cifra = "casos:Docentes", texto = "docentes encuestados"),
+             list(lamina = "cob", cifra = "tasa:Estudiantes", texto = "de los estudiantes respondió"))
+  # Una lámina guardada con los suyos los conserva.
+  escrita <- p_slide_cierre_hallazgos(hallazgos = hs, titulo = "Tres claves", etiqueta = "Síntesis")
+  expect_identical(escrita$title, "Tres claves"); expect_identical(escrita$meta$antetitulo, "Síntesis")
+  expect_null(p_slide_cierre_hallazgos(hallazgos = hs, etiqueta = "  ")$meta$antetitulo)   # en blanco = sin escribir
+  formas <- function(slide) {
+    out <- tempfile(fileext = ".pptx"); on.exit(unlink(out), add = TRUE)
+    .ch_correr(p_plan(slides = c(.ch_origenes()[1], list(slide))), path = out)
+    x <- xml2::read_xml(unz(out, "ppt/slides/slide2.xml"))
+    sps <- xml2::xml_find_all(x, "//p:sp")
+    data.frame(nombre = xml2::xml_attr(xml2::xml_find_first(sps, ".//p:cNvPr"), "name"),
+               texto = vapply(sps, function(n) paste(xml2::xml_text(xml2::xml_find_all(n, ".//a:t")), collapse = ""), ""),
+               stringsAsFactors = FALSE)
+  }
+  vacia <- formas(p_slide_cierre_hallazgos(hallazgos = hs))
+  todo <- paste(vacia$texto, collapse = " | ")
+  expect_false(grepl("Resumen ejecutivo|RESUMEN EJECUTIVO|Principales hallazgos", todo))
+  expect_false("Antetitulo lamina" %in% vacia$nombre)                  # sin antetítulo, ni su cuadro
+  expect_false("titulo:barra" %in% vacia$nombre)                       # la barra de acento no queda sola
+  expect_identical(vacia$texto[vacia$nombre == "Titulo lamina"], "")   # el cuadro del título queda vacío (invisible)
+  llena <- formas(escrita)
+  expect_true(all(c("titulo:barra", "Antetitulo lamina") %in% llena$nombre))
+  expect_identical(llena$texto[llena$nombre == "Titulo lamina"], "Tres claves")
+  expect_identical(llena$texto[llena$nombre == "Antetitulo lamina"], "SÍNTESIS")
 })
 
 .ch_http <- function(sid, body) {

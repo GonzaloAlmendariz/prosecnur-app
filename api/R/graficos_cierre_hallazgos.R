@@ -43,8 +43,8 @@
 #' @param hallazgos Lista de `list(lamina, cifra, texto)`: `lamina` es el id de la lámina de origen en el plan,
 #'   `cifra` la clave de una de sus cifras («diferencia:Biblioteca», «mediana:Docentes», «tasa:Estudiantes»…) y `texto`
 #'   la frase del analista. `cifra_al_escribir` (opcional) es la cifra que se leyó al escribir la frase.
-#' @param titulo Título de la lámina.
-#' @param etiqueta Antetítulo; «Resumen ejecutivo» por defecto.
+#' @param titulo Título de la lámina. Vacío por defecto: el título lo escribe el analista, la app no lo inventa.
+#' @param etiqueta Antetítulo. Vacío por defecto, por la misma razón; una lámina guardada con el suyo lo conserva.
 #' @param base Nota de base, texto.
 #' @param meta Metadatos de la lámina.
 #' @family reporte
@@ -54,11 +54,12 @@ p_slide_cierre_hallazgos <- function(hallazgos = list(), titulo = NULL, etiqueta
   hs <- .cierre_hallazgos_normalizar(hallazgos)
   # Sin hallazgos (recién insertado) la lámina se dibuja con sus tarjetas vacías y avisa; no aborta el mazo.
   if (length(hs) > .CIERRE_HALLAZGOS_MAX) .plan_spec_abort("Cierre con hallazgos: van de tres a cinco hallazgos y llegaron ", length(hs), ".")
-  etiqueta <- .ppt_norm_text1(etiqueta, blank = NULL) %||% "Resumen ejecutivo"
-  meta$antetitulo <- meta$antetitulo %||% etiqueta
+  # Sin título ni antetítulo por defecto: el render no dibuja rótulos vacíos (`.lam_titulo`, lamina_compositor.R).
+  etiqueta <- .ppt_norm_text1(etiqueta, blank = NULL)
+  if (!is.null(etiqueta)) meta$antetitulo <- meta$antetitulo %||% etiqueta
   el <- list(.element_type = "cierre_hallazgos", hallazgos = hs, overrides = list())
   class(el) <- c("ppt_element", "list")
-  p_slide_1_grafico(el, titulo = titulo %||% "Principales hallazgos", base = base, meta = meta)
+  p_slide_1_grafico(el, titulo = titulo, base = base, meta = meta)
 }
 
 #' La lámina del plan con ese id (`meta$lamina_id`), o `NULL`

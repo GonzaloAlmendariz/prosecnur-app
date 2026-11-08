@@ -14,7 +14,11 @@
   titulo <- .texto_espacio_duro(titulo); sub <- .texto_espacio_duro(sub)   # C6: «38 %» no se parte (texto_espacio_duro.R)
   if (isTRUE(avisar)) .lam_aviso_titulo(titulo, 10.4)  # K12b: un título de más de dos líneas se avisa (lamina_avisos_lineas.R)
   lz <- .lam_lienzo()
-  .lam_caja(lz, ml0, yt - 0.12, 0.05, if (is.null(sub)) 0.72 else 0.98, .std_color("azul"), nombre = "titulo:barra")
+  # La barra acompaña a un rótulo: una lámina sin título, antetítulo ni subtítulo no la dibuja sola (cierre con hallazgos
+  # recién insertado, ADR 0135). El cuadro del título queda vacío y sin relleno: no se ve y la vista previa sigue
+  # ubicando su ranura.
+  hay_rotulo <- any(vapply(list(titulo, ante, sub), function(x) any(nzchar(trimws(as.character(x %||% "")))), logical(1)))
+  if (hay_rotulo) .lam_caja(lz, ml0, yt - 0.12, 0.05, if (is.null(sub)) 0.72 else 0.98, .std_color("azul"), nombre = "titulo:barra")
   color_ante <- if (!is.null(ante) && .lam_ante_es_subcapitulo(ante)) .std_color("coral") else .std_color("texto_suave")   # G8: subcapítulo sin lámina
   if (length(leyenda)) {   # G4: el antetítulo hace de leyenda (lamina_antetitulo_leyenda.R)
     .lam_txt_ante_leyenda(lz, ante, leyenda, ml, yt - 0.17, 10.4, 0.26, .std_pt("antetitulo"), color_ante)
