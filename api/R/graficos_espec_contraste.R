@@ -132,6 +132,13 @@
   if (ncol(R) == 2L) R[, 1] - R[, 2] else apply(R, 1, max) - apply(R, 1, min)
 }
 
+#' Quién menos quién, para el pie del contraste: lo escriben igual la lámina nativa y el respaldo ggplot
+#' @keywords internal
+.contraste_sentido_nota <- function(espec) {
+  if (length(espec$grupos) == 2L) paste0("Diferencia: ", espec$sentido_diferencia, ", en puntos")
+  else "Diferencia: el grupo mayor menos el menor, en puntos"
+}
+
 #' Especificación del contraste de públicos (`contraste/1`)
 #'
 #' @param data Data frame tidy con una fila por (tema, grupo).
@@ -139,11 +146,12 @@
 #' @param var_n_casos Columna con los casos sin ponderar de cada celda (opcional).
 #' @param universos Padrón por grupo (ver `.contraste_universos`).
 #' @param separar_tras Posiciones (en el orden declarado) tras las que va un separador.
-#' @param orden `brecha`, `valor` (primer grupo) o `declarado`.
+#' @param orden `brecha` (con signo, ADR 0134), `brecha_absoluta` (sin signo, la mayor arriba: la regla «mayor
+#'   diferencia», ADR 0135), `valor` (primer grupo) o `declarado`.
 #' @return Lista `contraste/1`.
 #' @keywords internal
 .espec_contraste <- function(data, var_eje = "eje", var_grupo = "grupo", var_valor = "valor", var_n_casos = "n_casos",
-                             universos = NULL, separar_tras = NULL, orden = c("brecha", "valor", "declarado"),
+                             universos = NULL, separar_tras = NULL, orden = c("brecha", "valor", "declarado", "brecha_absoluta"),
                              decimales = 0L, colores = NULL, encabezado_diferencia = "Diferencia", limite_x = NULL,
                              titulo_eje = NULL, base_en = c("auto", "tabla", "leyenda", "nota")) {
   orden <- match.arg(orden)
@@ -179,6 +187,7 @@
   if (length(sep)) orden <- "declarado"
   o <- switch(orden,
               brecha = order(-dif, seq_along(dif)),
+              brecha_absoluta = order(-abs(dif), seq_along(dif)),
               valor = order(-V[, 1], seq_along(dif)),
               seq_along(dif))
   u <- .contraste_universos(universos)

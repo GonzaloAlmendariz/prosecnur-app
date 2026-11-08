@@ -14,6 +14,20 @@
 #   2. Si no, el rótulo va entero en hasta tres líneas; si aun así no cabe, la tercera termina en «…». El rótulo
 #      completo sigue en la interfaz (el conteo de la regla lo devuelve entero).
 #   3. El dibujo de respaldo usa la misma regla con el ancho fijo de la columna de rótulos: nunca invade el panel.
+#   4. Con rótulos largos la letra baja de a medio punto hasta `.LAM_ROTULO_PT_PISO` (10,5 pt, el piso del estándar;
+#      decisión del 2026-11-07, ADR 0135) y no más: por debajo de ese piso se recorta con «…».
+
+#' Piso de la letra de los rótulos de las láminas de resumen (pt): el contraste y la escala no bajan de aquí
+#' @keywords internal
+.LAM_ROTULO_PT_PISO <- 10.5
+
+#' Letras que prueba una lámina de resumen para sus rótulos, de la suya hasta el piso, de a medio punto
+#' @param desde Letra de la lámina (pt).
+#' @keywords internal
+.lam_rotulo_pasos_pt <- function(desde) {
+  if (desde <= .LAM_ROTULO_PT_PISO) return(.LAM_ROTULO_PT_PISO)
+  unique(c(seq(desde, .LAM_ROTULO_PT_PISO, by = -0.5), .LAM_ROTULO_PT_PISO))
+}
 
 #' Rótulo partido en a lo sumo `max_lineas` líneas sobre el ancho de un cuadro de texto, la última con «…» si no cabe
 #'
@@ -52,10 +66,11 @@
 
 #' Aviso de los rótulos recortados de una lámina (sin nombrar la serie: dice qué hacer)
 #' @keywords internal
-.lam_rotulos_aviso <- function(n_recortados) {
+.lam_rotulos_aviso <- function(n_recortados, max_lineas = 3L) {
   if (n_recortados > 0L) {
-    .pulso_aviso(sprintf("%d %s no %s en tres líneas y se %s con «…»; decláralos en el nombre corto de la pregunta.",
-                         n_recortados, if (n_recortados == 1L) "rótulo" else "rótulos", if (n_recortados == 1L) "cabe" else "caben",
+    en <- c("una línea", "dos líneas", "tres líneas")[max(1L, min(3L, as.integer(max_lineas)))]
+    .pulso_aviso(sprintf("%d %s no %s en %s y se %s con «…»; decláralos en el nombre corto de la pregunta.",
+                         n_recortados, if (n_recortados == 1L) "rótulo" else "rótulos", if (n_recortados == 1L) "cabe" else "caben", en,
                          if (n_recortados == 1L) "recortó" else "recortaron"))
   }
   invisible(n_recortados)

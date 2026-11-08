@@ -80,8 +80,10 @@ test_that("excluir la opción del medio no convierte 4 y 5 en no sustantivas", {
   src <- .dns_fuentes(c("1", "2", "3", "4", "5", "9"), c(.dns_lik5, "No tengo información suficiente"),
                       list(a = c(2, 3, 5, 10, 10, 10)))
   e <- .dns_espec(src, excluir_opciones = "3")
-  expect_identical(e$categorias$rotulo, c(.dns_lik5[-3], "No tengo información suficiente"))
+  # Estilo resumen: la columna del no sustantivo se rotula «Sin información» (ADR 0135, D3); el recetario conserva el de la lista.
+  expect_identical(e$categorias$rotulo, c(.dns_lik5[-3], "Sin información"))
   expect_identical(e$categorias$lado, c("neg", "neg", "pos", "pos", "sin_inf"))
+  expect_identical(.dns_espec(src, estilo = "recetario", excluir_opciones = "3")$categorias$rotulo, c(.dns_lik5[-3], "No tengo información suficiente"))
 })
 
 test_that("una escala sin no sustantivos sale como antes: reparto posicional sobre todos sus niveles", {

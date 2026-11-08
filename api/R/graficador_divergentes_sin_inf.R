@@ -26,3 +26,19 @@
   df_si$.x <- x0 + ini + df_si$.valor / 2
   list(df = df_si, tope = max(tope, max(x0 + ini + df_si$.valor) * 1.04))
 }
+
+#' Estilo resumen: las no sustantivas de una fila se suman en una sola columna «Sin información» (ADR 0135)
+#'
+#' En el resumen la columna es el encabezado «Sin información», no el rótulo de cada opción: «SIN INF» y «No sabe» de
+#' una misma escala van juntas y la leyenda las nombra una vez. Con una sola no sustantiva no cambia nada.
+#' @param df_si Filas `.lado == "sin_inf"`. @param sin_inf Columnas no sustantivas, en su orden.
+#' @keywords internal
+.divergentes_sin_inf_agrupar <- function(df_si, sin_inf) {
+  if (is.null(df_si) || !nrow(df_si) || length(unique(as.character(df_si$.cat))) < 2L) return(df_si)
+  suma <- stats::aggregate(df_si$.valor, by = list(.item = df_si$.item), FUN = sum)
+  out <- df_si[match(suma$.item, df_si$.item), , drop = FALSE]
+  out$.valor <- suma$x; out$.signo <- suma$x
+  out$.cat <- factor(sin_inf[1], levels = levels(df_si$.cat) %||% unique(c(sin_inf, as.character(df_si$.cat))))
+  rownames(out) <- NULL
+  out
+}

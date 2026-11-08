@@ -220,7 +220,9 @@
   con_valor <- if (k) rowSums(is.finite(V)) > 0 else rep(FALSE, length(temas))
   completo <- if (k) rowSums(is.finite(V)) == k else rep(FALSE, length(temas))
   en_universo <- if (entre) completo else con_valor
-  if (entre) universo <- "preguntas comunes"
+  # Entre públicos (bases distintas) el universo son las preguntas comunes a todos; entre los grupos de un cruce son las
+  # mismas preguntas de la base abiertas por el cruce, y la nota dice «de N preguntas de escala» (ADR 0135, 2026-11-07).
+  if (entre && !identical(grupos_unidad, "grupos")) universo <- "preguntas comunes"
   R <- matrix(.pulso_round_half_up(V, dec), nrow(V))
   dif <- rep(NA_real_, length(temas))
   if (k >= 2L && any(completo)) dif[completo] <- abs(.contraste_diferencia(R[completo, , drop = FALSE]))
@@ -316,6 +318,20 @@
   el$vars <- r$vars
   if (identical(el$.element_type, "barras_divergentes")) el$var <- if (length(r$vars) == 1L) r$vars else NULL
   list(el = el, texto = r$evaluacion$texto)
+}
+
+#' Orden del contraste del resumen con su regla (ADR 0135, decisión del 2026-11-07)
+#'
+#' Con la regla «mayor diferencia» las filas van por la diferencia ABSOLUTA, de mayor a menor: la brecha más grande
+#' arriba, sea cual sea su signo. Sin regla, o con otra, el orden de siempre (ADR 0134: la diferencia con signo). Un
+#' orden declarado distinto de `brecha` (`valor`, `declarado`) se respeta.
+#' @param args Argumentos de `graficar_dumbbell`. @param regla Regla del elemento.
+#' @keywords internal
+.regla_preguntas_orden_contraste <- function(args, regla) {
+  tipo <- (.regla_preguntas_normalizar(regla) %||% list(tipo = "todas"))$tipo
+  if (!identical(args$estilo, "resumen") || !identical(tipo, "mayor_diferencia")) return(args)
+  if (is.null(args$orden) || identical(as.character(args$orden)[1], "brecha")) args$orden <- "brecha_absoluta"
+  args
 }
 
 #' Pone el texto de la regla en la especificación del gráfico (la lee la lámina nativa para su nota)

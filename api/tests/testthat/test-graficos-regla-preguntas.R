@@ -275,6 +275,16 @@ test_that("contraste entre grupos de una base: las preguntas abiertas por el cru
   ind <- .regla_preguntas_indicadores(el, src)$indicadores
   expect_equal(ind$valor[ind$tema == "Salud"], d$valor)
   expect_identical(levels(ind$grupo), c("Mujer", "Hombre"))
+  # D5 (ADR 0135, 2026-11-07): en las aperturas son las mismas preguntas abiertas por el cruce; la nota dice «de N
+  # preguntas de escala», no «comunes». Entre públicos sigue diciendo «comunes».
+  el2 <- p_dumbbell(vars = "docentes$*", corte = c("4", "5"), cruce = "docentes$sexo", grupos = c("1", "2"),
+                    regla = list(tipo = "mayor_diferencia", n = 2))
+  r2 <- .regla_preguntas_de_elemento(el2, src)
+  expect_identical(r2$evaluacion$texto, "Se muestran las 2 de mayor diferencia, de 5 preguntas de escala.")
+  expect_identical(.regla_preguntas_evaluar(.rp_ind(), list(tipo = "mayor_diferencia", n = 1), grupos_unidad = "grupos")$texto,
+                   "Se muestra la de mayor diferencia, de 4 preguntas de escala.")
+  expect_identical(.regla_preguntas_evaluar(.rp_ind(), list(tipo = "mayor_diferencia", n = 1))$texto,
+                   "Se muestra la de mayor diferencia, de 4 preguntas comunes.")
 })
 
 test_that("escala del resumen: el lado de acuerdo y Sin información; en multibase una referencia pelada no cae en la primera base", {

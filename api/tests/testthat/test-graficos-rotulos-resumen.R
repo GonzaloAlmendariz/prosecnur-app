@@ -149,9 +149,11 @@ test_that("el respaldo ggplot del contraste (bases + regla, más de 14 pares) di
   panel <- gt$layout[gt$layout$name == "panel", ]
   fijo <- sum(anchos[-seq(panel$l, panel$r)])
   expect_gt(12.5 - fijo, 6)
-  # La base por grupo va al pie de la lámina (note_outside), no dentro del dibujo, con la regla al final.
+  # La base por grupo va al pie de la lámina (note_outside), no dentro del dibujo; luego quién menos quién (D6, como la
+  # nativa) y la regla al final.
   expect_null(p$labels$caption)
-  expect_match(attr(p, "note_outside"), "^Base: Docentes 115; Estudiantes 279\\. Se muestran las 18 de mayor diferencia")
+  expect_match(attr(p, "note_outside"),
+               "^Base: Docentes 115; Estudiantes 279\\. Diferencia: Docentes − Estudiantes, en puntos\\. Se muestran las 18 de mayor diferencia")
 })
 
 test_that("con el respaldo, la lámina lleva una sola base: la de cada grupo, abajo a la izquierda (U3)", {
@@ -204,4 +206,106 @@ test_that("el respaldo de la escala del resumen usa la paleta y los rótulos de 
   et <- b$layout$panel_params[[1]]$y$get_labels()
   expect_true(all(grepl("\\((Doc|Est)\\.?\\)$|\\(Docentes\\)$|\\(Estudiantes\\)$", et)))
   expect_match(attr(p, "note_outside"), "Porcentaje sobre el total de respondientes")
+})
+
+# ---- Oleada 6 (decisiones del lead, 2026-11-07) ------------------------------------------------------------------
+
+test_that("D1: la letra de los rótulos baja de a medio punto hasta el piso de 10,5 pt, constante con nombre", {
+  expect_identical(.LAM_ROTULO_PT_PISO, 10.5)
+  expect_identical(.lam_rotulo_pasos_pt(12), c(12, 11.5, 11, 10.5))
+  expect_identical(.lam_rotulo_pasos_pt(11.5), c(11.5, 11, 10.5))
+  expect_identical(.lam_rotulo_pasos_pt(10), 10.5)
+  expect_gte(.lam_contraste_geom(.rr_contraste_espec(13))$size, .LAM_ROTULO_PT_PISO)
+})
+
+.rr_escala <- function(k, src = .rr_fuentes(), solo_lista = TRUE) {
+  d <- p_barras_divergentes(vars = c(paste0("docentes$p", seq_len(k)), paste0("estudiantes$p", seq_len(k))), estilo = "resumen")
+  .rr_render(p_slide_1_grafico(d, titulo = "Escala"), src, solo_lista = solo_lista)
+}
+
+test_that("D2: la escala multibase de 18 filas con rótulos reales de Arte sale nativa, con 1 a 2 líneas y el sufijo del público", {
+  skip_if_not_installed("officer")
+  e <- attr(.rr_escala(9)$rendered[[1]], "pulso_espec")
+  expect_length(e$filas, 18L)
+  expect_true(.lam_divergentes_resumen_cabe(e))
+  ge <- .lam_div_resumen_geom(e)
+  expect_gte(ge$size, .LAM_ROTULO_PT_PISO)
+  expect_lte(ge$lineas, 2L)
+  # Las filas caben en la zona de datos y cada una alcanza para las líneas de su afirmación.
+  expect_lte(sum(ge$alturas), (.std_geom("contenido_y1") - 0.05) - (.std_geom("zona_datos_y0") + 0.45) + 1e-6)
+  lineas <- vapply(ge$textos, function(t) length(.lam_rotulo_recortar(t, ge$wq, ge$size, ge$lineas)$lineas), 0L)
+  expect_true(all(lineas <= 2L))
+  expect_true(all(ge$alturas >= lineas * ge$size * 1.2 / 72))
+  # El recorte conserva el público al final de cada fila.
+  expect_true(all(grepl("\\((Doc|Est)\\.?\\)$|\\((Docentes|Estudiantes)\\)$", ge$textos)))
+  r <- .rr_escala(9, solo_lista = FALSE)
+  expect_identical(.pptx_lamina_estado(r$xml), "nativa")
+  expect_length(.rr_textos(r$xml, "divergentes:afirmacion"), 18L)
+})
+
+test_that("D2: el tope de la escala del resumen es 20 filas; por encima va al respaldo", {
+  expect_identical(.LAM_DIV_RESUMEN_MAX_FILAS, 20L)
+  e20 <- attr(.rr_escala(10)$rendered[[1]], "pulso_espec")
+  expect_length(e20$filas, 20L); expect_true(.lam_divergentes_resumen_cabe(e20))
+  e22 <- attr(.rr_escala(11)$rendered[[1]], "pulso_espec")
+  expect_length(e22$filas, 22L); expect_false(.lam_divergentes_resumen_cabe(e22))
+  # Con pocas filas y rótulos cortos la geometría es la de siempre: 12 pt, filas de 0.52 in.
+  corto <- e20; corto$filas <- paste("Pregunta", 1:6); corto$unidades <- e20$unidades[1:6, , drop = FALSE]; corto$cifras <- e20$cifras[1:6, , drop = FALSE]
+  gc <- .lam_div_resumen_geom(corto)
+  expect_identical(gc$size, 12); expect_equal(gc$alturas, rep(0.52, 6)); expect_identical(gc$recortados, 0L)
+})
+
+test_that("D3: en estilo resumen la columna y la leyenda del no sustantivo dicen «Sin información»; el recetario no cambia", {
+  skip_if_not_installed("officer")
+  src <- .rr_fuentes()
+  for (b in names(src$inst_sources)) src$inst_sources[[b]]$choices$label[5] <- "SIN INF"
+  d <- p_barras_divergentes(vars = paste0("docentes$p", 1:5), estilo = "resumen")
+  e <- attr(.rr_render(p_slide_1_grafico(d, titulo = "Escala"), src, solo_lista = TRUE)$rendered[[1]], "pulso_espec")
+  expect_identical(e$categorias$rotulo[e$categorias$lado == "sin_inf"], "Sin información")
+  r <- .rr_render(p_slide_1_grafico(d, titulo = "Escala"), src)
+  ley <- .rr_textos(r$xml, "leyenda:texto")
+  expect_true("Sin información" %in% ley); expect_false("SIN INF" %in% ley)
+  rec <- p_barras_divergentes(vars = paste0("docentes$p", 1:5), estilo = "recetario")
+  er <- attr(.rr_render(p_slide_1_grafico(rec, titulo = "Escala"), src, solo_lista = TRUE)$rendered[[1]], "pulso_espec")
+  expect_identical(er$categorias$rotulo[er$categorias$lado == "sin_inf"], "SIN INF")
+})
+
+test_that("D3: con dos no sustantivas, el respaldo de la escala del resumen las suma en una columna «Sin información»", {
+  d <- data.frame(item = c("A", "B"), p1 = c(10, 20), p2 = c(20, 10), p3 = c(40, 30), p4 = c(20, 30), p8 = c(5, 4), p9 = c(5, 6))
+  p <- graficar_barras_divergentes(d, var_categoria = "item", cols_porcentaje = c("p1", "p2", "p3", "p4", "p8", "p9"),
+                                   etiquetas_grupos = c(p1 = "Totalmente en desacuerdo", p2 = "En desacuerdo", p3 = "De acuerdo",
+                                                 p4 = "Totalmente de acuerdo", p8 = "No sabe", p9 = "SIN INF"),
+                                   n_negativas = 2, estilo = "resumen")
+  e <- attr(p, "pulso_espec")
+  expect_identical(e$categorias$rotulo[e$categorias$lado == "sin_inf"], c("Sin información", "Sin información"))
+  b <- ggplot2::ggplot_build(p)
+  tiles <- b$data[[which(vapply(p$layers, function(l) inherits(l$geom, "GeomTile"), TRUE))]]
+  expect_identical(nrow(tiles), 2L)                         # una barra por fila, no dos
+  expect_equal(sort(tiles$xmax - tiles$xmin), c(10, 10))   # 5 + 5 y 4 + 6
+  ley <- b$plot$scales$get_scales("fill")$get_labels()
+  expect_identical(sum(ley == "Sin información"), 1L)
+})
+
+test_that("D4: con la regla «mayor diferencia» el contraste va por la diferencia absoluta; sin regla, con su signo", {
+  src <- .rr_fuentes()
+  con <- p_dumbbell(bases = c("docentes", "estudiantes"), corte = c("3", "4"), estilo = "resumen", regla = list(tipo = "mayor_diferencia", n = 12))
+  e <- attr(.rr_render(p_slide_1_grafico(con, titulo = "Contraste"), src, solo_lista = TRUE)$rendered[[1]], "pulso_espec")
+  expect_true(any(e$diferencia > 0) && any(e$diferencia < 0))   # el fixture tiene brechas de los dos signos
+  expect_false(is.unsorted(rev(abs(e$diferencia))))
+  sin <- p_dumbbell(bases = c("docentes", "estudiantes"), corte = c("3", "4"), estilo = "resumen", regla = list(tipo = "todas"))
+  e2 <- attr(.rr_render(p_slide_1_grafico(sin, titulo = "Contraste"), src, solo_lista = TRUE)$rendered[[1]], "pulso_espec")
+  expect_false(is.unsorted(rev(e2$diferencia)))                 # ADR 0134: con signo, de mayor a menor
+  expect_true(is.unsorted(rev(abs(e2$diferencia))))
+  # La especificación directa: brecha_absoluta, y un orden declarado distinto se respeta.
+  d <- data.frame(eje = rep(c("a", "b", "c"), 2), grupo = rep(c("G1", "G2"), each = 3), valor = c(50, 60, 70, 40, 90, 72))
+  expect_identical(.espec_contraste(d, orden = "brecha_absoluta")$rotulos, c("b", "a", "c"))
+  expect_identical(.espec_contraste(d)$rotulos, c("a", "c", "b"))
+  expect_identical(.regla_preguntas_orden_contraste(list(estilo = "resumen", orden = "declarado"), list(tipo = "mayor_diferencia", n = 3))$orden, "declarado")
+  expect_null(.regla_preguntas_orden_contraste(list(estilo = "resumen"), list(tipo = "todas"))$orden)
+})
+
+test_that("D6: el respaldo del contraste escribe quién menos quién en el pie, como la lámina nativa", {
+  p <- .graficar_contraste_gg(.rr_contraste_espec(16))
+  expect_match(attr(p, "note_outside"), "Diferencia: Docentes − Estudiantes, en puntos", fixed = TRUE)
+  expect_identical(.contraste_sentido_nota(.rr_contraste_espec(3)), "Diferencia: Docentes − Estudiantes, en puntos")
 })

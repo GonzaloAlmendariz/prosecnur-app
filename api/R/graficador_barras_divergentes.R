@@ -273,6 +273,7 @@ graficar_barras_divergentes <- function(
     colores <- stats::setNames(as.character(espec_div$categorias$color), espec_div$categorias$col)[cols_porcentaje]
     etiquetas <- stats::setNames(as.character(espec_div$categorias$rotulo), espec_div$categorias$col)[cols_porcentaje]
     mostrar_saldo <- FALSE
+    df_si <- .divergentes_sin_inf_agrupar(df_si, sin_inf)   # varias no sustantivas: una columna «Sin información»
     if (identical(toupper(color_texto_barras), "#FFFFFF")) color_texto_barras <- .std_color("azul")   # cifras en texto oscuro
   }
 
@@ -353,7 +354,7 @@ graficar_barras_divergentes <- function(
 
   out <- p +
     ggplot2::scale_fill_manual(
-      values = colores, breaks = cols_porcentaje,
+      values = colores, breaks = if (resumen) setdiff(cols_porcentaje, sin_inf[-1]) else cols_porcentaje,
       labels = function(x) unname(etiquetas[x])
     ) +
     ggplot2::scale_x_continuous(

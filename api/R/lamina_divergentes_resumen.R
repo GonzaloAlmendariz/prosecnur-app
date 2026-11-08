@@ -16,37 +16,70 @@
 #' @keywords internal
 .lam_oscurecer <- function(col, t = 0.32) grDevices::colorRampPalette(c(col, "#000000"))(101)[round(t * 100) + 1L]
 
-#' Geometría de la escala del resumen: filas, columna de afirmaciones y columna «Sin información»
+#' Filas que admite la escala del resumen en la lámina nativa (ADR 0135: enmienda el tope de 14 del ADR 0134 §5)
+#'
+#' El resumen de Arte tiene 18 filas en «Preguntas con menos de 60% de acuerdo»; por encima de 20 va al respaldo.
+#' @keywords internal
+.LAM_DIV_RESUMEN_MAX_FILAS <- 20L
+
+#' Geometría de la escala del resumen: letra y columna de las afirmaciones, alto de cada fila y columna «Sin información»
+#'
+#' ADR 0135 (Arte, 2026-11-07). Como el contraste (`.lam_contraste_geom`): cada afirmación va en hasta tres líneas (dos
+#' con más de 14 filas) y su fila crece lo que pide; las demás comparten un paso común, entre 0.2 y 0.52 in. Se prueba la
+#' letra de la lámina (12 pt) y se baja de a medio punto hasta el piso (`.LAM_ROTULO_PT_PISO`); con cada letra la
+#' columna se ensancha de a 0.1 in hasta 4.2 in sin dejar la escala por debajo de 4.5 in. Gana la primera combinación
+#' sin recortes; si ninguna, el piso con la columna más ancha y «…» (el sufijo del público se conserva), bajando a una
+#' línea por fila si hace falta.
+#' @return Lista con la geometría (`ml`, `fin`, `y0`, `wq`, `xa`, `xb`, `hay_si`, `wsi`), `size`, `u` (paso común),
+#'   `alturas`, `g` (alto de la barra), `textos`, `recortados`; `NULL` si las filas no caben.
 #' @keywords internal
 .lam_div_resumen_geom <- function(espec) {
   g_ <- .std_geom; ml <- g_("margen_izq"); fin <- g_("ancho") - g_("margen_der")
   n <- length(espec$filas); C <- espec$categorias
-  y0 <- g_("zona_datos_y0") + 0.45; y1 <- g_("contenido_y1") - 0.05
-  fila <- min(0.52, (y1 - y0) / max(1L, n))
-  tinta <- max(vapply(espec$filas, function(t) .lam_ancho_tinta(t, 12, FALSE), 0))
-  wq <- min(4.2, max(2.2, tinta + 0.25))
+  y0 <- g_("zona_datos_y0") + 0.45; y1 <- g_("contenido_y1") - 0.05; disponible <- y1 - y0
   hay_si <- any(C$lado == "sin_inf")
-  # ADR 0135 §3: un rótulo largo («No tengo información suficiente») no ensancha la columna más de 2 in; su leyenda se
-  # parte en dos líneas.
+  # ADR 0135 §3: la columna del no sustantivo («Sin información») no pasa de 2 in; su leyenda se parte en dos líneas.
   wsi <- if (hay_si) min(2, max(1.5, .lam_ancho_tinta(C$rotulo[C$lado == "sin_inf"][1], 11, FALSE) + 0.45)) else 0
-  list(ml = ml, fin = fin, y0 = y0, fila = fila, g = fila * 0.74, wq = wq, hay_si = hay_si, wsi = wsi,
-       xa = ml + wq + 0.2, xb = fin - wsi - (if (hay_si) 0.45 else 0))
+  xb <- fin - wsi - (if (hay_si) 0.45 else 0)
+  w_max <- min(4.2, xb - 4.5 - 0.2 - ml)
+  max_lin <- if (n > 14L) 2L else 3L
+  u_min <- 0.2; u_max <- 0.52
+  prueba <- function(size, w, lineas, recortar) {
+    rr <- lapply(espec$filas, function(t) .lam_rotulo_recortar(t, w, size, lineas))
+    if (!recortar && any(vapply(rr, `[[`, TRUE, "recortado"))) return(NULL)
+    necesita <- vapply(rr, function(r) length(r$lineas), 0L) * size * 1.2 / 72 + 0.04
+    alto <- function(u) sum(pmax(u, necesita))
+    if (alto(u_min) > disponible + 1e-9) return(NULL)
+    lo <- u_min; hi <- u_max
+    if (alto(hi) <= disponible) lo <- hi else for (it in 1:40) { mid <- (lo + hi) / 2; if (alto(mid) <= disponible) lo <- mid else hi <- mid }
+    list(size = size, wq = w, u = lo, alturas = pmax(lo, necesita), textos = vapply(rr, `[[`, "", "texto"), lineas = lineas,
+         recortados = sum(vapply(rr, `[[`, TRUE, "recortado")))
+  }
+  elegido <- NULL
+  if (n >= 1L && w_max >= 2.2) {
+    for (size in .lam_rotulo_pasos_pt(12)) {
+      tinta <- max(vapply(espec$filas, function(t) .lam_ancho_tinta(t, size, FALSE), 0))
+      w0 <- min(w_max, max(2.2, tinta + 0.25))
+      for (w in unique(c(seq(w0, w_max, by = 0.1), w_max))) { elegido <- prueba(size, w, max_lin, FALSE); if (!is.null(elegido)) break }
+      if (!is.null(elegido)) break
+    }
+    for (lineas in rev(seq_len(max_lin))) { if (!is.null(elegido)) break; elegido <- prueba(.LAM_ROTULO_PT_PISO, w_max, lineas, TRUE) }
+  }
+  if (is.null(elegido)) return(NULL)
+  c(list(ml = ml, fin = fin, y0 = y0, hay_si = hay_si, wsi = wsi, xa = ml + elegido$wq + 0.2, xb = xb, g = elegido$u * 0.74),
+    elegido)
 }
 
-#' Líneas que admite la afirmación de una fila (12 pt): las que caben en su alto, entre dos y tres
-#' @keywords internal
-.lam_div_resumen_max_lineas <- function(ge) as.integer(max(2L, min(3L, floor((ge$fila - 0.04) / (12 * 1.2 / 72)))))
-
-#' ¿La escala del resumen cabe? Hasta 14 afirmaciones y una sola columna especial
+#' ¿La escala del resumen cabe? Hasta 20 afirmaciones y una sola columna especial
 #'
-#' Una afirmación larga ya no la manda a la imagen (Arte, 2026-11-07): va en las líneas que admite su fila y, si no
+#' Una afirmación larga no la manda a la imagen (Arte, 2026-11-07): va en las líneas que admite su fila y, si no
 #' cabe, la última termina en «…» (`.lam_rotulo_recortar`).
 #' @keywords internal
 .lam_divergentes_resumen_cabe <- function(espec) {
   n <- length(espec$filas)
-  if (n < 1L || n > 14L || sum(espec$categorias$lado == "sin_inf") > 1L) return(FALSE)
+  if (n < 1L || n > .LAM_DIV_RESUMEN_MAX_FILAS || sum(espec$categorias$lado == "sin_inf") > 1L) return(FALSE)
   ge <- .lam_div_resumen_geom(espec)
-  (ge$xb - ge$xa) >= 4.5
+  !is.null(ge) && (ge$xb - ge$xa) >= 4.5 - 1e-6
 }
 
 #' Lámina de la escala con «Sin información» aparte (estilo resumen)
@@ -56,7 +89,13 @@
   force(folio)
   azul <- .std_color("azul"); suave <- .std_color("texto_suave")
   C <- espec$categorias; U <- espec$unidades; X <- espec$cifras; n <- length(espec$filas)
-  ge <- .lam_div_resumen_geom(espec); fila <- ge$fila; g <- ge$g; y0 <- ge$y0
+  ge <- .lam_div_resumen_geom(espec)
+  if (is.null(ge)) stop("La escala del resumen no cabe en una lámina.", call. = FALSE)
+  g <- ge$g; y0 <- ge$y0; alturas <- ge$alturas
+  # Cada fila centra su barra en su alto (una afirmación de dos o tres líneas agranda su fila); con filas apretadas
+  # (más de 14) las cifras bajan a 10 pt.
+  centros <- y0 + cumsum(alturas) - alturas / 2
+  pt_cifra <- if (ge$u < 0.3) 10 else 11
   neu <- which(C$lado == "neu"); mitades <- if (length(neu)) rowSums(U[, neu, drop = FALSE]) / 2 else rep(0, n)
   neg <- espec$orden_neg %||% rev(which(C$lado == "neg")); pos <- espec$orden_pos %||% which(C$lado == "pos"); si <- which(C$lado == "sin_inf")
   # La escala se acerca al lado más largo de cada lado y deja 0.5 in a cada extremo para la cifra que sale de la barra.
@@ -90,12 +129,11 @@
     .lam_txt(lz, C$rotulo[si[1]], xsi + 0.12, yl + 0.3 - hl, ge$wsi, hl, 11, azul, nombre = "leyenda:texto")
   }
   max_si <- if (ge$hay_si) max(1, max(U[, si[1]])) else 1
-  max_lin <- .lam_div_resumen_max_lineas(ge); recortados <- 0L
   for (i in seq_len(n)) {
-    yb <- y0 + (i - 1) * fila + (fila - g) / 2; yc <- yb + g / 2
-    rr <- .lam_rotulo_recortar(espec$filas[i], ge$wq, 12, max_lin); recortados <- recortados + rr$recortado
-    hp <- .lam_alto_tinta(rr$texto, ge$wq, 12, FALSE)
-    .lam_txt(lz, rr$texto, ge$ml, yc - hp / 2 - 0.02, ge$wq, hp, 12, azul, align = "right", nombre = "divergentes:afirmacion")
+    yc <- centros[i]; yb <- yc - g / 2
+    # El cuadro ocupa la fila y centra su texto: hasta tres líneas (dos con más de 14 filas), la última con «…».
+    .lam_txt(lz, ge$textos[i], ge$ml, yc - alturas[i] / 2, ge$wq, alturas[i], ge$size, azul, align = "right", nombre = "divergentes:afirmacion",
+             anclaje = "ctr")
     mitad <- mitades[i]
     segs <- list()
     for (k in neu) segs[[length(segs) + 1L]] <- list(k = k, x = xc - mitad * px, w = 2 * mitad * px, lado = "neu")
@@ -107,13 +145,13 @@
       if (U[i, sg$k] <= 0) next
       .lam_caja(lz, sg$x - 0.002, yb, sg$w + 0.004, g, C$color[sg$k], nombre = "divergentes:segmento")
       cifra <- X[i, sg$k]
-      if (sg$w >= .lam_ancho_tinta(cifra, 11, FALSE) + 0.1) {
-        .lam_txt(lz, cifra, sg$x - 0.2, .lam_y_centrada(yc, 11), sg$w + 0.4, 0.28, 11, azul, align = "center", nombre = "divergentes:cifra")
+      if (sg$w >= .lam_ancho_tinta(cifra, pt_cifra, FALSE) + 0.1) {
+        .lam_txt(lz, cifra, sg$x - 0.2, .lam_y_centrada(yc, pt_cifra), sg$w + 0.4, 0.28, pt_cifra, azul, align = "center", nombre = "divergentes:cifra")
       } else if (identical(sg$k, ext_neg) && identical(sg$lado, "neg")) {
-        .lam_txt(lz, cifra, sg$x - 0.62, .lam_y_centrada(yc, 11), 0.58, 0.28, 11, .lam_oscurecer(C$color[sg$k]), bold = TRUE, align = "right",
+        .lam_txt(lz, cifra, sg$x - 0.62, .lam_y_centrada(yc, pt_cifra), 0.58, 0.28, pt_cifra, .lam_oscurecer(C$color[sg$k]), bold = TRUE, align = "right",
                  nombre = "divergentes:cifra_fuera")
       } else if (identical(sg$k, ext_pos) && identical(sg$lado, "pos")) {
-        .lam_txt(lz, cifra, sg$x + sg$w + 0.04, .lam_y_centrada(yc, 11), 0.58, 0.28, 11, .lam_oscurecer(C$color[sg$k]), bold = TRUE,
+        .lam_txt(lz, cifra, sg$x + sg$w + 0.04, .lam_y_centrada(yc, pt_cifra), 0.58, 0.28, pt_cifra, .lam_oscurecer(C$color[sg$k]), bold = TRUE,
                  nombre = "divergentes:cifra_fuera")
       } else {
         .lam_txt(lz, cifra, sg$x - 0.25, .lam_y_centrada(yc, 8), sg$w + 0.5, 0.22, 8, azul, align = "center", nombre = "divergentes:cifra_chica")
@@ -122,15 +160,15 @@
     if (ge$hay_si && U[i, si[1]] > 0) {
       wbar <- (ge$wsi - 0.05) * U[i, si[1]] / max_si
       .lam_caja(lz, xsi, yb, wbar, g, C$color[si[1]], nombre = "divergentes:sin_inf")
-      cabe <- wbar >= .lam_ancho_tinta(X[i, si[1]], 11, FALSE) + 0.1
+      cabe <- wbar >= .lam_ancho_tinta(X[i, si[1]], pt_cifra, FALSE) + 0.1
       # Centrada con holgura, como las cifras de los segmentos: una caja del ancho justo de la barra partía «3 %».
-      .lam_txt(lz, X[i, si[1]], if (cabe) xsi - 0.2 else xsi + wbar + 0.04, .lam_y_centrada(yc, 11), if (cabe) wbar + 0.4 else 0.6, 0.28, 11, azul,
+      .lam_txt(lz, X[i, si[1]], if (cabe) xsi - 0.2 else xsi + wbar + 0.04, .lam_y_centrada(yc, pt_cifra), if (cabe) wbar + 0.4 else 0.6, 0.28, pt_cifra, azul,
                align = if (cabe) "center" else "left", nombre = "divergentes:cifra_sin_inf")
     }
   }
   # La línea central va encima de los segmentos (separa los lados), de la primera a la última fila.
-  .lam_caja(lz, xc - 0.008, y0 - 0.04, 0.016, n * fila + 0.08, azul, nombre = "divergentes:centro")
-  .lam_rotulos_aviso(recortados)
+  .lam_caja(lz, xc - 0.008, y0 - 0.04, 0.016, sum(alturas) + 0.08, azul, nombre = "divergentes:centro")
+  .lam_rotulos_aviso(ge$recortados, ge$lineas)
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:divergentes")
   # ADR 0135: con regla de preguntas, cómo se eligieron va tras la base; sin ella la nota no cambia.
   # ADR 0135 §3: el denominador va tras la base («Porcentaje sobre el total de respondientes.»), como en el mazo de Arte.

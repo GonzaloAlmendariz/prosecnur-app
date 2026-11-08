@@ -110,14 +110,14 @@
          recortados = sum(vapply(rr, `[[`, TRUE, "recortado")))
   }
   elegido <- NULL
-  for (size in c(11.5, 11, 10.5)) {
+  for (size in .lam_rotulo_pasos_pt(11.5)) {   # 11.5, 11 y el piso de 10.5 pt (lamina_rotulo_resumen.R)
     w0 <- .lam_puntos_marco(espec$rotulos, anchos, size_rot = size, tope_rot = 3.8)$wrot
     for (w in unique(c(seq(w0, max(w0, w_max), by = 0.1), max(w0, w_max)))) {
       elegido <- prueba(size, w, FALSE); if (!is.null(elegido)) break
     }
     if (!is.null(elegido)) break
   }
-  if (is.null(elegido) && w_max >= 1.4) elegido <- prueba(10.5, w_max, TRUE)
+  if (is.null(elegido) && w_max >= 1.4) elegido <- prueba(.LAM_ROTULO_PT_PISO, w_max, TRUE)
   if (is.null(elegido)) return(list(cabe = FALSE))
   m <- base_m
   m$wrot <- elegido$w; m$xl <- m$ml + m$wrot + 0.25
@@ -225,7 +225,7 @@
   .lam_puntos_leyenda(lz, m$xl - 0.05, y_ley, espec$leyenda %||% espec$grupos, espec$colores, espec$formas)
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:contraste")
   # Quién menos quién va en el pie, junto a la base: la columna no tiene ancho para decirlo.
-  sentido <- if (k == 2L) paste0("Diferencia: ", espec$sentido_diferencia, ", en puntos") else "Diferencia: el grupo mayor menos el menor, en puntos"
+  sentido <- .contraste_sentido_nota(espec)
   # ADR 0135: con regla de preguntas, cómo se eligieron va al final de la nota («Se muestran las 13 de mayor diferencia…»).
   doc <- .lam_pie(doc, .lam_unir_base(espec$nota_base, base, sentido, espec$nota_grupo_chico, espec$texto_regla), folio)
   list(doc = por_lamina(doc), partes = 1L)

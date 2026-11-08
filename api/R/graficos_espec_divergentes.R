@@ -8,6 +8,10 @@
 # columna a la derecha; las afirmaciones se ordenan por el lado de acuerdo, de mayor
 # a menor. Si la escala tiene neutro, se parte en el centro.
 
+#' Encabezado de la columna del no sustantivo en la escala del resumen (ADR 0135)
+#' @keywords internal
+.DIVERGENTES_RESUMEN_SIN_INF <- "Sin información"
+
 .DIVERGENTES_ESPECIAL <- "^(SIN INF|Sin información|No sabe|No sé|No se|NS/NR|NS/NO|No responde|No opina|No aplica|Ninguno de los anteriores)"
 
 #' ¿Qué opciones de la escala no son sustantivas? Un solo detector para la escala (ADR 0135 §3)
@@ -98,6 +102,10 @@
   # opción es cada color y se ignora. La opción que no nombra sale gris residual con su aviso.
   por_rotulo <- .espec_divergentes_colores(colores, cols_porcentaje, rot)
   if (!is.null(por_rotulo)) col <- unname(por_rotulo)
+  # ADR 0135 (decisión del 2026-11-07): en el estilo resumen la columna del no sustantivo y su leyenda dicen siempre
+  # «Sin información»; es el encabezado de la columna, no el rótulo de la lista («SIN INF», «No tengo información
+  # suficiente», «No sabe» van ahí). El recetario (lámina 71) conserva el rótulo de la lista.
+  if (identical(estilo, "resumen")) rot[lado == "sin_inf"] <- .DIVERGENTES_RESUMEN_SIN_INF
   espec <- list(version = "divergentes/1", tipo = "divergentes",
        filas = as.character(data[[var_categoria]])[o],
        categorias = data.frame(col = cols_porcentaje, rotulo = rot, color = col, lado = lado, stringsAsFactors = FALSE),

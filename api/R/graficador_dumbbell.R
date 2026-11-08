@@ -44,7 +44,8 @@
 #' @param separar_tras Filas (en el orden declarado) tras las que va un separador; fija el orden declarado.
 #' @param orden `brecha` ordena por tamaño de la diferencia —la lectura de
 #'   ranking—; `valor` por el valor del primer grupo; `declarado` respeta el
-#'   orden de entrada.
+#'   orden de entrada. `brecha_absoluta` ordena por la diferencia sin signo, la mayor arriba: la usa el contraste del
+#'   resumen cuando su regla elige las preguntas de mayor diferencia (ADR 0135).
 #'
 #' @family graficador
 #' @export
@@ -54,7 +55,7 @@ graficar_dumbbell <- function(
     var_grupo = "grupo",
     var_valor = "valor",
     escala_valor = c("proporcion_100", "proporcion_1"),
-    orden = c("brecha", "valor", "declarado"),
+    orden = c("brecha", "valor", "declarado", "brecha_absoluta"),
 
     titulo = NULL,
     subtitulo = NULL,
@@ -171,6 +172,7 @@ graficar_dumbbell <- function(
     orden,
     # En un empate, la fila declarada antes va arriba, como `order(-dif)` estable en las pesas.
     brecha = res$.eje[order(res$.brecha, -seq_along(res$.eje))],
+    brecha_absoluta = res$.eje[order(abs(res$.brecha), -seq_along(res$.eje))],
     valor  = res$.eje[order(res$.a, -seq_along(res$.eje))],
     res$.eje
   )
@@ -286,7 +288,7 @@ graficar_dumbbell <- function(
     # La diferencia se resta entre las cifras que se leen (20 % y 18 % dan +2, no +3), como la serie de dos.
     r2 <- res; r2$.eje <- as.character(r2$.eje)
     r2$.dif <- .pulso_round_half_up(r2$.a, dec_p) - .pulso_round_half_up(r2$.b, dec_p)
-    r2 <- switch(orden, brecha = r2[order(-r2$.dif), , drop = FALSE], valor = r2[order(-r2$.a), , drop = FALSE],
+    r2 <- switch(orden, brecha = r2[order(-r2$.dif), , drop = FALSE], brecha_absoluta = r2[order(-abs(r2$.dif)), , drop = FALSE], valor = r2[order(-r2$.a), , drop = FALSE],
                  r2[match(ejes, r2$.eje), , drop = FALSE])
     # Los casos van en la fila cuando son los mismos para los dos grupos de esa fila (la fila es un público) y no
     # están ya en la leyenda.

@@ -71,7 +71,8 @@
                    axis.text.x = ggplot2::element_text(colour = .std_color("texto_tenue"), size = 9),
                    plot.background = ggplot2::element_rect(fill = NA, colour = NA))
   attr(p, "pulso_espec") <- espec
-  nota <- .lam_unir_base(espec$nota_base, nota_pie)
+  # Quién menos quién va en el pie, como en la lámina nativa («Diferencia: Docentes − Estudiantes, en puntos»).
+  nota <- .lam_unir_base(espec$nota_base, nota_pie, .contraste_sentido_nota(espec))
   if (nzchar(nota)) attr(p, "note_outside") <- nota
   p
 }

@@ -790,6 +790,7 @@ p_dumbbell <- function(vars = NULL,
   # ADR 0134: en el contraste del resumen los públicos se rotulan capitalizados («Docentes»), como la leyenda del radar;
   # el padrón se empareja sin mayúsculas, así que «docentes: 123» sigue casando.
   if (identical(args$estilo, "resumen") && is.null(el$cruce)) levels(args$data$grupo) <- .radar_mb_capitalizar(levels(args$data$grupo))
+  args <- .regla_preguntas_orden_contraste(args, el$regla)   # «mayor diferencia»: la brecha absoluta más grande arriba
   args <- .keep_formals(graficar_dumbbell, args, contexto = "graficar_dumbbell")
   p <- .dumbbell_con_grupo_chico(do.call(graficar_dumbbell, args), el)   # «Grupo chico: 24 docentes TC.»
   .regla_preguntas_en_espec(p, ap$texto)
