@@ -2,8 +2,9 @@
 // `direccion_escala` en la lista genérica. Una tira con los niveles sustantivos coloreados en negativo, neutro y
 // positivo; el asa es el borde del lado negativo y se arrastra con el mouse o con las flechas (rol de slider). Clic en
 // el nivel central lo parte o no a cada lado; el botón de flechas invierte los lados. Debajo, «Negativo 21%, Positivo
-// 64%» del detalle del motor con el reparto que se está viendo (también mientras se arrastra). Sin detalle (o sin
-// categorías), quedan los tres controles de siempre (`respaldo`).
+// 64%» del detalle del motor con el reparto que se está viendo (también mientras se arrastra). R7-7: mientras llega el
+// detalle, la silueta de la tira (no los tres controles, que asomaban más de 2,5 s y luego se cambiaban por la tira); sólo
+// sin detalle (o sin categorías) quedan los tres controles de siempre (`respaldo`).
 //
 // Superficie intrínseca (C1): crece con su tira; los niveles reparten el ancho y su rótulo se recorta con title (C4).
 
@@ -12,6 +13,7 @@ import { ArrowLeftRight } from "../../../../vendor/lucide-react";
 import { AyudaGlobo } from "../AyudaGlobo";
 import { rotuloVisible } from "../rotuloCortoDeLista";
 import { useRotulosCortos } from "../useRotulosCortos";
+import { Skeleton } from "../../../../components/Skeleton";
 import { CifraEstado } from "../cifrasInspector/CifraEstado";
 import { useDetalleCifras } from "../cifrasInspector/useDetalleCifras";
 import { useCifraEnVivo } from "../reglaPreguntas/useCifraEnVivo";
@@ -46,6 +48,9 @@ export function LadosEscala({ id, graficador, scope, args, onCambio, respaldo }:
   const borrador = useDetalleCifras(graficador, scope, enVivo.enVivo ? [{ clave: "vista", args: { ...args, ...parcheLados(vista) } }] : []).vista;
   // Mientras llega la primera cifra del borrador, la de lo guardado atenuada.
   const cifras = !enVivo.enVivo ? base : borrador && (borrador.detalle || borrador.vigente) ? borrador : base && { ...base, vigente: false };
+  // Cargando: aún no llegó ningún detalle de lo guardado (ni uno anterior). Sin detalle: llegó y no hay.
+  const cargando = !!base && !base.sinDetalle && !base.detalle;
+  if (n < 2 && cargando) return <SiluetaLados />;
   if (n < 2) return <>{respaldo}</>;
 
   const lados = repartoLados(n, vista);
@@ -105,6 +110,21 @@ export function LadosEscala({ id, graficador, scope, args, onCambio, respaldo }:
         </span>
       </div>
       <CifraEstado texto={textoLados(cifras?.detalle ?? null)} vigente={!!cifras?.vigente} esperando={!!cifras && !cifras.vigente} qa="lados-cifra" />
+    </div>
+  );
+}
+
+/** La silueta de la tira mientras llega el detalle: misma cabecera, una tira y la línea de la cifra (R7-7). */
+function SiluetaLados() {
+  return (
+    <div className="pulso-f6-dato is-apilado pulso-f6-lados" data-campo="n_negativas" role="status" aria-busy="true" data-qa="lados-silueta"
+      data-qa-geometry-group="graficos/f6-lados" data-qa-geometry-contract="intrinsic">
+      <div className="pulso-f6-lados-cabeza">
+        <span className="pulso-f6-dato-rotulo">Lados de la escala</span>
+      </div>
+      <Skeleton forma="fila" className="pulso-f6-lados-silueta" />
+      <Skeleton forma="texto" ancho="14ch" />
+      <span className="pulso-sr-only">Cargando los niveles de la escala</span>
     </div>
   );
 }

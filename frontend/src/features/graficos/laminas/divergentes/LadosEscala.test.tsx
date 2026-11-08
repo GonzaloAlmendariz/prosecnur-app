@@ -61,8 +61,11 @@ afterEach(() => { act(() => root.unmount()); host.remove(); vi.useRealTimers(); 
 describe("Lados de la escala", () => {
   it("la tira con sus lados y la cifra de cada uno", async () => {
     pintar({});
-    expect(host.querySelector('[data-qa="respaldo"]')).not.toBeNull();
+    // R7-7: mientras carga, la silueta de la tira; nunca los tres controles.
+    expect(host.querySelector('[data-qa="lados-silueta"]')).not.toBeNull();
+    expect(host.querySelector('[data-qa="respaldo"]')).toBeNull();
     await esperar();
+    expect(host.querySelector('[data-qa="lados-silueta"]')).toBeNull();
     const niveles = [...host.querySelectorAll(".pulso-f6-lados-nivel")].map((e) => e.className.match(/is-(neg|neu|pos)/)?.[1]);
     expect(niveles).toEqual(["neg", "neg", "neu", "pos", "pos"]);
     expect(asa().getAttribute("aria-valuenow")).toBe("2");
@@ -94,6 +97,7 @@ describe("Lados de la escala", () => {
     pintar({});
     await esperar();
     expect(host.querySelector('[data-qa="respaldo"]')).not.toBeNull();
+    expect(host.querySelector('[data-qa="lados-silueta"]')).toBeNull();
     expect(host.querySelector('[role="slider"]')).toBeNull();
   });
 });

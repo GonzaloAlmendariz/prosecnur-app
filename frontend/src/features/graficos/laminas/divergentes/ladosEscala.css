@@ -61,3 +61,10 @@ button.pulso-f6-lados-nivel:focus-visible { outline: var(--mov-foco, 2px solid v
 @media (prefers-reduced-motion: reduce) {
   .pulso-f6-lados-nivel, .pulso-f6-lados-carril { transition: none; }
 }
+
+/* R7-7: la silueta mide lo que la tira (una línea de rótulos de nivel) para que llegar no empuje lo de abajo. */
+.pulso-f6-lados-silueta {
+  display: block;
+  block-size: calc(var(--pulso-type-caption-size) * 1.3 + 2 * var(--pulso-space-1));
+  border-radius: var(--pulso-radius-chip);
+}
