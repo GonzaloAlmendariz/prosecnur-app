@@ -1,0 +1,30 @@
+/* Cifras del inspector (oleada I2): una línea de estado junto al control, en la letra de las notas. Mientras llega la
+   respuesta, el valor anterior baja de opacidad (transición de opacidad, no de layout). */
+.pulso-f6-cifra {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  transition: opacity var(--motion-dur-fast) var(--motion-ease-out);
+}
+.pulso-f6-cifra.is-anterior { opacity: 0.55; }
+.pulso-f6-cifra-silueta { display: inline-block; vertical-align: middle; block-size: 0.9em; }
+/* El % dentro de una ficha o de una fila de lista. */
+.pulso-f6-cifra-pct {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+  transition: opacity var(--motion-dur-fast) var(--motion-ease-out);
+}
+.pulso-f6-cifra-pct.is-anterior { opacity: 0.55; }
+@media (prefers-reduced-motion: reduce) {
+  .pulso-f6-cifra, .pulso-f6-cifra-pct { transition: none; }
+}
+/* Junto al resumen de las fichas («Una excluida» y la base): si no caben en una línea, bajan. */
+.pulso-f6-cats-cabeza:has(.pulso-f6-cifra) { flex-wrap: wrap; }
+.pulso-f6-cats-resumen .pulso-f6-cifra { margin-inline-start: var(--pulso-space-2); }

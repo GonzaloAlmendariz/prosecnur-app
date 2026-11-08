@@ -183,6 +183,9 @@ export function textoAyuda(...partes: readonly (string | null | undefined)[]): s
   return salida.join(" ");
 }
 
+/** La ayuda del campo de códigos escrito: sólo vale para el respaldo de texto, no para las fichas (oleada I2, ítem 1). */
+export const AYUDA_CODIGOS = "Escribe los códigos separados por comas, por ejemplo 88, 99.";
+
 const LISTA_BLANCA: Record<string, Entrada> = {
   // La pregunta filtro de «Filtro y subpregunta» se elige en su tarjeta, junto con lo que habilita.
   var: { rotulo: "Pregunta", cuando: (v) => !tieneVars(v), excepto: ["p_filtro_subpregunta"] },
@@ -388,7 +391,7 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   },
   excluir_opciones: {
     rotulo: "Excluir respuestas",
-    ayuda: "Escribe los códigos separados por comas, por ejemplo 88, 99.",
+    ayuda: AYUDA_CODIGOS,
     // En el mapa no es un ajuste de categorías: define a quién retrata (nacidos fuera de Lima Metropolitana y el Callao).
     textosEn: { p_mapa_distribucion: () => ({ rotulo: "Quitar del mapa", ayuda: "Salen del mapa y de su base." }) },
   },

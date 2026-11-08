@@ -22,6 +22,7 @@ import {
   codigosEmitidos,
   textoACodigos,
   CORTE_EN_CADENA,
+  AYUDA_CODIGOS,
   interruptorEncendido,
   type CampoDato,
 } from "./argsDatosGrafico";
@@ -96,6 +97,8 @@ import { ReglaPreguntas } from "./reglaPreguntas/ReglaPreguntas";
 import { PadronPublicos } from "./gruposPadron/PadronPublicos";
 import { llevaPadronPublicos } from "./gruposPadron/modeloPadron";
 import type { ReglaPreguntas as Regla } from "../../../api/graficosRegla";
+import { ExcluirRespuestas } from "./excluirConCifra/ExcluirRespuestas";
+import { conDetalle } from "./cifrasInspector/modeloCifras";
 import "./datosGrafico.css";
 import { formatoConteo } from "../../../lib/formatoNumero";
 
@@ -530,10 +533,13 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias, args, sco
           onChange={(e) => onCambio(codigosEmitidos(e.target.value, graficador, arg.name))} />
       </div>
     );
-    // Con la pregunta elegida, sus categorías como fichas; el texto queda de respaldo (sin lista o con error).
+    // Con la pregunta elegida, sus categorías como fichas; el texto queda de respaldo (sin lista).
     if (!categorias) return comoTexto;
+    // Oleada I2, ítem 1: la ayuda de escribir códigos es del respaldo; las fichas no la llevan.
+    const etiquetaFichas = ayuda === AYUDA_CODIGOS ? <label className="pulso-f6-dato-rotulo" htmlFor={id}>{rotulo}<Ayuda id={idAyuda} rotulo={rotulo} detalle={textoAyuda(marcas, detalle)} />{sello}</label> : etiqueta;
+    if (arg.name === "excluir_opciones" && conDetalle(graficador)) return <ExcluirRespuestas id={id} etiqueta={etiquetaFichas} variable={categorias.variable} scope={categorias.scope} graficador={graficador} args={args} argName={arg.name} valor={valor} textoRespaldo={comoTexto} onCambio={onCambio} />;
     return (
-      <SelectorCategorias id={id} etiqueta={etiqueta} variable={categorias.variable} scope={categorias.scope} graficador={graficador}
+      <SelectorCategorias id={id} etiqueta={etiquetaFichas} variable={categorias.variable} scope={categorias.scope} graficador={graficador}
         valor={valor} modo={categorias.modo} vacioEsTodos={categorias.vacioEsTodos} sustantivo={categorias.sustantivo} textoRespaldo={comoTexto}
         nota={null}
         onCambio={(cods) => onCambio(arg.name === "corte" && CORTE_EN_CADENA.has(graficador) ? cods.join(",") : cods)} />

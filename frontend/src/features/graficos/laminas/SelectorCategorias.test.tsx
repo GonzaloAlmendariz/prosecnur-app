@@ -39,4 +39,11 @@ describe("selector de categorías", () => {
     estado.valor = { fase: "sin_lista" };
     expect(pintar("b$p1", [])).toContain("data-respaldo");
   });
+  it("oleada I2, ítem 1: el respaldo de códigos sólo aparece sin lista; con error se dice y se ofrece reintentar", () => {
+    estado.valor = { fase: "error", mensaje: "El servidor no respondió" };
+    const html = pintar("b$p1", []);
+    expect(html).not.toContain("data-respaldo");
+    expect(html).toContain("No se pudieron leer las categorías: El servidor no respondió");
+    expect(html).toContain("Reintentar");
+  });
 });
