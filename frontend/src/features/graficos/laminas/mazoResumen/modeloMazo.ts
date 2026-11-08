@@ -341,6 +341,8 @@ export const META_NOMBRE = "nombre";
  * La lámina de una propuesta: payload de partida del tipo, su gráfico y el origen «resumen». Sin título ni antetítulo.
  * M2: el nombre de la propuesta («Escala bajo 60%») va en `meta.nombre`, para que el editor la nombre como el mazo y no
  * por el tipo de su gráfico («Escala con Sin información aparte»). No es un título: no sale en la lámina.
+ * M8: con su público (`nombreAccesible`), para que las tres «Fortalezas y alertas» no se llamen igual en la Estructura
+ * ni en «Elegir cifra» del cierre («Fortalezas y alertas, Docentes»).
  */
 export function laminaDePropuesta(p: PropuestaMazo, id: string): Slide {
   const payload: Args = payloadPorDefecto(p.tipo);
@@ -349,7 +351,7 @@ export function laminaDePropuesta(p: PropuestaMazo, id: string): Slide {
     payload[p.slot] = g;
   }
   const meta = payload.meta && typeof payload.meta === "object" && !Array.isArray(payload.meta) ? (payload.meta as Args) : {};
-  payload.meta = { ...meta, [META_NOMBRE]: p.nombre };
+  payload.meta = { ...meta, [META_NOMBRE]: nombreAccesible(p) };
   return { id, tipo: p.tipo, payload, origen: ORIGEN_RESUMEN };
 }
 

@@ -228,6 +228,13 @@
   .pulso-f6-mazo-tarjetas {
     grid-template-columns: minmax(0, 1fr);
   }
+
+  /* M9: una tarjeta por fila (1024 con el lateral abierto) estiraba la miniatura 16:9 a todo el ancho y la tarjeta
+     medía 417 px en una columna de 372: no se veía entera. El alto de la miniatura se acota y la imagen se encaja
+     dentro (object-fit: contain), así la tarjeta cabe en la columna sin desplazarse para leer su regla. */
+  .pulso-f6-mazo-miniatura {
+    max-height: 160px;
+  }
 }
 
 /* La barra de elección: el conteo a la izquierda, «Elegir todas» y «Ninguna» a la derecha. */

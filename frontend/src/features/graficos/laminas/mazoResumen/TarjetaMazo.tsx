@@ -50,6 +50,8 @@ export function TarjetaMazo({ numero, propuesta: p, elegida, editando, scope, id
     <Panel
       className={`pulso-f6-mazo-tarjeta${elegida ? " is-elegida" : ""}${editando ? " is-editando" : ""}`}
       aria-label={nombre}
+      // M7: la tarjeta cuya regla está abierta en el lateral lo dice también al lector de pantalla, no sólo con la banda.
+      aria-current={editando ? "true" : undefined}
       data-propuesta-mazo={p.id}
       data-elegida={elegida ? "true" : "false"}
     >

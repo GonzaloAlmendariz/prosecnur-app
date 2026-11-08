@@ -11,9 +11,20 @@ import { laminaDePropuesta, TIPO_CIERRE, type PropuestaMazo } from "./modeloMazo
 
 export type LaminaDelMazo = LaminaClave & { propuesta: string; slide: Slide };
 
-/** Un id de lámina estable y sin caracteres raros por propuesta («fortalezas:docentes» → «mazo-fortalezas-docentes»). */
-export function idMiniatura(propuesta: string): string {
-  return `mazo-${propuesta.replace(/[^A-Za-z0-9_-]+/g, "-")}`;
+const limpio = (t: string): string => t.replace(/[^A-Za-z0-9_-]+/g, "-");
+
+/**
+ * Un id de lámina estable y sin caracteres raros por propuesta y públicos activos («cobertura» con docentes y estudiantes
+ * → «mazo-cobertura--docentes-estudiantes»). M6: con el id sólo por propuesta, al dejar un público la entrada era la
+ * misma y la tarjeta seguía pintando, como «anterior» mientras se rehacía, la miniatura con los tres. Con los públicos en
+ * el id, otro juego de públicos es otra lámina: sin imagen suya todavía, la tarjeta pinta el glifo y no una cifra ajena.
+ * Una propuesta que ya nombra su único público («fortalezas:docentes») no lo repite.
+ */
+export function idMiniatura(propuesta: string, publicos: readonly string[] = []): string {
+  const base = `mazo-${limpio(propuesta)}`;
+  if (!publicos.length) return base;
+  const sufijo = limpio(publicos.join("-"));
+  return propuesta.endsWith(`:${publicos.join("-")}`) ? base : `${base}--${sufijo}`;
 }
 
 /**
@@ -24,9 +35,9 @@ export function laminasConMiniatura(propuestas: readonly PropuestaMazo[], global
   return propuestas
     .filter((p) => p.tipo !== TIPO_CIERRE && !!p.graficador && !p.falta)
     .map((p) => {
-      const id = idMiniatura(p.id);
+      const id = idMiniatura(p.id, p.publicos);
       const slide = laminaDePropuesta(p, id);
-      return { id, propuesta: p.id, slide, clave: `${global}|${clavePreview(slide)}` };
+      return { id, propuesta: p.id, slide, clave: `${global}|${clavePreview({ publicos: p.publicos, slide })}` };
     });
 }
 

@@ -7,6 +7,8 @@ import {
   laminaDePropuesta, laminasDelMazo, META_NOMBRE, nombreAccesible, listaPublicos, mensajeInsertadas, moverA, ordenarPropuestas, ordenPublicos, proponerMazo,
   publicoEnFrase, REFERENCIA_POR_DEFECTO, reglaEnPalabras, rotuloInsertar, textoElegidas, unirPublicos, type EntradaMazo,
 } from "./modeloMazo";
+import { nombreSinTitulo } from "../tituloQueSale";
+import { origenesDelPlan } from "../cierreHallazgos/modeloCierre";
 
 const ARGS: Record<string, string[]> = {
   p_panorama: ["vars", "corte", "corte_etiqueta", "regla", "referencia"],
@@ -318,9 +320,23 @@ describe("M2: la lámina insertada se nombra como la propuesta", () => {
       reglaEnPalabras: "", falta: null,
     } as const satisfies Parameters<typeof laminaDePropuesta>[0];
     const s = laminaDePropuesta({ ...p, publicos: [...p.publicos], args: { ...p.args } }, "s-1");
-    expect((s.payload.meta as Record<string, unknown>)[META_NOMBRE]).toBe("Escala bajo 60%");
+    expect((s.payload.meta as Record<string, unknown>)[META_NOMBRE]).toBe("Escala bajo 60%, Docentes");
     expect(s.payload).toMatchObject({ titulo: "" });
     expect(JSON.stringify(s.payload)).not.toContain("antetitulo");
+  });
+});
+
+describe("M8: las láminas del mismo gráfico se distinguen por su público en la Estructura y en Elegir cifra", () => {
+  it("las tres «Fortalezas y alertas» insertadas llevan nombres distintos en meta.nombre, y la Estructura y el cierre los leen", () => {
+    const tres = proponerMazo(entrada({ estudio: { bases: ["docentes", "estudiantes", "administrativos"], baseActiva: null },
+      publicos: ["docentes", "estudiantes", "administrativos"] })).filter((p) => p.clase === "fortalezas");
+    expect(tres).toHaveLength(3);
+    const slides = tres.map((p, i) => laminaDePropuesta(p, `s-${i}`));
+    const nombres = slides.map((s) => nombreSinTitulo(s));
+    expect(nombres).toEqual(["Fortalezas y alertas, Docentes", "Fortalezas y alertas, Estudiantes", "Fortalezas y alertas, Administrativos"]);
+    expect(origenesDelPlan(slides).map((o) => o.nombre)).toEqual([
+      "Lámina 1: Fortalezas y alertas, Docentes", "Lámina 2: Fortalezas y alertas, Estudiantes", "Lámina 3: Fortalezas y alertas, Administrativos",
+    ]);
   });
 });
 

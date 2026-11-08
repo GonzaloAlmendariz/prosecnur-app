@@ -48,6 +48,23 @@ describe("miniaturas de las tarjetas del mazo", () => {
     expect(panorama(a)).not.toBe(panorama(d));
   });
 
+  it("M6: los públicos activos entran en el id y en la clave; dejar uno no hereda la imagen de los tres", () => {
+    const tres = { ...entrada, estudio: { bases: ["docentes", "estudiantes", "administrativos"], baseActiva: "docentes" },
+      publicos: ["docentes", "estudiantes", "administrativos"] };
+    const uno = { ...tres, publicos: ["docentes"] };
+    const cobertura = (x: EntradaMazo) => laminasConMiniatura(proponerMazo(x), "g").find((l) => l.propuesta === "cobertura");
+    const a = cobertura(tres);
+    const b = cobertura(uno);
+    expect(a?.id).toBe("mazo-cobertura--docentes-estudiantes-administrativos");
+    expect(b?.id).toBe("mazo-cobertura--docentes");
+    expect(a?.clave).not.toBe(b?.clave);
+    expect(b?.clave).toContain('"publicos":["docentes"]');
+    // La entrada de los tres no es la de uno: la tarjeta de uno no pinta su imagen mientras la suya se dibuja.
+    const entradas: Record<string, EntradaMiniatura> = { [a?.id ?? ""]: e({ src: "/tres.png" }) };
+    expect(imagenDeTarjeta(entradas[b?.id ?? ""])).toBeNull();
+    expect(idMiniatura("fortalezas:docentes", ["docentes"])).toBe("mazo-fortalezas-docentes");
+  });
+
   it("plan: con un lote del mazo corriendo, espera; sin lote, nuevas, cambiadas y pendientes huérfanas", () => {
     const ls = [{ id: "a", clave: "1" }, { id: "b", clave: "2" }, { id: "c", clave: "3" }, { id: "d", clave: "4" }];
     const entradas = { b: e({ clave: "viejo" }), c: e({ clave: "3", estado: "pendiente" }), d: e({ clave: "4" }) };

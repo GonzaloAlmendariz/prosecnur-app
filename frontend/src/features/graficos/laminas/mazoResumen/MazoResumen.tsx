@@ -25,6 +25,7 @@ import { SeleccionMazo } from "./SeleccionMazo";
 import { ListaTarjetasMazo } from "./ListaTarjetasMazo";
 import { useMazoResumen } from "./useMazoResumen";
 import { useMiniaturasMazo } from "./useMiniaturasMazo";
+import { volverAlEditar } from "./focoEditarMazo";
 import "./mazoResumen.css";
 
 /** El toast de la inserción dura más que uno de éxito: trae «Deshacer» y el analista tiene que alcanzar a verlo. */
@@ -54,10 +55,7 @@ export function MazoResumen({ posicion, cerrar }: Props) {
     const id = useMazoResumenUi.getState().editando;
     useMazoResumenUi.getState().editar(null);
     if (!id) return;
-    requestAnimationFrame(() => {
-      const botones = columna.current?.querySelectorAll<HTMLElement>("[data-editar-mazo]") ?? [];
-      Array.from(botones).find((b) => b.dataset.editarMazo === id)?.focus();
-    });
+    volverAlEditar(() => columna.current, id);
   }, []);
 
   const n = mazo.elegidas.length;
