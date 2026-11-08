@@ -73,10 +73,12 @@ Cada superficie se mide con tres criterios y pasa sólo con los tres:
 
 | # | Superficie | A | B | C | Estado |
 |---|---|---|---|---|---|
-| X1 | Selector de láminas | Por medir | No dice qué datos usa ni cómo se verá con el estudio | Por medir | Auditoría en curso |
-| X2 | Regla de preguntas | El umbral es un campo numérico plano | Por medir | No muestra el reparto antes del corte | Auditoría en curso |
-| X3 | Mazo del resumen ejecutivo | Sin arrastrar ni deshacer | Por medir | Inserta láminas con antetítulos fijos | Auditoría en curso |
-| X4 | Inspector Datos, Cálculo y Aspecto | Por medir | Por medir | Por medir | Auditoría en curso |
-| X5 | Grupos con padrón | Por medir | Por medir | Por medir | Auditoría en curso |
-| X6 | Emparejado | Por medir | Por medir | Por medir | Auditoría en curso |
-| X7 | Cierre con hallazgos | Por medir | Por medir | Por medir | Auditoría en curso |
+| X1 | Selector de láminas | Abre en "cambiar" con chapas de pérdida al venir de "+ Lámina" | Glifo genérico; no dice escala, indicador, públicos ni cuántas preguntas | No permite comparar dos formas de mostrar lo mismo | Backend de "qué usa" e inventario en curso |
+| X2 | Regla de preguntas | Umbral en campo plano; conteo tarda ~3 s | Lista en orden de cuestionario, no en el de la lámina; muestra un momento la lista de la lámina anterior | No muestra el reparto ni dónde cae el corte; empates invisibles | En construcción |
+| X3 | Mazo del resumen ejecutivo | Sin arrastrar; "Editar" estira las 10 tarjetas a 880 px (C2) | "Título por escribir" repetido; glifos sin datos | Viene con las 10 incluidas e inserta con avisos falsos de `base$*` | Pendiente |
+| X4 | Lienzo e inspector | La vista previa tarda ~15 s y desenfoca todo; atajos ocultos | El título se edita lejos de donde se ve | Por medir | Pendiente |
+| X5 | Grupos con padrón | Por medir | El vacío de padrón no dice dónde declararlo | Por medir | Pendiente |
+| X6 | Emparejado | 104 pares uno por uno, sin lote ni teclado | Textos truncados, no se pueden comparar | Todos dicen "Sugerido por el texto" igual; no muestra la evidencia | Pendiente |
+| X7 | Cierre con hallazgos | Dos desplegables en cascada; la lista de Cifra tapa la pantalla | 40 renglones sin buscador ni orden | La cifra no se elige viéndola | Pendiente |
+
+Auditoría completa (15 mejoras priorizadas, capturas en el scratchpad de la sesión): 2026-11-08.
