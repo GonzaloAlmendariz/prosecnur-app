@@ -116,6 +116,22 @@ describe("R5-1: la miniatura lleva lo que el gráfico necesita para dibujarse", 
     expect(muestraDePreguntas(usa, cruce, FUENTES, "docentes", 4)).toEqual(["docentes$p1", "docentes$p2", "estudiantes$e1", "estudiantes$e2"]);
   });
 
+  it("R7-5: un gráfico sólo de escala toma las preguntas de UNA escala, la más común entre las bases (Arte, tres bases)", () => {
+    const frecuencia = (name: string) => ({
+      name, tipo: "select_one frec",
+      choices: ["Nunca", "A veces", "Casi siempre", "Siempre"].map((label, i) => ({ name: String(i + 1), label })),
+    });
+    const fuentes: FuenteSelector[] = [
+      { name: "docentes", variables: [frecuencia("f1"), escala("p1"), escala("p2")] },
+      { name: "estudiantes", variables: [frecuencia("g1"), escala("e1"), escala("e2")] },
+      { name: "administrativos", variables: [escala("a1"), frecuencia("h1")] },
+    ];
+    const tres: EstadoInventario = { estado: "listo", publicos: [publico("docentes", 3), publico("estudiantes", 3), publico("administrativos", 2)] };
+    const usa = usaDeTarjeta(presetDe("p_slide_1_grafico:divergentes"))!;
+    const muestra = muestraDePreguntas(usa, cruzarConEstudio(usa, tres.estado === "listo" ? tres.publicos : []), fuentes, "estudiantes");
+    expect(muestra).toEqual(["docentes$p1", "docentes$p2", "estudiantes$e1", "estudiantes$e2", "administrativos$a1"]);
+  });
+
   it("clasifica las preguntas como el inventario: escala, opción única, múltiple, numérica, abierta", () => {
     expect(tipoDePregunta(escala("p1"))).toBe("escala");
     expect(tipoDePregunta({ name: "s", tipo: "select_one sexo", choices: [{ name: "1", label: "H" }, { name: "2", label: "M" }] })).toBe("opcion_unica");

@@ -94,8 +94,29 @@ export function muestraDePreguntas(
     const t = tipoDePregunta(v);
     return !!t && (tipos.includes("cualquiera") || tipos.includes(t));
   };
-  return bases.flatMap((b) => (fuentes.find((f) => f.name === b)?.variables ?? [])
-    .filter(cuenta).slice(0, porBase).map((v) => `${b}$${v.name}`)).slice(0, n);
+  const deBase = (b: string) => (fuentes.find((f) => f.name === b)?.variables ?? []).filter(cuenta);
+  // R7-5: un gráfico sólo de escala (las divergentes del recetario) apila sus preguntas sobre UNA escala; con las
+  // primeras de cada base de un informe conjunto (Arte, tres bases) se mezclaban escalas y la imagen salía sin datos.
+  // La muestra se queda con la escala que más preguntas junta entre las bases elegidas.
+  const soloEscala = tipos.length === 1 && tipos[0] === "escala";
+  const firma = soloEscala ? escalaMasComun(bases.flatMap(deBase)) : null;
+  return bases.flatMap((b) => deBase(b)
+    .filter((v) => firma === null || firmaDeEscala(v) === firma)
+    .slice(0, porBase).map((v) => `${b}$${v.name}`)).slice(0, n);
+}
+
+/** La escala de una pregunta por sus rótulos en orden (dos bases con la misma lista tienen la misma firma). */
+export function firmaDeEscala(v: FuenteSelector["variables"][number]): string {
+  return (v.choices ?? []).map((c) => (c.label || c.name).trim().toLocaleLowerCase("es")).join("|");
+}
+
+/** La firma con más preguntas; ante empate, la primera que aparece. null sin preguntas. */
+function escalaMasComun(vars: readonly FuenteSelector["variables"][number][]): string | null {
+  const cuenta = new Map<string, number>();
+  for (const v of vars) cuenta.set(firmaDeEscala(v), (cuenta.get(firmaDeEscala(v)) ?? 0) + 1);
+  let mejor: string | null = null;
+  for (const [f, k] of cuenta) if (mejor === null || k > (cuenta.get(mejor) ?? 0)) mejor = f;
+  return mejor;
 }
 
 const comoRef = (v: unknown): GraficadorRef | null =>
