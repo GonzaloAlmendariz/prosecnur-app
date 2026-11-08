@@ -37,6 +37,28 @@ describe("las láminas de origen", () => {
     expect(contraste.nombre).toBe("Lámina 4: Dónde difieren");
     expect(nombreDeOrigen(lamina("x", null, { meta: { antetitulo: "Cobertura" } }), 7, null)).toBe("Lámina 7: Cobertura");
   });
+
+  it("dos láminas del mismo gráfico se distinguen por su antetítulo, su regla o su público (Q4-1)", () => {
+    const g = (graficador: string, args: Record<string, unknown>, antetitulo: string, extra: Record<string, unknown> = {}): Slide => ({
+      id: antetitulo, tipo: "p_slide_1_grafico", payload: { titulo: "", grafico: { graficador, args }, meta: { antetitulo }, ...extra },
+    });
+    const escala = { estilo: "resumen", vars: ["docentes$*", "estudiantes$*"] };
+    const nombres = origenesDelPlan([
+      g("p_barras_divergentes", { ...escala, regla: { tipo: "bajo_umbral", umbral: 60 } }, "Brechas"),
+      g("p_barras_divergentes", { ...escala, regla: { tipo: "mayor_sin_info", n: 10 } }, "Información"),
+      g("p_fortalezas", { vars: ["docentes$*"] }, "Docentes"),
+      g("p_fortalezas", { vars: ["estudiantes$*"] }, "Estudiantes"),
+      g("p_fortalezas", { vars: ["administrativos$*"] }, "Administrativos", { titulo: "Lo que valoran los administrativos" }),
+    ]).map((o) => o.nombre);
+    expect(nombres).toEqual([
+      "Lámina 1: Brechas, escala bajo 60%",
+      "Lámina 2: Información, las 10 con más Sin información",
+      "Lámina 3: Fortalezas y alertas, docentes",
+      "Lámina 4: Fortalezas y alertas, estudiantes",
+      "Lámina 5: Lo que valoran los administrativos",
+    ]);
+    expect(new Set(nombres.map((n) => n.replace(/^Lámina \d+: /, ""))).size).toBe(nombres.length);
+  });
 });
 
 describe("los hallazgos guardados", () => {

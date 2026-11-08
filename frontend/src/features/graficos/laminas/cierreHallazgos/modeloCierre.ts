@@ -8,10 +8,14 @@
 
 import type { CifraClave } from "../../../../api/graficosCifras";
 import type { GraficadorRef, Slide } from "../../../../api/graficos";
+import type { ReglaPreguntas } from "../../../../api/graficosRegla";
+import { formatoConteo } from "../../../../lib/formatoNumero";
 import { tituloDeLamina } from "../../rotuloLamina";
 import { leerSlideMeta } from "../../slideMeta";
 import { SLIDE_GRAF_SLOTS, SLIDE_LABELS } from "../../store";
-import { jsonEstable } from "../reglaPreguntas/modeloReglaPreguntas";
+import { REFERENCIA_POR_DEFECTO, unirPublicos } from "../mazoResumen/modeloMazo";
+import { publicosDe } from "../publicosGrafico/modeloPublicos";
+import { jsonEstable, leerRegla } from "../reglaPreguntas/modeloReglaPreguntas";
 import { presentacionDeGrafico } from "../selectores/intencionesContar";
 
 export const MIN_HALLAZGOS = 3;
@@ -100,12 +104,55 @@ function graficoConCifras(slide: Slide): GraficadorRef | null {
   return null;
 }
 
-/** Cómo se nombra una lámina de origen: su título o, sin él, el nombre de su tarjeta, su antetítulo o su tipo. */
+const minuscula = (t: string): string => (t ? t.charAt(0).toLowerCase() + t.slice(1) : t);
+const contiene = (a: string, b: string): boolean => a.toLocaleLowerCase("es").includes(b.toLocaleLowerCase("es"));
+const empiezaCon = (a: string, b: string): boolean => a.toLocaleLowerCase("es").startsWith(b.toLocaleLowerCase("es"));
+
+/** La regla en pocas palabras, para distinguir dos láminas del mismo gráfico; "" si toma todas (no distingue). */
+export function reglaBreve(r: ReglaPreguntas | null): string {
+  if (!r) return "";
+  const n = formatoConteo(r.n ?? 10);
+  const u = formatoConteo(r.umbral ?? REFERENCIA_POR_DEFECTO);
+  switch (r.tipo) {
+    case "bajo_umbral": return `escala bajo ${u}%`;
+    case "mayor_sin_info": return `las ${n} con más Sin información`;
+    case "mayor_diferencia": return `las ${n} de mayor diferencia`;
+    case "diferencia_minima": return `diferencia de al menos ${u} puntos`;
+    case "extremos": return `las ${n} más altas y las ${n} más bajas`;
+    case "a_mano": return "preguntas elegidas a mano";
+    default: return "";
+  }
+}
+
+/** Los públicos de un gráfico: los `base$*` de `vars` y el par de `bases`, en su orden. */
+function publicosDelGrafico(args: Readonly<Record<string, unknown>>): string[] {
+  const bases = Array.isArray(args.bases) ? args.bases.filter((b): b is string => typeof b === "string" && b !== "") : [];
+  return [...new Set([...publicosDe(args.vars), ...bases])];
+}
+
+/**
+ * Cómo se nombra una lámina de origen (Q4-1 de la prueba con Arte): su título si el analista lo escribió; si no, lo que
+ * la distingue de las demás láminas del mismo gráfico. «Lámina 26: Brechas, escala bajo 60%» (antetítulo y regla),
+ * «Lámina 29: Fortalezas y alertas, docentes» (tarjeta y público, cuando el antetítulo sólo dice el público).
+ */
 export function nombreDeOrigen(slide: Slide, numero: number, grafico: GraficadorRef | null): string {
   const titulo = tituloDeLamina(slide.payload);
-  const tarjeta = grafico ? presentacionDeGrafico(grafico.graficador, grafico.args ?? {}).nombre : null;
+  if (titulo) return `Lámina ${numero}: ${titulo}`;
+  const tarjeta = grafico ? presentacionDeGrafico(grafico.graficador, grafico.args ?? {}).nombre ?? "" : "";
   const ante = texto(leerSlideMeta(slide).antetitulo);
-  return `Lámina ${numero}: ${titulo || tarjeta || ante || SLIDE_LABELS[slide.tipo] || slide.tipo}`;
+  const args = grafico?.args ?? {};
+  const publicos = publicosDelGrafico(args);
+  const enFrase = unirPublicos(publicos);
+  const anteEsPublico = !!ante && !!enFrase && ante.toLocaleLowerCase("es") === enFrase.toLocaleLowerCase("es");
+  const tipo = SLIDE_LABELS[slide.tipo] || slide.tipo;
+  const cabeza = !ante || anteEsPublico ? tarjeta || ante || tipo : tarjeta && empiezaCon(tarjeta, ante) ? tarjeta : ante;
+  const regla = reglaBreve(leerRegla(args.regla));
+  const detalle = anteEsPublico
+    ? enFrase
+    : regla && !contiene(cabeza, regla)
+      ? regla
+      : cabeza === ante && tarjeta && !contiene(ante, tarjeta) ? minuscula(tarjeta) : "";
+  return `Lámina ${numero}: ${detalle ? `${cabeza}, ${detalle}` : cabeza}`;
 }
 
 /** Las láminas del plan que publican cifras, en su orden (sin el cierre mismo ni otro cierre). */
