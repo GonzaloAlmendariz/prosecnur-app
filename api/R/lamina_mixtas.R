@@ -220,6 +220,8 @@
   wlab <- min(1.6, max(1.2, max(.lam_ancho_tinta(rot, 11, TRUE)) + 0.25))
   size_lab <- if (n >= 3L) 10.5 else 11
   ttb <- if (!is.null(espec$box$unidades)) .std_geom("columna_top_two_box") + 0.1 else 0
+  # G5 (ola 2): la cabecera de la columna va bajo la pregunta, no encima (lamina_panel_cabecera_box.R).
+  if (ttb > 0) y0 <- .lam_panel_y0_bajo_pregunta(y0, y, w, pregunta, con_pub, estilo$titulo_pt %||% .std_pt("pregunta"))
   ley <- espec$leyenda; filas_ley <- if (isTRUE(leyenda)) .lam_leyenda_filas(espec$categorias$rotulo[ley], w) else list()
   n_ley <- length(filas_ley); ley_cabe <- !isTRUE(leyenda) || isTRUE(attr(filas_ley, "plan")$cabe)
   disp <- fin - (y0 + 0.3) - (if (isTRUE(leyenda)) 0.15 + 0.3 * n_ley else 0.35)

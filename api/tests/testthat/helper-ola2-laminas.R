@@ -126,3 +126,17 @@
   l <- sort(c(lum(c1), lum(c2)), decreasing = TRUE)
   (l[1] + 0.05) / (l[2] + 0.05)
 }
+
+# G3–G8 (captura «I. Cuatro gráficos con exclusión», qa_r7/ppt/qa_r7b.pptx): lámina de cuatro gráficos con una apilada con
+# cruce que excluye un grupo y marca diferencias (va de respaldo), una apilada con cruce nativa y dos agrupadas.
+.ola2_lamina_i <- function() {
+  fx <- .ola2_familias()
+  t2 <- list(top2box_labels = c("De acuerdo", "Totalmente de acuerdo"))
+  sl <- list(p_slide_4_graficos(
+    titulo = "Cuatro gráficos con exclusión",
+    superior_izquierda = p_barras_apiladas(var = "doc$q19", cruces = "doc$cat6", overrides = t2, mostrar_significancia = TRUE,
+                                           excluir_grupos = list("Derecho")),
+    superior_derecha = p_barras_apiladas(var = "doc$q20", cruces = "doc$ded", overrides = t2),
+    inferior_izquierda = p_barras_agrupadas(var = "doc$sx"), inferior_derecha = p_barras_agrupadas(var = "doc$p18")))
+  .ola2_pptx(fx, sl)
+}

@@ -48,7 +48,7 @@
     # «TOP TWO BOX» quepa en una línea, siempre centrada sobre la columna de cifras.
     rot <- .lam_rotulo_box(espec$box$rotulo %||% .PPT_ROTULO_TOP_TWO_BOX)
     wr <- max(wttb + 0.2, .lam_ancho_tinta(rot, .std_pt("rotulo_top_two_box"), TRUE) + 0.25)
-    .lam_txt(lz, rot, x + w - wttb / 2 - wr / 2, y - 0.05, wr, 0.24, .std_pt("rotulo_top_two_box"), verde,
+    .lam_txt(lz, rot, .lam_cabecera_box_x(x, w, wttb, wr), y - 0.05, wr, 0.24, .std_pt("rotulo_top_two_box"), verde,
              bold = TRUE, align = "center", nombre = "box:rotulo")
   }
   yy <- y + 0.3

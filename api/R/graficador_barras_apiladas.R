@@ -3398,7 +3398,8 @@ graficar_barras_apiladas <- function(
     if (isTRUE(mostrar_barra_extra) && is.null(t2b_comparativo) &&
         !is.null(titulo_extra_int) && nzchar(titulo_extra_int)) {
       canvas <- canvas + cowplot::draw_text(
-        text     = titulo_extra_int,
+        # G5 (ola 2): en la lámina la cabecera se escribe de una sola forma, «TOP TWO BOX», como la nativa (G20).
+        text     = if (identical(titulo_extra_int, .PPT_ROTULO_TOP_TWO_BOX)) .lam_rotulo_box(titulo_extra_int) else titulo_extra_int,
         x        = if (isTRUE(btb_activa)) x_extra0 + .BTB_COLUMNA_IN / (2 * as.numeric(ancho)) else x_extra0 + (w_extra * 0.5),
         y        = y_top0 + (top_h * 0.5),
         hjust    = 0.5,
