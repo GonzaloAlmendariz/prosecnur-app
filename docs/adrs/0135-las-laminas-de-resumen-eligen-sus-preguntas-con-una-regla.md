@@ -186,3 +186,7 @@ Decisiones de Gonzalo del 2026-11-07:
 - Tests de especificación y lámina nativa de los tres tipos nuevos.
 - Contratos del registro y del front.
 - QA con las cifras del resumen de Arte junto al PDF.
+
+## Notas
+
+- Probado contra el resumen ejecutivo de Formación General, Arte y Diseño 2026 (copia de trabajo fuera del repo); las diferencias que quedan están explicadas en `docs/qa/checklist-estudio-laminas-sintesis-2026-11-07.md`.

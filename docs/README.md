@@ -170,6 +170,7 @@ arquitectura canónica.
 - [Checklist de la UI de reglas del editor de Formularios (corte 0.9.4)](qa/checklist-ui-reglas-editor-formularios-0-9-4-2026-10-16.md):
   lo que falta pulir en Visibilidad, Validación y Restricciones, por confirmar con Gonzalo.
 - [Checklist de la matriz de armonización de HSyVbG](qa/checklist-matriz-armonizacion-hsyvbg-2026-10-21.md): lo que la matriz de Ulises destapó en el comparativo (filas de misma escala, dummies, sello del instrumento) y su estado.
+- [Checklist del estudio de láminas de síntesis](qa/checklist-estudio-laminas-sintesis-2026-11-07.md): selector por intención, reglas de preguntas, láminas de resumen y mazo del resumen ejecutivo, con su estado.
 - [Checklist del isotipo «Trenza»](qa/checklist-isotipo-trenza-2026-11-07.md): el paso del isotipo nuevo a vector y a la app (ADR 0132), con lo hecho y lo pendiente (manual de identidad, build empaquetado, QA con proyecto).
 - [Checklist del revamp visual del módulo Formularios](qa/checklist-revamp-formularios-2026-10-16.md):
   revamp Linear/Airtable del editor (kit, pestañas Restricciones y Cálculos, lectura humana de reglas, Editor XLSForm),
