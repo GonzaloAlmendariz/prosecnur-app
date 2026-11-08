@@ -20,6 +20,7 @@ import {
 } from "./modeloCapitulosHallazgos";
 import { revelarFilaNueva, selectorFila } from "../../revelarFila";
 import "./hallazgos.css";
+import { PulsoButton } from "../../../../components/PulsoButton";
 
 type Props = {
   valor: unknown;
@@ -89,18 +90,18 @@ export function CapitulosHallazgos({ valor, modo, automatica, calificar, scope, 
                     <div className="pulso-f6-hallazgos-cabeza">
                       <input className="pulso-f6-input" value={c.titulo} placeholder="Título del capítulo" aria-label={`Título del capítulo ${i + 1}`}
                         onChange={(e) => cambiarCapitulo(i, { titulo: e.target.value })} />
-                      <button type="button" className="pulso-f6-icono-boton" aria-label={`Subir el ${nombre}`} disabled={i === 0}
+                      <PulsoButton variant="icon" tone="quiet" size="sm" aria-label={`Subir el ${nombre}`} disabled={i === 0}
                         onClick={() => aplicar(mover(capitulos, i, -1))}>
-                        <ArrowUp size={14} aria-hidden="true" />
-                      </button>
-                      <button type="button" className="pulso-f6-icono-boton" aria-label={`Bajar el ${nombre}`} disabled={i === capitulos.length - 1}
+                        <ArrowUp aria-hidden="true" />
+                      </PulsoButton>
+                      <PulsoButton variant="icon" tone="quiet" size="sm" aria-label={`Bajar el ${nombre}`} disabled={i === capitulos.length - 1}
                         onClick={() => aplicar(mover(capitulos, i, 1))}>
-                        <ArrowDown size={14} aria-hidden="true" />
-                      </button>
-                      <button type="button" className="pulso-f6-icono-boton" aria-label={`Quitar el ${nombre}`}
+                        <ArrowDown aria-hidden="true" />
+                      </PulsoButton>
+                      <PulsoButton variant="icon" tone="quiet" size="sm" intent="remove" aria-label={`Quitar el ${nombre}`}
                         onClick={() => { aplicar(capitulos.filter((_, k) => k !== i)); setAnuncio(`Se quitó el ${nombre}. Ctrl+Z lo devuelve.`); }}>
-                        <X size={14} aria-hidden="true" />
-                      </button>
+                        <X aria-hidden="true" />
+                      </PulsoButton>
                     </div>
                     {titulares && (
                       <input className="pulso-f6-input" value={c.titular} placeholder="Titular del capítulo" aria-label={`Titular del ${nombre}`}
@@ -117,7 +118,7 @@ export function CapitulosHallazgos({ valor, modo, automatica, calificar, scope, 
                         </li>
                       ))}
                     </ol>
-                    <button type="button" className="pulso-f6-boton pulso-f6-dato-accion" data-qa-geometry-capacity="owned"
+                    <PulsoButton variant="secondary" size="sm" className="pulso-f6-dato-accion" data-qa-geometry-capacity="owned"
                       onClick={() => {
                         // H10: la fila nueva se trae a la vista con el foco en su primer campo.
                         const k = clave("h");
@@ -125,21 +126,21 @@ export function CapitulosHallazgos({ valor, modo, automatica, calificar, scope, 
                         revelarFilaNueva(raiz.current, selectorFila(k));
                       }}>
                       <Plus size={14} aria-hidden="true" /> Agregar hallazgo
-                    </button>
+                    </PulsoButton>
                     {aviso && <span className="pulso-f6-dato-ayuda is-aviso" role="note">{aviso}</span>}
                   </li>
                 );
               })}
             </ol>
           )}
-          <button type="button" className="pulso-f6-boton pulso-f6-especial-anadir" data-qa-geometry-capacity="owned"
+          <PulsoButton variant="secondary" size="sm" className="pulso-f6-especial-anadir" data-qa-geometry-capacity="owned"
             onClick={() => {
               const k = clave("c");
               aplicar([...capitulos, capituloNuevo(k, clave("h"))]);
               revelarFilaNueva(raiz.current, selectorFila(k));
             }}>
             <Plus size={15} aria-hidden="true" /> Agregar capítulo
-          </button>
+          </PulsoButton>
         </fieldset>
       )}
       <span className="pulso-sr-only" aria-live="polite">{anuncio}</span>

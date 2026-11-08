@@ -25,11 +25,8 @@
   margin-top: 2px;
 }
 
-/* CTA de los vacíos en el informe compartido: inactivo a la vista y con el motivo debajo, dentro del mismo vacío (C3). */
-.pulso-f6-boton.is-deshabilitado {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
+/* CTA de los vacíos en el informe compartido: inactivo (aria-disabled, deshabilitado honesto del kit en
+   laminasWorkbench.css) y con el motivo debajo, dentro del mismo vacío (C3). */
 
 .pulso-f6-armar-motivo {
   flex-basis: 100%;

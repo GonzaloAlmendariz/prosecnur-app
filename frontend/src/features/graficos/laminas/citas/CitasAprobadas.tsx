@@ -23,6 +23,7 @@ import { useCitasCandidatas } from "./useCitasCandidatas";
 import { AyudaGlobo } from "../AyudaGlobo";
 import "./citasAprobadas.css";
 import { formatoConteo } from "../../../../lib/formatoNumero";
+import { PulsoButton } from "../../../../components/PulsoButton";
 
 type Props = {
   args: Record<string, unknown>;
@@ -88,21 +89,21 @@ export function CitasAprobadas({ args, variable, onCambio }: Props) {
                     {c.propuesta && <span className="pulso-f6-cita-marca">Propuesta</span>}
                     {c.revision && <span className="pulso-f6-cita-marca is-revisar" title={c.revision}>Revisar</span>}
                     <span className="pulso-f6-citas-sp" />
-                    <button type="button" className="pulso-f6-boton" disabled={lleno}
+                    <PulsoButton variant="secondary" size="sm" disabled={lleno}
                       title={lleno ? `Ya hay ${TOPE_CITAS} aprobadas: quita una para aprobar otra` : undefined}
                       aria-label={`Aprobar la cita «${c.texto.slice(0, 60)}»`}
                       onClick={() => guardar(aprobar(aprobadas, c.id))}>
                       <Check size={13} aria-hidden="true" /> Aprobar
-                    </button>
+                    </PulsoButton>
                   </div>
                 </li>
               ))}
             </ul>
           )}
           {libres.length > visibles && (
-            <button type="button" className="pulso-f6-boton pulso-f6-citas-mas" onClick={() => setVisibles((v) => v + POR_PAGINA)}>
+            <PulsoButton variant="secondary" size="sm" className="pulso-f6-citas-mas" onClick={() => setVisibles((v) => v + POR_PAGINA)}>
               Mostrar {Math.min(POR_PAGINA, libres.length - visibles)} más
-            </button>
+            </PulsoButton>
           )}
         </>
       )}
@@ -124,7 +125,7 @@ function CitaAprobadaFila({ cita, candidata, pos, total, onCambiar, onMover, onQ
         <p className="pulso-f6-cita-texto">Esta cita ya no está entre los comentarios (cambió el filtro o el texto).</p>
         <div className="pulso-f6-cita-pie">
           <span className="pulso-f6-citas-sp" />
-          <button type="button" className="pulso-f6-boton" onClick={onQuitar}><X size={13} aria-hidden="true" /> Quitar</button>
+          <PulsoButton variant="secondary" size="sm" onClick={onQuitar}><X size={13} aria-hidden="true" /> Quitar</PulsoButton>
         </div>
       </li>
     );
@@ -149,14 +150,14 @@ function CitaAprobadaFila({ cita, candidata, pos, total, onCambiar, onMover, onQ
       {v && !v.ok && <p className="pulso-f6-citas-aviso" role="note">La edición no vale ({v.motivo}): la lámina dibuja el original.</p>}
       {modo === "ver" && (
         <div className="pulso-f6-cita-acciones" role="group" aria-label={`Acciones de la cita ${pos + 1}`}>
-          <button type="button" className="pulso-f6-icono-boton" aria-label={`Subir la cita ${pos + 1}`} disabled={pos === 0} onClick={() => onMover(-1)}><ArrowUp size={14} aria-hidden="true" /></button>
-          <button type="button" className="pulso-f6-icono-boton" aria-label={`Bajar la cita ${pos + 1}`} disabled={pos === total - 1} onClick={() => onMover(1)}><ArrowDown size={14} aria-hidden="true" /></button>
-          <button type="button" className="pulso-f6-boton" onClick={() => setModo("recortar")}>Recortar</button>
-          <button type="button" className="pulso-f6-boton" onClick={() => setModo("corregir")}><PencilLine size={13} aria-hidden="true" /> Corregir</button>
-          <button type="button" className={`pulso-f6-boton${cita.sic ? " is-activo" : ""}`} aria-pressed={!!cita.sic}
+          <PulsoButton variant="icon" tone="quiet" size="sm" aria-label={`Subir la cita ${pos + 1}`} disabled={pos === 0} onClick={() => onMover(-1)}><ArrowUp aria-hidden="true" /></PulsoButton>
+          <PulsoButton variant="icon" tone="quiet" size="sm" aria-label={`Bajar la cita ${pos + 1}`} disabled={pos === total - 1} onClick={() => onMover(1)}><ArrowDown aria-hidden="true" /></PulsoButton>
+          <PulsoButton variant="secondary" size="sm" onClick={() => setModo("recortar")}>Recortar</PulsoButton>
+          <PulsoButton variant="secondary" size="sm" onClick={() => setModo("corregir")}><PencilLine size={13} aria-hidden="true" /> Corregir</PulsoButton>
+          <PulsoButton variant="secondary" size="sm" aria-pressed={!!cita.sic}
             title="Deja el texto como se escribió y avisa que el error es del original"
-            onClick={() => onCambiar({ sic: cita.sic ? undefined : true })}>[sic]</button>
-          <button type="button" className="pulso-f6-boton" aria-label={`Quitar la cita «${corto}»`} onClick={onQuitar}><X size={13} aria-hidden="true" /> Quitar</button>
+            onClick={() => onCambiar({ sic: cita.sic ? undefined : true })}>[sic]</PulsoButton>
+          <PulsoButton variant="secondary" size="sm" aria-label={`Quitar la cita «${corto}»`} onClick={onQuitar}><X size={13} aria-hidden="true" /> Quitar</PulsoButton>
         </div>
       )}
       {modo === "ver" && cita.sic && (
@@ -210,9 +211,9 @@ function Recortar({ base, onGuardar, onOriginal, onCancelar }: {
       </div>
       <p className="pulso-f6-cita-vista" aria-live="polite">{texto ? `«${texto}»` : "Elige al menos un fragmento."}</p>
       <div className="pulso-f6-cita-acciones">
-        <button type="button" className="pulso-f6-boton is-activo" disabled={!texto} onClick={() => onGuardar(texto)}>Guardar recorte</button>
-        <button type="button" className="pulso-f6-boton" onClick={onOriginal}>Volver al original</button>
-        <button type="button" className="pulso-f6-boton" onClick={onCancelar}>Cancelar</button>
+        <PulsoButton variant="primary" size="sm" disabled={!texto} onClick={() => onGuardar(texto)}>Guardar recorte</PulsoButton>
+        <PulsoButton variant="secondary" size="sm" onClick={onOriginal}>Volver al original</PulsoButton>
+        <PulsoButton variant="secondary" size="sm" onClick={onCancelar}>Cancelar</PulsoButton>
       </div>
     </div>
   );
@@ -239,8 +240,8 @@ function Corregir({ original, inicial, conSic, onGuardar, onCancelar }: {
         onChange={(e) => setTexto(e.target.value)} />
       {motivo && <p id={`${id}-motivo`} className="pulso-f6-citas-aviso" role="alert">{motivo}</p>}
       <div className="pulso-f6-cita-acciones">
-        <button type="button" className="pulso-f6-boton is-activo" disabled={!!motivo} onClick={() => onGuardar(v.texto)}>Guardar corrección</button>
-        <button type="button" className="pulso-f6-boton" onClick={onCancelar}>Cancelar</button>
+        <PulsoButton variant="primary" size="sm" disabled={!!motivo} onClick={() => onGuardar(v.texto)}>Guardar corrección</PulsoButton>
+        <PulsoButton variant="secondary" size="sm" onClick={onCancelar}>Cancelar</PulsoButton>
       </div>
     </div>
   );

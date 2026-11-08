@@ -2,6 +2,7 @@
 // los grupos, los dos grupos, las preguntas y el indicador. P21 (enmienda al ADR 0103): entre dos bases ya no sale sólo
 // de la matriz de equivalencias; se arma con los temas por público (EditorTemasEquivalentes), que la matriz sugiere.
 
+import { RadioSegmentado } from "../../subpestanas/RadioSegmentado";
 import { useId, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { Plus, X } from "../../../../vendor/lucide-react";
@@ -23,6 +24,7 @@ import {
 } from "./modeloBrechaGrupos";
 import "./brechaEntreGrupos.css";
 import { AyudaGlobo } from "../AyudaGlobo";
+import { PulsoButton } from "../../../../components/PulsoButton";
 
 type Props = { args: Readonly<Record<string, unknown>>; onCambio: (patch: Record<string, unknown>) => void };
 
@@ -70,11 +72,12 @@ export function BrechaEntreGrupos({ args, onCambio }: Props) {
   return (
     <div className="pulso-f6-brecha" data-qa-geometry-group="graficos/f6-brecha" data-qa-geometry-contract="intrinsic">
       <div className="pulso-f6-dato is-apilado">
-        <span className="pulso-f6-dato-rotulo" id={`${id}-modo`}>Comparar</span>
-        <div className="pulso-f6-brecha-modo" role="group" aria-labelledby={`${id}-modo`}>
-          <button type="button" className="pulso-f6-boton" aria-pressed={!grupos} onClick={() => grupos && onCambio(aEntreBases())}>Dos bases</button>
-          <button type="button" className="pulso-f6-boton" aria-pressed={grupos} onClick={() => !grupos && onCambio(aEntreGrupos(args))}>Dos grupos de una base</button>
-        </div>
+        <span className="pulso-f6-dato-rotulo" id={`${id}-modo`} aria-hidden="true">Comparar</span>
+        {/* W2-B: elegir el modo es elegir un valor: el segmentado del kit, en partes iguales a todo el ancho. */}
+        <RadioSegmentado etiqueta="Comparar" ancho multilinea qaGrupo="graficos/f6-brecha-modo"
+          valor={grupos ? "grupos" : "bases"}
+          onCambiar={(k) => onCambio(k === "grupos" ? aEntreGrupos(args) : aEntreBases())}
+          opciones={[{ clave: "bases", rotulo: "Dos bases" }, { clave: "grupos", rotulo: "Dos grupos de una base" }]} />
       </div>
 
       {!grupos && <EditorTemasEquivalentes tipo="brecha" args={args} onCambio={onCambio} />}
@@ -128,10 +131,10 @@ export function BrechaEntreGrupos({ args, onCambio }: Props) {
                       <VariablePicker value={ref} filter={esSelectOne}
                                       onChange={(v) => onCambio(conPreguntas(variables, preguntas.map((p, j) => (j === i ? v ?? "" : p))))} />
                     </div>
-                    <button type="button" className="pulso-f6-icono-boton" aria-label="Quitar la pregunta"
+                    <PulsoButton variant="icon" tone="quiet" size="sm" intent="remove" aria-label="Quitar la pregunta"
                             onClick={() => onCambio(conPreguntas(variables, preguntas.filter((_, j) => j !== i)))}>
-                      <X size={14} aria-hidden="true" />
-                    </button>
+                      <X aria-hidden="true" />
+                    </PulsoButton>
                     {cruce && !mismaBase(variables, cruce, ref) && <span className="pulso-f6-dato-ayuda is-aviso">Está en otra base que el cruce.</span>}
                   </li>
                 ))}
@@ -143,9 +146,9 @@ export function BrechaEntreGrupos({ args, onCambio }: Props) {
               {sinPreguntas && (
                 <p className="pulso-f6-dato-ayuda is-aviso" role="status">
                   {"La lámina sale vacía: no tiene preguntas. "}
-                  <button type="button" className="pulso-f6-texto-boton" onClick={() => onCambio({ vars: [comodinDelCruce(variables, cruce)] })}>
+                  <PulsoButton variant="link" size="sm" onClick={() => onCambio({ vars: [comodinDelCruce(variables, cruce)] })}>
                     {`Usar las de escala de ${publicoEnFrase(baseCruce)}`}
-                  </button>
+                  </PulsoButton>
                 </p>
               )}
               {deLaRegla && baseCruce && (

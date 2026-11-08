@@ -25,6 +25,7 @@ import {
   type RanuraTarjetas,
   type ValorTarjetas,
 } from "./modeloTarjetas";
+import { PulsoButton } from "../../../../components/PulsoButton";
 
 type Props = {
   valor: ValorTarjetas;
@@ -113,10 +114,10 @@ export function CrucesTarjetas({ valor, cruces, onCambio, ayudaVacia = "Sin eleg
             <div key={`${ref}-${i}`} className="pulso-f6-criterio" role="group" aria-label={`Comparación ${i + 1}: ${etiqueta}`}>
               <div className="pulso-f6-criterio-cabecera">
                 <VariablePicker value={ref} onChange={(v) => reemplazar(i, v)} placeholder="Elige la pregunta…" sinAvisoDeBase />
-                <button type="button" className="pulso-f6-boton pulso-f6-preguntas-quitar" aria-label={`Dejar de comparar por ${etiqueta}`}
+                <PulsoButton variant="icon" tone="quiet" size="sm" intent="remove" className="pulso-f6-preguntas-quitar" aria-label={`Dejar de comparar por ${etiqueta}`}
                   onClick={() => reemplazar(i, null)}>
-                  <X size={14} aria-hidden="true" />
-                </button>
+                  <X aria-hidden="true" />
+                </PulsoButton>
               </div>
               <input className="pulso-f6-input" value={rotuloDeCruce(valor, ref)} placeholder={etiqueta}
                 aria-label={`Nombre de ${etiqueta} en la lámina`}

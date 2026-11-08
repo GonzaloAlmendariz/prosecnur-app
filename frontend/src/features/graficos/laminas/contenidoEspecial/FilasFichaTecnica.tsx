@@ -9,6 +9,7 @@ import { normalizeTechnicalRows, type TechnicalRow } from "../../technicalRows";
 import "./contenidoEspecial.css";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { formatoConteo } from "../../../../lib/formatoNumero";
+import { PulsoButton } from "../../../../components/PulsoButton";
 
 type Props = {
   arg: ArgMetadata;
@@ -93,17 +94,17 @@ export function FilasFichaTecnica({ arg, valor, onCambio }: Props) {
                 value={f.detalle}
                 onChange={(e) => cambiarFila(i, "detalle", e.target.value)}
               />
-              <button type="button" className="pulso-f6-icono-boton" aria-label={`Quitar la fila ${i + 1}`} onClick={() => quitar(i)}>
-                <Trash2 size={14} aria-hidden="true" />
-              </button>
+              <PulsoButton variant="icon" tone="quiet" size="sm" intent="remove" aria-label={`Quitar la fila ${i + 1}`} onClick={() => quitar(i)}>
+                <Trash2 aria-hidden="true" />
+              </PulsoButton>
             </li>
           ))}
         </ol>
       )}
-      <button ref={botonAnadir} type="button" className="pulso-f6-boton pulso-f6-especial-anadir" onClick={anadir}>
+      <PulsoButton variant="secondary" size="sm" className="pulso-f6-especial-anadir" ref={botonAnadir} onClick={anadir}>
         <Plus size={15} aria-hidden="true" />
         Añadir fila
-      </button>
+      </PulsoButton>
       <span className="pulso-sr-only" aria-live="polite">{anuncio}</span>
     </section>
   );

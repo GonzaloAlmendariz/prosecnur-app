@@ -5,6 +5,7 @@
 import { useId } from "react";
 import { useLocation } from "react-router-dom";
 import { LayoutTemplate } from "../../../vendor/lucide-react";
+import { PulsoButton } from "../../../components/PulsoButton";
 import { usePanelDireccionable } from "../../../lib/navegacion/paneles";
 import { PANEL_ARMAR_DESDE } from "../panelesGraficos";
 import { useGraficosReportScope } from "../reportScope";
@@ -19,15 +20,15 @@ export function BotonArmarDesdeVacio() {
   const motivoId = useId();
   return (
     <>
-      <button
-        type="button"
-        className={`pulso-f6-boton${motivo ? " is-deshabilitado" : ""}`}
+      {/* W2-B: el CTA del vacío es el primario (uno por superficie); inactivo, el deshabilitado honesto del kit. */}
+      <PulsoButton
+        variant="primary"
         onClick={motivo ? undefined : panel.abrir}
         {...(motivo ? { "aria-disabled": true, "aria-describedby": motivoId } : {})}
       >
         <LayoutTemplate size={14} aria-hidden="true" />
         {ROTULO_ARMAR_DESDE_VACIO}
-      </button>
+      </PulsoButton>
       {motivo && <p id={motivoId} className="pulso-f6-armar-motivo">{motivo}</p>}
     </>
   );

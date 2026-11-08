@@ -18,6 +18,7 @@ import { conVariante, defectoEfectivoDe, rotuloRanuras, varianteDe, variantesDe 
 import "./selectores/selectores.css";
 import "../indice/editorIndice.css";
 import "./seccionComposicion.css";
+import { PulsoButton } from "../../../components/PulsoButton";
 
 type Props = {
   slide: Slide;
@@ -101,10 +102,10 @@ export function SeccionComposicion({ slide, lamina, ranura, onCambiarLamina }: P
       )}
 
 
-      <button type="button" className="pulso-f6-boton pulso-f6-composicion-cambiar" data-qa-geometry-capacity="owned" onClick={onCambiarLamina}>
+      <PulsoButton variant="secondary" size="sm" className="pulso-f6-composicion-cambiar" data-qa-geometry-capacity="owned" onClick={onCambiarLamina}>
         <LayoutTemplate size={15} aria-hidden="true" />
         Cambiar de lámina…
-      </button>
+      </PulsoButton>
     </div>
   );
 }

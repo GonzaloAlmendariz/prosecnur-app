@@ -7,6 +7,7 @@ import { ArrowDown, ArrowUp, X } from "../../../../vendor/lucide-react";
 import VariablePicker from "../../VariablePicker";
 import { SelectorCategorias } from "../SelectorCategorias";
 import { avisoFila, cuentaSuma, notaRestoFila, respuestasSumadas, sinSuma, type FilaResumenEditable } from "./modeloCapitulosResumen";
+import { PulsoButton } from "../../../../components/PulsoButton";
 
 type Props = {
   fila: FilaResumenEditable;
@@ -42,15 +43,15 @@ export function FilaResumen({ fila: f, numero, nombre, primera, ultima, califica
       <div className="pulso-f6-hallazgo-cabeza">
         <span className="pulso-f6-dato-rotulo">Fila {numero}</span>
         <span className="pulso-f6-hallazgo-acciones">
-          <button type="button" className="pulso-f6-icono-boton" aria-label={`Subir la ${nombre}`} disabled={primera} onClick={() => onMover(-1)}>
-            <ArrowUp size={14} aria-hidden="true" />
-          </button>
-          <button type="button" className="pulso-f6-icono-boton" aria-label={`Bajar la ${nombre}`} disabled={ultima} onClick={() => onMover(1)}>
-            <ArrowDown size={14} aria-hidden="true" />
-          </button>
-          <button type="button" className="pulso-f6-icono-boton" aria-label={`Quitar la ${nombre}`} onClick={onQuitar}>
-            <X size={14} aria-hidden="true" />
-          </button>
+          <PulsoButton variant="icon" tone="quiet" size="sm" aria-label={`Subir la ${nombre}`} disabled={primera} onClick={() => onMover(-1)}>
+            <ArrowUp aria-hidden="true" />
+          </PulsoButton>
+          <PulsoButton variant="icon" tone="quiet" size="sm" aria-label={`Bajar la ${nombre}`} disabled={ultima} onClick={() => onMover(1)}>
+            <ArrowDown aria-hidden="true" />
+          </PulsoButton>
+          <PulsoButton variant="icon" tone="quiet" size="sm" intent="remove" aria-label={`Quitar la ${nombre}`} onClick={onQuitar}>
+            <X aria-hidden="true" />
+          </PulsoButton>
         </span>
       </div>
 
@@ -64,9 +65,9 @@ export function FilaResumen({ fila: f, numero, nombre, primera, ultima, califica
         <div className="pulso-f6-campo" data-qa="resumen-fila-suma">
           <span className="pulso-f6-hallazgo-rotulo">Respuestas que cuentan</span>
           <span className="pulso-f6-dato-ayuda">Cuenta la suma: {respuestasSumadas(f)}.</span>
-          <button type="button" className="pulso-f6-boton pulso-f6-dato-accion" onClick={() => onCambio(sinSuma(f))}>
+          <PulsoButton variant="secondary" size="sm" className="pulso-f6-dato-accion" onClick={() => onCambio(sinSuma(f))}>
             Contar una sola respuesta
-          </button>
+          </PulsoButton>
         </div>
       ) : (
         <SelectorCategorias id={`${id}-cats`} variable={f.var ? calificar(f.var) : ""} scope={scope} graficador="" modo="una" porEtiqueta

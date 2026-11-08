@@ -19,6 +19,7 @@ import { useDetalleCifras } from "../cifrasInspector/useDetalleCifras";
 import { useCifraEnVivo } from "../reglaPreguntas/useCifraEnVivo";
 import { avisoDosNiveles, bordeVisual, central, kDesdeBorde, leerLados, parcheLados, preguntaDeLados, repartoLados, sustantivas, textoLados, trasClicCentral, type Lados } from "./modeloLados";
 import "./ladosEscala.css";
+import { PulsoButton } from "../../../../components/PulsoButton";
 
 type Props = {
   id: string;
@@ -90,11 +91,11 @@ export function LadosEscala({ id, graficador, scope, args, onCambio, respaldo }:
       data-qa-geometry-group="graficos/f6-lados" data-qa-geometry-contract="intrinsic">
       <div className="pulso-f6-lados-cabeza">
         <span className="pulso-f6-dato-rotulo" id={idRotulo}>Lados de la escala<AyudaGlobo rotulo="Lados de la escala" detalle={AYUDA} /></span>
-        <button type="button" className="pulso-f6-icono-boton" aria-pressed={vista.direccion === "positivo_negativo"}
+        <PulsoButton variant="icon" tone="quiet" size="sm" aria-pressed={vista.direccion === "positivo_negativo"}
           aria-label="Invertir los lados" title="Invertir los lados: los primeros niveles son los positivos"
           onClick={invertir}>
-          <ArrowLeftRight size={14} aria-hidden="true" />
-        </button>
+          <ArrowLeftRight aria-hidden="true" />
+        </PulsoButton>
       </div>
       <div ref={tira} className="pulso-f6-lados-tira" style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` }}
         onPointerDown={alPresionar} onPointerMove={(e) => { if (arrastrando.current) moverA(bordeDe(e.clientX)); }}
@@ -120,9 +121,9 @@ export function LadosEscala({ id, graficador, scope, args, onCambio, respaldo }:
       {dosNiveles && (
         <p className="pulso-f6-dato-ayuda pulso-f6-lados-dos" role="note" data-qa="lados-dos-niveles">
           {`${dosNiveles} `}
-          <button type="button" className="pulso-f6-texto-boton" onClick={invertir}>Invertir</button>
+          <PulsoButton variant="link" size="sm" onClick={invertir}>Invertir</PulsoButton>
           {" o "}
-          <button type="button" className="pulso-f6-texto-boton" onClick={() => onCambio(parcheLados(vista))}>dejarlo así</button>
+          <PulsoButton variant="link" size="sm" onClick={() => onCambio(parcheLados(vista))}>dejarlo así</PulsoButton>
         </p>
       )}
       <CifraEstado texto={textoLados(cifras?.detalle ?? null)} vigente={!!cifras?.vigente} esperando={!!cifras && !cifras.vigente} qa="lados-cifra" />

@@ -29,6 +29,7 @@ import {
 import { CifraTwoBox } from "./CifraTwoBox";
 import { opcionesActivas } from "../../barraExtra";
 import "./tarjetaGrafico.css";
+import { PulsoButton } from "../../../../components/PulsoButton";
 
 type Props = { slideId: string; slot: string; valor: GraficadorRef; onAbrirBloques: () => void };
 
@@ -73,9 +74,9 @@ function BarraExtraPorBloque({ slideId, slot, valor, composicion, onAbrirBloques
       <p className="pulso-f6-dato-ayuda" role="status">
         {resumen.total === 0 ? "Aún no hay bloques." : `${resumen.conBarra} de ${resumen.total} ${resumen.total === 1 ? "bloque lleva" : "bloques llevan"} barra extra${resumen.propios > 0 ? `; ${resumen.propios} ${resumen.propios === 1 ? "tiene" : "tienen"} la suya propia` : ""}. `}
         {sinCategorias > 0 ? `Falta elegir categorías en ${sinCategorias} ${sinCategorias === 1 ? "bloque" : "bloques"}. ` : ""}
-        <button type="button" className="pulso-f6-texto-boton" onClick={onAbrirBloques}>
+        <PulsoButton variant="link" size="sm" onClick={onAbrirBloques}>
           <Rows3 size={13} aria-hidden="true" /> Ajustar por bloque…
-        </button>
+        </PulsoButton>
       </p>
     </div>
   );

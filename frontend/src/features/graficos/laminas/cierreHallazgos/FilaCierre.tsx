@@ -8,6 +8,7 @@ import { ArrowDown, ArrowUp, X } from "../../../../vendor/lucide-react";
 import { ElegirCifra } from "./ElegirCifra";
 import type { CifrasLeidas } from "./modeloElegirCifra";
 import { avisoCifraCambio, avisoHallazgo, conCifraDe, type HallazgoCierre, type OrigenCifras } from "./modeloCierre";
+import { PulsoButton } from "../../../../components/PulsoButton";
 
 type Props = {
   hallazgo: HallazgoCierre;
@@ -36,15 +37,15 @@ export function FilaCierre({ hallazgo: h, numero, origenes, cifrasPorOrigen, pri
       <div className="pulso-f6-hallazgo-cabeza">
         <span className="pulso-f6-dato-rotulo">Hallazgo {numero}</span>
         <span className="pulso-f6-hallazgo-acciones">
-          <button type="button" className="pulso-f6-icono-boton" aria-label={`Subir el ${nombre}`} disabled={primero} onClick={() => onMover(-1)}>
-            <ArrowUp size={14} aria-hidden="true" />
-          </button>
-          <button type="button" className="pulso-f6-icono-boton" aria-label={`Bajar el ${nombre}`} disabled={ultimo} onClick={() => onMover(1)}>
-            <ArrowDown size={14} aria-hidden="true" />
-          </button>
-          <button type="button" className="pulso-f6-icono-boton" aria-label={`Quitar el ${nombre}`} onClick={onQuitar}>
-            <X size={14} aria-hidden="true" />
-          </button>
+          <PulsoButton variant="icon" tone="quiet" size="sm" aria-label={`Subir el ${nombre}`} disabled={primero} onClick={() => onMover(-1)}>
+            <ArrowUp aria-hidden="true" />
+          </PulsoButton>
+          <PulsoButton variant="icon" tone="quiet" size="sm" aria-label={`Bajar el ${nombre}`} disabled={ultimo} onClick={() => onMover(1)}>
+            <ArrowDown aria-hidden="true" />
+          </PulsoButton>
+          <PulsoButton variant="icon" tone="quiet" size="sm" intent="remove" aria-label={`Quitar el ${nombre}`} onClick={onQuitar}>
+            <X aria-hidden="true" />
+          </PulsoButton>
         </span>
       </div>
 

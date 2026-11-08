@@ -15,6 +15,7 @@ import { PANEL_EMPAREJADO } from "./panelEmparejado";
 import { RevisarEmparejado } from "./RevisarEmparejado";
 import { useEmparejado } from "./useEmparejado";
 import "./emparejado.css";
+import { PulsoButton } from "../../../../components/PulsoButton";
 
 type Props = {
   args: Readonly<Record<string, unknown>>;
@@ -56,16 +57,14 @@ export function EntradaEmparejado({ args, scope, onCambio }: Props) {
       </span>
       <div className="pulso-f6-emp-entrada-fila" data-qa-geometry-member>
         <span className="pulso-f6-dato-ayuda" role="status">{texto}</span>
-        <button
+        <PulsoButton variant="secondary" size="sm"
           ref={boton}
-          type="button"
-          className="pulso-f6-boton"
           disabled={bases.length !== 2}
           onClick={() => { useEmparejadoUi.getState().preparar(); panel.abrir(); }}
         >
           <Link2 size={14} aria-hidden="true" />
           Revisar emparejado
-        </button>
+        </PulsoButton>
       </div>
       <RevisarEmparejado
         bases={bases}

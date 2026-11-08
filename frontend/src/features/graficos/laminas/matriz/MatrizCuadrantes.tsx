@@ -11,6 +11,7 @@ import {
   nombresDe, temasDe, type Tema,
 } from "./modeloMatrizCuadrantes";
 import "../brecha/brechaEntreGrupos.css";
+import { PulsoButton } from "../../../../components/PulsoButton";
 
 type Props = { args: Readonly<Record<string, unknown>>; onCambio: (patch: Record<string, unknown>) => void };
 
@@ -36,9 +37,9 @@ export function MatrizCuadrantes({ args, onCambio }: Props) {
             <li key={`${t.nombre}-${i}`} className="pulso-f6-matriz-tema" data-qa-geometry-member data-qa-geometry-group="graficos/f6-matriz-tema" data-qa-geometry-contract="intrinsic">
               <input className="pulso-f6-input" aria-label="Nombre del tema" value={t.nombre}
                      onChange={(e) => cambiar(temas.map((u, j) => (j === i ? { ...u, nombre: e.target.value } : u)))} />
-              <button type="button" className="pulso-f6-icono-boton" aria-label="Quitar el tema" onClick={() => cambiar(temas.filter((_, j) => j !== i))}>
-                <X size={14} aria-hidden="true" />
-              </button>
+              <PulsoButton variant="icon" tone="quiet" size="sm" intent="remove" aria-label="Quitar el tema" onClick={() => cambiar(temas.filter((_, j) => j !== i))}>
+                <X aria-hidden="true" />
+              </PulsoButton>
               <div className="pulso-f6-dato-control">
                 <VariablePicker value={t.x || null} allowEmpty filter={esSelectOne} placeholder="Pregunta del eje horizontal…"
                                 onChange={(v) => cambiar(temas.map((u, j) => (j === i ? { ...u, x: v ?? "" } : u)))} />

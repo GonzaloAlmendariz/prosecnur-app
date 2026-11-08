@@ -22,6 +22,7 @@ import { useGuardaNoConfiables } from "./useGuardaNoConfiables";
 import { DeclararPadron } from "./DeclararPadron";
 import { faltaPadron } from "./dondeDeclarar";
 import "./gruposPadron.css";
+import { PulsoButton } from "../../../../components/PulsoButton";
 
 type Props = {
   graficador: string;
@@ -69,10 +70,10 @@ export function PadronPublicos({ graficador, args, scope, onCambio }: Props) {
           <AyudaGlobo id={`${id}-ayuda`} rotulo={rotulo} detalle={AYUDA_PUBLICOS} />
         </span>
         {pendientes.length > 1 && (
-          <button type="button" className="pulso-f6-boton pulso-f6-dato-accion"
+          <PulsoButton variant="secondary" size="sm" className="pulso-f6-dato-accion"
             onClick={() => onCambio(conPropuesta(args, propuestas, pendientes, cobertura, guarda))}>
             Usar todos
-          </button>
+          </PulsoButton>
         )}
       </div>
       {bases.length === 0 ? (
@@ -110,10 +111,10 @@ export function PadronPublicos({ graficador, args, scope, onCambio }: Props) {
                           {propuestaEnUso(args, b, p, cobertura) ? (
                             <span className="pulso-f6-dato-ayuda">En uso</span>
                           ) : (
-                            <button type="button" className="pulso-f6-boton" aria-label={`Usar la propuesta de ${nombre}`}
+                            <PulsoButton variant="secondary" size="sm" aria-label={`Usar la propuesta de ${nombre}`}
                               onClick={() => onCambio(conPropuesta(args, propuestas, [b], cobertura, guarda))}>
                               Usar
-                            </button>
+                            </PulsoButton>
                           )}
                         </div>
                       )}

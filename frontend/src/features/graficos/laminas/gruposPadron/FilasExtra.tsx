@@ -7,6 +7,7 @@ import { Plus, X } from "../../../../vendor/lucide-react";
 import { PulsoInput } from "../../../../components/PulsoInput";
 import { AyudaGlobo } from "../AyudaGlobo";
 import { conExtras, extrasDe, type FilaExtra } from "./modeloPadron";
+import { PulsoButton } from "../../../../components/PulsoButton";
 
 type Props = {
   args: Readonly<Record<string, unknown>>;
@@ -34,21 +35,21 @@ export function FilasExtra({ args, onCambio }: Props) {
                 onChange={(e) => cambiar(i, "cifra", e.target.value)} />
               <PulsoInput size="sm" aria-label={`Rótulo de la fila ${i + 1}`} placeholder="egresados(as)" value={f.rotulo}
                 onChange={(e) => cambiar(i, "rotulo", e.target.value)} />
-              <button type="button" className="pulso-f6-icono-boton" aria-label={`Quitar la fila ${i + 1}`}
+              <PulsoButton variant="icon" tone="quiet" size="sm" intent="remove" aria-label={`Quitar la fila ${i + 1}`}
                 onClick={() => onCambio(conExtras(filas.filter((_, j) => j !== i)))}>
-                <X size={14} aria-hidden="true" />
-              </button>
+                <X aria-hidden="true" />
+              </PulsoButton>
               <PulsoInput size="sm" className="pulso-f6-extras-detalle" aria-label={`Detalle de la fila ${i + 1}`}
                 placeholder="en 4 grupos focales" value={f.detalle} onChange={(e) => cambiar(i, "detalle", e.target.value)} />
             </li>
           ))}
         </ul>
       )}
-      <button type="button" className="pulso-f6-boton pulso-f6-dato-accion"
+      <PulsoButton variant="secondary" size="sm" className="pulso-f6-dato-accion"
         onClick={() => onCambio(conExtras([...filas, { cifra: "", rotulo: "", detalle: "" }]))}>
         <Plus size={14} aria-hidden="true" />
         Agregar fila
-      </button>
+      </PulsoButton>
     </div>
   );
 }

@@ -30,6 +30,7 @@ import { useCifraEnVivo } from "./useCifraEnVivo";
 import { useConteoRegla } from "./useConteoRegla";
 import { enOrden, seleccionVista } from "./vistaRegla";
 import "./reglaPreguntas.css";
+import { PulsoButton } from "../../../../components/PulsoButton";
 
 type Props = {
   rotulo: string;
@@ -150,7 +151,7 @@ export function ReglaPreguntas({ rotulo, ayuda, graficador, args, valor, scope, 
       {regla && faltaCruce && (
         <p className="pulso-f6-dato-ayuda" role="status">
           {`${FALTA_CRUCE} `}
-          <button type="button" className="pulso-f6-texto-boton" onClick={irADividir}>Ir a «Dividir por»</button>
+          <PulsoButton variant="link" size="sm" onClick={irADividir}>Ir a «Dividir por»</PulsoButton>
         </p>
       )}
       {regla && !faltaCruce && error && <ErrorBlock label="No se pudo contar las preguntas" detail={error} />}
@@ -181,9 +182,9 @@ export function ReglaPreguntas({ rotulo, ayuda, graficador, args, valor, scope, 
               onAlternar={alternar} />
           )}
           {ajustadaAMano(regla) && (
-            <button type="button" className="pulso-f6-boton pulso-f6-dato-accion" onClick={() => { setFilas(SIN_FILAS); onCambio(volverALaRegla(reglaViva)); }}>
+            <PulsoButton variant="secondary" size="sm" className="pulso-f6-dato-accion" onClick={() => { setFilas(SIN_FILAS); onCambio(volverALaRegla(reglaViva)); }}>
               Volver a la regla
-            </button>
+            </PulsoButton>
           )}
         </div>
       )}

@@ -26,7 +26,6 @@
 .pulso-f6-cita-texto { margin: 0; font-size: var(--pulso-type-body-size); line-height: 1.45; color: var(--pulso-text); overflow-wrap: anywhere; }
 .pulso-f6-cita-pie, .pulso-f6-cita-acciones { display: flex; flex-wrap: wrap; align-items: center; gap: var(--pulso-space-1) var(--pulso-space-2); }
 .pulso-f6-cita-pie:empty { display: none; }
-.pulso-f6-cita-acciones .pulso-f6-boton { height: var(--pulso-control-height-sm); padding: 0 var(--pulso-space-2); }
 .pulso-f6-cita-marca {
   padding: 1px 6px; border: 1px solid var(--pulso-border); border-radius: var(--pulso-radius-chip);
   color: var(--pulso-text-soft); font-size: var(--pulso-type-micro-size); font-weight: var(--pulso-weight-semibold);

@@ -4,6 +4,7 @@
 // `aria-disabled` y no `disabled`: el foco no se pierde al llegar arriba con el teclado.
 
 import { ArrowDown, ArrowUp } from "../../../../vendor/lucide-react";
+import { PulsoButton } from "../../../../components/PulsoButton";
 
 type Props = {
   etiqueta: string;
@@ -22,14 +23,14 @@ export function OrdenGrupo({ etiqueta, posicion, total, onMover }: Props) {
       </span>
       {total > 1 && (
         <>
-          <button type="button" className="pulso-f6-icono-boton pulso-f6-grupos-mover" aria-label={`Subir ${etiqueta}`}
+          <PulsoButton variant="icon" tone="quiet" size="sm" className="pulso-f6-grupos-mover" aria-label={`Subir ${etiqueta}`}
             aria-keyshortcuts="Alt+ArrowUp" aria-disabled={arriba} onClick={() => { if (!arriba) onMover(-1); }}>
-            <ArrowUp size={14} aria-hidden="true" />
-          </button>
-          <button type="button" className="pulso-f6-icono-boton pulso-f6-grupos-mover" aria-label={`Bajar ${etiqueta}`}
+            <ArrowUp aria-hidden="true" />
+          </PulsoButton>
+          <PulsoButton variant="icon" tone="quiet" size="sm" className="pulso-f6-grupos-mover" aria-label={`Bajar ${etiqueta}`}
             aria-keyshortcuts="Alt+ArrowDown" aria-disabled={abajo} onClick={() => { if (!abajo) onMover(1); }}>
-            <ArrowDown size={14} aria-hidden="true" />
-          </button>
+            <ArrowDown aria-hidden="true" />
+          </PulsoButton>
         </>
       )}
     </span>

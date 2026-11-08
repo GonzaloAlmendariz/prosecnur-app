@@ -72,7 +72,7 @@
   grid-area: sello;
 }
 
-.pulso-f6-colores-fila > .pulso-f6-icono-boton,
+.pulso-f6-colores-fila > .pulso-button--quiet,
 .pulso-f6-colores-hueco {
   grid-area: accion;
 }

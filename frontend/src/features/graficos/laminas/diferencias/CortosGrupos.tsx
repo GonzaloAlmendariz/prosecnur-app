@@ -17,6 +17,7 @@ import { revelarFilaNueva, selectorFila } from "../../revelarFila";
 import { AyudaGlobo } from "../AyudaGlobo";
 import "../datosGrafico.css";
 import { avisoCorto, cortosAFilas, filasACortos, mismosCortos, type FilaCorto, type ValorTarjetas } from "./modeloTarjetas";
+import { PulsoButton } from "../../../../components/PulsoButton";
 
 type Props = {
   valor: ValorTarjetas;
@@ -74,15 +75,15 @@ export function CortosGrupos({ valor, cruces, scope, baseActiva, onCambio, uso =
               <ArrowRight size={14} aria-hidden="true" className="pulso-tarjetas-corto-flecha" />
               <input className="pulso-f6-input" value={f.corto} placeholder="Corto"
                 aria-label={`Nombre corto del grupo ${f.grupo.trim() || n}`} onChange={(e) => cambiar(i, { corto: e.target.value })} />
-              <button type="button" className="pulso-f6-boton pulso-f6-preguntas-quitar" aria-label={`Quitar el nombre corto ${f.grupo.trim() || n}`}
+              <PulsoButton variant="icon" tone="quiet" size="sm" intent="remove" className="pulso-f6-preguntas-quitar" aria-label={`Quitar el nombre corto ${f.grupo.trim() || n}`}
                 onClick={() => aplicar(filas.filter((_, k) => k !== i))}>
-                <X size={14} aria-hidden="true" />
-              </button>
+                <X aria-hidden="true" />
+              </PulsoButton>
               {aviso && <span className="pulso-f6-dato-ayuda is-aviso pulso-tarjetas-corto-aviso" role="note">{aviso}</span>}
             </div>
           );
         })}
-        <button type="button" className="pulso-f6-boton pulso-f6-dato-accion" data-qa-geometry-capacity="owned"
+        <PulsoButton variant="secondary" size="sm" className="pulso-f6-dato-accion" data-qa-geometry-capacity="owned"
           onClick={() => {
             siguiente.current += 1;
             const k = `nuevo-${siguiente.current}`;
@@ -91,7 +92,7 @@ export function CortosGrupos({ valor, cruces, scope, baseActiva, onCambio, uso =
             revelarFilaNueva(raiz.current, selectorFila(k));
           }}>
           <Plus size={14} aria-hidden="true" /> Agregar nombre corto
-        </button>
+        </PulsoButton>
       </div>
       <datalist id={listaId}>
         {cruces.map((ref) => <GruposDeCruce key={ref} variable={varCalificada(ref, baseActiva, scope)} scope={scope} />)}

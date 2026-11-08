@@ -13,6 +13,7 @@ import { usePlanStore } from "../../store";
 import { coloresDelGrafico, coloresEfectivos, leerColores, nombreDeColor, patchColor, type ColorDeSerie } from "./coloresGraficoModel";
 import "../../estilo/estilo.css";
 import "./coloresGrafico.css";
+import { PulsoButton } from "../../../../components/PulsoButton";
 
 type Props = { slideId: string; slot: string; valor: GraficadorRef; argsDelRegistro: readonly ArgMetadata[] };
 
@@ -82,15 +83,13 @@ function FilaColor({ fila, idDesc, onElegir }: { fila: ColorDeSerie; idDesc: str
         <SelloProcedencia procedencia={origen} />
       )}
       {origen === "propio" ? (
-        <button
-          type="button"
-          className="pulso-f6-icono-boton"
+        <PulsoButton variant="icon" tone="quiet" size="sm"
           aria-label={`Volver al color por defecto en “${nombre}”`}
           title="Volver al valor por defecto"
           onClick={() => onElegir(nombre, null)}
         >
-          <RotateCcw size={14} aria-hidden="true" />
-        </button>
+          <RotateCcw aria-hidden="true" />
+        </PulsoButton>
       ) : (
         <span className="pulso-f6-colores-hueco" aria-hidden="true" />
       )}

@@ -30,6 +30,7 @@ import "../datosGrafico.css";
 import "../contenidoEspecial/contenidoEspecial.css";
 import "../hallazgos/hallazgos.css";
 import "./cierreHallazgos.css";
+import { PulsoButton } from "../../../../components/PulsoButton";
 
 const AYUDA = "De tres a cinco. Cada hallazgo toma una cifra de una lámina de resumen del informe y lleva tu frase. La cifra se vuelve a leer de esa lámina al exportar.";
 
@@ -96,7 +97,7 @@ export function CierreHallazgos({ slide, args }: { slide: Slide; args: readonly 
                 </li>
               ))}
             </ol>
-            <button type="button" className="pulso-f6-boton pulso-f6-especial-anadir" data-qa-geometry-capacity="owned"
+            <PulsoButton variant="secondary" size="sm" className="pulso-f6-especial-anadir" data-qa-geometry-capacity="owned"
               disabled={filas.length >= MAX_HALLAZGOS}
               onClick={() => {
                 const k = clave();
@@ -104,7 +105,7 @@ export function CierreHallazgos({ slide, args }: { slide: Slide; args: readonly 
                 revelarFilaNueva(raiz.current, selectorFila(k));
               }}>
               <Plus size={15} aria-hidden="true" /> Agregar hallazgo
-            </button>
+            </PulsoButton>
             {aviso && <span className="pulso-f6-dato-ayuda is-aviso" role="note">{aviso}</span>}
           </fieldset>
         )}

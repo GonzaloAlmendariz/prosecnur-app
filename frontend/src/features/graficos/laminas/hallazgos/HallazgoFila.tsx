@@ -7,6 +7,7 @@ import VariablePicker from "../../VariablePicker";
 import { RadioSegmentado } from "../../subpestanas/RadioSegmentado";
 import { SelectorCategorias } from "../SelectorCategorias";
 import { avisoHallazgo, notaRestoHallazgo, type HallazgoEditable, type TipoComparacion } from "./modeloCapitulosHallazgos";
+import { PulsoButton } from "../../../../components/PulsoButton";
 
 const COMPARACIONES: readonly { clave: TipoComparacion; rotulo: string }[] = [
   { clave: "auto", rotulo: "Automática" },
@@ -46,15 +47,15 @@ export function HallazgoFila({ hallazgo: h, numero, nombre, primero, ultimo, cal
       <div className="pulso-f6-hallazgo-cabeza">
         <span className="pulso-f6-dato-rotulo">Hallazgo {numero}</span>
         <span className="pulso-f6-hallazgo-acciones">
-          <button type="button" className="pulso-f6-icono-boton" aria-label={`Subir el ${nombre}`} disabled={primero} onClick={() => onMover(-1)}>
-            <ArrowUp size={14} aria-hidden="true" />
-          </button>
-          <button type="button" className="pulso-f6-icono-boton" aria-label={`Bajar el ${nombre}`} disabled={ultimo} onClick={() => onMover(1)}>
-            <ArrowDown size={14} aria-hidden="true" />
-          </button>
-          <button type="button" className="pulso-f6-icono-boton" aria-label={`Quitar el ${nombre}`} onClick={onQuitar}>
-            <X size={14} aria-hidden="true" />
-          </button>
+          <PulsoButton variant="icon" tone="quiet" size="sm" aria-label={`Subir el ${nombre}`} disabled={primero} onClick={() => onMover(-1)}>
+            <ArrowUp aria-hidden="true" />
+          </PulsoButton>
+          <PulsoButton variant="icon" tone="quiet" size="sm" aria-label={`Bajar el ${nombre}`} disabled={ultimo} onClick={() => onMover(1)}>
+            <ArrowDown aria-hidden="true" />
+          </PulsoButton>
+          <PulsoButton variant="icon" tone="quiet" size="sm" intent="remove" aria-label={`Quitar el ${nombre}`} onClick={onQuitar}>
+            <X aria-hidden="true" />
+          </PulsoButton>
         </span>
       </div>
 

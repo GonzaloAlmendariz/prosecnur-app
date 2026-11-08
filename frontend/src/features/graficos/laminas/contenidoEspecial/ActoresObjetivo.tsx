@@ -22,6 +22,7 @@ import {
 import "../../indice/editorIndice.css";
 import "./contenidoEspecial.css";
 import { formatoConteo } from "../../../../lib/formatoNumero";
+import { PulsoButton } from "../../../../components/PulsoButton";
 
 /** Qué actor eligió ícono (la biblioteca es `panel=icono-actor`; el actor no es una dimensión de la dirección). */
 const useActorIcono = create<{ actor: number | null; elegir: (i: number | null) => void }>((set) => ({
@@ -126,18 +127,18 @@ function ListaActores({ actores, onCambio }: { actores: Actor[]; onCambio: (acto
                   value={a.nombre}
                   onChange={(e) => cambiar(i, { nombre: e.target.value })}
                 />
-                <button type="button" className="pulso-f6-icono-boton" aria-label={`Quitar ${nombre}`} onClick={() => quitar(i)}>
-                  <Trash2 size={14} aria-hidden="true" />
-                </button>
+                <PulsoButton variant="icon" tone="quiet" size="sm" intent="remove" aria-label={`Quitar ${nombre}`} onClick={() => quitar(i)}>
+                  <Trash2 aria-hidden="true" />
+                </PulsoButton>
               </li>
             );
           })}
         </ol>
       )}
-      <button ref={botonAnadir} type="button" className="pulso-f6-boton pulso-f6-especial-anadir" onClick={anadir} disabled={lleno}>
+      <PulsoButton variant="secondary" size="sm" className="pulso-f6-especial-anadir" ref={botonAnadir} onClick={anadir} disabled={lleno}>
         <Plus size={15} aria-hidden="true" />
         Añadir actor
-      </button>
+      </PulsoButton>
       {lleno && <span className="pulso-f6-ayuda-texto">La lámina admite hasta {MAX_ACTORES} actores.</span>}
       <span className="pulso-sr-only" aria-live="polite">{anuncio}</span>
 
@@ -200,17 +201,17 @@ function ListaDimensiones({ dimensiones, onCambio }: { dimensiones: string[]; on
                 value={d}
                 onChange={(e) => onCambio(dimensiones.map((x, k) => (k === i ? e.target.value : x)))}
               />
-              <button type="button" className="pulso-f6-icono-boton" aria-label={`Quitar la dimensión ${i + 1}`} onClick={() => quitar(i)}>
-                <Trash2 size={14} aria-hidden="true" />
-              </button>
+              <PulsoButton variant="icon" tone="quiet" size="sm" intent="remove" aria-label={`Quitar la dimensión ${i + 1}`} onClick={() => quitar(i)}>
+                <Trash2 aria-hidden="true" />
+              </PulsoButton>
             </li>
           ))}
         </ol>
       )}
-      <button ref={botonAnadir} type="button" className="pulso-f6-boton pulso-f6-especial-anadir" onClick={anadir} disabled={lleno}>
+      <PulsoButton variant="secondary" size="sm" className="pulso-f6-especial-anadir" ref={botonAnadir} onClick={anadir} disabled={lleno}>
         <Plus size={15} aria-hidden="true" />
         Añadir dimensión
-      </button>
+      </PulsoButton>
       {lleno && <span className="pulso-f6-ayuda-texto">La lámina admite hasta {MAX_DIMENSIONES} dimensiones.</span>}
     </section>
   );
