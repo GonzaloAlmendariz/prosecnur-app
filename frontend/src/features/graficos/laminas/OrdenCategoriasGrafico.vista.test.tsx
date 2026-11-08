@@ -58,4 +58,15 @@ describe("Orden: vista previa y paso a «A mano»", () => {
     act(() => host.querySelector<HTMLButtonElement>('[aria-label="Bajar “Beta”"]')!.click());
     expect(cambios).toEqual([{ modo: "personalizado", lista: ["1", "2", "3"], invertir: false }]);
   });
+  it("R6-5: con «A mano» invertida la nota sigue montada durante la vista previa (la lista no sube)", () => {
+    act(() => root.render(
+      <OrdenCategoriasGrafico variable="b$p7" graficador="p_barras_categoricas" scope="active" onCambio={(o) => { cambios.push(o); }}
+        args={{ var: "p7", orden_categorias: { modo: "personalizado", lista: ["3", "1", "2"], invertir: true } }} />,
+    ));
+    const nota = () => [...host.querySelectorAll('[role="note"]')].find((n) => n.textContent?.startsWith("Se muestra invertida"));
+    expect(nota()).toBeTruthy();
+    act(() => { segmento("Instrumento").dispatchEvent(new MouseEvent("mouseover", { bubbles: true })); });
+    expect(host.querySelector(".pulso-f6-orden-lista")?.className).toContain("is-vista");
+    expect(nota()).toBeTruthy();
+  });
 });

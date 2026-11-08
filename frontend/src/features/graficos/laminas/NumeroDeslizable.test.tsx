@@ -24,4 +24,17 @@ describe("NumeroDeslizable", () => {
     expect(html).toContain('aria-label="Volver a auto en letra de las categorías (pt)"');
     expect(html).not.toContain("is-vacio");
   });
+  it("R6-7: el orden del DOM sigue al visual («?» y «Auto» antes de la cifra y la pista) y «Auto» reserva su ancho en negrita", () => {
+    const html = renderToStaticMarkup(
+      <NumeroDeslizable id="esp" rotulo="Espacio para las etiquetas (%)" rango={RANGO} valor={undefined} vacio="Auto"
+        marcas={<button type="button">?</button>} onCambio={() => undefined} />,
+    );
+    const pos = (s: string) => html.indexOf(s);
+    expect(pos("pulso-f6-numdesl-marcas")).toBeLessThan(pos("pulso-f6-numdesl-vacio"));
+    expect(pos("pulso-f6-numdesl-vacio")).toBeLessThan(pos('type="text"'));
+    expect(pos('type="text"')).toBeLessThan(pos('type="range"'));
+    expect(html).toContain('data-texto="Auto"');
+    // Sin cifra de referencia: la clase que oculta la cifra y el pulgar.
+    expect(html).toContain("is-sin-cifra");
+  });
 });

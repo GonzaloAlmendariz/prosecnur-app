@@ -29,7 +29,9 @@ function completa(base: readonly string[], datos: GraficosCategorias): string[] 
 function porFrecuencia(datos: GraficosCategorias, invertir: boolean): string[] {
   if (!invertir && datos.orden.frecuencia.length) return alFinal(completa(datos.orden.frecuencia, datos), datos);
   const conIndice = datos.categorias.map((c, i) => ({ codigo: c.codigo, n: Number.isFinite(c.n) ? c.n : 0, i }));
-  conIndice.sort((a, b) => (invertir ? a.n - b.n : b.n - a.n) || a.i - b.i);
+  // R6-10: invertida, las que no tienen respuestas (no se dibujan) no encabezan la lista: van detrás de las dibujadas,
+  // como en la frecuencia sin invertir. El motor las ordena primero, pero no las dibuja: la lista dice lo que se ve.
+  conIndice.sort((a, b) => (invertir ? Number(a.n === 0) - Number(b.n === 0) || a.n - b.n : b.n - a.n) || a.i - b.i);
   return alFinal(conIndice.map((c) => c.codigo), datos);
 }
 

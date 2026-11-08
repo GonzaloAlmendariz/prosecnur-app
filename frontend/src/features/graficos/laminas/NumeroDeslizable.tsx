@@ -37,18 +37,20 @@ export function NumeroDeslizable({ id, rotulo, marcas, rango, valor, porDefecto,
   const sinCifra = enVacio && (typeof porDefecto !== "number" || !Number.isFinite(porDefecto));
   return (
     <div className={`pulso-f6-dato pulso-f6-numdesl${enVacio ? " is-vacio" : ""}${sinCifra ? " is-sin-cifra" : ""}`} data-qa={qa}>
+      {/* R6-7: el «?», el sello y «Auto» van antes en el DOM (la grilla los ubica en la línea del rótulo), así el tabulador
+          sigue el orden visual: «?», «Auto», la cifra y la pista. */}
+      {marcas ? <span className="pulso-f6-numdesl-marcas">{marcas}</span> : null}
+      {vacio ? (
+        <button type="button" className="pulso-f6-numdesl-vacio" aria-pressed={enVacio} data-texto={vacio}
+          aria-label={enVacio ? `${rotulo}: ${vacio}` : `Volver a ${vacio.toLowerCase()} en ${rotulo.toLowerCase()}`}
+          onClick={() => { if (!enVacio) onCambio(null); }}>
+          <span className="pulso-f6-numdesl-vacio-texto">{vacio}</span>
+        </button>
+      ) : null}
       <CifraDeslizable id={id} rotulo={rotulo} valor={cifra.valor}
         recorrido={{ pista: { min: rango.min, max: rango.max }, valores: { min: rango.min, max: rango.max } }}
         campo={{ min: rango.min, max: rango.max }} paso={rango.paso} grande={rango.grande}
         onMover={mover} onSoltar={cifra.soltar} />
-      {marcas ? <span className="pulso-f6-numdesl-marcas">{marcas}</span> : null}
-      {vacio ? (
-        <button type="button" className="pulso-f6-numdesl-vacio" aria-pressed={enVacio}
-          aria-label={enVacio ? `${rotulo}: ${vacio}` : `Volver a ${vacio.toLowerCase()} en ${rotulo.toLowerCase()}`}
-          onClick={() => { if (!enVacio) onCambio(null); }}>
-          {vacio}
-        </button>
-      ) : null}
     </div>
   );
 }

@@ -20,11 +20,65 @@
 /* «Auto» rige: la cifra que se ve es la de referencia, no una decisión. */
 .pulso-f6-numdesl.is-vacio .pulso-f6-regla-numero { color: var(--pulso-text-faint); font-weight: var(--pulso-weight-regular); }
 .pulso-f6-numdesl.is-vacio .pulso-f6-regla-rango { opacity: 0.55; }
-/* Sin cifra de referencia (la lámina la calcula): sólo «Auto»; el número vuelve al mover la pista. */
+/* Sin cifra de referencia (la lámina la calcula): sólo «Auto»; el número vuelve al mover la pista. R6-7: tampoco hay
+   pulgar, que señalaba una cifra que no rige; la pista queda como una línea y el pulgar vuelve con el foco de teclado. */
 .pulso-f6-numdesl.is-sin-cifra .pulso-f6-regla-numero { visibility: hidden; }
 
-/* «Auto» sin marco propio (una píldora de fondo, no una caja): marcado, en el tono del módulo; si no, un texto que vuelve. */
+.pulso-f6-numdesl.is-sin-cifra .pulso-f6-regla-rango {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 16px;
+  background: transparent;
+}
+
+.pulso-f6-numdesl.is-sin-cifra .pulso-f6-regla-rango::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--pulso-border-strong);
+}
+
+.pulso-f6-numdesl.is-sin-cifra .pulso-f6-regla-rango::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--pulso-border-strong);
+}
+
+.pulso-f6-numdesl.is-sin-cifra .pulso-f6-regla-rango::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 0;
+  height: 0;
+  border: 0;
+  background: transparent;
+}
+
+.pulso-f6-numdesl.is-sin-cifra .pulso-f6-regla-rango::-moz-range-thumb {
+  width: 0;
+  height: 0;
+  border: 0;
+  background: transparent;
+}
+
+.pulso-f6-numdesl.is-sin-cifra .pulso-f6-regla-rango:focus-visible::-webkit-slider-thumb {
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: var(--module-accent);
+}
+
+.pulso-f6-numdesl.is-sin-cifra .pulso-f6-regla-rango:focus-visible::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--module-accent);
+}
+
+/* «Auto» sin marco propio (una píldora de fondo, no una caja): marcado, en el tono del módulo; si no, un texto que vuelve.
+   R6-7: ancho fijo; el texto y su copia en negrita (invisible) comparten la celda, así marcar «Auto» no corre la cifra. */
 .pulso-f6-numdesl-vacio {
+  display: inline-grid;
+  place-items: center;
   height: 22px;
   padding: 0 var(--pulso-space-2);
   border: 0;
@@ -34,6 +88,16 @@
   font: inherit;
   font-size: var(--pulso-type-caption-size);
   cursor: pointer;
+}
+
+.pulso-f6-numdesl-vacio-texto,
+.pulso-f6-numdesl-vacio::after { grid-area: 1 / 1; }
+
+.pulso-f6-numdesl-vacio::after {
+  content: attr(data-texto);
+  height: 0;
+  font-weight: var(--pulso-weight-semibold);
+  visibility: hidden;
 }
 
 .pulso-f6-numdesl-vacio[aria-pressed="true"] {

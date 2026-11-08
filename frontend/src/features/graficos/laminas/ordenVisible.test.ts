@@ -22,6 +22,10 @@ describe("orden visible en cada modo", () => {
     expect(ordenDelModo("frecuencia", datos, false)).toEqual(["2", "1", "3", "0"]);
     expect(ordenDelModo("frecuencia", datos, true)).toEqual(["1", "3", "2", "0"]);
   });
+  it("R6-10: frecuencia invertida deja al final las que no se dibujan (sin respuestas), antes de los residuales", () => {
+    const conVacia: GraficosCategorias = { ...datos, categorias: [...datos.categorias, { codigo: "4", etiqueta: "Delta", n: 0, pct: 0, residual: false }] };
+    expect(ordenDelModo("frecuencia", conVacia, true)).toEqual(["1", "3", "2", "4", "0"]);
+  });
   it("instrumento: su orden, invertido de punta a punta, residuales al final", () => {
     expect(ordenDelModo("instrumento", datos, false)).toEqual(["1", "2", "3", "0"]);
     expect(ordenDelModo("instrumento", datos, true)).toEqual(["3", "2", "1", "0"]);

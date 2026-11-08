@@ -149,7 +149,8 @@ export function OrdenCategoriasGrafico({ variable, graficador, args, scope, onCa
         <ListaOrden
           datos={datos}
           lista={lista}
-          invertido={orden.invertir && orden.modo === "personalizado" && !vistaActiva}
+          // R6-5: la nota de «A mano» invertida queda montada durante la vista previa (la lista no sube 18 px).
+          invertido={orden.invertir && orden.modo === "personalizado"}
           vista={!!vistaActiva}
           ayudaId={`${id}-mover`}
           cifras={cifras}

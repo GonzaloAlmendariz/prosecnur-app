@@ -5,7 +5,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { GraficadorRef } from "../../../api/graficos";
-import { DestacarRespuestas } from "./DestacarRespuestas";
+import { DestacarRespuestas, estadoDestacar } from "./DestacarRespuestas";
 
 const parches: Record<string, unknown>[] = [];
 const ESTADO = { updateSlotArgs: (_s: string, _k: string, p: Record<string, unknown>) => { parches.push(p); }, plan: { rotulos_cortos: undefined } };
@@ -50,5 +50,20 @@ describe("Destacar con «La más alta»", () => {
   });
   it("el ranking con puntos no tiene «La más alta»", () => {
     expect(pintar({}, "p_lollipop").map((b) => b.textContent)).toEqual(["Sí", "No"]);
+  });
+  it("R6-6: la línea de estado está siempre, sin elegir y con lo elegido (la fila no cambia de alto)", () => {
+    const estado = () => host.querySelectorAll('[data-qa="destacar-estado"]');
+    pintar({});
+    expect(estado()).toHaveLength(1);
+    expect(estado()[0].textContent).toBe("Sin elegir, todas van del mismo color.");
+    pintar({ overrides: { resaltar_opciones: ["Sí"] } });
+    expect(estado()).toHaveLength(1);
+    expect(estado()[0].textContent).toBe("1 destacada; las demás, en tenue.");
+  });
+  it("R6-6: lo que dice la línea de estado en cada caso", () => {
+    expect(estadoDestacar("override", 0, true)).toBe("La más alta, resaltada; las demás, en tenue.");
+    expect(estadoDestacar("override", 2, false)).toBe("2 destacadas; las demás, en tenue.");
+    expect(estadoDestacar("arg", 0, false)).toBe("Sin elegir, ninguna se destaca.");
+    expect(estadoDestacar("arg", 1, false)).toBe("1 destacada en el color de énfasis.");
   });
 });

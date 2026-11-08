@@ -19,6 +19,7 @@ import { conMayorAlternada, conRespuestasDestacadas, GRAFICOS_CON_RESALTE, mayor
 import { useDetalleCifras } from "./cifrasInspector/useDetalleCifras";
 import { mayorDe, pctDe, textoPct } from "./cifrasInspector/modeloCifras";
 import "./cifrasInspector/cifrasInspector.css";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
 /** Dónde guarda cada gráfico lo que se destaca. */
 const DONDE: Readonly<Record<string, "arg" | "override">> = {
@@ -36,6 +37,17 @@ export function destacadasDe(graficador: string, args: Readonly<Record<string, u
   if (DONDE[graficador] === "arg") return lista(args.resaltar);
   const ov = args.overrides && typeof args.overrides === "object" ? (args.overrides as Record<string, unknown>) : {};
   return lista(ov.resaltar_opciones);
+}
+
+/**
+ * R6-6: la línea de estado bajo las fichas, siempre presente (antes sólo sin elegir, y la fila pasaba de 117 a 99 px al
+ * elegir la primera). Dice qué pinta la lámina con lo elegido.
+ */
+export function estadoDestacar(donde: "arg" | "override", elegidas: number, mayor: boolean): string {
+  const cuantas = elegidas === 1 ? "1 destacada" : `${formatoConteo(elegidas)} destacadas`;
+  if (donde === "arg") return elegidas ? `${cuantas} en el color de énfasis.` : "Sin elegir, ninguna se destaca.";
+  if (mayor) return "La más alta, resaltada; las demás, en tenue.";
+  return elegidas ? `${cuantas}; las demás, en tenue.` : "Sin elegir, todas van del mismo color.";
 }
 
 export function DestacarRespuestas({ slideId, slot, valor, scope = "active" }: {
@@ -95,7 +107,7 @@ export function DestacarRespuestas({ slideId, slot, valor, scope = "active" }: {
           );
         })}
       </div>
-      {donde === "override" && elegidas.size === 0 && !mayor && <span className="pulso-f6-dato-ayuda">Sin elegir, todas van del mismo color.</span>}
+      <span className="pulso-f6-dato-ayuda" data-qa="destacar-estado">{estadoDestacar(donde, elegidas.size, mayor)}</span>
     </div>
   );
 }
