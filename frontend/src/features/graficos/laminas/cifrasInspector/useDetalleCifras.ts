@@ -6,6 +6,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { DetalleCifras } from "../../../../api/graficosCifras";
+import { usePlanStore } from "../../store";
+import { presetDelGraficador } from "../reglaPreguntas/modeloReglaPreguntas";
 import { detalleEnCache, firmaDetalle, pedirDetalles, type PedidoDetalle } from "./cacheDetalle";
 import { conDetalle } from "./modeloCifras";
 
@@ -32,9 +34,12 @@ export function useDetalleCifras(
   variantes: readonly VarianteDetalle[],
 ): Readonly<Record<string, EstadoDetalle>> {
   const activo = conDetalle(graficador);
+  // El preset del tipo, con selector: cambiarlo da firmas nuevas (y no se lee `getState()`, que los tests simulan sin él).
+  const presets = usePlanStore((s) => s.presets);
+  const preset = presetDelGraficador(graficador, presets ?? {});
   const firmas = variantes.map((v) => {
     const pedido: PedidoDetalle = { graficador, scope, args: v.args, ...(v.caja && v.caja.length ? { caja: v.caja } : {}) };
-    return { clave: v.clave, firma: firmaDetalle(pedido), pedido };
+    return { clave: v.clave, firma: firmaDetalle(pedido, preset), pedido };
   });
   const clave = activo ? firmas.map((f) => f.firma).sort().join("\n") : "";
   // El pedido de cada firma: el efecto lo lee de aquí y depende sólo de la clave (un texto).

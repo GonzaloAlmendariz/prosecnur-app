@@ -8,9 +8,12 @@
 // - Un lote se aborta sólo cuando TODAS sus firmas quedaron sin nadie que las espere.
 // - Una respuesta se reutiliza durante `VIGENCIA_DETALLE_MS`; un error no se guarda (el próximo vuelve a intentar).
 // - `detalle: null` sí se guarda: la lámina no lo publica con esos args y volver a pedirlo daría lo mismo.
+// - El lote manda la config del editor (sus presets), como `/regla` y la vista previa (R5-12), y la firma lleva el hash
+//   de `presets[tipo]` con el esquema de `firmaPedidoRegla`: un cambio de preset no sirve un detalle de antes.
 
 import { apiGraficosCifrasDetalleLote, errorDeEntrada, type DetalleCifras } from "../../../../api/graficosCifras";
-import { jsonEstable } from "../reglaPreguntas/modeloReglaPreguntas";
+import { buildGraficosConfigFromStore } from "../../configSnapshot";
+import { hashTexto, jsonEstable, presetDelGraficador } from "../reglaPreguntas/modeloReglaPreguntas";
 
 export const VIGENCIA_DETALLE_MS = 30_000;
 const MAX_ENTRADAS = 96;
@@ -27,9 +30,12 @@ export type PedidoDetalle = {
 
 export type ResultadoDetalle = { detalle: DetalleCifras | null; error: unknown };
 
-/** La firma del pedido: un texto, para que los efectos dependan de él y no del objeto `args` que se re-arma. */
-export function firmaDetalle(p: PedidoDetalle): string {
-  return `${p.graficador}|${p.scope}|${jsonEstable(p.args)}|${jsonEstable([...(p.caja ?? [])])}`;
+/**
+ * La firma del pedido: un texto, para que los efectos dependan de él y no del objeto `args` que se re-arma. `preset`: el
+ * del tipo del graficador; por defecto, el del store (el hook lo pasa leído con su selector).
+ */
+export function firmaDetalle(p: PedidoDetalle, preset: Readonly<Record<string, unknown>> = presetDelGraficador(p.graficador)): string {
+  return `${p.graficador}|${p.scope}|p${hashTexto(jsonEstable(preset))}|${jsonEstable(p.args)}|${jsonEstable([...(p.caja ?? [])])}`;
 }
 
 type Lote = { control: AbortController; firmas: Set<string> };
@@ -67,6 +73,7 @@ function lanzar(scope: "active" | "consolidated", faltan: readonly { firma: stri
   const soltarDelMapa = (firma: string, vuelo: EnVuelo) => { if (enVuelo.get(firma) === vuelo) enVuelo.delete(firma); };
   apiGraficosCifrasDetalleLote({
     laminas: faltan.map((f, i) => ({ id: `d${i}`, graficador: f.pedido.graficador, args: f.pedido.args, caja: f.pedido.caja })),
+    config: buildGraficosConfigFromStore(),
     ...(scope === "consolidated" ? { scope: "consolidated" as const } : {}),
   }, { signal: lote.control.signal }).then((por) => {
     faltan.forEach((f, i) => {

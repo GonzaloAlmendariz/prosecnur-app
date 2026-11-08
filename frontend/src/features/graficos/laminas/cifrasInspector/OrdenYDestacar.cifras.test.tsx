@@ -10,8 +10,11 @@ import { detalle } from "./fixturaDetalle.test-utils";
 
 const lote = vi.hoisted(() => vi.fn());
 vi.mock("../../../../api/graficosCifras", async (original) => ({ ...(await original<object>()), apiGraficosCifrasDetalleLote: lote }));
-const ESTADO = { updateSlotArgs: () => undefined, plan: { rotulos_cortos: undefined } };
+const ESTADO = { updateSlotArgs: () => undefined, plan: { rotulos_cortos: undefined }, presets: {} };
 vi.mock("../../store", () => ({ usePlanStore: (sel: (s: typeof ESTADO) => unknown) => sel(ESTADO) }));
+// El store simulado no tiene `getState()`: la config del editor que manda el lote (R5-12) sale de aquí.
+const CONFIG = vi.hoisted(() => ({ presets: { barras_categoricas: { decimales: 1 } } }));
+vi.mock("../../configSnapshot", () => ({ buildGraficosConfigFromStore: () => CONFIG }));
 vi.mock("../../useVariables", () => ({
   parseVarRef: (r: string) => ({ name: r, source: null }),
   useVariables: () => ({ variables: [{ name: "p1", source: "b1", choices: [{ name: "1", label: "Sí" }, { name: "2", label: "No" }] }] }),
@@ -68,6 +71,7 @@ describe("Orden y Destacar con su %", () => {
     expect(textos("cifra-ficha")).toEqual(["62%", "38%"]);
     expect(host.querySelector('[data-qa="resaltar-mayor"]')?.textContent).toBe("La más alta (Sí, 62%)");
     expect(lote).toHaveBeenCalledTimes(1);
+    expect((lote.mock.calls[0][0] as PedidoCifrasDetalleLote).config).toBe(CONFIG);
   });
   it("sin detalle quedan como hoy", async () => {
     respuesta = null;

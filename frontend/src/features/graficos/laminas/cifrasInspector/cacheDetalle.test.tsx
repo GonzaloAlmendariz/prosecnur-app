@@ -12,6 +12,16 @@ vi.mock("../../../../api/graficosCifras", async (original) => ({ ...(await origi
 
 import { detalleEnCache, firmaDetalle, olvidarDetalles, pedirDetalles, type PedidoDetalle } from "./cacheDetalle";
 import { ESPERA_DETALLE_MS, useDetalleCifras, type EstadoDetalle, type VarianteDetalle } from "./useDetalleCifras";
+import { usePlanStore } from "../../store";
+import { graficadorToPresetType } from "../../graficadorPresetMap";
+
+/** La clave de `presets` del graficador de estas pruebas (la misma regla que `presetDelGraficador`). */
+const TIPO = graficadorToPresetType("p_barras_categoricas") ?? "barras_categoricas";
+const conPreset = async (preset: Record<string, unknown> | null) => {
+  const presets = { ...usePlanStore.getState().presets };
+  if (preset) presets[TIPO] = preset; else delete presets[TIPO];
+  await act(async () => { usePlanStore.setState({ presets }); });
+};
 
 const D1 = detalle([{ clave: "Sí", valor: 58 }], { n: 412 });
 const D2 = detalle([{ clave: "Sí", valor: 63 }], { n: 380 });
@@ -71,6 +81,31 @@ describe("caché del detalle", () => {
   });
 });
 
+describe("R5-12: config del editor y preset en la firma", () => {
+  afterEach(async () => { await conPreset(null); });
+
+  it("la firma lleva el hash del preset: otro preset, otra firma; el mismo, la misma", () => {
+    const p = P({ var: "p1" });
+    expect(firmaDetalle(p, { decimales: 1 })).not.toBe(firmaDetalle(p, {}));
+    expect(firmaDetalle(p, { decimales: 1 })).toBe(firmaDetalle(p, { decimales: 1 }));
+    expect(firmaDetalle(p, {})).toMatch(/^p_barras_categoricas\|active\|p[0-9a-z]+\|/);
+  });
+
+  it("sin preset explícito lee el del store", async () => {
+    await conPreset({ decimales: 2 });
+    expect(firmaDetalle(P({ var: "p1" }))).toBe(firmaDetalle(P({ var: "p1" }), { decimales: 2 }));
+  });
+
+  it("el lote manda la config del editor con sus presets", async () => {
+    await conPreset({ decimales: 1 });
+    simular(() => D1);
+    pedirDetalles([conFirma(P({ var: "p1" }))], () => undefined);
+    await act(async () => { await Promise.resolve(); });
+    const pedido = lote.mock.calls[0][0] as PedidoCifrasDetalleLote & { config?: { presets?: Record<string, unknown> } };
+    expect(pedido.config?.presets?.[TIPO]).toEqual({ decimales: 1 });
+  });
+});
+
 describe("useDetalleCifras", () => {
   let host: HTMLDivElement;
   let root: ReturnType<typeof createRoot>;
@@ -114,6 +149,19 @@ describe("useDetalleCifras", () => {
     await esperar();
     expect(lote).toHaveBeenCalledTimes(1);
     expect(visto.a.sinDetalle).toBe(true);
+  });
+  it("R5-12: cambiar el preset vuelve a pedir en vez de servir el detalle de antes", async () => {
+    simular(() => D1);
+    try {
+      act(() => root.render(<Prueba variantes={[{ clave: "a", args: { var: "p1" } }]} />));
+      await esperar();
+      expect(lote).toHaveBeenCalledTimes(1);
+      await conPreset({ decimales: 1 });
+      await esperar();
+      expect(lote).toHaveBeenCalledTimes(2);
+    } finally {
+      await conPreset(null);
+    }
   });
   it("un cambio rápido cancela el pedido anterior antes de salir", async () => {
     simular(() => D1);
