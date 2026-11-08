@@ -79,6 +79,11 @@
   min-width: 0;
 }
 
+/* R8-4: «Sin padrón» entra entero (el numérico del kit mide 88 px y lo cortaba). */
+.pulso-f6-padron .pulso-input.is-numeric {
+  width: calc(10ch + 2 * var(--pulso-space-3));
+}
+
 .pulso-f6-padron-rotulo {
   min-width: 3.5em;
   color: var(--pulso-text-soft);

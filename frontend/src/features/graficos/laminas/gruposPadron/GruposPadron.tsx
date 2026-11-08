@@ -4,7 +4,7 @@
 // motor y la línea «Base:» que irá en la nota. Los casos salen de las categorías del cruce (useCategoriasGrafico); sin
 // conteo no hay vista previa de la base. La lógica vive en modeloGruposPadron.ts y modeloPadron.ts.
 
-import { useId, useMemo, type KeyboardEvent } from "react";
+import { useId, useMemo, useRef, type KeyboardEvent } from "react";
 import { Panel } from "../../../../components/Panel";
 import { PulsoSwitch } from "../../../../components/PulsoSwitch";
 import { formatoConteoDe } from "../../../../lib/formatoNumero";
@@ -16,10 +16,11 @@ import { FilaPadron } from "./FilaPadron";
 import { OrdenGrupo } from "./OrdenGrupo";
 import { PadronDelCruce } from "./PadronDelCruce";
 import {
-  alternarGrupo, filasGrupos, gruposSinPadron, incluidosEnOrden, lineaBase, moverGrupo, notaGrupoChico, textoDiferencia,
+  alternarGrupo, filasEnOrdenDeLamina, filasGrupos, gruposSinPadron, incluidosEnOrden, lineaBase, moverGrupo, notaGrupoChico, textoDiferencia,
   textoTope, unidadDeCruce,
 } from "./modeloGruposPadron";
 import { conPadron } from "./modeloPadron";
+import { useFlipFilas } from "./useFlipFilas";
 import { useGuardaNoConfiables } from "./useGuardaNoConfiables";
 import "./gruposPadron.css";
 
@@ -45,6 +46,9 @@ export function GruposPadron({ args, cruce, opciones, scope, onCambio }: Props) 
   );
   const filas = filasGrupos(opciones, conteos, args);
   const incluidos = incluidosEnOrden(filas, args);
+  const vistas = filasEnOrdenDeLamina(filas, args);
+  const lista = useRef<HTMLUListElement>(null);
+  useFlipFilas(lista, vistas.map((f) => f.codigo).join("|"));
   const chico = notaGrupoChico(incluidos, unidadDeCruce(cruce));
   const base = lineaBase(incluidos);
   const diferencia = textoDiferencia(incluidos);
@@ -69,9 +73,9 @@ export function GruposPadron({ args, cruce, opciones, scope, onCambio }: Props) 
         </span>
       </div>
       <Panel variant="subtle" noPadding className="pulso-f6-grupos-lista" data-qa-geometry-member>
-        <ul className="pulso-f6-grupos-filas" data-qa-scroll-owner="grupos-padron" aria-labelledby={`${id}-rotulo`}>
-          {filas.map((f) => (
-            <li key={f.codigo} className={f.incluido ? "pulso-f6-grupos-fila is-incluido" : "pulso-f6-grupos-fila"}
+        <ul ref={lista} className="pulso-f6-grupos-filas" data-qa-scroll-owner="grupos-padron" aria-labelledby={`${id}-rotulo`}>
+          {vistas.map((f) => (
+            <li key={f.codigo} data-flip={f.codigo} className={f.incluido ? "pulso-f6-grupos-fila is-incluido" : "pulso-f6-grupos-fila"}
               onKeyDown={alTeclear(f.codigo, f.incluido)}>
               <div className="pulso-f6-grupos-fila-cabeza">
                 <PulsoSwitch size="sm" label={f.etiqueta} checked={f.incluido} disabled={f.bloqueado}

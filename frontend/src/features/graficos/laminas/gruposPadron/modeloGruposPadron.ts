@@ -81,6 +81,15 @@ export function incluidosEnOrden(filas: readonly FilaGrupo[], args: Args): FilaG
   return gruposElegidos(args).flatMap((c) => filas.filter((f) => f.codigo === c));
 }
 
+/**
+ * R8-4: las filas como se ven: primero las incluidas en el orden de la lámina (subir o bajar mueve la fila, no sólo su
+ * número) y después las de fuera, en el orden del instrumento.
+ */
+export function filasEnOrdenDeLamina(filas: readonly FilaGrupo[], args: Args): FilaGrupo[] {
+  const incluidas = incluidosEnOrden(filas, args);
+  return [...incluidas, ...filas.filter((f) => !f.incluido)];
+}
+
 const pct = (n: number, u: number) => Math.floor((100 * n) / u + 0.5 + 1e-9);
 
 /**

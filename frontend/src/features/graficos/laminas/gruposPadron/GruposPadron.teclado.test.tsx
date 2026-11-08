@@ -66,4 +66,22 @@ describe("GruposPadron con teclado", () => {
     act(() => (contenedor.querySelector('[aria-label="Bajar TC"]') as HTMLButtonElement).click());
     expect(onCambio).toHaveBeenLastCalledWith({ grupos: ["2", "1"] });
   });
+
+  it("R8-4: las filas siguen el orden de la lámina y Subir mueve la fila; el foco no se pierde", () => {
+    const filas = () => [...contenedor.querySelectorAll("li[data-flip]")].map((li) => li.getAttribute("data-flip"));
+    let args: Record<string, unknown> = { grupos: ["2", "1"] };
+    const pintar = () => act(() => raiz.render(
+      <MemoryRouter>
+        <GruposPadron args={args} cruce="docentes$dedicacion" opciones={OPCIONES} scope="active"
+          onCambio={(p) => { args = { ...args, ...p }; pintar(); }} />
+      </MemoryRouter>,
+    ));
+    pintar();
+    expect(filas()).toEqual(["2", "1", "3"]);
+    const subir = contenedor.querySelector('[aria-label="Subir TC"]') as HTMLButtonElement;
+    act(() => subir.focus());
+    act(() => subir.click());
+    expect(filas()).toEqual(["1", "2", "3"]);
+    expect(document.activeElement?.getAttribute("aria-label")).toBe("Subir TC");
+  });
 });
