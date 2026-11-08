@@ -305,30 +305,12 @@
 #' @param plan Plan (`ppt_plan`).
 #' @param data_sources,inst_sources Bases y sus instrumentos.
 #' @param default_source Base de las referencias sin calificar.
-#' @param presets Presets del motor; por defecto, los de `reporte_ppt_plan`, que llama.
+#' @param presets Presets del motor (el cruce heredado de la agrupada); `reporte_ppt_plan` pasa los suyos.
 #' @return El plan con cada gráfico ajustado; las demás láminas intactas.
 #' @keywords internal
 .plan_excluir_grupos <- function(plan, data_sources, inst_sources, default_source = NULL, presets = NULL) {
-  if (!length(plan)) return(plan)
-  if (is.null(presets)) presets <- get0("presets", envir = parent.frame(), inherits = FALSE)   # los de `reporte_ppt_plan`
-  visitar <- function(x) {
-    if (inherits(x, "ppt_element")) {
-      if (is.null(x$excluir_grupos)) return(x)
-      return(.excluir_grupos_elemento(x, data_sources, inst_sources, default_source, presets))
-    }
-    if (is.list(x) && !is.data.frame(x) && length(x)) {
-      atr <- attributes(x)
-      x <- lapply(x, visitar)
-      attributes(x) <- atr
-    }
-    x
-  }
-  atr <- attributes(plan)
-  out <- lapply(plan, function(slide) {
-    if (!is.list(slide) || !is.list(slide$slots)) return(slide)
-    slide$slots <- visitar(slide$slots)
-    slide
+  .plan_visitar_graficos(plan, function(x) {   # graficos_cruce_otra_base.R
+    if (is.null(x$excluir_grupos)) return(x)
+    .excluir_grupos_elemento(x, data_sources, inst_sources, default_source, presets)
   })
-  attributes(out) <- atr
-  out
 }

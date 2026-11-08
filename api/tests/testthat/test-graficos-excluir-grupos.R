@@ -341,3 +341,17 @@ test_that("significancia en un panel de 2 gráficos: el pie de cada gráfico dic
   viejo <- options(prosecnur.sig_nota_en_lamina = TRUE); on.exit(options(viejo), add = TRUE)
   expect_identical(attr(suppressMessages(.excluir_grupos_nota_al_grafico(el, p)), "note_outside"), "Excluye el grupo Otro")
 })
+
+test_that("los presets llegan explícitos: el cruce heredado se excluye en el export y no se leen del llamador (B7)", {
+  skip_if_not_installed("openxlsx"); skip_if_not_installed("ggplot2")
+  src <- .eg_fuentes()
+  presets <- list(barras_agrupadas = list(args = list(cruces = "doc$sexo")))
+  el <- .rebuild_graf(list(graficador = "p_barras_agrupadas", args = list(var = "doc$q1", excluir_grupos = list("3"))))
+  out <- suppressMessages(suppressWarnings(reporte_ppt_plan(
+    data = src$data_sources, instrumento = src$inst_sources, presets = presets, solo_lista = TRUE, mensajes_progreso = FALSE,
+    plan = p_plan(slides = list(p_slide_1_grafico(el, titulo = "Grupos"))))))
+  expect_identical(attr(out$rendered[[1]], "pulso_barras_series", exact = TRUE), c("Hombre", "Mujer"))
+  # Sin `presets`, `.plan_excluir_grupos` ya no los toma del marco que lo llama.
+  plan <- p_plan(slides = list(p_slide_1_grafico(p_barras_agrupadas("doc$q1", excluir_grupos = "3"), titulo = "Grupos")))
+  expect_message(.plan_excluir_grupos(plan, src$data_sources, src$inst_sources, "doc"), "no tiene \"Dividir por\"")
+})

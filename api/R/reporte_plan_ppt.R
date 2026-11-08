@@ -6905,7 +6905,7 @@ reporte_ppt_plan <- function(
 
   # Ver `reporte_plan_particion.R`: una escala con demasiadas barras adelgaza
   # hasta ser ilegible, y la unica salida es una lamina de mas.
-  plan <- .plan_particionar_escalas(.plan_orden_categorias(.plan_excluir_grupos(plan, data_sources, instrument_sources, default_source), instrument_sources, presets, default_source), .slide_plot_elements)  # D8; grupos excluidos: graficos_excluir_grupos.R
+  plan <- .plan_particionar_escalas(.plan_orden_categorias(.plan_excluir_grupos(.plan_avisar_cruce_otra_base(plan, default_source, presets), data_sources, instrument_sources, default_source, presets), instrument_sources, presets, default_source), .slide_plot_elements)  # D8; grupos excluidos: graficos_excluir_grupos.R; cruce de otra base: graficos_cruce_otra_base.R
 
   if (!length(plan)) .plan_input_abort("El informe no tiene láminas.")
 
