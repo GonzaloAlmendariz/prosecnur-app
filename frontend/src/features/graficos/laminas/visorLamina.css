@@ -406,36 +406,54 @@
   display: inline-flex;
 }
 
-/* El zoom no cede ancho (D1): el label se encogía bajo su select y «Ajustes» lo tapaba a 1024. Cede la posición. */
-.pulso-f6-zoom {
+/* El zoom no cede ancho (D1): el label se encogía bajo su select y «Ajustes» lo tapaba a 1024. Cede la posición.
+   Acabado W2-A: «Ajustar» y las partes son PulsoSelect con su chevron, a la altura de los botones (28) y con el radio de
+   control; el ancho lo fija su opción más larga, no la cuenta. */
+.pulso-f6-zoom,
+.pulso-f6-partes-selector {
   flex: none;
   display: inline-flex;
 }
 
-.pulso-f6-zoom select,
-.pulso-f6-partes-selector select {
-  flex: none;
+.pulso-f6-zoom .pulso-select-trigger,
+.pulso-f6-partes-selector .pulso-select-trigger {
+  --pulso-field-height: var(--pulso-control-height-md);
   width: auto;
-  height: var(--pulso-control-height-md);
-  padding: 0 var(--pulso-space-2);
-  border: 1px solid var(--pulso-border-strong);
-  border-radius: var(--pulso-radius);
-  background: var(--pulso-surface);
-  color: var(--pulso-text);
-  font: inherit;
+  padding-inline: var(--pulso-space-2);
+  border-color: var(--pulso-border-strong);
+  border-radius: var(--pulso-control-radius);
   font-size: var(--pulso-type-body-size);
-  cursor: pointer;
 }
 
-.pulso-f6-zoom select:focus-visible,
-.pulso-f6-partes-selector select:focus-visible {
-  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
-  outline-offset: var(--pulso-nav-focus-offset);
+.pulso-f6-zoom .pulso-select-trigger {
+  min-width: 104px;
 }
 
-.pulso-f6-icono-boton.is-activo {
-  background: var(--module-accent-soft);
-  color: var(--module-accent);
+.pulso-f6-zoom .pulso-select-trigger:focus-visible,
+.pulso-f6-partes-selector .pulso-select-trigger:focus-visible {
+  outline: var(--mov-foco);
+  outline-offset: 2px;
+  border-color: var(--pulso-border-strong);
+  box-shadow: none;
+}
+
+.pulso-f6-zoom .pulso-select-icon > svg,
+.pulso-f6-partes-selector .pulso-select-icon > svg {
+  width: var(--pulso-icon-size-sm);
+  height: var(--pulso-icon-size-sm);
+}
+
+/* La descarga es un <a> con la piel del ícono quieto: el centrado que el <button> trae de fábrica. */
+.pulso-f6-visor-descargar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  text-decoration: none;
+}
+
+.pulso-f6-visor-barra > .pulso-button {
+  flex: none;
 }
 
 .pulso-f6-visor-tipo {
@@ -524,17 +542,6 @@
   .pulso-f6-ranura-etiqueta { transform: none; }
 }
 
-/* H12 (checklist de usabilidad, 2026-11-05): «Previsualizar» es un interruptor. Pulsado se ve lleno con el acento del
-   módulo, distinto del borde suave de «Ajustes» o de un botón activo cualquiera. (`--pulso-button-accent` sólo existe
-   dentro de `.pulso-button`: aquí va el acento del módulo directo.) */
-.pulso-f6-boton.pulso-f6-previsualizar[aria-pressed="true"] {
-  border-color: var(--module-accent);
-  background: var(--module-accent);
-  color: var(--pulso-surface);
-}
-
-.pulso-f6-boton.pulso-f6-previsualizar[aria-pressed="true"]:hover:not(:disabled) {
-  border-color: var(--module-accent);
-  background: color-mix(in srgb, var(--module-accent) 86%, var(--pulso-text));
-  color: var(--pulso-surface);
-}
+/* H12 (checklist de usabilidad, 2026-11-05) y acabado W2-A (2026-11-08): «Previsualizar» es un interruptor y se pinta
+   con el único lenguaje de pulsado de la superficie (tinte del acento, laminasWorkbench.css), como Estructura y
+   Ajustes. El relleno del acento queda para el primario único, «+ Lámina». */

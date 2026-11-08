@@ -16,10 +16,11 @@ import {
   ListTree,
   Loader2,
   Plus,
-  RefreshCw,
   SlidersHorizontal,
 } from "../../../vendor/lucide-react";
 import { downloadUrl } from "../../../api/core";
+import { PulsoButton } from "../../../components/PulsoButton";
+import { PulsoSelect } from "../../../components/PulsoSelect";
 import { IconoTipo } from "../iconos/IconoTipo";
 import type { PreviewFormas, Slide } from "../../../api/graficos";
 import { MaquetaLamina } from "./MaquetaLamina";
@@ -145,29 +146,31 @@ export function VisorLamina({
     // Mientras el motor dibuja la vista previa pedida (U6), la vista no está lista: el QA espera la imagen, no la maqueta.
     <section className="pulso-f6-visor" aria-label="Visor de la lámina" data-audit-ready={cargando && prepOk && verComoQueda ? "false" : "true"}>
       <header className="pulso-f6-visor-barra">
+        {/* Acabado W2-A: secundarios con un solo lenguaje de pulsado (aria-pressed); «+ Lámina» es EL primario; ‹ ›,
+            descarga y miniaturas son íconos quietos. */}
         <BotonConTecla accion="estructura" ayuda={`${estructuraAbierta ? "Ocultar" : "Mostrar"} la estructura`}>
-          <button
-            type="button"
-            className={`pulso-f6-boton${estructuraAbierta ? " is-activo" : ""}`}
+          <PulsoButton
+            variant="secondary"
+            className="pulso-f6-visor-estructura"
             aria-pressed={estructuraAbierta}
             aria-label="Estructura"
             onClick={onAlternarEstructura}
           >
-            <ListTree size={15} aria-hidden="true" />
+            <ListTree aria-hidden="true" />
             <span className="pulso-f6-solo-ancho pulso-f6-rotulo-estrecho">Estructura</span>
-          </button>
+          </PulsoButton>
         </BotonConTecla>
-        <button type="button" className="pulso-f6-icono-boton" aria-label="Lámina anterior" disabled={lamina.posicion <= 1} onClick={() => onIr(lamina.posicion - 1)}>
-          <ChevronLeft size={16} aria-hidden="true" />
-        </button>
-        <button type="button" className="pulso-f6-icono-boton" aria-label="Lámina siguiente" disabled={lamina.posicion >= total} onClick={() => onIr(lamina.posicion + 1)}>
-          <ChevronRight size={16} aria-hidden="true" />
-        </button>
+        <PulsoButton variant="icon" tone="quiet" aria-label="Lámina anterior" disabled={lamina.posicion <= 1} onClick={() => onIr(lamina.posicion - 1)}>
+          <ChevronLeft aria-hidden="true" />
+        </PulsoButton>
+        <PulsoButton variant="icon" tone="quiet" aria-label="Lámina siguiente" disabled={lamina.posicion >= total} onClick={() => onIr(lamina.posicion + 1)}>
+          <ChevronRight aria-hidden="true" />
+        </PulsoButton>
         <BotonConTecla accion="insertar" ayuda="Insertar una lámina nueva después de esta">
-          <button type="button" className="pulso-f6-boton is-primario" onClick={onInsertarLamina}>
-            <Plus size={14} aria-hidden="true" />
+          <PulsoButton variant="primary" className="pulso-f6-visor-insertar" onClick={onInsertarLamina}>
+            <Plus aria-hidden="true" />
             Lámina
-          </button>
+          </PulsoButton>
         </BotonConTecla>
         <IconoTipo clase="lamina" tipo={lamina.tipo} size={16} titulo={lamina.tipoLabel} className="pulso-f6-visor-tipo" />
         <p className="pulso-f6-visor-pos" aria-live="polite">
@@ -210,70 +213,75 @@ export function VisorLamina({
         )}
         <span className="pulso-f6-col-sp" />
         {l && l.avisos.length > 0 && (
-          <button type="button" className="pulso-f6-boton pulso-f6-visor-avisos" onClick={onVerAvisos}>
-            <AlertTriangle size={14} aria-hidden="true" />
+          <PulsoButton variant="secondary" className="pulso-f6-visor-avisos" onClick={onVerAvisos}>
+            <AlertTriangle aria-hidden="true" />
             {formatoConteo(l.avisos.length)}
             <span className="pulso-f6-rotulo-medio">{l.avisos.length === 1 ? " aviso" : " avisos"}</span>
-          </button>
+          </PulsoButton>
         )}
         {l?.fileId && vista.fase === "lista" && (
+          // Un enlace de descarga con la piel del ícono quieto (PulsoButton es un <button>; la descarga es un <a>).
           <a
-            className="pulso-f6-icono-boton"
+            className="pulso-button pulso-button--icon pulso-button--md pulso-button--quiet pulso-f6-visor-descargar"
             href={downloadUrl(l.fileId)}
             download={`lamina-${lamina.posicion}.pptx`}
             aria-label="Descargar esta lámina en PowerPoint"
             title="Descargar esta lámina en PowerPoint"
           >
-            <Download size={16} aria-hidden="true" />
+            <Download aria-hidden="true" />
           </a>
         )}
-        <button
-          type="button"
-          className={`pulso-f6-boton pulso-f6-previsualizar${verComoQueda ? " is-activo" : ""}`}
+        {/* Previsualizar es un interruptor: secundario pulsado como Estructura y Ajustes, no un relleno del acento. */}
+        <PulsoButton
+          variant="secondary"
+          className="pulso-f6-previsualizar"
           aria-pressed={verComoQueda}
           disabled={!prepOk && !verComoQueda}
           title={prepOk ? (verComoQueda ? "Volver a la maqueta" : "Ver la lámina como saldrá en el PowerPoint") : "Prepara la base en Analítica para previsualizar"}
           onClick={onAlternarComoQueda}
         >
-          {verComoQueda && cargando ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> : <Eye size={14} aria-hidden="true" />}
+          {verComoQueda && cargando ? <Loader2 className="pulso-spin" aria-hidden="true" /> : <Eye aria-hidden="true" />}
           {/* «Previsualizar» (Gonzalo, 2026-10-14): el dibujo real del PowerPoint vive aquí; el Informe muestra maquetas. */}
           Previsualizar
-        </button>
+        </PulsoButton>
         {/* Las guías miden el dibujo del motor: sólo existen al previsualizar, no sobre la maqueta. */}
         {verComoQueda && (
           <span className="pulso-f6-guias">
             <BotonGuias modelo={guias} roles={rolesGuias} disponible={!!formas?.disponible && !cargando} hayRanuras={(formas?.ranuras.length ?? 0) > 0} />
           </span>
         )}
-        <label className="pulso-f6-zoom">
-          <span className="pulso-sr-only">Zoom de la lámina</span>
-          <select value={zoom} onChange={(e) => setZoom(e.target.value as ZoomVisor)}>
-            {ZOOMS.map((z) => <option key={z.valor} value={z.valor}>{z.label}</option>)}
-          </select>
-        </label>
-        <button
-          type="button"
-          className={`pulso-f6-icono-boton pulso-f6-solo-ancho${tiraVisible ? " is-activo" : ""}`}
+        <span className="pulso-f6-zoom">
+          <PulsoSelect
+            size="sm"
+            ariaLabel="Zoom de la lámina"
+            value={zoom}
+            onValueChange={(v) => setZoom(v as ZoomVisor)}
+            options={ZOOMS.map((z) => ({ value: z.valor, label: z.label }))}
+          />
+        </span>
+        <PulsoButton
+          variant="icon"
+          tone="quiet"
+          className="pulso-f6-solo-ancho"
           aria-pressed={tiraVisible}
           aria-label="Miniaturas"
           title={tiraVisible ? "Ocultar miniaturas" : "Mostrar miniaturas"}
           onClick={alternarTira}
         >
-          <Images size={16} aria-hidden="true" />
-        </button>
+          <Images aria-hidden="true" />
+        </PulsoButton>
         <BotonConTecla accion="ajustes" ayuda={`${ajustesAbiertos ? "Ocultar" : "Mostrar"} los ajustes`}>
-          <button
-            type="button"
+          <PulsoButton
+            variant="secondary"
             ref={ajustesRef}
-            className={`pulso-f6-boton${ajustesAbiertos ? " is-activo" : ""}`}
             aria-pressed={ajustesAbiertos}
             aria-label="Ajustes"
             aria-controls="pulso-f6-inspector"
             onClick={onAbrirAjustes}
           >
-            <SlidersHorizontal size={14} aria-hidden="true" />
+            <SlidersHorizontal aria-hidden="true" />
             <span className="pulso-f6-rotulo-angosto">Ajustes</span>
-          </button>
+          </PulsoButton>
         </BotonConTecla>
       </header>
 
@@ -316,7 +324,7 @@ export function VisorLamina({
           <p className="pulso-f6-lienzo-aviso is-error" role="alert">
             <AlertTriangle size={14} aria-hidden="true" />
             No se pudo dibujar la lámina.
-            <button type="button" className="pulso-f6-texto-boton" onClick={vista.reintentar}>Reintentar</button>
+            <PulsoButton variant="link" size="sm" onClick={vista.reintentar}>Reintentar</PulsoButton>
           </p>
         )}
         {!falta && vista.fase === "lista" && l?.sinImagen && (() => {
@@ -325,7 +333,7 @@ export function VisorLamina({
             <p className="pulso-f6-lienzo-aviso is-error" role="alert">
               <ImageOff size={14} aria-hidden="true" />
               {m.titulo}.
-              {m.reintentable && <button type="button" className="pulso-f6-texto-boton" onClick={vista.reintentar}>Reintentar</button>}
+              {m.reintentable && <PulsoButton variant="link" size="sm" onClick={vista.reintentar}>Reintentar</PulsoButton>}
             </p>
           );
         })()}
@@ -343,14 +351,15 @@ function BotonesPartes({ lamina, activa, onParte }: { lamina: LaminaVisor; activ
   const n = lamina.partes.length;
   if (n >= PARTES_EN_SELECTOR) {
     return (
-      <label className="pulso-f6-partes-selector">
-        <span className="pulso-sr-only">Parte de la lámina</span>
-        <select value={activa} onChange={(e) => onParte(Number(e.target.value))}>
-          {lamina.partes.map((p) => (
-            <option key={p.indice} value={p.indice}>{`Parte ${p.indice} de ${n}`}</option>
-          ))}
-        </select>
-      </label>
+      <span className="pulso-f6-partes-selector">
+        <PulsoSelect
+          size="sm"
+          ariaLabel="Parte de la lámina"
+          value={String(activa)}
+          onValueChange={(v) => onParte(Number(v))}
+          options={lamina.partes.map((p) => ({ value: String(p.indice), label: `Parte ${p.indice} de ${n}` }))}
+        />
+      </span>
     );
   }
   return (
@@ -368,58 +377,5 @@ function BotonesPartes({ lamina, activa, onParte }: { lamina: LaminaVisor; activ
         </button>
       ))}
     </>
-  );
-}
-
-function EstadoSobreHoja({ vista, prepOk, hayImagen }: { vista: VistaPreviaLamina; prepOk: boolean; hayImagen: boolean }) {
-  if (hayImagen) return null;
-  if (!prepOk) {
-    return (
-      <Tarjeta icono={<ImageOff size={20} aria-hidden="true" />} titulo="La lámina se ve cuando la base está preparada">
-        Prepara los datos en Analítica; el motor necesita la base preparada para dibujar los gráficos.
-      </Tarjeta>
-    );
-  }
-  if (vista.fase === "error") {
-    return (
-      <Tarjeta icono={<AlertTriangle size={20} aria-hidden="true" />} titulo="El motor no pudo generar esta lámina" tono="error">
-        <span className="pulso-f6-tarjeta-detalle">{vista.error}</span>
-        <button type="button" className="pulso-f6-boton" onClick={vista.reintentar}>
-          <RefreshCw size={14} aria-hidden="true" /> Reintentar
-        </button>
-      </Tarjeta>
-    );
-  }
-  if (vista.fase === "lista" && vista.lamina?.sinImagen) {
-    // La causa la dice el backend (`motivo_sin_imagen`): un LibreOffice lento no es un equipo sin LibreOffice.
-    const m = mensajeSinImagen(vista.lamina.motivoSinImagen);
-    return (
-      <Tarjeta icono={<ImageOff size={20} aria-hidden="true" />} titulo={m.titulo}>
-        {m.detalle}
-        {m.reintentable && (
-          <button type="button" className="pulso-f6-boton" onClick={vista.reintentar}>
-            <RefreshCw size={14} aria-hidden="true" /> Reintentar
-          </button>
-        )}
-      </Tarjeta>
-    );
-  }
-  return (
-    <Tarjeta icono={<Loader2 size={20} className="pulso-spin" aria-hidden="true" />} titulo="Generando la lámina">
-      El motor la dibuja igual que en la exportación; puede tardar entre unos segundos y medio minuto.
-      <span className="pulso-f6-progreso" aria-hidden="true"><i /></span>
-    </Tarjeta>
-  );
-}
-
-function Tarjeta({ icono, titulo, tono, children }: { icono: JSX.Element; titulo: string; tono?: "error"; children: ReactNode }) {
-  return (
-    <div className="pulso-f6-hoja-estado" role={tono === "error" ? "alert" : "status"}>
-      <div className={`pulso-f6-tarjeta-estado${tono ? ` is-${tono}` : ""}`}>
-        {icono}
-        <strong>{titulo}</strong>
-        <p>{children}</p>
-      </div>
-    </div>
   );
 }
