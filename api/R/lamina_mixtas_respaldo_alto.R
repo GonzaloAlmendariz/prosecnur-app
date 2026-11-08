@@ -124,8 +124,8 @@
 #'   en su pie.
 #' @keywords internal
 .lam_mixta_respaldo_redibujar <- function(respaldo, els, plan, preguntas, publicos, redibujar = NULL) {
-  notas <- character(0)
-  if (!is.function(redibujar)) return(list(respaldo = respaldo, notas = notas))
+  notas <- character(0); grosores <- numeric(0)
+  if (!is.function(redibujar)) return(list(respaldo = respaldo, notas = notas, grosores = grosores))
   for (k in which(!vapply(respaldo, is.null, TRUE))) {
     if (k > length(els) || !.composicion_recibe_alto(els[[k]])) next
     cj <- .lam_respaldo_cajon_alto(plan$geo$paneles[[k]], preguntas[[k]] %||% NULL, (publicos %||% list())[k][[1]] %||% NULL, plan$estilo)
@@ -134,8 +134,11 @@
     respaldo[[k]] <- p
     n <- .lam_nota_sig_de(p)
     if (!is.null(n)) notas <- c(notas, n)
+    # A1c (ola 4): el grosor físico de su barra, para avisar si no llega al piso de media lámina.
+    g <- suppressWarnings(as.numeric((attr(p, "pulso_barras_apiladas_layout", exact = TRUE) %||% list())$grosor_in)[1])
+    if (length(g) && is.finite(g)) grosores[as.character(preguntas[[k]] %||% "")] <- g
   }
-  list(respaldo = respaldo, notas = unique(notas))
+  list(respaldo = respaldo, notas = unique(notas), grosores = grosores)
 }
 
 #' La función que vuelve a dibujar un gráfico de la lámina con su cajón, desde el motor que la compone
@@ -146,7 +149,8 @@
   if (!is.function(render)) return(NULL)
   function(k, ancho, alto) {
     # La nota de diferencias se reserva para la lámina: el gráfico la deja en `pulso_sig_nota` y no la dibuja.
-    viejo <- options(prosecnur.sig_nota_en_lamina = TRUE); on.exit(options(viejo), add = TRUE)
+    # A1 (ola 4): en su cajón no hay «Base:» debajo (va al pie de la lámina), así que no reserva banda para ella.
+    viejo <- options(prosecnur.sig_nota_en_lamina = TRUE, prosecnur.lam_respaldo_cajon = TRUE); on.exit(options(viejo), add = TRUE)
     render(inyectar(.lam_respaldo_el_sin_encabezado(els[[k]], alto = alto)), ancho_slot = ancho, alto_slot = alto)
   }
 }
@@ -183,6 +187,7 @@
   r <- pasada(base + alto(previa))
   nota <- unir(r$notas)
   if (abs(alto(nota) - alto(previa)) > 0.01) { r <- pasada(base + alto(nota)); nota <- unir(r$notas) }
+  .lam_respaldo_avisar_medio_espacio(r$grosores)   # A1c (ola 4): avisa; partir la lámina lo decide el analista
   list(respaldo = r$respaldo, nota = nota, reserva = base + alto(nota))
 }
 

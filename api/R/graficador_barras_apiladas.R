@@ -2282,6 +2282,8 @@ graficar_barras_apiladas <- function(
         posicion_conector_etiquetas = posicion_conector_etiquetas,
         offset_y = etiquetas_arriba_offset
       )
+      # A1a (ola 4): dos cifras de fuera de la misma fila no se montan (graficador_barras_apiladas_medio_espacio.R).
+      df_lab <- .apiladas_arriba_sin_choque(df_lab, var_categoria, ancho_barras_cifra_in, cifra_negrita)
       arriba_idx <- if (".label_arriba" %in% names(df_lab)) df_lab$.label_arriba %in% TRUE else rep(FALSE, nrow(df_lab))
       df_lab_arriba <- df_lab[arriba_idx, , drop = FALSE]
       df_lab_dentro <- df_lab[!arriba_idx, , drop = FALSE]
@@ -2498,6 +2500,8 @@ graficar_barras_apiladas <- function(
         posicion_conector_etiquetas = posicion_conector_etiquetas,
         offset_y = etiquetas_arriba_offset
       )
+      # A1a (ola 4): dos cifras de fuera de la misma fila no se montan (graficador_barras_apiladas_medio_espacio.R).
+      df_lab <- .apiladas_arriba_sin_choque(df_lab, var_categoria, ancho_barras_cifra_in, cifra_negrita)
       arriba_idx <- if (".label_arriba" %in% names(df_lab)) df_lab$.label_arriba %in% TRUE else rep(FALSE, nrow(df_lab))
       df_lab_arriba <- df_lab[arriba_idx, , drop = FALSE]
       df_lab_dentro <- df_lab[!arriba_idx, , drop = FALSE]
@@ -3195,6 +3199,12 @@ graficar_barras_apiladas <- function(
     }
   }
 
+  # A1b (ola 4): sin cupo, cede el panel y no la letra de cabecera, leyenda y pie (graficador_barras_apiladas_medio_espacio.R).
+  .cede <- list(cedio = FALSE)
+  if (isTRUE(usar_canvas) && !panel_fijado_in) {
+    .cede <- .apiladas_panel_cede_alto(h_header_in, h_panel_in, h_legend_in, h_caption_in, alto)
+    h_panel_in <- .cede$h_panel_in; h_total_in <- .cede$h_total_in
+  }
   header_h  <- h_header_in  / h_total_in
   panel_h   <- h_panel_in   / h_total_in
   legend_h  <- h_legend_in  / h_total_in
@@ -3471,6 +3481,11 @@ graficar_barras_apiladas <- function(
     fila_in <- h_bars_area * suppressWarnings(as.numeric(alto)[1]) / den_std
     paso_in <- if (arriba_layout) fila_in * row_step_eff else NA_real_
     g_std <- .grosor_fraccion_estandar(n_categorias, fila_in, "escala_apilada", paso_in = paso_in)
+    # A1 (ola 4): si el panel cedió alto, la barra cede lo justo para que la cifra que sube no toque la barra de arriba.
+    if (isTRUE(.cede$cedio) && isTRUE(arriba_layout)) {
+      g_std <- .apiladas_grosor_sin_montar(g_std, fila_in, paso_in, suppressWarnings(as.numeric(size_texto_barras)[1]) * ggplot2::.pt,
+                                           offset_u = etiquetas_arriba_offset)
+    }
     if (is.finite(g_std)) {
       # Las cifras que suben y sus guías se ubicaron contra el techo de la barra
       # con el grosor anterior: se corren lo que se movió el techo (verificador
@@ -3908,7 +3923,8 @@ graficar_barras_apiladas <- function(
       # dejaba fuera el caso mas comun —una fila en una lamina de varios
       # bloques— y ahi la leyenda salia a su tamano nominal, cortada por abajo.
       size_leyenda_eff <- .barras_leyenda_size_ajustado(
-        size_leyenda, row_h, alto_fisico_leyenda_in)
+        size_leyenda, row_h, alto_fisico_leyenda_in,
+        minimo_pt = .apiladas_leyenda_piso_pt(size_leyenda))   # A1b (ola 4): nunca bajo el cuerpo del estándar
 
       for (r in seq_len(n_rows)) {
         idx_row <- which(row_ids == r)

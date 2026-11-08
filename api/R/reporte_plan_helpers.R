@@ -3149,6 +3149,8 @@ p_reset <- function(
 .reservar_pie_para_base_slide <- function(args, min_in = 0.34, word_render = FALSE) {
   if (!is.list(args)) return(args)
   if (isTRUE(word_render)) return(args)
+  # A1 (ola 4): el respaldo redibujado con su cajón de una lámina mixta no tiene la base debajo: va al pie de la lámina.
+  if (isTRUE(getOption("prosecnur.lam_respaldo_cajon"))) { args$canvas_h_reserva_pie_in <- 0; return(args) }
   np <- args$nota_pie %||% NULL
   tiene_caption <- !is.null(np) && any(nzchar(trimws(as.character(np))))
   if (tiene_caption) return(args)
