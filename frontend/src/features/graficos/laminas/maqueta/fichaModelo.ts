@@ -11,6 +11,7 @@ import { destacadasDe } from "../DestacarRespuestas";
 import { GRAFICOS_CON_RESALTE, resaltaMayor } from "../ResaltarGrafico";
 import type { OpcionMaqueta, RanuraMaqueta } from "../modeloMaqueta";
 import { categoriasQueSalen, type ConteoCategoria } from "./categoriasQueSalen";
+import { GRAFICADORES_CON_REGLA, gruposDeLaLamina, reglaEfectiva, reglaEnCorto } from "../reglaPreguntas/modeloReglaPreguntas";
 import { formatoConteo } from "../../../../lib/formatoNumero";
 
 /** Aviso de la ficha cuando el Top Two Box está encendido sin sus respuestas (el PowerPoint sale sin la columna). */
@@ -284,6 +285,13 @@ function preguntasVisibles(r: RanuraMaqueta, titulos: string[]): string[] {
  */
 export function fichaDeRanura(r: RanuraMaqueta, nombreTipo: string | null, conteos?: readonly ConteoCategoria[] | null): FichaInfo {
   const ficha = fichaBase(r, nombreTipo, conteos);
+  // M3: una lámina de resumen con regla dice la regla («Bajo 60% en algún público»), no la lista cruda de preguntas
+  // («Docentes, todas las de escala y 2 preguntas más»): qué preguntas salen lo decide la regla, no `vars`.
+  const regla = r.graficador && GRAFICADORES_CON_REGLA.has(r.graficador) ? reglaEfectiva(r.graficador, r.args, r.args.regla) : null;
+  if (regla && r.graficador && ficha.preguntas.length) {
+    const grupos = gruposDeLaLamina(r.graficador, r.args) || ficha.publicos.length;
+    return { ...ficha, preguntas: [reglaEnCorto(regla, grupos)] };
+  }
   // La cobertura lee públicos (`bases`), no preguntas: la ficha los muestra como públicos y no dice «y N preguntas más».
   if (r.graficador === "p_cobertura" && ficha.preguntas.length) {
     return { ...ficha, publicos: [...ficha.preguntas, ...ficha.publicos.filter((p) => !ficha.preguntas.includes(p))], preguntas: [] };

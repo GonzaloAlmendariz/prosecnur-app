@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { normalizarConteoRegla } from "../../../../api/graficosRegla";
 import {
   ajustadaAMano, alternarFila, campoCifra, conCifra, conTipo, filaBloqueada, firmaPedidoRegla, firmaUniversoRegla, gruposDeLaLamina, jsonEstable, leerRegla,
-  limpiarRegla, mismoConteo, recordarCifra, reglaEfectiva, rotuloMetrica, rotuloTipo, textoConteo, tiposOfrecidos, valorCifra, volverALaRegla,
+  limpiarRegla, mismoConteo, recordarCifra, reglaEfectiva, reglaEnCorto, rotuloMetrica, rotuloTipo, textoConteo, tiposOfrecidos, valorCifra, volverALaRegla,
 } from "./modeloReglaPreguntas";
 
 describe("los tipos que ofrece cada graficador", () => {
@@ -157,5 +157,15 @@ describe("R3: la cifra de cada tipo se recuerda al cambiar de tipo y volver", ()
     expect(recordarCifra(r, { tipo: "extremos", n: 4 })).toBe(r);
     expect(recordarCifra(r, { tipo: "todas" })).toBe(r);
     expect(recordarCifra(r, null)).toBe(r);
+  });
+});
+
+describe("la regla en una línea (mazo y ficha de la maqueta)", () => {
+  it("dice el criterio con su cifra, o la de partida si no la tiene", () => {
+    expect(reglaEnCorto({ tipo: "bajo_umbral", umbral: 58 }, 3)).toBe("Bajo 58% en algún público");
+    expect(reglaEnCorto({ tipo: "bajo_umbral" }, 1)).toBe("Bajo 60% del indicador");
+    expect(reglaEnCorto({ tipo: "mayor_diferencia" }, 2)).toBe("Las 10 de mayor diferencia");
+    expect(reglaEnCorto({ tipo: "diferencia_minima" }, 2)).toBe("Con diferencia de al menos 15 puntos");
+    expect(reglaEnCorto({ tipo: "a_mano", agregar: ["a", "b"] }, 1)).toBe("2 elegidas a mano");
   });
 });

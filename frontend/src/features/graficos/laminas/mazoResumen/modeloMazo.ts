@@ -15,7 +15,7 @@ import { formatoConteo } from "../../../../lib/formatoNumero";
 import { payloadPorDefecto } from "../../store";
 import { CORTE_EN_CADENA } from "../argsDatosGrafico";
 import { nombrePublico } from "../gruposPadron/modeloPadron";
-import { leerRegla } from "../reglaPreguntas/modeloReglaPreguntas";
+import { leerRegla, reglaEnCorto } from "../reglaPreguntas/modeloReglaPreguntas";
 import { conGraficoDePartida, tarjetaContar, tarjetaDisponible, todasDeLasBases, type ClaseTarjeta, type TarjetaConGrafico } from "../selectores/intencionesContar";
 import { graficoConPreset, ranuraDePreset, type ClavePreset, type EstudioDelSelector } from "../selectores/opcionesLamina";
 
@@ -116,19 +116,7 @@ export function basePrincipal(publicos: readonly string[], baseActiva: string | 
 /** La regla dicha en una línea, sin pedir nada al motor: «Las 13 de mayor diferencia, de docentes y estudiantes». */
 export function reglaEnPalabras(regla: ReglaPreguntas | null, publicos: readonly string[]): string {
   const de = publicos.length ? `, de ${unirPublicos(publicos)}` : "";
-  if (!regla) return `Las preguntas declaradas${de}`;
-  const n = formatoConteo(regla.n ?? 10);
-  const u = formatoConteo(regla.umbral ?? REFERENCIA_POR_DEFECTO);
-  switch (regla.tipo) {
-    case "todas": return `Todas las preguntas de escala${de}`;
-    case "comunes": return `Todas las preguntas comunes${de}`;
-    case "mayor_diferencia": return `Las ${n} de mayor diferencia${de}`;
-    case "diferencia_minima": return `Con diferencia de al menos ${u} puntos${de}`;
-    case "mayor_sin_info": return `Las ${n} de más Sin información${de}`;
-    case "bajo_umbral": return `Bajo ${u}% ${publicos.length > 1 ? "en algún público" : "del indicador"}${de}`;
-    case "extremos": return `Las ${n} más altas y las ${n} más bajas${de}`;
-    case "a_mano": return `${formatoConteo(regla.agregar?.length ?? 0)} elegidas a mano${de}`;
-  }
+  return `${regla ? reglaEnCorto(regla, publicos.length) : "Las preguntas declaradas"}${de}`;
 }
 
 // ---------------------------------------------------------------------------

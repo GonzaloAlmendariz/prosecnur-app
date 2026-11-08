@@ -215,6 +215,26 @@ export function textoConteo(c: Pick<ConteoRegla, "seleccionadas" | "total">): st
   return `${formatoConteo(c.seleccionadas.length)} de ${formatoConteo(c.total)}`;
 }
 
+/**
+ * La regla dicha en una línea, sin pedir nada al motor ni nombrar públicos: «Las 13 de mayor diferencia», «Bajo 60% en
+ * algún público». La usan la tarjeta del mazo (que le suma los públicos) y la ficha de la maqueta, que con una regla
+ * resume la regla y no la lista cruda de preguntas (M3). `grupos`: cuántos públicos lee la lámina.
+ */
+export function reglaEnCorto(regla: ReglaPreguntas, grupos: number): string {
+  const v = valorCifra(regla);
+  const cifra = formatoConteo(v ?? 0);
+  switch (regla.tipo) {
+    case "todas": return "Todas las preguntas de escala";
+    case "comunes": return "Todas las preguntas comunes";
+    case "mayor_diferencia": return `Las ${cifra} de mayor diferencia`;
+    case "diferencia_minima": return `Con diferencia de al menos ${cifra} puntos`;
+    case "mayor_sin_info": return `Las ${cifra} de más Sin información`;
+    case "bajo_umbral": return `Bajo ${cifra}% ${grupos > 1 ? "en algún público" : "del indicador"}`;
+    case "extremos": return `Las ${cifra} más altas y las ${cifra} más bajas`;
+    case "a_mano": return `${formatoConteo(regla.agregar?.length ?? 0)} elegidas a mano`;
+  }
+}
+
 /** JSON con las claves ordenadas: dos objetos con lo mismo dan el mismo texto. */
 export function jsonEstable(v: unknown): string {
   if (Array.isArray(v)) return `[${v.map(jsonEstable).join(",")}]`;

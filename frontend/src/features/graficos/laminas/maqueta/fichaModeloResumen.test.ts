@@ -34,3 +34,32 @@ describe("la ficha de la cobertura", () => {
     expect(f.publicos).toEqual(["Docentes", "Estudiantes", "Administrativos"]);
   });
 });
+
+describe("M3: la ficha de una lámina con regla resume la regla", () => {
+  const ranura = (graficador: string, args: Record<string, unknown>) => ({
+    graficador, preguntas: [
+      { titulo: "Docentes, todas las de escala", opciones: [], bases: ["docentes"], bloque: 0, filas: 1 },
+      { titulo: "Estudiantes, todas las de escala", opciones: [], bases: ["estudiantes"], bloque: 0, filas: 1 },
+      { titulo: "Administrativos, todas las de escala", opciones: [], bases: ["administrativos"], bloque: 0, filas: 1 },
+    ], bases: ["docentes", "estudiantes", "administrativos"], pinta: "uno", resaltaMayor: false, mismaEscala: true, masPreguntas: 2,
+    twoBox: { ttb: false, btb: false }, args, bloques: [], tituloPanel: null,
+  }) as unknown as Parameters<typeof fichaDeRanura>[0];
+  const vars = ["docentes$*", "estudiantes$*", "administrativos$*"];
+
+  it("la escala bajo el umbral dice la regla, no «Docentes, todas las de escala y 2 preguntas más»", () => {
+    const f = fichaDeRanura(ranura("p_barras_divergentes", { vars, regla: { tipo: "bajo_umbral", umbral: 60 } }), "Escala");
+    expect(f.preguntas).toEqual(["Bajo 60% en algún público"]);
+  });
+  it("el contraste dice cuántas y con qué criterio", () => {
+    const f = fichaDeRanura(ranura("p_dumbbell", { regla: { tipo: "mayor_diferencia", n: 13 } }), "Brecha");
+    expect(f.preguntas).toEqual(["Las 13 de mayor diferencia"]);
+  });
+  it("Fortalezas y alertas sin regla guardada resume la que pone el motor", () => {
+    const f = fichaDeRanura(ranura("p_fortalezas", { vars: ["docentes$*"], n: 4 }), "Fortalezas");
+    expect(f.preguntas).toEqual(["Las 4 más altas y las 4 más bajas"]);
+  });
+  it("sin regla sigue la lista de preguntas declaradas", () => {
+    const f = fichaDeRanura(ranura("p_panorama", { vars }), "Panorama");
+    expect(f.preguntas).toEqual(["Docentes, todas las de escala", "Estudiantes, todas las de escala", "Administrativos, todas las de escala"]);
+  });
+});
