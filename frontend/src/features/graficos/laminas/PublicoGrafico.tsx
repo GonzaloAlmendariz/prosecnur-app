@@ -12,14 +12,17 @@ import { FilaSegmentada } from "./tarjetaGrafico/FilaSegmentada";
 
 type Valor = "auto" | "si" | "no";
 
-/** Ítem 9 (2026-11-08): «Automático» dice qué rige, la regla G9: sale sólo si el n del gráfico es otro que el de la lámina. */
+/**
+ * Ítem 9 (2026-11-08): la opción automática dice qué rige, la regla G9: sale sólo si el n del gráfico es otro que el de
+ * la lámina. R9-17: «Si el n cambia» a secas; «Automático (si el n cambia)» partía en dos renglones el pulgar.
+ */
 export const OPCIONES_PUBLICO: readonly { value: Valor; label: string }[] = [
-  { value: "auto", label: "Automático (si el n cambia)" },
+  { value: "auto", label: "Si el n cambia" },
   { value: "si", label: "Mostrar" },
   { value: "no", label: "Ocultar" },
 ];
 const SEGMENTOS_PUBLICO: Segmentacion = segmentacionFija(OPCIONES_PUBLICO);
-const AYUDA_PUBLICO = "Automático: «172 respuestas» sale bajo el enunciado sólo si el gráfico no tiene el mismo público y el mismo n que la lámina.";
+const AYUDA_PUBLICO = "«Si el n cambia»: «172 respuestas» sale bajo el enunciado sólo si el gráfico no tiene el mismo público y el mismo n que la lámina.";
 
 export function PublicoGrafico({ slideId, slot, valor }: { slideId: string; slot: string; valor: GraficadorRef }) {
   const id = useId();

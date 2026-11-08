@@ -9,9 +9,9 @@ vi.mock("../store", () => ({ usePlanStore: (sel: (s: typeof ESTADO) => unknown) 
 const radios = (html: string) => [...html.matchAll(/role="radio"[^>]*aria-checked="(true|false)"[^>]*>(?:<span[^>]*>)?([^<]+)</g)].map((m) => `${m[2]}:${m[1]}`);
 
 describe("PublicoGrafico en segmentado", () => {
-  it("sin decidir marca «Automático» con la regla que rige, y no hay desplegable", () => {
+  it("sin decidir marca «Si el n cambia» (la regla que rige, R9-17: en un renglón), y no hay desplegable", () => {
     const html = renderToStaticMarkup(<PublicoGrafico slideId="s1" slot="g1" valor={{ graficador: "p_barras_categoricas", args: {} }} />);
-    expect(radios(html)).toEqual(["Automático (si el n cambia):true", "Mostrar:false", "Ocultar:false"]);
+    expect(radios(html)).toEqual(["Si el n cambia:true", "Mostrar:false", "Ocultar:false"]);
     expect(html).not.toContain("<select");
   });
   it("una decisión guardada se ve marcada", () => {
