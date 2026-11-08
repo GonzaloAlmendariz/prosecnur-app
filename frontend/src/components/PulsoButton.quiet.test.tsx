@@ -68,6 +68,8 @@ describe("PulsoButton tone=quiet", () => {
     expect(base).toContain("background: transparent;");
     expect(base).toContain("border: 1px solid transparent;");
     expect(regla("::before")).toContain("var(--pulso-close-hit)");
+    // R9-11: el ::before se posiciona desde la caja de relleno; compensa el borde de 1 px para llegar a 32.
+    expect(regla("::before")).toContain("inset: calc(min(0px, calc((var(--pulso-button-height) - var(--pulso-close-hit)) / 2)) - 1px);");
     expect(base).toContain("--pulso-quiet-icon: var(--pulso-icon-size-md);");
     expect(regla(".pulso-button--sm")).toContain("var(--pulso-icon-size-sm)");
   });

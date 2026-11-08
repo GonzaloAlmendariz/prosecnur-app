@@ -48,7 +48,9 @@
 .pulso-button.pulso-button--icon.pulso-button--quiet::before {
   content: "";
   position: absolute;
-  inset: min(0px, calc((var(--pulso-button-height) - var(--pulso-close-hit)) / 2));
+  /* R9-11: el inset se mide desde la caja de relleno, 1 px adentro por el borde (transparente) del botón: sin restarlo,
+     el área quedaba en 30 px. */
+  inset: calc(min(0px, calc((var(--pulso-button-height) - var(--pulso-close-hit)) / 2)) - 1px);
   border-radius: inherit;
   background: transparent;
 }
