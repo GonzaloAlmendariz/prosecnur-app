@@ -19,6 +19,8 @@ import {
 } from "./modeloPadron";
 import { propuestasDe, usePadronPropuesto } from "./usePadronPropuesto";
 import { useGuardaNoConfiables } from "./useGuardaNoConfiables";
+import { DeclararPadron } from "./DeclararPadron";
+import { faltaPadron } from "./dondeDeclarar";
 import "./gruposPadron.css";
 
 type Props = {
@@ -53,6 +55,10 @@ export function PadronPublicos({ graficador, args, scope, onCambio }: Props) {
     return publicoIncluido(args, b) && propuestaUtil(p, cobertura) && !propuestaEnUso(args, b, p, cobertura);
   });
   const rotulo = bases.length === 1 ? "Público" : "Públicos";
+  // X5: con la propuesta ya leída, un público sin padrón (ni escrito ni propuesto) dice dónde declararlo.
+  const sinPadron = propuesta.fase === "lista" && faltaPadron(bases.map((b) => ({
+    incluido: !cobertura || publicoIncluido(args, b), escrito: padronDe(args, nombrePublico(b)).valor, propuesta: propuestaDe(propuestas, b),
+  })));
 
   return (
     <div className="pulso-f6-dato is-apilado pulso-f6-publicos" data-campo="universos"
@@ -125,6 +131,7 @@ export function PadronPublicos({ graficador, args, scope, onCambio }: Props) {
           </ul>
         </Panel>
       )}
+      {sinPadron && <DeclararPadron />}
       {propuesta.fase === "error" && (
         <p className="pulso-f6-dato-ayuda is-aviso" role="note">No se pudo leer la propuesta de padrón: {propuesta.mensaje}</p>
       )}

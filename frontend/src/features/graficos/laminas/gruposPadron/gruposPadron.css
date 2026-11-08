@@ -153,3 +153,13 @@
 .pulso-f6-extras-detalle {
   grid-column: 1 / -1;
 }
+
+/* X5: dónde declarar el padrón que falta; enlaces en línea, sin párrafo. */
+.pulso-f6-publicos-declarar {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+  min-width: 0;
+  font-size: var(--pulso-type-caption-size);
+}

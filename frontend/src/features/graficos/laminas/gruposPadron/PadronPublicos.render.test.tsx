@@ -2,6 +2,7 @@
 // «Sin propuesta» con su motivo en el «?», y en la cobertura los públicos que entran, la meta con su unidad y las filas
 // extra.
 import { renderToStaticMarkup } from "react-dom/server";
+import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import type { PadronPropuesto } from "../../../../api/graficosPadron";
 
@@ -14,6 +15,8 @@ vi.mock("./usePadronPropuesto", () => ({
   propuestasDe: (e: { propuestas: PadronPropuesto[] }) => e.propuestas,
 }));
 vi.mock("./useGuardaNoConfiables", () => ({ useGuardaNoConfiables: () => true }));
+const modos = vi.hoisted(() => ({ valor: null as null | { calc: { modo: string | null }; monitoreo: { modos: string[] } } }));
+vi.mock("../../../estudio/usePlannerModos", () => ({ usePlannerModos: () => ({ modos: modos.valor, error: null, recargar: async () => undefined }) }));
 
 import { PadronPublicos } from "./PadronPublicos";
 
@@ -22,7 +25,7 @@ const P = (base: string, extra: Partial<PadronPropuesto>): PadronPropuesto => ({
 });
 
 const pintar = (graficador: string, args: Record<string, unknown>) => renderToStaticMarkup(
-  <PadronPublicos graficador={graficador} args={args} scope="consolidated" onCambio={() => undefined} />,
+  <MemoryRouter><PadronPublicos graficador={graficador} args={args} scope="consolidated" onCambio={() => undefined} /></MemoryRouter>,
 );
 
 describe("PadronPublicos", () => {
@@ -51,6 +54,25 @@ describe("PadronPublicos", () => {
     expect(html).toContain("Sin propuesta");
     expect(html).toContain("Sin padrón declarado.");
     expect(html).not.toContain("Meta de");
+  });
+
+  it("X5: un público sin padrón dice dónde declararlo, por dirección canónica", () => {
+    estado.propuestas = [P("docentes", { padron: 123 }), P("estudiantes", { motivo: "Sin padrón declarado." })];
+    modos.valor = null;
+    const args = { estilo: "resumen", cruce: null, vars: { t1: ["docentes$p1", "estudiantes$p1"] } };
+    const html = pintar("p_dumbbell", args);
+    expect(html).toContain("Declarar en Cálculo de muestra");
+    expect(html).toContain('href="/calc-muestra"');
+    expect(html).not.toContain("o en Monitoreo");
+    // Con el estudio de acreditación, Monitoreo también aporta el padrón (el universo del reporte de avance).
+    modos.valor = { calc: { modo: "acreditacion" }, monitoreo: { modos: ["acreditacion"] } };
+    const conMonitoreo = pintar("p_dumbbell", args);
+    expect(conMonitoreo).toContain('href="/calc-muestra?modo=acreditacion"');
+    expect(conMonitoreo).toContain('href="/monitoreo?modo=acreditacion"');
+    expect(conMonitoreo).toContain('aria-label="Declarar el padrón en Monitoreo de acreditación"');
+    // Con el padrón ya escrito en la lámina, no hay nada que declarar.
+    expect(pintar("p_dumbbell", { ...args, universos: "Estudiantes: 300" })).not.toContain("Declarar en");
+    modos.valor = null;
   });
 
   it("sin preguntas no hay públicos que listar", () => {
