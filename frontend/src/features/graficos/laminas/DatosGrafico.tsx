@@ -99,6 +99,8 @@ import { llevaPadronPublicos } from "./gruposPadron/modeloPadron";
 import type { ReglaPreguntas as Regla } from "../../../api/graficosRegla";
 import { ExcluirRespuestas } from "./excluirConCifra/ExcluirRespuestas";
 import { LadosEscala } from "./divergentes/LadosEscala";
+import { MaximoCategorias } from "./recorte/MaximoCategorias";
+import { ARGS_RECORTE } from "./recorte/modeloRecorte";
 import { ARGS_LADOS, llevaLados } from "./divergentes/modeloLados";
 import { conDetalle } from "./cifrasInspector/modeloCifras";
 import "./datosGrafico.css";
@@ -383,8 +385,10 @@ type CategoriasFila = {
   sustantivo?: Sustantivo;
 };
 
-function Fila({ campo, graficador, valor, onCambio, sello, categorias, args, scope }: {
+function Fila({ campo, graficador, valor, onCambio, sello, categorias, args, scope, sinCifra = false }: {
   campo: CampoDato; graficador: string; valor: unknown; onCambio: (v: unknown) => void; sello?: ReactNode;
+  /** Oleada I2, ítem 5: el control de siempre, sin la línea de corte (el respaldo de MaximoCategorias). */
+  sinCifra?: boolean;
   /** El alcance del informe (activo o compartido): el conteo de la regla se pide sobre las mismas fuentes que la vista previa. */
   scope: "active" | "consolidated";
   /** Los args del gráfico, para los controles que leen otros args (las preguntas del mapa en «Agrupar en la lista»). */
@@ -412,6 +416,7 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias, args, sco
       {sello}
     </label>
   );
+  if (control === "numero" && ARGS_RECORTE.has(arg.name) && conDetalle(graficador) && !sinCifra) return <MaximoCategorias id={id} rotulo={rotulo} marcas={<>{globo}{sello}</>} graficador={graficador} scope={scope} args={args} argName={arg.name} valor={valor} porDefecto={arg.default} min={typeof arg.min === "number" ? arg.min : 1} onCambio={onCambio} respaldo={<Fila campo={campo} graficador={graficador} valor={valor} onCambio={onCambio} sello={sello} categorias={categorias} args={args} scope={scope} sinCifra />} />;
   if (control === "variable" || control === "variable_opcional") {
     return (
       <div className="pulso-f6-dato is-apilado" data-campo={arg.name}>

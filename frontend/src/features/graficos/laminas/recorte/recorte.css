@@ -1,0 +1,40 @@
+/* «Máximo de categorías» con línea de corte (oleada I2, ítem 5). La lista va bajo la pista, a todo el ancho de la
+   tarjeta; las filas tienen alto fijo para que la línea se mueva con transform (translateY por filas), no con top. */
+.pulso-f6-recorte { --pulso-f6-fila-corte: 1.5rem; }
+.pulso-f6-recorte-lista,
+.pulso-f6-recorte-estado { grid-column: 1 / -1; }
+.pulso-f6-recorte-lista {
+  position: relative;
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  transition: opacity var(--motion-dur-fast) var(--motion-ease-out);
+}
+.pulso-f6-recorte-lista.is-anterior { opacity: 0.55; }
+.pulso-f6-recorte-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+  block-size: var(--pulso-f6-fila-corte);
+  min-width: 0;
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text);
+}
+.pulso-f6-recorte-fila.is-fuera { color: var(--pulso-text-faint); }
+.pulso-f6-recorte-fila.is-fuera .pulso-f6-cifra-pct { color: var(--pulso-text-faint); }
+.pulso-f6-recorte-nombre { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pulso-f6-recorte-linea {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 0;
+  block-size: 0;
+  border-block-start: 2px solid var(--module-accent);
+  pointer-events: none;
+  transform: translateY(calc(var(--pulso-f6-corte, 0) * var(--pulso-f6-fila-corte) - 1px));
+  transition: transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  .pulso-f6-recorte-lista, .pulso-f6-recorte-linea { transition: none; }
+}
