@@ -4,6 +4,7 @@
 
 import { type DragEvent, type KeyboardEvent, type ReactNode } from "react";
 import { ArrowDown, ArrowUp, ChevronDown, GripVertical, Plus } from "../../../vendor/lucide-react";
+import { PulsoButton } from "../../../components/PulsoButton";
 import type { FilaVistaGeneral } from "./modeloVistaGeneral";
 
 type Props = {
@@ -68,20 +69,22 @@ export function FilaCapitulo({
       onDrop={onSoltar}
     >
       <header className="pulso-f6-vg-fila-cabeza">
-        <button
-          type="button"
-          className="pulso-f6-icono-boton pulso-f6-vg-plegar"
+        <PulsoButton
+          variant="icon"
+          tone="quiet"
+          className="pulso-f6-vg-plegar"
           aria-expanded={!plegado}
           aria-controls={`${idTitulo}-cuerpo`}
           aria-label={`${plegado ? "Desplegar" : "Plegar"} ${fila.rotulo}`}
           onClick={() => onPlegar(fila.id)}
         >
           <ChevronDown size={16} aria-hidden="true" />
-        </button>
+        </PulsoButton>
         {esCapitulo ? (
-          <button
-            type="button"
-            className="pulso-f6-icono-boton pulso-f6-vg-asa"
+          <PulsoButton
+            variant="icon"
+            tone="quiet"
+            className="pulso-f6-vg-asa"
             draggable
             aria-label={`Mover el capítulo ${fila.rotulo}`}
             title="Arrastra para mover el capítulo (con el teclado, Alt+↑ o Alt+↓)"
@@ -91,7 +94,7 @@ export function FilaCapitulo({
             onDragEnd={onFinArrastre}
           >
             <GripVertical size={16} aria-hidden="true" />
-          </button>
+          </PulsoButton>
         ) : (
           <span className="pulso-f6-vg-asa-hueco" aria-hidden="true" />
         )}
@@ -101,33 +104,33 @@ export function FilaCapitulo({
         <span className="pulso-f6-col-sp" />
         {esCapitulo && (
           <span className="pulso-f6-vg-fila-acciones">
-            <button
-              type="button"
-              className="pulso-f6-icono-boton"
+            <PulsoButton
+              variant="icon"
+              tone="quiet"
               aria-label={`Subir el capítulo ${fila.rotulo}`}
               title="Subir el capítulo (Alt+↑)"
               disabled={indiceCapitulo === 0}
               onClick={() => onMoverCapitulo(fila.id, -1)}
             >
               <ArrowUp size={16} aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              className="pulso-f6-icono-boton"
+            </PulsoButton>
+            <PulsoButton
+              variant="icon"
+              tone="quiet"
               aria-label={`Bajar el capítulo ${fila.rotulo}`}
               title="Bajar el capítulo (Alt+↓)"
               disabled={indiceCapitulo >= totalCapitulos - 1}
               onClick={() => onMoverCapitulo(fila.id, 1)}
             >
               <ArrowDown size={16} aria-hidden="true" />
-            </button>
+            </PulsoButton>
           </span>
         )}
-        <button type="button" className="pulso-f6-boton pulso-f6-vg-agregar" onClick={() => onAgregar(fila.id)}
+        <PulsoButton variant="secondary" className="pulso-f6-vg-agregar" onClick={() => onAgregar(fila.id)}
           aria-label={`Agregar una lámina al final de ${fila.rotulo}`}>
           <Plus size={14} aria-hidden="true" />
           Lámina
-        </button>
+        </PulsoButton>
       </header>
       {/* Tarjetas: marco 176 × 99 + pie, iguales entre sí (C2). Soltar en el hueco tras la última la deja al final. */}
       {/* I5: plegar anima la altura de este envoltorio (0fr ↔ 1fr); plegado, lo de dentro sale del orden de foco. */}

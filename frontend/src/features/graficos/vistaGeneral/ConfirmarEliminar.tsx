@@ -6,6 +6,7 @@ import { nombreDeAtajo } from "../../../lib/teclado";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useRef } from "react";
 import { Trash2 } from "../../../vendor/lucide-react";
+import { PulsoButton } from "../../../components/PulsoButton";
 
 type Props = {
   titulos: string[] | null;
@@ -43,11 +44,14 @@ export function ConfirmarEliminar({ titulos, onConfirmar, onCancelar, retorno }:
             {n > MAX_LISTADAS && <li className="is-resto">y {n - MAX_LISTADAS} más</li>}
           </ul>
           <div className="pulso-f6-vg-confirmar-acciones">
-            <Dialog.Close ref={cancelarRef} className="pulso-f6-boton">Cancelar</Dialog.Close>
-            <button type="button" className="pulso-f6-boton is-peligro" onClick={onConfirmar}>
+            <Dialog.Close asChild>
+              <PulsoButton ref={cancelarRef} variant="secondary">Cancelar</PulsoButton>
+            </Dialog.Close>
+            {/* D13: el paso final de una acción destructiva es el rojo relleno (`confirm`). */}
+            <PulsoButton variant="danger" confirm onClick={onConfirmar}>
               <Trash2 size={14} aria-hidden="true" />
               {n === 1 ? "Eliminar" : `Eliminar ${n}`}
-            </button>
+            </PulsoButton>
           </div>
         </Dialog.Content>
       </Dialog.Portal>

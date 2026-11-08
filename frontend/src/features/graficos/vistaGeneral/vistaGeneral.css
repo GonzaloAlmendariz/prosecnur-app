@@ -141,8 +141,7 @@
   text-overflow: ellipsis;
 }
 
-.pulso-f6-vg-mover select:disabled,
-.pulso-f6-vg .pulso-f6-boton:disabled {
+.pulso-f6-vg-mover select:disabled {
   opacity: 0.45;
   cursor: default;
 }
@@ -619,12 +618,6 @@
   justify-content: flex-end;
   gap: var(--pulso-space-2);
   margin-top: var(--pulso-space-2);
-}
-
-.pulso-f6-vg-confirmar .pulso-f6-boton.is-peligro {
-  border-color: var(--pulso-danger-border);
-  background: var(--pulso-danger-bg);
-  color: var(--pulso-danger-fg);
 }
 
 @keyframes pulso-f6-vg-entra {

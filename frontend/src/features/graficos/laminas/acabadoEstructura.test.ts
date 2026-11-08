@@ -334,3 +334,34 @@ describe("R9-18: el segmentado del selector lleva el radio único de control", (
     expect(css).not.toContain("var(--pulso-radius-card)");
   });
 });
+
+describe("R10-1: sin botones F1/F2 en vistaGeneral/", () => {
+  const vg = (sub = ""): string[] => fs.readdirSync(path.join(dir, "..", "vistaGeneral", sub), { withFileTypes: true }).flatMap((e) => {
+    const rel = path.join(sub, e.name);
+    if (e.isDirectory()) return vg(rel);
+    return /\.(tsx|css)$/.test(e.name) && !/\.test\./.test(e.name) ? [path.join("..", "vistaGeneral", rel)] : [];
+  });
+  const archivos = vg();
+  it("recorre la carpeta entera", () => {
+    expect(archivos).toContain(path.join("..", "vistaGeneral", "VistaGeneral.tsx"));
+    expect(archivos).toContain(path.join("..", "vistaGeneral", "vistaGeneral.css"));
+  });
+  it.each(archivos)("%s no usa F1/F2, is-primario ni un botón de ícono con caja", (archivo) => {
+    const src = sinComentarios(leer(archivo));
+    expect(src).not.toMatch(/pulso-f6-(boton|icono-boton|texto-boton)\b/);
+    expect(src).not.toMatch(/\bis-primario\b/);
+    expect(src).not.toMatch(/variant="icon"(?![^>]*tone="quiet")[^>]*>/);
+  });
+  it("el vacío de la Vista general tiene un solo primario: «Abrir Láminas» es secundario y navega (K4)", () => {
+    const src = sinComentarios(leer("../vistaGeneral/VistaGeneral.tsx"));
+    const vacio = src.slice(src.indexOf("if (!slides.length)"), src.indexOf("let indiceCapitulo"));
+    expect(vacio).toContain("<BotonArmarDesdeVacio />");
+    expect(vacio).not.toMatch(/variant="primary"/);
+    expect(vacio).toMatch(/<PulsoButton variant="secondary" nav [^\n]*>Abrir Láminas<\/PulsoButton>/);
+  });
+  it("el «Eliminar» final del diálogo es el rojo relleno y «Cancelar» es secundario", () => {
+    const src = sinComentarios(leer("../vistaGeneral/ConfirmarEliminar.tsx"));
+    expect(src).toMatch(/<PulsoButton variant="danger" confirm onClick=\{onConfirmar\}>/);
+    expect(src).toMatch(/<Dialog\.Close asChild>\s*<PulsoButton ref=\{cancelarRef\} variant="secondary">Cancelar<\/PulsoButton>/);
+  });
+});

@@ -9,6 +9,7 @@ import { LayoutGrid } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, type DragEvent, type KeyboardEvent, type MouseEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import type { Slide } from "../../../api/graficos";
+import { PulsoButton } from "../../../components/PulsoButton";
 import { toast } from "../../../components/toasterStore";
 import { conNivel } from "../../../lib/navegacion/direccion";
 import { searchConNivel, useSeccion } from "../../../lib/navegacion/useDireccion";
@@ -408,8 +409,9 @@ export default function VistaGeneral() {
               descripcion="Aquí verás el informe por capítulos, con cada lámina como tarjeta. Empieza por insertar la primera o arma el informe desde un plan sugerido."
               accion={
                 <div className="pulso-f6-vacio-acciones">
-                  <button type="button" className="pulso-f6-boton" onClick={() => direccion.irA("pestana", "laminas")}>Ir a Láminas</button>
+                  {/* R10-1: un solo primario en el vacío, «Armar desde un plan sugerido»; ir a Láminas es secundario (K4). */}
                   <BotonArmarDesdeVacio />
+                  <PulsoButton variant="secondary" nav onClick={() => direccion.irA("pestana", "laminas")}>Abrir Láminas</PulsoButton>
                 </div>
               }
             />
