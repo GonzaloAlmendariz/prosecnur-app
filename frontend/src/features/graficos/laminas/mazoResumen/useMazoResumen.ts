@@ -2,12 +2,14 @@
 // vive en modeloMazo.ts; aquí sólo se juntan las fuentes (variables, registro, propuesta de padrón y estado UI).
 
 import { useCallback, useMemo } from "react";
-import type { Slide, SlideType } from "../../../../api/graficos";
+import type { SlideType } from "../../../../api/graficos";
+import { agrupadorDelPlan } from "../../historialAgrupado";
 import { nuevoIdLamina, SLIDE_GRAF_SLOTS, usePlanStore } from "../../store";
 import { useGraficosRegistry } from "../../useGraficosRegistry";
 import { useVariables } from "../../useVariables";
 import { propuestasDe, usePadronPropuesto } from "../gruposPadron/usePadronPropuesto";
 import type { EstudioDelSelector } from "../selectores/opcionesLamina";
+import type { InsercionMazo } from "./deshacerMazo";
 import { useMazoResumenUi } from "./mazoResumenStore";
 import {
   escalaDominante, escalasPorPublico, indicadoresDelEstudio, insertarTras, laminasDelMazo, ordenarPropuestas, ordenPublicos,
@@ -31,8 +33,11 @@ export type MazoResumen = {
   propuestas: PropuestaMazo[];
   /** Las elegidas, en ese orden: las que se insertan. */
   elegidas: PropuestaMazo[];
-  /** Inserta las elegidas detrás de la lámina `posicion` en un solo paso de deshacer; devuelve las nuevas. */
-  insertar: (posicion: number | null) => Slide[];
+  /**
+   * Inserta las elegidas detrás de la lámina `posicion` en un solo paso de deshacer, propio (corta el agrupador: no se
+   * suma a la última edición). Devuelve la foto para deshacer, o `null` si no había ninguna elegida.
+   */
+  insertar: (posicion: number | null) => InsercionMazo | null;
 };
 
 export function useMazoResumen(activo: boolean): MazoResumen {
@@ -68,13 +73,14 @@ export function useMazoResumen(activo: boolean): MazoResumen {
     : [];
   const elegidas = propuestas.filter((p) => ui.elegidas[p.id]);
 
-  const insertar = (posicion: number | null): Slide[] => {
+  const insertar = (posicion: number | null): InsercionMazo | null => {
     const nuevas = laminasDelMazo(propuestas, ui.elegidas, nuevoIdLamina);
-    if (!nuevas.length) return [];
-    const plan = usePlanStore.getState();
-    plan.transformarLaminas((slides) => insertarTras(slides, nuevas, posicion));
-    plan.select(nuevas[0].id);
-    return nuevas;
+    if (!nuevas.length) return null;
+    agrupadorDelPlan.cortar();
+    usePlanStore.getState().transformarLaminas((slides) => insertarTras(slides, nuevas, posicion));
+    const slides = usePlanStore.getState().plan.slides;
+    usePlanStore.getState().select(nuevas[0].id);
+    return { slides, ids: nuevas.map((s) => s.id) };
   };
 
   return {

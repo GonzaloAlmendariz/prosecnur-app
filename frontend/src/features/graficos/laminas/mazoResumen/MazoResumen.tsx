@@ -17,12 +17,16 @@ import { usePlanStore } from "../../store";
 import { destinoAlCerrarEnDocumento } from "../selectores/focoAlCerrar";
 import { FranjaMazo } from "./FranjaMazo";
 import { useMazoResumenUi } from "./mazoResumenStore";
-import { rotuloInsertar, unirPublicos } from "./modeloMazo";
+import { deshacerInsercion } from "./deshacerMazo";
+import { mensajeInsertadas, rotuloInsertar, unirPublicos } from "./modeloMazo";
 import { PANEL_RESUMEN_EJECUTIVO } from "./panelResumen";
 import { SeleccionMazo } from "./SeleccionMazo";
 import { TarjetaMazo } from "./TarjetaMazo";
 import { useMazoResumen } from "./useMazoResumen";
 import "./mazoResumen.css";
+
+/** El toast de la inserción dura más que uno de éxito: trae «Deshacer» y el analista tiene que alcanzar a verlo. */
+const DURACION_DESHACER_MS = 8000;
 
 type Props = {
   /** La lámina del foco: las nuevas van detrás de ella. `null` con el informe vacío (van al final). */
@@ -46,13 +50,14 @@ export function MazoResumen({ posicion, cerrar }: Props) {
     const plan = usePlanStore.getState();
     const largoAntes = plan.plan.slides.length;
     const seleccionAntes = plan.selectedSlideId;
-    const nuevas = mazo.insertar(posicion);
-    if (!nuevas.length) return;
+    const insercion = mazo.insertar(posicion);
+    if (!insercion) return;
     const primera = (posicion ?? largoAntes) + 1;
-    toast.exito(`${nuevas.length === 1 ? "1 lámina insertada" : `${formatoConteo(nuevas.length)} láminas insertadas`} desde la lámina ${formatoConteo(primera)}`, {
-      detalle: pidenDivide ? "Aperturas internas pide la pregunta que divide en Datos." : "Los títulos quedan por escribir.",
+    toast.exito(mensajeInsertadas(insercion.ids.length), {
+      detalle: `Desde la lámina ${formatoConteo(primera)}.${pidenDivide ? " Aperturas internas pide la pregunta que divide en Datos." : ""}`,
+      duracion: DURACION_DESHACER_MS,
       accion: { label: "Deshacer", onSelect: () => {
-        usePlanStore.getState().undo();
+        deshacerInsercion(usePlanStore.getState(), insercion);
         if (seleccionAntes && usePlanStore.getState().plan.slides.some((s) => s.id === seleccionAntes)) usePlanStore.getState().select(seleccionAntes);
       } },
     });
