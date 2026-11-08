@@ -3,7 +3,9 @@
 // ya vistas. Cada aviso con lámina lleva a ella.
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { CornerDownLeft, X } from "../../../vendor/lucide-react";
+import { CornerDownLeft } from "../../../vendor/lucide-react";
+import { CabeceraPanel } from "../../../components/CabeceraPanel";
+import { PulsoButton } from "../../../components/PulsoButton";
 import { BotonConTecla } from "./BotonConTecla";
 import type { ControlPanel } from "../../../lib/navegacion/paneles";
 import type { ValidationIssue } from "../usePlanValidator";
@@ -86,9 +88,9 @@ export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = 
     <li key={`${i.code}-${i.slideId ?? ""}-${i.slotName ?? ""}-${k}`}>
       {/* W1B-C8: el enlace va antes del texto para quedar en el primer renglón de la tarjeta (panelAvisos.css). */}
       {i.slideId && posicionDe.has(i.slideId) && (
-        <button type="button" className="pulso-f6-texto-boton pulso-f6-avisos-ir" onClick={() => ir(i.slideId)}>
+        <PulsoButton variant="link" size="sm" className="pulso-f6-enlace-fila pulso-f6-avisos-ir" onClick={() => ir(i.slideId)}>
           Lámina {posicionDe.get(i.slideId)}
-        </button>
+        </PulsoButton>
       )}
       <span>{i.message}</span>
     </li>
@@ -101,21 +103,22 @@ export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = 
       aria-label="Avisos del informe"
       {...panel.props}
     >
-      <header className="pulso-f6-col-head">
-        <h2>Avisos del informe</h2>
-        <span className="pulso-f6-col-sp" />
-        {sinTitulo && sinTitulo.cuantas > 0 && (
+      {/* Acabado W2-A: CabeceraPanel con una sola acción de texto y la X del kit; Escape y la X cierran por la misma vía
+          y devuelven el foco a quien abrió el panel. */}
+      <CabeceraPanel
+        titulo="Avisos del informe"
+        acciones={sinTitulo && sinTitulo.cuantas > 0 ? (
           <BotonConTecla accion="siguienteSinTitulo" ayuda={`${formatoConteo(sinTitulo.cuantas)} ${sinTitulo.cuantas === 1 ? "lámina" : "láminas"} sin título`}>
-            <button type="button" className="pulso-f6-boton pulso-f6-avisos-sin-titulo" onClick={sinTitulo.siguiente}>
-              <CornerDownLeft size={14} aria-hidden="true" />
+            <PulsoButton variant="secondary" size="sm" className="pulso-f6-avisos-sin-titulo" onClick={sinTitulo.siguiente}>
+              <CornerDownLeft aria-hidden="true" />
               Siguiente sin título
-            </button>
+            </PulsoButton>
           </BotonConTecla>
-        )}
-        <button type="button" ref={cerrarRef} className="pulso-f6-icono-boton" aria-label="Cerrar avisos" onClick={cerrar}>
-          <X size={16} aria-hidden="true" />
-        </button>
-      </header>
+        ) : undefined}
+        onCerrar={cerrar}
+        etiquetaCerrar="Cerrar avisos"
+        cerrarRef={cerrarRef}
+      />
       <div className="pulso-f6-avisos-cuerpo" data-qa-geometry-group="graficos/f6-avisos-grupos" data-qa-geometry-contract="intrinsic">
         {grupos.plan.length > 0 && (
           <section className="pulso-f6-avisos-grupo" aria-label="Cambios al abrir el plan">
@@ -140,7 +143,7 @@ export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = 
               {laminasSinColor ? (
                 <li className="is-accion">
                   <span>Faltan colores en {laminasSinColor === 1 ? "1 lámina" : `${laminasSinColor} láminas`}: {MOTIVO_COLORES_PENDIENTES}.</span>
-                  <button type="button" className="pulso-f6-texto-boton" onClick={coloresPendientes?.completar}>Completar todos los colores</button>
+                  <PulsoButton variant="link" size="sm" className="pulso-f6-enlace-fila" onClick={coloresPendientes?.completar}>Completar todos los colores</PulsoButton>
                 </li>
               ) : null}
               {grupos.bloquean.map(fila)}
@@ -156,7 +159,7 @@ export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = 
                   <span>
                     En {baseImplicita.laminas === 1 ? "1 lámina" : `${baseImplicita.laminas} láminas`}, {baseImplicita.preguntas === 1 ? "1 pregunta se lee" : `${baseImplicita.preguntas} preguntas se leen`} de {laBase(baseImplicita.base)} sin que el plan lo diga.
                   </span>
-                  <button type="button" className="pulso-f6-texto-boton" onClick={baseImplicita.fijar}>Fijar {laBase(baseImplicita.base)} en todas las láminas</button>
+                  <PulsoButton variant="link" size="sm" className="pulso-f6-enlace-fila" onClick={baseImplicita.fijar}>Fijar {laBase(baseImplicita.base)} en todas las láminas</PulsoButton>
                 </li>
               ) : null}
               {revisar.map(fila)}
@@ -171,9 +174,9 @@ export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = 
             <ul data-qa-geometry-group="graficos/f6-avisos-motor" data-qa-geometry-contract="intrinsic">
               {grupos.motor.flatMap((m) => m.avisos.map((a, k) => (
                 <li key={`${m.slideId}-${k}`}>
-                  <button type="button" className="pulso-f6-texto-boton pulso-f6-avisos-ir" onClick={() => ir(m.slideId)}>
+                  <PulsoButton variant="link" size="sm" className="pulso-f6-enlace-fila pulso-f6-avisos-ir" onClick={() => ir(m.slideId)}>
                     Lámina {posicionDe.get(m.slideId)}
-                  </button>
+                  </PulsoButton>
                   <span>{avisoConLaminaActual(a, posicionDe.get(m.slideId))}</span>
                 </li>
               )))}
