@@ -122,7 +122,9 @@ export function LadosEscala({ id, graficador, scope, args, onCambio, respaldo }:
         <p className="pulso-f6-dato-ayuda pulso-f6-lados-dos" role="note" data-qa="lados-dos-niveles">
           {`${dosNiveles} `}
           <PulsoButton variant="link" size="sm" onClick={invertir}>Invertir</PulsoButton>
-          {" o "}
+          {/* R9-12: la «o» va en su propio elemento: dos enlaces hermanos encadenados reciben el separador del kit
+              (kit-buttons.css) y la frase se leía «Invertir o | dejarlo así». */}
+          <span> o </span>
           <PulsoButton variant="link" size="sm" onClick={() => onCambio(parcheLados(vista))}>dejarlo así</PulsoButton>
         </p>
       )}

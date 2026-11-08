@@ -1,6 +1,9 @@
 // @vitest-environment happy-dom
 // Ítem 4 de la oleada I2: la tira de lados con su asa (flechas), el clic en el central y «Negativo 21%, Positivo 64%»
 // del reparto que se ve, también antes de soltar. Sin detalle, los tres controles de siempre.
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -128,5 +131,10 @@ describe("Lados de la escala", () => {
     expect(host.querySelector('[data-qa="respaldo"]')).not.toBeNull();
     expect(host.querySelector('[data-qa="lados-silueta"]')).toBeNull();
     expect(host.querySelector('[role="slider"]')).toBeNull();
+  });
+
+  it("R9-12: «Invertir o dejarlo así» es una frase: los dos enlaces no son hermanos contiguos", () => {
+    const src = fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "LadosEscala.tsx"), "utf8");
+    expect(src).toMatch(/>Invertir<\/PulsoButton>\s*(\{\/\*[\s\S]*?\*\/\}\s*)?<span> o <\/span>/);
   });
 });
