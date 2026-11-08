@@ -4,6 +4,9 @@
 
 import type { TipoReglaPreguntas } from "../../../../api/graficosRegla";
 import { Panel } from "../../../../components/Panel";
+import { Skeleton } from "../../../../components/Skeleton";
+import { formatoConteo } from "../../../../lib/formatoNumero";
+import { LimiteLamina } from "./LimiteLamina";
 import { CifraDeslizable } from "./CifraDeslizable";
 import type { Resaltada } from "./ListaCandidatas";
 import { textoMetrica } from "./modeloReglaPreguntas";
@@ -18,46 +21,46 @@ type Props = {
   reparto: Reparto | null;
   rotuloMetrica: string;
   etiquetas: ReadonlyMap<string, string>;
-  tope: { aviso: string; tope: number } | null;
-  /** El aviso del tope es de la cifra que respondió el motor: mientras se proyecta, se atenúa. */
-  proyectada: boolean;
+  /** El límite de filas de la lámina nativa y si la selección que se ve lo pasa (optimista). */
+  tope: { tope: number; excedido: boolean } | null;
+  /** El aviso del motor sobre el límite, si vino: va como título del chip (no se repite en la lista). */
+  avisoTope: string | null;
+  /** Sin reparto todavía (llega el conteo): la silueta ocupa su sitio para que el marco no salte. */
+  cargando: boolean;
   resaltada: Resaltada;
   onResaltar: (r: Resaltada) => void;
   onMover: (v: number) => void;
   onSoltar: () => void;
 };
 
-export function CorteRegla({ id, tipo, campo, valor, reparto, rotuloMetrica, etiquetas, tope, proyectada, resaltada, onResaltar, onMover, onSoltar }: Props) {
+export function CorteRegla({ id, tipo, campo, valor, reparto, rotuloMetrica, etiquetas, tope, avisoTope, cargando, resaltada, onResaltar, onMover, onSoltar }: Props) {
   const conPuntos = reparto && reparto.puntos.length > 0 ? reparto : null;
-  const primera = conPuntos?.puntos[0];
-  const ultima = conPuntos?.puntos[conPuntos.puntos.length - 1];
+  const silueta = !reparto && cargando;
+  const puesto = (n: number) => `${formatoConteo(n)}.º`;
   return (
     <Panel variant="subtle" noPadding className="pulso-f6-regla-corte" data-qa-geometry-member data-modo={conPuntos?.modo ?? "sin-reparto"}>
       <CifraDeslizable id={id} rotulo={campo.rotulo} valor={valor}
-        recorrido={conPuntos ? recorridoSlider(conPuntos, tipo, campo, valor) : campo} campo={campo}
+        recorrido={conPuntos ? recorridoSlider(conPuntos, tipo, campo, valor) : { pista: campo, valores: campo }} campo={campo}
         paso={campo.paso} grande={pasoGrande(tipo, campo.paso)} onMover={onMover} onSoltar={onSoltar}
         encima={conPuntos ? (
-          <RepartoCandidatas reparto={conPuntos} tipo={tipo} rotulo={rotuloMetrica} etiquetas={etiquetas} tope={tope?.tope ?? null}
-            resaltada={resaltada} onResaltar={onResaltar} />
+          <RepartoCandidatas reparto={conPuntos} tipo={tipo} rotulo={rotuloMetrica} etiquetas={etiquetas}
+            tope={tope?.excedido ? tope.tope : null} resaltada={resaltada} onResaltar={onResaltar} />
+        ) : silueta ? (
+          <div className="pulso-f6-regla-reparto-lienzo" aria-hidden="true"><Skeleton forma="grafico" alto={64} /></div>
         ) : null}
-        debajo={conPuntos && primera && ultima ? (
+        debajo={conPuntos ? (
           <div className="pulso-f6-regla-eje">
-            <span>{conPuntos.modo === "umbral" ? "0" : textoMetrica(primera.metrica)}</span>
+            <span>{conPuntos.modo === "umbral" ? "0" : puesto(1)}</span>
             <span className="pulso-f6-regla-eje-rotulo">
               {rotuloMetrica}
               {conPuntos.modo === "posicion" && conPuntos.cortesValor.length > 0 && (
                 <> <span className="pulso-f6-regla-eje-corte">Corte {conPuntos.cortesValor.map(textoMetrica).join(" y ")}</span></>
               )}
             </span>
-            <span>{conPuntos.modo === "umbral" ? String(conPuntos.ejeMax) : textoMetrica(ultima.metrica)}</span>
+            <span>{conPuntos.modo === "umbral" ? String(conPuntos.ejeMax) : puesto(conPuntos.ejeMax)}</span>
           </div>
-        ) : null} />
-      {tope && (
-        <span className={`pulso-f6-regla-tope${proyectada ? " is-desfasado" : ""}`} role="note">
-          <span className="pulso-f6-regla-tope-marca" aria-hidden="true" />
-          {tope.aviso}
-        </span>
-      )}
+        ) : silueta ? <div className="pulso-f6-regla-eje" aria-hidden="true"><span>&nbsp;</span></div> : null} />
+      {tope && <LimiteLamina tope={tope.tope} excedido={tope.excedido} aviso={avisoTope} />}
       {reparto && reparto.sinDato > 0 && <span className="pulso-f6-dato-ayuda">Sin dato: {reparto.sinDato}</span>}
     </Panel>
   );

@@ -113,7 +113,9 @@ describe("conteo y firma", () => {
     expect(rotuloMetrica("todas", 3, "Top Two Box")).toBe("Distancia");
     expect(rotuloMetrica("mayor_diferencia", 3)).toBe("Distancia");
     expect(rotuloMetrica("extremos", 1, "Top Box")).toBe("Top Box");
-    expect(rotuloMetrica("bajo_umbral", 3)).toBe("Mínimo");
+    expect(rotuloMetrica("bajo_umbral", 3)).toBe("Mínimo entre públicos");
+    expect(rotuloMetrica("bajo_umbral", 2)).toBe("Mínimo entre públicos");
+    expect(rotuloMetrica("bajo_umbral", 1, "Top Two Box")).toBe("Top Two Box");
   });
   it("la firma no cambia con el orden de las claves ni con un objeto nuevo igual", () => {
     const a = firmaPedidoRegla("p_panorama", { vars: ["d$*"], regla: { tipo: "todas", n: undefined } }, "active");
@@ -130,9 +132,9 @@ describe("conteo y firma", () => {
   });
   it("dos conteos iguales son el mismo; el normalizador cae a valores seguros", () => {
     const c = normalizarConteoRegla({ total: "47", seleccionadas: ["p1"], candidatas: [{ tema: "p1", metrica: 12.5, seleccionada: true }, { etiqueta: "sin tema" }], texto_regla: "Se muestra 1.", avisos: "Uno" });
-    expect(c).toEqual({ total: 47, seleccionadas: ["p1"], candidatas: [{ tema: "p1", etiqueta: "p1", metrica: 12.5, seleccionada: true }], texto_regla: "Se muestra 1.", avisos: ["Uno"] });
+    expect(c).toEqual({ total: 47, seleccionadas: ["p1"], candidatas: [{ tema: "p1", etiqueta: "p1", metrica: 12.5, seleccionada: true }], texto_regla: "Se muestra 1.", avisos: ["Uno"], tope_filas: null });
     expect(mismoConteo(c, normalizarConteoRegla(JSON.parse(JSON.stringify({ ...c }))))).toBe(true);
     expect(mismoConteo(c, { ...c, total: 48 })).toBe(false);
-    expect(normalizarConteoRegla(null)).toEqual({ total: 0, seleccionadas: [], candidatas: [], texto_regla: "", avisos: [] });
+    expect(normalizarConteoRegla(null)).toEqual({ total: 0, seleccionadas: [], candidatas: [], texto_regla: "", avisos: [], tope_filas: null });
   });
 });

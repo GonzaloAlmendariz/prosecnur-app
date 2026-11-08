@@ -91,13 +91,15 @@
   font-weight: var(--pulso-weight-semibold);
 }
 
+/* C4: el tope se acorta con el viewport (en 1024x600 la lista no ocupa el inspector) y la rueda no queda atrapada:
+   al llegar al final de la lista, sigue el inspector. */
 .pulso-f6-regla-filas {
+  position: relative;
   display: grid;
-  max-height: 320px;
+  max-height: clamp(160px, 40dvh, 320px);
   margin: 0;
   padding: 0;
   overflow-y: auto;
-  overscroll-behavior: contain;
   list-style: none;
 }
 
@@ -114,6 +116,19 @@
 
 .pulso-f6-regla-fila:first-child {
   border-top: 0;
+}
+
+/* C4: la pregunta se lee entera; el kit no parte la etiqueta del interruptor. */
+.pulso-f6-regla-fila .pulso-switch-field {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.pulso-f6-regla-fila .pulso-switch-field-label {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .pulso-f6-regla-metrica {
@@ -202,9 +217,10 @@
   stroke-width: 1;
 }
 
+/* Lo que no entra, con contraste de al menos 3:1 sobre la superficie (border-strong daba 1,43). */
 .pulso-f6-regla-reparto-punto,
 .pulso-f6-regla-reparto-barra {
-  fill: var(--pulso-border-strong);
+  fill: var(--pulso-text-faint);
   transition: fill var(--motion-dur-fast) var(--motion-ease-out);
 }
 
@@ -270,7 +286,7 @@
   inset-block: 0;
   left: 0;
   border-radius: inherit;
-  background: var(--pulso-border-strong);
+  background: var(--pulso-text-faint);
   transition: background-color var(--motion-dur-fast) var(--motion-ease-out);
 }
 
@@ -290,7 +306,8 @@
 @media (prefers-reduced-motion: reduce) {
   .pulso-f6-regla-reparto-punto,
   .pulso-f6-regla-reparto-barra,
-  .pulso-f6-regla-minibarra-relleno {
+  .pulso-f6-regla-minibarra-relleno,
+  .pulso-f6-regla-tope {
     transition: none;
   }
 }
@@ -305,7 +322,7 @@
   display: flex;
   align-items: center;
   gap: var(--pulso-space-2);
-  padding: 0 var(--pulso-space-3);
+  padding: 2px var(--pulso-space-3);
   color: var(--pulso-text);
   font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
@@ -335,29 +352,37 @@
   white-space: nowrap;
 }
 
-/* El aviso del tope de la lámina nativa, junto al corte: la marca repite el trazo de la línea del tope en el reparto. */
+/* El límite de la lámina nativa, junto al corte: neutro mientras cabe, en tono de aviso al pasarlo. Mismo texto en los
+   dos tonos y una sola línea reservada: pasarlo no mueve el marco. La marca repite el trazo del tope en el reparto. */
 .pulso-f6-regla-tope {
   display: flex;
   align-items: baseline;
   gap: var(--pulso-space-2);
+  min-height: calc(1.35em + 2 * var(--pulso-space-1));
   padding: var(--pulso-space-1) var(--pulso-space-2);
   border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-text);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
   font-size: var(--pulso-type-caption-size);
   line-height: 1.35;
   overflow-wrap: anywhere;
+  transition: background-color var(--motion-dur-fast) var(--motion-ease-out), color var(--motion-dur-fast) var(--motion-ease-out);
 }
 
-.pulso-f6-regla-tope.is-desfasado {
-  color: var(--pulso-text-faint);
+.pulso-f6-regla-tope.is-excedido {
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
 }
 
 .pulso-f6-regla-tope-marca {
   flex: none;
   width: 0;
   height: 0.9em;
-  border-left: 2px solid var(--pulso-warn-accent);
+  border-left: 2px solid var(--pulso-text-faint);
+}
+
+.pulso-f6-regla-tope.is-excedido .pulso-f6-regla-tope-marca {
+  border-left-color: var(--pulso-warn-accent);
 }
 
 .pulso-f6-regla-reparto-tope {

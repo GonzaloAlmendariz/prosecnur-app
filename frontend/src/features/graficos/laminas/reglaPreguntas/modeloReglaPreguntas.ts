@@ -180,7 +180,7 @@ export function rotuloMetrica(tipo: TipoReglaPreguntas, grupos: number, indicado
   const distancia = grupos >= 3 ? "Distancia" : "Diferencia";
   if (tipo === "mayor_sin_info") return "Sin información";
   if (tipo === "mayor_diferencia" || tipo === "diferencia_minima") return distancia;
-  if (tipo === "bajo_umbral") return grupos >= 2 ? "Mínimo" : delIndicador;
+  if (tipo === "bajo_umbral") return grupos >= 2 ? "Mínimo entre públicos" : delIndicador;
   if (tipo === "extremos") return grupos >= 2 ? "Promedio" : delIndicador;
   return grupos >= 2 ? distancia : delIndicador;
 }

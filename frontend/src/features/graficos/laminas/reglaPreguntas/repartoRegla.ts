@@ -133,28 +133,40 @@ export function repartoRegla(regla: ReglaPreguntas, candidatas: readonly Candida
   };
 }
 
-/** Recorrido del slider: en umbral, el eje; en posición, de 1 a los puestos (extremos: la mitad, de cada lado). */
-export function recorridoSlider(r: Reparto, tipo: TipoReglaPreguntas, campo: { min: number; max: number }, valor: number): { min: number; max: number } {
-  if (r.modo === "umbral") return { min: campo.min, max: Math.min(campo.max, Math.max(r.ejeMax, valor)) };
-  const tope = tipo === "extremos" ? Math.ceil(r.ejeMax / 2) : r.ejeMax;
-  return { min: 1, max: Math.max(1, Math.min(campo.max, tope)) };
-}
+export type Recorrido = {
+  /** Lo que recorre la pista del slider: el eje del reparto, para que pulgar y línea del corte coincidan. */
+  pista: { min: number; max: number };
+  /** Lo que admite la cifra (el pulgar no deja valores fuera de aquí). */
+  valores: { min: number; max: number };
+};
 
-/** Fracción 0..1 del eje para una posición: la misma que recorre el pulgar del slider sobre su pista. */
-export function fraccionEje(r: Reparto, x: number): number {
-  if (r.modo === "umbral") return r.ejeMax > 0 ? Math.min(1, Math.max(0, x / r.ejeMax)) : 0;
-  return r.ejeMax > 1 ? Math.min(1, Math.max(0, (x - 1) / (r.ejeMax - 1))) : 0;
+/**
+ * Recorrido del slider. En umbral, el eje del valor. En posición, la pista va de 0 a los puestos (el corte tras el
+ * puesto N cae en N / puestos, justo bajo el pulgar en N) y la cifra de 1 a los puestos (extremos: la mitad, de cada
+ * lado; el pulgar recorre la mitad izquierda, que es donde cae el corte de las altas).
+ */
+export function recorridoSlider(r: Reparto, tipo: TipoReglaPreguntas, campo: { min: number; max: number }, valor: number): Recorrido {
+  if (r.modo === "umbral") {
+    const l = { min: campo.min, max: Math.min(campo.max, Math.max(r.ejeMax, valor)) };
+    return { pista: l, valores: l };
+  }
+  const tope = tipo === "extremos" ? Math.ceil(r.ejeMax / 2) : r.ejeMax;
+  return { pista: { min: 0, max: Math.max(1, r.ejeMax) }, valores: { min: 1, max: Math.max(1, Math.min(campo.max, tope)) } };
 }
 
 /**
- * La línea del corte en fracción del eje. En umbral, el valor. En posición, entre el puesto N y el siguiente (con el
- * slider en N, el pulgar señala la última que entra y la línea queda justo a su derecha); las bajas de extremos, entre
- * la última alta que no entra y la primera baja.
+ * Fracción 0..1 del eje para una posición. En umbral, el valor sobre el eje. En posición, el centro de la celda del
+ * puesto: el eje se parte en tantas celdas como puestos y el puesto k ocupa la k-ésima.
  */
+export function fraccionEje(r: Reparto, x: number): number {
+  if (r.modo === "umbral") return r.ejeMax > 0 ? Math.min(1, Math.max(0, x / r.ejeMax)) : 0;
+  return r.ejeMax > 0 ? Math.min(1, Math.max(0, (x - 0.5) / r.ejeMax)) : 0;
+}
+
+/** La línea del corte en fracción del eje: el valor (umbral) o el borde entre el puesto N y el siguiente (posición). */
 export function fraccionCorte(r: Reparto, corte: number): number {
   if (r.modo === "umbral") return fraccionEje(r, corte);
-  if (r.ejeMax <= 1) return corte >= 1 ? 1 : 0;
-  return Math.min(1, Math.max(0, (corte - 0.5) / (r.ejeMax - 1)));
+  return r.ejeMax > 0 ? Math.min(1, Math.max(0, corte / r.ejeMax)) : 0;
 }
 
 /** Pila de puntos por columna (modo umbral): cada punto lleva su columna y su nivel; `niveles` es la pila más alta. */
@@ -213,15 +225,20 @@ export function ordenFilas<T extends Pick<CandidataRegla, "metrica">>(tipo: Tipo
 export type MarcasCorte = {
   /** Temas que abren un tramo distinto del anterior (la línea del corte va encima de su fila). */
   trasCorte: Set<string>;
+  /** La línea va tras la última fila (entran todas las que tienen dato y no hay filas sin dato después). */
+  alFinal: boolean;
   /** Temas empatados en el corte: misma métrica a los dos lados de la línea. */
   empates: Set<string>;
 };
 
-/** El corte de la regla sobre las filas ya ordenadas (antes del ajuste a mano); vacío si el tipo no tiene cifra. */
+/**
+ * El corte de la regla sobre las filas ya ordenadas (antes del ajuste a mano); vacío si el tipo no tiene cifra. Con
+ * ninguna que entre, la línea va arriba; con todas, tras la última con dato: el corte siempre se ve (C3).
+ */
 export function marcasDeCorte(regla: ReglaPreguntas, ordenadas: readonly CandidataRegla[]): MarcasCorte {
-  const out: MarcasCorte = { trasCorte: new Set(), empates: new Set() };
+  const out: MarcasCorte = { trasCorte: new Set(), alFinal: false, empates: new Set() };
   const e = eleccion(regla, ordenadas);
-  if (!e) return out;
+  if (!e || ordenadas.length === 0) return out;
   const porRegla = new Set(e.temas);
   const valoresEmpate = new Set<number>();
   for (let i = 1; i < ordenadas.length; i += 1) {
@@ -231,19 +248,33 @@ export function marcasDeCorte(regla: ReglaPreguntas, ordenadas: readonly Candida
     out.trasCorte.add(b.tema);
     if (a.metrica !== null && a.metrica === b.metrica) valoresEmpate.add(a.metrica);
   }
+  if (out.trasCorte.size === 0) {
+    if (porRegla.size === 0) out.trasCorte.add(ordenadas[0].tema);
+    else {
+      const sinDato = ordenadas.find((c) => c.metrica === null);
+      if (sinDato) out.trasCorte.add(sinDato.tema);
+      else out.alFinal = true;
+    }
+  }
   for (const c of ordenadas) if (c.metrica !== null && valoresEmpate.has(c.metrica)) out.empates.add(c.tema);
   return out;
 }
 
-const RE_TOPE = /la lámina nativa admite (\d+)/;
+/**
+ * ¿Es el aviso del backend que repite el límite? (graficos_escala_tope.R). Sólo para no decirlo dos veces: el límite
+ * se lee de `tope_filas`, no de este texto.
+ */
+export function repiteElTope(aviso: string): boolean {
+  return /la lámina nativa admite \d+/.test(aviso);
+}
 
-/** El aviso del tope de filas de la lámina nativa (graficos_escala_tope.R) y su cifra; `null` si no vino. */
-export function avisoDeTope(avisos: readonly string[]): { aviso: string; tope: number } | null {
-  for (const aviso of avisos) {
-    const m = RE_TOPE.exec(aviso);
-    if (m) return { aviso, tope: Number(m[1]) };
-  }
-  return null;
+/**
+ * El límite de filas de la lámina nativa (`tope_filas` del conteo, 20 en la escala del resumen): siempre que existe se
+ * muestra; `excedido` con la selección que se ve (optimista: la local mientras se arrastra).
+ */
+export function estadoTope(tope: number | null | undefined, seleccionadas: number): { tope: number; excedido: boolean } | null {
+  if (typeof tope !== "number" || !Number.isFinite(tope) || tope < 1) return null;
+  return { tope, excedido: seleccionadas > tope };
 }
 
 /**
@@ -252,8 +283,8 @@ export function avisoDeTope(avisos: readonly string[]): { aviso: string; tope: n
  */
 export function posicionTope(r: Reparto, tipo: TipoReglaPreguntas, tope: number): number | null {
   if (!Number.isFinite(tope) || tope < 1) return null;
-  if (r.modo === "posicion") return tope < r.ejeMax ? tope : null;
   const entran = r.puntos.filter((p) => p.entra);
+  if (r.modo === "posicion") return entran.length > tope ? tope : null;
   const orden = ascendente(tipo) ? entran : [...entran].reverse();
   return orden.length > tope ? orden[tope - 1].x : null;
 }

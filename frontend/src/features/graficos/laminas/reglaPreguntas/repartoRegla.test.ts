@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import type { CandidataRegla } from "../../../../api/graficosRegla";
 import {
-  apilar, avisoDeTope, calculableLocal, fraccionCorte, fraccionEje, marcasDeCorte, ordenFilas, posicionTope, recorridoSlider, repartoRegla,
+  apilar, calculableLocal, estadoTope, repiteElTope, fraccionCorte, fraccionEje, marcasDeCorte, ordenFilas, posicionTope, recorridoSlider, repartoRegla,
   seleccionLocal, techoRedondo, valorPorTecla,
 } from "./repartoRegla";
 import { enOrden, seleccionVista } from "./vistaRegla";
@@ -69,9 +69,12 @@ describe("el reparto", () => {
     expect(r.cortes).toEqual([3]);
     expect(r.cortesValor).toEqual([20]);
     expect(r.puntos.map((p) => p.x)).toEqual([1, 2, 3, 4, 5, 6, 7]);
-    // Con el slider en 3 el pulgar señala la tercera; la línea queda entre la tercera y la cuarta.
-    expect(fraccionEje(r, 3)).toBeCloseTo(2 / 6);
-    expect(fraccionCorte(r, 3)).toBeCloseTo(2.5 / 6);
+    // Una celda por puesto: la barra va al centro de la suya y el corte tras el puesto N cae en N / puestos, que es
+    // donde está el pulgar en N con la pista de 0 a los puestos.
+    expect(fraccionEje(r, 3)).toBeCloseTo(2.5 / 7);
+    expect(fraccionCorte(r, 3)).toBeCloseTo(3 / 7);
+    const { pista } = recorridoSlider(r, "mayor_diferencia", { min: 1, max: 200 }, 3);
+    expect((3 - pista.min) / (pista.max - pista.min)).toBeCloseTo(fraccionCorte(r, 3));
   });
   it("extremos lleva dos cortes: tras las altas y antes de las bajas", () => {
     const r = repartoRegla({ tipo: "extremos", n: 2 }, C)!;
@@ -80,9 +83,12 @@ describe("el reparto", () => {
   });
   it("el slider recorre el eje: el umbral hasta su techo, N hasta los puestos (extremos, la mitad)", () => {
     const campo = { min: 0, max: 100 };
-    expect(recorridoSlider(repartoRegla({ tipo: "diferencia_minima", umbral: 15 }, C)!, "diferencia_minima", campo, 15)).toEqual({ min: 0, max: 60 });
-    expect(recorridoSlider(repartoRegla({ tipo: "mayor_diferencia", n: 3 }, C)!, "mayor_diferencia", { min: 1, max: 200 }, 3)).toEqual({ min: 1, max: 7 });
-    expect(recorridoSlider(repartoRegla({ tipo: "extremos", n: 2 }, C)!, "extremos", { min: 1, max: 50 }, 2)).toEqual({ min: 1, max: 4 });
+    expect(recorridoSlider(repartoRegla({ tipo: "diferencia_minima", umbral: 15 }, C)!, "diferencia_minima", campo, 15))
+      .toEqual({ pista: { min: 0, max: 60 }, valores: { min: 0, max: 60 } });
+    expect(recorridoSlider(repartoRegla({ tipo: "mayor_diferencia", n: 3 }, C)!, "mayor_diferencia", { min: 1, max: 200 }, 3))
+      .toEqual({ pista: { min: 0, max: 7 }, valores: { min: 1, max: 7 } });
+    expect(recorridoSlider(repartoRegla({ tipo: "extremos", n: 2 }, C)!, "extremos", { min: 1, max: 50 }, 2))
+      .toEqual({ pista: { min: 0, max: 7 }, valores: { min: 1, max: 4 } });
   });
   it("los puntos se apilan por columna", () => {
     const pila = apilar([{ tema: "a", metrica: 20, entra: true, x: 20 }, { tema: "b", metrica: 20, entra: true, x: 20 }, { tema: "c", metrica: 50, entra: false, x: 50 }], 100, 51);
@@ -107,19 +113,36 @@ describe("las filas en el orden de la lámina", () => {
     expect([...ext.trasCorte]).toEqual(["p5", "p3"]);
     expect(marcasDeCorte({ tipo: "todas" }, C).trasCorte.size).toBe(0);
   });
+  it("C3: el corte se ve también con ninguna o con todas", () => {
+    const ninguna = marcasDeCorte({ tipo: "diferencia_minima", umbral: 90 }, ordenFilas("diferencia_minima", C));
+    expect([...ninguna.trasCorte]).toEqual(["p4"]);
+    const todasConSinDato = marcasDeCorte({ tipo: "mayor_diferencia", n: 50 }, ordenFilas("mayor_diferencia", C));
+    expect([...todasConSinDato.trasCorte]).toEqual(["p6"]);
+    const sinNulos = C.filter((c) => c.metrica !== null);
+    const todas = marcasDeCorte({ tipo: "mayor_diferencia", n: 50 }, ordenFilas("mayor_diferencia", sinNulos));
+    expect(todas.trasCorte.size).toBe(0);
+    expect(todas.alFinal).toBe(true);
+  });
 });
 
 describe("el tope de la lámina nativa", () => {
-  const aviso = "22 preguntas bajo 60%; la lámina nativa admite 20 y la escala sale como imagen.";
-  it("se reconoce el aviso y su cifra", () => {
-    expect(avisoDeTope(["Otro aviso.", aviso])).toEqual({ aviso, tope: 20 });
-    expect(avisoDeTope(["Otro aviso."])).toBeNull();
+  it("se ve siempre que existe; pasa a aviso cuando la selección que se ve lo excede", () => {
+    expect(estadoTope(20, 13)).toEqual({ tope: 20, excedido: false });
+    expect(estadoTope(20, 20)).toEqual({ tope: 20, excedido: false });
+    expect(estadoTope(20, 22)).toEqual({ tope: 20, excedido: true });
+    expect(estadoTope(null, 22)).toBeNull();
+    expect(estadoTope(undefined, 22)).toBeNull();
   });
-  it("cae sobre la que hace el tope en el orden de la lámina", () => {
+  it("el aviso del motor que repite el límite se reconoce sólo para no decirlo dos veces", () => {
+    expect(repiteElTope("22 preguntas bajo 60%; la lámina nativa admite 20 y la escala sale como imagen.")).toBe(true);
+    expect(repiteElTope("Otro aviso.")).toBe(false);
+  });
+  it("la marca cae sobre la que hace el tope en el orden de la lámina, sólo si se pasa", () => {
     const r = repartoRegla({ tipo: "bajo_umbral", umbral: 21 }, C)!;   // entran p8 0, p3 6, p1 14, p2/p5/p7 20
     expect(posicionTope(r, "bajo_umbral", 2)).toBe(6);
     expect(posicionTope(r, "bajo_umbral", 6)).toBeNull();
     expect(posicionTope(repartoRegla({ tipo: "mayor_diferencia", n: 6 }, C)!, "mayor_diferencia", 4)).toBe(4);
+    expect(posicionTope(repartoRegla({ tipo: "mayor_diferencia", n: 3 }, C)!, "mayor_diferencia", 4)).toBeNull();
   });
 });
 

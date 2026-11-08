@@ -4,7 +4,7 @@
 // aunque el slider se limite a lo que el reparto dibuja. Mientras se mueve sólo se avisa `onMover`; `onSoltar` confirma.
 
 import { useState, type KeyboardEvent, type ReactNode } from "react";
-import { valorPorTecla } from "./repartoRegla";
+import { valorPorTecla, type Recorrido } from "./repartoRegla";
 
 type Limites = { min: number; max: number };
 
@@ -12,8 +12,8 @@ type Props = {
   id: string;
   rotulo: string;
   valor: number;
-  /** Lo que recorre el slider (el eje del reparto). */
-  recorrido: Limites;
+  /** Lo que recorre la pista (el eje del reparto) y lo que admite la cifra desde el slider. */
+  recorrido: Recorrido;
   /** Lo que admite el número escrito (el rango del campo). */
   campo: Limites;
   paso: number;
@@ -31,7 +31,9 @@ export function CifraDeslizable({ id, rotulo, valor, recorrido, campo, paso, gra
   const [texto, setTexto] = useState<string | null>(null);
   const idRotulo = `${id}-rotulo`;
   const idNumero = `${id}-numero`;
-  const enPista = Math.min(recorrido.max, Math.max(recorrido.min, valor));
+  const { pista, valores } = recorrido;
+  const acotar = (v: number) => Math.min(valores.max, Math.max(valores.min, v));
+  const enPista = acotar(valor);
 
   const teclaEn = (l: Limites, actual: number) => (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") { setTexto(null); onSoltar(); return; }
@@ -62,9 +64,9 @@ export function CifraDeslizable({ id, rotulo, valor, recorrido, campo, paso, gra
       </div>
       {encima}
       <input id={id} type="range" className="pulso-f6-regla-rango" aria-labelledby={idRotulo}
-        min={recorrido.min} max={recorrido.max} step={paso} value={enPista} aria-valuetext={String(valor)}
-        onChange={(e) => onMover(Number(e.currentTarget.value))}
-        onKeyDown={teclaEn(recorrido, enPista)}
+        min={pista.min} max={pista.max} step={paso} value={enPista} aria-valuetext={String(valor)}
+        onChange={(e) => onMover(acotar(Number(e.currentTarget.value)))}
+        onKeyDown={teclaEn(valores, enPista)}
         onPointerUp={onSoltar} onKeyUp={onSoltar} onBlur={onSoltar} />
       {debajo}
     </div>

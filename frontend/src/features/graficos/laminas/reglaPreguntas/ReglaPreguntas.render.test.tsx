@@ -81,7 +81,7 @@ describe("ReglaPreguntas", () => {
 
   it("la cifra es un slider con su valor escrito, sobre el reparto con la línea del corte", () => {
     const html = pintar({ tipo: "mayor_diferencia", n: 2 });
-    expect(html).toMatch(/<input[^>]*type="range"[^>]*min="1"[^>]*max="3"[^>]*value="2"/);
+    expect(html).toMatch(/<input[^>]*type="range"[^>]*min="0"[^>]*max="3"[^>]*value="2"/);
     expect(html).toMatch(/<input[^>]*type="range"[^>]*aria-labelledby="[^"]+-cifra-rotulo"/);
     expect(html).toMatch(/<input[^>]*class="pulso-f6-input pulso-f6-regla-numero"[^>]*value="2"/);
     expect(html).toContain('role="img"');
@@ -90,17 +90,37 @@ describe("ReglaPreguntas", () => {
     expect(html).toContain("data-qa-geometry-member");
     expect(html.match(/class="pulso-f6-regla-minibarra( is-entra)?"/g)).toHaveLength(3);
     expect(html).toContain("Corte 26");
+    expect(html).toContain(">1.º<");
+    expect(html).toContain(">3.º<");
+    expect(html).not.toContain("La lámina nativa admite");   // sin tope_filas no hay límite
   });
 
-  it("por umbral el reparto va sobre 0–100 con el corte en el umbral; el tope va junto al corte", () => {
+  it("por umbral el reparto va sobre 0–100 con el corte en el umbral; el límite de la lámina va junto al corte", () => {
     const aviso = "3 preguntas bajo 60%; la lámina nativa admite 2 y la escala sale como imagen.";
-    const html = pintar({ tipo: "bajo_umbral", umbral: 60 }, { ...CONTEO, conteo: { ...CONTEO.conteo!, avisos: [aviso] } }, "p_barras_divergentes");
+    const html = pintar({ tipo: "bajo_umbral", umbral: 60 }, { ...CONTEO, conteo: { ...CONTEO.conteo!, seleccionadas: ["p3", "p2", "p1"], avisos: [aviso], tope_filas: 2 } }, "p_barras_divergentes");
     expect(html).toMatch(/<input[^>]*type="range"[^>]*min="0"[^>]*max="100"[^>]*value="60"/);
     expect(html).toMatch(/class="pulso-f6-regla-reparto-corte" data-corte="60"[^>]*x1="60\.000%"/);
     expect(html.match(/<circle class="pulso-f6-regla-reparto-punto/g)).toHaveLength(3);
     const corte = html.slice(html.indexOf("pulso-f6-regla-corte"), html.indexOf("pulso-f6-regla-resultado"));
-    expect(corte).toContain(aviso);
-    expect(html.split(aviso)).toHaveLength(2);   // una sola vez: no se repite en la lista de avisos
+    // Entran 3 y el límite es 2: pasa a aviso.
+    expect(corte).toMatch(/class="pulso-f6-regla-tope is-excedido"[^>]*title="3 preguntas bajo 60%/);
+    expect(corte).toMatch(/La lámina nativa admite (<!-- -->)?2</);
+    expect(html).toContain("pulso-f6-regla-reparto-tope");
+    expect(html.split(aviso)).toHaveLength(2);   // sólo en el título del chip: no se repite en la lista de avisos
+  });
+
+  it("el límite se ve en tono neutro mientras la selección cabe", () => {
+    const html = pintar({ tipo: "bajo_umbral", umbral: 10 }, { ...CONTEO, conteo: { ...CONTEO.conteo!, avisos: [], tope_filas: 20 } }, "p_barras_divergentes");
+    expect(html).toMatch(/class="pulso-f6-regla-tope"/);
+    expect(html).not.toContain("is-excedido");
+    expect(html).not.toContain("pulso-f6-regla-reparto-tope");
+  });
+
+  it("C3: con ninguna candidata dentro, la línea del corte va arriba de la lista", () => {
+    const todo = pintar({ tipo: "bajo_umbral", umbral: 0 }, CONTEO, "p_barras_divergentes");
+    const lista = todo.slice(todo.indexOf("pulso-f6-regla-filas"));
+    expect(lista.indexOf(">Corte<")).toBeGreaterThan(-1);
+    expect(lista.indexOf(">Corte<")).toBeLessThan(lista.indexOf("data-tema="));
   });
 
   it("las filas siguen el orden de la lámina, con la línea del corte y los empates rotulados", () => {

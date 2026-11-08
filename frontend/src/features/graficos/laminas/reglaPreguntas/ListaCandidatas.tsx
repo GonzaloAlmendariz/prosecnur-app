@@ -29,11 +29,18 @@ type Props = {
 export function ListaCandidatas({ regla, filas, encendida, marcas, reparto, rotuloMetrica, etiquetaLista, resaltada, onResaltar, onAlternar }: Props) {
   const lista = useRef<HTMLUListElement>(null);
 
-  // Resaltada desde el reparto: la fila se trae a la vista dentro de la lista (sin mover la página).
+  // Resaltada desde el reparto: la fila se trae a la vista moviendo SÓLO la lista (scrollIntoView desplazaba también el
+  // inspector y la página).
   useEffect(() => {
-    if (!resaltada || resaltada.desde !== "reparto" || !lista.current) return;
-    const fila = Array.from(lista.current.children).find((el) => el instanceof HTMLElement && el.dataset.tema === resaltada.tema);
-    if (fila instanceof HTMLElement && typeof fila.scrollIntoView === "function") fila.scrollIntoView({ block: "nearest" });
+    const ul = lista.current;
+    if (!resaltada || resaltada.desde !== "reparto" || !ul) return;
+    const fila = Array.from(ul.children).find((el) => el instanceof HTMLElement && el.dataset.tema === resaltada.tema);
+    if (!(fila instanceof HTMLElement)) return;
+    // La lista es `position: relative`: el offsetTop de la fila se mide desde ella.
+    const arriba = fila.offsetTop;
+    const abajo = arriba + fila.offsetHeight;
+    if (arriba < ul.scrollTop) ul.scrollTop = arriba;
+    else if (abajo > ul.scrollTop + ul.clientHeight) ul.scrollTop = abajo - ul.clientHeight;
   }, [resaltada]);
 
   return (
@@ -59,7 +66,7 @@ export function ListaCandidatas({ regla, filas, encendida, marcas, reparto, rotu
                 onMouseEnter={() => onResaltar({ tema: c.tema, desde: "lista" })}
                 onFocus={() => onResaltar({ tema: c.tema, desde: "lista" })}>
                 <span className="pulso-f6-regla-metrica">{textoMetrica(c.metrica)}</span>
-                <PulsoSwitch size="sm" label={c.etiqueta} checked={on}
+                <PulsoSwitch size="sm" label={c.etiqueta} title={c.etiqueta} checked={on}
                   disabled={filaBloqueada(regla, c.tema, on)}
                   onCheckedChange={() => onAlternar(c.tema, on, alternarFila(regla, c.tema, on))} />
                 {empate && <span className="pulso-f6-regla-empate">Empate</span>}
@@ -68,6 +75,7 @@ export function ListaCandidatas({ regla, filas, encendida, marcas, reparto, rotu
             </Fragment>
           );
         })}
+        {marcas.alFinal && <li className="pulso-f6-regla-linea-corte" aria-hidden="true"><span>Corte</span></li>}
       </ul>
     </Panel>
   );
