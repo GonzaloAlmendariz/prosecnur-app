@@ -1,0 +1,125 @@
+/* ChipSeleccion — chip de selección múltiple (contrato A, 8 nov 2026).
+ *
+ * El <span> es la píldora (borde, fondo, alto de 28); el botón conmutador la
+ * llena entera y es el que recibe el foco. La X de quitar es un botón hermano,
+ * quieto, inscrito con radios concéntricos (mismo patrón que ChipConControles).
+ * Todas las reglas del botón interno cancelan lo que pone el `button` global de
+ * theme.css (gradiente, sombra, levantamiento al hover, halo y opacidad). */
+
+.pulso-chip-seleccion {
+  --pulso-chip-sel-alto: var(--pulso-control-height-sm);
+  --pulso-chip-sel-holgura: calc(var(--pulso-space-1) / 2);
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-width: 0;
+  height: var(--pulso-chip-sel-alto);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  transition:
+    background-color var(--motion-dur-fast) var(--motion-ease-out),
+    border-color var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-chip-seleccion:hover:not(.is-deshabilitado) {
+  border-color: var(--pulso-border-strong);
+}
+
+.pulso-chip-seleccion.is-activo {
+  border-color: var(--module-accent-border, var(--pulso-primary-border));
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+}
+
+.pulso-chip-seleccion.is-deshabilitado {
+  border-color: var(--pulso-border);
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-faint);
+}
+
+.pulso-chip-seleccion .pulso-chip-seleccion__alternar {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  max-width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 0 var(--pulso-space-3);
+  border: 0;
+  border-radius: var(--pulso-radius-chip);
+  background: transparent;
+  color: inherit;
+  box-shadow: none;
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-control-weight);
+  line-height: 1.2;
+}
+
+.pulso-chip-seleccion--con-quitar .pulso-chip-seleccion__alternar {
+  padding-inline-end: var(--pulso-space-1);
+}
+
+.pulso-chip-seleccion .pulso-chip-seleccion__alternar:hover:not(:disabled) {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.pulso-chip-seleccion .pulso-chip-seleccion__alternar:hover:not(:disabled):not(:active) {
+  transform: none;
+}
+
+.pulso-chip-seleccion .pulso-chip-seleccion__alternar:focus-visible {
+  outline: var(--mov-foco);
+  outline-offset: 1px;
+  border: 0;
+  box-shadow: none;
+}
+
+.pulso-chip-seleccion .pulso-chip-seleccion__alternar:disabled {
+  opacity: 1;
+  color: inherit;
+  cursor: not-allowed;
+}
+
+.pulso-chip-seleccion__icono {
+  display: inline-flex;
+  flex: none;
+  line-height: 0;
+}
+
+.pulso-chip-seleccion__icono > svg {
+  width: var(--pulso-icon-size-sm);
+  height: var(--pulso-icon-size-sm);
+}
+
+.pulso-chip-seleccion__texto {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* La X: círculo inscrito (alto − 2 bordes − 2 holguras), ícono de 14 y el
+ * impacto de 32 del botón quieto. */
+.pulso-button.pulso-button--icon.pulso-button--quiet.pulso-chip-seleccion__quitar {
+  --pulso-button-height: calc(var(--pulso-chip-sel-alto) - 2px - 2 * var(--pulso-chip-sel-holgura));
+  --pulso-quiet-icon: var(--pulso-icon-size-sm);
+  margin-inline-end: var(--pulso-chip-sel-holgura);
+  border-radius: var(--pulso-radius-chip);
+}
+
+.pulso-chip-seleccion.is-deshabilitado .pulso-button.pulso-button--icon.pulso-button--quiet.pulso-chip-seleccion__quitar:disabled {
+  border-color: transparent;
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-chip-seleccion {
+    transition: none;
+  }
+}
