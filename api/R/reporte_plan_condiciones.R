@@ -167,7 +167,7 @@
 #' @keywords internal
 .plan_render_element_degradable <- function(impl, el) {
   tryCatch(
-    .plan_con_sin_datos_por_grafico(el, .plan_con_etiquetas_cortas(el, impl(el))),  # K12a: etiqueta corta mientras se dibuja
+    .excluir_grupos_nota_al_grafico(el, .plan_con_sin_datos_por_grafico(el, .plan_con_etiquetas_cortas(el, impl(el)))),  # K12a: etiqueta corta mientras se dibuja; grupos excluidos al pie (graficos_excluir_grupos.R)
     pulso_slide_render_error = function(cnd) {
       msg <- .aviso_en_lamina(paste0("no se pudo dibujar y sale con «Sin datos».", .aviso_motivo(conditionMessage(cnd))))
       # El `warning()` es el rastro del log; el `.pulso_aviso()` es lo que llega

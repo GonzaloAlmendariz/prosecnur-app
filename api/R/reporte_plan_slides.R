@@ -2050,6 +2050,8 @@ p_slide_6_graficos_poblacion <- function(
 #' @param temas_de_texto Para una múltiple que codifica un texto abierto en temas (p. ej. `coment_recod` de
 #'   `coment`): el nombre de ese texto. Con él, el % es sobre los comentarios con contenido, la base lo dice y los
 #'   subtemas de un módulo van bajo él (reporte_plan_temas_texto.R). `NULL` (por defecto): sin cambios.
+#' @param excluir_grupos Rótulos o códigos de los grupos de «Dividir por» que no entran: salen de las barras y de la base,
+#'   y la lámina lo dice en su pie (graficos_excluir_grupos.R). `NULL`: todos los grupos.
 #' @examples
 #' p_barras_agrupadas("p102", filtros = list(region = "Lima"))
 #' @family reporte
@@ -2059,7 +2061,7 @@ p_barras_agrupadas <- function(var, titulo = NULL, cruces = NULL, overrides = li
                                etiqueta_otros = NULL, mostrar_significancia = NULL, significancia_alpha = NULL,
                                forzar_ancho_max_eje_y = NULL, marcas_eje = NULL, invertir_barras = NULL,
                                otros_al_final = NULL, normalizar_etiquetas = NULL, residuales_gris = NULL,
-                               temas_de_texto = NULL) {
+                               temas_de_texto = NULL, excluir_grupos = NULL) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
     .plan_spec_abort("`var` debe ser character(1) no vacio.")
   }
@@ -2109,6 +2111,7 @@ p_barras_agrupadas <- function(var, titulo = NULL, cruces = NULL, overrides = li
     cruces        = cruces,
     mostrar_ceros = mostrar_ceros,
     excluir_opciones = excluir_opciones,
+    excluir_grupos = .ppt_norm_chr_vec_arg(excluir_grupos, "excluir_grupos"),
     orden_categorias = .graficos_orden_cat_normalizar(orden_categorias),   # D8 (graficos_orden_categorias.R)
     overrides     = overrides,
     base          = base,
@@ -2198,13 +2201,16 @@ p_barras_categoricas <- function(
 #' @param mostrar_significancia,significancia_alpha Marcar diferencias significativas entre grupos y su nivel. Van a
 #'   `overrides`, de donde los lee el plan; `NULL` hereda el preset.
 #' @param invertir_barras Da la vuelta al orden de las filas (O7c). Va a `overrides`; `NULL` hereda el preset.
+#' @param excluir_grupos Rótulos o códigos de los grupos de «Dividir por» que no entran: salen de las barras y de la base,
+#'   y la lámina lo dice en su pie (graficos_excluir_grupos.R). `NULL`: todos los grupos.
 #' @examples
 #' p_barras_apiladas("p102", filtros = list(region = "Lima"))
 #' @family reporte
 #' @export
 p_barras_apiladas <- function(var, titulo = NULL, cruces = NULL, overrides = list(), base = list(), filtros = list(), excluir_opciones = NULL,
                               mostrar_categorias_en_cero = NULL, mostrar_respuestas = NULL,
-                              mostrar_significancia = NULL, significancia_alpha = NULL, invertir_barras = NULL) {
+                              mostrar_significancia = NULL, significancia_alpha = NULL, invertir_barras = NULL,
+                              excluir_grupos = NULL) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
     .plan_spec_abort("`var` debe ser character(1) no vacio.")
   }
@@ -2235,6 +2241,7 @@ p_barras_apiladas <- function(var, titulo = NULL, cruces = NULL, overrides = lis
     title_slide   = titulo,
     cruces        = cruces,
     excluir_opciones = excluir_opciones,
+    excluir_grupos = .ppt_norm_chr_vec_arg(excluir_grupos, "excluir_grupos"),
     overrides     = overrides,
     base          = base,
     filtros       = filtros
@@ -2262,6 +2269,8 @@ p_barras_apiladas <- function(var, titulo = NULL, cruces = NULL, overrides = lis
 #'   Es la ÚNICA vía para titular esa figura: el `titulo` de la lámina no la titula a propósito (D-b, decisión del
 #'   usuario del 2026-10-22: con el título de lámina salían varios «Gráfico N» idénticos). Sin declarar, el rótulo queda
 #'   «Gráfico N° N» (fijado en test-word-multiapiladas-modos.R).
+#' @param excluir_grupos Rótulos o códigos de los grupos del cruce que no entran (modos `cruce` y `var_cruce`): salen de
+#'   las barras y de la base, y la lámina lo dice en su pie (graficos_excluir_grupos.R). `NULL`: todos los grupos.
 #' @examples
 #' p_barras_multiapiladas(
 #'   modo = "cruce",
@@ -2303,7 +2312,8 @@ p_barras_multiapiladas <- function(
     invertir_barras = NULL,
     mostrar_significancia = NULL, significancia_alpha = NULL,   # U11: sólo los lee el modo `cruce`
     word_multiapiladas = NULL,
-    word_titulo_figura = NULL
+    word_titulo_figura = NULL,
+    excluir_grupos = NULL
 ) {
   .ppt_as_chr_vec <- function(x, keep_names = FALSE) {
     if (is.null(x)) return(NULL)
@@ -2413,6 +2423,7 @@ p_barras_multiapiladas <- function(
   # W6/D6: cuántas figuras Word sale de esta lámina; NULL hereda el informe (reporte_word_multi_modos.R)
   word_multiapiladas <- .word_multi_modo_normalizar(word_multiapiladas, "la lámina")
   word_titulo_figura <- .word_titulo_figura_normalizar(word_titulo_figura)   # reporte_word_multi_modos.R
+  excluir_grupos <- .ppt_norm_chr_vec_arg(excluir_grupos, "excluir_grupos")   # sólo `cruce` y `var_cruce` (graficos_excluir_grupos.R)
 
   if (identical(modo, "multilista")) {
     if (!is.list(bloques) || !length(bloques)) {
@@ -2594,6 +2605,7 @@ p_barras_multiapiladas <- function(
       vars           = vars,
       var            = NULL,
       cruce          = cruces,
+      excluir_grupos = excluir_grupos,
       title_slide    = titulo,
       wrap_y         = wrap_y,
       top2box        = .barra_extra_top2box_de(top2box, overrides),
@@ -2626,6 +2638,7 @@ p_barras_multiapiladas <- function(
     vars           = NULL,
     var            = var,
     cruce          = cruces,
+    excluir_grupos = excluir_grupos,
     title_slide    = titulo,
     wrap_y         = wrap_y,
     top2box        = .barra_extra_top2box_de(top2box, overrides),

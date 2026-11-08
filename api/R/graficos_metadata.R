@@ -1196,6 +1196,9 @@
            descripcion = "La pregunta que quieres graficar."),
       list(name = "cruces", label = "Dividir por",tipo_input = "variable_opt", grupo = "datos",
            descripcion = "Segunda variable para segmentar (ej. sexo, región). Si la dejas vacía, muestra una serie única."),
+      # I2 (Gonzalo, 2026-11-08): el analista decide qué grupos del cruce entran; misma forma que en p_histograma.
+      list(name = "excluir_grupos", label = "Excluir grupos", tipo_input = "codigos_list", grupo = "datos",
+           descripcion = "Grupos de \"Dividir por\" que no entran en el gráfico, por ejemplo uno con pocos casos. Salen de las barras y de la base, y el pie de la lámina lo dice."),
       list(name = "mostrar_significancia", label = "Marcar diferencias significativas", tipo_input = "bool", grupo = "datos",
            default = FALSE,
            descripcion = "Agrega a cada barra la letra de los grupos a los que supera de forma significativa, con la misma prueba que usan las tablas de cruces. Necesita un cruce con dos o más grupos."),
@@ -1411,6 +1414,9 @@
            descripcion = "Variable categórica, típicamente de escala (Likert)."),
       list(name = "cruces", label = "Dividir por", tipo_input = "variable_opt", grupo = "datos",
            descripcion = "Si la eliges, cada barra es un grupo de la variable de cruce."),
+      # I2 (Gonzalo, 2026-11-08): el analista decide qué grupos del cruce entran; misma forma que en p_histograma.
+      list(name = "excluir_grupos", label = "Excluir grupos", tipo_input = "codigos_list", grupo = "datos",
+           descripcion = "Grupos de \"Dividir por\" que no entran en el gráfico, por ejemplo uno con pocos casos. Salen de las barras y de la base, y el pie de la lámina lo dice."),
       list(name = "mostrar_significancia", label = "Marcar diferencias significativas", tipo_input = "bool", grupo = "datos",
            default = FALSE,
            descripcion = "Agrega a cada segmento la letra de los grupos a los que supera de forma significativa, con la misma prueba que usan las tablas de cruces. Necesita un cruce con dos o más grupos."),
@@ -1460,6 +1466,10 @@
       list(name = "cruces",        label = "Dividir por", tipo_input = "variable_opt", grupo = "datos",
            depende = list(arg = "modo", valores = list("cruce", "var_cruce")),
            descripcion = "Cada grupo de esta variable abre su propia barra."),
+      # I2 (Gonzalo, 2026-11-08): el analista decide qué grupos del cruce entran; misma forma que en p_histograma.
+      list(name = "excluir_grupos", label = "Excluir grupos", tipo_input = "codigos_list", grupo = "datos",
+           depende = list(arg = "modo", valores = list("cruce", "var_cruce")),
+           descripcion = "Grupos de \"Dividir por\" que no entran en el gráfico, por ejemplo uno con pocos casos. Salen de las barras y de la base, y el pie de la lámina lo dice."),
       # U11 (checklist de mandos del mazo, 2026-11-05): el render por cruce ya marcaba las diferencias
       # (`.graficos_sig_aplicar_transpuesto`, reporte_plan_ppt.R) pero el mando no se ofrecía ni era formal.
       list(name = "mostrar_significancia", label = "Marcar diferencias significativas", tipo_input = "bool", grupo = "datos",
