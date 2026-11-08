@@ -240,10 +240,18 @@ const ascendente = (tipo: TipoReglaPreguntas) => tipo === "bajo_umbral";
 /**
  * Las candidatas en el orden de la lámina: por la métrica de la regla, de mayor a menor (de menor a mayor bajo un
  * umbral), sin dato al final y el orden del instrumento como desempate. «Elegidas a mano» conserva el del instrumento.
+ *
+ * H8: en la escala con «más Sin información» el motor desempata por Top Two Box (graficos_regla_orden_escala.R), dato que
+ * las candidatas no traen; sí traen el resultado: `seleccionadas` llega en el orden del motor. Con `ordenMotor`, un
+ * empate entre dos elegidas sigue ese orden, y una elegida va antes que una que no entró; lo demás, el instrumento.
  */
-export function ordenFilas<T extends Pick<CandidataRegla, "metrica">>(tipo: TipoReglaPreguntas, candidatas: readonly T[]): T[] {
+export function ordenFilas<T extends Pick<CandidataRegla, "metrica"> & { tema?: string }>(
+  tipo: TipoReglaPreguntas, candidatas: readonly T[], ordenMotor: readonly string[] = [],
+): T[] {
   if (tipo === "a_mano") return [...candidatas];
   const signo = ascendente(tipo) ? 1 : -1;
+  const posMotor = new Map(tipo === "mayor_sin_info" ? ordenMotor.map((t, i) => [t, i] as const) : []);
+  const enMotor = (c: T): number | undefined => (c.tema === undefined ? undefined : posMotor.get(c.tema));
   return candidatas
     .map((c, i) => ({ c, i }))
     .sort((a, b) => {
@@ -251,6 +259,9 @@ export function ordenFilas<T extends Pick<CandidataRegla, "metrica">>(tipo: Tipo
       const fa = ma !== null && Number.isFinite(ma), fb = mb !== null && Number.isFinite(mb);
       if (fa !== fb) return fa ? -1 : 1;
       if (fa && fb && ma !== mb) return signo * ((ma as number) - (mb as number));
+      const pa = enMotor(a.c), pb = enMotor(b.c);
+      if (pa !== undefined && pb !== undefined) return pa - pb;
+      if (pa !== undefined || pb !== undefined) return pa !== undefined ? -1 : 1;
       return a.i - b.i;
     })
     .map((x) => x.c);

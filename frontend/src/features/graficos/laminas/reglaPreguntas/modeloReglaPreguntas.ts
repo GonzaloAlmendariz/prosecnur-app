@@ -23,7 +23,7 @@ export const ROTULO_TIPO: Readonly<Record<TipoReglaPreguntas, string>> = {
   mayor_diferencia: "Las de mayor diferencia",
   diferencia_minima: "Con diferencia de al menos",
   mayor_sin_info: "Las de más Sin información",
-  bajo_umbral: "Bajo un umbral en algún público",
+  bajo_umbral: "Bajo un umbral",
   extremos: "Las más altas y las más bajas",
   a_mano: "Elegidas a mano",
 };
@@ -190,13 +190,16 @@ export function valorCifra(r: ReglaPreguntas): number | null {
  * graficos_regla_preguntas.R). Con dos públicos la distancia es su diferencia; con tres o más, la distancia entre el más
  * alto y el más bajo; con uno, el valor del indicador (Q2-12: «Todas las de escala» del panorama de tres públicos se
  * rotulaba «Diferencia»). `indicador` es el nombre que la lámina le da (`corte_etiqueta`).
+ *
+ * H5: bajo un umbral, cada fila es una pregunta de un público (tema `base$var`): la cifra es la de ese público, nunca un
+ * «Mínimo entre públicos», que describiría una regla que compara grupos.
  */
 export function rotuloMetrica(tipo: TipoReglaPreguntas, grupos: number, indicador = ""): string {
   const delIndicador = indicador.trim() || "Indicador";
   const distancia = grupos >= 3 ? "Distancia" : "Diferencia";
   if (tipo === "mayor_sin_info") return "Sin información";
   if (tipo === "mayor_diferencia" || tipo === "diferencia_minima") return distancia;
-  if (tipo === "bajo_umbral") return grupos >= 2 ? "Mínimo entre públicos" : delIndicador;
+  if (tipo === "bajo_umbral") return delIndicador;
   if (tipo === "extremos") return grupos >= 2 ? "Promedio" : delIndicador;
   return grupos >= 2 ? distancia : delIndicador;
 }
@@ -216,9 +219,10 @@ export function textoConteo(c: Pick<ConteoRegla, "seleccionadas" | "total">): st
 }
 
 /**
- * La regla dicha en una línea, sin pedir nada al motor ni nombrar públicos: «Las 13 de mayor diferencia», «Bajo 60% en
- * algún público». La usan la tarjeta del mazo (que le suma los públicos) y la ficha de la maqueta, que con una regla
- * resume la regla y no la lista cruda de preguntas (M3). `grupos`: cuántos públicos lee la lámina.
+ * La regla dicha en una línea, sin pedir nada al motor ni nombrar públicos: «Las 13 de mayor diferencia», «Bajo 60%».
+ * Bajo un umbral cada fila es una pregunta de un público, así que no dice «en algún público» (H5). La usan la tarjeta
+ * del mazo (que le suma los públicos) y la ficha de la maqueta, que con una regla resume la regla y no la lista cruda
+ * de preguntas (M3). `grupos`: cuántos públicos lee la lámina.
  */
 export function reglaEnCorto(regla: ReglaPreguntas, grupos: number): string {
   const v = valorCifra(regla);
@@ -229,29 +233,35 @@ export function reglaEnCorto(regla: ReglaPreguntas, grupos: number): string {
     case "mayor_diferencia": return `Las ${cifra} de mayor diferencia`;
     case "diferencia_minima": return `Con diferencia de al menos ${cifra} puntos`;
     case "mayor_sin_info": return `Las ${cifra} de más Sin información`;
-    case "bajo_umbral": return `Bajo ${cifra}% ${grupos > 1 ? "en algún público" : "del indicador"}`;
+    case "bajo_umbral": return `Bajo ${cifra}%`;
     case "extremos": return `Las ${cifra} más altas y las ${cifra} más bajas`;
     case "a_mano": return `${formatoConteo(regla.agregar?.length ?? 0)} elegidas a mano`;
   }
 }
 
 /**
- * La regla en corto con cuántas elige el motor (M3, la ficha de la maqueta): «Las 22 bajo 60% en algún público». Sin
- * `total` (el conteo no llegó), la regla sola, igual que `reglaEnCorto`. Las reglas que ya dicen su número (extremos, a
- * mano) no lo repiten.
+ * La regla en corto con cuántas elige el motor (M3, la ficha de la maqueta): «Las 22 bajo 60%». `total` es cuántas
+ * elige (las seleccionadas, `elegidasPorRegla`), no el universo. Sin él (el conteo no llegó), la regla sola, igual que
+ * `reglaEnCorto`. «A mano» ya dice su número. Extremos también lo recibe (H5): con menos candidatas que las pedidas,
+ * dice cuántas salen en vez de prometer «las 5 más altas y las 5 más bajas».
  */
 export function reglaConConteo(regla: ReglaPreguntas, grupos: number, total: number | null | undefined): string {
   const corto = reglaEnCorto(regla, grupos);
-  if (total === null || total === undefined || !Number.isFinite(total) || regla.tipo === "extremos" || regla.tipo === "a_mano") return corto;
+  if (total === null || total === undefined || !Number.isFinite(total) || regla.tipo === "a_mano") return corto;
   const cifra = formatoConteo(valorCifra(regla) ?? 0);
   const cuantas = total === 0 ? "Ninguna" : total === 1 ? "Una" : `Las ${formatoConteo(total)}`;
+  if (regla.tipo === "extremos") {
+    const n = valorCifra(regla) ?? 0;
+    if (total >= n * 2) return corto;
+    return total === 0 ? "Ninguna entre las más altas y las más bajas" : `${cuantas} entre las más altas y las más bajas`;
+  }
   switch (regla.tipo) {
     case "todas": return total === 1 ? "Una pregunta de escala" : `${cuantas} preguntas de escala`;
     case "comunes": return total === 1 ? "Una pregunta común" : `${cuantas} preguntas comunes`;
     case "mayor_diferencia": return `${cuantas} de mayor diferencia`;
     case "diferencia_minima": return `${cuantas} con diferencia de al menos ${cifra} puntos`;
     case "mayor_sin_info": return `${cuantas} de más Sin información`;
-    case "bajo_umbral": return `${cuantas} bajo ${cifra}% ${grupos > 1 ? "en algún público" : "del indicador"}`;
+    case "bajo_umbral": return `${cuantas} bajo ${cifra}%`;
   }
 }
 

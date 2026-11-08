@@ -102,6 +102,17 @@ describe("las filas en el orden de la lámina", () => {
     expect(ordenFilas("bajo_umbral", C).map((c) => c.tema)).toEqual(["p8", "p3", "p1", "p2", "p5", "p7", "p4", "p6"]);
     expect(ordenFilas("a_mano", C).map((c) => c.tema)).toEqual(C.map((c) => c.tema));
   });
+  it("H8: con más Sin información, un empate sigue el orden del motor (que desempata por Top Two Box), no el del instrumento", () => {
+    const E = [
+      { tema: "q1", metrica: 9 }, { tema: "q2", metrica: 12 }, { tema: "q3", metrica: 9 }, { tema: "q4", metrica: 9 }, { tema: "q5", metrica: null },
+    ];
+    // El motor eligió q2, q4 y q3 (q4 antes que q3 por su Top Two Box); q1 empata pero no entró.
+    expect(ordenFilas("mayor_sin_info", E, ["q2", "q4", "q3"]).map((c) => c.tema)).toEqual(["q2", "q4", "q3", "q1", "q5"]);
+    // Sin el orden del motor, el instrumento (lo de siempre).
+    expect(ordenFilas("mayor_sin_info", E).map((c) => c.tema)).toEqual(["q2", "q1", "q3", "q4", "q5"]);
+    // En otras reglas el orden del motor no desempata: el motor elige por instrumento.
+    expect(ordenFilas("mayor_diferencia", E, ["q2", "q4", "q3"]).map((c) => c.tema)).toEqual(["q2", "q1", "q3", "q4", "q5"]);
+  });
   it("la línea del corte va entre las que entran por la regla y las que no; los empates en el corte se marcan", () => {
     const regla = { tipo: "mayor_diferencia" as const, n: 3 };
     const m = marcasDeCorte(regla, ordenFilas(regla.tipo, C));

@@ -113,9 +113,14 @@ describe("conteo y firma", () => {
     expect(rotuloMetrica("todas", 3, "Top Two Box")).toBe("Distancia");
     expect(rotuloMetrica("mayor_diferencia", 3)).toBe("Distancia");
     expect(rotuloMetrica("extremos", 1, "Top Box")).toBe("Top Box");
-    expect(rotuloMetrica("bajo_umbral", 3)).toBe("Mínimo entre públicos");
-    expect(rotuloMetrica("bajo_umbral", 2)).toBe("Mínimo entre públicos");
+    // H5: bajo un umbral cada fila es pregunta × público; la cifra es la del indicador, no un «Mínimo entre públicos».
+    expect(rotuloMetrica("bajo_umbral", 3, "Top Two Box")).toBe("Top Two Box");
+    expect(rotuloMetrica("bajo_umbral", 2, "Top Two Box")).toBe("Top Two Box");
+    expect(rotuloMetrica("bajo_umbral", 2)).toBe("Indicador");
     expect(rotuloMetrica("bajo_umbral", 1, "Top Two Box")).toBe("Top Two Box");
+    expect(rotuloMetrica("mayor_sin_info", 3)).toBe("Sin información");
+    expect(["comunes", "mayor_diferencia", "diferencia_minima", "bajo_umbral", "mayor_sin_info", "extremos", "todas"]
+      .map((t) => rotuloMetrica(t as Parameters<typeof rotuloMetrica>[0], 3, "Top Two Box"))).not.toContain("Mínimo entre públicos");
   });
   it("la firma no cambia con el orden de las claves ni con un objeto nuevo igual", () => {
     const a = firmaPedidoRegla("p_panorama", { vars: ["d$*"], regla: { tipo: "todas", n: undefined } }, "active");
@@ -162,8 +167,8 @@ describe("R3: la cifra de cada tipo se recuerda al cambiar de tipo y volver", ()
 
 describe("la regla en una línea (mazo y ficha de la maqueta)", () => {
   it("dice el criterio con su cifra, o la de partida si no la tiene", () => {
-    expect(reglaEnCorto({ tipo: "bajo_umbral", umbral: 58 }, 3)).toBe("Bajo 58% en algún público");
-    expect(reglaEnCorto({ tipo: "bajo_umbral" }, 1)).toBe("Bajo 60% del indicador");
+    expect(reglaEnCorto({ tipo: "bajo_umbral", umbral: 58 }, 3)).toBe("Bajo 58%");
+    expect(reglaEnCorto({ tipo: "bajo_umbral" }, 1)).toBe("Bajo 60%");
     expect(reglaEnCorto({ tipo: "mayor_diferencia" }, 2)).toBe("Las 10 de mayor diferencia");
     expect(reglaEnCorto({ tipo: "diferencia_minima" }, 2)).toBe("Con diferencia de al menos 15 puntos");
     expect(reglaEnCorto({ tipo: "a_mano", agregar: ["a", "b"] }, 1)).toBe("2 elegidas a mano");

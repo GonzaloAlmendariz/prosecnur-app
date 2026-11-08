@@ -5,14 +5,26 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+// H1: el universo (total, 157 en Arte) no es lo que elige la regla (las seleccionadas, 22). El fixture los separa.
+const ELEGIDAS = Array.from({ length: 22 }, (_, i) => `p${i + 1}`);
 const contar = vi.hoisted(() => vi.fn(async () => ({
-  total: 22, seleccionadas: ["p1"], candidatas: [{ tema: "p1", etiqueta: "P1", metrica: 41, seleccionada: true }],
+  total: 157, seleccionadas: Array.from({ length: 22 }, (_, i) => `p${i + 1}`),
+  candidatas: [{ tema: "p1", etiqueta: "P1", metrica: 41, seleccionada: true }],
   texto_regla: "Se muestran las 22 bajo 60%.", avisos: [],
 })));
+// H6: la caché se suscribe a los eventos al cargarse; la ventana de prueba guarda sus oyentes para dispararlos.
+const escuchados = vi.hoisted(() => {
+  const m = new Map<string, () => void>();
+  const w = globalThis as { window?: unknown };
+  if (typeof w.window === "undefined") {
+    w.window = { HTMLIFrameElement: class {}, addEventListener: (e: string, f: () => void) => { m.set(e, f); }, removeEventListener: () => undefined };
+  }
+  return m;
+});
 vi.mock("../../../../api/graficosRegla", async (original) => ({ ...(await original<object>()), apiGraficosConteoRegla: contar }));
 
-import { ESPERA_CONTEO_MS, useConteoRegla, useTotalesRegla } from "./useConteoRegla";
-import { olvidarConteosRegla, pedirConteoRegla } from "./cacheConteoRegla";
+import { elegidasPorRegla, ESPERA_CONTEO_MS, useConteoRegla, useTotalesRegla } from "./useConteoRegla";
+import { conteoEnCache, EVENTOS_QUE_OLVIDAN, olvidarConteosRegla, pedirConteoRegla } from "./cacheConteoRegla";
 import { firmaPedidoRegla, reglaConConteo } from "./modeloReglaPreguntas";
 import { firmaReglaDeRanura } from "../maqueta/reglaDeRanura";
 
@@ -54,7 +66,9 @@ describe("caché del conteo de la regla", () => {
     await act(async () => { vi.advanceTimersByTime(ESPERA_CONTEO_MS); });
     await vaciarMicrotareas();
     expect(contar).toHaveBeenCalledTimes(1);
-    expect(inspector?.conteo?.total).toBe(22);
+    expect(inspector?.conteo?.total).toBe(157);
+    expect(inspector?.conteo?.seleccionadas).toEqual(ELEGIDAS);
+    // La ficha dice cuántas elige la regla (22), no el tamaño del universo (157).
     expect(maqueta?.get(FIRMA)).toBe(22);
   });
 
@@ -65,6 +79,25 @@ describe("caché del conteo de la regla", () => {
     await act(async () => { root?.render(<><Inspector /><Maqueta /></>); });
     expect(maqueta?.get(FIRMA)).toBe(22);
     expect(contar).toHaveBeenCalledTimes(1);
+  });
+
+  it("H1: elegidasPorRegla cuenta las seleccionadas, no el universo", () => {
+    expect(elegidasPorRegla({ seleccionadas: ELEGIDAS })).toBe(22);
+    expect(elegidasPorRegla({ seleccionadas: [] })).toBe(0);
+  });
+
+  it("H6: cambiar de sesión, cerrar el proyecto o reprocesar la base vacía la caché", async () => {
+    await act(async () => { root = createRoot(contenedor()); root.render(<Inspector />); });
+    await act(async () => { vi.advanceTimersByTime(ESPERA_CONTEO_MS); });
+    await vaciarMicrotareas();
+    expect(conteoEnCache(FIRMA)).not.toBeNull();
+    for (const evento of EVENTOS_QUE_OLVIDAN) {
+      if (!conteoEnCache(FIRMA)) { pedirConteoRegla(FIRMA, () => undefined); await vaciarMicrotareas(); }
+      expect(conteoEnCache(FIRMA)).not.toBeNull();
+      escuchados.get(evento)?.();
+      expect(conteoEnCache(FIRMA)).toBeNull();
+    }
+    expect([...escuchados.keys()].sort()).toEqual([...EVENTOS_QUE_OLVIDAN].sort());
   });
 
   it("un pedido en vuelo se aborta sólo cuando lo sueltan todos", () => {
@@ -82,11 +115,15 @@ describe("caché del conteo de la regla", () => {
 describe("la regla con su conteo en la ficha", () => {
   const bajo = { tipo: "bajo_umbral" as const, umbral: 60 };
   it("con el número y sin él", () => {
-    expect(reglaConConteo(bajo, 2, 22)).toBe("Las 22 bajo 60% en algún público");
-    expect(reglaConConteo(bajo, 1, 22)).toBe("Las 22 bajo 60% del indicador");
-    expect(reglaConConteo(bajo, 2, null)).toBe("Bajo 60% en algún público");
-    expect(reglaConConteo(bajo, 2, 0)).toBe("Ninguna bajo 60% en algún público");
+    expect(reglaConConteo(bajo, 2, 22)).toBe("Las 22 bajo 60%");
+    expect(reglaConConteo(bajo, 1, 22)).toBe("Las 22 bajo 60%");
+    expect(reglaConConteo(bajo, 2, null)).toBe("Bajo 60%");
+    expect(reglaConConteo(bajo, 2, 0)).toBe("Ninguna bajo 60%");
     expect(reglaConConteo({ tipo: "mayor_diferencia", n: 10 }, 2, 1234)).toBe("Las 1,234 de mayor diferencia");
     expect(reglaConConteo({ tipo: "extremos", n: 5 }, 2, 10)).toBe("Las 5 más altas y las 5 más bajas");
+    // H5: extremos también recibe el conteo; con menos candidatas que las pedidas, dice cuántas salen.
+    expect(reglaConConteo({ tipo: "extremos", n: 5 }, 1, 6)).toBe("Las 6 entre las más altas y las más bajas");
+    expect(reglaConConteo({ tipo: "extremos", n: 5 }, 1, 0)).toBe("Ninguna entre las más altas y las más bajas");
+    expect(reglaConConteo(bajo, 3, 22)).not.toContain("algún público");
   });
 });

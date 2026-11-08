@@ -82,9 +82,19 @@ export function pedirConteoRegla(firma: string, alResolver: (r: ResultadoConteo)
   };
 }
 
-/** Vacía la caché (tests; también sirve si algún día la base cambia por fuera). */
+/** Vacía la caché y aborta lo que estaba en vuelo. */
 export function olvidarConteosRegla() {
   listos.clear();
   for (const v of enVuelo.values()) v.control.abort();
   enVuelo.clear();
+}
+
+/**
+ * H6: la firma no lleva la sesión, el proyecto ni los datos, así que un conteo de otra sesión, de otro proyecto o de la
+ * base antes de reprocesarla se prestaba hasta que venciera. Estos eventos vacían la caché.
+ */
+export const EVENTOS_QUE_OLVIDAN = ["pulso:session-changed", "pulso:project-closed", "pulso:analitica-source-changed"] as const;
+
+if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
+  for (const evento of EVENTOS_QUE_OLVIDAN) window.addEventListener(evento, olvidarConteosRegla);
 }

@@ -286,7 +286,7 @@ function preguntasVisibles(r: RanuraMaqueta, titulos: string[]): string[] {
  */
 export function fichaDeRanura(r: RanuraMaqueta, nombreTipo: string | null, conteos?: readonly ConteoCategoria[] | null, totalRegla?: number | null): FichaInfo {
   const ficha = fichaBase(r, nombreTipo, conteos);
-  // M3: una lámina de resumen con regla dice la regla («Bajo 60% en algún público»), no la lista cruda de preguntas
+  // M3: una lámina de resumen con regla dice la regla («Bajo 60%»), no la lista cruda de preguntas
   // («Docentes, todas las de escala y 2 preguntas más»): qué preguntas salen lo decide la regla, no `vars`.
   const regla = r.graficador && GRAFICADORES_CON_REGLA.has(r.graficador) ? reglaEfectiva(r.graficador, r.args, r.args.regla) : null;
   if (regla && r.graficador && ficha.preguntas.length) {

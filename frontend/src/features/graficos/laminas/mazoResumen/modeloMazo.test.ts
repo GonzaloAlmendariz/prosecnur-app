@@ -177,11 +177,11 @@ describe("la franja y la regla", () => {
     expect(s?.args.vars).toEqual(["estudiantes$*", "docentes$*"]);
     expect(u?.args.regla).toEqual({ tipo: "bajo_umbral", umbral: 60 });
     expect(s?.args.regla).toEqual({ tipo: "mayor_sin_info", n: 12 });
-    expect(u?.reglaEnPalabras).toBe("Bajo 60% en algún público, de estudiantes y docentes");
+    expect(u?.reglaEnPalabras).toBe("Bajo 60%, de estudiantes y docentes");
     expect(s?.reglaEnPalabras).toBe("Las 12 de más Sin información, de estudiantes y docentes");
     const uno = proponerMazo(entrada({ publicos: ["docentes"] }));
     expect(uno.find((p) => p.id === "escala_umbral")?.args.vars).toEqual(["docentes$*"]);
-    expect(uno.find((p) => p.id === "escala_umbral")?.reglaEnPalabras).toBe("Bajo 60% del indicador, de docentes");
+    expect(uno.find((p) => p.id === "escala_umbral")?.reglaEnPalabras).toBe("Bajo 60%, de docentes");
   });
 });
 
@@ -204,7 +204,7 @@ describe("los públicos que lee cada tarjeta y las palabras", () => {
   it("la regla en palabras", () => {
     expect(listaPublicos(["estudiantes", "docentes", "personal_admin"])).toBe("Estudiantes, docentes y personal admin");
     expect(reglaEnPalabras({ tipo: "todas" }, ["docentes", "estudiantes"])).toBe("Todas las preguntas de escala, de docentes y estudiantes");
-    expect(reglaEnPalabras({ tipo: "bajo_umbral", umbral: 60 }, ["docentes"])).toBe("Bajo 60% del indicador, de docentes");
+    expect(reglaEnPalabras({ tipo: "bajo_umbral", umbral: 60 }, ["docentes"])).toBe("Bajo 60%, de docentes");
     expect(reglaEnPalabras({ tipo: "extremos", n: 5 }, ["docentes"])).toBe("Las 5 más altas y las 5 más bajas, de docentes");
     expect(proponerMazo(entrada()).find((p) => p.id === "fortalezas:docentes")?.reglaEnPalabras)
       .toBe("Las 5 más altas y las 5 más bajas, de docentes");

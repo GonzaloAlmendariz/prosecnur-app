@@ -80,7 +80,13 @@ export function useConteoRegla(graficador: string, args: Args, scope: "active" |
 }
 
 /**
- * El total que elige cada firma, para quien sólo necesita el número (la ficha de la maqueta: «Las 22 bajo 60%»). Va por
+ * Cuántas elige la regla: las seleccionadas. `total` es el tamaño del universo de candidatas (157 en Arte), no lo que la
+ * regla elige (22): la ficha decía «Las 157 bajo 60%» (H1 de la revisión metodológica).
+ */
+export const elegidasPorRegla = (c: Pick<ConteoRegla, "seleccionadas">): number => c.seleccionadas.length;
+
+/**
+ * Cuántas elige cada firma, para quien sólo necesita el número (la ficha de la maqueta: «Las 22 bajo 60%»). Va por
  * la misma caché que `useConteoRegla`, así que el inspector y la maqueta abiertos a la vez hacen un solo pedido. Mientras
  * una firma no responde (o si responde con error), no está en el mapa: la ficha dice la regla sin número.
  */
@@ -97,7 +103,7 @@ export function useTotalesRegla(firmas: readonly string[]): ReadonlyMap<string, 
       for (const firma of lista) {
         sueltas.push(pedirConteoRegla(firma, (r) => {
           if (!r.conteo) return;
-          const total = r.conteo.total;
+          const total = elegidasPorRegla(r.conteo);
           setTotales((prev) => (prev.get(firma) === total ? prev : new Map([...prev, [firma, total]])));
         }));
       }
@@ -114,7 +120,7 @@ function totalesEnCache(clave: string): ReadonlyMap<string, number> {
   const m = new Map<string, number>();
   for (const f of clave ? clave.split("\n") : []) {
     const c = conteoEnCache(f);
-    if (c) m.set(f, c.total);
+    if (c) m.set(f, elegidasPorRegla(c));
   }
   return m;
 }
