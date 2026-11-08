@@ -41,7 +41,8 @@ source("setup-load-all.R")
                           presets = presets_ppt, solo_lista = TRUE, mensajes_progreso = FALSE)
   plots <- Filter(function(p) inherits(p, "ggplot"), res$rendered)
   expect_gte(length(plots), 1L)
-  unlist(lapply(plots, .wsw_textos))
+  # G5 (ola 2): en la lámina la cabecera se escribe «TOP TWO BOX» (la forma del estándar); el Word conserva «Top Two Box».
+  sub("^TOP TWO BOX$", "Top Two Box", unlist(lapply(plots, .wsw_textos)))
 }
 
 test_that(".word_barra_extra_solo_word resuelve la columna del Word y consume la clave", {
