@@ -62,14 +62,29 @@ test_that("por base: el público, su n y las preguntas por tipo, sin solaparse y
 
 test_that("«escala» es el mismo criterio que la regla de preguntas (ADR 0135): batería o declarada ordinal", {
   src <- .inv_fuentes()
-  # Mismo conjunto que `.regla_preguntas_de_base`, salvo la `_recod`, que el inventario no cuenta dos veces.
+  # Mismo conjunto que `.regla_preguntas_de_base`, que tampoco cuenta dos veces q1 y q1_recod.
   regla <- .regla_preguntas_de_base("docentes", character(0), src)
-  expect_identical(.graficos_inventario_preguntas("docentes", src)$escala, length(regla[!grepl("_recod$", regla)]))
+  expect_identical(regla, c("q1", "q2", "q3", "q4"))
+  expect_identical(.graficos_inventario_preguntas("docentes", src)$escala, length(regla))
   # Declarar la lista ordinal en Estudiantes convierte sus dos lk en escala; declararla nominal en Docentes la apaga.
   src$inst_sources$estudiantes$listas_ordinales_declaradas <- "lk"
   src$inst_sources$docentes$listas_nominales <- "lk"
   expect_identical(.graficos_inventario_preguntas("estudiantes", src)[c("escala", "opcion_unica")], list(escala = 2L, opcion_unica = 1L))
   expect_identical(.graficos_inventario_preguntas("docentes", src)[c("escala", "opcion_unica")], list(escala = 0L, opcion_unica = 5L))
+})
+
+test_that("una pregunta y su `_recod` cuentan una vez en la regla y en el inventario; una `_recod` sola sí cuenta", {
+  src <- .inv_fuentes()
+  # q1 y q1_recod están las dos en el instrumento y en la base: una pregunta de escala, la original.
+  expect_false("q1_recod" %in% .regla_preguntas_de_base("docentes", character(0), src))
+  expect_identical(.regla_es_recod_repetida(c("q1", "q1_recod", "q7_recod", NA)), c(FALSE, TRUE, FALSE, FALSE))
+  # Sin la original en la base, la recodificada es la pregunta: cuenta, en los dos sitios por igual.
+  src$data_sources$docentes$q1 <- NULL
+  regla <- .regla_preguntas_de_base("docentes", character(0), src)
+  expect_identical(regla, c("q2", "q3", "q4", "q1_recod"))
+  expect_identical(.graficos_inventario_preguntas("docentes", src)$escala, 4L)
+  # Y el `$*` de la regla (el universo del panorama) toma la misma lista.
+  expect_identical(.regla_preguntas_de_base("docentes", c("4", "5"), .inv_fuentes()), c("q1", "q2", "q3", "q4"))
 })
 
 test_that("el padrón declarado viene de Cálculo de muestra por base; sin él, declarado = FALSE con su motivo", {

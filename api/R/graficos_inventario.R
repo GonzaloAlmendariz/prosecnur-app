@@ -13,7 +13,8 @@
 #       abierta       `text`, salvo identificadores y datos de contacto (código, DNI, correo, teléfono, nombre…);
 #                     un comentario y un «Otro (especifique)» sí cuentan;
 #     Una pregunta cuenta si su columna está en la base. Quedan fuera los metadatos operativos (consentimiento,
-#     prueba/real, disponibilidad: `.graficos_is_operational_metadata`), las `_recod`, que son la misma pregunta, y las
+#     prueba/real, disponibilidad: `.graficos_is_operational_metadata`), la `_recod` de una pregunta que está en la base,
+#     que es la misma pregunta (`.regla_es_recod_repetida`, el mismo criterio de la regla), y las
 #     variables virtuales que Gráficos agrega a la fuente (`__district`, `__age_group`…).
 #   - el padrón declarado: la propuesta de `.graficos_padron_por_base` (Cálculo de muestra o Monitoreo). La
 #     confirmación es otro paso: la tarjeta de cobertura la escribe en el payload.
@@ -71,12 +72,14 @@
     if (!is.data.frame(ch) || !all(c("list_name", "name") %in% names(ch)) || !nzchar(lista)) return(character(0))
     as.character(ch$name[as.character(ch$list_name) == lista])
   }
-  keep <- nzchar(nombres) & !grepl("_recod$", nombres) & !startsWith(nombres, "__") & !duplicated(nombres) &
-    !vapply(seq_along(nombres), function(i) isTRUE(.graficos_is_operational_metadata(nombres[i], etiquetas[i])), logical(1))
   en_datos <- nombres %in% columnas
-  es_multiple <- keep & tipo == "select_multiple" &
-    vapply(seq_along(nombres), function(i) tipo[i] == "select_multiple" &&
-             .graficos_inventario_multiple_en_datos(nombres[i], codigos_de(listas[i]), columnas), logical(1))
+  multiple_en_datos <- vapply(seq_along(nombres), function(i) tipo[i] == "select_multiple" &&
+                                .graficos_inventario_multiple_en_datos(nombres[i], codigos_de(listas[i]), columnas), logical(1))
+  # Una `_recod` cuenta sólo si su original no está en la base (columna o dummies): el criterio de la regla.
+  keep <- nzchar(nombres) & !.regla_es_recod_repetida(nombres, nombres[en_datos | multiple_en_datos]) &
+    !startsWith(nombres, "__") & !duplicated(nombres) &
+    !vapply(seq_along(nombres), function(i) isTRUE(.graficos_is_operational_metadata(nombres[i], etiquetas[i])), logical(1))
+  es_multiple <- keep & multiple_en_datos
   escala <- intersect(.regla_preguntas_de_base(base, character(0), sources) %||% character(0), nombres[keep])
   unica <- setdiff(nombres[keep & en_datos & tipo == "select_one"], escala)
   abiertas <- keep & en_datos & tipo == "text" &

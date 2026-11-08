@@ -5,8 +5,11 @@
 # El selector dice, por cada tipo, qué datos usa y si el estudio los tiene (el inventario sale de
 # GET /api/graficos/resumenes/inventario). La forma es:
 #
-#   usa = {pregunta: "escala" | "opcion_unica" | "multiple" | "numerica" | "abierta" | "cualquiera",
+#   usa = {pregunta: ["escala" | "opcion_unica" | "multiple" | "numerica" | "abierta"] | ["cualquiera"],
 #          publicos: "uno" | "varios" | "uno_o_varios", padron: boolean, cruce: boolean}
+#
+# `pregunta` es un arreglo ordenado: el tipo principal primero y después los demás que el gráfico acepta, para que el
+# selector pueda decir todo lo que el gráfico dibuja. «cualquiera» va solo.
 #
 # Qué sale de los args del registro y qué no:
 #   - `cruce` SÍ sale: el graficador declara un arg `cruce`, `cruces` o `grupo` que pide una variable. Significa «puede
@@ -17,11 +20,11 @@
 #     ADR 0135 §5), todo graficador con un arg `bases` admite varios públicos, y el padrón sólo lo pide la cobertura.
 #   - «cualquiera» es «no pide un tipo de pregunta»: la cifra (porcentaje, n, media) y los que no leen preguntas (la
 #     cobertura lee casos y padrón; el mapa de cobertura, las hojas de ruta).
-#   - Un graficador que acepta dos tipos declara el principal: las barras agrupadas y el ranking también dibujan una
-#     múltiple, y el radar y la tabla también abren las opciones de una múltiple (modo `sm`).
+#   - Un graficador que acepta dos tipos los declara los dos, el principal primero: las barras agrupadas y el ranking
+#     también dibujan una múltiple, y el radar y la tabla también abren las opciones de una múltiple (modo `sm`).
 
 .GRAFICOS_TIPOS_USA <- list(
-  p_barras_agrupadas          = list(pregunta = "opcion_unica", publicos = "uno"),
+  p_barras_agrupadas          = list(pregunta = c("opcion_unica", "multiple"), publicos = "uno"),
   p_dicotomica                = list(pregunta = "opcion_unica", publicos = "uno"),
   p_barras_categoricas        = list(pregunta = "opcion_unica", publicos = "uno"),
   p_barras_apiladas           = list(pregunta = "escala",       publicos = "uno"),
@@ -47,10 +50,10 @@
   p_filtro_subpregunta        = list(pregunta = "opcion_unica", publicos = "uno"),
   p_significancia_publicos    = list(pregunta = "opcion_unica", publicos = "varios"),         # Top Two Box o «Sí»
   p_matriz_cuadrantes         = list(pregunta = "escala",       publicos = "uno_o_varios"),
-  p_lollipop                  = list(pregunta = "opcion_unica", publicos = "uno"),
+  p_lollipop                  = list(pregunta = c("opcion_unica", "multiple"), publicos = "uno"),   # ranking de menciones
   p_serie_temporal            = list(pregunta = "opcion_unica", publicos = "uno_o_varios"),   # una base por medición
-  p_radar                     = list(pregunta = "escala",       publicos = "uno_o_varios"),   # modo `publicos`
-  p_tabla                     = list(pregunta = "escala",       publicos = "uno"),
+  p_radar                     = list(pregunta = c("escala", "multiple"), publicos = "uno_o_varios"),   # modos `publicos` y `sm`
+  p_tabla                     = list(pregunta = c("escala", "multiple"), publicos = "uno"),   # modo `sm`
   p_dim_radar                 = list(pregunta = "escala",       publicos = "uno"),
   p_dim_heatmap               = list(pregunta = "escala",       publicos = "uno"),
   p_dim_comparativo_radarbar  = list(pregunta = "escala",       publicos = "uno"),
@@ -71,11 +74,12 @@
 }
 
 #' `usa` de un graficador: la tabla más lo que sale de sus args
-#' @return `list(pregunta, publicos, padron, cruce)` o NULL si el graficador no está en la tabla.
+#' @return `list(pregunta, publicos, padron, cruce)` o NULL si el graficador no está en la tabla. `pregunta` va con `I()`
+#'   para que el JSON (`auto_unbox`) la serialice siempre como arreglo, aunque tenga un solo tipo.
 #' @keywords internal
 .graficos_tipos_usa <- function(nombre, meta = .GRAFICADORES_META[[nombre]]) {
   fila <- .GRAFICOS_TIPOS_USA[[nombre]]
   if (is.null(fila)) return(NULL)
-  list(pregunta = fila$pregunta, publicos = fila$publicos, padron = isTRUE(fila$padron),
+  list(pregunta = I(as.character(fila$pregunta)), publicos = fila$publicos, padron = isTRUE(fila$padron),
        cruce = .graficos_usa_cruce_de_args(meta$args))
 }

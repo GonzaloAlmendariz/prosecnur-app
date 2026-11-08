@@ -231,7 +231,7 @@
       "salida": "nativa",
       "en_selector": true,
       "usa": {
-        "pregunta": "opcion_unica",
+        "pregunta": ["opcion_unica", "multiple"],
         "publicos": "uno",
         "padron": false,
         "cruce": true
@@ -243,7 +243,7 @@
       "salida": "nativa",
       "en_selector": true,
       "usa": {
-        "pregunta": "opcion_unica",
+        "pregunta": ["opcion_unica"],
         "publicos": "uno",
         "padron": false,
         "cruce": false
@@ -255,7 +255,7 @@
       "salida": "nativa",
       "en_selector": true,
       "usa": {
-        "pregunta": "opcion_unica",
+        "pregunta": ["opcion_unica"],
         "publicos": "uno",
         "padron": false,
         "cruce": false
@@ -267,7 +267,7 @@
       "salida": "nativa",
       "en_selector": true,
       "usa": {
-        "pregunta": "escala",
+        "pregunta": ["escala"],
         "publicos": "uno",
         "padron": false,
         "cruce": true
@@ -279,7 +279,7 @@
       "salida": "nativa",
       "en_selector": true,
       "usa": {
-        "pregunta": "escala",
+        "pregunta": ["escala"],
         "publicos": "uno",
         "padron": false,
         "cruce": true
@@ -291,7 +291,7 @@
       "salida": "nativa",
       "en_selector": true,
       "usa": {
-        "pregunta": "abierta",
+        "pregunta": ["abierta"],
         "publicos": "uno",
         "padron": false,
         "cruce": false
@@ -303,7 +303,7 @@
       "salida": "nativa",
       "en_selector": true,
       "usa": {
-        "pregunta": "abierta",
+        "pregunta": ["abierta"],
         "publicos": "uno",
         "padron": false,
         "cruce": false
@@ -315,7 +315,7 @@
       "salida": "nativa",
       "en_selector": true,
       "usa": {
-        "pregunta": "cualquiera",
+        "pregunta": ["cualquiera"],
         "publicos": "uno",
         "padron": false,
         "cruce": false
@@ -327,7 +327,7 @@
       "salida": "nativa",
       "en_selector": true,
       "usa": {
-        "pregunta": "opcion_unica",
+        "pregunta": ["opcion_unica"],
         "publicos": "uno",
         "padron": false,
         "cruce": false
@@ -339,7 +339,7 @@
       "salida": "nativa",
       "en_selector": true,
       "usa": {
-        "pregunta": "opcion_unica",
+        "pregunta": ["opcion_unica"],
         "publicos": "uno",
         "padron": false,
         "cruce": false
@@ -351,7 +351,7 @@
       "salida": "nativa",
       "en_selector": true,
       "usa": {
-        "pregunta": "numerica",
+        "pregunta": ["numerica"],
         "publicos": "uno",
         "padron": false,
         "cruce": true
@@ -363,7 +363,7 @@
       "salida": "nativa",
       "en_selector": true,
       "usa": {
-        "pregunta": "numerica",
+        "pregunta": ["numerica"],
         "publicos": "uno",
         "padron": false,
         "cruce": true
@@ -375,7 +375,7 @@
       "salida": "nativa",
       "en_selector": true,
       "usa": {
-        "pregunta": "numerica",
+        "pregunta": ["numerica"],
         "publicos": "uno",
         "padron": false,
         "cruce": true
@@ -387,7 +387,7 @@
       "salida": "nativa",
       "en_selector": true,
       "usa": {
-        "pregunta": "numerica",
+        "pregunta": ["numerica"],
         "publicos": "uno",
         "padron": false,
         "cruce": true
@@ -399,7 +399,7 @@
       "salida": "nativa",
       "en_selector": true,
       "usa": {
-        "pregunta": "escala",
+        "pregunta": ["escala"],
         "publicos": "uno_o_varios",
         "padron": false,
         "cruce": false
@@ -411,7 +411,7 @@
       "salida": "nativa",
       "en_selector": true,
       "usa": {
-        "pregunta": "opcion_unica",
+        "pregunta": ["opcion_unica"],
         "publicos": "uno",
         "padron": false,
         "cruce": true
@@ -423,7 +423,7 @@
       "salida": "nativa",
       "en_selector": true,
       "usa": {
-        "pregunta": "opcion_unica",
+        "pregunta": ["opcion_unica"],
         "publicos": "uno",
         "padron": false,
         "cruce": false
@@ -435,7 +435,7 @@
       "salida": "nativa",
       "en_selector": true,
       "usa": {
-        "pregunta": "opcion_unica",
+        "pregunta": ["opcion_unica"],
         "publicos": "uno",
         "padron": false,
         "cruce": true
@@ -447,7 +447,7 @@
       "salida": "nativa",
       "en_selector": true,
       "usa": {
-        "pregunta": "cualquiera",
+        "pregunta": ["cualquiera"],
         "publicos": "uno",
         "padron": false,
         "cruce": false
@@ -459,7 +459,7 @@
       "salida": "nativa",
       "en_selector": true,
       "usa": {
-        "pregunta": "escala",
+        "pregunta": ["escala"],
         "publicos": "uno_o_varios",
         "padron": false,
         "cruce": true
@@ -471,7 +471,7 @@
       "salida": "nativa",
       "en_selector": true,
       "usa": {
-        "pregunta": "escala",
+        "pregunta": ["escala"],
         "publicos": "uno_o_varios",
         "padron": false,
         "cruce": false
@@ -483,7 +483,7 @@
       "salida": "nativa",
       "en_selector": true,
       "usa": {
-        "pregunta": "escala",
+        "pregunta": ["escala"],
         "publicos": "uno",
         "padron": false,
         "cruce": false
@@ -495,7 +495,7 @@
       "salida": "nativa",
       "en_selector": true,
       "usa": {
-        "pregunta": "cualquiera",
+        "pregunta": ["cualquiera"],
         "publicos": "uno_o_varios",
         "padron": true,
         "cruce": false
@@ -507,7 +507,7 @@
       "salida": "nativa",
       "en_selector": false,
       "usa": {
-        "pregunta": "opcion_unica",
+        "pregunta": ["opcion_unica"],
         "publicos": "uno",
         "padron": false,
         "cruce": false
@@ -519,7 +519,7 @@
       "salida": "nativa",
       "en_selector": true,
       "usa": {
-        "pregunta": "opcion_unica",
+        "pregunta": ["opcion_unica"],
         "publicos": "varios",
         "padron": false,
         "cruce": false
@@ -531,7 +531,7 @@
       "salida": "nativa",
       "en_selector": true,
       "usa": {
-        "pregunta": "escala",
+        "pregunta": ["escala"],
         "publicos": "uno_o_varios",
         "padron": false,
         "cruce": false
@@ -543,7 +543,7 @@
       "salida": "nativa",
       "en_selector": true,
       "usa": {
-        "pregunta": "opcion_unica",
+        "pregunta": ["opcion_unica", "multiple"],
         "publicos": "uno",
         "padron": false,
         "cruce": false
@@ -555,7 +555,7 @@
       "salida": "nativa",
       "en_selector": true,
       "usa": {
-        "pregunta": "opcion_unica",
+        "pregunta": ["opcion_unica"],
         "publicos": "uno_o_varios",
         "padron": false,
         "cruce": true
@@ -567,7 +567,7 @@
       "salida": "nativa",
       "en_selector": true,
       "usa": {
-        "pregunta": "escala",
+        "pregunta": ["escala", "multiple"],
         "publicos": "uno_o_varios",
         "padron": false,
         "cruce": true
@@ -579,7 +579,7 @@
       "salida": "nativa",
       "en_selector": true,
       "usa": {
-        "pregunta": "escala",
+        "pregunta": ["escala", "multiple"],
         "publicos": "uno",
         "padron": false,
         "cruce": true
@@ -591,7 +591,7 @@
       "salida": "nativa",
       "en_selector": true,
       "usa": {
-        "pregunta": "escala",
+        "pregunta": ["escala"],
         "publicos": "uno",
         "padron": false,
         "cruce": true
@@ -603,7 +603,7 @@
       "salida": "nativa",
       "en_selector": true,
       "usa": {
-        "pregunta": "escala",
+        "pregunta": ["escala"],
         "publicos": "uno",
         "padron": false,
         "cruce": true
@@ -615,7 +615,7 @@
       "salida": "nativa",
       "en_selector": true,
       "usa": {
-        "pregunta": "escala",
+        "pregunta": ["escala"],
         "publicos": "uno",
         "padron": false,
         "cruce": true
@@ -627,7 +627,7 @@
       "salida": "ruta_anterior",
       "en_selector": false,
       "usa": {
-        "pregunta": "escala",
+        "pregunta": ["escala"],
         "publicos": "uno",
         "padron": false,
         "cruce": true
@@ -639,7 +639,7 @@
       "salida": "nativa",
       "en_selector": true,
       "usa": {
-        "pregunta": "escala",
+        "pregunta": ["escala"],
         "publicos": "uno",
         "padron": false,
         "cruce": true
@@ -651,7 +651,7 @@
       "salida": "nativa",
       "en_selector": true,
       "usa": {
-        "pregunta": "opcion_unica",
+        "pregunta": ["opcion_unica"],
         "publicos": "uno",
         "padron": false,
         "cruce": true

@@ -100,6 +100,7 @@
   if (is.null(inst) || !is.data.frame(inst$survey) || !is.data.frame(datos)) return(NULL)
   vs <- as.character(inst$survey$name)
   vs <- vs[!is.na(vs) & vs %in% names(datos)]
+  vs <- vs[!.regla_es_recod_repetida(vs)]   # `q` y `q_recod` son una pregunta (graficos_regla_escala.R)
   bat <- .regla_escala_baterias(inst)
   vs[vapply(vs, function(v) isTRUE(tryCatch(.regla_preguntas_es_escala(inst, v, codigos, bat), error = function(e) FALSE)), TRUE)]
 }

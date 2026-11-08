@@ -65,3 +65,17 @@
   n <- if (nzchar(firma) && firma %in% names(baterias)) baterias[[firma]] else 0L
   n >= .REGLA_ESCALA_BATERIA_MIN
 }
+
+#' ¿Es la `_recod` de una pregunta presente? Una variable y su `_recod` son la misma pregunta y cuentan una vez
+#'
+#' Criterio único de la regla de preguntas (`.regla_preguntas_de_base`) y del inventario (graficos_inventario.R): se
+#' queda la original, que el render redirige a la recodificada (`.reporte_plan_resolve_recod_var`). Una `_recod` sin su
+#' original sí cuenta.
+#' @param nombres Nombres de variable.
+#' @param presentes Las variables contra las que se busca la original (por defecto, las mismas).
+#' @return Lógico del largo de `nombres`: `TRUE` = es una `_recod` repetida.
+#' @keywords internal
+.regla_es_recod_repetida <- function(nombres, presentes = nombres) {
+  nombres <- as.character(nombres); nombres[is.na(nombres)] <- ""
+  grepl("_recod$", nombres) & sub("_recod$", "", nombres) %in% as.character(presentes)
+}

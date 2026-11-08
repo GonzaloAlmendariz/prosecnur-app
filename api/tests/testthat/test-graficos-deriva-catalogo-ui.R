@@ -69,11 +69,17 @@ source("setup-load-all.R")
            nombres(.presets_metadata_payload()$presets)))
 }
 
-test_that("los 33 graficadores del registro resuelven, ninguno se salta", {
+test_that("los 36 graficadores del registro resuelven, ninguno se salta", {
   # 24 + p_cifra y p_mapa_resultado_distrital (F6) y p_mapa_distribucion (CCSS 2026), con renderer graficar_* propio, y
-  # p_lineas_nivel (CCSS 2026), sin él.
+  # p_lineas_nivel (CCSS 2026), sin él. + las tres láminas de resumen del ADR 0135 (p_panorama, p_fortalezas,
+  # p_cobertura), cada una con su renderer nativo (graficador_panorama.R, graficador_fortalezas.R,
+  # graficador_cobertura.R): por eso NO entran en .deriva_sin_renderer.
   gs <- .graficos_registry_payload()$graficadores
-  expect_length(gs, 33L)
+  expect_length(gs, 36L)
+  for (nm in c("p_panorama", "p_fortalezas", "p_cobertura")) {
+    expect_true(nm %in% vapply(gs, function(g) g$name, character(1)), info = nm)
+    expect_true(is.function(.deriva_renderer(nm)), info = sprintf("%s debería tener su graficar_* nativo", nm))
+  }
   for (g in gs) {
     fn <- tryCatch(getExportedValue("prosecnurapp", g$name), error = function(e) NULL)
     expect_true(is.function(fn), info = sprintf("%s no resuelve como el router lo resuelve", g$name))
