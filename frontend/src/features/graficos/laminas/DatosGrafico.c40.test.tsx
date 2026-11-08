@@ -53,6 +53,9 @@ vi.mock("../VariablePicker", () => ({ default: () => null }));
 vi.mock("./tarjetaGrafico/TwoBoxGrafico", () => ({ TwoBoxGrafico: () => null }));
 vi.mock("./tarjetaGrafico/EnElWord", () => ({ EnElWord: () => null }));
 vi.mock("./colores/ColoresGrafico", () => ({ ColoresGrafico: () => null }));
+// R7-7: sin detalle cargado la tira de lados muestra su silueta; aquí se prueba el respaldo (los tres controles), que es
+// lo que queda cuando el motor no publica detalle (LadosEscala.test.tsx prueba la silueta y la tira).
+vi.mock("./divergentes/LadosEscala", () => ({ LadosEscala: ({ respaldo }: { respaldo: unknown }) => respaldo }));
 
 const pintar = (graficador: string, args: Record<string, unknown> = {}) => {
   const valor: GraficadorRef = { graficador, args };
