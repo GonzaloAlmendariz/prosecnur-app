@@ -285,7 +285,8 @@
   texto <- .regla_preguntas_texto(regla, n_regla, total, universo, n_grupos = k, grupos_unidad = grupos_unidad,
                                   altas = altas, bajas = bajas, ajustada = ajustada)
   candidatas <- if (length(temas)) {
-    data.frame(tema = temas, etiqueta = etiquetas, metrica = unname(metrica), seleccionada = temas %in% sel,
+    # Fuera del universo la pregunta no se mide (N6): su métrica no se publica aunque se pueda calcular.
+    data.frame(tema = temas, etiqueta = etiquetas, metrica = ifelse(en_universo, unname(metrica), NA_real_), seleccionada = temas %in% sel,
                stringsAsFactors = FALSE)[order(orden), , drop = FALSE]
   } else vacio
   rownames(candidatas) <- NULL
@@ -314,7 +315,9 @@
   vars <- if (identical(el$.element_type, "dumbbell")) elegidas else unname(unlist(elegidas))
   # La escala del resumen sale como imagen con más de 20 filas o con más de una columna «Sin información»
   # (`.lam_divergentes_resumen_cabe`): el conteo lo dice con la causa (graficos_escala_tope.R).
-  imagen <- if (identical(el$.element_type, "barras_divergentes")) .divergentes_aviso_tope(length(vars), ev$texto, ind$n_sin_inf)
+  # Las columnas «Sin información» se cuentan sobre las ELEGIDAS: son las que dibuja la lámina (N4).
+  n_sin_inf <- if (!is.null(ind$sin_inf_por_tema)) length(unique(unlist(ind$sin_inf_por_tema[ev$temas], use.names = FALSE))) else ind$n_sin_inf
+  imagen <- if (identical(el$.element_type, "barras_divergentes")) .divergentes_aviso_tope(length(vars), ev$texto, n_sin_inf)
   list(evaluacion = ev, vars = vars, avisos = c(ind$avisos, ev$avisos, imagen), indicadores = ind$indicadores,
        firma_leyenda = ind$firma_leyenda, motivos_imagen = imagen)
 }
@@ -454,7 +457,18 @@
     tope_filas = .regla_tope_filas(graficador),   # graficos_escala_tope.R; NA sale como null
     # ¿La lámina nativa dibuja lo elegido? Sólo la escala tiene esa restricción; los demás, null. Con FALSE el motivo
     # dice por qué sale como imagen (más filas que el tope o más de una columna «Sin información»).
-    cabe_nativa = if (es_escala) !length(r$motivos_imagen) else NA,
-    motivo_imagen = if (es_escala && length(r$motivos_imagen)) paste(r$motivos_imagen, collapse = " ") else NA_character_
+    cabe_nativa = if (es_escala) length(ev$temas) > 0L && !length(r$motivos_imagen) else NA,
+    motivo_imagen = .regla_preguntas_motivo_imagen(es_escala, ev$temas, r$motivos_imagen)
   )
+}
+
+#' Por qué la escala no sale como lámina nativa, o `NA`
+#'
+#' N5 (revisión metodológica de la regla): con ninguna pregunta elegida el render dibuja «Sin datos», así que la lámina
+#' nativa tampoco cabe y el motivo lo dice.
+#' @keywords internal
+.regla_preguntas_motivo_imagen <- function(es_escala, temas, motivos) {
+  if (!isTRUE(es_escala)) return(NA_character_)
+  if (!length(temas)) return("Ninguna pregunta cumple la regla.")
+  if (length(motivos)) paste(motivos, collapse = " ") else NA_character_
 }

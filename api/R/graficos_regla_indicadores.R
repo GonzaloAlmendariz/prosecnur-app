@@ -326,7 +326,8 @@
   }
   list(indicadores = .regla_preguntas_rbind(filas), refs_por_tema = refs_tema,
        avisos = c(.regla_preguntas_avisos(motivos), med$avisos), universo = "preguntas de escala", grupos_unidad = "públicos",
-       firma_leyenda = firma, n_sin_inf = med$n_sin_inf %||% 0L)
+       firma_leyenda = firma, n_sin_inf = med$n_sin_inf %||% 0L,
+       sin_inf_por_tema = stats::setNames(lapply(refs[aptas], function(r) med$sin_inf_por_ref[[r]] %||% character(0)), original[aptas]))
 }
 
 #' Tabla de indicadores de un elemento ya construido (`p_panorama`, `p_dumbbell`, `p_barras_divergentes`, `p_fortalezas`)

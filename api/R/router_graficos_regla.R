@@ -10,11 +10,14 @@
 #     -> {ok, total, seleccionadas: [tema], candidatas: [{tema, etiqueta, metrica, seleccionada}], texto_regla, avisos,
 #         tope_filas, cabe_nativa, motivo_imagen}
 #   `tope_filas`: filas que admite la lámina nativa (20 en la escala del resumen) o null sin tope.
-#   `cabe_nativa`: en la escala del resumen, si la lámina nativa dibuja lo elegido (false con más filas que el tope o
-#   con más de una columna «Sin información»); null en los demás. `motivo_imagen`: la causa cuando es false, si no null.
+#   `cabe_nativa`: en la escala del resumen, si la lámina nativa dibuja lo elegido (false con más filas que el tope, con
+#   más de una columna «Sin información» entre las ELEGIDAS o con ninguna elegida: «Ninguna pregunta cumple la regla.»);
+#   null en los demás. `motivo_imagen`: la causa cuando es false, si no null. `metrica` es null fuera del universo.
 #
-# `scope` es el de la vista previa (`consolidated` o vacío): las fuentes y los presets salen de
-# `.graficos_resumenes_motor` (la vista previa; en multibase trae todas las bases del estudio), los mismos que /cifras.
+# `scope` es el de la vista previa (`consolidated` o vacío) y `config` la config del editor: las fuentes y los presets
+# salen de `.graficos_resumenes_motor` (la vista previa; en multibase trae todas las bases del estudio; los presets, de la
+# config efectiva con `config`), los mismos que /cifras. Los args del gráfico pasan por la regla inclusiva y los
+# rótulos cortos que se aplicaron a las fuentes (`.graficos_resumenes_args`, N3).
 #
 #   GET /api/graficos/resumenes/padron?scope=
 #     -> {ok, bases: [{base, padron, padron_origen, meta, meta_unidad, meta_origen, motivo}]}
@@ -71,8 +74,8 @@ mount_graficos_regla <- function(pr) {
       }
       args <- parsed[["args"]] %||% list()
       if (!is.list(args)) .regla_preguntas_falla("`args` debe ser un objeto.")
-      motor <- .graficos_resumenes_motor(sid, parsed)   # mismas fuentes y presets que /cifras y el render
-      .regla_preguntas_conteo(graficador, args, motor$fuentes, motor$presets)
+      motor <- .graficos_resumenes_motor(sid, parsed)   # mismas fuentes, presets y args convertidos que /cifras y el render
+      .regla_preguntas_conteo(graficador, .graficos_resumenes_args(motor, graficador, args), motor$fuentes, motor$presets)
     })) |>
     plumber::pr_post("/api/graficos/resumenes/cifras", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
@@ -81,11 +84,13 @@ mount_graficos_regla <- function(pr) {
       detalle <- .graficos_cifras_pide_detalle(parsed[["detalle"]])
       motor <- .graficos_resumenes_motor(sid, parsed)   # graficos_resumenes_motor.R
       if (!is.null(parsed[["laminas"]])) {
-        return(.graficos_cifras_lote(parsed[["laminas"]], motor$fuentes, motor$presets, detalle = detalle))
+        laminas <- .graficos_resumenes_laminas(motor, parsed[["laminas"]])
+        return(.graficos_cifras_lote(laminas, motor$fuentes, motor$presets, detalle = detalle))
       }
-      if (!detalle) return(.graficos_cifras_de_grafico(parsed[["graficador"]], parsed[["args"]] %||% list(), motor$fuentes, motor$presets))
-      .graficos_cifras_de_grafico(parsed[["graficador"]], parsed[["args"]] %||% list(), motor$fuentes, motor$presets,
-                                  detalle = TRUE, caja = parsed[["caja"]])
+      args <- .graficos_resumenes_args(motor, parsed[["graficador"]], parsed[["args"]] %||% list())
+      if (!detalle) return(.graficos_cifras_de_grafico(parsed[["graficador"]], args, motor$fuentes, motor$presets))
+      .graficos_cifras_de_grafico(parsed[["graficador"]], args, motor$fuentes, motor$presets, detalle = TRUE,
+                                  caja = .graficos_resumenes_caja(motor, parsed[["caja"]]))
     })) |>
     plumber::pr_post("/api/graficos/resumenes/emparejado", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)

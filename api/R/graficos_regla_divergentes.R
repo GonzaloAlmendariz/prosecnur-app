@@ -118,7 +118,8 @@
 #' @return `list(medidas = data.frame(ref, valor, sin_info), motivos, avisos, n_sin_inf)`: `valor` y `sin_info` en
 #'   0–100, iguales a la suma de las unidades rotuladas del lado de acuerdo y de las columnas especiales. Una pregunta
 #'   que la lámina no puede dibujar (un lado vacío tras las exclusiones) sale con su motivo. `n_sin_inf` cuenta las
-#'   columnas «Sin información» de la tabla (la lámina nativa admite una: `.lam_divergentes_resumen_cabe`).
+#'   columnas «Sin información» de la tabla (la lámina nativa admite una: `.lam_divergentes_resumen_cabe`) y
+#'   `sin_inf_por_ref` las de cada pregunta, para contarlas sobre las elegidas (N4).
 #' @keywords internal
 .regla_div_medidas <- function(refs, el, sources, preset = NULL) {
   a <- .regla_div_args(el, preset)
@@ -135,6 +136,22 @@
     lado <- esp$categorias$lado; U <- esp$unidades; k <- 10^esp$decimales
     list(medidas = data.frame(ref = validas, valor = esp$total_pos / k,
                               sin_info = rowSums(U[, lado == "sin_inf", drop = FALSE]) / k, stringsAsFactors = FALSE),
-         motivos = motivos, avisos = avisos, n_sin_inf = sum(lado == "sin_inf"))
+         motivos = motivos, avisos = avisos, n_sin_inf = sum(lado == "sin_inf"),
+         sin_inf_por_ref = .regla_div_sin_inf_por_ref(esp, validas))
   })
+}
+
+#' Las opciones «Sin información» que trae cada pregunta (con algún caso), por su rótulo en la escala
+#'
+#' Revisión metodológica de la regla, N4: la lámina sólo dibuja una columna especial si alguna de SUS filas la trae
+#' (reporte_plan_ceros_especiales.R). Contarlas sobre todas las candidatas decía «sale como imagen» aunque la única con
+#' 99 no estuviera elegida. Las filas de `esp` van en el orden de `refs` (`orden = "declarado"`).
+#' @keywords internal
+.regla_div_sin_inf_por_ref <- function(esp, refs) {
+  si <- which(esp$categorias$lado == "sin_inf")
+  P <- esp$proporciones %||% esp$unidades
+  stats::setNames(lapply(seq_along(refs), function(i) {
+    if (!length(si) || i > NROW(P)) return(character(0))
+    as.character(esp$categorias$rotulo[si][P[i, si] > 0])
+  }), refs)
 }
