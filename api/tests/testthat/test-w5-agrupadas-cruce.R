@@ -84,7 +84,9 @@ test_that("CCSS-7: la cifra dentro de la barra no es más alta que la barra", {
   g <- .w5_cruce(d)
   cr <- attr(g, "pulso_barras_agrupadas_cruce")
   # Alto de una barra del par contra el alto de la cifra (mm de ggplot a pulgadas), con el mismo margen que el comparativo.
-  expect_lte(cr$size_cifra_mm / 25.4, cr$alto_barra_in * 0.72 + 1e-6)
+  # E2a (ola 2): la cifra ya no se achica para caber; si no cabe en el 72 % de su barra, va fuera.
+  if (!isTRUE(cr$cifra_fuera)) expect_lte(cr$size_cifra_mm / 25.4, cr$alto_barra_in * 0.72 + 1e-6)
+  else expect_gt(cr$size_cifra_mm / 25.4, cr$alto_barra_in * 0.72)
 })
 
 test_that("CCSS-7: una sola serie (perfil) y el comparativo no entran por la ruta del cruce", {

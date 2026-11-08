@@ -2174,6 +2174,11 @@ graficar_barras_agrupadas <- function(
   }
 
   # MAIN: panel barras
+  # E2a (ola 2): con la cifra fuera, las dos cifras de un par no se montan (graficador_barras_agrupadas_cruce_choque.R).
+  if (!is.null(cruce_agr) && isTRUE(cruce_agr$fuera) && isTRUE(mostrar_valores)) {
+    p_panel <- .agrupadas_cruce_sin_choque(p_panel, w_bars * suppressWarnings(as.numeric(ancho)[1]), main_h * h_total_in,
+                                           as.numeric(cruce_agr$size_mm) * 72 / 25.4)
+  }
   canvas <- canvas +
     cowplot::draw_plot(p_panel, x = x_bars0, y = y_main0, width = w_bars, height = main_h)
 

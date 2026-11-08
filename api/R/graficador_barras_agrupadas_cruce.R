@@ -149,10 +149,9 @@
 
 #' Grosor del par y cuerpo de la cifra de un cruce
 #'
-#' El par va pegado (grosor igual al dodge del comparativo, 0.86): el aire va entre categorías. La cifra baja hasta caber
-#' en el alto de su barra con el mismo margen del comparativo (72 %); con un piso de 8 pt, que también sube la que llega por
-#' debajo. Si ni al piso cabe, la cifra va
-#' fuera de la barra y en azul (`fuera = TRUE`).
+#' El par va pegado (grosor igual al dodge del comparativo, 0.86): el aire va entre categorías. La cifra conserva su
+#' cuerpo (con un piso de 8 pt que sube la que llega por debajo) y, si no cabe en el 72 % del alto de su barra, va fuera
+#' de la barra y en azul (`fuera = TRUE`; E2a, ola 2: antes bajaba hasta el piso).
 #' @return `list(dodge, grosor, size_mm, alto_barra_in, fuera)`.
 #' @keywords internal
 .agrupadas_cruce_par <- function(size_mm, n_categorias, n_series, alto_in, frac_panel = 0.62, frac = 0.72,
@@ -170,8 +169,9 @@
   # El piso rige también hacia arriba: con tres o más grupos la escala por número de series (× 0.85, × 0.70) dejaba la
   # cifra bajo 8 pt aunque cupiera holgada en su barra (CCSS, 2026-10-27: 5.97 pt con cuatro grupos).
   s <- max(s, min_mm)
-  s2 <- if (s / 25.4 <= barra_in * frac) s else max(min_mm, tope_mm)
-  list(dodge = d, grosor = d, size_mm = s2, alto_barra_in = barra_in, fuera = s2 / 25.4 > barra_in * frac + 1e-9)
+  # E2a (ola 2): la cifra conserva el cuerpo del preset; si no cabe en el 72 % de su barra va fuera, nunca más chica
+  # (con el alto real del cajón bajaba a 8 pt). El par que se montaría se separa después (graficador_barras_agrupadas_cruce_choque.R).
+  list(dodge = d, grosor = d, size_mm = s, alto_barra_in = barra_in, fuera = s / 25.4 > barra_in * frac + 1e-9)
 }
 
 #' Paleta de marca del cruce, salvo que el analista declare colores que nombren a sus grupos o la serie sea una escala

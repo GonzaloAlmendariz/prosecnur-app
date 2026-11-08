@@ -35,10 +35,15 @@
   if (length(h) && is.finite(h) && h > 0) h else NULL
 }
 
-#' ¿El elemento recibe el alto real de su slot? Sólo los lienzos de escala (`barras_apiladas`, `barras_multiapiladas`).
+#' ¿El elemento recibe el alto real de su slot? Los lienzos de escala (`barras_apiladas`, `barras_multiapiladas`) y la
+#' agrupada con cruce (E2a, ola 2: dibujada para 6 in y pegada en 2.5, sus cifras de 14 pt se montaban en el par).
 #' @keywords internal
 .composicion_recibe_alto <- function(el) {
-  inherits(el, "ppt_element") && (el$.element_type %||% "") %in% c("barras_apiladas", "barras_multiapiladas")
+  if (!inherits(el, "ppt_element")) return(FALSE)
+  tipo <- el$.element_type %||% ""
+  if (tipo %in% c("barras_apiladas", "barras_multiapiladas")) return(TRUE)
+  cr <- trimws(as.character(unlist((el$overrides %||% list())$cruces %||% el$cruces %||% character(0))))
+  identical(tipo, "barras_agrupadas") && any(!is.na(cr) & nzchar(cr))
 }
 
 #' A12: alto físico (in) del cajón de respaldo del panel `k` de una lámina mixta
