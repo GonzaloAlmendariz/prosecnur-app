@@ -126,3 +126,37 @@ test_that("HTTP: tres públicos, sin vars y sin corte, el conteo responde 400 co
   expect_length(r3$body$seleccionadas, 3L)
   expect_false(any(grepl("ggplot", c(msg(r), msg(r2)))))
 })
+
+test_that("`bases` está en el registro y sobrevive al guardado del plan, al .pulso, al rearmado, al conteo y al render", {
+  skip_if_not_installed("officer")
+  # Registro: lo sirve a la UI con su tipo y su grupo.
+  servidos <- .normalize_args_for_ui(.GRAFICADORES_META$p_dumbbell$args)
+  b <- Filter(function(a) identical(a$name, "bases"), servidos)
+  expect_length(b, 1L)
+  expect_identical(b[[1]]$tipo_input, "codigos_list"); expect_identical(b[[1]]$label, "Públicos que se comparan")
+  expect_true("bases" %in% names(formals(p_dumbbell)))
+  # El plan como lo guarda el editor.
+  graf <- list(graficador = "p_dumbbell", args = list(bases = list("docentes", "estudiantes"), corte = list("3", "4"),
+                                                      estilo = "resumen", regla = list(tipo = "mayor_diferencia", n = 3)))
+  plan <- list(slides = list(list(id = "s-con", tipo = "p_slide_1_grafico", payload = list(titulo = "Contraste", grafico = graf))))
+  cfg <- .graficos_normalize_config(list(plan = plan))
+  expect_identical(unlist(cfg$plan$slides[[1]]$payload$grafico$args$bases), c("docentes", "estudiantes"))
+  # Guardar y reabrir el .pulso.
+  sid <- session_create(); on.exit(session_delete(sid), add = TRUE)
+  session_set(sid, "graficos_config", cfg)
+  dest <- tempfile(fileext = ".pulso"); on.exit(unlink(dest), add = TRUE)
+  suppressMessages(build_pulso(sid, dest, project_name = "contraste", allow_empty_overwrite = TRUE))
+  r <- suppressMessages(load_pulso(dest)); on.exit(session_delete(r$session_id), add = TRUE)
+  g2 <- session_get(r$session_id)$graficos_config$plan$slides[[1]]$payload$grafico
+  expect_identical(unlist(g2$args$bases), c("docentes", "estudiantes"))
+  # Rearmado (.clean_rebuild_args dentro de .rebuild_graf), conteo y render leen el par.
+  src <- .ca_fuentes()
+  el <- .rebuild_graf(jsonlite::fromJSON(jsonlite::toJSON(g2, auto_unbox = TRUE), simplifyVector = FALSE))
+  expect_identical(el$vars, list(`Preguntas comunes` = c("docentes$*", "estudiantes$*")))
+  cn <- .regla_preguntas_conteo("p_dumbbell", g2$args, src)
+  expect_identical(cn$total, 6L); expect_length(cn$seleccionadas, 3L)
+  s <- .rebuild_slide(session_get(r$session_id)$graficos_config$plan$slides[[1]])
+  out <- suppressWarnings(reporte_ppt_plan(data = src$data_sources, instrumento = src$inst_sources, plan = p_plan(slides = list(s)),
+                                           solo_lista = TRUE, mensajes_progreso = FALSE))
+  expect_identical(attr(out$rendered[[1]], "pulso_espec")$texto_regla, "Se muestran las 3 de mayor diferencia, de 6 preguntas comunes.")
+})

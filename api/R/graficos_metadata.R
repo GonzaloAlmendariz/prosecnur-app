@@ -2062,6 +2062,9 @@
       # ADR 0135: la lámina de resumen elige sus preguntas con una regla; sin regla, las declaradas.
       list(name = "regla", label = "Regla de preguntas", tipo_input = "regla_preguntas", grupo = "datos",
            descripcion = "Regla con que se eligen los temas del contraste de públicos: las comunes, las de mayor diferencia, las de diferencia mínima o a mano."),
+      # ADR 0135 (graficos_dumbbell_auto.R): el par del contraste entre públicos; los temas son sus preguntas comunes.
+      list(name = "bases", label = "Públicos que se comparan", tipo_input = "codigos_list", grupo = "datos",
+           descripcion = "Las dos bases del contraste, en orden: la diferencia es la primera menos la segunda."),
       list(name = "orden", label = "Orden de las filas", tipo_input = "choice", grupo = "estilo",
            default = "brecha",
            choices = list(
