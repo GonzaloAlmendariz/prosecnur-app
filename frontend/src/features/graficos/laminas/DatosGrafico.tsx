@@ -98,6 +98,8 @@ import { PadronPublicos } from "./gruposPadron/PadronPublicos";
 import { llevaPadronPublicos } from "./gruposPadron/modeloPadron";
 import type { ReglaPreguntas as Regla } from "../../../api/graficosRegla";
 import { ExcluirRespuestas } from "./excluirConCifra/ExcluirRespuestas";
+import { LadosEscala } from "./divergentes/LadosEscala";
+import { ARGS_LADOS, llevaLados } from "./divergentes/modeloLados";
 import { conDetalle } from "./cifrasInspector/modeloCifras";
 import "./datosGrafico.css";
 import { formatoConteo } from "../../../lib/formatoNumero";
@@ -227,7 +229,9 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
       {radarPublicos && c.arg.name === "modo" && <EditorTemasEquivalentes tipo="radar" args={args} onCambio={set} />}
     </Fragment>
   );
-  const delGrupo = (g: SeccionTarjeta) => campos.filter((c) => grupoDeCampo(c.arg.name) === g).map(filaDe);
+  // Oleada I2, ítem 4: en la divergente, los tres args de los lados van en un solo control (LadosEscala).
+  const deLados = (c: CampoDato) => llevaLados(valor.graficador) && ARGS_LADOS.has(c.arg.name);
+  const delGrupo = (g: SeccionTarjeta) => campos.filter((c) => grupoDeCampo(c.arg.name) === g && !deLados(c)).map(filaDe);
 
   // ADR 0128: «Diferencias entre grupos» reemplaza al nivel de significancia de Cifras. El interruptor es el
   // `mostrar_significancia` del gráfico (guardado, del tipo o el default del registro); el nivel es de la regla del estudio.
@@ -314,6 +318,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
       {/* Cálculo: qué se cuenta y cómo (indicador, Two Box, redondeo y diferencias entre grupos). */}
       <SeccionPlegable seccion="calculo" resumen={resumenDe("calculo")}>
         {delGrupo("calculo")}
+        {campos.some(deLados) && <LadosEscala id={`${slideId}-${slot}-lados`} graficador={valor.graficador} scope={scope} args={args} onCambio={set} respaldo={campos.filter(deLados).map(filaDe)} />}
         <TwoBoxGrafico slideId={slideId} slot={slot} valor={valor} onAbrirBloques={() => abrirEditorAmplio({ tipo: "bloques", slideId, slot })} />
         {/* R4: método y decimales propios, como excepción a la regla del informe. */}
         <RedondeoDelGrafico graficador={valor.graficador} args={args} onCambio={(ov) => set({ overrides: ov })} />

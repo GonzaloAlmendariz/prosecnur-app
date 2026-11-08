@@ -1,0 +1,63 @@
+/* «Lados de la escala» (oleada I2, ítem 4): la tira de niveles con su asa. Los colores son los de aviso del sistema
+   (peligro para el lado negativo, éxito para el positivo); el neutro partido lleva los dos. El asa se mueve con
+   transform (el carril mide lo mismo que la tira, así que su porcentaje es el de la tira). */
+.pulso-f6-lados-cabeza { display: flex; align-items: center; justify-content: space-between; gap: var(--pulso-space-2); }
+.pulso-f6-lados-tira {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: var(--pulso-radius-chip);
+  touch-action: none;
+  cursor: ew-resize;
+  user-select: none;
+}
+.pulso-f6-lados-nivel {
+  min-width: 0;
+  padding: var(--pulso-space-1) var(--pulso-space-1);
+  overflow: hidden;
+  font: inherit;
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.3;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  transition: background-color var(--motion-dur-fast) var(--motion-ease-out), color var(--motion-dur-fast) var(--motion-ease-out);
+}
+.pulso-f6-lados-nivel.is-neg { background: var(--pulso-danger-bg); color: var(--pulso-danger-fg); }
+.pulso-f6-lados-nivel.is-pos { background: var(--pulso-success-bg); color: var(--pulso-success-fg); }
+.pulso-f6-lados-nivel.is-neu {
+  background: linear-gradient(90deg, var(--pulso-danger-bg) 50%, var(--pulso-success-bg) 50%);
+  color: var(--pulso-text);
+}
+button.pulso-f6-lados-nivel { appearance: none; border: 0; cursor: pointer; }
+button.pulso-f6-lados-nivel:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: -2px; }
+.pulso-f6-lados-carril {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition: transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+.pulso-f6-lados-asa {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: -5px;
+  inline-size: 10px;
+  pointer-events: auto;
+  cursor: ew-resize;
+}
+.pulso-f6-lados-asa::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 4px;
+  inline-size: 2px;
+  background: var(--pulso-text);
+}
+.pulso-f6-lados-asa:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .pulso-f6-lados-nivel, .pulso-f6-lados-carril { transition: none; }
+}
