@@ -243,6 +243,8 @@
 #' Láminas del resumen de diferencias: una o varias, por capítulos enteros (v7.23, ítem 13)
 #' @return Lista con `doc` y `partes` (láminas agregadas).
 #' @keywords internal
+.LAM_RESUMEN_VACIO <- "Ninguna pregunta del informe muestra diferencias entre grupos con la regla del informe."
+
 .lam_laminas_resumen_diferencias <- function(doc, espec, titulo, ante = NULL, base = NULL, folio = NULL, layout = "Graficos2",
                                              master = "Office Theme", por_lamina = function(doc) doc) {
   force(folio)
@@ -291,6 +293,9 @@
     # letra es la misma en todas, la del renglón común.
     h_q <- if (length(paginas[[q]])) min(.LAM_RESUMEN_H_MAX, max(h, disponible / max(1, sum(u[paginas[[q]]])))) else h
     recortes <- recortes + .lam_resumen_filas(lz, espec, C, caps[paginas[[q]]], x0, x1, y, h_q, h_letra = h)
+    # C5 (ola 2, catálogo): sin filas, la lámina dice por qué está vacía en vez de quedar con la cabecera sola.
+    if (!length(paginas[[q]])) .lam_txt(lz, .LAM_RESUMEN_VACIO, x0, y + 0.4, x1 - x0, 0.5, .std_pt("pregunta"), .std_color("texto_tenue"),
+                                        align = "center", nombre = "resumen:vacio")
     doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:resumen_diferencias")
     doc <- .lam_dif_pie(doc, espec, base, if (is.null(folio)) NULL else folio + q - 1L)
     doc <- por_lamina(doc)
