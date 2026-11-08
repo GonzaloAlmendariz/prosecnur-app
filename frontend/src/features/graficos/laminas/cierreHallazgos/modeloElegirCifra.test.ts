@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { CifraClave } from "../../../../api/graficosCifras";
 import {
   agruparCifras, buscarCifras, celdaDe, cifrasVisibles, encabezadoMedida, filaConVarias, idCelda, moverActiva, ordenarCifras,
-  partirRotulo, rejillaDeOpciones, type CifrasLeidas,
+  partirRotulo, rejillaDeOpciones, esDiferencia, valorDeFila, type CifrasLeidas,
 } from "./modeloElegirCifra";
 
 const cifra = (clave: string, rotulo: string, texto: string, valor: number | null, unidad = "%"): CifraClave => ({ clave, rotulo, texto, valor, unidad });
@@ -76,6 +76,21 @@ describe("ordenar", () => {
     expect(r.map((g) => g.lamina)).toEqual(["s2", "s5"]);
     expect(r[0].filas.map((f) => f.entidad)).toEqual(["Atención: trámites", "Biblioteca", "Comedor"]);
     expect(r[1].filas.map((f) => f.entidad)).toEqual(["Tutoría (fortalezas)", "Sílabo (fortalezas)", "Laboratorios (alertas)"]);
+  });
+
+  it("C5: las diferencias en puntos van por su tamaño, no por su signo; los porcentajes, por su valor", () => {
+    const contraste = agruparCifras({ id: "s7", nombre: "Lámina 7: Contraste" }, listas([
+      cifra("diferencia:Biblioteca", "Biblioteca: diferencia (Docentes menos Estudiantes)", "+9", 9, "pts"),
+      cifra("valor:Biblioteca:Docentes", "Biblioteca: Docentes", "70%", 70),
+      cifra("diferencia:Comedor", "Comedor: diferencia (Docentes menos Estudiantes)", "−14", -14, "pts"),
+      cifra("valor:Comedor:Docentes", "Comedor: Docentes", "40%", 40),
+      cifra("diferencia:Tutoría", "Tutoría: diferencia (Docentes menos Estudiantes)", "+3", 3, "pts"),
+      cifra("valor:Tutoría:Docentes", "Tutoría: Docentes", "90%", 90),
+    ]));
+    expect(ordenarCifras([contraste], "valor")[0].filas.map((f) => f.entidad)).toEqual(["Comedor", "Biblioteca", "Tutoría"]);
+    expect(esDiferencia({ clave: "diferencia:x", unidad: "" })).toBe(true);
+    expect(esDiferencia({ clave: "t2b:x", unidad: "%" })).toBe(false);
+    expect(valorDeFila(ordenarCifras(grupos, "valor")[0].filas[0])).toBe(74);
   });
 
   it("orden de la lámina: el que publicó el motor", () => {

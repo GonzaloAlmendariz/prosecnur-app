@@ -59,10 +59,20 @@ export function ElegirCifra({ fila, nombre, origenes, cifrasPorOrigen, lamina, c
   const visibles = cifrasVisibles(grupos);
   const elegidaId = lamina && clave ? idCelda(lamina, clave) : null;
 
+  // La cabecera del grupo es fija dentro de la lista: `scroll-padding-top` (CSS) deja la opción debajo de ella, y la
+  // primera fila de un grupo trae su cabecera a la vista (con Inicio, la cabecera tapaba la primera opción; C2).
   useEffect(() => {
-    if (!activaVisible) return;
-    const el = lista.current?.querySelector<HTMLElement>(`[data-opcion="${CSS.escape(activaVisible)}"]`);
-    if (el && typeof el.scrollIntoView === "function") el.scrollIntoView({ block: "nearest" });
+    const contenedor = lista.current;
+    if (!activaVisible || !contenedor) return;
+    const el = contenedor.querySelector<HTMLElement>(`[data-opcion="${CSS.escape(activaVisible)}"]`);
+    if (!el) return;
+    const grupo = el.closest<HTMLElement>(".pulso-f6-elegir-cifra-grupo");
+    const primeraFila = grupo?.querySelector(".pulso-f6-elegir-cifra-fila");
+    if (grupo && primeraFila && el.closest(".pulso-f6-elegir-cifra-fila") === primeraFila) {
+      contenedor.scrollTop += grupo.getBoundingClientRect().top - contenedor.getBoundingClientRect().top;
+      return;
+    }
+    if (typeof el.scrollIntoView === "function") el.scrollIntoView({ block: "nearest" });
   }, [activaVisible]);
 
   const cerrarYVolver = () => {
@@ -128,7 +138,7 @@ export function ElegirCifra({ fila, nombre, origenes, cifrasPorOrigen, lamina, c
         <div id={`${id}-panel`} className="pulso-f6-elegir-cifra-panel"
           data-qa-geometry-group="graficos/f6-elegir-cifra" data-qa-geometry-contract="intrinsic">
           <div className="pulso-f6-elegir-cifra-barra" data-qa-geometry-member>
-            <PulsoInput size="sm" type="search" role="combobox" autoFocus value={busqueda} aria-label={`Buscar cifra del ${nombre}`}
+            <PulsoInput size="sm" type="search" role="combobox" autoFocus value={busqueda} placeholder="Pregunta o cifra" aria-label={`Buscar cifra del ${nombre}`}
               aria-expanded="true" aria-controls={`${id}-lista`} aria-autocomplete="list"
               aria-activedescendant={activaVisible ? ids.get(activaVisible) : undefined}
               onChange={(e) => buscar(e.target.value)} onKeyDown={alTeclear} />
@@ -145,8 +155,10 @@ export function ElegirCifra({ fila, nombre, origenes, cifrasPorOrigen, lamina, c
               const plantilla = { gridTemplateColumns: `minmax(0, 1fr) repeat(${columnas}, max-content)` };
               return (
                 <div key={g.lamina} role="group" aria-label={g.nombre} className="pulso-f6-elegir-cifra-grupo" data-lamina={g.lamina}>
+                  {/* El nombre de la lámina va en su propia fila, sobre las columnas de medidas: a su lado se truncaba (C6). */}
                   <div className="pulso-f6-elegir-cifra-grupo-cabeza" style={columnas > 1 ? plantilla : undefined} aria-hidden="true">
-                    <span className="pulso-f6-elegir-cifra-grupo-nombre">{g.nombre}</span>
+                    <span className="pulso-f6-elegir-cifra-grupo-nombre" title={g.nombre}>{g.nombre}</span>
+                    {columnas > 1 && <span className="pulso-f6-elegir-cifra-columna-hueco" />}
                     {columnas > 1 && g.medidas.map((m) => <span key={m} className="pulso-f6-elegir-cifra-columna">{encabezadoMedida(m)}</span>)}
                   </div>
                   {g.estado === "cargando" && <span className="pulso-f6-elegir-cifra-estado" aria-hidden="true">Leyendo las cifras</span>}

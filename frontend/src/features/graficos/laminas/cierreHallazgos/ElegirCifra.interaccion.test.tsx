@@ -143,6 +143,36 @@ describe("Elegir cifra", () => {
     expect(payloadCierre().hallazgos).toEqual([]);
   });
 
+  it("C2: con Inicio, la primera opción de un grupo trae también su cabecera a la vista", () => {
+    montar();
+    act(() => disparadores()[0].click());
+    const lista = host.querySelector<HTMLElement>("[role='listbox']") as HTMLElement;
+    const grupo = host.querySelector<HTMLElement>("[role='group'][data-lamina='s1']") as HTMLElement;
+    lista.getBoundingClientRect = () => ({ top: 100 } as DOMRect);
+    grupo.getBoundingClientRect = () => ({ top: 40 } as DOMRect);
+    let desplazado = 0;
+    Object.defineProperty(lista, "scrollTop", { configurable: true, get: () => desplazado, set: (v: number) => { desplazado = v; } });
+    const input = buscador() as HTMLInputElement;
+    tecla(input, "ArrowDown");
+    tecla(input, "ArrowDown");
+    desplazado = 80;
+    tecla(input, "Home");
+    // La cabecera del grupo estaba 60 px por encima del borde de la lista: sube 60 para que se vea con su primera fila.
+    expect(desplazado).toBe(20);
+  });
+
+  it("C6 y C7: el buscador dice qué se busca y el nombre de la lámina va en su propia fila, sobre las medidas", () => {
+    montar();
+    act(() => disparadores()[0].click());
+    expect(buscador()?.getAttribute("placeholder")).toBe("Pregunta o cifra");
+    const cabeza = host.querySelector("[role='group'][data-lamina='s2'] .pulso-f6-elegir-cifra-grupo-cabeza") as HTMLElement;
+    const hijos = [...cabeza.children].map((c) => c.className);
+    expect(hijos).toEqual([
+      "pulso-f6-elegir-cifra-grupo-nombre", "pulso-f6-elegir-cifra-columna-hueco", "pulso-f6-elegir-cifra-columna", "pulso-f6-elegir-cifra-columna",
+    ]);
+    expect(cabeza.querySelector(".pulso-f6-elegir-cifra-grupo-nombre")?.getAttribute("title")).toBe("Lámina 2: Escala");
+  });
+
   it("la cifra que cambió desde que se eligió se avisa en la fila", () => {
     montar([{ lamina: "s1", cifra: "mediana:Docentes", texto: "Docentes arriba", cifra_al_escribir: "68%" }]);
     expect(host.textContent).toContain("La cifra cambió desde que se escribió el texto: era 68% y hoy es 71%.");
@@ -152,10 +182,27 @@ describe("Elegir cifra", () => {
 describe("la maqueta del cierre", () => {
   it("las tarjetas sin cifra muestran «Hallazgo N» atenuado; la elegida, su cifra viva", () => {
     montar();
-    const maqueta = () => [...host.querySelectorAll<HTMLElement>("[data-qa='cierre-maqueta'] > button")];
+    const maqueta = () => [...host.querySelectorAll<HTMLElement>("[data-qa='cierre-maqueta'] > .pulso-f6-cierre-tarjeta")];
     expect(maqueta().map((t) => t.textContent)).toEqual(["Hallazgo 1", "Hallazgo 2", "Hallazgo 3"]);
     expect(maqueta().every((t) => t.classList.contains("is-vacia"))).toBe(true);
     montar([{ lamina: "s1", cifra: "mediana:Docentes", texto: "Docentes arriba" }, { lamina: "", cifra: "", texto: "Otra" }]);
-    expect(maqueta().map((t) => [t.textContent, t.classList.contains("is-vacia")])).toEqual([["71%Docentes arriba", false], ["Hallazgo 2Otra", true]]);
+    expect(maqueta().map((t) => [t.textContent, t.classList.contains("is-vacia")])).toEqual([["71%Docentes arriba", false], ["Hallazgo 2Otra", true], ["Hallazgo 3", true]]);
+  });
+
+  it("C4: elegir la primera cifra no cambia el número de tarjetas, y sin filas siguen las tres", () => {
+    montar();
+    const maqueta = () => [...host.querySelectorAll<HTMLElement>("[data-qa='cierre-maqueta'] > .pulso-f6-cierre-tarjeta")];
+    act(() => disparadores()[0].click());
+    const op = [...host.querySelectorAll<HTMLElement>("[role='option']")].find((o) => o.getAttribute("aria-label") === "Docentes, mediana: 71%");
+    act(() => op?.click());
+    expect(maqueta()).toHaveLength(3);
+    expect(host.querySelector("[data-qa='cierre-maqueta']")?.className).toContain("is-n3");
+    for (let k = 0; k < 3; k += 1) {
+      const quitar = host.querySelector<HTMLButtonElement>("[aria-label^='Quitar el hallazgo']");
+      act(() => quitar?.click());
+    }
+    expect(host.querySelectorAll("[role='group'][aria-label^='Hallazgo ']")).toHaveLength(0);
+    expect(maqueta().map((t) => t.textContent)).toEqual(["Hallazgo 1", "Hallazgo 2", "Hallazgo 3"]);
+    expect(maqueta().every((t) => t.getAttribute("aria-hidden") === "true")).toBe(true);
   });
 });

@@ -106,13 +106,19 @@ export function buscarCifras(grupos: readonly GrupoCifras[], consulta: string): 
   });
 }
 
-/** El valor por el que se ordena una fila: el de su primera columna con valor. */
-function valorDeFila(f: FilaCifras): number | null {
-  for (const c of f.celdas) if (c && c.cifra.valor !== null) return c.cifra.valor;
+/** Una diferencia en puntos (la del contraste, `diferencia:*`, unidad «pts»): pesa por su tamaño, no por su signo. */
+export const esDiferencia = (c: Pick<CifraClave, "clave" | "unidad">): boolean => c.unidad === "pts" || c.clave.startsWith("diferencia:");
+
+/** El valor por el que se ordena una fila: el de su primera columna con valor; si es una diferencia, su valor absoluto (C5). */
+export function valorDeFila(f: FilaCifras): number | null {
+  for (const c of f.celdas) if (c && c.cifra.valor !== null) return esDiferencia(c.cifra) ? Math.abs(c.cifra.valor) : c.cifra.valor;
   return null;
 }
 
-/** Dentro de cada lámina, de mayor a menor valor (sin valor al final) o en el orden de la lámina. Las láminas no se mueven. */
+/**
+ * Dentro de cada lámina, de mayor a menor valor (sin valor al final) o en el orden de la lámina. Las diferencias van de
+ * mayor a menor tamaño: −14 pts antes que +9 pts. Las láminas no se mueven.
+ */
 export function ordenarCifras(grupos: readonly GrupoCifras[], orden: OrdenCifras): GrupoCifras[] {
   return grupos.map((g) => {
     const filas = [...g.filas].sort((a, b) => {

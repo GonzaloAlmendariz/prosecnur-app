@@ -134,14 +134,22 @@
   text-overflow: ellipsis;
 }
 
-/* En el flujo del inspector, debajo del disparador: no flota ni tapa nada. El scroll es de la lista. */
+/* En el flujo del inspector, debajo del disparador: no flota ni tapa nada. El scroll es de la lista. El índice de la
+   tarjeta (.pulso-f6-indice-tarjeta) queda fijo arriba del cuerpo del inspector: al enfocar el buscador, el panel se
+   detiene debajo de él y no bajo la barra (C3). */
 .pulso-f6-elegir-cifra-panel {
+  --pulso-f6-alto-indice: calc(var(--pulso-control-height-sm) + var(--pulso-space-2) * 2);
+  scroll-margin-top: calc(var(--pulso-f6-alto-indice) + var(--pulso-space-2));
   display: grid;
   min-width: 0;
   overflow: hidden;
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-card);
   background: var(--pulso-surface);
+}
+
+.pulso-f6-elegir-cifra-barra input {
+  scroll-margin-top: calc(var(--pulso-f6-alto-indice) + var(--pulso-space-3));
 }
 
 .pulso-f6-elegir-cifra-barra {
@@ -156,10 +164,18 @@
 }
 
 .pulso-f6-elegir-cifra-lista {
+  /* Alto de la cabecera fija del grupo (dos filas: lámina y medidas): la opción que se trae a la vista queda debajo (C2). */
+  --pulso-f6-alto-cabeza-grupo: calc(var(--pulso-space-2) + var(--pulso-space-1) * 2 + var(--pulso-type-caption-size) * 1.35 * 2);
   max-height: min(320px, 45vh);
   overflow-y: auto;
   overscroll-behavior: contain;
+  scroll-padding-top: var(--pulso-f6-alto-cabeza-grupo);
   padding-bottom: var(--pulso-space-1);
+}
+
+/* Ventana baja (1024×600): la lista cede alto para que el buscador y la barra fija sigan a la vista (C3). */
+@media (max-height: 640px) {
+  .pulso-f6-elegir-cifra-lista { max-height: 40vh; }
 }
 
 .pulso-f6-elegir-cifra-grupo-cabeza {
@@ -167,8 +183,9 @@
   top: 0;
   z-index: 1;
   display: grid;
-  gap: var(--pulso-space-2);
+  gap: var(--pulso-space-1) var(--pulso-space-2);
   align-items: end;
+  line-height: 1.35;
   padding: var(--pulso-space-2) var(--pulso-space-2) var(--pulso-space-1);
   background: var(--pulso-surface);
   color: var(--pulso-text-soft);
@@ -176,6 +193,7 @@
 }
 
 .pulso-f6-elegir-cifra-grupo-nombre {
+  grid-column: 1 / -1;
   overflow: hidden;
   min-width: 0;
   color: var(--pulso-text);
@@ -194,7 +212,12 @@
   display: grid;
   gap: var(--pulso-space-2);
   align-items: center;
-  padding: 0 var(--pulso-space-2);
+  padding: 2px var(--pulso-space-2);
+}
+
+/* Separador sutil: una pregunta larga en dos líneas no se confunde con la siguiente (C7). */
+.pulso-f6-elegir-cifra-fila + .pulso-f6-elegir-cifra-fila {
+  border-top: 1px solid color-mix(in srgb, var(--pulso-border) 60%, transparent);
 }
 
 .pulso-f6-elegir-cifra-entidad {
