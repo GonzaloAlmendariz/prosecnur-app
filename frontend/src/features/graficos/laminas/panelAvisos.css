@@ -134,6 +134,12 @@
     grid-template-columns: 0px minmax(0, 1fr) 0px var(--pulso-avisos-ancho);
   }
 
+  /* R10-3: el informe vacío (`is-vacia`, plantilla Estructura | vacío) toma la misma plantilla: la Estructura se oculta
+     (`is-sin-estructura`, clasesLaminasVacia) y Avisos entra en su columna. (0,3,0): gana a `.is-vacia`. */
+  .pulso-f6-laminas.is-vacia:has(> .pulso-f6-avisos-panel) {
+    grid-template-columns: 0px minmax(0, 1fr) 0px var(--pulso-avisos-ancho);
+  }
+
   .pulso-f6-laminas > .pulso-f6-avisos-panel {
     position: relative;
     grid-column: 4;

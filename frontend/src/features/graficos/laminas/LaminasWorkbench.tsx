@@ -34,7 +34,7 @@ import { useVariables } from "../useVariables";
 import { focoDeId, resolverFocoLamina } from "../focoLamina";
 import { useLaminasUi } from "./laminasStore";
 import { reconciliarSeleccion, vecinaAlEliminar } from "./seleccionLamina";
-import { esLateral, lateralVisible, resolverLateral, type Lateral } from "./lateralLaminas";
+import { clasesLaminasVacia, esLateral, lateralVisible, resolverLateral, type Lateral } from "./lateralLaminas";
 import { useAnchoCompacto, useSideoverModal } from "./useSideoverModal";
 import { useReencajeLienzo } from "./useReencajeLienzo";
 import { AccionesLamina } from "./AccionesLamina";
@@ -308,7 +308,7 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
   if (!lamina || !slide) {
     return (
       <div className="pulso-f6-laminas-host">
-      <div className="pulso-f6-laminas is-vacia" data-qa-surface="graficos/f6-laminas">
+      <div className={clasesLaminasVacia(avisos.abierto)} data-qa-surface="graficos/f6-laminas">
         <EstructuraInforme estructura={estructura} posicionActiva={null} onSeleccionar={irA} validacion={validacion} />
         <div className="pulso-f6-laminas-vacio" role="status">
           {/* 5 nov 2026 (pulido de UI): el vacío dentro del marco de una lámina 16:9 — «aquí verás cada lámina tal
@@ -331,8 +331,9 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
           />
           </div>
         </div>
+        {/* R10-3 (C1): dentro del grid, Avisos toma la columna del lateral en vez de superponerse al vacío. */}
+        {avisos.abierto && <PanelAvisos panel={avisos} grupos={grupos} estructura={estructura} onIr={irA} coloresPendientes={coloresPendientes} baseImplicita={baseImplicita} />}
       </div>
-      {avisos.abierto && <PanelAvisos panel={avisos} grupos={grupos} estructura={estructura} onIr={irA} coloresPendientes={coloresPendientes} baseImplicita={baseImplicita} />}
       <SelectorTipoLamina slide={null} posicion={null} cerrar={cerrarSelectorLamina} onArmarResumen={abrirResumen} />
       <MazoResumen posicion={null} cerrar={cerrarResumen} />
       </div>
