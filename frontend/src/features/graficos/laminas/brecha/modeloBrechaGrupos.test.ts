@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { VarWithSource } from "../../useVariables";
 import {
-  aEntreBases, aEntreGrupos, conCorte, conCruce, conGrupo, conPreguntas, corteDe, esEntreGrupos, faltaEnBrecha, gruposDe, maxGrupos,
-  mismaBase, opcionesDe, opcionesDeGrupo, preguntasDe,
+  aEntreBases, aEntreGrupos, baseDelCruce, conCorte, conCruce, conGrupo, conPreguntas, corteDe, esEntreGrupos, faltaEnBrecha, FALTAN_GRUPOS,
+  gruposDe, gruposPorDefecto, maxGrupos, mismaBase, opcionesDe, opcionesDeGrupo, preguntasDe,
 } from "./modeloBrechaGrupos";
 
 const v = (source: string, name: string, choices: [string, string][] = []): VarWithSource =>
@@ -83,10 +83,41 @@ describe("la brecha entre grupos con el contraste del resumen ejecutivo (ADR 013
   });
 
   it("con dos grupos vacíos pide los dos primeros; un recetario con más de dos lo avisa sin recortarlos", () => {
-    expect(faltaEnBrecha({ ...listo, estilo: "resumen", grupos: ["1"] })).toMatch(/dos primeros grupos/);
+    expect(faltaEnBrecha({ ...listo, estilo: "resumen", grupos: ["1"] })).toBe(FALTAN_GRUPOS);
     const sobrante = { ...listo, estilo: "recetario", grupos: ["1", "2", "3"] };
     expect(gruposDe(sobrante)).toEqual(["1", "2", "3"]);
     expect(faltaEnBrecha(sobrante)).toMatch(/Recetario compara dos grupos/);
     expect(conGrupo(sobrante, 2, "")).toEqual({ grupos: ["1", "2"] });
+  });
+});
+
+describe("las aperturas del resumen con `base$*` (Q4-3 y Q4-4 de la prueba con Arte)", () => {
+  const aperturas = { estilo: "resumen", vars: ["docentes$*"], regla: { tipo: "mayor_diferencia", n: 10 }, corte: "4,5" };
+
+  it("elegir o cambiar «Dividir por» no borra las preguntas; pasar a grupos conserva una lista", () => {
+    let a: Record<string, unknown> = { ...aperturas, ...conCruce(vars, "p3", ["1", "2"]) };
+    expect(a.vars).toEqual(["docentes$*"]);
+    expect(a.grupos).toEqual(["1", "2"]);
+    expect(baseDelCruce(vars, a.cruce as string)).toBe("docentes");
+    a = { ...a, ...conCruce(vars, null) };
+    expect(a.vars).toEqual(["docentes$*"]);
+    expect(a.grupos).toEqual([]);
+    expect(aEntreGrupos({ vars: ["docentes$*"] }).vars).toEqual(["docentes$*"]);
+    expect(aEntreGrupos({ vars: { tema_1: ["docentes$p1"] } }).vars).toEqual([]);
+  });
+
+  it("arrancan encendidos hasta cuatro grupos con respuestas, en el orden de la lista; sin conteo, ninguno", () => {
+    const opciones = ["1", "2", "3", "4", "5", "6"].map((codigo) => ({ codigo, etiqueta: `Ciclo ${codigo}` }));
+    const conteos = new Map([["1", 20], ["2", 0], ["3", 15], ["4", 8], ["5", 3], ["6", 40]]);
+    expect(gruposPorDefecto(opciones, conteos)).toEqual(["1", "3", "4", "5"]);
+    expect(gruposPorDefecto(opciones, new Map([["2", 5]]))).toEqual(["2"]);
+    expect(gruposPorDefecto(opciones, null)).toEqual([]);
+  });
+
+  it("con regla y sin preguntas declaradas no pide preguntas: el motor toma las de la base del cruce", () => {
+    const sinVars = { ...aperturas, vars: undefined, cruce: "docentes$p3", grupos: ["1", "2"] };
+    expect(faltaEnBrecha(sinVars)).toBeNull();
+    expect(faltaEnBrecha({ ...sinVars, regla: undefined })).toMatch(/al menos una pregunta/);
+    expect(faltaEnBrecha({ ...sinVars, grupos: [] })).toBe(FALTAN_GRUPOS);
   });
 });

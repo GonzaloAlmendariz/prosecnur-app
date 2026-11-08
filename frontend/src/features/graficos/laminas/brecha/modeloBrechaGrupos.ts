@@ -81,9 +81,12 @@ export function corteDe(args: Args): string[] {
   return lista(args.corte).flatMap((c) => c.split(/[,;|]/)).map((c) => c.trim()).filter(Boolean);
 }
 
-/** Pasar a «entre dos grupos»: se vacían las preguntas por base (otra forma) y el par de públicos, y se pide el cruce. */
-export function aEntreGrupos(): Record<string, unknown> {
-  return { cruce: "", grupos: [], vars: [], bases: null };
+/**
+ * Pasar a «entre dos grupos»: se vacían las preguntas por base (otra forma) y el par de públicos, y se pide el cruce.
+ * Una lista de preguntas (`base$*` o sueltas) ya es de esta forma y se conserva (Q4-3 de la prueba con Arte).
+ */
+export function aEntreGrupos(args: Args = {}): Record<string, unknown> {
+  return { cruce: "", grupos: [], vars: Array.isArray(args.vars) ? args.vars : [], bases: null };
 }
 
 /** Volver a «entre dos bases»: sin cruce ni grupos; los temas por base se arman en EditorTemasEquivalentes (P21). */
@@ -91,9 +94,31 @@ export function aEntreBases(): Record<string, unknown> {
   return { cruce: null, grupos: null, vars: {} };
 }
 
-/** Elegir el cruce: los grupos elegidos de otro cruce ya no valen. */
-export function conCruce(variables: readonly VarWithSource[], ref: string | null): Record<string, unknown> {
-  return { cruce: ref ? refCompleta(variables, ref) : "", grupos: [] };
+/**
+ * Elegir el cruce: los grupos elegidos de otro cruce ya no valen; las preguntas no se tocan (Q4-3: elegir «Dividir por»
+ * borraba `base$*` y el preview pedía preguntas). `grupos` son los que arrancan encendidos (gruposPorDefecto).
+ */
+export function conCruce(variables: readonly VarWithSource[], ref: string | null, grupos: readonly string[] = []): Record<string, unknown> {
+  return { cruce: ref ? refCompleta(variables, ref) : "", grupos: ref ? [...grupos] : [] };
+}
+
+/**
+ * Los grupos que arrancan encendidos al elegir la pregunta que divide en el resumen (Q4-4): hasta cuatro con al menos una
+ * respuesta, en el orden de la lista. Sin conteo no se adivina: ninguno.
+ */
+export function gruposPorDefecto(opciones: readonly Opcion[], conteos: ReadonlyMap<string, number> | null, tope = MAX_GRUPOS_RESUMEN): string[] {
+  if (!conteos) return [];
+  return opciones.filter((o) => (conteos.get(o.codigo) ?? 0) > 0).slice(0, tope).map((o) => o.codigo);
+}
+
+/** La base del cruce (`docentes` de `docentes$ciclo`); "" si no la trae. */
+export function baseDelCruce(variables: readonly VarWithSource[], cruce: string): string {
+  return parseVarRef(cruce).source || variableDe(variables, cruce)?.source || "";
+}
+
+/** ¿Las preguntas salen de la regla sin declararlas? El resumen con regla toma `base$*` de la base del cruce (motor). */
+export function preguntasPorRegla(args: Args): boolean {
+  return args.estilo === "resumen" && !!args.regla && typeof args.regla === "object" && !preguntasDe(args).length;
 }
 
 /**
@@ -129,6 +154,8 @@ export function conCorte(args: Args, codigo: string, marcado: boolean): Record<s
   return { corte: [...c].join(",") };
 }
 
+export const FALTAN_GRUPOS = "Elige los grupos que se comparan.";
+
 /** Lo que falta para que la lámina se pueda dibujar, en el orden en que se elige. */
 export function faltaEnBrecha(args: Args): string | null {
   if (!texto(args.cruce)) return "Elige la pregunta que define los grupos.";
@@ -137,8 +164,8 @@ export function faltaEnBrecha(args: Args): string | null {
   if (gruposElegidos(args).length > tope) {
     return "Recetario compara dos grupos: quita los demás o elige «Contraste de públicos» en Estilo.";
   }
-  if (!a || !b) return tope > MAX_GRUPOS_RECETARIO ? "Elige al menos los dos primeros grupos." : "Elige los dos grupos que se comparan.";
-  if (!preguntasDe(args).length) return "Agrega al menos una pregunta.";
+  if (!a || !b) return tope > MAX_GRUPOS_RECETARIO ? FALTAN_GRUPOS : "Elige los dos grupos que se comparan.";
+  if (!preguntasDe(args).length && !preguntasPorRegla(args)) return "Agrega al menos una pregunta.";
   if (!corteDe(args).length) return "Marca qué respuestas suman el indicador.";
   return null;
 }
