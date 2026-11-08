@@ -13,6 +13,7 @@ vi.mock("../useCategoriasGrafico", () => ({ useCategoriasGrafico: () => ({ fase:
   { codigo: "1", etiqueta: "Sí", n: 240, pct: 58, residual: false },
   { codigo: "2", etiqueta: "No", n: 140, pct: 34, residual: false },
   { codigo: "99", etiqueta: "No sabe", n: 32, pct: 8, residual: true },
+  { codigo: "77", etiqueta: "Otro", n: 0, pct: 0, residual: false },
 ] } }) }));
 vi.mock("../useRotulosCortos", () => ({ useRotulosCortos: () => undefined }));
 
@@ -20,13 +21,15 @@ import { olvidarDetalles } from "../cifrasInspector/cacheDetalle";
 import { ESPERA_DETALLE_MS } from "../cifrasInspector/useDetalleCifras";
 import { ExcluirRespuestas } from "./ExcluirRespuestas";
 
-const TODAS = detalle([{ clave: "Sí", valor: 58 }, { clave: "No", valor: 34 }, { clave: "No sabe", valor: 8 }], { n: 412 });
+const decimales = { valor: 0 };
+const TODAS_0 = detalle([{ clave: "Sí", valor: 58 }, { clave: "No", valor: 34 }, { clave: "No sabe", valor: 8 }], { n: 412 });
+const TODAS_1 = detalle([{ clave: "Sí", valor: 58.25 }, { clave: "No", valor: 33.75 }, { clave: "No sabe", valor: 8 }], { n: 412, decimales: 1 });
 const SIN_NS = detalle([{ clave: "Sí", valor: 63 }, { clave: "No", valor: 37 }], { n: 380 });
 const SIN_NS_NI_NO = detalle([{ clave: "Sí", valor: 100 }], { n: 240 });
 
 function porExcluidas(args: Readonly<Record<string, unknown>>): DetalleCifras {
   const ex = (args.excluir_opciones as string[] | undefined) ?? [];
-  return ex.includes("2") ? SIN_NS_NI_NO : ex.includes("99") ? SIN_NS : TODAS;
+  return ex.includes("2") ? SIN_NS_NI_NO : ex.includes("99") ? SIN_NS : decimales.valor ? TODAS_1 : TODAS_0;
 }
 
 let host: HTMLDivElement;
@@ -45,6 +48,7 @@ beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   vi.useFakeTimers();
   olvidarDetalles();
+  decimales.valor = 0;
   lote.mockReset();
   lote.mockImplementation(async (p: PedidoCifrasDetalleLote) => Object.fromEntries(p.laminas.map((l) => [l.id, {
     cifras: { tipo: "", cifras: [], avisos: [] }, error: null, detalle: porExcluidas(l.args),
@@ -63,8 +67,9 @@ describe("Excluir respuestas con su cifra", () => {
     await esperar();
     expect(host.querySelector('[data-qa="excluir-base"]')?.textContent).toBe("Base 412 → 380");
     expect(ficha("Sí").textContent).toBe("Sí63%");
-    // La excluida dice el % que tendría sin exclusiones.
-    expect(ficha("No sabe").textContent).toBe("No sabe8%");
+    // R7-12: la excluida dice «Excluida» y la que no tiene casos, «0 casos».
+    expect(ficha("No sabe").textContent).toBe("No sabeExcluida");
+    expect(ficha("Otro").textContent).toBe("Otro0 casos");
     expect(lote).toHaveBeenCalledTimes(1);
   });
   it("al pasar el cursor por una ficha, una línea con el efecto de alternarla", async () => {
@@ -76,6 +81,33 @@ describe("Excluir respuestas con su cifra", () => {
     act(() => { ficha("No sabe").focus(); });
     await esperar();
     expect(host.querySelector('[data-qa="excluir-efecto"]')?.textContent).toBe('Con "No sabe": Sí 63% → 58%');
+  });
+  it("R7-4: la línea del efecto está reservada sin cursor y nunca muestra la cifra de la ficha anterior", async () => {
+    pintar(["99"]);
+    await esperar();
+    const linea = host.querySelector('[data-qa="excluir-efecto-linea"]');
+    expect(linea).not.toBeNull();
+    expect(linea?.textContent).toBe("");
+    // «No sabe» alternada es la variante «sin» (ya en caché): su efecto llega al momento.
+    act(() => { ficha("No sabe").dispatchEvent(new MouseEvent("mouseover", { bubbles: true })); });
+    await esperar();
+    expect(host.querySelector('[data-qa="excluir-efecto"]')?.textContent).toBe('Con "No sabe": Sí 63% → 58%');
+    // Otra ficha: mientras llega su cifra, silueta; no «Sin "No": Sí 63% → 58%».
+    act(() => { ficha("No").dispatchEvent(new MouseEvent("mouseover", { bubbles: true })); });
+    const esperando = host.querySelector('[data-qa="excluir-efecto"]');
+    expect(esperando?.getAttribute("aria-busy")).toBe("true");
+    expect(esperando?.textContent).toBe("");
+    await esperar();
+    expect(host.querySelector('[data-qa="excluir-efecto"]')?.textContent).toBe('Sin "No": Sí 63% → 100%');
+    // Al salir, la línea queda vacía pero sigue ahí.
+    act(() => { host.querySelector(".pulso-f6-cats")!.dispatchEvent(new MouseEvent("mouseout", { bubbles: true, relatedTarget: document.body })); });
+    expect(host.querySelector('[data-qa="excluir-efecto-linea"]')).not.toBeNull();
+  });
+  it("R7-12: con un decimal en el gráfico, las fichas llevan el decimal de la lámina", async () => {
+    decimales.valor = 1;
+    pintar([]);
+    await esperar();
+    expect(ficha("Sí").textContent).toBe("Sí58.3%");
   });
   it("sin detalle, las fichas quedan con su n y no hay cifra", async () => {
     lote.mockImplementation(async (p: PedidoCifrasDetalleLote) => Object.fromEntries(p.laminas.map((l) => [l.id, {

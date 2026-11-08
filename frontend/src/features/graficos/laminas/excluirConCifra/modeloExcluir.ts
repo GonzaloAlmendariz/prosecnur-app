@@ -15,6 +15,8 @@ type Args = Readonly<Record<string, unknown>>;
 export const ACTUAL = "actual";
 export const SIN = "sin";
 export const SONDEO = "sondeo";
+/** Lo que dice la ficha de una respuesta excluida (R7-12). */
+export const EXCLUIDA = "Excluida";
 
 export function variantesExcluir(
   args: Args, argName: string, elegidos: readonly string[], sondeo: string | null, claves: readonly string[],

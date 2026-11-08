@@ -1,0 +1,19 @@
+/* R7-4: la línea del efecto de Excluir respuestas está reservada (una línea, vacía sin cursor): pasar el cursor o el
+   foco por una ficha no empuja lo de abajo. Un efecto largo se recorta con puntos suspensivos; el texto entero queda en
+   el estado para el lector de pantalla. */
+.pulso-f6-excluir-efecto {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  block-size: calc(var(--pulso-type-caption-size) * 1.4);
+  overflow: hidden;
+}
+
+.pulso-f6-excluir-efecto > .pulso-f6-cifra-estado {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow-wrap: normal;
+}

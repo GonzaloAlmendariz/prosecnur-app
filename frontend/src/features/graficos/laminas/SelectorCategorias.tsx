@@ -40,7 +40,7 @@ type Props = {
   nota: ReactNode;
   textoRespaldo: ReactNode;
   /** La cifra que lleva cada ficha en lugar de su n (el % de la lámina), o null para dejar el n. */
-  cifraDe?: (codigo: string, etiqueta: string) => { texto: string; vigente: boolean } | null;
+  cifraDe?: (codigo: string, etiqueta: string, n: number) => { texto: string; vigente: boolean } | null;
   /** La ficha bajo el cursor o con el foco (su clave), o null al salir. */
   onSondear?: (clave: string | null) => void;
   /** Estado junto al resumen. */
@@ -48,6 +48,9 @@ type Props = {
   /** Estado bajo las fichas (el efecto de la sondeada). */
   efecto?: ReactNode;
 };
+
+/** R7-12: una categoría sin casos lo dice así, no con un «0» suelto junto a otras cifras. */
+export const SIN_CASOS = "0 casos";
 
 export function SelectorCategorias({
   id, etiqueta, variable, scope, graficador, valor, modo, porEtiqueta = false, vacioEsTodos = false, sustantivo = RESPUESTA, onCambio, nota, textoRespaldo,
@@ -109,7 +112,7 @@ export function SelectorCategorias({
           const bloqueada = fichaBloqueada(claveDe(c), visibles, todos);
           const r = rotuloVisible(cortos, c.etiqueta || c.codigo);
           const detalle = `Código ${c.codigo}${Number.isFinite(c.n) ? `, ${c.n} casos` : ""}${bloqueada ? `. Al menos ${sustantivo.femenino ? "una" : "uno"} queda` : ""}`;
-          const cifra = cifraDe?.(c.codigo, c.etiqueta) ?? null;
+          const cifra = cifraDe?.(c.codigo, c.etiqueta, c.n) ?? null;
           return (
             <button key={c.codigo} type="button" className={`pulso-f6-cat${activo ? " is-activa" : ""}${c.residual ? " is-residual" : ""}`}
               aria-pressed={activo} aria-disabled={bloqueada || undefined} onClick={() => alternar(claveDe(c))}
@@ -118,7 +121,7 @@ export function SelectorCategorias({
               <span className="pulso-f6-cat-texto">{r.texto}</span>
               {cifra
                 ? <span className={`pulso-f6-cifra-pct${cifra.vigente ? "" : " is-anterior"}`} data-qa="cifra-ficha">{cifra.texto}</span>
-                : Number.isFinite(c.n) && <span className="pulso-f6-cat-n">{c.n}</span>}
+                : Number.isFinite(c.n) && <span className="pulso-f6-cat-n">{c.n === 0 ? SIN_CASOS : c.n}</span>}
             </button>
           );
         })}
