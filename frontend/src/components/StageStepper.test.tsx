@@ -129,7 +129,7 @@ describe("StageStepper", () => {
     expect(styles).toContain(".pulso-stepper-list");
     expect(styles).toContain(".pulso-step-label");
     expect(styles).not.toContain("display: none");
-    expect(styles).toContain("transform: scale(0.98);");
+    expect(styles).toMatch(/transform: scale\(var\(--mov-press[^)]*\)\);/);
     expect(styles).toMatch(
       /@media \(prefers-reduced-motion: reduce\)[\s\S]*?transform: none;/,
     );

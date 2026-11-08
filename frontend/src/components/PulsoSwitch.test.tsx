@@ -88,7 +88,7 @@ describe("PulsoSwitch (K1)", () => {
     // Apoya en `left: 1px` y encendida se desliza 13 px (L37: con transform): queda en 14, a 1 px del borde.
     expect(css).toMatch(/\.pulso-switch\.pulso-switch--sm \.pulso-switch-thumb \{[^}]*left: 1px;/);
     expect(css).toMatch(/\.pulso-switch\.pulso-switch--sm\[aria-checked="true"\] \.pulso-switch-thumb \{\s*transform: translateX\(13px\);/);
-    expect(css).toMatch(/\.pulso-switch:focus-visible \{\s*outline: 2px solid/);
+    expect(css).toMatch(/\.pulso-switch:focus-visible \{\s*outline: var\(--mov-foco/);
   });
 
   it("el borde de la pista apagada llega a 3:1 sobre la fila gris y sobre blanco (1.4.11)", () => {
