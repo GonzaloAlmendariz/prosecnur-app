@@ -110,6 +110,15 @@ describe("ReglaPreguntas", () => {
     expect(html.split(aviso)).toHaveLength(2);   // sólo en el título del chip: no se repite en la lista de avisos
   });
 
+  it("98/99 con 3 filas: el chip pasa a aviso con la causa del motor y su aviso no se repite en la lista", () => {
+    const motivo = "Hay dos opciones sin información; la lámina nativa admite una y la escala sale como imagen.";
+    const html = pintar({ tipo: "bajo_umbral", umbral: 10 }, { ...CONTEO, conteo: { ...CONTEO.conteo!, avisos: [motivo], tope_filas: 20, cabe_nativa: false, motivo_imagen: motivo } }, "p_barras_divergentes");
+    expect(html).toMatch(/class="pulso-f6-regla-tope is-excedido"[^>]*title="Hay dos opciones sin información/);
+    expect(html).toContain('data-causa="sin-informacion"');
+    expect(html.split(motivo)).toHaveLength(3);   // el título y el texto del chip; ninguno en la lista de avisos
+    expect(html).not.toContain("pulso-f6-regla-reparto-tope");   // el tope por filas no se pasa
+  });
+
   it("el límite se ve en tono neutro mientras la selección cabe", () => {
     const html = pintar({ tipo: "bajo_umbral", umbral: 10 }, { ...CONTEO, conteo: { ...CONTEO.conteo!, avisos: [], tope_filas: 20 } }, "p_barras_divergentes");
     expect(html).toMatch(/class="pulso-f6-regla-tope"/);

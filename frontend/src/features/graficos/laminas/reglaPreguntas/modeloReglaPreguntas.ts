@@ -298,5 +298,7 @@ export function mismoConteo(a: ConteoRegla | null, b: ConteoRegla | null): boole
   if (a === b) return true;
   if (!a || !b) return false;
   return a.total === b.total && a.texto_regla === b.texto_regla && jsonEstable(a.seleccionadas) === jsonEstable(b.seleccionadas)
-    && jsonEstable(a.avisos) === jsonEstable(b.avisos) && jsonEstable(a.candidatas) === jsonEstable(b.candidatas);
+    && jsonEstable(a.avisos) === jsonEstable(b.avisos) && jsonEstable(a.candidatas) === jsonEstable(b.candidatas)
+    && (a.tope_filas ?? null) === (b.tope_filas ?? null) && (a.cabe_nativa ?? null) === (b.cabe_nativa ?? null)
+    && (a.motivo_imagen ?? null) === (b.motivo_imagen ?? null);
 }

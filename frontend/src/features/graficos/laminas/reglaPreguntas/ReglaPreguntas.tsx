@@ -23,7 +23,8 @@ import {
   ajustadaAMano, campoCifra, conCifra, conTipo, gruposDeLaLamina, indicadorDe, recordarCifra, reglaEfectiva, rotuloMetrica, rotuloTipo,
   textoConteo, tiposOfrecidos, valorCifra, volverALaRegla, type CifrasRecordadas,
 } from "./modeloReglaPreguntas";
-import { estadoTope, marcasDeCorte, ordenFilas, repartoRegla, repiteElTope } from "./repartoRegla";
+import { avisosFueraDelLimite, estadoLimite } from "./limiteRegla";
+import { marcasDeCorte, ordenFilas, repartoRegla } from "./repartoRegla";
 import { useCifraEnVivo } from "./useCifraEnVivo";
 import { useConteoRegla } from "./useConteoRegla";
 import { enOrden, seleccionVista } from "./vistaRegla";
@@ -76,8 +77,7 @@ export function ReglaPreguntas({ rotulo, ayuda, graficador, args, valor, scope, 
   // sitio no desaparezca y vuelva (C2).
   const topes = useRef<Record<string, number | null>>({});
   if (conteo && conteo.tope_filas !== undefined) topes.current[graficador] = conteo.tope_filas;
-  const tope = estadoTope(conteo?.tope_filas ?? topes.current[graficador], seleccionadas.length);
-  const avisoTope = conteo?.avisos.find(repiteElTope) ?? null;
+  const limite = estadoLimite(conteo, conteo?.tope_filas ?? topes.current[graficador], seleccionadas.length);
   const etiquetas = new Map((conteo?.candidatas ?? []).map((c) => [c.tema, c.etiqueta]));
   const proyectada = !!vista?.proyectada;
 
@@ -113,7 +113,7 @@ export function ReglaPreguntas({ rotulo, ayuda, graficador, args, valor, scope, 
 
       {regla && cifra && (
         <CorteRegla id={idCifra} tipo={regla.tipo} campo={cifra} valor={vivo.valor} reparto={reparto} rotuloMetrica={rotuloDeMetrica}
-          etiquetas={etiquetas} tope={tope} avisoTope={avisoTope} cargando={cargando} resaltada={resaltada} onResaltar={setResaltada}
+          etiquetas={etiquetas} limite={limite} cargando={cargando} resaltada={resaltada} onResaltar={setResaltada}
           onMover={vivo.mover} onSoltar={vivo.soltar} />
       )}
 
@@ -130,8 +130,8 @@ export function ReglaPreguntas({ rotulo, ayuda, graficador, args, valor, scope, 
             <span> en la lámina</span>
           </p>
           {conteo.texto_regla && <p className={`pulso-f6-regla-texto${proyectada ? " is-desfasado" : ""}`}>{conteo.texto_regla}</p>}
-          {tope && !cifra && <LimiteLamina tope={tope.tope} excedido={tope.excedido} aviso={avisoTope} />}
-          {conteo.avisos.filter((a) => !(tope && repiteElTope(a))).map((a) => <span key={a} className="pulso-f6-dato-ayuda" role="note">{a}</span>)}
+          {limite && !cifra && <LimiteLamina limite={limite} />}
+          {avisosFueraDelLimite(conteo.avisos, limite).map((a) => <span key={a} className="pulso-f6-dato-ayuda" role="note">{a}</span>)}
           {conteo.candidatas.length === 0 ? (
             <EstadoVacio icono={<ListChecks size={16} />} titulo="Sin preguntas candidatas" descripcion="Revisa las bases, el indicador y los filtros." />
           ) : (

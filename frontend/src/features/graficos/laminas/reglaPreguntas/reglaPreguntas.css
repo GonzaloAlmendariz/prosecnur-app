@@ -352,13 +352,14 @@
   white-space: nowrap;
 }
 
-/* El límite de la lámina nativa, junto al corte: neutro mientras cabe, en tono de aviso al pasarlo. Mismo texto en los
-   dos tonos y una sola línea reservada: pasarlo no mueve el marco. La marca repite el trazo del tope en el reparto. */
+/* El límite de la lámina nativa, junto al corte: neutro mientras cabe, en tono de aviso al pasar el tope o cuando el motor
+   dice que la escala sale como imagen por otra causa. Reserva dos líneas: ni el tono ni un texto de una o dos líneas
+   mueven el marco (C2). La marca repite el trazo del tope en el reparto. */
 .pulso-f6-regla-tope {
   display: flex;
   align-items: baseline;
   gap: var(--pulso-space-2);
-  min-height: calc(1.35em + 2 * var(--pulso-space-1));
+  min-height: calc(2 * 1.35em + 2 * var(--pulso-space-1));
   padding: var(--pulso-space-1) var(--pulso-space-2);
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface-2);
