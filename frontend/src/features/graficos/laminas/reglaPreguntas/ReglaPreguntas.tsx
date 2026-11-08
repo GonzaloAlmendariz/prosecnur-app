@@ -68,7 +68,7 @@ export function ReglaPreguntas({ rotulo, ayuda, graficador, args, valor, scope, 
   const calculado = reglaViva && conteo ? repartoRegla(reglaViva, conteo.candidatas) : null;
   const vista = conteo ? seleccionVista(conteo, calculado, vivo.enVivo || cargando, filas) : null;
   const reparto = calculado && vista ? { ...calculado, puntos: calculado.puntos.map((p) => ({ ...p, entra: vista.temas.has(p.tema) })) } : calculado;
-  const ordenadas = reglaViva && conteo ? ordenFilas(reglaViva.tipo, conteo.candidatas) : [];
+  const ordenadas = reglaViva && conteo ? ordenFilas(reglaViva.tipo, conteo.candidatas, conteo.seleccionadas) : [];
   const seleccionadas = vista && conteo ? (vista.proyectada ? enOrden(vista.temas, ordenadas) : conteo.seleccionadas) : [];
   const textoVisto = conteo ? textoConteo({ seleccionadas, total: conteo.total }) : "";
   const rotuloDeMetrica = regla ? rotuloMetrica(regla.tipo, grupos, indicadorDe(args)) : "";
