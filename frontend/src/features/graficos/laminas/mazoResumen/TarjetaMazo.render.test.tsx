@@ -30,7 +30,7 @@ const pintar = (p: PropuestaMazo, extra: { elegida?: boolean; editando?: boolean
   estado.activo = [];
   return renderToStaticMarkup(
     <TarjetaMazo numero={3} propuesta={p} elegida={extra.elegida ?? false} editando={extra.editando ?? false} scope="active"
-      onAlternar={() => undefined} onEditar={() => undefined} onRegla={() => undefined} />,
+      idLateral="lat" onAlternar={() => undefined} onEditar={() => undefined} />,
   );
 };
 
@@ -68,7 +68,8 @@ describe("TarjetaMazo", () => {
     const html = pintar(CONTRASTE, {
       conteo: {
         cargando: false, error: null, codigo: null,
-        conteo: { total: 47, seleccionadas: ["a"], candidatas: [], texto_regla: "Se muestran las 13 de mayor diferencia, de 47 preguntas comunes.", avisos: [] },
+        // Sólo los campos que la tarjeta lee: el contrato del conteo crece en otra rama (tope de filas) y no es de aquí.
+        conteo: { total: 47, seleccionadas: ["a"], candidatas: [], texto_regla: "Se muestran las 13 de mayor diferencia, de 47 preguntas comunes.", avisos: [] } as unknown as NonNullable<ConteoEnVivo["conteo"]>,
       },
     });
     expect(html).toContain("Se muestran las 13 de mayor diferencia, de 47 preguntas comunes.");
@@ -87,11 +88,14 @@ describe("TarjetaMazo", () => {
     expect(estado.activo[0]).toBe(false);
   });
 
-  it("editando: la Regla de preguntas en la misma tarjeta y la tarjeta no pide su propio conteo", () => {
+  it("editando: la tarjeta queda marcada, «Editar» controla el lateral y la regla NO se despliega en la tarjeta", () => {
     const html = pintar(CONTRASTE, { editando: true });
-    expect(html).toContain("Regla de preguntas");
+    expect(html).toContain(">Editando<");
     expect(html).toContain('aria-expanded="true"');
+    expect(html).toContain('aria-controls="lat"');
+    expect(html).not.toContain("Regla de preguntas");
     expect(estado.activo[0]).toBe(false);
+    expect(pintar(CONTRASTE)).not.toContain("aria-controls");
   });
 
   it("la cobertura no tiene regla: la dice en palabras y no ofrece Editar", () => {

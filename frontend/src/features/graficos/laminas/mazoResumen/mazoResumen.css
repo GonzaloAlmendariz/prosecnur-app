@@ -1,6 +1,8 @@
-/* Mazo «Resumen ejecutivo» (MazoResumen.tsx). El marco es el Dialog del kit en alto fijo: la franja va en la banda del
-   stepper (fija) y el cuerpo es el único dueño del scroll (C4). Las tarjetas son el Panel del kit en una grilla de
-   alto igual (C1 `equal`): con dos o con nueve, cada fila mide lo mismo y el vacío bajo la última es del cuerpo (C3). */
+/* Mazo «Resumen ejecutivo» (MazoResumen.tsx). El marco es el Dialog del kit en alto fijo con el cuerpo `flush`: la
+   franja va en la banda del stepper (fija) y el cuerpo se parte en dos columnas, cada una dueña de su scroll (C4): las
+   tarjetas, que poseen el vacío (C3), y, al editar una regla, el lateral de 420 px. Las tarjetas son el Panel del kit
+   en una grilla de alto igual (C1 `equal`): con dos o con nueve, cada fila mide lo mismo, y abrir el lateral no las
+   estira (antes la regla se desplegaba dentro de la tarjeta y la fila llegaba a 880 px, C2). */
 
 /* Tres tarjetas por fila desde 1024 px: el lg del kit (980) deja dos y obliga a desplazar el mazo entero. */
 .pulso-f6-mazo.pulso-dialog--lg {
@@ -77,7 +79,81 @@
 
 .pulso-f6-mazo-cuerpo {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   min-width: 0;
+  min-height: 0;
+}
+
+.pulso-f6-mazo-cuerpo.is-editando {
+  grid-template-columns: minmax(0, 1fr) 420px;
+}
+
+.pulso-f6-mazo-columna {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: var(--pulso-space-4) 18px;
+}
+
+/* El lateral no es un overlay: es la segunda columna del cuerpo, con su propio scroll. */
+.pulso-f6-mazo-lateral {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: var(--pulso-space-4) 18px;
+  border-left: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-f6-mazo-lateral-cabeza {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-f6-mazo-lateral-texto {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pulso-f6-mazo-lateral-titulo {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-f6-mazo-lateral-titulo:focus-visible {
+  outline: var(--mov-foco);
+  outline-offset: 2px;
+}
+
+.pulso-f6-mazo-editando {
+  flex: none;
+  align-self: center;
+  padding: 1px var(--pulso-space-2);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--module-accent-soft);
+  color: var(--module-accent);
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pulso-f6-mazo-tarjeta.is-editando.pulso-panel:not(.is-elegida) {
+  border-color: var(--module-accent-border);
 }
 
 .pulso-f6-mazo-tarjetas {
@@ -189,8 +265,7 @@
   background: var(--module-accent);
 }
 
-.pulso-f6-mazo-acciones,
-.pulso-f6-mazo-edicion {
+.pulso-f6-mazo-acciones {
   position: relative;
   z-index: 1;
 }
@@ -303,19 +378,6 @@
   padding-top: var(--pulso-space-1);
 }
 
-.pulso-f6-mazo-edicion {
-  display: grid;
-  min-width: 0;
-  padding-top: var(--pulso-space-2);
-  border-top: 1px solid var(--pulso-border);
-}
-
-/* La lista de candidatas desplaza dentro de la tarjeta: con 47 no estira la fila de la grilla. */
-.pulso-f6-mazo-edicion .pulso-f6-regla-filas {
-  max-height: 220px;
-  overflow-y: auto;
-}
-
 @media (prefers-reduced-motion: no-preference) {
   .pulso-f6-mazo-tarjeta.pulso-panel {
     transition: transform var(--motion-dur-press) var(--motion-ease-out), border-color var(--motion-dur-fast) var(--motion-ease-out),
@@ -325,4 +387,13 @@
   .pulso-f6-mazo-tarjeta.pulso-panel:has(.pulso-f6-mazo-elegir:active) {
     transform: scale(var(--mov-press-tarjeta));
   }
+
+  /* El lateral entra sólo con opacidad y desplazamiento (L37): la grilla cambia de golpe, sin animar columnas. */
+  .pulso-f6-mazo-lateral {
+    animation: pulso-f6-mazo-lateral-in var(--motion-dur-base) var(--motion-ease-out);
+  }
+}
+
+@keyframes pulso-f6-mazo-lateral-in {
+  from { opacity: 0; transform: translateX(12px); }
 }

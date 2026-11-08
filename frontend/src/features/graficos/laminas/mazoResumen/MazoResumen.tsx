@@ -3,7 +3,7 @@
 // analista marca las que quiere y las inserta en un solo paso de deshacer detrás de la lámina del foco (al final si el
 // informe está vacío). Las láminas nacen sin título ni antetítulo: los escribe el analista.
 
-import { useMemo, type RefObject } from "react";
+import { useCallback, useId, useMemo, useRef, type RefObject } from "react";
 import { ListChecks, Presentation } from "../../../../vendor/lucide-react";
 import { CargaDeBloque } from "../../../../components/CargaDeBloque";
 import { OverlayBase } from "../../../../components/Dialog";
@@ -18,6 +18,7 @@ import { destinoAlCerrarEnDocumento } from "../selectores/focoAlCerrar";
 import { FranjaMazo } from "./FranjaMazo";
 import { useMazoResumenUi } from "./mazoResumenStore";
 import { deshacerInsercion } from "./deshacerMazo";
+import { EdicionReglaMazo } from "./EdicionReglaMazo";
 import { mensajeInsertadas, rotuloInsertar, unirPublicos } from "./modeloMazo";
 import { PANEL_RESUMEN_EJECUTIVO } from "./panelResumen";
 import { SeleccionMazo } from "./SeleccionMazo";
@@ -41,6 +42,21 @@ export function MazoResumen({ posicion, cerrar }: Props) {
   const ui = useMazoResumenUi();
   // Se resuelve al cerrar, con la lámina que quedó en pantalla (quien abrió el panel pudo desmontarse).
   const retorno = useMemo<RefObject<HTMLElement>>(() => ({ get current() { return destinoAlCerrarEnDocumento(null); } }), []);
+
+  const idLateral = `${useId()}-lateral`;
+  const columna = useRef<HTMLDivElement>(null);
+  const enEdicion = mazo.propuestas.find((p) => p.id === ui.editando && !p.falta);
+  const graficadorEnEdicion = enEdicion?.graficador ?? null;
+  // Al cerrar el lateral el foco vuelve al «Editar» de su tarjeta (el lateral se desmonta con el foco dentro).
+  const cerrarEdicion = useCallback(() => {
+    const id = useMazoResumenUi.getState().editando;
+    useMazoResumenUi.getState().editar(null);
+    if (!id) return;
+    requestAnimationFrame(() => {
+      const botones = columna.current?.querySelectorAll<HTMLElement>("[data-editar-mazo]") ?? [];
+      Array.from(botones).find((b) => b.dataset.editarMazo === id)?.focus();
+    });
+  }, []);
 
   const n = mazo.elegidas.length;
   const sinEscala = mazo.publicos.length > 0 && mazo.publicos.every((b) => (mazo.escalas[b] ?? 0) === 0);
@@ -88,7 +104,6 @@ export function MazoResumen({ posicion, cerrar }: Props) {
       aria-label="Láminas propuestas"
       data-qa-geometry-group="graficos/f6-mazo-tarjetas"
       data-qa-geometry-contract="equal"
-      data-qa-geometry-capacity="owned"
     >
       {mazo.propuestas.map((p, i) => (
         <li key={p.id} data-qa-geometry-member>
@@ -98,9 +113,9 @@ export function MazoResumen({ posicion, cerrar }: Props) {
             elegida={!!ui.elegidas[p.id]}
             editando={ui.editando === p.id}
             scope={mazo.scope}
+            idLateral={idLateral}
             onAlternar={() => ui.alternarElegida(p.id)}
-            onEditar={() => ui.editar(ui.editando === p.id ? null : p.id)}
-            onRegla={(r) => ui.ponerRegla(p.id, r)}
+            onEditar={() => { if (ui.editando === p.id) cerrarEdicion(); else ui.editar(p.id); }}
           />
         </li>
       ))}
@@ -121,6 +136,7 @@ export function MazoResumen({ posicion, cerrar }: Props) {
       icon={<Presentation size={16} aria-hidden="true" />}
       returnFocusTo={retorno}
       className="pulso-f6-mazo"
+      flush
       stepper={listo && mazo.bases.length > 0 ? (
         <FranjaMazo
           bases={mazo.bases}
@@ -142,12 +158,26 @@ export function MazoResumen({ posicion, cerrar }: Props) {
         </>
       )}
     >
+      {/* Dos columnas: las tarjetas (dueñas del vacío y de su scroll) y, al editar una regla, el lateral con el suyo. */}
       <div
-        className="pulso-f6-mazo-cuerpo"
+        className={`pulso-f6-mazo-cuerpo${enEdicion && graficadorEnEdicion ? " is-editando" : ""}`}
         data-audit-ready={listo || mazo.error ? marca : "false"}
         data-qa-surface="graficos/resumen-ejecutivo"
+        data-qa-geometry-group="graficos/f6-mazo-cuerpo"
+        data-qa-geometry-contract="intrinsic"
       >
-        {cuerpo}
+        <div ref={columna} className="pulso-f6-mazo-columna" data-qa-geometry-member data-qa-geometry-capacity="owned">
+          {cuerpo}
+        </div>
+        {enEdicion && graficadorEnEdicion && (
+          <EdicionReglaMazo
+            id={idLateral}
+            propuesta={{ ...enEdicion, graficador: graficadorEnEdicion }}
+            scope={mazo.scope}
+            onRegla={(r) => ui.ponerRegla(enEdicion.id, r)}
+            onCerrar={cerrarEdicion}
+          />
+        )}
       </div>
     </OverlayBase>
   );

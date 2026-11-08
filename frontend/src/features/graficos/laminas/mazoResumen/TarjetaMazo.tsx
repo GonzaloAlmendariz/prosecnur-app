@@ -3,10 +3,9 @@
 // /api/graficos/resumenes/regla, la misma firma anti-bucle de useConteoRegla). Nace sin elegir: la casilla de la esquina
 // (un botón con rol de casilla; K1 no admite la casilla nativa) la marca, y su `::after` cubre la tarjeta para que todo el
 // cuerpo alterne. El conteo se pide elegida o no: es lo que el analista mira para decidir. «Editar» abre la Regla de
-// preguntas para ajustarla antes de insertar.
+// preguntas en el lateral del diálogo (EdicionReglaMazo.tsx) y la tarjeta queda marcada «Editando».
 
 import { useId } from "react";
-import type { ReglaPreguntas as Regla } from "../../../../api/graficosRegla";
 import { Check } from "../../../../vendor/lucide-react";
 import { Panel } from "../../../../components/Panel";
 import { PulsoButton } from "../../../../components/PulsoButton";
@@ -14,7 +13,6 @@ import { ComposicionLamina } from "../../iconos/ComposicionLamina";
 import { GlifoGrafico } from "../../iconos/GlifoGrafico";
 import { SLIDE_GRAF_SLOTS } from "../../store";
 import { GRAFICADORES_CON_REGLA, reglaEfectiva, textoConteo } from "../reglaPreguntas/modeloReglaPreguntas";
-import { ReglaPreguntas } from "../reglaPreguntas/ReglaPreguntas";
 import { useConteoRegla } from "../reglaPreguntas/useConteoRegla";
 import { ROTULO_CLASE } from "../selectores/intencionesContar";
 import { listaPublicos, type PropuestaMazo } from "./modeloMazo";
@@ -25,16 +23,17 @@ type Props = {
   elegida: boolean;
   editando: boolean;
   scope: "active" | "consolidated";
+  /** El id del lateral de edición (aria-controls de «Editar»). */
+  idLateral: string;
   onAlternar: () => void;
   onEditar: () => void;
-  onRegla: (regla: Regla) => void;
 };
 
-export function TarjetaMazo({ numero, propuesta: p, elegida, editando, scope, onAlternar, onEditar, onRegla }: Props) {
+export function TarjetaMazo({ numero, propuesta: p, elegida, editando, scope, idLateral, onAlternar, onEditar }: Props) {
   const id = useId();
   const conRegla = !!p.graficador && GRAFICADORES_CON_REGLA.has(p.graficador);
   const regla = conRegla && p.graficador ? reglaEfectiva(p.graficador, p.args, p.args.regla) : null;
-  // Mientras se edita, el conteo lo pide la Regla de preguntas: dos pedidos iguales serían el mismo número dos veces.
+  // Mientras se edita, el conteo lo pide la Regla de preguntas del lateral: dos pedidos iguales serían el mismo número.
   const { conteo, cargando, error } = useConteoRegla(p.graficador ?? "", p.args, scope, !!regla && !editando && !p.falta);
   // El texto del motor ya trae sus cifras («Se muestran las 13 de mayor diferencia, de 47 preguntas comunes»).
   const textoRegla = conteo && !cargando
@@ -58,6 +57,7 @@ export function TarjetaMazo({ numero, propuesta: p, elegida, editando, scope, on
             <span className="pulso-f6-mazo-tipo-clase">{ROTULO_CLASE[p.claseTarjeta]}</span>
           </span>
         </span>
+        {editando && <span className="pulso-f6-mazo-editando" aria-hidden="true">Editando</span>}
         <button type="button" role="checkbox" aria-checked={elegida} aria-labelledby={`${id}-nombre`}
           className="pulso-f6-mazo-elegir" onClick={onAlternar}>
           <span className="pulso-f6-mazo-elegir-caja" aria-hidden="true">{elegida && <Check size={13} strokeWidth={2.5} />}</span>
@@ -76,23 +76,10 @@ export function TarjetaMazo({ numero, propuesta: p, elegida, editando, scope, on
       {error && !p.falta && <span className="pulso-f6-mazo-falta" role="note">{error}</span>}
       {conRegla && !p.falta && (
         <div className="pulso-f6-mazo-acciones">
-          <PulsoButton variant="ghost" size="sm" onClick={onEditar} aria-expanded={editando} aria-controls={`${id}-regla`}
-            aria-describedby={`${id}-nombre`}>
-            {editando ? "Listo" : "Editar"}
+          <PulsoButton variant="ghost" size="sm" onClick={onEditar} aria-expanded={editando}
+            aria-controls={editando ? idLateral : undefined} aria-describedby={`${id}-nombre`} data-editar-mazo={p.id}>
+            Editar
           </PulsoButton>
-        </div>
-      )}
-      {editando && p.graficador && !p.falta && (
-        <div id={`${id}-regla`} className="pulso-f6-mazo-edicion">
-          <ReglaPreguntas
-            rotulo="Regla de preguntas"
-            ayuda="Cómo se eligen las preguntas de esta lámina. Se puede cambiar después en Datos."
-            graficador={p.graficador}
-            args={p.args}
-            valor={p.args.regla}
-            scope={scope}
-            onCambio={onRegla}
-          />
         </div>
       )}
     </Panel>
