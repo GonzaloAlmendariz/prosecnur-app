@@ -22,7 +22,7 @@ import { EdicionReglaMazo } from "./EdicionReglaMazo";
 import { mensajeInsertadas, rotuloInsertar, unirPublicos } from "./modeloMazo";
 import { PANEL_RESUMEN_EJECUTIVO } from "./panelResumen";
 import { SeleccionMazo } from "./SeleccionMazo";
-import { TarjetaMazo } from "./TarjetaMazo";
+import { ListaTarjetasMazo } from "./ListaTarjetasMazo";
 import { useMazoResumen } from "./useMazoResumen";
 import "./mazoResumen.css";
 
@@ -99,27 +99,16 @@ export function MazoResumen({ posicion, cerrar }: Props) {
     <>
     <SeleccionMazo elegidas={n} total={mazo.propuestas.length}
       onTodas={() => ui.elegirTodas(mazo.propuestas.map((p) => p.id))} onNinguna={ui.elegirNinguna} />
-    <ul
-      className="pulso-f6-mazo-tarjetas"
-      aria-label="Láminas propuestas"
-      data-qa-geometry-group="graficos/f6-mazo-tarjetas"
-      data-qa-geometry-contract="equal"
-    >
-      {mazo.propuestas.map((p, i) => (
-        <li key={p.id} data-qa-geometry-member>
-          <TarjetaMazo
-            numero={i + 1}
-            propuesta={p}
-            elegida={!!ui.elegidas[p.id]}
-            editando={ui.editando === p.id}
-            scope={mazo.scope}
-            idLateral={idLateral}
-            onAlternar={() => ui.alternarElegida(p.id)}
-            onEditar={() => { if (ui.editando === p.id) cerrarEdicion(); else ui.editar(p.id); }}
-          />
-        </li>
-      ))}
-    </ul>
+    <ListaTarjetasMazo
+      propuestas={mazo.propuestas}
+      elegidas={ui.elegidas}
+      editando={ui.editando}
+      scope={mazo.scope}
+      idLateral={idLateral}
+      onAlternar={ui.alternarElegida}
+      onEditar={(id) => { if (ui.editando === id) cerrarEdicion(); else ui.editar(id); }}
+      onOrdenar={ui.ordenarPropuestas}
+    />
     </>
   );
 

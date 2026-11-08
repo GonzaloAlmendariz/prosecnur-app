@@ -51,17 +51,66 @@
   list-style: none;
 }
 
-/* Cada público con su interruptor y, al lado, las flechas que lo mueven antes o después (el orden del panorama). */
-.pulso-f6-mazo-publico {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--pulso-space-1);
-  min-width: 0;
+/* Cada público es un chip del kit (ChipConControles): su interruptor y el asa que lo ordena (el orden del panorama). */
+.pulso-f6-mazo-publico.is-entra {
+  border-color: var(--module-accent-border);
 }
 
-.pulso-f6-mazo-publico-orden {
+.pulso-f6-mazo-asa-chip {
+  color: var(--pulso-text-faint);
+  cursor: grab;
+  touch-action: none;
+}
+
+.pulso-f6-mazo-asa-chip:active {
+  cursor: grabbing;
+}
+
+/* Lo que se arrastra va por encima de sus vecinos y se nota tomado. */
+.pulso-f6-mazo-publico.is-arrastrando,
+.pulso-f6-mazo-tarjetas > li.is-arrastrando {
+  position: relative;
+  z-index: 2;
+}
+
+.pulso-f6-mazo-publico.is-arrastrando,
+.pulso-f6-mazo-tarjetas > li.is-arrastrando .pulso-f6-mazo-tarjeta.pulso-panel {
+  box-shadow: var(--pulso-shadow-med);
+}
+
+/* El asa: arrastre con puntero o con espacio y flechas. Por encima del `::after` de la tarjeta. */
+.pulso-f6-mazo-asa {
+  position: relative;
+  z-index: 1;
   display: inline-flex;
-  gap: 2px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--pulso-radius-chip);
+  background: transparent;
+  color: var(--pulso-text-faint);
+  cursor: grab;
+  touch-action: none;
+}
+
+.pulso-f6-mazo-asa:active {
+  cursor: grabbing;
+}
+
+.pulso-f6-mazo-asa:focus-visible {
+  outline: var(--mov-foco);
+  outline-offset: 1px;
+}
+
+@media (hover: hover) {
+  .pulso-f6-mazo-asa:hover {
+    background: var(--pulso-surface-2);
+    color: var(--pulso-text);
+  }
 }
 
 .pulso-f6-mazo-indicador {

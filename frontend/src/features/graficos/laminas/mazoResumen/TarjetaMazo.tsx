@@ -5,7 +5,7 @@
 // cuerpo alterne. El conteo se pide elegida o no: es lo que el analista mira para decidir. «Editar» abre la Regla de
 // preguntas en el lateral del diálogo (EdicionReglaMazo.tsx) y la tarjeta queda marcada «Editando».
 
-import { useId } from "react";
+import { useId, type ReactNode } from "react";
 import { Check } from "../../../../vendor/lucide-react";
 import { Panel } from "../../../../components/Panel";
 import { PulsoButton } from "../../../../components/PulsoButton";
@@ -25,11 +25,13 @@ type Props = {
   scope: "active" | "consolidated";
   /** El id del lateral de edición (aria-controls de «Editar»). */
   idLateral: string;
+  /** El asa para ordenar arrastrando (ListaTarjetasMazo); sin ella la tarjeta no se mueve. */
+  asa?: ReactNode;
   onAlternar: () => void;
   onEditar: () => void;
 };
 
-export function TarjetaMazo({ numero, propuesta: p, elegida, editando, scope, idLateral, onAlternar, onEditar }: Props) {
+export function TarjetaMazo({ numero, propuesta: p, elegida, editando, scope, idLateral, asa, onAlternar, onEditar }: Props) {
   const id = useId();
   const conRegla = !!p.graficador && GRAFICADORES_CON_REGLA.has(p.graficador);
   const regla = conRegla && p.graficador ? reglaEfectiva(p.graficador, p.args, p.args.regla) : null;
@@ -48,6 +50,7 @@ export function TarjetaMazo({ numero, propuesta: p, elegida, editando, scope, id
       data-elegida={elegida ? "true" : "false"}
     >
       <div className="pulso-f6-mazo-tarjeta-cabeza">
+        {asa}
         <span className="pulso-f6-mazo-numero" aria-hidden="true">{numero}</span>
         {/* Q2-2: los públicos arriba y, debajo, el tipo con su clase. En dos columnas partían palabras («ESTUDIANTE S»). */}
         <span className="pulso-f6-mazo-cabeza-texto">
