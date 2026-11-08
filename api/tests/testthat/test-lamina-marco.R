@@ -43,7 +43,7 @@ test_that("por la ruta real la nube sale en la lámina del recetario y el títul
   todo <- xml2::xml_text(xml2::xml_find_all(xml, "//a:t"))
   expect_equal(sum(todo == "Lo que mejorarían"), 1L)                                     # una sola vez: el título nativo
   expect_true(any(grepl("tutorías|académica", todo)))                                    # las palabras conservan sus tildes
-  expect_identical(.mc_txt(xml, "Base lamina"), "Base: 60 egresados. Respuestas codificadas. El tamaño crece con las menciones")   # la lectura de la 98, sin dobles puntos
+  expect_identical(.mc_txt(xml, "Base lamina"), "Base: 60 egresados. Respuestas codificadas. El tamaño crece con las menciones.")   # la lectura de la 98, sin dobles puntos
   # El espaciado medido (2.1 pt o más en seis semillas, 40 de 40): con 1.6 se pegaban palabras.
   capa <- Filter(function(l) inherits(l$geom, "GeomTextWordcloud"), graficar_nube_palabras(dat, "op")$layers)
   if (requireNamespace("ggwordcloud", quietly = TRUE)) { expect_length(capa, 1L); expect_gte(capa[[1]]$geom_params$grid_margin, 2.4) }
@@ -64,5 +64,5 @@ test_that("el título y la nota del ggplot no se repiten en el dibujo y el subt�
   expect_identical(.mc_txt(xml, "marco:rotulo"), "Top Two Box")
   off <- xml2::xml_find_first(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='marco:rotulo']]/p:spPr/a:xfrm/a:off")
   expect_equal(as.numeric(xml2::xml_attr(off, "y")) / 914400, .std_geom("zona_datos_y0") - 0.25, tolerance = 0.01)
-  expect_identical(.mc_txt(xml, "Base lamina"), "Base: docentes y estudiantes. Nota del gráfico")   # sin dobles puntos
+  expect_identical(.mc_txt(xml, "Base lamina"), "Base: docentes y estudiantes. Nota del gráfico.")   # sin dobles puntos y con su punto final (A6 ola 4)
 })

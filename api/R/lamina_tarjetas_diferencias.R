@@ -340,7 +340,7 @@
       base <- if (isTRUE(sin_base)) NULL else texto(slots$base) %||% texto(base_auto(el = el_plot,
         sufijo_auto = presets$base$args$sufijo_auto %||% NULL, formato = presets$base$args$formato %||% "Base: %s"))
       pie <- if (isTRUE(sin_pie)) NULL else texto(slots$footer) %||% texto(nota_de(p, el_plot$overrides$nota_pie %||% el_plot$nota_pie %||% NULL))
-      base_el <- .lam_unir_base(base, pie); if (nzchar(base_el)) base_el <- paste0(base_el, ".")
+      base_el <- .lam_con_punto(.lam_unir_base(base, pie))
       return(.lam_laminas_en_linea(doc, espec_p, t, tit, ante = texto(antetitulo), base = base_el, folio = length(doc) + 1L,
                                    layout = layout, master = master, por_lamina = por_lamina))
     }
@@ -357,7 +357,7 @@
     pie <- if (isTRUE(sin_pie)) NULL else texto(slots$footer) %||% texto(nota_de(p, el_plot$overrides$nota_pie %||% el_plot$nota_pie %||% NULL))
     Lc <- .lam_tarjetas_disponer(t$tarjetas, y0, .std_valor("ppt", "geometria", "base_y") - 0.12, cortos = cortos, tipo = "multiple",
                                  fraccion = .TARJETAS_PANEL$estandar)
-    base_col <- .lam_unir_base(base, pie); if (nzchar(base_col)) base_col <- paste0(base_col, ".")
+    base_col <- .lam_con_punto(.lam_unir_base(base, pie))
     doc <- .lam_laminas_columna_llave(doc, espec_p, tit, ante = texto(antetitulo), base = base_col,
                                       folio = length(doc) + 1L, x1 = Lc$xp - 0.3, layout = layout, master = master,
                                       por_lamina = por_lamina)

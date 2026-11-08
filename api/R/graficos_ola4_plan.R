@@ -644,7 +644,7 @@ p_barras_divergentes <- function(vars = NULL,
     else "Porcentaje sobre el total de respondientes.", escalas_armonizadas)
   attr(p, "pulso_espec") <- esp
   # El respaldo (ggplot) escribe en su pie lo que trae `note_outside`: el denominador y la regla, como la nativa.
-  attr(p, "note_outside") <- paste0(.lam_unir_base(esp$nota_porcentaje, esp$texto_regla), ".")
+  attr(p, "note_outside") <- .lam_con_punto(.lam_unir_base(esp$nota_porcentaje, esp$texto_regla))
   p
 }
 

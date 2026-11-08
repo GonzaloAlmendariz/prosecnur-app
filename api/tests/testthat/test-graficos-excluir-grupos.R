@@ -120,13 +120,13 @@ test_that("nota: el pie de la lámina nombra los grupos excluidos, y sólo cuand
   expect_identical(.excluir_grupos_nota("Otro"), "Excluye el grupo Otro.")
   expect_identical(.excluir_grupos_nota(c("Otro", "No sabe", "Mixto")), "Excluye los grupos Otro, No sabe y Mixto.")
   sin <- .eg_render("p_barras_apiladas", list(var = "doc$q1", cruces = "doc$sexo", excluir_grupos = list("3")))
-  expect_identical(attr(sin$p, "note_outside", exact = TRUE), "Excluye el grupo Otro")
+  expect_identical(attr(sin$p, "note_outside", exact = TRUE), "Excluye el grupo Otro.")   # A6 ola 4: el pie cierra con punto
   todos <- .eg_render("p_barras_apiladas", list(var = "doc$q1", cruces = "doc$sexo"))
   expect_null(attr(todos$p, "note_outside", exact = TRUE))
   # Se anexa a la nota que ya traiga el gráfico, sin repetirse.
   el <- list(.excluir_grupos_aplicado = list(rotulos = "Otro"), overrides = list(nota_pie = "Fuente: encuesta 2026."))
   p <- .excluir_grupos_nota_al_grafico(el, structure(list(), class = "x"))
-  expect_identical(attr(p, "note_outside"), "Fuente: encuesta 2026. Excluye el grupo Otro")
+  expect_identical(attr(p, "note_outside"), "Fuente: encuesta 2026. Excluye el grupo Otro.")
   expect_identical(attr(.excluir_grupos_nota_al_grafico(el, p), "note_outside"), attr(p, "note_outside"))
   # Un grupo pedido sin casos se avisa y no se nombra: la lámina sale con todos.
   nada <- .eg_render("p_barras_apiladas", list(var = "doc$q1", cruces = "doc$sexo", excluir_grupos = list("Mixto")))
@@ -330,16 +330,16 @@ test_that("significancia en un panel de 2 gráficos: el pie de cada gráfico dic
   }
   sin <- pptx(list("3"))
   expect_match(sin, "Excluye el grupo Otro", fixed = TRUE)
-  frase <- sub("[.]$", "", .EXCLUIR_GRUPOS_NOTA_SIG)   # el pie de la lámina se compone sin el punto final
+  frase <- .EXCLUIR_GRUPOS_NOTA_SIG   # A6 (ola 4): el pie de la lámina cierra con su punto final
   expect_match(sin, paste("Excluye el grupo Otro.", frase), fixed = TRUE)
   expect_false(grepl(frase, pptx(NULL), fixed = TRUE))
   # La lámina de un gráfico escribe la nota de significancia aparte (con la frase): el pie no la repite.
   p <- structure(list(), pulso_sig_nota = "Prueba z con corrección de Bonferroni")
   el <- list(.excluir_grupos_aplicado = list(variable = "sexo", rotulos = "Otro"))
   expect_identical(attr(suppressMessages(.excluir_grupos_nota_al_grafico(el, p)), "note_outside"),
-                   "Excluye el grupo Otro. Diferencias entre los grupos mostrados")
+                   "Excluye el grupo Otro. Diferencias entre los grupos mostrados.")
   viejo <- options(prosecnur.sig_nota_en_lamina = TRUE); on.exit(options(viejo), add = TRUE)
-  expect_identical(attr(suppressMessages(.excluir_grupos_nota_al_grafico(el, p)), "note_outside"), "Excluye el grupo Otro")
+  expect_identical(attr(suppressMessages(.excluir_grupos_nota_al_grafico(el, p)), "note_outside"), "Excluye el grupo Otro.")
 })
 
 test_that("los presets llegan explícitos: el cruce heredado se excluye en el export y no se leen del llamador (B7)", {

@@ -177,7 +177,7 @@
   if (!is.null(nota) && grepl("porcentaje sobre", base %||% "", ignore.case = TRUE)) nota <- NULL
   pie <- if (is.null(espec$texto_regla) && is.null(nota)) base else .lam_unir_base(base, nota, espec$texto_regla)
   # El pie cierra con punto, como el del mazo de Arte («… Ordenado por Top Two Box, de menor a mayor.»).
-  if (!is.null(nota) || !is.null(espec$texto_regla)) pie <- paste0(pie, ".")
+  if (!is.null(nota) || !is.null(espec$texto_regla)) pie <- .lam_con_punto(pie)
   doc <- .lam_pie(doc, pie, folio)
   list(doc = por_lamina(doc), partes = 1L)
 }

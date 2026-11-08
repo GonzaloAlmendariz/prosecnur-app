@@ -89,9 +89,21 @@
 }
 
 #' La base de la lámina con sus partes unidas por un punto, sin dobles puntos ni partes vacías
+#'
+#' A6 (ola 4): el pie que junta oraciones termina en punto, como los demás pies («…Diferencias entre los grupos
+#' mostrados.»). Se cierra con punto si une dos partes o más, o si la última ya lo traía; un rótulo suelto sin punto
+#' («Base: 115 docentes») queda como llegó.
 #' @keywords internal
 .lam_unir_base <- function(...) {
   x <- unlist(lapply(list(...), function(v) if (is.null(v)) character(0) else as.character(v)))
-  x <- sub("[.[:space:]]+$", "", trimws(x[!is.na(x)]))
-  paste(x[nzchar(x)], collapse = ". ")
+  x <- trimws(x[!is.na(x)])
+  x <- x[nzchar(sub("[.[:space:]]+$", "", x))]
+  if (!length(x)) return("")
+  con_punto <- length(x) > 1L || grepl("[.]$", x[length(x)])
+  out <- paste(sub("[.[:space:]]+$", "", x), collapse = ". ")
+  if (con_punto) paste0(out, ".") else out
 }
+
+#' El texto con su punto final, sin duplicarlo (`""` queda vacío)
+#' @keywords internal
+.lam_con_punto <- function(x) if (length(x) && !is.na(x[1]) && nzchar(x[1])) sub("([^.])$", "\\1.", x[1]) else x
