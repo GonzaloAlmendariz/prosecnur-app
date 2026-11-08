@@ -7,6 +7,7 @@ import { useId } from "react";
 import { Plus, X } from "../../../vendor/lucide-react";
 import VariablePicker from "../VariablePicker";
 import { parseVarRef, useVariables } from "../useVariables";
+import { PulsoButton } from "../../../components/PulsoButton";
 
 export type Criterio = { id: string; titulo: string; vars: string[] };
 
@@ -61,19 +62,20 @@ export function CriteriosGrafico({ valor, onCambio }: { valor: unknown; onCambio
             <div className="pulso-f6-criterio-cabecera">
               <input className="pulso-f6-input" value={c.titulo} aria-label={`Nombre del criterio ${i + 1}`} placeholder="Nombre del criterio"
                 onChange={(e) => cambiar(i, { titulo: e.target.value })} />
-              <button type="button" className="pulso-f6-boton pulso-f6-preguntas-quitar" aria-label={`Quitar el criterio ${c.titulo || i + 1}`}
+              <PulsoButton variant="icon" tone="quiet" size="sm" intent="remove" className="pulso-f6-preguntas-quitar" aria-label={`Quitar el criterio ${c.titulo || i + 1}`}
                 onClick={() => onCambio(escribirCriterios(criterios.filter((_, k) => k !== i)))}>
-                <X size={14} aria-hidden="true" />
-              </button>
+                <X aria-hidden="true" />
+              </PulsoButton>
             </div>
             <ul className="pulso-f6-criterio-preguntas" data-qa-geometry-group="graficos/f6-criterio-preguntas" data-qa-geometry-contract="intrinsic">
               {c.vars.map((ref) => (
                 <li key={ref} className="pulso-f6-criterio-pregunta">
                   <span title={ref}>{nombre(ref)}</span>
-                  <button type="button" className="pulso-f6-criterio-quitar" aria-label={`Quitar ${nombre(ref)} de ${c.titulo}`}
+                  <PulsoButton variant="icon" tone="quiet" intent="remove" size="sm" className="pulso-f6-criterio-quitar"
+                    aria-label={`Quitar ${nombre(ref)} de ${c.titulo}`}
                     onClick={() => cambiar(i, { vars: c.vars.filter((x) => x !== ref) })}>
-                    <X size={12} aria-hidden="true" />
-                  </button>
+                    <X aria-hidden="true" />
+                  </PulsoButton>
                 </li>
               ))}
             </ul>
@@ -83,10 +85,10 @@ export function CriteriosGrafico({ valor, onCambio }: { valor: unknown; onCambio
             </div>
           </div>
         ))}
-        <button type="button" className="pulso-f6-boton pulso-f6-dato-accion" data-qa-geometry-capacity="owned"
+        <PulsoButton variant="secondary" size="sm" className="pulso-f6-dato-accion" data-qa-geometry-capacity="owned"
           onClick={() => onCambio([...criterios, { id: `criterio_${criterios.length + 1}`, titulo: `Criterio ${criterios.length + 1}`, vars: [] }])}>
           <Plus size={14} aria-hidden="true" /> Agregar criterio
-        </button>
+        </PulsoButton>
       </div>
     </div>
   );

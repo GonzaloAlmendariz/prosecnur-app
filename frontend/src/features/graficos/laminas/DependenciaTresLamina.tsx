@@ -13,6 +13,8 @@ import {
   type DependenciaTres,
 } from "./dependenciaTres";
 import { proponerDependencia } from "./propuestaDependencia";
+import { PulsoButton } from "../../../components/PulsoButton";
+import { ChipSeleccion } from "../../../components/ChipSeleccion";
 
 export function DependenciaTresLamina({ slide }: { slide: Slide }) {
   const id = useId();
@@ -58,7 +60,7 @@ export function DependenciaTresLamina({ slide }: { slide: Slide }) {
             {Object.entries(propuesta.habilita).map(([r, h]) =>
               `El gráfico ${NOMBRE_RANURA[r]} sólo lo responden quienes eligieron ${h.map((x) => `“${x}”`).join(", ")}.`).join(" ")}
           </span>
-          <button type="button" className="pulso-f6-texto-boton" onClick={() => guardar(propuesta)}>Usar</button>
+          <PulsoButton variant="ghost" size="sm" onClick={() => guardar(propuesta)}>Usar</PulsoButton>
         </div>
       )}
       {dep && !ref && <span className="pulso-f6-dato-ayuda" role="note">El gráfico filtro necesita una sola pregunta.</span>}
@@ -75,8 +77,8 @@ export function DependenciaTresLamina({ slide }: { slide: Slide }) {
             {depende && respuestas.length > 0 && (
               <div className="pulso-f6-destacar" role="group" aria-labelledby={idR}>
                 {respuestas.map((x) => (
-                  <button key={x} type="button" className="pulso-f6-destacar-opcion is-unica" role="checkbox" aria-checked={elegidas.has(x)}
-                    onClick={() => guardar(alternarRespuesta(dep, r, x, respuestas))}>{x}</button>
+                  <ChipSeleccion key={x} etiqueta={x} activo={elegidas.has(x)}
+                    onAlternar={() => guardar(alternarRespuesta(dep, r, x, respuestas))} />
                 ))}
               </div>
             )}

@@ -112,6 +112,7 @@ import { ARGS_LADOS, llevaLados } from "./divergentes/modeloLados";
 import { conDetalle } from "./cifrasInspector/modeloCifras";
 import "./datosGrafico.css";
 import { formatoConteo } from "../../../lib/formatoNumero";
+import { PulsoButton } from "../../../components/PulsoButton";
 
 type Props = { slideId: string; slot: string; valor: GraficadorRef };
 
@@ -300,14 +301,14 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
         {esMulti && (
           <div className="pulso-f6-dato">
             <span className="pulso-f6-dato-rotulo">Bloques</span>
-            <button type="button" className="pulso-f6-boton pulso-f6-dato-accion" onClick={() => abrirEditorAmplio({ tipo: "bloques", slideId, slot })}>
+            <PulsoButton variant="secondary" size="sm" className="pulso-f6-dato-accion" onClick={() => abrirEditorAmplio({ tipo: "bloques", slideId, slot })}>
               <Rows3 size={14} aria-hidden="true" />
               {nVars
                 ? varsPorTema
                   ? `${nVars} ${nVars === 1 ? "tema" : "temas"} en ${nPublicos} ${nPublicos === 1 ? "público" : "públicos"}, editar`
                   : `${nVars} ${nVars === 1 ? "pregunta" : "preguntas"}, editar`
                 : "Elegir preguntas"}
-            </button>
+            </PulsoButton>
           </div>
         )}
         {valor.graficador === "p_dumbbell" && <BrechaEntreGrupos args={args} onCambio={set} />}
@@ -330,10 +331,10 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
         {admiteFiltros && (
           <div className="pulso-f6-dato">
             <span className="pulso-f6-dato-rotulo">Filtrar respuestas</span>
-            <button type="button" className="pulso-f6-boton pulso-f6-dato-accion" onClick={() => abrirEditorAmplio({ tipo: "filtros", slideId, slot })}>
+            <PulsoButton variant="secondary" size="sm" className="pulso-f6-dato-accion" onClick={() => abrirEditorAmplio({ tipo: "filtros", slideId, slot })}>
               <Filter size={14} aria-hidden="true" />
               {filtros ? `${filtros} ${filtros === 1 ? "regla" : "reglas"}, editar` : "Sin filtro, agregar"}
-            </button>
+            </PulsoButton>
           </div>
         )}
         <PublicoGrafico slideId={slideId} slot={slot} valor={valor} />
@@ -378,9 +379,9 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
           <span className="pulso-f6-dato-rotulo">
             {propios.length === 1 ? "Un ajuste es sólo de este gráfico" : `${formatoConteo(propios.length)} ajustes son sólo de este gráfico`}
           </span>
-          <button type="button" className="pulso-f6-boton pulso-f6-dato-accion" onClick={aplicarTodos}>
+          <PulsoButton variant="secondary" size="sm" className="pulso-f6-dato-accion" onClick={aplicarTodos}>
             Aplicar a {nTipo > 1 ? `los ${nTipo} gráficos` : "todos los gráficos"} de {nombreTipo}
-          </button>
+          </PulsoButton>
         </div>
       )}
     </div>
@@ -464,7 +465,7 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias, args, sco
           <span className="pulso-f6-dato-ayuda is-aviso" role={otraBase.existeEnBasePregunta ? "note" : "alert"} data-qa="cruce-otra-base">
             {textoCruceEnOtraBase(otraBase)}
             {otraBase.existeEnBasePregunta && (
-              <>{" "}<button type="button" className="pulso-f6-texto-boton" onClick={() => onCambio(patchFijarBaseCruce(args, otraBase)[otraBase.arg])}>Fijar base</button></>
+              <>{" "}<PulsoButton variant="link" size="sm" onClick={() => onCambio(patchFijarBaseCruce(args, otraBase)[otraBase.arg])}>Fijar base</PulsoButton></>
             )}
           </span>
         )}

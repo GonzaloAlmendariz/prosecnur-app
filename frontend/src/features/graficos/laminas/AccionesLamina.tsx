@@ -4,6 +4,7 @@
 
 import { nombreDeAtajo, rotuloDeAtajo } from "../../../lib/teclado";
 import { ArrowDown, ArrowUp, Copy, Plus, Trash2 } from "../../../vendor/lucide-react";
+import { PulsoButton } from "../../../components/PulsoButton";
 
 type Props = {
   posicion: number;
@@ -19,26 +20,26 @@ export function AccionesLamina({ posicion, total, onInsertar, onDuplicar, onMove
   return (
     <div className="pulso-f6-acciones-lamina" role="toolbar" aria-label={`Acciones de la lámina ${posicion}`}>
       <span className="pulso-f6-acciones-rotulo">Lámina {posicion}</span>
-      <button type="button" className="pulso-f6-icono-boton" onClick={onInsertar}
+      <PulsoButton variant="icon" tone="quiet" size="md" onClick={onInsertar}
         aria-label="Insertar una lámina después" title="Insertar una lámina después">
-        <Plus size={16} aria-hidden="true" />
-      </button>
-      <button type="button" className="pulso-f6-icono-boton" onClick={onDuplicar}
+        <Plus aria-hidden="true" />
+      </PulsoButton>
+      <PulsoButton variant="icon" tone="quiet" size="md" onClick={onDuplicar}
         aria-label="Duplicar" title={rotuloDeAtajo("Duplicar", "D")}>
-        <Copy size={15} aria-hidden="true" />
-      </button>
-      <button type="button" className="pulso-f6-icono-boton" onClick={() => onMover("up")} disabled={posicion <= 1}
+        <Copy aria-hidden="true" />
+      </PulsoButton>
+      <PulsoButton variant="icon" tone="quiet" size="md" onClick={() => onMover("up")} disabled={posicion <= 1}
         aria-label="Subir" title="Subir (Alt+↑)">
-        <ArrowUp size={16} aria-hidden="true" />
-      </button>
-      <button type="button" className="pulso-f6-icono-boton" onClick={() => onMover("down")} disabled={posicion >= total}
+        <ArrowUp aria-hidden="true" />
+      </PulsoButton>
+      <PulsoButton variant="icon" tone="quiet" size="md" onClick={() => onMover("down")} disabled={posicion >= total}
         aria-label="Bajar" title="Bajar (Alt+↓)">
-        <ArrowDown size={16} aria-hidden="true" />
-      </button>
-      <button type="button" className="pulso-f6-icono-boton is-peligro" onClick={onEliminar}
+        <ArrowDown aria-hidden="true" />
+      </PulsoButton>
+      <PulsoButton variant="icon" tone="quiet" size="md" intent="remove" onClick={onEliminar}
         aria-label="Eliminar" title={`Eliminar (se deshace con ${nombreDeAtajo("Z")})`}>
-        <Trash2 size={15} aria-hidden="true" />
-      </button>
+        <Trash2 aria-hidden="true" />
+      </PulsoButton>
     </div>
   );
 }

@@ -57,16 +57,17 @@ export function ExcluirRespuestas({ id, etiqueta, variable, scope, graficador, a
   const efecto = sondeada && sondeoListo && det[SONDEO]
     ? efectoSondeo(actual?.detalle ?? null, det[SONDEO].detalle, sondeada.etiqueta || sondeada.codigo, yaExcluida)
     : null;
-  // La línea del efecto se reserva siempre que hay cifras: pasar el cursor no empuja lo de abajo.
-  const conCifras = !!actual && !actual.sinDetalle;
+  // W2-B (contrato C5): la línea del efecto sólo se monta con una ficha sondeada; vacía no existe (antes se montaba vacía
+  // y la ocultaba un :empty). Con contenido se dibuja en el renglón de la cabecera (datosGrafico.css): no empuja nada.
+  const conEfecto = !!actual && !actual.sinDetalle && !!sondeada && !det[SONDEO]?.sinDetalle;
 
   return (
     <SelectorCategorias id={id} etiqueta={etiqueta} variable={variable} scope={scope} graficador={graficador} valor={valor} modo="excluir"
       textoRespaldo={textoRespaldo} nota={null} onCambio={onCambio} cifraDe={cifraDe} onSondear={setSondeo}
       estado={<CifraEstado texto={base} vigente={!!actual?.vigente && (!elegidos.length || !!sin?.vigente)} esperando={!actual?.sinDetalle && !actual?.vigente} qa="excluir-base" />}
-      efecto={conCifras ? (
+      efecto={conEfecto ? (
         <span className="pulso-f6-excluir-efecto" data-qa="excluir-efecto-linea">
-          {sondeada && !det[SONDEO]?.sinDetalle && <CifraEstado texto={efecto} vigente={sondeoListo} esperando={!sondeoListo} qa="excluir-efecto" />}
+          <CifraEstado texto={efecto} vigente={sondeoListo} esperando={!sondeoListo} qa="excluir-efecto" />
         </span>
       ) : null} />
   );

@@ -48,6 +48,7 @@ import { codigosATexto, textoACodigos } from "./argsDatosGrafico";
 import "./cifrasInspector/cifrasInspector.css";
 import { CargaDeBloque } from "../../../components/CargaDeBloque";
 import { formatoConteo } from "../../../lib/formatoNumero";
+import { PulsoButton } from "../../../components/PulsoButton";
 
 type Props = {
   /** Calificada `base$var` (`varCalificada`). */
@@ -195,9 +196,9 @@ function EstadoDatos({ estado }: { estado: ReturnType<typeof useCategoriasGrafic
       <span className="pulso-f6-orden-estado is-error" role="alert">
         <AlertTriangle size={13} aria-hidden="true" />
         <span>No se pudieron leer las categorías: {estado.mensaje}</span>
-        <button type="button" className="pulso-f6-texto-boton" onClick={estado.reintentar}>
+        <PulsoButton variant="link" size="sm" onClick={estado.reintentar}>
           <RefreshCw size={12} aria-hidden="true" /> Reintentar
-        </button>
+        </PulsoButton>
       </span>
     );
   }
@@ -282,12 +283,12 @@ function ListaOrden({ datos, lista, invertido, vista, ayudaId, cifras, enOtros, 
               </span>
               {pct && <span className={`pulso-f6-cifra-pct${cifras?.vigente ? "" : " is-anterior"}`} data-qa="cifra-orden">{pct}</span>}
               {!pct && enOtros.has(codigo) && <span className={`pulso-f6-cifra-pct${cifras?.vigente ? "" : " is-anterior"}`} data-qa="orden-en-otros">{EN_OTROS}</span>}
-              <button type="button" className="pulso-f6-icono-boton" {...{ [ATRIBUTO_ACCION_ORDEN]: "subir" }} aria-label={`Subir “${texto}”`} disabled={i === 0} onClick={() => moverA(i, i - 1, "subir")}>
-                <ArrowUp size={14} aria-hidden="true" />
-              </button>
-              <button type="button" className="pulso-f6-icono-boton" {...{ [ATRIBUTO_ACCION_ORDEN]: "bajar" }} aria-label={`Bajar “${texto}”`} disabled={i === lista.length - 1} onClick={() => moverA(i, i + 1, "bajar")}>
-                <ArrowDown size={14} aria-hidden="true" />
-              </button>
+              <PulsoButton variant="icon" tone="quiet" size="sm" {...{ [ATRIBUTO_ACCION_ORDEN]: "subir" }} aria-label={`Subir “${texto}”`} disabled={i === 0} onClick={() => moverA(i, i - 1, "subir")}>
+                <ArrowUp aria-hidden="true" />
+              </PulsoButton>
+              <PulsoButton variant="icon" tone="quiet" size="sm" {...{ [ATRIBUTO_ACCION_ORDEN]: "bajar" }} aria-label={`Bajar “${texto}”`} disabled={i === lista.length - 1} onClick={() => moverA(i, i + 1, "bajar")}>
+                <ArrowDown aria-hidden="true" />
+              </PulsoButton>
             </li>
           );
         })}

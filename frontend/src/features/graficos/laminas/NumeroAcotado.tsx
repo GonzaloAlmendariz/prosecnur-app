@@ -4,6 +4,8 @@
 
 import { useEffect, useState } from "react";
 import type { ArgMetadata } from "../../../api/graficos";
+import { PulsoButton } from "../../../components/PulsoButton";
+import { Minus, Plus } from "../../../vendor/lucide-react";
 import { ajustarNumeroAcotado, borradorNumeroAcotado, limitesDeNumero } from "./modeloNumeroAcotado";
 
 type Props = {
@@ -49,9 +51,11 @@ export function NumeroAcotado({ id, rotulo, arg, valor, placeholder, describe, o
 
   return (
     <>
-      <div className="pulso-f6-numero-fila">
-        <button type="button" className="pulso-f6-boton pulso-f6-numero-paso" aria-label={`Disminuir ${rotulo}`}
-          disabled={actual !== null && l.min !== undefined && actual <= l.min} onClick={() => mover(-paso)}>−</button>
+      <div className="pulso-f6-numero-fila" role="group" aria-label={rotulo}>
+        <PulsoButton variant="icon" tone="quiet" size="sm" className="pulso-f6-numero-paso" aria-label={`Disminuir ${rotulo}`}
+          disabled={actual !== null && l.min !== undefined && actual <= l.min} onClick={() => mover(-paso)}>
+          <Minus aria-hidden="true" />
+        </PulsoButton>
         <input id={id} type="text" inputMode={l.entero ? "numeric" : "decimal"} autoComplete="off"
           className="pulso-f6-input pulso-f6-dato-numero" aria-describedby={[describe, aviso ? idNota : undefined].filter(Boolean).join(" ") || undefined}
           value={borrador ?? (actual === null ? "" : String(actual))} placeholder={placeholder}
@@ -66,8 +70,10 @@ export function NumeroAcotado({ id, rotulo, arg, valor, placeholder, describe, o
           }}
           onBlur={() => { if (borrador !== null && borrador !== "") escribir(borrador); else setBorrador(null); }}
           onKeyDown={(e) => { if (e.key === "Enter" && borrador) escribir(borrador); }} />
-        <button type="button" className="pulso-f6-boton pulso-f6-numero-paso" aria-label={`Aumentar ${rotulo}`}
-          disabled={actual !== null && l.max !== undefined && actual >= l.max} onClick={() => mover(paso)}>+</button>
+        <PulsoButton variant="icon" tone="quiet" size="sm" className="pulso-f6-numero-paso" aria-label={`Aumentar ${rotulo}`}
+          disabled={actual !== null && l.max !== undefined && actual >= l.max} onClick={() => mover(paso)}>
+          <Plus aria-hidden="true" />
+        </PulsoButton>
       </div>
       {aviso && <span id={idNota} className="pulso-f6-dato-ayuda pulso-f6-numero-aviso" role="status">{aviso}</span>}
     </>

@@ -54,7 +54,10 @@ describe("C5: fichas", () => {
   it("hueco space-1 y la línea del efecto vacía no ocupa lugar", () => {
     expect(regla(datos, ".pulso-f6-cats {")).toContain("var(--pulso-space-1)");
     expect(regla(datos, ".pulso-f6-destacar {")).toContain("var(--pulso-space-1)");
-    expect(regla(datos, ".pulso-f6-dato > .pulso-f6-excluir-efecto:empty {")).toContain("display: none");
+    // W2-B: la línea vacía ya no se oculta con :empty: no se monta (ExcluirRespuestas.tsx).
+    expect(datos).not.toMatch(/excluir-efecto:empty/);
+    const excluir = fs.readFileSync(path.join(dir, "excluirConCifra/ExcluirRespuestas.tsx"), "utf8");
+    expect(excluir).toMatch(/efecto=\{conEfecto \?/);
   });
 });
 

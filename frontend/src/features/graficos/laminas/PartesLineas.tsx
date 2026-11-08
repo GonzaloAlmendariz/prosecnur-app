@@ -17,6 +17,7 @@ import {
   textoACodigos,
   type FilaParte,
 } from "./argsDatosGrafico";
+import { PulsoButton } from "../../../components/PulsoButton";
 
 type Props = {
   id: string;
@@ -66,10 +67,10 @@ export function PartesLineas({ id, arg, etiqueta, nota, valor, variable, scope, 
               <div className="pulso-f6-criterio-cabecera">
                 <input className="pulso-f6-input" value={f.rotulo} placeholder={esLinea ? "Rótulo de la línea" : "Rótulo de la parte"}
                   aria-label={`Rótulo de la ${nombre} ${n}`} onChange={(e) => cambiar(i, { rotulo: e.target.value })} />
-                <button type="button" className="pulso-f6-boton pulso-f6-preguntas-quitar" aria-label={`Quitar la ${nombre} ${f.rotulo.trim() || n}`}
+                <PulsoButton variant="icon" tone="quiet" size="sm" intent="remove" className="pulso-f6-preguntas-quitar" aria-label={`Quitar la ${nombre} ${f.rotulo.trim() || n}`}
                   onClick={() => aplicar(filas.filter((_, k) => k !== i))}>
-                  <X size={14} aria-hidden="true" />
-                </button>
+                  <X aria-hidden="true" />
+                </PulsoButton>
               </div>
               <SelectorCategorias id={`${id}-${f.clave}`} variable={variable} scope={scope} graficador={graficador} valor={f.codigos} modo="elegir"
                 etiqueta={<span className="pulso-f6-dato-rotulo">Respuestas que cuentan</span>}
@@ -79,13 +80,13 @@ export function PartesLineas({ id, arg, etiqueta, nota, valor, variable, scope, 
             </div>
           );
         })}
-        <button type="button" className="pulso-f6-boton pulso-f6-dato-accion" data-qa-geometry-capacity="owned" disabled={lleno}
+        <PulsoButton variant="secondary" size="sm" className="pulso-f6-dato-accion" data-qa-geometry-capacity="owned" disabled={lleno}
           onClick={() => {
             siguiente.current += 1;
             aplicar([...filas, { clave: `nueva-${siguiente.current}`, rotulo: "", codigos: [], resto: {} }]);
           }}>
           <Plus size={14} aria-hidden="true" /> {lleno ? "Ya hay tres líneas" : `Agregar ${nombre}`}
-        </button>
+        </PulsoButton>
       </div>
       {nota}
     </div>

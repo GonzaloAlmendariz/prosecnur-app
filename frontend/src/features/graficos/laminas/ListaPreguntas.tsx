@@ -8,6 +8,7 @@
 import { Plus, X } from "../../../vendor/lucide-react";
 import VariablePicker from "../VariablePicker";
 import { parseVarRef, useVariables } from "../useVariables";
+import { PulsoButton } from "../../../components/PulsoButton";
 
 type Props = { valor: unknown; onCambio: (v: unknown) => void; describe?: string };
 
@@ -48,9 +49,9 @@ export function ListaPreguntas({ valor, onCambio, describe }: Props) {
       {lista.map((ref, i) => (
         <div key={`${ref}-${i}`} className="pulso-f6-preguntas-fila">
           <VariablePicker value={ref} onChange={(v) => reemplazar(i, v)} placeholder="Elige una pregunta…" />
-          <button type="button" className="pulso-f6-boton pulso-f6-preguntas-quitar" aria-label={`Quitar ${nombre(ref)}`} onClick={() => reemplazar(i, null)}>
-            <X size={14} aria-hidden="true" />
-          </button>
+          <PulsoButton variant="icon" tone="quiet" size="sm" intent="remove" className="pulso-f6-preguntas-quitar" aria-label={`Quitar ${nombre(ref)}`} onClick={() => reemplazar(i, null)}>
+            <X aria-hidden="true" />
+          </PulsoButton>
         </div>
       ))}
       <div className="pulso-f6-preguntas-fila is-nueva">

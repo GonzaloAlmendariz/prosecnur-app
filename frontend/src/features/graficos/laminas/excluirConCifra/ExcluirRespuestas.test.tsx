@@ -82,12 +82,10 @@ describe("Excluir respuestas con su cifra", () => {
     await esperar();
     expect(host.querySelector('[data-qa="excluir-efecto"]')?.textContent).toBe('Con "No sabe": Sí 63% → 58%');
   });
-  it("R7-4: la línea del efecto está reservada sin cursor y nunca muestra la cifra de la ficha anterior", async () => {
+  it("W2-B (C5): sin cursor la línea del efecto no se monta, y nunca muestra la cifra de la ficha anterior", async () => {
     pintar(["99"]);
     await esperar();
-    const linea = host.querySelector('[data-qa="excluir-efecto-linea"]');
-    expect(linea).not.toBeNull();
-    expect(linea?.textContent).toBe("");
+    expect(host.querySelector('[data-qa="excluir-efecto-linea"]')).toBeNull();
     // «No sabe» alternada es la variante «sin» (ya en caché): su efecto llega al momento.
     act(() => { ficha("No sabe").dispatchEvent(new MouseEvent("mouseover", { bubbles: true })); });
     await esperar();
@@ -99,9 +97,9 @@ describe("Excluir respuestas con su cifra", () => {
     expect(esperando?.textContent).toBe("");
     await esperar();
     expect(host.querySelector('[data-qa="excluir-efecto"]')?.textContent).toBe('Sin "No": Sí 63% → 100%');
-    // Al salir, la línea queda vacía pero sigue ahí.
+    // Al salir, la línea se desmonta: no queda un renglón vacío reservado.
     act(() => { host.querySelector(".pulso-f6-cats")!.dispatchEvent(new MouseEvent("mouseout", { bubbles: true, relatedTarget: document.body })); });
-    expect(host.querySelector('[data-qa="excluir-efecto-linea"]')).not.toBeNull();
+    expect(host.querySelector('[data-qa="excluir-efecto-linea"]')).toBeNull();
   });
   it("R7-12: con un decimal en el gráfico, las fichas llevan el decimal de la lámina", async () => {
     decimales.valor = 1;

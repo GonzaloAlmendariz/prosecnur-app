@@ -19,6 +19,7 @@ import {
   quedanLibres,
   type GrupoLista,
 } from "./modeloAgruparLista";
+import { PulsoButton } from "../../../components/PulsoButton";
 
 type Props = {
   id: string;
@@ -67,10 +68,10 @@ export function AgruparLista({ id, etiqueta, nota, valor, args, onCambio }: Prop
                 <input className="pulso-f6-input" value={f.rotulo} placeholder="Rótulo de la fila, p. ej. Callao"
                   aria-label={`Rótulo de la fila agrupada ${n}`}
                   onChange={(e) => aplicar(filas.map((x, k) => (k === i ? { ...x, rotulo: e.target.value } : x)))} />
-                <button type="button" className="pulso-f6-boton pulso-f6-preguntas-quitar" aria-label={`Quitar la fila agrupada ${nombreFila}`}
+                <PulsoButton variant="icon" tone="quiet" size="sm" intent="remove" className="pulso-f6-preguntas-quitar" aria-label={`Quitar la fila agrupada ${nombreFila}`}
                   onClick={() => aplicar(filas.filter((_, k) => k !== i))}>
-                  <X size={14} aria-hidden="true" />
-                </button>
+                  <X aria-hidden="true" />
+                </PulsoButton>
               </div>
               <span className="pulso-f6-dato-rotulo">Suma las áreas de</span>
               <div className="pulso-f6-cats is-elegir" role="group" aria-label={`Preguntas de la fila ${nombreFila}`}>
@@ -94,13 +95,13 @@ export function AgruparLista({ id, etiqueta, nota, valor, args, onCambio }: Prop
             </div>
           );
         })}
-        <button type="button" className="pulso-f6-boton pulso-f6-dato-accion" data-qa-geometry-capacity="owned" disabled={!libres}
+        <PulsoButton variant="secondary" size="sm" className="pulso-f6-dato-accion" data-qa-geometry-capacity="owned" disabled={!libres}
           onClick={() => {
             siguiente.current += 1;
             aplicar([...filas, { clave: `nueva-${siguiente.current}`, rotulo: "", preguntas: [] }]);
           }}>
           <Plus size={14} aria-hidden="true" /> {libres ? "Agregar fila agrupada" : "Todas las preguntas ya suman en una fila"}
-        </button>
+        </PulsoButton>
       </div>
       {nota}
     </div>

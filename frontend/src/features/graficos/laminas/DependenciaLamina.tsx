@@ -10,6 +10,8 @@ import { leerSlideMeta } from "../slideMeta";
 import { usePlanStore } from "../store";
 import { parseVarRef, useVariables } from "../useVariables";
 import { proponerDependencia } from "./propuestaDependencia";
+import { PulsoButton } from "../../../components/PulsoButton";
+import { ChipSeleccion } from "../../../components/ChipSeleccion";
 
 /** Las láminas que admiten dependencia y sus dos ranuras, en el orden en que se leen. */
 export const LAMINAS_CON_DEPENDENCIA: Readonly<Record<string, readonly [string, string]>> = {
@@ -93,7 +95,7 @@ export function DependenciaLamina({ slide }: { slide: Slide }) {
             Según el formulario, el gráfico {NOMBRE[ranuras.find((r) => r !== propuesta.de) as string]} sólo lo responden quienes
             eligieron {propuesta.habilita.map((r) => `“${r}”`).join(", ")} en el {NOMBRE[propuesta.de]}.
           </span>
-          <button type="button" className="pulso-f6-texto-boton" onClick={() => guardar(propuesta)}>Usar</button>
+          <PulsoButton variant="ghost" size="sm" onClick={() => guardar(propuesta)}>Usar</PulsoButton>
         </div>
       )}
       {dep && !ref && <span className="pulso-f6-dato-ayuda" role="note">El gráfico del que depende necesita una sola pregunta.</span>}
@@ -102,7 +104,7 @@ export function DependenciaLamina({ slide }: { slide: Slide }) {
           <span className="pulso-f6-dato-rotulo" id={idHab}>Respuestas que lo habilitan</span>
           <div className="pulso-f6-destacar" role="group" aria-labelledby={idHab}>
             {respuestas.map((r) => (
-              <button key={r} type="button" className="pulso-f6-destacar-opcion is-unica" role="checkbox" aria-checked={elegidas.has(r)} onClick={() => alternar(r)}>{r}</button>
+              <ChipSeleccion key={r} etiqueta={r} activo={elegidas.has(r)} onAlternar={() => alternar(r)} />
             ))}
           </div>
           {elegidas.size === 0 && <span className="pulso-f6-dato-ayuda" role="note">Elige al menos una: sin ella el gráfico dependiente no tiene base.</span>}

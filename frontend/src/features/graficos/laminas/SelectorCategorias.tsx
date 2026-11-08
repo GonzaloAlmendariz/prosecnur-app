@@ -15,6 +15,7 @@ import { useCategoriasGrafico } from "./useCategoriasGrafico";
 import { rotuloVisible } from "./rotuloCortoDeLista";
 import { useRotulosCortos } from "./useRotulosCortos";
 import { fichaBloqueada, marcadas, RESPUESTA, resumenFichas, trasPulsar, type Sustantivo } from "./modeloSelectorCategorias";
+import { PulsoButton } from "../../../components/PulsoButton";
 
 type Props = {
   id: string;
@@ -81,9 +82,9 @@ export function SelectorCategorias({
         <span className="pulso-f6-orden-estado is-error" role="alert">
           <AlertTriangle size={13} aria-hidden="true" />
           <span>No se pudieron leer las categorías: {estado.mensaje}</span>
-          <button type="button" className="pulso-f6-texto-boton" onClick={estado.reintentar}>
+          <PulsoButton variant="link" size="sm" onClick={estado.reintentar}>
             <RefreshCw size={12} aria-hidden="true" /> Reintentar
-          </button>
+          </PulsoButton>
         </span>
       </div>
     );

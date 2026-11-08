@@ -180,7 +180,6 @@
 .pulso-f6-preguntas { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .pulso-f6-preguntas-fila { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px; }
 .pulso-f6-preguntas-fila.is-nueva { grid-template-columns: auto minmax(0, 1fr); color: var(--pulso-text-muted); }
-.pulso-f6-preguntas-quitar { padding: 4px; }
 .pulso-f6-preguntas.is-temas li { display: grid; gap: 2px; padding: 6px 8px; border: 1px solid var(--pulso-border); border-radius: 8px; }
 .pulso-f6-preguntas-tema { font-weight: 600; color: var(--pulso-text); }
 .pulso-f6-preguntas-refs { font-size: var(--pulso-type-body-size); color: var(--pulso-text-muted); overflow-wrap: anywhere; }
@@ -188,17 +187,25 @@
 /* «Destacar» del ranking con puntos (I4): las respuestas de la pregunta como botones que se encienden. */
 .pulso-f6-destacar { display: flex; flex-wrap: wrap; gap: var(--pulso-space-1); }
 .pulso-f6-destacar-opcion {
-  padding: 3px 10px;
+  /* W2-B: la ficha de ChipSeleccion (28, radio de chip, tinte del acento). Sigue propia por la cifra de la lámina que
+     lleva al lado, con su tono de «anterior» mientras llega la nueva. */
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--pulso-control-height-sm);
+  padding: 0 var(--pulso-space-3);
   border: 1px solid var(--pulso-border);
-  border-radius: 999px;
+  border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface);
+  box-shadow: none;
   color: var(--pulso-text);
   font: inherit;
   font-size: var(--pulso-type-body-size);
   cursor: pointer;
-  transition: background-color 160ms ease-out, border-color 160ms ease-out, color 160ms ease-out, transform 160ms ease-out;
+  transition: background-color var(--motion-dur-fast) var(--motion-ease-out), border-color var(--motion-dur-fast) var(--motion-ease-out);
 }
-.pulso-f6-destacar-opcion:hover { border-color: var(--pulso-border-strong); }
+.pulso-f6-destacar-opcion:hover { border-color: var(--pulso-border-strong); background: var(--pulso-surface); box-shadow: none; transform: none; }
+.pulso-f6-destacar-opcion:focus-visible { outline: var(--mov-foco); outline-offset: 1px; box-shadow: none; }
 /* «Al centro» de la dona: una sola respuesta, en el tono principal (no es un énfasis). */
 .pulso-f6-destacar-opcion.is-unica[aria-checked="true"],
 .pulso-f6-destacar-opcion.is-unica[aria-checked="true"]:hover {
@@ -206,9 +213,10 @@
   background: var(--pulso-primary-soft);
   color: var(--pulso-primary);
 }
-/* R7-14: lo destacado es una elección, no un error: el acento del módulo, como las fichas elegidas (no el rojo). */
-.pulso-f6-destacar-opcion[aria-pressed="true"] {
-  border-color: var(--module-accent);
+/* R7-14: lo destacado es una elección, no un error: el tinte del acento del módulo con su borde (el de ChipSeleccion). */
+.pulso-f6-destacar-opcion[aria-pressed="true"],
+.pulso-f6-destacar-opcion[aria-pressed="true"]:hover {
+  border-color: var(--module-accent-border);
   background: var(--module-accent-soft);
   color: var(--pulso-text);
   font-weight: var(--pulso-weight-semibold);
@@ -233,8 +241,11 @@
 }
 .pulso-f6-criterio-pregunta { min-width: 0; }
 .pulso-f6-criterio-pregunta span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pulso-f6-criterio-quitar { display: inline-grid; place-items: center; padding: 2px; border: 0; border-radius: 999px; background: transparent; color: inherit; cursor: pointer; }
-.pulso-f6-criterio-quitar:hover { background: var(--pulso-surface); }
+/* La X de quitar una pregunta del criterio: el botón quieto del kit, inscrito en la ficha (radios concéntricos). */
+.pulso-f6-criterio-pregunta > .pulso-button.pulso-button--icon.pulso-button--quiet.pulso-f6-criterio-quitar {
+  --pulso-button-height: calc(var(--pulso-control-height-sm) - 2 * var(--pulso-space-1));
+  border-radius: var(--pulso-radius-chip);
+}
 
 /* O7b: la tarjeta en grupos con un título discreto. Un grupo cuyo cuerpo quedó vacío para ese tipo no se muestra.
    H4: cada grupo se pliega; su cabecera es un botón a lo ancho con el chevron a la derecha y un filete arriba. */
@@ -351,13 +362,11 @@
 .pulso-f6-cats-resumen { color: var(--pulso-text-soft); font-size: var(--pulso-type-caption-size); white-space: nowrap; }
 .pulso-f6-cats { display: flex; flex-wrap: wrap; gap: var(--pulso-space-1); }
 
-/* W1B-C5: bajo la última fila de fichas no queda una línea en blanco. La del efecto de «Excluir respuestas» (R7-4:
-   reservada para que pasar el cursor no empuje lo de abajo) se reservaba vacía, ~30 px muertos con el cursor fuera.
-   Ahora vacía no ocupa lugar y, con contenido, se dibuja en el renglón de la cabecera en lugar del resumen: tampoco
-   empuja nada. */
-.pulso-f6-dato > .pulso-f6-excluir-efecto:empty { display: none; }
-.pulso-f6-dato.is-apilado:has(> .pulso-f6-excluir-efecto:not(:empty)) > .pulso-f6-cats-cabeza { grid-row: 1; grid-column: 1; }
-.pulso-f6-dato.is-apilado > .pulso-f6-excluir-efecto:not(:empty) {
+/* W1B-C5 / W2-B: bajo la última fila de fichas no queda una línea en blanco. La del efecto de «Excluir respuestas» sólo
+   se monta con una ficha sondeada (ExcluirRespuestas.tsx) y se dibuja en el renglón de la cabecera en lugar del
+   resumen: no empuja nada. */
+.pulso-f6-dato.is-apilado:has(> .pulso-f6-excluir-efecto) > .pulso-f6-cats-cabeza { grid-row: 1; grid-column: 1; }
+.pulso-f6-dato.is-apilado > .pulso-f6-excluir-efecto {
   grid-row: 1;
   grid-column: 1;
   justify-self: end;
@@ -366,21 +375,26 @@
   padding-inline-start: var(--pulso-space-2);
   background: var(--pulso-surface);
 }
-.pulso-f6-dato:has(> .pulso-f6-excluir-efecto:not(:empty)) .pulso-f6-cats-resumen { visibility: hidden; }
+.pulso-f6-dato:has(> .pulso-f6-excluir-efecto) .pulso-f6-cats-resumen { visibility: hidden; }
 .pulso-f6-cat {
-  display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-height: 28px; padding: 3px 10px;
-  border: 1px solid var(--pulso-border); border-radius: var(--pulso-radius-chip); background: var(--pulso-surface);
+  /* W2-B: misma ficha que ChipSeleccion (28, radio de chip, tinte del acento al elegir). Sigue propia porque lleva su
+     cifra o su n al lado, se tacha al excluir y un rótulo largo parte línea en vez de recortarse (C4). */
+  display: inline-flex; align-items: center; gap: var(--pulso-space-1); max-width: 100%; min-height: var(--pulso-control-height-sm);
+  padding: 3px var(--pulso-space-3); box-sizing: border-box;
+  border: 1px solid var(--pulso-border); border-radius: var(--pulso-radius-chip); background: var(--pulso-surface); box-shadow: none;
   color: var(--pulso-text); font: inherit; font-size: var(--pulso-type-body-size); text-align: left; cursor: pointer;
-  transition: background var(--motion-dur-fast) var(--motion-ease-out), border-color var(--motion-dur-fast) var(--motion-ease-out), color var(--motion-dur-fast) var(--motion-ease-out);
+  transition: background-color var(--motion-dur-fast) var(--motion-ease-out), border-color var(--motion-dur-fast) var(--motion-ease-out), color var(--motion-dur-fast) var(--motion-ease-out);
 }
-.pulso-f6-cat:hover { border-color: var(--module-accent-border); }
-.pulso-f6-cat:focus-visible { outline: var(--mov-foco, 2px solid var(--pulso-primary)); outline-offset: 1px; }
+.pulso-f6-cat:hover:not([aria-disabled="true"]) { border-color: var(--pulso-border-strong); background: var(--pulso-surface); box-shadow: none; transform: none; }
+.pulso-f6-cat:focus-visible { outline: var(--mov-foco); outline-offset: 1px; box-shadow: none; }
 .pulso-f6-cat-texto { min-width: 0; overflow-wrap: anywhere; }
 .pulso-f6-cat-n { color: var(--pulso-text-soft); font-size: var(--pulso-type-caption-size); font-variant-numeric: tabular-nums; }
 .pulso-f6-cat.is-residual { border-style: dashed; }
-.pulso-f6-cats.is-excluir .pulso-f6-cat.is-activa { background: var(--pulso-surface-2); color: var(--pulso-text-soft); }
+.pulso-f6-cats.is-excluir .pulso-f6-cat.is-activa { background: var(--pulso-surface-3); color: var(--pulso-text-soft); }
 .pulso-f6-cats.is-excluir .pulso-f6-cat.is-activa .pulso-f6-cat-texto { text-decoration: line-through; }
-.pulso-f6-cats.is-elegir .pulso-f6-cat.is-activa { border-color: var(--module-accent); background: var(--module-accent-soft); color: var(--pulso-text); font-weight: var(--pulso-weight-semibold); }
+.pulso-f6-cats.is-elegir .pulso-f6-cat.is-activa,
+.pulso-f6-cats.is-elegir .pulso-f6-cat.is-activa:hover { border-color: var(--module-accent-border); background: var(--module-accent-soft); color: var(--pulso-text); font-weight: var(--pulso-weight-semibold); }
+@media (prefers-reduced-motion: reduce) { .pulso-f6-cat { transition: none; } }
 
 /* Cortes numéricos (CortesNumericos.tsx): un campo por corte, en fila. */
 .pulso-f6-cortes { display: flex; flex-wrap: wrap; gap: var(--pulso-space-2); }
@@ -397,10 +411,20 @@
   grid-column: 1 / -1;
 }
 
+/* W2-B: «− [n] +» es UN control: un solo marco de 28 con el radio de control, los pasos quietos dentro (14 px, 32 de
+   impacto) y la cifra sin marco propio en medio. El foco de la cifra enciende el marco entero. */
 .pulso-f6-numero-fila {
+  box-sizing: border-box;
   display: flex;
   align-items: center;
-  gap: var(--pulso-space-1, 4px);
+  height: var(--pulso-control-height-sm);
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-control-radius);
+  background: var(--pulso-surface);
+}
+
+.pulso-f6-numero-fila:focus-within {
+  border-color: var(--module-accent-border);
 }
 
 /* W1B-C2: la cifra ocupa lo que dejan los dos pasos dentro de la columna de control (antes 64 px; «Automático», 13ch). */
@@ -408,17 +432,32 @@
   flex: 1 1 auto;
   width: auto;
   min-width: 0;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
 
-.pulso-f6-numero-fila > .pulso-f6-numero-paso {
-  flex: none;
+.pulso-f6-numero-fila .pulso-f6-dato-numero:focus-visible {
+  outline: 0;
 }
 
-.pulso-f6-numero-paso:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+.pulso-f6-numero-fila > .pulso-button.pulso-button--icon.pulso-button--quiet.pulso-f6-numero-paso {
+  --pulso-button-height: calc(var(--pulso-control-height-sm) - 2px);
+  flex: none;
+  border-radius: calc(var(--pulso-control-radius) - 1px);
+}
+
+.pulso-f6-numero-fila > .pulso-button.pulso-button--icon.pulso-button--quiet.pulso-f6-numero-paso:focus-visible {
+  outline-offset: -2px;
+}
+
+/* En el límite el paso se apaga sin caja propia: el marco es del control entero. */
+.pulso-f6-numero-fila > .pulso-button.pulso-button--icon.pulso-button--quiet.pulso-f6-numero-paso:disabled {
+  border-color: transparent;
+  background: transparent;
 }
 
 /* U9: una etiqueta corta por pregunta en las multiapiladas. W1B-C3: el enunciado a todo el ancho, cortado en dos líneas

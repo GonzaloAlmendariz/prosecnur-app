@@ -12,8 +12,9 @@ const regla = (selector: string) => {
 
 describe("Destacar activo", () => {
   it("lleva el acento del módulo y no el tono de peligro", () => {
-    const activa = regla('.pulso-f6-destacar-opcion[aria-pressed="true"] {');
-    expect(activa).toContain("var(--module-accent)");
+    const activa = regla('.pulso-f6-destacar-opcion[aria-pressed="true"]:hover {');
+    expect(activa).toContain("var(--module-accent-border)");
+    expect(activa).toContain("var(--module-accent-soft)");
     expect(activa).not.toContain("danger");
   });
 });
