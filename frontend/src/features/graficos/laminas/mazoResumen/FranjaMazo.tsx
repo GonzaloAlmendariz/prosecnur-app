@@ -24,7 +24,7 @@ type Props = {
   indicador: IndicadorMazo | null;
   referencia: number;
   onPublico: (base: string) => void;
-  onMoverPublico: (base: string, d: -1 | 1) => void;
+  onMoverPublico: (desde: string, hasta: string) => void;
   onIndicador: (id: string) => void;
   onReferencia: (n: number) => void;
 };
@@ -48,11 +48,11 @@ export function FranjaMazo({ bases, publicos, indicadores, indicador, referencia
                 {bases.length > 1 && (
                   <span className="pulso-f6-mazo-publico-orden">
                     <PulsoButton variant="icon" size="sm" aria-label={`Mover ${nombre} antes`} disabled={i === 0}
-                      onClick={() => onMoverPublico(b, -1)}>
+                      onClick={() => onMoverPublico(b, bases[i - 1])}>
                       <ChevronLeft size={13} aria-hidden="true" />
                     </PulsoButton>
                     <PulsoButton variant="icon" size="sm" aria-label={`Mover ${nombre} después`} disabled={i === bases.length - 1}
-                      onClick={() => onMoverPublico(b, 1)}>
+                      onClick={() => onMoverPublico(b, bases[i + 1])}>
                       <ChevronRight size={13} aria-hidden="true" />
                     </PulsoButton>
                   </span>

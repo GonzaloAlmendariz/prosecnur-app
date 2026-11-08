@@ -1,7 +1,7 @@
 // «Armar el resumen ejecutivo» (`panel=resumen-ejecutivo`; ADR 0135, maqueta graficos-sintesis, Mazo). Propone en
-// orden las láminas de resumen que el estudio admite (modeloMazo.ts), una tarjeta por lámina, y las inserta todas en un
-// solo paso de deshacer detrás de la lámina del foco (al final si el informe está vacío). Los títulos quedan por
-// escribir: los escribe el analista.
+// orden las láminas de resumen que el estudio admite (modeloMazo.ts), una tarjeta por lámina, sin ninguna elegida: el
+// analista marca las que quiere y las inserta en un solo paso de deshacer detrás de la lámina del foco (al final si el
+// informe está vacío). Las láminas nacen sin título ni antetítulo: los escribe el analista.
 
 import { useMemo, type RefObject } from "react";
 import { ListChecks, Presentation } from "../../../../vendor/lucide-react";
@@ -19,6 +19,7 @@ import { FranjaMazo } from "./FranjaMazo";
 import { useMazoResumenUi } from "./mazoResumenStore";
 import { rotuloInsertar, unirPublicos } from "./modeloMazo";
 import { PANEL_RESUMEN_EJECUTIVO } from "./panelResumen";
+import { SeleccionMazo } from "./SeleccionMazo";
 import { TarjetaMazo } from "./TarjetaMazo";
 import { useMazoResumen } from "./useMazoResumen";
 import "./mazoResumen.css";
@@ -37,9 +38,9 @@ export function MazoResumen({ posicion, cerrar }: Props) {
   // Se resuelve al cerrar, con la lámina que quedó en pantalla (quien abrió el panel pudo desmontarse).
   const retorno = useMemo<RefObject<HTMLElement>>(() => ({ get current() { return destinoAlCerrarEnDocumento(null); } }), []);
 
-  const n = mazo.incluidas.length;
+  const n = mazo.elegidas.length;
   const sinEscala = mazo.publicos.length > 0 && mazo.publicos.every((b) => (mazo.escalas[b] ?? 0) === 0);
-  const pidenDivide = mazo.incluidas.filter((p) => p.falta).length;
+  const pidenDivide = mazo.elegidas.filter((p) => p.falta).length;
 
   const insertar = () => {
     const plan = usePlanStore.getState();
@@ -74,6 +75,9 @@ export function MazoResumen({ posicion, cerrar }: Props) {
   ) : mazo.propuestas.length === 0 ? (
     <EstadoVacio icono={<Presentation size={16} aria-hidden="true" />} titulo="Este registro no ofrece láminas de resumen" />
   ) : (
+    <>
+    <SeleccionMazo elegidas={n} total={mazo.propuestas.length}
+      onTodas={() => ui.elegirTodas(mazo.propuestas.map((p) => p.id))} onNinguna={ui.elegirNinguna} />
     <ul
       className="pulso-f6-mazo-tarjetas"
       aria-label="Láminas propuestas"
@@ -86,16 +90,17 @@ export function MazoResumen({ posicion, cerrar }: Props) {
           <TarjetaMazo
             numero={i + 1}
             propuesta={p}
-            incluida={!mazo.quitadas.has(p.id)}
+            elegida={!!ui.elegidas[p.id]}
             editando={ui.editando === p.id}
             scope={mazo.scope}
-            onAlternar={() => ui.alternarQuitada(p.id)}
+            onAlternar={() => ui.alternarElegida(p.id)}
             onEditar={() => ui.editar(ui.editando === p.id ? null : p.id)}
             onRegla={(r) => ui.ponerRegla(p.id, r)}
           />
         </li>
       ))}
     </ul>
+    </>
   );
 
   return (
@@ -119,7 +124,7 @@ export function MazoResumen({ posicion, cerrar }: Props) {
           indicador={mazo.indicador}
           referencia={ui.referencia}
           onPublico={(b) => ui.alternarPublico(b, mazo.bases)}
-          onMoverPublico={(b, d) => ui.moverPublico(b, d, mazo.bases)}
+          onMoverPublico={(desde, hasta) => ui.moverPublico(desde, hasta, mazo.bases)}
           onIndicador={ui.elegirIndicador}
           onReferencia={ui.ponerReferencia}
         />

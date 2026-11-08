@@ -53,7 +53,7 @@ describe("el validador reconoce `base$*` como comodín de público", () => {
   test("las láminas que inserta el mazo, todas, no dan ningún var-unknown", () => {
     let i = 0;
     const propuestas = proponerMazo(mazo);
-    const slides = laminasDelMazo(propuestas, new Set<string>(), () => `s-${++i}`);
+    const slides = laminasDelMazo(propuestas, Object.fromEntries(propuestas.map((p) => [p.id, true as const])), () => `s-${++i}`);
     expect(slides.length).toBeGreaterThan(3);
     expect(slides.some((s) => JSON.stringify(s.payload).includes("$*"))).toBe(true);
     const r = validarPlan(entrada(slides));

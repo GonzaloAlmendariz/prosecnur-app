@@ -3,8 +3,9 @@ import type { Slide, SlideType, VarInfo } from "../../../../api/graficos";
 import { payloadPorDefecto, SLIDE_GRAF_SLOTS, usePlanStore } from "../../store";
 import { conOpcion, type EstudioDelSelector } from "../selectores/opcionesLamina";
 import {
-  alternarPublico, escalaDominante, escalasPorPublico, FALTA_DIVIDE, indicadoresDelEstudio, insertarTras, laminaDePropuesta,
-  laminasDelMazo, listaPublicos, moverPublico, ordenPublicos, proponerMazo, reglaEnPalabras, rotuloInsertar, type EntradaMazo,
+  alternarPublico, contarElegidas, escalaDominante, escalasPorPublico, FALTA_DIVIDE, indicadoresDelEstudio, insertarTras,
+  laminaDePropuesta, laminasDelMazo, listaPublicos, mensajeInsertadas, moverA, ordenarPropuestas, ordenPublicos, proponerMazo,
+  publicoEnFrase, REFERENCIA_POR_DEFECTO, reglaEnPalabras, rotuloInsertar, textoElegidas, unirPublicos, type EntradaMazo,
 } from "./modeloMazo";
 
 const ARGS: Record<string, string[]> = {
@@ -85,8 +86,10 @@ describe("el mazo propone en orden (ADR 0135; maqueta Mazo)", () => {
   it("el orden de los públicos: lo elegido, una base nueva detrás, y mover uno no se sale de la lista", () => {
     expect(ordenPublicos(null, ["a", "b", "c"])).toEqual(["a", "b", "c"]);
     expect(ordenPublicos(["c", "a", "x"], ["a", "b", "c"])).toEqual(["c", "a", "b"]);
-    expect(moverPublico(["a", "b", "c"], "c", -1)).toEqual(["a", "c", "b"]);
-    expect(moverPublico(["a", "b", "c"], "a", -1)).toEqual(["a", "b", "c"]);
+    expect(moverA(["a", "b", "c"], "c", "b")).toEqual(["a", "c", "b"]);
+    expect(moverA(["a", "b", "c"], "a", "c")).toEqual(["b", "c", "a"]);
+    expect(moverA(["a", "b", "c"], "c", "a")).toEqual(["c", "a", "b"]);
+    expect(moverA(["a", "b", "c"], "a", "x")).toEqual(["a", "b", "c"]);
     expect(alternarPublico(["c", "a"], "b", ["c", "a", "b"])).toEqual(["c", "a", "b"]);
   });
 });
@@ -137,12 +140,12 @@ describe("la franja y la regla", () => {
     const ps = proponerMazo(entrada({ estudio: tres, publicos: tres.bases }));
     const c = ps.find((p) => p.id === "contraste");
     expect(c?.args).toMatchObject({ estilo: "resumen", bases: ["docentes", "estudiantes"], regla: { tipo: "mayor_diferencia", n: 13 } });
-    expect(c?.antetitulo).toBe("Docentes y estudiantes");
+    expect(c?.publicos).toEqual(["docentes", "estudiantes"]);
     expect(c?.reglaEnPalabras).toBe("Las 13 de mayor diferencia, de docentes y estudiantes");
     // Reordenar la franja cambia el par.
     const otro = proponerMazo(entrada({ estudio: tres, publicos: ["administrativos", "docentes", "estudiantes"] })).find((p) => p.id === "contraste");
     expect(otro?.args.bases).toEqual(["administrativos", "docentes"]);
-    expect(otro?.antetitulo).toBe("Administrativos y docentes");
+    expect(otro?.publicos).toEqual(["administrativos", "docentes"]);
     // La lámina que entra lleva el par en el payload del gráfico.
     const lamina = c && laminaDePropuesta(c, "s-1");
     expect(JSON.stringify(lamina?.payload)).toContain('"bases":["docentes","estudiantes"]');
@@ -180,20 +183,20 @@ describe("la franja y la regla", () => {
   });
 });
 
-describe("antetítulos y palabras, desde los públicos reales", () => {
-  it("como la maqueta; Brechas e Información leen todos los públicos y no nombran uno", () => {
-    const ante = Object.fromEntries(proponerMazo(entrada()).map((p) => [p.id, p.antetitulo]));
-    expect(ante).toMatchObject({
-      cobertura: "Metodología y cobertura",
-      panorama: "Panorama",
-      contraste: "Docentes y estudiantes",
-      escala_umbral: "Brechas",
-      escala_sin_info: "Información",
-      aperturas: "Diferencias dentro de estudiantes",
-      "fortalezas:docentes": "Docentes",
+describe("los públicos que lee cada tarjeta y las palabras", () => {
+  it("cada propuesta dice qué públicos lee; Brechas e Información, todos, y aperturas, el principal", () => {
+    const leen = Object.fromEntries(proponerMazo(entrada()).map((p) => [p.id, p.publicos]));
+    expect(leen).toMatchObject({
+      cobertura: ["docentes", "estudiantes"],
+      panorama: ["docentes", "estudiantes"],
+      contraste: ["docentes", "estudiantes"],
+      escala_umbral: ["docentes", "estudiantes"],
+      escala_sin_info: ["docentes", "estudiantes"],
+      aperturas: ["estudiantes"],
+      "fortalezas:docentes": ["docentes"],
     });
-    const uno = Object.fromEntries(proponerMazo(entrada({ publicos: ["docentes"] })).map((p) => [p.id, p.antetitulo]));
-    expect(uno.escala_umbral).toBe("Brechas");
+    const uno = Object.fromEntries(proponerMazo(entrada({ publicos: ["docentes"] })).map((p) => [p.id, p.publicos]));
+    expect(uno.escala_umbral).toEqual(["docentes"]);
   });
 
   it("la regla en palabras", () => {
@@ -228,15 +231,52 @@ describe("la escala del estudio", () => {
   });
 });
 
-describe("insertar", () => {
-  it("las incluidas, en orden, sin título, con su antetítulo y origen «resumen»", () => {
-    let n = 0;
+describe("elegir y ordenar (el mazo arranca sin elegir)", () => {
+  it("sin elegidas no inserta nada; el botón dice «Insertar láminas»", () => {
+    expect(laminasDelMazo(proponerMazo(entrada()), {}, () => "s")).toEqual([]);
+    expect(rotuloInsertar(0)).toBe("Insertar láminas");
+  });
+
+  it("los textos de la elección y del aviso", () => {
+    expect(textoElegidas(4, 10)).toBe("4 de 10 elegidas");
+    expect(textoElegidas(1, 10)).toBe("1 de 10 elegida");
+    expect(textoElegidas(0, 10)).toBe("Ninguna de 10 elegida");
+    expect(mensajeInsertadas(8)).toBe("Se insertaron 8 láminas");
+    expect(mensajeInsertadas(1)).toBe("Se insertó 1 lámina");
+  });
+
+  it("una elección de una propuesta que ya no está no cuenta", () => {
+    const ps = proponerMazo(entrada({ publicos: ["docentes"] }));
+    expect(contarElegidas(ps, { panorama: true, "fortalezas:estudiantes": true })).toBe(1);
+  });
+
+  it("el orden del analista manda; lo que no nombra, detrás en su orden", () => {
     const ps = proponerMazo(entrada());
-    const nuevas = laminasDelMazo(ps, new Set(["panorama"]), () => `s-${++n}`);
-    expect(nuevas).toHaveLength(ps.length - 1);
+    const ids = ordenarPropuestas(ps, ["fortalezas:docentes", "panorama", "ya-no-esta"]).map((p) => p.id);
+    expect(ids.slice(0, 3)).toEqual(["fortalezas:docentes", "panorama", "cobertura"]);
+    expect(ids).toHaveLength(ps.length);
+    expect(ordenarPropuestas(ps, null).map((p) => p.id)).toEqual(ps.map((p) => p.id));
+  });
+
+  it("los exports que usan otros módulos siguen", () => {
+    expect(REFERENCIA_POR_DEFECTO).toBe(60);
+    expect(unirPublicos(["a_b", "c"])).toBe("a b y c");
+    expect(publicoEnFrase("personal_admin")).toBe("personal admin");
+  });
+});
+
+describe("insertar", () => {
+  it("las elegidas, en el orden de las propuestas, sin título ni antetítulo y con origen «resumen»", () => {
+    let n = 0;
+    const ps = ordenarPropuestas(proponerMazo(entrada()), ["contraste", "cobertura"]);
+    const nuevas = laminasDelMazo(ps, { cobertura: true, contraste: true, "fortalezas:docentes": true }, () => `s-${++n}`);
+    expect(nuevas).toHaveLength(3);
     expect(nuevas[0]).toMatchObject({ id: "s-1", tipo: "p_slide_1_grafico", origen: "resumen" });
-    expect(nuevas[0].payload).toMatchObject({ titulo: "", meta: { antetitulo: "Metodología y cobertura" } });
-    expect(grafico(nuevas[1].payload.grafico as Record<string, unknown>)).toMatchObject({ graficador: "p_dumbbell" });
+    expect(grafico(nuevas[0].payload.grafico as Record<string, unknown>)).toMatchObject({ graficador: "p_dumbbell" });
+    for (const s of nuevas) {
+      expect(s.payload).toMatchObject({ titulo: "" });
+      expect(JSON.stringify(s.payload)).not.toContain("antetitulo");
+    }
   });
 
   it("detrás de la lámina del foco o al final", () => {
@@ -261,7 +301,8 @@ describe("un solo paso de deshacer", () => {
 
   it("insertar el mazo y deshacer una vez deja el plan como estaba", () => {
     let n = 0;
-    const nuevas = laminasDelMazo(proponerMazo(entrada()), new Set(), () => `s-${++n}`);
+    const ps = proponerMazo(entrada());
+    const nuevas = laminasDelMazo(ps, Object.fromEntries(ps.map((p) => [p.id, true as const])), () => `s-${++n}`);
     usePlanStore.getState().transformarLaminas((slides) => insertarTras(slides, nuevas, 1));
     expect(usePlanStore.getState().plan.slides).toHaveLength(1 + nuevas.length);
     usePlanStore.getState().undo();

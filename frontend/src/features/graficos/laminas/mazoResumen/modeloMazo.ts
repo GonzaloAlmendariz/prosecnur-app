@@ -3,14 +3,15 @@
 // (TARJETAS_CONTAR y su `porDefecto`), así que una lámina insertada desde el mazo es la misma que se inserta desde el
 // selector, con la franja (públicos, indicador y referencia) y la regla del mazo escritas encima.
 //
-// El título no se propone: lo escribe siempre el analista (ADR 0135 §9). La tendencia entre mediciones no existe aquí.
+// El título no se propone: lo escribe siempre el analista (ADR 0135 §9), y la lámina nace también sin antetítulo (D1 de
+// la oleada M): la tarjeta dice qué públicos lee, pero nombrar la lámina es del analista. Nada viene elegido: el analista
+// marca las que quiere, las ordena y recién entonces inserta. La tendencia entre mediciones no existe aquí.
 // Aperturas internas entra con su aviso: le falta la pregunta que divide, que se elige en Datos de la lámina, igual que
 // cuando se inserta desde el selector. Pura: el diálogo la usa y los tests la prueban sola.
 
 import type { GraficadorRef, Slide, SlideType, VarInfo } from "../../../../api/graficos";
 import type { ReglaPreguntas } from "../../../../api/graficosRegla";
 import { formatoConteo } from "../../../../lib/formatoNumero";
-import { conSlideMeta } from "../../slideMeta";
 import { payloadPorDefecto } from "../../store";
 import { CORTE_EN_CADENA } from "../argsDatosGrafico";
 import { nombrePublico } from "../gruposPadron/modeloPadron";
@@ -24,7 +25,7 @@ export type ClasePropuesta =
   | "cobertura" | "panorama" | "contraste" | "escala_umbral" | "escala_sin_info" | "aperturas" | "fortalezas" | "cierre";
 
 export type PropuestaMazo = {
-  /** Estable entre renders: «panorama», «fortalezas:docentes». Con él se recuerdan la exclusión y la regla editada. */
+  /** Estable entre renders: «panorama», «fortalezas:docentes». Con él se recuerdan la elección, el orden y la regla. */
   id: string;
   clase: ClasePropuesta;
   /** La tarjeta del selector de la que sale. */
@@ -32,7 +33,8 @@ export type PropuestaMazo = {
   tipo: SlideType;
   nombre: string;
   claseTarjeta: ClaseTarjeta;
-  antetitulo: string;
+  /** Los públicos que lee la lámina, en el orden de la franja. */
+  publicos: readonly string[];
   graficador: string | null;
   slot: string | null;
   /** Args del gráfico con la franja y la regla del mazo. */
@@ -97,7 +99,7 @@ export function unirPublicos(bases: readonly string[]): string {
   return `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
 }
 
-/** La misma lista como antetítulo: con la primera letra en mayúscula («Docentes y estudiantes»). */
+/** La misma lista con la primera letra en mayúscula («Docentes y estudiantes»): la cabeza de la tarjeta. */
 export function listaPublicos(bases: readonly string[]): string {
   return nombrePublico(unirPublicos(bases));
 }
@@ -211,7 +213,7 @@ function conRegla(e: EntradaMazo, id: string, args: Args): Args {
   return editada ? { ...args, regla: { ...editada } } : args;
 }
 
-type Borrador = Omit<PropuestaMazo, "reglaEnPalabras" | "graficador" | "slot" | "nombre" | "claseTarjeta" | "tipo" | "falta"> & {
+type Borrador = Omit<PropuestaMazo, "reglaEnPalabras" | "graficador" | "slot" | "nombre" | "claseTarjeta" | "tipo" | "falta" | "publicos"> & {
   t: TarjetaConGrafico;
   nombre?: string;
   falta?: string | null;
@@ -230,7 +232,7 @@ function cerrar(e: EntradaMazo, b: Borrador): PropuestaMazo {
     tipo: b.t.tipo,
     nombre: b.nombre ?? b.t.nombre,
     claseTarjeta: b.t.clase,
-    antetitulo: b.antetitulo,
+    publicos: [...b.publicosRegla],
     graficador,
     slot: ranuraDePreset(b.t),
     args,
@@ -255,7 +257,7 @@ export function proponerMazo(e: EntradaMazo): PropuestaMazo[] {
   const cobertura = disponible(TARJETA.cobertura);
   if (cobertura) {
     out.push(cerrar(e, {
-      id: "cobertura", clase: "cobertura", tarjeta: cobertura.clave, t: cobertura, antetitulo: "Metodología y cobertura",
+      id: "cobertura", clase: "cobertura", tarjeta: cobertura.clave, t: cobertura,
       args: argsDeTarjeta(cobertura, estudio), publicosRegla: publicos,
       palabras: `Casos, padrón, cobertura y meta de ${unirPublicos(publicos)}`,
     }));
@@ -265,7 +267,7 @@ export function proponerMazo(e: EntradaMazo): PropuestaMazo[] {
   if (panorama) {
     const args = argsDeTarjeta(panorama, estudio);
     if (e.admiteArg(panorama.grafico.graficador, "referencia")) args.referencia = e.referencia;
-    out.push(cerrar(e, { id: "panorama", clase: "panorama", tarjeta: panorama.clave, t: panorama, antetitulo: "Panorama", args, publicosRegla: publicos }));
+    out.push(cerrar(e, { id: "panorama", clase: "panorama", tarjeta: panorama.clave, t: panorama, args, publicosRegla: publicos }));
   }
 
   // El contraste compara UN par (graficos_dumbbell_auto.R): los dos primeros públicos de la franja. Para cambiarlo se
@@ -277,7 +279,7 @@ export function proponerMazo(e: EntradaMazo): PropuestaMazo[] {
     args.bases = par;
     args.regla = { tipo: "mayor_diferencia", n: N_CONTRASTE };
     out.push(cerrar(e, {
-      id: "contraste", clase: "contraste", tarjeta: contraste.clave, t: contraste, antetitulo: listaPublicos(par), args, publicosRegla: par,
+      id: "contraste", clase: "contraste", tarjeta: contraste.clave, t: contraste, args, publicosRegla: par,
     }));
   }
 
@@ -294,14 +296,14 @@ export function proponerMazo(e: EntradaMazo): PropuestaMazo[] {
     const args = deEscala();
     args.regla = { tipo: "bajo_umbral", umbral: e.referencia };
     out.push(cerrar(e, {
-      id: "escala_umbral", clase: "escala_umbral", tarjeta: escala.clave, t: escala, antetitulo: "Brechas",
+      id: "escala_umbral", clase: "escala_umbral", tarjeta: escala.clave, t: escala,
       nombre: `Escala bajo ${formatoConteo(e.referencia)}%`, args, publicosRegla: leen,
     }));
     const sinInfo = deEscala();
     sinInfo.regla = { tipo: "mayor_sin_info", n: N_SIN_INFO };
     if (e.admiteArg(escala.grafico.graficador, "orden", "sin_informacion")) sinInfo.orden = "sin_informacion";
     out.push(cerrar(e, {
-      id: "escala_sin_info", clase: "escala_sin_info", tarjeta: escala.clave, t: escala, antetitulo: "Información",
+      id: "escala_sin_info", clase: "escala_sin_info", tarjeta: escala.clave, t: escala,
       nombre: "Escala ordenada por Sin información", args: sinInfo, publicosRegla: leen,
     }));
   }
@@ -311,8 +313,7 @@ export function proponerMazo(e: EntradaMazo): PropuestaMazo[] {
     const args = argsDeTarjeta(aperturas, estudio);
     if (e.admiteArg(aperturas.grafico.graficador, "vars") && args.vars === undefined) args.vars = [`${principal}$*`];
     out.push(cerrar(e, {
-      id: "aperturas", clase: "aperturas", tarjeta: aperturas.clave, t: aperturas,
-      antetitulo: `Diferencias dentro de ${publicoEnFrase(principal)}`, args, publicosRegla: [principal], falta: FALTA_DIVIDE,
+      id: "aperturas", clase: "aperturas", tarjeta: aperturas.clave, t: aperturas, args, publicosRegla: [principal], falta: FALTA_DIVIDE,
     }));
   }
 
@@ -321,7 +322,7 @@ export function proponerMazo(e: EntradaMazo): PropuestaMazo[] {
     for (const base of publicos) {
       out.push(cerrar(e, {
         id: `fortalezas:${base}`, clase: "fortalezas", tarjeta: fortalezas.clave, t: fortalezas,
-        antetitulo: nombrePublico(publicoEnFrase(base)), args: argsDeTarjeta(fortalezas, { ...estudio, bases: [base], baseActiva: base }),
+        args: argsDeTarjeta(fortalezas, { ...estudio, bases: [base], baseActiva: base }),
         publicosRegla: [base],
       }));
     }
@@ -330,7 +331,7 @@ export function proponerMazo(e: EntradaMazo): PropuestaMazo[] {
   if (e.tiposInsertables.has(TIPO_CIERRE) && e.laminas.has(TIPO_CIERRE)) {
     out.push({
       id: "cierre", clase: "cierre", tarjeta: TARJETA.cierre, tipo: TIPO_CIERRE, nombre: "Cierre con hallazgos", claseTarjeta: "resumen",
-      antetitulo: "Conclusiones", graficador: null, slot: null, args: {}, reglaEnPalabras: "Una cifra de cada lámina anterior", falta: null,
+      publicos, graficador: null, slot: null, args: {}, reglaEnPalabras: "Una cifra de cada lámina anterior", falta: null,
     });
   }
   return out;
@@ -340,20 +341,45 @@ export function proponerMazo(e: EntradaMazo): PropuestaMazo[] {
 // Insertar
 // ---------------------------------------------------------------------------
 
-/** La lámina de una propuesta: payload de partida del tipo, su gráfico, el antetítulo y el origen «resumen». Sin título. */
+/** La lámina de una propuesta: payload de partida del tipo, su gráfico y el origen «resumen». Sin título ni antetítulo. */
 export function laminaDePropuesta(p: PropuestaMazo, id: string): Slide {
   const payload: Args = payloadPorDefecto(p.tipo);
   if (p.graficador && p.slot) {
     const g: GraficadorRef = { graficador: p.graficador, args: { ...p.args } };
     payload[p.slot] = g;
   }
-  const conAnte = conSlideMeta({ payload }, { antetitulo: p.antetitulo });
-  return { id, tipo: p.tipo, payload: conAnte.payload, origen: ORIGEN_RESUMEN };
+  return { id, tipo: p.tipo, payload, origen: ORIGEN_RESUMEN };
 }
 
-/** Las incluidas, en orden, como láminas nuevas. */
-export function laminasDelMazo(propuestas: readonly PropuestaMazo[], quitadas: ReadonlySet<string>, nuevoId: () => string): Slide[] {
-  return propuestas.filter((p) => !quitadas.has(p.id)).map((p) => laminaDePropuesta(p, nuevoId()));
+/** Las elegidas, en el orden de las propuestas, como láminas nuevas. */
+export function laminasDelMazo(
+  propuestas: readonly PropuestaMazo[], elegidas: Readonly<Record<string, true>>, nuevoId: () => string,
+): Slide[] {
+  return propuestas.filter((p) => elegidas[p.id]).map((p) => laminaDePropuesta(p, nuevoId()));
+}
+
+/** Cuántas de las propuestas están elegidas (una elección de una propuesta que ya no está no cuenta). */
+export function contarElegidas(propuestas: readonly PropuestaMazo[], elegidas: Readonly<Record<string, true>>): number {
+  return propuestas.filter((p) => elegidas[p.id]).length;
+}
+
+/** Las propuestas en el orden que el analista dejó; las que el orden no nombra (un público nuevo), detrás en su lugar. */
+export function ordenarPropuestas(propuestas: readonly PropuestaMazo[], orden: readonly string[] | null): PropuestaMazo[] {
+  if (!orden?.length) return [...propuestas];
+  const pos = new Map(orden.map((id, i) => [id, i]));
+  const nombradas = propuestas.filter((p) => pos.has(p.id)).sort((a, b) => (pos.get(a.id) ?? 0) - (pos.get(b.id) ?? 0));
+  return [...nombradas, ...propuestas.filter((p) => !pos.has(p.id))];
+}
+
+/** «4 de 10 elegidas», «1 de 10 elegida», «Ninguna de 10 elegida». */
+export function textoElegidas(n: number, total: number): string {
+  if (n === 0) return `Ninguna de ${formatoConteo(total)} elegida`;
+  return `${formatoConteo(n)} de ${formatoConteo(total)} ${n === 1 ? "elegida" : "elegidas"}`;
+}
+
+/** El aviso al insertar: «Se insertaron 8 láminas», «Se insertó 1 lámina». */
+export function mensajeInsertadas(n: number): string {
+  return n === 1 ? "Se insertó 1 lámina" : `Se insertaron ${formatoConteo(n)} láminas`;
 }
 
 /** El plan con las nuevas detrás de la lámina `posicion` (1-based); sin posición, al final. */
@@ -362,8 +388,9 @@ export function insertarTras(slides: readonly Slide[], nuevas: readonly Slide[],
   return [...slides.slice(0, i), ...nuevas, ...slides.slice(i)];
 }
 
-/** «Insertar 8 láminas», «Insertar 1 lámina». */
+/** «Insertar 8 láminas», «Insertar 1 lámina»; sin ninguna elegida, «Insertar láminas» (el botón queda deshabilitado). */
 export function rotuloInsertar(n: number): string {
+  if (n <= 0) return "Insertar láminas";
   return `Insertar ${formatoConteo(n)} ${n === 1 ? "lámina" : "láminas"}`;
 }
 
@@ -377,13 +404,14 @@ export function ordenPublicos(orden: readonly string[] | null, todas: readonly s
   return [...vistas, ...todas.filter((b) => !vistas.includes(b))];
 }
 
-/** El orden con `base` un lugar antes (-1) o después (1). */
-export function moverPublico(orden: readonly string[], base: string, d: -1 | 1): string[] {
-  const i = orden.indexOf(base);
-  const j = i + d;
-  if (i < 0 || j < 0 || j >= orden.length) return [...orden];
+/** El orden con `desde` en el lugar que ocupaba `hasta` (lo que hace un arrastre); los demás se corren. */
+export function moverA(orden: readonly string[], desde: string, hasta: string): string[] {
+  const i = orden.indexOf(desde);
+  const j = orden.indexOf(hasta);
+  if (i < 0 || j < 0 || i === j) return [...orden];
   const out = [...orden];
-  [out[i], out[j]] = [out[j], out[i]];
+  out.splice(i, 1);
+  out.splice(j, 0, desde);
   return out;
 }
 

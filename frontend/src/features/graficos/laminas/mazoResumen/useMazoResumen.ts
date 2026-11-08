@@ -10,8 +10,8 @@ import { propuestasDe, usePadronPropuesto } from "../gruposPadron/usePadronPropu
 import type { EstudioDelSelector } from "../selectores/opcionesLamina";
 import { useMazoResumenUi } from "./mazoResumenStore";
 import {
-  escalaDominante, escalasPorPublico, indicadoresDelEstudio, insertarTras, laminasDelMazo, ordenPublicos, proponerMazo,
-  type IndicadorMazo, type PropuestaMazo,
+  escalaDominante, escalasPorPublico, indicadoresDelEstudio, insertarTras, laminasDelMazo, ordenarPropuestas, ordenPublicos,
+  proponerMazo, type IndicadorMazo, type PropuestaMazo,
 } from "./modeloMazo";
 
 const TIPOS_INSERTABLES: ReadonlySet<SlideType> = new Set(Object.keys(SLIDE_GRAF_SLOTS) as SlideType[]);
@@ -27,10 +27,11 @@ export type MazoResumen = {
   escalas: Record<string, number>;
   indicadores: IndicadorMazo[];
   indicador: IndicadorMazo | null;
+  /** Las propuestas en el orden que dejó el analista. */
   propuestas: PropuestaMazo[];
-  quitadas: ReadonlySet<string>;
-  incluidas: PropuestaMazo[];
-  /** Inserta las incluidas detrás de la lámina `posicion` en un solo paso de deshacer; devuelve las nuevas. */
+  /** Las elegidas, en ese orden: las que se insertan. */
+  elegidas: PropuestaMazo[];
+  /** Inserta las elegidas detrás de la lámina `posicion` en un solo paso de deshacer; devuelve las nuevas. */
   insertar: (posicion: number | null) => Slide[];
 };
 
@@ -60,16 +61,15 @@ export function useMazoResumen(activo: boolean): MazoResumen {
     () => ({ bases: nombresBases ? nombresBases.split("|") : [], baseActiva, padron }), [nombresBases, baseActiva, padron]);
 
   const propuestas = registry
-    ? proponerMazo({
+    ? ordenarPropuestas(proponerMazo({
       estudio, publicos, graficadores, laminas, tiposInsertables: TIPOS_INSERTABLES, admiteArg, indicador,
       referencia: ui.referencia, reglas: ui.reglas,
-    })
+    }), ui.ordenPropuestas)
     : [];
-  const quitadas = new Set(Object.keys(ui.quitadas));
-  const incluidas = propuestas.filter((p) => !quitadas.has(p.id));
+  const elegidas = propuestas.filter((p) => ui.elegidas[p.id]);
 
   const insertar = (posicion: number | null): Slide[] => {
-    const nuevas = laminasDelMazo(propuestas, quitadas, nuevoIdLamina);
+    const nuevas = laminasDelMazo(propuestas, ui.elegidas, nuevoIdLamina);
     if (!nuevas.length) return [];
     const plan = usePlanStore.getState();
     plan.transformarLaminas((slides) => insertarTras(slides, nuevas, posicion));
@@ -88,8 +88,7 @@ export function useMazoResumen(activo: boolean): MazoResumen {
     indicadores,
     indicador,
     propuestas,
-    quitadas,
-    incluidas,
+    elegidas,
     insertar,
   };
 }

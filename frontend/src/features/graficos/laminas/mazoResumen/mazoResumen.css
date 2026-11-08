@@ -95,7 +95,33 @@
   min-width: 0;
 }
 
+/* La barra de elección: el conteo a la izquierda, «Elegir todas» y «Ninguna» a la derecha. */
+.pulso-f6-mazo-seleccion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  margin-bottom: var(--pulso-space-3);
+}
+
+.pulso-f6-mazo-seleccion-conteo {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-f6-mazo-seleccion-acciones {
+  display: inline-flex;
+  gap: var(--pulso-space-1);
+}
+
+/* La tarjeta es la zona de clic de su casilla: el `::after` de la casilla la cubre entera (position: relative aquí).
+   Lo que se pulsa por separado (Editar, el asa) sube por encima con z-index. */
 .pulso-f6-mazo-tarjeta.pulso-panel {
+  position: relative;
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
@@ -104,8 +130,69 @@
   margin: 0;
 }
 
-.pulso-f6-mazo-tarjeta.is-quitada > :not(.pulso-f6-mazo-acciones) {
-  opacity: 0.45;
+.pulso-f6-mazo-tarjeta.is-elegida.pulso-panel {
+  border-color: var(--module-accent);
+  box-shadow: inset 0 0 0 1px var(--module-accent);
+}
+
+.pulso-f6-mazo-elegir {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin: -3px -3px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--pulso-radius);
+  background: transparent;
+  color: var(--pulso-surface);
+  cursor: pointer;
+}
+
+.pulso-f6-mazo-elegir::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+/* Un transform en la casilla la volvería el bloque de su `::after` y la zona de clic se encogería a 28 px: la presión
+   la toma la tarjeta entera. */
+.pulso-f6-mazo-elegir:active {
+  transform: none;
+}
+
+/* El foco se ve en la tarjeta entera: es lo que alterna. */
+.pulso-f6-mazo-elegir:focus-visible {
+  outline: none;
+}
+
+.pulso-f6-mazo-tarjeta.pulso-panel:has(.pulso-f6-mazo-elegir:focus-visible) {
+  outline: var(--mov-foco);
+  outline-offset: 2px;
+}
+
+.pulso-f6-mazo-elegir-caja {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--pulso-border-strong);
+  border-radius: 5px;
+  background: var(--pulso-surface);
+}
+
+.pulso-f6-mazo-elegir[aria-checked="true"] .pulso-f6-mazo-elegir-caja {
+  border-color: var(--module-accent);
+  background: var(--module-accent);
+}
+
+.pulso-f6-mazo-acciones,
+.pulso-f6-mazo-edicion {
+  position: relative;
+  z-index: 1;
 }
 
 .pulso-f6-mazo-tarjeta-cabeza {
@@ -138,7 +225,7 @@
   padding-top: 3px;
 }
 
-.pulso-f6-mazo-antetitulo {
+.pulso-f6-mazo-lee {
   min-width: 0;
   color: var(--pulso-text-soft);
   font-size: var(--pulso-type-eyebrow-size);
@@ -189,13 +276,6 @@
   max-height: 100%;
 }
 
-.pulso-f6-mazo-titulo {
-  color: var(--pulso-text-faint);
-  font-size: var(--pulso-type-body-size);
-  font-weight: var(--pulso-weight-semibold);
-  font-style: italic;
-}
-
 .pulso-f6-mazo-regla {
   color: var(--pulso-text-soft);
   font-size: var(--pulso-type-caption-size);
@@ -223,11 +303,6 @@
   padding-top: var(--pulso-space-1);
 }
 
-.pulso-f6-mazo-acciones .is-volver {
-  color: var(--module-accent);
-  box-shadow: inset 0 0 0 1px var(--module-accent);
-}
-
 .pulso-f6-mazo-edicion {
   display: grid;
   min-width: 0;
@@ -242,7 +317,12 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .pulso-f6-mazo-tarjeta > :not(.pulso-f6-mazo-acciones) {
-    transition: opacity var(--motion-dur-fast) var(--motion-ease-out);
+  .pulso-f6-mazo-tarjeta.pulso-panel {
+    transition: transform var(--motion-dur-press) var(--motion-ease-out), border-color var(--motion-dur-fast) var(--motion-ease-out),
+      box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+  }
+
+  .pulso-f6-mazo-tarjeta.pulso-panel:has(.pulso-f6-mazo-elegir:active) {
+    transform: scale(var(--mov-press-tarjeta));
   }
 }
