@@ -22,3 +22,10 @@
   out <- .pulso_round_half_up(dif, dec)
   ifelse(is.na(k) | !is.finite(out), saldo_crudo, out)
 }
+
+#' Decimales con que se escribe el saldo: los de los rótulos (`valores_decimales`, E3 ola 2)
+#' @keywords internal
+.divergentes_saldo_decimales <- function(valores_decimales) {
+  dec <- suppressWarnings(as.integer(valores_decimales)[1])
+  if (length(dec) != 1L || is.na(dec) || dec < 0L) 0L else dec
+}

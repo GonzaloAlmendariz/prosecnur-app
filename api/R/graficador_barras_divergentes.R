@@ -343,7 +343,8 @@ graficar_barras_divergentes <- function(
     saldo$.saldo <- .divergentes_saldo_rotulado(saldo$.item, saldo$.saldo, espec_div)   # ADR 0135: sobre lo rotulado
     saldo$.lab <- paste0(
       ifelse(saldo$.saldo > 0, "+", ""),
-      .pulso_fmt_half_up(saldo$.saldo, 0), " pp"
+      # E3 (ola 2): el saldo con los mismos decimales que los rótulos (decisión del lead): 84.4 - 10.3 = «+74.1 pp».
+      .pulso_fmt_half_up(saldo$.saldo, .divergentes_saldo_decimales(valores_decimales)), " pp"
     )
     saldo$.x <- tope * 1.02
     p <- p + ggplot2::geom_text(
