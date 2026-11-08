@@ -444,7 +444,7 @@
     bases <- unique(unlist(c(lapply(els, function(el) texto(el$overrides$nota_pie %||% NULL)), lapply(especs, function(e) texto(e$nota)))))
     bases <- .lam_bases_sin_repetir(bases)
     bases <- .lam_mixta_solo_base_principal(bases, especs, els)   # v7.23, ítem 5 (lamina_mixtas_base_principal.R)
-    base <- if (length(bases)) paste(bases, collapse = ". ") else NULL
+    base <- if (length(bases)) .lam_bases_unir(bases) else NULL   # Q5: «Base: 115 docentes y 279 estudiantes»
   }
   enc <- .lam_mixta_encabezados(especs, els, titulo_de_var)
   # G9 (Gonzalo, 2026-10-13): si todos los gráficos son del mismo público con el mismo n, el n de cada panel repite lo

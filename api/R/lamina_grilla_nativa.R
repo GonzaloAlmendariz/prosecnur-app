@@ -27,14 +27,28 @@
 #' @return `list(base, solo)`: `solo = TRUE` le dice a `.lam_composicion_mixta` que no junte las notas de los paneles.
 #' @keywords internal
 .lam_grilla_base <- function(declarada, els, rendered, migrada, base_auto) {
-  if (!is.null(declarada)) return(list(base = declarada, solo = isTRUE(migrada)))
+  if (!is.null(declarada)) return(list(base = declarada, solo = isTRUE(migrada), rendered = rendered))
   especs <- lapply(rendered, .lam_espec_de)
-  if (isTRUE(migrada) || .lam_grilla_bases_difieren(especs)) return(list(base = NULL, solo = TRUE))
+  if (isTRUE(migrada)) return(list(base = NULL, solo = TRUE, rendered = rendered))
+  # G8 / Q2 (ola 2, lamina_grilla_bases_por_grafico.R): el n de cada gráfico es el de su «Base:»; con bases distintas del
+  # mismo público, el pie lleva la principal y los paneles que difieren dicen la suya. Las exclusiones van al pie.
+  pg <- .lam_grilla_bases_por_grafico(els, especs, base_auto)
+  excl <- .lam_grilla_notas_exclusion(rendered)
+  rendered <- .lam_grilla_con_n_panel(rendered, pg$n)
+  ns <- round(pg$n[is.finite(pg$n) & pg$n > 0])
+  if (length(unique(ns)) > 1L && .lam_mixta_misma_fuente(especs, els) && any(!is.na(pg$frase))) {
+    k <- which.max(ifelse(is.finite(pg$n) & !is.na(pg$frase), pg$n, -Inf))
+    return(list(base = .lam_unir_base(pg$frase[k], excl), solo = TRUE, rendered = rendered))
+  }
+  if (.lam_grilla_bases_difieren(especs) || length(unique(ns)) > 1L) {
+    return(list(base = if (length(excl)) .lam_unir_base(excl) else NULL, solo = TRUE, rendered = rendered))
+  }
   # L10-12 (lámina 48 de CCSS): cada cifra lleva su base debajo («10 de 20»); el pie dice sólo la base común de los
   # gráficos. Juntar las notas de todas las piezas daba «Base: 136. Base: 397 respuestas».
   cifras <- vapply(especs, function(e) !is.null(e) && .lam_es_cifra(e), TRUE)
-  if (any(cifras)) return(list(base = .lam_grilla_base_graficos(els[!cifras], especs[!cifras]), solo = TRUE))
-  list(base = base_auto(els), solo = FALSE)
+  if (any(cifras)) return(list(base = .lam_grilla_base_graficos(els[!cifras], especs[!cifras]), solo = TRUE, rendered = rendered))
+  b <- base_auto(els)
+  list(base = if (length(excl)) .lam_unir_base(b, excl) else b, solo = FALSE, rendered = rendered)
 }
 
 #' Base común de los gráficos de una lámina con cifras: sus notas, sin repetir la misma (`.lam_bases_sin_repetir`)
@@ -50,7 +64,7 @@
 #' @keywords internal
 .lam_grilla_mixta <- function(doc, tipo, rendered, els, slide, titulo_de_var, declarada, migrada, base_auto) {
   b <- .lam_grilla_base(declarada, els, rendered, migrada, base_auto)
-  .lam_composicion_mixta(doc, tipo, rendered, els, slide, titulo_de_var, base = b$base, solo_base_declarada = b$solo)
+  .lam_composicion_mixta(doc, tipo, b$rendered %||% rendered, els, slide, titulo_de_var, base = b$base, solo_base_declarada = b$solo)
 }
 
 #' ¿`p_slide_2_graficos` va en nativo? Por la lámina de paneles si son escalas; si no, por la mixta de dos gráficos
@@ -104,6 +118,6 @@
   # La nota que declaró el analista (`right_text` de la plantilla) va tras la base, como en la lámina de paneles.
   nota <- texto(slots$right_text)
   base <- if (is.null(nota)) b$base else paste(c(texto(b$base), nota), collapse = ". ")
-  doc <- .lam_composicion_mixta(doc, "graficos_2", ps, els, s2, titulo_de_var, base = base, solo_base_declarada = b$solo || !is.null(nota))
+  doc <- .lam_composicion_mixta(doc, "graficos_2", b$rendered %||% ps, els, s2, titulo_de_var, base = base, solo_base_declarada = b$solo || !is.null(nota))
   por_lamina(doc)
 }

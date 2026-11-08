@@ -340,7 +340,12 @@
 #' exacta sólo sin peso (con peso la proporción es ponderada y los casos no).
 #' @keywords internal
 .espec_n_base <- function(espec) {
-  if (identical(espec$tipo, "escala")) return(if (NROW(espec$filas) == 1L) .espec_casos(espec$filas)[1] else NA_real_)
+  if (identical(espec$tipo, "escala")) {
+    # G8 (ola 2): la escala con cruce no trae un n por gráfico; la lámina de varios gráficos se lo pone desde su «Base:».
+    nb <- suppressWarnings(as.numeric(espec[["n_base_casos"]] %||% NA_real_)[1])
+    if (is.finite(nb) && nb > 0) return(nb)
+    return(if (NROW(espec$filas) == 1L) .espec_casos(espec$filas)[1] else NA_real_)
+  }
   # CCSS-2: el histograma cuenta sus casos válidos sin ponderar por valor (`conteos`); su suma es el público del panel.
   if (identical(espec$tipo, "histograma")) { cn <- suppressWarnings(as.numeric(espec$conteos)); return(if (any(is.finite(cn))) sum(cn, na.rm = TRUE) else NA_real_) }
   nb <- suppressWarnings(as.numeric(espec[["n_base_casos"]] %||% NA_real_)[1])

@@ -526,7 +526,7 @@
   if (is.null(base)) {
     # `.base_por_grafico` deja la base de cada gráfico en su nota al pie (reporte_plan_base_por_grafico.R).
     bases <- unique(unlist(lapply(els, function(el) texto(el$overrides$nota_pie %||% NULL))))
-    base <- if (length(bases)) paste(bases, collapse = ". ") else NULL
+    base <- if (length(bases)) .lam_bases_unir(bases) else NULL   # Q5: «Base: 115 docentes y 279 estudiantes»
   }
   preguntas <- lapply(els, function(el) {
     texto(el$overrides$titulo) %||% texto(el$title_slide) %||%
