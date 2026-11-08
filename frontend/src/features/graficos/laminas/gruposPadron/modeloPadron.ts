@@ -74,12 +74,15 @@ const buscar = (entradas: readonly EntradaPadron[], nombre: string) => {
   return entradas.find((e) => clavePadron(e.nombre) === k) ?? null;
 };
 
-/** El padrón de un grupo o público: el confiable manda; si no, el guardado con el interruptor apagado. */
+/**
+ * El padrón de un grupo o público: el confiable manda; si no, el guardado con el interruptor apagado. Sin nada escrito,
+ * «Padrón confiable» arranca apagado: teclear un padrón no lo enciende; lo decide el analista (R8-6).
+ */
 export function padronDe(args: Args, nombre: string): Padron {
   const confiable = buscar(leerPadrones(args.universos), nombre);
   if (confiable) return { valor: confiable.valor, confiable: true };
   const guardado = buscar(leerPadrones(args.universos_no_confiables), nombre);
-  return guardado ? { valor: guardado.valor, confiable: false } : { valor: null, confiable: true };
+  return guardado ? { valor: guardado.valor, confiable: false } : { valor: null, confiable: false };
 }
 
 /** Reemplaza (o quita, con `null`) la entrada de un nombre conservando el orden de las demás. */

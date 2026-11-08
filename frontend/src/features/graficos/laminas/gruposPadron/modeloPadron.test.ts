@@ -43,8 +43,11 @@ describe("padrones", () => {
     expect(conPadron({ universos: "A: 1" }, "A", { valor: 1, confiable: false }, false)).toEqual({ universos: null });
   });
 
-  it("un grupo sin padrón queda vacío y confiable por defecto", () => {
-    expect(padronDe({}, "Docentes")).toEqual({ valor: null, confiable: true });
+  it("R8-6: un grupo sin padrón queda vacío y NO confiable; teclear el padrón no enciende «Padrón confiable»", () => {
+    expect(padronDe({}, "Docentes")).toEqual({ valor: null, confiable: false });
+    const tecleado = conPadron({}, "Docentes", { ...padronDe({}, "Docentes"), valor: 60 }, true);
+    expect(tecleado.universos).toBeNull();
+    expect(padronDe(tecleado, "Docentes")).toEqual({ valor: 60, confiable: false });
   });
 });
 

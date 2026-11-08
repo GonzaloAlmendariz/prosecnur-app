@@ -4,6 +4,8 @@
 
 import type { ArgMetadata, Slide, VarInfo } from "../../../../api/graficos";
 import { inferSlideVariableTitle } from "../../slideAutoTitle";
+import { SLIDE_GRAF_SLOTS } from "../../store";
+import { presentacionDeGrafico } from "../selectores/intencionesContar";
 import type { IconoConfig } from "../../store";
 
 /** Las filas {criterio, detalle} de la ficha técnica. `filas` como texto es la forma vieja: el editor anterior la trataba igual. */
@@ -71,11 +73,27 @@ export type TituloPorDefecto = {
 export function tituloPorDefecto(slide: Slide, variables: readonly (VarInfo & { source?: string })[], tipoLabel: string): TituloPorDefecto {
   // El motor rotula el objetivo «Objetivo del estudio» cuando no se escribe otro (`.lam_laminas_objetivo`).
   if (slide.tipo === "p_slide_objetivo_icono") return { placeholder: "Objetivo del estudio", ayuda: "Vacío, sale Objetivo del estudio." };
+  // R8-6 (criterio del analista): una lámina de resumen (contraste, panorama, escala…) no toma de título el enunciado de
+  // su primera pregunta; queda vacía con su marcador hasta que el analista lo escriba.
+  if (esLaminaDeResumen(slide)) return { placeholder: tipoLabel, ayuda: null };
   const inferido = inferSlideVariableTitle(slide, [...variables]);
   if (inferido.source === "variable" && inferido.title) {
     return { placeholder: inferido.title, ayuda: `Vacío, sale “${inferido.title}”: el nombre de la pregunta del gráfico.` };
   }
   return { placeholder: tipoLabel, ayuda: null };
+}
+
+/** ¿El gráfico de la lámina es de resumen (la tarjeta del selector es de clase «resumen»)? */
+export function esLaminaDeResumen(slide: Slide): boolean {
+  const payload = (slide.payload ?? {}) as Record<string, unknown>;
+  return (SLIDE_GRAF_SLOTS[slide.tipo] ?? []).some((slot) => {
+    const g = payload[slot];
+    if (!g || typeof g !== "object" || Array.isArray(g)) return false;
+    const r = g as { graficador?: unknown; args?: unknown };
+    if (typeof r.graficador !== "string") return false;
+    const args = r.args && typeof r.args === "object" && !Array.isArray(r.args) ? (r.args as Record<string, unknown>) : {};
+    return presentacionDeGrafico(r.graficador, args).clase === "resumen";
+  });
 }
 
 export type IconoElegido =

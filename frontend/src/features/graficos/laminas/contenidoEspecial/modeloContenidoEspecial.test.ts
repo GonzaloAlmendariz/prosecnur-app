@@ -68,6 +68,12 @@ describe("título por defecto (C35)", () => {
     expect(tituloPorDefecto(dos, variables, "2 gráficos").placeholder).toBe("2 gráficos");
   });
 
+  it("R8-6: una lámina de resumen no toma de título el enunciado de su pregunta; queda vacía con su marcador", () => {
+    const contraste: Slide = { id: "c", tipo: "p_slide_1_grafico", payload: { grafico: {
+      graficador: "p_dumbbell", args: { estilo: "resumen", cruce: "base$sexo", grupos: ["1", "2"], vars: ["base$q1"] } } } };
+    expect(tituloPorDefecto(contraste, variables, "1 gráfico")).toEqual({ placeholder: "1 gráfico", ayuda: null });
+  });
+
   it("no depende del título escrito: es lo que sale cuando el campo queda vacío", () => {
     expect(tituloPorDefecto(unGrafico("Mi título", { var: "base$q1" }), variables, "1 gráfico").placeholder)
       .toBe("Satisfacción con el servicio");
