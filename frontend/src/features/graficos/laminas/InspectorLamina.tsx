@@ -8,6 +8,7 @@ import { BarChart3, FileText, X } from "../../../vendor/lucide-react";
 import type { GraficadorRef, Slide } from "../../../api/graficos";
 import { GlidingTabList } from "../../../components/GlidingTabList";
 import { avisoDentroDeLamina } from "./avisoEnLamina";
+import { faltaEnLamina } from "./faltaLamina";
 import { DatosGrafico } from "./DatosGrafico";
 import { AvisosLamina } from "./AvisosLamina";
 import { PestanaLamina } from "./tarjetaLamina/PestanaLamina";
@@ -235,8 +236,9 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onCambiarGrafico }: {
 function SalidaDelGrafico({ slide, visor }: { slide: Slide; visor: LaminaVisor | null }) {
   const updatePayload = usePlanStore((s) => s.updateSlidePayload);
   const apagado = leerSlideMeta(slide).motor_nativo === false;
-  const estado = visor ? estadoDeLamina(visor) : null;
-  if (!apagado && estado !== "ruta_anterior" && !(visor && visor.partes.length > 1)) return null;
+  // Q4-2: mientras falte un dato obligatorio (la pregunta que divide, los grupos) no se sabe cómo sale.
+  const estado = visor && !faltaEnLamina(slide) ? estadoDeLamina(visor) : null;
+  if (!apagado && estado !== "ruta_anterior" && !(estado && visor && visor.partes.length > 1)) return null;
   return (
     <div className="pulso-f6-pila" data-qa-geometry-group="graficos/f6-salida" data-qa-geometry-contract="intrinsic">
       {(estado === "ruta_anterior" || apagado) && (
@@ -253,7 +255,7 @@ function SalidaDelGrafico({ slide, visor }: { slide: Slide; visor: LaminaVisor |
           </div>
         </div>
       )}
-      {visor && visor.partes.length > 1 && (
+      {estado && visor && visor.partes.length > 1 && (
         <p className="pulso-f6-ayuda">
           Sale en {formatoConteo(visor.partes.length)} láminas: {visor.partes.map((p) => `${p.indice}${p.continuacion ? " (cont.)" : ""}`).join(", ")}.
         </p>

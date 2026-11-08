@@ -24,6 +24,7 @@ import { downloadUrl } from "../../../api/core";
 import { IconoTipo } from "../iconos/IconoTipo";
 import type { PreviewFormas, Slide } from "../../../api/graficos";
 import { MaquetaLamina } from "./MaquetaLamina";
+import { faltaEnLamina } from "./faltaLamina";
 import { varianteDe } from "./selectores/tiposLamina";
 import { camposTextoDe, ZonasTextoLamina, zonasPortada, type CampoTextoLamina } from "./ZonasTextoLamina";
 import { useGraficosRegistry } from "../useGraficosRegistry";
@@ -109,8 +110,10 @@ export function VisorLamina({
   // Sin vista previa pedida se muestra la imagen que el lote ya dibujó en segundo plano o, sin ella, la maqueta.
   const imagenLote = useMiniaturasLoteStore((s) => s.entradas[lamina.id]?.imagen ?? null);
   const real = actual?.imagen ?? null;
-  // En maqueta no se muestra ninguna imagen; en «cómo queda», la del motor o, mientras llega, la del lote.
-  const src = verComoQueda ? real ?? imagenLote : null;
+  // En maqueta no se muestra ninguna imagen; en «cómo queda», la del motor o, mientras llega, la del lote. Con un dato
+  // obligatorio pendiente (Q4-4) no hay dibujo que mostrar: la maqueta dice qué falta.
+  const falta = faltaEnLamina(slide);
+  const src = verComoQueda && !falta ? real ?? imagenLote : null;
   const { slidesById } = useGraficosRegistry();
   const camposTexto = useMemo(
     () => camposTextoDe(slide.tipo, slidesById[slide.tipo]?.args, composicionDe(slide.tipo, SLIDE_GRAF_SLOTS[slide.tipo] ?? []).fuente !== "estructura"),
@@ -272,7 +275,7 @@ export function VisorLamina({
             />
           ) : (
             <MaquetaLamina slide={slide} lamina={lamina} ranuraActiva={ranuraActiva} onRanura={onRanura} onCambiar={onCambiarGrafico} onTexto={onTexto}
-              onPrevisualizar={verComoQueda ? undefined : onAlternarComoQueda} prepOk={prepOk} />
+              onPrevisualizar={verComoQueda ? undefined : onAlternarComoQueda} prepOk={prepOk} falta={falta} />
           )}
           {src && <ZonasTextoLamina onTexto={onTexto} campos={camposTexto} zonas={zonasPortada(slide.tipo, varianteDe(slide)) ?? undefined} />}
           {src && <RanurasSobreLamina ranuras={ranuras} activa={ranuraActiva} nombre={nombreRanura} onRanura={onRanura} onCambiar={onCambiarGrafico}
@@ -286,14 +289,14 @@ export function VisorLamina({
             Dibujando la lámina…
           </p>
         )}
-        {vista.error && (
+        {vista.error && !falta && (
           <p className="pulso-f6-lienzo-aviso is-error" role="alert">
             <AlertTriangle size={14} aria-hidden="true" />
             No se pudo dibujar la lámina.
             <button type="button" className="pulso-f6-texto-boton" onClick={vista.reintentar}>Reintentar</button>
           </p>
         )}
-        {vista.fase === "lista" && l?.sinImagen && (() => {
+        {!falta && vista.fase === "lista" && l?.sinImagen && (() => {
           const m = mensajeSinImagen(l.motivoSinImagen);
           return (
             <p className="pulso-f6-lienzo-aviso is-error" role="alert">

@@ -49,6 +49,7 @@ import { MazoResumen } from "./mazoResumen/MazoResumen";
 import { useMazoResumenUi } from "./mazoResumen/mazoResumenStore";
 import { PANEL_RESUMEN_EJECUTIVO } from "./mazoResumen/panelResumen";
 import { usePreviewLamina } from "./usePreviewLamina";
+import { faltaEnLamina } from "./faltaLamina";
 import { useRanurasLamina } from "./useRanurasLamina";
 import { graficadorDisplayName } from "../graficadorDisplay";
 import { firstVariableRefFromGraph } from "../slideAutoTitle";
@@ -151,7 +152,9 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
   // previa del motor sólo corre con «Previsualizar» activo.
   const verComoQueda = useLaminasUi((s) => s.verComoQueda);
   const alternarComoQueda = useLaminasUi((s) => s.alternarComoQueda);
-  const vista = usePreviewLamina(slide, lamina?.antetituloHeredado ?? null, prepOk && verComoQueda);
+  // Q4-4: con un dato obligatorio pendiente no se pide el dibujo al motor (respondería con un error): queda la maqueta.
+  const falta = slide ? faltaEnLamina(slide) : null;
+  const vista = usePreviewLamina(slide, lamina?.antetituloHeredado ?? null, prepOk && verComoQueda && !falta);
   const ranuras = useRanurasLamina(slide);
   const { graficadoresById } = useGraficosRegistry();
   const nombreRanura = useCallback((k: number) => {

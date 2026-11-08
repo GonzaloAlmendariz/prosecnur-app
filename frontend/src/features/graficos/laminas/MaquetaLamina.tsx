@@ -39,9 +39,11 @@ type Props = {
   /** Pide la vista real: la maqueta se declara como tal y lleva «Previsualizar» al alcance (AvisoMaqueta). */
   onPrevisualizar?: () => void;
   prepOk?: boolean;
+  /** El dato obligatorio que falta (faltaLamina.ts): la maqueta lo dice en vez de ofrecer la vista previa. */
+  falta?: string | null;
 };
 
-export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar, onTexto, onPrevisualizar, prepOk }: Props) {
+export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar, onTexto, onPrevisualizar, prepOk, falta = null }: Props) {
   const { variables } = useVariables();
   const { graficadoresById, slidesById } = useGraficosRegistry();
   const slots = SLIDE_GRAF_SLOTS[slide.tipo] ?? [];
@@ -79,7 +81,7 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
             <span className="pulso-f6-maqueta-titulo">{lamina.titulo}</span>
           </button>
         )}
-        <AvisoMaqueta onPrevisualizar={onPrevisualizar} prepOk={prepOk} />
+        <AvisoMaqueta onPrevisualizar={onPrevisualizar} prepOk={prepOk} falta={falta} />
       </div>
     );
   }
@@ -144,7 +146,7 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
           {baseEscrita || baseAuto || (slots.length > 1 ? "Cada gráfico lleva su base debajo" : "Base del gráfico")}
         </button>
       )}
-      <AvisoMaqueta onPrevisualizar={onPrevisualizar} prepOk={prepOk} />
+      <AvisoMaqueta onPrevisualizar={onPrevisualizar} prepOk={prepOk} falta={falta} />
     </div>
   );
 }

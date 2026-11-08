@@ -7,9 +7,23 @@ type Props = {
   onPrevisualizar?: () => void;
   /** Sin base preparada el motor no puede dibujarla: se dice qué falta en vez del botón. */
   prepOk?: boolean;
+  /**
+   * Un dato obligatorio pendiente (faltaLamina.ts, Q4-4): no hay vista previa que pedir, ni con «Previsualizar» activo;
+   * la maqueta dice qué falta en vez de un error de dibujo.
+   */
+  falta?: string | null;
 };
 
-export function AvisoMaqueta({ onPrevisualizar, prepOk = true }: Props) {
+export function AvisoMaqueta({ onPrevisualizar, prepOk = true, falta = null }: Props) {
+  if (falta) {
+    return (
+      <p className="pulso-f6-maqueta-aviso" role="status" data-qa="aviso-maqueta" data-qa-falta=""
+        data-qa-geometry-group="graficos/f6-maqueta-aviso" data-qa-geometry-contract="intrinsic">
+        <span className="pulso-f6-maqueta-aviso-linea">Esta es la maqueta.</span>{" "}
+        <span className="pulso-f6-maqueta-aviso-linea">{falta}</span>
+      </p>
+    );
+  }
   if (!onPrevisualizar) return null;
   return (
     <p className="pulso-f6-maqueta-aviso" role="note" data-qa="aviso-maqueta"
