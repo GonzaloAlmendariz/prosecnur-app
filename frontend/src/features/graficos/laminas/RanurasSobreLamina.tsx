@@ -42,7 +42,8 @@ export function RanurasSobreLamina({ ranuras, activa, nombre, onRanura, onCambia
             onClick={() => onRanura(r.k)}
             onDoubleClick={() => onCambiar(r.k)}
           >
-            <span className="pulso-f6-ranura-etiqueta" aria-hidden="true">{n > 1 ? donde : "Gráfico"}</span>
+            {/* R8-9: con un solo gráfico no hay ranura que distinguir; el rótulo «Gráfico» tapaba el subtítulo de la lámina. */}
+            {n > 1 && <span className="pulso-f6-ranura-etiqueta" aria-hidden="true">{donde}</span>}
           </button>
         );
       })}
