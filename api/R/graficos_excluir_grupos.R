@@ -218,6 +218,10 @@
     return(el)
   }
   # Los grupos presentes con los filtros del analista: un grupo que su filtro ya vació no se nombra en el pie.
+  # El tryCatch no esconde un fallo: estos filtros sólo deciden qué grupos se NOMBRAN en el pie y cuáles se avisan como
+  # vacíos; la regla `notin` se agrega igual y el render vuelve a aplicar los filtros del elemento, donde un filtro
+  # inválido falla o avisa por su propio camino. Si aquí fallaran, se miran los grupos de la base entera: a lo sumo se
+  # nombra un grupo que el filtro dejó sin casos. `suppressWarnings` por la misma razón: el render repite esos avisos.
   filtrados <- tryCatch(suppressWarnings(.apply_named_filters_safe(datos, el$filtros %||% list())), error = function(e) datos)
   presentes <- trimws(as.character(filtrados[[col]])); presentes <- unique(presentes[!is.na(presentes) & nzchar(presentes)])
   res <- .excluir_grupos_resolver(pedidos, .goc_categorias(inst_sources[[cr$base]], col), presentes)
