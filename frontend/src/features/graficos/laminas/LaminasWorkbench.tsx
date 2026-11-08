@@ -39,6 +39,10 @@ import { useAnchoCompacto, useSideoverModal } from "./useSideoverModal";
 import { useReencajeLienzo } from "./useReencajeLienzo";
 import { AccionesLamina } from "./AccionesLamina";
 import { enfocarBusquedaEstructura, useAtajosLaminas } from "./useAtajosLaminas";
+import { useAtajosVisor } from "./atajosVisor";
+import { cuantasSinTitulo, siguienteSinTitulo, useTituloLienzo } from "./modeloTituloLienzo";
+import { camposTextoDe } from "./ZonasTextoLamina";
+import { composicionDe } from "../iconos/composicion";
 import { BotonArmarDesdeVacio } from "../armarDesde/BotonArmarDesdeVacio";
 import { toast } from "../../../components/toasterStore";
 import { SelectorTipoLamina } from "./selectores/SelectorTipoLamina";
@@ -156,7 +160,7 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
   const falta = slide ? faltaEnLamina(slide) : null;
   const vista = usePreviewLamina(slide, lamina?.antetituloHeredado ?? null, prepOk && verComoQueda && !falta);
   const ranuras = useRanurasLamina(slide);
-  const { graficadoresById } = useGraficosRegistry();
+  const { graficadoresById, slidesById } = useGraficosRegistry();
   const nombreRanura = useCallback((k: number) => {
     if (!slide) return "";
     const slot = (SLIDE_GRAF_SLOTS[slide.tipo] ?? [])[k - 1];
@@ -245,16 +249,31 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
   // El lienzo se re-encaja con FLIP cuando un lateral entra o sale (contrato de movimiento F6, M11).
   useReencajeLienzo(hostRef, lateral ?? "");
 
-  // Cmd/Ctrl+1 alterna la Estructura; Cmd/Ctrl+. los Ajustes.
-  useEffect(() => {
-    const onKey = (e: globalThis.KeyboardEvent) => {
-      if (panelSelector || !(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return;
-      if (e.key === ".") { e.preventDefault(); alternarLateral("inspector"); }
-      else if (e.key === "1") { e.preventDefault(); alternarLateral("estructura"); }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [alternarLateral, panelSelector]);
+  // «Siguiente sin título» (hallazgo 12): la próxima lámina con título editable y sin título escrito, con su campo abierto
+  // en el lienzo. Sólo cuentan las que tienen cabecera de título (una portada o un separador no).
+  const conTitulo = useCallback((s: (typeof slides)[number]) => camposTextoDe(
+    s.tipo, slidesById[s.tipo]?.args, composicionDe(s.tipo, SLIDE_GRAF_SLOTS[s.tipo] ?? []).fuente !== "estructura",
+  ).has("titulo"), [slidesById]);
+  const sinTitulo = useMemo(() => cuantasSinTitulo(slides, conTitulo), [slides, conTitulo]);
+  const irSiguienteSinTitulo = useCallback(() => {
+    const plan = usePlanStore.getState().plan.slides;
+    const destino = siguienteSinTitulo(plan, posicionSeleccionada, conTitulo);
+    if (destino === null) { toast.exito("Todas las láminas tienen título"); return; }
+    const id = plan[destino - 1]?.id;
+    if (!id) return;
+    irA(destino);
+    useTituloLienzo.getState().abrir(id);
+  }, [conTitulo, irA, posicionSeleccionada]);
+
+  // ⌘1 / Ctrl+1 la Estructura, ⌘. los Ajustes, ⌘K «¿Qué quieres contar?» para insertar y ⌘↵ «Siguiente sin título»
+  // (atajosVisor.ts). Cada botón los muestra en su globo.
+  useAtajosVisor({
+    activo: !panelSelector,
+    estructura: () => alternarLateral("estructura"),
+    ajustes: () => alternarLateral("inspector"),
+    insertar: () => abrirSelectorLamina("insertar"),
+    siguienteSinTitulo: irSiguienteSinTitulo,
+  });
 
   // J/K, Alt+↑/↓ y «/» (C21). Consumen la tecla antes de que la vea `useShortcutsV2`: ver useAtajosLaminas.ts.
   useAtajosLaminas({
@@ -407,7 +426,8 @@ export function LaminasWorkbench({ onIrEditorAnterior }: Props) {
         />
       </div>
       <EditorAmplio />
-      {avisos.abierto && <PanelAvisos panel={avisos} grupos={grupos} estructura={estructura} onIr={irA} enfocarAlAbrir={inspectorModal} coloresPendientes={coloresPendientes} baseImplicita={baseImplicita} />}
+      {avisos.abierto && <PanelAvisos panel={avisos} grupos={grupos} estructura={estructura} onIr={irA} enfocarAlAbrir={inspectorModal} coloresPendientes={coloresPendientes} baseImplicita={baseImplicita}
+        sinTitulo={{ cuantas: sinTitulo, siguiente: irSiguienteSinTitulo }} />}
       <DiferenciasPaneles slideId={slide.id} estructura={estructura} onIr={irA} />
       {inspectorModal && (
         <button type="button" className="pulso-f6-velo pulso-f6-solo-compacto" aria-label="Cerrar ajustes" tabIndex={-1} onClick={cerrarInspectorConFoco} />

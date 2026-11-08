@@ -1,0 +1,59 @@
+/* Título editable en el lienzo (TituloEnLienzo.tsx, hallazgo 12 de la auditoría de Arte). En reposo usa la piel de las
+   zonas de la maqueta o de la imagen; editando, un campo en el mismo lugar con borde del acento. */
+
+.pulso-f6-titulo-lienzo.is-editando {
+  display: block;
+  max-width: 100%;
+}
+
+.pulso-f6-titulo-lienzo.is-maqueta.is-editando {
+  /* Ocupa el ancho de la cabecera: el título se escribe en una línea como el de la maqueta. */
+  align-self: stretch;
+}
+
+.pulso-f6-titulo-lienzo.is-zona.is-editando {
+  position: absolute;
+  z-index: 2;
+  pointer-events: auto;
+  container-type: size;
+}
+
+.pulso-f6-titulo-lienzo-campo {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0.15em 0.35em;
+  border: 0;
+  border-radius: calc(var(--pulso-radius) / 2);
+  background: var(--pulso-surface);
+  /* El borde del acento como sombra (no es una caja del kit: es el título mismo, en edición). */
+  box-shadow: 0 0 0 1.5px var(--module-accent), 0 0 0 4px var(--module-accent-soft);
+  color: var(--pulso-text);
+  font: inherit;
+  font-weight: 700;
+  line-height: 1.15;
+  outline: none;
+}
+
+.pulso-f6-titulo-lienzo-campo::placeholder {
+  color: var(--pulso-text-faint);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/* En la maqueta, la letra del título (min(2.3em, 2.3cqw), maquetaLamina.css). */
+.pulso-f6-titulo-lienzo.is-maqueta .pulso-f6-titulo-lienzo-campo {
+  font-size: min(2.3em, 2.3cqw);
+}
+
+/* Sobre la imagen la caja del título mide 7 % del alto de la hoja: la letra sigue a esa caja. */
+.pulso-f6-titulo-lienzo.is-zona .pulso-f6-titulo-lienzo-campo {
+  height: 100%;
+  font-size: max(var(--pulso-type-body-size), 55cqh);
+}
+
+/* El marcador «Título» de una lámina sin ningún título que salga: atenuado, como el del antetítulo. */
+.pulso-f6-maqueta-titulo .is-vacio {
+  color: var(--pulso-text-faint);
+  font-weight: var(--pulso-weight-semibold);
+}

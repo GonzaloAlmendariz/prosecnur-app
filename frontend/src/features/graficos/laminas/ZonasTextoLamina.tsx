@@ -2,6 +2,8 @@
 // de la lámina en Contenido con ese campo enfocado, igual que un clic en un gráfico abre su tarjeta. La geometría es la
 // del estándar de la lámina (cabecera y pie fijos), así que sirve para elegir, no para medir.
 
+import type { ControlTituloLienzo } from "./modeloTituloLienzo";
+import { TituloEnLienzo } from "./TituloEnLienzo";
 import "./maquetaLamina.css";
 
 export type CampoTextoLamina = "antetitulo" | "titulo" | "base" | "subtitulo" | "fecha" | "subtexto";
@@ -67,17 +69,22 @@ export function zonasPortada(tipo: string, variante: string | null | undefined):
   return ZONAS_PORTADA[v];
 }
 
-export function ZonasTextoLamina({ onTexto, campos, zonas = ZONAS }: {
+export function ZonasTextoLamina({ onTexto, campos, zonas = ZONAS, titulo }: {
   onTexto: (campo: CampoTextoLamina) => void;
   campos: ReadonlySet<CampoTextoLamina>;
   /** Por defecto, la cabecera y el pie estándar; la portada pasa las suyas (`zonasPortada`). */
   zonas?: readonly Zona[];
+  /** El título se edita en su caja, sobre la imagen (hallazgo 12); sin esto, abre su campo en los ajustes. */
+  titulo?: ControlTituloLienzo;
 }) {
   const visibles = zonas === ZONAS ? zonas.filter((z) => campos.has(z.campo)) : zonas;
   if (!visibles.length) return null;
   return (
     <div className="pulso-f6-textos-capa" role="group" aria-label="Textos de la lámina">
-      {visibles.map((z) => (
+      {visibles.map((z) => titulo && z.campo === "titulo" ? (
+        <TituloEnLienzo key={z.campo} {...titulo} variante="zona" mostrado={null}
+          estilo={{ left: `${z.x * 100}%`, top: `${z.y * 100}%`, width: `${z.w * 100}%`, height: `${z.h * 100}%` }} />
+      ) : (
         <button
           key={z.campo}
           type="button"

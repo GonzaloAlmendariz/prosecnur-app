@@ -1,0 +1,27 @@
+/* Globo de un control con atajo (BotonConTecla.tsx): la acción y su tecla. En portal; sin animación. */
+.pulso-f6-tecla-globo {
+  z-index: calc(var(--pulso-z-modal) + 20);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-1) var(--pulso-space-2);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-popover);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-caption-size);
+  white-space: nowrap;
+}
+
+.pulso-f6-tecla {
+  display: inline-block;
+  padding: 0 var(--pulso-space-1);
+  border-radius: calc(var(--pulso-radius) / 2);
+  background: var(--pulso-surface-3);
+  box-shadow: inset 0 -1px 0 var(--pulso-border-strong);
+  color: var(--pulso-text-soft);
+  font-family: inherit;
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.5;
+}

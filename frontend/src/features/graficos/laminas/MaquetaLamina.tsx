@@ -27,6 +27,8 @@ import { camposTextoDe, ZonasTextoLamina, zonasPortada, type CampoTextoLamina } 
 import { tituloQueSale } from "./tituloQueSale";
 import { antetituloQueSale, useAntetituloSeccionActivo } from "./antetituloQueSale";
 import { leerSlideMeta } from "../slideMeta";
+import { useTituloEnLienzo } from "./modeloTituloLienzo";
+import { TituloEnLienzo } from "./TituloEnLienzo";
 import "./maquetaLamina.css";
 
 type Props = {
@@ -67,7 +69,9 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
   const campos = camposTextoDe(slide.tipo, slidesById[slide.tipo]?.args, !estructura);
   // El título que va a salir: el escrito o el de la pregunta del gráfico. Una lámina sin ninguno (varios temas sin
   // enunciado) mostraba el nombre de su tipo, «Un gráfico», como si fuera su título; ahora se ve vacía, como el aviso pide.
-  const tituloVisible = tituloQueSale(slide, variables, lamina.tipoLabel) || <span className="is-vacio">Sin título</span>;
+  // Sin ninguno, el marcador «Título», atenuado (hallazgo 12): el clic lo vuelve un campo vacío, sin título sugerido.
+  const tituloVisible = tituloQueSale(slide, variables, lamina.tipoLabel) || <span className="is-vacio">Título</span>;
+  const titulo = useTituloEnLienzo(slide);
 
   if (estructura) {
     // Portada, índice, separadores: su dibujo de estructura; el título sigue siendo editable con un clic.
@@ -96,9 +100,7 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
           </button>
         )}
         {campos.has("titulo") ? (
-          <button type="button" className="pulso-f6-maqueta-zona pulso-f6-maqueta-titulo" onClick={() => onTexto("titulo")} aria-label="Editar título">
-            {tituloVisible}
-          </button>
+          <TituloEnLienzo {...titulo} variante="maqueta" mostrado={tituloVisible} />
         ) : (
           <span className="pulso-f6-maqueta-titulo">{tituloVisible}</span>
         )}

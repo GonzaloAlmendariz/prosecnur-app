@@ -2,7 +2,6 @@
 // La imagen la rasteriza el motor del export (`preview-slide`, vía el coordinador). Ranuras seleccionables sobre la
 // imagen, zoom y tira de miniaturas (parte 2); guías por capas encima de la hoja (plan F6 §8, `guias/`).
 
-import { nombreDeAtajo } from "../../../lib/teclado";
 import { useMemo, useRef, type CSSProperties, type KeyboardEvent, type ReactNode, type RefObject } from "react";
 import {
   AlertTriangle,
@@ -44,6 +43,8 @@ import { GuiasSobreLamina } from "./guias/GuiasSobreLamina";
 import { useGuiasUi } from "./guias/guiasStore";
 import { construirGuias, rolesPresentes } from "./guias/modeloGuias";
 import { presentacionPreview } from "./presentacionPreview";
+import { useTituloEnLienzo } from "./modeloTituloLienzo";
+import { BotonConTecla } from "./BotonConTecla";
 import "./visorLamina.css";
 import { formatoConteo } from "../../../lib/formatoNumero";
 
@@ -123,6 +124,7 @@ export function VisorLamina({
     [slide.tipo, slidesById],
   );
   const hojaRef = useRef<HTMLElement>(null);
+  const titulo = useTituloEnLienzo(slide);
   const capas = useGuiasUi((s) => s.capas);
   const rolesOcultos = useGuiasUi((s) => s.rolesOcultos);
   const resaltada = useGuiasUi((s) => s.resaltada);
@@ -143,26 +145,30 @@ export function VisorLamina({
     // Mientras el motor dibuja la vista previa pedida (U6), la vista no está lista: el QA espera la imagen, no la maqueta.
     <section className="pulso-f6-visor" aria-label="Visor de la lámina" data-audit-ready={cargando && prepOk && verComoQueda ? "false" : "true"}>
       <header className="pulso-f6-visor-barra">
-        <button
-          type="button"
-          className={`pulso-f6-boton${estructuraAbierta ? " is-activo" : ""}`}
-          aria-pressed={estructuraAbierta}
-          title={`${estructuraAbierta ? "Ocultar" : "Mostrar"} la estructura (${nombreDeAtajo("1")})`}
-          onClick={onAlternarEstructura}
-        >
-          <ListTree size={15} aria-hidden="true" />
-          <span className="pulso-f6-solo-ancho pulso-f6-rotulo-estrecho">Estructura</span>
-        </button>
+        <BotonConTecla accion="estructura" ayuda={`${estructuraAbierta ? "Ocultar" : "Mostrar"} la estructura`}>
+          <button
+            type="button"
+            className={`pulso-f6-boton${estructuraAbierta ? " is-activo" : ""}`}
+            aria-pressed={estructuraAbierta}
+            aria-label="Estructura"
+            onClick={onAlternarEstructura}
+          >
+            <ListTree size={15} aria-hidden="true" />
+            <span className="pulso-f6-solo-ancho pulso-f6-rotulo-estrecho">Estructura</span>
+          </button>
+        </BotonConTecla>
         <button type="button" className="pulso-f6-icono-boton" aria-label="Lámina anterior" disabled={lamina.posicion <= 1} onClick={() => onIr(lamina.posicion - 1)}>
           <ChevronLeft size={16} aria-hidden="true" />
         </button>
         <button type="button" className="pulso-f6-icono-boton" aria-label="Lámina siguiente" disabled={lamina.posicion >= total} onClick={() => onIr(lamina.posicion + 1)}>
           <ChevronRight size={16} aria-hidden="true" />
         </button>
-        <button type="button" className="pulso-f6-boton is-primario" onClick={onInsertarLamina} title="Insertar una lámina nueva después de ésta">
-          <Plus size={14} aria-hidden="true" />
-          Lámina
-        </button>
+        <BotonConTecla accion="insertar" ayuda="Insertar una lámina nueva después de ésta">
+          <button type="button" className="pulso-f6-boton is-primario" onClick={onInsertarLamina}>
+            <Plus size={14} aria-hidden="true" />
+            Lámina
+          </button>
+        </BotonConTecla>
         <IconoTipo clase="lamina" tipo={lamina.tipo} size={16} titulo={lamina.tipoLabel} className="pulso-f6-visor-tipo" />
         <p className="pulso-f6-visor-pos" aria-live="polite">
           <strong><span className="pulso-f6-rotulo-angosto">Lámina </span>{lamina.posicion} de {total}</strong>
@@ -247,18 +253,20 @@ export function VisorLamina({
         >
           <Images size={16} aria-hidden="true" />
         </button>
-        <button
-          type="button"
-          ref={ajustesRef}
-          className={`pulso-f6-boton${ajustesAbiertos ? " is-activo" : ""}`}
-          aria-pressed={ajustesAbiertos}
-          title={`${ajustesAbiertos ? "Ocultar" : "Mostrar"} los ajustes (${nombreDeAtajo(".")})`}
-          aria-controls="pulso-f6-inspector"
-          onClick={onAbrirAjustes}
-        >
-          <SlidersHorizontal size={14} aria-hidden="true" />
-          <span className="pulso-f6-rotulo-angosto">Ajustes</span>
-        </button>
+        <BotonConTecla accion="ajustes" ayuda={`${ajustesAbiertos ? "Ocultar" : "Mostrar"} los ajustes`}>
+          <button
+            type="button"
+            ref={ajustesRef}
+            className={`pulso-f6-boton${ajustesAbiertos ? " is-activo" : ""}`}
+            aria-pressed={ajustesAbiertos}
+            aria-label="Ajustes"
+            aria-controls="pulso-f6-inspector"
+            onClick={onAbrirAjustes}
+          >
+            <SlidersHorizontal size={14} aria-hidden="true" />
+            <span className="pulso-f6-rotulo-angosto">Ajustes</span>
+          </button>
+        </BotonConTecla>
       </header>
 
       <div
@@ -280,13 +288,17 @@ export function VisorLamina({
             <MaquetaLamina slide={slide} lamina={lamina} ranuraActiva={ranuraActiva} onRanura={onRanura} onCambiar={onCambiarGrafico} onTexto={onTexto}
               onPrevisualizar={verComoQueda ? undefined : onAlternarComoQueda} prepOk={prepOk} falta={falta} />
           )}
-          {src && <ZonasTextoLamina onTexto={onTexto} campos={camposTexto} zonas={zonasPortada(slide.tipo, varianteDe(slide)) ?? undefined} />}
+          {src && (() => {
+            const portada = zonasPortada(slide.tipo, varianteDe(slide));
+            // El título de la cabecera estándar se edita en su caja (hallazgo 12); la portada abre sus campos en Contenido.
+            return <ZonasTextoLamina onTexto={onTexto} campos={camposTexto} zonas={portada ?? undefined} titulo={portada ? undefined : titulo} />;
+          })()}
           {src && <RanurasSobreLamina ranuras={ranuras} activa={ranuraActiva} nombre={nombreRanura} onRanura={onRanura} onCambiar={onCambiarGrafico}
             lugar={(slot) => nombreSlot(slot, slidesById[slide.tipo])} />}
           {/* Las guías son del visor: nunca entran al entregable (D17). Sólo sobre el dibujo real del motor. */}
           {real && !cargando && <GuiasSobreLamina modelo={guias} resaltada={resaltada} hojaRef={hojaRef} />}
           {presentacion.actualizando && (
-            <span className="pulso-f6-hoja-actualizando" role="status">
+            <span className="pulso-f6-chip-estado is-neutro pulso-f6-hoja-actualizando" role="status">
               <Loader2 size={12} className="pulso-spin" aria-hidden="true" />
               Actualizando
               {vista.progreso?.porcentaje != null ? <span className="pulso-sr-only">, {Math.round(vista.progreso.porcentaje)} %</span> : null}

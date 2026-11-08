@@ -3,7 +3,8 @@
 // ya vistas. Cada aviso con lámina lleva a ella.
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { X } from "../../../vendor/lucide-react";
+import { CornerDownLeft, X } from "../../../vendor/lucide-react";
+import { BotonConTecla } from "./BotonConTecla";
 import type { ControlPanel } from "../../../lib/navegacion/paneles";
 import type { ValidationIssue } from "../usePlanValidator";
 import type { EstructuraInforme } from "./modeloEstructura";
@@ -33,9 +34,11 @@ type Props = {
    * todas (fijarBase.ts). Presente, sus avisos se juntan en una fila con la acción; ausente, se listan uno por uno.
    */
   baseImplicita?: { laminas: number; preguntas: number; base: string; fijar: () => void };
+  /** Láminas con título editable y sin título escrito, y cómo ir a la siguiente con su campo abierto (hallazgo 12). */
+  sinTitulo?: { cuantas: number; siguiente: () => void };
 };
 
-export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = false, coloresPendientes, baseImplicita }: Props) {
+export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = false, coloresPendientes, baseImplicita, sinTitulo }: Props) {
   // Quién lo abrió (la barra o el visor): al cerrar, el foco vuelve ahí; si ya no existe, a «N avisos» de la barra.
   const disparadorRef = useRef<HTMLElement | null>(null);
   const cerrarRef = useRef<HTMLButtonElement>(null);
@@ -100,6 +103,14 @@ export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = 
       <header className="pulso-f6-col-head">
         <h2>Avisos del informe</h2>
         <span className="pulso-f6-col-sp" />
+        {sinTitulo && sinTitulo.cuantas > 0 && (
+          <BotonConTecla accion="siguienteSinTitulo" ayuda={`${formatoConteo(sinTitulo.cuantas)} ${sinTitulo.cuantas === 1 ? "lámina" : "láminas"} sin título`}>
+            <button type="button" className="pulso-f6-boton pulso-f6-avisos-sin-titulo" onClick={sinTitulo.siguiente}>
+              <CornerDownLeft size={14} aria-hidden="true" />
+              Siguiente sin título
+            </button>
+          </BotonConTecla>
+        )}
         <button type="button" ref={cerrarRef} className="pulso-f6-icono-boton" aria-label="Cerrar avisos" onClick={cerrar}>
           <X size={16} aria-hidden="true" />
         </button>
