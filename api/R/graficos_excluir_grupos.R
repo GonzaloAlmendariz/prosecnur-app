@@ -242,18 +242,34 @@
   p
 }
 
+#' ¿La frase «Diferencias entre los grupos mostrados.» va también en el pie del gráfico?
+#'
+#' Sí cuando el gráfico marca diferencias y nadie escribe su nota de significancia aparte: en los paneles de 2 y 4
+#' gráficos (y en el render sin plantilla estándar) la nota viaja como caption dentro de la imagen, que no se reescribe,
+#' así que la frase sólo llega por `note_outside`. La lámina de un gráfico y el Word fijan
+#' `prosecnur.sig_nota_en_lamina` y escriben `pulso_sig_nota`, que ya la lleva (`.excluir_grupos_nota_sig`): repetirla
+#' en el pie la duplicaría.
+#' @keywords internal
+.excluir_grupos_sig_al_pie <- function(p) {
+  sig <- trimws(as.character(attr(p, "pulso_sig_nota", exact = TRUE) %||% "")[1])
+  !is.na(sig) && nzchar(sig) && !isTRUE(getOption("prosecnur.sig_nota_en_lamina"))
+}
+
 #' Pone la nota de los grupos excluidos en el pie del gráfico renderizado
 #'
 #' La lámina nativa, el respaldo y el Word leen el pie de `attr(p, "note_outside")` y, sin él, de la nota del elemento
 #' (`.plot_note_from`). Se anexa a lo que haya; no se toca `overrides$nota_pie`, porque su presencia apaga la nota de
-#' significancia que el render de la multiapilada pone de pie.
+#' significancia que el render de la multiapilada pone de pie. Con diferencias marcadas fuera de la lámina de un gráfico,
+#' el pie termina en «Diferencias entre los grupos mostrados.» (`.excluir_grupos_sig_al_pie`).
 #' @param el Elemento ya preparado por `.plan_excluir_grupos`. @param p Gráfico que devolvió el render.
 #' @keywords internal
 .excluir_grupos_nota_al_grafico <- function(el, p) {
   ap <- if (is.list(el)) el$.excluir_grupos_aplicado else NULL
   if (is.null(p) || is.null(ap) || !length(ap$rotulos)) return(p)
+  sig_al_pie <- .excluir_grupos_sig_al_pie(p)
   p <- .excluir_grupos_nota_sig(p, ap$variable)
   nota <- .excluir_grupos_nota(ap$rotulos)
+  if (sig_al_pie) nota <- paste(nota, .EXCLUIR_GRUPOS_NOTA_SIG)
   previa <- attr(p, "note_outside", exact = TRUE) %||% (el$overrides %||% list())$nota_pie %||% el$nota_pie
   previa <- trimws(as.character(previa %||% "")[1])
   if (!is.na(previa) && grepl(sub("[.]$", "", nota), previa, fixed = TRUE)) return(p)

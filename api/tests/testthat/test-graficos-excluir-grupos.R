@@ -301,3 +301,35 @@ test_that("significancia: con un grupo excluido la nota dice que compara sólo l
   # Sin significancia, nada que decir.
   expect_silent(.excluir_grupos_nota_sig(structure(list(), class = "x"), "sexo"))
 })
+
+test_that("significancia en un panel de 2 gráficos: el pie de cada gráfico dice que compara sólo los grupos mostrados (B1)", {
+  skip_if_not_installed("openxlsx"); skip_if_not_installed("ggplot2"); skip_if_not_installed("officer"); skip_if_not_installed("xml2")
+  # Los datos del test anterior: sin «Otro», Hombre y Mujer difieren con Bonferroni sobre un par.
+  mk <- function(n, k) c(rep("4", k - 10), rep("5", 10), rep("2", n - k - 10), rep("1", 10))
+  d <- data.frame(q1 = c(mk(140, 84), mk(140, 67), mk(40, 22)), sexo = c(rep("1", 140), rep("2", 140), rep("3", 40)),
+                  stringsAsFactors = FALSE)
+  graf <- function(excluir) {
+    a <- list(modo = "cruce", var = "doc$q1", cruces = "doc$sexo", mostrar_significancia = TRUE, top2box = TRUE,
+              overrides = list(top2box_labels = list("De acuerdo", "Muy de acuerdo")))
+    .rebuild_graf(list(graficador = "p_barras_multiapiladas", args = c(a, if (length(excluir)) list(excluir_grupos = excluir))))
+  }
+  pptx <- function(excluir) {
+    out <- tempfile(fileext = ".pptx")
+    suppressMessages(suppressWarnings(reporte_ppt_plan(
+      data = list(doc = d), instrumento = list(doc = .eg_inst()), mensajes_progreso = FALSE, path_ppt = out,
+      plan = p_plan(slides = list(p_slide_2_graficos(graf(excluir), graf(excluir), titulo = "Grupos"))))))
+    paste(xml2::xml_text(xml2::xml_find_all(xml2::read_xml(unz(out, "ppt/slides/slide1.xml")), "//a:t")), collapse = " ")
+  }
+  sin <- pptx(list("3"))
+  expect_match(sin, "Excluye el grupo Otro", fixed = TRUE)
+  frase <- sub("[.]$", "", .EXCLUIR_GRUPOS_NOTA_SIG)   # el pie de la lámina se compone sin el punto final
+  expect_match(sin, paste("Excluye el grupo Otro.", frase), fixed = TRUE)
+  expect_false(grepl(frase, pptx(NULL), fixed = TRUE))
+  # La lámina de un gráfico escribe la nota de significancia aparte (con la frase): el pie no la repite.
+  p <- structure(list(), pulso_sig_nota = "Prueba z con corrección de Bonferroni")
+  el <- list(.excluir_grupos_aplicado = list(variable = "sexo", rotulos = "Otro"))
+  expect_identical(attr(suppressMessages(.excluir_grupos_nota_al_grafico(el, p)), "note_outside"),
+                   "Excluye el grupo Otro. Diferencias entre los grupos mostrados")
+  viejo <- options(prosecnur.sig_nota_en_lamina = TRUE); on.exit(options(viejo), add = TRUE)
+  expect_identical(attr(suppressMessages(.excluir_grupos_nota_al_grafico(el, p)), "note_outside"), "Excluye el grupo Otro")
+})
