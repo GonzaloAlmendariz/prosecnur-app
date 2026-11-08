@@ -26,6 +26,12 @@ type Props = {
   onQuitar: (fila: FilaEmparejado) => void;
 };
 
+// Q4-5: la suma (860) cabe en el cuerpo del diálogo `lg` a 1440 y a 1024 sin desplazamiento horizontal (C4). El estado
+// más largo, «Confirmado en esta lámina», entra entero en su columna; las acciones, con «Confirmar» y dos íconos.
+export const ANCHO_BASE = 225;
+export const ANCHO_ESTADO = 210;
+export const ANCHO_ACCIONES = 200;
+
 function textoDe(fila: FilaEmparejado, base: string): PreguntaDeBase | null {
   if (fila.pregunta.base === base) return fila.pregunta;
   return fila.par?.base === base ? fila.par : null;
@@ -35,7 +41,7 @@ export function TablaEmparejado(p: Props) {
   const columnaBase = (base: string): PulsoTableColumna<FilaEmparejado> => ({
     id: `base-${base}`,
     encabezado: nombrePublico(base),
-    ancho: 240,
+    ancho: ANCHO_BASE,
     valor: (f) => textoDe(f, base)?.etiqueta ?? null,
     celda: (f) => {
       if (f.otraBase === base && p.buscando === f.clave) {
@@ -67,7 +73,7 @@ export function TablaEmparejado(p: Props) {
     {
       id: "estado",
       encabezado: "Cómo se emparejó",
-      ancho: 170,
+      ancho: ANCHO_ESTADO,
       valor: (f) => ROTULO_ESTADO[f.estado],
       celda: (f) => (
         <span className="pulso-f6-emp-estado" data-estado={f.estado}>
@@ -79,7 +85,7 @@ export function TablaEmparejado(p: Props) {
     {
       id: "acciones",
       encabezado: "Acciones",
-      ancho: 240,
+      ancho: ANCHO_ACCIONES,
       celda: (f) => (
         <AccionesEmparejado
           fila={f}

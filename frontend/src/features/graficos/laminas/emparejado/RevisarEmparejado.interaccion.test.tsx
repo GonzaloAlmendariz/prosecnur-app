@@ -52,6 +52,7 @@ vi.mock("../../../../components/toasterStore", () => ({ toast: { exito: (t: stri
 
 import { useEmparejadoUi } from "./emparejadoStore";
 import { EntradaEmparejado } from "./EntradaEmparejado";
+import { ANCHO_ACCIONES, ANCHO_BASE, ANCHO_ESTADO } from "./TablaEmparejado";
 
 let host: HTMLDivElement;
 let root: Root;
@@ -86,8 +87,10 @@ function montar(search: string) {
   act(() => root.render(<MemoryRouter initialEntries={[`/procesamiento${search}`]}><Tarjeta /></MemoryRouter>));
 }
 
+// Las acciones secundarias son íconos (Q4-5): se encuentran por el comienzo de su nombre accesible.
 const botonPorTexto = (texto: string) =>
-  [...document.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent?.trim() === texto);
+  [...document.querySelectorAll<HTMLButtonElement>("button")].find((b) =>
+    b.textContent?.trim() === texto || (!b.textContent?.trim() && b.getAttribute("aria-label")?.startsWith(texto)));
 
 const clic = async (el: HTMLElement | undefined) => {
   expect(el).toBeTruthy();
@@ -168,5 +171,19 @@ describe("Revisar emparejado", () => {
     expect(api.guardadas[0][1]).toMatchObject({ variables: { docentes: "p2", estudiantes: "q2" }, etiqueta_estandar: "Texto p2" });
     expect(api.guardadas[0][1].sugerida).toBeUndefined();
     expect(avisos.exito).toEqual(["Matriz de equivalencias actualizada"]);
+  });
+});
+
+describe("la tabla de emparejado cabe sin desplazamiento horizontal (Q4-5, C4)", () => {
+  it("dos públicos, el estado y las acciones suman menos que el cuerpo del diálogo lg a 1024 (unos 900 px)", () => {
+    expect(2 * ANCHO_BASE + ANCHO_ESTADO + ANCHO_ACCIONES).toBeLessThanOrEqual(900);
+  });
+
+  it("las acciones secundarias son íconos con nombre accesible y tooltip; «Confirmar» conserva su texto", async () => {
+    montar("?panel=emparejado");
+    const acciones = document.querySelector("[data-emp-acciones]");
+    const botones = [...(acciones?.querySelectorAll("button") ?? [])];
+    expect(botones.map((b) => b.textContent?.trim() || b.getAttribute("aria-label")?.split(" ")[0])).toEqual(["Confirmar", "Cambiar", "Descartar"]);
+    expect(botones.slice(1).every((b) => !!b.getAttribute("title"))).toBe(true);
   });
 });
