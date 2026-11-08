@@ -9,7 +9,7 @@
 
 import type { PreguntaDeBase } from "../../../../api/graficosEmparejado";
 import { formatoConteo } from "../../../../lib/formatoNumero";
-import type { FilaEmparejado } from "./modeloEmparejado";
+import type { FilaEmparejado, FiltroEmparejado } from "./modeloEmparejado";
 
 export type Coincidencia = "identico" | "parecido" | "distinto";
 export type FiltroCoincidencia = "todas" | Coincidencia;
@@ -122,4 +122,22 @@ export function rotuloFiltroCoincidencia(filtro: FiltroCoincidencia, c: ConteoCo
 /** «Palabras en común 62%». */
 export function textoPuntaje(puntaje: number): string {
   return `Palabras en común ${Math.round(puntaje * 100)}%`;
+}
+
+const VACIO_ESTADO: Record<FiltroEmparejado, string> = {
+  todas: "Sin preguntas de escala.",
+  por_confirmar: "Ninguna sugerencia por confirmar.",
+  sin_par: "Ninguna pregunta sin par.",
+};
+
+const ENTRE_ESTADO: Record<Exclude<FiltroEmparejado, "todas">, string> = {
+  por_confirmar: "los por confirmar",
+  sin_par: "los sin par",
+};
+
+/** El vacío de la tabla con los dos filtros que lo producen (E5): «Ningún par idéntico entre los sin par.». */
+export function vacioDeFiltros(filtro: FiltroEmparejado, coincidencia: FiltroCoincidencia): string {
+  if (coincidencia === "todas") return VACIO_ESTADO[filtro];
+  const par = `Ningún par ${ROTULO_COINCIDENCIA[coincidencia].toLowerCase()}`;
+  return filtro === "todas" ? `${par}.` : `${par} entre ${ENTRE_ESTADO[filtro]}.`;
 }

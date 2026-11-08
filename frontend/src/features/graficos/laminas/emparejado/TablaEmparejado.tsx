@@ -118,6 +118,7 @@ function columnasDe(ref: MutableRefObject<Props>, bases: readonly string[]): Pul
         <AccionesEmparejado
           fila={f}
           buscando={ref.current.buscando === f.clave}
+          activa={ref.current.activa === f.clave}
           onConfirmar={() => f.par && ref.current.onConfirmar(f, f.par)}
           onBuscar={() => ref.current.onBuscar(f)}
           onCancelar={() => ref.current.onBuscar(null)}

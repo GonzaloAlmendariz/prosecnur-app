@@ -1,8 +1,8 @@
-// «Confirmar los idénticos (N)» (X6): sólo sugerencias idénticas, cada pregunta una vez, y cada par deshacible solo.
+// «Confirmar los idénticos (N)» (X6): sólo sugerencias identicas, cada pregunta una vez, y cada par deshacible solo.
 import { describe, expect, it } from "vitest";
 import type { Emparejado, PreguntaEmparejado } from "../../../../api/graficosEmparejado";
 import { coincidenciasDe } from "./coincidencia";
-import { confirmarIdenticos, identicosPorConfirmar } from "./loteIdenticos";
+import { avisoSugerenciasPerdidas, confirmarIdenticos, identicosPorConfirmar, sugerenciasQuePierdeElLote } from "./loteIdenticos";
 import { filasEmparejado, quitarPar } from "./modeloEmparejado";
 
 const B = ["docentes", "estudiantes"] as const;
@@ -30,13 +30,32 @@ const filas = filasEmparejado(DATOS, [], B, new Set());
 const mapa = coincidenciasDe(filas);
 
 describe("identicosPorConfirmar", () => {
-  it("sólo sugerencias idénticas, cada pregunta una vez y en el orden de la tabla", () => {
+  it("sólo sugerencias identicas, cada pregunta una vez y en el orden de la tabla", () => {
     expect(identicosPorConfirmar(filas, mapa).map((f) => f.clave)).toEqual(["docentes$p1", "docentes$p3"]);
   });
 
   it("una sugerencia descartada o un par ya confirmado no entran", () => {
     const sinP1 = filasEmparejado(DATOS, [], B, new Set(["docentes$p1"]));
-    expect(identicosPorConfirmar(sinP1, coincidenciasDe(sinP1)).map((f) => f.clave)).toEqual(["docentes$p3", "estudiantes$q1"]);
+    // Descartar p1 descarta el par: la cara de q1 tampoco lo trae de vuelta (E1).
+    expect(identicosPorConfirmar(sinP1, coincidenciasDe(sinP1)).map((f) => f.clave)).toEqual(["docentes$p3"]);
+  });
+
+  it("E1: el par espejo cuenta una vez, así que el filtro «Idéntico» y el lote dicen el mismo N", () => {
+    expect(filas.some((f) => f.clave === "estudiantes$q1")).toBe(false);
+    const identicas = filas.filter((f) => f.estado === "sugerido" && mapa.get(f.clave)?.clase === "identico");
+    // p4 también es idéntica pero apunta a q3, que el lote ya toma con p3: queda fuera y se avisa (E6).
+    expect(identicas.map((f) => f.clave)).toEqual(["docentes$p1", "docentes$p3", "docentes$p4"]);
+    expect(identicosPorConfirmar(filas, mapa)).toHaveLength(2);
+  });
+});
+
+describe("sugerenciasQuePierdeElLote (E6)", () => {
+  it("cuenta las filas sugeridas cuyo par se lleva el lote", () => {
+    const lote = identicosPorConfirmar(filas, mapa);
+    expect(sugerenciasQuePierdeElLote(filas, lote)).toBe(1);
+    expect(avisoSugerenciasPerdidas(1)).toBe("1 fila perdió su sugerencia: su par ya se confirmó.");
+    expect(avisoSugerenciasPerdidas(8)).toBe("8 filas perdieron su sugerencia: su par ya se confirmó.");
+    expect(avisoSugerenciasPerdidas(0)).toBeNull();
   });
 });
 

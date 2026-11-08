@@ -116,10 +116,16 @@ export function paresDeLamina(temas: readonly TemaPublicos[], bases: readonly st
   return pares;
 }
 
+/** El par sin orden: `A$x|B$y` y `B$y|A$x` son el mismo. */
+const clavePar = (a: string, b: string): string => (a < b ? `${a}\u0000${b}` : `${b}\u0000${a}`);
+
 /**
  * Las filas de la revisión. El backend lista primero las preguntas de la primera base (con su par de la matriz o sin
  * par) y después las de la segunda que quedan sin par; un par confirmado en la lámina lo representa la primera fila que
  * lo nombra y la otra pregunta no se repite. Las sugerencias que apuntan a una pregunta ya emparejada se descartan.
+ * Un par sugerido se cuenta una vez: si la pregunta B sugiere la misma A que ya la sugería, la fila de B no sale (el par
+ * espejo), así que el filtro, el lote y los conteos cuentan pares. Confirmar desde la fila que queda es lo mismo que desde
+ * la otra (confirmarPar ordena el par por bases), y descartarla descarta el par: la otra pregunta tampoco lo propone.
  * @param etiquetaDe Rótulo de una pregunta por `base$var` (para un par confirmado que no venía en las sugerencias).
  */
 export function filasEmparejado(
@@ -136,6 +142,8 @@ export function filasEmparejado(
   }
   const tomadas = new Set<string>([...enMatriz, ...pares.keys()]);
   const vistas = new Set<string>();
+  const paresSugeridos = new Set<string>();
+  const paresDescartados = new Set<string>();
   const filas: FilaEmparejado[] = [];
   for (const p of datos.preguntas) {
     const clave = refDe(p);
@@ -154,8 +162,19 @@ export function filasEmparejado(
       filas.push({ clave, pregunta: p, estado: "confirmado", par: { base, var: variable, etiqueta }, puntaje: null, otraBase });
       continue;
     }
+    const libres = p.sugerencias.filter((s) => !tomadas.has(refDe(s)));
+    if (descartadas.has(clave)) {
+      // Descartar es del par, no de la cara: la otra pregunta tampoco vuelve a proponerlo.
+      if (libres[0]) paresDescartados.add(clavePar(clave, refDe(libres[0])));
+      vistas.add(clave);
+      filas.push({ clave, pregunta: p, estado: "sin_par", par: null, puntaje: null, otraBase });
+      continue;
+    }
+    const sugerencia = libres.find((s) => !paresDescartados.has(clavePar(clave, refDe(s))));
+    // El par espejo (A sugiere B y B sugiere A) ya lo muestra la fila de A: la de B no se repite (E1).
+    if (sugerencia && paresSugeridos.has(clavePar(clave, refDe(sugerencia)))) continue;
     vistas.add(clave);
-    const sugerencia = descartadas.has(clave) ? undefined : p.sugerencias.find((s) => !tomadas.has(refDe(s)));
+    if (sugerencia) paresSugeridos.add(clavePar(clave, refDe(sugerencia)));
     filas.push(sugerencia
       ? { clave, pregunta: p, estado: "sugerido", par: { base: sugerencia.base, var: sugerencia.var, etiqueta: sugerencia.etiqueta }, puntaje: sugerencia.puntaje, otraBase }
       : { clave, pregunta: p, estado: "sin_par", par: null, puntaje: null, otraBase });

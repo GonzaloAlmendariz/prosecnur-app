@@ -142,7 +142,7 @@ describe("filtro por coincidencia", () => {
     expect(filas().map((tr) => tr.textContent?.includes("eficazmente"))).toEqual([true]);
     await clic(radios("Qué preguntas mostrar").find((b) => b.textContent?.startsWith("Sin par")));
     expect(radios("Coincidencia del par").map((b) => b.textContent)).toEqual(["Todas (1)", "Idéntico (0)", "Parecido (0)", "Distinto (0)"]);
-    expect(document.querySelector(".pulso-table-vacio")?.textContent).toBe("Ningún par distinto.");
+    expect(document.querySelector(".pulso-table-vacio")?.textContent).toBe("Ningún par distinto entre los sin par.");
   });
 });
 

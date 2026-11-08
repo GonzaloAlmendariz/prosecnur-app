@@ -25,6 +25,8 @@ type EmparejadoUi = {
   /** La fila activa: su evidencia se ve abajo y J, K, Enter y X actúan sobre ella. */
   activa: string | null;
   guardado: FaseGuardado;
+  /** El aviso del último lote (E6): cuántas filas perdieron su sugerencia porque su par se confirmó con otra. */
+  avisoLote: string | null;
   /** Al abrir: filtro, búsqueda y guardado de vuelta al inicio. Las sugerencias descartadas siguen descartadas. */
   preparar: () => void;
   filtrar: (filtro: FiltroEmparejado) => void;
@@ -33,6 +35,7 @@ type EmparejadoUi = {
   buscar: (clave: string | null) => void;
   activar: (clave: string | null) => void;
   ponerGuardado: (guardado: FaseGuardado) => void;
+  ponerAvisoLote: (aviso: string | null) => void;
 };
 
 export const useEmparejadoUi = create<EmparejadoUi>((set) => ({
@@ -42,11 +45,13 @@ export const useEmparejadoUi = create<EmparejadoUi>((set) => ({
   buscando: null,
   activa: null,
   guardado: { fase: "inactivo" },
-  preparar: () => set({ filtro: "todas", coincidencia: "todas", buscando: null, activa: null, guardado: { fase: "inactivo" } }),
+  avisoLote: null,
+  preparar: () => set({ filtro: "todas", coincidencia: "todas", buscando: null, activa: null, guardado: { fase: "inactivo" }, avisoLote: null }),
   filtrar: (filtro) => set({ filtro, buscando: null }),
   filtrarCoincidencia: (coincidencia) => set({ coincidencia, buscando: null }),
   descartar: (clave) => set((s) => ({ descartadas: { ...s.descartadas, [clave]: true }, buscando: s.buscando === clave ? null : s.buscando })),
   buscar: (buscando) => set({ buscando }),
   activar: (activa) => set({ activa }),
   ponerGuardado: (guardado) => set({ guardado }),
+  ponerAvisoLote: (avisoLote) => set({ avisoLote }),
 }));

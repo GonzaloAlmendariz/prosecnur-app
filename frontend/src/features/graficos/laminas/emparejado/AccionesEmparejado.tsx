@@ -13,6 +13,8 @@ import { ATAJO } from "./teclado";
 type Props = {
   fila: FilaEmparejado;
   buscando: boolean;
+  /** Sólo la fila activa recibe Enter y X: el globo de otra fila no muestra la tecla (E4). */
+  activa: boolean;
   onConfirmar: () => void;
   onBuscar: () => void;
   onCancelar: () => void;
@@ -20,8 +22,9 @@ type Props = {
   onQuitar: () => void;
 };
 
-export function AccionesEmparejado({ fila, buscando, onConfirmar, onBuscar, onCancelar, onDescartar, onQuitar }: Props) {
+export function AccionesEmparejado({ fila, buscando, activa, onConfirmar, onBuscar, onCancelar, onDescartar, onQuitar }: Props) {
   const de = `"${fila.pregunta.etiqueta}"`;
+  const tecla = (t: string) => (activa ? t : undefined);
   if (fila.estado === "matriz") return null;
   if (buscando) {
     return (
@@ -33,8 +36,8 @@ export function AccionesEmparejado({ fila, buscando, onConfirmar, onBuscar, onCa
   return (
     <span className="pulso-f6-emp-acciones" data-emp-acciones={fila.clave}>
       {fila.estado === "sugerido" && (
-        <BotonConAtajo ayuda="Confirmar el par" atajo={ATAJO.confirmar}>
-          <PulsoButton variant="secondary" size="sm" onClick={onConfirmar} aria-label={`Confirmar el par sugerido de ${de}`} aria-keyshortcuts="Enter">Confirmar</PulsoButton>
+        <BotonConAtajo ayuda="Confirmar el par" atajo={tecla(ATAJO.confirmar)}>
+          <PulsoButton variant="secondary" size="sm" onClick={onConfirmar} aria-label={`Confirmar el par sugerido de ${de}`} aria-keyshortcuts={tecla("Enter")}>Confirmar</PulsoButton>
         </BotonConAtajo>
       )}
       {(fila.estado === "sugerido" || fila.estado === "confirmado") && (
@@ -45,15 +48,15 @@ export function AccionesEmparejado({ fila, buscando, onConfirmar, onBuscar, onCa
         </BotonConAtajo>
       )}
       {fila.estado === "sugerido" && (
-        <BotonConAtajo ayuda="Descartar la sugerencia" atajo={ATAJO.quitar}>
-          <PulsoButton variant="icon" size="sm" intent="remove" onClick={onDescartar} aria-label={`Descartar la sugerencia para ${de}`} aria-keyshortcuts="X">
+        <BotonConAtajo ayuda="Descartar la sugerencia" atajo={tecla(ATAJO.quitar)}>
+          <PulsoButton variant="icon" size="sm" intent="remove" onClick={onDescartar} aria-label={`Descartar la sugerencia para ${de}`} aria-keyshortcuts={tecla("X")}>
             <X size={13} aria-hidden="true" />
           </PulsoButton>
         </BotonConAtajo>
       )}
       {fila.estado === "confirmado" && (
-        <BotonConAtajo ayuda="Quitar de la lámina" atajo={ATAJO.quitar}>
-          <PulsoButton variant="icon" size="sm" intent="remove" onClick={onQuitar} aria-label={`Quitar de la lámina el par de ${de}`} aria-keyshortcuts="X">
+        <BotonConAtajo ayuda="Quitar de la lámina" atajo={tecla(ATAJO.quitar)}>
+          <PulsoButton variant="icon" size="sm" intent="remove" onClick={onQuitar} aria-label={`Quitar de la lámina el par de ${de}`} aria-keyshortcuts={tecla("X")}>
             <Link2Off size={13} aria-hidden="true" />
           </PulsoButton>
         </BotonConAtajo>

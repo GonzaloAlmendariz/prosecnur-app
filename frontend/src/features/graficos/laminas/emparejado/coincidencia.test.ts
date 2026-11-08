@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { PreguntaEmparejado } from "../../../../api/graficosEmparejado";
 import {
   clasificarCoincidencia, coincidenciaDeFila, coincidenciasDe, contarCoincidencias, filtrarPorCoincidencia, normalizarTexto,
-  palabrasDe, parecidoDeTexto, rotuloFiltroCoincidencia, UMBRAL_IDENTICO, UMBRAL_PARECIDO,
+  palabrasDe, parecidoDeTexto, rotuloFiltroCoincidencia, UMBRAL_IDENTICO, UMBRAL_PARECIDO, vacioDeFiltros,
 } from "./coincidencia";
 import type { FilaEmparejado } from "./modeloEmparejado";
 
@@ -102,5 +102,14 @@ describe("conteo y filtro", () => {
     const c = contarCoincidencias(filas, mapa);
     expect(["todas", "identico", "parecido", "distinto"].map((k) => rotuloFiltroCoincidencia(k as "todas", c)))
       .toEqual(["Todas (4)", "Idéntico (1)", "Parecido (1)", "Distinto (1)"]);
+  });
+});
+
+describe("vacioDeFiltros (E5)", () => {
+  it("nombra los dos filtros cuando ambos recortan", () => {
+    expect(vacioDeFiltros("sin_par", "identico")).toBe("Ningún par idéntico entre los sin par.");
+    expect(vacioDeFiltros("por_confirmar", "parecido")).toBe("Ningún par parecido entre los por confirmar.");
+    expect(vacioDeFiltros("todas", "distinto")).toBe("Ningún par distinto.");
+    expect(vacioDeFiltros("sin_par", "todas")).toBe("Ninguna pregunta sin par.");
   });
 });

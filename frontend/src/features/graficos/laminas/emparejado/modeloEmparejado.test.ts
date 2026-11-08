@@ -49,11 +49,11 @@ describe("normalizarEmparejado", () => {
 });
 
 describe("filasEmparejado", () => {
-  it("cuatro estados: matriz, sugerido con la de mayor puntaje, sin par; la otra cara de una sugerencia sigue listada", () => {
+  it("cuatro estados: matriz, sugerido con la de mayor puntaje, sin par; el par espejo sale una vez", () => {
     const filas = filasEmparejado(DATOS, [], B, sinDescartes);
     expect(filas.map((f) => [f.clave, f.estado])).toEqual([
       ["docentes$p1", "matriz"], ["docentes$p2", "sugerido"], ["docentes$p3", "sin_par"],
-      ["estudiantes$q2", "sugerido"], ["estudiantes$q3", "sin_par"],
+      ["estudiantes$q3", "sin_par"],
     ]);
     expect(filas[1].par?.var).toBe("q2");
     expect(filas[1].puntaje).toBe(0.8);
@@ -75,6 +75,28 @@ describe("filasEmparejado", () => {
     expect(filas.find((f) => f.clave === "docentes$p3")).toMatchObject({ estado: "confirmado", par: { etiqueta: "Rótulo q2" } });
   });
 
+  it("E1: el par espejo (A sugiere B y B sugiere A) cuenta una vez; una cara que sugiere otra cosa sigue listada", () => {
+    const datos: Emparejado = {
+      bases: [...B],
+      preguntas: [
+        P("docentes", "a1", { sugerencias: [{ base: "estudiantes", var: "b1", etiqueta: "Texto b1", puntaje: 1 }] }),
+        P("docentes", "a2", { sugerencias: [{ base: "estudiantes", var: "b2", etiqueta: "Texto b2", puntaje: 1 }] }),
+        P("estudiantes", "b1", { sugerencias: [{ base: "docentes", var: "a1", etiqueta: "Texto a1", puntaje: 1 }] }),
+        P("estudiantes", "b2", { sugerencias: [{ base: "docentes", var: "a2", etiqueta: "Texto a2", puntaje: 1 }] }),
+        P("estudiantes", "b3", { sugerencias: [{ base: "docentes", var: "a1", etiqueta: "Texto a1", puntaje: 0.6 }] }),
+      ],
+    };
+    const filas = filasEmparejado(datos, [], B, sinDescartes);
+    expect(filas.map((f) => f.clave)).toEqual(["docentes$a1", "docentes$a2", "estudiantes$b3"]);
+    expect(contarEstados(filas)).toMatchObject({ sugerido: 3, total: 3 });
+    // Descartar la cara que queda descarta el par: la otra no vuelve a proponerlo.
+    const sinA1 = filasEmparejado(datos, [], B, new Set(["docentes$a1"]));
+    expect(sinA1.find((f) => f.clave === "docentes$a1")).toMatchObject({ estado: "sin_par" });
+    expect(sinA1.find((f) => f.clave === "estudiantes$b1")).toMatchObject({ estado: "sin_par", par: null });
+    // Confirmar desde la fila que queda escribe el par en el orden de las bases.
+    expect(confirmarPar([], B, filas[0].pregunta, filas[0].par!, "T")[0].vars).toEqual(["docentes$a1", "estudiantes$b1"]);
+  });
+
   it("descartar deja la fila sin par; la sugerencia no entra a la lámina mientras no se confirma", () => {
     const filas = filasEmparejado(DATOS, [], B, new Set(["docentes$p2"]));
     expect(filas.find((f) => f.clave === "docentes$p2")).toMatchObject({ estado: "sin_par", par: null });
@@ -93,16 +115,17 @@ describe("filasEmparejado", () => {
 describe("filtros y textos", () => {
   const filas = filasEmparejado(DATOS, [], B, sinDescartes);
   it("Todas, Por confirmar y Sin par", () => {
-    expect(filtrarFilas(filas, "todas")).toHaveLength(5);
-    expect(filtrarFilas(filas, "por_confirmar").map((f) => f.clave)).toEqual(["docentes$p2", "estudiantes$q2"]);
+    // El par espejo docentes$p2 / estudiantes$q2 cuenta una vez (E1).
+    expect(filtrarFilas(filas, "todas")).toHaveLength(4);
+    expect(filtrarFilas(filas, "por_confirmar").map((f) => f.clave)).toEqual(["docentes$p2"]);
     expect(filtrarFilas(filas, "sin_par").map((f) => f.clave)).toEqual(["docentes$p3", "estudiantes$q3"]);
     const c = contarEstados(filas);
-    expect(rotuloFiltro("todas", c)).toBe("Todas (5)");
-    expect(rotuloFiltro("por_confirmar", c)).toBe("Por confirmar (2)");
+    expect(rotuloFiltro("todas", c)).toBe("Todas (4)");
+    expect(rotuloFiltro("por_confirmar", c)).toBe("Por confirmar (1)");
     expect(rotuloFiltro("sin_par", c)).toBe("Sin par (2)");
   });
   it("el resumen de la tarjeta sólo nombra los estados con preguntas", () => {
-    expect(resumenEmparejado(contarEstados(filas))).toBe("1 en la matriz, 2 por confirmar, 2 sin par");
+    expect(resumenEmparejado(contarEstados(filas))).toBe("1 en la matriz, 1 por confirmar, 2 sin par");
     expect(resumenEmparejado({ matriz: 47, confirmado: 0, sugerido: 0, sin_par: 6, total: 53 })).toBe("47 en la matriz, 6 sin par");
     expect(resumenEmparejado(contarEstados([]))).toBe("Sin preguntas de escala");
   });

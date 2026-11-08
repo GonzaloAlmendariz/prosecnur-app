@@ -4,6 +4,7 @@
 
 import type { TemaPublicos } from "../../multiapiladas/temasPublicos";
 import type { CoincidenciaDePar } from "./coincidencia";
+import { formatoConteo } from "../../../../lib/formatoNumero";
 import { confirmarPar, refDe, type FilaEmparejado } from "./modeloEmparejado";
 
 /**
@@ -38,4 +39,22 @@ export function confirmarIdenticos(
     (acc, f) => (f.par ? confirmarPar(acc, bases, f.pregunta, f.par, f.pregunta.tema) : acc),
     [...temas],
   );
+}
+
+/**
+ * Las filas sugeridas que el lote deja sin su sugerencia (E6): las que no entran al lote y apuntan a una pregunta que el
+ * lote confirma con otra. Tras confirmar, esas filas pasan a otra sugerencia o a «Sin par».
+ */
+export function sugerenciasQuePierdeElLote(filas: readonly FilaEmparejado[], lote: readonly FilaEmparejado[]): number {
+  const enLote = new Set(lote.map((f) => f.clave));
+  const tomadas = new Set(lote.flatMap((f) => (f.par ? [f.clave, refDe(f.par)] : [f.clave])));
+  return filas.filter((f) => f.estado === "sugerido" && f.par && !enLote.has(f.clave) && !tomadas.has(f.clave) && tomadas.has(refDe(f.par))).length;
+}
+
+/** «8 filas perdieron su sugerencia: su par ya se confirmó.»; nada si ninguna la perdió. */
+export function avisoSugerenciasPerdidas(n: number): string | null {
+  if (n <= 0) return null;
+  return n === 1
+    ? "1 fila perdió su sugerencia: su par ya se confirmó."
+    : `${formatoConteo(n)} filas perdieron su sugerencia: su par ya se confirmó.`;
 }

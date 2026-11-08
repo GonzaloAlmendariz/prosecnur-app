@@ -20,11 +20,11 @@ import { formatoConteo } from "../../../../lib/formatoNumero";
 import { nombrePublico, type TemaPublicos } from "../../multiapiladas/temasPublicos";
 import { Segmentado } from "../../subpestanas/Segmentado";
 import {
-  COINCIDENCIAS, coincidenciasDe, contarCoincidencias, filtrarPorCoincidencia, ROTULO_COINCIDENCIA, rotuloFiltroCoincidencia,
+  COINCIDENCIAS, coincidenciasDe, contarCoincidencias, filtrarPorCoincidencia, rotuloFiltroCoincidencia, vacioDeFiltros,
   type FiltroCoincidencia,
 } from "./coincidencia";
 import { EvidenciaPar } from "./EvidenciaPar";
-import { confirmarIdenticos, identicosPorConfirmar } from "./loteIdenticos";
+import { avisoSugerenciasPerdidas, confirmarIdenticos, identicosPorConfirmar, sugerenciasQuePierdeElLote } from "./loteIdenticos";
 import { useEmparejadoUi } from "./emparejadoStore";
 import {
   avisoUnion, confirmadosDe, confirmarPar, filtrarFilas, hayCambiosEnUnion, opcionesDeBase, preguntasOcupadas, quitarPar,
@@ -54,12 +54,6 @@ type Props = {
 
 const FILTROS: readonly FiltroEmparejado[] = ["todas", "por_confirmar", "sin_par"];
 const FILTROS_COINCIDENCIA: readonly FiltroCoincidencia[] = ["todas", ...COINCIDENCIAS];
-
-const VACIO_FILTRO: Record<FiltroEmparejado, string> = {
-  todas: "Sin preguntas de escala.",
-  por_confirmar: "Ninguna sugerencia por confirmar.",
-  sin_par: "Ninguna pregunta sin par.",
-};
 
 function mensajeDe(e: unknown): string {
   if (e instanceof ApiError) return e.message.replace(new RegExp(` ${String.fromCharCode(0xb7)} [A-Z0-9_]+$`), "");
@@ -108,6 +102,7 @@ export function RevisarEmparejado({ bases, basesEstudio, remoto, recargar, filas
     const i = visibles.findIndex((f) => f.clave === fila.clave);
     accion();
     if (guardado.fase === "confirmar" || guardado.fase === "error") ui.ponerGuardado({ fase: "inactivo" });
+    if (ui.avisoLote) ui.ponerAvisoLote(null);
     const orden = [fila.clave, ...visibles.slice(i + 1).map((f) => f.clave), ...visibles.slice(0, Math.max(0, i)).map((f) => f.clave).reverse()];
     enfocarFila(orden, destino, ui.activar);
   };
@@ -119,6 +114,8 @@ export function RevisarEmparejado({ bases, basesEstudio, remoto, recargar, filas
   const quitar = (fila: FilaEmparejado, destino?: Destino) => tras(fila, () => { onTemas(quitarPar(temas, fila.clave)); ui.buscar(null); }, destino);
   const confirmarLote = () => {
     if (!lote.length) return;
+    // E6: antes de escribir, cuántas filas se quedan sin su sugerencia porque el lote confirma su par con otra.
+    ui.ponerAvisoLote(avisoSugerenciasPerdidas(sugerenciasQuePierdeElLote(filas, lote)));
     onTemas(confirmarIdenticos(temas, bases, lote));
     ui.buscar(null);
     if (guardado.fase === "confirmar" || guardado.fase === "error") ui.ponerGuardado({ fase: "inactivo" });
@@ -194,7 +191,7 @@ export function RevisarEmparejado({ bases, basesEstudio, remoto, recargar, filas
     <TablaEmparejado
       filas={visibles}
       bases={bases}
-      vacio={ui.coincidencia === "todas" ? VACIO_FILTRO[ui.filtro] : `Ningún par ${ROTULO_COINCIDENCIA[ui.coincidencia].toLowerCase()}.`}
+      vacio={vacioDeFiltros(ui.filtro, ui.coincidencia)}
       coincidencias={coincidencias}
       buscando={ui.buscando}
       activa={activa?.clave ?? null}
@@ -213,7 +210,8 @@ export function RevisarEmparejado({ bases, basesEstudio, remoto, recargar, filas
     : guardado.fase === "error" ? <span role="alert">{guardado.mensaje}</span>
       : guardado.fase === "leyendo" ? "Leyendo la matriz"
         : guardado.fase === "guardando" ? "Guardando en la matriz"
-          : conteo.confirmado ? `${formatoConteo(conteo.confirmado)} ${conteo.confirmado === 1 ? "par confirmado" : "pares confirmados"} en esta lámina`
+          : ui.avisoLote ? <span role="status">{ui.avisoLote}</span>
+            : conteo.confirmado ? `${formatoConteo(conteo.confirmado)} ${conteo.confirmado === 1 ? "par confirmado" : "pares confirmados"} en esta lámina`
             : "Nada confirmado en esta lámina";
 
   return (

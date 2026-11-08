@@ -122,13 +122,19 @@
 }
 
 .pulso-f6-emp-chip[data-coincidencia="identico"] { background: var(--pulso-success-bg); color: var(--pulso-success-fg); }
-.pulso-f6-emp-chip[data-coincidencia="parecido"] { background: var(--pulso-info-bg); color: var(--pulso-info-fg); }
+/* E3: el fondo informativo del kit (4 % de opacidad) no se ve sobre la fila; se mezcla el tono informativo. */
+.pulso-f6-emp-chip[data-coincidencia="parecido"] {
+  background: color-mix(in srgb, var(--pulso-info-fg) 14%, var(--pulso-surface));
+  color: var(--pulso-info-fg);
+}
 .pulso-f6-emp-chip[data-coincidencia="distinto"] { background: var(--pulso-warn-bg); color: var(--pulso-warn-fg); }
 
 /* Evidencia del par activo (X6): los dos textos enteros lado a lado, con lo que no comparten marcado. */
+/* E2 (C2): alto reservado. Con texto corto o largo la evidencia mide lo mismo y la tabla no salta; lo que no cabe
+   desplaza dentro de la evidencia. */
 .pulso-f6-emp-pie-evidencia {
-  flex: 0 0 auto;
-  max-height: 50%;
+  flex: 0 0 clamp(96px, 30%, 50%);
+  min-height: 0;
   overflow-y: auto;
   border-top: 1px solid var(--pulso-border);
   background: var(--pulso-surface-2);
