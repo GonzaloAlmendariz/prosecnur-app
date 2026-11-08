@@ -20,6 +20,8 @@ type MazoUi = {
   ordenPropuestas: string[] | null;
   reglas: Record<string, ReglaPreguntas>;
   editando: string | null;
+  /** La franja desplegada en pantallas bajas (en las altas va siempre abierta; el pliegue lo decide el CSS). */
+  franjaAbierta: boolean;
   /** Al abrir desde un botón: todo de vuelta a la propuesta, sin ninguna elegida. */
   preparar: () => void;
   alternarPublico: (base: string, todas: readonly string[]) => void;
@@ -34,11 +36,12 @@ type MazoUi = {
   ordenarPropuestas: (ids: readonly string[]) => void;
   ponerRegla: (id: string, regla: ReglaPreguntas) => void;
   editar: (id: string | null) => void;
+  alternarFranja: () => void;
 };
 
 const inicial = () => ({
   publicos: null, orden: null, indicador: null, referencia: REFERENCIA_POR_DEFECTO,
-  elegidas: {}, ordenPropuestas: null, reglas: {}, editando: null,
+  elegidas: {}, ordenPropuestas: null, reglas: {}, editando: null, franjaAbierta: false,
 }) satisfies Partial<MazoUi>;
 
 export const useMazoResumenUi = create<MazoUi>((set) => ({
@@ -64,4 +67,5 @@ export const useMazoResumenUi = create<MazoUi>((set) => ({
   ordenarPropuestas: (ids) => set({ ordenPropuestas: [...ids] }),
   ponerRegla: (id, regla) => set((s) => ({ reglas: { ...s.reglas, [id]: regla } })),
   editar: (editando) => set({ editando }),
+  alternarFranja: () => set((s) => ({ franjaAbierta: !s.franjaAbierta })),
 }));

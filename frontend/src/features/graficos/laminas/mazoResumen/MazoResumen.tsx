@@ -15,7 +15,7 @@ import { formatoConteo } from "../../../../lib/formatoNumero";
 import { usePanelDireccionable } from "../../../../lib/navegacion/paneles";
 import { usePlanStore } from "../../store";
 import { destinoAlCerrarEnDocumento } from "../selectores/focoAlCerrar";
-import { FranjaMazo } from "./FranjaMazo";
+import { ResumenFranja } from "./ResumenFranja";
 import { useMazoResumenUi } from "./mazoResumenStore";
 import { deshacerInsercion } from "./deshacerMazo";
 import { EdicionReglaMazo } from "./EdicionReglaMazo";
@@ -127,7 +127,9 @@ export function MazoResumen({ posicion, cerrar }: Props) {
       className="pulso-f6-mazo"
       flush
       stepper={listo && mazo.bases.length > 0 ? (
-        <FranjaMazo
+        <ResumenFranja
+          abierta={ui.franjaAbierta}
+          onAlternar={ui.alternarFranja}
           bases={mazo.bases}
           publicos={mazo.publicos}
           indicadores={mazo.indicadores}

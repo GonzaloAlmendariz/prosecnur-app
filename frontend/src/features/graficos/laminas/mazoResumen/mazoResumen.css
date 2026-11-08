@@ -446,3 +446,71 @@
 @keyframes pulso-f6-mazo-lateral-in {
   from { opacity: 0; transform: translateX(12px); }
 }
+
+/* Franja plegable (ResumenFranja.tsx). En pantallas altas la línea de resumen no existe y la franja va abierta; bajo
+   700 px de alto (o con el preset «short») la franja se pliega a una línea y «Ajustar» la despliega. */
+.pulso-f6-mazo-resumen {
+  display: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+  min-width: 0;
+}
+
+.pulso-f6-mazo-resumen-publicos {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-f6-mazo-resumen-chip {
+  padding: 1px var(--pulso-space-2);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--module-accent-soft);
+  color: var(--module-accent);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-f6-mazo-resumen-dato {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-f6-mazo-resumen-ajustar {
+  margin-left: auto;
+}
+
+.pulso-f6-mazo-plegable.is-abierta .pulso-f6-mazo-resumen-ajustar svg {
+  transform: rotate(180deg);
+}
+
+@media (max-height: 700px) {
+  .pulso-f6-mazo-resumen {
+    display: flex;
+  }
+
+  .pulso-f6-mazo-plegable:not(.is-abierta) .pulso-f6-mazo-plegable-franja {
+    display: none;
+  }
+
+  .pulso-f6-mazo-plegable.is-abierta .pulso-f6-mazo-plegable-franja {
+    margin-top: var(--pulso-space-3);
+  }
+}
+
+:root[data-pulso-layout-preset="short"] .pulso-f6-mazo-resumen {
+  display: flex;
+}
+
+:root[data-pulso-layout-preset="short"] .pulso-f6-mazo-plegable:not(.is-abierta) .pulso-f6-mazo-plegable-franja {
+  display: none;
+}
+
+:root[data-pulso-layout-preset="short"] .pulso-f6-mazo-plegable.is-abierta .pulso-f6-mazo-plegable-franja {
+  margin-top: var(--pulso-space-3);
+}
