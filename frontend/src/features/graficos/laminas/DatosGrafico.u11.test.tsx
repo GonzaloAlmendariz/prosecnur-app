@@ -73,7 +73,7 @@ describe("DatosGrafico, U-c espacio para las etiquetas", () => {
   it("vacío dice «Auto», sin el 0.45 del preset ni el 0.36 que anunciaba el registro", () => {
     const campo = fila(pintar("p_barras_agrupadas", { var: "p1" }));
     expect(campo).toContain("is-sin-cifra");
-    expect(campo).toMatch(/aria-pressed="true"[^>]*>Auto</);
+    expect(campo).toMatch(/aria-pressed="true"[^>]*>(<span[^>]*>)?Auto</);
     expect(campo).not.toMatch(/value="(45|36|0\.45|0\.36)"/);
   });
   it("con un valor guardado en `overrides` lo muestra en %", () => {
