@@ -6,6 +6,7 @@ import { useId } from "react";
 import { CircleAlert } from "../../../../vendor/lucide-react";
 import { Panel } from "../../../../components/Panel";
 import { informeParaCierre } from "./fichaDatos";
+import "./fichaDatos.css";
 
 type Props = {
   usa: string;

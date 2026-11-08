@@ -1,0 +1,65 @@
+/* Control de modo del selector de láminas («Insertar detrás / Cambiar esta lámina») en la cabecera del diálogo.
+   Se carga después de selectores.css (orden fijado en SelectorTipoLamina.tsx). */
+
+/* ---- Modo del selector (auditoría, hallazgo 14): segmentado de la cabecera, riel gris y la opción elegida en blanco
+   con el acento del módulo, como los demás segmentados ---- */
+
+.pulso-f6-selector-modo {
+  flex: none;
+  align-self: center;
+}
+
+.pulso-f6-modo.pulso-gliding-tab-list {
+  --pulso-gliding-indicator-bg: var(--pulso-surface);
+  --pulso-gliding-indicator-border: var(--pulso-border);
+  --pulso-gliding-indicator-shadow: 0 1px 3px color-mix(in srgb, var(--pulso-text) 14%, transparent);
+  display: inline-grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--pulso-radius-card);
+  background: color-mix(in srgb, var(--pulso-text) 6%, var(--pulso-surface));
+  box-shadow: inset 0 0 0 1px var(--pulso-border);
+}
+
+.pulso-f6-modo.pulso-gliding-tab-list > button {
+  min-height: var(--pulso-control-height-sm);
+  padding: 0 var(--pulso-space-3);
+  border: 0;
+  border-radius: var(--pulso-radius);
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pulso-f6-modo.pulso-gliding-tab-list > button:hover:not(:disabled):not([aria-checked="true"]) {
+  color: var(--pulso-text);
+}
+
+.pulso-f6-modo.pulso-gliding-tab-list > button[aria-checked="true"] {
+  color: var(--module-accent);
+}
+
+.pulso-f6-modo.pulso-gliding-tab-list > button:disabled {
+  color: var(--pulso-text-faint);
+  cursor: default;
+}
+
+.pulso-f6-modo.pulso-gliding-tab-list > button:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pulso-f6-modo.pulso-gliding-tab-list > button {
+    transition:
+      border-color var(--motion-dur-press) var(--motion-ease-out),
+      background-color var(--motion-dur-press) var(--motion-ease-out),
+      color var(--motion-dur-press) var(--motion-ease-out);
+  }
+}

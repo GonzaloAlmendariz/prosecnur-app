@@ -1,0 +1,101 @@
+/* Vista «Comparar» y su barra en el selector de láminas. Se carga después de fichaDatos.css. */
+
+/* ---- Comparar (auditoría, hallazgo 3): botón de la tarjeta, barra de la galería y vista partida ---- */
+
+.pulso-f6-tarjeta-pie {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: var(--pulso-space-2);
+}
+
+/* «Comparar» es el botón fantasma del kit; marcado, toma el acento del módulo. */
+.pulso-f6-comparar-boton {
+  gap: var(--pulso-space-1);
+}
+
+.pulso-f6-comparar-boton[aria-pressed="true"] {
+  border-color: var(--module-accent-border);
+  background: var(--module-accent-soft);
+  color: var(--module-accent);
+}
+
+.pulso-f6-comparar-boton[aria-disabled="true"] {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.pulso-f6-galeria-cabeza:has(.pulso-f6-barra-comparar) {
+  justify-content: flex-start;
+}
+
+.pulso-f6-barra-comparar {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin-left: auto;
+}
+
+.pulso-f6-barra-comparar .pulso-button[aria-disabled="true"] {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.pulso-f6-selector-col.is-comparar {
+  grid-column: 2 / -1;
+}
+
+.pulso-f6-comparar {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.pulso-f6-comparar .pulso-f6-galeria-cabeza {
+  align-items: center;
+}
+
+.pulso-f6-comparar .pulso-f6-galeria-cabeza h3:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: var(--pulso-nav-focus-offset);
+}
+
+/* Dos columnas pares (C1 `equal`): el grid estira los marcos al alto de la más larga y el espacio sobrante queda dentro
+   de cada columna, sobre sus botones (C3). La columna del diálogo desplaza si no caben (C4). */
+.pulso-f6-comparar-columnas {
+  display: grid;
+  flex: 1 0 auto;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pulso-space-4);
+}
+
+/* La caja es el Panel del kit; aquí su orden interno y su medida. */
+.pulso-f6-comparar-columna.pulso-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  margin: 0;
+  padding: var(--pulso-space-3);
+}
+
+.pulso-f6-comparar-nombre {
+  margin: 0;
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-f6-tarjeta-chips.is-en-linea {
+  position: static;
+}
+
+.pulso-f6-comparar-acciones {
+  display: flex;
+  gap: var(--pulso-space-2);
+  margin-top: auto;
+}
+
+.pulso-f6-comparar-acciones > .pulso-button {
+  flex: 1 1 0;
+  justify-content: center;
+  gap: var(--pulso-space-1);
+}

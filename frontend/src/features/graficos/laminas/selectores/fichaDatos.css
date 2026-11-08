@@ -1,0 +1,142 @@
+/* Ficha «Datos» de la tarjeta y del cierre en el selector de láminas. Se carga después de controlModo.css. */
+
+/* ---- Ficha «Datos» (auditoría, hallazgo 2): tres filas fijas con rótulo a la izquierda ---- */
+
+/* La caja es el Panel del kit (variante sutil); aquí solo su medida dentro del detalle. */
+.pulso-f6-datos.pulso-panel {
+  display: grid;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: var(--pulso-space-3);
+}
+
+.pulso-f6-datos-titulo {
+  margin: 0;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pulso-f6-datos-filas {
+  display: grid;
+  gap: var(--pulso-space-2);
+  margin: 0;
+}
+
+.pulso-f6-datos-fila {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: var(--pulso-space-2);
+  align-items: baseline;
+}
+
+.pulso-f6-datos-fila dt {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-f6-datos-fila dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  margin: 0;
+  font-size: var(--pulso-type-body-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-f6-datos-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Chips de la ficha: el `.pulso-f6-chip` del selector con sus variantes. */
+.pulso-f6-dato-chip {
+  align-items: baseline;
+  line-height: 18px;
+}
+
+.pulso-f6-dato-chip.is-principal {
+  border-color: var(--module-accent-border);
+  background: var(--module-accent-soft);
+  color: var(--module-accent);
+}
+
+.pulso-f6-dato-chip.is-secundario {
+  border-style: dashed;
+  background: transparent;
+  font-weight: var(--pulso-weight-regular);
+}
+
+.pulso-f6-dato-chip.is-publico {
+  color: var(--pulso-text);
+}
+
+.pulso-f6-dato-chip[data-sin-preguntas] {
+  color: var(--pulso-text-faint);
+}
+
+.pulso-f6-dato-n {
+  color: var(--pulso-text-faint);
+  font-weight: var(--pulso-weight-regular);
+}
+
+.pulso-f6-datos-cuantos {
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-f6-datos-fila dd > .pulso-f6-datos-chips {
+  flex-basis: 100%;
+}
+
+.pulso-f6-datos-fila p {
+  margin: 0;
+  flex-basis: 100%;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.4;
+}
+
+.pulso-f6-datos-fila p.pulso-f6-datos-falta {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pulso-space-1);
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-f6-datos-falta > svg {
+  flex: none;
+  align-self: center;
+}
+
+/* S6: en la vista partida, la fila que no dice lo mismo que la otra ficha lleva el tono del módulo. */
+.pulso-f6-datos-fila.is-difiere {
+  margin: 0 calc(-1 * var(--pulso-space-1));
+  padding: 2px var(--pulso-space-1);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--module-accent-soft);
+}
+
+.pulso-f6-datos-fila.is-difiere dt {
+  color: var(--module-accent);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-f6-detalle-clase[data-difiere] {
+  justify-self: start;
+  padding: 0 var(--pulso-space-1);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--module-accent-soft);
+}
+
+.pulso-f6-datos-fila dd > div,
+.pulso-f6-datos-fila dd > [role="alert"] {
+  flex-basis: 100%;
+}

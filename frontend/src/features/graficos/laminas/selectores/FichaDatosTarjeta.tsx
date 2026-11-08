@@ -12,6 +12,7 @@ import { CargaDeBloque } from "../../../../components/CargaDeBloque";
 import { ErrorBlock } from "../../../../components/States";
 import { formatoConteo } from "../../../../lib/formatoNumero";
 import { cruzarConEstudio, ROTULO_PREGUNTA, ROTULO_PUBLICOS, type EstadoInventario, type FilaFicha } from "./fichaDatos";
+import "./fichaDatos.css";
 
 type Props = {
   usa: UsaGrafico;

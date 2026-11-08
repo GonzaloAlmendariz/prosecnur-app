@@ -4,6 +4,7 @@
 import { Columns2 } from "../../../../vendor/lucide-react";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { TOPE_COMPARAR } from "./modoYComparacion";
+import "./comparar.css";
 
 type Props = {
   marcadas: number;

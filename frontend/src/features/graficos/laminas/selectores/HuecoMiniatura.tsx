@@ -5,6 +5,7 @@
 
 import type { ReactNode } from "react";
 import type { MiniaturaSelector } from "./modeloMiniaturasSelector";
+import "./huecoMiniatura.css";
 
 type Props = {
   miniatura: MiniaturaSelector | undefined;

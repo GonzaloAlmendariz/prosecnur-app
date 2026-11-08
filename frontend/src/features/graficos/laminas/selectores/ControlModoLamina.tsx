@@ -6,6 +6,7 @@ import type { ButtonHTMLAttributes } from "react";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { MODOS_LAMINA } from "./modoYComparacion";
 import type { ModoSelectorLamina } from "./selectoresStore";
+import "./controlModo.css";
 
 type Props = {
   modo: ModoSelectorLamina;

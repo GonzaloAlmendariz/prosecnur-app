@@ -11,6 +11,7 @@ import { ComposicionLamina } from "../../iconos/ComposicionLamina";
 import { GlifoGrafico } from "../../iconos/GlifoGrafico";
 import { SLIDE_GRAF_SLOTS } from "../../store";
 import { ROTULO_CLASE, type ClaseTarjeta } from "./intencionesContar";
+import "./comparar.css";
 
 type Props = {
   nombreGrupo: string;

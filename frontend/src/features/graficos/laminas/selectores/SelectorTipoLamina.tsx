@@ -7,6 +7,14 @@
 // (opcionesLamina.ts). El detalle trae la ficha «Datos» (qué usa el gráfico y qué tiene el estudio) y «Comparar» pone
 // dos tarjetas lado a lado dentro del mismo diálogo.
 
+// Hojas del selector en el orden de la cascada que tenían en una sola hoja: estas importaciones van antes que los
+// componentes para que el bundle las emita en este orden aunque un hijo (HuecoMiniatura) se evalúe antes que el diálogo.
+import "./selectores.css";
+import "./controlModo.css";
+import "./fichaDatos.css";
+import "./comparar.css";
+import "./huecoMiniatura.css";
+
 import { LayoutTemplate, MousePointer2, Presentation, Search } from "../../../../vendor/lucide-react";
 import { useEffect, useId, useMemo, useRef, type ReactNode } from "react";
 import type { GraficadorRef, Slide } from "../../../../api/graficos";

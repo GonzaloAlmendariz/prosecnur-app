@@ -22,6 +22,7 @@ import type { MiniaturaSelector } from "./modeloMiniaturasSelector";
 import { ROTULO_CLASE, type ClaseTarjeta } from "./intencionesContar";
 import type { OpcionLamina } from "./opcionesLamina";
 import type { ModoSelectorLamina } from "./selectoresStore";
+import "./comparar.css";
 
 export type ColumnaComparar = {
   opcion: OpcionLamina;
