@@ -26,4 +26,13 @@ describe("título que va a salir", () => {
     const recetario = { id: "g", tipo: "p_slide_1_grafico", payload: { titulo: "", meta: { antetitulo: "Brechas" }, grafico: { graficador: "p_barras_agrupadas", args: {} } } } as Slide;
     expect(nombreEnEstructura(recetario, v, "Un gráfico")).toBe("Brechas");
   });
+  test("M2: el nombre que el mazo guardó en meta.nombre nombra la lámina sin título en la Estructura, y no es su título", () => {
+    const escala = { id: "h", tipo: "p_slide_1_grafico", payload: { titulo: "", meta: { nombre: "Escala bajo 60%", antetitulo: "Brechas" }, grafico: { graficador: "p_panorama", args: { vars: ["docentes$*"] } } } } as Slide;
+    expect(nombreEnEstructura(escala, v, "Un gráfico")).toBe("Escala bajo 60%");
+    expect(tituloQueSale(escala, v, "Un gráfico")).toBe("");
+    const conTitulo = { ...escala, payload: { ...escala.payload, titulo: "Satisfacción" } } as Slide;
+    expect(nombreEnEstructura(conTitulo, v, "Un gráfico")).toBe("Satisfacción");
+    const enBlanco = { ...escala, payload: { ...escala.payload, meta: { nombre: "  " } } } as Slide;
+    expect(nombreEnEstructura(enBlanco, v, "Un gráfico")).toBe("Panorama de públicos");
+  });
 });

@@ -27,6 +27,11 @@ export type SlideMeta = {
   dimensiones?: string[];
   /** Antetítulo propio; sin él la lámina hereda el del separador vigente. */
   antetitulo?: string;
+  /**
+   * Nombre de la lámina en el editor («Escala bajo 60%»): lo guarda el mazo del resumen ejecutivo al insertar
+   * (`laminaDePropuesta`). Nombra la lámina en la Estructura cuando no tiene título; nunca es su título ni sale impreso.
+   */
+  nombre?: string;
   /** Separador. */
   nivel?: "capitulo" | "subcapitulo";
   numero?: string;

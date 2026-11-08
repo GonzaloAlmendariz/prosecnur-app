@@ -12,9 +12,13 @@ import { presentacionDeGrafico } from "./selectores/intencionesContar";
 /**
  * Q2-7 (prueba con Arte): una lámina de resumen sin título no tiene pregunta de la que tomarlo (`vars` es `base$*`). En la
  * Estructura se nombra por su tarjeta («Panorama de públicos», «Cobertura y participación») o, si no la tiene, por su
- * antetítulo; nunca por una ref cruda. No es el título que sale: la maqueta sigue diciendo «Sin título».
+ * antetítulo; nunca por una ref cruda. No es el título que sale: la maqueta sigue diciendo «Sin título». Antes que todo
+ * eso, el nombre que el mazo guardó en `meta.nombre` (M2).
  */
 export function nombreSinTitulo(slide: Slide): string {
+  // M2: el nombre que el mazo le dio al insertarla («Escala bajo 60%») manda sobre el del tipo de su gráfico.
+  const nombre = leerSlideMeta(slide).nombre;
+  if (typeof nombre === "string" && nombre.trim()) return nombre.trim();
   const payload = (slide.payload ?? {}) as Record<string, unknown>;
   for (const slot of SLIDE_GRAF_SLOTS[slide.tipo] ?? []) {
     const g = payload[slot];
