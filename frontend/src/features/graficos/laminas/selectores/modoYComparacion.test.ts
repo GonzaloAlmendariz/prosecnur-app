@@ -44,12 +44,14 @@ describe("store del selector", () => {
     expect(useSelectoresUi.getState()).toMatchObject({ modoLamina: "insertar", candidato: null, confirmando: false });
   });
 
-  it("la segunda tarjeta abre la vista partida, la tercera no entra y quitar una la cierra", () => {
+  it("S6: la segunda tarjeta no salta a la vista partida; «Ver lado a lado» la abre, la tercera no entra y quitar una la cierra", () => {
     const s = useSelectoresUi.getState();
     s.alternarComparar("p_slide_1_grafico");
     expect(useSelectoresUi.getState().viendoComparacion).toBe(false);
     s.alternarComparar("p_slide_2_graficos");
-    expect(useSelectoresUi.getState()).toMatchObject({ comparar: ["p_slide_1_grafico", "p_slide_2_graficos"], viendoComparacion: true });
+    expect(useSelectoresUi.getState()).toMatchObject({ comparar: ["p_slide_1_grafico", "p_slide_2_graficos"], viendoComparacion: false });
+    s.verComparacion(true);
+    expect(useSelectoresUi.getState().viendoComparacion).toBe(true);
     s.alternarComparar("p_slide_2_graficos_narrativo");
     expect(useSelectoresUi.getState().comparar).toHaveLength(2);
     s.alternarComparar("p_slide_1_grafico");

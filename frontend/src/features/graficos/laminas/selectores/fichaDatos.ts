@@ -7,7 +7,11 @@ import type { InventarioPublico, PreguntasDelPublico } from "../../../../api/gra
 import {
   CATALOGO_GRAFICOS, type PreguntaQueUsa, type PublicosQueUsa, type UsaGrafico,
 } from "../../iconos/catalogoTipos.generated";
+import type { Slide } from "../../../../api/graficos";
 import { formatoConteo } from "../../../../lib/formatoNumero";
+import { nombrePublico } from "../gruposPadron/modeloPadron";
+import { tarjetaContarDeLamina } from "./intencionesContar";
+import type { PresetLamina } from "./opcionesLamina";
 
 export const ROTULO_PREGUNTA: Readonly<Record<PreguntaQueUsa, string>> = {
   escala: "Escala",
@@ -37,6 +41,15 @@ export const ROTULO_PUBLICOS: Readonly<Record<PublicosQueUsa, string>> = {
 export function usaDeGrafico(graficador: string | null | undefined): UsaGrafico | null {
   if (!graficador) return null;
   return CATALOGO_GRAFICOS.find((g) => g.name === graficador)?.usa ?? null;
+}
+
+/**
+ * El `usa` de una tarjeta: el de su graficador con lo que la tarjeta declara encima (S1). La composición manda: el
+ * contraste estilo resumen es `p_dumbbell` (uno o varios públicos) y compara públicos, así que usa varios.
+ */
+export function usaDeTarjeta(preset: Pick<PresetLamina, "grafico" | "usa"> | null | undefined): UsaGrafico | null {
+  const base = usaDeGrafico(preset?.grafico?.graficador);
+  return base ? { ...base, ...preset?.usa } : null;
 }
 
 export type PublicoEnFicha = {
@@ -78,7 +91,8 @@ const lista = (xs: readonly string[]): string =>
 export function cruzarConEstudio(usa: UsaGrafico, inventario: readonly InventarioPublico[]): CruceConEstudio {
   const publicos: PublicoEnFicha[] = inventario.map((b) => ({
     base: b.base,
-    publico: b.publico,
+    // S7: el público con la capitalización del motor («Docentes», no «docentes»).
+    publico: nombrePublico(b.publico),
     n: b.n,
     preguntas: preguntasQueUsa(b.preguntas, usa.pregunta),
     padron: b.padron.declarado,
@@ -93,6 +107,8 @@ export function cruzarConEstudio(usa: UsaGrafico, inventario: readonly Inventari
   const faltas: string[] = [];
   if (!publicos.length) {
     faltas.push("El estudio no tiene bases cargadas.");
+  } else if (usa.publicos === "varios" && publicos.length === 1) {
+    faltas.push("El estudio tiene un solo público.");
   } else if (!conPreguntas.length) {
     faltas.push(tipos ? `Ningún público tiene preguntas ${tipos}.` : "Ningún público tiene preguntas.");
   } else if (usa.publicos === "varios" && conPreguntas.length < 2) {
@@ -112,3 +128,43 @@ export type EstadoInventario =
   | { estado: "cargando" }
   | { estado: "listo"; publicos: InventarioPublico[] }
   | { estado: "error"; mensaje: string };
+
+// ---- La vista partida: qué difiere entre las dos fichas (S6) -----------------------------------------------------------
+
+export type FilaFicha = "preguntas" | "publicos" | "estudio";
+
+const mismos = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((x) => b.includes(x));
+
+/**
+ * Las filas de la ficha «Datos» que no dicen lo mismo en las dos tarjetas de la vista partida: los tipos de pregunta y
+ * el cruce, los públicos y el padrón, y lo que el estudio tiene (o le falta) para cada una. Sin las dos fichas, ninguna.
+ */
+export function filasQueDifieren(
+  a: UsaGrafico | null,
+  b: UsaGrafico | null,
+  inventario: EstadoInventario,
+): Set<FilaFicha> {
+  const out = new Set<FilaFicha>();
+  if (!a || !b) return out;
+  if (!mismos(a.pregunta, b.pregunta) || a.cruce !== b.cruce) out.add("preguntas");
+  if (a.publicos !== b.publicos || a.padron !== b.padron) out.add("publicos");
+  if (inventario.estado === "listo") {
+    const ca = cruzarConEstudio(a, inventario.publicos);
+    const cb = cruzarConEstudio(b, inventario.publicos);
+    if (ca.resumen !== cb.resumen || !mismos(ca.faltas, cb.faltas)) out.add("estudio");
+  }
+  return out;
+}
+
+// ---- El cierre con hallazgos: usa cifras de otras láminas (S8) ---------------------------------------------------------
+
+/** Cuántas láminas de resumen tiene el informe, sin contar los cierres (de ahí salen sus cifras). */
+export function laminasDeResumen(slides: readonly Pick<Slide, "tipo" | "payload">[]): number {
+  return slides.filter((s) => s.tipo !== "p_slide_cierre_hallazgos" && tarjetaContarDeLamina(s)?.clase === "resumen").length;
+}
+
+/** «El informe tiene 3 láminas de resumen.»; sin ninguna, lo que falta. */
+export function informeParaCierre(n: number): { resumen: string; falta: string | null } {
+  if (n <= 0) return { resumen: "", falta: "El informe no tiene láminas de resumen." };
+  return { resumen: `El informe tiene ${n === 1 ? "1 lámina" : `${formatoConteo(n)} láminas`} de resumen.`, falta: null };
+}

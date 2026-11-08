@@ -17,7 +17,7 @@ export function BarraComparar({ marcadas, onVer }: Props) {
     <div className="pulso-f6-barra-comparar" data-barra-comparar="">
       <span aria-live="polite">{`Comparar: ${marcadas} de ${TOPE_COMPARAR}`}</span>
       <PulsoButton
-        variant="secondary"
+        variant={lista ? "primary" : "secondary"}
         size="sm"
         aria-disabled={!lista || undefined}
         title={lista ? undefined : "Marca otra lámina para comparar"}

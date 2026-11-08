@@ -1,7 +1,10 @@
 // Ficha «Datos»: el cruce del `usa` de cada gráfico con el inventario del estudio (alcanza o qué falta, por tipo).
 import { describe, expect, it } from "vitest";
 import type { InventarioPublico } from "../../../../api/graficosInventario";
-import { cruzarConEstudio, fraseTipos, usaDeGrafico } from "./fichaDatos";
+import {
+  cruzarConEstudio, filasQueDifieren, fraseTipos, informeParaCierre, laminasDeResumen, usaDeGrafico, usaDeTarjeta,
+} from "./fichaDatos";
+import { tarjetaContar } from "./intencionesContar";
 
 const publico = (base: string, n: number, p: Partial<InventarioPublico["preguntas"]>, padron?: number): InventarioPublico => ({
   base, publico: base, n,
@@ -70,5 +73,53 @@ describe("fraseTipos", () => {
   it("«cualquiera» no nombra tipo", () => {
     expect(fraseTipos(["cualquiera"])).toBe("");
     expect(fraseTipos(["numerica"])).toBe("numéricas");
+  });
+});
+
+describe("usaDeTarjeta (S1)", () => {
+  it("el `usa` de la tarjeta manda: el contraste y el mapa por dimensión piden varios públicos", () => {
+    expect(usaDeGrafico("p_dumbbell")?.publicos).not.toBe("varios");
+    expect(usaDeTarjeta(tarjetaContar("p_slide_1_grafico:contraste"))?.publicos).toBe("varios");
+    expect(usaDeTarjeta(tarjetaContar("p_slide_1_grafico:dimensiones"))?.publicos).toBe("varios");
+    // Sin `usa` propio, el del graficador.
+    expect(usaDeTarjeta(tarjetaContar("p_slide_1_grafico:panorama"))).toEqual(usaDeGrafico("p_panorama"));
+    expect(usaDeTarjeta(tarjetaContar("p_slide_cierre_hallazgos:cierre"))).toBeNull();
+  });
+
+  it("con un solo público lo dice en una línea; no bloquea (la tarjeta sigue ofrecida)", () => {
+    const usa = usaDeTarjeta(tarjetaContar("p_slide_1_grafico:contraste"))!;
+    const c = cruzarConEstudio(usa, [publico("contadores", 300, { escala: 40 })]);
+    expect(c.faltas).toEqual(["El estudio tiene un solo público."]);
+    expect(c.resumen).toBe("40 preguntas de escala en Contadores");
+  });
+});
+
+describe("cruzarConEstudio: rótulos de públicos (S7)", () => {
+  it("capitaliza el público como el motor", () => {
+    const c = cruzarConEstudio(usaDeGrafico("p_panorama")!, [publico("docentes", 10, { escala: 3 }), publico("estudiantes", 20, { escala: 4 })]);
+    expect(c.publicos.map((p) => p.publico)).toEqual(["Docentes", "Estudiantes"]);
+    expect(c.resumen).toBe("3 preguntas de escala en Docentes, 4 en Estudiantes");
+  });
+});
+
+describe("filasQueDifieren (S6)", () => {
+  it("marca las filas que no dicen lo mismo en las dos fichas", () => {
+    const listo = { estado: "listo" as const, publicos: ARTE };
+    expect([...filasQueDifieren(usaDeGrafico("p_panorama"), usaDeGrafico("p_panorama"), listo)]).toEqual([]);
+    expect([...filasQueDifieren(usaDeGrafico("p_panorama"), usaDeGrafico("p_cobertura"), listo)]).toEqual(["preguntas", "publicos", "estudio"]);
+    expect([...filasQueDifieren(usaDeGrafico("p_panorama"), null, listo)]).toEqual([]);
+  });
+});
+
+describe("cierre con hallazgos (S8)", () => {
+  it("cuenta las láminas de resumen del informe sin los cierres", () => {
+    const slides = [
+      { tipo: "p_slide_1_grafico" as const, payload: { grafico: { graficador: "p_panorama", args: {} } } },
+      { tipo: "p_slide_1_grafico" as const, payload: { grafico: { graficador: "p_pie", args: {} } } },
+      { tipo: "p_slide_cierre_hallazgos" as const, payload: {} },
+    ];
+    expect(laminasDeResumen(slides)).toBe(1);
+    expect(informeParaCierre(1)).toEqual({ resumen: "El informe tiene 1 lámina de resumen.", falta: null });
+    expect(informeParaCierre(0)).toEqual({ resumen: "", falta: "El informe no tiene láminas de resumen." });
   });
 });

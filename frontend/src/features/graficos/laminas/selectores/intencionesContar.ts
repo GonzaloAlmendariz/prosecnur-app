@@ -142,6 +142,8 @@ export const TARJETAS_CONTAR: readonly TarjetaContar[] = [
     descripcion: "Pares de puntos por pregunta, ordenados por diferencia.",
     pide: "Las preguntas comunes de la matriz de equivalencias",
     parche: {},
+    // `p_dumbbell` es de uno o varios públicos; en estilo resumen compara dos (S1).
+    usa: { publicos: "varios" },
     // El par que compara (`bases`, graficos_dumbbell_auto.R): las dos primeras bases del estudio, en su orden. Con tres
     // o más el motor pide elegirlo; así nace elegido y se cambia en «Públicos que se comparan».
     grafico: {
@@ -174,6 +176,8 @@ export const TARJETAS_CONTAR: readonly TarjetaContar[] = [
     descripcion: "Matriz de dimensiones por público.",
     pide: "Las dimensiones calculadas en Analítica",
     parche: {},
+    // Una columna por público: la matriz compara públicos (S1).
+    usa: { publicos: "varios" },
     grafico: { graficador: "p_dim_heatmap_criterios", args: {} },
     coincide: conGrafico("p_dim_heatmap_criterios"),
   },
@@ -234,6 +238,7 @@ export const TARJETAS_CONTAR: readonly TarjetaContar[] = [
     descripcion: "De tres a cinco hallazgos, cada uno con una cifra de otra lámina de resumen.",
     pide: "Láminas de resumen ya puestas en el informe",
     parche: {},
+    usaSinGrafico: "Cifras de otras láminas de resumen del informe",
     coincide: () => true,
   },
 ];
@@ -248,7 +253,7 @@ export const INTENCIONES_CONTAR: readonly IntencionContar[] = [
   {
     id: "comparar",
     nombre: "Comparar públicos",
-    ayuda: "Dónde difieren docentes y estudiantes.",
+    ayuda: "Dónde difieren los públicos.",
     tarjetas: ["p_slide_1_grafico:contraste", "p_slide_1_grafico:significancia", "p_slide_1_grafico:dimensiones"],
   },
   {

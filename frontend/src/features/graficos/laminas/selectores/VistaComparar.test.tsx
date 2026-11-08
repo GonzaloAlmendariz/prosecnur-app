@@ -53,8 +53,51 @@ describe("VistaComparar", () => {
     expect(host.textContent).toContain("Quita 1 gráfico");
     expect(document.activeElement?.textContent).toBe("Comparar");
     const usar = [...host.querySelectorAll<HTMLButtonElement>("[data-usar-comparada]")];
-    expect(usar.map((b) => b.textContent)).toEqual(["Usar esta", "Usar esta"]);
+    // S5: el verbo sigue al modo.
+    expect(usar.map((b) => b.textContent)).toEqual(["Cambiar a esta", "Cambiar a esta"]);
+    expect(usar[0].getAttribute("aria-label")).toBe("Cambiar a esta: “Panorama de públicos”");
     act(() => usar[1].click());
     expect(usadas).toEqual(["p_slide_2_graficos"]);
+  });
+
+  it("S5: al insertar, el botón dice «Insertar esta»", () => {
+    act(() => root.render(
+      <VistaComparar columnas={columnas} inventario={{ estado: "cargando" }} modo="insertar" onUsar={() => {}} onQuitar={() => {}} onVolver={() => {}} />,
+    ));
+    expect([...host.querySelectorAll("[data-usar-comparada]")].map((b) => b.textContent)).toEqual(["Insertar esta", "Insertar esta"]);
+  });
+
+  it("S6: resalta la clase y las filas de la ficha que difieren entre las dos", () => {
+    const dos: ColumnaComparar[] = [
+      columnas[0],
+      { opcion: "p_slide_1_grafico:cobertura", tipo: "p_slide_1_grafico", nombre: "Cobertura", clase: "resumen",
+        glifo: "p_cobertura", usa: usaDeGrafico("p_cobertura"), admite: "1 gráfico", actual: false, sobrantes: 0 },
+    ];
+    act(() => root.render(
+      <VistaComparar columnas={dos} inventario={{ estado: "cargando" }} modo="insertar" onUsar={() => {}} onQuitar={() => {}} onVolver={() => {}} />,
+    ));
+    const primera = host.querySelector("[data-columna-comparar='p_slide_1_grafico:panorama']")!;
+    // Panorama: escala, uno o varios, sin padrón. Cobertura: cualquier tipo, uno o varios, con padrón.
+    expect([...primera.querySelectorAll("[data-difiere][data-fila-datos]")].map((f) => f.getAttribute("data-fila-datos"))).toEqual(["preguntas", "publicos"]);
+    expect(host.querySelectorAll(".pulso-f6-detalle-clase[data-difiere]")).toHaveLength(0);
+    act(() => root.render(
+      <VistaComparar columnas={columnas} inventario={{ estado: "cargando" }} modo="insertar" onUsar={() => {}} onQuitar={() => {}} onVolver={() => {}} />,
+    ));
+    expect(host.querySelectorAll(".pulso-f6-detalle-clase[data-difiere]")).toHaveLength(2);
+  });
+
+  it("S8: el cierre con hallazgos trae su ficha «Datos» con lo que usa", () => {
+    const cierre: ColumnaComparar[] = [
+      columnas[0],
+      { opcion: "p_slide_cierre_hallazgos:cierre", tipo: "p_slide_cierre_hallazgos", nombre: "Cierre con hallazgos", clase: "resumen",
+        usa: null, usaSinGrafico: "Cifras de otras láminas de resumen del informe", admite: "", actual: false, sobrantes: 0 },
+    ];
+    act(() => root.render(
+      <VistaComparar columnas={cierre} inventario={{ estado: "cargando" }} laminasResumen={3} modo="insertar"
+        onUsar={() => {}} onQuitar={() => {}} onVolver={() => {}} />,
+    ));
+    const col = host.querySelector("[data-columna-comparar='p_slide_cierre_hallazgos:cierre']")!;
+    expect(col.querySelector("[data-ficha-datos]")?.textContent).toContain("Cifras de otras láminas de resumen del informe");
+    expect(col.textContent).toContain("El informe tiene 3 láminas de resumen.");
   });
 });

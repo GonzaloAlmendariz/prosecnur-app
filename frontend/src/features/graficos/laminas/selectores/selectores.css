@@ -672,11 +672,31 @@
 
 /* ---- «¿Qué quieres contar?» (ADR 0135 §1): buscador, navegación por intención y clase de cada tarjeta ---- */
 
+/* S4: con 240 px el placeholder «Buscar por pregunta o tipo» se lee entero; lo que cede es la columna de los títulos. */
 .pulso-f6-selector-buscador {
   flex: 0 1 320px;
   align-self: center;
-  min-width: 0;
+  min-width: 240px;
   margin-left: auto;
+}
+
+/* S4: bajo 1180 px la cabecera no alcanza para títulos de dos líneas: el antetítulo va en una línea con elipsis
+   («Insertar después de la lámina 22» no se parte) y la descripción, que repite lo que dicen las columnas, se oculta. */
+@media (max-width: 1180px) {
+  .pulso-f6-selector-antetitulo {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .pulso-f6-selector-descripcion {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 }
 
 .pulso-f6-selector-accion {
@@ -916,6 +936,26 @@
 .pulso-f6-datos-falta > svg {
   flex: none;
   align-self: center;
+}
+
+/* S6: en la vista partida, la fila que no dice lo mismo que la otra ficha lleva el tono del módulo. */
+.pulso-f6-datos-fila.is-difiere {
+  margin: 0 calc(-1 * var(--pulso-space-1));
+  padding: 2px var(--pulso-space-1);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--module-accent-soft);
+}
+
+.pulso-f6-datos-fila.is-difiere dt {
+  color: var(--module-accent);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-f6-detalle-clase[data-difiere] {
+  justify-self: start;
+  padding: 0 var(--pulso-space-1);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--module-accent-soft);
 }
 
 .pulso-f6-datos-fila dd > div,

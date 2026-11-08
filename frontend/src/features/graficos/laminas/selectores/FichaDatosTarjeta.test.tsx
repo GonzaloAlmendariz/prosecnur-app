@@ -6,7 +6,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { InventarioPublico } from "../../../../api/graficosInventario";
 import type { EstadoInventario } from "./fichaDatos";
 import { FichaDatosTarjeta } from "./FichaDatosTarjeta";
-import { usaDeGrafico } from "./fichaDatos";
+import { usaDeGrafico, usaDeTarjeta } from "./fichaDatos";
+import { tarjetaContar } from "./intencionesContar";
 import { ControlModoLamina } from "./ControlModoLamina";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -38,9 +39,22 @@ describe("FichaDatosTarjeta", () => {
     expect([...fila("publicos")!.querySelectorAll("[data-base]")].map((c) => c.textContent)).toEqual(["Docentesn = 115", "Estudiantesn = 279"]);
     expect(fila("estudio")!.textContent).toContain("73 preguntas de escala o de opción múltiple en Docentes, 60 en Estudiantes");
     expect(host.querySelector("[data-falta]")).toBeNull();
-    const seccion = host.querySelector("[data-ficha-datos]")!;
-    expect(seccion.getAttribute("data-qa-geometry-group")).toBe("graficos/f6-ficha-datos");
-    expect(seccion.getAttribute("data-qa-geometry-contract")).toBe("intrinsic");
+    // S3 (C1): el grupo se declara en la colección, el dl, y sus miembros son las tres filas.
+    const lista = host.querySelector("[data-ficha-datos] > dl")!;
+    expect(host.querySelector("[data-ficha-datos]")!.hasAttribute("data-qa-geometry-group")).toBe(false);
+    expect(lista.getAttribute("data-qa-geometry-group")).toBe("graficos/f6-ficha-datos");
+    expect(lista.getAttribute("data-qa-geometry-contract")).toBe("intrinsic");
+    expect(lista.querySelectorAll(":scope > [data-qa-geometry-member]")).toHaveLength(3);
+  });
+
+  it("S1: el contraste con un solo público dice «Varios» y avisa en una línea", () => {
+    const usa = usaDeTarjeta(tarjetaContar("p_slide_1_grafico:contraste"))!;
+    const uno: EstadoInventario = { estado: "listo", publicos: [pub("contadores", 300, 40)] };
+    act(() => root.render(<FichaDatosTarjeta usa={usa} inventario={uno} />));
+    expect(fila("publicos")!.querySelector("[data-publicos]")?.textContent).toBe("Varios");
+    expect([...host.querySelectorAll("[data-falta]")].map((p) => p.textContent)).toEqual(["El estudio tiene un solo público."]);
+    // S7: el público con la capitalización del estudio.
+    expect(fila("publicos")!.querySelector("[data-base]")?.textContent).toBe("Contadoresn = 300");
   });
 
   it("dice qué falta en una línea sin bloquear nada", () => {

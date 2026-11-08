@@ -79,11 +79,11 @@ export const useSelectoresUi = create<SelectoresUi>((set) => ({
     comparar: [], viendoComparacion: false,
   }),
   cambiarModoLamina: (modoLamina) => set({ modoLamina, candidato: null, variante: null, confirmando: false, comparar: [], viendoComparacion: false }),
-  // La segunda tarjeta marcada abre la vista partida; quitar una la cierra.
+  // S6: marcar la segunda tarjeta no salta a la vista partida; la galería sigue y la barra ofrece «Ver lado a lado».
+  // Quitar una la cierra.
   alternarComparar: (opcion) => set((s) => {
     const comparar = alternarEnComparacion(s.comparar, opcion);
-    const entro = comparar.length > s.comparar.length;
-    return { comparar, viendoComparacion: comparar.length === 2 && (entro || s.viendoComparacion), confirmando: false };
+    return { comparar, viendoComparacion: comparar.length === 2 && s.viendoComparacion, confirmando: false };
   }),
   verComparacion: (ver) => set((s) => ({ viendoComparacion: ver && s.comparar.length === 2, confirmando: false })),
   setInventario: (inventario) => set({ inventario }),

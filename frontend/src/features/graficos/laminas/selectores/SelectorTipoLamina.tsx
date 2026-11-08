@@ -43,7 +43,8 @@ import {
 import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { BarraComparar } from "./BarraComparar";
 import { ControlModoLamina } from "./ControlModoLamina";
-import { usaDeGrafico } from "./fichaDatos";
+import { laminasDeResumen, usaDeTarjeta } from "./fichaDatos";
+import { FichaDatosCierre } from "./FichaDatosCierre";
 import { FichaDatosTarjeta } from "./FichaDatosTarjeta";
 import { modoEfectivo, puedeEntrarEnComparacion } from "./modoYComparacion";
 import { useInventarioSelector } from "./useInventarioSelector";
@@ -70,6 +71,8 @@ export function SelectorTipoLamina({ slide, posicion, cerrar, onArmarResumen }: 
   const insertSlideAt = usePlanStore((s) => s.insertSlideAt);
   const undo = usePlanStore((s) => s.undo);
   const select = usePlanStore((s) => s.select);
+  // S8: el cierre con hallazgos toma sus cifras de las láminas de resumen del informe; su ficha dice cuántas hay.
+  const laminasResumen = usePlanStore((s) => laminasDeResumen(s.plan.slides));
   const grupo = useId();
   const focoInicialRef = useRef<HTMLInputElement>(null);
   // ADR 0135 §2: las láminas de resumen nacen con su regla y, si dependen de las bases, con sus `vars` (`base$*`).
@@ -249,10 +252,13 @@ export function SelectorTipoLamina({ slide, posicion, cerrar, onArmarResumen }: 
     ? `${formatoConteo(opciones.length)} ${opciones.length === 1 ? "lámina" : "láminas"}`
     : conGraficos ? `${rotuloCuenta(opciones.length)}, con los gráficos de esta lámina` : rotuloCuenta(opciones.length);
   const tarjetaCandidata = tarjetaContar(candidato);
-  const usaDe = (op: OpcionLamina) => usaDeGrafico(presetDe(op)?.grafico?.graficador);
+  // S1: el `usa` de la tarjeta manda sobre el del graficador cuando la composición lo exige.
+  const usaDe = (op: OpcionLamina) => usaDeTarjeta(presetDe(op));
   const fichaDe = (op: OpcionLamina): ReactNode => {
     const usa = usaDe(op);
-    return usa ? <FichaDatosTarjeta usa={usa} inventario={ui.inventario} /> : null;
+    if (usa) return <FichaDatosTarjeta usa={usa} inventario={ui.inventario} />;
+    const sinGrafico = presetDe(op)?.usaSinGrafico;
+    return sinGrafico ? <FichaDatosCierre usa={sinGrafico} laminasResumen={laminasResumen} /> : null;
   };
   const columnaComparar = (op: OpcionLamina): ColumnaComparar => {
     const preset = presetDe(op);
@@ -260,7 +266,7 @@ export function SelectorTipoLamina({ slide, posicion, cerrar, onArmarResumen }: 
     const c = cambios.get(op);
     return {
       opcion: op, tipo: t, nombre: nombreDe(op), clase: preset?.clase ?? "lamina", glifo: preset?.grafico?.graficador,
-      usa: usaDe(op), admite: rotuloRanuras(t), actual: esActual(op), sobrantes: c && !c.mismoTipo ? c.sobrantes.length : 0,
+      usa: usaDe(op), usaSinGrafico: preset?.usaSinGrafico, admite: rotuloRanuras(t), actual: esActual(op), sobrantes: c && !c.mismoTipo ? c.sobrantes.length : 0,
     };
   };
 
@@ -282,6 +288,7 @@ export function SelectorTipoLamina({ slide, posicion, cerrar, onArmarResumen }: 
         <VistaComparar
           columnas={comparar.map((op) => columnaComparar(op))}
           inventario={ui.inventario}
+          laminasResumen={laminasResumen}
           modo={modo}
           onUsar={(op) => aplicarOpcion(op, true)}
           onQuitar={(op) => ui.alternarComparar(op)}

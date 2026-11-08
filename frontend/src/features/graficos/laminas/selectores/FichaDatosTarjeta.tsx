@@ -1,7 +1,8 @@
 // Ficha «Datos» de una tarjeta del selector de láminas (auditoría del selector, hallazgo 2). Tres filas fijas:
 // «Preguntas» (los tipos que usa el gráfico, el principal destacado), «Públicos» (uno, varios o uno o varios, y cada
 // base con su n) y «Tu estudio» (lo que el estudio tiene para ese gráfico o, en una línea, qué falta). La ficha no
-// bloquea la tarjeta ni sugiere otra: el analista decide. Modelo en fichaDatos.ts.
+// bloquea la tarjeta ni sugiere otra: el analista decide. En la vista partida, las filas que difieren de la otra ficha se
+// resaltan. Modelo en fichaDatos.ts.
 
 import { useId } from "react";
 import { CircleAlert } from "../../../../vendor/lucide-react";
@@ -10,17 +11,24 @@ import { Panel } from "../../../../components/Panel";
 import { CargaDeBloque } from "../../../../components/CargaDeBloque";
 import { ErrorBlock } from "../../../../components/States";
 import { formatoConteo } from "../../../../lib/formatoNumero";
-import { cruzarConEstudio, ROTULO_PREGUNTA, ROTULO_PUBLICOS, type EstadoInventario } from "./fichaDatos";
+import { cruzarConEstudio, ROTULO_PREGUNTA, ROTULO_PUBLICOS, type EstadoInventario, type FilaFicha } from "./fichaDatos";
 
 type Props = {
   usa: UsaGrafico;
   inventario: EstadoInventario;
   /** Sufijo del grupo C1 cuando hay dos fichas en pantalla (la vista Comparar). */
   grupo?: string;
+  /** En la vista partida, las filas que no dicen lo mismo que la otra ficha (S6): se resaltan. */
+  difiere?: ReadonlySet<FilaFicha>;
 };
 
-export function FichaDatosTarjeta({ usa, inventario, grupo }: Props) {
+export function FichaDatosTarjeta({ usa, inventario, grupo, difiere }: Props) {
   const id = useId();
+  const fila = (clave: FilaFicha) => ({
+    className: difiere?.has(clave) ? "pulso-f6-datos-fila is-difiere" : "pulso-f6-datos-fila",
+    "data-fila-datos": clave,
+    "data-difiere": difiere?.has(clave) ? "" : undefined,
+  });
   const cruce = inventario.estado === "listo" ? cruzarConEstudio(usa, inventario.publicos) : null;
   return (
     <Panel
@@ -28,12 +36,15 @@ export function FichaDatosTarjeta({ usa, inventario, grupo }: Props) {
       className="pulso-f6-datos"
       aria-labelledby={`${id}-titulo`}
       data-ficha-datos=""
-      data-qa-geometry-group={`graficos/f6-ficha-datos${grupo ? `-${grupo}` : ""}`}
-      data-qa-geometry-contract="intrinsic"
     >
       <h4 id={`${id}-titulo`} className="pulso-f6-datos-titulo">Datos</h4>
-      <dl className="pulso-f6-datos-filas">
-        <div className="pulso-f6-datos-fila" data-fila-datos="preguntas" data-qa-geometry-member>
+      {/* C1: la colección son las filas de la lista, así que el grupo se declara en el dl (S3). */}
+      <dl
+        className="pulso-f6-datos-filas"
+        data-qa-geometry-group={`graficos/f6-ficha-datos${grupo ? `-${grupo}` : ""}`}
+        data-qa-geometry-contract="intrinsic"
+      >
+        <div {...fila("preguntas")} data-qa-geometry-member>
           <dt>Preguntas</dt>
           <dd>
             <ul className="pulso-f6-datos-chips" aria-label="Tipos de pregunta que usa">
@@ -48,7 +59,7 @@ export function FichaDatosTarjeta({ usa, inventario, grupo }: Props) {
             </ul>
           </dd>
         </div>
-        <div className="pulso-f6-datos-fila" data-fila-datos="publicos" data-qa-geometry-member>
+        <div {...fila("publicos")} data-qa-geometry-member>
           <dt>Públicos</dt>
           <dd>
             <span className="pulso-f6-datos-cuantos" data-publicos={usa.publicos}>{ROTULO_PUBLICOS[usa.publicos]}</span>
@@ -66,7 +77,7 @@ export function FichaDatosTarjeta({ usa, inventario, grupo }: Props) {
             )}
           </dd>
         </div>
-        <div className="pulso-f6-datos-fila" data-fila-datos="estudio" data-qa-geometry-member>
+        <div {...fila("estudio")} data-qa-geometry-member>
           <dt>Tu estudio</dt>
           <dd aria-live="polite">
             {inventario.estado === "cargando" && <CargaDeBloque label="Leyendo el estudio…" />}

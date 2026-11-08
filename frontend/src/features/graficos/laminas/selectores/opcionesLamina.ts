@@ -9,6 +9,7 @@
 
 import type { PadronPropuesto } from "../../../../api/graficosPadron";
 import type { GraficadorRef, Slide, SlideType } from "../../../../api/graficos";
+import type { UsaGrafico } from "../../iconos/catalogoTipos.generated";
 import { esGraficadorRef, type CambioTipoLamina } from "./cambioTipoLamina";
 import { TARJETAS_CONTAR, type ClaseTarjeta } from "./intencionesContar";
 import type { Intencion, IntencionLamina } from "./tiposLamina";
@@ -56,6 +57,13 @@ export type PresetLamina = {
   clase?: ClaseTarjeta;
   /** Lo que la tarjeta necesita del estudio, en una línea del detalle. */
   pide?: string;
+  /**
+   * Lo que la tarjeta usa cuando su composición pide otra cosa que el graficador (S1): el contraste estilo resumen usa
+   * el mismo `p_dumbbell` que la brecha dentro de un público, pero compara públicos. Se funde sobre el `usa` del catálogo.
+   */
+  usa?: Partial<UsaGrafico>;
+  /** Lo que usa una tarjeta sin gráfico de partida, en la ficha «Datos» (S8: el cierre usa cifras de otras láminas). */
+  usaSinGrafico?: string;
   /** ¿La lámina ya es esta opción? (para marcarla «Actual» y no reescribirla). */
   coincide: (payload: Readonly<Record<string, unknown>>) => boolean;
 };

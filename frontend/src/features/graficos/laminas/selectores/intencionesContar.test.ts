@@ -5,7 +5,7 @@ import { payloadPorDefecto } from "../../store";
 import { planearCambioTipo } from "./cambioTipoLamina";
 import { cambioConOpcion, conOpcion, presetDe, tipoDeOpcion, type EstudioDelSelector } from "./opcionesLamina";
 import {
-  casaBusqueda, INTENCIONES_CONTAR, presentacionDeGrafico, ROTULO_CLASE, TARJETAS_CONTAR, tarjetaContarDeLamina, tarjetasDe,
+  casaBusqueda, INTENCIONES_CONTAR, presentacionDeGrafico, ROTULO_CLASE, TARJETAS_CONTAR, tarjetaContar, tarjetaContarDeLamina, tarjetasDe,
 } from "./intencionesContar";
 import { etiquetaBotonTarjeta } from "./detalleLamina";
 
@@ -163,5 +163,17 @@ describe("buscar por pregunta o tipo", () => {
     expect(casaBusqueda("ESCALA sin", ["Escala con Sin información aparte"])).toBe(true);
     expect(casaBusqueda("escala tendencia", ["Escala con Sin información aparte"])).toBe(false);
     expect(casaBusqueda("  ", ["x"])).toBe(true);
+  });
+});
+
+describe("intenciones sin nombres fijos (S2)", () => {
+  it("«Comparar públicos» no nombra públicos de un estudio", () => {
+    const comparar = INTENCIONES_CONTAR.find((i) => i.id === "comparar")!;
+    expect(comparar.ayuda).toBe("Dónde difieren los públicos.");
+    expect(INTENCIONES_CONTAR.map((i) => i.ayuda).join(" ")).not.toMatch(/docentes|estudiantes/i);
+  });
+
+  it("el cierre con hallazgos declara lo que usa (S8)", () => {
+    expect(tarjetaContar("p_slide_cierre_hallazgos:cierre")?.usaSinGrafico).toBe("Cifras de otras láminas de resumen del informe");
   });
 });
