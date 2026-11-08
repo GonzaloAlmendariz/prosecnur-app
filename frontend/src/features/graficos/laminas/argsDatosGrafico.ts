@@ -760,6 +760,15 @@ export function propiosDeAspecto(p: { graficador: string; args: Readonly<Record<
 /** Los modos de la multiapilada en que el gráfico se divide por el cruce. */
 const MODOS_MULTI_CON_CRUCE: ReadonlySet<string> = new Set(["cruce", "var_cruce"]);
 
+/**
+ * R7-19: el patch que cambia el modo de la multiapilada a uno sin cruce quita `excluir_grupos` del plan: quedaba oculto
+ * (sin control que lo muestre) y el motor avisaba en cada exportación. Sin cambio de modo, el patch queda igual.
+ */
+export function sinGruposHuerfanos(args: Readonly<Record<string, unknown>>, patch: Record<string, unknown>): Record<string, unknown> {
+  if (!("modo" in patch) || MODOS_MULTI_CON_CRUCE.has(String(patch.modo ?? ""))) return patch;
+  return args.excluir_grupos === undefined || args.excluir_grupos === null ? patch : { ...patch, excluir_grupos: null };
+}
+
 const primerTexto = (v: unknown): string => {
   const x = Array.isArray(v) ? v[0] : v;
   return typeof x === "string" ? x.trim() : "";

@@ -29,7 +29,7 @@ import {
   type CampoDato,
 } from "./argsDatosGrafico";
 import { useLaminasUi } from "./laminasStore";
-import { publicosDistintos } from "./argsDatosGrafico";
+import { publicosDistintos, sinGruposHuerfanos } from "./argsDatosGrafico";
 import { useGraficosReportScope } from "../reportScope";
 import { aplicaOrden, varCalificada } from "./ordenCategorias";
 import { useSession } from "../../../lib/SessionContext";
@@ -240,7 +240,8 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
       {/* H2: la ayuda de «Pista gris» describe la opción elegida, no siempre «Automática». */}
       <Fila campo={{ ...c, ayuda: ayudaDeLaOpcion(c, alcance(c).valor) }} graficador={valor.graficador} valor={alcance(c).valor} sello={alcance(c).sello} categorias={categoriasDe(c.arg.name)}
             args={args} scope={scope} basePregunta={basePregunta} variables={variables}
-            onCambio={(v) => set(valor.graficador === "p_radar" && c.arg.name === "modo" && typeof v === "string" ? patchModoRadar(args.modo, v) : { [c.arg.name]: v })} />
+            onCambio={(v) => set(valor.graficador === "p_radar" && c.arg.name === "modo" && typeof v === "string" ? patchModoRadar(args.modo, v)
+              : valor.graficador === "p_barras_multiapiladas" ? sinGruposHuerfanos(args, { [c.arg.name]: v }) : { [c.arg.name]: v })} />
       {/* H2: «Un color por opción» encendido sobre una lista sin colores dice por qué no se ve. */}
       {c.arg.name === "colorear_por_opcion" && interruptorEncendido(c.arg, alcance(c).valor) && <AvisoColorPorOpcion valor={valor} />}
       {/* Oleada I2, ítem 7: elegido el cruce, sus grupos con su n; un clic manda uno de pocos casos a Excluir grupos. */}

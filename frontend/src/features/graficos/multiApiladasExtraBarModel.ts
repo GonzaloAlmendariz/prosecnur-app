@@ -1,3 +1,5 @@
+import { sinGruposHuerfanos } from "./laminas/argsDatosGrafico";
+
 type MultiApiladasArgs = Record<string, unknown>;
 
 function asRecord(value: unknown): MultiApiladasArgs {
@@ -15,7 +17,8 @@ export function mergeMultiApiladasArgsPatch(
   current: MultiApiladasArgs,
   patch: MultiApiladasArgs,
 ): MultiApiladasArgs {
-  const merged: MultiApiladasArgs = { ...current, ...patch };
+  // R7-19: dejar el modo con cruce quita los grupos excluidos (null: el store borra la clave).
+  const merged: MultiApiladasArgs = { ...current, ...sinGruposHuerfanos(current, patch) };
   if (merged.barra_extra == null) delete merged.barra_extra;
   const currentOverrides = asRecord(current.overrides);
   const patchOverrides = asRecord(patch.overrides);
