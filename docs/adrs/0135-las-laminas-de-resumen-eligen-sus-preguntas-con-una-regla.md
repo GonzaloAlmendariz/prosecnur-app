@@ -113,6 +113,12 @@ Decisiones de Gonzalo del 2026-11-07:
   usan la mitad por lado, y el campo de la UI muestra el valor que se aplica.
 - La regla de las láminas de resumen sólo considera escalas de al menos cuatro opciones sustantivas que forman batería
   o están declaradas ordinales; una escala de tres puntos se dibuja, pero ninguna regla la elige.
+- Una raíz ambigua es nivel sólo si está en la mitad negativa de la lista; al final de una escala que ya tiene su cero
+  («Nunca … Siempre / No he usado el servicio») es no respuesta.
+- La escala del resumen con varios públicos calcula cada fila sobre su propia base (pregunta y público) y le pone el
+  sufijo del público; ordenar o cortar entre públicos compara porcentajes de bases de distinto tamaño, sin total
+  combinado. La escala y sus especiales se toman de la primera referencia (las demás deben compartir la firma) y los
+  mismos filtros se aplican a todas las bases.
 - Pendiente: el dibujo de respaldo (ggplot) apila el gris de «Sin información» detrás del acuerdo; la lámina nativa no.
 
 ### Precisiones de la implementación
