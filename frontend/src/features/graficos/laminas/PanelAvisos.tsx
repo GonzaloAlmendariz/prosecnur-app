@@ -11,6 +11,7 @@ import type { ControlPanel } from "../../../lib/navegacion/paneles";
 import type { ValidationIssue } from "../usePlanValidator";
 import type { EstructuraInforme } from "./modeloEstructura";
 import { avisoConLaminaActual, type GrupoAvisos } from "./resumenInforme";
+import { avisoDentroDeLamina } from "./avisoEnLamina";
 import { capaVisibleFuera, destinoDelFoco, escucharEscape } from "./cierreConEscape";
 import { useAvisosPlan } from "../avisosPlan";
 import { useAvisosExportacion } from "../avisosExportacion/avisosExportacionStore";
@@ -92,7 +93,8 @@ export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = 
           Lámina {posicionDe.get(i.slideId)}
         </PulsoButton>
       )}
-      <span>{i.message}</span>
+      {/* R9-16: con el enlace «Lámina N» en la línea, el texto no repite su rótulo («Lámina 1 (Un gráfico): …»). */}
+      <span>{i.slideId && posicionDe.has(i.slideId) ? avisoDentroDeLamina(i.message) : i.message}</span>
     </li>
   );
 
@@ -177,7 +179,7 @@ export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = 
                   <PulsoButton variant="link" size="sm" className="pulso-f6-enlace-fila pulso-f6-avisos-ir" onClick={() => ir(m.slideId)}>
                     Lámina {posicionDe.get(m.slideId)}
                   </PulsoButton>
-                  <span>{avisoConLaminaActual(a, posicionDe.get(m.slideId))}</span>
+                  <span>{avisoDentroDeLamina(avisoConLaminaActual(a, posicionDe.get(m.slideId)))}</span>
                 </li>
               )))}
             </ul>

@@ -307,3 +307,18 @@ describe("R9-15: el cuerpo del inspector vuelve arriba al cambiar de lámina", (
     expect(src).toMatch(/ref=\{cuerpoRef\}\s*className="pulso-f6-inspector-cuerpo"/);
   });
 });
+
+describe("R9-16: una acción, una vez", () => {
+  it("«Cambiar de lámina…» sale de Composición; queda «Cambiar lámina» en la cabecera", () => {
+    expect(sinComentarios(leer("SeccionComposicion.tsx"))).not.toMatch(/Cambiar de lámina/);
+    expect(leer("InspectorLamina.tsx")).toMatch(/>\s*Cambiar lámina\s*</);
+  });
+  it("con el enlace «Lámina N» el aviso no repite su rótulo", () => {
+    const src = sinComentarios(leer("PanelAvisos.tsx"));
+    expect(src).toMatch(/posicionDe\.has\(i\.slideId\) \? avisoDentroDeLamina\(i\.message\) : i\.message/);
+    expect(src).toMatch(/avisoDentroDeLamina\(avisoConLaminaActual\(a, posicionDe\.get\(m\.slideId\)\)\)/);
+  });
+  it("la falta de «Dividir por» con regla se dice una vez (en la regla)", () => {
+    expect(sinComentarios(leer("brecha/BrechaEntreGrupos.tsx"))).toMatch(/faltaEnTarjeta === FALTA_CRUCE && conReglaDePreguntas \? null : faltaEnTarjeta/);
+  });
+});

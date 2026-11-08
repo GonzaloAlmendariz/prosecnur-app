@@ -3,7 +3,7 @@
 // separador, cierre) y la puerta a «¿Qué lámina?». El reparto lo fija el recetario: no hay deslizadores.
 
 import { useId } from "react";
-import { LayoutTemplate, Lock } from "../../../vendor/lucide-react";
+import { Lock } from "../../../vendor/lucide-react";
 import type { Slide } from "../../../api/graficos";
 import { ComposicionLamina } from "../iconos/ComposicionLamina";
 import { ESTANDAR_LAMINAS } from "../iconos/estandarLaminas.generated";
@@ -18,16 +18,14 @@ import { conVariante, defectoEfectivoDe, rotuloRanuras, varianteDe, variantesDe 
 import "./selectores/selectores.css";
 import "../indice/editorIndice.css";
 import "./seccionComposicion.css";
-import { PulsoButton } from "../../../components/PulsoButton";
 
 type Props = {
   slide: Slide;
   lamina: LaminaEnEstructura;
   ranura: number | null;
-  onCambiarLamina: () => void;
 };
 
-export function SeccionComposicion({ slide, lamina, ranura, onCambiarLamina }: Props) {
+export function SeccionComposicion({ slide, lamina, ranura }: Props) {
   const setSlideTipo = usePlanStore((s) => s.setSlideTipo);
   const { slidesById } = useGraficosRegistry();
   const id = useId();
@@ -101,11 +99,7 @@ export function SeccionComposicion({ slide, lamina, ranura, onCambiarLamina }: P
         </fieldset>
       )}
 
-
-      <PulsoButton variant="secondary" size="sm" className="pulso-f6-composicion-cambiar" data-qa-geometry-capacity="owned" onClick={onCambiarLamina}>
-        <LayoutTemplate size={15} aria-hidden="true" />
-        Cambiar de lámina…
-      </PulsoButton>
+      {/* R9-16: sin «Cambiar de lámina…» aquí; la acción vive una sola vez, en «Cambiar lámina» de la cabecera. */}
     </div>
   );
 }

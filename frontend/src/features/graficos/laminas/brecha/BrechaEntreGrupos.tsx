@@ -19,7 +19,7 @@ import { usaPublicos } from "../publicosGrafico/modeloPublicos";
 import { cargarCategorias } from "../useCategoriasGrafico";
 import {
   aEntreBases, aEntreGrupos, baseDelCruce, brechaSinPreguntas, comodinDelCruce, conCorte, conCruce, conGrupo, conPreguntas, corteDe,
-  esEntreGrupos, faltaEnBrecha, gruposDe, gruposPorDefecto, maxGrupos, mismaBase, opcionesDe, opcionesDeGrupo, preguntasDeclaradas,
+  esEntreGrupos, FALTA_CRUCE, faltaEnBrecha, gruposDe, gruposPorDefecto, maxGrupos, mismaBase, opcionesDe, opcionesDeGrupo, preguntasDeclaradas,
   preguntasPorRegla, soloComodinDelCruce,
 } from "./modeloBrechaGrupos";
 import "./brechaEntreGrupos.css";
@@ -44,7 +44,11 @@ export function BrechaEntreGrupos({ args, onCambio }: Props) {
   const varios = maxGrupos(args) > 2;
   const escala = grupos && preguntas.length ? opcionesDe(variables, preguntas[0]) : [];
   const corte = new Set(corteDe(args));
-  const falta = grupos ? faltaEnBrecha(args) : null;
+  // R9-16: sin «Dividir por» y con regla, la falta la dice la regla (con su camino a «Dividir por», R8-7); aquí se decía
+  // dos veces seguidas la misma frase.
+  const conReglaDePreguntas = !!args.regla && typeof args.regla === "object";
+  const faltaEnTarjeta = grupos ? faltaEnBrecha(args) : null;
+  const falta = faltaEnTarjeta === FALTA_CRUCE && conReglaDePreguntas ? null : faltaEnTarjeta;
   // ADR 0135 §6: en el contraste del resumen los grupos se eligen con su padrón (GruposPadron) y, entre bases, cada
   // público lleva el suyo con la propuesta de Cálculo de muestra o Monitoreo (PadronPublicos).
   const resumen = args.estilo === "resumen";

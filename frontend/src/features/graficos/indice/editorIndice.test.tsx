@@ -115,7 +115,7 @@ describe("E2 en Composición: se marca la que exporta el motor, con el sello «D
   const pintarComposicion = (payload: Record<string, unknown>) => {
     const slide: Slide = { id: "ix", tipo: "p_slide_indice", payload };
     const lamina = construirEstructura([slide]).laminas[0];
-    return texto(renderToStaticMarkup(createElement(SeccionComposicion, { slide, lamina, ranura: null, onCambiarLamina: () => undefined })));
+    return texto(renderToStaticMarkup(createElement(SeccionComposicion, { slide, lamina, ranura: null })));
   };
   /** La opción (label) que contiene el texto, con su radio. */
   const opcion = (html: string, rotulo: string) => html.split("<label").find((l) => l.includes(`<span>${rotulo}</span>`)) ?? "";

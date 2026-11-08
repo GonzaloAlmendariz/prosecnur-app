@@ -142,7 +142,7 @@ export function InspectorLamina({
         tabIndex={0}
       >
         {/* H4: en secciones plegables con índice, como la tarjeta del gráfico. */}
-        {seccion === "contenido" && <PestanaLamina slide={slide} lamina={lamina} ranura={ranura} onCambiarLamina={onCambiarLamina} />}
+        {seccion === "contenido" && <PestanaLamina slide={slide} lamina={lamina} ranura={ranura} />}
         {seccion === "graficos" && (
           <>
             <SalidaDelGrafico slide={slide} visor={visor} />

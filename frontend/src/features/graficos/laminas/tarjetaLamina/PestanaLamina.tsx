@@ -24,10 +24,9 @@ type Props = {
   slide: Slide;
   lamina: LaminaEnEstructura;
   ranura: number | null;
-  onCambiarLamina: () => void;
 };
 
-export function PestanaLamina({ slide, lamina, ranura, onCambiarLamina }: Props) {
+export function PestanaLamina({ slide, lamina, ranura }: Props) {
   const raiz = useRef<HTMLDivElement>(null);
   const abrir = useLaminasUi((s) => s.abrirSeccionLamina);
   const { contenido, especial } = useContenidoLamina(slide.tipo);
@@ -50,7 +49,7 @@ export function PestanaLamina({ slide, lamina, ranura, onCambiarLamina }: Props)
           onAbrir={(c) => { if (esSeccionLamina(c)) abrir(c); }} />
       )}
       <SeccionLaminaPlegable seccion="composicion" titulo={titulo("composicion")}>
-        <SeccionComposicion slide={slide} lamina={lamina} ranura={ranura} onCambiarLamina={onCambiarLamina} />
+        <SeccionComposicion slide={slide} lamina={lamina} ranura={ranura} />
         <DependenciaLamina slide={slide} />
         <DependenciaTresLamina slide={slide} />
         {/* U13: la cifra al lado y el gráfico con sus grupos bajo cada barra (lamina_cifra_y_grafico.R). */}
