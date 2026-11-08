@@ -323,7 +323,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
         {campos.some(deLados) && <LadosEscala id={`${slideId}-${slot}-lados`} graficador={valor.graficador} scope={scope} args={args} onCambio={set} respaldo={campos.filter(deLados).map(filaDe)} />}
         <TwoBoxGrafico slideId={slideId} slot={slot} valor={valor} onAbrirBloques={() => abrirEditorAmplio({ tipo: "bloques", slideId, slot })} />
         {/* R4: método y decimales propios, como excepción a la regla del informe. */}
-        <RedondeoDelGrafico graficador={valor.graficador} args={args} onCambio={(ov) => set({ overrides: ov })} />
+        <RedondeoDelGrafico graficador={valor.graficador} args={args} scope={scope} onCambio={(ov) => set({ overrides: ov })} />
         {conTarjetas && <TarjetasDiferencias slideId={slideId} slot={slot} />}
         {argSig && sigAplica && argCruce && !conTarjetas && (
           <DiferenciasInspector

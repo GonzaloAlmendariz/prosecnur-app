@@ -30,3 +30,5 @@
 .pulso-f6-cats-resumen .pulso-f6-cifra { margin-inline-start: var(--pulso-space-2); }
 /* Orden: la fila con su % gana una columna antes de Subir y Bajar. */
 .pulso-f6-orden-item:has(> .pulso-f6-cifra-pct) { grid-template-columns: auto auto minmax(0, 1fr) auto auto auto; }
+/* Redondeo: la cifra mayor junto al segmentado de decimales. */
+.pulso-f6-redondeo-decimales { display: flex; flex-wrap: wrap; align-items: center; gap: var(--pulso-space-2); min-width: 0; }

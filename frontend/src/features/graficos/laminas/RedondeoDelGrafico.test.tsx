@@ -25,4 +25,21 @@ describe("tarjeta · redondeo del gráfico", () => {
     expect(html).toMatch(/aria-checked="true"[^>]*>Un decimal/);
     expect(html).toContain("Sólo este gráfico; el informe usa estándar, sin decimales.");
   });
+  // Oleada I2, ítem 6: lo que suma la lámina con cada método, en dos líneas (sin «·»), y la mayor junto a los decimales.
+  it("con detalle: la suma de cada método y la mayor ya redondeada", () => {
+    const html = renderToStaticMarkup(createElement(RedondeoDelGraficoVista, {
+      fila, args: { overrides: { calculos_propios: true, decimales: 0 } }, onCambio: () => undefined,
+      cifras: { estandar: "Estándar: suma 99%", reparto: "Reparto: 100%", mayor: "La mayor: 62%", vigente: true },
+    }));
+    expect(html).toMatch(/data-qa="redondeo-estandar">Estándar: suma 99%</);
+    expect(html).toMatch(/data-qa="redondeo-reparto">Reparto: 100%</);
+    expect(html).toMatch(/data-qa="redondeo-mayor">La mayor: 62%</);
+    expect(html).not.toContain("·");
+  });
+  it("sin detalle, sin cifras; mientras carga, una silueta", () => {
+    expect(pintar({})).not.toContain("redondeo-estandar");
+    const html = renderToStaticMarkup(createElement(RedondeoDelGraficoVista, { fila, args: {}, onCambio: () => undefined, cifras: { vigente: false } }));
+    expect(html).toMatch(/data-qa="redondeo-estandar"/);
+    expect(html).toContain('aria-busy="true"');
+  });
 });
