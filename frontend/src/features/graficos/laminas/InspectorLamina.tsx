@@ -4,7 +4,7 @@
 // «Cambiar lámina» (cabecera) abre «¿Qué lámina?»; «Cambiar» de una ranura, «¿Qué gráfico?» (F6.2). El rótulo de la
 // cabecera (acabado W2-A) separa las dos acciones, que antes decían las dos «Cambiar».
 
-import { useId } from "react";
+import { useId, useLayoutEffect, useRef } from "react";
 import { BarChart3, FileText } from "../../../vendor/lucide-react";
 import type { GraficadorRef, Slide } from "../../../api/graficos";
 import { GlidingTabList } from "../../../components/GlidingTabList";
@@ -75,6 +75,13 @@ export function InspectorLamina({
   // H12: dentro de la lámina, sin su rótulo «Lámina N · “…”» ni punto medio (avisoEnLamina.ts).
   const avisos = [...new Set([...issues.filter((i) => i.slideId === slide.id).map((i) => i.detalle ?? i.message), ...(visor?.avisos ?? [])].map(avisoDentroDeLamina))];
 
+  // R9-15: al cambiar de lámina el cuerpo vuelve arriba; conservaba el desplazamiento de la anterior y la nueva se abría
+  // a media altura, sin su primera sección a la vista.
+  const cuerpoRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (cuerpoRef.current) cuerpoRef.current.scrollTop = 0;
+  }, [slide.id]);
+
   const tabId = (k: SeccionInspector) => `${baseId}-tab-${k}`;
   const panelId = (k: SeccionInspector) => `${baseId}-panel-${k}`;
 
@@ -123,6 +130,7 @@ export function InspectorLamina({
       )}
 
       <div
+        ref={cuerpoRef}
         className="pulso-f6-inspector-cuerpo"
         // R8-5 (C1): el cuerpo del inspector es el grupo de sus tarjetas (salida, gráficos, secciones con sus .pulso-f6-dato):
         // secciones independientes que crecen con lo suyo. Cada sección plegable declara además su cuerpo (f6-grupo-cuerpo).

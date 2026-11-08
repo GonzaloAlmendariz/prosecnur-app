@@ -299,3 +299,11 @@ describe("R9-14: el vacío del informe tiene un solo primario", () => {
     expect(acciones).not.toMatch(/variant="primary"/);
   });
 });
+
+describe("R9-15: el cuerpo del inspector vuelve arriba al cambiar de lámina", () => {
+  it("un efecto sobre slide.id lleva el scroll a 0", () => {
+    const src = sinComentarios(leer("InspectorLamina.tsx"));
+    expect(src).toMatch(/useLayoutEffect\(\(\) => \{\s*if \(cuerpoRef\.current\) cuerpoRef\.current\.scrollTop = 0;\s*\}, \[slide\.id\]\);/);
+    expect(src).toMatch(/ref=\{cuerpoRef\}\s*className="pulso-f6-inspector-cuerpo"/);
+  });
+});
