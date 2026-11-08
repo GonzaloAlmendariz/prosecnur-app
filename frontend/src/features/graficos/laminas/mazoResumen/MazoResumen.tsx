@@ -149,7 +149,7 @@ export function MazoResumen({ posicion, cerrar }: Props) {
       footerStatus={posicion ? `Van después de la lámina ${formatoConteo(posicion)}` : "Van al final del informe"}
       footer={(
         <>
-          <PulsoButton variant="secondary" onClick={() => cerrar()}>Cancelar</PulsoButton>
+          {/* R9-10: sin «Cancelar»; la X y Escape cierran (contrato B: una sola vía de cierre a la vista). */}
           <PulsoButton variant="primary" onClick={insertar} disabled={!listo || marca !== "graficos-resumen-ejecutivo" || n === 0}>{rotuloInsertar(n)}</PulsoButton>
         </>
       )}

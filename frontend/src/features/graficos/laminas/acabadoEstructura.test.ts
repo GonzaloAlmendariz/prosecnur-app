@@ -267,3 +267,19 @@ describe("R9-8: la maqueta no muestra un título generado como real", () => {
     expect(css).toMatch(/\.pulso-f6-maqueta-zona\.pulso-f6-maqueta-titulo \{\s*padding-block: 0;/);
   });
 });
+
+describe("R9-10: el mazo del resumen, en lo que se resuelve dentro de Láminas", () => {
+  it("el deshabilitado honesto y el anillo único alcanzan al mazo (portal fuera del host)", () => {
+    const css = sinComentarios(leer("laminasWorkbench.css"));
+    const i = css.indexOf(':is(:disabled, [aria-disabled="true"])');
+    expect(css.slice(css.lastIndexOf("\n", i), i)).toContain(".pulso-f6-mazo");
+  });
+  it("sin «Cancelar» junto a la X; el asa mide 28 con el radio de control", () => {
+    expect(sinComentarios(leer("mazoResumen/MazoResumen.tsx"))).not.toMatch(/>Cancelar</);
+    const css = sinComentarios(leer("mazoResumen/mazoResumen.css"));
+    const asa = css.slice(css.indexOf(".pulso-f6-mazo-asa {"), css.indexOf("}", css.indexOf(".pulso-f6-mazo-asa {")));
+    expect(asa).toContain("height: var(--pulso-control-height-sm)");
+    expect(asa).toContain("border-radius: var(--pulso-control-radius)");
+    expect(css).not.toMatch(/border-radius:\s*5px/);
+  });
+});

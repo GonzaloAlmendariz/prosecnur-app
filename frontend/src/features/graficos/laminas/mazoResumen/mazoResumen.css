@@ -86,11 +86,11 @@
   flex: none;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: var(--pulso-control-height-sm);
+  height: var(--pulso-control-height-sm);
   padding: 0;
   border: 0;
-  border-radius: var(--pulso-radius-chip);
+  border-radius: var(--pulso-control-radius);
   background: transparent;
   color: var(--pulso-text-faint);
   cursor: grab;
@@ -108,7 +108,7 @@
 
 @media (hover: hover) {
   .pulso-f6-mazo-asa:hover {
-    background: var(--pulso-surface-2);
+    background: var(--pulso-surface-3);
     color: var(--pulso-text);
   }
 }
@@ -307,7 +307,7 @@
   width: 18px;
   height: 18px;
   border: 1.5px solid var(--pulso-border-strong);
-  border-radius: 5px;
+  border-radius: calc(var(--pulso-control-radius) / 2);
   background: var(--pulso-surface);
 }
 
@@ -517,4 +517,13 @@
 
 :root[data-pulso-layout-preset="short"] .pulso-f6-mazo-plegable.is-abierta .pulso-f6-mazo-plegable-franja {
   margin-top: var(--pulso-space-3);
+}
+
+/* R9-10 (acabado): los controles del mazo en la familia de alturas 28/32 y el radio único. El indicador es PulsoSelect a
+   la altura de los botones; el deshabilitado de «Insertar láminas» es el honesto (laminasWorkbench.css, que ahora
+   alcanza a .pulso-f6-mazo): surface-3, text-faint y borde, sin opacidad sobre el acento. La X es la del Dialog del kit
+   (borde y sombra): queda pendiente de W3. */
+.pulso-f6-mazo .pulso-select-trigger {
+  --pulso-field-height: var(--pulso-chrome-control-h);
+  border-radius: var(--pulso-control-radius);
 }
