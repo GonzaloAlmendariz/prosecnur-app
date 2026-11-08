@@ -30,3 +30,23 @@
   height: 100%;
   object-fit: contain;
 }
+
+/* Sin imagen y con motivo (R5-1): el glifo arriba y la línea «Sin vista previa: …» debajo, dentro de la misma caja. */
+.pulso-f6-detalle-lienzo.is-grafico[data-miniatura="error"],
+.pulso-f6-comparar-hueco[data-miniatura="error"] {
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-f6-detalle-lienzo.is-grafico[data-miniatura="error"] > :first-child,
+.pulso-f6-comparar-hueco[data-miniatura="error"] > :first-child {
+  min-height: 0;
+}
+
+.pulso-f6-hueco-nota {
+  margin: 0;
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.35;
+  color: var(--pulso-text-soft);
+  text-align: center;
+}

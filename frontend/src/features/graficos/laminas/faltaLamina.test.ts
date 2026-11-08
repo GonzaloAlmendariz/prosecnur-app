@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import type { Slide } from "../../../api/graficos";
 import { FALTAN_GRUPOS } from "./brecha/modeloBrechaGrupos";
-import { faltaEnLamina } from "./faltaLamina";
+import { FALTA_INDICADOR, faltaEnLamina } from "./faltaLamina";
 
 const conGrafico = (graficador: string, args: Record<string, unknown>): Slide => ({
   id: "s1", tipo: "p_slide_1_grafico", payload: { titulo: "", grafico: { graficador, args } },
@@ -17,9 +17,17 @@ describe("lo que le falta a una lámina", () => {
     expect(faltaEnLamina(conGrafico("p_dumbbell", { ...aperturas, cruce: "docentes$p3", grupos: ["1", "2"] }))).toBeNull();
   });
 
-  it("el contraste entre públicos, los demás gráficos y una lámina sin gráfico no piden nada", () => {
-    expect(faltaEnLamina(conGrafico("p_dumbbell", { estilo: "resumen", cruce: null, bases: ["a", "b"] }))).toBeNull();
-    expect(faltaEnLamina(conGrafico("p_panorama", {}))).toBeNull();
+  it("el contraste con su indicador, los demás gráficos y una lámina sin gráfico no piden nada", () => {
+    expect(faltaEnLamina(conGrafico("p_dumbbell", { estilo: "resumen", cruce: null, bases: ["a", "b"], corte: "4,5" }))).toBeNull();
+    expect(faltaEnLamina(conGrafico("p_panorama", { corte: ["4", "5"] }))).toBeNull();
+    expect(faltaEnLamina(conGrafico("p_barras_divergentes", {}))).toBeNull();
     expect(faltaEnLamina({ id: "p", tipo: "p_slide_portada", payload: { titulo: "Informe" } })).toBeNull();
+  });
+
+  it("R5-2: sin indicador, el contraste, el panorama y las fortalezas lo piden (el motor no los dibuja sin `corte`)", () => {
+    expect(faltaEnLamina(conGrafico("p_dumbbell", { estilo: "resumen", cruce: null, bases: ["a", "b"] }))).toBe(FALTA_INDICADOR);
+    expect(faltaEnLamina(conGrafico("p_dumbbell", { estilo: "resumen", cruce: null, bases: ["a", "b"], corte: "" }))).toBe(FALTA_INDICADOR);
+    expect(faltaEnLamina(conGrafico("p_panorama", {}))).toBe(FALTA_INDICADOR);
+    expect(faltaEnLamina(conGrafico("p_fortalezas", { vars: ["a$*"], corte: [] }))).toBe(FALTA_INDICADOR);
   });
 });

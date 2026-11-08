@@ -60,6 +60,7 @@ import { opcionesQuePiden } from "./modeloMiniaturasSelector";
 import { useMiniaturasSelector } from "./useMiniaturasSelector";
 import { VistaComparar, type ColumnaComparar } from "./VistaComparar";
 import { formatoConteo } from "../../../../lib/formatoNumero";
+import { escalaDominante, indicadoresDelEstudio } from "../mazoResumen/modeloMazo";
 
 const FUERA_DEL_CATALOGO = new Set(CATALOGO_LAMINAS.filter((s) => !s.en_selector).map((s) => s.name));
 
@@ -93,8 +94,15 @@ export function SelectorTipoLamina({ slide, posicion, cerrar, onArmarResumen }: 
   const conCobertura = registry ? "p_cobertura" in graficadoresById : CATALOGO_GRAFICOS.some((g) => g.name === "p_cobertura");
   const padron = propuestasDe(usePadronPropuesto(scope, conCobertura && nombresBases !== ""));
   useInventarioSelector(panel.abierto, scope);
-  const estudio = useMemo<EstudioDelSelector>(
-    () => ({ bases: nombresBases ? nombresBases.split("|") : [], baseActiva, padron }), [nombresBases, baseActiva, padron]);
+  // R5-2: el indicador por defecto del estudio (Top Two Box de su escala dominante, el mismo del mazo). Sin él, el
+  // panorama, el contraste y las fortalezas nacen sin `corte` y no se dibujan.
+  const indicador = indicadoresDelEstudio(escalaDominante(sources, sources.map((s) => s.name)))[0] ?? null;
+  // Por contenido: `sources` cambia de identidad sin cambiar de escala.
+  const firmaIndicador = JSON.stringify(indicador ? { etiqueta: indicador.etiqueta, codigos: indicador.codigos } : null);
+  const estudio = useMemo<EstudioDelSelector>(() => ({
+    bases: nombresBases ? nombresBases.split("|") : [], baseActiva, padron,
+    indicador: JSON.parse(firmaIndicador) as EstudioDelSelector["indicador"],
+  }), [nombresBases, baseActiva, padron, firmaIndicador]);
 
   const modo = modoEfectivo(ui.modoLamina, !!slide);
   const tipoActual = modo === "cambiar" && slide ? slide.tipo : null;
@@ -173,7 +181,7 @@ export function SelectorTipoLamina({ slide, posicion, cerrar, onArmarResumen }: 
   // La lámina real sólo para la enfocada o las dos comparadas; la galería se queda con sus glifos.
   const miniaturas = useMiniaturasSelector({
     opciones: opcionesQuePiden(candidato, comparar, ui.viendoComparacion && comparar.length === 2),
-    inventario: ui.inventario, estudio, scope, activo: panel.abierto,
+    inventario: ui.inventario, estudio, scope, activo: panel.abierto, fuentes: sources,
   });
 
   // Cerrar por fuera (Escape, velo, otro enlace, «atrás») deja el selector listo para la próxima vez: sin confirmación

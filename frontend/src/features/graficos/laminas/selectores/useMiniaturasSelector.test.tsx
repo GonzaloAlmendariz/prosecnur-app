@@ -31,7 +31,9 @@ const publico = (base: string): InventarioPublico => ({
 });
 const DOS: EstadoInventario = { estado: "listo", publicos: [publico("docentes"), publico("estudiantes")] };
 const UNO: EstadoInventario = { estado: "listo", publicos: [publico("docentes")] };
-const ESTUDIO: EstudioDelSelector = { bases: ["docentes", "estudiantes"], baseActiva: "docentes" };
+const ESTUDIO: EstudioDelSelector = {
+  bases: ["docentes", "estudiantes"], baseActiva: "docentes", indicador: { codigos: ["4", "5"], etiqueta: "Top Two Box" },
+};
 
 function Sonda(p: { opciones: OpcionLamina[]; inventario: EstadoInventario; activo: boolean }) {
   useMiniaturasSelector({ ...p, estudio: ESTUDIO, scope: "active" });

@@ -73,6 +73,16 @@ export const todasDeLasBases = (bases: readonly string[]): string[] => bases.map
 /** El par con que nace el contraste entre públicos: las dos primeras bases, en su orden; con menos de dos, ninguno. */
 export const parDelContraste = (bases: readonly string[]): string[] | null => (bases.length >= 2 ? bases.slice(0, 2) : null);
 
+/**
+ * El `corte` y su nombre con que nacen las láminas que suman un indicador (R5-2): el del estudio, si lo hay. `enCadena`
+ * para `p_dumbbell`, que lo guarda como «4,5» (CORTE_EN_CADENA de argsDatosGrafico.ts).
+ */
+export function indicadorPorDefecto(e: EstudioDelSelector, enCadena = false): Record<string, unknown> {
+  const codigos = e.indicador?.codigos ?? [];
+  if (!codigos.length) return {};
+  return { corte: enCadena ? codigos.join(",") : [...codigos], corte_etiqueta: e.indicador?.etiqueta ?? "" };
+}
+
 const basePrincipal = (e: EstudioDelSelector): string | null =>
   e.baseActiva && e.bases.includes(e.baseActiva) ? e.baseActiva : e.bases[0] ?? null;
 
@@ -97,7 +107,9 @@ export const TARJETAS_CONTAR: readonly TarjetaContar[] = [
     parche: {},
     grafico: {
       graficador: "p_panorama", args: {},
-      porDefecto: (e) => ({ regla: { ...REGLA_POR_DEFECTO.panorama }, ...(e.bases.length ? { vars: todasDeLasBases(e.bases) } : {}) }),
+      porDefecto: (e) => ({
+        regla: { ...REGLA_POR_DEFECTO.panorama }, ...(e.bases.length ? { vars: todasDeLasBases(e.bases) } : {}), ...indicadorPorDefecto(e),
+      }),
     },
     coincide: conGrafico("p_panorama"),
   },
@@ -114,7 +126,7 @@ export const TARJETAS_CONTAR: readonly TarjetaContar[] = [
       graficador: "p_fortalezas", args: {},
       porDefecto: (e) => {
         const base = basePrincipal(e);
-        return base ? { vars: todasDeLasBases([base]) } : {};
+        return { ...(base ? { vars: todasDeLasBases([base]) } : {}), ...indicadorPorDefecto(e) };
       },
     },
     coincide: conGrafico("p_fortalezas"),
@@ -150,7 +162,7 @@ export const TARJETAS_CONTAR: readonly TarjetaContar[] = [
       graficador: "p_dumbbell", args: { estilo: "resumen", cruce: null },
       porDefecto: (e) => {
         const par = parDelContraste(e.bases);
-        return { regla: { ...REGLA_POR_DEFECTO.contraste }, ...(par ? { bases: par } : {}) };
+        return { regla: { ...REGLA_POR_DEFECTO.contraste }, ...(par ? { bases: par } : {}), ...indicadorPorDefecto(e, true) };
       },
     },
     coincide: conGrafico("p_dumbbell", (a) => resumen(a) && !esEntreGrupos(a)),
@@ -192,7 +204,7 @@ export const TARJETAS_CONTAR: readonly TarjetaContar[] = [
     parche: {},
     // Sin `cruce: null`: la brecha arranca en «dos grupos» y el cruce se elige en Datos.
     // Dentro de un público no hay par: el `bases` que traiga del contraste se borra.
-    grafico: { graficador: "p_dumbbell", args: { estilo: "resumen", cruce: undefined, bases: undefined }, porDefecto: () => ({ regla: { ...REGLA_POR_DEFECTO.aperturas } }) },
+    grafico: { graficador: "p_dumbbell", args: { estilo: "resumen", cruce: undefined, bases: undefined }, porDefecto: (e) => ({ regla: { ...REGLA_POR_DEFECTO.aperturas }, ...indicadorPorDefecto(e, true) }) },
     coincide: conGrafico("p_dumbbell", (a) => resumen(a) && esEntreGrupos(a)),
   },
   {

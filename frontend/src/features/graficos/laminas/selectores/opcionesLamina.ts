@@ -24,7 +24,19 @@ type Parche = Readonly<Record<string, unknown>>;
  * Lo que el selector sabe del estudio al insertar: sus bases y la activa (useVariables) y, si ya se leyó, la propuesta de
  * padrón y meta por base (ADR 0135 §6), con la que nace la cobertura.
  */
-export type EstudioDelSelector = { bases: readonly string[]; baseActiva: string | null; padron?: readonly PadronPropuesto[] };
+export type EstudioDelSelector = {
+  bases: readonly string[];
+  baseActiva: string | null;
+  padron?: readonly PadronPropuesto[];
+  /**
+   * El indicador por defecto del estudio (R5-2): los códigos de la escala dominante que suman (Top Two Box) y su nombre,
+   * los mismos que propone el mazo (`indicadoresDelEstudio`). El panorama, el contraste y las fortalezas no se dibujan
+   * sin `corte`: nacen con éste. `null` o ausente si el estudio no tiene una escala de cuatro opciones sustantivas.
+   */
+  indicador?: IndicadorDelEstudio | null;
+};
+
+export type IndicadorDelEstudio = { codigos: readonly string[]; etiqueta: string };
 
 export const SIN_ESTUDIO: EstudioDelSelector = { bases: [], baseActiva: null };
 

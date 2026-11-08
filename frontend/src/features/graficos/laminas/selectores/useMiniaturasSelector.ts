@@ -17,7 +17,8 @@ import { ESPERA_PRIMER_LOTE_MS } from "../miniaturas/useMiniaturasLote";
 import type { EstadoInventario } from "./fichaDatos";
 import { useMiniaturasSelectorStore } from "./miniaturasSelectorStore";
 import {
-  laminasDelSelector, miniaturaDeEntrada, planSelector, type LaminaDelSelector, type MiniaturaSelector,
+  laminasDelSelector, miniaturaDeEntrada, notasDelSelector, planSelector,
+  type FuenteSelector, type LaminaDelSelector, type MiniaturaSelector,
 } from "./modeloMiniaturasSelector";
 import type { EstudioDelSelector, OpcionLamina } from "./opcionesLamina";
 
@@ -29,14 +30,22 @@ type Entrada = {
   scope: GraficosReportScope;
   /** El selector está abierto. */
   activo: boolean;
+  /** Las preguntas de cada base (useVariables): la muestra de una tarjeta sin preguntas de partida (R5-1). */
+  fuentes?: readonly FuenteSelector[];
 };
+
+const SIN_FUENTES: readonly FuenteSelector[] = [];
+
+/** Firma barata de las preguntas: qué bases y qué variables, con su tipo (la muestra sólo depende de eso). */
+const firmaFuentes = (fuentes: readonly FuenteSelector[]): string =>
+  fuentes.map((f) => `${f.name}:${f.variables.map((v) => `${v.name}/${v.tipo}/${v.choices?.length ?? 0}`).join(",")}`).join("|");
 
 function cancelarLotes(): void {
   for (const jobId of useMiniaturasSelectorStore.getState().abandonarLotes()) void apiJobCancel(jobId).catch(() => undefined);
 }
 
 /** El hueco de cada tarjeta pedida (por opción); las que no piden no tienen entrada y pintan su glifo. */
-export function useMiniaturasSelector({ opciones, inventario, estudio, scope, activo }: Entrada): Partial<Record<OpcionLamina, MiniaturaSelector>> {
+export function useMiniaturasSelector({ opciones, inventario, estudio, scope, activo, fuentes = SIN_FUENTES }: Entrada): Partial<Record<OpcionLamina, MiniaturaSelector>> {
   const { state } = useSession();
   const habilitada = activo && (!!state?.analitica_prep_ok || scope === "consolidated");
   const presets = usePlanStore((s) => s.presets);
@@ -48,10 +57,16 @@ export function useMiniaturasSelector({ opciones, inventario, estudio, scope, ac
 
   // La firma por contenido deja el mismo arreglo mientras no cambien las tarjetas, el estudio ni el estilo.
   const global = useMemo(() => clavePreview({ presets, paletas, overrides, scope }), [presets, paletas, overrides, scope]);
-  const firma = `${global}#${clavePreview({ opciones, inventario, estudio })}`;
-  const memo = useRef<{ firma: string; laminas: LaminaDelSelector[] } | null>(null);
-  if (memo.current?.firma !== firma) memo.current = { firma, laminas: laminasDelSelector(opciones, inventario, estudio, global) };
-  const laminas = memo.current.laminas;
+  const firma = `${global}#${clavePreview({ opciones, inventario, estudio })}#${firmaFuentes(fuentes)}`;
+  const memo = useRef<{ firma: string; laminas: LaminaDelSelector[]; notas: Partial<Record<OpcionLamina, string>> } | null>(null);
+  if (memo.current?.firma !== firma) {
+    memo.current = {
+      firma,
+      laminas: laminasDelSelector(opciones, inventario, estudio, global, fuentes),
+      notas: notasDelSelector(opciones, inventario, estudio, fuentes),
+    };
+  }
+  const { laminas, notas } = memo.current;
 
   useEffect(() => {
     if (!habilitada || enVuelo || !laminas.length) return;
@@ -119,8 +134,9 @@ export function useMiniaturasSelector({ opciones, inventario, estudio, scope, ac
     return () => window.removeEventListener("pulso:session-changed", reiniciar);
   }, []);
 
-  return useMemo(
-    () => Object.fromEntries(laminas.map((l) => [l.opcion, miniaturaDeEntrada(entradas[l.id])])),
-    [laminas, entradas],
-  );
+  // Las que no piden por estar incompletas llevan su línea «Sin vista previa: …» junto al glifo.
+  return useMemo(() => ({
+    ...Object.fromEntries(Object.entries(notas).map(([op, nota]) => [op, { src: null, error: nota ?? null }])),
+    ...Object.fromEntries(laminas.map((l) => [l.opcion, miniaturaDeEntrada(entradas[l.id])])),
+  }), [laminas, notas, entradas]);
 }

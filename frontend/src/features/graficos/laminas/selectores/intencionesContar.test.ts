@@ -5,7 +5,7 @@ import { payloadPorDefecto } from "../../store";
 import { planearCambioTipo } from "./cambioTipoLamina";
 import { cambioConOpcion, conOpcion, presetDe, tipoDeOpcion, type EstudioDelSelector } from "./opcionesLamina";
 import {
-  casaBusqueda, INTENCIONES_CONTAR, presentacionDeGrafico, ROTULO_CLASE, TARJETAS_CONTAR, tarjetaContar, tarjetaContarDeLamina, tarjetasDe,
+  casaBusqueda, indicadorPorDefecto, INTENCIONES_CONTAR, presentacionDeGrafico, ROTULO_CLASE, TARJETAS_CONTAR, tarjetaContar, tarjetaContarDeLamina, tarjetasDe,
 } from "./intencionesContar";
 import { etiquetaBotonTarjeta } from "./detalleLamina";
 
@@ -175,5 +175,31 @@ describe("intenciones sin nombres fijos (S2)", () => {
 
   it("el cierre con hallazgos declara lo que usa (S8)", () => {
     expect(tarjetaContar("p_slide_cierre_hallazgos:cierre")?.usaSinGrafico).toBe("Cifras de otras láminas de resumen del informe");
+  });
+});
+
+describe("R5-2: el indicador por defecto del estudio", () => {
+  const conIndicador: EstudioDelSelector = {
+    bases: ["docentes", "estudiantes"], baseActiva: "docentes", indicador: { codigos: ["4", "5"], etiqueta: "Top Two Box" },
+  };
+  const args = (op: Parameters<typeof conOpcion>[0], e: EstudioDelSelector, previo?: Record<string, unknown>) => {
+    const tipo = tipoDeOpcion(op);
+    const p = conOpcion(op, previo ?? payloadPorDefecto(tipo), e);
+    return (p.grafico as { args: Record<string, unknown> }).args;
+  };
+
+  it("el contraste insertado lleva el indicador del estudio (en cadena, como lo guarda p_dumbbell)", () => {
+    expect(args("p_slide_1_grafico:contraste", conIndicador)).toMatchObject({ corte: "4,5", corte_etiqueta: "Top Two Box" });
+    expect(indicadorPorDefecto(conIndicador)).toEqual({ corte: ["4", "5"], corte_etiqueta: "Top Two Box" });
+  });
+
+  it("sin escala en el estudio no se inventa un indicador", () => {
+    expect(args("p_slide_1_grafico:contraste", { bases: ["a", "b"], baseActiva: "a" }).corte).toBeUndefined();
+    expect(indicadorPorDefecto({ bases: [], baseActiva: null, indicador: null })).toEqual({});
+  });
+
+  it("no pisa el indicador ya elegido en la lámina", () => {
+    const previo = { ...payloadPorDefecto("p_slide_1_grafico"), grafico: { graficador: "p_dumbbell", args: { estilo: "resumen", cruce: null, corte: "3,4,5" } } };
+    expect(args("p_slide_1_grafico:contraste", conIndicador, previo).corte).toBe("3,4,5");
   });
 });
