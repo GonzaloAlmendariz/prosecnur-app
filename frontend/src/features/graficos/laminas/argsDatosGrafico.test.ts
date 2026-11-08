@@ -159,8 +159,13 @@ describe("ayudaDeLaOpcion (H2): la ayuda de «Pista gris» describe la opción e
   it("sin valor guardado manda el default del registro", () => {
     expect(ayudaDeLaOpcion(pista, undefined)).toBe("Automática: en toda barra de una serie, como el resto del mazo.");
   });
-  it("otro mando conserva su ayuda fija", () => {
-    expect(ayudaDeLaOpcion({ ...pista, arg: { ...pista.arg, name: "tipo_rango" } }, "nunca")).toBe(pista.ayuda);
+  it("otro mando suma la opción elegida detrás de su guarda (ítem 9: el hint de la elegida va al «?»)", () => {
+    expect(ayudaDeLaOpcion({ ...pista, arg: { ...pista.arg, name: "tipo_rango" } }, "nunca"))
+      .toBe("Automática: en toda barra de una serie. Nunca: la barra sola, sin pista.");
+  });
+  it("una opción sin hint deja la ayuda fija", () => {
+    const sinHint = { ...pista, arg: { ...pista.arg, name: "tipo_rango" }, opciones: pista.opciones.map(({ value, label }) => ({ value, label })) };
+    expect(ayudaDeLaOpcion(sinHint, "nunca")).toBe(pista.ayuda);
   });
 });
 

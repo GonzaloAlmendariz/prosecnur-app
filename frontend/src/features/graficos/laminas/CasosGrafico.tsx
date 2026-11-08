@@ -5,6 +5,9 @@
 import { useId } from "react";
 import type { GraficadorRef } from "../../../api/graficos";
 import { usePlanStore } from "../store";
+import { leerCasosJunto, type CuandoCasos } from "../estiloInforme/casosJunto";
+import { segmentacionFija } from "./opcionesEnSegmentado";
+import { FilaSegmentada } from "./tarjetaGrafico/FilaSegmentada";
 
 /** Los gráficos que dibujan el número de casos junto a su cifra. */
 export const GRAFICOS_CON_CASOS = new Set(["p_barras_agrupadas", "p_pie", "p_donut"]);
@@ -24,21 +27,28 @@ export function conOpcionCasos(args: Record<string, unknown>, opcion: Opcion): R
   return { overrides: ov };
 }
 
+/** Ítem 9 (2026-11-08): «Como el informe» dice qué rige hoy en el informe. */
+export function rotuloComoElInforme(cuando: CuandoCasos, umbral: number): string {
+  if (cuando === "siempre") return "Como el informe (con casos)";
+  if (cuando === "nunca") return "Como el informe (sin casos)";
+  return `Como el informe (bajo ${umbral})`;
+}
+
 export function CasosGrafico({ slideId, slot, valor }: { slideId: string; slot: string; valor: GraficadorRef }) {
   const id = useId();
   const updateSlotArgs = usePlanStore((s) => s.updateSlotArgs);
+  const presets = usePlanStore((s) => s.presets);
   if (!GRAFICOS_CON_CASOS.has(valor.graficador)) return null;
   const args = (valor.args ?? {}) as Record<string, unknown>;
   const actual = opcionCasos(args);
+  const informe = leerCasosJunto(presets);
+  const segmentos = segmentacionFija([
+    { value: "informe", label: rotuloComoElInforme(informe.cuando, informe.umbral) },
+    { value: "siempre", label: "Siempre" },
+    { value: "nunca", label: "Nunca" },
+  ]);
   return (
-    <div className="pulso-f6-dato" data-qa="casos-grafico">
-      <label htmlFor={id} className="pulso-f6-dato-rotulo">Casos junto al %</label>
-      <select id={id} className="pulso-f6-input" value={actual}
-        onChange={(e) => updateSlotArgs(slideId, slot, conOpcionCasos(args, e.target.value as Opcion))}>
-        <option value="informe">Como el informe</option>
-        <option value="siempre">Siempre</option>
-        <option value="nunca">Nunca</option>
-      </select>
-    </div>
+    <FilaSegmentada id={id} rotulo="Casos junto al %" segmentos={segmentos} valor={actual} qa="casos-grafico"
+      onCambio={(v) => updateSlotArgs(slideId, slot, conOpcionCasos(args, v === "siempre" || v === "nunca" ? v : "informe"))} />
   );
 }

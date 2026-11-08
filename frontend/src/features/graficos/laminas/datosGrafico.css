@@ -427,3 +427,19 @@
   outline-offset: var(--pulso-nav-focus-offset);
   border-radius: var(--pulso-radius);
 }
+
+/* Ítem 9 (2026-11-08): opciones en segmentado (FilaSegmentada). Debajo del rótulo, el segmentado ocupa todo el ancho y
+   sus opciones se reparten; un rótulo largo parte línea dentro de su opción, nunca se recorta (C4). */
+.pulso-f6-dato-segmentado.is-apilado .pulso-f6-seg {
+  display: flex;
+  min-width: 0;
+}
+
+.pulso-f6-dato-segmentado.is-apilado .pulso-f6-seg-op {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: auto;
+  min-height: 22px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}

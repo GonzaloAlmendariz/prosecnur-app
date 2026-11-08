@@ -70,6 +70,8 @@ import { PartesLineas } from "./PartesLineas";
 import { AgruparLista } from "./AgruparLista";
 import { Segmentado } from "../subpestanas/Segmentado";
 import { opcionesNumeroEnBotones } from "./numerosEnBotones";
+import { opcionesEnSegmentado } from "./opcionesEnSegmentado";
+import { FilaSegmentada } from "./tarjetaGrafico/FilaSegmentada";
 import { graficadorToPresetType } from "../graficadorPresetMap";
 import { graficadorDisplayName } from "../graficadorDisplay";
 import { toast } from "../../../components/toasterStore";
@@ -386,6 +388,7 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias, args, sco
   const texto = textoAyuda(ayuda, marcas, detalle);
   const describe = texto ? idAyuda : undefined;
   const globo = <Ayuda id={idAyuda} rotulo={rotulo} detalle={texto} />;
+  const segmentos = control === "opciones" ? opcionesEnSegmentado(campo.opciones, valor) : null;
   const etiqueta = (
     <label className="pulso-f6-dato-rotulo" htmlFor={id}>
       {rotulo}
@@ -444,6 +447,8 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias, args, sco
       </div>
     );
   }
+  // Ítem 9 (2026-11-08): hasta tres opciones cortas, a la vista en un segmentado (opcionesEnSegmentado.ts).
+  if (control === "opciones" && segmentos) return <FilaSegmentada id={id} rotulo={rotulo} marcas={<>{globo}{sello}</>} segmentos={segmentos} valor={typeof valor === "string" ? valor : String(arg.default ?? "")} onCambio={onCambio} />;
   if (control === "opciones") {
     // Un valor guardado con una opción retirada (6a) se ve como actual y lleva su aviso; al cambiarlo ya no vuelve.
     const idAviso = `${id}-aviso`;

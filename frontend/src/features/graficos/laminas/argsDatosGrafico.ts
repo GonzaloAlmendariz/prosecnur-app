@@ -580,14 +580,20 @@ export function camposDeDatos(args: readonly ArgMetadata[], valores: Valores, gr
  */
 const AYUDA_DE_LA_OPCION: ReadonlySet<string> = new Set(["pista_barras"]);
 
-/** La ayuda que va junto al control con el valor que rige (`valor`, o el `default` del registro si no hay). */
+/**
+ * La ayuda que va en el «?» del control con el valor que rige (`valor`, o el `default` del registro si no hay). Ítem 9 de
+ * la oleada del inspector (2026-11-08): con las opciones a la vista en un segmentado, el `hint` de la elegida va al «?»
+ * de todo mando de opciones, detrás de su guarda; en `pista_barras` la reemplaza, porque la guarda describe la opción por
+ * defecto.
+ */
 export function ayudaDeLaOpcion(campo: Pick<CampoDato, "arg" | "ayuda" | "opciones">, valor: unknown): string | null {
-  if (!AYUDA_DE_LA_OPCION.has(campo.arg.name)) return campo.ayuda;
   const elegida = typeof valor === "string" && valor !== "" ? valor : campo.arg.default;
   const op = campo.opciones.find((o) => o.value === elegida);
   const hint = op?.hint?.trim();
   if (!op || !hint) return campo.ayuda;
-  return `${op.label}: ${hint.charAt(0).toLowerCase()}${hint.slice(1)}`;
+  const deLaOpcion = `${op.label}: ${hint.charAt(0).toLowerCase()}${hint.slice(1)}`;
+  if (AYUDA_DE_LA_OPCION.has(campo.arg.name)) return deLaOpcion;
+  return textoAyuda(campo.ayuda, deLaOpcion);
 }
 
 /** El `depende` del arg se cumple con un valor ya elegido (sin `depende`, siempre). */

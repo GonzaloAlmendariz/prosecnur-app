@@ -23,6 +23,11 @@ const REGISTRO: Record<string, { args: ArgMetadata[] }> = {
       { value: "p10_p90", label: "Percentiles 10 a 90" }, { value: "custom", label: "Percentiles a medida" }] }),
     a("chip_decimales", "number")] },
   p_histograma: { args: [a("limite_superior", "number")] },
+  // Ítem 9: tres opciones cortas con su hint, para el segmentado.
+  p_barras_categoricas: { args: [a("pista_barras", "choice", { grupo: "estilo", default: "auto", choices: [
+    { value: "auto", label: "Automática", hint: "En toda barra de una serie." },
+    { value: "siempre", label: "Siempre", hint: "La escala va de 0 a 100%." },
+    { value: "nunca", label: "Nunca", hint: "La barra sola, sin pista." }] })] },
   p_barras_apiladas: { args: [a("mostrar_categorias_en_cero", "bool", { default: false })] },
   p_barras_agrupadas: { args: [a("mostrar_ceros", "bool", { default: false }), a("invertir_leyenda", "bool")] },
   p_radar: { args: [a("modo", "choice", { choices: [{ value: "publicos", label: "Públicos" }] }),
@@ -125,5 +130,16 @@ describe("DatosGrafico · C40", () => {
     const campo = /<input id="[^"]+" type="text"[^>]*>/.exec(html)?.[0] ?? "";
     expect(campo).toContain('placeholder="La mitad"');
     expect(campo).toContain('value=""');
+  });
+
+  it("ítem 9: tres opciones cortas van en segmentado y el hint de la elegida va al «?»", () => {
+    const html = pintar("p_barras_categoricas", { pista_barras: "nunca" });
+    expect(html).toContain(`role="radiogroup"`);
+    const radios = [...html.matchAll(/role="radio" aria-checked="(true|false)"[^>]*>([^<]+)</g)].map((m) => `${m[2]}:${m[1]}`);
+    expect(radios).toEqual(["Automática:false", "Siempre:false", "Nunca:true"]);
+    expect(html).not.toContain("<select");
+    expect(html).toContain("Nunca: la barra sola, sin pista.");
+    // Cuatro opciones siguen en desplegable.
+    expect(pintar("p_media_rango")).toContain("<select");
   });
 });

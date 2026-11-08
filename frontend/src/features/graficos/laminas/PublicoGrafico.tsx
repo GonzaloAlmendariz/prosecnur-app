@@ -6,8 +6,20 @@
 import { useId } from "react";
 import type { GraficadorRef } from "../../../api/graficos";
 import { SLIDE_GRAF_SLOTS, usePlanStore } from "../store";
+import { AyudaGlobo } from "./AyudaGlobo";
+import { segmentacionFija, type Segmentacion } from "./opcionesEnSegmentado";
+import { FilaSegmentada } from "./tarjetaGrafico/FilaSegmentada";
 
 type Valor = "auto" | "si" | "no";
+
+/** Ítem 9 (2026-11-08): «Automático» dice qué rige, la regla G9: sale sólo si el n del gráfico es otro que el de la lámina. */
+export const OPCIONES_PUBLICO: readonly { value: Valor; label: string }[] = [
+  { value: "auto", label: "Automático (si el n cambia)" },
+  { value: "si", label: "Mostrar" },
+  { value: "no", label: "Ocultar" },
+];
+const SEGMENTOS_PUBLICO: Segmentacion = segmentacionFija(OPCIONES_PUBLICO);
+const AYUDA_PUBLICO = "Automático: «172 respuestas» sale bajo el enunciado sólo si el gráfico no tiene el mismo público y el mismo n que la lámina.";
 
 export function PublicoGrafico({ slideId, slot, valor }: { slideId: string; slot: string; valor: GraficadorRef }) {
   const id = useId();
@@ -24,13 +36,8 @@ export function PublicoGrafico({ slideId, slot, valor }: { slideId: string; slot
     updateSlotArgs(slideId, slot, { overrides: siguiente });
   };
   return (
-    <div className="pulso-f6-dato" data-qa="publico-grafico">
-      <label className="pulso-f6-dato-rotulo" htmlFor={id}>Respuestas bajo el enunciado</label>
-      <select id={id} className="pulso-f6-input pulso-f6-dato-select" value={actual} onChange={(e) => cambiar(e.target.value as Valor)}>
-        <option value="auto">Automático</option>
-        <option value="si">Mostrar</option>
-        <option value="no">Ocultar</option>
-      </select>
-    </div>
+    <FilaSegmentada id={id} rotulo="Respuestas bajo el enunciado" segmentos={SEGMENTOS_PUBLICO} valor={actual} qa="publico-grafico"
+      marcas={<AyudaGlobo id={`${id}-ayuda`} rotulo="Respuestas bajo el enunciado" detalle={AYUDA_PUBLICO} />}
+      onCambio={(v) => cambiar(v === "si" || v === "no" ? v : "auto")} />
   );
 }
