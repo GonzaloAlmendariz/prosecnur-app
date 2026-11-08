@@ -117,8 +117,22 @@ Decisiones de Gonzalo del 2026-11-07:
   («Nunca … Siempre / No he usado el servicio») es no respuesta.
 - La escala del resumen con varios públicos calcula cada fila sobre su propia base (pregunta y público) y le pone el
   sufijo del público; ordenar o cortar entre públicos compara porcentajes de bases de distinto tamaño, sin total
-  combinado. La escala y sus especiales se toman de la primera referencia (las demás deben compartir la firma) y los
-  mismos filtros se aplican a todas las bases.
+  combinado. Los mismos filtros se aplican a todas las bases.
+- **Escalas distintas en una lámina** (como la p. 4 del resumen de Arte, que junta acuerdo y satisfacción). La leyenda
+  es la escala más frecuente del universo de la regla (si la regla elige filas de una sola escala, la de esas filas).
+  Otra escala se alinea **por posición** sólo si: tiene el mismo número de opciones sustantivas; su tema es acuerdo,
+  satisfacción, importancia, confianza, utilidad o probabilidad (frecuencia y temas no reconocidos quedan fuera, porque
+  «nunca/nada» no dice si el polo es bueno o malo); va en el mismo sentido negativo a positivo; reparte igual sus
+  niveles; si tiene punto medio, éste es neutral en ambas («ni … ni», neutral, indiferente) o son del mismo tema; y no
+  trae una opción sin información que la leyenda no tenga (con más de una, deben coincidir por etiqueta). Cada fila
+  conserva su cifra y su base; sólo cambia la columna donde cae cada nivel. El pie agrega «en <tema>, de <extremo
+  negativo> a <extremo positivo>» por cada escala alineada, sin decir qué fila usa cuál. Una exclusión de opciones se
+  traduce a la escala alineada por posición (sustantiva) o por ser especial, para que todas las filas compartan
+  denominador. Lo que no se alinea queda fuera con su causa: «otro número de opciones», «de tema no reconocido»,
+  «sentido contrario», «reparten sus niveles distinto», «su punto medio no es neutral», «opciones sin información
+  distintas». Medido en Arte: el universo pasa de 145 a 157 y las dos filas de satisfacción coinciden con la p. 4.
+- Con regla, una fila que no se puede calcular (sin respuestas, vacía tras las exclusiones) queda fuera con aviso y el
+  conteo la descuenta; sin regla, la tabla sigue estricta.
 - La mitad negativa depende de la dirección declarada de la escala (`direccion_escala`): una lista invertida sin
   declararla pinta la polaridad al revés, como ya pasaba. Con «Nunca» en la lista, «No he X» es no respuesta.
 - El detector quedó aprobado tras seis revisiones metodológicas (2026-11-07); los probes viven en el scratchpad de la
@@ -149,7 +163,10 @@ Decisiones de Gonzalo del 2026-11-07:
   la lámina a imagen. Medido en Arte: con los rótulos completos de 100 a 200 caracteres, el respaldo ggplot dejaba el
   panel en cero (un rectángulo de color sin marcas).
 - La escala del resumen admite hasta 20 filas en la lámina nativa (el resumen de Arte tiene 18); **enmienda el tope de
-  14 del ADR 0134 §5 para esta lámina**. En estilo resumen la columna del no sustantivo se rotula siempre «Sin
+  14 del ADR 0134 §5 para esta lámina**. Con más filas no se recorta: la escala sale por el respaldo y la regla y el
+  render avisan con la causa («22 preguntas bajo 60%; la lámina nativa admite 20…»). En Arte la regla «bajo 60%» da
+  22, las mismas que cuenta el panorama del cliente (p. 3: 2 de 60, 16 de 73, 4 de 24); la p. 4 muestra 18 porque el
+  cliente omitió cuatro (dos de docentes, dos de administrativos), no por otro criterio. En estilo resumen la columna del no sustantivo se rotula siempre «Sin
   información».
 - Con la regla «mayor diferencia», el contraste ordena por la diferencia absoluta, la brecha más grande arriba.
 

@@ -40,8 +40,10 @@ Diferencias con el PDF de Arte, explicadas:
 
 - Mediana de estudiantes 85% frente a 84%: con 60 preguntas es el promedio de las dos centrales, redondeado arriba.
 - Mediana de administrativos 72% frente a 76%: el PDF tomó el elemento central superior a mano.
-- La escala con varios públicos parte de 145 preguntas y no de 157: 12 usan otra escala de respuestas y quedan fuera
-  de esa lámina. Deuda declarada.
+- ~~La escala con varios públicos parte de 145 preguntas~~: cerrado (095e70b66, bd32813f0). Las 12 de satisfacción se
+  alinean por posición con las de acuerdo, como en la p. 4; ahora 157, revisión metodológica aplicada (H1 a H5).
+- La regla «bajo 60%» da 22 filas y la p. 4 trae 18: el panorama del propio cliente cuenta 22; la p. 4 omitió cuatro.
+  Con más de 20 filas la escala sale por el respaldo y se avisa la causa.
 
 Aprendido:
 
