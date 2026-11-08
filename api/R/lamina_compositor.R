@@ -431,7 +431,10 @@
   # En filas (Bottom Two Box con la premisa corta, decisión «2c») el criterio es el mismo: la premisa encabeza como
   # pregunta y la fila lleva el público con sus respuestas a la izquierda de la barra. La forma se decide antes de
   # cambiar el rótulo, con la premisa.
-  un_publico <- NROW(espec$filas) == 1L && all(is.na(espec$filas$grupo_id)) && any(grepl("$", el_plot$var %||% "", fixed = TRUE)) && nzchar(base_var)
+  # R8-11 (ola 2): con cruce, la fila única es un GRUPO del cruce (lo que dejó `excluir_grupos`), no la afirmación de un
+  # público: se rotula con su grupo («Tiempo parcial por asignaturas (TPA)»), no con el público («Docentes»).
+  con_cruce <- any(nzchar(trimws(as.character(unlist(el_plot$cruces %||% (el_plot$overrides %||% list())$cruces %||% character(0))))))
+  un_publico <- NROW(espec$filas) == 1L && all(is.na(espec$filas$grupo_id)) && any(grepl("$", el_plot$var %||% "", fixed = TRUE)) && nzchar(base_var) && !con_cruce
   publico <- paste0(toupper(substr(base_var, 1, 1)), substr(base_var, 2, nchar(base_var)))
   if (un_publico && .lam_escala_modo_filas(espec)) {
     espec$pregunta <- as.character(espec$filas$rotulo[1])
