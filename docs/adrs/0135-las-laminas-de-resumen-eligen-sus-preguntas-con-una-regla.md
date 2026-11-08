@@ -77,7 +77,7 @@ Decisiones de Gonzalo del 2026-11-07:
      de origen desaparece o la cifra cambió desde que se escribió el texto, la lámina avisa.
 7. **Enmienda al ADR 0104 (Gráficos).** En la revisión del emparejado entre públicos, una pregunta sin par puede recibir
    una sugerencia por parecido de texto (`sugerida`), con estas condiciones:
-   - Se confirma, se cambia o se descarta **fila por fila**. No hay confirmación en bloque.
+   - Se confirma, se cambia o se descarta **fila por fila**. La única acción en lote es «Confirmar los idénticos (N)»: sólo toma pares cuyo texto normalizado es igual, cada pregunta una vez, y cada par se deshace por separado (enmienda del 2026-11-08, auditoría de experiencia). Cada par muestra su coincidencia (Idéntico, Parecido, Distinto) y los dos textos completos con lo distinto marcado, para que el analista decida con la evidencia a la vista.
    - No entra en la lámina ni en la regla mientras no se confirme.
    - «Guardar lo confirmado en la matriz» funde lo confirmado en la declaración (GET, unión, POST), sin reemplazarla.
 
