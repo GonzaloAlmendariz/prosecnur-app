@@ -59,6 +59,9 @@ describe("una clase, un significado", () => {
 
   it("ninguna clase raíz del módulo Gráficos fija dos display distintos en dos hojas", () => {
     const archivos = [...hojas(RAIZ)].map((ruta) => ({ ruta: path.relative(RAIZ, ruta), css: fs.readFileSync(ruta, "utf8") }));
+    // Centinela: si el recorrido deja de encontrar hojas o reglas, el contrato no puede pasar en verde sin mirar.
+    expect(archivos.length).toBeGreaterThan(20);
+    expect(displaysPorClase(archivos).size).toBeGreaterThan(50);
     expect(colisiones(displaysPorClase(archivos))).toEqual([]);
   });
 });
