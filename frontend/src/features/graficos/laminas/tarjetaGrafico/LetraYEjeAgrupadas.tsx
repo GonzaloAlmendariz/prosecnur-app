@@ -2,9 +2,9 @@
 // modelo y por qué van en `overrides` están en letraYEje.ts.
 
 import { useId } from "react";
-import type { ArgMetadata } from "../../../../api/graficos";
 import { Switch } from "../../../../components/Switch";
-import { NumeroAcotado } from "../NumeroAcotado";
+import { NumeroDeslizable } from "../NumeroDeslizable";
+import { rangoDeslizable } from "../modeloNumeroDeslizable";
 import {
   conLetraYEje,
   ETIQUETAS_MAX_PCT,
@@ -21,15 +21,10 @@ import { AyudaGlobo } from "../AyudaGlobo";
 
 type Props = { graficador: string; args: Readonly<Record<string, unknown>>; onCambio: (overrides: Record<string, unknown> | null) => void };
 
-const letra = (name: string, label: string, porDefecto: number): ArgMetadata => ({
-  name, label, tipo_input: "number", grupo: "estilo", min: LETRA_MIN_PT, max: LETRA_MAX_PT, step: LETRA_PASO_PT, default: porDefecto,
-});
-
 // Sin default: vacío, la columna se ajusta sola a los nombres (`.lam_barras_ancho_rotulos`).
-const ESPACIO_ETIQUETAS: ArgMetadata = {
-  name: "canvas_w_etiquetas", label: "Espacio para las etiquetas", tipo_input: "number", grupo: "estilo",
-  min: ETIQUETAS_MIN_PCT, max: ETIQUETAS_MAX_PCT, step: ETIQUETAS_PASO_PCT,
-};
+const RANGO_LETRA = rangoDeslizable({ name: "size_ejes", min: LETRA_MIN_PT, max: LETRA_MAX_PT, step: LETRA_PASO_PT }) ?? { min: LETRA_MIN_PT, max: LETRA_MAX_PT, paso: LETRA_PASO_PT, grande: 1 };
+const RANGO_ETIQUETAS = rangoDeslizable({ name: "canvas_w_etiquetas", min: ETIQUETAS_MIN_PCT, max: ETIQUETAS_MAX_PCT, step: ETIQUETAS_PASO_PCT })
+  ?? { min: ETIQUETAS_MIN_PCT, max: ETIQUETAS_MAX_PCT, paso: ETIQUETAS_PASO_PCT, grande: ETIQUETAS_PASO_PCT };
 
 export function LetraYEjeAgrupadas({ graficador, args, onCambio }: Props) {
   const id = useId();
@@ -38,25 +33,15 @@ export function LetraYEjeAgrupadas({ graficador, args, onCambio }: Props) {
   const cambiar = (c: Partial<LetraYEje>) => onCambio(conLetraYEje(args, c));
   return (
     <>
-      <div className="pulso-f6-dato" data-qa="letra-categorias">
-        <label className="pulso-f6-dato-rotulo" htmlFor={`${id}-rotulo`}>Letra de las categorías (pt)</label>
-        <NumeroAcotado id={`${id}-rotulo`} rotulo="Letra de las categorías" arg={letra("size_ejes", "Letra de las categorías", 12)}
-          valor={actual.rotuloPt} placeholder="Auto" onCambio={(v) => cambiar({ rotuloPt: v })} />
-      </div>
-      <div className="pulso-f6-dato" data-qa="letra-cifras">
-        <label className="pulso-f6-dato-rotulo" htmlFor={`${id}-cifra`}>Letra de las cifras (pt)</label>
-        <NumeroAcotado id={`${id}-cifra`} rotulo="Letra de las cifras" arg={letra("size_texto_barras", "Letra de las cifras", actual.rotuloPt ?? 12)}
-          valor={actual.cifraPt} placeholder="Auto" onCambio={(v) => cambiar({ cifraPt: v })} />
-      </div>
-      <div className="pulso-f6-dato is-automatico" data-qa="espacio-etiquetas">
-        <label className="pulso-f6-dato-rotulo" htmlFor={`${id}-etiquetas`}>
-          Espacio para las etiquetas (%)
-          <AyudaGlobo id={`${id}-etiquetas-ayuda`} rotulo="Espacio para las etiquetas"
-            detalle="La columna con el nombre de cada barra, en % del ancho de la lámina. Vacío, se ajusta a los nombres." />
-        </label>
-        <NumeroAcotado id={`${id}-etiquetas`} rotulo="Espacio para las etiquetas" arg={ESPACIO_ETIQUETAS} describe={`${id}-etiquetas-ayuda`}
-          valor={actual.etiquetasPct} placeholder="Automático" onCambio={(v) => cambiar({ etiquetasPct: v })} />
-      </div>
+      {/* Ítem 11 (2026-11-08): la letra y el espacio se arrastran; «Auto» vuelve a lo que decide la lámina. */}
+      <NumeroDeslizable id={`${id}-rotulo`} rotulo="Letra de las categorías (pt)" qa="letra-categorias" rango={RANGO_LETRA}
+        valor={actual.rotuloPt} porDefecto={12} vacio="Auto" onCambio={(v) => cambiar({ rotuloPt: v })} />
+      <NumeroDeslizable id={`${id}-cifra`} rotulo="Letra de las cifras (pt)" qa="letra-cifras" rango={RANGO_LETRA}
+        valor={actual.cifraPt} porDefecto={actual.rotuloPt ?? 12} vacio="Auto" onCambio={(v) => cambiar({ cifraPt: v })} />
+      <NumeroDeslizable id={`${id}-etiquetas`} rotulo="Espacio para las etiquetas (%)" qa="espacio-etiquetas" rango={RANGO_ETIQUETAS}
+        valor={actual.etiquetasPct} vacio="Auto" onCambio={(v) => cambiar({ etiquetasPct: v })}
+        marcas={<AyudaGlobo id={`${id}-etiquetas-ayuda`} rotulo="Espacio para las etiquetas"
+          detalle="La columna con el nombre de cada barra, en % del ancho de la lámina. Auto, se ajusta a los nombres." />} />
       <div className="pulso-f6-dato" data-qa="eje-libre">
         <span className="pulso-f6-dato-rotulo" id={`${id}-eje`}>
           Eje libre<AyudaGlobo rotulo="Eje libre" detalle="La barra mayor llega al borde. Apagado, la escala va de 0 a 100%." />

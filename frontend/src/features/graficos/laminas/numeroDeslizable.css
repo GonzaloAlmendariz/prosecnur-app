@@ -1,0 +1,55 @@
+/* Número acotado como slider (NumeroDeslizable, ítem 11). La CifraDeslizable trae su rótulo, su número y su pista en dos
+   cajas; aquí se aplanan (display: contents) para que el «?», el sello y el «Auto» queden en la línea del rótulo y la
+   pista debajo, a todo el ancho de la tarjeta. Superficie intrínseca: nada se recorta (C4). */
+.pulso-f6-dato.pulso-f6-numdesl {
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  column-gap: var(--pulso-space-1);
+}
+
+.pulso-f6-numdesl > .pulso-f6-regla-deslizador,
+.pulso-f6-numdesl .pulso-f6-regla-deslizador-cabeza {
+  display: contents;
+}
+
+.pulso-f6-numdesl .pulso-f6-dato-rotulo { grid-column: 1; grid-row: 1; }
+.pulso-f6-numdesl-marcas { grid-column: 2; grid-row: 1; display: inline-flex; align-items: center; gap: var(--pulso-space-1); min-width: 0; }
+.pulso-f6-numdesl-vacio { grid-column: 3; grid-row: 1; }
+.pulso-f6-numdesl .pulso-f6-regla-numero { grid-column: 4; grid-row: 1; }
+.pulso-f6-numdesl .pulso-f6-regla-rango { grid-column: 1 / -1; grid-row: 2; width: 100%; }
+
+/* «Auto» rige: la cifra que se ve es la de referencia, no una decisión. */
+.pulso-f6-numdesl.is-vacio .pulso-f6-regla-numero { color: var(--pulso-text-faint); font-weight: var(--pulso-weight-regular); }
+.pulso-f6-numdesl.is-vacio .pulso-f6-regla-rango { opacity: 0.55; }
+/* Sin cifra de referencia (la lámina la calcula): sólo «Auto»; el número vuelve al mover la pista. */
+.pulso-f6-numdesl.is-sin-cifra .pulso-f6-regla-numero { visibility: hidden; }
+
+.pulso-f6-numdesl-vacio {
+  height: 22px;
+  padding: 0 var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: var(--pulso-type-caption-size);
+  cursor: pointer;
+}
+
+.pulso-f6-numdesl-vacio[aria-pressed="true"] {
+  border-color: var(--module-accent);
+  background: var(--module-accent-soft);
+  color: var(--module-accent);
+  font-weight: var(--pulso-weight-semibold);
+  cursor: default;
+}
+
+.pulso-f6-numdesl-vacio:active { transform: scale(var(--mov-press)); }
+
+.pulso-f6-numdesl-vacio:focus-visible {
+  outline: var(--mov-foco);
+  outline-offset: 1px;
+}
+
+@media (hover: hover) {
+  .pulso-f6-numdesl-vacio[aria-pressed="false"]:hover { border-color: var(--pulso-border-strong); }
+}

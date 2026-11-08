@@ -68,15 +68,17 @@ describe("DatosGrafico, U11 multiapiladas por cruce", () => {
 });
 
 describe("DatosGrafico, U-c espacio para las etiquetas", () => {
-  it("vacío dice «Automático», sin el 0.45 del preset ni el 0.36 que anunciaba el registro", () => {
-    const html = pintar("p_barras_agrupadas", { var: "p1" });
-    const campo = html.match(/data-qa="espacio-etiquetas"[\s\S]*?<input[^>]*>/)?.[0] ?? "";
-    expect(campo).toContain('placeholder="Automático"');
-    expect(campo).toContain('value=""');
+  // Ítem 11 (2026-11-08): es un slider; vacío marca «Auto» y no muestra cifra (la lámina la calcula).
+  const fila = (html: string) => html.match(/<div class="[^"]*" data-qa="espacio-etiquetas">[\s\S]*?<\/button><\/div>/)?.[0] ?? "";
+  it("vacío dice «Auto», sin el 0.45 del preset ni el 0.36 que anunciaba el registro", () => {
+    const campo = fila(pintar("p_barras_agrupadas", { var: "p1" }));
+    expect(campo).toContain("is-sin-cifra");
+    expect(campo).toMatch(/aria-pressed="true"[^>]*>Auto</);
     expect(campo).not.toMatch(/value="(45|36|0\.45|0\.36)"/);
   });
   it("con un valor guardado en `overrides` lo muestra en %", () => {
-    const html = pintar("p_barras_agrupadas", { var: "p1", overrides: { canvas_w_etiquetas: 0.3 } });
-    expect(html.match(/data-qa="espacio-etiquetas"[\s\S]*?<input[^>]*>/)?.[0]).toContain('value="30"');
+    const campo = fila(pintar("p_barras_agrupadas", { var: "p1", overrides: { canvas_w_etiquetas: 0.3 } }));
+    expect(campo).toMatch(/class="pulso-f6-input pulso-f6-regla-numero" value="30"/);
+    expect(campo).toMatch(/type="range"[^>]*value="30"/);
   });
 });

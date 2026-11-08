@@ -23,6 +23,8 @@ const REGISTRO: Record<string, { args: ArgMetadata[] }> = {
       { value: "p10_p90", label: "Percentiles 10 a 90" }, { value: "custom", label: "Percentiles a medida" }] }),
     a("chip_decimales", "number")] },
   p_histograma: { args: [a("limite_superior", "number")] },
+  // Ítem 11: un número acotado con pocos pasos se arrastra.
+  p_panorama: { args: [a("referencia", "number", { grupo: "valores", default: 60, min: 0, max: 100, step: 5 })] },
   // Ítem 9: tres opciones cortas con su hint, para el segmentado.
   p_barras_categoricas: { args: [a("pista_barras", "choice", { grupo: "estilo", default: "auto", choices: [
     { value: "auto", label: "Automática", hint: "En toda barra de una serie." },
@@ -141,5 +143,13 @@ describe("DatosGrafico · C40", () => {
     expect(html).toContain("Nunca: la barra sola, sin pista.");
     // Cuatro opciones siguen en desplegable.
     expect(pintar("p_media_rango")).toContain("<select");
+  });
+
+  it("ítem 11: la referencia del panorama (0 a 100, paso 5) es un slider con su valor escrito al lado", () => {
+    const html = pintar("p_panorama");
+    expect(html).toMatch(/<input id="[^"]+" type="range"[^>]*min="0" max="100"[^>]*value="60"/);
+    expect(html).toMatch(/class="pulso-f6-input pulso-f6-regla-numero" value="60"/);
+    expect(html).toContain("pulso-f6-numdesl");
+    expect(pintar("p_panorama", { referencia: 75 })).toMatch(/type="range"[^>]*value="75"/);
   });
 });

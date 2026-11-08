@@ -71,6 +71,8 @@ import { AgruparLista } from "./AgruparLista";
 import { Segmentado } from "../subpestanas/Segmentado";
 import { opcionesNumeroEnBotones } from "./numerosEnBotones";
 import { opcionesEnSegmentado } from "./opcionesEnSegmentado";
+import { campoDeslizable } from "./modeloNumeroDeslizable";
+import { NumeroDeslizable } from "./NumeroDeslizable";
 import { FilaSegmentada } from "./tarjetaGrafico/FilaSegmentada";
 import { graficadorToPresetType } from "../graficadorPresetMap";
 import { graficadorDisplayName } from "../graficadorDisplay";
@@ -205,7 +207,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
       etiqueta={<label className="pulso-f6-dato-rotulo" htmlFor={`${slideId}-${slot}-objetivo`}>Índice</label>}
       onCambio={(v) => set({ objetivo: v })} />
   ) : (
-    <Fragment key={c.arg.name}>
+    <Fragment key={`${slideId}:${slot}:${c.arg.name}`}>
       {/* H2: la ayuda de «Pista gris» describe la opción elegida, no siempre «Automática». */}
       <Fila campo={{ ...c, ayuda: ayudaDeLaOpcion(c, alcance(c).valor) }} graficador={valor.graficador} valor={alcance(c).valor} sello={alcance(c).sello} categorias={categoriasDe(c.arg.name)}
             args={args} scope={scope}
@@ -328,7 +330,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
         <ResaltarGrafico slideId={slideId} slot={slot} valor={valor} />
         <DestacarRespuestas slideId={slideId} slot={slot} valor={valor} />
         {/* U12: letra de categorías y cifras y eje libre, que la lámina nativa lee de `overrides`. */}
-        <LetraYEjeAgrupadas graficador={valor.graficador} args={args} onCambio={(ov) => set({ overrides: ov })} />
+        <LetraYEjeAgrupadas key={`${slideId}:${slot}`} graficador={valor.graficador} args={args} onCambio={(ov) => set({ overrides: ov })} />
         <CasosGrafico slideId={slideId} slot={slot} valor={valor} />
         <DonaCentro slideId={slideId} slot={slot} valor={valor} />
         <ColoresGrafico slideId={slideId} slot={slot} valor={valor} argsDelRegistro={meta?.args ?? []} />
@@ -389,6 +391,7 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias, args, sco
   const describe = texto ? idAyuda : undefined;
   const globo = <Ayuda id={idAyuda} rotulo={rotulo} detalle={texto} />;
   const segmentos = control === "opciones" ? opcionesEnSegmentado(campo.opciones, valor) : null;
+  const deslizable = control === "numero" ? campoDeslizable(arg) : null;
   const etiqueta = (
     <label className="pulso-f6-dato-rotulo" htmlFor={id}>
       {rotulo}
@@ -477,6 +480,8 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias, args, sco
       </div>
     );
   }
+  // Ítem 11 (2026-11-08): los acotados de Aspecto con pocos pasos se arrastran (numeroDeslizable.ts).
+  if (deslizable) return <NumeroDeslizable id={id} rotulo={rotulo} marcas={<>{globo}{sello}</>} rango={deslizable} valor={valor} porDefecto={arg.default} onCambio={onCambio} />;
   if (control === "numero" && tieneRango(arg)) {
     return (
       <div className="pulso-f6-dato">
