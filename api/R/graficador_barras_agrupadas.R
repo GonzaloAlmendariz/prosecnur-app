@@ -1435,6 +1435,9 @@ graficar_barras_agrupadas <- function(
     }
 
     if (una_serie_fuera) df_lab$inside <- rep(FALSE, nrow(df_lab))
+    # E2b (ola 2): si el cruce decide la cifra fuera, va fuera ANTES de posicionarla; antes quedaba a media barra con el
+    # color de fuera (azul sobre la barra azul: invisible). Origen 48df566fd.
+    if (!is.null(cruce_agr) && isTRUE(cruce_agr$fuera)) df_lab$inside <- rep(FALSE, nrow(df_lab))
     df_lab$valor_label <- df_lab$.valor_plot
     mask_inside <- df_lab$inside & !is.na(df_lab$inside)
     if (identical(orientacion, "horizontal")) {
