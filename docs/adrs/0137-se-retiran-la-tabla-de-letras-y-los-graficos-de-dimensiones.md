@@ -1,6 +1,6 @@
 # ADR 0137: se retiran la tabla de letras entre públicos y los gráficos de dimensiones
 
-Estado: Propuesto (decisión de Gonzalo del 2026-11-08; quedan dos puntos abiertos, ver «Pendiente de Gonzalo»)
+Estado: Aceptado (Gonzalo, 2026-11-08). La Fase 2 borra archivos: su commit requiere la confirmación de Gonzalo (gate 3)
 Fecha: 2026-11-08
 Autoridad: Gonzalo, sobre el catálogo de láminas: «Pensé que esta forma de mostrar significancia ya estaba desfasada en
 favor de otra más moderna con tarjetas»; «Creo que gráficos exclusivos para dimensiones ya ni tienen cabida en la app»;
@@ -53,16 +53,18 @@ Reemplazos sugeridos:
 | Criterios de una dimensión | `p_tabla` en modo caja o `p_barras_multiapiladas` sobre los ítems |
 | FODA | El FODA del Dashboard |
 
-## Pendiente de Gonzalo
+## Decisiones de Gonzalo
 
 1. ~~`p_dim_heatmap` tiene además una variante pregunta × cruce~~. **Decidido por Gonzalo el 2026-11-08: «Tipo propio».**
    La variante pregunta × cruce (L10-6 y L10-10 de CCSS Perfil, 2026-10-24; `graficos_heatmap_pregunta_cruce.R`,
    `graficos_heatmap_top2box.R`) pasa a un tipo nuevo, «Mapa de calor por cruce», antes de retirar `p_dim_heatmap`. Los
    planes que usan `p_dim_heatmap` con una pregunta de respuesta única como objetivo se migran a ese tipo (es el único
    caso con equivalente 1:1); el resto de `p_dim_heatmap` sale en blanco con aviso, como los demás.
-2. Las tarjetas comparan grupos de un cruce dentro de una base. La tabla de letras compara el mismo tema entre bases
-   distintas. Al retirarla, la app se queda sin prueba de diferencias entre públicos, y ningún tipo vigente dibuja varios
-   índices juntos por cruce. Hay que aceptarlo por escrito, o pedir que las tarjetas cubran la comparación entre públicos.
+2. ~~Las tarjetas no cubren la comparación entre públicos~~. **Aceptado por Gonzalo el 2026-11-08: «Lo acepto».** Las
+   tarjetas comparan grupos de un cruce dentro de una base; la tabla de letras comparaba el mismo tema entre bases
+   distintas. Al retirarla, la app queda sin prueba de diferencias entre públicos y ningún tipo vigente dibuja varios
+   índices juntos por cruce. Se acepta: además, la tabla reimplementaba la prueba z fuera de la regla del estudio
+   (ADR 0127).
 
 ## Consecuencias
 
