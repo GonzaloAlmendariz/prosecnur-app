@@ -4619,7 +4619,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
 
     color_texto_barras       = "white",
     color_texto_barras_fuera = .PULSO_PPT_COLORS$azul,
-    size_titulos_grupo       = 14,
+    size_titulos_grupo       = 12,  # A3 ola 4: el estándar manda (tipografia.rotulo_categoria = 12); 14 se dibujaba a 12
     repeler_etiquetas_peq    = TRUE,
     # B45 (pedido directo): sacar la etiqueta chica ARRIBA de la barra con
     # flecha es una opcion, no el default — por defecto la etiqueta vive
@@ -4675,7 +4675,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
     size_texto_barras_peq    = 4.92,
     size_titulo_extra        = 12,  # ADR 0092: rótulo «Top Two Box»; 12 como Contabilidad (token rotulo_top_two_box)
     color_texto_barras_fuera = .PULSO_PPT_COLORS$azul,
-    size_titulos_grupo       = 14,
+    size_titulos_grupo       = 12,  # A3 ola 4: el estándar manda (tipografia.rotulo_categoria = 12); 14 se dibujaba a 12
     size_ejes                = 12,
     size_leyenda             = 12,
     size_barra_extra         = 14,  # ADR 0092: cifra de la columna Top Two Box

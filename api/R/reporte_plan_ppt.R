@@ -4249,7 +4249,7 @@ reporte_ppt_plan <- function(
       a <- (el$overrides %||% list())$ancho
       s <- block_overrides$size_titulos_grupo %||%
         preset_args_multi$size_titulos_grupo %||%
-        preset_args_single$size_titulos_grupo %||% 14
+        preset_args_single$size_titulos_grupo %||% 12
       fam <- block_overrides$font_family %||%
         preset_args_multi$font_family %||%
         preset_args_single$font_family %||% ""
