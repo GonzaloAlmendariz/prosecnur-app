@@ -1,8 +1,8 @@
 // Detalle de una tarjeta de «¿Qué quieres contar?» (ADR 0135; maqueta graficos-sintesis, Main): la miniatura del gráfico,
-// el nombre, su clase, qué responde, qué pide y el botón. Sin título sugerido (lo escribe siempre el analista) ni
-// párrafos explicativos. Si la tarjeta reemplaza el gráfico de la lámina, lo dice antes y pide confirmarlo.
+// el nombre, su clase, qué responde, la ficha «Datos» (o qué pide, si la tarjeta no trae gráfico) y el botón. Sin
+// título sugerido (lo escribe siempre el analista) ni párrafos explicativos. Si la tarjeta reemplaza el gráfico de la lámina, lo dice antes y pide confirmarlo.
 
-import { useId } from "react";
+import { useId, type ReactNode } from "react";
 import { Check } from "../../../../vendor/lucide-react";
 import type { GraficadorRef } from "../../../../api/graficos";
 import { PulsoButton } from "../../../../components/PulsoButton";
@@ -24,12 +24,14 @@ type Props = {
   nombreGrafico: (g: GraficadorRef) => string;
   nombreSlot: (slot: string) => string;
   nombreCampo: (clave: string) => string;
+  /** Ficha «Datos» (FichaDatosTarjeta): qué usa el gráfico y qué tiene el estudio. Sin ella, «Qué pide». */
+  ficha?: ReactNode;
   onAplicar: () => void;
   onVolver: () => void;
 };
 
 export function DetalleTarjetaContar({
-  tarjeta, modo, actual, cambio, confirmando, nombreGrafico, nombreSlot, nombreCampo, onAplicar, onVolver,
+  tarjeta, modo, actual, cambio, confirmando, nombreGrafico, nombreSlot, nombreCampo, ficha, onAplicar, onVolver,
 }: Props) {
   const idAviso = useId();
   const sobrantes = cambio && !actual ? cambio.sobrantes : [];
@@ -48,10 +50,12 @@ export function DetalleTarjetaContar({
         <span className="pulso-f6-detalle-clase" data-clase-tarjeta={tarjeta.clase}>{ROTULO_CLASE[tarjeta.clase]}</span>
         <p>{tarjeta.uso}.</p>
       </div>
-      <dl className="pulso-f6-ficha">
-        <dt>Qué pide</dt>
-        <dd>{tarjeta.pide}</dd>
-      </dl>
+      {ficha ?? (
+        <dl className="pulso-f6-ficha">
+          <dt>Qué pide</dt>
+          <dd>{tarjeta.pide}</dd>
+        </dl>
+      )}
       <div className="pulso-f6-selector-pie">
         <AvisoCambio id={idAviso} sobrantes={sobrantes} textos={textos} confirmando={confirmando}
           nombreGrafico={nombreGrafico} nombreSlot={nombreSlot} nombreCampo={nombreCampo} />

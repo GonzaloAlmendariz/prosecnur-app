@@ -3,10 +3,12 @@
 // (tiposLamina.ts); centro, las tarjetas; derecha, el detalle y el botón. Cada tarjeta dice su clase (Gráfico, Lámina o
 // Lámina de resumen). El buscador de la cabecera filtra todas las tarjetas por nombre y por lo que responden. Dos modos:
 // cambiar la lámina del foco (conserva sus gráficos y avisa los que no caben o se reemplazan) o insertar una nueva
-// detrás de ella. Una tarjeta es un tipo o un tipo con su payload de partida (opcionesLamina.ts).
+// detrás de ella, elegidos en el segmentado de la cabecera. Una tarjeta es un tipo o un tipo con su payload de partida
+// (opcionesLamina.ts). El detalle trae la ficha «Datos» (qué usa el gráfico y qué tiene el estudio) y «Comparar» pone
+// dos tarjetas lado a lado dentro del mismo diálogo.
 
 import { LayoutTemplate, MousePointer2, Presentation, Search } from "../../../../vendor/lucide-react";
-import { useEffect, useId, useMemo, useRef } from "react";
+import { useEffect, useId, useMemo, useRef, type ReactNode } from "react";
 import type { GraficadorRef, Slide } from "../../../../api/graficos";
 import { toast } from "../../../../components/toasterStore";
 import { PulsoInput } from "../../../../components/PulsoInput";
@@ -39,6 +41,13 @@ import {
   casaBusqueda, INTENCIONES_CONTAR, intencionDeTarjeta, tarjetaContar, tarjetaContarDeLamina, tarjetasDe, type IntencionContarId,
 } from "./intencionesContar";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
+import { BarraComparar } from "./BarraComparar";
+import { ControlModoLamina } from "./ControlModoLamina";
+import { usaDeGrafico } from "./fichaDatos";
+import { FichaDatosTarjeta } from "./FichaDatosTarjeta";
+import { modoEfectivo, puedeEntrarEnComparacion } from "./modoYComparacion";
+import { useInventarioSelector } from "./useInventarioSelector";
+import { VistaComparar, type ColumnaComparar } from "./VistaComparar";
 import { formatoConteo } from "../../../../lib/formatoNumero";
 
 const FUERA_DEL_CATALOGO = new Set(CATALOGO_LAMINAS.filter((s) => !s.en_selector).map((s) => s.name));
@@ -70,10 +79,11 @@ export function SelectorTipoLamina({ slide, posicion, cerrar, onArmarResumen }: 
   const scope = useGraficosReportScope(useLocation().search);
   const conCobertura = registry ? "p_cobertura" in graficadoresById : CATALOGO_GRAFICOS.some((g) => g.name === "p_cobertura");
   const padron = propuestasDe(usePadronPropuesto(scope, conCobertura && nombresBases !== ""));
+  useInventarioSelector(panel.abierto, scope);
   const estudio = useMemo<EstudioDelSelector>(
     () => ({ bases: nombresBases ? nombresBases.split("|") : [], baseActiva, padron }), [nombresBases, baseActiva, padron]);
 
-  const modo = ui.modoLamina === "cambiar" && slide ? "cambiar" : "insertar";
+  const modo = modoEfectivo(ui.modoLamina, !!slide);
   const tipoActual = modo === "cambiar" && slide ? slide.tipo : null;
   const opcionActual: OpcionLamina | null = modo === "cambiar" && slide ? opcionDeLamina(slide) : null;
   const tarjetaActual: OpcionLamina | null = modo === "cambiar" && slide ? tarjetaContarDeLamina(slide)?.clave ?? null : null;
@@ -119,13 +129,15 @@ export function SelectorTipoLamina({ slide, posicion, cerrar, onArmarResumen }: 
   }, [busqueda, porTipo, intenciones, intencion, contarOfrecidas, contar, slidesById]);
   const esActual = (op: OpcionLamina): boolean => op === opcionActual || op === tarjetaActual;
   const candidato: OpcionLamina | null = ui.candidato ?? opciones.find(esActual) ?? opciones[0] ?? null;
+  const comparar = ui.comparar;
 
   const cambios = useMemo(() => {
     const m = new Map<OpcionLamina, CambioTipoLamina>();
     if (modo !== "cambiar" || !slide) return m;
     const actual = opcionDeLamina(slide);
     const tarjeta = tarjetaContarDeLamina(slide)?.clave ?? null;
-    for (const op of opciones) {
+    // También las tarjetas en «Comparar», que pueden venir de otra intención que la que se ve.
+    for (const op of new Set([...opciones, ...comparar])) {
       const t = tipoDeOpcion(op);
       const c = planearCambioTipo(slide, t, { clavesDestino: slidesById[t]?.args.map((a) => a.name) });
       // Otra tarjeta del mismo tipo (Hallazgos clave ⇄ Hallazgos por capítulo, Panorama ⇄ Contraste) es un cambio, con
@@ -133,7 +145,7 @@ export function SelectorTipoLamina({ slide, posicion, cerrar, onArmarResumen }: 
       m.set(op, op === actual || op === tarjeta ? c : cambioConOpcion(op, c, estudio));
     }
     return m;
-  }, [modo, slide, opciones, slidesById, estudio]);
+  }, [modo, slide, opciones, comparar, slidesById, estudio]);
   const conGraficos = modo === "cambiar" && !!slide && graficosDeLamina(slide).length > 0;
 
   const variantesDeTipo = (op: OpcionLamina) => {
@@ -151,46 +163,70 @@ export function SelectorTipoLamina({ slide, posicion, cerrar, onArmarResumen }: 
     if (!panel.abierto) useSelectoresUi.getState().setConfirmando(false);
   }, [panel.abierto]);
 
+  // Al salir de la vista partida, el botón que la abrió ya no existe: el foco vuelve a «Ver lado a lado» o, si la barra
+  // se fue con la tarjeta quitada, al título de la galería.
+  const viendo = ui.viendoComparacion && comparar.length === 2;
+  const veiaRef = useRef(viendo);
+  const galeriaTituloRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (veiaRef.current && !viendo) {
+      const dialogo = galeriaTituloRef.current?.closest<HTMLElement>(".pulso-f6-selector");
+      const destino = dialogo?.querySelector<HTMLElement>("[data-ver-comparacion]") ?? galeriaTituloRef.current;
+      destino?.focus({ preventScroll: true });
+    }
+    veiaRef.current = viendo;
+  }, [viendo]);
+
   const cerrarYOlvidar = (pos?: number) => {
     useSelectoresUi.getState().prepararLamina("cambiar");
     cerrar(pos);
   };
 
-  const aplicar = () => {
-    if (!candidato) return;
-    const tipo = tipoDeOpcion(candidato);
-    const nombre = nombreDe(candidato);
+  // `desdeComparar`: «Usar esta» de la vista partida, con la variante de partida de esa tarjeta. Si el cambio pierde
+  // gráficos o textos, la tarjeta pasa al detalle con el aviso y el segundo paso de confirmación.
+  const aplicarOpcion = (op: OpcionLamina, desdeComparar = false) => {
+    const tipo = tipoDeOpcion(op);
+    const nombre = nombreDe(op);
+    const varianteOp = desdeComparar ? varianteInicial(op) : variante;
+    const cambioOp = desdeComparar ? cambios.get(op) ?? null : cambio;
     if (modo === "insertar") {
-      const base = { tipo, payload: conOpcion(candidato, payloadPorDefecto(tipo), estudio) };
-      const payload = variante ? conVariante(base, variante) : base.payload;
+      const base = { tipo, payload: conOpcion(op, payloadPorDefecto(tipo), estudio) };
+      const payload = varianteOp ? conVariante(base, varianteOp) : base.payload;
       const indice = posicion ?? usePlanStore.getState().plan.slides.length;
       insertSlideAt(tipo, payload, indice);
       toast.exito(`Lámina ${indice + 1} insertada: ${nombre}`);
       cerrarYOlvidar(indice + 1);
       return;
     }
-    if (!slide || !cambio || posicion === null || candidato === tarjetaActual) return;
-    if (requiereConfirmacion(cambio, ui.confirmando)) {
+    if (!slide || !cambioOp || posicion === null || op === tarjetaActual) return;
+    if (desdeComparar && requiereConfirmacion(cambioOp, false)) {
+      ui.verComparacion(false);
+      ui.elegirCandidato(op, varianteOp);
       ui.setConfirmando(true);
       return;
     }
-    const payload = variante && variantesDeTipo(candidato)
-      ? conVariante({ tipo, payload: cambio.payload }, variante)
-      : cambio.payload;
+    if (requiereConfirmacion(cambioOp, ui.confirmando)) {
+      ui.setConfirmando(true);
+      return;
+    }
+    const payload = varianteOp && variantesDeTipo(op)
+      ? conVariante({ tipo, payload: cambioOp.payload }, varianteOp)
+      : cambioOp.payload;
     const id = slide.id;
     setSlideTipo(id, tipo, payload);
-    const quitados = cambio.sobrantes.length;
+    const quitados = cambioOp.sobrantes.length;
     toast.aviso(
-      cambio.mismoTipo ? `Lámina ${posicion}: otra composición` : `Lámina ${posicion}: ahora es “${nombre}”`,
+      cambioOp.mismoTipo ? `Lámina ${posicion}: otra composición` : `Lámina ${posicion}: ahora es “${nombre}”`,
       {
         detalle: quitados
           ? `${quitados === 1 ? "Se quitó 1 gráfico" : `Se quitaron ${quitados} gráficos`} que no cabían.`
-          : cambio.conservados.length ? "Sus gráficos se conservaron." : undefined,
+          : cambioOp.conservados.length ? "Sus gráficos se conservaron." : undefined,
         accion: { label: "Deshacer", onSelect: () => { undo(); select(id); } },
       },
     );
     cerrarYOlvidar(posicion);
   };
+  const aplicar = () => { if (candidato) aplicarOpcion(candidato); };
 
   const graficosDe = (op: OpcionLamina): Record<string, string> => {
     const c = cambios.get(op);
@@ -206,6 +242,20 @@ export function SelectorTipoLamina({ slide, posicion, cerrar, onArmarResumen }: 
     ? `${formatoConteo(opciones.length)} ${opciones.length === 1 ? "lámina" : "láminas"}`
     : conGraficos ? `${rotuloCuenta(opciones.length)}, con los gráficos de esta lámina` : rotuloCuenta(opciones.length);
   const tarjetaCandidata = tarjetaContar(candidato);
+  const usaDe = (op: OpcionLamina) => usaDeGrafico(presetDe(op)?.grafico?.graficador);
+  const fichaDe = (op: OpcionLamina): ReactNode => {
+    const usa = usaDe(op);
+    return usa ? <FichaDatosTarjeta usa={usa} inventario={ui.inventario} /> : null;
+  };
+  const columnaComparar = (op: OpcionLamina): ColumnaComparar => {
+    const preset = presetDe(op);
+    const t = tipoDeOpcion(op);
+    const c = cambios.get(op);
+    return {
+      opcion: op, tipo: t, nombre: nombreDe(op), clase: preset?.clase ?? "lamina", glifo: preset?.grafico?.graficador,
+      usa: usaDe(op), admite: rotuloRanuras(t), actual: esActual(op), sobrantes: c && !c.mismoTipo ? c.sobrantes.length : 0,
+    };
+  };
 
   return (
     <DialogoSelector
@@ -220,6 +270,17 @@ export function SelectorTipoLamina({ slide, posicion, cerrar, onArmarResumen }: 
         : "Los gráficos que ya configuraste pasan a la lámina nueva."}
       focoInicialRef={focoInicialRef}
       destinoAlCerrar={() => destinoAlCerrarEnDocumento(null)}
+      modo={<ControlModoLamina modo={modo} hayLamina={!!slide} onModo={(m) => ui.cambiarModoLamina(m)} />}
+      comparacion={viendo ? (
+        <VistaComparar
+          columnas={comparar.map((op) => columnaComparar(op))}
+          inventario={ui.inventario}
+          modo={modo}
+          onUsar={(op) => aplicarOpcion(op, true)}
+          onQuitar={(op) => ui.alternarComparar(op)}
+          onVolver={() => ui.verComparacion(false)}
+        />
+      ) : undefined}
       accion={modo === "insertar" && onArmarResumen ? (
         <PulsoButton variant="secondary" size="sm" onClick={onArmarResumen} data-armar-resumen="">
           <Presentation size={14} aria-hidden="true" />
@@ -296,8 +357,9 @@ export function SelectorTipoLamina({ slide, posicion, cerrar, onArmarResumen }: 
       galeria={(
         <section aria-labelledby={`${grupo}-galeria`}>
           <div className="pulso-f6-galeria-cabeza">
-            <h3 id={`${grupo}-galeria`}>{tituloGaleria}</h3>
+            <h3 id={`${grupo}-galeria`} ref={galeriaTituloRef} tabIndex={-1}>{tituloGaleria}</h3>
             <span>{cuentaGaleria}</span>
+            <BarraComparar marcadas={comparar.length} onVer={() => ui.verComparacion(true)} />
           </div>
           {opciones.length === 0 ? (
             <EstadoVacio
@@ -334,6 +396,11 @@ export function SelectorTipoLamina({ slide, posicion, cerrar, onArmarResumen }: 
                       sobrantes={cambios.get(op)?.mismoTipo ? 0 : cambios.get(op)?.sobrantes.length ?? 0}
                       onElegir={() => ui.elegirCandidato(op, varianteInicial(op))}
                       onAplicar={() => { if (op !== candidato) ui.elegirCandidato(op, varianteInicial(op)); else aplicar(); }}
+                      comparar={{
+                        marcada: comparar.includes(op),
+                        puede: puedeEntrarEnComparacion(comparar, op),
+                        onAlternar: () => ui.alternarComparar(op),
+                      }}
                     />
                   </li>
                 );
@@ -352,6 +419,7 @@ export function SelectorTipoLamina({ slide, posicion, cerrar, onArmarResumen }: 
           nombreGrafico={nombreG}
           nombreSlot={(s) => nombreSlot(s, slidesById[tarjetaCandidata.tipo] ?? metaOrigen)}
           nombreCampo={(c) => nombreCampo(c, metaOrigen)}
+          ficha={fichaDe(candidato)}
           onAplicar={aplicar}
           onVolver={() => ui.setConfirmando(false)}
         />
@@ -371,6 +439,7 @@ export function SelectorTipoLamina({ slide, posicion, cerrar, onArmarResumen }: 
           nombreGrafico={nombreG}
           nombreSlot={(s) => nombreSlot(s, slidesById[tipoDeOpcion(candidato)] ?? metaOrigen)}
           nombreCampo={(c) => nombreCampo(c, metaOrigen)}
+          ficha={fichaDe(candidato)}
           onAplicar={aplicar}
           onVolver={() => ui.setConfirmando(false)}
         />

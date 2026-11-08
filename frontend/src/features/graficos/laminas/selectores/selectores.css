@@ -246,8 +246,18 @@
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-card);
   background: var(--pulso-surface);
-  cursor: pointer;
   overflow: hidden;
+}
+
+/* El radio y su contenido: ocupa la tarjeta salvo el pie con «Comparar», que es un botón hermano (no va dentro de la
+   etiqueta del radio). */
+.pulso-f6-tarjeta-elegir {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 0;
+  cursor: pointer;
 }
 
 .pulso-f6-tarjeta-tipo:hover {
@@ -259,7 +269,7 @@
   box-shadow: inset 0 0 0 1px var(--module-accent);
 }
 
-.pulso-f6-tarjeta-tipo:has(input:disabled) {
+.pulso-f6-tarjeta-elegir:has(input:disabled) {
   cursor: default;
 }
 
@@ -736,4 +746,305 @@
 .pulso-f6-tarjeta-tipo[data-clase-tarjeta="resumen"] .pulso-f6-tarjeta-clase,
 .pulso-f6-detalle-clase[data-clase-tarjeta="resumen"] {
   color: var(--module-accent);
+}
+
+/* ---- Modo del selector (auditoría, hallazgo 14): segmentado de la cabecera, riel gris y la opción elegida en blanco
+   con el acento del módulo, como los demás segmentados ---- */
+
+.pulso-f6-selector-modo {
+  flex: none;
+  align-self: center;
+}
+
+.pulso-f6-modo.pulso-gliding-tab-list {
+  --pulso-gliding-indicator-bg: var(--pulso-surface);
+  --pulso-gliding-indicator-border: var(--pulso-border);
+  --pulso-gliding-indicator-shadow: 0 1px 3px color-mix(in srgb, var(--pulso-text) 14%, transparent);
+  display: inline-grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--pulso-radius-card);
+  background: color-mix(in srgb, var(--pulso-text) 6%, var(--pulso-surface));
+  box-shadow: inset 0 0 0 1px var(--pulso-border);
+}
+
+.pulso-f6-modo.pulso-gliding-tab-list > button {
+  min-height: var(--pulso-control-height-sm);
+  padding: 0 var(--pulso-space-3);
+  border: 0;
+  border-radius: var(--pulso-radius);
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pulso-f6-modo.pulso-gliding-tab-list > button:hover:not(:disabled):not([aria-checked="true"]) {
+  color: var(--pulso-text);
+}
+
+.pulso-f6-modo.pulso-gliding-tab-list > button[aria-checked="true"] {
+  color: var(--module-accent);
+}
+
+.pulso-f6-modo.pulso-gliding-tab-list > button:disabled {
+  color: var(--pulso-text-faint);
+  cursor: default;
+}
+
+.pulso-f6-modo.pulso-gliding-tab-list > button:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: -2px;
+}
+
+/* ---- Ficha «Datos» (auditoría, hallazgo 2): tres filas fijas con rótulo a la izquierda ---- */
+
+/* La caja es el Panel del kit (variante sutil); aquí solo su medida dentro del detalle. */
+.pulso-f6-datos.pulso-panel {
+  display: grid;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: var(--pulso-space-3);
+}
+
+.pulso-f6-datos-titulo {
+  margin: 0;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pulso-f6-datos-filas {
+  display: grid;
+  gap: var(--pulso-space-2);
+  margin: 0;
+}
+
+.pulso-f6-datos-fila {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: var(--pulso-space-2);
+  align-items: baseline;
+}
+
+.pulso-f6-datos-fila dt {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-f6-datos-fila dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  margin: 0;
+  font-size: var(--pulso-type-body-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-f6-datos-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Chips de la ficha: el `.pulso-f6-chip` del selector con sus variantes. */
+.pulso-f6-dato-chip {
+  align-items: baseline;
+  line-height: 18px;
+}
+
+.pulso-f6-dato-chip.is-principal {
+  border-color: var(--module-accent-border);
+  background: var(--module-accent-soft);
+  color: var(--module-accent);
+}
+
+.pulso-f6-dato-chip.is-secundario {
+  border-style: dashed;
+  background: transparent;
+  font-weight: var(--pulso-weight-regular);
+}
+
+.pulso-f6-dato-chip.is-publico {
+  color: var(--pulso-text);
+}
+
+.pulso-f6-dato-chip[data-sin-preguntas] {
+  color: var(--pulso-text-faint);
+}
+
+.pulso-f6-dato-n {
+  color: var(--pulso-text-faint);
+  font-weight: var(--pulso-weight-regular);
+}
+
+.pulso-f6-datos-cuantos {
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-f6-datos-fila dd > .pulso-f6-datos-chips {
+  flex-basis: 100%;
+}
+
+.pulso-f6-datos-fila p {
+  margin: 0;
+  flex-basis: 100%;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.4;
+}
+
+.pulso-f6-datos-fila p.pulso-f6-datos-falta {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pulso-space-1);
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-f6-datos-falta > svg {
+  flex: none;
+  align-self: center;
+}
+
+.pulso-f6-datos-fila dd > div,
+.pulso-f6-datos-fila dd > [role="alert"] {
+  flex-basis: 100%;
+}
+
+/* ---- Comparar (auditoría, hallazgo 3): botón de la tarjeta, barra de la galería y vista partida ---- */
+
+.pulso-f6-tarjeta-pie {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: var(--pulso-space-2);
+}
+
+/* «Comparar» es el botón fantasma del kit; marcado, toma el acento del módulo. */
+.pulso-f6-comparar-boton {
+  gap: var(--pulso-space-1);
+}
+
+.pulso-f6-comparar-boton[aria-pressed="true"] {
+  border-color: var(--module-accent-border);
+  background: var(--module-accent-soft);
+  color: var(--module-accent);
+}
+
+.pulso-f6-comparar-boton[aria-disabled="true"] {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.pulso-f6-galeria-cabeza:has(.pulso-f6-barra-comparar) {
+  justify-content: flex-start;
+}
+
+.pulso-f6-barra-comparar {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin-left: auto;
+}
+
+.pulso-f6-barra-comparar .pulso-button[aria-disabled="true"] {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.pulso-f6-selector-col.is-comparar {
+  grid-column: 2 / -1;
+}
+
+.pulso-f6-comparar {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.pulso-f6-comparar .pulso-f6-galeria-cabeza {
+  align-items: center;
+}
+
+.pulso-f6-comparar .pulso-f6-galeria-cabeza h3:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: var(--pulso-nav-focus-offset);
+}
+
+/* Dos columnas pares (C1 `equal`): el grid estira los marcos al alto de la más larga y el espacio sobrante queda dentro
+   de cada columna, sobre sus botones (C3). La columna del diálogo desplaza si no caben (C4). */
+.pulso-f6-comparar-columnas {
+  display: grid;
+  flex: 1 0 auto;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pulso-space-4);
+}
+
+/* La caja es el Panel del kit; aquí su orden interno y su medida. */
+.pulso-f6-comparar-columna.pulso-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  margin: 0;
+  padding: var(--pulso-space-3);
+}
+
+/* Hueco 16:9 de la miniatura: hoy el glifo o la composición; la miniatura con los datos del estudio entra aquí. */
+.pulso-f6-comparar-hueco {
+  display: grid;
+  flex: none;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  padding: var(--pulso-space-3);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+  overflow: hidden;
+}
+
+.pulso-f6-comparar-hueco > * {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.pulso-f6-comparar-nombre {
+  margin: 0;
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-f6-tarjeta-chips.is-en-linea {
+  position: static;
+}
+
+.pulso-f6-comparar-acciones {
+  display: flex;
+  gap: var(--pulso-space-2);
+  margin-top: auto;
+}
+
+.pulso-f6-comparar-acciones > .pulso-button {
+  flex: 1 1 0;
+  justify-content: center;
+  gap: var(--pulso-space-1);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pulso-f6-modo.pulso-gliding-tab-list > button {
+    transition:
+      border-color var(--motion-dur-press) var(--motion-ease-out),
+      background-color var(--motion-dur-press) var(--motion-ease-out),
+      color var(--motion-dur-press) var(--motion-ease-out);
+  }
 }

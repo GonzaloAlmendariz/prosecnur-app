@@ -3,7 +3,7 @@
 // palabras, sus variantes, las medidas del estándar plegadas y el botón para aplicarla. Si el tipo nuevo deja gráficos
 // o textos fuera, lo dice antes y pide confirmarlo.
 
-import { useId } from "react";
+import { useId, type ReactNode } from "react";
 import { Check } from "../../../../vendor/lucide-react";
 import type { GraficadorRef, SlideType } from "../../../../api/graficos";
 import { PulsoButton } from "../../../../components/PulsoButton";
@@ -37,6 +37,8 @@ type Props = {
   nombreGrafico: (g: GraficadorRef) => string;
   nombreSlot: (slot: string) => string;
   nombreCampo: (clave: string) => string;
+  /** Ficha «Datos» del gráfico de partida, si la tarjeta lo trae (FichaDatosTarjeta). */
+  ficha?: ReactNode;
   onAplicar: () => void;
   onVolver: () => void;
 };
@@ -44,7 +46,7 @@ type Props = {
 export function DetalleTipoLamina(props: Props) {
   const {
     tipo, nombre, descripcion, graficos, variantes, variante, onVariante, modo, cambio, confirmando,
-    nombreGrafico, nombreSlot, nombreCampo, onAplicar, onVolver,
+    nombreGrafico, nombreSlot, nombreCampo, ficha, onAplicar, onVolver,
   } = props;
   const idVariantes = useId();
   const idAviso = useId();
@@ -86,6 +88,8 @@ export function DetalleTipoLamina(props: Props) {
           </>
         )}
       </dl>
+
+      {ficha}
 
       {cambio && (
         <RepartoGraficos

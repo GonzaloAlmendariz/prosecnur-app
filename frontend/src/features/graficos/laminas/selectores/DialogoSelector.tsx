@@ -23,9 +23,13 @@ type Props = {
   buscador?: ReactNode;
   /** Una acción de la cabecera, tras el buscador («Armar el resumen ejecutivo»). */
   accion?: ReactNode;
+  /** Control de modo junto a los títulos («Insertar detrás / Cambiar esta lámina»; opcional). */
+  modo?: ReactNode;
   pregunta: ReactNode;
   galeria: ReactNode;
   detalle: ReactNode;
+  /** Vista partida «Comparar»: si llega, ocupa el lugar de la galería y el detalle (opcional). */
+  comparacion?: ReactNode;
   /**
    * Adónde vuelve el foco si nadie lo abrió con un clic (se llegó por enlace) o si quien lo abrió ya no está: la lámina
    * o ranura del `foco` (`focoAlCerrar.ts`). Se resuelve al cerrar, con la lámina que quedó en pantalla.
@@ -35,8 +39,8 @@ type Props = {
 };
 
 export function DialogoSelector({
-  abierto, onCerrar, panelProps, auditReady, antetitulo, titulo, descripcion, focoInicialRef, buscador, accion, pregunta, galeria, detalle,
-  destinoAlCerrar, className,
+  abierto, onCerrar, panelProps, auditReady, antetitulo, titulo, descripcion, focoInicialRef, buscador, accion, modo, pregunta, galeria, detalle,
+  comparacion, destinoAlCerrar, className,
 }: Props) {
   const anclaRef = useRef<HTMLSpanElement>(null);
   const destinoRef = useRef(destinoAlCerrar);
@@ -64,6 +68,7 @@ export function DialogoSelector({
                 <Dialog.Title className="pulso-f6-selector-titulo">{titulo}</Dialog.Title>
                 <Dialog.Description className="pulso-f6-selector-descripcion">{descripcion}</Dialog.Description>
               </div>
+              {modo && <div className="pulso-f6-selector-modo">{modo}</div>}
               {buscador && <div className="pulso-f6-selector-buscador">{buscador}</div>}
               {accion && <div className="pulso-f6-selector-accion">{accion}</div>}
               <Dialog.Close className="pulso-f6-icono-boton pulso-f6-selector-cerrar" aria-label="Cerrar sin cambiar">
@@ -82,8 +87,16 @@ export function DialogoSelector({
               >
                 {pregunta}
               </div>
-              <div className="pulso-f6-selector-col is-galeria" data-qa-geometry-member data-qa-scroll-owner={`${auditReady}-galeria`}>{galeria}</div>
-              <div className="pulso-f6-selector-col is-detalle" data-qa-geometry-member data-qa-scroll-owner={`${auditReady}-detalle`}>{detalle}</div>
+              {comparacion ? (
+                <div className="pulso-f6-selector-col is-comparar" data-qa-geometry-member data-qa-scroll-owner={`${auditReady}-comparar`}>
+                  {comparacion}
+                </div>
+              ) : (
+                <>
+                  <div className="pulso-f6-selector-col is-galeria" data-qa-geometry-member data-qa-scroll-owner={`${auditReady}-galeria`}>{galeria}</div>
+                  <div className="pulso-f6-selector-col is-detalle" data-qa-geometry-member data-qa-scroll-owner={`${auditReady}-detalle`}>{detalle}</div>
+                </>
+              )}
             </div>
           </Dialog.Content>
         </Dialog.Portal>
