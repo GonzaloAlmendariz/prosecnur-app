@@ -108,10 +108,10 @@ export function PanelAvisos({ panel, grupos, estructura, onIr, enfocarAlAbrir = 
       <CabeceraPanel
         titulo="Avisos del informe"
         acciones={sinTitulo && sinTitulo.cuantas > 0 ? (
-          <BotonConTecla accion="siguienteSinTitulo" ayuda={`${formatoConteo(sinTitulo.cuantas)} ${sinTitulo.cuantas === 1 ? "lámina" : "láminas"} sin título`}>
-            <PulsoButton variant="secondary" size="sm" className="pulso-f6-avisos-sin-titulo" onClick={sinTitulo.siguiente}>
+          // R9-5: un ícono con su nombre y tooltip; el botón de texto recortaba el título a «Avisos del infor…».
+          <BotonConTecla accion="siguienteSinTitulo" ayuda={`Siguiente sin título: ${formatoConteo(sinTitulo.cuantas)} ${sinTitulo.cuantas === 1 ? "lámina" : "láminas"} sin título`}>
+            <PulsoButton variant="icon" tone="quiet" className="pulso-f6-avisos-sin-titulo" aria-label="Siguiente lámina sin título" onClick={sinTitulo.siguiente}>
               <CornerDownLeft aria-hidden="true" />
-              Siguiente sin título
             </PulsoButton>
           </BotonConTecla>
         ) : undefined}

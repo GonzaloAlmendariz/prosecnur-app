@@ -83,24 +83,13 @@ export function EstructuraInforme({ onCerrar, acciones, estructura, posicionActi
 
   return (
     <aside className="pulso-f6-estructura" aria-label="Estructura del informe">
-      {/* Acabado W2-A: CabeceraPanel con la cuenta como dato, una sola acción de texto y la X del kit (antes un ícono de
-          «plegar panel», un tercer dialecto de cierre). Sin `onCerrar` (el lienzo vacío) no hay X. */}
+      {/* Acabado W2-A: CabeceraPanel y la X del kit (antes un ícono de «plegar panel», un tercer dialecto de cierre). Sin
+          `onCerrar` (el lienzo vacío) no hay X. R9-5: la cuenta va de subtítulo y «Cerrar todo» a la fila de la búsqueda;
+          en la cabecera recortaban el título a «Estru…». */}
       <CabeceraPanel
         className="pulso-f6-estructura-cabecera"
         titulo="Estructura"
-        acciones={(
-          <>
-            <span className="pulso-f6-col-meta">{formatoConteo(estructura.laminas.length)} láminas</span>
-            <PulsoButton
-              variant="ghost"
-              size="sm"
-              onClick={() => fijarCerrados(todoCerrado ? [] : plegables)}
-              disabled={!plegables.length}
-            >
-              {todoCerrado ? "Abrir todo" : "Cerrar todo"}
-            </PulsoButton>
-          </>
-        )}
+        subtitulo={`${formatoConteo(estructura.laminas.length)} ${estructura.laminas.length === 1 ? "lámina" : "láminas"}`}
         onCerrar={onCerrar}
         etiquetaCerrar="Cerrar la estructura"
       />
@@ -120,6 +109,9 @@ export function EstructuraInforme({ onCerrar, acciones, estructura, posicionActi
             onKeyDown={(e) => { if (e.key === "Escape") setConsulta(""); }}
           />
         </label>
+        <PulsoButton variant="ghost" size="sm" onClick={() => fijarCerrados(todoCerrado ? [] : plegables)} disabled={!plegables.length}>
+          {todoCerrado ? "Abrir todo" : "Cerrar todo"}
+        </PulsoButton>
       </div>
       {acciones}
       <nav ref={cuerpoRef} className="pulso-f6-estructura-cuerpo" aria-label="Láminas del informe" data-qa-scroll-owner="estructura">

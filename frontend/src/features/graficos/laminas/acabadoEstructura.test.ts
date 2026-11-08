@@ -224,3 +224,18 @@ describe("R9-1: sin F1/F2 en lo que Láminas abre fuera de laminas/", () => {
     expect(builder).toMatch(/className="pulso-mapi-fila-publico"/);
   });
 });
+
+describe("R9-5: los títulos de las cabeceras no se recortan por sus acciones", () => {
+  it("Estructura lleva la cuenta de subtítulo y «Cerrar todo» en la fila de la búsqueda", () => {
+    const src = sinComentarios(leer("EstructuraInforme.tsx"));
+    const cabecera = src.slice(src.indexOf("<CabeceraPanel"), src.indexOf("/>", src.indexOf("<CabeceraPanel")));
+    expect(cabecera).toContain("subtitulo=");
+    expect(cabecera).not.toContain("acciones=");
+    const busca = src.slice(src.indexOf('className="pulso-f6-estructura-busca"'), src.indexOf("{acciones}"));
+    expect(busca).toMatch(/Cerrar todo/);
+  });
+  it("Avisos deja «Siguiente sin título» en un ícono con nombre", () => {
+    const src = sinComentarios(leer("PanelAvisos.tsx"));
+    expect(src).toMatch(/variant="icon" tone="quiet" className="pulso-f6-avisos-sin-titulo" aria-label="Siguiente lámina sin título"/);
+  });
+});
