@@ -138,7 +138,7 @@
 #' @keywords internal
 .lam_radar_anchos <- function(espec) {
   R <- .LAM_RADAR
-  c(R$col1, pmax(R$col, .lam_ancho_tinta(espec$grupos, 11, TRUE) + 0.25))
+  c(R$col1, pmax(R$col, .lam_ancho_tinta(espec$grupos, .lam_tabla_m()$enc_pt, TRUE) + 0.25))   # R3 (ola 4): el encabezado del estándar
 }
 
 #' Alto de fila de la tabla: 0.5 in, o menos (hasta 0.4) si no caben todas
@@ -183,7 +183,7 @@
   ft <- flextable::flextable(d)
   ft <- flextable::set_header_labels(ft, values = stats::setNames(as.list(rotulos), names(d)))
   ft <- flextable::font(ft, fontname = fuente, part = "all")
-  ft <- flextable::fontsize(ft, size = 13, part = "body"); ft <- flextable::fontsize(ft, size = 11, part = "header")
+  ft <- flextable::fontsize(ft, size = 13, part = "body"); ft <- flextable::fontsize(ft, size = .lam_tabla_m()$enc_pt, part = "header")   # 12 pt, como actor y rotulo_top_two_box
   ft <- flextable::color(ft, color = azul, part = "all"); ft <- flextable::bold(ft, part = "header"); ft <- flextable::bold(ft, j = 1, part = "body")
   ft <- flextable::align(ft, j = seq(2, ncol(d)), align = "center", part = "all"); ft <- flextable::valign(ft, valign = "center", part = "all")
   ft <- flextable::border_remove(ft); ft <- flextable::bg(ft, bg = "transparent", part = "header")

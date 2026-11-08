@@ -5,7 +5,7 @@
 # «En el PPT, si no cabe al costado: debajo con aviso; si tampoco, omitir con aviso.» Nunca en silencio.
 #
 # Medidas (las de la tabla del radar de la lámina 90, `.LAM_RADAR`): primera columna de 2,2 in, 1,15 in por público (o lo
-# que pida su encabezado), fila de 0,5 in que baja hasta 0,4 si no caben, letra de 13 pt en el cuerpo y 11 en el
+# que pida su encabezado), fila de 0,5 in que baja hasta 0,4 si no caben, letra de 13 pt en el cuerpo y 12 en el
 # encabezado (nunca por debajo de la mínima de cifras, 8 pt), 0,3 in de hueco con el gráfico y un gráfico que no baja de
 # 3,6 in de ancho. Un criterio que pide dos líneas en la primera columna no se comprime: ocupa lo que pide su texto.
 #
