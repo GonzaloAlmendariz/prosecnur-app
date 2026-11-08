@@ -83,7 +83,7 @@ export function BrechaEntreGrupos({ args, onCambio }: Props) {
 
       {grupos && (
         <>
-          <div className="pulso-f6-dato is-apilado">
+          <div className="pulso-f6-dato is-apilado" data-campo="cruce">
             <span className="pulso-f6-dato-rotulo">{resumen ? "Dividir por" : "Grupos de"}</span>
             <div className="pulso-f6-dato-control">
               <VariablePicker value={cruce || null} allowEmpty filter={esSelectOne} placeholder="Elige la pregunta (ej. sexo)…"

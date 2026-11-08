@@ -33,7 +33,7 @@ describe("lámina incompleta", () => {
   test("uno por lámina aunque falten varias cosas, y nada cuando no falta nada", () => {
     const sinNada = validarPlan(entrada([conGrafico("b", "p_dumbbell", { estilo: "resumen", vars: ["docentes$*"], regla: { tipo: "mayor_diferencia", n: 10 } })]));
     expect(sinNada.issues.filter((i) => i.code === "lamina-incompleta")).toHaveLength(1);
-    expect(sinNada.issues[0].detalle).toMatch(/pregunta que define/);
+    expect(sinNada.issues[0].detalle).toMatch(/variable que divide a los grupos/);
     const completa = validarPlan(entrada([conGrafico("k", "p_panorama", { corte: ["4", "5"] })]));
     expect(completa.issues).toHaveLength(0);
     expect(totalAvisos(agruparAvisos(completa.issues, {}, ["k"]))).toBe(0);

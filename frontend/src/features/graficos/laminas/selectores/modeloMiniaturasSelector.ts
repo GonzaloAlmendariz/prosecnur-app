@@ -38,7 +38,7 @@ const SIN_MUESTRA: ReadonlySet<string> = new Set(["p_significancia_publicos", "p
 
 export const NOTA_SIN_PREGUNTAS = "Sin vista previa: falta elegir preguntas.";
 
-/** «Sin vista previa: elige la pregunta que define los grupos.» desde lo que falta en la lámina. */
+/** «Sin vista previa: elige la variable que divide a los grupos.» desde lo que falta en la lámina. */
 export const notaDeFalta = (falta: string): string => `Sin vista previa: ${falta.charAt(0).toLowerCase()}${falta.slice(1)}`;
 
 /** Id estable por tarjeta («p_slide_un_grafico:brecha» → «selector-p_slide_un_grafico-brecha»). */

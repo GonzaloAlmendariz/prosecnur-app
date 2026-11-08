@@ -186,4 +186,16 @@ describe("ReglaPreguntas", () => {
     const html = pintar({ tipo: "mayor_diferencia", n: 2 }, { conteo: null, cargando: true, error: null, codigo: null });
     expect(html).toContain("pulso-f6-regla-zona is-esperando");
   });
+
+  it("R8-7: «Dos grupos de una base» sin la variable que divide dice eso, con el camino a «Dividir por»", () => {
+    estado.actual = { conteo: null, cargando: false, codigo: "E_REGLA_PREGUNTAS_INVALIDA", error: "El contraste compara dos públicos: elige cuáles." };
+    const regla = { tipo: "mayor_diferencia", n: 2 };
+    const html = renderToStaticMarkup(
+      <ReglaPreguntas rotulo="Regla de preguntas" ayuda="" graficador="p_dumbbell"
+        args={{ estilo: "resumen", regla, cruce: "", grupos: [], vars: [] }} valor={regla} scope="active" onCambio={() => undefined} />,
+    );
+    expect(html).toContain("Elige la variable que divide a los grupos.");
+    expect(html).toContain("Ir a «Dividir por»");
+    expect(html).not.toContain("compara dos públicos");
+  });
 });

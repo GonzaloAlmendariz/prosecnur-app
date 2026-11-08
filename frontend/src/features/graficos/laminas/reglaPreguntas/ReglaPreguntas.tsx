@@ -16,7 +16,7 @@ import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { ErrorBlock } from "../../../../components/States";
 import { AyudaGlobo } from "../AyudaGlobo";
-import { brechaSinPreguntas } from "../brecha/modeloBrechaGrupos";
+import { brechaSinPreguntas, FALTA_CRUCE, sinCruce } from "../brecha/modeloBrechaGrupos";
 import { CorteRegla } from "./CorteRegla";
 import { LimiteLamina } from "./LimiteLamina";
 import { ListaCandidatas, type Resaltada } from "./ListaCandidatas";
@@ -54,7 +54,10 @@ export function ReglaPreguntas({ rotulo, ayuda, graficador, args, valor, scope, 
   const tipos = tiposOfrecidos(graficador, grupos, regla?.tipo ?? null);
   // R8-3: «Elegidas a mano» vacía pide las candidatas con el tipo que las lista todas y ninguna sale encendida.
   const vacia = aManoVacia(regla);
-  const pedido = useConteoRegla(graficador, argsDelConteo(graficador, args, regla), scope, !!regla);
+  // R8-7: «Dos grupos de una base» sin la variable que divide no se cuenta: el motor respondería con el texto del
+  // contraste entre públicos. Se dice lo que falta y se lleva a «Dividir por».
+  const faltaCruce = graficador === "p_dumbbell" && sinCruce(args);
+  const pedido = useConteoRegla(graficador, argsDelConteo(graficador, args, regla), scope, !!regla && !faltaCruce);
   const { cargando } = pedido;
   const conteo = vacia && pedido.conteo ? conteoSinElegidas(pedido.conteo) : pedido.conteo;
   const error = vacia && pedido.error && pedido.codigo === CODIGO_REGLA_INVALIDA ? null : pedido.error;
@@ -93,7 +96,13 @@ export function ReglaPreguntas({ rotulo, ayuda, graficador, args, valor, scope, 
   // empuja todo lo de abajo 50 a 90 px. Un ref y no estado: se mide después de pintar y sólo se lee al esperar.
   const zona = useRef<HTMLDivElement>(null);
   const altoReservado = useRef(0);
-  const esperando = !!regla && !error && cargando;
+  const esperando = !!regla && !faltaCruce && !error && cargando;
+  const irADividir = () => {
+    const campo = zona.current?.closest(".pulso-f6-datos")?.querySelector<HTMLElement>('[data-campo="cruce"]');
+    const control = campo?.querySelector<HTMLElement>("button, input");
+    if (typeof campo?.scrollIntoView === "function") campo.scrollIntoView({ block: "nearest" });
+    control?.focus({ preventScroll: true });
+  };
   useLayoutEffect(() => {
     if (!esperando && zona.current) altoReservado.current = zona.current.offsetHeight;
   });
@@ -138,11 +147,17 @@ export function ReglaPreguntas({ rotulo, ayuda, graficador, args, valor, scope, 
 
       <div ref={zona} className={`pulso-f6-regla-zona${esperando ? " is-esperando" : ""}`}
         style={esperando && altoReservado.current ? { minHeight: altoReservado.current } : undefined}>
-      {regla && error && <ErrorBlock label="No se pudo contar las preguntas" detail={error} />}
+      {regla && faltaCruce && (
+        <p className="pulso-f6-dato-ayuda" role="status">
+          {`${FALTA_CRUCE} `}
+          <button type="button" className="pulso-f6-texto-boton" onClick={irADividir}>Ir a «Dividir por»</button>
+        </p>
+      )}
+      {regla && !faltaCruce && error && <ErrorBlock label="No se pudo contar las preguntas" detail={error} />}
 
-      {regla && !error && !conteo && cargando && <CargaDeBloque label="Contando las preguntas" />}
+      {regla && !faltaCruce && !error && !conteo && cargando && <CargaDeBloque label="Contando las preguntas" />}
 
-      {regla && reglaViva && !error && conteo && vista && (
+      {regla && reglaViva && !faltaCruce && !error && conteo && vista && (
         <div className="pulso-f6-regla-resultado" aria-busy={cargando || undefined}>
           {vacia ? (
             <p className="pulso-f6-regla-conteo is-accion" role="status">{ELIGE_UNA}</p>

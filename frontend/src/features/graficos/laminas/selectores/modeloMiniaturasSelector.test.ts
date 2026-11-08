@@ -153,7 +153,7 @@ describe("R5-1: la miniatura lleva lo que el gráfico necesita para dibujarse", 
     };
     expect(notasDelSelector(["p_slide_1_grafico:significancia"], conOpcionUnica, ESTUDIO, FUENTES)["p_slide_1_grafico:significancia"]).toBe(NOTA_SIN_PREGUNTAS);
     // Las aperturas piden la pregunta que divide.
-    expect(notasDelSelector(["p_slide_1_grafico:aperturas"], UNO, ESTUDIO)["p_slide_1_grafico:aperturas"]).toMatch(/^Sin vista previa: elige la pregunta/);
+    expect(notasDelSelector(["p_slide_1_grafico:aperturas"], UNO, ESTUDIO)["p_slide_1_grafico:aperturas"]).toMatch(/^Sin vista previa: elige la variable que divide a los grupos/);
     // Las completas no llevan nota.
     expect(notasDelSelector(["p_slide_1_grafico:contraste"], DOS, ESTUDIO)).toEqual({});
   });

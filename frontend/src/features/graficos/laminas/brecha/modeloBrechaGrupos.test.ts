@@ -24,7 +24,7 @@ describe("la brecha entre dos grupos de una base (G17)", () => {
     expect(esEntreGrupos(a)).toBe(false);
     a = { ...a, ...aEntreGrupos() };
     expect(esEntreGrupos(a)).toBe(true);
-    expect(faltaEnBrecha(a)).toMatch(/pregunta que define/);
+    expect(faltaEnBrecha(a)).toMatch(/variable que divide a los grupos/);
     a = { ...a, ...conCruce(vars, "p3") };
     expect(a.cruce).toBe("docentes$p3");                       // la ref lleva su base aunque el picker la dé sin ella
     expect(opcionesDe(vars, a.cruce as string).map((o) => o.etiqueta)).toEqual(["Masculino", "Femenino"]);

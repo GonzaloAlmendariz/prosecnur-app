@@ -210,10 +210,20 @@ export function conCorte(args: Args, codigo: string, marcado: boolean): Record<s
 }
 
 export const FALTAN_GRUPOS = "Elige los grupos que se comparan.";
+/** R8-7: sin «Dividir por» en «Dos grupos de una base»; no el texto del contraste entre públicos que da el motor. */
+export const FALTA_CRUCE = "Elige la variable que divide a los grupos.";
+
+/**
+ * ¿La brecha está en «Dos grupos de una base» (elegido: `cruce` es texto, aEntreGrupos) sin la variable que divide? Sin
+ * la clave `cruce` el motor la toma como contraste entre las bases del estudio; ésa no es esta falta.
+ */
+export function sinCruce(args: Args): boolean {
+  return typeof args.cruce === "string" && !texto(args.cruce);
+}
 
 /** Lo que falta para que la lámina se pueda dibujar, en el orden en que se elige. */
 export function faltaEnBrecha(args: Args): string | null {
-  if (!texto(args.cruce)) return "Elige la pregunta que define los grupos.";
+  if (!texto(args.cruce)) return FALTA_CRUCE;
   const [a, b] = gruposDe(args);
   const tope = maxGrupos(args);
   if (gruposElegidos(args).length > tope) {

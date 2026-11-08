@@ -200,7 +200,7 @@ export const TARJETAS_CONTAR: readonly TarjetaContar[] = [
     clase: "resumen",
     uso: "Un público abierto por grupos, cada uno con su forma",
     descripcion: "Una fila por grupo en cada pregunta, hasta cuatro grupos.",
-    pide: "La pregunta que define los grupos",
+    pide: "La variable que divide a los grupos",
     parche: {},
     // Sin `cruce: null`: la brecha arranca en «dos grupos» y el cruce se elige en Datos.
     // Dentro de un público no hay par: el `bases` que traiga del contraste se borra.
