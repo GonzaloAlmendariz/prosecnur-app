@@ -137,6 +137,12 @@ Decisiones de Gonzalo del 2026-11-07:
   conteo la descuenta; sin regla, la tabla sigue estricta.
 - La mitad negativa depende de la dirección declarada de la escala (`direccion_escala`): una lista invertida sin
   declararla pinta la polaridad al revés, como ya pasaba. Con «Nunca» en la lista, «No he X» es no respuesta.
+- La diferencia entre públicos se mide sobre las cifras ya rotuladas y se vuelve a redondear a los decimales de la
+  lámina; así la regla elige lo mismo que la lámina rotula (16,4 − 1,4 = 15,0 entra con «al menos 15») y los empates
+  visibles los decide el orden del instrumento. El conteo usa los presets y la regla inclusiva del render.
+- El inventario («Tu estudio») cuenta casos sin ponderar; en una base hija de repeat cuenta filas del repeat. En el
+  scope consolidado, n son las filas de la fuente consolidada (como el export consolidado, que no aplica el caso
+  válido de Analítica): decisión del export, declarada aquí.
 - El detector quedó aprobado tras seis revisiones metodológicas (2026-11-07); los probes viven en el scratchpad de la
   sesión y los casos, en `test-graficos-divergentes-no-sustantivos.R`.
 - Pendiente: el dibujo de respaldo (ggplot) apila el gris de «Sin información» detrás del acuerdo; la lámina nativa no.
