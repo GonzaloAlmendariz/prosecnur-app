@@ -1,0 +1,19 @@
+/* Tokens de controles (acabado de Gráficos › Láminas, 8 nov 2026).
+ *
+ * tokens.css y theme.css están congelados; los tokens nuevos de la gramática
+ * de controles viven aquí y se importan junto a tipografia.css (AppSuite.tsx).
+ * Los consumen las primitivas del kit: el botón quieto (kit-boton-quieto.css),
+ * BotonCerrar (kit-cerrar.css), CabeceraPanel y ChipSeleccion.
+ *
+ * - Un solo radio de control (antes convivían 10, 8, 7 y 999 px).
+ * - Dos tamaños de ícono: 16 en barras y cabeceras, 14 en filas y chips.
+ * - La X mide 28 a la vista y 32 al puntero.
+ * - La cabecera de panel = control md + holgura vertical de space-2 arriba y abajo. */
+:root {
+  --pulso-control-radius: 8px;
+  --pulso-icon-size-sm: 14px;
+  --pulso-icon-size-md: 16px;
+  --pulso-close-size: 28px;
+  --pulso-close-hit: 32px;
+  --pulso-panel-head-h: calc(var(--pulso-control-height-md) + 2 * var(--pulso-space-2));
+}

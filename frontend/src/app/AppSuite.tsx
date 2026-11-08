@@ -1,5 +1,6 @@
 import "./theme.css";
 import "./tipografia.css";
+import "./tokens-controles.css";
 /* El vocabulario común de movimiento (5 nov 2026): las hojas de features/ nombran sus gestos. */
 import "./movimiento.css";
 /* Después de theme.css porque consume sus tokens. El orden entre estos dos es
