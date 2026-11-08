@@ -368,6 +368,7 @@ p_barras_divergentes <- function(vars = NULL,
       if (length(codigos_escala)) meta_ns <- list(especiales = unique(c(meta_ns$especiales, codigos_escala[es_ns])),
                                                   sustantivos = codigos_escala[!es_ns])
       sustantivas <- setdiff(escala_reparto, no_sustantivas)
+      .divergentes_avisar_direccion(as.character(ref)[1], setdiff(escala_original, no_sustantivas), direccion_escala)   # E1a (ola 2)
       reparto_original <- .divergentes_reparto(
         sustantivas,
         .ola4_n_negativas(n_negativas, length(sustantivas)),

@@ -256,7 +256,9 @@ graficar_barras_divergentes <- function(
   df$.orden <- match(as.character(df$.cat), cols_porcentaje)
   # Negativas: el nivel mas bajo (el peor) va mas lejos del cero.
   # Positivas: el nivel mas alto (el mejor) va mas lejos del cero.
-  df$.orden_apilado <- ifelse(df$.signo < 0, df$.orden, -df$.orden)
+  # E1a (ola 2): por distancia al centro de la escala, no por posición: con la escala declarada de positivo a negativo el
+  # orden por posición apilaba los extremos pegados al cero (graficos_divergentes_direccion.R).
+  df$.orden_apilado <- .divergentes_orden_apilado(df$.cat, df$.lado, df$.signo, cols_porcentaje)
   df <- df[order(df$.item, df$.orden_apilado), , drop = FALSE]
   df$.cat_stack <- factor(
     as.character(df$.cat),
