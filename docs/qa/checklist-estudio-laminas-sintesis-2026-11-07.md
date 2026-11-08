@@ -73,12 +73,17 @@ Cada superficie se mide con tres criterios y pasa sólo con los tres:
 
 | # | Superficie | A | B | C | Estado |
 |---|---|---|---|---|---|
-| X1 | Selector de láminas | Segmentado Insertar/Cambiar y Comparar dos (c8fd207de) | Ficha Datos con «Tu estudio» (6f9500ff3) | Faltas en una línea, sin bloquear | QA: rechazo C5 con un solo público; arreglos en curso |
-| X2 | Regla de preguntas | Slider con valor sobre el reparto, conteo en vivo (88e3bb781, 7410b28d4, 2af26554e) | Orden de la lámina, preguntas enteras, «Corte en N pts» | Reparto antes del corte, empates y tope a la vista | QA ronda 2: sólo el pulgar con umbral escrito; arreglado en 2af26554e, falta recaptura |
-| X3 | Mazo del resumen ejecutivo | Arrastrar, deshacer seguro, lateral de edición, franja plegada (6623f4348…dececb84f, 6a0cf8069) | Miniaturas reales (668d64953), públicos por tarjeta | Arranca sin elegir; sin antetítulos; sin avisos falsos (ba95a2e74, 6f81cf2b3) | QA ronda 2: dos fallas arregladas en 6a0cf8069; falta recaptura |
-| X4 | Lienzo e inspector | Vista previa sin blur, atajos visibles (oleada V en curso) | Título en el lienzo (en curso) | Por medir | En construcción |
-| X5 | Grupos con padrón | Por medir | El vacío de padrón no dice dónde declararlo | Por medir | Pendiente |
+| X1 | Selector de láminas | Segmentado Insertar/Cambiar y Comparar dos (c8fd207de) | Ficha Datos con «Tu estudio» (6f9500ff3); miniatura de la divergente del recetario (38264ad14) | Faltas en una línea, sin bloquear | Rondas 5 a 7 arregladas; falta QA visual conjunta |
+| X2 | Regla de preguntas | Slider con valor sobre el reparto, conteo en vivo (88e3bb781, 7410b28d4, 2af26554e) | Orden de la lámina, preguntas enteras, «Corte en N pts»; conteo propio por tipo de regla (ce864e7e7) | Reparto antes del corte, empates y tope a la vista | Ronda 6 arreglada (sin «0 de 157» ni «preguntas preguntas», 7f89a3c46); falta QA visual |
+| X3 | Mazo del resumen ejecutivo | Arrastrar, deshacer seguro, lateral de edición, franja plegada (6623f4348…dececb84f, 6a0cf8069) | Miniaturas reales (668d64953), públicos por tarjeta; la tarjeta en edición entra en vista (bf37a1d13) | Arranca sin elegir; sin antetítulos; sin avisos falsos (ba95a2e74, 6f81cf2b3, 939e99d19) | Ronda 6 arreglada; falta QA visual |
+| X4 | Lienzo e inspector | Cifras exactas del motor, Lados de la escala con asa, Máximo con «Otros» como fila, Redondeo con la suma en el segmento, Excluir grupos (b606cb545…85dd1fb30) | «?» en línea, Avisos reemplaza al Inspector, «Actualizando» en la barra (R7-2, R7-3, R7-8) | La cifra se ve antes de excluir; «Dividir por» sólo de la base de la pregunta (R7-1, R7-18) | QA I2+R5 rechazó 7 celdas; ronda 7 las arregló; falta QA visual conjunta |
+| X5 | Grupos con padrón | Orden con Subir/Bajar y Alt+Flechas, efecto inmediato (6262ceca5) | Cobertura por grupo con la regla del motor; sin padrón enlaza al marco (d30e815f7, 649a5387e, 9c12be42b, ff2bb0b0f) | Sólo cifras; la diferencia nombra sus grupos | Construido; falta QA visual. Deuda: el padrón por grupo no viene del backend |
 | X6 | Emparejado | Filtro segmentado, lote de idénticos, J/K/Enter/X (6c099ccbf…69bd17939) | Dos textos enteros con lo distinto marcado | Coincidencia a la vista | QA: aprobado con pendientes (pares espejo duplicados); arreglos en curso |
-| X7 | Cierre con hallazgos | Combobox con buscador y teclado, cifras en un solo pedido (dfde4b630, 731b317ac) | Cifras agrupadas por lámina con su valor | La cifra se elige viéndola; sin título por defecto (84f430a87) | Falta QA visual |
+| X7 | Cierre con hallazgos | Combobox con buscador y teclado, cifras en un solo pedido (dfde4b630, 731b317ac) | Cifras agrupadas por lámina con su valor; panel entero en vista (bf37a1d13) | La cifra se elige viéndola; sin título por defecto (84f430a87) | Falta QA visual |
 
 Auditoría completa (15 mejoras priorizadas, capturas en el scratchpad de la sesión): 2026-11-08.
+
+Motor del PPT, de la QA del 2026-11-08: la base ya no cae sobre la leyenda «SIN INF» en composiciones (ce2f19f24),
+las cifras de segmentos chicos ya no se montan (4b0e38ed3) y el saldo de la divergente resta los lados rotulados
+(6ba5807d1, ADR 0135). Excluir grupos del cruce: revisión metodológica aprobada con pendientes y revisión de contratos
+aprobada con pendientes; los pendientes de backend están en curso.
