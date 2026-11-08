@@ -1,9 +1,25 @@
 /* «Armar desde…» (contrato A5 2b). `editor-v2.css` está congelado: lo nuevo del popover vive aquí. */
 
-/* Informe compartido: el botón sigue en el orden de foco (`aria-disabled`), pero se ve inactivo. */
-.pulso-gv2-suggest-trigger.is-deshabilitado {
-  opacity: 0.55;
+/* Informe compartido: el botón sigue en el orden de foco (`aria-disabled`), pero se ve inactivo. R10-2 (contrato A/D7):
+   el deshabilitado honesto, surface-3 / text-faint / borde, sin opacidad sobre el teal ni reacción al hover. Los
+   `!important` responden a los de la piel del disparador en editor-v2.css (congelado), que pinta borde, fondo y texto
+   con `!important`; el atributo sube la especificidad sobre su `:hover:not(:disabled)`. */
+.pulso-gv2-suggest-trigger.is-deshabilitado[aria-disabled="true"],
+.pulso-gv2-suggest-trigger.is-deshabilitado[aria-disabled="true"]:hover {
+  opacity: 1;
+  border-color: var(--pulso-border) !important;
+  background: var(--pulso-surface-3) !important;
+  color: var(--pulso-text-faint) !important;
+  box-shadow: none !important;
   cursor: not-allowed;
+}
+
+.pulso-gv2-suggest-trigger.is-deshabilitado[aria-disabled="true"] > svg {
+  color: inherit !important;
+}
+
+.pulso-gv2-suggest-trigger.is-deshabilitado[aria-disabled="true"]:active {
+  transform: none;
 }
 
 /* Propuesta del plan para «Otros»: casilla explícita, nunca un cambio silencioso del interruptor. */
