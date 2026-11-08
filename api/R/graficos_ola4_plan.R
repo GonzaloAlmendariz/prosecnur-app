@@ -284,6 +284,11 @@ p_barras_divergentes <- function(vars = NULL,
   as.integer(k_sustantivas) %/% 2L
 }
 
+#' Tabla de la escala divergente: una fila por pregunta sobre la escala de la leyenda
+#'
+#' Un fallo de una fila sale como condición `ola4_fila_fallida` (con su `ref`); `.ola4_tabla_escala_tolerante`
+#' (graficos_escala_filas_fallidas.R) la saca y sigue con las demás.
+#' @keywords internal
 .ola4_tabla_escala <- function(refs, filtros, excluir_opciones = NULL,
                                n_negativas = NULL,
                                incluir_neutro = TRUE,
@@ -305,13 +310,13 @@ p_barras_divergentes <- function(vars = NULL,
   armonizadas <- list()   # escalas alineadas por posición con la de la leyenda (graficos_escala_armonizada.R)
   if (!length(refs)) return(NULL)
 
-  tabs <- lapply(refs, function(ref) .ola4_tabla_opciones(
-    ref,
+  tabs <- lapply(seq_along(refs), function(i) .ola4_con_fila(i, refs[[i]], .ola4_tabla_opciones(
+    refs[[i]],
     filtros,
     excluir_opciones,
     n_negativas = NULL,   # el reparto se fija abajo, sobre las sustantivas
     incluir_neutro = incluir_neutro
-  ))
+  )))
   # La escala de la leyenda es la más frecuente del universo de la regla o, sin regla, de las filas (ADR 0135, oleada 9);
   # se procesa primero y las filas conservan su orden.
   firmas_tabs <- vapply(tabs, function(t) {
@@ -322,11 +327,13 @@ p_barras_divergentes <- function(vars = NULL,
   filas <- vector("list", length(refs))
   names(filas) <- vapply(refs, function(r) as.character(r)[1], character(1))
 
-  for (i in c(i_ref, setdiff(seq_along(refs), i_ref))) {
+  excluidas_ley <- character(0)
+  # El cuerpo corre dentro de `.ola4_con_fila` (sus asignaciones quedan en este marco): un fallo nombra su fila.
+  for (i in c(i_ref, setdiff(seq_along(refs), i_ref))) .ola4_con_fila(i, refs[[i]], {
     ref <- refs[[i]]
     tab <- tabs[[i]]
     escala_ref <- attr(tab, "ola4_escala_original", exact = TRUE)
-    if (isTRUE(attr(tab, "excluded_any", exact = TRUE))) hubo_exclusion <- TRUE
+    hubo_fila <- isTRUE(attr(tab, "excluded_any", exact = TRUE))
     firma_ref <- attr(tab, "ola4_firma_e1", exact = TRUE)
     if (!length(firma_ref) || is.na(firma_ref[[1]]) || !nzchar(firma_ref[[1]])) {
       firma_ref <- NULL
@@ -368,6 +375,7 @@ p_barras_divergentes <- function(vars = NULL,
       ref_escala <- as.character(ref)[1]
       if (!is.null(firma_ref) && length(opciones_ref)) {
         forma_escala <- .escala_arm_forma(escala_original, es_ns, n_negativas, incluir_neutro)
+        excluidas_ley <- .escala_arm_excluidas(opciones_ref, attr(tab, "ola4_excluir_resuelto", exact = TRUE))
       }
     } else {
       if (xor(is.null(firma_escala), is.null(firma_ref))) {
@@ -383,10 +391,16 @@ p_barras_divergentes <- function(vars = NULL,
                                                 direccion_escala, n_negativas, incluir_neutro)
         motivo <- .escala_arm_motivo(forma_escala, forma_ref)
         if (!is.null(motivo)) {
-          stop("La pregunta `", as.character(ref)[1], "` no se alinea con la escala de `", ref_escala, "`: ", motivo, ".",
-               call. = FALSE)
+          stop(.ola4_condicion_fila(paste0("La pregunta `", as.character(ref)[1], "` no se alinea con la escala de `",
+                                           ref_escala, "`: ", motivo, "."), motivo))
         }
-        armonizadas[[firma_ref]] <- .escala_arm_texto(forma_ref)
+        # H4: las exclusiones de la leyenda, traducidas a esta escala; todas las filas comparten denominador.
+        excl_q <- .escala_arm_traducir_exclusion(excluidas_ley, forma_ref, forma_escala)
+        if (length(excluidas_ley) || length(excluir_opciones)) {
+          tab <- .ola4_tabla_opciones(ref, filtros, if (length(excl_q)) excl_q else NULL, n_negativas = NULL,
+                                      incluir_neutro = incluir_neutro)
+          hubo_fila <- isTRUE(attr(tab, "excluded_any", exact = TRUE))
+        }
       } else if (!is.null(firma_escala) && !identical(firma_ref, firma_escala)) {
         stop(
           "La pregunta `", as.character(ref)[1],
@@ -460,7 +474,9 @@ p_barras_divergentes <- function(vars = NULL,
     # Dos especiales de una escala alineada caen en la misma columna: se suman.
     por_nivel <- tapply(n, factor(opts, levels = unique(opts)), sum, na.rm = TRUE)
     filas[[i]] <- stats::setNames(as.numeric(por_nivel) / total, names(por_nivel))
-  }
+    if (!is.null(forma_ref) && i != i_ref) armonizadas[[firma_ref]] <- .escala_arm_texto(forma_ref)
+    if (hubo_fila) hubo_exclusion <- TRUE
+  })
   if (!length(filas)) return(NULL)
 
   # La escala comun de origen gobierna el orden aunque una opcion ya no sea
@@ -558,7 +574,8 @@ p_barras_divergentes <- function(vars = NULL,
     el$overrides %||% list(),
     el
   )
-  tabla <- .ola4_tabla_escala(
+  # Con regla, una fila que no se puede dibujar sale con aviso y no tumba la lámina (graficos_escala_filas_fallidas.R).
+  tabla <- (if (is.null(el$regla)) .ola4_tabla_escala else .ola4_tabla_escala_tolerante)(
     el$vars,
     el$filtros %||% list(),
     excluir_opciones = excluir_opciones,
@@ -567,6 +584,8 @@ p_barras_divergentes <- function(vars = NULL,
     direccion_escala = args_usuario$direccion_escala %||% "negativo_positivo",
     firma_leyenda = el$.firma_leyenda
   )
+  for (av in .ola4_avisos_omitidas(tabla$omitidas)) .pulso_aviso(av)
+  if (is.null(tabla$data)) stop("La escala no deja ninguna pregunta que se pueda dibujar.", call. = FALSE)
 
   refs_filas <- tabla$data$categoria
   tabla$data$categoria <- .divergentes_rotulos_publicos(.ola4_rotulos_preguntas(el$vars, refs_filas), refs_filas, el$abreviaturas)
@@ -593,6 +612,11 @@ p_barras_divergentes <- function(vars = NULL,
   args <- .regla_escala_orden_args(args, el)   # la regla fijó el orden: las filas van como las ordenó (ADR 0135)
   args <- .keep_formals(graficar_barras_divergentes, args, contexto = "graficar_barras_divergentes")
   p <- .regla_preguntas_en_espec(do.call(graficar_barras_divergentes, args), ap$texto)
+  esp <- attr(p, "pulso_espec", exact = TRUE)
+  if (identical(esp$estilo, "resumen")) {
+    tope <- .divergentes_aviso_tope(length(esp$filas), ap$texto)   # graficos_escala_tope.R
+    if (!is.null(tope)) .pulso_aviso(tope)
+  }
   .divergentes_nota_porcentaje(p, isTRUE(tabla$hubo_exclusion), tabla$escalas_armonizadas)
 }
 

@@ -96,14 +96,17 @@
 
 #' La tabla de la lámina para unas preguntas: `.ola4_tabla_escala` y su especificación `divergentes/1`
 #' @keywords internal
-.regla_div_espec <- function(refs, el, a) {
-  tabla <- .ola4_tabla_escala(refs, el$filtros %||% list(), excluir_opciones = a$excluir, n_negativas = a$n_negativas,
-                              incluir_neutro = a$incluir_neutro, direccion_escala = a$direccion,
-                              firma_leyenda = el$.firma_leyenda)
+.regla_div_espec <- function(refs, el, a, tolerante = FALSE) {
+  tabla <- (if (tolerante) .ola4_tabla_escala_tolerante else .ola4_tabla_escala)(
+    refs, el$filtros %||% list(), excluir_opciones = a$excluir, n_negativas = a$n_negativas,
+    incluir_neutro = a$incluir_neutro, direccion_escala = a$direccion, firma_leyenda = el$.firma_leyenda)
+  if (is.null(tabla$data)) return(structure(list(), omitidas = tabla$omitidas))
   particion <- .divergentes_reparto(tabla$cols_porcentaje, a$n_negativas, a$incluir_neutro, reparto = tabla$reparto)
-  .espec_divergentes(tabla$data, "categoria", tabla$cols_porcentaje, tabla$etiquetas_grupos, particion, "proporcion_1",
-                     decimales = a$decimales, incluir_neutro = a$incluir_neutro, reparto_explicito = TRUE,
-                     codigos = tabla$codigos_grupos, orden = "declarado")
+  esp <- .espec_divergentes(tabla$data, "categoria", tabla$cols_porcentaje, tabla$etiquetas_grupos, particion, "proporcion_1",
+                            decimales = a$decimales, incluir_neutro = a$incluir_neutro, reparto_explicito = TRUE,
+                            codigos = tabla$codigos_grupos, orden = "declarado")
+  attr(esp, "omitidas") <- tabla$omitidas
+  esp
 }
 
 #' Top Two Box y «Sin información» de cada pregunta, con las cifras que la lámina rotula
@@ -119,12 +122,12 @@
   vacio <- data.frame(ref = character(0), valor = numeric(0), sin_info = numeric(0), stringsAsFactors = FALSE)
   if (!length(refs)) return(list(medidas = vacio, motivos = list()))
   .regla_div_con_motor(sources, function() {
-    motivos <- list()
-    ok <- vapply(refs, function(r) !is.null(tryCatch(.regla_div_espec(r, el, a), error = function(e) NULL)), TRUE)
-    if (any(!ok)) motivos <- as.list(rep("la escala queda sin un lado con sus exclusiones", sum(!ok)))
-    validas <- refs[ok]
-    if (!length(validas)) return(list(medidas = vacio, motivos = motivos))
-    esp <- .regla_div_espec(validas, el, a)
+    # Invariante 5 (revisión de 095e70b66): una fila que no se puede dibujar sale con su causa; las demás siguen.
+    esp <- .regla_div_espec(refs, el, a, tolerante = TRUE)
+    omitidas <- attr(esp, "omitidas", exact = TRUE) %||% list()
+    motivos <- as.list(unname(unlist(omitidas)))
+    validas <- setdiff(refs, names(omitidas))
+    if (!length(validas) || is.null(esp$categorias)) return(list(medidas = vacio, motivos = motivos))
     lado <- esp$categorias$lado; U <- esp$unidades; k <- 10^esp$decimales
     list(medidas = data.frame(ref = validas, valor = esp$total_pos / k,
                               sin_info = rowSums(U[, lado == "sin_inf", drop = FALSE]) / k, stringsAsFactors = FALSE),

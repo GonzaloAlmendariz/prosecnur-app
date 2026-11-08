@@ -307,7 +307,8 @@
   if (!is.null(criterio)) ev <- .regla_escala_ordenar(ev, ind$indicadores, criterio)
   elegidas <- ind$refs_por_tema[ev$temas]
   vars <- if (identical(el$.element_type, "dumbbell")) elegidas else unname(unlist(elegidas))
-  list(evaluacion = ev, vars = vars, avisos = c(ind$avisos, ev$avisos), indicadores = ind$indicadores,
+  tope <- if (identical(el$.element_type, "barras_divergentes")) .divergentes_aviso_tope(length(vars), ev$texto)
+  list(evaluacion = ev, vars = vars, avisos = c(ind$avisos, ev$avisos, tope), indicadores = ind$indicadores,
        firma_leyenda = ind$firma_leyenda)
 }
 
