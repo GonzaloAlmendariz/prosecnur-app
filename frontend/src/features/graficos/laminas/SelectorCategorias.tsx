@@ -105,6 +105,7 @@ export function SelectorCategorias({
     <div className="pulso-f6-dato is-apilado">
       <span className="pulso-f6-cats-cabeza">{etiqueta}<span className="pulso-f6-cats-resumen">{resumen}{estadoCifra}</span></span>
       <div id={id} className={`pulso-f6-cats is-${modo === "una" ? "elegir" : modo}`} role="group"
+        data-qa-geometry-group="graficos/f6-cats" data-qa-geometry-contract="intrinsic"
         onMouseLeave={onSondear ? () => onSondear(null) : undefined}
         onBlur={onSondear ? (e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) onSondear(null); } : undefined}>
         {cats.map((c) => {

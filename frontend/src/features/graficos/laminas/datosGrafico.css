@@ -194,7 +194,7 @@
 .pulso-f6-preguntas-refs { font-size: var(--pulso-type-body-size); color: var(--pulso-text-muted); overflow-wrap: anywhere; }
 
 /* «Destacar» del ranking con puntos (I4): las respuestas de la pregunta como botones que se encienden. */
-.pulso-f6-destacar { display: flex; flex-wrap: wrap; gap: 6px; }
+.pulso-f6-destacar { display: flex; flex-wrap: wrap; gap: var(--pulso-space-1); }
 .pulso-f6-destacar-opcion {
   padding: 3px 10px;
   border: 1px solid var(--pulso-border);
@@ -357,7 +357,24 @@
    y se tacha. Elegir (corte): la marcada toma el color del módulo. */
 .pulso-f6-cats-cabeza { display: flex; align-items: baseline; justify-content: space-between; gap: var(--pulso-space-2); }
 .pulso-f6-cats-resumen { color: var(--pulso-text-soft); font-size: var(--pulso-type-caption-size); white-space: nowrap; }
-.pulso-f6-cats { display: flex; flex-wrap: wrap; gap: 6px; }
+.pulso-f6-cats { display: flex; flex-wrap: wrap; gap: var(--pulso-space-1); }
+
+/* W1B-C5: bajo la última fila de fichas no queda una línea en blanco. La del efecto de «Excluir respuestas» (R7-4:
+   reservada para que pasar el cursor no empuje lo de abajo) se reservaba vacía, ~30 px muertos con el cursor fuera.
+   Ahora vacía no ocupa lugar y, con contenido, se dibuja en el renglón de la cabecera en lugar del resumen: tampoco
+   empuja nada. */
+.pulso-f6-dato > .pulso-f6-excluir-efecto:empty { display: none; }
+.pulso-f6-dato.is-apilado:has(> .pulso-f6-excluir-efecto:not(:empty)) > .pulso-f6-cats-cabeza { grid-row: 1; grid-column: 1; }
+.pulso-f6-dato.is-apilado > .pulso-f6-excluir-efecto:not(:empty) {
+  grid-row: 1;
+  grid-column: 1;
+  justify-self: end;
+  align-self: center;
+  max-width: 62%;
+  padding-inline-start: var(--pulso-space-2);
+  background: var(--pulso-surface);
+}
+.pulso-f6-dato:has(> .pulso-f6-excluir-efecto:not(:empty)) .pulso-f6-cats-resumen { visibility: hidden; }
 .pulso-f6-cat {
   display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-height: 28px; padding: 3px 10px;
   border: 1px solid var(--pulso-border); border-radius: var(--pulso-radius-chip); background: var(--pulso-surface);
