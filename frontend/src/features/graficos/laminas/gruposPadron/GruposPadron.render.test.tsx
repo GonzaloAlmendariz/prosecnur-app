@@ -2,11 +2,20 @@
 // «Padrón confiable» sólo en los incluidos, el aviso del grupo chico con el texto del pie y la línea «Base:». Sin conteo
 // del cruce no hay vista previa de la base.
 import { renderToStaticMarkup } from "react-dom/server";
+import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
+import type { PadronPropuesto } from "../../../../api/graficosPadron";
 
-const estado = vi.hoisted(() => ({ categorias: null as unknown }));
+const estado = vi.hoisted(() => ({ categorias: null as unknown, propuestas: [] as PadronPropuesto[] }));
 vi.mock("../useCategoriasGrafico", () => ({ useCategoriasGrafico: () => estado.categorias }));
 vi.mock("./useGuardaNoConfiables", () => ({ useGuardaNoConfiables: () => true }));
+vi.mock("./usePadronPropuesto", () => ({
+  usePadronPropuesto: () => ({ fase: "lista", propuestas: estado.propuestas, reintentar: () => undefined }),
+  propuestasDe: (e: { propuestas: PadronPropuesto[] }) => e.propuestas,
+}));
+vi.mock("../../../estudio/usePlannerModos", () => ({
+  usePlannerModos: () => ({ modos: { calc: { modo: "opinion-universitaria" }, monitoreo: { modos: [] } }, error: null, recargar: async () => undefined }),
+}));
 
 import { GruposPadron } from "./GruposPadron";
 
@@ -19,7 +28,9 @@ const LISTA = {
 const pintar = (args: Record<string, unknown>, categorias: unknown = LISTA) => {
   estado.categorias = categorias;
   return renderToStaticMarkup(
-    <GruposPadron args={args} cruce="docentes$dedicacion" opciones={OPCIONES} scope="active" onCambio={() => undefined} />,
+    <MemoryRouter>
+      <GruposPadron args={args} cruce="docentes$dedicacion" opciones={OPCIONES} scope="active" onCambio={() => undefined} />
+    </MemoryRouter>,
   );
 };
 
@@ -41,5 +52,21 @@ describe("GruposPadron", () => {
     const html = pintar({ grupos: ["1", "2"] }, { fase: "cargando", reintentar: () => undefined });
     expect(html).not.toContain("Base:");
     expect(html).not.toContain("Grupo chico");
+  });
+
+  it("X5: el grupo sin padrón se nombra con el enlace al marco; el padrón de la base va como referencia", () => {
+    estado.propuestas = [{
+      base: "docentes", padron: 254, padron_origen: "Cálculo de muestra: marco validado (Docentes)",
+      meta: null, meta_unidad: null, meta_origen: "", motivo: "",
+    }];
+    const html = pintar({ grupos: ["1", "2"], universos: "TP: 103" });
+    expect(html).toContain("Padrón de Docentes: 254");
+    expect(html).toContain("Sin padrón: TC. La base va sólo con n.");
+    expect(html).toContain('href="/calc-muestra?modo=opinion-universitaria"');
+    expect(html).toContain("Ver el marco en Cálculo de muestra");
+    const completo = pintar({ grupos: ["1", "2"], universos: "TC: 30; TP: 103" });
+    expect(completo).not.toContain("Sin padrón:");
+    expect(completo).toContain("Padrón de Docentes: 254");
+    estado.propuestas = [];
   });
 });

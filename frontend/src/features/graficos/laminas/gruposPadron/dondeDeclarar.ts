@@ -30,17 +30,23 @@ export function faltaPadron(publicos: readonly { incluido: boolean; escrito: num
  * carga, Cálculo de muestra sin modo. Monitoreo sólo si el estudio tiene su modo de acreditación, que es el único
  * reporte del que la propuesta lee el universo.
  */
-export function dondeDeclararPadron(modos: ModosDelEstudio): DestinoPadron[] {
+/**
+ * `para`: los públicos (bases) toman su padrón de Cálculo de muestra o Monitoreo; los grupos internos de un cruce no
+ * tienen propuesta (la propuesta es por base), así que su padrón se teclea aquí y el enlace lleva al marco de Cálculo de
+ * muestra para consultarlo. Monitoreo no se ofrece a los grupos: su universo es por actor, no por grupo.
+ */
+export function dondeDeclararPadron(modos: ModosDelEstudio, para: "publicos" | "grupos" = "publicos"): DestinoPadron[] {
   const calc = modos?.calc?.trim() || null;
+  const grupos = para === "grupos";
   const destinos: DestinoPadron[] = modos && !calc
     ? [{ clave: "ficha", texto: "Declarar el tipo del estudio", nombre: "Declarar el tipo del estudio en la Ficha del estudio", href: HREF_FICHA }]
     : [{
       clave: "calc-muestra",
-      texto: "Declarar en Cálculo de muestra",
-      nombre: "Declarar el padrón en Cálculo de muestra",
+      texto: grupos ? "Ver el marco en Cálculo de muestra" : "Declarar en Cálculo de muestra",
+      nombre: grupos ? "Ver el marco muestral en Cálculo de muestra" : "Declarar el padrón en Cálculo de muestra",
       href: serializarDireccion({ modulo: "calc-muestra", ...(calc ? { modo: calc } : {}) }),
     }];
-  if (modos?.monitoreo.includes("acreditacion")) {
+  if (!grupos && modos?.monitoreo.includes("acreditacion")) {
     destinos.push({
       clave: "monitoreo",
       texto: destinos[0]?.clave === "ficha" ? "o declarar en Monitoreo" : "o en Monitoreo",

@@ -7,9 +7,11 @@ import { usePlannerModos } from "../../../estudio/usePlannerModos";
 import { useRutaFichaDelEstudio } from "../../../estudio/useRutaFichaDelEstudio";
 import { dondeDeclararPadron } from "./dondeDeclarar";
 
-export function DeclararPadron() {
+type Props = { para?: "publicos" | "grupos" };
+
+export function DeclararPadron({ para = "publicos" }: Props) {
   const { modos } = usePlannerModos();
-  const destinos = dondeDeclararPadron(modos ? { calc: modos.calc.modo, monitoreo: modos.monitoreo.modos } : null);
+  const destinos = dondeDeclararPadron(modos ? { calc: modos.calc.modo, monitoreo: modos.monitoreo.modos } : null, para);
   // La Ficha se abre sobre esta misma vista (es un diálogo del Layout): cerrarla devuelve a la lámina.
   const ficha = useRutaFichaDelEstudio();
   return (

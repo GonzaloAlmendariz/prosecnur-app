@@ -24,4 +24,13 @@ describe("dondeDeclararPadron", () => {
     expect(dondeDeclararPadron({ calc: null, monitoreo: ["acreditacion"] }).map((d) => d.texto))
       .toEqual(["Declarar el tipo del estudio", "o declarar en Monitoreo"]);
   });
+
+  it("X5 grupos: el marco de Cálculo de muestra en el modo del estudio, sin Monitoreo (su universo es por actor)", () => {
+    const destinos = dondeDeclararPadron({ calc: "acreditacion", monitoreo: ["acreditacion"] }, "grupos");
+    expect(destinos).toEqual([expect.objectContaining({
+      clave: "calc-muestra", texto: "Ver el marco en Cálculo de muestra", href: expect.stringContaining("modo=acreditacion"),
+    })]);
+    expect(destinos[0].href.startsWith("/calc-muestra")).toBe(true);
+    expect(dondeDeclararPadron({ calc: null, monitoreo: [] }, "grupos")[0].clave).toBe("ficha");
+  });
 });

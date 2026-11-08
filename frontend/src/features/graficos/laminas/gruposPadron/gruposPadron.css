@@ -179,3 +179,28 @@
 .pulso-f6-grupos-cobertura.is-aviso {
   color: var(--pulso-warn-fg);
 }
+
+/* X5: el padrón de la base del cruce como referencia y los grupos sin padrón con su enlace, bajo la lista. */
+.pulso-f6-grupos-referencia {
+  display: grid;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+}
+
+.pulso-f6-grupos-referencia-cifra {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-f6-grupos-sin-padron {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+  margin: 0;
+}

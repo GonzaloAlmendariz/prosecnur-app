@@ -94,8 +94,7 @@ export function lineaBase(incluidos: readonly FilaGrupo[]): string | null {
 
 /** Cómo nombra el motor a los casos del cruce: la base en minúscula («docentes»); sin base, «casos». */
 export function unidadDeCruce(cruce: string): string {
-  const i = cruce.indexOf("$");
-  const base = i > 0 ? cruce.slice(0, i).trim() : "";
+  const base = baseDeCruce(cruce);
   return base ? base.toLowerCase() : "casos";
 }
 
@@ -110,4 +109,20 @@ export function notaGrupoChico(incluidos: readonly FilaGrupo[], unidad: string):
 /** «3 de 4». */
 export function textoTope(incluidos: number, tope = MAX_GRUPOS_RESUMEN): string {
   return `${incluidos} de ${tope}`;
+}
+
+/** Los grupos incluidos sin padrón escrito, en el orden de la lámina: su base va sólo con n. */
+export function gruposSinPadron(incluidos: readonly FilaGrupo[]): string[] {
+  return incluidos.filter((f) => f.padron.valor === null).map((f) => f.etiqueta);
+}
+
+/** «Sin padrón: TC, TP. La base va sólo con n.», o `null` si todos lo tienen. */
+export function textoSinPadron(etiquetas: readonly string[]): string | null {
+  return etiquetas.length ? `Sin padrón: ${etiquetas.join(", ")}. La base va sólo con n.` : null;
+}
+
+/** La base de la pregunta que divide («docentes$dedicacion» → «docentes»); vacío si no la declara. */
+export function baseDeCruce(cruce: string): string {
+  const i = cruce.indexOf("$");
+  return i > 0 ? cruce.slice(0, i).trim() : "";
 }

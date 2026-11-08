@@ -13,8 +13,9 @@ import { MAX_GRUPOS_RESUMEN, type Opcion } from "../brecha/modeloBrechaGrupos";
 import { useCategoriasGrafico } from "../useCategoriasGrafico";
 import { CoberturaGrupo } from "./CoberturaGrupo";
 import { FilaPadron } from "./FilaPadron";
+import { PadronDelCruce } from "./PadronDelCruce";
 import {
-  alternarGrupo, filasGrupos, incluidosEnOrden, lineaBase, notaGrupoChico, textoTope, unidadDeCruce,
+  alternarGrupo, filasGrupos, gruposSinPadron, incluidosEnOrden, lineaBase, notaGrupoChico, textoTope, unidadDeCruce,
 } from "./modeloGruposPadron";
 import { conPadron } from "./modeloPadron";
 import { useGuardaNoConfiables } from "./useGuardaNoConfiables";
@@ -80,6 +81,7 @@ export function GruposPadron({ args, cruce, opciones, scope, onCambio }: Props) 
           ))}
         </ul>
       </Panel>
+      <PadronDelCruce cruce={cruce} scope={scope} sinPadron={gruposSinPadron(incluidos)} activo={incluidos.length > 0} />
       {chico && <p className="pulso-f6-dato-ayuda is-aviso" role="note">{chico}</p>}
       {base && (
         <div className="pulso-f6-grupos-base">
