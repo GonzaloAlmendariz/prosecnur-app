@@ -38,8 +38,10 @@ export function TituloEnLienzo({ valor, editando, onEditar, onGuardar, onCancela
 
   const onTecla = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      // ⌘↵ / Ctrl+↵ también guarda, y el atajo «Siguiente sin título» lo atiende después en `document`: por eso aquí no
-      // se llama a preventDefault (el campo no está en un formulario; Enter no tiene otra acción).
+      // ⌘↵ / Ctrl+↵ también guarda, y el atajo «Siguiente sin título» lo atiende después en `document`: con ellos no se
+      // llama a preventDefault. Enter solo sí (R5-3): al guardar vuelve el botón del título con el foco, y la acción por
+      // defecto del Enter lo activaba y reabría el campo.
+      if (!e.metaKey && !e.ctrlKey) e.preventDefault();
       cerrandoRef.current = true;
       onGuardar(e.currentTarget.value);
     } else if (e.key === "Escape") {

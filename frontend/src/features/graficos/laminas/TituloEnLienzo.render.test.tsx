@@ -65,6 +65,17 @@ describe("título en el lienzo", () => {
     expect(boton()!.textContent).toBe("Satisfacción con el curso");
   });
 
+  it("R5-3: Enter solo se consume (no reabre el campo al volver el botón con el foco)", () => {
+    act(() => root.render(<Lienzo inicial="" />));
+    act(() => boton()!.click());
+    escribir("Clima");
+    const ev = new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true });
+    act(() => { campo()!.dispatchEvent(ev); });
+    expect(ev.defaultPrevented).toBe(true);
+    expect(guardados).toEqual(["Clima"]);
+    expect(campo()).toBeNull();
+  });
+
   it("⌘↵ también guarda y no se consume: el atajo «Siguiente sin título» lo oye después", () => {
     act(() => root.render(<Lienzo inicial="A" />));
     act(() => boton()!.click());

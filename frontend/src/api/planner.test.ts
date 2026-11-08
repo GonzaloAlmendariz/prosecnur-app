@@ -36,6 +36,14 @@ describe("normalizadores del Planner", () => {
     expect(modos.origen).toBe("deducido");
   });
 
+  it("R5-4: el NULL de R serializado como `{}` es texto vacío, nunca «[object Object]»", () => {
+    const modos = normalizarPlannerModos({ calc: { modo: {}, perfil: {} }, monitoreo: { modo: {}, familia: {} } });
+    expect(modos.calc.modo).toBeNull();
+    expect(modos.monitoreo.modo).toBeNull();
+    expect(modos.monitoreo.familia).toBeNull();
+    expect(JSON.stringify(modos)).not.toContain("[object");
+  });
+
   it("lee los canales que todavía no abren su campaña (checklist-planner-q5, 4b)", () => {
     const pendiente = { canal: "qr", campana: "aulas", texto: "Falta un sorteo de cursos-horario.", href: "/calc-muestra" };
     const modos = normalizarPlannerModos({ material: { campanas: ["correo"], pendientes: [pendiente, { canal: "x" }, "basura"] } });

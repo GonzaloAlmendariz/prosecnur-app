@@ -115,7 +115,8 @@ function rango(x: unknown): PlannerVentanaRango {
 
 const obj = (x: unknown): Crudo => (x && typeof x === "object" && !Array.isArray(x) ? (x as Crudo) : {});
 const arr = (x: unknown): unknown[] => (Array.isArray(x) ? x : x == null || (typeof x === "object" && Object.keys(x as object).length === 0) ? [] : [x]);
-const txt = (x: unknown): string => (Array.isArray(x) ? txt(x[0]) : x == null ? "" : String(x));
+// Un objeto no es texto (R5-4): el `NULL` de R llega como `{}` y `String({})` escribía «[object Object]» en el modo.
+const txt = (x: unknown): string => (Array.isArray(x) ? txt(x[0]) : x == null || typeof x === "object" ? "" : String(x));
 const num = (x: unknown): number | null => {
   const v = Number(Array.isArray(x) ? x[0] : x);
   return Number.isFinite(v) ? v : null;

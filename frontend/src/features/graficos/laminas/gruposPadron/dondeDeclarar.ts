@@ -4,9 +4,14 @@
 // vacío legítimo, pero dice dónde declararlo. Los destinos son direcciones canónicas (navegación v3), nunca paths a mano.
 
 import { serializarDireccion } from "../../../../lib/navegacion/direccion";
+import { searchConPanel } from "../../../../lib/navegacion/paneles";
 import type { PadronPropuesto } from "../../../../api/graficosPadron";
+import { PANEL_ESTUDIO } from "../../../estudio/panelEstudio";
 
-export type DestinoPadron = { clave: "calc-muestra" | "monitoreo"; texto: string; nombre: string; href: string };
+export type DestinoPadron = { clave: "calc-muestra" | "monitoreo" | "ficha"; texto: string; nombre: string; href: string };
+
+/** La Ficha del estudio (`/?panel=estudio`), donde se declara el tipo que fija el modo de Cálculo de muestra. */
+export const HREF_FICHA = `/${searchConPanel("", PANEL_ESTUDIO)}`;
 
 /** Lo que el estudio fija en cada módulo (`/api/planner/modos`); `null` mientras carga. */
 export type ModosDelEstudio = { calc: string | null; monitoreo: readonly string[] } | null;
@@ -20,21 +25,25 @@ export function faltaPadron(publicos: readonly { incluido: boolean; escrito: num
 }
 
 /**
- * Los módulos donde se declara. Cálculo de muestra siempre (con el modo del estudio cuando se conoce); Monitoreo sólo si
- * el estudio tiene su modo de acreditación, que es el único reporte del que la propuesta lee el universo.
+ * Los módulos donde se declara. Cálculo de muestra con el modo del estudio; si el estudio ya se leyó y no tiene tipo
+ * (R5-4: sin modo, Cálculo de muestra no sabe qué marco abrir), primero la Ficha del estudio, donde se declara. Mientras
+ * carga, Cálculo de muestra sin modo. Monitoreo sólo si el estudio tiene su modo de acreditación, que es el único
+ * reporte del que la propuesta lee el universo.
  */
 export function dondeDeclararPadron(modos: ModosDelEstudio): DestinoPadron[] {
-  const calc = modos?.calc ?? null;
-  const destinos: DestinoPadron[] = [{
-    clave: "calc-muestra",
-    texto: "Declarar en Cálculo de muestra",
-    nombre: "Declarar el padrón en Cálculo de muestra",
-    href: serializarDireccion({ modulo: "calc-muestra", ...(calc ? { modo: calc } : {}) }),
-  }];
+  const calc = modos?.calc?.trim() || null;
+  const destinos: DestinoPadron[] = modos && !calc
+    ? [{ clave: "ficha", texto: "Declarar el tipo del estudio", nombre: "Declarar el tipo del estudio en la Ficha del estudio", href: HREF_FICHA }]
+    : [{
+      clave: "calc-muestra",
+      texto: "Declarar en Cálculo de muestra",
+      nombre: "Declarar el padrón en Cálculo de muestra",
+      href: serializarDireccion({ modulo: "calc-muestra", ...(calc ? { modo: calc } : {}) }),
+    }];
   if (modos?.monitoreo.includes("acreditacion")) {
     destinos.push({
       clave: "monitoreo",
-      texto: "o en Monitoreo",
+      texto: destinos[0]?.clave === "ficha" ? "o declarar en Monitoreo" : "o en Monitoreo",
       nombre: "Declarar el padrón en Monitoreo de acreditación",
       href: serializarDireccion({ modulo: "monitoreo", modo: "acreditacion" }),
     });
