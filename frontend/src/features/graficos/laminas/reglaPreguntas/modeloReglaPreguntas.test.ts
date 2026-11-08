@@ -1,8 +1,9 @@
 // La regla de preguntas en la tarjeta (ADR 0135 §2 y §4): tipos por graficador, lectura, ajuste a mano y firma.
+import { pedidoDeFirma } from "./pedidoDeFirma";
 import { describe, expect, it } from "vitest";
 import { normalizarConteoRegla } from "../../../../api/graficosRegla";
 import {
-  ajustadaAMano, alternarFila, campoCifra, conCifra, conTipo, filaBloqueada, firmaPedidoRegla, firmaUniversoRegla, gruposDeLaLamina, jsonEstable, leerRegla,
+  ajustadaAMano, alternarFila, campoCifra, conCifra, conTipo, filaBloqueada, firmaPedidoRegla, firmaUniversoRegla, gruposDeLaLamina, jsonEstable, presetDelGraficador, leerRegla,
   limpiarRegla, mismoConteo, recordarCifra, reglaEfectiva, reglaEnCorto, rotuloMetrica, rotuloTipo, textoConteo, tiposOfrecidos, valorCifra, volverALaRegla,
 } from "./modeloReglaPreguntas";
 
@@ -129,6 +130,26 @@ describe("conteo y firma", () => {
     expect(firmaPedidoRegla("p_panorama", {}, "consolidated")).not.toBe(firmaPedidoRegla("p_panorama", {}, "active"));
     expect(JSON.parse(jsonEstable({ z: 1, a: [1, { y: 2, b: null }] }))).toEqual({ a: [1, { b: null, y: 2 }], z: 1 });
   });
+  it("R5-12: un preset distinto cambia la firma (y el universo); el mismo preset, no", () => {
+    const args = { vars: ["d$*"], regla: { tipo: "todas" }, corte: "4,5" };
+    const sin = firmaPedidoRegla("p_dumbbell", args, "active", {});
+    const conPreset = firmaPedidoRegla("p_dumbbell", args, "active", { decimales: 1 });
+    expect(conPreset).not.toBe(sin);
+    expect(firmaPedidoRegla("p_dumbbell", args, "active", { decimales: 1 })).toBe(conPreset);
+    expect(firmaUniversoRegla("p_dumbbell", args, "active", { decimales: 2 })).not.toBe(firmaUniversoRegla("p_dumbbell", args, "active", { decimales: 1 }));
+    // El pedido que describe la firma no lleva el hash: sólo graficador, scope y args.
+    expect(pedidoDeFirma(conPreset)).toEqual({ graficador: "p_dumbbell", scope: "active", args: { corte: "4,5", regla: { tipo: "todas" }, vars: ["d$*"] } });
+    // Una firma vieja, sin el hash, también se lee.
+    expect(pedidoDeFirma(`p_dumbbell|consolidated|${jsonEstable(args)}`)?.scope).toBe("consolidated");
+  });
+
+  it("R5-12: el preset sale de `presets[tipo]` (el del mapa del editor o, en los de resumen, el nombre sin `p_`)", () => {
+    const presets = { dumbbell: { decimales: 1 }, panorama: { referencia: 70 } };
+    expect(presetDelGraficador("p_dumbbell", presets)).toEqual({ decimales: 1 });
+    expect(presetDelGraficador("p_panorama", presets)).toEqual({ referencia: 70 });
+    expect(presetDelGraficador("p_fortalezas", presets)).toEqual({});
+  });
+
   it("el universo de la regla no cambia con la regla y sí con la lámina (B8)", () => {
     const a = firmaUniversoRegla("p_panorama", { vars: ["d$*"], regla: { tipo: "mayor_diferencia", n: 3 } }, "active");
     expect(firmaUniversoRegla("p_panorama", { vars: ["d$*"], regla: { tipo: "bajo_umbral", umbral: 60, quitar: ["p1"] } }, "active")).toBe(a);

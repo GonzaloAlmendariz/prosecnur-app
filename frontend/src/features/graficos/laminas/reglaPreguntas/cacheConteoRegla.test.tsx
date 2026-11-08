@@ -97,7 +97,20 @@ describe("caché del conteo de la regla", () => {
       escuchados.get(evento)?.();
       expect(conteoEnCache(FIRMA)).toBeNull();
     }
-    expect([...escuchados.keys()].sort()).toEqual([...EVENTOS_QUE_OLVIDAN].sort());
+    // Otros módulos cargados también escuchan algunos de estos eventos: basta con que la caché oiga todos los suyos.
+    expect([...escuchados.keys()]).toEqual(expect.arrayContaining([...EVENTOS_QUE_OLVIDAN]));
+  });
+
+  it("R5-13: el cambio de base activa y de fuente de la codificación también vacían la caché", () => {
+    expect(EVENTOS_QUE_OLVIDAN).toEqual(expect.arrayContaining(["pulso:active-base-changed", "pulso:codif-source-changed"]));
+  });
+
+  it("R5-12: el pedido manda la config del editor, como la vista previa", async () => {
+    contar.mockClear();
+    pedirConteoRegla(FIRMA, () => undefined);
+    await vaciarMicrotareas();
+    const ultimo = contar.mock.calls.at(-1) as unknown as [{ config?: { presets?: unknown } }] | undefined;
+    expect(ultimo?.[0].config?.presets).toBeDefined();
   });
 
   it("un pedido en vuelo se aborta sólo cuando lo sueltan todos", () => {

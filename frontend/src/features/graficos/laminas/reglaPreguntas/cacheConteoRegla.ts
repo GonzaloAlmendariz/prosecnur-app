@@ -8,6 +8,7 @@
 //   conteo viejo no se presta para siempre. Un error no se guarda: el próximo que lo pida vuelve a intentar.
 
 import { apiGraficosConteoRegla, type ConteoRegla } from "../../../../api/graficosRegla";
+import { buildGraficosConfigFromStore } from "../../configSnapshot";
 import { pedidoDeFirma } from "./pedidoDeFirma";
 
 export const VIGENCIA_CONTEO_MS = 30_000;
@@ -59,7 +60,11 @@ export function pedirConteoRegla(firma: string, alResolver: (r: ResultadoConteo)
     vuelo = nuevo;
     enVuelo.set(firma, nuevo);
     apiGraficosConteoRegla(
-      { graficador: pedido.graficador, args: pedido.args, ...(pedido.scope === "consolidated" ? { scope: "consolidated" as const } : {}) },
+      // R5-12: con la config del editor (sus presets), como la vista previa; la firma ya lleva el hash del preset.
+      {
+        graficador: pedido.graficador, args: pedido.args, config: buildGraficosConfigFromStore(),
+        ...(pedido.scope === "consolidated" ? { scope: "consolidated" as const } : {}),
+      },
       { signal: nuevo.control.signal },
     ).then((conteo) => {
       if (enVuelo.get(firma) === nuevo) enVuelo.delete(firma);
@@ -91,9 +96,13 @@ export function olvidarConteosRegla() {
 
 /**
  * H6: la firma no lleva la sesión, el proyecto ni los datos, así que un conteo de otra sesión, de otro proyecto o de la
- * base antes de reprocesarla se prestaba hasta que venciera. Estos eventos vacían la caché.
+ * base antes de reprocesarla se prestaba hasta que venciera. Estos eventos vacían la caché. R5-13: también el cambio de
+ * base activa y de fuente de la codificación, que cambian las fuentes con que el motor cuenta.
  */
-export const EVENTOS_QUE_OLVIDAN = ["pulso:session-changed", "pulso:project-closed", "pulso:analitica-source-changed"] as const;
+export const EVENTOS_QUE_OLVIDAN = [
+  "pulso:session-changed", "pulso:project-closed", "pulso:analitica-source-changed",
+  "pulso:active-base-changed", "pulso:codif-source-changed",
+] as const;
 
 if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
   for (const evento of EVENTOS_QUE_OLVIDAN) window.addEventListener(evento, olvidarConteosRegla);

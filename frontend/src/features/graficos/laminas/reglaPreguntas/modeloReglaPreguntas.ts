@@ -8,6 +8,8 @@
 
 import { esTipoRegla, type ConteoRegla, type ReglaPreguntas, type TipoReglaPreguntas } from "../../../../api/graficosRegla";
 import { formatoConteo, formatoDecimal } from "../../../../lib/formatoNumero";
+import { graficadorToPresetType } from "../../graficadorPresetMap";
+import { usePlanStore } from "../../store";
 
 type Args = Readonly<Record<string, unknown>>;
 
@@ -275,12 +277,33 @@ export function jsonEstable(v: unknown): string {
   return v === undefined ? "null" : JSON.stringify(v);
 }
 
+/** Hash corto (djb2) de un texto: la firma lleva el del preset, no el preset entero. */
+export function hashTexto(texto: string): string {
+  let h = 5381;
+  for (let i = 0; i < texto.length; i += 1) h = ((h << 5) + h + texto.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36);
+}
+
+/**
+ * El preset del editor para el tipo del graficador (`presets[tipo]`), del store; `{}` si no tiene. Los de resumen no
+ * están en el mapa del editor (`p_panorama: null`) y el motor los lee por su tipo de elemento (`.ola4_preset("panorama")`):
+ * sin tipo en el mapa, la clave es el nombre sin `p_`.
+ */
+export function presetDelGraficador(graficador: string, presets: Readonly<Record<string, Readonly<Record<string, unknown>>>> = usePlanStore.getState().presets): Readonly<Record<string, unknown>> {
+  const tipo = graficadorToPresetType(graficador) ?? graficador.replace(/^p_/, "");
+  return presets[tipo] ?? {};
+}
+
 /**
  * La firma del pedido de conteo. Es un texto: el efecto que pide el conteo depende de ella y no de `args`, que la tarjeta
  * re-arma en cada render (el bucle efecto → estado → render que congeló la maqueta, useConteosMaqueta.ts).
+ *
+ * R5-12: el motor cuenta con los presets del editor (`config`, como la vista previa), así que la firma lleva el hash de
+ * `presets[tipo]`: con otro preset es otro conteo y la caché no presta el viejo. Formato `graficador|scope|p<hash>|args`
+ * (pedidoDeFirma.ts lee también la firma vieja, sin el hash). `preset`: el del tipo; por defecto, el del store.
  */
-export function firmaPedidoRegla(graficador: string, args: Args, scope: string): string {
-  return `${graficador}|${scope}|${jsonEstable(args)}`;
+export function firmaPedidoRegla(graficador: string, args: Args, scope: string, preset: Readonly<Record<string, unknown>> = presetDelGraficador(graficador)): string {
+  return `${graficador}|${scope}|p${hashTexto(jsonEstable(preset))}|${jsonEstable(args)}`;
 }
 
 /**
@@ -288,9 +311,9 @@ export function firmaPedidoRegla(graficador: string, args: Args, scope: string):
  * `vars`, bases o filtros) y no con la cifra ni el ajuste a mano. Un conteo de otro universo no se muestra mientras
  * llega el nuevo (B8: al pasar de una lámina a otra se veían el conteo, la nota y la cabecera de la anterior).
  */
-export function firmaUniversoRegla(graficador: string, args: Args, scope: string): string {
+export function firmaUniversoRegla(graficador: string, args: Args, scope: string, preset?: Readonly<Record<string, unknown>>): string {
   const { regla: _regla, ...resto } = args;
-  return firmaPedidoRegla(graficador, resto, scope);
+  return firmaPedidoRegla(graficador, resto, scope, preset);
 }
 
 /** ¿Dos conteos dicen lo mismo? Sin cambios no se vuelve a guardar el estado. */

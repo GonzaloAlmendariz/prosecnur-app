@@ -65,7 +65,10 @@ describe("useConteoRegla", () => {
     await act(async () => { vi.advanceTimersByTime(ESPERA_CONTEO_MS); });
     for (let i = 0; i < 10; i += 1) await act(async () => { await Promise.resolve(); });
     expect(contar).toHaveBeenCalledTimes(2);
-    expect(contar.mock.calls[1]).toEqual([{ graficador: "p_dumbbell", args: { estilo: "resumen", regla: { n: 5, tipo: "mayor_diferencia" }, vars: ["docentes$*", "estudiantes$*"] } }, expect.anything()]);
+    expect(contar.mock.calls[1]).toEqual([{
+      graficador: "p_dumbbell", args: { estilo: "resumen", regla: { n: 5, tipo: "mayor_diferencia" }, vars: ["docentes$*", "estudiantes$*"] },
+      config: expect.objectContaining({ presets: expect.anything() }),
+    }, expect.anything()]);
   });
 
   it("B8: al pasar a otra lámina no muestra el conteo de la anterior mientras llega el nuevo", async () => {

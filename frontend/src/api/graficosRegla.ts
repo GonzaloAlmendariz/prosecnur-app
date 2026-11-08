@@ -1,7 +1,7 @@
 // graficosRegla.ts — la regla con que una lámina de resumen elige sus preguntas y su conteo en vivo (ADR 0135 §2 y §4).
 //
 // Contrato: `api/R/router_graficos_regla.R` y `.regla_preguntas_conteo()` (graficos_regla_preguntas.R).
-//   POST /api/graficos/resumenes/regla  {graficador, args, scope?}
+//   POST /api/graficos/resumenes/regla  {graficador, args, scope?, config?}   config: la del editor (R5-12)
 //     -> {ok, total, seleccionadas, candidatas: [{tema, etiqueta, metrica, seleccionada}], texto_regla, avisos, tope_filas,
 //         cabe_nativa, motivo_imagen}
 // `tope_filas` es el tope de filas de la lámina nativa (20 en la escala del resumen) o `null` si el graficador no tiene.
@@ -56,6 +56,8 @@ export type PedidoConteoRegla = {
   graficador: string;
   args: Readonly<Record<string, unknown>>;
   scope?: "consolidated";
+  /** La config del editor (presets, paletas, overrides), como la vista previa: el motor cuenta con sus presets (R5-12). */
+  config?: unknown;
 };
 
 export const CODIGO_REGLA_INVALIDA = "E_REGLA_PREGUNTAS_INVALIDA";
@@ -116,7 +118,11 @@ export async function apiGraficosConteoRegla(pedido: PedidoConteoRegla, request?
     await apiFetch("/api/graficos/resumenes/regla", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ graficador: pedido.graficador, args: pedido.args, ...(pedido.scope ? { scope: pedido.scope } : {}) }),
+      body: JSON.stringify({
+        graficador: pedido.graficador, args: pedido.args,
+        ...(pedido.scope ? { scope: pedido.scope } : {}),
+        ...(pedido.config !== undefined ? { config: pedido.config } : {}),
+      }),
       signal: request?.signal,
     }),
   );
