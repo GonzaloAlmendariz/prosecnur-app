@@ -155,25 +155,40 @@ describe("la franja y la regla", () => {
     expect(c?.reglaEnPalabras).toBe("Con diferencia de al menos 15 puntos, de docentes y estudiantes");
   });
 
-  it("aperturas entra con su aviso y sin pregunta que divide; las escalas y fortalezas leen un público", () => {
+  it("aperturas entra con su aviso y sin pregunta que divide; aperturas y fortalezas leen un público", () => {
     const ps = proponerMazo(entrada());
     const a = ps.find((p) => p.id === "aperturas");
     expect(a?.falta).toBe(FALTA_DIVIDE);
     expect(a?.args.cruce).toBeUndefined();
-    expect(ps.find((p) => p.id === "escala_umbral")?.args.vars).toEqual(["estudiantes$*"]);
     expect(ps.find((p) => p.id === "fortalezas:docentes")?.args.vars).toEqual(["docentes$*"]);
+  });
+
+  it("con 2+ públicos, Brechas e Información son UNA lámina cada una sobre todos, en el orden de la franja", () => {
+    const ps = proponerMazo(entrada({ publicos: ["estudiantes", "docentes"] }));
+    const u = ps.find((p) => p.id === "escala_umbral");
+    const s = ps.find((p) => p.id === "escala_sin_info");
+    expect(ps.filter((p) => p.clase === "escala_umbral" || p.clase === "escala_sin_info")).toHaveLength(2);
+    expect(u?.args.vars).toEqual(["estudiantes$*", "docentes$*"]);
+    expect(s?.args.vars).toEqual(["estudiantes$*", "docentes$*"]);
+    expect(u?.args.regla).toEqual({ tipo: "bajo_umbral", umbral: 60 });
+    expect(s?.args.regla).toEqual({ tipo: "mayor_sin_info", n: 12 });
+    expect(u?.reglaEnPalabras).toBe("Bajo 60% en algún público, de estudiantes y docentes");
+    expect(s?.reglaEnPalabras).toBe("Las 12 de más Sin información, de estudiantes y docentes");
+    const uno = proponerMazo(entrada({ publicos: ["docentes"] }));
+    expect(uno.find((p) => p.id === "escala_umbral")?.args.vars).toEqual(["docentes$*"]);
+    expect(uno.find((p) => p.id === "escala_umbral")?.reglaEnPalabras).toBe("Bajo 60% del indicador, de docentes");
   });
 });
 
 describe("antetítulos y palabras, desde los públicos reales", () => {
-  it("como la maqueta, con el público que lee cada lámina cuando hay varios", () => {
+  it("como la maqueta; Brechas e Información leen todos los públicos y no nombran uno", () => {
     const ante = Object.fromEntries(proponerMazo(entrada()).map((p) => [p.id, p.antetitulo]));
     expect(ante).toMatchObject({
       cobertura: "Metodología y cobertura",
       panorama: "Panorama",
       contraste: "Docentes y estudiantes",
-      escala_umbral: "Brechas en estudiantes",
-      escala_sin_info: "Información en estudiantes",
+      escala_umbral: "Brechas",
+      escala_sin_info: "Información",
       aperturas: "Diferencias dentro de estudiantes",
       "fortalezas:docentes": "Docentes",
     });

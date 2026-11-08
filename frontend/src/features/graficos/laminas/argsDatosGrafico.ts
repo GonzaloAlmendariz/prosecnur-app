@@ -311,7 +311,8 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   metrica: { rotulo: "Métrica" },
   categoria: { rotulo: "Categoría" },
   direccion_escala: { rotulo: "Dirección de la escala" },
-  n_negativas: { rotulo: "Categorías negativas" },
+  // Sin valor el motor parte las opciones sustantivas por la mitad (graficos_metadata.R): el campo queda vacío.
+  n_negativas: { rotulo: "Categorías negativas", placeholder: "La mitad" },
   incluir_neutro: { rotulo: "Incluir el punto medio" },
   // FODA (5a): formal `incluir_total = TRUE` de p_dim_foda (reporte_plan_slides.R); el registro no declara default.
   incluir_total: { rotulo: "Columna Total", soloEn: ["p_dim_heatmap", ...FODA], porGraficador: { p_dim_foda: { defecto: true } } },

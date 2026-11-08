@@ -15,7 +15,7 @@ import { payloadPorDefecto } from "../../store";
 import { CORTE_EN_CADENA } from "../argsDatosGrafico";
 import { nombrePublico } from "../gruposPadron/modeloPadron";
 import { leerRegla } from "../reglaPreguntas/modeloReglaPreguntas";
-import { conGraficoDePartida, tarjetaContar, tarjetaDisponible, type ClaseTarjeta, type TarjetaConGrafico } from "../selectores/intencionesContar";
+import { conGraficoDePartida, tarjetaContar, tarjetaDisponible, todasDeLasBases, type ClaseTarjeta, type TarjetaConGrafico } from "../selectores/intencionesContar";
 import { graficoConPreset, ranuraDePreset, type ClavePreset, type EstudioDelSelector } from "../selectores/opcionesLamina";
 
 type Args = Record<string, unknown>;
@@ -239,9 +239,6 @@ function cerrar(e: EntradaMazo, b: Borrador): PropuestaMazo {
   };
 }
 
-/** Antetítulo de una lámina de un solo público: el de la maqueta y, con varios públicos, cuál lee. */
-const anteDeUno = (ante: string, base: string, varios: boolean) => (varios ? `${ante} en ${publicoEnFrase(base)}` : ante);
-
 /** Las láminas que el mazo propone, en orden. Sin públicos, ninguna. */
 export function proponerMazo(e: EntradaMazo): PropuestaMazo[] {
   const publicos = e.publicos.filter((b, i) => e.estudio.bases.includes(b) && e.publicos.indexOf(b) === i);
@@ -284,20 +281,28 @@ export function proponerMazo(e: EntradaMazo): PropuestaMazo[] {
     }));
   }
 
+  // Con varios públicos la escala es UNA lámina sobre todos (graficos_divergentes_publicos.R): `base$*` de cada público en
+  // el orden de la franja, y el motor rotula cada fila con su público. Con uno, la del público.
   const escala = disponible(TARJETA.escala);
   if (escala) {
-    const args = argsDeTarjeta(escala, estudio);
+    const leen = varios ? publicos : [principal];
+    const deEscala = (): Args => {
+      const args = argsDeTarjeta(escala, estudio);
+      if (e.admiteArg(escala.grafico.graficador, "vars")) args.vars = todasDeLasBases(leen);
+      return args;
+    };
+    const args = deEscala();
     args.regla = { tipo: "bajo_umbral", umbral: e.referencia };
     out.push(cerrar(e, {
-      id: "escala_umbral", clase: "escala_umbral", tarjeta: escala.clave, t: escala, antetitulo: anteDeUno("Brechas", principal, varios),
-      nombre: `Escala bajo ${formatoConteo(e.referencia)}%`, args, publicosRegla: [principal],
+      id: "escala_umbral", clase: "escala_umbral", tarjeta: escala.clave, t: escala, antetitulo: "Brechas",
+      nombre: `Escala bajo ${formatoConteo(e.referencia)}%`, args, publicosRegla: leen,
     }));
-    const sinInfo = argsDeTarjeta(escala, estudio);
+    const sinInfo = deEscala();
     sinInfo.regla = { tipo: "mayor_sin_info", n: N_SIN_INFO };
     if (e.admiteArg(escala.grafico.graficador, "orden", "sin_informacion")) sinInfo.orden = "sin_informacion";
     out.push(cerrar(e, {
-      id: "escala_sin_info", clase: "escala_sin_info", tarjeta: escala.clave, t: escala, antetitulo: anteDeUno("Información", principal, varios),
-      nombre: "Escala ordenada por Sin información", args: sinInfo, publicosRegla: [principal],
+      id: "escala_sin_info", clase: "escala_sin_info", tarjeta: escala.clave, t: escala, antetitulo: "Información",
+      nombre: "Escala ordenada por Sin información", args: sinInfo, publicosRegla: leen,
     }));
   }
 

@@ -121,8 +121,10 @@ describe("ADR 0135 §2: las láminas de resumen nacen con su regla", () => {
     const aperturas = conOpcion("p_slide_1_grafico:aperturas", slide.payload, ESTUDIO).grafico as { args: Record<string, unknown> };
     expect(aperturas.args).not.toHaveProperty("bases");
   });
-  it("escala: bajo 60 % en las preguntas de la base activa", () => {
-    expect(insertar("p_slide_1_grafico:escala").args).toEqual({ estilo: "resumen", regla: { tipo: "bajo_umbral", umbral: 60 }, vars: ["estudiantes$*"] });
+  it("escala: bajo 60 %; con 2+ bases sobre todas, en su orden; con una, la suya", () => {
+    expect(insertar("p_slide_1_grafico:escala").args).toEqual({
+      estilo: "resumen", regla: { tipo: "bajo_umbral", umbral: 60 }, vars: ["docentes$*", "estudiantes$*", "administrativos$*"],
+    });
     expect(insertar("p_slide_1_grafico:escala", { bases: ["unica"], baseActiva: null }).args.vars).toEqual(["unica$*"]);
   });
   it("fortalezas: las preguntas de la base activa; la regla la pone el constructor", () => {

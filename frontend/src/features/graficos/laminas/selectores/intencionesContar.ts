@@ -58,7 +58,7 @@ const resumen = (args: Args) => args.estilo === "resumen";
 
 /**
  * Las reglas con que arrancan las láminas de resumen (ADR 0135 §2): el analista nunca agrega las preguntas una por una.
- * El panorama toma todas las de escala de cada base del estudio; la escala, las de la base activa.
+ * El panorama toma todas las de escala de cada base del estudio; la escala también con 2+ bases (con una, la suya).
  */
 export const REGLA_POR_DEFECTO = {
   panorama: { tipo: "todas" },
@@ -203,8 +203,10 @@ export const TARJETAS_CONTAR: readonly TarjetaContar[] = [
     grafico: {
       graficador: "p_barras_divergentes", args: { estilo: "resumen" },
       porDefecto: (e) => {
+        // Con 2+ bases, una lámina sobre todas (el motor rotula cada fila con su público); con una, la suya.
         const base = basePrincipal(e);
-        return { regla: { ...REGLA_POR_DEFECTO.escala }, ...(base ? { vars: todasDeLasBases([base]) } : {}) };
+        const bases = e.bases.length > 1 ? e.bases : base ? [base] : [];
+        return { regla: { ...REGLA_POR_DEFECTO.escala }, ...(bases.length ? { vars: todasDeLasBases(bases) } : {}) };
       },
     },
     coincide: conGrafico("p_barras_divergentes", resumen),

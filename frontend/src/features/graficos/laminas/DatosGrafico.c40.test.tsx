@@ -28,6 +28,8 @@ const REGISTRO: Record<string, { args: ArgMetadata[] }> = {
   p_radar: { args: [a("modo", "choice", { choices: [{ value: "publicos", label: "Públicos" }] }),
     a("eje_min", "number", { default: 0, depende: { arg: "modo", valores: ["publicos"] } })] },
   p_mapa_resultado_distrital: { args: [a("min_n", "number", { default: 1 }), a("cortes", "codigos_list")] },
+  p_barras_divergentes: { args: [a("vars", "variables_list"), a("estilo", "choice", { default: "recetario", choices: [{ value: "resumen", label: "Resumen" }] }),
+    a("n_negativas", "number", { min: 1, max: 6, step: 1 })] },
 };
 
 vi.mock("react-router-dom", () => ({ useLocation: () => ({ search: "", pathname: "/graficos" }), useNavigate: () => () => undefined }));
@@ -111,5 +113,17 @@ describe("DatosGrafico · C40", () => {
     expect(ayudaDe(html, AYUDA_CORTES)).toBe(true);
     // Un campo por corte con el default del motor en cada uno (pasada final 2026-10-15: nada de comas).
     expect([...html.matchAll(/aria-label="Corte (\d)"[^>]*placeholder="(\d+)"/g)].map((m) => m[2])).toEqual(["55", "65", "75"]);
+  });
+  it("escala de resumen con base$*: «Públicos» con una ficha por público para ordenar y quitar, no un selector por pregunta", () => {
+    const html = pintar("p_barras_divergentes", { estilo: "resumen", vars: ["docentes$*", "estudiantes$*", "administrativos$*"] });
+    expect(html).toContain('aria-label="Públicos del gráfico"');
+    expect(html).toContain("Mover Docentes después");
+    expect(html).toContain("Quitar Administrativos");
+  });
+  it("divergentes: sin guardar, los niveles del lado negativo quedan vacíos (el motor parte la escala por la mitad)", () => {
+    const html = pintar("p_barras_divergentes", { estilo: "resumen", vars: ["docentes$*"] });
+    const campo = /<input id="[^"]+" type="text"[^>]*>/.exec(html)?.[0] ?? "";
+    expect(campo).toContain('placeholder="La mitad"');
+    expect(campo).toContain('value=""');
   });
 });
