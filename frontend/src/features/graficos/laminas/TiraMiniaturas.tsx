@@ -2,8 +2,13 @@
 // Canva pero horizontal, agrupada por capítulo. Miniaturas reales de TODAS las láminas (F6 §5.3): un lote en segundo
 // plano (`useMiniaturasLote`, nunca un render masivo síncrono) que pinta cada lámina conforme llega; mientras tanto, un
 // esqueleto en la misma caja (C2). Sin lote (base sin preparar) cae a la imagen de las ya vistas o a la ficha de tipo.
+// Las miniaturas se reordenan arrastrando su asa, o con espacio y flechas (ordenArrastre.ts, useOrdenLaminas.ts): una
+// sola lista horizontal a través de los grupos, así que soltar en otro grupo cambia la lámina de capítulo.
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { DndContext } from "@dnd-kit/core";
+import { horizontalListSortingStrategy, SortableContext, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { RotateCw } from "../../../vendor/lucide-react";
 import { usePlanStore } from "../store";
 import type { EstructuraInforme, LaminaEnEstructura } from "./modeloEstructura";
@@ -15,6 +20,8 @@ import { useMiniaturasLoteStore } from "./miniaturas/miniaturasStore";
 import { reintentarConFoco } from "./miniaturas/reintentarConFoco";
 import { rotuloEstado, vistaDeMiniatura } from "./miniaturas/vistaMiniatura";
 import { useMiniaturasLote } from "./miniaturas/useMiniaturasLote";
+import { AsaLamina } from "./AsaLamina";
+import { nombreParaMover, useOrdenLaminas } from "./useOrdenLaminas";
 import "./tiraMiniaturas.css";
 import { formatoConteo } from "../../../lib/formatoNumero";
 
@@ -44,6 +51,8 @@ export function TiraMiniaturas({ estructura, posicionActiva, onIr }: Props) {
   // Un anuncio por lote, no por lámina; recuerda el último lote para decir cómo terminó (anuncioTira.ts).
   const vigente = useMiniaturasLoteStore((s) => s.vigente);
   const anuncio = useRef(ANUNCIO_INICIAL);
+  const orden = useOrdenLaminas(estructura.laminas);
+  const ids = useMemo(() => grupos.flatMap((g) => g.laminas.map((l) => l.id)), [grupos]);
   anuncio.current = siguienteAnuncio(anuncio.current, vigente, entradas);
 
   useEffect(() => {
@@ -62,6 +71,8 @@ export function TiraMiniaturas({ estructura, posicionActiva, onIr }: Props) {
     <>
       {/* La región viva va FUERA del nav con aria-busy: varios lectores callan las regiones bajo un ancestro ocupado. */}
       <span className="pulso-sr-only" role="status">{visible ? anuncio.current.texto : ""}</span>
+      <DndContext {...orden}>
+      <SortableContext items={ids} strategy={horizontalListSortingStrategy}>
       <nav
         ref={ref}
         className="pulso-f6-tira"
@@ -88,7 +99,7 @@ export function TiraMiniaturas({ estructura, posicionActiva, onIr }: Props) {
                 const parcial = avisoVacios(entrada);
                 const motivo = parcial && entrada?.vacios?.motivo ? ` (${entrada.vacios.motivo})` : "";
                 return (
-                  <li key={l.id} className="pulso-f6-tira-item">
+                  <ItemTira key={l.id} lamina={l}>
                     <button
                       type="button"
                       className={`pulso-f6-miniatura is-${vista}${activa ? " is-activa" : ""}`}
@@ -116,13 +127,27 @@ export function TiraMiniaturas({ estructura, posicionActiva, onIr }: Props) {
                         <RotateCw size={12} aria-hidden="true" />
                       </button>
                     )}
-                  </li>
+                  </ItemTira>
                 );
               })}
             </ul>
           </section>
         ))}
       </nav>
+      </SortableContext>
+      </DndContext>
     </>
+  );
+}
+
+/** Una miniatura ordenable: el `li` se desplaza (sólo transform) y el asa es lo único que inicia el arrastre. */
+function ItemTira({ lamina, children }: { lamina: LaminaEnEstructura; children: ReactNode }) {
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: lamina.id });
+  const estilo: CSSProperties = { transform: CSS.Translate.toString(transform), transition };
+  return (
+    <li ref={setNodeRef} style={estilo} className={`pulso-f6-tira-item${isDragging ? " is-arrastrando" : ""}`} data-qa-geometry-member>
+      {children}
+      <AsaLamina ref={setActivatorNodeRef} donde="tira" etiqueta={`Mover ${nombreParaMover(lamina)}`} {...attributes} {...listeners} />
+    </li>
   );
 }

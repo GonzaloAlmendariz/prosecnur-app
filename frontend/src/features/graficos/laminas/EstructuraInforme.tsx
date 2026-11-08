@@ -1,8 +1,13 @@
 // Columna izquierda de la pestaña Láminas: el informe como documento (F6.1; dirección F6 §4.1 «Estructura»).
 // Seleccionar escribe `foco=<slide.id>` (`../focoLamina.ts`); insertar, duplicar, mover y eliminar van en la barra de
 // acciones de la lámina activa (`acciones`, ver AccionesLamina). «/» enfoca la búsqueda (useAtajosLaminas.ts).
+// Cada fila se reordena arrastrando su asa, o con espacio y flechas sobre ella (ordenArrastre.ts, useOrdenLaminas.ts);
+// las flechas Subir/Bajar de la barra de acciones y Alt+↑/↓ siguen como alternativa de un paso.
 
-import { useEffect, useMemo, useRef, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, type CSSProperties, type ReactNode } from "react";
+import { DndContext } from "@dnd-kit/core";
+import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { ChevronRight, PanelLeftClose, Presentation, Search, SearchX } from "../../../vendor/lucide-react";
 import { IconoTipo } from "../iconos/IconoTipo";
 import {
@@ -16,6 +21,9 @@ import { ETIQUETA_ESTADO } from "./estadoLamina";
 import { useLaminasUi, type ResumenLamina } from "./laminasStore";
 import { ID_BUSQUEDA_ESTRUCTURA } from "./useAtajosLaminas";
 import { rolDeEstructura } from "./rolEstructura";
+import { AsaLamina } from "./AsaLamina";
+import { idsVisiblesEstructura } from "./ordenArrastre";
+import { nombreParaMover, useOrdenLaminas } from "./useOrdenLaminas";
 import "./estructuraInforme.css";
 import { EstadoVacio } from "../../../components/EstadoVacio";
 import { formatoConteo } from "../../../lib/formatoNumero";
@@ -54,6 +62,8 @@ export function EstructuraInforme({ onCerrar, acciones, estructura, posicionActi
   const plegables = useMemo(() => estructura.nodos.map((n) => n.id), [estructura]);
   const todoCerrado = plegables.length > 0 && plegables.every((id) => cerrados[id]);
   const buscando = consulta.trim() !== "";
+  const orden = useOrdenLaminas(estructura.laminas);
+  const visibles = useMemo(() => idsVisiblesEstructura(nodos, (id) => buscando || !cerrados[id]), [nodos, buscando, cerrados]);
 
   const fila = (l: LaminaEnEstructura, sangria: 0 | 1 | 2) => (
     <FilaLamina
@@ -116,17 +126,21 @@ export function EstructuraInforme({ onCerrar, acciones, estructura, posicionActi
         ) : nodos.length === 0 ? (
           <EstadoVacio icono={<SearchX size={16} aria-hidden="true" />} titulo={`Ninguna lámina coincide con «${consulta.trim()}»`} />
         ) : (
-          <ul className="pulso-f6-arbol" data-qa-geometry-group="graficos/f6-estructura-nodos" data-qa-geometry-contract="intrinsic">
-            {nodos.map((nodo) => (
-              <NodoArbol
-                key={nodo.id}
-                nodo={nodo}
-                abierto={buscando || !cerrados[nodo.id]}
-                onAlternar={() => alternarNodo(nodo.id)}
-                fila={fila}
-              />
-            ))}
-          </ul>
+          <DndContext {...orden}>
+            <SortableContext items={visibles} strategy={verticalListSortingStrategy}>
+              <ul className="pulso-f6-arbol" data-qa-geometry-group="graficos/f6-estructura-nodos" data-qa-geometry-contract="intrinsic">
+                {nodos.map((nodo) => (
+                  <NodoArbol
+                    key={nodo.id}
+                    nodo={nodo}
+                    abierto={buscando || !cerrados[nodo.id]}
+                    onAlternar={() => alternarNodo(nodo.id)}
+                    fila={fila}
+                  />
+                ))}
+              </ul>
+            </SortableContext>
+          </DndContext>
         )}
       </nav>
     </aside>
@@ -200,8 +214,16 @@ function FilaLamina({ lamina, activa, sangria, resumen, validacion, onSelecciona
     : lamina.ranuras === 0 && lamina.titulo === lamina.tipoLabel
       ? rolDeEstructura(lamina.tipo)   // sin título propio, el tipo ya es el título: debajo, su papel en el informe
       : lamina.tipoLabel;
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: lamina.id });
+  const estilo: CSSProperties = { transform: CSS.Translate.toString(transform), transition };
   return (
-    <li>
+    <li
+      ref={setNodeRef}
+      style={estilo}
+      className={`pulso-f6-fila-ordenable is-sangria-${sangria}${isDragging ? " is-arrastrando" : ""}`}
+      data-qa-geometry-member
+    >
+      <AsaLamina ref={setActivatorNodeRef} donde="estructura" etiqueta={`Mover ${nombreParaMover(lamina)}`} {...attributes} {...listeners} />
       <button
         type="button"
         className={`pulso-f6-lamina is-sangria-${sangria}${activa ? " is-activa" : ""}`}

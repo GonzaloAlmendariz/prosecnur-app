@@ -1,0 +1,109 @@
+/* Asa para reordenar láminas en la Estructura y en la tira (AsaLamina.tsx). Con puntero fino aparece al pasar o al
+   enfocar la fila; sin hover (táctil, lápiz) se queda visible. El asa nunca cambia el marco de la fila (C2): va encima,
+   en la columna del número (Estructura) o en la esquina libre de la miniatura (tira). */
+
+.pulso-f6-fila-ordenable {
+  position: relative;
+}
+
+.pulso-f6-asa-lamina {
+  position: absolute;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pulso-text-faint);
+  cursor: grab;
+  touch-action: none;
+}
+
+.pulso-f6-asa-lamina:active {
+  cursor: grabbing;
+}
+
+.pulso-f6-asa-lamina:focus-visible {
+  outline: var(--mov-foco);
+  outline-offset: 1px;
+  opacity: 1;
+}
+
+/* Estructura: sobre la columna de 20 px del número, que se oculta mientras el asa se ve. */
+.pulso-f6-asa-lamina.is-estructura {
+  top: 1px;
+  bottom: 1px;
+  left: var(--pulso-space-1);
+  width: 20px;
+  border-radius: var(--pulso-radius-chip);
+}
+
+.pulso-f6-fila-ordenable.is-sangria-2 > .pulso-f6-asa-lamina.is-estructura {
+  left: var(--pulso-space-2);
+}
+
+/* Tira: esquina superior izquierda (la derecha es de «Reintentar» y la inferior derecha del número). */
+.pulso-f6-asa-lamina.is-tira {
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--pulso-border);
+  border-radius: calc(var(--pulso-radius) / 3);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-muted);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-f6-asa-lamina {
+    opacity: 0;
+    transition: opacity var(--motion-dur-hover) var(--motion-ease-out);
+  }
+
+  .pulso-f6-fila-ordenable:hover > .pulso-f6-asa-lamina,
+  .pulso-f6-fila-ordenable:focus-within > .pulso-f6-asa-lamina,
+  .pulso-f6-fila-ordenable.is-arrastrando > .pulso-f6-asa-lamina,
+  .pulso-f6-tira-item:hover > .pulso-f6-asa-lamina,
+  .pulso-f6-tira-item:focus-within > .pulso-f6-asa-lamina,
+  .pulso-f6-tira-item.is-arrastrando > .pulso-f6-asa-lamina {
+    opacity: 1;
+  }
+
+  .pulso-f6-fila-ordenable:hover .pulso-f6-lamina-pos,
+  .pulso-f6-fila-ordenable:focus-within .pulso-f6-lamina-pos,
+  .pulso-f6-fila-ordenable.is-arrastrando .pulso-f6-lamina-pos {
+    visibility: hidden;
+  }
+}
+
+@media not ((hover: hover) and (pointer: fine)) {
+  .pulso-f6-fila-ordenable .pulso-f6-lamina-pos {
+    visibility: hidden;
+  }
+}
+
+/* Lo que se arrastra va por encima de sus vecinas y se nota tomado. */
+.pulso-f6-fila-ordenable.is-arrastrando,
+.pulso-f6-tira-item.is-arrastrando {
+  z-index: 2;
+}
+
+.pulso-f6-fila-ordenable.is-arrastrando > .pulso-f6-lamina {
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-med);
+}
+
+.pulso-f6-tira-item.is-arrastrando > .pulso-f6-miniatura {
+  box-shadow: var(--pulso-shadow-med);
+}
+
+/* Movimiento reducido: las vecinas saltan a su lugar sin deslizarse. La transición la escribe dnd-kit en línea; por
+   eso hace falta !important para anularla. */
+@media (prefers-reduced-motion: reduce) {
+  .pulso-f6-fila-ordenable,
+  .pulso-f6-tira-item,
+  .pulso-f6-asa-lamina {
+    transition: none !important;
+  }
+}
