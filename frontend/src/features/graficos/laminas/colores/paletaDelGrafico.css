@@ -37,27 +37,6 @@
   font-size: var(--pulso-type-body-size);
 }
 
-.pulso-pg-elegir {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  gap: var(--pulso-space-2);
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-body-size);
-}
-
-.pulso-pg-elegir select {
-  min-width: 0;
-  height: var(--pulso-control-height-sm);
-  padding: 0 8px;
-  border: 1px solid var(--pulso-border);
-  border-radius: 8px;
-  background: var(--pulso-surface);
-  color: var(--pulso-text);
-  font: inherit;
-  font-size: var(--pulso-type-body-size);
-}
-
 .pulso-pg-enlace {
   padding: 0;
   border: 0;
@@ -99,4 +78,84 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+
+/* Ítem 8 (2026-11-08): la barra en vista previa (la muestra bajo el cursor) cambia de color sin cambiar de alto; un
+   anillo en el tono del módulo dice que no está guardada. */
+.pulso-pg-barra span { transition: background-color var(--motion-dur-fast) var(--motion-ease-out); }
+.pulso-pg-barra.is-vista { box-shadow: 0 0 0 2px var(--module-accent-soft); }
+.pulso-pg-nombre.is-vista { color: var(--module-accent); }
+
+/* Las paletas como muestras (MuestrasPaleta): una por fila, con sus colores sobre las respuestas de esta pregunta, su
+   nombre y cuántas preguntas cambian. Superficie intrínseca: crece con las paletas, nada se recorta (C4). */
+.pulso-pg-muestras {
+  display: grid;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+}
+
+.pulso-pg-muestra {
+  display: grid;
+  grid-template-columns: minmax(48px, 30%) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  padding: var(--pulso-space-1) var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: var(--pulso-type-body-size);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--motion-dur-fast) var(--motion-ease-out), background-color var(--motion-dur-fast) var(--motion-ease-out), transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-pg-muestra.is-elegida {
+  border-color: var(--module-accent);
+  background: var(--module-accent-soft);
+  cursor: default;
+}
+
+.pulso-pg-muestra:active { transform: scale(var(--mov-press)); }
+.pulso-pg-muestra.is-elegida:active { transform: none; }
+
+.pulso-pg-muestra:focus-visible {
+  outline: var(--mov-foco);
+  outline-offset: 1px;
+}
+
+@media (hover: hover) {
+  .pulso-pg-muestra:not(.is-elegida):hover { border-color: var(--pulso-border-strong); transform: translateY(var(--mov-hover-lift)); }
+}
+
+.pulso-pg-muestra-tira {
+  display: flex;
+  gap: 2px;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+}
+
+.pulso-pg-muestra-tira span { flex: 1; }
+
+.pulso-pg-muestra-tira span.is-vacio {
+  background: repeating-linear-gradient(135deg, var(--pulso-surface-2) 0 4px, var(--pulso-border) 4px 5px);
+}
+
+.pulso-pg-muestra-nombre { min-width: 0; overflow-wrap: anywhere; }
+.pulso-pg-muestra.is-elegida .pulso-pg-muestra-nombre { font-weight: var(--pulso-weight-semibold); }
+
+.pulso-pg-muestra-alcance {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+  white-space: nowrap;
+}
+
+.pulso-pg-muestra.is-elegida .pulso-pg-muestra-alcance { color: var(--module-accent); }
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-pg-barra span, .pulso-pg-muestra { transition: none; }
+  .pulso-pg-muestra:active, .pulso-pg-muestra:not(.is-elegida):hover { transform: none; }
 }

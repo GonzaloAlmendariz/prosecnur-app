@@ -2,8 +2,10 @@
 // personalizado, que pueda ser reutilizable desde láminas también»). Muestra la barra con los colores que hoy usa la
 // pregunta, deja elegir una de las paletas con nombre de Identidad y lleva a editarla allí. Elegir una paleta cambia los
 // colores de todas las preguntas con esas mismas respuestas, y la tarjeta lo dice.
+// Ítem 8 de la oleada del inspector (2026-11-08): las paletas son muestras pintadas sobre las respuestas de esta pregunta
+// (MuestrasPaleta); pasar el cursor por una la pinta en la barra de arriba como vista previa, sin tocar el plan.
 
-import { useId } from "react";
+import { useId, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import type { GraficadorRef } from "../../../../api/graficos";
 import { PulsoButton } from "../../../../components/PulsoButton";
@@ -17,16 +19,18 @@ import { usePlanStore } from "../../store";
 import { GRAFICOS_POR_CATEGORIA, preguntasDelGrafico } from "../modeloMaqueta";
 import { varCalificada } from "../ordenCategorias";
 import { fraseOtrasPreguntas } from "./frasesPaleta";
+import { MuestrasPaleta } from "./MuestrasPaleta";
+import { coloresConPaleta } from "./vistaPaleta";
 import "../../estilo/coloresRespuestas.css";
 import "./paletaDelGrafico.css";
 
 type Props = { valor: GraficadorRef };
 
 /** En la tarjeta (angosta) la barra va sin texto y las respuestas en una leyenda debajo, enteras. */
-function Barra({ fila }: { fila: FilaPaleta }) {
+function Barra({ fila, vista }: { fila: FilaPaleta; vista: boolean }) {
   return (
     <>
-      <span className="pulso-pg-barra" aria-hidden="true">
+      <span className={`pulso-pg-barra${vista ? " is-vista" : ""}`} aria-hidden="true">
         {fila.opciones.map((o) => (
           <span key={o} className={fila.colores[o] ? undefined : "is-vacio"} style={fila.colores[o] ? { background: fila.colores[o] } : undefined} />
         ))}
@@ -55,6 +59,8 @@ export function PaletaDelGrafico({ valor }: Props) {
   const setPaletas = usePlanStore((s) => s.setPaletas);
   const setPaletasYVinculos = usePlanStore((s) => s.setPaletasYVinculos);
   const { listas, filas } = usePaletasRespuestas();
+  // La muestra bajo el cursor o el foco: se pinta en la barra de su pregunta; nunca va al plan.
+  const [vista, setVista] = useState<{ fila: string; clave: string } | null>(null);
 
   const args = (valor.args ?? {}) as Record<string, unknown>;
   if (!listas) return null;
@@ -83,15 +89,20 @@ export function PaletaDelGrafico({ valor }: Props) {
     <div className="pulso-f6-dato is-apilado pulso-pg" role="group" aria-labelledby={`${id}-rot`} data-qa="paleta-del-grafico">
       <span id={`${id}-rot`} className="pulso-f6-dato-rotulo">Colores</span>
       {visibles.map((h) => {
-        const { fila } = h;
+        const { fila, grupo } = h;
         const otras = fila.preguntas.length - 1;
+        const destino = vista?.fila === fila.id ? nombradas.find((f) => f.clave === vista.clave && f.clave !== fila.clave) : undefined;
+        const mostrada: FilaPaleta = destino ? { ...fila, colores: coloresConPaleta(fila.opciones, fila.colores, destino) } : fila;
         return (
           <div key={fila.id} className="pulso-pg-cuerpo">
             <div className="pulso-pg-cabecera">
-              <span className="pulso-pg-nombre">{fila.nombre}</span>
+              <span className={`pulso-pg-nombre${destino ? " is-vista" : ""}`} aria-live="polite">
+                {destino ? `Vista previa: ${destino.nombre}` : fila.nombre}
+              </span>
               {fila.clave ? <span className="pulso-cr-sello">Paleta con nombre</span> : null}
             </div>
-            <Barra fila={fila} />
+            <Barra fila={mostrada} vista={!!destino} />
+            {/* Con la vista previa nada cambia de alto: la muestra bajo el cursor no se mueve. */}
             {fila.faltan > 0 ? (
               <div className="pulso-pg-aviso" role="status">
                 {/* La paleta no las nombra, pero la lámina no sale sin color: el motor les pone los de fábrica del gráfico (loop UI). */}
@@ -100,13 +111,10 @@ export function PaletaDelGrafico({ valor }: Props) {
               </div>
             ) : null}
             {nombradas.length ? (
-              <label className="pulso-pg-elegir">
-                <span>Usar la paleta</span>
-                <select value={fila.clave ?? ""} onChange={(e) => elegir(h, e.target.value)}>
-                  {fila.clave ? null : <option value="">Elegir una paleta con nombre</option>}
-                  {nombradas.map((f) => <option key={f.id} value={f.clave ?? ""}>{f.nombre}</option>)}
-                </select>
-              </label>
+              <MuestrasPaleta opciones={fila.opciones} propios={fila.colores} paletas={nombradas} enUso={fila.clave}
+                preguntas={grupo.preguntas.length}
+                onVista={(clave) => setVista(clave ? { fila: fila.id, clave } : null)}
+                onElegir={(clave) => { setVista(null); elegir(h, clave); }} />
             ) : null}
             {/* Estado (a qué más alcanza la paleta) con su acción, no ayuda: sigue visible (ADR 0135 §8). */}
             <p className="pulso-f6-dato-ayuda" role="note">
