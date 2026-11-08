@@ -11,6 +11,7 @@ import { SortableContext, useSortable } from "@dnd-kit/sortable";
 import { ladoInsercion, sinDesplazar } from "./indicadorInsercion";
 import { CSS } from "@dnd-kit/utilities";
 import { RotateCw } from "../../../vendor/lucide-react";
+import { PulsoButton } from "../../../components/PulsoButton";
 import { usePlanStore } from "../store";
 import type { EstructuraInforme, LaminaEnEstructura } from "./modeloEstructura";
 import { useLaminasUi } from "./laminasStore";
@@ -118,15 +119,17 @@ export function TiraMiniaturas({ estructura, posicionActiva, onIr }: Props) {
                       <span className="pulso-f6-miniatura-num" aria-hidden="true">{l.posicion}</span>
                     </button>
                     {vista === "error" && (
-                      <button
-                        type="button"
+                      <PulsoButton
+                        variant="icon"
+                        tone="quiet"
+                        size="sm"
                         className="pulso-f6-miniatura-reintentar"
                         aria-label={`Reintentar la miniatura de la lámina ${l.posicion}`}
                         title={entrada?.error ? `${entrada.error} Reintentar.` : "Reintentar"}
                         onClick={(e) => reintentarConFoco(e.currentTarget.parentElement, () => reintentar(l.id))}
                       >
-                        <RotateCw size={12} aria-hidden="true" />
-                      </button>
+                        <RotateCw aria-hidden="true" />
+                      </PulsoButton>
                     )}
                   </ItemTira>
                 );

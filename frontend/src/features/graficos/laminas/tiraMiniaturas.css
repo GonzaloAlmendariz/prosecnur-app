@@ -272,42 +272,21 @@
 }
 
 /* Reintentar va fuera del botón de la miniatura (no se anidan botones) y se superpone en su esquina, junto al ícono
-   (fila 1 del aviso de error, que no lleva texto). 24×24 de blanco: se anulan el min-height y el padding de la regla global de
-   `button` (que lo estiraban a 20×28 y lo montaban sobre el texto). */
-.pulso-f6-miniatura-reintentar {
+   (fila 1 del aviso de error, que no lleva texto). Acabado W2-A: es el ícono quieto del kit en `sm` (28 de caja, 32 de
+   impacto, ícono de 14) con superficie propia, porque sin caja se perdía sobre el fondo de error de la miniatura. */
+.pulso-button.pulso-button--icon.pulso-button--quiet.pulso-f6-miniatura-reintentar {
   position: absolute;
   top: 2px;
   right: 2px;
-  display: grid;
-  place-items: center;
-  box-sizing: border-box;
-  width: 24px;
-  height: 24px;
-  min-width: 0;
-  min-height: 0;
-  padding: 0;
-  border: 1px solid var(--pulso-danger-border);
-  border-radius: calc(var(--pulso-radius) / 3);
+  border-color: var(--pulso-danger-border);
   background: var(--pulso-surface);
   color: var(--pulso-danger-fg);
-  line-height: 0;
-  box-shadow: none;
-  cursor: pointer;
-  transition: transform var(--motion-dur-press) var(--motion-ease-out);
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .pulso-f6-miniatura-reintentar:hover {
-    border-color: var(--pulso-danger-fg);
-    transition:
-      border-color var(--motion-dur-hover) var(--motion-ease-out),
-      transform var(--motion-dur-press) var(--motion-ease-out);
-  }
-}
-
-.pulso-f6-miniatura-reintentar:focus-visible {
-  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
-  outline-offset: var(--pulso-nav-focus-offset);
+.pulso-button.pulso-button--icon.pulso-button--quiet.pulso-f6-miniatura-reintentar:hover:not(:disabled) {
+  border-color: var(--pulso-danger-fg);
+  background: var(--pulso-surface);
+  color: var(--pulso-danger-fg);
 }
 
 /* Movimiento reducido: sin desplazamientos (ni el levantamiento de 1 px del hover global de `button`, ni la escala de
