@@ -3,7 +3,8 @@ import type { ArgMetadata, GraficadorMetadata, GraficadorRef, PresetMetadata, Sl
 import { usePlanStore, PaletaPorLista } from "./store";
 import { useGraficosRegistry } from "./useGraficosRegistry";
 import { usePresetsMetadata } from "./usePresetsMetadata";
-import { useVariables, type VarWithSource } from "./useVariables";
+import { parseVarRef, useVariables, type VarWithSource } from "./useVariables";
+import { esComodin } from "./laminas/publicosGrafico/modeloPublicos";
 import { evaluateScaleCompat, multiApiladasScaleGroups, type ScaleVar } from "./multiApiladasScale";
 import { formatNumericRange, hasMeaningfulValue, validateNumericArgValue } from "./numericArgValidation";
 import { isDerivedReportVariableRef } from "./derivedReportVariables";
@@ -148,6 +149,7 @@ export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
     variables.flatMap((v) => multi ? [`${v.source}$${v.name}`] : [v.name, `${v.source}$${v.name}`]),
   );
   const iconIds = new Set(iconos.map((i) => i.id));
+  const basesDelEstudio = new Set(variables.map((v) => v.source));
   // Mismo criterio de resolución que `varNames`: en single-base la ref
   // puede venir con o sin prefijo de fuente.
   const varsByRef = new Map<string, VarWithSource>();
@@ -207,7 +209,7 @@ export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
         // Variable desconocida dentro del graficador. Con varias bases hay
         // que separar dos cosas que se veían igual: la que no existe y la
         // que existe pero no dice de qué base es.
-        const sueltas = checkVarRefs(graf, varNames);
+        const sueltas = checkVarRefs(graf, varNames, basesDelEstudio);
         const implicitas = new Map<string, string[]>();
         for (const varName of sueltas) {
           const base = multi && relacionBases ? baseImplicitaDe(varName, basesPorVariable, relacionBases) : null;
@@ -440,10 +442,13 @@ function listarBases(bases: string[]): string {
   return `las bases ${entrecomilladas.slice(0, -1).join(", ")} y ${entrecomilladas[entrecomilladas.length - 1]}`;
 }
 
-function checkVarRefs(graf: GraficadorRef, varNames: Set<string>): string[] {
+// `base$*` (todas las preguntas de escala de un público; las láminas de resumen, ADR 0135 §2) no es una pregunta: es un
+// comodín que resuelve el motor. Vale si la base existe; el de una base que no está (`fantasma$*`) sigue avisando.
+function checkVarRefs(graf: GraficadorRef, varNames: Set<string>, bases?: ReadonlySet<string>): string[] {
   const refs = collectVarRefs(graf.args ?? {});
+  const comodinValido = (v: string) => !!bases && esComodin(v) && bases.has(parseVarRef(v).source ?? "");
   return Array.from(new Set(refs.filter((v) => (
-    v.length > 0 && !isDerivedReportVariableRef(v) && !varNames.has(v)
+    v.length > 0 && !isDerivedReportVariableRef(v) && !varNames.has(v) && !comodinValido(v)
   ))));
 }
 
