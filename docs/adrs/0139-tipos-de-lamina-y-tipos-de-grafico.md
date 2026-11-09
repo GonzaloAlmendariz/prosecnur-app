@@ -61,3 +61,16 @@ La auditoría del 2026-11-08 encontró cuatro problemas:
 - `graficos_tipos.json` agrega `variantes`, `familias_editor`, `titulo_humano` de cada graficador y de cada lámina, y
   `ranuras` (`{name, role, label}`) de cada lámina. `/api/graficos/registry` suma `variantes` sin quitar campos.
 - `.graficos_variante_de(graficador, args)` reconoce la variante de una lámina guardada; sólo lee, no migra el plan.
+
+## Enmienda (2026-11-09): las variantes se presentan como versiones del tipo
+
+Gonzalo, sobre el catálogo: «Estas debería ser dos versiones de un mismo tipo de gráfico: y debería llamarse multiapilada
+divergente» (Barras divergentes y Escala con columna de Sin información).
+
+1. Una variante no es una tarjeta aparte en el catálogo ni en el selector de gráfico: es una **versión** dentro de la
+   tarjeta de su tipo. La tarjeta muestra el tipo y sus versiones (la base y cada variante) con un control segmentado; al
+   elegir una versión se aplican sus `args_fijos`. Vale para todos los tipos con variantes (divergentes y dumbbell).
+2. `p_barras_divergentes` se llama **«Multiapilada divergente»**. Sus versiones: «Clásica» y «Con columna de Sin
+   información».
+3. El plan guardado no cambia (`graficador` + `args`); el reconocimiento de la variante (`.graficos_variante_de`) sigue
+   igual y ahora nombra la versión.
