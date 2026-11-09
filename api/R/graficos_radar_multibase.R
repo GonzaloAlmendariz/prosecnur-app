@@ -156,6 +156,16 @@
   out
 }
 
+# Fila de la tabla (nombres enteros) que corresponde a cada eje dibujado (nombres recortados). El recorte es una
+# biyeccion sobre los niveles —`.radar_mb_recortar_eje()` garantiza rotulos unicos—, asi que el criterio se identifica
+# por su posicion en los niveles enteros y no por el texto que muestra el dibujo. Un eje que ya llega entero casa igual.
+.radar_mb_filas_tabla <- function(ejes_dibujo, ejes_tabla) {
+  ejes_tabla <- as.character(ejes_tabla)
+  filas <- match(as.character(ejes_dibujo), .radar_mb_recortar_eje(ejes_tabla))
+  directo <- match(as.character(ejes_dibujo), ejes_tabla)
+  ifelse(is.na(filas), directo, filas)
+}
+
 # Posicion de cada elemento dentro de su grupo de iguales: 1, 2, 3...
 ave_seq <- function(x) ave(seq_along(x), x, FUN = seq_along)
 
@@ -1166,12 +1176,16 @@ p_radar_publicos <- function(
     espec$encabezado <- .radar_mb_nombres_tabla(tabla, titulo_tema, encabezados)[1]
     # Las cifras son las de esta tabla: los decimales del analista y «—» donde no hay dato (verificador de N6).
     dec_t <- suppressWarnings(as.integer(attr(tabla, "decimales") %||% 0L)[1]); if (!is.finite(dec_t)) dec_t <- 0L
+    # R12-1: la fila se busca por CRITERIO, no por su rótulo. `espec$ejes` trae el nombre recortado del dibujo
+    # («Comunicación eficaz: oral, escrita y no…») y la tabla el entero: casarlos por texto dejaba la fila en «—».
+    filas <- .radar_mb_filas_tabla(espec$ejes, as.character(tabla[[1]]))
+    espec$ejes_tabla <- ifelse(is.na(filas), espec$ejes, as.character(tabla[[1]])[filas])   # la tabla lleva el entero
     for (k in seq_along(espec$grupos)) {
       g <- espec$grupos[k]
       # La tabla nombra sus columnas por la fuente cruda («docentes») y el radar, capitalizada («Docentes»). Sin
       # coincidencia no se adivina por posición: con columnas reordenadas daría las cifras de otra fuente.
       j <- match(tolower(g), tolower(names(tabla))); if (is.na(j) || j < 2L) next
-      v <- tabla[[j]][match(espec$ejes, as.character(tabla[[1]]))]
+      v <- tabla[[j]][filas]
       espec$cifras[, g] <- ifelse(is.na(v), "\u2014", .pulso_fmt_pct_half_up(espec$valores[, g], dec_t))
     }
     attr(grafico, "pulso_espec") <- espec

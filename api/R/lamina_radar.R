@@ -134,6 +134,13 @@
     ggplot2::theme_void() + ggplot2::theme(legend.position = "none")
 }
 
+#' Rótulos de la primera columna de la tabla: el nombre entero del criterio (R12-1); el dibujo lleva el recortado
+#' @keywords internal
+.lam_radar_ejes_tabla <- function(espec) {
+  et <- espec$ejes_tabla
+  if (is.character(et) && length(et) == length(espec$ejes)) et else espec$ejes
+}
+
 #' Anchos de la tabla: 2.2 in la primera columna y cada grupo lo que pida su encabezado (mínimo 1.15 in)
 #' @keywords internal
 .lam_radar_anchos <- function(espec) {
@@ -145,7 +152,7 @@
 #' @keywords internal
 .lam_radar_fila <- function(espec) {
   R <- .LAM_RADAR; disp <- .std_geom("contenido_y1") - (.std_geom("zona_datos_y0") + R$dy_tabla)
-  min(R$fila, disp / (length(espec$ejes) + 1))
+  min(R$fila, disp / (length(.lam_radar_ejes_tabla(espec)) + 1))
 }
 
 #' Líneas que pide el eje más largo en la primera columna de la tabla (13 pt en negrita)
@@ -154,8 +161,9 @@
 #' @keywords internal
 .lam_radar_lineas <- function(espec) {
   R <- .LAM_RADAR
-  if (all(.lam_ancho_tinta(espec$ejes, 13, TRUE) <= R$col1 - 0.2)) return(1L)
-  max(.lam_lineas_tinta(espec$ejes, R$col1, 13, TRUE))
+  ejes <- .lam_radar_ejes_tabla(espec)
+  if (all(.lam_ancho_tinta(ejes, 13, TRUE) <= R$col1 - 0.2)) return(1L)
+  max(.lam_lineas_tinta(ejes, R$col1, 13, TRUE))
 }
 
 #' Altos de la tabla: encabezado y filas del cuerpo
@@ -230,7 +238,7 @@
   if (!sintetica && !arriba) .lam_leyenda(lz, yf - 0.3, espec$grupos, unname(espec$colores), centrar_en = x_radar + R$ancho / 2)
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:radar:leyenda")
   if (isTRUE(espec$con_tabla)) {
-    d <- data.frame(espec$ejes, espec$cifras, check.names = FALSE, stringsAsFactors = FALSE)
+    d <- data.frame(.lam_radar_ejes_tabla(espec), espec$cifras, check.names = FALSE, stringsAsFactors = FALSE)
     names(d) <- c(espec$encabezado, espec$grupos)
     f <- .lam_radar_filas(espec)
     doc <- .lam_tabla_ttb(doc, d, R$x_tabla, yt + R$dy_tabla, .lam_radar_anchos(espec), f$cabecera, f$cuerpo)
