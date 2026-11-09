@@ -283,7 +283,7 @@ source("setup-load-all.R")
 test_that("registry: cada slide y graficador expone el shape completo con nombres únicos y reales", {
   reg <- .graficos_registry_payload()
   # `familias_editor` (K4, plan F6 §5.2): el orden de las familias del selector «Tipo de gráfico».
-  expect_setequal(names(reg), c("slides", "graficadores", "familias_editor", "retirados"))   # `retirados`: ADR 0137
+  expect_setequal(names(reg), c("slides", "graficadores", "familias_editor", "retirados", "variantes"))   # `retirados`: ADR 0137
   expect_length(reg$slides, 37L)
   expect_length(reg$graficadores, 31L)   # ADR 0137: salen la tabla de letras y los cinco de dimensiones
 
