@@ -3103,10 +3103,6 @@ p_reset <- function(
     if (identical(modo_word, "score_ref") && is.null(ov$delta_rel_cerca_ref)) {
       ov$delta_rel_cerca_ref <- 0.34
     }
-  } else if (identical(etype, "dim_foda")) {
-    if (is.null(ov$tamano_texto_tarjeta)) ov$tamano_texto_tarjeta <- 7
-    if (is.null(ov$tamano_texto_chip)) ov$tamano_texto_chip <- 7.5
-    if (is.null(ov$ancho_tarjeta_base_rel)) ov$ancho_tarjeta_base_rel <- 0.88
   }
   el_for_word$overrides <- ov
   el_for_word

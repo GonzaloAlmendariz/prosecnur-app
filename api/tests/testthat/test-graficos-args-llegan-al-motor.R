@@ -8,7 +8,7 @@ source("setup-load-all.R")
 # comprobar: un arg declarado que su graficador **ni siquiera puede recibir**.
 #
 # Encontró seis en su primera pasada:
-#   · `angle_x` en apiladas, multi y agrupadas — pertenece a `dim_heatmap`;
+#   · `angle_x` en apiladas, multi y agrupadas — pertenecía al preset del heatmap de dimensiones;
 #   · `espacio_entre_barras` en multi — no existe en ningún sitio;
 #   · `mostrar_rango` y `tipo_rango` en el boxplot — los implementa `media_rango`.
 
@@ -114,9 +114,9 @@ test_that("los seis mandos muertos de la primera pasada no vuelven", {
   expect_false("mostrar_rango" %in% nombres_de("boxplot"))
   expect_false("tipo_rango" %in% nombres_de("boxplot"))
 
-  # El control: `angle_x` y los dos del rango SÍ existen donde les corresponde,
-  # así que el aserto no pasa por haberlos borrado del producto.
-  expect_true("angle_x" %in% nombres_de("dim_heatmap"))
+  # El control: los dos del rango SÍ existen donde les corresponde, así que el
+  # aserto no pasa por haberlos borrado del producto. (`angle_x` vivía en el
+  # preset `dim_heatmap`, que salió con el ADR 0137.)
   expect_true(all(c("mostrar_rango", "tipo_rango") %in% nombres_de("media_rango")))
 })
 

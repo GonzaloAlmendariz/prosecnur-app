@@ -48,18 +48,12 @@
   p_fortalezas                = list(pregunta = "escala",       publicos = "uno"),
   p_cobertura                 = list(pregunta = "cualquiera",   publicos = "uno_o_varios", padron = TRUE),
   p_filtro_subpregunta        = list(pregunta = "opcion_unica", publicos = "uno"),
-  p_significancia_publicos    = list(pregunta = "opcion_unica", publicos = "varios"),         # Top Two Box o «Sí»
   p_matriz_cuadrantes         = list(pregunta = "escala",       publicos = "uno_o_varios"),
   p_lollipop                  = list(pregunta = c("opcion_unica", "multiple"), publicos = "uno"),   # ranking de menciones
   p_serie_temporal            = list(pregunta = "opcion_unica", publicos = "uno_o_varios"),   # una base por medición
   p_radar                     = list(pregunta = c("escala", "multiple"), publicos = "uno_o_varios"),   # modos `publicos` y `sm`
   p_tabla                     = list(pregunta = c("escala", "multiple"), publicos = "uno"),   # modo `sm`
   p_heatmap_cruce             = list(pregunta = c("escala", "opcion_unica"), publicos = "uno"),   # ADR 0137: una pregunta por un cruce
-  p_dim_radar                 = list(pregunta = "escala",       publicos = "uno"),
-  p_dim_heatmap               = list(pregunta = "escala",       publicos = "uno"),
-  p_dim_comparativo_radarbar  = list(pregunta = "escala",       publicos = "uno"),
-  p_dim_foda                  = list(pregunta = "escala",       publicos = "uno"),
-  p_dim_heatmap_criterios     = list(pregunta = "escala",       publicos = "uno"),
   p_lineas_nivel              = list(pregunta = "opcion_unica", publicos = "uno")
 )
 

@@ -514,18 +514,6 @@
       }
     },
     {
-      "name": "p_significancia_publicos",
-      "familia_editor": "comparar",
-      "salida": "nativa",
-      "en_selector": true,
-      "usa": {
-        "pregunta": ["opcion_unica"],
-        "publicos": "varios",
-        "padron": false,
-        "cruce": false
-      }
-    },
-    {
       "name": "p_matriz_cuadrantes",
       "familia_editor": "comparar",
       "salida": "nativa",
@@ -592,66 +580,6 @@
       "en_selector": true,
       "usa": {
         "pregunta": ["escala", "opcion_unica"],
-        "publicos": "uno",
-        "padron": false,
-        "cruce": true
-      }
-    },
-    {
-      "name": "p_dim_radar",
-      "familia_editor": "dimensiones",
-      "salida": "nativa",
-      "en_selector": true,
-      "usa": {
-        "pregunta": ["escala"],
-        "publicos": "uno",
-        "padron": false,
-        "cruce": true
-      }
-    },
-    {
-      "name": "p_dim_heatmap",
-      "familia_editor": "dimensiones",
-      "salida": "nativa",
-      "en_selector": true,
-      "usa": {
-        "pregunta": ["escala"],
-        "publicos": "uno",
-        "padron": false,
-        "cruce": true
-      }
-    },
-    {
-      "name": "p_dim_comparativo_radarbar",
-      "familia_editor": "dimensiones",
-      "salida": "nativa",
-      "en_selector": true,
-      "usa": {
-        "pregunta": ["escala"],
-        "publicos": "uno",
-        "padron": false,
-        "cruce": true
-      }
-    },
-    {
-      "name": "p_dim_foda",
-      "familia_editor": "dimensiones",
-      "salida": "ruta_anterior",
-      "en_selector": false,
-      "usa": {
-        "pregunta": ["escala"],
-        "publicos": "uno",
-        "padron": false,
-        "cruce": true
-      }
-    },
-    {
-      "name": "p_dim_heatmap_criterios",
-      "familia_editor": "dimensiones",
-      "salida": "nativa",
-      "en_selector": true,
-      "usa": {
-        "pregunta": ["escala"],
         "publicos": "uno",
         "padron": false,
         "cruce": true

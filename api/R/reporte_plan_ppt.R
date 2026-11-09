@@ -34,8 +34,7 @@
 #' @param presets Lista de presets por tipo de grafico. El contrato esperado es
 #'   `base$args`, `barras_apiladas$args`, `multi_apiladas$args`,
 #'   `barras_agrupadas$args`, `barras_numericas$args`, `boxplot$args`, `pie$args`,
-#'   `donut$args`, `radar_tabla$args`, `dim_heatmap$args`,
-#'   `dim_radar$args` y `dim_foda$args`.
+#'   `donut$args` y `radar_tabla$args`.
 #'   Tambien puede construirse con `p_presets()`.
 #'
 #' @param plan Lista de slides ya construidos con `p_plan()` o `list(diapo_001=..., ...)`.
@@ -179,12 +178,7 @@ reporte_ppt_plan <- function(
   # 0.1) Presets (tu contrato)
   # -----------------------
   presets <- presets %||% list(); .op_casos <- .casos_junto_fijar(presets); .op_casos <- c(.op_casos, .base_sufijos_fijar(presets)); on.exit(options(.op_casos), add = TRUE)   # graficos_casos_junto.R
-  if (!is.null(presets$dim_radar_tabla)) {
-    warning(
-      "`presets$dim_radar_tabla` fue retirado del flujo PPT y sera ignorado. Use `dim_radar` o `dim_heatmap`.",
-      call. = FALSE
-    )
-  }
+  if (any(names(presets) %in% .GRAFICOS_PRESETS_RETIRADOS)) presets <- .graficos_retirados_quitar_presets(presets)   # ADR 0137: sin aviso
   # defaults minimos si el usuario no paso nada
   presets$barras_apiladas <- presets$barras_apiladas %||% list(args = list())
   if (is.null(presets$barras_apiladas$args) || !is.list(presets$barras_apiladas$args)) {
@@ -222,19 +216,6 @@ reporte_ppt_plan <- function(
   presets$radar_tabla <- presets$radar_tabla %||% list(args = list())
   presets$radar_tabla$args <- presets$radar_tabla$args %||% list()
 
-  presets$dim_heatmap <- presets$dim_heatmap %||% list(args = list())
-  presets$dim_heatmap$args <- presets$dim_heatmap$args %||% list()
-  presets$dim_heatmap_criterios <- presets$dim_heatmap_criterios %||% list(args = list())
-  presets$dim_heatmap_criterios$args <- presets$dim_heatmap_criterios$args %||% list()
-
-  presets$dim_radar <- presets$dim_radar %||% list(args = list())
-  presets$dim_radar$args <- presets$dim_radar$args %||% list()
-  presets$dim_comparativo_radarbar <- presets$dim_comparativo_radarbar %||% list(args = list())
-  presets$dim_comparativo_radarbar$args <- presets$dim_comparativo_radarbar$args %||% list()
-
-  presets$dim_foda <- presets$dim_foda %||% list(args = list())
-  presets$dim_foda$args <- presets$dim_foda$args %||% list()
-
   # ------------------------------------------------------------
   # HERENCIA: base$args (solo estilo) -> todos los presets$args
   # ------------------------------------------------------------
@@ -248,8 +229,7 @@ reporte_ppt_plan <- function(
   targets <- intersect(
     names(presets),
     c("barras_apiladas", "multi_apiladas", "barras_agrupadas",
-      "barras_categoricas", "barras_numericas", "histograma", "boxplot", "media_rango", "nube_palabras", "pie", "donut", "radar_tabla",
-      "dim_heatmap", "dim_heatmap_criterios", "dim_radar", "dim_comparativo_radarbar", "dim_foda")
+      "barras_categoricas", "barras_numericas", "histograma", "boxplot", "media_rango", "nube_palabras", "pie", "donut", "radar_tabla")
   )
 
   for (nm in targets) {
@@ -287,30 +267,6 @@ reporte_ppt_plan <- function(
   presets$boxplot$args$exportar    <- presets$boxplot$args$exportar %||% "rplot"
   presets$media_rango$args$usar_canvas <- presets$media_rango$args$usar_canvas %||% presets$boxplot$args$usar_canvas
   presets$media_rango$args$exportar    <- presets$media_rango$args$exportar %||% presets$boxplot$args$exportar
-
-  # defaults esteticos unicos para dimensiones (PPT)
-  presets$dim_heatmap$args$angle_x <- presets$dim_heatmap$args$angle_x %||% 0
-  presets$dim_heatmap$args$size_ejes <- presets$dim_heatmap$args$size_ejes %||% 10
-  presets$dim_heatmap$args$size_texto_celdas <- presets$dim_heatmap$args$size_texto_celdas %||% 10
-  presets$dim_heatmap$args$canvas_h_title <- presets$dim_heatmap$args$canvas_h_title %||% 0.13
-  presets$dim_heatmap$args$canvas_h_legend <- presets$dim_heatmap$args$canvas_h_legend %||% 0.09
-  presets$dim_heatmap$args$canvas_h_caption <- presets$dim_heatmap$args$canvas_h_caption %||% 0.06
-  presets$dim_heatmap_criterios$args$font_family <- presets$dim_heatmap_criterios$args$font_family %||% presets$base$args$font_family_ppt %||% presets$base$args$font_family %||% "Arial"
-
-  presets$dim_radar$args$cortes_grilla <- presets$dim_radar$args$cortes_grilla %||% 4
-  presets$dim_radar$args$wrap_ejes <- presets$dim_radar$args$wrap_ejes %||% 22
-  presets$dim_radar$args$eje_label_mult <- presets$dim_radar$args$eje_label_mult %||% 1.03
-  presets$dim_radar$args$leyenda_posicion <- presets$dim_radar$args$leyenda_posicion %||% "abajo"
-  presets$dim_radar$args$legend_n_por_fila <- presets$dim_radar$args$legend_n_por_fila %||% 4
-  presets$dim_radar$args$legend_key_cm <- presets$dim_radar$args$legend_key_cm %||% 0.45
-  presets$dim_radar$args$legend_espaciado <- presets$dim_radar$args$legend_espaciado %||% 12
-  presets$dim_radar$args$canvas_h_header_in <- presets$dim_radar$args$canvas_h_header_in %||% 0.58
-  presets$dim_radar$args$canvas_h_legend_in <- presets$dim_radar$args$canvas_h_legend_in %||% 0.20
-  presets$dim_radar$args$canvas_h_caption_in <- presets$dim_radar$args$canvas_h_caption_in %||% 0.08
-
-  presets$dim_foda$args$canvas_h_title <- presets$dim_foda$args$canvas_h_title %||% 0
-  presets$dim_foda$args$canvas_h_legend <- presets$dim_foda$args$canvas_h_legend %||% 0.09
-  presets$dim_foda$args$canvas_h_caption <- presets$dim_foda$args$canvas_h_caption %||% 0.06
 
   # ---------------------------------------------------------------------------
   # 1) Helpers  -  PPT strict con contrato interno (.PPT_CONTRACT)
@@ -3074,27 +3030,6 @@ reporte_ppt_plan <- function(
     .paleta_resolver_colores(list_name, opciones %||% .paleta_opciones_de_lista(list_name, instrument_sources), env)
   }
 
-  .inject_dimensiones_palette <- function(dsrc, cruce = NULL, source = NULL) {
-    if (is.null(cruce)) return(dsrc)
-    cr_ctx <- .resolve_ref(cruce, source = source, arg_name = "cruce")
-    if (!(cr_ctx$var %in% names(dsrc))) return(dsrc)
-
-    ln <- .list_name_from_ctx(cr_ctx)
-    pal <- .paleta_auto(ln, env_diapos)
-    if (is.null(pal) || !length(pal)) return(dsrc)
-
-    cfg <- attr(dsrc, "dimensiones_config", exact = TRUE)
-    if (is.null(cfg) || !is.list(cfg)) {
-      cfg <- reporte_dimensiones_config(dsrc)
-    }
-
-    cfg$paletas_cruce <- cfg$paletas_cruce %||% list()
-    cfg$paletas_cruce[[cr_ctx$var]] <- pal
-
-    attr(dsrc, "dimensiones_config") <- cfg
-    dsrc
-  }
-
   .base_auto_from_var <- function(var, filtros = list(), sufijo_auto = NULL, formato = "Base: %s", excluir_opciones = NULL) {
     if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) return(NULL)
 
@@ -3349,81 +3284,6 @@ reporte_ppt_plan <- function(
       if (!is.finite(N_total) || N_total <= 0) return(NULL)
       N_pretty <- format(N_total, big.mark = ",", scientific = FALSE)
       return(sprintf(formato, paste(N_pretty, "respuestas abiertas")))
-    }
-
-    if (etype %in% c("dim_heatmap", "dim_heatmap_criterios", "dim_radar", "dim_comparativo_radarbar", "dim_foda")) {
-      if (!exists(".dim_build_context", mode = "function", inherits = TRUE)) return(NULL)
-
-      source_use <- .element_source(el)
-      ctx_src <- .source_ctx(source_use)
-      ctx <- .dim_build_context(ctx_src$data, instrumento = ctx_src$instrumento)
-
-      N_total <- NA_real_
-      if (etype %in% c("dim_heatmap", "dim_radar", "dim_comparativo_radarbar")) {
-        if (!exists(".dim_build_payload", mode = "function", inherits = TRUE)) return(NULL)
-
-        cruce_ref <- el$cruce %||% NULL
-        iter_ref <- el$iter_var %||% NULL
-        cruce_var <- if (!is.null(cruce_ref)) .resolve_ref(cruce_ref, source = source_use, arg_name = "cruce")$var else NULL
-        iter_var <- if (!is.null(iter_ref)) .resolve_ref(iter_ref, source = source_use, arg_name = "iter_var")$var else NULL
-
-        payload <- .dim_build_payload(
-          ctx,
-          modo = el$modo,
-          objetivo = el$objetivo,
-          cruce = cruce_var,
-          incluir_total = el$incluir_total %||% NULL,
-          filtros = el$filtros %||% list(),
-          iter_var = iter_var,
-          iter_level = el$iter_level %||% NULL
-        )
-
-        # En dimensiones, la base automatica debe reflejar el universo analizado
-        # (post filtros/iteracion), incluso cuando `incluir_total = FALSE`.
-        N_total <- suppressWarnings(as.numeric(payload$base_universe_casos %||% payload$base_universe)[1])  # casos (I1)
-        if (!is.finite(N_total)) {
-          sc <- payload$score_plot %||% data.frame()
-          if (!nrow(sc) || !("base" %in% names(sc))) return(NULL)
-
-          grupos <- as.character(sc$grupo %||% character(0))
-          bases <- suppressWarnings(as.numeric(sc$base_casos %||% sc$base))
-          idx_total <- which(grupos == "Total")
-          N_total <- if (length(idx_total)) bases[idx_total[1]] else suppressWarnings(max(bases, na.rm = TRUE))
-        }
-      } else if (identical(etype, "dim_heatmap_criterios")) {
-        if (!exists(".dim_safe_weights", mode = "function", inherits = TRUE)) {
-          return(NULL)
-        }
-        w <- .dim_safe_weights(ctx_src$data, weight_col = ctx$weight_col)
-        N_total <- .plan_casos_de_pesos(w)
-        if (!is.finite(N_total) || is.na(N_total) || N_total <= 0) {
-          N_total <- nrow(ctx_src$data)
-        }
-      } else {
-        if (!exists(".dim_apply_filters", mode = "function", inherits = TRUE) ||
-            !exists(".dim_safe_weights", mode = "function", inherits = TRUE)) {
-          return(NULL)
-        }
-        df_foda <- .dim_apply_filters(ctx_src$data, filters = el$filtros %||% list())
-        if (!nrow(df_foda)) return(NULL)
-
-        if (isTRUE(el$usar_pesos %||% TRUE)) {
-          w <- .dim_safe_weights(df_foda, weight_col = ctx$weight_col)
-          N_total <- .plan_casos_de_pesos(w)
-        } else {
-          N_total <- as.numeric(nrow(df_foda))
-        }
-      }
-      if (!is.finite(N_total)) return(NULL)
-
-      N_pretty <- format(N_total, big.mark = ",", scientific = FALSE)
-      suf <- NULL
-      if (!is.null(sufijo_auto) && is.character(sufijo_auto) && length(sufijo_auto) == 1L) {
-        sufijo_auto <- trimws(sufijo_auto)
-        if (nzchar(sufijo_auto)) suf <- sufijo_auto
-      }
-      base_core <- if (is.null(suf)) N_pretty else paste(N_pretty, suf)
-      return(sprintf(formato, base_core))
     }
 
     refs_base <- c(
@@ -3820,12 +3680,6 @@ reporte_ppt_plan <- function(
     if (is.na(etype) || !nzchar(etype)) {
       .slide_abort_render(".render_element(): elemento sin `.element_type`.")
     }
-    if (identical(etype, "dim_radar_tabla")) {
-      .slide_abort_render(
-        "`dim_radar_tabla` fue retirado del flujo PPT. Use `p_dim_radar()` o `p_dim_heatmap()`."
-      )
-    }
-
     fn_name <- paste0(".render_", etype)
     if (!exists(fn_name, mode = "function", inherits = TRUE)) {
       .slide_abort_render("No existe renderer para etype='", etype, "' (se esperaba ", fn_name, "()).")
@@ -3848,11 +3702,6 @@ reporte_ppt_plan <- function(
     pa_pie      <- presets$pie$args %||% list()
     pa_donut    <- presets$donut$args %||% list()
     pa_radar    <- presets$radar_tabla$args %||% list()
-    pa_dim_heat <- presets$dim_heatmap$args %||% list()
-    pa_dim_heat_criterios <- presets$dim_heatmap_criterios$args %||% pa_dim_heat
-    pa_dim_rad  <- presets$dim_radar$args %||% list()
-    pa_dim_comp <- presets$dim_comparativo_radarbar$args %||% list()
-    pa_dim_foda <- presets$dim_foda$args %||% list()
 
     # helper: llamar pasando SOLO args que la funcion soporte
     .call_keep_formals <- function(fun, args) {
@@ -3898,11 +3747,6 @@ reporte_ppt_plan <- function(
       # con `preset_args` VACIO, asi que ninguna de las catorce claves `tabla_*`
       # del proyecto tenia efecto y la tabla se dibujaba con los defectos.
       radar_publicos   = pa_radar,
-      dim_heatmap      = pa_dim_heat,
-      dim_heatmap_criterios = pa_dim_heat_criterios,
-      dim_radar        = pa_dim_rad,
-      dim_comparativo_radarbar = pa_dim_comp,
-      dim_foda         = pa_dim_foda,
       # default: si hay nuevos etypes, se intenta pasar lista vacia
       list()
     )
@@ -6663,207 +6507,6 @@ reporte_ppt_plan <- function(
     suppressWarnings(do.call(fun, args))
   }
 
-  .render_dim_heatmap <- function(el, preset_args) {
-    if (!exists("graficar_heatmap_dimensiones", mode = "function", inherits = TRUE)) {
-      stop("No existe `graficar_heatmap_dimensiones()` en el entorno/paquete.", call. = FALSE)
-    }
-
-    source_use <- .element_source(el)
-    ctx_src <- .source_ctx(source_use)
-    cruce_var <- if (!is.null(el$cruce)) .resolve_ref(el$cruce, source = source_use, arg_name = "cruce")$var else NULL
-    iter_var <- if (!is.null(el$iter_var)) .resolve_ref(el$iter_var, source = source_use, arg_name = "iter_var")$var else NULL
-    data_dim <- .inject_dimensiones_palette(ctx_src$data, el$cruce %||% NULL, source = source_use)
-
-    base_args <- list(
-      data = data_dim,
-      instrumento = ctx_src$instrumento,
-      modo = el$modo,
-      objetivo = el$objetivo,
-      cruce = cruce_var,
-      incluir_total = el$incluir_total %||% NULL,
-      modo_semaforo = el$modo_semaforo %||% NULL,
-      brecha_filas = el$brecha_filas %||% FALSE,
-      etiq_brecha_filas = el$etiq_brecha_filas %||% "Brecha",
-      brecha_cols = el$brecha_cols %||% FALSE,
-      etiq_brecha_cols = el$etiq_brecha_cols %||% "Brecha",
-      aplicar_gradiente_brecha = el$aplicar_gradiente_brecha %||% TRUE,
-      brecha_colores = el$brecha_colores %||% c(bajo = "#FFFFFF", alto = .std_paleta("likert")[1]),
-      brecha_cortes = el$brecha_cortes %||% c(0, 30),
-      size_ejes_x = el$size_ejes_x %||% NULL,
-      titulo_total_x = el$titulo_total_x %||% "Total",
-      titulo_total_y = el$titulo_total_y %||% "Total cruce",
-      mostrar_n_cruce_x = el$mostrar_n_cruce_x %||% FALSE,
-      filtros = el$filtros %||% list(),
-      iter_var = iter_var,
-      iter_level = el$iter_level %||% NULL,
-      titulo = NULL,
-      subtitulo = NULL,
-      nota_pie = NULL,
-      nota_pie_externa = TRUE
-    )
-
-    args <- .merge_args(base_args, preset_args %||% list(), el$overrides %||% list())
-    args <- .force_canvas_args(graficar_heatmap_dimensiones, args)
-    args <- .keep_formals(graficar_heatmap_dimensiones, args)
-    .heatmap_dim_o_pregunta(args, function() suppressWarnings(do.call(graficar_heatmap_dimensiones, args)))   # L10-6
-  }
-
-  .render_dim_heatmap_criterios <- function(el, preset_args) {
-    if (!exists("graficar_heatmap_criterios_dimensiones", mode = "function", inherits = TRUE)) {
-      stop("No existe `graficar_heatmap_criterios_dimensiones()` en el entorno/paquete.", call. = FALSE)
-    }
-
-    source_use <- .element_source(el)
-    ctx_src <- .source_ctx(source_use)
-    data_dim <- .filter_data(el$filtros %||% list(), source = source_use)
-
-    config_use <- lapply(el$config_criterios, function(cfg) {
-      cfg <- as.list(cfg)
-      vars <- as.character(cfg$vars %||% character(0))
-      vars <- vars[!is.na(vars) & nzchar(trimws(vars))]
-      if (!length(vars)) {
-        stop("Cada conductor en `config_criterios` debe incluir `vars` no vacios.", call. = FALSE)
-      }
-      cfg$vars <- vapply(vars, function(v) {
-        .resolve_ref(v, source = source_use, arg_name = "config_criterios$vars")$var
-      }, character(1))
-      cfg
-    })
-
-    base_args <- list(
-      data = data_dim,
-      instrumento = ctx_src$instrumento,
-      config_criterios = config_use,
-      titulo = NULL,
-      subtitulo = NULL,
-      nota_pie = NULL
-    )
-
-    args <- .merge_args(base_args, preset_args %||% list(), el$overrides %||% list())
-    args <- .force_canvas_args(graficar_heatmap_criterios_dimensiones, args)
-    args <- .keep_formals(graficar_heatmap_criterios_dimensiones, args)
-    .espec_criterios_adjuntar(suppressWarnings(do.call(graficar_heatmap_criterios_dimensiones, args)), args, el)
-  }
-
-  .render_dim_radar <- function(el, preset_args) {
-    if (!exists("graficar_radar_dimensiones", mode = "function", inherits = TRUE)) {
-      stop("No existe `graficar_radar_dimensiones()` en el entorno/paquete.", call. = FALSE)
-    }
-
-    source_use <- .element_source(el)
-    ctx_src <- .source_ctx(source_use)
-    cruce_var <- if (!is.null(el$cruce)) .resolve_ref(el$cruce, source = source_use, arg_name = "cruce")$var else NULL
-    iter_var <- if (!is.null(el$iter_var)) .resolve_ref(el$iter_var, source = source_use, arg_name = "iter_var")$var else NULL
-    data_dim <- .inject_dimensiones_palette(ctx_src$data, el$cruce %||% NULL, source = source_use)
-
-    base_args <- list(
-      data = data_dim,
-      instrumento = ctx_src$instrumento,
-      modo = el$modo,
-      objetivo = el$objetivo,
-      cruce = cruce_var,
-      incluir_total = el$incluir_total %||% NULL,
-      inicio_eje_pct = el$inicio_eje_pct %||% NULL,
-      filtros = el$filtros %||% list(),
-      iter_var = iter_var,
-      iter_level = el$iter_level %||% NULL,
-      titulo = NULL,
-      subtitulo = NULL,
-      nota_pie = NULL,
-      nota_pie_externa = TRUE
-    )
-
-    args <- .merge_args(base_args, preset_args %||% list(), el$overrides %||% list())
-    args <- .force_canvas_args(graficar_radar_dimensiones, args)
-    args <- .keep_formals(graficar_radar_dimensiones, args)
-    suppressWarnings(do.call(graficar_radar_dimensiones, args))
-  }
-
-  .render_dim_comparativo_radarbar <- function(el, preset_args) {
-    if (!exists("graficar_comparativo_radarbar_dimensiones", mode = "function", inherits = TRUE)) {
-      stop("No existe `graficar_comparativo_radarbar_dimensiones()` en el entorno/paquete.", call. = FALSE)
-    }
-
-    source_use <- .element_source(el)
-    ctx_src <- .source_ctx(source_use)
-    cruce_var <- if (!is.null(el$cruce)) .resolve_ref(el$cruce, source = source_use, arg_name = "cruce")$var else NULL
-    iter_var <- if (!is.null(el$iter_var)) .resolve_ref(el$iter_var, source = source_use, arg_name = "iter_var")$var else NULL
-    data_dim <- .inject_dimensiones_palette(ctx_src$data, el$cruce %||% NULL, source = source_use)
-
-    base_args <- list(
-      data = data_dim,
-      instrumento = ctx_src$instrumento,
-      modo = el$modo,
-      objetivo = el$objetivo,
-      cruce = cruce_var,
-      incluir_total = el$incluir_total %||% FALSE,
-      radar_min_ejes = el$radar_min_ejes %||% 5L,
-      inicio_eje_pct = el$inicio_eje_pct %||% NULL,
-      filtros = el$filtros %||% list(),
-      iter_var = iter_var,
-      iter_level = el$iter_level %||% NULL,
-      titulo = NULL,
-      subtitulo = NULL,
-      nota_pie = NULL,
-      nota_pie_externa = TRUE
-    )
-
-    args <- .merge_args(base_args, preset_args %||% list(), el$overrides %||% list())
-    args <- .force_canvas_args(graficar_comparativo_radarbar_dimensiones, args)
-    args <- .keep_formals(graficar_comparativo_radarbar_dimensiones, args)
-    .espec_dim_adjuntar(suppressWarnings(do.call(graficar_comparativo_radarbar_dimensiones, args)), args, "comparativo")
-  }
-
-  .render_dim_foda <- function(el, preset_args) {
-    if (!exists("graficar_foda_dimensiones", mode = "function", inherits = TRUE)) {
-      stop("No existe `graficar_foda_dimensiones()` en el entorno/paquete.", call. = FALSE)
-    }
-
-    source_use <- .element_source(el)
-    ctx_src <- .source_ctx(source_use)
-    preset_args <- preset_args %||% list()
-    overrides <- el$overrides %||% list()
-
-    cruce_ref <- overrides$cruce %||% el$cruce %||% preset_args$cruce %||% NULL
-    overrides$cruce <- NULL
-    preset_args$cruce <- NULL
-
-    cruce_var <- NULL
-    if (!is.null(cruce_ref) &&
-        is.character(cruce_ref) &&
-        length(cruce_ref) == 1L &&
-        nzchar(trimws(cruce_ref))) {
-      cruce_var <- .resolve_ref(cruce_ref, source = source_use, arg_name = "cruce")$var
-    }
-
-    data_dim <- .inject_dimensiones_palette(
-      ctx_src$data,
-      cruce = cruce_ref,
-      source = source_use
-    )
-
-    base_args <- list(
-      data = data_dim,
-      instrumento = ctx_src$instrumento,
-      nivel = el$nivel %||% "subindices",
-      objetivo = el$objetivo %||% NULL,
-      modo_foda = el$modo_foda %||% "matriz",
-      cruce = cruce_var,
-      incluir_total = el$incluir_total %||% TRUE,
-      filtros = el$filtros %||% list(),
-      usar_pesos = el$usar_pesos %||% TRUE,
-      modo_semaforo = el$modo_semaforo %||% NULL,
-      titulo = NULL,
-      subtitulo = NULL,
-      nota_pie = NULL
-    )
-
-    args <- .merge_args(base_args, preset_args, overrides)
-    args <- .force_canvas_args(graficar_foda_dimensiones, args)
-    args <- .keep_formals(graficar_foda_dimensiones, args)
-    suppressWarnings(do.call(graficar_foda_dimensiones, args))
-  }
-
   # ---------------------------------------------------------------------------
   # 6) Normalizar plan
   # ---------------------------------------------------------------------------
@@ -9155,8 +8798,7 @@ reporte_ppt_plan <- function(
 #' @description
 #' Construye un objeto de presets que centraliza configuraciones por tipo:
 #' `base`, `barras_apiladas`, `multi_apiladas`, `barras_agrupadas`,
-#' `barras_categoricas`, `barras_numericas`, `boxplot`, `pie`, `donut`, `radar_tabla`, `dim_heatmap`,
-#' `dim_radar` y `dim_foda`.
+#' `barras_categoricas`, `barras_numericas`, `boxplot`, `pie`, `donut` y `radar_tabla`.
 #'
 #' Este helper refleja el contrato real que consume `reporte_ppt_plan()`, equivalente
 #' a pasar manualmente una lista con sublistas `args`.
@@ -9173,13 +8815,9 @@ reporte_ppt_plan <- function(
 #' @param pie Lista de parametros por defecto para `graficar_pie(tipo_pie="pie")`.
 #' @param donut Lista de parametros por defecto para `graficar_pie(tipo_pie="donut")`.
 #' @param radar_tabla Lista de parametros por defecto para `graficar_radar()`.
-#' @param dim_heatmap Lista de parametros por defecto para `graficar_heatmap_dimensiones()`.
-#' @param dim_heatmap_criterios Lista de parametros por defecto para `graficar_heatmap_criterios_dimensiones()`.
-#' @param dim_radar Lista de parametros por defecto para `graficar_radar_dimensiones()`.
-#' @param dim_foda Lista de parametros por defecto para `graficar_foda_dimensiones()`.
 #' @param numerico Alias legado de `barras_numericas`. Se mantiene por compatibilidad.
 #' @param debug Lista opcional de parametros de depuracion.
-#' @param ... Argumentos extra heredados de versiones previas. Se ignoran.
+#' @param ... Argumentos extra heredados de versiones previas. Se ignoran (los `dim_*` del ADR 0137, sin aviso).
 #'
 #' @return Objeto con clase `"ppt_presets"`.
 #'
@@ -9200,15 +8838,12 @@ p_presets <- function(
     pie              = list(),
     donut            = list(),
     radar_tabla      = list(),
-    dim_heatmap      = list(),
-    dim_heatmap_criterios = list(),
-    dim_radar        = list(),
-    dim_foda         = list(),
     numerico         = NULL,
     debug            = list(),
     ...
 ) {
   extras <- list(...)
+  extras <- extras[setdiff(names(extras), .GRAFICOS_PRESETS_RETIRADOS)]
   if (length(extras)) {
     warning(
       "Se ignoraron presets no soportados: ",
@@ -9240,10 +8875,6 @@ p_presets <- function(
     pie              = normalize_block(pie),
     donut            = normalize_block(donut),
     radar_tabla      = normalize_block(radar_tabla),
-    dim_heatmap      = normalize_block(dim_heatmap),
-    dim_heatmap_criterios = normalize_block(dim_heatmap_criterios),
-    dim_radar        = normalize_block(dim_radar),
-    dim_foda         = normalize_block(dim_foda),
     debug            = normalize_block(debug)
   )
 

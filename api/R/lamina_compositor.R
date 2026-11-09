@@ -136,9 +136,9 @@
   if (espec$tipo %in% c("histograma", "numerico", "boxplot", "media_rango", "pesas", "serie2")) {
     return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_numericos_cabe(espec)))
   }
-  # N5: mapas de calor y comparativo de dimensiones, si caben.
-  if (espec$tipo %in% c("heatmap_dim", "comparativo_dim", "heatmap_criterios")) {
-    return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_dimensiones_cabe(espec)))
+  # N5: el mapa de calor por cruce, si cabe (lamina_heatmap_cruce.R).
+  if (identical(espec$tipo, "heatmap_dim")) {
+    return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_heatmap_cabe(espec)))
   }
   # N6: los gráficos que siguen en ggplot van en la lámina del recetario.
   if (identical(espec$tipo, "ggplot_marco")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && inherits(p, "ggplot"))
@@ -150,8 +150,6 @@
   if (identical(espec$tipo, "cuadrantes")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_cuadrantes_cabe(espec)))
   # G11: la tabla sin radar (`p_tabla`, láminas 197/225), si cabe.
   if (identical(espec$tipo, "tabla")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_tabla_cabe(espec)))
-  # Recetario p112: tabla de letras y paneles de diferencia entre públicos, si cabe.
-  if (identical(espec$tipo, "significancia")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_significancia_cabe(espec)))
   # Recetario p192–p194: pregunta filtro y subpregunta con su llave, si cabe.
   # La dependencia entre dos gráficos: con un lado sin pieza nativa va con su gráfico (respaldo), así que siempre se compone.
   if (identical(espec$tipo, "filtro_sub")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) &&
@@ -245,22 +243,11 @@
   if (!isTRUE(sin_base) && is.null(como_texto(slots$base)) && any(grepl("$", el_plot$var %||% "", fixed = TRUE)) && nzchar(base_var) && !is.null(texto(base))) {
     base <- .lam_base_con_publico(texto(base), base_var)   # CCSS-15: también el pie sin sufijo (graficos_base_pie_forma.R)
   }
-  if (espec$tipo %in% c("heatmap_dim", "comparativo_dim", "heatmap_criterios")) {
-    # Si los casos de las columnas son los que respondieron la batería, el pie dice esa misma base (no la del
-    # universo), salvo que la lámina declare la suya: una lámina, una base.
-    # Si la lámina oculta la base (sin_base) no se escribe ninguna; si la base no tiene la forma «Base: N …» (otro
-    # formato del preset) se deja como viene (verificador de N5, ronda 3).
-    n_tot <- espec$n_respondieron_total %||% NA_real_
-    b0 <- texto(base)
-    if (!isTRUE(sin_base) && is.finite(n_tot) && is.null(como_texto(slots$base)) && !is.null(b0) && grepl("^Base:\\s*[0-9]", b0)) {
-      cola <- sub("^Base:\\s*[0-9][0-9.,]*\\s*", "", b0)
-      base <- paste0("Base: ", format(round(n_tot), big.mark = ",", trim = TRUE), if (nzchar(cola)) paste0(" ", cola) else "",
-                     " que respondieron la batería")
-    }
+  if (identical(espec$tipo, "heatmap_dim")) {   # el mapa de calor por cruce (lamina_heatmap_cruce.R)
     comunes <- list(doc = doc, espec = espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
                     base = paste(c(texto(base), texto(pie)), collapse = ". "), folio = length(doc) + 1L, sub = texto(subtitulo),
                     layout = layout, master = master, por_lamina = por_lamina)
-    o <- if (identical(espec$tipo, "heatmap_dim")) do.call(.lam_laminas_heatmap_dim, comunes) else if (identical(espec$tipo, "heatmap_criterios")) do.call(.lam_laminas_heatmap_criterios, comunes) else do.call(.lam_laminas_comparativo_dim, comunes)
+    o <- do.call(.lam_laminas_heatmap_dim, comunes)
     return(o$doc)
   }
   if (espec$tipo %in% c("histograma", "numerico", "boxplot", "media_rango", "pesas", "serie2")) {
@@ -322,12 +309,6 @@
     return(.lam_laminas_radar(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo),
                               base = .lam_unir_base(texto(base), texto(pie)), folio = length(doc) + 1L, sub = texto(subtitulo),
                               layout = layout, master = master, por_lamina = por_lamina)$doc)
-  }
-  if (identical(espec$tipo, "significancia")) {
-    pie_sig <- .lam_significancia_pie(espec, paste(c(texto(base), texto(pie)), collapse = ". "))
-    return(.lam_laminas_significancia(doc, espec, titulo = texto(titulo) %||% "", ante = texto(antetitulo), base = pie_sig,
-                                      folio = length(doc) + 1L, sub = texto(subtitulo), layout = layout, master = master,
-                                      por_lamina = por_lamina)$doc)
   }
   if (identical(espec$tipo, "filtro_sub")) {
     unidad <- if (any(grepl("$", el_plot$var %||% "", fixed = TRUE)) && nzchar(base_var)) base_var else "respuestas"

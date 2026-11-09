@@ -1,7 +1,8 @@
 # Las dimensiones de Analítica llegan a Gráficos (H2 del catálogo del recetario, 2026-10-14). Analítica las guardaba en
-# `s$rp_dim` y Gráficos leía las bases sin ellas: los gráficos de dimensiones salían «Sin datos» en cualquier estudio.
+# `s$rp_dim` y Gráficos leía las bases sin ellas: los gráficos sobre los índices salían "Sin datos" en cualquier estudio.
 # Se prueba por la ruta de la app: el catálogo del recetario, las dimensiones construidas como lo hace
-# POST /api/analitica/dimensiones/build y la lámina con las bases que usa Gráficos.
+# POST /api/analitica/dimensiones/build y la lámina con las bases que usa Gráficos. Desde el ADR 0137 los gráficos
+# exclusivos de dimensiones no existen: el índice se grafica con un tipo vigente sobre su columna `idx_*`.
 
 .gdf_sesion <- function() {
   path <- file.path(catalogo_recetario_dir(), "recetario_catalogo.pulso")
@@ -20,7 +21,7 @@
   sid
 }
 
-test_that("un gráfico de dimensiones construidas en Analítica se dibuja en Gráficos", {
+test_that("un índice construido en Analítica se dibuja en Gráficos con un tipo vigente sobre su columna idx_*", {
   skip_if_not_installed("officer")
   sid <- .gdf_sesion(); on.exit(session_delete(sid), add = TRUE)
   src <- .graficos_processing_sources(sid)
@@ -29,7 +30,7 @@ test_that("un gráfico de dimensiones construidas en Analítica se dibuja en Gr�
   msgs <- character()
   withCallingHandlers(
     reporte_ppt_plan(data = src$data_sources, instrumento = src$inst_sources, solo_lista = TRUE, mensajes_progreso = FALSE,
-                     plan = list(p_slide_1_grafico(titulo = "x", grafico = p_dim_heatmap(modo = "general", objetivo = "idx_comp2", cruce = "estudiantes$ciclo")))),
+                     plan = list(p_slide_1_grafico(titulo = "x", grafico = p_media_rango(var = "estudiantes$idx_comp2", cruce = "estudiantes$ciclo")))),
     message = function(m) { msgs <<- c(msgs, conditionMessage(m)); invokeRestart("muffleMessage") },
     warning = function(w) { msgs <<- c(msgs, conditionMessage(w)); invokeRestart("muffleWarning") })
   expect_false(any(grepl("no se pudo dibujar|Sin datos", msgs)), info = paste(msgs, collapse = "\n"))
@@ -42,10 +43,13 @@ test_that("si las filas no coinciden, no se pegan índices a otras personas y se
   expect_false("idx_comp2" %in% names(src$data_sources$estudiantes))
 })
 
-test_that("al exportar, la base activa califica las variables pero no el objetivo de dimensiones", {
+test_that("al exportar, la base activa califica las variables (también un idx_*) pero no un `objetivo`", {
+  # `objetivo` sólo lo traen los planes guardados con un tipo retirado (ADR 0137): es el nombre de un índice, no una
+  # variable, y se deja como viene.
   plan <- list(slides = list(list(id = "a", tipo = "p_slide_1_grafico", payload = list(
-    grafico = list(graficador = "p_dim_heatmap", args = list(modo = "general", objetivo = "idx_comp", cruce = "ciclo"))))))
+    grafico = list(graficador = "p_media_rango", args = list(var = "idx_comp", objetivo = "idx_comp", cruce = "ciclo"))))))
   args <- .graficos_calificar_refs_plan(plan, "estudiantes")$slides[[1]]$payload$grafico$args
+  expect_identical(args$var, "estudiantes$idx_comp")
   expect_identical(args$objetivo, "idx_comp")
   expect_identical(args$cruce, "estudiantes$ciclo")
 })

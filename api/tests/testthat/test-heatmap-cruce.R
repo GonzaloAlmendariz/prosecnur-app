@@ -1,9 +1,10 @@
 source("setup-load-all.R")
 
 # ADR 0137, decisión 1 de Gonzalo («Tipo propio»): la variante pregunta × cruce de `p_dim_heatmap` (L10-6 y L10-10 de
-# CCSS Perfil) pasa a «Mapa de calor por cruce» (`p_heatmap_cruce`). Las cifras tienen que ser las mismas que dibujaba
-# la ruta anterior; el `p_dim_heatmap` con una pregunta como objetivo se migra 1:1 una sola vez (dirty y aviso únicos),
-# y el que llega sin migrar al rearmado se redirige en memoria.
+# CCSS Perfil) pasa a «Mapa de calor por cruce» (`p_heatmap_cruce`). Las cifras son las que dibujaba la ruta anterior
+# (en la fase 1 se compararon byte a byte con ella; desde la fase 2 quedan fijadas aquí); el `p_dim_heatmap` con una
+# pregunta como objetivo se migra 1:1 una sola vez (dirty y aviso únicos), y el que llega sin migrar al rearmado se
+# redirige en memoria.
 
 # Fixture de L10-6 (test-l10-variantes.R): Carrera 1: p = 1,1,2,3; carrera 2: p = 3 × 8.
 .hmc_inst <- function() list(
@@ -53,27 +54,26 @@ source("setup-load-all.R")
   list(valor = val, avisos = out)
 }
 
-test_that("L10-6: la lámina de p_heatmap_cruce es idéntica, byte a byte, a la de p_dim_heatmap con una pregunta", {
+test_that("L10-6: la lámina de p_heatmap_cruce dibuja las cifras de la ruta anterior", {
   skip_if_not_installed("officer"); skip_if_not_installed("rvg")
-  antes <- .hmc_slide_xml(p_dim_heatmap(modo = "general", objetivo = "p", cruce = "car"), .hmc_dat(), .hmc_inst())
   ahora <- .hmc_slide_xml(p_heatmap_cruce(var = "p", cruce = "car"), .hmc_dat(), .hmc_inst())
-  expect_identical(ahora, antes)
+  expect_match(ahora, "prosecnur:grafico:heatmap_dim", fixed = TRUE)   # la pieza nativa, no la ruta anterior
+  expect_identical(.hmc_txt(ahora, "calor:columna"), c("Nada", "Algo", "Mucho"))
   expect_identical(.hmc_txt(ahora, "calor:fila"), c("Total (12*)", "Economía (4*)", "Derecho (8*)"))
   expect_identical(.hmc_txt(ahora, "calor:cifra"), c("17%", "8%", "75%", "50%", "25%", "25%", "0%", "0%", "100%"))
   expect_match(ahora, "Base: 12 casos que respondieron", fixed = TRUE)
 })
 
-test_that("L10-10: con el Top Two Box declarado, la lámina es idéntica y el box dice 45 / 60 / 30", {
+test_that("L10-10: con el Top Two Box declarado, el box dice 45 / 60 / 30; apagado, no hay columna", {
   skip_if_not_installed("officer"); skip_if_not_installed("rvg")
   ov <- list(top2box_labels = c("De acuerdo", "Totalmente de acuerdo"))
-  antes <- .hmc_slide_xml(p_dim_heatmap(modo = "general", objetivo = "p", cruce = "car", overrides = ov), .hmc_dat_box(), .hmc_inst_box())
   ahora <- .hmc_slide_xml(p_heatmap_cruce(var = "p", cruce = "car", overrides = ov), .hmc_dat_box(), .hmc_inst_box())
-  expect_identical(ahora, antes)
   expect_identical(.hmc_txt(ahora, "calor:box_cifra"), c("45%", "60%", "30%"))
-  # Apagado: sin columna, igual que antes.
+  expect_identical(.hmc_txt(ahora, "calor:fila"), c("Total (20)", "Economía (10*)", "Derecho (10*)"))
   ov0 <- list(top2box = FALSE, top2box_labels = ov$top2box_labels)
-  expect_identical(.hmc_slide_xml(p_heatmap_cruce(var = "p", cruce = "car", overrides = ov0), .hmc_dat_box(), .hmc_inst_box()),
-                   .hmc_slide_xml(p_dim_heatmap(modo = "general", objetivo = "p", cruce = "car", overrides = ov0), .hmc_dat_box(), .hmc_inst_box()))
+  apagado <- .hmc_slide_xml(p_heatmap_cruce(var = "p", cruce = "car", overrides = ov0), .hmc_dat_box(), .hmc_inst_box())
+  expect_length(.hmc_txt(apagado, "calor:box_cifra"), 0L)
+  expect_length(.hmc_txt(apagado, "calor:cifra"), 15L)   # 3 filas × 5 opciones, sin la columna del box
 })
 
 test_that("el constructor pide una pregunta y un cruce y guarda la pregunta fuera de `var`", {

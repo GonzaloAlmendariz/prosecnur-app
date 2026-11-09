@@ -189,16 +189,3 @@ test_that("una escala de dos categorías que va a dicotomía lee la paleta del u
   expect_identical(.lam_dicotomia_datos(con)$colores, c("#123456", "#654321"))
 })
 
-test_that("el comparativo de dimensiones pinta sus grupos con la paleta del usuario del cruce", {
-  e <- list(tipo = "comparativo_dim", filas = c("D1", "D2"), grupos = c("Mujer", "Hombre"), n = c(10, 12),
-            valores = matrix(c(60, 70, 55, 65), 2), textos_diferencia = c("5 pts", "5 pts"))
-  sin <- .pll_fill(.pll_xml(.lam_laminas_comparativo_dim(.pll_doc(), e, "Comparativo")), "comparativo:barra")
-  expect_setequal(sin, .pll_hex(c(.std_color("azul"), .std_color("azul_medio"))))
-  dsrc <- structure(data.frame(x = 1), dimensiones_config = list(paletas_cruce = list(sexo = .pll_usuario(c(Hombre = "#00AA00", Mujer = "#AA0000")))))
-  e2 <- .espec_dim_colores_cruce(e, list(cruce = "base$sexo", data = dsrc))
-  expect_identical(unname(e2$colores), c("#AA0000", "#00AA00"))
-  con <- .pll_fill(.pll_xml(.lam_laminas_comparativo_dim(.pll_doc(), e2, "Comparativo")), "comparativo:barra")
-  expect_identical(con, c("AA0000", "00AA00", "AA0000", "00AA00"))
-  # Sin paleta del cruce, la espec no cambia.
-  expect_identical(.espec_dim_colores_cruce(e, list(cruce = "sexo", data = data.frame(x = 1))), e)
-})

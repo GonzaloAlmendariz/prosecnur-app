@@ -30,8 +30,7 @@ source("setup-load-all.R")
 
 test_that("L10-10: con las categorías declaradas la tabla suma la columna Top Two Box, al final y sin tocar las celdas", {
   skip_if_not_installed("officer"); skip_if_not_installed("rvg")
-  xml <- suppressMessages(.l10bh_ruta(p_dim_heatmap(modo = "general", objetivo = "p", cruce = "car",
-                                                    overrides = list(top2box_labels = .l10bh_ttb))))
+  xml <- suppressMessages(.l10bh_ruta(p_heatmap_cruce(var = "p", cruce = "car", overrides = list(top2box_labels = .l10bh_ttb))))
   expect_identical(.l10bh_txt(xml, "calor:columna"), .l10bh_lk)                         # las opciones, como antes
   expect_identical(.l10bh_txt(xml, "calor:box_columna"), "Top Two Box")
   expect_identical(.l10bh_txt(xml, "calor:box_cifra"), c("45%", "60%", "30%"))           # Total, Economía, Derecho
@@ -62,8 +61,8 @@ test_that("L10-10: se apaga con top2box = FALSE, y en una escala de tres puntos 
   expect_null(e3$col_box)
 })
 
-test_that("L10-10: p_dim_heatmap declara el Top Two Box en el editor, por overrides", {
-  a <- .GRAFICADORES_META$p_dim_heatmap$args
+test_that("L10-10: el mapa de calor por cruce declara el Top Two Box en el editor, por overrides", {
+  a <- .GRAFICADORES_META$p_heatmap_cruce$args
   nm <- vapply(a, function(x) x$name, "")
   expect_true(all(c("top2box", "top2box_labels") %in% nm))
   expect_true(all(vapply(a[nm %in% c("top2box", "top2box_labels")], function(x) isTRUE(x$via_overrides), TRUE)))
@@ -72,5 +71,5 @@ test_that("L10-10: p_dim_heatmap declara el Top Two Box en el editor, por overri
 test_that("L10-10: con la columna la tabla sigue nativa aunque los grupos pidan una columna de filas ancha (lámina 63 de CCSS)", {
   e <- .heatmap_pc_espec(.l10bh_dat(), .l10bh_inst(), "p", "car", box = list(top2box_labels = .l10bh_ttb))
   e$ancho_filas <- .heatmap_pc_ancho_filas("Relaciones Internacionales (90)")   # 3.3 in, como en CCSS
-  expect_true(.lam_dimensiones_cabe(e))   # «Ni de acuerdo ni en desacuerdo» sigue en dos líneas: el box va angosto
+  expect_true(.lam_heatmap_cabe(e))   # «Ni de acuerdo ni en desacuerdo» sigue en dos líneas: el box va angosto
 })

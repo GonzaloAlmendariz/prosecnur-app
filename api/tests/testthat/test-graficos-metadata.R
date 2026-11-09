@@ -216,18 +216,12 @@ source("setup-load-all.R")
   p_fortalezas = c(categoria = "comparison", blueprint = "bars-categorical"),   # ADR 0135
   p_cobertura = c(categoria = "comparison", blueprint = "bars-grouped"),   # ADR 0135
   p_filtro_subpregunta = c(categoria = "distribution", blueprint = "bars-grouped"),   # recetario p192–p194
-  p_significancia_publicos = c(categoria = "comparison", blueprint = "comparison-dots"),   # recetario p111–p112
   p_matriz_cuadrantes = c(categoria = "comparison", blueprint = "quadrant"),
   p_lollipop = c(categoria = "distribution", blueprint = "lollipop"),
   p_serie_temporal = c(categoria = "comparison", blueprint = "line-series"),
   p_radar = c(categoria = "comparison", blueprint = "radar"),
   p_tabla = c(categoria = "comparison", blueprint = "table"),
   p_heatmap_cruce = c(categoria = "comparison", blueprint = "dimension-heatmap"),   # ADR 0137: la variante pregunta × cruce
-  p_dim_radar = c(categoria = "dimensions", blueprint = "dimension-radar"),
-  p_dim_heatmap = c(categoria = "dimensions", blueprint = "dimension-heatmap"),
-  p_dim_comparativo_radarbar = c(categoria = "dimensions", blueprint = "dimension-radar-bars"),
-  p_dim_foda = c(categoria = "dimensions", blueprint = "dimension-foda"),
-  p_dim_heatmap_criterios = c(categoria = "dimensions", blueprint = "dimension-criteria-heatmap"),
   p_lineas_nivel = c(categoria = "comparison", blueprint = "line-series")   # total arriba y línea por nivel (2026-11-04)
 )
 
@@ -256,18 +250,12 @@ source("setup-load-all.R")
   p_fortalezas = "",
   p_cobertura = "",
   p_filtro_subpregunta = "",
-  p_significancia_publicos = "",
   p_matriz_cuadrantes = "",
   p_lollipop = "lollipop",
   p_serie_temporal = "serie_temporal",
   p_radar = "radar_tabla",
   p_tabla = "radar_tabla",
   p_heatmap_cruce = "",
-  p_dim_radar = "dim_radar",
-  p_dim_heatmap = "dim_heatmap",
-  p_dim_comparativo_radarbar = "",
-  p_dim_foda = "dim_foda",
-  p_dim_heatmap_criterios = "dim_heatmap_criterios",
   p_lineas_nivel = ""
 )
 
@@ -281,14 +269,14 @@ source("setup-load-all.R")
 )
 
 .gm_graf_categorias <- c(
-  "distribution", "numeric", "comparison", "text", "dimensions", "territory", "other"
+  "distribution", "numeric", "comparison", "text", "territory", "other"
 )
 
 .gm_graf_blueprints <- c(
   "bars-grouped", "bars-categorical", "bars-stacked", "bars-multi-stacked",
   "pie", "donut", "numeric", "histogram", "boxplot", "mean-range", "radar",
-  "table", "word-cloud", "quadrant", "territory-map", "dimension-radar", "dimension-heatmap",
-  "dimension-radar-bars", "dimension-foda", "dimension-criteria-heatmap",
+  "table", "word-cloud", "quadrant", "territory-map",
+  "dimension-heatmap",   # ADR 0137: el plano lo conserva p_heatmap_cruce
   "line-series", "bars-diverging", "comparison-dots", "dumbbell", "lollipop", "quotes", "panorama"
 )
 
@@ -297,7 +285,7 @@ test_that("registry: cada slide y graficador expone el shape completo con nombre
   # `familias_editor` (K4, plan F6 §5.2): el orden de las familias del selector «Tipo de gráfico».
   expect_setequal(names(reg), c("slides", "graficadores", "familias_editor", "retirados"))   # `retirados`: ADR 0137
   expect_length(reg$slides, 37L)
-  expect_length(reg$graficadores, 37L)
+  expect_length(reg$graficadores, 31L)   # ADR 0137: salen la tabla de letras y los cinco de dimensiones
 
   slide_names <- vapply(reg$slides, function(s) s$name, character(1))
   graf_names <- vapply(reg$graficadores, function(g) g$name, character(1))
@@ -384,9 +372,7 @@ test_that("registry G2-L1: los 37 graficadores publican contrato operativo cerra
     expect_false("vars" %in% arg_names, label = name)
   }
 
-  dims <- by_name[grepl("^p_dim_", names(by_name))]
-  expect_true(all(vapply(dims, `[[`, character(1), "capability_key") == "dimensions"))
-  expect_true(all(vapply(dims, `[[`, character(1), "data_requirement") == "capability"))
+  expect_false(any(grepl("^p_dim_", names(by_name))))   # ADR 0137: los gráficos de dimensiones salieron del registro
   territory <- by_name$p_mapa_cobertura_territorial
   expect_identical(territory$capability_key, "territorial_coverage")
   expect_identical(territory$data_requirement, "capability")
@@ -404,7 +390,7 @@ test_that("registry G2-L1: los 37 graficadores publican contrato operativo cerra
   expect_identical(points_args[seq_len(4L)], c("var", "cruces", "corte", "excluir_opciones"))
 
   exceptional <- c(
-    names(dims), "p_mapa_cobertura_territorial", "p_puntos_comparativos", "p_mapa_resultado_distrital",
+    "p_mapa_cobertura_territorial", "p_puntos_comparativos", "p_mapa_resultado_distrital",
     "p_dumbbell", "p_serie_temporal"
   )
   direct <- by_name[setdiff(names(by_name), exceptional)]
@@ -412,12 +398,12 @@ test_that("registry G2-L1: los 37 graficadores publican contrato operativo cerra
   expect_true(all(vapply(direct, `[[`, character(1), "data_requirement") == "var_or_vars"))
 })
 
-test_that("registry G2-L1: getExportedValue acredita los 37 constructores públicos", {
+test_that("registry G2-L1: getExportedValue acredita los 31 constructores públicos", {
   exported <- lapply(.graf_names(), function(name) {
     tryCatch(getExportedValue("prosecnurapp", name), error = identity)
   })
   names(exported) <- .graf_names()
-  expect_length(exported, 37L)
+  expect_length(exported, 31L)
   for (name in names(exported)) {
     expect_true(is.function(exported[[name]]), label = name)
   }
@@ -634,10 +620,6 @@ test_that("registry: el gate territorial_coverage deshabilita con razón y habil
     expect_false(g$available)
     expect_true(nzchar(g$disabled_reason))
   }
-  # Los graficadores de dimensiones no se gatean por esta capability.
-  dims <- Filter(function(g) identical(g$requisito, "dimensiones"), reg_off$graficadores)
-  expect_gte(length(dims), 1L)
-  expect_true(all(vapply(dims, function(g) isTRUE(g$available), logical(1))))
 
   reg_on <- .graficos_registry_payload(
     capabilities = list(territorial_coverage = list(available = TRUE))

@@ -110,11 +110,10 @@ test_that("los args muertos que el registro delato quedaron cerrados", {
   # Este registro se construyo para encontrarlos: `textos_negrita` se ofrecia en
   # la UI de boxplot, media_rango y los `dim_*` sin llegar al motor en ninguno.
   # Ya se implementaron, asi que el censo tiene que salir limpio — si vuelven a
-  # descartarse, es una regresion.
+  # descartarse, es una regresion. (Los `dim_*` salieron con el ADR 0137.)
   reporte_args_descartados_reset()
 
-  for (f in list(graficar_boxplot, graficar_media_rango,
-                 graficar_heatmap_dimensiones, graficar_foda_dimensiones)) {
+  for (f in list(graficar_boxplot, graficar_media_rango)) {
     fun <- f
     invisible(.keep_formals(fun, list(textos_negrita = "titulo")))
   }

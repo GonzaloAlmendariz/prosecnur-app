@@ -20,7 +20,6 @@
   boxplot = function(e) .word_g_boxplot(e),
   pie = function(e) .word_g_pie(e),
   heatmap_dim = function(e) .word_g_heat(e),
-  comparativo_dim = function(e) .word_g_comparativo_dim(e),
   radar = function(e) .word_g_radar(e),
   mapa = function(e) .word_g_mapa(e)
 )

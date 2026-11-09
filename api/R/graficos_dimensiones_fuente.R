@@ -2,7 +2,7 @@
 #
 # Analítica › Dimensiones guarda la base enriquecida en `s$rp_dim` —con las columnas `r100_*`, `sub_*`, `idx_*` y la
 # trazabilidad de `reporte_dimensiones()` en sus atributos— y Gráficos leía las bases del estudio, que no las traen: los
-# gráficos de dimensiones (`p_dim_*`) salían «Sin datos» en cualquier estudio. Aquí se unen a la base de la que salieron
+# gráficos sobre esas columnas (`p_media_rango`, `p_numerico` sobre un `idx_*`) salían "Sin datos" en cualquier estudio. Aquí se unen a la base de la que salieron
 # (`s$rp_dim_base`, que anota el build; si falta, la base activa), sólo si tienen las mismas filas: si no, se avisa y la
 # base queda como está, en vez de pegar índices a personas que no son.
 

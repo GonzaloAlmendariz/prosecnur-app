@@ -47,7 +47,7 @@ test_that("las láminas de resumen dicen que usan escalas y cuántos públicos",
   expect_identical(.usa_preg("p_panorama"), "escala")
   expect_identical(.graficos_tipos_usa("p_panorama")$publicos, "uno_o_varios")
   expect_identical(.graficos_tipos_usa("p_fortalezas")$publicos, "uno")
-  expect_identical(.graficos_tipos_usa("p_significancia_publicos")$publicos, "varios")
+  for (nm in names(.GRAFICADORES_RETIRADOS)) expect_null(.graficos_tipos_usa(nm), info = nm)   # ADR 0137: fuera de la tabla
   expect_identical(.usa_preg("p_nube_palabras"), "abierta")
   expect_identical(.usa_preg("p_boxplot"), "numerica")
   expect_null(.graficos_tipos_usa("p_no_existe"))

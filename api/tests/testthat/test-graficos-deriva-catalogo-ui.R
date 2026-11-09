@@ -27,11 +27,11 @@ source("setup-load-all.R")
 # Declarados a proposito para que no se salten en silencio.
 .deriva_sin_renderer <- c(
   "p_barras_multiapiladas", "p_donut", "p_numerico", "p_tabla",
-  "p_dim_radar", "p_dim_heatmap", "p_dim_comparativo_radarbar",
-  "p_dim_foda", "p_dim_heatmap_criterios",
   "p_dicotomica",   # alias de p_barras_categoricas (G10): usa su renderer
-  # Recetario p192–p194 y p111–p112: su render arma la lámina con otros renders (barras) o con su propio cálculo.
-  "p_filtro_subpregunta", "p_significancia_publicos",
+  # Recetario p192–p194: su render arma la lámina con otros renders (barras).
+  "p_filtro_subpregunta",
+  # ADR 0137: dibuja con graficar_heatmap_pregunta_cruce() (graficos_heatmap_pregunta_cruce.R), no con un graficar_<x>.
+  "p_heatmap_cruce",
   # Línea por nivel (ef925428a): lámina nativa propia (lamina_lineas_nivel.R) y figura Word; no pasa por un graficar_*.
   "p_lineas_nivel"
 )
@@ -43,7 +43,7 @@ source("setup-load-all.R")
 #   iter_var / iter_level -> dashboard_dimensiones.R:148.
 .deriva_consumidos_por_el_plan <- c(
   "mostrar_significancia", "significancia_alpha", "iter_var", "iter_level",
-  # p_dim_heatmap: la columna Top Two Box se lee de `overrides` (`via_overrides`) en `.heatmap_dim_o_pregunta`
+  # p_heatmap_cruce: la columna Top Two Box se lee de `overrides` (`via_overrides`, `.hm_cruce_box`)
   # (graficos_heatmap_top2box.R, 8c3176b01); comprobado en el mazo CCSS (lámina 63).
   "top2box", "top2box_labels"
 )
@@ -69,13 +69,14 @@ source("setup-load-all.R")
            nombres(.presets_metadata_payload()$presets)))
 }
 
-test_that("los 36 graficadores del registro resuelven, ninguno se salta", {
+test_that("los 31 graficadores del registro resuelven, ninguno se salta", {
   # 24 + p_cifra y p_mapa_resultado_distrital (F6) y p_mapa_distribucion (CCSS 2026), con renderer graficar_* propio, y
   # p_lineas_nivel (CCSS 2026), sin él. + las tres láminas de resumen del ADR 0135 (p_panorama, p_fortalezas,
   # p_cobertura), cada una con su renderer nativo (graficador_panorama.R, graficador_fortalezas.R,
-  # graficador_cobertura.R): por eso NO entran en .deriva_sin_renderer.
+  # graficador_cobertura.R): por eso NO entran en .deriva_sin_renderer. ADR 0137: + p_heatmap_cruce; salen
+  # la tabla de letras entre públicos y los cinco de dimensiones (37 - 6 = 31).
   gs <- .graficos_registry_payload()$graficadores
-  expect_length(gs, 36L)
+  expect_length(gs, 31L)
   for (nm in c("p_panorama", "p_fortalezas", "p_cobertura")) {
     expect_true(nm %in% vapply(gs, function(g) g$name, character(1)), info = nm)
     expect_true(is.function(.deriva_renderer(nm)), info = sprintf("%s debería tener su graficar_* nativo", nm))

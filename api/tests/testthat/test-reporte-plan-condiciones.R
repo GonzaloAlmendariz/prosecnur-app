@@ -50,10 +50,6 @@ test_that("spec invalida en p_*() aborta con condicion clasificada api_error 400
   # El mensaje historico se preserva (los tests viejos asertan por regexp).
   expect_match(conditionMessage(cnd), "`var` debe ser character\\(1\\) no vacio")
 
-  # El constructor retirado tambien es spec clasificada, no stop() crudo.
-  cnd2 <- tryCatch(p_dim_radar_tabla(objetivo = "x"), condition = function(c) c)
-  expect_s3_class(cnd2, "pulso_plan_spec_error")
-  expect_match(conditionMessage(cnd2), "fue retirado del flujo PPT")
 })
 
 test_that("input invalido a nivel deck aborta con pulso_plan_input_error", {

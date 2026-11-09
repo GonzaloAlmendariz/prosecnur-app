@@ -12,7 +12,8 @@
 # futuro más pulido se agrega con otro `--id` sin tocar el código del endpoint.
 #
 # Las páginas vienen del inventario conciliado (tmp/f6-iconos/inventario.md, tablas A.1 y B, verificado sobre las 274
-# láminas). Sólo tipos que el motor produce: no se empaquetan fichas «TIPO DE LÁMINA n DE 22» (son documentación) ni
+# láminas). Sólo tipos que el motor produce (los gráficos de dimensiones, p94–p98, salieron con el ADR 0137): no se
+# empaquetan fichas «TIPO DE LÁMINA n DE 22» (son documentación) ni
 # páginas de propuesta (torta con leyenda de cifras p69, composición de mapa p105, conteos por año p85, peso en la
 # satisfacción p97…). Si el recetario se regenera y las páginas se corren, el script lo detecta por el rótulo.
 #
@@ -72,10 +73,6 @@ grafico,p_puntos_comparativos,87,PUNTOS COMPARATIVOS
 grafico,p_dumbbell,88,BRECHA ENTRE DOS PÚBLICOS
 grafico,p_serie_temporal,89,SERIE TEMPORAL DE DOS MEDICIONES
 grafico,p_radar,92,RADAR CON TABLA
-grafico,p_dim_heatmap,94,MAPA DE CALOR POR DIMENSIÓN
-grafico,p_dim_heatmap_criterios,95,MAPA DE CALOR POR CRITERIO
-grafico,p_dim_comparativo_radarbar,96,COMPARATIVO DE DIMENSIONES
-grafico,p_dim_radar,98,RADAR POR DIMENSIONES
 grafico,p_nube_palabras,100,NUBE DE PALABRAS
 grafico,p_mapa_resultado_distrital,106,MAPA DE LIMA: RESULTADO POR DISTRITO
 grafico,p_cifra,172,CIFRA EN LUGAR DE UN GRÁFICO

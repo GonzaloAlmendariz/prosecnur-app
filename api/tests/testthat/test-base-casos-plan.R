@@ -190,20 +190,6 @@ test_that("dimensiones: payload con base_casos (peso > 0) sin tocar la base pond
   expect_equal(b$base_casos[b$grupo == "Mujer"], 4)
   # Orden por base PONDERADA (Hombre 15 > Mujer 2), aunque en casos Mujer tenga más.
   expect_identical(pl$group_order, c("Total", "Hombre", "Mujer"))
-  # El heatmap escribe los casos.
-  h <- preparar_heatmap_dim(pl)
-  expect_equal(h$columnas$n[h$columnas$rotulo == "Mujer"], 4)
   expect_identical(.plan_casos_de_pesos(c(1, 0, NA, 2)), 2)
 })
 
-test_that("dimensiones: n_respondieron excluye filas con peso 0", {
-  fx <- .bcp_dim()
-  ctx <- .dim_build_context(data = fx$data, instrumento = fx$inst)
-  pl <- .dim_build_payload(ctx, modo = "general", objetivo = "Indice global", cruce = "sexo", incluir_total = TRUE)
-  args <- list(data = fx$data, instrumento = fx$inst, cruce = "sexo")
-  n <- .dim_n_respondieron(args, pl, weight_col = ctx$weight_col)
-  expect_equal(n[["Total"]], 7)
-  expect_equal(n[["Mujer"]], 4)
-  # Sin columna de peso declarada cuenta todas las filas (paridad histórica).
-  expect_equal(.dim_n_respondieron(args, pl)[["Total"]], 8)
-})

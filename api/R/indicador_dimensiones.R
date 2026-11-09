@@ -40,8 +40,7 @@
 #'   (list_name, mapeo aplicado y conteos de calidad).
 #' @family indicador
 #' @seealso [reporte_dimensiones_indices()], [reporte_dimensiones_config()],
-#'   [reporte_cruces()], [graficar_heatmap_dimensiones()],
-#'   [graficar_radar_dimensiones()]
+#'   [reporte_cruces()]
 #' @export
 reporte_dimensiones <- function(
     data,
@@ -364,8 +363,7 @@ indice <- function(nombre, etiqueta, subindices, icono = NULL) {
 #'   indices. Agrega ademas `attr(x, "indices_meta")` con trazabilidad.
 #' @family indicador
 #' @seealso [reporte_dimensiones()], [reporte_dimensiones_config()],
-#'   [reporte_cruces()], [graficar_heatmap_dimensiones()],
-#'   [graficar_radar_dimensiones()]
+#'   [reporte_cruces()]
 #' @export
 reporte_dimensiones_indices <- function(
     data,
@@ -777,8 +775,7 @@ tablas_dimensiones_jerarquicas <- function(
 #'   \item `visual`: reglas del motor visual.
 #' }
 #' @family indicador
-#' @seealso [reporte_dimensiones()], [reporte_dimensiones_indices()],
-#'   [graficar_heatmap_dimensiones()], [graficar_radar_dimensiones()]
+#' @seealso [reporte_dimensiones()], [reporte_dimensiones_indices()]
 #' @export
 reporte_dimensiones_config <- function(
     data,

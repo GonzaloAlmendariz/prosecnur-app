@@ -48,7 +48,7 @@
 
 #' Un ejemplo del recetario como imagen embebida (`GET /api/graficos/recetario/ejemplo`)
 #'
-#' @param tipo Tipo de lámina o de gráfico del registro (`p_slide_1_grafico`, `p_dim_heatmap`).
+#' @param tipo Tipo de lámina o de gráfico del registro (`p_slide_1_grafico`, `p_heatmap_cruce`).
 #' @param pagina Página del recetario; alternativa a `tipo`.
 #' @param clase `lamina` o `grafico`; opcional, desempata si un nombre estuviera en las dos.
 #' @param recetario Id del recetario; por defecto el último del catálogo.

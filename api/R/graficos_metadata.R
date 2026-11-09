@@ -7,7 +7,7 @@
 #   - descripcion: frase corta en español no técnico.
 #   - icono_ui: sugerencia de ícono lucide para la UI.
 #   - categoria: agrupador en el picker (estructural / 1grafico / 2graficos /
-#     3graficos / 4graficos / poblacion / dimensiones).
+#     3graficos / 4graficos / poblacion).
 #   - args: lista con nombre técnico + label humano + tipo_input + grupo +
 #     descripcion + choices (si aplica).
 #
@@ -2220,26 +2220,6 @@
     ), .args_graf_comunes())
   ),
 
-  # Recetario p111–p112 (inventario de configuraciones, ítem 18): tabla de letras y un panel por par con la diferencia y
-  # su intervalo. Los temas salen de la matriz de equivalencias y se eligen en su tarjeta (SignificanciaPublicos).
-  p_significancia_publicos = list(
-    titulo_humano = "Diferencias significativas entre públicos",
-    descripcion   = "Por tema, el porcentaje de cada público con la letra del público al que supera, y un panel por par con la diferencia y su intervalo: punto lleno si es significativa. Prueba z con corrección de Bonferroni.",
-    icono_ui      = "Sigma",
-    categoria     = "comparison",
-    blueprint     = "comparison-dots",
-    requisito     = "Temas de la matriz de equivalencias en dos o tres públicos y las respuestas que suman (Top Two Box o «Sí»).",
-    args = c(list(
-      list(name = "vars", label = "Temas", tipo_input = "variables_list", grupo = "datos",
-           descripcion = "Cada tema con su pregunta en cada público, desde la matriz de equivalencias."),
-      list(name = "corte", label = "Respuestas que suman", tipo_input = "codigos_list", grupo = "datos",
-           descripcion = "Las respuestas que forman el porcentaje de cada público (Top Two Box o «Sí»)."),
-      list(name = "alpha", label = "Nivel de significancia", tipo_input = "number", grupo = "datos", default = 0.05,
-           min = 0.001, max = 0.2, step = 0.005,
-           descripcion = "Umbral de la prueba, después de la corrección de Bonferroni entre los pares de cada tema.")
-    ), .args_graf_comunes())
-  ),
-
   # =========================================================================
   # MATRIZ DE CUADRANTES (G16, lámina 91 del recetario)
   # =========================================================================
@@ -2517,7 +2497,7 @@
     ), .args_graf_comunes())
   ),
 
-  # ADR 0137 (decisión 1 de Gonzalo): la variante pregunta × cruce de `p_dim_heatmap` como tipo propio
+  # ADR 0137 (decisión 1 de Gonzalo): la variante pregunta × cruce del heatmap de dimensiones como tipo propio
   # (graficos_heatmap_cruce.R). Las cifras son las de L10-6 y L10-10 de CCSS Perfil.
   p_heatmap_cruce = list(
     titulo_humano = "Mapa de calor por cruce",
@@ -2536,169 +2516,6 @@
       list(name = "top2box_labels", label = "Categorías del Top 2 Box", tipo_input = "categorias_escala", grupo = "valores",
            via_overrides = TRUE, ejemplo = "ej. De acuerdo, Totalmente de acuerdo",
            descripcion = "Qué categorías suman al Top 2 Box, por su nombre exacto tal como aparece en la escala.")
-    ), .args_graf_comunes())
-  ),
-
-  # ---- Dimensiones (requieren reporte_dimensiones previo) -----------------
-
-  p_dim_radar = list(
-    titulo_humano = "Radar por dimensiones",
-    descripcion   = "Radar que compara el puntaje de varias dimensiones (subíndices o indicadores). Requiere haber calculado las dimensiones primero.",
-    icono_ui      = "Radar",
-    categoria     = "dimensions",
-    blueprint     = "dimension-radar",
-    requisito     = "dimensiones",
-    args = c(list(
-      list(name = "modo",      label = "Nivel",       tipo_input = "choice",       grupo = "datos",
-           choices = list(
-             list(value = "general",      label = "Índice general", hint = "Compara índices completos."),
-             list(value = "indicadores",  label = "Indicadores",    hint = "Compara indicadores individuales.")
-           )),
-      list(name = "objetivo",  label = "Objetivo",    tipo_input = "string",       grupo = "datos",
-           descripcion = "Clave o etiqueta del índice (nivel 'Índice general') o del subíndice (nivel 'Indicadores'), según el catálogo de dimensiones del proyecto."),
-      list(name = "cruce",     label = "Dividir por", tipo_input = "variable_opt", grupo = "datos"),
-      list(name = "incluir_total", label = "Incluir serie total", tipo_input = "bool", grupo = "filtro",
-           descripcion = "Añade una serie con el total de la muestra como referencia."),
-      list(name = "iter_var",   label = "Iterar por variable", tipo_input = "variable_opt", grupo = "avanzado",
-           descripcion = "Renderiza el gráfico solo para un nivel de esta variable (no puede ser la de cruce)."),
-      list(name = "iter_level", label = "Nivel de iteración",  tipo_input = "string", grupo = "avanzado")
-    ), .args_graf_comunes())
-  ),
-
-  # p_dim_radar_tabla fue RETIRADO del flujo PPT (el constructor aborta con
-  # deprecación): no se ofrece en el registry. Compat de planes viejos vive en
-  # el motor.
-
-  p_dim_heatmap = list(
-    titulo_humano = "Heatmap de dimensiones",
-    descripcion   = "Mapa de calor con filas = dimensiones y columnas = grupos del cruce. Celdas coloreadas por puntaje.",
-    icono_ui      = "LayoutGrid",
-    categoria     = "dimensions",
-    blueprint     = "dimension-heatmap",
-    requisito     = "dimensiones",
-    args = c(list(
-      list(name = "modo",      label = "Nivel",      tipo_input = "choice",       grupo = "datos",
-           choices = list(
-             list(value = "general",      label = "Índice general"),
-             list(value = "indicadores",  label = "Indicadores")
-           )),
-      list(name = "objetivo",  label = "Objetivo",   tipo_input = "string",       grupo = "datos",
-           descripcion = "Clave o etiqueta del índice (nivel 'Índice general') o del subíndice (nivel 'Indicadores'), según el catálogo de dimensiones del proyecto."),
-      list(name = "cruce",     label = "Cruce",      tipo_input = "variable_opt", grupo = "datos"),
-      list(name = "incluir_total", label = "Incluir totales", tipo_input = "bool", grupo = "filtro"),
-      list(name = "brecha_filas",   label = "Brecha por filas",   tipo_input = "bool", grupo = "filtro",
-           descripcion = "Añade columna 'Brecha' con max-min por fila."),
-      list(name = "brecha_cols",    label = "Brecha por columnas",tipo_input = "bool", grupo = "filtro"),
-      list(name = "etiq_brecha_filas", label = "Etiqueta de brecha (columna)", tipo_input = "string", grupo = "textos",
-           default = "Brecha"),
-      list(name = "etiq_brecha_cols",  label = "Etiqueta de brecha (fila)",    tipo_input = "string", grupo = "textos",
-           default = "Brecha"),
-      list(name = "brecha_cortes",  label = "Cortes del gradiente de brecha", tipo_input = "codigos_list", grupo = "semaforo",
-           descripcion = "Dos valores que calibran el sombreado de la brecha (default 0 y 30)."),
-      list(name = "titulo_total_x", label = "Título de la columna Total", tipo_input = "string", grupo = "textos",
-           default = "Total"),
-      list(name = "mostrar_n_cruce_x", label = "Mostrar N por columna", tipo_input = "bool", grupo = "valores",
-           default = FALSE,
-           descripcion = "Añade (N=…) bajo cada columna del cruce."),
-      list(name = "modo_semaforo",  label = "Tipo de semáforo",   tipo_input = "choice", grupo = "semaforo",
-           choices = list(
-             list(value = "grupos",               label = "Por grupos"),
-             list(value = "degradado_automatico", label = "Degradado auto"),
-             list(value = "degradado_manual",     label = "Degradado manual"),
-             list(value = "degradado",            label = "Degradado simple")
-           )),
-      list(name = "iter_var",   label = "Iterar por variable", tipo_input = "variable_opt", grupo = "avanzado",
-           descripcion = "Renderiza el gráfico solo para un nivel de esta variable (no puede ser la de cruce)."),
-      list(name = "iter_level", label = "Nivel de iteración",  tipo_input = "string", grupo = "avanzado"),
-      # L10-10 (bandeja CCSS, 2026-10-24): con una pregunta como objetivo, la columna Top Two Box (graficos_heatmap_top2box.R).
-      # `via_overrides`: `p_dim_heatmap()` no los tiene como formales.
-      list(name = "top2box", label = "Columna Top Two Box", tipo_input = "bool", grupo = "valores", via_overrides = TRUE,
-           descripcion = "Con una pregunta como objetivo. Vacío: encendida si la escala es ordinal de cuatro o más puntos. Suma las categorías de «Categorías del Top 2 Box»; sin ellas se omite y se avisa."),
-      list(name = "top2box_labels", label = "Categorías del Top 2 Box", tipo_input = "categorias_escala", grupo = "valores",
-           via_overrides = TRUE, ejemplo = "ej. De acuerdo, Totalmente de acuerdo",
-           descripcion = "Qué categorías suman al Top 2 Box, por su nombre exacto tal como aparece en la escala.")
-    ), .args_graf_comunes())
-  ),
-
-  p_dim_comparativo_radarbar = list(
-    titulo_humano = "Radar + barras comparativo",
-    descripcion   = "Radar con barras al lado, comparando dos o más grupos en un mismo lienzo. Ideal para reportes ejecutivos.",
-    icono_ui      = "Activity",
-    categoria     = "dimensions",
-    blueprint     = "dimension-radar-bars",
-    requisito     = "dimensiones",
-    args = c(list(
-      list(name = "modo",           label = "Nivel",           tipo_input = "choice",       grupo = "datos",
-           choices = list(
-             list(value = "general",      label = "Índice general"),
-             list(value = "indicadores",  label = "Indicadores")
-           )),
-      list(name = "objetivo",       label = "Objetivo",        tipo_input = "string",       grupo = "datos",
-           descripcion = "Clave o etiqueta del índice (nivel 'Índice general') o del subíndice (nivel 'Indicadores'), según el catálogo de dimensiones del proyecto."),
-      list(name = "cruce",          label = "Dividir por",     tipo_input = "variable_opt", grupo = "datos"),
-      list(name = "incluir_total",  label = "Incluir total",   tipo_input = "bool",         grupo = "filtro"),
-      list(name = "radar_min_ejes", label = "Mínimo de ejes en radar", tipo_input = "number", grupo = "avanzado",
-           descripcion = "Si hay menos dimensiones que este número, el radar se reemplaza por barras."),
-      list(name = "iter_var",   label = "Iterar por variable", tipo_input = "variable_opt", grupo = "avanzado",
-           descripcion = "Renderiza el gráfico solo para un nivel de esta variable (no puede ser la de cruce)."),
-      list(name = "iter_level", label = "Nivel de iteración",  tipo_input = "string", grupo = "avanzado")
-    ), .args_graf_comunes())
-  ),
-
-  p_dim_foda = list(
-    titulo_humano = "Matriz FODA dimensional",
-    descripcion   = "Matriz 2×2 o dispersión estilo FODA (fortalezas, oportunidades, debilidades, amenazas) sobre indicadores. Altamente personalizable.",
-    icono_ui      = "Grid3X3",
-    categoria     = "dimensions",
-    blueprint     = "dimension-foda",
-    requisito     = "dimensiones",
-    args = c(list(
-      list(name = "nivel",     label = "Nivel de análisis", tipo_input = "choice",       grupo = "datos",
-           choices = list(
-             list(value = "subindices",    label = "Subíndices"),
-             list(value = "indicadores",   label = "Indicadores")
-           )),
-      list(name = "objetivo",  label = "Objetivo",          tipo_input = "string",       grupo = "datos",
-           descripcion = "Clave o etiqueta del índice (nivel 'Índice general') o del subíndice (nivel 'Indicadores'), según el catálogo de dimensiones del proyecto."),
-      list(name = "modo_foda", label = "Disposición",       tipo_input = "choice",       grupo = "estilo",
-           choices = list(
-             list(value = "matriz",      label = "Matriz 2×2"),
-             list(value = "dispersion",  label = "Dispersión")
-           )),
-      list(name = "cruce",         label = "Cruce",           tipo_input = "variable_opt", grupo = "datos"),
-      list(name = "incluir_total", label = "Incluir total",   tipo_input = "bool",         grupo = "filtro"),
-      list(name = "usar_pesos",    label = "Aplicar pesos",   tipo_input = "bool",         grupo = "filtro",
-           descripcion = "Si los subíndices tienen pesos declarados, los aplica al ranking FODA."),
-      list(name = "cortes_chip",   label = "Cortes del semáforo", tipo_input = "codigos_list", grupo = "semaforo",
-           descripcion = "Dos valores que separan rojo/ámbar/verde en los chips (default 60 y 80). La leyenda usa estos mismos cortes."),
-      list(name = "corte_score",   label = "Corte de puntaje (dispersión)", tipo_input = "number", grupo = "datos",
-           descripcion = "Umbral que separa alto/bajo en el eje de puntaje. OBLIGATORIO en disposición 'Dispersión'."),
-      list(name = "titulos_areas_foda", label = "Títulos de los cuadrantes", tipo_input = "textarea", grupo = "textos",
-           descripcion = "Una línea por cuadrante con formato 'cuadrante=Título'. Cuadrantes: fortaleza, oportunidad, debilidad, amenaza (se aceptan plurales)."),
-      list(name = "iter_var",   label = "Iterar por variable", tipo_input = "variable_opt", grupo = "avanzado",
-           descripcion = "Renderiza el gráfico solo para un nivel de esta variable (no puede ser la de cruce)."),
-      list(name = "iter_level", label = "Nivel de iteración",  tipo_input = "string", grupo = "avanzado")
-    ), .args_graf_comunes())
-  ),
-
-  p_dim_heatmap_criterios = list(
-    titulo_humano = "Heatmap por criterios",
-    descripcion   = "Heatmap agrupado por criterios temáticos definidos en la config de dimensiones.",
-    icono_ui      = "LayoutGrid",
-    categoria     = "dimensions",
-    blueprint     = "dimension-criteria-heatmap",
-    requisito     = "dimensiones",
-    args = c(list(
-      list(name = "config_criterios", label = "Criterios", tipo_input = "criteria_config", grupo = "datos",
-           descripcion = "Agrupa variables en criterios para construir el heatmap."),
-      list(name = "cruce", label = "Comparar por", tipo_input = "variable_opt", grupo = "datos",
-           descripcion = "Opcional. Una columna por público (Total y cada grupo)."),
-      list(name = "metrica", label = "Métrica", tipo_input = "choice", grupo = "datos", default = "top_two_box",
-           choices = list(
-             list(value = "top_two_box", label = "Top Two Box", hint = "Porcentaje en las dos categorías más altas de la escala."),
-             list(value = "lineal", label = "Índice lineal 0-100", hint = "Promedio del criterio tal como viene.")
-           ),
-           descripcion = "Si un criterio no es una pregunta de escala, se usa el índice lineal en todos.")
     ), .args_graf_comunes())
   ),
 
@@ -2744,7 +2561,7 @@
 # test-graficos-metadata-editor.R: «nativa» = piezas del recetario (puede caer a la ruta anterior si no cabe, lo dice
 # la condición); «marco» = lámina del recetario con el dibujo ggplot adentro; «ruta_anterior» = sin pieza del recetario.
 .GRAFICOS_FAMILIAS_EDITOR <- c(categorias = "Categorías", escalas = "Escalas", numeros = "Números", comparar = "Comparar",
-                               dimensiones = "Dimensiones", territorio = "Territorio", texto = "Texto")
+                               territorio = "Territorio", texto = "Texto")
 .GRAFICOS_SALIDA_EDITOR <- list(
   p_barras_agrupadas = list("categorias", "nativa", condicion = "Con «Dividir por» (dos o más series) sale por la ruta anterior."),
   p_barras_categoricas = list("categorias", "nativa", condicion = "Si los rótulos no caben ni en columnas ni en barras, sale por la ruta anterior."),
@@ -2769,7 +2586,6 @@
   p_panorama = list("comparar", "nativa", condicion = "Hasta cinco públicos; con más, va dibujado."),   # ADR 0134
   p_fortalezas = list("comparar", "nativa", condicion = "Hasta ocho preguntas por columna; con más, va dibujado."),   # ADR 0135
   p_cobertura = list("comparar", "nativa", condicion = "Hasta siete filas; con más, va dibujado."),   # ADR 0135
-  p_significancia_publicos = list("comparar", "nativa", condicion = "Dos o tres públicos y hasta diez temas."),
   # Pieza interna de la dependencia entre los dos gráficos de una lámina (graficos_dependencia.R): no se elige como tipo.
   p_filtro_subpregunta = list("categorias", "nativa", condicion = "Hasta siete respuestas en el filtro; «Abajo» pide un filtro de dos respuestas.", en_selector = FALSE),
   p_matriz_cuadrantes = list("comparar", "nativa", condicion = "Con más de 20 temas va como dibujo de respaldo."),   # G16: lámina 91
@@ -2778,13 +2594,8 @@
   p_radar = list("comparar", "nativa", condicion = "Si los ejes o la tabla no caben, sale por la ruta anterior."),
   p_tabla = list("comparar", "nativa", condicion = "Con más de seis públicos, o filas que no caben en la lámina, va por la ruta anterior."),   # G11: láminas 197/225 del diseño
   p_heatmap_cruce = list("comparar", "nativa", condicion = "Si la tabla no cabe en la lámina, sale por la ruta anterior."),   # ADR 0137
-  p_dim_radar = list("dimensiones", "nativa", condicion = "Con menos de tres ejes sale como barras, por la ruta anterior."),   # G11: ya salía nativo (medido 2026-10-13)
-  p_dim_heatmap = list("dimensiones", "nativa", condicion = "Con brechas declaradas sale por la ruta anterior."),
-  p_dim_comparativo_radarbar = list("dimensiones", "nativa", condicion = "Con brechas o con la columna Total sale por la ruta anterior."),
   # Fuera del selector (Gonzalo, 2026-10-10: «sí, sácalo»): no está en el recetario. Sigue registrado y renderizable
   # para los planes que ya lo usan.
-  p_dim_foda = list("dimensiones", "ruta_anterior", motivo = "No hay pieza propia para la matriz FODA.", en_selector = FALSE),
-  p_dim_heatmap_criterios = list("dimensiones", "nativa", condicion = "Si no cabe en la lámina, sale por la ruta anterior."),
   p_lineas_nivel = list("comparar", "nativa", condicion = "Con dos niveles o más; en el Word sale como figura.")
 )
 stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
@@ -2827,17 +2638,11 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
   p_fortalezas = "",
   p_cobertura = "",
   p_filtro_subpregunta = "",
-  p_significancia_publicos = "",
   p_lollipop = "lollipop",
   p_serie_temporal = "serie_temporal",
   p_radar = "radar_tabla",
   p_tabla = "radar_tabla",
   p_heatmap_cruce = "",   # no lee presets: dibuja con los tamaños del recetario
-  p_dim_radar = "dim_radar",
-  p_dim_heatmap = "dim_heatmap",
-  p_dim_comparativo_radarbar = "",
-  p_dim_foda = "dim_foda",
-  p_dim_heatmap_criterios = "dim_heatmap_criterios",
   p_lineas_nivel = ""
 )
 
@@ -2908,8 +2713,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
 # `p_presets` acepta bloques de tipo: `base` (se hereda a todos
 # los graficadores) + un bloque por cada tipo de gráfico (barras_apiladas,
 # multi_apiladas, barras_agrupadas, barras_numericas, boxplot, media_rango,
-# nube_palabras, pie, donut, radar_tabla, dim_heatmap,
-# dim_heatmap_criterios, dim_radar, dim_foda). Cada bloque es `list(args = list(...))`; los `args` se pasan
+# nube_palabras, pie, donut, radar_tabla). Cada bloque es `list(args = list(...))`; los `args` se pasan
 # a la función del graficador correspondiente.
 #
 # Este catálogo cura los args MÁS útiles para estilo global: tipografía,
@@ -4388,97 +4192,6 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       list(name = "canvas_h_title",       label = "Alto de la zona del título (pulg.)",  tipo_input = "number", grupo = "canvas"),
       list(name = "canvas_h_legend",      label = "Alto de la leyenda (pulg.)",      tipo_input = "number", grupo = "canvas"),
       list(name = "canvas_pad_top",       label = "Margen superior (pulg.)",  tipo_input = "number", grupo = "canvas")
-    )
-  ),
-
-  # =========================================================================
-  # DIMENSIONES: HEATMAP
-  # =========================================================================
-  dim_heatmap = list(
-    titulo_humano = "Heatmap dimensional",
-    descripcion   = "Mapa de calor de dimensiones (filas) vs grupos del cruce (columnas). Requiere haber calculado dimensiones en Analítica.",
-    icono_ui      = "LayoutGrid",
-    args = list(
-
-      # --- Negritas -------------------------------------------------------
-      .arg_textos_negrita(c("titulo", "subtitulo", "nota_pie", "eje_x", "eje_y")),
-
-      list(name = "angle_x",              label = "Rotación etiquetas X",  tipo_input = "number", grupo = "estilo", default = 0),
-      list(name = "size_ejes",            label = "Tamaño ejes",           tipo_input = "number", grupo = "estilo", default = 10),
-      list(name = "size_texto_celdas",    label = "Tamaño texto de celdas", tipo_input = "number", grupo = "estilo", default = 10),
-      list(name = "canvas_h_title",       label = "Alto de la zona del título (pulg.)", tipo_input = "number", grupo = "canvas", default = 0.13),
-      list(name = "canvas_h_legend",      label = "Alto de la leyenda (pulg.)",     tipo_input = "number", grupo = "canvas", default = 0.09),
-      list(name = "canvas_h_caption",     label = "Alto del pie (pulg.)",         tipo_input = "number", grupo = "canvas", default = 0.06)
-    )
-  ),
-
-  dim_heatmap_criterios = list(
-    titulo_humano = "Heatmap por criterios",
-    descripcion   = "Heatmap dimensional agrupado por criterios temáticos. Hereda de 'Heatmap dimensional' y 'Base'.",
-    icono_ui      = "LayoutGrid",
-    args = list(
-      # `textos_negrita` NO se declara aquí. Este graficador no dibuja ejes:
-      # compone celdas y encabezados a mano, y ya expone su propio control con
-      # `fontface_texto_criterio`. Declararlo ofrecía en la UI un knob que el
-      # motor descartaba en silencio y que además duplicaba un arg existente.
-      list(name = "fontface_texto_criterio", label = "Peso del texto de criterio", tipo_input = "choice", grupo = "textos",
-           default = "plain",
-           choices = list(
-             list(value = "plain", label = "Normal"),
-             list(value = "bold",  label = "Negrita")
-           ),
-           descripcion = "Peso tipográfico de las etiquetas de criterio."),
-      list(name = "font_family",          label = "Fuente",                tipo_input = "string", grupo = "textos",
-           descripcion = "Vacío = hereda de Base.")
-    )
-  ),
-
-  # =========================================================================
-  # DIMENSIONES: RADAR
-  # =========================================================================
-  dim_radar = list(
-    titulo_humano = "Radar dimensional",
-    descripcion   = "Radar (telaraña) comparando el puntaje de varias dimensiones o indicadores. Requiere dimensiones calculadas.",
-    icono_ui      = "Radar",
-    args = list(
-
-      # --- Negritas -------------------------------------------------------
-      .arg_textos_negrita(c("titulo", "subtitulo", "nota_pie", "leyenda", "ejes", "niveles")),
-
-      list(name = "cortes_grilla",        label = "Cortes de la grilla",    tipo_input = "number", grupo = "estilo", default = 4),
-      list(name = "wrap_ejes",            label = "Ancho etiquetas ejes",   tipo_input = "number", grupo = "estilo", default = 22),
-      list(name = "eje_label_mult",       label = "Separación etiquetas",   tipo_input = "number", grupo = "estilo", default = 1.03),
-      list(name = "leyenda_posicion",     label = "Posición leyenda",       tipo_input = "choice", grupo = "estilo",
-           default = "abajo",
-           choices = list(
-             list(value = "abajo",   label = "Abajo"),
-             list(value = "derecha", label = "Derecha"),
-             list(value = "ninguna", label = "Ocultar")
-           )),
-      list(name = "legend_n_por_fila",    label = "Items por fila leyenda", tipo_input = "number", grupo = "estilo", default = 4),
-      list(name = "legend_key_cm",        label = "Tamaño icono leyenda (cm)", tipo_input = "number", grupo = "estilo", default = 0.45),
-      list(name = "legend_espaciado",     label = "Espaciado leyenda",      tipo_input = "number", grupo = "estilo", default = 12),
-      list(name = "canvas_h_header_in",   label = "Alto del encabezado (pulg.)",       tipo_input = "number", grupo = "canvas", default = 0.58),
-      list(name = "canvas_h_legend_in",   label = "Alto de la leyenda (pulg.)",      tipo_input = "number", grupo = "canvas", default = 0.20),
-      list(name = "canvas_h_caption_in",  label = "Alto del pie (pulg.)",          tipo_input = "number", grupo = "canvas", default = 0.08)
-    )
-  ),
-
-  # =========================================================================
-  # DIMENSIONES: FODA
-  # =========================================================================
-  dim_foda = list(
-    titulo_humano = "Matriz FODA dimensional",
-    descripcion   = "Matriz 2×2 o dispersión estilo FODA sobre indicadores. Hereda de 'Base'.",
-    icono_ui      = "Grid3X3",
-    args = list(
-
-      # --- Negritas -------------------------------------------------------
-      .arg_textos_negrita(c("titulo", "subtitulo", "nota_pie")),
-
-      list(name = "canvas_h_title",       label = "Alto de la zona del título (pulg.)",  tipo_input = "number", grupo = "canvas", default = 0),
-      list(name = "canvas_h_legend",      label = "Alto de la leyenda (pulg.)",      tipo_input = "number", grupo = "canvas", default = 0.09),
-      list(name = "canvas_h_caption",     label = "Alto del pie (pulg.)",          tipo_input = "number", grupo = "canvas", default = 0.06)
     )
   )
 )
@@ -6043,25 +5756,6 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
                             grafico_superior_1 = NULL, grafico_superior_2 = NULL, grafico_superior_3 = NULL,
                             grafico_inferior_1 = NULL, grafico_inferior_2 = NULL, grafico_inferior_3 = NULL,
                             icono = NULL))
-      )
-    )
-  ),
-
-  foda_dimensional = list(
-    titulo_humano = "FODA dimensional",
-    descripcion   = "Portada + radar + heatmap + matriz FODA. Requiere haber calculado dimensiones en la Fase 4 antes de exportar.",
-    icono_ui      = "Grid3X3",
-    n_slides      = 4L,
-    plan = list(
-      slides = list(
-        list(id = "tpl-1", tipo = "p_slide_portada",
-             payload = list(titulo = "Análisis dimensional", subtitulo = "", fecha = "", subtexto = "")),
-        list(id = "tpl-2", tipo = "p_slide_1_grafico_narrativo",
-             payload = list(titulo = "Puntajes por dimensión", grafico = NULL, texto = "", base = "", pie = "", etiqueta = "")),
-        list(id = "tpl-3", tipo = "p_slide_1_grafico",
-             payload = list(titulo = "Mapa de calor", grafico = NULL, base = "", pie = "", etiqueta = "")),
-        list(id = "tpl-4", tipo = "p_slide_1_grafico",
-             payload = list(titulo = "Matriz FODA", grafico = NULL, base = "", pie = "", etiqueta = ""))
       )
     )
   ),

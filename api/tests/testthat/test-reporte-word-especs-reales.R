@@ -69,26 +69,16 @@ probar("pie_dona4", "pie", function() graficar_pie(data.frame(cat = c("Dependien
 probar("pie_torta2", "pie", function() graficar_pie(data.frame(c = c("Sí", "No"), p = c(56, 122) / 178, n = c(56, 122)), "c", "p", var_n = "n", tipo_pie = "pie"))
 probar("pie_torta3", "pie", function() graficar_pie(data.frame(c = c("Sí", "No", "NS"), p = c(.6, .33, .07), n = c(60, 33, 7)), "c", "p", var_n = "n", tipo_pie = "pie"))
 probar("pie_dona7", "pie", function() graficar_pie(data.frame(c = LETTERS[1:7], p = c(.3,.2,.15,.1,.1,.1,.05), n = c(30,20,15,10,10,10,5)), "c", "p", var_n = "n", tipo_pie = "donut"))
-# dimensiones (fixture de test-lamina-dimensiones.R, motor real reporte_dimensiones)
-dm <- local({
-  set.seed(4); n <- 60
-  dat <- data.frame(p1 = sample(c("1", "2", "3", "4"), n, TRUE, prob = c(.05, .1, .4, .45)), p2 = sample(c("1", "2", "3", "4"), n, TRUE),
-                    p3 = sample(c("1", "2", "3", "4"), n, TRUE, prob = c(.1, .1, .3, .5)), sexo = sample(c("1", "2"), n, TRUE), stringsAsFactors = FALSE)
-  for (v in c("p1", "p2", "p3")) attr(dat[[v]], "label") <- toupper(v)
-  attr(dat$sexo, "label") <- "Sexo"
-  inst <- list(survey = data.frame(name = c("p1", "p2", "p3", "sexo"), type = c(rep("select_one sat", 3), "select_one sx"), list_name = c(rep("sat", 3), "sx"), stringsAsFactors = FALSE),
-               choices = rbind(data.frame(list_name = "sat", name = c("1", "2", "3", "4"), label = c("1", "2", "3", "4")),
-                               data.frame(list_name = "sx", name = c("1", "2"), label = c("Masculino", "Femenino"))), orders_list = NULL)
-  d1 <- suppressMessages(reporte_dimensiones(data = dat, instrumento = inst, vars = c("p1", "p2", "p3"), prefijo = "r100_", reemplazar = FALSE,
-                                             orden_por_lista = list(sat = c("1", "2", "3", "4")), verbose = FALSE))
-  d2 <- suppressMessages(reporte_dimensiones_indices(data = d1, subindices = list(subindice("a", "Técnicas", c("r100_p1", "r100_p2")), subindice("b", "Transversales", "r100_p3")),
-                                                     indices = list(indice("idx", "Índice", c("a", "b")))))
-  list(data = d2, instrumento = inst)
-})
-args_dm <- list(data = dm$data, instrumento = dm$instrumento, modo = "general", objetivo = "idx_idx", cruce = "sexo", incluir_total = TRUE)
-probar("heatmap_dim", "heatmap_dim", function() .espec_dim_adjuntar(suppressWarnings(do.call(graficar_heatmap_dimensiones, args_dm)), args_dm, "heatmap"))
-args_cmp <- list(data = dm$data, instrumento = dm$instrumento, modo = "general", objetivo = "idx_idx", cruce = "sexo")
-probar("comparativo_dim", "comparativo_dim", function() .espec_dim_adjuntar(suppressWarnings(do.call(graficar_comparativo_radarbar_dimensiones, args_cmp)), args_cmp, "comparativo"))
+# mapa de calor por cruce (ADR 0137; fixture de test-l10-variantes.R): la espec heatmap/1 que hoy dibuja el motor
+probar("heatmap_dim", "heatmap_dim", function() {
+  inst <- list(survey = data.frame(name = c("car", "p"), type = c("select_one cr", "select_one lk"), list_name = c("cr", "lk"),
+                                   label = c("Carrera", "Afirmación"), stringsAsFactors = FALSE),
+               choices = data.frame(list_name = c("cr", "cr", "lk", "lk", "lk"), name = c("1", "2", "1", "2", "3"),
+                                    label = c("Economía", "Derecho", "Nada", "Algo", "Mucho"), stringsAsFactors = FALSE),
+               orders_list = list(car = list(names = c("1", "2"), labels = c("Economía", "Derecho"), label = "Carrera"),
+                                  p = list(names = c("1", "2", "3"), labels = c("Nada", "Algo", "Mucho"), label = "Afirmación")))
+  dat <- data.frame(car = rep(c("1", "2", "2"), each = 4), p = c("1", "1", "2", "3", rep("3", 8)), stringsAsFactors = FALSE)
+  graficar_heatmap_pregunta_cruce(dat, inst, "p", "car") })
 # radar
 rd <- function(v) { do.call(rbind, lapply(names(v), function(g) data.frame(eje = c("Estados financieros", "Auditoría", "Costos y presupuestos", "Finanzas", "Tributación", "Visión empresarial"), grupo = g, valor = v[[g]]))) }
 probar("radar_recetario", "radar", function() graficar_radar(rd(list(Docentes = c(98, 96, 92, 96, 94, 92), Estudiantes = c(96, 91, 94, 95, 96, 94), Egresados = c(98, 98, 94, 93, 98, 95))),

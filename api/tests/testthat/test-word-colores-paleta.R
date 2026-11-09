@@ -23,10 +23,6 @@ source("setup-load-all.R")
                   grupo = factor(rep(grupos, each = 4), levels = grupos), valor = c(98, 77, 78, 93, 92, 80, 81, 100))
   attr(suppressWarnings(graficar_dumbbell(d, mostrar_brecha = TRUE, orden = "declarado")), "pulso_espec")
 }
-.wcp_comp <- function() {
-  V <- cbind(Masculino = c(94, 98, 96), Femenino = c(97, 96, 98))
-  list(filas = c("Técnicas", "Visión", "Transversales"), grupos = colnames(V), valores = V)
-}
 
 test_that("el helper empareja por rótulo exacto, luego normalizado, y sin color cae al respaldo de ESE rótulo (no por posición)", {
   e <- list(colores = c("Sí" = "#00AA00", "no sabe " = "#777777", "Otro" = "#123456"))
@@ -126,16 +122,6 @@ test_that("pesas: los dos grupos toman su color por rótulo; sin paleta, navy y 
   expect_identical(p1$colour[p0$colour == T$celeste], rep("#AA5500", sum(p0$colour == T$celeste)))
   expect_identical(.wcp_capa(g1, 3L)$colour[1], "#0055AA")
   expect_identical(.wcp_capa(g1, 4L)$colour[1], "#AA5500")
-})
-
-test_that("comparativo de dimensiones: pasa la paleta a los puntos y sin ella dibuja como hoy", {
-  e <- .wcp_comp(); T <- .WORD_TINTA
-  p0 <- .wcp_capa(.word_g_comparativo_dim(e), 2L)
-  expect_setequal(unique(p0$colour), c(T$navy, T$celeste))
-  e$colores <- c(Femenino = "#990099", Masculino = "#009999")
-  p1 <- .wcp_capa(.word_g_comparativo_dim(e), 2L)
-  expect_identical(p1$colour[p0$colour == T$navy], rep("#009999", sum(p0$colour == T$navy)))
-  expect_identical(p1$colour[p0$colour == T$celeste], rep("#990099", sum(p0$colour == T$celeste)))
 })
 
 test_that("una paleta con rótulos de otra lista no cambia nada: todo cae al recetario", {

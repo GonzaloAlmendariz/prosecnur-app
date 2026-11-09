@@ -148,7 +148,7 @@ to_wml.pulso_run_seq <- function(x, add_ns = FALSE, ...) {
     barras = , categorica = ba$base + ba$por_fila * filas,
     divergentes = 0.9 + 0.3 * filas,
     pesas = 1.0 + 0.27 * filas,
-    heatmap_dim = , heatmap_criterios = min(3.9, 0.8 + 0.3 * filas),
+    heatmap_dim = min(3.9, 0.8 + 0.3 * filas),
     unname(fijos[tipo]) %||% NA_real_)
   if (!is.finite(alto)) alto <- 2.95
   alto - 0.22

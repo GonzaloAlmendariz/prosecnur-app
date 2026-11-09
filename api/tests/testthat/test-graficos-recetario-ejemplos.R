@@ -29,6 +29,8 @@ test_that("los tipos del catálogo existen en el registro y no se empaqueta lo q
   paginas <- vapply(cat$ejemplos, `[[`, integer(1), "pagina")
   # Fichas «TIPO DE LÁMINA n DE 22» (123, 125…) y páginas de propuesta (69, 79, 85, 97, 105) no son ejemplos.
   expect_length(intersect(paginas, c(69L, 79L, 85L, 97L, 105L, 123L, 125L, 134L, 170L)), 0L)
+  # ADR 0137: los gráficos de dimensiones (p94–p98) salieron con sus tipos.
+  expect_length(intersect(paginas, c(94L, 95L, 96L, 98L)), 0L)
   peso <- sum(vapply(cat$ejemplos, `[[`, numeric(1), "bytes"))
   expect_lt(peso, 8 * 1024^2)
 })
@@ -40,7 +42,7 @@ test_that("el ejemplo se pide por tipo o por página y vuelve como imagen con su
   expect_identical(e$recetario$id, "recetario-moderna")
   expect_match(e$data_uri, "^data:image/(webp|png);base64,")
   expect_identical(.recetario_ejemplo_payload(pagina = "160")$tipo, "p_slide_3_graficos_poblacion_corona")
-  expect_identical(.recetario_ejemplo_payload(tipo = "p_dim_heatmap", clase = "grafico")$pagina, 94L)
+  expect_identical(.recetario_ejemplo_payload(tipo = "p_radar", clase = "grafico")$pagina, 92L)
 })
 
 test_that("lo que no existe o no se puede leer responde con su código, no con un 500 crudo", {

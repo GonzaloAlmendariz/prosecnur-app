@@ -27,21 +27,15 @@ source("setup-load-all.R")
 }
 .l10v_txt <- function(xml, n) xml2::xml_text(xml2::xml_find_all(xml, sprintf("//p:sp[p:nvSpPr/p:cNvPr[@name='%s']]", n)))
 
-test_that("L10-6: p_dim_heatmap con una pregunta como objetivo sale como tabla de calor pregunta × cruce, nativa y con base", {
+test_that("L10-6: el mapa de calor por cruce sale como tabla de calor pregunta × cruce, nativa y con base", {
   skip_if_not_installed("officer"); skip_if_not_installed("rvg")
-  xml <- .l10v_ruta(p_dim_heatmap(modo = "general", objetivo = "p", cruce = "car"))
+  xml <- .l10v_ruta(p_heatmap_cruce(var = "p", cruce = "car"))   # ADR 0137: el tipo propio de la variante
   expect_identical(.l10v_txt(xml, "calor:fila"), c("Total (12*)", "Economía (4*)", "Derecho (8*)"))   # Total y grupos, en filas
   expect_identical(.l10v_txt(xml, "calor:columna"), c("Nada", "Algo", "Mucho"))                       # opciones en su orden
   expect_identical(.l10v_txt(xml, "calor:cifra"), c("17%", "8%", "75%", "50%", "25%", "25%", "0%", "0%", "100%"))
   expect_identical(.l10v_txt(xml, "calor:escala_rotulo"), "% de cada fila")
   expect_match(paste(xml2::xml_text(xml2::xml_find_all(xml, "//a:t")), collapse = " "), "Base: 12 casos que respondieron")
   expect_false(any(grepl("Sin datos", xml2::xml_text(xml2::xml_find_all(xml, "//a:t")))))
-})
-
-test_that("L10-6: un objetivo que no es dimensión ni pregunta se avisa con su motivo", {
-  args <- list(data = .l10v_dat(), instrumento = .l10v_inst(), modo = "general", objetivo = "no_existe", cruce = "car", filtros = list())
-  expect_message(expect_error(.heatmap_dim_o_pregunta(args, function() stop("sin dimensiones")), "sin dimensiones"),
-                 "no es una dimensión de Analítica ni una pregunta")
 })
 
 .l10v_sources <- function() {

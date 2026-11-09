@@ -11,16 +11,7 @@
 # en `top2box_labels`; nunca se deducen del orden de la escala. La columna está encendida por defecto cuando la escala es
 # ordinal de cuatro o más puntos sustantivos; ahí, sin categorías declaradas, se omite y se avisa como en las apiladas.
 # `top2box = FALSE` la apaga; declarar las categorías la enciende en cualquier escala que el criterio admita.
-# Las opciones viajan por `overrides` (el constructor `p_dim_heatmap()` no las tiene como formales).
-
-#' Opciones del box que declaró la lámina (`overrides` del elemento que se está dibujando)
-#' @keywords internal
-.heatmap_box_del_elemento <- function() {
-  el <- dynGet("el", ifnotfound = NULL)
-  ov <- if (is.list(el)) el$overrides %||% list() else list()
-  # `[[` exacto: `ov$top2box` haría match parcial con `top2box_labels`.
-  list(top2box = ov[["top2box", exact = TRUE]], top2box_labels = ov[["top2box_labels", exact = TRUE]])
-}
+# Las opciones viajan por `overrides` del elemento (`p_heatmap_cruce`, `.hm_cruce_box`).
 
 #' Columnas (opciones) que suma el Top Two Box de la tabla, o `NULL` si la columna no va
 #'

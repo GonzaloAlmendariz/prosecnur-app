@@ -2941,7 +2941,7 @@ mount_graficos <- function(pr) {
     })) |>
     plumber::pr_get("/api/graficos/presets-metadata", wrap_endpoint(function(req, res) {
       # Catálogo humano de los presets globales (p_presets): cada tipo
-      # (base, barras_apiladas, pie, dim_radar, …) con titulo_humano,
+      # (base, barras_apiladas, pie, radar_tabla, …) con titulo_humano,
       # descripción, y args curados para el editor (tipografía, tamaños,
       # canvas, leyendas). El PresetsEditor del frontend usa este
       # metadata + `ArgField` para construir la UI.

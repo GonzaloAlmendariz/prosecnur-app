@@ -2,52 +2,14 @@
 # graficos_heatmap_pregunta_cruce.R — mapa de calor de una pregunta por un cruce (L10-6, bandeja CCSS 2026-10-24)
 # =============================================================================
 #
-# `p_dim_heatmap()` lee dimensiones de Analítica. En CCSS Perfil 2026 se pidió con una pregunta como objetivo
-# (`objetivo = "D3_1"`, `cruce = "carrera_marco"`) y la lámina salía «Sin datos» y sin base: el motor de dimensiones
-# no encontraba ninguna dimensión y el error se degradaba en silencio.
+# Tabla de calor de una pregunta de respuesta única por los grupos de otra: los grupos del cruce en las filas
+# (precedidos por el Total) y las opciones de la pregunta en las columnas, en el orden del instrumento. Cada fila es la
+# distribución de ese grupo (suma 100 %), calculada con `.plan_freq_tabla()` —el mismo helper que `.tab_freq()` del
+# motor: mismo peso, mismas exclusiones, mismo orden—. Los casos de cada fila (sin ponderar) van entre paréntesis y la
+# base de la lámina la declara la especificación.
 #
-# Variante «pregunta × cruce»: si el objetivo NO es una dimensión y SÍ es una pregunta de respuesta única de la base,
-# la lámina es una tabla de calor con los grupos del cruce en las filas (precedidos por el Total) y las opciones de la
-# pregunta en las columnas, en el orden del instrumento. Cada fila es la distribución de ese grupo (suma 100 %),
-# calculada con `.plan_freq_tabla()` —el mismo helper que `.tab_freq()` del motor: mismo peso, mismas exclusiones,
-# mismo orden—. Los casos de cada fila (sin ponderar) van entre paréntesis y la base de la lámina la declara la
-# especificación. Si el objetivo no es ni dimensión ni pregunta, se avisa en vez de dibujar «Sin datos».
-#
-# Se engancha en `.render_dim_heatmap()` (reporte_plan_ppt.R, congelado) sustituyendo una sola línea por
-# `.heatmap_dim_o_pregunta()`.
-
-#' Mapa de calor de dimensiones o, si el objetivo es una pregunta, la variante pregunta × cruce
-#'
-#' @param args Argumentos ya resueltos de `graficar_heatmap_dimensiones()` (data, instrumento, objetivo, cruce, filtros).
-#' @param dibujar Función sin argumentos que dibuja el mapa de dimensiones (la ruta de siempre).
-#' @param box Opciones del Top Two Box de la variante pregunta × cruce (L10-10, graficos_heatmap_top2box.R).
-#' @keywords internal
-.heatmap_dim_o_pregunta <- function(args, dibujar, box = .heatmap_box_del_elemento()) {
-  if (!.heatmap_objetivo_es_dimension(args) && .heatmap_objetivo_es_pregunta(args)) {
-    return(graficar_heatmap_pregunta_cruce(args$data, args$instrumento, args$objetivo, args$cruce, filtros = args$filtros %||% list(),
-                                           box = box))
-  }
-  p <- tryCatch(dibujar(), error = function(e) {
-    if (!.heatmap_objetivo_es_dimension(args)) {
-      .pulso_aviso(.aviso_en_lamina(sprintf(
-        "el mapa de calor de dimensiones no encuentra «%s»: no es una dimensión de Analítica ni una pregunta de respuesta única de la base.",
-        as.character(args$objetivo %||% "")[1])))
-    }
-    stop(e)
-  })
-  .espec_dim_adjuntar(p, args, "heatmap")
-}
-
-#' ¿El objetivo es una dimensión (o indicador) que el motor de dimensiones conoce?
-#' @keywords internal
-.heatmap_objetivo_es_dimension <- function(args) {
-  isTRUE(tryCatch({
-    ctx <- .dim_build_context(args$data, instrumento = args$instrumento)
-    pl <- .dim_build_payload(ctx, modo = args$modo %||% "general", objetivo = args$objetivo, cruce = args$cruce,
-                             filtros = args$filtros %||% list())
-    NROW(pl$score_heat) > 0L
-  }, error = function(e) FALSE))
-}
+# Nació como variante del heatmap de dimensiones (CCSS Perfil 2026, L10-6); desde el ADR 0137 la dibuja el tipo "Mapa de calor
+# por cruce" (`p_heatmap_cruce`, graficos_heatmap_cruce.R).
 
 #' ¿El objetivo es una pregunta de respuesta única de la base, y el cruce otra?
 #' @keywords internal

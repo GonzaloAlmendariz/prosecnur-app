@@ -1,7 +1,7 @@
 source("setup-load-all.R")
 
 # K9 (plan F6 §0 y §6): el `SlideType` del frontend tenía 22 tipos y el registro 33. El catálogo generado
-# `inst/catalogos/graficos_tipos.json` lista los 37 tipos de lámina y los 30 graficadores en el orden del registro, para
+# `inst/catalogos/graficos_tipos.json` lista los 37 tipos de lámina y los 31 graficadores en el orden del registro, para
 # que el frontend derive sus tipos de ahí y no de una lista tecleada. Se regenera con
 # `Rscript api/scripts/generar_graficos_tipos.R`; este test se pone rojo si el archivo versionado se desvía del metadata.
 
@@ -12,12 +12,12 @@ source("setup-load-all.R")
   if (is.na(hit)) cands[[1]] else hit
 }
 
-test_that("el catálogo en memoria lista los 37 tipos de lámina y los 37 graficadores del registro, en su orden", {
+test_that("el catálogo en memoria lista los 37 tipos de lámina y los 31 graficadores del registro, en su orden", {
   cat <- .graficos_tipos_catalogo()
   expect_identical(vapply(cat$slides, `[[`, "", "name"), names(.SLIDES_META))
   expect_identical(vapply(cat$graficadores, `[[`, "", "name"), names(.GRAFICADORES_META))
   expect_length(cat$slides, 37L)   # 37 con el cierre con hallazgos (ADR 0135)
-  expect_length(cat$graficadores, 37L)   # 37 con p_lineas_nivel, p_panorama, p_fortalezas, p_cobertura y p_heatmap_cruce (ADR 0137)
+  expect_length(cat$graficadores, 31L)   # ADR 0137: 37 con p_heatmap_cruce, menos la tabla de letras y los cinco de dimensiones
   por <- setNames(cat$slides, vapply(cat$slides, `[[`, "", "name"))
   expect_identical(por$p_slide_1_grafico$estandar, "p_slide_1_grafico")
   expect_identical(por$p_slide_portada$estandar, NA)
@@ -34,7 +34,7 @@ test_that("el JSON versionado es exactamente el que genera el metadata de hoy (r
                    info = "Regenera con: Rscript api/scripts/generar_graficos_tipos.R")
   j <- jsonlite::fromJSON(ruta, simplifyVector = FALSE)
   expect_length(j$slides, 37L)
-  expect_length(j$graficadores, 37L)
+  expect_length(j$graficadores, 31L)
   expect_null(j$slides[[1]]$estandar)                                       # portada: null en el JSON
 })
 

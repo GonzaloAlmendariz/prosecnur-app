@@ -73,19 +73,16 @@ test_that("GET /registry publica familia del editor y salida de cada graficador,
   r <- http_get(srv, "/api/graficos/registry")
   expect_identical(r$status, 200L)
   expect_identical(vapply(r$json$familias_editor, `[[`, "", "id"),
-                   c("categorias", "escalas", "numeros", "comparar", "dimensiones", "territorio", "texto"))
+                   c("categorias", "escalas", "numeros", "comparar", "territorio", "texto"))   # ADR 0137: sin Dimensiones
   g <- setNames(r$json$graficadores, vapply(r$json$graficadores, `[[`, "", "name"))
   expect_identical(g$p_nube_palabras$familia_editor, "texto")
   # c7ca26281 (G11): la nube sale nativa con su ranking; sin él cae a marco, y eso lo dice la condición.
   expect_true(isTRUE(g$p_nube_palabras$salida_nativa))
   expect_identical(g$p_nube_palabras$salida, "nativa")
   expect_true(nzchar(g$p_nube_palabras$salida_condicion))
-  expect_false(g$p_dim_foda$salida_nativa)                                # la no nativa publica su motivo
-  expect_identical(g$p_dim_foda$salida, "ruta_anterior")
-  expect_true(nzchar(g$p_dim_foda$salida_motivo))
   expect_true(isTRUE(g$p_barras_apiladas$salida_nativa))
   expect_identical(g$p_barras_apiladas$salida_motivo, "")
-  expect_false(g$p_dim_foda$en_selector)                                  # fuera del selector, pero sigue en el registro
+  expect_false(g$p_filtro_subpregunta$en_selector)                        # fuera del selector, pero sigue en el registro
   expect_true(g$p_barras_apiladas$en_selector)
 })
 
@@ -133,9 +130,9 @@ test_that("GET /recetario/ejemplo entrega la lámina de ejemplo por tipo o pági
   expect_identical(r$json$pagina, 162L)
   expect_identical(r$json$recetario$id, "recetario-moderna")
   expect_match(r$json$data_uri, "^data:image/webp;base64,")
-  p <- http_get(srv, "/api/graficos/recetario/ejemplo?pagina=94")
-  expect_identical(p$json$tipo, "p_dim_heatmap")
-  no <- http_get(srv, "/api/graficos/recetario/ejemplo?tipo=p_dim_foda")
+  p <- http_get(srv, "/api/graficos/recetario/ejemplo?pagina=92")
+  expect_identical(p$json$tipo, "p_radar")
+  no <- http_get(srv, "/api/graficos/recetario/ejemplo?tipo=p_slide_portada")
   expect_identical(no$status, 404L)
   expect_identical(no$json$error$code %||% no$json$code, "E_RECETARIO_EJEMPLO_NO_EXISTE")
   malo <- http_get(srv, "/api/graficos/recetario/ejemplo")
@@ -143,7 +140,7 @@ test_that("GET /recetario/ejemplo entrega la lámina de ejemplo por tipo o pági
   expect_identical(malo$json$error$code %||% malo$json$code, "E_BAD_RECETARIO_EJEMPLO")
   idx <- http_get(srv, "/api/graficos/recetario/ejemplos")
   expect_identical(idx$status, 200L)
-  expect_length(idx$json$ejemplos, 44L)
+  expect_length(idx$json$ejemplos, 40L)   # ADR 0137: salen los cuatro ejemplos de dimensiones
 })
 
 test_that("POST /preview-slide con preview_formas entrega las formas de cada parte y las ranuras del estándar; sin él, nada cambia (K11)", {

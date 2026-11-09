@@ -1,15 +1,15 @@
 source("setup-load-all.R")
 
 # K4 (plan F6 §5.2): cada graficador dice en qué familia del selector va («Tipo de gráfico», dirección F6 §4.4:
-# Categorías · Escalas · Números · Comparar · Dimensiones · Territorio · Texto) y si su lámina sale con piezas nativas
+# Categorías · Escalas · Números · Comparar · Territorio · Texto; la familia Dimensiones salió con el ADR 0137) y si su lámina sale con piezas nativas
 # del recetario o no, con el motivo. La salida declarada se contrasta con el motor real: se arma el mazo y se lee
 # cómo salió cada lámina con el mismo clasificador de la vista previa (`.pptx_lamina_estado`).
 
-.FAMILIAS_F6 <- c("categorias", "escalas", "numeros", "comparar", "dimensiones", "territorio", "texto")
+.FAMILIAS_F6 <- c("categorias", "escalas", "numeros", "comparar", "territorio", "texto")
 
-test_that("los 37 graficadores declaran familia del editor y salida, con motivo cuando no es nativa", {
+test_that("los 31 graficadores declaran familia del editor y salida, con motivo cuando no es nativa", {
   m <- .GRAFICADORES_META
-  expect_length(m, 37L)   # 37 con p_heatmap_cruce (ADR 0137)
+  expect_length(m, 31L)   # ADR 0137: 37 con p_heatmap_cruce, menos la tabla de letras y los cinco de dimensiones
   for (nm in names(m)) {
     expect_true(m[[nm]]$familia_editor %in% .FAMILIAS_F6, info = nm)
     expect_true(is.logical(m[[nm]]$salida_nativa) && length(m[[nm]]$salida_nativa) == 1L && !is.na(m[[nm]]$salida_nativa), info = nm)
@@ -23,12 +23,11 @@ test_that("los 37 graficadores declaran familia del editor y salida, con motivo 
 test_that("lo que hoy no tiene pieza del recetario no se anuncia nativo", {
   m <- .GRAFICADORES_META
   no_nativos <- names(m)[!vapply(m, `[[`, logical(1), "salida_nativa")]
-  # G11 (2026-10-13): los puntos comparativos salen como el ranking con puntos (lámina 72), y el radar por dimensiones
-  # ya salía nativo con tres ejes o más: lo declarado decía lo contrario (test-dim-radar-nativo.R).
-  expect_setequal(no_nativos, "p_dim_foda")   # G11: la nube sale con su ranking (lámina 101) y la tabla como la del diseño
+  # G11 (2026-10-13): los puntos comparativos salen como el ranking con puntos (lámina 72). La única sin pieza propia
+  # era la matriz FODA de dimensiones, que salió con el ADR 0137: hoy todos tienen pieza del recetario.
+  expect_identical(no_nativos, character(0))   # G11: la nube sale con su ranking (lámina 101) y la tabla como la del diseño
   expect_identical(m$p_nube_palabras$salida, "nativa")
   expect_match(m$p_nube_palabras$salida_condicion, "Sin el ranking", fixed = TRUE)
-  expect_identical(m$p_dim_heatmap_criterios$salida, "nativa")          # la 93 ya es nativa (test-lamina-criterios.R)
 })
 
 test_that("el registry publica familia, salida y motivo de cada graficador y las familias en el orden del selector", {
@@ -39,9 +38,6 @@ test_that("el registry publica familia, salida y motivo de cada graficador y las
   expect_identical(g$p_barras_apiladas$familia_editor, "escalas")
   expect_true(g$p_barras_apiladas$salida_nativa)
   expect_identical(g$p_barras_apiladas$salida_motivo, "")
-  expect_false(g$p_dim_foda$salida_nativa)
-  expect_identical(g$p_dim_foda$salida, "ruta_anterior")
-  expect_true(nzchar(g$p_dim_foda$salida_motivo))
   expect_true(nzchar(g$p_barras_agrupadas$salida_condicion))          # nativa, pero con cruce va por la ruta anterior
 })
 
@@ -116,22 +112,21 @@ test_that("con «Dividir por» la agrupada sale por la ruta anterior, como dice 
   expect_match(.GRAFICADORES_META$p_barras_agrupadas$salida_condicion, "Dividir por", fixed = TRUE)
 })
 
-# Gonzalo, 2026-10-10 («sí, sácalo»): la matriz FODA no aparece en ninguna página del recetario y sale del selector de
-# tipos de gráfico. Sale sólo del selector: el graficador y su render siguen, para que los planes que ya lo usan exporten.
+# La matriz FODA de dimensiones salió del selector el 2026-10-10 y del registro con el ADR 0137.
 # Gonzalo, 2026-10-14 («la dependencia no es un tipo de gráfico»): «Pregunta filtro y subpregunta» es la pieza interna de la
 # dependencia entre los dos gráficos de una lámina (graficos_dependencia.R); tampoco se elige en el selector.
-test_that("p_dim_foda y la pieza de la dependencia salen del selector pero siguen registrados y renderizables; los demás quedan", {
+test_that("la pieza de la dependencia sale del selector pero sigue registrada y renderizable; los demás quedan", {
   m <- .GRAFICADORES_META
   en <- vapply(m, function(x) x$en_selector, logical(1))
-  expect_setequal(names(en)[!en], c("p_dim_foda", "p_filtro_subpregunta"))   # p_citas entró con sus candidatas (TXT-4, O3b)
-  expect_true("p_dim_foda" %in% .graf_names())                            # el validador del plan lo sigue aceptando
-  expect_true(exists("p_dim_foda", mode = "function"))
+  expect_setequal(names(en)[!en], "p_filtro_subpregunta")   # p_citas entró con sus candidatas (TXT-4, O3b)
+  expect_true("p_filtro_subpregunta" %in% .graf_names())    # el validador del plan lo sigue aceptando
+  expect_true(exists("p_filtro_subpregunta", mode = "function"))
   reg <- .graficos_registry_payload()
   g <- setNames(reg$graficadores, vapply(reg$graficadores, `[[`, "", "name"))
-  expect_false(g$p_dim_foda$en_selector)
+  expect_false(g$p_filtro_subpregunta$en_selector)
   expect_true(g$p_barras_apiladas$en_selector)
   cat <- .graficos_tipos_catalogo()
   gc <- setNames(cat$graficadores, vapply(cat$graficadores, `[[`, "", "name"))
-  expect_false(gc$p_dim_foda$en_selector)
+  expect_false(gc$p_filtro_subpregunta$en_selector)
   expect_true(gc$p_radar$en_selector)
 })

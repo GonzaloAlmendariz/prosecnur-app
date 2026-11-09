@@ -2,15 +2,15 @@
 # graficos_heatmap_cruce.R — «Mapa de calor por cruce»: una pregunta por los grupos de otra (ADR 0137, decisión 1)
 # =============================================================================
 #
-# La variante pregunta × cruce nació dentro de `p_dim_heatmap()` (L10-6 y L10-10 de CCSS Perfil, 2026-10-24): con una
+# La variante pregunta × cruce nació dentro del heatmap de dimensiones (L10-6 y L10-10 de CCSS Perfil, 2026-10-24): con una
 # pregunta como objetivo, la lámina es una tabla de calor con el Total y los grupos del cruce en las filas y las
 # opciones de la pregunta en las columnas, más la columna Top Two Box opcional. El ADR 0137 retira la familia de
 # dimensiones y Gonzalo decidió que esa variante sea un tipo propio (2026-11-08, «Tipo propio»).
 #
 # Este tipo NO recalcula nada: dibuja con `graficar_heatmap_pregunta_cruce()` (graficos_heatmap_pregunta_cruce.R) y la
 # columna del box de graficos_heatmap_top2box.R, con las mismas frecuencias del motor (`.tab_freq`) que usaba la ruta de
-# `p_dim_heatmap`. Las cifras, la base y la pieza nativa son las mismas (test-heatmap-cruce.R las compara con las de la
-# ruta anterior).
+# heatmap de dimensiones. Las cifras, la base y la pieza nativa son las mismas (test-heatmap-cruce.R fija las de los
+# fixtures L10-6 y L10-10).
 #
 # Grano: una fila por grupo del cruce (más el Total), cada fila suma 100 % sobre quienes respondieron la pregunta con
 # los filtros de la lámina; el peso, las exclusiones y el orden son los del resto del mazo. La base de la lámina es la
@@ -85,7 +85,7 @@ p_heatmap_cruce <- function(var, cruce, filtros = list(), titulo = NULL, overrid
   misma_base <- !is.null(ctx) && identical(ctx$c$source, ctx$p$source)
   if (is.null(ctx) || !misma_base || !.heatmap_objetivo_es_pregunta(args)) {
     if (!is.null(ficha_retiro)) {
-      # Un `p_dim_heatmap` de dimensiones redirigido al reconstruir: no tiene equivalente y sale en blanco (ADR 0137).
+      # Un heatmap de dimensiones retirado, redirigido al reconstruir: no tiene equivalente y sale en blanco (ADR 0137).
       .graficos_retirado_avisar_blanco(ficha_retiro)
       return(ggplot2::ggplot() + ggplot2::theme_void())
     }
@@ -104,7 +104,7 @@ p_heatmap_cruce <- function(var, cruce, filtros = list(), titulo = NULL, overrid
                                   box = .hm_cruce_box(el$overrides))
 }
 
-#' Args de `p_heatmap_cruce` equivalentes a los de un `p_dim_heatmap` del plan, o `NULL` si no hay objetivo y cruce
+#' Args de `p_heatmap_cruce` equivalentes a los del heatmap de dimensiones retirado del plan, o `NULL` si no hay objetivo y cruce
 #'
 #' Conserva filtros, título, overrides (con el Top Two Box) y base; los mandos de dimensiones (modo, brechas,
 #' semáforo, iteración) no tienen equivalente y salen.

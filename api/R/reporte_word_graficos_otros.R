@@ -98,17 +98,6 @@
   g
 }
 
-#' Comparativo de dimensiones entre dos grupos en el Word: los puntos de `g_dos_grupos()` con la diferencia CON signo
-#' (primera menos segunda, página 32: «-3 pts», «+2 pts»). La espec `comparativo_dim/1` es la del PPT (diferencia sin
-#' signo, recetario_m3d); aquí sólo se leen sus valores, no se cambia.
-#' @keywords internal
-.word_g_comparativo_dim <- function(espec) {
-  V <- espec$valores; a <- as.numeric(V[, 1]); b <- as.numeric(V[, 2]); d <- a - b
-  .word_g_pesas(list(rotulos = espec$filas, a = a, b = b, cifras_a = paste0(a, "%"), cifras_b = paste0(b, "%"), diferencia = d,
-                     textos_diferencia = sprintf("%+d pts", as.integer(d)), mostrar_diferencia = TRUE,
-                     grupos = as.character(espec$grupos), leyenda = as.character(espec$grupos), colores = espec$colores))
-}
-
 #' Puntos por competencia, en lugar del radar (`g_competencias()` moderna): por eje, un punto por grupo sobre la línea que
 #' va del menor al mayor; ejes ordenados por su promedio, el mayor arriba; colores de actores del estándar
 #' @keywords internal

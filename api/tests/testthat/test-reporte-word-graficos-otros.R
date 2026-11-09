@@ -32,15 +32,6 @@ test_that("el mapa de calor del Word colorea por el valor crudo dentro del rango
   expect_gt(attr(.word_g_heat(e), "alto"), attr(g, "alto"))
 })
 
-test_that("el comparativo de dimensiones del Word escribe la diferencia CON signo, primera menos segunda (página 32)", {
-  V <- cbind(Masculino = c(94, 98, 96), Femenino = c(97, 96, 98))
-  e <- list(filas = c("Técnicas", "Visión", "Transversales"), grupos = colnames(V), valores = V,
-            textos_diferencia = c("3 pts", "2 pts", "2 pts"))                      # la espec del PPT, sin signo
-  tx <- .wo_textos(.word_g_comparativo_dim(e))
-  expect_true(all(c("-3 pts", "+2 pts", "-2 pts", "94%", "97%", "Diferencia") %in% tx))
-  expect_false("3 pts" %in% tx)
-})
-
 test_that("los puntos por competencia ordenan los ejes por su promedio con el mayor arriba y crecen con los ejes", {
   M <- cbind(D = c(99, 92, 95), E = c(96, 93, 96), G = c(98, 93, 97))
   e <- list(ejes = c("Alta", "Baja", "Media"), grupos = colnames(M), valores = M)
