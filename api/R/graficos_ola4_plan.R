@@ -783,9 +783,10 @@ p_dumbbell <- function(vars = NULL,
   if (!is.list(vars) || !length(vars)) {
     .plan_spec_abort("p_dumbbell(): `vars` debe ser una lista nombrada no vacia.")
   }
-  if (is.null(names(vars)) || any(!nzchar(trimws(names(vars))))) {
-    .plan_spec_abort("p_dumbbell(): cada tema necesita nombre — es la etiqueta de la fila.")
-  }
+  # H2: un par sin nombre toma, al dibujar, el enunciado de su primera pregunta (graficos_dumbbell_temas_nombre.R).
+  nombres <- names(vars) %||% rep("", length(vars))
+  nombres[is.na(nombres)] <- ""
+  names(vars) <- trimws(nombres)
   if (!length(.radar_mb_codigos(corte))) {
     .plan_spec_abort("p_dumbbell(): `corte` debe traer al menos un codigo de la escala.")
   }
@@ -794,8 +795,9 @@ p_dumbbell <- function(vars = NULL,
   vars_norm <- lapply(vars, function(x) as.character(unlist(x)))
   pareja <- NULL
   tema_pareja <- NULL
-  for (tema in names(vars_norm)) {
-    refs_tema <- vars_norm[[tema]]
+  for (i_tema in seq_along(vars_norm)) {
+    tema <- if (nzchar(names(vars_norm)[i_tema])) names(vars_norm)[i_tema] else paste0("par ", i_tema)
+    refs_tema <- vars_norm[[i_tema]]
     # De dos a cuatro públicos (graficos_dumbbell_tres_grupos.R): los elige el analista, tema por tema.
     if (length(refs_tema) < 2L || length(refs_tema) > .DUMBBELL_GRUPOS_MAX) {
       .plan_spec_abort(
@@ -863,6 +865,7 @@ p_dumbbell <- function(vars = NULL,
     stop("dumbbell: el render no expone las fuentes del estudio.", call. = FALSE)
   }
   sources <- list(data_sources = data_sources, inst_sources = inst_sources)
+  if (is.null(el$cruce)) el$vars <- .dumbbell_temas_nombrar(el$vars, inst_sources)   # H2: el par sin nombre (graficos_dumbbell_temas_nombre.R)
   .dumbbell_grupos_validar_render(el, sources)   # grupos en código y etiqueta (graficos_dumbbell_grupos.R)
   sin_eq <- .dumbbell_sin_equivalencia(el, sources)   # ADR 0138 §5: nunca por nombre (graficos_dumbbell_equivalencia.R)
   if (!is.null(sin_eq)) return(.dumbbell_lamina_sin_equivalencia(sin_eq))

@@ -43,6 +43,7 @@
   if (identical(el$.element_type, "panorama")) return(.tpub_temas_panorama(el, sources, equiv))
   vars_lamina <- el$vars
   if (.dumbbell_sin_temas(vars_lamina) && !is.null(el$bases)) vars_lamina <- .dumbbell_vars_de_bases(.dumbbell_bases_contraste(el$bases))
+  vars_lamina <- .dumbbell_temas_nombrar(vars_lamina, sources$inst_sources)   # H2: el par sin nombre, como al dibujar
   el_r <- el; el_r$vars <- vars_lamina
   sources["equivalencias_publicos"] <- list(equiv)   # `base$*` se empareja con ESTA matriz (graficos_dumbbell_equivalencia.R)
   if (!is.null(el$regla)) el_r <- .regla_preguntas_aplicar_render(el_r, "dumbbell", sources)$el

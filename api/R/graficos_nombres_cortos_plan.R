@@ -69,12 +69,15 @@
   if (is.null(rotulo) || is.na(rotulo)) return(TRUE)
   insts <- dynGet("instrument_sources", ifnotfound = NULL)
   if (!length(insts)) return(FALSE)
-  r0 <- tolower(gsub("\\s+", " ", trimws(rotulo)))
+  # H2: sin distinguir espacios (también el duro) ni mayúsculas, contra la etiqueta en español del instrumento y contra
+  # la columna `label` (graficos_dumbbell_temas_nombre.R).
+  r0 <- .rotulo_normalizar(rotulo)
   for (r in as.character(unlist(refs))) {
     p <- .graficos_ref_parts(r)
     inst <- if (nzchar(p$source %||% "")) insts[[p$source]] else if (length(insts) == 1L) insts[[1]] else NULL
-    lab <- tryCatch(.regla_preguntas_rotulo(inst, p$name), error = function(e) NA_character_)
-    if (!is.na(lab) && identical(tolower(gsub("\\s+", " ", trimws(lab))), r0)) return(TRUE)
+    labs <- c(tryCatch(.regla_preguntas_rotulo(inst, p$name), error = function(e) NA_character_),
+              tryCatch(.ref_enunciado(r, insts), error = function(e) NA_character_))
+    if (any(!is.na(labs) & .rotulo_normalizar(labs) == r0)) return(TRUE)
   }
   FALSE
 }
