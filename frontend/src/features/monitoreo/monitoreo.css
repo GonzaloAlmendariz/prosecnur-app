@@ -36587,20 +36587,6 @@ button.mon-territorial-ump-audit-scrim {
   transform: scale(0.99);
 }
 
-.mon-commandbar button:not(.pulso-button):focus-visible,
-.mon-toolbar button:not(.pulso-button):focus-visible,
-.mon-stage-segment button:not(.pulso-button):focus-visible,
-.mon-source-segment button:not(.pulso-button):focus-visible,
-.mon-territorial-validation-tabs button:not(.pulso-button):focus-visible,
-.mon-territorial-review-filterbar button:not(.pulso-button):focus-visible,
-.mon-nav-item:focus-visible,
-.mon-rail-web-publish-trigger:focus-visible {
-  outline: 2px solid transparent;
-  box-shadow:
-    0 0 0 3px var(--mon-focus-ring),
-    inset 0 1px 0 rgba(255, 255, 255, 0.82);
-}
-
 .mon-stage-segment,
 .mon-source-segment,
 .mon-territorial-validation-tabs {
