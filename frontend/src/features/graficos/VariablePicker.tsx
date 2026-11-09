@@ -10,6 +10,7 @@ import { CargaDeBloque } from "../../components/CargaDeBloque";
 import { textoPlano } from "./textoPlano";
 import { estadoBaseDeRef } from "./baseDeReferencia";
 import { FijarEnOtraBase, PastillaBaseRef } from "./PastillaBaseRef";
+import { fuentesPermitidas } from "./fuentesPermitidas";
 
 type Props = {
   value: string | null | undefined;
@@ -28,6 +29,9 @@ type Props = {
   /** Sólo las preguntas de esta base: «Dividir por» en la base de la pregunta del gráfico (R7-1). Un valor guardado de
    *  otra base se sigue mostrando en el disparador, para que se vea y se cambie. */
   soloBase?: string | null;
+  /** Sólo las preguntas de estas bases (las elegidas en la lámina: la cobertura por categorías, ronda 18). Vacío o sin
+   *  ninguna conocida, todas. La pregunta se guarda siempre con el prefijo de su base, porque es la base que se cuenta. */
+  soloBases?: readonly string[] | null;
 };
 
 // VariablePicker multi-base (v0.2+).
@@ -45,7 +49,7 @@ type Props = {
 // el analista lo guardó conscientemente así).
 
 export default function VariablePicker({
-  value, onChange, placeholder = "Selecciona variable…", filter, allowEmpty = false, ocultarBase = false, fuenteInicial, sinAvisoDeBase = false, soloBase = null,
+  value, onChange, placeholder = "Selecciona variable…", filter, allowEmpty = false, ocultarBase = false, fuenteInicial, sinAvisoDeBase = false, soloBase = null, soloBases = null,
 }: Props) {
   const { sources: todas, multi, variables, relacionBases, baseActiva, scope, loading, error } = useVariables();
   const [open, setOpen] = useState(false);
@@ -65,10 +69,13 @@ export default function VariablePicker({
     [sinAvisoDeBase, value, multi, variables, baseActiva, relacionBases, scope],
   );
   const derivedVariable = useMemo(() => getDerivedReportVariable(value), [value]);
+  const clavesBases = soloBases?.join("\u001F") ?? "";
   const sources = useMemo(
-    () => (soloBase && todas.some((s) => s.name === soloBase) ? todas.filter((s) => s.name === soloBase) : todas),
-    [soloBase, todas],
+    () => fuentesPermitidas(todas, soloBase, clavesBases ? clavesBases.split("\u001F") : null),
+    [soloBase, clavesBases, todas],
   );
+  // Con bases acotadas la ref lleva su base aunque el estudio tenga una sola: sin prefijo se leería de la activa.
+  const conPrefijo = multi || !!soloBases?.length;
   const sourceKey = sources.map((source) => source.name).join("\u001F");
   const firstSourceName = (fuenteInicial && sources.some((source) => source.name === fuenteInicial) ? fuenteInicial : sources[0]?.name) ?? null;
   const valueSource = parsed.source && todas.some((source) => source.name === parsed.source)
@@ -181,7 +188,7 @@ export default function VariablePicker({
       setOpen(false);
       return;
     }
-    onChange(formatVarRef(pickerSource, newName, multi));
+    onChange(formatVarRef(pickerSource, newName, conPrefijo));
     setOpen(false);
     setQuery("");
   }
