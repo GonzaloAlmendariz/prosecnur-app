@@ -126,7 +126,7 @@
   height: var(--pulso-control-height-md);
   padding: 0 var(--pulso-space-2);
   border: 1px solid var(--pulso-border-strong);
-  border-radius: var(--pulso-radius);
+  border-radius: var(--pulso-control-radius);   /* R11-4: el radio único de control (antes 10) */
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font: inherit;
@@ -146,7 +146,7 @@ textarea.pulso-f6-input {
 }
 
 .pulso-f6-input:focus-visible {
-  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline: var(--mov-foco);
   outline-offset: 0;
 }
 

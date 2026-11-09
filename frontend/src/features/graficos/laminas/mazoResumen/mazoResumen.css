@@ -268,7 +268,7 @@
   margin: -3px -3px 0 0;
   padding: 0;
   border: 0;
-  border-radius: var(--pulso-radius);
+  border-radius: var(--pulso-control-radius);
   background: transparent;
   color: var(--pulso-surface);
   cursor: pointer;

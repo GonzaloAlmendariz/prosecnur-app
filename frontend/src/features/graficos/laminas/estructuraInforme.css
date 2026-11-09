@@ -41,13 +41,13 @@
   height: var(--pulso-control-height-md);
   padding: 0 var(--pulso-space-2);
   border: 1px solid var(--pulso-border-strong);
-  border-radius: var(--pulso-radius);
+  border-radius: var(--pulso-control-radius);
   background: var(--pulso-surface);
   color: var(--pulso-text-faint);
 }
 
 .pulso-f6-busca:focus-within {
-  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline: var(--mov-foco);
   outline-offset: var(--pulso-nav-focus-offset);
 }
 

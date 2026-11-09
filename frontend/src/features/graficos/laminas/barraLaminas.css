@@ -160,7 +160,7 @@
   gap: var(--pulso-space-2);
   padding: var(--pulso-space-2);
   border: 0;
-  border-radius: var(--pulso-radius);
+  border-radius: var(--pulso-control-radius);
   background: transparent;
   color: var(--pulso-text);
   font: inherit;
