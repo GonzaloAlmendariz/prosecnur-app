@@ -10,8 +10,8 @@
 #   - Panorama, fortalezas y escala del resumen: las preguntas de escala de cada base (`select_one` de diseño independiente con el
 #     corte, al menos cuatro opciones sustantivas y una lista de batería o declarada ordinal: graficos_regla_escala.R).
 #   - Contraste entre públicos: los temas que el payload declara (el render no tiene sesión, así que los pares de la
-#     matriz de equivalencias llegan ya escritos en `vars`); un tema con `base$*` en las dos bases toma los pares del
-#     mismo nombre y la misma firma de escala (bases que comparten instrumento).
+#     matriz de equivalencias llegan ya escritos en `vars`); un tema con `base$*` toma los pares que DECLARA la matriz
+#     (`.regla_preguntas_pares_declarados`, graficos_dumbbell_equivalencia.R), nunca los del mismo nombre de variable.
 #   - Contraste entre grupos de una base: las preguntas declaradas (o `base$*`) abiertas por el cruce.
 # El valor de cada celda sale de las mismas funciones que el render (`.radar_mb_datos`, `.dumbbell_grupos_datos`,
 # `.radar_mb_pct` con `.radar_mb_pesos`), con los filtros y la ponderación de la lámina.
@@ -157,35 +157,20 @@
              n = numeric(0), orden = integer(0), stringsAsFactors = FALSE)
 }
 
-#' Pares de `base$*` entre dos bases: las preguntas de escala con el mismo nombre y la misma firma
-#' @keywords internal
-.regla_preguntas_pares_por_nombre <- function(fuentes, codigos, sources) {
-  vs <- lapply(fuentes, .regla_preguntas_de_base, codigos = codigos, sources = sources)
-  if (any(vapply(vs, is.null, TRUE))) return(list())
-  comunes <- Reduce(intersect, vs)
-  inst1 <- sources$inst_sources[[fuentes[1]]]
-  pares <- list()
-  for (v in comunes) {
-    firmas <- vapply(fuentes, function(b) .equiv_firma_escala(sources$inst_sources[[b]], v), character(1))
-    if (length(unique(firmas)) != 1L) next
-    pares[[length(pares) + 1L]] <- list(rotulo = .regla_preguntas_rotulo(inst1, v), refs = paste0(fuentes, "$", v))
-  }
-  if (!length(pares)) return(list())
-  nm <- make.unique(vapply(pares, `[[`, "", "rotulo"), sep = " ")
-  stats::setNames(lapply(pares, `[[`, "refs"), nm)
-}
-
-#' Indicadores del contraste entre dos bases: los temas declarados (y `base$*` por nombre)
+#' Indicadores del contraste entre dos bases: los temas declarados (y `base$*` por la matriz de equivalencias)
 #' @keywords internal
 .regla_preguntas_ind_dumbbell_bases <- function(el, sources) {
   codigos <- .radar_mb_codigos(el$corte)
   if (.dumbbell_sin_temas(el$vars)) el$vars <- .dumbbell_vars_desde_fuentes(el, sources)   # graficos_dumbbell_auto.R
-  temas <- list(); motivos <- list()
+  temas <- list(); motivos <- list(); sin_equiv <- FALSE
   for (t in names(el$vars)) {
     refs <- as.character(el$vars[[t]])
     partes <- lapply(refs, .graficos_ref_parts)
     if (all(vapply(partes, function(p) identical(p$name, "*"), TRUE))) {
-      temas <- c(temas, .regla_preguntas_pares_por_nombre(vapply(partes, `[[`, "", "source"), codigos, sources))
+      pd <- .regla_preguntas_pares_declarados(vapply(partes, `[[`, "", "source"), codigos, sources)   # ADR 0138 §5
+      motivos <- c(motivos, attr(pd, "motivos"))
+      if (isTRUE(attr(pd, "sin_equivalencia"))) sin_equiv <- TRUE
+      temas <- c(temas, pd)
     } else temas[[t]] <- refs
   }
   if (length(temas)) names(temas) <- make.unique(names(temas), sep = " ")
@@ -207,8 +192,10 @@
   }
   ind <- .regla_preguntas_rbind(filas)
   if (nrow(ind)) ind$grupo <- factor(ind$grupo, levels = unique(ind$grupo))
-  list(indicadores = ind, refs_por_tema = refs_tema, avisos = .regla_preguntas_avisos(motivos),
-       universo = "preguntas comunes", grupos_unidad = "públicos")
+  # Sin temas que comparar no se evalúa la regla: la nota dice por qué (graficos_dumbbell_equivalencia.R).
+  sin_temas <- if (!length(temas)) (if (sin_equiv) .DUMBBELL_MSG_SIN_EQUIV else .DUMBBELL_MSG_SIN_COMPARABLES)
+  list(indicadores = ind, refs_por_tema = refs_tema, avisos = c(sin_temas, .regla_preguntas_avisos(motivos)),
+       universo = "preguntas comunes", grupos_unidad = "públicos", sin_equivalencia = !is.null(sin_temas), sin_temas_texto = sin_temas)
 }
 
 #' Indicadores del contraste entre grupos de una base (`cruce`)

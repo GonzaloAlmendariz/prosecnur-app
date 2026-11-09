@@ -44,6 +44,7 @@
   vars_lamina <- el$vars
   if (.dumbbell_sin_temas(vars_lamina) && !is.null(el$bases)) vars_lamina <- .dumbbell_vars_de_bases(.dumbbell_bases_contraste(el$bases))
   el_r <- el; el_r$vars <- vars_lamina
+  sources["equivalencias_publicos"] <- list(equiv)   # `base$*` se empareja con ESTA matriz (graficos_dumbbell_equivalencia.R)
   if (!is.null(el$regla)) el_r <- .regla_preguntas_aplicar_render(el_r, "dumbbell", sources)$el
   vars_render <- lapply(el_r$vars %||% list(), function(x) as.character(unlist(x)))
   list(vars_render = vars_render, temas = .tpub_temas_declarados(vars_render, vars_lamina, equiv))
@@ -140,7 +141,9 @@
 #'   las devuelve (la vista previa sólo las pide si el plan tiene láminas entre públicos).
 #' @keywords internal
 .tpub_en_contexto <- function(ctx, plan, sources, equiv = NULL) {
-  if (!is.list(ctx)) return(ctx)
+  # Sin contexto de diferencias la matriz igual viaja: el contraste empareja con ella (graficos_dumbbell_equivalencia.R).
+  # `.sig_informe_vigente` exige `regla`, así que este contexto no inventa una regla de diferencias.
+  if (!is.list(ctx)) return(if (is.null(equiv)) ctx else list(equivalencias_publicos = equiv))
   ctx$equivalencias_publicos <- equiv
   ctx$familia_publicos <- NULL
   ctx$regla_publicos <- NULL

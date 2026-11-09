@@ -46,6 +46,7 @@ source("setup-load-all.R")
 .rr_render <- function(slide_raw, src = .rr_fuentes()) {
   .LAM_RR_PIE$notas <- NULL
   .lam_avisos_soltar(.lam_avisos_estado$token)
+  .heq_local_render(.heq_matriz_por_nombre(src))   # el contraste empareja con la matriz declarada (ADR 0138 §5)
   plan <- .normalize_plan(list(slides = list(slide_raw)), avisar = FALSE)
   out <- withr::local_tempfile(fileext = ".pptx", .local_envir = parent.frame())
   suppressWarnings(reporte_ppt_plan(data = src$data_sources, instrumento = src$inst_sources,

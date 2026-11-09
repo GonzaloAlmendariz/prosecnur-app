@@ -4,8 +4,8 @@
 #
 # Prueba con Arte: un contraste «Docentes y estudiantes» sin preguntas elegidas caía a un gráfico vacío y el conteo
 # respondía un 400 con un nombre interno. Ahora `p_dumbbell()` acepta, en vez de `vars`:
-#   - `bases = c(A, B)`: los temas son los pares de A y B con el mismo nombre y la misma firma de escala
-#     (`.regla_preguntas_pares_por_nombre`, lo mismo que `vars = list(T = c("A$*", "B$*"))`);
+#   - `bases = c(A, B)`: los temas son los pares de A y B que declara la matriz de equivalencias, con la misma firma de
+#     escala (`.regla_preguntas_pares_declarados`, lo mismo que `vars = list(T = c("A$*", "B$*"))`); nunca por nombre;
 #   - nada, con una regla: el render toma las dos bases del estudio; con tres o más, pide elegir cuáles (de dos a cuatro:
 #     el analista elige, el motor no decide; graficos_dumbbell_tres_grupos.R).
 # Sin `vars` ni `bases` y sin regla, el borrador sigue siendo un gráfico vacío (`.dumbbell_borrador_sin_temas`).

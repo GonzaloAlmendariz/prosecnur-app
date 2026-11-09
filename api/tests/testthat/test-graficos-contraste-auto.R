@@ -39,8 +39,8 @@ test_that("sin corte el conteo pide el indicador y no nombra el elemento interno
   expect_false(grepl("ggplot|p_barras", f3$msg))
 })
 
-test_that("con `bases` el contraste empareja por nombre y firma: el mismo conteo que vars = base$*", {
-  src <- .ca_fuentes()
+test_that("con `bases` el contraste empareja por la matriz declarada: el mismo conteo que vars = base$*", {
+  src <- .heq_con_matriz(.ca_fuentes())   # cada pregunta del mismo nombre, declarada equivalente (ADR 0138 §5)
   regla <- list(tipo = "mayor_diferencia", n = 3)
   a <- .regla_preguntas_conteo("p_dumbbell", list(bases = list("docentes", "estudiantes"), corte = list("3", "4"), regla = regla), src)
   b <- .regla_preguntas_conteo("p_dumbbell", list(vars = list(T = list("docentes$*", "estudiantes$*")), corte = list("3", "4"),
@@ -67,7 +67,7 @@ test_that("con tres públicos y sin indicar cuáles, el contraste pide elegirlos
   f2 <- .ca_falla(p_dumbbell(bases = c("docentes"), corte = "4"))
   expect_identical(f2$msg, "El contraste compara de dos a cuatro públicos: elige cuáles.")
   # Con dos bases en el estudio, la regla sin temas toma esas dos.
-  r <- .regla_preguntas_conteo("p_dumbbell", list(corte = list("3", "4"), regla = list(tipo = "comunes")), .ca_fuentes(tres = FALSE))
+  r <- .regla_preguntas_conteo("p_dumbbell", list(corte = list("3", "4"), regla = list(tipo = "comunes")), .heq_con_matriz(.ca_fuentes(tres = FALSE)))
   expect_identical(r$total, 6L)
   # Sin temas, sin bases y sin regla, el constructor lo dice; el borrador del plan sigue siendo un gráfico vacío.
   expect_error(p_dumbbell(corte = "4"), "bases")
@@ -77,6 +77,7 @@ test_that("con tres públicos y sin indicar cuáles, el contraste pide elegirlos
 test_that("el render arma la lámina desde `bases` (payload del plan, sin sesión)", {
   skip_if_not_installed("officer")
   src <- .ca_fuentes()
+  .heq_local_render(.heq_matriz_por_nombre(src))   # el render lee la matriz del contexto del informe
   g <- .rebuild_graf(list(graficador = "p_dumbbell", args = list(bases = list("docentes", "estudiantes"), corte = list("3", "4"),
                                                                 regla = list(tipo = "mayor_diferencia", n = 3))))
   expect_identical(g$.element_type, "dumbbell")
@@ -116,6 +117,7 @@ test_that("HTTP: tres públicos, sin vars y sin corte, el conteo responde 400 co
                                    active_base = "administrativos", processing_mode = "multibase"))
   session_set(sid, "rp_data_sources", src$data_sources)
   session_set(sid, "rp_inst_sources", list(docentes = inst, estudiantes = inst, administrativos = inst))
+  session_set(sid, "equivalencias_publicos", .heq_matriz_por_nombre(src))   # el conteo empareja con la matriz de la sesión
   msg <- function(r) r$body$error$message %||% r$body$message %||% ""
   r <- .ca_http(sid, '{"graficador": "p_dumbbell", "args": {"estilo": "resumen", "regla": {"tipo": "mayor_diferencia", "n": 3}}}')
   expect_identical(r$status, 400L)
@@ -154,7 +156,8 @@ test_that("`bases` está en el registro y sobrevive al guardado del plan, al .pu
   g2 <- session_get(r$session_id)$graficos_config$plan$slides[[1]]$payload$grafico
   expect_identical(unlist(g2$args$bases), c("docentes", "estudiantes"))
   # Rearmado (.clean_rebuild_args dentro de .rebuild_graf), conteo y render leen el par.
-  src <- .ca_fuentes()
+  src <- .heq_con_matriz(.ca_fuentes())
+  .heq_local_render(src$equivalencias_publicos)
   el <- .rebuild_graf(jsonlite::fromJSON(jsonlite::toJSON(g2, auto_unbox = TRUE), simplifyVector = FALSE))
   expect_identical(el$vars, list(`Preguntas comunes` = c("docentes$*", "estudiantes$*")))
   cn <- .regla_preguntas_conteo("p_dumbbell", g2$args, src)

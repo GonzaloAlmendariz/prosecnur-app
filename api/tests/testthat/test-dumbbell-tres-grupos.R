@@ -90,7 +90,7 @@ test_that("el dumbbell entre públicos acepta de dos a cuatro: el analista los e
   el3 <- p_dumbbell(bases = c("docentes", "estudiantes", "administrativos"), corte = c("3", "4"))
   expect_identical(el3$vars, list(`Preguntas comunes` = c("docentes$*", "estudiantes$*", "administrativos$*")))
   r <- .regla_preguntas_conteo("p_dumbbell", list(bases = list("docentes", "estudiantes", "administrativos"), corte = list("3", "4"),
-                                                  regla = list(tipo = "comunes")), src)
+                                                  regla = list(tipo = "comunes")), .heq_con_matriz(src))   # matriz declarada (ADR 0138 §5)
   expect_identical(r$total, 4L)
   # Sin elegir y con tres en el estudio, el motor no decide: pide elegir. Con cinco temas por público, tampoco.
   falla <- tryCatch(.regla_preguntas_conteo("p_dumbbell", list(corte = list("3", "4"), regla = list(tipo = "comunes")), src),

@@ -306,6 +306,7 @@
   tipo <- (regla %||% list(tipo = "todas"))$tipo
   preset <- .regla_preguntas_preset(el, preset)
   ind <- .regla_preguntas_indicadores(el, sources, tipo, preset = preset)
+  if (isTRUE(ind$sin_equivalencia)) return(.regla_preguntas_sin_equivalencia(ind, regla))   # graficos_dumbbell_equivalencia.R
   ev <- .regla_preguntas_evaluar(ind$indicadores, regla, universo = ind$universo, grupos_unidad = ind$grupos_unidad,
                                  decimales = .regla_preguntas_decimales(el, preset))
   # La escala del resumen: `bajo_umbral` y `mayor_sin_info` fijan el orden de las filas (graficos_regla_orden_escala.R).

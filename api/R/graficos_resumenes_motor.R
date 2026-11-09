@@ -19,7 +19,8 @@
 .graficos_resumenes_motor <- function(sid, parsed) {
   fuentes <- .graficos_preview_fuentes(sid, parsed)
   comun <- .graficos_preview_comun(sid, parsed, fuentes)
-  list(fuentes = list(data_sources = comun$data_sources, inst_sources = comun$inst_sources),
+  list(fuentes = list(data_sources = comun$data_sources, inst_sources = comun$inst_sources,
+                     equivalencias_publicos = .tpub_equivalencias_sesion(sid)),   # el contraste empareja con la matriz (ADR 0138 §5)
        presets = if (length(comun$presets_json)) .build_presets(comun$presets_json) else NULL,
        inclusivo = isTRUE(comun$inclusivo), mapa = comun$rotulos_cortos_mapa %||% character(0))
 }

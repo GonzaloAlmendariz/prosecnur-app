@@ -52,6 +52,7 @@ source("setup-load-all.R")
   .espec_contraste(d, base_en = "nota")
 }
 .rr_render <- function(plan_slide, src = .rr_fuentes(), solo_lista = FALSE) {
+  .heq_local_render(.heq_matriz_por_nombre(src))   # `bases` empareja con la matriz declarada (ADR 0138 §5)
   out <- tempfile(fileext = ".pptx")
   r <- suppressWarnings(reporte_ppt_plan(data = src$data_sources, instrumento = src$inst_sources, plan = p_plan(slides = list(plan_slide)),
                                          path_ppt = if (solo_lista) NULL else out, solo_lista = solo_lista, mensajes_progreso = FALSE))

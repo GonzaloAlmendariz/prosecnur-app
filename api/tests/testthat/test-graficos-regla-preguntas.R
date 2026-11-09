@@ -246,8 +246,8 @@ test_that("panorama: las preguntas de escala de cada base, y entre públicos se 
   expect_equal(ind$valor, 100 * mean(d$q1 %in% c("4", "5")))
 })
 
-test_that("contraste entre bases: base$* en las dos bases da los pares del mismo nombre, con el valor del render", {
-  src <- .rp_fuentes()
+test_that("contraste entre bases: base$* en las dos bases da los pares que declara la matriz, con el valor del render", {
+  src <- .heq_con_matriz(.rp_fuentes())   # la matriz declara equivalentes las del mismo nombre (ADR 0138 §5)
   el <- p_dumbbell(vars = list(Todas = c("docentes$*", "estudiantes$*")), corte = c("4", "5"), regla = list(tipo = "diferencia_minima", umbral = 10))
   r <- .regla_preguntas_de_elemento(el, src)
   expect_identical(r$evaluacion$total, 5L)
@@ -312,6 +312,7 @@ test_that("escala del resumen: el lado de acuerdo y Sin información; en multiba
 test_that("en la ruta real el render aplica la regla y la espec lleva el texto de la nota", {
   skip_if_not_installed("ggplot2")
   src <- .rp_fuentes()
+  .heq_local_render(.heq_matriz_por_nombre(src))
   plan <- p_plan(slides = list(
     p_slide_1_grafico(p_panorama(vars = c("docentes$*", "estudiantes$*"), corte = c("4", "5"),
                                  regla = list(tipo = "mayor_diferencia", n = 2)), titulo = "Panorama"),
@@ -339,6 +340,7 @@ test_that("en la ruta real el render aplica la regla y la espec lleva el texto d
 test_that("la lámina nativa escribe la regla en la nota, junto a la base", {
   skip_if_not_installed("officer")
   src <- .rp_fuentes()
+  .heq_local_render(.heq_matriz_por_nombre(src))
   plan <- p_plan(slides = list(
     p_slide_1_grafico(p_dumbbell(vars = list(Todas = c("docentes$*", "estudiantes$*")), corte = c("4", "5"),
                                  regla = list(tipo = "mayor_diferencia", n = 2)), titulo = "Contraste"),
@@ -379,6 +381,7 @@ test_that("la lámina nativa escribe la regla en la nota, junto a la base", {
                                    active_base = "estudiantes", processing_mode = "multibase"))
   session_set(sid, "rp_data_sources", src$data_sources)
   session_set(sid, "rp_inst_sources", list(docentes = inst, estudiantes = inst))
+  session_set(sid, "equivalencias_publicos", .heq_matriz_por_nombre(src))   # el contraste empareja con la matriz
   sid
 }
 
