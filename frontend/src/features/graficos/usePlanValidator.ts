@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { ArgMetadata, GraficadorMetadata, GraficadorRef, PresetMetadata, Slide, SlideMetadata } from "../../api/graficos";
+import type { ArgMetadata, GraficadorMetadata, GraficadorRef, GraficadorRetirado, PresetMetadata, Slide, SlideMetadata } from "../../api/graficos";
 import { usePlanStore, PaletaPorLista } from "./store";
 import { useGraficosRegistry } from "./useGraficosRegistry";
 import { usePresetsMetadata } from "./usePresetsMetadata";
@@ -20,6 +20,7 @@ import { laBase, type RelacionBases } from "./relacionBases";
 import { baseImplicitaDe, basesPorNombre } from "./fijarBase";
 import { conteoBarrasMultiapiladas, excedeTope, laminasNecesarias, MAX_BARRAS_MULTIAPILADAS } from "./multiapiladas/topeBarras";
 import { formatoConteo } from "../../lib/formatoNumero";
+import { avisoTipoRetirado, fichaRetirado } from "./retirados";
 
 // Validador del plan 100% client-side: deriva warnings/errores de lo
 // que ya vive en el store + registry + variables del instrumento. Sin
@@ -67,6 +68,8 @@ import { formatoConteo } from "../../lib/formatoNumero";
 //     el prefijo y lo lee en la base de la pregunta: si la columna existe ahí
 //     es WARNING (la lámina sale bien; la tarjeta ofrece «Fijar base»); si no
 //     existe, ERROR (R7-1, R7-18).
+//   - "tipo-retirado": la ranura usa un tipo retirado por el ADR 0137 (retirados.ts). WARNING con el texto del
+//     backend (/api/graficos/validar): sale en blanco, o como el mapa de calor por cruce (R11-3).
 //
 // Severidad: "error" bloquea export; "warning" solo avisa.
 
@@ -89,7 +92,8 @@ export type ValidationIssue = {
     | "ttb-sin-respuestas"
     | "radar-criterios"
     | "lamina-incompleta"
-    | "cruce-otra-base";
+    | "cruce-otra-base"
+    | "tipo-retirado";
   message: string;
   /** El mensaje sin «Lámina N, “título” (tipo)»: para mostrarlo dentro de la lámina (Inspector). */
   detalle?: string;
@@ -112,13 +116,14 @@ export function usePlanValidator(): ValidationSummary {
   const overridesReusables = usePlanStore((s) => s.overridesReusables);
   const paletas = usePlanStore((s) => s.paletas);
   const iconos = usePlanStore((s) => s.iconos);
-  const { slidesById, graficadoresById } = useGraficosRegistry();
+  const { slidesById, graficadoresById, registry } = useGraficosRegistry();
+  const retirados = registry?.retirados;
   const { presetsByName } = usePresetsMetadata();
   const { variables, multi, relacionBases } = useVariables();
 
   return useMemo(
-    () => validarPlan({ slides, presets, wPresets, overridesReusables, paletas, iconos, slidesById, graficadoresById, presetsByName, variables, multi, relacionBases }),
-    [slides, presets, wPresets, overridesReusables, paletas, iconos, slidesById, graficadoresById, presetsByName, variables, multi, relacionBases],
+    () => validarPlan({ slides, presets, wPresets, overridesReusables, paletas, iconos, slidesById, graficadoresById, presetsByName, variables, multi, relacionBases, retirados }),
+    [slides, presets, wPresets, overridesReusables, paletas, iconos, slidesById, graficadoresById, presetsByName, variables, multi, relacionBases, retirados],
   );
 }
 
@@ -137,13 +142,16 @@ export type EntradaValidarPlan = {
   multi: boolean;
   /** De qué base lee el motor una ref suelta (relacionBases.ts). Sin ella, toda ref suelta en multi es error. */
   relacionBases?: RelacionBases;
+  /** Fichas de los tipos retirados del registro; sin ellas manda la lista congelada de retirados.ts. */
+  retirados?: readonly GraficadorRetirado[];
 };
 
 // Los textos nombran la lámina como el backend (`rotuloLamina`: «Lámina 3, “título”») y su tipo y espacio como el
 // selector; el id de la lámina viaja sólo en `slideId`, para «Ir a la lámina».
 export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
-  const { slides, presets, wPresets, overridesReusables, paletas, iconos, slidesById, graficadoresById, presetsByName, variables, multi, relacionBases } = entrada;
+  const { slides, presets, wPresets, overridesReusables, paletas, iconos, slidesById, graficadoresById, presetsByName, variables, multi, relacionBases, retirados } = entrada;
   const issues: ValidationIssue[] = [];
+  const conRetirados = retirados ? { retirados } : null;
 
   // 1) Plan vacío ---------------------------------------------------------
   if (slides.length === 0) {
@@ -197,6 +205,21 @@ export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
           severity: "warning",
           code: "slot-empty",
           message: `${lamina}: el espacio «${nombreEspacio(slot)}» no tiene gráfico.`,
+          slideId: slide.id,
+          slotName: slot,
+        });
+      } else if (fichaRetirado(graf.graficador, conRetirados)) {
+        // R11-3: un tipo retirado sale en blanco (o como el mapa de calor por cruce): un aviso, y sus args no se validan.
+        const ficha = fichaRetirado(graf.graficador, conRetirados)!;
+        const args = (graf.args ?? {}) as Record<string, unknown>;
+        const comoCruce = graf.graficador === "p_dim_heatmap" && [args.objetivo, args.cruce]
+          .every((v) => typeof v === "string" && !!resolveVar(v.trim()));
+        const texto = avisoTipoRetirado(nombreEspacio(slot), ficha, comoCruce);
+        issues.push({
+          severity: "warning",
+          code: "tipo-retirado",
+          message: `${lamina}: ${texto}`,
+          detalle: enMayuscula(texto),
           slideId: slide.id,
           slotName: slot,
         });

@@ -1,6 +1,9 @@
 // @vitest-environment happy-dom
 // ADR 0137: la ranura de un tipo retirado dice qué era, qué lo reemplaza y, si el reemplazo es un tipo del registro,
 // lo cambia con un clic. El número del ADR va sólo en el detalle del «?».
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -51,5 +54,16 @@ describe("RanuraRetirada", () => {
     ));
     expect([...host.querySelectorAll("button")].some((b) => b.textContent?.startsWith("Cambiar por"))).toBe(false);
     expect(host.textContent).toContain("Reemplazo: El FODA del Dashboard.");
+  });
+
+  it("R11-3: tras «Cambiar por» el foco vuelve al «Cambiar» de la ranura (la nota se desmonta) y la maqueta marca la retirada", () => {
+    const dir = path.dirname(fileURLToPath(import.meta.url));
+    const inspector = readFileSync(path.join(dir, "../InspectorLamina.tsx"), "utf8");
+    const cambiarPor = inspector.slice(inspector.indexOf("onCambiarPor={(graficador) => {"), inspector.indexOf("}} />", inspector.indexOf("onCambiarPor={(graficador) => {")));
+    expect(cambiarPor).toMatch(/cambiarRef\.current\?\.focus\(\)/);
+    expect(inspector).toMatch(/ref=\{cambiarRef\}[\s\S]{0,120}className="pulso-f6-ranura-cambiar"/);
+    const maqueta = readFileSync(path.join(dir, "../MaquetaLamina.tsx"), "utf8");
+    expect(maqueta).toMatch(/is-retirada/);
+    expect(maqueta).toMatch(/Tipo retirado: sale en blanco/);
   });
 });

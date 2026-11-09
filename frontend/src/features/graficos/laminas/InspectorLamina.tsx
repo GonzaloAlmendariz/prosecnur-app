@@ -165,6 +165,8 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onCambiarGrafico }: {
   const setSlot = usePlanStore((s) => s.setSlot);
   const undo = usePlanStore((s) => s.undo);
   const { irA } = useSeccion("procesamiento");
+  // R11-3: tras «Cambiar por …» la nota del retirado se desmonta; el foco vuelve al «Cambiar» de la misma ranura.
+  const cambiarRef = useRef<HTMLButtonElement | null>(null);
   if (slots.length === 0) {
     return (
       <EstadoVacio
@@ -226,6 +228,7 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onCambiarGrafico }: {
                 </div>
                 {abierta && (
                   <PulsoButton
+                    ref={cambiarRef}
                     variant="secondary"
                     size="sm"
                     className="pulso-f6-ranura-cambiar"
@@ -241,6 +244,7 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onCambiarGrafico }: {
                   onCambiarPor={(graficador) => {
                     // Cambiar descarta los args del tipo retirado (ADR 0137): el nuevo empieza en blanco.
                     setSlot(slide.id, slot, { graficador, args: {} });
+                    window.requestAnimationFrame(() => cambiarRef.current?.focus());
                     toast.exito(`${rotulo.charAt(0).toUpperCase()}${rotulo.slice(1)}: ${graficadorDisplayName(graficador, graficadoresById[graficador])}`, {
                       detalle: `Reemplaza a "${retirado.titulo_humano}"; sus datos no pasan al nuevo tipo.`,
                       accion: { label: "Deshacer", onSelect: () => undo() },

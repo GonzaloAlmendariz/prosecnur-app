@@ -12,6 +12,7 @@ import { composicionDe } from "../iconos/composicion";
 import { IconoTipo } from "../iconos/IconoTipo";
 import { LAMINA_PULGADAS } from "../iconos/composicion";
 import { graficadorDisplayName } from "../graficadorDisplay";
+import { fichaRetirado } from "../retirados";
 import { SLIDE_GRAF_SLOTS, usePlanStore } from "../store";
 import { useGraficosRegistry } from "../useGraficosRegistry";
 import { useVariables } from "../useVariables";
@@ -52,7 +53,7 @@ type Props = {
 
 export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar, onTexto, onPrevisualizar, prepOk, falta = null }: Props) {
   const { variables } = useVariables();
-  const { graficadoresById, slidesById } = useGraficosRegistry();
+  const { graficadoresById, slidesById, registry } = useGraficosRegistry();
   const slots = SLIDE_GRAF_SLOTS[slide.tipo] ?? [];
   const estructura = composicionDe(slide.tipo, slots).fuente === "estructura";
   const presets = usePlanStore((s) => s.presets);
@@ -131,16 +132,22 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
         }
         const base = fichaDeRanura(r, nombreTipo, r.variable ? conteos.get(r.variable) : null, totalesRegla.get(firmasRegla[i]) ?? null);
         // Dependencia entre los dos gráficos: el dependiente dice quiénes lo responden; el independiente, a quién habilita.
-        const ficha = !dep ? base : r.slot === dep.a
+        const conDependencia = !dep ? base : r.slot === dep.a
           ? { ...base, ajustes: [`Sólo quienes ${quienes.replace(/^que\s+/, "")}`, ...base.ajustes] }
           : r.slot === dep.de ? { ...base, ajustes: [`Habilita: ${dep.habilita.join(", ") || "…"}`, ...base.ajustes] } : base;
+        // R11-3: un tipo retirado (ADR 0137) no se dibuja como uno vigente: su nombre, la ranura punteada y el aviso.
+        const retirada = r.graficador ? fichaRetirado(r.graficador, registry) : null;
+        const ficha = retirada
+          ? { ...conDependencia, tipo: retirada.titulo_humano, preguntas: [], publicos: [], leyendas: [], ajustes: [], faltaPregunta: false, avisos: ["Tipo retirado: sale en blanco"] }
+          : conDependencia;
         return (
           <button
             key={r.slot ?? i}
             type="button"
-            className={`pulso-f6-maqueta-ranura${activa ? " is-activa" : ""}${r.graficador ? "" : " is-vacia"}`}
+            className={`pulso-f6-maqueta-ranura${activa ? " is-activa" : ""}${r.graficador ? "" : " is-vacia"}${retirada ? " is-retirada" : ""}`}
             style={estilo}
             aria-pressed={activa}
+            data-retirada={retirada ? "" : undefined}
             aria-label={`Gráfico ${r.k}: ${ficha.vacia ? "sin gráfico" : ficha.tipo}${ficha.preguntas[0] ? `, ${ficha.preguntas[0]}` : ""}${ficha.publicos.length ? `, ${ficha.publicos.join(", ")}` : ""}${ficha.avisos.length ? `. ${ficha.avisos.join(". ")}` : ""}`}
             // Una ranura vacía va directo a «¿Qué gráfico?»; una con gráfico abre su tarjeta.
             onClick={() => (r.graficador ? onRanura(r.k as number) : onCambiar(r.k as number))}

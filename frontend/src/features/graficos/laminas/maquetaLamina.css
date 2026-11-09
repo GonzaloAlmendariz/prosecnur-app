@@ -136,6 +136,13 @@
   background: transparent;
 }
 
+/* R11-3: tipo retirado por el ADR 0137. Sale en blanco: borde punteado en el tono de aviso, sin fondo. */
+.pulso-f6-maqueta-ranura.is-retirada {
+  border-style: dashed;
+  border-color: var(--pulso-warn-border);
+  background: transparent;
+}
+
 .pulso-f6-maqueta-ranura.is-cifra {
   cursor: default;
 }

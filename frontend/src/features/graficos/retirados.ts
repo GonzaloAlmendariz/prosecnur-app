@@ -3,7 +3,7 @@
 // catálogo y de la app; esta lista congelada queda como respaldo para reconocer un plan viejo aunque el registro llegue
 // sin fichas (RanuraRetirada, avisos). Módulo puro.
 
-import type { GraficadorMetadata, GraficadorRetirado, Registry } from "../../api/graficos";
+import type { GraficadorMetadata, GraficadorRetirado } from "../../api/graficos";
 import { graficadorDisplayName } from "./graficadorDisplay";
 
 /** Nombre legible de los siete tipos del ADR 0137 (seis del ADR más el resto `p_dim_radar_tabla`). La fase 2 borró
@@ -24,7 +24,7 @@ export const TIPOS_RETIRADOS_0137: ReadonlySet<string> = new Set(Object.keys(NOM
 
 export const ADR_RETIRO = "0137";
 
-type ConRetirados = Pick<Registry, "retirados"> | null | undefined;
+type ConRetirados = { readonly retirados: readonly GraficadorRetirado[] } | null | undefined;
 
 /** ¿El tipo está retirado? Lo dice el registro o, sin él, la lista congelada. */
 export function esTipoRetirado(name: string | null | undefined, registry?: ConRetirados): boolean {
@@ -65,4 +65,24 @@ export function reemplazoDirecto(
   const meta = graficadoresById[g];
   if (!meta) return null;
   return { graficador: g, nombre: graficadorDisplayName(g, meta) };
+}
+
+/** Título del tipo que reemplaza 1:1 al `p_dim_heatmap` con una pregunta como objetivo (api/R/graficos_heatmap_cruce.R). */
+export const TITULO_MAPA_CALOR_CRUCE = "Mapa de calor por cruce";
+
+/**
+ * R11-3: el aviso de una ranura con un tipo retirado, con el texto de `.graficos_retirado_aviso_validacion`
+ * (api/R/graficos_retirados.R) sin el rótulo de la lámina. `heatmapComoCruce`: el `p_dim_heatmap` cuyo objetivo y cruce
+ * son preguntas del instrumento sale como el mapa de calor por cruce, con las mismas cifras.
+ */
+export function avisoTipoRetirado(
+  espacio: string,
+  ficha: Pick<GraficadorRetirado, "titulo_humano" | "reemplazo">,
+  heatmapComoCruce = false,
+): string {
+  if (heatmapComoCruce) {
+    return `el espacio "${espacio}" usa "${ficha.titulo_humano}", que ya no existe; sale como "${TITULO_MAPA_CALOR_CRUCE}", con las mismas cifras.`;
+  }
+  const reemplazo = ficha.reemplazo.texto.trim() || "otro tipo de gráfico";
+  return `el espacio "${espacio}" usa "${ficha.titulo_humano}", que ya no existe; sale en blanco. Cámbialo por ${reemplazo}.`;
 }
