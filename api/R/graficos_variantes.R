@@ -25,7 +25,7 @@
          descripcion = "Un público abierto por los grupos de una pregunta, con la distancia entre grupos.",
          args_fijos = list(estilo = "resumen"), args_quitar = c("cruce", "bases")),
     list(graficador = "p_barras_divergentes", slug = "escala_sin_informacion",
-         nombre = "Escala con columna de Sin información",
+         nombre = "Escala con columna de Sin información", nombre_version = "Con columna de Sin información",
          descripcion = "Barras divergentes de desacuerdo y acuerdo, con Sin información en una columna gris aparte.",
          args_fijos = list(estilo = "resumen"), args_quitar = character(0))
   )
@@ -35,6 +35,7 @@
       id = paste0(d$graficador, ":", d$slug),
       graficador = d$graficador,
       nombre = d$nombre,
+      nombre_version = as.character(d$nombre_version %||% d$nombre),
       familia = as.character(m$familia_editor %||% NA_character_),
       icono = as.character(m$icono_ui %||% "BarChart"),
       descripcion = d$descripcion,

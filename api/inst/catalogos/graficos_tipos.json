@@ -868,7 +868,7 @@
     },
     {
       "name": "p_barras_divergentes",
-      "titulo_humano": "Barras divergentes",
+      "titulo_humano": "Multiapilada divergente",
       "familia_editor": "escalas",
       "salida": "nativa",
       "en_selector": true,
@@ -877,7 +877,8 @@
         "publicos": "uno_o_varios",
         "padron": false,
         "cruce": false
-      }
+      },
+      "version_base": "Clásica"
     },
     {
       "name": "p_puntos_comparativos",
@@ -1119,6 +1120,7 @@
       "id": "p_dumbbell:contraste",
       "graficador": "p_dumbbell",
       "nombre": "Contraste de públicos",
+      "nombre_version": "Contraste de públicos",
       "familia": "comparar",
       "icono": "MoveHorizontal",
       "descripcion": "La misma pregunta en dos públicos y su diferencia, ordenadas por diferencia.",
@@ -1132,6 +1134,7 @@
       "id": "p_dumbbell:aperturas",
       "graficador": "p_dumbbell",
       "nombre": "Aperturas por grupo",
+      "nombre_version": "Aperturas por grupo",
       "familia": "comparar",
       "icono": "MoveHorizontal",
       "descripcion": "Un público abierto por los grupos de una pregunta, con la distancia entre grupos.",
@@ -1144,6 +1147,7 @@
       "id": "p_barras_divergentes:escala_sin_informacion",
       "graficador": "p_barras_divergentes",
       "nombre": "Escala con columna de Sin información",
+      "nombre_version": "Con columna de Sin información",
       "familia": "escalas",
       "icono": "AlignHorizontalJustifyCenter",
       "descripcion": "Barras divergentes de desacuerdo y acuerdo, con Sin información en una columna gris aparte.",

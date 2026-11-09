@@ -242,7 +242,7 @@ export const CATALOGO_GRAFICOS: readonly TipoGraficoCatalogo[] = [
     usa: { pregunta: ["numerica"], publicos: "uno", padron: false, cruce: true } },
   { name: "p_media_rango", titulo_humano: "Media y rango", familia_editor: "numeros", salida: "nativa", en_selector: true,
     usa: { pregunta: ["numerica"], publicos: "uno", padron: false, cruce: true } },
-  { name: "p_barras_divergentes", titulo_humano: "Barras divergentes", familia_editor: "escalas", salida: "nativa", en_selector: true,
+  { name: "p_barras_divergentes", titulo_humano: "Multiapilada divergente", version_base: "Clásica", familia_editor: "escalas", salida: "nativa", en_selector: true,
     usa: { pregunta: ["escala"], publicos: "uno_o_varios", padron: false, cruce: false } },
   { name: "p_puntos_comparativos", titulo_humano: "Puntos comparativos", familia_editor: "comparar", salida: "nativa", en_selector: true,
     usa: { pregunta: ["opcion_unica"], publicos: "uno", padron: false, cruce: true } },
@@ -288,13 +288,13 @@ export const FAMILIAS_EDITOR: readonly FamiliaEditorCatalogo[] = [
 ];
 
 export const VARIANTES_GRAFICO: readonly VarianteGraficoCatalogo[] = [
-  { id: "p_dumbbell:contraste", graficador: "p_dumbbell", nombre: "Contraste de públicos", familia: "comparar", icono: "MoveHorizontal",
+  { id: "p_dumbbell:contraste", graficador: "p_dumbbell", nombre: "Contraste de públicos", nombre_version: "Contraste de públicos", familia: "comparar", icono: "MoveHorizontal",
     descripcion: "La misma pregunta en dos públicos y su diferencia, ordenadas por diferencia.",
     args_fijos: { "estilo": "resumen", "cruce": null }, args_quitar: [] },
-  { id: "p_dumbbell:aperturas", graficador: "p_dumbbell", nombre: "Aperturas por grupo", familia: "comparar", icono: "MoveHorizontal",
+  { id: "p_dumbbell:aperturas", graficador: "p_dumbbell", nombre: "Aperturas por grupo", nombre_version: "Aperturas por grupo", familia: "comparar", icono: "MoveHorizontal",
     descripcion: "Un público abierto por los grupos de una pregunta, con la distancia entre grupos.",
     args_fijos: { "estilo": "resumen" }, args_quitar: ["cruce","bases"] },
-  { id: "p_barras_divergentes:escala_sin_informacion", graficador: "p_barras_divergentes", nombre: "Escala con columna de Sin información", familia: "escalas", icono: "AlignHorizontalJustifyCenter",
+  { id: "p_barras_divergentes:escala_sin_informacion", graficador: "p_barras_divergentes", nombre: "Escala con columna de Sin información", nombre_version: "Con columna de Sin información", familia: "escalas", icono: "AlignHorizontalJustifyCenter",
     descripcion: "Barras divergentes de desacuerdo y acuerdo, con Sin información en una columna gris aparte.",
     args_fijos: { "estilo": "resumen" }, args_quitar: [] },
 ];

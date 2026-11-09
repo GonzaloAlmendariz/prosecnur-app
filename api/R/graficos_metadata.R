@@ -1883,7 +1883,9 @@
   # BARRAS DIVERGENTES (Likert centrado)
   # =========================================================================
   p_barras_divergentes = list(
-    titulo_humano = "Barras divergentes",
+    titulo_humano = "Multiapilada divergente",
+    version_base  = "Clásica",   # ADR 0139, enmienda: las variantes son versiones de su tipo
+
     descripcion   = "Escala Likert centrada en cero: cada lado conserva el significado declarado sin reordenar niveles. Excluir respuestas cambia el denominador.",
     icono_ui      = "AlignHorizontalJustifyCenter",
     categoria     = "distribution",
