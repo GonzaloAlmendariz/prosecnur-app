@@ -15,6 +15,8 @@ import {
   faltaEnSerie, esSelectOne, temasAArgs,
 } from "./temasEquivalentesModel";
 import { useEquivalenciasDeTemas } from "./useEquivalenciasDeTemas";
+import { SeparadorEntreFilas } from "../laminas/brecha/SeparadorEntreFilas";
+import { conSeparador, separadoresDe } from "../laminas/brecha/separadoresFilas";
 import "../multiapiladas/multiapiladas.css";
 import "./temasEquivalentes.css";
 
@@ -47,6 +49,7 @@ export function EditorTemasEquivalentes({ tipo, args, onCambio }: Props) {
   const basesBrecha = resumen ? basesDeclaradas(args) ?? basesDelPar(args, basesEstudio) : delRecetario;
   const casillas = casillasDePublicos(basesEstudio.length, basesBrecha.length);
   const elegidasBrecha = basesBrecha.filter(Boolean);
+  const separadores = separadoresDe(args);
   const periodos = ordenEfectivo(eq.periodos, eq.bases.length ? eq.bases : basesEstudio);
 
   const publicos = tipo === "radar" ? basesEstudio : tipo === "brecha" ? basesBrecha.filter(Boolean) : periodos;
@@ -132,8 +135,16 @@ export function EditorTemasEquivalentes({ tipo, args, onCambio }: Props) {
           {tipo === "radar" ? "El radar entre públicos necesita bases separadas: una por público." : "La serie necesita una base por medición, al menos dos."}
         </p>
       ) : publicos.length > 0 ? (
-        <TemasPorPublico temas={temas} publicos={publicos} variables={variables} matriz={eq.matriz} filtroTipo={esSelectOne} nuevoTema={nuevoTema} onChange={conTemas} />
+        <TemasPorPublico temas={temas} publicos={publicos} variables={variables} matriz={eq.matriz} filtroTipo={esSelectOne} nuevoTema={nuevoTema} onChange={conTemas}
+          // D4: en el contraste de públicos, un separador entre dos temas con un clic (el motor nunca lo pone solo).
+          entreTemas={resumen ? (i) => (
+            <SeparadorEntreFilas posicion={i + 1} activo={separadores.includes(i + 1)} onCambiar={(on) => onCambio(conSeparador(args, i + 1, on))} />
+          ) : undefined} />
       ) : null}
+
+      {resumen && separadores.length > 0 && temas.length > 1 && (
+        <span className="pulso-f6-dato-ayuda">Con separador, las filas salen en el orden de los temas.</span>
+      )}
 
       {escala.length > 0 && (
         <fieldset className="pulso-teq-corte">

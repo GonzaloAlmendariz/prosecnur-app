@@ -199,8 +199,12 @@ export function ajustesDelGlifo(graficador: string, args: Readonly<Record<string
       if (!glifo.brecha) ajustes.push("Sin la brecha");
       if (v("estilo") === "resumen") {
         ajustes.push("Contraste de públicos");
-        const sep = entero(v("separar_tras"));
-        if (sep) ajustes.push(`Separador tras la fila ${sep}`);
+        // D4: una o varias posiciones («Separadores tras las filas 3 y 6»).
+        const seps = (Array.isArray(v("separar_tras")) ? (v("separar_tras") as unknown[]) : [v("separar_tras")])
+          .map(entero).filter((n): n is number => n !== null);
+        const unicos = [...new Set(seps)].sort((a, b) => a - b);
+        if (unicos.length === 1) ajustes.push(`Separador tras la fila ${unicos[0]}`);
+        else if (unicos.length > 1) ajustes.push(`Separadores tras las filas ${unicos.slice(0, -1).join(", ")} y ${unicos[unicos.length - 1]}`);
         const baseEn = BASE_EN[String(v("base_en") ?? "")];
         if (baseEn) ajustes.push(baseEn);
       }

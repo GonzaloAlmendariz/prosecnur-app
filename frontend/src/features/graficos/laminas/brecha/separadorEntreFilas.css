@@ -1,0 +1,83 @@
+/* D4: el separador entre dos filas de la lista del dumbbell. En reposo es una franja de 24 px casi invisible (el blanco
+   entre filas, objetivo de clic suficiente); al pasar o enfocar dice «Separar aquí». Puesto, la línea punteada del
+   gráfico con el acento del módulo. Sólo tokens. */
+.pulso-f6-separador-filas {
+  min-width: 0;
+}
+
+.pulso-f6-separador-filas-boton {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  width: 100%;
+  min-height: var(--pulso-space-6);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: calc(var(--pulso-radius) / 2);
+  background: transparent;
+  color: var(--pulso-text-faint);
+  font: inherit;
+  font-size: var(--pulso-type-caption-size);
+  cursor: pointer;
+}
+
+.pulso-f6-separador-filas-linea {
+  flex: 1 1 0;
+  min-width: var(--pulso-space-4);
+  border-top: 1px dashed transparent;
+  transition: border-color var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-f6-separador-filas-rotulo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-f6-separador-filas-boton:focus-visible {
+  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
+  outline-offset: 0;
+}
+
+.pulso-f6-separador-filas-boton:focus-visible .pulso-f6-separador-filas-rotulo,
+.pulso-f6-separador-filas.is-activo .pulso-f6-separador-filas-rotulo {
+  opacity: 1;
+}
+
+.pulso-f6-separador-filas-boton:focus-visible .pulso-f6-separador-filas-linea {
+  border-top-color: var(--pulso-border-strong);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-f6-separador-filas-boton:hover .pulso-f6-separador-filas-rotulo {
+    opacity: 1;
+  }
+
+  .pulso-f6-separador-filas-boton:hover .pulso-f6-separador-filas-linea {
+    border-top-color: var(--pulso-border-strong);
+  }
+
+  .pulso-f6-separador-filas.is-activo .pulso-f6-separador-filas-boton:hover {
+    color: var(--pulso-text);
+  }
+}
+
+.pulso-f6-separador-filas.is-activo .pulso-f6-separador-filas-boton {
+  color: var(--module-accent);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-f6-separador-filas.is-activo .pulso-f6-separador-filas-linea {
+  border-top: 1.5px dashed var(--module-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-f6-separador-filas-linea,
+  .pulso-f6-separador-filas-rotulo {
+    transition: none;
+  }
+}

@@ -24,6 +24,8 @@ import {
 } from "./modeloBrechaGrupos";
 import "./brechaEntreGrupos.css";
 import { AyudaGlobo } from "../AyudaGlobo";
+import { SeparadorEntreFilas } from "./SeparadorEntreFilas";
+import { conSeparador, separadoresDe } from "./separadoresFilas";
 import { PulsoButton } from "../../../../components/PulsoButton";
 
 type Props = { args: Readonly<Record<string, unknown>>; onCambio: (patch: Record<string, unknown>) => void };
@@ -60,6 +62,8 @@ export function BrechaEntreGrupos({ args, onCambio }: Props) {
   // Q4-4: en el resumen, al elegir la pregunta que divide arrancan encendidos hasta cuatro grupos con respuestas. Se
   // espera su conteo y se aplica todo en un solo cambio (un Ctrl+Z); una respuesta vieja de otro cruce no pisa la última.
   const pedido = useRef(0);
+  // D4: en el contraste (estilo resumen), un separador entre dos preguntas con un clic; el motor nunca lo pone solo.
+  const separadores = new Set(separadoresDe(args));
   const elegirCruce = (v: string | null) => {
     const turno = ++pedido.current;
     const ref = conCruce(variables, v).cruce;
@@ -140,6 +144,12 @@ export function BrechaEntreGrupos({ args, onCambio }: Props) {
                       <X aria-hidden="true" />
                     </PulsoButton>
                     {cruce && !mismaBase(variables, cruce, ref) && <span className="pulso-f6-dato-ayuda is-aviso">Está en otra base que el cruce.</span>}
+                    {resumen && i < preguntas.length - 1 && (
+                      <div className="pulso-f6-brecha-separador">
+                        <SeparadorEntreFilas posicion={i + 1} activo={separadores.has(i + 1)}
+                          onCambiar={(on) => onCambio(conSeparador(args, i + 1, on))} />
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -147,6 +157,9 @@ export function BrechaEntreGrupos({ args, onCambio }: Props) {
                 <VariablePicker value={null} allowEmpty filter={esSelectOne} placeholder="Agregar pregunta…"
                                 onChange={(v) => v && onCambio(conPreguntas(variables, [...preguntas, v]))} />
               </div>
+              {resumen && separadores.size > 0 && preguntas.length > 1 && (
+                <span className="pulso-f6-dato-ayuda">Con separador, las filas salen en el orden de la lista.</span>
+              )}
               {sinPreguntas && (
                 <p className="pulso-f6-dato-ayuda is-aviso" role="status">
                   {"La lámina sale vacía: no tiene preguntas. "}

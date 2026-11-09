@@ -5,7 +5,7 @@
 // P20: la matriz de equivalencias sugiere la pregunta de cada público vacío y la lámina decide (enmienda al ADR 0103).
 // ADR 0104: sólo sugiere lo que la persona declaró; no hay sugerencia «parecida».
 
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import { ArrowDown, ArrowUp, Link2, Plus, X } from "../../../vendor/lucide-react";
 import VariablePicker from "../VariablePicker";
 import type { VarWithSource } from "../useVariables";
@@ -32,6 +32,8 @@ type Props = {
   cupo?: number;
   /** Lo que va al lado de «Agregar tema» (el conteo de barras). */
   pie?: ReactNode;
+  /** Lo que va entre el tema `i` y el siguiente (D4: el separador del dumbbell). */
+  entreTemas?: (i: number) => ReactNode;
 };
 
 function ChipSugerencia({ s, publico, variables, onAplicar }: { s: SugerenciaPublico; publico: string; variables: readonly VarWithSource[]; onAplicar: () => void }) {
@@ -52,7 +54,7 @@ function ChipSugerencia({ s, publico, variables, onAplicar }: { s: SugerenciaPub
   );
 }
 
-export function TemasPorPublico({ temas, publicos, variables, onChange, nuevoTema, matriz = SIN_MATRIZ, filtroTipo, cupo = Infinity, pie }: Props) {
+export function TemasPorPublico({ temas, publicos, variables, onChange, nuevoTema, matriz = SIN_MATRIZ, filtroTipo, cupo = Infinity, pie, entreTemas }: Props) {
   const lista = temas.length ? temas : [nuevoTema(1)];
   const mover = (i: number, d: -1 | 1) => {
     const j = i + d; if (j < 0 || j >= lista.length) return;
@@ -76,7 +78,8 @@ export function TemasPorPublico({ temas, publicos, variables, onChange, nuevoTem
           reemplazar({ ...actualizado, title: titulo });
         };
         return (
-        <div key={tema.key || i} className="pulso-mapi-tarjeta" data-qa-geometry-member data-qa-geometry-group="graficos/mapi-tarjeta" data-qa-geometry-contract="intrinsic">
+        <Fragment key={tema.key || i}>
+        <div className="pulso-mapi-tarjeta" data-qa-geometry-member data-qa-geometry-group="graficos/mapi-tarjeta" data-qa-geometry-contract="intrinsic">
           <div className="pulso-mapi-tema">
             <input className="pulso-f6-input" aria-label="Nombre del tema" value={tema.title} placeholder="Nombre del tema"
                    onChange={(e) => onChange(lista.map((t, j) => (j === i ? { ...t, title: e.target.value } : t)))} />
@@ -118,6 +121,8 @@ export function TemasPorPublico({ temas, publicos, variables, onChange, nuevoTem
             );
           })}
         </div>
+        {entreTemas && i < lista.length - 1 && entreTemas(i)}
+        </Fragment>
         );
       })}
       <div className="pulso-mapi-pie">

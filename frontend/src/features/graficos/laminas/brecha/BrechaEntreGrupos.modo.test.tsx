@@ -88,4 +88,40 @@ describe("BrechaEntreGrupos: el modo de comparación", () => {
     act(() => usePlanStore.getState().updateSlotArgs(SLIDE, "grafico", { cruce: null }));
     expect(argsDelPlan()).not.toHaveProperty("cruce");
   });
+
+  it("D4: un clic entre dos preguntas pone el separador y otro lo quita; con teclado es un botón de alternar", () => {
+    usePlanStore.setState({
+      plan: { slides: [{ id: SLIDE, tipo: "p_slide_1_grafico", payload: { grafico: { graficador: "p_dumbbell", args: {
+        estilo: "resumen", cruce: "docentes$ciclo", grupos: ["1", "2"], vars: ["docentes$p1", "docentes$p2", "docentes$p3"], corte: "1",
+      } } } }] } as never,
+    });
+    act(() => root.render(<MemoryRouter><Tarjeta /></MemoryRouter>));
+    const separadores = () => [...host.querySelectorAll<HTMLButtonElement>(".pulso-f6-separador-filas-boton")];
+    // Tres preguntas, dos huecos entre ellas; nada puesto de partida.
+    expect(separadores()).toHaveLength(2);
+    expect(separadores().map((b) => b.getAttribute("aria-pressed"))).toEqual(["false", "false"]);
+    expect(argsDelPlan()).not.toHaveProperty("separar_tras");
+
+    act(() => separadores()[1].click());
+    expect(argsDelPlan().separar_tras).toEqual([2]);
+    expect(separadores()[1].getAttribute("aria-pressed")).toBe("true");
+    expect(separadores()[1].getAttribute("aria-label")).toBe("Quitar el separador tras la fila 2");
+    expect(host.textContent).toContain("Con separador, las filas salen en el orden de la lista.");
+
+    act(() => separadores()[0].click());
+    expect(argsDelPlan().separar_tras).toEqual([1, 2]);
+    act(() => separadores()[1].click());
+    act(() => separadores()[0].click());
+    expect(argsDelPlan()).not.toHaveProperty("separar_tras");
+  });
+
+  it("D4: en el recetario no se ofrece el separador (el motor no lo dibuja)", () => {
+    usePlanStore.setState({
+      plan: { slides: [{ id: SLIDE, tipo: "p_slide_1_grafico", payload: { grafico: { graficador: "p_dumbbell", args: {
+        cruce: "docentes$ciclo", grupos: ["1", "2"], vars: ["docentes$p1", "docentes$p2"], corte: "1",
+      } } } }] } as never,
+    });
+    act(() => root.render(<MemoryRouter><Tarjeta /></MemoryRouter>));
+    expect(host.querySelector(".pulso-f6-separador-filas-boton")).toBeNull();
+  });
 });
