@@ -48,3 +48,15 @@ test_that("S2: en la ranura de la lámina de dos gráficos un segmento de 30 % l
   # «Sin información» con valores de hasta 36 %: su columna no pasa del ancho de siempre (1 in).
   expect_lte(ge$wsi, 1.0 + 1e-9)
 })
+
+test_that("S2 y S6: la columna «Sin información» se angosta con la escala que usa el dibujo (la de la serie) y cada cifra cabe", {
+  niv <- c(t1 = "A", t2 = "B", t3 = "C", t4 = "D", t5 = "Sin información")
+  d <- data.frame(it = paste("Pregunta", 1:6), t1 = c(4, 9, 7, 3, 3, 7), t2 = c(9, 18, 16, 17, 38, 25), t3 = c(43, 32, 35, 42, 23, 32),
+                  t4 = c(10, 7, 10, 9, 5, 8), t5 = c(34, 34, 33, 30, 30, 28))
+  e <- attr(graficar_barras_divergentes(d, "it", names(niv), niv, n_negativas = 2, incluir_neutro = FALSE, estilo = "resumen", orden = "declarado"), "pulso_espec")
+  e$serie <- list(filas = e$filas, izq = 50, der = 60, max_si = 38)   # la serie llega a 38 % de Sin información
+  wsi <- .lam_rr_div_wsi(e, 0.85, 0.0125)
+  wbar <- (wsi - 0.1) * e$unidades[, 5] / 38
+  tinta <- .lam_ancho_txt(e$cifras[, 5], 10, TRUE)
+  expect_true(all(wbar >= tinta + 0.12 | wbar + tinta + 0.15 <= wsi))
+})

@@ -36,7 +36,7 @@
   si <- which(espec$categorias$lado == "sin_inf")
   if (!length(si) || !is.finite(px) || px <= 0) return(wsi0)
   v <- espec$unidades[, si[1]]; cif <- espec$cifras[, si[1]]
-  max_si <- max(1, max(v))
+  max_si <- espec$serie$max_si %||% max(1, max(v))   # la escala que usa el dibujo: la de la serie si la hay (S6)
   ok <- function(wsi) {
     wbar <- (wsi - 0.1) * v / max_si
     tinta <- .lam_ancho_txt(cif, pt, TRUE)
