@@ -454,6 +454,8 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   },
   // ADR 0134: formal de p_panorama(); la mediana de cada público se lee contra esta línea.
   referencia: { rotulo: "Referencia (%)", ayuda: AYUDA_REFERENCIA, soloEn: ["p_panorama"] },
+  // Formales de p_panorama (e7df0dd35): por defecto se muestran; apagarlas le da alto y ancho al gráfico.
+  mostrar_bajo_umbral: { rotulo: "Columna bajo el umbral", soloEn: ["p_panorama"] },
   // Formales de p_media_rango (e93c51d): `decimales_promedio` es el que llega (el constructor lo pasa a `chip_decimales`).
   decimales_promedio: { rotulo: "Decimales de la media", soloEn: MEDIA_RANGO },
   tipo_rango: {
@@ -473,7 +475,7 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   max_palabras: { rotulo: "Máximo de palabras", soloEn: ["p_nube_palabras"] },
   min_chars: { rotulo: "Mínimo de letras por palabra", soloEn: ["p_nube_palabras"] },
   decimales: { rotulo: "Decimales", soloEn: ["p_numerico", "p_histograma"] },
-  mostrar_leyenda: { rotulo: "Mostrar la leyenda", soloEn: ["p_serie_temporal", "p_numerico"] },
+  mostrar_leyenda: { rotulo: "Mostrar la leyenda", soloEn: ["p_serie_temporal", "p_numerico", "p_panorama"] },
   mostrar_valores: { rotulo: "Mostrar cifras", soloEn: ["p_serie_temporal"], cuando: serieEnMarco },
   max_series_con_cifras: {
     rotulo: "Máximo de series con cifras",
