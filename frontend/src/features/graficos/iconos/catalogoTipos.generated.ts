@@ -252,7 +252,7 @@ export const CATALOGO_GRAFICOS: readonly TipoGraficoCatalogo[] = [
     usa: { pregunta: ["opcion_unica"], publicos: "uno", padron: false, cruce: true } },
   { name: "p_cifra", titulo_humano: "Cifra destacada", familia_editor: "numeros", salida: "nativa", en_selector: true,
     usa: { pregunta: ["cualquiera"], publicos: "uno", padron: false, cruce: false } },
-  { name: "p_dumbbell", titulo_humano: "Brecha entre dos grupos", familia_editor: "comparar", salida: "nativa", en_selector: true,
+  { name: "p_dumbbell", titulo_humano: "Brecha entre grupos", familia_editor: "comparar", salida: "nativa", en_selector: true,
     usa: { pregunta: ["escala"], publicos: "uno_o_varios", padron: false, cruce: true } },
   { name: "p_panorama", titulo_humano: "Panorama de públicos", familia_editor: "comparar", salida: "nativa", en_selector: true,
     usa: { pregunta: ["escala"], publicos: "uno_o_varios", padron: false, cruce: false } },

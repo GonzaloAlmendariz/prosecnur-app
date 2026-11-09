@@ -934,7 +934,7 @@
     },
     {
       "name": "p_dumbbell",
-      "titulo_humano": "Brecha entre dos grupos",
+      "titulo_humano": "Brecha entre grupos",
       "familia_editor": "comparar",
       "salida": "nativa",
       "en_selector": true,

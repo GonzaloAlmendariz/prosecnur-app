@@ -786,3 +786,11 @@ test_that("población sin ícono (Gonzalo, 2026-10-14): ni ranura, ni arg, ni «
   sl <- suppressMessages(.graficos_rebuild_slide_json(s))
   expect_s3_class(sl, "ppt_slide")
 })
+
+test_that("P4: el dumbbell se llama «Brecha entre grupos» (acepta de dos a cuatro) en el registro, los presets y el catálogo", {
+  expect_identical(.GRAFICADORES_META$p_dumbbell$titulo_humano, "Brecha entre grupos")
+  expect_identical(.PRESETS_META$dumbbell$titulo_humano, "Brecha entre grupos")
+  txt <- paste(readLines(system.file("catalogos", "graficos_tipos.json", package = "prosecnurapp"), encoding = "UTF-8"), collapse = "\n")
+  expect_false(grepl("Brecha entre dos grupos", txt, fixed = TRUE))
+  expect_true(grepl("Brecha entre grupos", txt, fixed = TRUE))
+})

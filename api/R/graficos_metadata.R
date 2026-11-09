@@ -2082,7 +2082,7 @@
   # DUMBBELL (brecha entre dos bases)
   # =========================================================================
   p_dumbbell = list(
-    titulo_humano = "Brecha entre dos grupos",
+    titulo_humano = "Brecha entre grupos",
     descripcion   = "Un punto por grupo y la distancia entre ambos, tema por tema: dos grupos de una base (mujeres y hombres) o dos bases con preguntas equivalentes (docentes y estudiantes). La brecha es el primero menos el segundo.",
     icono_ui      = "MoveHorizontal",
     categoria     = "comparison",
@@ -3971,7 +3971,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
   ),
 
   dumbbell = list(
-    titulo_humano = "Brecha entre dos grupos",
+    titulo_humano = "Brecha entre grupos",
     descripcion   = "Estilo global del dumbbell: tamaño de punto, grosor del segmento, cifras y leyenda.",
     icono_ui      = "MoveHorizontal",
     args = list(
