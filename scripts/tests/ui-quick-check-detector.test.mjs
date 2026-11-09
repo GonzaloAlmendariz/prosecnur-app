@@ -24,12 +24,17 @@ const FIXTURE = `
   .caja { display: block; width: 200px; white-space: nowrap; margin: 12px; }
   .recorta { overflow: hidden; text-overflow: ellipsis; }
   .suelta { overflow: visible; }
+  .quieto { position: relative; box-sizing: border-box; width: 28px; height: 28px; padding: 0; border: 1px solid transparent; margin: 12px; }
+  .quieto::before { content: ""; position: absolute; inset: -3px; }
+  .bajo { display: block; height: 20px; width: 200px; margin: 12px; overflow: visible; }
 </style>
 <div id="superficie" role="menu">
   <button class="caja recorta marca-con-title" title="${NOMBRE_LARGO}">${NOMBRE_LARGO}</button>
   <button class="caja recorta marca-sin-title">${NOMBRE_LARGO}</button>
   <button class="caja suelta marca-desborda">${NOMBRE_LARGO}</button>
   <button class="caja recorta marca-title-parcial" title="otro nombre">${NOMBRE_LARGO}</button>
+  <button class="quieto marca-quieto" aria-label="Deshacer"><svg width="16" height="16"></svg></button>
+  <button class="bajo marca-bajo">Una línea<br>otra línea<br>y una tercera que no cabe</button>
 </div>
 `;
 
@@ -73,6 +78,16 @@ test("un title que no contiene el texto recortado no lo vuelve alcanzable", asyn
 test("el texto que se sale de su caja sigue siendo hallazgo", async () => {
   const issues = await medirFixture();
   assert.equal(reportado(issues, "marca-desborda"), true);
+});
+
+test("R11-12: el ::before del área de impacto de un botón quieto no es un desborde", async () => {
+  const issues = await medirFixture();
+  assert.equal(reportado(issues, "marca-quieto"), false);
+});
+
+test("R11-12: un texto que sí se sale de su caja en alto sigue siendo hallazgo", async () => {
+  const issues = await medirFixture();
+  assert.equal(reportado(issues, "marca-bajo"), true);
 });
 
 test("el gate espera el render terminal de una lista virtualizada", async () => {

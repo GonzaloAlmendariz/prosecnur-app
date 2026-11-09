@@ -1551,6 +1551,23 @@ async function inspectDomCajas(page, { projectMode, geometryGroups, geometryTole
       const yOverflow = el.scrollHeight > el.clientHeight + 2 && !overflowYAllowed;
       if (!xOverflow && !yOverflow) continue;
       if (railTooltipEscape(el, style)) continue;
+      // R11-12: el `::before` del área de impacto del botón quieto (32 px sobre una caja de 28) entra en
+      // scrollWidth/scrollHeight aunque ningún contenido real se salga: 94 falsos overflow-y en Láminas. Si todo lo que
+      // el elemento contiene (elementos y texto, que el Range sí ve; los pseudo-elementos no) cabe en su caja, el
+      // desborde es de un pseudo-elemento y no es hallazgo.
+      const contenidoRealCabe = () => {
+        try {
+          const range = el.ownerDocument.createRange();
+          range.selectNodeContents(el);
+          const cajas = Array.from(range.getClientRects()).filter((r) => r.width > 0 || r.height > 0);
+          range.detach?.();
+          return cajas.every((r) => r.top >= rect.top - 1 && r.bottom <= rect.bottom + 1
+            && r.left >= rect.left - 1 && r.right <= rect.right + 1);
+        } catch {
+          return false;
+        }
+      };
+      if (contenidoRealCabe()) continue;
       const label = (el.getAttribute("aria-label") || el.textContent || "").replace(/\s+/g, " ").trim().slice(0, 160);
       issues.push({
         type: xOverflow && yOverflow ? "overflow-both" : xOverflow ? "overflow-x" : "overflow-y",
