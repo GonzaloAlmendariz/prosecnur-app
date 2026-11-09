@@ -127,6 +127,14 @@ Maqueta «Colegio y resumen ejecutivo» (2026-11-04), `02_colegio_B_cifra_y_desg
   - La izquierda, un tercio de la lámina, lleva la tarjeta de la cifra: rótulo, cifra de 60 pt, lo que mide, la franja partida al 100% con el intervalo debajo y las dos opciones, y la comparación completa en hasta dos líneas. La derecha lleva la pregunta del gráfico, «Respuesta múltiple…» si suma más de 100%, y el gráfico con su desglose en línea.
   - Al pie van la leyenda de marcas y el método. Si algo falta (`meta.cifra.fila`, un gráfico que no es categórica), la lámina va como dos gráficos, con aviso.
 
+### 10. Base de la z con pesos (2026-11-09, enmienda por la revisión del ADR 0138)
+
+La prueba z de estas tarjetas tomaba la suma de pesos de cada grupo como su n. Desde el 2026-11-09 el peso se lleva a
+media 1 sobre las respuestas válidas con peso positivo de toda la comparación, sólo para la base de la z
+(`.sig_contrastes`, `unidad_pesos`). Es un cambio de comportamiento: en estudios ponderados cuyos pesos no promedian 1,
+una tarjeta puede aparecer o desaparecer. Sin pesos nada cambia, y Rao-Scott tampoco. Detalle y cifras en la sección
+«Cambio de comportamiento» del ADR 0138.
+
 ## Consecuencias
 
 - Una diferencia de nivel puede quedar al 95% o desaparecer frente a la maqueta, que usaba una familia propia y más chica. Pasó en CCSS con nivel 7 en «ONG» y con padres en «posgrado».

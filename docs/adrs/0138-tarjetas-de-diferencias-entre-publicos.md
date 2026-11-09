@@ -23,7 +23,7 @@ tabla retirada, y además aplica el umbral en puntos, la marca «frágil», la b
    base la trae, prefijados con el nombre de la base. Pesos de cada base. Grados de libertad: el mínimo del par o
    Satterthwaite.
 3. **Pares, no «frente al resto».** Con dos públicos la tarjeta es idéntica a la de dos grupos. Con tres o más, una línea
-   por par marcado («Docentes 78 % frente a Estudiantes 64 %: +14 pp ▲»), primero los del 99 % y luego por diferencia, con
+   por par marcado («Docentes 78% frente a Estudiantes 64%: +14 pp ▲»), primero los del 99 % y luego por diferencia, con
    tope de cuatro. Sin fila Total: un total entre públicos exigiría padrones.
 4. **Familia propia.** Con `bh_informe`, las comparaciones entre públicos forman su propia familia sobre todos los temas
    emparejados con escala comparable. Nunca se mezclan con la familia de una base.
@@ -48,6 +48,58 @@ puntos y {base_minima} casos por público.»
 - El radar de cinco criterios o más con tarjetas cede su tabla del costado al panel de tarjetas y lo avisa: no caben las
   dos.
 - Pendiente: agrupadas y multiapiladas cuando cada fila es el mismo tema emparejado; la activación en el inspector.
+
+## Revisión metodológica del 2026-11-09 (enmienda)
+
+La revisión de las entregas 1 y 2 dio «aprobado con pendientes». Se corrigió lo siguiente:
+
+- **P1, base de la z.** La z tomaba la suma de pesos de cada público como su n. Ahora el peso se lleva a media 1 sobre
+  las respuestas válidas con peso positivo, dentro de cada público, sólo para la base de la z. El arreglo vive en
+  `.sig_contrastes` (`unidad_pesos`), así que lo heredan todos los usos de la z (ver «Cambio de comportamiento»).
+- **P2, regla propuesta.** Sin regla guardada, la regla entre públicos se propone sobre todas las bases y no sobre la
+  activa: Rao-Scott con BH si alguna base trae el conglomerado. No depende del orden de las bases. Una regla guardada
+  manda tal cual.
+- **P3, p fuera de la familia.** Con la familia del plan, un p que no está en ella queda `fuera_de_familia`, no se marca
+  y el tema lo dice.
+- **P4, unidad de la familia.** La familia cuenta pares, no temas: la clave es el par de refs, los códigos del corte en
+  cualquier orden y los filtros.
+- **P5, línea del par.** «Docentes 78% frente a Estudiantes 64%: +14 pp ▲», con espacios duros que unen el público con su
+  cifra y la diferencia con «pp ▲».
+- **P6, pie.** El pie dice el nivel, el alcance de la corrección y qué es △:
+  «Diferencias entre públicos (muestras independientes): prueba z, p < 0.05 con corrección de Bonferroni dentro de cada
+  tema, al menos 10 puntos y 30 casos por público. △ Frágil: p ajustado entre 0.01 y 0.05.» Con BH dice «sobre las
+  comparaciones entre públicos del informe», o «de esta lámina» si el informe no trae su familia.
+- **P7, indicador.** La tarjeta dice qué se probó: el indicador de la meta, el `corte_etiqueta` del gráfico o los rótulos
+  del corte («De acuerdo + Totalmente de acuerdo»).
+- **P8, conciliación.** Si no se pueden leer las cifras del gráfico, el tema se abstiene con ese motivo. Una fila de la
+  matriz con indicador compuesto se abstiene en el panorama con su propio motivo.
+- **P9, cifras que se leen iguales.** Una marca cuyas cifras redondeadas coinciden (78.4% y 77.6% se leen 78% y 78%)
+  baja a «bajo_umbral»: la tarjeta no escribe «+0 pp ▲».
+
+Precisiones sobre lo decidido:
+
+- **Grados de libertad (§2).** Se usa el mínimo del par (conglomerados menos estratos de cada público): es una cota
+  conservadora. Satterthwaite queda pendiente.
+- **Alcance de la corrección (§4).** Con `bonferroni_fila` la familia es el tema (los pares de públicos de ese tema). Con
+  `bh_informe` es el conjunto de comparaciones entre públicos del plan, o las de la lámina si el contexto no trae familia.
+- **Conglomerado.** La columna de la regla se aplica por nombre en cada base que la tiene. Las que no la tienen entran
+  como muestreo aleatorio simple.
+- **Denominador.** Las respuestas válidas de cada público, incluidas «Sin información» y «No sabe» cuando son respuestas
+  registradas. «Base:» muestra las filas de cada base, no las válidas.
+
+## Cambio de comportamiento (P1)
+
+En proyectos ponderados cuyos pesos no promedian 1 sobre las respuestas válidas, la prueba z da otros p y puede poner o
+quitar marcas. Afecta a todo lo que prueba con z por `.sig_evaluar` y `.sig_contrastes`: las tarjetas entre públicos, las
+tarjetas de una base (ADR 0129), las letras de las láminas, la serie, las líneas por nivel y los cruces del reporte con z.
+Sin pesos, o con pesos de media 1 exacta sobre los válidos, nada cambia. La proporción dibujada y la conciliación no
+cambian, porque normalizar no mueve una proporción ponderada. Rao-Scott no cambia (es invariante a la escala del peso).
+El deff que informa Rao-Scott ahora se mide contra la varianza simple con pesos de media 1 y deja de crecer con la escala
+de los pesos. Ninguno de los cinco proyectos de referencia lleva pesos.
+
+En la sonda de la revisión (pesos U(0.4, 2.5) en tres públicos) la z daba p = 4.4e-05, 0.050 y 4.9e-07. Ahora da
+6.3e-04, 0.106 y 3.3e-05, y los mismos con los pesos de un público multiplicados por 100 (antes 5.9e-130). Test:
+`api/tests/testthat/test-graficos-significancia-pesos-escala.R`.
 
 ## Supuestos
 
