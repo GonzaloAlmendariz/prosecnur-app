@@ -34,6 +34,18 @@ export function existeEntradaCatalogo(id: string): boolean {
   return GRAFICO_POR_NOMBRE.has(id) || VARIANTE_POR_ID.has(id);
 }
 
+/**
+ * Los args que una variante del graficador fija en `null` (`cruce` en «Contraste de públicos»). En ese graficador el
+ * `null` es un valor declarado, no «borrar la clave»: el plan lo guarda tal cual (ronda 19, F2).
+ */
+export function nulosDeclarados(graficador: string): ReadonlySet<string> {
+  const out = new Set<string>();
+  for (const v of variantesDeGraficador(graficador)) {
+    for (const [k, valor] of Object.entries(v.args_fijos)) if (valor === null) out.add(k);
+  }
+  return out;
+}
+
 /** El graficador de una entrada (el suyo, o el de la variante). */
 export function graficadorDeEntrada(id: string): string {
   return VARIANTE_POR_ID.get(id)?.graficador ?? id;

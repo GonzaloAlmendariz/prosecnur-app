@@ -14,7 +14,7 @@ import { sinEstiloDePerfil } from "./estiloInforme/quitarLineaVisual";
 import { conAjusteEnElTipo } from "./laminas/modeloAlcance";
 import { conEspejoEnOverrides } from "./laminas/mandosPorOverrides";
 import { agrupadorDelPlan } from "./historialAgrupado";
-import { RANURAS_GRAFICO_POR_LAMINA } from "./catalogoGraficos";
+import { nulosDeclarados, RANURAS_GRAFICO_POR_LAMINA } from "./catalogoGraficos";
 
 // Store del plan de gráficos. Sigue el mismo patrón que el store de
 // Analítica: hidrata desde backend al montar, marca `dirty` con cada
@@ -434,13 +434,20 @@ function isPlainRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
 
+/**
+ * Aplica el cambio de una tarjeta sobre los args del gráfico: `null` o `undefined` borran la clave, salvo las de
+ * `nulosQueSeGuardan` (las que una variante del graficador declara nulas: `cruce` del dumbbell), donde `null` se guarda.
+ */
 export function mergeSlotArgsPatch(
   currentArgs: Record<string, unknown> = {},
   patch: Record<string, unknown>,
+  nulosQueSeGuardan: ReadonlySet<string> = new Set(),
 ): Record<string, unknown> {
   const merged = { ...currentArgs };
   for (const [key, value] of Object.entries(patch)) {
-    if (value === null || value === undefined) {
+    if (value === null && nulosQueSeGuardan.has(key)) {
+      merged[key] = null;
+    } else if (value === null || value === undefined) {
       delete merged[key];
     } else {
       merged[key] = value;
@@ -723,7 +730,8 @@ export const usePlanStore = create<PlanStore>((set) => ({
           const merged: GraficadorRef = {
             graficador: current.graficador,
             // U6: los mandos que el motor lee sólo de `overrides` van en espejo (laminas/mandosPorOverrides.ts).
-            args: mergeSlotArgsPatch(current.args, conEspejoEnOverrides(current.args, patch)),
+            // Ronda 19 (F2): «Bases distintas» escribe `cruce: null`; en el dumbbell ese nulo declara el modo y se guarda.
+            args: mergeSlotArgsPatch(current.args, conEspejoEnOverrides(current.args, patch), nulosDeclarados(current.graficador)),
           };
           return { ...s, payload: { ...s.payload, [slot]: merged } };
         }),
