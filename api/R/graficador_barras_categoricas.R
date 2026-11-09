@@ -174,6 +174,7 @@ graficar_barras_categoricas <- function(
     resaltar_opciones         = NULL,    # D1: las respuestas que el analista resalta, por rótulo (lámina nativa)
     residuales_gris           = FALSE,   # residuales («Prefiero no responder», «No sabe»…) en gris en Word y lámina; apagado por defecto
     pista_barras              = "auto",  # v7.11: pista gris hasta el 100% en la lámina nativa (lamina_barras_pista.R)
+    referencia_barra          = NULL,    # B8: "pista" o "eje"; manda sobre pista_barras (lamina_referencia_barra.R)
     modo_valor                = c("conteo", "porcentaje", "valor"),
     max_categorias            = 10,
     agrupar_resto_en_otros    = FALSE,
@@ -447,7 +448,7 @@ graficar_barras_categoricas <- function(
     residuales_gris = isTRUE(residuales_gris)
   ), error = function(e) { message("[espec categorica] ", conditionMessage(e)); NULL })
   # La nota del gráfico («Base: 176 respuestas») vivía sólo en el caption del ggplot; la lámina nativa la necesita.
-  if (!is.null(espec_categorica)) { espec_categorica$nota <- label_note; espec_categorica$pista <- pista_barras }
+  if (!is.null(espec_categorica)) { espec_categorica$nota <- label_note; espec_categorica$pista <- pista_barras; espec_categorica$referencia <- referencia_barra }
   # El redondeo de las cifras, para el detalle de cifras (graficos_cifras_detalle.R); la lámina no lo lee.
   if (!is.null(espec_categorica)) espec_categorica <- .espec_categorica_detalle(espec_categorica, NULL, metodo_redondeo, decimales)
 

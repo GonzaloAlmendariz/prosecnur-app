@@ -536,6 +536,7 @@
   if (.lam_es_cobcat(espec)) return(.lam_rr_cobcat(lz, espec, ge))   # ADR 0140 (lamina_cobertura_categorias.R)
   azul <- .std_color("azul"); suave <- .std_color("texto_suave")
   pb <- espec$publicos; ex <- espec$extras; filas <- NROW(pb) + NROW(ex)
+  ref <- .lam_referencia_barra(espec)   # B8: pista gris, eje sobrio o, sin declarar, como siempre (lamina_referencia_barra.R)
   y0 <- ge$y + ge$ley + max(0, ge$h - ge$ley - 0.05 - ge$hrow * filas) / 2
   fila <- function(cifra, color, rotulo, detalle, i) {
     yc <- y0 + (i - 0.5) * ge$hrow
@@ -566,10 +567,13 @@
         s <- series[[k]]
         if (!is.finite(s$v)) next
         lb <- max(0.01, ge$wb * min(100, max(0, s$v)) / 100)
+        if (identical(ref, "pista")) .lam_barras_pista(lz, ge$xb, s$y, ge$wb, ge$g)   # B8 (lamina_referencia_barra.R)
         .lam_caja(lz, ge$xb, s$y, lb, ge$g, espec$colores[[k]], nombre = paste0("cobertura:barra_", k), borde = NA)
-        .lam_txt(lz, s$t, ge$xb + lb + 0.02, s$y + ge$g / 2 - 0.14, 0.6, 0.28, 10, suave, nombre = "cobertura:valor")
+        .lam_cifra_barra(lz, s$t, ge$xb, lb, s$y + ge$g / 2 - 0.14, 0.28, 10, suave, espec$colores[[k]], x_tope = ge$xb + ge$wb + 0.55,
+                         w_fuera = 0.6, nombre = "cobertura:valor")
       }
     }
+    if (identical(ref, "eje")) .lam_eje_barras(lz, ge$xb, ge$wb, y0 + ge$hrow * NROW(pb) - 0.06, marcas = c(0, 50, 100), nombre = "cobertura:eje")
   }
   invisible(y0 + ge$hrow * filas)
 }

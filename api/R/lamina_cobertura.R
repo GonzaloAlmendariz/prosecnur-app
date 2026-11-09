@@ -50,6 +50,7 @@
   force(folio)
   azul <- .std_color("azul"); suave <- .std_color("texto_suave")
   ge <- .lam_cobertura_geom(espec); pb <- espec$publicos; ex <- espec$extras
+  ref <- .lam_referencia_barra(espec)   # B8: pista gris, eje sobrio o, sin declarar, como siempre (lamina_referencia_barra.R)
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()
@@ -83,10 +84,13 @@
         s <- series[[k]]
         if (!is.finite(s$v)) next
         lb <- max(0.01, ge$wb * min(100, max(0, s$v)) / 100)
+        if (identical(ref, "pista")) .lam_barras_pista(lz, ge$xb, s$y, ge$wb, ge$g)   # B8 (lamina_referencia_barra.R)
         .lam_caja(lz, ge$xb, s$y, lb, ge$g, espec$colores[[k]], nombre = paste0("cobertura:barra_", k), borde = NA)
-        .lam_txt(lz, s$t, ge$xb + lb + 0.02, s$y + ge$g / 2 - 0.15, 0.7, 0.3, 10.5, suave, nombre = "cobertura:valor")
+        .lam_cifra_barra(lz, s$t, ge$xb, lb, s$y + ge$g / 2 - 0.15, 0.3, 10.5, suave, espec$colores[[k]], x_tope = ge$fin, w_fuera = 0.7,
+                         nombre = "cobertura:valor")
       }
     }
+    if (identical(ref, "eje")) .lam_eje_barras(lz, ge$xb, ge$wb, ge$y0 + ge$h * nrow(pb) - 0.06, marcas = c(0, 50, 100), nombre = "cobertura:eje")
   }
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:cobertura")
   doc <- .lam_pie(doc, .lam_unir_base(base), folio)

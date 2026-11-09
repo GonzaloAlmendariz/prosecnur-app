@@ -22,6 +22,8 @@
 #' ¿Las barras de esta espec van sobre su pista hasta el 100%?
 #' @keywords internal
 .lam_barras_pista_activa <- function(espec) {
+  ref <- .lam_referencia_barra(espec)   # B8: `referencia_barra` manda sobre `pista_barras` (lamina_referencia_barra.R)
+  if (!is.null(ref)) return(identical(ref, "pista"))
   modo <- espec[["pista"]]
   if (is.logical(modo) && length(modo) == 1L && !is.na(modo)) return(modo)   # un plan escrito a mano con TRUE/FALSE
   modo <- as.character(modo %||% "auto")[1]

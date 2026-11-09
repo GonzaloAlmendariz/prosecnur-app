@@ -98,6 +98,12 @@
 }
 
 # Args compartidos por TODOS los graficadores.
+#' Opciones del mando `referencia_barra` (B8, lamina_referencia_barra.R)
+#' @keywords internal
+.args_referencia_barra <- function() list(
+  list(value = "pista", label = "Fondo gris hasta el 100%", hint = "Cada barra sobre su fondo gris, que mide el 100%."),
+  list(value = "eje", label = "Eje abajo", hint = "Sin fondo; un eje sobrio con sus marcas bajo las barras."))
+
 .args_graf_comunes <- function() list(
   list(name = "titulo",     label = "Título del gráfico", tipo_input = "string",      grupo = "textos",
        descripcion = "Rótulo sobre el gráfico en las láminas de varios gráficos y en las barras agrupadas. En las apiladas de un solo gráfico no se dibuja, porque el título es el de la lámina. Si lo dejas vacío, se usa la etiqueta de la variable."),
@@ -1301,6 +1307,11 @@
              list(value = "siempre", label = "Siempre", hint = "La escala pasa a ir de 0 a 100%."),
              list(value = "nunca", label = "Nunca", hint = "La barra sola, sin pista.")),
            descripcion = "Pinta bajo cada barra una pista gris suave que llega al 100%, para leer cada parte frente al total."),
+      # B8 (Gonzalo, 2026-11-09): fondo gris hasta el 100% o eje sobrio abajo. Manda sobre `pista_barras`; vacío, lo de
+      # siempre (lamina_referencia_barra.R).
+      list(name = "referencia_barra", label = "Referencia de las barras", tipo_input = "choice", grupo = "estilo",
+           via_overrides = TRUE, choices = .args_referencia_barra(),
+           descripcion = "Fondo gris hasta el 100% bajo cada barra, o un eje abajo con sus marcas y sin fondo."),
       # U-c (checklist de mandos del mazo, 2026-11-05): sin `default`. La lámina nativa sin el valor ajusta la columna a
       # la tinta de los rótulos (lamina_barras_ancho.R) y el 0.36 que se anunciaba aquí no lo usaba nadie: vacío = automático.
       list(name = "canvas_w_etiquetas", label = "Espacio para etiquetas", tipo_input = "number", grupo = "canvas",
@@ -1350,6 +1361,11 @@
              list(value = "siempre", label = "Siempre", hint = "La escala pasa a ir de 0 a 100%."),
              list(value = "nunca", label = "Nunca", hint = "La barra sola, sin pista.")),
            descripcion = "Pinta bajo cada barra una pista gris suave que llega al 100%, para leer cada parte frente al total."),
+      # B8 (Gonzalo, 2026-11-09): fondo gris hasta el 100% o eje sobrio abajo. Manda sobre `pista_barras`; vacío, lo de
+      # siempre (lamina_referencia_barra.R).
+      list(name = "referencia_barra", label = "Referencia de las barras", tipo_input = "choice", grupo = "estilo",
+           via_overrides = TRUE, choices = .args_referencia_barra(),
+           descripcion = "Fondo gris hasta el 100% bajo cada barra, o un eje abajo con sus marcas y sin fondo."),
       list(name = "excluir_opciones", label = "Opciones a ocultar", tipo_input = "codigos_list", grupo = "filtro",
            descripcion = "Etiquetas/códigos que no deben aparecer en el gráfico. Los porcentajes se recalculan sobre las opciones visibles."),
       list(name = "max_categorias", label = "Máximo de categorías", tipo_input = "number", grupo = "filtro",
@@ -2218,7 +2234,11 @@
            descripcion = "Por base, el universo de cada categoría en conteos (con su total) o en porcentajes. Las categorías salen de POST /api/graficos/resumenes/cobertura-categorias."),
       list(name = "tolerancia_pts", label = "Tolerancia (pts)", tipo_input = "number", grupo = "datos",
            depende = list(arg = "modo", valores = list("categorias")), min = 0, max = 50, step = 0.5, unidad = "pp",
-           descripcion = "Opcional. La lámina dice cuántas categorías quedan dentro de ±X pts fijado por el analista.")
+           descripcion = "Opcional. La lámina dice cuántas categorías quedan dentro de ±X pts fijado por el analista."),
+      # B8: fondo gris hasta el 100% o eje sobrio abajo; vacío, la línea de base de siempre (lamina_referencia_barra.R).
+      list(name = "referencia_barra", label = "Referencia de las barras", tipo_input = "choice", grupo = "estilo",
+           choices = .args_referencia_barra(),
+           descripcion = "Fondo gris hasta el 100% bajo cada barra, o un eje abajo con sus marcas y sin fondo.")
     ), .args_graf_comunes())
   ),
 

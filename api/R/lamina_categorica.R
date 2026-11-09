@@ -45,7 +45,8 @@
   # Las agrupadas van de 0 a 100 % por defecto (`escala_completa`); el resto, al máximo con aire, como el recetario.
   escala <- escala %||% (if (isTRUE(espec$escala_completa)) max(1, v) else max(v) * 1.12)
   pista <- .lam_barras_pista_activa(espec)   # v7.11, lámina 9: la barra sobre su pista hasta el 100% (lamina_barras_pista.R)
-  if (pista) escala <- max(1, v)
+  con_eje <- identical(.lam_referencia_barra(espec), "eje")   # B8: eje sobrio abajo, sin pista (lamina_referencia_barra.R)
+  if (pista || con_eje) escala <- max(1, v)
   # La cifra lleva su propia columna: 0.8 in, o lo que mida si trae «(n)» o letras (no se parte en dos líneas). Su cuerpo
   # es el de los rótulos salvo que el gráfico declare `size_texto_barras` (lamina_tamanos_declarados.R).
   size_cif <- (espec$tamanos %||% list())$cifra_pt %||% size
@@ -66,14 +67,19 @@
     if (bw > 0.004) .lam_caja(lz, x + wlab + 0.12, yb, bw, g, fill, nombre = "barra")
     h_cif <- max(0.3, size_cif * 1.25 / 72)
     # La caja de la cifra suma sus márgenes internos (0.1 in por lado) a la columna: con 0.12 de holgura «60% (12)» se partía
-    # en dos líneas (CCSS 2026, B3). La columna, que decide el largo de las barras, no cambia.
-    .lam_txt(lz, espec$cifras[k], x + wlab + 0.16 + bw, yb + (g - h_cif) / 2, wcif + .LAM_CIFRA_MARGEN_CAJA, h_cif, size_cif, azul,
-             bold = st$cifra_bold %||% TRUE, nombre = "cifra")
+    # en dos líneas (CCSS 2026, B3). La columna, que decide el largo de las barras, no cambia. B8: si no cabe a la derecha
+    # dentro del área, entra a la barra con contraste (lamina_referencia_barra.R).
+    .lam_cifra_barra(lz, espec$cifras[k], x + wlab + 0.12, bw + 0.02, yb + (g - h_cif) / 2, h_cif, size_cif, azul, fill,
+                     x_tope = x + w + .LAM_CIFRA_MARGEN_CAJA, w_fuera = wcif + .LAM_CIFRA_MARGEN_CAJA,
+                     bold = st$cifra_bold %||% TRUE, nombre = "cifra")
     yy <- yy + fila
   }
   # Marcas 0-25-50-75-100 % bajo las barras, opcionales con la escala de 0 a 100 % (Gonzalo, 2026-10-09: «A,bas y en
   # ambos recetarios»): gris claro, centradas en su posición del eje, como la variante fiel del recetario.
-  if (isTRUE(espec$escala_completa) && isTRUE(espec$marcas_eje) && escala > 0) {
+  if (con_eje && escala > 0) {   # B8: eje sobrio: filete y marcas cada 25 %
+    .lam_eje_barras(lz, x + wlab + 0.12, wbar / escala, yy + 0.02, tope = 100, marcas = seq(0, 100, 25))
+    yy <- yy + 0.3
+  } else if (isTRUE(espec$escala_completa) && isTRUE(espec$marcas_eje) && escala > 0) {
     for (t in seq(0, 100, 25)) .lam_txt(lz, paste0(t, "%"), x + wlab + 0.12 + wbar * (t / 100) / escala - 0.3, yy + 0.02, 0.6, 0.26, 9,
                                        .std_color("texto_tenue"), align = "center", nombre = "eje:marca")
     yy <- yy + 0.28
@@ -170,7 +176,7 @@
     if (!is.null(encabezado) && nzchar(encabezado)) {
       .lam_txt(lz, encabezado, .lam_barras_ancho_x_encabezado(xb + wlab + 0.25, sub, titulo), yt - 0.25, 4, 0.26, .std_pt("antetitulo"), .std_color("texto_suave"), bold = TRUE, nombre = "encabezado")
     }
-    y0 <- yt + .lam_uso_area_arranque(length(espec$largos), fila, extra = if (isTRUE(espec$escala_completa) && isTRUE(espec$marcas_eje)) 0.28 else 0)
+    y0 <- yt + .lam_uso_area_arranque(length(espec$largos), fila, extra = if ((isTRUE(espec$escala_completa) && isTRUE(espec$marcas_eje)) || identical(.lam_referencia_barra(espec), "eje")) 0.3 else 0)
     .lam_barras_h(lz, espec, xb, y0, ag$w %||% ancho, wlab = wlab, g = g, fila = fila, size = size, escala = ag$escala)
   }
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:categorica")

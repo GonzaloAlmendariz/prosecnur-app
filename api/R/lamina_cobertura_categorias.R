@@ -108,6 +108,7 @@
   }
   y <- y + ge$ley
   px <- function(v) ge$wb * min(1, max(0, v) / espec$escala_max)
+  ref <- .lam_referencia_barra(espec)   # B8: pista gris, eje sobrio o, sin declarar, como siempre (lamina_referencia_barra.R)
   for (j in seq_along(espec$bloques)) {
     b <- espec$bloques[[j]]
     nv <- (ge$visibles %||% vapply(espec$bloques, function(z) NROW(z$filas), 0L))[j]
@@ -130,12 +131,13 @@
       for (k in names(series)) {
         s <- series[[k]]
         lb <- 0
+        if (identical(ref, "pista")) .lam_barras_pista(lz, ge$xb, s$y, ge$wb, ge$g)   # B8 (lamina_referencia_barra.R)
         if (is.finite(s$v) && s$v > 0) {
           lb <- max(0.01, px(s$v))
           .lam_caja(lz, ge$xb, s$y, lb, ge$g, espec$colores[[k]], nombre = paste0("cobertura:barra_", k), borde = NA)
         }
-        .lam_txt(lz, s$t, ge$xb + lb + 0.02, s$y + ge$g / 2 - ge$size_v / 144 - 0.06, ge$wv, 0.28, ge$size_v,
-                 if (is.finite(s$v)) suave else tenue, nombre = "cobertura:valor")
+        .lam_cifra_barra(lz, s$t, ge$xb, lb, s$y + ge$g / 2 - ge$size_v / 144 - 0.06, 0.28, ge$size_v, if (is.finite(s$v)) suave else tenue,
+                         espec$colores[[k]], x_tope = ge$xb + ge$wb + ge$wv, w_fuera = ge$wv, nombre = "cobertura:valor")
       }
       if (nzchar(f$texto_diferencia[i])) {
         dentro <- isTRUE(f$dentro[i])
@@ -144,6 +146,10 @@
       }
     }
     .lam_caja(lz, ge$xb - 0.01, y0 + 0.05, 0.015, ge$hrow * NROW(f) - 0.1, tenue, nombre = "cobertura:base_barras")
+    if (identical(ref, "eje") && j == length(espec$bloques)) {   # B8: el eje sobrio bajo el último bloque
+      .lam_eje_barras(lz, ge$xb, ge$wb, y0 + ge$hrow * NROW(f) - 0.06, tope = espec$escala_max,
+                      marcas = Filter(function(m) m <= espec$escala_max + 1e-9, pretty(c(0, espec$escala_max), n = 3)), nombre = "cobertura:eje")
+    }
     y <- y + ge$hrow * NROW(f)
   }
   invisible(y)

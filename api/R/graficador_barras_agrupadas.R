@@ -274,6 +274,8 @@
 #'   entre graficos. Si `TRUE`, ajusta el maximo al valor observado.
 #' @param marcas_eje Con la escala de 0 a 100 %, escribe las marcas 0, 25, 50, 75 y 100 % bajo las barras (variante
 #'   del recetario; Gonzalo, 2026-10-09: «Opcional brindar ambas opciones»). Sin efecto con el eje libre.
+#' @param referencia_barra `"pista"` o `"eje"` (eje sobrio abajo, sin pista); manda sobre `pista_barras`. `NULL`: lo de
+#'   `pista_barras` (lamina_referencia_barra.R).
 #' @param pista_barras Pista gris hasta el 100% bajo cada barra de la lámina nativa: `"auto"` (con la escala de 0 a
 #'   100% y en las láminas de población), `"siempre"` o `"nunca"` (lamina_barras_pista.R).
 #' @param color_fondo Color de fondo del grafico. Por defecto es transparente (`NA`).
@@ -453,6 +455,7 @@ graficar_barras_agrupadas <- function(
     usar_eje_libre            = FALSE,
     marcas_eje                = FALSE,
     pista_barras              = "auto",   # v7.11: pista gris hasta el 100% en la lámina nativa (lamina_barras_pista.R)
+    referencia_barra          = NULL,     # B8: "pista" o "eje"; manda sobre pista_barras (lamina_referencia_barra.R)
     color_fondo               = NA,
     font_family               = "Arial",
 
@@ -981,7 +984,7 @@ graficar_barras_agrupadas <- function(
   }, error = function(e) { message("[espec agrupada] ", conditionMessage(e)); NULL }) else NULL
   # Gonzalo (2026-10-09): «si vamos a usar barras agrupadas es mejor que por defecto vayan de 0 a 100%». La lámina
   # nativa escala a 100 % salvo que se pida el eje libre, como ya hacía el eje de este ggplot.
-  if (!is.null(espec_agrupada)) { espec_agrupada$escala_completa <- !isTRUE(usar_eje_libre); espec_agrupada$marcas_eje <- isTRUE(marcas_eje) && !isTRUE(usar_eje_libre); espec_agrupada$colorear_por_opcion <- isTRUE(colorear_por_opcion); espec_agrupada$pista <- pista_barras }
+  if (!is.null(espec_agrupada)) { espec_agrupada$escala_completa <- !isTRUE(usar_eje_libre); espec_agrupada$marcas_eje <- isTRUE(marcas_eje) && !isTRUE(usar_eje_libre); espec_agrupada$colorear_por_opcion <- isTRUE(colorear_por_opcion); espec_agrupada$pista <- pista_barras; espec_agrupada$referencia <- referencia_barra }
   if (!is.null(espec_agrupada)) espec_agrupada <- .espec_categorica_detalle(espec_agrupada, n_base_pond_agr, "estandar", 0L)
   n_categorias <- length(cat_lvls)
   canvas_min_filas_eff <- suppressWarnings(as.numeric(canvas_min_filas)[1])
@@ -1367,7 +1370,7 @@ graficar_barras_agrupadas <- function(
                             if (".n_label_val" %in% names(df_lab)) df_lab$.n_label_val[o_lab] else NULL, residuales_al_final = FALSE, sin_ceros = sin_ceros_espec,
                             n_base_casos = if (length(n_base_casos_agr) == 1L) n_base_casos_agr, casos = mostrar_n_en_etiquetas, resaltar = resaltar_mayor, resaltar_opciones = resaltar_opciones, residuales_gris = isTRUE(residuales_gris)),
         error = function(e) espec_agrupada)
-      if (!is.null(espec_agrupada)) { espec_agrupada$escala_completa <- !isTRUE(usar_eje_libre); espec_agrupada$marcas_eje <- isTRUE(marcas_eje) && !isTRUE(usar_eje_libre); espec_agrupada$colorear_por_opcion <- isTRUE(colorear_por_opcion); espec_agrupada$pista <- pista_barras }
+      if (!is.null(espec_agrupada)) { espec_agrupada$escala_completa <- !isTRUE(usar_eje_libre); espec_agrupada$marcas_eje <- isTRUE(marcas_eje) && !isTRUE(usar_eje_libre); espec_agrupada$colorear_por_opcion <- isTRUE(colorear_por_opcion); espec_agrupada$pista <- pista_barras; espec_agrupada$referencia <- referencia_barra }
       if (!is.null(espec_agrupada)) espec_agrupada <- .espec_categorica_detalle(espec_agrupada, n_base_pond_agr, "estandar", dec)
     }
 
@@ -1456,6 +1459,16 @@ graficar_barras_agrupadas <- function(
 
     df_lab$hjust_label <- ifelse(df_lab$inside, 0.5, 0)
     if (orientacion == "vertical") df_lab$hjust_label <- 0.5
+    # B8: la cifra que no cabe a la derecha de la barra dentro del área (barra cerca del 100 %) entra a la barra, alineada
+    # a su extremo y en el color de dentro (lamina_referencia_barra.R). Sin columna extra el área termina en `base_max`.
+    if (identical(orientacion, "horizontal") && !isTRUE(mostrar_barra_extra)) {
+      entra <- .agrupadas_cifra_entra(df_lab$.valor_plot, mask_outside, offset_lab, ancho_texto_datos, margen_texto_datos, base_max)
+      if (any(entra)) {
+        df_lab$inside[entra] <- TRUE
+        df_lab$valor_label[entra] <- df_lab$.valor_plot[entra] - margen_texto_datos[entra] / 2
+        df_lab$hjust_label[entra] <- 1
+      }
+    }
 
     if (!is.null(cruce_agr)) df_lab$inside <- df_lab$inside & !isTRUE(cruce_agr$fuera)
     df_lab$col_label <- ifelse(df_lab$inside, .agrupadas_cruce_cifra_dentro(cruce_agr, df_lab$.fill_key, color_texto_barras),

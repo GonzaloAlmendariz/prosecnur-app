@@ -127,6 +127,8 @@
 #' @param universos Padrón por público («Docentes: 123; Estudiantes: 327»).
 #' @param metas Meta por público en porcentaje («Docentes: 60%») o casos («Docentes: 74»).
 #' @param extras Filas extra sin barra: lista de `{cifra, rotulo, detalle}`.
+#' @param referencia_barra `"pista"` (pista gris hasta el 100%) o `"eje"` (eje sobrio abajo con sus marcas) en la
+#'   lámina nativa; `NULL`, como siempre: sin pista ni marcas (lamina_referencia_barra.R).
 #' @family graficador
 #' @export
 graficar_cobertura <- function(
@@ -141,7 +143,8 @@ graficar_cobertura <- function(
     titulo = NULL,
     subtitulo = NULL,
     nota_pie = NULL,
-    font_family = "Arial"
+    font_family = "Arial",
+    referencia_barra = NULL
 ) {
   if (!is.data.frame(data)) stop("`data` debe ser un data frame.", call. = FALSE)
   for (col in c(var_publico, var_casos)) if (nrow(data) && !col %in% names(data)) stop("La columna `", col, "` no existe en `data`.", call. = FALSE)
@@ -178,6 +181,7 @@ graficar_cobertura <- function(
     ggplot2::theme_minimal(base_family = font_family) +
     ggplot2::theme(panel.grid = ggplot2::element_blank(), legend.position = "top",
                    plot.background = ggplot2::element_rect(fill = NA, colour = NA))
+  espec$referencia <- .lam_referencia_barra(list(referencia = referencia_barra))   # B8; NULL: como siempre (lamina_referencia_barra.R)
   attr(p, "pulso_espec") <- espec
   p
 }

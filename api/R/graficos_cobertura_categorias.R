@@ -534,6 +534,7 @@
     # Con el alto de su cajón el aviso es el que vale; con el supuesto, la lámina que lo compone dirá el suyo.
     if (alto_conocido) .pulso_aviso(.aviso_en_lamina(nota))
   }
+  espec$referencia <- .lam_referencia_barra(list(referencia = ov$referencia_barra))   # B8; NULL: como siempre (lamina_referencia_barra.R)
   p <- .graficar_cobertura_categorias(espec, titulo = el$title_slide %||% NULL, alto = alto)
   for (a in espec$avisos) warning(a, call. = FALSE)
   p

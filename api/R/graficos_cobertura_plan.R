@@ -22,6 +22,8 @@
 #' @param universo_categorias Con `modo = "categorias"`: el universo tecleado por base,
 #'   `{<base>: {modo: "conteos"|"porcentajes", total?, variable?, categorias: [{codigo, etiqueta, valor}]}}`.
 #' @param tolerancia_pts Con `modo = "categorias"`: la tolerancia que fija el analista, en puntos (opcional).
+#' @param referencia_barra `"pista"` (fondo gris hasta el 100%) o `"eje"` (eje sobrio abajo); `NULL`, como siempre
+#'   (lamina_referencia_barra.R). Viaja en `overrides`.
 #' @export
 p_cobertura <- function(bases = NULL,
                         universos = NULL,
@@ -35,11 +37,14 @@ p_cobertura <- function(bases = NULL,
                         modo = NULL,
                         variable = NULL,
                         universo_categorias = NULL,
-                        tolerancia_pts = NULL) {
+                        tolerancia_pts = NULL,
+                        referencia_barra = NULL) {
   bs <- trimws(as.character(unlist(bases %||% character(0))))
   bs <- unique(bs[!is.na(bs) & nzchar(bs)])
   if (any(grepl("$", bs, fixed = TRUE))) .plan_spec_abort("p_cobertura(): `bases` lleva nombres de base, no preguntas.")
   if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
+  ref <- .lam_referencia_barra(list(referencia = referencia_barra))   # B8: un valor que no es pista ni eje no se escribe
+  if (!is.null(ref)) overrides$referencia_barra <- ref
   ex <- .cobertura_extras(extras)
   el <- list(
     .element_type = "cobertura",
