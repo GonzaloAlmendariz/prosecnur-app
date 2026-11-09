@@ -672,10 +672,10 @@
       if (sg$w >= .lam_ancho_txt(cifra, pt_cifra, TRUE) + 0.12) {
         .lam_txt(lz, cifra, sg$x - 0.2, .lam_y_centrada(yc, pt_cifra), sg$w + 0.4, 0.26, pt_cifra, azul, align = "center", nombre = "divergentes:cifra")
       } else if (identical(sg$k, ext_neg) && identical(sg$lado, "neg")) {
-        .lam_txt(lz, cifra, sg$x - 0.6, .lam_y_centrada(yc, pt_cifra), 0.56, 0.26, pt_cifra, .lam_oscurecer(C$color[sg$k]), bold = TRUE, align = "right",
+        .lam_txt(lz, cifra, .lam_cifra_fuera_x(sg$x, 0.56, "izq"), .lam_y_centrada(yc, pt_cifra), 0.56, 0.26, pt_cifra, .lam_oscurecer(C$color[sg$k]), bold = TRUE, align = "right",
                  nombre = "divergentes:cifra_fuera")
       } else if (identical(sg$k, ext_pos) && identical(sg$lado, "pos")) {
-        .lam_txt(lz, cifra, sg$x + sg$w + 0.03, .lam_y_centrada(yc, pt_cifra), 0.56, 0.26, pt_cifra, .lam_oscurecer(C$color[sg$k]), bold = TRUE,
+        .lam_txt(lz, cifra, .lam_cifra_fuera_x(sg$x + sg$w, 0.56, "der"), .lam_y_centrada(yc, pt_cifra), 0.56, 0.26, pt_cifra, .lam_oscurecer(C$color[sg$k]), bold = TRUE,
                  nombre = "divergentes:cifra_fuera")
       }
     }
@@ -683,7 +683,7 @@
       wbar <- (ge$wsi - 0.1) * U[i, si[1]] / max_si
       .lam_caja(lz, xsi, yb, wbar, g, C$color[si[1]], nombre = "divergentes:sin_inf")
       cabe <- wbar >= .lam_ancho_txt(X[i, si[1]], pt_cifra, TRUE) + 0.12
-      .lam_txt(lz, X[i, si[1]], if (cabe) xsi - 0.2 else xsi + wbar + 0.03, .lam_y_centrada(yc, pt_cifra), if (cabe) wbar + 0.4 else 0.6, 0.26, pt_cifra, azul,
+      .lam_txt(lz, X[i, si[1]], if (cabe) xsi - 0.2 else .lam_cifra_fuera_x(xsi + wbar, 0.6, "der"), .lam_y_centrada(yc, pt_cifra), if (cabe) wbar + 0.4 else 0.6, 0.26, pt_cifra, azul,
                align = if (cabe) "center" else "left", nombre = "divergentes:cifra_sin_inf")
     }
   }

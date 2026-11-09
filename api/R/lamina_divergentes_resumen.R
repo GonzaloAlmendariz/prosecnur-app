@@ -22,6 +22,22 @@
 #' @keywords internal
 .LAM_DIV_RESUMEN_MAX_FILAS <- 20L
 
+#' Calle entre una cifra que sale de su segmento y el extremo del segmento (P12, Gonzalo 2026-11-09: «además está
+#' demasiado alejado de la barra»)
+#'
+#' El cuadro de texto lleva 0.1 in de margen interior (`.lam_txt`): la cifra queda a `calle` del extremo si el cuadro
+#' se monta `0.1 - calle` sobre él.
+#' @keywords internal
+.LAM_CIFRA_CALLE_IN <- 0.055
+.LAM_TXT_MARGEN_IN <- 0.1
+
+#' `x` del cuadro de una cifra que sale por la izquierda (termina en `x_extremo`) o por la derecha (empieza en él)
+#' @keywords internal
+.lam_cifra_fuera_x <- function(x_extremo, w_caja, lado = c("izq", "der")) {
+  lado <- match.arg(lado)
+  if (identical(lado, "izq")) x_extremo - .LAM_CIFRA_CALLE_IN + .LAM_TXT_MARGEN_IN - w_caja else x_extremo + .LAM_CIFRA_CALLE_IN - .LAM_TXT_MARGEN_IN
+}
+
 #' Geometría de la escala del resumen: letra y columna de las afirmaciones, alto de cada fila y columna «Sin información»
 #'
 #' ADR 0135 (Arte, 2026-11-07). Como el contraste (`.lam_contraste_geom`): cada afirmación va en hasta tres líneas (dos
@@ -148,10 +164,10 @@
       if (sg$w >= .lam_ancho_tinta(cifra, pt_cifra, FALSE) + 0.1) {
         .lam_txt(lz, cifra, sg$x - 0.2, .lam_y_centrada(yc, pt_cifra), sg$w + 0.4, 0.28, pt_cifra, azul, align = "center", nombre = "divergentes:cifra")
       } else if (identical(sg$k, ext_neg) && identical(sg$lado, "neg")) {
-        .lam_txt(lz, cifra, sg$x - 0.62, .lam_y_centrada(yc, pt_cifra), 0.58, 0.28, pt_cifra, .lam_oscurecer(C$color[sg$k]), bold = TRUE, align = "right",
+        .lam_txt(lz, cifra, .lam_cifra_fuera_x(sg$x, 0.58, "izq"), .lam_y_centrada(yc, pt_cifra), 0.58, 0.28, pt_cifra, .lam_oscurecer(C$color[sg$k]), bold = TRUE, align = "right",
                  nombre = "divergentes:cifra_fuera")
       } else if (identical(sg$k, ext_pos) && identical(sg$lado, "pos")) {
-        .lam_txt(lz, cifra, sg$x + sg$w + 0.04, .lam_y_centrada(yc, pt_cifra), 0.58, 0.28, pt_cifra, .lam_oscurecer(C$color[sg$k]), bold = TRUE,
+        .lam_txt(lz, cifra, .lam_cifra_fuera_x(sg$x + sg$w, 0.58, "der"), .lam_y_centrada(yc, pt_cifra), 0.58, 0.28, pt_cifra, .lam_oscurecer(C$color[sg$k]), bold = TRUE,
                  nombre = "divergentes:cifra_fuera")
       } else {
         .lam_txt(lz, cifra, sg$x - 0.25, .lam_y_centrada(yc, 8), sg$w + 0.5, 0.22, 8, azul, align = "center", nombre = "divergentes:cifra_chica")
@@ -162,7 +178,7 @@
       .lam_caja(lz, xsi, yb, wbar, g, C$color[si[1]], nombre = "divergentes:sin_inf")
       cabe <- wbar >= .lam_ancho_tinta(X[i, si[1]], pt_cifra, FALSE) + 0.1
       # Centrada con holgura, como las cifras de los segmentos: una caja del ancho justo de la barra partía «3 %».
-      .lam_txt(lz, X[i, si[1]], if (cabe) xsi - 0.2 else xsi + wbar + 0.04, .lam_y_centrada(yc, pt_cifra), if (cabe) wbar + 0.4 else 0.6, 0.28, pt_cifra, azul,
+      .lam_txt(lz, X[i, si[1]], if (cabe) xsi - 0.2 else .lam_cifra_fuera_x(xsi + wbar, 0.6, "der"), .lam_y_centrada(yc, pt_cifra), if (cabe) wbar + 0.4 else 0.6, 0.28, pt_cifra, azul,
                align = if (cabe) "center" else "left", nombre = "divergentes:cifra_sin_inf")
     }
   }
