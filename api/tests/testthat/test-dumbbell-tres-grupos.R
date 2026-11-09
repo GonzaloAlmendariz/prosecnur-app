@@ -114,7 +114,7 @@ test_that("la lámina de un gráfico con tres públicos sale nativa: sub-filas, 
   expect_false(grepl(">Base</a:t>", xml, fixed = TRUE))
   expect_match(xml, "Docentes (115)", fixed = TRUE)
   expect_match(xml, "Base: Docentes 115; Estudiantes 279; Administrativos 85", fixed = TRUE)
-  expect_match(xml, "el grupo mayor menos el menor", fixed = TRUE)
+  expect_false(grepl("el grupo mayor menos el menor", xml, fixed = TRUE))   # 8c9b5ffca: el pie lleva sólo la base; la nota va al analista
 })
 
 test_that("en dos y en cuatro ranuras el contraste de tres grupos va nativo y el pie no se sale de la lámina", {

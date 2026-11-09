@@ -40,7 +40,7 @@ test_that("la apertura del resumen lleva la nota al pie de la lámina nativa; en
   suppressMessages(suppressWarnings(reporte_ppt_plan(data = src$data_sources, instrumento = src$inst_sources, plan = plan,
                                                      path_ppt = out, mensajes_progreso = FALSE)))
   texto <- paste(xml2::xml_text(xml2::xml_find_all(xml2::read_xml(unz(out, "ppt/slides/slide1.xml")), "//a:t")), collapse = " ")
-  expect_match(texto, "Grupo chico: 24 docentes TC", fixed = TRUE)
+  expect_false(grepl("Grupo chico", texto, fixed = TRUE))   # 8c9b5ffca: va a los avisos del analista, no al pie
   # Con grupos de 30 o más no hay nota.
   src2 <- .gc_fuentes(40L, 91L)
   s2 <- suppressWarnings(reporte_ppt_plan(data = src2$data_sources, instrumento = src2$inst_sources, plan = plan,
