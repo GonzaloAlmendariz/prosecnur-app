@@ -30,6 +30,25 @@
   unique(c(seq(desde, .LAM_ROTULO_PT_PISO, by = -0.5), .LAM_ROTULO_PT_PISO))
 }
 
+#' Cuánto de su ancho útil puede ocupar una línea sin que el visor arriesgue partirla (fracción)
+#'
+#' Medido el 2026-11-09 con Arial a 10.5 pt en cuadros de `.lam_txt` (15 líneas reales de Arte, de 2 a 3.6 in):
+#' LibreOffice y PowerPoint dejan en una línea un texto cuya tinta (systemfonts) pasa hasta un 3 % el ancho útil
+#' (`w - 0.22`) y lo parten desde un 5 %. Una línea por debajo del 99 % de ese ancho no está en riesgo.
+#' @keywords internal
+.LAM_ROTULO_BORDE <- 0.99
+
+#' Ancho útil con el que se compone un rótulo: el del cuadro, o con 5 % de holgura si alguna línea queda en el borde
+#'
+#' @param w Ancho del cuadro de texto (in). @param size Letra (pt).
+#' @keywords internal
+.lam_rotulo_util <- function(s, w, size, bold = FALSE) {
+  util <- max(0.3, w - 0.2 - 0.02)
+  lin <- .lam_tyc_envolver(s, util, size, bold)
+  borde <- any(.lam_ancho_tinta(lin, size, bold) > util * .LAM_ROTULO_BORDE)
+  if (borde) max(0.3, util * 0.95) else util
+}
+
 #' Rótulo partido en a lo sumo `max_lineas` líneas sobre el ancho de un cuadro de texto, la última con «…» si no cabe
 #'
 #' El ancho útil es el de `.lam_lineas_tinta` (cuadro menos márgenes internos), así que lo que aquí cabe en tres líneas
@@ -39,8 +58,9 @@
 #' @keywords internal
 .lam_rotulo_recortar <- function(s, w, size, max_lineas = 3L, bold = FALSE) {
   s <- trimws(as.character(s %||% "")[1]); if (is.na(s)) s <- ""
-  # 5 % de holgura sobre el ancho útil: LibreOffice (y la fuente que sustituye a Arial) parte antes que systemfonts.
-  util <- max(0.3, (w - 0.2 - 0.02) * 0.95)
+  # P15 (Arte, 2026-11-09): se mide con el ancho útil del cuadro (`.lam_rotulo_util`) y la holgura del 5 % sólo se usa si
+  # alguna línea queda pegada al borde. Con la holgura siempre, un rótulo de una línea se contaba en dos y su fila crecía.
+  util <- .lam_rotulo_util(s, w, size, bold)
   lin <- .lam_tyc_envolver(s, util, size, bold)
   if (length(lin) <= max_lineas) return(list(lineas = lin, texto = s, recortado = FALSE))
   # Recortado, el texto se vuelve a componer en el cuadro: con 10 % más de holgura la última línea no pasa a una cuarta
