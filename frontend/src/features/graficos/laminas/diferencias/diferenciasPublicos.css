@@ -1,0 +1,162 @@
+/* Inspector entre públicos (ADR 0138): un tema por bloque con sus públicos y sus pares. Marcada con la cápsula ▲ de la
+   lámina; frágil con △ y contorno punteado en el azul medio; lo demás sin marca, en texto suave. El intervalo de
+   Newcombe va en la línea secundaria del par. Tokens de app/tokens.css y app/tokens-datos.css. */
+
+.pulso-sig-publicos {
+  display: grid;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-sig-pub-temas,
+.pulso-sig-pub-publicos,
+.pulso-sig-pub-pares {
+  display: grid;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Un tema por bloque, separado del anterior por una línea fina: sin caja propia (el marco es el de la tarjeta). */
+.pulso-sig-pub-tema {
+  display: grid;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  padding-top: var(--pulso-space-2);
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-sig-pub-tema:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.pulso-sig-pub-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-sig-pub-fila {
+  min-width: 0;
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.35;
+  color: var(--pulso-text);
+  overflow-wrap: anywhere;
+}
+
+.pulso-sig-pub-datos {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 2px var(--pulso-space-2);
+  margin: 0;
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.4;
+}
+
+.pulso-sig-pub-datos dt {
+  color: var(--pulso-text-faint);
+}
+
+.pulso-sig-pub-datos dd {
+  margin: 0;
+  min-width: 0;
+  color: var(--pulso-text-soft);
+  overflow-wrap: anywhere;
+}
+
+.pulso-sig-pub-publicos {
+  gap: 2px;
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.4;
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-sig-pub-publicos .is-no-comparable {
+  color: var(--pulso-text-faint);
+}
+
+.pulso-sig-pub-par {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px var(--pulso-space-2);
+  min-width: 0;
+  padding: var(--pulso-space-1) var(--pulso-space-2);
+  border-radius: var(--pulso-control-radius);
+  background: var(--pulso-surface-2);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.4;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-sig-pub-par.is-marcada {
+  background: var(--pulso-sig-capsula-fondo);
+  color: var(--pulso-sig-capsula-texto);
+}
+
+/* Frágil: contorno punteado en el azul medio, como la cápsula de la lámina (outline: no suma una caja propia). */
+.pulso-sig-pub-par.is-fragil {
+  outline: 1.3px dashed var(--pulso-sig-fragil);
+  outline-offset: -1.3px;
+  color: var(--pulso-sig-fragil);
+}
+
+.pulso-sig-pub-par-quien {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-sig-pub-par-dif {
+  justify-self: end;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pulso-sig-pub-par-veredicto {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  grid-column: 1 / -1;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-sig-pub-par .pulso-sig-capsula {
+  padding: 0;
+  background: transparent;
+}
+
+.pulso-sig-pub-par.is-fragil .pulso-sig-capsula {
+  outline: 0;
+}
+
+.pulso-sig-pub-par-dato {
+  grid-column: 1 / -1;
+  font-size: var(--pulso-type-micro-size);
+  color: var(--pulso-text-faint);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.pulso-sig-pub-par.is-marcada .pulso-sig-pub-par-dato,
+.pulso-sig-pub-par.is-fragil .pulso-sig-pub-par-dato {
+  color: inherit;
+}
+
+.pulso-sig-pub-nota {
+  margin: 0;
+  padding-top: var(--pulso-space-2);
+  border-top: 1px solid var(--pulso-border);
+  font-size: var(--pulso-type-micro-size);
+  line-height: 1.45;
+  color: var(--pulso-text-faint);
+  overflow-wrap: anywhere;
+}

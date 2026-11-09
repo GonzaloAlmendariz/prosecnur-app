@@ -34,6 +34,7 @@ import {
   type ModoTarjetas,
   type ModosAdmitidos,
 } from "./modeloTarjetas";
+import { DiferenciasPublicos } from "./DiferenciasPublicos";
 import "./diferencias.css";
 
 type VistaProps = {
@@ -150,6 +151,9 @@ export function TarjetasDiferencias({ slideId, slot = "grafico", modos = { grupo
           modos={modos} onModo={(m) => guardar(opcionConModo(valor, m))}
           onCambio={(cambios: CambiosOpcion) => guardar(opcionCon(valor, cambios))} />
       }
+      resultado={activas && modo === "publicos" && modos.publicos
+        ? <DiferenciasPublicos slideId={slide.id} graficador={graficador} onAbrirRegla={reglaPanel.abrir} onIrAlEmparejado={onIrAlEmparejado} />
+        : undefined}
     />
   );
 }
