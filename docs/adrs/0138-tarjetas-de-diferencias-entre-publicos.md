@@ -69,8 +69,9 @@ La revisión de las entregas 1 y 2 dio «aprobado con pendientes». Se corrigió
   «Diferencias entre públicos (muestras independientes): prueba z, p < 0.05 con corrección de Bonferroni dentro de cada
   tema, al menos 10 puntos y 30 casos por público. △ Frágil: p ajustado entre 0.01 y 0.05.» Con BH dice «sobre las
   comparaciones entre públicos del informe», o «de esta lámina» si el informe no trae su familia.
-- **P7, indicador.** La tarjeta dice qué se probó: el indicador de la meta, el `corte_etiqueta` del gráfico o los rótulos
-  del corte («De acuerdo + Totalmente de acuerdo»).
+- **P7, indicador.** El inspector dice qué se probó: el indicador de la meta, el `corte_etiqueta` del gráfico o los
+  rótulos del corte («De acuerdo + totalmente de acuerdo»). El encabezado de la tarjeta lo nombra, como en el ADR 0129,
+  sólo cuando el gráfico no lo muestra (sin `corte_etiqueta` no hay subtítulo) o cuando la meta lo declara.
 - **P8, conciliación.** Si no se pueden leer las cifras del gráfico, el tema se abstiene con ese motivo. Una fila de la
   matriz con indicador compuesto se abstiene en el panorama con su propio motivo.
 - **P9, cifras que se leen iguales.** Una marca cuyas cifras redondeadas coinciden (78.4% y 77.6% se leen 78% y 78%)
