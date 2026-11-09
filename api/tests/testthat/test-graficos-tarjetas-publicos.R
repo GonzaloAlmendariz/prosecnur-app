@@ -705,3 +705,17 @@ test_that("P3. con la familia del plan, un p ajeno a ella queda «fuera_de_famil
   r3 <- .tpub_calcular(temas, "3,4", src2, rg, .tp_opt(), familia = NULL)
   expect_false(any(unlist(lapply(r3$temas, function(te) te$ev$pares$veredicto)) == "fuera_de_familia"))
 })
+
+test_that("P4. la familia entre públicos cuenta cada PAR una vez: radar de tres y contraste de dos, y cortes en otro orden", {
+  src <- .tp_tres(); rg <- .tp_regla(correccion = "bh_informe")
+  m_de <- function(...) .tpub_familia_plan(list(slides = list(...)), src, .tp_equiv6(), rg)$m
+  expect_identical(m_de(.tp_lamina_radar()), 18L)                                    # 6 temas × 3 pares
+  dumb <- function(corte, id) .tp_lamina("p_dumbbell", list(vars = list(t = c("docentes$p1", "estudiantes$p1")), corte = corte), id)
+  expect_identical(m_de(.tp_lamina_radar(), dumb(list("3", "4"), "d")), 18L)         # el par docentes-estudiantes ya estaba (antes 19)
+  expect_identical(m_de(dumb(list("3", "4"), "d1"), dumb(list("4", "3"), "d2")), 1L) # mismo corte en otro orden (antes 2)
+  r43 <- .tp_lamina("p_radar", list(modo = "publicos", vars = .tp_vars6, corte = "4,3"), "r2")
+  expect_identical(m_de(.tp_lamina_radar(), r43), 18L)                               # antes 36
+  # Un filtro distinto sí es otra comparación.
+  rf <- .tp_lamina("p_radar", list(modo = "publicos", vars = .tp_vars6, corte = "3,4", filtros = list(p6 = c("3", "4"))), "rf")
+  expect_gt(m_de(.tp_lamina_radar(), rf), 18L)
+})

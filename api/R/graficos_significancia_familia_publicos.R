@@ -58,28 +58,44 @@
 
 #' Familia de BH entre públicos de un plan (primera pasada)
 #'
-#' Cada tema declarado y de escala comparable entra una sola vez (clave: refs, corte y filtros). Los temas sin
-#' equivalencia, con escalas distintas o sin dos públicos comparables no entran.
+#' La unidad es el PAR de públicos, no el tema: el mismo par (las dos refs, los códigos del corte en cualquier orden y
+#' los filtros) entra una sola vez aunque lo dibujen un radar de tres públicos y un contraste de dos, o un corte «3,4» y
+#' otro «4,3». Los temas sin equivalencia, con escalas distintas o sin dos públicos comparables no entran.
 #' @return `list(tabla, m)`; `tabla` de `.sig_bh_tabla()`.
 #' @keywords internal
 .tpub_familia_plan <- function(plan, sources, equiv, regla) {
   p <- list()
+  vistos <- character(0)
   for (s in .tpub_laminas_del_plan(plan)) {
     el <- .tpub_elemento_de_lamina(s)
     tt <- tryCatch(.tpub_temas_de_elemento(el, sources, equiv)$temas, error = function(e) list())
+    resto <- c(paste(sort(as.character(.radar_mb_codigos(el$corte))), collapse = ","),
+               digest::digest(el$filtros %||% list(), algo = "xxhash32"))
     for (x in tt) {
       if (is.null(x$refs) || is.na(x$equivalencia)) next
-      clave <- paste(c(sort(paste(names(x$refs), x$refs, sep = "$")), .radar_mb_codigos(el$corte),
-                       digest::digest(el$filtros %||% list(), algo = "xxhash32")), collapse = "\r")
-      if (!is.null(p[[clave]])) next
+      clave_tema <- paste(c(sort(paste(names(x$refs), x$refs, sep = "$")), resto), collapse = "\r")
+      if (clave_tema %in% vistos) next
+      vistos <- c(vistos, clave_tema)
       te <- tryCatch(.tpub_evaluar_tema(x$tema, x$refs, el$corte, sources, regla, filtros = el$filtros %||% list(),
                                         equivalencia = x$equivalencia), error = function(e) NULL)
-      p[[clave]] <- if (is.null(te)) numeric(0) else .tpub_p_familia(te)
+      for (k in .tpub_pares_familia(te)) {
+        clave <- paste(c(sort(paste(c(k$a, k$b), x$refs[c(k$a, k$b)], sep = "$")), resto), collapse = "\r")
+        if (is.null(p[[clave]])) p[[clave]] <- k$p
+      }
     }
   }
   todos <- unlist(p, use.names = FALSE)
   tabla <- .sig_bh_tabla(todos)
   list(tabla = tabla, m = tabla$m)
+}
+
+#' Pares de un tema evaluado que entran a la familia: `list(list(a, b, p))` (los de `.sig_p_para_familia`)
+#' @keywords internal
+.tpub_pares_familia <- function(te) {
+  if (is.null(te) || !identical(te$estado, "evaluable") || is.null(te$ev$pares) || !nrow(te$ev$pares)) return(list())
+  pr <- te$ev$pares
+  ok <- pr$elegible & !(pr$duplicada %||% rep(FALSE, nrow(pr))) & is.finite(pr$p)
+  lapply(which(ok), function(i) list(a = pr$a[i], b = pr$b[i], p = pr$p[i]))
 }
 
 #' Regla entre públicos: la guardada del estudio o, si es la propuesta, la resuelta sobre TODAS las bases
