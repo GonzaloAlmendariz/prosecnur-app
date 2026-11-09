@@ -222,7 +222,7 @@ export function DataReviewPane() {
       const r = await conPlazo(
         apiAnaliticaDetectSecciones(),
         PLAZO_DETECCION_MS,
-        `La lectura de la estructura no respondió en ${Math.round(PLAZO_DETECCION_MS / 1000)} s. Vuelve a intentarlo con «Detectar estructura».`,
+        `La lectura de la estructura no respondió en ${Math.round(PLAZO_DETECCION_MS / 1000)} s. Vuelve a intentarlo con "Detectar estructura".`,
       );
       if (lectura !== lecturaVigente.current) return;
       const declaradas = useAnaliticaStore.getState().config.secciones;

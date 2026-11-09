@@ -88,7 +88,7 @@ describe("Frecuencias sin secciones declaradas", () => {
     { name: "texto", categorica: false },
   ];
 
-  it("no dice «0 activas»: usa la estructura del instrumento", () => {
+  it('no dice "0 activas": usa la estructura del instrumento', () => {
     expect(resumenSecciones([])).toEqual({ modo: "instrumento" });
     expect(variablesAnalizables([], variables, new Set(["p2"]), ["edad"])).toBe(2);
   });

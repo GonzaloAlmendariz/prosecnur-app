@@ -254,7 +254,7 @@ describe("NotasPieEditor: Comparativos", () => {
     expect(html).toContain("Sin notas");
   });
 
-  test("abierto con 72 preguntas: vacío y «Añadir nota para una pregunta», sin un campo por pregunta", () => {
+  test('abierto con 72 preguntas: vacío y "Añadir nota para una pregunta", sin un campo por pregunta', () => {
     const html = renderToStaticMarkup(createElement(NotasPieEditor, { ...base, defaultOpen: true }));
     expect(html).toContain('data-qa-geometry-group="analitica-notas-pie-comparativo"');
     expect(html).toContain("Notas generales");

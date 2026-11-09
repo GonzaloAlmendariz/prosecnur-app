@@ -45,7 +45,7 @@ describe("estrato del sorteo en la UI (ADR 0131 §1)", () => {
     expect(politicaAlCambiar("distrito")).toBeNull();
   });
 
-  it("muestra el mínimo por ciudad, las ciudades fijas y los grupos con sus ciudades aleatorias y su π (§1b; «Fija/Aleatoria», maqueta 2026-11-05)", () => {
+  it('muestra el mínimo por ciudad, las ciudades fijas y los grupos con sus ciudades aleatorias y su π (§1b; "Fija/Aleatoria", maqueta 2026-11-05)', () => {
     const html = renderToStaticMarkup(<EstratoMuestral sampleSize={ss("provincia_lima_areas")} rowVar="distrito" nPorDistrito={false} servidor={normalizeHojasRutaEstratoMuestral(crudo)} deshabilitado={false} onCambio={() => undefined} onCambioMinimo={() => undefined} />);
     expect(html).toContain("Rutas mínimas por ciudad visitada");
     expect(html).toContain('value="6"');

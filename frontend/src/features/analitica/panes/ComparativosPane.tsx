@@ -505,8 +505,8 @@ function PreguntasOmitidas({
         </h4>
         <p>
           {omitidas.length === 1
-            ? "No tiene tabla en el archivo. El libro la lista en la hoja «Preguntas omitidas»."
-            : "No tienen tabla en el archivo. El libro las lista en la hoja «Preguntas omitidas»."}
+            ? 'No tiene tabla en el archivo. El libro la lista en la hoja "Preguntas omitidas".'
+            : 'No tienen tabla en el archivo. El libro las lista en la hoja "Preguntas omitidas".'}
         </p>
       </header>
       <ul

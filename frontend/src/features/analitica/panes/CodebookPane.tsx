@@ -130,7 +130,7 @@ export function CodebookPane() {
         <Section
           title="Códigos especiales"
           subtitle={<>
-            Códigos como «No sabe» o «No responde» que aparecen en las preguntas del estudio. Si marcas uno, el libro lo muestra en cada pregunta solo cuando alguien lo eligió.
+            Códigos como "No sabe" o "No responde" que aparecen en las preguntas del estudio. Si marcas uno, el libro lo muestra en cada pregunta solo cuando alguien lo eligió.
           </>}
         >
           <div className="analitica-codebook-code-grid">

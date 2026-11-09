@@ -95,8 +95,8 @@ export function ColumnasDelComparativo({
         <p className="pulso-comparativos-rotulos-aviso" role="status">
           <AlertTriangle size={13} aria-hidden="true" />
           {repetidos.length === 1
-            ? `«${repetidos[0]}» titula a más de una columna. Cambia uno de los títulos para que las columnas se distingan.`
-            : `${repetidos.map((r) => `«${r}»`).join(", ")} titulan a más de una columna. Cambia los títulos para que las columnas se distingan.`}
+            ? `"${repetidos[0]}" titula a más de una columna. Cambia uno de los títulos para que las columnas se distingan.`
+            : `${repetidos.map((r) => `"${r}"`).join(", ")} titulan a más de una columna. Cambia los títulos para que las columnas se distingan.`}
         </p>
       ) : null}
     </Panel>

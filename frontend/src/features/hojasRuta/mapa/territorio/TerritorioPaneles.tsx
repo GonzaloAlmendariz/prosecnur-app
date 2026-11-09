@@ -144,7 +144,7 @@ export function TerritorioEstructura({ territorios, confirmados, zonas, bloquead
               </ul>
             </section>
           ))}
-        {!visibles.length ? <EstadoVacio icono={<Search size={16} />} titulo={`Ningún distrito coincide con «${busquedaDistrito}»`} /> : null}
+        {!visibles.length ? <EstadoVacio icono={<Search size={16} />} titulo={`Ningún distrito coincide con "${busquedaDistrito}"`} /> : null}
       </div>
     </>
   );

@@ -66,7 +66,7 @@ describe("ponderación — editar no borra lo declarado", () => {
 
 describe("origen del peso base", () => {
   const base: PonderacionConfig = { enabled: true, rake: { margins: [] } };
-  test("elegir columna antes de nombrarla ya es «columna», no «estrato»", () => {
+  test('elegir columna antes de nombrarla ya es "columna", no "estrato"', () => {
     expect(origenPesoBase(conOrigenPesoBase(base, "columna"))).toBe("columna");
   });
   test("ninguno, estrato y columna se excluyen", () => {

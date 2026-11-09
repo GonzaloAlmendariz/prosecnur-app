@@ -145,9 +145,9 @@ describe("filas omitidas y sin variable", () => {
         { fila: "q11", titulo: "", tipo: "otra", motivo: "otro_nuevo" },
       ],
       avisos: [
-        { tipo: "pregunta_omitida", fila: "q9", motivo: "select_multiple", mensaje: "«Medios» se omitió." },
-        { tipo: "cruce_omitido", fila: "q10", motivo: "mapa_roto", mensaje: "«Turno» se omitió." },
-        { tipo: "sin_variable", base: "sede_b", fila: "q1", mensaje: "«P1» no tiene variable en Sede B." },
+        { tipo: "pregunta_omitida", fila: "q9", motivo: "select_multiple", mensaje: '"Medios" se omitió.' },
+        { tipo: "cruce_omitido", fila: "q10", motivo: "mapa_roto", mensaje: '"Turno" se omitió.' },
+        { tipo: "sin_variable", base: "sede_b", fila: "q1", mensaje: '"P1" no tiene variable en Sede B.' },
       ],
     },
   });
@@ -180,11 +180,11 @@ describe("filas omitidas y sin variable", () => {
     ]);
   });
 
-  it("«Revisar en Equivalencias» abre el editor sobre esa fila", () => {
+  it('"Revisar en Equivalencias" abre el editor sobre esa fila', () => {
     expect(direccionDeOmitida({ fila: "q9" })).toBe("/carga?pestana=equivalencias&panel=armonizacion&foco=q9");
   });
 
-  it("la celda «Sin variable» usa los rótulos de la serie", () => {
+  it('la celda "Sin variable" usa los rótulos de la serie', () => {
     expect(celdaSinVariable(datos.resumen.preguntas[0], datos.periodos)).toEqual(["Sede B"]);
     expect(celdaSinVariable(datos.resumen.preguntas[1], datos.periodos)).toEqual(["Sede A (Sexo)"]);
   });
@@ -227,7 +227,7 @@ describe("variable ausente", () => {
     expect(textoMotivoOmision(mixta.motivo, mixta.ausentes)).toBe("Variable que no está en la base");
   });
 
-  it("la celda «Sin variable» dice qué variable falta y por qué", () => {
+  it('la celda "Sin variable" dice qué variable falta y por qué', () => {
     expect(celdaSinVariable(datos.resumen.preguntas[0], datos.periodos)).toEqual(["Medición B: La variable p7 está excluida en Analítica para esta base"]);
   });
 });

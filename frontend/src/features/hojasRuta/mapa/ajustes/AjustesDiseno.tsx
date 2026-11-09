@@ -87,7 +87,7 @@ export function AjustesDiseno({ abierto, grupo, config, fase, vista, onGrupo, on
             <span>{g.nombre}</span>
             <small>{resumenGrupo(g.id, config, { n, fase })}</small>
           </button>
-        )) : <p className="hr-ajustes-nada">Ningún ajuste con «{busqueda}».</p>}
+        )) : <p className="hr-ajustes-nada">Ningún ajuste con "{busqueda}".</p>}
       </nav>
       <div className="hr-ajustes-cuerpo" key={actual.id}>
         <div className="hr-ajustes-grupo-cab">

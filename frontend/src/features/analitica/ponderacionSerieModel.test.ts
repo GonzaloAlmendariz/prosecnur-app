@@ -20,7 +20,7 @@ describe("normalizarPonderacionDeConfig: la regla del motor del comparativo", ()
     expect(normalizarPonderacionDeConfig(null)).toEqual({ tipo: "sin_declarar", columnasPeso: null });
   });
 
-  it("`enabled: false` es «sin ponderar» declarado", () => {
+  it('`enabled: false` es "sin ponderar" declarado', () => {
     expect(normalizarPonderacionDeConfig({ ponderacion: { enabled: false } })).toEqual({ tipo: "sin_ponderar" });
     expect(normalizarPonderacionDeConfig({ ponderacion: { enabled: [false] } })).toEqual({ tipo: "sin_ponderar" });
   });
@@ -44,7 +44,7 @@ describe("ponderación de la serie", () => {
   });
 
   it("textos cortos y qué cuenta como resuelta", () => {
-    expect(textoPonderacion({ tipo: "columna", columna: "peso" })).toBe("columna «peso»");
+    expect(textoPonderacion({ tipo: "columna", columna: "peso" })).toBe('columna "peso"');
     expect(textoPonderacion({ tipo: "sin_declarar", columnasPeso: null })).toBe("sin peso declarado");
     expect(ponderacionResuelta({ tipo: "sin_ponderar" })).toBe(true);
     expect(ponderacionResuelta({ tipo: "sin_declarar", columnasPeso: null })).toBe(false);
@@ -52,11 +52,11 @@ describe("ponderación de la serie", () => {
   });
 });
 
-describe("sin declarar: sin columnas de peso es «sin ponderar»; con columnas, falta declarar", () => {
+describe('sin declarar: sin columnas de peso es "sin ponderar"; con columnas, falta declarar', () => {
   const sinColumnas = { tipo: "sin_declarar" as const, columnasPeso: [] };
   const conFactor = { tipo: "sin_declarar" as const, columnasPeso: ["factor_ponderacion"] };
 
-  it("sin columnas de peso: un hecho, dicho igual que Ponderación («sin ponderar», peso 1)", () => {
+  it('sin columnas de peso: un hecho, dicho igual que Ponderación ("sin ponderar", peso 1)', () => {
     expect(textoPonderacion(sinColumnas)).toBe("sin ponderar");
     expect(explicacionPonderacion(sinColumnas)).toBe("No trae columna de peso: cada caso pesa 1 (sin ponderar).");
     expect(ponderacionResuelta(sinColumnas)).toBe(true);
@@ -72,27 +72,27 @@ describe("sin declarar: sin columnas de peso es «sin ponderar»; con columnas, 
   });
 
   it("con columnas de peso: pendiente, nombrando la columna", () => {
-    expect(textoPonderacion(conFactor)).toBe("trae «factor_ponderacion» sin declarar");
+    expect(textoPonderacion(conFactor)).toBe('trae "factor_ponderacion" sin declarar');
     expect(ponderacionResuelta(conFactor)).toBe(false);
     expect(pendienteDeDeclarar(conFactor)).toBe(true);
     expect(clasePonderacion(conFactor)).toBe("is-sin-declarar");
     expect(explicacionPonderacion(conFactor)).toBe(
-      "Trae «factor_ponderacion» y no declara cómo pondera: el comparativo la toma sin ponderar. Decláralo en Analítica › Ponderación.",
+      'Trae "factor_ponderacion" y no declara cómo pondera: el comparativo la toma sin ponderar. Decláralo en Analítica › Ponderación.',
     );
     const serie = [
       { base: "2025", ponderacion: conFactor },
       { base: "2026", ponderacion: sinColumnas },
     ];
     expect(basesSinDeclarar(serie)).toEqual(["2025"]);
-    expect(pendientesEnPalabras(serie)).toBe("2025 trae «factor_ponderacion» sin declarar");
+    expect(pendientesEnPalabras(serie)).toBe('2025 trae "factor_ponderacion" sin declarar');
     expect(avisoAntesDeGenerar(serie)).toBe(
-      "2025 trae «factor_ponderacion» sin declarar: el comparativo la toma sin ponderar.",
+      '2025 trae "factor_ponderacion" sin declarar: el comparativo la toma sin ponderar.',
     );
   });
 
-  it("la columna exacta «peso» detiene el comparativo, y el aviso lo dice", () => {
+  it('la columna exacta "peso" detiene el comparativo, y el aviso lo dice', () => {
     expect(avisoAntesDeGenerar([{ base: "2024", ponderacion: { tipo: "sin_declarar", columnasPeso: ["peso", "factor"] } }]))
-      .toBe("2024 trae «peso» y «factor» sin declarar: el comparativo se detiene.");
+      .toBe('2024 trae "peso" y "factor" sin declarar: el comparativo se detiene.');
   });
 
   it("C2: con dos bases se nombran, con más se cuentan; tres columnas se cuentan", () => {
@@ -108,7 +108,7 @@ describe("sin declarar: sin columnas de peso es «sin ponderar»; con columnas, 
     const serie = ponderacionDeLaSerie(["2024", "2025", "2026"], "2024", { tipo: "sin_declarar", columnasPeso: null });
     expect(basesSinDeclarar(serie)).toEqual(["2024"]);
     expect(avisoAntesDeGenerar(serie)).toBe(
-      "2024 sin peso declarado: el comparativo sale sin ponderar, o se detiene si trae una columna «peso».",
+      '2024 sin peso declarado: el comparativo sale sin ponderar, o se detiene si trae una columna "peso".',
     );
     expect(avisoAntesDeGenerar(ponderacionDeLaSerie(["2024"], "2024", { tipo: "sin_ponderar" }))).toBeNull();
   });

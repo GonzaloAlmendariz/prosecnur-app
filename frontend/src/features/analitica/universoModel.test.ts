@@ -9,13 +9,13 @@ const base = (over: Partial<Parameters<typeof lineasUniverso>[0][number]>) => ({
 describe("lineasUniverso", () => {
   it("una base: cuántos cuentan y con qué condición, sin nombrar la base", () => {
     expect(lineasUniverso([base({})])).toEqual([
-      { base: "default", aviso: false, texto: "Cuentan 2,500 de 3,318 casos: seleccionado es «1»." },
+      { base: "default", aviso: false, texto: 'Cuentan 2,500 de 3,318 casos: seleccionado es "1".' },
     ]);
   });
 
   it("varias bases: sólo las que declaran, con su nombre", () => {
     const l = lineasUniverso([base({ base: "2026" }), base({ base: "2024", declarado: false })]);
-    expect(l.map((x) => x.texto)).toEqual(["Cuentan 2,500 de 3,318 casos en 2026: seleccionado es «1»."]);
+    expect(l.map((x) => x.texto)).toEqual(['Cuentan 2,500 de 3,318 casos en 2026: seleccionado es "1".']);
   });
 
   it("un criterio que vaciaría la base avisa que cuentan todos", () => {

@@ -39,7 +39,7 @@ export function ponderacionDeLaSerie(
 /** Columnas entre comillas: «a», «a» y «b»; con más, cuántas. */
 function columnasEnPalabras(columnas: readonly string[]): string {
   if (columnas.length > 2) return `${columnas.length} columnas de peso`;
-  return enPalabras(columnas.map((c) => `«${c}»`));
+  return enPalabras(columnas.map((c) => `"${c}"`));
 }
 
 /**
@@ -63,7 +63,7 @@ function sinPesoQueDeclarar(p: PonderacionDeBase): boolean {
 export function textoPonderacion(p: PonderacionDeBase): string {
   switch (p.tipo) {
     case "columna":
-      return p.columna ? `columna «${p.columna}»` : "por columna";
+      return p.columna ? `columna "${p.columna}"` : "por columna";
     case "calibracion":
       return "calibración";
     case "sin_ponderar":
@@ -88,7 +88,7 @@ export function explicacionPonderacion(p: PonderacionDeBase): string {
       return "Declarada sin ponderar: cada caso pesa 1.";
     case "sin_declarar":
       if (p.columnasPeso === null) {
-        return "No declara su ponderación. El comparativo sale sin ponderar, o se detiene si la base trae una columna «peso».";
+        return 'No declara su ponderación. El comparativo sale sin ponderar, o se detiene si la base trae una columna "peso".';
       }
       if (!p.columnasPeso.length) return "No trae columna de peso: cada caso pesa 1 (sin ponderar).";
       return `Trae ${columnasEnPalabras(p.columnasPeso)} y no declara cómo pondera: ${consecuencia([p], 1)}. Decláralo en Analítica › Ponderación.`;
@@ -149,7 +149,7 @@ export function pendientesEnPalabras(serie: readonly PonderacionEnSerie[]): stri
 function consecuencia(pendientes: readonly PonderacionDeBase[], n: number): string {
   const columnas = pendientes.map((p) => (p.tipo === "sin_declarar" ? p.columnasPeso : []));
   if (columnas.some((c) => c?.includes("peso"))) return "el comparativo se detiene";
-  if (columnas.some((c) => c === null)) return "el comparativo sale sin ponderar, o se detiene si trae una columna «peso»";
+  if (columnas.some((c) => c === null)) return 'el comparativo sale sin ponderar, o se detiene si trae una columna "peso"';
   return n === 1 ? "el comparativo la toma sin ponderar" : "el comparativo las toma sin ponderar";
 }
 

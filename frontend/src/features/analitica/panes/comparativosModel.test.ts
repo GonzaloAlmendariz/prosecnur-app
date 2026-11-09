@@ -362,7 +362,7 @@ describe("normalizarComparativoResultado", () => {
     expect(c.n_reducidas).toBe(2);
   });
 
-  it("solo dice «Ninguna» en n.a. y no ofrecidas cuando el resumen lo cubre", () => {
+  it('solo dice "Ninguna" en n.a. y no ofrecidas cuando el resumen lo cubre', () => {
     const per = [{ base: "hsvg2024", rotulo: "2024" }];
     const sinCampo = normalizarComparativoResultado({
       periodos: per,
@@ -404,9 +404,9 @@ describe("normalizarComparativoResultado", () => {
 });
 
 describe("checklist HSyVbG A5 y A7: avisos internos con su lugar de arreglo", () => {
-  it("el universo sin declarar lleva a «Qué casos cuentan» y el mapa a revisar a su fila", () => {
+  it('el universo sin declarar lleva a "Qué casos cuentan" y el mapa a revisar a su fila', () => {
     const r = normalizarComparativoResultado({ resumen: { preguntas: [], avisos: [
-      { tipo: "universo_sin_declarar", base: "2026", mensaje: "La base 2026 trae la columna «seleccionado»…" },
+      { tipo: "universo_sin_declarar", base: "2026", mensaje: 'La base 2026 trae la columna "seleccionado"…' },
       { tipo: "codigo_mal_ubicado", base: "2025", fila: "Año de ingreso", mensaje: "…" },
     ] } });
     expect(r.resumen.avisos.map(etiquetaDeAviso)).toEqual(["Universo sin declarar", "Mapa a revisar"]);

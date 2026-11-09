@@ -38,7 +38,7 @@ export type FormularioArea = { motivo: HojasRutaMotivoExclusion; detalle: string
 /** Lo que falta para guardar un área, o `null` si está completa (las reglas del normalizador de R). */
 export function faltaEnArea(f: FormularioArea, vertices: readonly [number, number][]): string | null {
   if (vertices.length < 3) return "Marca al menos tres puntos en el mapa";
-  if (f.motivo === "otro" && !f.detalle.trim()) return "Con «Otro», escribe el detalle";
+  if (f.motivo === "otro" && !f.detalle.trim()) return 'Con "Otro", escribe el detalle';
   if (pideEvidencia(f.motivo) && (!f.fuente.trim() || !f.fecha)) return "Indica la fuente y la fecha de la evidencia";
   return null;
 }

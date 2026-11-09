@@ -27,7 +27,7 @@ describe("causaDeRuteo", () => {
   it("la misma huella es la misma muestra", () => {
     expect(causaDeRuteo(instantanea(), muestra())).toBe("coincide");
   });
-  it("sin huella guardada no se puede comprobar, nunca «coincide»", () => {
+  it('sin huella guardada no se puede comprobar, nunca "coincide"', () => {
     expect(causaDeRuteo({ ...instantanea(), sample_fingerprint: null }, muestra())).toBe("sin_huella");
   });
   it("con otros parámetros o territorio la causa son los parámetros", () => {

@@ -16,7 +16,7 @@ describe("reparto de hogares por NSE en la tarjeta del distrito (H21)", () => {
 });
 
 describe("pct", () => {
-  it("rotula «menos de 1 %» un nivel con hogares que redondea a cero", () => {
+  it('rotula "menos de 1 %" un nivel con hogares que redondea a cero', () => {
     expect(pct(0.003)).toBe("menos de 1 %");
     expect(pct(0)).toBe("0 %");
     expect(pct(0.5209)).toBe("52 %");

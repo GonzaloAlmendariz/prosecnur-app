@@ -125,7 +125,7 @@ function NotasDelReporte({ variante, variables, crucesVars = [], defaultOpen = f
             placeholder="Nombre de la institución y año del estudio"
             onChange={(e) => setNotas({ fuente: e.target.value })}
           />
-          <small>Se imprime como «Fuente: …».</small>
+          <small>Se imprime como "Fuente: …".</small>
         </label>
         <label className="analitica-notas-pie-field" data-qa-geometry-member="true">
           <span className="pulso-section-eyebrow">Base por defecto</span>

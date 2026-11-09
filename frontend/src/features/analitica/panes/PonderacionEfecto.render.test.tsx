@@ -12,9 +12,9 @@ const DIAG = { n: 400, n_eff: 320, deff: 1.25, cv: 0.5, loss_pct: 20, min: 0.4, 
 
 describe("Ponderación › Efecto", () => {
   it("un error declarado del backend se muestra tal cual", () => {
-    const msg = "No se puede imputar: faltan 8 % en «sexo», más que el 5 % permitido. Usa «dejar fuera del margen» o saca la variable de la calibración.";
+    const msg = 'No se puede imputar: faltan 8 % en "sexo", más que el 5 % permitido. Usa "dejar fuera del margen" o saca la variable de la calibración.';
     const html = render({ ok: false, reason: "E_PONDERACION_IMPUTACION_EXCEDE_UMBRAL", message: msg });
-    expect(html).toContain("faltan 8 % en «sexo»");
+    expect(html).toContain("faltan 8 % en &quot;sexo&quot;");
     expect(html).toContain('role="alert"');
   });
 
@@ -51,7 +51,7 @@ describe("Ponderación › Efecto", () => {
       imputacion: { semilla: 20261104, umbral: 0.05, metodo: "hot-deck", variables: { sexo: { imputados: 12, sin_donante: 0, pct: 0.03, colapsados: 0 } } },
       escala: "expansion",
       total_poblacion: 1234567,
-      warnings: [{ level: "info", code: "categoria_fuera_de_margen", message: "5 casos sin dato en «edad» (99) conservan su peso en ese margen." }],
+      warnings: [{ level: "info", code: "categoria_fuera_de_margen", message: '5 casos sin dato en "edad" (99) conservan su peso en ese margen.' }],
     });
     expect(html).toContain("1.60 → ");
     expect(html).toContain("1.25");

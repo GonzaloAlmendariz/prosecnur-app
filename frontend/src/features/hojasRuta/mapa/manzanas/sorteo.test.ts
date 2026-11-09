@@ -56,7 +56,7 @@ describe("borrador del sorteo", () => {
 });
 
 describe("semilla y salto", () => {
-  it("«Otra» da cinco cifras y nunca repite la actual", () => {
+  it('"Otra" da cinco cifras y nunca repite la actual', () => {
     expect(otraSemilla(1, 0)).toBe(10000);
     expect(otraSemilla(10000, 0)).toBe(10001);
     expect(otraSemilla(99999, 0.99999999)).toBe(10000);

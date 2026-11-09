@@ -11,7 +11,7 @@ describe("detector de etiquetas (G18): avisa y sugiere, no cambia", () => {
     expect(p.sugerencia).toBe("¿Conoce la misión de la PUCP?");
     expect(tipos("Institución , año")).toContain("espacio-antes-de-signo");
   });
-  it("doble porcentaje y conjunción en mayúscula («docentes Y autoridades»)", () => {
+  it('doble porcentaje y conjunción en mayúscula ("docentes Y autoridades")', () => {
     expect(problemasDeEtiqueta("Cobertura 45%%")[0].sugerencia).toBe("Cobertura 45%");
     const c = problemasDeEtiqueta("Relación entre docentes Y autoridades").find((p) => p.tipo === "conjuncion-mayuscula");
     expect(c?.sugerencia).toBe("Relación entre docentes y autoridades");
@@ -28,6 +28,6 @@ describe("detector de etiquetas (G18): avisa y sugiere, no cambia", () => {
   it("opciones equivalentes separadas: sólo difieren en tildes o mayúsculas", () => {
     const m = opcionesEquivalentes([{ code: "1", label: "Sí" }, { code: "2", label: "si" }, { code: "3", label: "No" }]);
     expect([...m.keys()]).toEqual(["1", "2"]);
-    expect(m.get("1")?.mensaje).toContain("«si» (2)");
+    expect(m.get("1")?.mensaje).toContain('"si" (2)');
   });
 });

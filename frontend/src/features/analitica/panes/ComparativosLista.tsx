@@ -141,7 +141,7 @@ export function ComparativosLista({
         // C3: el vacío de la búsqueda vive dentro de la lista y dice cómo salir.
         <EstadoVacio
           icono={<SearchX size={15} />}
-          titulo={`Ninguna pregunta coincide con «${consulta.trim()}»`}
+          titulo={`Ninguna pregunta coincide con "${consulta.trim()}"`}
           descripcion="Prueba con otra palabra o borra la búsqueda."
           accion={(
             <PulsoButton variant="secondary" size="sm" onClick={() => setConsulta("")}>

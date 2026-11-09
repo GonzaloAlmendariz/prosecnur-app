@@ -86,7 +86,7 @@ test("si la descarga falla, la pestaña muestra el error en vez de callar", asyn
   montar();
 
   const boton = botonDescargar();
-  expect(boton, "la tarjeta «Descargar» está en el admin").toBeDefined();
+  expect(boton, 'la tarjeta "Descargar" está en el admin').toBeDefined();
   expect(document.querySelectorAll('[role="alert"]')).toHaveLength(0);
 
   await act(async () => {
@@ -105,13 +105,13 @@ test("si la descarga falla, la pestaña muestra el error en vez de callar", asyn
   expect(botonDescargar()?.disabled).toBe(false);
 });
 
-test("en la publicación la tarjeta «Descargar» no se muestra", () => {
+test('en la publicación la tarjeta "Descargar" no se muestra', () => {
   montar(true);
   expect(tituloDescargar()).toBeUndefined();
   expect(botonDescargar()).toBeUndefined();
 });
 
-test("en el admin la tarjeta «Descargar» sí se muestra", () => {
+test('en el admin la tarjeta "Descargar" sí se muestra', () => {
   montar(false);
   expect(tituloDescargar()).toBeDefined();
   expect(botonDescargar()).toBeDefined();

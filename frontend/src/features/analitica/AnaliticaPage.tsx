@@ -134,7 +134,7 @@ export default function AnaliticaPage() {
     params.delete("reporte");
     const search = params.toString();
     navigate({ pathname: location.pathname, search: search ? `?${search}` : "" }, { replace: true });
-    toast.info(`«${noDisponible.label}» no está en este estudio`, {
+    toast.info(`"${noDisponible.label}" no está en este estudio`, {
       detalle: "Se ofrece cuando el estudio tiene varias bases. Te dejamos en Datos.",
     });
   }, [noDisponible, location.pathname, location.search, navigate]);

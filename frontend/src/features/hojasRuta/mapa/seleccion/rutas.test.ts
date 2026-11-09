@@ -32,7 +32,7 @@ describe("rutas de la selección", () => {
     expect(g[1].filas[1].reemplazos).toBe(2);
   });
 
-  it("«por revisar» deja sólo errores y avisos; la búsqueda mira código y zona", () => {
+  it('"por revisar" deja sólo errores y avisos; la búsqueda mira código y zona', () => {
     const solo = rutasPorDistrito(titulares, reemplazos, estados, { soloPorRevisar: true, busqueda: "" });
     expect(solo.flatMap((g) => g.filas.map((f) => f.id))).toEqual(["b", "c"]);
     expect(rutasPorDistrito(titulares, reemplazos, estados, { soloPorRevisar: false, busqueda: "007" }).flatMap((g) => g.filas.map((f) => f.id))).toEqual(["b"]);

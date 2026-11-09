@@ -262,7 +262,7 @@ export function ProcessingSheetViewer({
                   className="pulso-processing-sheet-roster-badge"
                   title={
                     repeat?.parentBase
-                      ? `Respuestas repetidas de «${repeat.parentBase}» (una fila por opción marcada)`
+                      ? `Respuestas repetidas de "${repeat.parentBase}" (una fila por opción marcada)`
                       : "Base de respuestas repetidas"
                   }
                 />

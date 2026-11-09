@@ -19,7 +19,7 @@ describe("marco elegible en el lienzo", () => {
     expect(cerrarAnillo([[0, 0], [1, 0], [1, 1], [0, 0]])).toHaveLength(4);
   });
 
-  it("pide lo mismo que el normalizador de R: detalle con «otro», fuente y fecha con inseguridad", () => {
+  it('pide lo mismo que el normalizador de R: detalle con "otro", fuente y fecha con inseguridad', () => {
     const v: [number, number][] = [[0, 0], [1, 0], [1, 1]];
     expect(faltaEnArea({ motivo: "otro", detalle: " ", fuente: "", fecha: "" }, v)).toMatch(/detalle/);
     expect(faltaEnArea({ motivo: "inseguridad", detalle: "", fuente: "Supervisión", fecha: "" }, v)).toMatch(/fuente/);

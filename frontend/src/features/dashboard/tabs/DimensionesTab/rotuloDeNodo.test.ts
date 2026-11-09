@@ -15,7 +15,7 @@ describe("rótulos de los nodos de Construcción", () => {
     expect(partirRotulo("Experiencia en el Espacio", 120, medir, 2)).toEqual(["Experiencia", "en el Espac…"]);
   });
 
-  it("lo que no cabe termina en «…» y ninguna línea pasa del ancho", () => {
+  it('lo que no cabe termina en "…" y ninguna línea pasa del ancho', () => {
     const lineas = partirRotulo("Recepción y/o registro inicial en Espacio de Protección de ${sede_ppl}", 120, medir, 2);
     expect(lineas).toHaveLength(2);
     expect(lineas[1].endsWith("…")).toBe(true);

@@ -29,11 +29,11 @@ describe("Comparativos › columnas y ponderación de la serie", () => {
     expect(html).toContain("Columnas del comparativo");
     expect(html).toContain("Título de la columna");
     expect(html).not.toMatch(/\b[Aa]ños?\b/);
-    expect(html).toContain("Trae «factor_ponderacion» sin declarar");
+    expect(html).toContain("Trae &quot;factor_ponderacion&quot; sin declarar");
     expect(html).toContain("is-sin-declarar");
     expect(html).toContain("is-sin-ponderar");
     expect(html).toContain("Sin leer aquí");
-    expect(html).toContain("Columna «peso»");
+    expect(html).toContain("Columna &quot;peso&quot;");
     expect(html.match(/<tr>/g)?.length).toBe(5);
     expect(html).toMatch(/href="[^"]*pestana=ponderacion/);
     expect(html).toContain("Ir a Ponderación");
@@ -52,7 +52,7 @@ describe("Comparativos › columnas y ponderación de la serie", () => {
 
   it("el aviso previo nombra la base con peso sin declarar, enlaza a Ponderación, y no aparece si no falta nada", () => {
     const aviso = conRouter(createElement(AvisoPonderacionSerie, { lectura }));
-    expect(aviso).toContain("2024 trae «factor_ponderacion» sin declarar: el comparativo la toma sin ponderar.");
+    expect(aviso).toContain("2024 trae &quot;factor_ponderacion&quot; sin declarar: el comparativo la toma sin ponderar.");
     expect(aviso).not.toContain("2027");
     expect(aviso).toMatch(/href="[^"]*pestana=ponderacion/);
     expect(aviso).toContain("Declarar en Ponderación");

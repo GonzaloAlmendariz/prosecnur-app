@@ -105,7 +105,7 @@ export function SeleccionEstructura({ grupos, total, observadas, confirmados = [
         ))}
         {!grupos.length ? (
           total ? (
-            <EstadoVacio icono={<Search size={16} />} titulo={soloPorRevisar ? "Ninguna ruta por revisar" : `Ninguna ruta coincide con «${busquedaUmp}»`} />
+            <EstadoVacio icono={<Search size={16} />} titulo={soloPorRevisar ? "Ninguna ruta por revisar" : `Ninguna ruta coincide con "${busquedaUmp}"`} />
           ) : (
             <EstadoVacio icono={<Inbox size={16} />} titulo="Todavía no hay sorteo" descripcion="Sortea las manzanas en la sección Manzanas." />
           )
@@ -189,7 +189,7 @@ export function SeleccionInspector({ titular, estado, reemplazos, revision, tota
               Ver la hoja en Material de campo
             </Link>
           ) : (
-            <p className="hr-mapa-nota">La hoja de esta ruta se ve e imprime en Material de campo, después de enviar la muestra desde «Entrega».</p>
+            <p className="hr-mapa-nota">La hoja de esta ruta se ve e imprime en Material de campo, después de enviar la muestra desde "Entrega".</p>
           )}
           {/* Checklist I1: el avance de campo vive en Monitoreo (D2); la UMP es la misma llave en los dos módulos. */}
           {titular.hoja_num ? (

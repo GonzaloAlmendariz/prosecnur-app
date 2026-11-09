@@ -121,7 +121,7 @@ export function PanelVariablesExcluidas() {
     ? pedida
     : null;
   const alcance = porBase
-    ? `Base «${etiquetaDeBase(estudio, activa)}»`
+    ? `Base "${etiquetaDeBase(estudio, activa)}"`
     : nBases > 1
       ? "Todas las bases: comparten esta lista"
       : "";
@@ -182,8 +182,8 @@ export function PanelVariablesExcluidas() {
             {otraBase ? (
               <div className="pulso-excluidas-otra-base" role="status">
                 <span>
-                  El enlace pide la base «{etiquetaDeBase(estudio, otraBase)}», pero estás viendo
-                  «{etiquetaDeBase(estudio, activa)}».
+                  El enlace pide la base "{etiquetaDeBase(estudio, otraBase)}", pero estás viendo
+                  "{etiquetaDeBase(estudio, activa)}".
                 </span>
                 <PulsoButton
                   variant="secondary"
@@ -191,7 +191,7 @@ export function PanelVariablesExcluidas() {
                   onClick={() => void cambiarABase(otraBase)}
                   disabled={cambiandoBase}
                 >
-                  Ver «{etiquetaDeBase(estudio, otraBase)}»
+                  Ver "{etiquetaDeBase(estudio, otraBase)}"
                 </PulsoButton>
               </div>
             ) : null}

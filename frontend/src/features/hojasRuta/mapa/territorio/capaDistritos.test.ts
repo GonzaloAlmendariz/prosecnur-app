@@ -15,7 +15,7 @@ describe("capa de distritos de la ciudad abierta (revisión del 7 nov 2026)", ()
     expect(areaKm2([cuadrado(0, 0, 10_000), cuadrado(2_000, 2_000, 5_000)])).toBeCloseTo(75, 0);
   });
 
-  it("«Distritos» no colorea", () => {
+  it('"Distritos" no colorea', () => {
     expect(escalaDistritos("distritos", [], new Map())).toBeNull();
   });
 

@@ -120,7 +120,7 @@ export function EnumeradoresPane() {
         {/* 2. Modalidad */}
         <Section
           title="2. Modalidad de levantamiento"
-          subtitle="Define cómo asignar Presencial / Telefónica a cada encuesta. Si no tiene sentido para tu proyecto, elige «Sin modalidad» y el reporte mostrará solo el total por enumerador."
+          subtitle='Define cómo asignar Presencial / Telefónica a cada encuesta. Si no tiene sentido para tu proyecto, elige "Sin modalidad" y el reporte mostrará solo el total por enumerador.'
         >
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -301,7 +301,7 @@ export function EnumeradoresPane() {
               ? "Falta Quarto CLI — instálalo desde quarto.org y reabre Prosecnur."
               : !enumer.col_enumerador
               ? "Selecciona primero la columna del enumerador."
-              : "Agrega al menos una regla o cambia el modo a «Sin modalidad» / «Por columna»."}
+              : 'Agrega al menos una regla o cambia el modo a "Sin modalidad" / "Por columna".'}
         />
       </div>
     </Panel>

@@ -76,7 +76,7 @@ export function opcionesEquivalentes(opciones: readonly { code: string; label: s
   for (const grupo of porClave.values()) {
     if (grupo.length < 2) continue;
     for (const o of grupo) {
-      const otras = grupo.filter((g) => g.code !== o.code).map((g) => `«${g.label}» (${g.code})`).join(", ");
+      const otras = grupo.filter((g) => g.code !== o.code).map((g) => `"${g.label}" (${g.code})`).join(", ");
       out.set(o.code, { tipo: "equivalente", fragmento: o.label, mensaje: `Se escribe casi igual que ${otras}: ¿son la misma respuesta?` });
     }
   }

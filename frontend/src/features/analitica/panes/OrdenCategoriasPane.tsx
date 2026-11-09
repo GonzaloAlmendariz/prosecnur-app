@@ -190,7 +190,7 @@ export function OrdenCategoriasPane() {
 
               <div className="analitica-orden-catalogo" role="listbox" aria-label="Listas de opciones">
                 {catalogoFiltrado.length === 0 ? (
-                  <EstadoVacio icono={<Search size={16} />} titulo={`Ninguna lista coincide con «${query}»`} />
+                  <EstadoVacio icono={<Search size={16} />} titulo={`Ninguna lista coincide con "${query}"`} />
                 ) : (
                   catalogoFiltrado.map((e) => {
                     const selected = e.listName === listName;

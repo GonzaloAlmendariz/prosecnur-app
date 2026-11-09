@@ -833,7 +833,7 @@ export function DashboardCustomizeDialog({
                 <p className="dash-customize-help">
                   Si solo eliges la de color, las filas son los valores de esa variable (ej.
                   Lima, Rímac, Lurigancho) sin ícono. Si eliges una distinta como ícono, cada
-                  fila es una combinación observada (ej. «Lima, ULE Lurigancho») y la 2ª
+                  fila es una combinación observada (ej. "Lima, ULE Lurigancho") y la 2ª
                   variable aporta el ícono. Si eliges la misma variable en ambos selects, las
                   filas son los valores de esa variable y el ícono aparece en cada fila. Los
                   íconos se reutilizan de la configuración del FODA cuando la variable coincide

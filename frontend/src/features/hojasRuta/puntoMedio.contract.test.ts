@@ -48,11 +48,11 @@ describe("punto medio en Hojas de ruta (P3)", () => {
     expect(archivos(aqui).length).toBeGreaterThan(30);
   });
 
-  it("ningún archivo suma « · » ni aparece uno nuevo", () => {
+  it('ningún archivo suma " · " ni aparece uno nuevo', () => {
     const regresiones = Object.entries(conteo)
       .filter(([f, n]) => n > (SNAPSHOT[f] ?? 0))
       .map(([f, n]) => `${f}: ${SNAPSHOT[f] ?? 0} → ${n}`);
-    expect(regresiones, "Une con coma o con «y» (lib/enumerar); datos de otro tipo, en otra línea.").toEqual([]);
+    expect(regresiones, 'Une con coma o con "y" (lib/enumerar); datos de otro tipo, en otra línea.').toEqual([]);
   });
 
   it("el snapshot no guarda conteos que ya bajaron", () => {

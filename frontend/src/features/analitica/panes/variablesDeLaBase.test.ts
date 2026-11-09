@@ -34,7 +34,7 @@ describe("avisoColumnasDePeso", () => {
       .toMatch(/^No se pudieron leer las columnas de la base/);
   });
 
-  test("«no tiene columnas numéricas» sólo tras una respuesta real sin candidatas", () => {
+  test('"no tiene columnas numéricas" sólo tras una respuesta real sin candidatas', () => {
     expect(avisoColumnasDePeso({ tipo: "lista", variables: [v("sexo", { categorica: true, numerica: true })] }, "")?.tipo)
       .toBe("sin-numericas");
     expect(avisoColumnasDePeso({ tipo: "lista", variables: [v("factor", { numerica: true })] }, "")).toBeNull();

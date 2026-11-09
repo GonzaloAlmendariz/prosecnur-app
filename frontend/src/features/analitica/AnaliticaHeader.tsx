@@ -185,7 +185,7 @@ export function AnaliticaHeader({ prepBusy, prepError, variant = "bar" }: Analit
               repeatGroup={repeatGrain.repeat_group}
               compact
               title={repeatGrain.parent_base
-                ? `Respuestas repetidas de «${repeatGrain.parent_base}» (una fila por opción marcada)`
+                ? `Respuestas repetidas de "${repeatGrain.parent_base}" (una fila por opción marcada)`
                 : "Base de respuestas repetidas"}
             />
           )}{" "}
