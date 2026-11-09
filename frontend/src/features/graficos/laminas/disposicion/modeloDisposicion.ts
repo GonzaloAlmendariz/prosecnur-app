@@ -59,8 +59,8 @@ export function lugarDispuesto(slide: LaminaLeida | undefined, slot: string): st
 
 /**
  * Ronda 19 (F4): el lugar de `slot` por la geometría de la lámina, con cualquier disposición, cuando la lámina tiene dos
- * o más gráficos («Izquierda» / «Derecha» en «Dos gráficos + texto», que el catálogo rotula «Gráfico superior» e
- * «inferior» aunque van lado a lado). `null` con un solo gráfico o sin geometría del estándar: manda el rótulo del catálogo.
+ * o más gráficos («Izquierda» / «Derecha» en «Dos gráficos + texto», que van lado a lado; un plan o registro viejo aún
+ * los rotula por número o por otro lugar). `null` con un solo gráfico o sin geometría del estándar: manda el rótulo del catálogo.
  */
 export function lugarEnLamina(slide: LaminaLeida | undefined, slot: string): string | null {
   if (!slide) return null;
@@ -80,8 +80,8 @@ const raices = (texto: string): Set<string> => {
 
 /**
  * El nombre de la ranura (ronda 19, F4): el rótulo del catálogo si describe el lugar que la ranura ocupa («Gráfico
- * izquierdo» en la izquierda); si no lo describe o dice otro lugar («Gráfico superior» lado a lado, «Superior derecha»
- * que con «2+3» baja), el lugar por la geometría. Sin lugar (un solo gráfico), el rótulo.
+ * izquierdo» en la izquierda); si no lo describe o dice otro lugar («Gráfico 2» lado a lado, «Superior derecha» que con
+ * «2+3» baja), el lugar por la geometría. Sin lugar (un solo gráfico), el rótulo.
  */
 export function rotuloDeRanura(slide: LaminaLeida | undefined, slot: string, rotuloCatalogo: string): string {
   const lugar = lugarEnLamina(slide, slot);

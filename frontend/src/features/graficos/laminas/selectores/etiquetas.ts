@@ -27,7 +27,7 @@ export function nombreLamina(tipo: SlideType, meta?: SlideMetadata): string {
 /**
  * Nombre de la ranura: el del registro (`slot_specs`) o el conocido del editor, salvo que no describa el lugar que la
  * ranura ocupa en la lámina; entonces, ese lugar (con «2+3» la tercera ranura ya no es «Superior derecha»; en «Dos
- * gráficos + texto», «Izquierda» y «Derecha», no el «Gráfico superior» del catálogo; ronda 19).
+ * gráficos + texto», «Izquierda» y «Derecha», como el catálogo; ronda 19).
  */
 export function nombreSlot(slot: string, meta?: SlideMetadata, slide?: Pick<Slide, "tipo" | "payload">): string {
   const spec = meta?.slot_specs?.find((s) => s.name === slot);

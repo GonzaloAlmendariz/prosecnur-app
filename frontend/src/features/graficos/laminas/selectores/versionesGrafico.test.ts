@@ -3,7 +3,7 @@
 // tarjeta muestra elegida la versión candidata, o la actual de la ranura, o la base.
 import { describe, expect, it } from "vitest";
 import { VARIANTES_GRAFICO } from "../../iconos/catalogoTipos.generated";
-import { entradaDeGrafico, nombreConVersion, nombreVersion, nombreVersionBase, varianteGrafico } from "../../catalogoGraficos";
+import { entradaDeGrafico, NOMBRE_TIPO_GRAFICO, nombreConVersion, nombreVersion, nombreVersionBase, varianteGrafico } from "../../catalogoGraficos";
 import { esVersionDe, graficoDeVersion, versionesDeTipo, versionMostrada } from "./versionesGrafico";
 import { compatibleGraficadorRef } from "../../GraficosLibrariesHost";
 import type { GraficadorMetadata, GraficadorRef } from "../../../../api/graficos";
@@ -109,6 +109,10 @@ describe("nombre con versión (selector, maqueta, aviso, inspector y Estructura)
     }
     const contraste = varianteGrafico("p_dumbbell:contraste");
     if (!contraste) throw new Error("falta la variante");
-    expect(nombreConVersion(contraste, "Brecha entre dos grupos")).toBe("Brecha entre dos grupos, versión Contraste de públicos");
+    // El nombre del tipo, del catálogo (ronda 21: no un literal que un renombre deja atrás).
+    const tipo = NOMBRE_TIPO_GRAFICO.p_dumbbell;
+    expect(tipo).toBeTruthy();
+    expect(nombreConVersion(contraste, tipo)).toBe(`${tipo}, versión ${nombreVersion(contraste)}`);
+    expect(nombreConVersion(contraste)).toBe(nombreConVersion(contraste, tipo));
   });
 });

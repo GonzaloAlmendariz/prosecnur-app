@@ -70,13 +70,14 @@ describe("disposición de la lámina de cinco gráficos", () => {
     const dosTexto = { tipo: "p_slide_2_graficos_texto_izquierda", payload: {} } as unknown as Parameters<typeof lugarEnLamina>[0];
     expect(lugarEnLamina(dosTexto, "grafico_1")).toBe("Izquierda");
     expect(lugarEnLamina(dosTexto, "grafico_2")).toBe("Derecha");
-    const meta = { name: "p_slide_2_graficos_texto_izquierda", slot_specs: [{ name: "grafico_1", label: "Gráfico superior" }] } as unknown as Parameters<typeof nombreSlot>[1];
+    const meta = { name: "p_slide_2_graficos_texto_izquierda", slot_specs: [{ name: "grafico_1", label: "Gráfico 1" }] } as unknown as Parameters<typeof nombreSlot>[1];
     expect(nombreSlot("grafico_1", meta, dosTexto)).toBe("Izquierda");
     // Sin la lámina, el tipo del registro basta.
     expect(nombreSlot("grafico_1", meta)).toBe("Izquierda");
     // Un rótulo que ya describe el lugar se conserva.
     expect(rotuloDeRanura(dosTexto, "grafico_1", "Gráfico izquierdo")).toBe("Gráfico izquierdo");
-    expect(rotuloDeRanura(dosTexto, "grafico_2", "Gráfico inferior")).toBe("Derecha");
+    expect(rotuloDeRanura(dosTexto, "grafico_2", "Derecha")).toBe("Derecha");
+    expect(rotuloDeRanura(dosTexto, "grafico_2", "Gráfico 2")).toBe("Derecha");
     // Con un solo gráfico no hay lugar que distinguir.
     expect(lugarEnLamina({ tipo: "p_slide_1_grafico", payload: {} } as unknown as Parameters<typeof lugarEnLamina>[0], "grafico")).toBeNull();
   });
