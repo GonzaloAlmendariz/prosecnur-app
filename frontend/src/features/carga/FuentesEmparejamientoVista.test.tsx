@@ -91,19 +91,19 @@ describe("FuentesEmparejamientoVista", () => {
     expect(html).toContain('title="Indique su código PUCP"');
   });
 
-  it("un enlace a una fuente que ninguna base junta lo dice, sin el vacío falso de «no junta encuestas»", () => {
+  it('un enlace a una fuente que ninguna base junta lo dice, sin el vacío falso de "no junta encuestas"', () => {
     const html = render({ tipo: "fuera-del-estudio" }, "999999999");
     expect(html).toContain("No se encontró esa fuente en este estudio");
     expect(html).not.toContain("Esta base no junta encuestas");
   });
 
-  it("«Todas» lista también las emparejadas", () => {
+  it('"Todas" lista también las emparejadas', () => {
     const html = render(datos([MIXTA]), "tel", "todas");
     expect(filasDeTabla(html)).toBe(5);
     expect(html).toContain("¿Cuál es su género?");
   });
 
-  it("sin diferencias, el filtro arranca en «Todas»; si se pide diferencias, el vacío vive en la tabla", () => {
+  it('sin diferencias, el filtro arranca en "Todas"; si se pide diferencias, el vacío vive en la tabla', () => {
     const limpia = fuente({ filas: [fila({}), fila({ variable_base: "p2", variable_fuente: "p2" })] });
     const porDefecto = render(datos([limpia]));
     expect(porDefecto).toMatch(/role="radio"[^>]*aria-checked="true"[^>]*>Todas/);

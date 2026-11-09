@@ -15,7 +15,7 @@ describe("ayudas del mapa en Armonizar", () => {
     expect(mapaPorRangos(valoresParaRangos(["2020", "2024", "2025", "88"].map(op)), rangos)).toEqual({ "2024": "1", "2025": "1" });
   });
 
-  test("una acción «destinos» por categoría; un valor que sale de los rangos queda sin mapa", () => {
+  test('una acción "destinos" por categoría; un valor que sale de los rangos queda sin mapa', () => {
     const conocidos = ["2023", "2024", "2025", "88"];
     const acciones = accionesDesdeAsignacion("2025", { "2025": "0", "2024": "1", "2023": "1", "2020": null }, conocidos);
     expect(acciones).toHaveLength(3);

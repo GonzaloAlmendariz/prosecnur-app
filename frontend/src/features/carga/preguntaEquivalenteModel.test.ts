@@ -99,13 +99,13 @@ describe("coincidencia de escala entre las bases elegidas", () => {
 describe("indicador de escala de la fila", () => {
   const bases = ["docentes", "estudiantes"];
 
-  it("«Escalas distintas: armonizar» abre la armonización", () => {
+  it('"Escalas distintas: armonizar" abre la armonización', () => {
     const ind = indicadorDeEscala({ variables: { docentes: "p13_1", estudiantes: "p11_1" } }, bases, porBase, serie);
     expect(ind).toMatchObject({ tono: "aviso", texto: "Escalas distintas: armonizar", abre: true });
     expect(ind.explicacion).toContain("estudiantes");
   });
 
-  it("«Misma escala» y «Falta otra base»", () => {
+  it('"Misma escala" y "Falta otra base"', () => {
     expect(indicadorDeEscala({ variables: { docentes: "p20", estudiantes: "q30" } }, bases, porBase, serie))
       .toMatchObject({ tono: "ok", texto: "Misma escala", abre: true });
     expect(indicadorDeEscala({ variables: { docentes: "p20" } }, bases, porBase, serie))

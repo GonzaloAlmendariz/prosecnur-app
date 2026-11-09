@@ -32,7 +32,7 @@ export function CargaPlatformImportPanel({
         ? `Destino: ${plannedInputCount} bases independientes`
         : "Destino: una base separada por entrada";
   const detail = separatePlan
-    ? "Elige una encuesta e impórtala; su formulario y sus respuestas quedan en su propia base, con el nombre del actor (por ejemplo «docentes»)."
+    ? 'Elige una encuesta e impórtala; su formulario y sus respuestas quedan en su propia base, con el nombre del actor (por ejemplo "docentes").'
     : "El catálogo se consulta únicamente al pulsar su botón de actualización.";
 
   return (

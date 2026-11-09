@@ -124,7 +124,7 @@ export function SegmentoEditor({
       <Panel
         className="pulso-armon-seccion"
         aria-labelledby={`${id}-titulo`} data-qa-geometry-member
-        title={<span id={`${id}-titulo`}>{inicial ? `Editar «${inicial.nombre}»` : "Nuevo segmento"}</span>}
+        title={<span id={`${id}-titulo`}>{inicial ? `Editar "${inicial.nombre}"` : "Nuevo segmento"}</span>}
         hint={<>Se llama igual y usa la misma escala en todas las bases.</>}
       >
         
@@ -152,7 +152,7 @@ export function SegmentoEditor({
                 onChange={(e) => despachar({ tipo: "clave", valor: e.target.value })}
               />
             </span>
-            <span id={`${id}-nombre`} className="pulso-sr-only">Lleva delante «{PREFIJO_SEGMENTO}».</span>
+            <span id={`${id}-nombre`} className="pulso-sr-only">Lleva delante "{PREFIJO_SEGMENTO}".</span>
           </label>
         </div>
         <label className="pulso-compuesto-campo">
@@ -233,7 +233,7 @@ export function SegmentoEditor({
                   {bases.map((base) => <option key={base} value={base}>{base}</option>)}
                 </select>
               </label>
-              <button type="button" className="pulso-icon" aria-label="Cerrar «Partir de las opciones de…»" onClick={() => setPartirDe(null)}>
+              <button type="button" className="pulso-icon" aria-label='Cerrar "Partir de las opciones de…"' onClick={() => setPartirDe(null)}>
                 <X size={13} aria-hidden="true" />
               </button>
             </div>

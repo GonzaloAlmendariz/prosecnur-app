@@ -894,7 +894,7 @@ function BaseRow({
                 repeatGroup={repeatGroup}
                 compact
                 title={repeatParent
-                  ? `Respuestas repetidas de «${repeatParent}» (una fila por opción marcada)`
+                  ? `Respuestas repetidas de "${repeatParent}" (una fila por opción marcada)`
                   : "Base de respuestas repetidas"}
               />
             )}

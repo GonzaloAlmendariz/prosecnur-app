@@ -107,7 +107,7 @@ export function useSegmentos(abierto: boolean) {
     try {
       const datos = await guardarSegmento(cuerpo);
       despachar({ tipo: "lectura", lectura: { tipo: "listo", datos } });
-      despachar({ tipo: "mensaje", mensaje: { tono: "ok", texto: `«${nombreDeSegmento(cuerpo.clave)}» guardado.` } });
+      despachar({ tipo: "mensaje", mensaje: { tono: "ok", texto: `"${nombreDeSegmento(cuerpo.clave)}" guardado.` } });
       avisarCambio(bases);
       return true;
     } catch (e) {
@@ -121,7 +121,7 @@ export function useSegmentos(abierto: boolean) {
     try {
       const datos = await quitarSegmento(clave);
       despachar({ tipo: "lectura", lectura: { tipo: "listo", datos } });
-      despachar({ tipo: "mensaje", mensaje: { tono: "ok", texto: `Se quitó «${nombreDeSegmento(clave)}».` } });
+      despachar({ tipo: "mensaje", mensaje: { tono: "ok", texto: `Se quitó "${nombreDeSegmento(clave)}".` } });
       avisarCambio(bases);
     } catch (e) {
       despachar({ tipo: "mensaje", mensaje: { tono: "error", texto: mensajeDeError(e) } });

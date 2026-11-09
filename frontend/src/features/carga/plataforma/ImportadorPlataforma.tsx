@@ -174,7 +174,7 @@ export function ImportadorPlataforma({
     case "importado":
       tono = "ok";
       baseNombre = resultado.baseNombre;
-      titulo = baseNombre ? `«${etiqueta}» quedó en la base ${baseNombre}` : `«${etiqueta}» quedó importada`;
+      titulo = baseNombre ? `"${etiqueta}" quedó en la base ${baseNombre}` : `"${etiqueta}" quedó importada`;
       detalle = detalleExito(resultado) || `Formulario y respuestas traídos desde ${plataforma}.`;
       break;
     case "cancelado-importado":

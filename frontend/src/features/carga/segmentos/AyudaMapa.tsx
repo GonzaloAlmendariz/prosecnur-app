@@ -52,7 +52,7 @@ export function AyudaMapa({ origen, escala, codigos, onAplicar, onCerrar }: Ayud
         <h5 id={`${id}-titulo`}>Rangos</h5>
       </div>
       <p className="pulso-armon-ayuda">
-        {`Valores de ${origen}, ambos extremos incluidos. Deja «hasta» vacío para «o más».`}
+        {`Valores de ${origen}, ambos extremos incluidos. Deja "hasta" vacío para "o más".`}
       </p>
       <ol className="pulso-seg-tramos">
         {tramos.map((t, i) => (

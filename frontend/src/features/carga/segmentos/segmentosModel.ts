@@ -693,10 +693,10 @@ export function validarTramos(tramos: readonly Tramo[], escala: readonly Categor
     const desde = numero(t.desde);
     const hasta = t.hasta.trim() ? numero(t.hasta) : Number.POSITIVE_INFINITY;
     if (desde === null || hasta === null) {
-      errores.push(`El tramo ${i + 1} necesita «desde» y, si tiene tope, «hasta» en números.`);
+      errores.push(`El tramo ${i + 1} necesita "desde" y, si tiene tope, "hasta" en números.`);
       continue;
     }
-    if (hasta < desde) errores.push(`En el tramo ${i + 1}, «hasta» es menor que «desde».`);
+    if (hasta < desde) errores.push(`En el tramo ${i + 1}, "hasta" es menor que "desde".`);
     if (!t.destino || !codigos.has(t.destino)) errores.push(`Elige la categoría del tramo ${i + 1}.`);
     intervalos.push([desde, hasta]);
   }
@@ -741,7 +741,7 @@ export function validarSegmento(b: BorradorSegmento, bases: readonly string[], c
   const errores: string[] = [];
   if (!b.etiqueta.trim()) errores.push("Falta la etiqueta.");
   if (!b.clave) errores.push("Falta el nombre del segmento.");
-  else if (!b.editando && claves.includes(b.clave)) errores.push(`Ya hay un segmento «${nombreDeSegmento(b.clave)}».`);
+  else if (!b.editando && claves.includes(b.clave)) errores.push(`Ya hay un segmento "${nombreDeSegmento(b.clave)}".`);
   if (b.escala.length === 0) errores.push("Define al menos una categoría de la escala estándar.");
   const codigos = b.escala.map((c) => c.codigo.trim());
   if (codigos.some((c) => !c)) errores.push("Cada categoría necesita su código.");

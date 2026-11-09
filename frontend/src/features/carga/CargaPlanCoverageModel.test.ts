@@ -15,7 +15,7 @@ const variasPlaneadas: CargaTopologyResolution = {
 };
 
 describe("Carga › Plan › Qué tiene cada base (F9)", () => {
-  it("con «Varias bases» sobre una carga simple, la base existente sigue en la tabla", () => {
+  it('con "Varias bases" sobre una carga simple, la base existente sigue en la tabla', () => {
     const out = coverageSummary({ topology: variasPlaneadas, bases: [], hasInstrument: true, hasData: true });
     expect(out.baseCount).toBe(1);
     expect(out.instrumentCount).toBe(1);

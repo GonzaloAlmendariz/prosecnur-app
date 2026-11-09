@@ -218,7 +218,7 @@ export function MapaBasesCuerpo({ cargando, bases, filas, variablesPorBase, foco
       <ResumenBases resumen={resumen} activa={baseActiva} onIr={onIr} onVariables={onVariables} />
       {foco && !baseActiva ? (
         <section className="pulso-armon-seccion" data-qa-geometry-member>
-          <EstadoVacio icono={<Inbox size={16} />} titulo={<>La base «{foco}» no está en este estudio</>} />
+          <EstadoVacio icono={<Inbox size={16} />} titulo={<>La base "{foco}" no está en este estudio</>} />
           <div>
             <PulsoButton variant="secondary" size="sm" className="pulso-armon-btn" onClick={() => onIr(null)}>
               <ArrowLeft size={13} aria-hidden="true" />
@@ -462,7 +462,7 @@ function FueraDeLaMatriz({
             <span className="pulso-mapa-buscar-conteo" aria-live="polite">{conteo}</span>
           </div>
           {visibles.length === 0 ? (
-            <EstadoVacio icono={<Search size={16} />} titulo={<>Ninguna variable de {base} fuera de la matriz casa con «{consulta.trim()}»</>} />
+            <EstadoVacio icono={<Search size={16} />} titulo={<>Ninguna variable de {base} fuera de la matriz casa con "{consulta.trim()}"</>} />
           ) : (
             <>
             {separarMetadatos(visibles).preguntas.length > 0 && (

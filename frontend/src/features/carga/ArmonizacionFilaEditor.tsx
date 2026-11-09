@@ -409,8 +409,8 @@ function EditorFila({
       onGuardado(
         out,
         n === 1
-          ? `La escala de «${fila.etiqueta_estandar}» se aplicó a 1 pregunta más.`
-          : `La escala de «${fila.etiqueta_estandar}» se aplicó a ${n} preguntas más.`,
+          ? `La escala de "${fila.etiqueta_estandar}" se aplicó a 1 pregunta más.`
+          : `La escala de "${fila.etiqueta_estandar}" se aplicó a ${n} preguntas más.`,
       );
       setSucio(false);
       setGuardadoAhora(true);
@@ -430,8 +430,8 @@ function EditorFila({
       onGuardado(
         out,
         borrar || !arm
-          ? `Se quitó la armonización de «${fila.etiqueta_estandar}».`
-          : `Armonización de «${fila.etiqueta_estandar}» guardada.`,
+          ? `Se quitó la armonización de "${fila.etiqueta_estandar}".`
+          : `Armonización de "${fila.etiqueta_estandar}" guardada.`,
       );
       setSucio(false);
       setGuardadoAhora(true);
@@ -470,7 +470,7 @@ function EditorFila({
           <summary>Cómo armonizar</summary>
           <p className="pulso-armon-regla">
             Primero arma la escala común, que es la lista de respuestas con la que se compara. Después,
-            en cada base, elige en «Destino en la escala» a qué respuesta de esa lista corresponde cada
+            en cada base, elige en "Destino en la escala" a qué respuesta de esa lista corresponde cada
             código. Guíate por el texto de la respuesta y no por el número, porque el mismo código puede
             significar otra cosa en otra base.
           </p>
@@ -977,7 +977,7 @@ function MapaDeBase({
                         {f.etiquetaDistinta && (
                           <span
                             className="pulso-armon-etiqueta-distinta"
-                            title={`«${f.etiqueta ?? ""}» cae en «${f.etiquetaDestino ?? ""}»`}
+                            title={`"${f.etiqueta ?? ""}" cae en "${f.etiquetaDestino ?? ""}"`}
                           >
                             Etiqueta distinta
                           </span>

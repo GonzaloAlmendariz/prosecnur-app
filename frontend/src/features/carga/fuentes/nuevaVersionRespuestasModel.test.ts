@@ -10,7 +10,7 @@ describe("resumenCambiosDeRespuestas", () => {
       codificacion_por_readaptar: false,
     });
     expect(l[0]).toBe("Sigue con 3,318 respuestas.");
-    expect(l).toContain("Columna nueva: «seleccionado».");
+    expect(l).toContain('Columna nueva: "seleccionado".');
     expect(l.some((x) => x.startsWith("Por _uuid"))).toBe(false);
   });
 
@@ -23,6 +23,6 @@ describe("resumenCambiosDeRespuestas", () => {
     });
     expect(l[0]).toBe("Pasó de 40 a 30 respuestas.");
     expect(l[1]).toBe("Por _uuid: 2 casos nuevos y 12 casos que ya no vienen.");
-    expect(l[2]).toBe("Ya no vienen: «a», «b», «c», «d» y 2 más.");
+    expect(l[2]).toBe('Ya no vienen: "a", "b", "c", "d" y 2 más.');
   });
 });

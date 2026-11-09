@@ -33,7 +33,7 @@ describe("variable calculada: fórmula", () => {
     b = reducirCalculada(b, { tipo: "regla", valor: "formula" });
     expect(validarCalculada(b, ["P8"])).toContain("Escribe la fórmula.");
     b = reducirCalculada(b, { tipo: "expresion", valor: "2026 - P9" });
-    expect(validarCalculada(b, ["P8"])).toContain("La base no tiene «P9».");
+    expect(validarCalculada(b, ["P8"])).toContain('La base no tiene "P9".');
     b = reducirCalculada(b, { tipo: "expresion", valor: " 2026 - P8 " });
     expect(validarCalculada(b, ["P8"])).toEqual([]);
     expect(calculadaParaGuardar(b)).toEqual({

@@ -131,7 +131,7 @@ function FilaCruce({
     <tr className="is-cruce" data-equiv-fila={fila.id}>
       <td>
         <div className="pulso-equiv-celda-etiqueta">
-          <span className="pulso-equiv-chip-cruce" title="Segmento de cruce del estudio: se edita en «Segmentos de cruce».">
+          <span className="pulso-equiv-chip-cruce" title='Segmento de cruce del estudio: se edita en "Segmentos de cruce".'>
             Cruce
           </span>
           <span className="pulso-equiv-etiqueta-fija" title={fila.etiqueta_estandar || undefined}>

@@ -93,7 +93,7 @@ export function ColumnasDeLaBase({ extras, ocupado, mensaje, onIncorporar, onQui
                 )}
               </div>
               {visibles.length === 0 ? (
-                <p className="pulso-armon-nota">Ninguna columna casa con «{consulta.trim()}».</p>
+                <p className="pulso-armon-nota">Ninguna columna casa con "{consulta.trim()}".</p>
               ) : (
                 <ul className="pulso-vb-columnas" aria-label="Columnas por incorporar">
                   {visibles.map((c) => (

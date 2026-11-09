@@ -52,7 +52,7 @@ describe("marcar códigos", () => {
     expect(marcadosVigentes(new Set(["8", "99", "1"]), filas)).toEqual(["1", "8"]);
   });
 
-  test("«Marcar todos los sin mapa» suma los sin mapa a lo ya marcado", () => {
+  test('"Marcar todos los sin mapa" suma los sin mapa a lo ya marcado', () => {
     const filas = filasDeMapa(DEPARTAMENTOS, borradorExplicito().porBase.b2025, ESCALA);
     expect(codigosSinMapa(filas)).toEqual(["1", "4", "8"]);
     expect([...marcarSinMapa(new Set(["15"]), filas)].sort()).toEqual(["1", "15", "4", "8"]);
@@ -78,7 +78,7 @@ describe("asignar los marcados", () => {
     expect(b.porBase.b2025.mapa).toEqual({ "15": "1", "1": "2", "4": "2", "8": "2" });
   });
 
-  test("«Sin mapa» quita el destino de los marcados", () => {
+  test('"Sin mapa" quita el destino de los marcados', () => {
     let b = reducirArmonizacion(borradorExplicito(), accionAsignarMarcados("b2025", ["1", "4"], "2", conocidos)!);
     b = reducirArmonizacion(b, accionAsignarMarcados("b2025", ["4"], DESTINO_SIN_MAPA, conocidos)!);
     expect(b.porBase.b2025.mapa).toEqual({ "15": "1", "1": "2" });
@@ -125,7 +125,7 @@ describe("F3: una agrupación no es una etiqueta distinta", () => {
 });
 
 describe("checklist A6: códigos sin etiqueta", () => {
-  test("no se dice que caen «en su misma etiqueta»: se pide revisar el destino y es aviso", () => {
+  test('no se dice que caen "en su misma etiqueta": se pide revisar el destino y es aviso', () => {
     const escala = [{ codigo: "1", etiqueta: "Frases" }, { codigo: "2", etiqueta: "Tocamientos" }];
     const entrada = { comparable: true, nota: "", mapa: {} };
     const filas = filasDeMapa([{ codigo: "1", etiqueta: null, n: 530 }, { codigo: "2", etiqueta: null, n: 77 }], entrada, escala);

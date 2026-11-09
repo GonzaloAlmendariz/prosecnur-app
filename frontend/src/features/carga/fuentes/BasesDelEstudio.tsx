@@ -141,7 +141,7 @@ function TarjetaBase({ base, vinculo, comparables, ocupado, onRenombrar, onQuita
       </dl>
       {confirmando ? (
         <div className="pulso-bde-confirmar" role="alert">
-          <span>¿Quitar «{base.nombre}» del estudio? Sus respuestas dejan de estar en el proyecto.</span>
+          <span>¿Quitar "{base.nombre}" del estudio? Sus respuestas dejan de estar en el proyecto.</span>
           <PulsoButton variant="danger" size="sm" disabled={ocupado} onClick={() => void onQuitar().finally(() => setConfirmando(false))}>Quitar</PulsoButton>
           <PulsoButton variant="ghost" size="sm" onClick={() => setConfirmando(false)}>Cancelar</PulsoButton>
         </div>
@@ -275,7 +275,7 @@ export function BasesDelEstudio({
       {otraFuente && renderCatalogo ? (
         <div className="pulso-bde-agregar">
           <div className="pulso-bde-agregar-cabecera">
-            <strong>Agregar otra fuente a «{otraFuente.base}»</strong>
+            <strong>Agregar otra fuente a "{otraFuente.base}"</strong>
             <span>El mismo actor por otra vía, por ejemplo una encuesta enviada por correo además de la del QR en aula. Las respuestas se unen en esta base y cada una conserva su vía. Si las encuestas no tienen las mismas preguntas, te mostramos qué difiere y la base no cambia.</span>
             <button type="button" className="pulso-bde-cerrar" aria-label="Cerrar" onClick={() => setOtraFuente(null)}><X size={16} aria-hidden="true" /></button>
           </div>
@@ -286,7 +286,7 @@ export function BasesDelEstudio({
           </label>
           {vistaPreviaFuente ? (
             <div className="pulso-bde-previa" role="status">
-              <strong>«{vistaPreviaFuente.titulo}» y «{vistaPreviaFuente.base_name}»</strong>
+              <strong>"{vistaPreviaFuente.titulo}" y "{vistaPreviaFuente.base_name}"</strong>
               <p>Calzan {vistaPreviaFuente.n_emparejadas} de las {vistaPreviaFuente.n_preguntas_base} preguntas de la base.</p>
               {vistaPreviaFuente.extra.length ? (
                 <div>
@@ -301,7 +301,7 @@ export function BasesDelEstudio({
                 </div>
               ) : null}
               <div className="pulso-bde-acciones">
-                <PulsoButton variant="primary" size="sm" disabled={ocupadoPagina} onClick={onConfirmarFuente}><GitMerge size={14} aria-hidden="true" />Unir a «{vistaPreviaFuente.base_name}»</PulsoButton>
+                <PulsoButton variant="primary" size="sm" disabled={ocupadoPagina} onClick={onConfirmarFuente}><GitMerge size={14} aria-hidden="true" />Unir a "{vistaPreviaFuente.base_name}"</PulsoButton>
                 <PulsoButton variant="ghost" size="sm" onClick={onDescartarVistaPrevia}>Elegir otra encuesta</PulsoButton>
               </div>
             </div>

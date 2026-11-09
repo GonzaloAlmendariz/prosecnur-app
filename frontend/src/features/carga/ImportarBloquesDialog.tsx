@@ -201,7 +201,7 @@ export function ImportarBloquesDialog({ bases, onAplicado }: ImportarBloquesDial
                   />
                 </label>
                 <p className="pulso-bloques-nota">
-                  Déjala vacía si la hoja se llama «Matriz de correspondencias».
+                  Déjala vacía si la hoja se llama "Matriz de correspondencias".
                 </p>
                 {!serieDeAnios && (
                   // Brecha de capacidad, dicha y no escondida: el lector sólo
@@ -209,7 +209,7 @@ export function ImportarBloquesDialog({ bases, onAplicado }: ImportarBloquesDial
                   <p className="pulso-bloques-nota is-aviso">
                     Las bases de este estudio no se nombran por año, y este lector sólo reconoce
                     columnas encabezadas por un año (2024, 2025…). Si comparas públicos o sedes,
-                    declara cada pregunta con «Añadir pregunta equivalente».
+                    declara cada pregunta con "Añadir pregunta equivalente".
                   </p>
                 )}
                 <PulsoButton
@@ -338,7 +338,7 @@ function VistaPrevia({ resultado, serieDeAnios }: { resultado: ImportacionBloque
   return (
     <>
       <section className="pulso-bloques-seccion" data-qa-geometry-member aria-label="Resumen">
-        <h3>Qué entraría{r.hoja ? ` desde «${r.hoja}»` : ""}</h3>
+        <h3>Qué entraría{r.hoja ? ` desde "${r.hoja}"` : ""}</h3>
         <dl className="pulso-bloques-cifras">
           {cifras.map(([k, v]) => (
             <div key={k}>

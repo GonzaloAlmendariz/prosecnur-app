@@ -40,7 +40,7 @@ test("sin job no hay botón ni llamada", async () => {
   expect(jobs.apiJobCancel).not.toHaveBeenCalled();
 });
 
-test("con el job registrado, Cancelar lo cancela en el backend y queda «Cancelando…»", async () => {
+test('con el job registrado, Cancelar lo cancela en el backend y queda "Cancelando…"', async () => {
   act(() => api.registrar("job-7"));
   const boton = host.querySelector("button");
   expect(boton?.textContent).toContain("Cancelar");

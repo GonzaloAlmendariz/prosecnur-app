@@ -81,7 +81,7 @@ export function CompararFuentesVista({ carga }: { carga: CargaComparacion }) {
         </div>
         {casos || filas ? (
           <p className="pulso-cf-casos">
-            {casos ? <span>{casos}{comp.casos ? <small>, cruzadas por «{comp.casos.clave}»</small> : null}</span> : null}
+            {casos ? <span>{casos}{comp.casos ? <small>, cruzadas por "{comp.casos.clave}"</small> : null}</span> : null}
             {!casos && filas ? <span>{filas}</span> : null}
           </p>
         ) : null}

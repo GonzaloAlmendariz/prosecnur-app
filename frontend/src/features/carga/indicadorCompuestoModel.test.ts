@@ -85,7 +85,7 @@ describe("expresión y lectura", () => {
   });
 });
 
-describe("códigos «sí»", () => {
+describe('códigos "sí"', () => {
   it("se parsean sin repetir y se alternan desde la ayuda", () => {
     expect(parsearCodigos(" 1, 2 2;3 ")).toEqual(["1", "2", "3"]);
     expect(alternarCodigo("1", "2")).toBe("1, 2");
@@ -102,7 +102,7 @@ describe("códigos «sí»", () => {
 describe("borrador", () => {
   const bases = ["2024", "2025", "2026"];
 
-  it("uno nuevo empieza sin preguntas y con «1» como código por base", () => {
+  it('uno nuevo empieza sin preguntas y con "1" como código por base', () => {
     const b = borradorCompuestoDesde(null, bases);
     expect(b.etiqueta).toBe("");
     expect(Object.values(b.porBase)).toEqual(bases.map(() => ({ variables: [], codigosTexto: "1" })));
@@ -132,7 +132,7 @@ describe("borrador", () => {
     b = reducirCompuesto(b, { tipo: "etiqueta", valor: "Conoce alguna instancia" });
     b = reducirCompuesto(b, { tipo: "agregar", base: "2025", variable: "C1" });
     b = reducirCompuesto(b, { tipo: "codigos", base: "2025", valor: " , " });
-    expect(validarCompuesto(b, bases)).toEqual(["Falta al menos un código «sí» en 2025."]);
+    expect(validarCompuesto(b, bases)).toEqual(['Falta al menos un código "sí" en 2025.']);
     b = reducirCompuesto(b, { tipo: "codigos", base: "2025", valor: "1" });
     expect(validarCompuesto(b, bases)).toEqual([]);
   });

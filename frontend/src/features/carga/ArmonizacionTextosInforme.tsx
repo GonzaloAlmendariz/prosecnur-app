@@ -33,7 +33,7 @@ export function ArmonizacionTextosInforme({ textos, nombreEstandar, onCambiar }:
           aria-describedby="pulso-armon-informe-base-ayuda"
           onChange={(e) => onCambiar("baseTexto", e.target.value)}
         />
-        <small id="pulso-armon-informe-base-ayuda">Va bajo la tabla como «Base: …».</small>
+        <small id="pulso-armon-informe-base-ayuda">Va bajo la tabla como "Base: …".</small>
       </label>
     </section>
   );

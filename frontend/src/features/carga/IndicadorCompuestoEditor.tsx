@@ -242,7 +242,7 @@ function EditorCompuesto({
       const nueva = filaDeCompuesto(borrador, bases, fila);
       const out = await guardarEquivalencias(filasConCompuesto(guardadas, indice, nueva));
       const destino = indice ?? guardadas.length;
-      onGuardado(out, destino, `Indicador «${nueva.etiqueta_estandar}» guardado.`);
+      onGuardado(out, destino, `Indicador "${nueva.etiqueta_estandar}" guardado.`);
     } catch (e) {
       setEnvio((x) => ({ ...x, guardando: false, error: e instanceof Error ? e.message : String(e) }));
     }
@@ -263,7 +263,7 @@ function EditorCompuesto({
           </Dialog.Close>
         </div>
         <p className="pulso-armon-regla">
-          Vale «Sí» si alguna de las preguntas elegidas tiene uno de los códigos indicados.
+          Vale "Sí" si alguna de las preguntas elegidas tiene uno de los códigos indicados.
         </p>
       </header>
 
@@ -408,7 +408,7 @@ export function BaseCompuesta({
           </label>
           {consulta.trim() && (
             visibles.length === 0 ? (
-              <p className="pulso-armon-nota">Ninguna pregunta casa con «{consulta.trim()}».</p>
+              <p className="pulso-armon-nota">Ninguna pregunta casa con "{consulta.trim()}".</p>
             ) : (
               <ul className="pulso-compuesto-resultados" aria-label={`Resultados en ${base}`}>
                 {visibles.map((o) => (
@@ -434,7 +434,7 @@ export function BaseCompuesta({
       {!sinPreguntas && (
         <div className="pulso-compuesto-codigos">
           <label className="pulso-compuesto-campo">
-            <span>Códigos «sí»</span>
+            <span>Códigos "sí"</span>
             <input
               value={entrada.codigosTexto}
               inputMode="numeric"

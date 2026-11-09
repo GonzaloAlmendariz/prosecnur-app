@@ -195,7 +195,7 @@ function DetalleFuente({
             tamano="compacto"
             icono={<Inbox size={15} />}
             titulo="Todas las preguntas se emparejaron con el mismo nombre."
-            descripcion="Elige «Todas» para verlas."
+            descripcion='Elige "Todas" para verlas.'
           />
         )}
       </div>
@@ -235,7 +235,7 @@ export function FuentesEmparejamientoVista({
         tamano="normal"
         icono={<SearchX size={18} />}
         titulo="No se encontró esa fuente en este estudio"
-        descripcion="Ninguna base la junta. Ábrela desde «Ver preguntas» en la tarjeta de su fuente."
+        descripcion='Ninguna base la junta. Ábrela desde "Ver preguntas" en la tarjeta de su fuente.'
       />
     );
   } else if (!fuentes.length) {

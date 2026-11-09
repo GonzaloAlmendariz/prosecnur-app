@@ -67,7 +67,7 @@ describe("fuentesEmparejamientoModel", () => {
     expect(filtroInicial(null)).toBe("todas");
   });
 
-  it("agrupa por sección en el orden del instrumento y deja «Solo en la fuente» al final", () => {
+  it('agrupa por sección en el orden del instrumento y deja "Solo en la fuente" al final', () => {
     const grupos = agruparPorSeccion([
       fila({ seccion: "Solo en la fuente", estado: "no_entro", variable_base: "" }),
       ...mixta.filas,
@@ -114,7 +114,7 @@ describe("fuentesEmparejamientoModel", () => {
     expect(hrefSinFoco("/procesamiento")).toBe("/procesamiento");
   });
 
-  it("el foco lleva la base: `<base>:<survey_id>`, cortado en el último «:»", () => {
+  it('el foco lleva la base: `<base>:<survey_id>`, cortado en el último ":"', () => {
     expect(focoDeFuente("estudiantes", "423593924")).toBe("estudiantes:423593924");
     expect(focoDeFuente(null, "423593924")).toBe("423593924");
     expect(focoDeFuente("  ", "423593924")).toBe("423593924");

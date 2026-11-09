@@ -120,10 +120,10 @@ export function avisoTramos(tramos: readonly Tramo[]): string {
   for (const [i, t] of tramos.entries()) {
     const desde = numero(t.desde);
     const hasta = t.hasta.trim() ? numero(t.hasta) : Number.POSITIVE_INFINITY;
-    if (t.desde.trim() && desde === null) return `El rango ${i + 1} necesita un número en «desde».`;
-    if (t.hasta.trim() && hasta === null) return `El rango ${i + 1} necesita un número en «hasta».`;
+    if (t.desde.trim() && desde === null) return `El rango ${i + 1} necesita un número en "desde".`;
+    if (t.hasta.trim() && hasta === null) return `El rango ${i + 1} necesita un número en "hasta".`;
     if (desde === null || hasta === null) continue;
-    if (hasta < desde) return `En el rango ${i + 1}, «hasta» es menor que «desde».`;
+    if (hasta < desde) return `En el rango ${i + 1}, "hasta" es menor que "desde".`;
     intervalos.push([desde, hasta, i]);
   }
   const ordenados = [...intervalos].sort((a, b) => a[0] - b[0]);

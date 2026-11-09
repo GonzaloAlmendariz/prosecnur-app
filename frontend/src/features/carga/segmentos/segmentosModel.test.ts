@@ -99,7 +99,7 @@ describe("estado de cada celda segmento × base", () => {
     expect(estadoCelda(undefined).texto).toBe("Sin origen");
   });
 
-  it("un origen que ya no está en la data es un aviso, no un «sin origen» tranquilo", () => {
+  it('un origen que ya no está en la data es un aviso, no un "sin origen" tranquilo', () => {
     expect(estadoCelda(enBase({ origen: "P8", estado: "sin_origen", origen_ausente: true }))).toEqual({
       tono: "aviso",
       texto: "Falta el origen",
@@ -232,7 +232,7 @@ describe("filas de la tabla de códigos", () => {
     expect(textoSinDatoObservado(3)).toBe("Sin dato: 3 casos");
   });
 
-  it("un código con 0 casos y sin mapa no es pendiente: no impide «Definido» (como en el backend)", () => {
+  it('un código con 0 casos y sin mapa no es pendiente: no impide "Definido" (como en el backend)', () => {
     const filas = filasDeCodigos(
       [{ codigo: "1", etiqueta: "18–20 años", n: 40 }, { codigo: "2", etiqueta: "21 a más", n: 12 }, { codigo: "99", etiqueta: "No sé", n: 0 }],
       { "1": "1", "2": "2" },
@@ -384,7 +384,7 @@ describe("borrador y acciones", () => {
     expect(mapasPorEtiqueta(b, codigosPorBase, ESCALA).codigos).toBe(0);
   });
 
-  it("los orígenes ya elegidos son atajos de «Partir de…», con sus opciones o, sin lista, sus códigos", () => {
+  it('los orígenes ya elegidos son atajos de "Partir de…", con sus opciones o, sin lista, sus códigos', () => {
     const b = aplicar(
       borradorDesde(null, BASES),
       { tipo: "origen", base: "2024", variable: "cruce_1" },
@@ -407,7 +407,7 @@ describe("borrador y acciones", () => {
 describe("rangos", () => {
   const escala3 = [{ codigo: "1", etiqueta: "0 a 2" }, { codigo: "2", etiqueta: "3 a 4" }, { codigo: "3", etiqueta: "5 o más" }];
 
-  it("rangos de edad: extremos incluidos y «o más» sin tope", () => {
+  it('rangos de edad: extremos incluidos y "o más" sin tope', () => {
     const rangos = [
       { clave: "t1", desde: "18", hasta: "20", destino: "1" },
       { clave: "t2", desde: "21", hasta: "", destino: "2" },
@@ -420,7 +420,7 @@ describe("rangos", () => {
 
   it("valida extremos, categoría y superposición", () => {
     expect(validarTramos([{ clave: "t1", desde: "0", hasta: "2", destino: "1" }, { clave: "t2", desde: "3", hasta: "", destino: "2" }], escala3)).toEqual([]);
-    expect(validarTramos([{ clave: "t1", desde: "5", hasta: "2", destino: "1" }], escala3)).toContain("En el tramo 1, «hasta» es menor que «desde».");
+    expect(validarTramos([{ clave: "t1", desde: "5", hasta: "2", destino: "1" }], escala3)).toContain('En el tramo 1, "hasta" es menor que "desde".');
     expect(validarTramos([{ clave: "t1", desde: "0", hasta: "3", destino: "1" }, { clave: "t2", desde: "3", hasta: "", destino: "2" }], escala3))
       .toContain("Los tramos se superponen.");
     expect(validarTramos([{ clave: "t1", desde: "0", hasta: "", destino: "" }], escala3)).toContain("Elige la categoría del tramo 1.");
@@ -442,7 +442,7 @@ describe("validación y cuerpo del POST", () => {
     let b = aplicar(borradorDesde(null, BASES), { tipo: "etiqueta", valor: "Edad" }, { tipo: "partir-de", opciones: ESCALA });
     b = aplicar(b, { tipo: "origen", base: "2026", variable: "P1" });
     expect(validarSegmento(b, BASES, ["edad"])).toEqual([
-      "Ya hay un segmento «cruce_edad».",
+      'Ya hay un segmento "cruce_edad".',
       "En 2026, asigna al menos un código de P1 a la escala.",
     ]);
   });

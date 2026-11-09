@@ -30,14 +30,14 @@ function fuentes(dir: string): string[] {
 const puntos = (f: string) =>
   (f.replace(/\/\*[\s\S]*?\*\//g, "").split("\n").map((l) => l.replace(/^\s*\/\/.*$/, "")).join("\n").match(/·/g) ?? []).length;
 
-describe("Carga no suma «·»", () => {
+describe('Carga no suma "·"', () => {
   const conteo = fuentes(aqui).map((f) => [path.relative(aqui, f).split(path.sep).join("/"), puntos(readFileSync(f, "utf8"))] as const);
 
   it("el barrido ve Carga (centinela)", () => {
     expect(conteo.length).toBeGreaterThan(100);
   });
 
-  it("ningún archivo suma «·» ni aparece uno nuevo con «·»", () => {
+  it('ningún archivo suma "·" ni aparece uno nuevo con "·"', () => {
     const regresiones = conteo
       .filter(([archivo, n]) => n > (SNAPSHOT[archivo] ?? 0))
       .map(([archivo, n]) => `${archivo}: ${SNAPSHOT[archivo] ?? 0} → ${n}`);

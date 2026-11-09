@@ -231,7 +231,7 @@ export function PreguntaCombobox({
           </label>
           {visibles.length === 0 ? (
             <p className="pulso-preg-sin-resultados" role="status">
-              Ninguna pregunta de {base} contiene «{consulta.trim()}».
+              Ninguna pregunta de {base} contiene "{consulta.trim()}".
             </p>
           ) : (
             <ul

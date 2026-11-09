@@ -102,7 +102,7 @@ describe("pestaña Revisión mientras lee", () => {
   };
   const revision = (ctx: CargaWorkspaceContext) => cargaWorkspaceItems(ctx).find((item) => item.key === "revision");
 
-  it("no afirma «Listo» ni «Sin incidencias» sin el resultado", () => {
+  it('no afirma "Listo" ni "Sin incidencias" sin el resultado', () => {
     const leyendo = revision({ ...contexto, revisionLeyendo: true });
     expect(leyendo?.state).toBe("neutral");
     expect(leyendo?.statusLabel).toBe("Revisando…");

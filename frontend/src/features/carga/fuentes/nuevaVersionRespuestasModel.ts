@@ -6,7 +6,7 @@ import { formatoConteo, formatoConteoDe } from "../../../lib/formatoNumero";
 import type { CambiosDeRespuestas } from "../../../api/estudio";
 
 function listaCorta(xs: readonly string[], max = 4): string {
-  const vistos = xs.slice(0, max).map((x) => `«${x}»`).join(", ");
+  const vistos = xs.slice(0, max).map((x) => `"${x}"`).join(", ");
   return xs.length > max ? `${vistos} y ${formatoConteo(xs.length - max)} más` : vistos;
 }
 

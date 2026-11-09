@@ -83,7 +83,7 @@ export function CalculadaEditor({
   return (
     <div className="pulso-vb-editor" role="group" aria-labelledby={`${id}-titulo`}>
       <h4 id={`${id}-titulo`} className="pulso-vb-editor-titulo">
-        {inicial ? `Editar «${inicial.nombre}»` : "Nueva variable calculada"}
+        {inicial ? `Editar "${inicial.nombre}"` : "Nueva variable calculada"}
       </h4>
 
       <div className="pulso-vb-campos">

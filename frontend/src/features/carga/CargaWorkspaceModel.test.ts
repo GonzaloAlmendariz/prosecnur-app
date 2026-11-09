@@ -167,7 +167,7 @@ describe("disponibilidad de Equivalencias", () => {
     expect(items.findIndex((item) => item.key === "equivalencias")).toBe(5);
   });
 
-  it("Equivalencias no dice «Pendiente» mientras lee: dice «Revisando…» (P-A8)", () => {
+  it('Equivalencias no dice "Pendiente" mientras lee: dice "Revisando…" (P-A8)', () => {
     const base = { ...EMPTY_CONTEXT, isMultiBase: true, baseCount: 3, basesSeparadas: true };
     const equiv = (ctx: CargaWorkspaceContext) =>
       cargaWorkspaceItems(ctx).find((item) => item.key === "equivalencias");

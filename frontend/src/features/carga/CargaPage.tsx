@@ -485,11 +485,11 @@ export default function CargaPage() {
             connection_profile_id: activeSmProfile?.id || "",
           };
           if (vistaPreviaFuente?.surveyId !== survey.id) {
-            setBusy(`Comparando las preguntas de ${survey.title} con «${fuenteDestino.base}»…`);
+            setBusy(`Comparando las preguntas de ${survey.title} con "${fuenteDestino.base}"…`);
             setVistaPreviaFuente({ surveyId: survey.id, datos: await apiCargaVistaPreviaFuenteSm(pedido) });
             return;
           }
-          setBusy(`Uniendo ${survey.title} a la base «${fuenteDestino.base}»…`);
+          setBusy(`Uniendo ${survey.title} a la base "${fuenteDestino.base}"…`);
           const r = await apiCargaAgregarFuenteSm({
             base_name: fuenteDestino.base,
             survey_id: survey.id,
@@ -498,8 +498,8 @@ export default function CargaPage() {
             connection_profile_id: activeSmProfile?.id || "",
           });
           await onEstudioChanged(r.estudio);
-          const extra = r.agregadas.length ? ` Se sumaron ${r.agregadas.length === 1 ? "la pregunta" : "las preguntas"} ${r.agregadas.map((a) => `«${a.etiqueta}»`).join(", ")}.` : "";
-          setPlatformMessage(`«${r.base_name}» ahora une ${r.n_fuentes} fuentes: ${r.n_nuevas} respuestas nuevas, ${r.n_filas} en total.${extra}`);
+          const extra = r.agregadas.length ? ` Se sumaron ${r.agregadas.length === 1 ? "la pregunta" : "las preguntas"} ${r.agregadas.map((a) => `"${a.etiqueta}"`).join(", ")}.` : "";
+          setPlatformMessage(`"${r.base_name}" ahora une ${r.n_fuentes} fuentes: ${r.n_nuevas} respuestas nuevas, ${r.n_filas} en total.${extra}`);
           setVistaPreviaFuente(null);
           setFuenteDestino(null);
           return;
@@ -668,7 +668,7 @@ export default function CargaPage() {
       ? ` Reemplazará la base actual de ${formatoConteo(handoffStatus.existing_base.n_filas)} filas.`
       : " Creará la base de procesamiento con esta fuente.";
     if (!window.confirm(
-      `¿Traer «${sourceLabel}» a Procesamiento?\n\n` +
+      `¿Traer "${sourceLabel}" a Procesamiento?\n\n` +
       `${formatoConteo(processable)} respuestas procesables.${replacement}`,
     )) return;
     setError("");

@@ -136,7 +136,7 @@ export function indicadorDeEscala(
       return {
         tono: "aviso",
         texto: `Revisar mapa en ${enBases.length === 1 ? enBases[0] : `${enBases.length} bases`}`,
-        explicacion: `En ${ej.base}, «${ej.etiqueta}» se cuenta como «${ej.etiquetaDestino}», pero se parece más a «${ej.sugerida}». Puede que la lista de esa base esté en otro orden: ábrela y declara el mapa código por código.`,
+        explicacion: `En ${ej.base}, "${ej.etiqueta}" se cuenta como "${ej.etiquetaDestino}", pero se parece más a "${ej.sugerida}". Puede que la lista de esa base esté en otro orden: ábrela y declara el mapa código por código.`,
         abre: true,
       };
     }

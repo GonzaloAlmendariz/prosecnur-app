@@ -158,7 +158,7 @@ describe("enlace a Equivalencias desde el diagnóstico", () => {
 });
 
 describe("bloqueos que son una sola decisión", () => {
-  it("una base armada por posición se nombra como tal y nunca dice «pos. null»", () => {
+  it('una base armada por posición se nombra como tal y nunca dice "pos. null"', () => {
     const detail = smRefreshStructureDetail({
       base_name: "egresados",
       refresh_action: "blocked",
@@ -175,7 +175,7 @@ describe("bloqueos que son una sola decisión", () => {
       base_name: "pesos",
       refresh_action: "blocked",
       updateable: false,
-      structure: { n_blocking: 1, diffs: [{ kind: "saved_codes_mismatch", severity: "blocking", pos: 1, variable: "p1", message: "La base guarda «Neutral» en p1" }] },
+      structure: { n_blocking: 1, diffs: [{ kind: "saved_codes_mismatch", severity: "blocking", pos: 1, variable: "p1", message: 'La base guarda "Neutral" en p1' }] },
     } as unknown as Parameters<typeof smRefreshStructureDetail>[0]);
     expect(detail?.label).toBe("Bloqueos en p1");
     expect(detail?.title).toContain("Opción guardada sin equivalente");

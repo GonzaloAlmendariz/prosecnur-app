@@ -119,7 +119,7 @@ describe("editor de equivalencias", () => {
 });
 
 describe("sección legible", () => {
-  it("«Pag2» de SurveyMonkey se lee como página del formulario; una sección real queda igual", async () => {
+  it('"Pag2" de SurveyMonkey se lee como página del formulario; una sección real queda igual', async () => {
     const { seccionLegible } = await import("./equivalenciasEditorModel");
     expect(seccionLegible("Pag2")).toBe("Página 2 del formulario");
     expect(seccionLegible("pag 12")).toBe("Página 12 del formulario");

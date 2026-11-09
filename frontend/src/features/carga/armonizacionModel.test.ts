@@ -43,7 +43,7 @@ const ARM: Armonizacion = {
 };
 
 describe("estadoArmonizacion", () => {
-  test("sin armonización dice «Sin armonizar»", () => {
+  test('sin armonización dice "Sin armonizar"', () => {
     expect(estadoArmonizacion({ variables: { b2024: "p5" } }).texto).toBe("Sin armonizar");
   });
 
@@ -141,7 +141,7 @@ describe("reducirArmonizacion", () => {
     expect(normalizarEtiqueta("18–20 años")).toBe(etiquetaTolerante("18-20 años"));
   });
 
-  test("emparejar no confunde signos: «<18» no casa con «18» ni «A-» con «A»", () => {
+  test('emparejar no confunde signos: "<18" no casa con "18" ni "A-" con "A"', () => {
     let b = borradorDesde({ escala: [{ codigo: "1", etiqueta: "18" }, { codigo: "2", etiqueta: "A" }], por_base: {} }, ["x"]);
     b = reducirArmonizacion(b, {
       tipo: "emparejar",
@@ -176,8 +176,8 @@ describe("validar y serializar", () => {
     b = reducirArmonizacion(b, { tipo: "agregar", codigo: "1" });
     b = reducirArmonizacion(b, { tipo: "agregar", codigo: "a b" });
     expect(validarArmonizacion(b)).toEqual([
-      "El código «1» se repite en la escala.",
-      "El código «a b» lleva espacios o símbolos.",
+      'El código "1" se repite en la escala.',
+      'El código "a b" lleva espacios o símbolos.',
     ]);
   });
 
@@ -398,7 +398,7 @@ describe("normalizadores de la frontera", () => {
     expect(p.codigos[1].armonizado).toBeNull();
   });
 
-  test("importación con un tipo desconocido lo agrupa como «otro»", () => {
+  test('importación con un tipo desconocido lo agrupa como "otro"', () => {
     const imp = normalizarImportacionBloques({
       ok: true, modo: "previsualizar",
       advertencias: [{ id: "S-1", base: "", tipo: "nuevo_tipo", mensaje: "m" }],
@@ -455,7 +455,7 @@ describe("textos del informe (enunciado y base)", () => {
 });
 
 describe("resumen del mapa: un código sin casos se informa sin alarmar", () => {
-  test("«0 Selecciona una respuesta» con 0 casos no es aviso; sin conteo o con casos, sí", async () => {
+  test('"0 Selecciona una respuesta" con 0 casos no es aviso; sin conteo o con casos, sí', async () => {
     const { resumenEsAviso } = await import("./armonizacionModel");
     const r = (sinMapa: number, casosSinMapa: number) => ({ sinMapa, casosSinMapa, etiquetaDistinta: 0 });
     expect(resumenEsAviso(r(1, 0), true)).toBe(false);

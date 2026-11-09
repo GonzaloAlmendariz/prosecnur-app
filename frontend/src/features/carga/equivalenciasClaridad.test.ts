@@ -13,7 +13,7 @@ const SIETE = ["a", "b", "c", "d", "e", "f", "g"];
 const MEDICIONES = nombreDeSerie(["docentes"]);
 
 describe("nombre de la serie: una sola regla para toda la UI", () => {
-  test("siempre «bases», se llamen como se llamen (2026-10-16)", () => {
+  test('siempre "bases", se llamen como se llamen (2026-10-16)', () => {
     expect(nombreDeSerie(["2022", "2024"]).plural).toBe("bases");
     expect(nombreDeSerie(["2022", "docentes"]).plural).toBe("bases");
     expect(nombreDeSerie([]).plural).toBe("bases");
@@ -94,7 +94,7 @@ describe("tablas con N bases", () => {
     expect(anchoMinimoLista(12)).toBeGreaterThan(anchoMinimoLista(7));
   });
 
-  test("cobertura «k de N» nombrando dónde está y dónde falta", () => {
+  test('cobertura "k de N" nombrando dónde está y dónde falta', () => {
     const cob = coberturaDeBases(SIETE, { a: "p1", c: "p3", g: "p7" });
     expect(cob.texto).toBe("3 de 7");
     expect(cob.detalle).toBe("Está en a, c, g. Falta en b, d, e, f.");
@@ -114,7 +114,7 @@ describe("Importar por bloques no supone que la serie sea de años (P-A7)", () =
     expect(fuente).toContain("No importar esta columna");
   });
 
-  test("«año» sólo aparece para decir la capacidad real del lector", () => {
+  test('"año" sólo aparece para decir la capacidad real del lector', () => {
     // Las únicas menciones legítimas: el encabezado de año que el lector exige,
     // el aviso cuando las bases no son años y la columna «Año» de una serie de años.
     const permitidas = [

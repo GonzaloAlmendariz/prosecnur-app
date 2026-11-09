@@ -84,7 +84,7 @@ describe("codigosDeBase: de dónde salen los códigos de una base (F4)", () => {
     const v = codigosDeBase(sinPreview(texto), [], "2024", "comentario", false);
     expect(v.fuente).toBe("texto");
     expect(v.codigos).toEqual([]);
-    expect(v.vacio).toBe("«comentario» es texto libre en 2024: no es una variable comparable por categorías.");
+    expect(v.vacio).toBe('"comentario" es texto libre en 2024: no es una variable comparable por categorías.');
   });
 
   it("un identificador no lista sus valores: una línea sobria, sin tabla ni ayudas", () => {

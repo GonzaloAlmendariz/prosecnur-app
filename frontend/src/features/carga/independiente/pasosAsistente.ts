@@ -50,7 +50,7 @@ export function pasosDelAsistente(estado: EstadoAsistente): StageStepperItem<Pas
       label: "Catálogo y alcance",
       description: "Encuestas, colectores y rango",
       disabled: !estado.muestraCatalogo,
-      disabledReason: "Abre el catálogo con «Agregar encuestas» en Familia cargada",
+      disabledReason: 'Abre el catálogo con "Agregar encuestas" en Familia cargada',
     },
     {
       key: "auditar",

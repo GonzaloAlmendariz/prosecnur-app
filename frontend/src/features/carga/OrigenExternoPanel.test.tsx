@@ -185,7 +185,7 @@ describe("OrigenExternoVista", () => {
     expect(html).not.toMatch(/<button(?=[^>]*type="submit")(?=[^>]*disabled="")/u);
   });
 
-  it("sin faltantes: una línea corta y ningún «0 variables»", () => {
+  it('sin faltantes: una línea corta y ningún "0 variables"', () => {
     const html = render({ tipo: "listo", datos: HSYVBG });
     expect(html).toContain("La base trae todas las variables del instrumento.");
     expect(html).not.toMatch(/\b0 variables?\b/u);

@@ -30,7 +30,7 @@ function reviewCheck(html: string, label: "Instrumento" | "Respuestas") {
     .match(/<li\b[\s\S]*?<\/li>/gu)
     ?.find((candidate) => candidate.includes(`<strong>${label}</strong>`));
 
-  expect(item, `No se encontró la comprobación «${label}»`).toBeTruthy();
+  expect(item, `No se encontró la comprobación "${label}"`).toBeTruthy();
   return item ?? "";
 }
 
@@ -562,12 +562,12 @@ describe("CargaReviewSummary, fuentes emparejadas por pregunta (ADR 0099)", () =
     );
   });
 
-  it("«Ver preguntas» abre la fuente de su base: el foco de la dirección la lleva", () => {
+  it('"Ver preguntas" abre la fuente de su base: el foco de la dirección la lleva', () => {
     expect(fuentesFindingsSource).toMatch(/baseNombre=\{baseNombre\}/u);
     expect(verPreguntasSource).toMatch(/searchConEmparejamiento\(location\.search, props\.surveyId, props\.baseNombre\)/u);
   });
 
-  it("el selector de Revisión se llama «Base revisada», sin arrastrar la opción elegida", () => {
+  it('el selector de Revisión se llama "Base revisada", sin arrastrar la opción elegida', () => {
     expect(pageSource).toMatch(
       /<span id="pulso-carga-review-base-label">Base revisada<\/span>[\s\S]*?<select\s+aria-labelledby="pulso-carga-review-base-label"/u,
     );

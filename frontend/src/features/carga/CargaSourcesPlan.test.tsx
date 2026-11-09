@@ -85,7 +85,7 @@ describe("estrategia de Plan dentro de Fuentes", () => {
     );
   });
 
-  it("en «Bases separadas» Plataforma muestra el catálogo y cada import entra como una base nueva", () => {
+  it('en "Bases separadas" Plataforma muestra el catálogo y cada import entra como una base nueva', () => {
     // Antes Plataforma bloqueaba este caso y mandaba a Manual (sólo archivos): no había cómo traer las encuestas de
     // SurveyMonkey de un estudio de acreditación (Arte y Diseño, 2026-10-11). Ahora el catálogo se muestra y el import
     // va por `import-separate` con un nombre corto por actor.

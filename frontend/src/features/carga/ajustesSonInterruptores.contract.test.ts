@@ -41,10 +41,10 @@ describe("Carga: ajustes con interruptor, selección con casilla", () => {
     expect(casillas(leer(archivo))).toBe(n);
   });
 
-  it.each(INTERRUPTORES)("%s: «%s» es un interruptor", (archivo, rotulo) => {
+  it.each(INTERRUPTORES)('%s: "%s" es un interruptor', (archivo, rotulo) => {
     const src = leer(archivo);
     const i = src.indexOf(`ariaLabel="${rotulo}"`);
-    expect(i, `no se encontró el interruptor «${rotulo}»`).toBeGreaterThan(-1);
+    expect(i, `no se encontró el interruptor "${rotulo}"`).toBeGreaterThan(-1);
     expect(src.lastIndexOf("<Switch", i)).toBeGreaterThan(src.lastIndexOf("/>", i));
   });
 

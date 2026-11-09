@@ -90,7 +90,7 @@ describe("ImportadorPlataforma", () => {
     expect(html).toMatch(/<button[^>]*disabled=""[^>]*>.*Cancelando…<\/button>/);
   });
 
-  it("importado: nombra la base y ofrece abrirla con flecha (nunca «Ir →»)", () => {
+  it('importado: nombra la base y ofrece abrirla con flecha (nunca "Ir →")', () => {
     const html = render({ importacion: importacion({ estado: "terminado", terminado: terminado({ tipo: "importado", ...exito }) }) });
     expect(html).toContain("quedó en la base acogida");
     expect(html).toContain("1,900 registros, 80 columnas");

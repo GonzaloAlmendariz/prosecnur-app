@@ -47,7 +47,7 @@ function PanelConDireccion() {
     <PanelLateralFuentes
       panel={panel}
       antetitulo="Carga › Bases del estudio"
-      titulo={foco ? `Armonización de «${foco}»` : "Armonización de la base"}
+      titulo={foco ? `Armonización de "${foco}"` : "Armonización de la base"}
       descripcion="Cómo se llevaron las respuestas a las variables y los códigos del formulario al crear la base. Solo lectura."
       auditReady={readinessArmonizacion(carga, foco)}
       claveDisparador={foco ? `armonizacion:${foco}` : null}

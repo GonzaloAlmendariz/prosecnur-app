@@ -417,8 +417,8 @@ export function validarArmonizacion(b: BorradorArmonizacion): string[] {
   const vistos = new Set<string>();
   b.escala.forEach((c, i) => {
     if (!c.codigo) errores.push(`La categoría ${i + 1} de la escala no tiene código.`);
-    else if (!CODIGO_RE.test(c.codigo)) errores.push(`El código «${c.codigo}» lleva espacios o símbolos.`);
-    else if (vistos.has(c.codigo)) errores.push(`El código «${c.codigo}» se repite en la escala.`);
+    else if (!CODIGO_RE.test(c.codigo)) errores.push(`El código "${c.codigo}" lleva espacios o símbolos.`);
+    else if (vistos.has(c.codigo)) errores.push(`El código "${c.codigo}" se repite en la escala.`);
     vistos.add(c.codigo);
   });
   return errores;

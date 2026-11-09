@@ -10,7 +10,7 @@ import { FileSpreadsheet, Upload } from "../../../vendor/lucide-react";
 export function errorNombreBase(nombre: string, existentes: readonly string[]): string | null {
   const n = nombre.trim();
   if (!n) return null; // vacío: el motor le pone uno
-  if (/\s|\$/.test(n)) return "Sin espacios ni «$»: por ejemplo «egresados» o «docentes_tp».";
+  if (/\s|\$/.test(n)) return 'Sin espacios ni "$": por ejemplo "egresados" o "docentes_tp".';
   if (existentes.includes(n)) return "Ya hay una base con ese nombre.";
   return null;
 }

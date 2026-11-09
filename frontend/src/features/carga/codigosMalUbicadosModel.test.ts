@@ -81,6 +81,6 @@ describe("códigos mal ubicados", () => {
     const ind = indicadorDeEscala(fila({}), ["2024", "2025"], catalogo, nombreDeSerieDeBases(["2024", "2025"]));
     expect(ind.tono).toBe("aviso");
     expect(ind.texto).toBe("Revisar mapa en 2025");
-    expect(ind.explicacion).toContain("«Ingresantes desde 2023» se cuenta como «Ingresantes hasta 2019»");
+    expect(ind.explicacion).toContain('"Ingresantes desde 2023" se cuenta como "Ingresantes hasta 2019"');
   });
 });

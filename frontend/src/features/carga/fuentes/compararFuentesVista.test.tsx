@@ -142,7 +142,7 @@ describe("BasesDelEstudio", () => {
     },
   } as unknown as EstudioPayload;
 
-  it("ofrece «Ver armonización» en las bases ligadas y «Comparar fuentes» con dos de la misma revisión", () => {
+  it('ofrece "Ver armonización" en las bases ligadas y "Comparar fuentes" con dos de la misma revisión', () => {
     const html = renderToStaticMarkup(
       <MemoryRouter initialEntries={["/procesamiento?seccion=carga"]}>
         <BasesDelEstudio estudio={estudio} onCambio={() => undefined} renderOrigen={() => null} />

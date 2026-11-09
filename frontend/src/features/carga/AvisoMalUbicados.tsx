@@ -22,7 +22,7 @@ export function AvisoMalUbicados({
   const resto = mal.length - 1;
   return (
     <p className="pulso-armon-aviso" role="status">
-      {`«${mal[0].etiqueta}» se cuenta como «${mal[0].etiquetaDestino}», pero se parece más a «${mal[0].sugerida}»${resto > 0 ? ` (y ${resto} ${resto === 1 ? "código más" : "códigos más"})` : ""}. Si la lista de ${base} está en otro orden, usa «Convertir en mapa por etiqueta».`}
+      {`"${mal[0].etiqueta}" se cuenta como "${mal[0].etiquetaDestino}", pero se parece más a "${mal[0].sugerida}"${resto > 0 ? ` (y ${resto} ${resto === 1 ? "código más" : "códigos más"})` : ""}. Si la lista de ${base} está en otro orden, usa "Convertir en mapa por etiqueta".`}
     </p>
   );
 }

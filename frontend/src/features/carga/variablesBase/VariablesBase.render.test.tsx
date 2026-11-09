@@ -86,7 +86,7 @@ describe("Variables de la base", () => {
   });
 
   it("error de lectura: lo dice con el mensaje del backend", () => {
-    const html = cuerpo({ carga: { tipo: "error", mensaje: "No existe la base «x». · E_BASE_NOT_FOUND" } });
+    const html = cuerpo({ carga: { tipo: "error", mensaje: 'No existe la base "x". · E_BASE_NOT_FOUND' } });
     expect(html).toContain("No se pudieron leer las variables de la base");
     expect(html).toContain("E_BASE_NOT_FOUND");
   });

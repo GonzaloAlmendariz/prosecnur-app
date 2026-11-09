@@ -58,7 +58,7 @@ describe("paneles direccionables", () => {
 });
 
 describe("foco de la comparación", () => {
-  it("ida y vuelta, también con «~» y «%» en el nombre", () => {
+  it('ida y vuelta, también con "~" y "%" en el nombre', () => {
     for (const par of [{ a: "sm", b: "sav" }, { a: "a~b", b: "c%7Ed" }]) {
       expect(leerFocoComparacion(focoComparacion(par))).toEqual(par);
     }

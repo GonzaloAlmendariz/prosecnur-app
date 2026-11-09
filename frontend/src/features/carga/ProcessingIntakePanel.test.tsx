@@ -9,9 +9,9 @@ const source = fs.readFileSync(
 
 function openingTagBefore(label: string, tag = "button"): string {
   const labelIndex = source.indexOf(label);
-  expect(labelIndex, `No se encontró el texto visible «${label}»`).toBeGreaterThan(-1);
+  expect(labelIndex, `No se encontró el texto visible "${label}"`).toBeGreaterThan(-1);
   const openingIndex = source.lastIndexOf(`<${tag}`, labelIndex);
-  expect(openingIndex, `No se encontró <${tag}> para «${label}»`).toBeGreaterThan(-1);
+  expect(openingIndex, `No se encontró <${tag}> para "${label}"`).toBeGreaterThan(-1);
   // El fragmento llega hasta la etiqueta visible: así no confundimos el `=>`
   // de un handler JSX con el cierre real del tag de apertura.
   return source.slice(openingIndex, labelIndex);
@@ -96,7 +96,7 @@ describe("estado visible del plan ya materializado", () => {
     const incompleteGuard = source.lastIndexOf("{!planComplete && (", guideStart);
     expect(
       incompleteGuard,
-      "La guía y «Completar con coincidencias seguras» deben renderizarse solo si falta completar el plan",
+      'La guía y "Completar con coincidencias seguras" deben renderizarse solo si falta completar el plan',
     ).toBeGreaterThan(-1);
   });
 });

@@ -73,7 +73,7 @@ export function MapaPorRangos({
     <div className="pulso-rangos" role="group" aria-labelledby={`${id}-titulo`}>
       <div className="pulso-rangos-head">
         <h5 id={`${id}-titulo`}>Rangos de {origen}</h5>
-        <span className="pulso-armon-ayuda">Ambos extremos incluidos. «Hasta» vacío es «o más».</span>
+        <span className="pulso-armon-ayuda">Ambos extremos incluidos. "Hasta" vacío es "o más".</span>
       </div>
 
       <ol className="pulso-rangos-lista">

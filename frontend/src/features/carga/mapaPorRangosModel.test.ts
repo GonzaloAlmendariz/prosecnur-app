@@ -15,7 +15,7 @@ const edades = [18, 19, 20, 21, 22, 35].map((e) => ({ codigo: String(e), etiquet
 const escala = [{ codigo: "1", etiqueta: "18 a 20 años" }, { codigo: "2", etiqueta: "21 años a más" }];
 
 describe("mapa por rangos", () => {
-  it("un «88 Otro» no entra a los rangos; un 88 sin etiqueta sí", () => {
+  it('un "88 Otro" no entra a los rangos; un 88 sin etiqueta sí', () => {
     expect(entraEnRangos({ codigo: "88", etiqueta: "Otro" })).toBe(false);
     expect(entraEnRangos({ codigo: "88", etiqueta: "" })).toBe(true);
     expect(entraEnRangos({ codigo: "2020", etiqueta: "2020" })).toBe(true);
@@ -42,7 +42,7 @@ describe("mapa por rangos", () => {
   it("avisa superposición y extremos invertidos", () => {
     expect(avisoTramos([{ clave: "a", desde: "0", hasta: "3", destino: "1" }, { clave: "b", desde: "3", hasta: "", destino: "2" }]))
       .toBe("Los rangos 1 y 2 se superponen.");
-    expect(avisoTramos([{ clave: "a", desde: "5", hasta: "2", destino: "1" }])).toBe("En el rango 1, «hasta» es menor que «desde».");
+    expect(avisoTramos([{ clave: "a", desde: "5", hasta: "2", destino: "1" }])).toBe('En el rango 1, "hasta" es menor que "desde".');
     expect(avisoTramos([{ clave: "a", desde: "", hasta: "", destino: "1" }])).toBe("");
   });
 });

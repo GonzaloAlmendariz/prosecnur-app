@@ -292,7 +292,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
       setSucio(true);
       setGuardadoAhora(false);
       setError("");
-      setAviso(`Se añadió «${etiqueta}» a la matriz. Elige su pregunta en las otras bases y guarda.`);
+      setAviso(`Se añadió "${etiqueta}" a la matriz. Elige su pregunta en las otras bases y guarda.`);
       return nueva.id;
     },
     [variablesPorBase],

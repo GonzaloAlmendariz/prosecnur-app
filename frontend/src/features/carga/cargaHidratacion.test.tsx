@@ -81,7 +81,7 @@ function render(pestana: "fuentes" | "datos", motivo: "sesion" | "estudio") {
 }
 
 describe("CargaHidratando — sin estado falso", () => {
-  test.each([["sesion"], ["estudio"]] as const)("Fuentes leyendo (%s): silueta, sin cifras ni «Pendiente»", (motivo) => {
+  test.each([["sesion"], ["estudio"]] as const)('Fuentes leyendo (%s): silueta, sin cifras ni "Pendiente"', (motivo) => {
     const html = render("fuentes", motivo);
     expect(html).toContain('data-carga-silueta="fuentes"');
     expect(html).toContain("pulso-skeleton");

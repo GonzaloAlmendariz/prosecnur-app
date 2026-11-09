@@ -131,7 +131,7 @@ export function VariablesCalculadas({
                   </span>
                 ) : confirmando === c.nombre ? (
                   <span className="pulso-vb-confirmar" role="alert">
-                    <span>¿Quitar «{c.nombre}»?</span>
+                    <span>¿Quitar "{c.nombre}"?</span>
                     <PulsoButton
                       variant="danger"
                       size="sm"

@@ -472,8 +472,8 @@ export function validarCalculada(
   const errores: string[] = [];
   const nombre = b.nombre.trim();
   if (!nombre) errores.push("Falta el nombre de la variable.");
-  else if (!NOMBRE_VALIDO.test(nombre)) errores.push("El nombre empieza con una letra y usa sólo letras, dígitos, «_», «.» o «-».");
-  else if (!b.editando && ocupados.some((o) => plano(o) === plano(nombre))) errores.push(`«${nombre}» ya existe en la base.`);
+  else if (!NOMBRE_VALIDO.test(nombre)) errores.push('El nombre empieza con una letra y usa sólo letras, dígitos, "_", "." o "-".');
+  else if (!b.editando && ocupados.some((o) => plano(o) === plano(nombre))) errores.push(`"${nombre}" ya existe en la base.`);
   if (!b.etiqueta.trim()) errores.push("Falta la etiqueta.");
   if (b.regla === "formula") {
     const variables = variablesDeFormula(b.formula.expresion);
@@ -482,12 +482,12 @@ export function validarCalculada(
     if (variables.some((v) => plano(v) === plano(nombre))) errores.push("La variable no puede calcularse a partir de sí misma.");
     const conocidas = new Set(ocupados.map(plano));
     const faltan = variables.filter((v) => !conocidas.has(plano(v)));
-    if (faltan.length) errores.push(`La base no tiene ${faltan.map((v) => `«${v}»`).join(", ")}.`);
+    if (faltan.length) errores.push(`La base no tiene ${faltan.map((v) => `"${v}"`).join(", ")}.`);
     return errores;
   }
   if (b.regla === "alguna") {
     if (b.alguna.variables.length === 0) errores.push("Elige al menos una pregunta.");
-    else if (parsearCodigos(b.alguna.codigosTexto).length === 0) errores.push("Indica qué códigos cuentan como «sí».");
+    else if (parsearCodigos(b.alguna.codigosTexto).length === 0) errores.push('Indica qué códigos cuentan como "sí".');
     if (b.alguna.variables.some((v) => plano(v) === plano(nombre))) errores.push("La variable no puede calcularse a partir de sí misma.");
     return errores;
   }

@@ -71,7 +71,7 @@ export function AnexarColumnas({ base, onAnexadas }: { base: string; onAnexadas:
     >
       {!vista ? null : !vista.claves.length ? (
         <p className="pulso-armon-error" role="alert">
-          «{vista.archivo}» no comparte un identificador con la base (_uuid, respondent_id, código PULSO…).
+          "{vista.archivo}" no comparte un identificador con la base (_uuid, respondent_id, código PULSO…).
           <PulsoButton variant="ghost" size="sm" onClick={() => setVista(null)}>Elegir otro</PulsoButton>
         </p>
       ) : (

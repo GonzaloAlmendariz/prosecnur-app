@@ -14,7 +14,7 @@ describe("resumen de Respuestas", () => {
     expect(partesPreparacion({ applied: false, aliases: 3, select_multiple: 2 })).toEqual([]);
   });
 
-  it("dice cómo calza con el formulario sin «(s)»", () => {
+  it('dice cómo calza con el formulario sin "(s)"', () => {
     expect(textoCompatibilidad({
       applied: true, ok: true, expected_columns: 118, matched_columns: 118,
       missing_columns: [], extra_columns: [], n_extra: 20,

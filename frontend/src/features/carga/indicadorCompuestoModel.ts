@@ -220,7 +220,7 @@ export function validarCompuesto(b: BorradorCompuesto, bases: readonly string[])
   if (declaradas.length === 0) errores.push("Elige al menos una pregunta en una base.");
   for (const base of declaradas) {
     if (parsearCodigos(b.porBase[base].codigosTexto).length === 0) {
-      errores.push(`Falta al menos un código «sí» en ${base}.`);
+      errores.push(`Falta al menos un código "sí" en ${base}.`);
     }
   }
   return errores;

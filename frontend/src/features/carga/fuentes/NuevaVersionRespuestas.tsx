@@ -46,7 +46,7 @@ export function NuevaVersionRespuestas({
   if (abierto) {
     return (
       <div className="pulso-bde-version" role="group" aria-labelledby={`${id}-titulo`}>
-        <p id={`${id}-titulo`} className="pulso-bde-version-titulo">Nueva versión de las respuestas de «{base}»</p>
+        <p id={`${id}-titulo`} className="pulso-bde-version-titulo">Nueva versión de las respuestas de "{base}"</p>
         <p className="pulso-bde-version-ayuda">
           Se conservan el formulario, el nombre y las variables de la base, y también los códigos de la
           codificación. La limpieza hecha aquí se descarta porque hablaba de las respuestas anteriores.

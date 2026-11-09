@@ -26,11 +26,11 @@ export function EquivalenciasTitulo() {
           <summary>¿Qué es armonizar?</summary>
           <p>
             Es poner las respuestas de todas las bases en una misma escala. Por ejemplo, una
-            base codifica «No sabe» como 0 y otra como 99. Armonizar es declarar que las dos son
+            base codifica "No sabe" como 0 y otra como 99. Armonizar es declarar que las dos son
             la misma respuesta, para que la comparación cuente lo mismo.
           </p>
           <p>
-            Se hace pregunta por pregunta desde la columna «Escala» de cada fila, que dice si las
+            Se hace pregunta por pregunta desde la columna "Escala" de cada fila, que dice si las
             escalas coinciden. Solo las preguntas armonizadas entran a los comparativos de
             Analítica.
           </p>

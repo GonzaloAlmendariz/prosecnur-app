@@ -40,7 +40,7 @@ describe("la fila compuesta en la tabla", () => {
     expect(html).not.toContain('aria-haspopup="listbox"');
   });
 
-  it("«Añadir indicador compuesto» va junto a «Añadir pregunta equivalente»", () => {
+  it('"Añadir indicador compuesto" va junto a "Añadir pregunta equivalente"', () => {
     const html = tabla(true);
     expect(html).toContain("Añadir pregunta equivalente");
     expect(html).toContain("Añadir indicador compuesto");
@@ -67,13 +67,13 @@ describe("una base del editor", () => {
     const html = render([]);
     expect(html).toContain("Sin preguntas elegidas: 2024 queda sin declarar");
     expect(html).toContain("is-vacia");
-    expect(html).not.toContain("Códigos «sí»");
+    expect(html).not.toContain("Códigos &quot;sí&quot;");
   });
 
   it("con preguntas: las lista, ofrece quitarlas y los códigos con la ayuda de la primera", () => {
     const html = render(["P28_1", "P28_2"]);
     expect(html).toContain('aria-label="Quitar P28_1 de 2024"');
-    expect(html).toContain("Códigos «sí»");
+    expect(html).toContain("Códigos &quot;sí&quot;");
     expect(html).toContain('aria-pressed="true"');
     expect(html).toContain('aria-pressed="false"');
   });

@@ -7,7 +7,7 @@ import { ArmonizacionTextosInforme } from "./ArmonizacionTextosInforme";
 
 const sinAccion = () => undefined;
 
-describe("barra «asignar en masa»", () => {
+describe('barra "asignar en masa"', () => {
   const render = (nMarcados: number, nSinMapa: number) => renderToStaticMarkup(createElement(ArmonizacionAsignarEnMasa, {
     base: "b2025",
     escala: [{ codigo: "1", etiqueta: "Lima" }, { codigo: "2", etiqueta: "Provincias" }],
@@ -47,7 +47,7 @@ describe("textos del informe", () => {
     expect(html).toContain("Enunciado en el informe");
     expect(html).toContain('placeholder="Departamento de residencia"');
     expect(html).toContain('placeholder="Automática"');
-    expect(html).toContain("Va bajo la tabla como «Base: …».");
+    expect(html).toContain("Va bajo la tabla como &quot;Base: …&quot;.");
     expect(html).toContain("data-qa-geometry-member");
   });
 });

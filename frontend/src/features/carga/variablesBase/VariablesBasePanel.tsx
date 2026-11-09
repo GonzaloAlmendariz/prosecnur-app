@@ -54,7 +54,7 @@ function PanelConDireccion({ antetitulo = "Carga › Bases del estudio" }: Varia
     <PanelLateralFuentes
       panel={panel}
       antetitulo={antetitulo}
-      titulo={foco ? `Variables de «${foco}»` : "Variables de la base"}
+      titulo={foco ? `Variables de "${foco}"` : "Variables de la base"}
       descripcion="Lo que la base trae además del formulario y lo que se calcula en ella."
       auditReady={readinessVariablesBase(control.estado.carga, foco)}
       claveDisparador={foco ? `variables-base:${foco}` : null}
@@ -111,7 +111,7 @@ export function VariablesBaseCuerpo({ control }: { control: ControlVariablesBase
           <AlertTriangle size={14} aria-hidden="true" />
           <span>
             {pendientes.length === 1
-              ? `«${pendientes[0]}» no viene en la base y falta declarar por qué.`
+              ? `"${pendientes[0]}" no viene en la base y falta declarar por qué.`
               : `${formatoConteoDe(pendientes.length, "pregunta", "preguntas")} del formulario no vienen en la base y falta declarar por qué.`}
           </span>
           {enRouter && (

@@ -104,7 +104,7 @@ function PanelConDireccion({ bases }: Props) {
       ) : (
         // C5: vacío legítimo. Hace falta un segundo formulario cargado de la misma revisión.
         <div data-qa-geometry-capacity="owned">
-          <EstadoVacio icono={<Inbox size={16} />} titulo="No hay dos fuentes que comparar" descripcion="Se comparan bases ligadas a la misma revisión de un formulario publicado; por ejemplo, las respuestas de SurveyMonkey y el .sav limpiado del mismo cuestionario. Agrega la segunda base desde «Formulario publicado»." />
+          <EstadoVacio icono={<Inbox size={16} />} titulo="No hay dos fuentes que comparar" descripcion='Se comparan bases ligadas a la misma revisión de un formulario publicado; por ejemplo, las respuestas de SurveyMonkey y el .sav limpiado del mismo cuestionario. Agrega la segunda base desde "Formulario publicado".' />
         </div>
       )}
     </PanelLateralFuentes>

@@ -35,7 +35,7 @@ export function BuscadorPreguntas({
       </label>
       {consulta.trim() && (
         visibles.length === 0 ? (
-          <p className="pulso-armon-nota">Ninguna pregunta casa con «{consulta.trim()}».</p>
+          <p className="pulso-armon-nota">Ninguna pregunta casa con "{consulta.trim()}".</p>
         ) : (
           <ul className="pulso-compuesto-resultados" aria-label="Resultados">
             {visibles.map((o) => (
@@ -78,7 +78,7 @@ export function PreguntasAlguna({
   const ayuda = opcionesDeAyuda(opciones, variables);
   const etiquetaDe = (nombre: string) => etiquetaLegible(opciones.find((o) => o.name === nombre)?.label);
   return (
-    <div className="pulso-vb-bloque" role="group" aria-label="Preguntas y códigos «sí»">
+    <div className="pulso-vb-bloque" role="group" aria-label='Preguntas y códigos "sí"'>
       {variables.length === 0 ? (
         <EstadoVacio icono={<Inbox size={16} />} titulo="Busca las preguntas que forman la variable" />
       ) : (
@@ -108,7 +108,7 @@ export function PreguntasAlguna({
       {variables.length > 0 && (
         <div className="pulso-compuesto-codigos">
           <label className="pulso-compuesto-campo">
-            <span>Códigos «sí»</span>
+            <span>Códigos "sí"</span>
             <input
               value={codigosTexto}
               inputMode="numeric"

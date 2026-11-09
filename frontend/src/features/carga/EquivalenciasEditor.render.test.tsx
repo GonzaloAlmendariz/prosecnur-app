@@ -48,7 +48,7 @@ describe("editor directo de la matriz (ADR 0104)", () => {
     expect(html).toContain("Buscar pregunta…");
   });
 
-  it("la columna «Escala» dice si coinciden y abre la armonización cuando no", () => {
+  it('la columna "Escala" dice si coinciden y abre la armonización cuando no', () => {
     const html = render();
     expect(html).toContain(">Escala</th>");
     expect(html).toContain("Escalas distintas: armonizar");
@@ -58,7 +58,7 @@ describe("editor directo de la matriz (ADR 0104)", () => {
     expect(html).toContain('data-armon-abrir="0"');
   });
 
-  it("cobertura «N de M» por fila y «Añadir pregunta equivalente»", () => {
+  it('cobertura "N de M" por fila y "Añadir pregunta equivalente"', () => {
     const html = render();
     expect(html).toContain("2 de 2");
     expect(html).toContain("1 de 2");
@@ -79,7 +79,7 @@ describe("la pestaña ya no ofrece plantilla, subida ni emparejado automático (
   const panel = sinComentarios("./EquivalenciasPanel.tsx");
   const bloques = sinComentarios("./ImportarBloquesDialog.tsx");
 
-  it("sin «Generar plantilla», «Subir matriz» ni «Proponer emparejados», ni confirmación en bloque", () => {
+  it('sin "Generar plantilla", "Subir matriz" ni "Proponer emparejados", ni confirmación en bloque', () => {
     for (const quitado of ["Generar plantilla", "Descargar plantilla", "Subir matriz", "Proponer emparejados", "propuestas", "Sparkles", "apiUpload"]) {
       expect(panel).not.toContain(quitado);
     }
@@ -87,7 +87,7 @@ describe("la pestaña ya no ofrece plantilla, subida ni emparejado automático (
     expect(panel).toContain("ImportarBloquesBoton");
   });
 
-  it("«Importar por bloques» se presenta sólo como vía de series de mediciones", () => {
+  it('"Importar por bloques" se presenta sólo como vía de series de mediciones', () => {
     expect(bloques).toContain("Traer una serie de mediciones ya armada");
     expect(bloques).not.toContain("Subir matriz");
   });

@@ -111,7 +111,7 @@ export function notaObservados(
 }
 
 export function textoVariableTexto(base: string, variable: string): string {
-  return `«${variable}» es texto libre en ${base}: no es una variable comparable por categorías.`;
+  return `"${variable}" es texto libre en ${base}: no es una variable comparable por categorías.`;
 }
 
 /**

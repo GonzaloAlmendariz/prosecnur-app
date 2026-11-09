@@ -138,7 +138,7 @@ describe("paso 2, Variables de cada base", () => {
 });
 
 describe("paso 3, Segmentos de cruce", () => {
-  it("con la ruta todavía sin publicar o sin segmentos: «Sin segmentos declarados», sin romper", () => {
+  it('con la ruta todavía sin publicar o sin segmentos: "Sin segmentos declarados", sin romper', () => {
     for (const lectura of [segs([], false), segs([])]) {
       const p = paso(pasosDelRecorrido(completa({ segmentos: lectura })), "segmentos");
       expect(p.estado).toBe("no-empezado");
@@ -216,12 +216,12 @@ describe("paso 5, Ponderación", () => {
       },
     })), "ponderacion");
     expect(p.estado).toBe("falta");
-    expect(p.detalle).toBe("2024 trae «factor_ponderacion» sin declarar");
+    expect(p.detalle).toBe('2024 trae "factor_ponderacion" sin declarar');
     expect(p.enlace).toMatchObject({ tipo: "direccion", etiqueta: "Ponderación" });
     expect(p.enlace.tipo === "direccion" && p.enlace.href).toContain("pestana=ponderacion");
   });
 
-  it("lo que no se puede leer desde aquí no se supone: queda «sin lectura»", () => {
+  it('lo que no se puede leer desde aquí no se supone: queda "sin lectura"', () => {
     const p = paso(pasosDelRecorrido(completa({
       ponderacion: {
         tipo: "listo",
@@ -233,10 +233,10 @@ describe("paso 5, Ponderación", () => {
       },
     })), "ponderacion");
     expect(p.estado).toBe("sin-lectura");
-    expect(p.detalle).toBe("2026: columna «peso», 2 bases sin leer aquí");
+    expect(p.detalle).toBe('2026: columna "peso", 2 bases sin leer aquí');
   });
 
-  it("sin declarar y sin columnas de peso es «sin ponderar»: un hecho, no una falta", () => {
+  it('sin declarar y sin columnas de peso es "sin ponderar": un hecho, no una falta', () => {
     const p = paso(pasosDelRecorrido(completa({
       ponderacion: {
         tipo: "listo",
@@ -247,7 +247,7 @@ describe("paso 5, Ponderación", () => {
       },
     })), "ponderacion");
     expect(p.estado).toBe("hecho");
-    expect(p.detalle).toBe("2025: columna «factor_ponderacion», 2026: sin ponderar");
+    expect(p.detalle).toBe('2025: columna "factor_ponderacion", 2026: sin ponderar');
   });
 
   it("si la lectura no dice las columnas de peso, sigue pendiente", () => {

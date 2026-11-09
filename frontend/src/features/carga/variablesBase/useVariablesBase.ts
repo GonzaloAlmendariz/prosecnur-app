@@ -133,7 +133,7 @@ export function useVariablesBase(base: string | null) {
     try {
       const datos = await declararColumnasBase(base, columnas, quitar);
       const avisos = datos.avisos.map((a) => a.mensaje).join(" ");
-      const hecho = columnas.length ? textoIncorporadas(columnas.length) : `Se quitó «${quitar[0] ?? ""}».`;
+      const hecho = columnas.length ? textoIncorporadas(columnas.length) : `Se quitó "${quitar[0] ?? ""}".`;
       despachar({
         tipo: "datos",
         cambio: () => datos,
@@ -156,7 +156,7 @@ export function useVariablesBase(base: string | null) {
       despachar({
         tipo: "datos",
         cambio: (d) => ({ ...d, calculadas: out.calculadas.length ? out.calculadas : [...d.calculadas.filter((c) => c.nombre !== out.calculada.nombre), out.calculada] }),
-        mensaje: { tono: "ok", texto: `«${out.calculada.nombre}» guardada.`, seccion: "calculadas" },
+        mensaje: { tono: "ok", texto: `"${out.calculada.nombre}" guardada.`, seccion: "calculadas" },
       });
       trasMutar(base);
       return true;
@@ -175,7 +175,7 @@ export function useVariablesBase(base: string | null) {
       despachar({
         tipo: "datos",
         cambio: (d) => ({ ...d, calculadas }),
-        mensaje: { tono: "ok", texto: `Se quitó «${nombre}».`, seccion: "calculadas" },
+        mensaje: { tono: "ok", texto: `Se quitó "${nombre}".`, seccion: "calculadas" },
       });
       trasMutar(base);
     } catch (e) {

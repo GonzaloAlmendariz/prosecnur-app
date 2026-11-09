@@ -56,7 +56,7 @@ describe("Segmentos de cruce", () => {
     expect(html).toContain('data-qa-geometry-capacity="owned"');
   });
 
-  it("sin segmentos: la sección contiene su vacío (C3), declara su grupo (C1) y ofrece «Nuevo segmento»", () => {
+  it('sin segmentos: la sección contiene su vacío (C3), declara su grupo (C1) y ofrece "Nuevo segmento"', () => {
     const html = cuerpo(listo([]));
     expect(html).toContain('data-qa-geometry-group="carga/segmentos"');
     expect((html.match(/data-qa-geometry-member/g) ?? []).length).toBe(1);
@@ -80,9 +80,9 @@ describe("Segmentos de cruce", () => {
     expect(html).toContain('aria-label="Quitar cruce_edad"');
   });
 
-  it("con `foco`, el editor del segmento: escala, una sección por base y el pie con «Guardar segmento»", () => {
+  it('con `foco`, el editor del segmento: escala, una sección por base y el pie con "Guardar segmento"', () => {
     const html = cuerpo(listo([edad]), "edad");
-    expect(html).toContain("Editar «cruce_edad»");
+    expect(html).toContain("Editar &quot;cruce_edad&quot;");
     expect(html).toContain("Nombre en todas las bases");
     expect(html).toContain("cruce_");
     expect(html).toContain("Escala estándar");
@@ -98,7 +98,7 @@ describe("Segmentos de cruce", () => {
     expect(html).toContain("Guardar segmento");
   });
 
-  it("«Emparejar todas por etiqueta» vive en la escala estándar, una vez, y no en cada base", () => {
+  it('"Emparejar todas por etiqueta" vive en la escala estándar, una vez, y no en cada base', () => {
     const html = cuerpo({
       ...listo([edad]),
       catalogo: {
@@ -115,7 +115,7 @@ describe("Segmentos de cruce", () => {
 
   it("un `foco` que no existe lo dice y ofrece volver", () => {
     const html = cuerpo(listo([edad]), "sexo");
-    expect(html).toContain("El estudio no tiene un segmento «sexo»");
+    expect(html).toContain("El estudio no tiene un segmento &quot;sexo&quot;");
     expect(html).toContain("Ver todos los segmentos");
   });
 
@@ -129,7 +129,7 @@ describe("Segmentos de cruce", () => {
 });
 
 describe("fila de cruce en la matriz", () => {
-  it("lleva la marca «Cruce», se lee sin buscador y su edición remite al panel de segmentos", () => {
+  it('lleva la marca "Cruce", se lee sin buscador y su edición remite al panel de segmentos', () => {
     const filas = aFilasEditor([
       { seccion: "", etiqueta_estandar: "Uso de salud", variables: { "2024": "p13_1", "2025": "p11_1" }, cantidad: 2 },
       { id: "SEG-edad", cruce: true, seccion: "Segmentos de cruce", etiqueta_estandar: "Edad", variables: { "2024": "cruce_edad" }, cantidad: 1 },
@@ -189,7 +189,7 @@ describe("una base del editor con los valores observados", () => {
     expect(html).not.toContain("Años transcurridos");
   });
 
-  it("un código con 0 casos y sin mapa se lee tenue («sin casos») y no cuenta como pendiente", () => {
+  it('un código con 0 casos y sin mapa se lee tenue ("sin casos") y no cuenta como pendiente', () => {
     const html = render(
       { tipo: "listo", datos: observados({ codigos: [{ codigo: "1", etiqueta: "18–20 años", n: 40 }, { codigo: "99", etiqueta: "No sé", n: 0 }] }) },
       { "1": "1" },

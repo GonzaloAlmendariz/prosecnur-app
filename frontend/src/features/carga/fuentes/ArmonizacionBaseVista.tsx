@@ -52,7 +52,7 @@ export function ArmonizacionBaseVista({ carga }: { carga: CargaArmonizacion }) {
         // C5: vacío legítimo. La base no guarda armonización: se creó por otra
         // vía o antes de que Prosecnur la registrara. No se inventa una.
         <div data-qa-geometry-capacity="owned">
-          <EstadoVacio icono={<Inbox size={16} />} titulo="Esta base no guarda su armonización" descripcion="Se registra al crear la base desde «Formulario publicado». Esta se creó antes o por otra vía, así que no hay recodificaciones ni coberturas que mostrar. Para tenerlas, vuelve a crearla desde su formulario." />
+          <EstadoVacio icono={<Inbox size={16} />} titulo="Esta base no guarda su armonización" descripcion='Se registra al crear la base desde "Formulario publicado". Esta se creó antes o por otra vía, así que no hay recodificaciones ni coberturas que mostrar. Para tenerlas, vuelve a crearla desde su formulario.' />
         </div>
       )}
     </>

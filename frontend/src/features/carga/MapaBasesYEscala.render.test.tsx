@@ -40,7 +40,7 @@ describe("mapa de bases", () => {
     expect((html.match(/data-qa-geometry-member/g) ?? []).length).toBe(2);
   });
 
-  it("con foco en una base, sus variables fuera de la matriz con «Añadir a la matriz»", () => {
+  it('con foco en una base, sus variables fuera de la matriz con "Añadir a la matriz"', () => {
     const html = cuerpo({ foco: "2024" });
     expect(html).toContain("Fuera de la matriz en 2024");
     expect(html).toContain("399 variables");
@@ -52,7 +52,7 @@ describe("mapa de bases", () => {
 
   it("cada vacío dice el suyo", () => {
     expect(cuerpo({ foco: "2025" })).toContain("Todas las variables de 2025 están en la matriz");
-    expect(cuerpo({ foco: "1999" })).toContain("La base «1999» no está en este estudio");
+    expect(cuerpo({ foco: "1999" })).toContain("La base &quot;1999&quot; no está en este estudio");
     expect(cuerpo({ filas: [] })).toContain("Todavía no hay preguntas en la matriz.");
     expect(cuerpo({ cargando: true })).toContain("Leyendo la matriz");
     expect(cuerpo({ bases: [] })).toContain("todavía no tiene bases que comparar");

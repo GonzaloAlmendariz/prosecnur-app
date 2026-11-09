@@ -161,7 +161,7 @@ export function SegmentosCuerpo({ control, foco, ordenBases, onIr }: SegmentosCu
   if (foco && !enEdicion && !nuevo) {
     return (
       <section className="pulso-armon-seccion" data-qa-geometry-capacity="owned">
-        <EstadoVacio icono={<Inbox size={16} />} titulo={<>El estudio no tiene un segmento «{foco}»</>} />
+        <EstadoVacio icono={<Inbox size={16} />} titulo={<>El estudio no tiene un segmento "{foco}"</>} />
         <div>
           <PulsoButton variant="secondary" size="sm" className="pulso-armon-btn" onClick={() => onIr(null)}>
             <ArrowLeft size={13} aria-hidden="true" />
@@ -285,7 +285,7 @@ function TablaSegmentos({
                   <td className="pulso-seg-acciones">
                     {confirmando === s.clave ? (
                       <span className="pulso-vb-confirmar" role="alert">
-                        <span>¿Quitar «{s.nombre}» de todas las bases y de la matriz?</span>
+                        <span>¿Quitar "{s.nombre}" de todas las bases y de la matriz?</span>
                         <PulsoButton
                           variant="danger"
                           size="sm"

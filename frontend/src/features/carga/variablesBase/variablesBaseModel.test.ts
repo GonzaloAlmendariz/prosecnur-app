@@ -60,7 +60,7 @@ describe("panel y direcciones", () => {
     expect(hrefVariablesBase("Estudiantes 2026")).toBe("/carga?pestana=fuentes&panel=variables-base&foco=Estudiantes+2026");
   });
 
-  it("«Declarar el motivo» lleva a Revisión con la base como base revisada", () => {
+  it('"Declarar el motivo" lleva a Revisión con la base como base revisada', () => {
     const href = hrefDeclararRetiradas("2026");
     expect(href).toBe("/carga?pestana=revision&foco=2026");
     const params = new URLSearchParams(href.split("?")[1]);
@@ -152,7 +152,7 @@ describe("columnas que trae la base", () => {
 });
 
 describe("variable calculada: alguna", () => {
-  it("arma el cuerpo con las preguntas y los códigos «sí»", () => {
+  it('arma el cuerpo con las preguntas y los códigos "sí"', () => {
     const b = aplicar(
       borradorCalculadaDesde(null),
       { tipo: "nombre", valor: " vbg_alguna " },
@@ -180,7 +180,7 @@ describe("variable calculada: alguna", () => {
     const ocupado = aplicar(vacio, { tipo: "nombre", valor: "Recurrio" }, { tipo: "etiqueta", valor: "X" },
       { tipo: "alguna", accion: { tipo: "agregar", base: "", variable: "P1" } },
       { tipo: "alguna", accion: { tipo: "codigos", base: "", valor: " , " } });
-    expect(validarCalculada(ocupado, ["recurrio"])).toEqual(["«Recurrio» ya existe en la base.", "Indica qué códigos cuentan como «sí»."]);
+    expect(validarCalculada(ocupado, ["recurrio"])).toEqual(['"Recurrio" ya existe en la base.', 'Indica qué códigos cuentan como "sí".']);
   });
 
   it("al editar, el nombre es la clave y no cambia", () => {
