@@ -250,8 +250,10 @@ test_that("render: a página entera sale nativo, con barras de muestra y univers
   expect_identical(.pptx_lamina_estado(xml), "nativa")
   expect_true(grepl('name="prosecnur:grafico:cobertura"', xml, fixed = TRUE))
   expect_false(grepl("<p:pic>", xml, fixed = TRUE))
-  expect_identical(sum(nm == 'name="cobertura:barra_muestra"'), 5L)   # 1, 2, 3 de estudiantes (4 tiene n = 0) y 1, 2 de docentes
-  expect_identical(sum(nm == 'name="cobertura:barra_universo"'), 5L)  # 1, 2, 4 de estudiantes y 1, 2 de docentes
+  expect_identical(sum(nm == 'name="cobertura:barra_muestra"'), 4L)   # 1, 2, 3 de estudiantes (4 tiene n = 0) y 1 de docentes
+  # Con las barras al grosor de la casa no caben las seis filas: la última (2 de docentes) sale y la lámina lo dice.
+  expect_identical(sum(nm == 'name="cobertura:barra_universo"'), 4L)  # 1, 2, 4 de estudiantes y 1 de docentes
+  expect_true(grepl("Por espacio, se muestran las 5 primeras de 6 categorías", tx, fixed = TRUE))
   expect_identical(sum(nm == 'name="cobertura:publico"'), 2L)
   for (t in c("Muestra", "Universo", "Diferencia (pts)", "Estudiantes", "Docentes", "95 respuestas válidas", "Primer ciclo",
               "n = 50", "52.6%", "45.0%", "+7.6", "-25.0", "0.0%", "sin dato", "Base: respuestas válidas, Estudiantes 95 y Docentes 60",
@@ -308,4 +310,20 @@ test_that("la columna de la diferencia queda dentro de su rectángulo, con aire 
     expect_lte(ge$xd + ge$wd, 0.495 + (if (esc == "pagina") 12.523 else 6.0) - .COBCAT_AIRE_DER + 1e-9)
     expect_gte(ge$xd, ge$xb + ge$wb)                                   # no pisa las barras ni sus cifras
   }
+})
+
+test_that("las barras llevan el grosor de la casa; si las filas no caben, van las primeras y se dice (R5, 2026-11-09)", {
+  e <- .cc_espec("ciclo", bases = "estudiantes", universo = .cc_univ())
+  n <- sum(vapply(e$bloques, function(b) NROW(b$filas), 0L))
+  holgada <- .lam_cobcat_geo(e, 0.5, 2, 6.0, 4.2, "ranura")
+  expect_true(holgada$cabe); expect_identical(holgada$k, n)
+  expect_gte(holgada$g, .std_piso_panel_in() - 1e-9)
+  justa <- .lam_cobcat_geo(e, 0.5, 2, 6.0, 2.2, "ranura")                    # no caben las cuatro filas
+  expect_true(justa$cabe)
+  expect_lt(justa$k, n); expect_identical(sum(justa$visibles), justa$k)
+  expect_gte(justa$g, .std_piso_panel_in() - 1e-9)                           # nunca más delgadas
+  expect_false(.lam_cobcat_geo(e, 0.5, 2, 6.0, 1.2, "ranura")$cabe)          # menos de la mitad: va dibujada
+  .LAM_RR_PIE$notas <- NULL
+  expect_message(.lam_rr_dibujar(.lam_lienzo(), e, .lam_rr_geo(e, 0.5, 2, 6.0, 2.2)), "Por espacio")
+  expect_match(.lam_rr_pie_menos_filas("Base: 95"), sprintf("muestra las %d primeras de 4", justa$k), fixed = TRUE)
 })

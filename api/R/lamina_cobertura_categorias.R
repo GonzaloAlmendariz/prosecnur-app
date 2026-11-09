@@ -35,7 +35,18 @@
   cabeceras <- if (length(bl) > 1L) length(bl) else 0L
   ley <- if (pg) 0.4 else 0.32
   hcab <- if (pg) 0.4 else 0.32
-  hrow <- min(if (pg) 1.0 else 0.6, (h - ley - hcab * cabeceras - 0.05) / filas)
+  # La barra lleva el grosor de la casa (`.std_piso_panel_in`, 0.66 cm: R5 de verificar_mazo), nunca menos: la fila pide
+  # las dos barras más su aire. Si las filas no caben así, van las primeras que caben y la lámina lo dice
+  # (`.lam_rr_menos_filas`, como `.lam_rr_filas`); con menos de la mitad, la lámina va dibujada.
+  g_min <- .std_piso_panel_in(); fila_min <- 2 * g_min + 0.15
+  disponible <- h - ley - hcab * cabeceras - 0.05
+  n_total <- filas
+  if (disponible / filas < fila_min) {
+    filas <- as.integer(floor(disponible / fila_min + 1e-9))
+    if (filas < max(2L, ceiling(n_total / 2))) return(list(cabe = FALSE))
+  }
+  vis <- .lam_cobcat_filas_visibles(vapply(bl, function(b) NROW(b$filas), 0L), filas)
+  hrow <- min(max(fila_min, if (pg) 1.0 else 0.6), disponible / filas)
   rotulos <- unlist(lapply(bl, function(b) b$filas$etiqueta))
   ns <- unlist(lapply(bl, function(b) b$filas$texto_n))
   # El rótulo baja de a medio punto hasta el piso de 10.5 pt; si no cabe en su tope, la lámina va dibujada.
@@ -57,9 +68,10 @@
   # app recortaba "+4.8" y "Diferencia (pts)" contra el marco del gráfico (2026-11-09).
   xd <- x + w - wd - .COBCAT_AIRE_DER
   wb <- xd - 0.1 - wv - xb
-  g <- min(if (pg) 0.3 else 0.2, hrow * 0.3)
-  list(cabe = hrow >= (if (pg) 0.4 else 0.3) && wb >= (if (pg) 3 else 1.2),
+  g <- max(g_min, min(if (pg) 0.3 else 0.2, hrow * 0.3))
+  list(cabe = hrow >= fila_min - 1e-9 && wb >= (if (pg) 3 else 1.2),
        x = x, y = y, w = w, h = h, ley = ley, hcab = hcab, hrow = hrow, filas = filas, cabeceras = cabeceras,
+       k = filas, n_total = n_total, visibles = vis,
        size_r = size_r, size_n = size_n, size_v = size_v, size_d = size_d, size_ley = if (pg) 11 else 10.5,
        wl = wl, wn = wn, wd = wd, wv = wv, xl = xl, xn = xn, xb = xb, xd = xd, wb = wb, g = g)
 }
@@ -84,8 +96,11 @@
   }
   y <- y + ge$ley
   px <- function(v) ge$wb * min(1, max(0, v) / espec$escala_max)
-  for (b in espec$bloques) {
-    f <- b$filas
+  for (j in seq_along(espec$bloques)) {
+    b <- espec$bloques[[j]]
+    nv <- (ge$visibles %||% vapply(espec$bloques, function(z) NROW(z$filas), 0L))[j]
+    if (nv < 1L) next
+    f <- b$filas[seq_len(nv), , drop = FALSE]
     if (ge$cabeceras > 0L) {
       wp <- .lam_ancho_tinta(b$publico, ge$size_r + 0.5, TRUE)
       .lam_txt(lz, b$publico, ge$xl - 0.1, y + 0.02, wp + 0.3, 0.32, ge$size_r + 0.5, azul, bold = TRUE, nombre = "cobertura:publico")
@@ -122,6 +137,14 @@
   invisible(y)
 }
 
+#' Filas que se dibujan en cada bloque: las primeras `k`, bloque por bloque en su orden
+#' @keywords internal
+.lam_cobcat_filas_visibles <- function(por_bloque, k) {
+  out <- integer(length(por_bloque)); quedan <- k
+  for (j in seq_along(por_bloque)) { out[j] <- min(por_bloque[j], max(0L, quedan)); quedan <- quedan - out[j] }
+  out
+}
+
 #' ¿La lámina de página entera cabe? Hasta 14 categorías, filas de 0.4 in y 3 in de barras
 #' @keywords internal
 .lam_cobcat_cabe <- function(espec) isTRUE(.lam_cobcat_pagina_geo(espec)$cabe)
@@ -145,9 +168,15 @@
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()
-  .lam_cobcat_dibujar(lz, espec, .lam_cobcat_pagina_geo(espec))
+  ge <- .lam_cobcat_pagina_geo(espec)
+  .lam_cobcat_dibujar(lz, espec, ge)
+  if (isTRUE(ge$k < ge$n_total)) {   # filas de menos: al pie y en el aviso
+    nota <- sprintf("Por espacio, se muestran las %d primeras de %d categorías", ge$k, ge$n_total)
+    .LAM_RR_PIE$notas <- unique(c(.LAM_RR_PIE$notas, nota))
+    .pulso_aviso(.aviso_en_lamina(paste0(nota, "; para verlas todas, divide la variable en dos láminas.")))
+  }
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:cobertura")
-  doc <- .lam_pie(doc, .lam_cobcat_pie(base, espec), folio)
+  doc <- .lam_pie(doc, .lam_rr_pie_menos_filas(.lam_cobcat_pie(base, espec)), folio)
   list(doc = por_lamina(doc), partes = 1L)
 }
 
