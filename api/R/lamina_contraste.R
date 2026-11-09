@@ -103,14 +103,18 @@
     rr <- lapply(espec$rotulos, function(t) .lam_rotulo_recortar(t, w, size, 3L))
     if (!recortar && any(vapply(rr, `[[`, TRUE, "recortado"))) return(NULL)
     lh <- size * 1.2 / 72
-    necesita <- vapply(rr, function(r) length(r$lineas), 0L) * lh + 0.05
-    alto <- function(u) sum(pmax(pasos * u, necesita))
-    if (alto(u_min) > disponible + 1e-9) return(NULL)
-    # El paso común más grande (hasta u_max) con el que las filas, cada una con su rótulo, caben en el alto.
-    lo <- u_min; hi <- u_max
-    if (alto(hi) <= disponible) lo <- hi else for (it in 1:40) { mid <- (lo + hi) / 2; if (alto(mid) <= disponible) lo <- mid else hi <- mid }
-    list(size = size, w = w, u = lo, alturas = pmax(pasos * lo, necesita), textos = vapply(rr, `[[`, "", "texto"),
-         recortados = sum(vapply(rr, `[[`, TRUE, "recortado")))
+    texto_h <- vapply(rr, function(r) length(r$lineas), 0L) * lh
+    # P15: cada pregunta mide su contenido (su rótulo o sus sub-filas, lo mayor) más un hueco común: el mismo hueco entre
+    # todas, no el mismo paso (lamina_filas_hueco.R). Con grupos, la sub-fila toma el paso más grande que deja caber.
+    hu <- NULL; u <- if (par) u_min else u_max
+    for (u_try in if (par) u_min else seq(u_max, u_min, by = -0.01)) {
+      contenido <- pmax(texto_h, if (par) 0.17 else k * u_try)
+      hu <- .lam_filas_hueco_uniforme(contenido, disponible, hueco_min = 0.05, hueco_max = if (par) u_max - lh else 0.7 * u_try + 0.1)
+      if (!is.null(hu)) { u <- u_try; break }
+    }
+    if (is.null(hu)) return(NULL)
+    list(size = size, w = w, u = if (par) min(hu$alturas) else u, alturas = hu$alturas, textos = vapply(rr, `[[`, "", "texto"),
+         recortados = sum(vapply(rr, `[[`, TRUE, "recortado")), contenido = contenido, hueco = hu$hueco)
   }
   elegido <- NULL
   for (size in .lam_rotulo_pasos_pt(11.5)) {   # 11.5, 11 y el piso de 10.5 pt (lamina_rotulo_resumen.R)
@@ -125,7 +129,7 @@
   m <- base_m
   m$wrot <- elegido$w; m$xl <- m$ml + m$wrot + 0.25
   c(list(cabe = (m$xr - m$xl) >= 3.5 - 1e-6, m = m, pasos = pasos, anchos = anchos, cab = cab, zona0 = zona0, zona1 = zona1),
-    elegido[c("size", "u", "alturas", "textos", "recortados")])
+    elegido[c("size", "u", "alturas", "textos", "recortados", "contenido", "hueco")])
 }
 
 #' ¿El contraste cabe en una lámina? Hasta 14 filas de pares, o 27 sub-filas con los grupos, con sus rótulos en hasta

@@ -58,12 +58,13 @@
   prueba <- function(tx, size, w) {
     rr <- lapply(tx, function(t) .lam_rotulo_recortar(t, w, size, 3L))
     if (any(vapply(rr, `[[`, TRUE, "recortado"))) return(NULL)
-    necesita <- vapply(rr, function(r) length(r$lineas), 0L) * size * 1.2 / 72 + 0.04
-    alto <- function(u) sum(pmax(u, necesita))
-    if (alto(u_min) > disponible + 1e-9) return(NULL)
-    lo <- u_min; hi <- u_max
-    if (alto(hi) <= disponible) lo <- hi else for (it in 1:40) { mid <- (lo + hi) / 2; if (alto(mid) <= disponible) lo <- mid else hi <- mid }
-    list(size = size, wq = w, u = lo, alturas = pmax(lo, necesita), textos = vapply(rr, `[[`, "", "texto"), lineas = 3L)
+    # P15: cada fila mide su rótulo más un hueco común (el mismo entre todas), hasta que una fila de una línea llegue al
+    # paso máximo de la casa (lamina_filas_hueco.R).
+    texto_h <- vapply(rr, function(r) length(r$lineas), 0L) * size * 1.2 / 72
+    hu <- .lam_filas_hueco_uniforme(texto_h, disponible, hueco_min = max(0.04, u_min - min(texto_h)), hueco_max = max(0.04, u_max - min(texto_h)))
+    if (is.null(hu)) return(NULL)
+    list(size = size, wq = w, u = min(hu$alturas), alturas = hu$alturas, textos = vapply(rr, `[[`, "", "texto"), lineas = 3L,
+         texto_h = texto_h, hueco = hu$hueco)
   }
   # 4. Todas las filas si caben enteras; si no, una menos cada vez, en el orden de la prioridad.
   for (k in rev(seq_len(n))) {
