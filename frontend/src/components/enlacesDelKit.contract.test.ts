@@ -17,7 +17,10 @@ function archivos(dir: string): string[] {
 
 describe("enlaces con piel de botón", () => {
   it("ningún <a> lleva a mano las clases pulso-button", () => {
-    const copias = archivos(SRC).flatMap((archivo) => {
+    const fuentes = archivos(SRC);
+    // Centinela: si el barrido deja de encontrar archivos, el guard pasaría en verde sin mirar nada.
+    expect(fuentes.length).toBeGreaterThan(500);
+    const copias = fuentes.flatMap((archivo) => {
       const fuente = readFileSync(archivo, "utf8");
       return [...fuente.matchAll(/<a\b[^>]*className=["{][^>]*\bpulso-button\b/g)].map(() => path.relative(SRC, archivo));
     });
