@@ -56,12 +56,14 @@
 #' Contexto de prueba por lámina: el de la sesión si la ranura lee la base activa; si no, el de la base de la ranura
 #'
 #' @param sid Sesión. @param sc Contexto de `.sig_contexto_sesion(sid)` (base activa).
-#' @return Función `slide -> list(fuente, ctx, base)`; memoriza el contexto de cada base dentro del pedido.
+#' @return Función `(slide, g = NULL) -> list(fuente, ctx, base)`: con `g` (un graficador del payload), la base de esa
+#'   ranura; sin `g`, la de la primera ranura con cruce. Memoriza el contexto de cada base dentro del pedido.
 #' @keywords internal
 .sig_contexto_por_lamina <- function(sid, sc) {
   memo <- list()
-  function(slide) {
-    base <- .sig_base_de_lamina(slide, sc$bases %||% sc$base, sc$activa)
+  function(slide, g = NULL) {
+    bases <- sc$bases %||% sc$base
+    base <- if (is.null(g)) .sig_base_de_lamina(slide, bases, sc$activa) else .sig_base_de_slot(g, bases, sc$activa)
     if (is.null(base) || identical(base, sc$base)) return(list(fuente = sc$fuente, ctx = sc$ctx, base = sc$base))
     if (is.null(memo[[base]])) memo[[base]] <<- .sig_contexto_sesion(sid, base = base)
     m <- memo[[base]]

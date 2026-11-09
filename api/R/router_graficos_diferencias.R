@@ -123,7 +123,10 @@ mount_graficos_diferencias <- function(pr) {
       if (!is.null(.tpub_elemento_de_lamina(s))) {   # ADR 0138: tarjetas entre públicos (modo_letras «entre_publicos»)
         return(list(ok = TRUE, regla = .sig_regla_json(sc$ctx$regla), lamina = .tpub_lamina_json_sesion(sid, s, sc)))
       }
-      sl <- .sig_contexto_por_lamina(sid, sc)(s)   # R12-2: la base de la ranura, no la activa
-      list(ok = TRUE, regla = .sig_regla_json(sc$ctx$regla), lamina = .sig_lamina_json(s, sl$fuente, sl$ctx))
+      contexto_de <- .sig_contexto_por_lamina(sid, sc)
+      sl <- contexto_de(s)   # R12-2: la base de la ranura, no la activa
+      lamina <- .sig_lamina_json(s, sl$fuente, sl$ctx)   # los campos de siempre: la primera ranura con cruce
+      lamina$ranuras <- .sig_ranuras_json(s, contexto_de)
+      list(ok = TRUE, regla = .sig_regla_json(sc$ctx$regla), lamina = lamina)
     }))
 }

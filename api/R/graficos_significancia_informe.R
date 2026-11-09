@@ -59,14 +59,14 @@
 
 #' Una lámina, en la forma del contrato
 #' @param ctx Contexto de `.sig_contexto_estudio()`.
+#' @param l Ranura que se prueba (`.sig_slot_de_graficador`); por omisión, la primera con cruce.
 #' @keywords internal
-.sig_lamina_json <- function(slide, fuente, ctx) {
+.sig_lamina_json <- function(slide, fuente, ctx, l = .sig_lamina_del_plan(slide)) {
   titulo <- as.character(slide$payload$titulo %||% "")[1]
   # NA y no NULL: el serializador de la API escribe `null` para NA y `{}` para NULL.
   base <- list(slide_id = as.character(slide$id %||% "")[1], titulo = titulo, estado = "sin_cruce", activo = FALSE,
                motivo = NA, error = NA, variable = NA, cruce = NA, modo_letras = "letras",
                grupos = list(), pares = list(), nota = NA, revisar = list())
-  l <- .sig_lamina_del_plan(slide)
   if (is.null(l)) return(base)
   base$variable <- l$var; base$cruce <- l$cruce; base$activo <- isTRUE(l$activo)
   diseno <- .graficos_sig_diseno_de_fuente(list(survey = fuente$survey, survey_raw = fuente$survey), l$var)
@@ -144,8 +144,7 @@
 
 #' Lámina de base ambigua o desconocida dentro del informe: no se prueba, no entra en ninguna familia y lo dice
 #' @keywords internal
-.sig_lamina_sin_base_json <- function(slide, err) {
-  l <- .sig_lamina_del_plan(slide)
+.sig_lamina_sin_base_json <- function(slide, err, l = .sig_lamina_del_plan(slide)) {
   list(slide_id = as.character(slide$id %||% "")[1], titulo = as.character(slide$payload$titulo %||% "")[1],
        estado = "error", activo = isTRUE(l$activo), motivo = conditionMessage(err),
        error = list(code = err$code, message = conditionMessage(err)), variable = l$var %||% NA, cruce = l$cruce %||% NA,
@@ -161,10 +160,12 @@
     if (is.null(.sig_lamina_del_plan(s))) next
     # R12-2: con `contexto_de`, cada lámina se prueba sobre la base de su ranura (graficos_significancia_base_lamina.R).
     sl <- if (is.function(contexto_de)) tryCatch(contexto_de(s), api_error = function(e) e) else list(fuente = fuente, ctx = ctx)
-    laminas[[length(laminas) + 1L]] <- if (inherits(sl, "api_error")) .sig_lamina_sin_base_json(s, sl) else
-      .sig_lamina_json(s, sl$fuente, sl$ctx)
+    lam <- if (inherits(sl, "api_error")) .sig_lamina_sin_base_json(s, sl) else .sig_lamina_json(s, sl$fuente, sl$ctx)
+    # Toda ranura con cruce, cada una sobre su base (graficos_significancia_ranuras.R); el resumen las cuenta todas.
+    lam$ranuras <- .sig_ranuras_json(s, if (is.function(contexto_de)) contexto_de else function(s, g = NULL) list(fuente = fuente, ctx = ctx))
+    laminas[[length(laminas) + 1L]] <- lam
   }
-  list(laminas = laminas, resumen = .sig_resumen(laminas, ctx$m))
+  list(laminas = laminas, resumen = .sig_resumen(unlist(lapply(laminas, `[[`, "ranuras"), recursive = FALSE), ctx$m))
 }
 
 # --- Tablas de cruces: letras con la regla y cuántas celdas cambian (D1) -----------------------------------------
