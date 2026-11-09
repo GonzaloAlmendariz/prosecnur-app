@@ -82,10 +82,13 @@ export function mismaRegla(a: ReglaDiferencias, b: ReglaDiferencias): boolean {
 
 // ---------- Cifras ----------
 
-/** p ajustado para leer: «< 0.001» o tres decimales con punto. */
-export function formatoP(p: number | null): string {
+/**
+ * p ajustado para leer: «< 0.001» o tres decimales con punto (es-PE usa punto decimal). `compacto`, para la columna de
+ * una tabla: «<0.001», sin el espacio, para que la cifra quepa entera en su celda.
+ */
+export function formatoP(p: number | null, { compacto = false }: { compacto?: boolean } = {}): string {
   if (p === null) return "—";
-  if (p < 0.001) return "< 0.001";
+  if (p < 0.001) return compacto ? "<0.001" : "< 0.001";
   return p.toFixed(3);
 }
 

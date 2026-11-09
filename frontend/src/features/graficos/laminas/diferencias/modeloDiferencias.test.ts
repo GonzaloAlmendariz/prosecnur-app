@@ -85,6 +85,8 @@ describe("una lámina", () => {
   });
   it("formato del p ajustado", () => {
     expect([formatoP(0.0004), formatoP(0.031), formatoP(null)]).toEqual(["< 0.001", "0.031", "—"]);
+    // En la columna «p aj.» de «Por qué», sin el espacio: cabe entera en su celda.
+    expect([formatoP(0.0004, { compacto: true }), formatoP(0.031, { compacto: true })]).toEqual(["<0.001", "0.031"]);
   });
 });
 

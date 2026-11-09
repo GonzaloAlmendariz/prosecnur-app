@@ -300,8 +300,10 @@ function TablaPares({ lamina, indice, onElegir, etiqueta = "Pares de grupos de l
     // con la barra de Windows (C4). R12-7: «Fila y par» a 190 px para que el par («36 a 45 años y 24 a 35 años») se lea.
     // El par (B > A) lo dice la cápsula; el veredicto sin marca va abreviado y entero en el `title`.
     // R11-10: cada fila dice qué par compara (antes seis «Masculino» seguidos sin decir entre qué grupos).
+    // R15-4: «p aj.» a 68 px con la cifra compacta («<0.001», 43 px de texto + 24 de relleno): a 62 se leía «< 0.0…».
+    // Los 6 px salen de «Fila y par», así que la tabla sigue en 358 px.
     {
-      id: "fila", encabezado: "Fila y par", ancho: 190, valor: ({ par }) => `${par.fila}: ${parDeGrupos(par, lamina.grupos)}`,
+      id: "fila", encabezado: "Fila y par", ancho: 184, valor: ({ par }) => `${par.fila}: ${parDeGrupos(par, lamina.grupos)}`,
       celda: ({ par }) => (
         <span className="pulso-sig-fila-par" title={`${par.fila}: ${parDeGrupos(par, lamina.grupos)}`}>
           <span>{par.fila}</span>
@@ -310,7 +312,7 @@ function TablaPares({ lamina, indice, onElegir, etiqueta = "Pares de grupos de l
       ),
     },
     { id: "dif", encabezado: "Dif.", ancho: 46, tipo: "cifra", celda: ({ par }) => formatoPuntos(par.dif) },
-    { id: "p", encabezado: "p aj.", ancho: 62, tipo: "cifra", celda: ({ par }) => formatoP(par.p_ajustado) },
+    { id: "p", encabezado: "p aj.", ancho: 68, tipo: "cifra", celda: ({ par }) => <span title={`p ajustado ${formatoP(par.p_ajustado)}`}>{formatoP(par.p_ajustado, { compacto: true })}</span> },
     {
       id: "marca", encabezado: "Marca", ancho: 60, valor: ({ par }) => `${par.a} > ${par.b}: ${ROTULO_VEREDICTO[par.veredicto]}`,
       celda: ({ par }) => (esMarcado(par) ? <Capsula letras={par.a === "resto" ? "" : par.b} menor={par.a === "resto"} fragil={par.veredicto === "fragil"} /> : <span className="pulso-sig-texto">{ABREVIADO[par.veredicto]}</span>),
