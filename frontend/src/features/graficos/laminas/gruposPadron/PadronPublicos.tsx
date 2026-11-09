@@ -80,7 +80,10 @@ export function PadronPublicos({ graficador, args, scope, onCambio, soloBases = 
         )}
       </div>
       {bases.length === 0 ? (
-        <p className="pulso-f6-dato-ayuda" role="note">Elige primero las preguntas: de ellas salen los públicos.</p>
+        <p className="pulso-f6-dato-ayuda" role="note">
+          {/* Ronda 18: en el contraste los públicos salen de «Públicos que se comparan», no de las preguntas. */}
+          {graficador === "p_dumbbell" ? "Elige primero los públicos que se comparan." : "Elige primero las preguntas: de ellas salen los públicos."}
+        </p>
       ) : (
         <Panel variant="subtle" noPadding className="pulso-f6-grupos-lista" data-qa-geometry-member>
           <ul className="pulso-f6-grupos-filas" data-qa-scroll-owner="padron-publicos" aria-labelledby={`${id}-rotulo`}

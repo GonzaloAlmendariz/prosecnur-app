@@ -7,6 +7,12 @@
   gap: var(--pulso-space-2);
 }
 
+/* Ronda 18 (C3): el aviso sin públicos termina en su última línea; el margen de 1em del <p> quedaba como capacidad sin
+   usar al pie del bloque (capacity-drift en graficos/f6-brecha). El espacio lo da el gap. */
+.pulso-f6-publicos > .pulso-f6-dato-ayuda {
+  margin: 0;
+}
+
 .pulso-f6-grupos-cabeza {
   display: flex;
   flex-wrap: wrap;

@@ -64,3 +64,9 @@
 .pulso-f6-universo-aviso:empty {
   display: none;
 }
+
+/* Ronda 18 (C3): los avisos del bloque (sin variable, universo fuera de la lámina) terminan en su última línea; el margen
+   de 1em del <p> quedaba como capacidad sin usar al pie (capacity-drift en graficos/f6-grupo-cuerpo). */
+.pulso-f6-universo > .pulso-f6-dato-ayuda {
+  margin: 0;
+}

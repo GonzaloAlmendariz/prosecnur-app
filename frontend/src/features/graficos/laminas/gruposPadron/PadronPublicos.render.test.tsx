@@ -88,8 +88,14 @@ describe("PadronPublicos", () => {
     modos.valor = null;
   });
 
-  it("sin preguntas no hay públicos que listar", () => {
+  it("sin públicos elegidos no hay padrón que listar; en el contraste se piden los públicos, no las preguntas", () => {
     estado.propuestas = [];
-    expect(pintar("p_dumbbell", { estilo: "resumen", cruce: null, vars: {} })).toContain("Elige primero las preguntas");
+    expect(pintar("p_dumbbell", { estilo: "resumen", cruce: null, vars: {} })).toContain("Elige primero los públicos que se comparan.");
+    expect(pintar("p_fortalezas", { vars: [] })).toContain("Elige primero las preguntas");
+  });
+  it("ronda 18: con tres públicos elegidos, una fila de padrón por cada uno", () => {
+    estado.propuestas = [];
+    const html = pintar("p_dumbbell", { estilo: "resumen", cruce: null, bases: ["docentes", "estudiantes", "administrativos"] });
+    for (const n of ["Docentes", "Estudiantes", "Administrativos"]) expect(html).toContain(n);
   });
 });
