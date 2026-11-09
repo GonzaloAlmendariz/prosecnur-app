@@ -31,7 +31,10 @@
   # (reporte_plan_slides.R: pic1 = superior 2); aquí van en el orden en que se leen, que es el de las ranuras del estándar.
   # En la plantilla de respaldo cada una va a su propio hueco, así que el orden no la afecta. La base se llama `footer`.
   poblacion_5 = c("pic2", "pic1", "pic3", "pic5", "pic4"),
-  poblacion_6 = c("pic2", "pic1", "pic3", "pic5", "pic6", "pic4")
+  poblacion_6 = c("pic2", "pic1", "pic3", "pic5", "pic6", "pic4"),
+  # Dos gráficos con texto (reporte_slides_texto_2graficos.R): los gráficos lado a lado y el texto en su columna.
+  text_l2 = c("plot1", "plot2"),
+  text_r2 = c("plot1", "plot2")
 )
 
 #' Renderiza una lámina de composición
@@ -47,6 +50,7 @@
 #' @keywords internal
 .composicion_render <- function(doc, slide, contract, helpers, presets,
                                 solo_lista = FALSE) {
+  slide <- .texto2_con_titulo(slide, helpers$title_of_var)   # dos gráficos con texto: el título del primero si no trae
   slots <- slide$slots %||% list()
   stype <- as.character(slide$.slide_type %||% "")[1]
   op_disp <- .lam_disposicion_fijar(slide); on.exit(options(op_disp), add = TRUE)   # cinco gráficos: «3+2» o «2+3»
@@ -75,12 +79,15 @@
   # El ancho de slot se toma del layout, que es quien sabe cuánto mide cada
   # hueco: pasarlo fijo aquí volvería a acoplar la disposición al código.
   anchos <- vapply(nombres, function(nm) .composicion_ancho_slot(doc, contract, nm), numeric(1))   # reporte_slides_composicion_ancho.R
+  med_t2 <- .texto2_medidas(stype)   # dos gráficos con texto: el ancho de su ranura nativa, no el del marcador de la plantilla
+  if (!is.null(med_t2)) anchos <- med_t2$anchos
   # El alto sólo llega a los lienzos de escala (apiladas y multiapiladas): anclan leyenda y base al alto que creen tener y,
   # dibujados para 6 in y pegados en 2.57, la base caía sobre la leyenda. Las agrupadas con alto real encogen y ocultan
   # cifras (render 2026-11-08), así que siguen con el de su firma.
   altos <- lapply(nombres, function(nm) {
     if (.composicion_recibe_alto(els[[nm]])) .composicion_alto_slot(doc, contract, nm)
   })
+  if (!is.null(med_t2)) altos <- lapply(seq_along(nombres), function(i) if (.composicion_recibe_alto(els[[i]])) med_t2$altos[[i]])
 
   rendered <- list()
   for (i in seq_along(nombres)) {
@@ -135,7 +142,7 @@
                                     helpers$inject_title_override)
     nativo <- .lam_composicion_mixta(doc, stype, unname(para_lamina), unname(els), slide, titulo_de_var = helpers$title_of_var, base = b$base,
                                      solo_base_declarada = b$solo, redibujar = redib)
-    if (!is.null(nativo)) return(list(doc = nativo, rendered = unname(rendered), elementos = els))
+    if (!is.null(nativo)) return(list(doc = .texto2_dibujar_texto(nativo, slide), rendered = unname(rendered), elementos = els))
   }
   tipo_std <- if (identical(stype, "graficos_2_vertical")) "p_slide_2_graficos_vertical" else stype
   if (.lam_compositor_aplica_paneles(unname(rendered), slide, tipo = tipo_std)) {
@@ -156,6 +163,10 @@
   }
 
   # Sin ícono también en la plantilla de respaldo: el `icon` de un plan guardado se ignora (Gonzalo, 2026-10-14).
+  if (stype %in% .TEXTO2_TIPOS) {
+    return(list(doc = .texto2_respaldo_textos(doc, slide, contract, helpers, unname(rendered), unname(els), presets),
+                rendered = unname(rendered), elementos = els))
+  }
 
   base <- slots$base %||% slots$footer %||% NULL
   ph_base <- contract$slots$base %||% contract$slots$footer

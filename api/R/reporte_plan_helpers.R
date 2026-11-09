@@ -1767,6 +1767,12 @@
           if (isTRUE(strict)) stop(msg, call. = FALSE) else warning(msg, call. = FALSE)
         }
       }
+      # Dos gráficos con texto (text_r2 / text_l2) llevan además su texto.
+      tx <- slots$text %||% NULL
+      if (stype %in% .TEXTO2_TIPOS && !is.null(tx) && !(is.character(tx) && length(tx) == 1L)) {
+        msg <- paste0("`.validate_plan()`: ", stype, " (i=", i, ") `slots$text` debe ser character(1) o NULL.")
+        if (isTRUE(strict)) stop(msg, call. = FALSE) else warning(msg, call. = FALSE)
+      }
       next
     }
 
@@ -1945,30 +1951,6 @@
       next
     }
 
-    # -------------------------
-    # TEXT_R2 / TEXT_L2
-    # -------------------------
-    if (identical(stype, "text_r2") || identical(stype, "text_l2")) {
-      slots <- s$slots %||% NULL
-      if (is.null(slots) || !is.list(slots)) {
-        msg <- paste0("`.validate_plan()`: ", stype, " (i=", i, ") requiere `slots` como lista.")
-        if (isTRUE(strict)) stop(msg, call. = FALSE) else warning(msg, call. = FALSE)
-        next
-      }
-      for (nm in c("plot1","plot2")) {
-        el <- slots[[nm]] %||% NULL
-        if (is.null(el) || !inherits(el, "ppt_element")) {
-          msg <- paste0("`.validate_plan()`: ", stype, " (i=", i, ") requiere `slots$", nm, "` como `ppt_element`.")
-          if (isTRUE(strict)) stop(msg, call. = FALSE) else warning(msg, call. = FALSE)
-        }
-      }
-      tx <- slots$text %||% NULL
-      if (!is.null(tx) && !(is.character(tx) && length(tx) == 1L)) {
-        msg <- paste0("`.validate_plan()`: ", stype, " (i=", i, ") `slots$text` debe ser character(1) o NULL.")
-        if (isTRUE(strict)) stop(msg, call. = FALSE) else warning(msg, call. = FALSE)
-      }
-      next
-    }
 
 
     # -------------------------

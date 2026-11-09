@@ -610,7 +610,7 @@
     "frozen_growth_baseline": {
       "api/R/monitoreo_engine.R": 39981,
       "api/R/router_monitoreo.R": 6046,
-      "api/R/reporte_plan_ppt.R": 8883,
+      "api/R/reporte_plan_ppt.R": 8715,
       "frontend/src/features/monitoreo/profiles/telefonico/TelefonicoMonitoreoPage.tsx": 17618,
       "frontend/src/features/monitoreo/profiles/acreditacion/AcreditacionMonitoreoPage.tsx": 14780,
       "frontend/src/features/monitoreo/monitoreo.css": 38180,

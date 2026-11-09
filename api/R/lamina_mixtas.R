@@ -77,6 +77,7 @@
       list(paneles = list(P(ml, yt, col2, h2), P(xr, yt, col2, h2), P(ml, yt + h2 + 0.35, col2, h2), P(xr, yt + h2 + 0.35, col2, h2)),
            filetes = list(list(tipo = "v", x = xm, y0 = yt, y1 = yf), list(tipo = "h", x0 = ml, x1 = W - g_("margen_der"), y = yt + h2 + 0.15)))
     },
+    text_l2 = , text_r2 = .lam_texto2_geo(tipo),   # dos gráficos con texto (reporte_slides_texto_2graficos.R)
     NULL)
 }
 
