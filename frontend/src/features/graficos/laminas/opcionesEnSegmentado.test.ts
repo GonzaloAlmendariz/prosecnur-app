@@ -7,10 +7,15 @@ const op = (...labels: string[]) => labels.map((label, i) => ({ value: `v${i}`, 
 
 describe("opciones de la tarjeta en segmentado", () => {
   it("tres rótulos cortos van en la línea del rótulo", () => {
-    expect(opcionesEnSegmentado(op("Automática", "Siempre", "Nunca"))).toEqual({
-      opciones: [{ clave: "v0", rotulo: "Automática" }, { clave: "v1", rotulo: "Siempre" }, { clave: "v2", rotulo: "Nunca" }],
+    expect(opcionesEnSegmentado(op("Auto", "Siempre", "Nunca"))).toEqual({
+      opciones: [{ clave: "v0", rotulo: "Auto" }, { clave: "v1", rotulo: "Siempre" }, { clave: "v2", rotulo: "Nunca" }],
       apilado: false,
     });
+    expect(opcionesEnSegmentado(op("Izquierda", "Derecha"))?.apilado).toBe(false);
+  });
+  it("R11-5: «Automática» no cabe en un tercio de la columna de control: el segmentado baja a todo el ancho", () => {
+    expect(opcionesEnSegmentado(op("Automática", "Sí", "No"))?.apilado).toBe(true);
+    expect(opcionesEnSegmentado(op("Automática", "Siempre", "Nunca"))?.apilado).toBe(true);
   });
   it("un rótulo que dice qué rige hoy pasa debajo del rótulo, a todo el ancho", () => {
     expect(opcionesEnSegmentado(op("Como el informe (sin casos)", "Siempre", "Nunca"))?.apilado).toBe(true);

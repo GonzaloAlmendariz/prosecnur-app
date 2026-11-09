@@ -9,8 +9,12 @@ export type OpcionSegmento = { clave: string; rotulo: string };
 export type Segmentacion = { opciones: OpcionSegmento[]; apilado: boolean };
 
 export const MAX_OPCIONES_SEGMENTO = 3;
-/** En la línea del rótulo: cada rótulo y la suma de los tres caben junto a un rótulo de fila corto. */
-const EN_LINEA = { porRotulo: 12, total: 26 };
+/**
+ * En la línea del rótulo el segmentado mide la columna de control (180 px) partida en tercios o mitades iguales: unos
+ * 22 caracteres repartidos entre las opciones (7 por tercio, 11 por mitad). R11-5: con 12 por rótulo, «Automática»
+ * cabía en el modelo y en la tarjeta salía «Auto…»; ahora pasa debajo del rótulo, a todo el ancho (C3).
+ */
+const EN_LINEA_CARACTERES = 22;
 /** Debajo del rótulo, a todo el ancho de la tarjeta (unos 300 px a 1024 de ancho). */
 const APILADO = { porRotulo: 30, total: 44 };
 
@@ -32,7 +36,7 @@ export function opcionesEnSegmentado(
   if (largo > APILADO.porRotulo || total > APILADO.total) return null;
   return {
     opciones: opciones.map((o, i) => ({ clave: o.value, rotulo: rotulos[i] })),
-    apilado: largo > EN_LINEA.porRotulo || total > EN_LINEA.total,
+    apilado: largo > Math.floor(EN_LINEA_CARACTERES / rotulos.length),
   };
 }
 
