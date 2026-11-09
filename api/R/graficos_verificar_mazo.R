@@ -542,6 +542,22 @@
 }
 
 
+#' Tamaños de letra del texto de una lámina, sin las cifras del eje (R3)
+#'
+#' Las cifras de un eje («60%», «70%», …) son letra chica por diseño: se leen como escala, no como texto. Contarlas en R3
+#' castigaba un eje con su quinta marca (el «100%» de «60, 70, 80, 90, 100», el que pidió Gonzalo) y empujaba a esconderla
+#' para pasar el umbral (P8, 2026-11-09). Las piezas nativas nombran sus cifras de eje `<tipo>:eje` (pesas, puntos,
+#' boxplot, cobertura, líneas, lollipop, media y rango); esas formas no entran en la proporción. Los títulos de eje
+#' (`cuadrantes:eje_x`) sí entran.
+#' @return Los tamaños en puntos.
+#' @keywords internal
+.verif_tamanos_texto <- function(xml) {
+  sin_eje <- gsub('<p:sp(?:\\s[^>]*)?>(?:(?!</p:sp>).)*?name="[a-z_]+:eje"(?:(?!</p:sp>).)*</p:sp>', "", xml, perl = TRUE)
+  szs <- as.numeric(gsub('\\D', "", regmatches(sin_eje, gregexpr('sz="\\d+"', sin_eje))[[1]])) / 100
+  szs[is.finite(szs)]
+}
+
+
 #' Medidas crudas de un mazo, sin juzgarlas
 #'
 #' Separado de la verificacion porque son dos preguntas distintas: esta dice
@@ -569,8 +585,7 @@ medir_mazo <- function(path) {
     for (g in .verif_graficos(.verif_segmentos(formas, .VERIF_AZUL, exigir_sin_texto = TRUE))) {
       gr_cat <- c(gr_cat, g$grosor); n_cat <- c(n_cat, g$n)
     }
-    szs <- as.numeric(gsub('\\D', "", regmatches(xml, gregexpr('sz="\\d+"', xml))[[1]])) / 100
-    txt <- c(txt, szs[is.finite(szs)])
+    txt <- c(txt, .verif_tamanos_texto(xml))   # la misma vara que R3: sin las cifras del eje
     rojo <- rojo + .verif_rojo_en_rampa(xml)
     ilegible <- ilegible + .verif_texto_ilegible(.verif_formas(xml))
     tt <- .verif_titulo_top_cm(xml)
@@ -908,8 +923,7 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
     }
 
     # R3 se acumula y se juzga al final: ver abajo.
-    szs <- as.numeric(gsub('\\D', "", regmatches(xml, gregexpr('sz="\\d+"', xml))[[1]])) / 100
-    texto_todo <- c(texto_todo, szs[is.finite(szs)])
+    texto_todo <- c(texto_todo, .verif_tamanos_texto(xml))   # sin las cifras del eje (R3)
   }
 
   # R3 es una regla de MAZO, no de lamina. Medida por lamina no discrimina: basta

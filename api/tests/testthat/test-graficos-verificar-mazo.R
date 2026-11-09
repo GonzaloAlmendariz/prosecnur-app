@@ -309,3 +309,14 @@ test_that("un .pptx inexistente cae como E_ARCHIVO_NO_EXISTE, no como error crud
   expect_identical(err$code, "E_ARCHIVO_NO_EXISTE")
   expect_identical(err$status, 400L)
 })
+
+# P8 (2026-11-09): las cifras del eje son letra chica por diseño. R3 no las cuenta; así un eje «60, 70, 80, 90, 100» no
+# empuja a esconder su «100%» para pasar el umbral. Los títulos de eje (`cuadrantes:eje_x`) y el resto del texto sí cuentan.
+test_that("R3 no cuenta las cifras del eje (formas `<tipo>:eje`), sí el resto del texto", {
+  sp <- function(nombre, sz) sprintf('<p:sp><p:nvSpPr><p:cNvPr id="1" name="%s"/></p:nvSpPr><p:txBody><a:p><a:r><a:rPr lang="es" sz="%d"/><a:t>x</a:t></a:r></a:p></p:txBody></p:sp>', nombre, sz)
+  xml <- paste0('<p:spTree>', sp("pesas:eje", 1000), sp("puntos:eje", 950), sp("lollipop:eje", 1000),
+                sp("pesas:rotulo", 1300), sp("cuadrantes:eje_x", 1000), sp("pesas:cifra_a", 1200), '</p:spTree>')
+  expect_identical(.verif_tamanos_texto(xml), c(13, 10, 12))
+  # Sin formas de eje, todos.
+  expect_identical(.verif_tamanos_texto(paste0(sp("a", 1100), sp("b", 1400))), c(11, 14))
+})

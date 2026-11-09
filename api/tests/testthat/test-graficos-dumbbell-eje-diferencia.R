@@ -60,25 +60,15 @@ test_that("D7: las marcas del dumbbell clásico llevan borde blanco, en el ggplo
   expect_true(length(ln) > 0L && all(toupper(xml2::xml_attr(ln, "val")) == "FFFFFF"))
 })
 
-test_that("P8: con paso 10 el eje arranca en un múltiplo de 10; si llega a 100 se rotulan 60 a 90 y el 100 queda sin cifra", {
+test_that("P8: con paso 10 el eje va 60, 70, 80, 90, 100, con el 100 rotulado, en la imagen y en la lámina nativa", {
   e <- .dumbbell_eje(c(70, 96))
   expect_identical(e, c(lo = 60, hi = 100, paso = 10))
-  expect_identical(.dumbbell_eje_marcas(e), c(60, 70, 80, 90))
-  # Fuera de ese caso, todas las marcas del paso.
-  expect_identical(.dumbbell_eje_marcas(c(lo = 50, hi = 90, paso = 10)), c(50, 60, 70, 80, 90))
-  expect_identical(.dumbbell_eje_marcas(c(lo = 40, hi = 100, paso = 20)), c(40, 60, 80, 100))
-  expect_identical(.dumbbell_eje_marcas(c(lo = 80, hi = 100, paso = 5)), c(80, 85, 90, 95, 100))
-  # La imagen y la lámina nativa rotulan lo mismo; el eje sigue llegando a 100.
   p <- graficar_dumbbell(.dd_datos(c(70, 80), c(96, 90)))
   expect_identical(attr(p, "pulso_espec")$eje, c(lo = 60, hi = 100, paso = 10))
-  sx <- p$scales$get_scales("x")
-  expect_identical(sx$breaks, c(60, 70, 80, 90))
-  expect_identical(sx$limits[1], 60)
+  expect_identical(p$scales$get_scales("x")$breaks, c(60, 70, 80, 90, 100))
   doc <- officer::read_pptx(system.file("plantillas", "plantilla_16_9.pptx", package = "prosecnurapp"))
   out <- tempfile(fileext = ".pptx"); print(.lam_laminas_pesas(doc, attr(p, "pulso_espec"), "Brecha", folio = 1)$doc, target = out)
   xml <- xml2::read_xml(unz(out, sprintf("ppt/slides/slide%d.xml", length(doc))))
   cifras <- xml2::xml_text(xml2::xml_find_all(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='pesas:eje']]//a:t"))
-  expect_identical(cifras, c("60%", "70%", "80%", "90%"))
-  r <- graficar_dumbbell(.dd_datos(c(70, 80), c(96, 90)), estilo = "resumen")
-  expect_identical(.dumbbell_eje_marcas(attr(r, "pulso_espec")$eje), c(60, 70, 80, 90))
+  expect_identical(cifras, c("60%", "70%", "80%", "90%", "100%"))
 })

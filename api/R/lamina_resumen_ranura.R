@@ -329,7 +329,7 @@
   banda <- .lam_aclarar(.std_color("cebra"), 0.55)
   centros <- y0 + cumsum(alturas) - alturas / 2
   for (i in seq_len(n)) if (i %% 2L == 1L) .lam_caja(lz, xp0, centros[i] - alturas[i] / 2, xp1 - xp0, alturas[i], banda, nombre = "puntos:banda")
-  .lam_puntos_eje(lz, px, eje, y0, y1, cada = .lam_rr_eje_cada(px, eje), marcas = .dumbbell_eje_marcas(eje))   # P8
+  .lam_puntos_eje(lz, px, eje, y0, y1, cada = .lam_rr_eje_cada(px, eje))
   for (s in espec$separadores %||% integer(0)) {
     ys <- y0 + sum(alturas[seq_len(s)])
     .lam_linea(lz, ge$x, ys, ge$x + ge$w, ys, .std_color("texto_tenue"), pt = 0.9, nombre = "puntos:separador", dash = "dash")

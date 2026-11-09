@@ -58,7 +58,7 @@
     # La línea de cada sub-fila en el color de su grupo (sin esta escala tomaba la paleta por defecto de ggplot).
     ggplot2::scale_colour_manual(values = stats::setNames(espec$colores, espec$grupos), guide = "none") +
     ggplot2::scale_shape_manual(values = formas_gg, labels = espec$leyenda %||% espec$grupos, name = NULL) +
-    ggplot2::scale_x_continuous(limits = c(eje[["lo"]], max(x_tabla) + ancho * 0.12), breaks = .dumbbell_eje_marcas(eje),
+    ggplot2::scale_x_continuous(limits = c(eje[["lo"]], max(x_tabla) + ancho * 0.12), breaks = seq(eje[["lo"]], eje[["hi"]], by = eje[["paso"]]),
                                 labels = function(x) paste0(x, "%"), expand = c(0, 0)) +
     # Los rótulos van partidos en una columna de 4 in y hasta tres líneas, con «…» si no caben: un enunciado entero de
     # 200 caracteres se quedaba con todo el ancho, el panel quedaba en negativo y rvg pintaba un rectángulo del color de

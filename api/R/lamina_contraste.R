@@ -47,8 +47,8 @@
 
 #' Eje de porcentaje: guías verticales y su cifra debajo
 #' @keywords internal
-.lam_puntos_eje <- function(lz, px, eje, y0, y1, cada = 1L, marcas = seq(eje[["lo"]], eje[["hi"]], by = eje[["paso"]])) {
-  vs <- marcas
+.lam_puntos_eje <- function(lz, px, eje, y0, y1, cada = 1L) {
+  vs <- seq(eje[["lo"]], eje[["hi"]], by = eje[["paso"]])
   for (i in seq_along(vs)) {
     v <- vs[i]
     .lam_caja(lz, px(v) - 0.003, y0, 0.006, y1 - y0, .std_color("cebra"), nombre = "puntos:guia")
@@ -180,7 +180,7 @@
     if (i %% 2L == 1L) .lam_caja(lz, xp0, tope, xp1 - xp0, h, banda, nombre = "puntos:banda")
     centros[i] <- tope + h / 2; tope <- tope + h
   }
-  .lam_puntos_eje(lz, px, eje, y0, y1, marcas = .dumbbell_eje_marcas(eje))   # P8 (graficos_dumbbell_eje.R)
+  .lam_puntos_eje(lz, px, eje, y0, y1)
   # Separadores entre bloques de preguntas (de salida / genéricas): una línea punteada a lo ancho.
   for (s in espec$separadores %||% integer(0)) {
     ys <- y0 + sum(alturas[seq_len(s)])

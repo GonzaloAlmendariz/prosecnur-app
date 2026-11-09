@@ -328,7 +328,7 @@ graficar_dumbbell <- function(
     ggplot2::scale_colour_manual(values = colores, breaks = niveles_grupo, labels = etiquetas_leyenda) +
     ggplot2::scale_fill_manual(values = colores, breaks = niveles_grupo, labels = etiquetas_leyenda, guide = "none") +
     ggplot2::scale_x_continuous(
-      limits = c(lo, tope), breaks = .dumbbell_eje_marcas(eje_d), expand = c(0, 0),   # P8: 60 a 90, el eje llega a 100
+      limits = c(lo, tope), breaks = seq(lo, hi, by = paso), expand = c(0, 0),
       labels = function(x) paste0(.pulso_fmt_half_up(x, 0), "%")
     ) +
     ggplot2::scale_y_discrete(expand = ggplot2::expansion(add = c(0.6, 1.0))) +
