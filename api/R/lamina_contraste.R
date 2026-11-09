@@ -283,12 +283,16 @@
   g_ <- .std_geom; azul <- .std_color("azul"); suave <- .std_color("texto_suave"); tenue <- .std_color("texto_tenue")
   k <- length(espec$publicos)
   enc_bajo <- espec$encabezado_bajo
-  anchos <- c(1.2, .lam_puntos_ancho_col(enc_bajo, espec$textos_bajo, piso = 1.2))
+  # Gonzalo, 2026-11-09 (su mazo estirado, lámina 2): sin la columna «Bajo» el área de puntos llega hasta «Mediana»;
+  # sin leyenda, el bloque arranca en la cabecera de la tabla y las filas ganan su franja.
+  con_bajo <- .panorama_bool(espec$mostrar_bajo_umbral); con_ley <- .panorama_bool(espec$mostrar_leyenda)
+  anchos <- c(1.2, if (con_bajo) .lam_puntos_ancho_col(enc_bajo, espec$textos_bajo, piso = 1.2))
   m <- .lam_puntos_marco(espec$publicos, anchos, size_rot = 13, bold_rot = TRUE)
   eje <- espec$eje; px <- function(v) m$xl + (m$xr - m$xl) * (v - eje[["lo"]]) / (eje[["hi"]] - eje[["lo"]])
   zona0 <- g_("zona_datos_y0") - 0.05; zona1 <- g_("contenido_y1") - 0.35
-  h <- min(1.5, (zona1 - zona0 - 0.7) / k)
-  y_ley <- zona0 + max(0, (zona1 - zona0 - 0.7) - h * k) / 2; y0 <- y_ley + 0.7; y1 <- y0 + h * k
+  cabeza <- if (con_ley) 0.7 else 0.36   # leyenda (0.36) y cabecera de la tabla (0.34), o sólo la cabecera
+  h <- min(1.5, (zona1 - zona0 - cabeza) / k)
+  y_ley <- zona0 + max(0, (zona1 - zona0 - cabeza) - h * k) / 2; y0 <- y_ley + cabeza; y1 <- y0 + h * k
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()
@@ -303,19 +307,23 @@
     for (z in seq_along(v)) .lam_marca(lz, espec$formas[i], px(v[z]), yc + dy[z] * h * 0.62, 0.11, espec$colores[i], nombre = "panorama:punto")
     if (is.finite(espec$medianas[i])) .lam_caja(lz, px(espec$medianas[i]) - 0.015, yc - h * 0.36, 0.03, h * 0.72, azul, nombre = "panorama:mediana")
     .lam_txt(lz, espec$textos_mediana[i], m$xs[1] - 0.6, .lam_y_centrada(yc, 13), 1.2, 0.32, 13, azul, bold = TRUE, align = "center", nombre = "puntos:diferencia")
-    .lam_txt(lz, espec$textos_bajo[i], m$xs[2] - anchos[2] / 2, .lam_y_centrada(yc, 11), anchos[2], 0.28, 11, suave, align = "center", nombre = "puntos:base")
+    if (con_bajo) {
+      .lam_txt(lz, espec$textos_bajo[i], m$xs[2] - anchos[2] / 2, .lam_y_centrada(yc, 11), anchos[2], 0.28, 11, suave, align = "center", nombre = "puntos:base")
+    }
   }
   yh <- y0 - 0.34
   .lam_txt(lz, "Mediana", m$xs[1] - 0.6, yh, 1.2, 0.28, 10.5, suave, bold = TRUE, align = "center", nombre = "tabla:encabezado")
-  .lam_txt(lz, enc_bajo, m$xs[2] - anchos[2] / 2, yh, anchos[2], 0.28, 10.5, suave, bold = TRUE, align = "center", nombre = "tabla:encabezado")
+  if (con_bajo) .lam_txt(lz, enc_bajo, m$xs[2] - anchos[2] / 2, yh, anchos[2], 0.28, 10.5, suave, bold = TRUE, align = "center", nombre = "tabla:encabezado")
   # Leyenda: la mediana como línea y la referencia punteada.
-  x <- m$xl - 0.05; yl <- y_ley + 0.15
-  .lam_caja(lz, x, yl - 0.02, 0.4, 0.04, azul, nombre = "leyenda:mediana")
-  .lam_txt(lz, "Mediana del público", x + 0.45, y_ley, 2.2, 0.3, 11, azul, nombre = "leyenda:texto")
-  x <- x + 0.45 + .lam_ancho_tinta("Mediana del público", 11, FALSE) + 0.6
-  if (is.finite(ref)) {
-    .lam_linea(lz, x, yl, x + 0.4, yl, tenue, pt = 1, nombre = "leyenda:referencia", dash = "dash")
-    .lam_txt(lz, sprintf("Referencia %s%%", format(ref, trim = TRUE)), x + 0.45, y_ley, 2.2, 0.3, 11, azul, nombre = "leyenda:texto")
+  if (con_ley) {
+    x <- m$xl - 0.05; yl <- y_ley + 0.15
+    .lam_caja(lz, x, yl - 0.02, 0.4, 0.04, azul, nombre = "leyenda:mediana")
+    .lam_txt(lz, "Mediana del público", x + 0.45, y_ley, 2.2, 0.3, 11, azul, nombre = "leyenda:texto")
+    x <- x + 0.45 + .lam_ancho_tinta("Mediana del público", 11, FALSE) + 0.6
+    if (is.finite(ref)) {
+      .lam_linea(lz, x, yl, x + 0.4, yl, tenue, pt = 1, nombre = "leyenda:referencia", dash = "dash")
+      .lam_txt(lz, sprintf("Referencia %s%%", format(ref, trim = TRUE)), x + 0.45, y_ley, 2.2, 0.3, 11, azul, nombre = "leyenda:texto")
+    }
   }
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:panorama")
   nota <- sprintf("Cada marca es una pregunta (%s)", espec$indicador %||% "Top Two Box")

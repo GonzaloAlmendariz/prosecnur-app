@@ -16,6 +16,8 @@
 #' @param corte Códigos de la escala que suman el indicador («4,5»: Top Two Box).
 #' @param corte_etiqueta Nombre del indicador para el pie («Top Two Box»).
 #' @param referencia Porcentaje de la línea de referencia (60 por defecto); `NA` la apaga.
+#' @param mostrar_leyenda `FALSE` quita la leyenda «Mediana del público / Referencia 60%»; `NULL`, como siempre (va).
+#' @param mostrar_bajo_umbral `FALSE` quita la columna «Bajo 60%»; `NULL`, como siempre (va).
 #' @param regla Cómo se eligen las preguntas entre las de `vars` (ADR 0135, graficos_regla_preguntas.R): `NULL`
 #'   dibuja todas las declaradas, como siempre.
 #' @export
@@ -27,7 +29,9 @@ p_panorama <- function(vars,
                        overrides = list(),
                        base = list(),
                        filtros = list(),
-                       regla = NULL) {
+                       regla = NULL,
+                       mostrar_leyenda = NULL,
+                       mostrar_bajo_umbral = NULL) {
   refs <- trimws(as.character(unlist(vars)))
   refs <- refs[!is.na(refs) & nzchar(refs)]
   if (!length(refs)) .plan_spec_abort("p_panorama(): declara en `vars` al menos una pregunta (o `base$*`).")
@@ -35,6 +39,8 @@ p_panorama <- function(vars,
   if (!length(.radar_mb_codigos(corte))) .plan_spec_abort("p_panorama(): `corte` debe traer al menos un código de la escala.")
   if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
   ov <- .ppt_slot_override(overrides, "referencia", referencia, "numero", min = 0)
+  ov <- .ppt_slot_override(ov, "mostrar_leyenda", mostrar_leyenda, "bool")
+  ov <- .ppt_slot_override(ov, "mostrar_bajo_umbral", mostrar_bajo_umbral, "bool")
   el <- list(
     .element_type = "panorama",
     var = NULL,

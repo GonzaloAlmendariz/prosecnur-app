@@ -138,6 +138,43 @@ test_that("p_panorama exige referencias calificadas y un corte", {
   expect_identical(el$.element_type, "panorama"); expect_identical(el$corte, "4,5"); expect_identical(el$overrides$referencia, 70)
 })
 
+test_that("sin leyenda ni columna «Bajo» el panorama sube y se ensancha; «Mediana» queda (Gonzalo, 2026-11-09)", {
+  d <- data.frame(publico = factor(rep(c("Estudiantes", "Docentes"), c(5, 4)), levels = c("Estudiantes", "Docentes")),
+                  item = paste0("p", 1:9), valor = c(84, 90, 58, 77, 95, 73, 40, 59.6, 80))
+  # Por defecto, como siempre: las dos van.
+  e <- attr(graficar_panorama(d), "pulso_espec")
+  expect_true(e$mostrar_leyenda); expect_true(e$mostrar_bajo_umbral)
+  xml_on <- .re_xml(.lam_laminas_panorama(.re_doc(), e, "Panorama", folio = 3)$doc)
+  expect_length(.re_sp(xml_on, "leyenda:mediana"), 1L)
+  expect_length(.re_sp(xml_on, "puntos:base"), 2L)
+  # Apagadas: ni leyenda ni «Bajo 60%»; la cabecera «Mediana» y sus cifras siguen, y el conteo se sigue calculando.
+  e_off <- attr(graficar_panorama(d, mostrar_leyenda = FALSE, mostrar_bajo_umbral = FALSE), "pulso_espec")
+  expect_identical(e_off$textos_bajo, c("1 de 5", "1 de 4"))
+  xml_off <- .re_xml(.lam_laminas_panorama(.re_doc(), e_off, "Panorama", folio = 3)$doc)
+  expect_length(.re_sp(xml_off, "leyenda:mediana"), 0L)
+  expect_length(.re_sp(xml_off, "leyenda:texto"), 0L)
+  expect_length(.re_sp(xml_off, "puntos:base"), 0L)
+  expect_identical(.re_txt(xml_off, "tabla:encabezado"), "Mediana")
+  expect_identical(.re_txt(xml_off, "puntos:diferencia"), c("84%", "67%"))
+  # El gráfico ocupa lo que se libera: la referencia (en el mismo 60%) se corre a la derecha y empieza más arriba.
+  pos <- function(x) { o <- xml2::xml_find_first(.re_sp(x, "panorama:referencia")[[1]], ".//a:off"); as.numeric(c(xml2::xml_attr(o, "x"), xml2::xml_attr(o, "y"))) }
+  expect_gt(pos(xml_off)[1], pos(xml_on)[1]); expect_lt(pos(xml_off)[2], pos(xml_on)[2])
+  # Una sola opción apagada deja la otra.
+  xml_ley <- .re_xml(.lam_laminas_panorama(.re_doc(), attr(graficar_panorama(d, mostrar_leyenda = FALSE), "pulso_espec"), "P", folio = 3)$doc)
+  expect_length(.re_sp(xml_ley, "leyenda:mediana"), 0L); expect_length(.re_sp(xml_ley, "puntos:base"), 2L)
+  xml_baj <- .re_xml(.lam_laminas_panorama(.re_doc(), attr(graficar_panorama(d, mostrar_bajo_umbral = FALSE), "pulso_espec"), "P", folio = 3)$doc)
+  expect_length(.re_sp(xml_baj, "leyenda:mediana"), 1L); expect_length(.re_sp(xml_baj, "puntos:base"), 0L)
+  # El constructor las lleva como overrides lógicos; NULL no opina y otro tipo se rechaza.
+  el <- p_panorama(vars = "est$*", corte = "4", mostrar_leyenda = FALSE, mostrar_bajo_umbral = FALSE)
+  expect_false(el$overrides$mostrar_leyenda); expect_false(el$overrides$mostrar_bajo_umbral)
+  expect_null(p_panorama(vars = "est$*", corte = "4")$overrides$mostrar_leyenda)
+  expect_error(p_panorama(vars = "est$*", corte = "4", mostrar_leyenda = "no"), "TRUE o FALSE")
+  # El registro las declara en estilo con su rótulo.
+  a <- Filter(function(x) x$name %in% c("mostrar_leyenda", "mostrar_bajo_umbral"), .GRAFICADORES_META$p_panorama$args)
+  expect_identical(vapply(a, `[[`, "", "label"), c("Leyenda", "Columna bajo el umbral"))
+  expect_true(all(vapply(a, function(x) identical(x$grupo, "estilo") && identical(x$tipo_input, "bool") && isTRUE(x$default), TRUE)))
+})
+
 test_that("base$* toma las preguntas de escala con el corte y deja fuera las que no lo son", {
   # Tres preguntas comparten la lista: una batería (ADR 0135, punto 5).
   inst <- list(survey = data.frame(name = c("p1", "p2", "p3", "sexo"), type = c("select_one lk", "select_one lk", "select_one lk", "select_one sx"),

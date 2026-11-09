@@ -214,3 +214,20 @@ test_that("ronda 2, ítem 5: el panorama usa el alto de la ranura de dos (filas 
   expect_gt(g2$hrow, 0.9); expect_lte(g2$hrow, 1.4)
   expect_lte(g2$ley + g2$cab + g2$eje + 3 * g2$hrow, 5.07)
 })
+
+test_that("en la ranura el panorama sin leyenda ni columna «Bajo» gana alto y ancho, y no las dibuja", {
+  e <- list(tipo = "panorama", publicos = c("Docentes", "Estudiantes", "Administrativos"), textos_bajo = c("1 de 3", "2 de 3", "0 de 3"),
+            textos_mediana = c("70%", "80%", "60%"), medianas = c(70, 80, 60), valores = list(c(60, 80), c(70, 90), c(50, 70)),
+            desplazamientos = list(c(-0.2, 0.2), c(-0.2, 0.2), c(-0.2, 0.2)), formas = c("ellipse", "rect", "triangle"),
+            colores = c("#1F77B4", "#2CA02C", "#FF7F0E"), eje = c(lo = 0, hi = 100, paso = 20), encabezado_bajo = "Bajo 60%", referencia = 60)
+  nombres <- function(espec) {
+    ge <- .lam_rr_geo(espec, 0.5, 1.65, 6, 2.6); lz <- .lam_lienzo(); .lam_rr_dibujar(lz, espec, ge)
+    list(ge = ge, xml = paste(unlist(lz$formas), collapse = ""))
+  }
+  on <- nombres(e); off <- nombres(utils::modifyList(e, list(mostrar_leyenda = FALSE, mostrar_bajo_umbral = FALSE)))
+  expect_true(on$ge$cabe); expect_true(off$ge$cabe)
+  expect_gt(off$ge$xr, on$ge$xr); expect_gte(off$ge$hrow, on$ge$hrow); expect_identical(off$ge$ley, 0)
+  expect_true(grepl("leyenda:mediana", on$xml, fixed = TRUE)); expect_true(grepl("2 de 3", on$xml, fixed = TRUE))
+  expect_false(grepl("leyenda:", off$xml, fixed = TRUE)); expect_false(grepl("2 de 3", off$xml, fixed = TRUE))
+  expect_false(grepl("Bajo 60%", off$xml, fixed = TRUE)); expect_true(grepl(">Mediana<", off$xml, fixed = TRUE))
+})

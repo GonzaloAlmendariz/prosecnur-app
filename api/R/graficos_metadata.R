@@ -2171,7 +2171,14 @@
            descripcion = "Regla con que se eligen las preguntas de cada público: todas, las comunes, las de mayor diferencia, las bajo un umbral o a mano."),
       list(name = "referencia", label = "Referencia (%)", tipo_input = "number", grupo = "valores",
            default = 60, min = 0, max = 100, step = 5, unidad = "%",
-           descripcion = "La línea punteada y la columna «Bajo» de la tabla. Describe, no califica: no se rotula ningún tramo.")
+           descripcion = "La línea punteada y la columna «Bajo» de la tabla. Describe, no califica: no se rotula ningún tramo."),
+      # Gonzalo, 2026-11-09: en su mazo revisado quitó las dos; sin ellas el gráfico ocupa el espacio que dejan.
+      list(name = "mostrar_leyenda", label = "Leyenda", tipo_input = "bool", grupo = "estilo",
+           default = TRUE,
+           descripcion = "La leyenda «Mediana del público» y «Referencia». Sin ella, el gráfico sube y gana alto."),
+      list(name = "mostrar_bajo_umbral", label = "Columna bajo el umbral", tipo_input = "bool", grupo = "estilo",
+           default = TRUE,
+           descripcion = "La columna «Bajo 60%» de la tabla («2 de 60»). Sin ella, el gráfico gana ancho; la columna «Mediana» queda.")
     ), .args_graf_comunes())
   ),
 

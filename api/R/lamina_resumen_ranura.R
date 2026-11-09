@@ -367,18 +367,21 @@
   if (tinta + 0.25 > 1.9) { size_rot <- 11; tinta <- max(vapply(espec$publicos, function(t) .lam_ancho_tinta(t, size_rot, TRUE), 0)) }
   wrot <- max(0.9, tinta + 0.25)
   enc_bajo <- espec$encabezado_bajo %||% ""
+  # Sin la columna «Bajo» o sin leyenda (opciones del analista, graficador_panorama.R) el área de puntos toma su sitio.
+  con_bajo <- .panorama_bool(espec$mostrar_bajo_umbral); con_ley <- .panorama_bool(espec$mostrar_leyenda)
   w_med <- max(0.8, .lam_ancho_tinta("Mediana", 10, TRUE) + 0.25)
-  w_bajo <- max(0.85, .lam_ancho_tinta(enc_bajo, 10, TRUE) + 0.25, max(vapply(espec$textos_bajo, function(t) .lam_ancho_tinta(t, 10.5, FALSE), 0)) + 0.25)
-  ley <- 0.32; cab <- 0.3; eje <- 0.32
+  w_bajo <- if (!con_bajo) 0 else
+    max(0.85, .lam_ancho_tinta(enc_bajo, 10, TRUE) + 0.25, max(vapply(espec$textos_bajo, function(t) .lam_ancho_tinta(t, 10.5, FALSE), 0)) + 0.25)
+  ley <- if (con_ley) 0.32 else 0; cab <- 0.3; eje <- 0.32
   # Ronda 2, ítem 5 (C3): las filas crecen con el alto de la ranura hasta 1.4 in (la de página entera llega a 1.5).
   hrow <- min(1.4, (h - ley - cab - eje - 0.05) / k)
   xl <- x + wrot + 0.1; xr <- x + w - w_med - w_bajo - 0.3
   ref <- espec$referencia
-  wley <- 0.45 + .lam_ancho_tinta("Mediana del público", 10.5, FALSE) + 0.5 +
+  wley <- if (!con_ley) 0 else 0.45 + .lam_ancho_tinta("Mediana del público", 10.5, FALSE) + 0.5 +
     (if (is.finite(ref %||% NA_real_)) 0.45 + .lam_ancho_tinta(sprintf("Referencia %s%%", format(ref, trim = TRUE)), 10.5, FALSE) + 0.2 else 0)
   list(cabe = wrot + 0.1 <= 1.95 + 1e-6 && hrow >= 0.32 && (xr - xl) >= 1.9 - 1e-6 && wley <= w + 1e-6,
        size_rot = size_rot, wrot = wrot, w_med = w_med, w_bajo = w_bajo, ley = ley, cab = cab, eje = eje, hrow = hrow, xl = xl, xr = xr,
-       wley = wley)
+       wley = wley, con_bajo = con_bajo, con_ley = con_ley)
 }
 
 #' @keywords internal
@@ -402,11 +405,16 @@
     if (is.finite(espec$medianas[i])) .lam_caja(lz, px(espec$medianas[i]) - 0.015, yc - h * 0.36, 0.03, h * 0.72, azul, nombre = "panorama:mediana")
     .lam_txt(lz, espec$textos_mediana[i], xm - ge$w_med / 2, .lam_y_centrada(yc, 12), ge$w_med, 0.3, 12, azul, bold = TRUE, align = "center",
              nombre = "puntos:diferencia")
-    .lam_txt(lz, espec$textos_bajo[i], xb - ge$w_bajo / 2, .lam_y_centrada(yc, 10.5), ge$w_bajo, 0.28, 10.5, suave, align = "center", nombre = "puntos:base")
+    if (!isFALSE(ge$con_bajo)) {
+      .lam_txt(lz, espec$textos_bajo[i], xb - ge$w_bajo / 2, .lam_y_centrada(yc, 10.5), ge$w_bajo, 0.28, 10.5, suave, align = "center", nombre = "puntos:base")
+    }
   }
   yh <- y0 - 0.32
   .lam_txt(lz, "Mediana", xm - ge$w_med / 2, yh, ge$w_med, 0.28, 10, suave, bold = TRUE, align = "center", nombre = "tabla:encabezado")
-  .lam_txt(lz, espec$encabezado_bajo %||% "", xb - ge$w_bajo / 2, yh, ge$w_bajo, 0.28, 10, suave, bold = TRUE, align = "center", nombre = "tabla:encabezado")
+  if (!isFALSE(ge$con_bajo)) {
+    .lam_txt(lz, espec$encabezado_bajo %||% "", xb - ge$w_bajo / 2, yh, ge$w_bajo, 0.28, 10, suave, bold = TRUE, align = "center", nombre = "tabla:encabezado")
+  }
+  if (isFALSE(ge$con_ley)) return(invisible(y1 + ge$eje))
   # Leyenda: la mediana como línea y la referencia punteada, desde el área de puntos si cabe; si no, desde el margen.
   x <- if (ge$xl - 0.05 + ge$wley <= ge$x + ge$w) ge$xl - 0.05 else ge$x
   yl <- y_ley + 0.15

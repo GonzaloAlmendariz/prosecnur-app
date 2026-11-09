@@ -21,6 +21,10 @@
   ((r * 0.6180339887) %% 1) - 0.5
 }
 
+#' Opción encendida salvo `FALSE` explícito (un espec viejo sin el campo dibuja como siempre)
+#' @keywords internal
+.panorama_bool <- function(x) !identical(as.logical(x)[1], FALSE)
+
 #' Especificación del panorama (`panorama/1`)
 #' @keywords internal
 .espec_panorama <- function(data, var_publico = "publico", var_valor = "valor", referencia = 60, decimales = 0L,
@@ -63,6 +67,10 @@
 #' @param var_valor Columna con el porcentaje (0–100).
 #' @param referencia Porcentaje de la línea de referencia; `NA` la apaga.
 #' @param indicador Qué mide cada punto, para la nota del pie.
+#' @param mostrar_leyenda `FALSE` quita la leyenda «Mediana del público / Referencia 60%» de la lámina nativa; el
+#'   gráfico ocupa su franja.
+#' @param mostrar_bajo_umbral `FALSE` quita la columna «Bajo 60%» («2 de 60») de la tabla; el gráfico ocupa su ancho.
+#'   La columna «Mediana» queda.
 #' @family graficador
 #' @export
 graficar_panorama <- function(
@@ -78,12 +86,18 @@ graficar_panorama <- function(
     titulo = NULL,
     subtitulo = NULL,
     nota_pie = NULL,
-    font_family = "Arial"
+    font_family = "Arial",
+    mostrar_leyenda = TRUE,
+    mostrar_bajo_umbral = TRUE
 ) {
   if (!is.data.frame(data) || !nrow(data)) stop("`data` debe ser un data frame con al menos una fila.", call. = FALSE)
   for (col in c(var_publico, var_valor)) if (!col %in% names(data)) stop("La columna `", col, "` no existe en `data`.", call. = FALSE)
   espec <- .espec_panorama(data, var_publico, var_valor, referencia, valores_decimales, colores_grupos, indicador, limite_x,
                            var_item = var_item)
+  # Gonzalo, 2026-11-09 (su mazo estirado, lámina 2): la leyenda y la columna «Bajo» son opciones del analista. Sólo
+  # cambian lo que se dibuja; la mediana y el conteo se siguen calculando (las tarjetas y las cifras clave los leen).
+  espec$mostrar_leyenda <- .panorama_bool(mostrar_leyenda)
+  espec$mostrar_bajo_umbral <- .panorama_bool(mostrar_bajo_umbral)
   k <- length(espec$publicos)
   puntos <- do.call(rbind, lapply(seq_len(k), function(i) {
     if (!length(espec$valores[[i]])) return(NULL)
