@@ -14,6 +14,7 @@ import { sinEstiloDePerfil } from "./estiloInforme/quitarLineaVisual";
 import { conAjusteEnElTipo } from "./laminas/modeloAlcance";
 import { conEspejoEnOverrides } from "./laminas/mandosPorOverrides";
 import { agrupadorDelPlan } from "./historialAgrupado";
+import { RANURAS_GRAFICO_POR_LAMINA } from "./catalogoGraficos";
 
 // Store del plan de gráficos. Sigue el mismo patrón que el store de
 // Analítica: hidrata desde backend al montar, marca `dirty` con cada
@@ -998,44 +999,8 @@ export const SLIDE_LABELS: Record<SlideType, string> = {
   p_slide_6_graficos_poblacion:         "Seis gráficos",
 };
 
-// Slots de gráfico por tipo de slide (para iteración en la UI).
-// Excluye slots especiales como `icono` (que no es un graficador, es PNG).
-export const SLIDE_GRAF_SLOTS: Record<SlideType, string[]> = {
-  p_slide_portada:                      [],
-  p_slide_indice:                       [],
-  p_slide_seccion:                      [],
-  p_slide_objetivo_icono:               [],
-  p_slide_texto:                        [],
-  p_slide_tabla_tecnica:                [],
-  p_slide_top_two_box:                  [],
-  p_slide_redondeo:                     [],
-  p_slide_cierre:                       [],
-  p_slide_estandar:                     [],
-  p_slide_1_grafico:                    ["grafico"],
-  p_slide_1_grafico_narrativo:          ["grafico"],
-  p_slide_grafico_texto_derecha:        ["grafico"],
-  p_slide_grafico_texto_izquierda:      ["grafico"],
-  p_slide_resumen_diferencias:          [],
-  p_slide_hallazgos:                    [],
-  p_slide_cierre_hallazgos:             [],
-  p_slide_2_graficos:                   ["izquierda", "derecha"],
-  p_slide_2_graficos_narrativo:         ["izquierda", "derecha"],
-  p_slide_2_graficos_texto_izquierda:   ["grafico_1", "grafico_2"],
-  p_slide_2_graficos_texto_derecha:     ["grafico_1", "grafico_2"],
-  p_slide_2_graficos_vertical:          ["superior", "inferior"],
-  p_slide_2_graficos_asimetrico:        ["principal", "apoyo"],
-  p_slide_cifras_y_graficos:            ["cifra_izquierda", "cifra_centro", "cifra_derecha", "grafico_izquierda", "grafico_derecha"],
-  p_slide_3_graficos_2mas1:             ["superior_izquierda", "inferior_izquierda", "derecha"],
-  p_slide_3_graficos_1mas2:             ["izquierda", "superior_derecha", "inferior_derecha"],
-  p_slide_3_graficos_fila:              ["izquierda", "centro", "derecha"],
-  p_slide_3_graficos_1arriba:           ["superior", "inferior_izquierda", "inferior_derecha"],
-  p_slide_4_graficos:                   ["superior_izquierda", "superior_derecha", "inferior_izquierda", "inferior_derecha"],
-  p_slide_3_graficos_poblacion_tira:    ["superior", "medio", "inferior"],
-  p_slide_3_graficos_poblacion_corona:  ["superior_izquierda", "superior_derecha", "inferior"],
-  p_slide_3_graficos_poblacion_cifras:  ["superior_izquierda", "derecha", "cifra_superior", "inferior_izquierda", "cifra_inferior"],
-  p_slide_2_graficos_poblacion:         ["izquierda", "derecha"],
-  p_slide_3_graficos_poblacion:         ["superior_izquierda", "inferior_izquierda", "derecha"],
-  p_slide_4_graficos_poblacion:         ["superior_izquierda", "superior_derecha", "inferior_izquierda", "inferior_derecha"],
-  p_slide_5_graficos_poblacion:         ["grafico_superior_1", "grafico_superior_2", "grafico_superior_3", "grafico_inferior_1", "grafico_inferior_2"],
-  p_slide_6_graficos_poblacion:         ["grafico_superior_1", "grafico_superior_2", "grafico_superior_3", "grafico_inferior_1", "grafico_inferior_2", "grafico_inferior_3"],
-};
+// Slots de gráfico por tipo de slide (para iteración en la UI). ADR 0139: salen de las `ranuras` con `role: "chart"`
+// del catálogo (graficos_tipos.json); el `icono` no es un graficador. slideGrafSlots.contract.test.ts cubre cada tipo.
+export const SLIDE_GRAF_SLOTS: Record<SlideType, string[]> = Object.fromEntries(
+  Object.entries(RANURAS_GRAFICO_POR_LAMINA).map(([tipo, slots]) => [tipo, [...slots]]),
+) as Record<SlideType, string[]>;

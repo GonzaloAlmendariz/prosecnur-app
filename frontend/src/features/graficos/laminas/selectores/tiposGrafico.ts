@@ -3,21 +3,27 @@
 // (iconos/catalogoTipos.generated.ts). El registro en vivo dice qué está disponible en esta sesión.
 
 import type { GraficadorCategoria, GraficadorMetadata } from "../../../../api/graficos";
-import { CATALOGO_GRAFICOS, type SalidaGrafico } from "../../iconos/catalogoTipos.generated";
+import { CATALOGO_GRAFICOS, FAMILIAS_EDITOR, type SalidaGrafico } from "../../iconos/catalogoTipos.generated";
 import { esSlotCifra } from "../../iconos/composicion";
 import { TIPOS_RETIRADOS_0137 } from "../../retirados";
 
 export type FamiliaGrafico = "categorias" | "escalas" | "numeros" | "comparar" | "territorio" | "texto";
 
-/** Las seis familias del selector, en el orden de `.GRAFICOS_FAMILIAS_EDITOR`. */
-export const FAMILIAS_GRAFICO: ReadonlyArray<{ id: FamiliaGrafico; label: string; descripcion: string }> = [
-  { id: "categorias", label: "Categorías", descripcion: "Cuántos eligieron cada opción de una pregunta." },
-  { id: "escalas", label: "Escalas", descripcion: "Preguntas de acuerdo, satisfacción o frecuencia." },
-  { id: "numeros", label: "Números", descripcion: "Promedios, distribuciones y cifras destacadas." },
-  { id: "comparar", label: "Comparar", descripcion: "Dos o más públicos o mediciones frente a frente." },
-  { id: "territorio", label: "Territorio", descripcion: "Resultados o cobertura sobre el mapa." },
-  { id: "texto", label: "Texto", descripcion: "Respuestas abiertas." },
-];
+/** Lo que cada familia agrupa, en una línea. El id y el nombre los declara el catálogo (`familias_editor`). */
+const DESCRIPCION_FAMILIA: Readonly<Record<FamiliaGrafico, string>> = {
+  categorias: "Cuántos eligieron cada opción de una pregunta.",
+  escalas: "Preguntas de acuerdo, satisfacción o frecuencia.",
+  numeros: "Promedios, distribuciones y cifras destacadas.",
+  comparar: "Dos o más públicos o mediciones frente a frente.",
+  territorio: "Resultados o cobertura sobre el mapa.",
+  texto: "Respuestas abiertas.",
+};
+
+const esIdFamilia = (v: string): v is FamiliaGrafico => v in DESCRIPCION_FAMILIA;
+
+/** Las familias del selector, en el orden y con el nombre de `familias_editor` del catálogo (ADR 0139). */
+export const FAMILIAS_GRAFICO: ReadonlyArray<{ id: FamiliaGrafico; label: string; descripcion: string }> = FAMILIAS_EDITOR
+  .flatMap((f) => (esIdFamilia(f.id) ? [{ id: f.id, label: f.label, descripcion: DESCRIPCION_FAMILIA[f.id] }] : []));
 
 const POR_NOMBRE = new Map(CATALOGO_GRAFICOS.map((g) => [g.name, g]));
 

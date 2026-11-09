@@ -1,9 +1,15 @@
-// GENERADO desde api/inst/catalogos/graficos_tipos.json (a su vez generado de api/R/graficos_metadata.R). No editar a mano:
-// generados.contract.test.ts falla si se desvía del JSON y muestra el valor esperado.
+// GENERADO por scripts/generar-catalogo-tipos.mjs desde api/inst/catalogos/graficos_tipos.json (a su vez generado de api/R/graficos_metadata.R).
+// No editar a mano: generados.contract.test.ts falla si se desvía del JSON y muestra el valor esperado.
 
 export type SalidaGrafico = "nativa" | "marco" | "ruta_anterior";
 
-export type TipoLaminaCatalogo = { name: string; categoria: string; estandar: string | null; en_selector: boolean };
+/** Una ranura de un tipo de lámina: `chart` recibe un tipo de gráfico; `icon`, un ícono subido. */
+export type RanuraCatalogo = { name: string; role: "chart" | "icon"; label: string };
+
+export type TipoLaminaCatalogo = {
+  name: string; titulo_humano: string; categoria: string; estandar: string | null; en_selector: boolean;
+  ranuras: readonly RanuraCatalogo[];
+};
 /** Qué datos usa un tipo de gráfico (api/R/graficos_tipos_usa.R): los tipos de pregunta que acepta (el principal
  *  primero), cuántos públicos, si pide padrón y si abre por los grupos de otra variable. «cualquiera» = no pide un tipo
  *  de pregunta, y va solo en el arreglo. */
@@ -11,109 +17,275 @@ export type PreguntaQueUsa = "escala" | "opcion_unica" | "multiple" | "numerica"
 export type PublicosQueUsa = "uno" | "varios" | "uno_o_varios";
 export type UsaGrafico = { pregunta: PreguntaQueUsa[]; publicos: PublicosQueUsa; padron: boolean; cruce: boolean };
 
-export type TipoGraficoCatalogo = { name: string; familia_editor: string; salida: SalidaGrafico; en_selector: boolean; usa: UsaGrafico };
+export type TipoGraficoCatalogo = {
+  name: string; titulo_humano: string; familia_editor: string; salida: SalidaGrafico; en_selector: boolean; usa: UsaGrafico;
+};
+
+export type FamiliaEditorCatalogo = { id: string; label: string };
+
+/** Variante del catálogo de gráficos (ADR 0139): un graficador con args fijos. Un `null` en `args_fijos` deja el
+ *  argumento nulo; `args_quitar` son los argumentos que se borran al aplicarla. */
+export type VarianteGraficoCatalogo = {
+  id: string; graficador: string; nombre: string; familia: string; icono: string; descripcion: string;
+  args_fijos: Readonly<Record<string, unknown>>; args_quitar: readonly string[];
+};
 
 export const CATALOGO_LAMINAS: readonly TipoLaminaCatalogo[] = [
-  { name: "p_slide_portada", categoria: "estructural", estandar: null, en_selector: true },
-  { name: "p_slide_indice", categoria: "estructural", estandar: null, en_selector: true },
-  { name: "p_slide_top_two_box", categoria: "estructural", estandar: null, en_selector: true },
-  { name: "p_slide_redondeo", categoria: "estructural", estandar: null, en_selector: true },
-  { name: "p_slide_seccion", categoria: "estructural", estandar: null, en_selector: true },
-  { name: "p_slide_objetivo_icono", categoria: "estructural", estandar: null, en_selector: true },
-  { name: "p_slide_texto", categoria: "estructural", estandar: "p_slide_texto", en_selector: true },
-  { name: "p_slide_tabla_tecnica", categoria: "estructural", estandar: null, en_selector: true },
-  { name: "p_slide_1_grafico", categoria: "1grafico", estandar: "p_slide_1_grafico", en_selector: true },
-  { name: "p_slide_1_grafico_narrativo", categoria: "1grafico", estandar: "p_slide_1_grafico_narrativo", en_selector: true },
-  { name: "p_slide_grafico_texto_derecha", categoria: "1grafico", estandar: "p_slide_grafico_texto_derecha", en_selector: true },
-  { name: "p_slide_grafico_texto_izquierda", categoria: "1grafico", estandar: "p_slide_grafico_texto_izquierda", en_selector: true },
-  { name: "p_slide_2_graficos", categoria: "2graficos", estandar: "p_slide_2_graficos", en_selector: true },
-  { name: "p_slide_2_graficos_narrativo", categoria: "2graficos", estandar: "p_slide_2_graficos_narrativo", en_selector: true },
-  { name: "p_slide_2_graficos_texto_izquierda", categoria: "2graficos", estandar: "p_slide_2_graficos_texto_izquierda", en_selector: true },
-  { name: "p_slide_2_graficos_texto_derecha", categoria: "2graficos", estandar: "p_slide_2_graficos_texto_derecha", en_selector: true },
-  { name: "p_slide_4_graficos", categoria: "4graficos", estandar: "p_slide_4_graficos", en_selector: true },
-  { name: "p_slide_2_graficos_poblacion", categoria: "poblacion", estandar: null, en_selector: false },
-  { name: "p_slide_3_graficos_poblacion_tira", categoria: "poblacion", estandar: "p_slide_3_graficos_poblacion_tira", en_selector: true },
-  { name: "p_slide_3_graficos_poblacion_corona", categoria: "poblacion", estandar: "p_slide_3_graficos_poblacion_corona", en_selector: true },
-  { name: "p_slide_3_graficos_poblacion_cifras", categoria: "poblacion", estandar: "p_slide_3_graficos_poblacion_cifras", en_selector: true },
-  { name: "p_slide_cifras_y_graficos", categoria: "2graficos", estandar: "p_slide_cifras_y_graficos", en_selector: true },
-  { name: "p_slide_3_graficos_2mas1", categoria: "3graficos", estandar: "p_slide_3_graficos_2mas1", en_selector: true },
-  { name: "p_slide_3_graficos_1mas2", categoria: "3graficos", estandar: "p_slide_3_graficos_1mas2", en_selector: true },
-  { name: "p_slide_3_graficos_fila", categoria: "3graficos", estandar: "p_slide_3_graficos_fila", en_selector: true },
-  { name: "p_slide_3_graficos_1arriba", categoria: "3graficos", estandar: "p_slide_3_graficos_1arriba", en_selector: true },
-  { name: "p_slide_2_graficos_vertical", categoria: "2graficos", estandar: "p_slide_2_graficos_vertical", en_selector: true },
-  { name: "p_slide_2_graficos_asimetrico", categoria: "2graficos", estandar: "p_slide_2_graficos_asimetrico", en_selector: true },
-  { name: "p_slide_3_graficos_poblacion", categoria: "poblacion", estandar: null, en_selector: false },
-  { name: "p_slide_4_graficos_poblacion", categoria: "poblacion", estandar: null, en_selector: false },
-  { name: "p_slide_5_graficos_poblacion", categoria: "poblacion", estandar: "p_slide_5_graficos_poblacion", en_selector: true },
-  { name: "p_slide_6_graficos_poblacion", categoria: "poblacion", estandar: "p_slide_6_graficos_poblacion", en_selector: true },
-  { name: "p_slide_cierre", categoria: "estructural", estandar: null, en_selector: true },
-  { name: "p_slide_estandar", categoria: "estructural", estandar: null, en_selector: false },
-  { name: "p_slide_resumen_diferencias", categoria: "1grafico", estandar: null, en_selector: true },
-  { name: "p_slide_hallazgos", categoria: "1grafico", estandar: null, en_selector: true },
-  { name: "p_slide_cierre_hallazgos", categoria: "1grafico", estandar: null, en_selector: true },
+  { name: "p_slide_portada", titulo_humano: "Portada", categoria: "estructural", estandar: null, en_selector: true,
+    ranuras: [] },
+  { name: "p_slide_indice", titulo_humano: "Índice", categoria: "estructural", estandar: null, en_selector: true,
+    ranuras: [] },
+  { name: "p_slide_top_two_box", titulo_humano: "Explicación Top Two Box", categoria: "estructural", estandar: null, en_selector: true,
+    ranuras: [] },
+  { name: "p_slide_redondeo", titulo_humano: "Explicación del redondeo", categoria: "estructural", estandar: null, en_selector: true,
+    ranuras: [] },
+  { name: "p_slide_seccion", titulo_humano: "Separador de sección", categoria: "estructural", estandar: null, en_selector: true,
+    ranuras: [] },
+  { name: "p_slide_objetivo_icono", titulo_humano: "Objetivo con ícono", categoria: "estructural", estandar: null, en_selector: true,
+    ranuras: [
+      { name: "icono", role: "icon", label: "Ícono" },
+    ] },
+  { name: "p_slide_texto", titulo_humano: "Bloque de texto", categoria: "estructural", estandar: "p_slide_texto", en_selector: true,
+    ranuras: [] },
+  { name: "p_slide_tabla_tecnica", titulo_humano: "Tabla técnica", categoria: "estructural", estandar: null, en_selector: true,
+    ranuras: [] },
+  { name: "p_slide_1_grafico", titulo_humano: "Un gráfico", categoria: "1grafico", estandar: "p_slide_1_grafico", en_selector: true,
+    ranuras: [
+      { name: "grafico", role: "chart", label: "Gráfico principal" },
+    ] },
+  { name: "p_slide_1_grafico_narrativo", titulo_humano: "Un gráfico + narrativa", categoria: "1grafico", estandar: "p_slide_1_grafico_narrativo", en_selector: true,
+    ranuras: [
+      { name: "grafico", role: "chart", label: "Gráfico principal" },
+    ] },
+  { name: "p_slide_grafico_texto_derecha", titulo_humano: "Gráfico + texto a la derecha", categoria: "1grafico", estandar: "p_slide_grafico_texto_derecha", en_selector: true,
+    ranuras: [
+      { name: "grafico", role: "chart", label: "Gráfico principal" },
+    ] },
+  { name: "p_slide_grafico_texto_izquierda", titulo_humano: "Gráfico + texto a la izquierda", categoria: "1grafico", estandar: "p_slide_grafico_texto_izquierda", en_selector: true,
+    ranuras: [
+      { name: "grafico", role: "chart", label: "Gráfico principal" },
+    ] },
+  { name: "p_slide_2_graficos", titulo_humano: "Dos gráficos", categoria: "2graficos", estandar: "p_slide_2_graficos", en_selector: true,
+    ranuras: [
+      { name: "izquierda", role: "chart", label: "Izquierda" },
+      { name: "derecha", role: "chart", label: "Derecha" },
+    ] },
+  { name: "p_slide_2_graficos_narrativo", titulo_humano: "Dos gráficos + narrativa", categoria: "2graficos", estandar: "p_slide_2_graficos_narrativo", en_selector: true,
+    ranuras: [
+      { name: "izquierda", role: "chart", label: "Izquierda" },
+      { name: "derecha", role: "chart", label: "Derecha" },
+    ] },
+  { name: "p_slide_2_graficos_texto_izquierda", titulo_humano: "Dos gráficos + texto izquierda", categoria: "2graficos", estandar: "p_slide_2_graficos_texto_izquierda", en_selector: true,
+    ranuras: [
+      { name: "grafico_1", role: "chart", label: "Gráfico superior" },
+      { name: "grafico_2", role: "chart", label: "Gráfico inferior" },
+    ] },
+  { name: "p_slide_2_graficos_texto_derecha", titulo_humano: "Dos gráficos + texto derecha", categoria: "2graficos", estandar: "p_slide_2_graficos_texto_derecha", en_selector: true,
+    ranuras: [
+      { name: "grafico_1", role: "chart", label: "Gráfico superior" },
+      { name: "grafico_2", role: "chart", label: "Gráfico inferior" },
+    ] },
+  { name: "p_slide_4_graficos", titulo_humano: "Cuatro gráficos", categoria: "4graficos", estandar: "p_slide_4_graficos", en_selector: true,
+    ranuras: [
+      { name: "superior_izquierda", role: "chart", label: "Superior izquierda" },
+      { name: "superior_derecha", role: "chart", label: "Superior derecha" },
+      { name: "inferior_izquierda", role: "chart", label: "Inferior izquierda" },
+      { name: "inferior_derecha", role: "chart", label: "Inferior derecha" },
+    ] },
+  { name: "p_slide_2_graficos_poblacion", titulo_humano: "Dos gráficos + ícono (población)", categoria: "poblacion", estandar: null, en_selector: false,
+    ranuras: [
+      { name: "izquierda", role: "chart", label: "Izquierda" },
+      { name: "derecha", role: "chart", label: "Derecha" },
+      { name: "icono", role: "icon", label: "Ícono central" },
+    ] },
+  { name: "p_slide_3_graficos_poblacion_tira", titulo_humano: "Tres franjas (población)", categoria: "poblacion", estandar: "p_slide_3_graficos_poblacion_tira", en_selector: true,
+    ranuras: [
+      { name: "superior", role: "chart", label: "Superior" },
+      { name: "medio", role: "chart", label: "Medio" },
+      { name: "inferior", role: "chart", label: "Inferior" },
+    ] },
+  { name: "p_slide_3_graficos_poblacion_corona", titulo_humano: "Dos gráficos arriba + uno ancho (población)", categoria: "poblacion", estandar: "p_slide_3_graficos_poblacion_corona", en_selector: true,
+    ranuras: [
+      { name: "superior_izquierda", role: "chart", label: "Superior izquierda" },
+      { name: "superior_derecha", role: "chart", label: "Superior derecha" },
+      { name: "inferior", role: "chart", label: "Inferior" },
+    ] },
+  { name: "p_slide_3_graficos_poblacion_cifras", titulo_humano: "Tres gráficos + cifras (población)", categoria: "poblacion", estandar: "p_slide_3_graficos_poblacion_cifras", en_selector: true,
+    ranuras: [
+      { name: "superior_izquierda", role: "chart", label: "Superior izquierda" },
+      { name: "derecha", role: "chart", label: "Derecha" },
+      { name: "cifra_superior", role: "chart", label: "Cifra superior" },
+      { name: "inferior_izquierda", role: "chart", label: "Inferior izquierda" },
+      { name: "cifra_inferior", role: "chart", label: "Cifra inferior" },
+    ] },
+  { name: "p_slide_cifras_y_graficos", titulo_humano: "Banda de cifras + dos gráficos", categoria: "2graficos", estandar: "p_slide_cifras_y_graficos", en_selector: true,
+    ranuras: [
+      { name: "cifra_izquierda", role: "chart", label: "Cifra izquierda" },
+      { name: "cifra_centro", role: "chart", label: "Cifra centro" },
+      { name: "cifra_derecha", role: "chart", label: "Cifra derecha" },
+      { name: "grafico_izquierda", role: "chart", label: "Gráfico izquierda" },
+      { name: "grafico_derecha", role: "chart", label: "Gráfico derecha" },
+    ] },
+  { name: "p_slide_3_graficos_2mas1", titulo_humano: "Tres gráficos: dos apilados + uno alto", categoria: "3graficos", estandar: "p_slide_3_graficos_2mas1", en_selector: true,
+    ranuras: [
+      { name: "superior_izquierda", role: "chart", label: "Superior izquierda" },
+      { name: "inferior_izquierda", role: "chart", label: "Inferior izquierda" },
+      { name: "derecha", role: "chart", label: "Derecha" },
+    ] },
+  { name: "p_slide_3_graficos_1mas2", titulo_humano: "Tres gráficos: uno alto + dos apilados", categoria: "3graficos", estandar: "p_slide_3_graficos_1mas2", en_selector: true,
+    ranuras: [
+      { name: "izquierda", role: "chart", label: "Izquierda" },
+      { name: "superior_derecha", role: "chart", label: "Superior derecha" },
+      { name: "inferior_derecha", role: "chart", label: "Inferior derecha" },
+    ] },
+  { name: "p_slide_3_graficos_fila", titulo_humano: "Tres gráficos en fila", categoria: "3graficos", estandar: "p_slide_3_graficos_fila", en_selector: true,
+    ranuras: [
+      { name: "izquierda", role: "chart", label: "Izquierda" },
+      { name: "centro", role: "chart", label: "Centro" },
+      { name: "derecha", role: "chart", label: "Derecha" },
+    ] },
+  { name: "p_slide_3_graficos_1arriba", titulo_humano: "Tres gráficos: uno ancho arriba", categoria: "3graficos", estandar: "p_slide_3_graficos_1arriba", en_selector: true,
+    ranuras: [
+      { name: "superior", role: "chart", label: "Superior" },
+      { name: "inferior_izquierda", role: "chart", label: "Inferior izquierda" },
+      { name: "inferior_derecha", role: "chart", label: "Inferior derecha" },
+    ] },
+  { name: "p_slide_2_graficos_vertical", titulo_humano: "Dos gráficos apilados", categoria: "2graficos", estandar: "p_slide_2_graficos_vertical", en_selector: true,
+    ranuras: [
+      { name: "superior", role: "chart", label: "Superior" },
+      { name: "inferior", role: "chart", label: "Inferior" },
+    ] },
+  { name: "p_slide_2_graficos_asimetrico", titulo_humano: "Dos gráficos: principal y apoyo", categoria: "2graficos", estandar: "p_slide_2_graficos_asimetrico", en_selector: true,
+    ranuras: [
+      { name: "principal", role: "chart", label: "Principal" },
+      { name: "apoyo", role: "chart", label: "Apoyo" },
+    ] },
+  { name: "p_slide_3_graficos_poblacion", titulo_humano: "Tres gráficos + ícono (población)", categoria: "poblacion", estandar: null, en_selector: false,
+    ranuras: [
+      { name: "superior_izquierda", role: "chart", label: "Izquierda arriba" },
+      { name: "inferior_izquierda", role: "chart", label: "Izquierda abajo" },
+      { name: "derecha", role: "chart", label: "Derecha (alto)" },
+      { name: "icono", role: "icon", label: "Ícono central" },
+    ] },
+  { name: "p_slide_4_graficos_poblacion", titulo_humano: "Cuatro gráficos + ícono (población)", categoria: "poblacion", estandar: null, en_selector: false,
+    ranuras: [
+      { name: "superior_izquierda", role: "chart", label: "Superior izquierda" },
+      { name: "superior_derecha", role: "chart", label: "Superior derecha" },
+      { name: "inferior_izquierda", role: "chart", label: "Inferior izquierda" },
+      { name: "inferior_derecha", role: "chart", label: "Inferior derecha" },
+      { name: "icono", role: "icon", label: "Ícono central" },
+    ] },
+  { name: "p_slide_5_graficos_poblacion", titulo_humano: "Cinco gráficos (población)", categoria: "poblacion", estandar: "p_slide_5_graficos_poblacion", en_selector: true,
+    ranuras: [
+      { name: "grafico_superior_1", role: "chart", label: "Superior izquierda" },
+      { name: "grafico_superior_2", role: "chart", label: "Superior centro" },
+      { name: "grafico_superior_3", role: "chart", label: "Superior derecha" },
+      { name: "grafico_inferior_1", role: "chart", label: "Inferior izquierda" },
+      { name: "grafico_inferior_2", role: "chart", label: "Inferior centro" },
+    ] },
+  { name: "p_slide_6_graficos_poblacion", titulo_humano: "Seis gráficos (población)", categoria: "poblacion", estandar: "p_slide_6_graficos_poblacion", en_selector: true,
+    ranuras: [
+      { name: "grafico_superior_1", role: "chart", label: "Superior izquierda" },
+      { name: "grafico_superior_2", role: "chart", label: "Superior centro" },
+      { name: "grafico_superior_3", role: "chart", label: "Superior derecha" },
+      { name: "grafico_inferior_1", role: "chart", label: "Inferior izquierda" },
+      { name: "grafico_inferior_2", role: "chart", label: "Inferior centro" },
+      { name: "grafico_inferior_3", role: "chart", label: "Inferior derecha" },
+    ] },
+  { name: "p_slide_cierre", titulo_humano: "Cierre", categoria: "estructural", estandar: null, en_selector: true,
+    ranuras: [] },
+  { name: "p_slide_estandar", titulo_humano: "Reglas de la identidad", categoria: "estructural", estandar: null, en_selector: false,
+    ranuras: [] },
+  { name: "p_slide_resumen_diferencias", titulo_humano: "Resumen de diferencias", categoria: "1grafico", estandar: null, en_selector: true,
+    ranuras: [] },
+  { name: "p_slide_hallazgos", titulo_humano: "Hallazgos clave", categoria: "1grafico", estandar: null, en_selector: true,
+    ranuras: [] },
+  { name: "p_slide_cierre_hallazgos", titulo_humano: "Cierre con hallazgos", categoria: "1grafico", estandar: null, en_selector: true,
+    ranuras: [] },
 ];
 
 export const CATALOGO_GRAFICOS: readonly TipoGraficoCatalogo[] = [
-  { name: "p_barras_agrupadas", familia_editor: "categorias", salida: "nativa", en_selector: true,
-    usa: { pregunta: ["opcion_unica", "multiple"], publicos: "uno", padron: false, cruce: true } },
-  { name: "p_dicotomica", familia_editor: "categorias", salida: "nativa", en_selector: true,
+  { name: "p_barras_agrupadas", titulo_humano: "Barras agrupadas", familia_editor: "categorias", salida: "nativa", en_selector: true,
+    usa: { pregunta: ["opcion_unica","multiple"], publicos: "uno", padron: false, cruce: true } },
+  { name: "p_dicotomica", titulo_humano: "Dicotómica", familia_editor: "categorias", salida: "nativa", en_selector: true,
     usa: { pregunta: ["opcion_unica"], publicos: "uno", padron: false, cruce: false } },
-  { name: "p_barras_categoricas", familia_editor: "categorias", salida: "nativa", en_selector: true,
+  { name: "p_barras_categoricas", titulo_humano: "Barras categóricas", familia_editor: "categorias", salida: "nativa", en_selector: true,
     usa: { pregunta: ["opcion_unica"], publicos: "uno", padron: false, cruce: false } },
-  { name: "p_barras_apiladas", familia_editor: "escalas", salida: "nativa", en_selector: true,
+  { name: "p_barras_apiladas", titulo_humano: "Barras apiladas", familia_editor: "escalas", salida: "nativa", en_selector: true,
     usa: { pregunta: ["escala"], publicos: "uno", padron: false, cruce: true } },
-  { name: "p_barras_multiapiladas", familia_editor: "escalas", salida: "nativa", en_selector: true,
+  { name: "p_barras_multiapiladas", titulo_humano: "Multiapiladas", familia_editor: "escalas", salida: "nativa", en_selector: true,
     usa: { pregunta: ["escala"], publicos: "uno", padron: false, cruce: true } },
-  { name: "p_nube_palabras", familia_editor: "texto", salida: "nativa", en_selector: true,
+  { name: "p_nube_palabras", titulo_humano: "Nube de palabras", familia_editor: "texto", salida: "nativa", en_selector: true,
     usa: { pregunta: ["abierta"], publicos: "uno", padron: false, cruce: false } },
-  { name: "p_citas", familia_editor: "texto", salida: "nativa", en_selector: true,
+  { name: "p_citas", titulo_humano: "Citas representativas", familia_editor: "texto", salida: "nativa", en_selector: true,
     usa: { pregunta: ["abierta"], publicos: "uno", padron: false, cruce: false } },
-  { name: "p_mapa_cobertura_territorial", familia_editor: "territorio", salida: "nativa", en_selector: true,
+  { name: "p_mapa_cobertura_territorial", titulo_humano: "Mapa de cobertura territorial", familia_editor: "territorio", salida: "nativa", en_selector: true,
     usa: { pregunta: ["cualquiera"], publicos: "uno", padron: false, cruce: false } },
-  { name: "p_pie", familia_editor: "categorias", salida: "nativa", en_selector: true,
+  { name: "p_pie", titulo_humano: "Gráfico de torta", familia_editor: "categorias", salida: "nativa", en_selector: true,
     usa: { pregunta: ["opcion_unica"], publicos: "uno", padron: false, cruce: false } },
-  { name: "p_donut", familia_editor: "categorias", salida: "nativa", en_selector: true,
+  { name: "p_donut", titulo_humano: "Gráfico de dona", familia_editor: "categorias", salida: "nativa", en_selector: true,
     usa: { pregunta: ["opcion_unica"], publicos: "uno", padron: false, cruce: false } },
-  { name: "p_numerico", familia_editor: "numeros", salida: "nativa", en_selector: true,
+  { name: "p_numerico", titulo_humano: "Indicador numérico", familia_editor: "numeros", salida: "nativa", en_selector: true,
     usa: { pregunta: ["numerica"], publicos: "uno", padron: false, cruce: true } },
-  { name: "p_histograma", familia_editor: "numeros", salida: "nativa", en_selector: true,
+  { name: "p_histograma", titulo_humano: "Histograma", familia_editor: "numeros", salida: "nativa", en_selector: true,
     usa: { pregunta: ["numerica"], publicos: "uno", padron: false, cruce: true } },
-  { name: "p_boxplot", familia_editor: "numeros", salida: "nativa", en_selector: true,
+  { name: "p_boxplot", titulo_humano: "Box plot", familia_editor: "numeros", salida: "nativa", en_selector: true,
     usa: { pregunta: ["numerica"], publicos: "uno", padron: false, cruce: true } },
-  { name: "p_media_rango", familia_editor: "numeros", salida: "nativa", en_selector: true,
+  { name: "p_media_rango", titulo_humano: "Media y rango", familia_editor: "numeros", salida: "nativa", en_selector: true,
     usa: { pregunta: ["numerica"], publicos: "uno", padron: false, cruce: true } },
-  { name: "p_barras_divergentes", familia_editor: "escalas", salida: "nativa", en_selector: true,
+  { name: "p_barras_divergentes", titulo_humano: "Barras divergentes", familia_editor: "escalas", salida: "nativa", en_selector: true,
     usa: { pregunta: ["escala"], publicos: "uno_o_varios", padron: false, cruce: false } },
-  { name: "p_puntos_comparativos", familia_editor: "comparar", salida: "nativa", en_selector: true,
+  { name: "p_puntos_comparativos", titulo_humano: "Puntos comparativos", familia_editor: "comparar", salida: "nativa", en_selector: true,
     usa: { pregunta: ["opcion_unica"], publicos: "uno", padron: false, cruce: true } },
-  { name: "p_mapa_distribucion", familia_editor: "territorio", salida: "nativa", en_selector: true,
+  { name: "p_mapa_distribucion", titulo_humano: "Mapa de distribución de encuestados", familia_editor: "territorio", salida: "nativa", en_selector: true,
     usa: { pregunta: ["opcion_unica"], publicos: "uno", padron: false, cruce: false } },
-  { name: "p_mapa_resultado_distrital", familia_editor: "territorio", salida: "nativa", en_selector: true,
+  { name: "p_mapa_resultado_distrital", titulo_humano: "Mapa de resultado por distrito", familia_editor: "territorio", salida: "nativa", en_selector: true,
     usa: { pregunta: ["opcion_unica"], publicos: "uno", padron: false, cruce: true } },
-  { name: "p_cifra", familia_editor: "numeros", salida: "nativa", en_selector: true,
+  { name: "p_cifra", titulo_humano: "Cifra destacada", familia_editor: "numeros", salida: "nativa", en_selector: true,
     usa: { pregunta: ["cualquiera"], publicos: "uno", padron: false, cruce: false } },
-  { name: "p_dumbbell", familia_editor: "comparar", salida: "nativa", en_selector: true,
+  { name: "p_dumbbell", titulo_humano: "Brecha entre dos grupos", familia_editor: "comparar", salida: "nativa", en_selector: true,
     usa: { pregunta: ["escala"], publicos: "uno_o_varios", padron: false, cruce: true } },
-  { name: "p_panorama", familia_editor: "comparar", salida: "nativa", en_selector: true,
+  { name: "p_panorama", titulo_humano: "Panorama de públicos", familia_editor: "comparar", salida: "nativa", en_selector: true,
     usa: { pregunta: ["escala"], publicos: "uno_o_varios", padron: false, cruce: false } },
-  { name: "p_fortalezas", familia_editor: "comparar", salida: "nativa", en_selector: true,
+  { name: "p_fortalezas", titulo_humano: "Fortalezas y alertas", familia_editor: "comparar", salida: "nativa", en_selector: true,
     usa: { pregunta: ["escala"], publicos: "uno", padron: false, cruce: false } },
-  { name: "p_cobertura", familia_editor: "comparar", salida: "nativa", en_selector: true,
+  { name: "p_cobertura", titulo_humano: "Cobertura y participación", familia_editor: "comparar", salida: "nativa", en_selector: true,
     usa: { pregunta: ["cualquiera"], publicos: "uno_o_varios", padron: true, cruce: false } },
-  { name: "p_filtro_subpregunta", familia_editor: "categorias", salida: "nativa", en_selector: false,
+  { name: "p_filtro_subpregunta", titulo_humano: "Pregunta filtro y subpregunta", familia_editor: "categorias", salida: "nativa", en_selector: false,
     usa: { pregunta: ["opcion_unica"], publicos: "uno", padron: false, cruce: false } },
-  { name: "p_matriz_cuadrantes", familia_editor: "comparar", salida: "nativa", en_selector: true,
+  { name: "p_matriz_cuadrantes", titulo_humano: "Matriz de cuadrantes", familia_editor: "comparar", salida: "nativa", en_selector: true,
     usa: { pregunta: ["escala"], publicos: "uno_o_varios", padron: false, cruce: false } },
-  { name: "p_lollipop", familia_editor: "categorias", salida: "nativa", en_selector: true,
-    usa: { pregunta: ["opcion_unica", "multiple"], publicos: "uno", padron: false, cruce: false } },
-  { name: "p_serie_temporal", familia_editor: "comparar", salida: "nativa", en_selector: true,
+  { name: "p_lollipop", titulo_humano: "Ranking (lollipop)", familia_editor: "categorias", salida: "nativa", en_selector: true,
+    usa: { pregunta: ["opcion_unica","multiple"], publicos: "uno", padron: false, cruce: false } },
+  { name: "p_serie_temporal", titulo_humano: "Serie temporal", familia_editor: "comparar", salida: "nativa", en_selector: true,
     usa: { pregunta: ["opcion_unica"], publicos: "uno_o_varios", padron: false, cruce: true } },
-  { name: "p_radar", familia_editor: "comparar", salida: "nativa", en_selector: true,
-    usa: { pregunta: ["escala", "multiple"], publicos: "uno_o_varios", padron: false, cruce: true } },
-  { name: "p_tabla", familia_editor: "comparar", salida: "nativa", en_selector: true,
-    usa: { pregunta: ["escala", "multiple"], publicos: "uno", padron: false, cruce: true } },
-  { name: "p_heatmap_cruce", familia_editor: "comparar", salida: "nativa", en_selector: true,
-    usa: { pregunta: ["escala", "opcion_unica"], publicos: "uno", padron: false, cruce: true } },
-  { name: "p_lineas_nivel", familia_editor: "comparar", salida: "nativa", en_selector: true,
+  { name: "p_radar", titulo_humano: "Radar", familia_editor: "comparar", salida: "nativa", en_selector: true,
+    usa: { pregunta: ["escala","multiple"], publicos: "uno_o_varios", padron: false, cruce: true } },
+  { name: "p_tabla", titulo_humano: "Tabla", familia_editor: "comparar", salida: "nativa", en_selector: true,
+    usa: { pregunta: ["escala","multiple"], publicos: "uno", padron: false, cruce: true } },
+  { name: "p_heatmap_cruce", titulo_humano: "Mapa de calor por cruce", familia_editor: "comparar", salida: "nativa", en_selector: true,
+    usa: { pregunta: ["escala","opcion_unica"], publicos: "uno", padron: false, cruce: true } },
+  { name: "p_lineas_nivel", titulo_humano: "Total y línea por nivel", familia_editor: "comparar", salida: "nativa", en_selector: true,
     usa: { pregunta: ["opcion_unica"], publicos: "uno", padron: false, cruce: true } },
+];
+
+export const FAMILIAS_EDITOR: readonly FamiliaEditorCatalogo[] = [
+  { id: "categorias", label: "Categorías" },
+  { id: "escalas", label: "Escalas" },
+  { id: "numeros", label: "Números" },
+  { id: "comparar", label: "Comparar" },
+  { id: "territorio", label: "Territorio" },
+  { id: "texto", label: "Texto" },
+];
+
+export const VARIANTES_GRAFICO: readonly VarianteGraficoCatalogo[] = [
+  { id: "p_dumbbell:contraste", graficador: "p_dumbbell", nombre: "Contraste de públicos", familia: "comparar", icono: "MoveHorizontal",
+    descripcion: "La misma pregunta en dos públicos y su diferencia, ordenadas por diferencia.",
+    args_fijos: { "estilo": "resumen", "cruce": null }, args_quitar: [] },
+  { id: "p_dumbbell:aperturas", graficador: "p_dumbbell", nombre: "Aperturas por grupo", familia: "comparar", icono: "MoveHorizontal",
+    descripcion: "Un público abierto por los grupos de una pregunta, con la distancia entre grupos.",
+    args_fijos: { "estilo": "resumen" }, args_quitar: ["cruce","bases"] },
+  { id: "p_barras_divergentes:escala_sin_informacion", graficador: "p_barras_divergentes", nombre: "Escala con columna de Sin información", familia: "escalas", icono: "AlignHorizontalJustifyCenter",
+    descripcion: "Barras divergentes de desacuerdo y acuerdo, con Sin información en una columna gris aparte.",
+    args_fijos: { "estilo": "resumen" }, args_quitar: [] },
 ];

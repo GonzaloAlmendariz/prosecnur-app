@@ -1,25 +1,13 @@
+import { NOMBRE_TIPO_GRAFICO } from "./catalogoGraficos";
 import { safeTrimmedText } from "./safeText";
 
 type GraficadorDisplayMeta = {
   titulo_humano?: string | null;
 };
 
-const GRAFICADOR_LABELS: Record<string, string> = {
-  p_barras: "Barras agrupadas",
-  p_barras_agrupadas: "Barras agrupadas",
-  p_barras_apiladas: "Barras apiladas",
-  p_barras_multiapiladas: "Barras multiapiladas",
-  p_pie: "Circular",
-  p_donut: "Donut",
-  p_dicotomica: "Dicotómica",
-  p_numerico: "Indicador numérico",
-  p_boxplot: "Boxplot",
-  p_media_rango: "Media y rango",
-  p_radar: "Radar",
-  p_tabla: "Tabla",
-  p_heatmap_cruce: "Mapa de calor por cruce",
-  p_radar_tabla: "Radar + tabla",
-};
+// ADR 0139: los nombres salen del catálogo (graficos_tipos.json → iconos/catalogoTipos.generated.ts), no de una lista
+// escrita a mano. graficadorDisplay.contract.test.ts falla si se desvían.
+const GRAFICADOR_LABELS: Readonly<Record<string, string>> = NOMBRE_TIPO_GRAFICO;
 
 const WORD_REPLACEMENTS: Record<string, string> = {
   grafico: "gráfico",
