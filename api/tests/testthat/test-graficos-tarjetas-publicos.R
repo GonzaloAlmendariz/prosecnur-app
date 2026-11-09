@@ -274,8 +274,10 @@ test_that("11b. con tres o más públicos, una línea por par marcado: 99 % prim
   expect_identical(v$p_a - v$p_b, c(30, 25, 20, 15))
   rr <- .tp_regla(); rr$fragiles <- "ocultar"
   expect_false(any(.tpub_pares_visibles(pares, rr)$veredicto == "fragil"))
-  expect_identical(r$nota, paste0("Diferencias entre públicos (muestras independientes): prueba z, corrección de Bonferroni, ",
-                                  "al menos 10 puntos y 30 casos por público."))
+  hay_fr <- .tpub_hay_fragiles(r$tarjetas)
+  expect_identical(r$nota, paste0("Diferencias entre públicos (muestras independientes): prueba z, p < 0.05 con corrección de ",
+                                  "Bonferroni dentro de cada tema, al menos 10 puntos y 30 casos por público.",
+                                  if (hay_fr) " △ Frágil: p ajustado entre 0.01 y 0.05." else ""))
 })
 
 # ---- 12. Familia propia -----------------------------------------------------------------------------------------------
@@ -727,4 +729,22 @@ test_that("P5. la línea del par: «86%» sin espacio, y el público con su cifr
   # La medida de la tarjeta corta por espacios comunes: cada bloque unido es una sola palabra.
   expect_identical(strsplit(l, "\\s+")[[1]], c("Administrativos 86%", "frente", "a", "Estudiantes 38%:", "+48 pp ▲"))
   expect_identical(.tpub_linea_par("A", 50, "B", 40, 10, fragil = TRUE), "A 50% frente a B 40%: +10 pp △")
+})
+
+test_that("P6. el pie dice el nivel, el alcance de la corrección y, si hay frágiles, qué significa △", {
+  rz <- .tp_regla()
+  expect_identical(.tpub_texto_pie(rz),
+                   paste0("Diferencias entre públicos (muestras independientes): prueba z, p < 0.05 con corrección de Bonferroni ",
+                          "dentro de cada tema, al menos 10 puntos y 30 casos por público."))
+  rb <- .tp_regla("rao_scott", "bh_informe"); rb$conglomerado <- "aula"; rb$alfa <- 0.1; rb$umbral_puntos <- 0
+  expect_identical(.tpub_texto_pie(rb, local = FALSE, hay_fragiles = TRUE),
+                   paste0("Diferencias entre públicos (muestras independientes): Rao-Scott por aula, p < 0.1 con corrección de ",
+                          "Benjamini-Hochberg sobre las comparaciones entre públicos del informe y al menos 30 casos por público. ",
+                          "△ Frágil: p ajustado entre 0.01 y 0.1."))
+  expect_match(.tpub_texto_pie(rb, local = TRUE), "entre públicos de esta lámina", fixed = TRUE)
+  # En el cálculo: sin familia del plan la BH es la de la lámina; con frágiles visibles, la leyenda va.
+  r <- .tpub_calcular(.tpub_temas_declarados(.tp_vars6), "3,4", .tp_tres(), .tp_regla(correccion = "bh_informe"), .tpub_opcion(.tp_meta))
+  expect_match(r$nota, "de esta lámina", fixed = TRUE)
+  expect_identical(grepl("△ Frágil", r$nota, fixed = TRUE), .tpub_hay_fragiles(r$tarjetas))
+  expect_false(grepl("\u00ab|\u00bb", r$nota))
 })

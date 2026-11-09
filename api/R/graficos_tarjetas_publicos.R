@@ -429,22 +429,41 @@
   t
 }
 
-#' Pie de las tarjetas entre públicos (ADR 0138)
+#' Pie de las tarjetas entre públicos
 #'
-#' «Diferencias entre públicos (muestras independientes): prueba z, corrección de Bonferroni, al menos 10 puntos y 30
-#' casos por público.»
+#' «Diferencias entre públicos (muestras independientes): prueba z, p < 0.05 con corrección de Bonferroni dentro de
+#' cada tema, al menos 10 puntos y 30 casos por público. △ Frágil: p ajustado entre 0.01 y 0.05.»
+#'
+#' Dice el nivel (α), el alcance de la corrección (Bonferroni dentro de cada tema; Benjamini-Hochberg sobre las
+#' comparaciones entre públicos del informe, o de esta lámina si el informe no trae su familia) y, si alguna tarjeta
+#' muestra una frágil, qué significa △.
+#' @param local TRUE si la familia de BH es la de la propia lámina. @param hay_fragiles TRUE si una tarjeta lleva △.
 #' @keywords internal
-.tpub_texto_pie <- function(regla) {
+.tpub_texto_pie <- function(regla, local = FALSE, hay_fragiles = FALSE) {
   prueba <- if (identical(regla$prueba, "rao_scott")) paste0("Rao-Scott por ", .sig_nombre_conglomerado(regla$conglomerado)) else "prueba z"
-  corr <- if (identical(regla$correccion, "bh_informe")) "corrección de Benjamini-Hochberg" else "corrección de Bonferroni"
+  alfa <- .sig_num(regla$alfa %||% 0.05)
+  corr <- if (identical(regla$correccion, "bh_informe")) {
+    paste0("corrección de Benjamini-Hochberg sobre las comparaciones entre públicos ",
+           if (isTRUE(local)) "de esta lámina" else "del informe")
+  } else "corrección de Bonferroni dentro de cada tema"
   umbral <- regla$umbral_puntos %||% 0
   base <- .sig_num(regla$base_minima %||% 30)
-  if (umbral > 0) {
-    sprintf("Diferencias entre públicos (muestras independientes): %s, %s, al menos %s puntos y %s casos por público.",
-            prueba, corr, .sig_num(umbral), base)
+  metodo <- sprintf("%s, p < %s con %s", prueba, alfa, corr)
+  texto <- if (umbral > 0) {
+    sprintf("Diferencias entre públicos (muestras independientes): %s, al menos %s puntos y %s casos por público.",
+            metodo, .sig_num(umbral), base)
   } else {
-    sprintf("Diferencias entre públicos (muestras independientes): %s, %s y al menos %s casos por público.", prueba, corr, base)
+    sprintf("Diferencias entre públicos (muestras independientes): %s y al menos %s casos por público.", metodo, base)
   }
+  if (isTRUE(hay_fragiles)) texto <- sprintf("%s △ Frágil: p ajustado entre 0.01 y %s.", texto, alfa)
+  texto
+}
+
+#' ¿Alguna tarjeta muestra una diferencia frágil (△)?
+#' @keywords internal
+.tpub_hay_fragiles <- function(tarjetas) {
+  any(vapply(tarjetas, function(t) isTRUE(t$fragil) || any(t$lineas_fragil %in% TRUE) ||
+               (is.data.frame(t$grupos) && any(t$grupos$fragil %in% TRUE)), logical(1)))
 }
 
 #' Calcula las tarjetas entre públicos de un conjunto de temas declarados
@@ -478,9 +497,11 @@
     tarjetas <- tarjetas[order(fr, -br)]
   }
   probados <- any(vapply(ev, function(te) identical(te$estado, "evaluable"), logical(1)))
-  list(tarjetas = utils::head(tarjetas, opt$max %||% .TARJETAS_MAX), total = length(tarjetas), tipo = .TPUB_CRUCE,
+  visibles <- utils::head(tarjetas, opt$max %||% .TARJETAS_MAX)
+  nota <- if (probados) .tpub_texto_pie(regla, local = isTRUE(fam$local), hay_fragiles = .tpub_hay_fragiles(visibles)) else NULL
+  list(tarjetas = visibles, total = length(tarjetas), tipo = .TPUB_CRUCE,
        opcion = opt, temas = ev, rotulos_cruce = stats::setNames(.TPUB_ROTULO, .TPUB_CRUCE), cruces = .TPUB_CRUCE,
-       grupos = NULL, regla = regla, nota = if (probados) .tpub_texto_pie(regla) else NULL, familia = fam)
+       grupos = NULL, regla = regla, nota = nota, familia = fam)
 }
 
 #' Una tarjeta en la forma del contrato del inspector
