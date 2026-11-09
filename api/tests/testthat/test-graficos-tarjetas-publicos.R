@@ -310,6 +310,17 @@ test_that("12. la familia entre públicos no cambia ninguna letra de la familia 
   expect_false(isTRUE(r$familia$local))
   despues <- letras()
   expect_identical(despues, antes)                              # ninguna letra de la base cambia
+  # Las láminas entre públicos EN el plan de la base (radar, panorama y contraste) tampoco entran a su familia
+  # (revisión del 2026-11-09, P9; antes este caso sólo probaba la familia entre públicos por separado).
+  mp <- list(tarjetas_diferencias = list(entre_publicos = TRUE))
+  radar <- list(id = "r1", meta = mp, payload = list(meta = mp, list(graficador = "p_radar",
+                                                                     args = list(modo = "publicos", vars = .tp_vars_arte, corte = "3,4"))))
+  panorama <- list(id = "pa1", meta = mp, payload = list(meta = mp, list(graficador = "p_panorama", args = list(
+    vars = list("docentes$*", "estudiantes$*", "administrativos$*"), corte = "3,4"))))
+  cfg$plan <- list(slides = c(plan_base$slides, plan_pub$slides, list(radar, panorama)))
+  con_publicos <- letras()
+  expect_identical(con_publicos$familia$m, antes$familia$m)
+  expect_identical(con_publicos, antes)
   expect_false(identical(fam$tabla, antes$familia))             # y no son el mismo objeto
   # El contexto del informe lleva las dos familias por separado.
   ctx <- .tpub_en_contexto(list(regla = regla, familia = antes$familia), plan_pub, src, NULL)
@@ -793,4 +804,20 @@ test_that("P8. una fila compuesta de la matriz se abstiene en el panorama con su
   otros <- Filter(function(te) te$tema %in% .tp_rot6[1:4], x$r$temas)
   expect_true(all(vapply(otros, `[[`, "", "estado") == "evaluable"))
   expect_false(any(vapply(x$r$temas, function(te) identical(te$motivo, .TPUB_MOTIVO_SIN_EQUIV), logical(1))))
+})
+
+test_that("P9. una marca cuyas cifras redondeadas coinciden no escribe «+0 pp ▲»: baja a bajo_umbral", {
+  n <- 50000L
+  mk <- function(x) data.frame(p1 = c(rep("4", x), rep("1", n - x)), stringsAsFactors = FALSE)
+  src <- list(data_sources = list(docentes = mk(39200L), estudiantes = mk(38800L)),          # 78.4% y 77.6%
+              inst_sources = list(docentes = .tp_inst(vars = "p1"), estudiantes = .tp_inst(vars = "p1")))
+  rg <- .tp_regla(); rg$umbral_puntos <- 0
+  r <- .tpub_calcular(.tpub_temas_declarados(list(t = c("docentes$p1", "estudiantes$p1"))), "3,4", src, rg, .tp_opt())
+  te <- r$temas[[1]]
+  expect_identical(te$ev$pares$veredicto, "marcada")             # la prueba sí la sostiene (p ajustado < 0.01)
+  pr <- .tpub_pares(te)
+  expect_identical(pr$dif_pp, 0)
+  expect_identical(pr$veredicto, "bajo_umbral")
+  expect_length(r$tarjetas, 0L)
+  expect_identical(.tpub_tema_json(te, rg)$pares[[1]]$veredicto, "bajo_umbral")
 })

@@ -359,7 +359,9 @@
 #' Pares de un tema en la forma del contrato: todos los pares de públicos, probados o no
 #'
 #' `a` es el de mayor proporción cuando el par se probó; `dif_pp` es la resta de las cifras que se leen (redondeo
-#' mitad hacia arriba). Un par que no se probó lleva el veredicto del tema (o «no_comparable») y p ajustado NA.
+#' mitad hacia arriba). Un par que no se probó lleva el veredicto del tema (o «no_comparable») y p ajustado NA. Un par
+#' significativo cuyas cifras redondeadas coinciden (78.4% y 77.6% se leen 78% y 78%) queda «bajo_umbral»: la tarjeta
+#' no puede decir «+0 pp ▲».
 #' @keywords internal
 .tpub_pares <- function(te, alfa = 0.05) {
   bs <- te$bases
@@ -383,10 +385,17 @@
                p_a = pct[[a]], p_b = pct[[b]], dif_pp = redondo(pct[[a]]) - redondo(pct[[b]]),
                p = if (probado) pr$p[hit[1]] else NA_real_,
                p_ajustado = if (probado) pr$p_ajustado[hit[1]] %||% NA_real_ else NA_real_,
-               veredicto = if (probado) pr$veredicto[hit[1]] %||% "no_comparable" else veredicto_tema,
+               veredicto = .tpub_veredicto_legible(if (probado) pr$veredicto[hit[1]] %||% "no_comparable" else veredicto_tema,
+                                                   redondo(pct[[a]]) - redondo(pct[[b]])),
                newcombe_lo = 100 * ic[1], newcombe_hi = 100 * ic[2], stringsAsFactors = FALSE)
   })
   do.call(rbind, filas)
+}
+
+#' Veredicto que la tarjeta puede escribir: una marca sin diferencia en las cifras que se leen baja a «bajo_umbral»
+#' @keywords internal
+.tpub_veredicto_legible <- function(veredicto, dif_pp) {
+  if (veredicto %in% c("marcada", "fragil") && is.finite(dif_pp) && dif_pp == 0) "bajo_umbral" else veredicto
 }
 
 # --- Tarjetas ----------------------------------------------------------------------------------------------------
