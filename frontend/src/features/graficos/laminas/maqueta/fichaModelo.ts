@@ -285,7 +285,7 @@ function preguntasVisibles(r: RanuraMaqueta, titulos: string[]): string[] {
  * `totalRegla`: cuántas preguntas elige la regla (el conteo del motor, caché de useConteoRegla); sin él, la regla sola.
  */
 export function fichaDeRanura(r: RanuraMaqueta, nombreTipo: string | null, conteos?: readonly ConteoCategoria[] | null, totalRegla?: number | null): FichaInfo {
-  const ficha = fichaBase(r, nombreTipo, conteos);
+  const ficha = sinVersionRepetida(fichaBase(r, nombreTipo, conteos));
   // M3: una lámina de resumen con regla dice la regla («Bajo 60%»), no la lista cruda de preguntas
   // («Docentes, todas las de escala y 2 preguntas más»): qué preguntas salen lo decide la regla, no `vars`.
   const regla = r.graficador && GRAFICADORES_CON_REGLA.has(r.graficador) ? reglaEfectiva(r.graficador, r.args, r.args.regla) : null;
@@ -298,6 +298,17 @@ export function fichaDeRanura(r: RanuraMaqueta, nombreTipo: string | null, conte
     return { ...ficha, publicos: [...ficha.preguntas, ...ficha.publicos.filter((p) => !ficha.preguntas.includes(p))], preguntas: [] };
   }
   return ficha;
+}
+
+/**
+ * Ronda 21: la cabecera ya dice «<tipo>, versión <versión>» (nombreGraficoEnFicha); el chip con la misma versión debajo
+ * la repetía («Brecha entre grupos, versión Aperturas por grupo» y, debajo, «Aperturas por grupo»). Sale sólo cuando la
+ * cabecera no la nombra (el nombre que el mazo dio a la lámina manda sobre el del tipo).
+ */
+export function sinVersionRepetida(ficha: FichaInfo): FichaInfo {
+  const cabecera = ficha.tipo.toLocaleLowerCase("es");
+  const ajustes = ficha.ajustes.filter((a) => !cabecera.includes(`versión ${a.toLocaleLowerCase("es")}`));
+  return ajustes.length === ficha.ajustes.length ? ficha : { ...ficha, ajustes };
 }
 
 function fichaBase(r: RanuraMaqueta, nombreTipo: string | null, conteos?: readonly ConteoCategoria[] | null): FichaInfo {

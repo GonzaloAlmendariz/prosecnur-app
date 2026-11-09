@@ -1,6 +1,6 @@
 // ADR 0134: lo que la ficha de la maqueta dice de los gráficos del resumen ejecutivo.
 import { describe, expect, it } from "vitest";
-import { ajustesDelGlifo, fichaDeRanura } from "./fichaModelo";
+import { ajustesDelGlifo, fichaDeRanura, sinVersionRepetida } from "./fichaModelo";
 
 const ajustes = (g: string, args: Record<string, unknown>) => ajustesDelGlifo(g, args, false).ajustes;
 
@@ -26,6 +26,14 @@ describe("ficha · resumen ejecutivo (ADR 0134)", () => {
     expect(ajustes("p_dumbbell", aperturas)).toEqual(["Aperturas por grupo"]);
     expect(ajustes("p_dumbbell", aperturas)).not.toContain("Contraste de públicos");
     expect(ajustes("p_dumbbell", { cruce: "docentes$ciclo", vars: ["docentes$p7"] })).toEqual([]);
+  });
+
+  it("ronda 21: si la cabecera ya nombra la versión, el chip no la repite; con el nombre del mazo, sí", () => {
+    const base = { graficador: "p_dumbbell", lectura: null, vacia: false, faltaPregunta: false, forma: null, glifo: {}, preguntas: [], publicos: [], leyendas: [], avisos: [] };
+    const conVersion = { ...base, tipo: "Brecha entre grupos, versión Aperturas por grupo", ajustes: ["Aperturas por grupo", "Separador tras la fila 6"] };
+    expect(sinVersionRepetida(conVersion).ajustes).toEqual(["Separador tras la fila 6"]);
+    const delMazo = { ...base, tipo: "Brechas por ciclo, Docentes", ajustes: ["Aperturas por grupo"] };
+    expect(sinVersionRepetida(delMazo).ajustes).toEqual(["Aperturas por grupo"]);
   });
 
   it("panorama: sólo una referencia distinta de 60 se nombra", () => {
