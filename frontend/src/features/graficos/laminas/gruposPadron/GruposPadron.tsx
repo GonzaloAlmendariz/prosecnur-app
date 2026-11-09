@@ -73,9 +73,11 @@ export function GruposPadron({ args, cruce, opciones, scope, onCambio }: Props) 
         </span>
       </div>
       <Panel variant="subtle" noPadding className="pulso-f6-grupos-lista" data-qa-geometry-member>
-        <ul ref={lista} className="pulso-f6-grupos-filas" data-qa-scroll-owner="grupos-padron" aria-labelledby={`${id}-rotulo`}>
+        {/* Ronda 19 (C1): la colección de grupos declara su contrato; cada fila crece con su padrón (intrínseco). */}
+        <ul ref={lista} className="pulso-f6-grupos-filas" data-qa-scroll-owner="grupos-padron" aria-labelledby={`${id}-rotulo`}
+          data-qa-geometry-group="graficos/f6-grupos-padron" data-qa-geometry-contract="intrinsic">
           {vistas.map((f) => (
-            <li key={f.codigo} data-flip={f.codigo} className={f.incluido ? "pulso-f6-grupos-fila is-incluido" : "pulso-f6-grupos-fila"}
+            <li key={f.codigo} data-flip={f.codigo} className={f.incluido ? "pulso-f6-grupos-fila is-incluido" : "pulso-f6-grupos-fila"} data-qa-geometry-member
               onKeyDown={alTeclear(f.codigo, f.incluido)}>
               <div className="pulso-f6-grupos-fila-cabeza">
                 <PulsoSwitch size="sm" label={f.etiqueta} checked={f.incluido} disabled={f.bloqueado}
