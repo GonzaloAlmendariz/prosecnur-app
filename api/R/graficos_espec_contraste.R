@@ -221,6 +221,7 @@
     casos = N[o, , drop = FALSE], bases = B[o, , drop = FALSE], con_cobertura = is.finite(uni),
     base_en = base_en, leyenda = leyenda, nota_base = nota_base, universos = uni, leyenda_con_n = leyenda_con_n,
     separadores = sep, modo = if (k == 2L) "par" else "subfilas",
+    prioridad = .contraste_prioridad(dif[o], V[o, , drop = FALSE], o, sep),   # P5: qué filas quedan si una ranura no las admite todas
     eje = .dumbbell_eje(V, limite_x, holgura = 4), titulo_eje = titulo_eje, decimales = dec   # D5: 4 o 5 marcas (graficos_dumbbell_eje.R)
   )
 }

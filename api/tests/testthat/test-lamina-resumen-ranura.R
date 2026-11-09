@@ -76,9 +76,13 @@ test_that("cada gráfico dibuja sus piezas y su nota va al pie de la lámina com
   x <- .rr_render(.rr_slides(2L, .rr_graficos()$contraste))
   expect_true(grepl("Diferencia", pie(x), fixed = TRUE))
   expect_true(grepl("Docentes menos Estudiantes", pie(x), fixed = TRUE))   # D6
-  expect_true(grepl("Se muestran las 3 de mayor diferencia", pie(x), fixed = TRUE))
+  # P7: la ranura deja las 2 de mayor diferencia y la nota de la regla lo dice en UNA frase, no «Se muestran las 3» y
+  # luego «muestra las 2 primeras de 3».
+  frase <- "Se muestran las 2 de mayor diferencia de las 3 elegidas; el resto en otra lámina."
+  expect_true(grepl(frase, pie(x), fixed = TRUE))
+  expect_false(grepl("Por espacio", pie(x), fixed = TRUE))
   # Dos ranuras con el mismo gráfico: la regla va una sola vez en el pie.
-  expect_identical(lengths(regmatches(pie(x), gregexpr("Se muestran las 3", pie(x), fixed = TRUE))), 1L)
+  expect_identical(lengths(regmatches(pie(x), gregexpr("Se muestran las", pie(x), fixed = TRUE))), 1L)
   x <- .rr_render(.rr_slides(4L, .rr_graficos()$sin_informacion))
   expect_true(grepl("Sin información", pie(x), fixed = TRUE))
   expect_true(grepl('name="divergentes:centro"', x, fixed = TRUE))

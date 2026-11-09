@@ -50,7 +50,7 @@ test_that("L10-3: la columna de la diferencia dice quién menos quién y los gru
   o <- .lam_laminas_pesas(.l10_doc(), e, "Brecha", folio = 1)
   xml <- .l10_xml(o$doc)
   expect_length(.l10_txt(xml, "pesas:sentido"), 0L)   # D6: quién menos quién va en el pie, no bajo el encabezado
-  expect_identical(attr(graficar_dumbbell(d), "note_outside"), "Diferencia: Mujer menos Hombre, en puntos")
+  expect_identical(attr(graficar_dumbbell(d), "note_outside"), "Diferencia: Mujer menos Hombre, en puntos.")
   expect_identical(.l10_txt(xml, "pesas:encabezado"), "Diferencia")
 })
 

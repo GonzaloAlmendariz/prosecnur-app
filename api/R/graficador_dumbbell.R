@@ -368,6 +368,7 @@ graficar_dumbbell <- function(
       panel.background = ggplot2::element_rect(fill = NA, colour = NA)
     )
   attr(p, "pulso_espec") <- espec_pesas
-  if (isTRUE(mostrar_brecha)) attr(p, "note_outside") <- paste0("Diferencia: ", sentido, ", en puntos")   # D6: en el pie
+  # D6: en el pie. P5: el pie del clásico cierra con punto («…, en puntos.»), como toda nota de la lámina.
+  if (isTRUE(mostrar_brecha)) attr(p, "note_outside") <- paste0("Diferencia: ", sentido, ", en puntos.")
   p
 }

@@ -577,6 +577,7 @@ p_barras_divergentes <- function(vars = NULL,
   ap <- .regla_preguntas_aplicar_render(el, "barras divergentes", preset = base_preset); el <- ap$el   # ADR 0135
   args_usuario <- utils::modifyList(as.list(base_preset %||% list()),
                                     as.list(el$overrides %||% list()))
+  el <- .divergentes_expandir_comodin(el, args_usuario, base_preset)   # `base$*` sin regla (graficos_escala_comodin.R)
   # E3: la escala del resumen con más filas de las que caben muestra las que caben, en el orden de la regla, y lo dice.
   tope <- if (identical(args_usuario$estilo, "resumen")) .divergentes_tope_espacio(el$vars, el$regla) else list(vars = el$vars)
   el$vars <- tope$vars
@@ -587,7 +588,7 @@ p_barras_divergentes <- function(vars = NULL,
     el
   )
   # Con regla, una fila que no se puede dibujar sale con aviso y no tumba la lámina (graficos_escala_filas_fallidas.R).
-  tabla <- (if (is.null(el$regla)) .ola4_tabla_escala else .ola4_tabla_escala_tolerante)(
+  tabla <- (if (is.null(el$regla) && !isTRUE(el$.comodin_expandido)) .ola4_tabla_escala else .ola4_tabla_escala_tolerante)(
     el$vars,
     el$filtros %||% list(),
     excluir_opciones = excluir_opciones,
@@ -870,7 +871,9 @@ p_dumbbell <- function(vars = NULL,
   base_preset <- if (length(preset_args)) preset_args else .ola4_preset("dumbbell")
   args_usuario <- utils::modifyList(as.list(base_preset %||% list()),
                                     as.list(el$overrides %||% list()))
-  tope <- .contraste_tope_espacio(datos, args_usuario$valores_decimales %||% 0L); datos <- tope$datos   # E3 (graficos_tope_espacio.R)
+  # E3 (graficos_tope_espacio.R); en una ranura recorta la ranura con lo que de verdad cabe (P5).
+  tope <- if (.tope_espacio_en_ranura(el)) list(datos = datos, texto = NULL) else .contraste_tope_espacio(datos, args_usuario$valores_decimales %||% 0L)
+  datos <- tope$datos
   base_args <- list(
     data = datos, var_eje = "eje", var_grupo = "grupo", var_valor = "valor",
     escala_valor = "proporcion_100",
@@ -886,6 +889,7 @@ p_dumbbell <- function(vars = NULL,
   args <- .keep_formals(graficar_dumbbell, args, contexto = "graficar_dumbbell")
   p <- .dumbbell_con_grupo_chico(do.call(graficar_dumbbell, args), el)   # «Grupo chico: 24 docentes TC.»
   if (!identical(args$estilo, "resumen")) p <- .tope_espacio_al_pie(p, el, tope$texto)   # el clásico no tiene nota de regla
+  p <- .contraste_regla_en_espec(p, el)   # para que una ranura que recorta reescriba la nota en una frase (P7)
   .regla_preguntas_en_espec(p, .tope_espacio_unir(ap$texto, if (identical(args$estilo, "resumen")) tope$texto))
 }
 

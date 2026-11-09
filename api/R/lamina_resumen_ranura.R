@@ -163,8 +163,11 @@
 .lam_rr_menos_filas <- function(espec, geo) {
   etq <- .lam_rr_etiqueta(espec, NA_integer_)
   quien <- if (grepl("^Gráfico", etq)) "una ranura" else paste("la ranura de", etq)
-  que <- if (identical(geo$clase, "fortalezas")) sprintf("las %d más altas y las %d más bajas", geo$k, geo$k) else sprintf("las %d primeras", geo$k)
+  que <- if (identical(geo$clase, "fortalezas")) sprintf("las %d más altas y las %d más bajas", geo$k, geo$k)
+         else if (isTRUE(geo$por_prioridad)) sprintf("las %d de mayor diferencia", geo$k) else sprintf("las %d primeras", geo$k)
   nota <- sprintf("Por espacio, %s muestra %s de %d", quien, que, geo$n_total)
+  # Con regla, la nota de la regla se reemplaza por una sola frase (P7): no «Se muestran las 30…» y luego «muestra 9 de 30».
+  if (.lam_rr_reemplazo_regla(espec, geo)) { .pulso_aviso(paste0(nota, "; para verlas todas, usa una lámina de un gráfico o nombres cortos.")); return(invisible()) }
   .LAM_RR_PIE$notas <- unique(c(.LAM_RR_PIE$notas, nota))
   .pulso_aviso(paste0(nota, "; para verlas todas, usa una lámina de un gráfico o nombres cortos."))
 }
@@ -172,6 +175,7 @@
 #' El pie de la lámina compuesta con las notas de filas de menos de sus ranuras (y las vacía para la siguiente lámina)
 #' @keywords internal
 .lam_rr_pie_menos_filas <- function(base) {
+  base <- .lam_rr_pie_reemplazar(base)   # la nota de la regla que el recorte de la ranura reemplaza (lamina_resumen_ranura_prioridad.R)
   notas <- .LAM_RR_PIE$notas; .LAM_RR_PIE$notas <- NULL
   if (!length(notas)) return(base)
   b <- as.character(base %||% "")[1]; if (is.na(b)) b <- ""
@@ -291,7 +295,7 @@
   pasos <- if (par) rep(1, n) else rep(k + 0.7, n)
   wp_min <- 2.2
   w_max <- min(2.6, w - wd - 0.35 - wp_min - 0.15)
-  f <- .lam_rr_filas(espec$rotulos, 1.2, w_max, disponible, pasos, if (par) 0.22 else 0.13, if (par) 0.45 else 0.24, desde = 11)
+  f <- .lam_rr_contraste_filas(espec, w_max, disponible, pasos, par)   # en el orden de su prioridad (lamina_resumen_ranura_prioridad.R)
   if (is.null(f)) return(list(cabe = FALSE))
   xl <- x + f$wq + 0.15; xr <- x + w - wd - 0.35
   f$n_total <- n
@@ -313,6 +317,7 @@
 
 #' @keywords internal
 .lam_rr_contraste <- function(lz, espec, ge) {
+  if (!is.null(ge$filas)) espec <- .contraste_espec_filas(espec, ge$filas)   # las que caben, por prioridad
   azul <- .std_color("azul"); suave <- .std_color("texto_suave")
   n <- ge$k %||% length(espec$rotulos); k <- length(espec$grupos); par <- identical(espec$modo, "par")
   espec$separadores <- (espec$separadores %||% integer(0))[(espec$separadores %||% integer(0)) < n]

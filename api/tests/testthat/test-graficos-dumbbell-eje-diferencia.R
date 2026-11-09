@@ -35,7 +35,7 @@ test_that("D6: la diferencia va sin unidad («+4») y el pie dice quién menos q
   p <- graficar_dumbbell(.dd_datos(c(60, 50), c(56, 58)))
   e <- attr(p, "pulso_espec")
   expect_setequal(e$textos_diferencia, c("+4", "-8"))
-  expect_identical(attr(p, "note_outside"), "Diferencia: Docentes menos Estudiantes, en puntos")
+  expect_identical(attr(p, "note_outside"), "Diferencia: Docentes menos Estudiantes, en puntos.")
   expect_false(grepl("Diferencia", p$labels$subtitle %||% ""))
   # Quien quiere «pts», la escribe.
   expect_setequal(attr(graficar_dumbbell(.dd_datos(c(60, 50), c(56, 58)), etiqueta_brecha = "pts"), "pulso_espec")$textos_diferencia, c("+4 pts", "-8 pts"))
