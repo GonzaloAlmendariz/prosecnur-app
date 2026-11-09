@@ -97,7 +97,8 @@
   if (is.null(ge)) stop("La escala del resumen no cabe en una lámina.", call. = FALSE)
   # P11: si no caben todas enteras, la lámina muestra las primeras en la prioridad de la regla y su nota lo dice.
   if (length(ge$filas) < n) {
-    .pulso_aviso(.aviso_en_lamina(.tope_espacio_aviso(length(ge$filas), n)))
+    rc <- espec$recorte_escala
+    .pulso_aviso(.aviso_en_lamina(.tope_espacio_aviso(length(ge$filas), rc$n %||% n, rc$desde %||% 1L)))
     espec$texto_regla <- .lam_div_resumen_texto(espec, length(ge$filas))
     espec <- .lam_div_resumen_subset(espec, ge$filas)
     C <- espec$categorias; U <- espec$unidades; X <- espec$cifras; n <- length(espec$filas)

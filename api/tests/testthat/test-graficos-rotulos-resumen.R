@@ -154,7 +154,7 @@ test_that("el contraste de más de 14 pares muestra los 14 de mayor diferencia y
   expect_null(p$labels$caption)
   # P7: con regla, el recorte reescribe su nota en una sola frase.
   expect_match(attr(p, "note_outside"),
-               "^Base: Docentes 115; Estudiantes 279\\. Diferencia: Docentes menos Estudiantes, en puntos\\. Se muestran las 14 de mayor diferencia de las 18 elegidas, de 20 preguntas comunes; el resto en otra lámina\\.$")
+               "^Base: Docentes 115; Estudiantes 279\\. Diferencia: Docentes menos Estudiantes, en puntos\\. Se muestran las 14 de mayor diferencia de las 18 elegidas, de 20 preguntas comunes; las 4 siguientes no caben en esta lámina\\.$")
 })
 
 test_that("con el respaldo, la lámina lleva una sola base: la de cada grupo, abajo a la izquierda (U3)", {
@@ -251,7 +251,7 @@ test_that("P11: la escala de 18 filas con rótulos reales de Arte usa el ancho y
   if (k < 18L) {
     expect_true(all(e$total_pos[ge$filas] <= min(e$total_pos[-ge$filas])))
     pie <- paste(.rr_textos(r$xml, "Base lamina"), collapse = " ")
-    expect_match(pie, sprintf("Se muestran las %d más bajas de 18 preguntas de escala; el resto en otra lámina.", k), fixed = TRUE)
+    expect_match(pie, sprintf("Se muestran las %d más bajas de 18 preguntas de escala; las %d siguientes no caben en esta lámina.", k, 18L - k), fixed = TRUE)
   }
 })
 
@@ -262,7 +262,7 @@ test_that("D2: el tope de la escala del resumen es 20 filas; por encima muestra 
   e22 <- attr(.rr_escala(11)$rendered[[1]], "pulso_espec")
   expect_length(e22$filas, 20L); expect_true(.lam_divergentes_resumen_cabe(e22))
   # Sin regla también se recorta por el Top Two Box que dibuja la lámina, de la más baja a la más alta (lead, 2026-11-09).
-  expect_match(e22$texto_regla, "Se muestran las 20 más bajas de 22 preguntas de escala; el resto en otra lámina.", fixed = TRUE)
+  expect_match(e22$texto_regla, "Se muestran las 20 más bajas de 22 preguntas de escala; las 2 siguientes no caben en esta lámina.", fixed = TRUE)
   # Con pocas filas y rótulos cortos la geometría es la de siempre: 12 pt, filas de 0.52 in.
   corto <- e20; corto$filas <- paste("Pregunta", 1:6); corto$unidades <- e20$unidades[1:6, , drop = FALSE]; corto$cifras <- e20$cifras[1:6, , drop = FALSE]
   gc <- .lam_div_resumen_geom(corto)

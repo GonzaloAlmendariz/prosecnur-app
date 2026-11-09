@@ -39,7 +39,8 @@ p_barras_divergentes <- function(vars = NULL,
                                  estilo = NULL,
                                  orden = NULL,
                                  regla = NULL,
-                                 abreviaturas = NULL) {
+                                 abreviaturas = NULL,
+                                 continuar_desde = NULL) {
   direccion_escala <- match.arg(direccion_escala)
   refs <- as.character(unlist(vars %||% var %||% character(0)))
   refs <- refs[!is.na(refs) & nzchar(trimws(refs))]
@@ -73,6 +74,7 @@ p_barras_divergentes <- function(vars = NULL,
   )
   # Con preguntas de varios públicos cada fila lleva su abreviatura (graficos_divergentes_publicos.R).
   if (length(.divergentes_abreviaturas_leer(abreviaturas))) el$abreviaturas <- .divergentes_abreviaturas_leer(abreviaturas)
+  el$continuar_desde <- .graf_continuar_desde(continuar_desde, "p_barras_divergentes()")   # P14 (graficos_continuar_desde.R)
   class(el) <- c("ppt_element", "list")
   .regla_preguntas_en_constructor(el, regla, "p_barras_divergentes()")   # ADR 0135
 }
@@ -740,8 +742,10 @@ p_dumbbell <- function(vars = NULL,
                        regla = NULL,
                        universos_no_confiables = NULL,
                        bases = NULL,
-                       leyenda_con_n = NULL) {
+                       leyenda_con_n = NULL,
+                       continuar_desde = NULL) {
   no_confiables <- .graficos_universos_no_confiables(universos_no_confiables, "p_dumbbell()")
+  desde <- .graf_continuar_desde(continuar_desde, "p_dumbbell()")   # P14 (graficos_continuar_desde.R)
   # G17: con `cruce` y `grupos` la brecha es entre dos grupos de una misma base (graficos_dumbbell_grupos.R).
   if (!is.null(cruce)) {
     # ADR 0135: con regla y sin temas, las aperturas toman la base del cruce (graficos_dumbbell_auto.R).
@@ -749,6 +753,7 @@ p_dumbbell <- function(vars = NULL,
     el <- .p_dumbbell_grupos(vars, corte, corte_etiqueta, orden, mostrar_brecha, umbral_brecha_pct, titulo,
                              overrides, base, filtros, etiqueta_brecha, cruce, grupos, estilo, universos, separar_tras, base_en, leyenda_con_n)
     el$universos_no_confiables <- no_confiables
+    el$continuar_desde <- desde
     return(.regla_preguntas_en_constructor(el, regla, "p_dumbbell()"))   # ADR 0135
   }
   # ADR 0135: sin temas, el contraste los arma solo desde `bases` o, con una regla, desde las dos bases del estudio
@@ -770,6 +775,7 @@ p_dumbbell <- function(vars = NULL,
     el <- list(.element_type = "dumbbell", var = NULL, vars = NULL, corte = .graf_corte_unido(corte),
                corte_etiqueta = as.character(corte_etiqueta %||% "")[1], title_slide = titulo, overrides = ov, base = base,
                filtros = .ppt_norm_filters(filtros), universos_no_confiables = no_confiables)
+    el$continuar_desde <- desde
     class(el) <- c("ppt_element", "list")
     return(.regla_preguntas_en_constructor(el, regla, "p_dumbbell()"))
   }
@@ -831,6 +837,7 @@ p_dumbbell <- function(vars = NULL,
     filtros = .ppt_norm_filters(filtros)
   )
   el$universos_no_confiables <- no_confiables
+  el$continuar_desde <- desde
   class(el) <- c("ppt_element", "list")
   .regla_preguntas_en_constructor(el, regla, "p_dumbbell()")   # ADR 0135
 }
@@ -874,7 +881,7 @@ p_dumbbell <- function(vars = NULL,
   args_usuario <- utils::modifyList(as.list(base_preset %||% list()),
                                     as.list(el$overrides %||% list()))
   # E3 (graficos_tope_espacio.R); en una ranura recorta la ranura con lo que de verdad cabe (P5).
-  tope <- if (.tope_espacio_en_ranura(el)) list(datos = datos, texto = NULL) else .contraste_tope_espacio(datos, args_usuario$valores_decimales %||% 0L)
+  tope <- if (.tope_espacio_en_ranura(el)) list(datos = datos, texto = NULL) else .contraste_tope_espacio(datos, args_usuario$valores_decimales %||% 0L, desde = if (is.null(el$regla)) el$continuar_desde else 1L)
   datos <- tope$datos
   base_args <- list(
     data = datos, var_eje = "eje", var_grupo = "grupo", var_valor = "valor",

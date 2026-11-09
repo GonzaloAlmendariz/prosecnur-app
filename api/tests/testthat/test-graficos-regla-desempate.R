@@ -18,7 +18,7 @@ test_that("P7: el recorte sigue la métrica de la regla; lo que la lámina rotul
   expect_false("docentes$p30_3" %in% r$vars)
   # Una sola frase: no «Se muestran las 22 bajo 60%» y luego «Por espacio, se muestran las 20 más bajas de 22».
   # Con el universo (lead, 2026-11-09).
-  expect_match(r$evaluacion$texto, "^Se muestran las 20 más bajas de las 22 bajo 60%, de 23 preguntas de escala; el resto en otra lámina\\.")
+  expect_match(r$evaluacion$texto, "^Se muestran las 20 más bajas de las 22 bajo 60%, de 23 preguntas de escala; las 2 siguientes no caben en esta lámina\\.")
   expect_false(grepl("Por espacio", r$evaluacion$texto, fixed = TRUE))
   # Un empate exacto sigue por el orden del instrumento; el ruido del punto flotante no desempata.
   ind2 <- data.frame(tema = c("a", "b"), grupo = "g", valor = c(15, 15), valor_fino = c(16.4 - 1.4, 15), orden = 1:2)

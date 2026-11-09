@@ -33,7 +33,7 @@
     regla = el$regla,
     n = if (sin_regla) el$.n_sin_recorte %||% length(espec$filas) else ap$n_elegidas %||% length(espec$filas),
     total = ap$total, universo = ap$universo %||% "preguntas de escala",
-    texto_base = if (sin_regla) el$.texto_tope else ap$texto_base,
+    texto_base = if (sin_regla) el$.texto_tope else ap$texto_base, desde = .tope_espacio_desde(el$continuar_desde),
     criterio = if (sin_regla) "más bajas" else NULL)
   attr(p, "pulso_espec") <- espec
   p
@@ -101,12 +101,10 @@
 .lam_div_resumen_texto <- function(espec, k) {
   rc <- espec$recorte_escala
   if (is.null(rc)) return(.tope_espacio_unir(espec$texto_regla, .tope_espacio_texto(k, length(espec$filas), "primeras")))
-  n <- rc$n %||% length(espec$filas)
+  n <- rc$n %||% length(espec$filas); desde <- rc$desde %||% 1L
   frase <- if (!is.null(rc$regla)) {
-    .tope_espacio_frase(rc$regla, k, n, universo = rc$universo %||% "preguntas de escala", total = rc$total)
-  } else if (identical(rc$criterio, "más bajas")) {
-    sprintf("Se muestran las %d más bajas %s; el resto en otra lámina.", k, .regla_preguntas_de_total(n, "preguntas de escala"))
-  } else .tope_espacio_texto(k, n, "primeras")
+    .tope_espacio_frase(rc$regla, k, n, universo = rc$universo %||% "preguntas de escala", total = rc$total, desde = desde)
+  } else if (identical(rc$criterio, "más bajas")) .tope_espacio_mas_bajas(k, n, desde) else .tope_espacio_texto(k, n, "primeras", desde = desde)
   viejo <- rc$texto_base
   actual <- espec$texto_regla
   if (!is.null(viejo) && nzchar(viejo) && !is.null(actual) && grepl(viejo, actual, fixed = TRUE)) return(sub(viejo, frase, actual, fixed = TRUE))

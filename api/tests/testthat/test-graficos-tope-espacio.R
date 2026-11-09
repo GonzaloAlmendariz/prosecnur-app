@@ -13,7 +13,7 @@ test_that("el contraste de 40 pares muestra los 14 de mayor diferencia y lo dice
   expect_length(quedan, 14L)
   expect_true("Tema 40" %in% quedan)              # |−50| entra: la diferencia va en valor absoluto
   expect_identical(quedan[1:3], c("Tema 01", "Tema 02", "Tema 03"))   # en el orden declarado
-  expect_identical(r$texto, "Por espacio, se muestran las 14 de mayor diferencia de 40; el resto en otra lámina.")
+  expect_identical(r$texto, "Por espacio, se muestran las 14 de mayor diferencia de 40; las 26 siguientes no caben en esta lámina.")
   # Con tres grupos caben 7 (27 sub-filas) y con cuatro, 5; con lo que cabe no se toca nada.
   expect_identical(.contraste_tope_filas(3L), 7L); expect_identical(.contraste_tope_filas(4L), 5L)
   pocos <- d[as.character(d$eje) %in% temas[1:10], ]
@@ -24,7 +24,7 @@ test_that("la escala del resumen recorta en el orden de la regla y nombra el cri
   v <- paste0("b$p", 1:22)
   r <- suppressMessages(.divergentes_tope_espacio(v, list(tipo = "bajo_umbral", umbral = 60)))
   expect_identical(r$vars, v[1:20])
-  expect_identical(r$texto, "Se muestran las 20 más bajas de las 22 bajo 60%; el resto en otra lámina.")   # P7: una frase
+  expect_identical(r$texto, "Se muestran las 20 más bajas de las 22 bajo 60%; las 2 siguientes no caben en esta lámina.")   # P7: una frase
   expect_match(suppressMessages(.divergentes_tope_espacio(v, list(tipo = "mayor_sin_info", n = 22)))$texto, "20 con más Sin información de las 22 elegidas")
   expect_match(suppressMessages(.divergentes_tope_espacio(v, NULL))$texto, "las primeras 20 de 22")
   expect_null(.divergentes_tope_espacio(v[1:20], NULL)$texto)
@@ -49,6 +49,6 @@ test_that("en el render el contraste de muchos pares sale nativo con el recorte 
                                                      mensajes_progreso = FALSE)))
   xml <- .pptx_leer_parte(f, .pptx_slide_paths(f)[1])
   txt <- paste(xml2::xml_text(xml2::xml_find_all(xml2::read_xml(xml), "//a:t")), collapse = " ")
-  expect_match(txt, "Por espacio, se muestran las 14 de mayor diferencia de 30; el resto en otra lámina.", fixed = TRUE)
+  expect_match(txt, "Por espacio, se muestran las 14 de mayor diferencia de 30; las 16 siguientes no caben en esta lámina.", fixed = TRUE)
   expect_true(grepl("prosecnur:grafico:contraste", xml, fixed = TRUE))   # nativa: el contraste con piezas, no una imagen
 })

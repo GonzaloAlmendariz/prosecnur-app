@@ -78,7 +78,7 @@ test_that("cada gráfico dibuja sus piezas y su nota va al pie de la lámina com
   expect_true(grepl("Docentes menos Estudiantes", pie(x), fixed = TRUE))   # D6
   # P7: la ranura deja las 2 de mayor diferencia y la nota de la regla lo dice en UNA frase, no «Se muestran las 3» y
   # luego «muestra las 2 primeras de 3».
-  frase <- "Se muestran las 2 de mayor diferencia de las 3 elegidas, de 4 preguntas comunes; el resto en otra lámina."
+  frase <- "Se muestran las 2 de mayor diferencia de las 3 elegidas, de 4 preguntas comunes; la siguiente no cabe en esta lámina."
   expect_true(grepl(frase, pie(x), fixed = TRUE))
   expect_false(grepl("Por espacio", pie(x), fixed = TRUE))
   # Dos ranuras con el mismo gráfico: la regla va una sola vez en el pie.

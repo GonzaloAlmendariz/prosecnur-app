@@ -15,7 +15,7 @@ test_that("P5: la escala con `base$*` y sin regla se dibuja y se recorta por su 
   e <- attr(out$rendered[[1]], "pulso_espec")
   expect_identical(e$tipo, "divergentes")
   expect_length(e$filas, 20L)
-  expect_identical(e$texto_regla, "Se muestran las 20 más bajas de 23 preguntas de escala; el resto en otra lámina.")
+  expect_identical(e$texto_regla, "Se muestran las 20 más bajas de 23 preguntas de escala; las 3 siguientes no caben en esta lámina.")
   # Por la métrica que dibuja la lámina, no por el instrumento: docentes va primero en `vars` y aun así sale p30_3
   # (58,26 %); estudiantes p24_2 (58,06 %) y p24_9 (82 %) salen; p15_1 (57,39 %) se queda.
   quedan <- e$filas
