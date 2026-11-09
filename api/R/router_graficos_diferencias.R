@@ -5,18 +5,19 @@
 
 #' Datos e instrumento de la base activa para la prueba
 #' @keywords internal
-.sig_fuente_sesion <- function(sid) {
+.sig_fuente_sesion <- function(sid, base = NULL) {
   src <- .graficos_processing_sources(sid)
   if (!length(src$data_sources)) stop_api(409, "E_NO_DATA", "Carga una base antes de revisar diferencias.")
-  activa <- .graficos_active_base_name(sid)
-  nombre <- if (nzchar(activa) && activa %in% names(src$data_sources)) activa else names(src$data_sources)[[1]]
-  list(data = src$data_sources[[nombre]], inst = src$inst_sources[[nombre]] %||% NULL, base = nombre)
+  activa <- as.character(base %||% .graficos_active_base_name(sid))[1]
+  nombre <- if (!is.na(activa) && nzchar(activa) && activa %in% names(src$data_sources)) activa else names(src$data_sources)[[1]]
+  list(data = src$data_sources[[nombre]], inst = src$inst_sources[[nombre]] %||% NULL, base = nombre,
+       bases = names(src$data_sources))
 }
 
 #' Contexto (regla y familia) de la sesión, con una regla propuesta encima si viene
 #' @keywords internal
-.sig_contexto_sesion <- function(sid, regla = NULL) {
-  f <- .sig_fuente_sesion(sid)
+.sig_contexto_sesion <- function(sid, regla = NULL, base = NULL) {
+  f <- .sig_fuente_sesion(sid, base)
   cfg <- .graficos_config_get(sid)
   if (is.list(regla)) {
     propuesta <- .sig_regla_propuesta(f$data)
@@ -24,9 +25,12 @@
   }
   # Sin config de Analítica (estudio sin esa fase) la familia se arma solo con las láminas: no es un error del pedido.
   ac <- tryCatch(.analitica_get_config(sid), error = function(e) list())
-  if (is.list(cfg$significancia)) .sig_regla_validar_base(.sig_regla_normalizar(cfg$significancia), f$data)
+  # La regla se valida contra la base activa, que es donde se guarda; la lámina de otra base (R12-2) se abstiene si no
+  # trae la columna de diseño (`.sig_diseno_invalido` en `.sig_lamina_json`), como en el render.
+  if (is.list(cfg$significancia) && is.null(base)) .sig_regla_validar_base(.sig_regla_normalizar(cfg$significancia), f$data)
   ctx <- .sig_contexto_estudio(f$data, f$inst, cfg, ac)
-  list(ctx = ctx, fuente = .sig_fuente(f$data, f$inst), cfg = cfg, analitica = ac, data = f$data)
+  list(ctx = ctx, fuente = .sig_fuente(f$data, f$inst), cfg = cfg, analitica = ac, data = f$data, base = f$base,
+       bases = f$bases)
 }
 
 #' Columnas candidatas a conglomerado y estrato (las que tienen entre 2 y 500 valores distintos)
@@ -101,7 +105,8 @@ mount_graficos_diferencias <- function(pr) {
     plumber::pr_get("/api/graficos/diferencias/informe", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       sc <- .sig_contexto_sesion(sid)
-      c(list(ok = TRUE, regla = .sig_regla_json(sc$ctx$regla)), .sig_informe_json(sc$cfg$plan, sc$fuente, sc$ctx))
+      c(list(ok = TRUE, regla = .sig_regla_json(sc$ctx$regla)),
+        .sig_informe_json(sc$cfg$plan, sc$fuente, sc$ctx, contexto_de = .sig_contexto_por_lamina(sid, sc)))
     })) |>
     plumber::pr_get("/api/graficos/diferencias", wrap_endpoint(function(req, res, slide = "", ...) {
       sid <- session_header(req)
@@ -113,6 +118,7 @@ mount_graficos_diferencias <- function(pr) {
       if (!is.null(.tpub_elemento_de_lamina(s))) {   # ADR 0138: tarjetas entre públicos (modo_letras «entre_publicos»)
         return(list(ok = TRUE, regla = .sig_regla_json(sc$ctx$regla), lamina = .tpub_lamina_json_sesion(sid, s, sc)))
       }
-      list(ok = TRUE, regla = .sig_regla_json(sc$ctx$regla), lamina = .sig_lamina_json(s, sc$fuente, sc$ctx))
+      sl <- .sig_contexto_por_lamina(sid, sc)(s)   # R12-2: la base de la ranura, no la activa
+      list(ok = TRUE, regla = .sig_regla_json(sc$ctx$regla), lamina = .sig_lamina_json(s, sl$fuente, sl$ctx))
     }))
 }

@@ -144,12 +144,14 @@
 
 #' Todas las láminas con cruce del informe
 #' @keywords internal
-.sig_informe_json <- function(plan, fuente, ctx) {
+.sig_informe_json <- function(plan, fuente, ctx, contexto_de = NULL) {
   slides <- if (is.list(plan)) plan$slides %||% plan else list()
   laminas <- list()
   for (s in slides) {
     if (is.null(.sig_lamina_del_plan(s))) next
-    laminas[[length(laminas) + 1L]] <- .sig_lamina_json(s, fuente, ctx)
+    # R12-2: con `contexto_de`, cada lámina se prueba sobre la base de su ranura (graficos_significancia_base_lamina.R).
+    sl <- if (is.function(contexto_de)) contexto_de(s) else list(fuente = fuente, ctx = ctx)
+    laminas[[length(laminas) + 1L]] <- .sig_lamina_json(s, sl$fuente, sl$ctx)
   }
   list(laminas = laminas, resumen = .sig_resumen(laminas, ctx$m))
 }
