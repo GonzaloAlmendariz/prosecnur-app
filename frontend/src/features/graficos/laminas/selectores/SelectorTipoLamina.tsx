@@ -1,7 +1,7 @@
-// Panel «¿Qué quieres contar?» (`panel=tipo-lamina`; ADR 0135 §1, maqueta graficos-sintesis «Main»). Izquierda, la
-// pregunta del estudio (intencionesContar.ts) y, al pie, «Ver por tipo de gráfico» con las familias de siempre
-// (tiposLamina.ts); centro, las tarjetas; derecha, el detalle y el botón. Cada tarjeta dice su clase (Gráfico, Lámina o
-// Lámina de resumen). El buscador de la cabecera filtra todas las tarjetas por nombre y por lo que responden. Dos modos:
+// Panel «Tipo de lámina» (`panel=tipo-lamina`; ADR 0135 §1, revisado por el ADR 0139). Izquierda, las familias de
+// composiciones (tiposLamina.ts) y, al pie, las recomendaciones por pregunta del estudio, que señalan tipos del catálogo
+// de gráficos (intencionesContar.ts); centro, las tarjetas; derecha, el detalle y el botón. Cada tarjeta dice su clase
+// (Gráfico o Lámina). El buscador de la cabecera filtra todas las tarjetas por nombre y por lo que responden. Dos modos:
 // cambiar la lámina del foco (conserva sus gráficos y avisa los que no caben o se reemplazan) o insertar una nueva
 // detrás de ella, elegidos en el segmentado de la cabecera. Una tarjeta es un tipo o un tipo con su payload de partida
 // (opcionesLamina.ts). El detalle trae la ficha «Datos» (qué usa el gráfico y qué tiene el estudio) y «Comparar» pone
@@ -109,8 +109,8 @@ export function SelectorTipoLamina({ slide, posicion, cerrar, onArmarResumen }: 
   const opcionActual: OpcionLamina | null = modo === "cambiar" && slide ? opcionDeLamina(slide) : null;
   const tarjetaActual: OpcionLamina | null = modo === "cambiar" && slide ? tarjetaContarDeLamina(slide)?.clave ?? null : null;
   const intencion: IntencionLamina = ui.intencion ?? (tipoActual ? intencionDe(tipoActual) : null) ?? "una";
-  // Al cambiar una lámina que no es una tarjeta por intención, el selector abre en su familia de «Ver por tipo».
-  const porTipo = ui.porTipo ?? (modo === "cambiar" && !tarjetaActual);
+  // ADR 0139: abre en los tipos de lámina; sólo al cambiar una lámina que ya es una recomendación abre en ésta.
+  const porTipo = ui.porTipo ?? !(modo === "cambiar" && !!tarjetaActual);
   const busqueda = ui.busqueda.trim();
 
   // Lo que el registro de esta sesión ofrece: sin los retirados del selector y, con el registro cargado, sin los que
@@ -271,8 +271,9 @@ export function SelectorTipoLamina({ slide, posicion, cerrar, onArmarResumen }: 
   const tituloGaleria = busqueda
     ? `Resultados de “${busqueda}”`
     : porTipo ? intenciones.find((i) => i.id === intencion)?.label ?? "" : contarOfrecidas.find((i) => i.id === contar)?.nombre ?? "";
-  const cuentaGaleria = busqueda || !porTipo
-    ? `${formatoConteo(opciones.length)} ${opciones.length === 1 ? "lámina" : "láminas"}`
+  const cuentaGaleria = busqueda
+    ? `${formatoConteo(opciones.length)} ${opciones.length === 1 ? "resultado" : "resultados"}`
+    : !porTipo ? `${formatoConteo(opciones.length)} ${opciones.length === 1 ? "recomendación" : "recomendaciones"}`
     : conGraficos ? `${rotuloCuenta(opciones.length)}, con los gráficos de esta lámina` : rotuloCuenta(opciones.length);
   const tarjetaCandidata = tarjetaContar(candidato);
   // S1: el `usa` de la tarjeta manda sobre el del graficador cuando la composición lo exige.
@@ -303,9 +304,9 @@ export function SelectorTipoLamina({ slide, posicion, cerrar, onArmarResumen }: 
       antetitulo={modo === "insertar"
         ? (posicion ? { texto: "Insertar después de la", corto: "Tras la", fijo: `lámina ${posicion}` } : "Primera lámina del informe")
         : `Lámina ${posicion}`}
-      titulo="¿Qué quieres contar?"
+      titulo="Tipo de lámina"
       descripcion={modo === "insertar"
-        ? "Elige por la pregunta del estudio o por el tipo de gráfico."
+        ? "Elige una composición o una recomendación de gráficos."
         : "Los gráficos que ya configuraste pasan a la lámina nueva."}
       focoInicialRef={focoInicialRef}
       destinoAlCerrar={() => destinoAlCerrarEnDocumento(null)}
@@ -339,8 +340,29 @@ export function SelectorTipoLamina({ slide, posicion, cerrar, onArmarResumen }: 
       )}
       pregunta={(
         <div className="pulso-f6-navegacion">
+          {/* Un solo grupo de radios en dos fieldsets: las flechas recorren familias y recomendaciones seguidas. */}
           <fieldset className="pulso-f6-opciones">
-            <legend className="pulso-f6-selector-leyenda">Según la pregunta del estudio</legend>
+            <legend className="pulso-f6-selector-leyenda">Tipo de lámina</legend>
+            {intenciones.map((i) => (
+              <label key={i.id} className="pulso-f6-opcion" data-familia-lamina={i.id}>
+                <input
+                  ref={porTipo && i.id === intencion ? focoInicialRef : undefined}
+                  type="radio"
+                  className="pulso-f6-radio-oculto"
+                  name={`${grupo}-vista`}
+                  value={`tipo:${i.id}`}
+                  checked={porTipo && i.id === intencion}
+                  disabled={i.tipos.length === 0}
+                  onChange={() => ui.elegirIntencion(i.id)}
+                />
+                <strong>{i.label}</strong>
+                <span className="pulso-f6-opcion-cuenta">{formatoConteo(opcionesDe(i).length)}</span>
+                <span>{i.descripcion}</span>
+              </label>
+            ))}
+          </fieldset>
+          <fieldset className="pulso-f6-opciones is-recomendaciones">
+            <legend className="pulso-f6-selector-leyenda">Recomendaciones</legend>
             {contarOfrecidas.map((i) => (
               <label key={i.id} className="pulso-f6-opcion" data-intencion-contar={i.id}>
                 <input
@@ -348,7 +370,7 @@ export function SelectorTipoLamina({ slide, posicion, cerrar, onArmarResumen }: 
                   type="radio"
                   className="pulso-f6-radio-oculto"
                   name={`${grupo}-vista`}
-                  value={i.id}
+                  value={`rec:${i.id}`}
                   checked={!porTipo && i.id === contar}
                   disabled={i.lista.length === 0}
                   onChange={() => ui.elegirContar(i.id)}
@@ -358,42 +380,7 @@ export function SelectorTipoLamina({ slide, posicion, cerrar, onArmarResumen }: 
                 <span>{i.ayuda}</span>
               </label>
             ))}
-            <label className="pulso-f6-opcion is-secundaria" data-intencion-contar="por-tipo">
-              <input
-                ref={porTipo ? focoInicialRef : undefined}
-                type="radio"
-                className="pulso-f6-radio-oculto"
-                name={`${grupo}-vista`}
-                value="por-tipo"
-                checked={porTipo}
-                onChange={() => ui.verPorTipo()}
-              />
-              <strong>Ver por tipo de gráfico</strong>
-              <span className="pulso-f6-opcion-cuenta">{formatoConteo(intenciones.length)}</span>
-              <span>Composiciones por familia.</span>
-            </label>
           </fieldset>
-          {porTipo && (
-            <fieldset className="pulso-f6-opciones is-familias">
-              <legend className="pulso-sr-only">Familias de composiciones</legend>
-              {intenciones.map((i) => (
-                <label key={i.id} className="pulso-f6-opcion">
-                  <input
-                    type="radio"
-                    className="pulso-f6-radio-oculto"
-                    name={`${grupo}-intencion`}
-                    value={i.id}
-                    checked={i.id === intencion}
-                    disabled={i.tipos.length === 0}
-                    onChange={() => ui.elegirIntencion(i.id)}
-                  />
-                  <strong>{i.label}</strong>
-                  <span className="pulso-f6-opcion-cuenta">{formatoConteo(opcionesDe(i).length)}</span>
-                  <span>{i.descripcion}</span>
-                </label>
-              ))}
-            </fieldset>
-          )}
         </div>
       )}
       galeria={(

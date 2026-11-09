@@ -1,4 +1,4 @@
-// Tarjetas de «¿Qué lámina?» que no son un tipo del registro sino un tipo con su payload de partida (H7 del checklist
+// Tarjetas de «Tipo de lámina» que no son un tipo del registro sino un tipo con su payload de partida (H7 del checklist
 // de usabilidad, 2026-11-05): «Resumen ejecutivo» es `p_slide_hallazgos` con `modo: "resumen", seleccion: "auto"`, y
 // estaba escondido como un modo de «Hallazgos clave». Pura: el selector la usa para armar sus tarjetas, insertar y
 // cambiar; los tests la prueban sola.
@@ -57,7 +57,7 @@ export type GraficoDePreset = {
 export type PresetLamina = {
   clave: ClavePreset;
   tipo: SlideType;
-  /** La familia de «Ver por tipo de gráfico» que la ofrece (las tarjetas por intención no tienen). */
+  /** La familia de «Tipo de lámina» que la ofrece (las recomendaciones no tienen). */
   intencion?: IntencionLamina;
   nombre: string;
   /** Una línea de tarjeta (hasta 56 caracteres, como `usoDeTarjeta`). */
@@ -65,7 +65,7 @@ export type PresetLamina = {
   descripcion: string;
   parche: Parche;
   grafico?: GraficoDePreset;
-  /** «Gráfico», «Lámina» o «Lámina de resumen» (ADR 0135 §1). Sin ella, «Lámina». */
+  /** «Gráfico» o «Lámina» (ADR 0139: lo que inserta). Sin ella, «Lámina». */
   clase?: ClaseTarjeta;
   /** Lo que la tarjeta necesita del estudio, en una línea del detalle. */
   pide?: string;
@@ -86,7 +86,7 @@ export const PRESETS_LAMINA: readonly PresetLamina[] = [
   {
     clave: "p_slide_hallazgos:resumen",
     tipo: "p_slide_hallazgos",
-    intencion: "resumen",
+    intencion: "hallazgos",
     // ADR 0135: el mazo «Resumen ejecutivo» viene después; esta tarjeta se nombra por lo que arma.
     nombre: "Hallazgos por capítulo",
     uso: "Por capítulo, lo que más difiere y la cifra más rotunda",

@@ -177,3 +177,20 @@ describe("E2: la composición del índice es la que exporta el motor (hecho 4)",
     expect(variantesDe("p_slide_portada", undefined, "inventada")?.defecto).toBe("centrada");
   });
 });
+
+describe("vocabularios separados (ADR 0139, decisión 1)", () => {
+  it("el panel de láminas lista sólo tipos de lámina y no ofrece «Resumir el informe» como tipo", () => {
+    const laminas = new Set(CATALOGO_LAMINAS.map((l) => l.name));
+    for (const i of INTENCIONES) for (const t of i.tipos) expect(laminas.has(t), `${i.id} → ${t}`).toBe(true);
+    expect(INTENCIONES.map((i) => i.label)).not.toContain("Resumir el informe");
+    // Las láminas sin ranura siguen como tipos de lámina (etapa 2 del ADR).
+    expect(INTENCIONES.find((i) => i.id === "hallazgos")?.tipos).toEqual(["p_slide_hallazgos", "p_slide_resumen_diferencias", "p_slide_cierre_hallazgos"]);
+  });
+
+  it("el panel se titula «Tipo de lámina» y no mezcla «tipo de gráfico»", () => {
+    const fuente = fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "SelectorTipoLamina.tsx"), "utf8");
+    const sinComentarios = fuente.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+    expect(sinComentarios).toContain('titulo="Tipo de lámina"');
+    expect(sinComentarios).not.toMatch(/¿Qué quieres contar\?|Ver por tipo de gráfico/);
+  });
+});

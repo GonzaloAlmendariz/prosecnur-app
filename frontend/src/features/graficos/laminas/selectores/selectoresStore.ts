@@ -14,11 +14,11 @@ export type ModoSelectorLamina = "cambiar" | "insertar";
 
 type SelectoresUi = {
   modoLamina: ModoSelectorLamina;
-  /** «¿Qué quieres contar?» (ADR 0135): la intención elegida; `null` la deriva el diálogo de la lámina. */
+  /** La recomendación elegida (ADR 0135, revisado por el 0139); `null` la deriva el diálogo de la lámina. */
   contar: IntencionContarId | null;
-  /** «Ver por tipo de gráfico»: `null` lo deriva el diálogo (al cambiar una lámina de otra familia, abre ahí). */
+  /** ¿Se ven los tipos de lámina (y no las recomendaciones)? `null` lo deriva el diálogo. */
   porTipo: boolean | null;
-  /** La familia elegida dentro de «Ver por tipo de gráfico». */
+  /** La familia elegida dentro de «Tipo de lámina». */
   intencion: IntencionLamina | null;
   /** Buscar por pregunta o tipo (cabecera del diálogo). */
   busqueda: string;
@@ -43,7 +43,6 @@ type SelectoresUi = {
   verComparacion: (ver: boolean) => void;
   setInventario: (inventario: EstadoInventario) => void;
   elegirContar: (i: IntencionContarId) => void;
-  verPorTipo: () => void;
   elegirIntencion: (i: IntencionLamina) => void;
   buscar: (texto: string) => void;
   elegirCandidato: (opcion: OpcionLamina, variante: string | null) => void;
@@ -90,7 +89,6 @@ export const useSelectoresUi = create<SelectoresUi>((set) => ({
   verComparacion: (ver) => set((s) => ({ viendoComparacion: ver && s.comparar.length === 2, confirmando: false })),
   setInventario: (inventario) => set({ inventario }),
   elegirContar: (contar) => set({ contar, porTipo: false, busqueda: "", candidato: null, variante: null, confirmando: false, viendoComparacion: false }),
-  verPorTipo: () => set({ porTipo: true, busqueda: "", candidato: null, variante: null, confirmando: false, viendoComparacion: false }),
   elegirIntencion: (intencion) => set({ intencion, porTipo: true, busqueda: "", candidato: null, variante: null, confirmando: false, viendoComparacion: false }),
   buscar: (busqueda) => set({ busqueda, candidato: null, variante: null, confirmando: false, viendoComparacion: false }),
   elegirCandidato: (candidato, variante) => set({ candidato, variante, confirmando: false }),

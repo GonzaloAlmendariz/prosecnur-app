@@ -1,4 +1,4 @@
-// Tipos de lámina por intención (F6.2; dirección F6 §4.3 «¿Qué lámina?»). El analista no elige un layout por su nombre:
+// Tipos de lámina por familia (F6.2; dirección F6 §4.3, panel «Tipo de lámina»). El analista no elige un layout por su nombre:
 // elige qué quiere mostrar (una pregunta, dos juntas, un público…) y ve las composiciones que lo resuelven. Las
 // intenciones agrupan los tipos que el registro ofrece (`en_selector`); las láminas de población antiguas quedan fuera
 // del selector pero se siguen dibujando y editando en los planes que las usan.
@@ -12,7 +12,7 @@ import { SLIDE_GRAF_SLOTS } from "../../store";
 import { esSlotCifra } from "../../iconos/composicion";
 import { composicionIndiceEfectiva, composicionIndicePorDefecto } from "../../indice/modeloIndice";
 
-export type IntencionLamina = "una" | "dos" | "varias" | "cifras" | "resumen" | "mensaje" | "estructura";
+export type IntencionLamina = "una" | "dos" | "varias" | "cifras" | "hallazgos" | "mensaje" | "estructura";
 
 export type Intencion = { id: IntencionLamina; label: string; descripcion: string; tipos: readonly SlideType[] };
 
@@ -52,9 +52,11 @@ export const INTENCIONES: readonly Intencion[] = [
     tipos: ["p_slide_cifras_y_graficos", "p_slide_3_graficos_poblacion_cifras"],
   },
   {
-    id: "resumen",
-    label: "Resumir el informe",
-    descripcion: "Resumen ejecutivo, hallazgos clave y diferencias entre grupos, al final del mazo.",
+    // ADR 0139: «Resumir el informe» ya no es un tipo de lámina sino una recomendación de gráficos (intencionesContar.ts).
+    // Aquí quedan las composiciones sin ranura de gráfico que lo cierran (su paso a gráficos es la etapa 2 del ADR).
+    id: "hallazgos",
+    label: "Hallazgos",
+    descripcion: "Hallazgos por capítulo, hallazgos clave, resumen de diferencias y cierre.",
     tipos: ["p_slide_hallazgos", "p_slide_resumen_diferencias", "p_slide_cierre_hallazgos"],
   },
   {
@@ -81,7 +83,7 @@ export const TIPOS_FUERA_DEL_SELECTOR: ReadonlySet<SlideType> = new Set<SlideTyp
   "p_slide_4_graficos_poblacion",
   // Reglas de la identidad: la constitución del motor en el catálogo del recetario, no una lámina de informe.
   "p_slide_estandar",
-  // Resumen de diferencias y hallazgos clave ya se ofrecen (intención «resumen»): se arman en Inspector › Lámina. El
+  // Resumen de diferencias y hallazgos clave ya se ofrecen (familia «Hallazgos»): se arman en Inspector › Lámina. El
   // resumen ejecutivo es una tarjeta más de esa intención, con su payload de partida (opcionesLamina.ts, H7).
 ]);
 
