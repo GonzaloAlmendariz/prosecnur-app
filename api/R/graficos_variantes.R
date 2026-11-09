@@ -19,7 +19,7 @@
 .graficos_variantes <- function() {
   defs <- list(
     list(graficador = "p_dumbbell", slug = "contraste", nombre = "Contraste de públicos",
-         descripcion = "La misma pregunta en dos a cuatro públicos y su diferencia, ordenadas por diferencia.",
+         descripcion = "La misma pregunta en 2 a 4 públicos y su diferencia, ordenadas por diferencia.",
          args_fijos = list(estilo = "resumen", cruce = NA), args_quitar = character(0)),
     list(graficador = "p_dumbbell", slug = "aperturas", nombre = "Aperturas por grupo",
          descripcion = "Un público abierto por los grupos de una pregunta, con la distancia entre grupos.",

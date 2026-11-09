@@ -1124,7 +1124,7 @@
       "nombre_version": "Contraste de públicos",
       "familia": "comparar",
       "icono": "MoveHorizontal",
-      "descripcion": "La misma pregunta en dos a cuatro públicos y su diferencia, ordenadas por diferencia.",
+      "descripcion": "La misma pregunta en 2 a 4 públicos y su diferencia, ordenadas por diferencia.",
       "args_fijos": {
         "estilo": "resumen",
         "cruce": null
