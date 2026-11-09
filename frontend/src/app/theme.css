@@ -1082,8 +1082,8 @@ a { color: var(--pulso-primary); }
 }
 
 .pulso-project-switch:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+  outline: var(--mov-foco);
+  outline-offset: 2px; /* R13-3: el anillo del kit, no un halo. */
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1620,9 +1620,8 @@ a { color: var(--pulso-primary); }
 /* Focus-visible variant-aware: supera el ring global (0,0,1) que sobre el
    primario navy es casi invisible y pinta el danger de navy. */
 .pulso-project-confirm-button:focus-visible {
-  outline: none;
+  outline: var(--mov-foco); outline-offset: 2px;
   border-color: var(--pulso-primary-border);
-  box-shadow: 0 0 0 3px var(--pulso-primary-ring);
 }
 
 .pulso-project-confirm-button.is-primary:focus-visible {
@@ -2726,10 +2725,8 @@ a { color: var(--pulso-primary); }
 }
 
 :where(.pulso-processing-phase-dock) .pulso-phase-pill:focus-visible {
-  outline: none;
-  box-shadow:
-    0 0 0 3px color-mix(in srgb, var(--pulso-module-processing-soft) 82%, transparent),
-    0 8px 18px color-mix(in srgb, var(--pulso-module-processing) 14%, transparent);
+  outline: var(--mov-foco);
+  outline-offset: -2px; /* R13-2: un solo anillo; dentro de la píldora porque el dock recorta lo que sale. */
 }
 
 :where(.pulso-processing-phase-dock) .pulso-phase-pill .pulso-phase-pill-text {
