@@ -120,7 +120,7 @@ composicion <- list(unidad = "in",
   # nativa genérica del camino general. Letra en pt; `relleno_pt`, el margen interno de la celda.
   tabla_costado = list(col1 = 2.2, col = 1.15, fila = 0.5, fila_min = 0.4, hueco = 0.3, hueco_v = 0.2,
                        min_graf_w = 3.6, dy = 0.6, cuerpo_pt = 13, enc_pt = 12, relleno_pt = 12),
-  tabla_general = list(col1 = 2.2, col = 1.15, fila = 0.42, cuerpo_pt = 12, enc_pt = 11, relleno_pt = 14),
+  tabla_general = list(col1 = 2.2, col = 1.15, fila = 0.42, cuerpo_pt = 12, enc_pt = 12, relleno_pt = 14),
   multilista = list(                 # varios bloques en una lámina (lamina_multilista.R; recetario p144)
     gap_bloques = 0.27,              # del fondo de un bloque al título del siguiente (p144: 0,33 desde la barra)
     aire_titulo = 0.1,               # del título del bloque a su primera fila, sin columna Top Two Box

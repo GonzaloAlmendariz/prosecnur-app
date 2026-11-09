@@ -66,7 +66,9 @@
   top <- max(pic$top, fin_bloque + aire)
   # El desborde depende del alto del cajón; tres pasadas bastan (el cajón sólo se acorta unas décimas).
   if (!is.null(p)) for (k in 1:3) top <- max(pic$top, fin_bloque + aire + .lienzo_desborde_superior_in(p, fondo - top))
-  if (abs(top - pic$top) < 1e-6 && abs(fondo - pic$top - pic$height) < 1e-6) return(spec)
+  # Con una tabla nativa el cajón viaja aunque no cambie: la tabla decide su sitio y recorta el gráfico leyendo `loc`, y
+  # sin él la tabla de barras o de líneas y puntos (`tabla = "si"`) se perdía en silencio.
+  if (abs(top - pic$top) < 1e-6 && abs(fondo - pic$top - pic$height) < 1e-6 && !.tabla_nativa_procede(p)) return(spec)
   spec$loc <- list(left = pic$left, top = top, width = pic$width, height = max(1, fondo - top))
   spec
 }

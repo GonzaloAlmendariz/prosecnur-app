@@ -136,8 +136,9 @@
   } else {
     ft <- flextable::set_table_properties(ft, layout = "autofit")
   }
+  ft <- .tabla_nativa_anchos_medidos(ft, estilo$anchos_in, ncol(tabla))
   ft <- flextable::font(ft, fontname = chr("font_family", font_family_default), part = "all")
-  ft <- flextable::fontsize(ft, size = num("header_size", 11), part = "header")
+  ft <- flextable::fontsize(ft, size = num("header_size", .lam_tabla_m("tabla_general")$enc_pt), part = "header")   # el token del estándar (12 pt), no un 11 fijo
   ft <- flextable::fontsize(ft, size = num("body_size", 11), part = "body")
   ft <- flextable::color(ft, color = chr("text_blue", .std_color("azul")), part = "all")
   ft <- flextable::bg(ft, bg = chr("header_fill", "#D8D8D8"), part = "header")
@@ -166,6 +167,20 @@
   ft <- flextable::border_inner_h(ft, border = borde, part = "all")
   ft <- flextable::border_inner_v(ft, border = borde, part = "all")
   flextable::fix_border_issues(ft)
+}
+
+
+#' Anchos de columna medidos al decidir el sitio de la tabla (`.lam_tabla_costado_geom()`: la primera columna y cada
+#' público lo que pide su encabezado con la letra del estándar)
+#'
+#' Sin ellos las columnas de datos se repartían el resto en partes iguales y un encabezado largo a 12 pt
+#' («Administrativos») se partía a media palabra. Un vector que no tiene una medida por columna se ignora.
+#' @keywords internal
+.tabla_nativa_anchos_medidos <- function(ft, anchos, n) {
+  a <- suppressWarnings(as.numeric(unlist(anchos)))
+  if (length(a) != n || !all(is.finite(a) & a > 0)) return(ft)
+  for (j in seq_len(n)) ft <- flextable::width(ft, j = j, width = a[j])
+  flextable::set_table_properties(ft, layout = "fixed")
 }
 
 
