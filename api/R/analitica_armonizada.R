@@ -433,8 +433,11 @@ armonizada_modelo_frecuencias <- function(ap) {
 # `nN_para_sig_simple` en cruces. La matriz incluye las columnas sin casos para
 # que las letras conserven su posición (A, B, C) en el encabezado; esas
 # columnas se marcan «n.a.» y no participan (la prueba ya las bloquea).
-.armz_letras <- function(n_mat, N_vec, alpha) {
-  cmp <- comparar_columnas_sig(n_mat, N_vec, alpha = alpha)
+.armz_letras <- function(n_mat, N_vec, alpha, casos = NULL) {
+  # Base de la z: pesos llevados a media 1 dentro de la tabla del período (revisión ADR 0138, P1); `casos` son los
+  # válidos con peso positivo por columna. Los porcentajes no cambian.
+  nN <- if (length(casos) == length(N_vec)) .sig_nN_media_uno(n_mat, N_vec, casos) else list(n_mat = n_mat, N_vec = N_vec)
+  cmp <- comparar_columnas_sig(nN$n_mat, nN$N_vec, alpha = alpha)
   let <- trimws(cmp$letras)
   let[, N_vec <= 0] <- "n.a."
   let
@@ -470,7 +473,7 @@ armonizada_modelo_cruces <- function(ap, alpha = 0.05) {
           Nsp[j] <- as.integer(ct$N_sin_peso)
         }
         list(estado = "ok", n_mat = n_mat, N_vec = N_vec, N_sin_peso = Nsp,
-             letras = .armz_letras(n_mat, N_vec, alpha),
+             letras = .armz_letras(n_mat, N_vec, alpha, casos = Nsp),
              no_ofrecidas = x$no_ofrecidas[[b]] %||% character(0))
       })
       names(por_cruce) <- vapply(cruces_meta, `[[`, character(1), "key")

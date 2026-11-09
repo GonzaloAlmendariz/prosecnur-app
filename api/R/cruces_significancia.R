@@ -166,6 +166,21 @@
        solitario = FALSE)
 }
 
+#' Respuestas válidas con peso positivo por columna (sin ponderar)
+#'
+#' Es el `n` sobre el que se promedia el peso para llevarlo a media 1 (`.sig_nN_media_uno`). Sin columna de peso, o si
+#' ningún caso tiene peso 0, coincide con `casos` (los válidos de la base mínima) y se devuelve ese mismo vector.
+#' @keywords internal
+.cruces_sig_casos_peso_positivo <- function(data, var, codes_row, estratos, var_estrato, tp, weight_col, casos) {
+  if (is.null(weight_col) || !weight_col %in% names(data)) return(casos)
+  w_pos <- get_pesos(data, weight_col) > 0
+  if (all(w_pos)) return(casos)
+  nN_para_sig_simple(
+    data = data[w_pos, , drop = FALSE], var = var, opciones_labels = codes_row, codes_row = codes_row,
+    estratos = estratos, var_estrato = var_estrato, tp = tp, weight_col = NULL
+  )$N_vec
+}
+
 #' Letras de proporciones de una variable de cruce (ADR 0127)
 #'
 #' @param data Base de la tabla (con `weight_col` si hay ponderación).
@@ -211,6 +226,12 @@
       data = data, var = var, opciones_labels = codes_row, codes_row = codes_row,
       estratos = estratos, var_estrato = var_estrato, tp = tp, weight_col = weight_col
     )
+    # La z toma la base de cada columna de los pesos llevados a media 1 en la tabla, no de la suma de pesos
+    # (revisión ADR 0138, P1). Los porcentajes de la tabla no salen de aquí y no cambian.
+    nn[c("n_mat", "N_vec")] <- .sig_nN_media_uno(
+      nn$n_mat, nn$N_vec, .cruces_sig_casos_peso_positivo(data, var, codes_row, estratos, var_estrato, tp,
+                                                          weight_col, casos)
+    )[c("n_mat", "N_vec")]
     chica <- casos < spec$base_minima
     nn$n_mat[, chica] <- 0
     nn$N_vec[chica] <- 0

@@ -72,6 +72,29 @@
   out
 }
 
+#' Conteos ponderados de una tabla llevados a pesos de media 1, para la z de `comparar_columnas_sig`
+#'
+#' El mismo criterio que `.sig_pesos_media_uno` cuando la prueba solo recibe conteos ya ponderados (la tabla de cruces,
+#' la serie por niveles, el comparativo armonizado): la unidad es la tabla entera y la media del peso sobre sus respuestas
+#' válidas con peso positivo es `sum(N_vec) / sum(casos)`. Dividir todo por esa media deja la base de cada columna en su
+#' suma de pesos de media 1 (sin pesos, el número de casos válidos) y no mueve ningún porcentaje, porque `n` y `N` se
+#' escalan por igual. Si los pesos ya promedian 1 (o no hay pesos) devuelve los conteos tal cual, bit a bit.
+#' @param n_mat Matriz filas × columnas de conteos ponderados.
+#' @param N_vec Base ponderada de cada columna.
+#' @param casos Respuestas válidas con peso positivo de cada columna (sin ponderar), en el orden de `N_vec`.
+#' @return `list(n_mat, N_vec, escala)`; `escala` es el factor aplicado (1 si no hubo cambio).
+#' @keywords internal
+.sig_nN_media_uno <- function(n_mat, N_vec, casos) {
+  sin_cambio <- list(n_mat = n_mat, N_vec = N_vec, escala = 1)
+  casos <- suppressWarnings(as.numeric(casos))
+  if (length(casos) != length(N_vec)) return(sin_cambio)
+  ok <- is.finite(N_vec) & N_vec > 0 & is.finite(casos) & casos > 0
+  if (!any(ok)) return(sin_cambio)
+  escala <- sum(casos[ok]) / sum(N_vec[ok])
+  if (!is.finite(escala) || escala <= 0 || abs(escala - 1) < 1e-12) return(sin_cambio)
+  list(n_mat = n_mat * escala, N_vec = N_vec * escala, escala = escala)
+}
+
 #' Contrastes de proporciones entre todos los pares de grupos, por fila
 #'
 #' @param Y Matriz casos × filas con 1/0, y `NA` donde el caso no está en la base de esa fila.

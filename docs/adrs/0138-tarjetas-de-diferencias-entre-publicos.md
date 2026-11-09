@@ -102,6 +102,15 @@ En la sonda de la revisión (pesos U(0.4, 2.5) en tres públicos) la z daba p = 
 6.3e-04, 0.106 y 3.3e-05, y los mismos con los pesos de un público multiplicados por 100 (antes 5.9e-130). Test:
 `api/tests/testthat/test-graficos-significancia-pesos-escala.R`.
 
+El mismo criterio alcanza a la tabla de cruces clásica, que no pasa por `.sig_evaluar`: `comparar_columnas_sig` recibía
+la base ponderada de `nN_para_sig_simple` y la tomaba como n. Ahora `.sig_nN_media_uno` lleva los conteos de la tabla a
+pesos de media 1 sobre sus respuestas válidas con peso positivo antes de la prueba, en las letras z del XLSX de cruces
+sin regla del estudio (`.cruces_sig_comparar`), en la serie por niveles sin regla (`.graficos_sig_calcular` con
+`n_casos`) y en el comparativo armonizado (`.armz_letras`). Los porcentajes de la tabla no cambian. Las agrupadas y
+apiladas sin microdatos no conocen sus casos y conservan la base que dibujan. En el caso 2×2 del test (55% frente a 40%,
+60 casos por columna, A pesa 2 y B pesa 1) la z daba p = 0.058 y ahora 0.121; con pesos ×100 iguales daba 8.1e-61 y
+ahora 0.0999, lo mismo que sin pesos. Test: `api/tests/testthat/test-reporte-cruces-pesos-escala.R`.
+
 ## Supuestos
 
 - Los públicos son muestras disjuntas: nadie respondió en dos bases.

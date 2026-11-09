@@ -274,6 +274,12 @@
   # apiladas solo conocen la base que dibujan y la usan en su lugar.
   spec <- .cruces_significancia_normalizar(attr(diseno, "significancia", exact = TRUE))
   base_umbral <- if (length(n_casos) == length(N_vec)) as.numeric(n_casos) else N_vec
+  # Con los casos a mano, la base de la z son los pesos llevados a media 1, no la suma de pesos (revisión ADR 0138,
+  # P1); el porcentaje no cambia. Sin ellos (agrupadas/apiladas sin microdatos) se conserva la base que se dibuja.
+  if (length(n_casos) == length(N_vec)) {
+    nN <- .sig_nN_media_uno(n_mat, N_vec, n_casos)
+    n_mat <- nN$n_mat; N_vec <- stats::setNames(nN$N_vec, names(N_vec))
+  }
   excluidas <- which(N_vec > 0 & base_umbral < spec$base_minima)
   if (length(excluidas)) {
     n_mat[, excluidas] <- 0
