@@ -21,8 +21,33 @@
   n <- apply(N, 2, function(v) if (any(is.finite(v))) max(v[is.finite(v)]) else NA_real_)
   chicos <- which(is.finite(n) & n < umbral)
   if (!length(chicos)) return(NULL)
-  piezas <- sprintf("%s %s %s", vapply(n[chicos], .dumbbell_fmt_casos, ""), unidad, espec$grupos[chicos])
+  piezas <- vapply(seq_along(chicos), function(i) .dumbbell_grupo_chico_pieza(espec$grupos[chicos[i]], n[chicos[i]], unidad), "")
   sprintf("%s: %s.", if (length(chicos) == 1L) "Grupo chico" else "Grupos chicos", paste(piezas, collapse = "; "))
+}
+
+# Sustantivos comunes con que se nombra un grupo de un cruce ("Tercer ciclo"). Sólo con uno de estos el rótulo va en
+# minúscula tras "de": "25 estudiantes de tercer ciclo" (Gonzalo, 2026-11-09).
+.GRUPO_CHICO_COMUNES <- c("ciclo", "ciclos", "dedicación", "año", "años", "semestre", "semestres", "nivel", "turno", "sección",
+                          "grado", "categoría", "modalidad", "etapa", "promoción", "cohorte", "periodo", "período")
+
+#' Cómo se escribe un grupo chico en la nota
+#'
+#' - Sigla o nombre propio en mayúsculas (TC, TPA): "24 docentes TC", como lo escribía el resumen de Arte.
+#' - Rótulo con un sustantivo común (ciclo, dedicación...) y sólo su inicial en mayúscula: "25 estudiantes de tercer ciclo".
+#' - Si no se puede saber: "Tercer ciclo, 25 estudiantes" (el rótulo tal cual).
+#' @keywords internal
+.dumbbell_grupo_chico_pieza <- function(grupo, n, unidad) {
+  g <- trimws(as.character(grupo)[1]); casos <- .dumbbell_fmt_casos(n)
+  palabras <- strsplit(g, "\\s+")[[1]]
+  sigla <- length(palabras) && all(grepl("^[[:upper:][:digit:]]+$", palabras)) && any(grepl("[[:upper:]]", palabras))
+  if (sigla) return(sprintf("%s %s %s", casos, unidad, g))
+  resto <- if (length(palabras) > 1L) palabras[-1] else character(0)
+  solo_inicial <- length(palabras) >= 2L && identical(palabras[1], paste0(toupper(substr(palabras[1], 1, 1)), tolower(substring(palabras[1], 2)))) &&
+    all(resto == tolower(resto))
+  if (solo_inicial && any(tolower(palabras) %in% .GRUPO_CHICO_COMUNES)) {
+    return(sprintf("%s %s de %s%s", casos, unidad, tolower(substr(g, 1, 1)), substring(g, 2)))
+  }
+  sprintf("%s, %s %s", g, casos, unidad)
 }
 
 #' Pone la nota del grupo chico en la especificación de un dumbbell por cruce en estilo resumen

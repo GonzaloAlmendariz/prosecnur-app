@@ -199,3 +199,11 @@ test_that("sin casos enteros (n fraccionario) la leyenda va sin N y, si se pidi�
   expect_identical(l2, c("2do ciclo", "3er ciclo"))
   expect_silent(graficar_dumbbell(d, estilo = "resumen"))
 })
+
+test_that("el grupo chico: sustantivo común en minúscula tras \"de\"; siglas y nombres tal cual; si no se sabe, rótulo y casos", {
+  e <- list(grupos = c("Segundo ciclo", "Tercer ciclo", "TC", "Docentes"), casos = matrix(c(139, 25, 24, 12), 1))
+  expect_identical(.dumbbell_nota_grupo_chico(e, "estudiantes"),
+                   "Grupos chicos: 25 estudiantes de tercer ciclo; 24 estudiantes TC; Docentes, 12 estudiantes.")
+  expect_identical(.dumbbell_grupo_chico_pieza("Prefiero no responder", 14, "estudiantes"), "Prefiero no responder, 14 estudiantes")
+  expect_identical(.dumbbell_grupo_chico_pieza("TPA", 9, "docentes"), "9 docentes TPA")
+})
