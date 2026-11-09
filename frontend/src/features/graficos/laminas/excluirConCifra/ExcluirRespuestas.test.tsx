@@ -66,10 +66,10 @@ describe("Excluir respuestas con su cifra", () => {
     expect(host.querySelector('[data-qa="excluir-base"]')?.getAttribute("aria-busy")).toBe("true");
     await esperar();
     expect(host.querySelector('[data-qa="excluir-base"]')?.textContent).toBe("Base 412 → 380");
-    expect(ficha("Sí").textContent).toBe("Sí63%");
+    expect(ficha("Sí").textContent).toBe("Sí 63%");
     // R7-12: la excluida dice «Excluida» y la que no tiene casos, «0 casos».
-    expect(ficha("No sabe").textContent).toBe("No sabeExcluida");
-    expect(ficha("Otro").textContent).toBe("Otro0 casos");
+    expect(ficha("No sabe").textContent).toBe("No sabe Excluida");
+    expect(ficha("Otro").textContent).toBe("Otro 0 casos");
     expect(lote).toHaveBeenCalledTimes(1);
   });
   it("al pasar el cursor por una ficha, una línea con el efecto de alternarla", async () => {
@@ -105,7 +105,7 @@ describe("Excluir respuestas con su cifra", () => {
     decimales.valor = 1;
     pintar([]);
     await esperar();
-    expect(ficha("Sí").textContent).toBe("Sí58.3%");
+    expect(ficha("Sí").textContent).toBe("Sí 58.3%");
   });
   it("sin detalle, las fichas quedan con su n y no hay cifra", async () => {
     lote.mockImplementation(async (p: PedidoCifrasDetalleLote) => Object.fromEntries(p.laminas.map((l) => [l.id, {
@@ -114,6 +114,6 @@ describe("Excluir respuestas con su cifra", () => {
     pintar(["99"]);
     await esperar();
     expect(host.querySelector('[data-qa="excluir-base"]')).toBeNull();
-    expect(ficha("Sí").textContent).toBe("Sí240");
+    expect(ficha("Sí").textContent).toBe("Sí 240");
   });
 });

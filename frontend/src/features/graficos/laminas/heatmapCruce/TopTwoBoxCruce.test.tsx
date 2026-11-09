@@ -47,7 +47,7 @@ describe("TopTwoBoxCruce", () => {
   it("las categorías se guardan por su rótulo exacto en overrides", () => {
     const parches: Record<string, unknown>[] = [];
     act(() => root.render(<TopTwoBoxCruce id="t" args={{}} variable="b1$p5" scope="active" onCambio={(p) => parches.push(p)} />));
-    const ficha = [...host.querySelectorAll<HTMLButtonElement>("button.pulso-f6-cat")].find((b) => b.textContent?.startsWith("De acuerdo"))!;
+    const ficha = [...host.querySelectorAll<HTMLButtonElement>("button.pulso-chip-seleccion__alternar")].find((b) => b.textContent?.startsWith("De acuerdo"))!;
     act(() => ficha.click());
     expect(parches).toEqual([{ overrides: { top2box_labels: ["De acuerdo"] } }]);
   });

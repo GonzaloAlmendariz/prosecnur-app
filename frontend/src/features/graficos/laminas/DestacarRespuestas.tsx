@@ -20,6 +20,7 @@ import { useDetalleCifras } from "./cifrasInspector/useDetalleCifras";
 import { mayorDe, pctDe, textoPct } from "./cifrasInspector/modeloCifras";
 import "./cifrasInspector/cifrasInspector.css";
 import { formatoConteo } from "../../../lib/formatoNumero";
+import { ChipSeleccion } from "../../../components/ChipSeleccion";
 
 /** Dónde guarda cada gráfico lo que se destaca. */
 const DONDE: Readonly<Record<string, "arg" | "override">> = {
@@ -72,7 +73,7 @@ export function DestacarRespuestas({ slideId, slot, valor, scope = "active" }: {
   const mayor = conMayor && mayorActiva(args, guardadas);
   const detalle = det?.detalle ?? null;
   const cifraMayor = mayorDe(detalle);
-  const anterior = det && !det.vigente ? " is-anterior" : "";
+  const anterior = Boolean(det && !det.vigente);
   const alternar = (r: string) => {
     const siguiente = respuestas.filter((x) => (x === r ? !elegidas.has(x) : elegidas.has(x)));
     if (donde === "arg") {
@@ -85,25 +86,20 @@ export function DestacarRespuestas({ slideId, slot, valor, scope = "active" }: {
     <div className="pulso-f6-dato is-apilado" data-qa="destacar-respuestas">
       <span className="pulso-f6-dato-rotulo" id={id}>Destacar</span>
       <div className="pulso-f6-destacar" role="group" aria-labelledby={id}>
+        {/* W3: las fichas son ChipSeleccion del kit, con el % de la lámina en la cola y su tono de «anterior». */}
         {conMayor && (
-          <button type="button" className="pulso-f6-destacar-opcion is-mayor" aria-pressed={mayor} data-qa="resaltar-mayor"
-            onClick={() => updateSlotArgs(slideId, slot, { overrides: conMayorAlternada(args, guardadas) })}>
-            La más alta
-            {cifraMayor && detalle && (
-              <span className={`pulso-f6-cifra-pct${anterior}`} data-qa="cifra-mayor"> ({cifraMayor.clave}, {textoPct(cifraMayor.valor, detalle.redondeo.decimales)})</span>
-            )}
-          </button>
+          <ChipSeleccion etiqueta="La más alta" activo={mayor} data-qa="resaltar-mayor" className="pulso-f6-destacar-mayor"
+            onAlternar={() => updateSlotArgs(slideId, slot, { overrides: conMayorAlternada(args, guardadas) })}
+            cifra={cifraMayor && detalle ? `(${cifraMayor.clave}, ${textoPct(cifraMayor.valor, detalle.redondeo.decimales)})` : undefined}
+            cifraAnterior={anterior} cifraQa="cifra-mayor" />
         )}
         {respuestas.map((r) => {
           // U14: se ve el corto del estudio; lo que se guarda sigue siendo el rótulo completo.
           const v = rotuloVisible(cortos, r);
           const pct = pctDe(detalle, [r, v.texto]);
           return (
-            <button key={r} type="button" className="pulso-f6-destacar-opcion" aria-pressed={elegidas.has(r)} title={v.completo ?? undefined}
-              onClick={() => alternar(r)}>
-              {v.texto}
-              {pct && <span className={`pulso-f6-cifra-pct${anterior}`} data-qa="cifra-ficha"> {pct}</span>}
-            </button>
+            <ChipSeleccion key={r} etiqueta={v.texto} activo={elegidas.has(r)} title={v.completo ?? undefined}
+              onAlternar={() => alternar(r)} cifra={pct || undefined} cifraAnterior={anterior} cifraQa="cifra-ficha" />
           );
         })}
       </div>

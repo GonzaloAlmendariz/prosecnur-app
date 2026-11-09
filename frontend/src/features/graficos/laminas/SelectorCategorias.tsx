@@ -15,6 +15,7 @@ import { useCategoriasGrafico } from "./useCategoriasGrafico";
 import { rotuloVisible } from "./rotuloCortoDeLista";
 import { useRotulosCortos } from "./useRotulosCortos";
 import { fichaBloqueada, marcadas, RESPUESTA, resumenFichas, trasPulsar, type Sustantivo } from "./modeloSelectorCategorias";
+import { ChipSeleccion } from "../../../components/ChipSeleccion";
 import { PulsoButton } from "../../../components/PulsoButton";
 
 type Props = {
@@ -116,15 +117,14 @@ export function SelectorCategorias({
           const detalle = `Código ${c.codigo}${Number.isFinite(c.n) ? `, ${c.n} casos` : ""}${bloqueada ? `. Al menos ${sustantivo.femenino ? "una" : "uno"} queda` : ""}`;
           const cifra = cifraDe?.(c.codigo, c.etiqueta, c.n) ?? null;
           return (
-            <button key={c.codigo} type="button" className={`pulso-f6-cat${activo ? " is-activa" : ""}${c.residual ? " is-residual" : ""}`}
-              aria-pressed={activo} aria-disabled={bloqueada || undefined} onClick={() => alternar(claveDe(c))}
+            // W3: la ficha es ChipSeleccion del kit (cifra o n en la cola, tachada al excluir, discontinua si es
+            // residual, bloqueada pero enfocable si es la última que queda, rótulo que parte línea).
+            <ChipSeleccion key={c.codigo} etiqueta={r.texto} activo={activo} onAlternar={() => alternar(claveDe(c))}
+              excluye={modo === "excluir"} residual={c.residual} bloqueado={bloqueada} envuelve
               onMouseEnter={onSondear ? () => onSondear(claveDe(c)) : undefined} onFocus={onSondear ? () => onSondear(claveDe(c)) : undefined}
-              title={r.completo ? `${r.completo}. ${detalle}` : detalle}>
-              <span className="pulso-f6-cat-texto">{r.texto}</span>
-              {cifra
-                ? <span className={`pulso-f6-cifra-pct${cifra.vigente ? "" : " is-anterior"}`} data-qa="cifra-ficha">{cifra.texto}</span>
-                : Number.isFinite(c.n) && <span className="pulso-f6-cat-n">{c.n === 0 ? SIN_CASOS : c.n}</span>}
-            </button>
+              title={r.completo ? `${r.completo}. ${detalle}` : detalle}
+              cifra={cifra ? cifra.texto : Number.isFinite(c.n) ? (c.n === 0 ? SIN_CASOS : c.n) : undefined}
+              cifraAnterior={cifra ? !cifra.vigente : false} cifraQa={cifra ? "cifra-ficha" : undefined} />
           );
         })}
       </div>

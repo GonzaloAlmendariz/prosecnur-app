@@ -31,7 +31,7 @@ describe("selector de categorías", () => {
     cortos.mapa = { "No sabe": "NS" };
     const html = pintar("b$p1", ["99"]);
     cortos.mapa = undefined;
-    expect(html).toMatch(/title="No sabe\. Código 99, 5 casos"[^>]*><span class="pulso-f6-cat-texto">NS</);
+    expect(html).toMatch(/title="No sabe\. Código 99, 5 casos"[^>]*><span class="pulso-chip-seleccion__texto">NS</);
     expect(html).toContain(">Sí<");
   });
   it("sin pregunta pide elegirla; sin lista cae al texto de respaldo", () => {

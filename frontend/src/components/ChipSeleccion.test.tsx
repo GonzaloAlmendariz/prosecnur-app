@@ -95,4 +95,44 @@ describe("ChipSeleccion", () => {
     );
     expect(hoja.replace(/\/\*[\s\S]*?\*\//g, "")).not.toMatch(/#[0-9a-f]{3,8}\b/i);
   });
+
+  it("W3: la cola lleva la cifra (con espacio en el nombre) y su tono de «anterior»", () => {
+    const html = renderToStaticMarkup(
+      <ChipSeleccion etiqueta="Sí" activo={false} onAlternar={() => {}} cifra="62%" cifraAnterior cifraQa="cifra-ficha" />,
+    );
+    expect(html).toMatch(/<span class="pulso-chip-seleccion__texto">Sí<\/span> <span class="pulso-chip-seleccion__cifra is-anterior" data-qa="cifra-ficha">62%<\/span>/);
+    expect(bloque(".pulso-chip-seleccion__cifra.is-anterior")).toContain("opacity: 0.55;");
+    expect(renderToStaticMarkup(<ChipSeleccion etiqueta="No" activo={false} onAlternar={() => {}} />)).not.toContain("__cifra");
+  });
+
+  it("W3: excluir tacha y apaga sin el acento; residual va discontinuo; envuelve parte línea", () => {
+    const html = renderToStaticMarkup(
+      <ChipSeleccion etiqueta="No sabe" activo onAlternar={() => {}} excluye residual envuelve />,
+    );
+    expect(html).toContain("pulso-chip-seleccion--excluye");
+    expect(html).toContain("pulso-chip-seleccion--residual");
+    expect(html).toContain("pulso-chip-seleccion--envuelve");
+    const excluida = bloque(".pulso-chip-seleccion.pulso-chip-seleccion--excluye.is-activo");
+    expect(excluida).toContain("background: var(--pulso-surface-3);");
+    expect(excluida).not.toMatch(/accent/);
+    expect(bloque(".pulso-chip-seleccion.pulso-chip-seleccion--excluye.is-activo .pulso-chip-seleccion__texto")).toContain("text-decoration: line-through;");
+    expect(bloque(".pulso-chip-seleccion.pulso-chip-seleccion--residual")).toContain("border-style: dashed;");
+    const texto = bloque(".pulso-chip-seleccion.pulso-chip-seleccion--envuelve .pulso-chip-seleccion__texto");
+    expect(texto).toContain("white-space: normal;");
+    expect(bloque(".pulso-chip-seleccion.pulso-chip-seleccion--envuelve")).toContain("height: auto;");
+  });
+
+  it("W3: bloqueado sigue enfocable (aria-disabled, no disabled) y no alterna", () => {
+    const onAlternar = vi.fn();
+    const c = montar(<ChipSeleccion etiqueta="Callao" activo={false} onAlternar={onAlternar} bloqueado title="Ya suma en «Lima»." />);
+    const b = c.querySelector<HTMLButtonElement>("button")!;
+    expect(b.getAttribute("aria-disabled")).toBe("true");
+    expect(b.disabled).toBe(false);
+    act(() => b.focus());
+    expect(document.activeElement).toBe(b);
+    act(() => b.click());
+    expect(onAlternar).not.toHaveBeenCalled();
+    expect(b.getAttribute("title")).toBe("Ya suma en «Lima».");
+  });
 });
+

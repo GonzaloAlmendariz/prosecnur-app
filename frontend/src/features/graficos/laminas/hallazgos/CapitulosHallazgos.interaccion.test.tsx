@@ -45,7 +45,7 @@ const escribir = (el: HTMLInputElement | HTMLTextAreaElement, texto: string) => 
   el.dispatchEvent(new Event("input", { bubbles: true }));
 };
 const boton = (nombre: string) => [...host.querySelectorAll("button")].find((b) =>
-  (b.getAttribute("aria-label") ?? b.querySelector(".pulso-f6-cat-texto")?.textContent ?? b.textContent ?? "").trim() === nombre)!;
+  (b.getAttribute("aria-label") ?? b.querySelector(".pulso-chip-seleccion__texto, .pulso-f6-cat-texto")?.textContent ?? b.textContent ?? "").trim() === nombre)!;
 
 describe("editar capítulos y hallazgos", () => {
   it("cambiar la respuesta y la comparación emite el capítulo con lo que no se edita intacto", () => {

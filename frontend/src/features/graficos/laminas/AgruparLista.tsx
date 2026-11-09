@@ -19,6 +19,7 @@ import {
   quedanLibres,
   type GrupoLista,
 } from "./modeloAgruparLista";
+import { ChipSeleccion } from "../../../components/ChipSeleccion";
 import { PulsoButton } from "../../../components/PulsoButton";
 
 type Props = {
@@ -83,11 +84,11 @@ export function AgruparLista({ id, etiqueta, nota, valor, args, onCambio }: Prop
                     ? "El mapa ya no lee esta pregunta. Pulsa para quitarla."
                     : otra ? `Ya suma en “${otra.rotulo.trim() || "otra fila"}”.` : rotuloDe(ref);
                   return (
-                    <button key={ref} type="button" className={`pulso-f6-cat${marcada ? " is-activa" : ""}${esFuera ? " is-residual" : ""}`}
-                      aria-pressed={marcada} aria-disabled={otra ? true : undefined} title={titulo}
-                      onClick={() => aplicar(alternarPregunta(filas, i, ref))}>
-                      <span className="pulso-f6-cat-texto">{rotuloDe(ref)}</span>
-                    </button>
+                    // W3: ChipSeleccion del kit; la que ya suma en otra fila queda bloqueada pero enfocable, con el
+                    // porqué en el title, y la que el mapa ya no lee va discontinua.
+                    <ChipSeleccion key={ref} etiqueta={rotuloDe(ref)} activo={marcada} title={titulo} envuelve
+                      residual={esFuera} bloqueado={otra !== null}
+                      onAlternar={() => aplicar(alternarPregunta(filas, i, ref))} />
                   );
                 })}
               </div>

@@ -118,8 +118,85 @@
   background: transparent;
 }
 
+/* ---------- W3: cifra, excluir, residual, bloqueado y rótulo que parte línea ---------- */
+
+/* La cola: la cifra o el n en el tono suave; mientras llega la nueva, la anterior en tenue. */
+.pulso-chip-seleccion__cifra {
+  flex: none;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-regular);
+  font-variant-numeric: tabular-nums;
+  transition: opacity var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-chip-seleccion__cifra.is-anterior {
+  opacity: 0.55;
+}
+
+/* Activo, el rótulo pesa un poco más (la elección se lee también sin color). */
+.pulso-chip-seleccion.is-activo .pulso-chip-seleccion__texto {
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/* Excluir: lo marcado sale del gráfico; se apaga y se tacha, sin el tinte del acento (no es una elección positiva). */
+.pulso-chip-seleccion.pulso-chip-seleccion--excluye.is-activo {
+  border-color: var(--pulso-border);
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+}
+
+.pulso-chip-seleccion.pulso-chip-seleccion--excluye.is-activo .pulso-chip-seleccion__texto {
+  font-weight: var(--pulso-control-weight);
+  text-decoration: line-through;
+}
+
+/* Residual: borde discontinuo, en cualquier estado. */
+.pulso-chip-seleccion.pulso-chip-seleccion--residual {
+  border-style: dashed;
+}
+
+/* Bloqueado: sigue enfocable (aria-disabled), sin respuesta al hover y con el cursor que lo dice. */
+.pulso-chip-seleccion.is-bloqueado:hover {
+  border-color: var(--pulso-border);
+}
+
+.pulso-chip-seleccion.is-bloqueado.is-activo:hover {
+  border-color: var(--module-accent-border, var(--pulso-primary-border));
+}
+
+.pulso-chip-seleccion.is-bloqueado .pulso-chip-seleccion__alternar {
+  cursor: not-allowed;
+}
+
+.pulso-chip-seleccion.is-bloqueado .pulso-chip-seleccion__alternar:active {
+  transform: none;
+}
+
+/* El rótulo parte línea: el chip crece en alto (mínimo 28) y el texto envuelve en vez de cortarse (C4). */
+.pulso-chip-seleccion.pulso-chip-seleccion--envuelve {
+  height: auto;
+  min-height: var(--pulso-chip-sel-alto);
+}
+
+.pulso-chip-seleccion.pulso-chip-seleccion--envuelve .pulso-chip-seleccion__alternar {
+  height: auto;
+  min-height: calc(var(--pulso-chip-sel-alto) - 2px);
+  padding-block: calc(var(--pulso-space-1) / 2);
+  text-align: start;
+  white-space: normal;
+}
+
+.pulso-chip-seleccion.pulso-chip-seleccion--envuelve .pulso-chip-seleccion__texto {
+  overflow: visible;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  white-space: normal;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .pulso-chip-seleccion {
+  .pulso-chip-seleccion,
+  .pulso-chip-seleccion__cifra {
     transition: none;
   }
 }

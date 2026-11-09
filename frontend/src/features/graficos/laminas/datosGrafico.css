@@ -197,11 +197,10 @@
 .pulso-f6-preguntas-tema { font-weight: 600; color: var(--pulso-text); }
 .pulso-f6-preguntas-refs { font-size: var(--pulso-type-body-size); color: var(--pulso-text-muted); overflow-wrap: anywhere; }
 
-/* «Destacar» del ranking con puntos (I4): las respuestas de la pregunta como botones que se encienden. */
+/* «Destacar» del ranking con puntos (I4): las respuestas son ChipSeleccion del kit (W3). La ficha propia de abajo queda
+   para las de una sola respuesta (`is-unica`: el centro de la dona, la significancia), que son radio/checkbox. */
 .pulso-f6-destacar { display: flex; flex-wrap: wrap; gap: var(--pulso-space-1); }
 .pulso-f6-destacar-opcion {
-  /* W2-B: la ficha de ChipSeleccion (28, radio de chip, tinte del acento). Sigue propia por la cifra de la lámina que
-     lleva al lado, con su tono de «anterior» mientras llega la nueva. */
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
@@ -225,14 +224,6 @@
   border-color: var(--pulso-primary);
   background: var(--pulso-primary-soft);
   color: var(--pulso-primary);
-}
-/* R7-14: lo destacado es una elección, no un error: el tinte del acento del módulo con su borde (el de ChipSeleccion). */
-.pulso-f6-destacar-opcion[aria-pressed="true"],
-.pulso-f6-destacar-opcion[aria-pressed="true"]:hover {
-  border-color: var(--module-accent-border);
-  background: var(--module-accent-soft);
-  color: var(--pulso-text);
-  font-weight: var(--pulso-weight-semibold);
 }
 @media (prefers-reduced-motion: reduce) { .pulso-f6-destacar-opcion { transition: none; } }
 
@@ -369,8 +360,8 @@
 }
 .pulso-f6-alcance-pie .pulso-f6-dato-rotulo { color: var(--pulso-warn-fg); overflow-wrap: normal; text-wrap: pretty; }
 
-/* Categorías de la pregunta como fichas (en lugar de códigos separados por comas). Excluir: la ficha marcada se apaga
-   y se tacha. Elegir (corte): la marcada toma el color del módulo. */
+/* Categorías de la pregunta como fichas (en lugar de códigos separados por comas): ChipSeleccion del kit (W3; excluir
+   apaga y tacha, elegir tiñe del acento, residual va discontinua). `.pulso-f6-cat` queda para los grupos del cruce. */
 .pulso-f6-cats-cabeza { display: flex; align-items: baseline; justify-content: space-between; gap: var(--pulso-space-2); }
 .pulso-f6-cats-resumen { color: var(--pulso-text-soft); font-size: var(--pulso-type-caption-size); white-space: nowrap; }
 .pulso-f6-cats { display: flex; flex-wrap: wrap; gap: var(--pulso-space-1); }
@@ -390,8 +381,7 @@
 }
 .pulso-f6-dato:has(> .pulso-f6-excluir-efecto) .pulso-f6-cats-resumen { visibility: hidden; }
 .pulso-f6-cat {
-  /* W2-B: misma ficha que ChipSeleccion (28, radio de chip, tinte del acento al elegir). Sigue propia porque lleva su
-     cifra o su n al lado, se tacha al excluir y un rótulo largo parte línea en vez de recortarse (C4). */
+  /* La ficha estática de los grupos del cruce (GruposDelCruce): la misma geometría que ChipSeleccion. */
   display: inline-flex; align-items: center; gap: var(--pulso-space-1); max-width: 100%; min-height: var(--pulso-control-height-sm);
   padding: 3px var(--pulso-space-3); box-sizing: border-box;
   border: 1px solid var(--pulso-border); border-radius: var(--pulso-radius-chip); background: var(--pulso-surface); box-shadow: none;
@@ -402,11 +392,6 @@
 .pulso-f6-cat:focus-visible { outline: var(--mov-foco); outline-offset: 1px; box-shadow: none; }
 .pulso-f6-cat-texto { min-width: 0; overflow-wrap: anywhere; }
 .pulso-f6-cat-n { color: var(--pulso-text-soft); font-size: var(--pulso-type-caption-size); font-variant-numeric: tabular-nums; }
-.pulso-f6-cat.is-residual { border-style: dashed; }
-.pulso-f6-cats.is-excluir .pulso-f6-cat.is-activa { background: var(--pulso-surface-3); color: var(--pulso-text-soft); }
-.pulso-f6-cats.is-excluir .pulso-f6-cat.is-activa .pulso-f6-cat-texto { text-decoration: line-through; }
-.pulso-f6-cats.is-elegir .pulso-f6-cat.is-activa,
-.pulso-f6-cats.is-elegir .pulso-f6-cat.is-activa:hover { border-color: var(--module-accent-border); background: var(--module-accent-soft); color: var(--pulso-text); font-weight: var(--pulso-weight-semibold); }
 @media (prefers-reduced-motion: reduce) { .pulso-f6-cat { transition: none; } }
 
 /* Cortes numéricos (CortesNumericos.tsx): un campo por corte, en fila. */
@@ -539,6 +524,5 @@
 
 /* Ítem 10 (2026-11-08): «La más alta» abre las fichas de «Destacar»; encendida, en el tono de énfasis como las respuestas
    destacadas (el realce es uno solo). Un poco de aire la separa de las respuestas. */
-.pulso-f6-destacar-opcion.is-mayor { font-weight: var(--pulso-weight-semibold); }
-.pulso-f6-destacar-opcion.is-mayor + .pulso-f6-destacar-opcion { margin-inline-start: var(--pulso-space-1); }
+.pulso-f6-destacar-mayor + .pulso-chip-seleccion { margin-inline-start: var(--pulso-space-1); }
 .pulso-f6-destacar-opcion:active { transform: scale(var(--mov-press)); }

@@ -29,7 +29,7 @@ afterEach(() => { act(() => root.unmount()); host.remove(); });
 const pintar = (args: Record<string, unknown>, graficador = "p_barras_categoricas") => {
   const valor: GraficadorRef = { graficador, args: { var: "p1", ...args } };
   act(() => root.render(<DestacarRespuestas slideId="s1" slot="g" valor={valor} />));
-  return [...host.querySelectorAll<HTMLButtonElement>(".pulso-f6-destacar-opcion")];
+  return [...host.querySelectorAll<HTMLButtonElement>(".pulso-f6-destacar .pulso-chip-seleccion__alternar")];
 };
 
 describe("Destacar con «La más alta»", () => {

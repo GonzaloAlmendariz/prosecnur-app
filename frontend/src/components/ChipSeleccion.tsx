@@ -19,6 +19,30 @@ export type ChipSeleccionProps = Omit<
   etiquetaQuitar?: string;
   /** Ícono opcional antes del texto (14 px del shim; se marca `aria-hidden`). */
   icono?: ReactNode;
+  /**
+   * W3 — cola del chip: la cifra o el n de la categoría («62%», «412»), en el tono suave, tras el texto. Forma parte
+   * del nombre accesible («Sí 62%»).
+   */
+  cifra?: ReactNode;
+  /** La cifra es la ANTERIOR mientras llega la nueva: va en el tono tenue de «anterior». */
+  cifraAnterior?: boolean;
+  /** `data-qa` del tramo de la cifra (para el QA y los tests de quien la monta). */
+  cifraQa?: string;
+  /**
+   * W3 — chip de EXCLUIR: activo, el chip no se tiñe con el acento sino que se apaga (surface-3) y su texto se tacha;
+   * lo marcado es lo que sale.
+   */
+  excluye?: boolean;
+  /** W3 — categoría residual (No sabe, Otro, una pregunta que ya no se lee): borde discontinuo. */
+  residual?: boolean;
+  /**
+   * W3 — bloqueado: no se puede alternar (el último que queda, uno que ya usa otra fila) pero SIGUE ENFOCABLE y se
+   * lee: sale como `aria-disabled="true"`, no como `disabled`, y pulsarlo no llama a `onAlternar`. El porqué va en
+   * `title`.
+   */
+  bloqueado?: boolean;
+  /** W3 — el rótulo parte línea en lugar de cortarse con elipsis (rótulos largos de categorías; C4). */
+  envuelve?: boolean;
   disabled?: boolean;
   /** Tooltip; por defecto la etiqueta. */
   title?: string;
@@ -32,6 +56,11 @@ export type ChipSeleccionProps = Omit<
  * (`--module-accent-soft` + `--module-accent-border`). La X opcional es un
  * botón hermano (nunca anidado) PulsoButton `icon` `tone="quiet"`
  * `intent="remove"` con ícono de 14.
+ *
+ * W3: cola con la cifra o el n (`cifra`, con su tono de «anterior»), chip de
+ * excluir (`excluye`: tachado y apagado), residual (`residual`: borde
+ * discontinuo), bloqueado pero enfocable (`bloqueado`: `aria-disabled`) y
+ * rótulo que parte línea (`envuelve`).
  *
  * Para elegir UN valor entre varios no es esto: es `GlidingRadioGroup`.
  * **Escape no es asunto del chip**: no abre ni cierra nada.
@@ -47,6 +76,13 @@ export const ChipSeleccion = forwardRef<HTMLButtonElement, ChipSeleccionProps>(f
     onQuitar,
     etiquetaQuitar,
     icono,
+    cifra,
+    cifraAnterior = false,
+    cifraQa,
+    excluye = false,
+    residual = false,
+    bloqueado = false,
+    envuelve = false,
     disabled = false,
     title,
     className,
@@ -54,12 +90,17 @@ export const ChipSeleccion = forwardRef<HTMLButtonElement, ChipSeleccionProps>(f
   },
   ref,
 ) {
+  const hayCifra = cifra !== undefined && cifra !== null && cifra !== false;
   return (
     <span
       className={[
         "pulso-chip-seleccion",
         activo ? "is-activo" : null,
         disabled ? "is-deshabilitado" : null,
+        bloqueado ? "is-bloqueado" : null,
+        excluye ? "pulso-chip-seleccion--excluye" : null,
+        residual ? "pulso-chip-seleccion--residual" : null,
+        envuelve ? "pulso-chip-seleccion--envuelve" : null,
         onQuitar ? "pulso-chip-seleccion--con-quitar" : null,
         className,
       ]
@@ -72,9 +113,12 @@ export const ChipSeleccion = forwardRef<HTMLButtonElement, ChipSeleccionProps>(f
         type="button"
         className="pulso-chip-seleccion__alternar"
         aria-pressed={activo}
+        aria-disabled={bloqueado || undefined}
         disabled={disabled}
         title={title ?? etiqueta}
-        onClick={() => onAlternar(!activo)}
+        onClick={() => {
+          if (!bloqueado) onAlternar(!activo);
+        }}
       >
         {icono ? (
           <span className="pulso-chip-seleccion__icono" aria-hidden="true">
@@ -82,6 +126,17 @@ export const ChipSeleccion = forwardRef<HTMLButtonElement, ChipSeleccionProps>(f
           </span>
         ) : null}
         <span className="pulso-chip-seleccion__texto">{etiqueta}</span>
+        {hayCifra ? (
+          <>
+            {" "}
+            <span
+              className={["pulso-chip-seleccion__cifra", cifraAnterior ? "is-anterior" : null].filter(Boolean).join(" ")}
+              data-qa={cifraQa}
+            >
+              {cifra}
+            </span>
+          </>
+        ) : null}
       </button>
       {onQuitar ? (
         <PulsoButton
