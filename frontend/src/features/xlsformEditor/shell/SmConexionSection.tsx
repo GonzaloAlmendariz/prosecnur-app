@@ -5,6 +5,7 @@ import type {
   SurveyMonkeyTokenInfo,
   SurveyMonkeyTokenState,
 } from "../../../api/multiIntegrado";
+import { PulsoButton } from "../../../components/PulsoButton";
 import { surveyMonkeyTokenUiState } from "./smTokenUi";
 import { SmConteo } from "./SmConteo";
 import { SmPerfilesRescate } from "./SmPerfilesRescate";
@@ -178,14 +179,14 @@ export function SmConexionSection({
               {tokenState.active_profile_alias ? `Perfil ${tokenState.active_profile_alias}, ` : ""}
               <code>{tokenUi.displayMask}</code>
               {tokenUi.storageLabel ? `, ${tokenUi.storageLabel}` : ""}
-              <button
-                type="button"
-                className="pulso-xf-smi-enlace is-peligro"
+              <PulsoButton
+                variant="ghost"
+                size="sm"
                 onClick={onForgetToken}
                 title="Borra el token de esta sesión y el guardado cifrado en este equipo"
               >
                 Quitar
-              </button>
+              </PulsoButton>
             </span>
           ) : null}
           {/* Con el buscador abierto, el total de la cuenta va en su única línea de conteo. */}

@@ -62,29 +62,15 @@
   color: var(--pulso-text);
 }
 
-.pulso-xf-smi-enlace {
-  min-height: 0;
-  box-shadow: none;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--pulso-module-editor);
-  font-size: inherit;
-  text-decoration: underline;
-  cursor: pointer;
-}
-
-.pulso-xf-smi-enlace.is-peligro {
-  color: var(--pulso-danger-fg);
-}
-
 .pulso-xf-smi-input {
   flex: 1 1 260px;
   min-width: 0;
-  min-height: 32px;
-  padding: 6px 8px;
+  /* R12-8: la escalera del kit (28) y su radio (8). */
+  height: var(--pulso-control-height-sm);
+  min-height: var(--pulso-control-height-sm);
+  padding: 0 var(--pulso-space-2);
   border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius);
+  border-radius: var(--pulso-control-radius);
   background: var(--pulso-surface-raised);
   color: var(--pulso-text);
   font-size: var(--pulso-type-body-size);
