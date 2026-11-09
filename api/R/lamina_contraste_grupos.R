@@ -8,11 +8,12 @@
 #     siguiente hay al menos dos pasos; `.lam_contraste_geom`);
 #   - un filete fino entre preguntas, nunca entre las sub-filas de una misma pregunta;
 #   - el rótulo, centrado en el bloque de sus sub-filas;
-#   - con más de cinco preguntas la lámina avisa que se puede partir en dos con «Continuar desde». Nunca se parte sola.
+#   - con más de ocho preguntas la lámina avisa que se puede partir en dos con "Continuar desde". Nunca se parte sola.
+#     Gonzalo dejó "Diferencias por ciclo" (tres grupos, siete preguntas) en UNA lámina: partida en 4 y 3 se veía vacía.
 
-#' Preguntas a partir de las cuales la lámina con tres o cuatro grupos avisa
+#' Preguntas a partir de las cuales (más de) la lámina con tres o cuatro grupos avisa
 #' @keywords internal
-.LAM_CONTRASTE_GRUPOS_AVISO <- 5L
+.LAM_CONTRASTE_GRUPOS_AVISO <- 8L
 
 #' Filete fino entre dos preguntas del contraste con grupos
 #' @keywords internal
@@ -20,7 +21,7 @@
   .lam_linea(lz, m$ml, y, m$xr, y, .std_color("filete"), pt = 0.5, nombre = "puntos:filete_pregunta")
 }
 
-#' Con tres o cuatro grupos y más de cinco preguntas, el aviso que sugiere partir la lámina (sin partirla)
+#' Con tres o cuatro grupos y más de ocho preguntas, el aviso que sugiere partir la lámina (sin partirla)
 #' @keywords internal
 .lam_contraste_grupos_aviso <- function(espec) {
   k <- length(espec$grupos); n <- length(espec$rotulos)

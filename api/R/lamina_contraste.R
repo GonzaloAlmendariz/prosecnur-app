@@ -114,7 +114,9 @@
   zona1 <- g_("contenido_y1") - 0.35
   disponible <- zona1 - zona0 - cab
   pasos <- if (par) rep(1, n) else rep(k + 0.7, n)
-  u_min <- if (par) 0.22 else 0.14; u_max <- if (par) 0.5 else 0.28
+  # O3 (Gonzalo, 2026-11-09, "Diferencias por pertenencia" estirada a mano): con dos grupos las filas también bajan hasta
+  # el pie, como la escala y el contraste con grupos; el hueco común crece hasta una fila de 0.65 in.
+  u_min <- if (par) 0.22 else 0.14; u_max <- if (par) 0.65 else 0.28
   base_m <- .lam_puntos_marco(espec$rotulos, anchos, size_rot = 11.5, tope_rot = 3.8)
   w_max <- (base_m$xt - 0.5) - 3.5 - 0.25 - base_m$ml
   alto <- function(nl, size) {
@@ -139,8 +141,9 @@
   }
   # S4 y S5 (Gonzalo, 2026-11-09: «sobreestimas el tamaño de las etiquetas del eje»): la columna mide lo que piden los
   # rótulos con la tinta real, enteros y sin «…»; el área de puntos se queda con el resto (lamina_rotulos_columna.R).
-  elegido <- .lam_rotulos_columna(espec$rotulos, NULL, w_min = 1.4, w_max = max(1.4, w_max), desde = 11.5, alto = alto, n_min = n,
-                                  serie = espec$serie$rotulos)
+  # O2: dentro del tope de la casa; sólo si así no caben, hasta el mínimo del área de puntos (lamina_rotulos_tope.R).
+  elegido <- .lam_rotulos_columna_tope(espec$rotulos, NULL, w_min = 1.4, w_max = max(1.4, w_max), tope = .lam_rotulos_tope("contraste"),
+                                       desde = 11.5, alto = alto, n_min = n, serie = espec$serie$rotulos)
   if (is.null(elegido)) return(list(cabe = FALSE))
   elegido$w <- elegido$wq
   m <- base_m
@@ -196,7 +199,7 @@
   # pida su rótulo si es más.
   pasos <- ge$pasos; u <- ge$u; alturas <- ge$alturas
   .lam_rotulos_largos_aviso(ge$largos)   # S4: ningún rótulo se corta (lamina_rotulos_columna.R)
-  .lam_contraste_grupos_aviso(espec)      # S7: con tres o cuatro grupos y más de cinco preguntas (lamina_contraste_grupos.R)
+  .lam_contraste_grupos_aviso(espec)      # S7: con tres o cuatro grupos y más de ocho preguntas (lamina_contraste_grupos.R)
   # P13: el bloque (leyenda, cabecera, filas y eje) arranca bajo el título y las filas bajan hacia el pie con el mismo
   # hueco entre ellas; ya no se centra en la zona de datos con aire encima.
   y_ley <- zona0; y0 <- y_ley + cab; y1 <- y0 + sum(alturas)

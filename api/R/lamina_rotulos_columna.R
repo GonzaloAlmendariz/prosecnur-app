@@ -68,6 +68,11 @@
   piso <- .LAM_ROTULO_PT_PISO
   base_col <- if (length(serie)) as.character(serie) else as.character(textos)
   largo_t <- function(t) is.infinite(ancho_para(t, max_lin, piso))
+  lineas <- function(t, w, size) {
+    clave <- paste("L", round(w, 4), size, t, sep = "\r")
+    if (is.null(cache[[clave]])) cache[[clave]] <- .lam_rotulo_lineas(t, w, size)
+    cache[[clave]]
+  }
   # S2: en una ranura, si con todas las filas el área de barras queda corta, se prueba con menos filas (la columna se
   # angosta con rótulos de más líneas) hasta un 60 % de las que cabían; si ni así, las que cabían con la barra corta.
   reserva <- NULL; k_piso <- 0L
@@ -75,6 +80,7 @@
     if (!is.null(reserva) && k < k_piso) return(reserva)
     filas <- sort(idx[seq_len(k)]); tx <- textos[filas]
     col <- if (length(serie)) base_col else tx
+    ventana <- if (length(serie) > k) max(k, length(base_col) - k) else 0L
     lg_col <- vapply(col, largo_t, TRUE)
     for (size in .lam_rotulo_pasos_pt(desde)) {
       cortos <- col[!lg_col]
@@ -88,10 +94,20 @@
       uno_m <- pmin(uno, w_max + 1)
       comunes <- uno_m[uno_m <= 1.5 * stats::median(uno_m)]
       w_obj <- min(w_max, max(w_lo, if (length(comunes)) max(comunes) else w_lo))
+      alto_de <- function(t, w) {
+        nl <- vapply(t, lineas, 0L, w = w, size = size)
+        list(nl = nl, h = if (length(formals(alto)) >= 3L) alto(nl, size, w) else alto(nl, size))
+      }
       geom <- function(w) {
-        nl <- vapply(tx, .lam_rotulo_lineas, 0L, w = w, size = size)
-        h <- if (length(formals(alto)) >= 3L) alto(nl, size, w) else alto(nl, size)
-        if (is.null(h)) NULL else c(list(size = size, wq = w, n_lineas = nl), h)
+        a <- alto_de(tx, w)
+        if (is.null(a$h)) return(NULL)
+        # O1/S6: en una serie la columna y la letra salen de TODAS las filas que elige la regla: el ancho sirve sólo si
+        # cabe cada tramo de la serie del largo de la mayor de las dos láminas. Así las dos eligen lo mismo y el área
+        # del gráfico no salta al pasar de una a otra.
+        if (ventana > 0L) for (i in seq_len(length(base_col) - ventana + 1L)) {
+          if (is.null(alto_de(base_col[i:(i + ventana - 1L)], w)$h)) return(NULL)
+        }
+        c(list(size = size, wq = w, n_lineas = a$nl), a$h)
       }
       cand <- NULL
       for (w in unique(c(w_obj, if (w_max > w_obj) seq(w_obj, w_max, by = 0.1), w_max))) { cand <- geom(w); if (!is.null(cand)) break }

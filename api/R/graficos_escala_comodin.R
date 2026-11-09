@@ -35,13 +35,22 @@
   el$.n_sin_recorte <- n
   desde <- .tope_espacio_desde(el$continuar_desde)   # P14
   if (desde > n) stop("`continuar_desde` (", desde, ") pasa de las ", n, " preguntas de la escala.", call. = FALSE)
+  # O1: en una serie las posiciones cuentan en el orden en que la lámina dibuja (graficos_tope_orden_dibujo.R).
+  sentido <- "de la más baja a la más alta"
+  if (.tope_espacio_en_serie(el)) {
+    orden <- as.character(args$orden %||% "top_two_box")[1]
+    el_o <- el; el_o$overrides <- utils::modifyList(el$overrides %||% list(), list(orden = orden))
+    vars <- vars[.tope_espacio_orden_dibujo(vars, r$indicadores, el_o, NULL, FALSE)]
+    sentido <- switch(orden, top_two_box = "de la más alta a la más baja", declarado = sentido, NULL)
+  }
   vars <- vars[desde:n]
   k <- min(tope, length(vars), if (!is.null(el$hasta)) el$hasta - desde + 1L)   # S6
   if (length(vars) > k || desde > 1L) {
     if (length(vars) > k) .pulso_aviso(.aviso_en_lamina(.tope_espacio_aviso(k, n, desde, consejo = FALSE)))
     vars <- vars[seq_len(k)]
-    el$.texto_tope <- .tope_espacio_mas_bajas(k, n, desde)
+    el$.texto_tope <- .tope_espacio_mas_bajas(k, n, desde, rango = !is.null(el$hasta), sentido = sentido)
   }
+  el$.vars_declaradas <- el$.vars_declaradas %||% el$vars   # O4 (graficos_serie_plan.R)
   el$vars <- vars
   el$var <- if (length(vars) == 1L) vars else NULL
   el$.firma_leyenda <- r$firma_leyenda

@@ -99,7 +99,9 @@
   # P14: con lo que la lámina dibuja al final, desde dónde seguiría la siguiente (la agrega el analista).
   rc <- espec$recorte_escala
   k_fin <- length(ge$filas); n_rc <- rc$n %||% n; desde_rc <- rc$desde %||% 1L
-  if (n_rc - (desde_rc - 1L) - k_fin > 0L) {
+  # O4: si el mazo ya trae la lámina que continúa (misma base y regla, `continuar_desde = hasta + 1`) y esta lámina
+  # dibuja todo su tramo, no se aconseja agregarla.
+  if (n_rc - (desde_rc - 1L) - k_fin > 0L && !(isTRUE(rc$continua) && k_fin >= n)) {
     .pulso_aviso(.aviso_en_lamina(paste(if (k_fin < n) sprintf("Con los rótulos enteros caben %d de esas %d filas.", k_fin, n),
                                         .tope_espacio_consejo(desde_rc + k_fin))))
   }

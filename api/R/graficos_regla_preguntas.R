@@ -390,6 +390,7 @@
     .pulso_aviso(.aviso_en_lamina(.tope_espacio_aviso(r$recorte[["k"]], r$recorte[["n"]], r$recorte[["desde"]],
                                                       consejo = !identical(el$.element_type, "barras_divergentes"))))
   }
+  el$.vars_declaradas <- el$.vars_declaradas %||% el$vars   # O4: la serie se reconoce por lo declarado (graficos_serie_plan.R)
   el$vars <- r$vars
   if (identical(el$.element_type, "barras_divergentes")) {
     el$var <- if (length(r$vars) == 1L) r$vars else NULL

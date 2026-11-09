@@ -30,12 +30,16 @@
     o <- order(espec$total_pos, round(fino, 8L), seq_along(espec$filas))
     espec$prioridad <- integer(length(o)); espec$prioridad[o] <- seq_along(o)
   }
+  # O1: en una serie (`hasta`, `continuar_desde`) la lámina que muestra menos se queda con las primeras como se leen.
+  serie <- .tope_espacio_en_serie(el)
+  if (serie) espec$prioridad <- seq_along(espec$filas)
   espec$recorte_escala <- list(
     regla = el$regla,
     n = if (sin_regla) el$.n_sin_recorte %||% length(espec$filas) else ap$n_elegidas %||% length(espec$filas),
     total = ap$total, universo = ap$universo %||% "preguntas de escala",
     texto_base = if (sin_regla) el$.texto_tope else ap$texto_base, desde = .tope_espacio_desde(el$continuar_desde),
-    criterio = if (sin_regla) "más bajas" else NULL)
+    criterio = if (sin_regla) "más bajas" else NULL, rango = !is.null(el$hasta),
+    continua = .serie_continuacion_en_plan(el))   # O4: el mazo ya trae la lámina que sigue (graficos_serie_plan.R)
   attr(p, "pulso_espec") <- espec
   p
 }
@@ -61,8 +65,9 @@
   }
   # S4 y S5: rótulos enteros (hasta cuatro líneas, sin «…») en una columna a la medida de sus rótulos; si no caben,
   # menos filas en la prioridad de la regla (lamina_rotulos_columna.R).
-  .lam_rotulos_columna(espec$filas, espec$prioridad, w_min = 1.2, w_max = w_max, desde = 12, alto = alto, n_min = 1L,
-                       serie = espec$serie$filas)
+  # O2: dentro del tope de la casa; sólo si así no caben todas las filas, hasta lo que deja la escala (lamina_rotulos_tope.R).
+  .lam_rotulos_columna_tope(espec$filas, espec$prioridad, w_min = 1.2, w_max = w_max, tope = .lam_rotulos_tope("escala"), desde = 12,
+                            alto = alto, n_min = 1L, serie = espec$serie$filas)
 }
 
 #' La escala con sólo algunas de sus filas (todas las piezas por fila, en el mismo orden)
@@ -86,8 +91,9 @@
   if (is.null(rc)) return(.tope_espacio_unir(espec$texto_regla, .tope_espacio_texto(k, length(espec$filas), "primeras")))
   n <- rc$n %||% length(espec$filas); desde <- rc$desde %||% 1L
   frase <- if (!is.null(rc$regla)) {
-    .tope_espacio_frase(rc$regla, k, n, universo = rc$universo %||% "preguntas de escala", total = rc$total, desde = desde)
-  } else if (identical(rc$criterio, "más bajas")) .tope_espacio_mas_bajas(k, n, desde) else .tope_espacio_texto(k, n, "primeras", desde = desde)
+    .tope_espacio_frase(rc$regla, k, n, universo = rc$universo %||% "preguntas de escala", total = rc$total, desde = desde,
+                        rango = isTRUE(rc$rango))
+  } else if (identical(rc$criterio, "más bajas")) .tope_espacio_mas_bajas(k, n, desde, rango = isTRUE(rc$rango), sentido = NULL) else .tope_espacio_texto(k, n, "primeras", desde = desde)
   viejo <- rc$texto_base
   actual <- espec$texto_regla
   if (!is.null(viejo) && nzchar(viejo) && !is.null(actual) && grepl(viejo, actual, fixed = TRUE)) return(sub(viejo, frase, actual, fixed = TRUE))

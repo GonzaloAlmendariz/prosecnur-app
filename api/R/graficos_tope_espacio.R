@@ -49,10 +49,11 @@
 
 #' La escala sin regla: las más bajas por su Top Two Box (graficos_escala_comodin.R), con su cola de P14
 #' @keywords internal
-.tope_espacio_mas_bajas <- function(k, n, desde = 1L) {
+.tope_espacio_mas_bajas <- function(k, n, desde = 1L, rango = FALSE, sentido = "de la más baja a la más alta") {
   desde <- .tope_espacio_desde(desde)
   de_n <- .regla_preguntas_de_total(n, "preguntas de escala")
-  cab <- if (desde > 1L) sprintf("Se muestran de la %d a la %d %s, de la más baja a la más alta", desde, desde + k - 1L, de_n)
+  # O1: en una serie las posiciones cuentan en el orden en que se dibuja (`sentido`; NULL si no es el de la métrica).
+  cab <- if (desde > 1L || isTRUE(rango)) paste0(sprintf("Se muestran de la %d a la %d %s", desde, desde + k - 1L, de_n), if (length(sentido)) paste0(", ", sentido) else "")
          else sprintf("Se muestran las %d más bajas %s", k, de_n)
   paste0(cab, .tope_espacio_siguientes(n - (desde - 1L) - k))
 }
@@ -87,7 +88,7 @@
 #' @param universo,n_grupos,grupos_unidad Los de la evaluación (para «todas» y «comunes»).
 #' @keywords internal
 .tope_espacio_frase <- function(regla, k, n, criterio = NULL, universo = "preguntas de escala", n_grupos = 2L, grupos_unidad = "públicos",
-                               total = NULL, desde = 1L) {
+                               total = NULL, desde = 1L, rango = FALSE) {
   r <- .regla_preguntas_normalizar(regla)
   criterio <- criterio %||% .tope_espacio_criterio(r$tipo)
   desde <- .tope_espacio_desde(desde)
@@ -107,7 +108,8 @@
     sprintf("de las %d elegidas", n))
   # P14: con `continuar_desde`, «de la 12 a la 22 de las 22 bajo 60%…»; la cola dice cuántas siguen, sin prometer una
   # lámina que no existe.
-  cab <- if (desde > 1L) sprintf("de la %d a la %d", desde, desde + k - 1L) else if (identical(criterio, "primeras")) sprintf("las primeras %d", k) else sprintf("las %d %s", k, criterio)
+  # O1: con `hasta` la lámina lleva un tramo de la serie en el orden en que se dibuja, no "las 11 más bajas".
+  cab <- if (desde > 1L || isTRUE(rango)) sprintf("de la %d a la %d", desde, desde + k - 1L) else if (identical(criterio, "primeras")) sprintf("las primeras %d", k) else sprintf("las %d %s", k, criterio)
   paste0(sprintf("Se muestran %s %s%s", cab, de, cola), .tope_espacio_siguientes(n - (desde - 1L) - k))
 }
 
@@ -190,8 +192,10 @@
   tope <- if (contraste) .contraste_tope_filas(k_grupos) else .LAM_DIV_RESUMEN_MAX_FILAS
   hasta <- el$hasta
   if (n <= tope && desde == 1L && is.null(hasta)) return(list(ev = ev, aviso = NULL))
-  # El orden de la prioridad: el de la regla en la escala; la mayor diferencia absoluta en el contraste.
-  prioridad <- if (contraste) {
+  # El orden de la prioridad: el de la regla en la escala; la mayor diferencia absoluta en el contraste. O1: en una serie
+  # (`hasta`, `continuar_desde`), el orden en que se dibujan las filas (graficos_tope_orden_dibujo.R).
+  serie <- .tope_espacio_en_serie(el)
+  prioridad <- if (serie) .tope_espacio_orden_dibujo(temas, ind$indicadores, el, regla, contraste, decimales) else if (contraste) {
     d <- .regla_preguntas_evaluar(ind$indicadores, list(tipo = "mayor_diferencia", n = max(1L, length(unique(ind$indicadores$tema)))),
                                   universo = ind$universo, grupos_unidad = ind$grupos_unidad, decimales = decimales)
     rango <- match(temas, d$temas); rango[is.na(rango)] <- .Machine$integer.max
@@ -206,7 +210,8 @@
   ev$temas <- quedan
   if (is.data.frame(ev$candidatas) && nrow(ev$candidatas)) ev$candidatas$seleccionada <- ev$candidatas$tema %in% quedan
   ev$texto <- .tope_espacio_frase(regla, k, n, criterio = if (contraste) "de mayor diferencia" else NULL, universo = ev$universo %||% "preguntas de escala", total = ev$total,
-                                  n_grupos = k_grupos, grupos_unidad = ind$grupos_unidad %||% "públicos", desde = desde)
+                                  n_grupos = k_grupos, grupos_unidad = ind$grupos_unidad %||% "públicos", desde = desde,
+                                  rango = !is.null(hasta))
   queda_fuera <- n - (desde - 1L) - k > 0L
   aviso <- if (queda_fuera) sprintf("La regla elige %d preguntas y la lámina admite %d: %s", n, tope, sub("^Se muestran", "se muestran", ev$texto))
   list(ev = ev, aviso = aviso, recorte = if (queda_fuera) c(k = k, n = n, desde = desde))

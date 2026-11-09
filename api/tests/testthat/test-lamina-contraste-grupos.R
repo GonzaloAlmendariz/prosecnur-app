@@ -2,7 +2,7 @@ source("setup-load-all.R")
 
 # S7 (Gonzalo, 2026-11-09, «Diferencias por ciclo»: «al ser tres y tantas premisas no queda claro cuál es cuál»). Con
 # tres o cuatro grupos el hueco entre preguntas es al menos el doble del paso entre sub-filas, hay un filete entre
-# preguntas y, con más de cinco, la lámina avisa que se puede partir con «Continuar desde» (lamina_contraste_grupos.R).
+# preguntas y, con más de ocho, la lámina avisa que se puede partir con "Continuar desde" (lamina_contraste_grupos.R).
 
 .cg_espec <- function(n = 7L) {
   rot <- c("La FAD fomenta la movilidad estudiantil", "Asesorías de matrícula", "Servicio de salud", "Dotación de recursos suficiente",
@@ -46,10 +46,14 @@ test_that("S7: con tres grupos el hueco entre preguntas es al menos el doble del
   expect_true(all(abs(sort(rot) - bloques) < 0.02))
 })
 
-test_that("S7: con tres grupos y más de cinco preguntas avisa que se puede partir; con cinco no, y nunca se parte sola", {
+test_that("S7: con tres grupos y más de ocho preguntas avisa que se puede partir; con siete no, y nunca se parte sola", {
+  # Gonzalo dejó "Diferencias por ciclo" (tres grupos, siete preguntas) en una lámina: partida en 4 y 3 se veía vacía.
+  # Con tres grupos la lámina nativa admite hasta siete preguntas (27 sub-filas): el aviso queda para quien llame con más.
+  av9 <- character(0)
+  withCallingHandlers(.lam_contraste_grupos_aviso(list(grupos = c("a", "b", "c"), rotulos = paste("P", 1:9), modo = "grupos")),
+                      message = function(m) { av9 <<- c(av9, conditionMessage(m)); invokeRestart("muffleMessage") })
+  expect_true(any(grepl("Con tres grupos y 9 preguntas la lectura se aprieta; puedes partirla en dos láminas con \"Continuar desde\".", av9, fixed = TRUE)))
   r7 <- .cg_render(.cg_espec(7L))
-  expect_true(any(grepl("Con tres grupos y 7 preguntas la lectura se aprieta; puedes partirla en dos láminas con \"Continuar desde\".", r7$avisos, fixed = TRUE)))
+  expect_false(any(grepl("la lectura se aprieta", r7$avisos, fixed = TRUE)))
   expect_length(.cg_y(r7$xml, "puntos:rotulo"), 7L)
-  r5 <- .cg_render(.cg_espec(5L))
-  expect_false(any(grepl("la lectura se aprieta", r5$avisos, fixed = TRUE)))
 })
