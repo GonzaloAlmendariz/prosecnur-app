@@ -96,3 +96,63 @@ test_that("una fila declarada con escalas distintas entre públicos no se compar
   expect_identical(r$total, 0L)
   expect_identical(r$texto_regla, .DUMBBELL_MSG_SIN_COMPARABLES)
 })
+
+# P1 (2026-11-09): el panorama con `mayor_diferencia` emparejaba por nombre (`tema = variable`). Con los nombres de Arte:
+# la misma pregunta es `p13_6` en docentes y `p12_3` en estudiantes, y `p24_1` es otra en cada base.
+.deq_arte <- function(equiv) {
+  src <- .deq_fuentes(equiv)
+  ren <- list(docentes = c(p4 = "p24_1", p6 = "p13_6"), estudiantes = c(p3 = "p12_3", p4 = "p24_1"))
+  for (b in names(ren)) {
+    nm <- names(src$data_sources[[b]]); i <- match(names(ren[[b]]), nm); nm[i] <- ren[[b]]; names(src$data_sources[[b]]) <- nm
+    sv <- src$inst_sources[[b]]$survey$name; sv[match(names(ren[[b]]), sv)] <- ren[[b]]; src$inst_sources[[b]]$survey$name <- sv
+  }
+  src
+}
+.deq_matriz_arte <- function() list(filas = list(
+  .deq_fila("f1", "Reglamentos", "p1", "p1"),
+  .deq_fila("f2", "Atención administrativa", "p13_6", "p12_3"),
+  list(id = "f3", etiqueta_estandar = "Sugerida", variables = list(docentes = "p2", estudiantes = "p2"), sugerida = TRUE)))
+
+test_that("panorama: mayor_diferencia compara la pregunta declarada, nunca la del mismo nombre", {
+  src <- .deq_arte(.deq_matriz_arte())
+  el <- p_panorama(vars = c("docentes$*", "estudiantes$*"), corte = c("3", "4"), regla = list(tipo = "mayor_diferencia", n = 3))
+  r <- .regla_preguntas_de_elemento(el, src)
+  # Universo: las dos filas confirmadas; p24_1 (otra pregunta en cada base) y la sugerida no se comparan.
+  expect_identical(r$evaluacion$total, 2L)
+  expect_identical(r$evaluacion$temas, c("Atención administrativa", "Reglamentos"))   # 90 − 30 = 60 frente a 80 − 70 = 10
+  expect_false(any(grepl("p24_1", r$vars)))
+  expect_identical(r$vars[1:2], c("docentes$p13_6", "estudiantes$p12_3"))
+  expect_equal(unname(r$evaluacion$metrica["Atención administrativa"]), 60)
+  expect_true(any(grepl("no tienen equivalencia declarada en los otros públicos", r$avisos, fixed = TRUE)))
+  # El conteo (endpoint) dice lo mismo.
+  k <- .regla_preguntas_conteo("p_panorama", list(vars = list("docentes$*", "estudiantes$*"), corte = list("3", "4"),
+                                                  regla = list(tipo = "mayor_diferencia", n = 3)), src)
+  expect_identical(unlist(k$seleccionadas), c("Atención administrativa", "Reglamentos"))
+})
+
+test_that("panorama sin equivalencia declarada: aviso, sin comparación, y la lámina lo dice", {
+  for (equiv in list(NULL, list(filas = list(.deq_fila("x", "Sólo docentes", "p1", ""))))) {
+    src <- .deq_arte(equiv)
+    k <- .regla_preguntas_conteo("p_panorama", list(vars = list("docentes$*", "estudiantes$*"), corte = list("3", "4"),
+                                                    regla = list(tipo = "mayor_diferencia", n = 3)), src)
+    expect_identical(k$total, 0L)
+    expect_length(k$seleccionadas, 0L)
+    expect_identical(k$texto_regla, .DUMBBELL_MSG_SIN_EQUIV)
+    expect_true(.DUMBBELL_MSG_SIN_EQUIV %in% unlist(k$avisos))
+  }
+  # Una regla de un público (bajo_umbral) no necesita matriz: sigue midiendo cada pregunta.
+  k1 <- .regla_preguntas_conteo("p_panorama", list(vars = list("docentes$*", "estudiantes$*"), corte = list("3", "4"),
+                                                   regla = list(tipo = "bajo_umbral", umbral = 50)), .deq_arte(NULL))
+  expect_gt(k1$total, 0L)
+  # Render: el lienzo dice por qué, sin especificación del panorama.
+  src <- .deq_arte(NULL)
+  withr::local_options(prosecnur.sig_informe = NULL)
+  avisos <- character(0)
+  plan <- p_plan(slides = list(p_slide_1_grafico(p_panorama(vars = c("docentes$*", "estudiantes$*"), corte = c("3", "4"),
+                                                            regla = list(tipo = "mayor_diferencia", n = 3)), titulo = "Panorama")))
+  out <- withCallingHandlers(suppressWarnings(reporte_ppt_plan(data = src$data_sources, instrumento = src$inst_sources, plan = plan,
+                                                                solo_lista = TRUE, mensajes_progreso = FALSE)),
+                             message = function(m) { avisos <<- c(avisos, conditionMessage(m)); invokeRestart("muffleMessage") })
+  expect_null(attr(out$rendered[[1]], "pulso_espec"))
+  expect_true(any(grepl(.DUMBBELL_MSG_SIN_EQUIV, avisos, fixed = TRUE)))
+})

@@ -365,6 +365,8 @@
 .regla_preguntas_aplicar_render <- function(el, contexto, sources = NULL, preset = NULL) {
   if (is.null(el$regla)) return(list(el = el, texto = NULL))
   r <- .regla_preguntas_de_elemento(el, sources %||% .regla_preguntas_fuentes_render(contexto), preset = preset)
+  # Públicos sin equivalencia declarada: el render dibuja la lámina que lo dice (graficos_panorama_equivalencia.R).
+  if (!is.null(r$sin_equivalencia)) return(list(el = el, texto = r$evaluacion$texto, sin_equivalencia = r$sin_equivalencia))
   if (!length(r$vars)) stop("La regla de preguntas no deja ninguna pregunta: ", r$evaluacion$texto, call. = FALSE)
   el$vars <- r$vars
   if (identical(el$.element_type, "barras_divergentes")) {

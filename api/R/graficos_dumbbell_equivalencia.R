@@ -117,5 +117,5 @@
   ev <- list(temas = character(0), total = 0L, metrica = numeric(0), texto = ind$sin_temas_texto %||% .DUMBBELL_MSG_SIN_EQUIV, candidatas = cand,
              avisos = character(0), universo = ind$universo, regla = regla)
   list(evaluacion = ev, vars = list(), avisos = unique(ind$avisos), indicadores = ind$indicadores, firma_leyenda = NULL,
-       motivos_imagen = NULL)
+       motivos_imagen = NULL, sin_equivalencia = ev$texto)
 }

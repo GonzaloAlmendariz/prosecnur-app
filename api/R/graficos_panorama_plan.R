@@ -109,6 +109,7 @@ p_panorama <- function(vars,
   if (!length(data_sources) || !length(inst_sources)) stop("panorama: el render no expone las fuentes del estudio.", call. = FALSE)
   sources <- list(data_sources = data_sources, inst_sources = inst_sources)
   ap <- .regla_preguntas_aplicar_render(el, "panorama", sources); el <- ap$el   # ADR 0135
+  if (!is.null(ap$sin_equivalencia)) return(.dumbbell_lamina_sin_equivalencia(ap$sin_equivalencia))   # ADR 0138 §5
   datos <- .panorama_datos(el$vars, el$corte, sources, filtros = el$filtros %||% list())
   base_preset <- if (length(preset_args)) preset_args else .ola4_preset("panorama")
   args <- utils::modifyList(

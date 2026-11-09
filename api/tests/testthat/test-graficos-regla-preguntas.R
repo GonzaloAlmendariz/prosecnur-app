@@ -236,7 +236,7 @@ test_that("una pregunta de escala exige cuatro opciones sustantivas: Sin informa
   expect_identical(.regla_preguntas_escala(inst, "q1")$no_sustantivo, c(rep(FALSE, 5), TRUE))
 })
 
-test_that("panorama: las preguntas de escala de cada base, y entre públicos se emparejan por nombre", {
+test_that("panorama: las preguntas de escala de cada base, y entre públicos se emparejan por la matriz declarada", {
   src <- .rp_fuentes()
   el <- p_panorama(vars = c("docentes$*", "estudiantes$*"), corte = c("4", "5"), regla = list(tipo = "todas"))
   r <- .regla_preguntas_de_elemento(el, src)
@@ -244,8 +244,10 @@ test_that("panorama: las preguntas de escala de cada base, y entre públicos se 
   expect_identical(r$evaluacion$texto, "Se muestran las 10 preguntas de escala.")
   expect_length(r$vars, 10L)
   el2 <- p_panorama(vars = c("docentes$*", "estudiantes$*"), corte = c("4", "5"), regla = list(tipo = "mayor_diferencia", n = 2))
-  r2 <- .regla_preguntas_de_elemento(el2, src)
-  expect_identical(r2$evaluacion$temas, c("q3", "q1"))
+  # ADR 0138 §5: sin matriz no se compara; con la que declara equivalentes las del mismo nombre, los temas son sus filas.
+  expect_identical(.regla_preguntas_de_elemento(el2, src)$evaluacion$texto, .DUMBBELL_MSG_SIN_EQUIV)
+  r2 <- .regla_preguntas_de_elemento(el2, .heq_con_matriz(src))
+  expect_identical(r2$evaluacion$temas, c("Docentes", "Reglamentos"))
   expect_identical(r2$vars, c("docentes$q3", "estudiantes$q3", "docentes$q1", "estudiantes$q1"))
   expect_identical(r2$evaluacion$texto, "Se muestran las 2 de mayor diferencia, de 5 preguntas comunes.")
   # Una pregunta declarada que no es de escala sale y se avisa; no detiene la lámina.

@@ -113,8 +113,8 @@
 
 #' Indicadores del panorama: una fila por pregunta de cada público
 #'
-#' Por pregunta (`tema` = `base$variable`) en las reglas de un grupo; por nombre de variable (pares del mismo nombre
-#' entre bases) en las que comparan grupos.
+#' Por pregunta (`tema` = `base$variable`) en las reglas de un grupo; en las que comparan públicos, por la fila declarada
+#' de la matriz de equivalencias (`.panorama_temas_declarados`), nunca por el nombre de la variable.
 #' @keywords internal
 .regla_preguntas_ind_panorama <- function(el, sources, tipo) {
   codigos <- .radar_mb_codigos(el$corte)
@@ -138,15 +138,25 @@
     if (is.null(datos_cache[[ctx$source]])) datos_cache[[ctx$source]] <- .regla_preguntas_datos_base(ctx$source, sources, el$filtros)
     m <- .regla_preguntas_medir(datos_cache[[ctx$source]], ctx$resolved_variable, .regla_preguntas_escala(ctx$inst, ctx$resolved_variable), codigos)
     if (!is.finite(m$valor)) { motivos[[length(motivos) + 1L]] <- "no tienen respuestas con los filtros"; next }
-    tema <- if (por_nombre) ctx$resolved_variable else ref
-    etiqueta <- .regla_preguntas_rotulo(ctx$inst, ctx$resolved_variable)
-    if (!por_nombre) etiqueta <- sprintf("%s (%s)", etiqueta, .radar_mb_capitalizar(ctx$source))
-    filas[[length(filas) + 1L]] <- data.frame(tema = tema, etiqueta = etiqueta, grupo = ctx$source, valor = m$valor,
-                                              sin_info = m$sin_info, n = m$n, orden = i, stringsAsFactors = FALSE)
-    refs_tema[[tema]] <- c(refs_tema[[tema]], ref)
+    etiqueta <- sprintf("%s (%s)", .regla_preguntas_rotulo(ctx$inst, ctx$resolved_variable), .radar_mb_capitalizar(ctx$source))
+    filas[[length(filas) + 1L]] <- data.frame(tema = ref, etiqueta = etiqueta, grupo = ctx$source, valor = m$valor,
+                                              sin_info = m$sin_info, n = m$n, orden = i, variable = ctx$resolved_variable, ref = ref,
+                                              stringsAsFactors = FALSE)
   }
-  list(indicadores = .regla_preguntas_rbind(filas), refs_por_tema = refs_tema, avisos = .regla_preguntas_avisos(motivos),
-       universo = "preguntas de escala", grupos_unidad = "públicos")
+  ind <- .regla_preguntas_rbind(filas)
+  sin_temas <- NULL
+  # Entre públicos el tema es la fila declarada de la matriz de equivalencias, nunca el nombre de la variable
+  # (graficos_panorama_equivalencia.R, ADR 0138 §5).
+  if (por_nombre && length(unique(ind$grupo)) >= 2L) {
+    td <- .panorama_temas_declarados(data.frame(ref = ind$ref, source = ind$grupo, variable = ind$variable, stringsAsFactors = FALSE), sources)
+    ind$tema <- td$tema; ind$etiqueta <- td$etiqueta
+    motivos <- c(motivos, td$motivos); sin_temas <- td$sin_temas
+  }
+  for (k in seq_len(nrow(ind))) refs_tema[[ind$tema[k]]] <- c(refs_tema[[ind$tema[k]]], ind$ref[k])
+  ind$variable <- NULL; ind$ref <- NULL
+  list(indicadores = ind, refs_por_tema = refs_tema, avisos = c(sin_temas, .regla_preguntas_avisos(motivos)),
+       universo = "preguntas de escala", grupos_unidad = "públicos",
+       sin_equivalencia = !is.null(sin_temas), sin_temas_texto = sin_temas)
 }
 
 #' Une filas de indicadores; sin filas, la tabla vacía con sus columnas
