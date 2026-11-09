@@ -6,9 +6,11 @@
 
 #' Paneles y filetes de una lámina de población desde las ranuras del estándar
 #' @param lateral La receta de la tira: el enunciado a la izquierda y el gráfico a su derecha.
+#' @param ranuras Ranuras ya dispuestas (`NULL`: las del estándar).
 #' @keywords internal
-.lam_poblacion_geo <- function(tipo_std, lateral = FALSE) {
-  r <- Filter(function(x) identical(x$tipo, "grafico"), .std_tipo_lamina(tipo_std)$ranuras %||% list())
+.lam_poblacion_geo <- function(tipo_std, lateral = FALSE, ranuras = NULL) {
+  # `ranuras`: las ya dispuestas por quien llama (la de cinco en «2+3»); sin ellas, las del estándar.
+  r <- ranuras %||% Filter(function(x) identical(x$tipo, "grafico"), .std_tipo_lamina(tipo_std)$ranuras %||% list())
   if (!length(r)) return(NULL)
   receta <- if (isTRUE(lateral)) .lam_receta_lateral() else NULL
   paneles <- lapply(r, function(q) list(x = q$x, y = q$y, w = q$w, h = q$h, receta = receta))

@@ -49,6 +49,7 @@
                                 solo_lista = FALSE) {
   slots <- slide$slots %||% list()
   stype <- as.character(slide$.slide_type %||% "")[1]
+  op_disp <- .lam_disposicion_fijar(slide); on.exit(options(op_disp), add = TRUE)   # cinco gráficos: «3+2» o «2+3»
   nombres <- .SLIDES_COMPOSICION[[stype]]
   if (is.null(nombres)) {
     nombres <- setdiff(names(contract$slots), c("title", "base", "icon"))
@@ -104,7 +105,8 @@
   }
 
   # ADR 0093: las disposiciones que el recetario ya compone con piezas nativas no pasan por la plantilla.
-  if (!is.null(.lam_mixta_geo(stype)) && .lam_compositor_aplica_mixta(unname(rendered), slide, stype, unname(els), helpers$title_of_var)) {
+  if (!is.null(.lam_mixta_geo(stype)) && (.lam_compositor_aplica_mixta(unname(rendered), slide, stype, unname(els), helpers$title_of_var) ||
+                                          .lam_disposicion_forzada(slide, stype))) {
     # P4: el panel que no cabe en piezas nativas va con su gráfico; sin su nota al pie, que la lámina ya escribe en la base.
     especs_c <- lapply(unname(rendered), .lam_espec_de)
     tit_c <- slots$title %||% slide$title; if (inherits(tit_c, "ppt_element_text")) tit_c <- tit_c$text

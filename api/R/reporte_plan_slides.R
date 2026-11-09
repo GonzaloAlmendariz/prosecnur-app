@@ -1869,6 +1869,7 @@ p_slide_5_graficos_poblacion <- function(
     etiqueta = NULL,
     icono = NULL,
     pie = NULL,
+    disposicion = NULL,
     meta = list()
 ) {
   .ppt_chk_element(grafico_superior_1, "grafico_superior_1")
@@ -1878,6 +1879,8 @@ p_slide_5_graficos_poblacion <- function(
   .ppt_chk_element(grafico_inferior_2, "grafico_inferior_2")
   if (!is.null(icono)) .ppt_chk_element(icono, "icono")
   .ppt_chk_meta(meta)
+  # «3+2» (por defecto) o «2+3»: la elige el analista (reporte_slides_composicion_disposicion.R).
+  meta$disposicion <- .slide_disposicion_5(disposicion %||% meta$disposicion)
 
   titulo <- .ppt_norm_text1(titulo, blank = NULL)
   etiqueta <- .ppt_norm_text1(etiqueta, blank = NULL)

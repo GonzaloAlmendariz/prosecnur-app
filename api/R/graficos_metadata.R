@@ -977,7 +977,14 @@
     # Sin `base` (el constructor no la acepta; el pie de lámina es `pie`) y
     # sin `etiqueta` (formal aceptado pero jamás dibujado — render P8).
     # Sin `icono` (Gonzalo, 2026-10-14): el constructor aún lo acepta para no romper planes guardados y el motor lo ignora.
-    args = .args_slide_poblacion_basico(c("titulo", "pie"))
+    # Ítem 1 del checklist del catálogo: «3+2» o «2+3», a elección del analista; las ranuras van en orden de lectura.
+    disposiciones = list(arg = "disposicion", default = "3+2",
+                         valores = list(list(value = "3+2", label = "Tres arriba y dos abajo"),
+                                        list(value = "2+3", label = "Dos arriba y tres abajo"))),
+    args = c(.args_slide_poblacion_basico(c("titulo", "pie")), list(
+      list(name = "disposicion", label = "Disposición", tipo_input = "choice", grupo = "textos", default = "3+2",
+           choices = list(list(value = "3+2", label = "Tres arriba y dos abajo"), list(value = "2+3", label = "Dos arriba y tres abajo")),
+           descripcion = "Cuántos gráficos van arriba y cuántos abajo. Los gráficos se ordenan en orden de lectura.")))
   ),
 
   p_slide_6_graficos_poblacion = list(

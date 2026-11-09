@@ -70,7 +70,7 @@
     poblacion_3_corona = .lam_corona_geo(),
     # P4 (checklist-poblacion-y-filtro): tira, cinco y seis desde las ranuras del estándar (lamina_poblacion_geo.R).
     poblacion_3_tira = .lam_poblacion_geo("p_slide_3_graficos_poblacion_tira", lateral = TRUE),
-    poblacion_5 = .lam_poblacion_geo("p_slide_5_graficos_poblacion"),
+    poblacion_5 = .lam_poblacion_5_geo(),   # «3+2» o «2+3» (reporte_slides_composicion_disposicion.R)
     poblacion_6 = .lam_poblacion_geo("p_slide_6_graficos_poblacion"),
     paneles_4 = {
       h2 <- (yf - yt - 0.35) / 2

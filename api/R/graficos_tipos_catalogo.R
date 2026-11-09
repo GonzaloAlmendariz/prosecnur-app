@@ -8,7 +8,7 @@
 # test-graficos-tipos-catalogo.R falla si el archivo versionado se desvía del metadata.
 
 #' Catálogo de tipos: láminas y graficadores en el orden del registro
-#' @return `list(fuente, slides, graficadores, familias_editor, variantes)`; `ranuras`, las de cada lámina; `estandar` es el id del tipo del recetario o `NA` (sin ranuras); `usa`,
+#' @return `list(fuente, slides, graficadores, familias_editor, variantes, disposiciones)`; `ranuras`, las de cada lámina; `estandar` es el id del tipo del recetario o `NA` (sin ranuras); `usa`,
 #'   qué datos usa cada graficador (`{pregunta, publicos, padron, cruce}`, graficos_tipos_usa.R).
 #' @keywords internal
 .graficos_tipos_catalogo <- function() {
@@ -31,7 +31,9 @@
     graficadores = graficadores,
     # ADR 0139: las familias del selector «Tipo de gráfico» y las variantes del catálogo (graficos_variantes.R).
     familias_editor = lapply(names(.GRAFICOS_FAMILIAS_EDITOR), function(id) list(id = id, label = .GRAFICOS_FAMILIAS_EDITOR[[id]])),
-    variantes = .graficos_variantes()
+    variantes = .graficos_variantes(),
+    # Las disposiciones que el analista elige en una lámina, por tipo de lámina (la de cinco gráficos: «3+2» o «2+3»).
+    disposiciones = Filter(Negate(is.null), lapply(.SLIDES_META, `[[`, "disposiciones"))
   )
 }
 

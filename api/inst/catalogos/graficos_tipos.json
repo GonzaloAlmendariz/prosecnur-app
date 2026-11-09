@@ -1152,5 +1152,21 @@
       },
       "args_quitar": []
     }
-  ]
+  ],
+  "disposiciones": {
+    "p_slide_5_graficos_poblacion": {
+      "arg": "disposicion",
+      "default": "3+2",
+      "valores": [
+        {
+          "value": "3+2",
+          "label": "Tres arriba y dos abajo"
+        },
+        {
+          "value": "2+3",
+          "label": "Dos arriba y tres abajo"
+        }
+      ]
+    }
+  }
 }
