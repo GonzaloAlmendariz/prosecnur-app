@@ -18,7 +18,13 @@
 # es lo que el motor dibuja, y `args` se alinea con él para que la tarjeta muestre lo mismo que la lámina.
 
 .GRAFICOS_ARGS_SOLO_OVERRIDES <- c("mostrar_significancia", "significancia_alpha", "orden_barras")
-.GRAFICOS_ARGS_ESPEJO_OVERRIDES <- c("pista_barras", "colorear_por_opcion", "marca_mediana", "mostrar_frecuencia")   # mostrar_frecuencia: histograma (U10)
+.GRAFICOS_ARGS_ESPEJO_OVERRIDES <- c("pista_barras", "colorear_por_opcion", "marca_mediana", "mostrar_frecuencia",   # mostrar_frecuencia: histograma (U10)
+                                     "referencia_barra")   # B8: agrupadas y categóricas (lamina_referencia_barra.R)
+
+# Mandos del espejo que en algún graficador son formales del constructor: ahí van sólo en `args` y el constructor los pasa
+# él a `overrides` (`p_cobertura` con `referencia_barra`, graficos_cobertura_plan.R). La misma excepción que la tarjeta
+# (`FORMAL_EN`, laminas/mandosPorOverrides.ts).
+.GRAFICOS_ARGS_ESPEJO_FORMAL_EN <- list(referencia_barra = "p_cobertura")
 
 #' Copia a `overrides` los mandos de presentación que vienen sueltos en `args`
 #' @keywords internal
@@ -34,6 +40,7 @@
     cambio <- TRUE
   }
   for (k in .GRAFICOS_ARGS_ESPEJO_OVERRIDES) {
+    if (as.character(g$graficador %||% "")[1] %in% .GRAFICOS_ARGS_ESPEJO_FORMAL_EN[[k]]) next   # formal: no va en espejo
     v <- if (!is.null(ov[[k]]) && length(ov[[k]])) ov[[k]] else args[[k]]
     if (is.null(v) || !length(v)) next
     if (!identical(ov[[k]], v)) { ov[[k]] <- v; cambio <- TRUE }

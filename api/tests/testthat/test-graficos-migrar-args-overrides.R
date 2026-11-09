@@ -92,3 +92,20 @@ test_that("un segundo cambio desde la tarjeta llega: el espejo no queda con el v
 test_that("«Casos junto al %» del histograma llega a overrides desde la tarjeta (U10)", {
   expect_true("mostrar_frecuencia" %in% .GRAFICOS_ARGS_ESPEJO_OVERRIDES)
 })
+
+# P9 (2026-11-09): `referencia_barra` (B8) va en espejo en las barras agrupadas y categóricas, como la tarjeta
+# (laminas/mandosPorOverrides.ts). En `p_cobertura` es formal del constructor y NO se copia a `overrides`.
+test_that("referencia_barra suelta en args pasa a overrides en agrupadas y categóricas, pero no en p_cobertura", {
+  for (gr in c("p_barras_agrupadas", "p_barras_categoricas")) {
+    g <- grafico_de(.graficos_migrar_args_a_overrides(plan_de(gr, list(var = "x", referencia_barra = "eje"))))
+    expect_identical(g$args$overrides$referencia_barra, "eje", label = gr)
+    expect_identical(g$args$referencia_barra, "eje", label = gr)
+    # Sólo en overrides: args se alinea.
+    h <- grafico_de(.graficos_migrar_args_a_overrides(plan_de(gr, list(var = "x", overrides = list(referencia_barra = "pista")))))
+    expect_identical(h$args$referencia_barra, "pista", label = gr)
+  }
+  cob <- plan_de("p_cobertura", list(publicos = list("docentes"), referencia_barra = "eje"))
+  expect_identical(.graficos_migrar_args_a_overrides(cob), cob)
+  expect_true("referencia_barra" %in% .GRAFICOS_ARGS_ESPEJO_OVERRIDES)
+  expect_identical(.GRAFICOS_ARGS_ESPEJO_FORMAL_EN$referencia_barra, "p_cobertura")
+})
