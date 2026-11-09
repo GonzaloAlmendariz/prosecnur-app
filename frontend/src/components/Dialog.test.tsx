@@ -3,7 +3,9 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, test } from "vitest";
 import type { PanelDeclarado } from "../lib/navegacion/paneles";
 import { panelAbiertoEn, searchSinPanel } from "../lib/navegacion/paneles";
-import { Dialog, moduloDeDialogo, type DialogProps } from "./Dialog";
+import fs from "node:fs";
+import path from "node:path";
+import { Dialog, etiquetaDeCierre, moduloDeDialogo, type DialogProps } from "./Dialog";
 import { Sideover } from "./Sideover";
 
 // El entorno global de Vitest no tiene DOM: aquí se renderiza con
@@ -59,13 +61,30 @@ describe("Dialog — semántica", () => {
     expect(html).not.toContain("Oculto");
   });
 
-  test("botón cerrar: PulsoButton de ícono con nombre accesible", () => {
+  test("W3: cabecera del kit — CabeceraPanel con la X quieta del kit y su objeto en el nombre", () => {
     const html = renderToStaticMarkup(
-      <Dialog open onOpenChange={() => undefined} title="T">
+      <Dialog open onOpenChange={() => undefined} title="Publicar el proyecto">
         <p>cuerpo</p>
       </Dialog>,
     );
-    expect(html).toMatch(/<button[^>]*class="[^"]*pulso-button--icon[^"]*"[^>]*aria-label="Cerrar"|<button[^>]*aria-label="Cerrar"[^>]*class="[^"]*pulso-button--icon/);
+    expect(html).toMatch(/<header[^>]*class="pulso-cabecera-panel pulso-dialog__head"/);
+    expect(html).toContain('class="pulso-cabecera-panel__titulo"');
+    expect(html).toMatch(/<button[^>]*aria-label="Cerrar publicar el proyecto"[^>]*class="[^"]*pulso-button--quiet[^"]*pulso-cerrar/);
+  });
+
+  test("W3: closeLabel explícito gana; sin título de texto, «Cerrar el diálogo»", () => {
+    const explicito = renderToStaticMarkup(
+      <Dialog open onOpenChange={() => undefined} title="Ajustes" closeLabel="Cerrar los ajustes">
+        <p>cuerpo</p>
+      </Dialog>,
+    );
+    expect(explicito).toContain('aria-label="Cerrar los ajustes"');
+    const nodo = renderToStaticMarkup(
+      <Dialog open onOpenChange={() => undefined} title={<em>Mazo</em>}>
+        <p>cuerpo</p>
+      </Dialog>,
+    );
+    expect(nodo).toContain('aria-label="Cerrar el diálogo"');
   });
 
   test("dismissible=false deshabilita el cierre y quita la ayuda «Esc»", () => {
@@ -80,7 +99,7 @@ describe("Dialog — semántica", () => {
         <p>cuerpo</p>
       </Dialog>,
     );
-    expect(html).toMatch(/<button[^>]*aria-label="Cerrar"[^>]*disabled=""|<button[^>]*disabled=""[^>]*aria-label="Cerrar"/);
+    expect(html).toMatch(/<button[^>]*aria-label="Cerrar guardando"[^>]*disabled=""|<button[^>]*disabled=""[^>]*aria-label="Cerrar guardando"/);
     expect(html).not.toContain("pulso-dialog__kbd");
   });
 
@@ -254,3 +273,32 @@ describe("Dialog — apertura por ?panel=", () => {
     expect(lateral("ventana")).not.toContain("pulso-sideover--contenido");
   });
 });
+
+describe("Dialog — acabado W3 (contrato B/D)", () => {
+  const hoja = fs.readFileSync(path.join(__dirname, "kit-dialog.css"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+  const bloque = (sel: string) => {
+    const i = hoja.indexOf(`${sel} {`);
+    expect(i, sel).toBeGreaterThanOrEqual(0);
+    return hoja.slice(i, hoja.indexOf("}", i));
+  };
+
+  test("etiquetaDeCierre: inicial en minúscula salvo sigla; closeLabel gana", () => {
+    expect(etiquetaDeCierre(undefined, "Gestor de módulos")).toBe("Cerrar gestor de módulos");
+    expect(etiquetaDeCierre(undefined, "PDF del informe")).toBe("Cerrar PDF del informe");
+    expect(etiquetaDeCierre("Cerrar los ajustes", "Ajustes")).toBe("Cerrar los ajustes");
+    expect(etiquetaDeCierre(undefined, "")).toBe("Cerrar el diálogo");
+  });
+
+  test("sin título literal de 17/800 ni X con caja: lo pone la cabecera del kit", () => {
+    expect(hoja).not.toMatch(/font-size:\s*17px/);
+    expect(hoja).not.toContain(".pulso-dialog__title");
+    expect(hoja).not.toContain(".pulso-dialog__close");
+  });
+
+  test("la tecla «Esc» del pie mide 28 (familia de controles) con el radio único", () => {
+    const kbd = bloque(".pulso-dialog__kbd");
+    expect(kbd).toContain("height: var(--pulso-control-height-sm);");
+    expect(kbd).toContain("border-radius: var(--pulso-control-radius);");
+  });
+});
+

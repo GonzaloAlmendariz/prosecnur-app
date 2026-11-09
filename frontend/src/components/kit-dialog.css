@@ -158,13 +158,18 @@
 
 /* ---------- Anatomía ---------- */
 
-.pulso-dialog__head {
-  display: flex;
-  align-items: center;
-  gap: var(--pulso-space-3);
+/* W3: la cabecera es CabeceraPanel (kit-cabecera-panel.css): título en --pulso-type-title-*, una línea con elipsis,
+   y la X del kit (BotonCerrar: sin caja ni sombra, 28 a la vista y 32 al puntero) en la línea del título. Aquí sólo
+   el aire del diálogo, alineado con el del cuerpo, y el tile del ícono, que abraza título y subtítulo. */
+.pulso-dialog__head.pulso-cabecera-panel {
   flex: 0 0 auto;
-  padding: var(--pulso-space-4) 18px var(--pulso-space-3);
-  border-bottom: 1px solid var(--pulso-border);
+  padding: var(--pulso-space-3) 18px;
+}
+
+.pulso-dialog__head > .pulso-cabecera-panel__icono {
+  grid-row: 1 / -1;
+  align-self: center;
+  margin-inline-end: var(--pulso-space-3);
 }
 
 .pulso-dialog__tile {
@@ -189,33 +194,6 @@
   border-color: var(--pulso-danger-border);
   background: var(--pulso-danger-bg);
   color: var(--pulso-danger-fg);
-}
-
-.pulso-dialog__titles {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.pulso-dialog__title {
-  margin: 0;
-  color: var(--pulso-text);
-  font-size: 17px;
-  font-weight: var(--pulso-weight-heavy);
-  letter-spacing: -0.2px;
-  line-height: 1.25;
-  overflow-wrap: anywhere;
-}
-
-.pulso-dialog__subtitle {
-  margin: 2px 0 0;
-  color: var(--pulso-text-soft);
-  font-size: 12.5px;
-  line-height: 1.4;
-}
-
-.pulso-dialog__close {
-  flex: 0 0 auto;
-  align-self: flex-start;
 }
 
 .pulso-dialog__stepper {
@@ -286,16 +264,25 @@
   margin-left: auto;
 }
 
+/* La tecla de la ayuda pertenece a la familia de controles de 28 (--pulso-control-height-sm) y al radio único de
+   control: antes medía 17 px, una altura suelta fuera de la familia 28/32/36. Es un rótulo, no un botón: sin sombra
+   ni hover. */
 .pulso-dialog__kbd {
-  display: inline-block;
-  padding: 1px 6px;
-  border: 1px solid var(--pulso-border-strong);
-  border-radius: 5px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--pulso-control-height-sm);
+  min-width: var(--pulso-control-height-sm);
+  padding: 0 var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-control-radius);
   background: var(--pulso-surface);
   color: var(--pulso-text-soft);
   font-family: inherit;
-  font-size: 10.5px;
-  font-weight: var(--pulso-weight-bold);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1;
 }
 
 @media (prefers-reduced-motion: reduce) {

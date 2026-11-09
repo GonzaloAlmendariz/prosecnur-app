@@ -126,7 +126,7 @@ describe("Dialog — Escape, trap y foco (DOM real)", () => {
     const dialogo = overlay();
     expect(dialogo).not.toBeNull();
 
-    const cerrar = boton("Cerrar");
+    const cerrar = boton("Cerrar controlado");
     const guardar = boton("Guardar");
     // Último → Tab → primero.
     act(() => guardar.focus());
@@ -138,6 +138,19 @@ describe("Dialog — Escape, trap y foco (DOM real)", () => {
     // Un foco que escapa al resto de la app vuelve dentro.
     act(() => boton("Abrir").focus());
     expect(dialogo?.contains(document.activeElement)).toBe(true);
+  });
+
+  test("W3: la X del kit cierra y devuelve el foco al disparador, como Escape", async () => {
+    render(<Controlado />);
+    const abrir = boton("Abrir");
+    click(abrir);
+    const x = boton("Cerrar controlado");
+    expect(x.classList.contains("pulso-cerrar")).toBe(true);
+    expect(x.closest(".pulso-cabecera-panel")).not.toBeNull();
+    click(x);
+    await tick();
+    expect(overlay()).toBeNull();
+    expect(document.activeElement).toBe(abrir);
   });
 
   test("al cerrar, el foco vuelve al disparador externo", async () => {

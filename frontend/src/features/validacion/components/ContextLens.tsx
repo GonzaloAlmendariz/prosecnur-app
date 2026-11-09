@@ -148,7 +148,7 @@ export default function ContextLens({
     subtitle,
     stepper: banda,
     flush: true,
-    closeLabel: "Cerrar panel",
+    closeLabel: "Cerrar panel" as const,
     className: `pulso-lens pulso-lens--${variant}`,
   };
 

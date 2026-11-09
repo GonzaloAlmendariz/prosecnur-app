@@ -28,7 +28,6 @@ import {
   type RefObject,
 } from "react";
 import { useInRouterContext, useLocation } from "react-router-dom";
-import { X } from "../vendor/lucide-react";
 import {
   PROSECNUR_MODULES,
   moduleChromeVars,
@@ -39,7 +38,7 @@ import {
   usePanelDireccionable,
   type PanelDeclarado,
 } from "../lib/navegacion/paneles";
-import { PulsoButton } from "./PulsoButton";
+import { CabeceraPanel } from "./CabeceraPanel";
 import "./kit-dialog.css";
 
 // ---------------------------------------------------------------------------
@@ -122,8 +121,11 @@ export type OverlayChromeProps = {
   dismissible?: boolean;
   /** Cerrar con click/puntero fuera del overlay. Por defecto `true`. */
   closeOnOutside?: boolean;
-  /** Nombre accesible del botón cerrar. */
-  closeLabel?: string;
+  /**
+   * Nombre accesible de la X, con su objeto («Cerrar los ajustes»). Por defecto «Cerrar <título>» si el título es
+   * texto; si no, «Cerrar el diálogo».
+   */
+  closeLabel?: `Cerrar ${string}`;
   /**
    * Módulo cuyo acento se re-inyecta en el portal. Si se omite se resuelve
    * desde la ruta activa; `null` deja el acento global.
@@ -248,6 +250,22 @@ function unirClases(...clases: Array<string | false | undefined>): string {
 }
 
 /**
+ * Nombre accesible de la X del overlay (contrato B: «Cerrar …» con su objeto). Sin `closeLabel`, el objeto es el
+ * título si es texto, con la inicial en minúscula salvo que abra una sigla («Cerrar publicar el proyecto», «Cerrar PDF
+ * del informe»).
+ */
+export function etiquetaDeCierre(
+  closeLabel: `Cerrar ${string}` | undefined,
+  title: ReactNode,
+): `Cerrar ${string}` {
+  if (closeLabel) return closeLabel;
+  if (typeof title !== "string" || title.trim() === "") return "Cerrar el diálogo";
+  const texto = title.trim();
+  const sigla = texto.length > 1 && texto[1] === texto[1].toUpperCase() && texto[1] !== texto[1].toLowerCase();
+  return `Cerrar ${sigla ? texto : texto[0].toLowerCase() + texto.slice(1)}`;
+}
+
+/**
  * Sin DOM (render en servidor, tests con `renderToStaticMarkup`) no hay donde
  * montar un portal: Radix devuelve `null` y el marcado se perdería. Ahí se
  * dibuja en línea; en el navegador siempre va por portal.
@@ -300,7 +318,7 @@ function OverlayRender({
   returnFocusTo,
   dismissible = true,
   closeOnOutside = true,
-  closeLabel = "Cerrar",
+  closeLabel,
   portalScope,
   className,
   bodyClassName,
@@ -382,38 +400,31 @@ function OverlayRender({
             if (!dismissible || !closeOnOutside) event.preventDefault();
           }}
         >
-          <header className="pulso-dialog__head" data-qa-geometry-member="">
-            {icon ? (
+          {/* La cabecera del kit (contrato B): CabeceraPanel nombra y describe el diálogo (Radix Title/Description) y
+              pinta la X del kit en la línea del título. La X cierra por la misma vía que Escape y el clic fuera, así que
+              el foco vuelve al disparador igual. */}
+          <CabeceraPanel
+            como="header"
+            enDialogo
+            className="pulso-dialog__head"
+            data-qa-geometry-member=""
+            icono={icon ? (
               <span
                 className={unirClases(
                   "pulso-dialog__tile",
                   tono !== "modulo" && `pulso-dialog__tile--${tono}`,
                 )}
                 data-tono={tono}
-                aria-hidden="true"
               >
                 {icon}
               </span>
-            ) : null}
-            <div className="pulso-dialog__titles">
-              <RadixDialog.Title className="pulso-dialog__title">{title}</RadixDialog.Title>
-              {subtitle ? (
-                <RadixDialog.Description className="pulso-dialog__subtitle">
-                  {subtitle}
-                </RadixDialog.Description>
-              ) : null}
-            </div>
-            <RadixDialog.Close asChild>
-              <PulsoButton
-                variant="icon"
-                aria-label={closeLabel}
-                disabled={!dismissible}
-                className="pulso-dialog__close"
-              >
-                <X size={16} aria-hidden="true" />
-              </PulsoButton>
-            </RadixDialog.Close>
-          </header>
+            ) : undefined}
+            titulo={title}
+            subtitulo={subtitle}
+            onCerrar={() => cambiar(false)}
+            cerrarDeshabilitado={!dismissible}
+            etiquetaCerrar={etiquetaDeCierre(closeLabel, title)}
+          />
 
           {stepper ? (
             <div className="pulso-dialog__stepper" data-qa-geometry-member="">
