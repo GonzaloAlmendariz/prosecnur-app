@@ -59,37 +59,29 @@ abrir <- function() {
   list(sid = sid, cfg = cfg, sc = .graficos_processing_sources(sid))
 }
 
-construir_slides <- function(ctx) {
-  .graficos_job_rebuild_slides(
-    .graficos_calificar_refs_plan(.normalize_plan(ctx$cfg$plan),
-                                  .graficos_active_base_name(ctx$sid)),
-    setNames(lapply(.slide_names(), function(nm)
-      list(grafs = setdiff(.slide_slots(nm), "icono"))), .slide_names()),
-    .graf_names(), .graficos_icon_registry(ctx$sid, ctx$cfg),
-    report = function(...) NULL, base_error = function(m) m, item_label = "slide")
-}
-
-#' Render EN PROCESO. Devuelve la ruta del .pptx y las láminas degradadas.
+#' Render EN PROCESO, con los mismos argumentos y el mismo worker que el export (POST /api/graficos/ppt).
 #'
-#' `auto_otros_slides = FALSE` a propósito: es el default del registro. Forzarlo
-#' a TRUE fue una de las cuatro trampas — se validaba un mazo que la app no
-#' produce.
+#' Los argumentos salen de `.graficos_ppt_job_args()`, el mismo sitio donde los arma el endpoint, y el render lo hace
+#' `graficos_job_worker_ppt()`. Así el arnés lleva el contexto del informe del entregable: regla de diferencias,
+#' preguntas clave, nombres cortos del plan (E4) y del mazo (ADR 0141). Llamar a `reporte_ppt_plan` a mano dejaba
+#' fuera ese contexto y daba rojos falsos en los rótulos (Arte, 2026-11-09). También usa la plantilla, el estilo del
+#' cliente y `auto_otros_slides` que declara el proyecto: se valida el mazo que la app produce.
+#' Devuelve la ruta del .pptx, el número de láminas y las láminas degradadas.
 renderizar <- function(ctx, out = tempfile(fileext = ".pptx")) {
-  pres <- .build_presets(.enriquecer_presets(ctx$cfg$presets, ctx$cfg$debug_ph))
-  slides_r <- construir_slides(ctx)
+  plan <- .normalize_plan(ctx$cfg$plan)
+  args <- .graficos_ppt_job_args(ctx$sid, ctx$cfg, plan, ctx$cfg$presets, ctx$sc)
+  args$result_path <- out
+  jit <- compiler::enableJIT(-1L)   # el worker apaga el JIT (su proceso es propio); aquí se restaura
+  on.exit(compiler::enableJIT(jit), add = TRUE)
   caidas <- character(0)
-  withCallingHandlers(
-    invisible(reporte_ppt_plan(
-      data = ctx$sc$data_sources, instrumento = ctx$sc$inst_sources,
-      path_ppt = out, presets = pres, plan = p_plan(slides = slides_r),
-      template_pptx = NULL, template_id = NULL,
-      auto_otros_slides = FALSE, mensajes_progreso = FALSE)),
+  r <- withCallingHandlers(
+    do.call(graficos_job_worker_ppt, args),
     warning = function(w) {
       m <- conditionMessage(w)
       if (grepl("degradada|Sin datos|fallo al ejecutarse", m)) caidas <<- c(caidas, m)
       invokeRestart("muffleWarning")
     })
-  list(path = out, n = length(slides_r), caidas = caidas)
+  list(path = out, n = r$n_slides, caidas = caidas)
 }
 
 #' Instrumenta el graficador con `trace()`.

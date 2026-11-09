@@ -3117,58 +3117,14 @@ mount_graficos <- function(pr) {
       # Enriquecer presets con canvas-always + debug_ph global antes de
       # pasarlos al worker (invariantes Pulso).
       cfg <- .graficos_effective_config(sid, config)
-      delivery <- .graficos_delivery_options(
-        cfg,
-        template_id = plan$template_id %||% NULL,
-        auto_otros_slides = plan$auto_otros_slides %||% NULL
-      )
-      template_pptx_arg <- .graficos_resolve_template_pptx(
-        config = cfg,
-        profile_id = delivery$profile_id,
-        template_id = delivery$template_id
-      )
-      auto_otros_slides_arg <- delivery$auto_otros_slides
-      presets <- .enriquecer_presets(presets, NULL)  # D17: las guías de depuración nunca llegan al entregable
-      # Serializamos las LISTAS NOMBRADAS (multi-base) a RDS para el
-      # worker. Cuando hay 1 sola base, la lista tiene 1 sola entrada
-      # y el motor la maneja como single-base automáticamente.
-      rp_data_path <- job_save_rds(sid, "rp_data_sources", scoped_sources$data_sources)
-      rp_inst_path <- job_save_rds(sid, "rp_inst_sources", scoped_sources$inst_sources)
-      active_base_arg <- .graficos_active_base_name(sid)
-      # El worker recibe el registry como argumento (serializado desde el
-       # main process) — así una única fuente de verdad vive en
-       # graficos_metadata.R, y el worker callr no necesita duplicarla.
-      slide_registry_arg <- setNames(
-        lapply(.slide_names(), function(nm) list(grafs = setdiff(.slide_slots(nm), "icono"))),
-        .slide_names()
-      )
-      graficador_registry_arg <- .graf_names()
-      icon_registry_arg <- .graficos_icon_registry(sid, cfg)
-      paletas_arg <- cfg$paletas %||% list()
-
-      # El worker vive en graficos_jobs.R como función top-level del
-      # paquete: el bootstrap de job_submit() carga el paquete en el
-      # subproceso callr y re-obtiene la función fresca del namespace
-      # (marca prosecnur_job_function_name), sin load_all manual ni
-      # resolución .pkg_fn por closure.
+      # Los argumentos del worker se arman donde también los arma el arnés de QA (graficos_ppt_job_args.R).
+      # El worker vive en graficos_jobs.R como función top-level del paquete: el bootstrap de job_submit() carga el
+      # paquete en el subproceso callr y re-obtiene la función fresca del namespace (prosecnur_job_function_name).
       job_id <- job_submit(
         sid = sid,
         kind = "graficos.ppt",
         func = graficos_job_worker_ppt,
-        args = list(
-          rp_data_path = rp_data_path,
-          rp_inst_path = rp_inst_path,
-          plan = structure(plan, avisos_migracion = NULL),
-          presets = presets,
-          paletas = paletas_arg,
-          slide_registry = slide_registry_arg,
-          graficador_registry = graficador_registry_arg,
-          icon_registry = icon_registry_arg,
-          active_base = active_base_arg,
-          template_pptx = template_pptx_arg,
-          template_id = delivery$template_id,
-          auto_otros_slides = auto_otros_slides_arg
-        ) |> c(.graficos_estilo_cliente_arg(sid, cfg, "ppt"), .sig_arg_job(sid, cfg, plan)),   # D5 y ADR 0128 (regla de diferencias)
+        args = .graficos_ppt_job_args(sid, cfg, plan, presets, scoped_sources),
         result_filename = .graficos_export_filename(sid, "reporte_ppt", "pptx"),
         on_complete = function(j) {
           meta <- .register_output_file(j$sid, "reporte_ppt", j$result_path)

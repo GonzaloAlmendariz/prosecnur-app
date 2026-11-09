@@ -40,6 +40,10 @@ test_that("los endpoints de export nunca pasan las guías de la config al motor 
     sig <- grep("plumber::pr_(post|get)\\(", rg[(ini + 1L):length(rg)])[1]
     fin <- if (is.na(sig)) length(rg) else ini + sig
     bloque <- rg[ini:fin]
+    # /ppt arma los argumentos del worker en graficos_ppt_job_args.R (el mismo sitio que usa el arnés de QA).
+    if (any(grepl(".graficos_ppt_job_args(", bloque, fixed = TRUE))) {
+      bloque <- readLines(file.path("..", "..", "R", "graficos_ppt_job_args.R"), warn = FALSE)
+    }
     llamadas <- grep(".enriquecer_presets(", bloque, fixed = TRUE, value = TRUE)
     expect_true(length(llamadas) >= 1L, info = ep)
     expect_false(any(grepl("debug_ph", llamadas, fixed = TRUE)), info = ep)
