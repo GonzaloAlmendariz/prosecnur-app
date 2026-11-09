@@ -437,6 +437,7 @@
     peq <- any(vapply(premisas, function(p) any(vapply(p$filas, function(fl) .lam_tiene_peq(.lam_escala_seg(espec, fl$i), WB), TRUE)), TRUE))
     if (peq && fila - g < .std_aire_chica()) g <- max(0.24, fila - .std_aire_chica(), .std_piso_escala_in())   # N1: la cifra chica no adelgaza por debajo del piso
   }
+  .lam_gf_anotar(lz, g, nb, NROW(espec$categorias))   # B4: el grosor que dibuja y las barras de este bloque (lamina_grosor_familias.R)
   y <- y0 + desplazar   # G19: arranca bajo el título; si sobra alto tras engrosar y separar temas, se centra (lamina_escala_llenar.R)
   # Con dos columnas el rótulo se ensancha 0.1 in a cada lado, como en `.lam_filas_box`: «Bottom Two Box» no se parte.
   hr <- if (length(cb$cols) > 1L) 0.1 else 0

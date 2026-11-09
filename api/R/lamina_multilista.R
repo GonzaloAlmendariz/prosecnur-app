@@ -363,10 +363,16 @@
     # M1: con piso, «(cont.)» solo si el corte cayó DENTRO de un bloque; si cayó entre bloques, la lámina que sigue empieza otro.
     cont_ <- k > 1 && (!.std_evitar_cont() || isTRUE(partes[[k]][[1]]$continua))
     doc <- .lam_titulo(doc, if (cont_) .particion_titulo_cont(titulo) else titulo, ante = ante, sub = if (k == 1L) sub else NULL, avisar = k == 1L)   # «(cont.)» una sola vez
-    lz <- .lam_lienzo()
-    .lam_multilista_bloques(lz, partes[[k]], .lam_multilista_compartida_parte(partes[[k]], compartida),
-                            negrita = !nzchar(sub %||% ""))   # lámina por público: preguntas sin negrita, como Conta
+    # B4: la composición de la parte, como función, para recomponerla con el tope de su familia al cierre (lamina_grosor_familias.R)
+    dibujar <- local({ k_ <- k; function() {
+      lz <- .lam_lienzo()
+      .lam_multilista_bloques(lz, partes[[k_]], .lam_multilista_compartida_parte(partes[[k_]], compartida),
+                              negrita = !nzchar(sub %||% ""))   # lámina por público: preguntas sin negrita, como Conta
+      lz
+    } })
+    lz <- dibujar()
     doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:multilista")
+    .lam_gf_registrar(doc, lz, "prosecnur:grafico:multilista", dibujar)
     doc <- .lam_pie(doc, .lam_base_de_parte_multilista(base, partes, k), if (is.null(folio)) NULL else folio + k - 1L)   # N15: el pie de la parte, solo sus públicos
     doc <- por_lamina(doc)
   }

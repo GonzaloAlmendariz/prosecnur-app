@@ -17,8 +17,12 @@
 #' Grosor de Contabilidad por número de barras de la lámina (in), del estándar (`ppt.composicion.llenar.grosor`)
 #' @keywords internal
 .lam_grosor_holgado <- function(nb) {
-  for (t in .std_comp("llenar", "grosor")) if (nb <= t$filas_hasta) return(t$grosor)
-  .std_comp("llenar", "grosor")[[length(.std_comp("llenar", "grosor"))]]$grosor
+  g <- NULL
+  for (t in .std_comp("llenar", "grosor")) if (nb <= t$filas_hasta) { g <- t$grosor; break }
+  g <- g %||% .std_comp("llenar", "grosor")[[length(.std_comp("llenar", "grosor"))]]$grosor
+  # B4: al recomponer una lámina gemela, el engrosamiento no pasa del grosor mínimo de su familia (lamina_grosor_familias.R)
+  tope <- .lam_gf_tope(); if (is.numeric(tope) && length(tope) == 1L && is.finite(tope)) g <- min(g, tope)
+  g
 }
 
 # Los aires de la lámina que llena su alto (leyenda, entre temas, entre públicos) viven en `ppt.composicion.llenar`.
