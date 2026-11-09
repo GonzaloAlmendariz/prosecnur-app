@@ -150,7 +150,9 @@ test_that("metadata de graficadores expone controles claros y sin duplicados", {
     #   `regla_preguntas`     — regla con que una lámina de resumen elige sus preguntas (ADR 0135)
     "regla_preguntas",
     #   `cierre_hallazgos`    — hallazgos del cierre: lámina de origen, cifra y frase (ADR 0135)
-    "cierre_hallazgos"
+    "cierre_hallazgos",
+    #   `universo_categorias` — universo por base y categoría de la cobertura por categorías (ADR 0140)
+    "universo_categorias"
   )
   ui_grupo_soportado <- c(
     "datos", "lectura", "valores", "leyenda", "espacio", "tabla",

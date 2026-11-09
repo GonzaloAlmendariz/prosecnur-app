@@ -1,0 +1,157 @@
+# =============================================================================
+# lamina_cobertura_categorias.R — cobertura por categorías frente al universo, con formas nativas (ADR 0140)
+# =============================================================================
+#
+# El lenguaje visual de la cobertura y participación (lamina_cobertura.R): barras sobre una línea de base, la de la
+# muestra en el azul del estándar y la del universo en gris, cada una con su cifra al extremo y la leyenda arriba. Por
+# categoría, a la izquierda, su nombre y su n en segundo plano ("n = 129"); a la derecha, la diferencia en puntos. Con
+# varias bases, un bloque de categorías por base bajo el nombre de la base. Lo mismo a página entera
+# (`.lam_laminas_cobcat`) y en una ranura de la lámina de dos o de cuatro gráficos (`.lam_rr_cobcat_*`); las dos usan la
+# misma geometría (`.lam_cobcat_geo`) dentro de su rectángulo.
+#
+# El enfoque son los porcentajes: las cifras de las barras son % y la diferencia sale de los valores sin redondear
+# (graficos_cobertura_categorias.R). Las notas (base por público, universo, filtro, "Sin ponderar", lo que queda fuera de
+# las barras, tolerancia) van al pie.
+
+.COBCAT_FILAS_MAX <- 14L
+
+#' ¿Es la especificación de la versión por categorías?
+#' @keywords internal
+.lam_es_cobcat <- function(espec) is.list(espec) && identical(espec$version, .COBCAT_VERSION)
+
+#' Geometría dentro de un rectángulo: columnas de rótulo, n, barras, cifras y diferencia; alto de cada fila
+#'
+#' @param escala `"pagina"` o `"ranura"` (letras y mínimos de cada una).
+#' @return Lista con `cabe` y lo que el dibujo necesita.
+#' @keywords internal
+.lam_cobcat_geo <- function(espec, x, y, w, h, escala = c("pagina", "ranura")) {
+  escala <- match.arg(escala)
+  if (!.lam_es_cobcat(espec)) return(list(cabe = FALSE))
+  pg <- identical(escala, "pagina")
+  bl <- espec$bloques
+  filas <- sum(vapply(bl, function(b) NROW(b$filas), 0L))
+  if (filas < 1L || filas > .COBCAT_FILAS_MAX) return(list(cabe = FALSE))
+  cabeceras <- if (length(bl) > 1L) length(bl) else 0L
+  ley <- if (pg) 0.4 else 0.32
+  hcab <- if (pg) 0.4 else 0.32
+  hrow <- min(if (pg) 1.0 else 0.6, (h - ley - hcab * cabeceras - 0.05) / filas)
+  rotulos <- unlist(lapply(bl, function(b) b$filas$etiqueta))
+  ns <- unlist(lapply(bl, function(b) b$filas$texto_n))
+  # El rótulo baja de a medio punto hasta el piso de 10.5 pt; si no cabe en su tope, la lámina va dibujada.
+  tope <- if (pg) 3.6 else min(2.4, w * 0.36)
+  size_r <- NA_real_
+  for (sz in .lam_rotulo_pasos_pt(if (pg) 13 else 11)) {
+    if (max(.lam_ancho_tinta(rotulos, sz, FALSE)) + 0.25 <= tope) { size_r <- sz; break }
+  }
+  if (!is.finite(size_r)) return(list(cabe = FALSE))
+  size_n <- if (pg) 10.5 else 10
+  size_v <- if (pg) 11 else 10
+  size_d <- if (pg) 13 else 11
+  wl <- max(.lam_ancho_tinta(rotulos, size_r, FALSE)) + 0.25
+  wn <- max(.lam_ancho_tinta(ns, size_n, FALSE)) + 0.25
+  wd <- if (isTRUE(espec$hay_universo)) max(if (pg) 1.3 else 1.0, .lam_ancho_tinta(espec$encabezado_diferencia, 10.5, FALSE) + 0.25) else 0
+  wv <- max(.lam_ancho_tinta(c("100.0%", "sin casos", "sin dato"), size_v, FALSE)) + 0.25
+  xl <- x; xn <- xl + wl; xb <- xn + wn + 0.1
+  xd <- x + w - wd
+  wb <- xd - 0.1 - wv - xb
+  g <- min(if (pg) 0.3 else 0.2, hrow * 0.3)
+  list(cabe = hrow >= (if (pg) 0.4 else 0.3) && wb >= (if (pg) 3 else 1.2),
+       x = x, y = y, w = w, h = h, ley = ley, hcab = hcab, hrow = hrow, filas = filas, cabeceras = cabeceras,
+       size_r = size_r, size_n = size_n, size_v = size_v, size_d = size_d, size_ley = if (pg) 11 else 10.5,
+       wl = wl, wn = wn, wd = wd, wv = wv, xl = xl, xn = xn, xb = xb, xd = xd, wb = wb, g = g)
+}
+
+#' Dibuja la cobertura por categorías en su rectángulo
+#' @return El `y` donde terminó lo dibujado.
+#' @keywords internal
+.lam_cobcat_dibujar <- function(lz, espec, ge) {
+  azul <- .std_color("azul"); suave <- .std_color("texto_suave"); tenue <- .std_color("texto_tenue")
+  alto <- ge$ley + ge$hcab * ge$cabeceras + ge$hrow * ge$filas
+  y <- ge$y + max(0, ge$h - 0.05 - alto) / 2
+  # Leyenda sobre el área de barras y el encabezado de la diferencia sobre su columna.
+  xl <- ge$xb
+  for (k in names(espec$leyenda)) {
+    t <- espec$leyenda[[k]]; wt <- .lam_ancho_tinta(t, ge$size_ley, FALSE)
+    .lam_caja(lz, xl, y + 0.09, 0.14, 0.14, espec$colores[[k]], nombre = "leyenda:cuadro")
+    .lam_txt(lz, t, xl + 0.12, y, wt + 0.3, 0.3, ge$size_ley, azul, nombre = "leyenda:texto")
+    xl <- xl + 0.12 + wt + 0.45
+  }
+  if (isTRUE(espec$hay_universo)) {
+    .lam_txt(lz, espec$encabezado_diferencia, ge$xd, y, ge$wd, 0.3, 10.5, suave, align = "right", nombre = "cobertura:encabezado_diferencia")
+  }
+  y <- y + ge$ley
+  px <- function(v) ge$wb * min(1, max(0, v) / espec$escala_max)
+  for (b in espec$bloques) {
+    f <- b$filas
+    if (ge$cabeceras > 0L) {
+      wp <- .lam_ancho_tinta(b$publico, ge$size_r + 0.5, TRUE)
+      .lam_txt(lz, b$publico, ge$xl - 0.1, y + 0.02, wp + 0.3, 0.32, ge$size_r + 0.5, azul, bold = TRUE, nombre = "cobertura:publico")
+      .lam_txt(lz, b$texto_n_validos, ge$xl - 0.1 + wp + 0.15, y + 0.04, ge$xd - ge$xl - wp, 0.3, ge$size_n, suave, nombre = "cobertura:publico_n")
+      y <- y + ge$hcab
+    }
+    y0 <- y
+    for (i in seq_len(NROW(f))) {
+      yc <- y + (i - 0.5) * ge$hrow
+      .lam_txt(lz, f$etiqueta[i], ge$xl, .lam_y_centrada(yc, ge$size_r), ge$wl, 0.34, ge$size_r, azul, align = "right", nombre = "cobertura:categoria")
+      .lam_txt(lz, f$texto_n[i], ge$xn, .lam_y_centrada(yc, ge$size_n), ge$wn, 0.3, ge$size_n, if (isTRUE(f$chica[i])) azul else suave,
+               bold = isTRUE(f$chica[i]), align = "right", nombre = "cobertura:n")
+      series <- list(muestra = list(v = f$pct_muestra[i], t = f$texto_muestra[i], y = yc - ge$g - 0.015))
+      if (!isTRUE(b$sin_universo)) series$universo <- list(v = f$pct_universo[i], t = f$texto_universo[i], y = yc + 0.015)
+      for (k in names(series)) {
+        s <- series[[k]]
+        lb <- 0
+        if (is.finite(s$v) && s$v > 0) {
+          lb <- max(0.01, px(s$v))
+          .lam_caja(lz, ge$xb, s$y, lb, ge$g, espec$colores[[k]], nombre = paste0("cobertura:barra_", k), borde = NA)
+        }
+        .lam_txt(lz, s$t, ge$xb + lb + 0.02, s$y + ge$g / 2 - ge$size_v / 144 - 0.06, ge$wv, 0.28, ge$size_v,
+                 if (is.finite(s$v)) suave else tenue, nombre = "cobertura:valor")
+      }
+      if (nzchar(f$texto_diferencia[i])) {
+        dentro <- isTRUE(f$dentro[i])
+        .lam_txt(lz, f$texto_diferencia[i], ge$xd, .lam_y_centrada(yc, ge$size_d), ge$wd, 0.36, ge$size_d, if (dentro) suave else azul,
+                 bold = !dentro, align = "right", nombre = "cobertura:diferencia")
+      }
+    }
+    .lam_caja(lz, ge$xb - 0.01, y0 + 0.05, 0.015, ge$hrow * NROW(f) - 0.1, tenue, nombre = "cobertura:base_barras")
+    y <- y + ge$hrow * NROW(f)
+  }
+  invisible(y)
+}
+
+#' ¿La lámina de página entera cabe? Hasta 14 categorías, filas de 0.4 in y 3 in de barras
+#' @keywords internal
+.lam_cobcat_cabe <- function(espec) isTRUE(.lam_cobcat_pagina_geo(espec)$cabe)
+
+#' @keywords internal
+.lam_cobcat_pagina_geo <- function(espec) {
+  g_ <- .std_geom; ml <- g_("margen_izq"); fin <- g_("ancho") - g_("margen_der")
+  y0 <- g_("zona_datos_y0") + 0.1; y1 <- g_("contenido_y1") - 0.35
+  .lam_cobcat_geo(espec, ml, y0, fin - ml, y1 - y0, "pagina")
+}
+
+#' El pie de la versión por categorías: la base escrita en la lámina, si la hay, y las notas de la especificación
+#' @keywords internal
+.lam_cobcat_pie <- function(base, espec) .lam_con_punto(do.call(.lam_unir_base, as.list(c(base, espec$notas_pie))))
+
+#' Lámina de cobertura por categorías a página entera
+#' @keywords internal
+.lam_laminas_cobcat <- function(doc, espec, titulo, ante = NULL, base = NULL, folio = NULL, sub = NULL,
+                                layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
+  force(folio)
+  doc <- officer::add_slide(doc, layout = layout, master = master)
+  doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
+  lz <- .lam_lienzo()
+  .lam_cobcat_dibujar(lz, espec, .lam_cobcat_pagina_geo(espec))
+  doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:cobertura")
+  doc <- .lam_pie(doc, .lam_cobcat_pie(base, espec), folio)
+  list(doc = por_lamina(doc), partes = 1L)
+}
+
+#' Geometría en una ranura de la lámina de dos o de cuatro gráficos
+#' @keywords internal
+.lam_rr_cobcat_geo <- function(espec, x, y, w, h) .lam_cobcat_geo(espec, x, y, w, h, "ranura")
+
+#' Dibujo en una ranura
+#' @keywords internal
+.lam_rr_cobcat <- function(lz, espec, ge) .lam_cobcat_dibujar(lz, espec, ge)

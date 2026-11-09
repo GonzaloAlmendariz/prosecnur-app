@@ -642,6 +642,13 @@ errores_registrados <- function() {
     "E_DRIVE_SIN_GOOGLE",                                     "collection_drive.R",                "409",
     "E_GIT_FAILED",                                          "dashboard_publish.R",               "indirecto",
     "E_GOOGLE_SHEETS",                                       "router_monitoreo.R",                "400",
+    # Gráficos › Cobertura por categorías de una variable (ADR 0140).
+    "E_COBERTURA_CAT_BASE",                                  "graficos_cobertura_categorias.R",   "400",
+    "E_COBERTURA_CAT_FILTROS",                               "router_graficos_cobertura_categorias.R", "400",
+    "E_COBERTURA_CAT_MODO",                                  "graficos_cobertura_plan.R",         "400",
+    "E_COBERTURA_CAT_TOLERANCIA",                            "graficos_cobertura_categorias.R",   "400",
+    "E_COBERTURA_CAT_UNIVERSO",                              "graficos_cobertura_categorias.R",   "400",
+    "E_COBERTURA_CAT_VARIABLE",                              "graficos_cobertura_categorias.R",   "400",
     "E_GRAFICOS_CONSOLIDADO_DRAFT_CONFIG",                   "graficos_consolidado.R",            "400",
     "E_GRAFICOS_CONSOLIDADO_DRAFT_EXPECTED_REVISION",        "graficos_consolidado.R",            "400",
     "E_GRAFICOS_CONSOLIDADO_DRAFT_STALE",                    "graficos_consolidado.R",            "409",

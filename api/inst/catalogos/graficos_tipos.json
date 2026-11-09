@@ -982,7 +982,8 @@
         "publicos": "uno_o_varios",
         "padron": true,
         "cruce": false
-      }
+      },
+      "version_base": "Por públicos"
     },
     {
       "name": "p_filtro_subpregunta",
@@ -1155,6 +1156,19 @@
         "estilo": "resumen"
       },
       "args_quitar": []
+    },
+    {
+      "id": "p_cobertura:categorias",
+      "graficador": "p_cobertura",
+      "nombre": "Cobertura por categorías de una variable",
+      "nombre_version": "Por categorías de una variable",
+      "familia": "comparar",
+      "icono": "Users",
+      "descripcion": "Por categoría de una variable, el % de la muestra frente al % del universo y la diferencia en puntos.",
+      "args_fijos": {
+        "modo": "categorias"
+      },
+      "args_quitar": ["universos", "metas", "extras", "universos_no_confiables"]
     }
   ],
   "disposiciones": {

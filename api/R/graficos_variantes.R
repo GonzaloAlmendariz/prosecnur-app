@@ -27,7 +27,12 @@
     list(graficador = "p_barras_divergentes", slug = "escala_sin_informacion",
          nombre = "Escala con columna de Sin información", nombre_version = "Con columna de Sin información",
          descripcion = "Barras divergentes de desacuerdo y acuerdo, con Sin información en una columna gris aparte.",
-         args_fijos = list(estilo = "resumen"), args_quitar = character(0))
+         args_fijos = list(estilo = "resumen"), args_quitar = character(0)),
+    # ADR 0140: la cobertura por categorías de una variable frente al universo que teclea el analista.
+    list(graficador = "p_cobertura", slug = "categorias",
+         nombre = "Cobertura por categorías de una variable", nombre_version = "Por categorías de una variable",
+         descripcion = "Por categoría de una variable, el % de la muestra frente al % del universo y la diferencia en puntos.",
+         args_fijos = list(modo = "categorias"), args_quitar = c("universos", "metas", "extras", "universos_no_confiables"))
   )
   lapply(defs, function(d) {
     m <- .GRAFICADORES_META[[d$graficador]]
@@ -74,7 +79,8 @@
 
 #' Variante del catálogo que corresponde a un gráfico ya guardado
 #'
-#' Sólo lee: no migra el plan ni marca `project_dirty`. Un plan con `estilo = "resumen"` se rotula como su variante.
+#' Sólo lee: no migra el plan ni marca `project_dirty`. Un plan con `estilo = "resumen"` se rotula como su variante; una
+#' cobertura con `modo = "categorias"`, como `p_cobertura:categorias` (ADR 0140).
 #' @param graficador Nombre del graficador (`p_dumbbell`...).
 #' @param args Args del gráfico tal como están en el plan.
 #' @return El id de la variante (`p_dumbbell:contraste`) o `NA_character_` si el gráfico es el tipo base.
@@ -82,6 +88,10 @@
 .graficos_variante_de <- function(graficador, args = list()) {
   g <- .graficos_variantes_texto(graficador)
   if (!is.list(args)) args <- as.list(args)
+  # ADR 0140: la cobertura se reconoce por su `modo`, no por el estilo.
+  if (identical(g, "p_cobertura")) {
+    return(if (identical(.graficos_variantes_texto(args[["modo"]]), "categorias")) "p_cobertura:categorias" else NA_character_)
+  }
   if (!identical(.graficos_variantes_texto(args[["estilo"]]), "resumen")) return(NA_character_)
   if (identical(g, "p_dumbbell")) {
     return(if (.graficos_variantes_dumbbell_entre_grupos(args)) "p_dumbbell:aperturas" else "p_dumbbell:contraste")

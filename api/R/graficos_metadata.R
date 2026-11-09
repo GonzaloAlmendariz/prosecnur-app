@@ -40,6 +40,9 @@
 #                      lámina salen de POST /api/graficos/resumenes/cifras
 # "regla_preguntas"  → regla {tipo, n, umbral, agregar, quitar} con que una lámina de resumen elige sus preguntas
 #                      (ADR 0135); el conteo en vivo sale de POST /api/graficos/resumenes/regla
+# "universo_categorias" → universo por base {modo: "conteos"|"porcentajes", total?, variable?, categorias: [{codigo,
+#                      etiqueta, valor}]} de la cobertura por categorías (ADR 0140); las categorías de cada base salen de
+#                      POST /api/graficos/resumenes/cobertura-categorias
 # "meta"             → objeto libre; casi nunca se expone en UI
 
 # ---- Grupos semánticos ----------------------------------------------------
@@ -2083,7 +2086,7 @@
            descripcion = "Regla con que se eligen los temas del contraste de públicos: las comunes, las de mayor diferencia, las de diferencia mínima o a mano."),
       # ADR 0135 (graficos_dumbbell_auto.R): el par del contraste entre públicos; los temas son sus preguntas comunes.
       list(name = "bases", label = "Públicos que se comparan", tipo_input = "codigos_list", grupo = "datos",
-           descripcion = "Las dos bases del contraste, en orden: la diferencia es la primera menos la segunda."),
+           descripcion = "De dos a cuatro bases. Con dos, la diferencia es la primera menos la segunda; con más, el mayor menos el menor."),
       list(name = "orden", label = "Orden de las filas", tipo_input = "choice", grupo = "estilo",
            default = "brecha",
            choices = list(
@@ -2121,6 +2124,10 @@
              list(value = "tabla", label = "En columnas de la tabla", hint = "Una columna por grupo, fila por fila.")
            ),
            descripcion = "Por defecto la base va en la nota, abajo a la izquierda, y la tabla lleva sólo la diferencia."),
+      # Gonzalo, 2026-11-09: el n en la leyenda es una opción del analista (graficos_dumbbell_tres_grupos.R). Sin declarar:
+      # con tres o cuatro grupos va; con dos, como el dumbbell de siempre.
+      list(name = "leyenda_con_n", label = "N en la leyenda", tipo_input = "bool", grupo = "estilo",
+           descripcion = "Escribe junto a cada grupo sus casos sin ponderar: TC (24). Sin elegir, va con tres o cuatro grupos."),
       list(name = "separar_tras", label = "Separador después de la fila", tipo_input = "number", grupo = "estilo",
            default = 0, min = 0, max = 30, step = 1,
            descripcion = "Una línea punteada entre dos grupos de preguntas (competencias de salida y genéricas). 0: sin separador. Fija el orden declarado.")
@@ -2183,6 +2190,7 @@
   # =========================================================================
   p_cobertura = list(
     titulo_humano = "Cobertura y participación",
+    version_base  = "Por públicos",   # ADR 0140: la otra versión es "Por categorías de una variable"
     descripcion   = "Por público, los casos con su padrón y, al lado, la tasa de respuesta junto a la meta de la propuesta.",
     icono_ui      = "Users",
     categoria     = "comparison",
@@ -2198,7 +2206,19 @@
       list(name = "metas", label = "Meta de cada público", tipo_input = "string", grupo = "datos",
            descripcion = "En % del padrón («Docentes: 60%») o en casos («Docentes: 74»)."),
       list(name = "extras", label = "Filas extra", tipo_input = "textarea", grupo = "datos",
-           descripcion = "Sin barra, una por línea: cifra | rótulo | detalle. Ej. 34 | egresados(as) | en 4 grupos focales.")
+           descripcion = "Sin barra, una por línea: cifra | rótulo | detalle. Ej. 34 | egresados(as) | en 4 grupos focales."),
+      # ADR 0140: la versión "Por categorías de una variable" (variante p_cobertura:categorias, modo = "categorias").
+      list(name = "modo", label = "Versión", tipo_input = "meta", grupo = "datos",
+           descripcion = "\"publicos\" (vacío) o \"categorias\"; lo fija la versión elegida en el tipo de gráfico."),
+      list(name = "variable", label = "Variable", tipo_input = "variable", grupo = "datos",
+           depende = list(arg = "modo", valores = list("categorias")),
+           descripcion = "La pregunta cuyas categorías se comparan con el universo."),
+      list(name = "universo_categorias", label = "Universo por categoría", tipo_input = "universo_categorias", grupo = "datos",
+           depende = list(arg = "modo", valores = list("categorias")),
+           descripcion = "Por base, el universo de cada categoría en conteos (con su total) o en porcentajes. Las categorías salen de POST /api/graficos/resumenes/cobertura-categorias."),
+      list(name = "tolerancia_pts", label = "Tolerancia (pts)", tipo_input = "number", grupo = "datos",
+           depende = list(arg = "modo", valores = list("categorias")), min = 0, max = 50, step = 0.5, unidad = "pp",
+           descripcion = "Opcional. La lámina dice cuántas categorías quedan dentro de ±X pts fijado por el analista.")
     ), .args_graf_comunes())
   ),
 

@@ -16,6 +16,12 @@
 #'   («34», «egresados(as)», «en 4 grupos focales»), o un texto con una por línea: «34 | egresados(as) | en 4 grupos focales».
 #' @param universos_no_confiables Lo tecleado como padrón de un público con «Padrón confiable» apagado («Docentes TC:
 #'   24»). Se conserva en el elemento y no entra a ningún cálculo.
+#' @param modo `"publicos"` (la de siempre) o `"categorias"`: la versión "Por categorías de una variable" (ADR 0140,
+#'   graficos_cobertura_categorias.R).
+#' @param variable Con `modo = "categorias"`: la pregunta cuyas categorías se comparan con el universo.
+#' @param universo_categorias Con `modo = "categorias"`: el universo tecleado por base,
+#'   `{<base>: {modo: "conteos"|"porcentajes", total?, variable?, categorias: [{codigo, etiqueta, valor}]}}`.
+#' @param tolerancia_pts Con `modo = "categorias"`: la tolerancia que fija el analista, en puntos (opcional).
 #' @export
 p_cobertura <- function(bases = NULL,
                         universos = NULL,
@@ -25,7 +31,11 @@ p_cobertura <- function(bases = NULL,
                         overrides = list(),
                         base = list(),
                         filtros = list(),
-                        universos_no_confiables = NULL) {
+                        universos_no_confiables = NULL,
+                        modo = NULL,
+                        variable = NULL,
+                        universo_categorias = NULL,
+                        tolerancia_pts = NULL) {
   bs <- trimws(as.character(unlist(bases %||% character(0))))
   bs <- unique(bs[!is.na(bs) & nzchar(bs)])
   if (any(grepl("$", bs, fixed = TRUE))) .plan_spec_abort("p_cobertura(): `bases` lleva nombres de base, no preguntas.")
@@ -45,6 +55,14 @@ p_cobertura <- function(bases = NULL,
     filtros = .ppt_norm_filters(filtros)
   )
   el$universos_no_confiables <- .graficos_universos_no_confiables(universos_no_confiables, "p_cobertura()")
+  md <- .cobcat_texto(modo)
+  if (nzchar(md) && !md %in% c("publicos", "categorias")) stop_api(400, "E_COBERTURA_CAT_MODO", "`modo` es \"publicos\" o \"categorias\".")
+  if (identical(md, "categorias")) {   # ADR 0140: la versión por categorías (graficos_cobertura_categorias.R)
+    el$modo <- md
+    el$variable <- .cobcat_variable(variable)   # sin variable todavía (recién elegida la versión): el render lo dice
+    el$universo_categorias <- .cobcat_universo_normalizar(universo_categorias)
+    el$tolerancia_pts <- .cobcat_tolerancia(tolerancia_pts)
+  }
   class(el) <- c("ppt_element", "list")
   el
 }
@@ -61,6 +79,7 @@ p_cobertura <- function(bases = NULL,
 .render_cobertura <- function(el, preset_args = list()) {
   data_sources <- dynGet("data_sources", ifnotfound = NULL)
   if (!length(data_sources)) stop("cobertura: el render no expone las bases del estudio.", call. = FALSE)
+  if (identical(el$modo, "categorias")) return(.render_cobertura_categorias(el, data_sources, preset_args))   # ADR 0140
   bases <- el$bases %||% .cobertura_bases_publico(names(data_sources))   # sin las ediciones de una serie (graficos_cobertura_publicos.R)
   faltan <- setdiff(bases, names(data_sources))
   if (length(faltan)) stop("cobertura: la base `", faltan[1], "` no está en el estudio.", call. = FALSE)

@@ -258,7 +258,7 @@ export const CATALOGO_GRAFICOS: readonly TipoGraficoCatalogo[] = [
     usa: { pregunta: ["escala"], publicos: "uno_o_varios", padron: false, cruce: false } },
   { name: "p_fortalezas", titulo_humano: "Fortalezas y alertas", familia_editor: "comparar", salida: "nativa", en_selector: true,
     usa: { pregunta: ["escala"], publicos: "uno", padron: false, cruce: false } },
-  { name: "p_cobertura", titulo_humano: "Cobertura y participación", familia_editor: "comparar", salida: "nativa", en_selector: true,
+  { name: "p_cobertura", titulo_humano: "Cobertura y participación", version_base: "Por públicos", familia_editor: "comparar", salida: "nativa", en_selector: true,
     usa: { pregunta: ["cualquiera"], publicos: "uno_o_varios", padron: true, cruce: false } },
   { name: "p_filtro_subpregunta", titulo_humano: "Pregunta filtro y subpregunta", familia_editor: "categorias", salida: "nativa", en_selector: false,
     usa: { pregunta: ["opcion_unica"], publicos: "uno", padron: false, cruce: false } },
@@ -297,6 +297,9 @@ export const VARIANTES_GRAFICO: readonly VarianteGraficoCatalogo[] = [
   { id: "p_barras_divergentes:escala_sin_informacion", graficador: "p_barras_divergentes", nombre: "Escala con columna de Sin información", nombre_version: "Con columna de Sin información", familia: "escalas", icono: "AlignHorizontalJustifyCenter",
     descripcion: "Barras divergentes de desacuerdo y acuerdo, con Sin información en una columna gris aparte.",
     args_fijos: { "estilo": "resumen" }, args_quitar: [] },
+  { id: "p_cobertura:categorias", graficador: "p_cobertura", nombre: "Cobertura por categorías de una variable", nombre_version: "Por categorías de una variable", familia: "comparar", icono: "Users",
+    descripcion: "Por categoría de una variable, el % de la muestra frente al % del universo y la diferencia en puntos.",
+    args_fijos: { "modo": "categorias" }, args_quitar: ["universos","metas","extras","universos_no_confiables"] },
 ];
 
 export const DISPOSICIONES_LAMINA: Readonly<Record<string, DisposicionCatalogo>> = {

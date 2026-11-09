@@ -15,7 +15,8 @@ source("setup-load-all.R")
 .gv_datos <- list(
   "p_dumbbell:contraste" = list(vars = list(Confianza = c("doc$p1", "est$p1")), corte = "4"),
   "p_dumbbell:aperturas" = list(vars = list(Confianza = "est$p1"), corte = "4", cruce = "est$sexo", grupos = c("1", "2")),
-  "p_barras_divergentes:escala_sin_informacion" = list(vars = "p1")
+  "p_barras_divergentes:escala_sin_informacion" = list(vars = "p1"),
+  "p_cobertura:categorias" = list(variable = "sexo")   # ADR 0140
 )
 
 # Aplica la variante como lo hará el selector: quita `args_quitar`, pone `args_fijos` y un `NA` es «va nulo».
@@ -30,9 +31,10 @@ source("setup-load-all.R")
 
 test_that("cada variante es válida: su graficador existe, su familia está en el selector y sus campos están completos", {
   vs <- .graficos_variantes()
-  expect_length(vs, 3L)
+  expect_length(vs, 4L)
   ids <- vapply(vs, `[[`, "", "id")
-  expect_identical(ids, c("p_dumbbell:contraste", "p_dumbbell:aperturas", "p_barras_divergentes:escala_sin_informacion"))
+  expect_identical(ids, c("p_dumbbell:contraste", "p_dumbbell:aperturas", "p_barras_divergentes:escala_sin_informacion",
+                          "p_cobertura:categorias"))
   expect_false(anyDuplicated(ids) > 0)
   for (v in vs) {
     expect_true(v$graficador %in% names(.GRAFICADORES_META), info = v$id)
@@ -52,13 +54,17 @@ test_that("cada variante es válida: su graficador existe, su familia está en e
 test_that("el constructor del graficador acepta los args fijos de cada variante y arma la lámina en estilo resumen", {
   for (v in .graficos_variantes()) {
     # Llega desde otra variante (el par del contraste y su `cruce: null`); los datos se eligen después, en Datos.
-    previo <- if (identical(v$graficador, "p_dumbbell")) list(estilo = "recetario", bases = c("doc", "est"), cruce = NULL) else list(estilo = "recetario")
+    previo <- if (identical(v$graficador, "p_dumbbell")) list(estilo = "recetario", bases = c("doc", "est"), cruce = NULL)
+              else if (identical(v$graficador, "p_cobertura")) list(universos = "Docentes: 10", metas = "Docentes: 60%")   # la versión por públicos
+              else list(estilo = "recetario")
     args <- .gv_aplicar(v, previo)
     expect_false("bases" %in% names(args) && "bases" %in% v$args_quitar)
     args <- utils::modifyList(args, .gv_datos[[v$id]])
     el <- expect_no_error(do.call(get(v$graficador), args))
     expect_s3_class(el, "ppt_element")
-    expect_identical(el$overrides$estilo, "resumen", info = v$id)
+    # La cobertura por categorías (ADR 0140) se reconoce por su `modo`; las demás, por el estilo resumen.
+    if (identical(v$graficador, "p_cobertura")) expect_identical(el$modo, "categorias", info = v$id)
+    else expect_identical(el$overrides$estilo, "resumen", info = v$id)
     # Y la lámina armada se reconoce como la misma variante.
     expect_identical(.graficos_variante_de(v$graficador, args), v$id, info = v$id)
   }

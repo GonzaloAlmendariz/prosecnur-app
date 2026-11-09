@@ -34,6 +34,7 @@
 #' @keywords internal
 .lam_cobertura_cabe <- function(espec) {
   if (!identical(espec$tipo, "cobertura")) return(FALSE)
+  if (.lam_es_cobcat(espec)) return(.lam_cobcat_cabe(espec))   # ADR 0140: por categorías (lamina_cobertura_categorias.R)
   ge <- .lam_cobertura_geom(espec)
   ge$filas >= 1L && ge$filas <= .COBERTURA_FILAS_MAX && (!isTRUE(espec$con_barras) || ge$wb >= 3)
 }
@@ -42,6 +43,10 @@
 #' @keywords internal
 .lam_laminas_cobertura <- function(doc, espec, titulo, ante = NULL, base = NULL, folio = NULL, sub = NULL,
                                    layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
+  if (.lam_es_cobcat(espec)) {   # ADR 0140: por categorías (lamina_cobertura_categorias.R)
+    return(.lam_laminas_cobcat(doc, espec, titulo, ante = ante, base = base, folio = folio, sub = sub, layout = layout,
+                               master = master, por_lamina = por_lamina))
+  }
   force(folio)
   azul <- .std_color("azul"); suave <- .std_color("texto_suave")
   ge <- .lam_cobertura_geom(espec); pb <- espec$publicos; ex <- espec$extras

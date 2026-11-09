@@ -242,6 +242,7 @@
     contraste = sort(as.character(espec$grupos)),
     panorama = sort(as.character(espec$publicos)),
     divergentes_resumen = sort(unique(regmatches(espec$filas, regexpr("\\([^()]{1,24}\\)$", espec$filas)))),
+    cobertura = if (.lam_es_cobcat(espec)) sort(vapply(espec$bloques, `[[`, "", "publico")) else character(0),   # ADR 0140
     character(0))
   paste(as.character(unlist(p)), collapse = "|")
 }
@@ -253,6 +254,7 @@
   e <- switch(clase %||% "",
     fortalezas = espec$publico,
     contraste = { g <- as.character(espec$grupos); if (length(g) == 2L) paste(g[1], "y", tolower(g[2])) else NULL },
+    cobertura = if (.lam_es_cobcat(espec) && length(espec$bloques) == 1L) espec$bloques[[1]]$publico else NULL,   # ADR 0140
     NULL)
   e <- as.character(unlist(e %||% character(0)))[1]
   if (length(e) && !is.na(e) && nzchar(trimws(e))) trimws(e) else sprintf("Gráfico %d", k)
@@ -271,7 +273,7 @@
     contraste = list(texto(espec$nota_base), texto(.contraste_sentido_nota(espec)), texto(espec$nota_grupo_chico), texto(espec$texto_regla)),
     panorama = list(sprintf("Cada marca es una pregunta (%s)", espec$indicador %||% "Top Two Box"), texto(espec$texto_regla)),
     fortalezas = list(texto(espec$nota_base), texto(espec$texto_regla), sprintf("Barras: %s de cada pregunta", espec$indicador %||% "Top Two Box")),
-    cobertura = list(),
+    cobertura = as.list(sub("\\.$", "", espec$notas_pie %||% character(0))),   # ADR 0140: las notas de la versión por categorías
     divergentes_resumen = list(texto(espec$nota_porcentaje), texto(espec$texto_regla)))
   as.character(unlist(p))
 }
@@ -505,6 +507,7 @@
 #' @keywords internal
 .lam_rr_cobertura_geo <- function(espec, x, y, w, h) {
   if (!identical(espec$tipo, "cobertura")) return(list(cabe = FALSE))
+  if (.lam_es_cobcat(espec)) return(.lam_rr_cobcat_geo(espec, x, y, w, h))   # ADR 0140 (lamina_cobertura_categorias.R)
   pb <- espec$publicos; ex <- espec$extras
   filas <- NROW(pb) + NROW(ex)
   if (filas < 1L || filas > .COBERTURA_FILAS_MAX) return(list(cabe = FALSE))
@@ -525,6 +528,7 @@
 
 #' @keywords internal
 .lam_rr_cobertura <- function(lz, espec, ge) {
+  if (.lam_es_cobcat(espec)) return(.lam_rr_cobcat(lz, espec, ge))   # ADR 0140 (lamina_cobertura_categorias.R)
   azul <- .std_color("azul"); suave <- .std_color("texto_suave")
   pb <- espec$publicos; ex <- espec$extras; filas <- NROW(pb) + NROW(ex)
   y0 <- ge$y + ge$ley + max(0, ge$h - ge$ley - 0.05 - ge$hrow * filas) / 2
