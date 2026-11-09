@@ -252,7 +252,7 @@
   # a `leyenda_y`, a `.std_pt("leyenda")` y centrada a toda la lámina.
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()
-  for (v in seq(lo, hi, by = paso)) {
+  for (v in .dumbbell_eje_marcas(espec$eje)) {   # P8: con paso 10 hasta 100, se rotulan 60 a 90 (graficos_dumbbell_eje.R)
     .lam_caja(lz, px(v), yb, 0.006, k * fila, .std_color("filete"), nombre = "pesas:guia")
     .lam_txt(lz, paste0(format(v, trim = TRUE), "%"), px(v) - 0.35, yb - 0.3, 0.7, 0.24, 10, tenue, align = "center", nombre = "pesas:eje")
   }
