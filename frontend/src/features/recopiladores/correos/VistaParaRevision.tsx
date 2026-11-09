@@ -13,7 +13,7 @@ import {
   type MailRevision,
   type MailRevisionEnvio,
 } from "../../../api/materialMail";
-import { PulsoButton } from "../../../components/PulsoButton";
+import { PulsoButton, PulsoButtonEnlace } from "../../../components/PulsoButton";
 import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import { Download, Eye, FileText } from "../../../vendor/lucide-react";
 import "./correosExportar.css";
@@ -115,9 +115,9 @@ export function VistaParaRevision({ campana }: Props) {
           {armando ? "Armando…" : `Armar la vista (${elegidas.length})`}
         </PulsoButton>
         {listo ? (
-          <a className="pulso-button pulso-button--secondary pulso-button--sm" href={downloadUrl(listo.file_id)} download={listo.filename}>
+          <PulsoButtonEnlace variant="secondary" size="sm" href={downloadUrl(listo.file_id)} download={listo.filename}>
             <Download size={14} aria-hidden /> Descargar
-          </a>
+          </PulsoButtonEnlace>
         ) : null}
       </div>
       <div className="rec-exp-revision-acciones">
@@ -125,9 +125,9 @@ export function VistaParaRevision({ campana }: Props) {
           <FileText size={14} aria-hidden /> {armandoWord ? "Armando…" : "Textos en Word"}
         </PulsoButton>
         {word ? (
-          <a className="pulso-button pulso-button--secondary pulso-button--sm" href={downloadUrl(word.file_id)} download={word.filename}>
+          <PulsoButtonEnlace variant="secondary" size="sm" href={downloadUrl(word.file_id)} download={word.filename}>
             <Download size={14} aria-hidden /> Descargar Word
-          </a>
+          </PulsoButtonEnlace>
         ) : null}
       </div>
       {error ? <p className="rec-exp-revision-error" role="alert">{error}</p> : null}

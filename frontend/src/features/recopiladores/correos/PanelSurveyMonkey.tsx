@@ -16,7 +16,7 @@ import { useId, useState } from "react";
 
 import { downloadUrl } from "../../../api/core";
 import type { MailExportPayload, MailReview, MailSend, MailTemplate } from "../../../api/materialMail";
-import { PulsoButton } from "../../../components/PulsoButton";
+import { PulsoButton, PulsoButtonEnlace } from "../../../components/PulsoButton";
 import { copiarTexto } from "../../../lib/portapapeles";
 import { Check, Copy, Download, FolderOpen, Inbox, Loader2, Upload } from "../../../vendor/lucide-react";
 import { VerLosPuntos } from "./VerLosPuntos";
@@ -236,9 +236,9 @@ export function PanelSurveyMonkey({
             <span>{pesoLegible(zip.size_bytes)}{exportacion?.scope === "completo" ? " · contiene datos personales" : " · sin datos personales"}</span>
           </span>
           <span className="rec-mail-botones">
-            <a className="pulso-button pulso-button--secondary pulso-button--sm" href={downloadUrl(zip.file_id)} download={zip.filename}>
+            <PulsoButtonEnlace variant="secondary" size="sm" href={downloadUrl(zip.file_id)} download={zip.filename}>
               <Download size={14} aria-hidden /> Descargar
-            </a>
+            </PulsoButtonEnlace>
             <PulsoButton variant="ghost" size="sm" disabled={ocupado} onClick={onGuardarJunto}>
               <FolderOpen size={14} aria-hidden /> Junto al proyecto
             </PulsoButton>

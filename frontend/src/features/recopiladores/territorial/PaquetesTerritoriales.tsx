@@ -32,7 +32,7 @@ import {
 import type { UnidadesTerritoriales } from "../../../api/materialTerritorial";
 import { GlidingRadioGroup } from "../../../components/GlidingRadioGroup";
 import { JobProgress } from "../../../components/JobProgress";
-import { PulsoButton } from "../../../components/PulsoButton";
+import { PulsoButton, PulsoButtonEnlace } from "../../../components/PulsoButton";
 import { PulsoInput } from "../../../components/PulsoInput";
 import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import { Archive, FileSpreadsheet, Shuffle } from "../../../vendor/lucide-react";
@@ -191,7 +191,7 @@ export function PaquetesTerritoriales({ campaignId, unidades, hojas, onRecargar,
                 <span className="rec-terr-pieza-formato">ZIP</span>
                 <EstadoDePieza listo={Boolean(e.zip)} generando={Boolean(e.jobZip) || e.ocupado === "zip"} />
                 {e.zip ? (
-                  <a className="pulso-button pulso-button--secondary pulso-button--sm" href={downloadUrl(e.zip.file_id)} title={resumenDelZip(e.zip, pesoLegible(e.zip.size))}>Descargar</a>
+                  <PulsoButtonEnlace variant="secondary" size="sm" href={downloadUrl(e.zip.file_id)} title={resumenDelZip(e.zip, pesoLegible(e.zip.size))}>Descargar</PulsoButtonEnlace>
                 ) : (
                   <PulsoButton variant="primary" size="sm" disabled={!config || !listo || corriendo || unidades.stale} onClick={() => config && void correr("zip", () => apiHojasRutaGenerate(config, muestra), (r) => ({ jobZip: r.job_id, zip: null }))}>
                     {e.ocupado === "zip" ? "Preparando…" : "Generar"}
@@ -233,7 +233,7 @@ export function PaquetesTerritoriales({ campaignId, unidades, hojas, onRecargar,
                 <span className="rec-terr-pieza-formato">XLSX</span>
                 <EstadoDePieza listo={Boolean(e.excel)} generando={e.ocupado === "excel"} />
                 {e.excel ? (
-                  <a className="pulso-button pulso-button--secondary pulso-button--sm" href={downloadUrl(e.excel.file_id)}>Descargar</a>
+                  <PulsoButtonEnlace variant="secondary" size="sm" href={downloadUrl(e.excel.file_id)}>Descargar</PulsoButtonEnlace>
                 ) : (
                   <PulsoButton
                     variant="secondary"

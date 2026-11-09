@@ -14,7 +14,7 @@ import { Link } from "react-router-dom";
 import { downloadUrl } from "../../../api/core";
 import { descargarArchivo } from "../../../lib/descargas";
 import { apiMaterialTelefonicaPlantilla, type ConfigTelefonica } from "../../../api/materialTelefonica";
-import { PulsoButton } from "../../../components/PulsoButton";
+import { PulsoButton, PulsoButtonEnlace } from "../../../components/PulsoButton";
 import { Check, ExternalLink, FileSpreadsheet } from "../../../vendor/lucide-react";
 import { fechaDelEnvio } from "../territorial/modeloUnidades";
 import { BarridoEnSheets } from "./BarridoEnSheets";
@@ -82,9 +82,9 @@ export function DocumentoDelBarrido({ config, campaignId, hrefCasos, hrefFuentes
               <strong>Barrido en el Sheets del estudio</strong>
               <small>Pestaña «{barrido.pestana}», con Listas y Léeme</small>
             </span>
-            <a className="pulso-button pulso-button--primary pulso-button--md" href={barrido.url} target="_blank" rel="noopener noreferrer">
+            <PulsoButtonEnlace variant="primary" size="md" href={barrido.url} target="_blank" rel="noopener noreferrer">
               <ExternalLink size={14} aria-hidden /> Abrir el Sheets
-            </a>
+            </PulsoButtonEnlace>
           </div>
         ) : null}
         <BarridoEnSheets campaignId={campaignId} sensibles={config.sensibles} construido={barrido.construido} onHecho={onCambio} />
