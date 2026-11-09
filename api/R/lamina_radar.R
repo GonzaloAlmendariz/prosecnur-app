@@ -199,6 +199,16 @@
   officer::ph_with(doc, ft, location = loc)
 }
 
+#' Borde izquierdo del radar: el margen con tabla; sin ella, centrado en la lámina o, con un panel lateral (las tarjetas
+#' entre públicos, ADR 0138), centrado en el ancho que el panel deja
+#' @keywords internal
+.lam_radar_x0 <- function(espec) {
+  R <- .LAM_RADAR; g_ <- .std_geom
+  if (isTRUE(espec$con_tabla)) return(g_("margen_izq"))
+  if (.std_reserva_derecha() > 0) return(max(g_("margen_izq"), (g_("margen_izq") + g_("ancho") - g_("margen_der") - R$ancho) / 2))
+  g_("ancho") / 2 - R$ancho / 2
+}
+
 #' Lámina del radar con tabla (90)
 #' @keywords internal
 .lam_laminas_radar <- function(doc, espec, titulo, ante = NULL, base = NULL, folio = NULL, sub = NULL,
@@ -209,8 +219,8 @@
   arriba <- .lam_leyenda_va_arriba(espec$grupos)   # G4: la leyenda sube al antetítulo
   if (is.null(sub) || !nzchar(trimws(sub))) sub <- espec$subtitulo %||% sub   # el indicador del radar, si la lámina no trae subtítulo
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub, leyenda = if (arriba) espec$colores)
-  # Sin tabla, el radar y su leyenda se centran en la lámina.
-  x_radar <- if (isTRUE(espec$con_tabla)) ml else W / 2 - R$ancho / 2
+  # Sin tabla, el radar y su leyenda se centran en la lámina (o en lo que deja el panel de tarjetas).
+  x_radar <- .lam_radar_x0(espec)
   doc <- officer::ph_with(doc, rvg::dml(ggobj = .lam_radar_gg(espec), bg = "transparent", fonts = list(sans = .std_pt("fuente"))),
                           location = officer::ph_location(left = x_radar, top = yt + R$dy, width = R$ancho, height = R$alto,
                                                           newlabel = "prosecnur:grafico:radar"))
@@ -243,7 +253,7 @@
   ang <- pi / 2 - 2 * pi * (seq_len(K) - 1) / K; de_lado <- abs(cos(ang)) >= 0.1
   g_ <- .std_geom; W <- g_("ancho"); geo <- .lam_radar_geom(espec); tinta <- geo$ancho_rot
   if (any(geo$lineas > 3L)) return(FALSE)
-  x0 <- if (isTRUE(espec$con_tabla)) g_("margen_izq") else W / 2 - R$ancho / 2
+  x0 <- .lam_radar_x0(espec)
   xc <- x0 + (0 - geo$xlim[1]) * geo$unidad                                  # donde cae el centro del radar
   punta <- xc + 1.2 * cos(ang) * geo$unidad
   tope_der <- if (isTRUE(espec$con_tabla)) R$x_tabla else W - g_("margen_der")

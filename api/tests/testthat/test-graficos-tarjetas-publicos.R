@@ -423,3 +423,206 @@ test_that("HTTP: GET /api/graficos/diferencias responde la lámina entre públic
   req$QUERY_STRING <- "slide=nada"
   expect_identical(as.integer(pr$call(req)$status), 404L)
 })
+
+# ---- Segunda entrega: radar por públicos y panorama ------------------------------------------------------------------
+#
+# Tres públicos con seis criterios (el radar dibuja la telaraña desde cinco), una pregunta propia en docentes (d8) y otra
+# en estudiantes (q7) que no tienen par, y una matriz de equivalencias con las cuatro primeras filas confirmadas: p5 y p6
+# existen con el mismo nombre en las tres bases, pero sin fila de la matriz no son un tema emparejado.
+
+.tp_rot6 <- c("Los propósitos de la carrera son claros", "La biblioteca atiende a tiempo", "El servicio de salud es oportuno",
+              "Los laboratorios están equipados", "La tutoría acompaña el avance", "La plana docente es suficiente")
+.tp_tres <- function() {
+  etq <- c(.tp_acuerdo, "Sin información")
+  inst <- function(vars, labels) list(survey = data.frame(name = vars, type = "select_one lk", label = labels, stringsAsFactors = FALSE),
+                                      choices = data.frame(list_name = "lk", name = c("1", "2", "3", "4", "9"), label = etq, stringsAsFactors = FALSE),
+                                      orders_list = NULL)
+  base <- function(n, ttb, seed, vars) {
+    set.seed(seed)
+    d <- as.data.frame(lapply(ttb, function(t) { k <- round(n * t); sample(c(rep(c("3", "4"), length.out = k), rep(c("1", "2", "9"), length.out = n - k))) }),
+                       stringsAsFactors = FALSE)
+    names(d) <- vars; d
+  }
+  v <- paste0("p", 1:6)
+  ds <- list(docentes = base(115, c(.93, .70, .52, .80, .75, .60), 1, v),
+             estudiantes = base(279, c(.80, .66, .38, .55, .62, .58), 2, v),
+             administrativos = base(85, c(.97, .85, .86, .70, .50, .66), 3, v))
+  ds$estudiantes$q7 <- base(279, .5, 4, "q7")$q7
+  ds$docentes$d8 <- base(115, .7, 5, "d8")$d8
+  list(data_sources = ds,
+       inst_sources = list(docentes = inst(c(v, "d8"), c(.tp_rot6, "Pregunta propia de docentes")),
+                           estudiantes = inst(c(v, "q7"), c(.tp_rot6, "Pregunta propia de estudiantes")),
+                           administrativos = inst(v, .tp_rot6)))
+}
+.tp_vars6 <- stats::setNames(lapply(1:6, function(i) paste0(c("docentes", "estudiantes", "administrativos"), "$p", i)), .tp_rot6)
+.tp_equiv6 <- function(filas = 1:4) {
+  list(bases = c("docentes", "estudiantes", "administrativos"),
+       filas = lapply(filas, function(i) list(etiqueta_estandar = .tp_rot6[i],
+                                              variables = list(docentes = paste0("p", i), estudiantes = paste0("p", i),
+                                                               administrativos = paste0("p", i)))))
+}
+.tp_meta <- list(tarjetas_diferencias = list(entre_publicos = TRUE))
+.tp_lamina <- function(graficador, args, id = "s") list(id = id, meta = .tp_meta, payload = list(meta = .tp_meta, list(graficador = graficador, args = args)))
+.tp_lamina_radar <- function(vars = .tp_vars6, id = "r") .tp_lamina("p_radar", list(modo = "publicos", vars = vars, corte = "3,4"), id)
+.tp_lamina_panorama <- function(id = "p") .tp_lamina("p_panorama", list(vars = list("docentes$*", "estudiantes$*", "administrativos$*"), corte = "3,4"), id)
+# El render del motor lee las fuentes con dynGet: se llama desde un marco que las tiene.
+.tp_render <- function(f, el, src) { data_sources <- src$data_sources; instrument_sources <- src$inst_sources; suppressWarnings(f(el)) }
+.tp_calc_lamina <- function(slide, src, equiv = NULL, p = NULL, regla = .tp_regla(), opt = .tpub_opcion(.tp_meta)) {
+  el <- .tpub_elemento_de_lamina(slide)
+  tt <- .tpub_temas_de_elemento(el, src, equiv)
+  ref <- if (is.null(p)) NULL else .tpub_referencia_render(el, p, attr(p, "pulso_espec"), tt$vars_render)
+  list(el = el, tt = tt, ref = ref, r = .tpub_calcular(tt$temas, el$corte, src, regla, opt, referencia = ref))
+}
+
+test_that("radar con tres públicos: tarjetas de líneas con los tres pares, 99 % primero y luego por diferencia, con tope", {
+  src <- .tp_tres()
+  p <- .tp_render(.render_radar_publicos, p_radar_publicos(vars = .tp_vars6, corte = "3,4"), src)
+  x <- .tp_calc_lamina(.tp_lamina_radar(), src, p = p)
+  expect_identical(x$el$.element_type, "radar_publicos")
+  expect_true(all(vapply(x$tt$temas, `[[`, "", "equivalencia") == "emparejado"))   # vars del radar: el par explícito
+  expect_true(all(vapply(x$r$temas, `[[`, "", "estado") == "evaluable"))           # concilia con la espec del radar
+  # Pares: los tres de cada tema, nunca frente al resto, sin fila Total.
+  for (te in x$r$temas) {
+    pr <- .tpub_pares(te)
+    expect_identical(nrow(pr), 3L)
+    expect_setequal(paste(pmin(pr$a, pr$b), pmax(pr$a, pr$b)),
+                    c("administrativos docentes", "administrativos estudiantes", "docentes estudiantes"))
+    expect_false(any(te$ev$pares$a == ".resto"))
+  }
+  t <- Filter(function(z) identical(z$fila, "El servicio de salud es oportuno"), x$r$tarjetas)[[1]]
+  expect_identical(t$lineas, c("Administrativos 86 % frente a Estudiantes 38 %: +48 pp ▲",
+                               "Administrativos 86 % frente a Docentes 52 %: +34 pp ▲",
+                               "Docentes 52 % frente a Estudiantes 38 %: +14 pp △"))
+  expect_true(isTRUE(t$sin_total)); expect_identical(t$tipo, "entre_publicos")
+  # Tope de tarjetas: cinco temas con diferencias, cuatro tarjetas por defecto, de mayor a menor brecha y frágiles al final.
+  expect_identical(x$r$total, 5L)
+  expect_length(x$r$tarjetas, 4L)
+  br <- vapply(x$r$tarjetas, function(z) z$brecha, 0)
+  fr <- vapply(x$r$tarjetas, function(z) isTRUE(z$fragil), TRUE)
+  expect_identical(order(fr, -br), seq_along(br))
+  dos <- .tpub_calcular(x$tt$temas, "3,4", src, .tp_regla(), .tpub_opcion(list(tarjetas_diferencias = list(entre_publicos = TRUE, max = 2))),
+                        referencia = x$ref)
+  expect_identical(vapply(dos$tarjetas, `[[`, "", "fila"), vapply(x$r$tarjetas[1:2], `[[`, "", "fila"))
+})
+
+test_that("panorama: sólo los temas que la matriz empareja llevan tarjeta; base$* por nombre y preguntas sin par no", {
+  src <- .tp_tres()
+  x <- .tp_calc_lamina(.tp_lamina_panorama(), src, equiv = .tp_equiv6())
+  expect_identical(x$el$.element_type, "panorama")
+  expect_identical(names(x$tt$vars_render), .tp_rot6[1:4])                         # p5 y p6 comparten nombre, sin fila
+  expect_true(all(vapply(x$tt$temas, `[[`, "", "equivalencia") == "matriz"))
+  expect_false(any(grepl("q7|d8", unlist(x$tt$vars_render))))                     # preguntas propias de un público
+  expect_identical(unname(x$tt$vars_render[[1]]), c("docentes$p1", "estudiantes$p1", "administrativos$p1"))
+  expect_gte(length(x$r$tarjetas), 1L)
+  # Sin matriz, el panorama no tiene temas emparejados: va sin tarjetas.
+  sin <- .tp_calc_lamina(.tp_lamina_panorama(), src, equiv = NULL)
+  expect_length(sin$tt$temas, 0L); expect_length(sin$r$tarjetas, 0L); expect_null(sin$r$nota)
+  # Una fila sugerida no empareja, y una fila con su pregunta en un solo público del panorama tampoco.
+  eq <- .tp_equiv6(1:2); eq$filas[[1]]$sugerida <- TRUE
+  eq$filas[[3]] <- list(etiqueta_estandar = "Propia", variables = list(estudiantes = "q7", egresados = "q7"))
+  expect_identical(names(.tpub_temas_de_elemento(x$el, src, eq)$vars_render), .tp_rot6[2])
+})
+
+test_that("conciliación contra la espec de cada figura: radar, líneas y puntos, barras y panorama", {
+  src <- .tp_tres()
+  mueve <- function(x, i) { x[i] <- x[i] + 0.02; x }
+  estados <- function(r) vapply(r$temas, `[[`, "", "estado")
+  # Radar (telaraña): la matriz eje × público.
+  p <- .tp_render(.render_radar_publicos, p_radar_publicos(vars = .tp_vars6, corte = "3,4"), src)
+  expect_identical(attr(p, "pulso_espec")$tipo, "radar")
+  expect_true(all(estados(.tp_calc_lamina(.tp_lamina_radar(), src, p = p)$r) == "evaluable"))
+  e <- attr(p, "pulso_espec"); e$valores[3, 2] <- e$valores[3, 2] + 0.01; attr(p, "pulso_espec") <- e
+  r <- .tp_calc_lamina(.tp_lamina_radar(), src, p = p)$r
+  expect_identical(estados(r)[3], "abstencion"); expect_identical(r$temas[[3]]$motivo, .TPUB_MOTIVO_NO_CUADRA)
+  expect_true(all(estados(r)[-3] == "evaluable"))
+  # Líneas y puntos (dos públicos, menos de cinco criterios): `a` y `b` de las pesas.
+  v2 <- lapply(.tp_vars6[1:4], `[`, 1:2)
+  p2 <- .tp_render(.render_radar_publicos, p_radar_publicos(vars = v2, corte = "3,4"), src)
+  expect_identical(attr(p2, "pulso_espec")$tipo, "pesas")
+  expect_true(all(estados(.tp_calc_lamina(.tp_lamina_radar(v2), src, p = p2)$r) == "evaluable"))
+  e2 <- attr(p2, "pulso_espec"); e2$b <- mueve(e2$b, 1); attr(p2, "pulso_espec") <- e2
+  expect_identical(estados(.tp_calc_lamina(.tp_lamina_radar(v2), src, p = p2)$r)[1], "abstencion")
+  # Barras comparativas (tres públicos, menos de cinco criterios): los datos del gráfico.
+  v3 <- .tp_vars6[1:4]
+  p3 <- .tp_render(.render_radar_publicos, p_radar_publicos(vars = v3, corte = "3,4"), src)
+  expect_null(attr(p3, "pulso_espec"))
+  expect_true(.tpub_figura_admite(.tpub_elemento_de_lamina(.tp_lamina_radar(v3)), NULL, p3))
+  expect_true(all(estados(.tp_calc_lamina(.tp_lamina_radar(v3), src, p = p3)$r) == "evaluable"))
+  p3$data$valor <- mueve(p3$data$valor, 2)
+  expect_identical(sum(estados(.tp_calc_lamina(.tp_lamina_radar(v3), src, p = p3)$r) == "abstencion"), 1L)
+  # Panorama: `valores` e `items` de cada público.
+  pp <- .tp_render(.render_panorama, p_panorama(vars = c("docentes$*", "estudiantes$*", "administrativos$*"), corte = "3,4"), src)
+  expect_identical(attr(pp, "pulso_espec")$items[[3]], paste0("p", 1:6))
+  xp <- .tp_calc_lamina(.tp_lamina_panorama(), src, equiv = .tp_equiv6(), p = pp)
+  expect_true(all(estados(xp$r) == "evaluable"))
+  expect_equal(xp$ref, .tpub_referencia_inspector(xp$el, xp$tt$vars_render, src))   # el inspector lee lo mismo
+  ep <- attr(pp, "pulso_espec"); ep$valores[[2]] <- mueve(ep$valores[[2]], 4); attr(pp, "pulso_espec") <- ep
+  expect_identical(estados(.tp_calc_lamina(.tp_lamina_panorama(), src, equiv = .tp_equiv6(), p = pp)$r), c(rep("evaluable", 3), "abstencion"))
+  # Una espec ilegible no apaga la conciliación: todos los temas se abstienen.
+  pe <- p; attr(pe, "pulso_espec")$valores <- attr(pe, "pulso_espec")$valores[1:2, ]
+  expect_true(all(estados(.tp_calc_lamina(.tp_lamina_radar(), src, p = pe)$r) == "abstencion"))
+  # Una figura que no es de las del elemento no lleva tarjetas.
+  expect_false(.tpub_figura_admite(list(.element_type = "panorama"), list(tipo = "radar")))
+  expect_false(.tpub_figura_admite(list(.element_type = "radar_publicos"), list(tipo = "panorama")))
+})
+
+test_that("la familia entre públicos (m) suma los temas del radar y del panorama una sola vez", {
+  src <- .tp_tres()
+  regla <- .tp_regla("z", "bh_informe")
+  m_de <- function(...) .tpub_familia_plan(list(slides = list(...)), src, .tp_equiv6(), regla)$m
+  expect_identical(m_de(.tp_lamina_radar(.tp_vars6[1:3])), 9L)                     # tres temas por tres pares
+  expect_identical(m_de(.tp_lamina_panorama()), 12L)                               # cuatro temas emparejados
+  # El panorama repite los tres temas del radar (mismas refs, mismo corte): sólo p4 entra nuevo.
+  expect_identical(m_de(.tp_lamina_radar(.tp_vars6[1:3]), .tp_lamina_panorama()), 12L)
+  # Y el contraste de dos públicos suma sus pares sin repetirlos.
+  dumb <- .tp_lamina("p_dumbbell", list(vars = list(t = c("docentes$p5", "estudiantes$p5")), corte = list("3", "4")), "d")
+  expect_identical(m_de(.tp_lamina_radar(.tp_vars6[1:3]), .tp_lamina_panorama(), dumb), 13L)
+  # El inspector usa la misma familia.
+  plan <- list(slides = list(.tp_lamina_radar(.tp_vars6[1:3]), .tp_lamina_panorama()))
+  fam <- .tpub_familia_plan(plan, src, .tp_equiv6(), regla)
+  j <- .tpub_lamina_json(.tp_lamina_panorama(), src, regla, equiv = .tp_equiv6(), familia = fam$tabla)
+  expect_identical(j$modo_letras, "entre_publicos")
+  expect_identical(j$familia$m, 12L); expect_false(j$familia$local)
+  expect_length(j$temas, 4L)
+  jr <- .tpub_lamina_json(.tp_lamina_radar(), src, .tp_regla(), equiv = NULL)
+  expect_identical(jr$estado, "con_marcas"); expect_length(jr$temas, 6L)
+  expect_true(all(vapply(jr$temas, `[[`, "", "estado") == "evaluable"))           # concilia con `.radar_mb_datos`
+})
+
+test_that("el radar y el panorama llevan sus tarjetas y el pie una vez en el PPT; el radar cede su tabla al panel", {
+  skip_if_not_installed("officer")
+  src <- .tp_tres()
+  op <- options(prosecnur.sig_informe = list(regla = .sig_regla_fabrica(), equivalencias_publicos = .tp_equiv6()))
+  on.exit(options(op), add = TRUE)
+  plan <- p_plan(slides = list(
+    p_slide_1_grafico(p_radar(modo = "publicos", vars = .tp_vars6, corte = "3,4"), titulo = "Radar por público", meta = .tp_meta),
+    p_slide_1_grafico(p_panorama(vars = c("docentes$*", "estudiantes$*", "administrativos$*"), corte = "3,4"),
+                      titulo = "Panorama por público", meta = .tp_meta)))
+  avisos <- character(0)
+  out <- withCallingHandlers(
+    reporte_ppt_plan(data = src$data_sources, instrumento = src$inst_sources, plan = plan, solo_lista = TRUE, mensajes_progreso = FALSE),
+    message = function(m) { avisos <<- c(avisos, conditionMessage(m)); invokeRestart("muffleMessage") },
+    warning = function(w) invokeRestart("muffleWarning"))
+  for (k in 1:2) {
+    t <- attr(out$rendered[[k]], "pulso_tarjetas")
+    expect_identical(t$tipo, "entre_publicos", info = k)
+    expect_gte(length(t$tarjetas), 1L)
+    expect_true(all(vapply(t$temas, `[[`, "", "estado") == "evaluable"), info = k)
+  }
+  expect_false(isTRUE(attr(out$rendered[[1]], "pulso_espec")$con_tabla))
+  expect_true(any(grepl("la tabla del radar deja su lugar al panel de tarjetas", avisos, fixed = TRUE)))
+  expect_false(any(grepl("aún no están disponibles", avisos, fixed = TRUE)))       # el aviso de la primera entrega se fue
+  f <- tempfile(fileext = ".pptx"); on.exit(unlink(f), add = TRUE)
+  suppressMessages(suppressWarnings(reporte_ppt_plan(data = src$data_sources, instrumento = src$inst_sources, plan = plan,
+                                                     path_ppt = f, mensajes_progreso = FALSE)))
+  for (k in 1:2) {
+    xml <- paste(readLines(unz(f, sprintf("ppt/slides/slide%d.xml", k)), warn = FALSE, encoding = "UTF-8"), collapse = "")
+    expect_match(xml, "ENTRE PÚBLICOS", fixed = TRUE)
+    expect_identical(lengths(regmatches(xml, gregexpr("muestras independientes", xml, fixed = TRUE))), 1L)
+    expect_false(grepl("tarjeta:total", xml, fixed = TRUE))
+    expect_false(grepl("ADR", xml, fixed = TRUE))                                   # el entregable no cita el ADR
+    expect_false(grepl("«|»", xml))
+  }
+  xml1 <- paste(readLines(unz(f, "ppt/slides/slide1.xml"), warn = FALSE, encoding = "UTF-8"), collapse = "")
+  expect_false(grepl("<a:tbl>", xml1, fixed = TRUE))
+})

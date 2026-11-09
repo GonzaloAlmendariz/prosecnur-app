@@ -263,9 +263,10 @@
   if (identical((slide$meta %||% list())$motor_nativo, FALSE) || !inherits(p, "ggplot")) return(FALSE)
   t <- attr(p, "pulso_tarjetas")
   espec <- attr(p, "pulso_espec")
-  # ADR 0138: las tarjetas entre públicos acompañan al contraste de dos públicos (resumen o pesas).
-  !is.null(t) && length(t$tarjetas) > 0L && !is.null(espec) &&
-    (espec$tipo %in% c("categorica", "escala") || (identical(t$tipo, "entre_publicos") && espec$tipo %in% .TPUB_ESPECS))
+  # ADR 0138: las tarjetas entre públicos acompañan al contraste (resumen o pesas), al radar y al panorama; las barras
+  # comparativas del radar no traen espec (`.tpub_figura_admite` ya decidió que la figura las admite).
+  !is.null(t) && length(t$tarjetas) > 0L && (identical(t$tipo, "entre_publicos") ||
+    (!is.null(espec) && espec$tipo %in% c("categorica", "escala")))
 }
 
 #' Aire (in) entre el gráfico del total y el panel de tarjetas (Gonzalo, v7 RV: 0.45 separaba demasiado)

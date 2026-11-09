@@ -121,7 +121,9 @@
   # fila, sin bajar la letra, y el resto del ancho sigue siendo del gráfico.
   if (!identical(d$lugar, "costado")) {
     sobra <- (caja$x1 - caja$x0) - .lam_tabla_m()$hueco - min_w - sum(d$med$ws[-1L])
-    for (c1 in seq(.lam_tabla_m()$col1 + 0.1, sobra, by = 0.1)[seq_len(max(0L, floor((sobra - .lam_tabla_m()$col1) / 0.1)))]) {
+    # Sin `seq(desde, sobra)`: con un panel lateral (tarjetas entre públicos, ADR 0138) `sobra` queda bajo la columna y
+    # `seq` abortaba la lámina con «wrong sign in 'by'».
+    for (c1 in .lam_tabla_m()$col1 + 0.1 * seq_len(max(0L, floor((sobra - .lam_tabla_m()$col1) / 0.1)))) {
       d2 <- decidir(utils::modifyList(.lam_tabla_m(), list(col1 = c1)))
       if (identical(d2$lugar, "costado")) { d <- d2; break }
     }

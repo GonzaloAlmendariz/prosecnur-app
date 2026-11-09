@@ -2,9 +2,9 @@
 # graficos_tarjetas_publicos_lamina.R — las tarjetas entre públicos en la lámina y en el inspector (ADR 0138 §7)
 # =============================================================================
 #
-# Esta entrega cubre el contraste de públicos (`p_dumbbell` con dos bases, sin cruce). El radar por públicos
-# (`p_radar(modo = "publicos")`) y el panorama en sus temas emparejados quedan pendientes: la opción se reconoce y la
-# lámina avisa que va sin tarjetas.
+# Cubre el contraste de públicos (`p_dumbbell` con dos bases, sin cruce), el radar por públicos
+# (`p_radar(modo = "publicos")`) y el panorama en sus temas emparejados; los ganchos del radar y del panorama viven en
+# graficos_tarjetas_publicos_radar_panorama.R.
 #
 # Gancho de render: `.tarjetas_adjuntar` (graficos_tarjetas_diferencias.R) desvía aquí la lámina cuya meta pide
 # `entre_publicos`. La prueba concilia contra las cifras que dibuja el contraste (`pulso_espec` de las pesas); si no
@@ -55,7 +55,7 @@
   invisible(NULL)
 }
 
-#' Adjunta las tarjetas entre públicos al contraste de una lámina (gancho de `.tarjetas_adjuntar`)
+#' Adjunta las tarjetas entre públicos al contraste, al radar o al panorama de una lámina (gancho de `.tarjetas_adjuntar`)
 #'
 #' Lee del entorno del motor la lámina en curso y las fuentes del estudio (`data_sources`, `instrument_sources`). La
 #' regla, la familia entre públicos y la matriz de equivalencias vienen del contexto del informe; sin él, la regla
@@ -67,9 +67,8 @@
   if (inherits(slide$title, "ppt_element_text")) titulo <- as.character(slide$title$text %||% "")[1]
   el <- .tpub_elemento_de_lamina(slide)
   espec <- attr(p, "pulso_espec")
-  if (is.null(el) || !isTRUE(espec$tipo %in% .TPUB_ESPECS)) {
-    .tpub_aviso("la lámina \"", titulo, "\" no es un contraste de dos públicos; las tarjetas entre públicos del radar y del ",
-                "panorama aún no están disponibles y la lámina va sin ellas.")
+  if (is.null(el) || !.tpub_figura_admite(el, espec, p)) {
+    .tpub_aviso("la lámina \"", titulo, "\" no es un contraste, un radar ni un panorama entre públicos; va sin tarjetas.")
     return(p)
   }
   sources <- list(data_sources = get0("data_sources", envir = env, inherits = FALSE),
@@ -80,7 +79,7 @@
   t <- tryCatch({
     tt <- .tpub_temas_de_elemento(el, sources, ctx$equivalencias_publicos)
     .tpub_calcular(tt$temas, el$corte, sources, ctx$regla, opt, familia = ctx$familia_publicos,
-                   filtros = el$filtros %||% list(), referencia = .tpub_referencia_pesas(espec, tt$vars_render),
+                   filtros = el$filtros %||% list(), referencia = .tpub_referencia_render(el, p, espec, tt$vars_render),
                    titulo = titulo)
   }, error = function(e) {
     .tpub_aviso("no se pudieron calcular en \"", titulo, "\" (", conditionMessage(e), ").")
@@ -90,6 +89,7 @@
   sin_eq <- sum(vapply(t$temas, function(te) identical(te$estado, "sin_equivalencia"), logical(1)))
   if (sin_eq) .tpub_aviso("en \"", titulo, "\", ", sin_eq, " de ", length(t$temas), " temas no tienen equivalencia declarada ",
                           "(matriz o emparejado confirmado) y no se comparan.")
+  if (identical(el$.element_type, "radar_publicos")) p <- .tpub_radar_sin_tabla(p, t, titulo)
   attr(p, "pulso_tarjetas") <- t
   if (!is.null(t$nota)) attr(p, "pulso_sig_nota") <- t$nota
   .tarjetas_registrar(p, t)
@@ -99,7 +99,8 @@
 #' La lámina del inspector (`GET /api/graficos/diferencias?slide=`) con `modo_letras = "entre_publicos"`
 #'
 #' Misma evaluación que el render: temas declarados, regla del estudio, familia entre públicos y conciliación con las
-#' cifras del contraste (calculadas por `.radar_mb_datos`, el camino del gráfico).
+#' cifras del gráfico calculadas por su camino (`.radar_mb_datos` en el contraste y el radar, `.panorama_datos` en el
+#' panorama).
 #' @param familia Tabla de BH entre públicos del plan (NULL: la de la lámina).
 #' @keywords internal
 .tpub_lamina_json <- function(slide, sources, regla, equiv = NULL, familia = NULL) {
@@ -112,7 +113,7 @@
   opt <- .tpub_opcion(slide$meta %||% (slide$payload %||% list())$meta)
   res <- tryCatch({
     tt <- .tpub_temas_de_elemento(el, sources, equiv)
-    ref <- .tpub_referencia_datos(tt$vars_render, el$corte, sources, el$filtros %||% list())
+    ref <- .tpub_referencia_inspector(el, tt$vars_render, sources)
     .tpub_calcular(tt$temas, el$corte, sources, regla, opt, familia = familia, filtros = el$filtros %||% list(),
                    referencia = ref, titulo = titulo)
   }, error = function(e) e)

@@ -10,14 +10,17 @@
 # La familia viaja al render en el contexto del informe (`prosecnur.sig_informe`) como `familia_publicos`, junto a la
 # matriz de equivalencias (`equivalencias_publicos`) que decide qué temas están declarados.
 
-#' Elemento del contraste de públicos de una lámina del plan: `p_dumbbell` sin cruce, con su meta entre públicos
+#' Elemento entre públicos de una lámina del plan con su meta entre públicos: `p_dumbbell` sin cruce, el radar por
+#' públicos o el panorama (graficos_tarjetas_publicos_radar_panorama.R)
 #'
 #' Lee la forma del plan guardado (`payload` con `graficador` y `args`) o la ya construida (`slots$plot`).
-#' @return `list(vars, corte, filtros, regla, bases, overrides)` o NULL si la lámina no aplica.
+#' @return `list(vars, corte, filtros, regla, bases, .element_type)` o NULL si la lámina no aplica.
 #' @keywords internal
 .tpub_elemento_de_lamina <- function(slide) {
   meta <- slide$meta %||% (slide$payload %||% list())$meta %||% list()
   if (is.null(.tpub_opcion(meta))) return(NULL)
+  rp <- .tpub_elemento_radar_panorama(slide)
+  if (!is.null(rp)) return(rp)
   el <- (slide$slots %||% list())$plot
   if (is.list(el) && identical(el$.element_type, "dumbbell")) {
     if (!is.null(el$cruce)) return(NULL)
@@ -32,10 +35,12 @@
        .element_type = "dumbbell")
 }
 
-#' Temas que dibuja el contraste (regla de preguntas aplicada) y su declaración
+#' Temas que dibuja la lámina (regla de preguntas aplicada) y su declaración
 #' @return `list(vars_render, temas)`.
 #' @keywords internal
 .tpub_temas_de_elemento <- function(el, sources, equiv) {
+  if (identical(el$.element_type, "radar_publicos")) return(.tpub_temas_radar(el, equiv))
+  if (identical(el$.element_type, "panorama")) return(.tpub_temas_panorama(el, sources, equiv))
   vars_lamina <- el$vars
   if (.dumbbell_sin_temas(vars_lamina) && !is.null(el$bases)) vars_lamina <- .dumbbell_vars_de_bases(.dumbbell_bases_contraste(el$bases))
   el_r <- el; el_r$vars <- vars_lamina

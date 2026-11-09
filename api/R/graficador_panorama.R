@@ -24,7 +24,7 @@
 #' Especificación del panorama (`panorama/1`)
 #' @keywords internal
 .espec_panorama <- function(data, var_publico = "publico", var_valor = "valor", referencia = 60, decimales = 0L,
-                            colores = NULL, indicador = "Top Two Box", limite_x = NULL) {
+                            colores = NULL, indicador = "Top Two Box", limite_x = NULL, var_item = NULL) {
   pub <- as.character(data[[var_publico]]); val <- suppressWarnings(as.numeric(data[[var_valor]]))
   publicos <- if (is.factor(data[[var_publico]])) intersect(levels(data[[var_publico]]), unique(pub)) else unique(pub)
   publicos <- publicos[!is.na(publicos) & nzchar(publicos)]
@@ -32,6 +32,10 @@
   dec <- suppressWarnings(as.integer(decimales)[1]); if (!is.finite(dec) || dec < 0L) dec <- 0L
   ref <- suppressWarnings(as.numeric(referencia)[1])
   valores <- lapply(publicos, function(p) { v <- val[pub == p]; v[is.finite(v)] })
+  # La pregunta de cada punto, en el orden de `valores`: con ella las tarjetas entre públicos concilian la prueba con lo
+  # que dibuja la lámina (ADR 0138, graficos_tarjetas_publicos_radar_panorama.R).
+  item <- if (!is.null(var_item) && var_item %in% names(data)) as.character(data[[var_item]]) else NULL
+  items <- if (is.null(item)) NULL else lapply(publicos, function(p) { k <- pub == p; item[k][is.finite(val[k])] })
   if (!any(lengths(valores))) stop("El panorama no tiene preguntas con valor.", call. = FALSE)
   # Mediana y conteo sobre las cifras que se leen, como la diferencia del dumbbell.
   leidos <- lapply(valores, .pulso_round_half_up, digits = dec)
@@ -41,7 +45,7 @@
   eje <- .contraste_eje(c(unlist(valores), ref), limite_x)
   list(
     version = "panorama/1", tipo = "panorama",
-    publicos = publicos, valores = valores, desplazamientos = lapply(valores, .panorama_desplazamientos),
+    publicos = publicos, valores = valores, items = items, desplazamientos = lapply(valores, .panorama_desplazamientos),
     colores = colores_p, formas = .contraste_formas(length(publicos)),
     medianas = medianas, textos_mediana = ifelse(is.finite(medianas), paste0(.pulso_fmt_half_up(medianas, dec), "%"), "—"),
     bajo = bajo, total = lengths(valores),
@@ -78,7 +82,8 @@ graficar_panorama <- function(
 ) {
   if (!is.data.frame(data) || !nrow(data)) stop("`data` debe ser un data frame con al menos una fila.", call. = FALSE)
   for (col in c(var_publico, var_valor)) if (!col %in% names(data)) stop("La columna `", col, "` no existe en `data`.", call. = FALSE)
-  espec <- .espec_panorama(data, var_publico, var_valor, referencia, valores_decimales, colores_grupos, indicador, limite_x)
+  espec <- .espec_panorama(data, var_publico, var_valor, referencia, valores_decimales, colores_grupos, indicador, limite_x,
+                           var_item = var_item)
   k <- length(espec$publicos)
   puntos <- do.call(rbind, lapply(seq_len(k), function(i) {
     if (!length(espec$valores[[i]])) return(NULL)
