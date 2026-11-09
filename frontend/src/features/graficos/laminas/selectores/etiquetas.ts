@@ -1,7 +1,7 @@
 // Nombres que los selectores muestran: de la lámina, de sus ranuras y de lo que hay en cada una.
 
 import type { GraficadorMetadata, GraficadorRef, Slide, SlideMetadata, SlideType } from "../../../../api/graficos";
-import { lugarDispuesto } from "../disposicion/modeloDisposicion";
+import { rotuloDeRanura } from "../disposicion/modeloDisposicion";
 import { getSlotLabel } from "../../slotLabels";
 import { graficadorDisplayName, humanizeIdentifier } from "../../graficadorDisplay";
 import { RANURAS_ESTANDAR } from "../../iconos/ranurasEstandar.generated";
@@ -25,16 +25,16 @@ export function nombreLamina(tipo: SlideType, meta?: SlideMetadata): string {
 }
 
 /**
- * Nombre de la ranura: el del registro (`slot_specs`), o el conocido del editor. Con `slide`, si su disposición no es la
- * de por defecto, el lugar que la ranura ocupa en ella (con «2+3» la tercera ranura ya no es «Superior derecha»).
+ * Nombre de la ranura: el del registro (`slot_specs`) o el conocido del editor, salvo que no describa el lugar que la
+ * ranura ocupa en la lámina; entonces, ese lugar (con «2+3» la tercera ranura ya no es «Superior derecha»; en «Dos
+ * gráficos + texto», «Izquierda» y «Derecha», no el «Gráfico superior» del catálogo; ronda 19).
  */
 export function nombreSlot(slot: string, meta?: SlideMetadata, slide?: Pick<Slide, "tipo" | "payload">): string {
-  const dispuesto = lugarDispuesto(slide, slot);
-  if (dispuesto) return dispuesto;
   const spec = meta?.slot_specs?.find((s) => s.name === slot);
-  if (spec?.label.trim()) return spec.label.trim();
   const conocido = getSlotLabel(slot);
-  return conocido === slot ? humanizeIdentifier(slot, "Ranura") : conocido;
+  const catalogo = spec?.label.trim() || (conocido === slot ? humanizeIdentifier(slot, "Ranura") : conocido);
+  const lamina = slide ?? (meta?.name ? { tipo: meta.name as Slide["tipo"], payload: {} } : undefined);
+  return rotuloDeRanura(lamina, slot, catalogo);
 }
 
 /** «Barras apiladas · P12». */

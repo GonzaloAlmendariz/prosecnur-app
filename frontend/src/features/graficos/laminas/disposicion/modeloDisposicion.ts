@@ -56,3 +56,38 @@ export function lugarDispuesto(slide: LaminaLeida | undefined, slot: string): st
   if (i < 0) return null;
   return lugaresPorPosicion(graficos)[i] || null;
 }
+
+/**
+ * Ronda 19 (F4): el lugar de `slot` por la geometría de la lámina, con cualquier disposición, cuando la lámina tiene dos
+ * o más gráficos («Izquierda» / «Derecha» en «Dos gráficos + texto», que el catálogo rotula «Gráfico superior» e
+ * «inferior» aunque van lado a lado). `null` con un solo gráfico o sin geometría del estándar: manda el rótulo del catálogo.
+ */
+export function lugarEnLamina(slide: LaminaLeida | undefined, slot: string): string | null {
+  if (!slide) return null;
+  const graficos = composicionDe(slide.tipo, RANURAS_GRAFICO_POR_LAMINA[slide.tipo] ?? [], disposicionDe(slide))
+    .ranuras.filter((r) => r.tipo === "grafico");
+  if (graficos.length < 2) return null;
+  const i = graficos.findIndex((r) => r.slot === slot);
+  if (i < 0) return null;
+  return lugaresPorPosicion(graficos)[i] || null;
+}
+
+const RAICES_LUGAR = ["superior", "inferior", "central", "izquierd", "derech", "centro"] as const;
+const raices = (texto: string): Set<string> => {
+  const t = texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  return new Set(RAICES_LUGAR.filter((r) => t.includes(r)));
+};
+
+/**
+ * El nombre de la ranura (ronda 19, F4): el rótulo del catálogo si describe el lugar que la ranura ocupa («Gráfico
+ * izquierdo» en la izquierda); si no lo describe o dice otro lugar («Gráfico superior» lado a lado, «Superior derecha»
+ * que con «2+3» baja), el lugar por la geometría. Sin lugar (un solo gráfico), el rótulo.
+ */
+export function rotuloDeRanura(slide: LaminaLeida | undefined, slot: string, rotuloCatalogo: string): string {
+  const lugar = lugarEnLamina(slide, slot);
+  if (!lugar) return rotuloCatalogo;
+  const delLugar = raices(lugar);
+  const delRotulo = raices(rotuloCatalogo);
+  const coincide = delRotulo.size === delLugar.size && [...delLugar].every((r) => delRotulo.has(r));
+  return coincide && rotuloCatalogo.trim() ? rotuloCatalogo : lugar;
+}

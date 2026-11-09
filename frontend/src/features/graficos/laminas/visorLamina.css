@@ -476,6 +476,14 @@
   white-space: nowrap;
 }
 
+/* Ronda 19 (F4): en las ranuras de gráfico el rótulo se apoya por fuera, sobre el borde superior: dentro tapaba el
+   arranque del título del gráfico. La calle entre la cabecera de la lámina y los gráficos lo aloja. */
+.pulso-f6-ranura-etiqueta.is-fuera {
+  top: auto;
+  bottom: calc(100% + 2px);
+  left: -1.5px;
+}
+
 .pulso-f6-ranura-zona:hover .pulso-f6-ranura-etiqueta,
 .pulso-f6-ranura-zona.is-activa .pulso-f6-ranura-etiqueta,
 .pulso-f6-ranura-zona:focus-visible .pulso-f6-ranura-etiqueta {

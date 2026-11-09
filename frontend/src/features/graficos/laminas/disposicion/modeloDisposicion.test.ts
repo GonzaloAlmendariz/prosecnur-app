@@ -4,7 +4,7 @@ import { composicionDe } from "../../iconos/composicion";
 import { lugaresPorPosicion, ranurasDispuestas } from "../../iconos/disposicionRanuras";
 import { RANURAS_ESTANDAR } from "../../iconos/ranurasEstandar.generated";
 import { nombreSlot } from "../selectores/etiquetas";
-import { cambioDeDisposicion, disposicionDe, disposicionesDe, lugarDispuesto } from "./modeloDisposicion";
+import { cambioDeDisposicion, disposicionDe, disposicionesDe, lugarDispuesto, lugarEnLamina, rotuloDeRanura } from "./modeloDisposicion";
 
 const CINCO = "p_slide_5_graficos_poblacion";
 const SLOTS = ["grafico_superior_1", "grafico_superior_2", "grafico_superior_3", "grafico_inferior_1", "grafico_inferior_2"];
@@ -64,5 +64,20 @@ describe("disposición de la lámina de cinco gráficos", () => {
     const meta = { slot_specs: [{ name: "grafico_superior_3", label: "Superior derecha" }] } as unknown as Parameters<typeof nombreSlot>[1];
     expect(nombreSlot("grafico_superior_3", meta, dosTres)).toBe("Inferior izquierda");
     expect(nombreSlot("grafico_superior_3", meta, lamina())).toBe("Superior derecha");
+  });
+
+  it("ronda 19 (F4): el rótulo sigue la geometría cuando el del catálogo no la describe", () => {
+    const dosTexto = { tipo: "p_slide_2_graficos_texto_izquierda", payload: {} } as unknown as Parameters<typeof lugarEnLamina>[0];
+    expect(lugarEnLamina(dosTexto, "grafico_1")).toBe("Izquierda");
+    expect(lugarEnLamina(dosTexto, "grafico_2")).toBe("Derecha");
+    const meta = { name: "p_slide_2_graficos_texto_izquierda", slot_specs: [{ name: "grafico_1", label: "Gráfico superior" }] } as unknown as Parameters<typeof nombreSlot>[1];
+    expect(nombreSlot("grafico_1", meta, dosTexto)).toBe("Izquierda");
+    // Sin la lámina, el tipo del registro basta.
+    expect(nombreSlot("grafico_1", meta)).toBe("Izquierda");
+    // Un rótulo que ya describe el lugar se conserva.
+    expect(rotuloDeRanura(dosTexto, "grafico_1", "Gráfico izquierdo")).toBe("Gráfico izquierdo");
+    expect(rotuloDeRanura(dosTexto, "grafico_2", "Gráfico inferior")).toBe("Derecha");
+    // Con un solo gráfico no hay lugar que distinguir.
+    expect(lugarEnLamina({ tipo: "p_slide_1_grafico", payload: {} } as unknown as Parameters<typeof lugarEnLamina>[0], "grafico")).toBeNull();
   });
 });
