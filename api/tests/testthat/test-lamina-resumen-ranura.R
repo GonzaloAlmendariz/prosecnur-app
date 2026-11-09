@@ -171,3 +171,12 @@ test_that("ronda 2, ítem 3: en la escala de una ranura, la cifra de un segmento
   seg <- Filter(function(x) grepl('name="divergentes:segmento"', x, fixed = TRUE), sps)
   expect_gt(length(seg), 0L)
 })
+
+test_that("ronda 2, ítem 6: la escala de una ranura con filas de públicos distintos dice el n de cada fila", {
+  expect_identical(.lam_rr_div_n(list(filas = c("A (Doc.)", "B (Est.)"), n = c(115, 279))), c("n = 115", "n = 279"))
+  expect_identical(.lam_rr_div_n(list(filas = c("A", "B"), n = c(115, 115))), character(0))
+  xml <- .rr_render(.rr_slides(2L, .rr_graficos()$sin_informacion))
+  n <- gsub("</?a:t>", "", unlist(regmatches(xml, gregexpr('name="divergentes:n".*?</p:sp>', xml))))
+  expect_gt(length(n), 0L)
+  expect_true(all(grepl("n = [0-9]+", n)))
+})

@@ -579,21 +579,37 @@
   list(orden = orden, anchos = anchos, filas = filas, cabe = all(anchos <= w))
 }
 
+#' «n = 115» por fila cuando las filas mezclan públicos (su sufijo o su n difieren); vacío si son de un solo público
+#' @keywords internal
+.lam_rr_div_n <- function(espec) {
+  n <- suppressWarnings(as.numeric(espec$n_casos %||% espec$n))
+  if (length(n) != length(espec$filas) || !all(is.finite(n))) return(character(0))
+  suf <- regmatches(espec$filas, regexpr("\\([^()]{1,24}\\)$", espec$filas))
+  mixto <- length(unique(round(n))) > 1L || length(unique(suf)) > 1L
+  if (!mixto) return(character(0))
+  paste("n =", format(round(n), big.mark = ",", trim = TRUE))
+}
+
 #' @keywords internal
 .lam_rr_divergentes_geo <- function(espec, x, y, w, h) {
   n <- length(espec$filas); C <- espec$categorias
   if (n < 1L || n > 12L || sum(C$lado == "sin_inf") > 1L) return(list(cabe = FALSE))
   hay_si <- any(C$lado == "sin_inf")
-  wsi <- if (hay_si) 1.0 else 0
-  xb <- x + w - wsi - (if (hay_si) 0.3 else 0)
+  # Ronda 2, ítem 6: con filas de públicos distintos cada fila dice su n (casos válidos sin ponderar), en una columna a la
+  # derecha; para dejarle sitio, la columna de Sin información y la escala ceden un poco.
+  ns <- .lam_rr_div_n(espec)
+  wn <- if (length(ns)) max(.lam_ancho_tinta(ns, 9.5, FALSE)) + 0.15 else 0
+  wsi <- if (hay_si) (if (length(ns)) 0.85 else 1.0) else 0
+  esc_min <- if (length(ns)) 2.0 else 2.2
+  xb <- x + w - wn - wsi - (if (hay_si) (if (length(ns)) 0.2 else 0.3) else 0)
   ley <- .lam_rr_div_leyenda(espec, w)
   hley <- 0.27 * length(ley$filas) + 0.08
   disponible <- h - hley - 0.05
-  w_max <- min(2.4, xb - 2.2 - 0.15 - x)
+  w_max <- min(2.4, xb - esc_min - 0.15 - x)
   f <- .lam_rr_filas(espec$filas, 1.2, w_max, disponible, rep(1, n), 0.2, 0.45, desde = 11, max_lin = if (n > 8L) 2L else 3L)
   if (is.null(f)) return(list(cabe = FALSE))
   xa <- x + f$wq + 0.15; f$n_total <- n
-  c(f, list(cabe = isTRUE(ley$cabe) && (xb - xa) >= 2.2 - 1e-6, hay_si = hay_si, wsi = wsi, xa = xa, xb = xb, ley = ley, hley = hley,
+  c(f, list(cabe = isTRUE(ley$cabe) && (xb - xa) >= esc_min - 1e-6, hay_si = hay_si, wsi = wsi, wn = wn, ns = ns, xa = xa, xb = xb, ley = ley, hley = hley,
             disponible = disponible, g = f$u * 0.74))
 }
 
@@ -619,7 +635,7 @@
       x <- x + ge$ley$anchos[i]
     }
   }
-  xsi <- ge$x + ge$w - ge$wsi
+  xsi <- ge$x + ge$w - (ge$wn %||% 0) - ge$wsi
   max_si <- if (ge$hay_si) max(1, max(U[, si[1]])) else 1
   for (i in seq_len(n)) {
     yc <- centros[i]; yb <- yc - g / 2
@@ -648,12 +664,16 @@
       }
     }
     if (ge$hay_si && U[i, si[1]] > 0) {
-      wbar <- (ge$wsi - 0.45) * U[i, si[1]] / max_si
+      wbar <- (ge$wsi - 0.1) * U[i, si[1]] / max_si
       .lam_caja(lz, xsi, yb, wbar, g, C$color[si[1]], nombre = "divergentes:sin_inf")
-      cabe <- wbar >= .lam_ancho_tinta(X[i, si[1]], pt_cifra, FALSE) + 0.1
-      .lam_txt(lz, X[i, si[1]], if (cabe) xsi - 0.2 else xsi + wbar + 0.03, .lam_y_centrada(yc, pt_cifra), if (cabe) wbar + 0.4 else 0.45, 0.26, pt_cifra, azul,
+      cabe <- wbar >= .lam_ancho_txt(X[i, si[1]], pt_cifra, TRUE) + 0.12
+      .lam_txt(lz, X[i, si[1]], if (cabe) xsi - 0.2 else xsi + wbar + 0.03, .lam_y_centrada(yc, pt_cifra), if (cabe) wbar + 0.4 else 0.6, 0.26, pt_cifra, azul,
                align = if (cabe) "center" else "left", nombre = "divergentes:cifra_sin_inf")
     }
+  }
+  if (length(ge$ns)) for (i in seq_len(n)) {
+    .lam_txt(lz, ge$ns[i], ge$x + ge$w - ge$wn, .lam_y_centrada(centros[i], 9.5), ge$wn + 0.05, 0.26, 9.5, .std_color("texto_suave"),
+             align = "right", nombre = "divergentes:n")
   }
   .lam_caja(lz, xc - 0.008, y0 - 0.04, 0.016, sum(alturas) + 0.08, azul, nombre = "divergentes:centro")
   invisible(y0 + sum(alturas))
