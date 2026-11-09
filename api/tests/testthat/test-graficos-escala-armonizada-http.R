@@ -125,7 +125,7 @@ test_that("HTTP (d): la regla que elige más de 20 filas avisa el tope de la lá
   expect_identical(r$status, 200L)
   expect_identical(r$body$total, 22L)
   expect_length(r$body$seleccionadas, 22L)
-  expect_true("22 preguntas bajo 60%; la lámina nativa admite 20 y la escala sale como imagen." %in% .eh_avisos(r))
+  expect_true(any(grepl("la lámina admite 20: por espacio se muestran las 20 más bajas de 22", .eh_avisos(r), fixed = TRUE)))   # E3
   # El tope viaja siempre, para que la UI lo muestre junto al corte y avise sin esperar al motor.
   expect_identical(r$body$tope_filas, 20L)
   expect_identical(r$body$tope_filas, .LAM_DIV_RESUMEN_MAX_FILAS)

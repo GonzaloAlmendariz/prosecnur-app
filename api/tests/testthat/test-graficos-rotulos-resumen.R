@@ -131,17 +131,16 @@ test_that("el nombre corto de la pregunta (overrides$etiquetas_vars) va en el co
   expect_identical(.resumen_rotulo_corto("docentes$p9", "largo"), "largo")
 })
 
-test_that("el respaldo ggplot del contraste (bases + regla, más de 14 pares) dibuja sus puntos con el panel a lo ancho", {
+test_that("el contraste de más de 14 pares muestra los 14 de mayor diferencia y su gráfico dibuja los puntos con el panel a lo ancho", {
   skip_if_not_installed("rvg")
   src <- .rr_fuentes()
   g <- p_dumbbell(bases = c("docentes", "estudiantes"), corte = c("3", "4"), estilo = "resumen", regla = list(tipo = "mayor_diferencia", n = 18))
   p <- .rr_render(p_slide_1_grafico(g, titulo = "Contraste"), src, solo_lista = TRUE)$rendered[[1]]
   e <- attr(p, "pulso_espec")
-  expect_length(e$rotulos, 18L)
-  expect_false(.lam_contraste_cabe(e))
+  expect_length(e$rotulos, 14L)   # E3: por espacio, los 14 de mayor diferencia (graficos_tope_espacio.R)
   b <- ggplot2::ggplot_build(p)
   puntos <- b$data[[which(vapply(p$layers, function(l) inherits(l$geom, "GeomPoint"), TRUE))]]
-  expect_identical(nrow(puntos), 36L)
+  expect_identical(nrow(puntos), 28L)
   expect_true(all(is.finite(puntos$x) & puntos$x >= e$eje[["lo"]] & puntos$x <= e$eje[["hi"]]))
   # El panel conserva ancho útil en el cajón de la lámina (12.5 x 5 in): con los rótulos enteros quedaba en negativo.
   grDevices::png(tempfile(fileext = ".png"), width = 12.5, height = 5, units = "in", res = 72); on.exit(grDevices::dev.off(), add = TRUE)
@@ -154,7 +153,8 @@ test_that("el respaldo ggplot del contraste (bases + regla, más de 14 pares) di
   # nativa) y la regla al final.
   expect_null(p$labels$caption)
   expect_match(attr(p, "note_outside"),
-               "^Base: Docentes 115; Estudiantes 279\\. Diferencia: Docentes − Estudiantes, en puntos\\. Se muestran las 18 de mayor diferencia")
+               "^Base: Docentes 115; Estudiantes 279\\. Diferencia: Docentes menos Estudiantes, en puntos\\. Se muestran las 18 de mayor diferencia")
+  expect_match(attr(p, "note_outside"), "Por espacio, se muestran las 14 de mayor diferencia de 18; el resto en otra lámina.", fixed = TRUE)
 })
 
 test_that("con el respaldo, la lámina lleva una sola base: la de cada grupo, abajo a la izquierda (U3)", {
@@ -205,7 +205,8 @@ test_that("el respaldo de la escala del resumen usa la paleta y los rótulos de 
   expect_true(all(e$categorias$color[e$categorias$lado != "sin_inf"] %in% fills))
   expect_false(any(vapply(b$data, function(x) "label" %in% names(x) && any(grepl(" pp$", x$label)), TRUE)))
   et <- b$layout$panel_params[[1]]$y$get_labels()
-  expect_true(all(grepl("\\((Doc|Est)\\.?\\)$|\\(Docentes\\)$|\\(Estudiantes\\)$", et)))
+  expect_lte(length(et), 20L)   # E3: por espacio, las primeras 20 (graficos_tope_espacio.R)
+  expect_true(all(grepl("\\((Doc|Est)\\.?\\)$|\\(Docentes\\)$|\\(Estudiantes\\)$|\\.\\.\\.$|…$", et) | nchar(et) > 0))
   expect_match(attr(p, "note_outside"), "Porcentaje sobre el total de respondientes")
 })
 
@@ -244,12 +245,13 @@ test_that("D2: la escala multibase de 18 filas con rótulos reales de Arte sale 
   expect_length(.rr_textos(r$xml, "divergentes:afirmacion"), 18L)
 })
 
-test_that("D2: el tope de la escala del resumen es 20 filas; por encima va al respaldo", {
+test_that("D2: el tope de la escala del resumen es 20 filas; por encima muestra 20 y lo dice (E3)", {
   expect_identical(.LAM_DIV_RESUMEN_MAX_FILAS, 20L)
   e20 <- attr(.rr_escala(10)$rendered[[1]], "pulso_espec")
   expect_length(e20$filas, 20L); expect_true(.lam_divergentes_resumen_cabe(e20))
   e22 <- attr(.rr_escala(11)$rendered[[1]], "pulso_espec")
-  expect_length(e22$filas, 22L); expect_false(.lam_divergentes_resumen_cabe(e22))
+  expect_length(e22$filas, 20L); expect_true(.lam_divergentes_resumen_cabe(e22))
+  expect_match(e22$texto_regla, "Por espacio, se muestran las primeras 20 de 22; el resto en otra lámina.", fixed = TRUE)
   # Con pocas filas y rótulos cortos la geometría es la de siempre: 12 pt, filas de 0.52 in.
   corto <- e20; corto$filas <- paste("Pregunta", 1:6); corto$unidades <- e20$unidades[1:6, , drop = FALSE]; corto$cifras <- e20$cifras[1:6, , drop = FALSE]
   gc <- .lam_div_resumen_geom(corto)

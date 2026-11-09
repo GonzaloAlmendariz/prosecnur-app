@@ -327,12 +327,13 @@
   if (!is.null(criterio)) ev <- .regla_escala_ordenar(ev, ind$indicadores, criterio)
   elegidas <- ind$refs_por_tema[ev$temas]
   vars <- if (identical(el$.element_type, "dumbbell")) elegidas else unname(unlist(elegidas))
-  # La escala del resumen sale como imagen con más de 20 filas o con más de una columna «Sin información»
-  # (`.lam_divergentes_resumen_cabe`): el conteo lo dice con la causa (graficos_escala_tope.R).
+  # La escala del resumen sale como imagen sólo con más de una columna «Sin información»; con más de 20 filas muestra las
+  # 20 primeras en el orden de la regla y lo dice en el pie (graficos_tope_espacio.R; `.lam_divergentes_resumen_cabe`).
   # Las columnas «Sin información» se cuentan sobre las ELEGIDAS: son las que dibuja la lámina (N4).
   n_sin_inf <- if (!is.null(ind$sin_inf_por_tema)) length(unique(unlist(ind$sin_inf_por_tema[ev$temas], use.names = FALSE))) else ind$n_sin_inf
   imagen <- if (identical(el$.element_type, "barras_divergentes")) .divergentes_aviso_tope(length(vars), ev$texto, n_sin_inf)
-  list(evaluacion = ev, vars = vars, avisos = c(ind$avisos, ev$avisos, imagen), indicadores = ind$indicadores,
+  espacio <- if (identical(el$.element_type, "barras_divergentes")) .divergentes_aviso_espacio(length(vars), regla)   # E3
+  list(evaluacion = ev, vars = vars, avisos = c(ind$avisos, ev$avisos, espacio, imagen), indicadores = ind$indicadores,
        firma_leyenda = ind$firma_leyenda, motivos_imagen = imagen)
 }
 

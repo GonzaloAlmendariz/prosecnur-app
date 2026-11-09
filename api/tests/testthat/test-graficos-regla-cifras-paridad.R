@@ -161,7 +161,7 @@ test_that("H4: el aviso dice cada causa por separado", {
                    "Hay tres opciones sin información; la lámina nativa admite una y la escala sale como imagen.")
   expect_null(.divergentes_aviso_tope(20, NULL, 1L))
   ambos <- .divergentes_aviso_tope(22, "Se muestran las 22 bajo 60%, de 157 preguntas de escala.", 2L)
-  expect_identical(ambos, c("22 preguntas bajo 60%; la lámina nativa admite 20 y la escala sale como imagen.", .CP_MOTIVO_SI))
+  expect_identical(ambos, .CP_MOTIVO_SI)   # E3: más filas ya no es causa de imagen (graficos_tope_espacio.R)
 })
 
 # ---- Contrato HTTP: el endpoint prepara los presets de la vista previa y serializa los campos nuevos -----------

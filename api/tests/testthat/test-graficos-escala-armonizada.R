@@ -256,23 +256,21 @@ test_that("invariante 5: una fila que no se puede dibujar sale con su causa y no
   expect_identical(length(.ea_render(src, el)$filas), 6L)
 })
 
-test_that("más de 20 filas: el conteo y el render avisan que la lámina nativa admite 20", {
-  expect_identical(.divergentes_aviso_tope(22, "Se muestran las 22 bajo 60%, de 157 preguntas de escala. Ordenado por Top Two Box, de menor a mayor."),
-                   "22 preguntas bajo 60%; la lámina nativa admite 20 y la escala sale como imagen.")
+test_that("más de 20 filas: el conteo y el render avisan que la lámina admite 20 y muestra las primeras en el orden de la regla", {
+  # E3: más filas que el tope ya no manda la escala a la imagen (salía ilegible).
+  expect_null(.divergentes_aviso_tope(22, "Se muestran las 22 bajo 60%, de 157 preguntas de escala. Ordenado por Top Two Box, de menor a mayor."))
   expect_null(.divergentes_aviso_tope(20, "Se muestran las 20 bajo 60%, de 157 preguntas de escala."))
-  expect_identical(.divergentes_aviso_tope(21, NULL), "21 preguntas; la lámina nativa admite 20 y la escala sale como imagen.")
-  # R6-13: la regla «todas» ya dice «preguntas»; no se repite la palabra.
-  expect_identical(.divergentes_aviso_tope(157, "Se muestran las 157 preguntas de escala, ordenadas por Top Two Box."),
-                   "157 preguntas de escala; la lámina nativa admite 20 y la escala sale como imagen.")
+  aviso <- "La regla elige 22 preguntas y la lámina admite 20: por espacio se muestran las 20 más bajas de 22; el resto en otra lámina."
+  expect_identical(.divergentes_aviso_espacio(22, list(tipo = "bajo_umbral", umbral = 60)), aviso)
   src <- .ea_fuentes(list(lk = 22L), pos = rep(5L, 22L))
   el <- p_barras_divergentes(vars = "arte$*", estilo = "resumen", regla = list(tipo = "bajo_umbral", umbral = 60))
   r <- .regla_preguntas_de_elemento(el, src)
-  expect_true("22 preguntas bajo 60%; la lámina nativa admite 20 y la escala sale como imagen." %in% r$avisos)
+  expect_true(aviso %in% r$avisos)
   skip_if_not_installed("ggplot2")
   plan <- p_plan(slides = list(p_slide_1_grafico(el, titulo = "Escala")))
   expect_message(suppressWarnings(reporte_ppt_plan(data = src$data_sources, instrumento = src$inst_sources, plan = plan,
                                                    solo_lista = TRUE, mensajes_progreso = FALSE)),
-                 "22 preguntas bajo 60%; la lámina nativa admite 20", fixed = TRUE)
+                 "22 filas no caben en la lámina: se muestran 20", fixed = TRUE)
 })
 
 # ---- Re-revisión de bd32813f0 --------------------------------------------------------------------------------------

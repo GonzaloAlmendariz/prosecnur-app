@@ -577,6 +577,10 @@ p_barras_divergentes <- function(vars = NULL,
   ap <- .regla_preguntas_aplicar_render(el, "barras divergentes", preset = base_preset); el <- ap$el   # ADR 0135
   args_usuario <- utils::modifyList(as.list(base_preset %||% list()),
                                     as.list(el$overrides %||% list()))
+  # E3: la escala del resumen con más filas de las que caben muestra las que caben, en el orden de la regla, y lo dice.
+  tope <- if (identical(args_usuario$estilo, "resumen")) .divergentes_tope_espacio(el$vars, el$regla) else list(vars = el$vars)
+  el$vars <- tope$vars
+  ap$texto <- .tope_espacio_unir(ap$texto, tope$texto)
   excluir_opciones <- .reporte_plan_excluir_cascada(
     base_preset,
     el$overrides %||% list(),
@@ -866,6 +870,7 @@ p_dumbbell <- function(vars = NULL,
   base_preset <- if (length(preset_args)) preset_args else .ola4_preset("dumbbell")
   args_usuario <- utils::modifyList(as.list(base_preset %||% list()),
                                     as.list(el$overrides %||% list()))
+  tope <- .contraste_tope_espacio(datos, args_usuario$valores_decimales %||% 0L); datos <- tope$datos   # E3 (graficos_tope_espacio.R)
   base_args <- list(
     data = datos, var_eje = "eje", var_grupo = "grupo", var_valor = "valor",
     escala_valor = "proporcion_100",
@@ -880,7 +885,8 @@ p_dumbbell <- function(vars = NULL,
   args <- .regla_preguntas_orden_contraste(args, el$regla)   # «mayor diferencia»: la brecha absoluta más grande arriba
   args <- .keep_formals(graficar_dumbbell, args, contexto = "graficar_dumbbell")
   p <- .dumbbell_con_grupo_chico(do.call(graficar_dumbbell, args), el)   # «Grupo chico: 24 docentes TC.»
-  .regla_preguntas_en_espec(p, ap$texto)
+  if (!identical(args$estilo, "resumen")) p <- .tope_espacio_al_pie(p, el, tope$texto)   # el clásico no tiene nota de regla
+  .regla_preguntas_en_espec(p, .tope_espacio_unir(ap$texto, if (identical(args$estilo, "resumen")) tope$texto))
 }
 
 # --- Lollipop ---------------------------------------------------------------
