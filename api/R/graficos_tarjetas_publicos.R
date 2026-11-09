@@ -25,13 +25,14 @@
 # La familia de BH entre públicos vive en graficos_significancia_familia_publicos.R y nunca se mezcla con la de una base.
 
 .TPUB_VEREDICTOS <- c("marcada", "fragil", "bajo_umbral", "no_significativa", "no_comparable", "escalas_distintas",
-                      "sin_equivalencia")
+                      "sin_equivalencia", "fuera_de_familia")
 .TPUB_CRUCE <- "entre_publicos"
 .TPUB_ROTULO <- "Entre públicos"
 .TPUB_MAX_LINEAS <- 4L
 .TPUB_MOTIVO_NO_CUADRA <- "las cifras de la prueba no cuadran con el gráfico; no se compara"
 .TPUB_MOTIVO_ESCALAS <- "escalas distintas, no se compara"
 .TPUB_MOTIVO_SIN_EQUIV <- "sin equivalencia declarada entre públicos, no se compara"
+.TPUB_MOTIVO_FUERA_FAMILIA <- "la comparación no está en la familia entre públicos del informe; no se marca"
 
 #' Opción de la lámina: NULL si no pide tarjetas entre públicos; si las pide, la lista normalizada
 #'
@@ -261,7 +262,9 @@
 #' Ajusta el p y asigna veredictos a los temas evaluados
 #'
 #' @param familia Tabla de BH entre públicos (`.tpub_familia_tabla`). Con `bh_informe` y sin familia, la familia son
-#'   los temas de esta llamada (`familia_local = TRUE`); nunca la de una base.
+#'   los temas de esta llamada (`familia_local = TRUE`); nunca la de una base. Con la familia del plan, un p que no está
+#'   en ella (la vista previa pudo leer otras cifras que las de la familia) no se ajusta con el q de un vecino: queda
+#'   `fuera_de_familia`, no se marca y el tema lo dice en su motivo.
 #' @keywords internal
 .tpub_veredictos <- function(temas, regla, familia = NULL) {
   local <- FALSE
@@ -270,7 +273,11 @@
     local <- TRUE
   }
   temas <- lapply(temas, function(te) {
-    if (identical(te$estado, "evaluable") && !is.null(te$ev)) te$ev <- .sig_veredictos(te$ev, regla, familia)
+    if (identical(te$estado, "evaluable") && !is.null(te$ev)) {
+      te$ev <- .sig_veredictos(te$ev, regla, familia, exigir_familia = !local)
+      te$fuera_de_familia <- as.integer(te$ev$fuera_de_familia %||% 0L)
+      if (te$fuera_de_familia > 0L && is.na(te$motivo)) te$motivo <- .TPUB_MOTIVO_FUERA_FAMILIA
+    }
     te$familia_local <- local
     te
   })

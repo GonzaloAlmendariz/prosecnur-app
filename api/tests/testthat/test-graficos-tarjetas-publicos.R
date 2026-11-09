@@ -676,3 +676,32 @@ test_that("P2. una regla guardada manda tal cual entre públicos; el contexto de
   # El contexto liviano del worker conserva el origen.
   expect_identical(.sig_contexto_liviano(list(regla = rb$regla, origen = "propuesta"))$origen, "propuesta")
 })
+
+test_that("P3. con la familia del plan, un p ajeno a ella queda «fuera_de_familia», no se marca y el tema dice por qué", {
+  src <- .tp_tres()
+  rg <- .tp_regla(correccion = "bh_informe")
+  fam <- .tpub_familia_plan(list(slides = list(.tp_lamina_radar())), src, NULL, rg)
+  temas <- .tpub_temas_declarados(.tp_vars6, .tp_vars6, NULL)
+  # Mismas cifras que la familia: todo par está en ella.
+  r <- .tpub_calcular(temas, "3,4", src, rg, .tp_opt(), familia = fam$tabla)
+  pr <- do.call(rbind, lapply(r$temas, function(te) te$ev$pares))
+  expect_false(any(pr$veredicto == "fuera_de_familia"))
+  expect_gt(sum(pr$veredicto %in% c("marcada", "fragil")), 0L)
+  # Otra fuente (la vista previa leyó otras cifras): sus p no están en la familia y ninguno se ajusta con un vecino.
+  src2 <- src; src2$data_sources$estudiantes <- src2$data_sources$estudiantes[-(1:5), ]
+  r2 <- .tpub_calcular(temas, "3,4", src2, rg, .tp_opt(), familia = fam$tabla)
+  p2 <- do.call(rbind, lapply(r2$temas, function(te) te$ev$pares))
+  fuera <- !.sig_bh_en_familia(p2$p, fam$tabla)
+  expect_gt(sum(fuera), 0L)
+  expect_true(all(p2$veredicto[fuera] == "fuera_de_familia"))
+  expect_true(all(is.na(p2$p_ajustado[fuera])))
+  expect_true("fuera_de_familia" %in% .TPUB_VEREDICTOS)
+  te_f <- Filter(function(te) isTRUE(te$fuera_de_familia > 0L), r2$temas)
+  expect_gt(length(te_f), 0L)
+  expect_true(all(vapply(te_f, function(te) identical(te$motivo, .TPUB_MOTIVO_FUERA_FAMILIA), logical(1))))
+  # Antes del arreglo esos pares se marcaban con el q de un vecino (9 de 12 en la sonda f.R).
+  expect_identical(sum(fuera & p2$veredicto %in% c("marcada", "fragil")), 0L)
+  # Sin familia del plan (local) no se exige: la familia son los temas de la llamada.
+  r3 <- .tpub_calcular(temas, "3,4", src2, rg, .tp_opt(), familia = NULL)
+  expect_false(any(unlist(lapply(r3$temas, function(te) te$ev$pares$veredicto)) == "fuera_de_familia"))
+})

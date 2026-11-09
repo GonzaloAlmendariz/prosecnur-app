@@ -90,6 +90,9 @@
   sin_eq <- sum(vapply(t$temas, function(te) identical(te$estado, "sin_equivalencia"), logical(1)))
   if (sin_eq) .tpub_aviso("en \"", titulo, "\", ", sin_eq, " de ", length(t$temas), " temas no tienen equivalencia declarada ",
                           "(matriz o emparejado confirmado) y no se comparan.")
+  fuera <- sum(vapply(t$temas, function(te) as.integer(te$fuera_de_familia %||% 0L), integer(1)))
+  if (fuera) .tpub_aviso("en \"", titulo, "\", ", fuera, " comparación(es) no están en la familia entre públicos del informe ",
+                         "y no se marcan.")
   if (identical(el$.element_type, "radar_publicos")) p <- .tpub_radar_sin_tabla(p, t, titulo)
   attr(p, "pulso_tarjetas") <- t
   if (!is.null(t$nota)) attr(p, "pulso_sig_nota") <- t$nota
