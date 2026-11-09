@@ -168,3 +168,31 @@ test_that("catálogo, ronda 4: si cabe se mide con el alto que deja el título d
   expect_false(.lam_compositor_aplica(p, sl))
   expect_true(.lam_compositor_aplica(p, p_slide_1_grafico(p_mapa_resultado_distrital("x$a", cruces = "x$d", corte = "1"), titulo = "Corto")))
 })
+
+test_that("catálogo, ronda 5: el n va en su columna, con calle, y el aviso dice que fue el título", {
+  fx <- .mr_fixture()
+  out <- tempfile(fileext = ".pptx")
+  suppressMessages(suppressWarnings(reporte_ppt_plan(data = fx$data, instrumento = fx$inst, plan = list(p_slide_1_grafico(
+    p_mapa_resultado_distrital("sat", cruces = "dist", corte = c("4", "5"), min_n = 1), titulo = "Satisfacción")), path_ppt = out, mensajes_progreso = FALSE)))
+  x <- xml2::read_xml(unz(out, "ppt/slides/slide1.xml"))
+  caja <- function(n) { sp <- xml2::xml_find_all(x, sprintf("//p:sp[p:nvSpPr/p:cNvPr[@name='%s']]", n))
+    data.frame(x = as.numeric(xml2::xml_attr(xml2::xml_find_first(sp, ".//a:off"), "x")) / 914400,
+               y = as.numeric(xml2::xml_attr(xml2::xml_find_first(sp, ".//a:off"), "y")) / 914400,
+               w = as.numeric(xml2::xml_attr(xml2::xml_find_first(sp, ".//a:ext"), "cx")) / 914400) }
+  n <- caja("mapa:n"); v <- caja("mapa:valor"); b <- caja("mapa:barra_fondo")
+  expect_true(all(n$x + n$w + .LAM_MAPA_RES_CALLE <= v$x + 1e-6))  # su columna, con la calle antes de la cifra: no se le monta
+  expect_true(all(b$x + b$w + .LAM_MAPA_RES_CALLE <= n$x + 1e-6))  # y la barra termina con su calle antes del n
+  # El aviso cuando no cabe por el título.
+  lima <- .mapa_resultado_lima()
+  f <- data.frame(codigo = lima$ubigeo, etiqueta = lima$distrito, porcentaje = seq(40, 90, length.out = nrow(lima)), n = 50L, ubigeo = lima$ubigeo)
+  e <- .espec_mapa_resultado(f)
+  largo <- paste("Lima concentra la mayor satisfacción de los egresados y Santiago de Surco la menor, con diferencias que se mantienen",
+                 "entre todos los grupos del estudio y en todas las preguntas")
+  sl <- p_slide_1_grafico(p_mapa_resultado_distrital("x$a", cruces = "x$d", corte = "1"), titulo = largo,
+                          subtitulo = "En general, ¿qué tan satisfecho está con la atención en la Unidad y con los servicios que recibe?")
+  p <- ggplot2::ggplot(); attr(p, "pulso_espec") <- e
+  m <- testthat::capture_messages(expect_false(.lam_compositor_aplica(p, sl)))
+  expect_true(any(grepl("el ranking no cabe bajo el título y el subtítulo", m, fixed = TRUE)))
+  m2 <- testthat::capture_messages(.lam_compositor_aplica(p, p_slide_1_grafico(p_mapa_resultado_distrital("x$a", cruces = "x$d", corte = "1"), titulo = "Corto")))
+  expect_false(any(grepl("el ranking no cabe", m2, fixed = TRUE)))
+})

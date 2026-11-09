@@ -74,16 +74,22 @@
     doc <- officer::add_slide(doc, layout = layout, master = master)
     # El subtítulo sólo en la primera parte, bajo el título (recetario.R:122); el aviso del título, una vez por lámina.
     doc <- .lam_titulo(doc, if (k > 1) .particion_titulo_cont(titulo) else titulo, ante = ante, sub = if (k == 1L) sub else NULL, avisar = k == 1L)   # «(cont.)» una sola vez
-    lz <- .lam_lienzo()
-    tp <- if (en_filas) NULL else .lam_escala_tarjetas_parte(partes[[k]], espec)   # v7.23, ítems 7 y 12 (lamina_escala_premisa_arriba.R)
-    op_tp <- if (!is.null(tp)) options(prosecnur.lam_reserva_derecha = tp$reserva, prosecnur.lam_leyenda_ancho_completo = FALSE) else list()
-    bloque <- function(lz, desplazar = 0) .lam_bloque_escala(lz, espec, partes[[k]], solo = length(partes) == 1L, titulo_lamina = titulo,
-                                                            encabezar_tema = length(premisas) == 1L, desplazar = desplazar,
-                                                            negrita = !nzchar(sub %||% ""))   # lámina por público: preguntas sin negrita, como Conta
-    if (en_filas) .lam_bloque_filas(lz, espec, partes[[k]]) else if (isTRUE(tp$arriba) && arriba_ok) .lam_bloque_escala_arriba(lz, espec, partes[[k]], negrita = !nzchar(sub %||% "")) else
-      bloque(lz, .lam_escala_centrar(bloque(.lam_lienzo())))   # centrado si sobra alto
-    options(op_tp)
+    # B4: la composición de la parte, como función, para recomponerla con el tope de su familia al cierre (lamina_grosor_familias.R)
+    dibujar <- local({ k_ <- k; function() {
+      lz <- .lam_lienzo()
+      tp <- if (en_filas) NULL else .lam_escala_tarjetas_parte(partes[[k_]], espec)   # v7.23, ítems 7 y 12 (lamina_escala_premisa_arriba.R)
+      op_tp <- if (!is.null(tp)) options(prosecnur.lam_reserva_derecha = tp$reserva, prosecnur.lam_leyenda_ancho_completo = FALSE) else list()
+      on.exit(options(op_tp), add = TRUE)
+      bloque <- function(lz, desplazar = 0) .lam_bloque_escala(lz, espec, partes[[k_]], solo = length(partes) == 1L, titulo_lamina = titulo,
+                                                              encabezar_tema = length(premisas) == 1L, desplazar = desplazar,
+                                                              negrita = !nzchar(sub %||% ""))   # lámina por público: preguntas sin negrita, como Conta
+      if (en_filas) .lam_bloque_filas(lz, espec, partes[[k_]]) else if (isTRUE(tp$arriba) && arriba_ok) .lam_bloque_escala_arriba(lz, espec, partes[[k_]], negrita = !nzchar(sub %||% "")) else
+        bloque(lz, .lam_escala_centrar(bloque(.lam_lienzo())))   # centrado si sobra alto
+      lz
+    } })
+    lz <- dibujar()
     doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:escala")
+    .lam_gf_registrar(doc, lz, "prosecnur:grafico:escala", dibujar)
     doc <- .lam_pie(doc, if (en_filas) base else .lam_base_de_parte_escala(base, espec, partes, k), if (is.null(folio)) NULL else folio + k - 1L)
     doc <- por_lamina(doc)
   }
@@ -145,7 +151,9 @@
   # N6: mapas de cobertura (láminas 103, 105 y 106), si caben.
   if (identical(espec$tipo, "mapa")) {   # con el título y el subtítulo de la lámina: miden el alto que queda (catálogo, ronda 4)
     sl <- slide$slots %||% list(); txt <- function(x) { x <- if (inherits(x, "ppt_element_text")) x$text else x; if (is.character(x) && length(x)) x[1] }
-    return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_mapa_cabe(espec, titulo = txt(sl$title %||% slide$title), sub = txt(sl$subtitle))))
+    cabe <- isTRUE(.lam_mapa_cabe(espec, titulo = txt(sl$title %||% slide$title), sub = txt(sl$subtitle)))
+    .lam_mapa_resultado_aviso_titulo(espec, cabe)   # el aviso sabe que fue el título (lamina_mapa_resultado.R)
+    return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && cabe)
   }
   # N6: radar con tabla (lámina 90), si cabe.
   if (identical(espec$tipo, "radar")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_radar_cabe(espec)))

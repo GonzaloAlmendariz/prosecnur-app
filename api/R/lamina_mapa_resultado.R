@@ -23,3 +23,16 @@
   if (is.null(espec) || !identical(espec$forma, "resultado") || is.null(espec$ranking)) return(FALSE)
   .lam_mapa_res_tarjeta_cabe(espec, titulo, sub)   # con el alto que deja el título de la lámina (catálogo, ronda 4)
 }
+
+#' El mapa de resultado que cabría sin el título de la lámina y no cabe con él: lo dice en el aviso de la lámina
+#'
+#' Catálogo, ronda 5: el aviso del render ("el ranking no cabe") se emitía sin saber del título, así que cuando lo que no
+#' dejaba sitio era el título, la lámina salía sin cifras y nadie lo decía.
+#' @keywords internal
+.lam_mapa_resultado_aviso_titulo <- function(espec, cabe) {
+  if (isTRUE(cabe) || !identical(espec$forma, "resultado") || !isTRUE(.lam_mapa_resultado_cabe(espec))) return(invisible(FALSE))
+  .pulso_aviso(.aviso_en_lamina(paste0("Mapa por distrito: el ranking no cabe bajo el título y el subtítulo de la lámina; sale el mapa con su ",
+                                       "leyenda, sin las cifras. Acorta el título o el subtítulo para que entre la lista de distritos.")))
+  invisible(TRUE)
+}
+

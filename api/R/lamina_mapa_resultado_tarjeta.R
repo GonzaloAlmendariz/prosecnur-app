@@ -64,11 +64,23 @@
     pt_k <- max(7, min(pt, (wcol - 0.42) / pide))
     # Fila mínima de 31 px (0.26 in): el nombre a 7 pt y su barra de 11 px caben sin tocarse (`dy_barra`); con 34 px los 50
     # distritos de Lima y Callao no entraban bajo un subtítulo de dos líneas y la lámina perdía la lista entera.
-    if (fila >= 31 * P - 1e-9 && pide * pt_k <= wcol - 0.42 + 1e-9) return(list(ncol = k, por_col = por_col, fila = fila, pt = pt_k, wcol = wcol,
-                                                                                 pt_n = max(7, pt_k - 1), cabe = TRUE))
+    # Ronda 5: en la línea de la barra van la barra, la calle y el n, bajo el nombre y a la izquierda de la columna de la
+    # cifra; la barra conserva al menos media pulgada.
+    resto <- wcol - (max(.lam_ancho_tinta(lista$cifra, pt_k, TRUE)) * 1.05 + 0.16) - .lam_mapa_res_n_ancho(lista, max(7, pt_k - 1)) - 0.2 - 2 * .LAM_MAPA_RES_CALLE
+    if (fila >= 31 * P - 1e-9 && pide * pt_k <= wcol - 0.42 + 1e-9 && resto >= 0.5) return(list(ncol = k, por_col = por_col, fila = fila, pt = pt_k,
+                                                                                                wcol = wcol, pt_n = max(7, pt_k - 1), cabe = TRUE))
   }
   list(ncol = 4L, por_col = ceiling(n / 4), fila = h / ceiling(n / 4), pt = 7, wcol = (w - 0.9) / 4, pt_n = 7, cabe = FALSE)
 }
+
+#' Calle entre la columna del n y la de la cifra (in), la misma que separa el nombre de la cifra en la lista
+#' @keywords internal
+.LAM_MAPA_RES_CALLE <- 0.12
+
+#' Texto y ancho de la columna del n de la lista (el más ancho, a `pt` puntos)
+#' @keywords internal
+.lam_mapa_res_n_texto <- function(n) sprintf("n = %s", format(n, big.mark = ",", trim = TRUE))
+.lam_mapa_res_n_ancho <- function(lista, pt) if (!nrow(lista)) 0 else max(.lam_ancho_tinta(.lam_mapa_res_n_texto(lista$n), pt, FALSE))
 
 #' La lista de resultados: nombre y cifra en una línea y, debajo, la barra del color de su clase sobre su pista
 #' @keywords internal
@@ -80,18 +92,22 @@
   }
   co <- .lam_mapa_res_columnas(li, w, h); hb <- 11 * P
   dy_barra <- min(0.21, co$fila - hb - 0.02)
+  wn <- .lam_mapa_res_n_ancho(li, co$pt_n) + 0.2   # la columna del n: su tinta más los márgenes internos de la caja
   for (k in seq_len(nrow(li))) {
     col <- (k - 1L) %/% co$por_col; fi <- (k - 1L) %% co$por_col
     xk <- x + col * (co$wcol + 0.3); yk <- y + fi * co$fila
     wc <- .lam_ancho_tinta(li$cifra[k], co$pt, TRUE) * 1.05 + 0.26
+    # Ronda 2, ítem 4 / ronda 5: el n de cada distrito (casos válidos, sin ponderar) en su propia columna, en la línea de la
+    # barra y a la izquierda de la columna de la cifra, con la calle de la casa a cada lado: no comparte columna con la
+    # cifra, así que no se le monta aunque la fila sea baja.
+    x_cifra <- xk + co$wcol - wc + 0.1
+    x_n <- x_cifra - .LAM_MAPA_RES_CALLE - wn
+    wb <- x_n - .LAM_MAPA_RES_CALLE - xk
     .lam_txt(lz, li$nombre[k], xk - 0.1, yk, co$wcol - wc + 0.15, 0.24, co$pt, M$texto, nombre = "mapa:distrito")
-    .lam_txt(lz, li$cifra[k], xk + co$wcol - wc + 0.1, yk, wc, 0.24, co$pt, M$texto, bold = TRUE, align = "right", nombre = "mapa:valor")
-    # Ronda 2, ítem 4: el n de cada distrito (casos válidos, sin ponderar) va al final de su barra, que le cede su ancho.
-    tn <- sprintf("n = %s", format(li$n[k], big.mark = ",", trim = TRUE)); wn <- .lam_ancho_tinta(tn, co$pt_n, FALSE) + 0.24
-    wb <- co$wcol - wn + 0.08
+    .lam_txt(lz, li$cifra[k], x_cifra, yk, wc, 0.24, co$pt, M$texto, bold = TRUE, align = "right", nombre = "mapa:valor")
     .lam_caja(lz, xk, yk + dy_barra, wb, hb, M$pista, nombre = "mapa:barra_fondo")
     .lam_caja(lz, xk, yk + dy_barra, max(1.5 * P, wb * li$frac[k]), hb, li$color[k], nombre = "mapa:barra")
-    .lam_txt(lz, tn, xk + co$wcol - wn + 0.1, yk + dy_barra + hb / 2 - 0.12, wn, 0.24, co$pt_n, M$otros_texto, align = "right", nombre = "mapa:n")
+    .lam_txt(lz, .lam_mapa_res_n_texto(li$n[k]), x_n, yk + dy_barra + hb / 2 - 0.12, wn, 0.24, co$pt_n, M$otros_texto, align = "right", nombre = "mapa:n")
   }
   invisible(lz)
 }
