@@ -2,10 +2,11 @@
 // las declara el backend (`.GRAFICOS_SALIDA_EDITOR` en graficos_metadata.R) y llegan versionadas en el catálogo
 // (iconos/catalogoTipos.generated.ts). El registro en vivo dice qué está disponible en esta sesión.
 
-import type { GraficadorCategoria, GraficadorMetadata } from "../../../../api/graficos";
-import { CATALOGO_GRAFICOS, FAMILIAS_EDITOR, type SalidaGrafico } from "../../iconos/catalogoTipos.generated";
+import type { GraficadorCategoria, GraficadorMetadata, GraficadorRef } from "../../../../api/graficos";
+import { CATALOGO_GRAFICOS, FAMILIAS_EDITOR, VARIANTES_GRAFICO, type SalidaGrafico, type VarianteGraficoCatalogo } from "../../iconos/catalogoTipos.generated";
 import { esSlotCifra } from "../../iconos/composicion";
 import { TIPOS_RETIRADOS_0137 } from "../../retirados";
+import { aplicarVariante, varianteDeGrafico } from "../../catalogoGraficos";
 
 export type FamiliaGrafico = "categorias" | "escalas" | "numeros" | "comparar" | "territorio" | "texto";
 
@@ -85,14 +86,15 @@ export function familiaVisible(
   return visibles.some((f) => f.id === pedida) ? pedida : visibles[0]?.id ?? pedida;
 }
 
-export type Encaje = { cabe: boolean; nota: string | null };
+/** `corto`: el motivo en una línea de tarjeta cuando no cabe (ADR 0139, ítem 6: la tarjeta dice por qué). */
+export type Encaje = { cabe: boolean; nota: string | null; corto?: string };
 
 /** ¿El graficador va en esa ranura? Las ranuras de cifra reciben cifras; una cifra en una de gráfico sale por la ruta anterior. */
 export function encajeEnRanura(graficador: string, slot: string | null): Encaje {
   if (!slot) return { cabe: true, nota: null };
   const cifra = graficador === "p_cifra";
   if (esSlotCifra(slot) && !cifra) {
-    return { cabe: false, nota: "Esta ranura es de cifra: recibe una cifra destacada, no un gráfico." };
+    return { cabe: false, nota: "Esta ranura es de cifra: recibe una cifra destacada, no un gráfico.", corto: "Esta ranura recibe solo cifras" };
   }
   if (!esSlotCifra(slot) && cifra) {
     return { cabe: true, nota: "Va en las ranuras de cifra; en una ranura de gráfico sale como imagen." };
@@ -107,4 +109,57 @@ export function familiaInicial(
 ): FamiliaGrafico {
   if (actual) return familiaDe(actual);
   return slot && esSlotCifra(slot) ? "numeros" : "categorias";
+}
+
+// ---------------------------------------------------------------------------
+// Entradas del catálogo de gráficos (ADR 0139, decisión 2)
+// ---------------------------------------------------------------------------
+
+/** Una tarjeta de «¿Qué gráfico?»: un graficador o una de sus variantes, con el nombre con que el catálogo la vende. */
+export type EntradaGrafico = {
+  /** El graficador (`p_pie`) o el id de la variante (`p_dumbbell:contraste`). */
+  id: string;
+  meta: GraficadorMetadata;
+  variante: VarianteGraficoCatalogo | null;
+  descripcion: string;
+};
+
+const familiaDeVariante = (v: VarianteGraficoCatalogo, base: GraficadorMetadata): FamiliaGrafico =>
+  esFamilia(v.familia) ? v.familia : familiaDe(base);
+
+/**
+ * Las entradas de la familia: cada graficador que se ofrece y, detrás, sus variantes de esa familia. Una variante cuya
+ * familia no es la de su graficador va al final de la suya. Sin su graficador en el registro, la variante no se ofrece.
+ */
+export function entradasDeFamilia(graficadores: readonly GraficadorMetadata[], familia: FamiliaGrafico): EntradaGrafico[] {
+  const ofrecidos = new Map(FAMILIAS_GRAFICO.flatMap((f) => graficosDeFamilia(graficadores, f.id)).map((g) => [g.name, g]));
+  const deVariante = (v: VarianteGraficoCatalogo, base: GraficadorMetadata): EntradaGrafico =>
+    ({ id: v.id, meta: base, variante: v, descripcion: v.descripcion });
+  const out: EntradaGrafico[] = [];
+  for (const g of graficosDeFamilia(graficadores, familia)) {
+    out.push({ id: g.name, meta: g, variante: null, descripcion: g.descripcion });
+    for (const v of VARIANTES_GRAFICO) {
+      if (v.graficador === g.name && familiaDeVariante(v, g) === familia) out.push(deVariante(v, g));
+    }
+  }
+  for (const v of VARIANTES_GRAFICO) {
+    const base = ofrecidos.get(v.graficador);
+    if (base && familiaDe(base) !== familia && familiaDeVariante(v, base) === familia) out.push(deVariante(v, base));
+  }
+  return out;
+}
+
+/**
+ * El gráfico que queda en la ranura al usar la entrada, sobre `base` (el graficador con los args compatibles del
+ * anterior). La variante escribe sus args fijos y borra los que quita. El tipo base desde una variante del mismo
+ * graficador deja de ser variante: se borran el estilo y la regla del resumen (el motor vuelve a su estilo por defecto).
+ */
+export function graficoDeEntrada(entrada: Pick<EntradaGrafico, "variante">, base: GraficadorRef): GraficadorRef {
+  const args = base.args ?? {};
+  if (entrada.variante) return { graficador: base.graficador, args: aplicarVariante(args, entrada.variante) };
+  if (!varianteDeGrafico(base.graficador, args)) return base;
+  const sinResumen: Record<string, unknown> = { ...args };
+  delete sinResumen.estilo;
+  delete sinResumen.regla;
+  return { graficador: base.graficador, args: sinResumen };
 }

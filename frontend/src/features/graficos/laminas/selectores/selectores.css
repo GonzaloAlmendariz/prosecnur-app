@@ -804,3 +804,9 @@
 
 /* R9-13 (contrato D1-D2): «Lámina de resumen» es un antetítulo y va en text-faint como las demás clases; el acento queda
    para la selección, el foco, la procedencia y el único CTA. */
+
+/* ADR 0139, ítem 6: el tipo que no se puede usar en esta ranura lo dice en su línea, en el tono de aviso. */
+.pulso-f6-tarjeta-meta.is-bloqueo {
+  color: var(--pulso-warn-fg);
+  font-weight: var(--pulso-weight-semibold);
+}

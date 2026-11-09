@@ -19,6 +19,10 @@ const PIDE: Record<GraficadorDataRequirement, string> = {
 type Props = {
   meta: GraficadorMetadata;
   nombre: string;
+  /** La de la entrada del catálogo (la variante trae la suya); sin ella, la del graficador. */
+  descripcion?: string;
+  /** El nombre del graficador cuando la entrada es una de sus variantes (ADR 0139). */
+  tipoBase?: string | null;
   /** «el espacio «Derecha»» o «esta ranura»: va detrás de «Va en». */
   ranura: string;
   encaje: Encaje;
@@ -28,7 +32,7 @@ type Props = {
   onAplicar: () => void;
 };
 
-export function DetalleTipoGrafico({ meta, nombre, ranura, encaje, bloqueo, esActual, onAplicar }: Props) {
+export function DetalleTipoGrafico({ meta, nombre, descripcion, tipoBase, ranura, encaje, bloqueo, esActual, onAplicar }: Props) {
   const contrato = resolveGraficadorContract(meta);
   const salida = salidaDe(meta.name);
   const familia = FAMILIAS_GRAFICO.find((f) => f.id === familiaDe(meta));
@@ -40,10 +44,11 @@ export function DetalleTipoGrafico({ meta, nombre, ranura, encaje, bloqueo, esAc
       </div>
       <div className="pulso-f6-detalle-texto">
         <h3>{nombre}</h3>
-        {meta.descripcion && <p>{meta.descripcion}</p>}
+        {(descripcion ?? meta.descripcion) && <p>{descripcion ?? meta.descripcion}</p>}
       </div>
       <dl className="pulso-f6-ficha">
         {familia && (<><dt>Familia</dt><dd>{familia.label}</dd></>)}
+        {tipoBase && (<><dt>Tipo base</dt><dd>{tipoBase}</dd></>)}
         <dt>Qué pide</dt>
         <dd>{contrato.requirementLabel || PIDE[contrato.dataRequirement]}</dd>
         <dt>Cómo sale</dt>

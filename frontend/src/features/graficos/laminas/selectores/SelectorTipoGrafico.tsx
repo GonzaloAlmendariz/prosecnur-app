@@ -1,10 +1,12 @@
 // Panel «¿Qué gráfico?» (`panel=tipo-grafico`; dirección F6 §4.4). La ranura que se llena la nombra el foco
-// (`foco=<slide.id>:g2`). Izquierda, las siete familias; centro, los gráficos de la familia con su glifo; derecha, el
-// detalle. Usar un gráfico conserva los argumentos compatibles del anterior (`compatibleGraficadorRef`).
+// (`foco=<slide.id>:g2`). Izquierda, las familias; centro, los tipos de gráfico de la familia con su glifo, también las
+// variantes del catálogo (ADR 0139: «Contraste de públicos» es `p_dumbbell` en estilo resumen); derecha, el detalle.
+// Usar un gráfico conserva los argumentos compatibles del anterior (`compatibleGraficadorRef`) y, si es una variante,
+// escribe sus args fijos. Un tipo que no se puede usar aquí no se esconde: su tarjeta dice por qué en una línea.
 
-import { BarChart3, MousePointer2 } from "lucide-react";
+import { BarChart3, MousePointer2 } from "../../../../vendor/lucide-react";
 import { useId, useMemo, useRef } from "react";
-import type { GraficadorMetadata, GraficadorRef, Slide } from "../../../../api/graficos";
+import type { GraficadorRef, Slide } from "../../../../api/graficos";
 import { toast } from "../../../../components/toasterStore";
 import { usePanelDireccionable } from "../../../../lib/navegacion/paneles";
 import { useSession } from "../../../../lib/SessionContext";
@@ -21,7 +23,11 @@ import { nombreSlot } from "./etiquetas";
 import { PANEL_TIPO_GRAFICO } from "./panelesSelectores";
 import { useSelectoresUi } from "./selectoresStore";
 import { TarjetaTipoGrafico } from "./TarjetaTipoGrafico";
-import { encajeEnRanura, FAMILIAS_GRAFICO, familiaInicial, familiasVisibles, familiaVisible, graficosDeFamilia, salidaDe } from "./tiposGrafico";
+import {
+  encajeEnRanura, entradasDeFamilia, FAMILIAS_GRAFICO, familiaInicial, familiasVisibles, familiaVisible, graficoDeEntrada, salidaDe,
+  type EntradaGrafico,
+} from "./tiposGrafico";
+import { entradaDeGrafico, nombreDeEntrada } from "../../catalogoGraficos";
 import { esTipoRetirado } from "../../retirados";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { CargaDeBloque } from "../../../../components/CargaDeBloque";
@@ -56,15 +62,17 @@ export function SelectorTipoGrafico({ slide, posicion, ranura, cerrar }: Props) 
   // ADR 0137: un tipo retirado no abre en su familia (puede haber desaparecido) y, al cambiarlo, sus datos no pasan.
   const actualRetirado = !!actual && esTipoRetirado(actual.graficador, registry);
 
+  // La entrada del catálogo que la ranura ya es: su variante (contraste, aperturas, escala) o su graficador.
+  const entradaActual = actual ? entradaDeGrafico(actual.graficador, actual.args ?? {}) : null;
   const porFamilia = useMemo(() => {
     const todos = registry?.graficadores ?? [];
-    return new Map(FAMILIAS_GRAFICO.map((f) => [f.id, graficosDeFamilia(todos, f.id)]));
+    return new Map(FAMILIAS_GRAFICO.map((f) => [f.id, entradasDeFamilia(todos, f.id)]));
   }, [registry]);
   const familias = familiasVisibles(porFamilia, !!registry);
   const familia = familiaVisible(ui.familia ?? familiaInicial(actualRetirado ? null : metaActual, slot), familias);
   const lista = porFamilia.get(familia) ?? [];
-  const candidato: GraficadorMetadata | null = (ui.candidatoGrafico ? lista.find((g) => g.name === ui.candidatoGrafico) : undefined)
-    ?? (actual ? lista.find((g) => g.name === actual.graficador) : undefined)
+  const candidato: EntradaGrafico | null = (ui.candidatoGrafico ? lista.find((e) => e.id === ui.candidatoGrafico) : undefined)
+    ?? (entradaActual ? lista.find((e) => e.id === entradaActual) : undefined)
     ?? lista[0]
     ?? null;
 
@@ -72,23 +80,33 @@ export function SelectorTipoGrafico({ slide, posicion, ranura, cerrar }: Props) 
   const rotuloRanura = k && slot
     ? slots.length > 1 ? `espacio «${nombreSlot(slot, slide ? slidesById[slide.tipo] : undefined)}»` : "gráfico"
     : "";
-  const bloqueoDe = (g: GraficadorMetadata): string | null => {
-    if (canInsertGraficador(g, dimOk)) return encajeEnRanura(g.name, slot).cabe ? null : "No va en esta ranura";
+  // ADR 0139, ítem 6: el motivo en una línea; la tarjeta no se esconde ni se apaga en silencio.
+  const bloqueoDe = ({ meta: g }: EntradaGrafico): string | null => {
+    if (canInsertGraficador(g, dimOk)) {
+      const encaje = encajeEnRanura(g.name, slot);
+      return encaje.cabe ? null : encaje.corto ?? encaje.nota ?? "No va en esta ranura";
+    }
     return g.disabled_reason?.trim() || graficadorAvailabilityLabel(g, dimOk);
   };
+  const nombreDe = (e: EntradaGrafico): string => (e.variante ? nombreDeEntrada(e.id) : graficadorDisplayName(e.meta.name, e.meta));
+  const nombreActual = actual
+    ? entradaActual && entradaActual !== actual.graficador
+      ? nombreDeEntrada(entradaActual)
+      : graficadorDisplayName(actual.graficador, graficadoresById[actual.graficador])
+    : "";
 
   const cerrarYOlvidar = () => {
     useSelectoresUi.getState().prepararGrafico();
     cerrar(posicion ?? undefined, k);
   };
 
-  const aplicar = (g: GraficadorMetadata | null) => {
-    if (!g || !slide || !slot || bloqueoDe(g) || g.name === actual?.graficador) return;
+  const aplicar = (e: EntradaGrafico | null) => {
+    if (!e || !slide || !slot || bloqueoDe(e) || e.id === entradaActual) return;
     const id = slide.id;
-    setSlot(id, slot, compatibleGraficadorRef(g, actualRetirado ? null : actual));
-    toast.exito(`${rotuloRanura.charAt(0).toUpperCase()}${rotuloRanura.slice(1)}: ${graficadorDisplayName(g.name, g)}`, {
+    setSlot(id, slot, graficoDeEntrada(e, compatibleGraficadorRef(e.meta, actualRetirado ? null : actual)));
+    toast.exito(`${rotuloRanura.charAt(0).toUpperCase()}${rotuloRanura.slice(1)}: ${nombreDe(e)}`, {
       detalle: actual
-        ? `Reemplaza a ${graficadorDisplayName(actual.graficador, graficadoresById[actual.graficador])}; ${actualRetirado ? "sus datos no pasan al nuevo tipo" : "se conservan sus datos compatibles"}.`
+        ? `Reemplaza a ${nombreActual}; ${actualRetirado ? "sus datos no pasan al nuevo tipo" : "se conservan sus datos compatibles"}.`
         : undefined,
       accion: { label: "Deshacer", onSelect: () => undo() },
     });
@@ -113,8 +131,8 @@ export function SelectorTipoGrafico({ slide, posicion, ranura, cerrar }: Props) 
       titulo="¿Qué gráfico?"
       descripcion={actual
         ? actualRetirado
-          ? `Hoy: ${graficadorDisplayName(actual.graficador, graficadoresById[actual.graficador])}, un tipo retirado. Al cambiarlo se empieza sin sus datos.`
-          : `Hoy: ${graficadorDisplayName(actual.graficador, graficadoresById[actual.graficador])}. Al cambiarlo se conservan los datos que el nuevo entienda.`
+          ? `Hoy: ${nombreActual}, un tipo retirado. Al cambiarlo se empieza sin sus datos.`
+          : `Hoy: ${nombreActual}. Al cambiarlo se conservan los datos que el nuevo entienda.`
         : "Elige cómo se dibuja la pregunta de esta ranura."}
       focoInicialRef={focoInicialRef}
       destinoAlCerrar={() => destinoAlCerrarEnDocumento(k)}
@@ -161,19 +179,20 @@ export function SelectorTipoGrafico({ slide, posicion, ranura, cerrar }: Props) 
               data-qa-geometry-contract="equal"
               data-qa-geometry-capacity="owned"
             >
-              {lista.map((g) => (
-                <li key={g.name} data-qa-geometry-member>
+              {lista.map((e) => (
+                <li key={e.id} data-qa-geometry-member>
                   <TarjetaTipoGrafico
                     nombreGrupo={`${grupo}-grafico`}
-                    tipo={g.name}
-                    nombre={graficadorDisplayName(g.name, g)}
-                    descripcion={g.descripcion}
-                    salida={salidaDe(g.name)}
-                    bloqueo={bloqueoDe(g)}
-                    elegida={g.name === candidato?.name}
-                    actual={g.name === actual?.graficador}
-                    onElegir={() => ui.elegirGrafico(g.name)}
-                    onAplicar={() => { if (g.name !== candidato?.name) ui.elegirGrafico(g.name); else aplicar(g); }}
+                    entrada={e.id}
+                    tipo={e.meta.name}
+                    nombre={nombreDe(e)}
+                    descripcion={e.descripcion}
+                    salida={salidaDe(e.meta.name)}
+                    bloqueo={bloqueoDe(e)}
+                    elegida={e.id === candidato?.id}
+                    actual={e.id === entradaActual}
+                    onElegir={() => ui.elegirGrafico(e.id)}
+                    onAplicar={() => { if (e.id !== candidato?.id) ui.elegirGrafico(e.id); else aplicar(e); }}
                   />
                 </li>
               ))}
@@ -183,12 +202,14 @@ export function SelectorTipoGrafico({ slide, posicion, ranura, cerrar }: Props) 
       )}
       detalle={candidato && !sinRanura ? (
         <DetalleTipoGrafico
-          meta={candidato}
-          nombre={graficadorDisplayName(candidato.name, candidato)}
+          meta={candidato.meta}
+          nombre={nombreDe(candidato)}
+          descripcion={candidato.descripcion}
+          tipoBase={candidato.variante ? graficadorDisplayName(candidato.meta.name, candidato.meta) : null}
           ranura={rotuloRanura && slots.length > 1 ? `el ${rotuloRanura}` : "esta ranura"}
-          encaje={encajeEnRanura(candidato.name, slot)}
-          bloqueo={canInsertGraficador(candidato, dimOk) ? null : bloqueoDe(candidato)}
-          esActual={candidato.name === actual?.graficador}
+          encaje={encajeEnRanura(candidato.meta.name, slot)}
+          bloqueo={canInsertGraficador(candidato.meta, dimOk) ? null : bloqueoDe(candidato)}
+          esActual={candidato.id === entradaActual}
           onAplicar={() => aplicar(candidato)}
         />
       ) : (

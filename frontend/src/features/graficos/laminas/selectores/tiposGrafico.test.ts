@@ -3,7 +3,11 @@ import { describe, expect, it } from "vitest";
 import type { GraficadorMetadata } from "../../../../api/graficos";
 import { CATALOGO_GRAFICOS } from "../../iconos/catalogoTipos.generated";
 import { TIPOS_RETIRADOS_0137 } from "../../retirados";
-import { encajeEnRanura, FAMILIAS_GRAFICO, familiaDe, familiaInicial, familiasVisibles, familiaVisible, graficosDeFamilia, salidaDe } from "./tiposGrafico";
+import {
+  encajeEnRanura, entradasDeFamilia, FAMILIAS_GRAFICO, familiaDe, familiaInicial, familiasVisibles, familiaVisible, graficoDeEntrada,
+  graficosDeFamilia, salidaDe,
+} from "./tiposGrafico";
+import { VARIANTES_GRAFICO } from "../../iconos/catalogoTipos.generated";
 
 const meta = (name: string, extra: Partial<GraficadorMetadata> = {}): GraficadorMetadata => ({
   name, titulo_humano: name, descripcion: "", icono_ui: "", args: [], args_extra: [], ...extra,
@@ -62,5 +66,44 @@ describe("encajeEnRanura", () => {
     expect(encajeEnRanura("p_cifra", "cifra_izquierda")).toEqual({ cabe: true, nota: null });
     expect(encajeEnRanura("p_cifra", "grafico")).toMatchObject({ cabe: true, nota: expect.stringMatching(/como imagen/) });
     expect(encajeEnRanura("p_pie", "izquierda")).toEqual({ cabe: true, nota: null });
+  });
+});
+
+describe("entradas del catálogo (ADR 0139: las variantes son tarjetas propias)", () => {
+  const todos = CATALOGO_GRAFICOS.map((g) => meta(g.name, { descripcion: `desc ${g.name}` }));
+
+  it("cada variante es una tarjeta de su familia, detrás de su graficador, con su nombre y descripción", () => {
+    for (const v of VARIANTES_GRAFICO) {
+      const ids = entradasDeFamilia(todos, v.familia as never).map((e) => e.id);
+      expect(ids).toContain(v.id);
+      expect(ids.indexOf(v.id)).toBeGreaterThan(ids.indexOf(v.graficador));
+    }
+    const comparar = entradasDeFamilia(todos, "comparar");
+    const contraste = comparar.find((e) => e.id === "p_dumbbell:contraste");
+    expect(contraste?.meta.name).toBe("p_dumbbell");
+    expect(contraste?.descripcion).toMatch(/dos públicos/);
+    expect(comparar.find((e) => e.id === "p_dumbbell")?.descripcion).toBe("desc p_dumbbell");
+  });
+
+  it("sin su graficador en el registro, la variante no se ofrece", () => {
+    const sinDumbbell = todos.filter((g) => g.name !== "p_dumbbell");
+    expect(entradasDeFamilia(sinDumbbell, "comparar").map((e) => e.id)).not.toContain("p_dumbbell:contraste");
+  });
+
+  it("usar una variante escribe sus args fijos y quita los suyos; volver al tipo base quita el estilo resumen", () => {
+    const comparar = entradasDeFamilia(todos, "comparar");
+    const aperturas = comparar.find((e) => e.id === "p_dumbbell:aperturas");
+    const contraste = comparar.find((e) => e.id === "p_dumbbell:contraste");
+    const base = comparar.find((e) => e.id === "p_dumbbell");
+    if (!aperturas || !contraste || !base) throw new Error("faltan entradas");
+    const previo = { graficador: "p_dumbbell", args: { vars: ["p1"], cruce: null, bases: ["a", "b"] } };
+    expect(graficoDeEntrada(aperturas, previo)).toEqual({ graficador: "p_dumbbell", args: { vars: ["p1"], estilo: "resumen" } });
+    expect(graficoDeEntrada(contraste, { graficador: "p_dumbbell", args: {} }).args).toEqual({ estilo: "resumen", cruce: null });
+    expect(graficoDeEntrada(base, { graficador: "p_dumbbell", args: { estilo: "resumen", cruce: null, regla: { tipo: "x" } } }).args)
+      .toEqual({ cruce: null });
+  });
+
+  it("la ranura de cifra dice en una línea por qué un gráfico no va", () => {
+    expect(encajeEnRanura("p_pie", "cifra_izquierda").corto).toBe("Esta ranura recibe solo cifras");
   });
 });
