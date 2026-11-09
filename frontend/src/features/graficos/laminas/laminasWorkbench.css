@@ -303,6 +303,8 @@
    colocación. */
 .pulso-f6-laminas-vacio,
 .pulso-f6-vg-vacio {
+  /* R11-2: el vacío cede a su columna (sin esto el min-content de la tarjeta de 520 px desbordaba hacia Avisos). */
+  min-width: 0;
   display: grid;
   align-content: center;
   justify-items: center;
@@ -332,6 +334,9 @@
 /* El vacío del lienzo dentro del marco de una lámina (5 nov 2026, pulido de UI). */
 .pulso-f6-lamina-fantasma {
   box-sizing: border-box;
+  /* La hoja 16:9 crece en alto si el texto no cabe en una columna angosta (min-height: auto con aspect-ratio). */
+  min-width: 0;
+  max-width: 100%;
   width: min(100%, 820px);
   aspect-ratio: 16 / 9;
   display: grid;

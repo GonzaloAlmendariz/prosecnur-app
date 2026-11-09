@@ -45,8 +45,8 @@ describe("R10-3: el informe vacío respeta C1 (un solo lateral)", () => {
   const leer = (rel: string) => fs.readFileSync(path.join(dir, rel), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
 
   it("sin Avisos el vacío lleva la Estructura; con Avisos la Estructura se oculta", () => {
-    expect(clasesLaminasVacia(false)).toBe("pulso-f6-laminas is-vacia");
-    expect(clasesLaminasVacia(true)).toBe("pulso-f6-laminas is-vacia is-sin-estructura");
+    expect(clasesLaminasVacia(false)).toBe("pulso-f6-laminas is-vacia is-sin-inspector");
+    expect(clasesLaminasVacia(true)).toBe("pulso-f6-laminas is-vacia is-sin-estructura is-sin-inspector");
   });
 
   it("PanelAvisos se monta DENTRO de .pulso-f6-laminas en el vacío, para entrar en su grid", () => {

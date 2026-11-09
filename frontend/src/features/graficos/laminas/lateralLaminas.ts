@@ -47,7 +47,9 @@ export function lateralVisible(lateral: Lateral | null, otroPanelAbierto: boolea
  * R10-3: el informe vacío obedece la misma regla C1. Sin láminas no hay Inspector, así que el único lateral es la
  * Estructura; con Avisos abierto la Estructura se oculta (`is-sin-estructura`) y Avisos ocupa su columna junto al
  * vacío, en vez de superponerse al lienzo. Avisos se monta DENTRO de `.pulso-f6-laminas` para entrar en su grid.
+ * R11-2: siempre `is-sin-inspector`. Sin esa clase, `.is-sin-estructura:not(.is-sin-inspector)` reservaba la columna
+ * del Inspector (432 px a 1440) aunque no hubiera Inspector, y Avisos caía en una quinta columna implícita.
  */
 export function clasesLaminasVacia(otroPanelAbierto: boolean): string {
-  return `pulso-f6-laminas is-vacia${lateralVisible("estructura", otroPanelAbierto) === "estructura" ? "" : " is-sin-estructura"}`;
+  return `pulso-f6-laminas is-vacia${lateralVisible("estructura", otroPanelAbierto) === "estructura" ? "" : " is-sin-estructura"} is-sin-inspector`;
 }
