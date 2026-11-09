@@ -361,15 +361,24 @@
 
 # --- Tarjetas ----------------------------------------------------------------------------------------------------
 
-#' Cifra del público para la línea de un par: «78 %»
+#' Cifra del público para la línea de un par: «78%»
 #' @keywords internal
-.tpub_pct <- function(x) ifelse(is.finite(x), paste0(.pulso_round_half_up(round(x, 6), 0L), " %"), "—")
+.tpub_pct <- function(x) ifelse(is.finite(x), paste0(.pulso_round_half_up(round(x, 6), 0L), "%"), "—")
 
-#' Línea de un par marcado: «Docentes 78 % frente a Estudiantes 64 %: +14 pp ▲» (△ si es frágil)
+#' Espacio que no se parte: une el público a su cifra y la diferencia a su «pp ▲» al envolver la línea
+#' @keywords internal
+.TPUB_NBSP <- "\u00a0"
+
+#' Línea de un par marcado: «Docentes 78% frente a Estudiantes 64%: +14 pp ▲» (△ si es frágil)
+#'
+#' «Estudiantes 64%» y «+14 pp ▲» van unidos con espacios que no se parten (`.TPUB_NBSP`): la línea se envuelve entre
+#' esos bloques, nunca dentro. `.lam_lineas_tinta` corta por `\\s+`, que en UTF-8 no casa el espacio duro, así que mide
+#' cada bloque como una palabra.
 #' @keywords internal
 .tpub_linea_par <- function(etq_a, p_a, etq_b, p_b, dif_pp, fragil = FALSE) {
-  sprintf("%s %s frente a %s %s: %s%s pp %s", etq_a, .tpub_pct(p_a), etq_b, .tpub_pct(p_b), if (dif_pp >= 0) "+" else "",
-          format(dif_pp, trim = TRUE), if (isTRUE(fragil)) "△" else "▲")
+  nb <- .TPUB_NBSP
+  sprintf("%s%s%s frente a %s%s%s: %s%s%spp%s%s", etq_a, nb, .tpub_pct(p_a), etq_b, nb, .tpub_pct(p_b),
+          if (dif_pp > 0) "+" else "", format(dif_pp, trim = TRUE), nb, nb, if (isTRUE(fragil)) "△" else "▲")
 }
 
 #' Pares que se muestran (marcadas y, salvo `fragiles = "ocultar"`, frágiles), en el orden de la tarjeta

@@ -263,8 +263,8 @@ test_that("11. con dos públicos la tarjeta es la de dos grupos del ADR 0129 (si
 test_that("11b. con tres o más públicos, una línea por par marcado: 99 % primero, luego por diferencia, tope de cuatro", {
   r <- .tp_calc(.tp_arte(), .tp_vars_arte)
   t <- Filter(function(x) identical(x$fila, "salud"), r$tarjetas)[[1]]
-  expect_identical(t$lineas, c("Administrativos 86 % frente a Docentes 62 %: +24 pp ▲",
-                               "Estudiantes 84 % frente a Docentes 62 %: +22 pp ▲"))
+  expect_identical(t$lineas, c("Administrativos\u00a086% frente a Docentes\u00a062%: +24\u00a0pp\u00a0▲",
+                               "Estudiantes\u00a084% frente a Docentes\u00a062%: +22\u00a0pp\u00a0▲"))
   expect_false(grepl("«|»", paste(t$lineas, collapse = "")))   # comillas rectas en lo visible
   pares <- data.frame(veredicto = c("fragil", "marcada", "marcada", "marcada", "marcada", "marcada"),
                       p_a = c(90, 60, 70, 80, 75, 65), p_b = c(10, 50, 50, 50, 50, 50), stringsAsFactors = FALSE)
@@ -490,9 +490,9 @@ test_that("radar con tres públicos: tarjetas de líneas con los tres pares, 99 
     expect_false(any(te$ev$pares$a == ".resto"))
   }
   t <- Filter(function(z) identical(z$fila, "El servicio de salud es oportuno"), x$r$tarjetas)[[1]]
-  expect_identical(t$lineas, c("Administrativos 86 % frente a Estudiantes 38 %: +48 pp ▲",
-                               "Administrativos 86 % frente a Docentes 52 %: +34 pp ▲",
-                               "Docentes 52 % frente a Estudiantes 38 %: +14 pp △"))
+  expect_identical(t$lineas, c("Administrativos\u00a086% frente a Estudiantes\u00a038%: +48\u00a0pp\u00a0▲",
+                               "Administrativos\u00a086% frente a Docentes\u00a052%: +34\u00a0pp\u00a0▲",
+                               "Docentes\u00a052% frente a Estudiantes\u00a038%: +14\u00a0pp\u00a0△"))
   expect_true(isTRUE(t$sin_total)); expect_identical(t$tipo, "entre_publicos")
   # Tope de tarjetas: cinco temas con diferencias, cuatro tarjetas por defecto, de mayor a menor brecha y frágiles al final.
   expect_identical(x$r$total, 5L)
@@ -718,4 +718,13 @@ test_that("P4. la familia entre públicos cuenta cada PAR una vez: radar de tres
   # Un filtro distinto sí es otra comparación.
   rf <- .tp_lamina("p_radar", list(modo = "publicos", vars = .tp_vars6, corte = "3,4", filtros = list(p6 = c("3", "4"))), "rf")
   expect_gt(m_de(.tp_lamina_radar(), rf), 18L)
+})
+
+test_that("P5. la línea del par: «86%» sin espacio, y el público con su cifra y «+48 pp ▲» unidos por espacios duros", {
+  l <- .tpub_linea_par("Administrativos", 86.2, "Estudiantes", 37.9, 48)
+  expect_identical(l, "Administrativos 86% frente a Estudiantes 38%: +48 pp ▲")
+  expect_false(grepl(" %", l, fixed = TRUE))
+  # La medida de la tarjeta corta por espacios comunes: cada bloque unido es una sola palabra.
+  expect_identical(strsplit(l, "\\s+")[[1]], c("Administrativos 86%", "frente", "a", "Estudiantes 38%:", "+48 pp ▲"))
+  expect_identical(.tpub_linea_par("A", 50, "B", 40, 10, fragil = TRUE), "A 50% frente a B 40%: +10 pp △")
 })

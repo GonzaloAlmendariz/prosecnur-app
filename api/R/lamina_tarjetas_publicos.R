@@ -3,8 +3,8 @@
 # =============================================================================
 #
 # Con dos públicos la tarjeta es la de dos grupos del ADR 0129 sin fila Total (lamina_tarjetas_diferencias.R). Con tres o
-# más, debajo del antetítulo «ENTRE PÚBLICOS» y del tema, una línea por par marcado: «Docentes 78 % frente a Estudiantes
-# 64 %: +14 pp ▲» (△ y azul medio si es frágil). Las primitivas son las del backend de la tarjeta (`rect`, `txt`), así que
+# más, debajo del antetítulo «ENTRE PÚBLICOS» y del tema, una línea por par marcado: «Docentes 78% frente a Estudiantes
+# 64%: +14 pp ▲» (△ y azul medio si es frágil). Las primitivas son las del backend de la tarjeta (`rect`, `txt`), así que
 # el PPT y el Word la dibujan con el mismo código.
 
 #' Alto de una línea de par (in), con la tinta real de Arial y la holgura de la tarjeta
