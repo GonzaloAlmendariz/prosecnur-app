@@ -157,6 +157,11 @@
     if (!is.null(estilo)) .lam_perfil_dy(pregunta, w, estilo) else 0.22 * (.lam_panel_lineas(pregunta, w) - 1)
   } else 0
   con_pub <- !is.null(publico) && nzchar(publico)
+  # ADR 0139: el panorama, las fortalezas, la cobertura, el contraste y la escala del resumen en una ranura (lamina_resumen_ranura.R).
+  if (!is.na(.lam_rr_tipo(espec))) {
+    y_rr <- if (!is.null(pregunta) && nzchar(pregunta)) y + 0.3 + dy + (if (con_pub) 0.26 else 0) + 0.08 else y
+    return(.lam_rr_geo(espec, x, y_rr, w, fin - y_rr))
+  }
   rd <- receta$dicotomia
   wd <- if (isTRUE(rd$ancho_pleno)) w else w - 0.8
   if (identical(espec$tipo, "categorica") && .lam_dicotomia_cabe(espec, wd, con_n = FALSE)) {
@@ -255,6 +260,7 @@
     .lam_panel_titulo(lz, x, y, w, pregunta, publico, size = estilo$titulo_pt %||% .std_pt("pregunta"), align = estilo$titulo_align %||% "left")
   }
   geo <- .lam_panel_geo(espec, x, y, w, h, pregunta, publico, leyenda, receta = receta, estilo = estilo)
+  if (identical(geo$tipo, "resumen")) return(.lam_rr_dibujar(lz, espec, geo))
   if (identical(geo$tipo, "dicotomia")) {
     d <- .lam_dicotomia_datos(espec)
     if (identical(.lam_estilo_dicotomia(espec), "barra_estandar")) {
@@ -476,6 +482,7 @@
     if (isTRUE(mp)) enc$publicos[[k]] <- publicos_todos[[k]] else if (identical(mp, FALSE)) enc$publicos[k] <- list(NULL)
   }
   titulo <- texto(slots$title %||% slide$title) %||% ""
+  base <- .lam_rr_pie(base, especs)   # ADR 0139: base por grupo, sentido y regla de los gráficos de resumen (lamina_resumen_ranura.R)
   # O1 (ola 3): el respaldo se dibuja con su cajón real y su nota de diferencias va al pie (lamina_mixtas_respaldo_alto.R).
   r <- .lam_mixta_respaldos(especs, tipo, rendered, els, titulo_de_var, enc, titulo, redibujar, base_lamina = base)
   viejo <- options(prosecnur.lam_reserva_pie = r$reserva); on.exit(options(viejo), add = TRUE)

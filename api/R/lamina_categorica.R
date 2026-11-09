@@ -340,6 +340,8 @@
 #' exacta sólo sin peso (con peso la proporción es ponderada y los casos no).
 #' @keywords internal
 .espec_n_base <- function(espec) {
+  # ADR 0139: un gráfico de resumen (panorama, contraste, cobertura…) trae varios públicos, cada uno con su base; no hay un n.
+  if (!is.na(.lam_rr_tipo(espec))) return(NA_real_)
   if (identical(espec$tipo, "escala")) {
     # G8 (ola 2): la escala con cruce no trae un n por gráfico; la lámina de varios gráficos se lo pone desde su «Base:».
     nb <- suppressWarnings(as.numeric(espec[["n_base_casos"]] %||% NA_real_)[1])

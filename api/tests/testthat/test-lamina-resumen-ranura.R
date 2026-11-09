@@ -1,0 +1,106 @@
+source("setup-load-all.R")
+
+# Ítem 9 del checklist del catálogo (ADR 0139): el panorama, las fortalezas, la cobertura, el contraste de públicos, las
+# aperturas por grupo y la escala con Sin información aparte van como gráfico en las láminas de dos y de cuatro gráficos,
+# con piezas nativas. Antes la lámina entera caía a la plantilla anterior (rótulos montados) y el panorama tumbaba el
+# informe: `.espec_n_base` no sabía contar un gráfico de varios públicos.
+
+.rr_inst <- function() list(
+  survey = data.frame(name = c(paste0("p", 1:4), "ciclo"), type = c(rep("select_one lk", 4), "select_one ci"),
+                      list_name = c(rep("lk", 4), "ci"),
+                      label = c("Los reglamentos se aplican correctamente en todas las situaciones que son necesarias",
+                                "La biblioteca atiende las necesidades de información de los estudiantes",
+                                "El servicio de salud responde a tiempo", "La tutoría acompaña la formación", "Ciclo"),
+                      stringsAsFactors = FALSE),
+  choices = data.frame(list_name = c(rep("lk", 5), "ci", "ci"), name = c("1", "2", "3", "4", "9", "1", "2"),
+                       label = c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo", "Sin información",
+                                 "Segundo ciclo", "Cuarto ciclo"), stringsAsFactors = FALSE), orders_list = NULL)
+.rr_base <- function(acuerdo, n = 40) {
+  d <- as.data.frame(lapply(acuerdo, function(k) c(rep(c("3", "4"), length.out = k), rep(c("1", "2", "9"), length.out = n - k))),
+                     stringsAsFactors = FALSE)
+  names(d) <- paste0("p", seq_along(acuerdo)); d$ciclo <- rep(c("1", "2"), length.out = n); d
+}
+.rr_fuentes <- function() list(data_sources = list(docentes = .rr_base(c(36, 20, 32, 16)), estudiantes = .rr_base(c(30, 22, 14, 28))),
+                               inst_sources = list(docentes = .rr_inst(), estudiantes = .rr_inst()))
+.rr_graficos <- function() list(
+  panorama = list(graficador = "p_panorama", args = list(vars = list("docentes$*", "estudiantes$*"), corte = list("3", "4"))),
+  fortalezas = list(graficador = "p_fortalezas", args = list(vars = list("docentes$*"), corte = list("3", "4"), n = 2)),
+  cobertura = list(graficador = "p_cobertura", args = list(universos = "Docentes: 50; Estudiantes: 60", metas = "Docentes: 60%; Estudiantes: 60%")),
+  contraste = list(graficador = "p_dumbbell", args = list(bases = list("docentes", "estudiantes"), corte = list("3", "4"), estilo = "resumen",
+                                                          cruce = NULL, regla = list(tipo = "mayor_diferencia", n = 3))),
+  aperturas = list(graficador = "p_dumbbell", args = list(vars = list("estudiantes$*"), corte = list("3", "4"), estilo = "resumen",
+                                                          cruce = "estudiantes$ciclo", grupos = list("1", "2"),
+                                                          regla = list(tipo = "mayor_diferencia", n = 3))),
+  sin_informacion = list(graficador = "p_barras_divergentes", args = list(vars = list("docentes$*", "estudiantes$*"), estilo = "resumen",
+                                                                          regla = list(tipo = "mayor_sin_info", n = 4))))
+.rr_slides <- function(k, g) {
+  if (k == 2L) list(id = "s2", tipo = "p_slide_2_graficos", payload = list(titulo = "Dos gráficos", izquierda = g, derecha = g))
+  else list(id = "s4", tipo = "p_slide_4_graficos", payload = list(titulo = "Cuatro gráficos", superior_izquierda = g, superior_derecha = g,
+                                                                   inferior_izquierda = g, inferior_derecha = g))
+}
+.rr_render <- function(slide_raw, src = .rr_fuentes()) {
+  plan <- .normalize_plan(list(slides = list(slide_raw)), avisar = FALSE)
+  out <- withr::local_tempfile(fileext = ".pptx", .local_envir = parent.frame())
+  suppressWarnings(reporte_ppt_plan(data = src$data_sources, instrumento = src$inst_sources,
+                                    plan = p_plan(slides = list(.rebuild_slide(plan$slides[[1]]))), path_ppt = out, mensajes_progreso = FALSE))
+  .pptx_leer_parte(out, .pptx_slide_paths(out)[1])
+}
+
+test_that("los seis gráficos de resumen salen nativos en las láminas de dos y de cuatro gráficos, dentro de la lámina", {
+  for (nm in names(.rr_graficos())) for (k in c(2L, 4L)) {
+    xml <- .rr_render(.rr_slides(k, .rr_graficos()[[nm]]))
+    et <- paste(nm, k)
+    expect_identical(.pptx_lamina_estado(xml), "nativa", label = et)
+    expect_true(grepl('name="prosecnur:grafico:mixta"', xml, fixed = TRUE), label = et)
+    expect_false(grepl('name="mixta:respaldo"', xml, fixed = TRUE), label = et)
+    expect_false(grepl("<p:pic>", xml, fixed = TRUE), label = et)
+    # Nada se sale de la lámina (13.333 x 7.5 in).
+    fuera <- Filter(function(f) f$x < -0.01 || f$y < -0.01 || f$x + f$w > 13.34 || f$y + f$h > 7.51, .verif_formas(xml))
+    expect_length(fuera, 0L)
+  }
+})
+
+test_that("cada gráfico dibuja sus piezas y su nota va al pie de la lámina compuesta", {
+  pie <- function(xml) paste(gsub("</?a:t>", "", regmatches(xml, gregexpr("<a:t>[^<]*</a:t>", xml))[[1]]), collapse = " ")
+  x <- .rr_render(.rr_slides(4L, .rr_graficos()$panorama))
+  expect_true(grepl("Mediana del público", pie(x), fixed = TRUE))
+  expect_true(grepl("Cada marca es una pregunta (Top Two Box)", pie(x), fixed = TRUE))
+  x <- .rr_render(.rr_slides(2L, .rr_graficos()$contraste))
+  expect_true(grepl("Diferencia", pie(x), fixed = TRUE))
+  expect_true(grepl("Docentes − Estudiantes", pie(x), fixed = TRUE))
+  expect_true(grepl("Se muestran las 3 de mayor diferencia", pie(x), fixed = TRUE))
+  # Dos ranuras con el mismo gráfico: la regla va una sola vez en el pie.
+  expect_identical(lengths(regmatches(pie(x), gregexpr("Se muestran las 3", pie(x), fixed = TRUE))), 1L)
+  x <- .rr_render(.rr_slides(4L, .rr_graficos()$sin_informacion))
+  expect_true(grepl("Sin información", pie(x), fixed = TRUE))
+  expect_true(grepl('name="divergentes:centro"', x, fixed = TRUE))
+  x <- .rr_render(.rr_slides(4L, .rr_graficos()$fortalezas))
+  expect_true(grepl('name="fortalezas:barra"', x, fixed = TRUE))
+  x <- .rr_render(.rr_slides(4L, .rr_graficos()$cobertura))
+  expect_true(grepl('name="cobertura:barra_tasa"', x, fixed = TRUE))
+})
+
+test_that("un gráfico de varios públicos no tiene un n: cada público conserva su base", {
+  expect_true(is.na(.espec_n_base(list(tipo = "panorama", publicos = c("Docentes", "Estudiantes"), valores = list(1, 2)))))
+  expect_true(is.na(.espec_n_base(list(tipo = "contraste"))))
+  expect_true(is.na(.espec_n_base(list(tipo = "divergentes", estilo = "resumen"))))
+  expect_identical(.lam_rr_tipo(list(tipo = "divergentes")), NA_character_)   # la lámina 71 sigue su camino
+  expect_identical(.lam_rr_tipo(list(tipo = "divergentes", estilo = "resumen")), "divergentes_resumen")
+})
+
+test_that("la columna de rótulos crece con su tinta y recorta con «…» sólo cuando no cabe", {
+  corto <- .lam_rr_filas(c("Salud", "Tutoría"), 1.2, 2.4, 2, c(1, 1), 0.22, 0.45)
+  expect_false(corto$recortados > 0L); expect_equal(corto$wq, 1.2)
+  largo <- strrep("palabra larga ", 30)
+  r <- .lam_rr_filas(rep(largo, 4), 1.2, 2.4, 1.0, rep(1, 4), 0.22, 0.45)
+  expect_true(r$recortados > 0L); expect_equal(r$size, .LAM_ROTULO_PT_PISO)
+  expect_lte(sum(r$alturas), 1.0 + 1e-9)
+  expect_null(.lam_rr_filas(rep(largo, 40), 1.2, 2.4, 0.5, rep(1, 40), 0.22, 0.45))
+})
+
+test_that("el eje de una ranura angosta rotula una guía de cada dos", {
+  px <- function(v) v / 100 * 1.9
+  expect_identical(.lam_rr_eje_cada(px, c(lo = 30, hi = 100, paso = 10)), 3L)
+  px2 <- function(v) v / 100 * 9
+  expect_identical(.lam_rr_eje_cada(px2, c(lo = 30, hi = 100, paso = 10)), 1L)
+})

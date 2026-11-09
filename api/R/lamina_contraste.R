@@ -47,10 +47,13 @@
 
 #' Eje de porcentaje: guías verticales y su cifra debajo
 #' @keywords internal
-.lam_puntos_eje <- function(lz, px, eje, y0, y1) {
-  for (v in seq(eje[["lo"]], eje[["hi"]], by = eje[["paso"]])) {
+.lam_puntos_eje <- function(lz, px, eje, y0, y1, cada = 1L) {
+  vs <- seq(eje[["lo"]], eje[["hi"]], by = eje[["paso"]])
+  for (i in seq_along(vs)) {
+    v <- vs[i]
     .lam_caja(lz, px(v) - 0.003, y0, 0.006, y1 - y0, .std_color("cebra"), nombre = "puntos:guia")
-    .lam_txt(lz, paste0(format(v, trim = TRUE), "%"), px(v) - 0.4, y1 + 0.04, 0.8, 0.26, 9.5, .std_color("texto_suave"), align = "center", nombre = "puntos:eje")
+    # `cada`: en un área angosta (una ranura) se rotula una guía de cada `cada`, desde la primera.
+    if ((i - 1L) %% cada == 0L) .lam_txt(lz, paste0(format(v, trim = TRUE), "%"), px(v) - 0.4, y1 + 0.04, 0.8, 0.26, 9.5, .std_color("texto_suave"), align = "center", nombre = "puntos:eje")
   }
   .lam_caja(lz, px(eje[["lo"]]), y1 - 0.004, px(eje[["hi"]]) - px(eje[["lo"]]), 0.008, .std_color("filete"), nombre = "puntos:base_eje")
 }
