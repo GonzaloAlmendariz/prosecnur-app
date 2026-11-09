@@ -28,7 +28,7 @@
 #' caracteres, que sobrestima ~5 %). Si la fuente no se puede medir, estima.
 #' @keywords internal
 .leyenda_ancho_tinta <- function(s, size_pt, fuente = .std_pt("fuente")) {
-  medido <- tryCatch(systemfonts::string_width(s, family = fuente, size = size_pt, res = 72) / 72,
+  medido <- tryCatch(systemfonts::string_width(s, family = fuente, size = size_pt, res = .LAM_MEDIDA_RES) / .LAM_MEDIDA_RES,
                      error = function(e) NULL)
   if (is.numeric(medido) && length(medido) == length(s) && all(is.finite(medido))) return(medido)
   nchar(s, type = "width") * size_pt * 0.52 / 72

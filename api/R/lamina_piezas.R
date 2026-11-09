@@ -161,14 +161,22 @@
 
 # ---- medición de texto (recetario.R:41-48, 142) ------------------------------
 
-#' Ancho de tinta en pulgadas (systemfonts, Arial)
+#' Ancho de tinta en pulgadas (systemfonts, Arial): el medidor único de las láminas
+#'
+#' Gonzalo, 2026-11-09: «sobreestimas el tamaño de las etiquetas del eje, y demasiado». Se medía con `res = 72`: FreeType
+#' compone la letra en píxeles enteros y con hinting, así que 10.5 pt se medía como 11 pt (+5 %) y 12 pt quedaba un 2 %
+#' arriba. Medido contra el PDF de PowerPoint y de LibreOffice (18 rótulos de Arte a 10.5, 11 y 12 pt): con
+#' `.LAM_MEDIDA_RES` la tinta medida difiere de la compuesta en menos del 2 % (antes, hasta 5 %). `.lam_ancho_txt`, la
+#' cuenta por caracteres (0.52 em), sobraba más de un 10 % en rótulos y ahora mide lo mismo.
 #' @keywords internal
+.LAM_MEDIDA_RES <- 7200
 .lam_ancho_tinta <- function(s, size, bold = FALSE) {
   # Sin textos no hay tinta que medir: systemfonts no admite un vector vacío (o NULL) y abortaba la lámina vacía.
   if (!length(s)) return(numeric(0))
-  systemfonts::string_width(s, family = .std_pt("fuente"), size = size, res = 72, bold = bold) / 72
+  s <- as.character(s); s[is.na(s)] <- ""
+  systemfonts::string_width(s, family = .std_pt("fuente"), size = size, res = .LAM_MEDIDA_RES, bold = bold) / .LAM_MEDIDA_RES
 }
-.lam_ancho_txt <- function(s, size, bold = FALSE) nchar(s) * size * (if (bold) 0.56 else 0.52) / 72
+.lam_ancho_txt <- function(s, size, bold = FALSE) .lam_ancho_tinta(as.character(s), size, bold)
 .lam_lineas <- function(s, w, size, bold = FALSE) max(1, ceiling(.lam_ancho_txt(s, size, bold) / (w - 0.2)))
 .lam_alto_txt <- function(s, w, size, bold = FALSE) .lam_lineas(s, w, size, bold) * size * 1.2 / 72 + 0.1
 #' Líneas que compone un cuadro de texto: corte por palabras (greedy, como PowerPoint) sobre el ancho útil `w - 0.2`

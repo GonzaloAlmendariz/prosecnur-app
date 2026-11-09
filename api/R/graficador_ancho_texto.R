@@ -58,11 +58,11 @@
   # es justo lo que el estimado por caracter no puede saber: una etiqueta de
   # cifras y espacios es mucho mas angosta que una de mayusculas.
   w <- tryCatch(
-    systemfonts::string_width(t, family = family, size = pt),
+    systemfonts::string_width(t, family = family, size = pt, res = .LAM_MEDIDA_RES),
     error = function(e) NULL
   )
   if (is.null(w) || length(w) != length(t)) return(rep(NA_real_, length(t)))
-  out <- suppressWarnings(as.numeric(w) / 72)
+  out <- suppressWarnings(as.numeric(w) / .LAM_MEDIDA_RES)   # el medidor de las láminas (lamina_piezas.R)
   out[!is.finite(out)] <- NA_real_
   out
 }
