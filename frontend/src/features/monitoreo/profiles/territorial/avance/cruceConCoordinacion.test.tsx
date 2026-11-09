@@ -21,7 +21,7 @@ const ump = (sexo: Array<[string, number]>, edad: Array<[string, number]>) => ({
 }) as unknown as UmpPlanificada;
 
 describe("cruce con coordinación", () => {
-  it("empareja H/M con Hombre/Mujer y «18 a 29» con «18-29»", () => {
+  it('empareja H/M con Hombre/Mujer y "18 a 29" con "18-29"', () => {
     expect(claveDeCelda("H", "Sexo")).toBe(claveDeCelda("Hombre", "Sexo"));
     expect(claveDeCelda("18 a 29", "Edad")).toBe(claveDeCelda("18-29", "Edad"));
     expect(claveDeCelda("60 o más", "Edad")).toBe(claveDeCelda("60+", "Edad"));
@@ -53,7 +53,7 @@ describe("cruce con coordinación", () => {
     expect(m.marginales[0].celdas.find((c) => c.celda === "Mujer")).toMatchObject({ coordinacion: 2, kobo: 2, diferencia: 0 });
   });
 
-  it("un marginal no evaluable se muestra sin diferencias y no cuenta como «no cuadra»", () => {
+  it('un marginal no evaluable se muestra sin diferencias y no cuenta como "no cuadra"', () => {
     const sinEdad = { ...cruce, age_evaluable: false } as TerritorialQuotaObservedCross;
     const m = construirCruceConCoordinacion(sinEdad, ump([["H", 3]], [["18 a 29", 4]]));
     if (m.estado !== "listo") throw new Error("debía estar listo");

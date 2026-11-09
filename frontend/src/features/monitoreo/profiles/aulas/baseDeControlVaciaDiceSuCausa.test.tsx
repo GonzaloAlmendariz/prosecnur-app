@@ -47,7 +47,7 @@ describe("la base de control vacía dice cuál de las dos causas es", () => {
     expect(html).not.toContain("no ha importado el libro del operativo");
   });
 
-  it("«Sin datos» ya no es la respuesta: era el pie que no decía nada", () => {
+  it('"Sin datos" ya no es la respuesta: era el pie que no decía nada', () => {
     expect(pintar({ libro: null } as never)).not.toContain(">Sin datos<");
   });
 });

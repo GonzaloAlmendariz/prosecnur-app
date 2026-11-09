@@ -19,7 +19,7 @@ const celda = (extra: Record<string, unknown>) => ({
   ...extra,
 }) as never;
 
-describe("la proyección distingue «ya llegó» de «no se pudo medir»", () => {
+describe('la proyección distingue "ya llegó" de "no se pudo medir"', () => {
   it("sin aporte pendiente dice que ya llegó, no que falte un dato", () => {
     const html = renderToStaticMarkup(<AulasAvanceProyectado celdas={[celda({ aporte_pendiente: 0 })]} />);
     expect(html).toContain("ya llegó");

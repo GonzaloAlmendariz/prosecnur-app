@@ -86,7 +86,7 @@ describe("los tres tramos", () => {
   });
 });
 
-describe("el gráfico no puede llamar «agendadas» a lo que no lo es", () => {
+describe('el gráfico no puede llamar "agendadas" a lo que no lo es', () => {
   // Medido el 2026-08-29 sobre `aulas_con_respuestas.pulso`: la tarjeta decía
   // «Cierran con lo agendado: 0 de 30» y el gráfico de al lado, sobre esas
   // mismas 30 celdas, enseñaba seis sin déficit. Parecía una contradicción y no
@@ -110,7 +110,7 @@ describe("el gráfico no puede llamar «agendadas» a lo que no lo es", () => {
     "utf8",
   );
 
-  it("ninguna etiqueta visible del gráfico dice «agendad-»", () => {
+  it('ninguna etiqueta visible del gráfico dice "agendad-"', () => {
     // Sólo las cadenas que ve el usuario. El gráfico pasó de Plotly a barras
     // CSS (dictado 2026-09-03: chips por facultad y sexo, hover propio), así
     // que las etiquetas visibles ya no viven en `name:`/`hovertemplate:` sino
@@ -146,7 +146,7 @@ describe("el pie del gráfico cuenta las facultades que ponen déficit", () => {
     "utf8",
   );
 
-  it("el «repartido en» no usa el total de filas", () => {
+  it('el "repartido en" no usa el total de filas', () => {
     // `filas.length` en esa frase es justo el defecto: cuenta las cerradas.
     // El ancla se comprueba antes de usarla: si el texto se renombra,
     // `indexOf` devuelve -1, `slice(-1)` deja «\n» y el fallo sale como
@@ -155,7 +155,7 @@ describe("el pie del gráfico cuenta las facultades que ponen déficit", () => {
     const ancla = "Aplicando todos los cursos-horario";
     expect(
       fuenteChart.includes(ancla),
-      `el pie del gráfico ya no empieza por «${ancla}»: actualiza el ancla de este test`,
+      `el pie del gráfico ya no empieza por "${ancla}": actualiza el ancla de este test`,
     ).toBe(true);
     const pie = fuenteChart.slice(fuenteChart.indexOf(ancla));
     expect(pie).toContain("fmt(conDeficit)");

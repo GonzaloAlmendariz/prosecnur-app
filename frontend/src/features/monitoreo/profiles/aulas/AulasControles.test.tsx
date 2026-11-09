@@ -120,7 +120,7 @@ describe("AulasControles y la facultad de cada caso", () => {
     expect(html).toContain("DERECHO");
   });
 
-  it("se calla cuando el plan no la trae, en vez de inventar «Sin facultad»", () => {
+  it('se calla cuando el plan no la trae, en vez de inventar "Sin facultad"', () => {
     const html = renderToStaticMarkup(<AulasControles filas={filas} />);
     expect(html).toContain("CH 31");
     expect(html).not.toContain("Sin facultad");

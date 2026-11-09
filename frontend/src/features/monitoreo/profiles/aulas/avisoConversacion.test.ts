@@ -127,7 +127,7 @@ describe("avisoConversacion", () => {
     const res = avisoConversacion({
       conversado: false,
       motivo: "lectura_fallo",
-      mensaje: "HTTP 403 al leer «Aulas Agendadas».",
+      mensaje: 'HTTP 403 al leer "Aulas Agendadas".',
     });
     expect(res?.tono).toBe("atencion");
     expect(res?.texto).toContain("HTTP 403");
@@ -219,7 +219,7 @@ describe("avisoConversacion", () => {
  * publicador lee la celda que escribe y manda el código en el recibo; sin este
  * aviso, ese dato moriría camino a la pantalla.
  */
-describe("el aviso cuando el «Plan del día» queda en error", () => {
+describe('el aviso cuando el "Plan del día" queda en error', () => {
   const conversacion = (extra: Record<string, unknown>) =>
     ({
       conversado: true,
@@ -238,7 +238,7 @@ describe("el aviso cuando el «Plan del día» queda en error", () => {
 
   it("sin error no inventa el aviso", () => {
     const aviso = avisoConversacion(conversacion({ plan_dia_formula_error: "" }));
-    expect(aviso?.texto ?? "").not.toContain("Plan del día» quedó");
+    expect(aviso?.texto ?? "").not.toContain('Plan del día" quedó');
   });
   it("sin_construir manda a Material, que es quien construye el libro (ADR 0125)", () => {
     const aviso = avisoConversacion({ conversado: false, motivo: "sin_construir", mensaje: "x" } as MonitoreoAulasLibroConversacion);

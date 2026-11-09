@@ -325,7 +325,7 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], ba
         llamar sin que la facultad se quede parada: se cuenta desde el día en que
         se le acaba la agenda, restando los <strong>{DIAS_DE_ANTICIPACION} días</strong>{" "}
         que pasaron de mediana entre llamar a un curso-horario y aplicarlo, también en 2025.
-        {hayReservaAdicional ? " «Reserva adicional» son los cursos-horario extra de esa facultad que siguen sin usarse." : ""}
+        {hayReservaAdicional ? ' "Reserva adicional" son los cursos-horario extra de esa facultad que siguen sin usarse.' : ""}
       </p>
     </div>
   );

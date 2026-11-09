@@ -116,7 +116,7 @@ export function AulasComoMideElEstudio({
                 disabled={!onGuardar || guardando || veto || puesta}
                 onClick={() => setEjePropuesto(d.clave)}
                 title={veto
-                  ? `«${d.etiqueta}» se resuelve por el código del alumno y no hay padrón cargado: todas las respuestas quedarían sin valor.`
+                  ? `"${d.etiqueta}" se resuelve por el código del alumno y no hay padrón cargado: todas las respuestas quedarían sin valor.`
                   : puesta ? "Es el eje vigente" : `Medir la cuota por ${d.etiqueta.toLocaleLowerCase("es")}`}
               >
                 {puesta ? <Check size={13} aria-hidden="true" /> : null}
@@ -194,7 +194,7 @@ export function AulasComoMideElEstudio({
         <span className="aulas-como-mide-rotulo">Desde cuándo esto es campo</span>
         <p className="aulas-como-mide-nota">
           Lo recogido antes de esa fecha es ensayo —capacitación, pruebas del
-          enlace— y sale por «Fuera del operativo». Hace falta porque los
+          enlace— y sale por "Fuera del operativo". Hace falta porque los
           descartes de arriba casan valores del colector, y una prueba abierta
           con el enlace del formulario no trae ninguno.
         </p>

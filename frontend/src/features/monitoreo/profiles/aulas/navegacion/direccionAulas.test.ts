@@ -76,7 +76,7 @@ describe("dirección pública del modo cursos-horario", () => {
     }
   });
 
-  it("monta, para cada pestaña pública, la vista que absorbe (columna «Absorbe de hoy»)", () => {
+  it('monta, para cada pestaña pública, la vista que absorbe (columna "Absorbe de hoy")', () => {
     const esperado: Record<string, string> = {
       "insumos/fuentes": "fuentes/",
       "insumos/reglas": "fuentes/",

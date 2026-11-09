@@ -114,7 +114,7 @@ export function BarridoVista({ modelo, tarjetas, fuentes }: PropsDeVista) {
                   <Celda valor={modelo.soloPlataforma} rotulo="Solo en la plataforma" tono="diferencia" />
                   <Celda valor={null} rotulo="Fuera del cruce" tono="fuera" />
                 </div>
-              ) : <VacioDeBloque icono={<GitMerge size={15} />} titulo="El corte no trae el cruce del barrido con la plataforma." descripcion="Sale de «Operación por responsable» al actualizar." />}
+              ) : <VacioDeBloque icono={<GitMerge size={15} />} titulo="El corte no trae el cruce del barrido con la plataforma." descripcion='Sale de "Operación por responsable" al actualizar.' />}
             </section>
             {tarjeta && canales.length ? (
               <section className="acr-av-panel" aria-label={`Efectivas de ${tarjeta.actor} por canal`}>

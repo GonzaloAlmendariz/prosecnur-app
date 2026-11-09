@@ -80,7 +80,7 @@ describe("el contrato de superficie del perfil de aulas", () => {
       [...texto.matchAll(/data-qa-geometry-contract="([^"]*)"/g)]
         .map((m) => m[1])
         .filter((v) => v !== "equal" && v !== "intrinsic")
-        .map((v) => `${archivo}: «${v}»`)
+        .map((v) => `${archivo}: "${v}"`)
     ));
     expect(raros, `contrato inválido: ${raros.join(" · ")}`).toEqual([]);
   });

@@ -347,7 +347,7 @@ export function AulasPestanaResumen({
                     || avanceEnRespuestas(aulaRows as unknown as MonitoreoAulasPlanRow[]).meta,
                   )} respuestas: lo que se le pide a cada uno de los {fmt(aulaRows.length)}{" "}
                   cursos-horario, sumado. Lo que sobra en uno no cubre lo que falta en otro,
-                  así que exige más que el «Avance a la muestra» de arriba
+                  así que exige más que el "Avance a la muestra" de arriba
               </>}
             >
 

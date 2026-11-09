@@ -26,7 +26,7 @@ function pintar(foco: FocoDeCuota, onFoco: (f: FocoDeCuota) => void = () => {}) 
 }
 
 describe("AulasSelectorDeFoco: el eje", () => {
-  it("ofrece «todas» y una opción por valor del eje", () => {
+  it('ofrece "todas" y una opción por valor del eje', () => {
     const html = pintar(null);
     expect(html).toContain("Todos: Facultades");
     // Los nombres se pintan con la etiqueta del perfil, no crudos: es lo que
@@ -35,7 +35,7 @@ describe("AulasSelectorDeFoco: el eje", () => {
     expect(html).toContain("Derecho");
   });
 
-  it("marca «Todas» sólo cuando no hay nada en foco", () => {
+  it('marca "Todas" sólo cuando no hay nada en foco', () => {
     expect(pintar(null)).toContain("is-activa");
     // Con uno elegido, «Todas» deja de estar activa: es el botón que lo suelta,
     // y marcarlo siempre haría creer que se está viendo todo.

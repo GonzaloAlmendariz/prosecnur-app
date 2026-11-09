@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { porQueEsaMeta, tiposDeDocente } from "./porQueEsaMeta";
 
 describe("tiposDeDocente", () => {
-  it("parte por «|» y NUNCA por « - »", () => {
+  it('parte por "|" y NUNCA por " - "', () => {
     // El separador « - » es INTERNO de cada tipo —«DOCENTE ORDINARIO -
     // PRINCIPAL»—, así que partir por él convertiría un docente en dos. La
     // sesión de cálculo de muestra avisó de este matiz antes de que pasara.
@@ -78,7 +78,7 @@ describe("porQueEsaMeta", () => {
     expect(porQueEsaMeta({ eligible_n: 24, expected_valid: 24 })).toBeNull();
     expect(porQueEsaMeta({ eligible_n: 0, p_aplicada_ref: 0.7, rendimiento_ref: 0.7, expected_valid: 0 })).toBeNull();
   });
-  it("la ecuación condicional del rediseño «1b» se explica sin p_aplicada", () => {
+  it('la ecuación condicional del rediseño "1b" se explica sin p_aplicada', () => {
     // Aviso de la sesión de Cálculo de muestra (2026-08-20): el esperado pasa a
     // ser `elegibles × R(tramo) × F(facultad)`; el tipo de docente salió con
     // evidencia y `p_aplicada_ref` queda como dato operativo. Los bins de

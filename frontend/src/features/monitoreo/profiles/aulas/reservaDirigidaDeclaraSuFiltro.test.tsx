@@ -19,7 +19,7 @@ const celda = (brecha: number) => ({
 }) as never;
 
 describe("la reserva dirigida dice sobre qué actúa", () => {
-  it("nombra el déficit proyectado, no «lo que hoy no llega»", () => {
+  it('nombra el déficit proyectado, no "lo que hoy no llega"', () => {
     const html = renderToStaticMarkup(<AulasReservaDirigida celdas={[celda(1)]} porDebajoHoy={9} />);
     expect(html).toContain("con déficit proyectado");
     expect(html).not.toContain("que hoy no llega");

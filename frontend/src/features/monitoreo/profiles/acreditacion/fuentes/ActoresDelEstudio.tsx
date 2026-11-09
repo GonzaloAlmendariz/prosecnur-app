@@ -173,7 +173,7 @@ export function ActoresDelEstudio({
                       <span className="is-invalid"><AlertTriangle size={12} /> Ya hay otro actor con este nombre.</span>
                     ) : renombrado ? (
                       <span className="is-pending">
-                        Al guardar, «{fila.guardadoComo}» pasa a llamarse así en {conFuentes === 1 ? "su única fuente" : `sus ${conFuentes} fuentes`}.
+                        Al guardar, "{fila.guardadoComo}" pasa a llamarse así en {conFuentes === 1 ? "su única fuente" : `sus ${conFuentes} fuentes`}.
                       </span>
                     ) : faltan.length ? (
                       <span className="is-missing">{enumerar(faltan)}</span>

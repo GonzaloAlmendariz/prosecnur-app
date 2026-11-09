@@ -98,7 +98,7 @@ describe("calcularCarga anota quiénes ocupan cada celda", () => {
     });
   });
 
-  it("«cierre» del libro se lee como el momento final; lo no acordado queda vacío", () => {
+  it('"cierre" del libro se lee como el momento final; lo no acordado queda vacío', () => {
     const conCierre = calcularCarga(
       [aula({
         classroom_id: "c", operational_code: "CH 9", sesiones_dia_hora: "LUN 10:00-12:00",
@@ -179,7 +179,7 @@ describe("citasDeLaFila — el parte del día entero (B37)", () => {
 });
 
 describe("pabellonesDeLasCitas — a qué edificios se va ese día", () => {
-  it("cuenta por letra, ordena por volumen y declara «otros» sin tragar", () => {
+  it('cuenta por letra, ordena por volumen y declara "otros" sin tragar', () => {
     const cita = (lugar: string) => ({
       codigo: "x", docente: "", lugar, facultad: "", confirmada: true,
       fecha: "", hora: "", rango: "", recojo: "", salida: "", momento: "" as const,

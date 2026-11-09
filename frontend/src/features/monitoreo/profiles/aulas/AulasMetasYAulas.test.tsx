@@ -20,7 +20,7 @@ const fila = (extra: Partial<MonitoreoAulasProyeccionFila> = {}): MonitoreoAulas
   ...extra,
 });
 
-describe("«Metas y aulas»", () => {
+describe('"Metas y aulas"', () => {
   it("cada facultad trae sus dos carriles y sus aulas", () => {
     const html = renderToStaticMarkup(<AulasMetasYAulas filas={[fila()]} />);
     expect(html).toContain("DERECHO");
@@ -29,7 +29,7 @@ describe("«Metas y aulas»", () => {
     expect(html).toContain("3 cursos-horario aplicados");
   });
 
-  it("la brecha negativa se dice «faltan», no con un signo que hay que interpretar", () => {
+  it('la brecha negativa se dice "faltan", no con un signo que hay que interpretar', () => {
     const html = renderToStaticMarkup(<AulasMetasYAulas filas={[fila()]} />);
     // Hombres: 17 + 63 = 80 contra 126 → faltan 46.
     expect(html).toContain("faltan 46");
@@ -55,7 +55,7 @@ describe("«Metas y aulas»", () => {
     expect(html).toMatch(/width:96\.\d+%/);
   });
 
-  it("una proyección que el motor no pudo calcular sale «—», no cero", () => {
+  it('una proyección que el motor no pudo calcular sale "—", no cero', () => {
     const html = renderToStaticMarkup(
       <AulasMetasYAulas filas={[fila({ proyectadas_M: null, proyectadas_F: null })]} />,
     );
@@ -122,7 +122,7 @@ describe("cambiar de tasa no puede mover lo que no cambia", () => {
   });
 });
 
-describe("«N agendados» con su detalle (2026-09-24)", () => {
+describe('"N agendados" con su detalle (2026-09-24)', () => {
   it("el disparo nombra la cifra y sin detalle queda la cifra sola", async () => {
     const { AulasAgendadasDeLaFila } = await import("./AulasAgendadasDeLaFila");
     const { renderToStaticMarkup } = await import("react-dom/server");

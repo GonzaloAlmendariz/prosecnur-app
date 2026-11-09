@@ -248,7 +248,7 @@ function vistaPreviaDe(tablas: EntradaDeSalidas["tablas"], error: string, sinPla
   if (sinPlan) return { tipo: "vacio", vacio: { clase: "legitimo", causa: sinPlan } };
   if (error) return { tipo: "vacio", vacio: { clase: "desconexion", causa: `No se pudo armar la vista previa: ${error}` } };
   const tabla = tablas.find((t) => t.clave === "facultad");
-  if (!tabla) return { tipo: "vacio", vacio: { clase: "desconexion", causa: "El corte no trae la tabla por facultad de «Avance de campo»." } };
+  if (!tabla) return { tipo: "vacio", vacio: { clase: "desconexion", causa: 'El corte no trae la tabla por facultad de "Avance de campo".' } };
   if (!tabla.filas.length) {
     return { tipo: "vacio", vacio: { clase: "legitimo", causa: texto(tabla.vacio) || "Todavía no hay filas por facultad." } };
   }

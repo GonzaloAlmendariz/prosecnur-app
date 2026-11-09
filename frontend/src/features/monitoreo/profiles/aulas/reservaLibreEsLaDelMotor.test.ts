@@ -30,8 +30,8 @@ const titular = (codigo: string) => ({
 const libresDe = (filas: MonitoreoAulasPlanRow[]) =>
   colchonPorFacultad(filas).reduce((n, f) => n + Number(f.libres ?? 0), 0);
 
-describe("«reserva libre» es la definición del motor, no una propia", () => {
-  it("cuenta libres los dos estados que faltaban: «-» y «planificada»", () => {
+describe('"reserva libre" es la definición del motor, no una propia', () => {
+  it('cuenta libres los dos estados que faltaban: "-" y "planificada"', () => {
     // Con la lista vieja, estas dos salían como gastadas.
     expect(libresDe([titular("CH 1"), reserva("CH 1", "-")])).toBe(1);
     expect(libresDe([titular("CH 2"), reserva("CH 2", "planificada")])).toBe(1);

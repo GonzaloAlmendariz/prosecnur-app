@@ -33,7 +33,7 @@ export function CatalogoDeEncuestas({
             <strong>{item.nombre}</strong>
             <em>{detalleDelCatalogo(item)}</em>
           </button>
-        )) : <p className="fuentes-conectar-pista">{servicio === "kobo" ? "Ningún formulario" : "Ninguna encuesta"} coincide con «{busqueda}».</p>}
+        )) : <p className="fuentes-conectar-pista">{servicio === "kobo" ? "Ningún formulario" : "Ninguna encuesta"} coincide con "{busqueda}".</p>}
       </div>
     </>
   );

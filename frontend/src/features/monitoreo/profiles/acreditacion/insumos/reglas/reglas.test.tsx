@@ -51,8 +51,8 @@ describe("Insumos › Reglas", () => {
 
   it("dice las reglas de efectiva en frases", () => {
     expect(frasesDeEfectiva(config.monitoreo_profile)).toEqual([
-      "Si la pregunta «q0001» se responde «No», la respuesta cuenta como rechazo.",
-      "Se excluyen como prueba las respuestas con Es prueba igual a «Sí».",
+      'Si la pregunta "q0001" se responde "No", la respuesta cuenta como rechazo.',
+      'Se excluyen como prueba las respuestas con Es prueba igual a "Sí".',
     ]);
   });
 

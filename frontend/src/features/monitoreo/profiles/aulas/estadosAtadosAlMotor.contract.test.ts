@@ -55,7 +55,7 @@ describe("los estados dormidos del frontend son los del motor", () => {
  * no. Atarlas es lo que impide que la próxima corrección se aplique en un lado.
  */
 describe("los estados que liberan una cadena son los del motor", () => {
-  it("la lista del motor se lee y trae «parcial», que es la decisión que la creó", () => {
+  it('la lista del motor se lee y trae "parcial", que es la decisión que la creó', () => {
     const motor = aplicadosDelMotor();
     expect(motor.length).toBeGreaterThan(2);
     expect(motor).toContain("parcial");

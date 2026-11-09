@@ -51,7 +51,7 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         El libro todavía no evalúa ningún curso-horario, así que no se puede decir
         cuáles se quedaron cortas. El veredicto sale de las dos columnas de
-        umbral de «Base de control».
+        umbral de "Base de control".
       </p>
     );
   }
@@ -76,7 +76,7 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         {fmt(r.noEfectivas)} cursos-horario no alcanzaron su meta, pero el libro
         no trae con qué calcular cuánto les falta: hace falta cuántas efectivas
-        consiguió cada uno (columna «EFECTIVAS OBTENIDAS»).
+        consiguió cada uno (columna "EFECTIVAS OBTENIDAS").
       </p>
     );
   }

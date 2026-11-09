@@ -39,7 +39,7 @@ describe("cuándo pedir un aula adicional", () => {
     expect(MINIMO_PARA_COMPARAR).toBeGreaterThan(1);
   });
 
-  it("una facultad que YA avisa no se manda a «sin base» por tener pocas aulas", () => {
+  it('una facultad que YA avisa no se manda a "sin base" por tener pocas aulas', () => {
     // El aviso vale igual: si con dos aulas ni el extremo optimista cierra su
     // cuota, el problema es de tamaño y no de ruido.
     const a = cuandoPedirAulaAdicional(bloque([

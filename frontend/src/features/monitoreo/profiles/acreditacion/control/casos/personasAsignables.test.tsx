@@ -50,7 +50,7 @@ describe("usePersonasAsignables", () => {
   });
   afterEach(() => vaciarPersonasAsignables());
 
-  test("arranca «cargando» y decodifica el transporte en columnas", async () => {
+  test('arranca "cargando" y decodifica el transporte en columnas', async () => {
     respuesta = () => new Promise(() => undefined);
     const raiz = await montar({ clave: "docentes", corte: {} });
     expect(ultimo?.estado).toBe("cargando");

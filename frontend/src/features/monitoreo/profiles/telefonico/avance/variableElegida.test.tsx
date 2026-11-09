@@ -46,7 +46,7 @@ describe("R5 paso 2: la variable de cuota se elige y la dirección la guarda", (
   });
 });
 
-describe("la variable elegida trae su propia serie diaria (no «Sin serie diaria»)", () => {
+describe('la variable elegida trae su propia serie diaria (no "Sin serie diaria")', () => {
   it("con Sexo elegido, cada tarjeta de sexo lleva sus puntos por día", () => {
     const reports = {
       sheets: [{ id: "monitoreo_telefonico", title: "Telefónico", blocks: [

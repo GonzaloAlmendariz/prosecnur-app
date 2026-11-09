@@ -19,7 +19,7 @@ const titular = (sample_status: string, operational_status: string): MonitoreoRo
 const muchos = (n: number, s: string, o: string) => Array.from({ length: n }, () => titular(s, o));
 
 describe("el denominador son los desenlaces, no los titulares", () => {
-  it("un titular todavía agendado no cuenta como «no cayó»", () => {
+  it('un titular todavía agendado no cuenta como "no cayó"', () => {
     // Contarlo abajo hunde la tasa a mitad de campo, justo cuando la
     // comparación tendría que servir para algo.
     const c = caidaObservada([
@@ -32,7 +32,7 @@ describe("el denominador son los desenlaces, no los titulares", () => {
     expect(c.tasa).toBeCloseTo(0.25, 5);
   });
 
-  it("un titular reemplazado cuenta aunque su circuito diga «planificada»", () => {
+  it('un titular reemplazado cuenta aunque su circuito diga "planificada"', () => {
     // Nunca llegó a salir, así que conserva ese estado. Comprobar la caída
     // DESPUÉS del circuito dejaría los 24 caídos del fixture como pendientes.
     const c = caidaObservada(muchos(25, "reemplazada", "planificada"));
@@ -67,7 +67,7 @@ describe("no se declara diferencia hasta que la haya", () => {
     expect(c.direccion).toBeNull();
   });
 
-  it("dentro del margen tampoco se dice «va igual»", () => {
+  it('dentro del margen tampoco se dice "va igual"', () => {
     // 12 de 100 es 12 %, casi exactamente el supuesto (21/170 = 12,4 %).
     // Afirmar que va igual seria afirmar algo que la evidencia no distingue
     // de la casualidad.
@@ -117,7 +117,7 @@ describe("la lista cerrada va del lado de los pendientes", () => {
     expect(c.caidas).toBe(0);
   });
 
-  it("«en reserva 3» sí es pendiente, en las dos escrituras del Excel", () => {
+  it('"en reserva 3" sí es pendiente, en las dos escrituras del Excel', () => {
     const c = caidaObservada([
       ...muchos(20, "agendada", "aplicada"),
       ...muchos(9, "agendada", "en reserva 3"),

@@ -50,7 +50,7 @@ describe("el orden canónico es por facultad, y dentro por sexo", () => {
     expect(clave(r)).toEqual(["DERECHO·F", "PSICOLOGÍA·F"]);
   });
 
-  it("«Mujeres»/«Hombres» ordenan igual que «F»/«M»", () => {
+  it('"Mujeres"/"Hombres" ordenan igual que "F"/"M"', () => {
     const r = ordenarPorFacultadYSexo([celda("DERECHO", "Hombres"), celda("DERECHO", "Mujeres")]);
     expect(clave(r)).toEqual(["DERECHO·Mujeres", "DERECHO·Hombres"]);
   });

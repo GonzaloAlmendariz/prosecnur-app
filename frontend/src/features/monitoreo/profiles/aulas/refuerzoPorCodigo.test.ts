@@ -39,7 +39,7 @@ describe("pedir un refuerzo por código", () => {
     expect(v.motivo).toContain("AGENDADA");
   });
 
-  it("distingue «ya pedida» de «no se puede pedir»", () => {
+  it('distingue "ya pedida" de "no se puede pedir"', () => {
     // Son dos noticias distintas: una es que ya está hecho, la otra que no
     // se puede. Fundirlas manda a revisar algo que está bien.
     const v = diagnostica("R 23.4", [fila({ sample_status: "REFUERZO POR CONTACTAR" })]);

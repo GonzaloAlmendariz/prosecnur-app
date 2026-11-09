@@ -157,7 +157,7 @@ export function AulasFichaDeAula({ codigo, fuentes, onCerrar, onRegistrar }: {
       )}
 
       {ficha.parte.observacion ? (
-        <p className="aulas-ficha-nota">«{ficha.parte.observacion}»</p>
+        <p className="aulas-ficha-nota">"{ficha.parte.observacion}"</p>
       ) : null}
 
       {/* **El puente a la acción.** La ficha dice lo que pasó con el aula; lo

@@ -46,7 +46,7 @@ describe("la insignia de Avance lleva su base", () => {
     expect(html).toContain("title=\"Avance: 106 %, 423 efectivas de una meta de 400\nCuotas, ritmo y entregas\"");
   });
 
-  it("un conteo suelto sigue siendo texto y el tooltip no encadena con «·»", () => {
+  it('un conteo suelto sigue siendo texto y el tooltip no encadena con "·"', () => {
     const html = render({ control: "23" });
     expect(html).toContain('<span class="mon-pill-metric-valor">23</span>');
     expect(html).not.toContain("mon-pill-metric-base");

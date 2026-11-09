@@ -100,7 +100,7 @@ describe("decisión del caso: las reglas de siempre", () => {
 });
 
 describe("avisos del motor en el caso", () => {
-  it("se publican sin la explicación que encadenan tras «;»", () => {
+  it('se publican sin la explicación que encadenan tras ";"', () => {
     const aviso = "Hay personas pendientes del universo con correo, código o nombre compatible; revisa estos casos antes de publicar la lista de no respuesta.";
     expect(avisoSinExplicacion(aviso)).toBe("Hay personas pendientes del universo con correo, código o nombre compatible.");
     expect(avisoSinExplicacion("El código declarado no coincide con el código de la persona encontrada por correo.")).toBe(
@@ -168,7 +168,7 @@ describe("el padrón llega aparte del caso (ya no viaja con queries_summary)", (
     expect(modelo.candidatoId).toBe("p-287");
   });
 
-  it("«lo que encontró el motor» es sólo lo del caso, no el padrón entero", () => {
+  it('"lo que encontró el motor" es sólo lo del caso, no el padrón entero', () => {
     expect(modeloDeDecision(conEvidencia, vacio, padron).evidencia.map((item) => item.candidate_id)).toEqual(["p-123"]);
   });
 

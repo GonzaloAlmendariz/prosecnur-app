@@ -146,7 +146,7 @@ describe("el plan dice si alcanza", () => {
     expect(p.restaM).toBe(20);
   });
 
-  it("«no hay deuda» no es lo mismo que «hacen falta 0 aulas»", () => {
+  it('"no hay deuda" no es lo mismo que "hacen falta 0 aulas"', () => {
     const p = planDeRefuerzo([], { mujeres: 0, hombres: 0 });
     expect(p.sinDeuda).toBe(true);
     expect(p.alcanza).toBe(true);
@@ -183,7 +183,7 @@ describe("una cadena se resuelve por el HECHO, no por el estado tecleado", () =>
       operational_status: "planificada", sample_status: "en_reserva", ...extra,
     }) as unknown as MonitoreoAulasPlanRow;
 
-  it("el titular con respuestas libera su cadena aunque siga en «planificada»", () => {
+  it('el titular con respuestas libera su cadena aunque siga en "planificada"', () => {
     const plan = [
       fila({ operational_code: "CH 1", sample_role: "titular", titular_operational_code: "CH 1",
         operational_status: "planificada", respuestas_validas: 14 }),

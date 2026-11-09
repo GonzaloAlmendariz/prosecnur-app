@@ -89,7 +89,7 @@ export function diagnostica(codigo: string, plan: ReadonlyArray<FilaDePlan>): Ve
   const fila = (plan ?? []).find((f) => claveDeCodigo(f.operational_code) === buscado
     || claveDeCodigo(f.classroom_id) === buscado);
   if (!fila) {
-    return { ...vacio, motivo: `No hay ningún «${txt(codigo)}» en el plan de este estudio.` };
+    return { ...vacio, motivo: `No hay ningún "${txt(codigo)}" en el plan de este estudio.` };
   }
 
   const base = {

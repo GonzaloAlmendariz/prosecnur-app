@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { fraseDelReparto } from "./colaDeInsistenciaModel";
 
 describe("fraseDelReparto", () => {
-  it("sin nadie en cola no dice «0 responsables» ni «0 por llamar»", () => {
+  it('sin nadie en cola no dice "0 responsables" ni "0 por llamar"', () => {
     expect(fraseDelReparto({ equipo: 0, repartidos: 400, porLlamarAsignados: 0 })).toBe(
       "Ningún responsable tiene casos en cola. La hoja reparte 400 casos.",
     );

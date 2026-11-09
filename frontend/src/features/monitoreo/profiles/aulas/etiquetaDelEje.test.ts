@@ -9,7 +9,7 @@ const FACULTAD = { clave: "facultad", etiqueta: "Facultad", etiqueta_plural: "Fa
 const NIVEL = { clave: "nivel", etiqueta: "Nivel", etiqueta_plural: "Niveles", etiqueta_sin: "Sin nivel" };
 
 describe("los rótulos salen del eje, no del código", () => {
-  it("singular, plural y el «sin»", () => {
+  it('singular, plural y el "sin"', () => {
     expect(etiquetaDelEje(NIVEL)).toBe("Nivel");
     expect(etiquetaPluralDelEje(NIVEL)).toBe("Niveles");
     // Importa que el «sin» salga del eje: es una fila que el usuario VE, y

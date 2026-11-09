@@ -245,7 +245,7 @@ function bloqueoDeCorteIncompleto(estado: MonitoreoGenerationStatus): { mensaje:
   // Un estado que el contrato no conoce todavía. Se dice que no está completo
   // —que es lo comprobado— y se nombra el valor en vez de inventarle una causa.
   return {
-    mensaje: estado ? `El corte no está completo (estado «${estado}»).` : "El corte todavía no está completo.",
+    mensaje: estado ? `El corte no está completo (estado "${estado}").` : "El corte todavía no está completo.",
     accion: "Vuelve a sincronizar antes de publicar",
   };
 }

@@ -91,7 +91,7 @@ describe("el calendario se recorre por semana", () => {
     aula({ classroom_id: "b", operational_code: "CH 2", sesiones_dia_hora: "LUN 10:00-12:00", scheduled_time: "10:00", scheduled_date: "2026-09-21" }),
   ];
 
-  it("con más de una semana aparece el pager ‹ › con «Hoy», y abre mostrando todo", () => {
+  it('con más de una semana aparece el pager ‹ › con "Hoy", y abre mostrando todo', () => {
     const html = renderToStaticMarkup(<AulasCargaDeCampo filas={dosSemanas} />);
     expect(html).toMatch(/aria-label="Semana visible"/);
     expect(html).toContain("Semana anterior");
@@ -124,7 +124,7 @@ describe("B46 — el día que toca, hermanado en el calendario", () => {
     />,
   );
 
-  it("la fila pasada se atenúa y la próxima lleva su sello «próxima salida»", () => {
+  it('la fila pasada se atenúa y la próxima lleva su sello "próxima salida"', () => {
     expect(conFechas).toMatch(/es-pasado[\s\S]{0,400}Lunes 07\/09/);
     expect(conFechas).toMatch(/es-el-que-toca[\s\S]{0,400}Lunes 14\/09/);
     // Mapa de jergas 2026-09-03: el sello dejó de decir «toca».

@@ -114,7 +114,7 @@ describe("la pirámide de cuota", () => {
     expect(facultades[1].faltan).toBe(310);
   });
 
-  it("lo que se recogió de más se nombra: «sobran», no un cumple mudo", () => {
+  it('lo que se recogió de más se nombra: "sobran", no un cumple mudo', () => {
     const { facultades } = piramideDeCuota([
       celda("Pasada", "F", 100, 130),
       celda("Pasada", "M", 100, 100),

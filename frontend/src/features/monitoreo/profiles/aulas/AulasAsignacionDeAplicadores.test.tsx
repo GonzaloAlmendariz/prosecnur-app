@@ -91,7 +91,7 @@ describe("AulasAsignacionDeAplicadores", () => {
     expect(html).toContain("no piden gente todavía");
   });
 
-  it("las listas van COMPLETAS: el techo con «y N más» quedó revocado", () => {
+  it('las listas van COMPLETAS: el techo con "y N más" quedó revocado', () => {
     // Dictado 2026-09-02, mirando un detalle recortado: «no pones las cosas
     // completas y actúas como si no tuvieras espacio cuando la pestaña puede
     // darle más espacio sin problema». Doce descubiertos son doce códigos en
@@ -255,11 +255,11 @@ describe("AulasAsignacionDeAplicadores — el día que toca", () => {
     expect((html.match(/es-el-que-toca/g) ?? []).length).toBe(1);
   });
 
-  it("el día de hoy se sella como «hoy, salida de campo»", () => {
+  it('el día de hoy se sella como "hoy, salida de campo"', () => {
     expect(pintaCon("2026-09-07")).toContain("hoy, salida de campo");
   });
 
-  it("ningún em dash sobrevive en la vista (dictado 2026-09-04: «basta»)", () => {
+  it('ningún em dash sobrevive en la vista (dictado 2026-09-04: "basta")', () => {
     // El guion de «sin dato» sigue siendo legítimo en una celda vacía; lo
     // que se fue es el em dash usado como puntuación de una frase.
     const html = pintaCon("2026-09-07");

@@ -28,7 +28,7 @@ const bloque = (f: Record<string, unknown> = {}, total: Record<string, unknown> 
 const html = (b: MonitoreoAulasEfectividadSeguimiento) =>
   renderToStaticMarkup(<AulasFacultadesEnRiesgo bloque={b} celdasDeCuota={[]} plan={[]} />);
 
-describe("«Facultades en riesgo»", () => {
+describe('"Facultades en riesgo"', () => {
   it("dice por dónde empezar sin presentarlo como la única puerta", () => {
     // Quedan 6 sin fecha y sólo 2 en gestión: hay por dónde empezar.
     const out = html(bloque({ cursos_en_gestion: 2 }));
@@ -38,7 +38,7 @@ describe("«Facultades en riesgo»", () => {
     expect(out).not.toContain("antes que gastar reserva");
   });
 
-  it("cuando TODO lo que queda está en gestión no dice «empieza por» y se contradice", () => {
+  it('cuando TODO lo que queda está en gestión no dice "empieza por" y se contradice', () => {
     // Visto en pantalla el 2026-09-11 en Psicología: «Empieza por sus 2 […] pero
     // 2 ya están en gestión sin cerrar» se desmiente a sí mismo.
     const out = html(bloque({ cursos_sin_agendar: 2, cursos_en_gestion: 2 }));
@@ -46,7 +46,7 @@ describe("«Facultades en riesgo»", () => {
     expect(out).not.toContain("Empieza por");
   });
 
-  it("en singular concuerda: ni «sus 1 curso-horario» ni «no gastan»", () => {
+  it('en singular concuerda: ni "sus 1 curso-horario" ni "no gastan"', () => {
     const out = html(bloque({ cursos_sin_agendar: 1, cursos_en_gestion: 0,
                               cursos_sin_via: 0, cursos_estancados: 0 }));
     expect(out).toContain("Empieza por el curso-horario que le queda sin fecha");

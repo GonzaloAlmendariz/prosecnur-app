@@ -57,7 +57,7 @@ describe("C7: estado declarado por campo", () => {
 });
 
 describe("P2: efectivas del consolidado contra Kobo", () => {
-  it("pone «Campo X, Kobo Y» en la celda y lo cuenta en el resumen", () => {
+  it('pone "Campo X, Kobo Y" en la celda y lo cuenta en el resumen', () => {
     const a = normalizeAsignacionPlanificada({
       estado: "comparable",
       resumen: { asignadas: 1, con_conteos: 1, conteos_distintos: 1 },

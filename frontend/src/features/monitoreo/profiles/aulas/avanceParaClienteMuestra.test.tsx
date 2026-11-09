@@ -123,7 +123,7 @@ describe("la cuota no se compensa entre sexos dentro de una facultad", () => {
   });
 });
 
-describe("«Mujer» no es un hombre", () => {
+describe('"Mujer" no es un hombre', () => {
   /**
    * El `sex` de `quotas_sex_faculty` sale de la columna del estudio tal cual
    * (`monitoreo_aulas_universitarias.R:1586`). `audit_reference.R:231` mapea
@@ -280,7 +280,7 @@ describe("la sobremuestra, cuando el diseño la declara", () => {
     );
     expect(html).not.toContain("no la compara");
     for (const prohibida of ["no una segunda meta", "referencial", "no una meta"]) {
-      expect(html, `el pie llama «${prohibida}» a una de las dos metas`).not.toContain(prohibida);
+      expect(html, `el pie llama "${prohibida}" a una de las dos metas`).not.toContain(prohibida);
     }
     // Y sí dice lo que hay que saber para leer la tabla: que las dos se miden igual.
     expect(html).toContain("las dos se miden igual");

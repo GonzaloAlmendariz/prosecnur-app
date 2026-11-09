@@ -51,7 +51,7 @@ describe("Control › Ocurrencias", () => {
     expect(modelo.medianaDeTasa).toBe(15);
   });
 
-  it("la barra lleva cinco motivos y junta el resto en «Otros», sin repetir color", () => {
+  it('la barra lleva cinco motivos y junta el resto en "Otros", sin repetir color', () => {
     const motivos = Array.from({ length: 8 }, (_, indice) => ({ clave: `m${indice}`, rotulo: `Motivo ${indice}`, total: 10 - indice, proporcion: (10 - indice) / 100 }));
     const barra = motivosDeLaBarra(motivos);
     expect(barra).toHaveLength(6);

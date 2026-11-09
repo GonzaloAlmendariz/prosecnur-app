@@ -164,7 +164,7 @@ function Ficha({ f }: { f: FichaDeCursoHorario }) {
         {/* El literal del plan al lado del estado derivado: si dicen cosas
             distintas —y lo hacen, `operational_status` no se actualiza— quien
             lee tiene que poder verlo, no descubrirlo por su cuenta. */}
-        <span className="aulas-ficha-sub">{f.rol}, el plan lo declara «{f.estadoOperativo}»</span>
+        <span className="aulas-ficha-sub">{f.rol}, el plan lo declara "{f.estadoOperativo}"</span>
       </div>
 
       {/* **El estado y su fecha, en UNA frase.** Antes el chip decía AGENDADO y
@@ -417,7 +417,7 @@ export function AulasFichaDeCursoHorario({
 
       {consulta.trim() && !encontrados.length ? (
         <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member>
-          Ningún curso-horario del plan tiene un código que se parezca a «{consulta.trim()}».
+          Ningún curso-horario del plan tiene un código que se parezca a "{consulta.trim()}".
         </p>
       ) : null}
 

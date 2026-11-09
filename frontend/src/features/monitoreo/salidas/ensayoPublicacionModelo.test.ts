@@ -58,7 +58,7 @@ describe("ensayo de publicación", () => {
   it("sin clave avisa que una fila editada cuenta como borrada y añadida", () => {
     const p = pestana({ sinClave: true, clave: "", cambiadas: 0, anadidas: 1, borradas: 1, destructiva: true, sinCambios: false });
     expect(lineaClave(p)).toMatch(/borrada y añadida/);
-    expect(lineaClave(pestana({ sinCambios: false, cambiadas: 1 }))).toBe("Cada fila se identifica por «Código».");
+    expect(lineaClave(pestana({ sinCambios: false, cambiadas: 1 }))).toBe('Cada fila se identifica por "Código".');
   });
 
   it("Aplicar va en rojo y nombra las filas que borra", () => {

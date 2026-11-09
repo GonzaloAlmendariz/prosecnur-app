@@ -406,7 +406,7 @@ export function AulasRendimientoPorFacultad({
           {doceHoras.length === 1 ? "parte trae" : "partes traen"} una hora
           anterior a las 7:00 —{doceHoras.slice(0, 6).map((h) => h.escrita).join(", ")}
           {doceHoras.length > 6 ? "…" : ""}— y por eso{" "}
-          {doceHoras.length === 1 ? "cuenta" : "cuentan"} en «Fuera de franja».
+          {doceHoras.length === 1 ? "cuenta" : "cuentan"} en "Fuera de franja".
           {cuadranDeTarde > 0 ? (
             <>
               {" "}En <strong>{fmt(cuadranDeTarde)}</strong> de{" "}

@@ -13,7 +13,7 @@ import {
 // (docs/plan-fuentes-legibles-2026-07.md §1.1, hallazgo A5).
 
 describe("textoDeHerencia", () => {
-  test("reemplaza «20 heredan · 0 excepciones»", () => {
+  test('reemplaza "20 heredan · 0 excepciones"', () => {
     expect(textoDeHerencia(20, 0)).toBe("20 recopiladores usan este canal, ninguno con excepción");
   });
 
@@ -29,14 +29,14 @@ describe("textoDeHerencia", () => {
 });
 
 describe("textoDeCanalPorDefecto", () => {
-  test("reemplaza «Base Ficha QR»", () => {
+  test('reemplaza "Base Ficha QR"', () => {
     expect(textoDeCanalPorDefecto("Ficha QR")).toBe("Canal por defecto: Ficha QR");
     expect(textoDeCanalPorDefecto("")).toBe("Sin canal por defecto");
   });
 });
 
 describe("textoDeAlias", () => {
-  test("reemplaza «Sin alias operativo» por lo que el usuario realmente ve", () => {
+  test('reemplaza "Sin alias operativo" por lo que el usuario realmente ve', () => {
     expect(textoDeAlias("", "Email Invitation 10")).toBe("Usa el nombre de la plataforma");
     expect(textoDeAlias("Docentes ronda 2", "Email Invitation 10")).toBe("Docentes ronda 2");
     expect(textoDeAlias("", "")).toBe("Sin nombre");
@@ -44,7 +44,7 @@ describe("textoDeAlias", () => {
 });
 
 describe("textoDeActualizacion", () => {
-  test("dice cuándo, no «Snapshot local listo»", () => {
+  test('dice cuándo, no "Snapshot local listo"', () => {
     expect(textoDeActualizacion("2026-07-23T18:09:00Z")).toMatch(/^Actualizada /);
   });
 

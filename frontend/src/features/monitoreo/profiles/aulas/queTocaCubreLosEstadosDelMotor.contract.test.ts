@@ -54,7 +54,7 @@ describe("cada estado de muestra del motor tiene su acción", () => {
     expect(queTocaConCadaAula({ sample_status: "en_contacto" } as never, CORTE)).toBe("Volver a llamar");
   });
 
-  it("«agendada» y «reagendada» sin fecha piden cerrar la fecha, no volver a llamar", () => {
+  it('"agendada" y "reagendada" sin fecha piden cerrar la fecha, no volver a llamar', () => {
     // La distinción que el comentario defiende: decir «llamar» a quien ya
     // contestó sería empezar de cero un trabajo que ya avanzó.
     for (const estado of ["agendada", "reagendada", "refuerzo_agendado", "REFUERZO AGENDADO"]) {
@@ -62,11 +62,11 @@ describe("cada estado de muestra del motor tiene su acción", () => {
     }
   });
 
-  it("«sin contactar» es el único que manda llamar, y es el default", () => {
+  it('"sin contactar" es el único que manda llamar, y es el default', () => {
     expect(queTocaConCadaAula({ sample_status: "sin_contactar" } as never, CORTE)).toBe("Llamar al docente");
   });
 
-  it("un estado que el motor todavía no declara acaba en «llamar», y ESO es lo que hay que vigilar", () => {
+  it('un estado que el motor todavía no declara acaba en "llamar", y ESO es lo que hay que vigilar', () => {
     // No es un fallo: es el default. La prueba existe para que, si el motor
     // añade un estado, la primera de este bloque falle y alguien decida qué
     // acción le toca en vez de dejarlo caer aquí.

@@ -1310,7 +1310,7 @@ export default function AulasMonitoreoPage() {
           (res.aplicadores
             ? ": trae escritos los " + fmt(res.aplicadores) + " aplicadores ya declarados."
             : ": se llena con el nombre de cada aplicador y un 1 o un 0 por franja.") +
-          " Al llenarla, vuelve por «Importar disponibilidad».",
+          ' Al llenarla, vuelve por "Importar disponibilidad".',
         tono: "ok",
       });
       const a = document.createElement("a");

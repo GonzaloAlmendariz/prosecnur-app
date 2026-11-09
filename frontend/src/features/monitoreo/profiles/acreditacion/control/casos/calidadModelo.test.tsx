@@ -61,7 +61,7 @@ describe("Control › Calidad", () => {
     expect(html).not.toContain("900");
   });
 
-  it("sin la bandeja Público y Estado dicen «Uniendo…»; si falló, «Sin dato» y el aviso", () => {
+  it('sin la bandeja Público y Estado dicen "Uniendo…"; si falló, "Sin dato" y el aviso', () => {
     const duraciones = [{ id: "2668", segundos: 4, tipo: "corta" as const, fila: 2668 }];
     const uniendo = renderToStaticMarkup(<CalidadVista duraciones={duraciones} minimo={60} maximo={7200} senales={[]} union="uniendo" />);
     expect(uniendo).toContain("Uniendo…");

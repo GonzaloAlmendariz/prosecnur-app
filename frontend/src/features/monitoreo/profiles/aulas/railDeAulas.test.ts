@@ -46,7 +46,7 @@ describe("el badge de Reemplazos cuenta cadenas movidas", () => {
     expect(tab?.estado).toBe("listo");
   });
 
-  it("«reagendada» no es «reemplazada»: sólo cuenta el prefijo exacto", () => {
+  it('"reagendada" no es "reemplazada": sólo cuenta el prefijo exacto', () => {
     // Se compara por prefijo porque el estado puede traer sufijos, pero un
     // estado distinto que empiece parecido no puede colarse.
     const d = dashboard([
@@ -135,7 +135,7 @@ describe("el rótulo de Avance › Por facultad sigue al eje (A2)", () => {
     kpis: {}, brechas: [], reemplazos: [], avance_cuota: { eje: { etiqueta } },
   }) as unknown as MonitoreoAulasDashboard;
 
-  it("en un estudio por nivel se llama «Por nivel», en el rail y en la cabecera", () => {
+  it('en un estudio por nivel se llama "Por nivel", en el rail y en la cabecera', () => {
     expect(rotuloDePestanaAulas("avance", "porfacultad", conEje("Nivel"))).toBe("Por nivel");
     expect(railDeAulas("avance", conEje("Nivel")).find((p) => p.key === "porfacultad")?.label).toBe("Por nivel");
   });

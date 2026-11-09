@@ -68,8 +68,8 @@ export function problemasDelBorrador(borrador: BorradorDeReglas): string[] {
   else if (minima >= maxima) problemas.push("La duración mínima debe ser menor que la máxima.");
   for (const alerta of ALERTAS) {
     const valor = numero(borrador.alertas[alerta.clave]);
-    if (valor == null) problemas.push(`«${alerta.rotulo} ${alerta.unidad}» necesita un número.`);
-    else if (alerta.proporcion && valor > 100) problemas.push(`«${alerta.rotulo} ${alerta.unidad}» va de 0 a 100.`);
+    if (valor == null) problemas.push(`"${alerta.rotulo} ${alerta.unidad}" necesita un número.`);
+    else if (alerta.proporcion && valor > 100) problemas.push(`"${alerta.rotulo} ${alerta.unidad}" va de 0 a 100.`);
   }
   return problemas;
 }
@@ -113,7 +113,7 @@ function lista(valores: unknown): string[] {
 }
 
 function citar(valores: readonly string[]) {
-  return valores.map((valor) => `«${valor}»`).join(" o ");
+  return valores.map((valor) => `"${valor}"`).join(" o ");
 }
 
 /** Las reglas que deciden qué cuenta como efectiva, en frases. */

@@ -27,7 +27,7 @@ describe("Control › Equipo del telefónico", () => {
     expect(equipo.matriz.responsables).toHaveLength(15);
   });
 
-  it("suma por persona las filas de dos actores y separa «Sin asignar»", () => {
+  it('suma por persona las filas de dos actores y separa "Sin asignar"', () => {
     const equipo = construirEquipo({
       reports: reportes({
         operacion_responsable: [

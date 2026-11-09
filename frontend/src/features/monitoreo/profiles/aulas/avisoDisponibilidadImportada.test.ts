@@ -15,13 +15,13 @@ describe("avisoDisponibilidadImportada", () => {
     // poder ir a tocarlo.
     const a = avisoDisponibilidadImportada({
       aplicadores: 7,
-      avisos: ["«ANA QUISPE» sale en las filas 3 y 9: se toman como la misma persona y sus horas se suman."],
+      avisos: ['"ANA QUISPE" sale en las filas 3 y 9: se toman como la misma persona y sus horas se suman.'],
     });
     expect(a.tono).toBe("atencion");
     expect(a.texto).toContain("filas 3 y 9");
   });
 
-  it("no llama «celdas ilegibles» a lo que no es una celda", () => {
+  it('no llama "celdas ilegibles" a lo que no es una celda', () => {
     const a = avisoDisponibilidadImportada({
       aplicadores: 7,
       avisos: ["La fila 10 declara 4 franjas disponibles pero no trae nombre: se omite."],
@@ -41,7 +41,7 @@ describe("avisoDisponibilidadImportada", () => {
     expect(a.texto).toContain(`${AVISOS_VISIBLES + 3} avisos.`);
   });
 
-  it("cero aplicadores no es «importado con matices»: es que no entró nadie", () => {
+  it('cero aplicadores no es "importado con matices": es que no entró nadie', () => {
     const a = avisoDisponibilidadImportada({ aplicadores: 0, avisos: [] });
     expect(a.tono).toBe("atencion");
     expect(a.texto).toContain("ningún aplicador");

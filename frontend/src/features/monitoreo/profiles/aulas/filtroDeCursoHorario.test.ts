@@ -17,7 +17,7 @@ const medido = (p: Partial<Medido>): Medido => ({
 } as Medido);
 
 describe("normalizaBusqueda", () => {
-  it("quita tildes y mayúsculas para que «ingenieria» encuentre «INGENIERÍA»", () => {
+  it('quita tildes y mayúsculas para que "ingenieria" encuentre "INGENIERÍA"', () => {
     expect(normalizaBusqueda("  INGENIERÍA ")).toBe("ingenieria");
   });
 });
@@ -31,7 +31,7 @@ describe("coincideCursoHorario", () => {
     expect(coincideCursoHorario(a, "agendada")).toBe(true);
   });
 
-  it("es AND: «ingenieria 74» no devuelve la facultad entera", () => {
+  it('es AND: "ingenieria 74" no devuelve la facultad entera', () => {
     expect(coincideCursoHorario(a, "ingenieria 74")).toBe(true);
     expect(coincideCursoHorario(aula({ codigo: "CH 12", facultad: "CIENCIAS E INGENIERÍA" }), "ingenieria 74")).toBe(false);
   });
@@ -68,7 +68,7 @@ describe("filtraSenales", () => {
     expect(r.filtrado).toBe(true);
   });
 
-  it("un grupo de «sin contrastar» sin filas desaparece en vez de decir 0", () => {
+  it('un grupo de "sin contrastar" sin filas desaparece en vez de decir 0', () => {
     expect(filtraSenales(res, "arte").sinMedir.map((g) => g.aulas.length)).toEqual([1]);
     expect(filtraSenales(res, "derecho").sinMedir).toEqual([]);
   });

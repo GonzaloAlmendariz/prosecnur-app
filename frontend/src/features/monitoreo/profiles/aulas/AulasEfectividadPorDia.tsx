@@ -106,7 +106,7 @@ export function AulasEfectividadPorDia({ partes, plan }: {
       </ul>
       <p className="mon-profile-muted aulas-efdia-pie">
         La tasa es sobre los alumnos ELEGIBLES de cada curso-horario visitado, que es la
-        que decide si el estudio cierra; la de «sobre asistentes» —el trabajo dentro del
+        que decide si el estudio cierra; la de "sobre asistentes" —el trabajo dentro del
         curso-horario— vive en Rendimiento. Un parte sin efectivas ni asistentes no
         cuenta como jornada de cero: es un parte vacío.
       </p>

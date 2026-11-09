@@ -21,7 +21,7 @@ const plan = [
   { faculty: "ARTES ESCÉNICAS", sample_role: "reemplazo", respuestas_validas: 12, operational_status: "programada" },
 ] as unknown as MonitoreoAulasPlanRow[];
 
-describe("«Facultades que más se alejan de su previsión»", () => {
+describe('"Facultades que más se alejan de su previsión"', () => {
   it("cada cifra declara su base: el denominador del ranking y las apartadas", () => {
     const html = renderToStaticMarkup(<AulasPeorRendimiento bloque={bloque} porSexo={[]} plan={plan} />);
     // Seis comparables de siete: sin decirlo, el «top 5» parecería mirar a todas.

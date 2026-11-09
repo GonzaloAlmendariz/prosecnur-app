@@ -96,7 +96,7 @@ describe("disponible son DOS condiciones, sobre dos ejes", () => {
     expect(reservasDisponibles(filas, caido).map((f) => f.operational_code)).toEqual(["R 1.2"]);
   });
 
-  it("el «-» del Excel cuenta como dormida, no como desplegada", () => {
+  it('el "-" del Excel cuenta como dormida, no como desplegada', () => {
     // 1.810 de 2.040 celdas de STATUS MUESTRA en 2025 llevan «-». Tratarlo como
     // desplegada dejaria la lista vacia teniendo reservas.
     const filas = [...base,
@@ -107,7 +107,7 @@ describe("disponible son DOS condiciones, sobre dos ejes", () => {
     expect(reservasDisponibles(filas, caido).map((f) => f.operational_code)).toEqual(["R 1.1"]);
   });
 
-  it("«en reserva 3», como lo escribe el Excel, tambien es dormida", () => {
+  it('"en reserva 3", como lo escribe el Excel, tambien es dormida', () => {
     const filas = [...base,
       fila({ operational_code: "R 1.1", titular_operational_code: "CH 1", sample_role: "chain_reserve",
              sample_status: "En reserva 3" } as never),
@@ -288,7 +288,7 @@ describe("la reserva adicional", () => {
   });
 });
 
-describe("nunca devuelve «no hay reemplazo»", () => {
+describe('nunca devuelve "no hay reemplazo"', () => {
   it("con la cadena agotada, sigue ofreciendo otra cadena y la reserva adicional", () => {
     const filas = [
       fila({ operational_code: "CH 1", titular_operational_code: "CH 1", sample_role: "titular", stratum: "ARQ / M / G1" }),

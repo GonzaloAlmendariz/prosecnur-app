@@ -365,7 +365,7 @@ export function avisosDeLosBloques(
       id: "efectivo-sin-kobo",
       // Alta, como en el motor: la discrepancia se avisa rápido al equipo (P2).
       nivel: "alta",
-      titulo: "La hoja dice «Efectivo» y Kobo no tiene envío",
+      titulo: 'La hoja dice "Efectivo" y Kobo no tiene envío',
       detalle: "No cuentan en el avance hasta que llegue su envío de Kobo",
       casos: efectivoSinKobo.length,
       unidad: "casos",
@@ -390,7 +390,7 @@ export function avisosDeLosBloques(
     avisos.push({
       id: "la-hoja-dejo-de-registrar",
       nivel: "alta",
-      titulo: "Efectivas en Kobo cuyo caso sigue «No barrido»",
+      titulo: 'Efectivas en Kobo cuyo caso sigue "No barrido"',
       detalle: "Kobo registra la entrevista y la hoja de barrido no la marcó",
       casos: sinRegistrar.length,
       unidad: "casos",

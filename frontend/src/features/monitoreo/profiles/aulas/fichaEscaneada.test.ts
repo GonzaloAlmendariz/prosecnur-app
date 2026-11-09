@@ -32,13 +32,13 @@ describe("fichaEscaneadaDelParte", () => {
     expect(ficha).toEqual({ estado: "enlace", url: "https://drive.google.com/file/d/abc" });
   });
 
-  it("distingue «parte sin enlace» de «aula sin parte»", () => {
+  it('distingue "parte sin enlace" de "aula sin parte"', () => {
     const partes = [{ operational_code: "CH 1", scanned_sheet_link: "" }];
     expect(fichaEscaneadaDelParte("CH 1", partes)).toEqual({ estado: "parte-sin-enlace" });
     expect(fichaEscaneadaDelParte("CH 9", partes)).toEqual({ estado: "sin-parte" });
   });
 
-  it("un nulo no se convierte en el texto «null»", () => {
+  it('un nulo no se convierte en el texto "null"', () => {
     // `String(null)` es "null": el resolvedor no puede fabricar un enlace
     // abrible hacia esa palabra.
     const ficha = fichaEscaneadaDelParte("CH 1", [

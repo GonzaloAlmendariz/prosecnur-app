@@ -9,7 +9,7 @@ const filas = [
 ];
 
 describe("editor de una cuota referencial (ADR 0126)", () => {
-  it("dice «Referencia» y muestra el peso de cada categoría en el universo, sin «Sin dato»", () => {
+  it('dice "Referencia" y muestra el peso de cada categoría en el universo, sin "Sin dato"', () => {
     const html = renderToStaticMarkup(<AvanceCuotasEditorMetas filas={filas} deshabilitado={false} onMeta={() => undefined} referencial />);
     expect(html).toContain("Referencia");
     expect(html).toContain("Del universo");

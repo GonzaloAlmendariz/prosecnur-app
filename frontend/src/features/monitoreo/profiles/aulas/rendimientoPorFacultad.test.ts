@@ -84,7 +84,7 @@ describe("rendimientoPorFacultad", () => {
     expect(uno.delPotencialAjustado).toBeLessThan(100);
   });
 
-  it("«Fuera de franja» va al final aunque sea la que más rinde", () => {
+  it('"Fuera de franja" va al final aunque sea la que más rinde', () => {
     // Medido el 2026-09-10: encabezaba la lente de horas con el 70,6 % de 8
     // cursos-horario, en un panel subtitulado «a qué hora conviene agendar».
     // Fuera de franja no es una hora a la que se pueda agendar; y ocho de esos
@@ -335,14 +335,14 @@ describe("las columnas se explican solas en los cuatro paneles", () => {
     "Del potencial", "Por visita", "Por visita, ajustado",
     "De los que asistieron",
   ])(
-    "«%s» lleva su definición en la cabecera",
+    '"%s" lleva su definición en la cabecera',
     (columna) => {
       // La cabecera y su `title` en el mismo elemento: se busca el bloque que
       // abre con `title=` y contiene el nombre de la columna.
       const bloque = new RegExp(
         `<span role="columnheader" title=[^>]+>\\s*${columna}\\s*<`,
       );
-      expect(bloque.test(fuente), `«${columna}» no declara qué mide`).toBe(true);
+      expect(bloque.test(fuente), `"${columna}" no declara qué mide`).toBe(true);
     },
   );
 
@@ -361,14 +361,14 @@ describe("las columnas se explican solas en los cuatro paneles", () => {
     // de «Por visita». Lo que el pie tiene que explicar son las cuatro cosas
     // que se leen, se llamen como se llamen.
     for (const etiqueta of ["Del potencial", "pesando la evidencia", "Por visita", "De los asistentes"]) {
-      expect(pie, `el pie ya no explica «${etiqueta}»`)
+      expect(pie, `el pie ya no explica "${etiqueta}"`)
         .toContain(`<strong>${etiqueta}</strong>`);
     }
   });
 });
 
 describe("una celda de efectivas vacía no es un cero", () => {
-  it("no publica «0 efectivas» por un parte al que le falta la cifra", () => {
+  it('no publica "0 efectivas" por un parte al que le falta la cifra', () => {
     // **El defecto, medido el 2026-09-08.** CH 7 viene del parte con
     // `application_status: "APLICADA"`, 29 asistentes y `effective_surveys`
     // VACÍA, mientras la Base de control le cuenta 27 encuestas por sexo: el

@@ -50,7 +50,7 @@ describe("la ficha de un curso-horario", () => {
     expect(f.elegibles).toBe(0);
   });
 
-  test("un retirado se dice retirado, no «sin agendar»", () => {
+  test('un retirado se dice retirado, no "sin agendar"', () => {
     const f = fichaDeCursoHorario({
       ...CH43, respuestas_validas: 0, scheduled_date: "",
       operational_status: "reemplazada", sample_status: "reemplazada",
@@ -93,18 +93,18 @@ describe("la búsqueda por código", () => {
     { operational_code: "R 1.2" }, { operational_code: "" },
   ];
 
-  test("se teclea como se recuerda: «ch43», «CH 43» y «ch-43» son lo mismo", () => {
+  test('se teclea como se recuerda: "ch43", "CH 43" y "ch-43" son lo mismo', () => {
     for (const q of ["ch43", "CH 43", "ch-43", "  Ch 43 "]) {
       expect(buscarCursosHorario(plan, q).map((f) => f.operational_code)).toContain("CH 43");
     }
     expect(claveDeBusqueda(" ch_4-3 ")).toBe("CH43");
   });
 
-  test("la coincidencia EXACTA va primera: «CH 4» no puede abrir con CH 40", () => {
+  test('la coincidencia EXACTA va primera: "CH 4" no puede abrir con CH 40', () => {
     expect(buscarCursosHorario(plan, "CH 4")[0].operational_code).toBe("CH 4");
   });
 
-  test("devuelve TODAS las coincidencias: «R 1» es la cadena entera", () => {
+  test('devuelve TODAS las coincidencias: "R 1" es la cadena entera', () => {
     expect(buscarCursosHorario(plan, "R1").map((f) => f.operational_code))
       .toEqual(["R 1.1", "R 1.2"]);
   });
@@ -126,7 +126,7 @@ describe("la búsqueda por código", () => {
 
 import { cuandoEnPalabras, fechaEnPalabras } from "./fichaDeCursoHorario";
 
-describe("la frase que contesta «¿y para cuándo?»", () => {
+describe('la frase que contesta "¿y para cuándo?"', () => {
   test("un YYYY-MM-DD NO se corre un día", () => {
     // `new Date("2026-09-05")` es medianoche UTC y en Lima —UTC−5— sale como
     // 4/9. El perfil ya tropezó con eso (`kpisDeAulas.ts:167`).
@@ -134,7 +134,7 @@ describe("la frase que contesta «¿y para cuándo?»", () => {
     expect(fechaEnPalabras("2026-09-08")).toBe("martes 8 de setiembre");
   });
 
-  test("«setiembre», que es como se escribe aquí", () => {
+  test('"setiembre", que es como se escribe aquí', () => {
     expect(fechaEnPalabras("2026-09-01")).toContain("setiembre");
   });
 

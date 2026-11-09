@@ -193,7 +193,7 @@ describe("los elegibles del pasado son el techo de cada día", () => {
   });
 });
 
-describe("«meta» nombra la cuota y sólo la cuota", () => {
+describe('"meta" nombra la cuota y sólo la cuota', () => {
   /**
    * **Encargo del 2026-08-30: la meta, lo diseñado y el rendimiento son tres
    * cantidades distintas y no pueden compartir palabra.**
@@ -208,12 +208,12 @@ describe("«meta» nombra la cuota y sólo la cuota", () => {
    */
   const fuente = () => readFileSync(new URL("./serieDeRendimiento.ts", import.meta.url), "utf8");
 
-  it("no hay ninguna variable «meta…» que lea expected_valid", () => {
+  it('no hay ninguna variable "meta…" que lea expected_valid', () => {
     const infractores = [...fuente().matchAll(/\b(meta[A-Za-z]*)\s*[=:][^;\n]*expected_valid/g)]
       .map((m) => m[1]);
     expect(
       infractores,
-      "«meta» es la cuota. Lo que se espera de un aula es `esperado…`: " +
+      '"meta" es la cuota. Lo que se espera de un aula es `esperado…`: ' +
         infractores.join(", "),
     ).toEqual([]);
   });
@@ -242,7 +242,7 @@ describe("la facultad sale del plan cuando el parte no la trae", () => {
   const aula = (codigo: string, facultad: string) =>
     ({ operational_code: codigo, faculty: facultad, eligible_n: 20, expected_valid: 10 }) as unknown as MonitoreoRow;
 
-  it("agrupa por la facultad del plan y no en un cubo «Sin facultad»", () => {
+  it('agrupa por la facultad del plan y no en un cubo "Sin facultad"', () => {
     const s = serieDeRendimiento(
       [parteSinFacultad("CH 1", "2026-09-08", 5), parteSinFacultad("CH 9", "2026-09-08", 7)],
       [aula("CH 1", "DERECHO"), aula("CH 9", "LETRAS")],

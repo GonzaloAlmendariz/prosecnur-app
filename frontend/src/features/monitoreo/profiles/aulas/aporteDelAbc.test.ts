@@ -123,7 +123,7 @@ describe("el reparto por sexo se declara sólo si está completo", () => {
   });
 });
 
-describe("«ya salió» se mide por las respuestas, no por el estado tecleado", () => {
+describe('"ya salió" se mide por las respuestas, no por el estado tecleado', () => {
   /**
    * Medido en HSVG26ULT2 el 2026-09-10: las 1.218 reservas del plan estaban en
    * `planificada` mientras el KPI «Cerraron con reemplazo» decía 1, porque ese

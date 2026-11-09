@@ -15,7 +15,7 @@ import { construirCorte, readinessDeSalidas } from "./corteContract";
 describe("bloqueos del corte: hecho corto, acción aparte", () => {
   const estados = ["partial", "stale", "failed", "reindexing", ""];
   for (const estado of estados) {
-    it(`generation_status «${estado}»: sin «;» ni «:» y con acción`, () => {
+    it(`generation_status "${estado}": sin ";" ni ":" y con acción`, () => {
       const r = readinessDeSalidas(construirCorte({ ingesta: 10, procesable: 10, oficial: 10, hasSnapshot: true, generationStatus: estado }));
       const bloqueo = r.bloqueos.find((b) => b.codigo === "CORTE_INCOMPLETO");
       expect(bloqueo).toBeTruthy();
@@ -57,7 +57,7 @@ describe("el procesable dice lo que mide en cada modo", () => {
     expect(corteAulas(null, null).procesableEtiqueta).toBe("en el filtro de aplicación");
   });
 
-  it("ningún modo lo rotula «pasan el filtro»", () => {
+  it('ningún modo lo rotula "pasan el filtro"', () => {
     const etiquetas = [
       corteAcreditacion(null, []).procesableEtiqueta,
       corteTerritorial(null, null).procesableEtiqueta,

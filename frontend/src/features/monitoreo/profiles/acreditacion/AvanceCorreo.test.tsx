@@ -77,7 +77,7 @@ describe("modelo de Avance › Correo", () => {
     expect(porcentaje(0)).toBe("0 %");
   });
 
-  it("una tasa nula se escribe «—», no cero", () => {
+  it('una tasa nula se escribe "—", no cero', () => {
     expect(porcentaje(null)).toBe("—");
     expect(tasaConBase(null, 0, 0)).toBe("—, 0 de 0");
   });

@@ -25,7 +25,7 @@ function caidasDelMotor(): string[] {
   return [...m[1].matchAll(/"([^"]+)"/g)].map((x) => x[1]);
 }
 
-describe("«el aula cayó» significa lo mismo en los dos lados", () => {
+describe('"el aula cayó" significa lo mismo en los dos lados', () => {
   it("la tripleta del motor se lee y no está vacía", () => {
     expect(caidasDelMotor().length).toBeGreaterThanOrEqual(3);
   });
@@ -34,7 +34,7 @@ describe("«el aula cayó» significa lo mismo en los dos lados", () => {
     expect([...ESTADOS_QUE_CAEN].sort()).toEqual([...caidasDelMotor()].sort());
   });
 
-  it("«reemplazada» NO está, y es deliberado", () => {
+  it('"reemplazada" NO está, y es deliberado', () => {
     // Ya lo fue: volver a activar consumiría otra reserva sin que nadie lo pida.
     expect(ESTADOS_QUE_CAEN.has("reemplazada")).toBe(false);
     expect(caidasDelMotor()).not.toContain("reemplazada");

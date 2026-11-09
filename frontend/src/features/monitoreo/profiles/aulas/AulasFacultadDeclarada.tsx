@@ -83,7 +83,7 @@ export default function AulasFacultadDeclarada({
       </label>
       <em>
         {variable
-          ? "Con ella, el libro trae la hoja «Control de facultad»: qué cuota está llenando gente de otra facultad."
+          ? 'Con ella, el libro trae la hoja "Control de facultad": qué cuota está llenando gente de otra facultad.'
           : "Sin ella no hay cruce entre la facultad de su curso-horario y la que el alumno declara: no se adivina qué columna es."}
       </em>
 

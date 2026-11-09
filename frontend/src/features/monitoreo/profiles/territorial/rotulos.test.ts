@@ -12,7 +12,7 @@ describe("nombreDeDistrito", () => {
     expect(nombreDeDistrito("Sin cruce UMP")).toBe("UMP sin cruce con la ruta");
   });
 
-  it("enumera en frase, sin «·» y sin vacíos", () => {
+  it('enumera en frase, sin "·" y sin vacíos', () => {
     expect(enumerar(["distritos PlanMet", "manzanas INEI 2017", "calles OpenStreetMap"])).toBe("distritos PlanMet, manzanas INEI 2017 y calles OpenStreetMap");
     expect(enumerar(["manzanas INEI 2017", "", false, "GPS de Kobo"])).toBe("manzanas INEI 2017 y GPS de Kobo");
     expect(enumerar(["solo"])).toBe("solo");

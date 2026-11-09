@@ -49,7 +49,7 @@ describe("el KPI del plan declara de qué sorteo sale", () => {
     expect(kpi?.pista).toBe("titulares y sus reservas encadenadas");
   });
 
-  it("una corrida con forma rara no produce «Invalid Date»", () => {
+  it('una corrida con forma rara no produce "Invalid Date"', () => {
     const kpi = planDe(tablero({ selection_run_id: "corrida-sin-forma" }));
     expect(kpi?.pista).not.toContain("Invalid");
     expect(kpi?.pista).toBe("titulares y sus reservas encadenadas");

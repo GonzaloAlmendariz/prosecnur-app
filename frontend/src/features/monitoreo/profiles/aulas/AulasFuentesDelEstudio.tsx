@@ -232,10 +232,10 @@ function LibroDelOperativo({ recibo }: { recibo: ReciboDelLibro }) {
         {recibo.estados_desconocidos?.length ? (
           <p className="aulas-fuente-falta">
             {recibo.estados_desconocidos
-              .map((e) => `«${e.valor}» (${e.filas} ${e.filas === 1 ? "fila" : "filas"})`)
+              .map((e) => `"${e.valor}" (${e.filas} ${e.filas === 1 ? "fila" : "filas"})`)
               .join("; ")}
-            : la app no reconoce ese estatus de muestra y lo lee como «SIN
-            CONTACTAR», así que esas aulas vuelven a la cola de llamadas.
+            : la app no reconoce ese estatus de muestra y lo lee como "SIN
+            CONTACTAR", así que esas aulas vuelven a la cola de llamadas.
           </p>
         ) : null}
       </div>

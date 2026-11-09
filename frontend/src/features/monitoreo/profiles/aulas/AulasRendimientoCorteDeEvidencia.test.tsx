@@ -71,7 +71,7 @@ describe("el corte de evidencia del ranking", () => {
     expect(marcado).toContain("100.0 %");
   });
 
-  it("los cajones de «no se sabe» llevan SU frontera, no la del corte de evidencia", () => {
+  it('los cajones de "no se sabe" llevan SU frontera, no la del corte de evidencia', () => {
     // Visto en pantalla el 2026-09-10: en «Día de la semana» lo único que
     // quedaba bajo la línea era «Sin fecha», y la línea dice «con menos de 3
     // cursos-horario visitados — todavía no se comparan». «Sin fecha» no es un
@@ -97,7 +97,7 @@ describe("el corte de evidencia del ranking", () => {
     expect(marcado).toContain("Fuera de la comparación");
   });
 
-  it("la frase de cabecera no nombra un cajón de «no se sabe» como la que más rinde", () => {
+  it('la frase de cabecera no nombra un cajón de "no se sabe" como la que más rinde', () => {
     const marcado = html();
     const desde = marcado.indexOf("aulas-rendimiento-lectura");
     const lectura = marcado.slice(desde, marcado.indexOf("</p>", desde));

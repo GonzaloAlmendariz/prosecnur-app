@@ -317,7 +317,7 @@ describe("riesgoDeCierre: el denominador del riesgo", () => {
     expect(r.evaluadas).toBe(0);
   });
 
-  it("con la cuota en otro eje no dice «sin cuota del diseño»: dice por qué eje va", () => {
+  it('con la cuota en otro eje no dice "sin cuota del diseño": dice por qué eje va', () => {
     // CCSS Perfil 2026-II: la cuota está trazada por nivel y el bloque agrupa
     // por facultad. «Sin cuota del diseño» era falso.
     const r = riesgoDeCierre({
@@ -355,7 +355,7 @@ describe("riesgoDeCierre: el denominador del riesgo", () => {
     expect(r.frase).toBe("Con lo agendado, todas las facultades cierran su cuota.");
   });
 
-  it("un payload SIN el denominador se cae a afirmar, no a «no se sabe»", () => {
+  it('un payload SIN el denominador se cae a afirmar, no a "no se sabe"', () => {
     // El campo es nuevo: un estado guardado antes del 2026-09-17 no lo trae, y
     // declarar «no se sabe» sobre un estudio que sí cierra sería peor que el
     // defecto que esto arregla.

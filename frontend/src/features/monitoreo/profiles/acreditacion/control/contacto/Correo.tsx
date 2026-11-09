@@ -187,7 +187,7 @@ export function CorreoVista({ estado, audiencias, foco, lectura, aviso, error, o
                             {papeles.map((papel) => (
                               <li key={papel.publico}>
                                 {`${papel.publico}: ${papel.rotulo.toLowerCase()}`}
-                                {papel.recordatorioDe ? ` de «${papel.recordatorioDe}»` : ""}
+                                {papel.recordatorioDe ? ` de "${papel.recordatorioDe}"` : ""}
                               </li>
                             ))}
                           </ul>

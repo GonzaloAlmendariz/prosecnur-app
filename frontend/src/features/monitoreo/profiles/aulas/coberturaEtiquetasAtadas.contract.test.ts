@@ -44,7 +44,7 @@ describe("la etiqueta de cada tramo de cobertura es la misma en los dos lados", 
     const motor = etiquetasDelMotor();
     const desajustes = coberturaPorAula([]).tramos
       .filter((t) => motor.has(t.clave) && motor.get(t.clave) !== t.etiqueta)
-      .map((t) => `${t.clave}: motor «${motor.get(t.clave)}» vs frontend «${t.etiqueta}»`);
+      .map((t) => `${t.clave}: motor "${motor.get(t.clave)}" vs frontend "${t.etiqueta}"`);
     expect(
       desajustes,
       `la misma escala se leería de dos maneras según el estado del proyecto:\n${desajustes.join("\n")}`,

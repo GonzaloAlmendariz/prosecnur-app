@@ -595,20 +595,20 @@ describe("la cuenta se nombra igual se lea o se escuche", () => {
     "utf8",
   );
 
-  it("el punto del día se anuncia con «efectivas del parte»", () => {
+  it('el punto del día se anuncia con "efectivas del parte"', () => {
     const etiquetas = [...fuente.matchAll(/aria-label=\{`([^`]*)`\}/g)].map((m) => m[1]);
     const delDia = etiquetas.filter((e) => e.includes("observado"));
     expect(delDia.length).toBeGreaterThan(0);
     for (const e of delDia) expect(e).toContain("efectivas del parte");
   });
 
-  it("y ninguna etiqueta cuenta «encuestas» a secas", () => {
+  it('y ninguna etiqueta cuenta "encuestas" a secas', () => {
     // «encuestas DEL PARTE» sí puede quedarse: ahí la fuente está dicha, y es
     // lo que distingue esta cuenta de la de plataforma. Lo que no puede quedar
     // es una cifra seguida de «encuestas» sin más.
     const etiquetas = [...fuente.matchAll(/aria-label=\{`([^`]*)`\}/g)].map((m) => m[1]);
     for (const e of etiquetas) {
-      expect(e, `«${e}» no dice de qué cuenta habla`).not.toMatch(/\}\s*encuestas(?!\s+del parte)/);
+      expect(e, `"${e}" no dice de qué cuenta habla`).not.toMatch(/\}\s*encuestas(?!\s+del parte)/);
     }
   });
 });

@@ -34,7 +34,7 @@ describe("consumoDeCadena", () => {
     expect(res.reservasGastadas).toBe(3);
   });
 
-  test("una cadena sin ninguna reserva no es una cadena «sin gastar»", () => {
+  test('una cadena sin ninguna reserva no es una cadena "sin gastar"', () => {
     // L54: nunca haber tenido reserva es una decision del diseño muestral;
     // tenerla y no haberla usado es un hecho del operativo. Meterlas en el mismo
     // tramo diria que el plan tiene un colchon que no tiene.
@@ -59,7 +59,7 @@ describe("consumoDeCadena", () => {
     expect(res.tramos[0].cadenas).toBe(1);
   });
 
-  test("agrupa en «3 o más» sin perder cadenas largas", () => {
+  test('agrupa en "3 o más" sin perder cadenas largas', () => {
     const largas = ["a", "b", "c", "d", "e", "f"].map((k) => reserva(`R 1.${k}`, "CH 1", "aplicada"));
     const res = consumoDeCadena([titular("CH 1"), ...largas]);
     expect(res.tramos[3].cadenas).toBe(1);

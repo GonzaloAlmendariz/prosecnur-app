@@ -166,7 +166,9 @@ const EN_PROSA =
  * El `["`>]` del primero es lo que lo separa de un identificador de código:
  * `AulasSeccionModelo` no va precedido de comilla ni de `>`.
  */
-const AL_ABRIR_FRASE = /(?:["`>]\s*)Aulas?\b(?!-)/g;
+// Ronda 17: las pestañas del libro se citan con comillas rectas ("Aulas Aplicadas (Campo)", "Aulas Agendadas"); antes
+// iban entre angulares y la comilla no las contaba. Son nombres de hoja, no la unidad.
+const AL_ABRIR_FRASE = /(?:["`>]\s*)(?!Aulas (?:Aplicadas \(Campo\)|Agendadas)")Aulas?\b(?!-)/g;
 const TRAS_VERBO =
   /\b(?:son|es|hay|quedan|había|habia|serán|seran|fueron)\s+aulas?\b(?!-)/gi;
 
@@ -227,7 +229,7 @@ const FEMENINO_TRAS_UNIDAD = new RegExp(
     String.raw`todas|estas|esas|aquellas|las que|aplicadas|agendadas|caídas|dormidas` +
     String.raw`|visitadas|evaluadas|juzgadas|llamarlas|contarlas|activarlas` +
     // `ninguna` sólo si cierra: seguida de puntuación o de fin de literal.
-    String.raw`|ninguna(?=\s*(?:[:.,;»]|$))` +
+    String.raw`|ninguna(?=\s*(?:[:.,;"]|$))` +
     String.raw`)\b`,
   "gi",
 );
@@ -252,11 +254,11 @@ describe("la unidad concuerda en masculino", () => {
   it("ninguna frase habla de cursos-horario en femenino", () => {
     const porArchivo = concordanciasEnFemenino();
     const detalle = porArchivo
-      .map(([f, hits]) => `${f}: «${hits[0].replace(/\s+/g, " ").slice(0, 80)}»`)
+      .map(([f, hits]) => `${f}: "${hits[0].replace(/\s+/g, " ").slice(0, 80)}"`)
       .join(" · ");
     expect(
       porArchivo.length,
-      "El cambio de «aula» a «curso-horario» dejó la concordancia en femenino. " +
+      'El cambio de "aula" a "curso-horario" dejó la concordancia en femenino. ' +
         `El ratchet de la palabra no lo ve, porque la palabra ya no está: ${detalle}`,
     ).toBe(0);
   });
@@ -289,7 +291,7 @@ describe("la unidad concuerda en masculino", () => {
 });
 
 describe("el vocabulario de la unidad sólo puede mejorar", () => {
-  it(`no supera las ${TOPE} frases con «aula» medidas al cerrar Avance`, () => {
+  it(`no supera las ${TOPE} frases con "aula" medidas al cerrar Avance`, () => {
     const porArchivo = frasesConAula();
     const total = porArchivo.reduce((n, [, c]) => n + c, 0);
     const detalle = porArchivo
@@ -299,7 +301,7 @@ describe("el vocabulario de la unidad sólo puede mejorar", () => {
       .join(" · ");
     expect(
       total,
-      `El perfil pasó de ${TOPE} a ${total} frases con «aula» en prosa. ` +
+      `El perfil pasó de ${TOPE} a ${total} frases con "aula" en prosa. ` +
         `La unidad es el curso-horario (ADR 0060). Las que más acumulan: ${detalle}. ` +
         "Si vienes de CERRAR frases, baja TOPE a este número.",
     ).toBeLessThanOrEqual(TOPE);
@@ -327,7 +329,7 @@ describe("el vocabulario de la unidad sólo puede mejorar", () => {
     ["determinante", "ninguna aula tiene parte", true],
     ["nombre de clase CSS", "className={`${c} aulas-foco-boton`}", false],
     ["identificador de código", "const aulasPorFacultad = 1", false],
-  ])("la alternativa «%s» %s", (_nombre, muestra, deberiaCasar) => {
+  ])('la alternativa "%s" %s', (_nombre, muestra, deberiaCasar) => {
     expect(new RegExp(EN_PROSA.source, "gi").test(muestra)).toBe(deberiaCasar);
   });
 });

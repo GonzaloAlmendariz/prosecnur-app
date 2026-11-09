@@ -26,7 +26,7 @@ const resumen = [
 const html = (r: typeof resumen) =>
   renderToStaticMarkup(<AulasEstadoChart filas={[]} resumen={r as never} desconocidasMotor={0} />);
 
-describe("el pie de «Status de aplicación» usa el denominador de su numerador", () => {
+describe('el pie de "Status de aplicación" usa el denominador de su numerador', () => {
   it("descuenta las reservas dormidas, que no salen a campo", () => {
     const out = html(resumen);
     // 269 - 70 = 199, no 269.
@@ -52,8 +52,8 @@ describe("el pie de «Status de aplicación» usa el denominador de su numerador
   });
 });
 
-describe("«reserva adicional» no nombra dos conjuntos distintos", () => {
-  it("las dormidas de una cadena no se llaman «de la reserva adicional»", () => {
+describe('"reserva adicional" no nombra dos conjuntos distintos', () => {
+  it('las dormidas de una cadena no se llaman "de la reserva adicional"', () => {
     // Medido el 2026-08-23 sobre el sorteo del 22: la misma pantalla decía
     // «las otras 507 son reservas que esperan en el banco» y, cuatro renglones
     // más abajo, «1.916 son reservas del banco». La misma palabra para dos
@@ -70,7 +70,7 @@ describe("«reserva adicional» no nombra dos conjuntos distintos", () => {
   });
 });
 
-describe("la reserva adicional tampoco está «en juego», aunque el motor no la marque dormida", () => {
+describe('la reserva adicional tampoco está "en juego", aunque el motor no la marque dormida', () => {
   const conReserva = (r: typeof resumen, reserva: number) =>
     renderToStaticMarkup(
       <AulasEstadoChart filas={[]} resumen={r as never} desconocidasMotor={0} reservaMotor={reserva} />,
@@ -277,7 +277,7 @@ describe("la reserva adicional no se descuenta dos veces", () => {
 });
 
 describe("las dormidas que caen FUERA del balde `en_reserva` tampoco salen a campo", () => {
-  it("descuenta las reservas con rechazo tecleado, que aterrizan en «pendiente»", () => {
+  it('descuenta las reservas con rechazo tecleado, que aterrizan en "pendiente"', () => {
     // **El defecto, visto en pantalla el 2026-09-08.** El pie decía «152 de 174
     // no salen a campo» mientras «Cursos-horario por cobertura», el panel de al
     // lado, decía 148 sin respuestas. El numerador restaba la reserva adicional

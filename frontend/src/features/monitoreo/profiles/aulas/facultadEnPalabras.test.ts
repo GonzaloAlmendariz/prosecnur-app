@@ -33,7 +33,7 @@ describe("el nombre de una facultad se escribe igual en todas partes", () => {
     expect(facultadEnPalabras("Facultad de Derecho")).toBe("Facultad de Derecho");
   });
 
-  it("el vacío sigue siendo vacío, no «»", () => {
+  it('el vacío sigue siendo vacío, no ""', () => {
     expect(facultadEnPalabras("")).toBe("");
     expect(facultadEnPalabras(null)).toBe("");
   });

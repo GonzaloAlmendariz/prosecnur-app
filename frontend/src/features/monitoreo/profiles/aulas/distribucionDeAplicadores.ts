@@ -146,12 +146,12 @@ export function avisoDistribucionPublicada(res: {
 
   const frases = [`Distribución de los aplicadores ${cuantas}.`];
   if (escritas.length) {
-    frases.push(`Se escribió ${escritas.map((h) => `«${h.hoja}»`).join(" y ")}.`);
+    frases.push(`Se escribió ${escritas.map((h) => `"${h.hoja}"`).join(" y ")}.`);
   }
   if (respetadas.length) {
     // Con su motivo, que es lo que distingue «no se pudo» de «no se debía».
     frases.push(
-      `${respetadas.map((h) => `«${h.hoja}»`).join(" y ")} ${respetadas.length === 1 ? "no se tocó" : "no se tocaron"}: ` +
+      `${respetadas.map((h) => `"${h.hoja}"`).join(" y ")} ${respetadas.length === 1 ? "no se tocó" : "no se tocaron"}: ` +
         "ya tiene citas escritas y ahí manda el equipo.",
     );
   }

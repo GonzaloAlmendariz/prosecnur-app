@@ -43,7 +43,7 @@ describe("Tarjeta de actor del panel Modelo: un tono por estado", () => {
     expect(new Set(acentos).size).toBe(TONOS.length);
   });
 
-  test("«requiere impulso» no se pinta con el acento de «en ruta»", () => {
+  test('"requiere impulso" no se pinta con el acento de "en ruta"', () => {
     expect(acento("low")).not.toBe(acento("steady"));
     expect(acento("low")).not.toBe(acento("complete"));
   });

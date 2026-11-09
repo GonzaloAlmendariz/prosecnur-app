@@ -92,7 +92,7 @@ describe("construirSalidas (A5)", () => {
     expect(v.sub).toBe("vista previa con el corte actual, 6 de 7 columnas");
   });
 
-  it("la primera columna es el grupo de la hoja aunque no se llame «Facultad» (eje por nivel)", () => {
+  it('la primera columna es el grupo de la hoja aunque no se llame "Facultad" (eje por nivel)', () => {
     const hoja: MonitoreoAulasAvanceTabla = {
       clave: "facultad", titulo: "Por nivel",
       cabecera: ["Nivel", "Efectivas", "Avance muestra", "Aulas aplicadas", "Muestra"],

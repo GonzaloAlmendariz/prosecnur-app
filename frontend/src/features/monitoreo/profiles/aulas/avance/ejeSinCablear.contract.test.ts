@@ -7,8 +7,8 @@ import { describe, expect, it } from "vitest";
  * fija. «Facultad» como texto sólo puede aparecer como RESPALDO de un corte que
  * no declara su eje (`|| "Facultad"`), nunca como rótulo directo.
  */
-describe("Avance no cablea «Facultad» (ADR 0121)", () => {
-  it("los modelos de Avance sólo usan «Facultad» como respaldo del eje", () => {
+describe('Avance no cablea "Facultad" (ADR 0121)', () => {
+  it('los modelos de Avance sólo usan "Facultad" como respaldo del eje', () => {
     const dir = __dirname;
     const culpables: string[] = [];
     const fuentes = readdirSync(dir).filter((archivo) => /Modelo\.ts$|cuotaPorCruce\.ts$/.test(archivo));

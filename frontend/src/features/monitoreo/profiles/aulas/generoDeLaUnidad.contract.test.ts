@@ -45,7 +45,7 @@ const OTRO_SUJETO = new Map<string, string>([
   // cursos-horario: un mismo curso-horario reagendado aporta una cita a cada
   // tramo. El encabezado va en femenino porque concuerda con la columna que
   // tiene al lado, que es lo que el ojo empareja.
-  ["Aplicadas", "la CITA del tramo, femenina — la columna vecina se llama «Citas»"],
+  ["Aplicadas", 'la CITA del tramo, femenina — la columna vecina se llama "Citas"'],
   // El vacío de Registro de campo (P5): «aplicadas» son las ENCUESTAS que el
   // parte cuenta, no el curso-horario. Antes la frase iba partida en líneas de
   // JSX y el barrido no la veía; en `descripcion` de EstadoVacio es un literal.
@@ -150,7 +150,7 @@ describe("el género de las etiquetas concuerda con la unidad", () => {
       // de la tabla de tramos, 2026-09-15.
       const presente = todo.includes(`"${literal}"`)
         || new RegExp(`>\\s*${literal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*<`).test(todo);
-      expect(presente, `«${literal}» ya no está en el perfil (${motivo}); quítala de OTRO_SUJETO`).toBe(true);
+      expect(presente, `"${literal}" ya no está en el perfil (${motivo}); quítala de OTRO_SUJETO`).toBe(true);
     }
   });
 });

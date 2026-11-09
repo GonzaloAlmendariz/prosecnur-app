@@ -392,7 +392,7 @@ export function AulasSeccionConsultas({
               campo», que es como se dice, y la hoja se llama «Aulas Aplicadas
               (Campo)». Sin decirlo, quien busca en su libro no sabe cuál abrir. */}
           <p className="mon-profile-muted">
-            De la hoja «Aulas Aplicadas (Campo)» del libro: lo que anotó quien
+            De la hoja "Aulas Aplicadas (Campo)" del libro: lo que anotó quien
             estuvo en el aula.
           </p>
           {/* La cadena del parte, SUMADA. Fila a fila no se ve que los

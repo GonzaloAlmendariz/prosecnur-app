@@ -27,7 +27,7 @@ function OcurrenciasTabImpl({ reports }: { reports: MonitoreoTerritorialDashboar
             tamano="normal"
             icono={<ClipboardList size={18} />}
             titulo="Sin partes de ocurrencias"
-            descripcion={<span title="Los partes llegan del formulario de ocurrencias de campo">«Actualizar» trae los partes nuevos</span>}
+            descripcion={<span title="Los partes llegan del formulario de ocurrencias de campo">"Actualizar" trae los partes nuevos</span>}
           />
         </div>
       </section>

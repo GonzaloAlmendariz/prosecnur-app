@@ -201,7 +201,7 @@ export function AulasFiltrosDeEfectiva({
 
       {ausentes.length ? (
         <p className="aulas-efectiva-aviso">
-          La base no trae {ausentes.map((v) => `«${v}»`).join(" ni ")}, así que{" "}
+          La base no trae {ausentes.map((v) => `"${v}"`).join(" ni ")}, así que{" "}
           {ausentes.length === 1 ? "esa condición no se aplica" : "esas condiciones no se aplican"}.
         </p>
       ) : null}

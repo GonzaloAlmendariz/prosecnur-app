@@ -35,7 +35,7 @@ describe("contadorDeCursosHorario", () => {
   });
 });
 
-describe("«se ven N» es lo que se VE, no lo que trae el payload", () => {
+describe('"se ven N" es lo que se VE, no lo que trae el payload', () => {
   it("el tope de la tabla acota el numerador", () => {
     // **El defecto, medido en pantalla el 2026-09-08.** El pie de «Avance por
     // curso-horario» decía «se ven 500 de 1,392 cursos-horario» y el DOM tenía

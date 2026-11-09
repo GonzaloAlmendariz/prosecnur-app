@@ -78,7 +78,7 @@ describe("AulasBancoExtras: el banco se abre por el eje declarado", () => {
     expect(html).not.toContain("<th>Facultad</th>");
   });
 
-  it("reagrupando no se pierde «cuántas quedan», que es con lo que se decide llamar", () => {
+  it('reagrupando no se pierde "cuántas quedan", que es con lo que se decide llamar', () => {
     // `disponibles` es lo que QUEDA, y un grupo sin ese dato se lee como «no se
     // sabe». Al rehacer los grupos se recuenta desde las filas, no se descarta.
     const html = pinta(NIVEL);

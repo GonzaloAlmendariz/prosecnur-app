@@ -319,7 +319,7 @@ function VeredictoDelAula({
       <span
         className="mon-profile-muted"
         title={celda
-          ? `La hoja dice «${celda}», que no se lee como un veredicto, y no hay umbral con qué calcularlo.`
+          ? `La hoja dice "${celda}", que no se lee como un veredicto, y no hay umbral con qué calcularlo.`
           : "La hoja no trae el veredicto y no hay umbral con qué calcularlo."}
       >
         —
@@ -409,7 +409,7 @@ export function AulasControlDelLibro({
       // los 17 del aviso → `capacity-drift` en los dos viewports. Con datos el
       // grupo iba verde, así que el defecto sólo existía en el estado vacío.
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member>
-        El libro importado no trae la hoja «Base de control», o la trae sin filas.
+        El libro importado no trae la hoja "Base de control", o la trae sin filas.
         Es la hoja donde el equipo lleva el control de calidad por curso-horario.
       </p>
     );

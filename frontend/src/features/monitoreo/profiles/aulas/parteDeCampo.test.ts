@@ -52,7 +52,7 @@ describe("el parte de campo", () => {
     expect(res.filas.map((f) => f.operational_code)).toEqual(["CH 1", "CH 2", "CH 10"]);
   });
 
-  it("«no se pudo comprobar» no es «no cuadra»", () => {
+  it('"no se pudo comprobar" no es "no cuadra"', () => {
     // Un parte sin asistentes ni efectivas no falla: no declara lo suficiente.
     // Contarlo como descuadre inventaría un problema que nadie declaró.
     const res = parteDeCampo([parte("CH 9", { cuadra: null, diferencia: null })]);

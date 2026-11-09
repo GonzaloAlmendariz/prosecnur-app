@@ -18,7 +18,7 @@ describe("qué cuenta enseña el bloque de respuestas", () => {
     expect(r?.rotulo).toBe("");
   });
 
-  it("con una facultad en foco, la suya — y «sin aula» deja de aplicar", () => {
+  it('con una facultad en foco, la suya — y "sin aula" deja de aplicar', () => {
     // Una facultad no tiene respuestas «sin aula»: por definición, las que no
     // se pudieron atribuir no están en ninguna.
     const r = respuestasDeLaFacultad(desglose, "DERECHO");

@@ -59,7 +59,7 @@ export function DialogoPublicarRonda({
             <>
               <NotaDelModo tono="info">
                 <span title="No se toca ninguna otra pestaña de la hoja">
-                  Se crea la pestaña «Ronda {formatoConteo(numero)}» en «{hoja.label || hoja.id}»
+                  Se crea la pestaña "Ronda {formatoConteo(numero)}" en "{hoja.label || hoja.id}"
                 </span>
               </NotaDelModo>
               <fieldset className="mon-sup-preguntas">
@@ -93,7 +93,7 @@ export function DialogoPublicarRonda({
           {hoja ? (
             <button type="button" className="mon-insumos-boton is-primario" disabled={envio.guardando} onClick={() => { void publicar(); }}>
               {envio.guardando ? <Loader2 size={14} className="pulso-spin" /> : <Upload size={14} />}
-              <span>{envio.guardando ? "Publicando…" : `Crear la pestaña «Ronda ${formatoConteo(numero)}»`}</span>
+              <span>{envio.guardando ? "Publicando…" : `Crear la pestaña "Ronda ${formatoConteo(numero)}"`}</span>
             </button>
           ) : (
             <button type="button" className="mon-insumos-boton is-primario" onClick={onIrAFuentes}>Ir a Fuentes</button>

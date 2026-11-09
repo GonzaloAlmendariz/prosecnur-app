@@ -71,7 +71,7 @@ describe("la Base de control no pinta una tabla de una sola columna", () => {
  * familia que `e7d7e058` («un control que no miró nada no es un control que
  * pasó»), esta vez en el frontend.
  */
-describe("«ninguna se quedó corto» necesita que alguna esté evaluada", () => {
+describe('"ninguna se quedó corto" necesita que alguna esté evaluada', () => {
   const fila = (t: boolean | null, p: boolean | null) => ({
     operational_code: "CH 1", cumple_total: t, cumple_poblacion: p,
     sent_total: 10, threshold_total: 20, threshold_population: 20,

@@ -13,7 +13,7 @@ const FALLO = { texto: "La publicación al Sheets no terminó: 403", tono: "aten
 const OK_LIBRO = { texto: "Se publicó el libro.", tono: "ok" as const };
 
 describe("cuál de los dos avisos del sync se enseña", () => {
-  it("un fallo del libro NO lo tapa un «sin respuestas nuevas»", () => {
+  it('un fallo del libro NO lo tapa un "sin respuestas nuevas"', () => {
     const elegido = avisoDelSync(FALLO, {
       mensaje: "Kobo EU no trajo respuestas NUEVAS…", tono: "ok",
     });

@@ -24,7 +24,7 @@ describe("avisoLibroImportado", () => {
     expect(texto).toContain("su cabecera no las nombra");
   });
 
-  it("una sola columna no dice «1 columnas traían»", () => {
+  it('una sola columna no dice "1 columnas traían"', () => {
     const { texto } = avisoLibroImportado({ ...completo, control_sin_nombre: [31] });
     expect(texto).toContain("1 columna de la base de control traía datos");
     expect(texto).toContain("no la nombra");

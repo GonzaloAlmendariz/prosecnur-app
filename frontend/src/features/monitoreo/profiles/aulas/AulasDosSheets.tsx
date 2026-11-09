@@ -57,7 +57,7 @@ export function AulasDosSheets({ config }: AulasDosSheetsProps) {
         ? (fijadas > 0
           // Con fijaciones guardadas, el reparto ya no se resortea por debajo.
           ? `Adoptado: ${fijadas} asignaciones fijadas, el sorteo ya no las mueve`
-          : "Sin adoptar: en Asignación, «Revisar cambios» fija lo que ya se comunicó")
+          : 'Sin adoptar: en Asignación, "Revisar cambios" fija lo que ya se comunicó')
         : "Se recuerda al publicar la distribución o al sincronizarla una vez",
     },
   ];

@@ -43,7 +43,7 @@ const pinta = (brecha?: { mujeres: number; hombres: number }) =>
     <ContenidoDeReemplazo caido={CAIDO} filas={RESERVAS} brecha={brecha} />,
   );
 
-describe("«cierra brecha» sólo se dibuja si hay brecha que cerrar", () => {
+describe('"cierra brecha" sólo se dibuja si hay brecha que cerrar', () => {
   it("sin brecha no pinta la medida en vez de pintarla a cero", () => {
     const html = pinta();
         // Registro formalizado el 2026-09-11 a petición de Gonzalo («cuidado con

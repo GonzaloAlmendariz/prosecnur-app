@@ -186,7 +186,7 @@ describe("AulasComposicionReferencial: lo que NO hace", () => {
 });
 
 describe("el panel llega a la pestaña que lo pinta", () => {
-  it("la pestaña «cuotas» lo monta", () => {
+  it('la pestaña "cuotas" lo monta', () => {
     // La misma guarda que las bolsas: el fixture NO trae `proyeccion_metas`,
     // que es la forma real de CCSS, así que el panel no puede colgar de un
     // bloque que ese estudio no monta.
@@ -249,7 +249,7 @@ describe("sin población declarada: se dice, no se escribe un cero", () => {
     expect(v.dimensiones.every((d) => d.poblacionDeclarada)).toBe(true);
   });
 
-  it("el encabezado no dice «de 0» y manda a mirar el proyecto", () => {
+  it('el encabezado no dice "de 0" y manda a mirar el proyecto', () => {
     const html = renderToStaticMarkup(
       <AulasComposicionReferencial avanceCuota={bloque(SIN_POBLACION)} />,
     );

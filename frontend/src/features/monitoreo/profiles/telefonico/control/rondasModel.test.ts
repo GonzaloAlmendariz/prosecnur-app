@@ -57,8 +57,8 @@ describe("repartoPrevio", () => {
 
 describe("mensajeDeError", () => {
   it("devuelve la frase del motor sin la clave del final", () => {
-    const error = new ApiError("E_MONITOREO_SUPERVISION_PUBLICADA", "La Ronda 2 ya se publicó en «Ronda 2».");
-    expect(mensajeDeError(error)).toBe("La Ronda 2 ya se publicó en «Ronda 2».");
+    const error = new ApiError("E_MONITOREO_SUPERVISION_PUBLICADA", 'La Ronda 2 ya se publicó en "Ronda 2".');
+    expect(mensajeDeError(error)).toBe('La Ronda 2 ya se publicó en "Ronda 2".');
   });
 
   it("si sólo llegó la clave, la traduce; nunca la muestra cruda", () => {
@@ -80,7 +80,7 @@ describe("lecturas", () => {
       { CodPulso: "", Enumerador: "Beto" },
     ],
     supervision_resumen: [{ Indicador: "Efectivas sin ronda", Valor: 4 }],
-    supervision_avisos: [{ Ronda: 2, Aviso: "La Ronda 2 se publicó en «Ronda 2», pero esa pestaña ya no está." }],
+    supervision_avisos: [{ Ronda: 2, Aviso: 'La Ronda 2 se publicó en "Ronda 2", pero esa pestaña ya no está.' }],
   });
 
   it("las rondas salen ordenadas, con estado y sin porcentaje la heredada", () => {
@@ -88,7 +88,7 @@ describe("lecturas", () => {
     expect(rondas.map((r) => [r.numero, r.guardada, r.porcentaje, r.publicadaEn])).toEqual([[1, false, null, ""], [2, true, 20, "Ronda 2"]]);
     expect(rondas[1].semilla).toBe(7);
     expect([rondas[1].lectura, rondas[0].lectura]).toEqual(["pestana_borrada", ""]);
-    expect(avisosDeSupervision(R)).toEqual([{ ronda: 2, aviso: "La Ronda 2 se publicó en «Ronda 2», pero esa pestaña ya no está." }]);
+    expect(avisosDeSupervision(R)).toEqual([{ ronda: 2, aviso: 'La Ronda 2 se publicó en "Ronda 2", pero esa pestaña ya no está.' }]);
     expect(avisosDeSupervision(reportes({}))).toEqual([]);
   });
 

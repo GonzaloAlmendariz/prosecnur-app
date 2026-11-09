@@ -209,7 +209,7 @@ function FichaDelOperador({ operador, modelo, sinBarrer, sinBarrerDisponible }: 
           ))}
         </ul>
         {estados.length === 1 ? (
-          <p className="mon-equipo-status-unico">Sus {n(estados[0].casos)} casos están en «{estados[0].status}».</p>
+          <p className="mon-equipo-status-unico">Sus {n(estados[0].casos)} casos están en "{estados[0].status}".</p>
         ) : null}
       </section>
     </aside>

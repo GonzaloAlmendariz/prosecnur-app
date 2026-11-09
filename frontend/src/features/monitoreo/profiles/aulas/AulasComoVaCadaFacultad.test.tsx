@@ -42,7 +42,7 @@ const pinta = (previsto: number | null) => renderToStaticMarkup(
 );
 
 describe("Cómo va cada facultad: sin tasa prevista no se aprueba ni se deja un hueco", () => {
-  it("sin previsto, ni «de — previsto» ni verde", () => {
+  it('sin previsto, ni "de — previsto" ni verde', () => {
     const html = pinta(null);
     expect(html).toContain("sin tasa prevista");
     expect(html).not.toContain("de — previsto");

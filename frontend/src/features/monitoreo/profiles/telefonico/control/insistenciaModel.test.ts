@@ -81,7 +81,7 @@ describe("Control › Insistencia del telefónico", () => {
     expect(escalaDeIntentos(muchos)).toBe("4 casos: 2 con 10 intentos o más, 1 con 5 a 9 y 1 con 1 a 4");
   });
 
-  it("califica la insistencia frente a la mediana del equipo y deja «Sin asignar» fuera", () => {
+  it('califica la insistencia frente a la mediana del equipo y deja "Sin asignar" fuera', () => {
     const responsables = responsablesDeCola([
       { Responsable: "Op-01", "Sin asignar": false, "Casos en cola": 2, "Ya efectivas en Kobo": 0, "Promedio intentos": 4, "Sin dato de intentos": 0, "Por llamar": 1 },
       { Responsable: "Op-02", "Sin asignar": false, "Casos en cola": 10, "Ya efectivas en Kobo": 1, "Promedio intentos": 2, "Sin dato de intentos": 0, "Por llamar": 5 },
@@ -97,7 +97,7 @@ describe("Control › Insistencia del telefónico", () => {
     expect(reparto).toEqual({ porLlamarAsignados: 6, repartidos: 153, equipo: 3 });
   });
 
-  it("sin el bloque en el corte dice «Preparando», no una cola vacía", () => {
+  it('sin el bloque en el corte dice "Preparando", no una cola vacía', () => {
     expect(estadoDeInsistencia(reportes([{ id: "resumen_telefonico", rows: [] }])).clave).toBe("preparando");
     expect(estadoDeInsistencia(null).clave).toBe("sin-hoja");
     expect(chipsDeInsistencia(reportes([{ id: "cola_insistencia", rows: cola }]))).toEqual([

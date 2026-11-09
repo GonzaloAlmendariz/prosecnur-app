@@ -19,8 +19,8 @@ import type { MonitoreoAulasConfig } from "../../../../api/monitoreo";
  */
 const cfg = (c: Record<string, unknown>) => c as unknown as MonitoreoAulasConfig;
 
-describe("«hay plan» y «el plan vino del sorteo» son preguntas distintas", () => {
-  it("un plan traído por el libro Excel no está «importado» pero SÍ es plan", () => {
+describe('"hay plan" y "el plan vino del sorteo" son preguntas distintas', () => {
+  it('un plan traído por el libro Excel no está "importado" pero SÍ es plan', () => {
     // Sin `selection_run_id`: es el caso que cerraba el ciclo sobre sí mismo.
     const c = cfg({ enabled: true, plan_rows: 196 });
     expect(aulasPlanImported(c)).toBe(false);

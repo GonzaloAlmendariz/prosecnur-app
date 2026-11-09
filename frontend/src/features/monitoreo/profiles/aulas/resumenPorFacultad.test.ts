@@ -44,7 +44,7 @@ describe("las tres cifras por facultad", () => {
     expect(filas[0].aplicadas).toBe(3);
   });
 
-  it("cero aplicadas es un dato, y `null` es «no lo sé»", () => {
+  it('cero aplicadas es un dato, y `null` es "no lo sé"', () => {
     const filas = resumenPorFacultad(
       [resp("EDUCACION", 0)],
       [{ facultad: "EDUCACION", planificadas: 3, aplicadas: 0 }],

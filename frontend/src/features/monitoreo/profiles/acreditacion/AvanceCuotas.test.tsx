@@ -109,7 +109,7 @@ describe("vista de Avance › Cuotas", () => {
     expect(html).toContain("metas escritas a mano");
   });
 
-  it("el estado de cada categoría da el color; «Sin dato» va al final", () => {
+  it('el estado de cada categoría da el color; "Sin dato" va al final', () => {
     const html = pinta({ estado: ESTADO }, { foco: "q2" });
     expect(html).toContain("mon-cuotas-categoria es-cumplida");
     expect(html).toContain("mon-cuotas-categoria es-sin_avance");
@@ -174,7 +174,7 @@ describe("panel de configuración", () => {
     expect(pintaPanel({ borrador: borradorNuevo(ESTADO.publicos) })).not.toContain("Solo seguimiento");
   });
 
-  it("una variable ya seguida abre en «Solo seguimiento» y se puede dejar de seguir", () => {
+  it('una variable ya seguida abre en "Solo seguimiento" y se puede dejar de seguir', () => {
     const borrador = { ...borradorNuevo(ESTADO.publicos), actor: "Docentes Campus", variable: "Dedicación" };
     const html = pintaPanel({ borrador, onSeguir: noop, onDejarDeSeguir: noop, seguidas: new Set([claveDeSeguida("docentes campus", "DEDICACIÓN")]) });
     expect(html).toContain("Esta variable ya está en seguimiento");

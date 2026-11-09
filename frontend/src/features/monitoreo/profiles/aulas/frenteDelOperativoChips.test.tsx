@@ -37,7 +37,7 @@ describe("los vencidos llevan los chips del sistema", () => {
     expect(html).toContain('title="LUN 16:00 A206"');
   });
 
-  it("sin aula ni hora, el hueco sigue diciendo «—» y no un chip vacío", () => {
+  it('sin aula ni hora, el hueco sigue diciendo "—" y no un chip vacío', () => {
     const html = pinta([fila({ scheduled_time: "", label: "" })]);
     expect(html).not.toContain("aulas-chip-lugar");
     expect(html).not.toContain("aulas-chip-hora");

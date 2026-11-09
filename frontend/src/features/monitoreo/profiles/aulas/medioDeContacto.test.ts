@@ -37,7 +37,7 @@ describe("medioDeContacto", () => {
     expect(salida[1].tasa).toBe(60);
   });
 
-  it("«reagendada» también cuenta como conseguida", () => {
+  it('"reagendada" también cuenta como conseguida', () => {
     // El medio consiguió la cita; que luego se moviera es otra historia.
     const { medios: [m] } = medioDeContacto([
       fila({ contact_medium: "Llamada", sample_status: "reagendada" }),

@@ -33,7 +33,7 @@ describe("el foco cruza la sección y resalta sin filtrar", () => {
     { faculty: "Arte", aulas: 5, meta: 80, brecha: 30, respuestas_validas: 50 },
   ];
 
-  it("«Dónde falta más» marca la facultad enfocada y sólo esa", () => {
+  it('"Dónde falta más" marca la facultad enfocada y sólo esa', () => {
     const html = renderToStaticMarkup(
       <AulasPerfilPorFacultad filas={[]} resumen={resumen as never} facultadEnFoco="Derecho" />,
     );
@@ -58,14 +58,14 @@ describe("el foco cruza la sección y resalta sin filtrar", () => {
     expect(cuantas(html)).toBe(0);
   });
 
-  it("«Encuestas por día de cada facultad» también", () => {
+  it('"Encuestas por día de cada facultad" también', () => {
     const html = renderToStaticMarkup(
       <AulasRitmoPorFacultad partes={partes} facultadEnFoco="Arte" />,
     );
     expect(cuantas(html)).toBe(1);
   });
 
-  it("«Qué está rindiendo más» marca sólo cuando agrupa POR FACULTAD", () => {
+  it('"Qué está rindiendo más" marca sólo cuando agrupa POR FACULTAD', () => {
     const porFacultad = renderToStaticMarkup(
       <AulasRendimientoPorFacultad partes={partes} plan={[]} facultadEnFoco="Derecho" />,
     );

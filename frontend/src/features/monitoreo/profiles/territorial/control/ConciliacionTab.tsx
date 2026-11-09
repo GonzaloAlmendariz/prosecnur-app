@@ -104,9 +104,9 @@ function ConciliacionTabImpl({
                   const elegido = modelo.padron.find((opcion) => opcion.codigo === elecciones[clave]) ?? null;
                   return (
                     <li key={clave}>
-                      <span className="mon-con-escrito">«{codigo.codigo}» <small>{fmt(codigo.casos)} {codigo.casos === 1 ? "caso" : "casos"}</small></span>
+                      <span className="mon-con-escrito">"{codigo.codigo}" <small>{fmt(codigo.casos)} {codigo.casos === 1 ? "caso" : "casos"}</small></span>
                       <label>
-                        <span className="pulso-sr-only">Código del padrón para «{codigo.codigo}»</span>
+                        <span className="pulso-sr-only">Código del padrón para "{codigo.codigo}"</span>
                         <select value={elecciones[clave] ?? ""} onChange={(event) => { const valor = event.currentTarget.value; setElecciones((previas) => ({ ...previas, [clave]: valor })); }}>
                           <option value="">Elegir del padrón…</option>
                           {modelo.padron.map((opcion) => <option key={opcion.codigo} value={opcion.codigo}>{opcion.codigo}, {opcion.nombre}</option>)}
@@ -118,7 +118,7 @@ function ConciliacionTabImpl({
                         disabled={!elegido || !codigo.responseIds.length || enCurso != null}
                         title={!codigo.responseIds.length ? "El corte no trae las respuestas de este código" : undefined}
                         onClick={() => {
-                          if (elegido) void enviar(clave, cambiosDeCodigo(codigo, elegido, phase), `«${codigo.codigo}» quedó conciliado con ${elegido.codigo}.`);
+                          if (elegido) void enviar(clave, cambiosDeCodigo(codigo, elegido, phase), `"${codigo.codigo}" quedó conciliado con ${elegido.codigo}.`);
                         }}
                       >
                         {enCurso === clave ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> : null}
@@ -168,9 +168,9 @@ function ConciliacionTabImpl({
                   const destino = modelo.ruta.find((opcion) => opcion.idManzana === elecciones[clave]) ?? null;
                   return (
                     <li key={clave}>
-                      <span className="mon-con-escrito">«{valor.valor}» <small>{fmt(valor.casos)} {valor.casos === 1 ? "caso" : "casos"}</small></span>
+                      <span className="mon-con-escrito">"{valor.valor}" <small>{fmt(valor.casos)} {valor.casos === 1 ? "caso" : "casos"}</small></span>
                       <label>
-                        <span className="pulso-sr-only">UMP de la ruta para «{valor.valor}»</span>
+                        <span className="pulso-sr-only">UMP de la ruta para "{valor.valor}"</span>
                         <select value={elecciones[clave] ?? ""} onChange={(event) => { const v = event.currentTarget.value; setElecciones((previas) => ({ ...previas, [clave]: v })); }}>
                           <option value="">Elegir de la ruta…</option>
                           {modelo.ruta.map((opcion) => <option key={opcion.idManzana} value={opcion.idManzana}>{opcion.rotulo}</option>)}
@@ -181,7 +181,7 @@ function ConciliacionTabImpl({
                         className="mon-con-boton"
                         disabled={!destino || enCurso != null}
                         onClick={() => {
-                          if (destino) void enviar(clave, [cambioDeUmp(valor, destino, phase)], `«${valor.valor}» quedó conciliado con la UMP ${destino.ump}.`);
+                          if (destino) void enviar(clave, [cambioDeUmp(valor, destino, phase)], `"${valor.valor}" quedó conciliado con la UMP ${destino.ump}.`);
                         }}
                       >
                         {enCurso === clave ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> : null}
@@ -236,7 +236,7 @@ function ListaDeConciliaciones({ titulo, conciliaciones }: { titulo: string; con
       <ul className="mon-con-hechas" data-qa-geometry-capacity="owned">
         {conciliaciones.map((item, indice) => (
           <li key={`${item.escrito}-${indice}`}>
-            <span>«{item.escrito}»</span>
+            <span>"{item.escrito}"</span>
             <ArrowRight size={13} aria-label="asignado a" />
             <span>{item.asignado}</span>
           </li>

@@ -10,7 +10,7 @@ const dir = path.dirname(fileURLToPath(import.meta.url));
 const fila = (assigned: number | null, pending: number, swept: number | null = null) =>
   ({ assigned, pending, swept });
 
-describe("sin «Casos asignados» no se inventa un denominador", () => {
+describe('sin "Casos asignados" no se inventa un denominador', () => {
   test("la ausencia se declara: null, y NO los pendientes", () => {
     // El defecto exacto: `row.assigned ?? row.pending` hacía que un responsable
     // con 2 casos por barrer apareciera con «2 personas asignadas».
@@ -32,11 +32,11 @@ describe("sin «Casos asignados» no se inventa un denominador", () => {
     expect(b.pctPendiente).toBe(2);
   });
 
-  test("un «Casos barridos» declarado manda sobre la resta", () => {
+  test('un "Casos barridos" declarado manda sobre la resta', () => {
     expect(barridoDelResponsable(fila(100, 2, 90)).barridos).toBe(90);
   });
 
-  test("cero asignados no da «0 %»: da que no hay porcentaje", () => {
+  test('cero asignados no da "0 %": da que no hay porcentaje', () => {
     // Dividir entre cero salía como 0 %, que se lee «no ha barrido nada»
     // cuando lo cierto es que no tiene nada que barrer.
     const b = barridoDelResponsable(fila(0, 0));
@@ -51,7 +51,7 @@ describe("sin «Casos asignados» no se inventa un denominador", () => {
 });
 
 describe("el total de la cabecera no contradice a la lista", () => {
-  test("si nadie trae el dato, el total es «no se sabe», no cero", () => {
+  test('si nadie trae el dato, el total es "no se sabe", no cero', () => {
     // `rows.reduce((s, r) => s + (r.assigned ?? 0), 0)` anunciaba «0 personas
     // asignadas» encima de una lista con números en cada fila.
     const t = totalDeAsignadas([fila(null, 3), fila(null, 5)]);
@@ -97,7 +97,7 @@ describe("los dos perfiles que pintan este panel usan el mismo lector", () => {
       .filter((respaldo) => /\bpending\b/.test(respaldo));
     expect(
       culpables,
-      "«Casos asignados» es opcional: sin la columna no hay asignadas ni porcentaje. " +
+      '"Casos asignados" es opcional: sin la columna no hay asignadas ni porcentaje. ' +
         "Sustituirla por los pendientes (o por cero en la cabecera) publica dos cifras " +
         "que se contradicen en la misma pantalla. Usa barridoDelResponsable/totalDeAsignadas.",
     ).toEqual([]);

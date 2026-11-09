@@ -110,7 +110,7 @@ describe("matriz de públicos", () => {
     expect(ordenarPublicos(P, "nombre").map((p) => p.actor)).toEqual(["Alfa", "Beta", "Gama"]);
   });
 
-  it("«sin envíos» colapsa solo si nadie recibió envíos", () => {
+  it('"sin envíos" colapsa solo si nadie recibió envíos', () => {
     expect(todosSinEnvios(P)).toBe(false);
     expect(todosSinEnvios(P.map((p) => ({ ...p, ritmo: "sin_envios" as const })))).toBe(true);
     expect(todosSinEnvios([])).toBe(false);

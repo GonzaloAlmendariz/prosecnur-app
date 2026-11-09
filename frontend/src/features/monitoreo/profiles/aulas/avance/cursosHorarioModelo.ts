@@ -144,7 +144,7 @@ function porQueDe(a: AulaMedida): string {
       ? `Margen de ${banda} alrededor de la prevista, armado con sus elegibles.`
       : "Lectura del motor contra la tasa prevista.";
   }
-  return `Señal que esta pantalla no reconoce: «${a.senal || "vacía"}».`;
+  return `Señal que esta pantalla no reconoce: "${a.senal || "vacía"}".`;
 }
 
 function filaDe(a: AulaMedida): FilaDeCursoHorario {

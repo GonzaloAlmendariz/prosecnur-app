@@ -103,7 +103,7 @@ function MapeoTabImpl({
         >
           {modelo.filtro ? (
             <>
-              <p className="mon-ins-pregunta">«{modelo.filtro.pregunta || "Pregunta sin rótulo"}»</p>
+              <p className="mon-ins-pregunta">"{modelo.filtro.pregunta || "Pregunta sin rótulo"}"</p>
               <p className="mon-ins-base">Cuenta si la respuesta es {modelo.filtro.valores.join(" o ") || "—"}.</p>
               <span className="mon-ins-barra" aria-hidden="true">
                 <i style={{ width: `${modelo.filtro.base ? ((modelo.filtro.pasan ?? 0) / modelo.filtro.base) * 100 : 0}%` }} />

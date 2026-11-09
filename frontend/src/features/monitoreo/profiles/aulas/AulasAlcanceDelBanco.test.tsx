@@ -98,7 +98,7 @@ describe("AulasAlcanceDelBanco", () => {
     const html = renderToStaticMarkup(
       <AulasAlcanceDelBanco banco={banco} control={[]} agenda={[]} partes={[]} quotas={cuota([["Letras", 300, 0]])} />,
     );
-    expect(html).toContain("hace falta la hoja «Base de control»");
+    expect(html).toContain("hace falta la hoja &quot;Base de control&quot;");
     expect(html).not.toContain("aulas-alcance-titular");
   });
 

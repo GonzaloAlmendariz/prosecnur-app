@@ -73,7 +73,7 @@ describe("loQueFaltaParaCerrar", () => {
     expect(r.aulas).toHaveLength(0);
   });
 
-  it("un «no cumple» con las enviadas ya sobre el umbral es una contradicción de la hoja", () => {
+  it('un "no cumple" con las enviadas ya sobre el umbral es una contradicción de la hoja', () => {
     // No es un faltante de cero: la hoja se contradice a sí misma y eso se
     // cuenta aparte para que no se lea como «esta ya está».
     const r = loQueFaltaParaCerrar([

@@ -45,7 +45,7 @@ describe("la franja de la agenda declara si está contada sobre un payload recor
     expect(html).not.toContain("contado sobre");
   });
 
-  it("el aviso NO sustituye al conteo: «sin fecha» se sigue diciendo", () => {
+  it('el aviso NO sustituye al conteo: "sin fecha" se sigue diciendo', () => {
     // La reparación es declarar, no callar. Quitar la cifra dejaría la franja
     // sin lo que resume.
     const html = renderToStaticMarkup(

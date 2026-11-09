@@ -69,7 +69,7 @@ describe("ninguna clase del perfil se pinta sin una regla que la estile", () => 
       huerfanas.length > TOPE
         ? `Hay ${huerfanas.length} clases que se pintan sin regla (tope ${TOPE}). `
           + `Si vienes de borrar reglas, comprueba que el patrón no se llevó a un vecino `
-          + `con prefijo común —«-vara» se lleva «-varas3»—:\n  ${huerfanas.slice(0, 14).join("\n  ")}`
+          + `con prefijo común —"-vara" se lleva "-varas3"—:\n  ${huerfanas.slice(0, 14).join("\n  ")}`
         : "",
     ).toBeLessThanOrEqual(TOPE);
   });

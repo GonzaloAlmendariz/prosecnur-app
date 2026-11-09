@@ -53,7 +53,7 @@ describe("identidadEnCelda: chips sólo en columnas de identidad", () => {
     expect(html("sesiones_dia_hora", "MAR 14:00-16:00")).toContain("aulas-chip-hora");
   });
 
-  it("«Sesiones y aula» descriptivo se parte en sesión + pabellón, con el texto entero en el title", () => {
+  it('"Sesiones y aula" descriptivo se parte en sesión + pabellón, con el texto entero en el title', () => {
     const celda = html("label", "LUN 16:00 A206");
     expect(celda).toContain("aulas-chip-hora");
     expect(celda).toContain("aulas-chip-lugar");

@@ -20,7 +20,7 @@ describe("la probabilidad de cierre no afirma certeza", () => {
     expect(pctDeCierre(0.004)).toBe("<1 %");
   });
 
-  it("el cero de verdad SÍ es cero: no es lo mismo «casi imposible» que «imposible»", () => {
+  it('el cero de verdad SÍ es cero: no es lo mismo "casi imposible" que "imposible"', () => {
     expect(pctDeCierre(0)).toBe("0 %");
   });
 

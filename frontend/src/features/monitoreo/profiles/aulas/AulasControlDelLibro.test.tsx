@@ -89,7 +89,7 @@ describe("AulasControlDelLibro · la tasa de efectividad", () => {
 });
 
 describe("AulasControlDelLibro · veredicto por aula", () => {
-  it("una celda ilegible queda INDETERMINADA, no «no válido»", () => {
+  it('una celda ilegible queda INDETERMINADA, no "no válido"', () => {
     // El motor deja `cumple_total` en null ante «PENDIENTE» y el aula no cuenta
     // como efectiva. La marca vieja la mandaba a «✗ No válido» —acusar a un
     // aula de no llegar cuando lo que pasa es que nadie la evaluó—.
@@ -99,7 +99,7 @@ describe("AulasControlDelLibro · veredicto por aula", () => {
       valid_population: "1",
       cumple_poblacion: true,
     });
-    expect(html).toContain("La hoja dice «PENDIENTE»");
+    expect(html).toContain("La hoja dice &quot;PENDIENTE&quot;");
     expect(html).toContain("Válido, según la hoja");
     // El control: si el veredicto se siguiera leyendo de la celda, «PENDIENTE»
     // saldría con la marca de no válido y este aserto caería.
@@ -174,7 +174,7 @@ describe("AulasControlDelLibro · la banda de pérdida no lee el veredicto", () 
     expect(texto!).not.toMatch(/\b0\s*%/);
   });
 
-  it("con «SI»/«NO» en el veredicto la banda no se apaga", () => {
+  it('con "SI"/"NO" en el veredicto la banda no se apaga', () => {
     // La lectura vieja mandaba estas dos filas a «sin revisar» y la banda no se
     // dibujaba: una hoja llena declarada vacía.
     const texto = banda([
@@ -214,7 +214,7 @@ describe("AulasControlDelLibro · la banda de pérdida no lee el veredicto", () 
     // writer.
   });
 
-  it("la columna «Válido total» sigue pintando el veredicto, no una cifra", () => {
+  it('la columna "Válido total" sigue pintando el veredicto, no una cifra', () => {
     // El verde a conservar: el mismo campo, dos líneas más abajo de la banda,
     // es una marca de sí/no que sale del motor. El arreglo de la banda no
     // puede llevárselo.

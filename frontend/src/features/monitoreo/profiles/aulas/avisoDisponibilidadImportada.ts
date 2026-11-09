@@ -40,7 +40,7 @@ export function avisoDisponibilidadImportada(res: {
     return {
       texto: avisos.length
         ? `El excel no dejó ningún aplicador. ${avisos.slice(0, AVISOS_VISIBLES).join(" ")}`
-        : "El excel no dejó ningún aplicador: revisa que los nombres estén en la columna «Nombres» y las marcas en las franjas.",
+        : 'El excel no dejó ningún aplicador: revisa que los nombres estén en la columna "Nombres" y las marcas en las franjas.',
       tono: "atencion",
     };
   }

@@ -29,14 +29,14 @@ describe("el control único Actualizar", () => {
     expect(plan.menu.find((e) => e.clave === "fuente:Universo")?.detalle).toBe("Google Sheets, universo");
   });
 
-  it("no queda ningún segundo «Todo»", () => {
+  it('no queda ningún segundo "Todo"', () => {
     const plan = planDeActualizar({ fuentes: telefonico, familia: "telefonico" });
     const etiquetas = [plan.principal, ...plan.menu].map((e) => e.etiqueta);
     expect(etiquetas).not.toContain("Todo");
     expect(etiquetas.filter((e) => e === "Traer todo de nuevo")).toHaveLength(1);
   });
 
-  it("con varias encuestas ofrece traerlas juntas, como el botón «encuestas» de la franja", () => {
+  it('con varias encuestas ofrece traerlas juntas, como el botón "encuestas" de la franja', () => {
     const acreditacion = [
       fuente("Base", "google_sheets", { role: "universo" }),
       fuente("Egresados", "surveymonkey", { role: "respuestas" }),
@@ -67,7 +67,7 @@ describe("el control único Actualizar", () => {
     expect(plan.menu.some((e) => e.clave === "fuente:Apagada" || e.clave === "fuente:Ocurrencias")).toBe(false);
   });
 
-  it("«Recalcular» dice si hay cambios sin recalcular", () => {
+  it('"Recalcular" dice si hay cambios sin recalcular', () => {
     const plan = planDeActualizar({ fuentes: telefonico, familia: "telefonico", pendienteDeRecalcular: true });
     expect(plan.menu.find((e) => e.clave === "recalcular")?.detalle).toBe("Hay cambios sin recalcular");
   });

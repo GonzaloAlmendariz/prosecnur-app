@@ -75,7 +75,7 @@ describe("Control › Barrido de acreditación", () => {
     expect(html).not.toMatch(/>[a-z0-9]+([_-][a-z0-9]+)+</);
   });
 
-  it("la esquina sin efectiva en ninguno de los dos lados dice «—» y su motivo (C5)", () => {
+  it('la esquina sin efectiva en ninguno de los dos lados dice "—" y su motivo (C5)', () => {
     const html = renderToStaticMarkup(<BarridoVista modelo={modelo} tarjetas={[]} fuentes={[]} />);
     const celda = html.match(/<div class="acr-ct-matriz-celda is-fuera"[^>]*>.*?<\/div>/)?.[0] ?? "";
     expect(celda).toContain("—");

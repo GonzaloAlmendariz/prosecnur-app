@@ -46,7 +46,7 @@ describe("la banda de KPIs", () => {
     expect(sinPista.map((k) => k.label)).toEqual([]);
   });
 
-  it("«Cursos-horario aplicados» dice las tres vías por las que se cuenta", () => {
+  it('"Cursos-horario aplicados" dice las tres vías por las que se cuenta', () => {
     // El rótulo lleva la unidad porque la tarjeta vecina —«Válidas»— cuenta
     // personas, y 152 contra 2.668 no se comparan sin saberlo.
     //
@@ -114,7 +114,7 @@ describe("la banda de KPIs", () => {
     }
   });
 
-  it("«Base de control» es la excepción declarada: no lleva banda", () => {
+  it('"Base de control" es la excepción declarada: no lleva banda', () => {
     // Esa pestaña abre con su propio encabezado —la matriz de los cuatro casos
     // y el titular de efectivas—, y encima llevaba tres tiles de la OTRA
     // pestaña. Tres estratos de cabecera y 111 px de banda para decir lo que la
@@ -275,7 +275,7 @@ describe("la tarjeta de brechas dice brecha de qué", () => {
     expect(k?.pista).toBe("en 2 facultades");
   });
 
-  it("sin desglose no dice «ninguno»: dice que falta el reparto", () => {
+  it('sin desglose no dice "ninguno": dice que falta el reparto', () => {
     // `course_status` puede llegar recortado. Una pista que negara las brechas
     // contradiría al número grande, que sigue diciendo 92.
     const k = brechas();
@@ -309,7 +309,7 @@ describe("cuando los dos estados se contradicen, manda el operativo", () => {
 
   it("las cuenta con cita, no como sin contactar", () => {
     const kpi = aulasKpis(conDesfase(), "modelo").find((k) => k.label === "Sin empezar");
-    expect(kpi, "no está el KPI «Sin empezar»").toBeTruthy();
+    expect(kpi, 'no está el KPI "Sin empezar"').toBeTruthy();
     // Las CINCO tienen cita. Antes decía «2 con cita · 3 sin contactar
     // todavía», que manda a llamar a docentes que ya dieron hora.
     expect(kpi?.pista).toContain("5 con cita");
@@ -507,7 +507,7 @@ describe("coherencia entre la banda general y la banda por facultad", () => {
   const kpi = (facultad: string, label: string) =>
     aulasKpis(tablero, "avance", "", facultad).find((k) => k.label === label);
 
-  it("«Cursos-horario planificados» general es la suma de las facultades", () => {
+  it('"Cursos-horario planificados" general es la suma de las facultades', () => {
     const general = num(kpi("", "Cursos-horario planificados")!.value);
     const suma = ["PSICOLOGÍA", "DERECHO"]
       .map((f) => num(kpi(f, "Cursos-horario planificados")!.value))
@@ -517,7 +517,7 @@ describe("coherencia entre la banda general y la banda por facultad", () => {
     expect(general).toBe(suma);
   });
 
-  it("«Efectivas» general es la suma de las facultades", () => {
+  it('"Efectivas" general es la suma de las facultades', () => {
     const general = num(kpi("", "Cuentan para la muestra")!.value);
     const suma = ["PSICOLOGÍA", "DERECHO"]
       .map((f) => num(kpi(f, "Cuentan para la muestra")!.value))

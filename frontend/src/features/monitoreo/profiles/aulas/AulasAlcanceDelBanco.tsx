@@ -78,8 +78,8 @@ export function AulasAlcanceDelBanco({ banco, control, quotas, agenda, partes }:
     // C5 categoría 1: el vacío dice qué falta y de dónde sale, dentro de la caja.
     return (
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-        Para saber si la reserva adicional alcanza hace falta la hoja «Base de
-        control» del libro: de ahí sale la tasa con la que responde un
+        Para saber si la reserva adicional alcanza hace falta la hoja "Base de
+        control" del libro: de ahí sale la tasa con la que responde un
         curso-horario, y sin ella proyectar sus alumnos sería inventar.
       </p>
     );
@@ -146,7 +146,7 @@ export function AulasAlcanceDelBanco({ banco, control, quotas, agenda, partes }:
                 pide sobre el neto, así que puede señalar más facultades que
                 ésta, que cuenta encuestas: decirlo evita que las dos cifras se
                 lean como una contradicción. */}
-            «A quién hay que agendar», en Avance, cuenta lo mismo en cursos-horario
+            "A quién hay que agendar", en Avance, cuenta lo mismo en cursos-horario
             por pedir y puede señalar más facultades.{" "}
             {/* La cuenta optimista, dicha. Es la que sale de restar totales, y
                 es la que uno hace de cabeza mirando el inventario. */}

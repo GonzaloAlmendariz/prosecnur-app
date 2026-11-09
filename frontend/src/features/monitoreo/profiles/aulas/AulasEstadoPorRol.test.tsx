@@ -104,7 +104,7 @@ describe("aplicadas sin agenda y lo que hay que hacer hoy (2026-09-24)", () => {
     banco: { total: 1, utilizado: 0, disponible: 1 },
   };
 
-  it("parte «Aplicados» sin mover la suma", () => {
+  it('parte "Aplicados" sin mover la suma', () => {
     const tit = estadoPorRol(tablero(CCSS))![0];
     expect(tit.tramos.find((t) => t.clave === "aplicado")?.aulas).toBe(19);
     expect(tit.tramos.find((t) => t.clave === "aplicado_sin_agenda")?.aulas).toBe(3);
@@ -124,14 +124,14 @@ describe("aplicadas sin agenda y lo que hay que hacer hoy (2026-09-24)", () => {
     expect(html).not.toContain("Rechazados sin relevo");
   });
 
-  it("sin el subconjunto publicado, «Aplicados» va entero y con su nombre corto", () => {
+  it('sin el subconjunto publicado, "Aplicados" va entero y con su nombre corto', () => {
     const tit = estadoPorRol(tablero(REAL))![0];
     expect(tit.tramos.map((t) => t.etiqueta)).toContain("Aplicados");
     expect(tit.tramos.some((t) => t.clave === "aplicado_sin_agenda")).toBe(false);
   });
 });
 
-describe("«vencida» al día de la última sincronización (2g)", () => {
+describe('"vencida" al día de la última sincronización (2g)', () => {
   const CORTE = {
     vencida_al: "2026-09-18",
     acciones: { agendado_vencido: "CH 1", agendado_tras_corte: ["CH 2", "CH 3"], sin_agendar: [], rechazado: [] },
@@ -141,7 +141,7 @@ describe("«vencida» al día de la última sincronización (2g)", () => {
     banco: { total: 0, utilizado: 0, disponible: 0 },
   };
 
-  it("parte «Agendados» en fecha pasada y sin datos desde el corte, sin mover la suma", () => {
+  it('parte "Agendados" en fecha pasada y sin datos desde el corte, sin mover la suma', () => {
     const tit = estadoPorRol(tablero(CORTE))![0];
     expect(tit.tramos.find((t) => t.clave === "agendado")?.aulas).toBe(1);
     expect(tit.tramos.find((t) => t.clave === "agendado_vencido")?.aulas).toBe(1);

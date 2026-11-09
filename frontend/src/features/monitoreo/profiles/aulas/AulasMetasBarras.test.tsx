@@ -44,7 +44,7 @@ const alturas = (html: string, clase: string): number[] =>
     .filter((r) => r.includes(`class="${clase}"`))
     .map((r) => Number(/height="([0-9.]+)"/.exec(r)?.[1] ?? NaN));
 
-describe("«Metas por facultad»", () => {
+describe('"Metas por facultad"', () => {
   it("dos barras por facultad: la meta en contorno y lo conseguido en relleno", () => {
     const html = renderToStaticMarkup(<AulasMetasBarras filas={[fila()]} />);
     expect(alturas(html, "aulas-metas-barra-meta")).toHaveLength(2);

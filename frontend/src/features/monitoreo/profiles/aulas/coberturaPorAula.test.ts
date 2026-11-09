@@ -16,7 +16,7 @@ const por = (r: ReturnType<typeof coberturaPorAula>, clave: string) =>
   r.tramos.find((t) => t.clave === clave);
 
 describe("cobertura por curso-horario", () => {
-  it("separa «sin respuestas» de «poquísimas»", () => {
+  it('separa "sin respuestas" de "poquísimas"', () => {
     // Es la distinción que decide si el aula ni siquiera se abrió. Con un
     // reparto puramente proporcional, 0 y 1 de 20 caerían en el mismo tramo.
     const r = coberturaPorAula([aula(0, 20), aula(1, 20)]);

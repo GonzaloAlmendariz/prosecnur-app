@@ -511,7 +511,7 @@ function MapaTabImpl({
                   type="button"
                   className={`${item.clave}${visible ? "" : " is-apagado"}`}
                   aria-pressed={visible}
-                  title={visible ? `Ocultar «${item.rotulo}»` : `Mostrar «${item.rotulo}»`}
+                  title={visible ? `Ocultar "${item.rotulo}"` : `Mostrar "${item.rotulo}"`}
                   onClick={() => alternar(item.clave)}
                 >
                   {item.rotulo}

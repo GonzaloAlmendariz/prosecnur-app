@@ -48,7 +48,7 @@ describe("las tablas del perfil pintan la identidad como chips", () => {
     expect(html).toContain("16:00");
   });
 
-  it("«Sesiones y aula» descriptivo se parte en sesión + pabellón", () => {
+  it('"Sesiones y aula" descriptivo se parte en sesión + pabellón', () => {
     const html = pinta(["operational_code", "label"]);
     expect(html).toContain("aulas-chip-sesion");
     expect(html).toContain("aulas-chip-lugar");

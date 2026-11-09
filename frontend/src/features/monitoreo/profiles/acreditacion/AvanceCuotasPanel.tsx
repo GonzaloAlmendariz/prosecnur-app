@@ -225,7 +225,7 @@ export function AvanceCuotasPanel({
               <EstadoVacio
                 icono={<Target size={16} />}
                 titulo={yaSeguida
-                  ? "Esta variable ya está en seguimiento. Su comparación está en Avance › Variables de control; para ponerle metas elige «Con metas»."
+                  ? 'Esta variable ya está en seguimiento. Su comparación está en Avance › Variables de control; para ponerle metas elige "Con metas".'
                   : borrador.variable ? "Se verá en Avance › Variables de control: universo frente a efectivas, categoría por categoría." : "Elige la variable que quieres seguir."}
               />
             ) : borrador.filas.length ? (

@@ -153,7 +153,7 @@ function NotaDeServicios({ sources }: { sources: MonitoreoSource[] }) {
   if (!servicios.length) return null;
   return (
     <p className="fuentes-resumen-nota-servicio">
-      {`${servicios.join(" y ")} no ${servicios.length === 1 ? "ofrece" : "ofrecen"} un enlace directo. ${servicios.length === 1 ? "Su identificador queda" : "Sus identificadores quedan"} en «Detalle técnico».`}
+      {`${servicios.join(" y ")} no ${servicios.length === 1 ? "ofrece" : "ofrecen"} un enlace directo. ${servicios.length === 1 ? "Su identificador queda" : "Sus identificadores quedan"} en "Detalle técnico".`}
     </p>
   );
 }

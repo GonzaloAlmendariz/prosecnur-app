@@ -184,7 +184,7 @@ export function AulasEleccionPorFacultad({ bloque, celdasDeCuota, plan, techo, o
       )}
 
       <p className="aulas-eleccion-pie">
-        Tras cada «Tomar», la cola se rehace: la elegida sale, lo que repite su
+        Tras cada "Tomar", la cola se rehace: la elegida sale, lo que repite su
         docente o su curso baja por debajo de todas las limpias, y el techo baja
         uno. El aporte nunca se descuenta por traslape —el plan no trae la
         sección, así que compartir curso es sospecha y no hecho—: lo que cambia

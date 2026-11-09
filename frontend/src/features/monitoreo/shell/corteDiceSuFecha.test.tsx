@@ -34,7 +34,7 @@ const render = (props: Record<string, unknown>) =>
   );
 
 describe("el indicador dice qué mide y cuándo", () => {
-  it("se llama «Sincronizado», no «Corte»", () => {
+  it('se llama "Sincronizado", no "Corte"', () => {
     // «Corte» es el sello del tablero, que vive en Fuentes con otra fecha.
     const html = render({ generatedAt: "2026-08-23T10:00:00Z" });
     expect(html).toContain("Sincronizado");
@@ -59,21 +59,21 @@ describe("el indicador dice qué mide y cuándo", () => {
     expect(html).not.toContain("Snapshot");
   });
 
-  it("una fecha ilegible no produce «Invalid Date»", () => {
+  it('una fecha ilegible no produce "Invalid Date"', () => {
     const html = render({ generatedAt: "cualquier-cosa" });
     expect(html).not.toContain("Invalid");
   });
 });
 
 describe("mientras el proyecto se lee no se publican cifras (L21)", () => {
-  it("«Registros» y «Sincronizado» dicen «Leyendo…», no «0» ni «Sin sincronizar»", () => {
+  it('"Registros" y "Sincronizado" dicen "Leyendo…", no "0" ni "Sin sincronizar"', () => {
     const html = render({ cargando: true, nRows: 0, hasSnapshot: false });
     expect(html).toContain("Leyendo…");
     expect(html).not.toContain("Sin sincronizar");
     expect(html).not.toMatch(/Registros: 0/);
   });
 
-  it("con la barra común, CORTE tampoco dice «Sin corte»", () => {
+  it('con la barra común, CORTE tampoco dice "Sin corte"', () => {
     const barra = {
       indicadores: [],
       corte: "",

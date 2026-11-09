@@ -93,7 +93,7 @@ describe("Actualizar territorial", () => {
     });
   });
 
-  it("si las ocurrencias fallan, el Kobo se trae igual y el recibo dice «en parte»", async () => {
+  it('si las ocurrencias fallan, el Kobo se trae igual y el recibo dice "en parte"', async () => {
     monitoreo.apiMonitoreoTerritorialOccurrencesSync.mockRejectedValue(new Error("Sin token Kobo"));
     jobs.apiJobStatus.mockResolvedValueOnce(snapshot("done", { phase: "done", percent: 100, step: 2, steps: 2 }, {
       sync_summary: { kobo_campo: { source_label: "Kobo campo", mode: "incremental", rows: 0 } },

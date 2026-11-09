@@ -43,7 +43,7 @@ describe("la contradicción de la lista cerrada sigue detectándose", () => {
     // Son las que el equipo escribe en la hoja y acaban en `sin_contactar`.
     // Si una se cae de `YA_SE_TOCO`, su contradicción deja de señalarse.
     for (const palabra of ["aplicada", "cerrada", "parcial", "en_campo", "contactada"]) {
-      expect(YA_SE_TOCO.has(palabra), `«${palabra}» dejaría de delatar la contradicción`).toBe(true);
+      expect(YA_SE_TOCO.has(palabra), `"${palabra}" dejaría de delatar la contradicción`).toBe(true);
     }
   });
 
@@ -51,7 +51,7 @@ describe("la contradicción de la lista cerrada sigue detectándose", () => {
     // `agendada` es la excepción declarada: el motor la reconoce Y es «ya se
     // tocó», porque una cita ya cerrada contradice «sin contactar» igual.
     for (const palabra of ["reagendada", "reemplazada", "en_reserva"]) {
-      expect(YA_SE_TOCO.has(palabra), `«${palabra}» no es una contradicción`).toBe(false);
+      expect(YA_SE_TOCO.has(palabra), `"${palabra}" no es una contradicción`).toBe(false);
     }
   });
 });

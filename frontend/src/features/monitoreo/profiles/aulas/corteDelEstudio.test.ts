@@ -7,7 +7,7 @@ import { corteDelEstudio } from "./corteDelEstudio";
  * decía «al 27 de agosto» —el reloj de la máquina— con el estudio sincronizado
  * al 12/09/2026, y de ahí sacaba «174 aún por venir» con 78 ya aplicadas.
  */
-describe("el «hoy» del estudio es el último parte, no el sello del tablero", () => {
+describe('el "hoy" del estudio es el último parte, no el sello del tablero', () => {
   it("toma el día más tarde con parte, en cualquier orden", () => {
     const c = corteDelEstudio([
       { applied_at: "2026-09-07" },

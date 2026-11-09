@@ -90,7 +90,7 @@ describe("un componente no usa dos unidades para la misma poblacion", () => {
     expect(visible).toContain('"curso-horario" : "cursos-horario"');
   });
 
-  it("no queda copy visible que llame «aulas» a esas filas", () => {
+  it('no queda copy visible que llame "aulas" a esas filas', () => {
     expect(visible).not.toMatch(/"aula" : "aulas"/);
   });
 });
@@ -163,7 +163,7 @@ describe("la cola no manda a llamar lo que ya se aplicó", () => {
     expect(out.yaAplicadasSinCita).toBe(1);
   });
 
-  it("«cerrada» cuenta igual que «aplicada»", () => {
+  it('"cerrada" cuenta igual que "aplicada"', () => {
     const out = colaDeContacto([
       fila({ operational_code: "CH 1", sample_status: "sin contactar", operational_status: "cerrada" }),
     ]);

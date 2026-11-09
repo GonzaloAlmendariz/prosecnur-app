@@ -84,7 +84,7 @@ export function AulasSexoYDescartes({
         <button
           key={v} type="button" className="aulas-sexo-chip" aria-pressed={marcado(v)}
           onClick={() => alternar(grupo, v)}
-          title={marcado(v) ? `«${v}» cuenta como ${grupo}` : `Marcar «${v}» como ${grupo}`}
+          title={marcado(v) ? `"${v}" cuenta como ${grupo}` : `Marcar "${v}" como ${grupo}`}
         >
           {v}
         </button>
@@ -99,7 +99,7 @@ export function AulasSexoYDescartes({
         {!variableDeSexo ? (
           <em>Declara primero la variable que dice el sexo: sin ella no hay valores que repartir.</em>
         ) : !valoresDeLaVariable.length ? (
-          <em>La base todavía no trae valores en «{variableDeSexo}»: sincroniza y vuelve.</em>
+          <em>La base todavía no trae valores en "{variableDeSexo}": sincroniza y vuelve.</em>
         ) : (
           <>
             <div className="aulas-sexo-grupo">
@@ -112,7 +112,7 @@ export function AulasSexoYDescartes({
             </div>
             <em>
               {sinSexo.length
-                ? `${sinSexo.map((v) => `«${v}»`).join(", ")} no ${sinSexo.length === 1 ? "cuenta" : "cuentan"} en ningún sexo: ${sinSexo.length === 1 ? "suma" : "suman"} al total y a ningún grupo de facultad y sexo.`
+                ? `${sinSexo.map((v) => `"${v}"`).join(", ")} no ${sinSexo.length === 1 ? "cuenta" : "cuentan"} en ningún sexo: ${sinSexo.length === 1 ? "suma" : "suman"} al total y a ningún grupo de facultad y sexo.`
                 : "Cada valor cuenta en un sexo; la cuota de cada grupo de facultad y sexo se llena con esto."}
             </em>
           </>
@@ -131,7 +131,7 @@ export function AulasSexoYDescartes({
             <span key={d} className="aulas-sexo-chip aulas-descarte" aria-pressed="true">
               {d}
               {onDescartes ? (
-                <button type="button" aria-label={`Volver a contar «${d}»`}
+                <button type="button" aria-label={`Volver a contar "${d}"`}
                   onClick={() => onDescartes(descartes.filter((x) => x !== d))}>
                   <X size={12} aria-hidden="true" />
                 </button>
@@ -144,7 +144,7 @@ export function AulasSexoYDescartes({
             <span>No casan con ningún curso-horario:</span>
             {sugerencias.map((s) => (
               <button key={s} type="button" className="aulas-sexo-chip"
-                title={`Descartar «${s}»: no suma al avance`}
+                title={`Descartar "${s}": no suma al avance`}
                 onClick={() => onDescartes([...descartes, s])}>
                 <Plus size={12} aria-hidden="true" /> {s}
               </button>

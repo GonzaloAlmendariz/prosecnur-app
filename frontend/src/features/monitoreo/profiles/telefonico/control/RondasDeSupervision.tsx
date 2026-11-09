@@ -118,7 +118,7 @@ export function RondasDeSupervision({
         </span>
         <span className="mon-sup-rondas-acciones">
           {hojaConectada && publicadas ? (
-            <button type="button" className="mon-insumos-boton" disabled={lectura.leyendo} onClick={() => { void leerResultados(); }} title="Lee las pestañas «Ronda N» de la hoja de supervisión, sin escribir nada">
+            <button type="button" className="mon-insumos-boton" disabled={lectura.leyendo} onClick={() => { void leerResultados(); }} title='Lee las pestañas "Ronda N" de la hoja de supervisión, sin escribir nada'>
               {lectura.leyendo ? <Loader2 size={14} className="pulso-spin" /> : <RefreshCw size={14} />}
               <span>{lectura.leyendo ? "Leyendo…" : "Leer resultados"}</span>
             </button>
@@ -165,8 +165,8 @@ export function RondasDeSupervision({
                 </small>
                 <em className={ronda.lectura === "pestana_borrada" ? "is-borrada" : ronda.publicadaEn ? "is-publicada" : ronda.guardada ? "is-guardada" : "is-pendiente"}>
                   {ronda.lectura === "pestana_borrada"
-                    ? `La pestaña «${ronda.publicadaEn}» ya no está`
-                    : ronda.publicadaEn ? `Publicada en «${ronda.publicadaEn}»` : ronda.guardada ? "Guardada" : "Sin guardar"}
+                    ? `La pestaña "${ronda.publicadaEn}" ya no está`
+                    : ronda.publicadaEn ? `Publicada en "${ronda.publicadaEn}"` : ronda.guardada ? "Guardada" : "Sin guardar"}
                 </em>
                 {ronda.lectura === "leida" && ronda.leidaEl ? <small className="mon-sup-ronda-lectura">Resultados leídos el {fecha(ronda.leidaEl)}</small> : null}
               </button>
@@ -181,7 +181,7 @@ export function RondasDeSupervision({
           ))}
         </ul>
       ) : (
-        <EstadoVacio icono={<RefreshCw size={15} />} titulo="Todavía no hay rondas" descripcion={`La primera sale de todas las efectivas; la Ronda ${n(proxima)} se genera con «Nueva ronda».`} />
+        <EstadoVacio icono={<RefreshCw size={15} />} titulo="Todavía no hay rondas" descripcion={`La primera sale de todas las efectivas; la Ronda ${n(proxima)} se genera con "Nueva ronda".`} />
       )}
     </section>
   );

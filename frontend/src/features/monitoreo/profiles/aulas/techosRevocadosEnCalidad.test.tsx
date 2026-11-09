@@ -23,7 +23,7 @@ const corta = (i: number) => ({
   faculty: i % 2 ? "Derecho" : "Gestión",
 });
 
-describe("«Lo que falta para cerrar» lista todos los cursos-horario", () => {
+describe('"Lo que falta para cerrar" lista todos los cursos-horario', () => {
   it("con doce cortas salen las doce, del más barato al más caro", () => {
     const filas = Array.from({ length: 12 }, (_, i) => corta(i + 1));
     const html = renderToStaticMarkup(<AulasLoQueFalta filas={filas} />);
@@ -42,8 +42,8 @@ describe("«Lo que falta para cerrar» lista todos los cursos-horario", () => {
   });
 });
 
-describe("«El parte contra la plataforma» lista todos los descuadres", () => {
-  it("con doce casos salen los doce, sin «de mayor diferencia»", () => {
+describe('"El parte contra la plataforma" lista todos los descuadres', () => {
+  it('con doce casos salen los doce, sin "de mayor diferencia"', () => {
     const partes = Array.from({ length: 12 }, (_, i) => ({
       operational_code: `CH ${i + 1}`,
       effective_surveys: 20 + i,

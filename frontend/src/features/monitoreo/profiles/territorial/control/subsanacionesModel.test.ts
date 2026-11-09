@@ -66,7 +66,7 @@ describe("Control › Subsanaciones", () => {
     expect(construirSubsanaciones(CORTE).sugerencias[0].rechazo).toBeNull();
   });
 
-  it("un corte sin subsanaciones calculadas no se lee como «nada que subsanar»", () => {
+  it('un corte sin subsanaciones calculadas no se lee como "nada que subsanar"', () => {
     const sin = construirSubsanaciones({ operational_adjustments: { schema: "x", reason: "scope_sin_subsanaciones" } } as unknown as MonitoreoTerritorialDashboard);
     expect(sin.disponible).toBe(false);
   });

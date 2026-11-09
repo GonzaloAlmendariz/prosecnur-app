@@ -13,7 +13,7 @@ import { repartoDeFuentes, type PestanaDeFuentes } from "./repartoDePestanas";
 const PESTANAS: PestanaDeFuentes[] = ["activas", "sheets", "survey"];
 
 describe("cada pestaña de Fuentes muestra sólo lo suyo", () => {
-  it("Estados (la clave vieja «sheets») no pinta tarjetas de conexión", () => {
+  it('Estados (la clave vieja "sheets") no pinta tarjetas de conexión', () => {
     const reparto = repartoDeFuentes("sheets", true);
     expect(reparto.decisionKobo).toBe(false);
     expect(reparto.slots).toEqual([]);

@@ -216,7 +216,7 @@ describe("fecha prevista no es cita cerrada", () => {
     expect(r.estadosEnDesacuerdo).toBe(2);
   });
 
-  it("una sin fecha y sin contactar no cuenta aquí: ésa ya está en «por agendar»", () => {
+  it('una sin fecha y sin contactar no cuenta aquí: ésa ya está en "por agendar"', () => {
     const r = agendamiento([
       aula({ operational_code: "CH 1", sample_status: "sin_contactar", contact_attempts: 2 }),
     ]);
@@ -241,7 +241,7 @@ describe("los dos estados de la misma fila, en desacuerdo", () => {
    * Medido sobre HSVG2026 «como 2025», los tres pares del plan en juego:
    * agendada/aplicada 152 · agendada/agendada 13 · **sin_contactar/agendada 9**.
    */
-  it("no cuenta una fila cuyo estado operativo también dice «sin contactar»", () => {
+  it('no cuenta una fila cuyo estado operativo también dice "sin contactar"', () => {
     // Ahí no hay contradicción: los dos dicen lo mismo, y esa fila está
     // simplemente por agendar.
     const r = agendamiento([
@@ -251,7 +251,7 @@ describe("los dos estados de la misma fila, en desacuerdo", () => {
     expect(r.estadosEnDesacuerdo).toBe(0);
   });
 
-  it("cuenta también «aplicada» y «cerrada», no sólo «agendada»", () => {
+  it('cuenta también "aplicada" y "cerrada", no sólo "agendada"', () => {
     // Si el operativo dice que ya se aplicó, el «sin contactar» del otro campo
     // es todavía más contradictorio.
     const r = agendamiento([
@@ -271,7 +271,7 @@ describe("los dos estados de la misma fila, en desacuerdo", () => {
   });
 });
 
-describe("«sin medio de contacto» cuenta las que aún hay que agendar", () => {
+describe('"sin medio de contacto" cuenta las que aún hay que agendar', () => {
   /**
    * La condición de la fecha estaba en el código y no en el nombre: se cuentan
    * sólo las que siguen sin fecha, porque una ya agendada no necesita que la

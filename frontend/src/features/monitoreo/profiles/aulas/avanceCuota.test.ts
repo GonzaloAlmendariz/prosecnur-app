@@ -215,7 +215,7 @@ describe("avanceCuota", () => {
     expect(sinMermas.filas[0].subtexto).not.toContain("sin sexo");
   });
 
-  test("τ nula se muestra como «τ —», más fiel que ocultar el término", () => {
+  test('τ nula se muestra como "τ —", más fiel que ocultar el término', () => {
     // La τ difiere por facultad: esconderla diría «aquí no hay tasa» cuando lo
     // cierto es «no hay UNA tasa».
     const vista = avanceCuota(bloque({ tasa_esperada: null }));

@@ -309,7 +309,7 @@ export function notaSinCategoria(
   const fmt = (n: number) => formatoConteo(n);
   const partes = [
     sinCategoria ? `${fmt(sinCategoria)} ${sinCategoria === 1 ? "efectiva" : "efectivas"} de Kobo sin ${nombre}` : "",
-    ...fueraDeCuota.map((item) => `${fmt(item.casos)} en «${item.nombre}», que no tiene cuota`),
+    ...fueraDeCuota.map((item) => `${fmt(item.casos)} en "${item.nombre}", que no tiene cuota`),
     sinFecha ? `${fmt(sinFecha)} sin fecha` : "",
   ].filter(Boolean);
   if (!partes.length) return "";
@@ -365,7 +365,7 @@ export function motivoSinSerie(
   if (!hoja.filas) partes.push("La hoja de barrido no trae filas en este corte");
   else if (hoja.estados.length === 1) {
     const [unico] = hoja.estados;
-    partes.push(`Las ${n(hoja.filas)} filas de la hoja de barrido están en «${unico.estado}» y ninguna tiene fecha de llamada`);
+    partes.push(`Las ${n(hoja.filas)} filas de la hoja de barrido están en "${unico.estado}" y ninguna tiene fecha de llamada`);
   } else partes.push(`Ninguna de las ${n(hoja.filas)} filas de la hoja de barrido tiene fecha de llamada`);
   partes.push(
     efectivasSinFecha

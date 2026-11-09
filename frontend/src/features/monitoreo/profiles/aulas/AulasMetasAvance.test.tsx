@@ -18,7 +18,7 @@ const fila = (extra: Partial<MonitoreoAulasProyeccionFila> = {}): MonitoreoAulas
   ...extra,
 });
 
-describe("«Avance por facultad y sexo»", () => {
+describe('"Avance por facultad y sexo"', () => {
   it("las aulas van en la fila de la facultad, una sola vez", () => {
     const html = renderToStaticMarkup(
       <AulasMetasAvance filas={[fila()]} aulas={[{ facultad: "DERECHO", planificadas: 19, aplicadas: 3 }]} />,
@@ -29,7 +29,7 @@ describe("«Avance por facultad y sexo»", () => {
     expect(html).toContain(">3<");
   });
 
-  it("una facultad sin dato de aulas escribe «—», no un cero que afirma", () => {
+  it('una facultad sin dato de aulas escribe "—", no un cero que afirma', () => {
     const html = renderToStaticMarkup(<AulasMetasAvance filas={[fila()]} aulas={[]} />);
     expect(html).toContain("—");
     expect(html).not.toMatch(/es-num">0<\/td><td class="es-num">0</);
@@ -44,7 +44,7 @@ describe("«Avance por facultad y sexo»", () => {
     expect(html).toMatch(/13[.,]5\s%/);
   });
 
-  it("una meta en cero no divide: escribe «—»", () => {
+  it('una meta en cero no divide: escribe "—"', () => {
     const html = renderToStaticMarkup(
       <AulasMetasAvance filas={[fila({ meta_M: 0, obtenidas_M: 0 })]} aulas={[]} />,
     );

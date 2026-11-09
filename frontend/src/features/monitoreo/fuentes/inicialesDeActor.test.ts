@@ -27,7 +27,7 @@ describe("inicialesDeActor", () => {
     expect(inicialesDeActor("Personal   administrativo")).toBe("PA");
   });
 
-  it("marca con «?» lo que no nombra a nadie", () => {
+  it('marca con "?" lo que no nombra a nadie', () => {
     expect(inicialesDeActor("")).toBe("?");
     expect(inicialesDeActor("   ")).toBe("?");
     expect(inicialesDeActor("Sin actor")).toBe("?");

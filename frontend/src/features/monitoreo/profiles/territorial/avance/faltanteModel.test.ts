@@ -56,7 +56,7 @@ describe("Avance › Faltante por UMP", () => {
     expect(filtrarFilas(modelo.filas, "todas", false).map((fila) => fila.ump)).toEqual(["143", "35"]);
   });
 
-  it("un corte que no calculó subsanaciones no afirma «sin excedente»", () => {
+  it('un corte que no calculó subsanaciones no afirma "sin excedente"', () => {
     const sinAjustes = construirFaltante({
       ...CORTE_DE_CUOTAS,
       operational_adjustments: { schema: "monitoreo_territorial_operational_adjustments_v1", reason: "scope_sin_subsanaciones", deficits: [], suggestions: [] },

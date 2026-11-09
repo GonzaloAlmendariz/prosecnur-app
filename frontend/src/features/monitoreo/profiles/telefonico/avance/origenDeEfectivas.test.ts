@@ -52,7 +52,7 @@ describe("Avance › Cuotas recibe los avisos del numerador (reparo 4)", () => {
 });
 
 describe("R5 paso 1: las metas de otra variable se dicen, no se suman", () => {
-  it("con metas por actor y por sexo, Cuotas muestra actor y avisa «sexo (2)»", () => {
+  it('con metas por actor y por sexo, Cuotas muestra actor y avisa "sexo (2)"', () => {
     const filas = [
       ...deLaHoja,
       { Actor: "Total", Variable: "Sexo", Valor: "Mujer", Universo: 90, Meta: 50, Efectivas: 40 },

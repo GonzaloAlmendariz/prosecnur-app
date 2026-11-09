@@ -29,7 +29,7 @@ describe("los resultados de una acción sobreviven a su recarga", () => {
     expect(page).toContain("onPublished={() => { void loadView(seccionActiva, true, true); }}");
   });
 
-  it("«Recargar» SÍ blanquea, porque ahí el blanqueo es la respuesta", () => {
+  it('"Recargar" SÍ blanquea, porque ahí el blanqueo es la respuesta', () => {
     // El aserto que evita la sobrecorrección: silenciar TODAS las recargas
     // dejaría el botón explícito sin ninguna señal de que hizo algo.
     // A26b (dictado 2026-09-01): «Recargar es para cargar el excel y todo lo
@@ -42,7 +42,7 @@ describe("los resultados de una acción sobreviven a su recarga", () => {
     expect(page).toContain("onActualizar={() => { void syncField(true); }}");
   });
 
-  it("«Avance» lleva a VER el avance con datos frescos (A26b)", () => {
+  it('"Avance" lleva a VER el avance con datos frescos (A26b)', () => {
     // «Avance es para ver el avance en plataforma»: navega a la sección y
     // recarga sin silencioso — el gesto debe notarse.
     expect(page).toContain('void loadView("avance", true);');

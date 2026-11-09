@@ -67,7 +67,7 @@ const CON_MOTIVO = new Map<string, string>([
   [
     "AulasAlertaDeAnticipacion.tsx",
     "`pctCorto` formatea SIN decimales a propósito: va dentro de una frase de "
-      + "aviso donde «73 %» se lee y «73,2 %» estorba. Es otro formato, no otra "
+      + 'aviso donde "73 %" se lee y "73,2 %" estorba. Es otro formato, no otra '
       + "implementación del mismo.",
   ],
 ]);

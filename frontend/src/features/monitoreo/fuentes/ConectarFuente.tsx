@@ -760,7 +760,7 @@ export function ConectarFuente({
             <div className="fuentes-conectar-paso">
               {yaConectada ? (
                 <p className="fuentes-conectar-pista is-aviso">
-                  <AlertTriangle size={13} /> Esta fuente ya está conectada como «{yaConectada.label || yaConectada.id}». Conectarla otra vez duplicaría sus respuestas en el corte.
+                  <AlertTriangle size={13} /> Esta fuente ya está conectada como "{yaConectada.label || yaConectada.id}". Conectarla otra vez duplicaría sus respuestas en el corte.
                 </p>
               ) : null}
 
@@ -839,8 +839,8 @@ export function ConectarFuente({
                   ) : null}
                   {actorQueSugiereElNombre ? (
                     <p className="fuentes-conectar-pista is-aviso">
-                      <AlertTriangle size={13} /> El nombre de esta fuente menciona «{actorQueSugiereElNombre}» y la vas a
-                      guardar como «{actor}». Si es un error, corrígelo aquí mismo.
+                      <AlertTriangle size={13} /> El nombre de esta fuente menciona "{actorQueSugiereElNombre}" y la vas a
+                      guardar como "{actor}". Si es un error, corrígelo aquí mismo.
                     </p>
                   ) : null}
                 </fieldset>

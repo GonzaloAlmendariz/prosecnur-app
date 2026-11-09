@@ -33,13 +33,13 @@ describe("fmtCuenta", () => {
     expect(fmtCuenta(1916)).toBe("1,916");
   });
 
-  it("un sobrante negativo no baja un entero de más, ni se pinta «-0»", () => {
+  it('un sobrante negativo no baja un entero de más, ni se pinta "-0"', () => {
     // «-0 respuestas» no lo escribe nadie.
     expect(fmtCuenta(-0.4)).toBe("0");
     expect(fmtCuenta(-3)).toBe("-3");
   });
 
-  it("sin dato devuelve el fallback y no «NaN»", () => {
+  it('sin dato devuelve el fallback y no "NaN"', () => {
     expect(fmtCuenta(null)).toBe("0");
     expect(fmtCuenta("")).toBe("0");
     expect(fmtCuenta(undefined, "—")).toBe("—");
@@ -55,7 +55,7 @@ describe("fmtCuenta", () => {
 import { presentAulasRow } from "./aulasPresentation";
 
 describe("presentAulasRow · las columnas que cuentan cosas", () => {
-  it("redondea «válidas esperadas» hacia arriba", () => {
+  it('redondea "válidas esperadas" hacia arriba', () => {
     // Medido en «Avance por curso-horario»: 27.8 respuestas esperadas de un
     // aula. La meta sale de dividir la cuota entre la tasa.
     expect(presentAulasRow({ expected_valid: 27.8 }).expected_valid).toBe(28);

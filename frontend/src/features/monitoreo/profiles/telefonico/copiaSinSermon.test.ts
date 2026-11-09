@@ -64,7 +64,7 @@ describe("la copia no ocupa el sitio del dato", () => {
     // Se comprueba una a una para que el fallo nombre la frase que volvió, y no
     // solo diga que alguna lo hizo.
     for (const frase of RETIRADAS) {
-      expect(fuente, `volvió: «${frase}»`).not.toContain(frase);
+      expect(fuente, `volvió: "${frase}"`).not.toContain(frase);
     }
   });
 

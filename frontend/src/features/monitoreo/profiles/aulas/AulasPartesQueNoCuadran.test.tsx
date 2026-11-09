@@ -23,7 +23,7 @@ describe("los partes que no cuadran se leen como una resta", () => {
     expect(html).toContain("faltan 6");
   });
 
-  it("de más dice «sobran», que es otro problema", () => {
+  it('de más dice "sobran", que es otro problema', () => {
     // De menos son encuestas que no llegaron; de más, encuestas sin quien las
     // respondiera en esa aula. Llamarlo igual escondería la diferencia.
     // 26 declaradas − 20 esperadas = +6.

@@ -110,7 +110,7 @@ describe("el glosario de columnas no repite rótulos", () => {
     }
     const repetidos = [...porRotulo.entries()]
       .filter(([, claves]) => claves.length > 1)
-      .map(([r, claves]) => `«${r}» ← ${claves.join(", ")}`);
+      .map(([r, claves]) => `"${r}" ← ${claves.join(", ")}`);
     expect(repetidos, repetidos.join("\n")).toEqual([]);
   });
 

@@ -303,7 +303,7 @@ describe("el puente entre esta cuenta y el KPI de válidas", () => {
       expect(a.cubierto + a.excedente).toBe(a.validas);
     });
 
-    it("una meta de cero sigue siendo «sin meta», no una de uno", () => {
+    it('una meta de cero sigue siendo "sin meta", no una de uno', () => {
       // `Math.ceil(0)` es 0, así que el descarte por meta no declarada no cambia.
       const a = avanceEnRespuestas([f({ expected_valid: 0, respuestas_validas: 4 })]);
       expect(a.sinMeta).toBe(1);

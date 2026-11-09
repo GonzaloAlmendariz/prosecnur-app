@@ -357,7 +357,7 @@ export function AulasCoberturaChart({
                   sorteo. El perfil ya dice esto mismo en palabras llanas cuando
                   habla de la reserva adicional —«sin un titular al que
                   respalden»— y ésta es la otra mitad: para qué esperan. */}
-              {" "}esperan disponibles para su facultad y sexo, y contarlas como «sin respuestas»
+              {" "}esperan disponibles para su facultad y sexo, y contarlas como "sin respuestas"
               las volvería una alarma.
             </>
           ) : null}

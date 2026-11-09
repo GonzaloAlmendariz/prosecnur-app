@@ -59,7 +59,7 @@ function comoLista(x: unknown): unknown[] {
 function conRetenidos(rotulos: string[] | string | null | undefined): string {
   const limpios = comoLista(rotulos).map((r) => String(r ?? "").trim()).filter(Boolean);
   if (!limpios.length) return "";
-  const cabeza = limpios.slice(0, 3).map((r) => `«${r}»`).join(", ");
+  const cabeza = limpios.slice(0, 3).map((r) => `"${r}"`).join(", ");
   const resto = limpios.length - Math.min(3, limpios.length);
   return `; no le llegó ${cabeza}${resto > 0 ? ` y ${fmt(resto)} más` : ""}`;
 }
@@ -78,20 +78,20 @@ export function fraseDeHoja(h: HojaDelLibroPublicada): string {
   const accion = String(h.accion ?? "").trim();
   switch (accion) {
     case "actualizada":
-      return `«${nombre}» actualizada${conFilas(h.filas)}`;
+      return `"${nombre}" actualizada${conFilas(h.filas)}`;
     case "sembrada":
       // Sólo pasa cuando la pestaña no existía o estaba vacía: la primera y
       // única vez que la app escribe en una hoja que no es suya.
-      return `«${nombre}» sembrada${conFilas(h.filas)}`;
+      return `"${nombre}" sembrada${conFilas(h.filas)}`;
     case "sin_cambios":
-      return `«${nombre}» sin cambios`;
+      return `"${nombre}" sin cambios`;
     case "respetada":
-      return `«${nombre}» respetada${conFilas(h.filas)}: la llena el equipo, no la app`
+      return `"${nombre}" respetada${conFilas(h.filas)}: la llena el equipo, no la app`
         + conRetenidos(h.rotulos_retenidos);
     default:
       return accion
-        ? `«${nombre}» ${accion}${conFilas(h.filas)}`
-        : `«${nombre}» sin acción declarada`;
+        ? `"${nombre}" ${accion}${conFilas(h.filas)}`
+        : `"${nombre}" sin acción declarada`;
   }
 }
 
@@ -145,7 +145,7 @@ export function fraseDeLecturaPrevia(lp: LecturaPreviaDelLibro | null | undefine
   return {
     texto:
       `No se pudo leer el Sheets antes de publicar${causa ? ` (${causa})` : ""}: ` +
-      "se publicó con lo que la app ya tenía. Para traer lo que el equipo tecleó, usa «Actualizar» cuando el enlace responda.",
+      'se publicó con lo que la app ya tenía. Para traer lo que el equipo tecleó, usa "Actualizar" cuando el enlace responda.',
     tono: "atencion",
   };
 }
@@ -172,10 +172,10 @@ export type AdopcionDeLaDistribucion = {
 function dondeSeAdoptó(ad: AdopcionDeLaDistribucion): string {
   const hojas = comoLista(ad.hojas).map((h) => String(h).trim()).filter(Boolean);
   if (hojas.length > 1) {
-    return `${hojas.slice(0, -1).map((h) => `«${h}»`).join(", ")} y «${hojas[hojas.length - 1]}»`;
+    return `${hojas.slice(0, -1).map((h) => `"${h}"`).join(", ")} y "${hojas[hojas.length - 1]}"`;
   }
   const una = hojas[0] ?? String(ad.hoja ?? "").trim();
-  return una ? `«${una}»` : "la hoja de los aplicadores";
+  return una ? `"${una}"` : "la hoja de los aplicadores";
 }
 
 /**
@@ -202,7 +202,7 @@ export function fraseDeAdopcion(ad: AdopcionDeLaDistribucion | null | undefined)
   if (ad.motivo === "sin_destino") {
     return {
       texto:
-        "No se leyó la hoja de los aplicadores porque el proyecto no recuerda su enlace: «Asignación de aplicadores» se rehízo con el reparto de la app, que puede no coincidir con lo que el coordinador cambió a mano. Pega su enlace una vez en Asignación.",
+        'No se leyó la hoja de los aplicadores porque el proyecto no recuerda su enlace: "Asignación de aplicadores" se rehízo con el reparto de la app, que puede no coincidir con lo que el coordinador cambió a mano. Pega su enlace una vez en Asignación.',
       tono: "atencion",
     };
   }
@@ -210,7 +210,7 @@ export function fraseDeAdopcion(ad: AdopcionDeLaDistribucion | null | undefined)
   return {
     texto:
       `No se pudo leer la hoja de los aplicadores${causa ? ` (${causa})` : ""}: ` +
-      "«Asignación de aplicadores» se rehízo con el reparto de la app y puede contradecirla.",
+      '"Asignación de aplicadores" se rehízo con el reparto de la app y puede contradecirla.',
     tono: "atencion",
   };
 }
@@ -250,7 +250,7 @@ export function avisoLibroPublicado(res: {
       ? [
           `${encogidas.length === 1 ? "Una hoja salió" : `${encogidas.length} hojas salieron`} con bastante menos contenido del que tenía: ` +
             encogidas
-              .map((e) => `«${e.hoja}» de ${cuenta(e.antes, "fila", "filas")} a ${cuenta(e.ahora, "fila", "filas")}`)
+              .map((e) => `"${e.hoja}" de ${cuenta(e.antes, "fila", "filas")} a ${cuenta(e.ahora, "fila", "filas")}`)
               .join("; ") +
             ". Conviene mirarlas antes de darlas por buenas.",
         ]

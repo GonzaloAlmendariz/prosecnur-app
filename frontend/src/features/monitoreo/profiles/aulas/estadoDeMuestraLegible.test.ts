@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { contradiccionDeEstado, estadoDeMuestraLegible } from "./estadoDeMuestraLegible";
 
-describe("una fila no puede decir «Aplicada» y «Sin contactar» a la vez", () => {
+describe('una fila no puede decir "Aplicada" y "Sin contactar" a la vez', () => {
   it("marca la contradicción cuando el eje operativo dice que ya se aplicó", () => {
     // El caso medido: sobre la selección real de HSVG2026 con una semana de
     // campo, 78 de 174 filas salían así.

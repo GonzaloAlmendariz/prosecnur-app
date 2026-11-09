@@ -154,7 +154,7 @@ describe("construirResumenAulas", () => {
     expect(m.invariante.descuadre).toBeNull();
   });
 
-  it("una parte que no viajó se dice «—», no 0", () => {
+  it('una parte que no viajó se dice "—", no 0', () => {
     const d = ccss();
     const total = d.avance_cuota!.total as unknown as Record<string, unknown>;
     delete total.duplicadas;
@@ -242,7 +242,7 @@ describe("construirResumenAulas", () => {
     expect(m.ritmo).toEqual({ tipo: "sin-dato", causa: expect.stringContaining("serie diaria") });
   });
 
-  it("sin respuestas: anillo en 0 y «Aún no hay efectivas»", () => {
+  it('sin respuestas: anillo en 0 y "Aún no hay efectivas"', () => {
     const d = ccss();
     Object.assign(d.avance_cuota!.total, {
       respuestas_validas: 0, avance_pct: 0, brecha: 400, huerfanas: 0, sin_eje: 0, duplicadas: 0, sin_celda: 0,
@@ -257,7 +257,7 @@ describe("construirResumenAulas", () => {
     expect(readinessDelResumen(m, false)).toBe("vacio:sin-efectivas");
   });
 
-  it("sin tablero o sin el bloque de avance, «—» con su causa", () => {
+  it('sin tablero o sin el bloque de avance, "—" con su causa', () => {
     const sin = construirResumenAulas(null);
     expect(sin.estado).toBe("sin-tablero");
     expect(sin.protagonista.avanceTexto).toBe("—");

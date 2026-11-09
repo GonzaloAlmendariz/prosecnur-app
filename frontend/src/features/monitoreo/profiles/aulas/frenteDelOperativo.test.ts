@@ -71,7 +71,7 @@ describe("frenteDelOperativo", () => {
   });
 });
 
-describe("la columna «dónde» entrega el aula, no otra vez la hora", () => {
+describe('la columna "dónde" entrega el aula, no otra vez la hora', () => {
   // `SESIONES Y AULA` del Excel es un texto descriptivo entero —«LUN 08:00
   // A101»— y se pintaba tal cual, pegado a la columna «cuándo» que ya dice
   // «lun 10/08 16:00». Dos columnas contiguas repitiendo día y hora, con el
@@ -129,7 +129,7 @@ describe("soloElAula · un código no pasa por aula", () => {
   });
 });
 
-describe("qué cuenta «sin fecha»", () => {
+describe('qué cuenta "sin fecha"', () => {
     it("son los titulares sin fecha, no las reservas dormidas", () => {
     // **El defecto, visto en pantalla el 2026-09-08.** Este panel publicaba
     // «1 230 sin fecha en la agenda» mientras «Qué metas van a cerrar» y el

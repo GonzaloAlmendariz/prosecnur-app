@@ -39,7 +39,7 @@ describe("Avance › Ritmo", () => {
     expect(serie.totales).toEqual([10, 3, 0, 0, 4]);
   });
 
-  it("cada público es su capa: ninguno se junta en «Otros»", () => {
+  it('cada público es su capa: ninguno se junta en "Otros"', () => {
     const filas = Array.from({ length: 9 }, (_, indice) => ({ Actor: `P${indice}`, Fecha: "2026-05-25", Efectivas: 9 - indice }));
     const serie = seriesApiladas(filas, []);
     expect(serie.capas).toHaveLength(9);
@@ -113,7 +113,7 @@ describe("fecha local del corte", () => {
     expect(fechaLocal(null)).toBeNull();
   });
 
-  it("con un solo día de campo dice la fecha una vez, no «29 oct a 29 oct»", () => {
+  it('con un solo día de campo dice la fecha una vez, no "29 oct a 29 oct"', () => {
     const html = renderToStaticMarkup(
       <MemoryRouter initialEntries={["/monitoreo?seccion=avance&pestana=ritmo"]}><RitmoVista actores={actores} diarioGeneral={[]} diarioPorPublico={[{ Actor: "Docentes", Fecha: "2026-10-29", Efectivas: 5 }]} fuentes={fuentes} fases={[]} onDeclararFases={() => {}} /></MemoryRouter>,
     );

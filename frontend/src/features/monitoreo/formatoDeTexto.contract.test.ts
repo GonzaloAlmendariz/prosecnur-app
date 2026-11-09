@@ -162,7 +162,7 @@ describe("frases, cifras y metadatos de Monitoreo (P3, P4 y P8)", () => {
   });
 
   it.each([
-    ["« · » como separador (P3)", PUNTO, SNAPSHOT_PUNTO],
+    ['" · " como separador (P3)', PUNTO, SNAPSHOT_PUNTO],
     ["toLocaleString fuera del formateador (P4)", TO_LOCALE, SNAPSHOT_TO_LOCALE],
     ["{x.length} sin formatear (P4)", LENGTH_CRUDO, SNAPSHOT_LENGTH_CRUDO],
   ] as const)("%s: ningún archivo sube y la foto no guarda conteos viejos", (_nombre, contar, foto) => {

@@ -21,8 +21,8 @@ import { AulasCuotasResumen } from "./AulasCuotasResumen";
  */
 
 const AVISO =
-  "La columna «sexo» trae valores que no se reconocen como sexo (1, 2). " +
-  "Se esperan etiquetas como «Mujer»/«Hombre» o «F»/«M».";
+  'La columna "sexo" trae valores que no se reconocen como sexo (1, 2). ' +
+  'Se esperan etiquetas como "Mujer"/"Hombre" o "F"/"M".';
 
 const fila = (p: Record<string, unknown>) => p as MonitoreoRow;
 

@@ -78,7 +78,7 @@ describe("Ritmo sin serie", () => {
     const hoja = estadosDeLaHoja(reportes({ estatus_telefonico: [{ Estatus: "No barrido", Casos: 800, "% del total telefónico": 1 }] }));
     expect(hoja).toEqual({ estados: [{ estado: "No barrido", casos: 800 }], filas: 800 });
     expect(motivoSinSerie(hoja, 0)).toBe(
-      "Las 800 filas de la hoja de barrido están en «No barrido» y ninguna tiene fecha de llamada. Kobo no trae efectivas en este corte.",
+      'Las 800 filas de la hoja de barrido están en "No barrido" y ninguna tiene fecha de llamada. Kobo no trae efectivas en este corte.',
     );
   });
 

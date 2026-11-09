@@ -41,8 +41,8 @@ describe("los motivos de reemplazo son los del motor", () => {
   it("cada clave del motor tiene rótulo, y ninguno es la clave cruda", () => {
     for (const clave of motivosDelMotor()) {
       const rotulo = aulasMotivoLabel(clave);
-      expect(rotulo, `«${clave}» sin rótulo`).toBeTruthy();
-      expect(rotulo, `«${clave}» sale en crudo`).not.toBe(clave);
+      expect(rotulo, `"${clave}" sin rótulo`).toBeTruthy();
+      expect(rotulo, `"${clave}" sale en crudo`).not.toBe(clave);
       expect(rotulo).not.toMatch(/_/);
     }
   });

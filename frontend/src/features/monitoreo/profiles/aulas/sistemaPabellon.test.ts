@@ -102,13 +102,13 @@ describe("las columnas de identidad son listas cerradas", () => {
 });
 
 describe("sesionYLugar con rango y bloquesDeSesion (ruta por facultad, 2026-09-02)", () => {
-  it("el rango «10:00-13:00» también parte en sesión y lugar", () => {
+  it('el rango "10:00-13:00" también parte en sesión y lugar', () => {
     expect(sesionYLugar("LUN 10:00-13:00 A703")).toEqual({ sesion: "LUN 10:00-13:00", lugar: "A703" });
     // La forma de una sola hora sigue intacta (contrato previo).
     expect(sesionYLugar("LUN 08:00 A101")).toEqual({ sesion: "LUN 08:00", lugar: "A101" });
   });
 
-  it("el multibloque separa por «·»; lo que no calza viaja crudo, no se traga", () => {
+  it('el multibloque separa por "·"; lo que no calza viaja crudo, no se traga', () => {
     expect(bloquesDeSesion("MAR 14:00-16:00 V307 · MIE 10:00-12:00 V307")).toEqual([
       { sesion: "MAR 14:00-16:00", lugar: "V307" },
       { sesion: "MIE 10:00-12:00", lugar: "V307" },

@@ -37,7 +37,7 @@ describe("AulasDisponibilidadDeAplicadores", () => {
     expect(html).toContain("data-qa-geometry-member");
   });
 
-  it("cargada pero sin horas declaradas lo dice, sin confundirlo con «falta cargar»", () => {
+  it('cargada pero sin horas declaradas lo dice, sin confundirlo con "falta cargar"', () => {
     const html = pinta(bloque([]));
     expect(html).toContain("nadie declaró horas");
     expect(html).not.toContain("libro de disponibilidad");
@@ -154,7 +154,7 @@ describe("el día que toca sella su fila de oferta (hermano de B43/B46)", () => 
   const oferta = mallaDeOferta(disponibilidad)!;
   const vivas = columnasVivas(oferta.franjas.length, [oferta.disponibles]);
 
-  it("el 2026-09-07 es lunes: la fila «lunes» lleva el sello y las demás no", () => {
+  it('el 2026-09-07 es lunes: la fila "lunes" lleva el sello y las demás no', () => {
     const html = renderToStaticMarkup(
       <AulasDisponibilidadDeAplicadores oferta={oferta} vivas={vivas} fechaQueToca="2026-09-07" />,
     );

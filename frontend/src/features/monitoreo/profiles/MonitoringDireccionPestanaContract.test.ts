@@ -59,7 +59,7 @@ describe("Monitoreo: la pestaña pedida por dirección se aplica con su sección
     // secciones comparten un nombre de pestaña, y equivocada siempre.
     expect(
       llamadasA(arbol, "monitoreoSeccionDesdeParams"),
-      `${label}: hay que distinguir «vengo de una dirección» de «vengo de un clic»`,
+      `${label}: hay que distinguir "vengo de una dirección" de "vengo de un clic"`,
     ).toBeGreaterThan(0);
   });
 });

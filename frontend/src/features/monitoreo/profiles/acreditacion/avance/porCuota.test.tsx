@@ -59,7 +59,7 @@ describe("Avance › Por cuota", () => {
     expect(html).toContain("Definir cuota en Modelo");
   });
 
-  it("mientras lee, el marco de dos columnas ya está y no repite un título «Variables»", () => {
+  it('mientras lee, el marco de dos columnas ya está y no repite un título "Variables"', () => {
     const html = renderToStaticMarkup(
       <PorCuotaVista publicos={[]} cuotas={[]} controles={[]} foco={null} leyendo onElegir={() => {}} onEditarEnModelo={() => {}} onDefinirEnModelo={() => {}} />,
     );

@@ -15,7 +15,7 @@ const fila = (f: Partial<MonitoreoAulasPlanRow>) => f as MonitoreoAulasPlanRow;
  * plena CON su marca de relación.
  */
 describe("AulasAgendaPorFacultad — los tres modelos de reemplazo", () => {
-  it("titular con Rechazo y su relevo despierto con la marca «reemplaza a»", () => {
+  it('titular con Rechazo y su relevo despierto con la marca "reemplaza a"', () => {
     const html = renderToStaticMarkup(
       <AulasAgendaPorFacultad
         filas={[
@@ -57,7 +57,7 @@ describe("AulasAgendaPorFacultad — los tres modelos de reemplazo", () => {
     expect(html).toContain("es-caso-b");
   });
 
-  it("una reserva sin titular es un «refuerzo» — nomenclatura propia (caso C)", () => {
+  it('una reserva sin titular es un "refuerzo" — nomenclatura propia (caso C)', () => {
     // Dictado 2026-09-03: «el caso C no tiene ninguna relación con el CH…
     // debería tener su propia nomenclatura, que es diferente».
     const html = renderToStaticMarkup(

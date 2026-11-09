@@ -130,7 +130,7 @@ describe("senalesPorAula agrupa sin descartar", () => {
 });
 
 describe("los grupos del contraste condicionado (B1: solo lo aplicado se contrasta)", () => {
-  it("pendiente y retirada van a su grupo con su estado literal, jamás a «bajo» ni a desconocidos", () => {
+  it('pendiente y retirada van a su grupo con su estado literal, jamás a "bajo" ni a desconocidos', () => {
     const res = senalesPorAula(bloque([
       aula("CH B", "bajo", { tasa_observada: 0.4 }),
       enAgenda("CH P", "pendiente", "agendada"),
@@ -149,7 +149,7 @@ describe("los grupos del contraste condicionado (B1: solo lo aplicado se contras
     expect(res.medidos).toBe(4);
   });
 
-  it("el descuadre tiene nombre propio: no es «sobre» ni engrosa a los señalados", () => {
+  it('el descuadre tiene nombre propio: no es "sobre" ni engrosa a los señalados', () => {
     const res = senalesPorAula(bloque([
       aula("CH D", "descuadre", { efectivas: 55, tasa_observada: 1.375 }),
       aula("CH A", "conforme"),
@@ -295,7 +295,7 @@ describe("AulasSenalesPorAula proyecta sin veredictos", () => {
     expect(plano).not.toMatch(/va en .*%.*planificada/);
   });
 
-  it("el umbral de la banda sale del payload, no de un «±25 puntos» tecleado (M4)", () => {
+  it('el umbral de la banda sale del payload, no de un "±25 puntos" tecleado (M4)', () => {
     const html = renderToStaticMarkup(
       <AulasSenalesPorAula bloque={bloque([
         aula("CH F", "sin_banda", { elegibles: 3, banda: null }),
@@ -309,7 +309,7 @@ describe("AulasSenalesPorAula proyecta sin veredictos", () => {
     expect(plano).not.toContain("`");
   });
 
-  it("la columna agregada se rotula «Prevista de su facultad» (M3)", () => {
+  it('la columna agregada se rotula "Prevista de su facultad" (M3)', () => {
     const html = renderToStaticMarkup(
       <AulasSenalesPorAula bloque={bloque([
         aula("CH C", "bajo", { tasa_observada: 0.4 }),

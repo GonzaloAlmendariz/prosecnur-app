@@ -82,7 +82,7 @@ export function Discrepancias({
       await copiarTexto(textoParaElEquipo(gruposParaAvisar));
       setAviso({ tono: "exito", texto: "Lista copiada: pégala en el chat del equipo." });
     } catch {
-      setAviso({ tono: "error", texto: "No se pudo copiar; usa «Exportar CSV»." });
+      setAviso({ tono: "error", texto: 'No se pudo copiar; usa "Exportar CSV".' });
     }
   };
 
@@ -94,7 +94,7 @@ export function Discrepancias({
           tamano="normal"
           icono={<GitCompareArrows size={22} />}
           titulo="Kobo y la hoja dicen lo mismo"
-          descripcion="Ninguna efectiva de Kobo sin «Efectivo» en la hoja ni «Efectivo» en la hoja sin envío de Kobo en este corte."
+          descripcion='Ninguna efectiva de Kobo sin "Efectivo" en la hoja ni "Efectivo" en la hoja sin envío de Kobo en este corte.'
         />
       </section>
     );
@@ -108,13 +108,13 @@ export function Discrepancias({
           {hayRotulo ? <header className="mon-tel-rotulo-de-tarjeta"><RotuloDePestana /></header> : null}
           <span
             className="mon-ctl-antetitulo"
-            title="Mientras no se decide, la efectiva de Kobo cuenta en el avance. «Efectivo» sin Kobo se sigue en Avisos."
+            title='Mientras no se decide, la efectiva de Kobo cuenta en el avance. "Efectivo" sin Kobo se sigue en Avisos.'
           >
             Cómo no coinciden
           </span>
           <dl className="mon-dsc-cifras">
-            <div><dt>Kobo efectiva, la hoja no dice «Efectivo»</dt><dd className="is-num">{n(resumen.koboSinHoja)}</dd></div>
-            <div><dt>La hoja dice «Efectivo», Kobo sin envío</dt><dd className="is-num">{n(resumen.hojaSinKobo)}</dd></div>
+            <div><dt>Kobo efectiva, la hoja no dice "Efectivo"</dt><dd className="is-num">{n(resumen.koboSinHoja)}</dd></div>
+            <div><dt>La hoja dice "Efectivo", Kobo sin envío</dt><dd className="is-num">{n(resumen.hojaSinKobo)}</dd></div>
           </dl>
         </section>
 
@@ -291,7 +291,7 @@ function FichaDeDiscrepancia({
               Ahora: <b>{ROTULO_DE_DECISION[caso.decision]}</b>
               {caso.decididoEl ? ` (${fechaHora(caso.decididoEl)})` : ""}
             </p>
-            {caso.nota ? <p className="mon-dsc-nota-guardada">«{caso.nota}»</p> : null}
+            {caso.nota ? <p className="mon-dsc-nota-guardada">"{caso.nota}"</p> : null}
             <div className="mon-dsc-opciones" role="radiogroup" aria-label="Decisión">
               {(["cuenta", "no_cuenta"] as const).map((opcion) => (
                 <button
@@ -325,7 +325,7 @@ function FichaDeDiscrepancia({
               <span>{envio.guardando ? "Guardando…" : "Guardar decisión"}</span>
             </button>
             {envio.error ? <NotaDelModo tono="error" estado>{envio.error}</NotaDelModo> : null}
-            <p className="mon-dsc-pie" title="Se guarda con la fecha y la nota. «No cuenta» la saca del avance al actualizar.">Se guarda en el proyecto</p>
+            <p className="mon-dsc-pie" title='Se guarda con la fecha y la nota. "No cuenta" la saca del avance al actualizar.'>Se guarda en el proyecto</p>
           </>
         ) : caso.sentido === "hoja_sin_kobo" ? (
           <NotaDelModo tono="aviso">

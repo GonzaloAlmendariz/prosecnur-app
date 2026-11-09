@@ -42,7 +42,7 @@ describe("Avance › UMP", () => {
     expect(modelo.conteos).toEqual({ todas: 3, pendientes: 1, subsanadas: 1, completas: 1, "sin-parte": 2 });
   });
 
-  it("sin ocurrencias declaradas (E4) no hay parte ni filtro «Sin parte»", () => {
+  it('sin ocurrencias declaradas (E4) no hay parte ni filtro "Sin parte"', () => {
     const sin = construirUmps(CORTE_DE_CUOTAS);
     expect(sin.conOcurrencias).toBe(false);
     expect(sin.filas.every((fila) => fila.parte === null && !fila.sinParte)).toBe(true);

@@ -66,7 +66,7 @@ function camposDelLector(): string[] {
   return [...fuente.matchAll(/campo\s*=\s*"([a-z0-9_]+)"/g)].map((m) => m[1]);
 }
 
-describe("los campos de «Base de control» llegan traducidos", () => {
+describe('los campos de "Base de control" llegan traducidos', () => {
   it("el lector sigue declarando sus campos con `campo = \"...\"`", () => {
     const campos = camposDelLector();
     expect(campos.length).toBeGreaterThanOrEqual(20);

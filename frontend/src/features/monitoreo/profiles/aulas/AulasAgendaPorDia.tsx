@@ -86,7 +86,7 @@ export function AulasAgendaPorDia({ filas, totalDelPlan = 0, recorte }: {
        * panel decía «Ninguno de los 193 tiene fecha de aplicación». */
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         Ninguno de los {fmt(cuantos)} cursos-horario tiene fecha agendada. Se
-        declara en la columna «Fecha agendada» del libro.
+        declara en la columna "Fecha agendada" del libro.
         {aplicadas > 0 ? (
           /* Sin agenda no se aplica, asi que esto no es un caso legitimo que
              explicar sino un descuadre que avisar. La primera version decia

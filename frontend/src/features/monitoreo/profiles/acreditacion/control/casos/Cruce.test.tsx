@@ -51,7 +51,7 @@ describe("Control › Cruce", () => {
     expect(html).not.toContain("Base sin respuesta");
   });
 
-  it("una lectura de una sola categoría va como dato en «Cómo se cruzó», sin barra", () => {
+  it('una lectura de una sola categoría va como dato en "Cómo se cruzó", sin barra', () => {
     const consultas = {
       schema: "test", cases: [], issues: [], pending_exit: [],
       totals: { actor: [], date: [], channel: [], source: [], collector: [] },

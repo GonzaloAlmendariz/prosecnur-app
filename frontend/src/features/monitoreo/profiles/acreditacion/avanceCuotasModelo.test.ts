@@ -84,7 +84,7 @@ describe("lectura de una cuota", () => {
     expect(cuotaElegida([], "q1")).toBeNull();
   });
 
-  it("orden por brecha, universo o nombre; «Sin dato» siempre al final", () => {
+  it('orden por brecha, universo o nombre; "Sin dato" siempre al final', () => {
     const cats = normalizeMonitoreoCuotasEstado({ cuotas: [{ id: "q", actor: "A", variable: "Puesto", categorias: PUESTOS.map((p) => ({ ...p, falta: Math.max(0, p.meta - p.efectivas) })) }] }).cuotas[0].categorias;
     const brecha = categoriasVisibles(cats, "brecha", "");
     expect(brecha).toHaveLength(91);

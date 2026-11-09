@@ -48,7 +48,7 @@ describe("la lista de anticipación alinea sus columnas", () => {
     expect(culpables).toEqual([]);
   });
 
-  it("la columna «Cuándo» cabe una fecha sin recortarla", () => {
+  it('la columna "Cuándo" cabe una fecha sin recortarla', () => {
     const pistas = regla![1].trim().split(/\s+(?![^(]*\))/);
     const ultima = Number.parseFloat(pistas[pistas.length - 1]);
     // «antes del 21/08» a 11.5px mide ~84px. Menos que eso recorta la fecha,

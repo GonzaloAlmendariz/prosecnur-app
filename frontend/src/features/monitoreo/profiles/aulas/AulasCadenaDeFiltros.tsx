@@ -91,7 +91,7 @@ export function AulasCadenaDeFiltros({ bloque }: { bloque: unknown }) {
         <p className="mon-profile-muted">
           <Filter size={13} aria-hidden="true" />
           {c.sinColumna.length === 1
-            ? `El filtro «${c.sinColumna[0]}» no se aplicó: la base no trae esa columna.`
+            ? `El filtro "${c.sinColumna[0]}" no se aplicó: la base no trae esa columna.`
             : `${fmt(c.sinColumna.length)} filtros no se aplicaron porque la base no trae su columna: ${c.sinColumna.join(", ")}.`}
         </p>
       )}

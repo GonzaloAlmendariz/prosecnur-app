@@ -86,7 +86,7 @@ describe("Avance › Cuotas del telefónico", () => {
     expect(fila.efectivas + fila.rechazoOParcial + fila.llamadoSinEfectiva + fila.sinLlamar).toBe(614);
   });
 
-  it("Sin asignar sale de la fila «Sin responsable» y es nulo si el bloque no viaja", () => {
+  it('Sin asignar sale de la fila "Sin responsable" y es nulo si el bloque no viaja', () => {
     expect(sinAsignarDesdeBloque([
       { Responsable: "Sin responsable", "No barridos": 1197 },
       { Responsable: "Op-01", "No barridos": 49 },
@@ -190,7 +190,7 @@ describe("Avance › Cuotas: el total no compensa entre celdas (ADR 0079 y 0126)
     expect(modelo.total.efectivasDeMetas).toBe(10);
   });
 
-  it("el carácter se cruza por variable y valor: un «Sí» de otra variable no es el mismo", () => {
+  it('el carácter se cruza por variable y valor: un "Sí" de otra variable no es el mismo', () => {
     const filas = [
       { Actor: "Total", Variable: "Sede", Valor: "Sí", Caracter: "meta", estado_cuota: "falta" },
       { Actor: "Total", Variable: "Acepta", Valor: "Sí", Caracter: "referencial", Referencia: 30, estado_cuota: "referencial" },

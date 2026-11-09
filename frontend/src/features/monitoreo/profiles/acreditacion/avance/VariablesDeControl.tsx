@@ -80,7 +80,7 @@ export function VariablesDeControl({ filas, reporte }: { filas: readonly FilaDeC
             </table>
           </div>
         ) : (
-          <VacioDeBloque icono={<SlidersHorizontal size={15} />} titulo="El corte no trae variables de control." descripcion="Se eligen en Modelo › Cuotas, con metas o en «Solo seguimiento», y aparecen aquí tras el siguiente corte." />
+          <VacioDeBloque icono={<SlidersHorizontal size={15} />} titulo="El corte no trae variables de control." descripcion='Se eligen en Modelo › Cuotas, con metas o en "Solo seguimiento", y aparecen aquí tras el siguiente corte.' />
         )}
         {grupos.length ? (
           <span className="acr-av-leyenda is-centrada">

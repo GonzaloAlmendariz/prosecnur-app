@@ -22,7 +22,7 @@ const fila = (i: number): MonitoreoAulasPlanRow => ({
 
 const filas = (n: number) => Array.from({ length: n }, (_, i) => fila(i + 1));
 
-describe("el respaldo de «Cursos-horario por cobertura»", () => {
+describe('el respaldo de "Cursos-horario por cobertura"', () => {
   it("con el plan recortado y sin bloque del motor, DECLARA en vez de dibujar", () => {
     const html = renderToStaticMarkup(
       <AulasCoberturaChart filas={filas(500)} resumen={null} totalDelPlan={1392} />,
@@ -62,7 +62,7 @@ describe("el respaldo de «Cursos-horario por cobertura»", () => {
  * que hoy dejó al panel de los aplicadores fallando mientras el del libro se
  * salvaba por suerte.
  */
-describe("el respaldo de «Estado de aplicación»", () => {
+describe('el respaldo de "Estado de aplicación"', () => {
   it("con el plan recortado y sin bloque del motor, DECLARA en vez de dibujar", () => {
     const html = renderToStaticMarkup(
       <AulasEstadoChart filas={filas(500)} resumen={null} totalDelPlan={1392} />,

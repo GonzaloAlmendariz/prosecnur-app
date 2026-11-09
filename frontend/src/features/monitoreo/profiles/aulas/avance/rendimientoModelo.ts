@@ -239,7 +239,7 @@ function porHoraDe(dashboard: MonitoreoAulasDashboard): PorHora {
   const pie = [
     pieDeExclusiones(r.sinEsperadas, r.sinCifra),
     sinHora ? `${fmt(sinHora)} sin hora de aplicación.` : null,
-    fuera ? `${fmt(fuera)} con hora fuera de ${HORA_DESDE}:00–${HORA_HASTA}:00, probablemente sin «am/pm»: no se grafican.` : null,
+    fuera ? `${fmt(fuera)} con hora fuera de ${HORA_DESDE}:00–${HORA_HASTA}:00, probablemente sin "am/pm": no se grafican.` : null,
   ].filter(Boolean).join(" ");
   return {
     tipo: "barras",

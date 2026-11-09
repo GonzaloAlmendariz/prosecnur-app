@@ -40,7 +40,7 @@ describe("flujo de Control › Cruce", () => {
 });
 
 describe("flujo de las respuestas (sin el padrón pendiente)", () => {
-  it("quita la cinta «Sin respuesta» y la descuenta de «En base → canal»", () => {
+  it('quita la cinta "Sin respuesta" y la descuenta de "En base → canal"', () => {
     const { enlaces, sinRespuesta } = flujoDeRespuestas(FLUJO);
     expect(sinRespuesta).toBe(90);
     expect(enlaces.some((enlace) => enlace.source === "Sin respuesta" || enlace.target === "Sin respuesta")).toBe(false);

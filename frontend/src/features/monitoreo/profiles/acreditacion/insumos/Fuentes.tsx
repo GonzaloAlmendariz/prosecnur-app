@@ -74,7 +74,7 @@ export function FuentesVista({ sources, borrador, totales, foco, onElegir, onInc
       <div className="acr-in-fuentes" data-vacio="legitimo">
         <section className="acr-av-panel" aria-label="Fuentes del estudio">
           <header className="acr-av-panel-cabecera"><h3>Fuentes</h3></header>
-          <VacioDeBloque icono={<Database size={15} />} titulo="El estudio todavía no tiene fuentes conectadas." descripcion="Cada encuesta se declara abajo; el padrón y el barrido, con «Conectar fuente»." />
+          <VacioDeBloque icono={<Database size={15} />} titulo="El estudio todavía no tiene fuentes conectadas." descripcion='Cada encuesta se declara abajo; el padrón y el barrido, con "Conectar fuente".' />
         </section>
         {declaracion ? <section className="acr-av-panel acr-in-declaracion" aria-label="Declaración de las encuestas">{declaracion}</section> : null}
       </div>

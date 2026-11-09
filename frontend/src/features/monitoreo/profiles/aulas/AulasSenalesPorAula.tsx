@@ -205,7 +205,7 @@ export function AulasSenalesPorAula({
       </div>
       {filtrado && encontrados === 0 ? (
         <p className="mon-profile-muted">
-          Ningún curso-horario coincide con «{busca}». Se busca por código, por
+          Ningún curso-horario coincide con "{busca}". Se busca por código, por
           facultad y por estado operativo, y todos los términos tienen que
           aparecer.
         </p>
@@ -296,7 +296,7 @@ export function AulasSenalesPorAula({
                           relevo listo: {relevos[a.codigo].siguiente}
                         </em>
                       ) : (
-                        <em className="aulas-dt-relevo es-sin" title="El sorteo no le dejó reservas de cadena sin usar, así que lo que se recogió es lo que hay. Para cubrir el déficit hay que ir al banco de extras, en «A qué aula del banco ir».">
+                        <em className="aulas-dt-relevo es-sin" title='El sorteo no le dejó reservas de cadena sin usar, así que lo que se recogió es lo que hay. Para cubrir el déficit hay que ir al banco de extras, en "A qué aula del banco ir".'>
                           sin relevo
                         </em>
                       )

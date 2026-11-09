@@ -60,7 +60,7 @@ describe("avisoParteContraPlataforma", () => {
     expect(a.texto).toBe("");
   });
 
-  it("más de cinco se resumen con «y N más», y sin em dashes", () => {
+  it('más de cinco se resumen con "y N más", y sin em dashes', () => {
     const muchos = ["CH 1", "CH 2", "CH 3", "CH 4", "CH 5", "CH 6", "CH 7"].map((c) => caso(c, 10, 30));
     const a = avisoParteContraPlataforma(r(muchos));
     expect(a.texto).toContain("y 2 más");

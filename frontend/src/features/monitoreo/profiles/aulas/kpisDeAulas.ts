@@ -563,7 +563,7 @@ export function aulasKpis(
           // dato bueno y el de muestra es el que hay que corregir. Decir sólo
           // «se contradicen» deja al lector eligiendo, y ya no hay nada que
           // elegir.
-          pista: "tienen fecha y el estado de muestra dice «sin contactar»: manda la fecha, hay que corregir la muestra",
+          pista: 'tienen fecha y el estado de muestra dice "sin contactar": manda la fecha, hay que corregir la muestra',
           // **Cuánto depende de la contradicción, no sólo cuántas hay.** El
           // conteo solo deja al lector sin saber si son nueve casos sueltos o
           // media proyección. Medido el 2026-08-30: esas 9 aportan 168 de las
@@ -884,7 +884,7 @@ export function aulasKpis(
       pista: metas.muestra
         ? `de ${fmt(metas.muestra)} de la muestra, de la plataforma`
         : "de la plataforma, las que suman a la cuota",
-      detalle: "Efectivas de la plataforma que suman a la cuota: de la población que el diseño mide, identificadas y sin duplicar. El bloque «Respuestas» explica las que no suman.",
+      detalle: 'Efectivas de la plataforma que suman a la cuota: de la población que el diseño mide, identificadas y sin duplicar. El bloque "Respuestas" explica las que no suman.',
     },
     {
       label: "Muestra",

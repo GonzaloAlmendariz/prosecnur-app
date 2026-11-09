@@ -18,7 +18,7 @@ const APAGADA = fuente({ id: "apagada", kind: "kobo", role: "respuestas", enable
 const ids = (sources: MonitoreoSource[]) => sources.map((source) => source.id);
 
 describe("fuentesSincronizables", () => {
-  it("«todo» toma lo activo y sólo lo activo", () => {
+  it('"todo" toma lo activo y sólo lo activo', () => {
     expect(ids(fuentesSincronizables([UNIVERSO, BARRIDO, KOBO, APAGADA], "full", "telefonico")))
       .toEqual(["universo", "barrido", "kobo"]);
   });

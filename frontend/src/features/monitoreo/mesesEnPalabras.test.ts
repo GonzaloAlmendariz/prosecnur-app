@@ -8,7 +8,7 @@ describe("los meses del perfil", () => {
     expect(MES_LARGO).toHaveLength(12);
   });
 
-  it("dice «setiembre», que es como lo escribe el libro del operativo", () => {
+  it('dice "setiembre", que es como lo escribe el libro del operativo', () => {
     expect(MES_LARGO[8]).toBe("setiembre");
     expect(MES_CORTO[8]).toBe("set");
   });

@@ -24,7 +24,7 @@ const tablero = (pendientes: number, listas: number) => ({
 
 const sinEmpezar = (t: never) => aulasKpis(t, "modelo").find((k) => k.label === "Sin empezar");
 
-describe("la pista de «Sin empezar»", () => {
+describe('la pista de "Sin empezar"', () => {
   it("con ninguna agendada dice que hay que agendarlas", () => {
     const k = sinEmpezar(tablero(145, 0));
     expect(k?.value).toBe("145");
@@ -82,7 +82,7 @@ const conEstado = (agendadas: number, sinContactar: number) => ({
   kpis: {},
 }) as never;
 
-describe("«Agendado» se separa cuando el tramo mezcla estados", () => {
+describe('"Agendado" se separa cuando el tramo mezcla estados', () => {
   it("con 13 agendadas y 9 sin contactar, dice el reparto", () => {
     const k = sinEmpezar(conEstado(13, 9));
     expect(k?.value).toBe("22");

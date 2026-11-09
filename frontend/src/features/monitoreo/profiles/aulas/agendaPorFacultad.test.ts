@@ -91,7 +91,7 @@ describe("agendaPorFacultad", () => {
     expect(f.aulas[1].nota).toBe("");
   });
 
-  it("«en marcha» son las que ya no están sólo planificadas", () => {
+  it('"en marcha" son las que ya no están sólo planificadas', () => {
     const [f] = agendaPorFacultad([
       fila({ operational_code: "A", faculty: "X", operational_status: "aplicada" }),
       fila({ operational_code: "B", faculty: "X", operational_status: "planificada" }),

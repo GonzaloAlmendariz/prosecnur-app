@@ -18,7 +18,7 @@ describe("avisoLibroPublicado", () => {
     const { texto, tono } = avisoLibroPublicado({
       hojas: [{ hoja: "Base de control", accion: "actualizada", filas: 174 }],
     });
-    expect(texto).toContain("«Base de control» actualizada (174 filas)");
+    expect(texto).toContain('"Base de control" actualizada (174 filas)');
     expect(tono).toBe("ok");
   });
 
@@ -33,10 +33,10 @@ describe("avisoLibroPublicado", () => {
         { hoja: "Aulas Aplicadas (Campo)", accion: "respetada", filas: 12 },
       ],
     } as never).texto;
-    expect(texto).toContain("«Aulas Agendadas» respetada (45 filas): la llena el equipo, no la app; no le llegó «CARRERA»");
+    expect(texto).toContain('"Aulas Agendadas" respetada (45 filas): la llena el equipo, no la app; no le llegó "CARRERA"');
     // La que no retiene nada no gana ni una palabra.
-    expect(texto).toContain("«Aulas Aplicadas (Campo)» respetada (12 filas): la llena el equipo, no la app");
-    expect(texto).not.toContain("«Aulas Aplicadas (Campo)» respetada (12 filas): la llena el equipo, no la app; no le llegó");
+    expect(texto).toContain('"Aulas Aplicadas (Campo)" respetada (12 filas): la llena el equipo, no la app');
+    expect(texto).not.toContain('"Aulas Aplicadas (Campo)" respetada (12 filas): la llena el equipo, no la app; no le llegó');
   });
 
   it("un solo rótulo retenido llega como TEXTO desde R y el aviso no revienta", () => {
@@ -45,7 +45,7 @@ describe("avisoLibroPublicado", () => {
     const texto = avisoLibroPublicado({
       hojas: [{ hoja: "Aulas Agendadas", accion: "respetada", filas: 45, rotulos_retenidos: "CARRERA" }],
     } as never).texto;
-    expect(texto).toContain("no le llegó «CARRERA»");
+    expect(texto).toContain('no le llegó "CARRERA"');
   });
 
   it("con muchos rótulos retenidos nombra tres y cuenta el resto", () => {
@@ -57,7 +57,7 @@ describe("avisoLibroPublicado", () => {
         rotulos_retenidos: ["CARRERA", "TELÉFONO DE DOCENTE", "SESIONES Y AULA", "MEDIO DE CONTACTO", "RECIBIÓ CORREO"],
       }],
     } as never).texto;
-    expect(texto).toContain('no le llegó «CARRERA», «TELÉFONO DE DOCENTE», «SESIONES Y AULA» y 2 más');
+    expect(texto).toContain('no le llegó "CARRERA", "TELÉFONO DE DOCENTE", "SESIONES Y AULA" y 2 más');
   });
 
   it("una hoja respetada SIEMPRE lleva su motivo: es la regla de dueño, no un fallo", () => {
@@ -67,8 +67,8 @@ describe("avisoLibroPublicado", () => {
         { hoja: "Aulas Aplicadas (Campo)", accion: "respetada", filas: 12 },
       ],
     });
-    expect(texto).toContain("«Aulas Agendadas» respetada (45 filas): la llena el equipo");
-    expect(texto).toContain("«Aulas Aplicadas (Campo)» respetada (12 filas): la llena el equipo");
+    expect(texto).toContain('"Aulas Agendadas" respetada (45 filas): la llena el equipo');
+    expect(texto).toContain('"Aulas Aplicadas (Campo)" respetada (12 filas): la llena el equipo');
   });
 
   it("una fila va en singular", () => {
@@ -86,8 +86,8 @@ describe("avisoLibroPublicado", () => {
         { hoja: "Base de control", accion: "sin_cambios", filas: 174 },
       ],
     });
-    expect(texto).toContain("«Aulas Agendadas» sembrada (196 filas)");
-    expect(texto).toContain("«Base de control» sin cambios");
+    expect(texto).toContain('"Aulas Agendadas" sembrada (196 filas)');
+    expect(texto).toContain('"Base de control" sin cambios');
     // `sin_cambios` es el nombre del motor, no copy: el guion bajo no sale.
     expect(texto).not.toContain("sin_cambios");
   });
@@ -98,7 +98,7 @@ describe("avisoLibroPublicado", () => {
     const { texto } = avisoLibroPublicado({
       hojas: [{ hoja: "Base de control", accion: "reescrita", filas: 174 }],
     });
-    expect(texto).toContain("«Base de control» reescrita (174 filas)");
+    expect(texto).toContain('"Base de control" reescrita (174 filas)');
   });
 
   it("cuando el enlace se acaba de recordar, lo dice", () => {
@@ -156,7 +156,7 @@ describe("avisoLibroPublicado: la lectura previa", () => {
     });
     expect(texto).toContain("No se pudo leer el Sheets antes de publicar (HTTP 403)");
     expect(texto).toContain("se publicó con lo que la app ya tenía");
-    expect(texto).toContain("«Actualizar»");
+    expect(texto).toContain('"Actualizar"');
     expect(texto).toContain("Libro publicado:");
     expect(tono).toBe("atencion");
   });
@@ -202,7 +202,7 @@ describe("la adopción de la hoja de los aplicadores se dice", () => {
         adoptadas: 140,
       },
     });
-    expect(texto).toContain("«Semana 1» y «Semana 2»");
+    expect(texto).toContain('"Semana 1" y "Semana 2"');
     expect(texto).toContain("140 asignaciones");
   });
 
@@ -211,7 +211,7 @@ describe("la adopción de la hoja de los aplicadores se dice", () => {
       hojas: [{ hoja: "Base de control", accion: "actualizada", filas: 10 }],
       adopcion_distribucion: { ok: true, hoja: "Semana 1", hojas: [], adoptadas: 3 },
     });
-    expect(texto).toContain("«Semana 1»");
+    expect(texto).toContain('"Semana 1"');
   });
 
   it("sin destino recordado AVISA, porque Asignación se rehízo a ciegas", () => {
@@ -253,7 +253,7 @@ describe("las hojas que encogen", () => {
       hojas: [{ hoja: "Base de control", accion: "actualizada", filas: 40 }],
       encogidas: [{ hoja: "Base de control", antes: 88, ahora: 40 }],
     });
-    expect(texto).toContain("«Base de control» de 88 filas a 40 filas");
+    expect(texto).toContain('"Base de control" de 88 filas a 40 filas');
     expect(texto).toContain("menos contenido");
     expect(tono).toBe("atencion");
   });
@@ -315,7 +315,7 @@ describe("avisoTraslapeRecalculado: la cola que repite el estudio", () => {
     libro_leido: true,
   }).texto;
 
-  it("recorta «de HSVG» y «en HSVG»: la frase ya lo dijo", () => {
+  it('recorta "de HSVG" y "en HSVG": la frase ya lo dijo', () => {
     // Se vio en la app: cuatro veredictos seguidos repetían el nombre cinco
     // veces en una frase, y en minúscula salía «hsvg», que no se escribe así.
     const texto = con({ "AULA EN EL PLAN DE HSVG": 32, "AULA YA APLICADA EN HSVG": 12 });

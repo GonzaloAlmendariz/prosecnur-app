@@ -366,7 +366,7 @@ describe("la τ del diseño contra la del campo", () => {
 });
 
 describe("los dos riesgos no se dicen igual", () => {
-  it("«riesgo» y «riesgo_firme» llevan palabras distintas", () => {
+  it('"riesgo" y "riesgo_firme" llevan palabras distintas', () => {
     // En el simulacro de campo malo conviven 11 `riesgo_firme` y 1 `riesgo`, y
     // los doce salían como «No cierra»: Artes Escénicas con 1 alumno de déficit
     // junto a Ciencias e Ingeniería con 188. `riesgo_firme` es «no cierra ni en
@@ -434,7 +434,7 @@ describe("la frase del veredicto concuerda", () => {
     return (html.match(/title="([^"]*)"/g) || []).join(" ");
   };
 
-  it("con UNA aula y UN alumno no dice «los 1 que faltan»", () => {
+  it('con UNA aula y UN alumno no dice "los 1 que faltan"', () => {
     // Salía «1 aula cierra de su cadena los 1 que faltan». Nadie lo vio porque
     // la función que la produce estaba muerta; el archivo ya advertía que una
     // cifra mal concordada delata que nadie miró la fila de un solo elemento.
@@ -471,7 +471,7 @@ describe("la columna de respaldo concuerda con su cifra", () => {
     })],
   }));
 
-  it("con una sola reserva necesaria dice «hace falta 1»", () => {
+  it('con una sola reserva necesaria dice "hace falta 1"', () => {
     const html = conNecesarias(1);
     expect(html).toContain("hace falta 1 de 118");
     expect(html).not.toContain("hacen falta 1");

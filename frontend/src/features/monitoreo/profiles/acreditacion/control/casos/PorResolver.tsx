@@ -196,7 +196,7 @@ export function PorResolver({
               </tbody>
             </table>
           ) : (
-            <VacioDeBloque vacio="sin-coincidencias" icono={<SearchX size={15} />} titulo="Este público no tiene casos de este tipo." descripcion="Elige otro tipo o «Todos los públicos» a la izquierda." />
+            <VacioDeBloque vacio="sin-coincidencias" icono={<SearchX size={15} />} titulo="Este público no tiene casos de este tipo." descripcion='Elige otro tipo o "Todos los públicos" a la izquierda.' />
           )}
         </MarcoDesplazable>
       </section>

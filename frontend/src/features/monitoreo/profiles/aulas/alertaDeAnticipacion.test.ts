@@ -249,7 +249,7 @@ describe("los tres momentos se alcanzan desde el payload, no sólo a mano", () =
   const desdeElPayload = (agenda: MonitoreoRow[]) =>
     alertaDeAnticipacion(proyeccionPorAgenda(agenda, historia, cuotas))[0];
 
-  it("con agenda larga sale «hay margen» con su fecha", () => {
+  it('con agenda larga sale "hay margen" con su fecha', () => {
     const a = desdeElPayload([
       aula({ operational_code: "CH 90", faculty: "Derecho", scheduled_date: "2026-08-11" }),
       aula({ operational_code: "CH 91", faculty: "Derecho", scheduled_date: "2026-08-24" }),
@@ -258,14 +258,14 @@ describe("los tres momentos se alcanzan desde el payload, no sólo a mano", () =
     expect(a.pedirAntesDe).toBe("2026-08-15");
   });
 
-  it("con agenda corta sale «pedir ahora»", () => {
+  it('con agenda corta sale "pedir ahora"', () => {
     const a = desdeElPayload([
       aula({ operational_code: "CH 90", faculty: "Derecho", scheduled_date: "2026-08-13" }),
     ]);
     expect(a.urgencia).toBe("pedir ahora");
   });
 
-  it("sin agenda por delante sale «sin agenda»", () => {
+  it('sin agenda por delante sale "sin agenda"', () => {
     const a = desdeElPayload([]);
     expect(a.urgencia).toBe("sin agenda");
   });

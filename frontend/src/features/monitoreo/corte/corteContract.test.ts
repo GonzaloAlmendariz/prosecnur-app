@@ -220,17 +220,17 @@ describe("el bloqueo del corte incompleto dice CUÁL de los tres estados es", ()
       hasSnapshot: true, generationStatus,
     })).bloqueos.find((b) => b.codigo === "CORTE_INCOMPLETO")?.mensaje ?? "";
 
-  it("«partial» nombra los errores de la sincronización", () => {
+  it('"partial" nombra los errores de la sincronización', () => {
     expect(mensaje("partial")).toContain("terminó con errores");
     expect(mensaje("partial")).not.toContain(" o desactualizado");
   });
 
-  it("«stale» dice que quedó viejo, que es lo que se arregla sincronizando", () => {
+  it('"stale" dice que quedó viejo, que es lo que se arregla sincronizando', () => {
     expect(mensaje("stale")).toContain("desactualizado");
     expect(mensaje("stale")).not.toContain("errores");
   });
 
-  it("«failed» no se disfraza de corte incompleto", () => {
+  it('"failed" no se disfraza de corte incompleto', () => {
     expect(mensaje("failed")).toContain("falló");
   });
 

@@ -64,7 +64,7 @@ describe("Control › Ocurrencias › Distritos", () => {
     for (const fila of modelo.distritos) for (const motivo of fila.motivos) expect(motivo.rotulo).not.toMatch(/[·(/]/);
   });
 
-  it("el chip no recorta con «…»: el rótulo largo entra entero y parte línea", () => {
+  it('el chip no recorta con "…": el rótulo largo entra entero y parte línea', () => {
     expect(modelo.distritos[2].motivos.map((motivo) => motivo.rotulo)).toContain("Miembros del hogar presentes pero ocupados");
   });
 

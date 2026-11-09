@@ -41,7 +41,7 @@ describe("AulasSexoYDescartes", () => {
     expect(html).toContain("Cuentan como hombres");
     expect(html).toMatch(/aria-pressed="true"[^>]*>1</);
     expect(html).toMatch(/aria-pressed="true"[^>]*>2</);
-    expect(html).toContain("«3» no cuenta en ningún sexo");
+    expect(html).toContain("&quot;3&quot; no cuenta en ningún sexo");
   });
 
   it("sin variable de sexo declarada lo dice y no inventa valores", () => {

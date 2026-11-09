@@ -117,13 +117,13 @@ export function avisoConversacion(
   const formulaRota = String(res.publicado?.plan_dia_formula_error ?? "").trim();
   if (formulaRota) {
     frases.push(
-      `El bloque «Plan del día» quedó en ${formulaRota}: ábrelo en el Sheets para que recalcule y, si sigue igual, vuelve a publicar.`,
+      `El bloque "Plan del día" quedó en ${formulaRota}: ábrelo en el Sheets para que recalcule y, si sigue igual, vuelve a publicar.`,
     );
     tono = "atencion";
   }
   if (motivoLectura) {
     // Un motivo de lectura que este código no conoce: con su nombre.
-    frases.push(`La lectura declaró «${motivoLectura}».`);
+    frases.push(`La lectura declaró "${motivoLectura}".`);
     tono = "atencion";
   }
   // Cuando NO hay nada que corregir, no se dice nada (Gonzalo, 2026-09-08:

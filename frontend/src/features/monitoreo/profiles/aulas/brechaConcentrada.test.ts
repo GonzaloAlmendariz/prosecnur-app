@@ -36,7 +36,7 @@ describe("dónde se concentra lo que falta, por facultad y sexo", () => {
     expect(r.cabeza.map((c) => c.etiqueta)).toEqual(["B, Mujeres"]);
   });
 
-  test("una celda ya cumplida NO entra en una lista de «dónde falta más»", () => {
+  test('una celda ya cumplida NO entra en una lista de "dónde falta más"', () => {
     const r = brechaConcentrada([celda("A", "M", 10, 10), celda("B", "F", 20)], 12);
     expect(r.cabeza.map((c) => c.etiqueta)).toEqual(["B, Mujeres"]);
     expect(r.celdas).toBe(2);

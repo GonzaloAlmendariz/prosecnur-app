@@ -47,7 +47,7 @@ export function lineaClave(p: EnsayoPestana): string {
   if (p.seCrea || p.sinCambios) return "";
   return p.sinClave
     ? "Sin columna que identifique cada fila: se compara la fila completa, así que una fila editada cuenta como borrada y añadida."
-    : `Cada fila se identifica por «${p.clave}».`;
+    : `Cada fila se identifica por "${p.clave}".`;
 }
 
 export type AccionAplicar = {

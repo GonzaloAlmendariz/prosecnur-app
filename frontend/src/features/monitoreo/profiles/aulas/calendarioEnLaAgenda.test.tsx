@@ -59,7 +59,7 @@ describe("AulasCalendarioDeAgenda", () => {
     expect(html).toContain("es-relleno");
   });
 
-  it("la repisa «sin fecha agendada» es aparte, no una celda", () => {
+  it('la repisa "sin fecha agendada" es aparte, no una celda', () => {
     const conSinFecha = renderToStaticMarkup(
       <AulasCalendarioDeAgenda
         dias={dias(fila("2026-09-08"), fila(""), fila(""))}

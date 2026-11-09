@@ -345,15 +345,15 @@ describe("una columna de porcentaje lo dice en su rótulo", () => {
     expect(campos.length).toBeGreaterThan(6);
   });
 
-  it("todo campo de la lista lleva «%» o «vs» en su rótulo", () => {
+  it('todo campo de la lista lleva "%" o "vs" en su rótulo', () => {
     const sinMarca = campos
       .map((campo) => [campo, aulasFieldLabel(campo)] as const)
       .filter(([campo, rotulo]) => rotulo && rotulo !== campo && !/%|vs/i.test(rotulo))
-      .map(([campo, rotulo]) => `${campo} → «${rotulo}»`);
+      .map(([campo, rotulo]) => `${campo} → "${rotulo}"`);
     expect(sinMarca).toEqual([]);
   });
 
-  it("«% Cuota» ya no se confunde con la cuota del curso", () => {
+  it('"% Cuota" ya no se confunde con la cuota del curso', () => {
     expect(aulasFieldLabel("quota_pct")).toBe("% Cuota");
     expect(aulasFieldLabel("quota_missing")).toBe("Faltantes cuota");
   });
@@ -455,7 +455,7 @@ describe("soloFacultad (B77) — el corte del foco con su guardia", () => {
  * que NO cambia) deja de llamarse «efectivas» en la app: «efectivas» son las
  * de la plataforma, que pasan el criterio.
  */
-describe("el conteo del parte se llama «encuestas aplicadas», no «efectivas»", () => {
+describe('el conteo del parte se llama "encuestas aplicadas", no "efectivas"', () => {
   it("la ficha lo rotula así", () => {
     expect(aulasFieldLabel("effective_surveys")).toBe("Encuestas aplicadas (parte)");
   });
@@ -500,7 +500,7 @@ describe("la escala de una columna no la deciden sus ceros", () => {
 });
 
 describe("el porcentaje de las tablas lleva su decimal, como el resto del perfil", () => {
-  it("un cero se escribe «0.0 %», no «0 %»", () => {
+  it('un cero se escribe "0.0 %", no "0 %"', () => {
     // Medido en `avance/estratos` el 2026-09-08: la misma columna decía «9.3 %»
     // en una fila y «0 %» en la siguiente, porque `Intl` con sólo
     // `maximumFractionDigits` quita el decimal cuando es cero. Es el último

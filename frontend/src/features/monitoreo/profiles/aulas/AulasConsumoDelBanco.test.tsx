@@ -47,7 +47,7 @@ describe("AulasConsumoDelBanco", () => {
     expect(html).not.toContain("CIENCIAS SOCIALES");
   });
 
-  it("y «sin reserva disponible» se dice con la palabra del eje", () => {
+  it('y "sin reserva disponible" se dice con la palabra del eje', () => {
     // Decía «facultades sin reserva disponible» en un estudio por nivel. CH 2
     // no tiene reserva detrás, así que su grupo sale seco.
     const html = renderToStaticMarkup(

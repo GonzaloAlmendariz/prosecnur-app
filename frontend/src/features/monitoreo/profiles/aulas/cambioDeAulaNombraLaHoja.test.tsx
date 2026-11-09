@@ -79,7 +79,7 @@ describe("el panel nombra la hoja que falta", () => {
     expect(html).not.toContain("una de las dos hojas");
   });
 
-  it("con las dos causas mezcladas sí dice «una de las dos hojas»", () => {
+  it('con las dos causas mezcladas sí dice "una de las dos hojas"', () => {
     // Ahí el rótulo genérico es el honesto: ninguna de las dos hojas explica
     // sola el caso, y nombrar una sería inventar el diagnóstico.
     const html = render(

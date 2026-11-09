@@ -28,7 +28,7 @@ export function CitaDeLaFicha({ lectura, codigo, onReemplazar }: {
         <ol className="aulas-cita-salidas">
           <li>
             <b>Reagendar</b>
-            <span>La fecha nueva se teclea en la agenda del libro; «Actualizar» la recoge.</span>
+            <span>La fecha nueva se teclea en la agenda del libro; "Actualizar" la recoge.</span>
           </li>
           <li>
             <b>Reemplazar</b>
@@ -41,7 +41,7 @@ export function CitaDeLaFicha({ lectura, codigo, onReemplazar }: {
           </li>
           <li>
             <b>Darla por no aplicada</b>
-            <span>Se anota «No aplicada» en el parte del libro: sale de la agenda y su meta queda por cubrir.</span>
+            <span>Se anota "No aplicada" en el parte del libro: sale de la agenda y su meta queda por cubrir.</span>
           </li>
         </ol>
       </section>

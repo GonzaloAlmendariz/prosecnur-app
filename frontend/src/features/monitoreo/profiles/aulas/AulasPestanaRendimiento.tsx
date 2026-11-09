@@ -82,7 +82,7 @@ export function AulasPestanaRendimiento({
               data-qa-geometry-group="monitoring-aulas-avance"
               data-qa-geometry-contract="intrinsic"
               titulo="Quién consigue más"
-              bajada="a quién apoyar y de quién copiar, «por visita» depende de cuántos alumnos tenía el curso-horario que le tocó"
+              bajada='a quién apoyar y de quién copiar, "por visita" depende de cuántos alumnos tenía el curso-horario que le tocó'
             >
               <AulasRendimientoPorFacultad
                 partes={partesConFacultad}
@@ -101,7 +101,7 @@ export function AulasPestanaRendimiento({
               data-qa-geometry-group="monitoring-aulas-avance"
               data-qa-geometry-contract="intrinsic"
               titulo="Franja horaria del operativo"
-              bajada="a qué hora conviene agendar, el volumen de cada franja va en «cursos-horario»"
+              bajada='a qué hora conviene agendar, el volumen de cada franja va en "cursos-horario"'
             >
               {/* Las franjas son las del libro —hoja «planilla»—, no unas nuestras. */}
               {/* «A qué hora se consigue más» terminaba igual que «Quién consigue
@@ -122,7 +122,7 @@ export function AulasPestanaRendimiento({
               data-qa-geometry-group="monitoring-aulas-avance"
               data-qa-geometry-contract="intrinsic"
               titulo="Día de la semana"
-              bajada="qué días conviene cargar de citas, el volumen de cada día va en «cursos-horario»"
+              bajada='qué días conviene cargar de citas, el volumen de cada día va en "cursos-horario"'
             >
               {/* La cuarta unidad de esfuerzo, y la única sobre la que el equipo
                   decide al agendar: la hora la pone el curso, el aplicador lo pone

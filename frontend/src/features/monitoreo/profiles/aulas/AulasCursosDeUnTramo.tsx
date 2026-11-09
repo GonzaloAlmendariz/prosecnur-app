@@ -53,7 +53,7 @@ export function AulasCursosDeUnTramo({ filas, tramo, etiqueta, onCerrar, enElTra
         <span>
           <strong>{fmt(cursos.length)}</strong>{" "}
           {faltan ? <>de los {fmt(enElTramo)} </> : null}
-          {(faltan ? enElTramo : cursos.length) === 1 ? "curso-horario" : "cursos-horario"} en «{etiqueta}»
+          {(faltan ? enElTramo : cursos.length) === 1 ? "curso-horario" : "cursos-horario"} en "{etiqueta}"
         </span>
         <button type="button" onClick={onCerrar}>Cerrar</button>
       </p>

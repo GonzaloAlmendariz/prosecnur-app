@@ -63,7 +63,7 @@ describe("un sync a la vez", () => {
 describe("el menú de Actualizar", () => {
   const html = renderToStaticMarkup(<MenuDeActualizar id="m" acciones={acciones} ocupado={false} />);
 
-  it("pone arriba Traer todo de nuevo y Recalcular, y debajo «Por fuente»", () => {
+  it('pone arriba Traer todo de nuevo y Recalcular, y debajo "Por fuente"', () => {
     expect(html).toContain('role="menu"');
     expect(html).toContain('role="group" aria-labelledby="m-fuentes"');
     expect(html).toContain(">Por fuente<");

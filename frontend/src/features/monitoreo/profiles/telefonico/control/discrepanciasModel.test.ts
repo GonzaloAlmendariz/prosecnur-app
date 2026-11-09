@@ -34,7 +34,7 @@ const decision = (response_id: string, action: string, declared_code: string) =>
 });
 
 describe("Control › Discrepancias", () => {
-  it("en los dos sentidos, con responsable, proGres, envío y P1 «cuenta mientras tanto»", () => {
+  it('en los dos sentidos, con responsable, proGres, envío y P1 "cuenta mientras tanto"', () => {
     const casos = casosDeDiscrepancia(CORTE, null);
     expect(casos).toHaveLength(4);
     const primero = casos.find((caso) => caso.codigo === "PDM1001");
@@ -74,12 +74,12 @@ describe("Control › Discrepancias", () => {
     expect(casosDeDiscrepancia(CORTE, perfil).find((caso) => caso.codigo === "PDM1002")?.decision).toBe("cuenta");
   });
 
-  it("para avisar al equipo: por responsable, «Sin asignar» al final, en texto y en CSV", () => {
+  it('para avisar al equipo: por responsable, "Sin asignar" al final, en texto y en CSV', () => {
     const grupos = porResponsable(casosDeDiscrepancia(CORTE, null));
     expect(grupos.map((grupo) => [grupo.responsable, grupo.casos.length])).toEqual([["Op-01", 2], ["Op-02", 1], [SIN_RESPONSABLE, 1]]);
     const texto = textoParaElEquipo(grupos);
-    expect(texto).toContain("Op-01 (2)\n- PDM1001, proGres XYZ-26-900001: Kobo tiene la efectiva y la hoja no la marca «Efectivo» (dice «No contesta»)");
-    expect(texto).toContain("Op-02 (1)\n- PDM1114: La hoja dice «Efectivo» y Kobo no tiene envío");
+    expect(texto).toContain('Op-01 (2)\n- PDM1001, proGres XYZ-26-900001: Kobo tiene la efectiva y la hoja no la marca "Efectivo" (dice "No contesta")');
+    expect(texto).toContain('Op-02 (1)\n- PDM1114: La hoja dice "Efectivo" y Kobo no tiene envío');
     const csv = csvParaElEquipo(grupos.flatMap((grupo) => grupo.casos)).split("\n");
     expect(csv[0]).toBe("Responsable,CodPulso,proGres,Qué pasa,La hoja dice,Fecha hoja,Envío en Kobo,Enumerador Kobo,Decisión");
     expect(csv[1]).toContain("Cuenta mientras tanto");

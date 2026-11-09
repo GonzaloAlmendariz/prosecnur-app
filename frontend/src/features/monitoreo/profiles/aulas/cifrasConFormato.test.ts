@@ -106,7 +106,7 @@ describe("las cifras del perfil de aulas van formateadas", () => {
     expect([...'`${className} aulas-foco-boton`'.matchAll(CIFRA_CRUDA)]).toHaveLength(0);
   });
 
-  it("caza el numerador de «N de M aulas», que no toca la unidad", () => {
+  it('caza el numerador de "N de M aulas", que no toca la unidad', () => {
     // Medido en pantalla: «2109 de 2,109 cursos-horario» — el segundo pasó por
     // el formateador y el primero no, en la MISMA frase.
     const linea = "`${sinSalirACampo} de ${fmt(enJuego)} cursos-horario`";
@@ -181,7 +181,7 @@ describe("el perfil no fuerza la coma decimal", () => {
  * celda de hoja de cálculo de verdad —«la hoja dice "…"»— y es la palabra
  * correcta para eso.
  */
-describe("el perfil no publica «celda» como unidad de cuota", () => {
+describe('el perfil no publica "celda" como unidad de cuota', () => {
   const EXENTOS = new Set(["AulasControlDelLibro.tsx"]);
   /**
    * **Se busca la palabra con su determinante, no el literal.**
@@ -234,7 +234,7 @@ describe("el perfil no publica «celda» como unidad de cuota", () => {
  * del fuente; lo que sí se puede es exigir que ningún panel resuma su contenido
  * con una palabra que no nombra su unidad.
  */
-describe("ningún panel se resume en «filas»", () => {
+describe('ningún panel se resume en "filas"', () => {
   it.each(fuentes.filter((f) => f.endsWith(".tsx")))("%s", (archivo) => {
     const fuente = fs
       .readFileSync(path.join(aqui, archivo), "utf8")

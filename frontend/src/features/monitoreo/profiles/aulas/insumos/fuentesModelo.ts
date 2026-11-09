@@ -187,7 +187,7 @@ function reciboDe(dashboard: MonitoreoAulasDashboard | null): ModeloFuentes["rec
       clave: "estados", rotulo: "Estados que la app no reconoce",
       resultado: estados.length ? `${fmt(estados.reduce((s, e) => s + n(e.filas), 0))} filas` : "Ninguno",
       tono: estados.length ? "aviso" : "ok",
-      detalle: estados.map((e) => `«${e.valor}» (${fmt(n(e.filas))})`).join(", "),
+      detalle: estados.map((e) => `"${e.valor}" (${fmt(n(e.filas))})`).join(", "),
     },
     {
       clave: "sin-plan", rotulo: "Códigos que el plan no reconoce",

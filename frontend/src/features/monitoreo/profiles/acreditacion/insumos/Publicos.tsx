@@ -191,7 +191,7 @@ export function Publicos({
                           disabled={elenco.guardando}
                         />
                         {repetido ? <Alert kind="warn">Ya hay otro público con este nombre.</Alert> : null}
-                        {renombrado ? <Alert kind="info">{`Al guardar, «${borrador.guardadoComo}» pasa a llamarse así en ${fuentes === 1 ? "su única fuente" : `sus ${fmt(fuentes)} fuentes`}.`}</Alert> : null}
+                        {renombrado ? <Alert kind="info">{`Al guardar, "${borrador.guardadoComo}" pasa a llamarse así en ${fuentes === 1 ? "su única fuente" : `sus ${fmt(fuentes)} fuentes`}.`}</Alert> : null}
                       </th>
                       <td>
                         {/* Cada padrón como etiqueta de su servicio; el nombre sólo si dice algo más que el público. */}

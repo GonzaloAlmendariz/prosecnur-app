@@ -45,7 +45,7 @@ describe("embudo de respuestas", () => {
     ]);
     expect(embudo).toEqual({ recibidas: 7, cruzan: 4, efectivas: 3, sinLlave: 1, sinCruce: 2, noCuentan: 1 });
   });
-  it("una que «cuenta» sin cruzar no es efectiva", () => {
+  it('una que "cuenta" sin cruzar no es efectiva', () => {
     expect(embudoDeRespuestas([r("Sin llave", true)]).efectivas).toBe(0);
   });
 });

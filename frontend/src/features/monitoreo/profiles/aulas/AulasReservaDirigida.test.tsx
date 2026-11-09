@@ -32,7 +32,7 @@ describe("AulasReservaDirigida", () => {
     expect(html([])).toBe("");
   });
 
-  it("tampoco con celdas sin brecha: un «todo bien» compite por la atencion", () => {
+  it('tampoco con celdas sin brecha: un "todo bien" compite por la atencion', () => {
     expect(html([celda({ brecha: 0 })])).toBe("");
   });
 

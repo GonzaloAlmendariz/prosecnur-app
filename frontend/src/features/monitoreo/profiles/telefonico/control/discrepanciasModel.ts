@@ -134,12 +134,12 @@ export function porResponsable(casos: readonly CasoDeDiscrepancia[]): GrupoPorRe
 }
 
 const QUE_PASA: Record<SentidoDeDiscrepancia, string> = {
-  kobo_sin_hoja: "Kobo tiene la efectiva y la hoja no la marca «Efectivo»",
-  hoja_sin_kobo: "La hoja dice «Efectivo» y Kobo no tiene envío",
+  kobo_sin_hoja: 'Kobo tiene la efectiva y la hoja no la marca "Efectivo"',
+  hoja_sin_kobo: 'La hoja dice "Efectivo" y Kobo no tiene envío',
 };
 
 export function queDice(caso: Pick<CasoDeDiscrepancia, "sentido" | "hojaDice">) {
-  return caso.sentido === "kobo_sin_hoja" ? `${QUE_PASA.kobo_sin_hoja} (dice «${caso.hojaDice || "sin status"}»)` : QUE_PASA.hoja_sin_kobo;
+  return caso.sentido === "kobo_sin_hoja" ? `${QUE_PASA.kobo_sin_hoja} (dice "${caso.hojaDice || "sin status"}")` : QUE_PASA.hoja_sin_kobo;
 }
 
 /** Texto para pegar en el chat del equipo: un bloque por responsable, un caso por línea. */

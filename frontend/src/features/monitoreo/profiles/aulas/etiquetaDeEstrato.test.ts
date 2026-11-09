@@ -13,7 +13,7 @@ describe("el estrato se lee sin descifrar códigos", () => {
     expect(segmentoDeEstrato("G4")).toBe("41 alumnos o más");
   });
 
-  it("la F del estrato NO se traduce como «mujeres»", () => {
+  it('la F del estrato NO se traduce como "mujeres"', () => {
     // El segmento es `sex_top_1`, el sexo más frecuente del aula. En el mismo
     // perfil, las celdas de cuota sí llaman F a las mujeres: si aquí se
     // tradujera igual, la misma palabra tendría dos denominadores en una

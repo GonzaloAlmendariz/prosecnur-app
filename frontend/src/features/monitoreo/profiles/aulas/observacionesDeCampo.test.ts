@@ -173,7 +173,7 @@ describe("observacionesDeCampo · las dos fuentes", () => {
       expect(r.partes).toBeGreaterThanOrEqual(r.conNota);
     });
 
-    it("una fila «planificada» no está gestionada por traer la fecha del plan", () => {
+    it('una fila "planificada" no está gestionada por traer la fecha del plan', () => {
       // **El defecto que este bloque existe para cazar.** El plan del cálculo de
       // muestra trae `scheduled_date` en TODAS sus filas: es el día que le toca
       // a ese curso-horario, no una cita que alguien fijó. Aceptarla como señal

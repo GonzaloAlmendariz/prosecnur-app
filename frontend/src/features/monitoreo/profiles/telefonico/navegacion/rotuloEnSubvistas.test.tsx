@@ -69,7 +69,7 @@ describe("rótulo en las sub-vistas y en Insistencia", () => {
     expect(vacio).toContain("Las 424 efectivas revisadas");
   });
 
-  it("Calendario encabeza el cronograma con el rótulo y lee la serie compartida, sin un segundo «30 junio» de 2020", () => {
+  it('Calendario encabeza el cronograma con el rótulo y lee la serie compartida, sin un segundo "30 junio" de 2020', () => {
     const reports = reportes({
       cuotas_variable: [{ Variable: "Sede", Valor: "SJL", Meta: 10, "Efectivas Kobo": 5 }],
       avance_efectivo_variable_dia: [

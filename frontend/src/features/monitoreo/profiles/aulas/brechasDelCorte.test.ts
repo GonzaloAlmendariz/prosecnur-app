@@ -116,7 +116,7 @@ describe("el porqué de un cero", () => {
     expect(f.efectivas).toBe(0);
   });
 
-  it("distingue «no lo anotó» de «había cero»", () => {
+  it('distingue "no lo anotó" de "había cero"', () => {
     // Son cosas distintas y la fila sólo puede hablar de la primera.
     expect(brechasDelCorte(conParte({ observed_students: "", scheduled_date: "2026-09-10" }))[0].enElAula).toBeNull();
     expect(brechasDelCorte(conParte({ observed_students: 0, scheduled_date: "2026-09-10" }))[0].enElAula).toBe(0);

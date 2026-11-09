@@ -112,7 +112,7 @@ describe("Control › Avisos del telefónico", () => {
     expect(casos[0].destino).toBe(conCasos?.destino.etiqueta);
   });
 
-  it("con responsables empatados no dice «el más marcado»", () => {
+  it('con responsables empatados no dice "el más marcado"', () => {
     const { avisos } = construirAvisos(reportes([
       fila("Media", "Responsable con casos por iniciar", "Ana tiene 4 casos por iniciar", { Responsable: "Ana" }),
       fila("Media", "Responsable con casos por iniciar", "Beto tiene 4 casos por iniciar", { Responsable: "Beto" }),
@@ -157,7 +157,7 @@ describe("Control › Avisos del telefónico", () => {
     expect(Object.keys(porCodigo).some((codigo) => /mayor|larg|2h/i.test(codigo))).toBe(false);
   });
 
-  it("quita el prefijo «codigo:» del detalle, no sólo de los afectados", () => {
+  it('quita el prefijo "codigo:" del detalle, no sólo de los afectados', () => {
     const { avisos } = construirAvisos(reportes([
       fila("Alta", "Efectiva Kobo fuera de base", "Kobo trae una respuesta completa, pero la llave detectada no aparece en la base (codigo:MVH9999).", { CodPulso: "codigo:MVH9999" }),
     ]));
@@ -181,7 +181,7 @@ describe("Control › Avisos del telefónico", () => {
   });
 });
 
-describe("P3: la hoja dice «Efectivo» y Kobo no tiene envío", () => {
+describe('P3: la hoja dice "Efectivo" y Kobo no tiene envío', () => {
   it("va a Avisos con responsable, CodPulso y proGres", () => {
     const { avisos } = construirAvisos(reportes([], {
       discrepancias_telefonicas: [
@@ -199,7 +199,7 @@ describe("P3: la hoja dice «Efectivo» y Kobo no tiene envío", () => {
   });
 });
 
-describe("una sola cifra para «Efectivo sin Kobo»", () => {
+describe('una sola cifra para "Efectivo sin Kobo"', () => {
   it("la alerta vieja del motor sale cuando Discrepancias trae los casos", () => {
     const { avisos } = construirAvisos(reportes(
       [

@@ -81,7 +81,7 @@ function RegistroAulasImpl({ dashboard, cargando, vacioSinTablero, onGuardado }:
               </dl>
             ) : null}
             <p className="aulas-ins-chip aulas-reg-cuadre" data-tono={p.cuadre.tono}>{p.cuadre.texto}</p>
-            <p className="aulas-ins-pie">El parte se lee de la hoja «Aulas Aplicadas (Campo)» y se corrige allí; Monitoreo lo vuelve a leer al actualizar.</p>
+            <p className="aulas-ins-pie">El parte se lee de la hoja "Aulas Aplicadas (Campo)" y se corrige allí; Monitoreo lo vuelve a leer al actualizar.</p>
           </>
         ) : (
           <p className="aulas-ins-nota" data-qa-geometry-empty="legitimo">Todavía no hay partes ni cursos-horario con respuestas.</p>

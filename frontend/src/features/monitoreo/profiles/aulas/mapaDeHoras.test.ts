@@ -79,7 +79,7 @@ describe("el eje horario de cada día nace de sus ventanas", () => {
     expect(d.pico?.anchoPct).toBe(8.33);
   });
 
-  it("la etiqueta del día es la de la casa: «Martes 08/09»", () => {
+  it('la etiqueta del día es la de la casa: "Martes 08/09"', () => {
     expect(d.etiqueta).toBe("Martes 08/09");
   });
 });

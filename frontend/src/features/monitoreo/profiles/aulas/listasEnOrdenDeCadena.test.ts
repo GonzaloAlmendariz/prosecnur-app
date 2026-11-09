@@ -65,7 +65,7 @@ describe("las listas de unidades usan la regla de orden de cadena", () => {
       .filter((f) => (f.endsWith(".tsx") || f.endsWith(".ts")) && !f.includes(".test."))
       .filter((f) => f !== "kpisDeAulas.ts")
       .filter((f) => /^(?:const|function)\s+fmt\b/m.test(fs.readFileSync(path.join(aqui, f), "utf8")));
-    expect(propios, `redefinen «fmt»: ${propios.join(", ")}`).toEqual([]);
+    expect(propios, `redefinen "fmt": ${propios.join(", ")}`).toEqual([]);
   });
 
   it("y la regla sigue viviendo en un solo sitio", () => {

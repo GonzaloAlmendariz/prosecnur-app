@@ -138,7 +138,7 @@ describe("construirPorFacultad · HSVG (eje facultad)", () => {
     expect(ci.filas.map((f) => f.sexo)).toEqual(["Mujeres", "Hombres"]);
   });
 
-  it("«Al cierre» es la proyección del motor en personas enteras hacia abajo, con su frase", () => {
+  it('"Al cierre" es la proyección del motor en personas enteras hacia abajo, con su frase', () => {
     if (m.cuota.tipo !== "sexo") throw new Error("se esperaba la tabla por sexo");
     const mujeres = m.cuota.grupos[1].filas[0];
     expect(mujeres).toMatchObject({ logradas: 171, cuota: 130, alCierre: "176", relleno: 100, cumple: true, tono: "ok" });
@@ -155,7 +155,7 @@ describe("construirPorFacultad · HSVG (eje facultad)", () => {
     expect(m.lateral.franja.vacio).toBeNull();
   });
 
-  it("qué rindió cada tipo, con «—» donde no hay elegibles", () => {
+  it('qué rindió cada tipo, con "—" donde no hay elegibles', () => {
     if (m.lateral.tipo !== "operativo") throw new Error("se esperaba el lateral operativo");
     expect(m.lateral.rendimiento.filas.map((f) => [f.tipo, f.aulas, f.elegibles, f.efectivas, f.tasa])).toEqual([
       ["Titulares", "154", "5,372", "2,827", "52.6 %"],
@@ -260,11 +260,11 @@ describe("construirPorFacultad · procedencia de la cuota y aviso del eje", () =
       universo: { nivel: "universidad", etiqueta: "PUCP" },
       variables: [{ clave: "facultad" }, { clave: "nivel" }],
       celdas: [],
-      discrepancias: [{ tipo: "variable_sin_celdas", variable: "nivel", texto: "El Planner declara «nivel» como variable de cuota y el diseño no reparte metas por ella." }],
+      discrepancias: [{ tipo: "variable_sin_celdas", variable: "nivel", texto: 'El Planner declara "nivel" como variable de cuota y el diseño no reparte metas por ella.' }],
     };
     const m = construirPorFacultad(d);
     expect(m.procedencia?.detalle).toContain("Universo y variables declarados en el Planner.");
-    expect(m.avisoDelEje).toBe("El Planner declara «nivel» como variable de cuota y el diseño no reparte metas por ella.");
+    expect(m.avisoDelEje).toBe('El Planner declara "nivel" como variable de cuota y el diseño no reparte metas por ella.');
   });
 
   it("el aviso del eje del motor llega a la pestaña; sin aviso, nada", () => {

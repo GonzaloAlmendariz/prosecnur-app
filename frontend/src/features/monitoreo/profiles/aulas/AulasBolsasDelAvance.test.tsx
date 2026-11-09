@@ -101,7 +101,7 @@ describe("las bolsas llegan a la pestaña que las pinta", () => {
     reserva_dirigida: [],
   } as unknown as MonitoreoAulasDashboard;
 
-  it("la pestaña «cuotas» las pinta bajo la cinta", () => {
+  it('la pestaña "cuotas" las pinta bajo la cinta', () => {
     const html = renderToStaticMarkup(
       <AulasPestanaCuotas
         dashboard={DASHBOARD}

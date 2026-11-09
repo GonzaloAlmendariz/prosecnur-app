@@ -58,7 +58,7 @@ export function estadoDelSheets(
       estado: "atrasado",
       // El detalle importa: decir sólo «desactualizado» obliga a adivinar por
       // cuánto, y por un minuto no se corre a publicar.
-      texto: `El Sheets va atrasado: se publicó con el corte de las ${hora(corteHoja)} y la app ya va por el de las ${hora(corteApp)}. Pulsa «Actualizar» para escribirlo.`,
+      texto: `El Sheets va atrasado: se publicó con el corte de las ${hora(corteHoja)} y la app ya va por el de las ${hora(corteApp)}. Pulsa "Actualizar" para escribirlo.`,
     };
   }
   return {

@@ -570,7 +570,7 @@ export function aulasFieldLabel(field: string) {
 const FIELD_TITLES: Record<string, string> = {
   // El casi homónimo es el KPI «Respuestas leídas» (todas las filas de la base).
   responses_total:
-    "Las respuestas que la plataforma atribuye a este curso-horario. No es el total de la base: ese es «Respuestas leídas», que cuenta también las no atribuidas.",
+    'Las respuestas que la plataforma atribuye a este curso-horario. No es el total de la base: ese es "Respuestas leídas", que cuenta también las no atribuidas.',
 };
 
 export function aulasFieldTitle(field: string): string | undefined {

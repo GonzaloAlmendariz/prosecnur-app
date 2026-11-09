@@ -14,7 +14,7 @@ function estado(variables: Array<{ name: string; n_unique: number; values?: stri
 }
 
 describe("Origen de la muestra con un corte anterior al bloque (RMS)", () => {
-  it("el select muestra «Origen» y la marca, sugeridos desde las columnas de la base", () => {
+  it('el select muestra "Origen" y la marca, sugeridos desde las columnas de la base', () => {
     const html = renderToStaticMarkup(
       <OrigenDeLaMuestra
         reports={SIN_BLOQUE}

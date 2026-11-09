@@ -14,7 +14,7 @@ const bandeja = (scope: string, cases: unknown[]) => ({
 afterEach(() => useResumenDelCorte.getState().olvidar());
 
 describe("resumen del corte, bandeja de respuestas", () => {
-  it("una bandeja de Control sin filas que unir queda como lista vacía, no como «todavía no llega»", () => {
+  it('una bandeja de Control sin filas que unir queda como lista vacía, no como "todavía no llega"', () => {
     useResumenDelCorte.getState().observar(bandeja("queries_summary", [{ actor: "Profesores", response_id: "", response_row: "" }]), [], null);
     expect(useResumenDelCorte.getState().respuestasConFila).toEqual([]);
   });

@@ -55,7 +55,7 @@ describe("los títulos de panel del perfil de aulas", () => {
     const registro = fs.readFileSync(path.join(aqui, "index.ts"), "utf8");
     const perfil = /label:\s*"([^"]+)"/.exec(registro)?.[1] ?? "";
     expect(perfil).not.toBe("");
-    expect(todos, `un panel se llama igual que el perfil («${perfil}»)`).not.toContain(perfil);
+    expect(todos, `un panel se llama igual que el perfil ("${perfil}")`).not.toContain(perfil);
   });
 
   it("no hay dos que se distingan sólo por la primera palabra", () => {
@@ -74,7 +74,7 @@ describe("los títulos de panel del perfil de aulas", () => {
     );
     const choques: string[] = [];
     todos.forEach((a, i) => todos.slice(i + 1).forEach((b) => {
-      if (cola(a) === cola(b) && !permitida(a, b)) choques.push(`«${a}» ↔ «${b}»`);
+      if (cola(a) === cola(b) && !permitida(a, b)) choques.push(`"${a}" ↔ "${b}"`);
     }));
     expect(choques, `terminan igual: ${choques.join(" · ")}`).toEqual([]);
   });

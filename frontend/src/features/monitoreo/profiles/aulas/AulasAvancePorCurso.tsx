@@ -83,7 +83,7 @@ export function AulasAvancePorCurso({
         <p className="mon-profile-table-recorte">
           Faltan {fmt(reparto.restantes)} cursos-horario de los {fmt(reparto.total)} del plan: el
           motor manda {fmt(reparto.recibidas)} y el selector sólo reparte esas. Las que no llegaron
-          son reservas dormidas, y se cuentan en «Estado de aplicación».
+          son reservas dormidas, y se cuentan en "Estado de aplicación".
         </p>
       ) : null}
     </div>

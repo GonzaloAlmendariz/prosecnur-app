@@ -55,7 +55,7 @@ describe("la pérdida entre lo enviado y la efectiva de plataforma", () => {
     expect(perdidaDelControl([{ sent_total: 40, valid_total: 1 }])).toBeNull();
   });
 
-  it("con «SI»/«NO» textual en el veredicto la hoja no se declara sin revisar", () => {
+  it('con "SI"/"NO" textual en el veredicto la hoja no se declara sin revisar', () => {
     // `.mac_verdict` acepta SI/NO/CUMPLE/NO CUMPLE: así llega el campo cuando
     // el equipo lo escribe a mano. La lectura vieja hacía parseFloat("SI") →
     // null y mandaba TODAS las filas a `sinRevisar`: banda apagada sobre una

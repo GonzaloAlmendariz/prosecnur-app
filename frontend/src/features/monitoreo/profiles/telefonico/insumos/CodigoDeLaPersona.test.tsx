@@ -26,7 +26,7 @@ describe("pregunta con el código de la persona", () => {
     expect(estadoDelCodigo(KOBO, STATS)).toMatchObject({ actual: "intro/Intro01", origen: "sugerida" });
   });
 
-  it("lo declarado manda y lo que el motor marca es «detectada automáticamente»", () => {
+  it('lo declarado manda y lo que el motor marca es "detectada automáticamente"', () => {
     expect(estadoDelCodigo({ ...KOBO, declared_person_code_var: "group_consent/Intro04" }, STATS))
       .toMatchObject({ actual: "group_consent/Intro04", origen: "declarada" });
     const marcadas = STATS.map((stat) => ({ ...stat, selected: stat.name === "intro/Intro01" }));

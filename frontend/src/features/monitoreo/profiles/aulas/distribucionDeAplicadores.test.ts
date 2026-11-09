@@ -61,7 +61,7 @@ describe("avisoDistribucion", () => {
   // cruzarlas a mano con la agenda porque ninguna pantalla las decía: son dos
   // preguntas distintas y ésta es la que deja a alguien sin ir.
   describe("agendadas sin cita", () => {
-    it("manda sobre «vigente»: el Sheets puede estar al día y aun así faltar aulas", () => {
+    it('manda sobre "vigente": el Sheets puede estar al día y aun así faltar aulas', () => {
       const a = avisoDistribucion(recordado, {
         huella: "h-1",
         citas: 83,
@@ -126,8 +126,8 @@ describe("el aviso de la distribución publicada dice qué NO se tocó", () => {
         { hoja: "Semana 2", accion: "actualizada", filas: 50 },
       ],
     });
-    expect(aviso.texto).toContain("«Semana 2»");
-    expect(aviso.texto).toContain("«Semana 1»");
+    expect(aviso.texto).toContain('"Semana 2"');
+    expect(aviso.texto).toContain('"Semana 1"');
     expect(aviso.texto).toMatch(/no se tocó/);
     expect(aviso.texto).toMatch(/manda el equipo/);
     // Respetar es lo correcto: no es una alarma.

@@ -24,7 +24,7 @@ export function franjaDePartes(dashboard: MonitoreoAulasDashboard) {
   return {
     cuadre: c,
     celdas: [
-      { clave: "leidos", rotulo: "Partes leídos", valor: fmt(leidos), sub: "de la hoja «Aulas Aplicadas (Campo)»" },
+      { clave: "leidos", rotulo: "Partes leídos", valor: fmt(leidos), sub: 'de la hoja "Aulas Aplicadas (Campo)"' },
       { clave: "cuadran", rotulo: "Cuadran", valor: fmt(cuadran), sub: "asistentes menos rechazos y duplicados" },
       { clave: "no-cuadran", rotulo: "No cuadran", valor: fmt(c.descuadrados), sub: "se ven abajo, de la mayor diferencia a la menor" },
       { clave: "sin-datos", rotulo: "Sin datos para cuadrar", valor: fmt(c.sinComprobar), sub: "al parte le falta una cifra" },

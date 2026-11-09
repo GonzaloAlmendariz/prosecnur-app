@@ -40,7 +40,7 @@ describe("estadoDeAplicacion", () => {
     expect(res.sinSalirACampo).toBe(1);
   });
 
-  test("separa «sin agendar» de «agendada sin respuestas»", () => {
+  test('separa "sin agendar" de "agendada sin respuestas"', () => {
     // Es la distincion que el histograma de cobertura NO puede hacer: alli las
     // dos caen en «sin respuestas». Aqui dice si lo que falta es telefono o
     // campo.
@@ -62,7 +62,7 @@ describe("estadoDeAplicacion", () => {
     expect(res.estados.reduce((s, e) => s + e.aulas, 0) + res.desconocidas).toBe(3);
   });
 
-  test("el azul de «lista» no invade la paleta de desenlaces", () => {
+  test('el azul de "lista" no invade la paleta de desenlaces', () => {
     // Pintar «agendada» de granate diria que alguien declino, que es falso.
     expect(COLORES_DE_RESULTADO_EXCLUSIVOS).not.toContain(COLOR_AULA_LISTA);
     // Un color por tramo: si «En reserva» compartiera el gris de «Sin agendar»,
@@ -81,7 +81,7 @@ describe("el eje del agendamiento no cuenta respuestas", () => {
   // «Cobertura de la meta», un dedo más abajo, decía «Sin respuestas 48». El
   // mismo hecho con dos números, porque el pie lo derivaba sumando los dos
   // primeros tramos DE OTRO eje.
-  test("«sin salir a campo» excluye reservas y reemplazadas", () => {
+  test('"sin salir a campo" excluye reservas y reemplazadas', () => {
     const res = estadoDeAplicacion([
       aula("pendiente"), aula("lista"),
       // Ninguna de estas dos está esperando campo: una es del banco y la otra

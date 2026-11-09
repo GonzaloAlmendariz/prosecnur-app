@@ -23,14 +23,14 @@ const CONFIG = {
   field_occurrences: { source_id: "occ", asset_uid: "aOcc" },
 };
 
-describe("plan del «Actualizar ▾» territorial", () => {
+describe('plan del "Actualizar ▾" territorial', () => {
   it("el cuerpo lee lo nuevo del Kobo de la fase activa y las ocurrencias", () => {
     const plan = planTerritorialDeActualizar({ sources: SOURCES, config: CONFIG, fase: "field" });
     expect(plan.principal.peticion).toEqual({ tipo: "sync", modo: "advance", fuentes: ["kobo_campo", "occ"] });
     expect(plan.principal.disabled).toBe(false);
   });
 
-  it("el menú lleva «Traer todo de nuevo», «Recalcular» y una entrada por fuente, piloto y campo aparte", () => {
+  it('el menú lleva "Traer todo de nuevo", "Recalcular" y una entrada por fuente, piloto y campo aparte', () => {
     const plan = planTerritorialDeActualizar({ sources: SOURCES, config: CONFIG, fase: "field", pendienteDeRecalcular: true });
     expect(plan.menu.map((e) => e.clave)).toEqual(["todo", "recalcular", "fuente:kobo_campo", "fuente:kobo_piloto", "fuente:occ"]);
     const porClave = Object.fromEntries(plan.menu.map((e) => [e.clave, e]));

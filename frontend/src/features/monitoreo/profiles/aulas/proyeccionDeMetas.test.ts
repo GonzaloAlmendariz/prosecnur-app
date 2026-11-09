@@ -32,7 +32,7 @@ describe("la combinación elegida sale del motor, no de la pantalla", () => {
     expect(proyeccionElegida(payload, "sobremuestra", "diseno")?.[0].meta).toBe(545);
   });
 
-  it("una combinación que el motor no emitió es «no se sabe», no una lista vacía", () => {
+  it('una combinación que el motor no emitió es "no se sabe", no una lista vacía', () => {
     // La distinción que la pantalla necesita para declarar su vacío (C3): sin
     // cuotas no se puede decir «no llega», sólo «no se sabe».
     expect(proyeccionElegida(payload, "muestra", "obtenida")).toBeNull();

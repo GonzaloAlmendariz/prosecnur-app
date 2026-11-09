@@ -45,7 +45,7 @@ function textosVisibles(html: string): string[] {
 }
 
 describe("Avance › Resumen › Por público", () => {
-  it("con cuatro públicos la densidad es cómoda y cada tesela dice solo «N % de la meta»", () => {
+  it('con cuatro públicos la densidad es cómoda y cada tesela dice solo "N % de la meta"', () => {
     const html = pintar(4);
     expect(html).toContain('data-density="comoda"');
     const pies = [...html.matchAll(/class="acr-res-publico-pie[^"]*">([^<]+)</g)].map((m) => m[1]);

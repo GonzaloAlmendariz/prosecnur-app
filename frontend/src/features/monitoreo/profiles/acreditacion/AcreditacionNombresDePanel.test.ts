@@ -72,7 +72,7 @@ describe("un mismo dato se llama igual en todas las ramas", () => {
   // `AcreditacionActiveSourcesView`, que nadie alcanzaba y se retiró el 2026-11-04 con confirmación de Gonzalo.
   // La invariante general, la de arriba, sigue mirando todo el archivo.
 
-  test("«Fuentes configuradas» queda para la lista que sí las trae todas", () => {
+  test('"Fuentes configuradas" queda para la lista que sí las trae todas', () => {
     // La que lleva el contador activas/total. Si alguien vuelve a titular así
     // una tabla del subconjunto, este conteo sube y el test cae.
     const usos = fuente.match(/Fuentes configuradas/g) ?? [];
@@ -101,7 +101,7 @@ describe("una cabecera de columna no pierde la tilde que su gemela sí lleva", (
     expect(mapa).toContain(`${clave}: "${rotulo}"`);
   });
 
-  test("ningún contador de panel escribe «dias» sin tilde", () => {
+  test('ningún contador de panel escribe "dias" sin tilde', () => {
     expect(fuente).not.toMatch(/\}\s*dias</);
   });
 });
@@ -119,11 +119,11 @@ describe("dos cifras vecinas del mismo hecho no se llaman igual", () => {
   // ya usa para el universo. «Sin efectiva» habría sido peor: en el modelo
   // telefónico ya nombra otra cosa —barridas sin efectiva, sobre las barridas—.
 
-  test("la frase del corte no dice «sin trabajar»", () => {
+  test('la frase del corte no dice "sin trabajar"', () => {
     expect(fuente).not.toContain("del universo sin trabajar");
   });
 
-  test("dice «sin cubrir», el verbo que el perfil ya usa para el universo", () => {
+  test('dice "sin cubrir", el verbo que el perfil ya usa para el universo', () => {
     // Avance › Resumen y Por público del revamp (A2) salieron del page-file y
     // no usan la frase: muestran «Sin respuesta» (personas sin respuesta, G4),
     // que es otra cifra, junto a parciales y rechazos que sí la reconcilian.
@@ -131,7 +131,7 @@ describe("dos cifras vecinas del mismo hecho no se llaman igual", () => {
     expect(fuente).toContain('return "Universo cubierto";');
   });
 
-  test("«sin efectiva» sigue significando sólo lo del barrido telefónico", () => {
+  test('"sin efectiva" sigue significando sólo lo del barrido telefónico', () => {
     // Si alguien la usa para el universo, vuelve la palabra con dos denominadores.
     expect(fuente).not.toMatch(/universo[^"`\n]{0,20}sin efectiva/);
   });
@@ -142,11 +142,11 @@ describe("el agregado no se llama igual que el individual", () => {
   // —la suma de los cuatro— mientras cada tarjeta rotulaba «Mínimo actor» con el
   // suyo: 108, 15, 38 y 126. Ningún actor tiene 287.
 
-  test("el tile de cabecera dice «Suma de mínimos»", () => {
+  test('el tile de cabecera dice "Suma de mínimos"', () => {
     expect(fuente).toContain('<AcreditacionActorDashboardTile label="Suma de mínimos"');
   });
 
-  test("«Mínimo actor» queda sólo para el nodo de cada tarjeta", () => {
+  test('"Mínimo actor" queda sólo para el nodo de cada tarjeta', () => {
     const usos = fuente.match(/label="Mínimo actor"/g) ?? [];
     expect(usos.length).toBe(1);
     expect(fuente).toMatch(/<AcreditacionActorFlowNode label="Mínimo actor"/);

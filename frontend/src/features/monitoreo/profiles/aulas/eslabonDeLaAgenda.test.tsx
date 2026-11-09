@@ -102,7 +102,7 @@ describe("filasDeReemplazo trae el eslabón pedido con el tratamiento de la tabl
     expect(filas[0]?.que_toca).toBe("Confirmar si se aplicó");
   });
 
-  it("una reserva dormida dice «En reserva» y el status no afirma contradicciones", () => {
+  it('una reserva dormida dice "En reserva" y el status no afirma contradicciones', () => {
     const filas = filasDeReemplazo({
       agenda: [
         reserva("R 1.1", 1, { sample_status: "en reserva" }),
@@ -154,7 +154,7 @@ describe("AulasSelectorDeEslabon", () => {
     expect(html).toMatch(/<option[^>]*selected[^>]*>Reemplazo 1/);
   });
 
-  it("el nombre accesible es el rótulo visible «Eslabón»", () => {
+  it('el nombre accesible es el rótulo visible "Eslabón"', () => {
     const html = renderToStaticMarkup(
       <AulasSelectorDeEslabon opciones={opciones} valor={0} onCambio={() => {}} />,
     );

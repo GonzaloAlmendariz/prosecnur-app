@@ -42,7 +42,7 @@ describe("Avance › Ritmo por público", () => {
     expect(ritmoPorPublico(quieta, actores)[0].diasALaMeta).toBeNull();
   });
 
-  it("con exactamente siete públicos el séptimo lleva la capa 7 (no hay «Otros»)", () => {
+  it('con exactamente siete públicos el séptimo lleva la capa 7 (no hay "Otros")', () => {
     const siete = {
       fechas: ["2026-10-29"], totales: [70],
       capas: Array.from({ length: 7 }, (_, i) => ({ publico: `P${i + 1}`, valores: [10 - i], total: 10 - i })),

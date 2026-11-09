@@ -87,7 +87,7 @@ describe("Control › Barrido › No barridos", () => {
     expect(fraseDeReferencia(["sin_referencia"])).toBe("La hoja no trae fechas para contar los días");
   });
 
-  it("sin el bloque dice «preparando»; sin hoja, «sin-hoja»", () => {
+  it('sin el bloque dice "preparando"; sin hoja, "sin-hoja"', () => {
     expect(construirNoBarridos(reportes({ resumen_telefonico: [] }), CORTE).clave).toBe("preparando");
     expect(construirNoBarridos({ schema: "", generated_at: "", reference_tabs: [], sheets: [] }, CORTE).clave).toBe("sin-hoja");
   });

@@ -23,7 +23,7 @@ describe("esVisitaComprometida", () => {
     expect(esVisitaComprometida("-")).toBe(false);
   });
 
-  it("reconoce «en reserva 3», que es como lo escribe el Excel", () => {
+  it('reconoce "en reserva 3", que es como lo escribe el Excel', () => {
     // El normalizador convierte unas y deja otras, así que llegan las dos
     // formas. Sin el prefijo, una reserva del libro contaría como visita.
     expect(esVisitaComprometida("en reserva 3")).toBe(false);

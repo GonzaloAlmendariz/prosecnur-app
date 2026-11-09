@@ -30,7 +30,7 @@ describe("Avance › Salidas", () => {
     expect(cierre.puntos.map((punto) => punto.valor)).toEqual(["1 de 2", "23", "Anterior al corte", "Sin aprobar"]);
   });
 
-  it("mientras los casos no llegan, el cierre dice «Contando…» y no una instrucción", () => {
+  it('mientras los casos no llegan, el cierre dice "Contando…" y no una instrucción', () => {
     const cierre = estadoDelCierre({ tarjetas: [tarjeta("A", 1, 10)], esperan: null, publicaciones: publicacionesFrenteAlCorte(null, null, null), acreditacion });
     expect(cierre.puntos.find((punto) => punto.rotulo === "Casos por resolver")?.valor).toBe("Contando…");
   });
@@ -42,7 +42,7 @@ describe("Avance › Salidas", () => {
     expect(puedeCerrar(false, "", false)).toBe(true);
   });
 
-  it("el cierre es una fila de «Salidas del corte», sin claves técnicas", () => {
+  it('el cierre es una fila de "Salidas del corte", sin claves técnicas', () => {
     const cierre = estadoDelCierre({ tarjetas: [tarjeta("A", 120, 100)], esperan: 0, publicaciones: publicacionesFrenteAlCorte("2026-07-23T18:09:00Z", null, null), acreditacion });
     const fila = filaDelCierre(cierre);
     expect(fila.titulo).toBe("Cierre del campo");

@@ -23,7 +23,7 @@ const pintar = (veredicto: Record<string, number>) =>
   );
 
 describe("el veredicto del control nombra lo que cuenta", () => {
-  it("con todo evaluado no dice «aulas»: son grupos de curso-horario y sexo", () => {
+  it('con todo evaluado no dice "aulas": son grupos de curso-horario y sexo', () => {
     const html = pintar({ efectivas: 200, indeterminadas: 0 });
     expect(html).toContain("grupos de curso-horario y sexo");
     expect(html).not.toMatch(/de \d+ aulas efectivas/);

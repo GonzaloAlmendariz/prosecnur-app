@@ -75,7 +75,7 @@ describe("la tabla de pabellones del croquis", () => {
 });
 
 describe("el venue multi-aula se parte igual que en el motor de fichas", () => {
-  it("dos aulas con «·» son dos lugares; las letras no se repiten", () => {
+  it('dos aulas con "·" son dos lugares; las letras no se repiten', () => {
     // Medido en ULT2: 301/1.392 venues traen dos aulas y 73 cruzan pabellón.
     expect(lugaresDeVenue("H404 · A608")).toEqual(["H404", "A608"]);
     expect(lugaresDeVenue("A206")).toEqual(["A206"]);

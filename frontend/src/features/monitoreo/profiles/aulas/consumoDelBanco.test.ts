@@ -111,7 +111,7 @@ describe("el ritmo de caídas se mide por día de CAMPO, no por día con caídas
     expect(g.diasHastaAgotarse).toBe(4);
   });
 
-  it("el denominador viejo daba «1/día» y «1 día» por aritmética", () => {
+  it('el denominador viejo daba "1/día" y "1 día" por aritmética', () => {
     // Las tres caídas ocurrieron en tres días distintos: dividir entre ellos da
     // exactamente 1, cualquiera que sea la duración del estudio.
     const { facultades } = consumoDelBanco(plan, 3);
@@ -143,7 +143,7 @@ describe("el ritmo de caídas se mide por día de CAMPO, no por día con caídas
     expect(a.ritmo).toBeNull();
   });
 
-  it("sin reservas quedan cero días, que no es lo mismo que «no se sabe»", () => {
+  it('sin reservas quedan cero días, que no es lo mismo que "no se sabe"', () => {
     const { facultades } = consumoDelBanco([
       caida("Sola", "CH 7", "2026-08-11"),
       caida("Sola", "CH 8", "2026-08-13"),
@@ -201,7 +201,7 @@ describe("consumoDelBanco: la columna del eje", () => {
       .toEqual(consumoDelBanco(PLAN_UNA_FACULTAD, 2, "faculty"));
   });
 
-  it("una columna que el plan no trae agrupa en el centinela, no en «undefined»", () => {
+  it('una columna que el plan no trae agrupa en el centinela, no en "undefined"', () => {
     // Filtrar por una columna ausente devuelve un grupo mudo, y el panel tiene
     // que poder ponerle la palabra de su eje en vez de pintar un hueco.
     const sinEsaColumna = consumoDelBanco(PLAN_UNA_FACULTAD, 2, "no_existe");

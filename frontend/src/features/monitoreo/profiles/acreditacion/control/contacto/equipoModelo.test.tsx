@@ -34,7 +34,7 @@ const REPORTS = {
 describe("Control › Equipo de acreditación", () => {
   const modelo = construirEquipo(REPORTS, [], umbralesDelPerfil({ no_sweep_min_cases: 20, no_sweep_pct: 0.2, no_answer_min_attempts: 4 }));
 
-  it("suma la carga por responsable y deja «Sin asignar» al final", () => {
+  it('suma la carga por responsable y deja "Sin asignar" al final', () => {
     expect(modelo.responsables.map((item) => item.nombre)).toEqual([
       "Responsable 1", "Responsable 2", "Responsable 3", "Responsable 4", "Responsable 5", "Responsable 6", "Sin asignar",
     ]);
@@ -45,7 +45,7 @@ describe("Control › Equipo de acreditación", () => {
     expect(r1.familias).toEqual({ efectiva: 27, reintentable: 54 });
   });
 
-  it("las alertas siguen los umbrales del perfil y «Sin asignar» informa, no alerta", () => {
+  it('las alertas siguen los umbrales del perfil y "Sin asignar" informa, no alerta', () => {
     expect(modelo.alertas.map((alerta) => [alerta.texto, alerta.casos, alerta.tono])).toEqual([
       ["Responsable 1 tiene 54 casos sin contestar, con 7.2 intentos en promedio", 54, "atencion"],
       ["Responsable 6 tiene el 25 % de sus casos sin barrer", 5, "atencion"],

@@ -57,7 +57,7 @@ export function textoDelVacio(
     return {
       titulo: "Falta declarar quién recolecta",
       detalle:
-        "Sin esa variable no se puede decir a quién llamar. Se declara una vez en Validación, en «Qué es un caso en este estudio», y sirve para todo el proyecto.",
+        'Sin esa variable no se puede decir a quién llamar. Se declara una vez en Validación, en "Qué es un caso en este estudio", y sirve para todo el proyecto.',
     };
   }
   if (motivo === "sin_llaves_de_identidad") {

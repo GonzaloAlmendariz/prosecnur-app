@@ -36,7 +36,7 @@ describe("Control › Equipo", () => {
     expect(p198).toMatchObject({ aplicador: "P198, Aplicador Uno", recibidas: 80, cuentan: null, umps: 9, distritos: ["Ate", "San Martín de Porres"], ultimo: "02/07" });
   });
 
-  it("«Cuentan» es la base del avance cuando el corte la trae, no la efectiva de la plataforma", () => {
+  it('"Cuentan" es la base del avance cuando el corte la trae, no la efectiva de la plataforma', () => {
     const conValidadas = {
       production_annulments: {
         responsibles: [{ key: "p198_a", label: "P198 · Aplicador Uno", pulso_code: "P198", responses: 80, valid_responses: 74, advance_valid_responses: 69, status: "activo" }],
@@ -45,7 +45,7 @@ describe("Control › Equipo", () => {
     expect(construirEquipo(conValidadas, VALIDACION).filas[0].cuentan).toBe(69);
   });
 
-  it("sin la cifra validada (corte anterior) «Cuentan» queda sin dato, no con consentimientos", () => {
+  it('sin la cifra validada (corte anterior) "Cuentan" queda sin dato, no con consentimientos', () => {
     expect(p198.cuentan).toBeNull();
   });
 

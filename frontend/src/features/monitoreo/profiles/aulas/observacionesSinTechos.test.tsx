@@ -18,7 +18,7 @@ const parte = (codigo: string, nota: string) => ({
 });
 
 describe("las listas de observaciones no tienen techo", () => {
-  it("una observación repetida enseña TODOS sus códigos, sin «y N más»", () => {
+  it('una observación repetida enseña TODOS sus códigos, sin "y N más"', () => {
     const partes = Array.from({ length: 9 }, (_, i) => parte(`CH ${i + 1}`, "El docente pide empezar al final"));
     const html = renderToStaticMarkup(
       <AulasObservacionesDeCampo partes={partes} />,

@@ -17,7 +17,7 @@ describe("cadena de filtros", () => {
     expect(r.pasos[0].valores).toEqual(["F", "M"]);
   });
 
-  test("con un solo filtro que descarta, ya no es «nadie descarta»", () => {
+  test('con un solo filtro que descarta, ya no es "nadie descarta"', () => {
     const r = cadenaDeFiltros({
       declarados: 2, aplicados: 2, entran: 100, quedan: 80,
       pasos: [

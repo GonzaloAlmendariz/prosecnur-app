@@ -129,7 +129,7 @@ export function AvanceCuotasDetalle({
           })}
         </ol>
       ) : (
-        <p className="mon-cuotas-sin-coincidencias" role="status">Ninguna categoría contiene «{filtro}».</p>
+        <p className="mon-cuotas-sin-coincidencias" role="status">Ninguna categoría contiene "{filtro}".</p>
       )}
 
       {/* Leyenda centrada, bajo lo que lee. */}

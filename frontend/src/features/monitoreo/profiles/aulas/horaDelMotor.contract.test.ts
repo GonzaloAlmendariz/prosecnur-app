@@ -46,7 +46,7 @@ const franjas: MonitoreoAulasFranjas = {
 const franjaDe = (malla: { franjas: number[] }, hhmm: number) => malla.franjas.indexOf(hhmm);
 
 describe("la posición horaria sale del motor, no del texto del libro", () => {
-  it("«8:00pm» con ventana del motor pinta a las 20:00, no a las 08:00", () => {
+  it('"8:00pm" con ventana del motor pinta a las 20:00, no a las 08:00', () => {
     const malla = calcularCarga([ch16], {
       duracionMin: 30, eje: "semana", ventanas: ventanasDelMotor(franjas),
     });

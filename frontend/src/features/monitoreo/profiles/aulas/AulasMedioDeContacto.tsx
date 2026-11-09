@@ -150,7 +150,7 @@ export function AulasMedioDeContacto({ filas }: { filas: ReadonlyArray<Monitoreo
         <p className="mon-profile-muted aulas-medio-pie">
           {medios.length > 1 ? (
             <>
-              «Intentos» es la <strong>mediana</strong>, no el promedio: un número absurdo
+              "Intentos" es la <strong>mediana</strong>, no el promedio: un número absurdo
               —una fecha colada en la columna— dispara el promedio y haría descartar un medio
               que funciona.
             </>

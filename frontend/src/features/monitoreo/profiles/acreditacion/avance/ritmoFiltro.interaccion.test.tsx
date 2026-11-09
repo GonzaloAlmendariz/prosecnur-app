@@ -32,7 +32,7 @@ afterEach(() => {
 
 function boton(texto: string): HTMLButtonElement {
   const encontrado = [...host.querySelectorAll<HTMLButtonElement>(".acr-ri-filtro button")].find((b) => b.textContent?.startsWith(texto));
-  if (!encontrado) throw new Error(`No hay botón «${texto}» en la botonera`);
+  if (!encontrado) throw new Error(`No hay botón "${texto}" en la botonera`);
   return encontrado;
 }
 

@@ -128,7 +128,7 @@ describe("AulasMapaDeHoras", () => {
   });
 });
 
-describe("el Mapa de horas vive en la Agenda, debajo de «Aulas agendadas»", () => {
+describe('el Mapa de horas vive en la Agenda, debajo de "Aulas agendadas"', () => {
   const tablero = {
     agenda: [{ operational_code: "CH 1", sample_role: "titular" }],
     course_status: [],

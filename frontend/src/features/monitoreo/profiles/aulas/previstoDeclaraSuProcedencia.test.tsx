@@ -21,7 +21,7 @@ const celda = (origen: string) => ({
   previsto_origen: origen, prob_cierre: 0.9, dispersion: 1.2, dispersion_n: 152,
 }) as never;
 
-describe("el panel dice de dónde sale «lo previsto»", () => {
+describe('el panel dice de dónde sale "lo previsto"', () => {
   it("con todo derivado lo declara y nombra el supuesto", () => {
     const html = renderToStaticMarkup(<AulasAvanceProyectado celdas={[celda("composicion_del_aula")]} />);
     expect(html).toContain("composición de sus elegibles");

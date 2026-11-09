@@ -108,7 +108,7 @@ describe("el vacío usa lo que el motor ya contó", () => {
   });
 });
 
-describe("«med.» no es una unidad", () => {
+describe('"med." no es una unidad', () => {
   /**
    * Tres cursos-horario ya citados, con intentos: eso llena «lo que costó».
    *
@@ -122,7 +122,7 @@ describe("«med.» no es una unidad", () => {
     { operational_code: "CH 3", faculty: "Derecho", contact_attempts: 3, sample_status: "agendada" },
   ] as unknown as MonitoreoAulasPlanRow[];
 
-  it("la cola dice «intentos» y declara que es la mediana", () => {
+  it('la cola dice "intentos" y declara que es la mediana', () => {
     // Decía «2 med.», y en un perfil cuyo panel vecino se llama «Medio de
     // contacto» eso se lee como **2 medios**: la lectura natural es la falsa.
     // Y aquí no hay cabecera de columna que declare la unidad.
@@ -132,7 +132,7 @@ describe("«med.» no es una unidad", () => {
     expect(html).toContain("mediana de intentos");
   });
 
-  it("medio de contacto no repite la unidad: su columna ya se llama «Intentos»", () => {
+  it('medio de contacto no repite la unidad: su columna ya se llama "Intentos"', () => {
     const html = renderToStaticMarkup(
       <AulasMedioDeContacto filas={[
         { operational_code: "CH 1", faculty: "Derecho", contact_medium: "llamada",
@@ -152,7 +152,7 @@ describe("«med.» no es una unidad", () => {
 });
 
 describe("un rótulo nombra la cifra que tiene al lado", () => {
-  it("el embudo del parte no llama «no quisieron» a los que sí quisieron", async () => {
+  it('el embudo del parte no llama "no quisieron" a los que sí quisieron', async () => {
     const { embudoDelAula } = await import("./embudoDelAula");
     // 100 en el aula, 10 rechazos, 20 duplicados → quedan 90 y luego 70.
     const e = embudoDelAula([{

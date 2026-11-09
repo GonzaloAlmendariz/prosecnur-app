@@ -96,7 +96,7 @@ describe("rendimiento contra lo esperado (A4)", () => {
     expect(m.tasas.filas[2].banda).toBeNull();
   });
 
-  it("el volumen por día se rotula como volumen y no promete «el mejor»", () => {
+  it('el volumen por día se rotula como volumen y no promete "el mejor"', () => {
     const m = construirRendimiento(lunesVsMartes);
     if (m.porDia.tipo !== "barras") throw new Error("sin días");
     expect(m.porDia.sub).toBe("volumen; media de 40.0 por día con campo");

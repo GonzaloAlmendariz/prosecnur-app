@@ -37,7 +37,7 @@ const pinta = (filas: MonitoreoAulasPlanRow[]) => conRouter(
   <RegistroDeCampo agenda={filas} partes={[]} onGuardado={() => {}} />,
 );
 
-describe("«todavía sin registrar» no cuenta aulas muertas", () => {
+describe('"todavía sin registrar" no cuenta aulas muertas', () => {
   it("una reemplazada no está pendiente: no va a registrarse nunca", () => {
     const html = pinta([
       ...Array.from({ length: 26 }, (_, i) => aula(`CH ${i}`, "reemplazada", "planificada")),
@@ -92,10 +92,10 @@ describe("«todavía sin registrar» no cuenta aulas muertas", () => {
  * facultad —los dos reciben `codigosConParte`—; sólo este se quedó atrás, que es
  * como vuelve un defecto ya reparado.
  */
-describe("«todavía sin registrar» descuenta las que ya tienen parte en el libro", () => {
+describe('"todavía sin registrar" descuenta las que ya tienen parte en el libro', () => {
   const parte = (codigo: string) => ({ operational_code: codigo, observed_students: 28 });
 
-  it("tres partes importados salen del pendiente aunque el plan diga «planificada»", () => {
+  it('tres partes importados salen del pendiente aunque el plan diga "planificada"', () => {
     const filas = Array.from({ length: 10 }, (_, i) => aula(`CH ${i + 1}`, "agendada", "planificada"));
     const html = conRouter(
       <RegistroDeCampo agenda={filas} partes={[parte("CH 1"), parte("CH 2"), parte("CH 3")]} onGuardado={() => {}} />,

@@ -75,7 +75,7 @@ describe("la serie diaria de efectivas es una sola", () => {
     expect(ritmo).toContain("sin actor");
   });
 
-  it("las salidas explican por qué «Válidas» cuenta una más", () => {
+  it('las salidas explican por qué "Válidas" cuenta una más', () => {
     expect(notaDeValidasTelefonica(REPORTS)).toBe("30 con cuota y 1 sin actor");
     const sinDiferencia = reportes({ avance_efectivo_dia: [{ Fecha: "2026-08-04", "Efectivas Kobo": 3 }] });
     expect(notaDeValidasTelefonica(sinDiferencia)).toBeUndefined();
@@ -104,11 +104,11 @@ describe("la serie diaria de efectivas es una sola", () => {
     expect(sinCategoria).toBe(1);
     expect(efectivasPorDia(conSinDato)).toEqual([{ fecha: "2026-08-04", casos: 16 }]);
     expect(chipsDeRitmo(conSinDato, STATE)[0]).toBe("Pico de 16 el 04/08");
-    expect(notaDeLaSerie(conSinDato)).toBe("No entran a la serie: 1 efectiva de Kobo sin actor y 2 en «Sin dato», que no tiene cuota");
+    expect(notaDeLaSerie(conSinDato)).toBe('No entran a la serie: 1 efectiva de Kobo sin actor y 2 en "Sin dato", que no tiene cuota');
     expect(notaDeValidasTelefonica(conSinDato)).toBe("16 con cuota, 2 en actor sin cuota y 1 sin actor");
   });
 
-  it("con efectivas sin fecha y de valores sin cuota, los sumandos cuadran con «Válidas» y la serie es la del diario de Cuotas", () => {
+  it('con efectivas sin fecha y de valores sin cuota, los sumandos cuadran con "Válidas" y la serie es la del diario de Cuotas', () => {
     const corte = reportes({
       cuotas_variable: [
         { Variable: "Actor", Valor: "Homologación de Títulos", Universo: 156, Meta: 80, Efectivas: 23 },

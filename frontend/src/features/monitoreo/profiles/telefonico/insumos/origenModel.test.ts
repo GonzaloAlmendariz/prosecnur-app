@@ -30,7 +30,7 @@ const RMS = reportes([
 ]);
 
 describe("sugerencias por nombre", () => {
-  it("la columna de origen no es la marca aunque la marca diga «Backup»", () => {
+  it('la columna de origen no es la marca aunque la marca diga "Backup"', () => {
     expect(columnaSugerida([MARCA, "Origen"], "origen")).toBe("Origen");
     expect(columnaSugerida([MARCA, "Origen"], "marca")).toBe(MARCA);
   });
@@ -56,7 +56,7 @@ describe("borrador y lectura", () => {
     });
   });
 
-  it("lo declarado manda sobre la sugerencia y se guarda sin el «Sin dato»", () => {
+  it('lo declarado manda sobre la sugerencia y se guarda sin el "Sin dato"', () => {
     const perfil = {
       sample_origin: { column: "Origen", titular_values: ["muestra"], reserva_values: [] },
       replacement_flag: { column: MARCA, yes_values: ["No"] },

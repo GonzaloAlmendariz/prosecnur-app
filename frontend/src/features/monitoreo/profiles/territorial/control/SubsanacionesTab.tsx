@@ -59,7 +59,7 @@ function SubsanacionesTabImpl({
             tamano="normal"
             icono={<Scale size={18} />}
             titulo="Este corte no trae las subsanaciones del motor"
-            descripcion={<span title="El corte de Consultas es el que calcula las subsanaciones">«Actualizar» pide el corte de Consultas</span>}
+            descripcion={<span title="El corte de Consultas es el que calcula las subsanaciones">"Actualizar" pide el corte de Consultas</span>}
           />
         </div>
       </section>
@@ -172,7 +172,7 @@ function SubsanacionesTabImpl({
                 {paquete.rechazo ? (
                   <p className="mon-sub-ya-rechazado">
                     Ya rechazado el {diaYMes(paquete.rechazo.fecha) || "—"} por {paquete.rechazo.autor}
-                    {paquete.rechazo.nota ? `: «${paquete.rechazo.nota}»` : "."} El motor lo vuelve a sugerir.
+                    {paquete.rechazo.nota ? `: "${paquete.rechazo.nota}"` : "."} El motor lo vuelve a sugerir.
                   </p>
                 ) : null}
                 <label className="mon-sub-nota">
@@ -236,7 +236,7 @@ function SubsanacionesTabImpl({
               <li key={entrada.id} className={`is-${entrada.estado}`}>
                 <small>{entrada.cuando}</small>
                 <span>{entrada.texto}</span>
-                {entrada.nota ? <em>«{entrada.nota}»</em> : null}
+                {entrada.nota ? <em>"{entrada.nota}"</em> : null}
                 {entrada.estado === "activa" && onRevert ? (
                   porRevertir === entrada.id ? (
                     <span className="mon-sub-confirmar">

@@ -85,7 +85,7 @@ export function AvanceCuotasEditorMetas({
           })}
           {!visibles.length ? (
             <tr>
-              <td colSpan={4} className="mon-cuotas-tenue">Ninguna categoría contiene «{filtro}».</td>
+              <td colSpan={4} className="mon-cuotas-tenue">Ninguna categoría contiene "{filtro}".</td>
             </tr>
           ) : null}
         </tbody>

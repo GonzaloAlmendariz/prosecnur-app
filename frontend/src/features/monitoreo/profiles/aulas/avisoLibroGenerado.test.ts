@@ -22,7 +22,7 @@ describe("avisoLibroGenerado", () => {
     expect(texto).not.toContain(" y ");
   });
 
-  it("no dice «1 partes de campo»", () => {
+  it('no dice "1 partes de campo"', () => {
     expect(avisoLibroGenerado({ unidades: 3, partes: 1, control: 1 })).toBe(
       "Libro de 3 cursos-horario, con 1 parte de campo y 1 fila de control ya registrados dentro.",
     );
@@ -55,7 +55,7 @@ describe("avisoLibroGenerado · qué lleva el libro dentro", () => {
       .toContain("Libro de 700 cursos-horario");
   });
 
-  it("no dice «1 cursos-horario» ni «1 reservas»", () => {
+  it('no dice "1 cursos-horario" ni "1 reservas"', () => {
     expect(avisoLibroGenerado({ unidades: 2, partes: 0, control: 0, titulares: 1, reservas: 1 }))
       .toContain("Libro de 1 curso-horario y sus 1 reserva");
   });

@@ -4,7 +4,7 @@ import {
   ANCHO_MINIMO_DEL_ROTULO, anchoAntesDelCorte, cabeElRotuloAplicado,
 } from "./rotuloDeZonaCabe";
 
-describe("el rótulo «aplicado» sólo se pinta si cabe", () => {
+describe('el rótulo "aplicado" sólo se pinta si cabe', () => {
   test("con el operativo recién arrancado NO cabe: es el caso que se vio roto", () => {
     // 2026-09-09: un día con parte y 15 agendados por delante ponen el corte al
     // 4 % del lienzo, o sea pegado al margen. El rótulo se salía y se montaba

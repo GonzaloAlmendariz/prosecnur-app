@@ -92,7 +92,7 @@ describe("construirCursosHorario — la tabla", () => {
     expect(m.tabla.filas.find((f) => f.codigo === "CH 82")).toMatchObject({ lectura: "Por encima de lo previsto" });
   });
 
-  it("el descuadre no se disfraza de logro: «No cuadra», con la barra recortada", () => {
+  it('el descuadre no se disfraza de logro: "No cuadra", con la barra recortada', () => {
     const m = construirCursosHorario(hsvg());
     if (m.tabla.tipo !== "filas") throw new Error("esperaba filas");
     const ch121 = m.tabla.filas.find((f) => f.codigo === "CH 121");
@@ -190,7 +190,7 @@ describe("construirCursosHorario — titulares y cobertura", () => {
     expect(m.titulares.cifras[0].titulo).toContain("3 sin fecha en el libro");
   });
 
-  it("titulares: sin la fecha agendada, «Vencidos» es una raya con su causa y no un cero", () => {
+  it('titulares: sin la fecha agendada, "Vencidos" es una raya con su causa y no un cero', () => {
     const d = hsvg();
     delete d.course_status_rol_y_estado!.titulares!.agendado_vencido;
     const m = construirCursosHorario(d);
@@ -201,7 +201,7 @@ describe("construirCursosHorario — titulares y cobertura", () => {
     expect(m.titulares.cifras.find((c) => c.clave === "agendado")?.valor).toBe("14");
   });
 
-  it("titulares: las citas posteriores al corte van en «Agendados» y las cifras siguen sumando el total (2g)", () => {
+  it('titulares: las citas posteriores al corte van en "Agendados" y las cifras siguen sumando el total (2g)', () => {
     const d = hsvg();
     const t = d.course_status_rol_y_estado!.titulares! as Record<string, unknown>;
     // 3 de los 7 agendados con fecha por delante pasaron después de la última descarga.
