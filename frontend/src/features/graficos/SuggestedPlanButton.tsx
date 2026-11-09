@@ -1,9 +1,9 @@
 // «Armar desde un plan sugerido» (`panel=armar-desde`, popover direccionable; contrato A5 rebanada 2b). Vive en la barra
 // común de Láminas y Vista general y en la del Editor anterior. Aplicar es UN paso deshacible
-// (`usePlanStore.aplicarPlanSugerido`); en el informe compartido queda `aria-disabled` con su motivo y no pide nada al
-// backend (decisión 17 de Gonzalo, provisional). Las reglas puras viven en `armarDesde/aplicarPlanSugerido.ts`.
+// (`usePlanStore.aplicarPlanSugerido`), también en el informe compartido (ADR 0096 decisión 9). Las reglas puras viven en
+// `armarDesde/aplicarPlanSugerido.ts`.
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { BarChart3, Check, Download, GitMerge, LayoutTemplate, Loader2, Map, RefreshCw, Wand2 } from "../../vendor/lucide-react";
 import {
@@ -26,7 +26,6 @@ import { useGraficosReportScope } from "./reportScope";
 import {
   debePedirPropuesta,
   identidadDelPlan,
-  motivoArmarDesdeDeshabilitado,
   perfilResuelto,
   propuestaOtros,
   type ModoAplicarPlan,
@@ -126,8 +125,6 @@ export function SuggestedPlanButton() {
   const open = panel.abierto;
   // ADR 0096: en el informe compartido la propuesta se pide con su alcance (la siembra desde la matriz).
   const alcance = useGraficosReportScope(useLocation().search);
-  const motivo = motivoArmarDesdeDeshabilitado(alcance);
-  const motivoId = useId();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<GraficosSuggestedPlanResponse | null>(null);
@@ -198,8 +195,8 @@ export function SuggestedPlanButton() {
   // Abrir (por clic o por enlace) pide la propuesta una vez, en la base activa y en el informe compartido.
   const generar = useRef<() => void>(() => undefined);
   useEffect(() => {
-    if (debePedirPropuesta(open, motivo)) generar.current();
-  }, [open, motivo]);
+    if (debePedirPropuesta(open)) generar.current();
+  }, [open]);
   // Abierto desde la barra, desde el CTA de un vacío o por enlace, el foco entra al diálogo (sin mover el scroll).
   useEffect(() => {
     if (!open) return;
@@ -208,7 +205,6 @@ export function SuggestedPlanButton() {
   }, [open]);
 
   async function generate() {
-    if (!debePedirPropuesta(true, motivo)) return;
     setBusy(true);
     setError("");
     try {
@@ -293,23 +289,20 @@ export function SuggestedPlanButton() {
 
   return (
     <div className="pulso-gv2-suggest-root" ref={rootRef}>
-      {/* `aria-disabled` y no `disabled` en el compartido: sigue en el orden de foco y su clic explica el motivo. */}
       <button
         type="button"
         ref={disparadorRef}
-        className={`pulso-gv2-pill-button pulso-gv2-suggest-trigger${motivo ? " is-deshabilitado" : ""}`}
+        className="pulso-gv2-pill-button pulso-gv2-suggest-trigger"
         onClick={panel.alternar}
         disabled={busy}
         aria-label={PANEL_ARMAR_DESDE.label}
         aria-haspopup="dialog"
         aria-expanded={open}
-        {...(motivo ? { "aria-disabled": true, "aria-describedby": motivoId } : {})}
-        title={motivo ?? PANEL_ARMAR_DESDE.label}
+        title={PANEL_ARMAR_DESDE.label}
       >
         {busy ? <Loader2 size={13} className="pulso-spin" /> : <LayoutTemplate size={14} />}
         <span className="pulso-gv2-suggest-trigger-label">Armar desde…</span>
       </button>
-      {motivo && <span id={motivoId} className="pulso-sr-only">{motivo}</span>}
 
       {open && (
         <div ref={dialogoRef} tabIndex={-1} className="pulso-gv2-suggest-popover" role="dialog" aria-label={PANEL_ARMAR_DESDE.label} {...panel.props}>
@@ -317,12 +310,11 @@ export function SuggestedPlanButton() {
           <CabeceraPanel
             className="pulso-gv2-suggest-cabecera"
             titulo="Armar desde un plan sugerido"
-            subtitulo={motivo ?? "Elige un plan base y previsualízalo antes de aplicarlo al plan actual."}
+            subtitulo="Elige un plan base y previsualízalo antes de aplicarlo al plan actual."
             onCerrar={cerrarDevolviendoFoco}
             etiquetaCerrar="Cerrar plan sugerido"
           />
 
-          {!motivo && (<>
 
           <div className="pulso-gv2-suggest-options" aria-label="Opciones del plan sugerido">
             <RadioSegmentado
@@ -515,7 +507,6 @@ export function SuggestedPlanButton() {
               </div>
             </>
           )}
-          </>)}
         </div>
       )}
     </div>

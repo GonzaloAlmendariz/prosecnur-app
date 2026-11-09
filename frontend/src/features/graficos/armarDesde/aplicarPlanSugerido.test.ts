@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   debePedirPropuesta,
   identidadDelPlan,
-  motivoArmarDesdeDeshabilitado,
   propuestaOtros,
   scopeRulesConIdentidad,
 } from "./aplicarPlanSugerido";
@@ -11,13 +10,9 @@ describe("armarDesde · reglas puras", () => {
   // ADR 0096 decisión 9: «Armar desde…» se habilita en el informe compartido y se retira el motivo provisional de la
   // decisión 17. Antes este test fijaba el motivo literal y «nunca se pide la propuesta» (comportamiento provisional).
   // Mata: dejar el compartido deshabilitado o con un motivo residual.
-  it("consolidado: sin motivo y la propuesta se pide al abrir, igual que en la base activa", () => {
-    expect(motivoArmarDesdeDeshabilitado("consolidated")).toBeNull();
-    expect(motivoArmarDesdeDeshabilitado("active")).toBeNull();
-    expect(debePedirPropuesta(true, motivoArmarDesdeDeshabilitado("consolidated"))).toBe(true);
-    expect(debePedirPropuesta(false, motivoArmarDesdeDeshabilitado("consolidated"))).toBe(false);
-    expect(debePedirPropuesta(true, null)).toBe(true);
-    expect(debePedirPropuesta(false, null)).toBe(false);
+  it("la propuesta se pide al abrir, en la base activa y en el compartido; cerrado, nunca", () => {
+    expect(debePedirPropuesta(true)).toBe(true);
+    expect(debePedirPropuesta(false)).toBe(false);
   });
 
   it("identidad: sólo lo que el plan trae; sin nada, null y las reglas intactas", () => {

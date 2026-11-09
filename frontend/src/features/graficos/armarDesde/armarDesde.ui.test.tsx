@@ -115,22 +115,26 @@ describe("vacíos y avisos (lectura de la fuente: el vacío y la Vista general n
   });
 });
 
-describe("R10-2: el disparador «Armar desde…» deshabilitado es honesto (contrato A/D7)", () => {
+describe("R10-2 / R11-8: el disparador «Armar desde…» ocupado es honesto y no se levanta (contrato A/D7)", () => {
   const sinComentarios = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, "");
   const css = sinComentarios(fuente("armarDesde.css"));
   const bloque = (() => {
-    const i = css.indexOf(".pulso-gv2-suggest-trigger.is-deshabilitado");
+    const i = css.indexOf(".pulso-gv2-suggest-trigger:disabled");
     expect(i).toBeGreaterThan(-1);
     return css.slice(i, css.indexOf("}", i));
   })();
-  it("surface-3 / text-faint / borde con opacidad 1, también al hover", () => {
+  it("surface-3 / text-faint / borde con opacidad 1 y sin transform, también al hover", () => {
     expect(bloque).toMatch(/opacity:\s*1;/);
     expect(bloque).toContain("var(--pulso-surface-3)");
     expect(bloque).toContain("var(--pulso-text-faint)");
     expect(bloque).toContain("var(--pulso-border)");
-    expect(bloque).toMatch(/:hover\s*\{/);
+    expect(bloque).toMatch(/transform:\s*none;/);
+    expect(bloque).toMatch(/:disabled:hover\s*\{/);
   });
-  it("ninguna regla del disparador deshabilitado lo apaga con opacidad", () => {
-    expect(css).not.toMatch(/is-deshabilitado[^{]*\{[^}]*opacity:\s*0?\.\d/);
+  it("R11-8: no queda el estado inactivo por motivo, que nunca ocurría", () => {
+    expect(css).not.toContain("is-deshabilitado");
+    const src = fuente("../SuggestedPlanButton.tsx") + fuente("BotonArmarDesdeVacio.tsx") + fuente("aplicarPlanSugerido.ts");
+    expect(src).not.toMatch(/aria-disabled|motivoArmarDesdeDeshabilitado\(/);
   });
 });
+

@@ -4,7 +4,6 @@
 // matriz de equivalencias ya no arma láminas, así que no hay sello de la declaración que grabar.
 
 import type { GraficosSuggestedPlanResponse, PlanJson, PptStyleProfileMeta } from "../../../api/graficos";
-import type { GraficosReportScope } from "../reportScope";
 
 /** Entrada de la acción única del store: todo lo que cambia al aplicar un plan sugerido, en un solo paso deshacible. */
 export type PlanSugeridoAplicable = {
@@ -25,16 +24,12 @@ type RespuestaPlan = Pick<
 >;
 
 /**
- * `null` si «Armar desde…» se puede usar en este alcance; el motivo si no. Hoy ningún alcance lo deshabilita; la firma
- * se conserva para que un motivo futuro tenga dónde vivir.
+ * ¿Se pide la propuesta al backend? Al abrir el popover, en la base activa y en el informe compartido (ADR 0096
+ * decisión 9). R11-8: el motivo de deshabilitado (`motivoArmarDesdeDeshabilitado`) devolvía siempre null desde que se
+ * habilitó el compartido; se borró con el estado inactivo que nunca ocurría.
  */
-export function motivoArmarDesdeDeshabilitado(_scope: GraficosReportScope): string | null {
-  return null;
-}
-
-/** ¿Se pide la propuesta al backend? Sólo con el popover abierto y sin motivo que lo impida. */
-export function debePedirPropuesta(abierto: boolean, motivo: string | null): boolean {
-  return abierto && motivo === null;
+export function debePedirPropuesta(abierto: boolean): boolean {
+  return abierto;
 }
 
 /** Perfil de plantilla con el que se resolvió el plan: el que devolvió el backend o, si no, el elegido (salvo «auto»). */
