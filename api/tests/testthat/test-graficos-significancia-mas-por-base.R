@@ -10,10 +10,11 @@
 }
 .mpb_linea <- "En Docentes no hay conglomerado: se prueba como muestreo aleatorio simple."
 .mpb_plano <- function(x) gsub("\\s+", " ", gsub("​", "", paste(as.character(x), collapse = " ")))
-# El contexto que fija el worker del export: multibase (`base_familia`) o una sola base (sin ella).
+# El contexto que fija el worker del export: multibase (`base_familia`: docentes es la activa, la de las láminas) o una
+# sola base (sin ella).
 .mpb_con_contexto <- function(multibase, codigo) {
   ctx <- list(regla = .mpb_regla(), origen = "estudio", familia = NULL, m = 0L)
-  if (multibase) ctx$base_familia <- "estudiantes"
+  if (multibase) ctx$base_familia <- "docentes"
   previa <- options(prosecnur.sig_informe = ctx)
   on.exit(options(previa))
   force(codigo)
@@ -154,4 +155,104 @@ test_that("tablas de cruces: la nota del método dice la verdad para cada base",
   expect_identical(.sig_texto_linea_marcas(.mpb_regla(), TRUE), paste0(
     "▲A  Mayor que el grupo de esa letra: diferencia significativa y de al menos 10 puntos. △A  Frágil: igual, con p ",
     "ajustado entre 0.01 y 0.05. Rao-Scott por aula, p < 0.05 con corrección de Benjamini-Hochberg."))
+})
+
+# ---- La familia de SU base (ADR 0128 «Familia por base») en la serie, la línea por nivel y las tarjetas ----------------
+
+.mpb_fam_ds <- function() {
+  est <- .mpb_serie_dat()
+  est$e <- c(rep(c("1", "2"), c(15, 25)), rep(c("1", "2"), c(20, 20)), rep(c("1", "2"), c(26, 14)))
+  set.seed(11)
+  doc <- data.frame(niv = sample(c("6", "7", "8"), 90, TRUE), t = sample(c("1", "2"), 90, TRUE),
+                    e = sample(c("1", "2"), 90, TRUE), stringsAsFactors = FALSE)
+  list(docentes = doc, estudiantes = est)
+}
+.mpb_fam_inst <- function() {
+  i <- .mpb_serie_inst()
+  i$survey <- rbind(i$survey, data.frame(name = "e", type = "select_one sn", list_name = "sn", label = "Experiencia"))
+  i$orders_list$e <- list(names = c("1", "2"), labels = c("Sí", "No"), label = "Experiencia")
+  i
+}
+.mpb_lam <- function(id, var, cruce) list(id = id, payload = list(list(graficador = "p_barras_agrupadas",
+                                                                      args = list(var = var, cruces = cruce))))
+.mpb_z_bh <- list(prueba = "z", correccion = "bh_informe", umbral_puntos = 0, base_minima = 20)
+.mpb_preparar <- function(ds, is, plan) {
+  .sig_informe_preparar(list(equivalencias_publicos = NULL, graficos_config = list(significancia = .mpb_z_bh, plan = plan),
+                             analitica_config = list(cruces_vars = list(), secciones = list(), cruces = list(cruces_vars = list()))),
+                        ds, is, "docentes")
+}
+# Captura la evaluación con veredictos que produce `.sig_veredictos` dentro de `codigo`.
+.mpb_capturar_veredictos <- function(codigo) {
+  capt <- list()
+  orig <- .sig_veredictos
+  testthat::local_mocked_bindings(.sig_veredictos = function(ev, regla, familia = NULL, exigir_familia = FALSE) {
+    out <- orig(ev, regla, familia, exigir_familia)
+    capt[[length(capt) + 1L]] <<- out
+    out
+  })
+  force(codigo)
+  capt
+}
+
+test_that("serie de una base no activa con bh_informe: p ajustado = p.adjust sobre la familia de SU base", {
+  ds <- .mpb_fam_ds(); is <- list(docentes = .mpb_fam_inst(), estudiantes = .mpb_fam_inst())
+  plan <- list(slides = list(.mpb_lam("t", "estudiantes$t", "estudiantes$niv"), .mpb_lam("e", "estudiantes$e", "estudiantes$niv"),
+                             .mpb_lam("d", "p3", "niv")))
+  previa <- suppressMessages(.mpb_preparar(ds, is, plan))
+  on.exit(options(previa), add = TRUE)
+  regla <- .sig_regla_normalizar(.mpb_z_bh)
+  f <- .sig_fuente(ds$estudiantes, is$estudiantes)
+  p_fam <- unlist(lapply(c("t", "e"), function(v) .sig_p_para_familia(.sig_evaluar_pregunta(f, v, "niv", regla))))
+  expect_identical(getOption("prosecnur.sig_informe")$familias$estudiantes$m, length(p_fam))
+  src <- list(data_sources = ds, inst_sources = is)
+  el <- p_serie_temporal(vars = list(Trabaja = "estudiantes$t"), corte = "1", cruce = "estudiantes$niv", mostrar_significancia = TRUE)
+  capt <- .mpb_capturar_veredictos(.render_serie_cruce(el, src))
+  expect_length(capt, 1L)
+  pr <- capt[[1]]$pares
+  expect_equal(pr$p_ajustado[pr$elegible], stats::p.adjust(p_fam, "BH")[match(pr$p[pr$elegible], p_fam)])
+})
+
+test_that("línea por nivel y tarjetas ADR 0129: la familia con que se marca es la de su base", {
+  ds <- .mpb_fam_ds(); is <- list(docentes = .mpb_fam_inst(), estudiantes = .mpb_fam_inst())
+  plan <- list(slides = list(.mpb_lam("t", "estudiantes$t", "estudiantes$niv"), .mpb_lam("d", "p3", "niv")))
+  previa <- suppressMessages(.mpb_preparar(ds, is, plan))
+  on.exit(options(previa), add = TRUE)
+  fam_est <- getOption("prosecnur.sig_informe")$familias$estudiantes$familia
+  src <- list(data_sources = ds, inst_sources = is)
+  el <- p_lineas_nivel(var = "estudiantes$t", cruce = "niv", series = list(list(rotulo = "Trabaja", codigos = "1")),
+                       titulo_seccion = "Según nivel", rotulo_total = "Total", publico = "estudiantes", mostrar_significancia = TRUE)
+  fams <- list()
+  orig <- .sig_veredictos
+  testthat::local_mocked_bindings(.sig_veredictos = function(ev, regla, familia = NULL, exigir_familia = FALSE) {
+    fams[[length(fams) + 1L]] <<- familia
+    orig(ev, regla, familia, exigir_familia)
+  })
+  suppressMessages(.lineas_nivel_render_fuentes(el, src))
+  expect_identical(fams[[1]], fam_est)
+  # Tarjetas: la base del resolutor es estudiantes.
+  d <- ds$estudiantes
+  resolver <- function(ref, ...) list(source = "estudiantes", data = d, survey = is$estudiantes$survey,
+                                      choices = is$estudiantes$choices, orders_list = is$estudiantes$orders_list, var = "t")
+  p <- structure(list(), class = "ggplot"); attr(p, "pulso_espec") <- list(tipo = "categorica")
+  slide <- list(title = "T", meta = list(tarjetas_diferencias = list(cruces = list("niv"))),
+                slots = list(plot = list(vars = "estudiantes$t")))
+  fams <- list()
+  suppressMessages(.tarjetas_de_lamina(p, slide, resolver))
+  expect_true(length(fams) >= 1L)
+  expect_identical(fams[[1]], fam_est)
+})
+
+test_that("hallazgos, resumen, cifra y propuesta: la nota nombra la base sin conglomerado", {
+  ctx <- list(regla = .mpb_regla(), origen = "estudio", familia = NULL, m = 0L, base_familia = "estudiantes")
+  previa <- options(prosecnur.sig_informe = ctx); on.exit(options(previa), add = TRUE)
+  r <- .sig_contexto_render(.mpb_serie_dat(), "docentes")$regla
+  expect_identical(.sig_texto_sin_conglomerado(r), .mpb_linea)
+  # Cada consumidor pasa su base: se comprueba en el código, porque los cuatro arman su fuente dentro del motor.
+  for (f in c("graficos_hallazgos.R", "graficos_resumen_diferencias.R", "lamina_cifra_y_grafico.R", "graficos_propuesta_resumen.R")) {
+    src <- readLines(testthat::test_path("..", "..", "R", f), warn = FALSE)
+    llamadas <- grep(".sig_contexto_render(", src, fixed = TRUE, value = TRUE)
+    llamadas <- llamadas[!grepl("^\\s*#", llamadas)]
+    expect_true(length(llamadas) > 0L, label = f)
+    expect_true(all(grepl("\\.sig_contexto_render\\([^,()]+(\\([^()]*\\))?[^,()]*,", llamadas)), label = paste(f, "pasa la base"))
+  }
 })

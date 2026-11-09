@@ -85,7 +85,7 @@
   var_c <- as.character(unlist(els[[1]]$var %||% els[[1]]$vars))[1]
   ctx <- resolver(var_c)
   fuente <- list(data = as.data.frame(ctx$data, stringsAsFactors = FALSE), survey = ctx$survey, choices = ctx$choices, orders_list = ctx$orders_list)
-  sig <- .sig_contexto_render(fuente$data)
+  sig <- .sig_contexto_render(fuente$data, ctx$source)   # la regla y la familia de su base (ADR 0128)
   # Los cruces y rótulos de la cifra: los de las tarjetas de la lámina (el mapa por ranura) o los del estudio.
   mapa <- .tarjetas_mapa(slide$meta)
   opt_g <- mapa$derecha %||% mapa$izquierda

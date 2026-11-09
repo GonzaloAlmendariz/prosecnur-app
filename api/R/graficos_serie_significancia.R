@@ -102,7 +102,8 @@
   d <- (sources$data_sources %||% list())[[cx$source]]
   if (!is.data.frame(d)) return(NULL)
   d <- .apply_named_filters_safe(d, filters = el$filtros %||% list(), arg_name = "filtros de la serie", mode = "strict")
-  regla <- .sig_regla_de_datos(ctx, ctx$regla, d, cx$source)   # multibase: la base sin conglomerado, como MAS
+  ctx <- .sig_contexto_render(d, cx$source)   # multibase: la regla y la familia de su base
+  regla <- ctx$regla
   temas <- levels(datos$eje)
   refs <- lapply(temas, function(t) .graficos_consolidado_ref_context(
     .serie_cruce_ref(as.character(unlist(el$vars[[t]]))[1], sources, cx$source), sources)$resolved_variable)

@@ -48,10 +48,14 @@
 #' @keywords internal
 .sig_contexto_render <- function(data = NULL, base = NULL) {
   ctx <- .sig_informe_vigente()
-  # Multibase: la base sin la columna de conglomerado, como muestreo aleatorio simple (`.sig_regla_de_base`). Sin
-  # `base`, la nota dice «esta base».
+  # Multibase (ADR 0128 «Familia por base»): la regla ajustada a la base (sin la columna de conglomerado, muestreo
+  # aleatorio simple: `.sig_regla_de_base`) y la familia de BH de ESA base (`.sig_familia_de_fuente`). Sin `base`, la
+  # nota dice «esta base» y la familia queda la de la activa.
   if (!is.null(ctx)) {
-    if (!is.null(ctx$base_familia)) ctx$regla <- .sig_regla_de_datos(ctx, ctx$regla, data, base %||% "")
+    if (!is.null(ctx$base_familia)) {
+      ctx$regla <- .sig_regla_de_datos(ctx, ctx$regla, data, base %||% "")
+      if (length(base) && !is.na(base[1]) && nzchar(base[1])) ctx$familia <- .sig_familia_de_fuente(ctx, list(base = base))
+    }
     return(ctx)
   }
   list(regla = .sig_regla_normalizar(list(), base = .sig_regla_propuesta(data)), familia = NULL)
@@ -112,7 +116,7 @@
   st <- if (!is.null(regla$estrato) && regla$estrato %in% names(d)) d[[regla$estrato]] else NULL
   ev <- .sig_evaluar(ind, g, codigos, etiquetas, cluster = cl, estrato = st, regla = regla, filas = filas,
                      binaria = identical(ind$tipo, "so") && length(sustantivas) == 2L && !length(top2box))
-  ev <- .sig_veredictos(ev, regla, .sig_familia_de_fuente(ctx, fuente), exigir_familia = TRUE)   # §3: un p ajeno a la familia no se marca
+  ev <- .sig_veredictos(ev, regla, ctx$familia, exigir_familia = TRUE)   # la de su base (`.sig_contexto_render`)   # §3: un p ajeno a la familia no se marca
   if (isTRUE(ev$fuera_de_familia > 0L) && exists(".pulso_aviso", mode = "function")) {
     .pulso_aviso(sprintf("Diferencias: %d comparación(es) de «%s» no están en la familia del informe y no se marcan.",
                          ev$fuera_de_familia, fuente$var))

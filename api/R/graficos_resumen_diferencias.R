@@ -508,7 +508,7 @@
 .render_resumen_diferencias <- function(el, preset_args = list()) {
   plan_motor <- .dif_plan_render()   # antes de llamar: dentro del modelo, `plan` es una promesa y dynGet la encontraría
   fuente <- .dif_fuente_render(el, plan_motor)
-  sig <- .sig_contexto_render(fuente$data)
+  sig <- .sig_contexto_render(fuente$data, fuente$base)   # la regla y la familia de su base (ADR 0128)
   espec <- .resumen_dif_modelo(el, fuente, sig, plan_motor)
   .resumen_dif_ggplot(espec)
 }

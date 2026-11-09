@@ -307,7 +307,7 @@
 .render_hallazgos <- function(el, preset_args = list()) {
   plan_motor <- .dif_plan_render()   # antes de llamar: dentro del modelo, `plan` es una promesa y dynGet la encontraría
   fuente <- .dif_fuente_render(el, plan_motor)   # la base de la lámina (graficos_resumen_base.R)
-  sig <- .sig_contexto_render(fuente$data)
+  sig <- .sig_contexto_render(fuente$data, fuente$base)   # la regla y la familia de su base (ADR 0128)
   .halla_ggplot(.halla_modelo(el, fuente, sig, plan_motor))
 }
 

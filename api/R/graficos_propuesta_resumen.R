@@ -230,7 +230,7 @@
                                                           sprintf("La lámina no se pudo leer: %s", conditionMessage(e))))
     fuente <- .sig_fuente(data_sources[[base_lectura]], inst_sources[[base_lectura]])
     fuente$base <- base_lectura
-    sig <- .sig_contexto_render(fuente$data)   # la regla que lee el render
+    sig <- .sig_contexto_render(fuente$data, base_lectura)   # la regla y la familia que lee el render, de su base
     traducir <- .propuesta_traductor(crudas, base_lectura, mapa, inclusivo)
     p <- if (identical(el$.element_type, "hallazgos")) .propuesta_hallazgos(el, fuente, sig, plan, traducir) else
       .propuesta_resumen_dif(el, fuente, sig, plan, traducir)
