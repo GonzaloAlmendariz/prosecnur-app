@@ -28,13 +28,18 @@
   if (is.null(d)) return(NULL)
   M <- .MAPA_DIST()
   col_de <- stats::setNames(rk$color, ub)
-  d$areas$color <- ifelse(d$areas$clave %in% names(col_de), unname(col_de[d$areas$clave]), M$vacio)
-  n_cl <- length(espec$leyenda$colores) - 1L   # la última de la leyenda es «Sin encuestas»
+  # Ronda 2, ítem 4: los distritos con menos de `min_n` casos van en gris rayado, aparte de los que no tienen encuestas.
+  pocos <- as.character(espec$pocos$ubigeo %||% character(0))
+  d$areas$color <- ifelse(d$areas$clave %in% names(col_de), unname(col_de[d$areas$clave]), ifelse(d$areas$clave %in% pocos, M$otra, M$vacio))
+  d$otra <- pocos; d$otra_grupos <- if (length(pocos)) list(pocos) else list()
+  n_cl <- length(espec$clases$colores %||% (espec$leyenda$colores[-length(espec$leyenda$colores)]))
   d$clases <- list(colores = espec$leyenda$colores[seq_len(n_cl)], rotulos = espec$leyenda$rotulos[seq_len(n_cl)], cortes = NULL)
   d$leyenda_titulo <- "Porcentaje por distrito"
   # «Menos de 55 %» no se parte en dos líneas: si los bloques no le dan su ancho, «Sin encuestas» baja a una segunda fila.
   d$leyenda_paso_min <- max(c(0, .lam_ancho_tinta(d$clases$rotulos, 7.5))) + 0.2
-  d$leyenda_extras <- data.frame(texto = "Sin encuestas", tipo = "vacio", grupo = NA_integer_, stringsAsFactors = FALSE)
+  d$leyenda_extras <- data.frame(texto = c("Sin encuestas", if (length(pocos)) sprintf("Con menos de %d casos", espec$min_n %||% 30L)),
+                                 tipo = c("vacio", if (length(pocos)) "otra"), grupo = c(NA_integer_, if (length(pocos)) 1L),
+                                 stringsAsFactors = FALSE)
   d$lista <- data.frame(nombre = rk$distrito, n = as.integer(rk$n), valor = as.character(rk$valor), pct = rep("", nrow(rk)), color = rk$color,
                         cifra = rk$cifra %||% (if (nrow(rk)) paste0(rk$valor, "%") else character(0)), frac = pmin(1, pmax(0, rk$valor / (espec$escala_max %||% 100))),
                         stringsAsFactors = FALSE)
@@ -51,15 +56,16 @@
 #' @keywords internal
 .lam_mapa_res_columnas <- function(lista, w, h, pt = 8.5) {
   P <- .LAM_MAPA_PX; n <- nrow(lista)
-  if (!n) return(list(ncol = 1L, por_col = 0L, fila = 54 * P, pt = pt, wcol = w, cabe = TRUE))
+  if (!n) return(list(ncol = 1L, por_col = 0L, fila = 54 * P, pt = pt, wcol = w, pt_n = pt - 1, cabe = TRUE))
   pide <- max(.lam_ancho_tinta(lista$nombre, 1) + .lam_ancho_tinta(lista$cifra, 1, TRUE) * 1.05)
   for (k in 1:4) {
     por_col <- ceiling(n / k); fila <- min(54 * P, h / por_col)
     wcol <- (w - (k - 1L) * 0.3) / k
     pt_k <- max(7, min(pt, (wcol - 0.42) / pide))
-    if (fila >= 34 * P - 1e-9 && pide * pt_k <= wcol - 0.42 + 1e-9) return(list(ncol = k, por_col = por_col, fila = fila, pt = pt_k, wcol = wcol, cabe = TRUE))
+    if (fila >= 34 * P - 1e-9 && pide * pt_k <= wcol - 0.42 + 1e-9) return(list(ncol = k, por_col = por_col, fila = fila, pt = pt_k, wcol = wcol,
+                                                                                 pt_n = max(7, pt_k - 1), cabe = TRUE))
   }
-  list(ncol = 4L, por_col = ceiling(n / 4), fila = h / ceiling(n / 4), pt = 7, wcol = (w - 0.9) / 4, cabe = FALSE)
+  list(ncol = 4L, por_col = ceiling(n / 4), fila = h / ceiling(n / 4), pt = 7, wcol = (w - 0.9) / 4, pt_n = 7, cabe = FALSE)
 }
 
 #' La lista de resultados: nombre y cifra en una línea y, debajo, la barra del color de su clase sobre su pista
@@ -78,8 +84,12 @@
     wc <- .lam_ancho_tinta(li$cifra[k], co$pt, TRUE) * 1.05 + 0.26
     .lam_txt(lz, li$nombre[k], xk - 0.1, yk, co$wcol - wc + 0.15, 0.24, co$pt, M$texto, nombre = "mapa:distrito")
     .lam_txt(lz, li$cifra[k], xk + co$wcol - wc + 0.1, yk, wc, 0.24, co$pt, M$texto, bold = TRUE, align = "right", nombre = "mapa:valor")
-    .lam_caja(lz, xk, yk + dy_barra, co$wcol, hb, M$pista, nombre = "mapa:barra_fondo")
-    .lam_caja(lz, xk, yk + dy_barra, max(1.5 * P, co$wcol * li$frac[k]), hb, li$color[k], nombre = "mapa:barra")
+    # Ronda 2, ítem 4: el n de cada distrito (casos válidos, sin ponderar) va al final de su barra, que le cede su ancho.
+    tn <- sprintf("n = %s", format(li$n[k], big.mark = ",", trim = TRUE)); wn <- .lam_ancho_tinta(tn, co$pt_n, FALSE) + 0.24
+    wb <- co$wcol - wn + 0.08
+    .lam_caja(lz, xk, yk + dy_barra, wb, hb, M$pista, nombre = "mapa:barra_fondo")
+    .lam_caja(lz, xk, yk + dy_barra, max(1.5 * P, wb * li$frac[k]), hb, li$color[k], nombre = "mapa:barra")
+    .lam_txt(lz, tn, xk + co$wcol - wn + 0.1, yk + dy_barra + hb / 2 - 0.12, wn, 0.24, co$pt_n, M$otros_texto, align = "right", nombre = "mapa:n")
   }
   invisible(lz)
 }
@@ -113,8 +123,25 @@
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:mapa:pregunta")
   doc <- .lam_mapa_dist_en_caja(doc, G$d, G$ml, G$fr$y0, G$wm, G$fr$y1 - G$fr$y0, modo = "solo", w_lista = G$w_lista,
                                 lista = .lam_mapa_res_lista)
-  doc <- .lam_pie(doc, base, folio)
+  doc <- .lam_pie(doc, .lam_mapa_res_pie(base, espec), folio)
   list(doc = por_lamina(doc), partes = 1L)
+}
+
+#' El pie del mapa de resultado: la base, los distritos con pocos casos (con su n) y, si hay pesos, qué está ponderado
+#'
+#' Ronda 2, ítem 4 (revisión metodológica): los distritos con menos de `min_n` casos no lleven porcentaje pero se nombran en
+#' la lámina, no sólo en el aviso; y con pesos, el porcentaje es ponderado y el n de cada distrito no.
+#' @keywords internal
+.lam_mapa_res_pie <- function(base, espec) {
+  b <- as.character(base %||% "")[1]; if (is.na(b)) b <- ""
+  pc <- espec$pocos
+  # Hasta diez se nombran con su n; con más, el pie (dos líneas) sólo los cuenta: van rayados en el mapa y en el aviso.
+  pocos <- if (NROW(pc) > 10L) sprintf("Con menos de %d casos, sin porcentaje: %d distritos, rayados en el mapa", espec$min_n %||% 30L, NROW(pc)) else
+    if (NROW(pc)) sprintf("Con menos de %d casos, sin porcentaje: %s", espec$min_n %||% 30L, paste(sprintf("%s (n = %d)", pc$distrito, pc$n), collapse = ", "))
+  pond <- if (isTRUE(espec$ponderado)) "Porcentajes ponderados; n sin ponderar"
+  partes <- c(if (nzchar(b)) b, pocos, pond)
+  if (!length(partes)) return(NULL)
+  .lam_con_punto(do.call(.lam_unir_base, as.list(partes)))
 }
 
 #' ¿Cabe? Hay cartografía y la lista entra en hasta cuatro columnas con cada nombre y su cifra en una línea

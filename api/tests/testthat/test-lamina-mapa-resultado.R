@@ -28,11 +28,14 @@ test_that("la espec pinta por clases, ordena el ranking y nombra lo que no casa 
   expect_identical(e$forma, "resultado")
   expect_identical(e$ranking$distrito, c("Chorrillos", "Comas"))
   expect_identical(e$ranking$color, c(.std_color("azul"), "#8EA3C6"))
-  expect_identical(e$leyenda$rotulos, c("Menos de 55 %", "55 a 64 %", "65 a 74 %", "75 % a más", "Sin encuestas"))
+  # Ronda 2, ítem 4: «Con menos de 5 casos» va aparte de «Sin encuestas».
+  expect_identical(e$leyenda$rotulos, c("Menos de 55 %", "55 a 64 %", "65 a 74 %", "75 % a más", "Con menos de 5 casos", "Sin encuestas"))
+  expect_identical(e$pocos$distrito, "El Agustino"); expect_identical(e$pocos$n, 3L)
   expect_identical(e$panel$titulo, "Satisfecho o muy satisfecho")
   expect_identical(e$sin_casar, "Distrito Inventado"); expect_identical(e$pocos_casos, "El Agustino")
   lima <- e$capas[[1]]$datos
-  expect_identical(unique(lima$fill[lima$ubigeo == "150111"]), .std_color("mapa_fuera"))
+  expect_identical(unique(lima$fill[lima$ubigeo == "150111"]), .MAPA_DIST()$otra)
+  expect_identical(unique(lima$fill[lima$ubigeo == "150101"]), .std_color("mapa_fuera"))
 })
 
 test_that("la 104 sale nativa en el motor, con su ranking, y avisa por su nombre el distrito que no ubicó", {
@@ -103,4 +106,27 @@ test_that("ítem 4 del catálogo: la 104 se dibuja con el lenguaje del mapa de d
   expect_equal(ext("mapa:barra")[1] / ext("mapa:barra_fondo")[1], 0.77, tolerance = 0.01)
   # Un porcentaje no se suma entre distritos: no hay fila «Otros distritos».
   expect_false(any(grepl("^Otros", txt("mapa:distrito"))))
+})
+
+test_that("ronda 2, ítem 4: n visible, mínimo de 30 por defecto, pocos casos y sin encuestas separados, y el pie lo dice", {
+  expect_identical(formals(p_mapa_resultado_distrital)$min_n, 30)
+  # Chorrillos con 100 casos, Comas con 1 y El Agustino en la lista sin ninguna respuesta (0 casos).
+  fx <- .mr_fixture(dist_labels = c("Chorrillos", "Comas", "El Agustino"), pct = c(77, 1), n = 100)
+  fx$data <- fx$data[!(fx$data$dist == "2" & seq_len(nrow(fx$data)) > 101), ]
+  expect_identical(as.integer(table(fx$data$dist)[["2"]]), 1L)
+  attr(fx$data, "var_peso") <- NULL
+  fx$data$peso <- rep(c(0.5, 1.5), length.out = nrow(fx$data))
+  out <- tempfile(fileext = ".pptx")
+  msgs <- testthat::capture_messages(suppressWarnings(reporte_ppt_plan(data = fx$data, instrumento = fx$inst, plan = list(p_slide_1_grafico(
+    p_mapa_resultado_distrital("sat", cruces = "dist", corte = c("4", "5")), titulo = "Satisfacción")), path_ppt = out, mensajes_progreso = FALSE)))
+  x <- xml2::read_xml(unz(out, "ppt/slides/slide1.xml"))
+  txt <- function(n) xml2::xml_text(xml2::xml_find_all(x, sprintf("//p:sp[p:nvSpPr/p:cNvPr[@name='%s']]", n)))
+  expect_identical(txt("mapa:distrito"), "Chorrillos")
+  expect_identical(txt("mapa:n"), "n = 100")
+  expect_true(all(c("Sin encuestas", "Con menos de 30 casos") %in% txt("leyenda:texto")))
+  pie <- txt("Base lamina")
+  expect_match(pie, "Con menos de 30 casos, sin porcentaje: Comas (n = 1)", fixed = TRUE)
+  expect_false(grepl("El Agustino", pie, fixed = TRUE))   # sin encuestas no es «pocos casos»
+  expect_match(pie, "Porcentajes ponderados; n sin ponderar", fixed = TRUE)
+  expect_true(any(grepl("sin porcentaje, aparte: Comas", msgs, fixed = TRUE)))
 })

@@ -18,12 +18,13 @@
 #' @param cruces Pregunta `select_one` con el distrito de cada encuestado (códigos UBIGEO de 6 dígitos o nombres).
 #' @param corte Códigos de `var` que cuentan para el indicador.
 #' @param cortes Límites de las clases en puntos porcentuales (tres cortes, cuatro clases).
-#' @param min_n Casos válidos mínimos para que un distrito se pinte; con menos va como «Sin encuestas».
+#' @param min_n Casos válidos mínimos para que un distrito lleve su porcentaje (30 por defecto); con menos va aparte, como
+#'   «Con menos de 30 casos», distinto de «Sin encuestas», y se nombra al pie con su n.
 #' @param excluir_opciones Códigos o etiquetas que salen del denominador.
 #' @param rotulo Rótulo del indicador sobre el ranking; vacío lo arma con las etiquetas del corte.
 #' @export
 p_mapa_resultado_distrital <- function(var, cruces, corte, titulo = NULL, filtros = list(), excluir_opciones = NULL,
-                                       cortes = c(55, 65, 75), min_n = 1, rotulo = NULL, overrides = list(), base = list()) {
+                                       cortes = c(55, 65, 75), min_n = 30, rotulo = NULL, overrides = list(), base = list()) {
   var <- .puntos_comparativos_ref(var, "var")
   cruces <- .puntos_comparativos_ref(cruces, "cruces")
   .puntos_comparativos_validar_refs(var, cruces)
@@ -32,7 +33,7 @@ p_mapa_resultado_distrital <- function(var, cruces, corte, titulo = NULL, filtro
   if (length(cortes) < 1L || any(!is.finite(cortes)) || any(cortes <= 0 | cortes >= 100)) {
     .plan_spec_abort("p_mapa_resultado_distrital(): `cortes` deben ser porcentajes entre 0 y 100.")
   }
-  min_n <- suppressWarnings(as.integer(min_n %||% 1L)); if (is.na(min_n) || min_n < 1L) min_n <- 1L
+  min_n <- suppressWarnings(as.integer(min_n %||% 30L)); if (is.na(min_n) || min_n < 1L) min_n <- 1L
   if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
   el <- list(.element_type = "mapa_resultado_distrital", var = var, cruces = cruces, corte = corte,
              title_slide = .ppt_norm_text1(titulo, blank = NULL), filtros = .ppt_norm_filters(filtros),
@@ -57,7 +58,8 @@ p_mapa_resultado_distrital <- function(var, cruces, corte, titulo = NULL, filtro
   elegibles <- setdiff(indicador$codigos, excluir)
   if (!length(elegibles) || setequal(corte, elegibles)) stop("mapa_resultado_distrital: `corte` debe ser un subconjunto propio de la escala elegible.", call. = FALSE)
   filtrada <- .apply_named_filters(data, filters = filtros %||% list(), arg_name = "filtros", mode = "strict")
-  pesos <- .puntos_comparativos_pesos(filtrada, declaracion = attr(data, "var_peso", exact = TRUE))$valores
+  pw <- .puntos_comparativos_pesos(filtrada, declaracion = attr(data, "var_peso", exact = TRUE))
+  pesos <- pw$valores
   v <- trimws(as.character(filtrada[[var]])); g <- trimws(as.character(filtrada[[distrito]]))
   fuera_v <- setdiff(unique(v[!is.na(v) & nzchar(v)]), indicador$codigos)
   if (length(fuera_v)) stop("mapa_resultado_distrital: el indicador observa códigos fuera de su escala: ", paste(fuera_v, collapse = ", "), ".", call. = FALSE)
@@ -72,6 +74,8 @@ p_mapa_resultado_distrital <- function(var, cruces, corte, titulo = NULL, filtro
   })
   out <- if (length(filas)) do.call(rbind, filas) else data.frame(codigo = character(0), etiqueta = character(0), porcentaje = numeric(0), n = integer(0))
   attr(out, "indicador") <- indicador$etiquetas[match(corte, indicador$codigos)]
+  # Ronda 2, ítem 4: el pie dice que el porcentaje está ponderado y el n no, cuando hay pesos que no son todos 1.
+  attr(out, "ponderado") <- isTRUE(pw$ponderado) && any(is.finite(pesos) & abs(pesos - 1) > 1e-9)
   out
 }
 
@@ -106,7 +110,7 @@ p_mapa_resultado_distrital <- function(var, cruces, corte, titulo = NULL, filtro
 
 #' Especificación del mapa de resultado (forma «resultado» de mapa/1)
 #' @keywords internal
-.espec_mapa_resultado <- function(filas, cortes = c(55, 65, 75), min_n = 1L, indicador = character(0)) {
+.espec_mapa_resultado <- function(filas, cortes = c(55, 65, 75), min_n = 30L, indicador = character(0), ponderado = FALSE) {
   fondo <- .graficos_lima_district_context(incluir_callao = TRUE)
   if (!length(fondo)) return(NULL)
   lima <- .mapa_collection_polygons(fondo)
@@ -115,8 +119,14 @@ p_mapa_resultado_distrital <- function(var, cruces, corte, titulo = NULL, filtro
   ok <- filas[!is.na(filas$ubigeo) & filas$n >= min_n, , drop = FALSE]
   clase <- findInterval(.pulso_round_half_up(ok$porcentaje), cortes) + 1L
   fill_de <- stats::setNames(pal[clase], ok$ubigeo)
-  lima$fill <- ifelse(lima$ubigeo %in% names(fill_de), fill_de[lima$ubigeo], .std_color("mapa_fuera"))
+  # Ronda 2, ítem 4: con menos de `min_n` casos el distrito no lleva porcentaje y va aparte («Con menos de 30 casos»), no
+  # mezclado con los que no tienen encuestas.
+  pocos <- filas[!is.na(filas$ubigeo) & filas$n > 0 & filas$n < min_n, , drop = FALSE]
+  col_pocos <- .MAPA_DIST()$otra
+  lima$fill <- ifelse(lima$ubigeo %in% names(fill_de), fill_de[lima$ubigeo],
+                      ifelse(lima$ubigeo %in% pocos$ubigeo, col_pocos, .std_color("mapa_fuera")))
   rot <- .mapa_clases_rotulos(cortes, pal)
+  rot_pocos <- sprintf("Con menos de %d casos", min_n)
   o <- order(-ok$porcentaje, ok$etiqueta)
   lim <- .mapa_resultado_lima()
   nombre <- ifelse(is.na(match(ok$ubigeo, lim$ubigeo)), ok$etiqueta, .mapa_nombre_distrito(lim$distrito[match(ok$ubigeo, lim$ubigeo)]))
@@ -125,7 +135,12 @@ p_mapa_resultado_distrital <- function(var, cruces, corte, titulo = NULL, filtro
   bb <- c(xmin = min(lima$x), xmax = max(lima$x), ymin = min(lima$y), ymax = max(lima$y))
   list(version = "mapa/1", tipo = "mapa", forma = "resultado",
        capas = list(list(datos = lima, borde = "#FFFFFF", grosor = 0.3)), caja = bb,
-       leyenda = list(titulo = "Por distrito", rotulos = c(rot, "Sin encuestas"), colores = c(pal, .std_color("mapa_fuera"))),
+       leyenda = list(titulo = "Por distrito", rotulos = c(rot, if (nrow(pocos)) rot_pocos, "Sin encuestas"),
+                      colores = c(pal, if (nrow(pocos)) col_pocos, .std_color("mapa_fuera"))),
+       clases = list(colores = pal, rotulos = rot), min_n = min_n, ponderado = isTRUE(ponderado),
+       pocos = data.frame(distrito = if (nrow(pocos)) ifelse(is.na(match(pocos$ubigeo, lim$ubigeo)), pocos$etiqueta,
+                                                             .mapa_nombre_distrito(lim$distrito[match(pocos$ubigeo, lim$ubigeo)])) else character(0),
+                          n = as.integer(pocos$n), ubigeo = pocos$ubigeo, stringsAsFactors = FALSE),
        ranking = data.frame(distrito = nombre[o], valor = .pulso_round_half_up(ok$porcentaje[o]), n = ok$n[o], color = pal[clase][o], ubigeo = ok$ubigeo[o],
                             stringsAsFactors = FALSE),
        panel = list(titulo = titulo_panel, sub = "Por distrito, de mayor a menor"),
@@ -162,11 +177,11 @@ graficar_mapa_resultado_distrital <- function(espec) {
   ctx <- .puntos_comparativos_contextos(list(var = el$var, cruces = el$cruces), data_sources, instrument_sources)
   filas <- .mapa_resultado_calcular(ctx$data, ctx$instrumento, ctx$var, ctx$cruces, el$corte, el$filtros %||% list(), el$excluir_opciones)
   filas <- .mapa_resultado_casar(filas, .mapa_resultado_lima())
-  espec <- .espec_mapa_resultado(filas, el$cortes %||% c(55, 65, 75), el$min_n %||% 1L, attr(filas, "indicador"))
+  espec <- .espec_mapa_resultado(filas, el$cortes %||% c(55, 65, 75), el$min_n %||% 30L, attr(filas, "indicador"), isTRUE(attr(filas, "ponderado")))
   if (!is.null(espec) && !is.null(el$rotulo)) espec$panel$titulo <- el$rotulo
   # Lo que no casa con la cartografía se dice con su nombre: nunca se descarta en silencio.
   if (length(espec$sin_casar)) message("[PULSO-AVISO] Mapa por distrito: no se ubicaron en la cartografía de Lima: ", paste(espec$sin_casar, collapse = ", "), ".")
-  if (length(espec$pocos_casos)) message("[PULSO-AVISO] Mapa por distrito: con menos de ", el$min_n, " casos válidos van como «Sin encuestas»: ",
+  if (length(espec$pocos_casos)) message("[PULSO-AVISO] Mapa por distrito: con menos de ", espec$min_n, " casos válidos van sin porcentaje, aparte: ",
                                           paste(espec$pocos_casos, collapse = ", "), ".")
   if (!is.null(espec) && !.lam_mapa_resultado_cabe(espec)) message("[PULSO-AVISO] Mapa por distrito: el ranking no cabe en la lámina ",
                                                                    "(nombres de distrito demasiado largos); sale el mapa con su leyenda, sin las cifras.")
