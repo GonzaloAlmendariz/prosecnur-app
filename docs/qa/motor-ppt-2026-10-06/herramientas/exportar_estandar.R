@@ -186,10 +186,10 @@ tipos <- list(
   tipo("p_slide_texto", "Texto", "Title and Content", list(Tx(xS, y1, aw, h1)), NULL, "Conclusiones o notas metodológicas breves"),
   tipo("p_slide_2_graficos", "Dos gráficos", "Graficos_2columnas", list(G(xS, y1, w2, h1), G(x2, y1, w2, h1)), f2, "Dos preguntas que se leen juntas"),
   tipo("p_slide_2_graficos_narrativo", "Dos gráficos con narrativa", "1_Graficos_2columnas_narrativo", list(Tx(xS, y1, aw, 0.8), G(xS, 2.6, w2, 3.7), G(x2, 2.6, w2, 3.7)), f2, "Dos gráficos con una idea común arriba"),
-  # K15: p140 apila los dos gráficos a la derecha del texto (filete en 3.5)
-  tipo("p_slide_2_graficos_texto_izquierda", "Dos gráficos con texto a la izquierda", "left_2graficos_texto", list(Tx(xS, 2.05, 3.45, 3.6), G(4.55, 1.7, xE - 4.55, 3.5 - 0.2 - 1.7), G(4.55, 3.7, xE - 4.55, 6.25 - 3.7)), f3, "Perfiles breves con su lectura"),
-  # K15: p142 apila los dos gráficos a la izquierda del texto
-  tipo("p_slide_2_graficos_texto_derecha", "Dos gráficos con texto a la derecha", "right_2graficos_texto", list(G(xS, 1.7, 8.6, 3.8 - 0.2 - 1.7), G(xS, 3.8, 8.6, 6.25 - 3.8), Tx(9.55, 2.05, xE - 9.55, 3.4)), f3, "Igual que la anterior, para alternar"),
+  # 2026-11-09 (Gonzalo, "Estos aún no se ven bien"): p140 y p142 apilaban los dos gráficos; ahora van lado a lado, como
+  # las fichas del recetario (recetario_fichas.R): texto de 3.5 in y gráficos de 4.2 in (4.1 en la de texto a la derecha).
+  tipo("p_slide_2_graficos_texto_izquierda", "Dos gráficos con texto a la izquierda", "left_2graficos_texto", list(Tx(xS, 1.9, 3.5, 3.0), G(4.4, y1, 4.2, h1), G(8.85, y1, xE - 8.85, h1)), f3, "Perfiles breves con su lectura"),
+  tipo("p_slide_2_graficos_texto_derecha", "Dos gráficos con texto a la derecha", "right_2graficos_texto", list(G(xS, y1, 4.1, h1), G(4.85, y1, 4.1, h1), Tx(9.25, 1.9, xE - 9.25, 3.0)), f3, "Igual que la anterior, para alternar"),
   tipo("p_slide_2_graficos_vertical", "Dos gráficos apilados", "graficos_2_vertical", list(G(xS, y1, aw, h2), G(xS, y2, aw, h2)), fam(1, 14, 12, 0.30), "Dos preguntas de escala que comparten leyenda"),
   # K15: p146: principal de 8.4 y apoyo desde 9.35, preguntas en 1.6
   tipo("p_slide_2_graficos_asimetrico", "Gráfico principal y de apoyo", "graficos_2_asimetrico", list(G(xS, 1.6, 8.4, 6.25 - 1.6), G(9.35, 1.6, xE - 9.35, 6.25 - 1.6)), fam(0.65, 14, 12, 0.36), "Un gráfico manda y el otro lo resume"),

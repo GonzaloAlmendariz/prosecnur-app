@@ -10,8 +10,10 @@
 .K15_DIBUJADO <- list(
   p_slide_grafico_texto_derecha = list(pagina = 128L, ranuras = list(c("grafico", 0.495, 1.65, 8.6, 4.6), c("texto", 9.55, 2.45, 3.468, 3.4))),
   p_slide_grafico_texto_izquierda = list(pagina = 130L, ranuras = list(c("texto", 0.495, 2.05, 3.45, 3.4), c("grafico", 4.55, 1.75, 8.4, 4.5))),
-  p_slide_2_graficos_texto_izquierda = list(pagina = 140L, ranuras = list(c("texto", 0.495, 2.05, 3.45, 3.6), c("grafico", 4.55, 1.7, 8.468, 1.6), c("grafico", 4.55, 3.7, 8.468, 2.55))),
-  p_slide_2_graficos_texto_derecha = list(pagina = 142L, ranuras = list(c("grafico", 0.495, 1.7, 8.6, 1.9), c("grafico", 0.495, 3.8, 8.6, 2.45), c("texto", 9.55, 2.05, 3.468, 3.4))),
+  # 2026-11-09 (Gonzalo, "Estos aún no se ven bien"): los dos gráficos con texto dejan de apilarse como en p140 y p142 y van
+  # lado a lado, como las fichas del recetario (recetario_fichas.R); la lámina nativa y la plantilla de respaldo leen esto.
+  p_slide_2_graficos_texto_izquierda = list(pagina = 140L, ranuras = list(c("texto", 0.495, 1.9, 3.5, 3.0), c("grafico", 4.4, 1.65, 4.2, 4.6), c("grafico", 8.85, 1.65, 4.168, 4.6))),
+  p_slide_2_graficos_texto_derecha = list(pagina = 142L, ranuras = list(c("grafico", 0.495, 1.65, 4.1, 4.6), c("grafico", 4.85, 1.65, 4.1, 4.6), c("texto", 9.25, 1.9, 3.768, 3.0))),
   p_slide_2_graficos_asimetrico = list(pagina = 146L, ranuras = list(c("grafico", 0.495, 1.6, 8.4, 4.65), c("grafico", 9.35, 1.6, 3.668, 4.65))),
   p_slide_3_graficos_1mas2 = list(pagina = 151L, ranuras = list(c("grafico", 0.495, 1.65, 6.012, 4.6), c("grafico", 7.007, 1.65, 6.012, 1.65), c("grafico", 7.007, 3.7, 6.012, 2.55))),
   p_slide_3_graficos_1arriba = list(pagina = 154L, ranuras = list(c("grafico", 0.495, 1.6, 12.523, 2.25), c("grafico", 0.495, 4.2, 6.012, 2.05), c("grafico", 7.007, 4.2, 6.012, 2.05))),

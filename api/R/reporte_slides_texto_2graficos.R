@@ -4,35 +4,31 @@
 # cajones de 1.6 in, dibujados para 6.1 in de ancho sin alto, y la base que pinta cada gráfico anclada a una esquina a 3 in
 # de él ("Estos aún no se ven bien", Gonzalo, 2026-11-09). Ahora van por `.composicion_render` como las de tres y cuatro
 # gráficos: los dos gráficos lado a lado, como las fichas del recetario (recetario_fichas.R: texto de 3.5 in, gráficos de
-# 4.2 in y alto de la zona de datos), cada gráfico renderizado con el ancho y el alto reales de su ranura, y el texto en su
+# 4.2 in y alto de la zona de datos; ranuras en el estándar, estandar_pulso.json), cada gráfico renderizado con el ancho y el alto reales de su ranura, y el texto en su
 # columna con el filete coral de la narrativa. La plantilla queda de respaldo (motor_nativo = FALSE o ningún panel cabe) y
 # allí el texto y el pie van a sus marcadores, como antes.
 
 .TEXTO2_TIPOS <- c("text_l2", "text_r2")
 
-#' Rectángulos de "dos gráficos con texto" (recetario_fichas.R, fichas 8 y 9)
+#' Rectángulos de "dos gráficos con texto", leídos de `ppt.tipos_lamina` del estándar (una sola fuente con la plantilla de
+#' respaldo, plantilla_layouts_estandar.R)
 #'
+#' Los gráficos toman x, y y ancho de su ranura y, como el panel de abajo de las demás mixtas, dibujan hasta el fin del
+#' contenido; el texto, su x, y y ancho, y llega hasta el fin del contenido.
 #' @param tipo `"text_l2"` o `"text_r2"`.
 #' @return Como `.lam_mixta_geo()`: `paneles` (gráfico 1, gráfico 2), `filetes` y `texto` (x, y, w, h de la columna de texto).
 #' @keywords internal
 .lam_texto2_geo <- function(tipo) {
   if (!tipo %in% .TEXTO2_TIPOS) return(NULL)
-  g_ <- .std_geom; ml <- g_("margen_izq"); xe <- g_("ancho") - g_("margen_der")
-  yt <- g_("zona_datos_y0"); yf <- g_("contenido_y1")
-  P <- function(x, w, k) list(x = x, y = yt, w = w, h = yf - yt - .lam_reserva_inferior(k), receta = .lam_receta_ranura(k))
-  if (identical(tipo, "text_l2")) {
-    # Texto 3.5 in desde el margen; gráficos desde 4.4 (4.2 in) y desde 8.85 hasta el margen derecho.
-    x1 <- ml + 3.905; w1 <- 4.2; x2 <- x1 + w1 + 0.25
-    texto <- list(x = ml, w = 3.5)
-  } else {
-    # Espejo: gráficos de 4.1 in desde el margen con calle de 0.255; el texto desde 9.25 hasta el margen derecho.
-    x1 <- ml; w1 <- 4.1; x2 <- x1 + w1 + 0.255
-    texto <- list(x = x2 + w1 + 0.3, w = xe - (x2 + w1 + 0.3))
-  }
-  w2 <- if (identical(tipo, "text_l2")) xe - x2 else w1
-  list(paneles = list(P(x1, w1, 1L), P(x2, w2, 2L)),
-       filetes = list(list(tipo = "v", x = (x1 + w1 + x2) / 2, y0 = yt, y1 = yf)),
-       texto = c(texto, list(y = yt + 0.25, h = yf - yt - 0.25)))
+  id <- if (identical(tipo, "text_l2")) "p_slide_2_graficos_texto_izquierda" else "p_slide_2_graficos_texto_derecha"
+  r <- .std_tipo_lamina(id)$ranuras
+  g <- Filter(function(z) identical(z$tipo, "grafico"), r); t <- Filter(function(z) identical(z$tipo, "texto"), r)
+  if (length(g) != 2L || length(t) != 1L) return(NULL)
+  yf <- .std_geom("contenido_y1"); t <- t[[1]]
+  P <- function(q, k) list(x = q$x, y = q$y, w = q$w, h = yf - q$y - .lam_reserva_inferior(k), receta = .lam_receta_ranura(k))
+  list(paneles = list(P(g[[1]], 1L), P(g[[2]], 2L)),
+       filetes = list(list(tipo = "v", x = (g[[1]]$x + g[[1]]$w + g[[2]]$x) / 2, y0 = g[[1]]$y, y1 = yf)),
+       texto = list(x = t$x, y = t$y, w = t$w, h = yf - t$y))
 }
 
 #' Ancho y alto (in) con que se renderiza cada gráfico de "dos gráficos con texto": los de su ranura
