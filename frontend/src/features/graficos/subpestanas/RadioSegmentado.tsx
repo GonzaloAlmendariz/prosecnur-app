@@ -25,6 +25,9 @@ type Props<K extends string> = {
   ancho?: boolean;
   /** Un rótulo largo parte línea dentro de su opción en vez de recortarse (C4); el riel crece en alto. */
   multilinea?: boolean;
+  /** Las opciones en columna, una por fila a todo el ancho (las flechas arriba/abajo recorren): para rótulos largos en
+   *  un ancho angosto, donde partirlos en columnas los cortaría dentro de una palabra (C4). */
+  vertical?: boolean;
   deshabilitado?: boolean;
   className?: string;
   /** Grupo de geometría (C1) cuando la superficie lo declara. */
@@ -32,7 +35,7 @@ type Props<K extends string> = {
 };
 
 export function RadioSegmentado<K extends string>({
-  etiqueta, opciones, valor, onCambiar, ancho = false, multilinea = false, deshabilitado = false, className, qaGrupo,
+  etiqueta, opciones, valor, onCambiar, ancho = false, multilinea = false, vertical = false, deshabilitado = false, className, qaGrupo,
 }: Props<K>) {
   return (
     <GlidingRadioGroup
@@ -41,7 +44,8 @@ export function RadioSegmentado<K extends string>({
       getOptionValue={(o) => o.clave}
       onValueChange={onCambiar}
       aria-label={etiqueta}
-      className={["pulso-f6-segmento", ancho ? "is-ancho" : null, multilinea ? "is-multilinea" : null, className].filter(Boolean).join(" ")}
+      orientation={vertical ? "vertical" : "horizontal"}
+      className={["pulso-f6-segmento", ancho ? "is-ancho" : null, multilinea ? "is-multilinea" : null, vertical ? "is-vertical" : null, className].filter(Boolean).join(" ")}
       data-qa-geometry-group={qaGrupo}
       data-qa-geometry-contract={qaGrupo ? (ancho ? "equal" : "intrinsic") : undefined}
       getOptionProps={(o) => {

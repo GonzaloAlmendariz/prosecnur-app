@@ -1,7 +1,8 @@
 // Tarjeta de un tipo de gráfico en «Tipo de gráfico» (F6.2; dirección F6 §4.4): el glifo propio con la paleta vigente,
 // el nombre, para qué sirve y la marca de cómo sale cuando no es nativa. Si el tipo tiene variantes del catálogo, la
 // tarjeta ofrece sus versiones con un control segmentado (ADR 0139, enmienda 2026-11-09: la variante es una versión del
-// tipo, no una tarjeta aparte). El control es hermano del radio de la tarjeta, no va dentro de su etiqueta: Tab llega a
+// tipo, no una tarjeta aparte); con más de dos versiones van en columna, para no cortar sus nombres dentro de una
+// palabra en el ancho de la tarjeta. El control es hermano del radio de la tarjeta, no va dentro de su etiqueta: Tab llega a
 // él después de la tarjeta y su nombre accesible no se mezcla con el de ella. Si el tipo no se puede usar aquí, la línea
 // de la tarjeta dice por qué. Radio: flechas recorren, Enter o doble clic usan.
 
@@ -85,6 +86,7 @@ export function TarjetaTipoGrafico({
             onCambiar={onElegirVersion}
             ancho
             multilinea
+            vertical={versiones.length > 2}
           />
         </div>
       )}

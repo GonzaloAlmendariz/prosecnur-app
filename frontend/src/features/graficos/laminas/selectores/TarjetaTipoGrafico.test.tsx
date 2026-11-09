@@ -53,6 +53,16 @@ describe("TarjetaTipoGrafico", () => {
     expect(onElegirVersion).toHaveBeenCalledWith("p_barras_divergentes");
   });
 
+  it("con dos versiones van lado a lado; con más, en columna (no se cortan dentro de una palabra)", () => {
+    pintar({ versiones: VERSIONES, version: VERSIONES[0].id, onElegirVersion: vi.fn() });
+    expect(host.querySelector(".pulso-f6-segmento")?.classList.contains("is-vertical")).toBe(false);
+    const tres = [...VERSIONES, { id: "x:otra", nombre: "Otra", variante: null }];
+    pintar({ versiones: tres, version: tres[0].id, onElegirVersion: vi.fn() });
+    const seg = host.querySelector(".pulso-f6-segmento");
+    expect(seg?.classList.contains("is-vertical")).toBe(true);
+    expect(seg?.getAttribute("data-gliding-orientation")).toBe("vertical");
+  });
+
   it("bloqueada, dice por qué en su línea y sigue siendo elegible", () => {
     pintar({ bloqueo: "Esta ranura recibe solo cifras" });
     const linea = host.querySelector(".pulso-f6-tarjeta-meta.is-bloqueo");
