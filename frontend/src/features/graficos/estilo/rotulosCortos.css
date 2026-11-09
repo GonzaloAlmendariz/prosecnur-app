@@ -24,7 +24,8 @@
   margin: var(--pulso-space-1) 0 0;
   max-width: 72ch;
   color: var(--pulso-text-soft);
-  line-height: 1.5;
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.45;
 }
 
 .pulso-rc-barra {
@@ -35,7 +36,7 @@
   min-width: 0;
 }
 
-.pulso-rc-base { min-width: 140px; max-width: 100%; }
+.pulso-rc-base { flex: 0 1 220px; min-width: 140px; }
 
 .pulso-rc-buscar {
   display: inline-flex;

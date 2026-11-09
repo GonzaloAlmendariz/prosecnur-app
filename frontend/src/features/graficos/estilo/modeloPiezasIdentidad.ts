@@ -27,7 +27,7 @@ export function piezasIdentidad(e: EntradaPiezas): ParteDeLista<ClavePieza>[] {
       estado: e.lineaNombre ? { tono: "listo", texto: "Aplicada" } : POR_DEFECTO },
     { clave: "colores", rotulo: "Colores", detalle: "Por escala",
       estado: e.faltanColores ? { tono: "aviso", texto: `${e.faltanColores} sin colores` } : { tono: "listo", texto: "Completos" } },
-    { clave: "rotulos", rotulo: "Rótulos cortos", detalle: "Respuestas largas",
+    { clave: "rotulos", rotulo: "Rótulos cortos", detalle: "Preguntas y categorías",
       estado: e.nRotulos ? { tono: "conteo", texto: String(e.nRotulos) } : POR_DEFECTO },
     { clave: "logos", rotulo: "Logos", detalle: e.conLogos ? "Logos propios" : "Los del recetario",
       estado: e.conLogos ? { tono: "listo", texto: "Propios" } : POR_DEFECTO },

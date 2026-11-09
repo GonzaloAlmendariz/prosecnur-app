@@ -130,8 +130,8 @@ export function RotulosCortos() {
       <header className="pulso-rc-cabecera">
         <h3 id={tituloId} className="pulso-rc-titulo">Rótulos cortos</h3>
         <p className="pulso-rc-bajada">
-          Las preguntas y categorías con el rótulo más largo primero. El rótulo corto reemplaza al completo en las láminas
-          del PPT y el Word; no cambia Analítica. El nombre corto escrito en un gráfico le gana al de esta lista.
+          Del rótulo más largo al más corto. El rótulo corto reemplaza al completo en las láminas del PPT y el Word; no
+          cambia Analítica. El nombre corto escrito en un gráfico le gana al de esta lista.
         </p>
       </header>
 
@@ -146,8 +146,10 @@ export function RotulosCortos() {
               { clave: "categorias", rotulo: `Categorías ${formatoConteo(nCategorias)}`, titulo: `Categorías (${formatoConteo(nCategorias)})` },
             ]} />
           {ranking.bases.length > 1 && base ? (
-            <PulsoSelect size="sm" ariaLabel="Base" value={base} onValueChange={setBase} className="pulso-rc-base"
-              options={ranking.bases.map((b) => ({ value: b.base, label: b.base }))} />
+            <span className="pulso-rc-base">
+              <PulsoSelect size="sm" ariaLabel="Base" value={base} onValueChange={setBase}
+                options={ranking.bases.map((b) => ({ value: b.base, label: b.base }))} />
+            </span>
           ) : null}
           <span className="pulso-rc-buscar">
             <Search size={14} aria-hidden="true" />
