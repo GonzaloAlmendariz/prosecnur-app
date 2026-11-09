@@ -767,3 +767,31 @@ test_that("P7. la tarjeta y el inspector dicen qué indicador se probó aunque l
   l <- .tpub_lamina_json(sl, src, .tp_regla())
   expect_identical(l$tarjetas[[1]]$indicador, "Top Two Box")
 })
+
+test_that("P8. sin cifras del gráfico que cotejar el tema se abstiene con motivo, no se salta la conciliación", {
+  src <- .tp_tres()
+  temas <- .tpub_temas_declarados(.tp_vars6[1:3])
+  # NULL: no se concilia (lo usa la familia). Vacío: el gráfico no se pudo leer y cada tema se abstiene.
+  r0 <- .tpub_calcular(temas, "3,4", src, .tp_regla(), .tp_opt(), referencia = NULL)
+  expect_true(all(vapply(r0$temas, `[[`, "", "estado") == "evaluable"))
+  r1 <- .tpub_calcular(temas, "3,4", src, .tp_regla(), .tp_opt(), referencia = list())
+  expect_true(all(vapply(r1$temas, `[[`, "", "estado") == "abstencion"))
+  expect_true(all(vapply(r1$temas, `[[`, "", "motivo") == .TPUB_MOTIVO_SIN_REFERENCIA))
+  expect_length(r1$tarjetas, 0L)
+  # La espec de las pesas que no se deja leer (tipo ajeno) da NULL, que el render convierte en vacío.
+  expect_null(.tpub_referencia_pesas(list(tipo = "otro"), list(t = c("docentes$p1", "estudiantes$p1"))))
+})
+
+test_that("P8. una fila compuesta de la matriz se abstiene en el panorama con su motivo, no como «sin equivalencia»", {
+  src <- .tp_tres()
+  eq <- .tp_equiv6(1:5)
+  eq$filas[[5]]$derivada <- list(por_base = list(docentes = list(variables = list("p5", "p6"), codigos = list())))
+  x <- .tp_calc_lamina(.tp_lamina_panorama(), src, equiv = eq)
+  te5 <- Filter(function(te) identical(te$tema, .tp_rot6[5]), x$r$temas)[[1]]
+  expect_identical(te5$estado, "sin_equivalencia")
+  expect_identical(te5$motivo, .TPUB_MOTIVO_COMPUESTO)
+  otros <- Filter(function(te) te$tema %in% .tp_rot6[1:4], x$r$temas)
+  expect_true(all(vapply(otros, `[[`, "", "estado") == "evaluable"))
+  expect_false(any(vapply(x$r$temas, function(te) identical(te$motivo, .TPUB_MOTIVO_SIN_EQUIV), logical(1))))
+})
+})

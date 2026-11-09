@@ -74,6 +74,7 @@
   base <- vapply(partes, `[[`, "", "source"); var <- vapply(partes, `[[`, "", "name")
   bases <- unique(base)
   out <- list()
+  compuestos <- character(0)
   for (f in (equiv %||% list())$filas %||% list()) {
     if (isTRUE(f$sugerida)) next
     v <- f$variables %||% list()
@@ -87,9 +88,18 @@
     if (is.na(tema) || !nzchar(tema)) tema <- r[1]
     if (tema %in% names(out)) tema <- paste0(tema, " (", sum(startsWith(names(out), tema)) + 1L, ")")
     out[[tema]] <- r
+    # Una fila compuesta (indicador derivado) no es un par de preguntas: `.tpub_en_matriz` no la reconoce y el tema
+    # se abstiene con su propio motivo, no con «sin equivalencia declarada».
+    en <- vapply(.tpub_bases_de_refs(r), function(b) !is.null(.equiv_deriv_entrada(f, b)), logical(1))
+    if (any(en)) compuestos <- c(compuestos, tema)
   }
+  attr(out, "compuestos") <- compuestos
   out
 }
+
+#' Bases de unas refs `base$var`
+#' @keywords internal
+.tpub_bases_de_refs <- function(refs) vapply(lapply(refs, .graficos_ref_parts), `[[`, "", "source")
 
 #' Temas del panorama: regla de preguntas, `base$*` expandido y los temas que la matriz empareja
 #'
@@ -102,7 +112,13 @@
   if (!is.null(el$regla)) el_r <- .regla_preguntas_aplicar_render(el_r, "panorama", sources)$el
   refs <- .panorama_expandir(as.character(unlist(el_r$vars)), .radar_mb_codigos(el$corte), sources)
   vars_render <- .tpub_panorama_temas_matriz(refs, equiv)
-  list(vars_render = vars_render, temas = .tpub_temas_declarados(vars_render, list(), equiv))
+  compuestos <- attr(vars_render, "compuestos") %||% character(0)
+  attr(vars_render, "compuestos") <- NULL
+  temas <- lapply(.tpub_temas_declarados(vars_render, list(), equiv), function(x) {
+    if (x$tema %in% compuestos && is.na(x$equivalencia)) x$motivo_equiv <- .TPUB_MOTIVO_COMPUESTO
+    x
+  })
+  list(vars_render = vars_render, temas = temas)
 }
 
 # --- Cifras del gráfico ------------------------------------------------------------------------------------------

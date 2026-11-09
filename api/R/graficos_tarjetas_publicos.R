@@ -33,6 +33,8 @@
 .TPUB_MOTIVO_ESCALAS <- "escalas distintas, no se compara"
 .TPUB_MOTIVO_SIN_EQUIV <- "sin equivalencia declarada entre públicos, no se compara"
 .TPUB_MOTIVO_FUERA_FAMILIA <- "la comparación no está en la familia entre públicos del informe; no se marca"
+.TPUB_MOTIVO_SIN_REFERENCIA <- "no se pudieron leer las cifras del gráfico para cotejarlas; no se compara"
+.TPUB_MOTIVO_COMPUESTO <- "la fila de la matriz es un indicador compuesto en algún público y el gráfico dibuja preguntas; no se compara"
 
 #' Opción de la lámina: NULL si no pide tarjetas entre públicos; si las pide, la lista normalizada
 #'
@@ -238,12 +240,12 @@
 #'   «sin_equivalencia» o «abstencion» (menos de dos públicos comparables con datos).
 #' @keywords internal
 .tpub_evaluar_tema <- function(tema, refs, corte, sources, regla, filtros = list(), etiquetas = NULL,
-                               equivalencia = "emparejado") {
+                               equivalencia = "emparejado", motivo_equiv = NULL) {
   bases <- names(refs)
   etiquetas <- etiquetas %||% stats::setNames(.radar_mb_capitalizar(bases), bases)
   out <- list(tema = tema, refs = refs, bases = bases, etiquetas = etiquetas[bases], estado = "evaluable",
               motivo = NA_character_, ev = NULL, datos = list(), gl = integer(0), equivalencia = equivalencia)
-  if (is.na(equivalencia)) { out$estado <- "sin_equivalencia"; out$motivo <- .TPUB_MOTIVO_SIN_EQUIV; return(out) }
+  if (is.na(equivalencia)) { out$estado <- "sin_equivalencia"; out$motivo <- motivo_equiv %||% .TPUB_MOTIVO_SIN_EQUIV; return(out) }
   cod <- .tpub_codigos_por_base(refs, corte, sources)
   if (!isTRUE(cod$ok)) { out$estado <- "escalas_distintas"; out$motivo <- cod$motivo; return(out) }
   datos <- lapply(bases, function(b) .tpub_datos_base(b, refs[[b]], cod$codigos[[b]], sources, regla, filtros))
@@ -309,11 +311,17 @@
 
 #' Conciliación con el gráfico: la prueba tiene que ver las mismas cifras que dibuja la lámina
 #'
-#' @param referencia Vector nombrado base -> valor (0-100) del gráfico para ese tema; NULL no concilia.
-#' @return El tema, con estado «abstencion» si alguna cifra no cuadra (tolerancia 1e-6 puntos).
+#' @param referencia Vector nombrado base -> valor (0-100) del gráfico para ese tema; NULL no concilia. Vacío: el
+#'   gráfico debía cotejarse y no se pudieron leer sus cifras; el tema se abstiene con ese motivo.
+#' @return El tema, con estado «abstencion» si alguna cifra no cuadra (tolerancia 1e-6 puntos) o no se pudo leer.
 #' @keywords internal
 .tpub_conciliar <- function(te, referencia) {
   if (is.null(referencia) || !identical(te$estado, "evaluable") || is.null(te$ev$celdas)) return(te)
+  if (!length(referencia)) {
+    te$estado <- "abstencion"
+    te$motivo <- .TPUB_MOTIVO_SIN_REFERENCIA
+    return(te)
+  }
   ce <- te$ev$celdas
   graf <- suppressWarnings(as.numeric(referencia[ce$grupo]))
   prueba <- 100 * ce$p
@@ -491,7 +499,8 @@
 #' Calcula las tarjetas entre públicos de un conjunto de temas declarados
 #'
 #' @param temas Salida de `.tpub_temas_declarados`.
-#' @param referencia Cifras del gráfico: lista `tema -> c(base = valor)`; NULL no concilia (sólo la familia).
+#' @param referencia Cifras del gráfico: lista `tema -> c(base = valor)`; NULL no concilia (sólo la familia). Una lista
+#'   sin el tema (o vacía, si el gráfico no se pudo leer) hace abstenerse a ese tema.
 #' @param familia Tabla de BH entre públicos.
 #' @param corte_etiqueta Nombre del indicador en el gráfico; sin él ni `opt$indicador`, el de los rótulos del corte.
 #' @return `list(tarjetas, total, tipo, opcion, temas, rotulos_cruce, regla, nota, familia)`.
@@ -508,7 +517,7 @@
                   motivo = .TPUB_MOTIVO_SIN_EQUIV, ev = NULL, datos = list(), equivalencia = NA_character_))
     }
     .tpub_evaluar_tema(x$tema, x$refs, corte, sources, regla, filtros = filtros, etiquetas = etq,
-                       equivalencia = x$equivalencia)
+                       equivalencia = x$equivalencia, motivo_equiv = x$motivo_equiv)
   })
   ev <- .tpub_veredictos(ev, regla, familia)
   fam <- attr(ev, "familia")

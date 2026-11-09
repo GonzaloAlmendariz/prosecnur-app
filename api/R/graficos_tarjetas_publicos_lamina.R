@@ -80,16 +80,23 @@
   t <- tryCatch({
     tt <- .tpub_temas_de_elemento(el, sources, ctx$equivalencias_publicos)
     .tpub_calcular(tt$temas, el$corte, sources, regla, opt, familia = ctx$familia_publicos,
-                   filtros = el$filtros %||% list(), referencia = .tpub_referencia_render(el, p, espec, tt$vars_render),
+                   filtros = el$filtros %||% list(), referencia = .tpub_referencia_render(el, p, espec, tt$vars_render) %||% list(),
                    titulo = titulo, corte_etiqueta = el$corte_etiqueta)
   }, error = function(e) {
     .tpub_aviso("no se pudieron calcular en \"", titulo, "\" (", conditionMessage(e), ").")
     NULL
   })
   if (is.null(t)) return(p)
-  sin_eq <- sum(vapply(t$temas, function(te) identical(te$estado, "sin_equivalencia"), logical(1)))
+  motivo_de <- function(m) sum(vapply(t$temas, function(te) identical(te$estado, "sin_equivalencia") && identical(te$motivo, m), logical(1)))
+  sin_eq <- motivo_de(.TPUB_MOTIVO_SIN_EQUIV)
   if (sin_eq) .tpub_aviso("en \"", titulo, "\", ", sin_eq, " de ", length(t$temas), " temas no tienen equivalencia declarada ",
                           "(matriz o emparejado confirmado) y no se comparan.")
+  compuestos <- motivo_de(.TPUB_MOTIVO_COMPUESTO)
+  if (compuestos) .tpub_aviso("en \"", titulo, "\", ", compuestos, " de ", length(t$temas), " temas son indicadores compuestos ",
+                              "en la matriz y el gráfico dibuja preguntas; no se comparan.")
+  sin_ref <- sum(vapply(t$temas, function(te) identical(te$motivo, .TPUB_MOTIVO_SIN_REFERENCIA), logical(1)))
+  if (sin_ref) .tpub_aviso("en \"", titulo, "\", no se pudieron leer las cifras del gráfico para cotejarlas; ", sin_ref,
+                           " temas no se comparan.")
   fuera <- sum(vapply(t$temas, function(te) as.integer(te$fuera_de_familia %||% 0L), integer(1)))
   if (fuera) .tpub_aviso("en \"", titulo, "\", ", fuera, " comparación(es) no están en la familia entre públicos del informe ",
                          "y no se marcan.")
@@ -117,7 +124,7 @@
   opt <- .tpub_opcion(slide$meta %||% (slide$payload %||% list())$meta)
   res <- tryCatch({
     tt <- .tpub_temas_de_elemento(el, sources, equiv)
-    ref <- .tpub_referencia_inspector(el, tt$vars_render, sources)
+    ref <- .tpub_referencia_inspector(el, tt$vars_render, sources) %||% list()   # sin cifras que cotejar, se abstiene
     .tpub_calcular(tt$temas, el$corte, sources, regla, opt, familia = familia, filtros = el$filtros %||% list(),
                    referencia = ref, titulo = titulo, corte_etiqueta = el$corte_etiqueta)
   }, error = function(e) e)
