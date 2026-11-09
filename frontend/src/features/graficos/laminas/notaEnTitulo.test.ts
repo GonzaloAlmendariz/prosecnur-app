@@ -19,7 +19,7 @@ describe("nota en el título (D4): se avisa, no se quita", () => {
       slidesById: { p_slide_1_grafico: { slots: ["grafico"], titulo_humano: "Un gráfico" } }, graficadoresById: {}, presetsByName: {},
       variables: [], multi: false });
     const aviso = r.issues.find((i) => i.code === "titulo-con-nota");
-    expect(aviso?.message).toContain("«[Entiéndase los propósitos]»");
+    expect(aviso?.message).toContain('"[Entiéndase los propósitos]"');
     expect((slide.payload as { titulo: string }).titulo).toBe(titulo);
   });
 });

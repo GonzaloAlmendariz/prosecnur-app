@@ -24,15 +24,15 @@ describe("ajustes de los focos del índice fijados por el recetario (decisión 3
 
   it("los ajustes sin equivalente no se aplican y su valor guardado se nombra, no se pierde", () => {
     const s = indice({ redibujar_focos: true, iconos_focos_fill: ["#111111", "", "#222222"], iconos_focos_objeto_unico: false });
-    expect(linea(s, "redibujar_focos")).toMatchObject({ sinEfecto: true, nota: expect.stringContaining("«Sí»") });
-    expect(linea(s, "iconos_focos_fill").nota).toContain("«2 colores»");
-    expect(linea(s, "iconos_focos_objeto_unico").nota).toContain("«No»");
+    expect(linea(s, "redibujar_focos")).toMatchObject({ sinEfecto: true, nota: expect.stringContaining('"Sí"') });
+    expect(linea(s, "iconos_focos_fill").nota).toContain('"2 colores"');
+    expect(linea(s, "iconos_focos_objeto_unico").nota).toContain('"No"');
   });
 
   it("lee también lo que el plan guarda en `estilo`", () => {
     const s = indice({ estilo: { redibujar_focos: true } });
     expect(valorGuardado(s.payload, "redibujar_focos")).toBe(true);
-    expect(linea(s, "redibujar_focos").nota).toContain("«Sí»");
+    expect(linea(s, "redibujar_focos").nota).toContain('"Sí"');
   });
 
   it("por la ruta anterior (estilo de focos o motor apagado) manda el valor guardado", () => {

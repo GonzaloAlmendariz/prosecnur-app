@@ -93,9 +93,9 @@ export function lineasFijadasIndice(slide: Pick<Slide, "payload">, args: readonl
         arg, rotulo,
         valor: oculta ? "No: la lista sale sin íconos" : "Sí: cada capítulo con el ícono elegido arriba",
         sinEfecto: false,
-        motivo: "Fijo por diseño: el ícono de cada capítulo se elige arriba, uno por uno («Sin ícono» quita el de un capítulo).",
+        motivo: 'Fijo por diseño: el ícono de cada capítulo se elige arriba, uno por uno ("Sin ícono" quita el de un capítulo).',
         nota: oculta
-          ? "El proyecto guarda «no mostrar íconos»: el motor lo respeta y quita todos los íconos de la lista, aunque elijas uno arriba."
+          ? 'El proyecto guarda "no mostrar íconos": el motor lo respeta y quita todos los íconos de la lista, aunque elijas uno arriba.'
           : null,
       };
     }
@@ -111,7 +111,7 @@ export function lineasFijadasIndice(slide: Pick<Slide, "payload">, args: readonl
       sinEfecto: true,
       motivo,
       nota: texto
-        ? `El proyecto guarda «${texto}»: se conserva tal cual y vuelve a usarse si la lámina sale por la ruta anterior.`
+        ? `El proyecto guarda "${texto}": se conserva tal cual y vuelve a usarse si la lámina sale por la ruta anterior.`
         : null,
     };
   });

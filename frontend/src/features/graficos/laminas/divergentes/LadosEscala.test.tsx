@@ -83,7 +83,7 @@ describe("Lados de la escala", () => {
     pintar({});
     await esperar();
     const nota = host.querySelector('[data-qa="lados-dos-niveles"]');
-    expect(nota?.textContent).toContain("«Sí» va al lado negativo y «No» al positivo.");
+    expect(nota?.textContent).toContain('"Sí" va al lado negativo y "No" al positivo.');
     const dejar = [...(nota?.querySelectorAll("button") ?? [])].find((b) => b.textContent === "dejarlo así") as HTMLButtonElement;
     act(() => dejar.click());
     expect(cambios.at(-1)).toEqual({ n_negativas: 1, incluir_neutro: true, direccion_escala: "negativo_positivo" });
@@ -133,7 +133,7 @@ describe("Lados de la escala", () => {
     expect(host.querySelector('[role="slider"]')).toBeNull();
   });
 
-  it("R9-12: «Invertir o dejarlo así» es una frase: los dos enlaces no son hermanos contiguos", () => {
+  it('R9-12: "Invertir o dejarlo así" es una frase: los dos enlaces no son hermanos contiguos', () => {
     const src = fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "LadosEscala.tsx"), "utf8");
     expect(src).toMatch(/>Invertir<\/PulsoButton>\s*(\{\/\*[\s\S]*?\*\/\}\s*)?<span> o <\/span>/);
   });

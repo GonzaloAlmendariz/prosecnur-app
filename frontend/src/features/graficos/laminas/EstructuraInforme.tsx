@@ -119,7 +119,7 @@ export function EstructuraInforme({ onCerrar, acciones, estructura, posicionActi
           // 5 nov 2026 (pulido de UI): sin la guía; la da el lienzo de al lado, que repetía la misma frase.
           <EstadoVacio icono={<Presentation size={16} aria-hidden="true" />} titulo="Todavía no hay láminas" />
         ) : nodos.length === 0 ? (
-          <EstadoVacio icono={<SearchX size={16} aria-hidden="true" />} titulo={`Ninguna lámina coincide con «${consulta.trim()}»`} />
+          <EstadoVacio icono={<SearchX size={16} aria-hidden="true" />} titulo={`Ninguna lámina coincide con "${consulta.trim()}"`} />
         ) : (
           <DndContext {...orden}>
             <SortableContext items={visibles} strategy={sinDesplazar}>

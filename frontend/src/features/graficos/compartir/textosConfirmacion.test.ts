@@ -4,10 +4,10 @@ import { textoConfirmarImportacion, textoConfirmarPlan } from "./textosConfirmac
 describe("textos de confirmación", () => {
   it("reemplazar y combinar dicen qué pasa y que Deshacer no lo revierte", () => {
     const r = textoConfirmarImportacion("replace", 1, "a.json");
-    expect(r).toMatchObject({ titulo: "¿Reemplazar 1 sección con «a.json»?", accion: "Reemplazar" });
+    expect(r).toMatchObject({ titulo: '¿Reemplazar 1 sección con "a.json"?', accion: "Reemplazar" });
     expect(r.detalle).toContain("Deshacer");
     const c = textoConfirmarImportacion("merge", 3, "b.json");
-    expect(c).toMatchObject({ titulo: "¿Combinar 3 secciones de «b.json»?", accion: "Combinar" });
+    expect(c).toMatchObject({ titulo: '¿Combinar 3 secciones de "b.json"?', accion: "Combinar" });
   });
 
   it("plan portátil en singular y plural", () => {

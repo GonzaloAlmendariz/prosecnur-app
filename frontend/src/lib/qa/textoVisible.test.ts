@@ -81,7 +81,7 @@ describe("jergaVisibleEn", () => {
   it("señala el término y la frase donde salió", () => {
     const hallazgos = jergaVisibleEn('<p>El deployment aún no está preparado</p>');
     expect(hallazgos).toHaveLength(1);
-    expect(hallazgos[0]).toContain("«deployment»");
+    expect(hallazgos[0]).toContain('"deployment"');
     expect(hallazgos[0]).toContain("El deployment aún no está preparado");
   });
 

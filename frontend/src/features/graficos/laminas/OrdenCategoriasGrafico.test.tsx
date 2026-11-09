@@ -148,7 +148,7 @@ describe("OrdenCategoriasGrafico · orden elegido antes (U4)", () => {
         scope="active" onCambio={() => undefined} />,
     );
     expect(html).toContain('data-qa="orden-dicho">De mayor a menor, elegido antes</span>');
-    expect(html).toContain("Este gráfico trae el orden «De mayor a menor», elegido antes; manda mientras no elijas otro.");
+    expect(html).toContain("Este gráfico trae el orden &quot;De mayor a menor&quot;, elegido antes; manda mientras no elijas otro.");
     expect(html).not.toContain("Por defecto, orden elegido antes");
     // La lista se ve en ese orden heredado (de mayor a menor), no en el del recetario.
     expect(filas(html)).toEqual(["1. Alfa", "2. Beta", `3. Gama. ${NO_SE_DIBUJA}`, "4. Otro"]);

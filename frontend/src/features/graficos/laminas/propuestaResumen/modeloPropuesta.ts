@@ -122,8 +122,8 @@ export function avisosPropuesta(p: PropuestaResumen): string[] {
   const out: string[] = [];
   if (p.tipo === "p_slide_hallazgos") {
     const sin = p.capitulos.reduce((n, c) => n + c.cifras.filter((h) => !h.texto).length, 0);
-    if (sin === 1) out.push("1 hallazgo no tiene texto propio. La lámina dice «respondió…» hasta que lo escribas.");
-    else if (sin > 1) out.push(`${formatoConteo(sin)} hallazgos no tienen texto propio. La lámina dice «respondió…» hasta que los escribas.`);
+    if (sin === 1) out.push('1 hallazgo no tiene texto propio. La lámina dice "respondió…" hasta que lo escribas.');
+    else if (sin > 1) out.push(`${formatoConteo(sin)} hallazgos no tienen texto propio. La lámina dice "respondió…" hasta que los escribas.`);
   }
   for (const a of p.avisos) {
     if (SIN_TEXTO.test(a)) continue;

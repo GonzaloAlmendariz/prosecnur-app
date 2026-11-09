@@ -56,7 +56,7 @@ export function CapitulosHallazgos({ valor, modo, automatica, calificar, scope, 
     aplicar(capitulos.map((c, k) => (k === i ? { ...c, ...parche } : c)));
   const cambiarHallazgo = (i: number, j: number, parche: Partial<HallazgoEditable>) =>
     cambiarCapitulo(i, { hallazgos: capitulos[i].hallazgos.map((h, k) => (k === j ? { ...h, ...parche } : h)) });
-  const nombreCapitulo = (c: CapituloEditable, i: number) => (c.titulo.trim() ? `capítulo «${c.titulo.trim()}»` : `capítulo ${i + 1}`);
+  const nombreCapitulo = (c: CapituloEditable, i: number) => (c.titulo.trim() ? `capítulo "${c.titulo.trim()}"` : `capítulo ${i + 1}`);
   const completos = escribirCapitulos(capitulos).length;
   const titulares = modo === "titulares";
 

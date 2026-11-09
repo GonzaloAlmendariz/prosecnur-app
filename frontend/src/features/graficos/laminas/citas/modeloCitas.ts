@@ -158,12 +158,12 @@ export function validarEdicion(original: string, editado: string): Validacion {
       const clave = (w: string) => sinTildes(nucleo(w).toLowerCase());
       const del = new Set(ot.map(clave));
       const nuevas = [...new Set(ft.map(clave))].filter((w) => w && !del.has(w));
-      return rechazo(nuevas.length ? `trae palabras que el comentario no tiene: «${nuevas.slice(0, 3).join("», «")}»`
+      return rechazo(nuevas.length ? `trae palabras que el comentario no tiene: "${nuevas.slice(0, 3).join('", "')}"`
         : "cambia el orden de las palabras o más de dos letras de una");
     }
   }
-  if (ini > 0 && !iniEl && !FIN_ORACION.test(ot[ini - 1])) return rechazo("empieza a media frase sin «[…]»");
-  if (fin < ot.length - 1 && !finEl && !FIN_ORACION.test(ot[fin])) return rechazo("termina a media frase sin «[…]»");
+  if (ini > 0 && !iniEl && !FIN_ORACION.test(ot[ini - 1])) return rechazo('empieza a media frase sin "[…]"');
+  if (fin < ot.length - 1 && !finEl && !FIN_ORACION.test(ot[fin])) return rechazo('termina a media frase sin "[…]"');
   if (cambios > Math.max(1, Math.floor(usadas / 3))) return rechazo(`corrige ${cambios} de ${usadas} palabras`);
   const recorte = partes.length > 1 || ini > 0 || fin < ot.length - 1;
   return { ok: true, tipo: [...(recorte ? ["recorte" as const] : []), ...(cambios > 0 ? ["correccion" as const] : [])], texto: e, motivo: "" };

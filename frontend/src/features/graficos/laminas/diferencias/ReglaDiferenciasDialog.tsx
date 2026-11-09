@@ -264,7 +264,7 @@ function FormularioRegla({ respuesta, borrador, previa, onCambiar, onRestablecer
               ))
               : <p className="pulso-sig-texto">{previa?.estado === "error" ? "Sin vista previa mientras la regla no pueda calcularse." : "Preparando la vista previa…"}</p>}
           </div>
-          <p className="pulso-sig-texto">La lámina «Cómo leer las diferencias» se actualiza con esta regla.</p>
+          <p className="pulso-sig-texto">La lámina "Cómo leer las diferencias" se actualiza con esta regla.</p>
         </section>
       </div>
     </>
@@ -280,7 +280,7 @@ function AvisoCambios({ previa, conglomerado }: { previa: CargaDiferencias<Vista
       <CajaDiferencias tono="peligro" role="alert" data-qa-geometry-member="">
         <strong className="pulso-sig-titulo"><AlertCircle size={14} aria-hidden="true" /> {sinCong ? "Falta la columna de conglomerado" : "No se pudo calcular la vista previa"}</strong>
         <p className="pulso-sig-texto">
-          {sinCong ? `La base no tiene ${conglomerado ? `la columna «${conglomerado}»` : "una columna de conglomerado"}. Elige otra o usa la prueba z.` : previa.message}
+          {sinCong ? `La base no tiene ${conglomerado ? `la columna "${conglomerado}"` : "una columna de conglomerado"}. Elige otra o usa la prueba z.` : previa.message}
           <CodigoError code={previa.code} errorId={previa.error_id} />
         </p>
       </CajaDiferencias>

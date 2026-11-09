@@ -40,7 +40,7 @@ export type EstadoTop2Box = { tono: "ok" | "falta" | "ajena"; mensaje: string };
 /** Qué le falta a la declaración: dos categorías, y que sean de esta escala. */
 export function estadoTop2Box(seleccion: string[], orden: string[]): EstadoTop2Box {
   const ajenas = seleccion.filter((c) => orden.length > 0 && !orden.includes(c));
-  if (ajenas.length) return { tono: "ajena", mensaje: `«${ajenas.join("», «")}» no está en la escala de estas preguntas.` };
+  if (ajenas.length) return { tono: "ajena", mensaje: `"${ajenas.join('", "')}" no está en la escala de estas preguntas.` };
   if (seleccion.length === TOP2BOX_CANTIDAD) return { tono: "ok", mensaje: `Top Two Box = ${seleccion.join(" + ")}.` };
   const faltan = TOP2BOX_CANTIDAD - seleccion.length;
   return { tono: "falta", mensaje: faltan === 2 ? "Elige las dos categorías que suman el Top Two Box." : "Elige una categoría más." };

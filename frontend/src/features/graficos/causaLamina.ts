@@ -39,7 +39,7 @@ function vacio(a: Ajuste): string {
 export function causaLlana(msg: string): string | null {
   const noUsar = /no usar `(\w+)`/.exec(msg);
   if (noUsar) {
-    const que = NO_USA[noUsar[1]] ?? (AJUSTES[noUsar[1]] ? `el ajuste «${AJUSTES[noUsar[1]].nombre}»` : "un ajuste");
+    const que = NO_USA[noUsar[1]] ?? (AJUSTES[noUsar[1]] ? `el ajuste "${AJUSTES[noUsar[1]].nombre}"` : "un ajuste");
     return `lleva ${que}, que este tipo de gráfico no usa`;
   }
   const quedoVacio = /`(\w+)` qued[oó] vac[ií]o/.exec(msg);
@@ -51,7 +51,7 @@ export function causaLlana(msg: string): string | null {
   if (valor) {
     const a = AJUSTES[valor[1]];
     return a
-      ? `el ajuste «${a.nombre}» tiene un valor que este gráfico no acepta`
+      ? `el ajuste "${a.nombre}" tiene un valor que este gráfico no acepta`
       : "uno de sus ajustes tiene un valor que este gráfico no acepta";
   }
   return null;

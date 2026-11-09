@@ -39,7 +39,7 @@ describe("recortar por oraciones y fragmentos", () => {
   it("corta en oraciones y en comas", () => {
     expect(segmentosCita("Hola, mundo. Adiós.")).toEqual(["Hola,", "mundo.", "Adiós."]);
   });
-  it("arma el texto con «[…]» donde se quita algo; sin coma colgando", () => {
+  it('arma el texto con "[…]" donde se quita algo; sin coma colgando', () => {
     const seg = segmentosCita("la gente en cpol es buena, pero falta apoyo. Gracias por todo.");
     expect(armarRecorte(seg, [true, false, true])).toBe("la gente en cpol es buena […] Gracias por todo.");
     expect(armarRecorte(seg, [false, true, false])).toBe("[…] pero falta apoyo. […]");
@@ -59,15 +59,15 @@ describe("validarEdicion: espejo de .citas_validar_edicion", () => {
     expect(validarEdicion("No hay adceso a la biblioteca", "No hay acceso a la biblioteca").ok).toBe(true);
     expect(validarEdicion("ojala sirva la encuesta", "ojalá sirva la encuesta").ok).toBe(true);
   });
-  it("acepta recortes con o sin «[…]» y las dos cosas a la vez", () => {
+  it('acepta recortes con o sin "[…]" y las dos cosas a la vez', () => {
     expect(validarEdicion(ORIG, "Los docentes deberían tener más pdoer de decisión.")).toMatchObject({ ok: true, tipo: ["recorte"] });
     expect(validarEdicion(ORIG, "Los docentes deberían tener más pdoer [...] decisión.")).toMatchObject({ ok: true, texto: "Los docentes deberían tener más pdoer […] decisión." });
     expect(validarEdicion(ORIG, "Los docentes deberían tener más poder de decisión.")).toMatchObject({ ok: true, tipo: ["recorte", "correccion"] });
   });
   it("rechaza lo que no es leve y dice por qué", () => {
     expect(validarEdicion(ORIG, "La facultad es excelente y todos los cursos son buenos.")).toMatchObject({ ok: false });
-    expect(validarEdicion(ORIG, ORIG.replace("más pdoer", "mucho más poder")).motivo).toContain("«mucho»");
-    expect(validarEdicion(ORIG, "Los docentes deberían tener más pdoer").motivo).toBe("termina a media frase sin «[…]»");
+    expect(validarEdicion(ORIG, ORIG.replace("más pdoer", "mucho más poder")).motivo).toContain('"mucho"');
+    expect(validarEdicion(ORIG, "Los docentes deberían tener más pdoer").motivo).toBe('termina a media frase sin "[…]"');
     expect(validarEdicion(ORIG, ORIG.replace("malos", "buenos")).ok).toBe(false);
     expect(validarEdicion("No hay sillas suficientes en el aula", "Sí hay sillas suficientes en el aula").ok).toBe(false);
     expect(validarEdicion(ORIG, "  ").motivo).toBe("viene vacía");

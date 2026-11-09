@@ -9,11 +9,11 @@ const sobre = (id: string) => ({ id }) as unknown as Over;
 
 describe("anuncios del arrastre en español, con el nombre y el lugar", () => {
   it("tomar, pasar, soltar y cancelar", () => {
-    expect(a.onDragStart({ active: act("contraste") })).toBe("Tomaste «Contraste de públicos», lugar 3 de 3.");
-    expect(a.onDragOver({ active: act("contraste"), over: sobre("cobertura") })).toBe("«Contraste de públicos» pasa al lugar 1 de 3.");
-    expect(a.onDragEnd({ active: act("contraste"), over: sobre("cobertura") })).toBe("Soltaste «Contraste de públicos» en el lugar 1 de 3.");
+    expect(a.onDragStart({ active: act("contraste") })).toBe('Tomaste "Contraste de públicos", lugar 3 de 3.');
+    expect(a.onDragOver({ active: act("contraste"), over: sobre("cobertura") })).toBe('"Contraste de públicos" pasa al lugar 1 de 3.');
+    expect(a.onDragEnd({ active: act("contraste"), over: sobre("cobertura") })).toBe('Soltaste "Contraste de públicos" en el lugar 1 de 3.');
     expect(a.onDragEnd({ active: act("panorama"), over: null })).toContain("queda donde estaba");
-    expect(a.onDragCancel({ active: act("panorama"), over: null })).toBe("Se canceló. «Panorama de públicos» vuelve al lugar 2 de 3.");
+    expect(a.onDragCancel({ active: act("panorama"), over: null })).toBe('Se canceló. "Panorama de públicos" vuelve al lugar 2 de 3.');
   });
 
   it("nunca el id crudo ni inglés", () => {

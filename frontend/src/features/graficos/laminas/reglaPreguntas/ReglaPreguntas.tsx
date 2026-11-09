@@ -163,7 +163,7 @@ export function ReglaPreguntas({ rotulo, ayuda, graficador, args, valor, scope, 
       {regla && faltaCruce && (
         <p className="pulso-f6-dato-ayuda" role="status">
           {`${FALTA_CRUCE} `}
-          <PulsoButton variant="link" size="sm" onClick={irADividir}>Ir a «Dividir por»</PulsoButton>
+          <PulsoButton variant="link" size="sm" onClick={irADividir}>Ir a "Dividir por"</PulsoButton>
         </p>
       )}
       {regla && !faltaCruce && error && <ErrorBlock label="No se pudo contar las preguntas" detail={error} />}

@@ -98,7 +98,7 @@ export function EditorIndiceVista({ indice, estructura, onAplicar: aplicar, onAb
     if (hasta < 0 || hasta >= indice.capitulos.length || desde === hasta) return;
     const titulo = indice.capitulos[desde].titulo.trim() || "Capítulo sin título";
     aplicar(moverCapitulo(indice, desde, hasta));
-    setAnuncio(`«${titulo}» en la posición ${hasta + 1} de ${formatoConteo(indice.capitulos.length)}.`);
+    setAnuncio(`"${titulo}" en la posición ${hasta + 1} de ${formatoConteo(indice.capitulos.length)}.`);
     requestAnimationFrame(() => {
       const fila = filas.current.get(hasta);
       if (!fila) return;
@@ -116,7 +116,7 @@ export function EditorIndiceVista({ indice, estructura, onAplicar: aplicar, onAb
   const quitar = (i: number) => {
     const titulo = indice.capitulos[i].titulo.trim() || "Capítulo sin título";
     aplicar(sinCapitulo(indice, i));
-    setAnuncio(`Se quitó «${titulo}». Ctrl+Z lo devuelve.`);
+    setAnuncio(`Se quitó "${titulo}". Ctrl+Z lo devuelve.`);
     requestAnimationFrame(() => filas.current.get(Math.min(i, indice.capitulos.length - 2))?.focus());
   };
   const tomar = () => {
@@ -214,14 +214,14 @@ export function EditorIndiceVista({ indice, estructura, onAplicar: aplicar, onAb
                       onChange={(e) => aplicar(conCapitulo(indice, i, { titulo: e.target.value }))}
                     />
                     <PulsoButton variant="icon" tone="quiet" size="sm" {...{ [ATRIBUTO_ACCION_ORDEN]: "subir" }}
-                      aria-label={`Subir «${nombre}»`} disabled={i === 0} onClick={() => mover(i, i - 1, "subir")}>
+                      aria-label={`Subir "${nombre}"`} disabled={i === 0} onClick={() => mover(i, i - 1, "subir")}>
                       <ArrowUp aria-hidden="true" />
                     </PulsoButton>
                     <PulsoButton variant="icon" tone="quiet" size="sm" {...{ [ATRIBUTO_ACCION_ORDEN]: "bajar" }}
-                      aria-label={`Bajar «${nombre}»`} disabled={i === n - 1} onClick={() => mover(i, i + 1, "bajar")}>
+                      aria-label={`Bajar "${nombre}"`} disabled={i === n - 1} onClick={() => mover(i, i + 1, "bajar")}>
                       <ArrowDown aria-hidden="true" />
                     </PulsoButton>
-                    <PulsoButton variant="icon" tone="quiet" size="sm" intent="remove" aria-label={`Quitar «${nombre}»`} onClick={() => quitar(i)}>
+                    <PulsoButton variant="icon" tone="quiet" size="sm" intent="remove" aria-label={`Quitar "${nombre}"`} onClick={() => quitar(i)}>
                       <Trash2 aria-hidden="true" />
                     </PulsoButton>
                   </div>

@@ -23,7 +23,7 @@ export function PastillaBaseRef({ estado, ocultarNeutra = false }: PastillaProps
       );
     case "en-otra-base":
       return (
-        <span className="pulso-gv2-variable-trigger-source pulso-base-ref-pastilla is-otra-base" data-base-ref="otra" title={`Está en la base «${estado.base}».`}>
+        <span className="pulso-gv2-variable-trigger-source pulso-base-ref-pastilla is-otra-base" data-base-ref="otra" title={`Está en la base "${estado.base}".`}>
           En otra base
         </span>
       );
@@ -69,9 +69,9 @@ export function FijarEnOtraBase({ estado, baseActiva, onFijar }: FijarProps) {
         }
       >
         <span className="pulso-base-ref-texto">
-          {baseActiva ? `No está en la base «${baseActiva}». ` : ""}
+          {baseActiva ? `No está en la base "${baseActiva}". ` : ""}
           Está en {estado.otras.length > 1 ? "las bases " : "la base "}
-          {estado.otras.map((b) => `«${b}»`).join(" y ")}.
+          {estado.otras.map((b) => `"${b}"`).join(" y ")}.
         </span>
       </Alert>
     </div>

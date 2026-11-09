@@ -6,7 +6,7 @@ import { criteriosDelRadar, formaEfectivaRadar } from "./formaRadar";
 export function NotaFormaRadar({ args }: { args: Readonly<Record<string, unknown>> }) {
   const f = formaEfectivaRadar({ forma: args.forma, fallback_pocos: args.fallback_pocos, tabla: args.tabla, nCriterios: criteriosDelRadar(args) });
   // Con otra forma que la telaraña, «Automática» de la tabla es «sin tabla»: se dice, para que no suene contradictorio.
-  const tablaAuto = f.forma !== "radar" && args.tabla !== "si" && args.tabla !== "no" ? "Con esta forma, Automática es sin tabla; elige «Sí» para verla." : null;
+  const tablaAuto = f.forma !== "radar" && args.tabla !== "si" && args.tabla !== "no" ? 'Con esta forma, Automática es sin tabla; elige "Sí" para verla.' : null;
   if (!f.nota && !f.aviso && !tablaAuto) return null;
   return (
     <div className="pulso-f6-dato is-apilado" data-qa="nota-forma-radar">

@@ -111,5 +111,5 @@ export function avisoDosNiveles(args: Readonly<Record<string, unknown>>, cats: r
   const lados = repartoLados(2, vista);
   const negativa = cats[lados.indexOf("neg")];
   const positiva = cats[lados.indexOf("pos")];
-  return `«${negativa}» va al lado negativo y «${positiva}» al positivo.`;
+  return `"${negativa}" va al lado negativo y "${positiva}" al positivo.`;
 }

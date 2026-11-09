@@ -129,7 +129,7 @@ describe("PropuestaResumen", () => {
     ] });
     // Ya en «Los escribo yo»: queda el botón para volver a traerla, con el foco, y el anuncio.
     expect(document.activeElement?.textContent).toContain("Traer la propuesta del motor");
-    expect(host.textContent).toContain("En «Los escribo yo» con 2 hallazgos. Ctrl+Z lo deshace.");
+    expect(host.textContent).toContain('En "Los escribo yo" con 2 hallazgos. Ctrl+Z lo deshace.');
   });
 
   it("si se desmarca todo y se edita, avisa y no cambia nada", async () => {

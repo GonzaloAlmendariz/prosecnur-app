@@ -127,7 +127,7 @@ describe("de la propuesta al editor", () => {
 describe("avisos y firma", () => {
   it("los «no tiene texto» se dicen en uno, con cuántos; los demás sin el nombre de la lámina", () => {
     expect(avisosPropuesta(hallazgos)).toEqual([
-      "3 hallazgos no tienen texto propio. La lámina dice «respondió…» hasta que los escribas.",
+      '3 hallazgos no tienen texto propio. La lámina dice "respondió…" hasta que los escribas.',
       "El cruce «sexo» tiene grupos de menos de 30 casos.",
     ]);
     expect(avisosPropuesta(resumen)).toEqual([]);

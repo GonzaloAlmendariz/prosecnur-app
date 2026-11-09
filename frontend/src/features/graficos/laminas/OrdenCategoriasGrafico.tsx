@@ -146,7 +146,7 @@ export function OrdenCategoriasGrafico({ variable, graficador, args, scope, onCa
       )}
       {orden.modo === "recetario" && heredado && !vistaActiva && (
         <span className="pulso-f6-dato-ayuda" data-qa="orden-heredado" role="note">
-          {nombreHeredado ? `Este gráfico trae el orden «${nombreHeredado}», elegido antes` : "Este gráfico trae un orden elegido antes"}; manda
+          {nombreHeredado ? `Este gráfico trae el orden "${nombreHeredado}", elegido antes` : "Este gráfico trae un orden elegido antes"}; manda
           mientras no elijas otro.
         </span>
       )}

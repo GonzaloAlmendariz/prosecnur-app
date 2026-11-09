@@ -83,7 +83,7 @@ const TERRITORIAL_FALLBACK_REASON =
   "Disponible cuando el proyecto tenga Hojas de Ruta y Monitoreo territorial.";
 
 const CONSULTATION_REASON =
-  "Para insertar un modelo, abre esta biblioteca desde «Elegir gráfico» o «Cambiar» en un espacio del slide.";
+  'Para insertar un modelo, abre esta biblioteca desde "Elegir gráfico" o "Cambiar" en un espacio del slide.';
 
 const GENERATED_PLAN_REQUIRED_LABEL = "Requiere plan compatible";
 const GENERATED_PLAN_REQUIRED_DETAIL =

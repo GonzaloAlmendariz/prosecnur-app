@@ -195,7 +195,7 @@ export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
     // Con la disposición que eligió el analista («2+3»), el lugar que la ranura ocupa en ella (modeloDisposicion.ts).
     const nombreEspacio = (slot: string) => lugarDispuesto(slide, slot)
       || slideMeta.slot_specs?.find((spec) => spec.name === slot)?.label?.trim() || humanizeSlot(slot);
-    const enEspacio = (slot: string) => `${lamina}, espacio «${nombreEspacio(slot)}»`;
+    const enEspacio = (slot: string) => `${lamina}, espacio "${nombreEspacio(slot)}"`;
 
     // Slots de graficador vacíos
     for (const slot of slideMeta.slots) {
@@ -206,7 +206,7 @@ export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
         issues.push({
           severity: "warning",
           code: "slot-empty",
-          message: `${lamina}: el espacio «${nombreEspacio(slot)}» no tiene gráfico.`,
+          message: `${lamina}: el espacio "${nombreEspacio(slot)}" no tiene gráfico.`,
           slideId: slide.id,
           slotName: slot,
         });
@@ -260,7 +260,7 @@ export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
             severity: "warning",
             code: "var-base-implicita",
             message: `${enEspacio(slot)}: ${detalle}`,
-            detalle: graficosDeLamina(slideMeta.slots) > 1 ? `Espacio «${nombreEspacio(slot)}»: ${detalle}` : enMayuscula(detalle),
+            detalle: graficosDeLamina(slideMeta.slots) > 1 ? `Espacio "${nombreEspacio(slot)}": ${detalle}` : enMayuscula(detalle),
             slideId: slide.id,
             slotName: slot,
           });
@@ -274,7 +274,7 @@ export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
             severity: aviso.severity,
             code: aviso.code,
             message: `${enEspacio(slot)}: ${aviso.detalle}`,
-            detalle: graficosDeLamina(slideMeta.slots) > 1 ? `Espacio «${nombreEspacio(slot)}»: ${aviso.detalle}` : enMayuscula(aviso.detalle),
+            detalle: graficosDeLamina(slideMeta.slots) > 1 ? `Espacio "${nombreEspacio(slot)}": ${aviso.detalle}` : enMayuscula(aviso.detalle),
             slideId: slide.id,
             slotName: slot,
           });
@@ -310,7 +310,7 @@ export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
         issues.push({
           severity: "warning",
           code: "titulo-con-nota",
-          message: `${lamina}: el título lleva «${citaCorta(notas[0])}»${notas.length > 1 ? ` y ${notas.length - 1} nota${notas.length > 2 ? "s" : ""} más` : ""}. `
+          message: `${lamina}: el título lleva "${citaCorta(notas[0])}"${notas.length > 1 ? ` y ${notas.length - 1} nota${notas.length > 2 ? "s" : ""} más` : ""}. `
             + (escrito ? "Si no debe salir en la lámina, quítala del título." : "Viene del texto de la pregunta; si no debe salir, escribe el título de la lámina."),
           slideId: slide.id,
         });
@@ -333,7 +333,7 @@ export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
   });
 
   // 3) Valores numéricos inválidos persistidos en presets, Word y modos ----
-  const nombrePreset = (presetName: string) => `«${presetsByName[presetName]?.titulo_humano?.trim() || presetName}»`;
+  const nombrePreset = (presetName: string) => `"${presetsByName[presetName]?.titulo_humano?.trim() || presetName}"`;
   for (const [presetName, args] of Object.entries(presets)) {
     issues.push(...checkNumericArgs(args, presetsByName[presetName]?.args ?? [], {
       scope: `Ajustes por defecto de ${nombrePreset(presetName)}`,
@@ -342,7 +342,7 @@ export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
 
   for (const override of overridesReusables) {
     issues.push(...checkNumericArgs(override.args, presetsByName[override.tipo_preset]?.args ?? [], {
-      scope: `Estilo guardado «${override.nombre}»`,
+      scope: `Estilo guardado "${override.nombre}"`,
     }));
   }
 
@@ -451,7 +451,7 @@ export function nombrePaleta(listName: string, variables: readonly Pick<VarWithS
   }
   const primera = etiquetas[0].length > 80 ? `${etiquetas[0].slice(0, 79).trimEnd()}…` : etiquetas[0];
   const resto = etiquetas.length - 1 + sinTitulo.size;
-  return `La paleta de «${primera}»${resto ? ` (y ${resto} ${resto === 1 ? "pregunta más" : "preguntas más"})` : ""}`;
+  return `La paleta de "${primera}"${resto ? ` (y ${resto} ${resto === 1 ? "pregunta más" : "preguntas más"})` : ""}`;
 }
 
 function humanizeSlot(slot: string): string {
@@ -482,26 +482,26 @@ export function avisoDeVariableNoResuelta(
     return {
       severity: "error",
       code: "var-sin-base",
-      detalle: `la pregunta «${varName}» no dice de qué base es. Está en ${listarBases(basesDondeExiste)}; vuelve a elegirla para dejarlo escrito.`,
+      detalle: `la pregunta "${varName}" no dice de qué base es. Está en ${listarBases(basesDondeExiste)}; vuelve a elegirla para dejarlo escrito.`,
     };
   }
   if (basesDondeExiste.length > 1) {
     return {
       severity: "error",
       code: "var-sin-base",
-      detalle: `la pregunta «${varName}» existe en ${listarBases(basesDondeExiste)}. Elige de cuál es: el gráfico no puede resolverla solo.`,
+      detalle: `la pregunta "${varName}" existe en ${listarBases(basesDondeExiste)}. Elige de cuál es: el gráfico no puede resolverla solo.`,
     };
   }
   return {
     severity: "warning",
     code: "var-unknown",
-    detalle: `la pregunta «${varName}» no está en el instrumento. ¿La renombraste o la borraste?`,
+    detalle: `la pregunta "${varName}" no está en el instrumento. ¿La renombraste o la borraste?`,
   };
 }
 
 function listarBases(bases: string[]): string {
-  if (bases.length <= 1) return bases[0] ? `la base «${bases[0]}»` : "";
-  const entrecomilladas = bases.map((base) => `«${base}»`);
+  if (bases.length <= 1) return bases[0] ? `la base "${bases[0]}"` : "";
+  const entrecomilladas = bases.map((base) => `"${base}"`);
   return `las bases ${entrecomilladas.slice(0, -1).join(", ")} y ${entrecomilladas[entrecomilladas.length - 1]}`;
 }
 
@@ -597,8 +597,8 @@ function checkTopeBarras(
 
 /** «4 preguntas («WhatsApp», «Instagram» y 2 más) se leen de la base principal.» */
 function frasePreguntasEnBase(etiquetas: string[], base: string): string {
-  if (etiquetas.length === 1) return `la pregunta «${etiquetas[0]}» se lee de ${laBase(base)}.`;
-  const vistas = etiquetas.slice(0, 2).map((e) => `«${e}»`);
+  if (etiquetas.length === 1) return `la pregunta "${etiquetas[0]}" se lee de ${laBase(base)}.`;
+  const vistas = etiquetas.slice(0, 2).map((e) => `"${e}"`);
   const resto = etiquetas.length - vistas.length;
   const lista = resto ? `${vistas.join(", ")} y ${resto === 1 ? "1 más" : `${resto} más`}` : vistas.join(" y ");
   return `${formatoConteo(etiquetas.length)} preguntas (${lista}) se leen de ${laBase(base)}.`;
@@ -645,7 +645,7 @@ function checkNumericArgs(
     issues.push({
       severity: "error",
       code: "numeric-invalid",
-      message: `${context.scope}: el ajuste «${meta.label || argName}» tiene un valor inválido («${String(value)}»); ${result.message}.${range ? ` ${range}` : ""}`,
+      message: `${context.scope}: el ajuste "${meta.label || argName}" tiene un valor inválido ("${String(value)}"); ${result.message}.${range ? ` ${range}` : ""}`,
       slideId: context.slideId,
       slotName: context.slotName,
     });

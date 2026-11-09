@@ -72,7 +72,7 @@ async function pintar(value: string): Promise<string> {
 }
 
 describe("la pastilla del selector", () => {
-  test("en la base activa: pastilla neutra «Base default», sin alarma", async () => {
+  test('en la base activa: pastilla neutra "Base default", sin alarma', async () => {
     const html = await pintar("B3_recod");
     expect(html).toContain('data-base-ref="activa"');
     expect(html).toContain("Base default");
@@ -84,11 +84,11 @@ describe("la pastilla del selector", () => {
     const html = await pintar("C1_hijo");
     expect(html).toContain('data-base-ref="otra"');
     expect(html).toContain("Edad del hijo");
-    expect(html).toContain("No está en la base «default». Está en la base «datos_crianza».");
+    expect(html).toContain("No está en la base &quot;default&quot;. Está en la base &quot;datos_crianza&quot;.");
     expect(html).toContain("Fijar en datos_crianza");
   });
 
-  test("en ninguna base: rojo «No está en ninguna base»", async () => {
+  test('en ninguna base: rojo "No está en ninguna base"', async () => {
     const html = await pintar("Z9");
     expect(html).toContain('data-base-ref="ninguna"');
     expect(html).toContain("No está en ninguna base");

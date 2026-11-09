@@ -198,7 +198,7 @@ describe("ReglaPreguntas", () => {
         args={{ estilo: "resumen", regla, cruce: "", grupos: [], vars: [] }} valor={regla} scope="active" onCambio={() => undefined} />,
     );
     expect(html).toContain("Elige la variable que divide a los grupos.");
-    expect(html).toContain("Ir a «Dividir por»");
+    expect(html).toContain("Ir a &quot;Dividir por&quot;");
     expect(html).not.toContain("compara dos públicos");
   });
 

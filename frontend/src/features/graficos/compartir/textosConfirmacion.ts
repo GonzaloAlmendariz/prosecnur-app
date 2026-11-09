@@ -50,13 +50,13 @@ export function textoConfirmarImportacion(
   const conAviso = aviso ? `${aviso} ` : "";
   if (modo === "replace") {
     return {
-      titulo: `¿Reemplazar ${secciones(nSecciones)} con «${archivo}»?`,
+      titulo: `¿Reemplazar ${secciones(nSecciones)} con "${archivo}"?`,
       detalle: `Lo que hay hoy en ${nSecciones === 1 ? "esa sección" : "esas secciones"} se sustituye por lo del archivo. ${conAviso}${NO_SE_DESHACE}`,
       accion: "Reemplazar",
     };
   }
   return {
-    titulo: `¿Combinar ${secciones(nSecciones)} de «${archivo}»?`,
+    titulo: `¿Combinar ${secciones(nSecciones)} de "${archivo}"?`,
     detalle: `Se conserva lo existente y se suma lo del archivo; donde coinciden, queda lo del archivo. ${conAviso}${NO_SE_DESHACE}`,
     accion: "Combinar",
   };

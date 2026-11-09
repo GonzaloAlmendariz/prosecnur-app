@@ -51,7 +51,7 @@ describe("relación entre bases", () => {
 
   test("nombra la base sin jerga", () => {
     expect(laBase("default")).toBe("la base principal");
-    expect(laBase("datos_crianza")).toBe("la base «Datos crianza»");
+    expect(laBase("datos_crianza")).toBe('la base "Datos crianza"');
   });
 });
 
@@ -68,11 +68,11 @@ describe("pregunta sin base que el motor resuelve", () => {
     expect(r.warnings.filter((w) => w.code.startsWith("var-")).map((w) => w.code)).toEqual(["var-base-implicita", "var-base-implicita"]);
   });
 
-  test("un aviso por gráfico, con las preguntas por su texto y sin «default» ni «datos_crianza»", () => {
+  test('un aviso por gráfico, con las preguntas por su texto y sin "default" ni "datos_crianza"', () => {
     const [cuatro, una] = validarPlan(entrada(slides, ccss, relacionCcss)).warnings.filter((w) => w.code === "var-base-implicita");
-    expect(cuatro.message).toBe("Lámina 1, “Redes” (Un gráfico), espacio «Gráfico principal»: 4 preguntas («WhatsApp», «Instagram» y 2 más) se leen de la base principal.");
-    expect(cuatro.detalle).toBe("4 preguntas («WhatsApp», «Instagram» y 2 más) se leen de la base principal.");
-    expect(una.message).toBe("Lámina 2, “Sexo” (Un gráfico), espacio «Gráfico principal»: la pregunta «Sexo» se lee de la base principal.");
+    expect(cuatro.message).toBe('Lámina 1, “Redes” (Un gráfico), espacio "Gráfico principal": 4 preguntas ("WhatsApp", "Instagram" y 2 más) se leen de la base principal.');
+    expect(cuatro.detalle).toBe('4 preguntas ("WhatsApp", "Instagram" y 2 más) se leen de la base principal.');
+    expect(una.message).toBe('Lámina 2, “Sexo” (Un gráfico), espacio "Gráfico principal": la pregunta "Sexo" se lee de la base principal.');
     for (const w of [cuatro, una]) expect(w.message).not.toMatch(/default|datos_crianza|B8_1|A3/);
   });
 

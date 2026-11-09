@@ -1441,7 +1441,7 @@ export const ARGUMENT_HINT_BY_NAME: Record<string, string> = {
   mostrar_valores: "Muestra u oculta los valores numéricos.",
   mostrar_leyenda: "Muestra u oculta la leyenda.",
   tabla: "Tabla de datos del radar entre públicos: automática (junto al radar), siempre o nunca.",
-  word_tabla: "Pone la tabla de datos en el Word aunque «Tabla de datos» no la ponga. Sin marcar, el Word sigue a «Tabla de datos».",
+  word_tabla: 'Pone la tabla de datos en el Word aunque "Tabla de datos" no la ponga. Sin marcar, el Word sigue a "Tabla de datos".',
   mostrar_pie: "Muestra u oculta el texto de pie.",
   mostrar_barras: "Muestra u oculta las barras del gráfico.",
   mostrar_barras_extra: "Muestra u oculta barras extra de apoyo.",

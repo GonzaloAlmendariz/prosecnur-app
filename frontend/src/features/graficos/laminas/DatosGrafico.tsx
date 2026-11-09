@@ -275,7 +275,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
     requestAnimationFrame(() => {
       const campo = argCruce ? tarjetaRef.current?.querySelector<HTMLElement>(`[data-campo="${argCruce}"]`) : null;
       if (!campo?.querySelector("button, input, [tabindex]")) {
-        toast.info("Elige la pregunta que divide en «Dividir por», en Datos.");
+        toast.info('Elige la pregunta que divide en "Dividir por", en Datos.');
         return;
       }
       revelarYEnfocar(campo);

@@ -56,7 +56,7 @@ export function CapitulosResumen({ valor, automatica, calificar, scope, onCambio
     aplicar(capitulos.map((c, k) => (k === i ? { ...c, ...parche } : c)));
   const cambiarFila = (i: number, j: number, fila: FilaResumenEditable) =>
     cambiarCapitulo(i, { filas: capitulos[i].filas.map((f, k) => (k === j ? fila : f)) });
-  const nombreCapitulo = (c: CapituloResumenEditable, i: number) => (c.titulo.trim() ? `capítulo «${c.titulo.trim()}»` : `capítulo ${i + 1}`);
+  const nombreCapitulo = (c: CapituloResumenEditable, i: number) => (c.titulo.trim() ? `capítulo "${c.titulo.trim()}"` : `capítulo ${i + 1}`);
   const completos = escribirCapitulosResumen(capitulos).length;
   const filas = filasQueSalen(capitulos);
 

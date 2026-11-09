@@ -34,7 +34,7 @@ describe("reparto de los lados", () => {
 describe("cifras de los lados", () => {
   const cats = [{ clave: "Malo", valor: 21, lado: "neg" as const }, { clave: "Regular", valor: 15, lado: "neu" as const },
     { clave: "Bueno", valor: 64, lado: "pos" as const }, { clave: "NS", valor: 0, lado: "sin_inf" as const, especial: true }];
-  it("una pregunta: «Negativo 21%, Positivo 64%»; las sustantivas sin «Sin información»", () => {
+  it('una pregunta: "Negativo 21%, Positivo 64%"; las sustantivas sin "Sin información"', () => {
     const d = detalle(cats, { forma: "divergentes", filas: [fila("p1", cats, { lados: lados(21, 15, 64) })] });
     expect(textoLados(d)).toBe("Negativo 21%, Positivo 64%");
     expect(sustantivas(d)).toEqual(["Malo", "Regular", "Bueno"]);
@@ -49,8 +49,8 @@ describe("cifras de los lados", () => {
 
 describe("R8-12: con dos respuestas se dice cuál va a cada lado hasta que el analista lo fije", () => {
   const defecto = leerLados({}, 2);
-  it("sin nada guardado, «Sí» (la primera) va al negativo y se dice", () => {
-    expect(avisoDosNiveles({}, ["Sí", "No"], defecto)).toBe("«Sí» va al lado negativo y «No» al positivo.");
+  it('sin nada guardado, "Sí" (la primera) va al negativo y se dice', () => {
+    expect(avisoDosNiveles({}, ["Sí", "No"], defecto)).toBe('"Sí" va al lado negativo y "No" al positivo.');
   });
   it("con los lados fijados, o con más de dos niveles, no se dice nada", () => {
     expect(avisoDosNiveles({ n_negativas: 1 }, ["Sí", "No"], defecto)).toBeNull();
@@ -58,6 +58,6 @@ describe("R8-12: con dos respuestas se dice cuál va a cada lado hasta que el an
     expect(avisoDosNiveles({}, ["Malo", "Regular", "Bueno"], leerLados({}, 3))).toBeNull();
   });
   it("invertido en vivo, el texto sigue lo que se ve", () => {
-    expect(avisoDosNiveles({}, ["Sí", "No"], { ...defecto, direccion: "positivo_negativo" })).toBe("«No» va al lado negativo y «Sí» al positivo.");
+    expect(avisoDosNiveles({}, ["Sí", "No"], { ...defecto, direccion: "positivo_negativo" })).toBe('"No" va al lado negativo y "Sí" al positivo.');
   });
 });

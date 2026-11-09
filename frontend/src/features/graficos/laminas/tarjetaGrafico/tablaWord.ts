@@ -13,7 +13,7 @@ const registro = (v: unknown): Registro => (v && typeof v === "object" && !Array
 export const CLAVE_TABLA_WORD = "word_tabla";
 export const NOTA_TABLA_WORD = "Se inserta como tabla de Word, centrada y encima del gráfico";
 /** Por qué el interruptor no se puede apagar: la tabla la pone «Tabla de datos», que manda en los dos formatos. */
-export const NOTA_TABLA_WORD_HEREDADA = "Va porque «Tabla de datos» la pone; con «No» deja de ir también en el PPT";
+export const NOTA_TABLA_WORD_HEREDADA = 'Va porque "Tabla de datos" la pone; con "No" deja de ir también en el PPT';
 
 /** Sólo el radar entre públicos lleva tabla de datos. */
 export function aplicaTablaWord(graficador: string, args: Readonly<Registro>): boolean {

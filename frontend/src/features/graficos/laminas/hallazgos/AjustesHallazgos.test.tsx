@@ -21,7 +21,7 @@ const ARGS: ArgMetadata[] = [
     depende: { arg: "modo", valores: ["resumen"] } },
   { name: "max_por_lamina", label: "Hallazgos por lámina", tipo_input: "number", grupo: "textos", default: 8, min: 4, max: 8, step: 1,
     depende: { arg: "modo", valores: ["resumen", "titulares"] } },
-  { name: "tambien", label: "Mostrar «También»", tipo_input: "bool", grupo: "textos", default: true, depende: { arg: "modo", valores: ["resumen"] } },
+  { name: "tambien", label: 'Mostrar "También"', tipo_input: "bool", grupo: "textos", default: true, depende: { arg: "modo", valores: ["resumen"] } },
   { name: "cruces", label: "Cruces", tipo_input: "variables_list", grupo: "datos", depende: { arg: "modo", valores: ["resumen", "titulares"] } },
   { name: "capitulos", label: "Capítulos y hallazgos", tipo_input: "hallazgos_capitulos", grupo: "datos",
     depende: { arg: "modo", valores: ["resumen", "titulares"] } },
@@ -61,7 +61,7 @@ function pintar(payload: Record<string, unknown>): string {
     })));
 }
 
-describe("«Hallazgos clave» en el inspector", () => {
+describe('"Hallazgos clave" en el inspector', () => {
   it("los ajustes siguen a su modo: con el de por defecto (cifras) no aparece el resumen", () => {
     const nombres = (p: Record<string, unknown>) => ajustesQueAplican(ARGS.slice(3), p).map((a) => a.name);
     expect(nombres({})).toEqual(["modo"]);
@@ -84,8 +84,8 @@ describe("«Hallazgos clave» en el inspector", () => {
     expect(html).toContain('data-campo="cruces"');
     expect(html).toContain('data-qa="capitulos-hallazgos"');
     expect(html).toContain('value="Información general"');
-    expect(html).toContain('aria-label="Capítulo «Información general»"');
-    expect(html).toContain('aria-label="Hallazgo 1 del capítulo «Información general»"');
+    expect(html).toContain('aria-label="Capítulo &quot;Información general&quot;"');
+    expect(html).toContain('aria-label="Hallazgo 1 del capítulo &quot;Información general&quot;"');
     expect(html).toMatch(/aria-pressed="true"[^>]*title="Código 2/);
     expect(html).toContain("estudió la secundaria en un colegio privado");
     expect(html).toMatch(/role="radio"[^>]*aria-checked="true"[^>]*>(?:<span[^>]*>)?Automática/);
@@ -131,7 +131,7 @@ describe("«Hallazgos clave» en el inspector", () => {
     expect(html).toContain("pulso-f6-hallazgos-campo");
   });
 
-  it("en modo de cifras no hay propuesta, aunque quede un «auto» guardado", () => {
+  it('en modo de cifras no hay propuesta, aunque quede un "auto" guardado', () => {
     const html = pintar({ modo: "cifras", seleccion: "auto", cifras: [{ var: "q1" }] });
     expect(html).not.toContain("Traer la propuesta del motor");
     expect(html).not.toContain('data-qa="propuesta-motor"');

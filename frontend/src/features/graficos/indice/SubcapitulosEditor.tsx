@@ -30,7 +30,7 @@ export function SubcapitulosEditor({ numeroCapitulo, nombreCapitulo, subcapitulo
   return (
     <div className="pulso-f6-subcaps">
       {filas.length > 0 && (
-        <ol ref={lista} className="pulso-f6-subcaps-lista" aria-label={`Subcapítulos de «${nombreCapitulo}»`}>
+        <ol ref={lista} className="pulso-f6-subcaps-lista" aria-label={`Subcapítulos de "${nombreCapitulo}"`}>
           {filas.map((s, i) => (
             <li key={i} className="pulso-f6-subcaps-fila">
               <span className="pulso-f6-subcaps-num" aria-hidden="true">{numeroCapitulo}.{i + 1}</span>

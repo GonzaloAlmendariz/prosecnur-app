@@ -116,10 +116,10 @@ export const SUGERIDAS_PALETAS: PaletasPorCantidad = {
   6: [
     AZULES(6),
     ACTORES(6),
-    { label: "Pulso aprobación", description: "Cinco pasos con el neutro gris al centro y «Sin información» al final.", ordinal: true, colors: [L.desacuerdoFuerte, L.desacuerdo, L.neutro, L.acuerdo, L.acuerdoFuerte, L.sinInformacion] },
+    { label: "Pulso aprobación", description: 'Cinco pasos con el neutro gris al centro y "Sin información" al final.', ordinal: true, colors: [L.desacuerdoFuerte, L.desacuerdo, L.neutro, L.acuerdo, L.acuerdoFuerte, L.sinInformacion] },
   ],
   7: [
-    { label: "Pulso aprobación", description: "Seis pasos del extremo bajo al alto y «Sin información» al final.", ordinal: true, colors: [...L.rampa6, L.sinInformacion] },
+    { label: "Pulso aprobación", description: 'Seis pasos del extremo bajo al alto y "Sin información" al final.', ordinal: true, colors: [...L.rampa6, L.sinInformacion] },
     AZULES(7),
   ],
 };

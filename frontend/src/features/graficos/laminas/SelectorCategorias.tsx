@@ -131,7 +131,7 @@ export function SelectorCategorias({
       {efecto}
       {ajenas.length > 0 && (
         <span className="pulso-f6-dato-ayuda is-aviso" role="note">
-          {ajenas.map((e) => `«${e}»`).join(", ")} no {ajenas.length === 1 ? "está" : "están"} entre las respuestas de la pregunta; se conserva.
+          {ajenas.map((e) => `"${e}"`).join(", ")} no {ajenas.length === 1 ? "está" : "están"} entre las respuestas de la pregunta; se conserva.
         </span>
       )}
       {nota}

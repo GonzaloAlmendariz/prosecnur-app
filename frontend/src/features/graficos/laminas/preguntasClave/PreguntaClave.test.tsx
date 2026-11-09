@@ -82,12 +82,12 @@ describe("PreguntaClave", () => {
   it("un gráfico que no entra al resumen: no ofrece el interruptor y dice por qué", () => {
     act(() => root.render(<PreguntaClave slideId="s1" graficador="p_barras_agrupadas" args={{ var: "P1", cruces: ["sexo"] }} />));
     expect(interruptores()).toHaveLength(0);
-    expect(host.textContent).toContain("Esta pregunta no entra al resumen ejecutivo: solo cuentan los gráficos sin «Dividir por».");
+    expect(host.textContent).toContain('Esta pregunta no entra al resumen ejecutivo: solo cuentan los gráficos sin "Dividir por".');
     act(() => root.render(<PreguntaClave slideId="s2" graficador="p_barras_agrupadas" args={{ var: "P1" }} />));
     expect(host.textContent).toContain("solo cuentan las láminas de un gráfico.");
   });
 
-  it("R6-14: en una lámina del resumen ejecutivo no ofrece «Pregunta clave» ni dice que no entra al resumen", () => {
+  it('R6-14: en una lámina del resumen ejecutivo no ofrece "Pregunta clave" ni dice que no entra al resumen', () => {
     usePlanStore.setState({ plan: { slides: [...LAMINAS, { id: "s9", tipo: "p_slide_1_grafico", payload: {}, origen: "resumen" }] as never[] } });
     act(() => root.render(<PreguntaClave slideId="s9" graficador="p_barras_agrupadas" args={{ var: "P1" }} />));
     expect(host.innerHTML).toBe("");
@@ -107,7 +107,7 @@ describe("PreguntaClave", () => {
     expect("preguntas_clave" in usePlanStore.getState().plan).toBe(false);
   });
 
-  it("una batería sin Top Two Box no lleva columna «Clave» y lo dice", () => {
+  it('una batería sin Top Two Box no lleva columna "Clave" y lo dice', () => {
     const args = { modo: "var", vars: ["B8_1", "B8_2"] };
     act(() => root.render(<><PreguntaClave slideId="s1" graficador="p_barras_multiapiladas" args={args} /><EtiquetasCortasPreguntas slideId="s1" args={args} onCambio={() => undefined} /></>));
     expect(interruptores()).toHaveLength(0);

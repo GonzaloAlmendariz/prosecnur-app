@@ -22,7 +22,7 @@ describe("secciones JSON del plan (C12, decisión 30)", () => {
     expect(seccionesElegidas(todasLasSecciones(false))).toHaveLength(0);
   });
 
-  it("suma estilo del cliente, documento Word y «Otros»; no ofrece guías de edición ni vista de trabajo", () => {
+  it('suma estilo del cliente, documento Word y "Otros"; no ofrece guías de edición ni vista de trabajo', () => {
     const ids = GRAFICOS_JSON_SECTIONS.map((s) => s.id as string);
     expect(ids).toEqual(expect.arrayContaining(["estilo_cliente", "documento_word", "auto_otros_slides"]));
     expect(ids).not.toContain("debug_ph");
@@ -103,7 +103,7 @@ describe("estilo del cliente en el JSON (ADR 0094)", () => {
       _unknown: { __bundle: { export_scope: ["estilo_cliente"] } },
     };
     const resumen = resumenImportacion(actual, entrante, solo("estilo_cliente"));
-    expect(resumen.logosDescartados).toEqual([{ lugar: "portada_izquierda", fileId: "ajeno", rotulo: "«UNSA» (portada, izquierda)" }]);
+    expect(resumen.logosDescartados).toEqual([{ lugar: "portada_izquierda", fileId: "ajeno", rotulo: '"UNSA" (portada, izquierda)' }]);
     for (const modo of ["merge", "replace"] as const) {
       const out = componerImportacion(actual, entrante, solo("estilo_cliente"), modo);
       const estilo = out.estilo_cliente as { ambito?: string; logos?: Record<string, { file_id: string }>; letra?: { paso?: string } };
@@ -114,7 +114,7 @@ describe("estilo del cliente en el JSON (ADR 0094)", () => {
     }
   });
 
-  it("documento Word y «Otros» viajan; «Otros» queda también en las reglas globales", () => {
+  it('documento Word y "Otros" viajan; "Otros" queda también en las reglas globales', () => {
     const cfg = { documento_word: { portada: "B" }, auto_otros_slides: true };
     const ida = JSON.parse(armarExportacionJson(cfg, { ...todasLasSecciones(false), documento_word: true, auto_otros_slides: true }, new Date(0)).texto);
     expect(ida.config).toMatchObject({ documento_word: { portada: "B" }, auto_otros_slides: true });
@@ -124,7 +124,7 @@ describe("estilo del cliente en el JSON (ADR 0094)", () => {
     expect((out.scope_rules as { global: Record<string, unknown> }).global.auto_otros_slides).toBe(true);
   });
 
-  it("un archivo anterior que no declara las secciones nuevas no apaga «Otros» ni borra el estilo", () => {
+  it('un archivo anterior que no declara las secciones nuevas no apaga "Otros" ni borra el estilo', () => {
     // Lo que deja el normalizador al leer un archivo viejo: defaults en las claves nuevas.
     const viejo = { plan: { slides: [] }, auto_otros_slides: false, estilo_cliente: {}, documento_word: {},
       _unknown: { __bundle: { export_scope: ["plan", "debug_ph", "ui_state"] } } };

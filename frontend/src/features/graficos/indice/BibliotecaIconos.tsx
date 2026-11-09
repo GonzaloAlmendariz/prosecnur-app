@@ -120,7 +120,7 @@ export function ContenidoBiblioteca({ panelProps, numero, titulo, actual, onCerr
         tituloEnfocable
         antetitulo={t.antetitulo}
         titulo={actual === null ? "Íconos del índice" : t.tituloDialogo}
-        subtitulo={actual === null ? "El índice no tiene capítulos: añade uno para elegir su ícono." : titulo ? `«${titulo}»` : t.sinTitulo}
+        subtitulo={actual === null ? "El índice no tiene capítulos: añade uno para elegir su ícono." : titulo ? `"${titulo}"` : t.sinTitulo}
         onCerrar={onCerrar}
         etiquetaCerrar="Cerrar sin cambiar"
       />
@@ -153,7 +153,7 @@ export function ContenidoBiblioteca({ panelProps, numero, titulo, actual, onCerr
               </span>
               <span className="pulso-f6-icono-texto">
                 <strong>Automático</strong>
-                <small>{auto ? `El motor elige «${rotuloIcono(auto.icono)}»${auto.motivo ? `: ${auto.motivo}` : ""}` : t.autoGeneral}</small>
+                <small>{auto ? `El motor elige "${rotuloIcono(auto.icono)}"${auto.motivo ? `: ${auto.motivo}` : ""}` : t.autoGeneral}</small>
               </span>
             </label>
             {t.sinIcono && (

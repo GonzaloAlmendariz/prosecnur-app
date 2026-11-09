@@ -69,12 +69,12 @@ function entrada(parcial: Partial<EntradaValidarPlan> = {}): EntradaValidarPlan 
 const JERGA: [string, RegExp][] = [
   ["uuid", /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i],
   ["tipo interno", /\bp_(slide|barras|radar|tabla|plan)/],
-  ["«slide»", /\bslides?\b/i],
-  ["«slot»", /\bslots?\b/i],
-  ["«(slide …)»", /\(slide /i],
+  ['"slide"', /\bslides?\b/i],
+  ['"slot"', /\bslots?\b/i],
+  ['"(slide …)"', /\(slide /i],
   ["voseo", /\b(Subí|Elegí|Revisá|Cargá|Probá|Volvé|Hacé|Usá|Tocá|Agregá|Seleccioná|Cambiá|Poné|Dejá|Mirá|Guardá|Configurá|Activá|Escribí|Abrí|Fijate|tenés|podés|querés)(?![\p{L}])/iu],
-  ["«icono» sin tilde", /\bicono\b/i],
-  ["«export» en inglés", /\bexport\b/i],
+  ['"icono" sin tilde', /\bicono\b/i],
+  ['"export" en inglés', /\bexport\b/i],
   ["envoltura de callr", /! in callr|Caused by error|callr/i],
   ["list_name interno", /\blst_\w+/],
 ];
@@ -98,14 +98,14 @@ describe("validador del plan: avisos sin jerga", () => {
     }
   });
 
-  test("ningún mensaje trae ids, tipos internos, «slide»/«slot» ni voseo", () => {
+  test('ningún mensaje trae ids, tipos internos, "slide"/"slot" ni voseo', () => {
     const vacio = validarPlan(entrada({ slides: [] }));
     for (const issue of [...resumen.issues, ...vacio.issues]) {
       expect(jergaEn(issue.message, ids), issue.message).toEqual([]);
     }
   });
 
-  test("el id viaja aparte, para «Ir a la lámina»", () => {
+  test('el id viaja aparte, para "Ir a la lámina"', () => {
     const icono = resumen.issues.find((i) => i.code === "icon-unknown");
     expect(icono?.slideId).toBe(ID_ICONO);
     const vacio = resumen.issues.find((i) => i.code === "slot-empty");
@@ -122,7 +122,7 @@ describe("textos reescritos del validador", () => {
   });
 
   test("espacio sin gráfico: número, título, tipo visible y nombre del espacio", () => {
-    expect(porCodigo("slot-empty")).toEqual(["Lámina 2, “Satisfacción con el curso” (Dos gráficos): el espacio «Gráfico izquierdo» no tiene gráfico."]);
+    expect(porCodigo("slot-empty")).toEqual(['Lámina 2, “Satisfacción con el curso” (Dos gráficos): el espacio "Gráfico izquierdo" no tiene gráfico.']);
   });
 
   test("ícono que ya no está: lámina sin título, tipo con tilde y tuteo", () => {
@@ -131,31 +131,31 @@ describe("textos reescritos del validador", () => {
 
   test("variable perdida y variable sin base", () => {
     expect(porCodigo("var-unknown")).toEqual([
-      "Lámina 2, “Satisfacción con el curso” (Dos gráficos), espacio «Gráfico derecho»: la pregunta «p999» no está en el instrumento. ¿La renombraste o la borraste?",
+      'Lámina 2, “Satisfacción con el curso” (Dos gráficos), espacio "Gráfico derecho": la pregunta "p999" no está en el instrumento. ¿La renombraste o la borraste?',
     ]);
     expect(porCodigo("var-sin-base")).toEqual([
-      "Lámina 5, “Turno” (Un gráfico), espacio «Gráfico»: la pregunta «p7» no dice de qué base es. Está en la base «docentes»; vuelve a elegirla para dejarlo escrito.",
-      "Lámina 5, “Turno” (Un gráfico), espacio «Gráfico»: la pregunta «sexo» existe en las bases «docentes» y «estudiantes». Elige de cuál es: el gráfico no puede resolverla solo.",
+      'Lámina 5, “Turno” (Un gráfico), espacio "Gráfico": la pregunta "p7" no dice de qué base es. Está en la base "docentes"; vuelve a elegirla para dejarlo escrito.',
+      'Lámina 5, “Turno” (Un gráfico), espacio "Gráfico": la pregunta "sexo" existe en las bases "docentes" y "estudiantes". Elige de cuál es: el gráfico no puede resolverla solo.',
     ]);
   });
 
-  test("escalas incompatibles: el título pierde el «(cont.)» y el veredicto sigue en minúscula", () => {
+  test('escalas incompatibles: el título pierde el "(cont.)" y el veredicto sigue en minúscula', () => {
     const [msg] = porCodigo("scale-mismatch");
-    expect(msg.startsWith("Lámina 4, “Escalas” (Un gráfico), espacio «Gráfico»: estas preguntas no comparten una escala compatible")).toBe(true);
+    expect(msg.startsWith('Lámina 4, “Escalas” (Un gráfico), espacio "Gráfico": estas preguntas no comparten una escala compatible')).toBe(true);
   });
 
   test("valores numéricos: lámina, ajustes por defecto, Word y modos", () => {
     expect(porCodigo("numeric-invalid")).toEqual([
-      "Lámina 2, “Satisfacción con el curso” (Dos gráficos), espacio «Gráfico derecho»: el ajuste «Ancho de barra» tiene un valor inválido («9»); debe ser menor o igual a 1. Rango permitido: 0 a 1.",
-      "Ajustes por defecto de «Barras simples»: el ajuste «Ancho de barra» tiene un valor inválido («-3»); debe ser mayor o igual a 0. Rango permitido: 0 a 1.",
-      "Estilo guardado «Compacto»: el ajuste «Ancho de barra» tiene un valor inválido («x»); debe ser un número válido. Rango permitido: 0 a 1.",
-      "Ajustes de Word de «Barras simples»: el ajuste «Ancho de barra» tiene un valor inválido («50»); debe ser menor o igual a 1. Rango permitido: 0 a 1.",
+      'Lámina 2, “Satisfacción con el curso” (Dos gráficos), espacio "Gráfico derecho": el ajuste "Ancho de barra" tiene un valor inválido ("9"); debe ser menor o igual a 1. Rango permitido: 0 a 1.',
+      'Ajustes por defecto de "Barras simples": el ajuste "Ancho de barra" tiene un valor inválido ("-3"); debe ser mayor o igual a 0. Rango permitido: 0 a 1.',
+      'Estilo guardado "Compacto": el ajuste "Ancho de barra" tiene un valor inválido ("x"); debe ser un número válido. Rango permitido: 0 a 1.',
+      'Ajustes de Word de "Barras simples": el ajuste "Ancho de barra" tiene un valor inválido ("50"); debe ser menor o igual a 1. Rango permitido: 0 a 1.',
     ]);
   });
 
   test("paleta monocromática", () => {
     expect(porCodigo("paleta-monocromatica")).toEqual([
-      "La paleta de «Satisfacción»: los colores son muy parecidos entre sí. En barras apiladas cuesta distinguir las categorías.",
+      'La paleta de "Satisfacción": los colores son muy parecidos entre sí. En barras apiladas cuesta distinguir las categorías.',
     ]);
   });
 });
@@ -201,7 +201,7 @@ describe("errores de exportación humanizados: sin jerga", () => {
 
   test("la lámina culpable se nombra por su número y el id viaja aparte", () => {
     const h = humanizeGraficosExportError("object 'p999' not found", plan);
-    expect(h.message).toBe("La variable «p999» no existe en los datos cargados (usada en Lámina 2, “Satisfacción con el curso”).");
+    expect(h.message).toBe('La variable "p999" no existe en los datos cargados (usada en Lámina 2, “Satisfacción con el curso”).');
     expect(h.slideRef).toEqual({ id: ID_LARGO, label: "Lámina 2, “Satisfacción con el curso”" });
   });
 });
@@ -217,7 +217,7 @@ describe("errores de exportación: casos reescritos", () => {
 
   test("grupos de preguntas sin tema (visto en vivo): lenguaje llano, lámina culpable y crudo aparte", () => {
     const h = humanizeGraficosExportError(CALLR_EN_VIVO, conGrupos);
-    expect(h.message).toBe("Lámina 6, “Comparación por tema”: un gráfico de la base «estudiantes» compara grupos de preguntas, pero los grupos quedaron sin el nombre de su tema.");
+    expect(h.message).toBe('Lámina 6, “Comparación por tema”: un gráfico de la base "estudiantes" compara grupos de preguntas, pero los grupos quedaron sin el nombre de su tema.');
     expect(h.slideRef?.id).toBe("slide_grupos_7777");
     expect(h.detalle).toBe(CALLR_EN_VIVO);
   });
@@ -246,9 +246,9 @@ describe("errores de exportación: casos reescritos", () => {
 
   test("ícono requerido: reconoce el texto actual del backend y el viejo", () => {
     const nuevo = humanizeGraficosExportError("La lámina «Objetivo con ícono» requiere un ícono. Elige un PNG en Configuración global > Íconos.", conGrupos);
-    expect(nuevo.message).toBe("Una lámina «Objetivo con ícono» necesita un ícono.");
+    expect(nuevo.message).toBe('Una lámina "Objetivo con ícono" necesita un ícono.');
     const viejo = humanizeGraficosExportError("La slide 'p_slide_objetivo_icono' requiere un icono", conGrupos);
-    expect(viejo.message).toBe("Una lámina «Objetivo con ícono» necesita un ícono.");
+    expect(viejo.message).toBe('Una lámina "Objetivo con ícono" necesita un ícono.');
   });
 });
 
@@ -259,8 +259,8 @@ describe("paleta: se nombra por la pregunta, no por la lista interna", () => {
       { name: "p32", label: "Confianza en el gobierno", list_name: "lst_p31" },
       { name: "p33", label: "Confianza en la prensa", list_name: "lst_p31" },
     ];
-    expect(nombrePaleta("lst_p31", vars.slice(0, 1))).toBe("La paleta de «Confianza en la institución»");
-    expect(nombrePaleta("lst_p31", vars)).toBe("La paleta de «Confianza en la institución» (y 2 preguntas más)");
+    expect(nombrePaleta("lst_p31", vars.slice(0, 1))).toBe('La paleta de "Confianza en la institución"');
+    expect(nombrePaleta("lst_p31", vars)).toBe('La paleta de "Confianza en la institución" (y 2 preguntas más)');
     expect(nombrePaleta("lst_p31", [])).toBe("Una paleta de colores que ya no usa ninguna pregunta");
   });
 
@@ -273,7 +273,7 @@ describe("paleta: se nombra por la pregunta, no por la lista interna", () => {
     expect(nombrePaleta("lst_p31", sinTitulo)).toBe("La paleta de 2 preguntas sin título");
     // Con una pregunta con título, las sin título cuentan entre «las demás».
     const mezcla = [...sinTitulo, { name: "p33", label: "Confianza en la prensa", list_name: "lst_p31" }];
-    expect(nombrePaleta("lst_p31", mezcla)).toBe("La paleta de «Confianza en la prensa» (y 2 preguntas más)");
+    expect(nombrePaleta("lst_p31", mezcla)).toBe('La paleta de "Confianza en la prensa" (y 2 preguntas más)');
     for (const vars of [sinTitulo.slice(0, 1), sinTitulo, mezcla]) {
       const texto = nombrePaleta("lst_p31", vars);
       expect(texto).not.toMatch(/conf_inst_p31|conf_gob_p32|lst_p31/);
@@ -286,8 +286,8 @@ describe("paleta: se nombra por la pregunta, no por la lista interna", () => {
   });
 });
 
-describe("salud del plan: sin «export» en inglés", () => {
-  test("ningún texto visible de PlanHealthBadge dice «export»", () => {
+describe('salud del plan: sin "export" en inglés', () => {
+  test('ningún texto visible de PlanHealthBadge dice "export"', () => {
     const fuente = readFileSync(new URL("../PlanHealthBadge.tsx", import.meta.url), "utf8")
       .replace(/^\s*\/\/.*$/gm, "")
       .replace(/^import .*$/gm, "");

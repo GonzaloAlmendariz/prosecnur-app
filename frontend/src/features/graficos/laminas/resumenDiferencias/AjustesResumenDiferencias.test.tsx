@@ -63,7 +63,7 @@ function pintar(payload: Record<string, unknown>): string {
     })));
 }
 
-describe("«Resumen de diferencias» en el inspector", () => {
+describe('"Resumen de diferencias" en el inspector', () => {
   it("manual: selección, cruces con su nombre, cortos y capítulos; sin topes ni pendientes", () => {
     const html = pintar({ seleccion: "manual", capitulos: real, cruces: ["area"], rotulos: { area: "Área" }, cortos: { "Economía y Finanzas": "Econ. y Fin." } });
     expect(html).toContain('data-qa="ajustes-resumen-diferencias"');
@@ -75,7 +75,7 @@ describe("«Resumen de diferencias» en el inspector", () => {
     expect(html).not.toContain('data-campo="max_filas"');
     expect(html).toContain('data-qa="capitulos-resumen"');
     expect(html).toContain("3 filas en 2 capítulos");
-    expect(html).toContain('aria-label="Fila 1 del capítulo «Experiencia laboral»"');
+    expect(html).toContain('aria-label="Fila 1 del capítulo &quot;Experiencia laboral&quot;"');
     expect(html).toMatch(/aria-pressed="true"[^>]*title="Código 1/);
     expect(html).toContain('value="Trabaja de forma remunerada"');
     expect(html).toContain("Rótulo de la base: que trabajan. No se edita aquí y se conserva.");

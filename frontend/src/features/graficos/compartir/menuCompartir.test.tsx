@@ -50,7 +50,7 @@ describe("menú ⋯ de Láminas: plan portátil y secciones JSON", () => {
     }
   });
 
-  it("la barra pinta los ítems del modelo y abre cada panel; el ítem viejo «Compartir… en el Editor anterior» ya no está", () => {
+  it('la barra pinta los ítems del modelo y abre cada panel; el ítem viejo "Compartir… en el Editor anterior" ya no está', () => {
     const fuente = fs.readFileSync(path.join(dir, "..", "laminas", "BarraLaminas.tsx"), "utf8");
     expect(fuente).toContain("itemsCompartirMenu(compartir.disponibilidad)");
     expect(fuente).toContain("usePanelDireccionable(PANEL_PLAN_PORTATIL)");
@@ -113,7 +113,7 @@ describe("importar pide confirmación antes de escribir", () => {
         importacionPendiente: { nombreArchivo: "otro.json", entrante: {}, secciones: c.estado.secciones, seccionIds: ["plan", "paletas"], modo: "replace" },
       },
     }} />);
-    expect(html).toContain("¿Reemplazar 2 secciones con «otro.json»?");
+    expect(html).toContain("¿Reemplazar 2 secciones con &quot;otro.json&quot;?");
     expect(html).toContain("No se puede revertir con Deshacer");
     expect(botones(html).map((b) => b.texto.trim())).toEqual(expect.arrayContaining(["Cancelar", "Reemplazar"]));
   });

@@ -102,7 +102,7 @@ const INTENTS: {
     corto: "Preguntas",
     description: "Varias preguntas de un mismo público, una debajo de otra, para leerlas juntas. Tienen que usar la misma escala.",
     cadaBarra: "cada barra es una pregunta.",
-    example: "«Los propósitos están claros», «Las autoridades son accesibles» y «Los trámites son rápidos», en Estudiantes.",
+    example: '"Los propósitos están claros", "Las autoridades son accesibles" y "Los trámites son rápidos", en Estudiantes.',
     boceto: { bloques: [{ filas: ["Pregunta 1", "Pregunta 2", "Pregunta 3"] }] },
     Icon: GitCompare,
   },
@@ -112,7 +112,7 @@ const INTENTS: {
     corto: "Una pregunta por grupos",
     description: "Una sola pregunta, partida según un grupo del mismo público: sexo, ciclo, sede o dedicación.",
     cadaBarra: "cada barra es un grupo y todas responden la misma pregunta.",
-    example: "«Los propósitos están claros» en Estudiantes, por ciclo.",
+    example: '"Los propósitos están claros" en Estudiantes, por ciclo.',
     boceto: { bloques: [{ titulo: "Pregunta", filas: ["Grupo A", "Grupo B", "Grupo C"] }] },
     Icon: Split,
   },
@@ -132,7 +132,7 @@ const INTENTS: {
     corto: "Públicos por tema",
     description: "La misma pregunta en cada público, para ver si opinan distinto. Eliges la pregunta de cada público; si declaraste la matriz de equivalencias, te sugiere la que corresponde.",
     cadaBarra: "cada tema es un bloque y, dentro, cada barra es un público.",
-    example: "«Los propósitos están claros»: Estudiantes, Docentes y Administrativos.",
+    example: '"Los propósitos están claros": Estudiantes, Docentes y Administrativos.',
     boceto: { bloques: [{ titulo: "Tema 1", filas: ["Público A", "Público B", "Público C"] }] },
     Icon: UsersRound,
     requiresMulti: true,
@@ -1057,7 +1057,7 @@ export function validateArgs(args: Record<string, unknown>, variables: VarWithSo
     blocks.forEach((block, i) => {
       if (block.modo === "multilista") issues.push({ kind: "error", message: `El bloque ${i + 1} no puede ser otro Combinar bloques.` });
       if (!BLOQUE_SIN_GRUPOS.has(detectBlockIntent(block))) {
-        issues.push({ kind: "warning", message: `El bloque ${i + 1} se divide por grupos: dentro de Combinar bloques queda demasiado desagregado. Hazlo un gráfico propio con «Una pregunta por grupos».` });
+        issues.push({ kind: "warning", message: `El bloque ${i + 1} se divide por grupos: dentro de Combinar bloques queda demasiado desagregado. Hazlo un gráfico propio con "Una pregunta por grupos".` });
       }
       if (detectBlockIntent(block) === "publicos_tema" && !multi) {
         issues.push({ kind: "error", message: `El bloque ${i + 1} compara fuentes y requiere varias bases.` });

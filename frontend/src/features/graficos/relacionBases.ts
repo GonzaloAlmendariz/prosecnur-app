@@ -85,5 +85,5 @@ export function baseQueResuelve(bases: readonly string[], relacion: RelacionBase
 export function laBase(nombre: string): string {
   if (nombre === BASE_QUE_LEE_EL_MOTOR) return "la base principal";
   const t = nombre.replace(/[_-]+/g, " ").trim();
-  return `la base «${t ? t[0].toLocaleUpperCase("es") + t.slice(1) : nombre}»`;
+  return `la base "${t ? t[0].toLocaleUpperCase("es") + t.slice(1) : nombre}"`;
 }

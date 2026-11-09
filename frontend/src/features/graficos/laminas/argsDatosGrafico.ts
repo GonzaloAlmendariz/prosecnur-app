@@ -76,7 +76,7 @@ export const AYUDA_ESTILO = "Cómo se compone la lámina; el cálculo es el mism
 export const AYUDA_UNIVERSOS = "Para escribir la base como n (cobertura %). Un grupo sin padrón va sólo con n.";
 export const AYUDA_SEPARAR_TRAS = "Línea punteada entre dos grupos de preguntas. 0: sin separador.";
 export const AYUDA_BASE_EN = "Por defecto, en la nota de la base (abajo a la izquierda); la tabla lleva sólo la diferencia.";
-export const AYUDA_REFERENCIA = "La línea punteada y la columna «Bajo» de la tabla.";
+export const AYUDA_REFERENCIA = 'La línea punteada y la columna "Bajo" de la tabla.';
 
 /**
  * 5a (Gonzalo, 2026-10-11; docs/qa/estudio-paletas-por-lista-f6-2026-10-11.md): los graficadores cuya lámina NO es
@@ -277,15 +277,15 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   // dice lo que el motor escribe sin valor: «Total», «casos», «nivel» y, sobre las líneas, nada.
   grupos: { rotulo: "Niveles que se muestran", soloEn: ["p_lineas_nivel"] },
   titulo_seccion: {
-    rotulo: "Título de las líneas", control: "texto", soloEn: ["p_lineas_nivel"], placeholder: "Sin título", ayuda: "P. ej. «Según nivel curricular».",
+    rotulo: "Título de las líneas", control: "texto", soloEn: ["p_lineas_nivel"], placeholder: "Sin título", ayuda: 'P. ej. "Según nivel curricular".',
   },
   publico: {
     rotulo: "Cómo se nombran los casos", control: "texto", soloEn: ["p_lineas_nivel"], placeholder: "casos",
-    ayuda: "Va bajo cada nivel con su número: «estudiantes» escribe «119 estudiantes».",
+    ayuda: 'Va bajo cada nivel con su número: "estudiantes" escribe "119 estudiantes".',
   },
   nombre_nivel: {
     rotulo: "Qué crece", control: "texto", soloEn: ["p_lineas_nivel"], placeholder: "nivel",
-    ayuda: "La palabra del aviso de cada línea: «Crece con el nivel».",
+    ayuda: 'La palabra del aviso de cada línea: "Crece con el nivel".',
   },
   // Gonzalo (revisión del PPT v7.11, lámina 45): la nota en gris bajo la línea por nivel se escribía a mano en el plan.
   lectura: {
@@ -370,7 +370,7 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   // M10 de la maqueta (Gonzalo, 2026-10-13): «poder mostrar o quitar el número de respuestas por actor».
   mostrar_respuestas: {
     rotulo: "Respuestas por público",
-    ayuda: "Opcional, apagado por defecto: escribe «116 respuestas» bajo el nombre de cada público. El pie «Base» no cambia.",
+    ayuda: 'Opcional, apagado por defecto: escribe "116 respuestas" bajo el nombre de cada público. El pie "Base" no cambia.',
     soloEn: ["p_barras_apiladas", "p_barras_multiapiladas"],
   },
   // N2 (Renzo, 2026-10-22): la línea gris entre un tema y el siguiente de la multiapilada.

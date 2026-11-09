@@ -10,7 +10,7 @@ const plan = {
 describe("causaLlana", () => {
   test("un ajuste con un valor que no se acepta, nombrado como lo ve el analista", () => {
     expect(causaLlana("Base 'docentes': Lámina 1 «X»: `titulos_grupo` debe ser NULL o character() no vacio."))
-      .toBe("el ajuste «Títulos por bloque» tiene un valor que este gráfico no acepta");
+      .toBe('el ajuste "Títulos por bloque" tiene un valor que este gráfico no acepta');
   });
   test("un ajuste que este tipo de gráfico no usa", () => {
     expect(causaLlana("Lámina 1 «X»: p_radar_tabla(modo='box'): no usar `var`."))
@@ -33,8 +33,8 @@ describe("causaLlana", () => {
 test("el aviso de la lámina caída dice por qué, sin jerga (Arte_v1-4, lámina 8)", () => {
   const crudo = "! in callr subprocess. Caused by error: ! Base 'docentes': Lámina 1 «POLITICAS INSTITUCIONALES»: `titulos_grupo` debe ser NULL o character() no vacio.";
   const h = humanizeGraficosExportError(crudo, plan);
-  expect(h.message).toBe("Lámina 1, “POLITICAS INSTITUCIONALES”: su gráfico no se puede dibujar porque el ajuste «Títulos por bloque» tiene un valor que este gráfico no acepta, y el informe se detuvo ahí.");
+  expect(h.message).toBe('Lámina 1, “POLITICAS INSTITUCIONALES”: su gráfico no se puede dibujar porque el ajuste "Títulos por bloque" tiene un valor que este gráfico no acepta, y el informe se detuvo ahí.');
   expect(h.message).not.toMatch(/titulos_grupo|character|NULL/);
-  expect(h.hint).toBe("Ábrela y revisa ese ajuste en su gráfico; en la tira de miniaturas aparece como «No se dibuja».");
+  expect(h.hint).toBe('Ábrela y revisa ese ajuste en su gráfico; en la tira de miniaturas aparece como "No se dibuja".');
   expect(h.detalle).toBe(crudo);
 });

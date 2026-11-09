@@ -80,7 +80,7 @@ export function argsATemas(args: Readonly<Record<string, unknown>>): TemaPublico
 }
 
 /** El nombre de un tema en un mensaje. */
-const nombreTema = (t: TemaPublicos, i: number) => (t.title.trim() ? `«${t.title.trim()}»` : `El tema ${i + 1}`);
+const nombreTema = (t: TemaPublicos, i: number) => (t.title.trim() ? `"${t.title.trim()}"` : `El tema ${i + 1}`);
 
 /** Lo que comparten todos los gráficos: títulos que no se repiten y una sola escala por tema. */
 function faltaComun(temas: readonly TemaPublicos[], variables: readonly VarWithSource[], soloOpcionUnica: boolean): string[] {

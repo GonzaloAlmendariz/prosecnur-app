@@ -37,7 +37,7 @@ export function humanizeGraficosExportError(raw: string, plan: PlanJson): Humani
   if (raw.includes(CODIGO_BORRADOR_STALE) || raw.includes(MENSAJE_CONFLICTO_BORRADOR)) {
     return {
       message: MENSAJE_CONFLICTO_BORRADOR,
-      hint: `Usa «${ACCION_RECARGAR_BORRADOR}» en el aviso y vuelve a exportar.`,
+      hint: `Usa "${ACCION_RECARGAR_BORRADOR}" en el aviso y vuelve a exportar.`,
       ...(detalle ? { detalle } : {}),
     };
   }
@@ -56,7 +56,7 @@ export function humanizeGraficosExportError(raw: string, plan: PlanJson): Humani
         ? `${nombrada.label}: su gráfico no se puede dibujar ${porque ? `porque ${porque}` : "como está configurado"}, y el informe se detuvo ahí.`
         : h.message,
       hint: generico
-        ? `Ábrela y revisa ${porque ? "ese ajuste en " : ""}su gráfico; en la tira de miniaturas aparece como «No se dibuja».`
+        ? `Ábrela y revisa ${porque ? "ese ajuste en " : ""}su gráfico; en la tira de miniaturas aparece como "No se dibuja".`
         : h.hint,
       slideRef: nombrada,
       ...(detalle ? { detalle } : {}),
@@ -93,7 +93,7 @@ function humanizar(msg: string, plan: PlanJson): HumanizedError {
   // modo `box`): el gráfico compara grupos de preguntas y alguno quedó sin su tema.
   const gruposSinNombre = /(?:Base ['"`]([^'"`]+)['"`]:\s*)?(?:[\w.]+\()?modo\s*=\s*['"`]?(\w+)['"`]?\)?:\s*cuando `?vars`? es lista, debe ser una lista nombrada/i.exec(msg);
   if (gruposSinNombre) {
-    const base = gruposSinNombre[1] ? ` de la base «${gruposSinNombre[1]}»` : "";
+    const base = gruposSinNombre[1] ? ` de la base "${gruposSinNombre[1]}"` : "";
     const culprit = findSlideWithUnnamedGroups(plan, gruposSinNombre[2]);
     const donde = culprit ? `${culprit.slideLabel}: un gráfico` : "Un gráfico";
     return {
@@ -131,7 +131,7 @@ function humanizar(msg: string, plan: PlanJson): HumanizedError {
     const culprit = findSlideWithVariable(plan, objName);
     const where = culprit ? ` (usada en ${culprit.slideLabel})` : "";
     return {
-      message: `La variable «${objName}» no existe en los datos cargados${where}.`,
+      message: `La variable "${objName}" no existe en los datos cargados${where}.`,
       hint: "Puede que la hayas renombrado en la carga o que se llame distinto en el formulario. Cámbiala en el gráfico afectado.",
       slideRef: culprit ? { id: culprit.slideId, label: culprit.slideLabel } : undefined,
     };
@@ -176,7 +176,7 @@ function humanizar(msg: string, plan: PlanJson): HumanizedError {
   const iconRequiredMatch = /La (?:lámina|slide) [«'"`]([^»'"`]+)[»'"`] requiere un [ií]cono/i.exec(msg);
   if (iconRequiredMatch) {
     return {
-      message: `Una lámina «${labelForSlideType(iconRequiredMatch[1])}» necesita un ícono.`,
+      message: `Una lámina "${labelForSlideType(iconRequiredMatch[1])}" necesita un ícono.`,
       hint: "Selecciona un PNG en Configuración global → Íconos. En las láminas de población puedes dejarlo en (ninguno), pero esta plantilla lo requiere.",
     };
   }

@@ -68,15 +68,15 @@ describe("editar capítulos y hallazgos", () => {
     const titulo = host.querySelector<HTMLInputElement>('input[aria-label="Título del capítulo 1"]')!;
     act(() => escribir(titulo, "Trabajo"));
     expect(onCambio).not.toHaveBeenCalled();
-    expect(host.querySelector('[aria-label="Capítulo «Trabajo»"]')).not.toBeNull();
+    expect(host.querySelector("[aria-label='Capítulo \"Trabajo\"']")).not.toBeNull();
   });
 
   it("subir y bajar capítulos cambia su orden en el plan", () => {
     const onCambio = vi.fn();
     const dos = [real[0], { titulo: "Trabajo", cifras: [{ var: "P5", fila: "Sí", texto: "trabaja", comparacion: "auto" }] }];
     montar(dos, onCambio);
-    expect(boton("Subir el capítulo «Información general»").disabled).toBe(true);
-    act(() => boton("Subir el capítulo «Trabajo»").click());
+    expect(boton('Subir el capítulo "Información general"').disabled).toBe(true);
+    act(() => boton('Subir el capítulo "Trabajo"').click());
     expect(onCambio.mock.lastCall?.[0].map((c: { titulo: string }) => c.titulo)).toEqual(["Trabajo", "Información general"]);
   });
 });

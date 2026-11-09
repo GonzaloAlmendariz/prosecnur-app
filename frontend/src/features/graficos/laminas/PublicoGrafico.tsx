@@ -22,7 +22,7 @@ export const OPCIONES_PUBLICO: readonly { value: Valor; label: string }[] = [
   { value: "no", label: "Ocultar" },
 ];
 const SEGMENTOS_PUBLICO: Segmentacion = segmentacionFija(OPCIONES_PUBLICO);
-const AYUDA_PUBLICO = "«Si el n cambia»: «172 respuestas» sale bajo el enunciado sólo si el gráfico no tiene el mismo público y el mismo n que la lámina.";
+const AYUDA_PUBLICO = '"Si el n cambia": "172 respuestas" sale bajo el enunciado sólo si el gráfico no tiene el mismo público y el mismo n que la lámina.';
 
 export function PublicoGrafico({ slideId, slot, valor }: { slideId: string; slot: string; valor: GraficadorRef }) {
   const id = useId();

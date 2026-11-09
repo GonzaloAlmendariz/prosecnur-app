@@ -110,7 +110,7 @@ export function motivoNoCuenta(p: { tipoLamina: string; graficador: string; args
 export const TEXTO_NO_CUENTA: Readonly<Record<MotivoNoCuenta, string>> = {
   lamina: "Esta pregunta no entra al resumen ejecutivo: solo cuentan las láminas de un gráfico.",
   tipo: "Esta pregunta no entra al resumen ejecutivo: solo cuentan los gráficos de barras.",
-  cruce: "Esta pregunta no entra al resumen ejecutivo: solo cuentan los gráficos sin «Dividir por».",
+  cruce: 'Esta pregunta no entra al resumen ejecutivo: solo cuentan los gráficos sin "Dividir por".',
   sin_two_box: "Estas preguntas no entran al resumen ejecutivo: una batería cuenta solo con su Top Two Box.",
 };
 

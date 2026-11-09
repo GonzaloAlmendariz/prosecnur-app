@@ -191,7 +191,7 @@ export function avisosIndice(indice: IndiceEditable): AvisoIndice[] {
         texto: `El capítulo ${i + 1} no tiene título: no sale en el índice hasta que lo tenga.` });
     } else if (TIENE_SEPARADOR.test(titulo) && limpias(c.subcapitulos).length > 0) {
       avisos.push({ codigo: "separador_en_titulo", capitulo: i + 1, bloquea: true,
-        texto: `«${titulo}» lleva «:» o «|» y tiene subcapítulos: el motor los perdería. Quita el signo para guardar el índice.` });
+        texto: `"${titulo}" lleva ":" o "|" y tiene subcapítulos: el motor los perdería. Quita el signo para guardar el índice.` });
     }
   });
   const n = indice.capitulos.filter((c) => c.titulo.trim()).length;

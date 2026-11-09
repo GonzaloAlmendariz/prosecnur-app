@@ -12,7 +12,7 @@ type Props = {
   onCambio: (publico: string) => void;
 };
 
-export function CasosNombrados({ valor, ayuda = "En la lectura de cada tarjeta, p. ej. «estudiantes».", onCambio }: Props) {
+export function CasosNombrados({ valor, ayuda = 'En la lectura de cada tarjeta, p. ej. "estudiantes".', onCambio }: Props) {
   const id = useId();
   return (
     <div className="pulso-f6-dato is-apilado" data-campo="publico" data-qa-geometry-member="">

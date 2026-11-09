@@ -104,5 +104,5 @@ export function jergaVisibleEn(fuente: string, jerga = JERGA_DE_ARQUITECTURA): s
   return textoVisibleDe(fuente).flatMap((linea) =>
     jerga
       .filter((termino) => linea.toLowerCase().includes(termino))
-      .map((termino) => `«${termino}» en: ${linea.slice(0, 80)}`));
+      .map((termino) => `"${termino}" en: ${linea.slice(0, 80)}`));
 }

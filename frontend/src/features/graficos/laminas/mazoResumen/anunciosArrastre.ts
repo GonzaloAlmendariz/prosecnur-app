@@ -23,7 +23,7 @@ export function instruccionesArrastre(que: string): ScreenReaderInstructions {
 }
 
 export function anunciosArrastre(c: CosasOrdenables): Announcements {
-  const nombre = (id: string | number) => `«${c.nombre(String(id))}»`;
+  const nombre = (id: string | number) => `"${c.nombre(String(id))}"`;
   return {
     onDragStart: ({ active }) => `Tomaste ${nombre(active.id)}, ${lugar(c, active.id)}.`,
     onDragOver: ({ active, over }) => over

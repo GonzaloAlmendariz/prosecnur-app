@@ -88,7 +88,7 @@ export function PropuestaResumen({ slide, scope, automatica, valor, onAplicar }:
     onAplicar({ seleccion: "manual", capitulos });
     setUi((u) => ({
       ...u, abierta: false, pendiente: null, aviso: "", enfocar: true,
-      anuncio: `En «Los escribo yo» con ${formatoConteo(n)} ${n === 1 ? nombreElemento(tipo) : plural}. Ctrl+Z lo deshace.`,
+      anuncio: `En "Los escribo yo" con ${formatoConteo(n)} ${n === 1 ? nombreElemento(tipo) : plural}. Ctrl+Z lo deshace.`,
     }));
   };
   const usarMarcados = () => {

@@ -84,14 +84,14 @@ export function CitasAprobadas({ args, variable, onCambio }: Props) {
               data-qa-geometry-group="graficos/f6-citas-candidatas" data-qa-geometry-contract="intrinsic">
               {libres.slice(0, visibles).map((c) => (
                 <li key={c.id} className="pulso-f6-cita" data-qa-geometry-member="candidata">
-                  <p className="pulso-f6-cita-texto">«{c.texto}»</p>
+                  <p className="pulso-f6-cita-texto">"{c.texto}"</p>
                   <div className="pulso-f6-cita-pie">
                     {c.propuesta && <span className="pulso-f6-cita-marca">Propuesta</span>}
                     {c.revision && <span className="pulso-f6-cita-marca is-revisar" title={c.revision}>Revisar</span>}
                     <span className="pulso-f6-citas-sp" />
                     <PulsoButton variant="secondary" size="sm" disabled={lleno}
                       title={lleno ? `Ya hay ${TOPE_CITAS} aprobadas: quita una para aprobar otra` : undefined}
-                      aria-label={`Aprobar la cita «${c.texto.slice(0, 60)}»`}
+                      aria-label={`Aprobar la cita "${c.texto.slice(0, 60)}"`}
                       onClick={() => guardar(aprobar(aprobadas, c.id))}>
                       <Check size={13} aria-hidden="true" /> Aprobar
                     </PulsoButton>
@@ -139,7 +139,7 @@ function CitaAprobadaFila({ cita, candidata, pos, total, onCambiar, onMover, onQ
     <li className="pulso-f6-cita is-aprobada" data-qa-geometry-member="aprobada">
       <div className="pulso-f6-cita-cabeza">
         <span className="pulso-f6-cita-pos" aria-hidden="true">{pos + 1}</span>
-        <p className="pulso-f6-cita-texto">«{actual}»{cita.sic && palabrasSic.length === 0 ? " [sic]" : ""}</p>
+        <p className="pulso-f6-cita-texto">"{actual}"{cita.sic && palabrasSic.length === 0 ? " [sic]" : ""}</p>
       </div>
       <div className="pulso-f6-cita-pie">
         {v?.tipo.includes("recorte") && <span className="pulso-f6-cita-marca">Recortada</span>}
@@ -157,14 +157,14 @@ function CitaAprobadaFila({ cita, candidata, pos, total, onCambiar, onMover, onQ
           <PulsoButton variant="secondary" size="sm" aria-pressed={!!cita.sic}
             title="Deja el texto como se escribió y avisa que el error es del original"
             onClick={() => onCambiar({ sic: cita.sic ? undefined : true })}>[sic]</PulsoButton>
-          <PulsoButton variant="secondary" size="sm" aria-label={`Quitar la cita «${corto}»`} onClick={onQuitar}><X size={13} aria-hidden="true" /> Quitar</PulsoButton>
+          <PulsoButton variant="secondary" size="sm" aria-label={`Quitar la cita "${corto}"`} onClick={onQuitar}><X size={13} aria-hidden="true" /> Quitar</PulsoButton>
         </div>
       )}
       {modo === "ver" && cita.sic && (
         <div className="pulso-f6-cita-sic">
           <label className="pulso-f6-dato-rotulo" htmlFor={idSic}>
-            Palabras con «[sic]»
-            <AyudaGlobo id={`${idSic}-ayuda`} rotulo="Palabras con «[sic]»" detalle="Detrás de qué palabras va «[sic]». Vacío, va al final de la cita." />
+            Palabras con "[sic]"
+            <AyudaGlobo id={`${idSic}-ayuda`} rotulo='Palabras con "[sic]"' detalle='Detrás de qué palabras va "[sic]". Vacío, va al final de la cita.' />
           </label>
           <input id={idSic} className="pulso-f6-input" defaultValue={palabrasSic.join(", ")} placeholder="pdoer, adceso"
             aria-describedby={`${idSic}-ayuda`}
@@ -200,7 +200,7 @@ function Recortar({ base, onGuardar, onOriginal, onCancelar }: {
     <div className="pulso-f6-cita-editor" role="group" aria-label="Recortar la cita">
       <span className="pulso-f6-dato-rotulo">
         Fragmentos
-        <AyudaGlobo id={`${id}-ayuda`} rotulo="Fragmentos" detalle="Toca los fragmentos que no van. Donde se quite algo, la cita lleva «[…]»." />
+        <AyudaGlobo id={`${id}-ayuda`} rotulo="Fragmentos" detalle='Toca los fragmentos que no van. Donde se quite algo, la cita lleva "[…]".' />
       </span>
       <div className="pulso-f6-cita-fragmentos" aria-describedby={`${id}-ayuda`}>
         {segmentos.map((s, i) => (
@@ -209,7 +209,7 @@ function Recortar({ base, onGuardar, onOriginal, onCancelar }: {
             onClick={() => setElegidos((e) => e.map((x, j) => (j === i ? !x : x)))}>{s}</button>
         ))}
       </div>
-      <p className="pulso-f6-cita-vista" aria-live="polite">{texto ? `«${texto}»` : "Elige al menos un fragmento."}</p>
+      <p className="pulso-f6-cita-vista" aria-live="polite">{texto ? `"${texto}"` : "Elige al menos un fragmento."}</p>
       <div className="pulso-f6-cita-acciones">
         <PulsoButton variant="primary" size="sm" disabled={!texto} onClick={() => onGuardar(texto)}>Guardar recorte</PulsoButton>
         <PulsoButton variant="secondary" size="sm" onClick={onOriginal}>Volver al original</PulsoButton>
@@ -227,7 +227,7 @@ function Corregir({ original, inicial, conSic, onGuardar, onCancelar }: {
   const v = validarEdicion(original, texto);
   const contradice = conSic && v.ok && v.tipo.includes("correccion");
   const motivo = !v.ok ? `No se puede guardar: ${v.motivo}. Sólo se aceptan tildes, mayúsculas o hasta dos letras en palabras de cuatro o más, sin palabras nuevas.`
-    : contradice ? "Esta cita está marcada con «[sic]»: corregir y marcar el error a la vez se contradicen. Quita «[sic]» o deja el texto como está."
+    : contradice ? 'Esta cita está marcada con "[sic]": corregir y marcar el error a la vez se contradicen. Quita "[sic]" o deja el texto como está.'
     : "";
   return (
     <div className="pulso-f6-cita-editor" role="group" aria-label="Corregir la cita">

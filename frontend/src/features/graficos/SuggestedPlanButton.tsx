@@ -233,7 +233,7 @@ export function SuggestedPlanButton() {
       const isNetwork = /failed to fetch|networkerror|load failed|fetch|timeout|timed out|aborted/i.test(raw);
       setError(
         isNetwork
-          ? "No se pudo completar la generación (la conexión se interrumpió). Vuelve a intentar con «Actualizar propuesta»."
+          ? 'No se pudo completar la generación (la conexión se interrumpió). Vuelve a intentar con "Actualizar propuesta".'
           : raw,
       );
     } finally {
@@ -493,7 +493,7 @@ export function SuggestedPlanButton() {
                 <label className="pulso-f6-armar-otros">
                   <input type="checkbox" checked={aceptarOtros} onChange={(e) => setAceptarOtros(e.target.checked)} />
                   <span>
-                    Este plan propone {propuesta ? "agregar" : "quitar"} las láminas de «Otros» en el PowerPoint
+                    Este plan propone {propuesta ? "agregar" : "quitar"} las láminas de "Otros" en el PowerPoint
                     (hoy están {autoOtrosActual ? "puestas" : "quitadas"}). Aplicarlo también.
                   </span>
                 </label>

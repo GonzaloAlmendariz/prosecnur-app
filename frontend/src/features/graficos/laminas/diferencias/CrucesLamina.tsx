@@ -34,7 +34,7 @@ export function CrucesLamina({ payload, scope, baseActiva, ayudaVacia, conPublic
       {/* Estas láminas usan siempre el nombre corto de un grupo (`.dif_corto`), no sólo cuando no cabe. */}
       <CortosGrupos valor={valor} cruces={cruces} scope={scope} baseActiva={baseActiva} uso="siempre" onCambio={(cortos) => cambiar({ cortos })} />
       {conPublico && (
-        <CasosNombrados valor={typeof payload.publico === "string" ? payload.publico : ""} ayuda="En la lectura de la lámina, p. ej. «estudiantes»."
+        <CasosNombrados valor={typeof payload.publico === "string" ? payload.publico : ""} ayuda='En la lectura de la lámina, p. ej. "estudiantes".'
           onCambio={(p) => onParche({ publico: p })} />
       )}
     </div>

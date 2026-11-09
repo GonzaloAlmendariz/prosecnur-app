@@ -297,7 +297,7 @@ export function repeatContextFromBase(
 
 /** Nota relacional para el banner cuando no llega el grano real de Analítica. */
 export const ROSTER_RELATIONAL_NOTE =
-  "Cada fila es un registro repetido, no una persona. La columna «Persona» indica quién respondió; las filas de una misma persona van juntas.";
+  'Cada fila es un registro repetido, no una persona. La columna "Persona" indica quién respondió; las filas de una misma persona van juntas.';
 
 /**
  * Construye el grano a mostrar en el banner del explorador. Prefiere el grano
