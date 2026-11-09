@@ -130,3 +130,23 @@ test_that("ronda 2, ítem 4: n visible, mínimo de 30 por defecto, pocos casos y
   expect_match(pie, "Porcentajes ponderados; n sin ponderar", fixed = TRUE)
   expect_true(any(grepl("sin porcentaje, aparte: Comas", msgs, fixed = TRUE)))
 })
+
+test_that("catálogo, ronda 3: con título de dos líneas y subtítulo, la pregunta y la tarjeta del mapa quedan bajo el subtítulo", {
+  tit <- "San Isidro concentra la mayor satisfacción de los egresados (88 %) y el distrito de Lima, la menor (48 %)"
+  sub <- "En general, ¿qué tan satisfecho está con la atención en la Unidad?"
+  fondo <- .lam_titulo_fondo(tit, sub)
+  fr <- .lam_mapa_franja(sub, tit)
+  expect_gte(fr$y_preg, fondo + 0.12 - 1e-9)
+  sin <- .lam_mapa_franja(sub, tit, con_pregunta = FALSE)
+  expect_gte(sin$y0, fondo + 0.12 - 1e-9)
+  # Sin título no cambia nada (compatibilidad con quien no lo pasa).
+  expect_identical(.lam_mapa_franja(sub), .lam_mapa_franja(sub, NULL))
+  fx <- .mr_fixture()
+  out <- tempfile(fileext = ".pptx")
+  suppressMessages(suppressWarnings(reporte_ppt_plan(data = fx$data, instrumento = fx$inst, plan = list(p_slide_1_grafico(
+    p_mapa_resultado_distrital("sat", cruces = "dist", corte = c("4", "5"), rotulo = "Satisfechos o muy satisfechos"), titulo = tit, subtitulo = sub)),
+    path_ppt = out, mensajes_progreso = FALSE)))
+  x <- xml2::read_xml(unz(out, "ppt/slides/slide1.xml"))
+  y_de <- function(n) as.numeric(xml2::xml_attr(xml2::xml_find_first(xml2::xml_find_first(x, sprintf("//p:sp[p:nvSpPr/p:cNvPr[@name='%s']]", n)), ".//a:off"), "y")) / 914400
+  expect_gte(y_de("panel:pregunta"), fondo + 0.12 - 0.01)
+})

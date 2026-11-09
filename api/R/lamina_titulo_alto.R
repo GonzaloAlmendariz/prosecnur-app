@@ -25,3 +25,19 @@
   viejo <- options(prosecnur.lam_desplazo_titulo = dy); on.exit(options(viejo), add = TRUE)
   force(expr)
 }
+
+#' Dónde termina el bloque del título (antetítulo, título y subtítulo), en pulgadas desde arriba
+#'
+#' Lo dibuja `.lam_titulo`: el subtítulo baja lo que miden las líneas de más del título. Lo usan las láminas que ponen algo
+#' bajo el título fuera de la zona de datos (la pregunta del mapa), para no pisar el subtítulo.
+#' @keywords internal
+.lam_titulo_fondo <- function(titulo, sub = NULL) {
+  yt <- .std_valor("ppt", "geometria", "titulo_y"); tp <- .std_pt("titulo")
+  t <- trimws(as.character(titulo %||% "")[1]); if (is.na(t)) t <- ""
+  nt <- max(1L, .lam_lineas_tinta(t, 10.4, tp, TRUE))
+  s <- trimws(as.character(sub %||% "")[1])
+  if (is.na(s) || !nzchar(s)) return(yt + 0.06 + 0.05 + nt * tp * 1.2 / 72)
+  ns <- max(1L, .lam_lineas_tinta(s, 10.4, .std_pt("subtitulo"), FALSE))
+  yt + 0.55 + (nt - 1L) * tp * 1.2 / 72 + 0.05 + ns * .std_pt("subtitulo") * 1.2 / 72
+}
+

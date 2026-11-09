@@ -19,9 +19,15 @@
 #' («Base:» empieza en `composicion.pie.base_y`): 0.36 in más, una fila más de la lista.
 #' @param sub ¿Lleva subtítulo la lámina? Entonces conserva el arranque de la zona de datos.
 #' @keywords internal
-.lam_mapa_franja <- function(sub = NULL) {
+.lam_mapa_franja <- function(sub = NULL, titulo = NULL, con_pregunta = TRUE) {
   y0 <- .std_geom("zona_datos_y0") - (if (!is.null(sub) && nzchar(sub)) 0.03 else 0.18)
   y1 <- .std_comp("pie", "base_y") - 0.11
+  # Catálogo, ronda 3: con un título de dos líneas y subtítulo, la pregunta pisaba el subtítulo y la tarjeta lo tocaba.
+  # La pregunta (o, sin ella, la tarjeta) va 0.12 in bajo el fondo del bloque del título, y la tarjeta cede ese alto.
+  if (!is.null(titulo)) {
+    piso <- .lam_titulo_fondo(titulo, sub) + 0.12
+    y0 <- max(y0, piso + (if (isTRUE(con_pregunta)) 0.3 else 0))
+  }
   list(y_preg = y0 - 0.3, y0 = y0, y1 = y1)
 }
 
@@ -235,7 +241,8 @@
                                            layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
   force(folio)
   g_ <- .std_geom; P <- .LAM_MAPA_PX
-  ml <- g_("margen_izq"); ancho <- g_("ancho") - ml - g_("margen_der"); fr <- .lam_mapa_franja(sub)
+  ml <- g_("margen_izq"); ancho <- g_("ancho") - ml - g_("margen_der")
+  fr <- .lam_mapa_franja(sub, titulo, con_pregunta = !is.null(espec$pregunta) && nzchar(espec$pregunta))
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   wm <- .lam_mapa_dist_ancho_mapa(espec, ancho * 860 / 1490, fr$y1 - fr$y0, ancho)
