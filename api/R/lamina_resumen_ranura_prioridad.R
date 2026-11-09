@@ -29,7 +29,7 @@
 #' Las filas de la ranura del contraste: se prueban en el orden de su prioridad y quedan en el orden de la lámina
 #'
 #' Sin prioridad (o con separadores) se comporta como `.lam_rr_filas`: las primeras. Con más filas que las de una lámina
-#' de página entera, la ranura puede quedarse con dos: lo que no cabe va en otra lámina y el pie lo dice.
+#' de página entera, la ranura puede quedarse con dos: el pie dice cuántas no caben, sin prometer otra lámina (P14).
 #' @return Lo de `.lam_rr_filas`, `por_prioridad` y, si quedan menos y no son las primeras, `filas` (índices en el orden
 #'   de la lámina).
 #' @keywords internal
@@ -48,11 +48,14 @@
   while (is.null(f) && m > 2L) { m <- m - 1L; f <- filas(m, n_min = m) }
   if (is.null(f)) return(f)
   f$por_prioridad <- length(pr) == n && !anyNA(pr) && !length(espec$separadores)
-  if (f$k >= n || identical(idx, seq_len(n))) return(f)
+  if (identical(idx, seq_len(n))) return(f)
+  # Los rótulos y altos vienen en el orden de la prioridad y el dibujo va en el de la lámina: se reordenan SIEMPRE, también
+  # cuando caben todas. Antes, con todas dentro, volvían sin reordenar y cada rótulo quedaba sobre las cifras de otra
+  # pregunta (QA de la ranura de Arte, 2026-11-09: «Asesorías de matrícula…» con 68 y 80, que son de otra fila).
   quedan <- idx[seq_len(f$k)]
   pos <- order(quedan)
   f$alturas <- f$alturas[pos]; f$textos <- f$textos[pos]
-  f$filas <- sort(quedan)
+  if (f$k < n) f$filas <- sort(quedan)
   f
 }
 

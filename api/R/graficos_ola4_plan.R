@@ -866,6 +866,7 @@ p_dumbbell <- function(vars = NULL,
   .dumbbell_grupos_validar_render(el, sources)   # grupos en código y etiqueta (graficos_dumbbell_grupos.R)
   sin_eq <- .dumbbell_sin_equivalencia(el, sources)   # ADR 0138 §5: nunca por nombre (graficos_dumbbell_equivalencia.R)
   if (!is.null(sin_eq)) return(.dumbbell_lamina_sin_equivalencia(sin_eq))
+  el <- .contraste_desde_en_ranura(el)   # C4: en una ranura no hay `continuar_desde`, y se dice (graficos_continuar_desde.R)
   ap <- .regla_preguntas_aplicar_render(el, "dumbbell", sources); el <- ap$el   # ADR 0135
   if (!is.null(el$cruce)) {
     temas <- .resumen_temas_cortos(.dumbbell_grupos_temas(el$vars, sources))   # nombre corto de la pregunta (lamina_rotulo_resumen.R)

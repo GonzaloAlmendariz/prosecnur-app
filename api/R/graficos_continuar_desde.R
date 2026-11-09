@@ -19,3 +19,20 @@
   }
   if (v == 1) NULL else as.integer(v)
 }
+
+#' El contraste en una ranura no sigue a otra lámina: si trae `continuar_desde`, lo dice y lo deja de lado (C4)
+#'
+#' En una lámina de dos o cuatro gráficos la ranura elige las filas que caben por la mayor diferencia, con su alto real
+#' (lamina_resumen_ranura_prioridad.R), y ese recorte no tiene un orden fijo que otra lámina pueda continuar: cuántas
+#' caben depende del ancho y del alto de la ranura. Antes `continuar_desde` se perdía en silencio; ahora el aviso dice
+#' que la ranura muestra las de mayor diferencia y que continuar se hace en una lámina de un gráfico.
+#' @return El elemento sin `continuar_desde` (o tal cual si no lo trae o no va en una ranura).
+#' @keywords internal
+.contraste_desde_en_ranura <- function(el) {
+  if (.tope_espacio_desde(el$continuar_desde) <= 1L || !.tope_espacio_en_ranura(el)) return(el)
+  .pulso_aviso(.aviso_en_lamina(sprintf(paste0(
+    "En una lámina de dos o cuatro gráficos el contraste no admite `continuar_desde` (%d) y muestra las preguntas de mayor ",
+    "diferencia que caben; para continuar desde una posición, ponlo en una lámina de un gráfico."), .tope_espacio_desde(el$continuar_desde))))
+  el$continuar_desde <- NULL
+  el
+}
