@@ -455,7 +455,7 @@
   }
   args <- .clean_rebuild_args(args, fn)
   if (.graficos_args_faltan_requeridos(fn, args)) return(.graficos_blank_graph_element())
-  .graficos_retirado_marcar(do.call(fn, args), retiro)
+  .graficos_retirado_marcar(.dumbbell_construir_desde_plan(fn, args, graficador_name), retiro)   # grupos que no sirven: sólo su lámina (graficos_dumbbell_grupos.R)
 }
 
 # B36/G-12: una lamina borrador (slot de grafico REQUERIDO sin graficador)
@@ -1087,7 +1087,7 @@
   }
   args <- .clean_rebuild_args(args, fn)
   if (.graficos_args_faltan_requeridos(fn, args)) return(.graficos_blank_graph_element())
-  .graficos_retirado_marcar(do.call(fn, args), retiro)
+  .graficos_retirado_marcar(.dumbbell_construir_desde_plan(fn, args, graficador_name), retiro)   # grupos que no sirven: sólo su lámina (graficos_dumbbell_grupos.R)
 }
 
 .rebuild_slide <- function(s) {

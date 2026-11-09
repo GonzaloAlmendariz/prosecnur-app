@@ -276,7 +276,7 @@
       anotar("borrador_incompleto")
       return(.graficos_blank_graph_element())
     }
-    el <- .graficos_retirado_marcar(do.call(fn, args), retiro)
+    el <- .graficos_retirado_marcar(.dumbbell_construir_desde_plan(fn, args, graficador_name), retiro)   # grupos que no sirven: sólo su lámina
     anotar(.mini_motivo_grafico(args, el, fuentes))
     el
   }

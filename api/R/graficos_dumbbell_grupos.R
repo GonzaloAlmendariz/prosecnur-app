@@ -31,7 +31,7 @@
   cod_cruce <- vapply(opciones, function(o) as.character(o$codigo %||% "")[1], character(1))
   etq_cruce <- vapply(opciones, function(o) as.character(o$etiqueta %||% "")[1], character(1))
   faltan <- setdiff(grupos, cod_cruce)
-  if (length(faltan)) stop("dumbbell: el cruce `", cruce, "` no tiene los grupos ", paste(faltan, collapse = ", "), ".", call. = FALSE)
+  if (length(faltan)) stop(.dumbbell_grupos_explicar(cruce, grupos, cod_cruce, etq_cruce), call. = FALSE)
   etiquetas <- etq_cruce[match(grupos, cod_cruce)]
   etiquetas[!nzchar(etiquetas)] <- grupos[!nzchar(etiquetas)]
 
@@ -143,3 +143,78 @@
   if (length(sep)) ov$separar_tras <- sep
   ov
 }
+
+#' Por qué los `grupos` de las aperturas no sirven, en el idioma del argumento: `grupos` lleva códigos ("1", "2"), así que
+#' el mensaje dice el código y su etiqueta (catálogo, ronda 3: decía "no tiene los grupos Mujer, Hombre" a quien había
+#' escrito etiquetas, sin decirle qué código era cada una)
+#' @param cod,etq Códigos y etiquetas de las opciones del cruce.
+#' @keywords internal
+.dumbbell_grupos_explicar <- function(cruce, grupos, cod, etq) {
+  grupos <- as.character(unlist(grupos)); grupos <- grupos[!is.na(grupos)]
+  q <- function(x) paste0('"', x, '"')
+  disponibles <- paste(sprintf("%s = %s", q(cod), etq), collapse = ", ")
+  partes <- character(0)
+  if (length(grupos) < 2L || length(grupos) > 4L || anyDuplicated(grupos)) {
+    partes <- c(partes, sprintf("las aperturas comparan entre dos y cuatro grupos distintos y llegaron %d", length(unique(grupos))))
+  }
+  for (g in setdiff(grupos, cod)) {
+    k <- match(.lam_clave(g), .lam_clave(etq))
+    partes <- c(partes, if (!is.na(k)) sprintf("%s es la etiqueta del código %s", q(g), q(cod[k])) else sprintf("%s no es un código del cruce", q(g)))
+  }
+  # Sin nombres internos (`grupos`, la referencia base$variable): el aviso los descarta como jerga y el analista no vería el motivo.
+  sprintf("Aperturas por grupo: %s. Los grupos se eligen por su código: %s.", paste(partes, collapse = "; "), disponibles)
+}
+
+#' El constructor de `p_dumbbell` desde el plan: un `grupos` que no sirve degrada sólo su lámina (catálogo, ronda 3)
+#'
+#' Antes el error de `.p_dumbbell_grupos` ("`grupos` debe traer entre dos y cuatro grupos del cruce") cortaba el informe
+#' entero al armar el plan. Aquí la lámina queda con un elemento que falla al dibujarse, con el motivo en código y
+#' etiqueta: la lámina sale con "Sin datos" y su aviso, como cualquier gráfico que no se puede dibujar, y el resto sale.
+#' Quien llama a `p_dumbbell()` directamente sigue recibiendo el error del constructor.
+#' @keywords internal
+.dumbbell_construir_desde_plan <- function(fn, args, graficador_name) {
+  cruce <- trimws(as.character(unlist(args$cruce %||% ""))[1])
+  if (!identical(graficador_name, "p_dumbbell") || is.na(cruce) || !nzchar(cruce)) return(do.call(fn, args))
+  tryCatch(do.call(fn, args), pulso_plan_spec_error = function(e) {
+    if (!grepl("grupos", conditionMessage(e), fixed = TRUE)) stop(e)
+    el <- list(.element_type = "dumbbell_grupos_invalidos", var = NULL, cruce = cruce, grupos = as.character(unlist(args$grupos %||% character(0))),
+               mensaje = conditionMessage(e), overrides = list(), base = list(), filtros = list())
+    class(el) <- c("ppt_element", "list")
+    el
+  })
+}
+
+#' Renderer del elemento de `grupos` que no sirven: falla con el motivo en código y etiqueta (la lámina se degrada sola)
+#' @keywords internal
+.render_dumbbell_grupos_invalidos <- function(el, preset_args = list()) {
+  data_sources <- dynGet("data_sources", ifnotfound = NULL)
+  inst_sources <- dynGet("instrument_sources", ifnotfound = NULL)
+  cx <- tryCatch(.graficos_consolidado_ref_context(el$cruce, list(data_sources = data_sources, inst_sources = inst_sources)), error = function(e) NULL)
+  if (is.null(cx) || !isTRUE(cx$exists)) stop("Aperturas por grupo: la pregunta de cruce \"", el$cruce, "\" no existe en la base.", call. = FALSE)
+  op <- .equiv_escala_opciones(cx$inst, cx$resolved_variable)
+  .dumbbell_grupos_fallar(.dumbbell_grupos_explicar(el$cruce, el$grupos, vapply(op, function(o) as.character(o$codigo %||% "")[1], ""),
+                                                   vapply(op, function(o) as.character(o$etiqueta %||% "")[1], "")))
+}
+
+#' Antes de la regla de preguntas, las aperturas comprueban que sus `grupos` sean códigos del cruce (si no, la regla fallaba
+#' antes con "la lámina no tiene grupos" y el analista no sabía qué corregir)
+#' @keywords internal
+.dumbbell_grupos_validar_render <- function(el, sources) {
+  if (is.null(el$cruce) || !nzchar(trimws(as.character(el$cruce)[1]))) return(invisible(TRUE))
+  cx <- .graficos_consolidado_ref_context(el$cruce, sources)
+  if (!isTRUE(cx$exists)) return(invisible(TRUE))   # lo dice `.dumbbell_grupos_datos`
+  op <- .equiv_escala_opciones(cx$inst, cx$resolved_variable)
+  cod <- vapply(op, function(o) as.character(o$codigo %||% "")[1], ""); etq <- vapply(op, function(o) as.character(o$etiqueta %||% "")[1], "")
+  g <- as.character(unlist(el$grupos))
+  if (length(g) < 2L || length(g) > 4L || anyDuplicated(g) || length(setdiff(g, cod))) .dumbbell_grupos_fallar(.dumbbell_grupos_explicar(el$cruce, g, cod, etq))
+  invisible(TRUE)
+}
+
+#' La lámina de aperturas no se dibuja: el motivo va al aviso de la lámina (el aviso genérico de un render que falla
+#' descarta el motivo por traer nombres internos) y el error degrada sólo esa lámina
+#' @keywords internal
+.dumbbell_grupos_fallar <- function(msg) {
+  .pulso_aviso(.aviso_en_lamina(msg))
+  stop(msg, call. = FALSE)
+}
+
