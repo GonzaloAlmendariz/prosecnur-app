@@ -18,7 +18,7 @@ export function SeleccionMazo({ elegidas, total, onTodas, onNinguna }: Props) {
       <span className="pulso-f6-mazo-seleccion-conteo" aria-live="polite" data-qa-geometry-member>
         {textoElegidas(elegidas, total)}
       </span>
-      <span className="pulso-f6-mazo-seleccion-acciones" data-qa-geometry-member>
+      <span className="pulso-f6-mazo-seleccion-acciones pulso-enlaces" data-qa-geometry-member>
         <PulsoButton variant="link" size="sm" onClick={onTodas} disabled={elegidas === total}>Elegir todas</PulsoButton>
         <PulsoButton variant="link" size="sm" onClick={onNinguna} disabled={elegidas === 0}>Ninguna</PulsoButton>
       </span>

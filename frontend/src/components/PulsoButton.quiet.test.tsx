@@ -35,23 +35,33 @@ describe("PulsoButton tone=quiet", () => {
     expect(html).toContain("pulso-button--sm pulso-button--quiet");
   });
 
-  it("no altera las otras variantes: mismo marcado sin tone", () => {
+  it("W3: el ícono es quieto POR DEFECTO; las otras variantes no cambian", () => {
     const variantes: PulsoButtonProps[] = [
       { variant: "primary", children: "Guardar" },
       { variant: "secondary", size: "sm", children: "Revisar" },
       { variant: "ghost", children: "Ver" },
       { variant: "link", children: "Ninguna" },
       { variant: "danger", children: "Eliminar" },
-      { variant: "icon", "aria-label": "Más", children: "+" },
-      { variant: "icon", intent: "remove", "aria-label": "Quitar", children: "x" },
     ];
     for (const props of variantes) {
       const html = renderToStaticMarkup(<PulsoButton {...props} />);
       expect(html).not.toContain("pulso-button--quiet");
+      expect(html).not.toContain("pulso-button--framed");
     }
     expect(renderToStaticMarkup(<PulsoButton variant="icon" aria-label="Más">+</PulsoButton>)).toBe(
-      '<button aria-label="Más" type="button" class="pulso-button pulso-button--icon pulso-button--md">+</button>',
+      '<button aria-label="Más" type="button" class="pulso-button pulso-button--icon pulso-button--md pulso-button--quiet">+</button>',
     );
+    expect(
+      renderToStaticMarkup(<PulsoButton variant="icon" intent="remove" aria-label="Quitar">x</PulsoButton>),
+    ).toContain("pulso-button--quiet");
+  });
+
+  it("W3: tone=\"framed\" devuelve la caja hairline y no lleva la clase quieta", () => {
+    const html = renderToStaticMarkup(
+      <PulsoButton variant="icon" tone="framed" size="sm" aria-label="Un paso menos">−</PulsoButton>,
+    );
+    expect(html).toContain('class="pulso-button pulso-button--icon pulso-button--sm pulso-button--framed"');
+    expect(html).not.toContain("pulso-button--quiet");
   });
 
   it("tone solo existe en la variante icon", () => {
@@ -90,5 +100,28 @@ describe("PulsoButton tone=quiet", () => {
 
   it("sin hex en la hoja", () => {
     expect(hoja.replace(/\/\*[\s\S]*?\*\//g, "")).not.toMatch(/#[0-9a-f]{3,8}\b/i);
+  });
+
+  it("W3: el ícono enmarcado es la excepción declarada (barra de comandos, acciones de archivo, paso a paso)", () => {
+    const raiz = path.resolve(__dirname, "..");
+    const encontrados: string[] = [];
+    const visitar = (dir: string) => {
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        const completo = path.join(dir, e.name);
+        if (e.isDirectory()) visitar(completo);
+        else if (/\.tsx$/.test(e.name) && !/\.test\./.test(e.name) && e.name !== "PulsoButton.tsx") {
+          const n = (fs.readFileSync(completo, "utf8").match(/tone="framed"/g) ?? []).length;
+          if (n > 0) encontrados.push(`${path.relative(raiz, completo).split(path.sep).join("/")}:${n}`);
+        }
+      }
+    };
+    visitar(raiz);
+    expect(encontrados.sort()).toEqual([
+      "components/ChromeOverflowMenu.tsx:1",
+      "components/ModuleCommandBar.tsx:1",
+      "components/entregables/AccionesArchivo.tsx:4",
+      "features/hojasRuta/mapa/ajustes/grupos/GrupoRecorrido.tsx:2",
+      "features/hojasRuta/mapa/manzanas/MarcoElegiblePanel.tsx:2",
+    ]);
   });
 });

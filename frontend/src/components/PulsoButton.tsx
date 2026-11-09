@@ -58,14 +58,18 @@ type IconPulsoButtonProps = NativeButtonProps & {
    */
   intent?: "remove";
   /**
-   * Botón de ícono QUIETO (`pulso-button--quiet`, kit-boton-quieto.css): sin
-   * borde ni sombra en reposo, `--pulso-surface-3` al hover, 28 px a la vista
-   * y 32 al puntero, radio `--pulso-control-radius` y un único anillo de foco
-   * (`--mov-foco`). Ícono de 16 px en `md`, 14 en `sm` (filas densas). Es el
-   * botón de ícono de barras, cabeceras y filas; la X de cerrar es
-   * `BotonCerrar`, que lo usa por dentro.
+   * Tono del botón de ícono. **Por defecto `quiet`** (W3, `pulso-button--quiet`,
+   * kit-boton-quieto.css): sin borde ni sombra en reposo, `--pulso-surface-3`
+   * al hover, 28 px a la vista y 32 al puntero, radio `--pulso-control-radius`
+   * y un único anillo de foco (`--mov-foco`). Ícono de 16 px en `md`, 14 en
+   * `sm` (filas densas). Es el botón de ícono de barras, cabeceras y filas; la
+   * X de cerrar es `BotonCerrar`, que lo usa por dentro.
+   *
+   * `framed` (`pulso-button--framed`) le devuelve la caja hairline: sólo para
+   * el ícono que convive con botones secundarios enmarcados (una barra de
+   * comandos, el − / + de un paso a paso).
    */
-  tone?: "quiet";
+  tone?: "quiet" | "framed";
   "aria-label": string;
 };
 
@@ -80,14 +84,13 @@ export type PulsoButtonProps =
  * - `primary` · `secondary` · `ghost`: acento del módulo.
  * - `danger`: contorno rojo vivo + ícono; `confirm` = relleno sólido, solo en
  *   el paso final de confirmación.
- * - `icon` (K2): caja hairline con superficie en reposo (28 px en `sm`/`md`,
- *   36 en `lg` con la escala actual de `--pulso-control-height-*`), más
- *   contraste al hover; `intent="remove"` enrojece solo al hover. Exige
- *   `aria-label`. `tone="quiet"` lo deja sin caja en reposo (barras,
- *   cabeceras, filas).
- * - `link` (K3): botón de texto SIN subrayado que gana caja al hover; dos
- *   vecinos se separan con un filete fino. Dentro de prosa (`p`) vuelve al
- *   subrayado al hover.
+ * - `icon` (K2): sin caja en reposo por defecto (`tone="quiet"`, W3); la caja
+ *   aparece al hover. `tone="framed"` le devuelve la caja hairline para
+ *   convivir con secundarios enmarcados. `intent="remove"` enrojece solo al
+ *   hover. Exige `aria-label`.
+ * - `link` (K3): botón de texto SIN subrayado, 28 px, que gana caja al hover;
+ *   dos vecinos se separan con un filete fino sólo dentro de `.pulso-enlaces`.
+ *   Dentro de prosa (`p`) vuelve al subrayado al hover.
  * - `nav` (K4, en primary/secondary/ghost/link): flecha `ArrowRight` tras el
  *   destino.
  */
@@ -107,11 +110,12 @@ export const PulsoButton = forwardRef<HTMLButtonElement, PulsoButtonProps>(
       intent: _intent,
       tone: _tone,
       ...buttonProps
-    } = rest as typeof rest & { nav?: boolean; confirm?: boolean; intent?: "remove"; tone?: "quiet" };
+    } = rest as typeof rest & { nav?: boolean; confirm?: boolean; intent?: "remove"; tone?: "quiet" | "framed" };
     const nav = props.variant !== "icon" && props.variant !== "danger" && props.nav === true;
     const confirm = props.variant === "danger" && props.confirm === true;
     const intent = props.variant === "icon" ? props.intent : undefined;
-    const quiet = props.variant === "icon" && props.tone === "quiet";
+    const quiet = props.variant === "icon" && props.tone !== "framed";
+    const framed = props.variant === "icon" && props.tone === "framed";
 
     return (
       <button
@@ -125,6 +129,7 @@ export const PulsoButton = forwardRef<HTMLButtonElement, PulsoButtonProps>(
           `pulso-button--${size}`,
           confirm ? "pulso-button--danger-confirm" : null,
           quiet ? "pulso-button--quiet" : null,
+          framed ? "pulso-button--framed" : null,
           nav ? "pulso-button--nav" : null,
           className,
         ].filter(Boolean).join(" ")}

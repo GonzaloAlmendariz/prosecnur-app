@@ -126,9 +126,9 @@ export function MarcoElegiblePanel({ marco, vista, cargando, deshabilitado, onCa
       <div className="hr-muestra-campo">
         <small>Mínimo de viviendas por manzana</small>
         <span className="hr-muestra-pasos">
-          <PulsoButton variant="icon" size="sm" aria-label="Una vivienda menos" disabled={deshabilitado || me.minimo_viviendas <= 0} onClick={() => onCambiar({ ...me, minimo_viviendas: me.minimo_viviendas - 1 })}>−</PulsoButton>
+          <PulsoButton variant="icon" tone="framed" size="sm" aria-label="Una vivienda menos" disabled={deshabilitado || me.minimo_viviendas <= 0} onClick={() => onCambiar({ ...me, minimo_viviendas: me.minimo_viviendas - 1 })}>−</PulsoButton>
           <input type="number" min={0} aria-label="Mínimo de viviendas por manzana" value={me.minimo_viviendas} disabled={deshabilitado} onChange={(e) => e.target.value !== "" && onCambiar({ ...me, minimo_viviendas: Math.max(0, Math.round(Number(e.target.value) || 0)) })} />
-          <PulsoButton variant="icon" size="sm" aria-label="Una vivienda más" disabled={deshabilitado} onClick={() => onCambiar({ ...me, minimo_viviendas: me.minimo_viviendas + 1 })}>+</PulsoButton>
+          <PulsoButton variant="icon" tone="framed" size="sm" aria-label="Una vivienda más" disabled={deshabilitado} onClick={() => onCambiar({ ...me, minimo_viviendas: me.minimo_viviendas + 1 })}>+</PulsoButton>
         </span>
         <span className="hr-me-atajos" role="group" aria-label="Mínimos frecuentes">
           <button type="button" aria-pressed={me.minimo_viviendas === 1} disabled={deshabilitado} onClick={() => onCambiar({ ...me, minimo_viviendas: 1 })}>1, con viviendas</button>

@@ -792,10 +792,6 @@
   margin-top: calc(-1 * var(--pulso-control-height-md));
 }
 
-.pulso-f6-lv-eliminar:not(:disabled) {
-  color: var(--pulso-danger-fg);
-}
-
 .pulso-f6-lv-velo {
   position: fixed;
   inset: 0;

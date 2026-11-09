@@ -35,15 +35,15 @@ export function AccionesArchivo({ archivo, rutaDescargada = null, compacta = fal
     <div className="pulso-entregable-acciones" role="group" aria-label={`Acciones de ${archivo.nombre}`}>
       {conRuta ? (
         <>
-          <PulsoButton variant="icon" size="sm" aria-label="Abrir" title="Abrir" onClick={() => void abrirEntregable(ruta)}>
+          <PulsoButton variant="icon" tone="framed" size="sm" aria-label="Abrir" title="Abrir" onClick={() => void abrirEntregable(ruta)}>
             <ExternalLink size={15} aria-hidden="true" />
           </PulsoButton>
-          <PulsoButton variant="icon" size="sm" aria-label="Mostrar en la carpeta" title="Mostrar en la carpeta" onClick={() => void mostrarEntregable(ruta)}>
+          <PulsoButton variant="icon" tone="framed" size="sm" aria-label="Mostrar en la carpeta" title="Mostrar en la carpeta" onClick={() => void mostrarEntregable(ruta)}>
             <FolderOpen size={15} aria-hidden="true" />
           </PulsoButton>
         </>
       ) : compacta ? (
-        <PulsoButton variant="icon" size="sm" aria-label={rotuloDescargar} title={rotuloDescargar} onClick={descargar}>
+        <PulsoButton variant="icon" tone="framed" size="sm" aria-label={rotuloDescargar} title={rotuloDescargar} onClick={descargar}>
           <Download size={15} aria-hidden="true" />
         </PulsoButton>
       ) : (
@@ -59,7 +59,7 @@ export function AccionesArchivo({ archivo, rutaDescargada = null, compacta = fal
           ariaLabel={`Más acciones de ${archivo.nombre}`}
           cerrarAlCambiar={cierres}
           trigger={
-            <PulsoButton variant="icon" size="sm" aria-label="Más" title={opcionesMas.map((o) => o.rotulo).join(", ")}>
+            <PulsoButton variant="icon" tone="framed" size="sm" aria-label="Más" title={opcionesMas.map((o) => o.rotulo).join(", ")}>
               <MoreHorizontal size={15} aria-hidden="true" />
             </PulsoButton>
           }

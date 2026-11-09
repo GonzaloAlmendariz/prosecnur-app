@@ -125,7 +125,7 @@ export function FacultadesExcluidasCard({
                   }.`}
             </span>
             <span
-              className="cmv2-facultades-excluidas-acciones"
+              className="cmv2-facultades-excluidas-acciones pulso-enlaces"
               role="group"
               aria-label="Participación de todas las facultades"
             >

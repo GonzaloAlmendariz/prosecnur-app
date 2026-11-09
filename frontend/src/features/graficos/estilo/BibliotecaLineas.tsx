@@ -62,7 +62,7 @@ function TarjetaLinea({ perfil, aplicada, onAplicar, acciones }: { perfil: PptSt
       <span className="pulso-f6-lv-acciones">
         {acciones.onEditar && <PulsoButton variant="icon" size="sm" onClick={acciones.onEditar} aria-label={`Editar ${perfil.titulo_humano}`} title="Editar"><Pencil size={14} aria-hidden="true" /></PulsoButton>}
         <PulsoButton variant="icon" size="sm" onClick={acciones.onDuplicar} aria-label={`Duplicar ${perfil.titulo_humano} como línea propia`} title="Duplicar como propia"><Copy size={14} aria-hidden="true" /></PulsoButton>
-        {acciones.onEliminar && <PulsoButton variant="icon" size="sm" className="pulso-f6-lv-eliminar" onClick={acciones.onEliminar} aria-label={`Eliminar ${perfil.titulo_humano}`} title="Eliminar"><Trash2 size={14} aria-hidden="true" /></PulsoButton>}
+        {acciones.onEliminar && <PulsoButton variant="icon" size="sm" intent="remove" className="pulso-f6-lv-eliminar" onClick={acciones.onEliminar} aria-label={`Eliminar ${perfil.titulo_humano}`} title="Eliminar"><Trash2 size={14} aria-hidden="true" /></PulsoButton>}
       </span>
     </article>
   );

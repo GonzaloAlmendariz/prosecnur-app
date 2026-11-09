@@ -35,6 +35,7 @@ export function ChromeOverflowMenu({
       trigger={
         <PulsoButton
           variant="icon"
+          tone="framed"
           size="sm"
           aria-label={`Más acciones (${total})`}
           title={`Más acciones (${total})`}

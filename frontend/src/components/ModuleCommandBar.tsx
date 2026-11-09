@@ -214,6 +214,7 @@ export function ModuleCommandBar({
               <PulsoButton
                 key={accion.id}
                 variant="icon"
+                tone="framed"
                 size="sm"
                 onClick={accion.onSelect}
                 disabled={accion.disabled || accion.busy}

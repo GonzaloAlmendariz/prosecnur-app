@@ -78,11 +78,6 @@
   height: 34px;
 }
 
-.rec-mail-puntos-acciones .pulso-button--icon {
-  --pulso-button-height: 24px;
-  color: var(--pulso-text-soft);
-}
-
 .rec-mail-puntos-agregar.pulso-button {
   align-self: flex-start;
   margin-left: 24px;

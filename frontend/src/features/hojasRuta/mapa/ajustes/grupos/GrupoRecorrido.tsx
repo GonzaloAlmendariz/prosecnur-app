@@ -56,9 +56,9 @@ export function GrupoRecorrido({ config, viviendas, manzanas, deshabilitado: ed,
         <div className="hr-muestra-campo">
           <small>Por cada titular</small>
           <span className="hr-muestra-pasos">
-            <PulsoButton variant="icon" size="sm" aria-label="Un reemplazo menos" disabled={ed || reemplazos <= 0} onClick={() => cambiar({ replacements_per_titular: acotarReemplazos(reemplazos - 1) })}>−</PulsoButton>
+            <PulsoButton variant="icon" tone="framed" size="sm" aria-label="Un reemplazo menos" disabled={ed || reemplazos <= 0} onClick={() => cambiar({ replacements_per_titular: acotarReemplazos(reemplazos - 1) })}>−</PulsoButton>
             <input type="number" min={0} max={10} aria-label="Reemplazos por titular" value={reemplazos} disabled={ed} onChange={(e) => cambiar({ replacements_per_titular: acotarReemplazos(Number(e.target.value)) })} />
-            <PulsoButton variant="icon" size="sm" aria-label="Un reemplazo más" disabled={ed || reemplazos >= 10} onClick={() => cambiar({ replacements_per_titular: acotarReemplazos(reemplazos + 1) })}>+</PulsoButton>
+            <PulsoButton variant="icon" tone="framed" size="sm" aria-label="Un reemplazo más" disabled={ed || reemplazos >= 10} onClick={() => cambiar({ replacements_per_titular: acotarReemplazos(reemplazos + 1) })}>+</PulsoButton>
           </span>
           <span className="hr-mapa-nota">{reemplazos === 0 ? "Sin reemplazos: si una manzana falla, no hay respaldo sorteado." : "De 0 a 10."}</span>
         </div>

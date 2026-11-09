@@ -187,7 +187,14 @@ describe("PulsoButton", () => {
     expect(kit).toMatch(/\.pulso-button--danger-confirm \{[^}]*background: var\(--pulso-danger-solid\);/);
     expect(kit).toMatch(/\.pulso-button--icon\[data-intent="remove"\]:hover/);
     expect(kit).toMatch(/\.pulso-button--link \{[^}]*text-decoration: none;/);
-    expect(kit).toMatch(/\.pulso-button--link \+ \.pulso-button\.pulso-button--link::before/);
+    // W3: el filete entre enlaces vecinos sólo dentro de `.pulso-enlaces`; el enlace entra en la familia de 28.
+    expect(kit).toMatch(/\.pulso-enlaces > \.pulso-button\.pulso-button--link \+ \.pulso-button\.pulso-button--link::before/);
+    expect(kit).not.toMatch(/(^|\n)\.pulso-button\.pulso-button--link \+ /);
+    expect(kit).toMatch(/\.pulso-button\.pulso-button--link \{[^}]*--pulso-button-height: var\(--pulso-control-height-sm\);[^}]*border-radius: var\(--pulso-control-radius\);/);
+    expect(kit).not.toMatch(/26px|border-radius: 7px/);
+    // W3: el ícono enmarcado tampoco lleva sombra (contrato D4).
+    expect(kit).toMatch(/\.pulso-button\.pulso-button--icon \{[^}]*box-shadow: none;/);
+    expect(kit).not.toContain("--pulso-shadow-low");
     expect(kit).toMatch(/\.pulso-button--nav:hover:not\(:disabled\) \.pulso-button-nav-arrow \{\s*transform: translateX\(2px\);/);
   });
 

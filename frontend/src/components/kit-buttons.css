@@ -42,14 +42,18 @@
 }
 
 /* ---------- K2 · botón de ícono ----------
-   Caja hairline con superficie en reposo; al hover sube el contraste.
-   `data-intent="remove"` enrojece solo al hover. */
+   W3 (9 nov 2026): en reposo el botón de ícono NO lleva caja ni sombra. PulsoButton le pone `pulso-button--quiet`
+   por defecto (kit-boton-quieto.css, que gana con un nivel más de especificidad). Las reglas de abajo son el tono
+   ENMARCADO, `tone="framed"` (`pulso-button--framed`): caja hairline con superficie, para el ícono que convive con
+   botones secundarios enmarcados (una barra de comandos, el − / + de un paso a paso). Sin sombra: los controles no
+   llevan sombra (contrato D4). `data-intent="remove"` enrojece solo al hover. */
 .pulso-button.pulso-button--icon {
   justify-content: center;
   border-color: var(--pulso-border);
+  border-radius: var(--pulso-control-radius);
   background: var(--pulso-surface);
   color: var(--pulso-text-soft);
-  box-shadow: var(--pulso-shadow-low);
+  box-shadow: none;
   transition:
     background var(--motion-dur-fast) var(--motion-ease-out),
     color var(--motion-dur-fast) var(--motion-ease-out),
@@ -61,6 +65,7 @@
   border-color: var(--pulso-border-strong);
   background: var(--pulso-surface-2);
   color: var(--pulso-text);
+  box-shadow: none;
 }
 
 .pulso-button.pulso-button--icon[data-intent="remove"]:hover:not(:disabled) {
@@ -74,13 +79,14 @@
 }
 
 /* ---------- K3 · botón de texto ----------
-   Sin subrayado; gana caja al hover. Dos vecinos llevan un filete fino. */
+   Sin subrayado; gana caja al hover. W3: entra en la familia de controles (28 = --pulso-control-height-sm, radio
+   --pulso-control-radius; antes 26 / 7) y en el anillo único de foco. */
 .pulso-button.pulso-button--link {
-  --pulso-button-height: 26px;
-  gap: 4px;
-  padding-inline: 8px;
+  --pulso-button-height: var(--pulso-control-height-sm);
+  gap: var(--pulso-space-1);
+  padding-inline: var(--pulso-space-2);
   border-color: transparent;
-  border-radius: 7px;
+  border-radius: var(--pulso-control-radius);
   background: transparent;
   color: var(--pulso-button-accent);
   font-size: 12px;
@@ -93,20 +99,23 @@
   border-color: var(--pulso-button-accent-border);
   background: var(--pulso-button-accent-soft);
   color: var(--pulso-button-accent-strong);
+  box-shadow: none;
 }
 
 .pulso-button.pulso-button--link:focus-visible {
-  outline: 2px solid var(--pulso-button-accent);
+  outline: var(--mov-foco);
   outline-offset: 1px;
   box-shadow: none;
 }
 
-.pulso-button.pulso-button--link + .pulso-button.pulso-button--link {
+/* El filete entre dos enlaces vecinos sólo dentro de un contenedor que lo pide (`.pulso-enlaces`: «Todas · Ninguna»).
+   Antes caía sobre cualquier par de enlaces hermanos, aunque no fueran una serie. */
+.pulso-enlaces > .pulso-button.pulso-button--link + .pulso-button.pulso-button--link {
   position: relative;
   margin-left: 7px;
 }
 
-.pulso-button.pulso-button--link + .pulso-button.pulso-button--link::before {
+.pulso-enlaces > .pulso-button.pulso-button--link + .pulso-button.pulso-button--link::before {
   content: "";
   position: absolute;
   left: -5px;
