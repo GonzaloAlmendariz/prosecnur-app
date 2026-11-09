@@ -174,8 +174,8 @@
   m
 }
 
-#' Bases que van en otra lámina: lo dice al pie de la lámina y en el aviso ("Por espacio, se muestran Estudiantes y
-#' Docentes; Administrativos va en otra lámina")
+#' Bases que no caben: lo dice al pie de la lámina y en el aviso ("Por espacio, se muestran Estudiantes y Docentes;
+#' Administrativos no cabe en esta lámina")
 #' @keywords internal
 .lam_cobcat_omitidos_nota <- function(ge) {
   if (!length(ge$omitidos)) return(invisible(NULL))

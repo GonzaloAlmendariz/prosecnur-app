@@ -254,8 +254,8 @@ test_that("render: a página entera sale nativo, con barras de muestra y univers
   # lámina (las categorías de una base suman el 100 %: nunca una parte de una base).
   expect_identical(sum(nm == 'name="cobertura:barra_muestra"'), 3L)   # 1, 2, 3 de estudiantes (4 tiene n = 0)
   expect_identical(sum(nm == 'name="cobertura:barra_universo"'), 3L)  # 1, 2, 4 de estudiantes
-  expect_true(grepl("Por espacio, se muestra Estudiantes; Docentes va en otra lámina", tx, fixed = TRUE))
-  expect_identical(sum(nm == 'name="cobertura:publico"'), 1L)   # Docentes va en otra lámina
+  expect_true(grepl("Por espacio, se muestra Estudiantes; Docentes no cabe en esta lámina", tx, fixed = TRUE))
+  expect_identical(sum(nm == 'name="cobertura:publico"'), 1L)   # Docentes no cabe en esta lámina
   for (t in c("Muestra", "Universo", "Diferencia (pts)", "Estudiantes", "Docentes", "95 respuestas válidas", "Primer ciclo",
               "n = 50", "52.6%", "45.0%", "+7.6", "-25.0", "0.0%", "sin dato", "Base: Estudiantes 95 respuestas válidas",   # sólo de la base que se ve
               "Universo: cifras ingresadas por el analista")) {
@@ -331,8 +331,8 @@ test_that("las barras llevan el grosor de la casa; si no caben, van bases entera
   }
   expect_false(.lam_cobcat_geo(e, 0.5, 2, 6.0, 1.6, "ranura")$cabe)          # ni una base entera: va dibujada
   .LAM_RR_PIE$notas <- NULL
-  expect_message(.lam_rr_dibujar(.lam_lienzo(), e, .lam_rr_geo(e, 0.5, 2, 6.0, 3.2)), "Docentes va en otra lámina")
-  expect_match(.lam_rr_pie_menos_filas("Base: 95"), "Por espacio, se muestra Estudiantes; Docentes va en otra lámina", fixed = TRUE)
+  expect_message(.lam_rr_dibujar(.lam_lienzo(), e, .lam_rr_geo(e, 0.5, 2, 6.0, 3.2)), "Docentes no cabe en esta lámina")
+  expect_match(.lam_rr_pie_menos_filas("Base: 95"), "Por espacio, se muestra Estudiantes; Docentes no cabe en esta lámina", fixed = TRUE)
 })
 
 test_that("las notas del pie son sólo de las bases que se ven y el dibujo de respaldo sigue las reglas de la nativa (2026-11-09)", {
@@ -343,7 +343,7 @@ test_that("las notas del pie son sólo de las bases que se ven y el dibujo de re
   expect_false(any(grepl("Docentes 60", r$notas_pie, fixed = TRUE)))
   tol <- grep("^Dentro de", r$notas_pie, value = TRUE)
   d <- r$bloques[[1]]$filas$dentro; expect_identical(tol, sprintf("Dentro de ±5 pts fijado por el analista: %d de %d categorías", sum(d, na.rm = TRUE), sum(!is.na(d))))
-  expect_true(any(r$notas_pie == "Por espacio, se muestra Estudiantes; Docentes va en otra lámina"))
+  expect_true(any(r$notas_pie == "Por espacio, se muestra Estudiantes; Docentes no cabe en esta lámina"))
   # Respaldo: una cabecera por base (con dos bases, nunca dos rótulos iguales sin su público) y la barra al grosor de la casa.
   p <- .graficar_cobertura_categorias(e, alto = 5.5)
   b <- ggplot2::ggplot_build(p)

@@ -388,7 +388,7 @@
 }
 
 #' La especificación con sólo sus primeras `m` bases ENTERAS (las que caben): las notas se rehacen con ellas y se agrega
-#' cuáles van en otra lámina. Las categorías de una base suman el 100 %: una base va entera o no va.
+#' cuáles no caben. Las categorías de una base suman el 100 %: una base va entera o no va.
 #' @keywords internal
 .cobcat_reducir <- function(espec, m) {
   n <- length(espec$bloques)
@@ -403,11 +403,13 @@
   espec
 }
 
-#' "Por espacio, se muestran Estudiantes y Docentes; Administrativos va en otra lámina"
+#' "Por espacio, se muestran Estudiantes y Docentes; Administrativos no cabe en esta lámina"
+#'
+#' P14 (lead, 2026-11-09): el motor no crea láminas y el texto dice el hecho, sin prometer una lámina que no existe.
 #' @keywords internal
 .cobcat_nota_omitidos <- function(mostrados, omitidos) {
   y <- function(x) if (length(x) <= 1L) x else paste(paste(x[-length(x)], collapse = ", "), "y", x[length(x)])
-  sprintf("Por espacio, se muestra%s %s; %s va%s en otra lámina", if (length(mostrados) > 1L) "n" else "", y(mostrados),
+  sprintf("Por espacio, se muestra%s %s; %s no cabe%s en esta lámina", if (length(mostrados) > 1L) "n" else "", y(mostrados),
           y(omitidos), if (length(omitidos) > 1L) "n" else "")
 }
 
