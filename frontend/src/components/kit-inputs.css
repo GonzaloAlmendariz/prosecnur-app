@@ -210,10 +210,11 @@
   color: var(--pulso-text-faint);
 }
 
+/* R11-14b (decisión W3): el campo lleva el mismo anillo único que el select y los botones (--mov-foco), sin halo. */
 .pulso-input:focus {
-  outline: none;
-  border-color: var(--pulso-primary);
-  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+  outline: var(--mov-foco);
+  outline-offset: 2px;
+  box-shadow: none;
 }
 
 /* W3: el disparador del select es un control pulsable, como un botón: un solo anillo de foco (--mov-foco) y sin
