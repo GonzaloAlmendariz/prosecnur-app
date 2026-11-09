@@ -289,7 +289,7 @@ export const FAMILIAS_EDITOR: readonly FamiliaEditorCatalogo[] = [
 
 export const VARIANTES_GRAFICO: readonly VarianteGraficoCatalogo[] = [
   { id: "p_dumbbell:contraste", graficador: "p_dumbbell", nombre: "Contraste de públicos", nombre_version: "Contraste de públicos", familia: "comparar", icono: "MoveHorizontal",
-    descripcion: "La misma pregunta en dos públicos y su diferencia, ordenadas por diferencia.",
+    descripcion: "La misma pregunta en dos a cuatro públicos y su diferencia, ordenadas por diferencia.",
     args_fijos: { "estilo": "resumen", "cruce": null }, args_quitar: [] },
   { id: "p_dumbbell:aperturas", graficador: "p_dumbbell", nombre: "Aperturas por grupo", nombre_version: "Aperturas por grupo", familia: "comparar", icono: "MoveHorizontal",
     descripcion: "Un público abierto por los grupos de una pregunta, con la distancia entre grupos.",

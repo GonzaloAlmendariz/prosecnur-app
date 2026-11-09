@@ -174,7 +174,7 @@ export const TARJETAS_CONTAR: readonly TarjetaContar[] = [
     tipo: "p_slide_1_grafico",
     ...deCatalogo("p_dumbbell:contraste"),
     deResumen: true,
-    uso: "La misma pregunta en dos públicos y su diferencia",
+    uso: "La misma pregunta en dos a cuatro públicos y su diferencia",
     descripcion: "Pares de puntos por pregunta, ordenados por diferencia.",
     pide: "Las preguntas comunes de la matriz de equivalencias",
     parche: {},
