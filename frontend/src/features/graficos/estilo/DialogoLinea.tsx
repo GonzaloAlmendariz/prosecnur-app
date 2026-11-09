@@ -104,8 +104,8 @@ export function DialogoLinea() {
               </p>
               {error ? <p className="pulso-f6-lv-dialogo-error" role="alert">{error}</p> : null}
               <div className="pulso-f6-lv-dialogo-acciones">
-                <Dialog.Close asChild><PulsoButton variant="ghost" size="sm" disabled={ocupado}>Cancelar</PulsoButton></Dialog.Close>
-                <PulsoButton variant="danger" size="sm" onClick={() => void confirmarEliminar()} disabled={ocupado}>Eliminar</PulsoButton>
+                <Dialog.Close asChild><PulsoButton variant="secondary" size="lg" disabled={ocupado}>Cancelar</PulsoButton></Dialog.Close>
+                <PulsoButton variant="danger" size="lg" confirm onClick={() => void confirmarEliminar()} disabled={ocupado}>Eliminar</PulsoButton>
               </div>
             </>
           ) : (
@@ -129,8 +129,8 @@ export function DialogoLinea() {
               )}
               {error ? <p className="pulso-f6-lv-dialogo-error" role="alert">{error}</p> : null}
               <div className="pulso-f6-lv-dialogo-acciones">
-                <Dialog.Close asChild><PulsoButton type="button" variant="ghost" size="sm" disabled={ocupado}>Cancelar</PulsoButton></Dialog.Close>
-                <PulsoButton type="submit" variant="primary" size="sm" disabled={ocupado || (!colores && !graficos && edicion?.modo !== "duplicar")}>
+                <Dialog.Close asChild><PulsoButton type="button" variant="secondary" size="lg" disabled={ocupado}>Cancelar</PulsoButton></Dialog.Close>
+                <PulsoButton type="submit" variant="primary" size="lg" disabled={ocupado || (!colores && !graficos && edicion?.modo !== "duplicar")}>
                   {ocupado ? "Guardando…" : "Guardar"}
                 </PulsoButton>
               </div>

@@ -45,10 +45,11 @@ export function ConfirmarEliminar({ titulos, onConfirmar, onCancelar, retorno }:
           </ul>
           <div className="pulso-f6-vg-confirmar-acciones">
             <Dialog.Close asChild>
-              <PulsoButton ref={cancelarRef} variant="secondary">Cancelar</PulsoButton>
+              <PulsoButton ref={cancelarRef} variant="secondary" size="lg">Cancelar</PulsoButton>
             </Dialog.Close>
-            {/* D13: el paso final de una acción destructiva es el rojo relleno (`confirm`). */}
-            <PulsoButton variant="danger" confirm onClick={onConfirmar}>
+            {/* D13: el paso final de una acción destructiva es el rojo relleno (`confirm`). R11-7: al pie de un diálogo,
+                los botones van en lg (36), como pide el contrato A. */}
+            <PulsoButton variant="danger" size="lg" confirm onClick={onConfirmar}>
               <Trash2 size={14} aria-hidden="true" />
               {n === 1 ? "Eliminar" : `Eliminar ${n}`}
             </PulsoButton>
