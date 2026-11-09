@@ -71,3 +71,12 @@ export function propuestaOtros(respuesta: RespuestaPlan, actual: boolean): boole
   const propuesto = respuesta.auto_otros_slides;
   return typeof propuesto === "boolean" && propuesto !== actual ? propuesto : null;
 }
+
+/**
+ * R11-9: los avisos del plan sugerido en una línea. Cada aviso del backend ya trae su punto: unirlos con «; » dejaba
+ * «.;». Se quita la puntuación final de cada uno y la línea cierra con un solo punto.
+ */
+export function textoAvisosPlan(avisos: readonly string[]): string {
+  const limpios = avisos.map((a) => a.trim().replace(/[.;:\s]+$/, "")).filter(Boolean);
+  return limpios.length ? `${limpios.join("; ")}.` : "";
+}

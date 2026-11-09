@@ -72,9 +72,12 @@ export type EntradaBoton = {
   confirmando: boolean;
 };
 
+export const ROTULO_INSERTAR = "Insertar lámina";
+
 /** Lo que el botón del pie hace, dicho con la palabra de la columna: composición o variante. */
 export function etiquetaBoton(p: EntradaBoton): EstadoBoton {
-  if (p.modo === "insertar") return { texto: "Insertar esta composición", deshabilitado: false };
+  // R11-9: un solo rótulo para insertar, venga de «¿Qué lámina?» o de una tarjeta de «¿Qué quieres contar?».
+  if (p.modo === "insertar") return { texto: ROTULO_INSERTAR, deshabilitado: false };
   if (p.cambio?.mismoTipo) {
     if (!p.variantes) return { texto: "Es la composición actual", deshabilitado: true };
     return p.variante === p.varianteActual
@@ -98,7 +101,7 @@ export type EntradaBotonTarjeta = {
 
 /** El botón del detalle de una tarjeta por intención («¿Qué quieres contar?», ADR 0135). */
 export function etiquetaBotonTarjeta(p: EntradaBotonTarjeta): EstadoBoton {
-  if (p.modo === "insertar") return { texto: "Insertar lámina", deshabilitado: false };
+  if (p.modo === "insertar") return { texto: ROTULO_INSERTAR, deshabilitado: false };
   if (p.actual) return { texto: "Es la lámina actual", deshabilitado: true };
   if (p.confirmando && p.sobrantes > 0) {
     return { texto: `Cambiar y quitar ${p.sobrantes === 1 ? "1 gráfico" : `${p.sobrantes} gráficos`}`, deshabilitado: false };

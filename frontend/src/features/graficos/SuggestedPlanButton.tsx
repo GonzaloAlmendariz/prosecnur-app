@@ -25,6 +25,7 @@ import { PANEL_ARMAR_DESDE } from "./panelesGraficos";
 import { useGraficosReportScope } from "./reportScope";
 import {
   debePedirPropuesta,
+  textoAvisosPlan,
   identidadDelPlan,
   perfilResuelto,
   propuestaOtros,
@@ -403,7 +404,7 @@ export function SuggestedPlanButton() {
 
               {result.warnings?.length ? (
                 <div className="pulso-gv2-suggest-warning">
-                  {result.warnings.join("; ")}
+                  {textoAvisosPlan(result.warnings)}
                 </div>
               ) : null}
 

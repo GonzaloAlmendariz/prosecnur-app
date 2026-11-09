@@ -46,7 +46,7 @@ describe("tamanoTexto", () => {
 
 describe("etiquetaBoton", () => {
   it("dice qué hace con la palabra de la columna", () => {
-    expect(etiquetaBoton({ ...base, modo: "insertar" })).toEqual({ texto: "Insertar esta composición", deshabilitado: false });
+    expect(etiquetaBoton({ ...base, modo: "insertar" })).toEqual({ texto: "Insertar lámina", deshabilitado: false });   // R11-9: el mismo que la tarjeta
     expect(etiquetaBoton({ ...base, modo: "cambiar", cambio: { mismoTipo: false, sobrantes: [] } }))
       .toEqual({ texto: "Usar esta composición", deshabilitado: false });
     expect(etiquetaBoton({ ...base, modo: "cambiar", cambio: { mismoTipo: true, sobrantes: [] } }))

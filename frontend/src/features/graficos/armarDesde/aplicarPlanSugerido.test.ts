@@ -1,12 +1,20 @@
 import { describe, expect, it } from "vitest";
 import {
   debePedirPropuesta,
+  textoAvisosPlan,
   identidadDelPlan,
   propuestaOtros,
   scopeRulesConIdentidad,
 } from "./aplicarPlanSugerido";
 
 describe("armarDesde · reglas puras", () => {
+  it("R11-9: los avisos del plan se unen sin «.;» y cierran con un punto", () => {
+    expect(textoAvisosPlan(["Faltan pesos.", "Dos bases sin cruce.  "])).toBe("Faltan pesos; Dos bases sin cruce.");
+    expect(textoAvisosPlan(["Uno;"])).toBe("Uno.");
+    expect(textoAvisosPlan([])).toBe("");
+    expect(textoAvisosPlan(["Faltan pesos.", "Otro."])).not.toContain(".;");
+  });
+
   // ADR 0096 decisión 9: «Armar desde…» se habilita en el informe compartido y se retira el motivo provisional de la
   // decisión 17. Antes este test fijaba el motivo literal y «nunca se pide la propuesta» (comportamiento provisional).
   // Mata: dejar el compartido deshabilitado o con un motivo residual.
