@@ -111,7 +111,7 @@
 .word_tarjetas_alto_total <- function(alto, tarjetas) {
   if (is.null(alto) || !is.finite(alto) || !length(tarjetas$tarjetas)) return(alto)
   # La escala no se compacta: sus cifras chicas van sobre la barra y se encimarían (CCSS, batería de pobreza).
-  if (identical(tarjetas$tipo, "bateria")) return(alto)
+  if (isTRUE(tarjetas$tipo %in% c("bateria", "entre_publicos"))) return(alto)   # ni el contraste de públicos (ADR 0138)
   # Compacta, nunca agranda: una franja Sí/No de 0,6 in subía al piso de 1,4 in y su barra salía al triple de su grosor
   # (CCSS v7.20, experiencia laboral vinculada con la carrera).
   min(alto, max(1.4, alto * 0.62))

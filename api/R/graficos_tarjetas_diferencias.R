@@ -39,6 +39,7 @@
   }
   if (!is.list(x) || identical(x$activo, FALSE)) return(NULL)
   if (.tarjetas_es_mapa(x)) return(NULL)   # un mapa por ranura es de la lámina de dos gráficos (graficos_tarjetas_ranuras.R)
+  if (isTRUE(as.logical(unlist(x$entre_publicos %||% FALSE))[1])) return(NULL)   # ADR 0138: graficos_tarjetas_publicos.R
   mx <- suppressWarnings(as.integer(unlist(x$max %||% .TARJETAS_MAX))[1])
   if (is.na(mx) || mx < 1L) mx <- .TARJETAS_MAX
   mapa <- function(m) {
@@ -442,6 +443,7 @@
   # La variante de fila vacía (batería de un ítem) vale sólo para la figura de su lámina: cada lámina nueva la limpia.
   if (!is.null(.tarjetas_estado$registro)) .tarjetas_estado$registro[["escala\r"]] <- NULL
   slide <- get0("slide", envir = env, inherits = FALSE)
+  if (!is.null(.tpub_opcion(slide$meta))) return(.tpub_adjuntar(p, env))   # ADR 0138: entre públicos
   if (is.null(.tarjetas_opcion(slide$meta))) return(p)
   resolver <- get0(".resolve_ref", envir = env, inherits = FALSE)
   if (!is.function(resolver)) return(p)

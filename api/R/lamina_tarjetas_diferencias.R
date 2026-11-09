@@ -67,8 +67,10 @@
   m <- .lam_tarjeta_medidas(w, nombres)
   h_fila <- if (!is.null(enc)) .lam_lineas_tinta(enc, (w - 2 * m$pad_x) * .TARJETA_TINTA_TITULO + 0.22, m$pt_titulo, TRUE) *
     m$pt_titulo * 1.2 / 72 + m$aire_titulo else m$aire_titulo
-  renglones <- .lam_tarjeta_alto_renglon("Total", m) + sum(vapply(nombres, .lam_tarjeta_alto_renglon, numeric(1), m = m))
-  m$pad_t + m$alto_cruce + h_fila + renglones + m$aire_total + m$pad_b + 0.02
+  if (length(t$lineas)) return(.lam_tarjeta_publicos_alto(t, w, m, h_fila))   # ADR 0138: una línea por par
+  total <- if (isTRUE(t$sin_total)) 0 else .lam_tarjeta_alto_renglon("Total", m) + m$aire_total   # entre públicos, sin Total
+  renglones <- total + sum(vapply(nombres, .lam_tarjeta_alto_renglon, numeric(1), m = m))
+  m$pad_t + m$alto_cruce + h_fila + renglones + m$pad_b + 0.02
 }
 
 #' Dónde empiezan y terminan los renglones de grupo dentro de la tarjeta (in de diseño, desde su borde superior)
@@ -80,7 +82,7 @@
   m <- .lam_tarjeta_medidas(w, nombres)
   enc <- .tarjetas_encabezado(t, TRUE, tipo)
   h_tit <- if (is.null(enc)) 0 else .lam_lineas_tinta(enc, (w - 2 * m$pad_x) * .TARJETA_TINTA_TITULO + 0.22, m$pt_titulo, TRUE) * m$pt_titulo * 1.2 / 72
-  y0 <- m$pad_t + m$alto_cruce + h_tit + m$aire_titulo + .lam_tarjeta_alto_renglon("Total", m) + m$aire_total
+  y0 <- m$pad_t + m$alto_cruce + h_tit + m$aire_titulo + if (isTRUE(t$sin_total)) 0 else .lam_tarjeta_alto_renglon("Total", m) + m$aire_total
   c(y0, y0 + sum(vapply(nombres, .lam_tarjeta_alto_renglon, numeric(1), m = m)))
 }
 
@@ -158,6 +160,7 @@
     y <- y + h_tit
   }
   y <- y + m$aire_titulo
+  if (length(t$lineas)) return(invisible(.lam_tarjeta_publicos_lineas(b, t, x0, y, wi, m)))   # ADR 0138: una línea por par
   sep_b <- if (isTRUE(m$apilada)) 0 else 0.08
   ancho_barra <- wi - m$xn - sep_b - m$reserva_cifra
   maximo <- max(c(t$total, t$grupos$p), na.rm = TRUE) * 1.04
@@ -186,8 +189,10 @@
     if (!is.null(dir)) b$tri(X(p) + 0.07 + w_c + 0.05, y + alto / 2, dir, fragil)
     y <<- y + alto
   }
-  renglon("Total", t$total, .std_color("tarjeta_total"), suave, FALSE, suave, FALSE, clase = "total", cifra = t$cifra_total)
-  y <- y + m$aire_total
+  if (!isTRUE(t$sin_total)) {   # ADR 0138: entre públicos no hay Total (exigiría padrones)
+    renglon("Total", t$total, .std_color("tarjeta_total"), suave, FALSE, suave, FALSE, clase = "total", cifra = t$cifra_total)
+    y <- y + m$aire_total
+  }
   for (k in seq_len(nrow(t$grupos))) {
     fr_k <- isTRUE(t$grupos$fragil[k]); dir_k <- t$grupos$dir[k]
     if (is.null(dir_k) || is.na(dir_k)) {
@@ -258,7 +263,9 @@
   if (identical((slide$meta %||% list())$motor_nativo, FALSE) || !inherits(p, "ggplot")) return(FALSE)
   t <- attr(p, "pulso_tarjetas")
   espec <- attr(p, "pulso_espec")
-  !is.null(t) && length(t$tarjetas) > 0L && !is.null(espec) && espec$tipo %in% c("categorica", "escala")
+  # ADR 0138: las tarjetas entre públicos acompañan al contraste de dos públicos (resumen o pesas).
+  !is.null(t) && length(t$tarjetas) > 0L && !is.null(espec) &&
+    (espec$tipo %in% c("categorica", "escala") || (identical(t$tipo, "entre_publicos") && espec$tipo %in% .TPUB_ESPECS))
 }
 
 #' Aire (in) entre el gráfico del total y el panel de tarjetas (Gonzalo, v7 RV: 0.45 separaba demasiado)
@@ -379,7 +386,7 @@
                                por_lamina = por_lamina)$doc
   }
   options(op); options(op_ley)
-  if (!identical(t$tipo, "bateria")) {
+  if (!isTRUE(t$tipo %in% c("bateria", "entre_publicos"))) {
     # Una categórica en barras: la tarjeta junto a la barra de su categoría, con su guía (ítem 9 de la v7.11 RV).
     anclado <- tryCatch(.lam_tarjetas_anclar(doc, t, L, y0, .std_valor("ppt", "geometria", "base_y") - 0.12, laminas = seq.int(n0 + 1L, length(doc)),
                                              filas_fn = .lam_tarjetas_filas_barras, con_fila = TRUE, junto = TRUE), error = function(e) NULL)

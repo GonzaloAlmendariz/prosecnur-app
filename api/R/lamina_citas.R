@@ -29,8 +29,12 @@
                                       base_auto, nota_de, sin_base = FALSE, sin_pie = FALSE, por_lamina = function(doc) doc,
                                       titulo_de_var = NULL) {
   if (.lam_tarjetas_aplica(p, slide)) {
+    motor <- parent.frame()
+    if (identical(attr(p, "pulso_tarjetas")$tipo, "entre_publicos")) return(.lam_tpub_slide_1(doc, p, por_lamina, function(p, por_lamina)
+      .lam_tarjetas_slide_1(doc, p, slide, titulo, el_plot, presets, layout, master, antetitulo, base_auto, nota_de,
+                            sin_base, sin_pie, por_lamina, motor = motor)))   # ADR 0138: con el pie de la prueba
     return(.lam_tarjetas_slide_1(doc, p, slide, titulo, el_plot, presets, layout, master, antetitulo, base_auto, nota_de,
-                                 sin_base, sin_pie, por_lamina, motor = parent.frame()))
+                                 sin_base, sin_pie, por_lamina, motor = motor))
   }
   espec <- if (inherits(p, "ggplot")) attr(p, "pulso_espec") else NULL
   if (!identical(espec$tipo, "citas")) {

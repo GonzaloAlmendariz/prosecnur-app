@@ -110,6 +110,9 @@ mount_graficos_diferencias <- function(pr) {
       sc <- .sig_contexto_sesion(sid)
       s <- .sig_slide_por_id(sc$cfg$plan, slide)
       if (is.null(s)) stop_api(404, "E_SIG_SIN_LAMINA", sprintf("No existe la lámina «%s» en el plan.", slide))
+      if (!is.null(.tpub_elemento_de_lamina(s))) {   # ADR 0138: tarjetas entre públicos (modo_letras «entre_publicos»)
+        return(list(ok = TRUE, regla = .sig_regla_json(sc$ctx$regla), lamina = .tpub_lamina_json_sesion(sid, s, sc)))
+      }
       list(ok = TRUE, regla = .sig_regla_json(sc$ctx$regla), lamina = .sig_lamina_json(s, sc$fuente, sc$ctx))
     }))
 }

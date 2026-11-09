@@ -16,6 +16,7 @@
 .sig_arg_job <- function(sid, cfg, plan = NULL) {
   ac <- tryCatch(.analitica_get_config(sid), error = function(e) list())
   list(significancia = list(
+    equivalencias_publicos = .tpub_equivalencias_sesion(sid),   # ADR 0138: qué temas están declarados entre públicos
     graficos_config = list(significancia = cfg$significancia %||% NULL, plan = plan %||% cfg$plan),
     analitica_config = list(cruces_vars = ac$cruces_vars %||% list(), secciones = ac$secciones %||% list(),
                             cruces = list(cruces_vars = ac$cruces$cruces_vars %||% list(),
@@ -60,7 +61,10 @@
                     ctx$regla$correccion, as.integer(ctx$m %||% 0L)))
   }
   # H14: las preguntas clave del plan del pedido viajan en el mismo contexto (graficos_preguntas_clave.R).
-  .sig_informe_activar(.preguntas_clave_en_contexto(.sig_contexto_liviano(ctx), significancia$graficos_config$plan$preguntas_clave, nombre))
+  ctx_l <- .preguntas_clave_en_contexto(.sig_contexto_liviano(ctx), significancia$graficos_config$plan$preguntas_clave, nombre)
+  # ADR 0138: la matriz de equivalencias y la familia entre públicos (propia, nunca la de la base) viajan al render.
+  .sig_informe_activar(.tpub_en_contexto(ctx_l, significancia$graficos_config$plan, list(data_sources = ds, inst_sources = is),
+                                         significancia$equivalencias_publicos))
   previa
 }
 
@@ -69,7 +73,7 @@
 .sig_opciones_preview <- function(sid, opciones) {
   ctx <- tryCatch({
     sc <- .sig_contexto_sesion(sid)
-    .sig_contexto_liviano(sc$ctx)
+    .tpub_en_contexto(.sig_contexto_liviano(sc$ctx), sc$cfg$plan, function() .graficos_processing_sources(sid), .tpub_equivalencias_sesion(sid))   # ADR 0138
   }, error = function(e) NULL)
   opciones[["prosecnur.sig_informe"]] <- ctx
   opciones[order(names(opciones), method = "radix")]
