@@ -56,7 +56,12 @@
   border-color: var(--module-accent-border);
 }
 
-.pulso-f6-mazo-asa-chip {
+/* R12-9: el asa es el último control del chip y ocupa su alto entero (28): se monta sobre la holgura y el borde del
+   extremo derecho, y su círculo coincide con la curva de la píldora (radios concéntricos de ChipConControles). */
+.pulso-chip-control.pulso-f6-mazo-asa-chip {
+  --pulso-chip-control-diametro: var(--pulso-chip-alto, var(--pulso-control-height-sm));
+  margin-block: calc(-1 * (var(--pulso-chip-holgura) + 1px));
+  margin-inline-end: calc(-1 * (var(--pulso-chip-holgura) + 1px));
   color: var(--pulso-text-faint);
   cursor: grab;
   touch-action: none;

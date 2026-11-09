@@ -1,0 +1,6 @@
+/* R12-9: «Armar desde…» y «Exportar» son botones del kit (sin sombra ni levantamiento al hover, radio 8) a la altura de
+   los controles de la barra (32). editor-v2.css está congelado: su piel para estos dos disparadores se borró de allí. */
+.pulso-graficos-frame .pulso-button.pulso-gv2-suggest-trigger,
+.pulso-graficos-frame .pulso-button.pulso-gv2-export-menu-trigger {
+  --pulso-button-height: var(--pulso-chrome-control-h);
+}

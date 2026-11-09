@@ -10,6 +10,7 @@ import { idLineaNueva, type LineaVisualNueva } from "../../../api/graficosLineas
 import { usePlanStore } from "../store";
 import { useLineasPropias } from "./lineasPropiasStore";
 import { lineaDesdePerfil, lineaDesdePlan } from "./modeloLineaPropia";
+import { CabeceraPanel } from "../../../components/CabeceraPanel";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { aplicarPropia } from "./BibliotecaLineas";
 
@@ -95,7 +96,10 @@ export function DialogoLinea() {
         <Dialog.Overlay className="pulso-f6-lv-velo" />
         <Dialog.Content className="pulso-f6-lv-dialogo" role={edicion?.modo === "eliminar" ? "alertdialog" : "dialog"} data-qa-surface="graficos/f6-lv-dialogo"
           aria-describedby={undefined}>
-          <Dialog.Title className="pulso-f6-lv-dialogo-titulo">{edicion ? titulos[edicion.modo] : ""}</Dialog.Title>
+          {/* R12-9: la cabecera y la X del kit (contrato B); Escape y la X cierran, salvo mientras se guarda. */}
+          <CabeceraPanel enDialogo titulo={edicion ? titulos[edicion.modo] : ""} onCerrar={cerrar} cerrarDeshabilitado={ocupado}
+            etiquetaCerrar="Cerrar el diálogo de la línea visual" />
+          <div className="pulso-f6-lv-dialogo-cuerpo">
           {edicion?.modo === "eliminar" ? (
             <>
               <p className="pulso-f6-lv-dialogo-texto">
@@ -136,6 +140,7 @@ export function DialogoLinea() {
               </div>
             </form>
           )}
+          </div>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

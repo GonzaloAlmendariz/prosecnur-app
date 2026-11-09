@@ -70,9 +70,9 @@ export function AjustesDiseno({ abierto, grupo, config, fase, vista, onGrupo, on
       }
       footer={
         <>
-          <PulsoButton variant="ghost" onClick={onCancelar ?? onCerrar} title="Descarta los cambios sin aplicar y cierra">Cancelar</PulsoButton>
-          <PulsoButton variant="secondary" disabled={!desfasada || aplicando} title={desfasada ? "Actualiza la vista previa sin guardar" : "La vista previa está al día"} onClick={onRecalcular}>Recalcular</PulsoButton>
-          <PulsoButton variant="primary" disabled={!pendientes || aplicando || !onAplicar} title={pendientes ? `Guarda ${pendientes === 1 ? "el cambio" : `los ${pendientes} cambios`} y recalcula en el servidor` : "Sin cambios que aplicar"} onClick={onAplicar}>{aplicando ? "Aplicando…" : pendientes ? `Aplicar ${pendientes}` : "Aplicar"}</PulsoButton>
+          <PulsoButton variant="ghost" size="lg" onClick={onCancelar ?? onCerrar} title="Descarta los cambios sin aplicar y cierra">Cancelar</PulsoButton>
+          <PulsoButton variant="secondary" size="lg" disabled={!desfasada || aplicando} title={desfasada ? "Actualiza la vista previa sin guardar" : "La vista previa está al día"} onClick={onRecalcular}>Recalcular</PulsoButton>
+          <PulsoButton variant="primary" size="lg" disabled={!pendientes || aplicando || !onAplicar} title={pendientes ? `Guarda ${pendientes === 1 ? "el cambio" : `los ${pendientes} cambios`} y recalcula en el servidor` : "Sin cambios que aplicar"} onClick={onAplicar}>{aplicando ? "Aplicando…" : pendientes ? `Aplicar ${pendientes}` : "Aplicar"}</PulsoButton>
         </>
       }
     >

@@ -442,10 +442,21 @@
   outline: 0;
 }
 
+/* R12-9: cada paso mide el alto entero del control (28) con su radio (8) y se monta sobre el borde del marco
+   (margen −1 px): el fondo del hover llena la esquina del marco en vez de dejar un paso de 26 inscrito. */
 .pulso-f6-numero-fila > .pulso-button.pulso-button--icon.pulso-button--quiet.pulso-f6-numero-paso {
-  --pulso-button-height: calc(var(--pulso-control-height-sm) - 2px);
+  --pulso-button-height: var(--pulso-control-height-sm);
   flex: none;
-  border-radius: calc(var(--pulso-control-radius) - 1px);
+  margin-block: -1px;
+  border-radius: var(--pulso-control-radius);
+}
+
+.pulso-f6-numero-fila > .pulso-button.pulso-f6-numero-paso:first-child {
+  margin-inline-start: -1px;
+}
+
+.pulso-f6-numero-fila > .pulso-button.pulso-f6-numero-paso:last-child {
+  margin-inline-end: -1px;
 }
 
 .pulso-f6-numero-fila > .pulso-button.pulso-button--icon.pulso-button--quiet.pulso-f6-numero-paso:focus-visible {

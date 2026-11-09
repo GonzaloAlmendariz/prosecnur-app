@@ -9,10 +9,12 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, ChevronDown, Database, Download, FileText } from "../../vendor/lucide-react";
+import { PulsoButton } from "../../components/PulsoButton";
 import { ContenedorEntregable } from "../../components/entregables/ContenedorEntregable";
 import type { Generacion } from "../../components/entregables/useGeneracion";
 import { ColoresPendientesAviso, ID_COLORES_PENDIENTES, useColoresPendientes } from "./estilo/ColoresPendientesAviso";
 import { puedeGenerarInforme } from "./exportarInformeRegla";
+import "./kitEnLaBarra.css";
 
 export type ExportarInformeMenuProps = {
   onExportPpt: () => void;
@@ -73,9 +75,9 @@ export function ExportarInformeMenu({
             </Link>
           ) : (
             <div className="pulso-gv2-export-menu" ref={exportMenuRef}>
-              <button
-                type="button"
-                className="pulso-primary pulso-gv2-pill-button pulso-gv2-pill-button--primary pulso-gv2-export-menu-trigger"
+              <PulsoButton
+                variant="primary"
+                className="pulso-gv2-export-menu-trigger"
                 onClick={() => setExportMenuOpen((v) => !v)}
                 disabled={!canExportFinal || exportBusy}
                 // Mientras exporta, el disparador solo se deshabilita: conserva rótulo y forma (a ≤1180 px el
@@ -87,10 +89,10 @@ export function ExportarInformeMenu({
                   : coloresPendientes.length ? "Faltan colores: complétalos para exportar"
                   : isSharedReport ? "Exportar el informe compartido en PowerPoint" : "Exportar el reporte en PowerPoint o Word"}
               >
-                <Download size={13} />
+                <Download size={14} aria-hidden="true" />
                 <span>Exportar</span>
-                <ChevronDown size={13} />
-              </button>
+                <ChevronDown size={14} aria-hidden="true" />
+              </PulsoButton>
 
               {exportMenuOpen && (
                 <div className="pulso-gv2-export-menu-popover" role="dialog" aria-label="Exportar reporte">

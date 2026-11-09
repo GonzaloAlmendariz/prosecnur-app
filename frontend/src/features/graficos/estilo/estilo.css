@@ -805,12 +805,13 @@
   top: 50%;
   left: 50%;
   z-index: calc(var(--pulso-z-modal) + 1);
+  /* R12-9: cabecera del kit (CabeceraPanel, con su filete) arriba y el cuerpo, dueño del scroll, debajo (C4). */
   display: grid;
-  gap: var(--pulso-space-3);
+  grid-template-rows: auto minmax(0, 1fr);
   width: min(460px, calc(100vw - 2 * var(--pulso-space-6)));
   max-height: calc(100vh - 2 * var(--pulso-space-6));
-  overflow: auto;
-  padding: var(--pulso-space-5);
+  overflow: hidden;
+  padding: 0;
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-panel);
   background: var(--pulso-surface);
@@ -822,10 +823,12 @@
 
 @keyframes pulso-f6-lv-entra { from { opacity: 0; transform: translate(-50%, -48%) scale(0.98); } }
 
-.pulso-f6-lv-dialogo-titulo {
-  margin: 0;
-  font-size: var(--pulso-type-title-size);
-  font-weight: var(--pulso-weight-semibold);
+.pulso-f6-lv-dialogo-cuerpo {
+  display: grid;
+  gap: var(--pulso-space-3);
+  min-height: 0;
+  overflow: auto;
+  padding: var(--pulso-space-4) var(--pulso-space-5) var(--pulso-space-5);
 }
 
 .pulso-f6-lv-dialogo-texto {
@@ -859,11 +862,18 @@
   font-weight: var(--pulso-weight-regular);
 }
 
+/* R12-9: el campo de una línea en la escalera del kit (28, radio 8); el área de texto conserva su alto de dos renglones. */
+.pulso-f6-lv-campo input {
+  height: var(--pulso-control-height-sm);
+  min-height: var(--pulso-control-height-sm);
+  padding-block: 0;
+}
+
 .pulso-f6-lv-campo input,
 .pulso-f6-lv-campo textarea {
-  padding: var(--pulso-space-2);
+  padding-inline: var(--pulso-space-2);
   border: 1px solid var(--pulso-border-strong);
-  border-radius: var(--pulso-radius);
+  border-radius: var(--pulso-control-radius);
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font: inherit;
@@ -874,8 +884,12 @@
 
 .pulso-f6-lv-campo input:focus-visible,
 .pulso-f6-lv-campo textarea:focus-visible {
-  outline: var(--pulso-nav-focus-outline-width) solid var(--module-accent);
-  outline-offset: 1px;
+  outline: var(--mov-foco);
+  outline-offset: 2px;
+}
+
+.pulso-f6-lv-campo textarea {
+  padding-block: var(--pulso-space-2);
 }
 
 .pulso-f6-lv-incluye {
@@ -895,10 +909,17 @@
   font-weight: var(--pulso-weight-semibold);
 }
 
+/* R12-9: casilla, nombre y nota en tres pistas: el nombre («Gráficos y portada») mide lo suyo y no se parte; la nota
+   envuelve en lo que queda. */
 .pulso-f6-lv-incluye label {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
   align-items: baseline;
-  gap: var(--pulso-space-2);
+  column-gap: var(--pulso-space-2);
+}
+
+.pulso-f6-lv-incluye label > small {
+  min-width: 0;
 }
 
 .pulso-f6-lv-incluye label.is-deshabilitado {

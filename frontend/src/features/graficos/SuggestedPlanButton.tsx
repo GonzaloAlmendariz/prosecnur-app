@@ -33,6 +33,7 @@ import {
 } from "./armarDesde/aplicarPlanSugerido";
 import { enfocarSinDesplazar } from "./laminas/enfocarSinDesplazar";
 import "./armarDesde/armarDesde.css";
+import "./kitEnLaBarra.css";
 import { contenidoPropuesto, tituloPropuesto } from "./armarDesde/vistaPreviaPropuesta";
 import { formatoConteo } from "../../lib/formatoNumero";
 import { CabeceraPanel } from "../../components/CabeceraPanel";
@@ -290,10 +291,11 @@ export function SuggestedPlanButton() {
 
   return (
     <div className="pulso-gv2-suggest-root" ref={rootRef}>
-      <button
-        type="button"
+      <PulsoButton
+        variant="icon"
+        tone="framed"
         ref={disparadorRef}
-        className="pulso-gv2-pill-button pulso-gv2-suggest-trigger"
+        className="pulso-gv2-suggest-trigger"
         onClick={panel.alternar}
         disabled={busy}
         aria-label={PANEL_ARMAR_DESDE.label}
@@ -301,9 +303,8 @@ export function SuggestedPlanButton() {
         aria-expanded={open}
         title={PANEL_ARMAR_DESDE.label}
       >
-        {busy ? <Loader2 size={13} className="pulso-spin" /> : <LayoutTemplate size={14} />}
-        <span className="pulso-gv2-suggest-trigger-label">Armar desde…</span>
-      </button>
+        {busy ? <Loader2 size={16} className="pulso-spin" aria-hidden="true" /> : <LayoutTemplate size={16} aria-hidden="true" />}
+      </PulsoButton>
 
       {open && (
         <div ref={dialogoRef} tabIndex={-1} className="pulso-gv2-suggest-popover" role="dialog" aria-label={PANEL_ARMAR_DESDE.label} {...panel.props}>

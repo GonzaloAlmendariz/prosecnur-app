@@ -40,7 +40,8 @@ describe("«Armar desde…» · panel direccionable y alcance", () => {
     const cerrado = en("/procesamiento?seccion=graficos&pestana=vista-general", createElement(SuggestedPlanButton));
     expect(cerrado).not.toContain('role="dialog"');
     expect(cerrado).toContain('aria-expanded="false"');
-    expect(cerrado).toContain("Armar desde…");
+    // R12-9: el disparador es un botón de ícono del kit; su nombre es el del panel (el rótulo visible ya iba oculto).
+    expect(cerrado).toContain('aria-label="Armar desde un plan sugerido"');
   });
 
   // F1. Mata: dejar el compartido deshabilitado (o con el motivo provisional) tras conectar la matriz.
