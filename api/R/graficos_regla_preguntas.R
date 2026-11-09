@@ -382,7 +382,12 @@
   if (!is.null(r$sin_equivalencia)) return(list(el = el, texto = r$evaluacion$texto, sin_equivalencia = r$sin_equivalencia))
   total <- r$evaluacion$total
   if (!length(r$vars)) stop("La regla de preguntas no deja ninguna pregunta: ", r$evaluacion$texto, call. = FALSE)
-  if (!is.null(r$recorte)) .pulso_aviso(.aviso_en_lamina(.tope_espacio_aviso(r$recorte[["k"]], r$recorte[["n"]], r$recorte[["desde"]])))   # E3, P7
+  # E3, P7. En la escala del resumen el consejo de desde dónde seguir lo da su lámina, que sabe cuántas filas dibuja al
+  # final (P11); aquí va sólo el hecho.
+  if (!is.null(r$recorte)) {
+    .pulso_aviso(.aviso_en_lamina(.tope_espacio_aviso(r$recorte[["k"]], r$recorte[["n"]], r$recorte[["desde"]],
+                                                      consejo = !identical(el$.element_type, "barras_divergentes"))))
+  }
   el$vars <- r$vars
   if (identical(el$.element_type, "barras_divergentes")) {
     el$var <- if (length(r$vars) == 1L) r$vars else NULL

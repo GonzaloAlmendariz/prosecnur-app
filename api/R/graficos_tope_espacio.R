@@ -113,11 +113,16 @@
 
 #' Aviso al analista (sin nombrar la serie: dice qué pasó y qué hacer)
 #' @keywords internal
-.tope_espacio_aviso <- function(k, n, desde = 1L) {
+.tope_espacio_aviso <- function(k, n, desde = 1L, consejo = TRUE) {
   desde <- .tope_espacio_desde(desde)
-  sprintf("%d filas no caben en la lámina: se muestran %d y el pie lo dice. Para las siguientes, agrega una lámina que continúe desde la %d.",
-          n - (desde - 1L), k, desde + k)
+  hecho <- sprintf("%d filas no caben en la lámina: se muestran %d y el pie lo dice.", n - (desde - 1L), k)
+  if (!isTRUE(consejo)) return(hecho)
+  paste(hecho, .tope_espacio_consejo(desde + k))
 }
+
+#' El consejo del aviso (P14): la lámina siguiente la agrega el analista, desde la posición que sigue
+#' @keywords internal
+.tope_espacio_consejo <- function(siguiente) sprintf("Para las siguientes, agrega una lámina que continúe desde la %d.", as.integer(siguiente))
 
 #' Recorta un contraste a los temas de mayor diferencia que caben (`datos` tidy: eje, grupo, valor)
 #'

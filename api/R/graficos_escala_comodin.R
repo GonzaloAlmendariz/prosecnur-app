@@ -38,7 +38,7 @@
   vars <- vars[desde:n]
   k <- min(tope, length(vars))
   if (length(vars) > k || desde > 1L) {
-    if (length(vars) > k) .pulso_aviso(.aviso_en_lamina(.tope_espacio_aviso(k, n, desde)))
+    if (length(vars) > k) .pulso_aviso(.aviso_en_lamina(.tope_espacio_aviso(k, n, desde, consejo = FALSE)))
     vars <- vars[seq_len(k)]
     el$.texto_tope <- .tope_espacio_mas_bajas(k, n, desde)
   }

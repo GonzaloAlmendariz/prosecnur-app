@@ -96,9 +96,14 @@
   ge <- .lam_div_resumen_geom(espec, titulo = titulo, sub = sub)
   if (is.null(ge)) stop("La escala del resumen no cabe en una lámina.", call. = FALSE)
   # P11: si no caben todas enteras, la lámina muestra las primeras en la prioridad de la regla y su nota lo dice.
+  # P14: con lo que la lámina dibuja al final, desde dónde seguiría la siguiente (la agrega el analista).
+  rc <- espec$recorte_escala
+  k_fin <- length(ge$filas); n_rc <- rc$n %||% n; desde_rc <- rc$desde %||% 1L
+  if (n_rc - (desde_rc - 1L) - k_fin > 0L) {
+    .pulso_aviso(.aviso_en_lamina(paste(if (k_fin < n) sprintf("Con los rótulos enteros caben %d de esas %d filas.", k_fin, n),
+                                        .tope_espacio_consejo(desde_rc + k_fin))))
+  }
   if (length(ge$filas) < n) {
-    rc <- espec$recorte_escala
-    .pulso_aviso(.aviso_en_lamina(.tope_espacio_aviso(length(ge$filas), rc$n %||% n, rc$desde %||% 1L)))
     espec$texto_regla <- .lam_div_resumen_texto(espec, length(ge$filas))
     espec <- .lam_div_resumen_subset(espec, ge$filas)
     C <- espec$categorias; U <- espec$unidades; X <- espec$cifras; n <- length(espec$filas)
