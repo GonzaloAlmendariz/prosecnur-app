@@ -57,17 +57,17 @@ export const RANURAS_ESTANDAR: Readonly<Record<string, { nombre: string; ranuras
   "p_slide_2_graficos_texto_izquierda": {
     nombre: "Dos gráficos con texto a la izquierda",
     ranuras: [
-      { tipo: "texto", x: 0.495, y: 2.05, w: 3.45, h: 3.6 },
-      { tipo: "grafico", x: 4.55, y: 1.7, w: 8.468, h: 1.6 },
-      { tipo: "grafico", x: 4.55, y: 3.7, w: 8.468, h: 2.55 },
+      { tipo: "texto", x: 0.495, y: 1.9, w: 3.5, h: 3 },
+      { tipo: "grafico", x: 4.4, y: 1.65, w: 4.2, h: 4.6 },
+      { tipo: "grafico", x: 8.85, y: 1.65, w: 4.168, h: 4.6 },
     ],
   },
   "p_slide_2_graficos_texto_derecha": {
     nombre: "Dos gráficos con texto a la derecha",
     ranuras: [
-      { tipo: "grafico", x: 0.495, y: 1.7, w: 8.6, h: 1.9 },
-      { tipo: "grafico", x: 0.495, y: 3.8, w: 8.6, h: 2.45 },
-      { tipo: "texto", x: 9.55, y: 2.05, w: 3.468, h: 3.4 },
+      { tipo: "grafico", x: 0.495, y: 1.65, w: 4.1, h: 4.6 },
+      { tipo: "grafico", x: 4.85, y: 1.65, w: 4.1, h: 4.6 },
+      { tipo: "texto", x: 9.25, y: 1.9, w: 3.768, h: 3 },
     ],
   },
   "p_slide_2_graficos_vertical": {
