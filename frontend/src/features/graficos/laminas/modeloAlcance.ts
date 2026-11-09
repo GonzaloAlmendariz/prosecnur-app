@@ -13,7 +13,7 @@ const esObjeto = (v: unknown): v is Record<string, unknown> => !!v && typeof v =
 /** Ajustes sin alcance por tipo en la tarjeta: método y decimales de porcentaje los gobierna Reglas (y el Redondeo propio
  *  de R4). Los decimales de radar, numérico e histograma sí tienen alcance: O7c (383c1fe2b) los eximió del saneo. */
 // U6: los mandos en espejo con `overrides` (mandosPorOverrides.ts) no se llevan al tipo: el preset no pasa por el espejo.
-export const SIN_ALCANCE: ReadonlySet<string> = new Set(["decimales_pct", "metodo_redondeo", "pista_barras", "colorear_por_opcion", "marca_mediana"]);
+export const SIN_ALCANCE: ReadonlySet<string> = new Set(["decimales_pct", "metodo_redondeo", "pista_barras", "colorear_por_opcion", "marca_mediana", "referencia_barra"]);
 
 /** El valor que tiene el tipo: el de su preset o, sin él, el por defecto del registro. */
 export function valorDelTipo(presets: Presets, tipo: string | null, arg: string, porDefecto: unknown): unknown {

@@ -731,7 +731,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
             graficador: current.graficador,
             // U6: los mandos que el motor lee sólo de `overrides` van en espejo (laminas/mandosPorOverrides.ts).
             // Ronda 19 (F2): «Bases distintas» escribe `cruce: null`; en el dumbbell ese nulo declara el modo y se guarda.
-            args: mergeSlotArgsPatch(current.args, conEspejoEnOverrides(current.args, patch), nulosDeclarados(current.graficador)),
+            args: mergeSlotArgsPatch(current.args, conEspejoEnOverrides(current.args, patch, current.graficador), nulosDeclarados(current.graficador)),
           };
           return { ...s, payload: { ...s.payload, [slot]: merged } };
         }),

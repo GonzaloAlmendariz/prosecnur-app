@@ -47,3 +47,21 @@ export function opcionesEnSegmentado(
 export function segmentacionFija(opciones: readonly { value: string; label: string }[]): Segmentacion {
   return opcionesEnSegmentado(opciones) ?? { opciones: opciones.map((o) => ({ clave: o.value, rotulo: o.label })), apilado: true };
 }
+
+/**
+ * B8 (ronda 20): un mando de opciones sin `default` cuyo vacío es lo que el motor dibuja hoy, en segmentado con la opción
+ * vacía primero («Como el gráfico / Fondo gris hasta el 100% / Eje abajo»). Siempre debajo del rótulo, a todo el ancho.
+ */
+export function segmentacionConVacio(rotuloVacio: string, opciones: readonly { value: string; label: string }[]): Segmentacion {
+  return { opciones: [{ clave: "", rotulo: rotuloVacio }, ...opciones.map((o) => ({ clave: o.value, rotulo: o.label.trim() }))], apilado: true };
+}
+
+/** La clave que se ve: la guardada si es una de las opciones; cualquier otra cosa (sin guardar), la vacía. */
+export function claveConVacio(valor: unknown, opciones: readonly { value: string }[]): string {
+  return typeof valor === "string" && opciones.some((o) => o.value === valor) ? valor : "";
+}
+
+/** Lo que se guarda al elegir: la opción vacía borra el valor (`null`), que vuelve a lo que el motor dibuja. */
+export function valorConVacio(clave: string): string | null {
+  return clave === "" ? null : clave;
+}

@@ -56,6 +56,11 @@ type Entrada = {
    * valor se conserva y se muestra como la opción actual, pero no se puede volver a elegir.
    */
   opcionesRetiradas?: Readonly<Record<string, string>>;
+  /**
+   * Rótulo de la opción «sin valor» de un mando de opciones sin `default`: vacío es lo que el motor dibuja hoy. Con ella
+   * el mando va siempre en segmentado, con esa opción primero (B8: «Como el gráfico»).
+   */
+  opcionVacia?: string;
 };
 
 // Guardas C40 (docs/qa/revision-c40-args-sin-control-f6-2026-10-11.md): el texto que abre el «?» del control.
@@ -499,6 +504,12 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   // `ancho_bin` y `mostrar_bins_vacios` siguen en RETIRADOS: con un ancho declarado el histograma deja la lámina nativa y
   // sale como imagen (`.histograma_recetario_aplica`), y los intervalos vacíos sólo existen en esa ruta.
   mostrar_frecuencia: { rotulo: "Casos junto al %", ayuda: "Bajo cada porcentaje, cuántos casos son.", soloEn: ["p_histograma"] },
+  // B8 (ronda 20): fondo gris hasta el 100% o eje sobrio abajo. En las barras viaja por `overrides` (espejo); en la
+  // cobertura es formal (mandosPorOverrides.ts). Nunca en apiladas, multiapiladas ni divergentes («ojo no en las apiladas»).
+  referencia_barra: {
+    rotulo: "Referencia de las barras", opcionVacia: "Como el gráfico",
+    soloEn: ["p_barras_agrupadas", "p_barras_categoricas", "p_cobertura"],
+  },
 };
 
 /**
@@ -558,6 +569,8 @@ export type CampoDato = {
   opciones: NonNullable<ArgMetadata["choices"]>;
   /** Aviso de un valor guardado que ya no se ofrece (6a). */
   aviso: string | null;
+  /** Rótulo de la opción sin valor (`Entrada.opcionVacia`): el mando va en segmentado con ella primero. */
+  opcionVacia?: string;
 };
 
 /** Valor efectivo de un interruptor: el guardado o, sin guardar, el `default` del registro (lo que el motor dibuja). */
@@ -599,7 +612,7 @@ export function camposDeDatos(args: readonly ArgMetadata[], valores: Valores, gr
     const t = { ...e, ...((graficador && e.textosEn?.[graficador]?.(valores)) || {}) };
     salida.push({
       arg: conDefecto, rotulo: t.rotulo, ayuda: t.ayuda ?? null, detalle: arg.descripcion ?? "", control,
-      placeholder: t.placeholder ?? null, opciones, aviso,
+      placeholder: t.placeholder ?? null, opciones, aviso, ...(e.opcionVacia ? { opcionVacia: e.opcionVacia } : {}),
     });
   }
   return salida;

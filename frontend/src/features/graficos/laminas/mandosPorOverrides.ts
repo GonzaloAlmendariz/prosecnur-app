@@ -6,7 +6,21 @@
 
 // U10 (2026-11-05): `mostrar_frecuencia` del histograma tampoco es formal de `p_histograma()`; su `...` lo pasaría a
 // `overrides`, pero `.clean_rebuild_args` descarta antes todo lo que no es formal con nombre (router_graficos.R).
-export const MANDOS_ESPEJO_OVERRIDES: ReadonlySet<string> = new Set(["pista_barras", "colorear_por_opcion", "marca_mediana", "mostrar_frecuencia"]);
+export const MANDOS_ESPEJO_OVERRIDES: ReadonlySet<string> = new Set(["pista_barras", "colorear_por_opcion", "marca_mediana", "mostrar_frecuencia", "referencia_barra"]);
+
+/**
+ * B8 (ronda 20): «Referencia de las barras» viaja por `overrides` en las barras agrupadas y categóricas, pero en
+ * `p_cobertura` es formal del constructor (graficos_cobertura_plan.R lo pasa él a `overrides`): ahí se guarda sólo en
+ * `args`. PENDIENTE backend: `.GRAFICOS_ARGS_ESPEJO_OVERRIDES` aún no lo lista, así que un plan viejo con el valor sólo
+ * en `args` no se completa; la tarjeta siempre escribe los dos lados.
+ */
+const FORMAL_EN: Readonly<Record<string, ReadonlySet<string>>> = { referencia_barra: new Set(["p_cobertura"]) };
+
+/** ¿El mando va en espejo en este graficador? Sin graficador, por el nombre. */
+export function vaEnEspejo(name: string, graficador?: string): boolean {
+  if (!MANDOS_ESPEJO_OVERRIDES.has(name)) return false;
+  return !(graficador && FORMAL_EN[name]?.has(graficador));
+}
 
 const esRegistro = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
 
@@ -14,8 +28,8 @@ const esRegistro = (v: unknown): v is Record<string, unknown> => !!v && typeof v
  * Lo guardado de un campo de la tarjeta. Para un mando en espejo manda `overrides` si lo trae, como en el backend: un plan
  * escrito a mano que sólo lo pone ahí no se ve apagado en la tarjeta mientras la lámina lo dibuja encendido.
  */
-export function valorDeMando(args: Readonly<Record<string, unknown>>, name: string): unknown {
-  if (MANDOS_ESPEJO_OVERRIDES.has(name) && esRegistro(args.overrides)) {
+export function valorDeMando(args: Readonly<Record<string, unknown>>, name: string, graficador?: string): unknown {
+  if (vaEnEspejo(name, graficador) && esRegistro(args.overrides)) {
     const v = args.overrides[name];
     if (v !== undefined && v !== null) return v;
   }
@@ -29,8 +43,9 @@ export function valorDeMando(args: Readonly<Record<string, unknown>>, name: stri
 export function conEspejoEnOverrides(
   actuales: Readonly<Record<string, unknown>> | undefined,
   parche: Record<string, unknown>,
+  graficador?: string,
 ): Record<string, unknown> {
-  const claves = Object.keys(parche).filter((k) => MANDOS_ESPEJO_OVERRIDES.has(k));
+  const claves = Object.keys(parche).filter((k) => vaEnEspejo(k, graficador));
   if (!claves.length) return parche;
   const base = esRegistro(parche.overrides) ? parche.overrides : esRegistro(actuales?.overrides) ? actuales.overrides : {};
   const overrides: Record<string, unknown> = { ...base };

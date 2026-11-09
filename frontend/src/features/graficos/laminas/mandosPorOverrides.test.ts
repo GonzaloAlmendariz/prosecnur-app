@@ -29,8 +29,8 @@ describe("conEspejoEnOverrides", () => {
     expect(conEspejoEnOverrides({ overrides: { a: 1 } }, parche)).toBe(parche);
   });
 
-  it("la lista es la misma que la del backend", () => {
-    expect([...MANDOS_ESPEJO_OVERRIDES].sort()).toEqual(["colorear_por_opcion", "marca_mediana", "mostrar_frecuencia", "pista_barras"]);
+  it("la lista es la del backend más `referencia_barra` (B8; el backend aún no la completa en planes viejos)", () => {
+    expect([...MANDOS_ESPEJO_OVERRIDES].sort()).toEqual(["colorear_por_opcion", "marca_mediana", "mostrar_frecuencia", "pista_barras", "referencia_barra"]);
   });
 });
 

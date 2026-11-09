@@ -72,7 +72,7 @@ import { PartesLineas } from "./PartesLineas";
 import { AgruparLista } from "./AgruparLista";
 import { RadioSegmentado } from "../subpestanas/RadioSegmentado";
 import { opcionesNumeroEnBotones } from "./numerosEnBotones";
-import { opcionesEnSegmentado, segmentacionFija } from "./opcionesEnSegmentado";
+import { claveConVacio, opcionesEnSegmentado, segmentacionConVacio, segmentacionFija, valorConVacio } from "./opcionesEnSegmentado";
 import { campoDeslizable } from "./modeloNumeroDeslizable";
 import { NumeroDeslizable } from "./NumeroDeslizable";
 import { FilaSegmentada } from "./tarjetaGrafico/FilaSegmentada";
@@ -177,7 +177,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
   const alcance = (c: CampoDato) => {
     const name = c.arg.name;
     // U6/U10: un mando que el motor lee de `overrides` muestra lo de `overrides` si está (lo que la lámina dibuja).
-    const guardado = valorDeMando(args, name);
+    const guardado = valorDeMando(args, name, valor.graficador);
     if (!tipo || grupoDeCampo(name) === "datos" || SIN_ALCANCE.has(name)) return { valor: guardado, sello: undefined, propio: false };
     const delTipo = valorDelTipo(presets, tipo, name, c.arg.default);
     const enPreset = presets[tipo]?.[name];
@@ -535,6 +535,8 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias, args, sco
   }
   // Ronda 18: un bool sin default cuyo NULL decide el motor, en tres estados (tarjetaGrafico/triestado.ts).
   if (control === "triestado") return <FilaSegmentada id={id} rotulo={rotulo} marcas={<>{globo}{sello}</>} segmentos={segmentacionFija(OPCIONES_TRIESTADO)} valor={claveTriestado(valor)} onCambio={(k) => onCambio(valorTriestado(k))} qa={`triestado-${arg.name}`} />;
+  // B8 (ronda 20): con opción vacía («Como el gráfico») va siempre en segmentado; elegirla borra el valor.
+  if (control === "opciones" && campo.opcionVacia) return <FilaSegmentada id={id} rotulo={rotulo} marcas={<>{globo}{sello}</>} segmentos={segmentacionConVacio(campo.opcionVacia, campo.opciones)} valor={claveConVacio(valor, campo.opciones)} onCambio={(k) => onCambio(valorConVacio(k))} qa={`opciones-${arg.name}`} />;
   // Ítem 9 (2026-11-08): hasta tres opciones cortas, a la vista en un segmentado (opcionesEnSegmentado.ts).
   if (control === "opciones" && segmentos) return <FilaSegmentada id={id} rotulo={rotulo} marcas={<>{globo}{sello}</>} segmentos={segmentos} valor={typeof valor === "string" ? valor : String(arg.default ?? "")} onCambio={onCambio} />;
   if (control === "opciones") {
