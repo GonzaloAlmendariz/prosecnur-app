@@ -22,7 +22,8 @@
   var <- toma("var") %||% ctx_var$var
   fuente <- list(
     diseno = .graficos_sig_diseno_de_fuente(ctx_var$instrumento, ctx_var$var %||% var),
-    var = ctx_var$var %||% var, survey = ctx_var$survey, orders_list = ctx_var$orders_list
+    var = ctx_var$var %||% var, survey = ctx_var$survey, orders_list = ctx_var$orders_list,
+    base = ctx_var$source   # «Familia por base»: la familia de BH es la de la base que el render tabuló
   )
   if (!is.null(toma("df_cross")) && !is.null(toma("cruce_values"))) {
     fuente$data <- toma("df_cross"); fuente$g <- toma("cruce_values"); fuente$niveles <- toma("ordered_values")
@@ -106,7 +107,7 @@
   st <- if (!is.null(regla$estrato) && regla$estrato %in% names(d)) d[[regla$estrato]] else NULL
   ev <- .sig_evaluar(ind, g, codigos, etiquetas, cluster = cl, estrato = st, regla = regla, filas = filas,
                      binaria = identical(ind$tipo, "so") && length(sustantivas) == 2L && !length(top2box))
-  ev <- .sig_veredictos(ev, regla, ctx$familia, exigir_familia = TRUE)   # §3: un p ajeno a la familia no se marca
+  ev <- .sig_veredictos(ev, regla, .sig_familia_de_fuente(ctx, fuente), exigir_familia = TRUE)   # §3: un p ajeno a la familia no se marca
   if (isTRUE(ev$fuera_de_familia > 0L) && exists(".pulso_aviso", mode = "function")) {
     .pulso_aviso(sprintf("Diferencias: %d comparación(es) de «%s» no están en la familia del informe y no se marcan.",
                          ev$fuera_de_familia, fuente$var))

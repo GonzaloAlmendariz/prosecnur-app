@@ -28,7 +28,9 @@
 #' @keywords internal
 .sig_contexto_liviano <- function(ctx) {
   if (is.null(ctx)) return(NULL)
-  list(regla = ctx$regla, origen = ctx$origen, familia = ctx$familia, m = ctx$m, cruces = ctx$cruces)
+  out <- list(regla = ctx$regla, origen = ctx$origen, familia = ctx$familia, m = ctx$m, cruces = ctx$cruces)
+  if (!is.null(ctx$familias)) out$familias <- ctx$familias   # «Familia por base»: sólo si el plan lee otras bases
+  out
 }
 
 #' Fija la regla y la familia en el worker; devuelve las opciones previas para `on.exit(options(...))`
@@ -46,7 +48,8 @@
   nombre <- if (nzchar(base %||% "") && base %in% names(ds)) base else names(ds)[[1]]
   .tarjetas_fuente_fijar(ds[[nombre]], is[[nombre]])   # ADR 0129: la tarjeta de ejemplo de la lectura
   ctx <- tryCatch(
-    .sig_contexto_estudio(ds[[nombre]], is[[nombre]], significancia$graficos_config, significancia$analitica_config),
+    .sig_contexto_estudio_base(ds[[nombre]], is[[nombre]], significancia$graficos_config, significancia$analitica_config,
+                               nombre, nombre, names(ds)),
     error = function(e) {
       message("[diferencias] no se pudo calcular la familia: ", conditionMessage(e))
       if (exists(".pulso_aviso", mode = "function")) {
@@ -57,6 +60,10 @@
     }
   )
   if (!is.null(ctx)) {
+    # «Familia por base» (ADR 0128): la ranura de otra base se marca contra la familia de SU base, no la de la activa.
+    ctx$familias <- tryCatch(
+      .sig_familias_otras_bases(ds, is, significancia$graficos_config, significancia$analitica_config, nombre),
+      error = function(e) { message("[diferencias] no se pudo calcular la familia de otra base: ", conditionMessage(e)); NULL })
     message(sprintf("[diferencias] base %s: %s con %s, familia de %d comparaciones.", nombre, ctx$regla$prueba,
                     ctx$regla$correccion, as.integer(ctx$m %||% 0L)))
   }

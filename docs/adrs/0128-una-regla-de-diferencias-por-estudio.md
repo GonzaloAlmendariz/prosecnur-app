@@ -87,6 +87,22 @@ tabla dan las mismas letras. Es un cálculo en dos pasadas: primero todos los p,
 
 Con `correccion = "bonferroni_fila"`, cada fila se corrige sola, como hoy.
 
+#### Familia por base (2026-11-09)
+
+En un proyecto multibase, la familia de `bh_informe` es **por base**: cada ranura pertenece a la familia de la base que
+lee (la fuente explícita, si no el prefijo de su referencia y, si no, la base activa; `.sig_base_de_lamina`). La
+familia de una base son sus ranuras más las comparaciones de Analítica que esa base puede responder, con la misma regla
+y la misma unidad de comparación.
+
+- Antes: el export armaba una sola familia, la de la base activa. La lámina de otra base salía `fuera_de_familia`, sin
+  marcas y con aviso, aunque `/api/graficos/diferencias` sí la probaba sobre su base. La familia de cada base se armaba
+  además con las ranuras de todas las bases.
+- Después: el export (`.sig_informe_preparar`) y el inspector (`.sig_contexto_sesion`) arman la familia de cada base con
+  la misma función (`api/R/graficos_significancia_familia_bases.R`), y el render marca cada lámina contra la familia de
+  la base que tabuló. Con una sola base no cambia nada: la familia es bit a bit la de antes.
+
+Las familias entre públicos (ADR 0138) siguen separadas. Prueba: `test-graficos-significancia-familia-por-base.R`.
+
 ### 4. Cuándo se marca
 
 Para cada fila y par (a, b) con p_a > p_b:

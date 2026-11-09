@@ -8,10 +8,13 @@
 .sig_fuente_sesion <- function(sid, base = NULL) {
   src <- .graficos_processing_sources(sid)
   if (!length(src$data_sources)) stop_api(409, "E_NO_DATA", "Carga una base antes de revisar diferencias.")
-  activa <- as.character(base %||% .graficos_active_base_name(sid))[1]
-  nombre <- if (!is.na(activa) && nzchar(activa) && activa %in% names(src$data_sources)) activa else names(src$data_sources)[[1]]
-  list(data = src$data_sources[[nombre]], inst = src$inst_sources[[nombre]] %||% NULL, base = nombre,
-       bases = names(src$data_sources))
+  bases <- names(src$data_sources)
+  sesion <- as.character(.graficos_active_base_name(sid))[1]
+  activa <- if (!is.na(sesion) && nzchar(sesion) && sesion %in% bases) sesion else bases[[1]]
+  pedida <- as.character(base %||% activa)[1]
+  nombre <- if (!is.na(pedida) && nzchar(pedida) && pedida %in% bases) pedida else bases[[1]]
+  list(data = src$data_sources[[nombre]], inst = src$inst_sources[[nombre]] %||% NULL, base = nombre, bases = bases,
+       activa = activa)
 }
 
 #' Contexto (regla y familia) de la sesión, con una regla propuesta encima si viene
@@ -28,7 +31,7 @@
   # La regla se valida contra la base activa, que es donde se guarda; la lámina de otra base (R12-2) se abstiene si no
   # trae la columna de diseño (`.sig_diseno_invalido` en `.sig_lamina_json`), como en el render.
   if (is.list(cfg$significancia) && is.null(base)) .sig_regla_validar_base(.sig_regla_normalizar(cfg$significancia), f$data)
-  ctx <- .sig_contexto_estudio(f$data, f$inst, cfg, ac)
+  ctx <- .sig_contexto_estudio_base(f$data, f$inst, cfg, ac, f$base, f$activa, f$bases)   # familia por base (ADR 0128)
   list(ctx = ctx, fuente = .sig_fuente(f$data, f$inst), cfg = cfg, analitica = ac, data = f$data, base = f$base,
        bases = f$bases)
 }
