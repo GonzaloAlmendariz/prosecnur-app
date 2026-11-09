@@ -54,6 +54,17 @@ export function estadoBaseDeRef(ref: string | null | undefined, ctx: ContextoBas
   return { tipo: "en-ninguna" };
 }
 
+/**
+ * El contexto con que se lee una ref suelta cuando el gráfico declara de qué base la cuenta (ronda 19, F3): la cobertura
+ * por categorías cuenta la columna en cada base elegida (`.cobcat_desde_fuentes`), así que `p6` sin prefijo es la de la
+ * primera base de la lámina, no la de la base activa del informe. Sin base de la lámina conocida, el contexto tal cual.
+ */
+export function contextoConBaseDeLamina(ctx: ContextoBaseRef, baseLamina: string | null | undefined): ContextoBaseRef {
+  const base = (baseLamina ?? "").trim();
+  if (!base || !ctx.variables.some((v) => v.source === base)) return ctx;
+  return { ...ctx, baseActiva: base, scope: "active" };
+}
+
 /** Rótulo breve de una base para la pastilla: «Base default», «Base datos_crianza». */
 export function rotuloBase(base: string): string {
   return `Base ${base}`;

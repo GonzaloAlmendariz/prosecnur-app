@@ -8,7 +8,7 @@ import { getDerivedReportVariable } from "./derivedReportVariables";
 import { formatoConteo } from "../../lib/formatoNumero";
 import { CargaDeBloque } from "../../components/CargaDeBloque";
 import { textoPlano } from "./textoPlano";
-import { estadoBaseDeRef } from "./baseDeReferencia";
+import { contextoConBaseDeLamina, estadoBaseDeRef } from "./baseDeReferencia";
 import { FijarEnOtraBase, PastillaBaseRef } from "./PastillaBaseRef";
 import { fuentesPermitidas } from "./fuentesPermitidas";
 
@@ -32,6 +32,9 @@ type Props = {
   /** Sólo las preguntas de estas bases (las elegidas en la lámina: la cobertura por categorías, ronda 18). Vacío o sin
    *  ninguna conocida, todas. La pregunta se guarda siempre con el prefijo de su base, porque es la base que se cuenta. */
   soloBases?: readonly string[] | null;
+  /** Base con que se lee una ref sin prefijo cuando el gráfico la cuenta en sus propias bases (la primera elegida en la
+   *  cobertura por categorías, ronda 19); sin ella, la base activa del informe. */
+  baseDeRefSuelta?: string | null;
 };
 
 // VariablePicker multi-base (v0.2+).
@@ -49,7 +52,7 @@ type Props = {
 // el analista lo guardó conscientemente así).
 
 export default function VariablePicker({
-  value, onChange, placeholder = "Selecciona variable…", filter, allowEmpty = false, ocultarBase = false, fuenteInicial, sinAvisoDeBase = false, soloBase = null, soloBases = null,
+  value, onChange, placeholder = "Selecciona variable…", filter, allowEmpty = false, ocultarBase = false, fuenteInicial, sinAvisoDeBase = false, soloBase = null, soloBases = null, baseDeRefSuelta = null,
 }: Props) {
   const { sources: todas, multi, variables, relacionBases, baseActiva, scope, loading, error } = useVariables();
   const [open, setOpen] = useState(false);
@@ -65,8 +68,10 @@ export default function VariablePicker({
   const parsed = useMemo(() => parseVarRef(value), [value]);
   // Con varias bases, de qué base lee el motor una ref sin prefijo: la activa del informe (baseDeReferencia.ts).
   const estadoBase = useMemo(
-    () => (sinAvisoDeBase ? { tipo: "sin-aviso" as const } : estadoBaseDeRef(value, { multi, variables: variables ?? [], baseActiva, relacionBases, scope })),
-    [sinAvisoDeBase, value, multi, variables, baseActiva, relacionBases, scope],
+    () => (sinAvisoDeBase ? { tipo: "sin-aviso" as const } : estadoBaseDeRef(value, contextoConBaseDeLamina(
+      { multi, variables: variables ?? [], baseActiva, relacionBases, scope }, baseDeRefSuelta,
+    ))),
+    [sinAvisoDeBase, value, multi, variables, baseActiva, relacionBases, scope, baseDeRefSuelta],
   );
   const derivedVariable = useMemo(() => getDerivedReportVariable(value), [value]);
   const clavesBases = soloBases?.join("\u001F") ?? "";

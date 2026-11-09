@@ -4,7 +4,7 @@ import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, test, vi } from "vitest";
-import { estadoBaseDeRef, type ContextoBaseRef } from "../baseDeReferencia";
+import { contextoConBaseDeLamina, estadoBaseDeRef, type ContextoBaseRef } from "../baseDeReferencia";
 import { relacionDeFuentes } from "../relacionBases";
 import type { VarWithSource } from "../useVariables";
 
@@ -116,5 +116,24 @@ describe("fijar en la otra base", () => {
     expect(onChange).toHaveBeenCalledWith("datos_crianza$C1_hijo");
     act(() => root.unmount());
     host.remove();
+  });
+});
+
+describe("ronda 19 (F3): la ref suelta de la cobertura se lee en la primera base de la lámina", () => {
+  test("el contexto toma la base de la lámina, también en el informe compartido", () => {
+    expect(estadoBaseDeRef("A3", contextoConBaseDeLamina(ctx, "datos_crianza"))).toEqual({ tipo: "base-activa", base: "datos_crianza" });
+    expect(estadoBaseDeRef("A3", contextoConBaseDeLamina({ ...ctx, scope: "consolidated" }, "datos_crianza")))
+      .toEqual({ tipo: "base-activa", base: "datos_crianza" });
+    // Sin base de la lámina (o una que no existe), la base activa.
+    expect(estadoBaseDeRef("A3", contextoConBaseDeLamina(ctx, null))).toEqual({ tipo: "base-activa", base: "default" });
+    expect(estadoBaseDeRef("A3", contextoConBaseDeLamina(ctx, "nadie"))).toEqual({ tipo: "base-activa", base: "default" });
+  });
+
+  test("el chip muestra la pregunta de la base de la lámina, no la de la activa", async () => {
+    const { default: VariablePicker } = await import("../VariablePicker");
+    const html = renderToStaticMarkup(createElement(MemoryRouter, null,
+      createElement(VariablePicker, { value: "A3", onChange: () => undefined, baseDeRefSuelta: "datos_crianza" })));
+    expect(html).toContain("Base datos_crianza");
+    expect(html).not.toContain("Base default");
   });
 });

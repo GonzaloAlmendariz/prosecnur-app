@@ -482,6 +482,8 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias, args, sco
             // el prefijo de la base que cuenta (sin él, se resolvía contra la base activa).
             soloBases={graficador === "p_cobertura" ? basesDeCobertura(args) : null}
             fuenteInicial={graficador === "p_cobertura" ? basesDeCobertura(args)[0] : undefined}
+            // Ronda 19 (F3): una ref guardada sin prefijo («p6») se lee en la primera base de la lámina, como la cuenta el motor.
+            baseDeRefSuelta={graficador === "p_cobertura" ? basesDeCobertura(args)[0] ?? null : null}
           />
         </div>
         {otraBase && (
