@@ -1,74 +1,147 @@
-// Identidad › Rótulos cortos (U3 del checklist de mandos del mazo, 2026-11-05). `plan.rotulos_cortos` es un mapa rótulo
-// completo de una respuesta → rótulo corto; el job lo aplica igual a datos, instrumento, plan y paletas
-// (api/R/graficos_inclusivo.R, `.rotulos_cortos_mapa`). Sólo reemplaza el rótulo ENTERO, así que la clave tiene que ser
-// el rótulo tal como lo trae el formulario: por eso se elige de las respuestas del instrumento y no se teclea. Puro.
+// Identidad › Rótulos cortos (U3, 2026-11-05; ranking del ADR 0141, 2026-11-09). Dos rankings por base, del rótulo más
+// largo al más corto: "Preguntas" (`plan.rotulos_cortos.preguntas`, `base$var` → corto) y "Categorías" (el mapa de
+// opciones, rótulo completo → corto). El ranking viene de GET /api/graficos/rotulos/ranking; el corto vigente se lee del
+// store del plan, que es lo que guarda el autosave. Puro.
 
-import type { ListaRespuestas } from "./modeloColoresRespuestas";
+import {
+  opcionesDeRotulos,
+  preguntasDeRotulos,
+  unirRotulos,
+  type AvisoRotulos,
+  type PedidoRotulos,
+  type RankingBase,
+  type RankingRotulos,
+  type RotulosCortosPlan,
+} from "../../../api/graficosRotulos";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
-export type RotulosCortos = Readonly<Record<string, string>>;
+export type TipoRanking = "preguntas" | "categorias";
 
-/** Una respuesta del formulario, con las listas que la usan. */
-export type OpcionInstrumento = { rotulo: string; listas: string[] };
+/** Una fila de un ranking: `clave` es la ref `base$var` de una pregunta o el rótulo completo de una categoría. */
+export type FilaRanking = {
+  tipo: TipoRanking;
+  clave: string;
+  /** Lo que se muestra junto al rótulo: la variable de la pregunta o la lista de la categoría. */
+  detalle: string;
+  etiqueta: string;
+  largo: number;
+  usos: number;
+  /** El corto guardado en el plan, o "" si no tiene. */
+  corto: string;
+  /** El nombre corto que la pregunta lleva en algún gráfico, si sirve como sugerencia. Nunca se aplica solo. */
+  sugerencia: string | null;
+};
 
-/** Una fila de la lista: el rótulo completo, su corto y si el formulario todavía trae esa respuesta (C5). */
-export type FilaRotuloCorto = { largo: string; corto: string; enFormulario: boolean | null; listas: string[] };
+const espacios = (t: string) => t.replace(/\s+/g, " ").trim();
+const plano = (t: string) => espacios(t).normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+const trasBase = (ref: string) => (ref.includes("$") ? ref.slice(ref.indexOf("$") + 1) : ref);
 
-/** Las respuestas distintas del formulario, en su orden, con las listas en que aparecen. */
-export function opcionesDelInstrumento(listas: readonly ListaRespuestas[]): OpcionInstrumento[] {
-  const porRotulo = new Map<string, OpcionInstrumento>();
-  for (const l of listas) {
-    for (const c of l.choices) {
-      const rotulo = typeof c.label === "string" ? c.label.trim() : "";
-      if (!rotulo) continue;
-      const o = porRotulo.get(rotulo) ?? { rotulo, listas: [] };
-      if (!o.listas.includes(l.list_name)) o.listas.push(l.list_name);
-      porRotulo.set(rotulo, o);
-    }
-  }
-  return [...porRotulo.values()];
+/** El corto de una categoría: por el rótulo exacto o, si no, con los espacios normalizados (como rotuloVisible). */
+function cortoDeOpcion(mapa: Readonly<Record<string, string>>, etiqueta: string): string {
+  if (Object.hasOwn(mapa, etiqueta)) return mapa[etiqueta];
+  const clave = espacios(etiqueta);
+  return Object.entries(mapa).find(([k]) => espacios(k) === clave)?.[1] ?? "";
 }
 
-/** Las filas del mapa, en su orden. Sin las respuestas leídas todavía, `enFormulario` queda en `null`. */
-export function filasRotulosCortos(mapa: RotulosCortos | undefined, opciones: readonly OpcionInstrumento[] | null): FilaRotuloCorto[] {
-  const porRotulo = new Map((opciones ?? []).map((o) => [o.rotulo, o]));
-  return Object.entries(mapa ?? {}).map(([largo, corto]) => {
-    const o = porRotulo.get(largo.trim());
-    return { largo, corto, enFormulario: opciones ? !!o : null, listas: o?.listas ?? [] };
-  });
+/** Las filas de un ranking de una base, del rótulo más largo al más corto (orden estable). */
+export function filasRanking(base: RankingBase | undefined, tipo: TipoRanking, rc: RotulosCortosPlan | undefined): FilaRanking[] {
+  if (!base) return [];
+  const filas: FilaRanking[] = tipo === "preguntas"
+    ? (() => {
+      const mapa = preguntasDeRotulos(rc);
+      return base.preguntas.map((p) => {
+        const corto = mapa[p.ref] ?? "";
+        const s = p.corto_en_grafico?.trim() ?? "";
+        const sugerencia = s && s !== corto && s.length < p.etiqueta.trim().length ? s : null;
+        return { tipo, clave: p.ref, detalle: trasBase(p.ref), etiqueta: p.etiqueta, largo: p.largo, usos: p.usos, corto, sugerencia };
+      });
+    })()
+    : (() => {
+      const mapa = opcionesDeRotulos(rc);
+      return base.opciones.map((o) => ({
+        tipo, clave: o.etiqueta, detalle: trasBase(o.ref), etiqueta: o.etiqueta, largo: o.largo, usos: o.usos,
+        corto: cortoDeOpcion(mapa, o.etiqueta), sugerencia: null,
+      }));
+    })();
+  return filas.map((f, i) => ({ f, i })).sort((a, b) => b.f.largo - a.f.largo || a.i - b.i).map(({ f }) => f);
 }
 
-const plano = (t: string) => t.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().trim();
-
-/**
- * Las respuestas que se pueden acortar: las que coinciden con la búsqueda (sin tildes ni mayúsculas) y aún no tienen
- * corto. Sin búsqueda, las más largas primero: son las que no caben en una lámina.
- */
-export function sugerencias(opciones: readonly OpcionInstrumento[], consulta: string, mapa: RotulosCortos | undefined, max = 8): OpcionInstrumento[] {
+/** Las filas que coinciden con la búsqueda (sin tildes ni mayúsculas), en el rótulo, el corto o la variable. */
+export function filtrarFilas(filas: readonly FilaRanking[], consulta: string): FilaRanking[] {
   const q = plano(consulta);
-  const libres = opciones.filter((o) => !Object.hasOwn(mapa ?? {}, o.rotulo));
-  const halladas = q ? libres.filter((o) => plano(o.rotulo).includes(q)) : [...libres].sort((a, b) => b.rotulo.length - a.rotulo.length);
-  return halladas.slice(0, max);
+  if (!q) return [...filas];
+  return filas.filter((f) => plano(f.etiqueta).includes(q) || plano(f.corto).includes(q) || plano(f.detalle).includes(q));
 }
 
-/** Qué impide guardar un corto, o `null` si se puede. */
-export function errorCorto(largo: string, corto: string): string | null {
-  const c = corto.trim();
-  if (!c) return "Escribe el rótulo corto.";
-  if (c === largo.trim()) return "Es igual al rótulo completo.";
+/** Qué impide guardar un corto, o `null` si se puede. Vacío se puede: quita el corto. Misma regla que el backend. */
+export function errorCorto(etiqueta: string, borrador: string): string | null {
+  const c = borrador.trim();
+  if (!c) return null;
+  const n = etiqueta.trim().length;
+  if (c.length >= n) return `Debe ser más corto que el rótulo completo (${formatoConteo(n)} caracteres).`;
   return null;
 }
 
-/** El mapa con el corto de una respuesta (nuevo o cambiado). */
-export function conRotuloCorto(mapa: RotulosCortos | undefined, largo: string, corto: string): Record<string, string> {
-  return { ...(mapa ?? {}), [largo]: corto.trim() };
+export type Cambio = "nada" | "guardar" | "quitar";
+
+/** Qué hace guardar un borrador en una fila. */
+export function cambioDe(fila: FilaRanking, borrador: string): Cambio {
+  const c = borrador.trim();
+  if (c === fila.corto) return "nada";
+  return c ? "guardar" : "quitar";
 }
 
-/** El mapa sin el corto de una respuesta. */
-export function sinRotuloCorto(mapa: RotulosCortos | undefined, largo: string): Record<string, string> {
-  return Object.fromEntries(Object.entries(mapa ?? {}).filter(([k]) => k !== largo));
+/** El cuerpo del POST: la sección completa de esa fila (una sección presente reemplaza la guardada) con el cambio. */
+export function pedidoGuardar(rc: RotulosCortosPlan | undefined, fila: FilaRanking, borrador: string): PedidoRotulos {
+  const c = borrador.trim();
+  const actual = fila.tipo === "preguntas" ? preguntasDeRotulos(rc) : opcionesDeRotulos(rc);
+  const seccion: Record<string, string | null> = { ...actual };
+  if (fila.tipo === "categorias" && !Object.hasOwn(seccion, fila.clave)) {
+    // El corto vigente puede venir de la clave con otros espacios: se reemplaza esa, no se duplica.
+    const vieja = Object.keys(seccion).find((k) => espacios(k) === espacios(fila.clave));
+    if (vieja) delete seccion[vieja];
+  }
+  if (c) seccion[fila.clave] = c;
+  else delete seccion[fila.clave];
+  return fila.tipo === "preguntas" ? { preguntas: seccion } : { opciones: seccion };
 }
 
-/** Estado de la pieza en la columna de Identidad: cuántos rótulos cortos hay. */
-export function cuantosRotulos(mapa: RotulosCortos | undefined): number {
-  return Object.keys(mapa ?? {}).length;
+/** El plan con el cambio aplicado, para un estado intermedio o un test. */
+export function rotulosCon(rc: RotulosCortosPlan | undefined, fila: FilaRanking, borrador: string): RotulosCortosPlan {
+  const p = pedidoGuardar(rc, fila, borrador);
+  const limpio = (m: Record<string, string | null>) =>
+    Object.fromEntries(Object.entries(m).filter((e): e is [string, string] => typeof e[1] === "string"));
+  return unirRotulos(p.opciones ? limpio(p.opciones) : opcionesDeRotulos(rc), p.preguntas ? limpio(p.preguntas) : preguntasDeRotulos(rc));
+}
+
+/** Categorías con corto guardado que ninguna base trae hoy (C5): el corto no se aplica; se pueden quitar. */
+export function categoriasHuerfanas(rc: RotulosCortosPlan | undefined, ranking: RankingRotulos | null): FilaRanking[] {
+  if (!ranking) return [];
+  const presentes = new Set(ranking.bases.flatMap((b) => b.opciones.map((o) => espacios(o.etiqueta))));
+  return Object.entries(opcionesDeRotulos(rc))
+    .filter(([k]) => !presentes.has(espacios(k)))
+    .map(([k, corto]) => ({ tipo: "categorias", clave: k, detalle: "", etiqueta: k, largo: k.length, usos: 0, corto, sugerencia: null }));
+}
+
+/** Clave única de una fila entre los dos rankings (borradores y errores del store de la vista). */
+export const claveFila = (tipo: TipoRanking, clave: string) => `${tipo}:${clave}`;
+
+/** La base que se muestra primero: la activa si está en el ranking, si no la primera. */
+export function baseInicial(ranking: RankingRotulos | null, activa: string | null | undefined, elegida: string | null): string | null {
+  const bases = ranking?.bases.map((b) => b.base) ?? [];
+  if (elegida && bases.includes(elegida)) return elegida;
+  if (activa && bases.includes(activa)) return activa;
+  return bases[0] ?? null;
+}
+
+/** El aviso de colisión en palabras: el corto repetido y los rótulos que lo llevan. */
+export function textoAviso(aviso: AvisoRotulos, etiquetaDe: (ref: string) => string): string {
+  const quienes = aviso.refs.map((r) => `"${etiquetaDe(r)}"`).join(", ");
+  const que = aviso.tipo === "preguntas" ? `${formatoConteo(aviso.refs.length)} preguntas${aviso.base ? ` de ${aviso.base}` : ""}` : `${formatoConteo(aviso.refs.length)} categorías`;
+  return `"${aviso.corto}" es el rótulo corto de ${que}: ${quienes}.`;
+}
+
+/** Estado de la pieza en la columna de Identidad: cuántos rótulos cortos hay (categorías y preguntas). */
+export function cuantosRotulos(rc: RotulosCortosPlan | undefined): number {
+  return Object.keys(opcionesDeRotulos(rc)).length + Object.keys(preguntasDeRotulos(rc)).length;
 }

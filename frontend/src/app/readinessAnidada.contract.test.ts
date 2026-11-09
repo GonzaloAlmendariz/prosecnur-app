@@ -127,6 +127,8 @@ describe("el puente y el runner aplican el mismo contrato", () => {
  * archivo aquí exige comprobar que el `false` es una carga, no un vacío.
  */
 const FALSE_TRANSITORIO: Record<string, string> = {
+  "features/graficos/estilo/RotulosCortos.tsx":
+    "lectura de GET /api/graficos/rotulos/ranking (ADR 0141): con el ranking publica la marca y con el error vacio:ranking-ilegible",
   "features/estudio/FichaDelEstudio.tsx":
     "lectura de GET /api/planner (ADR 0124): el `finally` apaga la carga con la ficha o con el error, que se pinta dentro",
   "features/calcMuestra/universidad/salidas/DeclararRepresentatividad.tsx":

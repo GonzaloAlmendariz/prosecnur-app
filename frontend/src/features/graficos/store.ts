@@ -9,6 +9,7 @@ import {
 } from "../../api/graficosConfigNormalizer";
 import type { GraficosConfigDefaults } from "../../api/graficosConfigDefaults";
 import { normalizeEstiloCliente, type EstiloCliente } from "../../api/graficosEstilo";
+import { normalizarRotulosCortos, type RotulosCortosPlan } from "../../api/graficosRotulosPlan";
 import { conVinculo, vinculosDecisiones } from "./paletasResolver";
 import { sinEstiloDePerfil } from "./estiloInforme/quitarLineaVisual";
 import { conAjusteEnElTipo } from "./laminas/modeloAlcance";
@@ -239,8 +240,9 @@ type PlanStore = {
   resetPreset: (tipo: string) => void;
   select: (id: string | null) => void;
   loadPlan: (plan: PlanJson) => void;
-  /** U3: rótulos cortos del estudio (`plan.rotulos_cortos`); un mapa vacío quita la clave. Un paso deshacible. */
-  setRotulosCortos: (mapa: Record<string, string>) => void;
+  /** U3 y ADR 0141: rótulos cortos del mazo (`plan.rotulos_cortos`, con `preguntas` anidado); un mapa vacío quita la
+   *  clave. Un paso deshacible. Tras POST /api/graficos/rotulos recibe la respuesta, para que el autosave no la pise. */
+  setRotulosCortos: (mapa: RotulosCortosPlan) => void;
   /** H14: preguntas clave del estudio (`plan.preguntas_clave`); una lista vacía quita la clave. Un paso deshacible. */
   setPreguntasClave: (refs: string[]) => void;
   reset: () => void;
@@ -803,8 +805,9 @@ export const usePlanStore = create<PlanStore>((set) => ({
   })),
 
   setRotulosCortos: (mapa) => set((state) => {
-    const plan: PlanJson = { ...state.plan, rotulos_cortos: { ...mapa } };
-    if (!Object.keys(mapa).length) delete plan.rotulos_cortos;
+    const limpio = normalizarRotulosCortos(mapa);
+    const plan: PlanJson = { ...state.plan, rotulos_cortos: limpio };
+    if (!Object.keys(limpio).length) delete plan.rotulos_cortos;
     return dirty(state, { plan });
   }),
 

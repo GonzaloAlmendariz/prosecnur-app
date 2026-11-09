@@ -1,201 +1,192 @@
-// Identidad › Rótulos cortos (U3 del checklist de mandos del mazo, 2026-11-05). Una fila por respuesta acortada: el
-// rótulo completo del formulario y el corto con que sale en todo el PPT y el Word. Se agrega buscando la respuesta entre
-// las del formulario (el mismo catálogo que Colores de las respuestas), porque el motor sólo reemplaza el rótulo entero.
-// Escribe `plan.rotulos_cortos` con `setRotulosCortos` del store del plan: un paso deshacible que guarda el autosave.
+// Identidad › Rótulos cortos (U3, 2026-11-05; ranking del ADR 0141, 2026-11-09). Dirección:
+// `/procesamiento?seccion=graficos&pestana=identidad&foco=rotulos`. Dos rankings por base, del rótulo más largo al más
+// corto: "Preguntas" y "Categorías". Cada fila: el rótulo completo, su largo, en cuántas láminas sale y el campo "Rótulo
+// corto". Enter o salir del campo guarda por POST /api/graficos/rotulos; la respuesta vuelve al store del plan.
+// Sólo Gráficos: Analítica conserva su propia revisión de etiquetas.
+//
+// Un solo dueño de desplazamiento (C4): el cuerpo de la pestaña. La lista no tiene alto propio.
 
-import { useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo } from "react";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { PulsoInput } from "../../../components/PulsoInput";
+import { PulsoSelect } from "../../../components/PulsoSelect";
 import { Panel } from "../../../components/Panel";
-import { formatoConteo } from "../../../lib/formatoNumero";
-import { EmptyState, ErrorBlock, LoadingBlock } from "../../../components/States";
+import { Alert } from "../../../components/Alert";
 import { EstadoChip } from "../../../components/EstadoChip";
-import { ArrowRight, Pencil, Search, Trash2, Type } from "../../../vendor/lucide-react";
+import { EmptyState, ErrorBlock, LoadingBlock } from "../../../components/States";
+import { formatoConteo } from "../../../lib/formatoNumero";
+import { useSession } from "../../../lib/SessionContext";
+import { Search, Trash2, Type } from "../../../vendor/lucide-react";
 import { usePlanStore } from "../store";
-import { usePaletasRespuestas } from "./usePaletasRespuestas";
+import { RadioSegmentado } from "../subpestanas/RadioSegmentado";
 import {
-  conRotuloCorto,
-  errorCorto,
-  filasRotulosCortos,
-  opcionesDelInstrumento,
-  sinRotuloCorto,
-  sugerencias,
-  type FilaRotuloCorto,
+  baseInicial,
+  categoriasHuerfanas,
+  claveFila,
+  filasRanking,
+  filtrarFilas,
+  textoAviso,
+  type FilaRanking,
+  type TipoRanking,
 } from "./modeloRotulosCortos";
-import { revelarFilaNueva, selectorFila } from "../revelarFila";
+import { useRotulosCortosUi } from "./rotulosCortosStore";
 import "./rotulosCortos.css";
 
-type Edicion = { largo: string; borrador: string };
+const usosTexto = (n: number) => (n === 0 ? "Sin láminas" : n === 1 ? "En 1 lámina" : `En ${formatoConteo(n)} láminas`);
 
-/** `data-fila` de la respuesta nueva que se está acortando (aún no está en el mapa). */
-const FILA_NUEVA = "pulso-rc-nueva";
-
-function EditorCorto({ edicion, onCambio, onGuardar, onCancelar }: {
-  edicion: Edicion;
-  onCambio: (t: string) => void;
-  onGuardar: () => void;
-  onCancelar: () => void;
-}) {
+function FilaRotulo({ fila, huerfana = false }: { fila: FilaRanking; huerfana?: boolean }) {
   const id = useId();
-  const problema = edicion.borrador ? errorCorto(edicion.largo, edicion.borrador) : null;
-  const puede = !errorCorto(edicion.largo, edicion.borrador);
-  return (
-    <div className="pulso-rc-editor">
-      <label htmlFor={id} className="pulso-rc-editor-rotulo">Rótulo corto</label>
-      <div className="pulso-rc-editor-fila">
-        <PulsoInput
-          id={id}
-          size="sm"
-          className="pulso-rc-input"
-          value={edicion.borrador}
-          invalid={Boolean(problema)}
-          aria-describedby={`${id}-ayuda`}
-          onChange={(e) => onCambio(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && puede) onGuardar();
-            if (e.key === "Escape") onCancelar();
-          }}
-        />
-        <PulsoButton variant="primary" size="sm" onClick={onGuardar} disabled={!puede}>Guardar</PulsoButton>
-        <PulsoButton variant="ghost" size="sm" onClick={onCancelar}>Cancelar</PulsoButton>
-      </div>
-      <p id={`${id}-ayuda`} className={problema ? "pulso-rc-ayuda is-error" : "pulso-rc-ayuda"} role={problema ? "alert" : undefined}>
-        {problema ?? `${formatoConteo(edicion.borrador.trim().length)} de ${formatoConteo(edicion.largo.length)} caracteres.`}
-      </p>
-    </div>
-  );
-}
+  const k = claveFila(fila.tipo, fila.clave);
+  const borrador = useRotulosCortosUi((s) => s.borradores[k]);
+  const error = useRotulosCortosUi((s) => s.errores[k] ?? "");
+  const guardando = useRotulosCortosUi((s) => !!s.guardando[k]);
+  const setBorrador = useRotulosCortosUi((s) => s.setBorrador);
+  const descartar = useRotulosCortosUi((s) => s.descartar);
+  const guardar = useRotulosCortosUi((s) => s.guardar);
+  const valor = borrador ?? fila.corto;
+  const n = valor.trim().length;
+  const ayuda = error || (guardando ? "Guardando…" : n ? `${formatoConteo(n)} de ${formatoConteo(fila.largo)} caracteres.` : "");
 
-function FilaRotulo({ fila, edicion, onEditar, onQuitar, editor }: {
-  fila: FilaRotuloCorto;
-  edicion: Edicion | null;
-  onEditar: () => void;
-  onQuitar: () => void;
-  editor: ReactNode;
-}) {
-  const editando = edicion?.largo === fila.largo;
   return (
-    <li className={editando ? "pulso-rc-fila is-editando" : "pulso-rc-fila"} data-fila={fila.largo} data-qa-geometry-member>
-      <div className="pulso-rc-par">
-        <span className="pulso-rc-largo">{fila.largo}</span>
-        <ArrowRight size={16} aria-hidden="true" className="pulso-rc-flecha" />
-        {editando ? editor : <strong className="pulso-rc-corto">{fila.corto}</strong>}
-      </div>
-      <div className="pulso-rc-lado">
-        {fila.enFormulario === false ? <EstadoChip tone="warn" label="No está en el formulario" detail="Ninguna respuesta lleva hoy este rótulo: el corto no se aplica." /> : null}
-        {editando ? null : (
-          <>
-            <PulsoButton variant="icon" size="sm" aria-label={`Editar el rótulo corto de ${fila.corto}`} onClick={onEditar}>
-              <Pencil size={14} aria-hidden="true" />
+    <li className={error ? "pulso-rc-fila is-error" : "pulso-rc-fila"} data-fila={fila.clave} data-qa-geometry-member>
+      <div className="pulso-rc-original">
+        <span id={`${id}-et`} className="pulso-rc-largo">{fila.etiqueta}</span>
+        <span className="pulso-rc-meta">
+          {fila.detalle ? <span className="pulso-rc-detalle">{fila.detalle}</span> : null}
+          <span>{formatoConteo(fila.largo)} caracteres</span>
+          {huerfana ? null : <span>{usosTexto(fila.usos)}</span>}
+        </span>
+        {huerfana ? <EstadoChip tone="warn" label="No está en el formulario" detail="Ninguna base trae hoy esta categoría: el corto no se aplica." /> : null}
+        {fila.sugerencia ? (
+          <span className="pulso-rc-sugerida">
+            En un gráfico: {`"${fila.sugerencia}"`}
+            <PulsoButton variant="ghost" size="sm" onClick={() => { setBorrador(fila, fila.sugerencia ?? ""); document.getElementById(`${id}-in`)?.focus(); }}
+              aria-label={`Usar "${fila.sugerencia}" como rótulo corto`}>
+              Usar
             </PulsoButton>
-            <PulsoButton variant="icon" size="sm" intent="remove" aria-label={`Quitar el rótulo corto de ${fila.corto}`} onClick={onQuitar}>
+          </span>
+        ) : null}
+      </div>
+      <div className="pulso-rc-campo">
+        <label htmlFor={`${id}-in`} className="pulso-rc-campo-rotulo">Rótulo corto</label>
+        <div className="pulso-rc-campo-fila">
+          <PulsoInput
+            id={`${id}-in`}
+            size="sm"
+            className="pulso-rc-input"
+            value={valor}
+            invalid={!!error}
+            disabled={guardando}
+            aria-describedby={`${id}-et ${id}-ayuda`}
+            onChange={(e) => setBorrador(fila, e.target.value)}
+            onBlur={() => { if (borrador !== undefined) void guardar(fila, borrador); }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") { e.preventDefault(); void guardar(fila, valor); }
+              if (e.key === "Escape") descartar(fila);
+            }}
+          />
+          {fila.corto ? (
+            <PulsoButton variant="icon" size="sm" intent="remove" disabled={guardando}
+              aria-label={`Quitar el rótulo corto "${fila.corto}"`} onClick={() => void guardar(fila, "")}>
               <Trash2 size={14} aria-hidden="true" />
             </PulsoButton>
-          </>
-        )}
+          ) : null}
+        </div>
+        <p id={`${id}-ayuda`} className={error ? "pulso-rc-ayuda is-error" : "pulso-rc-ayuda"} role={error ? "alert" : undefined}>{ayuda}</p>
       </div>
     </li>
   );
 }
 
 export function RotulosCortos() {
-  const mapa = usePlanStore((s) => s.plan.rotulos_cortos);
-  const setRotulosCortos = usePlanStore((s) => s.setRotulosCortos);
-  const { listas, error } = usePaletasRespuestas();
-  const [consulta, setConsulta] = useState("");
-  const [edicion, setEdicion] = useState<Edicion | null>(null);
+  const rc = usePlanStore((s) => s.plan.rotulos_cortos);
+  const { state } = useSession();
+  const ranking = useRotulosCortosUi((s) => s.ranking);
+  const cargando = useRotulosCortosUi((s) => s.cargando);
+  const errorCarga = useRotulosCortosUi((s) => s.errorCarga);
+  const elegida = useRotulosCortosUi((s) => s.base);
+  const tipo = useRotulosCortosUi((s) => s.tipo);
+  const consulta = useRotulosCortosUi((s) => s.consulta);
+  const avisos = useRotulosCortosUi((s) => s.avisos);
+  const { cargar, setBase, setTipo, setConsulta } = useRotulosCortosUi.getState();
   const tituloId = useId();
   const buscarId = useId();
-  const raiz = useRef<HTMLElement>(null);
-  // H10: la fila que se abre o se guarda se trae a la vista con el foco en su primer control (la nueva va arriba de la
-  // lista, bajo las sugerencias; la guardada toma su lugar en la lista).
-  const editar = (e: Edicion, fila: string) => { setEdicion(e); revelarFilaNueva(raiz.current, selectorFila(fila)); };
 
-  const opciones = useMemo(() => (listas ? opcionesDelInstrumento(listas) : null), [listas]);
-  const filas = filasRotulosCortos(mapa, opciones);
-  // Sin búsqueda sólo se sugieren las más largas mientras no haya ninguna acortada: luego la lista manda.
-  const sugerir = !!consulta.trim() || !filas.length;
-  const halladas = opciones && sugerir ? sugerencias(opciones, consulta, mapa) : [];
-  // Una respuesta nueva que se está acortando: aún no está en el mapa, va arriba de la lista.
-  const nueva = edicion && !Object.hasOwn(mapa ?? {}, edicion.largo) ? edicion : null;
+  useEffect(() => { void cargar(); }, [cargar, state?.session_id, state?.active_base]);
 
-  const guardar = () => {
-    if (!edicion || errorCorto(edicion.largo, edicion.borrador)) return;
-    setRotulosCortos(conRotuloCorto(mapa, edicion.largo, edicion.borrador));
-    setEdicion(null);
-    setConsulta("");
-    revelarFilaNueva(raiz.current, selectorFila(edicion.largo));
-  };
-  const editor = edicion ? (
-    <EditorCorto edicion={edicion} onCambio={(t) => setEdicion({ ...edicion, borrador: t })} onGuardar={guardar} onCancelar={() => setEdicion(null)} />
-  ) : null;
+  const base = baseInicial(ranking, state?.active_base, elegida);
+  const datosBase = ranking?.bases.find((b) => b.base === base);
+  const filas = useMemo(() => filasRanking(datosBase, tipo, rc), [datosBase, tipo, rc]);
+  const visibles = useMemo(() => filtrarFilas(filas, consulta), [filas, consulta]);
+  const huerfanas = useMemo(() => (tipo === "categorias" ? filtrarFilas(categoriasHuerfanas(rc, ranking), consulta) : []), [tipo, rc, ranking, consulta]);
+  const nPreguntas = datosBase?.preguntas.length ?? 0;
+  const nCategorias = datosBase?.opciones.length ?? 0;
+  const etiquetaDe = (ref: string) => datosBase?.preguntas.find((p) => p.ref === ref)?.etiqueta ?? ref;
+  const esperando = cargando && !ranking;
 
   return (
-    <section ref={raiz} className="pulso-rc" aria-labelledby={tituloId} data-seccion="rotulos-cortos">
+    <section className="pulso-rc" aria-labelledby={tituloId} data-seccion="rotulos-cortos"
+      data-audit-ready={esperando ? "false" : errorCarga && !ranking ? "vacio:ranking-ilegible" : "graficos-rotulos-cortos"}>
       <header className="pulso-rc-cabecera">
-        {/* H6: «del estudio» lo separa del «Nombre corto de un grupo» de las tarjetas, que vive en cada lámina. */}
-        <h3 id={tituloId} className="pulso-rc-titulo">Rótulos cortos del estudio</h3>
+        <h3 id={tituloId} className="pulso-rc-titulo">Rótulos cortos</h3>
         <p className="pulso-rc-bajada">
-          Una respuesta con rótulo largo sale con su versión corta en todo el PPT y el Word: barras, leyendas, tarjetas y colores.
-          El nombre corto de un grupo en las tarjetas de diferencias se escribe en su lámina, en Gráfico › Diferencias entre grupos.
+          Las preguntas y categorías con el rótulo más largo primero. El rótulo corto reemplaza al completo en las láminas
+          del PPT y el Word; no cambia Analítica. El nombre corto escrito en un gráfico le gana al de esta lista.
         </p>
       </header>
 
-      {error ? <ErrorBlock label="No se pudieron leer las respuestas" detail={error} /> : null}
-      {!error && !listas ? <LoadingBlock label="Leyendo las respuestas del formulario…" /> : null}
+      {errorCarga ? <ErrorBlock label="No se pudo leer el ranking de rótulos" detail={errorCarga} /> : null}
+      {esperando ? <LoadingBlock label="Leyendo los rótulos del formulario…" /> : null}
 
-      {opciones ? (
-        <div className="pulso-rc-agregar">
-          <label htmlFor={buscarId} className="pulso-rc-editor-rotulo">Acortar una respuesta</label>
+      {ranking ? (
+        <div className="pulso-rc-barra">
+          <RadioSegmentado<TipoRanking> etiqueta="Ranking" valor={tipo} onCambiar={setTipo}
+            opciones={[
+              { clave: "preguntas", rotulo: `Preguntas ${formatoConteo(nPreguntas)}`, titulo: `Preguntas (${formatoConteo(nPreguntas)})` },
+              { clave: "categorias", rotulo: `Categorías ${formatoConteo(nCategorias)}`, titulo: `Categorías (${formatoConteo(nCategorias)})` },
+            ]} />
+          {ranking.bases.length > 1 && base ? (
+            <PulsoSelect size="sm" ariaLabel="Base" value={base} onValueChange={setBase} className="pulso-rc-base"
+              options={ranking.bases.map((b) => ({ value: b.base, label: b.base }))} />
+          ) : null}
           <span className="pulso-rc-buscar">
             <Search size={14} aria-hidden="true" />
             <input id={buscarId} type="search" value={consulta} onChange={(e) => setConsulta(e.target.value)}
-              placeholder="Buscar una respuesta del formulario" aria-controls={sugerir ? `${buscarId}-lista` : undefined} />
+              aria-label={tipo === "preguntas" ? "Buscar una pregunta" : "Buscar una categoría"}
+              placeholder={tipo === "preguntas" ? "Buscar una pregunta" : "Buscar una categoría"} />
           </span>
-          {halladas.length ? (
-            <ul id={`${buscarId}-lista`} className="pulso-rc-sugerencias" aria-label={consulta.trim() ? "Respuestas que coinciden" : "Las respuestas más largas"}>
-              {halladas.map((o) => (
-                <li key={o.rotulo}>
-                  <button type="button" className="pulso-rc-sugerencia" aria-pressed={nueva?.largo === o.rotulo}
-                    onClick={() => editar({ largo: o.rotulo, borrador: "" }, FILA_NUEVA)}>
-                    <span className="pulso-rc-sugerencia-texto">{o.rotulo}</span>
-                    <span className="pulso-rc-sugerencia-n">{formatoConteo(o.rotulo.length)} car.</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : !sugerir ? null : (
-            <p id={`${buscarId}-lista`} className="pulso-rc-nada" role="status">
-              {opciones.length ? (consulta.trim() ? "Ninguna respuesta coincide o ya tiene su corto." : "Todas las respuestas tienen su corto.") : "Este formulario no tiene listas de respuestas."}
-            </p>
-          )}
         </div>
       ) : null}
 
-      {filas.length || nueva ? (
-        <Panel noPadding aria-label="Rótulos cortos del estudio">
-        <ul className="pulso-rc-lista"
-          data-qa-geometry-group="graficos/identidad-rotulos-cortos" data-qa-geometry-contract="intrinsic">
-          {nueva ? (
-            <li className="pulso-rc-fila is-editando is-nueva" data-fila={FILA_NUEVA} data-qa-geometry-member>
-              <div className="pulso-rc-par">
-                <span className="pulso-rc-largo">{nueva.largo}</span>
-                <ArrowRight size={16} aria-hidden="true" className="pulso-rc-flecha" />
-                {editor}
-              </div>
-            </li>
-          ) : null}
-          {filas.map((f) => (
-            <FilaRotulo key={f.largo} fila={f} edicion={edicion} editor={editor}
-              onEditar={() => editar({ largo: f.largo, borrador: f.corto }, f.largo)}
-              onQuitar={() => { setRotulosCortos(sinRotuloCorto(mapa, f.largo)); if (edicion?.largo === f.largo) setEdicion(null); }} />
-          ))}
-        </ul>
+      {avisos.length ? (
+        <Alert kind="warn">
+          <ul className="pulso-rc-avisos">
+            {avisos.map((a) => <li key={`${a.tipo}-${a.base}-${a.corto}`}>{textoAviso(a, a.tipo === "preguntas" ? etiquetaDe : (r) => r)}</li>)}
+          </ul>
+        </Alert>
+      ) : null}
+
+      {ranking ? (
+        visibles.length ? (
+          <Panel noPadding aria-label={tipo === "preguntas" ? "Preguntas por largo del rótulo" : "Categorías por largo del rótulo"}>
+            <ol className="pulso-rc-lista" data-qa-geometry-group="graficos/identidad-rotulos-cortos" data-qa-geometry-contract="intrinsic">
+              {visibles.map((f) => <FilaRotulo key={claveFila(f.tipo, f.clave)} fila={f} />)}
+            </ol>
+          </Panel>
+        ) : (
+          <EmptyState icon={<Type size={20} aria-hidden="true" />}
+            title={consulta.trim() ? "Ninguna coincide" : tipo === "preguntas" ? "Sin preguntas con rótulo" : "Sin categorías con rótulo"}
+            hint={consulta.trim() ? "Prueba con otra palabra." : "Esta base no trae rótulos de ese tipo en su formulario."} />
+        )
+      ) : null}
+
+      {huerfanas.length ? (
+        <Panel noPadding aria-label="Categorías que no están en el formulario">
+          <ul className="pulso-rc-lista" data-qa-geometry-group="graficos/identidad-rotulos-huerfanos" data-qa-geometry-contract="intrinsic">
+            {huerfanas.map((f) => <FilaRotulo key={claveFila(f.tipo, f.clave)} fila={f} huerfana />)}
+          </ul>
         </Panel>
-      ) : (
-        <EmptyState icon={<Type size={20} aria-hidden="true" />} title="Sin rótulos cortos"
-          hint="Busca una respuesta larga y escribe cómo debe salir en las láminas." />
-      )}
+      ) : null}
     </section>
   );
 }

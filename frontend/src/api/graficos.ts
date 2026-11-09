@@ -7,6 +7,7 @@ import { normalizarAvisosConfig, publicarAvisosConfig } from "./graficosAvisosCo
 import { normalizeGraficosCategorias, type GraficosCategorias } from "./graficosCategoriasNormalizer";
 import { normalizeGraficosConfigBundle } from "./graficosConfigNormalizer";
 import type { JobStart } from "./jobs";
+import type { RotulosCortosPlan } from "./graficosRotulosPlan";
 import type { WordFijado } from "./graficosWordFijado";
 
 export type { WordFijado, WordFijadoValor } from "./graficosWordFijado";
@@ -191,9 +192,9 @@ export type Slide = {
 
 export type PlanJson = {
   slides: Slide[];
-  /** Rótulos cortos del estudio (rótulo completo → corto), aplicados en el job a datos, instrumento y plan. Las ediciones
-   * del editor conservan este y cualquier otro campo de la raíz del plan. */
-  rotulos_cortos?: Record<string, string>;
+  /** Rótulos cortos del mazo (ADR 0141): opciones (rótulo completo → corto) y, en la clave reservada `preguntas`,
+   * `base$var` → corto. Las ediciones del editor conservan este y cualquier otro campo de la raíz del plan. */
+  rotulos_cortos?: RotulosCortosPlan;
   /** Preguntas clave del estudio (H14): referencias como las escriben los gráficos (`var` o `base$var`). El motor propone
    * a partir de ellas los hallazgos del resumen ejecutivo. Vacía o ausente, ninguna. */
   preguntas_clave?: string[];
