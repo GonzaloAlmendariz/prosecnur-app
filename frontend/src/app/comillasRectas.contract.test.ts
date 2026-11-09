@@ -1,15 +1,15 @@
-// R16-5: el texto visible de Gráficos cita con comillas dobles rectas ("así"), nunca con angulares. Recorre el AST de
-// cada .ts/.tsx de producción de features/graficos: literales de cadena, trozos de plantilla y texto JSX. Los comentarios
-// no son nodos, así que no cuentan. Las expresiones regulares sí se recorren: las únicas que pueden llevar angulares son
-// las que leen mensajes del motor o el texto de un comentario citado, y quedan nombradas abajo con su motivo.
+// R16-5 / R17: el texto visible cita con comillas dobles rectas ("así"), nunca con angulares. Recorre el AST de cada
+// .ts/.tsx de producción de src/: literales de cadena, trozos de plantilla y texto JSX. Los comentarios no son nodos, así
+// que no cuentan. Las expresiones regulares sí se recorren: las únicas que pueden llevar angulares son las que leen
+// mensajes del motor (que todavía cita con angulares), el texto que teclea la persona o el de un comentario citado, y
+// quedan nombradas abajo con su motivo. Nació en features/graficos (ronda 16) y cubre todo src/ desde la ronda 17.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
-const RAIZ = path.dirname(fileURLToPath(import.meta.url));
-const SRC = path.resolve(RAIZ, "../..");
+const SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const ANGULAR = /[«»]/;
 
 /** Regex que leen texto ajeno con angulares. Clave: archivo y un fragmento de la regex. */
@@ -21,13 +21,18 @@ const REGEX_PERMITIDAS: Array<{ archivo: string; fragmento: string; motivo: stri
   { archivo: "features/graficos/laminas/citas/modeloCitas.ts", fragmento: "[.!?…,;:]", motivo: "cierre de frase en el comentario citado" },
   { archivo: "features/graficos/laminas/citas/modeloCitas.ts", fragmento: "[.!?…][", motivo: "fin de oración en el comentario citado" },
   { archivo: "features/graficos/laminas/citas/modeloCitas.ts", fragmento: "^[\"“”«»]+", motivo: "quita las comillas que trae el comentario citado" },
+  { archivo: "api/codificacion.ts", fragmento: "/«([^»]+)»\\.?", motivo: "lee el nombre sugerido del 409 E_CODIF_AGRUPACION_TARGET_OCUPADO del motor" },
+  { archivo: "features/codificacion/diccionarioPalabras.ts", fragmento: "/«([^»]+)»/", motivo: "lee el término citado del guardado rechazado del motor" },
+  { archivo: "features/recopiladores/correos/comoArreglar.ts", fragmento: "destinatarios? recibir", motivo: "lee el detalle greeting_trato de la revisión del motor" },
+  { archivo: "features/recopiladores/correos/historialCorreo.ts", fragmento: "¡¿()«»", motivo: "fin de palabra en el texto que teclea la persona" },
+  { archivo: "features/validacion/components/RuleNarrative.tsx", fragmento: "[«\"]([^»\"]+)[»\"]", motivo: "lee las variables citadas en el objetivo que redacta el motor (y las rectas del front)" },
 ];
 
 function fuentes(dir: string): string[] {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
     const p = path.join(dir, e.name);
-    if (e.isDirectory()) return fuentes(p);
-    return /\.tsx?$/.test(e.name) && !/\.test\.tsx?$/.test(e.name) ? [p] : [];
+    if (e.isDirectory()) return e.name === "__tests__" || e.name === "node_modules" ? [] : fuentes(p);
+    return /\.tsx?$/.test(e.name) && !/\.test(-util)?\.tsx?$/.test(e.name) && !e.name.endsWith(".d.ts") ? [p] : [];
   });
 }
 
@@ -65,20 +70,22 @@ function angularesEn(archivo: string, codigo: string): Hallazgo[] {
 
 const permitida = (h: Hallazgo) => h.regex && REGEX_PERMITIDAS.some((p) => p.archivo === h.archivo && h.texto.includes(p.fragmento));
 
-function censo(): Hallazgo[] {
-  return fuentes(RAIZ).flatMap((f) => angularesEn(path.relative(SRC, f).split(path.sep).join("/"), fs.readFileSync(f, "utf8")));
-}
+// Se recorre una vez, al cargar el archivo: todo src/ son más de 3000 fuentes y, con el gate cargado, leerlas dentro de
+// cada test pasaba el tope de 5 s.
+const FUENTES = fuentes(SRC);
+const CENSO: Hallazgo[] = FUENTES.flatMap((f) => angularesEn(path.relative(SRC, f).split(path.sep).join("/"), fs.readFileSync(f, "utf8")));
 
-describe("comillas rectas en el texto de Gráficos", () => {
+describe("comillas rectas en el texto de la app", () => {
   it("ningún texto visible lleva comillas angulares", () => {
-    const todos = censo();
-    expect(fuentes(RAIZ).length, "vacuna: el censo encuentra fuentes").toBeGreaterThan(200);
+    const todos = CENSO;
+    expect(FUENTES.length, "vacuna: el censo recorre todo src/").toBeGreaterThan(2000);
+    expect(FUENTES.some((f) => f.includes(`${path.sep}xlsformEditor${path.sep}`)), "vacuna: entra en los features").toBe(true);
     const malos = todos.filter((h) => !permitida(h)).map((h) => `${h.archivo}:${h.linea}: ${h.texto.slice(0, 90)}`);
     expect(malos, 'Cita con comillas dobles rectas: "así". En JSX, un atributo con comillas va entre simples o {"..."}.').toEqual([]);
   });
 
   it("cada regex permitida sigue existiendo (la lista no guarda excepciones muertas)", () => {
-    const regex = censo().filter((h) => h.regex);
+    const regex = CENSO.filter((h) => h.regex);
     const muertas = REGEX_PERMITIDAS.filter((p) => !regex.some((h) => h.archivo === p.archivo && h.texto.includes(p.fragmento)));
     expect(muertas.map((p) => `${p.archivo}: ${p.fragmento}`)).toEqual([]);
   });

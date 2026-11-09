@@ -64,6 +64,8 @@ const TRANSVERSALES = [
   // Un flujo que entrega su archivo por su cuenta (downloadUrl, diálogo de guardado) en vez del kit de entregables:
   // se rompe desde cualquier feature (ADR 0133, fase 4).
   "src/components/entregables/entregablesRatchet.contract.test.ts",
+  // Una cita con comillas angulares en el texto visible de cualquier feature (R16-5, extendido a todo src/ en R17).
+  "src/app/comillasRectas.contract.test.ts",
 ];
 
 const area = process.argv[2] ?? "";
