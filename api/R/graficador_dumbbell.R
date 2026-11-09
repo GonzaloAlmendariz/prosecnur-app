@@ -217,6 +217,13 @@ graficar_dumbbell <- function(
       data = largo,
       ggplot2::aes(x = .data$.valor, y = .data$.eje, colour = .data$.grupo),
       size = size_punto
+    ) +
+    # D7: la marca lleva borde blanco, como la del contraste nativo (lamina_contraste.R): un punto no se funde con el
+    # otro cuando se tocan. Encima del punto de la leyenda, la forma 21 con el relleno del grupo y el trazo blanco.
+    ggplot2::geom_point(
+      data = largo,
+      ggplot2::aes(x = .data$.valor, y = .data$.eje, fill = .data$.grupo),
+      size = size_punto * 0.86, shape = 21, colour = "#FFFFFF", stroke = 0.9, show.legend = FALSE
     )
 
   if (isTRUE(mostrar_valores)) {
@@ -308,6 +315,7 @@ graficar_dumbbell <- function(
 
   p <- p +
     ggplot2::scale_colour_manual(values = colores, breaks = niveles_grupo, labels = etiquetas_leyenda) +
+    ggplot2::scale_fill_manual(values = colores, breaks = niveles_grupo, labels = etiquetas_leyenda, guide = "none") +
     ggplot2::scale_x_continuous(
       limits = c(lo, tope), breaks = seq(lo, hi, by = paso), expand = c(0, 0),
       labels = function(x) paste0(.pulso_fmt_half_up(x, 0), "%")

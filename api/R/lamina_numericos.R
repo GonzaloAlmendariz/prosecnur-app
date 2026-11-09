@@ -275,8 +275,9 @@
       .lam_txt(lz, espec$rotulos[i], ml, yc - 0.15 - max(0, hr - 0.317) / 2, wrot, hr, 13, azul, bold = TRUE, align = "right", nombre = "pesas:rotulo")
     }
     .lam_caja(lz, px(min(a, b)), yc - hs / 2, max(0.01, px(max(a, b)) - px(min(a, b))), hs, tenue, nombre = "pesas:segmento")
-    .lam_caja(lz, px(b) - dp, yc - dp, 2 * dp, 2 * dp, cb, nombre = "pesas:punto_b", geom = "ellipse")
-    .lam_caja(lz, px(a) - dp, yc - dp, 2 * dp, 2 * dp, ca, nombre = "pesas:punto_a", geom = "ellipse")
+    # D7: borde blanco, como las marcas del contraste (lamina_contraste.R).
+    .lam_caja(lz, px(b) - dp, yc - dp, 2 * dp, 2 * dp, cb, nombre = "pesas:punto_b", geom = "ellipse", borde = "#FFFFFF", borde_pt = 1)
+    .lam_caja(lz, px(a) - dp, yc - dp, 2 * dp, 2 * dp, ca, nombre = "pesas:punto_a", geom = "ellipse", borde = "#FFFFFF", borde_pt = 1)
     # cifras_par (recetario_piezas.R:138-143): cada cifra al costado exterior de su punto.
     mayor_a <- a >= b
     xa <- if (mayor_a) px(a) + 0.18 else px(a) - 0.18 - 0.7; xb <- if (mayor_a) px(b) - 0.18 - 0.7 else px(b) + 0.18
