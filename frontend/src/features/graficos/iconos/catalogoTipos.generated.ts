@@ -187,7 +187,7 @@ export const CATALOGO_LAMINAS: readonly TipoLaminaCatalogo[] = [
       { name: "grafico_superior_2", role: "chart", label: "Superior centro" },
       { name: "grafico_superior_3", role: "chart", label: "Superior derecha" },
       { name: "grafico_inferior_1", role: "chart", label: "Inferior izquierda" },
-      { name: "grafico_inferior_2", role: "chart", label: "Inferior centro" },
+      { name: "grafico_inferior_2", role: "chart", label: "Inferior derecha" },
     ] },
   { name: "p_slide_6_graficos_poblacion", titulo_humano: "Seis gráficos (población)", categoria: "poblacion", estandar: "p_slide_6_graficos_poblacion", en_selector: true,
     ranuras: [

@@ -174,7 +174,7 @@ source("setup-load-all.R")
     grafico_superior_2 = .gm_slot("chart", "Superior centro"),
     grafico_superior_3 = .gm_slot("chart", "Superior derecha"),
     grafico_inferior_1 = .gm_slot("chart", "Inferior izquierda"),
-    grafico_inferior_2 = .gm_slot("chart", "Inferior centro")
+    grafico_inferior_2 = .gm_slot("chart", "Inferior derecha")
   ),
   p_slide_6_graficos_poblacion = list(
     grafico_superior_1 = .gm_slot("chart", "Superior izquierda"),

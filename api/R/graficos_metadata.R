@@ -972,7 +972,7 @@
       grafico_superior_2 = list(role = "chart", label = "Superior centro"),
       grafico_superior_3 = list(role = "chart", label = "Superior derecha"),
       grafico_inferior_1 = list(role = "chart", label = "Inferior izquierda"),
-      grafico_inferior_2 = list(role = "chart", label = "Inferior centro")
+      grafico_inferior_2 = list(role = "chart", label = "Inferior derecha")
     ),
     # Sin `base` (el constructor no la acepta; el pie de lámina es `pie`) y
     # sin `etiqueta` (formal aceptado pero jamás dibujado — render P8).
