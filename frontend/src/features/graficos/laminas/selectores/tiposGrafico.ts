@@ -2,11 +2,11 @@
 // las declara el backend (`.GRAFICOS_SALIDA_EDITOR` en graficos_metadata.R) y llegan versionadas en el catálogo
 // (iconos/catalogoTipos.generated.ts). El registro en vivo dice qué está disponible en esta sesión.
 
-import type { GraficadorCategoria, GraficadorMetadata, GraficadorRef } from "../../../../api/graficos";
-import { CATALOGO_GRAFICOS, FAMILIAS_EDITOR, VARIANTES_GRAFICO, type SalidaGrafico, type VarianteGraficoCatalogo } from "../../iconos/catalogoTipos.generated";
+import type { GraficadorCategoria, GraficadorMetadata } from "../../../../api/graficos";
+import { CATALOGO_GRAFICOS, FAMILIAS_EDITOR, type SalidaGrafico } from "../../iconos/catalogoTipos.generated";
 import { esSlotCifra } from "../../iconos/composicion";
 import { TIPOS_RETIRADOS_0137 } from "../../retirados";
-import { aplicarVariante, varianteDeGrafico } from "../../catalogoGraficos";
+import { versionesDeTipo, type VersionGrafico } from "./versionesGrafico";
 
 export type FamiliaGrafico = "categorias" | "escalas" | "numeros" | "comparar" | "territorio" | "texto";
 
@@ -112,54 +112,20 @@ export function familiaInicial(
 }
 
 // ---------------------------------------------------------------------------
-// Entradas del catálogo de gráficos (ADR 0139, decisión 2)
+// Tarjetas del catálogo de gráficos (ADR 0139, enmienda 2026-11-09: una tarjeta por tipo, las variantes son versiones)
 // ---------------------------------------------------------------------------
 
-/** Una tarjeta de «¿Qué gráfico?»: un graficador o una de sus variantes, con el nombre con que el catálogo la vende. */
+/** Una tarjeta de «Tipo de gráfico»: un graficador con sus versiones (la base y cada variante; vacías si no tiene). */
 export type EntradaGrafico = {
-  /** El graficador (`p_pie`) o el id de la variante (`p_dumbbell:contraste`). */
+  /** El graficador (`p_dumbbell`). */
   id: string;
   meta: GraficadorMetadata;
-  variante: VarianteGraficoCatalogo | null;
+  versiones: VersionGrafico[];
   descripcion: string;
 };
 
-const familiaDeVariante = (v: VarianteGraficoCatalogo, base: GraficadorMetadata): FamiliaGrafico =>
-  esFamilia(v.familia) ? v.familia : familiaDe(base);
-
-/**
- * Las entradas de la familia: cada graficador que se ofrece y, detrás, sus variantes de esa familia. Una variante cuya
- * familia no es la de su graficador va al final de la suya. Sin su graficador en el registro, la variante no se ofrece.
- */
+/** Las tarjetas de la familia: una por graficador que se ofrece, con sus versiones. */
 export function entradasDeFamilia(graficadores: readonly GraficadorMetadata[], familia: FamiliaGrafico): EntradaGrafico[] {
-  const ofrecidos = new Map(FAMILIAS_GRAFICO.flatMap((f) => graficosDeFamilia(graficadores, f.id)).map((g) => [g.name, g]));
-  const deVariante = (v: VarianteGraficoCatalogo, base: GraficadorMetadata): EntradaGrafico =>
-    ({ id: v.id, meta: base, variante: v, descripcion: v.descripcion });
-  const out: EntradaGrafico[] = [];
-  for (const g of graficosDeFamilia(graficadores, familia)) {
-    out.push({ id: g.name, meta: g, variante: null, descripcion: g.descripcion });
-    for (const v of VARIANTES_GRAFICO) {
-      if (v.graficador === g.name && familiaDeVariante(v, g) === familia) out.push(deVariante(v, g));
-    }
-  }
-  for (const v of VARIANTES_GRAFICO) {
-    const base = ofrecidos.get(v.graficador);
-    if (base && familiaDe(base) !== familia && familiaDeVariante(v, base) === familia) out.push(deVariante(v, base));
-  }
-  return out;
-}
-
-/**
- * El gráfico que queda en la ranura al usar la entrada, sobre `base` (el graficador con los args compatibles del
- * anterior). La variante escribe sus args fijos y borra los que quita. El tipo base desde una variante del mismo
- * graficador deja de ser variante: se borran el estilo y la regla del resumen (el motor vuelve a su estilo por defecto).
- */
-export function graficoDeEntrada(entrada: Pick<EntradaGrafico, "variante">, base: GraficadorRef): GraficadorRef {
-  const args = base.args ?? {};
-  if (entrada.variante) return { graficador: base.graficador, args: aplicarVariante(args, entrada.variante) };
-  if (!varianteDeGrafico(base.graficador, args)) return base;
-  const sinResumen: Record<string, unknown> = { ...args };
-  delete sinResumen.estilo;
-  delete sinResumen.regla;
-  return { graficador: base.graficador, args: sinResumen };
+  return graficosDeFamilia(graficadores, familia)
+    .map((g) => ({ id: g.name, meta: g, versiones: versionesDeTipo(g.name), descripcion: g.descripcion }));
 }

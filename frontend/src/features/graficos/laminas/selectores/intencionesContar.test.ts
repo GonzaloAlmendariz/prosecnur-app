@@ -9,7 +9,7 @@ import {
 } from "./intencionesContar";
 import { etiquetaBotonTarjeta, usoDeTarjeta } from "./detalleLamina";
 import { PRESETS_LAMINA } from "./opcionesLamina";
-import { existeEntradaCatalogo, graficadorDeEntrada, nombreDeEntrada } from "../../catalogoGraficos";
+import { existeEntradaCatalogo, graficadorDeEntrada, NOMBRE_TIPO_GRAFICO, nombreDeEntrada, varianteGrafico } from "../../catalogoGraficos";
 import { CATALOGO_LAMINAS, VARIANTES_GRAFICO } from "../../iconos/catalogoTipos.generated";
 
 const HOY = new Set(["p_panorama", "p_dumbbell", "p_barras_divergentes", "p_heatmap_cruce", "p_significancia_publicos", "p_dim_heatmap_criterios"]);
@@ -258,11 +258,19 @@ describe("las recomendaciones apuntan al catálogo de gráficos (ADR 0139, decis
     }
   });
 
-  it("el inspector y la Estructura nombran la variante de una lámina guardada", () => {
-    expect(presentacionDeGrafico("p_dumbbell", { estilo: "resumen", cruce: null }).nombre).toBe("Contraste de públicos");
-    expect(presentacionDeGrafico("p_dumbbell", { estilo: "resumen", cruce: "base$ciclo" }).nombre).toBe("Aperturas por grupo");
-    expect(presentacionDeGrafico("p_barras_divergentes", { estilo: "resumen" }).nombre).toBe("Escala con columna de Sin información");
-    expect(presentacionDeGrafico("p_barras_divergentes", {}).nombre).toBe("Barras divergentes");
+  it("el inspector y la Estructura nombran «<tipo>: <versión>» la variante de una lámina guardada (enmienda ADR 0139)", () => {
+    // Los nombres salen del catálogo (titulo_humano, nombre_version): el test no los escribe a mano.
+    const conVersion = (id: string) => {
+      const v = varianteGrafico(id);
+      if (!v) throw new Error(`falta ${id}`);
+      return `${NOMBRE_TIPO_GRAFICO[v.graficador]}: ${v.nombre_version ?? v.nombre}`;
+    };
+    expect(presentacionDeGrafico("p_dumbbell", { estilo: "resumen", cruce: null }).nombre).toBe(conVersion("p_dumbbell:contraste"));
+    expect(presentacionDeGrafico("p_dumbbell", { estilo: "resumen", cruce: "base$ciclo" }).nombre).toBe(conVersion("p_dumbbell:aperturas"));
+    expect(presentacionDeGrafico("p_barras_divergentes", { estilo: "resumen" }).nombre)
+      .toBe(conVersion("p_barras_divergentes:escala_sin_informacion"));
+    expect(presentacionDeGrafico("p_barras_divergentes", { estilo: "resumen" }).nombre).not.toContain("·");
+    expect(presentacionDeGrafico("p_barras_divergentes", {}).nombre).toBe(NOMBRE_TIPO_GRAFICO.p_barras_divergentes);
   });
 
   it("ninguna tarjeta usa jerga interna en lo que se ve", () => {

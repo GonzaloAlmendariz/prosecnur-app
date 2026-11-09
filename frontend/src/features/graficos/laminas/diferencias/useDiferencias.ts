@@ -12,7 +12,7 @@ import {
   type DiferenciasLaminaRespuesta,
 } from "../../../../api/graficosDiferencias";
 import { SLIDE_GRAF_SLOTS, usePlanStore } from "../../store";
-import { entradaDeGrafico, nombreDeEntrada } from "../../catalogoGraficos";
+import { nombreConVersion, nombreDeEntrada, varianteDeGrafico } from "../../catalogoGraficos";
 import { claveDiferencias, type CargaDiferencias } from "./modeloDiferencias";
 import type { NombreDeGrafico } from "./modeloRanuras";
 import { useDiferenciasUi } from "./store";
@@ -130,6 +130,7 @@ export function useNombreDeGrafico(slideId: string | null = null): NombreDeGrafi
     const graficador = ranura.graficador || (typeof ref?.graficador === "string" ? ref.graficador : "");
     if (!graficador) return { nombre: "", posicion };
     const args = ref && typeof ref.args === "object" && ref.args ? (ref.args as Record<string, unknown>) : {};
-    return { nombre: nombreDeEntrada(entradaDeGrafico(graficador, args)), posicion };
+    const variante = varianteDeGrafico(graficador, args);
+    return { nombre: variante ? nombreConVersion(variante) : nombreDeEntrada(graficador), posicion };
   }, [slides, slideId]);
 }

@@ -24,15 +24,19 @@ function lamina(s) {
   return `  { name: ${j(s.name)}, titulo_humano: ${j(s.titulo_humano)}, categoria: ${j(s.categoria)}, estandar: ${j(s.estandar)}, en_selector: ${j(s.en_selector)},\n    ranuras: ${ranuras} },`;
 }
 
+// Campos opcionales (enmienda 2026-11-09 del ADR 0139): sólo se escriben cuando el JSON los trae, así el generado no
+// cambia mientras el backend no los declara.
+const opcional = (clave, valor) => (typeof valor === "string" && valor.trim() ? `, ${clave}: ${j(valor)}` : "");
+
 function grafico(g) {
   const u = g.usa;
-  return `  { name: ${j(g.name)}, titulo_humano: ${j(g.titulo_humano)}, familia_editor: ${j(g.familia_editor)}, salida: ${j(g.salida)}, en_selector: ${j(g.en_selector)},\n`
+  return `  { name: ${j(g.name)}, titulo_humano: ${j(g.titulo_humano)}${opcional("version_base", g.version_base)}, familia_editor: ${j(g.familia_editor)}, salida: ${j(g.salida)}, en_selector: ${j(g.en_selector)},\n`
     + `    usa: { pregunta: ${j(u.pregunta)}, publicos: ${j(u.publicos)}, padron: ${j(u.padron)}, cruce: ${j(u.cruce)} } },`;
 }
 
 function variante(v) {
   const fijos = Object.entries(v.args_fijos).map(([k, x]) => `${j(k)}: ${j(x)}`).join(", ");
-  return `  { id: ${j(v.id)}, graficador: ${j(v.graficador)}, nombre: ${j(v.nombre)}, familia: ${j(v.familia)}, icono: ${j(v.icono)},\n`
+  return `  { id: ${j(v.id)}, graficador: ${j(v.graficador)}, nombre: ${j(v.nombre)}${opcional("nombre_version", v.nombre_version)}, familia: ${j(v.familia)}, icono: ${j(v.icono)},\n`
     + `    descripcion: ${j(v.descripcion)},\n`
     + `    args_fijos: { ${fijos} }, args_quitar: ${j(v.args_quitar)} },`;
 }
@@ -68,16 +72,19 @@ export function generarCatalogo(c) {
     'export type PublicosQueUsa = "uno" | "varios" | "uno_o_varios";',
     "export type UsaGrafico = { pregunta: PreguntaQueUsa[]; publicos: PublicosQueUsa; padron: boolean; cruce: boolean };",
     "",
+    "/** `version_base`: el nombre de la versión base cuando el tipo tiene variantes (ADR 0139, enmienda 2026-11-09). */",
     "export type TipoGraficoCatalogo = {",
-    "  name: string; titulo_humano: string; familia_editor: string; salida: SalidaGrafico; en_selector: boolean; usa: UsaGrafico;",
+    "  name: string; titulo_humano: string; version_base?: string; familia_editor: string; salida: SalidaGrafico; en_selector: boolean;",
+    "  usa: UsaGrafico;",
     "};",
     "",
     "export type FamiliaEditorCatalogo = { id: string; label: string };",
     "",
     "/** Variante del catálogo de gráficos (ADR 0139): un graficador con args fijos. Un `null` en `args_fijos` deja el",
-    " *  argumento nulo; `args_quitar` son los argumentos que se borran al aplicarla. */",
+    " *  argumento nulo; `args_quitar` son los argumentos que se borran al aplicarla. `nombre_version`: su nombre corto",
+    " *  como versión dentro de la tarjeta de su tipo (enmienda 2026-11-09); sin él, la versión se nombra con `nombre`. */",
     "export type VarianteGraficoCatalogo = {",
-    "  id: string; graficador: string; nombre: string; familia: string; icono: string; descripcion: string;",
+    "  id: string; graficador: string; nombre: string; nombre_version?: string; familia: string; icono: string; descripcion: string;",
     "  args_fijos: Readonly<Record<string, unknown>>; args_quitar: readonly string[];",
     "};",
     "",

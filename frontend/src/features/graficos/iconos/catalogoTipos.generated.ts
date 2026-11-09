@@ -17,16 +17,19 @@ export type PreguntaQueUsa = "escala" | "opcion_unica" | "multiple" | "numerica"
 export type PublicosQueUsa = "uno" | "varios" | "uno_o_varios";
 export type UsaGrafico = { pregunta: PreguntaQueUsa[]; publicos: PublicosQueUsa; padron: boolean; cruce: boolean };
 
+/** `version_base`: el nombre de la versión base cuando el tipo tiene variantes (ADR 0139, enmienda 2026-11-09). */
 export type TipoGraficoCatalogo = {
-  name: string; titulo_humano: string; familia_editor: string; salida: SalidaGrafico; en_selector: boolean; usa: UsaGrafico;
+  name: string; titulo_humano: string; version_base?: string; familia_editor: string; salida: SalidaGrafico; en_selector: boolean;
+  usa: UsaGrafico;
 };
 
 export type FamiliaEditorCatalogo = { id: string; label: string };
 
 /** Variante del catálogo de gráficos (ADR 0139): un graficador con args fijos. Un `null` en `args_fijos` deja el
- *  argumento nulo; `args_quitar` son los argumentos que se borran al aplicarla. */
+ *  argumento nulo; `args_quitar` son los argumentos que se borran al aplicarla. `nombre_version`: su nombre corto
+ *  como versión dentro de la tarjeta de su tipo (enmienda 2026-11-09); sin él, la versión se nombra con `nombre`. */
 export type VarianteGraficoCatalogo = {
-  id: string; graficador: string; nombre: string; familia: string; icono: string; descripcion: string;
+  id: string; graficador: string; nombre: string; nombre_version?: string; familia: string; icono: string; descripcion: string;
   args_fijos: Readonly<Record<string, unknown>>; args_quitar: readonly string[];
 };
 

@@ -44,6 +44,28 @@ export function nombreDeEntrada(id: string): string {
   return VARIANTE_POR_ID.get(id)?.nombre ?? GRAFICO_POR_NOMBRE.get(id)?.titulo_humano ?? id;
 }
 
+// ---------------------------------------------------------------------------
+// Versiones (enmienda 2026-11-09 del ADR 0139): una variante es una versión dentro de la tarjeta de su tipo.
+// ---------------------------------------------------------------------------
+
+/** El nombre del tipo de gráfico (`titulo_humano`), o el id si el catálogo no lo tiene. */
+const nombreTipo = (graficador: string): string => NOMBRE_TIPO_GRAFICO[graficador] ?? graficador;
+
+/** El nombre corto de la variante como versión de su tipo (`nombre_version`); sin él, su `nombre`. */
+export function nombreVersion(variante: VarianteGraficoCatalogo): string {
+  return variante.nombre_version?.trim() || variante.nombre;
+}
+
+/** El nombre de la versión base de un tipo (`version_base`); sin él, el nombre del tipo. */
+export function nombreVersionBase(graficador: string): string {
+  return GRAFICO_POR_NOMBRE.get(graficador)?.version_base?.trim() || nombreTipo(graficador);
+}
+
+/** Cómo se nombra un gráfico guardado que es una variante: «<tipo>: <versión>» (el inspector, la Estructura, los avisos). */
+export function nombreConVersion(variante: VarianteGraficoCatalogo): string {
+  return `${nombreTipo(variante.graficador)}: ${nombreVersion(variante)}`;
+}
+
 /** Los args de partida de una entrada: los fijos de la variante (un `null` queda nulo) y un `undefined` por cada
  *  argumento que la variante quita (el parche los borra al aplicarse sobre un gráfico del mismo tipo). */
 export function argsDeEntrada(id: string): Record<string, unknown> {

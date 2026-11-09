@@ -228,6 +228,16 @@
   cursor: pointer;
 }
 
+/* Versiones del tipo (ADR 0139, enmienda 2026-11-09): el segmentado va al pie de la tarjeta, hermano del radio. Las
+   filas de la grilla miden lo que la tarjeta más alta (`1fr`), así una tarjeta con versiones y una sin ellas comparten
+   marco (C2); en la que no tiene, la etiqueta crece y el hueco queda dentro de su propia tarjeta (C3). Los rótulos
+   largos parten línea dentro de su opción en vez de recortarse (C4). */
+.pulso-f6-tarjeta-versiones {
+  flex: none;
+  min-width: 0;
+  padding-top: var(--pulso-space-2);
+}
+
 .pulso-f6-tarjeta-tipo:hover {
   border-color: var(--pulso-border-strong);
 }

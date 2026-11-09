@@ -13,7 +13,7 @@
 
 import type { Slide } from "../../../../api/graficos";
 import { esEntreGrupos } from "../brecha/modeloBrechaGrupos";
-import { argsDeEntrada, graficadorDeEntrada, nombreDeEntrada, varianteDeGrafico } from "../../catalogoGraficos";
+import { argsDeEntrada, graficadorDeEntrada, nombreConVersion, nombreDeEntrada, varianteDeGrafico } from "../../catalogoGraficos";
 import { conPropuesta } from "../gruposPadron/modeloPadron";
 import { usoDeTarjeta } from "./detalleLamina";
 import type { ClavePreset, EstudioDelSelector, GraficoDePreset, PresetLamina } from "./opcionesLamina";
@@ -334,13 +334,13 @@ export function casaBusqueda(busqueda: string, textos: readonly (string | null |
 }
 
 /**
- * Cómo el inspector y la Estructura presentan un gráfico ya puesto (ADR 0139): con el nombre de su variante del catálogo
- * si la es (el contraste es «Contraste de públicos», no «Brecha entre dos grupos»; mismo criterio que
+ * Cómo el inspector y la Estructura presentan un gráfico ya puesto (ADR 0139 y su enmienda): «<tipo>: <versión>» si es
+ * una variante del catálogo («Multiapilada divergente: Con columna de Sin información»; mismo criterio que
  * `.graficos_variante_de`) o el de la recomendación que lo describe; siempre de clase «Gráfico». `deResumen` dice si es
  * un gráfico de resumen (el cierre con hallazgos toma sus cifras de ahí).
  */
 export function presentacionDeGrafico(graficador: string, args: Args): { nombre: string | null; clase: ClaseTarjeta; deResumen: boolean } {
   const variante = varianteDeGrafico(graficador, args);
   const t = TARJETAS_CONTAR.find((x) => !!x.grafico && x.coincide({ grafico: { graficador, args } }));
-  return { nombre: variante?.nombre ?? t?.nombre ?? null, clase: "grafico", deResumen: !!t?.deResumen };
+  return { nombre: variante ? nombreConVersion(variante) : t?.nombre ?? null, clase: "grafico", deResumen: !!t?.deResumen };
 }

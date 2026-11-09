@@ -4,7 +4,7 @@ import type { GraficadorMetadata } from "../../../../api/graficos";
 import { CATALOGO_GRAFICOS } from "../../iconos/catalogoTipos.generated";
 import { TIPOS_RETIRADOS_0137 } from "../../retirados";
 import {
-  encajeEnRanura, entradasDeFamilia, FAMILIAS_GRAFICO, familiaDe, familiaInicial, familiasVisibles, familiaVisible, graficoDeEntrada,
+  encajeEnRanura, entradasDeFamilia, FAMILIAS_GRAFICO, familiaDe, familiaInicial, familiasVisibles, familiaVisible,
   graficosDeFamilia, salidaDe,
 } from "./tiposGrafico";
 import { VARIANTES_GRAFICO } from "../../iconos/catalogoTipos.generated";
@@ -69,38 +69,37 @@ describe("encajeEnRanura", () => {
   });
 });
 
-describe("entradas del catálogo (ADR 0139: las variantes son tarjetas propias)", () => {
+describe("tarjetas del catálogo (ADR 0139, enmienda 2026-11-09: las variantes son versiones de su tipo)", () => {
   const todos = CATALOGO_GRAFICOS.map((g) => meta(g.name, { descripcion: `desc ${g.name}` }));
+  const ofrecidos = FAMILIAS_GRAFICO.flatMap((f) => entradasDeFamilia(todos, f.id));
 
-  it("cada variante es una tarjeta de su familia, detrás de su graficador, con su nombre y descripción", () => {
+  it("una tarjeta por tipo: ninguna variante es tarjeta aparte", () => {
+    const ids = ofrecidos.map((e) => e.id);
+    for (const v of VARIANTES_GRAFICO) expect(ids).not.toContain(v.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("contrato del catálogo: toda variante es una versión de un tipo que el selector ofrece, en la familia de su tipo", () => {
     for (const v of VARIANTES_GRAFICO) {
-      const ids = entradasDeFamilia(todos, v.familia as never).map((e) => e.id);
-      expect(ids).toContain(v.id);
-      expect(ids.indexOf(v.id)).toBeGreaterThan(ids.indexOf(v.graficador));
+      const tarjeta = ofrecidos.find((e) => e.id === v.graficador);
+      expect(tarjeta, v.id).toBeDefined();
+      expect(tarjeta?.versiones.map((x) => x.id), v.id).toContain(v.id);
+      expect(entradasDeFamilia(todos, v.familia as never).map((e) => e.id), v.id).toContain(v.graficador);
     }
-    const comparar = entradasDeFamilia(todos, "comparar");
-    const contraste = comparar.find((e) => e.id === "p_dumbbell:contraste");
-    expect(contraste?.meta.name).toBe("p_dumbbell");
-    expect(contraste?.descripcion).toMatch(/dos públicos/);
-    expect(comparar.find((e) => e.id === "p_dumbbell")?.descripcion).toBe("desc p_dumbbell");
   });
 
-  it("sin su graficador en el registro, la variante no se ofrece", () => {
+  it("la tarjeta con variantes trae la base primero y cada variante detrás; la que no tiene, ninguna versión", () => {
+    const dumbbell = ofrecidos.find((e) => e.id === "p_dumbbell");
+    expect(dumbbell?.versiones.map((v) => v.id)).toEqual(["p_dumbbell", "p_dumbbell:contraste", "p_dumbbell:aperturas"]);
+    expect(dumbbell?.descripcion).toBe("desc p_dumbbell");
+    expect(ofrecidos.find((e) => e.id === "p_barras_divergentes")?.versiones.map((v) => v.id))
+      .toEqual(["p_barras_divergentes", "p_barras_divergentes:escala_sin_informacion"]);
+    expect(ofrecidos.find((e) => e.id === "p_pie")?.versiones).toEqual([]);
+  });
+
+  it("sin su graficador en el registro, la tarjeta y sus versiones no se ofrecen", () => {
     const sinDumbbell = todos.filter((g) => g.name !== "p_dumbbell");
-    expect(entradasDeFamilia(sinDumbbell, "comparar").map((e) => e.id)).not.toContain("p_dumbbell:contraste");
-  });
-
-  it("usar una variante escribe sus args fijos y quita los suyos; volver al tipo base quita el estilo resumen", () => {
-    const comparar = entradasDeFamilia(todos, "comparar");
-    const aperturas = comparar.find((e) => e.id === "p_dumbbell:aperturas");
-    const contraste = comparar.find((e) => e.id === "p_dumbbell:contraste");
-    const base = comparar.find((e) => e.id === "p_dumbbell");
-    if (!aperturas || !contraste || !base) throw new Error("faltan entradas");
-    const previo = { graficador: "p_dumbbell", args: { vars: ["p1"], cruce: null, bases: ["a", "b"] } };
-    expect(graficoDeEntrada(aperturas, previo)).toEqual({ graficador: "p_dumbbell", args: { vars: ["p1"], estilo: "resumen" } });
-    expect(graficoDeEntrada(contraste, { graficador: "p_dumbbell", args: {} }).args).toEqual({ estilo: "resumen", cruce: null });
-    expect(graficoDeEntrada(base, { graficador: "p_dumbbell", args: { estilo: "resumen", cruce: null, regla: { tipo: "x" } } }).args)
-      .toEqual({ cruce: null });
+    expect(entradasDeFamilia(sinDumbbell, "comparar").map((e) => e.id)).not.toContain("p_dumbbell");
   });
 
   it("la ranura de cifra dice en una línea por qué un gráfico no va", () => {
