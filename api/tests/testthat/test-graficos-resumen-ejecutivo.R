@@ -179,7 +179,7 @@ test_that("en la lámina del resumen la cifra del extremo que no cabe sale de la
   rpr <- xml2::xml_find_all(.re_sp(xml, "divergentes:cifra_fuera")[1], ".//a:rPr")
   expect_identical(xml2::xml_attr(rpr, "b"), "1")
   expect_identical(xml2::xml_attr(xml2::xml_find_first(rpr, ".//a:srgbClr"), "val"), .lam_hex(.lam_oscurecer(.std_paleta("likert")[1])))
-  expect_true("4%" %in% .re_txt(xml, "divergentes:cifra_chica"))          # interior que no cabe: adentro, más chica
+  expect_length(.re_sp(xml, "divergentes:cifra_chica"), 0L)                # P16: la interior que no cabe no se escribe
   seg <- .re_sp(xml, "divergentes:segmento")
   expect_length(seg, 12L)                                                   # 3 filas x 4 niveles; Sin información va aparte
   # Un segmento en cero no se pinta: sin el 2% de Estatuto, su «En desacuerdo» pasa a ser el extremo y su cifra sale.

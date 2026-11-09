@@ -158,7 +158,10 @@
       if (U[i, sg$k] <= 0) next
       .lam_caja(lz, sg$x - 0.002, yb, sg$w + 0.004, g, C$color[sg$k], nombre = "divergentes:segmento")
       cifra <- X[i, sg$k]
-      if (sg$w >= .lam_ancho_tinta(cifra, pt_cifra, FALSE) + 0.1) {
+      # P16 (resumen de Arte, lámina 5): la cifra de un segmento interior que no cabe iba a 8 pt y se montaba con la cifra
+      # de fuera vecina y con el eje («1%» sobre «2%»). Regla de la casa (`.lam_tiene_peq`, como en la ranura): dentro si
+      # cabe con su tinta más 0.12 in; si no, sólo el extremo sale fuera y la interior no se escribe.
+      if (sg$w >= .lam_ancho_txt(cifra, pt_cifra, TRUE) + 0.12) {
         .lam_txt(lz, cifra, sg$x - 0.2, .lam_y_centrada(yc, pt_cifra), sg$w + 0.4, 0.28, pt_cifra, azul, align = "center", nombre = "divergentes:cifra")
       } else if (identical(sg$k, ext_neg) && identical(sg$lado, "neg")) {
         .lam_txt(lz, cifra, .lam_cifra_fuera_x(sg$x, 0.58, "izq"), .lam_y_centrada(yc, pt_cifra), 0.58, 0.28, pt_cifra, .lam_oscurecer(C$color[sg$k]), bold = TRUE, align = "right",
@@ -166,8 +169,6 @@
       } else if (identical(sg$k, ext_pos) && identical(sg$lado, "pos")) {
         .lam_txt(lz, cifra, .lam_cifra_fuera_x(sg$x + sg$w, 0.58, "der"), .lam_y_centrada(yc, pt_cifra), 0.58, 0.28, pt_cifra, .lam_oscurecer(C$color[sg$k]), bold = TRUE,
                  nombre = "divergentes:cifra_fuera")
-      } else {
-        .lam_txt(lz, cifra, sg$x - 0.25, .lam_y_centrada(yc, 8), sg$w + 0.5, 0.22, 8, azul, align = "center", nombre = "divergentes:cifra_chica")
       }
     }
     if (ge$hay_si && U[i, si[1]] > 0) {
