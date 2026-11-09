@@ -12,7 +12,7 @@ import { formatoConteo } from "../../../../lib/formatoNumero";
 export type Caja = { x: number; y: number; w: number; h: number };
 export type TonoChip = "publico" | "ajuste" | "aviso";
 export type Pieza =
-  | ({ tipo: "cabecera"; texto: string; texto2?: string; fs: number; lado: number } & Caja)
+  | ({ tipo: "cabecera"; texto: string; texto2?: string; texto3?: string; fs: number; lado: number } & Caja)
   | { tipo: "texto"; x: number; y: number; texto: string; fs: number; estilo: "pregunta" | "suave" }
   | ({ tipo: "chip"; texto: string; fs: number; tono: TonoChip } & Caja)
   | ({ tipo: "leyenda"; titulo: string | null; fs: number; modo: "completa" | "linea"; items: { x: number; y: number; lado: number; color: string; texto: string | null }[] } & Caja)
@@ -183,6 +183,18 @@ function cuerpo(info: FichaInfo, x: number, y0: number, colW: number, fs: number
   return { piezas, h: Math.max(0, y - y0 - (aj.h || av.h ? 0 : gap)) };
 }
 
+/** El nombre del tipo en hasta tres renglones de `max` pulgadas: con la letra `fs` o, si no cabe entero, algo menor. */
+export function nombreEnCabecera(tipo: string, max: number, fs: number): { fsCab: number; nombre: string[] } {
+  let ultimo: { fsCab: number; nombre: string[] } = { fsCab: fs, nombre: [] };
+  for (const escala of [1, 0.9, 0.8]) {
+    const fsCab = fs * escala;
+    const nombre = lineas(tipo, max, fsCab, 3, true);
+    ultimo = { fsCab, nombre };
+    if (nombre.join(" ") === tipo.trim().split(/\s+/).join(" ")) return ultimo;
+  }
+  return ultimo;
+}
+
 /** La escena de la ficha de una ranura de `w` × `h` pulgadas. */
 export function escenaFicha(info: FichaInfo, w: number, h: number, clave = ""): EscenaFicha {
   const fs = Math.max(0.19, Math.min(0.24, Math.min(w * 0.034, h * 0.06)));
@@ -196,14 +208,18 @@ export function escenaFicha(info: FichaInfo, w: number, h: number, clave = ""): 
   // Apaisada (aunque sea baja, 8,5 × 1,6 in en «Dos gráficos + texto izquierda»): información y dibujo lado a lado.
   const horizontal = w >= 5 && w / h >= 1.55;
   const colW = horizontal ? Math.min(5.4, iw * 0.44) : iw;
-  const cabecera = (x: number, y: number): Pieza => ({ tipo: "cabecera", x, y, w: colW, h: cab, lado: cab, fs, texto: recortar(info.tipo, colW - cab - fs * 0.5, fs, true) });
+  // Ronda 18: el nombre con su versión («Multiapilada divergente: Con columna de Sin información») envuelve hasta tres recortado a uno, la versión desaparecía tras el «…».
+  // renglones y, si aun así no cabe, baja la letra hasta un 80 %; recortado a uno, la versión desaparecía tras el «…».
+  const { fsCab, nombre: [t1 = "", t2, t3] } = nombreEnCabecera(info.tipo, colW - cab - fs * 0.5, fs);
+  const altoCab = cab + (t3 ? 2 : t2 ? 1 : 0) * fsCab * 1.2;
+  const cabecera = (x: number, y: number): Pieza => ({ tipo: "cabecera", x, y, w: colW, h: altoCab, lado: cab, fs: fsCab, texto: t1, texto2: t2, texto3: t3 });
   const info2: FichaInfo = info.faltaPregunta ? { ...info, avisos: ["Falta elegir la pregunta"] } : info;
   const nivelQueCabe = (disp: number) => { for (let n = 0; n <= 8; n += 1) if (cuerpo(info2, 0, 0, colW, fs, n).h <= disp) return n; return 8; };
   const dibujo = (caja: Caja): Pieza[] => (info2.forma && !info2.faltaPregunta ? barrasDeForma(info2.forma, caja, clave) : [{ tipo: "glifo", ...caja, tenue: info2.faltaPregunta }]);
 
   if (horizontal) {
-    const nivel = nivelQueCabe(ih - cab - gap);
-    const hInfo = cab + gap + cuerpo(info2, 0, 0, colW, fs, nivel).h;
+    const nivel = nivelQueCabe(ih - altoCab - gap);
+    const hInfo = altoCab + gap + cuerpo(info2, 0, 0, colW, fs, nivel).h;
     const gx = ix + colW + pad * 1.4, gw = w - pad - gx;
     const alto = Math.min(ih, Math.max(hInfo, Math.min(ih, gw * 0.5)));
     const y0 = iy + (ih - alto) / 2;
@@ -211,19 +227,19 @@ export function escenaFicha(info: FichaInfo, w: number, h: number, clave = ""): 
     const cajaDibujo = { x: gx, y: y0, w: gw, h: alto };
     return {
       w, h, fs, nivel, horizontal: true, info: { x: ix, y: yInfo, w: colW, h: hInfo }, dibujo: cajaDibujo,
-      piezas: [cabecera(ix, yInfo), ...cuerpo(info2, ix, yInfo + cab + gap, colW, fs, nivel).piezas, ...dibujo(cajaDibujo)],
+      piezas: [cabecera(ix, yInfo), ...cuerpo(info2, ix, yInfo + altoCab + gap, colW, fs, nivel).piezas, ...dibujo(cajaDibujo)],
     };
   }
   const minDibujo = Math.max(0.5, ih * 0.32);
-  const nivel = nivelQueCabe(ih - cab - gap * 2 - minDibujo);
+  const nivel = nivelQueCabe(ih - altoCab - gap * 2 - minDibujo);
   const hPie = cuerpo(info2, 0, 0, colW, fs, nivel).h;
-  const gh = Math.max(minDibujo, Math.min(ih * 0.62, ih - cab - gap * 2 - hPie));
-  const total = cab + gap + gh + (hPie ? gap + hPie : 0);
+  const gh = Math.max(minDibujo, Math.min(ih * 0.62, ih - altoCab - gap * 2 - hPie));
+  const total = altoCab + gap + gh + (hPie ? gap + hPie : 0);
   const y0 = iy + Math.max(0, (ih - total) / 2);
-  const cajaDibujo = { x: ix, y: y0 + cab + gap, w: iw, h: gh };
+  const cajaDibujo = { x: ix, y: y0 + altoCab + gap, w: iw, h: gh };
   return {
     w, h, fs, nivel, horizontal: false, info: { x: ix, y: y0, w: iw, h: total }, dibujo: cajaDibujo,
-    piezas: [cabecera(ix, y0), ...dibujo(cajaDibujo), ...cuerpo(info2, ix, y0 + cab + gap + gh + gap, colW, fs, nivel).piezas],
+    piezas: [cabecera(ix, y0), ...dibujo(cajaDibujo), ...cuerpo(info2, ix, y0 + altoCab + gap + gh + gap, colW, fs, nivel).piezas],
   };
 }
 
