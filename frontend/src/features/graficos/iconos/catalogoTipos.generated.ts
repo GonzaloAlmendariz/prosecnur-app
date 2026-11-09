@@ -30,6 +30,12 @@ export type VarianteGraficoCatalogo = {
   args_fijos: Readonly<Record<string, unknown>>; args_quitar: readonly string[];
 };
 
+/** Disposición que el analista elige en una lámina (`arg`, guardada en su meta): los valores en orden y el de
+ *  por defecto. Sólo los tipos que la tienen. */
+export type DisposicionCatalogo = {
+  arg: string; default: string; valores: readonly { value: string; label: string }[];
+};
+
 export const CATALOGO_LAMINAS: readonly TipoLaminaCatalogo[] = [
   { name: "p_slide_portada", titulo_humano: "Portada", categoria: "estructural", estandar: null, en_selector: true,
     ranuras: [] },
@@ -289,3 +295,7 @@ export const VARIANTES_GRAFICO: readonly VarianteGraficoCatalogo[] = [
     descripcion: "Barras divergentes de desacuerdo y acuerdo, con Sin información en una columna gris aparte.",
     args_fijos: { "estilo": "resumen" }, args_quitar: [] },
 ];
+
+export const DISPOSICIONES_LAMINA: Readonly<Record<string, DisposicionCatalogo>> = {
+  "p_slide_5_graficos_poblacion": { arg: "disposicion", default: "3+2", valores: [{ value: "3+2", label: "Tres arriba y dos abajo" }, { value: "2+3", label: "Dos arriba y tres abajo" }] },
+};

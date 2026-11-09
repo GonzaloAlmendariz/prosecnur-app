@@ -2,7 +2,8 @@
 // Copia el catálogo de tipos (api/inst/catalogos/graficos_tipos.json, a su vez generado de api/R/graficos_metadata.R)
 // a frontend/src/features/graficos/iconos/catalogoTipos.generated.ts (ADR 0139, decisión 4: una sola fuente). De ahí
 // salen los nombres legibles de cada tipo de gráfico, las familias del selector, las ranuras de cada tipo de lámina y las
-// variantes del catálogo de gráficos. El contrato iconos/generados.contract.test.ts falla si el generado se desvía.
+// variantes del catálogo de gráficos y las disposiciones que el analista elige en una lámina (la de cinco gráficos:
+// «3+2» o «2+3»). El contrato iconos/generados.contract.test.ts falla si el generado se desvía.
 //
 // Uso: node scripts/generar-catalogo-tipos.mjs           (escribe)
 //      node scripts/generar-catalogo-tipos.mjs --check   (sale con 1 si el generado no está al día)
@@ -36,10 +37,17 @@ function variante(v) {
     + `    args_fijos: { ${fijos} }, args_quitar: ${j(v.args_quitar)} },`;
 }
 
+function disposicion([tipo, d]) {
+  const valores = d.valores.map((v) => `{ value: ${j(v.value)}, label: ${j(v.label)} }`).join(", ");
+  return `  ${j(tipo)}: { arg: ${j(d.arg)}, default: ${j(d.default)}, valores: [${valores}] },`;
+}
+
 export function generarCatalogo(c) {
   for (const k of ["slides", "graficadores", "familias_editor", "variantes"]) {
     if (!Array.isArray(c?.[k]) || c[k].length === 0) throw new Error(`${FUENTE}: \`${k}\` vacío o ausente`);
   }
+  // `disposiciones` es un mapa por tipo de lámina; sin la clave, ninguna lámina tiene disposición que elegir.
+  const disposiciones = c.disposiciones && typeof c.disposiciones === "object" && !Array.isArray(c.disposiciones) ? c.disposiciones : {};
   return [
     `// GENERADO por scripts/generar-catalogo-tipos.mjs desde ${FUENTE} (a su vez generado de api/R/graficos_metadata.R).`,
     "// No editar a mano: generados.contract.test.ts falla si se desvía del JSON y muestra el valor esperado.",
@@ -73,6 +81,12 @@ export function generarCatalogo(c) {
     "  args_fijos: Readonly<Record<string, unknown>>; args_quitar: readonly string[];",
     "};",
     "",
+    "/** Disposición que el analista elige en una lámina (`arg`, guardada en su meta): los valores en orden y el de",
+    " *  por defecto. Sólo los tipos que la tienen. */",
+    "export type DisposicionCatalogo = {",
+    "  arg: string; default: string; valores: readonly { value: string; label: string }[];",
+    "};",
+    "",
     "export const CATALOGO_LAMINAS: readonly TipoLaminaCatalogo[] = [",
     ...c.slides.map(lamina),
     "];",
@@ -88,6 +102,10 @@ export function generarCatalogo(c) {
     "export const VARIANTES_GRAFICO: readonly VarianteGraficoCatalogo[] = [",
     ...c.variantes.map(variante),
     "];",
+    "",
+    "export const DISPOSICIONES_LAMINA: Readonly<Record<string, DisposicionCatalogo>> = {",
+    ...Object.entries(disposiciones).map(disposicion),
+    "};",
     "",
   ].join("\n");
 }
