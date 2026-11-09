@@ -69,6 +69,7 @@
   }
   # H14: las preguntas clave del plan del pedido viajan en el mismo contexto (graficos_preguntas_clave.R).
   ctx_l <- .preguntas_clave_en_contexto(.sig_contexto_liviano(ctx), significancia$graficos_config$plan$preguntas_clave, nombre)
+  ctx_l <- .nombres_cortos_en_contexto(ctx_l, significancia$graficos_config$plan)   # E4 (graficos_nombres_cortos_plan.R)
   # ADR 0138: la matriz de equivalencias y la familia entre públicos (propia, nunca la de la base) viajan al render.
   .sig_informe_activar(.tpub_en_contexto(ctx_l, significancia$graficos_config$plan, list(data_sources = ds, inst_sources = is),
                                          significancia$equivalencias_publicos))

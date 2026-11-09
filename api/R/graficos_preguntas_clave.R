@@ -86,8 +86,10 @@
 #' Las preguntas clave salen de la config efectiva del pedido (la sin guardar, si viene), resueltas para la base activa.
 #' Entran a la huella de la miniatura con la regla: marcar una pregunta clave rehace el resumen ejecutivo.
 #' @keywords internal
-.graficos_preview_opciones_motor <- function(sid, claves, base = "") {
+.graficos_preview_opciones_motor <- function(sid, claves, base = "", plan = NULL) {
   o <- .sig_opciones_preview(sid, .mini_opciones_motor())
   o[["prosecnur.sig_informe"]] <- .preguntas_clave_en_contexto(o[["prosecnur.sig_informe"]], claves, base)
+  # E4: los nombres cortos del plan, como en el export (graficos_nombres_cortos_plan.R).
+  if (!is.null(plan)) o[["prosecnur.sig_informe"]] <- .nombres_cortos_en_contexto(o[["prosecnur.sig_informe"]], plan)
   o
 }

@@ -10,7 +10,8 @@
 #
 # Regla de las láminas de resumen:
 #   1. Si el estudio declara el rótulo corto de la pregunta, va ése (`overrides$etiquetas_vars` de la lámina, el mismo
-#      canal del recetario; `plan$rotulos_cortos` ya llega aplicado al instrumento por graficos_inclusivo.R).
+#      canal del recetario; `plan$rotulos_cortos` ya llega aplicado al instrumento por graficos_inclusivo.R). E4: si la
+#      lámina no lo declara, el que la pregunta tiene en otro gráfico del plan (graficos_nombres_cortos_plan.R).
 #   2. Si no, el rótulo va entero en hasta tres líneas; si aun así no cabe, la tercera termina en «…». El rótulo
 #      completo sigue en la interfaz (el conteo de la regla lo devuelve entero).
 #   3. El dibujo de respaldo usa la misma regla con el ancho fijo de la columna de rótulos: nunca invade el panel.
@@ -100,6 +101,11 @@
     m <- .plan_etiquetas_cortas_vigentes(if (nzchar(p$source %||% "")) p$source else NULL)
     corto <- if (length(m)) m[[p$name]] else NULL
     if (!is.null(corto) && nzchar(trimws(corto))) return(trimws(as.character(corto)[1]))
+  }
+  # E4: el nombre corto que la pregunta tiene en otro gráfico del plan, si el rótulo de aquí es el del instrumento
+  # (un rótulo escrito en este gráfico manda; graficos_nombres_cortos_plan.R).
+  if (.resumen_es_enunciado(refs, largo)) {
+    for (r in as.character(unlist(refs))) { corto <- .nombre_corto_del_plan(r); if (!is.null(corto)) return(corto) }
   }
   largo
 }

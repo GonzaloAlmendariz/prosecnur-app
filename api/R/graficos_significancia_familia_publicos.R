@@ -143,7 +143,12 @@
 .tpub_en_contexto <- function(ctx, plan, sources, equiv = NULL) {
   # Sin contexto de diferencias la matriz igual viaja: el contraste empareja con ella (graficos_dumbbell_equivalencia.R).
   # `.sig_informe_vigente` exige `regla`, así que este contexto no inventa una regla de diferencias.
-  if (!is.list(ctx)) return(if (is.null(equiv)) ctx else list(equivalencias_publicos = equiv))
+  if (!is.list(ctx) || !is.list(ctx$regla)) {
+    if (is.null(equiv)) return(ctx)
+    ctx <- if (is.list(ctx)) ctx else list()
+    ctx$equivalencias_publicos <- equiv
+    return(ctx)
+  }
   ctx$equivalencias_publicos <- equiv
   ctx$familia_publicos <- NULL
   ctx$regla_publicos <- NULL
