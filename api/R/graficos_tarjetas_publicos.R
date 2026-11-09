@@ -159,7 +159,7 @@
 
 #' Indicador que se probó en un tema: los rótulos de los códigos del corte en la escala del primer público
 #'
-#' «De acuerdo + Totalmente de acuerdo». NULL si la escala no describe esos códigos.
+#' «De acuerdo + totalmente de acuerdo». NULL si la escala no describe esos códigos.
 #' @keywords internal
 .tpub_indicador_tema <- function(te, corte, sources) {
   if (!length(te$bases)) return(NULL)
@@ -169,7 +169,12 @@
   cod <- vapply(op, function(o) as.character(o$codigo)[1], character(1))
   etq <- vapply(op, function(o) as.character(o$etiqueta)[1], character(1))
   k <- which(cod %in% as.character(.radar_mb_codigos(corte)))
-  if (!length(k)) NULL else paste(etq[k], collapse = " + ")
+  if (!length(k)) return(NULL)
+  # Una frase: la primera opción como viene y las siguientes en minúscula inicial («De acuerdo + totalmente de acuerdo»),
+  # para que el encabezado de la tarjeta («Tema: de acuerdo + totalmente de acuerdo») no mezcle mayúsculas.
+  partes <- etq[k]
+  if (length(partes) > 1L) partes[-1] <- vapply(partes[-1], .tarjetas_minuscula_inicial, character(1), USE.NAMES = FALSE)
+  paste(partes, collapse = " + ")
 }
 
 # --- Evaluación de un tema ---------------------------------------------------------------------------------------
@@ -446,7 +451,7 @@
   gr <- .tpub_grupos(te)
   fila <- te$tema
   comun <- list(tipo = .TPUB_CRUCE, sin_total = TRUE, total = NA_real_, cifra_total = NA_character_,
-                indicador = te$indicador %||% opt$indicador %||% NULL,
+                indicador = te$indicador_tarjeta %||% NULL,
                 fila_es_titulo = nzchar(titulo) && .lam_mismo_texto(fila, titulo),
                 evaluacion = list(grupos = gr, pares = pares, motivo = te$motivo))
   if (length(te$bases) == 2L) {
@@ -530,9 +535,15 @@
   })
   ev <- .tpub_veredictos(ev, regla, familia)
   fam <- attr(ev, "familia")
-  # Qué se probó: el indicador de la lámina; si no lo nombra, el del gráfico; si tampoco, los rótulos del corte.
-  fijo <- opt$indicador %||% .tpub_texto_o_null(corte_etiqueta)
-  for (k in seq_along(ev)) ev[[k]]$indicador <- fijo %||% .tpub_indicador_tema(ev[[k]], corte, sources)
+  # Qué se probó: el indicador de la lámina; si no lo nombra, el del gráfico; si tampoco, los rótulos del corte. El
+  # inspector lo dice siempre. El encabezado de la tarjeta, como en el ADR 0129, sólo cuando el gráfico no lo muestra
+  # (sin `corte_etiqueta` no hay subtítulo que lo diga) o cuando la lámina lo nombra.
+  etiqueta_grafico <- .tpub_texto_o_null(corte_etiqueta)
+  fijo <- opt$indicador %||% etiqueta_grafico
+  for (k in seq_along(ev)) {
+    ev[[k]]$indicador <- fijo %||% .tpub_indicador_tema(ev[[k]], corte, sources)
+    ev[[k]]$indicador_tarjeta <- opt$indicador %||% (if (is.null(etiqueta_grafico)) ev[[k]]$indicador else NULL)
+  }
   ev <- lapply(ev, function(te) .tpub_conciliar(te, if (is.null(referencia)) NULL else referencia[[te$tema]] %||% numeric(0)))
   tarjetas <- Filter(Negate(is.null), lapply(ev, .tpub_tarjeta, regla = regla, opt = opt, titulo = titulo))
   if (length(tarjetas)) {

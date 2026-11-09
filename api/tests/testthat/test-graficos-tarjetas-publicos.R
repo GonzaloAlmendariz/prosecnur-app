@@ -760,15 +760,17 @@ test_that("P6. el pie dice el nivel, el alcance de la corrección y, si hay frá
   expect_false(grepl("\u00ab|\u00bb", r$nota))
 })
 
-test_that("P7. la tarjeta y el inspector dicen qué indicador se probó aunque la lámina no lo nombre", {
+test_that("P7. el inspector dice qué indicador se probó; la tarjeta lo nombra cuando el gráfico no lo muestra", {
   src <- .tp_tres()
   r <- .tpub_calcular(.tpub_temas_declarados(.tp_vars6), "3,4", src, .tp_regla(), .tpub_opcion(.tp_meta))
   expect_gt(length(r$tarjetas), 0L)
-  for (t in r$tarjetas) expect_identical(t$indicador, "De acuerdo + Totalmente de acuerdo")
-  expect_identical(.tpub_tema_json(r$temas[[1]], .tp_regla())$indicador, "De acuerdo + Totalmente de acuerdo")
-  # El nombre del gráfico (corte_etiqueta) y el de la lámina mandan, en ese orden inverso.
+  for (t in r$tarjetas) expect_identical(t$indicador, "De acuerdo + totalmente de acuerdo")
+  expect_identical(.tpub_tema_json(r$temas[[1]], .tp_regla())$indicador, "De acuerdo + totalmente de acuerdo")
+  # Con corte_etiqueta el gráfico ya lo dice en su subtítulo: el inspector lo nombra y el encabezado de la tarjeta no.
   r2 <- .tpub_calcular(.tpub_temas_declarados(.tp_vars6), "3,4", src, .tp_regla(), .tpub_opcion(.tp_meta), corte_etiqueta = "Top Two Box")
-  expect_identical(r2$tarjetas[[1]]$indicador, "Top Two Box")
+  expect_null(r2$tarjetas[[1]]$indicador)
+  expect_identical(.tpub_tema_json(r2$temas[[1]], .tp_regla())$indicador, "Top Two Box")
+  # El de la lámina manda siempre, también en el encabezado.
   o <- .tpub_opcion(list(tarjetas_diferencias = list(entre_publicos = TRUE, indicador = "Acuerdo")))
   r3 <- .tpub_calcular(.tpub_temas_declarados(.tp_vars6), "3,4", src, .tp_regla(), o, corte_etiqueta = "Top Two Box")
   expect_identical(r3$tarjetas[[1]]$indicador, "Acuerdo")
