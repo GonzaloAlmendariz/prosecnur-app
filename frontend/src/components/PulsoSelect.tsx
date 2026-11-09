@@ -20,7 +20,7 @@ export type PulsoSelectProps = {
   onValueChange: (value: string) => void;
   options: PulsoSelectOption[];
   placeholder?: ReactNode;
-  /** `md` = 36 px · `sm` = 30 px. */
+  /** `md` = 36 px · `sm` = 28 px (familia de controles 28/32/36). */
   size?: PulsoSelectSize;
   disabled?: boolean;
   invalid?: boolean;

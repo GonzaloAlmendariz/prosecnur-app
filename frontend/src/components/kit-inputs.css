@@ -186,7 +186,7 @@
   margin: 0;
   padding: 0 11px;
   border: 1px solid var(--pulso-border-strong);
-  border-radius: 9px;
+  border-radius: var(--pulso-control-radius);
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font: inherit;
@@ -197,9 +197,12 @@
     box-shadow var(--motion-dur-fast) var(--motion-ease-out);
 }
 
+/* W3: el tamaño chico entra en la familia de controles 28/32/36 (antes 30): mide lo mismo que un botón sm/md y
+   que el disparador de un segmentado, así que un select junto a botones queda a su altura sin parches locales. */
 .pulso-input.pulso-input--sm,
 .pulso-select-trigger.pulso-select-trigger--sm {
-  --pulso-field-height: 30px;
+  --pulso-field-height: var(--pulso-control-height-sm);
+  padding-left: var(--pulso-space-2);
   font-size: 12.5px;
 }
 
@@ -207,12 +210,23 @@
   color: var(--pulso-text-faint);
 }
 
-.pulso-input:focus,
-.pulso-select-trigger:focus-visible,
-.pulso-select-trigger[data-state="open"] {
+.pulso-input:focus {
   outline: none;
   border-color: var(--pulso-primary);
   box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+/* W3: el disparador del select es un control pulsable, como un botón: un solo anillo de foco (--mov-foco) y sin
+   halo. Abierto, el borde toma el acento. */
+.pulso-select-trigger:focus-visible {
+  outline: var(--mov-foco);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.pulso-select-trigger[data-state="open"] {
+  border-color: var(--pulso-primary);
+  box-shadow: none;
 }
 
 .pulso-input:disabled,

@@ -385,8 +385,8 @@
 }
 
 /* El zoom no cede ancho (D1): el label se encogía bajo su select y «Ajustes» lo tapaba a 1024. Cede la posición.
-   Acabado W2-A: «Ajustar» y las partes son PulsoSelect con su chevron, a la altura de los botones (28) y con el radio de
-   control; el ancho lo fija su opción más larga, no la cuenta. */
+   «Ajustar» y las partes son PulsoSelect sm con su chevron: desde W3 el kit ya los da a 28, con el radio de control y
+   el anillo único de foco; aquí sólo queda el ancho, que fija su opción más larga y no la cuenta. */
 .pulso-f6-zoom,
 .pulso-f6-partes-selector {
   flex: none;
@@ -395,30 +395,11 @@
 
 .pulso-f6-zoom .pulso-select-trigger,
 .pulso-f6-partes-selector .pulso-select-trigger {
-  --pulso-field-height: var(--pulso-control-height-md);
   width: auto;
-  padding-inline: var(--pulso-space-2);
-  border-color: var(--pulso-border-strong);
-  border-radius: var(--pulso-control-radius);
-  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-f6-zoom .pulso-select-trigger {
   min-width: 104px;
-}
-
-.pulso-f6-zoom .pulso-select-trigger:focus-visible,
-.pulso-f6-partes-selector .pulso-select-trigger:focus-visible {
-  outline: var(--mov-foco);
-  outline-offset: 2px;
-  border-color: var(--pulso-border-strong);
-  box-shadow: none;
-}
-
-.pulso-f6-zoom .pulso-select-icon > svg,
-.pulso-f6-partes-selector .pulso-select-icon > svg {
-  width: var(--pulso-icon-size-sm);
-  height: var(--pulso-icon-size-sm);
 }
 
 /* La descarga es un <a> con la piel del ícono quieto: el centrado que el <button> trae de fábrica. */

@@ -28,11 +28,13 @@ describe("PulsoInput", () => {
     expect(html).toContain('aria-describedby="h1"');
   });
 
-  it("alturas 36/30, radio 9 y foco con --pulso-primary-focus", () => {
+  it("W3: alturas 36/28 (familia de controles), radio de control; el input con halo y el select con anillo único", () => {
     const css = fs.readFileSync(path.join(__dirname, "kit-inputs.css"), "utf8");
     expect(css).toMatch(/\.pulso-select-trigger \{\s*--pulso-field-height: 36px;/);
-    expect(css).toMatch(/\.pulso-select-trigger\.pulso-select-trigger--sm \{\s*--pulso-field-height: 30px;/);
-    expect(css).toContain("border-radius: 9px;");
-    expect(css).toContain("box-shadow: 0 0 0 3px var(--pulso-primary-focus);");
+    expect(css).toMatch(/\.pulso-select-trigger\.pulso-select-trigger--sm \{\s*--pulso-field-height: var\(--pulso-control-height-sm\);/);
+    expect(css).not.toContain("--pulso-field-height: 30px");
+    expect(css).toContain("border-radius: var(--pulso-control-radius);");
+    expect(css).toMatch(/\.pulso-input:focus \{[^}]*box-shadow: 0 0 0 3px var\(--pulso-primary-focus\);/);
+    expect(css).toMatch(/\.pulso-select-trigger:focus-visible \{[^}]*outline: var\(--mov-foco\);[^}]*box-shadow: none;/);
   });
 });
