@@ -359,7 +359,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
         )}
         {argSig && sigAplica && argCruce && !conTarjetas && !conPublicos && (
           <DiferenciasInspector
-            slideId={slideId}
+            slideId={slideId} slot={slot}
             encendido={interruptorEncendido(argSig, sigGuardada)}
             cruce={cruce}
             etiquetaCruce={etiquetaCruce}

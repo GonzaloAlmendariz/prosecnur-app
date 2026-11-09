@@ -9,6 +9,7 @@ import type {
   LaminaDiferencias,
   ParDiferencias,
   ReglaDiferencias,
+  ResultadoDiferencias,
 } from "../../../../api/graficosDiferencias";
 import { formatoConteo, formatoDecimal } from "../../../../lib/formatoNumero";
 
@@ -173,7 +174,7 @@ export type CargaDiferencias<T> =
 export function estadoInspector(entrada: {
   tieneCruce: boolean;
   encendido: boolean;
-  carga: CargaDiferencias<{ lamina: LaminaDiferencias }> | undefined;
+  carga: CargaDiferencias<{ lamina: Pick<LaminaDiferencias, "estado"> }> | undefined;
 }): EstadoInspector {
   if (!entrada.tieneCruce) return "sin_cruce";
   if (!entrada.encendido) return "apagado";
@@ -246,7 +247,7 @@ export const OPCIONES_FILTRO: readonly { clave: FiltroRevision; rotulo: string }
   { clave: "marcadas", rotulo: "Marcadas" },
 ];
 
-export function filtrarRevision(laminas: readonly LaminaDiferencias[], filtro: FiltroRevision): LaminaDiferencias[] {
+export function filtrarRevision<T extends ResultadoDiferencias>(laminas: readonly T[], filtro: FiltroRevision): T[] {
   if (filtro === "revisar") return laminas.filter((l) => l.revisar.length > 0 || l.estado === "error");
   if (filtro === "marcadas") return laminas.filter((l) => l.pares.some(esMarcado));
   return [...laminas];
@@ -255,7 +256,7 @@ export function filtrarRevision(laminas: readonly LaminaDiferencias[], filtro: F
 export type TonoEstado = "marcada" | "fragil" | "neutro" | "aviso" | "peligro";
 
 /** La columna «Estado» de la revisión: «3 marcadas», «1 frágil», «Ninguna», «2 grupos sin comparar», «No se marca». */
-export function estadoRevision(lamina: LaminaDiferencias): { rotulo: string; tono: TonoEstado } {
+export function estadoRevision(lamina: ResultadoDiferencias): { rotulo: string; tono: TonoEstado } {
   const c = conteosLamina(lamina);
   if (lamina.estado === "error") return { rotulo: "Sin prueba", tono: "peligro" };
   if (lamina.estado === "abstencion") return { rotulo: "No se marca", tono: "peligro" };
@@ -272,7 +273,7 @@ export function estadoRevision(lamina: LaminaDiferencias): { rotulo: string; ton
   return { rotulo: "Ninguna", tono: "neutro" };
 }
 
-const QUE_REVISAR: Readonly<Record<CodigoRevisar, (l: LaminaDiferencias) => string>> = {
+const QUE_REVISAR: Readonly<Record<CodigoRevisar, (l: ResultadoDiferencias) => string>> = {
   titulo_afirma_fragil: () => "El título afirma una diferencia frágil: moderar",
   sin_diferencias: () => "El cruce no muestra diferencias: ¿quitarlo?",
   bajo_umbral: () => "Hay diferencias bajo el umbral: no se marcan",
@@ -284,25 +285,29 @@ const QUE_REVISAR: Readonly<Record<CodigoRevisar, (l: LaminaDiferencias) => stri
 };
 
 /** «Qué revisar» de una lámina, una frase por código; un código desconocido se nombra tal cual. */
-export function queRevisar(lamina: LaminaDiferencias): string[] {
+export function queRevisar(lamina: ResultadoDiferencias): string[] {
   const frases = lamina.revisar.map((c) => (c in QUE_REVISAR ? QUE_REVISAR[c as CodigoRevisar](lamina) : `Revisar: ${c}`));
   if (lamina.estado === "error" && !lamina.revisar.includes("sin_prueba")) frases.push(QUE_REVISAR.sin_prueba(lamina));
   return frases;
 }
 
-export type FilaRevision = { lamina: LaminaDiferencias; posicion: number | null; titulo: string };
+/**
+ * Una fila de la revisión: una ranura con cruce (ADR 0128 «Familia por base»). `grafico` nombra la ranura cuando la
+ * lámina tiene más de una («Gráfico 2: Barras agrupadas»); vacío si es la única. `clave` es única en la tabla.
+ */
+export type FilaRevision = { lamina: ResultadoDiferencias; posicion: number | null; titulo: string; grafico?: string; clave?: string };
 
 const celdaCsv = (v: string | number | null): string => {
   const t = v === null ? "" : String(v);
   return /[",\n;]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
 };
 
-/** La revisión exportada: una fila por lámina, separada por comas y con comillas donde hace falta. */
+/** La revisión exportada: una fila por ranura con cruce, separada por comas y con comillas donde hace falta. */
 export function csvRevision(filas: readonly FilaRevision[]): string {
-  const cabecera = ["Lámina", "Título", "Variable", "Cruce", "Estado", "Marcadas", "Frágiles", "Bajo el umbral", "Qué revisar"];
-  const cuerpo = filas.map(({ lamina, posicion, titulo }) => {
+  const cabecera = ["Lámina", "Título", "Gráfico", "Variable", "Cruce", "Estado", "Marcadas", "Frágiles", "Bajo el umbral", "Qué revisar"];
+  const cuerpo = filas.map(({ lamina, posicion, titulo, grafico }) => {
     const c = conteosLamina(lamina);
-    return [posicion, titulo, lamina.variable, lamina.cruce, estadoRevision(lamina).rotulo, c.marcadas, c.fragiles, c.bajoUmbral, queRevisar(lamina).join("; ")]
+    return [posicion, titulo, grafico ?? "", lamina.variable, lamina.cruce, estadoRevision(lamina).rotulo, c.marcadas, c.fragiles, c.bajoUmbral, queRevisar(lamina).join("; ")]
       .map(celdaCsv).join(",");
   });
   return [cabecera.map(celdaCsv).join(","), ...cuerpo].join("\n");

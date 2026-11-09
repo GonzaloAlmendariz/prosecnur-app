@@ -1,0 +1,42 @@
+/* Un bloque por ranura con cruce en «Diferencias de esta lámina» (ADR 0128 «Familia por base»). Sólo aparece con más de
+   una ranura: con una, la capa se ve como antes. Los bloques no recortan su tabla; el cuerpo de la capa es el único
+   dueño del scroll (C4). */
+
+.pulso-sig-ranuras {
+  display: grid;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+}
+
+.pulso-sig-ranuras.is-completa {
+  grid-column: 1 / -1;
+}
+
+.pulso-sig-ranura {
+  display: grid;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  padding-top: var(--pulso-space-2);
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-sig-ranura:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.pulso-sig-ranura-titulo {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.pulso-sig-ranura-aviso {
+  margin: 0;
+}
+
+.pulso-sig-ranura-aviso.is-peligro {
+  color: var(--pulso-danger-fg);
+}

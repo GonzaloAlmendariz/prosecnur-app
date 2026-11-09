@@ -1,13 +1,14 @@
 // U4 · «Diferencias del informe» (`?panel=diferencias`, sideover; propuesta de significancia §3.5). Revisión en lote de
 // las láminas con cruce desde GET /api/graficos/diferencias/informe: resumen arriba, filtro «Para revisar» (frágiles con
 // títulos que afirman, cruces sin diferencias, diferencias bajo el umbral, bases chicas, pruebas no ejecutadas) y una
-// fila por lámina que lleva a ella. Como Avisos, no es modal: la lámina elegida se ve al lado. «Exportar revisión»
+// fila por ranura con cruce (ADR 0128 «Familia por base»: una lámina de cuatro gráficos tiene hasta cuatro) que lleva a
+// su lámina; los conteos de arriba son los del `resumen`, que el backend cuenta por ranura. Como Avisos, no es modal: la lámina elegida se ve al lado. «Exportar revisión»
 // arma el CSV en el cliente.
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { Download, RotateCcw } from "../../../../vendor/lucide-react";
 import type { ControlPanel } from "../../../../lib/navegacion/paneles";
-import type { LaminaDiferencias } from "../../../../api/graficosDiferencias";
+import type { ResultadoDiferencias } from "../../../../api/graficosDiferencias";
 import { PulsoTable, type PulsoTableColumna } from "../../../../components/PulsoTable";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { CabeceraPanel } from "../../../../components/CabeceraPanel";
@@ -32,8 +33,9 @@ import {
   type FilaRevision,
   type FiltroRevision,
 } from "./modeloDiferencias";
+import { filasPorRanura } from "./modeloRanuras";
 import { useDiferenciasUi } from "./store";
-import { useDiferenciasInforme } from "./useDiferencias";
+import { useDiferenciasInforme, useNombreDeGrafico } from "./useDiferencias";
 import "./diferencias.css";
 
 type Props = {
@@ -63,18 +65,19 @@ export function RevisionDiferenciasPanel({ panel, estructura, slideIdActual, onI
   useEffect(() => escucharEscape(document, cerrar, () => capaVisibleFuera(document, raizRef.current)), [cerrar]);
 
   const datos = carga && carga.estado !== "error" ? carga.datos : undefined;
+  const nombreDe = useNombreDeGrafico();
   const porId = useMemo(() => new Map(estructura.laminas.map((l) => [l.id, l])), [estructura]);
-  const filas: FilaRevision[] = useMemo(() => filtrarRevision(datos?.laminas ?? [], filtro).map((lamina) => {
-    const enPlan = porId.get(lamina.slide_id);
-    return { lamina, posicion: enPlan?.posicion ?? null, titulo: lamina.titulo || enPlan?.titulo || lamina.slide_id };
-  }), [datos, filtro, porId]);
+  const todas: FilaRevision[] = useMemo(
+    () => filasPorRanura(datos?.laminas ?? [], nombreDe, (id) => porId.get(id)),
+    [datos, nombreDe, porId],
+  );
+  const filas: FilaRevision[] = useMemo(() => {
+    const visibles = new Set(filtrarRevision(todas.map((f) => f.lamina), filtro));
+    return todas.filter((f) => visibles.has(f.lamina));
+  }, [todas, filtro]);
 
   const exportar = () => {
     if (!datos) return;
-    const todas = datos.laminas.map((lamina) => {
-      const enPlan = porId.get(lamina.slide_id);
-      return { lamina, posicion: enPlan?.posicion ?? null, titulo: lamina.titulo || enPlan?.titulo || lamina.slide_id };
-    });
     descargarCsv(csvRevision(todas), "diferencias-del-informe.csv");
   };
 
@@ -93,7 +96,7 @@ export function RevisionDiferenciasPanel({ panel, estructura, slideIdActual, onI
       <header data-qa-geometry-member="">
         <CabeceraPanel titulo="Diferencias del informe" onCerrar={cerrar} etiquetaCerrar="Cerrar diferencias del informe"
           acciones={(
-            <PulsoButton variant="secondary" size="sm" onClick={exportar} disabled={!datos || datos.laminas.length === 0}>
+            <PulsoButton variant="secondary" size="sm" onClick={exportar} disabled={todas.length === 0}>
               <Download size={14} aria-hidden="true" /> Exportar revisión
             </PulsoButton>
           )} />
@@ -124,7 +127,7 @@ export function RevisionDiferenciasPanel({ panel, estructura, slideIdActual, onI
               {r.sin_prueba > 0 && <li className="pulso-sig-chip is-peligro">{formatoConteo(r.sin_prueba)} sin prueba</li>}
             </ul>
             <div className="pulso-sig-revision-barra">
-              <RadioSegmentado<FiltroRevision> etiqueta="Qué láminas mostrar" valor={filtro} opciones={OPCIONES_FILTRO} onCambiar={setFiltro} />
+              <RadioSegmentado<FiltroRevision> etiqueta="Qué gráficos mostrar" valor={filtro} opciones={OPCIONES_FILTRO} onCambiar={setFiltro} />
               <span className="pulso-sig-espacio" />
               <PulsoButton variant="link" size="sm" data-pulso-abre-panel={PANEL_DIFERENCIAS_REGLA.id} onClick={regla.abrir}
                 title={`${resumenRegla(datos.regla)}${r.familia ? ` (familia de ${formatoConteo(r.familia)} comparaciones)` : ""}`}>
@@ -140,9 +143,9 @@ export function RevisionDiferenciasPanel({ panel, estructura, slideIdActual, onI
 }
 
 const VACIO: Readonly<Record<FiltroRevision, string>> = {
-  todas: "El informe no tiene láminas con cruce.",
-  revisar: "Nada para revisar: ninguna lámina con cruce tiene avisos.",
-  marcadas: "Ninguna lámina con cruce tiene diferencias marcadas.",
+  todas: "El informe no tiene gráficos con cruce.",
+  revisar: "Nada para revisar: ningún gráfico con cruce tiene avisos.",
+  marcadas: "Ningún gráfico con cruce tiene diferencias marcadas.",
 };
 
 function TablaRevision({ filas, filtro, slideIdActual, onIr }: {
@@ -154,19 +157,25 @@ function TablaRevision({ filas, filtro, slideIdActual, onIr }: {
     { id: "estado", encabezado: "Estado", ancho: 140, celda: (f) => <EstadoChip lamina={f.lamina} /> },
     { id: "revisar", encabezado: "Qué revisar", ancho: 196, celda: (f) => queRevisar(f.lamina).join("; ") || "—", valor: (f) => queRevisar(f.lamina).join("; ") },
   ];
-  const porId = new Map(filas.map((f) => [f.lamina.slide_id, f]));
+  const porClave = new Map(filas.map((f) => [claveDeFila(f), f]));
+  // La fila elegida es la primera ranura de la lámina a la vista.
+  const actual = filas.find((f) => f.lamina.slide_id === slideIdActual);
   return (
-    <PulsoTable columnas={columnas} filas={filas} idDeFila={(f) => f.lamina.slide_id} ariaLabel="Láminas con cruce" densidad="comoda"
-      seleccionada={slideIdActual} altoMaximo={2000} vacio={VACIO[filtro]}
-      onSeleccionar={(id) => { const p = porId.get(id)?.posicion; if (p) onIr(p); }} />
+    <PulsoTable columnas={columnas} filas={filas} idDeFila={claveDeFila} ariaLabel="Gráficos con cruce" densidad="comoda"
+      seleccionada={actual ? claveDeFila(actual) : null} altoMaximo={2000} vacio={VACIO[filtro]}
+      onSeleccionar={(id) => { const p = porClave.get(id)?.posicion; if (p) onIr(p); }} />
   );
 }
 
+const claveDeFila = (f: FilaRevision): string => f.clave ?? f.lamina.slide_id;
+
+/** «Título (cruce)»; en una lámina con varios gráficos, además cuál: «Título, Gráfico 2: Barras agrupadas (cruce)». */
 function textoCruce(f: FilaRevision): string {
-  return f.lamina.cruce ? `${f.titulo} (${f.lamina.cruce})` : f.titulo;
+  const nombre = f.grafico ? `${f.titulo}, ${f.grafico}` : f.titulo;
+  return f.lamina.cruce ? `${nombre} (${f.lamina.cruce})` : nombre;
 }
 
-function EstadoChip({ lamina }: { lamina: LaminaDiferencias }) {
+function EstadoChip({ lamina }: { lamina: ResultadoDiferencias }) {
   const e = estadoRevision(lamina);
   return (
     <span className={`pulso-sig-chip is-${e.tono}`}>

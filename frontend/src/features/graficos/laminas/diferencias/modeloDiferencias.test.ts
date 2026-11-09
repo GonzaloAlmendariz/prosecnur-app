@@ -121,8 +121,8 @@ describe("revisión en lote", () => {
   });
   it("CSV con cabecera y comillas donde hace falta", () => {
     const csv = csvRevision([{ lamina: lamina({ titulo: "Con, coma" }), posicion: 4, titulo: "Con, coma" }]).split("\n");
-    expect(csv[0]).toBe("Lámina,Título,Variable,Cruce,Estado,Marcadas,Frágiles,Bajo el umbral,Qué revisar");
-    expect(csv[1]).toBe('4,"Con, coma",p1,grupo,2 marcadas,2,1,1,');
+    expect(csv[0]).toBe("Lámina,Título,Gráfico,Variable,Cruce,Estado,Marcadas,Frágiles,Bajo el umbral,Qué revisar");
+    expect(csv[1]).toBe('4,"Con, coma",,p1,grupo,2 marcadas,2,1,1,');
   });
 });
 

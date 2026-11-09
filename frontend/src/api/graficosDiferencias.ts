@@ -110,7 +110,8 @@ export type ParDiferencias = {
   redaccion: string;
 };
 
-export type LaminaDiferencias = {
+/** El resultado de la prueba sobre una ranura con cruce: lo común a la lámina (primera ranura) y a cada ranura. */
+export type ResultadoDiferencias = {
   slide_id: string;
   titulo: string;
   estado: EstadoLaminaDiferencias;
@@ -127,8 +128,27 @@ export type LaminaDiferencias = {
   nota: string;
   /** Códigos de `revisar`; los que esta versión no conoce se conservan para que el filtro «Para revisar» los cuente. */
   revisar: string[];
+};
+
+/** Una ranura con cruce de la lámina (ADR 0128 «Familia por base»), probada sobre su base y la familia de esa base. */
+export type RanuraDiferencias = ResultadoDiferencias & {
+  /** Nombre de la ranura en el payload (`grafico_1`…) o su posición si no tiene nombre. */
+  ranura: string;
+  /** Posición 1-based en el payload. */
+  indice: number;
+  graficador: string;
+  /** La base de la ranura; `null` si no se pudo resolver (la entrada viene en error). */
+  base: string | null;
+};
+
+export type LaminaDiferencias = ResultadoDiferencias & {
   /** Temas, pares y familia de la lámina entre públicos; `null` en una lámina de grupos de una base. */
   entre_publicos: LaminaEntrePublicos | null;
+  /**
+   * Toda ranura con cruce, en el orden del payload. Sin `ranuras` en la respuesta (backend anterior), la primera
+   * ranura: los campos de arriba. Vacía en la lámina entre públicos y en la que no tiene cruce.
+   */
+  ranuras: RanuraDiferencias[];
 };
 
 export type ResumenInformeDiferencias = {
@@ -320,8 +340,7 @@ function normalizeError(v: unknown): ErrorDiferencias | null {
   return { code: texto(v.code), message: texto(v.message), error_id: textoONulo(v.error_id) };
 }
 
-export function normalizeDiferenciasLamina(raw: unknown): LaminaDiferencias {
-  const r = registro(raw);
+function normalizeResultado(r: Registro): ResultadoDiferencias {
   const estadoCrudo = r.estado;
   const conocido = typeof estadoCrudo === "string" && (ESTADOS as readonly string[]).includes(estadoCrudo);
   // Un estado que esta versión no conoce es un error visible, no una abstención ni un vacío: no se afirma nada.
@@ -344,8 +363,40 @@ export function normalizeDiferenciasLamina(raw: unknown): LaminaDiferencias {
     pares: lista(r.pares).map(normalizePar),
     nota: texto(r.nota),
     revisar: [...new Set(lista(r.revisar).map((c) => texto(c).trim()).filter(Boolean))],
-    entre_publicos: modo === "entre_publicos" ? normalizeLaminaEntrePublicos(r) : null,
   };
+}
+
+/** Una ranura de `ranuras`; lo que no trae la lámina (slide_id, título) lo hereda de ella. */
+export function normalizeRanuraDiferencias(raw: unknown, i: number, lamina?: Pick<ResultadoDiferencias, "slide_id" | "titulo">): RanuraDiferencias {
+  const r = registro(raw);
+  const indice = Math.max(1, Math.round(numero(r.indice, i + 1)));
+  const resultado = normalizeResultado(r);
+  return {
+    ...resultado,
+    slide_id: resultado.slide_id || lamina?.slide_id || "",
+    titulo: resultado.titulo || lamina?.titulo || "",
+    ranura: textoONulo(r.ranura) ?? String(indice),
+    indice,
+    graficador: texto(r.graficador).trim(),
+    base: textoONulo(r.base),
+  };
+}
+
+/** La primera ranura armada con los campos de la lámina: lo que se muestra cuando el backend no manda `ranuras`. */
+export function ranuraDeLaLamina(resultado: ResultadoDiferencias): RanuraDiferencias {
+  return { ...resultado, ranura: "", indice: 1, graficador: "", base: null };
+}
+
+export function normalizeDiferenciasLamina(raw: unknown): LaminaDiferencias {
+  const r = registro(raw);
+  const resultado = normalizeResultado(r);
+  const entre = resultado.modo_letras === "entre_publicos";
+  const tieneCruce = resultado.cruce !== null || resultado.estado !== "sin_cruce";
+  // `ranuras` presente (aun vacía) manda; sin ella, la primera ranura si la lámina tiene cruce. Entre públicos, ninguna.
+  const ranuras = entre ? [] : Array.isArray(r.ranuras)
+    ? r.ranuras.map((x, i) => normalizeRanuraDiferencias(x, i, resultado))
+    : tieneCruce ? [ranuraDeLaLamina(resultado)] : [];
+  return { ...resultado, entre_publicos: entre ? normalizeLaminaEntrePublicos(r) : null, ranuras };
 }
 
 export function normalizeDiferenciasLaminaRespuesta(raw: unknown): DiferenciasLaminaRespuesta {
@@ -354,8 +405,10 @@ export function normalizeDiferenciasLaminaRespuesta(raw: unknown): DiferenciasLa
 }
 
 /** Resumen del informe; un conteo que falta se deriva de las láminas (nunca se inventa un cero que el motor no dio). */
-export function normalizeResumenInforme(raw: unknown, laminas: readonly LaminaDiferencias[]): ResumenInformeDiferencias {
+export function normalizeResumenInforme(raw: unknown, laminasInforme: readonly LaminaDiferencias[]): ResumenInformeDiferencias {
   const r = registro(raw);
+  // El backend cuenta cada ranura con cruce; el respaldo cuenta lo mismo.
+  const laminas: readonly ResultadoDiferencias[] = laminasInforme.flatMap<ResultadoDiferencias>((l) => (l.ranuras.length ? l.ranuras : [l]));
   const pares = laminas.flatMap((l) => l.pares);
   const cuenta = (codigo: string) => laminas.filter((l) => l.revisar.includes(codigo)).length;
   return {

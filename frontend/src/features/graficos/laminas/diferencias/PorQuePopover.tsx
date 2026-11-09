@@ -8,7 +8,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { Check, ChevronLeft, ChevronRight, Copy, X } from "../../../../vendor/lucide-react";
-import type { LaminaDiferencias, ParDiferencias, ReglaDiferencias } from "../../../../api/graficosDiferencias";
+import type { ParDiferencias, ReglaDiferencias, ResultadoDiferencias } from "../../../../api/graficosDiferencias";
 import { PulsoTable, type PulsoTableColumna } from "../../../../components/PulsoTable";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { CabeceraPanel } from "../../../../components/CabeceraPanel";
@@ -35,9 +35,11 @@ import {
   parInicial,
   redaccionLamina,
 } from "./modeloDiferencias";
+import { bloqueConPares, bloquesDeLamina, type BloqueRanura } from "./modeloRanuras";
 import { useDiferenciasUi } from "./store";
-import { useClaveDiferencias, useDiferenciasLamina } from "./useDiferencias";
+import { useClaveDiferencias, useDiferenciasLamina, useNombreDeGrafico } from "./useDiferencias";
 import "./diferencias.css";
+import "./ranurasDiferencias.css";
 
 const MARGEN = 10;
 const SEPARACION = 8;
@@ -78,6 +80,8 @@ function CapaPorQue({ slideId, cerrarPanel, panelProps }: { slideId: string; cer
   const clave = useClaveDiferencias(slideId);
   const { carga } = useDiferenciasLamina(slideId, clave, true);
   const elegido = useDiferenciasUi((s) => s.parElegido[slideId]);
+  const ranuraElegida = useDiferenciasUi((s) => s.ranuraElegida[slideId] ?? null);
+  const nombreDe = useNombreDeGrafico(slideId);
   const elegirPar = useDiferenciasUi((s) => s.elegirPar);
   const raizRef = useRef<HTMLElement>(null);
   const anclaRef = useRef<HTMLElement | null>(null);
@@ -85,7 +89,11 @@ function CapaPorQue({ slideId, cerrarPanel, panelProps }: { slideId: string; cer
 
   const datos = carga && carga.estado !== "error" ? carga.datos : undefined;
   const lamina = datos?.lamina ?? null;
-  const pares = lamina?.pares ?? [];
+  // Un bloque por ranura con cruce, la del gráfico desde el que se abrió primero; el detalle es del par elegido.
+  const bloques = lamina ? bloquesDeLamina(lamina, nombreDe, ranuraElegida) : [];
+  const activo = bloqueConPares(bloques, ranuraElegida);
+  const varios = bloques.length > 1;
+  const pares = activo?.ranura.pares ?? [];
   const indice = pares.length ? Math.min(Math.max(elegido ?? parInicial(pares), 0), pares.length - 1) : 0;
 
   const reposicionar = useCallback(() => {
@@ -101,7 +109,7 @@ function CapaPorQue({ slideId, cerrarPanel, panelProps }: { slideId: string; cer
     setEstilo({ position: "fixed", top: Math.round(top), left: Math.round(left), width: ancho, maxHeight: vista.height - 2 * MARGEN });
   }, []);
 
-  useLayoutEffect(() => { reposicionar(); }, [reposicionar, lamina, indice]);
+  useLayoutEffect(() => { reposicionar(); }, [reposicionar, lamina, indice, activo?.clave]);
   useEffect(() => {
     window.addEventListener("resize", reposicionar);
     window.addEventListener("scroll", reposicionar, true);
@@ -146,14 +154,13 @@ function CapaPorQue({ slideId, cerrarPanel, panelProps }: { slideId: string; cer
       aria-label={par ? `Por qué se marca: ${par.fila}` : "Por qué se marca"}
       data-audit-ready={datos || carga?.estado === "error" ? "graficos-diferencias-lamina" : "false"}
       data-qa-surface="graficos/diferencias-lamina"
-      data-qa-scroll-owner="diferencias-lamina"
       data-qa-geometry-group="graficos/diferencias-lamina"
       data-qa-geometry-contract="intrinsic"
     >
       <header className="pulso-sig-porque-cabeza" data-qa-geometry-member="">
         <CabeceraPanel titulo="Diferencias de esta lámina" onCerrar={cerrar} etiquetaCerrar="Cerrar diferencias de esta lámina" />
       </header>
-      <div className="pulso-sig-porque-cuerpo" data-qa-geometry-member="">
+      <div className="pulso-sig-porque-cuerpo" data-qa-geometry-member="" data-qa-scroll-owner="diferencias-lamina" data-ranuras={bloques.length}>
         {carga?.estado === "error" ? (
           <CajaDiferencias tono="peligro" role="alert">
             <p className="pulso-sig-texto">
@@ -162,13 +169,25 @@ function CapaPorQue({ slideId, cerrarPanel, panelProps }: { slideId: string; cer
           </CajaDiferencias>
         ) : !lamina ? (
           <CargaDeBloque label="Leyendo las diferencias de la lámina…" />
-        ) : !par || !datos ? (
-          <CajaDiferencias><p className="pulso-sig-texto">{lamina.estado === "abstencion" ? (lamina.motivo ?? lamina.nota) : "Esta lámina no tiene pares comparados."}</p></CajaDiferencias>
+        ) : !par || !datos || !activo ? (
+          varios ? <BloquesSinPares bloques={bloques} /> : (
+            <CajaDiferencias><p className="pulso-sig-texto">{lamina.estado === "abstencion" ? (lamina.motivo ?? lamina.nota) : "Esta lámina no tiene pares comparados."}</p></CajaDiferencias>
+          )
         ) : (
           <>
-            <DetallePar lamina={lamina} regla={datos.regla} par={par} indice={indice} total={pares.length}
-              onMover={(paso) => elegirPar(slideId, (indice + paso + pares.length) % pares.length)} />
-            <TablaPares lamina={lamina} indice={indice} onElegir={(i) => elegirPar(slideId, i)} />
+            <DetallePar lamina={activo.ranura} titulo={varios ? activo.titulo : ""} regla={datos.regla} par={par} indice={indice} total={pares.length}
+              onMover={(paso) => elegirPar(slideId, (indice + paso + pares.length) % pares.length, activo.clave)} />
+            {varios ? (
+              <div className="pulso-sig-ranuras">
+                {bloques.map((b) => (
+                  <BloqueDeRanura key={b.clave} bloque={b} indice={b.clave === activo.clave ? indice : null}
+                    onElegir={(i) => elegirPar(slideId, i, b.clave)} />
+                ))}
+                <p className="pulso-sig-texto">{LEYENDA_MARCA}</p>
+              </div>
+            ) : (
+              <TablaPares lamina={activo.ranura} indice={indice} onElegir={(i) => elegirPar(slideId, i, activo.clave)} />
+            )}
           </>
         )}
       </div>
@@ -177,8 +196,8 @@ function CapaPorQue({ slideId, cerrarPanel, panelProps }: { slideId: string; cer
   return destino ? createPortal(contenido, destino) : contenido;
 }
 
-function DetallePar({ lamina, regla, par, indice, total, onMover }: {
-  lamina: LaminaDiferencias; regla: ReglaDiferencias; par: ParDiferencias; indice: number; total: number; onMover: (paso: number) => void;
+function DetallePar({ lamina, titulo, regla, par, indice, total, onMover }: {
+  lamina: ResultadoDiferencias; titulo: string; regla: ReglaDiferencias; par: ParDiferencias; indice: number; total: number; onMover: (paso: number) => void;
 }) {
   const nA = par.n_a ?? lamina.grupos.find((g) => g.letra === par.a)?.n ?? null;
   const nB = par.n_b ?? lamina.grupos.find((g) => g.letra === par.b)?.n ?? null;
@@ -188,6 +207,7 @@ function DetallePar({ lamina, regla, par, indice, total, onMover }: {
   };
   return (
     <article className="pulso-sig-detalle" aria-live="polite">
+      {titulo && <p className="pulso-sig-ranura-titulo">{titulo}</p>}
       <div className="pulso-sig-detalle-cabeza">
         {esMarcado(par) && <Capsula letras={par.a === "resto" ? "" : par.b} menor={par.a === "resto"} fragil={par.veredicto === "fragil"} />}
         <strong>{par.fila}</strong>
@@ -230,7 +250,40 @@ function DetallePar({ lamina, regla, par, indice, total, onMover }: {
 
 type FilaPar = { par: ParDiferencias; i: number };
 
-function TablaPares({ lamina, indice, onElegir }: { lamina: LaminaDiferencias; indice: number; onElegir: (i: number) => void }) {
+/** Una ranura de la lámina con varias: su nombre, y su tabla de pares o la línea que dice por qué no compara. */
+function BloqueDeRanura({ bloque, indice, onElegir }: { bloque: BloqueRanura; indice: number | null; onElegir: (i: number) => void }) {
+  const r = bloque.ranura;
+  return (
+    <section className="pulso-sig-ranura" aria-label={bloque.titulo} data-ranura={bloque.clave} data-estado={r.estado}>
+      <h3 className="pulso-sig-ranura-titulo">{bloque.titulo}</h3>
+      {bloque.aviso ? (
+        <p className={`pulso-sig-texto pulso-sig-ranura-aviso${r.estado === "error" ? " is-peligro" : ""}`}>
+          {bloque.aviso}{r.estado === "error" && <CodigoError code={r.error?.code} errorId={r.error?.error_id} />}
+        </p>
+      ) : r.pares.length ? (
+        <TablaPares lamina={r} indice={indice} onElegir={onElegir} etiqueta={`Pares de grupos de ${bloque.titulo}`} sinTope />
+      ) : (
+        <p className="pulso-sig-texto pulso-sig-ranura-aviso">Sin pares comparados.</p>
+      )}
+    </section>
+  );
+}
+
+/** Ninguna ranura con pares: un bloque por ranura con su motivo. */
+function BloquesSinPares({ bloques }: { bloques: readonly BloqueRanura[] }) {
+  return (
+    <div className="pulso-sig-ranuras is-completa">
+      {bloques.map((b) => <BloqueDeRanura key={b.clave} bloque={b} indice={null} onElegir={() => undefined} />)}
+    </div>
+  );
+}
+
+function TablaPares({ lamina, indice, onElegir, etiqueta = "Pares de grupos de la lámina", sinTope = false }: {
+  lamina: ResultadoDiferencias; indice: number | null; onElegir: (i: number) => void; etiqueta?: string;
+  /** Con varias ranuras la tabla no se recorta (el cuerpo de la capa es el único que desplaza, C4) y la leyenda va una
+   *  sola vez, al pie de los bloques. */
+  sinTope?: boolean;
+}) {
   const filas: FilaPar[] = lamina.pares.map((par, i) => ({ par, i }));
   const columnas: PulsoTableColumna<FilaPar>[] = [
     // La capa mide 720 px y la tabla vive en su columna derecha (~378 px): 4 columnas, 358 px, sin scroll horizontal aun
@@ -256,9 +309,9 @@ function TablaPares({ lamina, indice, onElegir }: { lamina: LaminaDiferencias; i
   const redaccion = redaccionLamina(lamina.pares);
   return (
     <div className="pulso-sig-pares">
-      <PulsoTable columnas={columnas} filas={filas} idDeFila={(f) => String(f.i)} ariaLabel="Pares de grupos de la lámina" densidad="compacta"
-        seleccionada={String(indice)} onSeleccionar={(id) => onElegir(Number(id))} altoMaximo={260} vacio="Sin pares comparados." />
-      <p className="pulso-sig-texto">Las cifras sin marca son el grupo menor de su par: la marca la lleva el mayor.</p>
+      <PulsoTable columnas={columnas} filas={filas} idDeFila={(f) => String(f.i)} ariaLabel={etiqueta} densidad="compacta"
+        seleccionada={indice === null ? null : String(indice)} onSeleccionar={(id) => onElegir(Number(id))} altoMaximo={sinTope ? 2000 : 260} vacio="Sin pares comparados." />
+      {!sinTope && <p className="pulso-sig-texto">{LEYENDA_MARCA}</p>}
       {redaccion && (
         <CajaDiferencias>
           <strong className="pulso-sig-titulo">Redacción sugerida</strong>
@@ -268,6 +321,8 @@ function TablaPares({ lamina, indice, onElegir }: { lamina: LaminaDiferencias; i
     </div>
   );
 }
+
+const LEYENDA_MARCA = "Las cifras sin marca son el grupo menor de su par: la marca la lleva el mayor.";
 
 const ABREVIADO: Readonly<Record<ParDiferencias["veredicto"], string>> = {
   marcada: "▲", fragil: "△", bajo_umbral: "< umbral", no_significativa: "n. s.", no_comparable: "n. c.",

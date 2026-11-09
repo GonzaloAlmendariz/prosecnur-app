@@ -12,7 +12,9 @@ import {
   type DiferenciasLaminaRespuesta,
 } from "../../../../api/graficosDiferencias";
 import { SLIDE_GRAF_SLOTS, usePlanStore } from "../../store";
+import { entradaDeGrafico, nombreDeEntrada } from "../../catalogoGraficos";
 import { claveDiferencias, type CargaDiferencias } from "./modeloDiferencias";
+import type { NombreDeGrafico } from "./modeloRanuras";
 import { useDiferenciasUi } from "./store";
 
 const ESPERA_MS = 300;
@@ -107,4 +109,23 @@ export function useClaveDiferencias(slideId: string | null): string {
     const payload = (slide.payload ?? {}) as Record<string, unknown>;
     return claveDiferencias((SLIDE_GRAF_SLOTS[slide.tipo] ?? []).map((slot) => payload[slot] as { graficador?: unknown; args?: unknown } | undefined));
   });
+}
+
+type RefGrafico = { graficador?: unknown; args?: unknown } | undefined;
+
+/**
+ * El nombre de catálogo (o de variante) del gráfico de cada ranura, con los args guardados. Con `slideId`, el de esa
+ * lámina; sin él (la revisión del informe), el de la lámina de cada ranura (`slide_id`).
+ */
+export function useNombreDeGrafico(slideId: string | null = null): NombreDeGrafico {
+  const slides = usePlanStore((s) => s.plan.slides);
+  return useCallback((ranura) => {
+    const id = slideId ?? ranura.slide_id;
+    const payload = slides.find((x) => x.id === id)?.payload as Record<string, unknown> | undefined;
+    const ref = payload?.[ranura.ranura] as RefGrafico;
+    const graficador = ranura.graficador || (typeof ref?.graficador === "string" ? ref.graficador : "");
+    if (!graficador) return "";
+    const args = ref && typeof ref.args === "object" && ref.args ? (ref.args as Record<string, unknown>) : {};
+    return nombreDeEntrada(entradaDeGrafico(graficador, args));
+  }, [slides, slideId]);
 }

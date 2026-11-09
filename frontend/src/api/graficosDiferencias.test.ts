@@ -116,3 +116,64 @@ describe("normalizeDiferenciasInforme", () => {
       .toMatchObject({ cruces: 33, marcadas: 41, familia: 412, fragiles: 0 });
   });
 });
+
+describe("ranuras de la lámina (ADR 0128 «Familia por base»)", () => {
+  const ranura = (extra: Record<string, unknown>) => ({
+    estado: "con_marcas", cruce: "sexo", variable: "p1", activo: true,
+    grupos: [{ letra: "A", etiqueta: "Mujer", n: 80, comparable: true }, { letra: "B", etiqueta: "Hombre", n: 70, comparable: true }],
+    pares: [{ fila: "Sí", a: "A", b: "B", dif: 20, p_ajustado: 0.001, veredicto: "marcada" }],
+    ...extra,
+  });
+
+  it("con `ranuras`: una por ranura, en el orden del payload, heredando slide_id y título", () => {
+    const l = normalizeDiferenciasLamina({
+      slide_id: "s4", titulo: "Cuatro", ...ranura({}),
+      ranuras: [
+        ranura({ ranura: "grafico_1", indice: 1, graficador: "p_barras_agrupadas", base: "estudiantes" }),
+        ranura({ ranura: "grafico_3", indice: 3, graficador: "p_barras_apiladas", base: "docentes", estado: "ninguna", pares: [] }),
+      ],
+    });
+    expect(l.ranuras.map((r) => [r.ranura, r.indice, r.graficador, r.base, r.estado])).toEqual([
+      ["grafico_1", 1, "p_barras_agrupadas", "estudiantes", "con_marcas"],
+      ["grafico_3", 3, "p_barras_apiladas", "docentes", "ninguna"],
+    ]);
+    expect(l.ranuras[1]).toMatchObject({ slide_id: "s4", titulo: "Cuatro" });
+  });
+
+  it("sin `ranuras` (backend anterior): la primera ranura armada con los campos de la lámina", () => {
+    const l = normalizeDiferenciasLamina({ slide_id: "s1", ...ranura({}) });
+    expect(l.ranuras).toHaveLength(1);
+    expect(l.ranuras[0]).toMatchObject({ ranura: "", indice: 1, base: null, estado: "con_marcas", cruce: "sexo" });
+    expect(l.ranuras[0].pares).toHaveLength(1);
+  });
+
+  it("sin cruce ni `ranuras`, y entre públicos: ninguna ranura", () => {
+    expect(normalizeDiferenciasLamina({ slide_id: "s1", estado: "sin_cruce" }).ranuras).toEqual([]);
+    expect(normalizeDiferenciasLamina({ slide_id: "s1", modo_letras: "entre_publicos", estado: "ninguna", ranuras: [ranura({})] }).ranuras).toEqual([]);
+  });
+
+  it("una ranura en error conserva su motivo y su código; un estado desconocido es error, nunca marca", () => {
+    const l = normalizeDiferenciasLamina({
+      slide_id: "s4", ...ranura({}),
+      ranuras: [
+        ranura({ ranura: "grafico_2", indice: 2, base: null, estado: "error", pares: [], motivo: "La base de la ranura es ambigua.", error: { code: "E_SIG_BASE_AMBIGUA", message: "La base de la ranura es ambigua." } }),
+        ranura({ ranura: "grafico_4", estado: "marcadas" }),
+        "basura",
+      ],
+    });
+    expect(l.ranuras[0]).toMatchObject({ estado: "error", base: null, error: { code: "E_SIG_BASE_AMBIGUA", message: "La base de la ranura es ambigua." } });
+    expect(l.ranuras[1].estado).toBe("error");
+    expect(l.ranuras[1].error?.message).toMatch(/marcadas/);
+    expect(l.ranuras[2]).toMatchObject({ ranura: "3", indice: 3, estado: "error" });
+  });
+
+  it("el resumen que falta se deriva de todas las ranuras, no sólo de la primera", () => {
+    const inf = normalizeDiferenciasInforme({
+      laminas: [{
+        slide_id: "s4", ...ranura({}),
+        ranuras: [ranura({ ranura: "grafico_1" }), ranura({ ranura: "grafico_2", estado: "ninguna", pares: [] }), ranura({ ranura: "grafico_3", estado: "abstencion", pares: [], revisar: ["sin_prueba"] })],
+      }],
+    });
+    expect(inf.resumen).toMatchObject({ cruces: 3, ninguna: 1, sin_prueba: 1, marcadas: 1 });
+  });
+});

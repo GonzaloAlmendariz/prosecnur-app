@@ -7,7 +7,7 @@
 
 import { useId } from "react";
 import { AlertTriangle, Copy, Plus, RotateCcw } from "../../../../vendor/lucide-react";
-import { REGLA_DIFERENCIAS_POR_DEFECTO, type LaminaDiferencias, type ReglaDiferencias } from "../../../../api/graficosDiferencias";
+import { REGLA_DIFERENCIAS_POR_DEFECTO, type ReglaDiferencias, type ResultadoDiferencias } from "../../../../api/graficosDiferencias";
 import { Switch } from "../../../../components/Switch";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { Skeleton } from "../../../../components/Skeleton";
@@ -27,14 +27,18 @@ import {
   parInicial,
   redaccionLamina,
   resumenRegla,
+  type CargaDiferencias,
   type EstadoInspector,
 } from "./modeloDiferencias";
+import { ranuraDelGrafico } from "./modeloRanuras";
 import { useClaveDiferencias, useDiferenciasLamina } from "./useDiferencias";
 import { useDiferenciasUi } from "./store";
 import "./diferencias.css";
 
 type Props = {
   slideId: string;
+  /** La ranura del gráfico de esta tarjeta: el inspector muestra sólo la suya (la lámina puede traer varias). */
+  slot: string;
   /** El `mostrar_significancia` efectivo del gráfico (guardado o, sin guardar, el default del registro). */
   encendido: boolean;
   /** La pregunta que divide (`cruces`); vacía = sin cruce. */
@@ -48,7 +52,7 @@ type Props = {
   onQuitarCruce: () => void;
 };
 
-export function DiferenciasInspector({ slideId, encendido, cruce, etiquetaCruce, onAlternar, onAgregarCruce, onQuitarCruce }: Props) {
+export function DiferenciasInspector({ slideId, slot, encendido, cruce, etiquetaCruce, onAlternar, onAgregarCruce, onQuitarCruce }: Props) {
   const tieneCruce = cruce.trim() !== "";
   // La huella de la lámina entera (sus ranuras): la comparte «Por qué», que pide lo mismo.
   const clave = useClaveDiferencias(slideId);
@@ -56,14 +60,22 @@ export function DiferenciasInspector({ slideId, encendido, cruce, etiquetaCruce,
   const reglaPanel = usePanelDireccionable(PANEL_DIFERENCIAS_REGLA);
   const porQuePanel = usePanelDireccionable(PANEL_DIFERENCIAS_LAMINA);
   const elegirPar = useDiferenciasUi((s) => s.elegirPar);
-  const estado = estadoInspector({ tieneCruce, encendido, carga });
   const datos = carga && carga.estado !== "error" ? carga.datos : undefined;
-  const error = carga?.estado === "error" ? { code: carga.code, message: carga.message, error_id: carga.error_id } : null;
+  const ranura = datos ? ranuraDelGrafico(datos.lamina, slot) : null;
+  // El cálculo llegó pero sin este gráfico (ADR 0128 «Familia por base»): se dice, no se cuelga en «calculando».
+  const faltaRanura = !!datos && !ranura && tieneCruce && encendido;
+  const cargaRanura: CargaDiferencias<{ lamina: ResultadoDiferencias }> | undefined = !carga || carga.estado === "error" ? carga
+    : !ranura ? { estado: "cargando" }
+      : carga.estado === "listo" ? { estado: "listo", datos: { lamina: ranura } } : { estado: "cargando", datos: { lamina: ranura } };
+  const estado: EstadoInspector = faltaRanura ? "error" : estadoInspector({ tieneCruce, encendido, carga: cargaRanura });
+  const error = carga?.estado === "error"
+    ? { code: carga.code, message: carga.message, error_id: carga.error_id }
+    : faltaRanura ? { code: "", message: "El cálculo de la lámina no trae este gráfico. Guarda el plan y vuelve a intentarlo.", error_id: null } : null;
   return (
     <DiferenciasInspectorVista
       estado={estado}
       encendido={encendido}
-      lamina={datos?.lamina ?? null}
+      lamina={ranura}
       regla={datos?.regla ?? null}
       errorCarga={error}
       etiquetaCruce={etiquetaCruce}
@@ -73,7 +85,7 @@ export function DiferenciasInspector({ slideId, encendido, cruce, etiquetaCruce,
       onReintentar={reintentar}
       onAbrirRegla={reglaPanel.abrir}
       onVerPorQue={() => {
-        if (datos) elegirPar(slideId, parInicial(datos.lamina.pares));
+        if (ranura) elegirPar(slideId, parInicial(ranura.pares), ranura.ranura);
         porQuePanel.abrir();
       }}
     />
@@ -83,7 +95,8 @@ export function DiferenciasInspector({ slideId, encendido, cruce, etiquetaCruce,
 type VistaProps = {
   estado: EstadoInspector;
   encendido: boolean;
-  lamina: LaminaDiferencias | null;
+  /** El resultado de la ranura de esta tarjeta. */
+  lamina: ResultadoDiferencias | null;
   regla: ReglaDiferencias | null;
   /** Fallo de la llamada misma (no de la prueba dentro de la lámina). */
   errorCarga: { code: string; message: string; error_id: string | null } | null;
@@ -182,7 +195,7 @@ function CuerpoPorEstado({ estado, lamina, regla, errorCarga, etiquetaCruce, onA
 }
 
 function Resumen({ lamina, regla, estado, etiquetaCruce, onQuitarCruce, onVerPorQue }: {
-  lamina: LaminaDiferencias; regla: ReglaDiferencias | null; estado: "ninguna" | "con_marcas"; etiquetaCruce: string | null; onQuitarCruce: () => void; onVerPorQue: () => void;
+  lamina: ResultadoDiferencias; regla: ReglaDiferencias | null; estado: "ninguna" | "con_marcas"; etiquetaCruce: string | null; onQuitarCruce: () => void; onVerPorQue: () => void;
 }) {
   const c = conteosLamina(lamina);
   const chicos = gruposNoComparables(lamina.grupos);
