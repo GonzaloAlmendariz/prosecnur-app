@@ -41,7 +41,7 @@ import { nombreCampo, nombreGrafico, nombreLamina, nombreSlot } from "./etiqueta
 import { PANEL_TIPO_LAMINA } from "./panelesSelectores";
 import { MODO_LAMINA_POR_DEFECTO, useSelectoresUi } from "./selectoresStore";
 import { TarjetaTipoLamina } from "./TarjetaTipoLamina";
-import { conVariante, INTENCIONES, intencionDe, rotuloRanuras, varianteDe, variantesDe, type IntencionLamina } from "./tiposLamina";
+import { conVariante, INTENCIONES, intencionDe, rotuloRanuras, USA_SIN_GRAFICO, varianteDe, variantesDe, type IntencionLamina } from "./tiposLamina";
 import {
   cambioConOpcion, conOpcion, opcionDeLamina, opcionesDe, presetDe, tipoDeOpcion, type EstudioDelSelector, type OpcionLamina,
 } from "./opcionesLamina";
@@ -278,10 +278,12 @@ export function SelectorTipoLamina({ slide, posicion, cerrar, onArmarResumen }: 
   const tarjetaCandidata = tarjetaContar(candidato);
   // S1: el `usa` de la tarjeta manda sobre el del graficador cuando la composición lo exige.
   const usaDe = (op: OpcionLamina) => usaDeTarjeta(presetDe(op));
+  // R14-4: la tarjeta de la familia «Hallazgos» (sin preset) y la recomendación leen el mismo USA_SIN_GRAFICO.
+  const sinGraficoDe = (op: OpcionLamina) => presetDe(op)?.usaSinGrafico ?? USA_SIN_GRAFICO[tipoDeOpcion(op)];
   const fichaDe = (op: OpcionLamina): ReactNode => {
     const usa = usaDe(op);
     if (usa) return <FichaDatosTarjeta usa={usa} inventario={ui.inventario} />;
-    const sinGrafico = presetDe(op)?.usaSinGrafico;
+    const sinGrafico = sinGraficoDe(op);
     return sinGrafico ? <FichaDatosCierre usa={sinGrafico} laminasResumen={laminasResumen} /> : null;
   };
   const columnaComparar = (op: OpcionLamina): ColumnaComparar => {
@@ -290,7 +292,7 @@ export function SelectorTipoLamina({ slide, posicion, cerrar, onArmarResumen }: 
     const c = cambios.get(op);
     return {
       opcion: op, tipo: t, nombre: nombreDe(op), clase: preset?.clase ?? "lamina", glifo: preset?.grafico?.graficador,
-      usa: usaDe(op), usaSinGrafico: preset?.usaSinGrafico, admite: rotuloRanuras(t), actual: esActual(op), sobrantes: c && !c.mismoTipo ? c.sobrantes.length : 0,
+      usa: usaDe(op), usaSinGrafico: sinGraficoDe(op), admite: rotuloRanuras(t), actual: esActual(op), sobrantes: c && !c.mismoTipo ? c.sobrantes.length : 0,
       miniatura: miniaturas[op],
     };
   };
@@ -415,7 +417,7 @@ export function SelectorTipoLamina({ slide, posicion, cerrar, onArmarResumen }: 
                       tipo={t}
                       nombre={nombreDe(op)}
                       clase={preset?.clase ?? "lamina"}
-                      meta={preset?.grafico || preset?.usaSinGrafico ? "" : rotuloRanuras(t)}
+                      meta={preset?.grafico || sinGraficoDe(op) ? "" : rotuloRanuras(t)}
                       uso={usoDe(op)}
                       glifo={preset?.grafico?.graficador}
                       graficos={graficosDe(op)}

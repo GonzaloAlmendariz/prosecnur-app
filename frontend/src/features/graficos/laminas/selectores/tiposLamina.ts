@@ -98,6 +98,14 @@ export function ranurasDeTipo(tipo: SlideType): { graficos: number; cifras: numb
   return { graficos: slots.length - cifras, cifras };
 }
 
+/**
+ * R14-4: lo que usa una composición sin ranura de gráfico. La tarjeta de la familia «Hallazgos» y la recomendación
+ * «Cierre con hallazgos» leen esta misma línea: las dos muestran la ficha de las cifras que toma y ninguna «Sin gráficos».
+ */
+export const USA_SIN_GRAFICO: Partial<Record<SlideType, string>> = {
+  p_slide_cierre_hallazgos: "Cifras de otras láminas de resumen del informe",
+};
+
 /** «2 gráficos», «2 gráficos y 3 cifras», «Sin gráficos». */
 export function rotuloRanuras(tipo: SlideType): string {
   const { graficos, cifras } = ranurasDeTipo(tipo);

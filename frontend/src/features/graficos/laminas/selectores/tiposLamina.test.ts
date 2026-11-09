@@ -16,7 +16,8 @@ import { composicionDe } from "../../iconos/composicion";
 import { tieneDibujoEstructura } from "../../iconos/dibujosEstructura";
 import { payloadPorDefecto, SLIDE_GRAF_SLOTS, SLIDE_LABELS } from "../../store";
 import { isInsertableSlideType } from "../../v2/timeline/SlidePicker";
-import { conVariante, defectoEfectivoDe, INTENCIONES, intencionDe, rotuloRanuras, TIPOS_FUERA_DEL_SELECTOR, varianteDe, VARIANTES_LAMINA, variantesDe } from "./tiposLamina";
+import { conVariante, defectoEfectivoDe, INTENCIONES, intencionDe, rotuloRanuras, TIPOS_FUERA_DEL_SELECTOR, USA_SIN_GRAFICO, varianteDe, VARIANTES_LAMINA, variantesDe } from "./tiposLamina";
+import { tarjetaContar } from "./intencionesContar";
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../../../..");
 const nombres = CATALOGO_LAMINAS.map((s) => s.name);
@@ -102,6 +103,13 @@ describe("los 37 tipos del registro", () => {
     expect(rotuloRanuras("p_slide_1_grafico")).toBe("1 gráfico");
     expect(rotuloRanuras("p_slide_cifras_y_graficos")).toBe("2 gráficos y 3 cifras");
     expect(rotuloRanuras("p_slide_portada")).toBe("Sin gráficos");
+  });
+
+  it("R14-4: el cierre de la familia «Hallazgos» y el de la recomendación leen la misma línea de lo que usa", () => {
+    const tipo = "p_slide_cierre_hallazgos" as const;
+    expect(intencionDe(tipo)).toBe("hallazgos");
+    expect(USA_SIN_GRAFICO[tipo]).toBeTruthy();
+    expect(tarjetaContar("p_slide_cierre_hallazgos:cierre")?.usaSinGrafico).toBe(USA_SIN_GRAFICO[tipo]);
   });
 });
 

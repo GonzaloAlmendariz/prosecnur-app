@@ -18,6 +18,7 @@ import { conPropuesta } from "../gruposPadron/modeloPadron";
 import { usoDeTarjeta } from "./detalleLamina";
 import type { ClavePreset, EstudioDelSelector, GraficoDePreset, PresetLamina } from "./opcionesLamina";
 import { TIPOS_RETIRADOS_0137 } from "../../retirados";
+import { USA_SIN_GRAFICO } from "./tiposLamina";
 
 /** Lo que la tarjeta inserta: un tipo de gráfico o un tipo de lámina (ADR 0139, decisión 1). */
 export type ClaseTarjeta = "grafico" | "lamina";
@@ -255,7 +256,7 @@ export const TARJETAS_CONTAR: readonly TarjetaContar[] = [
     descripcion: usoDeTarjeta("p_slide_cierre_hallazgos", undefined, undefined),
     pide: "Láminas de resumen ya puestas en el informe",
     parche: {},
-    usaSinGrafico: "Cifras de otras láminas de resumen del informe",
+    usaSinGrafico: USA_SIN_GRAFICO.p_slide_cierre_hallazgos,
     coincide: () => true,
   },
 ];

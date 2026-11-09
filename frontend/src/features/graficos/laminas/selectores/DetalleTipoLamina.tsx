@@ -18,7 +18,7 @@ import { AvisoCambio } from "./AvisoCambio";
 import { ROTULO_CLASE } from "./intencionesContar";
 import { MedidasEstandar } from "./MedidasEstandar";
 import { RepartoGraficos } from "./RepartoGraficos";
-import { rotuloRanuras, type VariantesTipo } from "./tiposLamina";
+import { rotuloRanuras, USA_SIN_GRAFICO, type VariantesTipo } from "./tiposLamina";
 
 type Props = {
   tipo: SlideType;
@@ -58,6 +58,8 @@ export function DetalleTipoLamina(props: Props) {
   const hayPerdida = sobrantes.length > 0 || textos.length > 0;
   const boton = etiquetaBoton(props);
   const frase = fraseDetalle(estandar?.uso, descripcion);
+  // R14-4: sin ranura de gráfico, la ficha de lo que toma (USA_SIN_GRAFICO) reemplaza a «Admite: Sin gráficos».
+  const sinGrafico = Boolean(USA_SIN_GRAFICO[tipo]);
   const tamano = tamanoTexto(estandar?.familia);
 
   return (
@@ -78,16 +80,22 @@ export function DetalleTipoLamina(props: Props) {
         {frase && <p>{frase}</p>}
       </div>
 
-      <dl className="pulso-f6-ficha">
-        <dt>Admite</dt>
-        <dd>{rotuloRanuras(tipo)}</dd>
-        {tamano && (
-          <>
-            <dt>Tamaño del texto</dt>
-            <dd>{tamano}</dd>
-          </>
-        )}
-      </dl>
+      {(!sinGrafico || tamano) && (
+        <dl className="pulso-f6-ficha">
+          {!sinGrafico && (
+            <>
+              <dt>Admite</dt>
+              <dd>{rotuloRanuras(tipo)}</dd>
+            </>
+          )}
+          {tamano && (
+            <>
+              <dt>Tamaño del texto</dt>
+              <dd>{tamano}</dd>
+            </>
+          )}
+        </dl>
+      )}
 
       {ficha}
 
