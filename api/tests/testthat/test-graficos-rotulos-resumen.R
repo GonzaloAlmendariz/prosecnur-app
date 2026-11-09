@@ -239,7 +239,7 @@ test_that("P11: la escala de 18 filas con rótulos reales de Arte usa el ancho y
   expect_identical(ge$recortados, 0L)
   expect_false(any(grepl("…", ge$textos, fixed = TRUE)))  # enteras
   expect_identical(ge$textos, e$filas[ge$filas])
-  expect_lte(sum(ge$alturas), (.std_geom("contenido_y1") - 0.05) - (.std_geom("zona_datos_y0") + 0.45) + 1e-6)
+  expect_lte(sum(ge$alturas), (.std_geom("contenido_y1") - 0.05) - ge$y0 + 1e-6)   # P13: desde bajo el título hasta el pie
   lineas <- vapply(ge$textos, function(t) length(.lam_rotulo_recortar(t, ge$wq, ge$size, 3L)$lineas), 0L)
   expect_true(all(ge$alturas >= lineas * ge$size * 1.2 / 72))
   expect_true(any(lineas >= 2L))

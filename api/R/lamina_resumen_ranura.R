@@ -634,7 +634,8 @@
   azul <- .std_color("azul")
   C <- espec$categorias; U <- espec$unidades; X <- espec$cifras; n <- ge$k %||% length(espec$filas)
   alturas <- ge$alturas; g <- ge$g
-  y_ley <- ge$y + max(0, ge$disponible - sum(alturas)) / 2; y0 <- y_ley + ge$hley
+  # P13: el bloque arranca arriba de la ranura (bajo su enunciado), no centrado en su alto con aire encima.
+  y_ley <- ge$y; y0 <- y_ley + ge$hley
   centros <- y0 + cumsum(alturas) - alturas / 2
   pt_cifra <- if (ge$u < 0.3) 9.5 else 10
   neu <- which(C$lado == "neu"); mitades <- if (length(neu)) rowSums(U[, neu, drop = FALSE]) / 2 else rep(0, n)
@@ -643,7 +644,8 @@
   px <- (ge$xb - ge$xa - 1.1) / (izq + der); xc <- ge$xa + 0.55 + izq * px
   # Leyenda en filas a lo ancho de la ranura, en orden lógico.
   for (r in seq_along(ge$ley$filas)) {
-    x <- ge$x; yl <- y_ley + (r - 1) * 0.27
+    # P13: cada fila de la leyenda va centrada en su ranura (en un panel, la leyenda se centra en el panel).
+    x <- ge$x + max(0, (ge$w - sum(ge$ley$anchos[ge$ley$filas[[r]]])) / 2); yl <- y_ley + (r - 1) * 0.27
     for (i in ge$ley$filas[[r]]) {
       k <- ge$ley$orden[i]
       .lam_caja(lz, x, yl + 0.07, 0.13, 0.13, C$color[k], nombre = "leyenda:cuadro")

@@ -22,6 +22,10 @@
 #' @keywords internal
 .LAM_DIV_RESUMEN_MAX_FILAS <- 20L
 
+#' Aire entre el fondo del bloque de título y lo primero del gráfico (la leyenda), en pulgadas (P13)
+#' @keywords internal
+.LAM_AIRE_BAJO_TITULO_IN <- 0.3
+
 #' Calle entre una cifra que sale de su segmento y el extremo del segmento (P12, Gonzalo 2026-11-09: «además está
 #' demasiado alejado de la barra»)
 #'
@@ -49,20 +53,24 @@
 #' @return Lista con la geometría (`ml`, `fin`, `y0`, `wq`, `xa`, `xb`, `hay_si`, `wsi`), `size`, `u` (paso común),
 #'   `alturas`, `g` (alto de la barra), `textos`, `recortados`; `NULL` si las filas no caben.
 #' @keywords internal
-.lam_div_resumen_geom <- function(espec) {
+.lam_div_resumen_geom <- function(espec, titulo = NULL, sub = NULL) {
   g_ <- .std_geom; ml <- g_("margen_izq"); fin <- g_("ancho") - g_("margen_der")
   n <- length(espec$filas); C <- espec$categorias
-  y0 <- g_("zona_datos_y0") + 0.45; y1 <- g_("contenido_y1") - 0.05; disponible <- y1 - y0
   hay_si <- any(C$lado == "sin_inf")
   # ADR 0135 §3: la columna del no sustantivo («Sin información») no pasa de 2 in; su leyenda se parte en dos líneas.
   wsi <- if (hay_si) min(2, max(1.5, .lam_ancho_tinta(C$rotulo[C$lado == "sin_inf"][1], 11, FALSE) + 0.45)) else 0
+  # P13 (Gonzalo, 2026-11-09: «aún no usa el alto disponible»): el bloque (leyenda y filas) arranca bajo el título con el
+  # aire de la casa, no en la zona de datos fija (quedaba una pulgada vacía), y las filas llegan hasta el pie.
+  hl_si <- if (hay_si) max(0.3, .lam_alto_tinta(C$rotulo[C$lado == "sin_inf"][1], wsi, 11, FALSE)) else 0.3
+  yl <- .lam_titulo_fin(titulo, sub) + .LAM_AIRE_BAJO_TITULO_IN + max(0, hl_si - 0.3)
+  y0 <- yl + 0.42; y1 <- g_("contenido_y1") - 0.05; disponible <- y1 - y0
   xb <- fin - wsi - (if (hay_si) 0.45 else 0)
   # P11: la columna toma el ancho libre desde el margen (sin tope fijo); afirmaciones enteras en dos o tres líneas y, si
   # todas no caben, menos filas por la prioridad de la regla antes que cortar texto (lamina_divergentes_resumen_filas.R).
   w_max <- xb - 4.5 - 0.2 - ml
   elegido <- if (n >= 1L) .lam_div_resumen_filas_elegir(espec, disponible, w_max) else NULL
   if (is.null(elegido)) return(NULL)
-  c(list(ml = ml, fin = fin, y0 = y0, hay_si = hay_si, wsi = wsi, xa = ml + elegido$wq + 0.2, xb = xb, g = elegido$u * 0.74),
+  c(list(ml = ml, fin = fin, y0 = y0, yl = yl, hay_si = hay_si, wsi = wsi, xa = ml + elegido$wq + 0.2, xb = xb, g = elegido$u * 0.74),
     elegido)
 }
 
@@ -85,7 +93,7 @@
   force(folio)
   azul <- .std_color("azul"); suave <- .std_color("texto_suave")
   C <- espec$categorias; U <- espec$unidades; X <- espec$cifras; n <- length(espec$filas)
-  ge <- .lam_div_resumen_geom(espec)
+  ge <- .lam_div_resumen_geom(espec, titulo = titulo, sub = sub)
   if (is.null(ge)) stop("La escala del resumen no cabe en una lámina.", call. = FALSE)
   # P11: si no caben todas enteras, la lámina muestra las primeras en la prioridad de la regla y su nota lo dice.
   if (length(ge$filas) < n) {
@@ -107,15 +115,17 @@
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()
-  # Leyenda alineada con cada lado: el desacuerdo, del extremo al centro, termina en la línea; el acuerdo empieza en ella.
-  yl <- y0 - 0.42
+  # P13 (Gonzalo, 2026-11-09: «La leyenda debería estar centrada y no lo está»): la leyenda de la escala va en una fila
+  # centrada en la lámina (`.std_geom("ancho") / 2`, la regla de la casa para láminas completas), del extremo en
+  # desacuerdo al extremo de acuerdo; la de «Sin información» queda sobre su columna (ADR 0135 §3).
+  yl <- ge$yl
   item <- function(k) .lam_ancho_tinta(C$rotulo[k], 11, FALSE) + 0.3
-  izq_ley <- rev(neg); x <- xc - 0.1 - sum(vapply(izq_ley, item, 0)) - 0.15 * max(0, length(izq_ley) - 1L)
+  orden_ley <- c(rev(neg), if (length(neu)) neu, pos)
+  ancho_ley <- sum(vapply(orden_ley, item, 0)) + 0.15 * max(0, length(orden_ley) - 1L)
+  x <- .std_geom("ancho") / 2 - ancho_ley / 2
   # Primero las posiciones; la leyenda se dibuja después para poder correrla entera si pisa la de «Sin información».
   ley <- list()
-  for (k in c(izq_ley, if (length(neu)) neu)) { ley[[length(ley) + 1L]] <- c(k = k, x = x); x <- x + item(k) + 0.15 }
-  x <- max(x, xc + 0.1)
-  for (k in pos) { ley[[length(ley) + 1L]] <- c(k = k, x = x); x <- x + item(k) + 0.15 }
+  for (k in orden_ley) { ley[[length(ley) + 1L]] <- c(k = k, x = x); x <- x + item(k) + 0.15 }
   # ADR 0135 §3: con «Sin información» aparte, la leyenda de la escala termina antes de su columna; si no, se corre
   # entera a la izquierda (sin pasar del margen). Sin desborde queda donde estaba.
   sobra <- if (ge$hay_si) (x - 0.15) - (ge$fin - ge$wsi - 0.2) else 0
