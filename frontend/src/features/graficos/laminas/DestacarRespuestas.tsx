@@ -85,7 +85,7 @@ export function DestacarRespuestas({ slideId, slot, valor, scope = "active" }: {
   return (
     <div className="pulso-f6-dato is-apilado" data-qa="destacar-respuestas">
       <span className="pulso-f6-dato-rotulo" id={id}>Destacar</span>
-      <div className="pulso-f6-destacar" role="group" aria-labelledby={id}>
+      <div className="pulso-f6-destacar" role="group" aria-labelledby={id} data-qa-geometry-group="graficos/f6-destacar" data-qa-geometry-contract="intrinsic">
         {/* W3: las fichas son ChipSeleccion del kit, con el % de la lámina en la cola y su tono de «anterior». */}
         {conMayor && (
           <ChipSeleccion etiqueta="La más alta" activo={mayor} data-qa="resaltar-mayor" className="pulso-f6-destacar-mayor"
