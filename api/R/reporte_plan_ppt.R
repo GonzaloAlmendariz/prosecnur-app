@@ -2359,7 +2359,7 @@ reporte_ppt_plan <- function(
       return(titulo_var(
         ctx$var,
         dic_vars        = ctx$survey,
-        labels_override = .plan_etiquetas_cortas_vigentes(ctx$source),  # K12a: overrides$etiquetas_vars del gráfico
+        labels_override = .rotulos_preguntas_vigentes(ctx$source),  # K12a + ADR 0141: gráfico > mazo > otro gráfico
         orders_list     = ctx$orders_list,
         df              = ctx$data
       ))

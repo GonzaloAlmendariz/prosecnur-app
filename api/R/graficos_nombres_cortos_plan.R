@@ -45,26 +45,22 @@
 #' @keywords internal
 .nombres_cortos_en_contexto <- function(ctx, plan) {
   m <- tryCatch(.plan_nombres_cortos(plan), error = function(e) list())
-  if (!length(m)) {
-    if (is.list(ctx)) ctx$nombres_cortos <- NULL
-    return(ctx)
-  }
+  # ADR 0141: `plan$rotulos_cortos$preguntas` viaja en el mismo contexto (graficos_rotulos_cortos_plan.R).
+  rp <- tryCatch(.rotulos_cortos_preguntas((if (is.list(plan)) plan[["rotulos_cortos"]]) %||% NULL), error = function(e) list())
+  if (is.list(ctx)) { ctx$nombres_cortos <- NULL; ctx$rotulos_preguntas <- NULL }
+  if (!length(m) && !length(rp)) return(ctx)
   if (!is.list(ctx)) ctx <- list()
-  ctx$nombres_cortos <- m
+  if (length(m)) ctx$nombres_cortos <- m
+  if (length(rp)) ctx$rotulos_preguntas <- rp
   ctx
 }
 
-#' Nombre corto de una ref según el mapa del plan vigente (la calificada gana a la de la variable sola), o NULL
+#' Nombre corto de una ref según el plan vigente: el del mazo (ADR 0141) y si no el de otro gráfico (E4), o NULL
 #' @keywords internal
 .nombre_corto_del_plan <- function(ref) {
-  m <- (getOption("prosecnur.sig_informe", NULL) %||% list())[["nombres_cortos"]]
-  if (!length(m)) return(NULL)
-  p <- .graficos_ref_parts(ref)
-  for (k in unique(c(ref, if (nzchar(p$source %||% "")) paste0(p$source, "$", p$name), p$name))) {
-    v <- m[[k]]
-    if (!is.null(v) && nzchar(trimws(as.character(v)[1]))) return(trimws(as.character(v)[1]))
-  }
-  NULL
+  # ADR 0141: el nombre corto del mazo (`plan$rotulos_cortos$preguntas`) va antes que el de otro gráfico (E4).
+  .rotulo_pregunta_del_plan(ref) %||%
+    .rotulo_corto_buscar((getOption("prosecnur.sig_informe", NULL) %||% list())[["nombres_cortos"]], ref)
 }
 
 #' ¿El rótulo es el enunciado del instrumento de alguna de las refs? (es decir: nadie lo escribió en este gráfico)

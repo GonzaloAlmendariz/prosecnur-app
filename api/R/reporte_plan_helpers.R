@@ -2463,7 +2463,7 @@
     eje_lbl <- label_variable(
       v,
       dic_vars = dplyr::select(survey, name, label),
-      labels_override = NULL,
+      labels_override = .rotulos_preguntas_vigentes(),   # ADR 0141: el eje del radar rotula la pregunta
       data = data
     )
 

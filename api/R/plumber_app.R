@@ -170,6 +170,7 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
     pr <- mount_graficos_regla(pr)   # ADR 0135: conteo en vivo de la regla de preguntas
     pr <- mount_graficos_inventario(pr)   # ADR 0135: qué tiene el estudio para cada tipo de gráfico
     pr <- mount_graficos_cobertura_categorias(pr)   # ADR 0140: categorías de una variable por base, para el universo
+    pr <- mount_graficos_rotulos(pr)   # ADR 0141: ranking y guardado de los rótulos cortos del mazo
     pr <- mount_dashboard(pr)
   }
 

@@ -142,10 +142,8 @@
 #' casando. Solo reemplaza el rótulo ENTERO: nunca un pedazo de otro texto.
 #' @keywords internal
 .rotulos_cortos_mapa <- function(m) {
-  if (!is.list(m) && !is.character(m)) return(character(0))
-  m <- unlist(m)
-  if (!length(m) || is.null(names(m))) return(character(0))
-  m <- m[nzchar(names(m)) & !is.na(m) & nzchar(m)]
+  m <- .rotulos_cortos_opciones(m)   # ADR 0141: la clave `preguntas` no es un rótulo de opción
+  if (!length(m)) return(character(0))
   stats::setNames(as.character(m), .inclusivo_parentesis(names(m)))
 }
 
