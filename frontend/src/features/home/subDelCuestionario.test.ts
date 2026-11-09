@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { subDelCuestionario } from "./moduleCardModel";
 
-describe("subDelCuestionario: la tarjeta de Formularios no dice «en edición» de otro borrador", () => {
+describe('subDelCuestionario: la tarjeta de Formularios no dice "en edición" de otro borrador', () => {
   test("la cifra sale del borrador del editor", () => {
     expect(subDelCuestionario({ questions_count: 12, draft_questions_count: 12, from_instrument: false })).toBe("Cuestionario en edición");
   });

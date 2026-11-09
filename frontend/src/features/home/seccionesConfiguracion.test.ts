@@ -3,7 +3,7 @@ import { seccionDeConfiguracion } from "./seccionesConfiguracion";
 import { searchSinConfiguracion } from "./useAbrirConfiguracion";
 
 describe("configuración por dirección (L7)", () => {
-  test("foco elige la sección; «conexiones» es alias de connections", () => {
+  test('foco elige la sección; "conexiones" es alias de connections', () => {
     expect(seccionDeConfiguracion("connections")).toBe("connections");
     expect(seccionDeConfiguracion("Conexiones")).toBe("connections");
     expect(seccionDeConfiguracion("notes")).toBe("notes");

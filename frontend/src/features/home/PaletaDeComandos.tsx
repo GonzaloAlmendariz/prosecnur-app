@@ -119,7 +119,7 @@ function PaletaDeComandos() {
         onKeyDown={alTeclearEnBusqueda}
       />
       {resultados.length === 0 ? (
-        <p className="pulso-paleta-vacio">Ninguna vista con «{consulta}».</p>
+        <p className="pulso-paleta-vacio">Ninguna vista con "{consulta}".</p>
       ) : (
         <ul className="pulso-paleta-lista" id="pulso-paleta-lista" role="listbox" aria-label="Vistas">
           {resultados.map((resultado, i) => (

@@ -52,7 +52,7 @@ describe("ConfiguracionHost lee la sección del foco", () => {
     expect(abrir("/?panel=configuracion&foco=credits")).toBe("credits");
   });
 
-  test("desde un módulo, con el alias «conexiones»", () => {
+  test('desde un módulo, con el alias "conexiones"', () => {
     expect(abrir("/procesamiento?seccion=carga&panel=configuracion&foco=conexiones")).toBe("connections");
   });
 

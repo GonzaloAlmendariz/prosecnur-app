@@ -22,14 +22,14 @@ function fuentes(dir: string): string[] {
 
 const sinComentarios = (f: string) => f.replace(/\/\*[\s\S]*?\*\//g, "").split("\n").map((l) => l.replace(/^\s*\/\/.*$/, "")).join("\n");
 
-describe("Home no pinta «·»", () => {
+describe('Home no pinta "·"', () => {
   const archivos = fuentes(aqui);
 
   it("el barrido ve Home (centinela)", () => {
     expect(archivos.length).toBeGreaterThan(20);
   });
 
-  it("ningún archivo pinta «·»", () => {
+  it('ningún archivo pinta "·"', () => {
     const conPunto = archivos
       .filter((f) => sinComentarios(readFileSync(f, "utf8")).includes("·"))
       .map((f) => path.relative(aqui, f));

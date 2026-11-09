@@ -65,13 +65,13 @@ describe("paleta de comandos · atajo", () => {
     expect(ruta).toBe("/carga");
   });
 
-  test("«?» abre la ayuda de atajos de la app; si una vista la atiende (Gráficos), gana la vista", async () => {
+  test('"?" abre la ayuda de atajos de la app; si una vista la atiende (Gráficos), gana la vista', async () => {
     teclear({ key: "?", shiftKey: true });
     await act(async () => { await Promise.resolve(); });
     expect(busqueda).toContain("panel=atajos-app");
   });
 
-  test("«?» atendido por la vista no abre la ayuda global", async () => {
+  test('"?" atendido por la vista no abre la ayuda global', async () => {
     const vista = (e: KeyboardEvent) => e.preventDefault();
     window.addEventListener("keydown", vista);
     teclear({ key: "?", shiftKey: true });

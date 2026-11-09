@@ -256,7 +256,7 @@ describe("moduleCardModel", () => {
     expect(hojas.facts).not.toContainEqual({ label: "entrevistas", value: "24" });
   });
 
-  it("Hojas de ruta en un territorial por conveniencia: «No aplica», sin pedirla (ADR 0122 P2)", () => {
+  it('Hojas de ruta en un territorial por conveniencia: "No aplica", sin pedirla (ADR 0122 P2)', () => {
     const overview = makeOverview();
     overview.facts.hojas = { ...overview.facts.hojas, aplica: false };
     const hojas = view("hojas-ruta", overview);
@@ -453,7 +453,7 @@ describe("moduleCardModel", () => {
     expect(monitoreo.facts).toContainEqual({ label: "universo", value: "2,296" });
   });
 
-  it("mientras el tablero se regenera dice «Actualizando» y no publica la cifra vieja como actual (L20)", () => {
+  it('mientras el tablero se regenera dice "Actualizando" y no publica la cifra vieja como actual (L20)', () => {
     const overview = makeOverview();
     overview.facts.monitoreo = {
       family: "telefonico",
@@ -475,7 +475,7 @@ describe("moduleCardModel", () => {
     expect(monitoreo.sub).toBe("Corte anterior: 423 de 400 efectivas");
   });
 
-  it("el actor rezagado va a su propio pie, sin encadenarlo con «·»", () => {
+  it('el actor rezagado va a su propio pie, sin encadenarlo con "·"', () => {
     const overview = makeOverview();
     overview.facts.monitoreo = {
       family: "acreditacion",
@@ -568,7 +568,7 @@ describe("la tarjeta no gasta sus ranuras repitiendo el mismo dato", () => {
 });
 
 describe("el vocabulario de la tarjeta es el de la app", () => {
-  it("Monitoreo de aulas se llama «Cursos-horario», como en todo el módulo", () => {
+  it('Monitoreo de aulas se llama "Cursos-horario", como en todo el módulo', () => {
     // El diccionario decía «Aulas» mientras la barra del módulo, el selector de
     // propósito y las tarjetas del plan dicen «Cursos-horario». Dos nombres
     // para la misma cosa obligan a averiguar si son dos cosas.
@@ -578,7 +578,7 @@ describe("el vocabulario de la tarjeta es el de la app", () => {
 });
 
 describe("la tarjeta no se contradice consigo misma", () => {
-  it("Monitoreo: sin fuentes no dice «Tablero operativo conectado»", () => {
+  it('Monitoreo: sin fuentes no dice "Tablero operativo conectado"', () => {
     // Medido en HSVG2026: la tarjeta decía «Sin fuentes» en grande y «Tablero
     // operativo conectado» debajo. Las dos salían del mismo payload —el estado
     // del protocolo da «ready» en cuanto se declara la familia, aunque no haya

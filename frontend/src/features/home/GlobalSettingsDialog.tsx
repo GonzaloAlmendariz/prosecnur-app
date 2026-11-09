@@ -337,7 +337,7 @@ function activeConnectionDetail(meta: ProviderMeta, state: ConnectionTokenState,
   } else if (meta.provider === "surveymonkey") {
     parts.push(verificacion === "probada" ? "Verificada: lista para importar encuestas y respuestas"
       : verificacion === "rechazada" ? "SurveyMonkey la rechazó: genera una clave nueva o activa otro perfil"
-      : "Sin verificar en esta sesión: pulsa «Verificar» (↻) antes de importar");
+      : 'Sin verificar en esta sesión: pulsa "Verificar" (↻) antes de importar');
   }
   if (state.masked_token && meta.provider !== "google_sheets") {
     parts.push(`${meta.credentialKind === "oauth" ? "Referencia OAuth" : "Referencia local"} ${state.masked_token}`);
