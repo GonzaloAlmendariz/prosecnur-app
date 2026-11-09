@@ -138,7 +138,7 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
         // R11-3: un tipo retirado (ADR 0137) no se dibuja como uno vigente: su nombre, la ranura punteada y el aviso.
         const retirada = r.graficador ? fichaRetirado(r.graficador, registry) : null;
         const ficha = retirada
-          ? { ...conDependencia, tipo: retirada.titulo_humano, preguntas: [], publicos: [], leyendas: [], ajustes: [], faltaPregunta: false, avisos: ["Tipo retirado: sale en blanco"] }
+          ? { ...conDependencia, tipo: retirada.titulo_humano, preguntas: [], publicos: [], leyendas: [], ajustes: [], faltaPregunta: false, avisos: ["Tipo retirado: sale en blanco"], retirada: true }
           : conDependencia;
         return (
           <button

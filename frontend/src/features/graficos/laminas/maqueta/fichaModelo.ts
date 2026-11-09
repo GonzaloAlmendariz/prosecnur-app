@@ -46,6 +46,8 @@ export type FichaInfo = {
   vacia: boolean;
   /** Tiene gráfico pero ninguna pregunta. */
   faltaPregunta: boolean;
+  /** R12-6: el tipo fue retirado (ADR 0137) y sale en blanco: sin dibujo, el nombre en dos renglones y el aviso entero. */
+  retirada?: boolean;
 };
 
 const BARRAS = new Set(["p_barras_apiladas", "p_barras_multiapiladas"]);

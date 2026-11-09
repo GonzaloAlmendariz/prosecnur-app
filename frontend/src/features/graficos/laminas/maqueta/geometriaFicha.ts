@@ -12,7 +12,7 @@ import { formatoConteo } from "../../../../lib/formatoNumero";
 export type Caja = { x: number; y: number; w: number; h: number };
 export type TonoChip = "publico" | "ajuste" | "aviso";
 export type Pieza =
-  | ({ tipo: "cabecera"; texto: string; fs: number; lado: number } & Caja)
+  | ({ tipo: "cabecera"; texto: string; texto2?: string; fs: number; lado: number } & Caja)
   | { tipo: "texto"; x: number; y: number; texto: string; fs: number; estilo: "pregunta" | "suave" }
   | ({ tipo: "chip"; texto: string; fs: number; tono: TonoChip } & Caja)
   | ({ tipo: "leyenda"; titulo: string | null; fs: number; modo: "completa" | "linea"; items: { x: number; y: number; lado: number; color: string; texto: string | null }[] } & Caja)
@@ -191,6 +191,7 @@ export function escenaFicha(info: FichaInfo, w: number, h: number, clave = ""): 
   const ix = pad, iy = pad, iw = w - pad * 2, ih = h - pad * 2;
   const cab = fs * 1.3;
   if (info.vacia) return { w, h, fs, nivel: 0, horizontal: false, info: null, dibujo: null, piezas: [{ tipo: "vacia", x: w / 2, y: h / 2, texto: "Elegir gráfico", fs: fs * 1.2 }] };
+  if (info.retirada) return escenaRetirada(info, w, h, fs, ix, iy, iw, ih, cab, gap);
 
   // Apaisada (aunque sea baja, 8,5 × 1,6 in en «Dos gráficos + texto izquierda»): información y dibujo lado a lado.
   const horizontal = w >= 5 && w / h >= 1.55;
@@ -223,6 +224,23 @@ export function escenaFicha(info: FichaInfo, w: number, h: number, clave = ""): 
   return {
     w, h, fs, nivel, horizontal: false, info: { x: ix, y: y0, w: iw, h: total }, dibujo: cajaDibujo,
     piezas: [cabecera(ix, y0), ...dibujo(cajaDibujo), ...cuerpo(info2, ix, y0 + cab + gap + gh + gap, colW, fs, nivel).piezas],
+  };
+}
+
+/**
+ * R12-6: un tipo retirado sale en blanco, así que la ficha no dibuja nada: la información ocupa todo el ancho, el nombre
+ * del tipo envuelve hasta dos renglones y el aviso se lee entero.
+ */
+function escenaRetirada(info: FichaInfo, w: number, h: number, fs: number, ix: number, iy: number, iw: number, ih: number, cab: number, gap: number): EscenaFicha {
+  const [l1 = "", l2] = lineas(info.tipo, iw - cab - fs * 0.5, fs, 2, true);
+  const altoCab = l2 ? cab + fs * 1.2 : cab;
+  const av = chips(info.avisos, 0, 0, iw, fs, "aviso");
+  const hInfo = altoCab + (av.h ? gap + av.h : 0);
+  const y0 = iy + Math.max(0, (ih - hInfo) / 2);
+  const avisos = chips(info.avisos, ix, y0 + altoCab + gap, iw, fs, "aviso").piezas;
+  return {
+    w, h, fs, nivel: 0, horizontal: false, info: { x: ix, y: y0, w: iw, h: hInfo }, dibujo: null,
+    piezas: [{ tipo: "cabecera", x: ix, y: y0, w: iw, h: altoCab, lado: cab, fs, texto: l1, texto2: l2 }, ...avisos],
   };
 }
 

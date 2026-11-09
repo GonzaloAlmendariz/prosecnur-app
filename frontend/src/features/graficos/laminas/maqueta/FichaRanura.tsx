@@ -38,6 +38,7 @@ function PiezaFicha({ p, icono, graficador, glifo }: { p: Pieza; icono: string |
             </svg>
           )}
           <text className="pulso-ficha-tipo" x={p.x + p.lado + p.fs * 0.4} y={p.y + p.fs * 0.98} fontSize={p.fs}>{p.texto}</text>
+          {p.texto2 && <text className="pulso-ficha-tipo" x={p.x + p.lado + p.fs * 0.4} y={p.y + p.fs * 2.18} fontSize={p.fs}>{p.texto2}</text>}
         </g>
       );
     }
