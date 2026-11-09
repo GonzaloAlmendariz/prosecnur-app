@@ -138,9 +138,11 @@
   elegido <- NULL
   for (size in .lam_rotulo_pasos_pt(11.5)) {   # 11.5, 11 y el piso de 10.5 pt (lamina_rotulo_resumen.R)
     w0 <- .lam_puntos_marco(espec$rotulos, anchos, size_rot = size, tope_rot = 3.8)$wrot
-    for (w in unique(c(seq(w0, max(w0, w_max), by = 0.1), max(w0, w_max)))) {
-      elegido <- prueba(size, w, FALSE); if (!is.null(elegido)) break
-    }
+    # H4 (regla de la casa, ancho dinámico del rótulo): la columna más ancha que deja el área de puntos en su mínimo, sin
+    # pasar de lo que piden los rótulos en una línea. Antes ganaba la más angosta que cabía y un rótulo que entraba en una
+    # línea se partía en dos (el tope de 3.8 in de `.lam_puntos_marco`).
+    w <- .lam_contraste_ancho_rotulos(espec$rotulos, size, w0, max(w0, w_max))
+    elegido <- prueba(size, w, FALSE)
     if (!is.null(elegido)) break
   }
   if (is.null(elegido) && w_max >= 1.4) elegido <- prueba(.LAM_ROTULO_PT_PISO, w_max, TRUE)
@@ -149,6 +151,18 @@
   m$wrot <- elegido$w; m$xl <- m$ml + m$wrot + 0.25
   c(list(cabe = (m$xr - m$xl) >= 3.5 - 1e-6, m = m, pasos = pasos, anchos = anchos, cab = cab, zona0 = zona0, zona1 = zona1),
     elegido[c("size", "u", "alturas", "textos", "recortados", "contenido", "hueco")])
+}
+
+#' Ancho de la columna de rótulos del contraste: el menor desde `w0` en que todos van en una línea, o `w_max`
+#'
+#' `w_max` es el ancho que deja el área de puntos en su mínimo (3.5 in): la columna nunca pasa de ahí, y con rótulos que
+#' no entran en una línea ni así, la columna toma todo ese ancho para partirlos lo menos posible.
+#' @keywords internal
+.lam_contraste_ancho_rotulos <- function(rotulos, size, w0, w_max) {
+  if (w_max <= w0 + 1e-9) return(w_max)
+  una_linea <- function(w) all(vapply(rotulos, function(t) length(.lam_rotulo_recortar(t, w, size, 3L)$lineas) == 1L, TRUE))
+  for (w in unique(c(seq(w0, w_max, by = 0.1), w_max))) if (una_linea(w)) return(w)
+  w_max
 }
 
 #' ¿El contraste cabe en una lámina? Hasta 14 filas de pares, o 27 sub-filas con los grupos, con sus rótulos en hasta
