@@ -5,7 +5,7 @@ import type { CategoriasDeBase } from "../../../../api/graficosCoberturaCategori
 import { camposDeDatos } from "../argsDatosGrafico";
 import type { ArgMetadata } from "../../../../api/graficos";
 import {
-  argDeLaVersion, avisoDeBase, baseAGuardar, conBase, esCoberturaCategorias, filasDeBase, leerUniverso, numeroUniverso,
+  argDeLaVersion, avisoDeBase, baseAGuardar, cambioDeModo, conBase, esCoberturaCategorias, filasDeBase, leerUniverso, numeroUniverso,
   rellenarBase, sumaDeBase, toleranciaAGuardar, universoViejo,
 } from "./modeloUniversoCategorias";
 
@@ -156,5 +156,30 @@ describe("qué args muestra cada versión de la cobertura", () => {
       ["variable", "Variable", "variable"], ["universo_categorias", "Universo", "universo_categorias"], ["tolerancia_pts", "Tolerancia (pts)", "numero"],
     ]);
     expect(nombres({})).toEqual([]);
+  });
+});
+
+describe("ronda 19 (O1): cambiar de modo no reinterpreta lo tecleado", () => {
+  const filas = (valores: (number | null)[]) => valores.map((valor, i) => ({ codigo: String(i + 1), etiqueta: `C${i + 1}`, n: 10, valor }));
+  it("conteos → %: sobre el total y lo dice", () => {
+    const c = cambioDeModo(filas([30, 170]), "conteos", "porcentajes", 200);
+    expect(c.filas.map((f) => f.valor)).toEqual([15, 85]);
+    expect(c.total).toBeNull();
+    expect(c.aviso).toBe("Los conteos pasaron a % sobre el total (200).");
+  });
+  it("conteos → % sin total: sobre la suma, y lo dice", () => {
+    const c = cambioDeModo(filas([30, 90, null]), "conteos", "porcentajes", null);
+    expect(c.filas.map((f) => f.valor)).toEqual([25, 75, null]);
+    expect(c.aviso).toMatch(/sobre su suma \(120\): no había total/);
+  });
+  it("% → conteos: sin total no se inventan casos; las celdas quedan vacías con el aviso", () => {
+    const c = cambioDeModo(filas([45, 55]), "porcentajes", "conteos", null);
+    expect(c.filas.map((f) => f.valor)).toEqual([null, null]);
+    expect(c.aviso).toMatch(/Sin total, los % no se pueden pasar a casos/);
+  });
+  it("sin cifras tecleadas o al mismo modo, sólo cambia el modo y no hay aviso", () => {
+    expect(cambioDeModo(filas([null]), "conteos", "porcentajes", 100)).toMatchObject({ aviso: null });
+    expect(cambioDeModo(filas([3]), "conteos", "conteos", 100).filas[0].valor).toBe(3);
+    expect(cambioDeModo(filas([0, 0]), "conteos", "porcentajes", null).filas.map((f) => f.valor)).toEqual([null, null]);
   });
 });

@@ -198,3 +198,45 @@ export function sumaDeBase(filas: readonly FilaUniverso[]): number | null {
   const tecleadas = filas.filter((f) => f.valor !== null);
   return tecleadas.length ? sumar(tecleadas) : null;
 }
+
+export type CambioDeModo = { filas: FilaUniverso[]; total: number | null; aviso: string | null };
+
+const redondear = (n: number, decimales: number): number => {
+  const f = 10 ** decimales;
+  return Math.round(n * f) / f;
+};
+
+/**
+ * Pasar la tabla de un modo al otro (ronda 19, O1): las cifras tecleadas se convierten, nunca se reinterpretan en silencio
+ * (30 casos no pasan a ser 30 %).
+ *   - conteos → porcentajes: sobre el total; sin total, sobre la suma de las categorías. Un decimal.
+ *   - porcentajes → conteos: hace falta un total, y en porcentajes no se guarda (ADR 0140). Las celdas quedan vacías y
+ *     el aviso lo dice.
+ * Sin cifras tecleadas sólo cambia el modo. `aviso` dice qué se hizo con lo tecleado.
+ */
+export function cambioDeModo(
+  filas: readonly FilaUniverso[], desde: ModoUniverso, hacia: ModoUniverso, total: number | null,
+): CambioDeModo {
+  const tecleadas = filas.filter((f) => f.valor !== null);
+  if (desde === hacia || !tecleadas.length) return { filas: [...filas], total, aviso: null };
+  if (hacia === "porcentajes") {
+    const suma = sumar(tecleadas);
+    const conTotal = total !== null && total > 0;
+    const denominador = conTotal ? total : suma;
+    if (!(denominador > 0)) {
+      return { filas: filas.map((f) => ({ ...f, valor: null })), total: null, aviso: "Los conteos suman 0: no hay % que calcular. Teclea los porcentajes." };
+    }
+    return {
+      filas: filas.map((f) => ({ ...f, valor: f.valor === null ? null : redondear((100 * f.valor) / denominador, 1) })),
+      total: null,
+      aviso: conTotal
+        ? `Los conteos pasaron a % sobre el total (${formato(denominador, 0)}).`
+        : `Los conteos pasaron a % sobre su suma (${formato(denominador, 0)}): no había total.`,
+    };
+  }
+  return {
+    filas: filas.map((f) => ({ ...f, valor: null })),
+    total,
+    aviso: "Sin total, los % no se pueden pasar a casos: las celdas quedan vacías. Escribe el total y los conteos.",
+  };
+}

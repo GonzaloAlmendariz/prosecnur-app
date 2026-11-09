@@ -2,7 +2,7 @@
 // de la muestra (sólo lectura) y el universo tecleado. El aviso de la suma va en vivo y no bloquea. Un universo viejo
 // (otra variable, otras categorías) se muestra tal cual con su aviso y «Rellenar»; nunca se borra en silencio.
 
-import { useId } from "react";
+import { useId, useState } from "react";
 import type { CategoriasDeBase } from "../../../../api/graficosCoberturaCategorias";
 import { Panel } from "../../../../components/Panel";
 import { PulsoButton } from "../../../../components/PulsoButton";
@@ -11,7 +11,7 @@ import { formatoConteo, formatoDecimal } from "../../../../lib/formatoNumero";
 import { RadioSegmentado } from "../../subpestanas/RadioSegmentado";
 import { nombrePublico } from "../gruposPadron/modeloPadron";
 import {
-  avisoDeBase, baseAGuardar, filasDeBase, rellenarBase, sumaDeBase, universoViejo,
+  avisoDeBase, baseAGuardar, cambioDeModo, filasDeBase, rellenarBase, sumaDeBase, universoViejo,
   type FilaUniverso, type ModoUniverso, type UniversoBase,
 } from "./modeloUniversoCategorias";
 import { NumeroUniverso } from "./NumeroUniverso";
@@ -39,6 +39,13 @@ export function BloqueUniversoBase({ base, variableLamina, guardado, deLaBase, o
   // Con el universo viejo se conserva la variable con que se tecleó; si no, la que se contó.
   const variable = viejo ? guardado?.variable ?? null : deLaBase?.variable_usada || guardado?.variable || null;
   const escribir = (f: readonly FilaUniverso[], m: ModoUniverso, t: number | null) => onCambio(baseAGuardar(f, m, t, variable));
+  // Ronda 19 (O1): al cambiar de modo las cifras se convierten (o se vacían) y se dice qué pasó con ellas.
+  const [avisoModo, setAvisoModo] = useState<string | null>(null);
+  const cambiarModo = (m: ModoUniverso) => {
+    const c = cambioDeModo(filas, modo, m, total);
+    setAvisoModo(c.aviso);
+    escribir(c.filas, m, c.total);
+  };
   const aviso = avisoDeBase(filas, modo, total);
   const suma = sumaDeBase(filas);
   const unidad = modo === "porcentajes" ? "%" : "casos";
@@ -64,7 +71,8 @@ export function BloqueUniversoBase({ base, variableLamina, guardado, deLaBase, o
         )}
       </div>
       <RadioSegmentado etiqueta={`Universo de ${publico} en`} ancho valor={modo} opciones={MODOS}
-        onCambiar={(m) => escribir(filas, m, total)} />
+        onCambiar={cambiarModo} />
+      <p className="pulso-f6-dato-ayuda is-nota pulso-f6-universo-aviso" role="status" aria-live="polite">{avisoModo ?? ""}</p>
       {modo === "conteos" && (
         <div className="pulso-f6-padron">
           <label className="pulso-f6-padron-rotulo" htmlFor={`${id}-total`}>Total del universo</label>

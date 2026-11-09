@@ -59,7 +59,7 @@ describe("BloqueUniversoBase", () => {
   it("en porcentajes no hay total y el aviso de la suma va en vivo, sin bloquear", () => {
     pintar({ modo: "porcentajes", total: null, variable: "p6", categorias: [{ codigo: "1", etiqueta: "", valor: 60 }, { codigo: "2", etiqueta: "", valor: 30 }] });
     expect(cont.querySelector('[aria-label="Total del universo de Estudiantes"]')).toBeNull();
-    expect(cont.querySelector('[role="status"]')?.textContent).toMatch(/suman 90 %/);
+    expect([...cont.querySelectorAll('[role="status"]')].map((x) => x.textContent).join(" ")).toMatch(/suman 90 %/);
     expect(cont.querySelectorAll("tbody input")).toHaveLength(3);
   });
 
@@ -70,5 +70,16 @@ describe("BloqueUniversoBase", () => {
     const boton = [...cont.querySelectorAll("button")].find((b) => b.textContent?.includes("Rellenar"));
     act(() => boton?.click());
     expect(onCambio).toHaveBeenLastCalledWith(expect.objectContaining({ variable: "p6", categorias: expect.arrayContaining([{ codigo: "3", etiqueta: "Tercer ciclo", valor: null }]) }));
+  });
+
+  it("ronda 19 (O1): pasar de conteos a % convierte las cifras sobre el total y lo dice; no las reinterpreta", () => {
+    const onCambio = pintar({ modo: "conteos", total: 200, variable: "p6", categorias: [{ codigo: "1", etiqueta: "", valor: 30 }, { codigo: "2", etiqueta: "", valor: 170 }] });
+    const pct = [...cont.querySelectorAll<HTMLElement>('[role="radio"]')].find((b) => b.textContent?.includes("Porcentajes"));
+    act(() => pct?.click());
+    expect(onCambio).toHaveBeenLastCalledWith(expect.objectContaining({
+      modo: "porcentajes", total: null,
+      categorias: [{ codigo: "1", etiqueta: "Primer ciclo", valor: 15 }, { codigo: "2", etiqueta: "Segundo ciclo", valor: 85 }, { codigo: "3", etiqueta: "Tercer ciclo", valor: null }],
+    }));
+    expect(cont.textContent).toContain("Los conteos pasaron a % sobre el total (200).");
   });
 });
