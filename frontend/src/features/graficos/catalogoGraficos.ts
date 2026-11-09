@@ -103,6 +103,8 @@ function dumbbellEntreGrupos(args: Args): boolean {
  * (api/R/graficos_variantes.R): sólo lee, no migra el plan.
  */
 export function varianteDeGrafico(graficador: string, args: Args = {}): VarianteGraficoCatalogo | null {
+  // ADR 0140: la cobertura se reconoce por su `modo`, no por el estilo (antes del chequeo de `estilo`, como en R).
+  if (graficador === "p_cobertura") return texto(args.modo) === "categorias" ? varianteGrafico("p_cobertura:categorias") : null;
   if (texto(args.estilo) !== "resumen") return null;
   if (graficador === "p_dumbbell") {
     return varianteGrafico(dumbbellEntreGrupos(args) ? "p_dumbbell:aperturas" : "p_dumbbell:contraste");

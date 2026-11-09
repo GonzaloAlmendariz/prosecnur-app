@@ -69,6 +69,11 @@ describe("variantes del catálogo de gráficos", () => {
     expect(varianteDeGrafico("p_dumbbell", { estilo: "recetario", cruce: null })).toBeNull();
     expect(varianteDeGrafico("p_barras_divergentes", { estilo: "resumen" })?.id).toBe("p_barras_divergentes:escala_sin_informacion");
     expect(varianteDeGrafico("p_barras_divergentes", {})).toBeNull();
+    // ADR 0140: la cobertura se reconoce por su `modo`, antes que por el estilo (como en R).
+    expect(varianteDeGrafico("p_cobertura", { modo: "categorias" })?.id).toBe("p_cobertura:categorias");
+    expect(varianteDeGrafico("p_cobertura", { modo: "categorias", estilo: "resumen" })?.id).toBe("p_cobertura:categorias");
+    expect(varianteDeGrafico("p_cobertura", { estilo: "resumen" })).toBeNull();
+    expect(varianteDeGrafico("p_cobertura", {})).toBeNull();
     expect(entradaDeGrafico("p_pie", {})).toBe("p_pie");
   });
 

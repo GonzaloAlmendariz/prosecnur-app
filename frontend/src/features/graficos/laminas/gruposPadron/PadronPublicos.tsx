@@ -29,8 +29,11 @@ type Props = {
   args: Readonly<Record<string, unknown>>;
   scope: "active" | "consolidated";
   onCambio: (patch: Record<string, unknown>) => void;
+  /** ADR 0140: la cobertura por categorías sólo elige las bases; su universo va en «Universo», sin padrón, meta ni extras. */
+  soloBases?: boolean;
 };
 
+const AYUDA_BASES = "Cada base va contra su propio universo, en su propia fila de categorías.";
 const AYUDA_PUBLICOS = "Con padrón confiable la base sale como n (cobertura %); sin él, sólo n. El padrón propuesto se escribe al usarlo.";
 
 const textoPropuesta = (p: PadronPropuesto, conMetas: boolean): string => {
@@ -42,32 +45,32 @@ const textoPropuesta = (p: PadronPropuesto, conMetas: boolean): string => {
 const origenPropuesta = (p: PadronPropuesto, conMetas: boolean): string =>
   [p.padron !== null ? p.padron_origen : "", conMetas && p.meta !== null ? p.meta_origen : ""].filter(Boolean).join(". ");
 
-export function PadronPublicos({ graficador, args, scope, onCambio }: Props) {
+export function PadronPublicos({ graficador, args, scope, onCambio, soloBases = false }: Props) {
   const id = useId();
   const { sources } = useVariables();
   const cobertura = graficador === "p_cobertura";
   const guarda = useGuardaNoConfiables(graficador);
   const todas = sources.map((s) => s.name);
   const bases = publicosDe(graficador, args, todas);
-  const propuesta = usePadronPropuesto(scope, bases.length > 0);
+  const propuesta = usePadronPropuesto(scope, bases.length > 0 && !soloBases);
   const propuestas = propuestasDe(propuesta);
   const pendientes = bases.filter((b) => {
     const p = propuestaDe(propuestas, b);
     return publicoIncluido(args, b) && propuestaUtil(p, cobertura) && !propuestaEnUso(args, b, p, cobertura);
   });
-  const rotulo = bases.length === 1 ? "Público" : "Públicos";
+  const rotulo = soloBases ? (bases.length === 1 ? "Base" : "Bases") : bases.length === 1 ? "Público" : "Públicos";
   // X5: con la propuesta ya leída, un público sin padrón (ni escrito ni propuesto) dice dónde declararlo.
   const sinPadron = propuesta.fase === "lista" && faltaPadron(bases.map((b) => ({
     incluido: !cobertura || publicoIncluido(args, b), escrito: padronDe(args, nombrePublico(b)).valor, propuesta: propuestaDe(propuestas, b),
   })));
 
   return (
-    <div className="pulso-f6-dato is-apilado pulso-f6-publicos" data-campo="universos"
+    <div className="pulso-f6-dato is-apilado pulso-f6-publicos" data-campo={soloBases ? "bases" : "universos"}
       data-qa-geometry-group="graficos/f6-padron-publicos" data-qa-geometry-contract="intrinsic">
       <div className="pulso-f6-grupos-cabeza">
         <span className="pulso-f6-dato-rotulo" id={`${id}-rotulo`}>
           {rotulo}
-          <AyudaGlobo id={`${id}-ayuda`} rotulo={rotulo} detalle={AYUDA_PUBLICOS} />
+          <AyudaGlobo id={`${id}-ayuda`} rotulo={rotulo} detalle={soloBases ? AYUDA_BASES : AYUDA_PUBLICOS} />
         </span>
         {pendientes.length > 1 && (
           <PulsoButton variant="secondary" size="sm" className="pulso-f6-dato-accion"
@@ -95,7 +98,7 @@ export function PadronPublicos({ graficador, args, scope, onCambio }: Props) {
                   ) : (
                     <span className="pulso-f6-publicos-nombre">{nombre}</span>
                   )}
-                  {incluido && (
+                  {incluido && !soloBases && (
                     <>
                       <FilaPadron nombre={nombre} padron={padronDe(args, nombre)}
                         onCambio={(pad) => onCambio(conPadron(args, nombre, pad, guarda))} />
@@ -132,11 +135,11 @@ export function PadronPublicos({ graficador, args, scope, onCambio }: Props) {
           </ul>
         </Panel>
       )}
-      {sinPadron && <DeclararPadron />}
+      {sinPadron && !soloBases && <DeclararPadron />}
       {propuesta.fase === "error" && (
         <p className="pulso-f6-dato-ayuda is-aviso" role="note">No se pudo leer la propuesta de padrón: {propuesta.mensaje}</p>
       )}
-      {cobertura && <FilasExtra args={args} onCambio={onCambio} />}
+      {cobertura && !soloBases && <FilasExtra args={args} onCambio={onCambio} />}
     </div>
   );
 }

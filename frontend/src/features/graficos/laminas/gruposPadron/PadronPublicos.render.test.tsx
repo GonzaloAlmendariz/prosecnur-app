@@ -45,6 +45,19 @@ describe("PadronPublicos", () => {
     expect(html).not.toContain('type="checkbox"');
   });
 
+  it("cobertura por categorías (ADR 0140): sólo las bases, sin padrón, meta ni filas extra", () => {
+    estado.propuestas = [P("docentes", { padron: 123, meta: 60, meta_unidad: "porcentaje" })];
+    const html = renderToStaticMarkup(
+      <MemoryRouter><PadronPublicos graficador="p_cobertura" args={{ modo: "categorias" }} scope="active" onCambio={() => undefined} soloBases /></MemoryRouter>,
+    );
+    expect(html).toContain("Bases");
+    expect(html).toContain('data-campo="bases"');
+    expect(html).not.toContain("Padrón");
+    expect(html).not.toContain("Meta de");
+    expect(html).not.toContain("Filas extra");
+    expect(html).not.toContain("Usar");
+  });
+
   it("propuesta ya escrita: «En uso»; sin dato: «Sin propuesta» con el motivo", () => {
     estado.propuestas = [P("docentes", { padron: 123 }), P("estudiantes", { motivo: "Sin padrón declarado." })];
     const html = pintar("p_dumbbell", { estilo: "resumen", cruce: null, universos: "Docentes: 123",

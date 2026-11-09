@@ -48,6 +48,7 @@ const ARG_TIPO_INPUTS: Record<ArgTipoInput, true> = {
   hallazgos_capitulos: true,
   resumen_capitulos: true,
   regla_preguntas: true,
+  universo_categorias: true,
   cierre_hallazgos: true,
   icono: true,
   overrides: true,

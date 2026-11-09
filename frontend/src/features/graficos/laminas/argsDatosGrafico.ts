@@ -13,6 +13,7 @@
 
 import type { ArgMetadata } from "../../../api/graficos";
 import { argAplica } from "../argDependencias";
+import { argDeLaVersion } from "./coberturaCategorias/modeloUniversoCategorias";
 import { preguntasDelMapa } from "./modeloAgruparLista";
 import { leerOrden, ordenAGuardar } from "./ordenCategorias";
 import { GRAFICOS_CON_RESALTE, mayorActiva } from "./realce";
@@ -20,7 +21,7 @@ import { GRAFICADORES_LETRA_Y_EJE, leerLetraYEje } from "./tarjetaGrafico/letraY
 
 export type ControlDato =
   | "variable" | "variable_opcional" | "variables" | "interruptor" | "numero" | "opciones" | "texto" | "codigos" | "nombres_base"
-  | "partes" | "grupos_lista" | "regla_preguntas";
+  | "partes" | "grupos_lista" | "regla_preguntas" | "universo_categorias";
 
 type Valores = Readonly<Record<string, unknown>>;
 
@@ -311,6 +312,14 @@ const LISTA_BLANCA: Record<string, Entrada> = {
     rotulo: "Padrón de cada grupo", ayuda: AYUDA_UNIVERSOS, placeholder: "Docentes: 123; Estudiantes: 327",
     soloEn: ["p_dumbbell"], cuando: esEstiloResumen,
   },
+  // ADR 0140: la cobertura por categorías de una variable. Su `depende` (modo = "categorias") se cumple sólo en esa versión;
+  // en "Por públicos" no salen (estricto). El universo es una tabla por base (coberturaCategorias/UniversoCategorias.tsx).
+  variable: { rotulo: "Variable", soloEn: ["p_cobertura"], estricto: true },
+  universo_categorias: { rotulo: "Universo", soloEn: ["p_cobertura"], estricto: true },
+  tolerancia_pts: {
+    rotulo: "Tolerancia (pts)", placeholder: "Sin tolerancia", soloEn: ["p_cobertura"], estricto: true,
+    ayuda: "Opcional. Vacío, la lámina no la menciona.",
+  },
   base_en: { rotulo: "Dónde va la base", ayuda: AYUDA_BASE_EN, soloEn: ["p_dumbbell"], cuando: esEstiloResumen },
   // C44: el radar «entre públicos» rotula cada columna de su tabla con el nombre técnico de la base.
   tabla_encabezados: { rotulo: "Nombre de cada público", ayuda: "Vacío conserva el nombre de la base.", estricto: true },
@@ -521,6 +530,7 @@ const CONTROL_POR_TIPO: Partial<Record<ArgMetadata["tipo_input"], ControlDato>> 
   base_labels: "nombres_base",
   partes: "partes",
   regla_preguntas: "regla_preguntas",
+  universo_categorias: "universo_categorias",
 };
 
 export type CampoDato = {
@@ -567,6 +577,7 @@ export function camposDeDatos(args: readonly ArgMetadata[], valores: Valores, gr
     if (guarda.cuando && !guarda.cuando(valores)) continue;
     if (!argAplica(arg, valores)) continue;
     if (e.estricto && !dependenciaElegida(arg, valores)) continue;
+    if (graficador && !argDeLaVersion(graficador, valores, name)) continue;
     const defecto = "defecto" in guarda ? guarda.defecto : e.defecto;
     const conDefecto = defecto !== undefined && (arg.default === undefined || arg.default === null) ? { ...arg, default: defecto } : arg;
     const guardado = valores[name];

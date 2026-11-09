@@ -97,7 +97,9 @@ import { revelarYEnfocar } from "../revelarFila";
 import { ReglaPreguntas } from "./reglaPreguntas/ReglaPreguntas";
 import { conComodinDeLaRegla } from "./brecha/modeloBrechaGrupos";
 import { PadronPublicos } from "./gruposPadron/PadronPublicos";
-import { llevaPadronPublicos } from "./gruposPadron/modeloPadron";
+import { basesDeCobertura, llevaPadronPublicos } from "./gruposPadron/modeloPadron";
+import { UniversoCategorias } from "./coberturaCategorias/UniversoCategorias";
+import { esCoberturaCategorias, toleranciaAGuardar } from "./coberturaCategorias/modeloUniversoCategorias";
 import type { ReglaPreguntas as Regla } from "../../../api/graficosRegla";
 import { ExcluirRespuestas } from "./excluirConCifra/ExcluirRespuestas";
 import { LadosEscala } from "./divergentes/LadosEscala";
@@ -130,6 +132,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
   const conCasillas = (radarPublicos || serie) && codigosComunes(argsATemas(args), variables).length > 0;
   // La cifra destacada tiene su propio editor (qué cifra, respuesta y texto); de la lista genérica sólo queda la pregunta.
   const cifra = valor.graficador === "p_cifra";
+  const coberturaCategorias = esCoberturaCategorias(valor.graficador, args);
   // O3b-b: las citas aprobadas tienen su tarjeta de aprobación (candidatas, recorte, corrección y [sic]).
   const citas = valor.graficador === "p_citas";
   // ADR 0135 §6: el padrón de cada grupo o público (y en la cobertura, los públicos, la meta y las filas extra) se edita
@@ -238,6 +241,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
       <Fila campo={{ ...c, ayuda: ayudaDeLaOpcion(c, alcance(c).valor) }} graficador={valor.graficador} valor={alcance(c).valor} sello={alcance(c).sello} categorias={categoriasDe(c.arg.name)}
             args={args} scope={scope} basePregunta={basePregunta} variables={variables} slideId={slideId}
             onCambio={(v) => set(valor.graficador === "p_radar" && c.arg.name === "modo" && typeof v === "string" ? patchModoRadar(args.modo, v)
+              : c.arg.name === "tolerancia_pts" ? { tolerancia_pts: toleranciaAGuardar(v) }
               : valor.graficador === "p_barras_multiapiladas" ? sinGruposHuerfanos(args, { [c.arg.name]: v }) : { [c.arg.name]: v })} />
       {/* H2: «Un color por opción» encendido sobre una lista sin colores dice por qué no se ve. */}
       {c.arg.name === "colorear_por_opcion" && interruptorEncendido(c.arg, alcance(c).valor) && <AvisoColorPorOpcion valor={valor} />}
@@ -319,8 +323,10 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
         {valor.graficador === "p_dumbbell" && <BrechaEntreGrupos args={args} onCambio={set} />}
         {valor.graficador === "p_matriz_cuadrantes" && <MatrizCuadrantes args={args} onCambio={set} />}
         {serie && <EditorTemasEquivalentes tipo="serie" args={args} onCambio={set} />}
+        {/* ADR 0140: en la cobertura por categorías las bases van antes de la variable y su universo, sin padrón ni meta. */}
+        {coberturaCategorias && <PadronPublicos graficador={valor.graficador} args={args} scope={scope} onCambio={set} soloBases />}
         {delGrupo("datos")}
-        {valor.graficador !== "p_dumbbell" && llevaPadronPublicos(valor.graficador, args) && (
+        {valor.graficador !== "p_dumbbell" && !coberturaCategorias && llevaPadronPublicos(valor.graficador, args) && (
           <PadronPublicos graficador={valor.graficador} args={args} scope={scope} onCambio={set} />
         )}
         {cifra && <CifraGrafico args={args} variable={variable && !sinBaseCompartido ? varCalificada(variable, baseActiva, scope) : ""} scope={scope} onCambio={set} />}
@@ -471,6 +477,7 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias, args, sco
             allowEmpty={control === "variable_opcional"}
             placeholder={control === "variable_opcional" ? "Sin dividir" : "Elige una pregunta…"}
             soloBase={esCruce ? basePregunta : null}
+            fuenteInicial={graficador === "p_cobertura" ? basesDeCobertura(args)[0] : undefined}
           />
         </div>
         {otraBase && (
@@ -576,6 +583,9 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias, args, sco
   if (control === "regla_preguntas") {
     return <ReglaPreguntas rotulo={rotulo} ayuda={texto} graficador={graficador} args={args} valor={valor} scope={scope}
       slideId={slideId} onCambio={(r: Regla) => onCambio(r)} />;
+  }
+  if (control === "universo_categorias") {
+    return <UniversoCategorias rotulo={rotulo} ayuda={texto} args={args} valor={valor} scope={scope} onCambio={onCambio} />;
   }
   if (control === "grupos_lista") {
     return <AgruparLista id={id} etiqueta={etiqueta} nota={null} valor={valor} args={args} onCambio={onCambio} />;

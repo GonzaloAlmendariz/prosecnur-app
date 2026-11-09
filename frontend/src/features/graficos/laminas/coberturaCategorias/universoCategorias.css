@@ -1,0 +1,61 @@
+/* Universo de la cobertura por categorías (UniversoCategorias.tsx, BloqueUniversoBase.tsx). Un Panel del kit por base;
+   la tabla es dueña de su scroll vertical (C4): una variable con veinte categorías se recorre dentro, sin estirar la
+   tarjeta. Sólo tokens. */
+
+.pulso-f6-universo {
+  gap: var(--pulso-space-2);
+}
+
+.pulso-f6-universo-base {
+  display: grid;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+}
+
+.pulso-f6-universo-cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-f6-universo-publico {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.pulso-f6-universo-base .pulso-f6-padron-rotulo {
+  min-width: 0;
+}
+
+.pulso-f6-universo-base .pulso-input.is-numeric {
+  width: calc(9ch + 2 * var(--pulso-space-3));
+}
+
+.pulso-f6-universo-viejo {
+  display: grid;
+  justify-items: start;
+  gap: var(--pulso-space-1);
+}
+
+/* La tabla del kit (PulsoTable) es la dueña del scroll: alto máximo declarado y cabecera pegada. */
+.pulso-f6-universo-tabla {
+  min-width: 0;
+}
+
+.pulso-f6-universo-tabla .pulso-input.is-numeric {
+  width: 100%;
+}
+
+.pulso-f6-universo-suma {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-f6-universo-aviso:empty {
+  display: none;
+}

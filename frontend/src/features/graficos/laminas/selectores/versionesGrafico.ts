@@ -8,6 +8,7 @@ import type { VarianteGraficoCatalogo } from "../../iconos/catalogoTipos.generat
 import {
   aplicarVariante, graficadorDeEntrada, nombreVersion, nombreVersionBase, varianteDeGrafico, varianteGrafico, variantesDeGraficador,
 } from "../../catalogoGraficos";
+import { ARGS_VERSION_CATEGORIAS } from "../coberturaCategorias/modeloUniversoCategorias";
 
 export type VersionGrafico = {
   /** El graficador (la versión base) o el id de la variante. */
@@ -40,18 +41,25 @@ export function versionMostrada(graficador: string, candidata: string | null, ac
   return graficador;
 }
 
+/** Lo que una variante escribe y su base no lee. Sin entrada: el estilo y la regla del resumen (ADR 0139). */
+const PROPIOS_DE_LA_VARIANTE: Readonly<Record<string, readonly string[]>> = {
+  // ADR 0140: la cobertura por categorías; volver a "Por públicos" quita su versión, su variable, su universo y su tolerancia.
+  p_cobertura: ARGS_VERSION_CATEGORIAS,
+};
+const PROPIOS_POR_DEFECTO = ["estilo", "regla"] as const;
+
 /**
  * El gráfico que queda en la ranura al usar una versión, sobre `base` (el graficador con los args compatibles del
  * anterior). Una variante escribe sus args fijos y borra los que quita. La base, desde una variante del mismo
- * graficador, deja de ser variante: se borran el estilo y la regla del resumen (el motor vuelve a su estilo por defecto).
+ * graficador, deja de ser variante: se borran los args propios de la variante (el estilo y la regla del resumen; en la
+ * cobertura, los de la versión por categorías) y el motor vuelve a su versión por defecto.
  */
 export function graficoDeVersion(version: string, base: GraficadorRef): GraficadorRef {
   const args = base.args ?? {};
   const variante = varianteGrafico(version);
   if (variante) return { graficador: base.graficador, args: aplicarVariante(args, variante) };
   if (!varianteDeGrafico(base.graficador, args)) return base;
-  const sinResumen: Record<string, unknown> = { ...args };
-  delete sinResumen.estilo;
-  delete sinResumen.regla;
-  return { graficador: base.graficador, args: sinResumen };
+  const sinVariante: Record<string, unknown> = { ...args };
+  for (const k of PROPIOS_DE_LA_VARIANTE[base.graficador] ?? PROPIOS_POR_DEFECTO) delete sinVariante[k];
+  return { graficador: base.graficador, args: sinVariante };
 }

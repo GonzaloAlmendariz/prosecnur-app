@@ -64,6 +64,18 @@ describe("usar una versión", () => {
       .toEqual({ vars: ["p2"] });
   });
 
+  it("cobertura (ADR 0140): por categorías fija el modo y quita lo de públicos; volver a «Por públicos» quita lo suyo", () => {
+    const publicos = { graficador: "p_cobertura", args: { bases: ["estudiantes"], universos: "Estudiantes: 300", metas: "x", extras: [], universos_no_confiables: "y" } };
+    expect(graficoDeVersion("p_cobertura:categorias", publicos).args).toEqual({ bases: ["estudiantes"], modo: "categorias" });
+    const categorias = {
+      graficador: "p_cobertura",
+      args: { bases: ["estudiantes"], modo: "categorias", variable: "p6", universo_categorias: { estudiantes: {} }, tolerancia_pts: 3, estilo: "x" },
+    };
+    expect(graficoDeVersion("p_cobertura", categorias).args).toEqual({ bases: ["estudiantes"], estilo: "x" });
+    expect(entradaDeGrafico("p_cobertura", categorias.args)).toBe("p_cobertura:categorias");
+    expect(entradaDeGrafico("p_cobertura", publicos.args)).toBe("p_cobertura");
+  });
+
   it("la base sobre un gráfico que no es variante no toca sus args", () => {
     const base = { graficador: "p_barras_divergentes", args: { vars: ["p2"], estilo: "recetario" } };
     expect(graficoDeVersion("p_barras_divergentes", base)).toBe(base);
