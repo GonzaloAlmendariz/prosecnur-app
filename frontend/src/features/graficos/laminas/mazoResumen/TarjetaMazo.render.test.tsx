@@ -18,7 +18,7 @@ import { TarjetaMazo } from "./TarjetaMazo";
 
 const CONTRASTE: PropuestaMazo = {
   id: "contraste", clase: "contraste", tarjeta: "p_slide_1_grafico:contraste", tipo: "p_slide_1_grafico",
-  nombre: "Contraste de públicos", claseTarjeta: "resumen", publicos: ["docentes", "estudiantes"],
+  nombre: "Contraste de públicos", claseTarjeta: "grafico", publicos: ["docentes", "estudiantes"],
   graficador: "p_dumbbell", slot: "grafico", args: { estilo: "resumen", regla: { tipo: "mayor_diferencia", n: 13 } },
   reglaEnPalabras: "Las 13 de mayor diferencia, de docentes y estudiantes", falta: null,
 };

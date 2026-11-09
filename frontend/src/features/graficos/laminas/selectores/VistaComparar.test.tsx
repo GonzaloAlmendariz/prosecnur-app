@@ -33,7 +33,7 @@ describe("Comparar en la tarjeta", () => {
 
 describe("VistaComparar", () => {
   const columnas: ColumnaComparar[] = [
-    { opcion: "p_slide_1_grafico:panorama", tipo: "p_slide_1_grafico", nombre: "Panorama de públicos", clase: "resumen",
+    { opcion: "p_slide_1_grafico:panorama", tipo: "p_slide_1_grafico", nombre: "Panorama de públicos", clase: "grafico",
       glifo: "p_panorama", usa: usaDeGrafico("p_panorama"), admite: "1 gráfico", actual: false, sobrantes: 0 },
     { opcion: "p_slide_2_graficos", tipo: "p_slide_2_graficos", nombre: "Dos gráficos", clase: "lamina",
       usa: null, admite: "2 gráficos", actual: false, sobrantes: 1 },
@@ -70,7 +70,7 @@ describe("VistaComparar", () => {
   it("S6: resalta la clase y las filas de la ficha que difieren entre las dos", () => {
     const dos: ColumnaComparar[] = [
       columnas[0],
-      { opcion: "p_slide_1_grafico:cobertura", tipo: "p_slide_1_grafico", nombre: "Cobertura", clase: "resumen",
+      { opcion: "p_slide_1_grafico:cobertura", tipo: "p_slide_1_grafico", nombre: "Cobertura", clase: "grafico",
         glifo: "p_cobertura", usa: usaDeGrafico("p_cobertura"), admite: "1 gráfico", actual: false, sobrantes: 0 },
     ];
     act(() => root.render(
@@ -89,7 +89,7 @@ describe("VistaComparar", () => {
   it("S8: el cierre con hallazgos trae su ficha «Datos» con lo que usa", () => {
     const cierre: ColumnaComparar[] = [
       columnas[0],
-      { opcion: "p_slide_cierre_hallazgos:cierre", tipo: "p_slide_cierre_hallazgos", nombre: "Cierre con hallazgos", clase: "resumen",
+      { opcion: "p_slide_cierre_hallazgos:cierre", tipo: "p_slide_cierre_hallazgos", nombre: "Cierre con hallazgos", clase: "lamina",
         usa: null, usaSinGrafico: "Cifras de otras láminas de resumen del informe", admite: "", actual: false, sobrantes: 0 },
     ];
     act(() => root.render(

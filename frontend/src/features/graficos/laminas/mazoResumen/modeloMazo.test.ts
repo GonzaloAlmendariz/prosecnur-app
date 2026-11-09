@@ -64,7 +64,7 @@ describe("el mazo propone en orden (ADR 0135; maqueta Mazo)", () => {
   it("el cierre con hallazgos es el último paso cuando el registro lo trae, como lámina de resumen", () => {
     const props = proponerMazo(entrada({ laminas: new Set(["p_slide_1_grafico", "p_slide_cierre_hallazgos"]) }));
     const ultima = props[props.length - 1];
-    expect(ultima).toMatchObject({ id: "cierre", tipo: "p_slide_cierre_hallazgos", nombre: "Cierre con hallazgos", claseTarjeta: "resumen" });
+    expect(ultima).toMatchObject({ id: "cierre", tipo: "p_slide_cierre_hallazgos", nombre: "Cierre con hallazgos", claseTarjeta: "lamina" });
     expect(proponerMazo(entrada()).map((p) => p.id)).not.toContain("cierre");
     const sinInsertar = new Set([...TIPOS].filter((t) => t !== "p_slide_cierre_hallazgos"));
     expect(proponerMazo(entrada({ tiposInsertables: sinInsertar, laminas: new Set(["p_slide_1_grafico", "p_slide_cierre_hallazgos"]) })).map((p) => p.id)).not.toContain("cierre");
@@ -316,7 +316,7 @@ describe("M2: la lámina insertada se nombra como la propuesta", () => {
   it("el nombre va en meta.nombre, sin título ni antetítulo", () => {
     const p = {
       id: "escala_umbral", clase: "escala_umbral", tarjeta: "p_slide_1_grafico:escala", tipo: "p_slide_1_grafico", nombre: "Escala bajo 60%",
-      claseTarjeta: "resumen", publicos: ["docentes"], graficador: "p_barras_divergentes", slot: "grafico", args: { estilo: "resumen" },
+      claseTarjeta: "grafico", publicos: ["docentes"], graficador: "p_barras_divergentes", slot: "grafico", args: { estilo: "resumen" },
       reglaEnPalabras: "", falta: null,
     } as const satisfies Parameters<typeof laminaDePropuesta>[0];
     const s = laminaDePropuesta({ ...p, publicos: [...p.publicos], args: { ...p.args } }, "s-1");

@@ -83,7 +83,7 @@ export function tituloPorDefecto(slide: Slide, variables: readonly (VarInfo & { 
   return { placeholder: tipoLabel, ayuda: null };
 }
 
-/** ¿El gráfico de la lámina es de resumen (la tarjeta del selector es de clase «resumen»)? */
+/** ¿El gráfico de la lámina es de resumen (su recomendación lo marca `deResumen`)? */
 export function esLaminaDeResumen(slide: Slide): boolean {
   const payload = (slide.payload ?? {}) as Record<string, unknown>;
   return (SLIDE_GRAF_SLOTS[slide.tipo] ?? []).some((slot) => {
@@ -92,7 +92,7 @@ export function esLaminaDeResumen(slide: Slide): boolean {
     const r = g as { graficador?: unknown; args?: unknown };
     if (typeof r.graficador !== "string") return false;
     const args = r.args && typeof r.args === "object" && !Array.isArray(r.args) ? (r.args as Record<string, unknown>) : {};
-    return presentacionDeGrafico(r.graficador, args).clase === "resumen";
+    return presentacionDeGrafico(r.graficador, args).deResumen;
   });
 }
 

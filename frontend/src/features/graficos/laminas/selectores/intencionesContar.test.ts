@@ -8,6 +8,9 @@ import {
   casaBusqueda, indicadorPorDefecto, INTENCIONES_CONTAR, presentacionDeGrafico, ROTULO_CLASE, TARJETAS_CONTAR, tarjetaContar, tarjetaContarDeLamina, tarjetasDe,
 } from "./intencionesContar";
 import { etiquetaBotonTarjeta } from "./detalleLamina";
+import { PRESETS_LAMINA } from "./opcionesLamina";
+import { existeEntradaCatalogo, graficadorDeEntrada, nombreDeEntrada } from "../../catalogoGraficos";
+import { CATALOGO_LAMINAS, VARIANTES_GRAFICO } from "../../iconos/catalogoTipos.generated";
 
 const HOY = new Set(["p_panorama", "p_dumbbell", "p_barras_divergentes", "p_heatmap_cruce", "p_significancia_publicos", "p_dim_heatmap_criterios"]);
 const LAMINAS = new Set(["p_slide_1_grafico"]);
@@ -15,7 +18,7 @@ const claves = (id: string, g = HOY) => tarjetasDe(INTENCIONES_CONTAR.find((i) =
 
 describe("intenciones de «¿Qué quieres contar?»", () => {
   it("son cuatro, en este orden, y ninguna es la tendencia entre mediciones (ADR 0135 §9)", () => {
-    expect(INTENCIONES_CONTAR.map((i) => i.nombre)).toEqual(["Resumir el estudio", "Comparar públicos", "Ver dentro de un público", "Leer una escala"]);
+    expect(INTENCIONES_CONTAR.map((i) => i.nombre)).toEqual(["Resumen del estudio", "Comparación de públicos", "Grupos de un público", "Escalas de acuerdo"]);
     expect(TARJETAS_CONTAR.some((t) => /tendencia/i.test(t.nombre))).toBe(false);
   });
 
@@ -26,10 +29,10 @@ describe("intenciones de «¿Qué quieres contar?»", () => {
     ]);
   });
 
-  it("el cierre con hallazgos es la última tarjeta de «Resumir el estudio», como lámina de resumen y sin gráfico", () => {
+  it("el cierre con hallazgos es la última tarjeta de «Resumen del estudio», como lámina y sin gráfico", () => {
     const conCierre = tarjetasDe(INTENCIONES_CONTAR[0], new Set([...HOY, "p_fortalezas", "p_cobertura"]), new Set([...LAMINAS, "p_slide_cierre_hallazgos"]));
     const ultima = conCierre[conCierre.length - 1];
-    expect(ultima).toMatchObject({ clave: "p_slide_cierre_hallazgos:cierre", tipo: "p_slide_cierre_hallazgos", nombre: "Cierre con hallazgos", clase: "resumen" });
+    expect(ultima).toMatchObject({ clave: "p_slide_cierre_hallazgos:cierre", tipo: "p_slide_cierre_hallazgos", nombre: "Cierre con hallazgos", clase: "lamina" });
     expect(ultima.grafico).toBeUndefined();
     expect(claves("resumir")).not.toContain("p_slide_cierre_hallazgos:cierre");
     expect(conOpcion("p_slide_cierre_hallazgos:cierre", payloadPorDefecto("p_slide_cierre_hallazgos"))).toEqual(payloadPorDefecto("p_slide_cierre_hallazgos"));
@@ -59,9 +62,11 @@ describe("intenciones de «¿Qué quieres contar?»", () => {
       expect(t.uso, t.clave).not.toMatch(/[·;—]/);
       expect(t.pide, t.clave).toBeTruthy();
     }
-    expect(presetDe("p_slide_1_grafico:panorama")?.clase).toBe("resumen");
+    // ADR 0139: una tarjeta que inserta un gráfico es un gráfico; «Lámina» queda para las composiciones.
+    expect(presetDe("p_slide_1_grafico:panorama")?.clase).toBe("grafico");
     expect(presetDe("p_slide_1_grafico:divergentes")?.clase).toBe("grafico");
-    expect(ROTULO_CLASE).toEqual({ grafico: "Gráfico", lamina: "Lámina", resumen: "Lámina de resumen" });
+    expect(ROTULO_CLASE).toEqual({ grafico: "Gráfico", lamina: "Lámina" });
+    for (const t of TARJETAS_CONTAR) if (t.grafico) expect(t.clase, t.clave).toBe("grafico");
   });
 });
 
@@ -101,8 +106,8 @@ describe("el gráfico de partida", () => {
     expect(tarjetaContarDeLamina(g("p_dumbbell", { estilo: "resumen", cruce: "base$ciclo" }))?.clave).toBe("p_slide_1_grafico:aperturas");
     expect(tarjetaContarDeLamina(g("p_dumbbell", { cruce: "base$ciclo" }))).toBeNull();
     expect(tarjetaContarDeLamina(g("p_barras_divergentes", {}))?.clave).toBe("p_slide_1_grafico:divergentes");
-    expect(presentacionDeGrafico("p_panorama", {})).toEqual({ nombre: "Panorama de públicos", clase: "resumen" });
-    expect(presentacionDeGrafico("p_pie", {})).toEqual({ nombre: null, clase: "grafico" });
+    expect(presentacionDeGrafico("p_panorama", {})).toEqual({ nombre: "Panorama de públicos", clase: "grafico", deResumen: true });
+    expect(presentacionDeGrafico("p_pie", {})).toEqual({ nombre: null, clase: "grafico", deResumen: false });
     expect(etiquetaBotonTarjeta({ modo: "insertar", actual: false, sobrantes: 0, confirmando: false }).texto).toBe("Insertar lámina");
     expect(etiquetaBotonTarjeta({ modo: "cambiar", actual: true, sobrantes: 0, confirmando: false })).toEqual({ texto: "Es la lámina actual", deshabilitado: true });
   });
@@ -210,5 +215,57 @@ describe("R5-2: el indicador por defecto del estudio", () => {
   it("no pisa el indicador ya elegido en la lámina", () => {
     const previo = { ...payloadPorDefecto("p_slide_1_grafico"), grafico: { graficador: "p_dumbbell", args: { estilo: "resumen", cruce: null, corte: "3,4,5" } } };
     expect(args("p_slide_1_grafico:contraste", conIndicador, previo).corte).toBe("3,4,5");
+  });
+});
+
+describe("las recomendaciones apuntan al catálogo de gráficos (ADR 0139, decisión 3)", () => {
+  const laminas = new Set(CATALOGO_LAMINAS.map((l) => l.name));
+
+  it("cada recomendación señala un graficador o una variante que existe, y se llama como esa entrada", () => {
+    for (const t of TARJETAS_CONTAR) {
+      if (t.grafico) {
+        expect(existeEntradaCatalogo(t.entrada), `${t.clave} → ${t.entrada}`).toBe(true);
+        expect(t.grafico.graficador, t.clave).toBe(graficadorDeEntrada(t.entrada));
+        expect(t.nombre, t.clave).toBe(nombreDeEntrada(t.entrada));
+      } else {
+        // Sin gráfico (el cierre con hallazgos): señala un tipo de lámina del catálogo.
+        expect(laminas.has(t.entrada), `${t.clave} → ${t.entrada}`).toBe(true);
+        expect(t.entrada).toBe(t.tipo);
+      }
+      expect(laminas.has(t.tipo), t.clave).toBe(true);
+    }
+  });
+
+  it("cada intención nombra tarjetas que existen y los presets de lámina, tipos del catálogo", () => {
+    for (const i of INTENCIONES_CONTAR) for (const k of i.tarjetas) expect(tarjetaContar(k), `${i.id} → ${k}`).not.toBeNull();
+    for (const p of PRESETS_LAMINA) {
+      expect(laminas.has(p.tipo), p.clave).toBe(true);
+      if (p.grafico) expect(existeEntradaCatalogo(p.grafico.graficador), p.clave).toBe(true);
+    }
+  });
+
+  it("una variante aplicada nace con sus args fijos y sin los que quita", () => {
+    for (const v of VARIANTES_GRAFICO) {
+      const t = TARJETAS_CONTAR.find((x) => x.entrada === v.id);
+      if (!t?.grafico) continue;
+      for (const [k, val] of Object.entries(v.args_fijos)) expect(t.grafico.args[k], `${v.id}.${k}`).toEqual(val);
+      for (const k of v.args_quitar) {
+        expect(k in t.grafico.args, `${v.id}.${k}`).toBe(true);
+        expect(t.grafico.args[k], `${v.id}.${k}`).toBeUndefined();
+      }
+    }
+  });
+
+  it("el inspector y la Estructura nombran la variante de una lámina guardada", () => {
+    expect(presentacionDeGrafico("p_dumbbell", { estilo: "resumen", cruce: null }).nombre).toBe("Contraste de públicos");
+    expect(presentacionDeGrafico("p_dumbbell", { estilo: "resumen", cruce: "base$ciclo" }).nombre).toBe("Aperturas por grupo");
+    expect(presentacionDeGrafico("p_barras_divergentes", { estilo: "resumen" }).nombre).toBe("Escala con columna de Sin información");
+    expect(presentacionDeGrafico("p_barras_divergentes", {}).nombre).toBe("Barras divergentes");
+  });
+
+  it("ninguna tarjeta usa jerga interna en lo que se ve", () => {
+    for (const t of TARJETAS_CONTAR) {
+      for (const texto of [t.nombre, t.uso, t.descripcion, t.pide]) expect(texto, t.clave).not.toMatch(/recetario|lámina \d+/i);
+    }
   });
 });

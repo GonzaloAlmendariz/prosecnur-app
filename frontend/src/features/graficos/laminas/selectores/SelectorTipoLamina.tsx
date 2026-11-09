@@ -428,7 +428,7 @@ export function SelectorTipoLamina({ slide, posicion, cerrar, onArmarResumen }: 
                       tipo={t}
                       nombre={nombreDe(op)}
                       clase={preset?.clase ?? "lamina"}
-                      meta={preset?.grafico || preset?.clase === "resumen" ? "" : rotuloRanuras(t)}
+                      meta={preset?.grafico || preset?.usaSinGrafico ? "" : rotuloRanuras(t)}
                       uso={usoDe(op)}
                       glifo={preset?.grafico?.graficador}
                       graficos={graficosDe(op)}

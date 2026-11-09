@@ -8,6 +8,7 @@ import { leerSlideMeta } from "../slideMeta";
 import { SLIDE_GRAF_SLOTS } from "../store";
 import { tituloPorDefecto } from "./contenidoEspecial/modeloContenidoEspecial";
 import { presentacionDeGrafico } from "./selectores/intencionesContar";
+import { varianteDeGrafico } from "../catalogoGraficos";
 
 /**
  * Q2-7 (prueba con Arte): una lámina de resumen sin título no tiene pregunta de la que tomarlo (`vars` es `base$*`). En la
@@ -27,7 +28,8 @@ export function nombreSinTitulo(slide: Slide): string {
     if (typeof r.graficador !== "string") continue;
     const args = r.args && typeof r.args === "object" && !Array.isArray(r.args) ? (r.args as Record<string, unknown>) : {};
     const p = presentacionDeGrafico(r.graficador, args);
-    if (p.clase === "resumen" && p.nombre) return p.nombre;
+    // ADR 0139: una variante del catálogo se nombra como su entrada aunque no sea de resumen.
+    if (p.nombre && (p.deResumen || varianteDeGrafico(r.graficador, args))) return p.nombre;
   }
   const ante = leerSlideMeta(slide).antetitulo;
   return typeof ante === "string" ? ante.trim() : "";

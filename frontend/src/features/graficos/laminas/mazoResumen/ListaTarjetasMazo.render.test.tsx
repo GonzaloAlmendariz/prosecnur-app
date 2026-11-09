@@ -11,7 +11,7 @@ import { ListaTarjetasMazo } from "./ListaTarjetasMazo";
 
 const base: PropuestaMazo = {
   id: "panorama", clase: "panorama", tarjeta: "p_slide_1_grafico:panorama", tipo: "p_slide_1_grafico", nombre: "Panorama",
-  claseTarjeta: "resumen", publicos: ["docentes"], graficador: "p_panorama", slot: "grafico", args: {}, reglaEnPalabras: "", falta: null,
+  claseTarjeta: "grafico", publicos: ["docentes"], graficador: "p_panorama", slot: "grafico", args: {}, reglaEnPalabras: "", falta: null,
 };
 
 describe("ListaTarjetasMazo", () => {

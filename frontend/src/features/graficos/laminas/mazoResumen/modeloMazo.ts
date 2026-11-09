@@ -323,7 +323,7 @@ export function proponerMazo(e: EntradaMazo): PropuestaMazo[] {
 
   if (e.tiposInsertables.has(TIPO_CIERRE) && e.laminas.has(TIPO_CIERRE)) {
     out.push({
-      id: "cierre", clase: "cierre", tarjeta: TARJETA.cierre, tipo: TIPO_CIERRE, nombre: "Cierre con hallazgos", claseTarjeta: "resumen",
+      id: "cierre", clase: "cierre", tarjeta: TARJETA.cierre, tipo: TIPO_CIERRE, nombre: "Cierre con hallazgos", claseTarjeta: "lamina",
       publicos, graficador: null, slot: null, args: {}, reglaEnPalabras: "Una cifra de cada lámina anterior", falta: null,
     });
   }

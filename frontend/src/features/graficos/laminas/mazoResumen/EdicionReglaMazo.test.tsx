@@ -14,7 +14,7 @@ import { EdicionReglaMazo } from "./EdicionReglaMazo";
 
 const P: PropuestaMazo & { graficador: string } = {
   id: "contraste", clase: "contraste", tarjeta: "p_slide_1_grafico:contraste", tipo: "p_slide_1_grafico",
-  nombre: "Contraste de públicos", claseTarjeta: "resumen", publicos: ["docentes", "estudiantes"],
+  nombre: "Contraste de públicos", claseTarjeta: "grafico", publicos: ["docentes", "estudiantes"],
   graficador: "p_dumbbell", slot: "grafico", args: { regla: { tipo: "mayor_diferencia", n: 13 } },
   reglaEnPalabras: "", falta: null,
 };

@@ -160,7 +160,7 @@ export function filasQueDifieren(
 
 /** Cuántas láminas de resumen tiene el informe, sin contar los cierres (de ahí salen sus cifras). */
 export function laminasDeResumen(slides: readonly Pick<Slide, "tipo" | "payload">[]): number {
-  return slides.filter((s) => s.tipo !== "p_slide_cierre_hallazgos" && tarjetaContarDeLamina(s)?.clase === "resumen").length;
+  return slides.filter((s) => s.tipo !== "p_slide_cierre_hallazgos" && !!tarjetaContarDeLamina(s)?.deResumen).length;
 }
 
 /** «El informe tiene 3 láminas de resumen.»; sin ninguna, lo que falta. */

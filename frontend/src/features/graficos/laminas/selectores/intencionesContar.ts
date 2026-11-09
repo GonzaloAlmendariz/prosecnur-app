@@ -1,7 +1,10 @@
-// «¿Qué quieres contar?» (ADR 0135 §1; maqueta graficos-sintesis, Main y Conceptos): el selector de láminas se recorre
-// por la pregunta del estudio. Cada tarjeta es una lámina con su gráfico de partida (el mecanismo de `PRESETS_LAMINA`,
-// opcionesLamina.ts) y declara su clase: un gráfico de uso general, una lámina o una lámina de resumen. La clase es de la
-// tarjeta y no del graficador: `p_dumbbell` es un gráfico en estilo recetario y una lámina de resumen en estilo resumen.
+// Recomendaciones del selector de láminas (ADR 0135 §1, revisado por el ADR 0139): por la pregunta del estudio, una
+// lista corta que apunta a entradas del catálogo de gráficos (un graficador o una variante, `entrada`) y, al aceptarla,
+// pone ese gráfico en la ranura de `p_slide_1_grafico` (el mecanismo de `PRESETS_LAMINA`, opcionesLamina.ts). Una
+// tarjeta que inserta un gráfico es de clase «Gráfico» y se llama como su entrada del catálogo; «Lámina» queda para
+// las composiciones (el cierre con hallazgos). `deResumen` marca los gráficos de resumen de los que el cierre toma cifras.
+// El catálogo vende los gráficos; la recomendación sólo los señala (Gonzalo, 2026-11-08: «el resumen te diga puedes
+// usar este catálogo de gráficos, y no viceversa»).
 //
 // Una tarjeta sólo aparece si el registro trae lo que pide (`requiere`), como `FUERA_DEL_CATALOGO`: Fortalezas y
 // Cobertura entran solas cuando el backend las declare. El cierre con hallazgos es un tipo de lámina sin gráfico
@@ -10,16 +13,17 @@
 
 import type { Slide } from "../../../../api/graficos";
 import { esEntreGrupos } from "../brecha/modeloBrechaGrupos";
+import { argsDeEntrada, graficadorDeEntrada, nombreDeEntrada, varianteDeGrafico } from "../../catalogoGraficos";
 import { conPropuesta } from "../gruposPadron/modeloPadron";
-import type { ClavePreset, EstudioDelSelector, PresetLamina } from "./opcionesLamina";
+import type { ClavePreset, EstudioDelSelector, GraficoDePreset, PresetLamina } from "./opcionesLamina";
 import { TIPOS_RETIRADOS_0137 } from "../../retirados";
 
-export type ClaseTarjeta = "grafico" | "lamina" | "resumen";
+/** Lo que la tarjeta inserta: un tipo de gráfico o un tipo de lámina (ADR 0139, decisión 1). */
+export type ClaseTarjeta = "grafico" | "lamina";
 
 export const ROTULO_CLASE: Readonly<Record<ClaseTarjeta, string>> = {
   grafico: "Gráfico",
   lamina: "Lámina",
-  resumen: "Lámina de resumen",
 };
 
 export type IntencionContarId = "resumir" | "comparar" | "dentro" | "escala";
@@ -32,7 +36,30 @@ export type IntencionContar = {
   tarjetas: readonly ClavePreset[];
 };
 
-export type TarjetaContar = PresetLamina & Required<Pick<PresetLamina, "clase" | "pide">>;
+export type TarjetaContar = PresetLamina & Required<Pick<PresetLamina, "clase" | "pide">> & {
+  /**
+   * La entrada del catálogo que la recomendación señala: un graficador o una variante de graficos_tipos.json (o, en la
+   * tarjeta sin gráfico, el tipo de lámina). intencionesContar.test.ts falla si no existe.
+   */
+  entrada: string;
+  /** Un gráfico de resumen: el cierre con hallazgos toma sus cifras de las láminas que lo llevan. */
+  deResumen?: boolean;
+};
+
+/**
+ * El gráfico de partida de una entrada del catálogo: su graficador con los args de la variante (un `null` queda nulo y
+ * cada argumento que la variante quita va como `undefined`, que el parche borra), más los propios de la tarjeta.
+ */
+const graficoDeCatalogo = (
+  entrada: string,
+  extra: Readonly<Record<string, unknown>> = {},
+  porDefecto?: GraficoDePreset["porDefecto"],
+): GraficoDePreset => ({
+  graficador: graficadorDeEntrada(entrada), args: { ...argsDeEntrada(entrada), ...extra }, ...(porDefecto ? { porDefecto } : {}),
+});
+
+/** Nombre, clase y entrada de una tarjeta que inserta un gráfico: los del catálogo. */
+const deCatalogo = (entrada: string) => ({ entrada, nombre: nombreDeEntrada(entrada), clase: "grafico" as const });
 
 /** Una tarjeta que nace con su gráfico (todas menos el cierre con hallazgos). */
 export type TarjetaConGrafico = TarjetaContar & Required<Pick<PresetLamina, "grafico">>;
@@ -100,57 +127,51 @@ export const TARJETAS_CONTAR: readonly TarjetaContar[] = [
   {
     clave: "p_slide_1_grafico:panorama",
     tipo: "p_slide_1_grafico",
-    nombre: "Panorama de públicos",
-    clase: "resumen",
+    ...deCatalogo("p_panorama"),
+    deResumen: true,
     uso: "Quién valora más y quién concentra las preguntas bajas",
     descripcion: "Cada pregunta es un punto por público, con la mediana y la referencia.",
     pide: "Las preguntas de escala de cada público",
     parche: {},
-    grafico: {
-      graficador: "p_panorama", args: {},
-      porDefecto: (e) => ({
-        regla: { ...REGLA_POR_DEFECTO.panorama }, ...(e.bases.length ? { vars: todasDeLasBases(e.bases) } : {}), ...indicadorPorDefecto(e),
-      }),
-    },
+    grafico: graficoDeCatalogo("p_panorama", {}, (e) => ({
+      regla: { ...REGLA_POR_DEFECTO.panorama }, ...(e.bases.length ? { vars: todasDeLasBases(e.bases) } : {}), ...indicadorPorDefecto(e),
+    })),
     coincide: conGrafico("p_panorama"),
   },
   {
     clave: "p_slide_1_grafico:fortalezas",
     tipo: "p_slide_1_grafico",
-    nombre: "Fortalezas y alertas",
-    clase: "resumen",
+    ...deCatalogo("p_fortalezas"),
+    deResumen: true,
     uso: "Las preguntas mejor y peor valoradas de un público",
     descripcion: "Las más altas y las más bajas de un público, lado a lado.",
     pide: "Un público y su batería de escala",
     parche: {},
-    grafico: {
-      graficador: "p_fortalezas", args: {},
-      porDefecto: (e) => {
-        const base = basePrincipal(e);
-        return { ...(base ? { vars: todasDeLasBases([base]) } : {}), ...indicadorPorDefecto(e) };
-      },
-    },
+    grafico: graficoDeCatalogo("p_fortalezas", {}, (e) => {
+      const base = basePrincipal(e);
+      return { ...(base ? { vars: todasDeLasBases([base]) } : {}), ...indicadorPorDefecto(e) };
+    }),
     coincide: conGrafico("p_fortalezas"),
   },
   {
     clave: "p_slide_1_grafico:cobertura",
     tipo: "p_slide_1_grafico",
-    nombre: "Cobertura y participación",
-    clase: "resumen",
+    ...deCatalogo("p_cobertura"),
+    deResumen: true,
     uso: "Cuántos respondieron por público y contra qué meta",
     descripcion: "Por público, los casos, el padrón, la cobertura y la meta.",
     pide: "El padrón y la meta de cada público",
     parche: {},
     // U3: nace con todas las bases del estudio y, si Cálculo de muestra o Monitoreo los declaran, con su padrón y su
     // meta ya escritos (la propuesta; en la tarjeta se ven con su origen y se cambian).
-    grafico: { graficador: "p_cobertura", args: {}, porDefecto: (e) => coberturaPorDefecto(e) },
+    grafico: graficoDeCatalogo("p_cobertura", {}, (e) => coberturaPorDefecto(e)),
     coincide: conGrafico("p_cobertura"),
   },
   {
     clave: "p_slide_1_grafico:contraste",
     tipo: "p_slide_1_grafico",
-    nombre: "Contraste de públicos",
-    clase: "resumen",
+    ...deCatalogo("p_dumbbell:contraste"),
+    deResumen: true,
     uso: "La misma pregunta en dos públicos y su diferencia",
     descripcion: "Pares de puntos por pregunta, ordenados por diferencia.",
     pide: "Las preguntas comunes de la matriz de equivalencias",
@@ -159,81 +180,74 @@ export const TARJETAS_CONTAR: readonly TarjetaContar[] = [
     usa: { publicos: "varios" },
     // El par que compara (`bases`, graficos_dumbbell_auto.R): las dos primeras bases del estudio, en su orden. Con tres
     // o más el motor pide elegirlo; así nace elegido y se cambia en «Públicos que se comparan».
-    grafico: {
-      graficador: "p_dumbbell", args: { estilo: "resumen", cruce: null },
-      porDefecto: (e) => {
-        const par = parDelContraste(e.bases);
-        return { regla: { ...REGLA_POR_DEFECTO.contraste }, ...(par ? { bases: par } : {}), ...indicadorPorDefecto(e, true) };
-      },
-    },
+    grafico: graficoDeCatalogo("p_dumbbell:contraste", {}, (e) => {
+      const par = parDelContraste(e.bases);
+      return { regla: { ...REGLA_POR_DEFECTO.contraste }, ...(par ? { bases: par } : {}), ...indicadorPorDefecto(e, true) };
+    }),
     coincide: conGrafico("p_dumbbell", (a) => resumen(a) && !esEntreGrupos(a)),
   },
   {
     // ADR 0137 (decisión 1): la variante pregunta × cruce del mapa de calor de dimensiones, como tipo propio.
     clave: "p_slide_1_grafico:mapa_calor",
     tipo: "p_slide_1_grafico",
-    nombre: "Mapa de calor por cruce",
-    clase: "grafico",
+    ...deCatalogo("p_heatmap_cruce"),
     uso: "Una pregunta por los grupos de otra, en tonos",
     descripcion: "El Total y cada grupo en las filas, las opciones en las columnas; cada fila suma 100 %.",
     pide: "Una pregunta de respuesta única y el cruce",
     parche: {},
-    grafico: { graficador: "p_heatmap_cruce", args: {} },
+    grafico: graficoDeCatalogo("p_heatmap_cruce"),
     coincide: conGrafico("p_heatmap_cruce"),
   },
   {
     clave: "p_slide_1_grafico:aperturas",
     tipo: "p_slide_1_grafico",
-    nombre: "Aperturas internas",
-    clase: "resumen",
+    ...deCatalogo("p_dumbbell:aperturas"),
+    deResumen: true,
     uso: "Un público abierto por grupos, cada uno con su forma",
     descripcion: "Una fila por grupo en cada pregunta, hasta cuatro grupos.",
     pide: "La variable que divide a los grupos",
     parche: {},
-    // Sin `cruce: null`: la brecha arranca en «dos grupos» y el cruce se elige en Datos.
-    // Dentro de un público no hay par: el `bases` que traiga del contraste se borra.
-    grafico: { graficador: "p_dumbbell", args: { estilo: "resumen", cruce: undefined, bases: undefined }, porDefecto: (e) => ({ regla: { ...REGLA_POR_DEFECTO.aperturas }, ...indicadorPorDefecto(e, true) }) },
+    // La variante quita `cruce` y `bases` (args_quitar): la brecha arranca en «dos grupos», el cruce se elige en Datos y
+    // dentro de un público no hay par.
+    grafico: graficoDeCatalogo("p_dumbbell:aperturas", {}, (e) => ({ regla: { ...REGLA_POR_DEFECTO.aperturas }, ...indicadorPorDefecto(e, true) })),
     coincide: conGrafico("p_dumbbell", (a) => resumen(a) && esEntreGrupos(a)),
   },
   {
     clave: "p_slide_1_grafico:escala",
     tipo: "p_slide_1_grafico",
-    nombre: "Escala con Sin información aparte",
-    clase: "resumen",
+    ...deCatalogo("p_barras_divergentes:escala_sin_informacion"),
+    deResumen: true,
     uso: "Desacuerdo, acuerdo y Sin información en su columna",
     descripcion: "Barras divergentes con lo que se desconoce en una columna gris.",
     pide: "Una batería de acuerdo",
     parche: {},
-    grafico: {
-      graficador: "p_barras_divergentes", args: { estilo: "resumen" },
-      porDefecto: (e) => {
-        // Con 2+ bases, una lámina sobre todas (el motor rotula cada fila con su público); con una, la suya.
-        const base = basePrincipal(e);
-        const bases = e.bases.length > 1 ? e.bases : base ? [base] : [];
-        return { regla: { ...REGLA_POR_DEFECTO.escala }, ...(bases.length ? { vars: todasDeLasBases(bases) } : {}) };
-      },
-    },
+    grafico: graficoDeCatalogo("p_barras_divergentes:escala_sin_informacion", {}, (e) => {
+      // Con 2+ bases, una lámina sobre todas (el motor rotula cada fila con su público); con una, la suya.
+      const base = basePrincipal(e);
+      const bases = e.bases.length > 1 ? e.bases : base ? [base] : [];
+      return { regla: { ...REGLA_POR_DEFECTO.escala }, ...(bases.length ? { vars: todasDeLasBases(bases) } : {}) };
+    }),
     coincide: conGrafico("p_barras_divergentes", resumen),
   },
   {
     clave: "p_slide_1_grafico:divergentes",
     tipo: "p_slide_1_grafico",
-    nombre: "Barras divergentes del recetario",
-    clase: "grafico",
+    ...deCatalogo("p_barras_divergentes"),
     uso: "Totales de desacuerdo y acuerdo a cada lado",
-    descripcion: "La lámina 71 del recetario.",
+    descripcion: "Desacuerdo a la izquierda y acuerdo a la derecha de una línea central, con el total de cada lado.",
     pide: "Una batería de acuerdo",
     parche: {},
     // La regla es del estilo resumen: el constructor la rechaza con «recetario», así que la tarjeta la borra.
-    grafico: { graficador: "p_barras_divergentes", args: { estilo: "recetario", regla: undefined } },
+    grafico: graficoDeCatalogo("p_barras_divergentes", { estilo: "recetario", regla: undefined }),
     coincide: conGrafico("p_barras_divergentes", (a) => !resumen(a)),
   },
   {
     // ADR 0135 §6: tres a cinco hallazgos, cada uno con una cifra tomada de otra lámina y la frase del analista.
     clave: "p_slide_cierre_hallazgos:cierre",
     tipo: "p_slide_cierre_hallazgos",
+    entrada: "p_slide_cierre_hallazgos",
     nombre: "Cierre con hallazgos",
-    clase: "resumen",
+    clase: "lamina",
     uso: "Las cifras clave del estudio con tu frase",
     descripcion: "De tres a cinco hallazgos, cada uno con una cifra de otra lámina de resumen.",
     pide: "Láminas de resumen ya puestas en el informe",
@@ -246,25 +260,25 @@ export const TARJETAS_CONTAR: readonly TarjetaContar[] = [
 export const INTENCIONES_CONTAR: readonly IntencionContar[] = [
   {
     id: "resumir",
-    nombre: "Resumir el estudio",
-    ayuda: "Cómo valora cada público, en una lámina.",
+    nombre: "Resumen del estudio",
+    ayuda: "Cómo valora cada público.",
     tarjetas: ["p_slide_1_grafico:panorama", "p_slide_1_grafico:fortalezas", "p_slide_1_grafico:cobertura", "p_slide_cierre_hallazgos:cierre"],
   },
   {
     id: "comparar",
-    nombre: "Comparar públicos",
+    nombre: "Comparación de públicos",
     ayuda: "Dónde difieren los públicos.",
     tarjetas: ["p_slide_1_grafico:contraste"],
   },
   {
     id: "dentro",
-    nombre: "Ver dentro de un público",
+    nombre: "Grupos de un público",
     ayuda: "Qué grupo interno es más crítico.",
     tarjetas: ["p_slide_1_grafico:aperturas", "p_slide_1_grafico:mapa_calor", "p_slide_1_grafico:contraste"],
   },
   {
     id: "escala",
-    nombre: "Leer una escala",
+    nombre: "Escalas de acuerdo",
     ayuda: "Acuerdo, desacuerdo y lo que se desconoce.",
     tarjetas: ["p_slide_1_grafico:escala", "p_slide_1_grafico:divergentes"],
   },
@@ -316,10 +330,13 @@ export function casaBusqueda(busqueda: string, textos: readonly (string | null |
 }
 
 /**
- * La clase y el nombre con que el inspector presenta un gráfico ya puesto: el de la tarjeta por intención que lo
- * describe (el contraste es «Contraste de públicos», no «Brecha entre dos grupos») o, si ninguna, un gráfico.
+ * Cómo el inspector y la Estructura presentan un gráfico ya puesto (ADR 0139): con el nombre de su variante del catálogo
+ * si la es (el contraste es «Contraste de públicos», no «Brecha entre dos grupos»; mismo criterio que
+ * `.graficos_variante_de`) o el de la recomendación que lo describe; siempre de clase «Gráfico». `deResumen` dice si es
+ * un gráfico de resumen (el cierre con hallazgos toma sus cifras de ahí).
  */
-export function presentacionDeGrafico(graficador: string, args: Args): { nombre: string | null; clase: ClaseTarjeta } {
+export function presentacionDeGrafico(graficador: string, args: Args): { nombre: string | null; clase: ClaseTarjeta; deResumen: boolean } {
+  const variante = varianteDeGrafico(graficador, args);
   const t = TARJETAS_CONTAR.find((x) => !!x.grafico && x.coincide({ grafico: { graficador, args } }));
-  return t ? { nombre: t.nombre, clase: t.clase } : { nombre: null, clase: "grafico" };
+  return { nombre: variante?.nombre ?? t?.nombre ?? null, clase: "grafico", deResumen: !!t?.deResumen };
 }
