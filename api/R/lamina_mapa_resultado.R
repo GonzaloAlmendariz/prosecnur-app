@@ -19,7 +19,7 @@
 #' ¿La 104 cabe? Hay cartografía y cada distrito con su cifra entra en una línea de la lista, en hasta cuatro columnas.
 #' Sin distritos pintados también cabe: la lámina dice su vacío.
 #' @keywords internal
-.lam_mapa_resultado_cabe <- function(espec) {
+.lam_mapa_resultado_cabe <- function(espec, titulo = NULL, sub = NULL) {
   if (is.null(espec) || !identical(espec$forma, "resultado") || is.null(espec$ranking)) return(FALSE)
-  .lam_mapa_res_tarjeta_cabe(espec)
+  .lam_mapa_res_tarjeta_cabe(espec, titulo, sub)   # con el alto que deja el título de la lámina (catálogo, ronda 4)
 }

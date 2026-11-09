@@ -143,7 +143,10 @@
   # N6: los gráficos que siguen en ggplot van en la lámina del recetario.
   if (identical(espec$tipo, "ggplot_marco")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && inherits(p, "ggplot"))
   # N6: mapas de cobertura (láminas 103, 105 y 106), si caben.
-  if (identical(espec$tipo, "mapa")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_mapa_cabe(espec)))
+  if (identical(espec$tipo, "mapa")) {   # con el título y el subtítulo de la lámina: miden el alto que queda (catálogo, ronda 4)
+    sl <- slide$slots %||% list(); txt <- function(x) { x <- if (inherits(x, "ppt_element_text")) x$text else x; if (is.character(x) && length(x)) x[1] }
+    return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_mapa_cabe(espec, titulo = txt(sl$title %||% slide$title), sub = txt(sl$subtitle))))
+  }
   # N6: radar con tabla (lámina 90), si cabe.
   if (identical(espec$tipo, "radar")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_radar_cabe(espec)))
   # G16: la matriz de cuadrantes (lámina 91), si cabe.

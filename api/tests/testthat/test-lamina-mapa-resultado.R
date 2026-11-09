@@ -150,3 +150,21 @@ test_that("catálogo, ronda 3: con título de dos líneas y subtítulo, la pregu
   y_de <- function(n) as.numeric(xml2::xml_attr(xml2::xml_find_first(xml2::xml_find_first(x, sprintf("//p:sp[p:nvSpPr/p:cNvPr[@name='%s']]", n)), ".//a:off"), "y")) / 914400
   expect_gte(y_de("panel:pregunta"), fondo + 0.12 - 0.01)
 })
+
+test_that("catálogo, ronda 4: si cabe se mide con el alto que deja el título de la lámina", {
+  lima <- .mapa_resultado_lima()
+  f <- data.frame(codigo = lima$ubigeo, etiqueta = lima$distrito, porcentaje = seq(40, 90, length.out = nrow(lima)), n = 50L, ubigeo = lima$ubigeo)
+  e <- .espec_mapa_resultado(f)
+  largo <- paste("Lima concentra la mayor satisfacción de los egresados y Santiago de Surco la menor, con diferencias que se mantienen",
+                 "entre todos los grupos del estudio y en todas las preguntas")
+  sub <- "En general, ¿qué tan satisfecho está con la atención en la Unidad y con los servicios que recibe?"
+  expect_true(.lam_mapa_resultado_cabe(e))
+  expect_gt(.lam_mapa_res_tarjeta_geo(e, sub, largo)$fr$y0, .lam_mapa_res_tarjeta_geo(e, sub)$fr$y0)
+  # Los 50 distritos no caben bajo un título de tres líneas con subtítulo de dos: la lámina no lo da por bueno.
+  expect_false(.lam_mapa_resultado_cabe(e, largo, sub))
+  # El compositor pasa el título y el subtítulo de la lámina.
+  sl <- p_slide_1_grafico(p_mapa_resultado_distrital("x$a", cruces = "x$d", corte = "1"), titulo = largo, subtitulo = sub)
+  p <- ggplot2::ggplot(); attr(p, "pulso_espec") <- e
+  expect_false(.lam_compositor_aplica(p, sl))
+  expect_true(.lam_compositor_aplica(p, p_slide_1_grafico(p_mapa_resultado_distrital("x$a", cruces = "x$d", corte = "1"), titulo = "Corto")))
+})

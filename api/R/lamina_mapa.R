@@ -146,10 +146,10 @@
 
 #' ¿El mapa cabe en la lámina del recetario? El panel (cifra o lista) y la narrativa terminan antes de la leyenda
 #' @keywords internal
-.lam_mapa_cabe <- function(espec, texto = NULL) {
+.lam_mapa_cabe <- function(espec, texto = NULL, titulo = NULL, sub = NULL) {
   if (!is.null(espec) && identical(espec$forma, "distribucion")) return(is.null(texto) || !nzchar(texto))   # lamina_mapa_distribucion.R
   if (is.null(espec) || !length(espec$capas) || !all(is.finite(espec$caja))) return(FALSE)
-  if (identical(espec$forma, "resultado")) return((is.null(texto) || !nzchar(texto)) && .lam_mapa_resultado_cabe(espec))   # la 104 no lleva narrativa
+  if (identical(espec$forma, "resultado")) return((is.null(texto) || !nzchar(texto)) && .lam_mapa_resultado_cabe(espec, titulo, sub))   # la 104 no lleva narrativa
   G <- .lam_mapa_geo(espec, texto)
   fin_arriba <- if (G$h_texto > 0) G$y_texto + G$h_texto else G$fin_panel
   G$wr >= 2.5 && G$r$h >= 2.5 && fin_arriba <= G$y_ley - 0.15 &&

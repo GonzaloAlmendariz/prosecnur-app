@@ -62,7 +62,9 @@
     por_col <- ceiling(n / k); fila <- min(54 * P, h / por_col)
     wcol <- (w - (k - 1L) * 0.3) / k
     pt_k <- max(7, min(pt, (wcol - 0.42) / pide))
-    if (fila >= 34 * P - 1e-9 && pide * pt_k <= wcol - 0.42 + 1e-9) return(list(ncol = k, por_col = por_col, fila = fila, pt = pt_k, wcol = wcol,
+    # Fila mínima de 31 px (0.26 in): el nombre a 7 pt y su barra de 11 px caben sin tocarse (`dy_barra`); con 34 px los 50
+    # distritos de Lima y Callao no entraban bajo un subtítulo de dos líneas y la lámina perdía la lista entera.
+    if (fila >= 31 * P - 1e-9 && pide * pt_k <= wcol - 0.42 + 1e-9) return(list(ncol = k, por_col = por_col, fila = fila, pt = pt_k, wcol = wcol,
                                                                                  pt_n = max(7, pt_k - 1), cabe = TRUE))
   }
   list(ncol = 4L, por_col = ceiling(n / 4), fila = h / ceiling(n / 4), pt = 7, wcol = (w - 0.9) / 4, pt_n = 7, cabe = FALSE)
@@ -146,7 +148,7 @@
 
 #' ¿Cabe? Hay cartografía y la lista entra en hasta cuatro columnas con cada nombre y su cifra en una línea
 #' @keywords internal
-.lam_mapa_res_tarjeta_cabe <- function(espec) {
-  G <- tryCatch(.lam_mapa_res_tarjeta_geo(espec), error = function(e) NULL)
+.lam_mapa_res_tarjeta_cabe <- function(espec, titulo = NULL, sub = NULL) {
+  G <- tryCatch(.lam_mapa_res_tarjeta_geo(espec, sub, titulo), error = function(e) NULL)
   !is.null(G) && isTRUE(G$columnas$cabe)
 }
