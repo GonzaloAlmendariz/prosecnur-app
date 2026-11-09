@@ -323,6 +323,9 @@
 # Azul institucional: barras categoricas.
 .VERIF_AZUL <- c("081F5C")
 
+# Paleta dicotomica (Si/No) del estandar: azul institucional y celeste.
+.VERIF_SI_NO <- c("081F5C", "9DC3E6")
+
 # Todo se expresa en CENTIMETROS. El OOXML mide en EMU y `officer` en pulgadas,
 # pero un informe que dice «0.303 in» obliga a convertir para compararlo con una
 # regla o con la guia del canvas, que ya acota en cm. La conversion se hace una
@@ -1050,11 +1053,36 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
   paleta <- c(rep("rampa", length(rampa)), rep("azul", length(azul)))[ok]
   barras <- vapply(gr, function(g) g$n, integer(1))[ok]
   orden <- order(paleta, barras)
+  firma <- paste(paleta[orden], barras[orden], sep = ":", collapse = "-")
+  # B4, ronda 6: la barra Si/No (dicotomica: azul institucional y celeste en la misma fila) tambien es parte de la
+  # composicion. Sola en su grafico no llega al minimo de dos barras de `.verif_graficos()` y la firma no la veia: una
+  # lamina de dos escalas y una Si/No salia gemela de una de dos escalas.
+  si_no <- .verif_barras_si_no(formas)
+  if (si_no > 0L) firma <- paste0(firma, "-si_no:", si_no)
   list(
     lamina = lamina,
-    firma = paste(paleta[orden], barras[orden], sep = ":", collapse = "-"),
+    firma = firma,
     grosor = stats::median(alt[ok])
   )
+}
+
+#' Barras Si/No de una lamina: filas con un segmento azul institucional y uno celeste contiguos (la paleta dicotomica)
+#'
+#' Se cuentan con su texto o sin el: la barra que lleva su cifra dentro tambien es una barra.
+#' @keywords internal
+.verif_barras_si_no <- function(formas) {
+  segs <- .verif_segmentos(formas, .VERIF_SI_NO, exigir_sin_texto = FALSE)
+  if (length(segs) < 2L) return(0L)
+  clave <- vapply(segs, function(x) round(x$y / 0.02), numeric(1))
+  filas <- split(segs, clave)
+  as.integer(sum(vapply(filas, function(fila) {
+    cols <- vapply(fila, function(x) x$col, "")
+    if (!all(.VERIF_SI_NO %in% cols)) return(FALSE)
+    o <- order(vapply(fila, function(x) x$x, 0)); fila <- fila[o]
+    # contiguos: el siguiente arranca donde termina el anterior (con 0.05 in de tolerancia)
+    any(vapply(seq_len(length(fila) - 1L), function(k) abs(fila[[k + 1L]]$x - (fila[[k]]$x + fila[[k]]$w)) < 0.05 &&
+                 fila[[k]]$col != fila[[k + 1L]]$col, TRUE))
+  }, TRUE)))
 }
 
 

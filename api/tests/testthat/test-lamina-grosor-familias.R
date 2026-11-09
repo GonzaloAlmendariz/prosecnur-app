@@ -8,8 +8,8 @@ test_that("las familias se arman por firma y sólo cuentan las de dos o más lá
   f <- .lam_gf_familias(L)
   expect_identical(f$firma, "escala:4"); expect_equal(f$minimo, 0.44)
   lz <- .lam_lienzo(); .lam_gf_anotar(lz, 0.5, 2, 5); .lam_gf_anotar(lz, 0.5, 1, 2)
-  expect_identical(.lam_gf_firma(lz), "escala:2")   # la Sí/No no cuenta en la firma
-  lz2 <- .lam_lienzo(); .lam_gf_anotar(lz2, 0.5, 3, 2); expect_identical(.lam_gf_firma(lz2), "si_no:3")
+  expect_identical(.lam_gf_firma(lz), "escala:2-si_no:1")   # dos escalas y una Sí/No no son gemelas de dos escalas
+  lz2 <- .lam_lienzo(); .lam_gf_anotar(lz2, 0.5, 3, 2); expect_identical(.lam_gf_firma(lz2), "escala:0-si_no:3")
   op <- options(prosecnur.lam_gf_tope = 0.45); on.exit(options(op))
   expect_lte(.lam_grosor_holgado(4), 0.45)
 })
@@ -31,4 +31,15 @@ test_that("dos láminas gemelas salen con la misma barra en el mazo; la que tien
   g <- vapply(1:2, function(i) .verif_grosores_de_lamina(.verif_formas(.pptx_leer_parte(out, ps[i])), i)$grosor, 0)
   expect_equal(g[1], g[2], tolerance = 0.01)
   expect_identical(nrow(verificar_mazo(out)$hallazgos[verificar_mazo(out)$hallazgos$regla == "B4 gemelas desiguales", ]), 0L)
+})
+
+test_that("ronda 6: verificar_mazo ve la barra Sí/No y la cuenta en la firma de la lámina", {
+  caja <- function(col, x, y, w, h = 0.48, texto = "") list(col = col, x = x, y = y, w = w, h = h, texto = texto)
+  esc <- list(caja("ADD493", 3, 2, 3), caja("70AD47", 6, 2, 2), caja("ADD493", 3, 3, 3), caja("70AD47", 6, 3, 2))
+  si_no <- list(caja("081F5C", 3, 5, 2.4), caja("9DC3E6", 5.4, 5, 3.8))
+  expect_identical(.verif_barras_si_no(c(esc, si_no)), 1L)
+  expect_identical(.verif_barras_si_no(esc), 0L)
+  expect_identical(.verif_barras_si_no(list(caja("081F5C", 3, 5, 2.4, texto = "38%"), caja("9DC3E6", 5.4, 5, 3.8, texto = "62%"))), 1L)   # con su texto dentro
+  expect_match(.verif_grosores_de_lamina(c(esc, si_no), 1L)$firma, "-si_no:1$")
+  expect_false(grepl("si_no", .verif_grosores_de_lamina(esc, 2L)$firma))
 })

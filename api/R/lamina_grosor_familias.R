@@ -12,7 +12,7 @@
 # de recomponerse (sólo el lienzo, sin volver a calcular datos). Al cierre del mazo (`.lam_avisos_cierre`), por familia
 # (misma firma, dos o más láminas) se toma el grosor mínimo y las láminas más gruesas se recomponen con ese
 # tope: su grupo de formas se reemplaza en su lugar. Una lámina sin gemela conserva su engrosamiento. La familia es la
-# firma de la lámina: sus barras de escala (las Sí/No no cuentan, como en `verificar_mazo`); sin escalas, sus barras Sí/No.
+# firma de la lámina: sus barras de escala y sus barras Sí/No (como en `verificar_mazo`).
 
 .LAM_GF <- new.env(parent = emptyenv())
 
@@ -29,17 +29,15 @@
 .lam_gf_anotar <- function(lz, grosor, filas, ncat = NA_integer_) {
   if (!is.environment(lz) || !is.finite(grosor) || !is.finite(filas)) return(invisible(lz))
   lz$gf_grosor <- max(lz$gf_grosor %||% 0, grosor)
-  # La firma cuenta las barras de escala (más de dos categorías) aparte de las Sí/No: lo que el lector compara de una
-  # lámina a otra son las barras de la escala, como las cuenta `verificar_mazo` (B4).
+  # La firma cuenta las barras de escala (más de dos categorías) y las Sí/No: dos escalas y una Sí/No es otra composición
+  # que dos escalas (ronda 6), igual que en `verificar_mazo` (B4).
   if (isTRUE(ncat > 2L)) lz$gf_escala <- (lz$gf_escala %||% 0) + filas else lz$gf_dic <- (lz$gf_dic %||% 0) + filas
   invisible(lz)
 }
 
-#' Firma de familia de un lienzo: las barras de escala; si no tiene, las Sí/No
+#' Firma de familia de un lienzo: sus barras de escala y sus barras Sí/No
 #' @keywords internal
-.lam_gf_firma <- function(lz) {
-  if (isTRUE((lz$gf_escala %||% 0) > 0)) paste0("escala:", lz$gf_escala) else paste0("si_no:", lz$gf_dic %||% 0)
-}
+.lam_gf_firma <- function(lz) sprintf("escala:%d-si_no:%d", as.integer(lz$gf_escala %||% 0), as.integer(lz$gf_dic %||% 0))
 
 #' Registra una lámina compuesta en el mazo en curso
 #'
@@ -54,7 +52,7 @@
   invisible(NULL)
 }
 
-#' Familias del registro: por firma (barras de escala, o Sí/No si no hay escala), las de dos o más láminas, con su grosor mínimo
+#' Familias del registro: por firma (barras de escala y Sí/No), las de dos o más láminas, con su grosor mínimo
 #' @return data.frame `firma`, `minimo`, `n`.
 #' @keywords internal
 .lam_gf_familias <- function(laminas = .LAM_GF$laminas) {
