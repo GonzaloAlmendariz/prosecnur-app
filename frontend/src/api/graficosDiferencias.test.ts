@@ -102,14 +102,14 @@ describe("normalizeDiferenciasLamina", () => {
 });
 
 describe("normalizeDiferenciasInforme", () => {
-  it("sin resumen, los conteos se derivan de las láminas", () => {
+  it("sin resumen, los conteos se derivan de las láminas: `marcadas` son las firmes y las frágiles van aparte, como el backend", () => {
     const inf = normalizeDiferenciasInforme({
       laminas: [
         { estado: "con_marcas", pares: [{ veredicto: "marcada" }, { veredicto: "fragil" }], revisar: ["titulo_afirma_fragil"] },
         { estado: "ninguna", pares: [{ veredicto: "bajo_umbral" }], revisar: ["sin_diferencias"] },
       ],
     });
-    expect(inf.resumen).toEqual({ cruces: 2, marcadas: 2, fragiles: 1, ninguna: 1, bases_chicas: 0, sin_prueba: 0, familia: 0 });
+    expect(inf.resumen).toEqual({ cruces: 2, marcadas: 1, fragiles: 1, ninguna: 1, bases_chicas: 0, sin_prueba: 0, familia: 0 });
   });
   it("el resumen del backend manda", () => {
     expect(normalizeDiferenciasInforme({ laminas: [], resumen: { cruces: 33, marcadas: 41, familia: 412 } }).resumen)

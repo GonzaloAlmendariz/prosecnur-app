@@ -407,13 +407,14 @@ export function normalizeDiferenciasLaminaRespuesta(raw: unknown): DiferenciasLa
 /** Resumen del informe; un conteo que falta se deriva de las láminas (nunca se inventa un cero que el motor no dio). */
 export function normalizeResumenInforme(raw: unknown, laminasInforme: readonly LaminaDiferencias[]): ResumenInformeDiferencias {
   const r = registro(raw);
-  // El backend cuenta cada ranura con cruce; el respaldo cuenta lo mismo.
+  // El backend cuenta cada ranura con cruce; el respaldo cuenta lo mismo. Como `.sig_resumen`, `marcadas` son sólo las
+  // firmes y `fragiles` va aparte: sumarlas en `marcadas` contaba dos veces cada frágil en el resumen.
   const laminas: readonly ResultadoDiferencias[] = laminasInforme.flatMap<ResultadoDiferencias>((l) => (l.ranuras.length ? l.ranuras : [l]));
   const pares = laminas.flatMap((l) => l.pares);
   const cuenta = (codigo: string) => laminas.filter((l) => l.revisar.includes(codigo)).length;
   return {
     cruces: numero(r.cruces, laminas.filter((l) => l.estado !== "sin_cruce").length),
-    marcadas: numero(r.marcadas, pares.filter((p) => p.veredicto === "marcada" || p.veredicto === "fragil").length),
+    marcadas: numero(r.marcadas, pares.filter((p) => p.veredicto === "marcada").length),
     fragiles: numero(r.fragiles, pares.filter((p) => p.veredicto === "fragil").length),
     ninguna: numero(r.ninguna, laminas.filter((l) => l.estado === "ninguna").length),
     bases_chicas: numero(r.bases_chicas, cuenta("base_chica")),
