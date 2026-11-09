@@ -64,7 +64,8 @@ Reemplazos sugeridos:
    tarjetas comparan grupos de un cruce dentro de una base; la tabla de letras comparaba el mismo tema entre bases
    distintas. Al retirarla, la app queda sin prueba de diferencias entre públicos y ningún tipo vigente dibuja varios
    índices juntos por cruce. Se acepta: además, la tabla reimplementaba la prueba z fuera de la regla del estudio
-   (ADR 0127).
+   (ADR 0127). **Enmendado por el ADR 0138 (2026-11-09):** Gonzalo pidió que las tarjetas cubran la comparación entre
+   públicos; la app recupera esa prueba, ahora con la regla del estudio.
 
 ## Consecuencias
 
