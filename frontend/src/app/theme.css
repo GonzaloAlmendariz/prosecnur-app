@@ -2726,7 +2726,7 @@ a { color: var(--pulso-primary); }
 
 .pulso-processing-phase-dock .pulso-phase-pill:focus-visible {
   outline: var(--mov-foco);
-  outline-offset: -2px; /* R14-2: gana a [data-nav-item] (0,3,0); dentro porque el dock recorta lo que sale. */
+  outline-offset: -2px; /* R14-2: gana a [data-nav-item] (0,3,0); dentro porque la barra recorta lo que sale (3px). Sobre el activo, ver nav-states.css (R16-4). */
 }
 
 :where(.pulso-processing-phase-dock) .pulso-phase-pill .pulso-phase-pill-text {

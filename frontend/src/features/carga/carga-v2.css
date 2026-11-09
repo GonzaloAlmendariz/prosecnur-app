@@ -3757,10 +3757,8 @@
 
 /* ── Accesibilidad ─────────────────────────────────────────────────────── */
 
-.pulso-carga-frame :where(button, a, select, input, summary, [role="tab"]):focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
-}
+.pulso-carga-frame :where(button, a, select, input, summary, [role="tab"]):not([data-nav-item]):focus-visible { outline: var(--mov-foco); outline-offset: 2px; }
+.pulso-carga-frame .pulso-carga-content:focus-visible { outline: var(--mov-foco); outline-offset: -2px; } /* R16-1/3: el panel con scroll, anillo por dentro. */
 
 @media (prefers-reduced-motion: reduce) {
   .pulso-carga-frame *,

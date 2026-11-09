@@ -179,6 +179,19 @@
   outline-offset: var(--pulso-nav-focus-offset);
 }
 
+/* R16-4: el anillo de la píldora de fase va por dentro (la barra recorta lo que sale) y, sobre el relleno de la
+   píldora activa, el acento oscuro daba 2.8:1 en el borde inferior. Ahí el anillo es claro: 4.5:1 o más en todo el borde. */
+.pulso-processing-phase-dock .pulso-phase-pill.is-active:focus-visible {
+  outline-color: var(--pulso-surface);
+  outline-offset: -4px; /* a 2px del borde: el relleno lo rodea por los dos lados y no se funde con la barra. */
+}
+
+/* R16-3: la marca del encabezado lleva el mismo anillo, no el azul de 1px del navegador. */
+.pulso-brand-link:focus-visible {
+  outline: var(--mov-foco);
+  outline-offset: var(--pulso-nav-focus-offset);
+}
+
 /* ── Deshabilitado ───────────────────────────────────────────────────────────
  * Atenúa con COLOR, nunca con `opacity`, y el atributo se repite para ganarle a
  * las reglas que ya atenuaban por su cuenta sin tener que recurrir a `!important`.

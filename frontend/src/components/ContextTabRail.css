@@ -139,6 +139,17 @@
   overflow: visible;
 }
 
+/* R16-1: la lista del rail recorta lo que sale del item (0 px de holgura), así que el anillo del kit va por dentro. Sobre
+   el relleno del item elegido el anillo es claro: el acento oscuro sobre el teal daba 2.8:1. */
+.pulso-context-tab-item[data-nav-item]:focus-visible {
+  outline-offset: -2px;
+}
+
+.pulso-context-tab-item[data-nav-item][data-nav-state="selected"]:focus-visible {
+  outline-color: var(--pulso-surface);
+  outline-offset: -4px; /* a 2px del borde: el relleno lo rodea por los dos lados. */
+}
+
 @media (hover: hover) and (pointer: fine) {
   .pulso-context-tab-item:hover:not(:active) {
     transform: none;

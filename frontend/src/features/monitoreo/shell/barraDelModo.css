@@ -157,8 +157,11 @@
 }
 
 .mon-commandbar.is-barra-comun .mon-modo-actualizar button:focus-visible {
+  /* R16-3: por dentro, para que "Más formas de actualizar" no tape el borde derecho del anillo; claro y a 2px del borde,
+     con el relleno del botón a los dos lados (el acento oscuro sobre ese relleno quedaba bajo 3:1). */
   outline: var(--mov-foco);
-  outline-offset: 2px;
+  outline-color: var(--pulso-surface);
+  outline-offset: -4px;
 }
 
 .mon-commandbar.is-barra-comun .mon-modo-actualizar-lista {

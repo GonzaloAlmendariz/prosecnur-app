@@ -1043,6 +1043,12 @@
   scrollbar-gutter: stable;
 }
 
+/* R16-3: el cuerpo con scroll se enfoca con el teclado; el anillo del kit va por dentro, no el azul del navegador. */
+.acr-pub-panel-cuerpo:focus-visible {
+  outline: var(--mov-foco);
+  outline-offset: -2px;
+}
+
 .acr-pub-cifra {
   display: flex;
   align-items: baseline;

@@ -208,7 +208,7 @@ const HALOS_SOLOS_HEREDADOS: Record<string, number> = {
   "features/calcMuestra/universidad/salidas/salidas.css": 3,
   "features/calcMuestra/universidad/ui/explicacionPlegable.css": 1,
   "features/calcMuestra/universidad/ui/ui.css": 4,
-  "features/carga/carga-v2.css": 13,
+  "features/carga/carga-v2.css": 12,
   "features/codificacion/codificacion-v2.css": 9,
   "features/graficos/v2/styles/editor-v2.css": 1,
   "features/home/home-v2.css": 9,
@@ -235,6 +235,51 @@ const HALOS_SOLOS_HEREDADOS: Record<string, number> = {
   "features/xlsformEditor/styles/xlsform-v2/02-fila-con-campo-numerico-tope.css": 8,
   "features/xlsformEditor/styles/xlsform-v2/05-choice-row-fila-ordenable-de.css": 1,
 };
+
+/** Último compuesto del selector crudo, respetando paréntesis (`.a :where(b, c):focus-visible` → `:where(b, c):focus-visible`). */
+function ultimoCompuesto(selector: string): string {
+  const out: string[] = [];
+  let nivel = 0;
+  let actual = "";
+  for (const ch of selector.trim()) {
+    if (ch === "(") nivel += 1;
+    if (ch === ")") nivel -= 1;
+    if (nivel === 0 && /[\s>+~]/.test(ch)) {
+      if (actual) out.push(actual);
+      actual = "";
+    } else actual += ch;
+  }
+  if (actual) out.push(actual);
+  return out[out.length - 1] ?? "";
+}
+
+/**
+ * R16-1: el halo "manta". Un `:where()`/`:is()` con una lista de etiquetas (o un `:focus-visible` desnudo) como sujeto
+ * enfoca cualquier control del ámbito sin nombrar una sola clase, y con `outline: none` apaga el anillo de TODOS,
+ * incluido el de `[data-nav-item]` de nav-states.css (misma especificidad, gana por orden de carga).
+ *
+ * Por qué se escapó `.pulso-carga-frame :where(button, a, select, input, summary, [role="tab"]):focus-visible`: el
+ * congelamiento por hoja sólo impide que el conteo CREZCA, y carga-v2.css ya estaba en HALOS_SOLOS_HEREDADOS con 13; y
+ * los detectores cruzados comparan las clases del sujeto, pero `reglasDeFoco` reduce ese sujeto a `:focus-visible`, sin
+ * etiqueta, clase ni atributo, así que no casaba con nada. Este detector no depende de la lista: vale para toda hoja.
+ */
+function haloManta(r: ReglaDeFoco): boolean {
+  if (!r.halo || r.pintaOutline) return false;
+  const sujeto = ultimoCompuesto(r.selector);
+  const fuera = sujeto.replace(/:(not|where|is|has)\((?:[^()]|\([^()]*\))*\)/g, "");
+  if (/[.#[]|^[a-z]/.test(fuera)) return false; // nombra una clase, un id, un atributo o una etiqueta propia
+  const lista = [...sujeto.matchAll(/:(?:where|is)\(((?:[^()]|\([^()]*\))*)\)/g)].flatMap((m) => partes(m[1]));
+  return lista.length === 0 || lista.every((x) => !/[.#]/.test(x));
+}
+
+/** Halo solo (outline nulo + halo) por hoja; lo que supera su línea base de HALOS_SOLOS_HEREDADOS (0 si no está). */
+function halosQueCrecen(reglas: ReglaDeFoco[], base: Record<string, number>): string[] {
+  const porHoja: Record<string, number> = {};
+  for (const r of reglas) if (r.halo && !r.pintaOutline) porHoja[r.archivo] = (porHoja[r.archivo] ?? 0) + 1;
+  return Object.entries(porHoja)
+    .filter(([f, n]) => n > (base[f] ?? 0))
+    .map(([f, n]) => `${f}: ${n} > ${base[f] ?? 0}`);
+}
 
 function censo(): ReglaDeFoco[] {
   return hojas(SRC).flatMap((f) => reglasDeFoco(fs.readFileSync(f, "utf8"), path.relative(SRC, f).split(path.sep).join("/")));
@@ -311,10 +356,7 @@ describe("anillo único de foco", () => {
   it("no aparece un halo solo nuevo y los arreglados en R13 no vuelven (R13-4)", () => {
     const porHoja: Record<string, number> = {};
     for (const r of censo()) if (r.halo && !r.pintaOutline) porHoja[r.archivo] = (porHoja[r.archivo] ?? 0) + 1;
-    const crecen = Object.entries(porHoja)
-      .filter(([f, n]) => n > (HALOS_SOLOS_HEREDADOS[f] ?? 0))
-      .map(([f, n]) => `${f}: ${n} > ${HALOS_SOLOS_HEREDADOS[f] ?? 0}`);
-    expect(crecen, "Usa outline: var(--mov-foco) en lugar del halo.").toEqual([]);
+    expect(halosQueCrecen(censo(), HALOS_SOLOS_HEREDADOS), "Usa outline: var(--mov-foco) en lugar del halo.").toEqual([]);
     const bajaron = Object.entries(HALOS_SOLOS_HEREDADOS)
       .filter(([f, n]) => (porHoja[f] ?? 0) < n)
       .map(([f, n]) => `${f}: ${porHoja[f] ?? 0} < ${n}`);
@@ -326,6 +368,24 @@ describe("anillo único de foco", () => {
       expect(regla?.halo, sel).toBe(false);
       expect(regla?.pintaOutline, sel).toBe(true);
     }
+  });
+
+  it("ningún halo manta apaga el anillo de todo un ámbito, en ninguna hoja (R16-1)", () => {
+    const mantas = censo().filter(haloManta).map((r) => `${r.archivo}: ${r.selector}`);
+    expect(mantas, "Una lista de etiquetas con outline: none apaga el anillo de los items de navegación: usa outline: var(--mov-foco).").toEqual([]);
+  });
+
+  it("vacuna R16-1: el halo manta de Carga se ve; el halo de una clase no es manta; una hoja nueva no hereda cupo", () => {
+    const carga = reglasDeFoco(
+      '.pulso-carga-frame :where(button, a, select, input, summary, [role="tab"]):focus-visible { outline: none; box-shadow: 0 0 0 3px red; }',
+      "features/nueva/nueva.css",
+    );
+    expect(carga.filter(haloManta)).toHaveLength(1);
+    expect(reglasDeFoco(".x :focus-visible { outline: none; box-shadow: 0 0 0 3px red; }", "y.css").filter(haloManta)).toHaveLength(1);
+    expect(reglasDeFoco(".x .pill:focus-visible { outline: none; box-shadow: 0 0 0 3px red; }", "y.css").filter(haloManta)).toEqual([]);
+    expect(reglasDeFoco(".x button:focus-visible { outline: none; box-shadow: 0 0 0 3px red; }", "y.css").filter(haloManta)).toEqual([]);
+    expect(reglasDeFoco(".x :where(button, a):focus-visible { outline: var(--mov-foco); }", "y.css").filter(haloManta)).toEqual([]);
+    expect(halosQueCrecen(carga, HALOS_SOLOS_HEREDADOS)).toEqual(["features/nueva/nueva.css: 1 > 0"]);
   });
 
   it("vacuna R13-4: el doble cruzado de Monitoreo y el halo con outline nulo se ven", () => {
