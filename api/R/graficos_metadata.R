@@ -6005,6 +6005,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
   })
   familias_editor <- lapply(names(.GRAFICOS_FAMILIAS_EDITOR), function(id) list(id = id, label = .GRAFICOS_FAMILIAS_EDITOR[[id]]))
   # `retirados` (ADR 0137, aditivo): los tipos retirados con su nombre y su reemplazo (graficos_retirados.R).
+  # `variantes` (ADR 0139, aditivo): entradas del catálogo con args fijos sobre un graficador (graficos_variantes.R).
   list(slides = slides, graficadores = graficadores, familias_editor = familias_editor,
-       retirados = .graficos_retirados_payload())
+       retirados = .graficos_retirados_payload(), variantes = .graficos_variantes())
 }

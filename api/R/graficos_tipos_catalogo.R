@@ -8,24 +8,30 @@
 # test-graficos-tipos-catalogo.R falla si el archivo versionado se desvía del metadata.
 
 #' Catálogo de tipos: láminas y graficadores en el orden del registro
-#' @return `list(fuente, slides, graficadores)`; `estandar` es el id del tipo del recetario o `NA` (sin ranuras); `usa`,
+#' @return `list(fuente, slides, graficadores, familias_editor, variantes)`; `ranuras`, las de cada lámina; `estandar` es el id del tipo del recetario o `NA` (sin ranuras); `usa`,
 #'   qué datos usa cada graficador (`{pregunta, publicos, padron, cruce}`, graficos_tipos_usa.R).
 #' @keywords internal
 .graficos_tipos_catalogo <- function() {
   slides <- lapply(names(.SLIDES_META), function(nm) {
     e <- .graficos_estandar_de_slide(nm)
-    list(name = nm, categoria = as.character(.SLIDES_META[[nm]]$categoria), estandar = if (is.list(e)) e$id else NA,
-         en_selector = !identical(.SLIDES_META[[nm]]$en_selector, FALSE))
+    meta <- .SLIDES_META[[nm]]
+    list(name = nm, titulo_humano = as.character(meta$titulo_humano %||% nm), categoria = as.character(meta$categoria),
+         estandar = if (is.list(e)) e$id else NA, en_selector = !identical(meta$en_selector, FALSE),
+         ranuras = .slide_slot_specs_payload(meta$slot_specs))   # ADR 0139: {name, role, label} por ranura
   })
   graficadores <- lapply(names(.GRAFICADORES_META), function(nm) {
     m <- .GRAFICADORES_META[[nm]]
-    list(name = nm, familia_editor = m$familia_editor, salida = m$salida, en_selector = m$en_selector,
+    list(name = nm, titulo_humano = as.character(m$titulo_humano %||% nm), familia_editor = m$familia_editor,
+         salida = m$salida, en_selector = m$en_selector,
          usa = .graficos_tipos_usa(nm, m))   # qué datos usa (graficos_tipos_usa.R)
   })
   list(
     fuente = "Generado desde api/R/graficos_metadata.R por api/scripts/generar_graficos_tipos.R; no editar a mano.",
     slides = slides,
-    graficadores = graficadores
+    graficadores = graficadores,
+    # ADR 0139: las familias del selector «Tipo de gráfico» y las variantes del catálogo (graficos_variantes.R).
+    familias_editor = lapply(names(.GRAFICOS_FAMILIAS_EDITOR), function(id) list(id = id, label = .GRAFICOS_FAMILIAS_EDITOR[[id]])),
+    variantes = .graficos_variantes()
   )
 }
 
