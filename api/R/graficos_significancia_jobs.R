@@ -29,7 +29,8 @@
 .sig_contexto_liviano <- function(ctx) {
   if (is.null(ctx)) return(NULL)
   out <- list(regla = ctx$regla, origen = ctx$origen, familia = ctx$familia, m = ctx$m, cruces = ctx$cruces)
-  if (!is.null(ctx$familias)) out$familias <- ctx$familias   # «Familia por base»: sólo si el plan lee otras bases
+  if (!is.null(ctx$base_familia)) out$base_familia <- ctx$base_familia   # «Familia por base»: sólo en multibase
+  if (!is.null(ctx$familias)) out$familias <- ctx$familias
   out
 }
 
@@ -47,9 +48,11 @@
   if (is.data.frame(ds)) { ds <- list(default = ds); is <- list(default = is) }
   nombre <- if (nzchar(base %||% "") && base %in% names(ds)) base else names(ds)[[1]]
   .tarjetas_fuente_fijar(ds[[nombre]], is[[nombre]])   # ADR 0129: la tarjeta de ejemplo de la lectura
+  gc <- significancia$graficos_config; ac <- significancia$analitica_config
   ctx <- tryCatch(
-    .sig_contexto_estudio_base(ds[[nombre]], is[[nombre]], significancia$graficos_config, significancia$analitica_config,
-                               nombre, nombre, names(ds)),
+    # ADR 0128 «Familia por base»: una regla para todo el informe y la familia de la activa sobre sus ranuras.
+    .sig_contexto_estudio_base(ds[[nombre]], is[[nombre]], gc, ac, nombre, nombre, names(ds),
+                               regla_informe = .sig_regla_informe(gc, ds, ac)),
     error = function(e) {
       message("[diferencias] no se pudo calcular la familia: ", conditionMessage(e))
       if (exists(".pulso_aviso", mode = "function")) {
@@ -60,10 +63,7 @@
     }
   )
   if (!is.null(ctx)) {
-    # «Familia por base» (ADR 0128): la ranura de otra base se marca contra la familia de SU base, no la de la activa.
-    ctx$familias <- tryCatch(
-      .sig_familias_otras_bases(ds, is, significancia$graficos_config, significancia$analitica_config, nombre),
-      error = function(e) { message("[diferencias] no se pudo calcular la familia de otra base: ", conditionMessage(e)); NULL })
+    ctx <- .sig_contexto_con_familias(ctx, ds, is, gc, ac, nombre)   # la ranura de otra base, con la familia de SU base
     message(sprintf("[diferencias] base %s: %s con %s, familia de %d comparaciones.", nombre, ctx$regla$prueba,
                     ctx$regla$correccion, as.integer(ctx$m %||% 0L)))
   }
@@ -80,6 +80,8 @@
 .sig_opciones_preview <- function(sid, opciones) {
   ctx <- tryCatch({
     sc <- .sig_contexto_sesion(sid)
+    src <- if (length(sc$bases) > 1L) .graficos_processing_sources(sid) else NULL   # «Familia por base»
+    if (!is.null(src)) sc$ctx <- .sig_contexto_con_familias(sc$ctx, src$data_sources, src$inst_sources, sc$cfg, sc$analitica, sc$base)
     .tpub_en_contexto(.sig_contexto_liviano(sc$ctx), sc$cfg$plan, function() .graficos_processing_sources(sid), .tpub_equivalencias_sesion(sid))   # ADR 0138
   }, error = function(e) NULL)
   opciones[["prosecnur.sig_informe"]] <- ctx

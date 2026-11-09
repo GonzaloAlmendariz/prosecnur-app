@@ -14,7 +14,7 @@
   pedida <- as.character(base %||% activa)[1]
   nombre <- if (!is.na(pedida) && nzchar(pedida) && pedida %in% bases) pedida else bases[[1]]
   list(data = src$data_sources[[nombre]], inst = src$inst_sources[[nombre]] %||% NULL, base = nombre, bases = bases,
-       activa = activa)
+       activa = activa, sources = src$data_sources)
 }
 
 #' Contexto (regla y familia) de la sesión, con una regla propuesta encima si viene
@@ -23,7 +23,7 @@
   f <- .sig_fuente_sesion(sid, base)
   cfg <- .graficos_config_get(sid)
   if (is.list(regla)) {
-    propuesta <- .sig_regla_propuesta(f$data)
+    propuesta <- .sig_regla_propuesta(.sig_columnas_de_bases(f$sources))   # una propuesta para todas las bases
     cfg$significancia <- .sig_regla_normalizar(regla, base = propuesta)
   }
   # Sin config de Analítica (estudio sin esa fase) la familia se arma solo con las láminas: no es un error del pedido.
@@ -31,9 +31,11 @@
   # La regla se valida contra la base activa, que es donde se guarda; la lámina de otra base (R12-2) se abstiene si no
   # trae la columna de diseño (`.sig_diseno_invalido` en `.sig_lamina_json`), como en el render.
   if (is.list(cfg$significancia) && is.null(base)) .sig_regla_validar_base(.sig_regla_normalizar(cfg$significancia), f$data)
-  ctx <- .sig_contexto_estudio_base(f$data, f$inst, cfg, ac, f$base, f$activa, f$bases)   # familia por base (ADR 0128)
+  # ADR 0128 «Familia por base»: una regla para todo el informe y la familia de la base sobre sus ranuras.
+  ctx <- .sig_contexto_estudio_base(f$data, f$inst, cfg, ac, f$base, f$activa, f$bases,
+                                    regla_informe = .sig_regla_informe(cfg, f$sources, ac))
   list(ctx = ctx, fuente = .sig_fuente(f$data, f$inst), cfg = cfg, analitica = ac, data = f$data, base = f$base,
-       bases = f$bases)
+       bases = f$bases, activa = f$activa, sources = f$sources)
 }
 
 #' Columnas candidatas a conglomerado y estrato (las que tienen entre 2 y 500 valores distintos)
@@ -90,7 +92,7 @@ mount_graficos_diferencias <- function(pr) {
       sid <- session_header(req)
       sc <- .sig_contexto_sesion(sid)
       list(ok = TRUE, regla = .sig_regla_json(sc$ctx$regla), origen = sc$ctx$origen,
-           propuesta = .sig_regla_json(.sig_regla_propuesta(sc$data)),
+           propuesta = .sig_regla_json(.sig_regla_propuesta(.sig_columnas_de_bases(sc$sources))),
            columnas = .sig_columnas_candidatas(sc$data), familia = as.integer(sc$ctx$m %||% 0L))
     })) |>
     plumber::pr_post("/api/graficos/diferencias/regla/vista-previa", wrap_endpoint(function(req, res, ...) {

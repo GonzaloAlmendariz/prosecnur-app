@@ -89,19 +89,27 @@ Con `correccion = "bonferroni_fila"`, cada fila se corrige sola, como hoy.
 
 #### Familia por base (2026-11-09)
 
-En un proyecto multibase, la familia de `bh_informe` es **por base**: cada ranura pertenece a la familia de la base que
-lee (la fuente explícita, si no el prefijo de su referencia y, si no, la base activa; `.sig_base_de_lamina`). La
-familia de una base son sus ranuras más las comparaciones de Analítica que esa base puede responder, con la misma regla
-y la misma unidad de comparación.
+- **Unidad.** En un proyecto multibase, la unidad de la familia de `bh_informe` es la base. Cada ranura pertenece a la
+  familia de la base que lee: la fuente explícita, si no el prefijo de sus referencias y, si no, la base activa
+  (`.sig_base_de_lamina`). No hay control de multiplicidad entre bases: cada base se corrige dentro de sí.
+- **Una regla por informe.** Con regla guardada, esa regla, tal cual, para todas las bases. Sin regla guardada se
+  propone una sola sobre todas las bases, como la regla entre públicos (ADR 0138 P2): Rao-Scott con BH si alguna base
+  trae el conglomerado, sin depender del orden de las bases. Una base sin la columna de conglomerado se abstiene.
+- **Analítica.** Las comparaciones de Analítica entran sólo en la familia de la base de su config (hoy la activa), no en
+  la de otra base que tenga columnas con el mismo nombre.
+- **Base ambigua o desconocida.** Una lámina que mezcla bases (la pregunta de una y el cruce de otra, o dos
+  graficadores de bases distintas) o que nombra una base ausente no entra en ninguna familia y avisa:
+  `E_SIG_BASE_AMBIGUA` / `E_SIG_BASE_DESCONOCIDA` (409) en `/api/graficos/diferencias`, la lámina en error dentro del
+  informe y un aviso en el export.
 
-- Antes: el export armaba una sola familia, la de la base activa. La lámina de otra base salía `fuera_de_familia`, sin
-  marcas y con aviso, aunque `/api/graficos/diferencias` sí la probaba sobre su base. La familia de cada base se armaba
-  además con las ranuras de todas las bases.
-- Después: el export (`.sig_informe_preparar`) y el inspector (`.sig_contexto_sesion`) arman la familia de cada base con
-  la misma función (`api/R/graficos_significancia_familia_bases.R`), y el render marca cada lámina contra la familia de
-  la base que tabuló. Con una sola base no cambia nada: la familia es bit a bit la de antes.
+Antes: el export armaba una sola familia, la de la base activa, sobre las ranuras de todas las bases y con la regla
+propuesta por la base activa. La lámina de otra base salía `fuera_de_familia`, sin marcas y con aviso, aunque
+`/api/graficos/diferencias` sí la probaba sobre su base (con la regla que proponía esa base).
 
-Las familias entre públicos (ADR 0138) siguen separadas. Prueba: `test-graficos-significancia-familia-por-base.R`.
+Después: el export (`.sig_informe_preparar`), la vista previa y el inspector (`.sig_contexto_sesion`) arman la regla y la
+familia de cada base con las mismas funciones (`api/R/graficos_significancia_familia_bases.R`), y el render marca cada
+lámina contra la familia de la base que tabuló. Con una sola base no cambia nada: regla y familia son bit a bit las de
+antes. Las familias entre públicos (ADR 0138) siguen separadas. Prueba: `test-graficos-significancia-familia-por-base.R`.
 
 ### 4. Cuándo se marca
 

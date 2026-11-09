@@ -1057,6 +1057,7 @@ errores_registrados <- function() {
     "E_SHEETS_SPREADSHEET",                                  "router_monitoreo.R",                "400",
     "E_SHEETS_TAB",                                          "router_monitoreo.R",                "400",
     "E_SHEETS_TIMEOUT",                                      "monitoreo_publicar_ensayo.R",       "504",
+    "E_SIG_BASE_AMBIGUA",                                    "graficos_significancia_base_lamina.R", "409",
     "E_SIG_BASE_DESCONOCIDA",                                "graficos_significancia_base_lamina.R", "409",
     "E_SIG_ESTRATO_NO_ANIDADO",                              "graficos_significancia_regla.R",    "422",
     "E_SIG_PRUEBA_FALLO",                                    "graficos_significancia_informe.R",  "indirecto",

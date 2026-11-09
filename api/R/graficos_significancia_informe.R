@@ -142,6 +142,16 @@
   )
 }
 
+#' Lámina de base ambigua o desconocida dentro del informe: no se prueba, no entra en ninguna familia y lo dice
+#' @keywords internal
+.sig_lamina_sin_base_json <- function(slide, err) {
+  l <- .sig_lamina_del_plan(slide)
+  list(slide_id = as.character(slide$id %||% "")[1], titulo = as.character(slide$payload$titulo %||% "")[1],
+       estado = "error", activo = isTRUE(l$activo), motivo = conditionMessage(err),
+       error = list(code = err$code, message = conditionMessage(err)), variable = l$var %||% NA, cruce = l$cruce %||% NA,
+       modo_letras = "letras", grupos = list(), pares = list(), nota = conditionMessage(err), revisar = list("sin_prueba"))
+}
+
 #' Todas las láminas con cruce del informe
 #' @keywords internal
 .sig_informe_json <- function(plan, fuente, ctx, contexto_de = NULL) {
@@ -150,8 +160,9 @@
   for (s in slides) {
     if (is.null(.sig_lamina_del_plan(s))) next
     # R12-2: con `contexto_de`, cada lámina se prueba sobre la base de su ranura (graficos_significancia_base_lamina.R).
-    sl <- if (is.function(contexto_de)) contexto_de(s) else list(fuente = fuente, ctx = ctx)
-    laminas[[length(laminas) + 1L]] <- .sig_lamina_json(s, sl$fuente, sl$ctx)
+    sl <- if (is.function(contexto_de)) tryCatch(contexto_de(s), api_error = function(e) e) else list(fuente = fuente, ctx = ctx)
+    laminas[[length(laminas) + 1L]] <- if (inherits(sl, "api_error")) .sig_lamina_sin_base_json(s, sl) else
+      .sig_lamina_json(s, sl$fuente, sl$ctx)
   }
   list(laminas = laminas, resumen = .sig_resumen(laminas, ctx$m))
 }

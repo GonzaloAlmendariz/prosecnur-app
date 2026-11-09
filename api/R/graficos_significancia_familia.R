@@ -193,14 +193,20 @@
 }
 
 #' Contexto completo del informe para un render o un endpoint: regla y familia
+#'
+#' @param regla_informe `list(regla, origen)` del informe (`.sig_regla_informe`, una sola para todas las bases); sin
+#'   ella, la regla del estudio sobre esta base. @param con_analitica FALSE en la familia de una base que no es la de
+#'   la config de Analítica (ADR 0128 «Familia por base»).
 #' @keywords internal
-.sig_contexto_estudio <- function(data, inst, graficos_config = NULL, analitica_config = NULL) {
+.sig_contexto_estudio <- function(data, inst, graficos_config = NULL, analitica_config = NULL, regla_informe = NULL,
+                                  con_analitica = TRUE) {
   fuente <- .sig_fuente(data, inst)
-  rr <- .sig_regla_del_estudio(graficos_config, fuente$data, analitica_config)
+  rr <- regla_informe %||% .sig_regla_del_estudio(graficos_config, fuente$data, analitica_config)
   regla <- rr$regla
   familia <- NULL
   if (identical(regla$correccion, "bh_informe")) {
-    combos <- .sig_combinaciones_estudio(fuente, graficos_config$plan %||% NULL, analitica_config)
+    combos <- .sig_combinaciones_estudio(fuente, graficos_config$plan %||% NULL,
+                                         if (isTRUE(con_analitica)) analitica_config else NULL)
     familia <- .sig_familia_estudio(fuente, regla, combos)
   }
   list(regla = regla, origen = rr$origen, familia = familia$tabla %||% NULL, m = familia$m %||% 0L,
