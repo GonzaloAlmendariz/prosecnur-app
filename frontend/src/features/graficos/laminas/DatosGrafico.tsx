@@ -49,6 +49,7 @@ import { EtiquetaCortaPregunta, EtiquetasCortasPreguntas } from "./EtiquetasCort
 import { PreguntaClave } from "./preguntasClave/PreguntaClave";
 import { LetraYEjeAgrupadas } from "./tarjetaGrafico/LetraYEjeAgrupadas";
 import { valorDeMando } from "./mandosPorOverrides";
+import { parcheDeReferencia, referenciaQueRige, sinPistaDuplicada } from "./referenciaBarraHeredada";
 import { EnElWord } from "./tarjetaGrafico/EnElWord";
 import { ColoresGrafico } from "./colores/ColoresGrafico";
 import { PaletaDelGrafico } from "./colores/PaletaDelGrafico";
@@ -143,7 +144,8 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
     (padronPropio && (name === "universos" || name === "bases" || name === "metas" || name === "extras")) ||
     (radarPublicos || serie) && (name === "vars" || name === "orden_periodos" || (name === "corte" && conCasillas));
   const formaRadar = radarPublicos ? formaEfectivaRadar({ forma: args.forma, fallback_pocos: args.fallback_pocos, tabla: args.tabla, nCriterios: criteriosDelRadar(args) }).forma : "radar";
-  const campos = camposDeDatos(meta?.args ?? [], args, valor.graficador)
+  // Ronda 21: «Referencia de las barras» reemplaza a «Pista gris hasta el 100%»; lo guardado en la vieja se lee en la nueva.
+  const campos = sinPistaDuplicada(camposDeDatos(meta?.args ?? [], args, valor.graficador))
     // «Automática: junto al radar» miente cuando la forma efectiva es otra: sólo cambia el rótulo, no el valor.
     .map((c) => c.arg.name === "tabla" ? { ...c, opciones: c.opciones.map((o) => o.value === "auto" ? { ...o, label: rotuloTablaAuto(formaRadar, o.label) } : o) } : c)
     .filter((c) => !(conOrden && ORDEN_ANTERIOR.has(c.arg.name)) && !delEditor(c.arg.name));
@@ -177,7 +179,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
   const alcance = (c: CampoDato) => {
     const name = c.arg.name;
     // U6/U10: un mando que el motor lee de `overrides` muestra lo de `overrides` si está (lo que la lámina dibuja).
-    const guardado = valorDeMando(args, name, valor.graficador);
+    const guardado = name === "referencia_barra" ? referenciaQueRige(args, valor.graficador) : valorDeMando(args, name, valor.graficador);
     if (!tipo || grupoDeCampo(name) === "datos" || SIN_ALCANCE.has(name)) return { valor: guardado, sello: undefined, propio: false };
     const delTipo = valorDelTipo(presets, tipo, name, c.arg.default);
     const enPreset = presets[tipo]?.[name];
@@ -243,6 +245,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
             args={args} scope={scope} basePregunta={basePregunta} variables={variables} slideId={slideId}
             onCambio={(v) => set(valor.graficador === "p_radar" && c.arg.name === "modo" && typeof v === "string" ? patchModoRadar(args.modo, v)
               : c.arg.name === "tolerancia_pts" ? { tolerancia_pts: toleranciaAGuardar(v) }
+              : c.arg.name === "referencia_barra" ? parcheDeReferencia(args, v, valor.graficador)
               : valor.graficador === "p_barras_multiapiladas" ? sinGruposHuerfanos(args, { [c.arg.name]: v }) : { [c.arg.name]: v })} />
       {/* H2: «Un color por opción» encendido sobre una lista sin colores dice por qué no se ve. */}
       {c.arg.name === "colorear_por_opcion" && interruptorEncendido(c.arg, alcance(c).valor) && <AvisoColorPorOpcion valor={valor} />}
