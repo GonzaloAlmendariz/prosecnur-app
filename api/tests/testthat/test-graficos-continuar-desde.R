@@ -47,3 +47,33 @@ test_that("el contraste continúa por la mayor diferencia absoluta y el arg se v
   for (malo in list(0, -2, 2.5, "x")) expect_error(p_barras_divergentes(vars = "a$p", continuar_desde = malo), "continuar_desde")
   expect_error(.regla_preguntas_de_elemento(.cd_el(30), .tea_fuentes()), "continuar_desde")
 })
+
+test_that("H5: la escala del resumen en una ranura respeta continuar_desde (no lo descarta en silencio) y el pie lo dice", {
+  # A diferencia del contraste (C4), la ranura de la escala recorta en el orden de la regla, así que continuar desde una
+  # posición tiene sentido: la regla salta las primeras y la ranura muestra las siguientes que caben.
+  src <- .tea_fuentes()
+  esc <- function(desde = NULL) list(graficador = "p_barras_divergentes", args = c(list(vars = list("estudiantes$*", "docentes$*"), n_negativas = 2,
+    incluir_neutro = FALSE, estilo = "resumen", regla = list(tipo = "mayor_sin_info", n = 6)), if (!is.null(desde)) list(continuar_desde = desde)))
+  pan <- list(graficador = "p_panorama", args = list(vars = list("estudiantes$*", "docentes$*"), corte = list("3", "4")))
+  render <- function(desde = NULL) {
+    plan <- .normalize_plan(list(slides = list(list(id = "s2", tipo = "p_slide_2_graficos",
+                                                    payload = list(titulo = "Dos gráficos", izquierda = esc(desde), derecha = pan)))), avisar = FALSE)
+    out <- withr::local_tempfile(fileext = ".pptx", .local_envir = parent.frame())
+    avisos <- character(0)
+    withCallingHandlers(suppressWarnings(reporte_ppt_plan(data = src$data_sources, instrumento = src$inst_sources,
+                                                          plan = p_plan(slides = list(.rebuild_slide(plan$slides[[1]]))), path_ppt = out, mensajes_progreso = FALSE)),
+                        message = function(m) { avisos <<- c(avisos, conditionMessage(m)); invokeRestart("muffleMessage") })
+    doc <- xml2::read_xml(.pptx_leer_parte(out, .pptx_slide_paths(out)[1]))
+    txt <- function(nm) vapply(xml2::xml_find_all(doc, sprintf("//p:sp[p:nvSpPr/p:cNvPr[@name='%s']]", nm), xml2::xml_ns(doc)),
+                               function(x) paste(xml2::xml_text(xml2::xml_find_all(x, ".//a:t", xml2::xml_ns(doc))), collapse = ""), "")
+    list(filas = txt("divergentes:afirmacion"), pie = paste(xml2::xml_text(xml2::xml_find_all(doc, "//a:t")), collapse = " "), avisos = avisos)
+  }
+  sin <- render(); con <- render(3)
+  expect_length(sin$filas, 6L)
+  expect_length(con$filas, 4L)                                   # de la 3 a la 6
+  # Las mismas, en el mismo orden, sin las dos primeras (el sufijo del público sólo va cuando la lámina mezcla públicos).
+  sin_sufijo <- function(x) sub(" \\([^()]+\\)$", "", x)
+  expect_identical(sin_sufijo(con$filas), sin_sufijo(sin$filas[3:6]))
+  expect_match(con$pie, "de la 3 a la 6 de las 6", fixed = TRUE)
+  expect_false(any(grepl("no admite `continuar_desde`", con$avisos, fixed = TRUE)))
+})
