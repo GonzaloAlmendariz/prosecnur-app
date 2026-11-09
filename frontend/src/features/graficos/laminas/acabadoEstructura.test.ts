@@ -374,8 +374,9 @@ describe("R10-1: sin botones F1/F2 en vistaGeneral/", () => {
   });
   it("el «Eliminar» final del diálogo es el rojo relleno y «Cancelar» es secundario", () => {
     const src = sinComentarios(leer("../vistaGeneral/ConfirmarEliminar.tsx"));
-    expect(src).toMatch(/<PulsoButton variant="danger" confirm onClick=\{onConfirmar\}>/);
-    expect(src).toMatch(/<Dialog\.Close asChild>\s*<PulsoButton ref=\{cancelarRef\} variant="secondary">Cancelar<\/PulsoButton>/);
+    // R11-7: al pie de un diálogo, lg (36).
+    expect(src).toMatch(/<PulsoButton variant="danger" size="lg" confirm onClick=\{onConfirmar\}>/);
+    expect(src).toMatch(/<Dialog\.Close asChild>\s*<PulsoButton ref=\{cancelarRef\} variant="secondary" size="lg">Cancelar<\/PulsoButton>/);
   });
 });
 
