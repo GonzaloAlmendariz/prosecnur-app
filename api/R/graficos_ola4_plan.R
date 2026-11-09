@@ -707,6 +707,8 @@ p_barras_divergentes <- function(vars = NULL,
 #'   `TRUE`, 0: los que tenía este constructor).
 #' @param regla Cómo se eligen los temas entre los de `vars` (ADR 0135); sólo en el estilo resumen. Un tema cuyas dos
 #'   referencias son `base$*` toma los pares del mismo nombre entre las dos bases.
+#' @param leyenda_con_n "N en la leyenda": cada grupo con sus casos sin ponderar ("TC (24)"). `NULL` no opina: con tres o
+#'   cuatro grupos va; con dos, como el dumbbell de siempre (graficos_dumbbell_tres_grupos.R).
 #' @param universos_no_confiables Lo tecleado como padrón de un grupo con «Padrón confiable» apagado («Docentes TC:
 #'   24»): se conserva en el elemento y no entra a ningún cálculo (graficos_padron_confiable.R).
 #' @export
@@ -730,14 +732,15 @@ p_dumbbell <- function(vars = NULL,
                        base_en = NULL,
                        regla = NULL,
                        universos_no_confiables = NULL,
-                       bases = NULL) {
+                       bases = NULL,
+                       leyenda_con_n = NULL) {
   no_confiables <- .graficos_universos_no_confiables(universos_no_confiables, "p_dumbbell()")
   # G17: con `cruce` y `grupos` la brecha es entre dos grupos de una misma base (graficos_dumbbell_grupos.R).
   if (!is.null(cruce)) {
     # ADR 0135: con regla y sin temas, las aperturas toman la base del cruce (graficos_dumbbell_auto.R).
     if (.dumbbell_sin_temas(vars) && !is.null(.regla_preguntas_normalizar(regla))) vars <- .dumbbell_vars_de_cruce(cruce)
     el <- .p_dumbbell_grupos(vars, corte, corte_etiqueta, orden, mostrar_brecha, umbral_brecha_pct, titulo,
-                             overrides, base, filtros, etiqueta_brecha, cruce, grupos, estilo, universos, separar_tras, base_en)
+                             overrides, base, filtros, etiqueta_brecha, cruce, grupos, estilo, universos, separar_tras, base_en, leyenda_con_n)
     el$universos_no_confiables <- no_confiables
     return(.regla_preguntas_en_constructor(el, regla, "p_dumbbell()"))   # ADR 0135
   }
@@ -756,7 +759,7 @@ p_dumbbell <- function(vars = NULL,
     if (!length(.radar_mb_codigos(corte))) .plan_spec_abort("p_dumbbell(): `corte` debe traer al menos un codigo de la escala.")
     if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
     ov <- .dumbbell_slot_overrides(overrides, orden, mostrar_brecha, umbral_brecha_pct, etiqueta_brecha)
-    ov <- .dumbbell_resumen_overrides(ov, estilo, universos, separar_tras, base_en)
+    ov <- .dumbbell_resumen_overrides(ov, estilo, universos, separar_tras, base_en, leyenda_con_n)
     el <- list(.element_type = "dumbbell", var = NULL, vars = NULL, corte = .graf_corte_unido(corte),
                corte_etiqueta = as.character(corte_etiqueta %||% "")[1], title_slide = titulo, overrides = ov, base = base,
                filtros = .ppt_norm_filters(filtros), universos_no_confiables = no_confiables)
@@ -807,7 +810,7 @@ p_dumbbell <- function(vars = NULL,
   }
 
   ov <- .dumbbell_slot_overrides(overrides, orden, mostrar_brecha, umbral_brecha_pct, etiqueta_brecha)
-  ov <- .dumbbell_resumen_overrides(ov, estilo, universos, separar_tras, base_en)   # ADR 0134
+  ov <- .dumbbell_resumen_overrides(ov, estilo, universos, separar_tras, base_en, leyenda_con_n)   # ADR 0134
 
   el <- list(
     .element_type = "dumbbell",

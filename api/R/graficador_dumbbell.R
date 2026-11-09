@@ -42,6 +42,8 @@
 #'   base como `n (cobertura %)`. Sin padrón de un grupo, su base va sólo con `n`. Sólo con `estilo = "resumen"`.
 #' @param base_en Dónde va la base de cada grupo: `auto` (en la leyenda si no cambia de fila a fila; si cambia, en la
 #'   tabla), `tabla`, `leyenda` o `nota` (al pie). Sólo con `estilo = "resumen"`.
+#' @param leyenda_con_n "N en la leyenda" (`TRUE`/`FALSE`); `NULL`: con tres o cuatro grupos va y con dos, en el
+#'   recetario, sólo si la base del grupo no cambia de fila a fila (graficos_dumbbell_tres_grupos.R).
 #' @param separar_tras Filas (en el orden declarado) tras las que va un separador; fija el orden declarado.
 #' @param orden `brecha` ordena por tamaño de la diferencia —la lectura de
 #'   ranking—; `valor` por el valor del primer grupo; `declarado` respeta el
@@ -95,7 +97,8 @@ graficar_dumbbell <- function(
     estilo = c("recetario", "resumen"),
     universos = NULL,
     separar_tras = NULL,
-    base_en = c("auto", "tabla", "leyenda", "nota")
+    base_en = c("auto", "tabla", "leyenda", "nota"),
+    leyenda_con_n = NULL
 ) {
   escala_valor <- match.arg(escala_valor)
   orden <- match.arg(orden)
@@ -110,7 +113,7 @@ graficar_dumbbell <- function(
     espec <- .espec_contraste(d, var_eje, var_grupo, var_valor, var_n_casos = col_casos, universos = universos,
                               separar_tras = separar_tras, orden = orden, decimales = valores_decimales,
                               colores = colores_grupos, encabezado_diferencia = encabezado_brecha, limite_x = limite_x,
-                              titulo_eje = titulo_eje, base_en = match.arg(base_en))
+                              titulo_eje = titulo_eje, base_en = match.arg(base_en), leyenda_con_n = leyenda_con_n)
     return(.graficar_contraste_gg(espec, titulo = titulo, subtitulo = subtitulo, nota_pie = nota_pie, font_family = font_family))
   }
   leyenda_posicion <- match.arg(leyenda_posicion)
@@ -281,6 +284,8 @@ graficar_dumbbell <- function(
     }, numeric(1))
     etiquetas_leyenda <- ifelse(is.finite(n_g), sprintf("%s (%s)", niveles_grupo, .dumbbell_fmt_casos(n_g)), niveles_grupo)
   }
+  # "N en la leyenda" declarado por el analista manda sobre lo de arriba (graficos_dumbbell_tres_grupos.R).
+  etiquetas_leyenda <- .dumbbell_leyenda_recetario(etiquetas_leyenda, niveles_grupo, data, var_grupo, col_casos, leyenda_con_n)
 
   # ADR 0093 (N4): lo que afirman las pesas para la lámina nativa (láminas 85 y 86, recetario_m3c.R). Como el
   # recetario, la diferencia es el primer grupo menos el segundo («+5 pts» si el primero está más arriba) y, con

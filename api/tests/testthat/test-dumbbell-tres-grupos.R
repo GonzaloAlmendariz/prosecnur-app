@@ -159,3 +159,43 @@ test_that("las tarjetas entre públicos cotejan las cifras del contraste de tres
   expect_true(all(vapply(r$temas, `[[`, "", "estado") == "evaluable"))
   expect_true(all(vapply(r$temas, function(te) nrow(.tpub_pares(te)), 0L) == 3L))     # los tres pares, nunca frente al resto
 })
+
+# Gonzalo, 2026-11-09 (leyenda "TC (24)  TPA (91)"): "Debería haber una opción para que la leyenda pueda incluir el N así".
+test_that("N en la leyenda es una opción del analista: encendida y apagada con dos y con tres grupos", {
+  ley <- function(k, v, estilo = "resumen") attr(graficar_dumbbell(.d3_tidy(k), estilo = estilo, leyenda_con_n = v), "pulso_espec")$leyenda
+  # Sin declarar: con tres sí, con dos no (lo de hoy).
+  expect_identical(ley(3, NULL), c("2do ciclo (139)", "3er ciclo (25)", "4to ciclo (115)"))
+  expect_identical(ley(2, NULL), c("2do ciclo", "3er ciclo"))
+  # Encendida y apagada, en los dos estilos.
+  expect_identical(ley(2, TRUE), c("2do ciclo (139)", "3er ciclo (25)"))
+  expect_identical(ley(3, FALSE), c("2do ciclo", "3er ciclo", "4to ciclo"))
+  expect_identical(ley(2, TRUE, "recetario"), c("2do ciclo (139)", "3er ciclo (25)"))
+  expect_identical(ley(2, FALSE, "recetario"), c("2do ciclo", "3er ciclo"))
+  # Por el plan, en las tres versiones (base, contraste y aperturas), llega a la leyenda.
+  src <- .d3_fuentes(3)
+  for (estilo in list(NULL, "resumen")) {
+    for (v in c(TRUE, FALSE)) {
+      el <- p_dumbbell(vars = .d3_vars(3), corte = c("3", "4"), estilo = estilo, leyenda_con_n = v)
+      expect_identical(el$overrides$leyenda_con_n, v)
+      l <- attr(.d3_render(.render_dumbbell, el, src), "pulso_espec")$leyenda
+      expect_identical(grepl("\\(115\\)$", l[1]), v)
+    }
+  }
+  el2 <- p_dumbbell(vars = lapply(.d3_vars(3), `[`, 1:2), corte = c("3", "4"), leyenda_con_n = TRUE)
+  expect_identical(attr(.d3_render(.render_dumbbell, el2, src), "pulso_espec")$leyenda, c("docentes (115)", "estudiantes (279)"))   # el recetario rotula la base tal cual
+  ap <- p_dumbbell(vars = list("b$p1"), corte = "4", cruce = "b$c", grupos = c("1", "2"), estilo = "resumen", leyenda_con_n = FALSE)
+  expect_identical(ap$overrides$leyenda_con_n, FALSE)
+  # Declarada en el registro con su rótulo.
+  arg <- Filter(function(a) identical(a$name, "leyenda_con_n"), .GRAFICADORES_META$p_dumbbell$args)
+  expect_length(arg, 1L)
+  expect_identical(arg[[1]]$label, "N en la leyenda"); expect_identical(arg[[1]]$tipo_input, "bool")
+})
+
+test_that("sin casos enteros (n fraccionario) la leyenda va sin N y, si se pidió, lo dice", {
+  d <- .d3_tidy(2); d$n <- d$n_casos + 0.37; d$n_casos <- NULL
+  expect_message(l <- attr(graficar_dumbbell(d, estilo = "resumen", leyenda_con_n = TRUE), "pulso_espec")$leyenda, "La leyenda va sin N")
+  expect_identical(l, c("2do ciclo", "3er ciclo"))
+  expect_message(l2 <- attr(graficar_dumbbell(d, leyenda_con_n = TRUE), "pulso_espec")$leyenda, "La leyenda va sin N")
+  expect_identical(l2, c("2do ciclo", "3er ciclo"))
+  expect_silent(graficar_dumbbell(d, estilo = "resumen"))
+})

@@ -298,7 +298,12 @@
   ancho_ley <- function(l) sum(vapply(l, function(t) 0.14 + .lam_ancho_tinta(t, 10.5, FALSE) + 0.25 + 0.25, 0))
   # Con tres o cuatro grupos la leyenda lleva el n de cada uno ("2do ciclo (139)"); si así no cabe en la ranura, va sólo con
   # el nombre: el n sigue en la nota de la base (graficos_dumbbell_tres_grupos.R).
-  if (ancho_ley(ley) > w - wd + 1e-6) ley <- espec$grupos
+  if (ancho_ley(ley) > w - wd + 1e-6) {
+    if (isTRUE(espec$leyenda_con_n) && !identical(ley, espec$grupos)) {
+      .pulso_aviso(.aviso_en_lamina("La leyenda va sin N: con el N no cabe en el ancho de su ranura; el N de cada grupo sigue en la nota de la base."))
+    }
+    ley <- espec$grupos
+  }
   wley <- ancho_ley(ley)
   # La leyenda arranca sobre el área de puntos; si no cabe hasta la columna de la diferencia, desde el margen de la ranura.
   x_ley <- if (wley <= (x + w - wd) - (xl - 0.05) + 1e-6) xl - 0.05 else x

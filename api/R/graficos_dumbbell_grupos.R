@@ -98,7 +98,7 @@
 #' @keywords internal
 .p_dumbbell_grupos <- function(vars, corte, corte_etiqueta, orden, mostrar_brecha, umbral_brecha_pct, titulo,
                                overrides, base, filtros, etiqueta_brecha, cruce, grupos, estilo = NULL, universos = NULL,
-                               separar_tras = NULL, base_en = NULL) {
+                               separar_tras = NULL, base_en = NULL, leyenda_con_n = NULL) {
   if (!nzchar(trimws(as.character(cruce)[1] %||% ""))) .plan_spec_abort("p_dumbbell(): elige la pregunta que define los grupos.")
   refs <- if (is.list(vars)) vapply(vars, function(x) as.character(unlist(x))[1], character(1)) else as.character(vars)
   if (!length(refs) || any(is.na(refs) | !nzchar(trimws(refs)))) {
@@ -108,7 +108,7 @@
   grupos <- trimws(as.character(unlist(grupos)))
   if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
   ov <- .dumbbell_slot_overrides(overrides, orden, mostrar_brecha, umbral_brecha_pct, etiqueta_brecha)   # O7c
-  ov <- .dumbbell_resumen_overrides(ov, estilo, universos, separar_tras, base_en)
+  ov <- .dumbbell_resumen_overrides(ov, estilo, universos, separar_tras, base_en, leyenda_con_n)
   # Hasta cuatro grupos en los dos estilos: con tres o cuatro el recetario se dibuja como el contraste del resumen
   # (graficos_dumbbell_tres_grupos.R).
   tope <- .DUMBBELL_GRUPOS_MAX
@@ -134,8 +134,9 @@
 
 #' Los args del contraste del resumen (ADR 0134) en los overrides de la lámina: sólo lo que el slot declara (O7c)
 #' @keywords internal
-.dumbbell_resumen_overrides <- function(ov, estilo = NULL, universos = NULL, separar_tras = NULL, base_en = NULL) {
+.dumbbell_resumen_overrides <- function(ov, estilo = NULL, universos = NULL, separar_tras = NULL, base_en = NULL, leyenda_con_n = NULL) {
   ov <- .ppt_slot_override(ov, "estilo", estilo, "opcion", opciones = c("recetario", "resumen"))
+  ov <- .ppt_slot_override(ov, "leyenda_con_n", leyenda_con_n, "bool")   # "N en la leyenda" (graficos_dumbbell_tres_grupos.R)
   ov <- .ppt_slot_override(ov, "base_en", base_en, "opcion", opciones = c("auto", "tabla", "leyenda", "nota"))
   if (!is.null(universos) && length(universos)) ov$universos <- universos
   sep <- suppressWarnings(as.integer(unlist(separar_tras)))

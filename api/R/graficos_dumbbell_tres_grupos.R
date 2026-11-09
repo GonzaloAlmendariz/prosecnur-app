@@ -9,7 +9,8 @@
 # puede ir en la nota de la base en la esquina inferior"). Con dos grupos sigue el dumbbell clásico, con la diferencia con
 # signo. El dibujo de las sub-filas y la nota de la base ya los tenía el contraste (graficos_espec_contraste.R,
 # lamina_contraste.R, lamina_resumen_ranura.R); aquí está lo que faltaba para llegar a él:
-#   - la leyenda con el n de cada grupo cuando son tres o cuatro (`.contraste_leyenda_con_n`);
+#   - la leyenda con el n de cada grupo, opción del analista "N en la leyenda" (`leyenda_con_n`): sin declarar, con tres o
+#     cuatro grupos va y con dos, como el dumbbell de siempre (`.contraste_leyenda_con_n`, `.dumbbell_leyenda_recetario`);
 #   - el dumbbell entre públicos acepta de dos a cuatro bases: el analista elige cuáles (`bases` o las refs de cada tema);
 #     sin elegir, con más de dos bases en el estudio, el motor sigue pidiendo que se elijan;
 #   - el dumbbell del recetario no dibuja tres grupos (su segmento sería un rango): con tres o cuatro se dibuja como el
@@ -17,17 +18,44 @@
 
 .DUMBBELL_GRUPOS_MAX <- 4L
 
-#' Leyenda del contraste: con tres o cuatro grupos, cada grupo con su n ("2do ciclo (139)"); con dos, sólo el nombre
+#' Leyenda del contraste: cada grupo con su n ("2do ciclo (139)") si el analista lo pide (`leyenda_con_n`); sin declarar,
+#' con tres o cuatro grupos sí y con dos no
 #'
 #' El n es el mayor de sus casos sin ponderar entre las preguntas (si la base cambia de pregunta en pregunta, la nota de la
-#' base da su rango).
+#' base da su rango). Sin casos enteros (sólo suma de pesos) no se escribe y, si se pidió, la lámina lo dice.
 #' @param N Matriz de casos (pregunta x grupo).
+#' @param leyenda_con_n `TRUE`, `FALSE` o `NULL` (no opina).
 #' @keywords internal
-.contraste_leyenda_con_n <- function(grupos, N) {
+.contraste_leyenda_con_n <- function(grupos, N, leyenda_con_n = NULL) {
   k <- length(grupos)
-  if (k < 3L || !is.matrix(N) || ncol(N) != k) return(grupos)
-  n <- apply(N, 2, function(v) if (any(is.finite(v))) max(v[is.finite(v)]) else NA_real_)
+  con_n <- if (is.null(leyenda_con_n) || is.na(leyenda_con_n[1])) k >= 3L else isTRUE(as.logical(leyenda_con_n[1]))
+  if (!con_n) return(grupos)
+  n <- if (is.matrix(N) && ncol(N) == k) apply(N, 2, function(v) if (any(is.finite(v))) max(v[is.finite(v)]) else NA_real_) else rep(NA_real_, k)
+  if (isTRUE(leyenda_con_n) && !all(is.finite(n))) .dumbbell_leyenda_sin_n_aviso()
   ifelse(is.finite(n), sprintf("%s (%s)", grupos, vapply(n, .dumbbell_fmt_casos, "")), grupos)
+}
+
+#' Leyenda del dumbbell del recetario con "N en la leyenda" declarado: `TRUE` escribe el n de cada grupo (el mayor de sus
+#' filas si cambia), `FALSE` sólo el nombre, `NULL` deja la leyenda de siempre (n sólo si la base del grupo no cambia)
+#' @param col_casos Columna de casos sin ponderar (`.dumbbell_col_casos`) o `NULL` si sólo hay suma de pesos.
+#' @keywords internal
+.dumbbell_leyenda_recetario <- function(etiquetas, grupos, data, var_grupo, col_casos, leyenda_con_n = NULL) {
+  if (is.null(leyenda_con_n) || is.na(leyenda_con_n[1])) return(etiquetas)
+  if (!isTRUE(as.logical(leyenda_con_n[1]))) return(grupos)
+  if (is.null(col_casos)) { .dumbbell_leyenda_sin_n_aviso(); return(grupos) }
+  n <- vapply(grupos, function(g) {
+    v <- suppressWarnings(as.numeric(data[[col_casos]][as.character(data[[var_grupo]]) == g])); v <- v[is.finite(v)]
+    if (length(v)) max(v) else NA_real_
+  }, numeric(1))
+  if (!all(is.finite(n))) .dumbbell_leyenda_sin_n_aviso()
+  unname(ifelse(is.finite(n), sprintf("%s (%s)", grupos, .dumbbell_fmt_casos(n)), grupos))
+}
+
+#' Aviso cuando se pidió el N en la leyenda y no hay casos enteros que escribir
+#' @keywords internal
+.dumbbell_leyenda_sin_n_aviso <- function() {
+  .pulso_aviso(.aviso_en_lamina(paste0("La leyenda va sin N: los grupos sólo traen la suma de los pesos, no casos sin ponderar ",
+                                       "que se puedan escribir.")))
 }
 
 #' Estilo con que se dibuja el dumbbell: el declarado; con tres o cuatro grupos, el del contraste

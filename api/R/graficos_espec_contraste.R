@@ -153,7 +153,7 @@
 .espec_contraste <- function(data, var_eje = "eje", var_grupo = "grupo", var_valor = "valor", var_n_casos = "n_casos",
                              universos = NULL, separar_tras = NULL, orden = c("brecha", "valor", "declarado", "brecha_absoluta"),
                              decimales = 0L, colores = NULL, encabezado_diferencia = "Diferencia", limite_x = NULL,
-                             titulo_eje = NULL, base_en = c("auto", "tabla", "leyenda", "nota")) {
+                             titulo_eje = NULL, base_en = c("auto", "tabla", "leyenda", "nota"), leyenda_con_n = NULL) {
   orden <- match.arg(orden)
   base_en <- match.arg(base_en)
   for (col in c(var_eje, var_grupo, var_valor)) {
@@ -206,7 +206,7 @@
   if (!constante && identical(base_en, "leyenda")) base_en <- "nota"
   base_grupo <- vapply(seq_len(k), function(j) .contraste_base_grupo(N[, j], uni[j]), "")
   leyenda <- if (identical(base_en, "leyenda")) sprintf("%s (n = %s)", grupos, sub(" \\((.*)\\)$", ", \\1", base_grupo)) else
-    .contraste_leyenda_con_n(grupos, N)   # con tres o cuatro grupos, "2do ciclo (139)" (graficos_dumbbell_tres_grupos.R)
+    .contraste_leyenda_con_n(grupos, N, leyenda_con_n)   # "2do ciclo (139)": opción del analista (graficos_dumbbell_tres_grupos.R)
   nota_base <- if (identical(base_en, "nota")) paste0("Base: ", paste(sprintf("%s %s", grupos, base_grupo), collapse = "; ")) else NULL
   colores_g <- .contraste_colores(grupos, colores)
   list(
@@ -219,7 +219,7 @@
     encabezado_diferencia = encabezado_diferencia %||% "Diferencia",
     sentido_diferencia = if (k == 2L) .dumbbell_sentido(grupos[1], grupos[2]) else "mayor − menor",
     casos = N[o, , drop = FALSE], bases = B[o, , drop = FALSE], con_cobertura = is.finite(uni),
-    base_en = base_en, leyenda = leyenda, nota_base = nota_base, universos = uni,
+    base_en = base_en, leyenda = leyenda, nota_base = nota_base, universos = uni, leyenda_con_n = leyenda_con_n,
     separadores = sep, modo = if (k == 2L) "par" else "subfilas",
     eje = .contraste_eje(V, limite_x), titulo_eje = titulo_eje, decimales = dec
   )
