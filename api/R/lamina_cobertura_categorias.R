@@ -14,6 +14,7 @@
 # las barras, tolerancia) van al pie.
 
 .COBCAT_FILAS_MAX <- 14L
+.COBCAT_AIRE_DER <- 0.2   # aire entre la columna de la diferencia y el borde derecho de su rectángulo (in)
 
 #' ¿Es la especificación de la versión por categorías?
 #' @keywords internal
@@ -52,7 +53,9 @@
   wd <- if (isTRUE(espec$hay_universo)) max(if (pg) 1.3 else 1.0, .lam_ancho_tinta(espec$encabezado_diferencia, 10.5, FALSE) + 0.25) else 0
   wv <- max(.lam_ancho_tinta(c("100.0%", "sin casos", "sin dato"), size_v, FALSE)) + 0.25
   xl <- x; xn <- xl + wl; xb <- xn + wn + 0.1
-  xd <- x + w - wd
+  # La columna de la diferencia queda dentro del rectángulo con su aire a la derecha: pegada al borde, la vista previa de la
+  # app recortaba "+4.8" y "Diferencia (pts)" contra el marco del gráfico (2026-11-09).
+  xd <- x + w - wd - .COBCAT_AIRE_DER
   wb <- xd - 0.1 - wv - xb
   g <- min(if (pg) 0.3 else 0.2, hrow * 0.3)
   list(cabe = hrow >= (if (pg) 0.4 else 0.3) && wb >= (if (pg) 3 else 1.2),

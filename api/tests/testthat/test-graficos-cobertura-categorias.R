@@ -299,3 +299,13 @@ test_that("render: con más categorías de las que caben va el dibujo de respald
   expect_s3_class(p, "ggplot"); expect_identical(attr(p, "pulso_espec")$version, "cobertura_categorias/1")
   expect_true(.lam_cobertura_cabe(.cc_espec("ciclo", bases = "docentes")))
 })
+
+test_that("la columna de la diferencia queda dentro de su rectángulo, con aire a la derecha (vista previa recortada, 2026-11-09)", {
+  e <- .cc_espec("ciclo", bases = "estudiantes", universo = .cc_univ())
+  for (esc in c("pagina", "ranura")) {
+    ge <- .lam_cobcat_geo(e, 0.495, 1.75, if (esc == "pagina") 12.523 else 6.0, 4.6, esc)
+    expect_true(ge$cabe)
+    expect_lte(ge$xd + ge$wd, 0.495 + (if (esc == "pagina") 12.523 else 6.0) - .COBCAT_AIRE_DER + 1e-9)
+    expect_gte(ge$xd, ge$xb + ge$wb)                                   # no pisa las barras ni sus cifras
+  }
+})
