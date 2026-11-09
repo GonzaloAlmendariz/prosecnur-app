@@ -117,11 +117,12 @@
 
 #' Texto de la nota de la regla
 #'
-#' @param k Cuántas elige la regla (antes del ajuste a mano).
+#' @param k Cuántas de las que elige la regla quedan después del ajuste a mano (las que se dibujan por la regla).
+#' @param agregadas Cuántas se agregaron a mano sin cumplir la regla (se dicen aparte).
 #' @param altas,bajas Para `extremos`, cuántas altas y cuántas bajas.
 #' @keywords internal
 .regla_preguntas_texto <- function(regla, k, total, universo, n_grupos = 1L, grupos_unidad = "públicos",
-                                   altas = 0L, bajas = 0L, ajustada = FALSE) {
+                                   altas = 0L, bajas = 0L, ajustada = FALSE, agregadas = 0L) {
   de_total <- .regla_preguntas_de_total(total, universo)
   una <- k == 1
   muestra <- if (una) "Se muestra" else "Se muestran"
@@ -164,6 +165,10 @@
              else if (una) sprintf("Se muestra 1 pregunta elegida, %s.", de_total)
              else sprintf("Se muestran %s preguntas elegidas, %s.", cifra, de_total)
   )
+  if (agregadas > 0L) {
+    txt <- paste(txt, if (agregadas == 1L) "Se agrega 1 pregunta elegida a mano."
+                      else sprintf("Se agregan %s preguntas elegidas a mano.", .regla_preguntas_cifra(agregadas)))
+  }
   if (isTRUE(ajustada)) txt <- paste(txt, "Lista ajustada a mano.")
   txt
 }
@@ -246,7 +251,7 @@
   m <- metrica[idx]; o <- orden[idx]
   desc <- function(ix) ix[order(-ifelse(is.finite(metrica[ix]), metrica[ix], -Inf), orden[ix])]
   asc <- function(ix) ix[order(ifelse(is.finite(metrica[ix]), metrica[ix], Inf), orden[ix])]
-  altas <- 0L; bajas <- 0L
+  altas_t <- character(0); bajas_t <- character(0)
   elegidos <- switch(regla$tipo,
     todas = idx[order(o)],
     comunes = idx[order(o)],
@@ -258,7 +263,7 @@
       ix <- idx[is.finite(m)]
       a <- utils::head(desc(ix), regla$n)
       b <- utils::head(asc(setdiff(ix, a)), regla$n)
-      altas <- length(a); bajas <- length(b)
+      altas_t <- temas[a]; bajas_t <- temas[b]
       c(a, desc(b))   # de arriba abajo: las altas y luego las bajas, todo de mayor a menor
     },
     a_mano = integer(0)
@@ -278,12 +283,20 @@
   antes <- sel
   sel <- c(sel, setdiff(agregar, sel))
   sel <- setdiff(sel, quitar)
-  if (identical(regla$tipo, "a_mano")) n_regla <- length(sel)
-  ajustada <- if (identical(regla$tipo, "a_mano")) length(quitar) > 0L && length(intersect(quitar, agregar)) > 0L
-              else !identical(antes, sel)
+  # La nota cuenta lo que se DIBUJA (prueba con Arte: «las 22 bajo 60%» con dos quitadas dibujaba 20): de las que eligió
+  # la regla, las que quedan; las agregadas a mano se dicen aparte, porque no cumplen la regla.
+  agregadas <- 0L
+  if (identical(regla$tipo, "a_mano")) {
+    n_regla <- length(sel)
+    ajustada <- length(quitar) > 0L && length(intersect(quitar, agregar)) > 0L
+  } else {
+    n_regla <- length(intersect(antes, sel)); agregadas <- length(setdiff(sel, antes))
+    ajustada <- length(setdiff(antes, sel)) > 0L   # alguna de la regla se quitó a mano
+  }
+  altas <- sum(altas_t %in% sel); bajas <- sum(bajas_t %in% sel)
   total <- length(idx)
   texto <- .regla_preguntas_texto(regla, n_regla, total, universo, n_grupos = k, grupos_unidad = grupos_unidad,
-                                  altas = altas, bajas = bajas, ajustada = ajustada)
+                                  altas = altas, bajas = bajas, ajustada = ajustada, agregadas = agregadas)
   candidatas <- if (length(temas)) {
     # Fuera del universo la pregunta no se mide (N6): su métrica no se publica aunque se pueda calcular.
     data.frame(tema = temas, etiqueta = etiquetas, metrica = ifelse(en_universo, unname(metrica), NA_real_), seleccionada = temas %in% sel,

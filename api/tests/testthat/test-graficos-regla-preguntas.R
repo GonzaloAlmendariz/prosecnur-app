@@ -122,7 +122,8 @@ test_that("la diferencia es la de la lámina: sobre cifras redondeadas, y con tr
 test_that("agregar y quitar se aplican después de la regla y la nota lo dice", {
   e <- .regla_preguntas_evaluar(.rp_ind(), list(tipo = "mayor_diferencia", n = 2, agregar = "b", quitar = "a"))
   expect_identical(e$temas, c("d", "b"))
-  expect_identical(e$texto, "Se muestran las 2 de mayor diferencia, de 4 preguntas comunes. Lista ajustada a mano.")
+  # La nota cuenta lo que se dibuja: de las 2 de la regla queda 1, y la agregada se dice aparte (prueba con Arte).
+  expect_identical(e$texto, "Se muestra la de mayor diferencia, de 4 preguntas comunes. Se agrega 1 pregunta elegida a mano. Lista ajustada a mano.")
   # Un ajuste que no cambia nada no se anuncia; uno desconocido se avisa.
   e2 <- .regla_preguntas_evaluar(.rp_ind(), list(tipo = "mayor_diferencia", n = 2, agregar = "d", quitar = "zz"))
   expect_identical(e2$texto, "Se muestran las 2 de mayor diferencia, de 4 preguntas comunes.")
@@ -130,6 +131,19 @@ test_that("agregar y quitar se aplican después de la regla y la nota lo dice", 
   e3 <- .regla_preguntas_evaluar(.rp_ind(), list(tipo = "a_mano", agregar = c("a", "c"), quitar = "c"))
   expect_identical(e3$temas, "a")
   expect_identical(e3$texto, "Se muestra 1 pregunta elegida, de 4 preguntas de escala. Lista ajustada a mano.")
+})
+
+test_that("bajo umbral con quitadas: la nota cuenta las que quedan, no las que eligió la regla (prueba con Arte)", {
+  ind <- data.frame(tema = paste0("t", 1:6), grupo = "doc", valor = c(30, 40, 45, 50, 55, 80), sin_info = 0, orden = 1:6)
+  e <- .regla_preguntas_evaluar(ind, list(tipo = "bajo_umbral", umbral = 60, quitar = c("t2", "t4")))
+  expect_identical(e$temas, c("t1", "t3", "t5"))
+  expect_identical(e$texto, "Se muestran las 3 bajo 60%, de 6 preguntas de escala. Lista ajustada a mano.")
+  # Una quitada que la regla no había elegido no cambia la cuenta ni se anuncia.
+  e2 <- .regla_preguntas_evaluar(ind, list(tipo = "bajo_umbral", umbral = 60, quitar = "t6"))
+  expect_identical(e2$texto, "Se muestran las 5 bajo 60%, de 6 preguntas de escala.")
+  # Extremos: las altas y bajas que quedan.
+  e3 <- .regla_preguntas_evaluar(ind, list(tipo = "extremos", n = 2, quitar = "t6"))
+  expect_identical(e3$texto, "Se muestran la más alta y las 2 más bajas, de 6 preguntas de escala. Lista ajustada a mano.")
 })
 
 test_that("los singulares se escriben bien", {
