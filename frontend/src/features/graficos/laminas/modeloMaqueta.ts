@@ -8,6 +8,7 @@ import { SLIDE_GRAF_SLOTS } from "../store";
 import { parseVarRef } from "../useVariables";
 import { barraExtraDeBloque, opcionesActivas, resolverBarraExtra, type BarraExtra } from "../barraExtra";
 import { leerTwoBox } from "./tarjetaGrafico/twoBox";
+import { disposicionDe } from "./disposicion/modeloDisposicion";
 import { firmaOpciones, resolverPaleta, type MapaPaletas, type VinculosPaletas } from "../paletasResolver";
 
 type VarLike = VarInfo & { source?: string };
@@ -266,7 +267,8 @@ function gruposDe(args: Record<string, unknown>, bloque = 0, lamina?: BarraExtra
 
 export function ranurasDeMaqueta(slide: Pick<Slide, "tipo" | "payload">, variables: readonly VarLike[], presets: Presets = {}, colores?: ColoresMaqueta): RanuraMaqueta[] {
   const slots = SLIDE_GRAF_SLOTS[slide.tipo] ?? [];
-  const comp = composicionDe(slide.tipo, slots);
+  // La disposición que eligió el analista (la de cinco gráficos, «3+2» o «2+3»): la maqueta acomoda sus ranuras a ella.
+  const comp = composicionDe(slide.tipo, slots, disposicionDe(slide));
   if (comp.fuente === "estructura") return [];
   const payload = (slide.payload ?? {}) as Record<string, unknown>;
   return comp.ranuras

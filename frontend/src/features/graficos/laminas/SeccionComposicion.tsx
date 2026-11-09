@@ -13,6 +13,8 @@ import { useGraficosRegistry } from "../useGraficosRegistry";
 import type { LaminaEnEstructura } from "./modeloEstructura";
 import { opcionesDeComposicion } from "./opcionesComposicion";
 import { rolSinGraficos } from "./rolEstructura";
+import { DisposicionLamina } from "./disposicion/DisposicionLamina";
+import { disposicionDe } from "./disposicion/modeloDisposicion";
 import { graficosDeLamina } from "./selectores/cambioTipoLamina";
 import { conVariante, defectoEfectivoDe, rotuloRanuras, varianteDe, variantesDe } from "./selectores/tiposLamina";
 import "./selectores/selectores.css";
@@ -37,7 +39,8 @@ export function SeccionComposicion({ slide, lamina, ranura }: Props) {
   const variantes = variantesDe(slide.tipo, slidesById[slide.tipo]?.args.find((a) => a.name === "variante")?.choices, defecto);
   const variante = varianteDe(slide, defecto);
   const fueraDeOpciones = variantes !== null && variante !== null && !variantes.opciones.some((o) => o.valor === variante);
-  const comp = composicionDe(slide.tipo, slots);
+  const disposicion = disposicionDe(slide);
+  const comp = composicionDe(slide.tipo, slots, disposicion);
   const uso = comp.base ? ESTANDAR_LAMINAS[comp.base]?.uso : undefined;
 
   return (
@@ -49,6 +52,7 @@ export function SeccionComposicion({ slide, lamina, ranura }: Props) {
           graficos={graficos}
           opciones={opcionesDeComposicion(slide)}
           variante={variante}
+          disposicion={disposicion}
           ranuraActiva={ranura}
           numerar
           titulo={`Composición de la lámina ${lamina.posicion}: ${lamina.tipoLabel}`}
@@ -64,6 +68,8 @@ export function SeccionComposicion({ slide, lamina, ranura }: Props) {
         {uso && <span>{uso}.</span>}
         {comp.fuente === "derivada" && <span>Composición antigua: ya no se ofrece al insertar, pero sigue saliendo así.</span>}
       </div>
+
+      <DisposicionLamina slide={slide} />
 
       {variantes && (
         <fieldset className="pulso-f6-variantes">

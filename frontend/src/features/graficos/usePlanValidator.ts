@@ -21,6 +21,7 @@ import { baseImplicitaDe, basesPorNombre } from "./fijarBase";
 import { conteoBarrasMultiapiladas, excedeTope, laminasNecesarias, MAX_BARRAS_MULTIAPILADAS } from "./multiapiladas/topeBarras";
 import { formatoConteo } from "../../lib/formatoNumero";
 import { avisoTipoRetirado, fichaRetirado } from "./retirados";
+import { lugarDispuesto } from "./laminas/disposicion/modeloDisposicion";
 
 // Validador del plan 100% client-side: deriva warnings/errores de lo
 // que ya vive en el store + registry + variables del instrumento. Sin
@@ -191,8 +192,9 @@ export function validarPlan(entrada: EntradaValidarPlan): ValidationSummary {
     const slideMeta = slidesById[slide.tipo];
     if (!slideMeta) return;
     const lamina = `${rotuloLamina(slide, indice)} (${nombreTipoLamina(slide.tipo, slideMeta.titulo_humano)})`;
-    const nombreEspacio = (slot: string) =>
-      slideMeta.slot_specs?.find((spec) => spec.name === slot)?.label?.trim() || humanizeSlot(slot);
+    // Con la disposición que eligió el analista («2+3»), el lugar que la ranura ocupa en ella (modeloDisposicion.ts).
+    const nombreEspacio = (slot: string) => lugarDispuesto(slide, slot)
+      || slideMeta.slot_specs?.find((spec) => spec.name === slot)?.label?.trim() || humanizeSlot(slot);
     const enEspacio = (slot: string) => `${lamina}, espacio «${nombreEspacio(slot)}»`;
 
     // Slots de graficador vacíos

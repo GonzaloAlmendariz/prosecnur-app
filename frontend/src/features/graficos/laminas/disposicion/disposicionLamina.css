@@ -1,0 +1,12 @@
+/* «Disposición» de la lámina de cinco gráficos (DisposicionLamina.tsx): rótulo y segmentado a todo el ancho. */
+.pulso-f6-disposicion {
+  display: grid;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+}
+
+.pulso-f6-disposicion-rotulo {
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-soft);
+}

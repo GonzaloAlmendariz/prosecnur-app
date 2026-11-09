@@ -38,6 +38,8 @@ export type SlideMeta = {
   rotulo?: string;
   /** Lámina de redondeo: «estandar», «resto_mayor» o «ambos». */
   metodo?: "estandar" | "resto_mayor" | "ambos";
+  /** Lámina de cinco gráficos: «3+2» (por defecto) o «2+3», a elección del analista (laminas/disposicion/). */
+  disposicion?: string;
   /** `false` pide la ruta anterior para esta lámina. */
   motor_nativo?: boolean;
   /**

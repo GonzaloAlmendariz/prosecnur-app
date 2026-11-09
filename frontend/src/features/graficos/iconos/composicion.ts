@@ -7,6 +7,7 @@
 // el de las ranuras de gráfico salvo donde se declara aquí (`ORDEN_SLOTS`). Una ranura de cifras del estándar es una
 // sola caja que el compositor reparte entre los slots `cifra_*`.
 
+import { ranurasDispuestas } from "./disposicionRanuras";
 import { RANURAS_ESTANDAR, type TipoRanuraEstandar } from "./ranurasEstandar.generated";
 
 export const LAMINA_PULGADAS = { w: 13.333, h: 7.5 } as const;
@@ -77,16 +78,17 @@ function repartirCifras(r: { x: number; y: number; w: number; h: number }, slots
 
 /**
  * La composición de `tipo` con sus slots asignados. `slots` son los slots de gráfico del tipo (`SLIDE_GRAF_SLOTS`), en
- * el orden que numera las ranuras (`foco=<slide.id>:gK`).
+ * el orden que numera las ranuras (`foco=<slide.id>:gK`). `disposicion` es la que eligió el analista en la lámina
+ * («3+2» o «2+3» en la de cinco gráficos, disposicionRanuras.ts); sin ella, la del estándar.
  */
-export function composicionDe(tipo: string, slots: readonly string[]): Composicion {
+export function composicionDe(tipo: string, slots: readonly string[], disposicion?: string | null): Composicion {
   const base = RANURAS_ESTANDAR[tipo] ? tipo : BASE_DERIVADA[tipo] ?? null;
   const poblacion = CON_POBLACION.has(tipo);
   if (!base) return { fuente: "estructura", base: null, ranuras: [], poblacion };
   const graficos = [...(ORDEN_SLOTS[tipo] ?? slots.filter((s) => !esSlotCifra(s)))];
   const cifras = slots.filter(esSlotCifra);
   const ranuras: RanuraComposicion[] = [];
-  for (const r of RANURAS_ESTANDAR[base].ranuras) {
+  for (const r of ranurasDispuestas(base, RANURAS_ESTANDAR[base].ranuras, disposicion)) {
     if (r.tipo === "grafico") ranuras.push({ ...r, slot: graficos.shift() ?? null });
     else if (r.tipo === "cifras") ranuras.push(...repartirCifras(r, cifras));
     else ranuras.push({ ...r, slot: null });

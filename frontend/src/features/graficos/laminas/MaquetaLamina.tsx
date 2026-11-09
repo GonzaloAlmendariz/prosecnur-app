@@ -35,6 +35,7 @@ import { antetituloQueSale, useAntetituloSeccionActivo } from "./antetituloQueSa
 import { leerSlideMeta } from "../slideMeta";
 import { useTituloEnLienzo } from "./modeloTituloLienzo";
 import { TituloEnLienzo } from "./TituloEnLienzo";
+import { disposicionDe } from "./disposicion/modeloDisposicion";
 import "./maquetaLamina.css";
 
 type Props = {
@@ -55,7 +56,7 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
   const { variables } = useVariables();
   const { graficadoresById, slidesById, registry } = useGraficosRegistry();
   const slots = SLIDE_GRAF_SLOTS[slide.tipo] ?? [];
-  const estructura = composicionDe(slide.tipo, slots).fuente === "estructura";
+  const estructura = composicionDe(slide.tipo, slots, disposicionDe(slide)).fuente === "estructura";
   const presets = usePlanStore((s) => s.presets);
   const informe = usePlanStore((s) => s.plan.slides);
   const paletas = usePlanStore((s) => s.paletas);

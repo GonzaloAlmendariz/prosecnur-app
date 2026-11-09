@@ -191,7 +191,7 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onCambiarGrafico }: {
                 className={`pulso-f6-selector-grafico-opcion${activo === i + 1 ? " is-activa" : ""}`} onClick={() => onRanura(i + 1)}>
                 {v?.graficador ? <IconoTipo clase="grafico" tipo={v.graficador} size={16} /> : null}
                 {/* H6: el lugar en la lámina («Izquierda», «Derecha»), como en los avisos («Espacio «Derecha»»). */}
-                {nombreSlot(slot, slidesById[slide.tipo])}
+                <span className="pulso-f6-selector-grafico-rotulo">{nombreSlot(slot, slidesById[slide.tipo], slide)}</span>
               </button>
             );
           })}
@@ -210,7 +210,7 @@ function SeccionGraficos({ slide, slots, ranura, onRanura, onCambiarGrafico }: {
           const nombre = retirado ? retirado.titulo_humano
             : tecnico ? presentacion?.nombre ?? graficadorDisplayName(tecnico, graficadoresById[tecnico]) : "Sin gráfico";
           const abierta = true;
-          const rotulo = slots.length > 1 ? `gráfico (${nombreSlot(slot, slidesById[slide.tipo]).toLowerCase()})` : "gráfico";
+          const rotulo = slots.length > 1 ? `gráfico (${nombreSlot(slot, slidesById[slide.tipo], slide).toLowerCase()})` : "gráfico";
           return (
             <li key={slot} className={`pulso-f6-ranura${abierta ? " is-abierta" : ""}`}>
               <div className="pulso-f6-ranura-fila">

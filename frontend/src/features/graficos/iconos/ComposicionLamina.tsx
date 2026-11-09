@@ -22,6 +22,8 @@ export type ComposicionLaminaProps = {
   opciones?: Readonly<Record<string, OpcionesGlifo>>;
   /** Variante de las láminas de estructura (portada, índice, separador, cierre). */
   variante?: string | null;
+  /** Disposición elegida en la lámina («3+2» o «2+3» en la de cinco gráficos); sin ella, la del estándar. */
+  disposicion?: string | null;
   /** Ranura resaltada (1-based, la de `foco=<slide.id>:gK`). */
   ranuraActiva?: number | null;
   /** Numera las ranuras (vista de detalle; en miniatura no se lee). */
@@ -103,10 +105,10 @@ function Ranura({ r, k, grafico, opciones, activa, numerar }: {
 }
 
 export function ComposicionLamina({
-  tipo, slots, graficos = {}, opciones, variante = null, ranuraActiva = null, numerar = false, titulo, className, datos,
+  tipo, slots, graficos = {}, opciones, variante = null, disposicion = null, ranuraActiva = null, numerar = false, titulo, className, datos,
 }: ComposicionLaminaProps): JSX.Element {
   const idTitulo = useId();
-  const comp = composicionDe(tipo, slots);
+  const comp = composicionDe(tipo, slots, disposicion);
   const estructura = comp.fuente === "estructura";
   return (
     <svg
@@ -115,6 +117,7 @@ export function ComposicionLamina({
       data-composicion-tipo={tipo}
       data-composicion-fuente={comp.fuente}
       data-composicion-variante={variante ?? undefined}
+      data-composicion-disposicion={disposicion ?? undefined}
       role={titulo ? "img" : undefined}
       aria-labelledby={titulo ? idTitulo : undefined}
       aria-hidden={titulo ? undefined : true}

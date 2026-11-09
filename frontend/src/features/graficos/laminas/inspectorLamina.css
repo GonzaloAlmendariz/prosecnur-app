@@ -423,6 +423,12 @@ textarea.pulso-f6-input {
     color var(--motion-dur-fast) var(--motion-ease-out);
 }
 
+/* El lugar («Superior izquierda») parte en su espacio en vez de empujar el borde del chip a 1024 px (C4). */
+.pulso-f6-selector-grafico-rotulo {
+  min-width: 0;
+  white-space: normal;
+}
+
 .pulso-f6-selector-grafico-opcion > svg {
   flex: none;
   width: var(--pulso-icon-size-sm);

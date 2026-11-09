@@ -78,7 +78,7 @@ export function SelectorTipoGrafico({ slide, posicion, ranura, cerrar }: Props) 
 
   // H6: en una lámina de varios gráficos la ranura se nombra por su lugar («espacio «Derecha»»), como en los avisos.
   const rotuloRanura = k && slot
-    ? slots.length > 1 ? `espacio «${nombreSlot(slot, slide ? slidesById[slide.tipo] : undefined)}»` : "gráfico"
+    ? slots.length > 1 ? `espacio «${nombreSlot(slot, slide ? slidesById[slide.tipo] : undefined, slide ?? undefined)}»` : "gráfico"
     : "";
   // ADR 0139, ítem 6: el motivo en una línea; la tarjeta no se esconde ni se apaga en silencio.
   const bloqueoDe = ({ meta: g }: EntradaGrafico): string | null => {

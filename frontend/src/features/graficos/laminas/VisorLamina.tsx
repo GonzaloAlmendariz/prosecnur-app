@@ -314,7 +314,7 @@ export function VisorLamina({
             return <ZonasTextoLamina onTexto={onTexto} campos={camposTexto} zonas={portada ?? undefined} titulo={portada ? undefined : titulo} />;
           })()}
           {src && <RanurasSobreLamina ranuras={ranuras} activa={ranuraActiva} nombre={nombreRanura} onRanura={onRanura} onCambiar={onCambiarGrafico}
-            lugar={(slot) => nombreSlot(slot, slidesById[slide.tipo])} />}
+            lugar={(slot) => nombreSlot(slot, slidesById[slide.tipo], slide)} />}
           {/* Las guías son del visor: nunca entran al entregable (D17). Sólo sobre el dibujo real del motor. */}
           {real && !cargando && <GuiasSobreLamina modelo={guias} resaltada={resaltada} hojaRef={hojaRef} />}
         </figure>
