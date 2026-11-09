@@ -75,20 +75,6 @@ const ICONOS: Readonly<Record<string, DibujoGrafico>> = {
       </Acento>
     </>
   ),
-  // Diferencias significativas entre públicos (p112): la columna de cifras y, al lado, el intervalo con su punto.
-  p_significancia_publicos: () => (
-    <>
-      <Bloque x={3} y={5.25} w={5.25} h={2.25} tono="apoyo" />
-      <Bloque x={3} y={10.875} w={5.25} h={2.25} tono="apoyo" />
-      <Bloque x={3} y={16.5} w={5.25} h={2.25} tono="apoyo" />
-      <Trazo d="M15 3.75V20.25M11.25 6.375H19.5M12.75 12H17.25M10.5 17.625H14.25" />
-      <Acento>
-        <Circulo cx={15.375} cy={6.375} r={1.875} />
-        <Circulo cx={12.375} cy={17.625} r={1.875} />
-      </Acento>
-      <Circulo cx={15} cy={12} r={1.5} tono="apoyo" />
-    </>
-  ),
   // Brecha entre dos públicos (p88).
   p_dumbbell: () => (
     <>
@@ -293,58 +279,6 @@ const ICONOS: Readonly<Record<string, DibujoGrafico>> = {
       <Trazo d="M15.75 10.25H21M15.75 14.5H21" />
     </>
   ),
-  // Radar por dimensiones (p98): dos polígonos, sin tabla.
-  p_dim_radar: () => (
-    <>
-      <polygon points={pentagono(12, 12.6, 8.6)} fill="none" stroke="currentColor" strokeOpacity={TONO.apoyo}
-        strokeWidth={1.5} strokeLinejoin="round" />
-      <polygon points={pentagono(12, 12.6, 8.6, [0.8, 0.85, 0.65, 0.75, 0.9])} fill="currentColor" fillOpacity={TONO.lleno} />
-      <Acento>
-        <polygon points={pentagono(12, 12.6, 8.6, [0.92, 0.55, 0.78, 0.42, 0.62])} fill="none" stroke="currentColor"
-          strokeWidth={1.5} strokeLinejoin="round" />
-      </Acento>
-    </>
-  ),
-  // Mapa de calor por dimensión (p94).
-  p_dim_heatmap: () => (
-    <>
-      <Acento><Bloque x={3.75} y={3.75} w={4.5} h={4.5} tono="pleno" /></Acento>
-      <Bloque x={9.75} y={3.75} w={4.5} h={4.5} tono="apoyo" />
-      <Bloque x={15.75} y={3.75} w={4.5} h={4.5} />
-      <Bloque x={3.75} y={9.75} w={4.5} h={4.5} tono="apoyo" />
-      <Bloque x={9.75} y={9.75} w={4.5} h={4.5} />
-      <Bloque x={15.75} y={9.75} w={4.5} h={4.5} tono="apoyo" />
-      <Bloque x={3.75} y={15.75} w={4.5} h={4.5} />
-      <Bloque x={9.75} y={15.75} w={4.5} h={4.5} tono="apoyo" />
-      <Bloque x={15.75} y={15.75} w={4.5} h={4.5} />
-    </>
-  ),
-  // Mapa de calor por criterio (p95): filas agrupadas por dimensión, con su marca a la izquierda.
-  p_dim_heatmap_criterios: () => (
-    <>
-      <Acento>
-        <Bloque x={3} y={3} w={1.5} h={7.5} tono="pleno" />
-        <Bloque x={3} y={13.5} w={1.5} h={7.5} tono="pleno" />
-      </Acento>
-      {[3, 7.5, 13.5, 18].map((y, fila) => [6.75, 12, 17.25].map((x, col) => (
-        <Bloque key={`${y}-${x}`} x={x} y={y} w={3.75} h={3} tono={(fila + col) % 2 === 0 ? "apoyo" : "lleno"} />
-      )))}
-    </>
-  ),
-  // Comparativo de dimensiones (p96): pares de barras por dimensión.
-  p_dim_comparativo_radarbar: () => (
-    <>
-      <Trazo d={EJE_IZQ} />
-      <Acento>
-        <Bloque x={6} y={4.5} w={15} h={2.25} tono="pleno" />
-        <Bloque x={6} y={10.5} w={10.5} h={2.25} tono="pleno" />
-        <Bloque x={6} y={16.5} w={12.75} h={2.25} tono="pleno" />
-      </Acento>
-      <Bloque x={6} y={6.75} w={12} h={2.25} />
-      <Bloque x={6} y={12.75} w={13.5} h={2.25} />
-      <Bloque x={6} y={18.75} w={8.25} h={2.25} />
-    </>
-  ),
   // Nube de palabras (p100).
   p_nube_palabras: () => (
     <>
@@ -423,7 +357,7 @@ export const ALIAS_GRAFICO: Readonly<Record<string, string>> = {
  */
 // «Pregunta filtro y subpregunta» es la pieza interna de la dependencia entre los dos gráficos de una lámina (Gonzalo,
 // 2026-10-14: «la dependencia no es un tipo de gráfico»): no se elige como tipo; se declara en la lámina (DependenciaLamina).
-export const GRAFICOS_RETIRADOS: ReadonlySet<string> = new Set(["p_dim_foda", "p_filtro_subpregunta"]);
+export const GRAFICOS_RETIRADOS: ReadonlySet<string> = new Set(["p_filtro_subpregunta"]);
 
 export const ICONOS_GRAFICO = ICONOS;
 

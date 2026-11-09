@@ -7,7 +7,7 @@ describe("graficadorToPresetType", () => {
     expect(graficadorToPresetType("p_barras_agrupadas")).toBe("barras_agrupadas");
   });
 
-  test("cubre el censo actual de 24 graficadores y aliases aplicables", () => {
+  test("cubre el censo actual de 19 graficadores y aliases aplicables", () => {
     expect(Object.fromEntries([
       "p_barras_agrupadas",
       "p_barras_categoricas",
@@ -28,11 +28,6 @@ describe("graficadorToPresetType", () => {
       "p_serie_temporal",
       "p_radar",
       "p_tabla",
-      "p_dim_radar",
-      "p_dim_heatmap",
-      "p_dim_comparativo_radarbar",
-      "p_dim_foda",
-      "p_dim_heatmap_criterios",
     ].map((name) => [name, graficadorToPresetType(name)]))).toEqual({
       p_barras_agrupadas: "barras_agrupadas",
       p_barras_categoricas: "barras_categoricas",
@@ -53,14 +48,10 @@ describe("graficadorToPresetType", () => {
       p_serie_temporal: "serie_temporal",
       p_radar: "radar_tabla",
       p_tabla: "radar_tabla",
-      p_dim_radar: "dim_radar",
-      p_dim_heatmap: "dim_heatmap",
-      p_dim_comparativo_radarbar: null,
-      p_dim_foda: "dim_foda",
-      p_dim_heatmap_criterios: "dim_heatmap_criterios",
     });
     expect(graficadorToPresetType("p_radar_tabla")).toBe("radar_tabla");
-    expect(graficadorToPresetType("p_dim_radar_tabla")).toBe("dim_radar");
+    // ADR 0137 fase 2: los tipos de dimensiones se borraron; un plan viejo no hereda preset.
+    expect(graficadorToPresetType("p_dim_radar_tabla")).toBeNull();
   });
 
   test("el panorama de públicos (ADR 0134) no tiene preset de tipo", () => {

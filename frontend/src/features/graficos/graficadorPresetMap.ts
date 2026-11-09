@@ -38,12 +38,6 @@ const MAP: Record<string, string | null> = {
   p_radar_tabla:                "radar_tabla",  // por compat con planes viejos
   // ADR 0137: el registro declara preset_key "" (dibuja con los tamaños del recetario).
   p_heatmap_cruce:              null,
-  p_dim_radar:                  "dim_radar",
-  p_dim_radar_tabla:            "dim_radar",
-  p_dim_heatmap:                "dim_heatmap",
-  p_dim_heatmap_criterios:      "dim_heatmap_criterios",
-  p_dim_foda:                   "dim_foda",
-  p_dim_comparativo_radarbar:   null,
 };
 
 export function graficadorToPresetType(

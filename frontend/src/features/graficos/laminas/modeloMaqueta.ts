@@ -203,7 +203,7 @@ function cruceDe(args: Record<string, unknown>): string | null {
   const c = typeof args.cruces === "string" ? args.cruces.trim() : Array.isArray(args.cruces) && typeof args.cruces[0] === "string" ? String(args.cruces[0]).trim() : "";
   // M7: los gráficos de una pregunta cruzan con `cruces` (apiladas, agrupadas), `cruce` (numérico, caja, media y rango)
   // o `grupo` (histograma); sin `modo`, ese cruce son los grupos de la lámina.
-  if (!MODOS_MULTIAPILADAS.has(String(args.modo ?? ""))) {   // las dimensiones también traen `modo` («general»)
+  if (!MODOS_MULTIAPILADAS.has(String(args.modo ?? ""))) {
     const uno = c || [args.cruce, args.grupo].find((x): x is string => typeof x === "string" && !!x.trim())?.trim() || "";
     return uno || null;
   }
@@ -230,18 +230,11 @@ function gruposDe(args: Record<string, unknown>, bloque = 0, lamina?: BarraExtra
       refs: refsDe(v), bloque, cruce,
     }));
   }
-  // M5 (catálogo del recetario): la matriz de cuadrantes declara `temas` y los gráficos de dimensiones un `objetivo` o
-  // sus criterios, no `var`: sin esto la ficha decía «Falta elegir la pregunta» con el gráfico completo.
+  // M5 (catálogo del recetario): la matriz de cuadrantes declara `temas`, no `var`: sin esto la ficha decía «Falta
+  // elegir la pregunta» con el gráfico completo.
   if (args.temas && typeof args.temas === "object" && !Array.isArray(args.temas)) {
     return Object.entries(args.temas as Record<string, unknown>).map(([k, v]) => ({ titulo: k, refs: refsDe(v), bloque, cruce }));
   }
-  if (Array.isArray(args.config_criterios)) {
-    return (args.config_criterios as unknown[]).flatMap((c) => {
-      const t = c && typeof c === "object" ? (c as Record<string, unknown>).titulo : null;
-      return typeof t === "string" && t.trim() ? [{ titulo: t.trim(), refs: [], bloque, cruce }] : [];
-    });
-  }
-  if (typeof args.objetivo === "string" && args.objetivo.trim()) return [{ titulo: "Dimensiones de Analítica", refs: [], bloque, cruce }];
   // Pregunta filtro y subpregunta (recetario p192–p194): las dos preguntas, primero la que habilita.
   if (typeof args.subpregunta === "string") {
     return ["var", "subpregunta"].flatMap((k) => refsDe(args[k])).map((r) => ({ titulo: null, refs: [r], bloque, cruce }));

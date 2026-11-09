@@ -47,7 +47,6 @@ const DEFAULT_ARG_HINT = "Este ajuste define cómo se ve o se interpreta este bl
 //   - choice                  → radio pills
 //   - codigos_list            → chips list (split por coma/espacio)
 //   - series_colors           → editor visual serie → color
-//   - criteria_config         → criterios con selector de variables
 //   - icono                   → selector del catálogo de iconos subidos
 //   - overrides / filtros / base_config / meta → aviso de superficie dedicada
 
@@ -417,9 +416,6 @@ function FieldControl({
           onChange={onChange}
         />
       );
-
-    case "criteria_config":
-      return <CriteriaConfigField value={shownValue} onChange={onChange} />;
 
     case "icono":
       return <IconoSelect value={safeTrimmedText(shownValue) || null} onChange={onChange} />;
@@ -1377,7 +1373,6 @@ export const ARGUMENT_HINT_BY_NAME: Record<string, string> = {
   brecha_cols: "Espacio horizontal entre columnas o bloques cercanos.",
   brecha_filas: "Espacio vertical entre filas o niveles.",
   colores_series: "Paleta o mapa de color que distingue cada serie.",
-  config_criterios: "Criterios de cálculo y segmentación que configuran el estilo del bloque.",
   base: "Texto base de contexto para notas, nota de fuente o total de casos.",
   pie_slide: "Nota corta para aclarar contexto al final del slide.",
   decimales: "Cantidad de decimales para números estándar.",
@@ -1719,9 +1714,6 @@ function buildTypeHint(meta: ArgMetadata, options: { forText?: boolean; forNumbe
   }
   if (tipo === "base_labels") {
     return "Una caja por base del estudio. Lo que dejes vacío conserva el nombre técnico.";
-  }
-  if (tipo === "criteria_config") {
-    return "Define criterios y parámetros avanzados para segmentar o agrupar datos.";
   }
   if (tipo === "icono") {
     return "Selecciona un icono para reforzar el mensaje visual.";
@@ -2246,142 +2238,6 @@ export function normalizeSeriesColors(
   }
   return {};
 }
-
-type CriteriaConfigItem = {
-  id?: string;
-  titulo: string;
-  vars: string[];
-};
-
-function CriteriaConfigField({
-  value,
-  onChange,
-}: {
-  value: unknown;
-  onChange: (v: CriteriaConfigItem[] | null) => void;
-}) {
-  const items = normalizeCriteriaConfig(value);
-
-  function emit(nextItems: CriteriaConfigItem[]) {
-    const clean = nextItems
-      .map((item, index) => {
-        const titulo = item.titulo.trim();
-        const vars = Array.from(new Set((item.vars ?? []).filter(Boolean)));
-        return {
-          id: item.id?.trim() || slugify(titulo || `criterio_${index + 1}`),
-          titulo,
-          vars,
-        };
-      })
-      .filter((item) => item.titulo || item.vars.length > 0);
-    onChange(clean.length > 0 ? clean : null);
-  }
-
-  function update(index: number, patch: Partial<CriteriaConfigItem>) {
-    emit(items.map((item, i) => i === index ? { ...item, ...patch } : item));
-  }
-
-  function addCriterion() {
-    emit([...items, { titulo: `Criterio ${items.length + 1}`, vars: [] }]);
-  }
-
-  return (
-    <div className="pulso-gv2-criteria-config">
-      {items.length === 0 ? (
-        <EstadoVacio
-          icono={<ListChecks size={16} aria-hidden="true" />}
-          titulo="Sin criterios"
-          descripcion="Agrega criterios y asigna variables a cada uno."
-        />
-      ) : (
-        items.map((item, index) => (
-          <div
-            key={`${item.id ?? item.titulo}-${index}`}
-            className="pulso-gv2-criteria-card"
-          >
-            <div className="pulso-gv2-criteria-row">
-              <input
-                type="text"
-                value={item.titulo}
-                onChange={(e) => update(index, { titulo: e.target.value })}
-                placeholder="Nombre del criterio"
-                style={inputStyle}
-              />
-              <button
-                type="button"
-                className="pulso-icon"
-                onClick={(e) => {
-                  e.preventDefault();
-                  emit(items.filter((_, i) => i !== index));
-                }}
-                aria-label={`Quitar criterio ${item.titulo || index + 1}`}
-                title="Quitar criterio"
-              >
-                <Trash2 size={12} />
-              </button>
-            </div>
-            <VarsListPicker
-              value={item.vars ?? []}
-              onChange={(vars) => update(index, { vars })}
-            />
-          </div>
-        ))
-      )}
-
-      <button
-        type="button"
-        className="pulso-arg-preset-button"
-        onClick={(e) => { e.preventDefault(); addCriterion(); }}
-      >
-        <Plus size={12} /> Agregar criterio
-      </button>
-    </div>
-  );
-}
-
-function normalizeCriteriaConfig(value: unknown): CriteriaConfigItem[] {
-  if (!value) return [];
-  if (Array.isArray(value)) {
-    return value
-      .map((raw, index) => normalizeCriteriaItem(raw, `Criterio ${index + 1}`))
-      .filter((item): item is CriteriaConfigItem => !!item);
-  }
-  if (typeof value === "object") {
-    return Object.entries(value as Record<string, unknown>)
-      .map(([key, raw]) => normalizeCriteriaItem(raw, key))
-      .filter((item): item is CriteriaConfigItem => !!item);
-  }
-  return [];
-}
-
-function normalizeCriteriaItem(raw: unknown, fallbackTitle: string): CriteriaConfigItem | null {
-  if (!raw) return null;
-  if (Array.isArray(raw)) {
-    return { id: slugify(fallbackTitle), titulo: fallbackTitle, vars: raw.map(String).filter(Boolean) };
-  }
-  if (typeof raw === "object") {
-    const obj = raw as Record<string, unknown>;
-    const titulo = safeTrimmedText(obj.titulo, safeTrimmedText(obj.title, safeTrimmedText(obj.label, fallbackTitle)));
-    const varsRaw = obj.vars ?? obj.variables ?? [];
-    const vars = Array.isArray(varsRaw) ? varsRaw.map(String).filter(Boolean) : [];
-    return {
-      id: typeof obj.id === "string" ? obj.id : slugify(titulo || fallbackTitle),
-      titulo,
-      vars,
-    };
-  }
-  return null;
-}
-
-function slugify(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "") || "criterio";
-}
-
 
 /** Orden manual de categorías: filas que se suben y bajan, como los slides.
  *

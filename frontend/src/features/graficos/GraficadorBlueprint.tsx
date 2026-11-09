@@ -36,11 +36,7 @@ const GRAFICADOR_BLUEPRINT_KINDS = new Set<string>([
   "table",
   "word-cloud",
   "territory-map",
-  "dimension-radar",
   "dimension-heatmap",
-  "dimension-radar-bars",
-  "dimension-foda",
-  "dimension-criteria-heatmap",
   "future",
 ]);
 
@@ -425,52 +421,8 @@ function BlueprintMarks({
           </g>
         </>
       );
-    case "dimension-radar":
-      return (
-        <>
-          <RadarShape cx={67} cy={45} radius={28} compact />
-          <g className="pulso-graficador-library-blueprint-dimension-pills">
-            <rect x="107" y="22" width="34" height="9" rx="4" />
-            <rect x="107" y="36" width="27" height="9" rx="4" />
-            <rect x="107" y="50" width="38" height="9" rx="4" />
-            <rect x="107" y="64" width="31" height="9" rx="4" />
-          </g>
-        </>
-      );
     case "dimension-heatmap":
-      return <Heatmap criteria={false} />;
-    case "dimension-radar-bars":
-      return (
-        <>
-          <RadarShape cx={48} cy={45} radius={26} compact />
-          <g className="pulso-graficador-library-blueprint-soft">
-            <rect x="86" y="19" width="48" height="8" rx="2" />
-            <rect x="86" y="34" width="61" height="8" rx="2" />
-            <rect x="86" y="49" width="38" height="8" rx="2" />
-            <rect x="86" y="64" width="54" height="8" rx="2" />
-          </g>
-          <g className="pulso-graficador-library-blueprint-primary">
-            <path d="M86 19h29v8H86zM86 34h44v8H86zM86 49h22v8H86zM86 64h37v8H86z" />
-          </g>
-        </>
-      );
-    case "dimension-foda":
-      return (
-        <>
-          <rect className="pulso-graficador-library-blueprint-table-frame" x="23" y="13" width="114" height="64" rx="3" />
-          <path className="pulso-graficador-library-blueprint-axis" d="M80 13v64M23 45h114" />
-          <g className="pulso-graficador-library-blueprint-quadrant-labels">
-            <text x="31" y="27">F</text><text x="126" y="27">O</text>
-            <text x="31" y="68">D</text><text x="126" y="68">A</text>
-          </g>
-          <g className="pulso-graficador-library-blueprint-primary">
-            <circle cx="51" cy="31" r="4" /><circle cx="105" cy="35" r="3" />
-            <circle cx="61" cy="62" r="3" /><circle cx="116" cy="58" r="4" />
-          </g>
-        </>
-      );
-    case "dimension-criteria-heatmap":
-      return <Heatmap criteria />;
+      return <Heatmap />;
     case "future": {
       const FallbackIcon = fallbackIcon(iconoUi);
       return (
@@ -515,16 +467,14 @@ function RadarShape({
   cx,
   cy,
   radius,
-  compact = false,
 }: {
   cx: number;
   cy: number;
   radius: number;
-  compact?: boolean;
 }) {
   const points = radarPoints(cx, cy, radius);
   const middlePoints = radarPoints(cx, cy, radius * 0.66);
-  const valuePoints = radarPoints(cx, cy, radius * 0.78, compact ? 0.22 : -0.16);
+  const valuePoints = radarPoints(cx, cy, radius * 0.78, -0.16);
   return (
     <>
       <g className="pulso-graficador-library-blueprint-radar-grid">
@@ -536,7 +486,7 @@ function RadarShape({
       </g>
       <polygon className="pulso-graficador-library-blueprint-radar-value" points={valuePoints} />
       <g className="pulso-graficador-library-blueprint-primary">
-        {radarPointsArray(cx, cy, radius * 0.78, compact ? 0.22 : -0.16).map(([x, y]) => (
+        {radarPointsArray(cx, cy, radius * 0.78, -0.16).map(([x, y]) => (
           <circle key={`${x}-${y}`} cx={x} cy={y} r="2.2" />
         ))}
       </g>
@@ -544,37 +494,29 @@ function RadarShape({
   );
 }
 
-function Heatmap({ criteria }: { criteria: boolean }) {
-  const cells = Array.from({ length: criteria ? 15 : 20 }, (_, index) => index);
-  const columns = criteria ? 3 : 4;
-  const cellWidth = criteria ? 25 : 23;
-  const startX = criteria ? 48 : 38;
+function Heatmap() {
+  const cells = Array.from({ length: 20 }, (_, index) => index);
+  const columns = 4;
+  const cellWidth = 23;
+  const startX = 38;
   return (
-    <>
-      {criteria && (
-        <g className="pulso-graficador-library-blueprint-criteria-bands">
-          <rect x="14" y="17" width="27" height="27" rx="3" />
-          <rect x="14" y="48" width="27" height="25" rx="3" />
-        </g>
-      )}
-      <g className="pulso-graficador-library-blueprint-heatmap">
-        {cells.map((cell) => {
-          const column = cell % columns;
-          const row = Math.floor(cell / columns);
-          return (
-            <rect
-              key={cell}
-              className={`pulso-graficador-library-blueprint-heatmap-tone-${(cell + row) % 4}`}
-              x={startX + column * (cellWidth + 3)}
-              y={15 + row * 13}
-              width={cellWidth}
-              height="10"
-              rx="2"
-            />
-          );
-        })}
-      </g>
-    </>
+    <g className="pulso-graficador-library-blueprint-heatmap">
+      {cells.map((cell) => {
+        const column = cell % columns;
+        const row = Math.floor(cell / columns);
+        return (
+          <rect
+            key={cell}
+            className={`pulso-graficador-library-blueprint-heatmap-tone-${(cell + row) % 4}`}
+            x={startX + column * (cellWidth + 3)}
+            y={15 + row * 13}
+            width={cellWidth}
+            height="10"
+            rx="2"
+          />
+        );
+      })}
+    </g>
   );
 }
 

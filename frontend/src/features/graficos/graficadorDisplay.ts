@@ -19,12 +19,6 @@ const GRAFICADOR_LABELS: Record<string, string> = {
   p_tabla: "Tabla",
   p_heatmap_cruce: "Mapa de calor por cruce",
   p_radar_tabla: "Radar + tabla",
-  p_dim_radar: "Radar por dimensiones",
-  p_dim_radar_tabla: "Radar + tabla por dimensiones",
-  p_dim_heatmap: "Mapa de calor",
-  p_dim_heatmap_criterios: "Mapa de calor por criterios",
-  p_dim_foda: "FODA por dimensiones",
-  p_dim_comparativo_radarbar: "Comparativo radar/barras",
 };
 
 const WORD_REPLACEMENTS: Record<string, string> = {

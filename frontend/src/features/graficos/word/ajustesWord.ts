@@ -18,7 +18,6 @@ export const AJUSTES_WORD: Readonly<Record<string, readonly AjusteWord[]>> = {
     { arg: "tabla_firstcol_bold", rotulo: "Primera columna en negrita", ayuda: "Los nombres de cada fila.", tipo: "bool" },
     { arg: "umbral_rojo_pct", rotulo: "Resaltar en rojo por debajo de", ayuda: "Cero desactiva el resaltado.", tipo: "number", unidad: "%" },
   ],
-  dim_heatmap_criterios: [{ arg: "fontface_texto_criterio", rotulo: "Peso del texto del criterio", ayuda: "Cómo se escribe cada criterio en la tabla.", tipo: "choice" }],
 };
 
 const esObjeto = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);

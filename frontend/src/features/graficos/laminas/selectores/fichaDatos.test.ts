@@ -44,7 +44,8 @@ describe("cruzarConEstudio", () => {
   });
 
   it("un gráfico de varios públicos con uno solo que tiene ese tipo dice qué falta", () => {
-    const c = cruzarConEstudio(usaDeGrafico("p_significancia_publicos")!, ARTE);
+    // ADR 0137 fase 2: ningún graficador del catálogo pide «varios» por sí solo; el `usa` va escrito.
+    const c = cruzarConEstudio({ pregunta: ["opcion_unica"], publicos: "varios", padron: false, cruce: false }, ARTE);
     expect(c.alcanza).toBe(false);
     expect(c.faltas).toEqual(["Usa dos públicos o más y solo Docentes tiene preguntas de opción única."]);
     expect(c.resumen).toBe("5 preguntas de opción única en Docentes");
@@ -77,10 +78,9 @@ describe("fraseTipos", () => {
 });
 
 describe("usaDeTarjeta (S1)", () => {
-  it("el `usa` de la tarjeta manda: el contraste y el mapa por dimensión piden varios públicos", () => {
+  it("el `usa` de la tarjeta manda: el contraste pide varios públicos", () => {
     expect(usaDeGrafico("p_dumbbell")?.publicos).not.toBe("varios");
     expect(usaDeTarjeta(tarjetaContar("p_slide_1_grafico:contraste"))?.publicos).toBe("varios");
-    expect(usaDeTarjeta(tarjetaContar("p_slide_1_grafico:dimensiones"))?.publicos).toBe("varios");
     // Sin `usa` propio, el del graficador.
     expect(usaDeTarjeta(tarjetaContar("p_slide_1_grafico:panorama"))).toEqual(usaDeGrafico("p_panorama"));
     expect(usaDeTarjeta(tarjetaContar("p_slide_cierre_hallazgos:cierre"))).toBeNull();

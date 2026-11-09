@@ -78,9 +78,6 @@ const distrital = [
   a("var", "variable"), a("cruces", "variable"), a("corte", "codigos_list"), a("min_n", "number", { default: 1 }),
   a("cortes", "codigos_list"), a("rotulo", "string"),
 ];
-const dims = [a("modo", "choice"), a("objetivo", "string"), a("cruce", "variable_opt"), a("incluir_total", "bool"),
-  a("brecha_filas", "bool"), a("brecha_cols", "bool"), a("brecha_cortes", "codigos_list"), a("mostrar_n_cruce_x", "bool"),
-  a("modo_semaforo", "choice"), a("radar_min_ejes", "number"), a("iter_var", "variable_opt"), a("iter_level", "string")];
 const TIPOS_RANGO = [
   { value: "minmax", label: "Mínimo a máximo" }, { value: "iqr", label: "50 % central (P25–P75)" },
   { value: "p10_p90", label: "Percentiles 10 a 90" }, { value: "custom", label: "Percentiles a medida" },
@@ -211,11 +208,6 @@ describe("C40 · ASIGNAR", () => {
       expect(nombres(args, { modo: "sm" }, g)).not.toContain("sm_omit_codes");
     }
   });
-  it("incluir_total en el heatmap y en la FODA (ruta anterior, 5a); nunca en comparativo ni radar por dimensiones", () => {
-    expect(nombres(dims, {}, "p_dim_heatmap")).toContain("incluir_total");
-    expect(nombres(dims, {}, "p_dim_foda")).toContain("incluir_total");
-    for (const g of ["p_dim_comparativo_radarbar", "p_dim_radar"]) expect(nombres(dims, {}, g)).not.toContain("incluir_total");
-  });
   it("mapa de cobertura: alcance, UBIGEO (sólo con alcance distrito), unidad y cobertura", () => {
     expect(nombres(mapa, {}, "p_mapa_cobertura_territorial")).toEqual(["scope", "ubigeo", "unit", "coverage_mode"]);
     expect(nombres(mapa, { scope: "overview_koica" }, "p_mapa_cobertura_territorial")).not.toContain("ubigeo");
@@ -269,25 +261,21 @@ describe("C40 · ASIGNAR", () => {
     expect(AYUDA_LIMITE_SUPERIOR).toContain("+");
     expect(nombres(histograma, {}, "p_numerico")).not.toContain("limite_superior");
   });
-  it("PENDIENTE: iter_var/iter_level no salen (el pie de la lámina nativa no declara el subgrupo)", () => {
-    expect(nombres(dims, {}, "p_dim_heatmap")).not.toContain("iter_var");
-  });
 });
 
 describe("C40 · RETIRAR", () => {
-  const todos = [...RETIRADOS, "brecha_filas", "brecha_cols", "brecha_cortes", "modo_foda", "usar_pesos", "corte_score", "titulos_areas_foda"];
+  const todos = [...RETIRADOS, "brecha_filas", "brecha_cols", "brecha_cortes"];
   it("ningún retirado vuelve a mostrarse, en ningún graficador nativo", () => {
     const args = todos.map((n) => a(n, "bool"));
-    for (const g of ["p_barras_agrupadas", "p_radar", "p_histograma", "p_dim_heatmap", "p_media_rango", "p_dumbbell", "p_dim_comparativo_radarbar"]) {
+    for (const g of ["p_barras_agrupadas", "p_radar", "p_histograma", "p_heatmap_cruce", "p_media_rango", "p_dumbbell"]) {
       expect(nombres(args, {}, g)).toEqual([]);
     }
   });
   it("las firmas reales tampoco los dejan pasar", () => {
     expect(nombres(radar, { modo: "publicos" }, "p_radar")).not.toEqual(expect.arrayContaining(["tabla_ancho_tema"]));
-    expect(nombres(dims, {}, "p_dim_heatmap").filter((n) => esRetirado(n, "p_dim_heatmap"))).toEqual([]);
     expect(nombres(mediaRango, {}, "p_media_rango")).not.toEqual(expect.arrayContaining(["cortes_chip"]));
-    expect(esRetirado("incluir_total", "p_dim_comparativo_radarbar")).toBe(true);
-    expect(esRetirado("incluir_total", "p_dim_heatmap")).toBe(false);
+    // ADR 0137 fase 2: sin la matriz FODA ni el comparativo, ningún arg se retira sólo en un graficador.
+    expect(esRetirado("incluir_total", "p_heatmap_cruce")).toBe(false);
   });
   it("un retirado guardado se conserva intacto al editar otro campo de la tarjeta", () => {
     const guardado = { var: "p1", invertir_leyenda: true, cortes_chip: ["60", "80"], brecha_filas: true };
@@ -334,13 +322,13 @@ describe("5a · graficadores no nativos", () => {
     const noNativos = cat.graficadores.filter((g) => g.salida !== "nativa").map((g) => g.name);
     expect([...GRAFICADORES_NO_NATIVOS].sort()).toEqual(noNativos.sort());
   });
-  it("lo retirado no se les oculta (esRetirado = false), sí a los nativos", () => {
+  it("ADR 0137 fase 2: los 31 salen nativos y la lista queda vacía; lo retirado se oculta en todos", () => {
+    expect(GRAFICADORES_NO_NATIVOS.size).toBe(0);
     for (const g of GRAFICADORES_NO_NATIVOS) {
-      for (const n of ["sm_omit_na", "umbral_rojo_pct", "cortes_chip", "brecha_filas", "modo_foda", "incluir_total"]) expect(esRetirado(n, g)).toBe(false);
+      for (const n of ["sm_omit_na", "umbral_rojo_pct", "cortes_chip", "brecha_filas"]) expect(esRetirado(n, g)).toBe(false);
     }
     expect(esRetirado("sm_omit_na", "p_radar")).toBe(true);
     expect(esRetirado("cortes_chip", "p_media_rango")).toBe(true);
-    expect(esRetirado("modo_foda")).toBe(false);
     expect(esRetirado("sm_omit_na")).toBe(true);
   });
   const tablaReal = [a("modo", "choice"), a("var", "variable_opt", { depende: { arg: "modo", valores: ["sm"] } }), a("cruce", "variable_opt"),
@@ -352,26 +340,6 @@ describe("5a · graficadores no nativos", () => {
     expect(omitir && interruptorEncendido(omitir.arg, false)).toBe(false);
     expect(campo(tablaReal, {}, "p_tabla", "umbral_rojo_pct")).toBeUndefined();   // la tabla del diseño no pinta en rojo
     expect(nombres(tablaReal, { modo: "sm" }, "p_radar")).not.toContain("sm_omit_na");
-  });
-  const DISPOSICION = [{ value: "matriz", label: "Matriz 2×2" }, { value: "dispersion", label: "Dispersión" }];
-  const foda = [a("nivel", "choice"), a("objetivo", "string"), a("modo_foda", "choice", { choices: DISPOSICION }), a("cruce", "variable_opt"),
-    a("incluir_total", "bool"), a("usar_pesos", "bool"), a("cortes_chip", "codigos_list"), a("corte_score", "number"),
-    a("titulos_areas_foda", "textarea"), a("iter_var", "variable_opt"), a("iter_level", "string")];
-  it("FODA: sus args vuelven; corte de puntaje sólo en «Dispersión»; total y pesos encendidos sin guardar (formales TRUE)", () => {
-    expect(nombres(foda, {}, "p_dim_foda")).toEqual(["cruce", "objetivo", "incluir_total", "nivel", "modo_foda", "usar_pesos", "cortes_chip"]);
-    expect(nombres(foda, { modo_foda: "dispersion" }, "p_dim_foda")).toContain("corte_score");
-    expect(campo(foda, {}, "p_dim_foda", "modo_foda")?.arg.default).toBe("matriz");
-    expect(campo(foda, {}, "p_dim_foda", "nivel")?.arg.default).toBe("subindices");
-    for (const n of ["incluir_total", "usar_pesos"]) {
-      const c = campo(foda, {}, "p_dim_foda", n);
-      expect(c && interruptorEncendido(c.arg, undefined)).toBe(true);
-    }
-    expect(campo(foda, {}, "p_dim_foda", "cortes_chip")?.placeholder).toBe("60, 80");
-    // En el heatmap el total no hereda el default de la FODA.
-    const total = campo(dims, {}, "p_dim_heatmap", "incluir_total");
-    expect(total && interruptorEncendido(total.arg, undefined)).toBe(false);
-    // Los args propios de la FODA no salen en ningún otro graficador.
-    expect(nombres(foda, {}, "p_dim_heatmap")).toEqual(["cruce", "objetivo", "incluir_total"]);
   });
 });
 

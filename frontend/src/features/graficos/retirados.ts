@@ -1,22 +1,26 @@
-// Tipos de gráfico retirados por el ADR 0137 (fase 1: compatibilidad, sin borrar nada). La ficha de cada uno —nombre
-// legible y reemplazo sugerido— la sirve el registro (`retirados` de GET /api/graficos/registry, api/R/graficos_retirados.R).
-// El catálogo versionado los sigue trayendo con `en_selector` intacto, así que el selector necesita saber por nombre qué
-// no ofrecer aunque el registro llegue de un backend anterior: de ahí la lista congelada de abajo. La fase 2 la borra
-// junto con los tipos. Módulo puro.
+// Tipos de gráfico retirados por el ADR 0137. La ficha de cada uno —nombre legible y reemplazo sugerido— la sirve el
+// registro (`retirados` de GET /api/graficos/registry, api/R/graficos_retirados.R). La fase 2 borró los tipos del
+// catálogo y de la app; esta lista congelada queda como respaldo para reconocer un plan viejo aunque el registro llegue
+// sin fichas (RanuraRetirada, avisos). Módulo puro.
 
 import type { GraficadorMetadata, GraficadorRetirado, Registry } from "../../api/graficos";
 import { graficadorDisplayName } from "./graficadorDisplay";
 
-/** Los siete tipos del ADR 0137 (seis del ADR más el resto `p_dim_radar_tabla`). */
-export const TIPOS_RETIRADOS_0137: ReadonlySet<string> = new Set([
-  "p_significancia_publicos",
-  "p_dim_radar",
-  "p_dim_heatmap",
-  "p_dim_heatmap_criterios",
-  "p_dim_comparativo_radarbar",
-  "p_dim_foda",
-  "p_dim_radar_tabla",
-]);
+/** Nombre legible de los siete tipos del ADR 0137 (seis del ADR más el resto `p_dim_radar_tabla`). La fase 2 borró
+ *  los tipos del registro, del catálogo y de los nombres de graficadorDisplay: un plan viejo que los traiga se
+ *  reconoce y se nombra desde aquí, con los mismos títulos que api/R/graficos_retirados.R. */
+export const NOMBRE_RETIRADO_0137: Readonly<Record<string, string>> = {
+  p_significancia_publicos: "Diferencias significativas entre públicos",
+  p_dim_radar: "Radar por dimensiones",
+  p_dim_heatmap: "Heatmap de dimensiones",
+  p_dim_heatmap_criterios: "Heatmap por criterios",
+  p_dim_comparativo_radarbar: "Radar + barras comparativo",
+  p_dim_foda: "Matriz FODA dimensional",
+  p_dim_radar_tabla: "Radar + tabla de dimensiones",
+};
+
+/** Los siete tipos del ADR 0137. */
+export const TIPOS_RETIRADOS_0137: ReadonlySet<string> = new Set(Object.keys(NOMBRE_RETIRADO_0137));
 
 export const ADR_RETIRO = "0137";
 
@@ -33,7 +37,7 @@ export function fichaRetirado(name: string, registry?: ConRetirados): Graficador
   const delRegistro = registry?.retirados.find((r) => r.name === name);
   if (delRegistro) return delRegistro;
   if (!TIPOS_RETIRADOS_0137.has(name)) return null;
-  return { name, titulo_humano: graficadorDisplayName(name), adr: ADR_RETIRO, reemplazo: { texto: "", graficador: "" } };
+  return { name, titulo_humano: NOMBRE_RETIRADO_0137[name] ?? graficadorDisplayName(name), adr: ADR_RETIRO, reemplazo: { texto: "", graficador: "" } };
 }
 
 /** Lo que dice el detalle (tooltip) del aviso: la única parte que cita el ADR. */

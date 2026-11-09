@@ -37,7 +37,7 @@ describe("tipos retirados", () => {
   it("la ficha sale del registro y, sin él, con el nombre legible y sin reemplazo", () => {
     expect(fichaRetirado("p_dim_radar", REGISTRO)?.reemplazo.graficador).toBe("p_media_rango");
     expect(fichaRetirado("p_dim_heatmap_criterios", null)).toEqual({
-      name: "p_dim_heatmap_criterios", titulo_humano: "Mapa de calor por criterios", adr: "0137", reemplazo: { texto: "", graficador: "" },
+      name: "p_dim_heatmap_criterios", titulo_humano: "Heatmap por criterios", adr: "0137", reemplazo: { texto: "", graficador: "" },
     });
     expect(fichaRetirado("p_pie", REGISTRO)).toBeNull();
   });

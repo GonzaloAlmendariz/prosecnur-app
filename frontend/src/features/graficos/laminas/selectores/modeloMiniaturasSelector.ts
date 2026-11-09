@@ -34,9 +34,9 @@ export type FuenteSelector = { name: string; variables: readonly Pick<VarInfo, "
 /** Cuántas preguntas lleva la muestra de una tarjeta sin preguntas de partida. */
 export const PREGUNTAS_MUESTRA = 6;
 
-/** Gráficos cuyas preguntas no son una lista (temas de la matriz, dimensiones): sin elegirlas no hay muestra. */
+/** Gráficos cuyas preguntas no son una lista (el cruce del mapa de calor): sin elegirlas no hay muestra. */
 // El mapa de calor por cruce pide una pregunta y un cruce, no una lista: una muestra de `vars` no le sirve (ADR 0137).
-const SIN_MUESTRA: ReadonlySet<string> = new Set(["p_significancia_publicos", "p_dim_heatmap_criterios", "p_heatmap_cruce"]);
+const SIN_MUESTRA: ReadonlySet<string> = new Set(["p_heatmap_cruce"]);
 
 export const NOTA_SIN_PREGUNTAS = "Sin vista previa: falta elegir preguntas.";
 

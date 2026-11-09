@@ -148,11 +148,7 @@ export type GraficadorBlueprintKind =
   | "table"
   | "word-cloud"
   | "territory-map"
-  | "dimension-radar"
   | "dimension-heatmap"
-  | "dimension-radar-bars"
-  | "dimension-foda"
-  | "dimension-criteria-heatmap"
   // Sentinel exclusivo del frontend para formas que aún no conoce.
   | "future";
 
@@ -252,9 +248,6 @@ export type ArgTipoInput =
   // series_colors: editor visual de pares serie → color. El valor viaja
   // como objeto nombrado { "Serie": "#RRGGBB" }, sin edición JSON.
   | "series_colors"
-  // criteria_config: editor visual de criterios/conductores, cada uno
-  // con titulo y variables asociadas.
-  | "criteria_config"
   // partes: filas { rotulo, codigos, y?, color? } sobre las respuestas de la
   // pregunta `var` del mismo gráfico (líneas y franja del total de
   // p_lineas_nivel). `y` y `color` no se editan pero se conservan.

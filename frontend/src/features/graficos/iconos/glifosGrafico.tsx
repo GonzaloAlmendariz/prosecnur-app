@@ -46,8 +46,6 @@ export type OpcionesGlifo = {
   ranking?: boolean;
   /** Matriz de cuadrantes: cuál lleva fondo. */
   destacado?: "arriba_izq" | "arriba_der" | "abajo_izq" | "abajo_der" | "ninguno";
-  /** Mapa de calor: la columna del total. */
-  total?: boolean;
   /** Tabla: celdas bajo el umbral en rojo. */
   rojo?: boolean;
 };
@@ -276,41 +274,6 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
         )}
         <Trazo d="M88 14V100M20 56H156" ancho={1.5} t="n" />
         {puntos.map(([x, y, d]) => <Punto key={`${x}-${y}`} cx={x} cy={y} r={4} t={d ? "a" : "p"} />)}
-      </>
-    );
-  },
-  // Diferencias significativas entre públicos (p112): la tabla con sus letras y un panel por par con la diferencia, su
-  // intervalo y el punto lleno cuando es significativa.
-  p_significancia_publicos: () => {
-    const filas = [24, 42, 60, 78];
-    return (
-      <>
-        {filas.map((y, i) => (
-          <g key={y}>
-            <Rotulo x={8} y={y - 1.5} w={26} />
-            <Valor x={40} y={y - 1.75} w={12} />
-            <Valor x={58} y={y - 1.75} w={12} />
-          </g>
-        ))}
-        {[0, 1].map((k) => {
-          const x0 = 80 + k * 40;
-          return (
-            <g key={k}>
-              <rect x={x0} y={14} width={34} height={72} rx={2} className="pulso-glifo__rejilla" />
-              <Trazo d={`M${x0 + 12} 14V86`} t="n" ancho={1} />
-              {filas.map((y, i) => {
-                const c = x0 + [22, 14, 26, 10][(i + k) % 4];
-                const lleno = (i + k) % 2 === 0;
-                return (
-                  <g key={y}>
-                    <Trazo d={`M${c - 7} ${y}H${c + 7}`} t={lleno ? "p" : "n"} ancho={1.5} />
-                    <Punto cx={c} cy={y} r={3} t={lleno ? "p" : "n"} />
-                  </g>
-                );
-              })}
-            </g>
-          );
-        })}
       </>
     );
   },
@@ -706,78 +669,6 @@ const GLIFOS: Readonly<Record<string, DibujoGlifo>> = {
       </>
     );
   },
-  // Radar por dimensiones: dos públicos (p95).
-  p_dim_radar: () => (
-    <Radar cx={80} cy={50} r={40} lados={6} series={[
-      { k: [0.7, 0.55, 0.8, 0.6, 0.5, 0.65], t: "a" },
-      { k: [0.92, 0.7, 0.62, 0.84, 0.72, 0.8], t: "p" },
-    ]} />
-  ),
-  // Mapa de calor por dimensiones: más intenso cuanto mayor el valor (p96).
-  // Con la columna Total (maqueta), una columna más, enmarcada, a la derecha.
-  p_dim_heatmap: (o) => {
-    const valores = [[1, 2, 1, 3, 2], [2, 1, 3, 2, 4], [3, 2, 2, 1, 3], [4, 3, 4, 2, 1]];
-    const paso = o?.total ? 18 : 21.6;
-    const ancho = paso - 1.6;
-    return (
-      <>
-        {valores.map((fila, i) => (
-          <g key={i}>
-            <Rotulo x={12} y={22 + i * 18} w={22} />
-            {fila.map((v, j) => (
-              <Barra key={j} x={40 + j * paso} y={16 + i * 18} w={ancho} h={16} t={(["e1", "e2", "e3", "e4"] as const)[v - 1]} rx={1} />
-            ))}
-            {o?.total && <Barra x={40 + 5 * paso + 4} y={16 + i * 18} w={ancho} h={16} t="e2" rx={1} />}
-          </g>
-        ))}
-        {[0, 1, 2, 3, 4].map((j) => <Rotulo key={j} x={40 + j * paso + 4} y={9} w={ancho - 8} />)}
-        {o?.total && <rect x={40 + 5 * paso + 2} y={6} width={ancho + 4} height={84} rx={2} className="pulso-glifo__marco-p" />}
-      </>
-    );
-  },
-  // Mapa de calor por criterios: criterios en filas y la columna del total aparte (p97).
-  p_dim_heatmap_criterios: () => {
-    const valores = [[1, 2, 3], [2, 2, 1], [3, 1, 2], [2, 3, 4], [4, 3, 3]];
-    return (
-      <>
-        {valores.map((fila, i) => (
-          <g key={i}>
-            <Rotulo x={12} y={16 + i * 15} w={34} />
-            {fila.map((v, j) => (
-              <Barra key={j} x={54 + j * 24} y={11 + i * 15} w={22} h={13} t={(["e1", "e2", "e3", "e4"] as const)[v - 1]} rx={1} />
-            ))}
-            <Valor x={132} y={15.75 + i * 15} w={12} />
-          </g>
-        ))}
-        <rect x={128} y={8} width={20} height={80} rx={2} className="pulso-glifo__marco-p" />
-      </>
-    );
-  },
-  // Comparativo: radar de dimensiones con sus barras al lado (p98).
-  p_dim_comparativo_radarbar: () => (
-    <>
-      <Radar cx={40} cy={50} r={28} lados={5} series={[{ k: [0.6, 0.8, 0.5, 0.7, 0.66], t: "a" }, { k: [0.86, 0.66, 0.74, 0.9, 0.6], t: "p" }]} />
-      {[0, 1, 2, 3].map((i) => {
-        const y = 18 + i * 18;
-        return (
-          <g key={y}>
-            <Barra x={84} y={y} w={[56, 44, 50, 38][i]} h={6} t="p" />
-            <Barra x={84} y={y + 7} w={[46, 50, 36, 30][i]} h={6} t="a" />
-          </g>
-        );
-      })}
-    </>
-  ),
-  // FODA (retirado del selector; los planes que lo usan lo conservan): cuatro cuadrantes.
-  p_dim_foda: () => (
-    <>
-      {([["p", 16, 12], ["a", 82, 12], ["e3", 16, 52], ["n", 82, 52]] as const).map(([t, x, y]) => (
-        <g key={`${x}-${y}`}>
-          <Barra x={x} y={y} w={62} h={36} t={t} rx={2} />
-        </g>
-      ))}
-    </>
-  ),
   // Citas representativas (TXT-4): tres citas, cada una con su comilla en el acento y dos líneas de texto.
   p_citas: () => (
     <>

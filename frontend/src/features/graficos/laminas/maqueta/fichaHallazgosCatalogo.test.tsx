@@ -46,14 +46,10 @@ describe("M3 · ancho del tema con el control vigente", () => {
 });
 
 describe("M5 · gráficos sin `var` que sí tienen pregunta", () => {
-  it("la matriz de cuadrantes por sus temas y las dimensiones por su objetivo no dicen «falta elegir la pregunta»", () => {
+  it("la matriz de cuadrantes por sus temas no dice «falta elegir la pregunta»", () => {
     const matriz = ficha(slide("p_matriz_cuadrantes", { temas: { Tutoría: ["estudiantes$p1", "docentes$p1"] }, corte_x: "3,4", corte_y: "3,4" }));
     expect(matriz.faltaPregunta).toBe(false);
     expect(matriz.preguntas).toContain("Tutoría");
-    const dim = ficha(slide("p_dim_heatmap", { modo: "general", objetivo: "idx_comp", cruce: "estudiantes$sexo" }));
-    expect(dim.faltaPregunta).toBe(false);
-    expect(dim.ajustes).toContain("Por grupos: Sexo");   // su `modo` («general») no es el de las multiapiladas
-    expect(ficha(slide("p_dim_heatmap_criterios", { config_criterios: [{ id: "a", titulo: "Técnicas", vars: [] }] })).preguntas).toContain("Técnicas");
   });
 });
 
@@ -117,7 +113,6 @@ describe("ítem 9 · el glifo refleja los ajustes de su tipo", () => {
     ["p_nube_palabras", { var: "estudiantes$p1" }, { var: "estudiantes$p1", mostrar_ranking: false }, "Sin ranking de palabras"],
     ["p_radar", { var: "estudiantes$p1", modo: "publicos" }, { var: "estudiantes$p1", modo: "publicos", tabla: "no" }, "Sin tabla de datos"],
     ["p_radar", { var: "estudiantes$p1", modo: "publicos" }, { var: "estudiantes$p1", modo: "publicos", mostrar_tabla: false }, "Sin tabla de datos"],
-    ["p_dim_heatmap", { objetivo: "idx" }, { objetivo: "idx", incluir_total: true }, "Columna Total"],
     
     ["p_matriz_cuadrantes", { temas: { T: ["estudiantes$p1"] } }, { temas: { T: ["estudiantes$p1"] }, destacado: "abajo_der" }, "Destacado abajo a la derecha"],
   ];
@@ -145,13 +140,6 @@ describe("ítem 9 · el glifo refleja los ajustes de su tipo", () => {
     expect(f.faltaPregunta).toBe(false);
     expect(f.preguntas).toEqual(["¿Conoce la misión?", "La Unidad cuenta con tutoría"]);
     expect(f.ajustes).toEqual(expect.arrayContaining(["Habilita: Sí", "Subpregunta abajo"]));
-  });
-
-  it("diferencias significativas: la ficha lista los temas entre públicos y lo que suma (recetario p112)", () => {
-    const f = ficha(slide("p_significancia_publicos", { vars: { Tutoría: ["docentes$p1", "estudiantes$p1"] }, corte: ["De acuerdo", "Totalmente de acuerdo"] }));
-    expect(f.faltaPregunta).toBe(false);
-    expect(f.preguntas).toContain("La Unidad cuenta con tutoría");   // como en el radar entre públicos: el tema por su pregunta
-    expect(f.ajustes).toContain("Suman: De acuerdo, Totalmente de acuerdo");
   });
 
   it("los interruptores sin guardar dibujan lo que dibuja el motor (defectos del registro)", () => {

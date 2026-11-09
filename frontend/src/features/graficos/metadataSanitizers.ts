@@ -44,7 +44,6 @@ const ARG_TIPO_INPUTS: Record<ArgTipoInput, true> = {
   orden_categorias: true,
   base_labels: true,
   series_colors: true,
-  criteria_config: true,
   partes: true,
   hallazgos_capitulos: true,
   resumen_capitulos: true,
@@ -145,11 +144,7 @@ const GRAFICADOR_BLUEPRINT_KINDS: Record<GraficadorBlueprintKind, true> = {
   "word-cloud": true,
   quadrant: true,
   "territory-map": true,
-  "dimension-radar": true,
   "dimension-heatmap": true,
-  "dimension-radar-bars": true,
-  "dimension-foda": true,
-  "dimension-criteria-heatmap": true,
   future: true,
 };
 

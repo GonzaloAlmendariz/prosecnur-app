@@ -239,23 +239,12 @@ export function ajustesDelGlifo(graficador: string, args: Readonly<Record<string
       else if (DESTACADO[glifo.destacado as string]) ajustes.push(`Destacado ${DESTACADO[glifo.destacado as string]}`);
       break;
     }
-    case "p_dim_heatmap":
-      glifo.total = v("incluir_total") === true;
-      if (glifo.total) ajustes.push("Columna Total");
-      break;
     case "p_filtro_subpregunta": {
       const hab = lista(v("habilita"));
       if (hab.length) ajustes.push(`Habilita: ${hab.join(", ")}`);
       if (v("grafico_filtro") === "torta" || v("grafico_filtro") === "dona") ajustes.push(`Filtro en ${v("grafico_filtro") as string}`);
       else if (v("disposicion") === "abajo") ajustes.push("Subpregunta abajo");
       if (v("grafico_sub") === "escala") ajustes.push("Subpregunta en escala");
-      break;
-    }
-    case "p_significancia_publicos": {
-      const corte = lista(v("corte"));
-      if (corte.length) ajustes.push(`Suman: ${corte.join(", ")}`);
-      const a = Number(v("alpha"));
-      if (Number.isFinite(a) && a > 0 && a !== 0.05) ajustes.push(`α = ${a}`);
       break;
     }
     case "p_tabla": {

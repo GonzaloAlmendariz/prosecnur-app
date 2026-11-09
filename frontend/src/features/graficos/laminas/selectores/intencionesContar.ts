@@ -181,34 +181,6 @@ export const TARJETAS_CONTAR: readonly TarjetaContar[] = [
     grafico: { graficador: "p_heatmap_cruce", args: {} },
     coincide: conGrafico("p_heatmap_cruce"),
   },
-  // Las dos tarjetas que siguen nacen con un tipo retirado por el ADR 0137: ninguna intención las ofrece. Quedan para
-  // reconocer («Actual») las láminas que ya los usan; la fase 2 las borra.
-  {
-    clave: "p_slide_1_grafico:significancia",
-    tipo: "p_slide_1_grafico",
-    nombre: "Diferencias significativas",
-    clase: "grafico",
-    uso: "Qué diferencias entre públicos no son azar",
-    descripcion: "Tabla de porcentajes con letras de significancia.",
-    pide: "Una batería y sus públicos",
-    parche: {},
-    grafico: { graficador: "p_significancia_publicos", args: {} },
-    coincide: conGrafico("p_significancia_publicos"),
-  },
-  {
-    clave: "p_slide_1_grafico:dimensiones",
-    tipo: "p_slide_1_grafico",
-    nombre: "Mapa por dimensión",
-    clase: "grafico",
-    uso: "Cada dimensión del modelo por público, en tonos",
-    descripcion: "Matriz de dimensiones por público.",
-    pide: "Las dimensiones calculadas en Analítica",
-    parche: {},
-    // Una columna por público: la matriz compara públicos (S1).
-    usa: { publicos: "varios" },
-    grafico: { graficador: "p_dim_heatmap_criterios", args: {} },
-    coincide: conGrafico("p_dim_heatmap_criterios"),
-  },
   {
     clave: "p_slide_1_grafico:aperturas",
     tipo: "p_slide_1_grafico",

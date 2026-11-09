@@ -7,15 +7,14 @@ import { CATALOGO_GRAFICOS, type SalidaGrafico } from "../../iconos/catalogoTipo
 import { esSlotCifra } from "../../iconos/composicion";
 import { TIPOS_RETIRADOS_0137 } from "../../retirados";
 
-export type FamiliaGrafico = "categorias" | "escalas" | "numeros" | "comparar" | "dimensiones" | "territorio" | "texto";
+export type FamiliaGrafico = "categorias" | "escalas" | "numeros" | "comparar" | "territorio" | "texto";
 
-/** Las siete familias del selector, en el orden de `.GRAFICOS_FAMILIAS_EDITOR`. */
+/** Las seis familias del selector, en el orden de `.GRAFICOS_FAMILIAS_EDITOR`. */
 export const FAMILIAS_GRAFICO: ReadonlyArray<{ id: FamiliaGrafico; label: string; descripcion: string }> = [
   { id: "categorias", label: "Categorías", descripcion: "Cuántos eligieron cada opción de una pregunta." },
   { id: "escalas", label: "Escalas", descripcion: "Preguntas de acuerdo, satisfacción o frecuencia." },
   { id: "numeros", label: "Números", descripcion: "Promedios, distribuciones y cifras destacadas." },
   { id: "comparar", label: "Comparar", descripcion: "Dos o más públicos o mediciones frente a frente." },
-  { id: "dimensiones", label: "Dimensiones", descripcion: "Índices calculados en Analítica." },
   { id: "territorio", label: "Territorio", descripcion: "Resultados o cobertura sobre el mapa." },
   { id: "texto", label: "Texto", descripcion: "Respuestas abiertas." },
 ];
@@ -28,7 +27,8 @@ const FAMILIA_POR_CATEGORIA: Record<GraficadorCategoria, FamiliaGrafico> = {
   numeric: "numeros",
   comparison: "comparar",
   text: "texto",
-  dimensions: "dimensiones",
+  // ADR 0137: ningún graficador declara ya la categoría de dimensiones; un registro anterior que la traiga compara.
+  dimensions: "comparar",
   territory: "territorio",
   other: "categorias",
 };
@@ -51,16 +51,15 @@ export const ETIQUETA_SALIDA: Record<SalidaGrafico, { corto: string; largo: stri
   ruta_anterior: { corto: "Imagen", largo: "Este gráfico sale como imagen y no se puede editar en PowerPoint." },
 };
 
-/** Lo que se ofrece en la familia: lo que el registro no retira del selector, en su orden. Los tipos retirados por el
- *  ADR 0137 llegan con `en_selector` intacto en la fase 1: se quitan por nombre. */
+/** Lo que se ofrece en la familia: lo que el registro no retira del selector, en su orden. Un registro anterior al
+ *  ADR 0137 fase 2 todavía trae los tipos retirados con `en_selector` intacto: se quitan por nombre. */
 export function graficosDeFamilia(graficadores: readonly GraficadorMetadata[], familia: FamiliaGrafico): GraficadorMetadata[] {
   return graficadores.filter((g) => g.en_selector !== false && POR_NOMBRE.get(g.name)?.en_selector !== false
     && !TIPOS_RETIRADOS_0137.has(g.name) && familiaDe(g) === familia);
 }
 
 /**
- * Las familias que el selector muestra: las que tienen algún gráfico (C3: una familia vacía no ocupa una fila; tras el
- * ADR 0137 «Dimensiones» queda sin tipos). Sin catálogo todavía (`cargado = false`) van todas, para no vaciar la columna
+ * Las familias que el selector muestra: las que tienen algún gráfico (C3: una familia vacía no ocupa una fila). Sin catálogo todavía (`cargado = false`) van todas, para no vaciar la columna
  * mientras carga.
  */
 export function familiasVisibles(

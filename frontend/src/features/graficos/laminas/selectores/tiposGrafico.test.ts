@@ -23,17 +23,17 @@ describe("familias", () => {
     expect(ofrecidos).not.toContain("p_dim_foda");
   });
 
-  it("ADR 0137: los retirados no se ofrecen y «Dimensiones», sin tipos, desaparece del selector (C3)", () => {
+  it("ADR 0137: los retirados no se ofrecen y la familia «Dimensiones» ya no existe", () => {
     const todos = CATALOGO_GRAFICOS.map((g) => meta(g.name));
     const porFamilia = new Map(FAMILIAS_GRAFICO.map((f) => [f.id, graficosDeFamilia(todos, f.id)]));
     for (const g of TIPOS_RETIRADOS_0137) expect([...porFamilia.values()].flat().map((m) => m.name)).not.toContain(g);
-    expect(porFamilia.get("dimensiones")).toEqual([]);
+    expect(FAMILIAS_GRAFICO.map((f) => f.id)).toEqual(["categorias", "escalas", "numeros", "comparar", "territorio", "texto"]);
     const visibles = familiasVisibles(porFamilia, true);
-    expect(visibles.map((f) => f.id)).not.toContain("dimensiones");
+    expect(visibles.map((f) => f.id)).toEqual(FAMILIAS_GRAFICO.map((f) => f.id));
     expect(porFamilia.get("comparar")?.map((g) => g.name)).toContain("p_heatmap_cruce");
     // Sin catálogo todavía no se vacía la columna; la familia de un retirado cae en la primera visible.
     expect(familiasVisibles(new Map(), false)).toHaveLength(FAMILIAS_GRAFICO.length);
-    expect(familiaVisible("dimensiones", visibles)).toBe(visibles[0].id);
+    expect(familiaVisible("territorio", visibles.filter((f) => f.id !== "territorio"))).toBe(visibles[0].id);
     expect(familiaVisible("comparar", visibles)).toBe("comparar");
   });
 

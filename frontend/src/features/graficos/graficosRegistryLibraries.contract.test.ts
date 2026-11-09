@@ -66,11 +66,13 @@ const EXPECTED_GRAFICADORES = [
   ["p_media_rango", "Media y rango", "numeric", "mean-range"],
   ["p_radar", "Radar", "comparison", "radar"],
   ["p_tabla", "Tabla", "comparison", "table"],
-  ["p_dim_radar", "Radar por dimensiones", "dimensions", "dimension-radar"],
+  // ADR 0137 fase 2: la fixture congelada es anterior al retiro; sus blueprints de dimensiones caen en «future»
+  // (el heatmap queda: lo usa el mapa de calor por cruce).
+  ["p_dim_radar", "Radar por dimensiones", "dimensions", "future"],
   ["p_dim_heatmap", "Heatmap de dimensiones", "dimensions", "dimension-heatmap"],
-  ["p_dim_comparativo_radarbar", "Radar + barras comparativo", "dimensions", "dimension-radar-bars"],
-  ["p_dim_foda", "Matriz FODA dimensional", "dimensions", "dimension-foda"],
-  ["p_dim_heatmap_criterios", "Heatmap por criterios", "dimensions", "dimension-criteria-heatmap"],
+  ["p_dim_comparativo_radarbar", "Radar + barras comparativo", "dimensions", "future"],
+  ["p_dim_foda", "Matriz FODA dimensional", "dimensions", "future"],
+  ["p_dim_heatmap_criterios", "Heatmap por criterios", "dimensions", "future"],
 ] as const;
 
 type Fixture = {

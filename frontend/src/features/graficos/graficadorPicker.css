@@ -839,9 +839,7 @@
   stroke-width: 0.8;
 }
 
-.pulso-graficador-library-blueprint-band,
-.pulso-graficador-library-blueprint-dimension-pills,
-.pulso-graficador-library-blueprint-criteria-bands {
+.pulso-graficador-library-blueprint-band {
   fill: var(--pulso-graficador-library-soft);
   stroke: var(--pulso-graficador-library-border);
   stroke-width: 0.8;

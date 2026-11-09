@@ -71,8 +71,6 @@ export const AYUDA_LIMITE_SUPERIOR = "Vacío: sin tope. Lo que lo supera va en l
 export const AYUDA_TIPO_RANGO = "La leyenda de la lámina dice qué abarca la barra.";
 // 6a (Gonzalo, 2026-10-11): «custom» depende de `probs_rango`, que no tiene control en la tarjeta.
 export const AVISO_RANGO_CUSTOM = "Personalizado: se dibuja con los percentiles guardados.";
-export const AYUDA_CORTE_SCORE = "Obligatorio en Dispersión: separa los puntajes altos de los bajos.";
-export const AYUDA_CORTES_CHIP = "Dos valores que separan rojo, ámbar y verde. Vacío: 60 y 80.";
 // ADR 0134: los gráficos del resumen ejecutivo (Arte y Diseño FG 2026).
 export const AYUDA_ESTILO = "Cómo se compone la lámina; el cálculo es el mismo.";
 export const AYUDA_UNIVERSOS = "Para escribir la base como n (cobertura %). Un grupo sin padrón va sólo con n.";
@@ -88,14 +86,12 @@ export const AYUDA_REFERENCIA = "La línea punteada y la columna «Bajo» de la 
  * registro que llega al front no trae `salida`; argsDatosGrafico.c40.test.ts la contrasta con el registro R y con el
  * catálogo generado (api/inst/catalogos/graficos_tipos.json). Cuando uno gane versión nativa, sale de aquí.
  */
-export const GRAFICADORES_NO_NATIVOS: ReadonlySet<string> = new Set([
-  // p_puntos_comparativos salió el 2026-10-13 (G11): ya sale como el ranking con puntos. p_dim_radar también: con tres
-  // ejes o más ya salía nativo y el registro decía lo contrario (test-dim-radar-nativo.R).
-  // p_nube_palabras también (G11): sale con el ranking nativo de la lámina 101; y p_tabla, como la tabla del diseño.
-  "p_dim_foda",
+export const GRAFICADORES_NO_NATIVOS: ReadonlySet<string> = new Set<string>([
+  // p_puntos_comparativos salió el 2026-10-13 (G11): ya sale como el ranking con puntos; p_nube_palabras también
+  // (G11): sale con el ranking nativo de la lámina 101; y p_tabla, como la tabla del diseño. p_dim_foda, el último,
+  // se borró con el ADR 0137 fase 2: hoy los 31 graficadores salen nativos y la lista queda vacía.
 ]);
 const TABLA = ["p_tabla"];
-const FODA = ["p_dim_foda"];
 
 /**
  * Públicos distintos de una lámina por temas (`{ tema: [base$var, …] }`): no el máximo por tema. En la lámina 10 de Arte
@@ -207,7 +203,7 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   var: { rotulo: "Pregunta", cuando: (v) => !tieneVars(v), excepto: ["p_filtro_subpregunta"] },
   // I1 (catálogo del recetario, 2026-10-14): la lista de preguntas no tenía control y el inspector decía «Elige una
   // pregunta…» con seis preguntas en la lámina. Las multiapiladas, la brecha y la matriz la editan en su propia tarjeta.
-  vars: { rotulo: "Preguntas", excepto: ["p_barras_multiapiladas", "p_dumbbell", "p_matriz_cuadrantes", "p_significancia_publicos"] },
+  vars: { rotulo: "Preguntas", excepto: ["p_barras_multiapiladas", "p_dumbbell", "p_matriz_cuadrantes"] },
   // ADR 0135 §2: la lámina de resumen elige sus preguntas con una regla (reglaPreguntas/ReglaPreguntas.tsx). En la brecha
   // y la divergente la regla es del estilo resumen (el constructor la rechaza con «recetario»); una ya guardada se muestra.
   regla: {
@@ -307,7 +303,7 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   segmentos_total: {
     rotulo: "Partes del total", ayuda: "Vacío, la franja se arma sola.", soloEn: ["p_lineas_nivel"], siActivo: "total_arriba",
   },
-  corte: { rotulo: "Corte", excepto: ["p_dumbbell", "p_significancia_publicos"] },
+  corte: { rotulo: "Corte", excepto: ["p_dumbbell"] },
   corte_etiqueta: { rotulo: "Rótulo del corte" },
   // ADR 0134: la composición del resumen ejecutivo; el padrón sólo lo escribe el contraste con tabla de base.
   estilo: { rotulo: "Estilo", ayuda: AYUDA_ESTILO, soloEn: ESTILO_RESUMEN },
@@ -330,21 +326,12 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   tabla: { rotulo: "Tabla de datos", ayuda: AYUDA_TABLA, estricto: true, soloEn: ["p_radar"] },
   tabla_titulo: { rotulo: "Encabezado de la primera columna", ayuda: AYUDA_TABLA_TITULO, estricto: true, soloEn: ["p_radar"] },
   eje_min: { rotulo: "El eje arranca en (%)", ayuda: AYUDA_EJE_MIN, estricto: true, soloEn: ["p_radar"] },
-  objetivo: { rotulo: "Objetivo" },
   metrica: { rotulo: "Métrica" },
   categoria: { rotulo: "Categoría" },
   direccion_escala: { rotulo: "Dirección de la escala" },
   // Sin valor el motor parte las opciones sustantivas por la mitad (graficos_metadata.R): el campo queda vacío.
   n_negativas: { rotulo: "Categorías negativas", placeholder: "La mitad" },
   incluir_neutro: { rotulo: "Incluir el punto medio" },
-  // FODA (5a): formal `incluir_total = TRUE` de p_dim_foda (reporte_plan_slides.R); el registro no declara default.
-  incluir_total: { rotulo: "Columna Total", soloEn: ["p_dim_heatmap", ...FODA], porGraficador: { p_dim_foda: { defecto: true } } },
-  // Matriz FODA (5a, ruta anterior): formales de p_dim_foda; sin valor manda el primero de su `match.arg`.
-  nivel: { rotulo: "Nivel de análisis", soloEn: FODA, defecto: "subindices" },
-  modo_foda: { rotulo: "Disposición", soloEn: FODA, defecto: "matriz" },
-  corte_score: { rotulo: "Corte de puntaje", ayuda: AYUDA_CORTE_SCORE, soloEn: FODA, cuando: (v) => v.modo_foda === "dispersion" },
-  usar_pesos: { rotulo: "Aplicar pesos", soloEn: FODA, defecto: true },
-  cortes_chip: { rotulo: "Cortes del semáforo", ayuda: AYUDA_CORTES_CHIP, placeholder: "60, 80", soloEn: FODA },
   orden_barras: { rotulo: "Orden" },
   orden: { rotulo: "Orden", soloEn: ["p_dumbbell", "p_lollipop", "p_barras_divergentes"] },
   // ADR 0134: formal de p_dumbbell(); sólo lo dibuja el contraste con tabla de base.
@@ -434,8 +421,6 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   // Pregunta filtro y subpregunta (recetario p192–p194): las preguntas y lo que habilita van en su tarjeta.
   grafico_sub: { rotulo: "Gráfico de la subpregunta", soloEn: ["p_filtro_subpregunta"] },
   disposicion: { rotulo: "Disposición", soloEn: ["p_filtro_subpregunta"], cuando: (v) => v.grafico_filtro !== "torta" && v.grafico_filtro !== "dona" },
-  // Diferencias significativas entre públicos (recetario p111–p112): los temas y lo que suma van en su tarjeta.
-  alpha: { rotulo: "Nivel de significancia", soloEn: ["p_significancia_publicos"] },
   // Inventario de configuraciones, ítem 3 (recetario p74–p75): formal de p_barras_agrupadas() → overrides.
   marcas_eje: { rotulo: "Marcas del eje", ayuda: "0, 25, 50, 75 y 100 % bajo las barras.", soloEn: ["p_barras_agrupadas"] },
   mostrar_brecha: { rotulo: "Mostrar la brecha", ayuda: AYUDA_BRECHA, soloEn: ["p_dumbbell"] },
@@ -507,12 +492,8 @@ export const RETIRADOS: ReadonlySet<string> = new Set([
   // Reemplazado por `tabla` (auto | si | no); el valor guardado lo migra el motor al cargar.
   "mostrar_tabla",
 ]);
-/** Familias retiradas enteras: las brechas declaradas (`brecha_*`) y los args propios de la matriz FODA. */
+/** Familias retiradas enteras: las brechas declaradas (`brecha_*`). */
 const RETIRADO_PREFIJO = ["brecha_"];
-const RETIRADO_EN: Readonly<Record<string, ReadonlySet<string>>> = {
-  p_dim_foda: new Set(["nivel", "modo_foda", "usar_pesos", "corte_score", "titulos_areas_foda", "incluir_total", "iter_var", "iter_level"]),
-  p_dim_comparativo_radarbar: new Set(["incluir_total"]),
-};
 
 /** Args retirados en general que en un graficador nativo siguen teniendo efecto: cambian los datos, no el dibujo. */
 const VIGENTE_EN: Readonly<Record<string, ReadonlySet<string>>> = {
@@ -524,8 +505,7 @@ export function esRetirado(name: string, graficador?: string): boolean {
   // 5a: en un graficador no nativo lo retirado sigue teniendo efecto (lo dibuja ggplot).
   if (graficador && GRAFICADORES_NO_NATIVOS.has(graficador)) return false;
   if (graficador && VIGENTE_EN[graficador]?.has(name)) return false;
-  if (RETIRADOS.has(name) || RETIRADO_PREFIJO.some((p) => name.startsWith(p))) return true;
-  return !!graficador && !!RETIRADO_EN[graficador]?.has(name);
+  return RETIRADOS.has(name) || RETIRADO_PREFIJO.some((p) => name.startsWith(p));
 }
 
 /** Tipos de control que la tarjeta sabe dibujar en una línea. */

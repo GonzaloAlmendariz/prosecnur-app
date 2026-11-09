@@ -40,13 +40,11 @@ import { TopTwoBoxCruce } from "./heatmapCruce/TopTwoBoxCruce";
 import { ListaPreguntas } from "./ListaPreguntas";
 import { PublicosGrafico } from "./publicosGrafico/PublicosGrafico";
 import { usaPublicos } from "./publicosGrafico/modeloPublicos";
-import { CriteriosGrafico } from "./CriteriosGrafico";
 import { DestacarRespuestas, destacadasDe, GRAFICOS_CON_DESTACADAS } from "./DestacarRespuestas";
 import { criteriosDelRadar, formaEfectivaRadar, rotuloTablaAuto } from "./formaRadar";
 import { NotaFormaRadar } from "./NotaFormaRadar";
 import { DonaCentro } from "./DonaCentro";
 import { PublicoGrafico } from "./PublicoGrafico";
-import { SignificanciaPublicos } from "./SignificanciaPublicos";
 import { EtiquetaCortaPregunta, EtiquetasCortasPreguntas } from "./EtiquetasCortas";
 import { PreguntaClave } from "./preguntasClave/PreguntaClave";
 import { LetraYEjeAgrupadas } from "./tarjetaGrafico/LetraYEjeAgrupadas";
@@ -69,7 +67,6 @@ import { SelectorCategorias } from "./SelectorCategorias";
 import { GRUPO, NIVEL, type Sustantivo } from "./modeloSelectorCategorias";
 import { CifraGrafico } from "./CifraGrafico";
 import { CitasAprobadas } from "./citas/CitasAprobadas";
-import { ObjetivoDimension } from "./ObjetivoDimension";
 import { CortesNumericos } from "./CortesNumericos";
 import { PartesLineas } from "./PartesLineas";
 import { AgruparLista } from "./AgruparLista";
@@ -235,11 +232,7 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
     }
     return undefined;
   };
-  const filaDe = (c: CampoDato) => c.arg.name === "objetivo" && valor.graficador.startsWith("p_dim_") ? (
-    <ObjetivoDimension key={c.arg.name} id={`${slideId}-${slot}-objetivo`} modo={args.modo} valor={args.objetivo}
-      etiqueta={<label className="pulso-f6-dato-rotulo" htmlFor={`${slideId}-${slot}-objetivo`}>Índice</label>}
-      onCambio={(v) => set({ objetivo: v })} />
-  ) : (
+  const filaDe = (c: CampoDato) => (
     <Fragment key={`${slideId}:${slot}:${c.arg.name}`}>
       {/* H2: la ayuda de «Pista gris» describe la opción elegida, no siempre «Automática». */}
       <Fila campo={{ ...c, ayuda: ayudaDeLaOpcion(c, alcance(c).valor) }} graficador={valor.graficador} valor={alcance(c).valor} sello={alcance(c).sello} categorias={categoriasDe(c.arg.name)}
@@ -314,8 +307,6 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
         )}
         {valor.graficador === "p_dumbbell" && <BrechaEntreGrupos args={args} onCambio={set} />}
         {valor.graficador === "p_matriz_cuadrantes" && <MatrizCuadrantes args={args} onCambio={set} />}
-        {valor.graficador === "p_significancia_publicos" && <SignificanciaPublicos args={args} onCambio={set} />}
-        {valor.graficador === "p_dim_heatmap_criterios" && <CriteriosGrafico valor={args.config_criterios} onCambio={(c) => set({ config_criterios: c })} />}
         {serie && <EditorTemasEquivalentes tipo="serie" args={args} onCambio={set} />}
         {delGrupo("datos")}
         {valor.graficador !== "p_dumbbell" && llevaPadronPublicos(valor.graficador, args) && (

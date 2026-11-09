@@ -35,7 +35,7 @@ describe("secciones de la tarjeta", () => {
   });
   test("el mapa del ADR: orden y cifras a Aspecto; corte, indicador, redondeo y significancia a Cálculo; preguntas y cruce a Datos", () => {
     expect(["orden", "top_n", "mostrar_ceros", "pista_barras", "mostrar_brecha", "estilo", "base_en"].map(grupoDeCampo)).toEqual(Array(7).fill("aspecto"));
-    expect(["corte", "corte_etiqueta", "alpha", "decimales", "valores_decimales", "referencia"].map(grupoDeCampo)).toEqual(Array(6).fill("calculo"));
+    expect(["corte", "corte_etiqueta", "decimales", "valores_decimales", "referencia"].map(grupoDeCampo)).toEqual(Array(5).fill("calculo"));
     expect(["var", "vars", "cruce", "cruces", "grupos", "excluir_opciones", "universos"].map(grupoDeCampo)).toEqual(Array(7).fill("datos"));
   });
   test("las claves de las secciones anteriores llevan a la nueva", () => {
