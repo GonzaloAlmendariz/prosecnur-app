@@ -136,13 +136,14 @@ export function EditorTemasEquivalentes({ tipo, args, onCambio }: Props) {
         </p>
       ) : publicos.length > 0 ? (
         <TemasPorPublico temas={temas} publicos={publicos} variables={variables} matriz={eq.matriz} filtroTipo={esSelectOne} nuevoTema={nuevoTema} onChange={conTemas}
-          // D4: en el contraste de públicos, un separador entre dos temas con un clic (el motor nunca lo pone solo).
-          entreTemas={resumen ? (i) => (
+          // D4: un separador entre dos temas con un clic (el motor nunca lo pone solo). Ronda 20: en todo dumbbell, también
+          // la versión base, que lo dibuja desde d2fb002ab.
+          entreTemas={tipo === "brecha" ? (i) => (
             <SeparadorEntreFilas posicion={i + 1} activo={separadores.includes(i + 1)} onCambiar={(on) => onCambio(conSeparador(args, i + 1, on))} />
           ) : undefined} />
       ) : null}
 
-      {resumen && separadores.length > 0 && temas.length > 1 && (
+      {tipo === "brecha" && separadores.length > 0 && temas.length > 1 && (
         <span className="pulso-f6-dato-ayuda">Con separador, las filas salen en el orden de los temas.</span>
       )}
 

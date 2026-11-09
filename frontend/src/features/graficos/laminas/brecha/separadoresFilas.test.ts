@@ -38,6 +38,8 @@ describe("separadores entre filas", () => {
     expect(tiene({ estilo: "resumen", cruce: "d$ciclo", vars: ["d$*"] })).toBe(true);
     expect(tiene({ estilo: "resumen", cruce: "d$ciclo", vars: ["d$p1", "d$p2"] })).toBe(false);
     expect(tiene({ estilo: "resumen", cruce: "d$ciclo", vars: ["d$*"], separar_tras: [1, 2] })).toBe(false);
-    expect(tiene({ cruce: "d$ciclo", vars: ["d$*"] })).toBe(false);
+    // Ronda 20: la versión base también lo dibuja (d2fb002ab); el campo sale con las filas fuera de la vista.
+    expect(tiene({ cruce: "d$ciclo", vars: ["d$*"] })).toBe(true);
+    expect(tiene({ cruce: "d$ciclo", vars: ["d$p1", "d$p2"] })).toBe(false);
   });
 });

@@ -11,12 +11,21 @@ describe("ficha · resumen ejecutivo (ADR 0134)", () => {
     expect(ajustes("p_barras_divergentes", { orden: "sin_informacion" })).toEqual(["Por Sin información"]);
   });
 
-  it("brecha: el contraste con tabla de base y su separador; el separador no se nombra en el recetario", () => {
-    expect(ajustes("p_dumbbell", { estilo: "resumen", separar_tras: 6 })).toEqual(["Contraste de públicos", "Separador tras la fila 6"]);
-    expect(ajustes("p_dumbbell", { separar_tras: 6 })).toEqual([]);
-    expect(ajustes("p_dumbbell", { estilo: "resumen", base_en: "tabla" })).toEqual(["Contraste de públicos", "Base en la tabla"]);
-    expect(ajustes("p_dumbbell", { estilo: "resumen", base_en: "auto" })).toEqual(["Contraste de públicos"]);
+  it("brecha: la versión con su nombre del catálogo, la base en la tabla y el separador (también en la versión base)", () => {
+    const contraste = { estilo: "resumen", cruce: null, vars: { t1: ["a$p1", "b$p1"] } };
+    expect(ajustes("p_dumbbell", { ...contraste, separar_tras: 6 })).toEqual(["Contraste de públicos", "Separador tras la fila 6"]);
+    expect(ajustes("p_dumbbell", { ...contraste, base_en: "tabla" })).toEqual(["Contraste de públicos", "Base en la tabla"]);
+    expect(ajustes("p_dumbbell", { ...contraste, base_en: "auto" })).toEqual(["Contraste de públicos"]);
     expect(ajustes("p_dumbbell", { base_en: "tabla" })).toEqual([]);
+    // Ronda 20: d2fb002ab dibuja el separador en la versión base; la ficha lo dice.
+    expect(ajustes("p_dumbbell", { separar_tras: 6 })).toEqual(["Separador tras la fila 6"]);
+  });
+
+  it("ronda 20: «Aperturas por grupo» se nombra como tal, no como «Contraste de públicos»", () => {
+    const aperturas = { estilo: "resumen", cruce: "docentes$ciclo", grupos: ["1", "2"], vars: ["docentes$p7"] };
+    expect(ajustes("p_dumbbell", aperturas)).toEqual(["Aperturas por grupo"]);
+    expect(ajustes("p_dumbbell", aperturas)).not.toContain("Contraste de públicos");
+    expect(ajustes("p_dumbbell", { cruce: "docentes$ciclo", vars: ["docentes$p7"] })).toEqual([]);
   });
 
   it("panorama: sólo una referencia distinta de 60 se nombra", () => {

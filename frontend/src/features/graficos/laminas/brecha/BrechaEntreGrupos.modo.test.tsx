@@ -115,13 +115,17 @@ describe("BrechaEntreGrupos: el modo de comparación", () => {
     expect(argsDelPlan()).not.toHaveProperty("separar_tras");
   });
 
-  it("D4: en el recetario no se ofrece el separador (el motor no lo dibuja)", () => {
+  it("ronda 20: la versión base también ofrece el separador (el motor lo dibuja desde d2fb002ab) y lo guarda", () => {
     usePlanStore.setState({
       plan: { slides: [{ id: SLIDE, tipo: "p_slide_1_grafico", payload: { grafico: { graficador: "p_dumbbell", args: {
         cruce: "docentes$ciclo", grupos: ["1", "2"], vars: ["docentes$p1", "docentes$p2"], corte: "1",
       } } } }] } as never,
     });
     act(() => root.render(<MemoryRouter><Tarjeta /></MemoryRouter>));
-    expect(host.querySelector(".pulso-f6-separador-filas-boton")).toBeNull();
+    const boton = host.querySelector<HTMLButtonElement>(".pulso-f6-separador-filas-boton");
+    expect(boton).not.toBeNull();
+    act(() => boton?.click());
+    expect(argsDelPlan().separar_tras).toEqual([1]);
+    expect(argsDelPlan()).not.toHaveProperty("estilo");
   });
 });

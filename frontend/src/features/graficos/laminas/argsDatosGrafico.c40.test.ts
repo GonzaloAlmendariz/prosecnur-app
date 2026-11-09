@@ -114,10 +114,10 @@ describe("C40 · ASIGNAR", () => {
     expect(nombres(sinInterruptor, {}, "p_dumbbell")).not.toContain("etiqueta_brecha");
     expect(nombres(dumbbell, {}, "p_lollipop")).not.toContain("etiqueta_brecha");
   });
-  it("ADR 0134 · dumbbell: el estilo siempre; padrón y separador sólo con «Contraste de públicos»", () => {
+  it("ADR 0134 · dumbbell: el estilo siempre; padrón sólo con «Contraste de públicos»; separador en las dos (ronda 20)", () => {
     const resumen = [...dumbbell, a("estilo", "choice", { default: "recetario" }), a("universos", "string"),
       a("separar_tras", "number", { default: 0 }), a("base_en", "choice", { default: "auto" })];
-    expect(nombres(resumen, {}, "p_dumbbell")).toEqual(["corte_etiqueta", "estilo", "orden", "mostrar_brecha", "etiqueta_brecha"]);
+    expect(nombres(resumen, {}, "p_dumbbell")).toEqual(["corte_etiqueta", "estilo", "orden", "separar_tras", "mostrar_brecha", "etiqueta_brecha"]);
     expect(nombres(resumen, { estilo: "recetario" }, "p_dumbbell")).not.toEqual(expect.arrayContaining(["universos"]));
     expect(nombres(resumen, { estilo: "recetario" }, "p_dumbbell")).not.toContain("base_en");
     expect(nombres(resumen, { estilo: "resumen" }, "p_dumbbell")).toEqual(

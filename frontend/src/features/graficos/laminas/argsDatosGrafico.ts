@@ -344,12 +344,12 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   incluir_neutro: { rotulo: "Incluir el punto medio" },
   orden_barras: { rotulo: "Orden" },
   orden: { rotulo: "Orden", soloEn: ["p_dumbbell", "p_lollipop", "p_barras_divergentes"] },
-  // ADR 0134: formal de p_dumbbell(); sólo lo dibuja el contraste con tabla de base.
+  // ADR 0134: formal de p_dumbbell(); lo dibujan el contraste y, desde d2fb002ab, la versión base (ronda 20).
   // D4 (ronda 19): con las filas a la vista en Datos, el separador se pone entre ellas; el número queda para cuando no se
   // ven (`base$*`, la regla) y mientras guarde una sola posición.
   separar_tras: {
     rotulo: "Separador después de la fila", ayuda: AYUDA_SEPARAR_TRAS, soloEn: ["p_dumbbell"],
-    cuando: (v) => esEstiloResumen(v) && !filasEnLaTarjeta(v) && separadoresDe(v).length <= 1,
+    cuando: (v) => !filasEnLaTarjeta(v) && separadoresDe(v).length <= 1,
   },
   orden_periodos: {
     rotulo: "Orden de los periodos",

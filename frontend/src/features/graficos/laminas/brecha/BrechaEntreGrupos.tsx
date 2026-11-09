@@ -62,7 +62,8 @@ export function BrechaEntreGrupos({ args, onCambio }: Props) {
   // Q4-4: en el resumen, al elegir la pregunta que divide arrancan encendidos hasta cuatro grupos con respuestas. Se
   // espera su conteo y se aplica todo en un solo cambio (un Ctrl+Z); una respuesta vieja de otro cruce no pisa la última.
   const pedido = useRef(0);
-  // D4: en el contraste (estilo resumen), un separador entre dos preguntas con un clic; el motor nunca lo pone solo.
+  // D4: un separador entre dos preguntas con un clic; el motor nunca lo pone solo. Ronda 20: también en la versión base,
+  // que lo dibuja desde d2fb002ab (graficador_dumbbell.R).
   const separadores = new Set(separadoresDe(args));
   const elegirCruce = (v: string | null) => {
     const turno = ++pedido.current;
@@ -144,7 +145,7 @@ export function BrechaEntreGrupos({ args, onCambio }: Props) {
                       <X aria-hidden="true" />
                     </PulsoButton>
                     {cruce && !mismaBase(variables, cruce, ref) && <span className="pulso-f6-dato-ayuda is-aviso">Está en otra base que el cruce.</span>}
-                    {resumen && i < preguntas.length - 1 && (
+                    {i < preguntas.length - 1 && (
                       <div className="pulso-f6-brecha-separador">
                         <SeparadorEntreFilas posicion={i + 1} activo={separadores.has(i + 1)}
                           onCambiar={(on) => onCambio(conSeparador(args, i + 1, on))} />
@@ -157,7 +158,7 @@ export function BrechaEntreGrupos({ args, onCambio }: Props) {
                 <VariablePicker value={null} allowEmpty filter={esSelectOne} placeholder="Agregar pregunta…"
                                 onChange={(v) => v && onCambio(conPreguntas(variables, [...preguntas, v]))} />
               </div>
-              {resumen && separadores.size > 0 && preguntas.length > 1 && (
+              {separadores.size > 0 && preguntas.length > 1 && (
                 <span className="pulso-f6-dato-ayuda">Con separador, las filas salen en el orden de la lista.</span>
               )}
               {sinPreguntas && (

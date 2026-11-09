@@ -13,6 +13,7 @@ import type { OpcionMaqueta, RanuraMaqueta } from "../modeloMaqueta";
 import { categoriasQueSalen, type ConteoCategoria } from "./categoriasQueSalen";
 import { GRAFICADORES_CON_REGLA, gruposDeLaLamina, reglaConConteo, reglaEfectiva } from "../reglaPreguntas/modeloReglaPreguntas";
 import { formatoConteo } from "../../../../lib/formatoNumero";
+import { nombreVersion, varianteDeGrafico } from "../../catalogoGraficos";
 
 /** Aviso de la ficha cuando el Top Two Box está encendido sin sus respuestas (el PowerPoint sale sin la columna). */
 export const TTB_SIN_RESPUESTAS = "Top Two Box sin respuestas elegidas";
@@ -197,14 +198,18 @@ export function ajustesDelGlifo(graficador: string, args: Readonly<Record<string
     case "p_dumbbell": {
       glifo.brecha = v("mostrar_brecha") !== false;
       if (!glifo.brecha) ajustes.push("Sin la brecha");
+      // Ronda 20: la versión se nombra con el catálogo (varianteDeGrafico), como en el resto: «Aperturas por grupo» no es
+      // el contraste de públicos aunque los dos sean estilo resumen.
+      const version = varianteDeGrafico("p_dumbbell", args);
+      if (version) ajustes.push(nombreVersion(version));
+      // D4: una o varias posiciones («Separadores tras las filas 3 y 6»). Desde d2fb002ab también las dibuja la versión
+      // base, así que se nombran en todas.
+      const seps = (Array.isArray(v("separar_tras")) ? (v("separar_tras") as unknown[]) : [v("separar_tras")])
+        .map(entero).filter((n): n is number => n !== null);
+      const unicos = [...new Set(seps)].sort((a, b) => a - b);
+      if (unicos.length === 1) ajustes.push(`Separador tras la fila ${unicos[0]}`);
+      else if (unicos.length > 1) ajustes.push(`Separadores tras las filas ${unicos.slice(0, -1).join(", ")} y ${unicos[unicos.length - 1]}`);
       if (v("estilo") === "resumen") {
-        ajustes.push("Contraste de públicos");
-        // D4: una o varias posiciones («Separadores tras las filas 3 y 6»).
-        const seps = (Array.isArray(v("separar_tras")) ? (v("separar_tras") as unknown[]) : [v("separar_tras")])
-          .map(entero).filter((n): n is number => n !== null);
-        const unicos = [...new Set(seps)].sort((a, b) => a - b);
-        if (unicos.length === 1) ajustes.push(`Separador tras la fila ${unicos[0]}`);
-        else if (unicos.length > 1) ajustes.push(`Separadores tras las filas ${unicos.slice(0, -1).join(", ")} y ${unicos[unicos.length - 1]}`);
         const baseEn = BASE_EN[String(v("base_en") ?? "")];
         if (baseEn) ajustes.push(baseEn);
       }
