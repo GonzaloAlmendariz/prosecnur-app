@@ -175,12 +175,12 @@
         {
           "name": "grafico_1",
           "role": "chart",
-          "label": "Gráfico superior"
+          "label": "Izquierda"
         },
         {
           "name": "grafico_2",
           "role": "chart",
-          "label": "Gráfico inferior"
+          "label": "Derecha"
         }
       ]
     },
@@ -194,12 +194,12 @@
         {
           "name": "grafico_1",
           "role": "chart",
-          "label": "Gráfico superior"
+          "label": "Izquierda"
         },
         {
           "name": "grafico_2",
           "role": "chart",
-          "label": "Gráfico inferior"
+          "label": "Derecha"
         }
       ]
     },

@@ -86,12 +86,12 @@ source("setup-load-all.R")
     derecha = .gm_slot("chart", "Derecha")
   ),
   p_slide_2_graficos_texto_izquierda = list(
-    grafico_1 = .gm_slot("chart", "Gráfico superior"),
-    grafico_2 = .gm_slot("chart", "Gráfico inferior")
+    grafico_1 = .gm_slot("chart", "Izquierda"),
+    grafico_2 = .gm_slot("chart", "Derecha")
   ),
   p_slide_2_graficos_texto_derecha = list(
-    grafico_1 = .gm_slot("chart", "Gráfico superior"),
-    grafico_2 = .gm_slot("chart", "Gráfico inferior")
+    grafico_1 = .gm_slot("chart", "Izquierda"),
+    grafico_2 = .gm_slot("chart", "Derecha")
   ),
   p_slide_4_graficos = list(
     superior_izquierda = .gm_slot("chart", "Superior izquierda"),

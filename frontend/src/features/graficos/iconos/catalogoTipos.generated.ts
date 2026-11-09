@@ -86,13 +86,13 @@ export const CATALOGO_LAMINAS: readonly TipoLaminaCatalogo[] = [
     ] },
   { name: "p_slide_2_graficos_texto_izquierda", titulo_humano: "Dos gráficos + texto izquierda", categoria: "2graficos", estandar: "p_slide_2_graficos_texto_izquierda", en_selector: true,
     ranuras: [
-      { name: "grafico_1", role: "chart", label: "Gráfico superior" },
-      { name: "grafico_2", role: "chart", label: "Gráfico inferior" },
+      { name: "grafico_1", role: "chart", label: "Izquierda" },
+      { name: "grafico_2", role: "chart", label: "Derecha" },
     ] },
   { name: "p_slide_2_graficos_texto_derecha", titulo_humano: "Dos gráficos + texto derecha", categoria: "2graficos", estandar: "p_slide_2_graficos_texto_derecha", en_selector: true,
     ranuras: [
-      { name: "grafico_1", role: "chart", label: "Gráfico superior" },
-      { name: "grafico_2", role: "chart", label: "Gráfico inferior" },
+      { name: "grafico_1", role: "chart", label: "Izquierda" },
+      { name: "grafico_2", role: "chart", label: "Derecha" },
     ] },
   { name: "p_slide_4_graficos", titulo_humano: "Cuatro gráficos", categoria: "4graficos", estandar: "p_slide_4_graficos", en_selector: true,
     ranuras: [

@@ -684,8 +684,8 @@
       structure_label = "Texto + dos gráficos"
     ),
     slot_specs    = list(
-      grafico_1 = list(role = "chart", label = "Gráfico superior"),
-      grafico_2 = list(role = "chart", label = "Gráfico inferior")
+      grafico_1 = list(role = "chart", label = "Izquierda"),
+      grafico_2 = list(role = "chart", label = "Derecha")
     ),
     args = c(list(
       list(name = "texto", label = "Texto", tipo_input = "textarea", grupo = "textos")
@@ -704,8 +704,8 @@
       structure_label = "Dos gráficos + texto"
     ),
     slot_specs    = list(
-      grafico_1 = list(role = "chart", label = "Gráfico superior"),
-      grafico_2 = list(role = "chart", label = "Gráfico inferior")
+      grafico_1 = list(role = "chart", label = "Izquierda"),
+      grafico_2 = list(role = "chart", label = "Derecha")
     ),
     args = c(list(
       list(name = "texto", label = "Texto", tipo_input = "textarea", grupo = "textos")
