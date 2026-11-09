@@ -41,7 +41,7 @@ const VIVIENDA = preset({
 });
 
 describe("familias", () => {
-  it("«Todos» primero con el total y cada familia con su conteo", () => {
+  it('"Todos" primero con el total y cada familia con su conteo', () => {
     expect(familiasDelCatalogo([FICHA, AFICHE, CROQUIS, VIVIENDA])).toEqual([
       { id: FAMILIA_TODOS, label: "Todos", count: 4 },
       { id: "identifica_unidad", label: "Identifica la unidad", count: 2 },
@@ -55,7 +55,7 @@ describe("familias", () => {
     expect(etiquetaDeFamilia({ family: "", family_label: null })).toBe("Sin familia");
   });
 
-  it("filtra por familia y «Todos» devuelve todo", () => {
+  it('filtra por familia y "Todos" devuelve todo', () => {
     const todos = [FICHA, AFICHE, CROQUIS];
     expect(filtrarPorFamilia(todos, FAMILIA_TODOS)).toHaveLength(3);
     expect(filtrarPorFamilia(todos, "va_al_participante").map((p) => p.preset_id)).toEqual(["afiche"]);

@@ -45,7 +45,7 @@ export function DocumentoDelBarrido({ config, campaignId, hrefCasos, hrefFuentes
   const pasos: Paso[] = [
     {
       titulo: "Pestaña de esta campaña construida",
-      detalle: barrido.construido ? `«${barrido.pestana ?? "Barrido"}»${cuando ? `, el ${cuando}` : ""}` : "Encabezados, Cod pulso y desplegables de Status",
+      detalle: barrido.construido ? `"${barrido.pestana ?? "Barrido"}"${cuando ? `, el ${cuando}` : ""}` : "Encabezados, Cod pulso y desplegables de Status",
       hecho: barrido.construido,
     },
     {
@@ -80,7 +80,7 @@ export function DocumentoDelBarrido({ config, campaignId, hrefCasos, hrefFuentes
             <span className="rec-tel-doc-icono" aria-hidden><FileSpreadsheet size={18} /></span>
             <span className="rec-tel-doc-texto">
               <strong>Barrido en el Sheets del estudio</strong>
-              <small>Pestaña «{barrido.pestana}», con Listas y Léeme</small>
+              <small>Pestaña "{barrido.pestana}", con Listas y Léeme</small>
             </span>
             <PulsoButtonEnlace variant="primary" size="md" href={barrido.url} target="_blank" rel="noopener noreferrer">
               <ExternalLink size={14} aria-hidden /> Abrir el Sheets

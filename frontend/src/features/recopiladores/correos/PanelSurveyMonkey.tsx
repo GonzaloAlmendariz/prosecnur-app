@@ -226,8 +226,8 @@ export function PanelSurveyMonkey({
       </ol>
       <p className="rec-mail-ayuda">
         {envio.kind === "invitacion"
-          ? "Pega el HTML en el formato «HTML personalizado», que requiere plan Enterprise."
-          : "Pega el HTML en el mensaje del recordatorio; el formato «HTML personalizado» requiere plan Enterprise."}
+          ? 'Pega el HTML en el formato "HTML personalizado", que requiere plan Enterprise.'
+          : 'Pega el HTML en el mensaje del recordatorio; el formato "HTML personalizado" requiere plan Enterprise.'}
       </p>
       {zip ? (
         <div className="rec-mail-mc-listo" role="status">

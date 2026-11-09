@@ -79,7 +79,7 @@ export function EnlaceDeEncuesta({ efectivos, conEnlace, onGenerar }: Props) {
           </PulsoButton>
         </div>
         <p id="rec-contactos-enlace-ayuda" className="rec-contactos-enlace-ayuda">
-          La variable se llama igual que en la encuesta de SurveyMonkey («t» si no se cambió).
+          La variable se llama igual que en la encuesta de SurveyMonkey ("t" si no se cambió).
         </p>
       </form>
       {enlace.error ? (

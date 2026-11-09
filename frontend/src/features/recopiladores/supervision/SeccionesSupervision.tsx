@@ -75,7 +75,7 @@ export function ColumnasSupervision({ columnas, guardando, onGuardar }: {
                 onCheckedChange={(on) => onGuardar({ ...elegidas, resultados: alternar(elegidas.resultados, v.nombre, on) })}
               />
             ))}
-            {!variables.length ? <p className="rec-terr-nota">Ninguna variable coincide con «{busqueda}».</p> : null}
+            {!variables.length ? <p className="rec-terr-nota">Ninguna variable coincide con "{busqueda}".</p> : null}
           </>
         ) : <p className="rec-terr-nota">El proyecto no tiene un formulario cargado: sin él no hay variables que repreguntar.</p>}
       </article>
@@ -125,7 +125,7 @@ export function EntregaSupervision({ campaignId, columnas, casos, sinLote, loteI
         <h3><Table2 size={15} aria-hidden /> Base del lote</h3>
         <p className="rec-terr-nota">
           Una fila por caso del lote ({casos.toLocaleString("es-PE")} {casos === 1 ? "caso" : "casos"}). La llave, quién llamó y cuándo salen del
-          lote; las columnas del barrido y de los resultados se completan buscando por «{columnas.llave}».
+          lote; las columnas del barrido y de los resultados se completan buscando por "{columnas.llave}".
         </p>
         <div className="rec-tel-columnas" aria-label="Columnas de la base">
           {orden.map((c) => <span key={c} className="rec-tel-col">{c}</span>)}
@@ -140,7 +140,7 @@ export function EntregaSupervision({ campaignId, columnas, casos, sinLote, loteI
       <article className="rec-terr-tarjeta" data-qa-geometry-member>
         <h3><CheckCircle2 size={15} aria-hidden /> Lo que lee Monitoreo</h3>
         <p className="rec-terr-nota">
-          Monitoreo lee por «{columnas.llave}» las tres columnas de la supervisión y sabe de qué lote y de qué campaña viene cada caso. No les
+          Monitoreo lee por "{columnas.llave}" las tres columnas de la supervisión y sabe de qué lote y de qué campaña viene cada caso. No les
           cambies el nombre. Los lotes se arman en <Link to={A_MONITOREO_SUPERVISION}>Monitoreo › Supervisión</Link>.
         </p>
       </article>

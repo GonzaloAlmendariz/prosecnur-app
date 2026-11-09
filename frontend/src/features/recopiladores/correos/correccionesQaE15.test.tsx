@@ -65,7 +65,7 @@ describe("e15 #2 · la miniatura de cada logo no queda vacía tras recargar", ()
 });
 
 describe("e15 #3 · el subtítulo de la lista no muestra tipo ni id", () => {
-  it("la cabecera de banner no repite «banner» en minúscula", () => {
+  it('la cabecera de banner no repite "banner" en minúscula', () => {
     const conBanner = usarBanner(PLANTILLA, "banner-1");
     expect(resumenDeCabecera({ ...conBanner, images: { ...conBanner.images, "banner-1": { alt: "Banner" } } })).toBe("");
     expect(resumenDeCabecera({ ...conBanner, images: { ...conBanner.images, "banner-1": { alt: "" } } })).toBe("");
@@ -94,7 +94,7 @@ describe("e15 #3 · el subtítulo de la lista no muestra tipo ni id", () => {
     expect(resumenDeFila(conSerie, deSerie)).toBe("Describe la imagen de la izquierda · Describe la imagen de la derecha");
     expect(descripcionDeImagen(conSerie, "der-1")).toBe("");
     expect(fraseDeNitidez({ code: "image_width", status: "warning", items: [{ id: "der-1", block_id: "par", width: 60 }] }, deSerie, conSerie))
-      .toBe("La imagen de la derecha de «Dos imágenes» es chica: súbela de al menos 120 px de ancho.");
+      .toBe('La imagen de la derecha de "Dos imágenes" es chica: súbela de al menos 120 px de ancho.');
   });
 });
 
@@ -140,9 +140,9 @@ describe("e15 #5 · la Revisión dice de qué imagen y adónde se sube", () => {
 
   it("(a) la nitidez nombra la imagen por su descripción o por su bloque", () => {
     expect(fraseDeNitidez(nitidez([{ id: "izq-1", block_id: "par", width: 280 }]), PAR, PLANTILLA))
-      .toBe("«Patio» (izquierda) es chica: súbela de al menos 560 px de ancho.");
+      .toBe('"Patio" (izquierda) es chica: súbela de al menos 560 px de ancho.');
     expect(fraseDeNitidez(nitidez([{ id: "der-1", block_id: "par", width: 280 }]), PAR, PLANTILLA))
-      .toBe("La imagen de la derecha de «Dos imágenes» es chica: súbela de al menos 560 px de ancho.");
+      .toBe('La imagen de la derecha de "Dos imágenes" es chica: súbela de al menos 560 px de ancho.');
     // En el inspector del bloque basta el lado.
     expect(fraseDeNitidez(nitidez([{ id: "der-1", block_id: "par", width: 280 }]), PAR))
       .toBe("La imagen de la derecha es chica: súbela de al menos 560 px de ancho.");
@@ -157,7 +157,7 @@ describe("e15 #5 · la Revisión dice de qué imagen y adónde se sube", () => {
         template={PLANTILLA}
       />,
     );
-    expect(html).toContain("La imagen de la derecha de «Dos imágenes» es chica");
+    expect(html).toContain("La imagen de la derecha de &quot;Dos imágenes&quot; es chica");
   });
 
   const faltan: MailCheck = {
@@ -168,10 +168,10 @@ describe("e15 #5 · la Revisión dice de qué imagen y adónde se sube", () => {
   it("(b) un botón por lugar: la cabecera y el bloque, cada uno con su rótulo", () => {
     expect(salidasDeLoQueFalta(faltan, PLANTILLA, { cabeceraSinAlt: false })).toEqual([
       { destino: CABECERA, texto: "Subir en la cabecera" },
-      { destino: "par", texto: "Subir «Patio»" },
+      { destino: "par", texto: 'Subir "Patio"' },
     ]);
     expect(salidasDeLoQueFalta({ ...faltan, items: ["der-1"], targets: [{ block_id: "par" }] }, PLANTILLA))
-      .toEqual([{ destino: "par", texto: "Subir en «Dos imágenes»" }]);
+      .toEqual([{ destino: "par", texto: 'Subir en "Dos imágenes"' }]);
   });
 
   it("(b) el panel pinta los dos botones", () => {
@@ -179,6 +179,6 @@ describe("e15 #5 · la Revisión dice de qué imagen y adónde se sube", () => {
       <PanelRevision revision={normalizeMailReview({ checks: [faltan] })} cargando={false} onIrAlBloque={noop} template={PLANTILLA} />,
     );
     expect(html).toContain("Subir en la cabecera");
-    expect(html).toContain("Subir «Patio»");
+    expect(html).toContain("Subir &quot;Patio&quot;");
   });
 });

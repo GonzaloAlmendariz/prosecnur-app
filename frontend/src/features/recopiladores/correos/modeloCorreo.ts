@@ -55,7 +55,7 @@ export const DESCRIPCION_DE_BLOQUE: Record<MailBlockType, string> = {
   heading: "Un título o subtítulo para ordenar el correo.",
   paragraph: "Texto con énfasis en negrita o cursiva; los campos se tiñen para ver qué cambia por persona.",
   button: "Un enlace por persona, armado con su campo, o un enlace común para todos.",
-  callout: "Para «Importante», las sesiones de una capacitación o las fechas.",
+  callout: 'Para "Importante", las sesiones de una capacitación o las fechas.',
   list: "Una lista de puntos o numerada.",
   divider: "Una línea o un espacio entre dos partes del correo.",
   image: "Una imagen de la línea gráfica, con su texto alternativo; puede ir a todo el ancho.",
@@ -82,7 +82,7 @@ export function rotuloDeBloque(block: MailBlock): string {
 }
 
 export function descripcionDeBloque(block: MailBlock): string {
-  if (isOpaqueMailBlock(block)) return `Tipo «${block.original_type}»: esta versión de la app no sabe editarlo. Se conserva tal cual al guardar.`;
+  if (isOpaqueMailBlock(block)) return `Tipo "${block.original_type}": esta versión de la app no sabe editarlo. Se conserva tal cual al guardar.`;
   if (block.type === "image" && block.decorative) return "Un adorno de la línea gráfica: sale sin texto alternativo, a propósito.";
   return DESCRIPCION_DE_BLOQUE[block.type];
 }
@@ -223,13 +223,13 @@ export function problemaDeCampo(field: MailField, otros: readonly MailField[]): 
   if (!/^[a-z][a-z0-9_]{0,29}$/.test(field.key)) return "La clave va en minúsculas: a-z, 0-9 y _.";
   // Sin llaves ni etiquetas de plataforma (#5 del re-QA e10-2): el campo se nombra por su rótulo.
   const nombre = field.label.trim() || field.key;
-  if (CLAVES_RESERVADAS.includes(field.key)) return `«${nombre}» es un nombre que la app ya usa: elige otro.`;
-  if (otros.some((o) => o.key === field.key)) return `Ya hay otro campo «${nombre}».`;
+  if (CLAVES_RESERVADAS.includes(field.key)) return `"${nombre}" es un nombre que la app ya usa: elige otro.`;
+  if (otros.some((o) => o.key === field.key)) return `Ya hay otro campo "${nombre}".`;
   if (!/^[A-Z0-9_]{1,10}$/.test(field.tag)) return "La etiqueta usa A-Z, 0-9 y _, hasta 10 caracteres.";
   if (ETIQUETAS_RESERVADAS.includes(field.tag) || field.tag.startsWith("MC_")) {
-    return `«${field.tag}» es una etiqueta reservada de Mailchimp.`;
+    return `"${field.tag}" es una etiqueta reservada de Mailchimp.`;
   }
-  if (otros.some((o) => o.tag === field.tag)) return `La etiqueta «${field.tag}» ya es de otro campo.`;
+  if (otros.some((o) => o.tag === field.tag)) return `La etiqueta "${field.tag}" ya es de otro campo.`;
   if (!field.label.trim()) return "Falta el rótulo.";
   return null;
 }
@@ -838,7 +838,7 @@ export const ROTULO_DE_CHEQUEO: Record<string, string> = {
   send_dates: "Fechas de los envíos",
   reminder_audience: "A quién va el recordatorio",
   send_subject_repeated: "Asunto distinto en cada envío",
-  contraction: "«Del» y «al»",
+  contraction: '"Del" y "al"',
   // Saludo por sexo (C8).
   greeting_trato: "Saludo según la persona",
   greeting_trato_word: "Palabra del saludo",
@@ -904,7 +904,7 @@ export function textoDeItem(item: MailCheckItem, campos: readonly CampoConNombre
     const vacios = Number(item.empty) || 0;
     const usos = listaDe(item.uses).map((u) => LUGAR_DE_USO[u] ?? u);
     const donde = usos.length ? ` · en ${usos.join(", ")}` : "";
-    const respaldo = item.fallback && item.fallback_covers !== false ? ` → «${String(item.fallback)}»` : "";
+    const respaldo = item.fallback && item.fallback_covers !== false ? ` → "${String(item.fallback)}"` : "";
     const sinRespaldo = item.in_url === true ? " · sin respaldo posible" : item.fallback_covers === false && item.fallback ? " · el respaldo no alcanza" : "";
     return `${nombre(item)}: ${vacios} sin dato${respaldo}${donde}${sinRespaldo}`;
   }

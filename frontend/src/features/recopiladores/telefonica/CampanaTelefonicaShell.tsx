@@ -76,7 +76,7 @@ export function CampanaTelefonicaShell({ campana, cabecera = null }: Props) {
             cifras={[
               { id: "muestra", rotulo: "Casos de muestra", valor: formatoConteo(config.muestra), nota: "los que entrega el cliente" },
               { id: "backup", rotulo: "Backup", valor: formatoConteo(config.backup), nota: "para reponer los que no contestan" },
-              { id: "telefonos", rotulo: "Teléfonos por caso", valor: formatoConteo(config.telefonos), nota: `llave «${config.llave}»` },
+              { id: "telefonos", rotulo: "Teléfonos por caso", valor: formatoConteo(config.telefonos), nota: `llave "${config.llave}"` },
               {
                 id: "documento", rotulo: "Documento",
                 valor: config.barrido.conectado_en_monitoreo ? "Conectado" : config.barrido.construido ? "Construido" : "Sin construir",

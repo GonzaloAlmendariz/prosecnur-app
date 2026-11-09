@@ -142,7 +142,7 @@ describe("pestaña Contactos", () => {
     expect(html).toContain("Página 1 de 100");
   });
 
-  it("«Sin dato» filtra y «Otros» no", () => {
+  it('"Sin dato" filtra y "Otros" no', () => {
     const base = perfil(2, 4);
     base.variables[0].categorias.push({ valor: "Otros", n: 0, pct: null, respondieron: null, tasa: null, con_enlace: null, otros: true });
     const html = pintar({ lista: pagina(5), perfil: base, filtros: { carrera: [""] } });

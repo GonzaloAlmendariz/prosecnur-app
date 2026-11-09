@@ -49,7 +49,7 @@ describe("la tabla del plan habla en códigos de campo", () => {
     expect(html).not.toContain("unit-aulas-aula-1-5524e6773d");
   });
 
-  it("la cabecera habla de cursos-horario y reservas, no de «Grupo»", () => {
+  it('la cabecera habla de cursos-horario y reservas, no de "Grupo"', () => {
     // «Grupo M1/M2» era la ola de muestra, que no ubica a nadie. Y la reserva ya
     // no ocupa fila: cuelga de su titular, contada.
     const html = render([

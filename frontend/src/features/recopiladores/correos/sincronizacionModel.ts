@@ -12,8 +12,8 @@ export function resumenDeSincronizacion(r: ResultadoDeSincronizacion): { titulo:
   const uno = (v: number, a: string, b: string) => (v === 1 ? a : b);
   if (!r.dry_run && r.respondents > 0) {
     lineas.push(r.tagged === r.respondents
-      ? `En Mailchimp quedaron con la etiqueta «${r.tag}».`
-      : `${personas(r.tagged)} ${uno(r.tagged, "quedó", "quedaron")} con la etiqueta «${r.tag}» en Mailchimp.`);
+      ? `En Mailchimp quedaron con la etiqueta "${r.tag}".`
+      : `${personas(r.tagged)} ${uno(r.tagged, "quedó", "quedaron")} con la etiqueta "${r.tag}" en Mailchimp.`);
   }
   if (r.not_in_audience) lineas.push(`${personas(r.not_in_audience)} ${uno(r.not_in_audience, "no está", "no están")} en esa audiencia de Mailchimp: ${uno(r.not_in_audience, "no se pudo", "no se pudieron")} etiquetar.`);
   if (r.partial) lineas.push(`${personas(r.partial)} ${uno(r.partial, "dejó la encuesta a medias: sigue", "dejaron la encuesta a medias: siguen")} recibiendo recordatorios.`);
@@ -80,14 +80,14 @@ export function avisosDeRecordatorio(asuntoRecordatorio: string, asuntoInvitacio
     out.push("El asunto es igual al de la invitación: Gmail juntará los dos correos y esconderá este. Cámbialo.");
   }
   if (!(apertura ?? "").trim()) {
-    out.push("Sin apertura, el cuerpo es idéntico a la invitación y Gmail puede esconderlo tras «•••». Agrega una línea propia.");
+    out.push('Sin apertura, el cuerpo es idéntico a la invitación y Gmail puede esconderlo tras "•••". Agrega una línea propia.');
   }
   return out;
 }
 
 /** Los pasos del recordatorio en Mailchimp, en el orden de su pantalla. */
 export const PASOS_EN_MAILCHIMP = [
-  "Pulsa «Actualizar quién respondió».",
+  'Pulsa "Actualizar quién respondió".',
   "En Mailchimp, abre el envío anterior y usa Replicate.",
   "Cambia el asunto por el de este recordatorio.",
   "En To, elige el segmento sin la etiqueta y envía con Send.",

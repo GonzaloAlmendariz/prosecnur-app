@@ -34,7 +34,7 @@ describe("F2 · el saludo por sexo se ofrece donde se carga la lista", () => {
     expect(ofertaDelTrato(SALUDO, [])).toBeNull();
   });
 
-  it("el aviso de la revisión lleva «Elegir columna» con el foco en el selector; la cabecera, a Identidad (F15)", () => {
+  it('el aviso de la revisión lleva "Elegir columna" con el foco en el selector; la cabecera, a Identidad (F15)', () => {
     expect(salidaDelChequeo("greeting_trato", "saludo")).toEqual({ texto: "Elegir columna", foco: "trato-columna" });
     expect(salidaDelChequeo("images_alt", "__cabecera").texto).toBe("Ir a Identidad");
     expect(salidaDelChequeo("subject", "__sobre").texto).toBe("Ir al asunto");
@@ -42,7 +42,7 @@ describe("F2 · el saludo por sexo se ofrece donde se carga la lista", () => {
   });
 });
 
-describe("F4 · «Cómo sale» con el saludo según el sexo es lo que exporta el render", () => {
+describe('F4 · "Cómo sale" con el saludo según el sexo es lo que exporta el render', () => {
   const plantilla = { fields: [{ key: "enlace", tag: "ENLACE", label: "Enlace", sm: "SurveyLink" }], images: {} };
   const saludo: MailGreetingBlock = { ...SALUDO, trato: { ...SALUDO.trato!, columna: "sexo" } };
 
@@ -79,7 +79,7 @@ describe("F3 · por debajo de 1200 px la columna de bloques va a un cajón", () 
 });
 
 describe("F16 · el recordatorio nace con su asunto y la fila dice cuándo se exportó", () => {
-  it("«Recordatorio: <asunto>», sin repetirse, sin marcadores y dentro de 80", () => {
+  it('"Recordatorio: <asunto>", sin repetirse, sin marcadores y dentro de 80', () => {
     expect(asuntoDeRecordatorio("Encuesta de reacreditación de Contabilidad")).toBe("Recordatorio: Encuesta de reacreditación de Contabilidad");
     expect(asuntoDeRecordatorio("Recordatorio: Encuesta")).toBe("Recordatorio: Encuesta");
     expect(asuntoDeRecordatorio("[Asunto del correo]")).toBeNull();
@@ -92,7 +92,7 @@ describe("F16 · el recordatorio nace con su asunto y la fila dice cuándo se ex
     expect(agregarRecordatorio([mailSendInvitation()]).envios[1].subject).toBeUndefined();
   });
 
-  it("«exportado 20/10» desde la fecha del registro", () => {
+  it('"exportado 20/10" desde la fecha del registro', () => {
     expect(marcaDeExportado("2026-10-20T18:30:11Z")).toBe("exportado 20/10");
     expect(marcaDeExportado(undefined)).toBe("");
     expect(marcaDeExportado("ayer")).toBe("");

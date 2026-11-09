@@ -156,7 +156,7 @@ export function MailchimpPorApi({ campana, envio, plantilla, porGuardar = false 
       {errorConexion ? <p className="rec-mail-problema-linea" role="alert">{errorConexion}</p> : null}
       {mc && !conectado ? (
         <p className="rec-mail-problema-linea" role="status">
-          {mc.error ? "No se pudo leer Mailchimp con la clave guardada: revísala con «Verificar»" : "Falta conectar Mailchimp: agrega la clave"} en Configuración › Conexiones.
+          {mc.error ? 'No se pudo leer Mailchimp con la clave guardada: revísala con "Verificar"' : "Falta conectar Mailchimp: agrega la clave"} en Configuración › Conexiones.
         </p>
       ) : null}
 
@@ -231,9 +231,9 @@ export function MailchimpPorApi({ campana, envio, plantilla, porGuardar = false 
                 <h6 className="rec-sync-titulo">Crear el borrador en Mailchimp</h6>
                 <p className="rec-sync-intro">
                   {esRecordatorio
-                    ? <>Va a la etiqueta del público, sin quienes tienen «{etiquetaRespondio}».</>
+                    ? <>Va a la etiqueta del público, sin quienes tienen "{etiquetaRespondio}".</>
                     : <>Va a todos los contactos con la etiqueta del público.</>}
-                  {asunto ? <> Asunto: «{asunto}».</> : null}
+                  {asunto ? <> Asunto: "{asunto}".</> : null}
                 </p>
                 <label className="rec-env-campo">
                   <span className="rec-mail-campo-rotulo"><span>Remitente</span></span>

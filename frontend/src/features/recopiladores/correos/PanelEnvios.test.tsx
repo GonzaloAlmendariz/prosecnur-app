@@ -170,7 +170,7 @@ describe("avisosGmail sigue leyendo el opening del contrato", () => {
 describe("la fecha del envío se lee como se dice (es-PE)", () => {
   const HOY = new Date(2026, 9, 22);
 
-  it("«viernes 30 de octubre», con el año sólo si es otro", () => {
+  it('"viernes 30 de octubre", con el año sólo si es otro', () => {
     expect(fechaHumana("2026-10-30", HOY)).toBe("viernes 30 de octubre");
     expect(fechaHumana("2026-09-02", HOY)).toBe("miércoles 2 de septiembre");
     expect(fechaHumana("2027-01-01", HOY)).toBe("viernes 1 de enero de 2027");
@@ -196,12 +196,12 @@ describe("la fecha del envío se lee como se dice (es-PE)", () => {
 });
 
 describe("el vacío del asunto y la vista previa dice qué sale", () => {
-  it("«Si lo dejas vacío, va: «…»»", () => {
-    expect(ayudaDeVacio("Invitación al estudio")).toBe("Si lo dejas vacío, va: «Invitación al estudio».");
+  it('"Si lo dejas vacío, va: "…""', () => {
+    expect(ayudaDeVacio("Invitación al estudio")).toBe('Si lo dejas vacío, va: "Invitación al estudio".');
     expect(ayudaDeVacio("")).toBe("Si lo dejas vacío, va el de la plantilla.");
     const { envios, recordatorio } = conRecordatorio(APERTURA);
     const html = pintar(envios, recordatorio, "mailchimp");
-    expect(html).toContain("Si lo dejas vacío, va: «Invitación al estudio».");
+    expect(html).toContain("Si lo dejas vacío, va: &quot;Invitación al estudio&quot;.");
     expect(html).toContain("Si lo dejas vacío, va el de la plantilla.");
     expect(html).not.toContain("Vacío: ");
   });

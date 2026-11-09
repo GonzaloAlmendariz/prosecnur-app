@@ -373,7 +373,7 @@ export type ValidacionDeVariable = { ok: true; variable: string } | { ok: false;
 export function validarVariable(cruda: string): ValidacionDeVariable {
   const variable = cruda.trim() || "t";
   if (!/^[A-Za-z][A-Za-z0-9_]{0,29}$/.test(variable)) {
-    return { ok: false, motivo: "Escribe la variable como en SurveyMonkey: empieza con una letra y lleva solo letras, números o «_» (por ejemplo «t» o «id»)." };
+    return { ok: false, motivo: 'Escribe la variable como en SurveyMonkey: empieza con una letra y lleva solo letras, números o "_" (por ejemplo "t" o "id").' };
   }
   return { ok: true, variable };
 }
@@ -383,7 +383,7 @@ export function textoDelResultado(r: EnlacesGenerados): string {
   const nuevos = formatoConteoDe(r.generados, "nuevo");
   const conservados = formatoConteoDe(r.conservados, "conservado");
   const usalo = r.total === 1 ? "Úsalo" : "Úsalos";
-  return `Listo: ${formatoConteoDe(r.total, "enlace")} (${nuevos}, ${conservados}). ${usalo} en el botón del correo con el campo «Enlace a la encuesta».`;
+  return `Listo: ${formatoConteoDe(r.total, "enlace")} (${nuevos}, ${conservados}). ${usalo} en el botón del correo con el campo "Enlace a la encuesta".`;
 }
 
 /**

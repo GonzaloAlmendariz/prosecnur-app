@@ -30,7 +30,7 @@ describe("las secciones se explican en el idioma de quien las usa", () => {
       "recursos remotos", "receta semántica", "autoritativo",
     ];
     const conJerga = leads.flatMap((lead) =>
-      jerga.filter((t) => lead.toLowerCase().includes(t)).map((t) => `«${t}» en «${lead}»`));
+      jerga.filter((t) => lead.toLowerCase().includes(t)).map((t) => `"${t}" en "${lead}"`));
     expect(conJerga).toEqual([]);
   });
 
@@ -73,7 +73,7 @@ describe("Accesos se explica sin jerga", () => {
     "utf8",
   ).replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "").replace(/\s+/g, " ");
 
-  it("no le pide al usuario «ejecutar el preflight»", () => {
+  it('no le pide al usuario "ejecutar el preflight"', () => {
     const frases = [
       "Ejecuta el preflight",
       "escritura hacia el proveedor",

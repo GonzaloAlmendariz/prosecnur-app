@@ -234,7 +234,7 @@ describe("#4 · con la columna de sexo elegida, la Revisión no pide elegirla", 
   it("sin columna, o con una que no está en la lista, sí ofrece elegirla", () => {
     const sinColumna: MailTemplate = { ...PLANTILLA, blocks: [{ block_id: "saludo", type: "greeting", text: "Estimado(a) {{nombre}}:" }] };
     expect(renderToStaticMarkup(<PanelRevision revision={revision(aviso)} cargando={false} template={sinColumna} onIrAlBloque={noop} />)).toContain("Elegir columna");
-    const fuera: MailCheck = { ...aviso, status: "error", detail: "La columna «sexo» del saludo no está en la lista importada: elige la columna de sexo de esta lista." };
+    const fuera: MailCheck = { ...aviso, status: "error", detail: 'La columna "sexo" del saludo no está en la lista importada: elige la columna de sexo de esta lista.' };
     expect(renderToStaticMarkup(<PanelRevision revision={revision(fuera)} cargando={false} template={PLANTILLA} onIrAlBloque={noop} />)).toContain("Elegir columna");
   });
 });

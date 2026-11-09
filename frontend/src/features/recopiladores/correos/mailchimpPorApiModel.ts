@@ -34,8 +34,8 @@ export function resumenDeAudiencia(r: ResultadoDeAudiencia): { titulo: string; l
   }
   if (r.tag) {
     lineas.push(r.tagged === r.recipients
-      ? `Todos quedaron con la etiqueta «${r.tag}».`
-      : `${contactos(r.tagged)} con la etiqueta «${r.tag}».`);
+      ? `Todos quedaron con la etiqueta "${r.tag}".`
+      : `${contactos(r.tagged)} con la etiqueta "${r.tag}".`);
   }
   if (r.merge_fields_created.length) {
     lineas.push(`${uno(r.merge_fields_created.length, "Campo nuevo", "Campos nuevos")} en la audiencia: ${r.merge_fields_created.join(", ")}.`);
@@ -45,7 +45,7 @@ export function resumenDeAudiencia(r: ResultadoDeAudiencia): { titulo: string; l
 
 export function resumenDeBorrador(r: ResultadoDeBorrador): { titulo: string; lineas: string[] } {
   const lineas: string[] = [];
-  if (r.subject) lineas.push(`Asunto: «${r.subject}».`);
+  if (r.subject) lineas.push(`Asunto: "${r.subject}".`);
   lineas.push(r.recipient_count == null
     ? "Mailchimp todavía no calcula a cuántos irá."
     : `Irá a ${contactos(r.recipient_count)}.`);

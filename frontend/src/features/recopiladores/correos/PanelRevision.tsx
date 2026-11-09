@@ -92,7 +92,7 @@ export function salidasDeLoQueFalta(
       : block.type === "two_images" ? [block.left, block.right]
       : tieneFoto(block) && block.image_ref ? [block.image_ref] : [];
     const nombres = ids.filter((id) => faltan.has(id)).map((id) => descripcionDeImagen(template, id)).filter(Boolean);
-    return { destino, texto: nombres.length === 1 ? `Subir «${nombres[0]}»` : `Subir en «${rotuloDeBloque(block)}»` };
+    return { destino, texto: nombres.length === 1 ? `Subir "${nombres[0]}"` : `Subir en "${rotuloDeBloque(block)}"` };
   });
 }
 
@@ -224,7 +224,7 @@ function ChequeoQueFalla({ check, onIrAlBloque, template, resaltado = false }: {
           {arreglo ? (
             <span className="rec-mail-chk-arreglo">
               {/* #14: el arreglo nombra el enlace con su rótulo real («Ir al asunto», «Ir al bloque»). */}
-              {salida ? arreglo.replace("«Ir al bloque»", `«${salida.texto}»`) : arreglo}
+              {salida ? arreglo.replace('"Ir al bloque"', `"${salida.texto}"`) : arreglo}
             </span>
           ) : null}
           {salidas.length && onIrAlBloque ? salidas.map((s) => (

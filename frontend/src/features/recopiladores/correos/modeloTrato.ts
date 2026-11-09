@@ -76,7 +76,7 @@ function partesDelTrato(t: MailRecipientsTrato, trato: MailTrato, citar: (palabr
  * lectura de «M» va aparte (`lecturaEnPalabras`).
  */
 export function fraseDelTrato(t: MailRecipientsTrato, trato: MailTrato): string | null {
-  const partes = partesDelTrato(t, trato, (palabra) => `«${palabra}»`);
+  const partes = partesDelTrato(t, trato, (palabra) => `"${palabra}"`);
   if (!partes?.length) return null;
   const lista = partes.length === 1 ? partes[0] : `${partes.slice(0, -1).join(", ")} y ${partes[partes.length - 1]}`;
   return `${lista}.`;
@@ -85,10 +85,10 @@ export function fraseDelTrato(t: MailRecipientsTrato, trato: MailTrato): string 
 /** Cómo se leyó «M» en la columna, en palabras. */
 export function lecturaEnPalabras(lectura: MailTratoLectura | null, trato: MailTrato): string | null {
   switch (lectura) {
-    case "m_f": return "«M» se lee como masculino: la columna trae «F» y no «H».";
-    case "h_m": return "«M» se lee como mujer: la columna trae «H» y no «F».";
-    case "m_ambigua": return `«M» no se puede leer: la columna trae «H» y «F», o ninguna de las dos. Quien tenga «M» recibe «${trato.respaldo}».`;
-    case "sin_m": return "La columna no trae «M»: se lee directo.";
+    case "m_f": return '"M" se lee como masculino: la columna trae "F" y no "H".';
+    case "h_m": return '"M" se lee como mujer: la columna trae "H" y no "F".';
+    case "m_ambigua": return `"M" no se puede leer: la columna trae "H" y "F", o ninguna de las dos. Quien tenga "M" recibe "${trato.respaldo}".`;
+    case "sin_m": return 'La columna no trae "M": se lee directo.';
     default: return null;
   }
 }

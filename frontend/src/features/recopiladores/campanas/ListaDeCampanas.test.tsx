@@ -39,7 +39,7 @@ function conCorreos(n: number): RegistroDeCampanas {
 }
 
 describe("la lista de campañas (ADR 0111 §2)", () => {
-  it("sin campañas: el vacío vive en su caja y ofrece «Nueva campaña» (C3)", () => {
+  it('sin campañas: el vacío vive en su caja y ofrece "Nueva campaña" (C3)', () => {
     const html = lista(VACIO);
     expect(html).toContain("Todavía no hay campañas");
     // 5 nov 2026: el vacío ya muestra los tipos para elegir (abre «Nueva campaña» con ese tipo marcado).
@@ -70,7 +70,7 @@ describe("la lista de campañas (ADR 0111 §2)", () => {
     expect(lista(conCorreos(12)).match(/data-qa-geometry-member/g)).toHaveLength(12);
   });
 
-  it("una archivada sale de la grilla y queda en «Archivadas», sin enlace", () => {
+  it('una archivada sale de la grilla y queda en "Archivadas", sin enlace', () => {
     const archivada: RegistroDeCampanas = {
       ...LLENO,
       campaigns: LLENO.campaigns.map((c) => (c.tipo === "aulas" ? { ...c, archived: true } : c)),
@@ -102,7 +102,7 @@ describe("la lista de campañas (ADR 0111 §2)", () => {
   });
 });
 
-describe("«Nueva campaña»", () => {
+describe('"Nueva campaña"', () => {
   function tipos(registro: RegistroDeCampanas, elegido: TipoDeCampana | null = null) {
     return renderToStaticMarkup(<MemoryRouter><TiposDeCampana registro={registro} elegido={elegido} ocupado={false} onElegir={noop} /></MemoryRouter>);
   }

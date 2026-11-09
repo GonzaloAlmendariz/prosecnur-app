@@ -16,7 +16,7 @@ describe("versión para el celular", () => {
     expect(normalizeMailBlock(afiche)).not.toHaveProperty("mobile_ref");
   });
 
-  it("subir a la ranura «movil» la nombra sin tocar la de PC ni chocar con otra imagen", () => {
+  it('subir a la ranura "movil" la nombra sin tocar la de PC ni chocar con otra imagen', () => {
     const t = plantilla([afiche]);
     expect(imagenDeBloque(afiche, "movil")).toBe("");
     const out = conArchivoDeImagen(t, "a", "Afiche.png", "movil");

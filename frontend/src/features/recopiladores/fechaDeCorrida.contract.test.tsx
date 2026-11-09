@@ -56,7 +56,7 @@ describe("fecha de la corrida que produjo el plan", () => {
     }
   });
 
-  it("un mes imposible no produce «undefined»", () => {
+  it('un mes imposible no produce "undefined"', () => {
     expect(fechaDeCorrida("sel_aulas_20261301000000_x")).toBe("");
   });
 });

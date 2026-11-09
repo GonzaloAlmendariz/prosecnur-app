@@ -43,6 +43,6 @@ export function agruparPorPublico(campanas: readonly CampanaMaterial[]): { grupo
 export function procedenciaDe(c: CampanaMaterial, nombreDe: (id: string) => string | null): string | null {
   const ronda = c.relacion?.ronda ?? null;
   const madre = c.relacion?.viene_de ? nombreDe(c.relacion.viene_de) : null;
-  if (ronda) return madre ? `Ronda ${ronda}, viene de «${madre}»` : `Ronda ${ronda}${ronda === 1 ? ", la primera" : ""}`;
-  return madre ? `Viene de «${madre}»` : null;
+  if (ronda) return madre ? `Ronda ${ronda}, viene de "${madre}"` : `Ronda ${ronda}${ronda === 1 ? ", la primera" : ""}`;
+  return madre ? `Viene de "${madre}"` : null;
 }

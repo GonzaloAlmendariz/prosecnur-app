@@ -105,7 +105,7 @@ describe("campos de cada persona", () => {
     const otros = plantilla().fields;
     expect(problemaDeCampo({ key: "aula", tag: "AULA", label: "Aula" }, otros)).toBeNull();
     expect(problemaDeCampo({ key: "Aula", tag: "AULA", label: "Aula" }, otros)).toMatch(/minúsculas/);
-    expect(problemaDeCampo({ key: "correo", tag: "CORREO", label: "Correo" }, otros)).toBe("«Correo» es un nombre que la app ya usa: elige otro.");
+    expect(problemaDeCampo({ key: "correo", tag: "CORREO", label: "Correo" }, otros)).toBe('"Correo" es un nombre que la app ya usa: elige otro.');
     expect(problemaDeCampo({ key: "aula", tag: "UNSUB", label: "Aula" }, otros)).toMatch(/reservada/);
     expect(problemaDeCampo({ key: "aula", tag: "CARRERA", label: "Aula" }, otros)).toMatch(/ya es de otro campo/);
     // #5 del re-QA e10-2: ningún mensaje muestra llaves ni etiquetas de plataforma.
@@ -392,7 +392,7 @@ describe("detalle de los chequeos nuevos", () => {
     expect(textoDeItem({ tag: "ENLACE", key: "enlace", empty: 1, uses: ["url"], in_url: true, fallback_covers: false }))
       .toBe("Enlace: 1 sin dato · en enlace · sin respaldo posible");
     expect(textoDeItem({ tag: "CARRERA", empty: 2, fallback: "su carrera", uses: ["cuerpo"], fallback_covers: true }))
-      .toBe("Carrera: 2 sin dato → «su carrera» · en cuerpo");
+      .toBe('Carrera: 2 sin dato → "su carrera" · en cuerpo');
     expect(textoDeItem({ tag: "FNAME", empty: 1, fallback: "Estimado(a):", uses: ["asunto"], fallback_covers: false }))
       .toBe("Nombre: 1 sin dato · en asunto · el respaldo no alcanza");
   });
@@ -419,13 +419,13 @@ describe("notas de lectura de la lista", () => {
 describe("fields_empty sin destinatarios efectivos", () => {
   const check: MailCheck = { code: "fields_empty", status: "ok", value: 0, detail: "Sin destinatarios efectivos: no hay a quién revisar los campos.", items: [], targets: [] };
 
-  test("no dice «todos» y muestra el motivo", () => {
+  test('no dice "todos" y muestra el motivo', () => {
     expect(cifraDeChequeo(check)).toBe("sin destinatarios");
     expect(muestraDetalle(check)).toBe(true);
     expect(cifraDeChequeo({ ...check, detail: "Todos los destinatarios tienen dato en cada campo." })).toBe("todos");
   });
 
-  test("names_unsplit en formato «nombre» llega como aviso con su cifra", () => {
+  test('names_unsplit en formato "nombre" llega como aviso con su cifra', () => {
     const n: MailCheck = { code: "names_unsplit", status: "warning", value: 3, detail: "3 nombres traen una coma…", items: [], targets: [] };
     expect(cifraDeChequeo(n)).toBe("3 sin separar");
     expect(muestraDetalle(n)).toBe(true);

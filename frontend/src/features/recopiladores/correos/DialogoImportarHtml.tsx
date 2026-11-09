@@ -141,7 +141,7 @@ export function InformeDeImportacion({ resultado, visto, sinUrl, onVer }: {
                   <button
                     type="button"
                     className="rec-mail-link rec-imp-ver"
-                    aria-label={`Ver el bloque de «${rotuloDelInforme(item)}» en la vista previa`}
+                    aria-label={`Ver el bloque de "${rotuloDelInforme(item)}" en la vista previa`}
                     onClick={() => onVer(item.block_id!)}
                   >
                     <Eye size={13} aria-hidden /> Ver
@@ -233,11 +233,11 @@ export function PieDeImportacion({
       {problemaAsunto ? <p id={`${ids}-asunto`} className="rec-camp-nueva-problema" role="status">{problemaAsunto}</p> : null}
       {error ? <p className="rec-camp-mensaje is-error" role="alert">{error}</p> : null}
       {activa && conCambios ? (
-        <p className="rec-camp-nueva-nota">«{activa.name}» tiene cambios sin guardar: reemplazar su plantilla los deja en el historial ({nombreDeAtajo("Z")}).</p>
+        <p className="rec-camp-nueva-nota">"{activa.name}" tiene cambios sin guardar: reemplazar su plantilla los deja en el historial ({nombreDeAtajo("Z")}).</p>
       ) : null}
       {activa && activa.platform !== plataforma ? (
         <p className="rec-camp-nueva-nota">
-          Reemplazar no cambia la plataforma: «{activa.name}» sigue saliendo por {NOMBRE_DE_PLATAFORMA[activa.platform]}.
+          Reemplazar no cambia la plataforma: "{activa.name}" sigue saliendo por {NOMBRE_DE_PLATAFORMA[activa.platform]}.
         </p>
       ) : null}
       <span className="rec-imp-acciones">

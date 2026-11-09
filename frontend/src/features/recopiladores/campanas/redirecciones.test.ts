@@ -107,7 +107,7 @@ describe("la dirección de Material de campo (ADR 0111 §Redirecciones)", () => 
     expect(ir({ modo: "correo" }, conCorreos("a", "b")).vista).toBe("lista");
   });
 
-  it("`?panel=correo-campanas` es la lista con «Nueva campaña» abierto", () => {
+  it('`?panel=correo-campanas` es la lista con "Nueva campaña" abierto', () => {
     expect(ir({ seccion: "catalogo", pestana: "correos", panel: "correo-campanas" })).toEqual({
       vista: "lista", campana: null, reescribir: { panel: "nueva-campana" },
     });

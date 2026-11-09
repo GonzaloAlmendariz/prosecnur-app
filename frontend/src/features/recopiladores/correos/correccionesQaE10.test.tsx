@@ -72,7 +72,7 @@ describe("#11 · el saludo por sexo sin partes en cero ni paréntesis", () => {
 
   it("omite las palabras con 0", () => {
     const t = lista({ efectivos: 4, masculino: 1, femenino: 2, sin_dato: 1, no_reconocido: 0 });
-    expect(fraseDelTrato(t, trato)).toBe("«Estimado» a 1, «Estimada» a 2 y «Estimado(a)» a 1 sin dato.");
+    expect(fraseDelTrato(t, trato)).toBe('"Estimado" a 1, "Estimada" a 2 y "Estimado(a)" a 1 sin dato.');
     expect(lineaDelTrato(lista({ efectivos: 2, masculino: 0, femenino: 2, sin_dato: 0, no_reconocido: 0 }), trato)).toBe("Estimada a 2");
   });
 
@@ -83,7 +83,7 @@ describe("#11 · el saludo por sexo sin partes en cero ni paréntesis", () => {
 });
 
 describe("#4 · #5 · #6 · campos y descripciones sin jerga", () => {
-  it("el texto del saludo muestra el chip «Nombre», no la llave", () => {
+  it('el texto del saludo muestra el chip "Nombre", no la llave', () => {
     const html = renderToStaticMarkup(
       <CampoConCampos label="Texto" valor="Estimado(a) {{nombre}}:" opciones={{ rotuloDeCampo: () => "Nombre", ayudaDeCampo: () => "Nombre: cambia con cada persona" }} onCambio={() => undefined} />,
     );
@@ -107,7 +107,7 @@ describe("#12 · #13 · lectura de la lista y salida a la Revisión", () => {
     expect(notasDeLectura("windows-1252", null)).toEqual(["Leído como Windows-1252"]);
   });
 
-  it("«Ver los N puntos ›» en lugar de «están en la pestaña Revisión»", () => {
+  it('"Ver los N puntos ›" en lugar de "están en la pestaña Revisión"', () => {
     const html = renderToStaticMarkup(<VerLosPuntos errores={3} onVer={() => undefined} />);
     expect(html).toContain("Ver los 3 puntos");
     expect(html).not.toContain("pestaña Revisión");

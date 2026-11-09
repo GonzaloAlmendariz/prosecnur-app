@@ -68,7 +68,7 @@ describe("variablesDePersona", () => {
     expect(html).toContain('value="CARRERA"');
     expect(html).toContain('value="su carrera"');
     expect(html).toContain("FNAME");
-    expect(html).toContain("El saludo dice «Estimado(a):»");
+    expect(html).toContain("El saludo dice &quot;Estimado(a):&quot;");
     // Nombre y Carrera: una línea gris cada uno, sin selector de columna.
     expect(html.match(/Elige la columna al importar la lista/g)?.length).toBe(2);
     expect(html).not.toContain('aria-label="Columna de Carrera"');
@@ -84,7 +84,7 @@ describe("variablesDePersona", () => {
     const html = pintar({ destinatarios: LISTA });
     expect(html).toContain('aria-label="Columna de Carrera"');
     expect(html).toMatch(/<option value="Carrera" selected="">Carrera<\/option>/);
-    expect(html).toContain("«Nombre», la que elegiste arriba.");
+    expect(html).toContain("&quot;Nombre&quot;, la que elegiste arriba.");
     expect(html).not.toContain("Elige la columna al importar la lista");
   });
 

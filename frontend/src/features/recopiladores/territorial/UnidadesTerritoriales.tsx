@@ -213,7 +213,7 @@ export function UnidadesTerritoriales({ unidades, sinFuente, foco, hrefDeFoco, h
       ) : (
         <EstadoVacio
           icono={<Search size={18} />}
-          titulo={!unidades.units.length ? "La muestra enviada no trae UMP" : busqueda.trim() ? `Ninguna UMP coincide con «${busqueda}»` : vacioDeVista?.titulo ?? "Ninguna UMP en este distrito"}
+          titulo={!unidades.units.length ? "La muestra enviada no trae UMP" : busqueda.trim() ? `Ninguna UMP coincide con "${busqueda}"` : vacioDeVista?.titulo ?? "Ninguna UMP en este distrito"}
           descripcion={!unidades.units.length ? "Vuelve a enviarla desde Hojas de ruta." : busqueda.trim() ? "Prueba con el código, el distrito o la zona." : vacioDeVista?.descripcion ?? "Elige otro distrito."}
         />
       )}

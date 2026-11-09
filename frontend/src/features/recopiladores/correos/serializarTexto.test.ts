@@ -32,7 +32,7 @@ describe("cursiva y negrita (E1n)", () => {
     expect(idaYVuelta("Lee [la *guía*](https://x.org/guia) primero.")).toBe("Lee [la *guía*](https://x.org/guia) primero.");
   });
 
-  it("«5*3» escrito en el editor queda literal, nunca abre una cursiva", () => {
+  it('"5*3" escrito en el editor queda literal, nunca abre una cursiva', () => {
     expect(textoDelDom(dom("5*3 y 2*4"), MULTI)).toBe("5\\*3 y 2\\*4");
     expect(htmlDelTexto("5\\*3 y 2\\*4", MULTI)).toBe("5*3 y 2*4");
     expect(idaYVuelta("5\\*3 y 2\\*4")).toBe("5\\*3 y 2\\*4");

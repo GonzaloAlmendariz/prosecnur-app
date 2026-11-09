@@ -100,7 +100,7 @@ describe("dialectos: cómo sale cada bloque en cada plataforma", () => {
     let t = conEtiquetaSurveyMonkey(PLANTILLA, "carrera", "CustomData1");
     t = conEtiquetaSurveyMonkey(t, "web", "CustomData1");
     // #5 del re-QA e10-2: la etiqueta tomada se dice con el rótulo del campo, sin llaves.
-    expect(problemaDeEtiquetas(t).web).toMatch(/ya es de «Carrera»/);
+    expect(problemaDeEtiquetas(t).web).toMatch(/ya es de "Carrera"/);
     expect(problemaDeEtiquetas(t).web).not.toMatch(/\{\{|\}\}/);
     expect(problemaDeEtiquetas(conEtiquetaSurveyMonkey(PLANTILLA, "carrera", "CustomData7")).carrera).toMatch(/CustomData6/);
     expect(conEtiquetaSurveyMonkey(PLANTILLA, "carrera", "Email").fields[1].sm).toBeUndefined();
@@ -108,7 +108,7 @@ describe("dialectos: cómo sale cada bloque en cada plataforma", () => {
   });
 });
 
-describe("«Exportar ▾» por plataforma (F7)", () => {
+describe('"Exportar ▾" por plataforma (F7)', () => {
   it("SurveyMonkey: copiar (principal), paquete, pasos del envío y nota del plan Enterprise", () => {
     const html = renderToStaticMarkup(
       <PanelSurveyMonkey
@@ -179,7 +179,7 @@ describe("«Exportar ▾» por plataforma (F7)", () => {
     expect(personas).toContain('title="Nombre: cambia con cada persona"');
   });
 
-  it("«Copiar HTML» copia el HTML de export, y pide mode export con el envío del borrador", async () => {
+  it('"Copiar HTML" copia el HTML de export, y pide mode export con el envío del borrador', async () => {
     const writeText = vi.fn(async (_t: string) => {});
     const pedir = vi.fn(async () => '<a href="[SurveyLink]">Empezar aquí</a>');
     expect(await copiarHtmlParaPegar(pedir, { writeText })).toBe("ok");
@@ -357,7 +357,7 @@ describe("importar un correo existente", () => {
     expect(renderToStaticMarkup(<MemoryRouter><DialogoImportarHtml panel={panel} {...props} /></MemoryRouter>)).toBe("");
   });
 
-  it("el informe: plataforma detectada, bloques, y «Ver» sólo donde hay bloque", () => {
+  it('el informe: plataforma detectada, bloques, y "Ver" sólo donde hay bloque', () => {
     const html = renderToStaticMarkup(<InformeDeImportacion resultado={IMPORTADA} visto="__cabecera" sinUrl={0} onVer={noop} />);
     expect(html).toContain("<b>SurveyMonkey</b>");
     expect(html).toContain("4 de SurveyMonkey · 0 de Mailchimp");
@@ -373,7 +373,7 @@ describe("importar un correo existente", () => {
     expect(vacio).toContain("1 sin URL pública");
   });
 
-  it("el pie: «Crear campaña» siempre; «Reemplazar» sólo con una campaña abierta, y avisa si su plataforma es otra", () => {
+  it('el pie: "Crear campaña" siempre; "Reemplazar" sólo con una campaña abierta, y avisa si su plataforma es otra', () => {
     const base = {
       nombre: "Arte", asunto: "Te invitamos", plataforma: "surveymonkey" as const, problemaNombre: null, problemaAsunto: null, error: "", conCambios: true,
       trabajando: false, aplicando: false, onNombre: noop, onAsunto: noop, onPlataforma: noop, onOtra: noop, onReemplazar: noop, onCrear: noop,

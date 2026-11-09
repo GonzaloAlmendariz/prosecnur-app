@@ -56,7 +56,7 @@ describe("ColumnaDeBloques", () => {
     // Los campos se nombran como los dice el equipo; la llave {{…}} es del motor (H2).
     expect(html).toContain(">Carrera</button>");
     expect(html).not.toContain(">{{carrera}}</button>");
-    expect(html).toContain("Estimado(a) «Nombre»:");
+    expect(html).toContain("Estimado(a) &quot;Nombre&quot;:");
     // Sin un texto elegido, los campos no se pueden insertar.
     expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Nombre<\/button>/);
     // Sin numeral: el orden lo da la lista, no un número.
@@ -151,9 +151,9 @@ describe("PanelRevision y PanelMailchimp", () => {
     expect(html).not.toMatch(/<button[^>]*disabled=""[^>]*>(?:(?!<\/button>).)*Plantilla para importar/);
     // Los pasos de Mailchimp en el orden de su pantalla de campaña (prueba real del 2026-10-21).
     expect(html).toContain("Code your own › Import zip");
-    expect(html).toContain("no «All subscribed contacts»");
+    expect(html).toContain("no &quot;All subscribed contacts&quot;");
     expect(html).toContain("del dominio que verificaron en Mailchimp");
-    expect(html).toContain("no «Send a test email»");
+    expect(html).toContain("no &quot;Send a test email&quot;");
     expect(html.match(/<li>/g)?.length ?? 0).toBeGreaterThanOrEqual(5);
     expect(html).not.toMatch(/Enviar/);
   });
@@ -165,7 +165,7 @@ describe("bloques que la app no conoce", () => {
     blocks: [...PLANTILLA.blocks, { block_id: "video", type: "video_embed", src: "https://x.org/v" }],
   });
 
-  it("aparecen en la lista como «Bloque no reconocido» y el inspector no ofrece editarlos", () => {
+  it('aparecen en la lista como "Bloque no reconocido" y el inspector no ofrece editarlos', () => {
     const lista = renderToStaticMarkup(
       <ColumnaDeBloques
         presets={[]}

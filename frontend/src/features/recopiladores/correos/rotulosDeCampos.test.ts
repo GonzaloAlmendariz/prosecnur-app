@@ -5,7 +5,7 @@ import { rotulosDeCampos } from "./rotulosDeCampos";
 describe("rotulosDeCampos: el chip dice el rótulo, en el lienzo y en Envíos", () => {
   const plantilla = { fields: [{ key: "carrera", tag: "CARRERA", label: "Carrera" }, { key: "sede", tag: "SEDE", label: "" }] };
 
-  it("nombra «nombre» y cada campo por su rótulo, con respaldo legible si no lo tiene", () => {
+  it('nombra "nombre" y cada campo por su rótulo, con respaldo legible si no lo tiene', () => {
     const r = rotulosDeCampos(plantilla);
     expect(r.rotuloDeCampo("nombre")).toBe("Nombre");
     expect(r.rotuloDeCampo("carrera")).toBe("Carrera");

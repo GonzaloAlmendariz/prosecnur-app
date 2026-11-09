@@ -139,7 +139,7 @@ export function DialogoHojaUmp({ unidad, stale, hrefAnterior = null, hrefSiguien
         <img className="rec-terr-hoja-img" src={e.png} alt={`Hoja de ruta de ${unidad?.label ?? "la UMP"}`} />
       ) : null}
       {!e.png && e.pdf && !e.cargando ? (
-        <p className="rec-terr-nota">La vista previa salió en PDF: ábrela con «Imprimir o descargar».</p>
+        <p className="rec-terr-nota">La vista previa salió en PDF: ábrela con "Imprimir o descargar".</p>
       ) : null}
     </Dialog>
   );

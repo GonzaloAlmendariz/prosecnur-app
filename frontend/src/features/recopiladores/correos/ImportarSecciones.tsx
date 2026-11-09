@@ -35,7 +35,7 @@ export function detalleImportable(s: MailSectionsImportPeek["sections"][number])
 
 /** Resumen de una importación en una línea: «Se importaron 2 secciones de «X». 1 ya estaba.» */
 export function resumenDeImportacion(r: MailSectionsImportResult): string {
-  const de = `de «${r.project_name}»`;
+  const de = `de "${r.project_name}"`;
   const partes = [
     r.imported === 0 ? `No se importó nada ${de}.` : r.imported === 1 ? `Se importó 1 sección ${de}.` : `Se importaron ${r.imported} secciones ${de}.`,
   ];
@@ -114,7 +114,7 @@ export function ImportarSecciones({ onImportar, onListo, onCerrar }: Props) {
     const sobran = elegidas.size > peek.room;
     return (
       <form ref={(el) => { raiz.current = el; }} className="rec-sec-importar" role="group" aria-label="Importar de otro estudio" onSubmit={importar} onKeyDown={onKeyDown}>
-        <span className="rec-sec-importar-titulo">De «{peek.project_name}»</span>
+        <span className="rec-sec-importar-titulo">De "{peek.project_name}"</span>
         {peek.same_project ? <p className="rec-sec-importar-nota">Es este mismo estudio.</p> : null}
         {!peek.sections.length ? <p className="rec-sec-importar-nota">Ese estudio no tiene secciones guardadas.</p> : (
           <ul className="rec-sec-importar-lista">

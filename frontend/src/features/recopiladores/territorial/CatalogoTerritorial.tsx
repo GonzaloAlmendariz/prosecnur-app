@@ -71,7 +71,7 @@ function HojaDeZona({ unidades }: { unidades: UnidadesTerritoriales }) {
           <h2 id="rec-terr-hoja-zona"><MapPinned size={18} aria-hidden /> Hoja de zona</h2>
           <p className="rec-terr-nota">
             Una página apaisada por zona con todas sus rutas sobre el mismo mapa: titulares numeradas, reemplazos con
-            borde discontinuo e insignia «R», y al lado la tabla de rutas.
+            borde discontinuo e insignia "R", y al lado la tabla de rutas.
           </p>
         </div>
         <dl className="rec-terr-cifras">

@@ -126,7 +126,7 @@ export function problemaDeEtiquetas(template: Pick<MailTemplate, "fields">): Rec
     const previo = vistos.get(f.sm);
     const motivo = f.destino === "otro" ? motivoSinEtiqueta(f, f.sm) : null;
     if (motivo) out[f.key] = motivo;
-    else if (previo) out[f.key] = `[${f.sm}] ya es de «${previo}».`;
+    else if (previo) out[f.key] = `[${f.sm}] ya es de "${previo}".`;
     else vistos.set(f.sm, f.label.trim() || f.key);
     const n = f.sm.match(/^CustomData(\d+)$/);
     if (!out[f.key] && n && Number(n[1]) > CUSTOM_DATA_SIN_ENTERPRISE) {

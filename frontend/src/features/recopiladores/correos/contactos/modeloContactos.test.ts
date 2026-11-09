@@ -44,7 +44,7 @@ const CARRERA: VariableDelPerfil = {
 };
 
 describe("cifras", () => {
-  it("el porcentaje sale en es-PE, con punto decimal, y sin base es «—»", () => {
+  it('el porcentaje sale en es-PE, con punto decimal, y sin base es "—"', () => {
     expect(formatoPorcentaje(proporcion(1, 3))).toBe("33.3%");
     expect(formatoPorcentaje(proporcion(1234, 1000))).toBe("123.4%");
     expect(formatoPorcentaje(proporcion(5, 0))).toBe("—");
@@ -60,7 +60,7 @@ describe("cifras", () => {
     expect(tasaDe({ n: 0, respondieron: 0 })).toBeNull();
   });
 
-  it("la suma por categoría, con «Sin dato», debe ser la base del corte", () => {
+  it('la suma por categoría, con "Sin dato", debe ser la base del corte', () => {
     expect(cuadraConLaBase(CARRERA, 312)).toBe(true);
     expect(cuadraConLaBase(CARRERA, 300)).toBe(false);
   });
@@ -102,7 +102,7 @@ describe("filtros", () => {
     expect(quitarFiltro(f, "carrera", "Medicina")).toEqual({});
   });
 
-  it("el valor vacío es «Sin dato» en el chip", () => {
+  it('el valor vacío es "Sin dato" en el chip', () => {
     expect(chipsDeFiltros({ sede: [""] }, { sede: "Sede" })[0].rotulo).toBe("Sede: Sin dato");
   });
 
@@ -132,7 +132,7 @@ describe("cruce", () => {
 });
 
 describe("resumen", () => {
-  it("cuatro tarjetas de la lista; «Respondieron» es avance y vive en Monitoreo (R8)", () => {
+  it('cuatro tarjetas de la lista; "Respondieron" es avance y vive en Monitoreo (R8)', () => {
     const tarjetas = tarjetasDeResumen({ ...RESUMEN, respondieron: 78 });
     expect(tarjetas.map((t) => t.id)).toEqual(["importados", "efectivos", "fuera", "enlace"]);
     expect(tarjetas[1].detalle).toBe("97.5% de 320 importados");
@@ -176,9 +176,9 @@ describe("enlace a la encuesta", () => {
 
   it("el resultado dice cuántos, cuántos nuevos y cuántos se conservaron", () => {
     expect(textoDelResultado({ generados: 5, conservados: 307, total: 312, campo: "enlace_encuesta", url: "", variable: "t", aviso: null, mapeado: [] }))
-      .toBe("Listo: 312 enlaces (5 nuevos, 307 conservados). Úsalos en el botón del correo con el campo «Enlace a la encuesta».");
+      .toBe('Listo: 312 enlaces (5 nuevos, 307 conservados). Úsalos en el botón del correo con el campo "Enlace a la encuesta".');
     expect(textoDelResultado({ generados: 1, conservados: 0, total: 1, campo: "enlace_encuesta", url: "", variable: "t", aviso: null, mapeado: [] }))
-      .toBe("Listo: 1 enlace (1 nuevo, 0 conservados). Úsalo en el botón del correo con el campo «Enlace a la encuesta».");
+      .toBe('Listo: 1 enlace (1 nuevo, 0 conservados). Úsalo en el botón del correo con el campo "Enlace a la encuesta".');
   });
 
   it("la variable va como en SurveyMonkey; vacía vale t", () => {
@@ -216,7 +216,7 @@ describe("QA de Contactos (2026-10-22)", () => {
     expect(filtrosSin(filtros, "carrera")).toEqual({ sexo: ["F"] });
   });
 
-  it("en «% por fila» el tinte sigue al porcentaje, no al conteo", () => {
+  it('en "% por fila" el tinte sigue al porcentaje, no al conteo', () => {
     // Fila grande con 50/50 y fila chica con 10/0: en casos pesa la grande;
     // por fila, la celda de 100% es la más intensa.
     const cruce = { a: "x", b: "y", filas: ["A", "B"], columnas: ["c1", "c2"], celdas: [[500, 500], [10, 0]] };
@@ -235,7 +235,7 @@ describe("QA de Contactos (2026-10-22)", () => {
     expect(cifraDeLaLista(50, null, false)).toBe("50 contactos");
   });
 
-  it("«Todas las columnas» no repite la URL cruda del enlace", () => {
+  it('"Todas las columnas" no repite la URL cruda del enlace', () => {
     const columnas = [
       { key: "sexo", label: "Sexo" },
       { key: "enlace_encuesta", label: "enlace_encuesta" },

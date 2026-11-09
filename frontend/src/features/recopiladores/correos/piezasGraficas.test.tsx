@@ -60,7 +60,7 @@ function panel(template: MailTemplate, seleccion: string, extra: Partial<Paramet
 }
 
 describe("biblioteca › piezas gráficas", () => {
-  it("lista las cinco piezas en su grupo, cada una con su miniatura y su «cuándo usarla»", () => {
+  it('lista las cinco piezas en su grupo, cada una con su miniatura y su "cuándo usarla"', () => {
     const grupo = GRUPOS.find((g) => g.titulo === "Piezas gráficas");
     expect(grupo?.tipos).toEqual(["band", "ornament", "icon_text", "two_images", IMAGEN_DECORATIVA]);
     const html = renderToStaticMarkup(<BibliotecaDeBloques template={BASE} onElegir={noop} onCerrar={noop} />);
@@ -196,7 +196,7 @@ describe("inspector de cada pieza", () => {
     expect(html).not.toContain('aria-label="Ícono del bloque"');
   });
 
-  it("dos imágenes: cada lado con «Subir imagen» y su descripción obligatoria", () => {
+  it('dos imágenes: cada lado con "Subir imagen" y su descripción obligatoria', () => {
     const html = panel(conBloque({ block_id: "p", type: "two_images", left: "a", right: "b", alt_left: "Campus", alt_right: "" }), "p");
     expect(html.match(/Subir imagen/g)).toHaveLength(2);
     expect(html.match(/aria-invalid="true"/g)).toHaveLength(1);

@@ -78,7 +78,7 @@ describe("vocabulario de bloques", () => {
     expect(opcionesDeTipo("tipo_futuro").at(-1)).toEqual({ value: "tipo_futuro", label: "Bloque tipo_futuro" });
   });
 
-  it("«Añadir bloque» no ofrece lo que no puede sembrar válido", () => {
+  it('"Añadir bloque" no ofrece lo que no puede sembrar válido', () => {
     expect(TIPOS_QUE_SE_AGREGAN).not.toContain("brand_strip");
     expect(TIPOS_QUE_SE_AGREGAN).not.toContain("form_lines");
     expect(TIPOS_QUE_SE_AGREGAN).not.toContain("campus_map");
@@ -92,7 +92,7 @@ describe("vocabulario de bloques", () => {
   });
 });
 
-describe("«Guardar plantilla» no reescribe un tipo en otro", () => {
+describe('"Guardar plantilla" no reescribe un tipo en otro', () => {
   let enviado: unknown = null;
 
   beforeEach(() => {

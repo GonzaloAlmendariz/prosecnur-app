@@ -142,7 +142,7 @@ export function CodigosDeResultado({ campaignId }: { campaignId: string }) {
           onChange={(ev) => setCriterio(ev.target.value)}
         />
         <small className="rec-terr-nota">
-          Si el estudio filtra a quién se entrevista (por ejemplo, «Cursa estudios sup.»), va como columna en la hoja de ruteo y en la de
+          Si el estudio filtra a quién se entrevista (por ejemplo, "Cursa estudios sup."), va como columna en la hoja de ruteo y en la de
           consolidados. Vacío, no sale.
         </small>
       </div>

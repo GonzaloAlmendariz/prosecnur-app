@@ -101,7 +101,7 @@ describe("lecturaDelRespaldo", () => {
     expect(texto).not.toContain("Ninguna aula se queda");
   });
 
-  it("no dice «1 cursos-horario se quedaron»", () => {
+  it('no dice "1 cursos-horario se quedaron"', () => {
     expect(lecturaDelRespaldo(forma({ sinReserva: 1, minReservas: 0 })))
       .toBe("Un curso-horario se quedó sin ninguna reserva detrás: si cae, no hay plan B.");
   });

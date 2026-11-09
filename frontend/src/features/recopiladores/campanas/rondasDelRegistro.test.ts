@@ -29,9 +29,9 @@ describe("el registro por público y ronda (revamp v5)", () => {
 
   it("dice la ronda y de qué campaña viene", () => {
     const nombre = (id: string) => CAMPANAS.find((x) => x.id === id)?.name ?? null;
-    expect(procedenciaDe(CAMPANAS[0], nombre)).toBe("Ronda 3, viene de «Acreditación telefónica»");
+    expect(procedenciaDe(CAMPANAS[0], nombre)).toBe('Ronda 3, viene de "Acreditación telefónica"');
     expect(procedenciaDe(CAMPANAS[3], nombre)).toBe("Ronda 1, la primera");
-    expect(procedenciaDe(CAMPANAS[2], nombre)).toBe("Viene de «Acreditación telefónica»");
+    expect(procedenciaDe(CAMPANAS[2], nombre)).toBe('Viene de "Acreditación telefónica"');
     expect(procedenciaDe(CAMPANAS[4], nombre)).toBeNull();
   });
 });

@@ -124,7 +124,7 @@ export function SincronizarRespuestas({ campana, incrustado, onEtiqueta }: Props
         ) : null}
       </header>
       <p className="rec-sync-intro">
-        Trae de SurveyMonkey quién terminó la encuesta y le pone la etiqueta «{etiqueta || "Respondió"}» en Mailchimp.
+        Trae de SurveyMonkey quién terminó la encuesta y le pone la etiqueta "{etiqueta || "Respondió"}" en Mailchimp.
       </p>
 
       {cargando ? (
@@ -137,7 +137,7 @@ export function SincronizarRespuestas({ campana, incrustado, onEtiqueta }: Props
 
       {!incrustado && !cargando && mc && !mcListo ? (
         <p className="rec-mail-problema-linea" role="status">
-          {mc.error ? "No se pudo leer Mailchimp con la clave guardada: revísala con «Verificar»" : "Falta conectar Mailchimp: agrégala"} en Configuración › Conexiones.
+          {mc.error ? 'No se pudo leer Mailchimp con la clave guardada: revísala con "Verificar"' : "Falta conectar Mailchimp: agrégala"} en Configuración › Conexiones.
         </p>
       ) : null}
 

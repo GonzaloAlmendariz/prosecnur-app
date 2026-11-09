@@ -56,7 +56,7 @@ function campo(key: string, ctx: Contexto, enUrl: boolean): string {
     }
     const sm = smDe(field);
     if (!sm) {
-      ctx.notas.add(`«${field?.label ?? key}» no tiene equivalente en SurveyMonkey: asígnale un CustomData en los campos.`);
+      ctx.notas.add(`"${field?.label ?? key}" no tiene equivalente en SurveyMonkey: asígnale un CustomData en los campos.`);
       return "";
     }
     if (field?.fallback) ctx.notas.add("SurveyMonkey no tiene respaldo: quien no tenga el dato verá un espacio vacío.");
@@ -130,13 +130,13 @@ function notasDelTrato(block: MailGreetingBlock, template: Pick<MailTemplate, "f
   const trato = tratoDelSaludo(block);
   if (trato.modo !== "por_sexo") return;
   if (!trato.columna) {
-    notas.add(`Sin columna de sexo el saludo dice «${trato.respaldo}» a todos: elígela en «Saludo según la persona».`);
+    notas.add(`Sin columna de sexo el saludo dice "${trato.respaldo}" a todos: elígela en "Saludo según la persona".`);
     return;
   }
   // Sin etiquetas de plataforma a la vista (#4): el código queda en «Ver el código».
   notas.add(dialecto === "surveymonkey"
-    ? `«${trato.masculino}» o «${trato.femenino}» lo trae escrito el archivo de contactos.`
-    : `«${trato.masculino}» o «${trato.femenino}» sale de la audiencia; sin dato, «${trato.respaldo}».`);
+    ? `"${trato.masculino}" o "${trato.femenino}" lo trae escrito el archivo de contactos.`
+    : `"${trato.masculino}" o "${trato.femenino}" sale de la audiencia; sin dato, "${trato.respaldo}".`);
 }
 
 /** Propiedades que admiten `[texto](url)` (`.CMAIL_LINK_PROPS`). */

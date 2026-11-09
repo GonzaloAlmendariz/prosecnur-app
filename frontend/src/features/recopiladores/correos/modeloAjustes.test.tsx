@@ -58,7 +58,7 @@ describe("fondo de la página", () => {
     expect(nombreDelFondo("#2E7D8C", SOBRIO)).toBe("Del banner");
   });
 
-  it("sobrio: «Igual que la cabecera» escribe el acento; «Volver al gris» y el gris quitan la clave", () => {
+  it('sobrio: "Igual que la cabecera" escribe el acento; "Volver al gris" y el gris quitan la clave', () => {
     const conCabecera = conFondo(SOBRIO, "#0b1f54");
     expect(conCabecera).toEqual({ accent: "#0B1F54", page_bg: "#0B1F54" });
     expect(fondoDeLaPagina(conCabecera)).toMatchObject({ color: "#0B1F54", declarado: true });
@@ -90,7 +90,7 @@ describe("fondo de la página", () => {
 });
 
 describe("AjustesDelCorreo", () => {
-  it("sobrio por defecto: el gris marcado, sin «Volver al gris» ni línea del pie", () => {
+  it('sobrio por defecto: el gris marcado, sin "Volver al gris" ni línea del pie', () => {
     const html = pintar(SOBRIO);
     expect(html).toContain('data-qa-geometry-group="material-campo/correo/ajustes"');
     expect(html).toContain("Fondo de la página");
@@ -101,7 +101,7 @@ describe("AjustesDelCorreo", () => {
     expect(html).not.toContain("El pie");
   });
 
-  it("sobrio con la cabecera de fondo: «Volver al gris» y el contraste del pie en vivo", () => {
+  it('sobrio con la cabecera de fondo: "Volver al gris" y el contraste del pie en vivo', () => {
     const html = pintar({ ...SOBRIO, page_bg: "#0B1F54" });
     expect(html).toMatch(/aria-checked="true" aria-label="Igual que la cabecera #0B1F54"/);
     expect(html).toContain("Volver al gris");
@@ -109,7 +109,7 @@ describe("AjustesDelCorreo", () => {
     expect(pintar({ ...SOBRIO, page_bg: "#7A7A7A" })).toContain("El pie cuesta leerse: elige otro fondo");
   });
 
-  it("campaña: un solo «Fondo de la página», con el texto y el pie; sin «Volver al gris»", () => {
+  it('campaña: un solo "Fondo de la página", con el texto y el pie; sin "Volver al gris"', () => {
     const html = pintar(CAMPANA);
     expect(html.match(/data-foco="estilo-page_bg"/g)).toHaveLength(1);
     expect(html).toContain("Se lee bien");

@@ -175,7 +175,7 @@ function panel(seleccion: string): string {
 }
 
 describe("PanelDeBloque · sin la tarjeta didáctica y con los puntos en filas", () => {
-  it("ni «Qué hace» ni el código de la plataforma, aun con explicaciones", () => {
+  it('ni "Qué hace" ni el código de la plataforma, aun con explicaciones', () => {
     for (const id of ["lista", "recuadro"]) {
       const html = panel(id);
       expect(html).not.toContain("Qué hace");

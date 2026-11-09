@@ -106,7 +106,7 @@ export function ExcelDeAsignacion({ campaignId, deshabilitado, aplicar }: Props)
                   {lectura.problemas.slice(0, MAX_PROBLEMAS).map((p) => (
                     <li key={`${p.fila}-${p.id_manzana}`}>
                       Fila {p.fila}
-                      {p.valor ? ` («${p.valor}»)` : ""}: {p.motivo}
+                      {p.valor ? ` ("${p.valor}")` : ""}: {p.motivo}
                     </li>
                   ))}
                   {lectura.problemas.length > MAX_PROBLEMAS ? <li>y {lectura.problemas.length - MAX_PROBLEMAS} más</li> : null}

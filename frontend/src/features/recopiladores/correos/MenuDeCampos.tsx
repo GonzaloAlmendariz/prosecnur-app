@@ -103,7 +103,7 @@ export function MenuDeCampos({ campos, estilo, onElegir, onCerrar }: Props) {
             {c.ejemplo ? <span className="rec-capa-campo-ejemplo">{c.ejemplo}</span> : null}
           </li>
         ))}
-        {!visibles.length ? <li className="rec-capa-campos-nada" role="presentation">Ningún campo se llama así. Los campos se declaran en «Personas».</li> : null}
+        {!visibles.length ? <li className="rec-capa-campos-nada" role="presentation">Ningún campo se llama así. Los campos se declaran en "Personas".</li> : null}
       </ul>
       <p className="rec-capa-pop-pie">Sale con el dato de cada persona.</p>
     </div>

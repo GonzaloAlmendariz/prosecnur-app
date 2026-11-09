@@ -118,7 +118,7 @@ export function DistribucionDeVariable({ variable: delCorte, base: baseDelCorte 
                 className={`${clases}${activa ? " is-on" : ""}`}
                 aria-pressed={activa}
                 aria-label={`${nombre}. ${activa ? "Quitar filtro" : "Filtrar"}`}
-                title={activa ? `Quitar el filtro «${f.rotulo}»` : `Filtrar por «${f.rotulo}»`}
+                title={activa ? `Quitar el filtro "${f.rotulo}"` : `Filtrar por "${f.rotulo}"`}
                 onClick={() => alternarFiltro(variable.key, valor)}
               >
                 {celdas}
@@ -140,7 +140,7 @@ export function DistribucionDeVariable({ variable: delCorte, base: baseDelCorte 
       {!cuadra ? (
         <p className="rec-contactos-aviso" role="status">
           Las categorías suman {formatoConteo(sumaDeLaVariable(variable))} y la base es {formatoConteo(base)}.
-          Pulsa «Actualizar»; si sigue, vuelve a importar la lista.
+          Pulsa "Actualizar"; si sigue, vuelve a importar la lista.
         </p>
       ) : null}
     </article>

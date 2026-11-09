@@ -27,7 +27,7 @@ describe("cada plataforma dice cuál es su salida principal y para qué sirve ca
     expect(paquete.para).toContain("contactos con su saludo");
   });
 
-  it("los rótulos son los de los botones de «Exportar ▾», con una sola principal", () => {
+  it('los rótulos son los de los botones de "Exportar ▾", con una sola principal', () => {
     const sm = renderToStaticMarkup(
       <PanelSurveyMonkey
         envio={{ send_id: "invitacion", kind: "invitacion", label: "Invitación", audience: "todos" }}

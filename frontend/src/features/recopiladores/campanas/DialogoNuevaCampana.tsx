@@ -267,7 +267,7 @@ export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniatur
                 {homonima ? <AvisoDeNombreRepetido id={`${ids}-repetido`} campana={homonima} href={homonima.archived ? null : hrefDeCampana(homonima)} /> : null}
                 <p className="rec-nueva-pie-nota">
                   Las unidades salen de la muestra decidida en Cálculo de muestra: al abrir la campaña se siembran desde Unidades.
-                  {fuente === "derivada" ? " Esta versión del backend no guarda el nombre: la campaña se llama «Campo en aulas»." : ""}
+                  {fuente === "derivada" ? ' Esta versión del backend no guarda el nombre: la campaña se llama "Campo en aulas".' : ""}
                 </p>
               </div>
             ) : null}
@@ -285,7 +285,7 @@ export function DialogoNuevaCampana({ panel, registro, fuente, presets, miniatur
                           <input type="radio" name={`${ids}-ronda`} value={r.id} checked={rondaElegida === r.id} onChange={() => setRondaElegida(r.id)} />
                           <span>
                             <b>{r.etiqueta}, ronda {r.ronda}</b>
-                            <small>{r.viene_de ? `Viene de «${registro?.campaigns.find((c) => c.id === r.viene_de)?.name ?? r.viene_de}»` : r.ronda > 1 ? "La ronda anterior no es telefónica" : "Primera ronda"}</small>
+                            <small>{r.viene_de ? `Viene de "${registro?.campaigns.find((c) => c.id === r.viene_de)?.name ?? r.viene_de}"` : r.ronda > 1 ? "La ronda anterior no es telefónica" : "Primera ronda"}</small>
                           </span>
                         </label>
                       ))}

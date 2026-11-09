@@ -90,7 +90,7 @@ describe("normalizeCollectionOrigen", () => {
     expect(o.cambios?.campos[0]).toMatchObject({ antes: null, despues: null, sensible: true });
   });
 
-  it("un estado desconocido se deduce; nunca se afirma «al día» sin plan", () => {
+  it('un estado desconocido se deduce; nunca se afirma "al día" sin plan', () => {
     expect(origenDe({ estado: "otro", plan: { existe: false } }).estado).toBe("sin_plan");
     expect(origenDe({ estado: "", fuente: { disponible: false } }).estado).toBe("sin_fuente");
     expect(origenDe({ estado: undefined, stale: true }).estado).toBe("cambio");

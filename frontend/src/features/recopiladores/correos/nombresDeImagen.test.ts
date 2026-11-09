@@ -17,7 +17,7 @@ const LOGOS: Plantilla = {
 };
 
 describe("H7 — cada imagen se nombra por su papel, nunca por su id", () => {
-  it("usa la descripción que le dio el equipo, sin corchetes; sin ella, su papel («Logo 2»), nunca un nombre de serie", () => {
+  it('usa la descripción que le dio el equipo, sin corchetes; sin ella, su papel ("Logo 2"), nunca un nombre de serie', () => {
     expect(nombreDeImagen(LOGOS, "logo-cliente")).toBe("Unidad solicitante");
     expect(nombreDeImagen(LOGOS, "campus")).toBe("Foto del campus");
     const sinAlt: Plantilla = { ...LOGOS, images: { "logo-cliente": { alt: "" }, pulso: { alt: "" } } };
@@ -36,7 +36,7 @@ describe("H7 — cada imagen se nombra por su papel, nunca por su id", () => {
     expect(nombreDeImagen(banner, "banner-mailing")).toBe("Banner");
   });
 
-  it("dice lo que falta por su papel y cuántas, sin nombrar a nadie: «Faltan los logos»", () => {
+  it('dice lo que falta por su papel y cuántas, sin nombrar a nadie: "Faltan los logos"', () => {
     expect(fraseDeLoQueFalta(LOGOS, ["logo-cliente", "pulso"])).toBe("Faltan los logos.");
     expect(fraseDeLoQueFalta(LOGOS, ["pulso"])).toBe("Falta un logo.");
     expect(fraseDeLoQueFalta(LOGOS, ["pulso", "campus"])).toBe("Faltan un logo y una imagen.");

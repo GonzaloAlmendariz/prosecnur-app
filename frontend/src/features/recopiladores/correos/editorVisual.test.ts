@@ -308,7 +308,7 @@ describe("comoSaleEnLaPlataforma", () => {
     expect(textoEnLaPlataforma("{{carrera}} {{enlace}}", PLANTILLA, "surveymonkey")).toBe("[CustomData1] [SurveyLink]");
     const boton = comoSaleEnLaPlataforma(bloque("accion"), PLANTILLA, "surveymonkey");
     expect(boton.lineas.find((l) => l.rotulo === "Enlace")?.plataforma).toBe("https://x.org/r?c=");
-    expect(boton.notas.join(" ")).toMatch(/«Código» no tiene equivalente/);
+    expect(boton.notas.join(" ")).toMatch(/"Código" no tiene equivalente/);
     const pie = comoSaleEnLaPlataforma(bloque("pie"), PLANTILLA, "surveymonkey");
     expect(pie.lineas.at(-1)?.plataforma).toContain("[OptOutLink]");
   });

@@ -98,9 +98,9 @@ describe("rutas de Mailchimp por API", () => {
   });
 
   it("revisar la variable pregunta por la encuesta y la campaña, sin cuerpo", async () => {
-    fetchMock.mockImplementationOnce(async () => new Response(JSON.stringify({ ok: true, variable: "t", variables_encuesta: "id", coincide: false, mensaje: "La encuesta recibe la variable «id», no «t»." }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    fetchMock.mockImplementationOnce(async () => new Response(JSON.stringify({ ok: true, variable: "t", variables_encuesta: "id", coincide: false, mensaje: 'La encuesta recibe la variable "id", no "t".' }), { status: 200, headers: { "Content-Type": "application/json" } }));
     const r = await apiRevisarVariable({ campaign_id: "egresados", survey_id: "423872156" });
-    expect(r).toEqual({ variable: "t", variables_encuesta: ["id"], coincide: false, mensaje: "La encuesta recibe la variable «id», no «t»." });
+    expect(r).toEqual({ variable: "t", variables_encuesta: ["id"], coincide: false, mensaje: 'La encuesta recibe la variable "id", no "t".' });
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(String(url)).toMatch(/\/mail-sync\/check\?survey_id=423872156&campaign_id=egresados$/);
     expect(init.body).toBeUndefined();
@@ -125,7 +125,7 @@ describe("textos de la tarjeta Mailchimp", () => {
   it("resume la carga con miles peruanos y solo lo que trae algo", () => {
     expect(resumenDeAudiencia(audiencia)).toEqual({
       titulo: "45,078 contactos en Mailchimp: 45,000 nuevos, 78 actualizados.",
-      lineas: ["Todos quedaron con la etiqueta «Docentes»."],
+      lineas: ['Todos quedaron con la etiqueta "Docentes".'],
     });
   });
 
@@ -137,7 +137,7 @@ describe("textos de la tarjeta Mailchimp", () => {
     expect(r.titulo).toBe("8 contactos en Mailchimp: 1 nuevo, 6 actualizados.");
     expect(r.lineas).toEqual([
       "1 no se pudo subir (1 por correo no válido).",
-      "7 contactos con la etiqueta «Docentes».",
+      '7 contactos con la etiqueta "Docentes".',
       "Campos nuevos en la audiencia: ENLACE, SALUDO.",
     ]);
   });
@@ -146,12 +146,12 @@ describe("textos de la tarjeta Mailchimp", () => {
     const b = normalizeResultadoDeBorrador({ subject: "Recordatorio", recipient_count: 1, images_uploaded: 2 });
     expect(resumenDeBorrador(b)).toEqual({
       titulo: "Borrador listo en Mailchimp.",
-      lineas: ["Asunto: «Recordatorio».", "Irá a 1 contacto.", "2 imágenes subidas a Mailchimp."],
+      lineas: ['Asunto: "Recordatorio".', "Irá a 1 contacto.", "2 imágenes subidas a Mailchimp."],
     });
     expect(resumenDeBorrador(normalizeResultadoDeBorrador({})).lineas).toEqual(["Mailchimp todavía no calcula a cuántos irá."]);
   });
 
-  it("excluye «respondió» sólo en recordatorios", () => {
+  it('excluye "respondió" sólo en recordatorios', () => {
     expect(etiquetaExcluida("invitacion", "Respondió")).toBeUndefined();
     expect(etiquetaExcluida("recordatorio", "  ")).toBe("Respondió");
     expect(etiquetaExcluida("recordatorio", "Ya votó")).toBe("Ya votó");
@@ -198,7 +198,7 @@ describe("lo recordado en este equipo", () => {
 });
 
 describe("pasos de la tarjeta Mailchimp", () => {
-  it("«quién ya respondió» solo aparece en un recordatorio y el borrador cambia de número", async () => {
+  it('"quién ya respondió" solo aparece en un recordatorio y el borrador cambia de número', async () => {
     const { pasosDelEnvio } = await import("./mailchimpPorApiModel");
     expect(pasosDelEnvio("invitacion")).toEqual(["audiencia", "borrador"]);
     expect(pasosDelEnvio("recordatorio")).toEqual(["audiencia", "respondieron", "borrador"]);

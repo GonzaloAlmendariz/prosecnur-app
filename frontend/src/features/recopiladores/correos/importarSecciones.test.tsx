@@ -55,16 +55,16 @@ describe("lo que dice cada sección", () => {
   });
 
   it("el resumen cuenta lo importado, lo que ya estaba y las fotos renombradas o faltantes", () => {
-    expect(resumenDeImportacion(resultado({ imported: 1 }))).toBe("Se importó 1 sección de «Estudio de origen».");
+    expect(resumenDeImportacion(resultado({ imported: 1 }))).toBe('Se importó 1 sección de "Estudio de origen".');
     expect(resumenDeImportacion(resultado({ already_here: 1, photos_renamed: 1 }))).toBe(
-      "Se importaron 2 secciones de «Estudio de origen». 1 ya estaba. Una foto entró con otro nombre: aquí ya había una distinta con el suyo.",
+      'Se importaron 2 secciones de "Estudio de origen". 1 ya estaba. Una foto entró con otro nombre: aquí ya había una distinta con el suyo.',
     );
-    expect(resumenDeImportacion(resultado({ imported: 0, already_here: 3 }))).toBe("No se importó nada de «Estudio de origen». 3 ya estaban.");
+    expect(resumenDeImportacion(resultado({ imported: 0, already_here: 3 }))).toBe('No se importó nada de "Estudio de origen". 3 ya estaban.');
   });
 });
 
 describe("panel y store", () => {
-  it("la lista ofrece «Importar de otro estudio…» sólo si sabe importar", () => {
+  it('la lista ofrece "Importar de otro estudio…" sólo si sabe importar', () => {
     const con = renderToStaticMarkup(<ListaDeMisSecciones secciones={[]} cargando={false} error={null} onElegir={() => {}} onBorrar={() => {}} onImportar={async () => null} />);
     expect(con).toContain("Importar de otro estudio…");
     const sin = renderToStaticMarkup(<ListaDeMisSecciones secciones={[]} cargando={false} error={null} onElegir={() => {}} onBorrar={() => {}} />);

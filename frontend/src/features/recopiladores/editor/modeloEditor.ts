@@ -257,7 +257,7 @@ export function siFalta(block: CollectionMaterialBlock): string {
 
 /** La nota de un bloque que la cara no dibuja. */
 export function notaNoDibujado(item: Pick<MaterialPreviewUndrawn, "reason" | "type">): string {
-  if (item.reason === "slot_taken") return `No se dibuja: ya hay un bloque «${rotuloDeBloque(item.type)}» en esta cara`;
+  if (item.reason === "slot_taken") return `No se dibuja: ya hay un bloque "${rotuloDeBloque(item.type)}" en esta cara`;
   return "No se dibuja en esta cara";
 }
 

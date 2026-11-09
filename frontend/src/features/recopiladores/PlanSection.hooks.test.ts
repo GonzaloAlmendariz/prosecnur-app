@@ -33,7 +33,7 @@ export function hooksTrasElPrimerReturn(cuerpo: string): string[] {
 }
 
 describe("PlanSection respeta el orden de los hooks", () => {
-  it("ningún hook después de la guarda de «sin plan»", () => {
+  it('ningún hook después de la guarda de "sin plan"', () => {
     expect(hooksTrasElPrimerReturn(cuerpoDe(fuente, "PlanSection"))).toEqual([]);
   });
 

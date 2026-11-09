@@ -249,8 +249,8 @@ const ESQUEMA: Record<TipoInsertable, ReactNode> = {
 
 /** Más que la descripción corta: para qué sirve cada tipo, en la voz de quien escribe. */
 export const CUANDO_USARLO: Record<TipoInsertable, string> = {
-  greeting: "El primer renglón, con el nombre de cada persona. Para quien no tenga el dato, va el texto de «Si falta el nombre».",
-  heading: "Para separar partes en un correo largo: fechas, pasos, «Qué tienes que hacer».",
+  greeting: 'El primer renglón, con el nombre de cada persona. Para quien no tenga el dato, va el texto de "Si falta el nombre".',
+  heading: 'Para separar partes en un correo largo: fechas, pasos, "Qué tienes que hacer".',
   paragraph: "El cuerpo del correo. Admite negrita, cursiva, campos y enlaces dentro del texto.",
   list: "Pasos o requisitos que se leen de un vistazo.",
   callout: "Lo que no puede pasarse por alto: plazos, sesiones, advertencias.",
@@ -372,7 +372,7 @@ export function ListaDeMisSecciones({ secciones, cargando, error, onElegir, onBo
       {resumen ? <p className="rec-bib-importado" role="status">{resumen}</p> : null}
       {cargando && !secciones.length ? <CargaDeBloque label="Leyendo las secciones del estudio…" /> : null}
       {!cargando && !secciones.length ? (
-        <p className="rec-bib-vacio">Aún no hay. Elige una sección del correo y usa «Guardar» en su barra: queda aquí para los otros correos de este estudio.</p>
+        <p className="rec-bib-vacio">Aún no hay. Elige una sección del correo y usa "Guardar" en su barra: queda aquí para los otros correos de este estudio.</p>
       ) : null}
       {error ? <p className="rec-mail-problemas" role="alert">{error}</p> : null}
       {secciones.length ? (
@@ -383,7 +383,7 @@ export function ListaDeMisSecciones({ secciones, cargando, error, onElegir, onBo
             const detalle = [tipo ? ROTULO_DE_BLOQUE[tipo] : "", fechaCorta(s.created_at)].filter(Boolean).join(" · ");
             return (
               <span key={s.section_id} className="rec-bib-guardada" data-qa-geometry-member>
-                <button type="button" className="rec-bib-tipo" data-guardada={s.section_id} title={`Insertar una copia de «${s.name}»`} onClick={() => onElegir(s)}>
+                <button type="button" className="rec-bib-tipo" data-guardada={s.section_id} title={`Insertar una copia de "${s.name}"`} onClick={() => onElegir(s)}>
                   <svg className="rec-bib-esquema" viewBox="0 0 64 44" aria-hidden focusable="false">
                     <rect className="rec-bib-papel" x="0.5" y="0.5" width="63" height="43" rx="3" />
                     {tipo ? ESQUEMA[tipo] : null}
@@ -394,11 +394,11 @@ export function ListaDeMisSecciones({ secciones, cargando, error, onElegir, onBo
                   </span>
                 </button>
                 {porBorrar === s.section_id ? (
-                  <button type="button" className="rec-bib-borrar is-confirmando" aria-label={`Confirmar: borrar «${s.name}» de Mis secciones`} onClick={() => { setPorBorrar(null); onBorrar(s.section_id); }} onBlur={() => setPorBorrar(null)}>
+                  <button type="button" className="rec-bib-borrar is-confirmando" aria-label={`Confirmar: borrar "${s.name}" de Mis secciones`} onClick={() => { setPorBorrar(null); onBorrar(s.section_id); }} onBlur={() => setPorBorrar(null)}>
                     ¿Borrar?
                   </button>
                 ) : (
-                  <button type="button" className="rec-bib-borrar" aria-label={`Borrar «${s.name}» de Mis secciones`} title="Borrar de Mis secciones (los correos que la usan no cambian)" onClick={() => setPorBorrar(s.section_id)}>
+                  <button type="button" className="rec-bib-borrar" aria-label={`Borrar "${s.name}" de Mis secciones`} title="Borrar de Mis secciones (los correos que la usan no cambian)" onClick={() => setPorBorrar(s.section_id)}>
                     <X size={12} aria-hidden />
                   </button>
                 )}

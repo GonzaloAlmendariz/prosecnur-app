@@ -54,7 +54,7 @@ describe("el trato del saludo (C8)", () => {
     expect(lineaDelTrato({ ...LISTA.trato!, presente: false }, SALUDO.trato!)).toBeNull();
   });
 
-  it("la lectura de «M» en palabras, y el respaldo en el texto", () => {
+  it('la lectura de "M" en palabras, y el respaldo en el texto', () => {
     expect(lecturaEnPalabras("m_f", SALUDO.trato!)).toContain("masculino");
     expect(lecturaEnPalabras("h_m", SALUDO.trato!)).toContain("mujer");
     expect(lecturaEnPalabras("m_ambigua", SALUDO.trato!)).toContain("Estimado(a)");
@@ -68,7 +68,7 @@ describe("el trato del saludo (C8)", () => {
   });
 });
 
-describe("«Saludo según la persona» en el inspector", () => {
+describe('"Saludo según la persona" en el inspector', () => {
   const props = { plataforma: "mailchimp" as const, problemas: [], onEditar: () => undefined, onIrAPersonas: () => undefined };
 
   it("con lista M/F: la columna, las tres palabras y el resultado con cifras", () => {
@@ -77,7 +77,7 @@ describe("«Saludo según la persona» en el inspector", () => {
     expect(html).toContain('<option value="sexo" selected="">sexo</option>');
     expect(html.match(/data-qa-geometry-member/g)).toHaveLength(3);
     expect(html).toContain("Estimado a 3 · Estimada a 2 · Estimado(a) a 1 sin dato");
-    expect(html).toContain("«M» se lee como masculino");
+    expect(html).toContain("&quot;M&quot; se lee como masculino");
   });
 
   it("sin lista: pide cargarla en Personas", () => {

@@ -56,7 +56,7 @@ function shortFingerprint(value: string | null | undefined) {
  */
 export function faltaParaElRecibo(readiness: HandoffReadiness): string {
   if (readiness.ready && !readiness.delivered) {
-    return "Los accesos están listos: el recibo aparece aquí al pulsar «Entregar a Monitoreo».";
+    return 'Los accesos están listos: el recibo aparece aquí al pulsar "Entregar a Monitoreo".';
   }
   return `${readiness.reason} El recibo aparece aquí cuando se entreguen.`;
 }
@@ -126,7 +126,7 @@ export function DeliverySection({ payload, latestArtifact, onState, onIr, onIrAA
         {
           id: "entrega", rotulo: "Entrega",
           valor: readiness.delivered ? "Registrada" : readiness.ready ? "Lista" : "Bloqueada",
-          nota: readiness.delivered ? "Monitoreo ya puede traerla" : readiness.ready ? "falta pulsar «Entregar»" : "falta un paso del recorrido",
+          nota: readiness.delivered ? "Monitoreo ya puede traerla" : readiness.ready ? 'falta pulsar "Entregar"' : "falta un paso del recorrido",
           tono: readiness.delivered || readiness.ready ? "listo" : "aviso",
         },
         deployment
@@ -181,7 +181,7 @@ export function DeliverySection({ payload, latestArtifact, onState, onIr, onIrAA
               // Regla P9: el motivo del bloqueo ya lo dicen el paso de accesos y el recibo.
               detalle: <span title={readiness.fingerprint}>{readiness.delivered
                 ? "Monitoreo ya puede traerla desde Insumos › Fuentes."
-                : readiness.ready ? "Lista: falta pulsar «Entregar a Monitoreo»." : "Se habilita cuando los pasos anteriores están hechos."}</span>,
+                : readiness.ready ? 'Lista: falta pulsar "Entregar a Monitoreo".' : "Se habilita cuando los pasos anteriores están hechos."}</span>,
             },
           ]}
         />

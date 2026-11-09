@@ -62,7 +62,7 @@ function estado(instances: CollectionMaterialInstance[]): CollectionState {
 }
 
 describe("H22 — fichas hechas salen del estado persistido", () => {
-  it("una instancia persistida que cubre las 3 unidades del plan da «3 de 3»", () => {
+  it('una instancia persistida que cubre las 3 unidades del plan da "3 de 3"', () => {
     const state = estado([instancia("inst-1", ["u-1", "u-2", "u-3"])]);
     expect(fichasHechasDelEstado(state)).toBe(3);
     expect(cuentaDeFichas(fichasHechasDelEstado(state), unidadesDelPlan(state.plan))).toBe("3 de 3");
@@ -96,7 +96,7 @@ describe("H22 — generar reutiliza la instancia persistida en vez de crear otra
   });
 });
 
-describe("«Crear las fichas» no duplica una instancia que ya cubre el plan", () => {
+describe('"Crear las fichas" no duplica una instancia que ya cubre el plan', () => {
   it("con todas las unidades cubiertas por una vigente, están al día", () => {
     expect(fichasAlDia(estado([instancia("inst-1", ["u-1", "u-2", "u-3"])]))).toBe(true);
   });

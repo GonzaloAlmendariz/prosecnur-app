@@ -11,7 +11,7 @@ describe("Telefónica › Entrega", () => {
   const pintar = (config: ReturnType<typeof normalizarConfigTelefonica> | null) =>
     renderToStaticMarkup(<MemoryRouter><EntregaTelefonica config={config} /></MemoryRouter>);
 
-  it("mientras no llega la campaña, carga con su marca de «todavía no»", () => {
+  it('mientras no llega la campaña, carga con su marca de "todavía no"', () => {
     const html = pintar(null);
     expect(html).toContain("Leyendo la campaña…");
     expect(html).toContain('data-audit-ready="false"');

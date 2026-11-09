@@ -76,14 +76,14 @@ export function puntosMedios(fuente: string): number {
   return (sinComentarios.match(/·/g) ?? []).length;
 }
 
-describe("los datos se unen en una frase, no con «·» (P3)", () => {
+describe('los datos se unen en una frase, no con "·" (P3)', () => {
   const conteo = archivos(aqui).map((f) => [path.relative(aqui, f).split(path.sep).join("/"), puntosMedios(readFileSync(f, "utf8"))] as const);
 
   it("el barrido ve el feature (centinela)", () => {
     expect(conteo.length).toBeGreaterThan(250);
   });
 
-  it("ningún archivo suma «·» ni aparece uno nuevo con «·»", () => {
+  it('ningún archivo suma "·" ni aparece uno nuevo con "·"', () => {
     const regresiones = conteo
       .filter(([archivo, n]) => n > (SNAPSHOT[archivo] ?? 0))
       .map(([archivo, n]) => `${archivo}: ${SNAPSHOT[archivo] ?? 0} → ${n}`);
@@ -92,7 +92,7 @@ describe("los datos se unen en una frase, no con «·» (P3)", () => {
 
   it("el detector cuenta lo que se pinta y no la limpieza del código de error", () => {
     expect(puntosMedios("const a = `${x} · ${y}`;")).toBe(1);
-    expect(puntosMedios("// «a · b»\nconst b = 1;")).toBe(0);
+    expect(puntosMedios('// "a · b"\nconst b = 1;')).toBe(0);
     expect(puntosMedios('m.replace(/ · E_[A-Z_]+$/, "")')).toBe(0);
   });
 });

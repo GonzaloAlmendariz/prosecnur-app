@@ -65,7 +65,7 @@ describe("adaptación del plan legacy", () => {
 });
 
 describe("rol de cada unidad, traducido igual que la ficha impresa", () => {
-  it("traduce las claves del motor y arma el «Reemplazo de» con el nombre de la unidad", () => {
+  it('traduce las claves del motor y arma el "Reemplazo de" con el nombre de la unidad', () => {
     const markup = renderToStaticMarkup(
       <MemoryRouter><PlanSection payload={payloadWithPlan(BASE_PLAN)} onState={() => undefined} /></MemoryRouter>,
     );
@@ -175,7 +175,7 @@ describe("la columna Docente (D17, C5)", () => {
     <MemoryRouter><PlanSection payload={payloadWithPlan(plan)} onState={() => undefined} /></MemoryRouter>,
   );
 
-  it("un plan sin docentes no pinta la columna ni un «sin docente» por fila", () => {
+  it('un plan sin docentes no pinta la columna ni un "sin docente" por fila', () => {
     expect(planTraeDocente(BASE_PLAN.units)).toBe(false);
     const markup = render(BASE_PLAN);
     expect(markup).not.toContain(">Docente<");

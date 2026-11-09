@@ -106,18 +106,18 @@ describe("las vistas de Unidades (revamp v5)", () => {
   const porRevisar = new Set(["A2"]);
   const encuestador = new Map([["A1", "E03"]]);
 
-  it("«Por revisar» deja sólo las rutas con aviso, con sus reemplazos", () => {
+  it('"Por revisar" deja sólo las rutas con aviso, con sus reemplazos', () => {
     const g = filtrarUnidades(grupos, "por-revisar", null, porRevisar, encuestador);
     expect(g.flatMap((x) => x.titulares.map((t) => t.titular.unit_id))).toEqual(["A2"]);
     expect(g.flatMap((x) => x.sueltos)).toEqual([]);
   });
 
-  it("«Sin encuestador» deja las titulares sin código en la asignación", () => {
+  it('"Sin encuestador" deja las titulares sin código en la asignación', () => {
     const g = filtrarUnidades(grupos, "sin-encuestador", null, porRevisar, encuestador);
     expect(g.flatMap((x) => x.titulares.map((t) => t.titular.unit_id))).toEqual(["A2", "B1"]);
   });
 
-  it("el distrito acota y «Todas» conserva los reemplazos sueltos", () => {
+  it('el distrito acota y "Todas" conserva los reemplazos sueltos', () => {
     const g = filtrarUnidades(grupos, "todas", "150101", porRevisar, encuestador);
     expect(g.map((x) => x.clave)).toEqual(["150101"]);
     expect(g[0].sueltos.map((r) => r.unit_id)).toEqual(["RX"]);

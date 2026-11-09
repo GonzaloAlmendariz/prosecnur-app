@@ -29,7 +29,7 @@ describe("asignación por columna del calendario", () => {
     expect(codigoDeColumna(["b", "c"], { a: "P844" })).toBe("");
     expect(codigoDeColumna(["a", "b"], { a: "P844" })).toBeNull();
   });
-  it("asignar la columna pisa todas sus UMP; «sin asignar» las quita", () => {
+  it('asignar la columna pisa todas sus UMP; "sin asignar" las quita', () => {
     const b = asignarColumna({ a: "P844", z: "P930" }, ["a", "b"], "P930");
     expect(b).toEqual({ a: "P930", b: "P930", z: "P930" });
     expect(asignarColumna(b, ["a", "b"], "")).toEqual({ z: "P930" });

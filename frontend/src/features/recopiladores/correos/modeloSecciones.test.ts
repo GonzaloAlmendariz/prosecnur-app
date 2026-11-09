@@ -44,7 +44,7 @@ describe("contrato de las secciones en el cliente", () => {
 });
 
 describe("biblioteca", () => {
-  it("Secciones ofrece el catálogo entero, con «Imagen + texto» como un Destacado 4:3 sin caja", () => {
+  it('Secciones ofrece el catálogo entero, con "Imagen + texto" como un Destacado 4:3 sin caja', () => {
     const secciones = GRUPOS.find((g) => g.titulo === "Secciones")?.tipos ?? [];
     expect(secciones).toEqual(["feature", IMAGEN_Y_TEXTO, ...MAIL_SECTION_TYPES]);
     const it = bloqueNuevo(IMAGEN_Y_TEXTO, "f");
@@ -52,7 +52,7 @@ describe("biblioteca", () => {
     expect(it).not.toHaveProperty("box");
   });
 
-  it("«Imagen + texto» nace sin botón y sin enlace aunque el correo tenga uno (visto en vivo: frenaba la vista previa)", () => {
+  it('"Imagen + texto" nace sin botón y sin enlace aunque el correo tenga uno (visto en vivo: frenaba la vista previa)', () => {
     const conBoton = { blocks: [{ block_id: "b", type: "button", text: "Ir", url: "https://pulso.pe/e" }], images: {}, fields: [] } as unknown as MailTemplate;
     const b = bloqueParaInsertar(conBoton, IMAGEN_Y_TEXTO);
     expect(b).not.toHaveProperty("url");

@@ -79,7 +79,7 @@ export function fechaHumana(iso: string | undefined, hoy: Date = new Date()): st
 
 /** Qué sale si el asunto o la vista previa del envío quedan vacíos. */
 export function ayudaDeVacio(dePlantilla: string | undefined): string {
-  return dePlantilla ? `Si lo dejas vacío, va: «${dePlantilla}».` : "Si lo dejas vacío, va el de la plantilla.";
+  return dePlantilla ? `Si lo dejas vacío, va: "${dePlantilla}".` : "Si lo dejas vacío, va el de la plantilla.";
 }
 
 export const EJEMPLO_DE_APERTURA = "Ej.: Le recordamos que aún puede responder hasta el viernes";

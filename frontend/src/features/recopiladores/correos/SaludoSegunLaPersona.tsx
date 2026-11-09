@@ -118,10 +118,10 @@ export function SaludoSegunLaPersona({ block, destinatarios, plataforma, problem
           {linea ? <p className="rec-trato-resultado" role="status">{linea}</p> : null}
           {lectura ? <p className="rec-trato-lectura">{lectura}</p> : null}
           {resuelto && !resuelto.presente && trato.columna ? (
-            <p className="rec-trato-aviso" role="alert">La columna «{trato.columna}» no está en la lista cargada: elige la columna de sexo de esta lista.</p>
+            <p className="rec-trato-aviso" role="alert">La columna "{trato.columna}" no está en la lista cargada: elige la columna de sexo de esta lista.</p>
           ) : null}
           {resuelto?.no_reconocidos.length ? (
-            <p className="rec-trato-lectura">No se reconocen: {resuelto.no_reconocidos.map((v) => `«${v}»`).join(", ")}.</p>
+            <p className="rec-trato-lectura">No se reconocen: {resuelto.no_reconocidos.map((v) => `"${v}"`).join(", ")}.</p>
           ) : null}
           {plataforma === "surveymonkey" && trato.columna ? (
             <p className="rec-trato-lectura">En SurveyMonkey la palabra va en [{trato.sm ?? "CustomData"}]: el archivo de contactos la trae escrita.</p>
@@ -131,7 +131,7 @@ export function SaludoSegunLaPersona({ block, destinatarios, plataforma, problem
 
       {!respaldoEnElSaludo(block) ? (
         <p className="rec-trato-aviso" role="status">
-          El saludo no contiene «{trato.respaldo}»: escríbela en el texto para que cambie según la persona.
+          El saludo no contiene "{trato.respaldo}": escríbela en el texto para que cambie según la persona.
         </p>
       ) : null}
       {problemas.length ? (

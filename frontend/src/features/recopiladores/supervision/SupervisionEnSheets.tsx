@@ -27,9 +27,9 @@ export function SupervisionEnSheets({ campaignId, loteId }: { campaignId: string
     <article className="rec-terr-tarjeta" data-qa-geometry-member>
       <h3><FileSpreadsheet size={15} aria-hidden /> En su propio Sheets</h3>
       <p className="rec-terr-nota">
-        Crea la pestaña «Supervisión {loteId}» en un Sheets aparte del barrido, que ven sólo los supervisores. Nombre y teléfono
-        llegan por fórmula desde el barrido, sin copiarse; la primera vez, abre la pestaña «Acceso al barrido» y pulsa «Permitir
-        acceso». Monitoreo lee de aquí el veredicto. Si la pestaña ya existe, no se toca.
+        Crea la pestaña "Supervisión {loteId}" en un Sheets aparte del barrido, que ven sólo los supervisores. Nombre y teléfono
+        llegan por fórmula desde el barrido, sin copiarse; la primera vez, abre la pestaña "Acceso al barrido" y pulsa "Permitir
+        acceso". Monitoreo lee de aquí el veredicto. Si la pestaña ya existe, no se toca.
       </p>
       <div className="rec-terr-fila">
         <PulsoInput aria-label="Enlace del Sheets de supervisión" placeholder="Vacío: el que ya está recordado" value={enlace} onChange={(e) => setEnlace(e.target.value)} disabled={ocupado} />

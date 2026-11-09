@@ -33,7 +33,7 @@ export const AVISO_SIN_REVISION = "No se sabe qué versión del correo está gua
 const AVISO_DE_IMPORTACION: Record<string, string> = {
   E_COLLECTION_MAIL_PLATFORM: "Esta campaña sale por SurveyMonkey: los contactos se cargan en su recopilador, no aquí.",
   E_COLLECTION_MAIL_RECIPIENTS_NO_HEADER: "La primera fila parece un destinatario; agrega una fila de encabezados.",
-  E_COLLECTION_MAIL_RECIPIENTS_ENCODING: "No se reconoce la codificación del archivo. Guárdalo como «CSV UTF-8» o como XLSX.",
+  E_COLLECTION_MAIL_RECIPIENTS_ENCODING: 'No se reconoce la codificación del archivo. Guárdalo como "CSV UTF-8" o como XLSX.',
 };
 
 /** Por qué no se aceptó una imagen (`details.reason` de E_COLLECTION_MAIL_IMAGE_INVALID). */

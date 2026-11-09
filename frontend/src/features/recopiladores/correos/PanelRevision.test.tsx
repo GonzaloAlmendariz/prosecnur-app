@@ -14,7 +14,7 @@ const chk = (code: string, status: MailCheck["status"], value: MailCheck["value"
 const CON_FALLOS = normalizeMailReview({
   checks: [
     { code: "subject", status: "ok", value: 45, detail: "Asunto presente." },
-    { code: "greeting_trato", status: "warning", value: 0, detail: "El saludo dirá «Estimado(a)» a todos: declara la columna de sexo.", targets: [{ block_id: "saludo" }] },
+    { code: "greeting_trato", status: "warning", value: 0, detail: 'El saludo dirá "Estimado(a)" a todos: declara la columna de sexo.', targets: [{ block_id: "saludo" }] },
     { code: "preheader", status: "ok", value: 91, detail: "" },
     { code: "recipients", status: "error", value: 0, detail: "Importa los destinatarios para exportar la audiencia." },
     { code: "accent_contrast", status: "ok", value: 15.66, detail: "" },
@@ -61,7 +61,7 @@ describe("Revisión › lo que falla arriba, lo que está bien plegado (H8)", ()
     expect(html.match(/rec-mail-rev-falla is-error/g)).toHaveLength(CON_FALLOS.errors);
     expect(html.match(/rec-mail-rev-falla is-warning/g)).toHaveLength(CON_FALLOS.warnings);
     // Una sola frase de causa; el botón «Elegir columna» es el arreglo del saludo.
-    expect(html).toContain("El saludo dirá «Estimado(a)» a todos.");
+    expect(html).toContain("El saludo dirá &quot;Estimado(a)&quot; a todos.");
     expect(html).not.toContain("declara la columna");
     expect(arregloEnLaRevision("greeting_trato")).toBeNull();
     expect(html).toContain("Elegir columna");
@@ -69,7 +69,7 @@ describe("Revisión › lo que falla arriba, lo que está bien plegado (H8)", ()
     expect(html).toContain("Importa la lista en Personas.");
   });
 
-  it("sin nada que falle dice «Todo en orden» y deja la lista plegada", () => {
+  it('sin nada que falle dice "Todo en orden" y deja la lista plegada', () => {
     const html = renderToStaticMarkup(<PanelRevision revision={TODO_BIEN} cargando={false} />);
     expect(html).toContain(TODO_EN_ORDEN);
     expect(TODO_EN_ORDEN).toBe("Todo en orden: listo para exportar");
@@ -131,7 +131,7 @@ describe("Revisión › sin jerga en lo que se ve", () => {
   });
 });
 
-describe("Revisión › «Logos repetidos» nombra y lleva a donde dice (e14)", () => {
+describe('Revisión › "Logos repetidos" nombra y lleva a donde dice (e14)', () => {
   const BANNER: MailImageBlock = { block_id: "banner-arriba", type: "image", image_ref: "contabilidad-1200", alt: "Contabilidad PUCP: encuesta de acreditación", bleed: true };
   const PLANTILLA: MailTemplate = {
     schema: "collection_mail_template/v1",
@@ -174,7 +174,7 @@ describe("Revisión › «Logos repetidos» nombra y lleva a donde dice (e14)", 
     expect(textoDelItem("sm_custom_limit", "trato", PLANTILLA)).toBe("Saludo según la persona");
   });
 
-  it("con la cabecera descrita el botón dice «Ir a la cabecera»; sin descripción, «Ir a Identidad»", () => {
+  it('con la cabecera descrita el botón dice "Ir a la cabecera"; sin descripción, "Ir a Identidad"', () => {
     const html = renderToStaticMarkup(<PanelRevision revision={DUPLICADOS} cargando={false} template={PLANTILLA} onIrAlBloque={() => undefined} />);
     expect(html).toContain("Ir a la cabecera");
     expect(html).not.toContain("Ir a Identidad");
@@ -186,7 +186,7 @@ describe("Revisión › «Logos repetidos» nombra y lleva a donde dice (e14)", 
     expect(salidaDelChequeo("logos_duplicados", CABECERA, undefined, { cabeceraSinAlt: false }).texto).toBe("Ir a la cabecera");
   });
 
-  it("«Quitar la franja de logos» deja el bloque como cabecera: se elige la cabecera", () => {
+  it('"Quitar la franja de logos" deja el bloque como cabecera: se elige la cabecera', () => {
     expect(pasoALaCabecera(franjaPorElBanner(PLANTILLA, BANNER.block_id), BANNER)).toBe(true);
     // Otras ediciones del bloque no cambian la selección.
     expect(pasoALaCabecera(PLANTILLA, BANNER)).toBe(false);

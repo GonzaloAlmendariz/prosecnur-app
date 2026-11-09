@@ -73,7 +73,7 @@ describe("PliegoReal: la página real con una zona por bloque", () => {
     expect(html).toContain("is-problema");
   });
 
-  it("sin accesos, el QR se rotula «enlace de ejemplo»", () => {
+  it('sin accesos, el QR se rotula "enlace de ejemplo"', () => {
     const html = pliego({ acceso: "ejemplo" });
     expect(html).toContain("rec-ed-zona-etiqueta");
     expect(html).toContain("enlace de ejemplo");
@@ -255,7 +255,7 @@ describe("SelectorDeUnidad", () => {
     expect(html).not.toContain("curso-u1");
   });
 
-  it("sin plan dice «Unidad de ejemplo» y lleva a Unidades", () => {
+  it('sin plan dice "Unidad de ejemplo" y lleva a Unidades', () => {
     const html = renderToStaticMarkup(<SelectorDeUnidad units={null} valor={null} usada={null} onCambiar={noop} onIrAUnidades={noop} />);
     expect(html).toContain("Unidad de ejemplo");
     expect(html).toContain("Ir a Unidades");
@@ -297,7 +297,7 @@ describe("BarraDelEditor", () => {
     expect(html).toContain("Guardar receta");
   });
 
-  it("sin cambios, «Guardar receta» se apaga y dice por qué", () => {
+  it('sin cambios, "Guardar receta" se apaga y dice por qué', () => {
     const html = barra({ conCambios: false, puedeGuardar: false, motivoSinGuardar: "Sin cambios que guardar" });
     expect(html).toMatch(/<button[^>]*disabled=""[^>]*title="Sin cambios que guardar"[^>]*>.*Guardar receta/);
     expect(barra()).not.toContain("Sin cambios que guardar");

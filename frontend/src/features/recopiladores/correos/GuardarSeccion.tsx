@@ -60,7 +60,7 @@ export function GuardarSeccion({ block, onGuardar, onCerrar, error = null }: Pro
         </PulsoButton>
         <PulsoButton type="button" variant="ghost" size="sm" onClick={onCerrar}>Cancelar</PulsoButton>
       </span>
-      <p className="rec-capa-img-ayuda">Al usarla se copia: cambiarla después no toca los correos que ya la usan. Queda en «Mis secciones» de este estudio.</p>
+      <p className="rec-capa-img-ayuda">Al usarla se copia: cambiarla después no toca los correos que ya la usan. Queda en "Mis secciones" de este estudio.</p>
     </form>
   );
 }

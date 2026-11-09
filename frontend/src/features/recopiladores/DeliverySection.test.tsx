@@ -120,7 +120,7 @@ describe("H23 — recibo sin archivo en la sesión", () => {
     expect(markup).toContain("file-nuevo");
   });
 
-  it("page_count 1 dice «1 página», en singular", () => {
+  it('page_count 1 dice "1 página", en singular', () => {
     const markup = renderReceipts([receipt("uno", { file_available: true, page_count: 1 })]);
     expect(markup).toContain("1 página");
     expect(markup).not.toContain("1 páginas");
@@ -153,7 +153,7 @@ describe("H25 — el recibo sólo se firma si hubo traspaso", () => {
     );
     expect(markup).not.toContain("Recibo firmado");
     expect(markup).toContain("Aún no se entrega a Monitoreo");
-    expect(markup).toContain("«Entregar a Monitoreo»");
+    expect(markup).toContain("&quot;Entregar a Monitoreo&quot;");
   });
 
   it("sin accesos preparados, el vacío dice que faltan los accesos", () => {

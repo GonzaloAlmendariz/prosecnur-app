@@ -196,11 +196,11 @@ export function MaterialCampoShell() {
         tono: "ok",
         texto: archivar
           ? campana.tipo === "territorial"
-            ? `«${campana.name}» se archivó: sale de la lista sin tocar la muestra enviada. Se reabre desde «Archivadas».`
+            ? `"${campana.name}" se archivó: sale de la lista sin tocar la muestra enviada. Se reabre desde "Archivadas".`
             : campana.tipo === "telefonica" || campana.tipo === "supervision"
-            ? `«${campana.name}» se archivó: sale de la lista con su configuración intacta. Se reabre desde «Archivadas».`
-            : `«${campana.name}» se archivó: sale de la lista sin perder plan, fichas ni traspaso. Se reabre desde «Archivadas».`
-          : `«${campana.name}» volvió a la lista.`,
+            ? `"${campana.name}" se archivó: sale de la lista con su configuración intacta. Se reabre desde "Archivadas".`
+            : `"${campana.name}" se archivó: sale de la lista sin perder plan, fichas ni traspaso. Se reabre desde "Archivadas".`
+          : `"${campana.name}" volvió a la lista.`,
       });
       if (archivar && direccion?.campana === campana.id) aLaLista();
     });

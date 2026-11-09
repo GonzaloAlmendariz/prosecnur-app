@@ -71,7 +71,7 @@ describe("biblioteca y store", () => {
     useMisSecciones.setState({ secciones: [guardada], estado: "lista", error: null, sesion: null });
   });
 
-  it("la biblioteca ofrece «Mis secciones» primero cuando el editor sabe usarlas", () => {
+  it('la biblioteca ofrece "Mis secciones" primero cuando el editor sabe usarlas', () => {
     const html = renderToStaticMarkup(<BibliotecaDeBloques template={plantilla([])} onElegir={() => {}} onElegirGuardada={() => {}} onCerrar={() => {}} />);
     expect(html.indexOf("Mis secciones")).toBeLessThan(html.indexOf("Secciones</h4>"));
     const sin = renderToStaticMarkup(<BibliotecaDeBloques template={plantilla([])} onElegir={() => {}} onCerrar={() => {}} />);
@@ -82,7 +82,7 @@ describe("biblioteca y store", () => {
     const html = renderToStaticMarkup(<ListaDeMisSecciones secciones={[guardada]} cargando={false} error={null} onElegir={() => {}} onBorrar={() => {}} />);
     expect(html).toContain('data-guardada="sorteo"');
     expect(html).toContain("Destacado · 24 oct");
-    expect(html).toContain("Borrar «Sorteo de audífonos» de Mis secciones");
+    expect(html).toContain("Borrar &quot;Sorteo de audífonos&quot; de Mis secciones");
     const vacia = renderToStaticMarkup(<ListaDeMisSecciones secciones={[]} cargando={false} error={null} onElegir={() => {}} onBorrar={() => {}} />);
     expect(vacia).toContain("Aún no hay.");
   });

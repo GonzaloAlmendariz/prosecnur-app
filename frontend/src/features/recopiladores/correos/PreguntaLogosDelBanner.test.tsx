@@ -43,7 +43,7 @@ function texto(nodo: ReactNode): string {
 
 function clic(arbol: ReactNode, rotulo: string) {
   const boton = botones(arbol).find((b) => texto(b.props.children).trim() === rotulo);
-  if (!boton?.props.onClick) throw new Error(`sin botón «${rotulo}»`);
+  if (!boton?.props.onClick) throw new Error(`sin botón "${rotulo}"`);
   boton.props.onClick();
 }
 
@@ -63,7 +63,7 @@ describe("PreguntaLogosDelBanner", () => {
     expect(no).not.toContain(QUITAR_FRANJA);
   });
 
-  it("«Sí» y «No» responden; «cambiar» vuelve a preguntar", () => {
+  it('"Sí" y "No" responden; "cambiar" vuelve a preguntar', () => {
     const onResponder = vi.fn();
     const arbol = PreguntaLogosDelBanner({ traeLogos: undefined, onQuitarFranja: null, onResponder });
     clic(arbol, "Sí");
@@ -74,7 +74,7 @@ describe("PreguntaLogosDelBanner", () => {
     expect(onResponder).toHaveBeenLastCalledWith(undefined);
   });
 
-  it("con «Sí» y franja, ofrece quitarla en la misma línea", () => {
+  it('con "Sí" y franja, ofrece quitarla en la misma línea', () => {
     const onQuitarFranja = vi.fn();
     const arbol = PreguntaLogosDelBanner({ traeLogos: true, onQuitarFranja, onResponder: noop });
     clic(arbol, QUITAR_FRANJA);
@@ -83,7 +83,7 @@ describe("PreguntaLogosDelBanner", () => {
 });
 
 describe("trae_logos en la plantilla", () => {
-  it("«Sí» y «No» escriben el dato en la imagen; olvidar lo borra", () => {
+  it('"Sí" y "No" escriben el dato en la imagen; olvidar lo borra', () => {
     const si = conTraeLogos(PLANTILLA, BANNER.image_ref, true, BANNER.alt);
     expect(si.images[BANNER.image_ref]).toEqual({ alt: "Contabilidad PUCP", trae_logos: true });
     const no = conTraeLogos(si, BANNER.image_ref, false);
@@ -95,7 +95,7 @@ describe("trae_logos en la plantilla", () => {
     expect(conTraeLogos(PLANTILLA, "pulso", undefined)).toBe(PLANTILLA);
   });
 
-  it("«Quitar la franja» pasa la imagen a sangre de arriba a la cabecera banner", () => {
+  it('"Quitar la franja" pasa la imagen a sangre de arriba a la cabecera banner', () => {
     const con = conTraeLogos(PLANTILLA, BANNER.image_ref, true, BANNER.alt);
     expect(esBannerDeArriba(con, "banner")).toBe(true);
     const out = franjaPorElBanner(con, "banner");

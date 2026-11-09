@@ -205,14 +205,14 @@ describe("el diálogo es un panel direccionable y el botón no escribe", () => {
 describe("actualizar desde la fuente (E1e)", () => {
   const CONTEO = { altas: 2, bajas: 0, campos: 1, roles: 0 };
 
-  it("titula y confirma como «Actualizar desde la fuente» y da el conteo", () => {
+  it('titula y confirma como "Actualizar desde la fuente" y da el conteo', () => {
     const t = textoDelResembrado(HSVG, { plan_run_id: "sel_aulas_20260821160928_x", unidades: 2470, diferencias: CONTEO }, "actualizar");
     expect(t.titulo).toBe("¿Actualizar desde la fuente?");
     expect(t.confirmar).toBe("Actualizar desde la fuente");
     expect(t.diferencias).toBe("Entran 2, salen 0, cambian 1.");
   });
 
-  it("«cambian» son los datos; el rol no se cuenta dos veces", () => {
+  it('"cambian" son los datos; el rol no se cuenta dos veces', () => {
     const t = textoDelResembrado(HSVG, { plan_run_id: "", unidades: 5, diferencias: { ...CONTEO, roles: 1, unidades_con_cambios: 2 } }, "actualizar");
     expect(t.diferencias).toBe("Entran 2, salen 0, cambian 1, 1 de rol.");
   });

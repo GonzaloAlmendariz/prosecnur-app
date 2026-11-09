@@ -73,7 +73,7 @@ export function ConfirmarBorrarCampana({ panel, campana, onBorrar, onCancelar }:
         >
           <header className="rec-camp-dialogo-cabeza">
             <Dialog.Title className="rec-camp-dialogo-titulo">
-              {campana ? `Borrar «${campana.name}»` : "Borrar campaña"}
+              {campana ? `Borrar "${campana.name}"` : "Borrar campaña"}
             </Dialog.Title>
           </header>
           <div className="rec-camp-dialogo-cuerpo rec-camp-borrar-cuerpo">

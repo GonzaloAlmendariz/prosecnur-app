@@ -239,7 +239,7 @@ export function EntregaTelefonica({ config }: { config: ConfigTelefonica | null 
               },
               {
                 id: "documento", titulo: "Documento construido", hecho: config.barrido.construido,
-                detalle: config.barrido.construido ? `Pestaña «${config.barrido.pestana ?? "Barrido"}» del Sheets del estudio` : "Se construye en Barrido.",
+                detalle: config.barrido.construido ? `Pestaña "${config.barrido.pestana ?? "Barrido"}" del Sheets del estudio` : "Se construye en Barrido.",
               },
               {
                 id: "monitoreo", titulo: "Conectado en Monitoreo", hecho: config.barrido.conectado_en_monitoreo,

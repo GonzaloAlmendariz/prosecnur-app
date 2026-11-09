@@ -119,7 +119,7 @@ export function ListaDeContactos({ lista, control, respuestasLeidas, cargando, e
         <div className="rec-contactos-vacio-caja" data-qa-geometry-capacity="owned">
           <p>
             {busqueda.trim()
-              ? `Ningún contacto coincide con «${busqueda.trim()}».`
+              ? `Ningún contacto coincide con "${busqueda.trim()}".`
               : hayCriterio || conFiltros
                 ? "Ningún contacto cumple esta combinación."
                 : "La lista está vacía."}

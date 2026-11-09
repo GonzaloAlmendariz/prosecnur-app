@@ -292,7 +292,7 @@ export function PaquetesTerritoriales({ campaignId, unidades, hojas, onRecargar,
               ))}
             </ul>
           ) : (
-            <p className="rec-terr-nota">{busqueda.trim() ? `Ninguna titular coincide con «${busqueda}».` : "Busca la titular que falló para pedirle reemplazos."}</p>
+            <p className="rec-terr-nota">{busqueda.trim() ? `Ninguna titular coincide con "${busqueda}".` : "Busca la titular que falló para pedirle reemplazos."}</p>
           )}
           {coincidencias > 12 ? <p className="rec-terr-nota">Se muestran 12 de {fmt(coincidencias)}: afina la búsqueda.</p> : null}
           <div className="rec-terr-fila">

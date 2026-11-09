@@ -63,7 +63,7 @@ describe("N1 · ningún ícono del editor se encoge", () => {
   });
 
   it("el aviso del saludo con texto largo dibuja su ícono cuadrado", () => {
-    const largo: MailCheck = { code: "greeting_trato", status: "warning", value: 0, detail: "El saludo dirá «Estimado(a)» a todos los destinatarios de la lista, sin importar el sexo de cada persona registrada.", items: [], targets: [{ block_id: "saludo" }] };
+    const largo: MailCheck = { code: "greeting_trato", status: "warning", value: 0, detail: 'El saludo dirá "Estimado(a)" a todos los destinatarios de la lista, sin importar el sexo de cada persona registrada.', items: [], targets: [{ block_id: "saludo" }] };
     const html = renderToStaticMarkup(<ChequeosDelBloque chequeos={[largo]} />);
     const svgs = [...html.matchAll(/<svg[^>]*>/g)].map((m) => m[0]);
     expect(svgs.length).toBe(1);
@@ -78,7 +78,7 @@ describe("N1 · ningún ícono del editor se encoge", () => {
 });
 
 describe("N4 · una llave tecleada se vuelve chip y el cursor sigue tras lo escrito", () => {
-  it("monta con «Hola {{nombre}}», muestra el chip «Nombre» y repone el cursor al volcar", () => {
+  it('monta con "Hola {{nombre}}", muestra el chip "Nombre" y repone el cursor al volcar', () => {
     const raiz = domDePrueba(htmlDelTexto("Hola {{nombre}}", OPCIONES));
     const chip = raiz.querySelector("[data-campo]");
     expect(chip?.textContent).toBe("Nombre");
@@ -109,7 +109,7 @@ describe("N4 · una llave tecleada se vuelve chip y el cursor sigue tras lo escr
     expect(antes.at(-1)?.getAttribute("data-campo")).toBe("enlace");
   });
 
-  it("en medio del texto, el cursor queda justo después del chip nuevo («ZEstimado…» no vuelve)", () => {
+  it('en medio del texto, el cursor queda justo después del chip nuevo ("ZEstimado…" no vuelve)', () => {
     const raiz = domDePrueba(htmlDelTexto("Hola {{nombre}}, qué tal", OPCIONES));
     // Se teclea «{{enlace}}» tras «Hola »: el primer nodo de texto pasa a «Hola {{enlace}}».
     const primero = raiz.childNodes[0];
@@ -131,7 +131,7 @@ describe("N4 · una llave tecleada se vuelve chip y el cursor sigue tras lo escr
 });
 
 describe("N5 · un campo que la campaña no declara", () => {
-  it("se detecta en los bloques y en el envío; «nombre» y los campos declarados valen", () => {
+  it('se detecta en los bloques y en el envío; "nombre" y los campos declarados valen', () => {
     expect(camposNoDeclarados(PLANTILLA)).toEqual(["carrera"]);
     expect(camposNoDeclarados({ ...PLANTILLA, blocks: [PLANTILLA.blocks[0]] }, { subject: "Hola {{facultad}}" })).toEqual(["facultad"]);
     expect(camposNoDeclarados({ ...PLANTILLA, blocks: [PLANTILLA.blocks[0]] })).toEqual([]);
@@ -201,7 +201,7 @@ describe("N6 · deshacer quita la última palabra, no el campo entero", () => {
   });
 });
 
-describe("#8 · el punto de la cabecera lleva a «Logos e imágenes subidos»", () => {
+describe('#8 · el punto de la cabecera lleva a "Logos e imágenes subidos"', () => {
   const chk = (code: MailCheck["code"], ...zonas: string[]): MailCheck => ({ code, status: "error", value: 1, detail: "", items: [], targets: zonas.map((block_id) => ({ block_id })) });
   const fallas = [chk("placeholders_pending", CABECERA, "texto"), chk("images_available", CABECERA)];
 

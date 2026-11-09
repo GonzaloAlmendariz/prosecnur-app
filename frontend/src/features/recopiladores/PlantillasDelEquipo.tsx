@@ -96,7 +96,7 @@ export function PlantillasDelEquipo() {
       <Panel
         data-qa-geometry-member
         title={<><CalendarDays size={16} aria-hidden /> Traspaso a Monitoreo</>}
-        hint={entrega && entregada ? undefined : "Al entregar, Monitoreo la trae desde Insumos › Fuentes con «Traer la entrega»."}
+        hint={entrega && entregada ? undefined : 'Al entregar, Monitoreo la trae desde Insumos › Fuentes con "Traer la entrega".'}
       >
         {entrega === null && !error ? <CargaDeBloque label="Leyendo la entrega…" /> : null}
         {entrega && !entregada ? <p className="rec-equipo-estado">Todavía no hay entrega</p> : null}

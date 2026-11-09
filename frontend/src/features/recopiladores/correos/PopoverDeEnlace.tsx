@@ -68,7 +68,7 @@ export function PopoverDeEnlace({ url, texto, existente, estilo, onAplicar, onQu
       <div className="rec-capa-pop-cabeza">
         <Link2 size={14} aria-hidden />
         <span>{existente ? "Editar el enlace" : "Enlazar"}</span>
-        {texto ? <span className="rec-capa-pop-cita">«{texto.length > 32 ? `${texto.slice(0, 32)}…` : texto}»</span> : null}
+        {texto ? <span className="rec-capa-pop-cita">"{texto.length > 32 ? `${texto.slice(0, 32)}…` : texto}"</span> : null}
       </div>
       {!texto ? (
         <label className="rec-capa-pop-campo" htmlFor={`${id}-texto`}>

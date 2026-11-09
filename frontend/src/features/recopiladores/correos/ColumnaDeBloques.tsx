@@ -158,7 +158,7 @@ function conRotulos(resumen: string, campos: readonly { key: string; label: stri
   return resumen.replace(/\{\{\s*([a-z0-9_]+)\s*\}\}/gi, (marca, key: string) => {
     const campo = campos.find((c) => c.key === key);
     // N5: un campo no declarado tampoco muestra su llave.
-    return campo ? `«${campo.label}»` : /^[a-z][a-z0-9_]*$/.test(key) ? `«${rotuloDeClave(key)}»` : marca;
+    return campo ? `"${campo.label}"` : /^[a-z][a-z0-9_]*$/.test(key) ? `"${rotuloDeClave(key)}"` : marca;
   });
 }
 
@@ -336,8 +336,8 @@ export function ColumnaDeBloques({
 
       <div className="rec-mail-col-grupo rec-mail-col-grupo--campos">
         <span className="xfk-over">Campos de cada persona</span>
-        <span className="rec-mail-ayuda rec-mail-campos-ejemplo" title={`Cambian con cada persona: Nombre dice «${ejemploDeNombre || "Ana"}».`}>
-          Cambian con cada persona: Nombre dice «{primerNombre(ejemploDeNombre) || "Ana"}».
+        <span className="rec-mail-ayuda rec-mail-campos-ejemplo" title={`Cambian con cada persona: Nombre dice "${ejemploDeNombre || "Ana"}".`}>
+          Cambian con cada persona: Nombre dice "{primerNombre(ejemploDeNombre) || "Ana"}".
           {hayDestino ? " Pulsa uno para ponerlo en el texto." : " Elige un texto del correo para ponerlo ahí."}
         </span>
         <span className="rec-mail-campos" role="group" aria-label="Insertar un campo en el texto elegido">

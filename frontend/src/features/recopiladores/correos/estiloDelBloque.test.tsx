@@ -94,7 +94,7 @@ describe("caja del bloque", () => {
   });
 });
 
-describe("panel «Estilo» (L4)", () => {
+describe('panel "Estilo" (L4)', () => {
   it("sin caja ofrece darle estilo propio y nada más", () => {
     const html = renderToStaticMarkup(<EstiloDelBloque block={parrafo} theme={tema} onEditar={noop} />);
     expect(html).toContain("Usa el estilo del correo.");
@@ -147,7 +147,7 @@ describe("colores de la marca en el editor", () => {
 });
 
 describe("sección Destacado en el editor (L5)", () => {
-  it("se inserta sin foto, sobre el tinte, con sus textos editables y la forma «Imagen»", async () => {
+  it('se inserta sin foto, sobre el tinte, con sus textos editables y la forma "Imagen"', async () => {
     const { bloqueNuevo, propsDeTexto } = await import("./modeloCorreo");
     const { ajustesDe } = await import("./ajustesDeBloque");
     const b = bloqueNuevo("feature", "feature-1");

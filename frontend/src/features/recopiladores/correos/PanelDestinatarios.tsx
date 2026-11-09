@@ -265,15 +265,15 @@ export function PanelDestinatarios({
           {oferta?.tipo === "ofrecer" && onUsarColumnaDeSexo ? (
             <div className="rec-personas-trato" role="group" aria-label="Saludo según el sexo">
               <Sparkles size={14} aria-hidden />
-              <span>La lista trae «{oferta.columna}»: el saludo puede decir Estimado o Estimada según cada persona.</span>
+              <span>La lista trae "{oferta.columna}": el saludo puede decir Estimado o Estimada según cada persona.</span>
               <PulsoButton variant="secondary" size="sm" disabled={ocupado} onClick={() => onUsarColumnaDeSexo(oferta.columna)}>
-                Usar «{oferta.columna}» para el saludo
+                Usar "{oferta.columna}" para el saludo
               </PulsoButton>
             </div>
           ) : null}
           {oferta?.tipo === "en-uso" ? (
             <p className="rec-personas-trato is-en-uso" role="status">
-              <span>El saludo cambia según «{oferta.columna}».</span>
+              <span>El saludo cambia según "{oferta.columna}".</span>
               {onVerSaludo ? (
                 <button type="button" className="rec-mail-link" onClick={onVerSaludo}>
                   Ver el saludo <ArrowRight size={12} aria-hidden />
@@ -390,7 +390,7 @@ export function PanelDestinatarios({
                 <span className="rec-variables-linea-rotulo" aria-hidden>Columna</span>
                 {cargados ? (
                   <span className="rec-mail-ayuda">
-                    {mapping?.name_column ? <>«{mapping.name_column}», la que elegiste arriba.</> : "Elígela arriba, en Nombre."}
+                    {mapping?.name_column ? <>"{mapping.name_column}", la que elegiste arriba.</> : "Elígela arriba, en Nombre."}
                   </span>
                 ) : (
                   <span className="rec-variables-sin-columna">{SIN_LISTA_COLUMNA}</span>
@@ -399,7 +399,7 @@ export function PanelDestinatarios({
               {saludo?.fallback ? (
                 <span className="rec-variables-linea">
                   <span className="rec-variables-linea-rotulo" aria-hidden>Si falta</span>
-                  <span className="rec-mail-ayuda">El saludo dice «{saludo.fallback}».</span>
+                  <span className="rec-mail-ayuda">El saludo dice "{saludo.fallback}".</span>
                 </span>
               ) : null}
             </li>

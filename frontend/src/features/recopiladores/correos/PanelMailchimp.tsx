@@ -17,10 +17,10 @@ import "./correosExportar.css";
  */
 const PASOS_MAILCHIMP: readonly { donde: string; que: string }[] = [
   { donde: "Audiencia:", que: "importa audiencia.csv y ponle una etiqueta." },
-  { donde: "To:", que: "elige esa etiqueta, no «All subscribed contacts»." },
+  { donde: "To:", que: 'elige esa etiqueta, no "All subscribed contacts".' },
   { donde: "From:", que: "un correo del dominio que verificaron en Mailchimp." },
   { donde: "Content:", que: "Code your own › Import zip con este archivo; las imágenes se suben solas." },
-  { donde: "«Send»,", que: "no «Send a test email»: la prueba muestra «<< Test … >>» porque no llena los campos." },
+  { donde: '"Send",', que: 'no "Send a test email": la prueba muestra "<< Test … >>" porque no llena los campos.' },
 ];
 
 type Props = {

@@ -170,7 +170,7 @@ describe("notas por bloque", () => {
       ],
     });
     expect(notasDe(porBloque, "titulo")).toEqual({
-      noDibujado: "No se dibuja: ya hay un bloque «Título» en esta cara",
+      noDibujado: 'No se dibuja: ya hay un bloque "Título" en esta cara',
       avisos: ["El texto no cabe entero y se corta"],
       problemas: [],
     });

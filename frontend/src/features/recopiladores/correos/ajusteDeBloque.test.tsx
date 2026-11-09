@@ -70,7 +70,7 @@ describe("ajustes del bloque › opciones por tipo", () => {
     expect(ajuste(parrafo, "tone").opciones.map((o) => o.valor)).toEqual(["normal", "suave", "acento"]);
   });
 
-  it("ya no existe «Del estilo» en ningún tipo", () => {
+  it('ya no existe "Del estilo" en ningún tipo', () => {
     for (const block of [parrafo, titulo, boton]) {
       for (const a of ajustesDe(block)) {
         expect(a.opciones.map((o) => o.rotulo)).not.toContain("Del estilo");

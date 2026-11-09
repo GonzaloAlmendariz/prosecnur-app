@@ -50,7 +50,7 @@ describe("barra", () => {
     expect(html).toContain('aria-label="Estilo del bloque"');
   });
 
-  it("«Estilo» queda pedido para el bloque elegido y otro bloque vuelve a abrir en su contenido", () => {
+  it('"Estilo" queda pedido para el bloque elegido y otro bloque vuelve a abrir en su contenido', () => {
     const s = useCorreosStore.getState();
     s.seleccionar("steps-1");
     s.setVistaDelBloque("estilo");

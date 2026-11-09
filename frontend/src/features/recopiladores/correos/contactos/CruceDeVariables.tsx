@@ -91,7 +91,7 @@ export function CruceDeVariables({ control, etiquetas, par, cruce, cargando, onE
         </div>
       ) : !vigente ? (
         cargando ? <CargaDeBloque label="Leyendo el cruce…" /> : (
-          <EstadoVacio icono={<Inbox size={16} aria-hidden />} titulo="El cruce no llegó con el perfil" descripcion="Pulsa «Actualizar» para pedirlo de nuevo." />
+          <EstadoVacio icono={<Inbox size={16} aria-hidden />} titulo="El cruce no llegó con el perfil" descripcion='Pulsa "Actualizar" para pedirlo de nuevo.' />
         )
       ) : (
         <TablaDelCruce

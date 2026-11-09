@@ -9,12 +9,12 @@ const base = normalizeResultado({
   dry_run: false, synced_at: "2026-10-21T16:00:00-0500",
 });
 
-describe("resumen de «Actualizar quién respondió»", () => {
+describe('resumen de "Actualizar quién respondió"', () => {
   it("dice cuántos respondieron y cuántos faltan, y solo las líneas con algo", () => {
     const r = resumenDeSincronizacion(base);
     expect(r.titulo).toBe("2 de 7 ya respondieron; faltan 5.");
     expect(r.lineas).toEqual([
-      "En Mailchimp quedaron con la etiqueta «Respondió».",
+      'En Mailchimp quedaron con la etiqueta "Respondió".',
       "1 persona dejó la encuesta a medias: sigue recibiendo recordatorios.",
       "1 respuesta llegó por un enlace que no es de esta campaña.",
       "1 respuesta entró sin enlace personal y no se puede atribuir.",
@@ -24,7 +24,7 @@ describe("resumen de «Actualizar quién respondió»", () => {
   it("avisa a quién no se pudo etiquetar porque no está en la audiencia", () => {
     const r = resumenDeSincronizacion({ ...base, tagged: 1, not_in_audience: 1, partial: 0, from_other_campaign: 0, without_token: 0 });
     expect(r.lineas).toEqual([
-      "1 persona quedó con la etiqueta «Respondió» en Mailchimp.",
+      '1 persona quedó con la etiqueta "Respondió" en Mailchimp.',
       "1 persona no está en esa audiencia de Mailchimp: no se pudo etiquetar.",
     ]);
   });
