@@ -38,7 +38,8 @@
   ex <- espec$leyenda_extras %||% data.frame(texto = "Sin encuestados", tipo = "vacio", stringsAsFactors = FALSE)
   w_ex <- pmax(0.75, .lam_ancho_tinta(ex$texto, pt) * 1.08 + 0.2)
   paso <- (w - sum(w_ex) - nrow(ex) * 10 * .LAM_MAPA_PX) / max(1L, length(espec$clases$colores))
-  if (paso >= 0.5) 1L else 2L
+  # `leyenda_paso_min`: el bloque que pide la espec para que su rango quepa en una línea (los del mapa de resultado son más largos).
+  if (paso >= max(0.5, espec$leyenda_paso_min %||% 0)) 1L else 2L
 }
 
 #' Leyenda bajo el mapa: título, bloques de clase con su rango y los extras («Sin encuestados» y el rayado de cada otra
@@ -180,9 +181,11 @@
 #' `modo = "ancho"` (un mapa junto a su filtro): la leyenda va bajo el mapa y la lista usa todo el alto. `modo = "angosto"`
 #' (dos mapas): la leyenda cruza la tarjeta y la lista termina encima de ella. Lo usan la lámina del filtro con sus mapas
 #' (lamina_filtro_mapa.R) y, con `modo = "solo"`, la del mapa suelto (mapa y lista en tarjetas separadas).
-#' @param x,y,w,h La tarjeta (in). @return `doc` con la tarjeta, el mapa, la leyenda y la lista.
+#' @param x,y,w,h La tarjeta (in). @param lista Quién dibuja la lista (el mapa de resultado lista todos sus distritos,
+#'   lamina_mapa_resultado_tarjeta.R). @return `doc` con la tarjeta, el mapa, la leyenda y la lista.
 #' @keywords internal
-.lam_mapa_dist_en_caja <- function(doc, espec, x, y, w, h, modo = c("ancho", "angosto", "solo"), w_lista = NULL) {
+.lam_mapa_dist_en_caja <- function(doc, espec, x, y, w, h, modo = c("ancho", "angosto", "solo"), w_lista = NULL,
+                                   lista = .lam_mapa_dist_lista) {
   modo <- match.arg(modo); P <- .LAM_MAPA_PX
   if (identical(modo, "solo")) {
     wm <- w; xl <- x + w + 20 * P; wl <- w_lista %||% 4
@@ -221,8 +224,8 @@
   .lam_mapa_dist_leyenda(lz, espec, x + 15 * P, y + h_map + 10 * P, ley_w)
   y_l <- y + 18 * P
   h_l <- if (identical(modo, "angosto")) h_map - 30 * P else h - 42 * P
-  if (identical(modo, "solo")) .lam_mapa_dist_lista(lz, espec, xl + 24 * P, y_l, wl - 48 * P, h_l)
-  else .lam_mapa_dist_lista(lz, espec, xl, y_l, wl, h_l)
+  if (identical(modo, "solo")) lista(lz, espec, xl + 24 * P, y_l, wl - 48 * P, h_l)
+  else lista(lz, espec, xl, y_l, wl, h_l)
   .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:mapa:panel")
 }
 

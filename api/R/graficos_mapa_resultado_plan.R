@@ -126,7 +126,8 @@ p_mapa_resultado_distrital <- function(var, cruces, corte, titulo = NULL, filtro
   list(version = "mapa/1", tipo = "mapa", forma = "resultado",
        capas = list(list(datos = lima, borde = "#FFFFFF", grosor = 0.3)), caja = bb,
        leyenda = list(titulo = "Por distrito", rotulos = c(rot, "Sin encuestas"), colores = c(pal, .std_color("mapa_fuera"))),
-       ranking = data.frame(distrito = nombre[o], valor = .pulso_round_half_up(ok$porcentaje[o]), n = ok$n[o], color = pal[clase][o], stringsAsFactors = FALSE),
+       ranking = data.frame(distrito = nombre[o], valor = .pulso_round_half_up(ok$porcentaje[o]), n = ok$n[o], color = pal[clase][o], ubigeo = ok$ubigeo[o],
+                            stringsAsFactors = FALSE),
        panel = list(titulo = titulo_panel, sub = "Por distrito, de mayor a menor"),
        sin_casar = filas$etiqueta[is.na(filas$ubigeo)], pocos_casos = filas$etiqueta[!is.na(filas$ubigeo) & filas$n < min_n])
 }

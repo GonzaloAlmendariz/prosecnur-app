@@ -51,11 +51,10 @@ test_that("la 104 sale nativa en el motor, con su ranking, y avisa por su nombre
   expect_identical(txt("panel:pregunta"), "Satisfechos o muy satisfechos")
 })
 
-test_that("el ranking cambia de forma con los distritos y Lima y Callao enteros caben (13, 14, 26, 27 y 50)", {
+test_that("la lista cabe con 1, 13, 14, 26, 27 y los 50 distritos de Lima y Callao (en hasta cuatro columnas)", {
   lima <- .mapa_resultado_lima()
   f <- data.frame(codigo = lima$ubigeo, etiqueta = lima$distrito, porcentaje = seq(40, 90, length.out = nrow(lima)), n = 50L, ubigeo = lima$ubigeo)
   for (k in c(1L, 13L, 14L, 26L, 27L, nrow(lima))) expect_true(.lam_mapa_resultado_cabe(.espec_mapa_resultado(f[seq_len(k), ])), label = paste(k, "distritos"))
-  expect_identical(vapply(c(13L, 14L, 26L, 27L), .lam_mapa_resultado_forma, ""), c("una", "dos", "dos", "lista"))
   expect_identical(nrow(lima), 50L)
   vacio <- .espec_mapa_resultado(f[0, ])
   expect_identical(nrow(vacio$ranking), 0L); expect_true(.lam_mapa_resultado_cabe(vacio))
@@ -74,7 +73,7 @@ test_that("las guardas de los puntos comparativos: códigos fuera de escala, dis
   expect_identical(e$leyenda$rotulos[2], "55.5 a menos de 70 %")
 })
 
-test_that("la 104 con 30 distritos sale nativa en tres columnas, con todas sus cifras", {
+test_that("la 104 con 30 distritos sale nativa con todas sus cifras y una barra del color de su clase por distrito", {
   lima <- .mapa_resultado_lima()[1:30, ]
   fx <- .mr_fixture(dist_labels = lima$distrito, pct = rep(c(40, 60, 80), 10), n = 100)
   out <- tempfile(fileext = ".pptx")
@@ -83,5 +82,25 @@ test_that("la 104 con 30 distritos sale nativa en tres columnas, con todas sus c
   x <- xml2::read_xml(unz(out, "ppt/slides/slide1.xml"))
   vals <- xml2::xml_text(xml2::xml_find_all(x, "//p:sp[p:nvSpPr/p:cNvPr[@name='mapa:valor']]"))
   expect_length(vals, 30L)
-  expect_length(xml2::xml_find_all(x, "//p:sp[p:nvSpPr/p:cNvPr[@name='mapa:clase']]"), 30L)
+  expect_length(xml2::xml_find_all(x, "//p:sp[p:nvSpPr/p:cNvPr[@name='mapa:barra']]"), 30L)
+})
+
+test_that("ítem 4 del catálogo: la 104 se dibuja con el lenguaje del mapa de distribución, sin cambiar sus números", {
+  fx <- .mr_fixture()
+  out <- tempfile(fileext = ".pptx")
+  suppressMessages(suppressWarnings(reporte_ppt_plan(data = fx$data, instrumento = fx$inst, plan = list(p_slide_1_grafico(
+    p_mapa_resultado_distrital("sat", cruces = "dist", corte = c("4", "5")), titulo = "Satisfacción")), path_ppt = out, mensajes_progreso = FALSE)))
+  x <- xml2::read_xml(unz(out, "ppt/slides/slide1.xml"))
+  nm <- xml2::xml_attr(xml2::xml_find_all(x, "//p:cNvPr"), "name")
+  # Tarjeta del mapa y de la lista, leyenda en bloques con «Sin encuestas» y barra sobre su pista.
+  for (n in c("mapa:tarjeta", "mapa:lista_tarjeta", "leyenda:clase", "leyenda:extra", "mapa:barra_fondo", "mapa:barra")) expect_true(n %in% nm, label = n)
+  txt <- function(n) xml2::xml_text(xml2::xml_find_all(x, sprintf("//p:sp[p:nvSpPr/p:cNvPr[@name='%s']]", n)))
+  expect_identical(txt("mapa:valor"), c("77%", "55%", "51%"))
+  expect_true("Sin encuestas" %in% txt("leyenda:texto"))
+  expect_identical(txt("leyenda:rango"), c("Menos de 55 %", "55 a 64 %", "65 a 74 %", "75 % a más"))
+  # La barra mide el porcentaje sobre el 100 % de su pista.
+  ext <- function(n) as.numeric(xml2::xml_attr(xml2::xml_find_first(xml2::xml_find_all(x, sprintf("//p:sp[p:nvSpPr/p:cNvPr[@name='%s']]", n)), ".//a:ext"), "cx"))
+  expect_equal(ext("mapa:barra")[1] / ext("mapa:barra_fondo")[1], 0.77, tolerance = 0.01)
+  # Un porcentaje no se suma entre distritos: no hay fila «Otros distritos».
+  expect_false(any(grepl("^Otros", txt("mapa:distrito"))))
 })
