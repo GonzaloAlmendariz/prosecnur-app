@@ -141,10 +141,20 @@ test_that("un reparto que deja un lado vacio se rechaza", {
   )
 }
 
-test_that("exige exactamente dos bases y explica por que", {
-  df <- data.frame(eje = "a", grupo = c("x", "y", "z"), valor = 1:3, stringsAsFactors = FALSE)
-  expect_error(graficar_dumbbell(df), "exactamente dos bases")
-  expect_error(graficar_dumbbell(df), "rango")
+# P6 (2026-11-09): este contrato decía «exactamente dos bases». Desde 33da8b4a2 el dumbbell acepta de dos a cuatro
+# grupos: con tres o cuatro va al estilo resumen (una sub-fila por grupo, graficos_dumbbell_tres_grupos.R). Uno solo o
+# cinco o más siguen siendo un error, y el mensaje dice el rango que sí acepta.
+test_that("acepta de dos a cuatro grupos (tres y cuatro van al estilo resumen) y rechaza uno o cinco con el rango", {
+  grupos <- function(k) data.frame(eje = rep(c("a", "b"), each = k), grupo = rep(letters[seq_len(k)], 2),
+                                   valor = seq(10, by = 5, length.out = 2 * k), stringsAsFactors = FALSE)
+  for (k in 3:4) {
+    p <- graficar_dumbbell(grupos(k))
+    expect_identical(attr(p, "pulso_espec")$tipo, "contraste", label = k)
+    expect_identical(attr(p, "pulso_espec")$modo, "subfilas", label = k)
+  }
+  expect_identical(attr(graficar_dumbbell(grupos(2)), "pulso_espec")$tipo, "pesas")
+  expect_error(graficar_dumbbell(grupos(5)), "de dos a 4 grupos y llegaron 5")
+  expect_error(graficar_dumbbell(data.frame(eje = "a", grupo = "x", valor = 1)), "llegaron 1")
 })
 
 test_that("ordena por brecha de fabrica y el mayor queda arriba", {

@@ -32,7 +32,7 @@
 #'
 #' @param data Data frame tidy con una fila por (tema, base).
 #' @param var_eje Columna con el tema (una fila del gráfico).
-#' @param var_grupo Columna con la base (debe tener exactamente dos valores).
+#' @param var_grupo Columna con el grupo: de dos a cuatro valores (con tres o cuatro, el estilo resumen).
 #' @param var_valor Columna con el valor.
 #' @param umbral_brecha_pct Solo se rotulan las brechas de al menos este tamano,
 #'   en puntos porcentuales. El sufijo `_pct` evita que el patch de UI lo acote
@@ -143,11 +143,11 @@ graficar_dumbbell <- function(
   } else {
     unique(df$.grupo)
   }
+  # Con tres o cuatro grupos ya se fue al estilo resumen (arriba); aquí sólo llegan uno o cinco o más.
   if (length(niveles_grupo) != 2L) {
     stop(
-      "El dumbbell compara exactamente dos bases y llegaron ",
-      length(niveles_grupo),
-      ". Con tres o mas el segmento deja de ser una brecha y pasa a ser un rango.",
+      "El dumbbell compara de dos a ", .DUMBBELL_GRUPOS_MAX, " grupos y llegaron ", length(niveles_grupo),
+      ". Con más, las sub-filas de cada pregunta ya no se leen: divide los grupos en dos láminas.",
       call. = FALSE
     )
   }

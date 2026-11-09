@@ -71,7 +71,7 @@ test_that("con dos grupos nada cambia: diferencia con signo, leyenda sin n y el 
   # El recetario con tres grupos ya no se niega: se dibuja como el contraste. Con cinco, sí.
   expect_identical(attr(graficar_dumbbell(.d3_tidy(3)), "pulso_espec")$tipo, "contraste")
   d5 <- rbind(.d3_tidy(4), transform(.d3_tidy(4)[1:4, ], grupo = "6to ciclo"))
-  expect_error(graficar_dumbbell(d5), "exactamente dos")
+  expect_error(graficar_dumbbell(d5), "de dos a 4 grupos y llegaron 5")   # P6: el mensaje dice el rango que acepta
 })
 
 test_that("el dumbbell entre públicos acepta de dos a cuatro: el analista los elige en los temas o en `bases`", {

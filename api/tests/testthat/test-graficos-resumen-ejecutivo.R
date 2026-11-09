@@ -100,7 +100,7 @@ test_that("con tres o cuatro grupos el recetario se dibuja como el contraste; co
   d <- data.frame(eje = "a", grupo = c("x", "y", "z"), valor = c(1, 2, 3))
   expect_identical(attr(graficar_dumbbell(d), "pulso_espec")$tipo, "contraste")
   expect_s3_class(graficar_dumbbell(d, estilo = "resumen"), "ggplot")
-  expect_error(graficar_dumbbell(data.frame(eje = "a", grupo = letters[1:5], valor = 1:5)), "exactamente dos")
+  expect_error(graficar_dumbbell(data.frame(eje = "a", grupo = letters[1:5], valor = 1:5)), "de dos a 4 grupos y llegaron 5")   # P6
   expect_identical(p_dumbbell(vars = list("b$p1"), corte = "4", cruce = "b$c", grupos = c("1", "2", "3"))$grupos, c("1", "2", "3"))
   expect_error(p_dumbbell(vars = list("b$p1"), corte = "4", cruce = "b$c", grupos = as.character(1:5)), "entre dos y cuatro")
   el <- p_dumbbell(vars = list("b$p1"), corte = "4", cruce = "b$c", grupos = c("1", "2", "3"), estilo = "resumen",
