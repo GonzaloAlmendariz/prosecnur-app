@@ -70,6 +70,20 @@
   invisible(x)
 }
 
+#' Ancho visible de la leyenda de marcas (`.lam_puntos_leyenda`): de la primera marca al final del último rótulo
+#' @keywords internal
+.lam_puntos_leyenda_ancho <- function(rotulos) {
+  if (!length(rotulos)) return(0)
+  sum(0.24 + .lam_ancho_tinta(rotulos, 10.5, FALSE)) + 0.4 * (length(rotulos) - 1L)
+}
+
+#' Dónde arranca la leyenda centrada en `xc` sin entrar en la columna que empieza en `tope` ni pasar de `piso` (in)
+#' @keywords internal
+.lam_puntos_leyenda_x <- function(rotulos, xc, tope, piso) {
+  wl <- .lam_puntos_leyenda_ancho(rotulos)
+  max(piso, min(xc - wl / 2, tope - wl))
+}
+
 #' Columnas de la tabla lateral del contraste: «Diferencia» y, si la base va en la tabla, una por grupo
 #' @keywords internal
 .lam_contraste_anchos <- function(espec) {
@@ -86,14 +100,19 @@
 #' 10.5 pt con los rótulos de más de tres líneas recortados con «…». Si ni así caben las filas, la lámina no cabe.
 #' @return Lista con `cabe` y, si cabe, `size`, `m` (marco de `.lam_puntos_marco`), `alturas`, `u`, `pasos`, `textos`,
 #'   `recortados`, `anchos`, `cab`, `zona0` y `zona1`.
+#' @param titulo,sub Los de la lámina: el bloque arranca bajo ellos (P13). Sin título (la consulta de si cabe, que no lo
+#'   conoce) arranca en la zona de datos, que queda más abajo que el fin de un título de una o dos líneas: lo que cabe
+#'   ahí cabe también bajo el título.
 #' @keywords internal
-.lam_contraste_geom <- function(espec) {
+.lam_contraste_geom <- function(espec, titulo = NULL, sub = NULL) {
   g_ <- .std_geom
   n <- length(espec$rotulos); k <- length(espec$grupos); par <- identical(espec$modo, "par")
   anchos <- .lam_contraste_anchos(espec); con_base <- length(anchos) > 1L
   # La leyenda (izquierda) y el encabezado «Diferencia» (derecha) no se cruzan: sin columnas de base comparten franja.
   cab <- if (con_base) 0.95 else 0.6
-  zona0 <- g_("zona_datos_y0") - 0.05; zona1 <- g_("contenido_y1") - 0.35
+  # P13 (Gonzalo, 2026-11-09, como la escala del resumen): el bloque arranca bajo el título con el aire de la casa.
+  zona0 <- if (is.null(titulo)) g_("zona_datos_y0") - 0.05 else .lam_titulo_fin(titulo, sub) + .LAM_AIRE_BAJO_TITULO_IN
+  zona1 <- g_("contenido_y1") - 0.35
   disponible <- zona1 - zona0 - cab
   pasos <- if (par) rep(1, n) else rep(k + 0.7, n)
   u_min <- if (par) 0.22 else 0.14; u_max <- if (par) 0.5 else 0.28
@@ -155,7 +174,8 @@
   g_ <- .std_geom; azul <- .std_color("azul"); suave <- .std_color("texto_suave")
   n <- length(espec$rotulos); k <- length(espec$grupos); par <- identical(espec$modo, "par")
   # Letra, columna de rótulos y alto de cada fila (un rótulo de hasta tres líneas agranda su fila): .lam_contraste_geom.
-  ge <- .lam_contraste_geom(espec)
+  ge <- .lam_contraste_geom(espec, titulo = titulo, sub = sub)
+  if (!isTRUE(ge$cabe)) ge <- .lam_contraste_geom(espec)   # un título de tres líneas: la zona de datos, como antes
   if (!isTRUE(ge$cabe)) stop("El contraste no cabe en una lámina.", call. = FALSE)
   anchos <- ge$anchos; con_base <- length(anchos) > 1L; m <- ge$m
   eje <- espec$eje; px <- function(v) m$xl + (m$xr - m$xl) * (v - eje[["lo"]]) / (eje[["hi"]] - eje[["lo"]])
@@ -165,10 +185,9 @@
   # pida su rótulo si es más.
   pasos <- ge$pasos; u <- ge$u; alturas <- ge$alturas
   .lam_rotulos_aviso(ge$recortados)
-  # Con pocas filas el bloque entero (leyenda, cabecera, filas y eje) se centra en la zona de datos: no queda arriba
-  # con media lámina vacía debajo.
-  holgura <- (zona1 - zona0 - cab) - sum(alturas)
-  y_ley <- zona0 + max(0, holgura) / 2; y0 <- y_ley + cab; y1 <- y0 + sum(alturas)
+  # P13: el bloque (leyenda, cabecera, filas y eje) arranca bajo el título y las filas bajan hacia el pie con el mismo
+  # hueco entre ellas; ya no se centra en la zona de datos con aire encima.
+  y_ley <- zona0; y0 <- y_ley + cab; y1 <- y0 + sum(alturas)
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()
@@ -219,8 +238,10 @@
   for (j in seq_len(k)) .lam_txt(lz, espec$grupos[j], m$xs[j + 1] - anchos[j + 1] / 2, yh, anchos[j + 1], 0.28, 10.5, suave, bold = TRUE,
                                  align = "center", nombre = "tabla:encabezado")
   }
-  # La leyenda lleva la base cuando no va en la tabla («Docentes (n = 115, 93%)»).
-  .lam_puntos_leyenda(lz, m$xl - 0.05, y_ley, espec$leyenda %||% espec$grupos, espec$colores, espec$formas)
+  # La leyenda lleva la base cuando no va en la tabla («Docentes (n = 115, 93%)»). P13 (Gonzalo, 2026-11-09: «La leyenda
+  # debería estar centrada»): una fila centrada en la lámina; si llegara a la tabla, se corre a la izquierda.
+  ley <- espec$leyenda %||% espec$grupos
+  .lam_puntos_leyenda(lz, .lam_puntos_leyenda_x(ley, .std_geom("ancho") / 2, m$xt - 0.15, m$ml), y_ley, ley, espec$colores, espec$formas)
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:contraste")
   # Quién menos quién va en el pie, junto a la base: la columna no tiene ancho para decirlo.
   sentido <- .contraste_sentido_nota(espec)

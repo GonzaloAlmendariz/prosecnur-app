@@ -309,9 +309,9 @@
     ley <- espec$grupos
   }
   wley <- ancho_ley(ley)
-  # La leyenda arranca sobre el área de puntos; si no cabe hasta la columna de la diferencia, desde el margen de la ranura.
-  x_ley <- if (wley <= (x + w - wd) - (xl - 0.05) + 1e-6) xl - 0.05 else x
-  c(f, list(cabe = (xr - xl) >= wp_min - 1e-6 && wley <= (x + w - wd) - x_ley + 1e-6,
+  # P13: la leyenda va centrada en su ranura; si llegara a la columna de la diferencia, se corre a la izquierda.
+  x_ley <- .lam_puntos_leyenda_x(ley, x + w / 2, x + w - wd - 0.1, x)
+  c(f, list(cabe = (xr - xl) >= wp_min - 1e-6 && wley <= (x + w - wd) - x + 1e-6,
             xl = xl, xr = xr, wd = wd, cab = cab, eje = eje, disponible = disponible, ley = ley, x_ley = x_ley, pasos = pasos))
 }
 
@@ -323,7 +323,8 @@
   espec$separadores <- (espec$separadores %||% integer(0))[(espec$separadores %||% integer(0)) < n]
   eje <- espec$eje; px <- function(v) ge$xl + (ge$xr - ge$xl) * (v - eje[["lo"]]) / (eje[["hi"]] - eje[["lo"]])
   alturas <- ge$alturas
-  y_ley <- ge$y + max(0, ge$disponible - sum(alturas)) / 2; y0 <- y_ley + ge$cab; y1 <- y0 + sum(alturas)
+  # P13: el bloque arranca arriba de la ranura (bajo su enunciado), no centrado en su alto con aire encima.
+  y_ley <- ge$y; y0 <- y_ley + ge$cab; y1 <- y0 + sum(alturas)
   centros <- y0 + cumsum(alturas) - alturas / 2   # P10: sin panel blanco ni bandas alternas
   .lam_puntos_eje(lz, px, eje, y0, y1, cada = .lam_rr_eje_cada(px, eje))
   for (s in espec$separadores %||% integer(0)) {
