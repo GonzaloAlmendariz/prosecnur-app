@@ -77,7 +77,7 @@ describe("cliente", () => {
   });
 
   it("un 422 llega como ApiError con su código", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ error: { code: "E_TXT_FORMA_REPETIDA", message: "«alumnos» está en dos grupos de equivalencias." } }), { status: 422 })));
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ error: { code: "E_TXT_FORMA_REPETIDA", message: '"alumnos" está en dos grupos de equivalencias.' } }), { status: 422 })));
     await expect(apiGuardarTextoAbiertoDiccionario("coment", { equivalencias: [], excluir: [], frases: [] })).rejects.toBeInstanceOf(ApiError);
   });
 });

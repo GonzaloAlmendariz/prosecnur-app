@@ -8,19 +8,19 @@ const HALLAZGOS = {
   ok: true, tipo: "p_slide_hallazgos", slide_id: "ccss-hallazgos-1", modo: "resumen", base: "default",
   capitulos: [
     { titulo: "Personas responsables de la crianza", cifras: [
-      { var: "educ_padre", fila: "Posgrado", comparacion: "auto", pregunta: "Nivel educativo del padre", frase: "respondió «Posgrado»",
+      { var: "educ_padre", fila: "Posgrado", comparacion: "auto", pregunta: "Nivel educativo del padre", frase: 'respondió "Posgrado"',
         cifra: "23%", n: 301, diferencia: "Hombre 32% △ frente al 15% del resto", diferencia_estado: "diferencia" },
     ] },
     { titulo: "Vida universitaria", cifras: [
       { var: "B8_1_1", top2box: ["Todos los días, en momentos puntuales", "Todos los días, a lo largo del día"], comparacion: "auto",
-        pregunta: "WhatsApp", frase: "respondió «Todos los días…»", cifra: "98%", n: 400,
+        pregunta: "WhatsApp", frase: 'respondió "Todos los días…"', cifra: "98%", n: 400,
         diferencia: "Sin diferencias por área, nivel, sexo ni estudios de padres", diferencia_estado: "sin_diferencias" },
       { var: "B3_recod", fila: "Académica", texto: "participa en una agrupación académica", comparacion: "auto", pregunta: "¿Perteneces?",
         frase: "participa en una agrupación académica", cifra: "29%", n: 400, diferencia: "Ciencias políticas y sociales 44% ▲ frente al 17% del resto",
         diferencia_estado: "diferencia" },
     ] },
   ],
-  avisos: ["Hallazgos clave: la cifra de «educ_padre» no tiene texto: se usó «respondió «Posgrado»». Escribe lo que mide."],
+  avisos: ['Hallazgos clave: la cifra de "educ_padre" no tiene texto: se usó "respondió "Posgrado"". Escribe lo que mide.'],
 };
 
 const RESUMEN = {
@@ -43,7 +43,7 @@ describe("normalizarPropuestaResumen", () => {
     expect(p.modo).toBe("resumen");
     expect(p.capitulos.map((c) => c.cifras.length)).toEqual([1, 2]);
     const [h] = p.capitulos[0].cifras;
-    expect(h).toMatchObject({ var: "educ_padre", fila: "Posgrado", texto: "", frase: "respondió «Posgrado»", cifra: "23%", n: 301,
+    expect(h).toMatchObject({ var: "educ_padre", fila: "Posgrado", texto: "", frase: 'respondió "Posgrado"', cifra: "23%", n: 301,
       diferenciaEstado: "diferencia", comparacion: "auto" });
     expect(p.capitulos[1].cifras[0].top2box).toHaveLength(2);
     expect(p.avisos).toHaveLength(1);

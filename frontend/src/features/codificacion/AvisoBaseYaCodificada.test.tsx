@@ -32,11 +32,11 @@ const vista = (yaCodificadaEn: string | null) =>
     ),
   );
 
-describe("Adaptar con la base «ya viene codificada» (ADR 0106)", () => {
+describe('Adaptar con la base "ya viene codificada" (ADR 0106)', () => {
   it("en vez del botón, dice por qué y lleva a cambiarlo en Carga", () => {
     const html = vista("2026");
     expect(html).not.toContain('data-testid="codificacion-adaptar-boton"');
-    expect(html).toContain("«2026» ya viene codificada: aquí no se vuelve a codificar.");
+    expect(html).toContain("&quot;2026&quot; ya viene codificada: aquí no se vuelve a codificar.");
     expect(html).toContain('href="/carga?pestana=fuentes&amp;panel=variables-base&amp;foco=2026"');
   });
 

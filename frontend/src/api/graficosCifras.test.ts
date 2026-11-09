@@ -136,7 +136,7 @@ describe("normalizarDetalleCifras", () => {
     const lote = normalizarCifrasDetalleLote({ ok: true, por_lamina: {
       antes: { tipo: "divergentes/1", cifras: [], avisos: [], detalle: detalleDivergente },
       despues: { tipo: "divergentes/1", cifras: [], avisos: [], detalle: { ...detalleDivergente, base: { n_ponderado: 40, n_casos: 29, texto: "Base: 29" } } },
-      mala: { tipo: "", cifras: [], avisos: [], detalle: null, error: { code: "E_CIFRAS_INVALIDO", message: "El gráfico «p_pie» no publica el detalle de sus cifras." } },
+      mala: { tipo: "", cifras: [], avisos: [], detalle: null, error: { code: "E_CIFRAS_INVALIDO", message: 'El gráfico "p_pie" no publica el detalle de sus cifras.' } },
     } });
     expect(Object.keys(lote)).toEqual(["antes", "despues", "mala"]);
     expect(lote.antes.detalle?.base.nCasos).toBe(33);

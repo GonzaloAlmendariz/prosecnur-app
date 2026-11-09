@@ -53,13 +53,13 @@ describe("normalizeBaseVariables: lo que serializa Plumber", () => {
   it("los avisos de la declaración conservan su código conocido", () => {
     const d = normalizeBaseVariables({
       avisos: [
-        { codigo: ["no_declarada"], mensaje: ["«x» no estaba declarada."] },
+        { codigo: ["no_declarada"], mensaje: ['"x" no estaba declarada.'] },
         { codigo: "nuevo", mensaje: "Algo más." },
         { codigo: "no_declarada" },
       ],
     });
     expect(d.avisos).toEqual([
-      { codigo: "no_declarada", mensaje: "«x» no estaba declarada." },
+      { codigo: "no_declarada", mensaje: '"x" no estaba declarada.' },
       { codigo: "otro", mensaje: "Algo más." },
     ]);
   });
@@ -71,7 +71,7 @@ describe("opciones y calculadas", () => {
       .toEqual([{ codigo: "1", etiqueta: "Sí" }, { codigo: "0", etiqueta: "No" }]);
   });
 
-  it("«alguna» sin escala toma 1 Sí / 0 No; variables y códigos escalares se vuelven listas", () => {
+  it('"alguna" sin escala toma 1 Sí / 0 No; variables y códigos escalares se vuelven listas', () => {
     const c = normalizarCalculada({ nombre: "vbg", etiqueta: "VBG", regla: "alguna", variables: "P1", codigos: 1 });
     expect(c).toEqual({
       nombre: "vbg",
@@ -88,7 +88,7 @@ describe("opciones y calculadas", () => {
     });
   });
 
-  it("«recodificar» lee el mapa con destinos escalares y descarta los vacíos", () => {
+  it('"recodificar" lee el mapa con destinos escalares y descarta los vacíos', () => {
     const c = normalizarCalculada({
       nombre: ["p8_r"],
       regla: ["recodificar"],

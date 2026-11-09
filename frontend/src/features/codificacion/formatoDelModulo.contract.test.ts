@@ -85,7 +85,7 @@ describe("formato de Codificación", () => {
     const suben = Object.entries(porArchivo)
       .filter(([f, n]) => n > (PUNTO_QUE_LEE[f] ?? 0))
       .map(([f, n]) => `${f}: ${PUNTO_QUE_LEE[f] ?? 0} → ${n}`);
-    expect(suben, "Une con coma o «y» (lib/enumerar).").toEqual([]);
+    expect(suben, 'Une con coma o "y" (lib/enumerar).').toEqual([]);
     const bajan = Object.entries(PUNTO_QUE_LEE).filter(([f, n]) => (porArchivo[f] ?? 0) < n);
     expect(bajan, "Baja el conteo de la foto.").toEqual([]);
   });

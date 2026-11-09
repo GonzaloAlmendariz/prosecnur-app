@@ -153,11 +153,11 @@ export function AplicarOmitidasAviso({ omitidas, textosSinCodigo, incompletos = 
                 className="pulso-codif-omitidas-titulo"
               >
                 {textosSinCodigo.length === 1
-                  ? "1 pregunta tiene textos que quedarán en «Otro»"
-                  : `${textosSinCodigo.length} preguntas tienen textos que quedarán en «Otro»`}
+                  ? '1 pregunta tiene textos que quedarán en "Otro"'
+                  : `${textosSinCodigo.length} preguntas tienen textos que quedarán en "Otro"`}
               </strong>
               <p>
-                No encajan en ningún grupo y se entregan en «Otro», que es válido. Si alguno sí encaja, codifícalo; si
+                No encajan en ningún grupo y se entregan en "Otro", que es válido. Si alguno sí encaja, codifícalo; si
                 no, confírmalo para que deje de avisarse.
               </p>
             </div>
@@ -184,7 +184,7 @@ export function AplicarOmitidasAviso({ omitidas, textosSinCodigo, incompletos = 
                     {t.ejemplos.length > 0 && (
                       <ul className="pulso-codif-omitidas-ejemplos" aria-label={`Ejemplos de ${t.pregunta}`}>
                         {t.ejemplos.map((e, j) => (
-                          <li key={`${j}-${e}`}>«{e}»</li>
+                          <li key={`${j}-${e}`}>"{e}"</li>
                         ))}
                         {restantes > 0 && (
                           <li className="pulso-codif-omitidas-mas">y {restantes} más</li>

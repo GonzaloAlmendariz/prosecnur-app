@@ -8,7 +8,7 @@ import { normalizeCodifAplicarAvisos } from "./codificacion";
 // convertir un aviso en silencio.
 
 describe("normalizeCodifAplicarAvisos", () => {
-  it("lee el caso medido en HSyVBG: P29_10 sin modo, P66 sin su texto y «Hombre» sin código en P4", () => {
+  it('lee el caso medido en HSyVBG: P29_10 sin modo, P66 sin su texto y "Hombre" sin código en P4', () => {
     const r = normalizeCodifAplicarAvisos({
       ok: true,
       job_id: "j1",
@@ -18,7 +18,7 @@ describe("normalizeCodifAplicarAvisos", () => {
           motivo: "sin_modo",
           mensaje: "Es de opción única y no se declaró si el texto se integra a la variable original o va en una variable aparte.",
         },
-        { pregunta: "P66", motivo: "sin_columna_texto", mensaje: "La columna de texto «P66_otro» no está en la base." },
+        { pregunta: "P66", motivo: "sin_columna_texto", mensaje: 'La columna de texto "P66_otro" no está en la base.' },
       ],
       textos_sin_codigo: [{ pregunta: "P4", columna: "P4_otro", casos: 1, textos: 1, ejemplos: ["Hombre"] }],
     });
@@ -38,7 +38,7 @@ describe("normalizeCodifAplicarAvisos", () => {
       omitidas: {
         pregunta: ["P12"],
         motivo: ["sin_variable_madre"],
-        mensaje: ["La agrupación no se aplica: la variable madre «P12» no está en la base."],
+        mensaje: ['La agrupación no se aplica: la variable madre "P12" no está en la base.'],
         variable_nueva: ["P12_agrup"],
       },
       textos_sin_codigo: { pregunta: ["P55"], columna: ["P55"], casos: [3], textos: ["2"], ejemplos: "Otro" },
@@ -47,7 +47,7 @@ describe("normalizeCodifAplicarAvisos", () => {
       {
         pregunta: "P12",
         motivo: "sin_variable_madre",
-        mensaje: "La agrupación no se aplica: la variable madre «P12» no está en la base.",
+        mensaje: 'La agrupación no se aplica: la variable madre "P12" no está en la base.',
         variable_nueva: "P12_agrup",
       },
     ]);

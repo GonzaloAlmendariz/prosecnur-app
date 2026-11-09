@@ -10,7 +10,7 @@ describe("recursos del editor F6: normalizadores defensivos", () => {
   });
 
   it("una sola elección llega como objeto y se lee como lista; sin palabra clave, palabra es null", () => {
-    expect(normalizarElecciones({ elecciones: { texto: "Perfil", icono: "users", palabra: "perfil", motivo: "Elegido por «perfil»" } })).toHaveLength(1);
+    expect(normalizarElecciones({ elecciones: { texto: "Perfil", icono: "users", palabra: "perfil", motivo: 'Elegido por "perfil"' } })).toHaveLength(1);
     expect(normalizarElecciones({ elecciones: [{ texto: "x", icono: "list-checks", palabra: null, motivo: "Ninguna" }] })[0]!.palabra).toBeNull();
     expect(normalizarElecciones(null)).toEqual([]);
   });

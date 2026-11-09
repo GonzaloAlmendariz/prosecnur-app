@@ -16,7 +16,7 @@ vi.stubGlobal("localStorage", { getItem: () => "sid-1", setItem: () => {}, remov
 const { AdaptarAplicacionResumenVista, AdaptarAplicacionVista } = await import("./AdaptarAplicacion");
 const { aplicarCodificacion, claveAplicar, selectAplicarEntrada, useAplicarAvisosStore } = await import("./aplicarAvisosStore");
 
-const AVISO_R = "Codificación leyó 380 casos y la base «default» tiene 397: la adaptación no corresponde a la base vigente. Revisa la fuente antes de usarla.";
+const AVISO_R = 'Codificación leyó 380 casos y la base "default" tiene 397: la adaptación no corresponde a la base vigente. Revisa la fuente antes de usarla.';
 const A = claveAplicar("sid-1", "default");
 const respuesta = (aviso_fuente: string | null): CodifAplicarRespuesta => ({
   ok: true, job_id: "job-1", kind: "codificacion.aplicar", avisos_incompletos: [], omitidas: [], textos_sin_codigo: [], sin_recodificar: [], aviso_fuente,

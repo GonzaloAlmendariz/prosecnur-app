@@ -41,7 +41,7 @@ describe("la frontera entre el payload de R y el normalizador de TS", () => {
     const ini = ts.indexOf("export function normalizeCollectionStatePayload");
     const cuerpo = ts.slice(ini, ts.indexOf("\n}", ts.indexOf("return {", ini)));
     for (const campo of camposDelBackend()) {
-      expect(cuerpo, `el normalizador no menciona «${campo}»: se perderá en silencio`)
+      expect(cuerpo, `el normalizador no menciona "${campo}": se perderá en silencio`)
         .toContain(campo);
     }
   });

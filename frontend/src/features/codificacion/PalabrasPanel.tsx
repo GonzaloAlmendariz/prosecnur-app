@@ -287,7 +287,7 @@ function GruposSeccion({ estado, despachar }: CuerpoProps) {
               <button
                 type="button"
                 className="pulso-cv2-pal-accion"
-                aria-label={`Deshacer el grupo «${g.mostrar}»`}
+                aria-label={`Deshacer el grupo "${g.mostrar}"`}
                 onClick={() => despachar({ tipo: "deshacer-grupo", mostrar: g.mostrar })}
               >
                 <Undo2 size={12} aria-hidden="true" /> Deshacer
@@ -312,7 +312,7 @@ function PalabraFila({ p, estado, despachar }: { p: PalabraReconocida } & Cuerpo
         type="checkbox"
         checked={marcada}
         onChange={() => despachar({ tipo: "marcar", clave: p.clave })}
-        aria-label={`Marcar «${p.forma}»`}
+        aria-label={`Marcar "${p.forma}"`}
       />
       <div className="pulso-cv2-resp-main">
         <div className="pulso-cv2-resp-text">{p.forma}</div>
@@ -320,13 +320,13 @@ function PalabraFila({ p, estado, despachar }: { p: PalabraReconocida } & Cuerpo
           <span><strong>{formatoConteo(p.personas)}</strong> {p.personas === 1 ? "persona" : "personas"}</span>
           {otras.length > 0 && <span>también {otras.join(", ")}</span>}
           {grupo && claveTermino(grupo.mostrar) !== claveTermino(p.forma) && (
-            <span className="pulso-cv2-pal-chip">Se muestra como «{grupo.mostrar}»</span>
+            <span className="pulso-cv2-pal-chip">Se muestra como "{grupo.mostrar}"</span>
           )}
           {grupo && claveTermino(grupo.mostrar) === claveTermino(p.forma) && (
             <ChipGrupo total={totalDelGrupo(grupo, estado.lectura.fase === "lista" ? estado.lectura.datos : null)} n={grupo.formas.length} />
           )}
           {p.excluidaEn.map((t) => (
-            <span key={t} className="pulso-cv2-pal-chip is-excluida">No se cuenta dentro de «{t}»</span>
+            <span key={t} className="pulso-cv2-pal-chip is-excluida">No se cuenta dentro de "{t}"</span>
           ))}
         </div>
       </div>
@@ -347,7 +347,7 @@ function PalabrasSeccion({ estado, despachar }: CuerpoProps) {
         {frecuentes.length === 0 ? (
           <EstadoVacio
             icono={<Search size={16} />}
-            titulo={estado.consulta.trim() ? `Ninguna palabra coincide con «${estado.consulta.trim()}»` : "Todas las palabras están excluidas"}
+            titulo={estado.consulta.trim() ? `Ninguna palabra coincide con "${estado.consulta.trim()}"` : "Todas las palabras están excluidas"}
           />
         ) : (
           frecuentes.map((p) => <PalabraFila key={p.clave} p={p} estado={estado} despachar={despachar} />)
@@ -382,7 +382,7 @@ function ExcluidasSeccion({ estado, despachar }: CuerpoProps) {
               <button
                 type="button"
                 className="pulso-cv2-pal-accion"
-                aria-label={`Volver a contar «${t}»`}
+                aria-label={`Volver a contar "${t}"`}
                 onClick={() => despachar({ tipo: "reincorporar", termino: t })}
               >
                 <Eye size={12} aria-hidden="true" /> Volver a contar
@@ -411,7 +411,7 @@ function FraseFila({ f, estado, despachar }: { f: FraseDetectada } & CuerpoProps
           type="button"
           className="pulso-cv2-pal-accion"
           aria-pressed={fija}
-          aria-label={fija ? `Soltar la frase «${f.forma}»` : `Fijar la frase «${f.forma}»`}
+          aria-label={fija ? `Soltar la frase "${f.forma}"` : `Fijar la frase "${f.forma}"`}
           onClick={() => despachar({ tipo: "alternar-frase", frase: f.forma })}
         >
           <Pin size={12} aria-hidden="true" /> {fija ? "Soltar" : "Fijar"}
@@ -419,7 +419,7 @@ function FraseFila({ f, estado, despachar }: { f: FraseDetectada } & CuerpoProps
         <button
           type="button"
           className="pulso-cv2-pal-accion"
-          aria-label={excluida ? `Volver a contar «${f.forma}»` : `Excluir «${f.forma}»`}
+          aria-label={excluida ? `Volver a contar "${f.forma}"` : `Excluir "${f.forma}"`}
           onClick={() => despachar({ tipo: "alternar-excluir", termino: f.forma, formas: [f.forma] })}
         >
           {excluida ? <Eye size={12} aria-hidden="true" /> : <EyeOff size={12} aria-hidden="true" />}

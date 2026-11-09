@@ -630,7 +630,7 @@ export function RespuestasCodificador({ parent }: Props) {
               <div className="pulso-cv2-resp-tramo" data-qa-geometry-member="no-respuestas">
                 <span className="pulso-cv2-resp-tramo-titulo">No responden</span>
                 <span className="pulso-cv2-resp-tramo-n">
-                  {formatoConteo(tramos.noRespuestas.length)} {tramos.noRespuestas.length === 1 ? "respuesta" : "respuestas"} como «No», «.» o «Ninguno»
+                  {formatoConteo(tramos.noRespuestas.length)} {tramos.noRespuestas.length === 1 ? "respuesta" : "respuestas"} como "No", "." o "Ninguno"
                 </span>
               </div>
             )}
@@ -654,7 +654,7 @@ export function RespuestasCodificador({ parent }: Props) {
               tamano="compacto"
               icono={<Inbox size={15} />}
               titulo="Sin grupos todavía"
-              descripcion="Crea uno con «Nuevo grupo» o marca una respuesta de la izquierda."
+              descripcion='Crea uno con "Nuevo grupo" o marca una respuesta de la izquierda.'
             />
           ) : (
             <div

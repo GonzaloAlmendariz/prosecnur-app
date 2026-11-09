@@ -12,9 +12,9 @@ describe("motivoNoSoportado", () => {
       motivoNoSoportado({
         tipo: "select_one",
         text_col: "P66_otro",
-        motivo_omision: "La columna de texto «P66_otro» no está en la base.",
+        motivo_omision: 'La columna de texto "P66_otro" no está en la base.',
       }),
-    ).toBe("La columna de texto «P66_otro» no está en la base.");
+    ).toBe('La columna de texto "P66_otro" no está en la base.');
   });
 
   it("sin motivo, o con uno en blanco, cae al genérico", () => {
@@ -33,7 +33,7 @@ describe("motivoNoSoportado", () => {
 
 describe("normalizeCodifMotivoOmision", () => {
   it("desenrolla el vector de largo uno de R y recorta", () => {
-    expect(normalizeCodifMotivoOmision(["  Falta «P66_otro».  "])).toBe("Falta «P66_otro».");
+    expect(normalizeCodifMotivoOmision(['  Falta "P66_otro".  '])).toBe('Falta "P66_otro".');
     expect(normalizeCodifMotivoOmision("Falta.")).toBe("Falta.");
   });
 

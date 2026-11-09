@@ -44,21 +44,21 @@ describe("PalabrasCuerpo", () => {
     expect(html).toContain("<strong>11</strong> personas");
 
     expect(html).toContain('type="checkbox"');
-    expect(html).toContain("Se muestra como «estudiantes»");
-    expect(html).toContain('aria-label="Deshacer el grupo «estudiantes»"');
+    expect(html).toContain("Se muestra como &quot;estudiantes&quot;");
+    expect(html).toContain('aria-label="Deshacer el grupo &quot;estudiantes&quot;"');
     expect(html).toContain("13 personas");
     // TXT-18: el total del grupo con su desglose, en «Palabras unidas» y en la fila de la palabra que lo muestra.
     expect(html).toContain("estudiantes 11 + alumnos 3");
     expect(html).toContain("13 personas en el grupo");
     expect(html).toContain("Palabras más frecuentes");
     expect(html).toContain("Palabras excluidas");
-    expect(html).toContain('aria-label="Volver a contar «gracias»"');
+    expect(html).toContain('aria-label="Volver a contar &quot;gracias&quot;"');
     // La misma fila del estandarizador de respuestas: check, texto y conteo.
     expect(html).toContain("pulso-cv2-resp-row");
-    expect(html).toContain('aria-label="Marcar «docentes»"');
+    expect(html).toContain('aria-label="Marcar &quot;docentes&quot;"');
     // La excluida no está entre las frecuentes.
-    expect(html).not.toContain('aria-label="Marcar «gracias»"');
-    expect(html).toContain('aria-label="Fijar la frase «ciencias sociales»"');
+    expect(html).not.toContain('aria-label="Marcar &quot;gracias&quot;"');
+    expect(html).toContain('aria-label="Fijar la frase &quot;ciencias sociales&quot;"');
     expect(html).not.toMatch(/raíz|raiz|lematiz|E_TXT/i);
     expect(readinessPalabras(listo())).toBe("true");
   });
@@ -77,7 +77,7 @@ describe("PalabrasCuerpo", () => {
 
   it("el buscador filtra y avisa si nada coincide", () => {
     const html = cuerpo(reducirPalabras(listo(), { tipo: "buscar", consulta: "zzz" }));
-    expect(html).toContain("Ninguna palabra coincide con «zzz»");
+    expect(html).toContain("Ninguna palabra coincide con &quot;zzz&quot;");
   });
 
   it("sin palabras: vacío legítimo, dicho en su contenedor", () => {
@@ -94,7 +94,7 @@ describe("PalabrasCuerpo", () => {
 });
 
 describe("PalabrasBarra", () => {
-  it("con menos de dos marcadas, «Unir» está apagado; sin marcas, «Excluir»; sin cambios, «Guardar»", () => {
+  it('con menos de dos marcadas, "Unir" está apagado; sin marcas, "Excluir"; sin cambios, "Guardar"', () => {
     const html = barra(listo());
     expect(html).toMatch(/<button[^>]*disabled=""[^>]*>(?:(?!<\/button>).)*Excluir/);
     expect(html).toContain('aria-label="Buscar una palabra"');

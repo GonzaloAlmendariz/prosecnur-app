@@ -20,8 +20,8 @@ const CASILLAS_PERMITIDAS: Record<string, number> = {
 
 const INTERRUPTORES: Array<[string, string]> = [
   ["./AgruparCategoriasCodificador.tsx", "Recoge el resto de códigos sin asignar"],
-  ["./AgruparCategoriasCodificador.tsx", "Recoge los años escritos en «Otro» que caen en su rango"],
-  ["./AgruparCategoriasCodificador.tsx", "Recoge el resto de textos escritos en «Otro»"],
+  ["./AgruparCategoriasCodificador.tsx", 'Recoge los años escritos en "Otro" que caen en su rango'],
+  ["./AgruparCategoriasCodificador.tsx", 'Recoge el resto de textos escritos en "Otro"'],
 ];
 
 describe("Codificación: ajustes con interruptor, selección con casilla", () => {
@@ -29,14 +29,14 @@ describe("Codificación: ajustes con interruptor, selección con casilla", () =>
     expect(casillas(leer(archivo))).toBe(n);
   });
 
-  it.each(INTERRUPTORES)("%s: «%s» es un interruptor", (archivo, rotulo) => {
+  it.each(INTERRUPTORES)('%s: "%s" es un interruptor', (archivo, rotulo) => {
     const src = leer(archivo);
-    const i = src.indexOf(`ariaLabel="${rotulo}"`);
-    expect(i, `no se encontró el interruptor «${rotulo}»`).toBeGreaterThan(-1);
+    const i = Math.max(src.indexOf(`ariaLabel="${rotulo}"`), src.indexOf(`ariaLabel='${rotulo}'`));
+    expect(i, `no se encontró el interruptor "${rotulo}"`).toBeGreaterThan(-1);
     expect(src.lastIndexOf("<Switch", i)).toBeGreaterThan(src.lastIndexOf("/>", i));
   });
 
-  it("«Incluir en codificación» es un interruptor con rótulo fijo", () => {
+  it('"Incluir en codificación" es un interruptor con rótulo fijo', () => {
     const src = leer("./PreguntasLanding.tsx");
     const i = src.indexOf("ariaLabel={`Incluir ${p.parent} en el flujo de codificación`}");
     expect(i).toBeGreaterThan(-1);

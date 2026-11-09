@@ -40,7 +40,7 @@ const respuesta: CodifAplicarRespuesta = {
   kind: "codif_aplicar",
   avisos_incompletos: [],
   omitidas: [
-    { pregunta: "P66", motivo: "sin_columna_texto", mensaje: "Falta «P66_otro».", variable_nueva: null },
+    { pregunta: "P66", motivo: "sin_columna_texto", mensaje: 'Falta "P66_otro".', variable_nueva: null },
   ],
   textos_sin_codigo: [],
   sin_recodificar: [
@@ -209,7 +209,7 @@ describe("el aviso vuelve a la vista tras el remontaje del fin del job", () => {
     }
   });
 
-  it("«Ver los avisos» de arriba aparece al terminar con avisos y lleva al aviso", async () => {
+  it('"Ver los avisos" de arriba aparece al terminar con avisos y lleva al aviso', async () => {
     const vista = (clave: string) =>
       renderToStaticMarkup(
         <AdaptarAplicacionResumenVista

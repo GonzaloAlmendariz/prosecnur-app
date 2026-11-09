@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { apiXlsformEditorSmFetchSurveyInfo } from "./multiIntegrado";
 import { FinalImportReviewModal } from "../features/xlsformEditor/shell/SmImportResumen";
 
-const DETALLE = "La variable personalizada «id» no es una pregunta: llega en los datos como la columna «cv_id» (metadato).";
+const DETALLE = 'La variable personalizada "id" no es una pregunta: llega en los datos como la columna "cv_id" (metadato).';
 
 function respuesta(extra: Record<string, unknown>) {
   return new Response(JSON.stringify({
@@ -59,7 +59,7 @@ describe("sm-fetch-survey-info → fuera_del_formulario", () => {
       />,
     );
     expect(html).toContain("No entra al formulario");
-    expect(html).toContain("«cv_id» (metadato)");
+    expect(html).toContain("&quot;cv_id&quot; (metadato)");
   });
 
   test("objeto suelto (auto_unbox) y ausencia", async () => {

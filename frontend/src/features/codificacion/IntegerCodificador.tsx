@@ -238,7 +238,7 @@ export function IntegerCodificador({ parent }: Props) {
           tamano="compacto"
           icono={<Inbox size={15} />}
           titulo="Sin rangos definidos"
-          descripcion="Agrupa los valores en rangos, por ejemplo 18–29 con el código 1 «Jóvenes»."
+          descripcion='Agrupa los valores en rangos, por ejemplo 18–29 con el código 1 "Jóvenes".'
           accion={
             <PulsoButton variant="secondary" size="sm" onClick={addGroup}>
               <Plus size={13} aria-hidden="true" /> Crear primer rango

@@ -119,7 +119,7 @@ export function PairingDialog({ pregunta, preselectedChild, onConfirm, onCancel 
 
         {/* Paso 1: columna hija */}
         <div style={{ marginBottom: 16 }}>
-          <div className="pulso-section-eyebrow" style={{ marginBottom: 6 }}>Paso 1: columna «Otros, especifique»</div>
+          <div className="pulso-section-eyebrow" style={{ marginBottom: 6 }}>Paso 1: columna "Otros, especifique"</div>
           <div style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text-soft)", marginBottom: 10 }}>
             ¿Dónde está el texto abierto de esta pregunta?
           </div>
@@ -203,7 +203,7 @@ export function PairingDialog({ pregunta, preselectedChild, onConfirm, onCancel 
         {/* Paso 2 SM: dummy col — SM no tiene modo padre/hijo, solo dummy */}
         {isSM && childCol && (
           <div style={{ marginBottom: 16 }}>
-            <div className="pulso-section-eyebrow" style={{ marginBottom: 6 }}>Paso 2: ¿cuál opción es «Otros, especifique»?</div>
+            <div className="pulso-section-eyebrow" style={{ marginBottom: 6 }}>Paso 2: ¿cuál opción es "Otros, especifique"?</div>
             <div style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text-soft)", marginBottom: 10, lineHeight: 1.5 }}>
               A diferencia de opción única, en preguntas múltiples solo vas a codificar el texto libre
               (<code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" }}>{childCol}</code>). Pero primero indícanos cuál de las

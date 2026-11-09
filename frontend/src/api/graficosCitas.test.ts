@@ -7,13 +7,13 @@ describe("normalizarCitasCandidatas", () => {
     const out = normalizarCitasCandidatas({
       ok: true, base: "ccss", variable: "coment", comentarios: [120], escribieron: 150,
       candidatas: [{ id: "c1", texto: "Uno dos tres", chars: 12, puntaje: 3, revision: "", propuesta: true },
-        { id: ["c2"], texto: ["Dos"], chars: [3], puntaje: [1], revision: ["Revisar: posible nombre propio («Rosales»)"], propuesta: [false] },
+        { id: ["c2"], texto: ["Dos"], chars: [3], puntaje: [1], revision: ['Revisar: posible nombre propio ("Rosales")'], propuesta: [false] },
         { texto: "sin id" }],
       avisos: "Sólo 2 comentarios cumplen",
     });
     expect(out.candidatas).toEqual([
       { id: "c1", texto: "Uno dos tres", chars: 12, puntaje: 3, revision: "", propuesta: true },
-      { id: "c2", texto: "Dos", chars: 3, puntaje: 1, revision: "Revisar: posible nombre propio («Rosales»)", propuesta: false },
+      { id: "c2", texto: "Dos", chars: 3, puntaje: 1, revision: 'Revisar: posible nombre propio ("Rosales")', propuesta: false },
     ]);
     expect(out.comentarios).toBe(120);
     expect(out.escribieron).toBe(150);

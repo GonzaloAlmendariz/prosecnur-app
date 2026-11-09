@@ -79,7 +79,7 @@ describe("normalizeMonitoreoMailchimpEstado", () => {
     expect(e.invalidos).toEqual({ total: 0, por_actor: [], filas: [] });
   });
 
-  it("una cifra ausente o nula es «sin dato», no cero", () => {
+  it('una cifra ausente o nula es "sin dato", no cero', () => {
     const e = normalizeMonitoreoMailchimpEstado({
       conectado: true,
       publicos: [{ actor: "Egresados", tasa_alcanzable: null, alcanzable: {} }],
@@ -92,7 +92,7 @@ describe("normalizeMonitoreoMailchimpEstado", () => {
     expect(e.envios[0].entregados).toBeNull();
   });
 
-  it("un ritmo desconocido cae en «sin envíos» y un tipo ausente se deduce del orden", () => {
+  it('un ritmo desconocido cae en "sin envíos" y un tipo ausente se deduce del orden', () => {
     const e = normalizeMonitoreoMailchimpEstado({
       publicos: [{ actor: "A", ritmo: "otra-cosa" }],
       envios: [{ campaign_id: "c1", orden: 2 }, { campaign_id: "c2" }],

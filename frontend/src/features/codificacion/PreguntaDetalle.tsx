@@ -131,7 +131,7 @@ export default function PreguntaDetalle() {
           eyebrow="Codificador"
           title={arq === "pareja-so" ? "Codifica respuestas o agrupa categorías" : "Agrupa respuestas y asigna códigos"}
           hint={arq === "pareja-so"
-            ? `«Codificar respuestas» asigna códigos a los textos de la columna ${pregunta.col_efectiva}. «Agrupar categorías» junta categorías de ${pregunta.parent} en una variable nueva.`
+            ? `"Codificar respuestas" asigna códigos a los textos de la columna ${pregunta.col_efectiva}. "Agrupar categorías" junta categorías de ${pregunta.parent} en una variable nueva.`
             : `Marca las respuestas que pertenecen a un mismo concepto, agrúpalas y asígnales un código + etiqueta. Las respuestas con texto idéntico (tras normalizar acentos y mayúsculas) ya están agrupadas automáticamente. La columna que leemos es ${pregunta.col_efectiva}.`}
         >
           {arq === "auto"

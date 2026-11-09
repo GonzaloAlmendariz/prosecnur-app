@@ -14,7 +14,7 @@ function texto(html: string) {
 const P66: CodifOmitida = {
   pregunta: "P66",
   motivo: "sin_columna_texto",
-  mensaje: "La columna de texto «P66_otro» no está en la base.",
+  mensaje: 'La columna de texto "P66_otro" no está en la base.',
   variable_nueva: null,
 };
 const P29: CodifOmitida = {
@@ -35,7 +35,7 @@ describe("AplicarOmitidasAviso", () => {
     const t = texto(html);
     expect(t).toContain("2 preguntas del catálogo no se aplicaron");
     expect(t).toContain("P66");
-    expect(t).toContain("La columna de texto «P66_otro» no está en la base.");
+    expect(t).toContain("La columna de texto &quot;P66_otro&quot; no está en la base.");
     expect(t).toContain("P29_10");
     expect(html).toContain('role="alert"');
     expect(html).toContain('data-motivo="sin_columna_texto"');
@@ -52,7 +52,7 @@ describe("AplicarOmitidasAviso", () => {
           {
             pregunta: "P12",
             motivo: "sin_variable_madre",
-            mensaje: "La agrupación no se aplica: la variable madre «P12» no está en la base.",
+            mensaje: 'La agrupación no se aplica: la variable madre "P12" no está en la base.',
             variable_nueva: "P12_agrup",
           },
         ]}
@@ -66,9 +66,9 @@ describe("AplicarOmitidasAviso", () => {
   it("los textos sin código dicen casos, textos distintos, columna y ejemplos", () => {
     const html = renderToStaticMarkup(<AplicarOmitidasAviso omitidas={[]} textosSinCodigo={[P4]} />);
     const t = texto(html);
-    expect(t).toContain("1 pregunta tiene textos que quedarán en «Otro»");
+    expect(t).toContain("1 pregunta tiene textos que quedarán en &quot;Otro&quot;");
     expect(t).toContain("1 caso, 1 texto distinto en P4_otro");
-    expect(t).toContain("«Hombre»");
+    expect(t).toContain("&quot;Hombre&quot;");
     expect(t).not.toContain("más");
     expect(t).not.toContain("no se aplic");
     // El bloque de textos informa; la alerta fuerte es sólo para omitidas.
@@ -89,7 +89,7 @@ describe("AplicarOmitidasAviso", () => {
     // Columna igual a la pregunta: no se repite.
     expect(t).not.toContain(" en P60");
     // Los ejemplos se cuentan en su lista: «Otro» también lleva comillas.
-    expect((html.match(/<li>«/g) ?? []).length).toBe(5);
+    expect((html.match(/<li>&quot;/g) ?? []).length).toBe(5);
     expect(t).toContain("y 3 más");
   });
 

@@ -19,7 +19,7 @@ describe("preguntas fuera de la adaptación", () => {
     const html = render({
       ...base,
       motivo_codigo: "sin_texto_emparejado",
-      motivo_omision: "Ya no tiene un texto «Otro» emparejado: sus grupos quedaron de un emparejamiento anterior.",
+      motivo_omision: 'Ya no tiene un texto "Otro" emparejado: sus grupos quedaron de un emparejamiento anterior.',
     });
     expect(html).toContain("1 pregunta quedará fuera de la adaptación");
     expect(html).toContain("emparejamiento anterior");
@@ -36,7 +36,7 @@ describe("preguntas fuera de la adaptación", () => {
   });
 
   it("sin acción posible, sólo el motivo", () => {
-    const html = render({ ...base, motivo_codigo: "sin_columna_texto", motivo_omision: "La columna de texto «P66_otro» no está en la base." });
+    const html = render({ ...base, motivo_codigo: "sin_columna_texto", motivo_omision: 'La columna de texto "P66_otro" no está en la base.' });
     expect(html).toContain("P66_otro");
     expect(html).not.toContain("<button");
   });

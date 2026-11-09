@@ -36,7 +36,7 @@ describe("normalizadores del Planner", () => {
     expect(modos.origen).toBe("deducido");
   });
 
-  it("R5-4: el NULL de R serializado como `{}` es texto vacío, nunca «[object Object]»", () => {
+  it('R5-4: el NULL de R serializado como `{}` es texto vacío, nunca "[object Object]"', () => {
     const modos = normalizarPlannerModos({ calc: { modo: {}, perfil: {} }, monitoreo: { modo: {}, familia: {} } });
     expect(modos.calc.modo).toBeNull();
     expect(modos.monitoreo.modo).toBeNull();

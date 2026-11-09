@@ -228,7 +228,7 @@ export function AgruparCategoriasCodificador({ parent, base }: { parent: string;
                 setRemoto((r) => ({ ...r, errorGuardar: null }));
               }}
             >
-              Usar «{remoto.errorGuardar.sugerido}»
+              Usar "{remoto.errorGuardar.sugerido}"
             </PulsoButton>
           )}
         </div>
@@ -257,7 +257,7 @@ export function AgruparCategoriasCodificador({ parent, base }: { parent: string;
           </p>
           {ocupado && (
             <p className="pulso-agrupar-nota is-warn">
-              Otra codificación ya usa «{target}». Prueba con «{datos.target_sugerido}».
+              Otra codificación ya usa "{target}". Prueba con "{datos.target_sugerido}".
             </p>
           )}
         </Panel>
@@ -352,7 +352,7 @@ export function AgruparCategoriasCodificador({ parent, base }: { parent: string;
                           {!explicita && borrador.categorias.length > 0 && (
                             <span className={`pulso-agrupar-destino${destino || esOtro ? "" : " is-warn"}`}>
                               {esOtro
-                                ? "Se clasifica por el texto escrito en «Otro»"
+                                ? 'Se clasifica por el texto escrito en "Otro"'
                                 : destino
                                   ? `${destino.via === "rango" ? "Por rango" : "Por resto"} en ${etiquetaDe(destino.id)}`
                                   : "Sin categoría"}
@@ -370,14 +370,14 @@ export function AgruparCategoriasCodificador({ parent, base }: { parent: string;
 
         {/* Textos de «Otro» */}
         {hayTexto && (
-          <Panel className="pulso-agrupar-seccion" aria-labelledby={`agrupar-${parent}-otro`} title={<span id={`agrupar-${parent}-otro`}>Textos escritos en «Otro»</span>}>
+          <Panel className="pulso-agrupar-seccion" aria-labelledby={`agrupar-${parent}-otro`} title={<span id={`agrupar-${parent}-otro`}>Textos escritos en "Otro"</span>}>
             <label className="pulso-agrupar-campo">
-              <span>Código de «Otro» en {parent}</span>
+              <span>Código de "Otro" en {parent}</span>
               <select
                 value={borrador.codigoOtro ?? ""}
                 onChange={(e) => dispatch({ tipo: "codigoOtro", valor: e.target.value || null })}
               >
-                <option value="">Sin código de «Otro»</option>
+                <option value="">Sin código de "Otro"</option>
                 {datos.codigos.map((o) => (
                   <option key={o.codigo} value={o.codigo}>{o.codigo} {o.etiqueta}</option>
                 ))}
@@ -389,7 +389,7 @@ export function AgruparCategoriasCodificador({ parent, base }: { parent: string;
                 <EstadoVacio
                   tamano="compacto"
                   icono={<Inbox size={15} />}
-                  titulo="Nadie escribió en «Otro»"
+                  titulo='Nadie escribió en "Otro"'
                   descripcion={`La columna ${borrador.textCol ?? ""} no trae textos en esta base.`}
                 />
               ) : (
@@ -578,7 +578,7 @@ function CategoriaFila({ c, primera, ultima, abierta, hayTexto, onAlternar, disp
                 onChange={(e) => dispatch({ tipo: "editar", id: c.id, cambios: { rangoMax: e.target.value } })} />
             </label>
             <p className="pulso-agrupar-nota">
-              Deja un extremo vacío para un rango abierto. Un rango abierto no recoge los códigos 80 a 99 ni el código de «Otro».
+              Deja un extremo vacío para un rango abierto. Un rango abierto no recoge los códigos 80 a 99 ni el código de "Otro".
             </p>
           </fieldset>
           {/* Reglas que quedan puestas en la categoría: interruptores, no
@@ -593,15 +593,15 @@ function CategoriaFila({ c, primera, ultima, abierta, hayTexto, onAlternar, disp
             <>
               <label className="pulso-agrupar-check">
                 <Switch className="pulso-codificacion-switch" checked={c.otrosNumerico}
-                  ariaLabel="Recoge los años escritos en «Otro» que caen en su rango"
+                  ariaLabel='Recoge los años escritos en "Otro" que caen en su rango'
                   onToggle={() => dispatch({ tipo: "editar", id: c.id, cambios: { otrosNumerico: !c.otrosNumerico } })} />
-                Recoge los años escritos en «Otro» que caen en su rango
+                Recoge los años escritos en "Otro" que caen en su rango
               </label>
               <label className="pulso-agrupar-check">
                 <Switch className="pulso-codificacion-switch" checked={c.otrosResto}
-                  ariaLabel="Recoge el resto de textos escritos en «Otro»"
+                  ariaLabel='Recoge el resto de textos escritos en "Otro"'
                   onToggle={() => dispatch({ tipo: "otrosResto", id: c.id, activo: !c.otrosResto })} />
-                Recoge el resto de textos escritos en «Otro»
+                Recoge el resto de textos escritos en "Otro"
               </label>
             </>
           )}

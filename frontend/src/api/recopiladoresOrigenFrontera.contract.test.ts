@@ -53,7 +53,7 @@ describe("la frontera entre /origen en R y normalizeCollectionOrigen", () => {
     expect(ini).toBeGreaterThan(0);
     const cuerpo = ts.slice(ini, ts.indexOf("\n}\n", ini));
     for (const clave of Object.values(CLAVES).flat()) {
-      expect(cuerpo.includes(clave) || ts.includes(`value.${clave}`), `el normalizador no lee «${clave}»`).toBe(true);
+      expect(cuerpo.includes(clave) || ts.includes(`value.${clave}`), `el normalizador no lee "${clave}"`).toBe(true);
     }
   });
 
@@ -62,7 +62,7 @@ describe("la frontera entre /origen en R y normalizeCollectionOrigen", () => {
     const r = sinComentarios(leer(ORIGEN_R));
     for (const clave of Object.values(CLAVES).flat()) {
       // `clave = …` dentro de `list(…)`, o `x$clave <- …` cuando se añade aparte.
-      expect(r, `el backend no escribe «${clave}»: llegaría vacío`)
+      expect(r, `el backend no escribe "${clave}": llegaría vacío`)
         .toMatch(new RegExp(`\\b${clave}\\s*=(?!=)|\\$${clave}\\s*<-`));
     }
   });
@@ -72,7 +72,7 @@ describe("la frontera entre /origen en R y normalizeCollectionOrigen", () => {
     const r = sinComentarios(leer(ORIGEN_R));
     expect(r).toContain('"collection_origen/v1"');
     for (const estado of ["al_dia", "cambio", "sin_plan", "sin_fuente"]) {
-      expect(r, `el backend no emite el estado «${estado}»`).toContain(`"${estado}"`);
+      expect(r, `el backend no emite el estado "${estado}"`).toContain(`"${estado}"`);
     }
   });
 

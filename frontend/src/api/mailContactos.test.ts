@@ -135,7 +135,7 @@ describe("normalizadores de contactos", () => {
     expect(normalizarPerfilDeContactos({ cargados: false, cruce: null }).cargados).toBe(false);
   });
 
-  it("«Otros», el enlace por categoría y el sin dato con su respuesta", () => {
+  it('"Otros", el enlace por categoría y el sin dato con su respuesta', () => {
     const perfil = normalizarPerfilDeContactos({
       ...PERFIL,
       variables: [{
@@ -160,7 +160,7 @@ describe("normalizadores de contactos", () => {
     expect(normalizarPerfilDeContactos(PERFIL).cruce?.a_label).toBeUndefined();
   });
 
-  it("en el cruce, el `null` del final se rotula «Sin dato»", () => {
+  it('en el cruce, el `null` del final se rotula "Sin dato"', () => {
     const perfil = normalizarPerfilDeContactos({
       ...PERFIL, cruce: { a: "carrera", b: "sexo", filas: ["Derecho", null], columnas: ["F", null], celdas: [[1, 2], [3, 4]] },
     });

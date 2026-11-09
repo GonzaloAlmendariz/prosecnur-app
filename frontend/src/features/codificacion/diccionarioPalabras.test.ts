@@ -123,16 +123,16 @@ describe("guardar", () => {
   });
 
   it("los mensajes del 422 se dicen en texto llano, sin código ni jerga", () => {
-    const repetida = mensajeGuardadoLlano("E_TXT_FORMA_REPETIDA", "El grupo «estudiantes» comparte la raíz «alumn» con otro grupo: son la misma palabra. · E_TXT_FORMA_REPETIDA");
+    const repetida = mensajeGuardadoLlano("E_TXT_FORMA_REPETIDA", 'El grupo "estudiantes" comparte la raíz "alumn" con otro grupo: son la misma palabra. · E_TXT_FORMA_REPETIDA');
     expect(repetida).toContain("ya está en otro grupo");
     expect(repetida).not.toMatch(/raíz|E_TXT/);
     expect(mensajeGuardadoLlano("E_TXT_MOSTRAR_FUERA_DE_FORMAS", "x · E_TXT_MOSTRAR_FUERA_DE_FORMAS")).toBe("La palabra que se muestra tiene que ser una de las que uniste.");
-    expect(mensajeGuardadoLlano("E_TXT_DICCIONARIO_INVALIDO", "El grupo «a» une menos de dos palabras. · E_TXT_DICCIONARIO_INVALIDO")).toBe("El grupo «a» une menos de dos palabras.");
+    expect(mensajeGuardadoLlano("E_TXT_DICCIONARIO_INVALIDO", 'El grupo "a" une menos de dos palabras. · E_TXT_DICCIONARIO_INVALIDO')).toBe('El grupo "a" une menos de dos palabras.');
   });
 });
 
 describe("excluir en lote (CCSS-TXT-14)", () => {
-  it("marcar varias y pulsar «Excluir» las saca de las frecuentes; se reincorporan una por una", () => {
+  it('marcar varias y pulsar "Excluir" las saca de las frecuentes; se reincorporan una por una', () => {
     let s = reducirPalabras(listo(), { tipo: "marcar", clave: "docent" });
     s = reducirPalabras(s, { tipo: "marcar", clave: "alumn" });
     s = reducirPalabras(s, { tipo: "excluir-marcadas" });

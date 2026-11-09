@@ -269,7 +269,7 @@ export function mensajeGuardadoLlano(code: string, mensaje: string): string {
   const frase = mensaje.replace(/\s*·\s*[A-Z][A-Z0-9_]+\s*$/, "").trim();
   if (code === "E_TXT_FORMA_REPETIDA") {
     const citado = primerCitado(frase);
-    const sujeto = citado ? `Una palabra del grupo «${citado}»` : "Una de las palabras";
+    const sujeto = citado ? `Una palabra del grupo "${citado}"` : "Una de las palabras";
     return `${sujeto} ya está en otro grupo (puede estar escrita de otra forma). Deshaz uno de los dos grupos y vuelve a unirlas.`;
   }
   if (code === "E_TXT_MOSTRAR_FUERA_DE_FORMAS") return "La palabra que se muestra tiene que ser una de las que uniste.";

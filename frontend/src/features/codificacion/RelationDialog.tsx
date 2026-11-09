@@ -165,7 +165,7 @@ export function RelationDialog({
           {parentIsSM && (
             <section style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <div className="pulso-section-eyebrow">
-                Paso 2: opción «Otros» en <code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", fontSize: "var(--pulso-type-caption-size)" }}>{parent.parent}</code>
+                Paso 2: opción "Otros" en <code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", fontSize: "var(--pulso-type-caption-size)" }}>{parent.parent}</code>
               </div>
               <p style={{ margin: 0, fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
                 En preguntas de múltiple elección, indica qué opción corresponde a "Otros, especifique" —

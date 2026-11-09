@@ -30,7 +30,7 @@ export function FocoSinIncluirAviso({ resolucion, incluyendo, error, onIncluir, 
       <EstadoVacio
         tamano="normal"
         icono={<SearchX size={18} />}
-        titulo={<>No hay una pregunta abierta «{resolucion.foco}» en esta base</>}
+        titulo={<>No hay una pregunta abierta "{resolucion.foco}" en esta base</>}
         descripcion="Elige una pregunta de la lista o vuelve a organizar."
         accion={volver}
       />
@@ -41,7 +41,7 @@ export function FocoSinIncluirAviso({ resolucion, incluyendo, error, onIncluir, 
       <EstadoVacio
         tamano="normal"
         icono={<ClipboardList size={18} />}
-        titulo={<>«{pregunta.parent}» no está en «Preguntas para codificar»</>}
+        titulo={<>"{pregunta.parent}" no está en "Preguntas para codificar"</>}
         descripcion={incluible
           ? "Por eso aquí no se pueden codificar sus respuestas ni revisar sus palabras. Inclúyela para trabajarla."
           : "Por eso aquí no se pueden codificar sus respuestas. Esta pregunta se organiza en Preparar."}

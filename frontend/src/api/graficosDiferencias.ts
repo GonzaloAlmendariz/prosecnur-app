@@ -347,7 +347,7 @@ function normalizeResultado(r: Registro): ResultadoDiferencias {
   const estado: EstadoLaminaDiferencias = conocido ? (estadoCrudo as EstadoLaminaDiferencias) : "error";
   const modo = deEntre(r.modo_letras, ["letras", "frente_al_resto", "entre_publicos"] as const, "letras");
   const error = normalizeError(r.error) ?? (estado === "error"
-    ? { code: "", message: conocido ? "La prueba no devolvió el detalle del error." : `El motor devolvió un estado que esta versión no reconoce${typeof estadoCrudo === "string" && estadoCrudo ? ` («${estadoCrudo}»)` : ""}.`, error_id: null }
+    ? { code: "", message: conocido ? "La prueba no devolvió el detalle del error." : `El motor devolvió un estado que esta versión no reconoce${typeof estadoCrudo === "string" && estadoCrudo ? ` ("${estadoCrudo}")` : ""}.`, error_id: null }
     : null);
   return {
     slide_id: texto(r.slide_id),

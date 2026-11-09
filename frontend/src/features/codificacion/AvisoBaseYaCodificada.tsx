@@ -10,7 +10,7 @@ export function AvisoBaseYaCodificada({ base }: { base: string }) {
   return (
     <p className="pulso-codif-ya-codificada" role="status" data-testid="codificacion-base-ya-codificada">
       <Info size={14} aria-hidden="true" />
-      <span>«{base}» ya viene codificada: aquí no se vuelve a codificar.</span>
+      <span>"{base}" ya viene codificada: aquí no se vuelve a codificar.</span>
       {enRouter && <Link to={hrefVariablesBase(base)}>Cambiar en Carga</Link>}
     </p>
   );

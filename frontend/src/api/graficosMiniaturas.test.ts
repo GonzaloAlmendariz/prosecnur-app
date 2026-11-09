@@ -47,7 +47,7 @@ describe("normalizeMiniaturasLote", () => {
     expect(r.laminas[2].error).toEqual({ code: "E_MINIATURA_FALLIDA", message: "falló" });
   });
 
-  it("una lámina «ok» sin imagen se degrada a sin_imagen y un estado desconocido no se vuelve ok", () => {
+  it('una lámina "ok" sin imagen se degrada a sin_imagen y un estado desconocido no se vuelve ok', () => {
     const r = normalizeMiniaturasLote({ laminas: [{ slide_id: "a", estado: "ok", miniatura: {} }, { slide_id: "b", estado: "raro" }] });
     expect(r.laminas.map((l) => l.estado)).toEqual(["sin_imagen", "pendiente"]);
   });

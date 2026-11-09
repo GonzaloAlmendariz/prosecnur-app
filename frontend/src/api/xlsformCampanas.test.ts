@@ -72,7 +72,7 @@ describe("normalizadores de campañas (ADR 0101)", () => {
     expect(vacia).toMatchObject({ n_emparejadas: 0, n_preguntas_base: 0, cobertura: null, instrumento_distinto: false });
   });
 
-  test("la sugerencia nula o sin formulario es «no hay sugerencia»", () => {
+  test('la sugerencia nula o sin formulario es "no hay sugerencia"', () => {
     expect(normalizeCampanaSugerencia(null)).toBeNull();
     expect(normalizeCampanaSugerencia({ form_name: "Estudiantes" })).toBeNull();
     expect(normalizeCampanaSugerencia({

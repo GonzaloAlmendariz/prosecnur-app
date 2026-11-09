@@ -18,7 +18,7 @@ describe("FocoSinIncluirAviso", () => {
   it("dice que la pregunta no está incluida y ofrece incluirla", () => {
     const h = html();
     expect(h).toContain("coment");
-    expect(h).toContain("no está en «Preguntas para codificar»");
+    expect(h).toContain("no está en &quot;Preguntas para codificar&quot;");
     expect(h).toMatch(/<button[^>]*>(?:(?!<\/button>).)*Incluir en codificación/);
     expect(h).toContain('data-audit-ready="codificacion-codificar"');
     expect(h).toContain('data-qa-geometry-capacity="owned"');

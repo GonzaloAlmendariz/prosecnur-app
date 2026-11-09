@@ -18,7 +18,7 @@ const respuesta = (over: Partial<CodifAplicarRespuesta> = {}): CodifAplicarRespu
   kind: "codif_aplicar",
   avisos_incompletos: [],
   omitidas: [
-    { pregunta: "P66", motivo: "sin_columna_texto", mensaje: "Falta «P66_otro».", variable_nueva: null },
+    { pregunta: "P66", motivo: "sin_columna_texto", mensaje: 'Falta "P66_otro".', variable_nueva: null },
   ],
   textos_sin_codigo: [{ pregunta: "P4", columna: "P4_otro", casos: 1, textos: 1, ejemplos: ["Hombre"] }],
   sin_recodificar: [
@@ -35,7 +35,7 @@ const B = claveAplicar("sid-1", "base_b");
 describe("aplicarAvisosStore", () => {
   beforeEach(() => useAplicarAvisosStore.getState().reset());
 
-  it("la clave separa sesión y base; sin base es «default»", () => {
+  it('la clave separa sesión y base; sin base es "default"', () => {
     expect(claveAplicar("s", "x")).not.toBe(claveAplicar("t", "x"));
     expect(claveAplicar("s", null)).toBe("s::default");
     expect(claveAplicar("s", "  ")).toBe("s::default");

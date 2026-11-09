@@ -170,7 +170,7 @@ describe("agruparCategoriasModel", () => {
     expect(errores).toMatch(/mínimo mayor que el máximo/);
     expect(errores).toMatch(/Falta la etiqueta/);
     expect(errores).toMatch(/no tiene rango/);
-    expect(errores).toMatch(/código de «Otro»/);
+    expect(errores).toMatch(/código de "Otro"/);
   });
 
   it("recupera un borrador desde una spec guardada", () => {

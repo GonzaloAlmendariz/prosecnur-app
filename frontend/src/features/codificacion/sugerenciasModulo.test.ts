@@ -67,7 +67,7 @@ describe("sugerenciasPorRespuesta: de una propuesta por persona a una por respue
     expect(mapa.get(normalizarTextoCodif("Que los profesores y mi familia apoyen"))?.propuestas.map((p) => p.codigo)).toEqual(["20", "10"]);
   });
 
-  it("la no respuesta no tiene entrada; el comentario sin vocabulario queda marcado «sin módulo claro»", () => {
+  it('la no respuesta no tiene entrada; el comentario sin vocabulario queda marcado "sin módulo claro"', () => {
     expect(mapa.has("ninguno")).toBe(false);
     expect(mapa.get("gracias")).toMatchObject({ candidatoOtro: true, propuestas: [] });
   });
@@ -140,7 +140,7 @@ describe("confirmar escribe por el flujo de grupos, sin tocar lo que no confirm�
 });
 
 describe("rotuloModulo: el módulo en palabras llanas", () => {
-  it("«MÓDULO B. EXPERIENCIA UNIVERSITARIA» se lee «B. Experiencia universitaria»", () => {
+  it('"MÓDULO B. EXPERIENCIA UNIVERSITARIA" se lee "B. Experiencia universitaria"', () => {
     expect(rotuloModulo("MÓDULO B. EXPERIENCIA UNIVERSITARIA")).toEqual({ letra: "B", nombre: "Experiencia universitaria", corto: "B. Experiencia universitaria", grupo: "B. Experiencia universitaria" });
   });
   it("una etiqueta sin el patrón queda como está", () => {
@@ -162,7 +162,7 @@ describe("rotuloCortoSubtema: de 2 a 4 palabras desde el enunciado de la baterí
     ["¿Qué tan de acuerdo estás con la siguiente afirmación sobre los horarios de atención…", "Horarios de atención"],
     ["EXPERIENCIA LABORAL", "Experiencia laboral"],
   ];
-  it.each(casos)("«%s» → «%s»", (enunciado, corto) => {
+  it.each(casos)('"%s" → "%s"', (enunciado, corto) => {
     expect(rotuloCortoSubtema(enunciado)).toBe(corto);
   });
   it("nunca pasa de cuatro palabras ni termina en una palabra vacía", () => {
@@ -173,7 +173,7 @@ describe("rotuloCortoSubtema: de 2 a 4 palabras desde el enunciado de la baterí
     }
     expect(rotuloCortoSubtema("Uno dos tres cuatro cinco seis siete")).toBe("Uno dos tres cuatro");
   });
-  it("dos subtemas fusionados («a / b») acortan cada parte", () => {
+  it('dos subtemas fusionados ("a / b") acortan cada parte', () => {
     expect(rotuloCortoSubtema("EXPERIENCIA LABORAL / ¿Cómo valoras los recursos que ofrece la Facultad?")).toBe("Experiencia laboral / Recursos de la Facultad");
   });
   it("vacío no inventa nada", () => {
@@ -183,13 +183,13 @@ describe("rotuloCortoSubtema: de 2 a 4 palabras desde el enunciado de la baterí
 
 describe("rotuloDePropuesta: el subtema se nombra con la letra de su módulo y su rótulo corto", () => {
   // TXT-21: el grupo que crea «Confirmar» se llama igual que lo que muestra la banda: es la etiqueta que ven los gráficos.
-  it("con padre: «B. Redes sociales y plataformas», también como nombre del grupo, y el enunciado entero para el tooltip", () => {
+  it('con padre: "B. Redes sociales y plataformas", también como nombre del grupo, y el enunciado entero para el tooltip', () => {
     const r = rotuloDePropuesta({ etiqueta: "¿Con qué frecuencia utilizas las siguientes redes sociales y plataformas digitales?", padreEtiqueta: "MÓDULO B. EXPERIENCIA UNIVERSITARIA" });
     expect(r.corto).toBe("B. Redes sociales y plataformas");
     expect(r.grupo).toBe(r.corto);
     expect(r.completo).toBe("¿Con qué frecuencia utilizas las siguientes redes sociales y plataformas digitales?");
   });
-  it("lo que repite el nombre del módulo no distingue: «Experiencia laboral» en «Experiencia universitaria» es «B. Laboral»", () => {
+  it('lo que repite el nombre del módulo no distingue: "Experiencia laboral" en "Experiencia universitaria" es "B. Laboral"', () => {
     expect(rotuloDePropuesta({ etiqueta: "EXPERIENCIA LABORAL", padreEtiqueta: "MÓDULO B. EXPERIENCIA UNIVERSITARIA" }).corto).toBe("B. Laboral");
     expect(rotuloDePropuesta({ etiqueta: "EXPERIENCIA UNIVERSITARIA", padreEtiqueta: "MÓDULO B. EXPERIENCIA UNIVERSITARIA" }).corto).toBe("B. Universitaria");
   });

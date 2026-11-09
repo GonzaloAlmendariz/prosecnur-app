@@ -18,7 +18,7 @@ describe("SugerenciaModuloFila", () => {
     expect(renderToStaticMarkup(createElement(SugerenciaModuloFila, { entrada: undefined, grupos: [], onConfirmar: noop, onQuitar: noop }))).toBe("");
   });
 
-  it("sin vocabulario en común dice «Sin módulo claro», sin botón", () => {
+  it('sin vocabulario en común dice "Sin módulo claro", sin botón', () => {
     const html = renderToStaticMarkup(createElement(SugerenciaModuloFila, { entrada: entrada("gracias", [], true), grupos: [], onConfirmar: noop, onQuitar: noop }));
     expect(html).toContain("Sin módulo claro");
     expect(html).not.toContain("<button");

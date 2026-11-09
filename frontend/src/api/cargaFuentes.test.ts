@@ -58,7 +58,7 @@ describe("normalizeCargaFuentesEmparejamiento", () => {
     expect(out.fuentes[0].detalle_disponible).toBe(true);
   });
 
-  it("un estado desconocido es «emparejada» solo con las dos variables; si no, se descarta", () => {
+  it('un estado desconocido es "emparejada" solo con las dos variables; si no, se descarta', () => {
     const out = normalizeCargaFuentesEmparejamiento({
       fuentes: [{
         survey_id: "1",

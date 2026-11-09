@@ -59,7 +59,7 @@ describe("normalizarSegmentos: lo que serializa Plumber (ADR 0107)", () => {
     expect(d.segmentos[0].por_base.a.estado).toBe("incompleto");
   });
 
-  it("el payload real del backend: `\"\"` en el mapa es «sin dato» y se conserva", () => {
+  it("el payload real del backend: `\"\"` en el mapa es \"sin dato\" y se conserva", () => {
     const d = normalizarSegmentos({
       ok: true,
       disponible: true,
@@ -97,7 +97,7 @@ describe("normalizarSegmentos: lo que serializa Plumber (ADR 0107)", () => {
 });
 
 describe("getSegmentos", () => {
-  it("con la ruta todavía sin publicar (404) devuelve «no disponible» sin lanzar", async () => {
+  it('con la ruta todavía sin publicar (404) devuelve "no disponible" sin lanzar', async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(
       JSON.stringify({ error: { code: "E_NOT_FOUND", message: "Unknown API route" } }),
       { status: 404, headers: { "Content-Type": "application/json" } },

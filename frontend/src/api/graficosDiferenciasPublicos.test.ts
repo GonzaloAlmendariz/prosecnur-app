@@ -36,7 +36,7 @@ describe("normalizeLaminaEntrePublicos", () => {
     expect(normalizeLaminaEntrePublicos({ familia: "x", temas: "y", tarjetas: null })).toEqual({ familia: { m: 0, local: false }, temas: [], tarjetas: [] });
   });
 
-  it("un veredicto desconocido no es marca: queda «desconocido» con su texto", () => {
+  it('un veredicto desconocido no es marca: queda "desconocido" con su texto', () => {
     expect(normalizeParPublico({ veredicto: "fuera_de_familia" }).veredicto).toBe("fuera_de_familia");
     const raro = normalizeParPublico({ veredicto: "marcadisima" });
     expect(raro.veredicto).toBe("desconocido");
@@ -64,7 +64,7 @@ describe("normalizeLaminaEntrePublicos", () => {
   });
 });
 
-describe("normalizeDiferenciasLamina con modo_letras «entre_publicos»", () => {
+describe('normalizeDiferenciasLamina con modo_letras "entre_publicos"', () => {
   it("trae `entre_publicos`; una lámina de grupos lo deja en null", () => {
     const l = normalizeDiferenciasLamina({ estado: "con_marcas", modo_letras: "entre_publicos", temas: [TEMA], tarjetas: [TEMA], familia: { m: 3, local: true } });
     expect(l.modo_letras).toBe("entre_publicos");

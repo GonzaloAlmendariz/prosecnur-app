@@ -95,7 +95,7 @@ export function CodificarWizard({ onBackToOrganizar }: Props) {
       setActiveParent(parent);
       setInclusion({ incluyendo: false, error: "" });
     } catch (e) {
-      setInclusion({ incluyendo: false, error: `No se pudo incluir «${parent}» en codificación: ${(e as Error).message}` });
+      setInclusion({ incluyendo: false, error: `No se pudo incluir "${parent}" en codificación: ${(e as Error).message}` });
     }
   }, [cargar, setActiveParent]);
 
@@ -142,7 +142,7 @@ export function CodificarWizard({ onBackToOrganizar }: Props) {
           tamano="normal"
           icono={<ClipboardList size={18} />}
           titulo="No hay preguntas marcadas para codificar"
-          descripcion="Márcalas en Organizar, o empareja las de opción con su «Otros, especifique»."
+          descripcion='Márcalas en Organizar, o empareja las de opción con su "Otros, especifique".'
           accion={
             <PulsoButton variant="secondary" size="sm" onClick={onBackToOrganizar}>
               <ArrowLeft size={13} aria-hidden="true" /> Volver a organizar

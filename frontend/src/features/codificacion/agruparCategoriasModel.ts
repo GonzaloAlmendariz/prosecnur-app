@@ -239,32 +239,32 @@ export function validarBorrador(b: BorradorAgrupacion, parent: string, ocupados:
   const out: string[] = [];
   const target = b.target.trim();
   if (!target) out.push("Escribe el nombre de la variable nueva.");
-  else if (!RE_TARGET.test(target)) out.push(`«${target}» no es un nombre válido. Usa letras, números y guion bajo, sin espacios.`);
+  else if (!RE_TARGET.test(target)) out.push(`"${target}" no es un nombre válido. Usa letras, números y guion bajo, sin espacios.`);
   else if (target.toLowerCase() === parent.toLowerCase()) out.push("La variable nueva no puede llamarse igual que la original.");
-  else if (ocupados.some((o) => o.toLowerCase() === target.toLowerCase())) out.push(`El nombre «${target}» ya lo usa otra codificación.`);
+  else if (ocupados.some((o) => o.toLowerCase() === target.toLowerCase())) out.push(`El nombre "${target}" ya lo usa otra codificación.`);
 
   if (b.categorias.length === 0) out.push("Agrega al menos una categoría.");
   const vistos = new Set<string>();
   for (const c of b.categorias) {
     const nombre = c.etiqueta.trim() || c.codigo.trim() || "una categoría";
     const cod = c.codigo.trim();
-    if (!cod) out.push(`Falta el código de «${nombre}».`);
-    else if (!RE_CODIGO.test(cod)) out.push(`El código «${cod}» no puede llevar espacios ni símbolos.`);
-    else if (vistos.has(cod)) out.push(`El código «${cod}» se repite en dos categorías.`);
+    if (!cod) out.push(`Falta el código de "${nombre}".`);
+    else if (!RE_CODIGO.test(cod)) out.push(`El código "${cod}" no puede llevar espacios ni símbolos.`);
+    else if (vistos.has(cod)) out.push(`El código "${cod}" se repite en dos categorías.`);
     vistos.add(cod);
     if (!c.etiqueta.trim()) out.push(`Falta la etiqueta de la categoría ${cod || "sin código"}.`);
     const minTxt = c.rangoMin.trim();
     const maxTxt = c.rangoMax.trim();
     if ((minTxt && textoANumero(minTxt) == null) || (maxTxt && textoANumero(maxTxt) == null)) {
-      out.push(`El rango de «${nombre}» debe ser numérico.`);
+      out.push(`El rango de "${nombre}" debe ser numérico.`);
     }
     const r = rangoDe(c);
-    if (r && r.min != null && r.max != null && r.min > r.max) out.push(`El rango de «${nombre}» tiene el mínimo mayor que el máximo.`);
-    if (c.otrosNumerico && !r) out.push(`«${nombre}» clasifica años escritos en «Otro» pero no tiene rango.`);
+    if (r && r.min != null && r.max != null && r.min > r.max) out.push(`El rango de "${nombre}" tiene el mínimo mayor que el máximo.`);
+    if (c.otrosNumerico && !r) out.push(`"${nombre}" clasifica años escritos en "Otro" pero no tiene rango.`);
   }
   const usaOtro = b.categorias.some((c) => c.otrosTextos.length > 0 || c.otrosNumerico || c.otrosResto);
   if (usaOtro && (!b.textCol || !b.codigoOtro)) {
-    out.push("Para clasificar los textos de «Otro» elige cuál es el código de «Otro».");
+    out.push('Para clasificar los textos de "Otro" elige cuál es el código de "Otro".');
   }
   return out;
 }

@@ -114,7 +114,7 @@ describe("frasePendientes", () => {
 });
 
 describe("restanteDeDecision", () => {
-  it("«A medias» lleva cuántas faltan", () => {
+  it('"A medias" lleva cuántas faltan', () => {
     // El caso real: D1_information en acnur_acg, 27 de 75 asignadas. Sin el
     // número, una pregunta a la que le queda una se ve igual que ésta.
     const nota = restanteDeDecision(preg({

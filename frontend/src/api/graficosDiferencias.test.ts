@@ -117,7 +117,7 @@ describe("normalizeDiferenciasInforme", () => {
   });
 });
 
-describe("ranuras de la lámina (ADR 0128 «Familia por base»)", () => {
+describe('ranuras de la lámina (ADR 0128 "Familia por base")', () => {
   const ranura = (extra: Record<string, unknown>) => ({
     estado: "con_marcas", cruce: "sexo", variable: "p1", activo: true,
     grupos: [{ letra: "A", etiqueta: "Mujer", n: 80, comparable: true }, { letra: "B", etiqueta: "Hombre", n: 70, comparable: true }],

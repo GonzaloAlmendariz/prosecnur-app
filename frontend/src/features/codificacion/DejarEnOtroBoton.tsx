@@ -25,14 +25,14 @@ export function DejarEnOtroBoton({ pregunta }: { pregunta: string }) {
   if (hecho) {
     return (
       <span className="pulso-codif-en-otro-hecho" role="status">
-        Quedan en «Otro»
+        Quedan en "Otro"
         <PulsoButton variant="ghost" size="sm" disabled={ocupado} onClick={() => void correr(true)}>Deshacer</PulsoButton>
       </span>
     );
   }
   return (
     <>
-      <PulsoButton variant="ghost" size="sm" disabled={ocupado} onClick={() => void correr(false)}>Dejar en «Otro»</PulsoButton>
+      <PulsoButton variant="ghost" size="sm" disabled={ocupado} onClick={() => void correr(false)}>Dejar en "Otro"</PulsoButton>
       {error ? <span className="pulso-armon-error" role="alert">{error}</span> : null}
     </>
   );

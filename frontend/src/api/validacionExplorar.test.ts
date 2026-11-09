@@ -53,7 +53,7 @@ describe("normalizeExploradorFicha", () => {
     expect(normalizeExploradorFicha({ var: "x", tipo: "raro" })).toBeNull();
   });
 
-  it("required ausente queda como desconocido, no como «No»", () => {
+  it('required ausente queda como desconocido, no como "No"', () => {
     expect(normalizeExploradorFicha({ var: "x", tipo: "num", datos: {} })?.required).toBeNull();
   });
 });
@@ -75,7 +75,7 @@ describe("normalizeExploradorDist", () => {
     expect(d?.filas).toHaveLength(1);
   });
 
-  it("sm descarta claves de «cuántas marca» fuera del contrato", () => {
+  it('sm descarta claves de "cuántas marca" fuera del contrato', () => {
     const d = normalizeExploradorDist({
       tipo: "sm",
       base_n: 10,

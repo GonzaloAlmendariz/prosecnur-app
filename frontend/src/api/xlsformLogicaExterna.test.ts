@@ -21,7 +21,7 @@ describe("normalizeLogicaExternaSource", () => {
       .toEqual({ herramienta: "SPSS", nota: "", declarada_en: "x" });
   });
 
-  test("el retiro deja list(): [] o {} es «sin declaración»", () => {
+  test('el retiro deja list(): [] o {} es "sin declaración"', () => {
     expect(normalizeLogicaExternaSource([])).toBeUndefined();
     expect(normalizeLogicaExternaSource({})).toBeUndefined();
     expect(normalizeLogicaExternaSource(null)).toBeUndefined();
@@ -62,7 +62,7 @@ describe("leerLogicaExterna", () => {
     expect(leerLogicaExterna(null)).toBeNull();
   });
 
-  test("«otro programa» (sin nombre) se lee como programa vacío", () => {
+  test('"otro programa" (sin nombre) se lee como programa vacío', () => {
     const source = normalizeXlsformFormSource({
       ...DECLARADA,
       logic_external: { herramienta: "otro programa", nota: "", declarada_en: "x" },

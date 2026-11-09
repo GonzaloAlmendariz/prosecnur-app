@@ -69,7 +69,7 @@ describe("normalizeMonitoreoCuotasEstado", () => {
     expect(normalizeMonitoreoCuotasEstado(null).cuotas).toEqual([]);
   });
 
-  it("un estado desconocido se deduce de las cifras, no cae en «sin meta»", () => {
+  it('un estado desconocido se deduce de las cifras, no cae en "sin meta"', () => {
     const e = normalizeMonitoreoCuotasEstado({
       cuotas: [{
         id: "q", actor: "A", variable: "V",
