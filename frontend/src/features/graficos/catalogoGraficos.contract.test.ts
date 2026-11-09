@@ -63,6 +63,8 @@ describe("variantes del catálogo de gráficos", () => {
 
   it("reconoce la variante de un gráfico guardado como .graficos_variante_de", () => {
     expect(varianteDeGrafico("p_dumbbell", { estilo: "resumen", cruce: null })?.id).toBe("p_dumbbell:contraste");
+    // El `null` vuelve del backend como `{}` (jsonlite): sigue siendo el contraste, no las aperturas (ronda 18).
+    expect(varianteDeGrafico("p_dumbbell", { estilo: "resumen", cruce: {} })?.id).toBe("p_dumbbell:contraste");
     expect(varianteDeGrafico("p_dumbbell", { estilo: "resumen", cruce: "sexo" })?.id).toBe("p_dumbbell:aperturas");
     expect(varianteDeGrafico("p_dumbbell", { estilo: "resumen", vars: { docentes: ["p1"], alumnos: ["p1"] } })?.id).toBe("p_dumbbell:contraste");
     expect(varianteDeGrafico("p_dumbbell", { estilo: "resumen", vars: ["p1"] })?.id).toBe("p_dumbbell:aperturas");

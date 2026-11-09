@@ -5,6 +5,7 @@
 import type { VarWithSource } from "../../useVariables";
 import { parseVarRef } from "../../useVariables";
 import { esComodin, usaPublicos } from "../publicosGrafico/modeloPublicos";
+import { cruceNuloDeclarado } from "../../catalogoGraficos";
 
 type Args = Readonly<Record<string, unknown>>;
 export type Opcion = { codigo: string; etiqueta: string };
@@ -18,7 +19,7 @@ const lista = (v: unknown): string[] => (Array.isArray(v) ? v.map(texto).filter(
  * la matriz de equivalencias ya puso sus preguntas (loop UI R4).
  */
 export function esEntreGrupos(args: Args): boolean {
-  if (args.cruce === null) return false;
+  if (cruceNuloDeclarado(args)) return false;
   if (typeof args.cruce === "string") return true;
   return !tienePreguntasPorBase(args.vars);
 }

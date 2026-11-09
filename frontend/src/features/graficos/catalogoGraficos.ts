@@ -88,9 +88,18 @@ const texto = (v: unknown): string => {
   return typeof x === "string" ? x.trim() : typeof x === "number" ? String(x) : "";
 };
 
+/**
+ * ¿`cruce` está declarado y nulo? El `null` que escribe la versión «Contraste de públicos» vuelve del backend como `{}`
+ * (jsonlite serializa el NULL de R como objeto vacío): los dos significan lo mismo que el `NULL` que lee el motor.
+ */
+export function cruceNuloDeclarado(args: Args): boolean {
+  const v = args.cruce;
+  return v === null || (!!v && typeof v === "object" && !Array.isArray(v) && Object.keys(v).length === 0);
+}
+
 /** Espejo de `.graficos_variantes_dumbbell_entre_grupos` (api/R/graficos_variantes.R). */
 function dumbbellEntreGrupos(args: Args): boolean {
-  if (args.cruce === null) return false;   // `null` del JSON: declarado y nulo
+  if (cruceNuloDeclarado(args)) return false;   // `null` del JSON (o `{}` de vuelta del backend): declarado y nulo
   if (texto(args.cruce)) return true;
   const v = args.vars;
   const porBase = !!v && typeof v === "object" && !Array.isArray(v) && Object.keys(v).length > 0
