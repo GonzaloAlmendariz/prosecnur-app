@@ -107,8 +107,8 @@
 }
 
 .mon-mode-choice__option:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--pulso-primary-ring);
+  outline: var(--mov-foco);
+  outline-offset: 2px;
 }
 
 .mon-mode-choice__option:disabled {

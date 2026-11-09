@@ -226,9 +226,9 @@
 .pulso-entregable-cerrar:focus-visible,
 .pulso-entregable-menu-item:focus-visible,
 .pulso-entregable-bandeja-boton:focus-visible {
-  outline: none;
+  outline: var(--mov-foco);
   border-color: var(--pulso-button-accent, var(--pulso-primary-border));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 24%, transparent);
+  outline-offset: 2px;
 }
 
 .pulso-entregable-cerrar:hover {

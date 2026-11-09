@@ -117,9 +117,9 @@
 }
 
 .rpc-open:focus-visible {
-  outline: none;
+  outline: var(--mov-foco);
   border-color: var(--pulso-primary-border, rgba(0, 36, 87, 0.18));
-  box-shadow: 0 0 0 3px var(--pulso-primary-focus, rgba(0, 36, 87, 0.22));
+  outline-offset: 2px;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -228,9 +228,9 @@
 }
 
 .rpc-remove:focus-visible {
-  outline: none;
+  outline: var(--mov-foco);
   opacity: 1;
-  box-shadow: 0 0 0 3px var(--pulso-primary-focus, rgba(0, 36, 87, 0.22));
+  outline-offset: 2px;
 }
 
 /* En dispositivos con hover fino, la X aparece al pasar el mouse o con foco.

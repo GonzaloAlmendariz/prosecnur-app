@@ -523,7 +523,6 @@
 }
 
 .is-telefonico-profile .mon-acr-source-status-metrics > button:hover,
-.is-telefonico-profile .mon-acr-source-status-metrics > button:focus-visible,
 .is-telefonico-profile .mon-acr-source-status-metrics > button.is-active {
   border-color: color-mix(in srgb, var(--source-status-accent) 40%, var(--pulso-border));
   background:
@@ -535,7 +534,7 @@
 }
 
 .is-telefonico-profile .mon-acr-source-status-metrics > button:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--source-status-accent) 45%, transparent);
+  outline: var(--mov-foco);
   outline-offset: 2px;
 }
 

@@ -557,10 +557,8 @@
 }
 
 .mon-rail-web-publish-trigger:focus-visible {
-  outline: 2px solid transparent;
-  box-shadow:
-    0 0 0 3px color-mix(in srgb, var(--pulso-module-monitoring) 16%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.82);
+  outline: var(--mov-foco);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
 }
 
 .mon-rail-web-publish-trigger-icon {
@@ -799,8 +797,8 @@
 .mon-rail-web-publish-actions button:focus-visible,
 .mon-rail-web-publish-sheets button:focus-visible,
 .mon-rail-web-publish-sheet-links a:focus-visible {
-  outline: 2px solid transparent;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pulso-module-monitoring) 14%, transparent);
+  outline: var(--mov-foco);
+  outline-offset: 2px;
 }
 
 .mon-rail-web-publish-actions a {
@@ -2111,8 +2109,8 @@
 .mon-output-suite select:focus-visible,
 .mon-output-suite button:focus-visible,
 .mon-output-suite a:focus-visible {
-  outline: 2px solid transparent;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pulso-module-monitoring) 15%, transparent);
+  outline: var(--mov-foco);
+  outline-offset: 2px;
 }
 
 .mon-output-suite-status {
@@ -18656,9 +18654,9 @@ button.mon-territorial-ump-audit-scrim {
 .mon-token-picker select:focus-visible,
 .mon-inspector-field select:focus-visible,
 .mon-case-grid select:focus-visible {
-  outline: none;
+  outline: var(--mov-foco);
   border-color: var(--pulso-primary-border);
-  box-shadow: 0 0 0 3px var(--pulso-primary-soft);
+  outline-offset: 2px;
 }
 
 .mon-choice-list,
@@ -31394,8 +31392,8 @@ button.mon-territorial-ump-audit-scrim {
 
 .mon-territorial-field-start-controls input:focus {
   border-color: color-mix(in srgb, var(--pulso-primary-border) 68%, var(--pulso-border));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pulso-primary-soft) 42%, transparent);
-  outline: none;
+  outline-offset: 2px;
+  outline: var(--mov-foco);
 }
 
 .mon-territorial-field-start-controls button,
@@ -36726,8 +36724,8 @@ button.mon-territorial-ump-audit-scrim {
 .mon-aulas-view button:focus-visible,
 .mon-aulas-view input:focus-visible,
 .mon-aulas-table-link:focus-visible {
-  outline: 2px solid transparent;
-  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+  outline: var(--mov-foco);
+  outline-offset: 2px;
 }
 
 .mon-aulas-title {

@@ -129,8 +129,8 @@
 .dashboard-scope select:focus-visible,
 .dashboard-scope textarea:focus-visible,
 .dashboard-scope button:focus-visible {
-  outline: 2px solid transparent;
-  box-shadow: 0 0 0 3px var(--dash-primario-soft);
+  outline: var(--mov-foco);
+  outline-offset: 2px;
 }
 
 .dashboard-scope button {

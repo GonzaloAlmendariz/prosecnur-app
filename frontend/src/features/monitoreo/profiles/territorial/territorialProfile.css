@@ -2641,8 +2641,8 @@
 
 .mon-territorial-source-field select:focus {
   border-color: color-mix(in srgb, var(--pulso-primary-border) 68%, var(--pulso-border));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pulso-primary-soft) 42%, transparent);
-  outline: none;
+  outline-offset: 2px;
+  outline: var(--mov-foco);
 }
 
 .mon-field-occurrences-connect-summary span {
@@ -3225,8 +3225,8 @@
 .mon-field-occurrences-register-toolbar select:focus-visible,
 .mon-field-occurrences-register-toolbar button:focus-visible {
   border-color: color-mix(in srgb, var(--pulso-primary) 28%, var(--pulso-border));
-  box-shadow: 0 0 0 3px var(--pulso-primary-soft);
-  outline: none;
+  outline-offset: 2px;
+  outline: var(--mov-foco);
 }
 
 .mon-field-occurrences-register-table {
@@ -6278,10 +6278,8 @@
 }
 
 .mon-territorial-geo-replacement-strip button.mon-territorial-route-badge:focus-visible {
-  outline: none;
-  box-shadow:
-    0 0 0 3px color-mix(in srgb, var(--pulso-warn-accent) 16%, transparent),
-    0 6px 14px rgba(180, 83, 9, 0.08);
+  outline: var(--mov-foco);
+  box-shadow: 0 6px 14px rgba(180, 83, 9, 0.08);
 }
 
 .mon-territorial-geo-replacement-detail > .mon-territorial-route-badge {
@@ -6310,10 +6308,8 @@
 }
 
 .mon-territorial-geo-case-row:focus-visible {
-  outline: none;
-  box-shadow:
-    0 0 0 3px color-mix(in srgb, var(--geo-row-color) 14%, transparent),
-    0 8px 18px rgba(15, 23, 42, 0.055);
+  outline: var(--mov-foco);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.055);
 }
 
 .mon-territorial-geo-case-row.is-selected {
@@ -9739,8 +9735,8 @@
 }
 
 .mon-duration-ump-action:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+  outline: var(--mov-foco);
+  outline-offset: 2px;
 }
 
 .mon-duration-review-table td:last-child {
@@ -13564,8 +13560,8 @@
 
 .mon-field-occurrences-ump-row:focus-visible {
   border-color: color-mix(in srgb, var(--occurrence-status-color) 42%, var(--pulso-border));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--occurrence-status-color) 12%, transparent);
-  outline: none;
+  outline-offset: 2px;
+  outline: var(--mov-foco);
 }
 
 .mon-field-occurrences-ump-row.is-selected {
@@ -15768,8 +15764,8 @@
 .mon-production-annulments__control input:focus,
 .mon-production-annulments__control textarea:focus {
   border-color: color-mix(in srgb, var(--pulso-danger, #be123c) 48%, var(--pulso-border, #d8e0ec));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pulso-danger, #be123c) 12%, transparent);
-  outline: none;
+  outline-offset: 2px;
+  outline: var(--mov-foco);
 }
 
 .mon-production-annulments__responsible {

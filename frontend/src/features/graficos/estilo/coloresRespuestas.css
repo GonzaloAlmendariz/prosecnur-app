@@ -337,7 +337,7 @@
   font-size: var(--pulso-type-body-size);
 }
 
-.pulso-cr-input:focus { outline: 0; border-color: var(--pulso-primary-border); box-shadow: 0 0 0 3px var(--pulso-primary-ring); }
+.pulso-cr-input:focus { outline: var(--mov-foco); border-color: var(--pulso-primary-border); outline-offset: 2px; }
 .pulso-cr-input[aria-invalid="true"] { border-color: var(--pulso-danger-border); }
 
 .pulso-cr-ayuda {

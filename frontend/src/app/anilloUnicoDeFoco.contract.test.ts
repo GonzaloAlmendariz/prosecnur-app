@@ -69,6 +69,10 @@ interface ReglaDeFoco {
   /** Etiqueta y clases del último compuesto (el elemento enfocado), sin lo que va dentro de `:not()`. */
   etiqueta: string;
   clasesDelSujeto: string[];
+  /** Atributos del último compuesto (`[data-nav-item]` → `data-nav-item`). */
+  atributosDelSujeto: string[];
+  /** Valor literal del outline, si lo declara. */
+  outline: string | null;
   /** Todas las clases del selector, ancestros incluidos. */
   clases: string[];
   halo: boolean;
@@ -96,6 +100,8 @@ function reglasDeFoco(css: string, archivo: string): ReglaDeFoco[] {
         selector: selector.trim(),
         etiqueta: sujeto.match(/^[a-z]+/)?.[0] ?? "",
         clasesDelSujeto: clasesDe(sujeto),
+        atributosDelSujeto: [...sujeto.matchAll(/\[([\w-]+)/g)].map((x) => x[1]),
+        outline: cuerpo.match(/(?<![-\w])outline:\s*([^;]*)/)?.[1].trim() ?? null,
         clases: clasesDe(limpio),
         halo: tieneHalo(cuerpo),
         pintaOutline: /(?<![-\w])outline:/.test(cuerpo) && !nulo,
@@ -112,9 +118,10 @@ function reglasDeFoco(css: string, archivo: string): ReglaDeFoco[] {
  * halo es una etiqueta sin clase, la misma etiqueta. Así cae `.mon-commandbar button:focus-visible` (halo) frente a
  * `.mon-commandbar.is-barra-comun .mon-modo-actualizar button:focus-visible` (outline).
  *
- * NO cubre: el outline que llega por atributo (`[data-nav-item]:focus-visible`) o por una clase que el selector del
- * halo no nombra, ni decide qué regla gana por especificidad u orden de carga; eso sólo lo ve la captura. Por eso el
- * halo solo (outline nulo + halo) queda además congelado por hoja en HALOS_SOLOS_HEREDADOS: no puede aparecer uno nuevo.
+ * NO cubre: el outline que llega por una clase que el selector del halo no nombra, ni decide qué regla gana por
+ * especificidad u orden de carga; eso sólo lo ve la captura. Por eso el halo solo (outline nulo + halo) queda además
+ * congelado por hoja en HALOS_SOLOS_HEREDADOS: no puede aparecer uno nuevo. El outline que llega por atributo lo cubre
+ * `anillosPorAtributo` (R14-2) cruzando el markup que lleva ese atributo.
  */
 function anillosDoblesCruzados(reglas: ReglaDeFoco[]): string[] {
   const dobles: string[] = [];
@@ -132,24 +139,63 @@ function anillosDoblesCruzados(reglas: ReglaDeFoco[]): string[] {
   return [...new Set(dobles)];
 }
 
-/** Anillos dobles cruzados que existían al escribir R13-4. Pendientes: sólo puede bajar. */
-const DOBLES_CRUZADOS_HEREDADOS = new Set([
-  "features/dashboard/theme/tokens.css: .dashboard-scope input:focus-visible + features/dashboard/customize/customize.css: .dashboard-scope .dash-publish-grid input:focus",
-  "features/dashboard/theme/tokens.css: .dashboard-scope select:focus-visible + features/dashboard/customize/customize.css: .dashboard-scope .dash-publish-grid select:focus",
-  "features/graficos/v2/styles/editor-v2.css: .pulso-gv2-iconos-dropzone:focus-visible + features/graficos/v2/styles/editor-v2.css: .pulso-gv2-iconos-dropzone:focus-visible",
-  "features/monitoreo/profiles/telefonico/telefonicoProfile.css: .is-telefonico-profile .mon-acr-source-status-metrics > button:focus-visible + features/monitoreo/profiles/telefonico/telefonicoProfile.css: .is-telefonico-profile .mon-acr-source-status-metrics > button:focus-visible",
-  "features/xlsformEditor/styles/xf-sheets.css: .pulso-xlsform-frame .pulso-xfs-cell:focus + features/xlsformEditor/styles/xf-sheets.css: .pulso-xlsform-frame .pulso-xfs-type-chip .pulso-xfs-cell:focus",
-]);
+/** Anillos dobles cruzados heredados. R14-1 arregló los cinco de R13-4: la lista queda vacía y no vuelve a crecer. */
+const DOBLES_CRUZADOS_HEREDADOS = new Set<string>([]);
+
+function componentes(dir: string): string[] {
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    const p = path.join(dir, e.name);
+    if (e.isDirectory()) return componentes(p);
+    return e.name.endsWith(".tsx") && !e.name.includes(".test.") ? [p] : [];
+  });
+}
 
 /**
- * Halo solo (outline nulo + halo 0 0 0 Npx) por hoja, al escribir R13-4. No es un anillo doble, pero no es el anillo
+ * Clases que el markup pone en la misma etiqueta que `atributo` (p. ej. `pulso-phase-pill` junto a `data-nav-item`).
+ * Lee la etiqueta de apertura desde su `<` hasta el primer `>` de fin de línea o `/>`; descarta los `is-*` de estado.
+ */
+function clasesConAtributo(fuentes: Array<[string, string]>, atributo: string): Set<string> {
+  const out = new Set<string>();
+  for (const [, s] of fuentes) {
+    for (const m of s.matchAll(new RegExp(`${atributo}(?![-\\w])`, "g"))) {
+      const ini = s.lastIndexOf("<", m.index);
+      const fin = s.slice(m.index).search(/(?<![=-])>\s*\n|\/>/);
+      const etiqueta = s.slice(ini, (m.index ?? 0) + (fin < 0 ? 400 : fin));
+      for (const lit of etiqueta.matchAll(/["'`]([^"'`]*)["'`]/g)) {
+        for (const t of lit[1].split(/\s+/)) if (/^[a-z][a-z0-9]*(-[a-z0-9]+)+$/.test(t) && !t.startsWith("is-")) out.add(t);
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * R14-2: el outline que llega por atributo. Una regla global `[atributo]:focus-visible` con outline se suma a cualquier
+ * halo que otra regla le ponga al mismo control; el control se identifica por las clases que el markup pone junto al
+ * atributo. Devuelve los halos (con o sin outline nulo: según especificidad sale doble o sale halo sin anillo del kit).
+ */
+function anillosPorAtributo(reglas: ReglaDeFoco[], fuentes: Array<[string, string]>): string[] {
+  const dobles: string[] = [];
+  const porAtributo = reglas.filter((r) => r.pintaOutline && !r.etiqueta && !r.clasesDelSujeto.length);
+  for (const a of porAtributo) {
+    for (const atributo of a.atributosDelSujeto.filter((x) => x.startsWith("data-"))) {
+      const clases = clasesConAtributo(fuentes, atributo);
+      for (const h of reglas.filter((r) => r.halo)) {
+        const porClase = h.clasesDelSujeto.some((c) => clases.has(c));
+        if (!a.clases.every((c) => h.clases.includes(c))) continue; // el ámbito de la regla del atributo
+        if (porClase || h.atributosDelSujeto.includes(atributo)) dobles.push(`${h.archivo}: ${h.selector} + ${a.archivo}: ${a.selector}`);
+      }
+    }
+  }
+  return [...new Set(dobles)];
+}
+
+/**
+ * Halo solo (outline nulo + halo 0 0 0 Npx) por hoja, al escribir R13-4 (R14-3 migró Gráficos, Monitoreo y el shell). No es un anillo doble, pero no es el anillo
  * del kit y es el terreno donde nace el doble en cuanto otra regla le pone outline al mismo control. Sólo puede bajar.
  */
 const HALOS_SOLOS_HEREDADOS: Record<string, number> = {
-  "app/boot.css": 6,
-  "app/theme.css": 5,
-  "components/entregables/entregables.css": 5,
-  "components/recent-project-card.css": 2,
+  "app/theme.css": 2,
   "features/analitica/analitica-v2.css": 3,
   "features/analitica/panes/ComparativosPane.css": 5,
   "features/analitica/panes/PonderacionPane.css": 1,
@@ -164,16 +210,11 @@ const HALOS_SOLOS_HEREDADOS: Record<string, number> = {
   "features/calcMuestra/universidad/ui/ui.css": 4,
   "features/carga/carga-v2.css": 13,
   "features/codificacion/codificacion-v2.css": 9,
-  "features/dashboard/theme/tokens.css": 4,
-  "features/graficos/estilo/coloresRespuestas.css": 1,
-  "features/graficos/estilo/rotulosCortos.css": 1,
-  "features/graficos/v2/styles/editor-v2.css": 17,
+  "features/graficos/v2/styles/editor-v2.css": 1,
   "features/home/home-v2.css": 9,
-  "features/monitoreo/MonitoreoShell.css": 1,
-  "features/monitoreo/monitoreo.css": 27,
-  "features/monitoreo/profiles/profilePage.css": 10,
-  "features/monitoreo/profiles/telefonico/telefonicoProfile.css": 1,
-  "features/monitoreo/profiles/territorial/territorialProfile.css": 14,
+  "features/monitoreo/monitoreo.css": 3,
+  "features/monitoreo/profiles/profilePage.css": 4,
+  "features/monitoreo/profiles/territorial/territorialProfile.css": 3,
   "features/procesamiento/processingSheetViewer.css": 1,
   "features/recopiladores/correos/correosCampanas.css": 1,
   "features/recopiladores/correos/correosCapa.css": 2,
@@ -188,7 +229,7 @@ const HALOS_SOLOS_HEREDADOS: Record<string, number> = {
   "features/xlsformEditor/styles/xf-canvas.css": 5,
   "features/xlsformEditor/styles/xf-graph/03-leyenda-minimap-indicador-de.css": 9,
   "features/xlsformEditor/styles/xf-inspector.css": 7,
-  "features/xlsformEditor/styles/xf-sheets.css": 5,
+  "features/xlsformEditor/styles/xf-sheets.css": 4,
   "features/xlsformEditor/styles/xf-simulator.css": 5,
   "features/xlsformEditor/styles/xf-text-rules.css": 7,
   "features/xlsformEditor/styles/xlsform-v2/02-fila-con-campo-numerico-tope.css": 8,
@@ -239,6 +280,27 @@ describe("anillo único de foco", () => {
   it("ningún halo se suma al outline que otra regla le da al mismo control (R13-4)", () => {
     const nuevos = anillosDoblesCruzados(censo()).filter((d) => !DOBLES_CRUZADOS_HEREDADOS.has(d));
     expect(nuevos, "Quita el box-shadow 0 0 0 Npx de la regla del halo; el anillo es el outline var(--mov-foco).").toEqual([]);
+  });
+
+  it("el outline que llega por atributo es el anillo del kit y no se suma a un halo (R14-2)", () => {
+    const fuentes = componentes(SRC).map((f): [string, string] => [f, fs.readFileSync(f, "utf8")]);
+    const reglas = censo();
+    const navItem = reglas.find((r) => r.archivo === "app/nav-states.css" && r.selector === "[data-nav-item]:focus-visible");
+    expect(navItem?.outline, "[data-nav-item]:focus-visible").toBe("var(--mov-foco)");
+    expect(clasesConAtributo(fuentes, "data-nav-item").has("pulso-phase-pill"), "vacuna: el markup de la píldora se lee").toBe(true);
+    const globales = reglas.filter((r) => r.pintaOutline && r.atributosDelSujeto.length && !r.clasesDelSujeto.length && !r.etiqueta);
+    expect(globales.filter((r) => r.outline !== "var(--mov-foco)").map((r) => `${r.archivo}: ${r.selector} → ${r.outline}`)).toEqual([]);
+    expect(anillosPorAtributo(reglas, fuentes), "Quita el halo: el anillo del item de navegación es el de nav-states.css.").toEqual([]);
+  });
+
+  it("vacuna R14-2: un halo sobre una clase que el markup marca con el atributo se ve", () => {
+    const fuentes: Array<[string, string]> = [["x.tsx", '<button\n  data-nav-item=""\n  className={["nav-pill", activa ? "is-active" : ""].join(" ")}\n>\n']];
+    const reglas = [
+      ...reglasDeFoco("[data-nav-item]:focus-visible { outline: var(--mov-foco); }", "n.css"),
+      ...reglasDeFoco(".dock .nav-pill:focus-visible { outline: none; box-shadow: 0 0 0 3px red; }", "p.css"),
+    ];
+    expect(anillosPorAtributo(reglas, fuentes)).toHaveLength(1);
+    expect(anillosPorAtributo(reglas.slice(0, 1), fuentes)).toEqual([]);
   });
 
   it("los dobles cruzados heredados siguen existiendo; el que se arregla sale de la lista (R13-4)", () => {

@@ -412,7 +412,7 @@
 }
 
 .pulso-emparejamiento-filtro [data-gliding-key]:focus-visible {
-  outline: 2px solid var(--pulso-module-processing);
+  outline: var(--mov-foco);
   outline-offset: 1px;
 }
 

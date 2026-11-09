@@ -305,9 +305,9 @@ input {
 }
 
 .boot-path-field input:focus-visible {
-  outline: none;
+  outline: var(--mov-foco);
   border-color: var(--pulso-primary-border);
-  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+  outline-offset: 2px;
 }
 
 .boot-actions {
@@ -408,8 +408,8 @@ input {
 }
 
 .boot-recents-edit:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+  outline: var(--mov-foco);
+  outline-offset: 2px;
 }
 
 .boot-recents-edit.is-active {
@@ -516,9 +516,9 @@ input {
 }
 
 .boot-project-open:focus-visible {
-  outline: none;
+  outline: var(--mov-foco);
   border-color: var(--pulso-primary-border);
-  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+  outline-offset: 2px;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -712,9 +712,9 @@ input {
 }
 
 .boot-recent-remove:focus-visible {
-  outline: none;
+  outline: var(--mov-foco);
   opacity: 1;
-  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+  outline-offset: 2px;
 }
 
 /* La X solo aparece en modo edición; ahí ocupa el lugar de la fecha. */
@@ -842,8 +842,8 @@ input {
 }
 
 .boot-footer-btn:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+  outline: var(--mov-foco);
+  outline-offset: 2px;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -947,8 +947,8 @@ input {
 }
 
 .boot-action-card:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+  outline: var(--mov-foco);
+  outline-offset: 2px;
 }
 
 @media (hover: hover) and (pointer: fine) {

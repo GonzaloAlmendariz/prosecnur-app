@@ -173,9 +173,9 @@
  * cualquier `.is-active` que use `box-shadow` para su relieve —las píldoras de
  * sección, por ejemplo— lo borra sin querer. Ninguna regla `.is-active` del
  * repo declara `outline`, así que por acá el anillo sobrevive al activo, y
- * además se tiñe con el acento del módulo en vez del navy global. */
+ * es el anillo del kit (var(--mov-foco), acento del módulo, R14-2). */
 [data-nav-item]:focus-visible {
-  outline: var(--pulso-nav-focus-outline-width) solid var(--pulso-nav-focus-outline-color);
+  outline: var(--mov-foco);
   outline-offset: var(--pulso-nav-focus-offset);
 }
 

@@ -1040,7 +1040,8 @@
 .dashboard-scope .dash-publish-grid input:focus,
 .dashboard-scope .dash-publish-grid select:focus {
   border-color: color-mix(in srgb, var(--dash-borde) 45%, var(--dash-editor-accent) 55%);
-  outline: 2px solid var(--dash-editor-accent-soft);
+  outline: var(--mov-foco);
+  outline-offset: 2px;
 }
 .dashboard-scope .dash-publish-wide {
   grid-column: 1 / -1;

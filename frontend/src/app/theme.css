@@ -1463,9 +1463,9 @@ a { color: var(--pulso-primary); }
 }
 
 .pulso-project-confirm-copy:focus-visible {
-  outline: none;
+  outline: var(--mov-foco);
   border-color: var(--pulso-primary-border);
-  box-shadow: 0 0 0 3px var(--pulso-primary-ring);
+  outline-offset: 2px;
 }
 
 .pulso-project-confirm-copy.is-copied {
@@ -2724,9 +2724,9 @@ a { color: var(--pulso-primary); }
   color: color-mix(in srgb, var(--pulso-module-processing) 76%, var(--pulso-text));
 }
 
-:where(.pulso-processing-phase-dock) .pulso-phase-pill:focus-visible {
+.pulso-processing-phase-dock .pulso-phase-pill:focus-visible {
   outline: var(--mov-foco);
-  outline-offset: -2px; /* R13-2: un solo anillo; dentro de la píldora porque el dock recorta lo que sale. */
+  outline-offset: -2px; /* R14-2: gana a [data-nav-item] (0,3,0); dentro porque el dock recorta lo que sale. */
 }
 
 :where(.pulso-processing-phase-dock) .pulso-phase-pill .pulso-phase-pill-text {
@@ -15593,9 +15593,9 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
 }
 
 .pulso-constraint-shortcut:focus-visible {
-  outline: none;
+  outline: var(--mov-foco);
   border-color: color-mix(in srgb, var(--pulso-primary) 32%, var(--pulso-border));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pulso-primary) 14%, transparent);
+  outline-offset: 2px;
 }
 
 .pulso-constraint-shortcut:active {
@@ -21827,10 +21827,10 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-outline-grip:hover:no
 }
 
 .pulso-add-element-menu-item:focus-visible {
-  outline: none;
+  outline: var(--mov-foco);
   border-color: color-mix(in srgb, var(--pulso-primary) 28%, var(--xls-border));
   background: color-mix(in srgb, #ffffff 76%, var(--pulso-primary) 8%);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pulso-primary) 14%, transparent);
+  outline-offset: 2px;
 }
 
 .pulso-add-element-menu-item:hover {

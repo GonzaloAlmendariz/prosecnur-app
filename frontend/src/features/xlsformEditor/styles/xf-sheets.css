@@ -446,10 +446,10 @@
   }
 }
 .pulso-xlsform-frame .pulso-xfs-cell:focus {
-  outline: none;
+  outline: var(--mov-foco);
+  outline-offset: -2px;
   background: #ffffff;
   border-color: var(--pulso-primary);
-  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
 }
 .pulso-xlsform-frame .pulso-xfs-cell.is-multiline {
   min-height: 40px;

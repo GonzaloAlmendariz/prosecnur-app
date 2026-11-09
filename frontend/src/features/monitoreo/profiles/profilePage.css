@@ -4529,10 +4529,8 @@
 }
 
 .mon-acr-use-switch input[type="checkbox"]:focus-visible {
-  outline: none;
-  box-shadow:
-    var(--pulso-switch-track-shadow),
-    0 0 0 4px var(--pulso-primary-ring);
+  outline: var(--mov-foco);
+  box-shadow: var(--pulso-switch-track-shadow);
 }
 
 .mon-acr-use-switch > span {
@@ -12802,8 +12800,8 @@
 
 .mon-platform-rule-row select:focus {
   border-color: color-mix(in srgb, var(--platform-rule-accent) 54%, var(--pulso-border));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--platform-rule-accent) 12%, transparent);
-  outline: none;
+  outline-offset: 2px;
+  outline: var(--mov-foco);
 }
 
 .mon-platform-rule-index {
@@ -14453,10 +14451,8 @@ button.mon-acr-requirement-metric:active {
 }
 
 .mon-switch-line input:focus-visible {
-  outline: none;
-  box-shadow:
-    var(--pulso-switch-track-shadow),
-    0 0 0 4px var(--pulso-primary-ring);
+  outline: var(--mov-foco);
+  box-shadow: var(--pulso-switch-track-shadow);
 }
 
 .mon-icon-action {
@@ -14686,9 +14682,9 @@ button.mon-acr-requirement-metric:active {
 
 .mon-source-name-field input:focus-visible,
 .mon-source-alias input:focus-visible {
-  outline: 2px solid transparent;
+  outline: var(--mov-foco);
   border-color: var(--pulso-primary-border);
-  box-shadow: 0 0 0 3px var(--pulso-primary-soft);
+  outline-offset: 2px;
 }
 
 .mon-sm-error {
@@ -19009,9 +19005,9 @@ button.mon-acr-requirement-metric:active {
 }
 
 .mon-assisted-actions textarea:focus {
-  outline: none;
+  outline: var(--mov-foco);
   border-color: color-mix(in srgb, var(--pulso-primary) 36%, var(--pulso-border));
-  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+  outline-offset: 2px;
 }
 
 .mon-assisted-actions > div {

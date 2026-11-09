@@ -554,7 +554,7 @@
 
 .pulso-armon-seccion .pulso-panel-title [tabindex="-1"]:focus-visible,
 .pulso-armon-seccion-head h3:focus-visible {
-  outline: var(--mov-foco, 2px solid var(--pulso-primary));
+  outline: var(--mov-foco);
   outline-offset: 2px;
   border-radius: var(--pulso-radius-chip);
 }

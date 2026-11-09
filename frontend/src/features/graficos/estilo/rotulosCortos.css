@@ -98,7 +98,7 @@
 
 .pulso-rc-sugerencia:hover,
 .pulso-rc-sugerencia[aria-pressed="true"] { background: var(--pulso-surface); box-shadow: var(--pulso-shadow-low); }
-.pulso-rc-sugerencia:focus-visible { outline: 0; box-shadow: 0 0 0 3px var(--pulso-primary-ring); }
+.pulso-rc-sugerencia:focus-visible { outline: var(--mov-foco); outline-offset: 2px; }
 
 .pulso-rc-sugerencia-texto {
   flex: 1;
