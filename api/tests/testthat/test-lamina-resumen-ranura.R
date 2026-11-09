@@ -180,3 +180,11 @@ test_that("ronda 2, ítem 6: la escala de una ranura con filas de públicos dist
   expect_gt(length(n), 0L)
   expect_true(all(grepl("n = [0-9]+", n)))
 })
+
+test_that("ronda 2, ítem 5: el panorama usa el alto de la ranura de dos (filas hasta 1.4 in, centradas)", {
+  e <- list(tipo = "panorama", publicos = c("Docentes", "Estudiantes", "Administrativos"), textos_bajo = c("1 de 3", "2 de 3", "0 de 3"),
+            encabezado_bajo = "Bajo 60%", referencia = 60)
+  g2 <- .lam_rr_panorama_geo(e, 0.5, 1.65, 6, 5.07)
+  expect_gt(g2$hrow, 0.9); expect_lte(g2$hrow, 1.4)
+  expect_lte(g2$ley + g2$cab + g2$eje + 3 * g2$hrow, 5.07)
+})

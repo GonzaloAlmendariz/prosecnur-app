@@ -364,7 +364,8 @@
   w_med <- max(0.8, .lam_ancho_tinta("Mediana", 10, TRUE) + 0.25)
   w_bajo <- max(0.85, .lam_ancho_tinta(enc_bajo, 10, TRUE) + 0.25, max(vapply(espec$textos_bajo, function(t) .lam_ancho_tinta(t, 10.5, FALSE), 0)) + 0.25)
   ley <- 0.32; cab <- 0.3; eje <- 0.32
-  hrow <- min(0.9, (h - ley - cab - eje - 0.05) / k)
+  # Ronda 2, ítem 5 (C3): las filas crecen con el alto de la ranura hasta 1.4 in (la de página entera llega a 1.5).
+  hrow <- min(1.4, (h - ley - cab - eje - 0.05) / k)
   xl <- x + wrot + 0.1; xr <- x + w - w_med - w_bajo - 0.3
   ref <- espec$referencia
   wley <- 0.45 + .lam_ancho_tinta("Mediana del público", 10.5, FALSE) + 0.5 +
