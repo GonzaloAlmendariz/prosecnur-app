@@ -32,34 +32,90 @@
 #' @keywords internal
 .lam_rr_lh <- function(size) size * 1.2 / 72
 
-#' Rótulos de fila en una columna que crece con su tinta: letra, ancho, paso común y alto de cada fila
+#' Un rótulo cortado al medio: el comienzo, «…» y el final, para que el predicado no se pierda
 #'
-#' Como `.lam_contraste_geom`: se prueba la letra pedida y se baja de a medio punto hasta el piso; con cada letra la
-#' columna se ensancha de a 0.1 in hasta `w_max`. Gana la primera combinación sin recortes; si ninguna, el piso con la
-#' columna más ancha y «…», bajando de líneas hasta que las filas quepan.
-#' @param pasos Pasos por fila (1 en pares; k + 0.7 con k grupos). @param u_min,u_max Paso común admitido.
-#' @return Lista con `size`, `wq` (ancho de la columna), `u`, `alturas`, `textos`, `lineas`, `recortados`, o `NULL` si las filas no caben.
+#' Ronda 2, ítem 2: recortar por el final dejaba «Los procesos de selección y contratación de los(as)…» en dos filas que
+#' se leían iguales (una terminaba en «justos», la otra en «transparentes»). Aquí se conservan las últimas palabras (al
+#' menos `e_min`, de preferencia tres) y se agregan las del comienzo que quepan en `lineas` líneas.
+#' @return `list(lineas, texto, recortado)`, como `.lam_rotulo_recortar`.
 #' @keywords internal
-.lam_rr_filas <- function(textos, w_min, w_max, disponible, pasos, u_min, u_max, desde = 11, max_lin = 3L) {
+.lam_rr_recortar_medio <- function(s, w, size, lineas = 3L, e_min = 1L) {
+  s <- trimws(as.character(s %||% "")[1]); if (is.na(s)) s <- ""
+  util <- max(0.3, (w - 0.2 - 0.02) * 0.95)
+  envolver <- function(t) .lam_tyc_envolver(t, util, size, FALSE)
+  if (length(envolver(s)) <= lineas) return(list(lineas = envolver(s), texto = s, recortado = FALSE))
+  util <- util * 0.9   # con holgura, como `.lam_rotulo_recortar`: el visor parte antes
+  pal <- strsplit(s, "\\s+")[[1]]; n <- length(pal)
+  cabe <- function(t) length(envolver(t)) <= lineas
+  mejor <- NULL
+  for (e in seq(min(max(1L, e_min), n - 1L), max(1L, n - 1L))) {
+    fin <- paste(pal[(n - e + 1L):n], collapse = " ")
+    if (!cabe(paste("…", fin))) break
+    a <- 0L
+    while (a + 1L < n - e && cabe(paste(paste(pal[seq_len(a + 1L)], collapse = " "), "…", fin))) a <- a + 1L
+    t <- if (a > 0L) paste(paste(pal[seq_len(a)], collapse = " "), "…", fin) else paste("…", fin)
+    puntaje <- a + 2 * min(e, 3L) + e / 100   # de preferencia tres palabras del final; luego, las más palabras
+    if (is.null(mejor) || puntaje > mejor$puntaje) mejor <- list(texto = t, puntaje = puntaje)
+  }
+  if (is.null(mejor)) return(.lam_rotulo_recortar(s, w, size, lineas))
+  list(lineas = envolver(mejor$texto), texto = mejor$texto, recortado = TRUE)
+}
+
+#' Rótulos cortados al medio sin que dos queden iguales (si coinciden, se conserva una palabra más del final)
+#' @keywords internal
+.lam_rr_recortar_lote <- function(textos, w, size, lineas) {
+  e_min <- rep(1L, length(textos))
+  rr <- lapply(textos, function(t) .lam_rr_recortar_medio(t, w, size, lineas))
+  for (vuelta in 1:6) {
+    tx <- vapply(rr, `[[`, "", "texto")
+    dup <- which(duplicated(tx) | duplicated(tx, fromLast = TRUE))
+    dup <- dup[!duplicated(textos[dup])]   # dos preguntas con el mismo enunciado se leen iguales y está bien
+    if (!length(dup)) break
+    for (i in dup) { e_min[i] <- e_min[i] + 1L; rr[[i]] <- .lam_rr_recortar_medio(textos[i], w, size, lineas, e_min = e_min[i]) }
+  }
+  rr
+}
+
+#' Rótulos de fila en una columna que crece con su tinta: letra, ancho, paso común, alto de cada fila y cuántas filas van
+#'
+#' Ronda 2, ítem 2. En este orden: (1) el enunciado entero en hasta `max_lin` líneas, bajando la letra hasta el piso de
+#' 10.5 pt y ensanchando la columna; (2) menos filas —las primeras, que son las que eligió la regla en su orden—, hasta
+#' `n_min`, y la lámina lo dice al pie; (3) todas las filas con el rótulo cortado al medio, conservando el final.
+#' @param pasos Pasos por fila (1 en pares; k + 0.7 con k grupos). @param u_min,u_max Paso común admitido.
+#' @param n_min Filas que deben quedar como mínimo antes de cortar rótulos.
+#' @return Lista con `size`, `wq` (ancho de la columna), `u`, `alturas`, `textos`, `lineas`, `recortados`, `k` (filas que
+#'   van), o `NULL` si las filas no caben.
+#' @keywords internal
+.lam_rr_filas <- function(textos, w_min, w_max, disponible, pasos, u_min, u_max, desde = 11, max_lin = 3L,
+                          n_min = max(2L, ceiling(length(textos) / 2))) {
   if (!length(textos) || w_max < w_min - 1e-9 || disponible <= 0) return(NULL)
-  prueba <- function(size, w, lineas, recortar) {
-    rr <- lapply(textos, function(t) .lam_rotulo_recortar(t, w, size, lineas))
+  prueba <- function(size, w, lineas, recortar, k = length(textos)) {
+    tx <- textos[seq_len(k)]; ps <- pasos[seq_len(k)]
+    rr <- if (recortar) .lam_rr_recortar_lote(tx, w, size, lineas) else lapply(tx, function(t) .lam_rotulo_recortar(t, w, size, lineas))
     if (!recortar && any(vapply(rr, `[[`, TRUE, "recortado"))) return(NULL)
     necesita <- vapply(rr, function(r) length(r$lineas), 0L) * .lam_rr_lh(size) + 0.05
-    alto <- function(u) sum(pmax(pasos * u, necesita))
+    alto <- function(u) sum(pmax(ps * u, necesita))
     if (alto(u_min) > disponible + 1e-9) return(NULL)
     lo <- u_min; hi <- u_max
     if (alto(hi) <= disponible) lo <- hi else for (it in 1:40) { mid <- (lo + hi) / 2; if (alto(mid) <= disponible) lo <- mid else hi <- mid }
-    list(size = size, wq = w, u = lo, alturas = pmax(pasos * lo, necesita), textos = vapply(rr, `[[`, "", "texto"), lineas = lineas,
-         recortados = sum(vapply(rr, `[[`, TRUE, "recortado")))
+    list(size = size, wq = w, u = lo, alturas = pmax(ps * lo, necesita), textos = vapply(rr, `[[`, "", "texto"), lineas = lineas,
+         recortados = sum(vapply(rr, `[[`, TRUE, "recortado")), k = k)
   }
-  for (size in .lam_rotulo_pasos_pt(desde)) {
-    tinta <- max(vapply(textos, function(t) .lam_ancho_tinta(t, size, FALSE), 0))
-    w0 <- min(w_max, max(w_min, tinta + 0.25))
-    for (w in unique(c(seq(w0, w_max, by = 0.1), w_max))) {
-      e <- prueba(size, w, max_lin, FALSE)
-      if (!is.null(e)) return(e)
+  enteros <- function(k) {
+    for (size in .lam_rotulo_pasos_pt(desde)) {
+      tinta <- max(vapply(textos[seq_len(k)], function(t) .lam_ancho_tinta(t, size, FALSE), 0))
+      w0 <- min(w_max, max(w_min, tinta + 0.25))
+      for (w in unique(c(seq(w0, w_max, by = 0.1), w_max))) {
+        e <- prueba(size, w, max_lin, FALSE, k)
+        if (!is.null(e)) return(e)
+      }
     }
+    NULL
+  }
+  n <- length(textos)
+  for (k in unique(c(n, if (n > n_min) seq(n - 1L, n_min)))) {
+    e <- enteros(k)
+    if (!is.null(e)) return(e)
   }
   for (lineas in rev(seq_len(max_lin))) {
     e <- prueba(.LAM_ROTULO_PT_PISO, w_max, lineas, TRUE)
@@ -96,7 +152,30 @@
     cobertura = .lam_rr_cobertura(lz, espec, geo),
     divergentes_resumen = .lam_rr_divergentes(lz, espec, geo))
   if (isTRUE(geo$recortados > 0L)) .lam_rotulos_aviso(geo$recortados, geo$lineas %||% 3L)
+  if (isTRUE(geo$k < geo$n_total)) .lam_rr_menos_filas(espec, geo)
   invisible(y %||% (geo$y + geo$h))
+}
+
+.LAM_RR_PIE <- new.env(parent = emptyenv())
+
+#' Una ranura que muestra menos filas de las que eligió su regla: lo dice al pie de la lámina y avisa
+#' @keywords internal
+.lam_rr_menos_filas <- function(espec, geo) {
+  etq <- .lam_rr_etiqueta(espec, NA_integer_)
+  quien <- if (grepl("^Gráfico", etq)) "una ranura" else paste("la ranura de", etq)
+  que <- if (identical(geo$clase, "fortalezas")) sprintf("las %d más altas y las %d más bajas", geo$k, geo$k) else sprintf("las %d primeras", geo$k)
+  nota <- sprintf("Por espacio, %s muestra %s de %d", quien, que, geo$n_total)
+  .LAM_RR_PIE$notas <- unique(c(.LAM_RR_PIE$notas, nota))
+  .pulso_aviso(paste0(nota, "; para verlas todas, usa una lámina de un gráfico o nombres cortos."))
+}
+
+#' El pie de la lámina compuesta con las notas de filas de menos de sus ranuras (y las vacía para la siguiente lámina)
+#' @keywords internal
+.lam_rr_pie_menos_filas <- function(base) {
+  notas <- .LAM_RR_PIE$notas; .LAM_RR_PIE$notas <- NULL
+  if (!length(notas)) return(base)
+  b <- as.character(base %||% "")[1]; if (is.na(b)) b <- ""
+  .lam_con_punto(do.call(.lam_unir_base, as.list(c(if (nzchar(b)) b, notas))))
 }
 
 #' Una guía rotulada de cada cuántas, para que las cifras del eje no se toquen (0.45 in entre rótulos como mínimo)
@@ -213,6 +292,7 @@
   f <- .lam_rr_filas(espec$rotulos, 1.2, w_max, disponible, pasos, if (par) 0.22 else 0.13, if (par) 0.45 else 0.24, desde = 11)
   if (is.null(f)) return(list(cabe = FALSE))
   xl <- x + f$wq + 0.15; xr <- x + w - wd - 0.35
+  f$n_total <- n
   wley <- sum(vapply(ley, function(t) 0.14 + .lam_ancho_tinta(t, 10.5, FALSE) + 0.25 + 0.25, 0))
   # La leyenda arranca sobre el área de puntos; si no cabe hasta la columna de la diferencia, desde el margen de la ranura.
   x_ley <- if (wley <= (x + w - wd) - (xl - 0.05) + 1e-6) xl - 0.05 else x
@@ -223,7 +303,8 @@
 #' @keywords internal
 .lam_rr_contraste <- function(lz, espec, ge) {
   azul <- .std_color("azul"); suave <- .std_color("texto_suave")
-  n <- length(espec$rotulos); k <- length(espec$grupos); par <- identical(espec$modo, "par")
+  n <- ge$k %||% length(espec$rotulos); k <- length(espec$grupos); par <- identical(espec$modo, "par")
+  espec$separadores <- (espec$separadores %||% integer(0))[(espec$separadores %||% integer(0)) < n]
   eje <- espec$eje; px <- function(v) ge$xl + (ge$xr - ge$xl) * (v - eje[["lo"]]) / (eje[["hi"]] - eje[["lo"]])
   alturas <- ge$alturas
   y_ley <- ge$y + max(0, ge$disponible - sum(alturas)) / 2; y0 <- y_ley + ge$cab; y1 <- y0 + sum(alturas)
@@ -344,25 +425,44 @@
   if (length(cols) != 2L) return(list(cabe = FALSE))
   ns <- vapply(cols, function(cl) length(cl$rotulos), 0L)
   if (sum(ns) < 1L || any(ns > .FORTALEZAS_FILAS_MAX)) return(list(cabe = FALSE))
-  size <- .LAM_ROTULO_PT_PISO; cab <- 0.42
-  prueba <- function(disp) {
+  size <- .LAM_ROTULO_PT_PISO; cab <- 0.42; n <- max(ns)
+  prueba <- function(disp, k) {
+    nk <- pmin(ns, k)
     if (identical(disp, "lado")) {
-      wc <- (w - 0.35) / 2; hrow <- min(0.55, (h - cab) / max(ns)); xs <- c(x, x + wc + 0.35); ys <- c(y, y)
+      wc <- (w - 0.35) / 2; hrow <- min(0.75, (h - cab) / max(nk)); xs <- c(x, x + wc + 0.35); ys <- c(y, y)
     } else {
-      wc <- w; hrow <- min(0.5, (h - 2 * cab - 0.1) / sum(ns)); xs <- c(x, x); ys <- c(y, y + cab + hrow * ns[1] + 0.1)
+      wc <- w; hrow <- min(0.6, (h - 2 * cab - 0.1) / sum(nk)); xs <- c(x, x); ys <- c(y, y + cab + hrow * nk[1] + 0.1)
     }
-    wr <- if (identical(disp, "lado")) wc * 0.52 else min(3.0, wc * 0.5)
-    wb <- wc - wr - 0.15 - 0.45
+    wb <- max(0.7, wc * (if (identical(disp, "lado")) 0.25 else 0.4))
+    wr <- min(3.2, wc - wb - 0.15 - 0.4)
     max_lin <- as.integer(max(1L, min(3L, floor((hrow - 0.06) / .lam_rr_lh(size)))))
-    if (hrow < 0.24 || wb < 0.7) return(NULL)
-    rec <- sum(vapply(unlist(lapply(cols, `[[`, "rotulos")), function(t) .lam_rotulo_recortar(t, wr + 0.1, size, max_lin)$recortado, TRUE))
-    list(disp = disp, wc = wc, hrow = hrow, xs = xs, ys = ys, wr = wr, wb = wb, lineas = max_lin, recortados = rec,
-         g = min(.std_grosor(max(ns), "categorias"), hrow * 0.6), cab = cab, size = size)
+    if (hrow < 0.24 || wr < 1.0) return(NULL)
+    rot <- unlist(lapply(seq_along(cols), function(j) cols[[j]]$rotulos[seq_len(nk[j])]))
+    rec <- sum(vapply(rot, function(t) .lam_rotulo_recortar(t, wr + 0.1, size, max_lin)$recortado, TRUE))
+    list(disp = disp, wc = wc, hrow = hrow, xs = xs, ys = ys, wr = wr, wb = wb, lineas = max_lin, recortados = rec, k = k,
+         n_total = n, g = min(.std_grosor(max(nk), "categorias"), hrow * 0.6), cab = cab, size = size)
   }
-  ops <- Filter(Negate(is.null), list(prueba("lado"), prueba("apilado")))
+  # Ronda 2, ítem 2: primero los enunciados enteros con todas las filas; luego con menos filas (las más altas y las más bajas
+  # primeras, que son las que eligió la regla); si no, todas las filas con el enunciado cortado al medio.
+  k_min <- as.integer(max(2L, ceiling(n / 2)))
+  for (k in unique(c(n, if (n > k_min) seq(n - 1L, k_min)))) {
+    for (disp in c("lado", "apilado")) {
+      o <- prueba(disp, k)
+      if (!is.null(o) && o$recortados == 0L) return(c(o, list(cabe = TRUE)))
+    }
+  }
+  # Con corte: gana la disposición que conserva más de cada enunciado (la peor fila manda), entre todas las filas y la
+  # mitad; a igualdad, más filas. Dos o tres palabras de un enunciado de veinte no informan (revisión del lead, ronda 2).
+  ops <- Filter(Negate(is.null), list(prueba("lado", n), prueba("apilado", n), prueba("lado", k_min), prueba("apilado", k_min)))
   if (!length(ops)) return(list(cabe = FALSE))
-  rec <- vapply(ops, `[[`, 0L, "recortados")
-  c(ops[[which.min(rec)]], list(cabe = TRUE))
+  conserva <- vapply(ops, function(o) {
+    nk <- pmin(ns, o$k)
+    rot <- unlist(lapply(seq_along(cols), function(j) cols[[j]]$rotulos[seq_len(nk[j])]))
+    tx <- vapply(.lam_rr_recortar_lote(rot, o$wr + 0.1, size, o$lineas), `[[`, "", "texto")
+    min(nchar(gsub("…", "", tx, fixed = TRUE)) / pmax(1, nchar(rot)))
+  }, 0)
+  orden <- order(-round(conserva, 2), -vapply(ops, function(o) as.numeric(o$k), 0))
+  c(ops[[orden[1]]], list(cabe = TRUE))
 }
 
 #' @keywords internal
@@ -375,10 +475,10 @@
     .lam_txt(lz, cl$titulo, x + 0.2, y0 - 0.02, ge$wc - 0.3, 0.34, 12, azul, bold = TRUE, nombre = "fortalezas:columna")
     .lam_caja(lz, x, y0 + ge$cab - 0.1, ge$wc, 0.025, cl$color, nombre = "fortalezas:filete")
     xb <- x + ge$wr + 0.15
-    for (i in seq_along(cl$rotulos)) {
+    textos <- vapply(.lam_rr_recortar_lote(cl$rotulos, ge$wr + 0.1, ge$size, ge$lineas), `[[`, "", "texto")
+    for (i in seq_len(min(ge$k %||% length(cl$rotulos), length(cl$rotulos)))) {
       yc <- y0 + ge$cab + (i - 0.5) * ge$hrow
-      rr <- .lam_rotulo_recortar(cl$rotulos[i], ge$wr + 0.1, ge$size, ge$lineas)
-      .lam_txt(lz, rr$texto, x - 0.1, yc - ge$hrow / 2, ge$wr + 0.1, ge$hrow, ge$size, azul, nombre = "fortalezas:rotulo", anclaje = "ctr")
+      .lam_txt(lz, textos[i], x - 0.1, yc - ge$hrow / 2, ge$wr + 0.1, ge$hrow, ge$size, azul, nombre = "fortalezas:rotulo", anclaje = "ctr")
       .lam_caja(lz, xb, yc - ge$g / 2, ge$wb, ge$g, pista, nombre = "fortalezas:pista", borde = NA)
       lb <- max(0.01, ge$wb * max(0, min(100, cl$valores[i])) / 100)
       .lam_caja(lz, xb, yc - ge$g / 2, lb, ge$g, cl$color, nombre = "fortalezas:barra", borde = NA)
@@ -492,7 +592,7 @@
   w_max <- min(2.4, xb - 2.2 - 0.15 - x)
   f <- .lam_rr_filas(espec$filas, 1.2, w_max, disponible, rep(1, n), 0.2, 0.45, desde = 11, max_lin = if (n > 8L) 2L else 3L)
   if (is.null(f)) return(list(cabe = FALSE))
-  xa <- x + f$wq + 0.15
+  xa <- x + f$wq + 0.15; f$n_total <- n
   c(f, list(cabe = isTRUE(ley$cabe) && (xb - xa) >= 2.2 - 1e-6, hay_si = hay_si, wsi = wsi, xa = xa, xb = xb, ley = ley, hley = hley,
             disponible = disponible, g = f$u * 0.74))
 }
@@ -500,7 +600,7 @@
 #' @keywords internal
 .lam_rr_divergentes <- function(lz, espec, ge) {
   azul <- .std_color("azul")
-  C <- espec$categorias; U <- espec$unidades; X <- espec$cifras; n <- length(espec$filas)
+  C <- espec$categorias; U <- espec$unidades; X <- espec$cifras; n <- ge$k %||% length(espec$filas)
   alturas <- ge$alturas; g <- ge$g
   y_ley <- ge$y + max(0, ge$disponible - sum(alturas)) / 2; y0 <- y_ley + ge$hley
   centros <- y0 + cumsum(alturas) - alturas / 2

@@ -303,6 +303,7 @@
   geo <- .lam_mixta_geo(tipo)
   if (is.null(geo)) return(NULL)   # disposición sin geometría del recetario: quien llama sigue con la ruta anterior
   geo <- .lam_mixta_geo_bajo_titulo(geo, titulo, sub)   # CCSS-25: un título de tres líneas no pisa los paneles (lamina_mixtas_titulo.R)
+  .LAM_RR_PIE$notas <- NULL
   doc <- officer::add_slide(doc, layout = layout, master = master)
   # Gonzalo, 2026-10-14: las láminas de población ya no llevan el ícono del público en la cabecera; la cabecera es la
   # de cualquier lámina de varios gráficos (antetítulo y título desde el margen).
@@ -349,7 +350,7 @@
   for (g in graficos) doc <- officer::ph_with(doc, rvg::dml(ggobj = g$p, bg = "transparent", fonts = list(sans = .std_pt("fuente"))),
                                               location = officer::ph_location(left = g$x, top = g$y, width = g$w, height = g$h, newlabel = "mixta:respaldo"))
   doc <- .lam_cifras_iconos(doc, iconos)
-  doc <- .lam_pie(doc, base, folio)
+  doc <- .lam_pie(doc, .lam_rr_pie_menos_filas(base), folio)   # una ranura de resumen con filas de menos lo dice (lamina_resumen_ranura.R)
   list(doc = por_lamina(doc), partes = 1L)
 }
 

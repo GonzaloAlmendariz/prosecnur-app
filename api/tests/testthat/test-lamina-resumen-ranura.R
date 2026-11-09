@@ -129,3 +129,36 @@ test_that("ronda 2, ítem 1: en el render, dos fortalezas de públicos distintos
   expect_match(t, "Estudiantes: se muestran la más alta", fixed = FALSE)
   expect_identical(lengths(regmatches(t, gregexpr("Barras: Top Two Box", t, fixed = TRUE))), 1L)
 })
+
+test_that("ronda 2, ítem 2: el corte conserva el final y dos rótulos del mismo gráfico no quedan iguales", {
+  a <- "Los procesos de selección y contratación de los(as) docentes de la Unidad académica son justos."
+  b <- "Los procesos de selección y contratación de los(as) docentes de la Unidad académica son transparentes."
+  r <- .lam_rr_recortar_lote(c(a, b), 1.6, .LAM_ROTULO_PT_PISO, 2L)
+  tx <- vapply(r, `[[`, "", "texto")
+  expect_true(all(vapply(r, `[[`, TRUE, "recortado")))
+  expect_match(tx[1], "justos\\.$"); expect_match(tx[2], "transparentes\\.$")
+  expect_match(tx[1], "…", fixed = TRUE)
+  expect_false(identical(tx[1], tx[2]))
+  expect_true(all(lengths(lapply(r, `[[`, "lineas")) <= 2L))
+  # Sin necesidad de cortar, el rótulo queda entero.
+  expect_false(.lam_rr_recortar_medio("Creación", 1.6, 10.5, 2L)$recortado)
+})
+
+test_that("ronda 2, ítem 2: antes de cortar se muestran menos filas, y la lámina lo dice", {
+  largo <- function(k) paste("Los procesos de selección y contratación de los docentes de la unidad académica son", c("justos", "transparentes", "claros", "públicos")[k])
+  medio <- function(k) paste("Los procesos de selección de los docentes son", c("justos", "transparentes", "claros", "públicos")[k])
+  # Cuatro enunciados de dos líneas en un alto que sólo admite dos enteros: van dos, sin cortes.
+  f <- .lam_rr_filas(vapply(1:4, medio, ""), 1.2, 2.4, 1.0, rep(1, 4), 0.22, 0.45)
+  expect_identical(f$k, 2L); expect_identical(f$recortados, 0L)
+  # Si ni la mitad cabe entera (enunciados de cuatro líneas), van todas con el corte al medio.
+  g <- .lam_rr_filas(vapply(1:4, largo, ""), 1.2, 2.4, 0.95, rep(1, 4), 0.22, 0.45)
+  expect_identical(g$k, 4L); expect_gt(g$recortados, 0L)
+  expect_identical(length(unique(g$textos)), 4L)
+  # En el render: la ranura de 4 con enunciados largos o dice «Por espacio…» en el pie o no corta.
+  inst <- .rr_inst(); inst$survey$label[1:4] <- vapply(1:4, largo, "")
+  src <- .rr_fuentes(); src$inst_sources$docentes <- inst; src$inst_sources$estudiantes <- inst
+  xml <- .rr_render(.rr_slides(4L, .rr_graficos()$contraste), src)
+  t <- paste(gsub("</?a:t>", "", regmatches(xml, gregexpr("<a:t>[^<]*</a:t>", xml))[[1]]), collapse = " ")
+  rot <- gsub("</?a:t>", "", unlist(regmatches(xml, gregexpr('name="puntos:rotulo".*?</p:sp>', xml))))
+  expect_true(grepl("Por espacio", t, fixed = TRUE) || any(grepl("…", t, fixed = TRUE)))
+})
