@@ -23,7 +23,8 @@ test_that("O2: rótulos que pasan del tope de la casa se parten en dos líneas y
   # área de puntos manda y la columna no pasa del tope de la casa (lamina_rotulos_tope.R).
   expect_lte(ge$m$wrot, .lam_rotulos_tope("contraste") + 1e-9)
   l <- unname(.lca_lineas(ge))
-  expect_true(all(l >= 2L & l <= 4L))           # partidos en dos (tres si hace falta), sin puntos suspensivos
+  expect_true(all(l >= 1L & l <= 4L))           # en una línea si cabe en el tope; si no, en dos a cuatro, sin "…"
+  expect_true(any(l >= 2L))
   expect_false(any(grepl("…", ge$textos, fixed = TRUE)))
   expect_gte(ge$m$xr - ge$m$xl, 7 - 1e-6)
 })

@@ -16,12 +16,12 @@ source("setup-load-all.R")
                  "La infraestructura de la Unidad es adecuada y se encuentra en buenas condiciones.", "Autoridades deciden según los propósitos",
                  "Pensamiento crítico y creativo", "Comunicación eficaz")
 
-test_that("O2: el tope de la casa es 0.28 del ancho útil en la escala y 0.24 en el contraste", {
+test_that("O2: el tope de la casa es 0.28 del ancho útil en la escala y también 0.28 en el contraste", {
   util <- .std_geom("ancho") - .std_geom("margen_izq") - .std_geom("margen_der")
   expect_equal(.lam_rotulos_tope("escala"), 0.28 * util)
-  expect_equal(.lam_rotulos_tope("contraste"), 0.24 * util)
+  expect_equal(.lam_rotulos_tope("contraste"), 0.28 * util)
   expect_lt(abs(.lam_rotulos_tope("escala") - 3.54), 0.2)        # la caja de "Sin información" en su versión
-  expect_lt(abs(.lam_rotulos_tope("contraste") - 3.07), 0.2)     # la de "Preguntas comunes"
+  expect_lt(abs(.lam_rotulos_tope("contraste") - 3.56), 0.2)     # la de "Dedicación", que él dejó sin tocar
 })
 
 test_that("O2: en el contraste la columna no pasa del tope; lo que no cabe en una línea se parte, sin puntos suspensivos", {
@@ -30,7 +30,6 @@ test_that("O2: en el contraste la columna no pasa del tope; lo que no cabe en un
   expect_lte(ge$m$wrot, .lam_rotulos_tope("contraste") + 1e-9)
   lin <- vapply(.rt_comunes, .lam_rotulo_lineas, 0L, w = ge$m$wrot, size = ge$size)
   expect_identical(unname(lin[c("Servicio de salud", "Comunicación eficaz")]), c(1L, 1L))
-  expect_gte(unname(lin["Docentes de FG se mantienen actualizados"]), 2L)   # en una línea pasaba del tope
   expect_false(any(grepl("…", ge$textos, fixed = TRUE)))
   # Un rótulo va en una línea sólo si cabe en el tope.
   una_en_tope <- vapply(.rt_comunes, function(t) .lam_rotulo_lineas(t, .lam_rotulos_tope("contraste"), ge$size) == 1L, TRUE)

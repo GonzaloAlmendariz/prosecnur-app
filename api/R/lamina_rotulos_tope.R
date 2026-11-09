@@ -10,14 +10,15 @@
 #   - "Diferencias por ciclo" (contraste con tres grupos): 2.89.
 # Sobre el ancho útil de la lámina (13.333 - 0.495 - 0.315 = 12.52 in): la escala 0.28 (3.5 in, la de "Sin
 # información": la de 4.11 in llevaba 20 filas y rótulos de cuatro líneas montados) y el contraste 0.24 (3.0 in, la
-# media de 3.07 y 2.89). Regla:
+# media de 3.07 y 2.89). Enmienda (2026-11-09): el contraste también 0.28; con 0.24 "Dedicación", que él dejó sin
+# tocar en 3.56 in con sus rótulos en una línea, partía cuatro en dos. Regla:
 #   1. El área del gráfico tiene prioridad: la columna nunca pasa del tope de su familia.
 #   2. Un rótulo va en una línea sólo si cabe dentro del tope; si no, se parte en dos (tres o cuatro si hace falta),
 #      medido con la tinta real (`.lam_rotulos_columna`). Nunca "…".
 
 #' Fracción del ancho útil de la lámina que puede tomar la columna de rótulos, por familia
 #' @keywords internal
-.LAM_ROTULOS_TOPE_FR <- c(escala = 0.28, contraste = 0.24)
+.LAM_ROTULOS_TOPE_FR <- c(escala = 0.28, contraste = 0.28)
 
 #' Tope de la columna de rótulos (in) de una familia a página entera
 #' @keywords internal
