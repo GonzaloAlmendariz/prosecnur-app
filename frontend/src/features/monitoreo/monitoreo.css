@@ -17050,8 +17050,8 @@ button.mon-territorial-ump-audit-scrim {
     color 120ms ease;
 }
 
-.mon-toolbar button:hover,
-.mon-commandbar button:hover,
+.mon-toolbar button:not(.pulso-button):hover,
+.mon-commandbar button:not(.pulso-button):hover,
 .mon-download-link:hover,
 .mon-inline-action:hover,
 .mon-page .pulso-panel button:not(.pulso-button):hover {
@@ -36560,8 +36560,7 @@ button.mon-territorial-ump-audit-scrim {
 .mon-stage-segment button,
 .mon-source-segment button,
 .mon-territorial-validation-tabs button,
-.mon-territorial-review-filterbar button,
-.mon-page .pulso-button {
+.mon-territorial-review-filterbar button {
   transition:
     background-color var(--motion-dur-fast) var(--motion-ease-out),
     border-color var(--motion-dur-fast) var(--motion-ease-out),
@@ -36570,35 +36569,32 @@ button.mon-territorial-ump-audit-scrim {
     transform var(--motion-dur-press) var(--motion-ease-out);
 }
 
-.mon-commandbar button:hover:not(:disabled),
-.mon-toolbar button:hover:not(:disabled),
-.mon-stage-segment button:hover:not(:disabled),
-.mon-source-segment button:hover:not(:disabled),
-.mon-territorial-validation-tabs button:hover:not(:disabled),
-.mon-territorial-review-filterbar button:hover:not(:disabled),
-.mon-page .pulso-button:hover:not(:disabled) {
+.mon-commandbar button:not(.pulso-button):hover:not(:disabled),
+.mon-toolbar button:not(.pulso-button):hover:not(:disabled),
+.mon-stage-segment button:not(.pulso-button):hover:not(:disabled),
+.mon-source-segment button:not(.pulso-button):hover:not(:disabled),
+.mon-territorial-validation-tabs button:not(.pulso-button):hover:not(:disabled),
+.mon-territorial-review-filterbar button:not(.pulso-button):hover:not(:disabled) {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.84),
     0 2px 6px rgba(15, 23, 42, 0.06);
 }
 
-.mon-commandbar button:active:not(:disabled),
-.mon-toolbar button:active:not(:disabled),
-.mon-stage-segment button:active:not(:disabled),
-.mon-source-segment button:active:not(:disabled),
-.mon-territorial-validation-tabs button:active:not(:disabled),
-.mon-territorial-review-filterbar button:active:not(:disabled),
-.mon-page .pulso-button:active:not(:disabled) {
+.mon-commandbar button:not(.pulso-button):active:not(:disabled),
+.mon-toolbar button:not(.pulso-button):active:not(:disabled),
+.mon-stage-segment button:not(.pulso-button):active:not(:disabled),
+.mon-source-segment button:not(.pulso-button):active:not(:disabled),
+.mon-territorial-validation-tabs button:not(.pulso-button):active:not(:disabled),
+.mon-territorial-review-filterbar button:not(.pulso-button):active:not(:disabled) {
   transform: scale(0.99);
 }
 
-.mon-commandbar button:focus-visible,
-.mon-toolbar button:focus-visible,
-.mon-stage-segment button:focus-visible,
-.mon-source-segment button:focus-visible,
-.mon-territorial-validation-tabs button:focus-visible,
-.mon-territorial-review-filterbar button:focus-visible,
-.mon-page .pulso-button:focus-visible,
+.mon-commandbar button:not(.pulso-button):focus-visible,
+.mon-toolbar button:not(.pulso-button):focus-visible,
+.mon-stage-segment button:not(.pulso-button):focus-visible,
+.mon-source-segment button:not(.pulso-button):focus-visible,
+.mon-territorial-validation-tabs button:not(.pulso-button):focus-visible,
+.mon-territorial-review-filterbar button:not(.pulso-button):focus-visible,
 .mon-nav-item:focus-visible,
 .mon-rail-web-publish-trigger:focus-visible {
   outline: 2px solid transparent;
