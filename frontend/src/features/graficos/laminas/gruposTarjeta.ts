@@ -48,7 +48,7 @@ export const SECCION_DE_CAMPO: Readonly<Record<string, SeccionTarjeta>> = {
   mostrar_ceros: "aspecto", mostrar_categorias_en_cero: "aspecto", mostrar_respuestas: "aspecto", filete_temas: "aspecto",
   mostrar_ranking: "aspecto", eje_x: "aspecto", eje_y: "aspecto", linea: "aspecto", linea_x: "aspecto", linea_y: "aspecto",
   destacado: "aspecto", ancho_tema: "aspecto", premisa_posicion: "aspecto", umbral_rojo_pct: "aspecto",
-  disposicion: "aspecto", marcas_eje: "aspecto", mostrar_brecha: "aspecto", etiqueta_brecha: "aspecto",
+  disposicion: "aspecto", marcas_eje: "aspecto", mostrar_brecha: "aspecto", etiqueta_brecha: "aspecto", leyenda_con_n: "aspecto",
   limite_superior: "aspecto", invertir_barras: "aspecto", otros_al_final: "aspecto", normalizar_etiquetas: "aspecto",
   residuales_gris: "aspecto", max_palabras: "aspecto", min_chars: "aspecto", mostrar_leyenda: "aspecto",
   mostrar_valores: "aspecto", max_series_con_cifras: "aspecto", pista_barras: "aspecto", colorear_por_opcion: "aspecto",

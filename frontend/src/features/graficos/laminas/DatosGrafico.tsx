@@ -72,10 +72,11 @@ import { PartesLineas } from "./PartesLineas";
 import { AgruparLista } from "./AgruparLista";
 import { RadioSegmentado } from "../subpestanas/RadioSegmentado";
 import { opcionesNumeroEnBotones } from "./numerosEnBotones";
-import { opcionesEnSegmentado } from "./opcionesEnSegmentado";
+import { opcionesEnSegmentado, segmentacionFija } from "./opcionesEnSegmentado";
 import { campoDeslizable } from "./modeloNumeroDeslizable";
 import { NumeroDeslizable } from "./NumeroDeslizable";
 import { FilaSegmentada } from "./tarjetaGrafico/FilaSegmentada";
+import { claveTriestado, OPCIONES_TRIESTADO, valorTriestado } from "./tarjetaGrafico/triestado";
 import { rotuloConAyuda } from "./tarjetaGrafico/rotuloConAyuda";
 import { graficadorToPresetType } from "../graficadorPresetMap";
 import { graficadorDisplayName } from "../graficadorDisplay";
@@ -477,6 +478,9 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias, args, sco
             allowEmpty={control === "variable_opcional"}
             placeholder={control === "variable_opcional" ? "Sin dividir" : "Elige una pregunta…"}
             soloBase={esCruce ? basePregunta : null}
+            // Ronda 18: la variable de la cobertura por categorías se elige entre las bases de la lámina y se guarda con
+            // el prefijo de la base que cuenta (sin él, se resolvía contra la base activa).
+            soloBases={graficador === "p_cobertura" ? basesDeCobertura(args) : null}
             fuenteInicial={graficador === "p_cobertura" ? basesDeCobertura(args)[0] : undefined}
           />
         </div>
@@ -527,6 +531,8 @@ function Fila({ campo, graficador, valor, onCambio, sello, categorias, args, sco
       </div>
     );
   }
+  // Ronda 18: un bool sin default cuyo NULL decide el motor, en tres estados (tarjetaGrafico/triestado.ts).
+  if (control === "triestado") return <FilaSegmentada id={id} rotulo={rotulo} marcas={<>{globo}{sello}</>} segmentos={segmentacionFija(OPCIONES_TRIESTADO)} valor={claveTriestado(valor)} onCambio={(k) => onCambio(valorTriestado(k))} qa={`triestado-${arg.name}`} />;
   // Ítem 9 (2026-11-08): hasta tres opciones cortas, a la vista en un segmentado (opcionesEnSegmentado.ts).
   if (control === "opciones" && segmentos) return <FilaSegmentada id={id} rotulo={rotulo} marcas={<>{globo}{sello}</>} segmentos={segmentos} valor={typeof valor === "string" ? valor : String(arg.default ?? "")} onCambio={onCambio} />;
   if (control === "opciones") {

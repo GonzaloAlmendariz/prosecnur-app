@@ -21,7 +21,7 @@ import { GRAFICADORES_LETRA_Y_EJE, leerLetraYEje } from "./tarjetaGrafico/letraY
 
 export type ControlDato =
   | "variable" | "variable_opcional" | "variables" | "interruptor" | "numero" | "opciones" | "texto" | "codigos" | "nombres_base"
-  | "partes" | "grupos_lista" | "regla_preguntas" | "universo_categorias";
+  | "partes" | "grupos_lista" | "regla_preguntas" | "universo_categorias" | "triestado";
 
 type Valores = Readonly<Record<string, unknown>>;
 
@@ -435,6 +435,12 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   mostrar_brecha: { rotulo: "Mostrar la brecha", ayuda: AYUDA_BRECHA, soloEn: ["p_dumbbell"] },
   // Formal de p_dumbbell (e93c51d): sólo se escribe junto a la brecha, así que sin brecha no hay qué rotular.
   etiqueta_brecha: { rotulo: "Unidad de la brecha", placeholder: "pts", siActivo: "mostrar_brecha", soloEn: ["p_dumbbell"] },
+  // Ronda 18 (Gonzalo, 2026-11-09): «TC (24)». Sin default en el registro: NULL es «Automático» (con tres o cuatro grupos
+  // va el n; con dos, como el dumbbell de siempre), así que va en tres estados y no en un interruptor (tarjetaGrafico/triestado.ts).
+  leyenda_con_n: {
+    rotulo: "N en la leyenda", control: "triestado", soloEn: ["p_dumbbell"],
+    ayuda: "Junto a cada grupo, sus casos sin ponderar: TC (24). Automático: va con tres o cuatro grupos.",
+  },
   // ADR 0134: formal de p_panorama(); la mediana de cada público se lee contra esta línea.
   referencia: { rotulo: "Referencia (%)", ayuda: AYUDA_REFERENCIA, soloEn: ["p_panorama"] },
   // Formales de p_media_rango (e93c51d): `decimales_promedio` es el que llega (el constructor lo pasa a `chip_decimales`).
