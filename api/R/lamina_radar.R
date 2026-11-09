@@ -197,28 +197,10 @@
   list(cabecera = R$fila, cuerpo = max(R$fila, round(n * 13 * 1.2 / 72 + 2 * 6 / 72, 2)), lineas = n)
 }
 
-#' La tabla del recetario (`tabla_ttb`): encabezado azul con filete, primera columna en negrita y cebra
+#' La tabla del recetario (`tabla_ttb`) en su sitio; el estilo vive en `.lam_tabla_ttb_ft` (lamina_tabla_familia.R)
 #' @keywords internal
 .lam_tabla_ttb <- function(doc, d, x, y, ws, rowh, rowh_cuerpo = rowh, nombre = NULL) {
-  azul <- .std_color("azul"); fuente <- .std_pt("fuente")
-  # Los rótulos del encabezado no son las claves de las columnas: uno vacío (la primera columna sin encabezado, que el
-  # informe avisa) o dos iguales hacían caer `flextable` con «undefined columns selected», y con él el mazo entero
-  # (acrconta_mazo, lámina 48). Claves internas seguras y el encabezado tal cual.
-  rotulos <- as.character(names(d)); rotulos[is.na(rotulos)] <- ""
-  names(d) <- paste0("c", seq_along(d))
-  ft <- flextable::flextable(d)
-  ft <- flextable::set_header_labels(ft, values = stats::setNames(as.list(rotulos), names(d)))
-  ft <- flextable::font(ft, fontname = fuente, part = "all")
-  ft <- flextable::fontsize(ft, size = 13, part = "body"); ft <- flextable::fontsize(ft, size = .lam_tabla_m()$enc_pt, part = "header")   # 12 pt, como actor y rotulo_top_two_box
-  ft <- flextable::color(ft, color = azul, part = "all"); ft <- flextable::bold(ft, part = "header"); ft <- flextable::bold(ft, j = 1, part = "body")
-  ft <- flextable::align(ft, j = seq(2, ncol(d)), align = "center", part = "all"); ft <- flextable::valign(ft, valign = "center", part = "all")
-  ft <- flextable::border_remove(ft); ft <- flextable::bg(ft, bg = "transparent", part = "header")
-  if (nrow(d) >= 2) ft <- flextable::bg(ft, i = seq(2, nrow(d), 2), bg = .std_color("cebra"), part = "body")
-  ft <- flextable::hline_bottom(ft, border = officer::fp_border(color = azul, width = 1.25), part = "header")
-  ft <- flextable::hline_bottom(ft, border = officer::fp_border(color = .std_color("filete"), width = 0.75), part = "body")
-  ft <- flextable::padding(ft, padding = 6, part = "all"); ft <- flextable::width(ft, width = ws)
-  ft <- flextable::height(ft, height = rowh, part = "header"); ft <- flextable::height(ft, height = rowh_cuerpo, part = "body")
-  ft <- flextable::hrule(ft, rule = "exact", part = "header"); ft <- flextable::hrule(ft, rule = "exact", part = "body")
+  ft <- .lam_tabla_ttb_ft(d, ws, rowh, rowh_cuerpo)
   loc <- officer::ph_location(left = x, top = y, width = sum(ws),
                               height = if (identical(rowh_cuerpo, rowh)) rowh * (nrow(d) + 1) else rowh + rowh_cuerpo * nrow(d))
   if (!is.null(nombre)) loc$ph_label <- nombre   # la tabla sola (lámina 197/225) se nombra como pieza del motor

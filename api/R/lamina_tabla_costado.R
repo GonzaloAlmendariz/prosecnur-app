@@ -164,6 +164,8 @@
                                   M = .lam_tabla_m(), dy = 0.1)
   .lam_tabla_costado_avisar(d)
   if (identical(d$lugar, "omitir")) return(NULL)
+  # R12-4: al costado, la tabla se centra en el alto del cajón; arriba dejaba ~2,4 in vacías junto a las barras.
+  if (identical(d$lugar, "costado")) d$y <- max(d$y, caja$y0 + (caja$y1 - caja$y0 - d$h) / 2)
   list(left = d$x, top = d$y, width = d$w, height = d$h, lugar = d$lugar, ws = med$ws,
        graf_w = d$graf_x1 - caja$x0, graf_h = d$graf_y1 - caja$y0)
 }

@@ -86,6 +86,8 @@
 #'
 #' @keywords internal
 .tabla_nativa_flextable <- function(tabla, estilo = list(), font_family_default = "Aptos") {
+  # La tabla de datos del radar y sus variantes: el estilo de la familia (lamina_tabla_familia.R, R12-4).
+  if (isTRUE((estilo %||% list())$lugar_auto)) return(.tabla_nativa_familia_ft(tabla, estilo))
   `%|N|%` <- function(a, b) if (is.null(a)) b else a
   num <- function(k, d) {
     v <- suppressWarnings(as.numeric(estilo[[k]] %|N|% d)[1])
