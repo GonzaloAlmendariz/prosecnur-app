@@ -2083,11 +2083,11 @@
   # =========================================================================
   p_dumbbell = list(
     titulo_humano = "Brecha entre grupos",
-    descripcion   = "Un punto por grupo y la distancia entre ambos, tema por tema: dos grupos de una base (mujeres y hombres) o dos bases con preguntas equivalentes (docentes y estudiantes). La brecha es el primero menos el segundo.",
+    descripcion   = "La distancia entre dos a cuatro grupos o públicos en cada pregunta: grupos de una base (mujeres y hombres) o bases con preguntas equivalentes (docentes y estudiantes). Con dos, la diferencia es el primero menos el segundo; con tres o cuatro, el mayor menos el menor.",
     icono_ui      = "MoveHorizontal",
     categoria     = "comparison",
     blueprint     = "dumbbell",
-    requisito     = "Entre dos grupos: una pregunta que define los grupos y, por tema, una pregunta de esa misma base. Entre dos bases: cada tema con su pregunta en las dos bases; eliges la pregunta de cada público y tu matriz de equivalencias te sugiere la equivalente.",
+    requisito     = "Entre grupos de una base: una pregunta que define de dos a cuatro grupos y, por tema, una pregunta de esa misma base. Entre bases: de dos a cuatro públicos, cada tema con su pregunta en cada base; eliges la pregunta de cada público y tu matriz de equivalencias te sugiere la equivalente.",
     args = c(list(
       # G17 (Gonzalo, 2026-10-13): la brecha también entre dos grupos de una base (lámina 250 del diseño).
       list(name = "cruce", label = "Comparar dos grupos de", tipo_input = "variable_opt", grupo = "datos",
@@ -2720,7 +2720,7 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
   requirement_label <- if (identical(name, "p_puntos_comparativos")) {
     "Elige la pregunta, la que define los grupos y las respuestas que suman, de la base activa."
   } else if (identical(name, "p_dumbbell")) {
-    "Elige la pregunta que define los dos grupos, los grupos y las preguntas; entre dos bases eliges la pregunta de cada público y tu matriz de equivalencias te sugiere la equivalente."
+    "Elige la pregunta que define los grupos (de dos a cuatro), los grupos y las preguntas; entre bases eliges la pregunta de cada público y tu matriz de equivalencias te sugiere la equivalente."
   } else if (identical(name, "p_serie_temporal")) {
     "Elige la pregunta de cada medición, tema por tema, y las respuestas que suman; tu matriz de equivalencias te sugiere la equivalente."
   } else if (identical(name, "p_mapa_resultado_distrital")) {

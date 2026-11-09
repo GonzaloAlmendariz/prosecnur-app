@@ -793,4 +793,9 @@ test_that("P4: el dumbbell se llama «Brecha entre grupos» (acepta de dos a cua
   txt <- paste(readLines(system.file("catalogos", "graficos_tipos.json", package = "prosecnurapp"), encoding = "UTF-8"), collapse = "\n")
   expect_false(grepl("Brecha entre dos grupos", txt, fixed = TRUE))
   expect_true(grepl("Brecha entre grupos", txt, fixed = TRUE))
+  # La descripción y el requisito dicen de dos a cuatro grupos o públicos, no «la distancia entre ambos».
+  m <- .GRAFICADORES_META$p_dumbbell
+  expect_match(m$descripcion, "^La distancia entre dos a cuatro grupos o públicos en cada pregunta")
+  expect_match(m$requisito, "de dos a cuatro grupos")
+  expect_false(grepl("entre ambos|Entre dos bases|define los dos grupos", paste(m$descripcion, m$requisito, txt)))
 })
