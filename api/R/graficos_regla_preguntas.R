@@ -333,6 +333,7 @@
                                  decimales = .regla_preguntas_decimales(el, preset))
   # Lo que no cabe se recorta aquí, en el orden de la regla, y la nota lo dice en una frase (graficos_tope_espacio.R).
   n_elegidas <- length(ev$temas)
+  temas_serie <- ev$temas   # S6: todas las que elige la regla, en su orden (lamina_divergentes_serie.R)
   rc <- .regla_preguntas_recortar(ev, ind, el, regla, decimales = .regla_preguntas_decimales(el, preset)); ev <- rc$ev
   texto_base <- ev$texto   # la frase de la regla antes del pie de orden: la lámina la reescribe si muestra menos (P11)
   # La escala del resumen: `bajo_umbral` y `mayor_sin_info` fijan el orden de las filas (graficos_regla_orden_escala.R).
@@ -347,7 +348,8 @@
   imagen <- if (identical(el$.element_type, "barras_divergentes")) .divergentes_aviso_tope(length(vars), ev$texto, n_sin_inf)
   espacio <- rc$aviso   # E3, P7
   list(evaluacion = ev, vars = vars, avisos = c(ind$avisos, ev$avisos, espacio, imagen), indicadores = ind$indicadores,
-       firma_leyenda = ind$firma_leyenda, motivos_imagen = imagen, recorte = rc$recorte, n_elegidas = n_elegidas, texto_base = texto_base)
+       firma_leyenda = ind$firma_leyenda, motivos_imagen = imagen, recorte = rc$recorte, n_elegidas = n_elegidas, texto_base = texto_base,
+       vars_serie = ind$refs_por_tema[temas_serie])
 }
 
 #' Los args del preset del tipo con que el render dibuja el elemento
@@ -384,7 +386,7 @@
   if (!length(r$vars)) stop("La regla de preguntas no deja ninguna pregunta: ", r$evaluacion$texto, call. = FALSE)
   # E3, P7. En la escala del resumen el consejo de desde dónde seguir lo da su lámina, que sabe cuántas filas dibuja al
   # final (P11); aquí va sólo el hecho.
-  if (!is.null(r$recorte)) {
+  if (!is.null(r$recorte) && is.null(el$hasta)) {   # con `hasta` el recorte lo declaró el analista: no se avisa (S6)
     .pulso_aviso(.aviso_en_lamina(.tope_espacio_aviso(r$recorte[["k"]], r$recorte[["n"]], r$recorte[["desde"]],
                                                       consejo = !identical(el$.element_type, "barras_divergentes"))))
   }
@@ -394,7 +396,7 @@
     el$.firma_leyenda <- r$firma_leyenda   # escalas alineadas: la leyenda es la del universo (graficos_escala_armonizada.R)
   }
   list(el = el, texto = r$evaluacion$texto, total = total, n_elegidas = r$n_elegidas, texto_base = r$texto_base,
-       universo = r$evaluacion$universo)
+       universo = r$evaluacion$universo, vars_serie = r$vars_serie)
 }
 
 #' Orden del contraste del resumen con su regla (ADR 0135, decisión del 2026-11-07)

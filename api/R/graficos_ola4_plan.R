@@ -40,7 +40,8 @@ p_barras_divergentes <- function(vars = NULL,
                                  orden = NULL,
                                  regla = NULL,
                                  abreviaturas = NULL,
-                                 continuar_desde = NULL) {
+                                 continuar_desde = NULL,
+                                 hasta = NULL) {
   direccion_escala <- match.arg(direccion_escala)
   refs <- as.character(unlist(vars %||% var %||% character(0)))
   refs <- refs[!is.na(refs) & nzchar(trimws(refs))]
@@ -75,6 +76,7 @@ p_barras_divergentes <- function(vars = NULL,
   # Con preguntas de varios públicos cada fila lleva su abreviatura (graficos_divergentes_publicos.R).
   if (length(.divergentes_abreviaturas_leer(abreviaturas))) el$abreviaturas <- .divergentes_abreviaturas_leer(abreviaturas)
   el$continuar_desde <- .graf_continuar_desde(continuar_desde, "p_barras_divergentes()")   # P14 (graficos_continuar_desde.R)
+  el$hasta <- .graf_hasta(hasta, el$continuar_desde, "p_barras_divergentes()")             # S6: la última fila de la lámina
   class(el) <- c("ppt_element", "list")
   .regla_preguntas_en_constructor(el, regla, "p_barras_divergentes()")   # ADR 0135
 }
@@ -607,6 +609,9 @@ p_barras_divergentes <- function(vars = NULL,
   refs_filas <- tabla$data$categoria
   tabla$data$categoria <- .divergentes_rotulos_publicos(.ola4_rotulos_preguntas(el$vars, refs_filas), refs_filas, el$abreviaturas)
 
+  args_tabla <- list(filtros = el$filtros %||% list(), excluir_opciones = excluir_opciones, n_negativas = args_usuario$n_negativas,
+                     incluir_neutro = args_usuario$incluir_neutro %||% TRUE, direccion_escala = args_usuario$direccion_escala %||% "negativo_positivo",
+                     firma_leyenda = el$.firma_leyenda)   # S6: la serie se tabula igual (lamina_divergentes_serie.R)
   args_usuario$excluir_opciones <- NULL
   args_usuario$direccion_escala <- NULL
   base_args <- list(
@@ -636,6 +641,7 @@ p_barras_divergentes <- function(vars = NULL,
     # graficos_escala_tope.R: las dos causas del respaldo, más filas que el tope o más de una columna «Sin información»
     for (av in .divergentes_aviso_tope(length(esp$filas), ap$texto, sum(esp$categorias$lado == "sin_inf"))) .pulso_aviso(av)
     p <- .divergentes_recorte_en_espec(p, el, ap, tabla$data$categoria)   # P11: la lámina puede mostrar menos (lamina_divergentes_resumen_filas.R)
+    p <- .divergentes_serie_en_espec(p, el, ap$vars_serie, args, args_tabla)   # S6: dos láminas que se continúan, una geometría
   }
   .divergentes_nota_porcentaje(p, isTRUE(tabla$hubo_exclusion), tabla$escalas_armonizadas)
 }
@@ -743,9 +749,11 @@ p_dumbbell <- function(vars = NULL,
                        universos_no_confiables = NULL,
                        bases = NULL,
                        leyenda_con_n = NULL,
-                       continuar_desde = NULL) {
+                       continuar_desde = NULL,
+                       hasta = NULL) {
   no_confiables <- .graficos_universos_no_confiables(universos_no_confiables, "p_dumbbell()")
   desde <- .graf_continuar_desde(continuar_desde, "p_dumbbell()")   # P14 (graficos_continuar_desde.R)
+  hasta <- .graf_hasta(hasta, desde, "p_dumbbell()")                 # S6, S7: la última pregunta de la lámina
   # G17: con `cruce` y `grupos` la brecha es entre dos grupos de una misma base (graficos_dumbbell_grupos.R).
   if (!is.null(cruce)) {
     # ADR 0135: con regla y sin temas, las aperturas toman la base del cruce (graficos_dumbbell_auto.R).
@@ -753,7 +761,7 @@ p_dumbbell <- function(vars = NULL,
     el <- .p_dumbbell_grupos(vars, corte, corte_etiqueta, orden, mostrar_brecha, umbral_brecha_pct, titulo,
                              overrides, base, filtros, etiqueta_brecha, cruce, grupos, estilo, universos, separar_tras, base_en, leyenda_con_n)
     el$universos_no_confiables <- no_confiables
-    el$continuar_desde <- desde
+    el$continuar_desde <- desde; el$hasta <- hasta
     return(.regla_preguntas_en_constructor(el, regla, "p_dumbbell()"))   # ADR 0135
   }
   # ADR 0135: sin temas, el contraste los arma solo desde `bases` o, con una regla, desde las dos bases del estudio
@@ -775,7 +783,7 @@ p_dumbbell <- function(vars = NULL,
     el <- list(.element_type = "dumbbell", var = NULL, vars = NULL, corte = .graf_corte_unido(corte),
                corte_etiqueta = as.character(corte_etiqueta %||% "")[1], title_slide = titulo, overrides = ov, base = base,
                filtros = .ppt_norm_filters(filtros), universos_no_confiables = no_confiables)
-    el$continuar_desde <- desde
+    el$continuar_desde <- desde; el$hasta <- hasta
     class(el) <- c("ppt_element", "list")
     return(.regla_preguntas_en_constructor(el, regla, "p_dumbbell()"))
   }
@@ -839,7 +847,7 @@ p_dumbbell <- function(vars = NULL,
     filtros = .ppt_norm_filters(filtros)
   )
   el$universos_no_confiables <- no_confiables
-  el$continuar_desde <- desde
+  el$continuar_desde <- desde; el$hasta <- hasta
   class(el) <- c("ppt_element", "list")
   .regla_preguntas_en_constructor(el, regla, "p_dumbbell()")   # ADR 0135
 }
@@ -903,6 +911,7 @@ p_dumbbell <- function(vars = NULL,
   p <- .dumbbell_con_grupo_chico(do.call(graficar_dumbbell, args), el)   # «Grupo chico: 24 docentes TC.»
   if (!identical(args$estilo, "resumen")) p <- .tope_espacio_al_pie(p, el, tope$texto)   # el clásico no tiene nota de regla
   p <- .contraste_regla_en_espec(p, el, total = ap$total)   # para que una ranura que recorta reescriba la nota en una frase (P7)
+  p <- .contraste_serie_en_espec(p, el, ap$vars_serie, sources, args)   # S6: dos láminas que se continúan (lamina_contraste_grupos.R)
   .regla_preguntas_en_espec(p, .tope_espacio_unir(ap$texto, if (identical(args$estilo, "resumen")) tope$texto))
 }
 

@@ -36,3 +36,17 @@
   el$continuar_desde <- NULL
   el
 }
+
+#' `hasta` del constructor (S6, S7): NULL, o la posición (entera, desde 1, en el orden de la regla) de la última fila que
+#' muestra la lámina. Con `continuar_desde` arma dos láminas parejas: la primera `hasta = 11`, la segunda
+#' `continuar_desde = 12`. No puede ser anterior a `continuar_desde`.
+#' @keywords internal
+.graf_hasta <- function(x, desde, constructor) {
+  if (is.null(x) || !length(x)) return(NULL)
+  v <- suppressWarnings(as.numeric(unlist(x))[1])
+  d <- .tope_espacio_desde(desde)
+  if (is.na(v) || v < 1 || v != round(v) || v < d) {
+    .plan_spec_abort(sprintf("%s: `hasta` es la posición (entera, desde 1 y no antes de `continuar_desde`) de la última fila que muestra la lámina.", constructor))
+  }
+  as.integer(v)
+}

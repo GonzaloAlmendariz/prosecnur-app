@@ -25,7 +25,7 @@
 .divergentes_expandir_comodin <- function(el, args, preset = NULL) {
   v <- as.character(unlist(el$vars))
   if (!is.null(el$regla) || !identical(args$estilo, "resumen")) return(el)
-  if (!.divergentes_hay_comodin(v) && length(v) <= .LAM_DIV_RESUMEN_MAX_FILAS && is.null(el$continuar_desde)) return(el)
+  if (!.divergentes_hay_comodin(v) && length(v) <= .LAM_DIV_RESUMEN_MAX_FILAS && is.null(el$continuar_desde) && is.null(el$hasta)) return(el)
   sources <- .regla_preguntas_fuentes_render("barras divergentes")
   r <- .regla_preguntas_de_elemento(utils::modifyList(el, list(.sin_recorte = TRUE)), sources, regla = list(tipo = "todas"), preset = preset)
   for (av in r$avisos[!grepl("^La regla elige", r$avisos)]) .pulso_aviso(av)
@@ -36,7 +36,7 @@
   desde <- .tope_espacio_desde(el$continuar_desde)   # P14
   if (desde > n) stop("`continuar_desde` (", desde, ") pasa de las ", n, " preguntas de la escala.", call. = FALSE)
   vars <- vars[desde:n]
-  k <- min(tope, length(vars))
+  k <- min(tope, length(vars), if (!is.null(el$hasta)) el$hasta - desde + 1L)   # S6
   if (length(vars) > k || desde > 1L) {
     if (length(vars) > k) .pulso_aviso(.aviso_en_lamina(.tope_espacio_aviso(k, n, desde, consejo = FALSE)))
     vars <- vars[seq_len(k)]

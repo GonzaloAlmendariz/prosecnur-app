@@ -188,7 +188,8 @@
   desde <- .tope_espacio_desde(el$continuar_desde)
   k_grupos <- length(unique(as.character(ind$indicadores$grupo)))
   tope <- if (contraste) .contraste_tope_filas(k_grupos) else .LAM_DIV_RESUMEN_MAX_FILAS
-  if (n <= tope && desde == 1L) return(list(ev = ev, aviso = NULL))
+  hasta <- el$hasta
+  if (n <= tope && desde == 1L && is.null(hasta)) return(list(ev = ev, aviso = NULL))
   # El orden de la prioridad: el de la regla en la escala; la mayor diferencia absoluta en el contraste.
   prioridad <- if (contraste) {
     d <- .regla_preguntas_evaluar(ind$indicadores, list(tipo = "mayor_diferencia", n = max(1L, length(unique(ind$indicadores$tema)))),
@@ -199,7 +200,7 @@
   # P14: `continuar_desde` (1-based, en ese orden) salta las que ya mostró otra lámina.
   if (desde > n) .regla_preguntas_falla(sprintf("`continuar_desde` (%d) pasa de las %d preguntas que elige la regla.", desde, n), list(continuar_desde = desde))
   if (desde > 1L) prioridad <- prioridad[-seq_len(desde - 1L)]
-  k <- min(tope, length(prioridad))
+  k <- min(tope, length(prioridad), if (!is.null(hasta)) hasta - desde + 1L)   # S6: `hasta`, la última que muestra
   quedan <- temas[sort(prioridad[seq_len(k)])]
   if (!contraste) quedan <- temas[prioridad[seq_len(k)]]
   ev$temas <- quedan
