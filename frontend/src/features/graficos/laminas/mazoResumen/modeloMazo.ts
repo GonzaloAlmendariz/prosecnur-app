@@ -12,7 +12,7 @@
 import type { GraficadorRef, Slide, SlideType, VarInfo } from "../../../../api/graficos";
 import type { ReglaPreguntas } from "../../../../api/graficosRegla";
 import { formatoConteo } from "../../../../lib/formatoNumero";
-import { payloadPorDefecto } from "../../store";
+import { payloadPorDefecto, SLIDE_LABELS } from "../../store";
 import { CORTE_EN_CADENA } from "../argsDatosGrafico";
 import { nombrePublico } from "../gruposPadron/modeloPadron";
 import { leerRegla, reglaEnCorto } from "../reglaPreguntas/modeloReglaPreguntas";
@@ -107,6 +107,14 @@ export function listaPublicos(bases: readonly string[]): string {
 /** La base que leen las láminas de un solo público: la activa si entra, si no la primera. */
 export function basePrincipal(publicos: readonly string[], baseActiva: string | null): string | null {
   return baseActiva && publicos.includes(baseActiva) ? baseActiva : publicos[0] ?? null;
+}
+
+/**
+ * R13-6b (ADR 0139): la línea chica de la tarjeta, el tipo de lámina («Un gráfico»); el nombre grande es el gráfico que
+ * va dentro. El cierre no lleva gráfico: su nombre ya es el tipo de lámina, y la línea chica lo dice.
+ */
+export function tipoLaminaDeTarjeta(p: Pick<PropuestaMazo, "tipo" | "claseTarjeta">): string {
+  return p.claseTarjeta === "grafico" ? SLIDE_LABELS[p.tipo] : "Lámina sin gráfico";
 }
 
 /** El nombre accesible de una tarjeta: el de la lámina con sus públicos («Fortalezas y alertas, Docentes»). */

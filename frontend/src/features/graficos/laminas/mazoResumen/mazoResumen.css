@@ -352,13 +352,21 @@
   padding-top: 3px;
 }
 
-.pulso-f6-mazo-lee {
+/* R13-6b: la línea chica es el tipo de lámina; los públicos bajan a una línea suave bajo el nombre del gráfico. */
+.pulso-f6-mazo-tipo-lamina {
   min-width: 0;
   color: var(--pulso-text-soft);
   font-size: var(--pulso-type-eyebrow-size);
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  overflow-wrap: break-word;
+}
+
+.pulso-f6-mazo-lee {
+  min-width: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-micro-size);
   overflow-wrap: break-word;
 }
 

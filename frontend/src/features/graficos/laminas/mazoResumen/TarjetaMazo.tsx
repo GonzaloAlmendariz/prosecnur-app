@@ -1,5 +1,5 @@
-// Una lámina propuesta del mazo «Resumen ejecutivo» (maqueta graficos-sintesis, Mazo): su lugar, los públicos que lee, el
-// nombre de la lámina, la miniatura del gráfico y la regla con su conteo en vivo desde el motor (POST
+// Una lámina propuesta del mazo «Resumen ejecutivo» (maqueta graficos-sintesis, Mazo): su lugar, el tipo de lámina, el
+// gráfico que va dentro, los públicos que lee, la miniatura del gráfico y la regla con su conteo en vivo desde el motor (POST
 // /api/graficos/resumenes/regla, la misma firma anti-bucle de useConteoRegla). Nace sin elegir: la casilla de la esquina
 // (un botón con rol de casilla; K1 no admite la casilla nativa) la marca, y su `::after` cubre la tarjeta para que todo el
 // cuerpo alterne. El conteo se pide elegida o no: es lo que el analista mira para decidir. «Editar» abre la Regla de
@@ -15,7 +15,7 @@ import { GlifoGrafico } from "../../iconos/GlifoGrafico";
 import { SLIDE_GRAF_SLOTS } from "../../store";
 import { GRAFICADORES_CON_REGLA, reglaEfectiva, textoConteo } from "../reglaPreguntas/modeloReglaPreguntas";
 import { useConteoRegla } from "../reglaPreguntas/useConteoRegla";
-import { listaPublicos, nombreAccesible, type PropuestaMazo } from "./modeloMazo";
+import { listaPublicos, nombreAccesible, tipoLaminaDeTarjeta, type PropuestaMazo } from "./modeloMazo";
 
 type Props = {
   numero: number;
@@ -58,12 +58,14 @@ export function TarjetaMazo({ numero, propuesta: p, elegida, editando, scope, id
       <div className="pulso-f6-mazo-tarjeta-cabeza">
         {asa}
         <span className="pulso-f6-mazo-numero" aria-hidden="true">{numero}</span>
-        {/* Q2-2: los públicos arriba y, debajo, el tipo con su clase. En dos columnas partían palabras («ESTUDIANTE S»). */}
+        {/* R13-6b: el tipo de lámina chico, el gráfico que va dentro como nombre y, debajo, los públicos que lee; una línea
+            cada uno, sin separadores. En una sola columna (Q2-2: en dos partían palabras, «ESTUDIANTE S»). */}
         <span className="pulso-f6-mazo-cabeza-texto">
-          <span className="pulso-f6-mazo-lee">{listaPublicos(p.publicos)}</span>
-          <span className="pulso-f6-mazo-tipo" data-clase-tarjeta={p.claseTarjeta}>
+          <span className="pulso-f6-mazo-tipo-lamina" data-clase-tarjeta={p.claseTarjeta}>{tipoLaminaDeTarjeta(p)}</span>
+          <span className="pulso-f6-mazo-tipo">
             <span id={`${id}-nombre`} className="pulso-f6-mazo-tipo-nombre">{p.nombre}</span>
           </span>
+          <span className="pulso-f6-mazo-lee">{listaPublicos(p.publicos)}</span>
         </span>
         <button type="button" role="checkbox" aria-checked={elegida} aria-label={nombre}
           className="pulso-f6-mazo-elegir" onClick={onAlternar}>

@@ -50,9 +50,12 @@ describe("TarjetaMazo", () => {
     expect(estado.activo[0]).toBe(true);
   });
 
-  it("Q2-2: los públicos van arriba y el nombre de la lámina debajo, en la misma columna", () => {
+  it("R13-6b: el tipo de lámina chico, el gráfico como nombre y los públicos debajo; una línea cada uno, sin «·»", () => {
     const html = pintar(CONTRASTE);
-    expect(html).toMatch(/class="pulso-f6-mazo-cabeza-texto"><span class="pulso-f6-mazo-lee">Docentes y estudiantes<\/span><span class="pulso-f6-mazo-tipo"/);
+    expect(html).toMatch(
+      /class="pulso-f6-mazo-cabeza-texto"><span class="pulso-f6-mazo-tipo-lamina" data-clase-tarjeta="grafico">Un gráfico<\/span><span class="pulso-f6-mazo-tipo"><span id="[^"]+" class="pulso-f6-mazo-tipo-nombre">Contraste de públicos<\/span><\/span><span class="pulso-f6-mazo-lee">Docentes y estudiantes<\/span>/,
+    );
+    expect(html).not.toContain("·");
   });
 
   it("la casilla de la esquina: botón role=checkbox con el nombre de la lámina, sin elegir de partida", () => {
