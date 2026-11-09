@@ -104,3 +104,28 @@ test_that("el eje de una ranura angosta rotula una guía de cada dos", {
   px2 <- function(v) v / 100 * 9
   expect_identical(.lam_rr_eje_cada(px2, c(lo = 30, hi = 100, paso = 10)), 1L)
 })
+
+test_that("ronda 2, ítem 1: con públicos distintos cada nota va con su etiqueta y lo que la base dice sale sólo si es la misma frase", {
+  e1 <- list(tipo = "fortalezas", publico = "Docentes", nota_base = "Base: Docentes 93 a 115", texto_regla = "Se muestran las 4 más altas",
+             indicador = "Top Two Box", columnas = list())
+  e2 <- utils::modifyList(e1, list(publico = "Estudiantes", nota_base = "Base: Estudiantes 242 a 279"))
+  p <- .lam_rr_pie(NULL, list(e1, e2))
+  expect_identical(p, "Docentes: base 93 a 115. Estudiantes: base 242 a 279. Se muestran las 4 más altas. Barras: Top Two Box de cada pregunta.")
+  e3 <- utils::modifyList(e2, list(texto_regla = "Se muestran las 2 más altas"))
+  expect_match(.lam_rr_pie(NULL, list(e1, e3)), "Docentes: base 93 a 115; se muestran las 4 más altas. Estudiantes: base 242 a 279; se muestran las 2 más altas", fixed = TRUE)
+  # El mismo público en dos ranuras: sin etiqueta y una sola vez.
+  expect_identical(.lam_rr_pie(NULL, list(e1, e1)), "Base: Docentes 93 a 115. Se muestran las 4 más altas. Barras: Top Two Box de cada pregunta.")
+  # Exacta: la base repetida como frase sale; una base que sólo la contiene no se come la nota.
+  expect_identical(lengths(regmatches(.lam_rr_pie("Base: Docentes 93 a 115.", list(e1)), gregexpr("93 a 115", .lam_rr_pie("Base: Docentes 93 a 115.", list(e1))))), 1L)
+  expect_match(.lam_rr_pie("Base: Docentes 93 a 115 respuestas", list(e1)), "respuestas. Base: Docentes 93 a 115.", fixed = TRUE)
+})
+
+test_that("ronda 2, ítem 1: en el render, dos fortalezas de públicos distintos nombran su público en el pie", {
+  g <- function(b, n) list(graficador = "p_fortalezas", args = list(vars = list(paste0(b, "$*")), corte = list("3", "4"), n = n))
+  xml <- .rr_render(list(id = "s2", tipo = "p_slide_2_graficos", payload = list(titulo = "Dos públicos", izquierda = g("docentes", 2), derecha = g("estudiantes", 1))))
+  t <- paste(gsub("</?a:t>", "", regmatches(xml, gregexpr("<a:t>[^<]*</a:t>", xml))[[1]]), collapse = " ")
+  # La base de la lámina ya es la unión de las de cada público; la regla de cada una va con su etiqueta y lo común, una vez.
+  expect_match(t, "Base: Docentes 40 y Estudiantes 40. Docentes: se muestran las 2 más altas", fixed = TRUE)
+  expect_match(t, "Estudiantes: se muestran la más alta", fixed = FALSE)
+  expect_identical(lengths(regmatches(t, gregexpr("Barras: Top Two Box", t, fixed = TRUE))), 1L)
+})

@@ -107,17 +107,76 @@
   as.integer(max(1L, ceiling(0.45 / paso)))
 }
 
-#' Pie de la lámina compuesta con las notas de sus gráficos de resumen: tras la base, cada parte una vez y sin repetir lo
-#' que la base ya dice
+#' Pie de la lámina compuesta con las notas de sus gráficos de resumen
+#'
+#' Tras la base, cada parte una vez. Lo que la base ya dice sale sólo si es la misma frase (comparación exacta de frases,
+#' no de subcadenas: «Base: Docentes 93 a 115» no se come una nota más larga que la contenga). Si las ranuras son de
+#' públicos distintos, la nota de cada una va con su etiqueta («Docentes: base 93 a 115; se muestran…»), para que no se
+#' lea como de toda la lámina (revisión metodológica de la ronda 2).
 #' @keywords internal
 .lam_rr_pie <- function(base, especs) {
-  partes <- unique(unlist(lapply(especs, .lam_rr_nota_partes)))
-  if (!length(partes)) return(base)
+  conjuntos <- lapply(seq_along(especs), function(k) list(partes = .lam_rr_nota_partes(especs[[k]]), publico = .lam_rr_publico(especs[[k]]),
+                                                         etiqueta = .lam_rr_etiqueta(especs[[k]], k)))
+  conjuntos <- Filter(function(cj) length(cj$partes) > 0L, conjuntos)
+  if (!length(conjuntos)) return(base)
   b <- as.character(base %||% "")[1]; if (is.na(b)) b <- ""
-  norm <- function(x) gsub("[[:space:].]+", " ", trimws(x))
-  partes <- partes[!vapply(partes, function(p) nzchar(b) && grepl(norm(p), norm(b), fixed = TRUE), TRUE)]
-  if (!length(partes)) return(base)
-  .lam_con_punto(do.call(.lam_unir_base, as.list(c(if (nzchar(b)) b, partes))))
+  norm <- function(x) tolower(gsub("\\s+", " ", sub("[.[:space:]]+$", "", trimws(x))))
+  frases_base <- norm(unlist(strsplit(b, "(?<=[.])\\s+", perl = TRUE)))
+  quitar_base <- function(p) p[!norm(p) %in% frases_base]
+  # Mismo gráfico en dos ranuras (o el mismo juego de notas): una sola vez.
+  conjuntos <- conjuntos[!duplicated(lapply(conjuntos, `[[`, "partes"))]
+  publicos <- unique(vapply(conjuntos, `[[`, "", "publico"))
+  if (length(conjuntos) == 1L || length(publicos) == 1L) {
+    partes <- quitar_base(unique(unlist(lapply(conjuntos, `[[`, "partes"))))
+    if (!length(partes)) return(base)
+    return(.lam_con_punto(do.call(.lam_unir_base, as.list(c(if (nzchar(b)) b, partes)))))
+  }
+  minuscula <- function(x) paste0(tolower(substr(x, 1, 1)), substring(x, 2))
+  # La base de la lámina que es exactamente la unión de las bases por público («Base: Docentes 93 a 115 y Estudiantes
+  # 279», `.lam_bases_unir`) ya dice la de cada ranura: no se repite bajo cada etiqueta.
+  es_base <- function(p) grepl("^Base:", p)
+  bases_pub <- unlist(lapply(conjuntos, function(cj) cj$partes[es_base(cj$partes)]))
+  if (length(bases_pub) && norm(.lam_bases_unir(unique(bases_pub))) %in% frases_base) {
+    for (k in seq_along(conjuntos)) conjuntos[[k]]$partes <- conjuntos[[k]]$partes[!es_base(conjuntos[[k]]$partes)]
+  }
+  # Lo que dicen todas las ranuras igual («Barras: Top Two Box de cada pregunta») va una vez, sin etiqueta, al final.
+  comunes <- Reduce(intersect, lapply(conjuntos, `[[`, "partes"))
+  for (k in seq_along(conjuntos)) conjuntos[[k]]$partes <- setdiff(conjuntos[[k]]$partes, comunes)
+  notas <- vapply(conjuntos, function(cj) {
+    p <- quitar_base(cj$partes)
+    if (!length(p)) return("")
+    # «Base: Docentes 93 a 115» bajo la etiqueta «Docentes» se lee «base 93 a 115».
+    p <- sub(paste0("^Base:\\s*(", gsub("([.()+*?^$|\\[\\]])", "\\\\\\1", cj$etiqueta), "\\s+)?"), "base ", p)
+    paste0(cj$etiqueta, ": ", paste(minuscula(p), collapse = "; "))
+  }, "")
+  notas <- c(notas[nzchar(notas)], quitar_base(comunes))
+  if (!length(notas)) return(base)
+  .lam_con_punto(do.call(.lam_unir_base, as.list(c(if (nzchar(b)) b, notas))))
+}
+
+#' El público de un gráfico de resumen (para saber si dos ranuras hablan de públicos distintos)
+#' @keywords internal
+.lam_rr_publico <- function(espec) {
+  clase <- .lam_rr_tipo(espec)
+  p <- switch(clase %||% "",
+    fortalezas = espec$publico,
+    contraste = sort(as.character(espec$grupos)),
+    panorama = sort(as.character(espec$publicos)),
+    divergentes_resumen = sort(unique(regmatches(espec$filas, regexpr("\\([^()]{1,24}\\)$", espec$filas)))),
+    character(0))
+  paste(as.character(unlist(p)), collapse = "|")
+}
+
+#' Etiqueta de una ranura en el pie: su público si lo tiene; si no, «Gráfico k» en orden de lectura
+#' @keywords internal
+.lam_rr_etiqueta <- function(espec, k) {
+  clase <- .lam_rr_tipo(espec)
+  e <- switch(clase %||% "",
+    fortalezas = espec$publico,
+    contraste = { g <- as.character(espec$grupos); if (length(g) == 2L) paste(g[1], "y", tolower(g[2])) else NULL },
+    NULL)
+  e <- as.character(unlist(e %||% character(0)))[1]
+  if (length(e) && !is.na(e) && nzchar(trimws(e))) trimws(e) else sprintf("Gráfico %d", k)
 }
 
 #' Lo que la lámina de página entera escribe al pie de cada gráfico de resumen (base por grupo, sentido, regla)
