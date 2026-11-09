@@ -446,7 +446,7 @@
 
     # ---- 10. Territorio -----------------------------------------------------------------------------------------------
     cap("Territorio", NULL, 10, "Resultados por distrito de residencia", "Capítulo con rótulo", "abres un capítulo del informe"),
-    uno("San Isidro concentra la mayor satisfacción de los egresados (88 %) y el distrito de Lima, la menor (48 %)",
+    uno("Lima concentra la mayor satisfacción de los egresados (76 %) y Santiago de Surco, la menor (65 %)",
         "En general, ¿qué tan satisfecho está con la atención en la Unidad?",
         .cr_g("p_mapa_resultado_distrital", var = "egresados$satisf_general", cruces = "egresados$distrito",
               corte = "3,4", rotulo = "Satisfechos o muy satisfechos"),

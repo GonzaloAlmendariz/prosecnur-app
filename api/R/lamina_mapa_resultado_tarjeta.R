@@ -96,11 +96,11 @@
 
 #' Geometría de la lámina: la franja del mapa de distribución, el ancho del mapa y la lista
 #' @keywords internal
-.lam_mapa_res_tarjeta_geo <- function(espec, sub = NULL) {
+.lam_mapa_res_tarjeta_geo <- function(espec, sub = NULL, titulo = NULL) {
   d <- .lam_mapa_res_como_dist(espec)
   if (is.null(d)) return(NULL)
   g_ <- .std_geom; P <- .LAM_MAPA_PX
-  ml <- g_("margen_izq"); ancho <- g_("ancho") - ml - g_("margen_der"); fr <- .lam_mapa_franja(sub)
+  ml <- g_("margen_izq"); ancho <- g_("ancho") - ml - g_("margen_der"); fr <- .lam_mapa_franja(sub, titulo)
   wm <- .lam_mapa_dist_ancho_mapa(d, ancho * 860 / 1490, fr$y1 - fr$y0, ancho)
   w_lista <- ancho - wm - 20 * P
   # La lista va en su tarjeta con 24 px de aire a cada lado y 18 px arriba (`.lam_mapa_dist_en_caja`, modo «solo»).
@@ -113,7 +113,7 @@
 .lam_laminas_mapa_resultado_tarjeta <- function(doc, espec, titulo, ante = NULL, base = NULL, folio = NULL, sub = NULL,
                                                 layout = "Graficos2", master = "Office Theme", por_lamina = function(doc) doc) {
   force(folio)
-  G <- .lam_mapa_res_tarjeta_geo(espec, sub)
+  G <- .lam_mapa_res_tarjeta_geo(espec, sub, titulo)
   if (is.null(G)) stop("Mapa por distrito: el paquete no trae la cartografía de Lima.", call. = FALSE)
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)

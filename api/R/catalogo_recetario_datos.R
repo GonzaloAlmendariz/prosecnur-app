@@ -213,7 +213,11 @@ CATALOGO_RECETARIO_SEMILLA <- 20261014L
     d$anio_egreso <- sample(2015:2025, n, replace = TRUE, prob = c(4, 5, 6, 8, 9, 10, 11, 12, 12, 11, 9))
     d$meses_empleo <- as.integer(round(pmax(0, stats::rgamma(n, 2, 0.4))))
     d$distrito <- sample(c("150101", "150122", "150130", "150131", "150132", "150103", "150117", "150140"), n, replace = TRUE,
-                         prob = c(0.1, 0.12, 0.1, 0.08, 0.2, 0.14, 0.14, 0.12))
+                         # Catálogo, ronda 3: con el mínimo de 30 casos por distrito del mapa de resultado, el reparto anterior (17 a
+                         # 34 por distrito) dejaba un solo distrito pintado. Lima Centro y Lima Moderna concentran a los egresados
+                         # (Lima, Miraflores, San Isidro y Santiago de Surco con 30 o más) y el resto queda con pocos casos, rayado.
+                         # Mismo sorteo (mismo n y las mismas ocho opciones): no mueve la secuencia aleatoria del resto del catálogo.
+                         prob = c(0.2, 0.19, 0.04, 0.2, 0.04, 0.04, 0.04, 0.25))
     for (i in seq_along(.CR_OE)) d[[paste0("oe_", i)]] <- .cr_likert(n, nivel + c(1, -0.3, 0.8, 1.1)[i], sin_inf = 0.02)
     # Sin sorteo: se derivan de lo ya generado y no mueven la secuencia aleatoria del resto del catálogo.
     d$modalidad <- rep(1:4, c(n - 28L, 20L, 7L, 1L))
