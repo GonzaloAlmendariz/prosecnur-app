@@ -794,4 +794,3 @@ test_that("P8. una fila compuesta de la matriz se abstiene en el panorama con su
   expect_true(all(vapply(otros, `[[`, "", "estado") == "evaluable"))
   expect_false(any(vapply(x$r$temas, function(te) identical(te$motivo, .TPUB_MOTIVO_SIN_EQUIV), logical(1))))
 })
-})
