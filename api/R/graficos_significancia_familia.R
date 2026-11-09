@@ -101,23 +101,34 @@
   ev
 }
 
-#' Lo que una lámina del plan compara: pregunta, cruce, *top two box* y si la marca está encendida
+#' Lo que una ranura (un graficador del payload) compara: pregunta, cruce, *top two box* y si la marca está encendida
+#' @return La lista, o `NULL` si la ranura no tiene pregunta y cruce.
+#' @keywords internal
+.sig_slot_de_graficador <- function(g) {
+  if (!is.list(g) || is.null(g$graficador)) return(NULL)
+  a <- g$args %||% list()
+  ov <- a$overrides %||% list()
+  cruce <- .sig_var_local(a$cruces %||% a$cruce %||% ov$cruces %||% ov$cruce)
+  if (is.na(cruce) || !nzchar(cruce)) return(NULL)
+  var <- .sig_var_local(a$var %||% a$vars)
+  if (is.na(var) || !nzchar(var)) return(NULL)
+  ttb <- .sig_top2box_declarado(a, ov)   # el mismo resolutor que el render (graficos_significancia_indicador.R)
+  activo <- a$mostrar_significancia %||% ov$mostrar_significancia
+  list(var = var, cruce = cruce, top2box = ttb, graficador = g$graficador,
+       activo = isTRUE(activo), escala = .sig_lamina_resuelve_indicador(g$graficador))
+}
+
+#' Todas las ranuras con cruce de una lámina, en el orden del payload (cada una entra en la familia de su base)
+#' @keywords internal
+.sig_slots_del_plan <- function(slide) {
+  Filter(Negate(is.null), lapply(slide$payload %||% list(), .sig_slot_de_graficador))
+}
+
+#' La primera ranura con cruce de una lámina: la que prueba el inspector de diferencias
 #' @keywords internal
 .sig_lamina_del_plan <- function(slide) {
-  grafs <- Filter(function(z) is.list(z) && !is.null(z$graficador), slide$payload %||% list())
-  for (g in grafs) {
-    a <- g$args %||% list()
-    ov <- a$overrides %||% list()
-    cruce <- .sig_var_local(a$cruces %||% a$cruce %||% ov$cruces %||% ov$cruce)
-    if (is.na(cruce) || !nzchar(cruce)) next
-    var <- .sig_var_local(a$var %||% a$vars)
-    if (is.na(var) || !nzchar(var)) next
-    ttb <- .sig_top2box_declarado(a, ov)   # el mismo resolutor que el render (graficos_significancia_indicador.R)
-    activo <- a$mostrar_significancia %||% ov$mostrar_significancia
-    return(list(var = var, cruce = cruce, top2box = ttb, graficador = g$graficador,
-                activo = isTRUE(activo), escala = .sig_lamina_resuelve_indicador(g$graficador)))
-  }
-  NULL
+  slots <- .sig_slots_del_plan(slide)
+  if (length(slots)) slots[[1]] else NULL
 }
 
 #' Comparaciones que forman la familia del estudio
@@ -128,9 +139,7 @@
 .sig_combinaciones_estudio <- function(fuente, plan = NULL, analitica_config = NULL) {
   slides <- if (is.list(plan)) plan$slides %||% plan else list()
   filas <- list()
-  for (s in slides) {
-    l <- .sig_lamina_del_plan(s)
-    if (is.null(l)) next
+  for (s in slides) for (l in .sig_slots_del_plan(s)) {   # todas las ranuras con cruce, no sólo la primera
     filas[[length(filas) + 1L]] <- list(var = l$var, cruce = l$cruce, top2box = l$top2box, lamina_escala = l$escala)
   }
   cruces <- .sig_cruces_de_analitica(analitica_config)

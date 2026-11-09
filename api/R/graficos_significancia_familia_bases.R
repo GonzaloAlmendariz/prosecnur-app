@@ -78,20 +78,25 @@
 
 #' Base de una ranura con cruce: la que nombra, la activa si es pelada, o `NA` si es ambigua o desconocida
 #' @keywords internal
-.sig_base_de_lamina_o_na <- function(slide, bases, activa) {
-  b <- tryCatch(.sig_base_de_lamina(slide, bases, activa), api_error = function(e) NA_character_)
+.sig_base_de_slot_o_na <- function(g, bases, activa) {
+  b <- tryCatch(.sig_base_de_slot(g, bases, activa), api_error = function(e) NA_character_)
   if (is.null(b)) activa else as.character(b)[1]   # sin `%||%`: el compartido trata NA como vacío
 }
 
-#' Láminas con cruce que no entran en ninguna familia (base ambigua o desconocida), con el motivo
-#' @return `data.frame(slide_id, code, mensaje)`; vacío si no hay.
+#' Ranuras con cruce de una lámina (los graficadores del payload que comparan pregunta y cruce)
+#' @keywords internal
+.sig_graficadores_con_cruce <- function(slide) {
+  Filter(function(g) !is.null(.sig_slot_de_graficador(g)), slide$payload %||% list())
+}
+
+#' Ranuras con cruce que no entran en ninguna familia (base ambigua o desconocida), con el motivo
+#' @return `data.frame(slide_id, code, mensaje)`, una fila por ranura; vacío si no hay.
 #' @keywords internal
 .sig_laminas_sin_familia <- function(plan, activa, bases) {
   slides <- if (is.list(plan)) plan$slides %||% plan else list()
   out <- list()
-  for (s in slides) {
-    if (is.null(.sig_lamina_del_plan(s))) next
-    e <- tryCatch({ .sig_base_de_lamina(s, bases, activa); NULL }, api_error = function(e) e)
+  for (s in slides) for (g in .sig_graficadores_con_cruce(s)) {
+    e <- tryCatch({ .sig_base_de_slot(g, bases, activa); NULL }, api_error = function(e) e)
     if (!is.null(e)) out[[length(out) + 1L]] <- data.frame(slide_id = as.character(s$id %||% "")[1], code = e$code,
                                                            mensaje = conditionMessage(e), stringsAsFactors = FALSE)
   }
@@ -112,19 +117,26 @@
   invisible(sf)
 }
 
-#' El plan de una base: las láminas con cruce que leen esa base (más las que no tienen cruce, que no aportan p)
+#' El plan de una base: en cada lámina, las ranuras con cruce que leen esa base (y las que no tienen cruce)
 #'
+#' La base se decide por ranura: una lámina con ranuras de dos bases aporta cada una a la familia de la suya.
 #' @param plan Plan del informe (`list(slides = ...)` o la lista de láminas).
 #' @param base Base cuya familia se arma. @param activa Base de las referencias peladas. @param bases Bases del proyecto.
-#' @return El plan con la misma forma; con una sola base, el plan tal cual.
+#' @return El plan con la misma forma, sin las láminas que se quedan sin ranuras de esa base; con una sola base, tal cual.
 #' @keywords internal
 .sig_plan_de_base <- function(plan, base, activa, bases) {
   if (length(bases) <= 1L || !is.list(plan)) return(plan)
   slides <- if (!is.null(plan$slides)) plan$slides else plan
-  deja <- vapply(slides, function(s) {
-    is.null(.sig_lamina_del_plan(s)) || identical(.sig_base_de_lamina_o_na(s, bases, activa), base)
-  }, logical(1))
-  if (!is.null(plan$slides)) { plan$slides <- slides[deja]; plan } else slides[deja]
+  filtrar <- function(s) {
+    if (!length(.sig_graficadores_con_cruce(s))) return(s)
+    deja <- vapply(s$payload, function(g) {
+      is.null(.sig_slot_de_graficador(g)) || identical(.sig_base_de_slot_o_na(g, bases, activa), base)
+    }, logical(1))
+    s$payload <- s$payload[deja]
+    if (length(.sig_graficadores_con_cruce(s))) s else NULL
+  }
+  out <- Filter(Negate(is.null), lapply(slides, filtrar))
+  if (!is.null(plan$slides)) { plan$slides <- out; plan } else out
 }
 
 #' Bases distintas de la activa que leen las ranuras con cruce del plan
@@ -132,8 +144,8 @@
 .sig_bases_del_plan <- function(plan, activa, bases) {
   if (length(bases) <= 1L || !is.list(plan)) return(character(0))
   slides <- if (!is.null(plan$slides)) plan$slides else plan
-  out <- vapply(Filter(function(s) !is.null(.sig_lamina_del_plan(s)), slides),
-                function(s) .sig_base_de_lamina_o_na(s, bases, activa), character(1))
+  out <- unlist(lapply(slides, function(s) vapply(.sig_graficadores_con_cruce(s),
+                                                 function(g) .sig_base_de_slot_o_na(g, bases, activa), character(1))))
   setdiff(unique(out[!is.na(out)]), activa)
 }
 

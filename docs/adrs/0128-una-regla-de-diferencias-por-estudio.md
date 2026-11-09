@@ -104,8 +104,12 @@ Con `correccion = "bonferroni_fila"`, cada fila se corrige sola, como hoy.
   también ajustan el p contra la familia de SU base (`.sig_contexto_render(data, base)`), no contra la de la activa.
 - **Analítica.** Las comparaciones de Analítica entran sólo en la familia de la base de su config (hoy la activa), no en
   la de otra base que tenga columnas con el mismo nombre.
-- **Base ambigua o desconocida.** Una lámina que mezcla bases (la pregunta de una y el cruce de otra, o dos
-  graficadores de bases distintas) o que nombra una base ausente no entra en ninguna familia y avisa:
+- **Unidad de comparación: la ranura.** Toda ranura con cruce de cada lámina entra en la familia de su base, no sólo
+  la primera (antes, en una lámina de dos o cuatro gráficos las ranuras 2..n salían `fuera_de_familia`, también en un
+  proyecto de una sola base, cuyo m ahora cuenta esas ranuras). La base se decide por ranura: una lámina con gráficos
+  de bases distintas aporta cada uno a la suya.
+- **Base ambigua o desconocida.** Una ranura que mezcla bases (la pregunta de una y el cruce de otra) o que nombra una
+  base ausente no entra en ninguna familia y avisa:
   `E_SIG_BASE_AMBIGUA` / `E_SIG_BASE_DESCONOCIDA` (409) en `/api/graficos/diferencias`, la lámina en error dentro del
   informe y un aviso en el export.
 

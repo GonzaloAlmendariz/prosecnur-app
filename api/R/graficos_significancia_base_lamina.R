@@ -10,31 +10,27 @@
 #
 # La regla del estudio no cambia (ADR 0128): es la misma, y sobre la base de la ranura se arman su fuente y su familia.
 
-#' Base que nombra la ranura de una lámina con cruce, o `NULL` si no nombra ninguna (referencia pelada)
+#' Base que lee una ranura (un graficador del payload) con cruce, o `NULL` si no nombra ninguna (referencia pelada)
 #'
-#' Cada graficador con cruce aporta sus bases: la fuente explícita y los prefijos de `var` y `cruce`; una referencia
-#' pelada es de la fuente explícita y, si no hay y se da `activa`, de la base activa. Si la lámina nombra dos bases
-#' (la pregunta de una y el cruce de otra, o dos graficadores de bases distintas) es ambigua: no entra en ninguna
-#' familia (ADR 0128 «Familia por base»).
+#' La ranura aporta la fuente explícita y los prefijos de `var` y `cruce`; una referencia pelada es de la fuente
+#' explícita y, si no hay y se da `activa`, de la base activa. Si la ranura nombra dos bases (la pregunta de una y el
+#' cruce de otra) es ambigua: no entra en ninguna familia (ADR 0128 «Familia por base»). Una lámina con ranuras de
+#' bases distintas no es ambigua: cada ranura va a la familia de la suya.
 #'
-#' @param slide Lámina del plan (`payload` con elementos `graficador`/`args`).
-#' @param bases Nombres de las bases de la sesión. @param activa Base de las referencias peladas, o `NULL`.
+#' @param g Graficador del payload (`graficador`/`args`). @param bases Nombres de las bases de la sesión.
+#' @param activa Base de las referencias peladas, o `NULL`.
 #' @return Nombre de la base, o `NULL`.
 #' @keywords internal
-.sig_base_de_lamina <- function(slide, bases, activa = NULL) {
-  grafs <- Filter(function(z) is.list(z) && !is.null(z$graficador), slide$payload %||% list())
-  vistas <- character(0)
-  for (g in grafs) {
-    a <- g$args %||% list(); ov <- a$overrides %||% list()
-    cruce <- a$cruces %||% a$cruce %||% ov$cruces %||% ov$cruce
-    var <- a$var %||% a$vars
-    if (is.na(.sig_var_local(cruce)) || is.na(.sig_var_local(var))) next
-    explicita <- trimws(as.character(unlist(a$source %||% a$fuente %||% character(0)))[1])
-    explicita <- if (length(explicita) && !is.na(explicita) && nzchar(explicita)) explicita else NULL
-    refs <- c(as.character(unlist(var))[1], as.character(unlist(cruce))[1])
-    pelada <- !grepl("$", refs, fixed = TRUE)
-    vistas <- c(vistas, explicita, .resbase_de_ref(refs[!pelada]), if (any(pelada)) explicita %||% activa)
-  }
+.sig_base_de_slot <- function(g, bases, activa = NULL) {
+  if (is.null(.sig_slot_de_graficador(g))) return(NULL)
+  a <- g$args %||% list(); ov <- a$overrides %||% list()
+  cruce <- a$cruces %||% a$cruce %||% ov$cruces %||% ov$cruce
+  var <- a$var %||% a$vars
+  explicita <- trimws(as.character(unlist(a$source %||% a$fuente %||% character(0)))[1])
+  explicita <- if (length(explicita) && !is.na(explicita) && nzchar(explicita)) explicita else NULL
+  refs <- c(as.character(unlist(var))[1], as.character(unlist(cruce))[1])
+  pelada <- !grepl("$", refs, fixed = TRUE)
+  vistas <- c(explicita, .resbase_de_ref(refs[!pelada]), if (any(pelada)) explicita %||% activa)
   vistas <- unique(vistas[!is.na(vistas) & nzchar(vistas)])
   if (!length(vistas)) return(NULL)
   ajena <- setdiff(vistas, bases)
@@ -44,10 +40,17 @@
   }
   if (length(vistas) > 1L) {
     stop_api(409, "E_SIG_BASE_AMBIGUA",
-             sprintf("La lámina mezcla las bases %s: no se prueba ni entra en la familia de ninguna.",
+             sprintf("Un gráfico de la lámina mezcla las bases %s: no se prueba ni entra en la familia de ninguna.",
                      paste0("«", vistas, "»", collapse = " y ")))
   }
   vistas
+}
+
+#' Base de la lámina para el inspector: la de su primera ranura con cruce (la que prueba `.sig_lamina_json`)
+#' @keywords internal
+.sig_base_de_lamina <- function(slide, bases, activa = NULL) {
+  for (g in slide$payload %||% list()) if (!is.null(.sig_slot_de_graficador(g))) return(.sig_base_de_slot(g, bases, activa))
+  NULL
 }
 
 #' Contexto de prueba por lámina: el de la sesión si la ranura lee la base activa; si no, el de la base de la ranura

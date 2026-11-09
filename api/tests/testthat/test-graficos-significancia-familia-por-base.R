@@ -224,24 +224,27 @@ test_that("base ambigua o desconocida: no entra en ninguna familia y avisa (expo
   dos <- list(id = "dos", payload = list(.fpb_lam("", "docentes$p3", "docentes$gedad")$payload[[1]],
                                          .fpb_lam("", "estudiantes$p3", "estudiantes$gedad")$payload[[1]]))
   pelada <- .fpb_lam("pel", "q5", "estudiantes$gedad")
-  for (s in list(mixta, dos)) {
-    expect_identical(tryCatch(.sig_base_de_lamina(s, b, "docentes"), error = function(e) e$code), "E_SIG_BASE_AMBIGUA")
-  }
+  expect_identical(tryCatch(.sig_base_de_lamina(mixta, b, "docentes"), error = function(e) e$code), "E_SIG_BASE_AMBIGUA")
+  # Dos gráficos de bases distintas no hacen ambigua la lámina: la ambigua es la ranura que mezcla bases. El inspector
+  # prueba la primera ranura con cruce, y la familia cuenta cada una en la suya.
+  expect_identical(.sig_base_de_lamina(dos, b, "docentes"), "docentes")
   expect_identical(tryCatch(.sig_base_de_lamina(pelada, b, "docentes"), error = function(e) e$code), "E_SIG_BASE_AMBIGUA")
   expect_identical(.sig_base_de_lamina(pelada, b, "estudiantes"), "estudiantes")
   rota <- .fpb_lam("rota", "egresados$p3", "egresados$gedad")
   plan <- list(slides = list(.fpb_lam("est", "estudiantes$p3", "estudiantes$gedad"), mixta, dos, rota))
   for (base in c("docentes", "estudiantes")) {
     expect_identical(vapply(.sig_plan_de_base(plan, base, "docentes", b)$slides, `[[`, "", "id"),
-                     if (base == "estudiantes") "est" else character(0))
+                     if (base == "estudiantes") c("est", "dos") else "dos")
   }
   msgs <- testthat::capture_messages(previa <- .sig_informe_preparar(.fpb_sig_arg(plan), ds, is, "docentes"))
   on.exit(options(previa), add = TRUE)
   expect_true(any(grepl("«mixta».*E_SIG_BASE_AMBIGUA", msgs)))
-  expect_true(any(grepl("«dos».*E_SIG_BASE_AMBIGUA", msgs)))
+  expect_false(any(grepl("«dos»", msgs)))
   expect_true(any(grepl("«rota».*E_SIG_BASE_DESCONOCIDA", msgs)))
-  # q5 × gedad de la lámina mixta no entra a la familia de estudiantes (m = 3, sólo «est»).
+  # q5 × gedad de la lámina mixta no entra a la familia de estudiantes (m = 3: «est» y la ranura de estudiantes de «dos»,
+  # que es la misma comparación); la ranura de docentes de «dos» cuenta en la de docentes (1 p, dos grupos).
   expect_identical(getOption("prosecnur.sig_informe")$familias$estudiantes$m, 3L)
+  expect_identical(getOption("prosecnur.sig_informe")$m, 1L)
 
   sid <- .fpb_sesion(ds, is, plan); on.exit(session_delete(sid), add = TRUE)
   pr <- .fpb_pr()
@@ -252,9 +255,9 @@ test_that("base ambigua o desconocida: no entra en ninguna familia y avisa (expo
   expect_identical(ri$status, 200L)
   codigos <- stats::setNames(vapply(ri$body$laminas, function(l) as.character(l$error$code %||% NA), ""),
                              vapply(ri$body$laminas, `[[`, "", "slide_id"))
-  expect_identical(unname(codigos[c("mixta", "dos", "rota")]),
-                   c("E_SIG_BASE_AMBIGUA", "E_SIG_BASE_AMBIGUA", "E_SIG_BASE_DESCONOCIDA"))
+  expect_identical(unname(codigos[c("mixta", "rota")]), c("E_SIG_BASE_AMBIGUA", "E_SIG_BASE_DESCONOCIDA"))
   expect_true(is.na(codigos[["est"]]))
+  expect_true(is.na(codigos[["dos"]]))
 })
 
 test_that("Analítica con cruces entra sólo en la familia de la base de su config (la activa)", {
@@ -359,4 +362,48 @@ test_that("una sola base sin la columna de conglomerado sigue absteniéndose (si
                                     regla_informe = list(regla = .sig_regla_normalizar(.fpb_rs), origen = "estudio"))
   expect_null(attr(ctx$regla, "mas_sin_conglomerado"))
   expect_false(is.null(.sig_diseno_invalido(d, ctx$regla)))
+})
+
+# --- Todas las ranuras con cruce de una lámina entran en la familia (verificador intermedio, 2026-11-09) --------------
+# `.sig_lamina_del_plan` devolvía sólo la PRIMERA ranura con cruce: en una p_slide_4_graficos con dos cruces, la segunda
+# salía «fuera_de_familia» en el render aunque fuera de la base activa.
+
+.fpb_slot <- function(var, cruce) list(graficador = "p_barras_agrupadas", args = list(var = var, cruces = cruce))
+.fpb_lam4 <- function(id, ...) list(id = id, tipo = "p_slide_4_graficos", payload = list(...))
+
+test_that("p_slide_4_graficos con dos cruces de la misma base: las dos ranuras cuentan en la familia (una sola base)", {
+  d <- .fpb_ds()$estudiantes; inst <- .fpb_inst(c("x", "y", "z"))
+  plan <- list(slides = list(.fpb_lam4("cuatro", superior_izquierda = .fpb_slot("p3", "gedad"),
+                                       superior_derecha = .fpb_slot("q5", "gedad"))))
+  sig <- .fpb_sig_arg(plan)
+  previa <- suppressMessages(.sig_informe_preparar(sig, list(principal = d), list(principal = inst), "principal"))
+  on.exit(options(previa), add = TRUE)
+  regla <- .sig_regla_normalizar(.fpb_regla)
+  esperado <- .fpb_p_crudos(d, inst, c("p3", "q5"), regla)
+  opt <- getOption("prosecnur.sig_informe")
+  expect_identical(opt$m, length(esperado))
+  expect_equal(opt$familia$q, stats::p.adjust(sort(esperado), "BH"))
+  # La segunda ranura ya no sale «fuera_de_familia» en el render.
+  f <- d
+  fuente <- structure(list(diseno = "independiente", var = "q5", survey = inst$survey, orders_list = NULL, data = f,
+                           g = f$gedad, niveles = c("x", "y", "z"), base = "principal"), class = "sig_fuente")
+  n <- t(sapply(c("1", "2"), function(v) vapply(c("x", "y", "z"), function(g) sum(f$q5 == v & f$gedad == g), numeric(1))))
+  ev <- .sig_evaluar_render(fuente, n, c("x", "y", "z"), paste("Grupo", c("x", "y", "z")))
+  expect_identical(as.integer(ev$fuera_de_familia), 0L)
+})
+
+test_that("una lámina con ranuras de dos bases: cada ranura cuenta en la familia de su base, con m exacto", {
+  ds <- .fpb_ds(); is <- .fpb_is()
+  plan <- list(slides = list(.fpb_lam4("mixta4", superior_izquierda = .fpb_slot("estudiantes$p3", "estudiantes$gedad"),
+                                       superior_derecha = .fpb_slot("docentes$q5", "docentes$gedad"),
+                                       inferior_izquierda = .fpb_slot("estudiantes$q5", "estudiantes$gedad"))))
+  previa <- suppressMessages(.sig_informe_preparar(.fpb_sig_arg(plan), ds, is, "docentes"))
+  on.exit(options(previa), add = TRUE)
+  regla <- .sig_regla_normalizar(.fpb_regla)
+  opt <- getOption("prosecnur.sig_informe")
+  expect_identical(opt$m, length(.fpb_p_crudos(ds$docentes, is$docentes, "q5", regla)))
+  expect_identical(opt$familias$estudiantes$m, length(.fpb_p_crudos(ds$estudiantes, is$estudiantes, c("p3", "q5"), regla)))
+  # Una lámina con ranuras de dos bases no es ambigua: lo es la ranura que mezcla bases.
+  expect_length(.sig_laminas_sin_familia(plan, "docentes", names(ds))$slide_id, 0L)
+  expect_identical(.sig_bases_del_plan(plan, "docentes", names(ds)), "estudiantes")
 })
