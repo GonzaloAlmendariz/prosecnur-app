@@ -35,7 +35,7 @@
 #' @keywords internal
 .lam_avisos_soltar <- function(token) {
   e <- .lam_avisos_estado
-  if (identical(e$token, token)) { e$actual <- NULL; e$token <- NULL; e$notas <- list(); e$inicio <- integer(); e$rotulo <- NULL }
+  if (identical(e$token, token)) { e$actual <- NULL; e$token <- NULL; e$notas <- list(); e$inicio <- integer(); e$rotulo <- NULL; e$vistos <- character(0) }
   invisible(NULL)
 }
 
@@ -58,7 +58,7 @@
 .lam_avisos_paso <- function(plan, i, doc) {
   e <- .lam_avisos_estado
   if (i == 1L) {
-    e$inicio <- integer(); e$notas <- list()
+    e$inicio <- integer(); e$notas <- list(); e$vistos <- character(0)
     # El registro se suelta cuando sale el `reporte_ppt_plan` que lo abrió, también si falla a mitad. No se guarda su
     # marco: retenía sus objetos —datos incluidos— hasta el mazo siguiente (verificador de K12b). La salida se
     # registra en ese marco con `on.exit(add = TRUE)`, como `withr::defer`, sin sumar dependencias.

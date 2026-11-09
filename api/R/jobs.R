@@ -519,6 +519,14 @@ job_snapshot <- function(j) {
 #' Emite un aviso destinado al analista, no al log.
 #' @noRd
 .pulso_aviso <- function(...) {
+  # Dentro del render de un mazo, el mismo aviso de la misma lámina sale una vez: el motor reintenta el dibujo de una
+  # lámina que falla y repetía su aviso (catálogo, ronda 4). La clave es (mazo, lámina, texto); fuera del render no se toca.
+  e <- .lam_avisos_estado
+  if (!is.null(e$actual) && !is.null(e$token)) {
+    clave <- paste(e$token, e$actual, paste0(...), sep = "\r")
+    if (clave %in% e$vistos) return(invisible(FALSE))
+    e$vistos <- c(e$vistos, clave)
+  }
   message(.PULSO_AVISO_SELLO, " ", ...)
   invisible(TRUE)
 }

@@ -44,3 +44,16 @@ test_that("un plan con un grupo que no existe exporta las demás láminas y la m
   expect_true(any(grepl('"Mujer" es la etiqueta del código "1"', msgs, fixed = TRUE)))
   expect_true(any(grepl("sale con «Sin datos»", msgs, fixed = TRUE)))
 })
+
+test_that("catálogo, ronda 4: el aviso de una lámina que se reintenta sale una vez por (lámina, texto)", {
+  src <- .dgp_sources()
+  plan <- .normalize_plan(list(slides = list(.dgp_slide("bien", list("1", "2")), .dgp_slide("uno", list("7")), .dgp_slide("otro", list("8")))), avisar = FALSE)
+  out <- withr::local_tempfile(fileext = ".pptx")
+  msgs <- testthat::capture_messages(suppressWarnings(reporte_ppt_plan(data = src$data_sources, instrumento = src$inst_sources,
+                                                                       plan = p_plan(slides = lapply(plan$slides, .rebuild_slide)), path_ppt = out, mensajes_progreso = FALSE)))
+  ap <- grep("PULSO-AVISO.*Aperturas por grupo", msgs, value = TRUE)
+  expect_identical(length(ap), length(unique(ap)))
+  expect_identical(length(ap), 2L)   # una por lámina mala
+  # Fuera del render no se deduplica nada.
+  expect_identical(length(testthat::capture_messages({ .pulso_aviso("x"); .pulso_aviso("x") })), 2L)
+})
