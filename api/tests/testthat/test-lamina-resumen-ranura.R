@@ -38,7 +38,14 @@ source("setup-load-all.R")
   else list(id = "s4", tipo = "p_slide_4_graficos", payload = list(titulo = "Cuatro gráficos", superior_izquierda = g, superior_derecha = g,
                                                                    inferior_izquierda = g, inferior_derecha = g))
 }
+# Nota (catálogo, ronda 4): una corrida del gate de área, con un render de Arte en paralelo en otra sesión de R, dio una
+# falla en esta suite sin decir cuál; aislada pasa 113 de 113, en el orden del gate también, y con un render de Arte en
+# paralelo no se reprodujo en tres intentos (2026-11-09). El único estado compartido que toca esta suite es del proceso:
+# las notas de filas de menos (`.LAM_RR_PIE`) y el registro de avisos del mazo (`.lam_avisos_estado`); cada render los
+# vacía al empezar y aquí se vacían también antes de cada render, para que ninguna suite anterior los deje sucios.
 .rr_render <- function(slide_raw, src = .rr_fuentes()) {
+  .LAM_RR_PIE$notas <- NULL
+  .lam_avisos_soltar(.lam_avisos_estado$token)
   plan <- .normalize_plan(list(slides = list(slide_raw)), avisar = FALSE)
   out <- withr::local_tempfile(fileext = ".pptx", .local_envir = parent.frame())
   suppressWarnings(reporte_ppt_plan(data = src$data_sources, instrumento = src$inst_sources,
