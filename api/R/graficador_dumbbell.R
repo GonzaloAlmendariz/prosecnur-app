@@ -199,18 +199,9 @@ graficar_dumbbell <- function(
   colores_cifra <- .dumbbell_colores_cifra(unname(colores[niveles_grupo]))
   sentido <- .dumbbell_sentido(a, b)
 
-  # Eje acercado al rango de los datos, en múltiplos de 5, sin pasar de 0 ni 100.
-  lim <- suppressWarnings(as.numeric(limite_x))
-  if (length(lim) == 2L && all(is.finite(lim))) {
-    lo <- lim[1]; hi <- lim[2]
-  } else {
-    vmin <- min(largo$.valor, na.rm = TRUE); vmax <- max(largo$.valor, na.rm = TRUE)
-    lo <- max(0, floor((vmin - 3) / 5) * 5)
-    hi <- min(100, ceiling((vmax + 3) / 5) * 5)
-    if (length(lim) == 1L && is.finite(lim)) hi <- lim
-    if (!is.finite(lo) || !is.finite(hi) || hi <= lo) { lo <- 0; hi <- 100 }
-  }
-  paso <- if (hi - lo <= 30) 5 else if (hi - lo <= 60) 10 else 20
+  # Eje acercado al rango de los datos, de cuatro a cinco marcas, sin pasar de 0 ni 100 (D5, graficos_dumbbell_eje.R).
+  eje_d <- .dumbbell_eje(largo$.valor, limite_x, holgura = 3)
+  lo <- eje_d[["lo"]]; hi <- eje_d[["hi"]]; paso <- eje_d[["paso"]]
   # La columna «Diferencia» va a la derecha del eje, fuera de sus marcas.
   x_dif <- hi + (hi - lo) * 0.16
   tope <- hi + (hi - lo) * 0.24
