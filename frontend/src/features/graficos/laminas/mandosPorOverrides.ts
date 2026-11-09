@@ -11,10 +11,10 @@ export const MANDOS_ESPEJO_OVERRIDES: ReadonlySet<string> = new Set(["pista_barr
 /**
  * B8 (ronda 20): «Referencia de las barras» viaja por `overrides` en las barras agrupadas y categóricas, pero en
  * `p_cobertura` es formal del constructor (graficos_cobertura_plan.R lo pasa él a `overrides`): ahí se guarda sólo en
- * `args`. PENDIENTE backend: `.GRAFICOS_ARGS_ESPEJO_OVERRIDES` aún no lo lista, así que un plan viejo con el valor sólo
- * en `args` no se completa; la tarjeta siempre escribe los dos lados.
+ * `args`. El backend tiene la misma excepción (`.GRAFICOS_ARGS_ESPEJO_FORMAL_EN`, 3c70f4ab5) y completa el lado que falte
+ * en planes viejos en los demás graficadores.
  */
-const FORMAL_EN: Readonly<Record<string, ReadonlySet<string>>> = { referencia_barra: new Set(["p_cobertura"]) };
+export const FORMAL_EN: Readonly<Record<string, ReadonlySet<string>>> = { referencia_barra: new Set(["p_cobertura"]) };
 
 /** ¿El mando va en espejo en este graficador? Sin graficador, por el nombre. */
 export function vaEnEspejo(name: string, graficador?: string): boolean {

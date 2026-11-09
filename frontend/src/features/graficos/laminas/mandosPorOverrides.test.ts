@@ -1,8 +1,11 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { ArgMetadata, GraficadorRef } from "../../../api/graficos";
 import { usePlanStore, type GraficosConfig } from "../store";
 import { camposDeDatos } from "./argsDatosGrafico";
-import { conEspejoEnOverrides, MANDOS_ESPEJO_OVERRIDES, valorDeMando } from "./mandosPorOverrides";
+import { conEspejoEnOverrides, FORMAL_EN, MANDOS_ESPEJO_OVERRIDES, valorDeMando } from "./mandosPorOverrides";
 
 // U6 del checklist de mandos del mazo (2026-11-05): pista gris, un color por opción y marca de la mediana viajan por
 // `overrides`. La tarjeta escribe en espejo y el backend completa lo que falte (test-graficos-migrar-args-overrides.R).
@@ -29,8 +32,16 @@ describe("conEspejoEnOverrides", () => {
     expect(conEspejoEnOverrides({ overrides: { a: 1 } }, parche)).toBe(parche);
   });
 
-  it("la lista es la del backend más `referencia_barra` (B8; el backend aún no la completa en planes viejos)", () => {
-    expect([...MANDOS_ESPEJO_OVERRIDES].sort()).toEqual(["colorear_por_opcion", "marca_mediana", "mostrar_frecuencia", "pista_barras", "referencia_barra"]);
+  it("la lista y su excepción son las del backend (`.GRAFICOS_ARGS_ESPEJO_OVERRIDES`, `.GRAFICOS_ARGS_ESPEJO_FORMAL_EN`)", () => {
+    const r = fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "../../../../../api/R/graficos_migrar_args_overrides.R"), "utf8")
+      .replace(/#[^\n]*/g, "");
+    const cuerpo = (nombre: string) => r.match(new RegExp(`\\${nombre}\\s*<-\\s*(?:c|list)\\(([^)]*)\\)`))?.[1] ?? "";
+    const espejo = [...cuerpo(".GRAFICOS_ARGS_ESPEJO_OVERRIDES").matchAll(/"([^"]+)"/g)].map((m) => m[1]).sort();
+    expect(espejo).toEqual(["colorear_por_opcion", "marca_mediana", "mostrar_frecuencia", "pista_barras", "referencia_barra"]);
+    expect([...MANDOS_ESPEJO_OVERRIDES].sort()).toEqual(espejo);
+    const formal = Object.fromEntries([...cuerpo(".GRAFICOS_ARGS_ESPEJO_FORMAL_EN").matchAll(/(\w+)\s*=\s*"([^"]+)"/g)].map((m) => [m[1], [m[2]]]));
+    expect(formal).toEqual({ referencia_barra: ["p_cobertura"] });
+    expect(Object.fromEntries(Object.entries(FORMAL_EN).map(([k, v]) => [k, [...v]]))).toEqual(formal);
   });
 });
 
