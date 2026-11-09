@@ -1,4 +1,4 @@
-// Panel «¿Qué gráfico?» (`panel=tipo-grafico`; dirección F6 §4.4). La ranura que se llena la nombra el foco
+// Panel «Tipo de gráfico» (`panel=tipo-grafico`; dirección F6 §4.4). La ranura que se llena la nombra el foco
 // (`foco=<slide.id>:g2`). Izquierda, las familias; centro, los tipos de gráfico de la familia con su glifo, también las
 // variantes del catálogo (ADR 0139: «Contraste de públicos» es `p_dumbbell` en estilo resumen); derecha, el detalle.
 // Usar un gráfico conserva los argumentos compatibles del anterior (`compatibleGraficadorRef`) y, si es una variante,
@@ -115,7 +115,7 @@ export function SelectorTipoGrafico({ slide, posicion, ranura, cerrar }: Props) 
 
   const sinRanura = !slide || !slot;
   const vacio = sinRanura
-    ? "Esta lámina no lleva gráficos: elige otra composición en ¿Qué lámina?."
+    ? "Esta lámina no lleva gráficos: elige otra composición en Tipo de lámina."
     : loading && !registry ? "cargando"
     : error && !registry ? "No se pudo leer el catálogo de gráficos. Cierra y vuelve a intentarlo."
     : lista.length === 0 ? "Esta familia no tiene gráficos en este estudio."
@@ -128,7 +128,7 @@ export function SelectorTipoGrafico({ slide, posicion, ranura, cerrar }: Props) 
       panelProps={panel.props}
       auditReady="f6-selector-grafico"
       antetitulo={posicion && rotuloRanura && slots.length > 1 ? `Lámina ${posicion}, ${rotuloRanura}` : posicion ? `Lámina ${posicion}` : "Gráfico"}
-      titulo="¿Qué gráfico?"
+      titulo="Tipo de gráfico"
       descripcion={actual
         ? actualRetirado
           ? `Hoy: ${nombreActual}, un tipo retirado. Al cambiarlo se empieza sin sus datos.`

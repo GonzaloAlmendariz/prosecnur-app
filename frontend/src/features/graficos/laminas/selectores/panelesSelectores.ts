@@ -5,13 +5,13 @@ import type { PanelDeclarado } from "../../../../lib/navegacion/paneles";
 
 export const PANEL_TIPO_LAMINA: PanelDeclarado = {
   id: "tipo-lamina",
-  label: "¿Qué lámina?",
+  label: "Tipo de lámina",
   clase: "dialogo",
 };
 
 export const PANEL_TIPO_GRAFICO: PanelDeclarado = {
   id: "tipo-grafico",
-  label: "¿Qué gráfico?",
+  label: "Tipo de gráfico",
   clase: "dialogo",
 };
 
