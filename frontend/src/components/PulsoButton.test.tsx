@@ -248,5 +248,18 @@ describe("PulsoButton", () => {
     const kit = fs.readFileSync(path.join(__dirname, "kit-buttons.css"), "utf8");
     expect(kit).toMatch(/a:where\(\.pulso-button\) \{[^}]*display: inline-flex;[^}]*text-decoration: none;/);
   });
+
+  it("W3: un solo anillo de foco y sin sombras de control (primario, hover global, confirmación)", () => {
+    const tema = fs.readFileSync(path.resolve(__dirname, "..", "app", "theme.css"), "utf8");
+    const bloque = tema.slice(tema.indexOf("/* PulsoButton —"), tema.indexOf("/* /PulsoButton */"));
+    const regla = (sel: string) => bloque.slice(bloque.indexOf(`${sel} {`), bloque.indexOf("}", bloque.indexOf(`${sel} {`)));
+    expect(regla(".pulso-button--primary")).toContain("box-shadow: none;");
+    expect(regla(".pulso-button:focus-visible")).toContain("outline: var(--mov-foco);");
+    expect(bloque).not.toMatch(/0 0 0 3px|0 3px 9px/);
+    const kit = fs.readFileSync(path.join(__dirname, "kit-buttons.css"), "utf8");
+    expect(kit).toMatch(/\.pulso-button:hover:not\(:disabled\) \{\s*box-shadow: none;/);
+    expect(kit).toMatch(/\.pulso-button:hover:not\(:active\):not\(:disabled\) \{\s*transform: none;/);
+    expect(kit).not.toMatch(/0 3px 9px/);
+  });
 });
 

@@ -355,14 +355,9 @@
    - Secundario: PulsoButton secondary de 28. Pulsado (aria-pressed o el disparador de un popover abierto) = tinte
      --module-accent-soft con --module-accent-border: un solo lenguaje de pulsado; «Previsualizar» ya no va lleno.
    - Ícono: PulsoButton icon, quieto por defecto (kit-boton-quieto.css); su pulsado vive en el kit desde W3.
-   - Deshabilitado honesto: surface-3 / text-faint / border, nunca opacidad sobre el acento.
-   - Un solo anillo de foco (--mov-foco), sin el halo global ni la sombra o el salto del hover global.
+   - Deshabilitado honesto, anillo único de foco y botones sin sombra ni salto al hover: en el kit desde W3
+     (kit-buttons.css y theme.css); aquí ya no se neutraliza nada de eso.
    Los selectores y el panel de guías viven en un portal fuera de .pulso-f6-laminas-host: por eso la lista de raíces. */
-:is(.pulso-f6-laminas-host, .pulso-f6-barra-host, .pulso-f6-selector, .pulso-f6-guias-panel, .pulso-f6-mazo, .pulso-gv2-suggest-popover) .pulso-button:is(.pulso-button--primary, .pulso-button--secondary, .pulso-button--ghost, .pulso-button--link) {
-  border-radius: var(--pulso-control-radius);
-  box-shadow: none;
-}
-
 :is(.pulso-f6-laminas-host, .pulso-f6-barra-host, .pulso-f6-selector, .pulso-f6-guias-panel, .pulso-f6-mazo, .pulso-gv2-suggest-popover) .pulso-button:is(.pulso-button--primary, .pulso-button--secondary) > svg {
   width: var(--pulso-icon-size-md);
   height: var(--pulso-icon-size-md);
@@ -373,34 +368,11 @@
   height: var(--pulso-icon-size-sm);
 }
 
-:is(.pulso-f6-laminas-host, .pulso-f6-barra-host, .pulso-f6-selector, .pulso-f6-guias-panel, .pulso-f6-mazo, .pulso-gv2-suggest-popover) .pulso-button:is(.pulso-button--primary, .pulso-button--secondary, .pulso-button--ghost, .pulso-button--link):hover:not(:disabled) {
-  box-shadow: none;
-}
-
-:is(.pulso-f6-laminas-host, .pulso-f6-barra-host, .pulso-f6-selector, .pulso-f6-guias-panel, .pulso-f6-mazo, .pulso-gv2-suggest-popover) .pulso-button:hover:not(:disabled):not(:active) {
-  transform: none;
-}
-
 :is(.pulso-f6-laminas-host, .pulso-f6-barra-host, .pulso-f6-selector, .pulso-f6-guias-panel, .pulso-f6-mazo, .pulso-gv2-suggest-popover) .pulso-button.pulso-button--secondary:is([aria-pressed="true"], [aria-expanded="true"], .is-activo),
 :is(.pulso-f6-laminas-host, .pulso-f6-barra-host, .pulso-f6-selector, .pulso-f6-guias-panel, .pulso-f6-mazo, .pulso-gv2-suggest-popover) .pulso-button.pulso-button--secondary:is([aria-pressed="true"], [aria-expanded="true"], .is-activo):hover:not(:disabled) {
   border-color: var(--module-accent-border);
   background: var(--module-accent-soft);
   color: var(--pulso-button-accent-strong);
-}
-
-:is(.pulso-f6-laminas-host, .pulso-f6-barra-host, .pulso-f6-selector, .pulso-f6-guias-panel, .pulso-f6-mazo, .pulso-gv2-suggest-popover) .pulso-button:is(.pulso-button--primary, .pulso-button--secondary, .pulso-button--ghost, .pulso-button--link):focus-visible {
-  outline: var(--mov-foco);
-  outline-offset: 2px;
-  box-shadow: none;
-}
-
-:is(.pulso-f6-laminas-host, .pulso-f6-barra-host, .pulso-f6-selector, .pulso-f6-guias-panel, .pulso-f6-mazo, .pulso-gv2-suggest-popover) .pulso-button:is(.pulso-button--primary, .pulso-button--secondary):is(:disabled, [aria-disabled="true"]) {
-  opacity: 1;
-  border-color: var(--pulso-border);
-  background: var(--pulso-surface-3);
-  color: var(--pulso-text-faint);
-  box-shadow: none;
-  cursor: not-allowed;
 }
 
 /* Botones propios de la superficie (filas, tira, pestañas, chips, menú): el mismo anillo único, sin el halo global

@@ -170,21 +170,29 @@ describe("W2-A: acabado común de controles", () => {
     expect(cuerpo).toContain("var(--module-accent-soft)");
   });
 
-  it("deshabilitado honesto: surface-3, text-faint y borde, sin opacidad", () => {
-    const i = css.indexOf(":is(:disabled, [aria-disabled=\"true\"])");
+  // W3: el deshabilitado honesto, el anillo único y el hover sin sombra ni salto pasaron al kit; Láminas no los repite.
+  const kit = sinComentarios(leer("../../../components/kit-buttons.css"));
+  const tema = sinComentarios(leer("../../../app/theme.css"));
+
+  it("W3: deshabilitado honesto en el kit (surface-3, text-faint y borde, sin opacidad), no en Láminas", () => {
+    const i = kit.indexOf(".pulso-button:is(.pulso-button--primary, .pulso-button--secondary):is(:disabled, [aria-disabled=\"true\"])");
     expect(i).toBeGreaterThan(-1);
-    const cuerpo = css.slice(css.indexOf("{", i) + 1, css.indexOf("}", i));
+    const cuerpo = kit.slice(kit.indexOf("{", i) + 1, kit.indexOf("}", i));
     expect(cuerpo).toContain("opacity: 1");
     expect(cuerpo).toContain("var(--pulso-surface-3)");
     expect(cuerpo).toContain("var(--pulso-text-faint)");
     expect(cuerpo).toContain("var(--pulso-border)");
+    expect(css).not.toContain(':is(:disabled, [aria-disabled="true"])');
   });
 
-  it("un solo anillo de foco y sin halo", () => {
-    const i = css.indexOf(".pulso-button--link):focus-visible");
-    const cuerpo = css.slice(css.indexOf("{", i) + 1, css.indexOf("}", i));
+  it("W3: un solo anillo de foco y sin halo en el kit; Láminas no neutraliza sombras ni saltos de PulsoButton", () => {
+    const i = tema.indexOf(".pulso-button:focus-visible {");
+    const cuerpo = tema.slice(tema.indexOf("{", i) + 1, tema.indexOf("}", i));
     expect(cuerpo).toContain("outline: var(--mov-foco)");
     expect(cuerpo).toContain("box-shadow: none");
+    expect(cuerpo).not.toMatch(/0 0 0 3px/);
+    expect(css).not.toMatch(/\.pulso-button:is\([^)]*\)(:hover:not\(:disabled\)|:focus-visible) \{/);
+    expect(css).not.toMatch(/\.pulso-button:hover:not\(:disabled\):not\(:active\)/);
   });
 });
 

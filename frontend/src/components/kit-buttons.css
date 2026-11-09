@@ -30,6 +30,35 @@ a:where(.pulso-button) > svg {
   flex: 0 0 auto;
 }
 
+/* ---------- W3 · acabado común (contrato A/D, 9 nov 2026) ----------
+   Lo que Láminas neutralizaba en local pasa al kit, para todos los módulos:
+   - sin sombra en reposo ni al hover (el `button` global pone un relieve y una sombra de 12 px al pasar);
+   - sin el salto de 1 px del hover global: el botón sólo cede al apretar (`:active`, theme.css);
+   - deshabilitado honesto: surface-3 / text-faint / borde, nunca opacidad sobre el acento.
+   El anillo único de foco (--mov-foco) está en theme.css («PulsoButton —»). */
+.pulso-button:is(.pulso-button--primary, .pulso-button--secondary, .pulso-button--ghost, .pulso-button--link) {
+  box-shadow: none;
+}
+
+.pulso-button:hover:not(:disabled) {
+  box-shadow: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-button:hover:not(:active):not(:disabled) {
+    transform: none;
+  }
+}
+
+.pulso-button:is(.pulso-button--primary, .pulso-button--secondary):is(:disabled, [aria-disabled="true"]) {
+  opacity: 1;
+  border-color: var(--pulso-border);
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-faint);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
 /* ---------- D13 · danger ----------
    Contorno en el rojo vivo --pulso-danger-solid (más puro/anaranjado que el
    carmesí de Monitoreo, que no se toca). El relleno sólido es solo del botón
@@ -51,7 +80,7 @@ a:where(.pulso-button) > svg {
   border-color: var(--pulso-danger-solid);
   background: var(--pulso-danger-solid);
   color: var(--pulso-surface);
-  box-shadow: 0 3px 9px color-mix(in srgb, var(--pulso-danger-solid) 22%, transparent);
+  box-shadow: none;
 }
 
 .pulso-button.pulso-button--danger.pulso-button--danger-confirm:hover:not(:disabled) {
