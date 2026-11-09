@@ -39,7 +39,7 @@
 
 .pulso-xf-smi-hoja input:focus-visible,
 .pulso-xf-smi-hoja summary:focus-visible {
-  outline: 2px solid var(--pulso-module-editor);
+  outline: var(--mov-foco);
   outline-offset: 2px;
 }
 

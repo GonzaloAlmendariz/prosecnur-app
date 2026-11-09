@@ -394,7 +394,9 @@
 }
 
 .pulso-sig-porque:focus-visible {
-  box-shadow: var(--pulso-shadow-popover), 0 0 0 2px var(--pulso-module-processing);
+  box-shadow: var(--pulso-shadow-popover);
+  outline: var(--mov-foco);
+  outline-offset: 2px;
 }
 
 .pulso-sig-porque-cabeza {

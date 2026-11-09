@@ -90,7 +90,8 @@
 .cmg-campo input:focus-visible,
 .cmg-campo select:focus-visible {
   border-color: var(--cmv2-accent-border);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cmv2-accent) 14%, transparent);
+  outline: var(--mov-foco);
+  outline-offset: 2px;
 }
 
 .cmg-campo input[aria-invalid="true"] {

@@ -34,6 +34,7 @@ const TRANSVERSALES = [
   "src/app/pisoTipografico.contract.test.ts",      // letra bajo el piso de 10 px
   "src/app/movimiento.contract.test.ts",           // transiciones de layout y animaciones sin motivo
   "src/app/microinteracciones.contract.test.ts",   // presión con nombre (--mov-press), sin escalas sueltas
+  "src/app/anilloUnicoDeFoco.contract.test.ts",    // un solo anillo de foco: ninguna hoja suma halo al outline global
   "src/components/ModuleChrome.contract.test.ts",  // estados de navegación del chrome
   "src/components/toaster.contract.test.ts",       // avisos fuera del toaster
   "src/lib/teclado.contract.test.ts",              // atajos de teclado en conflicto

@@ -210,10 +210,10 @@ button:where(:hover:not(:disabled):not(.is-active):not(.is-on):not([aria-selecte
 button:where(:active:not(:disabled)) {
   transform: scale(var(--mov-press, 0.97));
 }
-button:where(:focus-visible) {
-  outline: none;
-  border-color: var(--pulso-primary-border);
-  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+button:where(:focus-visible) { /* R12-5: el anillo único del kit (--mov-foco), sin halo. */
+  outline: var(--mov-foco);
+  outline-offset: 2px;
+  box-shadow: none;
 }
 button:where(:disabled) {
   opacity: 0.55;
@@ -382,12 +382,11 @@ input, textarea, select {
     color var(--motion-dur-fast) ease;
 }
 input:focus, textarea:focus, select:focus {
-  outline: none;
+  outline: var(--mov-foco);
+  outline-offset: 2px;
   border-color: var(--pulso-primary-border);
-  background: #fff;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 0 0 3px var(--pulso-primary-focus);
+  background: var(--pulso-surface);
+  box-shadow: none;
 }
 input:disabled, textarea:disabled, select:disabled {
   background: var(--pulso-surface-2);
@@ -473,8 +472,8 @@ input[type="radio"]:checked::before {
 }
 input[type="checkbox"]:focus-visible,
 input[type="radio"]:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+  outline: var(--mov-foco);
+  outline-offset: 2px;
 }
 input[type="checkbox"]:disabled,
 input[type="radio"]:disabled {
@@ -941,9 +940,8 @@ a { color: var(--pulso-primary); }
 }
 
 .pulso-module-tile:focus-visible {
-  box-shadow:
-    0 0 0 3px var(--pulso-primary-focus),
-    0 9px 18px color-mix(in srgb, var(--module-accent) 18%, transparent);
+  box-shadow: 0 9px 18px color-mix(in srgb, var(--module-accent) 18%, transparent);
+  outline: var(--mov-foco); outline-offset: 2px;
 }
 
 .pulso-module-switcher:focus-within {
@@ -1629,14 +1627,12 @@ a { color: var(--pulso-primary); }
 
 .pulso-project-confirm-button.is-primary:focus-visible {
   border-color: var(--pulso-primary);
-  box-shadow:
-    0 0 0 2px var(--pulso-surface),
-    0 0 0 4px var(--pulso-primary-focus);
+  outline: var(--mov-foco); outline-offset: 2px;
 }
 
 .pulso-project-confirm-button.is-danger:focus-visible {
   border-color: var(--pulso-danger-border);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pulso-danger-border) 42%, transparent);
+  outline: var(--mov-foco); outline-offset: 2px;
 }
 
 .pulso-project-confirm-button:active:not(:disabled) {
@@ -3259,7 +3255,7 @@ a { color: var(--pulso-primary); }
 
 .pulso-step-chip:focus-visible {
   border-color: var(--pulso-stepper-accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 24%, transparent);
+  outline: var(--mov-foco); outline-offset: 2px;
 }
 
 .pulso-step-chip:active:not(:disabled) {
@@ -6941,7 +6937,7 @@ h1.pulso-page-title {
 .pulso-sm-extra-advanced select:focus,
 .pulso-sm-extra-source input:focus {
   border-color: var(--pulso-primary-border);
-  box-shadow: 0 0 0 4px var(--pulso-primary-ring);
+  outline: var(--mov-foco); outline-offset: 2px;
 }
 .pulso-sm-multibase-grid {
   display: grid;
@@ -20267,7 +20263,7 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-card:hover:not
 }
 .pulso-rich-inline:focus {
   background: var(--pulso-surface-2, rgba(0, 36, 87, 0.04));
-  box-shadow: 0 0 0 2px var(--pulso-primary-border, rgba(0, 36, 87, 0.18));
+  outline: var(--mov-foco); outline-offset: 2px;
 }
 .pulso-rich-inline[data-empty="true"]:not(:focus)::before {
   content: attr(data-placeholder);

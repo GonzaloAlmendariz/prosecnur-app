@@ -562,7 +562,8 @@ textarea.rec-ed-control {
 }
 
 .rec-ed-zona:focus-visible {
-  box-shadow: 0 0 0 6px var(--pulso-primary-focus);
+  outline: var(--mov-foco);
+  outline-offset: 2px;
   outline-color: var(--pulso-primary-border);
 }
 

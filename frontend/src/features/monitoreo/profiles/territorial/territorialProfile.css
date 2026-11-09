@@ -9892,7 +9892,7 @@
 .mon-territorial-review-select select:focus-visible,
 .mon-territorial-review-filterbar .mon-query-search input:focus-visible {
   border-color: color-mix(in srgb, var(--pulso-accent) 34%, var(--pulso-border));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pulso-accent) 13%, transparent);
+  outline: var(--mov-foco); outline-offset: 2px;
 }
 
 .mon-territorial-review-filterbar > button {
@@ -10744,7 +10744,7 @@
 
 .mon-operational-adjustments__note textarea:focus-visible {
   border-color: color-mix(in srgb, var(--pulso-accent) 46%, var(--pulso-border));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pulso-accent) 12%, transparent);
+  outline: var(--mov-foco); outline-offset: 2px;
 }
 
 .mon-operational-adjustments__detail footer button.mon-operational-apply-button {

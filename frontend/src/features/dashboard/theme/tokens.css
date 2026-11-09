@@ -628,9 +628,9 @@
 }
 .dashboard-scope .dash-section-select:focus {
   border-color: var(--dash-primario);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.6),
-    0 0 0 3px color-mix(in srgb, var(--dash-primario) 22%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  outline: var(--mov-foco);
+  outline-offset: 2px;
 }
 .dashboard-scope .dash-section-select:active {
   transform: scale(var(--mov-press-tarjeta, 0.985));
@@ -771,9 +771,9 @@
   transform: scale(var(--mov-press, 0.97));
 }
 .dashboard-scope .dash-switch input:focus-visible + .dash-switch-slider {
-  box-shadow:
-    var(--dash-switch-track-shadow),
-    0 0 0 4px var(--dash-primario-ring);
+  box-shadow: var(--dash-switch-track-shadow);
+  outline: var(--mov-foco);
+  outline-offset: 2px;
 }
 
 .dashboard-scope .dash-filtros-rows {
@@ -880,9 +880,9 @@
 .dashboard-scope .dash-input:focus,
 .dashboard-scope .dash-select:focus {
   border-color: var(--dash-primario);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.6),
-    0 0 0 3px color-mix(in srgb, var(--dash-primario) 22%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  outline: var(--mov-foco);
+  outline-offset: 2px;
 }
 .dashboard-scope .dash-select:active {
   transform: scale(var(--mov-press-tarjeta, 0.985));

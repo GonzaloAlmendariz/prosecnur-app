@@ -1929,7 +1929,7 @@
 .mon-acr-model-notes textarea:focus-visible,
 .mon-acr-model-close input:focus-visible {
   border-color: color-mix(in srgb, var(--pulso-module-monitoring) 34%, var(--pulso-border));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pulso-module-monitoring) 12%, transparent);
+  outline: var(--mov-foco); outline-offset: 2px;
 }
 
 .mon-acr-model-actions,
@@ -2973,7 +2973,7 @@
 .mon-acr-case-toolbar input:focus-visible,
 .mon-acr-case-toolbar select:focus-visible {
   border-color: color-mix(in srgb, var(--pulso-module-monitoring) 34%, var(--pulso-border));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pulso-module-monitoring) 12%, transparent);
+  outline: var(--mov-foco); outline-offset: 2px;
 }
 
 .mon-acr-case-toolbar button {
@@ -11617,7 +11617,7 @@
 
 .mon-advance-collector-switch select:focus-visible {
   border-color: color-mix(in srgb, var(--pulso-primary-border) 76%, var(--pulso-border));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pulso-primary-soft) 70%, transparent);
+  outline: var(--mov-foco); outline-offset: 2px;
 }
 
 .mon-advance-daily-legend {
@@ -18758,7 +18758,7 @@ button.mon-acr-requirement-metric:active {
 
 .mon-assisted-assignment input:focus {
   border-color: color-mix(in srgb, #168a55 36%, var(--pulso-border));
-  box-shadow: 0 0 0 3px rgba(22, 138, 85, 0.08);
+  outline: var(--mov-foco); outline-offset: 2px;
 }
 
 .mon-assisted-assignment-found {

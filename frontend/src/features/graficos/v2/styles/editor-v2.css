@@ -1983,7 +1983,7 @@
 
 .pulso-gv2-timeline-search input:focus {
   border-color: var(--pulso-primary-border);
-  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+  outline: var(--mov-foco); outline-offset: 2px;
 }
 
 .pulso-gv2-timeline-search-clear {
@@ -3560,9 +3560,8 @@
 .pulso-arg-field textarea:focus,
 .pulso-arg-field select:focus {
   border-color: color-mix(in srgb, var(--pulso-primary) 60%, var(--pulso-primary-border)) !important;
-  box-shadow:
-    0 0 0 3px var(--pulso-primary-focus),
-    inset 0 1px 1px rgba(0, 36, 87, 0.035) !important;
+  box-shadow: inset 0 1px 1px rgba(0, 36, 87, 0.035) !important;
+  outline: var(--mov-foco) !important; outline-offset: 2px !important;
   background: var(--pulso-surface) !important;
 }
 
@@ -3914,9 +3913,8 @@
 }
 
 .pulso-gv2-switch:focus-visible .pulso-gv2-switch-track {
-  box-shadow:
-    var(--pulso-switch-track-shadow),
-    0 0 0 4px var(--pulso-primary-ring);
+  box-shadow: var(--pulso-switch-track-shadow);
+  outline: var(--mov-foco); outline-offset: 2px;
 }
 
 .pulso-gv2-switch-thumb {
@@ -5791,7 +5789,7 @@
   transition: border-color 120ms, background 120ms;
 }
 .pulso-gv2-filter-cell-btn:hover { border-color: var(--pulso-primary); background: white; }
-.pulso-gv2-filter-cell-btn:focus { border-color: var(--pulso-primary); box-shadow: 0 0 0 2px var(--pulso-primary-ring); }
+.pulso-gv2-filter-cell-btn:focus { border-color: var(--pulso-primary); outline: var(--mov-foco); outline-offset: 2px; }
 
 .pulso-gv2-filter-cell-input {
   padding: 6px 10px;
@@ -5805,7 +5803,7 @@
   min-width: 0;
   width: 100%;
 }
-.pulso-gv2-filter-cell-input:focus { border-color: var(--pulso-primary); box-shadow: 0 0 0 2px var(--pulso-primary-ring); }
+.pulso-gv2-filter-cell-input:focus { border-color: var(--pulso-primary); outline: var(--mov-foco); outline-offset: 2px; }
 
 .pulso-gv2-filter-cell-popup {
   position: absolute;
@@ -6183,9 +6181,8 @@
 }
 .pulso-gv2-picker-search:focus {
   border-color: var(--pulso-primary-border);
-  box-shadow:
-    0 0 0 3px var(--pulso-primary-focus),
-    0 8px 18px rgba(0, 36, 87, 0.055);
+  box-shadow: 0 8px 18px rgba(0, 36, 87, 0.055);
+  outline: var(--mov-foco); outline-offset: 2px;
 }
 
 .pulso-gv2-picker-tabs {
@@ -9878,7 +9875,7 @@
 
 .pulso-gv2-popover-search:focus {
   border-color: var(--pulso-primary-border);
-  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+  outline: var(--mov-foco); outline-offset: 2px;
 }
 
 .pulso-gv2-popover-list {
@@ -10474,7 +10471,7 @@
 }
 
 .pulso-gv2-sheets-input:hover { border-color: var(--pulso-border); }
-.pulso-gv2-sheets-input:focus { border-color: var(--pulso-primary); background: white; box-shadow: 0 0 0 2px var(--pulso-primary-ring); }
+.pulso-gv2-sheets-input:focus { border-color: var(--pulso-primary); background: white; outline: var(--mov-foco); outline-offset: 2px; }
 
 /* Layout visual: taller canvas for readable internal labels. */
 .pulso-gv2-layout-canvas {
@@ -12055,7 +12052,7 @@
 .pulso-gv2-layout-frame .pulso-gv2-layout-metric input:focus {
   border-radius: 4px;
   background: rgba(37, 99, 235, 0.08);
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.14);
+  outline: var(--mov-foco); outline-offset: 2px;
 }
 
 .pulso-gv2-layout-frame .pulso-gv2-layout-metric.is-gap-metric {
@@ -17423,9 +17420,8 @@
 .pulso-gv2-layout-frame .pulso-gv2-layout-metric input:focus {
   border-color: color-mix(in srgb, var(--layout-accent, var(--gv2-accent, var(--pulso-primary))) 54%, rgba(31, 41, 55, 0.16));
   background: var(--pulso-surface);
-  box-shadow:
-    0 0 0 3px color-mix(in srgb, var(--layout-accent, var(--gv2-accent, var(--pulso-primary))) 12%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.82);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+  outline: var(--mov-foco); outline-offset: 2px;
 }
 
 .pulso-gv2-layout-handle:focus-visible {
@@ -17433,10 +17429,8 @@
 }
 
 .pulso-gv2-layout-handle:focus-visible::before {
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.96),
-    0 0 0 4px color-mix(in srgb, var(--layout-accent, var(--gv2-accent, var(--pulso-primary))) 18%, transparent),
-    0 2px 7px color-mix(in srgb, var(--layout-accent, var(--gv2-navy-600)) 42%, rgba(15, 23, 42, 0.26));
+  box-shadow: 0 2px 7px color-mix(in srgb, var(--layout-accent, var(--gv2-navy-600)) 42%, rgba(15, 23, 42, 0.26));
+  outline: var(--mov-foco); outline-offset: 2px;
 }
 
 /* Suite polish pass 15: tactile resize handles for the dynamic layout canvas. */
@@ -17703,10 +17697,8 @@
 }
 
 .pulso-gv2-range-control .pulso-arg-range:focus-visible::-webkit-slider-thumb {
-  box-shadow:
-    0 0 0 1px var(--pulso-surface),
-    0 0 0 4px color-mix(in srgb, var(--gv2-accent, var(--pulso-primary)) 16%, transparent),
-    0 5px 11px rgba(15, 23, 42, 0.2);
+  box-shadow: 0 5px 11px rgba(15, 23, 42, 0.2);
+  outline: var(--mov-foco); outline-offset: 2px;
 }
 
 .pulso-gv2-range-control .pulso-arg-range::-moz-range-track {
@@ -18446,9 +18438,8 @@
 
 .pulso-gv2-layout-frame .pulso-gv2-layout-metric input:focus {
   background: var(--pulso-surface);
-  box-shadow:
-    0 0 0 2px color-mix(in srgb, var(--metric-state-color) 15%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  outline: var(--mov-foco); outline-offset: 2px;
 }
 
 .pulso-gv2-layout-frame .pulso-gv2-layout-metric .pulso-gv2-layout-metric-bar {
@@ -20751,9 +20742,8 @@
 }
 
 .pulso-gv2-picker-tile:focus-visible {
-  box-shadow:
-    0 0 0 3px color-mix(in srgb, var(--gv2-picker-cat) 18%, transparent),
-    0 12px 22px color-mix(in srgb, var(--gv2-picker-cat) 8%, transparent);
+  box-shadow: 0 12px 22px color-mix(in srgb, var(--gv2-picker-cat) 8%, transparent);
+  outline: var(--mov-foco); outline-offset: 2px;
 }
 
 .pulso-gv2-picker-tile.is-selected {
@@ -22967,7 +22957,7 @@
 
 .pulso-gv2-layout-measure-input input:focus {
   border-color: color-mix(in srgb, var(--measure-color) 48%, var(--pulso-border));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--measure-color) 12%, transparent);
+  outline: var(--mov-foco); outline-offset: 2px;
 }
 
 .pulso-gv2-layout-measure-input em {
@@ -29955,7 +29945,7 @@
 
 .pulso-gv2-layout-frame .pulso-gv2-layout-metric input:focus {
   border: 0;
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--layout-accent) 14%, transparent);
+  outline: var(--mov-foco); outline-offset: 2px;
 }
 
 .pulso-gv2-layout-frame .pulso-gv2-layout-metric-bar,
@@ -30790,5 +30780,5 @@ input.pulso-inline-edit:hover:not(:focus) {
 input.pulso-inline-edit:focus {
   background: white;
   border-color: var(--pulso-primary-border);
-  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+  outline: var(--mov-foco); outline-offset: 2px;
 }

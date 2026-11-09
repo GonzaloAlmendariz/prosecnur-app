@@ -398,7 +398,8 @@
 .cmv2-compact-field select:focus,
 .cmv2-compact-field textarea:focus {
   border-color: var(--cmv2-accent-border);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cmv2-accent) 14%, transparent);
+  outline: var(--mov-foco);
+  outline-offset: 2px;
 }
 
 .cmv2-university-sources,
@@ -1430,7 +1431,8 @@
 
 .cmv2-compact-field select:focus {
   border-color: var(--cmv2-accent-border);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cmv2-accent) 14%, transparent);
+  outline: var(--mov-foco);
+  outline-offset: 2px;
 }
 
 /* L27 · K1: una decisión del sorteo es un PulsoSwitch con su descripción
@@ -2841,7 +2843,8 @@
 .cmv2-variable select:focus,
 .cmv2-number-cell input:focus {
   border-color: var(--cmv2-accent-border);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cmv2-accent) 14%, transparent);
+  outline: var(--mov-foco);
+  outline-offset: 2px;
 }
 
 .cmv2-form-grid input,
@@ -3508,9 +3511,9 @@
 .cmv2-variable select:focus,
 .cmv2-number-cell input:focus {
   border-color: color-mix(in srgb, var(--cmv2-accent) 38%, var(--pulso-border));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.78),
-    0 0 0 3px color-mix(in srgb, var(--cmv2-accent) 15%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
+  outline: var(--mov-foco);
+  outline-offset: 2px;
 }
 
 .cmv2-table tr {

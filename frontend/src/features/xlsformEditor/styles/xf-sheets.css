@@ -496,7 +496,8 @@
 .pulso-xlsform-frame .pulso-xfs-type-chip .pulso-xfs-cell:focus {
   background: #ffffff;
   border-color: color-mix(in srgb, var(--xfs-type-color) 55%, transparent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--xfs-type-color) 18%, transparent);
+  outline: var(--mov-foco);
+  outline-offset: 2px;
   color: var(--pulso-text);
 }
 

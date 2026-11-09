@@ -21,7 +21,8 @@
 }
 
 .cmv2-matriz-embudo-scroll:focus-visible {
-  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+  outline: var(--mov-foco);
+  outline-offset: 2px;
 }
 
 .cmv2-matriz-embudo-table {

@@ -821,7 +821,8 @@ textarea.rec-mail-input {
 }
 
 .rec-mail-subir input:focus-visible + label {
-  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+  outline: var(--mov-foco);
+  outline-offset: 2px;
 }
 
 .rec-mail-subir.is-disabled label {

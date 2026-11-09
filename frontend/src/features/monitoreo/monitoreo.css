@@ -14775,7 +14775,6 @@ button.mon-territorial-ump-audit-scrim {
 .mon-territorial-ump-audit-header select:focus-visible,
 .mon-territorial-ump-audit-note-field textarea:focus-visible {
   border-color: color-mix(in srgb, var(--pulso-accent) 34%, var(--pulso-border));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pulso-accent) 12%, transparent);
 }
 
 .mon-territorial-ump-audit-summary {
@@ -29166,7 +29165,6 @@ button.mon-territorial-ump-audit-scrim {
 .mon-query-search input:focus-visible,
 .mon-query-select select:focus-visible {
   border-color: color-mix(in srgb, var(--query-command-accent) 36%, var(--pulso-border));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--query-command-accent) 14%, transparent);
 }
 
 .mon-query-filterbar > button {
