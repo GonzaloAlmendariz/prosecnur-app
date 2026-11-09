@@ -372,6 +372,7 @@
   r <- .regla_preguntas_de_elemento(el, sources %||% .regla_preguntas_fuentes_render(contexto), preset = preset)
   # Públicos sin equivalencia declarada: el render dibuja la lámina que lo dice (graficos_panorama_equivalencia.R).
   if (!is.null(r$sin_equivalencia)) return(list(el = el, texto = r$evaluacion$texto, sin_equivalencia = r$sin_equivalencia))
+  total <- r$evaluacion$total
   if (!length(r$vars)) stop("La regla de preguntas no deja ninguna pregunta: ", r$evaluacion$texto, call. = FALSE)
   if (!is.null(r$recorte)) .pulso_aviso(.aviso_en_lamina(.tope_espacio_aviso(r$recorte[["k"]], r$recorte[["n"]])))   # E3, P7
   el$vars <- r$vars
@@ -379,7 +380,7 @@
     el$var <- if (length(r$vars) == 1L) r$vars else NULL
     el$.firma_leyenda <- r$firma_leyenda   # escalas alineadas: la leyenda es la del universo (graficos_escala_armonizada.R)
   }
-  list(el = el, texto = r$evaluacion$texto)
+  list(el = el, texto = r$evaluacion$texto, total = total)
 }
 
 #' Orden del contraste del resumen con su regla (ADR 0135, decisión del 2026-11-07)

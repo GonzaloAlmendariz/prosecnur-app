@@ -52,10 +52,14 @@
 #' @param criterio Orden del recorte (`.tope_espacio_criterio`; el contraste recorta siempre por la mayor diferencia).
 #' @param universo,n_grupos,grupos_unidad Los de la evaluación (para «todas» y «comunes»).
 #' @keywords internal
-.tope_espacio_frase <- function(regla, k, n, criterio = NULL, universo = "preguntas de escala", n_grupos = 2L, grupos_unidad = "públicos") {
+.tope_espacio_frase <- function(regla, k, n, criterio = NULL, universo = "preguntas de escala", n_grupos = 2L, grupos_unidad = "públicos",
+                               total = NULL) {
   r <- .regla_preguntas_normalizar(regla)
   criterio <- criterio %||% .tope_espacio_criterio(r$tipo)
   if (is.null(r)) return(.tope_espacio_texto(k, n, criterio))
+  # El universo se conserva (decisión del lead, 2026-11-09): «…de las 22 bajo 60%, de 157 preguntas de escala; …». Con
+  # «todas» y «comunes» las elegidas ya son el universo y no se repite.
+  cola <- if (!is.null(total) && is.finite(total) && !r$tipo %in% c("todas", "comunes")) paste0(", ", .regla_preguntas_de_total(total, universo)) else ""
   ajuste <- length(r$agregar) > 0L || length(r$quitar) > 0L || identical(r$tipo, "a_mano")
   de <- if (ajuste) sprintf("de las %d elegidas", n) else switch(r$tipo,
     bajo_umbral = sprintf("de las %d bajo %s%%", n, .regla_preguntas_umbral_txt(r$umbral)),
@@ -67,7 +71,7 @@
                       grupos_unidad),
     sprintf("de las %d elegidas", n))
   cab <- if (identical(criterio, "primeras")) sprintf("las primeras %d", k) else sprintf("las %d %s", k, criterio)
-  sprintf("Se muestran %s %s; el resto en otra lámina.", cab, de)
+  sprintf("Se muestran %s %s%s; el resto en otra lámina.", cab, de, cola)
 }
 
 #' Aviso al analista (sin nombrar la serie: dice qué pasó y qué hacer)
@@ -143,7 +147,7 @@
   } else quedan <- utils::head(temas, tope)
   ev$temas <- quedan
   if (is.data.frame(ev$candidatas) && nrow(ev$candidatas)) ev$candidatas$seleccionada <- ev$candidatas$tema %in% quedan
-  ev$texto <- .tope_espacio_frase(regla, tope, n, criterio = if (contraste) "de mayor diferencia" else NULL, universo = ev$universo %||% "preguntas de escala",
+  ev$texto <- .tope_espacio_frase(regla, tope, n, criterio = if (contraste) "de mayor diferencia" else NULL, universo = ev$universo %||% "preguntas de escala", total = ev$total,
                                   n_grupos = k_grupos, grupos_unidad = ind$grupos_unidad %||% "públicos")
   aviso <- sprintf("La regla elige %d preguntas y la lámina admite %d: %s", n, tope, sub("^Se muestran", "se muestran", ev$texto))
   list(ev = ev, aviso = aviso, recorte = c(k = tope, n = n))

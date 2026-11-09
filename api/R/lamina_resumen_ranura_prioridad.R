@@ -72,12 +72,12 @@
 
 #' La regla del contraste en su especificación (para reescribir su nota si la ranura recorta)
 #' @keywords internal
-.contraste_regla_en_espec <- function(p, el) {
+.contraste_regla_en_espec <- function(p, el, total = NULL) {
   espec <- attr(p, "pulso_espec", exact = TRUE)
   if (!is.list(espec) || !identical(espec$tipo, "contraste") || is.null(el$regla)) return(p)
   entre <- is.null(el$cruce)
   espec$regla_recorte <- list(regla = el$regla, universo = if (entre) "preguntas comunes" else "preguntas de escala",
-                              grupos_unidad = if (entre) "públicos" else "grupos")
+                              grupos_unidad = if (entre) "públicos" else "grupos", total = total)
   attr(p, "pulso_espec") <- espec
   p
 }
@@ -89,7 +89,8 @@
   viejo <- sub("[.[:space:]]+$", "", trimws(as.character(espec$texto_regla %||% "")[1]))
   if (!identical(geo$clase, "contraste") || is.null(rr) || is.na(viejo) || !nzchar(viejo)) return(FALSE)
   nuevo <- .tope_espacio_frase(rr$regla, geo$k, geo$n_total, criterio = if (isTRUE(geo$por_prioridad)) "de mayor diferencia" else "primeras",
-                               universo = rr$universo, n_grupos = length(espec$grupos), grupos_unidad = rr$grupos_unidad)
+                               universo = rr$universo, n_grupos = length(espec$grupos), grupos_unidad = rr$grupos_unidad,
+                               total = rr$total)
   .LAM_RR_PIE$reemplazos <- c(.LAM_RR_PIE$reemplazos, list(c(viejo = viejo, nuevo = sub("[.[:space:]]+$", "", nuevo))))
   TRUE
 }

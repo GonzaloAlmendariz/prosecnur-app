@@ -889,7 +889,7 @@ p_dumbbell <- function(vars = NULL,
   args <- .keep_formals(graficar_dumbbell, args, contexto = "graficar_dumbbell")
   p <- .dumbbell_con_grupo_chico(do.call(graficar_dumbbell, args), el)   # «Grupo chico: 24 docentes TC.»
   if (!identical(args$estilo, "resumen")) p <- .tope_espacio_al_pie(p, el, tope$texto)   # el clásico no tiene nota de regla
-  p <- .contraste_regla_en_espec(p, el)   # para que una ranura que recorta reescriba la nota en una frase (P7)
+  p <- .contraste_regla_en_espec(p, el, total = ap$total)   # para que una ranura que recorta reescriba la nota en una frase (P7)
   .regla_preguntas_en_espec(p, .tope_espacio_unir(ap$texto, if (identical(args$estilo, "resumen")) tope$texto))
 }
 
