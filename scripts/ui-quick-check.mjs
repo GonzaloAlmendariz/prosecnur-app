@@ -1546,9 +1546,25 @@ async function inspectDomCajas(page, { projectMode, geometryGroups, geometryTole
           .trim();
         return expuesto.includes(completo);
       };
+      // R12-12: el mismo perdón en vertical para un recorte DELIBERADO a N renglones (`-webkit-line-clamp` con
+      // overflow oculto): `scrollHeight` es el del texto entero, como en la elipsis. Sólo si el texto completo sigue
+      // alcanzable en un `title` o `aria-label` (C4); un clamp mudo sigue siendo hallazgo.
+      const lineClampAlcanzable = () => {
+        const clamp = String(style.webkitLineClamp || style.getPropertyValue("-webkit-line-clamp") || "none").trim();
+        if (!clamp || clamp === "none" || !(Number(clamp) > 0)) return false;
+        if (style.overflowY !== "hidden" && style.overflowY !== "clip") return false;
+        const completo = (el.textContent || "").replace(/\s+/g, " ").trim();
+        if (!completo) return false;
+        const portador = el.closest("[title],[aria-label]");
+        if (!portador) return false;
+        const expuesto = (portador.getAttribute("title") || portador.getAttribute("aria-label") || "")
+          .replace(/\s+/g, " ")
+          .trim();
+        return expuesto.includes(completo);
+      };
       const xOverflow = el.scrollWidth > el.clientWidth + 2 && !overflowXAllowed
         && !nativeSelectBox && !nativeTextBox && !inkFitsBox() && !elipsisAlcanzable();
-      const yOverflow = el.scrollHeight > el.clientHeight + 2 && !overflowYAllowed;
+      const yOverflow = el.scrollHeight > el.clientHeight + 2 && !overflowYAllowed && !lineClampAlcanzable();
       if (!xOverflow && !yOverflow) continue;
       if (railTooltipEscape(el, style)) continue;
       // R11-12: el `::before` del área de impacto del botón quieto (32 px sobre una caja de 28) entra en

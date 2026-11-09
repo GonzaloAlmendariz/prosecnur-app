@@ -17,6 +17,7 @@ const requireFromFrontend = createRequire(new URL("../../frontend/package.json",
 const { chromium } = requireFromFrontend("@playwright/test");
 
 const NOMBRE_LARGO = "giehrhreioghrehgiorheoghriehgoierhiohgiohreoihgoreih";
+const TITULO_LARGO = "Satisfacción con los servicios de bienestar universitario por facultad y por año de estudio";
 
 const FIXTURE = `
 <style>
@@ -27,6 +28,7 @@ const FIXTURE = `
   .quieto { position: relative; box-sizing: border-box; width: 28px; height: 28px; padding: 0; border: 1px solid transparent; margin: 12px; }
   .quieto::before { content: ""; position: absolute; inset: -3px; }
   .bajo { display: block; height: 20px; width: 200px; margin: 12px; overflow: visible; }
+  .clamp { display: -webkit-box; width: 120px; margin: 12px; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-size: 13px; line-height: 1.2; }
 </style>
 <div id="superficie" role="menu">
   <button class="caja recorta marca-con-title" title="${NOMBRE_LARGO}">${NOMBRE_LARGO}</button>
@@ -35,6 +37,8 @@ const FIXTURE = `
   <button class="caja recorta marca-title-parcial" title="otro nombre">${NOMBRE_LARGO}</button>
   <button class="quieto marca-quieto" aria-label="Deshacer"><svg width="16" height="16"></svg></button>
   <button class="bajo marca-bajo">Una línea<br>otra línea<br>y una tercera que no cabe</button>
+  <h3 class="clamp marca-clamp-con-title" title="${TITULO_LARGO}">${TITULO_LARGO}</h3>
+  <h3 class="clamp marca-clamp-mudo">${TITULO_LARGO}</h3>
 </div>
 `;
 
@@ -88,6 +92,16 @@ test("R11-12: el ::before del área de impacto de un botón quieto no es un desb
 test("R11-12: un texto que sí se sale de su caja en alto sigue siendo hallazgo", async () => {
   const issues = await medirFixture();
   assert.equal(reportado(issues, "marca-bajo"), true);
+});
+
+test("R12-12: un recorte deliberado a dos renglones (line-clamp) con title no es overflow-y", async () => {
+  const issues = await medirFixture();
+  assert.equal(reportado(issues, "marca-clamp-con-title"), false);
+});
+
+test("R12-12: un line-clamp mudo, sin title que exponga el texto entero, sí es hallazgo", async () => {
+  const issues = await medirFixture();
+  assert.equal(reportado(issues, "marca-clamp-mudo"), true);
 });
 
 test("el gate espera el render terminal de una lista virtualizada", async () => {
