@@ -323,6 +323,12 @@
   preset <- .regla_preguntas_preset(el, preset)
   ind <- .regla_preguntas_indicadores(el, sources, tipo, preset = preset)
   if (isTRUE(ind$sin_equivalencia)) return(.regla_preguntas_sin_equivalencia(ind, regla))   # graficos_dumbbell_equivalencia.R
+  # Un ajuste a mano guardado con nombres de variable se traduce a los temas de la matriz si es inequívoco (P1).
+  if (is.function(ind$alias_ajuste) && !is.null(regla)) {
+    temas <- unique(as.character(ind$indicadores$tema))
+    traducir <- function(x) { if (!length(x)) return(character(0)); y <- ind$alias_ajuste(x); ifelse(x %in% temas, x, y) }
+    regla$agregar <- unique(traducir(regla$agregar)); regla$quitar <- unique(traducir(regla$quitar))
+  }
   ev <- .regla_preguntas_evaluar(ind$indicadores, regla, universo = ind$universo, grupos_unidad = ind$grupos_unidad,
                                  decimales = .regla_preguntas_decimales(el, preset))
   # Lo que no cabe se recorta aquí, en el orden de la regla, y la nota lo dice en una frase (graficos_tope_espacio.R).

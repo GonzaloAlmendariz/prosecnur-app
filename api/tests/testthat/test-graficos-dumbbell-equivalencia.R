@@ -156,3 +156,26 @@ test_that("panorama sin equivalencia declarada: aviso, sin comparación, y la l�
   expect_null(attr(out$rendered[[1]], "pulso_espec"))
   expect_true(any(grepl(.DUMBBELL_MSG_SIN_EQUIV, avisos, fixed = TRUE)))
 })
+
+# P1, decisión del lead (2026-11-09): un ajuste a mano guardado con nombres de variable en un panorama entre públicos se
+# traduce a la fila de la matriz cuando es inequívoco; lo ambiguo o lo que no está, sale en el aviso.
+test_that("panorama: agregar/quitar guardados con nombres de variable se traducen a su fila si son inequívocos", {
+  m <- .deq_matriz_arte()
+  m$filas[[4]] <- .deq_fila("f4", "Otra con p5", "p5", "p2")   # p5 sólo en f4; p2 de estudiantes en f4
+  m$filas[[5]] <- .deq_fila("f5", "Otra con p2", "p2", "p5")   # p2 y p5 aparecen en dos filas: ambiguos pelados
+  src <- .deq_arte(m)
+  r0 <- .regla_preguntas_de_elemento(p_panorama(vars = c("docentes$*", "estudiantes$*"), corte = c("3", "4"),
+                                                regla = list(tipo = "comunes")), src)
+  expect_true(all(c("Atención administrativa", "Otra con p2") %in% r0$evaluacion$temas))
+  el <- p_panorama(vars = c("docentes$*", "estudiantes$*"), corte = c("3", "4"),
+                   regla = list(tipo = "comunes", quitar = c("p13_6", "docentes$p2", "p2", "p99")))
+  r <- .regla_preguntas_de_elemento(el, src)
+  # p13_6 (sólo en f2) se traduce a «Atención administrativa»; docentes$p2 (sólo en f5 para docentes) a «Otra con p2».
+  expect_false("Atención administrativa" %in% r$evaluacion$temas)
+  expect_false("Otra con p2" %in% r$evaluacion$temas)
+  # p2 pelado está en dos filas (f4 y f5) y p99 en ninguna: quedan sin traducir y el aviso los nombra.
+  aviso <- grep("del ajuste a mano no", r$avisos, value = TRUE)
+  expect_length(aviso, 1L)
+  expect_match(aviso, "p2, p99", fixed = TRUE)
+  expect_false(grepl("p13_6", aviso, fixed = TRUE))
+})

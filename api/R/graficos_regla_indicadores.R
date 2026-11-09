@@ -144,19 +144,19 @@
                                               stringsAsFactors = FALSE)
   }
   ind <- .regla_preguntas_rbind(filas)
-  sin_temas <- NULL
+  sin_temas <- NULL; alias <- NULL
   # Entre públicos el tema es la fila declarada de la matriz de equivalencias, nunca el nombre de la variable
   # (graficos_panorama_equivalencia.R, ADR 0138 §5).
   if (por_nombre && length(unique(ind$grupo)) >= 2L) {
     td <- .panorama_temas_declarados(data.frame(ref = ind$ref, source = ind$grupo, variable = ind$variable, stringsAsFactors = FALSE), sources)
     ind$tema <- td$tema; ind$etiqueta <- td$etiqueta
-    motivos <- c(motivos, td$motivos); sin_temas <- td$sin_temas
+    motivos <- c(motivos, td$motivos); sin_temas <- td$sin_temas; alias <- td$alias
   }
   for (k in seq_len(nrow(ind))) refs_tema[[ind$tema[k]]] <- c(refs_tema[[ind$tema[k]]], ind$ref[k])
   ind$variable <- NULL; ind$ref <- NULL
   list(indicadores = ind, refs_por_tema = refs_tema, avisos = c(sin_temas, .regla_preguntas_avisos(motivos)),
        universo = "preguntas de escala", grupos_unidad = "públicos",
-       sin_equivalencia = !is.null(sin_temas), sin_temas_texto = sin_temas)
+       sin_equivalencia = !is.null(sin_temas), sin_temas_texto = sin_temas, alias_ajuste = alias)
 }
 
 #' Une filas de indicadores; sin filas, la tabla vacía con sus columnas

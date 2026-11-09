@@ -28,11 +28,13 @@
                                                      .radar_mb_capitalizar(medidas$source[i])), "")
   bases <- unique(as.character(medidas$source))
   libre <- rep(TRUE, n); motivos <- list(); cubre <- 0L; pares <- character(0)
+  filas_decl <- list()   # (base, variable, tema o NA) de cada fila confirmada: para traducir un ajuste a mano guardado
   for (f in (equiv %||% list())$filas %||% list()) {
     if (!is.list(f) || isTRUE(f$sugerida)) next
     x <- vapply(bases, function(b) .dumbbell_equiv_var(f, b), "")
     if (sum(nzchar(x)) < 2L) next   # la fila no empareja dos públicos de esta lámina
     cubre <- cubre + 1L
+    filas_decl[[cubre]] <- list(base = bases[nzchar(x)], var = unname(x[nzchar(x)]), tema = NA_character_)
     idx <- which(libre & vapply(seq_len(n), function(i) identical(unname(x[medidas$source[i]]), medidas$variable[i]), TRUE))
     idx <- idx[!duplicated(medidas$source[idx])]
     if (length(idx) < 2L) next
@@ -43,11 +45,34 @@
     rot <- make.unique(c(pares, rot), sep = " ")[length(pares) + 1L]
     pares <- c(pares, rot)
     tema[idx] <- rot; etiqueta[idx] <- rot; libre[idx] <- FALSE
+    filas_decl[[cubre]]$tema <- rot
   }
   sueltas <- sum(libre)
   if (cubre > 0L && sueltas) {
     motivos <- c(motivos, rep(list("no tienen equivalencia declarada en los otros públicos"), sueltas))
   }
   sin_temas <- if (!length(pares)) (if (cubre == 0L) .DUMBBELL_MSG_SIN_EQUIV else .DUMBBELL_MSG_SIN_COMPARABLES)
-  list(tema = tema, etiqueta = etiqueta, motivos = motivos, sin_temas = sin_temas)
+  list(tema = tema, etiqueta = etiqueta, motivos = motivos, sin_temas = sin_temas, alias = .panorama_alias_ajuste(filas_decl))
+}
+
+#' Traducción de un ajuste a mano guardado con nombres de variable a los temas de la matriz (P1, decisión del lead)
+#'
+#' Antes del emparejamiento por la matriz, el panorama entre públicos guardaba `agregar` / `quitar` con el nombre de la
+#' variable («p13_6») como tema. Un nombre se traduce a su fila si es inequívoco: aparece en exactamente una fila
+#' confirmada para esa base (`base$variable`) o, pelado, en exactamente una fila entre las bases de la lámina, y esa fila
+#' es un tema. Lo ambiguo o lo que ninguna fila declara no se traduce y sale en el aviso de «no están entre las candidatas».
+#' @param filas_decl Filas confirmadas de la lámina: `list(base, var, tema)`.
+#' @return Función `nombres -> nombres` (los que no se traducen quedan igual).
+#' @keywords internal
+.panorama_alias_ajuste <- function(filas_decl) {
+  function(nombres) {
+    nombres <- as.character(nombres %||% character(0))
+    vapply(nombres, function(nm) {
+      con_base <- grepl("$", nm, fixed = TRUE)
+      b <- if (con_base) sub("\\$.*$", "", nm) else NA_character_
+      v <- if (con_base) sub("^[^$]*\\$", "", nm) else nm
+      hits <- Filter(function(f) if (con_base) any(f$base == b & f$var == v) else any(f$var == v), filas_decl)
+      if (length(hits) != 1L || is.na(hits[[1]]$tema)) nm else hits[[1]]$tema
+    }, "", USE.NAMES = FALSE)
+  }
 }
