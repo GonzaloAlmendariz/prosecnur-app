@@ -123,7 +123,7 @@
 #' @keywords internal
 .regla_div_medidas <- function(refs, el, sources, preset = NULL) {
   a <- .regla_div_args(el, preset)
-  vacio <- data.frame(ref = character(0), valor = numeric(0), sin_info = numeric(0), stringsAsFactors = FALSE)
+  vacio <- data.frame(ref = character(0), valor = numeric(0), sin_info = numeric(0), valor_fino = numeric(0), stringsAsFactors = FALSE)
   if (!length(refs)) return(list(medidas = vacio, motivos = list()))
   .regla_div_con_motor(sources, function() {
     # Invariante 5 (revisión de 095e70b66): una fila que no se puede dibujar sale con su causa; las demás siguen.
@@ -134,8 +134,12 @@
     avisos <- .escala_arm_avisos_exclusion(a$declaradas, attr(esp, "opciones_leyenda", exact = TRUE))   # C2
     if (!length(validas) || is.null(esp$categorias)) return(list(medidas = vacio, motivos = motivos, avisos = avisos, n_sin_inf = 0L))
     lado <- esp$categorias$lado; U <- esp$unidades; k <- 10^esp$decimales
+    # `valor_fino`: el Top Two Box sin redondear sobre todos los que responden («Sin información» incluido); desempata a
+    # las que la lámina rotula igual (P7: 57,4 y 58,1 se leen 58 y 58, y el recorte por espacio no es por el instrumento).
+    P <- esp$proporciones %||% (U / (100 * k))
     list(medidas = data.frame(ref = validas, valor = esp$total_pos / k,
-                              sin_info = rowSums(U[, lado == "sin_inf", drop = FALSE]) / k, stringsAsFactors = FALSE),
+                              sin_info = rowSums(U[, lado == "sin_inf", drop = FALSE]) / k,
+                              valor_fino = 100 * rowSums(P[, lado == "pos", drop = FALSE]), stringsAsFactors = FALSE),
          motivos = motivos, avisos = avisos, n_sin_inf = sum(lado == "sin_inf"),
          sin_inf_por_ref = .regla_div_sin_inf_por_ref(esp, validas))
   })

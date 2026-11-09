@@ -246,11 +246,14 @@
     if (k >= 2L) dif else primero(R)
   )
   names(metrica) <- temas
+  fina <- .regla_preguntas_metrica_fina(regla$tipo, ind, temas, grupos, V, S, completo, dec)   # P7: desempate
 
   idx <- which(en_universo)
   m <- metrica[idx]; o <- orden[idx]
-  desc <- function(ix) ix[order(-ifelse(is.finite(metrica[ix]), metrica[ix], -Inf), orden[ix])]
-  asc <- function(ix) ix[order(ifelse(is.finite(metrica[ix]), metrica[ix], Inf), orden[ix])]
+  # Dos cifras que la lámina rotula igual se desempatan por su valor sin redondear y, sólo si también empatan, por el
+  # orden del instrumento (P7, graficos_regla_desempate.R).
+  desc <- function(ix) ix[order(-ifelse(is.finite(metrica[ix]), metrica[ix], -Inf), -ifelse(is.finite(fina[ix]), fina[ix], -Inf), orden[ix])]
+  asc <- function(ix) ix[order(ifelse(is.finite(metrica[ix]), metrica[ix], Inf), ifelse(is.finite(fina[ix]), fina[ix], Inf), orden[ix])]
   altas_t <- character(0); bajas_t <- character(0)
   elegidos <- switch(regla$tipo,
     todas = idx[order(o)],
@@ -322,6 +325,8 @@
   if (isTRUE(ind$sin_equivalencia)) return(.regla_preguntas_sin_equivalencia(ind, regla))   # graficos_dumbbell_equivalencia.R
   ev <- .regla_preguntas_evaluar(ind$indicadores, regla, universo = ind$universo, grupos_unidad = ind$grupos_unidad,
                                  decimales = .regla_preguntas_decimales(el, preset))
+  # Lo que no cabe se recorta aquí, en el orden de la regla, y la nota lo dice en una frase (graficos_tope_espacio.R).
+  rc <- .regla_preguntas_recortar(ev, ind, el, regla, decimales = .regla_preguntas_decimales(el, preset)); ev <- rc$ev
   # La escala del resumen: `bajo_umbral` y `mayor_sin_info` fijan el orden de las filas (graficos_regla_orden_escala.R).
   criterio <- .regla_escala_orden_fijado(el, regla)
   if (!is.null(criterio)) ev <- .regla_escala_ordenar(ev, ind$indicadores, criterio)
@@ -332,9 +337,9 @@
   # Las columnas «Sin información» se cuentan sobre las ELEGIDAS: son las que dibuja la lámina (N4).
   n_sin_inf <- if (!is.null(ind$sin_inf_por_tema)) length(unique(unlist(ind$sin_inf_por_tema[ev$temas], use.names = FALSE))) else ind$n_sin_inf
   imagen <- if (identical(el$.element_type, "barras_divergentes")) .divergentes_aviso_tope(length(vars), ev$texto, n_sin_inf)
-  espacio <- if (identical(el$.element_type, "barras_divergentes")) .divergentes_aviso_espacio(length(vars), regla)   # E3
+  espacio <- rc$aviso   # E3, P7
   list(evaluacion = ev, vars = vars, avisos = c(ind$avisos, ev$avisos, espacio, imagen), indicadores = ind$indicadores,
-       firma_leyenda = ind$firma_leyenda, motivos_imagen = imagen)
+       firma_leyenda = ind$firma_leyenda, motivos_imagen = imagen, recorte = rc$recorte)
 }
 
 #' Los args del preset del tipo con que el render dibuja el elemento
@@ -368,6 +373,7 @@
   # Públicos sin equivalencia declarada: el render dibuja la lámina que lo dice (graficos_panorama_equivalencia.R).
   if (!is.null(r$sin_equivalencia)) return(list(el = el, texto = r$evaluacion$texto, sin_equivalencia = r$sin_equivalencia))
   if (!length(r$vars)) stop("La regla de preguntas no deja ninguna pregunta: ", r$evaluacion$texto, call. = FALSE)
+  if (!is.null(r$recorte)) .pulso_aviso(.aviso_en_lamina(.tope_espacio_aviso(r$recorte[["k"]], r$recorte[["n"]])))   # E3, P7
   el$vars <- r$vars
   if (identical(el$.element_type, "barras_divergentes")) {
     el$var <- if (length(r$vars) == 1L) r$vars else NULL

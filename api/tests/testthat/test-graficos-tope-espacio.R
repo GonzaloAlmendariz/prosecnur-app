@@ -24,14 +24,14 @@ test_that("la escala del resumen recorta en el orden de la regla y nombra el cri
   v <- paste0("b$p", 1:22)
   r <- suppressMessages(.divergentes_tope_espacio(v, list(tipo = "bajo_umbral", umbral = 60)))
   expect_identical(r$vars, v[1:20])
-  expect_identical(r$texto, "Por espacio, se muestran las 20 más bajas de 22; el resto en otra lámina.")
-  expect_match(suppressMessages(.divergentes_tope_espacio(v, list(tipo = "mayor_sin_info", n = 22)))$texto, "20 con más Sin información de 22")
+  expect_identical(r$texto, "Se muestran las 20 más bajas de las 22 bajo 60%; el resto en otra lámina.")   # P7: una frase
+  expect_match(suppressMessages(.divergentes_tope_espacio(v, list(tipo = "mayor_sin_info", n = 22)))$texto, "20 con más Sin información de las 22 elegidas")
   expect_match(suppressMessages(.divergentes_tope_espacio(v, NULL))$texto, "las primeras 20 de 22")
   expect_null(.divergentes_tope_espacio(v[1:20], NULL)$texto)
   # Más filas que el tope ya no es causa de imagen; dos columnas «Sin información» sí.
   expect_null(.divergentes_aviso_tope(22, "Se muestran las 22 bajo 60%, de 157 preguntas de escala."))
   expect_match(.divergentes_aviso_tope(5, NULL, 2L), "sale como imagen")
-  expect_match(.divergentes_aviso_espacio(22, list(tipo = "bajo_umbral", umbral = 60)), "admite 20: por espacio se muestran las 20 más bajas de 22")
+  expect_match(.divergentes_aviso_espacio(22, list(tipo = "bajo_umbral", umbral = 60)), "admite 20: se muestran las 20 más bajas de las 22 bajo 60%")
 })
 
 test_that("en el render el contraste de muchos pares sale nativo con el recorte al pie, sin imagen", {

@@ -317,6 +317,7 @@
     tema <- original[i]
     filas[[length(filas) + 1L]] <- data.frame(tema = tema, etiqueta = unname(etq_publico[refs[i]]),
                                               grupo = ctx$source, valor = med$medidas$valor[j], sin_info = med$medidas$sin_info[j],
+                                              valor_fino = med$medidas$valor_fino[j] %||% NA_real_,
                                               n = .dumbbell_casos(datos[[ctx$resolved_variable]], .radar_mb_pesos(datos)), orden = i,
                                               stringsAsFactors = FALSE)
     refs_tema[[tema]] <- tema

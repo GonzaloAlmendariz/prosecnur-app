@@ -260,7 +260,7 @@ test_that("más de 20 filas: el conteo y el render avisan que la lámina admite 
   # E3: más filas que el tope ya no manda la escala a la imagen (salía ilegible).
   expect_null(.divergentes_aviso_tope(22, "Se muestran las 22 bajo 60%, de 157 preguntas de escala. Ordenado por Top Two Box, de menor a mayor."))
   expect_null(.divergentes_aviso_tope(20, "Se muestran las 20 bajo 60%, de 157 preguntas de escala."))
-  aviso <- "La regla elige 22 preguntas y la lámina admite 20: por espacio se muestran las 20 más bajas de 22; el resto en otra lámina."
+  aviso <- "La regla elige 22 preguntas y la lámina admite 20: se muestran las 20 más bajas de las 22 bajo 60%; el resto en otra lámina."
   expect_identical(.divergentes_aviso_espacio(22, list(tipo = "bajo_umbral", umbral = 60)), aviso)
   src <- .ea_fuentes(list(lk = 22L), pos = rep(5L, 22L))
   el <- p_barras_divergentes(vars = "arte$*", estilo = "resumen", regla = list(tipo = "bajo_umbral", umbral = 60))

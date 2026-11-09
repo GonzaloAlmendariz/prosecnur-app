@@ -32,9 +32,8 @@
 .divergentes_aviso_espacio <- function(n, regla = NULL) {
   n <- as.integer(n)[1]
   if (is.na(n) || n <= .LAM_DIV_RESUMEN_MAX_FILAS) return(NULL)
-  tipo <- (.regla_preguntas_normalizar(regla) %||% list(tipo = NULL))$tipo
   sprintf("La regla elige %d preguntas y la lámina admite %d: %s", n, .LAM_DIV_RESUMEN_MAX_FILAS,
-          sub("^Por espacio, se", "por espacio se", .tope_espacio_texto(.LAM_DIV_RESUMEN_MAX_FILAS, n, .tope_espacio_criterio(tipo))))
+          sub("^Se muestran", "se muestran", .tope_espacio_frase(regla, .LAM_DIV_RESUMEN_MAX_FILAS, n)))
 }
 
 #' Tope de filas de la lámina nativa para un graficador con regla (el que publica `POST /api/graficos/resumenes/regla`)

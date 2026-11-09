@@ -152,9 +152,9 @@ test_that("el contraste de más de 14 pares muestra los 14 de mayor diferencia y
   # La base por grupo va al pie de la lámina (note_outside), no dentro del dibujo; luego quién menos quién (D6, como la
   # nativa) y la regla al final.
   expect_null(p$labels$caption)
+  # P7: con regla, el recorte reescribe su nota en una sola frase.
   expect_match(attr(p, "note_outside"),
-               "^Base: Docentes 115; Estudiantes 279\\. Diferencia: Docentes menos Estudiantes, en puntos\\. Se muestran las 18 de mayor diferencia")
-  expect_match(attr(p, "note_outside"), "Por espacio, se muestran las 14 de mayor diferencia de 18; el resto en otra lámina.", fixed = TRUE)
+               "^Base: Docentes 115; Estudiantes 279\\. Diferencia: Docentes menos Estudiantes, en puntos\\. Se muestran las 14 de mayor diferencia de las 18 elegidas; el resto en otra lámina\\.$")
 })
 
 test_that("con el respaldo, la lámina lleva una sola base: la de cada grupo, abajo a la izquierda (U3)", {
