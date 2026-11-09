@@ -79,6 +79,16 @@
   color: var(--pulso-danger-fg);
 }
 
+/* Pulsado (W3): un interruptor (`aria-pressed="true"`) o el disparador de un popover abierto (`aria-expanded` con
+ * `aria-haspopup`) lleva el mismo lenguaje de pulsado que el secundario: tinte del módulo y su borde. Un disclosure
+ * que sólo despliega (aria-expanded sin aria-haspopup) no se tiñe. */
+.pulso-button.pulso-button--icon.pulso-button--quiet:is([aria-pressed="true"], [aria-expanded="true"][aria-haspopup]),
+.pulso-button.pulso-button--icon.pulso-button--quiet:is([aria-pressed="true"], [aria-expanded="true"][aria-haspopup]):hover:not(:disabled) {
+  border-color: var(--module-accent-border, var(--pulso-primary-border));
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+  color: var(--pulso-button-accent-strong);
+}
+
 .pulso-button.pulso-button--icon.pulso-button--quiet:focus-visible {
   outline: var(--mov-foco);
   outline-offset: 1px;

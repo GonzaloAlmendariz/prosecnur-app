@@ -124,4 +124,15 @@ describe("PulsoButton tone=quiet", () => {
       "features/hojasRuta/mapa/manzanas/MarcoElegiblePanel.tsx:2",
     ]);
   });
+
+  it("W3: pulsado (aria-pressed o popover abierto) = tinte del módulo con su borde; un disclosure no se tiñe", () => {
+    const sel = `${SEL}:is([aria-pressed="true"], [aria-expanded="true"][aria-haspopup])`;
+    const i = hoja.indexOf(sel);
+    expect(i, sel).toBeGreaterThanOrEqual(0);
+    const pulsado = hoja.slice(i, hoja.indexOf("}", i));
+    expect(pulsado).toContain("border-color: var(--module-accent-border, var(--pulso-primary-border));");
+    expect(pulsado).toContain("background: var(--module-accent-soft, var(--pulso-primary-soft));");
+    expect(hoja).not.toMatch(/\[aria-expanded="true"\]\)/);
+  });
 });
+
