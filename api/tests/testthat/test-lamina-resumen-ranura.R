@@ -162,3 +162,12 @@ test_that("ronda 2, ítem 2: antes de cortar se muestran menos filas, y la lámi
   rot <- gsub("</?a:t>", "", unlist(regmatches(xml, gregexpr('name="puntos:rotulo".*?</p:sp>', xml))))
   expect_true(grepl("Por espacio", t, fixed = TRUE) || any(grepl("…", t, fixed = TRUE)))
 })
+
+test_that("ronda 2, ítem 3: en la escala de una ranura, la cifra de un segmento interior que no cabe no se escribe", {
+  xml <- .rr_render(.rr_slides(4L, .rr_graficos()$sin_informacion))
+  expect_false(grepl('name="divergentes:cifra_chica"', xml, fixed = TRUE))
+  # Cada cifra escrita dentro cabe en su segmento con la regla de la casa (tinta + 0.12 in).
+  sps <- regmatches(xml, gregexpr("<p:sp>.*?</p:sp>", xml))[[1]]
+  seg <- Filter(function(x) grepl('name="divergentes:segmento"', x, fixed = TRUE), sps)
+  expect_gt(length(seg), 0L)
+})
