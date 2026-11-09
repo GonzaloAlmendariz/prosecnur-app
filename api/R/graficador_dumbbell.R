@@ -173,6 +173,10 @@ graficar_dumbbell <- function(
   dec_b <- suppressWarnings(as.integer(valores_decimales)[1]); if (!is.finite(dec_b) || dec_b < 0) dec_b <- 0L
   res$.brecha <- .pulso_round_half_up(res$.a, dec_b) - .pulso_round_half_up(res$.b, dec_b)
 
+  # Separadores (P2): cuentan filas en el orden declarado y lo fijan, como en el contraste (graficos_espec_contraste.R).
+  sep <- suppressWarnings(as.integer(unlist(separar_tras)))
+  sep <- sort(unique(sep[is.finite(sep) & sep >= 1L & sep < length(ejes)]))
+  if (length(sep)) orden <- "declarado"
   # ggplot pinta el primer nivel abajo: orden ascendente deja arriba la brecha mayor con su signo (como las pesas).
   orden_ejes <- switch(
     orden,
@@ -225,6 +229,13 @@ graficar_dumbbell <- function(
       ggplot2::aes(x = .data$.valor, y = .data$.eje, fill = .data$.grupo),
       size = size_punto * 0.86, shape = 21, colour = "#FFFFFF", stroke = 0.9, show.legend = FALSE
     )
+
+  # La línea punteada en el tono tenue entre dos bloques de preguntas, como el separador del contraste nativo
+  # (lamina_contraste.R). Con orden declarado la fila `s` (desde arriba) está en `n - s + 1`.
+  if (length(sep)) {
+    p <- p + ggplot2::annotate("segment", x = -Inf, xend = Inf, y = length(ejes) - sep + 0.5, yend = length(ejes) - sep + 0.5,
+                               colour = .std_color("texto_tenue"), linewidth = 0.42, linetype = "dashed")
+  }
 
   if (isTRUE(mostrar_valores)) {
     dec <- suppressWarnings(as.integer(valores_decimales)[1])
@@ -310,7 +321,7 @@ graficar_dumbbell <- function(
          # mismo público salía de otro color que en el PPT (Arte, competencias, 2026-10-28).
          grupos = niveles_grupo, colores = stats::setNames(unname(colores[niveles_grupo]), niveles_grupo), colores_cifra = colores_cifra,
          leyenda = unname(etiquetas_leyenda),
-         n_fila = unname(n_fila), eje = c(lo = lo, hi = hi, paso = paso), titulo_eje = titulo_eje)
+         n_fila = unname(n_fila), eje = c(lo = lo, hi = hi, paso = paso), titulo_eje = titulo_eje, separadores = sep)
   }, error = function(e) NULL)
 
   p <- p +

@@ -257,6 +257,8 @@
     .lam_txt(lz, paste0(format(v, trim = TRUE), "%"), px(v) - 0.35, yb - 0.3, 0.7, 0.24, 10, tenue, align = "center", nombre = "pesas:eje")
   }
   if (!is.null(espec$titulo_eje) && nzchar(espec$titulo_eje)) .lam_txt(lz, espec$titulo_eje, xl, yb - 0.58, 6, 0.26, 10, suave, bold = TRUE, nombre = "pesas:titulo_eje")
+  # Separadores entre bloques de preguntas: la línea punteada tenue del contraste (lamina_contraste.R), a lo ancho.
+  for (s in espec$separadores %||% integer(0)) .lam_linea(lz, ml, yb + s * fila, x_der, yb + s * fila, tenue, pt = 0.9, nombre = "pesas:separador", dash = "dash")
   if (con_dif && !is.null(espec$encabezado_diferencia) && nzchar(espec$encabezado_diferencia)) {
     # D6: quién menos quién va en el pie («Diferencia: A menos B, en puntos», `note_outside` del gráfico), no bajo el
     # encabezado; la columna lleva sólo «Diferencia» y la cifra en negrita.
