@@ -54,10 +54,12 @@ source("setup-load-all.R")
 .rr_render <- function(plan_slide, src = .rr_fuentes(), solo_lista = FALSE) {
   .heq_local_render(.heq_matriz_por_nombre(src))   # `bases` empareja con la matriz declarada (ADR 0138 §5)
   out <- tempfile(fileext = ".pptx")
-  r <- suppressWarnings(reporte_ppt_plan(data = src$data_sources, instrumento = src$inst_sources, plan = p_plan(slides = list(plan_slide)),
-                                         path_ppt = if (solo_lista) NULL else out, solo_lista = solo_lista, mensajes_progreso = FALSE))
+  avisos <- character(0)
+  r <- withCallingHandlers(suppressWarnings(reporte_ppt_plan(data = src$data_sources, instrumento = src$inst_sources, plan = p_plan(slides = list(plan_slide)),
+                                         path_ppt = if (solo_lista) NULL else out, solo_lista = solo_lista, mensajes_progreso = FALSE)),
+                           message = function(m) { avisos <<- c(avisos, conditionMessage(m)); invokeRestart("muffleMessage") })
   if (solo_lista) return(r)
-  list(path = out, xml = .pptx_leer_parte(out, .pptx_slide_paths(out)[1]))
+  list(path = out, xml = .pptx_leer_parte(out, .pptx_slide_paths(out)[1]), avisos = avisos)
 }
 .rr_textos <- function(xml, nombre) {
   doc <- xml2::read_xml(xml)
@@ -170,14 +172,18 @@ test_that("con el respaldo, la lámina lleva una sola base: la de cada grupo, ab
   expect_false(.plan_base_escrita_por_grupo(p_panorama(vars = list("docentes$*"), corte = c("3", "4"))))
 })
 
-test_that("fortalezas con rótulos largos salen nativas: hasta tres líneas, «…» si no caben, y una sola base", {
+test_that("fortalezas con rótulos largos salen nativas: enteros en hasta cuatro líneas, sin «…», y una sola base", {
   skip_if_not_installed("officer")
   f <- p_fortalezas(vars = list("docentes$*"), corte = c("3", "4"), regla = list(tipo = "extremos", n = 5))
   r <- .rr_render(p_slide_1_grafico(f, titulo = "Fortalezas"))
   expect_identical(.pptx_lamina_estado(r$xml), "nativa")
   rot <- .rr_textos(r$xml, "fortalezas:rotulo")
   expect_length(rot, 10L)
-  expect_true(all(vapply(rot, function(t) length(.lam_tyc_envolver(t, (3.7 - 0.22) * 0.95, 12)) <= 3L, TRUE)))
+  sp <- xml2::xml_find_all(xml2::read_xml(r$xml), "//p:sp[p:nvSpPr/p:cNvPr[@name='fortalezas:rotulo']]")
+  w <- as.numeric(xml2::xml_attr(xml2::xml_find_first(sp, ".//a:ext"), "cx")) / 914400
+  sz <- as.numeric(xml2::xml_attr(xml2::xml_find_first(sp, ".//a:rPr"), "sz")) / 100
+  expect_true(all(mapply(function(t, w, s) .lam_rotulo_lineas(t, w, s) <= 4L, rot, w, sz)))
+  expect_false(any(grepl("…", rot, fixed = TRUE)))
   bases <- regmatches(r$xml, gregexpr("Base:[^<]*", r$xml))[[1]]
   expect_length(bases, 1L); expect_match(bases, "^Base: Docentes 115")
 })
@@ -250,8 +256,9 @@ test_that("P11: la escala de 18 filas con rótulos reales de Arte usa el ancho y
   k <- length(ge$filas)
   if (k < 18L) {
     expect_true(all(e$total_pos[ge$filas] <= min(e$total_pos[-ge$filas])))
-    pie <- paste(.rr_textos(r$xml, "Base lamina"), collapse = " ")
-    expect_match(pie, sprintf("Se muestran las %d más bajas de 18 preguntas de escala; las %d siguientes no caben en esta lámina.", k, 18L - k), fixed = TRUE)
+    # La frase va al analista (lamina_pie_resumen.R); al pie, sólo la base.
+    expect_true(any(grepl(sprintf("Se muestran las %d más bajas de 18 preguntas de escala; las %d siguientes no caben en esta lámina.", k, 18L - k),
+                          r$avisos, fixed = TRUE)))
   }
 })
 
@@ -266,7 +273,7 @@ test_that("D2: el tope de la escala del resumen es 20 filas; por encima muestra 
   # Con pocas filas y rótulos cortos la geometría es la de siempre: 12 pt, filas de 0.52 in.
   corto <- e20; corto$filas <- paste("Pregunta", 1:6); corto$unidades <- e20$unidades[1:6, , drop = FALSE]; corto$cifras <- e20$cifras[1:6, , drop = FALSE]
   gc <- .lam_div_resumen_geom(corto)
-  expect_identical(gc$size, 12); expect_equal(gc$alturas, rep(0.52, 6)); expect_identical(gc$recortados, 0L)
+  expect_identical(gc$size, 12); expect_equal(unname(gc$alturas), rep(0.52, 6)); expect_identical(gc$recortados, 0L)
 })
 
 test_that("D3: en estilo resumen la columna y la leyenda del no sustantivo dicen «Sin información»; el recetario no cambia", {

@@ -49,9 +49,11 @@ source("setup-load-all.R")
   .heq_local_render(.heq_matriz_por_nombre(src))   # el contraste empareja con la matriz declarada (ADR 0138 §5)
   plan <- .normalize_plan(list(slides = list(slide_raw)), avisar = FALSE)
   out <- withr::local_tempfile(fileext = ".pptx", .local_envir = parent.frame())
-  suppressWarnings(reporte_ppt_plan(data = src$data_sources, instrumento = src$inst_sources,
-                                    plan = p_plan(slides = list(.rebuild_slide(plan$slides[[1]]))), path_ppt = out, mensajes_progreso = FALSE))
-  .pptx_leer_parte(out, .pptx_slide_paths(out)[1])
+  avisos <- character(0)
+  withCallingHandlers(suppressWarnings(reporte_ppt_plan(data = src$data_sources, instrumento = src$inst_sources,
+                                                        plan = p_plan(slides = list(.rebuild_slide(plan$slides[[1]]))), path_ppt = out, mensajes_progreso = FALSE)),
+                      message = function(m) { avisos <<- c(avisos, conditionMessage(m)); invokeRestart("muffleMessage") })
+  structure(.pptx_leer_parte(out, .pptx_slide_paths(out)[1]), avisos = avisos)
 }
 
 test_that("los seis gráficos de resumen salen nativos en las láminas de dos y de cuatro gráficos, dentro de la lámina", {
@@ -68,21 +70,25 @@ test_that("los seis gráficos de resumen salen nativos en las láminas de dos y 
   }
 })
 
-test_that("cada gráfico dibuja sus piezas y su nota va al pie de la lámina compuesta", {
+test_that("cada gráfico dibuja sus piezas; su nota va al analista y al pie, sólo la base (Gonzalo, 2026-11-09)", {
   pie <- function(xml) paste(gsub("</?a:t>", "", regmatches(xml, gregexpr("<a:t>[^<]*</a:t>", xml))[[1]]), collapse = " ")
+  av <- function(xml) paste(attr(xml, "avisos"), collapse = "\n")
   x <- .rr_render(.rr_slides(4L, .rr_graficos()$panorama))
   expect_true(grepl("Mediana del público", pie(x), fixed = TRUE))
-  expect_true(grepl("Cada marca es una pregunta (Top Two Box)", pie(x), fixed = TRUE))
+  expect_true(grepl("Cada marca es una pregunta (Top Two Box)", av(x), fixed = TRUE))
+  expect_false(grepl("Cada marca es una pregunta", pie(x), fixed = TRUE))
   x <- .rr_render(.rr_slides(2L, .rr_graficos()$contraste))
   expect_true(grepl("Diferencia", pie(x), fixed = TRUE))
-  expect_true(grepl("Docentes menos Estudiantes", pie(x), fixed = TRUE))   # D6
+  expect_true(grepl("Docentes menos Estudiantes", av(x), fixed = TRUE))   # D6, al analista
   # P7: la ranura deja las 2 de mayor diferencia y la nota de la regla lo dice en UNA frase, no «Se muestran las 3» y
   # luego «muestra las 2 primeras de 3».
   frase <- "Se muestran las 2 de mayor diferencia de las 3 elegidas, de 4 preguntas comunes; la siguiente no cabe en esta lámina."
-  expect_true(grepl(frase, pie(x), fixed = TRUE))
-  expect_false(grepl("Por espacio", pie(x), fixed = TRUE))
-  # Dos ranuras con el mismo gráfico: la regla va una sola vez en el pie.
-  expect_identical(lengths(regmatches(pie(x), gregexpr("Se muestran las", pie(x), fixed = TRUE))), 1L)
+  # Con la columna a la medida de sus rótulos (S5) las tres pueden caber: entonces la frase es la de la regla, sin recorte.
+  expect_true(grepl(frase, av(x), fixed = TRUE) || grepl("Se muestran las 3 de mayor diferencia", av(x), fixed = TRUE))
+  expect_false(grepl("Por espacio", av(x), fixed = TRUE))
+  expect_false(grepl("Se muestran", pie(x), fixed = TRUE))
+  # Dos ranuras con el mismo gráfico: la regla se avisa una sola vez.
+  expect_identical(lengths(regmatches(av(x), gregexpr("Se muestran las", av(x), fixed = TRUE))), 1L)
   x <- .rr_render(.rr_slides(4L, .rr_graficos()$sin_informacion))
   expect_true(grepl("Sin información", pie(x), fixed = TRUE))
   expect_true(grepl('name="divergentes:centro"', x, fixed = TRUE))
@@ -100,12 +106,14 @@ test_that("un gráfico de varios públicos no tiene un n: cada público conserva
   expect_identical(.lam_rr_tipo(list(tipo = "divergentes", estilo = "resumen")), "divergentes_resumen")
 })
 
-test_that("la columna de rótulos crece con su tinta y recorta con «…» sólo cuando no cabe", {
+test_that("la columna de rótulos mide sus rótulos y nunca recorta: si no caben enteros, van menos filas (S4)", {
   corto <- .lam_rr_filas(c("Salud", "Tutoría"), 1.2, 2.4, 2, c(1, 1), 0.22, 0.45)
   expect_false(corto$recortados > 0L); expect_equal(corto$wq, 1.2)
   largo <- strrep("palabra larga ", 30)
-  r <- .lam_rr_filas(rep(largo, 4), 1.2, 2.4, 1.0, rep(1, 4), 0.22, 0.45)
-  expect_true(r$recortados > 0L); expect_equal(r$size, .LAM_ROTULO_PT_PISO)
+  r <- .lam_rr_filas(rep(largo, 4), 1.2, 2.4, 1.0, rep(1, 4), 0.22, 0.45, n_min = 1L)
+  expect_null(r)                                   # ni una fila de ese largo cabe en 1 in: no se corta, no cabe
+  r <- .lam_rr_filas(c("Salud", rep(largo, 3)), 1.2, 2.4, 1.0, rep(1, 4), 0.22, 0.45, n_min = 1L)
+  expect_identical(r$k, 1L); expect_identical(r$recortados, 0L)
   expect_lte(sum(r$alturas), 1.0 + 1e-9)
   expect_null(.lam_rr_filas(rep(largo, 40), 1.2, 2.4, 0.5, rep(1, 40), 0.22, 0.45))
 })
@@ -117,16 +125,21 @@ test_that("el eje de una ranura angosta rotula una guía de cada dos", {
   expect_identical(.lam_rr_eje_cada(px2, c(lo = 30, hi = 100, paso = 10)), 1L)
 })
 
-test_that("ronda 2, ítem 1: con públicos distintos cada nota va con su etiqueta y lo que la base dice sale sólo si es la misma frase", {
+test_that("ronda 2, ítem 1: con públicos distintos cada base va con su etiqueta; las demás notas van al analista con la suya", {
   e1 <- list(tipo = "fortalezas", publico = "Docentes", nota_base = "Base: Docentes 93 a 115", texto_regla = "Se muestran las 4 más altas",
              indicador = "Top Two Box", columnas = list())
   e2 <- utils::modifyList(e1, list(publico = "Estudiantes", nota_base = "Base: Estudiantes 242 a 279"))
+  .LAM_RR_PIE$pendientes <- NULL
   p <- .lam_rr_pie(NULL, list(e1, e2))
-  expect_identical(p, "Docentes: base 93 a 115. Estudiantes: base 242 a 279. Se muestran las 4 más altas. Barras: Top Two Box de cada pregunta.")
+  expect_identical(p, "Docentes: base 93 a 115. Estudiantes: base 242 a 279.")
   e3 <- utils::modifyList(e2, list(texto_regla = "Se muestran las 2 más altas"))
-  expect_match(.lam_rr_pie(NULL, list(e1, e3)), "Docentes: base 93 a 115; se muestran las 4 más altas. Estudiantes: base 242 a 279; se muestran las 2 más altas", fixed = TRUE)
+  .LAM_RR_PIE$pendientes <- NULL
+  expect_identical(.lam_rr_pie(NULL, list(e1, e3)), "Docentes: base 93 a 115. Estudiantes: base 242 a 279.")
+  expect_true(all(c("Docentes: Se muestran las 4 más altas", "Estudiantes: Se muestran las 2 más altas") %in% .LAM_RR_PIE$pendientes))
+  expect_message(.lam_rr_pie_menos_filas("Base"), "Estudiantes: Se muestran las 2 más altas", fixed = TRUE)
   # El mismo público en dos ranuras: sin etiqueta y una sola vez.
-  expect_identical(.lam_rr_pie(NULL, list(e1, e1)), "Base: Docentes 93 a 115. Se muestran las 4 más altas. Barras: Top Two Box de cada pregunta.")
+  expect_identical(.lam_rr_pie(NULL, list(e1, e1)), "Base: Docentes 93 a 115.")
+  .LAM_RR_PIE$pendientes <- NULL
   # Exacta: la base repetida como frase sale; una base que sólo la contiene no se come la nota.
   expect_identical(lengths(regmatches(.lam_rr_pie("Base: Docentes 93 a 115.", list(e1)), gregexpr("93 a 115", .lam_rr_pie("Base: Docentes 93 a 115.", list(e1))))), 1L)
   expect_match(.lam_rr_pie("Base: Docentes 93 a 115 respuestas", list(e1)), "respuestas. Base: Docentes 93 a 115.", fixed = TRUE)
@@ -136,10 +149,12 @@ test_that("ronda 2, ítem 1: en el render, dos fortalezas de públicos distintos
   g <- function(b, n) list(graficador = "p_fortalezas", args = list(vars = list(paste0(b, "$*")), corte = list("3", "4"), n = n))
   xml <- .rr_render(list(id = "s2", tipo = "p_slide_2_graficos", payload = list(titulo = "Dos públicos", izquierda = g("docentes", 2), derecha = g("estudiantes", 1))))
   t <- paste(gsub("</?a:t>", "", regmatches(xml, gregexpr("<a:t>[^<]*</a:t>", xml))[[1]]), collapse = " ")
-  # La base de la lámina ya es la unión de las de cada público; la regla de cada una va con su etiqueta y lo común, una vez.
-  expect_match(t, "Base: Docentes 40 y Estudiantes 40. Docentes: se muestran las 2 más altas", fixed = TRUE)
-  expect_match(t, "Estudiantes: se muestran la más alta", fixed = FALSE)
-  expect_identical(lengths(regmatches(t, gregexpr("Barras: Top Two Box", t, fixed = TRUE))), 1L)
+  # Al pie, la base de la lámina (la unión de las de cada público); la regla de cada una va al analista con su etiqueta.
+  expect_match(t, "Base: Docentes 40 y Estudiantes 40", fixed = TRUE)
+  expect_false(grepl("se muestran", t, ignore.case = TRUE))
+  av <- paste(attr(xml, "avisos"), collapse = "\n")
+  expect_match(av, "Docentes: Se muestran las 2 más altas", fixed = TRUE)
+  expect_match(av, "Estudiantes: Se muestran la más alta", fixed = TRUE)
 })
 
 test_that("ronda 2, ítem 2: el corte conserva el final y dos rótulos del mismo gráfico no quedan iguales", {
@@ -162,17 +177,16 @@ test_that("ronda 2, ítem 2: antes de cortar se muestran menos filas, y la lámi
   # Cuatro enunciados de dos líneas en un alto que sólo admite dos enteros: van dos, sin cortes.
   f <- .lam_rr_filas(vapply(1:4, medio, ""), 1.2, 2.4, 1.0, rep(1, 4), 0.22, 0.45)
   expect_identical(f$k, 2L); expect_identical(f$recortados, 0L)
-  # Si ni la mitad cabe entera (enunciados de cuatro líneas), van todas con el corte al medio.
+  # S4: si ni la mitad cabe entera, no se corta: la ranura no cabe (o van menos filas), nunca «…».
   g <- .lam_rr_filas(vapply(1:4, largo, ""), 1.2, 2.4, 0.95, rep(1, 4), 0.22, 0.45)
-  expect_identical(g$k, 4L); expect_gt(g$recortados, 0L)
-  expect_identical(length(unique(g$textos)), 4L)
+  expect_true(is.null(g) || (g$k < 4L && identical(g$recortados, 0L)))
   # En el render: la ranura de 4 con enunciados largos o dice «Por espacio…» en el pie o no corta.
   inst <- .rr_inst(); inst$survey$label[1:4] <- vapply(1:4, largo, "")
   src <- .rr_fuentes(); src$inst_sources$docentes <- inst; src$inst_sources$estudiantes <- inst
   xml <- .rr_render(.rr_slides(4L, .rr_graficos()$contraste), src)
   t <- paste(gsub("</?a:t>", "", regmatches(xml, gregexpr("<a:t>[^<]*</a:t>", xml))[[1]]), collapse = " ")
   rot <- gsub("</?a:t>", "", unlist(regmatches(xml, gregexpr('name="puntos:rotulo".*?</p:sp>', xml))))
-  expect_true(grepl("Por espacio", t, fixed = TRUE) || any(grepl("…", t, fixed = TRUE)))
+  expect_false(any(grepl("…", rot, fixed = TRUE)))
 })
 
 test_that("ronda 2, ítem 3: en la escala de una ranura, la cifra de un segmento interior que no cabe no se escribe", {

@@ -74,6 +74,8 @@ test_that("H5: la escala del resumen en una ranura respeta continuar_desde (no l
   # Las mismas, en el mismo orden, sin las dos primeras (el sufijo del público sólo va cuando la lámina mezcla públicos).
   sin_sufijo <- function(x) sub(" \\([^()]+\\)$", "", x)
   expect_identical(sin_sufijo(con$filas), sin_sufijo(sin$filas[3:6]))
-  expect_match(con$pie, "de la 3 a la 6 de las 6", fixed = TRUE)
+  # La frase va al analista, no al pie (lamina_pie_resumen.R).
+  expect_true(any(grepl("de la 3 a la 6 de las 6", con$avisos, fixed = TRUE)))
+  expect_false(grepl("de la 3 a la 6", con$pie, fixed = TRUE))
   expect_false(any(grepl("no admite `continuar_desde`", con$avisos, fixed = TRUE)))
 })

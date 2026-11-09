@@ -93,11 +93,10 @@
 
 #' Geometría del contraste con sus rótulos: letra, ancho de la columna, alto de cada fila y rótulos recortados
 #'
-#' ADR 0135, oleada 5 (Arte, 13 pares con el enunciado entero por rótulo): un rótulo va en hasta tres líneas y su fila
-#' crece lo que el rótulo pide; el resto del alto se reparte por igual. Se prueba primero la letra de la lámina
-#' (11.5 pt) y luego 11 y 10.5 pt, y con cada letra la columna de rótulos se ensancha de a 0.1 in hasta dejar 3.5 in de
-#' área de puntos. Gana la primera combinación en que todo cabe sin recortar; si ninguna, la columna más ancha a
-#' 10.5 pt con los rótulos de más de tres líneas recortados con «…». Si ni así caben las filas, la lámina no cabe.
+#' ADR 0135, oleada 5 y S4/S5 (Arte, 2026-11-09): un rótulo va entero en hasta cuatro líneas (nunca «…») y su fila
+#' crece lo que el rótulo pide; el resto del alto se reparte por igual. La columna mide lo que piden los rótulos con la
+#' tinta real, de la letra de la lámina (11.5 pt) al piso de 10.5 pt, y el área de puntos toma el resto, nunca menos de
+#' 3.5 in (`.lam_rotulos_columna`). Si las filas no caben, la lámina no cabe.
 #' @return Lista con `cabe` y, si cabe, `size`, `m` (marco de `.lam_puntos_marco`), `alturas`, `u`, `pasos`, `textos`,
 #'   `recortados`, `anchos`, `cab`, `zona0` y `zona1`.
 #' @param titulo,sub Los de la lámina: el bloque arranca bajo ellos (P13). Sin título (la consulta de si cabe, que no lo
@@ -118,39 +117,36 @@
   u_min <- if (par) 0.22 else 0.14; u_max <- if (par) 0.5 else 0.28
   base_m <- .lam_puntos_marco(espec$rotulos, anchos, size_rot = 11.5, tope_rot = 3.8)
   w_max <- (base_m$xt - 0.5) - 3.5 - 0.25 - base_m$ml
-  prueba <- function(size, w, recortar) {
-    rr <- lapply(espec$rotulos, function(t) .lam_rotulo_recortar(t, w, size, 3L))
-    if (!recortar && any(vapply(rr, `[[`, TRUE, "recortado"))) return(NULL)
+  alto <- function(nl, size) {
     lh <- size * 1.2 / 72
-    texto_h <- vapply(rr, function(r) length(r$lineas), 0L) * lh
+    texto_h <- nl * lh
     # P15: cada pregunta mide su contenido (su rótulo o sus sub-filas, lo mayor) más un hueco común: el mismo hueco entre
     # todas, no el mismo paso (lamina_filas_hueco.R). Con grupos, la sub-fila toma el paso más grande que deja caber.
+    # S7 (Arte, lámina 9: «al ser tres y tantas premisas no queda claro cuál es cuál»): con grupos, el hueco entre
+    # preguntas es al menos un paso de sub-fila, así que de la última sub-fila de una pregunta a la primera de la
+    # siguiente hay al menos dos pasos (lamina_contraste_grupos.R).
     hu <- NULL; u <- if (par) u_min else u_max
     for (u_try in if (par) u_min else seq(u_max, u_min, by = -0.01)) {
       contenido <- pmax(texto_h, if (par) 0.17 else k * u_try)
-      hu <- .lam_filas_hueco_uniforme(contenido, disponible, hueco_min = 0.05, hueco_max = if (par) u_max - lh else 0.7 * u_try + 0.1)
-      if (!is.null(hu)) { u <- u_try; break }
+      # S6: en una serie se reparte el alto como si la lámina llevara las preguntas de la más larga (lamina_contraste_grupos.R).
+      relleno <- .lam_contraste_serie_contenido(espec, contenido, if (par) max(0.17, lh) else k * u_try)
+      hu <- .lam_filas_hueco_uniforme(relleno, disponible, hueco_min = if (par) 0.05 else u_try,
+                                      hueco_max = if (par) u_max - lh else max(u_try, 0.7 * u_try + 0.1))
+      if (!is.null(hu)) { u <- u_try; hu$alturas <- hu$alturas[seq_along(contenido)]; break }
     }
     if (is.null(hu)) return(NULL)
-    list(size = size, w = w, u = if (par) min(hu$alturas) else u, alturas = hu$alturas, textos = vapply(rr, `[[`, "", "texto"),
-         recortados = sum(vapply(rr, `[[`, TRUE, "recortado")), contenido = contenido, hueco = hu$hueco)
+    list(u = if (par) min(hu$alturas) else u, alturas = hu$alturas, contenido = contenido, hueco = hu$hueco)
   }
-  elegido <- NULL
-  for (size in .lam_rotulo_pasos_pt(11.5)) {   # 11.5, 11 y el piso de 10.5 pt (lamina_rotulo_resumen.R)
-    w0 <- .lam_puntos_marco(espec$rotulos, anchos, size_rot = size, tope_rot = 3.8)$wrot
-    # H4 (regla de la casa, ancho dinámico del rótulo): la columna más ancha que deja el área de puntos en su mínimo, sin
-    # pasar de lo que piden los rótulos en una línea. Antes ganaba la más angosta que cabía y un rótulo que entraba en una
-    # línea se partía en dos (el tope de 3.8 in de `.lam_puntos_marco`).
-    w <- .lam_contraste_ancho_rotulos(espec$rotulos, size, w0, max(w0, w_max))
-    elegido <- prueba(size, w, FALSE)
-    if (!is.null(elegido)) break
-  }
-  if (is.null(elegido) && w_max >= 1.4) elegido <- prueba(.LAM_ROTULO_PT_PISO, w_max, TRUE)
+  # S4 y S5 (Gonzalo, 2026-11-09: «sobreestimas el tamaño de las etiquetas del eje»): la columna mide lo que piden los
+  # rótulos con la tinta real, enteros y sin «…»; el área de puntos se queda con el resto (lamina_rotulos_columna.R).
+  elegido <- .lam_rotulos_columna(espec$rotulos, NULL, w_min = 1.4, w_max = max(1.4, w_max), desde = 11.5, alto = alto, n_min = n,
+                                  serie = espec$serie$rotulos)
   if (is.null(elegido)) return(list(cabe = FALSE))
+  elegido$w <- elegido$wq
   m <- base_m
   m$wrot <- elegido$w; m$xl <- m$ml + m$wrot + 0.25
   c(list(cabe = (m$xr - m$xl) >= 3.5 - 1e-6, m = m, pasos = pasos, anchos = anchos, cab = cab, zona0 = zona0, zona1 = zona1),
-    elegido[c("size", "u", "alturas", "textos", "recortados", "contenido", "hueco")])
+    elegido[c("size", "u", "alturas", "textos", "recortados", "contenido", "hueco", "largos")])
 }
 
 #' Ancho de la columna de rótulos del contraste: el menor desde `w0` en que todos van en una línea, o `w_max`
@@ -192,13 +188,15 @@
   if (!isTRUE(ge$cabe)) ge <- .lam_contraste_geom(espec)   # un título de tres líneas: la zona de datos, como antes
   if (!isTRUE(ge$cabe)) stop("El contraste no cabe en una lámina.", call. = FALSE)
   anchos <- ge$anchos; con_base <- length(anchos) > 1L; m <- ge$m
-  eje <- espec$eje; px <- function(v) m$xl + (m$xr - m$xl) * (v - eje[["lo"]]) / (eje[["hi"]] - eje[["lo"]])
+  eje <- espec$serie$eje %||% espec$eje   # S6: el eje de la serie (lamina_contraste_grupos.R)
+  px <- function(v) m$xl + (m$xr - m$xl) * (v - eje[["lo"]]) / (eje[["hi"]] - eje[["lo"]])
   # Sin columnas de base la cabecera es una sola línea («Diferencia») y la leyenda baja hasta ella.
   cab <- ge$cab; zona0 <- ge$zona0; zona1 <- ge$zona1
   # Altura de cada pregunta: un paso por fila en pares, k sub-filas y un respiro entre preguntas con grupos, o lo que
   # pida su rótulo si es más.
   pasos <- ge$pasos; u <- ge$u; alturas <- ge$alturas
-  .lam_rotulos_aviso(ge$recortados)
+  .lam_rotulos_largos_aviso(ge$largos)   # S4: ningún rótulo se corta (lamina_rotulos_columna.R)
+  .lam_contraste_grupos_aviso(espec)      # S7: con tres o cuatro grupos y más de cinco preguntas (lamina_contraste_grupos.R)
   # P13: el bloque (leyenda, cabecera, filas y eje) arranca bajo el título y las filas bajan hacia el pie con el mismo
   # hueco entre ellas; ya no se centra en la zona de datos con aire encima.
   y_ley <- zona0; y0 <- y_ley + cab; y1 <- y0 + sum(alturas)
@@ -217,7 +215,8 @@
   seg <- .lam_aclarar(.std_color("tenue"), 0.4)
   for (i in seq_len(n)) {
     yc <- centros[i]
-    # El cuadro ocupa la fila y centra su texto: hasta tres líneas, la última con «…» si el rótulo no cabe.
+    # El cuadro ocupa la fila y centra su texto sobre el bloque de sus sub-filas: el rótulo entero (S4).
+    if (!par && i < n) .lam_contraste_separador(lz, m, y0 + sum(alturas[seq_len(i)]))   # S7 (lamina_contraste_grupos.R)
     .lam_txt(lz, ge$textos[i], m$ml, yc - alturas[i] / 2, m$wrot, alturas[i], ge$size, azul, align = "right", nombre = "puntos:rotulo",
              anclaje = "ctr")
     v <- espec$valores[i, ]
@@ -260,7 +259,8 @@
   # Quién menos quién va en el pie, junto a la base: la columna no tiene ancho para decirlo.
   sentido <- .contraste_sentido_nota(espec)
   # ADR 0135: con regla de preguntas, cómo se eligieron va al final de la nota («Se muestran las 13 de mayor diferencia…»).
-  doc <- .lam_pie(doc, .lam_unir_base(espec$nota_base, base, sentido, espec$nota_grupo_chico, espec$texto_regla), folio)
+  # Al pie, la base (y la de cada grupo); quién menos quién, el grupo chico y la regla, al analista (lamina_pie_resumen.R).
+  doc <- .lam_pie(doc, .lam_pie_resumen(base, sentido, espec$nota_grupo_chico, espec$texto_regla, en_pie = espec$nota_base), folio)
   list(doc = por_lamina(doc), partes = 1L)
 }
 
@@ -319,6 +319,6 @@
   }
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:panorama")
   nota <- sprintf("Cada marca es una pregunta (%s)", espec$indicador %||% "Top Two Box")
-  doc <- .lam_pie(doc, .lam_unir_base(base, nota, espec$texto_regla), folio)   # ADR 0135: la regla, al final
+  doc <- .lam_pie(doc, .lam_pie_resumen(base, nota, espec$texto_regla), folio)   # sólo la base al pie (lamina_pie_resumen.R)
   list(doc = por_lamina(doc), partes = 1L)
 }

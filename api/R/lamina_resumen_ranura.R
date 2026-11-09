@@ -76,52 +76,32 @@
   rr
 }
 
-#' Rótulos de fila en una columna que crece con su tinta: letra, ancho, paso común, alto de cada fila y cuántas filas van
+#' Rótulos de fila de una ranura: letra, ancho, paso común, alto de cada fila y cuántas filas van
 #'
-#' Ronda 2, ítem 2. En este orden: (1) el enunciado entero en hasta `max_lin` líneas, bajando la letra hasta el piso de
-#' 10.5 pt y ensanchando la columna; (2) menos filas —las primeras, que son las que eligió la regla en su orden—, hasta
-#' `n_min`, y la lámina lo dice al pie; (3) todas las filas con el rótulo cortado al medio, conservando el final.
+#' S4 y S5 (Arte, 2026-11-09): los rótulos van enteros (hasta cuatro líneas, nunca «…») en una columna a la medida de sus
+#' rótulos (`.lam_rotulos_columna`, lamina_rotulos_columna.R); si no caben, menos filas —las primeras, que son las que
+#' eligió la regla en su orden—, hasta `n_min`, y la lámina lo dice al pie.
 #' @param pasos Pasos por fila (1 en pares; k + 0.7 con k grupos). @param u_min,u_max Paso común admitido.
-#' @param n_min Filas que deben quedar como mínimo antes de cortar rótulos.
-#' @return Lista con `size`, `wq` (ancho de la columna), `u`, `alturas`, `textos`, `lineas`, `recortados`, `k` (filas que
-#'   van), o `NULL` si las filas no caben.
+#' @param n_min Filas que deben quedar como mínimo.
+#' @return Lista con `size`, `wq` (ancho de la columna), `u`, `alturas`, `textos`, `lineas`, `recortados = 0`, `largos`,
+#'   `k` (filas que van), o `NULL` si las filas no caben.
 #' @keywords internal
-.lam_rr_filas <- function(textos, w_min, w_max, disponible, pasos, u_min, u_max, desde = 11, max_lin = 3L,
+.lam_rr_filas <- function(textos, w_min, w_max, disponible, pasos, u_min, u_max, desde = 11, max_lin = .LAM_ROTULO_MAX_LIN,
                           n_min = max(2L, ceiling(length(textos) / 2))) {
   if (!length(textos) || w_max < w_min - 1e-9 || disponible <= 0) return(NULL)
-  prueba <- function(size, w, lineas, recortar, k = length(textos)) {
-    tx <- textos[seq_len(k)]; ps <- pasos[seq_len(k)]
-    rr <- if (recortar) .lam_rr_recortar_lote(tx, w, size, lineas) else lapply(tx, function(t) .lam_rotulo_recortar(t, w, size, lineas))
-    if (!recortar && any(vapply(rr, `[[`, TRUE, "recortado"))) return(NULL)
-    necesita <- vapply(rr, function(r) length(r$lineas), 0L) * .lam_rr_lh(size) + 0.05
-    alto <- function(u) sum(pmax(ps * u, necesita))
-    if (alto(u_min) > disponible + 1e-9) return(NULL)
+  alto <- function(nl, size) {
+    k <- length(nl); ps <- pasos[seq_len(k)]
+    necesita <- nl * .lam_rr_lh(size) + 0.05
+    a <- function(u) sum(pmax(ps * u, necesita))
+    if (a(u_min) > disponible + 1e-9) return(NULL)
     lo <- u_min; hi <- u_max
-    if (alto(hi) <= disponible) lo <- hi else for (it in 1:40) { mid <- (lo + hi) / 2; if (alto(mid) <= disponible) lo <- mid else hi <- mid }
-    list(size = size, wq = w, u = lo, alturas = pmax(ps * lo, necesita), textos = vapply(rr, `[[`, "", "texto"), lineas = lineas,
-         recortados = sum(vapply(rr, `[[`, TRUE, "recortado")), k = k)
+    if (a(hi) <= disponible) lo <- hi else for (it in 1:40) { mid <- (lo + hi) / 2; if (a(mid) <= disponible) lo <- mid else hi <- mid }
+    list(u = lo, alturas = pmax(ps * lo, necesita))
   }
-  enteros <- function(k) {
-    for (size in .lam_rotulo_pasos_pt(desde)) {
-      tinta <- max(vapply(textos[seq_len(k)], function(t) .lam_ancho_tinta(t, size, FALSE), 0))
-      w0 <- min(w_max, max(w_min, tinta + 0.25))
-      for (w in unique(c(seq(w0, w_max, by = 0.1), w_max))) {
-        e <- prueba(size, w, max_lin, FALSE, k)
-        if (!is.null(e)) return(e)
-      }
-    }
-    NULL
-  }
-  n <- length(textos)
-  for (k in unique(c(n, if (n > n_min) seq(n - 1L, n_min)))) {
-    e <- enteros(k)
-    if (!is.null(e)) return(e)
-  }
-  for (lineas in rev(seq_len(max_lin))) {
-    e <- prueba(.LAM_ROTULO_PT_PISO, w_max, lineas, TRUE)
-    if (!is.null(e)) return(e)
-  }
-  NULL
+  f <- .lam_rotulos_columna(textos, NULL, w_min = w_min, w_max = w_max, desde = desde, alto = alto, n_min = min(length(textos), n_min),
+                            max_lin = max_lin)
+  if (!is.null(f)) f$filas <- NULL   # van las `k` primeras: quien llama sabe cuáles son (lamina_resumen_ranura_prioridad.R)
+  f
 }
 
 #' Geometría de un gráfico de resumen dentro de una ranura
@@ -152,6 +132,7 @@
     cobertura = .lam_rr_cobertura(lz, espec, geo),
     divergentes_resumen = .lam_rr_divergentes(lz, espec, geo))
   if (isTRUE(geo$recortados > 0L)) .lam_rotulos_aviso(geo$recortados, geo$lineas %||% 3L)
+  if (length(geo$largos)) .lam_rotulos_largos_aviso(geo$largos)   # S4 (lamina_rotulos_columna.R)
   if (isTRUE(geo$k < geo$n_total)) .lam_rr_menos_filas(espec, geo)
   invisible(y %||% (geo$y + geo$h))
 }
@@ -175,11 +156,13 @@
 #' El pie de la lámina compuesta con las notas de filas de menos de sus ranuras (y las vacía para la siguiente lámina)
 #' @keywords internal
 .lam_rr_pie_menos_filas <- function(base) {
-  base <- .lam_rr_pie_reemplazar(base)   # la nota de la regla que el recorte de la ranura reemplaza (lamina_resumen_ranura_prioridad.R)
+  # Las notas de las ranuras van al analista (lamina_pie_resumen.R), con la frase de la regla ya reescrita por el recorte
+  # de la ranura (lamina_resumen_ranura_prioridad.R); al pie queda la base.
+  pendientes <- .LAM_RR_PIE$pendientes; .LAM_RR_PIE$pendientes <- NULL
+  pendientes <- .lam_rr_pie_reemplazar_en(pendientes)
   notas <- .LAM_RR_PIE$notas; .LAM_RR_PIE$notas <- NULL
-  if (!length(notas)) return(base)
-  b <- as.character(base %||% "")[1]; if (is.na(b)) b <- ""
-  .lam_con_punto(do.call(.lam_unir_base, as.list(c(if (nzchar(b)) b, notas))))
+  .lam_pie_resumen_avisar(c(pendientes, notas))
+  base
 }
 
 #' Una guía rotulada de cada cuántas, para que las cifras del eje no se toquen (0.45 in entre rótulos como mínimo)
@@ -200,6 +183,16 @@
 .lam_rr_pie <- function(base, especs) {
   conjuntos <- lapply(seq_along(especs), function(k) list(partes = .lam_rr_nota_partes(especs[[k]]), publico = .lam_rr_publico(especs[[k]]),
                                                          etiqueta = .lam_rr_etiqueta(especs[[k]], k)))
+  conjuntos <- Filter(function(cj) length(cj$partes) > 0L, conjuntos)
+  # Gonzalo, 2026-11-09 (lamina_pie_resumen.R): al pie, sólo las bases; lo demás de cada ranura va al analista, con la
+  # etiqueta de su gráfico si la lámina tiene más de uno. Se avisa al cerrar la lámina (`.lam_rr_pie_menos_filas`), ya
+  # con la frase de la regla reescrita si la ranura muestra menos filas.
+  varios <- length(unique(lapply(conjuntos, `[[`, "partes"))) > 1L
+  for (cj in conjuntos) {
+    otras <- cj$partes[!.lam_pie_es_base(cj$partes)]
+    if (length(otras)) .LAM_RR_PIE$pendientes <- c(.LAM_RR_PIE$pendientes, if (varios) paste0(cj$etiqueta, ": ", otras) else otras)
+  }
+  conjuntos <- lapply(conjuntos, function(cj) { cj$partes <- cj$partes[.lam_pie_es_base(cj$partes)]; cj })
   conjuntos <- Filter(function(cj) length(cj$partes) > 0L, conjuntos)
   if (!length(conjuntos)) return(base)
   b <- as.character(base %||% "")[1]; if (is.na(b)) b <- ""
@@ -446,34 +439,25 @@
     }
     wb <- max(0.7, wc * (if (identical(disp, "lado")) 0.25 else 0.4))
     wr <- min(3.2, wc - wb - 0.15 - 0.4)
-    max_lin <- as.integer(max(1L, min(3L, floor((hrow - 0.06) / .lam_rr_lh(size)))))
+    max_lin <- as.integer(max(1L, min(.LAM_ROTULO_MAX_LIN, floor((hrow - 0.06) / .lam_rr_lh(size)))))
     if (hrow < 0.24 || wr < 1.0) return(NULL)
     rot <- unlist(lapply(seq_along(cols), function(j) cols[[j]]$rotulos[seq_len(nk[j])]))
-    rec <- sum(vapply(rot, function(t) .lam_rotulo_recortar(t, wr + 0.1, size, max_lin)$recortado, TRUE))
-    list(disp = disp, wc = wc, hrow = hrow, xs = xs, ys = ys, wr = wr, wb = wb, lineas = max_lin, recortados = rec, k = k,
+    largos <- rot[vapply(rot, .lam_rotulo_lineas, 0L, w = wr + 0.1, size = size) > max_lin]
+    list(disp = disp, wc = wc, hrow = hrow, xs = xs, ys = ys, wr = wr, wb = wb, lineas = max_lin, recortados = 0L, largos = largos, k = k,
          n_total = n, g = min(.std_grosor(max(nk), "categorias"), hrow * 0.6), cab = cab, size = size)
   }
-  # Ronda 2, ítem 2: primero los enunciados enteros con todas las filas; luego con menos filas (las más altas y las más bajas
-  # primeras, que son las que eligió la regla); si no, todas las filas con el enunciado cortado al medio.
-  k_min <- as.integer(max(2L, ceiling(n / 2)))
-  for (k in unique(c(n, if (n > k_min) seq(n - 1L, k_min)))) {
+  # S4 (Arte, 2026-11-09): nunca «…». Primero los enunciados enteros con todas las filas; luego con menos filas (las más
+  # altas y las más bajas primeras, que son las que eligió la regla). Si ni con una fila caben, va la de una fila con el
+  # rótulo entero y la lámina pide un rótulo corto (lamina_rotulos_columna.R).
+  for (k in rev(seq_len(n))) {
     for (disp in c("lado", "apilado")) {
       o <- prueba(disp, k)
-      if (!is.null(o) && o$recortados == 0L) return(c(o, list(cabe = TRUE)))
+      if (!is.null(o) && !length(o$largos)) return(c(o, list(cabe = TRUE)))
     }
   }
-  # Con corte: gana la disposición que conserva más de cada enunciado (la peor fila manda), entre todas las filas y la
-  # mitad; a igualdad, más filas. Dos o tres palabras de un enunciado de veinte no informan (revisión del lead, ronda 2).
-  ops <- Filter(Negate(is.null), list(prueba("lado", n), prueba("apilado", n), prueba("lado", k_min), prueba("apilado", k_min)))
-  if (!length(ops)) return(list(cabe = FALSE))
-  conserva <- vapply(ops, function(o) {
-    nk <- pmin(ns, o$k)
-    rot <- unlist(lapply(seq_along(cols), function(j) cols[[j]]$rotulos[seq_len(nk[j])]))
-    tx <- vapply(.lam_rr_recortar_lote(rot, o$wr + 0.1, size, o$lineas), `[[`, "", "texto")
-    min(nchar(gsub("…", "", tx, fixed = TRUE)) / pmax(1, nchar(rot)))
-  }, 0)
-  orden <- order(-round(conserva, 2), -vapply(ops, function(o) as.numeric(o$k), 0))
-  c(ops[[orden[1]]], list(cabe = TRUE))
+  o <- prueba("lado", 1L) %||% prueba("apilado", 1L)
+  if (is.null(o)) return(list(cabe = FALSE))
+  c(o, list(cabe = TRUE))
 }
 
 #' @keywords internal
@@ -486,7 +470,7 @@
     .lam_txt(lz, cl$titulo, x + 0.2, y0 - 0.02, ge$wc - 0.3, 0.34, 12, azul, bold = TRUE, nombre = "fortalezas:columna")
     .lam_caja(lz, x, y0 + ge$cab - 0.1, ge$wc, 0.025, cl$color, nombre = "fortalezas:filete")
     xb <- x + ge$wr + 0.15
-    textos <- vapply(.lam_rr_recortar_lote(cl$rotulos, ge$wr + 0.1, ge$size, ge$lineas), `[[`, "", "texto")
+    textos <- cl$rotulos   # S4: enteros
     for (i in seq_len(min(ge$k %||% length(cl$rotulos), length(cl$rotulos)))) {
       yc <- y0 + ge$cab + (i - 0.5) * ge$hrow
       .lam_txt(lz, textos[i], x - 0.1, yc - ge$hrow / 2, ge$wr + 0.1, ge$hrow, ge$size, azul, nombre = "fortalezas:rotulo", anclaje = "ctr")
@@ -607,33 +591,16 @@
   paste("n =", format(round(n), big.mark = ",", trim = TRUE))
 }
 
-#' @keywords internal
-.lam_rr_divergentes_geo <- function(espec, x, y, w, h) {
-  n <- length(espec$filas); C <- espec$categorias
-  if (n < 1L || n > 12L || sum(C$lado == "sin_inf") > 1L) return(list(cabe = FALSE))
-  hay_si <- any(C$lado == "sin_inf")
-  # Ronda 2, ítem 6: con filas de públicos distintos cada fila dice su n (casos válidos sin ponderar), en una columna a la
-  # derecha; para dejarle sitio, la columna de Sin información y la escala ceden un poco.
-  ns <- .lam_rr_div_n(espec)
-  wn <- if (length(ns)) max(.lam_ancho_tinta(ns, 9.5, FALSE)) + 0.15 else 0
-  wsi <- if (hay_si) (if (length(ns)) 0.85 else 1.0) else 0
-  esc_min <- if (length(ns)) 2.0 else 2.2
-  xb <- x + w - wn - wsi - (if (hay_si) (if (length(ns)) 0.2 else 0.3) else 0)
-  ley <- .lam_rr_div_leyenda(espec, w)
-  hley <- 0.27 * length(ley$filas) + 0.08
-  disponible <- h - hley - 0.05
-  w_max <- min(2.4, xb - esc_min - 0.15 - x)
-  f <- .lam_rr_filas(espec$filas, 1.2, w_max, disponible, rep(1, n), 0.2, 0.45, desde = 11, max_lin = if (n > 8L) 2L else 3L)
-  if (is.null(f)) return(list(cabe = FALSE))
-  xa <- x + f$wq + 0.15; f$n_total <- n
-  c(f, list(cabe = isTRUE(ley$cabe) && (xb - xa) >= esc_min - 1e-6, hay_si = hay_si, wsi = wsi, wn = wn, ns = ns, xa = xa, xb = xb, ley = ley, hley = hley,
-            disponible = disponible, g = f$u * 0.74))
-}
+# `.lam_rr_divergentes_geo` vive en lamina_resumen_ranura_escala.R (S1, S2: tope de filas y área de barras en la ranura).
 
 #' @keywords internal
 .lam_rr_divergentes <- function(lz, espec, ge) {
   azul <- .std_color("azul")
-  C <- espec$categorias; U <- espec$unidades; X <- espec$cifras; n <- ge$k %||% length(espec$filas)
+  if (length(ge$filas) && length(ge$filas) < length(espec$filas)) {   # S1: las que caben, en la prioridad (lamina_resumen_ranura_escala.R)
+    if (length(ge$ns)) ge$ns <- ge$ns[ge$filas]
+    espec <- .lam_div_resumen_subset(espec, ge$filas)
+  }
+  C <- espec$categorias; U <- espec$unidades; X <- espec$cifras; n <- length(espec$filas)
   alturas <- ge$alturas; g <- ge$g
   # P13: el bloque arranca arriba de la ranura (bajo su enunciado), no centrado en su alto con aire encima.
   y_ley <- ge$y; y0 <- y_ley + ge$hley
@@ -642,6 +609,7 @@
   neu <- which(C$lado == "neu"); mitades <- if (length(neu)) rowSums(U[, neu, drop = FALSE]) / 2 else rep(0, n)
   neg <- espec$orden_neg %||% rev(which(C$lado == "neg")); pos <- espec$orden_pos %||% which(C$lado == "pos"); si <- which(C$lado == "sin_inf")
   izq <- max(rowSums(U[, neg, drop = FALSE]) + mitades, 1); der <- max(rowSums(U[, pos, drop = FALSE]) + mitades, 1)
+  if (length(espec$serie$izq)) { izq <- espec$serie$izq; der <- espec$serie$der }   # S6 (lamina_divergentes_serie.R)
   px <- (ge$xb - ge$xa - 1.1) / (izq + der); xc <- ge$xa + 0.55 + izq * px
   # Leyenda en filas a lo ancho de la ranura, en orden lógico.
   for (r in seq_along(ge$ley$filas)) {
@@ -655,7 +623,7 @@
     }
   }
   xsi <- ge$x + ge$w - (ge$wn %||% 0) - ge$wsi
-  max_si <- if (ge$hay_si) max(1, max(U[, si[1]])) else 1
+  max_si <- if (ge$hay_si) espec$serie$max_si %||% max(1, max(U[, si[1]])) else 1
   for (i in seq_len(n)) {
     yc <- centros[i]; yb <- yc - g / 2
     .lam_txt(lz, ge$textos[i], ge$x - 0.1, yc - alturas[i] / 2, ge$wq + 0.1, alturas[i], ge$size, azul, align = "right", nombre = "divergentes:afirmacion",

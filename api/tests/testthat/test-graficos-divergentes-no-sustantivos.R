@@ -139,7 +139,7 @@ test_that("H3: la metadata de la lista manda (choices$especial)", {
   expect_identical(.divergentes_especiales(c(.dns_lik5, "x"), cods, sustantivos = "9"), rep(FALSE, 6))
 })
 
-test_that("H5: el pie de la escala del resumen dice sobre qué es el porcentaje", {
+test_that("H5: sobre qué es el porcentaje lo dice el aviso al analista; el pie, sólo la base (Gonzalo, 2026-11-09)", {
   skip_if_not_installed("officer"); skip_if_not_installed("ggplot2")
   src <- .dns_fuentes(c("1", "2", "3", "4", "5", "9"), c(.dns_lik5, "No tengo información suficiente"),
                       list(a = c(2, 3, 5, 10, 10, 10)))
@@ -147,14 +147,18 @@ test_that("H5: el pie de la escala del resumen dice sobre qué es el porcentaje"
     expect_true(!is.null(.dns_espec(src)))
     out <- tempfile(fileext = ".pptx"); on.exit(unlink(out), add = TRUE)
     plan <- p_plan(slides = list(p_slide_1_grafico(el, titulo = "Escala")))
-    suppressMessages(suppressWarnings(reporte_ppt_plan(data = src$data_sources, instrumento = src$inst_sources, plan = plan,
-                                                       path_ppt = out, mensajes_progreso = FALSE)))
+    avisos <- character(0)
+    withCallingHandlers(suppressWarnings(reporte_ppt_plan(data = src$data_sources, instrumento = src$inst_sources, plan = plan,
+                                                          path_ppt = out, mensajes_progreso = FALSE)),
+                        message = function(m) { avisos <<- c(avisos, conditionMessage(m)); invokeRestart("muffleMessage") })
     x <- xml2::read_xml(unz(out, "ppt/slides/slide1.xml"))
     sp <- xml2::xml_find_all(x, "//p:sp[p:nvSpPr/p:cNvPr[@name='Base lamina']]")
-    paste(xml2::xml_text(sp), collapse = " ")
+    list(pie = paste(xml2::xml_text(sp), collapse = " "), avisos = paste(avisos, collapse = "\n"))
   }
-  expect_match(pie_de(p_barras_divergentes(vars = "b$a", estilo = "resumen")), "^Base: 40 b\\. Porcentaje sobre el total de respondientes\\.$")
-  expect_match(pie_de(p_barras_divergentes(vars = "b$a", estilo = "resumen", excluir_opciones = "9")),
+  r <- pie_de(p_barras_divergentes(vars = "b$a", estilo = "resumen"))
+  expect_match(r$pie, "^Base: 40 b$")
+  expect_match(r$avisos, "Porcentaje sobre el total de respondientes.", fixed = TRUE)
+  expect_match(pie_de(p_barras_divergentes(vars = "b$a", estilo = "resumen", excluir_opciones = "9"))$avisos,
                "Porcentaje sobre quienes respondieron, sin contar las respuestas excluidas.", fixed = TRUE)
   expect_identical(.dns_espec(src)$nota_porcentaje, "Porcentaje sobre el total de respondientes.")
   expect_null(.dns_espec(src, estilo = "recetario")$nota_porcentaje)

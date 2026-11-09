@@ -77,15 +77,19 @@ test_that("la lámina nativa: dos columnas, la cifra de cada barra y la base con
   src <- .fo_fuentes()
   plan <- p_plan(slides = list(p_slide_1_grafico(p_fortalezas(vars = "docentes$*", corte = c("4", "5"), n = 3), titulo = "Fortalezas")))
   out <- tempfile(fileext = ".pptx"); on.exit(unlink(out), add = TRUE)
-  suppressMessages(suppressWarnings(reporte_ppt_plan(data = src$data_sources, instrumento = src$inst_sources, plan = plan,
-                                                     path_ppt = out, mensajes_progreso = FALSE)))
+  avisos <- character(0)
+  withCallingHandlers(suppressWarnings(reporte_ppt_plan(data = src$data_sources, instrumento = src$inst_sources, plan = plan,
+                                                        path_ppt = out, mensajes_progreso = FALSE)),
+                      message = function(m) { avisos <<- c(avisos, conditionMessage(m)); invokeRestart("muffleMessage") })
   x <- xml2::read_xml(unz(out, "ppt/slides/slide1.xml"))
   grupos <- xml2::xml_attr(xml2::xml_find_all(x, "//p:grpSp/p:nvGrpSpPr/p:cNvPr"), "name")
   expect_true("prosecnur:grafico:fortalezas" %in% grupos)
   texto <- paste(xml2::xml_text(xml2::xml_find_all(x, "//a:t")), collapse = " | ")
   expect_match(texto, "Más altas", fixed = TRUE); expect_match(texto, "Más bajas", fixed = TRUE)
   expect_match(texto, "90%", fixed = TRUE); expect_match(texto, "25%", fixed = TRUE)
-  expect_match(texto, "Base: Docentes 40. Se muestran las 3 más altas y las 3 más bajas, de 6 preguntas de escala", fixed = TRUE)
+  # Al pie, sólo la base; cómo se eligieron, al analista (Gonzalo, 2026-11-09; lamina_pie_resumen.R).
+  expect_match(texto, "Base: Docentes 40 |", fixed = TRUE)
+  expect_true(any(grepl("Se muestran las 3 más altas y las 3 más bajas, de 6 preguntas de escala", avisos, fixed = TRUE)))
   expect_false(grepl("tramo", texto, ignore.case = TRUE))
   nombres <- xml2::xml_attr(xml2::xml_find_all(x, "//p:sp/p:nvSpPr/p:cNvPr"), "name")
   expect_identical(sum(nombres == "fortalezas:barra"), 6L)

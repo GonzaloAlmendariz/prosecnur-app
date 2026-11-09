@@ -88,6 +88,7 @@
 #' Si el contraste de la ranura tiene regla, registra la frase que reemplaza su nota en el pie; TRUE si lo hizo
 #' @keywords internal
 .lam_rr_reemplazo_regla <- function(espec, geo) {
+  if (identical(geo$clase, "divergentes_resumen")) return(.lam_rr_div_reemplazo(espec, geo))   # lamina_resumen_ranura_escala.R
   rr <- espec$regla_recorte
   viejo <- sub("[.[:space:]]+$", "", trimws(as.character(espec$texto_regla %||% "")[1]))
   if (!identical(geo$clase, "contraste") || is.null(rr) || is.na(viejo) || !nzchar(viejo)) return(FALSE)
@@ -98,20 +99,20 @@
   TRUE
 }
 
-#' Aplica al pie los reemplazos de nota registrados por las ranuras (y los vacía); el que no está en el pie se agrega
+#' Aplica a las notas de las ranuras los reemplazos registrados (y los vacía); el que no está en ninguna se agrega
+#' @param notas Notas pendientes de aviso (`.lam_rr_pie`).
 #' @keywords internal
-.lam_rr_pie_reemplazar <- function(base) {
+.lam_rr_pie_reemplazar_en <- function(notas) {
   rs <- .LAM_RR_PIE$reemplazos; .LAM_RR_PIE$reemplazos <- NULL
-  if (!length(rs)) return(base)
-  b <- as.character(base %||% "")[1]; if (is.na(b)) b <- ""
+  if (!length(rs)) return(notas)
   minus <- function(x) paste0(tolower(substr(x, 1, 1)), substring(x, 2))
-  extra <- character(0)
   for (r in unique(rs)) {
-    if (grepl(r[["nuevo"]], b, fixed = TRUE) || grepl(minus(r[["nuevo"]]), b, fixed = TRUE)) next   # el mismo gráfico en dos ranuras
-    if (grepl(r[["viejo"]], b, fixed = TRUE)) b <- sub(r[["viejo"]], r[["nuevo"]], b, fixed = TRUE)
-    else if (grepl(minus(r[["viejo"]]), b, fixed = TRUE)) b <- sub(minus(r[["viejo"]]), minus(r[["nuevo"]]), b, fixed = TRUE)
-    else extra <- c(extra, r[["nuevo"]])
+    hecho <- FALSE
+    for (i in seq_along(notas)) {
+      if (grepl(r[["viejo"]], notas[i], fixed = TRUE)) { notas[i] <- sub(r[["viejo"]], r[["nuevo"]], notas[i], fixed = TRUE); hecho <- TRUE }
+      else if (grepl(minus(r[["viejo"]]), notas[i], fixed = TRUE)) { notas[i] <- sub(minus(r[["viejo"]]), minus(r[["nuevo"]]), notas[i], fixed = TRUE); hecho <- TRUE }
+    }
+    if (!hecho && !any(grepl(r[["nuevo"]], notas, fixed = TRUE))) notas <- c(notas, r[["nuevo"]])
   }
-  if (!length(extra)) return(b)
-  .lam_con_punto(do.call(.lam_unir_base, as.list(c(if (nzchar(b)) b, extra))))
+  notas
 }

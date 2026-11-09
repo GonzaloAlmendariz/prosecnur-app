@@ -332,7 +332,9 @@ test_that("las barras llevan el grosor de la casa; si no caben, van bases entera
   expect_false(.lam_cobcat_geo(e, 0.5, 2, 6.0, 1.6, "ranura")$cabe)          # ni una base entera: va dibujada
   .LAM_RR_PIE$notas <- NULL
   expect_message(.lam_rr_dibujar(.lam_lienzo(), e, .lam_rr_geo(e, 0.5, 2, 6.0, 3.2)), "Docentes no cabe en esta lámina")
-  expect_match(.lam_rr_pie_menos_filas("Base: 95"), "Por espacio, se muestra Estudiantes; Docentes no cabe en esta lámina", fixed = TRUE)
+  # Al pie, la base; la nota del recorte, al analista (lamina_pie_resumen.R).
+  expect_message(p <- .lam_rr_pie_menos_filas("Base: 95"), "Por espacio, se muestra Estudiantes; Docentes no cabe en esta lámina", fixed = TRUE)
+  expect_identical(p, "Base: 95")
 })
 
 test_that("las notas del pie son sólo de las bases que se ven y el dibujo de respaldo sigue las reglas de la nativa (2026-11-09)", {

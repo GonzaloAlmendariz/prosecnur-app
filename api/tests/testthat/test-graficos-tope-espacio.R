@@ -34,7 +34,7 @@ test_that("la escala del resumen recorta en el orden de la regla y nombra el cri
   expect_match(.divergentes_aviso_espacio(22, list(tipo = "bajo_umbral", umbral = 60)), "admite 20: se muestran las 20 más bajas de las 22 bajo 60%")
 })
 
-test_that("en el render el contraste de muchos pares sale nativo con el recorte al pie, sin imagen", {
+test_that("en el render el contraste de muchos pares sale nativo con el recorte avisado al analista, sin imagen", {
   skip_if_not_installed("officer")
   rot <- sprintf("Pregunta número %02d del estudio", 1:30)
   inst <- list(survey = data.frame(name = paste0("p", 1:30), type = "select_one lk", list_name = "lk", label = rot, stringsAsFactors = FALSE),
@@ -45,10 +45,14 @@ test_that("en el render el contraste de muchos pares sale nativo con el recorte 
   vars <- stats::setNames(lapply(1:30, function(i) c(paste0("a$p", i), paste0("b$p", i))), rot)
   plan <- p_plan(slides = list(p_slide_1_grafico(p_dumbbell(vars = vars, corte = c("3", "4"), estilo = "resumen"), titulo = "Contraste")))
   f <- tempfile(fileext = ".pptx"); on.exit(unlink(f), add = TRUE)
-  suppressMessages(suppressWarnings(reporte_ppt_plan(data = src$data_sources, instrumento = src$inst_sources, plan = plan, path_ppt = f,
-                                                     mensajes_progreso = FALSE)))
+  avisos <- character(0)
+  withCallingHandlers(suppressWarnings(reporte_ppt_plan(data = src$data_sources, instrumento = src$inst_sources, plan = plan, path_ppt = f,
+                                                        mensajes_progreso = FALSE)),
+                      message = function(m) { avisos <<- c(avisos, conditionMessage(m)); invokeRestart("muffleMessage") })
   xml <- .pptx_leer_parte(f, .pptx_slide_paths(f)[1])
   txt <- paste(xml2::xml_text(xml2::xml_find_all(xml2::read_xml(xml), "//a:t")), collapse = " ")
-  expect_match(txt, "Por espacio, se muestran las 14 de mayor diferencia de 30; las 16 siguientes no caben en esta lámina.", fixed = TRUE)
+  frase <- "Por espacio, se muestran las 14 de mayor diferencia de 30; las 16 siguientes no caben en esta lámina."
+  expect_true(any(grepl(frase, avisos, fixed = TRUE)))   # al analista (lamina_pie_resumen.R)
+  expect_false(grepl(frase, txt, fixed = TRUE))          # al pie, sólo la base
   expect_true(grepl("prosecnur:grafico:contraste", xml, fixed = TRUE))   # nativa: el contraste con piezas, no una imagen
 })

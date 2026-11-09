@@ -193,14 +193,17 @@ test_that("un orden declarado se respeta y el pie no dice un criterio que no fij
                                               regla = list(tipo = "bajo_umbral", umbral = 50))))
 })
 
-test_that("la lámina nativa escribe el criterio en su pie, cerrado con punto", {
+test_that("la lámina nativa avisa el criterio al analista, cerrado con punto; el pie lleva sólo la base", {
   skip_if_not_installed("officer"); skip_if_not_installed("ggplot2")
   src <- .rd_fuentes("Sin información")
   el <- p_barras_divergentes(vars = "docentes$*", regla = list(tipo = "bajo_umbral", umbral = 72))
   out <- tempfile(fileext = ".pptx"); on.exit(unlink(out), add = TRUE)
-  suppressWarnings(reporte_ppt_plan(data = src$data_sources, instrumento = src$inst_sources, path_ppt = out,
-                                    plan = p_plan(slides = list(p_slide_1_grafico(el, titulo = "Escala"))), mensajes_progreso = FALSE))
+  avisos <- character(0)
+  withCallingHandlers(suppressWarnings(reporte_ppt_plan(data = src$data_sources, instrumento = src$inst_sources, path_ppt = out,
+                                                        plan = p_plan(slides = list(p_slide_1_grafico(el, titulo = "Escala"))), mensajes_progreso = FALSE)),
+                      message = function(m) { avisos <<- c(avisos, conditionMessage(m)); invokeRestart("muffleMessage") })
   xml <- .pptx_leer_parte(out, .pptx_slide_paths(out)[1])
   expect_identical(.pptx_lamina_estado(xml), "nativa")
-  expect_match(xml, "de 4 preguntas de escala. Ordenado por Top Two Box, de menor a mayor.<", fixed = TRUE)
+  expect_true(any(grepl("de 4 preguntas de escala. Ordenado por Top Two Box, de menor a mayor.", avisos, fixed = TRUE)))
+  expect_false(grepl("Ordenado por", xml, fixed = TRUE))
 })

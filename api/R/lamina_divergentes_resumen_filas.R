@@ -8,8 +8,9 @@
 #   1. La columna de rótulos toma el ancho libre desde el margen de la lámina (sin el tope fijo de 4.2 in), sin dejar la
 #      escala por debajo de 4.5 in.
 #   2. Las afirmaciones van enteras en dos o tres líneas; las filas crecen hasta su máximo antes de cortar texto.
-#   3. «…» sólo si ni tres líneas a 10.5 pt bastan, con el corte al medio que conserva el final y nunca deja dos rótulos
-#      iguales (`.lam_rr_recortar_lote`).
+#   3. S4 (Gonzalo, 2026-11-09: «la etiqueta no debe tener esos tres puntos suspensivos»): nunca «…»; hasta cuatro
+#      líneas y, si no, el rótulo va entero y la lámina pide un rótulo corto (lamina_rotulos_columna.R). S5: la columna
+#      mide lo que piden sus rótulos, no el máximo.
 #   4. Si todas las filas no caben así, se muestran menos —las primeras en la prioridad de la regla, la misma del recorte
 #      por espacio (P7)— antes que cortar a una línea, y el pie lo dice en la frase de la regla.
 
@@ -47,39 +48,21 @@
 #' @keywords internal
 .lam_div_resumen_filas_elegir <- function(espec, disponible, w_max, u_min = 0.2, u_max = 0.52) {
   n <- length(espec$filas)
-  if (!n || w_max < 2.2) return(NULL)
-  pr <- suppressWarnings(as.integer(espec$prioridad))
-  idx <- if (length(pr) == n && !anyNA(pr)) order(pr, seq_len(n)) else seq_len(n)
-  piso <- .LAM_ROTULO_PT_PISO
-  # 3. Lo que ni en tres líneas a 10.5 pt cabe se corta al medio (sin dejar dos iguales); lo demás va entero.
-  largo <- vapply(espec$filas, function(t) isTRUE(.lam_rotulo_recortar(t, w_max, piso, 3L)$recortado), TRUE)
-  textos <- espec$filas
-  if (any(largo)) textos[largo] <- vapply(.lam_rr_recortar_lote(espec$filas[largo], w_max, piso, 3L), `[[`, "", "texto")
-  prueba <- function(tx, size, w) {
-    rr <- lapply(tx, function(t) .lam_rotulo_recortar(t, w, size, 3L))
-    if (any(vapply(rr, `[[`, TRUE, "recortado"))) return(NULL)
-    # P15: cada fila mide su rótulo más un hueco común (el mismo entre todas), hasta que una fila de una línea llegue al
-    # paso máximo de la casa (lamina_filas_hueco.R).
-    texto_h <- vapply(rr, function(r) length(r$lineas), 0L) * size * 1.2 / 72
-    hu <- .lam_filas_hueco_uniforme(texto_h, disponible, hueco_min = max(0.04, u_min - min(texto_h)), hueco_max = max(0.04, u_max - min(texto_h)))
+  if (!n || w_max < 1.2) return(NULL)
+  # P15: cada fila mide su rótulo más un hueco común (el mismo entre todas), hasta que una fila de una línea llegue al
+  # paso máximo de la casa (lamina_filas_hueco.R). S6: en una serie (`continuar_desde`) el hueco es el de la serie.
+  alto <- function(nl, size, w) {
+    texto_h <- nl * size * 1.2 / 72
+    hmin <- max(0.04, u_min - min(texto_h)); hmax <- max(0.04, u_max - min(texto_h))
+    hu <- .lam_filas_hueco_uniforme(texto_h, disponible, hueco_min = hmin, hueco_max = hmax)
     if (is.null(hu)) return(NULL)
-    list(size = size, wq = w, u = min(hu$alturas), alturas = hu$alturas, textos = vapply(rr, `[[`, "", "texto"), lineas = 3L,
-         texto_h = texto_h, hueco = hu$hueco)
+    hu <- .lam_div_serie_hueco(espec, hu, texto_h, w, size, disponible, hmin, hmax)   # lamina_divergentes_serie.R
+    list(u = min(hu$alturas), alturas = hu$alturas, texto_h = texto_h, hueco = hu$hueco)
   }
-  # 4. Todas las filas si caben enteras; si no, una menos cada vez, en el orden de la prioridad.
-  for (k in rev(seq_len(n))) {
-    filas <- sort(idx[seq_len(k)])
-    tx <- textos[filas]
-    for (size in .lam_rotulo_pasos_pt(12)) {
-      tinta <- max(vapply(tx, function(t) .lam_ancho_tinta(t, size, FALSE), 0))
-      w0 <- min(w_max, max(2.2, tinta + 0.25))
-      for (w in unique(c(seq(w0, w_max, by = 0.2), w_max))) {
-        e <- prueba(tx, size, w)
-        if (!is.null(e)) return(c(e, list(filas = filas, n_total = n, recortados = sum(largo[filas]))))
-      }
-    }
-  }
-  NULL
+  # S4 y S5: rótulos enteros (hasta cuatro líneas, sin «…») en una columna a la medida de sus rótulos; si no caben,
+  # menos filas en la prioridad de la regla (lamina_rotulos_columna.R).
+  .lam_rotulos_columna(espec$filas, espec$prioridad, w_min = 1.2, w_max = w_max, desde = 12, alto = alto, n_min = 1L,
+                       serie = espec$serie$filas)
 }
 
 #' La escala con sólo algunas de sus filas (todas las piezas por fila, en el mismo orden)

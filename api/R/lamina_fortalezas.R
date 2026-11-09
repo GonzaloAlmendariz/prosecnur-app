@@ -24,18 +24,25 @@
   h <- min(0.72, (zona1 - zona0 - cab) / n)
   # Con pocas filas el bloque (encabezados y filas) se centra en la zona de datos: no queda arriba con media lámina vacía.
   y0 <- zona0 + max(0, (zona1 - zona0) - cab - h * n) / 2
+  # S4 y S5 (Arte, 2026-11-09): los rótulos van enteros, en las líneas que caben en su fila (hasta cuatro), en una columna
+  # a la medida de sus rótulos (lamina_rotulos_columna.R); la barra se queda con el resto.
+  lin_max <- function(size) as.integer(max(1L, min(.LAM_ROTULO_MAX_LIN, floor((h - 0.1) / (size * 1.2 / 72)))))
+  alto <- function(nl, size) if (all(nl <= lin_max(size))) list(alturas = rep(h, length(nl))) else NULL
+  f <- if (length(todos)) .lam_rotulos_columna(todos, NULL, w_min = 1.2, w_max = w * 0.7, desde = 12, alto = alto, n_min = length(todos)) else NULL
+  size <- 12; largos <- character(0)
+  if (!is.null(f)) { wr <- f$wq - 0.1; size <- f$size; largos <- f$largos }
+  else if (length(todos)) {
+    wr <- w * 0.7 - 0.1; size <- .LAM_ROTULO_PT_PISO
+    largos <- todos[vapply(todos, .lam_rotulo_lineas, 0L, w = wr + 0.1, size = size) > lin_max(size)]
+  }
   list(ml = ml, fin = fin, w = w, wr = wr, xs = c(ml, ml + w + gap), n = n, y0 = y0, cab = cab, h = h,
-       g = min(0.34, h * 0.55))
+       g = min(0.34, h * 0.55), size = size, largos = largos)
 }
-
-#' Líneas que admite el rótulo de una fila (12 pt): las que caben en su alto, entre dos y tres
-#' @keywords internal
-.lam_fortalezas_max_lineas <- function(ge) as.integer(max(2L, min(3L, floor((ge$h - 0.1) / (12 * 1.2 / 72)))))
 
 #' ¿La lámina cabe? Hasta ocho filas por columna
 #'
-#' Un rótulo largo ya no la manda a la imagen (Arte, 2026-11-07): va en las líneas que admite su fila (dos con ocho
-#' filas, tres con menos) y, si no cabe, la última termina en «…» (`.lam_rotulo_recortar`).
+#' Un rótulo largo ya no la manda a la imagen (Arte, 2026-11-07): va entero en las líneas que admite su fila, hasta
+#' cuatro (S4, `.lam_fortalezas_geom`).
 #' @keywords internal
 .lam_fortalezas_cabe <- function(espec) {
   cols <- espec$columnas %||% list()
@@ -54,7 +61,6 @@
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()
-  max_lin <- .lam_fortalezas_max_lineas(ge); recortados <- 0L
   for (j in seq_along(espec$columnas)) {
     cl <- espec$columnas[[j]]; x <- ge$xs[j]
     # Encabezado de la columna: su tono, su nombre y un filete en el mismo tono.
@@ -66,8 +72,7 @@
       yc <- ge$y0 + ge$cab + (i - 0.5) * ge$h
       # El cuadro ocupa la fila entera y centra su texto: una o dos líneas quedan centradas con la barra sin depender
       # de cuántas líneas estime la medición (LibreOffice y PowerPoint parten distinto en la frontera).
-      rr <- .lam_rotulo_recortar(cl$rotulos[i], ge$wr + 0.1, 12, max_lin); recortados <- recortados + rr$recortado
-      .lam_txt(lz, rr$texto, x - 0.1, yc - ge$h / 2, ge$wr + 0.1, ge$h, 12, azul, nombre = "fortalezas:rotulo", anclaje = "ctr")
+      .lam_txt(lz, cl$rotulos[i], x - 0.1, yc - ge$h / 2, ge$wr + 0.1, ge$h, ge$size, azul, nombre = "fortalezas:rotulo", anclaje = "ctr")   # S4: entero
       .lam_caja(lz, xb, yc - ge$g / 2, wb, ge$g, pista, nombre = "fortalezas:pista", borde = NA)
       lb <- max(0.01, wb * max(0, min(100, cl$valores[i])) / 100)
       .lam_caja(lz, xb, yc - ge$g / 2, lb, ge$g, cl$color, nombre = "fortalezas:barra", borde = NA)
@@ -80,9 +85,9 @@
       }
     }
   }
-  .lam_rotulos_aviso(recortados)
+  .lam_rotulos_largos_aviso(ge$largos)   # S4 (lamina_rotulos_columna.R)
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:fortalezas")
   nota <- sprintf("Barras: %s de cada pregunta", espec$indicador %||% "Top Two Box")
-  doc <- .lam_pie(doc, .lam_unir_base(espec$nota_base, base, espec$texto_regla, nota), folio)
+  doc <- .lam_pie(doc, .lam_pie_resumen(base, espec$texto_regla, nota, en_pie = espec$nota_base), folio)   # lamina_pie_resumen.R
   list(doc = por_lamina(doc), partes = 1L)
 }

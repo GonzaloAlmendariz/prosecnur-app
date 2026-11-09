@@ -198,7 +198,10 @@
 
 #' El pie de la versión por categorías: la base escrita en la lámina, si la hay, y las notas de la especificación
 #' @keywords internal
-.lam_cobcat_pie <- function(base, espec) .lam_con_punto(do.call(.lam_unir_base, as.list(c(base, espec$notas_pie))))
+.lam_cobcat_pie <- function(base, espec) {
+  n <- as.character(espec$notas_pie %||% character(0))
+  .lam_pie_resumen(base, n[!.lam_pie_es_base(n)], en_pie = n[.lam_pie_es_base(n)])   # sólo las bases al pie (lamina_pie_resumen.R)
+}
 
 #' Lámina de cobertura por categorías a página entera
 #' @keywords internal

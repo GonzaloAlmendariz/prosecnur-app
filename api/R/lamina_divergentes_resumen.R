@@ -76,8 +76,8 @@
 
 #' ¿La escala del resumen cabe? Hasta 20 afirmaciones y una sola columna especial
 #'
-#' Una afirmación larga no la manda a la imagen (Arte, 2026-11-07): va en las líneas que admite su fila y, si no
-#' cabe, la última termina en «…» (`.lam_rotulo_recortar`).
+#' Una afirmación larga no la manda a la imagen (Arte, 2026-11-07): va entera en las líneas que admite su fila (S4,
+#' lamina_rotulos_columna.R).
 #' @keywords internal
 .lam_divergentes_resumen_cabe <- function(espec) {
   n <- length(espec$filas)
@@ -117,6 +117,7 @@
   neg <- espec$orden_neg %||% rev(which(C$lado == "neg")); pos <- espec$orden_pos %||% which(C$lado == "pos"); si <- which(C$lado == "sin_inf")
   # La escala se acerca al lado más largo de cada lado y deja 0.5 in a cada extremo para la cifra que sale de la barra.
   izq <- max(rowSums(U[, neg, drop = FALSE]) + mitades, 1); der <- max(rowSums(U[, pos, drop = FALSE]) + mitades, 1)
+  if (length(espec$serie$izq)) { izq <- espec$serie$izq; der <- espec$serie$der }   # S6: la escala de la serie (lamina_divergentes_serie.R)
   px <- (ge$xb - ge$xa - 1.0) / (izq + der); xc <- ge$xa + 0.5 + izq * px
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
@@ -147,10 +148,10 @@
     .lam_caja(lz, xsi, yl + 0.375 - hl, 0.15, 0.15, C$color[si[1]], nombre = "leyenda:cuadro")
     .lam_txt(lz, C$rotulo[si[1]], xsi + 0.12, yl + 0.3 - hl, ge$wsi, hl, 11, azul, nombre = "leyenda:texto")
   }
-  max_si <- if (ge$hay_si) max(1, max(U[, si[1]])) else 1
+  max_si <- if (ge$hay_si) espec$serie$max_si %||% max(1, max(U[, si[1]])) else 1
   for (i in seq_len(n)) {
     yc <- centros[i]; yb <- yc - g / 2
-    # El cuadro ocupa la fila y centra su texto: hasta tres líneas (dos con más de 14 filas), la última con «…».
+    # El cuadro ocupa la fila y centra su texto: el rótulo entero, en las líneas que eligió `.lam_rotulos_columna`.
     .lam_txt(lz, ge$textos[i], ge$ml, yc - alturas[i] / 2, ge$wq, alturas[i], ge$size, azul, align = "right", nombre = "divergentes:afirmacion",
              anclaje = "ctr")
     mitad <- mitades[i]
@@ -174,16 +175,14 @@
   }
   # La línea central va encima de los segmentos (separa los lados), de la primera a la última fila.
   .lam_caja(lz, xc - 0.008, y0 - 0.04, 0.016, sum(alturas) + 0.08, azul, nombre = "divergentes:centro")
-  .lam_rotulos_aviso(ge$recortados, ge$lineas)
+  .lam_rotulos_largos_aviso(ge$largos)   # S4: ningún rótulo se corta; al largo se le pide un rótulo corto (lamina_rotulos_columna.R)
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:divergentes")
   # ADR 0135: con regla de preguntas, cómo se eligieron va tras la base; sin ella la nota no cambia.
   # ADR 0135 §3: el denominador va tras la base («Porcentaje sobre el total de respondientes.»), como en el mazo de Arte.
   # Un pie que ya dice sobre qué es el porcentaje (escrito por el analista) no se repite.
   nota <- espec$nota_porcentaje
   if (!is.null(nota) && grepl("porcentaje sobre", base %||% "", ignore.case = TRUE)) nota <- NULL
-  pie <- if (is.null(espec$texto_regla) && is.null(nota)) base else .lam_unir_base(base, nota, espec$texto_regla)
-  # El pie cierra con punto, como el del mazo de Arte («… Ordenado por Top Two Box, de menor a mayor.»).
-  if (!is.null(nota) || !is.null(espec$texto_regla)) pie <- .lam_con_punto(pie)
-  doc <- .lam_pie(doc, pie, folio)
+  # Al pie, sólo la base, como el resto del informe; el denominador y la frase de la regla, al analista (lamina_pie_resumen.R).
+  doc <- .lam_pie(doc, .lam_pie_resumen(base, nota, espec$texto_regla), folio)
   list(doc = por_lamina(doc), partes = 1L)
 }
