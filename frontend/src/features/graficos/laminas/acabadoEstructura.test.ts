@@ -378,3 +378,16 @@ describe("R10-1: sin botones F1/F2 en vistaGeneral/", () => {
     expect(src).toMatch(/<Dialog\.Close asChild>\s*<PulsoButton ref=\{cancelarRef\} variant="secondary">Cancelar<\/PulsoButton>/);
   });
 });
+
+describe("W3-9: el mazo y el emparejado heredan la cabecera del Dialog del kit", () => {
+  it.each(["mazoResumen/MazoResumen.tsx", "emparejado/RevisarEmparejado.tsx"])("%s no pinta X, cabecera ni closeLabel propios", (archivo) => {
+    const src = sinComentarios(leer(archivo));
+    expect(src).not.toMatch(/<X\b|<BotonCerrar\b|<CabeceraPanel\b|closeLabel=|>Listo</);
+  });
+
+  it.each(["mazoResumen/mazoResumen.css", "emparejado/emparejado.css"])("%s no parchea la cabecera, el título ni la X del diálogo", (hoja) => {
+    const css = sinComentarios(leer(hoja));
+    expect(css).not.toMatch(/pulso-dialog__(head|title|subtitle|close|tile)|pulso-cerrar|pulso-cabecera-panel__(titulo|cerrar)/);
+  });
+});
+

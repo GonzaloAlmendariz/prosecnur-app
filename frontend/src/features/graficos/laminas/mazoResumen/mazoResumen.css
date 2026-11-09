@@ -165,15 +165,11 @@
   background: var(--pulso-surface-2);
 }
 
-/* La cabecera del lateral es CabeceraPanel (W2-B): sin sangría propia, alineada al cuerpo del lateral. */
+/* La cabecera del lateral es CabeceraPanel (W2-B): sin sangría propia, alineada al cuerpo del lateral. El anillo del
+   título enfocable lo pone el kit (W3). */
 .pulso-f6-mazo-lateral > .pulso-cabecera-panel.pulso-f6-mazo-lateral-cabeza {
   padding-inline: 0;
   padding-block-start: 0;
-}
-
-.pulso-f6-mazo-lateral-cabeza .pulso-cabecera-panel__titulo:focus-visible {
-  outline: var(--mov-foco);
-  outline-offset: 2px;
 }
 
 /* La tarjeta en edición se marca con una banda sobre su borde superior: no ocupa ancho en la cabeza (M1: la insignia
