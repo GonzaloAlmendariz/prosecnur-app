@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { motivoGuardadoBloqueado, nombreVisibleDelProyecto } from "../../api/client";
 import { projectRelTime } from "./ProjectLifecycleDialog";
+import { normalizarMotivosSinGuardar, textoChipSinGuardar } from "./modeloMotivosSinGuardar";
 import type { UseProjectReturn } from "./useProject";
 
 type Props = {
@@ -33,6 +34,7 @@ export default function ProjectIndicator({ project, onOpenProjectViewer, onReque
   const refsPerdidas = project.refsPerdidas ?? [];
   const bloqueo = motivoGuardadoBloqueado(status);
   const projectPath = status.path ?? "";
+  const textoSinGuardar = status.dirty ? textoChipSinGuardar(normalizarMotivosSinGuardar(status.dirty_reasons)) : undefined;
 
   if (!status.has_project) {
     return (
@@ -93,7 +95,9 @@ export default function ProjectIndicator({ project, onOpenProjectViewer, onReque
             <span>{refsPerdidas.length === 1 ? "falta 1 recurso" : `faltan ${refsPerdidas.length} recursos`}</span>
           </span>
         )}
-        <span className={`pulso-project-chip-status ${status.dirty ? "is-dirty" : "is-saved"}`}>
+        {/* R12-11: el motivo (dirty_reasons del backend) va en el tooltip nativo y en el nombre accesible. */}
+        <span className={`pulso-project-chip-status ${status.dirty ? "is-dirty" : "is-saved"}`}
+          title={textoSinGuardar} aria-label={textoSinGuardar}>
           {status.dirty ? (
             <>
               <Circle size={7} fill="currentColor" />

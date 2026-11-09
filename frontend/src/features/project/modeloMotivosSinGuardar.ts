@@ -59,3 +59,27 @@ export function areaDeMotivo(motivo: string): string {
   }
   return "Otro cambio";
 }
+
+/**
+ * Un motivo en lenguaje llano (R12-11): el área donde vive el cambio y, si el backend lo anotó entre paréntesis, la
+ * circunstancia («Códigos de respuesta, migrado al abrir un .pulso antiguo»).
+ */
+export function fraseDeMotivo(motivo: string): string {
+  const area = areaDeMotivo(motivo);
+  const detalle = motivo.match(/\(([^()]+)\)\s*$/)?.[1]?.trim();
+  return detalle ? `${area}, ${detalle}` : area;
+}
+
+const MAXIMO_EN_CHIP = 3;
+
+/**
+ * Texto del `title` y el `aria-label` del chip «sin guardar» (R12-11): qué quedó sin guardar, sin UI nueva. Las áreas
+ * repetidas se juntan; pasadas tres, «y N más».
+ */
+export function textoChipSinGuardar(motivos: readonly MotivoSinGuardar[]): string {
+  const frases = [...new Set(motivos.map((m) => fraseDeMotivo(m.motivo)))];
+  if (!frases.length) return "Cambios sin guardar";
+  const visibles = frases.slice(0, MAXIMO_EN_CHIP);
+  const resto = frases.length - visibles.length;
+  return `Cambios sin guardar: ${visibles.join("; ")}${resto > 0 ? `; y ${resto} más` : ""}`;
+}
