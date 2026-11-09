@@ -81,7 +81,7 @@ export function BrechaEntreGrupos({ args, onCambio }: Props) {
         <RadioSegmentado etiqueta="Comparar" ancho multilinea qaGrupo="graficos/f6-brecha-modo"
           valor={grupos ? "grupos" : "bases"}
           onCambiar={(k) => onCambio(k === "grupos" ? aEntreGrupos(args) : aEntreBases())}
-          opciones={[{ clave: "bases", rotulo: "Dos bases" }, { clave: "grupos", rotulo: "Dos grupos de una base" }]} />
+          opciones={[{ clave: "bases", rotulo: "Bases distintas" }, { clave: "grupos", rotulo: "Grupos de una base" }]} />
       </div>
 
       {!grupos && <EditorTemasEquivalentes tipo="brecha" args={args} onCambio={onCambio} />}

@@ -83,6 +83,8 @@ describe("públicos", () => {
     expect(publicosDe("p_dumbbell", { vars: [] }, ["a"])).toEqual([]);
     // El par del contraste declarado en `bases` manda; incompleto, no cuenta.
     expect(publicosDe("p_dumbbell", { bases: ["estudiantes", "administrativos"] }, [])).toEqual(["estudiantes", "administrativos"]);
+    // De dos a cuatro públicos (graficos_dumbbell_tres_grupos.R): los tres declarados llevan cada uno su padrón.
+    expect(publicosDe("p_dumbbell", { bases: ["docentes", "estudiantes", "administrativos"] }, [])).toEqual(["docentes", "estudiantes", "administrativos"]);
     expect(publicosDe("p_dumbbell", { bases: ["estudiantes", ""], vars: { t1: ["docentes$p1", "estudiantes$p1"] } }, [])).toEqual(["docentes", "estudiantes"]);
   });
 

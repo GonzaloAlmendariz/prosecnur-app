@@ -15,7 +15,9 @@ import {
   avisoCriteriosRadar,
   basesDelPar,
   elegirEnPar,
-  parDeclarado,
+  basesDeclaradas,
+  basesAGuardar,
+  casillasDePublicos,
   REGLA_CRITERIOS_RADAR,
   faltaEnBrechaBases,
   faltaEnRadarPublicos,
@@ -181,7 +183,7 @@ describe("avisoCriteriosRadar", () => {
 
 describe("el par del contraste entre públicos (`bases`, graficos_dumbbell_auto.R)", () => {
   const tres = ["docentes", "estudiantes", "administrativos"];
-  it("el par declarado manda; si no, el de los temas; si no, el estudio de dos bases; con tres, ninguno", () => {
+  it("las declaradas mandan; si no, las de los temas; si no, el estudio de dos bases; con tres sin elegir, ninguna", () => {
     expect(basesDelPar({ bases: ["estudiantes", "administrativos"] }, tres)).toEqual(["estudiantes", "administrativos"]);
     expect(basesDelPar({ bases: ["estudiantes", "administrativos"], vars: { t: ["docentes$p1", "estudiantes$p1"] } }, tres))
       .toEqual(["estudiantes", "administrativos"]);
@@ -191,18 +193,41 @@ describe("el par del contraste entre públicos (`bases`, graficos_dumbbell_auto.
     expect(basesDelPar({ bases: ["docentes", "docentes"] }, tres)).toEqual([]);
     expect(basesDelPar({ bases: ["docentes", ""] }, tres)).toEqual([]);
   });
-  it("el par declarado se lee tal cual, con la casilla vacía que falte", () => {
-    expect(parDeclarado({ bases: ["docentes"] })).toEqual(["docentes", ""]);
-    expect(parDeclarado({})).toBeNull();
+  it("de dos a cuatro públicos: tres declarados mandan; uno solo o cinco no", () => {
+    expect(basesDelPar({ bases: ["docentes", "estudiantes", "administrativos"] }, tres)).toEqual(["docentes", "estudiantes", "administrativos"]);
+    expect(basesDelPar({ vars: { t: ["docentes$p1", "estudiantes$p1", "administrativos$p1"] } }, tres)).toEqual(["docentes", "estudiantes", "administrativos"]);
+    expect(basesDelPar({ bases: ["docentes", "", "administrativos"] }, tres)).toEqual(["docentes", "administrativos"]);
+  });
+  it("las bases declaradas se leen tal cual, con las casillas vacías que falten y hasta cuatro", () => {
+    expect(basesDeclaradas({ bases: ["docentes"] })).toEqual(["docentes", ""]);
+    expect(basesDeclaradas({ bases: ["a", "b", "c"] })).toEqual(["a", "b", "c"]);
+    expect(basesDeclaradas({ bases: ["a", "b", "c", "d", "e"] })).toEqual(["a", "b", "c", "d"]);
+    expect(basesDeclaradas({})).toBeNull();
+  });
+  it("las casillas siguen al estudio, de dos a cuatro", () => {
+    expect(casillasDePublicos(1, 0)).toBe(2);
+    expect(casillasDePublicos(3, 0)).toBe(3);
+    expect(casillasDePublicos(6, 0)).toBe(4);
+    expect(casillasDePublicos(2, 3)).toBe(3);
+  });
+  it("se guardan sin las casillas vacías del final más allá de la segunda", () => {
+    expect(basesAGuardar(["a", "b", "", ""])).toEqual(["a", "b"]);
+    expect(basesAGuardar(["a", "", ""])).toEqual(["a", ""]);
+    expect(basesAGuardar(["a", "b", "c"])).toEqual(["a", "b", "c"]);
   });
   it("elegir como primera la segunda las intercambia", () => {
     expect(elegirEnPar(["docentes", "estudiantes"], 0, "estudiantes")).toEqual(["estudiantes", "docentes"]);
     expect(elegirEnPar(["docentes", "estudiantes"], 1, "administrativos")).toEqual(["docentes", "administrativos"]);
     expect(elegirEnPar([], 0, "docentes")).toEqual(["docentes", ""]);
+    expect(elegirEnPar(["docentes", "estudiantes"], 2, "administrativos", 3)).toEqual(["docentes", "estudiantes", "administrativos"]);
+    expect(elegirEnPar(["docentes", "estudiantes", "administrativos"], 0, "administrativos", 3)).toEqual(["administrativos", "estudiantes", "docentes"]);
+    expect(elegirEnPar(["docentes", "estudiantes", "administrativos"], 2, "", 3)).toEqual(["docentes", "estudiantes", ""]);
   });
   it("en el contraste entre públicos, sin temas y con el par elegido no falta nada de temas", () => {
     expect(faltaEnBrechaBases([], ["docentes", "estudiantes"], [], true)).not.toContain("Agrega al menos un tema.");
-    expect(faltaEnBrechaBases([], ["docentes"], [], true)).toEqual(["Elige los dos públicos que se comparan.", "Agrega al menos un tema."]);
+    expect(faltaEnBrechaBases([], ["docentes"], [], true)).toEqual(["Elige de dos a cuatro públicos que se comparan.", "Agrega al menos un tema."]);
+    expect(faltaEnBrechaBases([], ["docentes", "estudiantes", "administrativos"], [], true)).toEqual([]);
+    expect(faltaEnBrechaBases([], ["a", "b", "c", "d", "e"], [], true)).toContain("Elige de dos a cuatro públicos que se comparan.");
     expect(faltaEnBrechaBases([], ["docentes", "estudiantes"], [])).toContain("Agrega al menos un tema.");
   });
 });

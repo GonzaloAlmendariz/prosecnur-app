@@ -122,23 +122,31 @@ export function avisoCriteriosRadar(n: number): string | null {
   return null;
 }
 
-/** Brecha entre dos bases: exactamente dos, y cada tema con su pregunta en las dos y en ese orden. */
+/** El contraste entre públicos compara de dos a cuatro (`.DUMBBELL_GRUPOS_MAX`, graficos_dumbbell_tres_grupos.R). */
+export const MAX_PUBLICOS_BRECHA = 4;
+
+/** ¿Son de dos a cuatro bases distintas y sin casillas vacías? */
+export function basesValidas(bases: readonly string[]): boolean {
+  return bases.length >= 2 && bases.length <= MAX_PUBLICOS_BRECHA && bases.every(Boolean) && new Set(bases).size === bases.length;
+}
+
+/** Brecha entre bases: de dos a cuatro distintas, y cada tema con su pregunta en cada una y en ese orden. */
 export function faltaEnBrechaBases(
   temas: readonly TemaPublicos[], bases: readonly string[], variables: readonly VarWithSource[], temasDelPar = false,
 ): string[] {
   const out: string[] = [];
-  const par = bases.length === 2 && !!bases[0] && !!bases[1] && bases[0] !== bases[1];
-  if (!par) out.push(temasDelPar ? "Elige los dos públicos que se comparan." : "Elige las dos bases que se comparan.");
-  // En el contraste entre públicos, sin temas el motor empareja las preguntas comunes del par (graficos_dumbbell_auto.R).
-  if (!temas.length && !(temasDelPar && par)) out.push("Agrega al menos un tema.");
-  if (bases.length === 2 && bases[0] !== bases[1]) {
+  const validas = basesValidas(bases);
+  if (!validas) out.push(temasDelPar ? "Elige de dos a cuatro públicos que se comparan." : "Elige de dos a cuatro bases que se comparan.");
+  // En el contraste entre públicos, sin temas el motor empareja las preguntas comunes de las bases (graficos_dumbbell_auto.R).
+  if (!temas.length && !(temasDelPar && validas)) out.push("Agrega al menos un tema.");
+  if (validas) {
     temas.forEach((t, i) => {
       const fuentes = t.vars.map((r) => parseVarRef(r).source ?? "");
       const faltan = bases.filter((b) => !fuentes.includes(b));
       const ajenas = fuentes.filter((f) => !bases.includes(f));
       if (faltan.length) out.push(`${nombreTema(t, i)}: falta la pregunta de ${faltan.map(nombrePublico).join(" y de ")}.`);
-      else if (ajenas.length || fuentes.length !== 2) out.push(`${nombreTema(t, i)}: lleva una pregunta de cada base y nada más.`);
-      else if (fuentes[0] !== bases[0]) out.push(`${nombreTema(t, i)}: sus preguntas están en otro orden que las bases.`);
+      else if (ajenas.length || fuentes.length !== bases.length) out.push(`${nombreTema(t, i)}: lleva una pregunta de cada base y nada más.`);
+      else if (fuentes.some((f, j) => f !== bases[j])) out.push(`${nombreTema(t, i)}: sus preguntas están en otro orden que las bases.`);
     });
   }
   return [...out, ...faltaComun(temas, variables, false)];
@@ -192,11 +200,11 @@ export function conBases(temas: readonly TemaPublicos[], bases: readonly string[
   }));
 }
 
-/** Las dos bases de una brecha guardada: las del primer tema que tenga preguntas, en su orden. */
+/** Las bases de una brecha guardada: las del primer tema que tenga preguntas de dos o más, en su orden (hasta cuatro). */
 export function basesDeBrecha(temas: readonly TemaPublicos[]): string[] {
   for (const t of temas) {
-    const fuentes = t.vars.map((r) => parseVarRef(r).source ?? "").filter(Boolean);
-    if (fuentes.length >= 2) return fuentes.slice(0, 2);
+    const fuentes = [...new Set(t.vars.map((r) => parseVarRef(r).source ?? "").filter(Boolean))];
+    if (fuentes.length >= 2) return fuentes.slice(0, MAX_PUBLICOS_BRECHA);
   }
   for (const t of temas) {
     const f = t.vars.map((r) => parseVarRef(r).source ?? "").find(Boolean);
@@ -206,36 +214,52 @@ export function basesDeBrecha(temas: readonly TemaPublicos[]): string[] {
 }
 
 /**
- * El par que el contraste entre públicos declara en `bases` (graficos_dumbbell_auto.R), tal como está: dos casillas,
- * vacías las que faltan. `null` si el arg no está.
+ * Las bases que el contraste entre públicos declara en `bases` (graficos_dumbbell_auto.R), tal como están: al menos dos
+ * casillas, vacías las que faltan, y hasta cuatro. `null` si el arg no está.
  */
-export function parDeclarado(args: Readonly<Record<string, unknown>>): [string, string] | null {
+export function basesDeclaradas(args: Readonly<Record<string, unknown>>): string[] | null {
   if (!Array.isArray(args.bases)) return null;
-  const [a, b] = args.bases.map(texto);
-  return [a ?? "", b ?? ""];
+  const leidas = args.bases.map(texto).slice(0, MAX_PUBLICOS_BRECHA);
+  while (leidas.length < 2) leidas.push("");
+  return leidas;
 }
 
 /**
- * Las dos bases del contraste, en orden: las de `bases` si son dos distintas; si no, las de sus temas; si no, las del
- * estudio cuando tiene exactamente dos (lo que hace el motor sin `bases`). Si no, ninguna: falta elegirlas.
+ * Las bases del contraste, en orden: las de `bases` si son de dos a cuatro distintas; si no, las de sus temas; si no,
+ * las del estudio cuando tiene exactamente dos (lo que hace el motor sin `bases`). Con tres o más y nada elegido,
+ * ninguna: el analista elige un par o más, el motor no decide.
  */
 export function basesDelPar(args: Readonly<Record<string, unknown>>, basesEstudio: readonly string[]): string[] {
-  const declarado = parDeclarado(args);
-  if (declarado && declarado[0] && declarado[1] && declarado[0] !== declarado[1]) return [...declarado];
+  const declaradas = (basesDeclaradas(args) ?? []).filter(Boolean);
+  if (basesValidas(declaradas)) return declaradas;
   const guardadas = basesDeBrecha(argsATemas(args));
-  if (guardadas.length === 2 && guardadas[0] !== guardadas[1]) return guardadas;
+  if (basesValidas(guardadas)) return guardadas;
   return basesEstudio.length === 2 ? [...basesEstudio] : [];
 }
 
+/** Cuántas casillas de público ofrece la tarjeta: las bases del estudio (o las ya elegidas), de dos a cuatro. */
+export function casillasDePublicos(basesEstudio: number, elegidas: number): number {
+  return Math.min(MAX_PUBLICOS_BRECHA, Math.max(2, basesEstudio, elegidas));
+}
+
 /**
- * El par al elegir la base `k`. Elegir como primera la que era la segunda las intercambia: la brecha cambia de signo y
- * las preguntas se conservan.
+ * Las bases al elegir la de la casilla `k` (de `casillas`). Elegir una que ya está en otra casilla las intercambia: la
+ * brecha cambia de signo y las preguntas se conservan. Vacío deja la casilla libre (la tercera y la cuarta son opcionales).
  */
-export function elegirEnPar(par: readonly string[], k: 0 | 1, base: string): [string, string] {
-  const next: [string, string] = [par[0] ?? "", par[1] ?? ""];
-  if (base && next[1 - k] === base) next[1 - k] = next[k];
+export function elegirEnPar(bases: readonly string[], k: number, base: string, casillas = 2): string[] {
+  const n = Math.max(casillas, bases.length, k + 1);
+  const next = Array.from({ length: Math.min(n, MAX_PUBLICOS_BRECHA) }, (_, i) => bases[i] ?? "");
+  const j = base ? next.findIndex((b, i) => i !== k && b === base) : -1;
+  if (j >= 0) next[j] = next[k];
   next[k] = base;
   return next;
+}
+
+/** Lo que se guarda en `bases`: sin las casillas vacías del final más allá de la segunda. */
+export function basesAGuardar(bases: readonly string[]): string[] {
+  const out = [...bases];
+  while (out.length > 2 && !out[out.length - 1]) out.pop();
+  return out;
 }
 
 /**

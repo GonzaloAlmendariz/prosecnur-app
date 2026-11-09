@@ -43,7 +43,8 @@ export function EntradaEmparejado({ args, scope, onCambio }: Props) {
   const escribir = (next: TemaPublicos[]) => onCambio({ ...temasAArgs(next), cruce: null, grupos: null });
 
   const texto = basesEstudio.length < 2 ? "El estudio tiene un solo público"
-    : bases.length !== 2 ? "Elige los dos públicos que se comparan"
+    : bases.length > 2 ? "El emparejado se revisa entre dos públicos"
+      : bases.length !== 2 ? "Elige los públicos que se comparan"
       : remoto.fase === "error" ? "No se pudo leer el emparejado"
         : remoto.fase === "lista" ? resumenEmparejado(conteo)
           : "Leyendo el emparejado";

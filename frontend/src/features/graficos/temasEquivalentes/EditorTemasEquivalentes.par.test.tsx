@@ -59,23 +59,47 @@ describe("Públicos que se comparan", () => {
     const rotulo = grupo && host.querySelector(`#${CSS.escape(grupo.getAttribute("aria-labelledby") ?? "")}`);
     expect(rotulo?.textContent).toContain("Públicos que se comparan");
     expect(rotulo?.querySelector("button[aria-label]")).toBeTruthy();
-    expect(selects().map((s) => s.value)).toEqual(["docentes", "estudiantes"]);
+    expect(selects().map((s) => s.value)).toEqual(["docentes", "estudiantes", ""]);
     // Sin temas y con el par elegido, el motor empareja las comunes: no pide temas.
     expect(host.textContent).not.toContain("Agrega al menos un tema.");
 
     elegir(selects()[1], "administrativos");
     expect(patches.at(-1)).toEqual({ bases: ["docentes", "administrativos"] });
-    expect(selects().map((s) => s.value)).toEqual(["docentes", "administrativos"]);
+    expect(selects().map((s) => s.value)).toEqual(["docentes", "administrativos", ""]);
 
     // Elegir como primero el que era el segundo los intercambia.
     elegir(selects()[0], "administrativos");
     expect(patches.at(-1)).toEqual({ bases: ["administrativos", "docentes"] });
   });
 
-  it("con tres públicos y sin par, pide elegirlo", () => {
+  it("con tres públicos y nada elegido, ofrece tres casillas vacías y pide elegir (no decide por el analista)", () => {
     act(() => root.render(<Tarjeta inicial={{ estilo: "resumen" }} />));
-    expect(selects().map((s) => s.value)).toEqual(["", ""]);
-    expect(host.textContent).toContain("Elige los dos públicos que se comparan.");
+    expect(selects().map((s) => s.value)).toEqual(["", "", ""]);
+    expect(host.textContent).toContain("Elige de dos a cuatro públicos que se comparan.");
+    expect([...selects()[2]!.options].map((o) => o.text)[0]).toBe("Tercer público (opcional)…");
+  });
+
+  it("el analista puede elegir un par o los tres", () => {
+    act(() => root.render(<Tarjeta inicial={{ estilo: "resumen" }} />));
+    elegir(selects()[0], "docentes");
+    elegir(selects()[1], "estudiantes");
+    expect(patches.at(-1)).toEqual({ bases: ["docentes", "estudiantes"] });
+    expect(host.textContent).not.toContain("Elige de dos a cuatro");
+    elegir(selects()[2], "administrativos");
+    expect(patches.at(-1)).toEqual({ bases: ["docentes", "estudiantes", "administrativos"] });
+    expect(selects().map((s) => s.value)).toEqual(["docentes", "estudiantes", "administrativos"]);
+    expect(host.textContent).not.toContain("Elige de dos a cuatro");
+    // Vaciar la tercera vuelve al par.
+    elegir(selects()[2], "");
+    expect(patches.at(-1)).toEqual({ bases: ["docentes", "estudiantes"] });
+  });
+
+  it("en el recetario la tercera base elegida se conserva aunque las preguntas aún no la tengan", () => {
+    act(() => root.render(<Tarjeta inicial={{ vars: { t1: ["docentes$p1", "estudiantes$p1"] } }} />));
+    expect(selects().map((s) => s.value)).toEqual(["docentes", "estudiantes", ""]);
+    elegir(selects()[2], "administrativos");
+    expect(selects().map((s) => s.value)).toEqual(["docentes", "estudiantes", "administrativos"]);
+    expect(host.textContent).toContain("falta la pregunta de Administrativos");
   });
 
   it("en el recetario no escribe `bases` (sin preguntas implicaría una regla que ese estilo rechaza)", () => {

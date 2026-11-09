@@ -13,8 +13,8 @@ export const EXPLICACION_TEMAS: Readonly<Record<TipoTemas, Explicacion>> = {
     ejemplo: "biblioteca, laboratorios, tutoría y bienestar (ejes) para docentes, estudiantes y administrativos (líneas), con el % de satisfechos.",
   },
   brecha: {
-    descripcion: "Por cada tema, un punto por base y la distancia entre los dos: la brecha es la primera base menos la segunda.",
-    comoSale: "una fila por tema con dos puntos unidos y, al margen, la diferencia en puntos.",
+    descripcion: "Por cada tema, un punto por base, de dos a cuatro: con dos, la brecha es la primera menos la segunda; con más, el mayor menos el menor.",
+    comoSale: "una fila por tema con sus puntos unidos y, al margen, la diferencia en puntos.",
     ejemplo: "% de satisfechos con la infraestructura: docentes 72 % y estudiantes 66 % dan una brecha de +6 pts.",
   },
   serie: {
