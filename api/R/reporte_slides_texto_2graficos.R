@@ -105,13 +105,46 @@
     base <- helpers$base_auto_de_elementos(els = els, sufijo_auto = presets$base$args$sufijo_auto %||% NULL,
                                            formato = presets$base$args$formato %||% "Base: %s")
   }
+  # Sin base automática de la lámina, la de cada gráfico (su nota al pie), sin repetir la misma: los gráficos ya no la
+  # escriben (`.texto2_respaldo_graficos`), así que es la única.
+  if (vacio(base)) {
+    notas <- .lam_bases_sin_repetir(unlist(lapply(els, function(e) { v <- (e$overrides %||% list())$nota_pie; if (vacio(v)) NULL else as.character(v)[1] })))
+    if (length(notas)) base <- .lam_bases_unir(notas)
+  }
   if (!is.null(contract$slots$base)) doc <- helpers$ph_with_strict(doc, if (vacio(base)) " " else as.character(base)[1], contract$slots$base)
   ft <- slots$footer %||% NULL
   if (vacio(ft) && is.function(helpers$note_from)) {
     e1 <- els[[1]]; e2 <- els[[2]]
     ft <- helpers$note_from(rendered[[1]], e1$overrides$nota_pie %||% e1$nota_pie %||%
                               helpers$note_from(rendered[[2]], e2$overrides$nota_pie %||% e2$nota_pie %||% NULL))
+    # La base ya va en su marcador: el pie no la repite.
+    if (!vacio(ft) && grepl("^\\s*Base:", as.character(ft)[1])) ft <- NULL
   }
   if (!is.null(contract$slots$footer)) doc <- helpers$ph_with_strict(doc, if (vacio(ft)) " " else as.character(ft)[1], contract$slots$footer)
   doc
+}
+
+#' Los gráficos de la plantilla de respaldo sin su propia base: la lámina la lleva una vez, en su marcador
+#'
+#' Se vuelven a dibujar desde el elemento sin la base por gráfico (`els0`); si el analista escribió su nota al pie, el
+#' elemento la conserva. La columna de casos por categoría (`mostrar_barra_extra`) repite la base cuando el gráfico no
+#' tiene cruce: se apaga, salvo que el analista la haya pedido.
+#' @param els0 Elementos sin la base por gráfico. @param rendered Lo ya dibujado (respaldo si el redibujo falla).
+#' @keywords internal
+.texto2_respaldo_graficos <- function(els0, rendered, anchos, altos, helpers) {
+  for (i in seq_along(els0)) {
+    el <- els0[[i]]
+    if (!inherits(el, "ppt_element")) next
+    cr <- trimws(as.character(unlist((el$overrides %||% list())$cruces %||% el$cruces %||% character(0))))
+    if (!any(!is.na(cr) & nzchar(cr)) && is.null((el$overrides %||% list())$mostrar_barra_extra)) {
+      el$overrides <- utils::modifyList(el$overrides %||% list(), list(mostrar_barra_extra = FALSE))
+    }
+    # La torta escribe "Base: N" por su cuenta si nadie le da nota: una nota vacía la calla (la del analista se respeta).
+    ya <- (el$overrides %||% list())$nota_pie
+    if (is.null(ya) || (length(ya) == 1L && is.na(ya))) el$overrides$nota_pie <- ""
+    p <- tryCatch(helpers$render_element(helpers$inject_title_override(el), ancho_slot = anchos[[i]], alto_slot = altos[[i]]),
+                  error = function(e) NULL)
+    if (!is.null(p)) rendered[[i]] <- p
+  }
+  rendered
 }

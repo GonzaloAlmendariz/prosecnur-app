@@ -59,7 +59,7 @@
     nombres <- setdiff(names(contract$slots), c("title", "base", "icon"))
   }
 
-  els <- list()
+  els <- list(); els0 <- list()   # els0: sin la base por gráfico (la plantilla de dos gráficos con texto la lleva al pie)
   for (nm in nombres) {
     el <- slots[[nm]] %||% NULL
     if (!inherits(el, "ppt_element")) {
@@ -68,6 +68,7 @@
       )
     }
     el <- helpers$inject_var_titulo(el)
+    els0[[nm]] <- el
     el <- helpers$base_por_grafico(el, presets, helpers$base_auto_from_element)
     els[[nm]] <- el
   }
@@ -151,6 +152,8 @@
   }
 
   doc <- helpers$add_slide_strict(doc, contract$layout)
+  # Dos gráficos con texto: una sola base por lámina, al pie, como en la nativa (reporte_slides_texto_2graficos.R).
+  if (stype %in% .TEXTO2_TIPOS) rendered <- .texto2_respaldo_graficos(els0, rendered, anchos, altos, helpers)
 
   title_slide <- slots$title %||% slide$title %||% NULL
   if (!is.null(title_slide) && nzchar(trimws(title_slide))) {

@@ -120,6 +120,11 @@ test_that("con el motor nativo apagado, la plantilla de respaldo conserva texto,
     fs <- .t2g_formas(ppt)
     expect_true(any(grepl("52 %", fs$texto, fixed = TRUE)))
     expect_true(any(grepl("^Base: 172", fs$texto)))
+    # Una sola base por lámina, en su marcador, como en la nativa: los gráficos no escriben la suya.
+    d <- tempfile(); utils::unzip(ppt, exdir = d)
+    xml <- paste(readLines(file.path(d, "ppt", "slides", "slide1.xml"), warn = FALSE, encoding = "UTF-8"), collapse = "")
+    expect_identical(lengths(regmatches(xml, gregexpr("<a:t>Base:", xml, fixed = TRUE))), 1L)
+    expect_identical(fs$nombre[grepl("^Base: 172", fs$texto)], sprintf("prosecnur:%s:base", if (identical(fn, p_slide_2_graficos_texto_izquierda)) "text_l2" else "text_r2"))
     expect_gte(sum(fs$nombre %in% c("pic") | grepl("graphicFrame|Picture|Marcador", fs$nombre) | is.na(fs$grupo) & fs$w > 2), 1L)
   }
 })
