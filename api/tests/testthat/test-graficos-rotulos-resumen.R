@@ -251,7 +251,8 @@ test_that("D2: el tope de la escala del resumen es 20 filas; por encima muestra 
   expect_length(e20$filas, 20L); expect_true(.lam_divergentes_resumen_cabe(e20))
   e22 <- attr(.rr_escala(11)$rendered[[1]], "pulso_espec")
   expect_length(e22$filas, 20L); expect_true(.lam_divergentes_resumen_cabe(e22))
-  expect_match(e22$texto_regla, "Por espacio, se muestran las primeras 20 de 22; el resto en otra lámina.", fixed = TRUE)
+  # Sin regla también se recorta por el Top Two Box que dibuja la lámina, de la más baja a la más alta (lead, 2026-11-09).
+  expect_match(e22$texto_regla, "Se muestran las 20 más bajas de 22 preguntas de escala; el resto en otra lámina.", fixed = TRUE)
   # Con pocas filas y rótulos cortos la geometría es la de siempre: 12 pt, filas de 0.52 in.
   corto <- e20; corto$filas <- paste("Pregunta", 1:6); corto$unidades <- e20$unidades[1:6, , drop = FALSE]; corto$cifras <- e20$cifras[1:6, , drop = FALSE]
   gc <- .lam_div_resumen_geom(corto)

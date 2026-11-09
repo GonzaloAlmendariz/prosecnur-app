@@ -577,7 +577,8 @@ p_barras_divergentes <- function(vars = NULL,
   ap <- .regla_preguntas_aplicar_render(el, "barras divergentes", preset = base_preset); el <- ap$el   # ADR 0135
   args_usuario <- utils::modifyList(as.list(base_preset %||% list()),
                                     as.list(el$overrides %||% list()))
-  el <- .divergentes_expandir_comodin(el, args_usuario, base_preset)   # `base$*` sin regla (graficos_escala_comodin.R)
+  el <- .divergentes_expandir_comodin(el, args_usuario, base_preset)   # sin regla: `base$*` y el recorte por la métrica (graficos_escala_comodin.R)
+  ap$texto <- .tope_espacio_unir(ap$texto, el$.texto_tope)
   # E3: la escala del resumen con más filas de las que caben muestra las que caben, en el orden de la regla, y lo dice.
   tope <- if (identical(args_usuario$estilo, "resumen")) .divergentes_tope_espacio(el$vars, el$regla) else list(vars = el$vars)
   el$vars <- tope$vars

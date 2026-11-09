@@ -4,7 +4,7 @@ source("setup-load-all.R")
 # regla, al contraste en una ranura (por lo que la ranura de verdad admite, no por un 14 fijo) y el pie del clásico cierra
 # con punto. Fixture: helper-tope-espacio-arte.R.
 
-test_that("P5: la escala con `base$*` y sin regla se dibuja y también se recorta, con la nota de siempre", {
+test_that("P5: la escala con `base$*` y sin regla se dibuja y se recorta por su Top Two Box, de la más baja a la más alta", {
   src <- .tea_fuentes()
   el <- p_barras_divergentes(vars = c("docentes$*", "estudiantes$*"), n_negativas = 2, incluir_neutro = FALSE, estilo = "resumen")
   avisos <- character(0)
@@ -15,7 +15,11 @@ test_that("P5: la escala con `base$*` y sin regla se dibuja y también se recort
   e <- attr(out$rendered[[1]], "pulso_espec")
   expect_identical(e$tipo, "divergentes")
   expect_length(e$filas, 20L)
-  expect_identical(e$texto_regla, "Por espacio, se muestran las primeras 20 de 23; el resto en otra lámina.")
+  expect_identical(e$texto_regla, "Se muestran las 20 más bajas de 23 preguntas de escala; el resto en otra lámina.")
+  # Por la métrica que dibuja la lámina, no por el instrumento: docentes va primero en `vars` y aun así sale p30_3
+  # (58,26 %); estudiantes p24_2 (58,06 %) y p24_9 (82 %) salen; p15_1 (57,39 %) se queda.
+  quedan <- e$filas
+  expect_true(any(grepl("p15_1", quedan))); expect_false(any(grepl("p30_3|p24_2|p24_9", quedan)))
   expect_true(any(grepl("23 filas no caben en la lámina: se muestran 20", avisos, fixed = TRUE)))
   expect_false(any(grepl("Sin datos", avisos, fixed = TRUE)))
 })
