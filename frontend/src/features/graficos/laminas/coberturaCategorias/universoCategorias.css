@@ -56,6 +56,11 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Los avisos y notas del bloque no traen el margen del navegador: el marco termina en su última línea (capacity-drift). */
+.pulso-f6-universo-base > p {
+  margin: 0;
+}
+
 .pulso-f6-universo-aviso:empty {
   display: none;
 }

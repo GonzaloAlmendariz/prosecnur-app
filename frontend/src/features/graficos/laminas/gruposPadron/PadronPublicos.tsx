@@ -83,7 +83,8 @@ export function PadronPublicos({ graficador, args, scope, onCambio, soloBases = 
         <p className="pulso-f6-dato-ayuda" role="note">Elige primero las preguntas: de ellas salen los públicos.</p>
       ) : (
         <Panel variant="subtle" noPadding className="pulso-f6-grupos-lista" data-qa-geometry-member>
-          <ul className="pulso-f6-grupos-filas" data-qa-scroll-owner="padron-publicos" aria-labelledby={`${id}-rotulo`}>
+          <ul className="pulso-f6-grupos-filas" data-qa-scroll-owner="padron-publicos" aria-labelledby={`${id}-rotulo`}
+            data-qa-geometry-group={soloBases ? "graficos/f6-bases-cobertura" : undefined} data-qa-geometry-contract={soloBases ? "equal" : undefined}>
             {bases.map((b) => {
               const nombre = nombrePublico(b);
               const incluido = !cobertura || publicoIncluido(args, b);
@@ -91,7 +92,7 @@ export function PadronPublicos({ graficador, args, scope, onCambio, soloBases = 
               const motivo = p?.motivo ?? "";
               const util = propuestaUtil(p, cobertura);
               return (
-                <li key={b} className={incluido ? "pulso-f6-grupos-fila is-incluido" : "pulso-f6-grupos-fila"}>
+                <li key={b} className={incluido ? "pulso-f6-grupos-fila is-incluido" : "pulso-f6-grupos-fila"} data-qa-geometry-member={soloBases ? "" : undefined}>
                   {cobertura ? (
                     <PulsoSwitch size="sm" label={nombre} checked={incluido} disabled={incluido && ultimoPublico(args, todas, b)}
                       onCheckedChange={(v) => onCambio(alternarPublico(args, todas, b, v))} />
