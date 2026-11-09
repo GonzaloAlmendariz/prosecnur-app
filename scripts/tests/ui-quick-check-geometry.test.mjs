@@ -437,6 +437,37 @@ const resetOnceOwnerPageHtml = sharedOwnerPageHtml
     });
   </script></body>`);
 
+// R11-6: un miembro de texto suelto con interlineado amplio y un botón de altura fija no son capacidad sin usar; un
+// párrafo con alto mínimo vacío sí.
+const textoYControlPageHtml = `<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <title>Texto y control</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; font: 16px sans-serif; }
+      section { display: grid; gap: 8px; width: 320px; margin: 16px; }
+      .nota { margin: 0; font-size: 11px; line-height: 2; }
+      .control { height: 36px; font-size: 12px; justify-self: start; }
+      .inflado { margin: 0; min-height: 60px; }
+    </style>
+  </head>
+  <body>
+    <main data-audit-ready="geometry">
+      <section data-qa-geometry-group="t/sin-deriva" data-qa-geometry-contract="intrinsic">
+        <div><strong>Cabeza</strong></div>
+        <p class="nota">Texto suelto con interlineado amplio.</p>
+        <button class="control" type="button"><span>Volver</span></button>
+      </section>
+      <section data-qa-geometry-group="t/con-deriva" data-qa-geometry-contract="intrinsic">
+        <div><strong>Cabeza</strong></div>
+        <p class="inflado">Texto con alto mínimo vacío.</p>
+      </section>
+    </main>
+  </body>
+</html>`;
+
 async function startFixtureServer() {
   const server = createServer((request, response) => {
     response.writeHead(200, { "content-type": "text/html; charset=utf-8", connection: "close" });
@@ -449,6 +480,8 @@ async function startFixtureServer() {
           ? undeclaredGeometryPageHtml
         : request.url === "/reset-once"
           ? resetOnceOwnerPageHtml
+        : request.url === "/texto-y-control"
+          ? textoYControlPageHtml
         : request.url === "/shared-owner"
           ? sharedOwnerPageHtml
         : request.url === "/zero-scroll"
@@ -865,4 +898,20 @@ test("ui-quick-check registra un scroll que algo resetea durante la espera y mid
   assert.deepEqual(audit.scrollReset, { expected: audit.maxScroll, observed: 0 });
   assert.equal(audit.scrollTopAtMeasure, audit.maxScroll);
   assert.equal(audit.lastContentReachable, true);
+});
+
+test("ui-quick-check no toma por capacidad el medio interlineado de un texto ni el interior de un botón (R11-6)", async (t) => {
+  const fixture = await startFixtureServer();
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "prosecnur-ui-geometry-"));
+  t.after(async () => {
+    await new Promise((resolve, reject) => fixture.server.close((error) => error ? reject(error) : resolve()));
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  });
+  const out = path.join(tempRoot, "texto");
+  await runQuickCheck({ url: fixture.url, out, route: "/texto-y-control" });
+  const report = JSON.parse(await fs.readFile(path.join(out, "report.json"), "utf8"));
+  const deriva = report.results[0].geometryIssues.filter((issue) => issue.type === "capacity-drift");
+  assert.deepEqual(deriva.map((issue) => issue.selector), ['[data-qa-geometry-group="t/con-deriva"]']);
+  const sana = report.results[0].geometryAudits.find((audit) => audit.selector.includes("t/sin-deriva"));
+  for (const member of sana.members) assert.ok(member.unusedInteriorBottom <= 2, `${member.className}: ${member.unusedInteriorBottom}`);
 });

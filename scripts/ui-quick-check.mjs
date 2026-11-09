@@ -2259,12 +2259,19 @@ async function inspectDomCajas(page, { projectMode, geometryGroups, geometryTole
         // un `<p role="status">` de dos líneas se reportaba con 13 px muertos
         // que no existen. El texto se mide con un Range, que sí lo ve; sólo si
         // tampoco hay texto se cae al borde.
+        // El Range da la caja del glifo, no la de la línea: con `line-height` mayor que la fuente quedaba como vacío
+        // la mitad del interlineado bajo la última línea (2 px en la nota de la barra extra, R11-6). Se suma.
         const textoBottom = () => {
           const range = document.createRange();
           range.selectNodeContents(member);
           const rects = Array.from(range.getClientRects());
-          return rects.length > 0 ? Math.max(...rects.map((r) => r.bottom)) : null;
+          const alto = Number.parseFloat(style.lineHeight);
+          const medioInterlineado = (r) => (Number.isFinite(alto) ? Math.max(0, (alto - r.height) / 2) : 0);
+          return rects.length > 0 ? Math.max(...rects.map((r) => r.bottom + medioInterlineado(r))) : null;
         };
+        // Un control (botón, campo) mide la altura de su familia y centra su rótulo: lo que queda bajo el rótulo no es
+        // capacidad sin usar (7 px en «Volver a la del informe», R11-6).
+        const esControl = member.matches("button, input, select, textarea, [role='button'], a.pulso-button");
         const contentBottom = contentNodes.length > 0
           ? Math.max(...contentNodes.map((node) => node.getBoundingClientRect().bottom))
           : (textoBottom() ?? rect.top + Number.parseFloat(style.paddingTop || "0"));
@@ -2297,7 +2304,7 @@ async function inspectDomCajas(page, { projectMode, geometryGroups, geometryTole
           },
           cardinality,
           contentBottom: round2(contentBottom),
-          unusedInteriorBottom: round2(Math.max(0, rect.bottom - paddingBottom - contentBottom)),
+          unusedInteriorBottom: esControl ? 0 : round2(Math.max(0, rect.bottom - paddingBottom - contentBottom)),
           exteriorGapBottom: round2(Math.max(0, groupRect.bottom - rect.bottom)),
           ownedCapacity,
           overflowOwner: scrollOwner ? {
