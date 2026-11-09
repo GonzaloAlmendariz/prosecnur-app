@@ -14,6 +14,7 @@
 # las barras, tolerancia) van al pie.
 
 .COBCAT_FILAS_MAX <- 14L
+.COBCAT_AIRE_FILAS_MIN <- 0.06   # aire mínimo entre las barras de dos categorías (in)
 .COBCAT_AIRE_DER <- 0.2   # aire entre la columna de la diferencia y el borde derecho de su rectángulo (in)
 
 #' ¿Es la especificación de la versión por categorías?
@@ -32,20 +33,32 @@
   bl <- espec$bloques
   filas <- sum(vapply(bl, function(b) NROW(b$filas), 0L))
   if (filas < 1L || filas > .COBCAT_FILAS_MAX) return(list(cabe = FALSE))
-  cabeceras <- if (length(bl) > 1L) length(bl) else 0L
   ley <- if (pg) 0.4 else 0.32
   hcab <- if (pg) 0.4 else 0.32
-  # La barra lleva el grosor de la casa (`.std_piso_panel_in`, 0.66 cm: R5 de verificar_mazo), nunca menos: la fila pide
-  # las dos barras más su aire. Si las filas no caben así, van las primeras que caben y la lámina lo dice
-  # (`.lam_rr_menos_filas`, como `.lam_rr_filas`); con menos de la mitad, la lámina va dibujada.
-  g_min <- .std_piso_panel_in(); fila_min <- 2 * g_min + 0.15
-  disponible <- h - ley - hcab * cabeceras - 0.05
-  n_total <- filas
-  if (disponible / filas < fila_min) {
-    filas <- as.integer(floor(disponible / fila_min + 1e-9))
-    if (filas < max(2L, ceiling(n_total / 2))) return(list(cabe = FALSE))
+  # La barra lleva el grosor de la casa (`.std_piso_panel_in`, 0.66 cm: R5 de verificar_mazo), nunca menos. Primero baja
+  # el aire entre filas hasta el mínimo de la casa; si ni así caben, van las bases ENTERAS que quepan (las categorías de
+  # una base suman el 100 % y se leen juntas: nunca una parte de una base) y la lámina dice cuáles van en otra. Si no cabe
+  # ni una base entera, la lámina va dibujada (con su aviso).
+  g_min <- .std_piso_panel_in(); fila_min <- 2 * g_min + 0.03 + .COBCAT_AIRE_FILAS_MIN
+  por_bloque <- vapply(bl, function(b) NROW(b$filas), 0L)
+  cabe_m <- function(m) {
+    cab <- if (length(bl) > 1L) m else 0L
+    (h - ley - hcab * cab - 0.05) / sum(por_bloque[seq_len(m)]) >= fila_min - 1e-9
   }
-  vis <- .lam_cobcat_filas_visibles(vapply(bl, function(b) NROW(b$filas), 0L), filas)
+  m <- length(bl)
+  while (m >= 1L && !cabe_m(m)) m <- m - 1L
+  if (m < 1L) {
+    .pulso_aviso(.aviso_en_lamina(paste0("Por espacio, ninguna base de la cobertura por categorías cabe entera con barras del ",
+                                         "grosor de la casa y el gráfico va como imagen; para verlo nativo, usa una lámina de un ",
+                                         "gráfico o una base por gráfico.")))
+    return(list(cabe = FALSE))
+  }
+  omitidos <- if (m < length(bl)) vapply(bl[-seq_len(m)], function(b) as.character(b$publico %||% b$base)[1], "") else character(0)
+  mostrados <- vapply(bl[seq_len(m)], function(b) as.character(b$publico %||% b$base)[1], "")
+  cabeceras <- if (length(bl) > 1L) m else 0L
+  vis <- c(por_bloque[seq_len(m)], rep(0L, length(bl) - m))
+  bl <- bl[seq_len(m)]; filas <- sum(vis)
+  disponible <- h - ley - hcab * cabeceras - 0.05
   hrow <- min(max(fila_min, if (pg) 1.0 else 0.6), disponible / filas)
   rotulos <- unlist(lapply(bl, function(b) b$filas$etiqueta))
   ns <- unlist(lapply(bl, function(b) b$filas$texto_n))
@@ -69,9 +82,13 @@
   xd <- x + w - wd - .COBCAT_AIRE_DER
   wb <- xd - 0.1 - wv - xb
   g <- max(g_min, min(if (pg) 0.3 else 0.2, hrow * 0.3))
-  list(cabe = hrow >= fila_min - 1e-9 && wb >= (if (pg) 3 else 1.2),
+  cabe <- hrow >= fila_min - 1e-9 && wb >= (if (pg) 3 else 1.2)
+  if (!cabe) .pulso_aviso(.aviso_en_lamina(paste0("Por espacio, las barras de la cobertura por categorías no caben a lo ancho junto a ",
+                                                  "sus rótulos y el gráfico va como imagen; para verlo nativo, usa una lámina de un ",
+                                                  "gráfico o rótulos más cortos.")))
+  list(cabe = cabe,
        x = x, y = y, w = w, h = h, ley = ley, hcab = hcab, hrow = hrow, filas = filas, cabeceras = cabeceras,
-       k = filas, n_total = n_total, visibles = vis,
+       visibles = vis, mostrados = mostrados, omitidos = omitidos,
        size_r = size_r, size_n = size_n, size_v = size_v, size_d = size_d, size_ley = if (pg) 11 else 10.5,
        wl = wl, wn = wn, wd = wd, wv = wv, xl = xl, xn = xn, xb = xb, xd = xd, wb = wb, g = g)
 }
@@ -81,6 +98,7 @@
 #' @keywords internal
 .lam_cobcat_dibujar <- function(lz, espec, ge) {
   azul <- .std_color("azul"); suave <- .std_color("texto_suave"); tenue <- .std_color("texto_tenue")
+  .lam_cobcat_omitidos_nota(ge)   # bases que van en otra lámina: al pie
   alto <- ge$ley + ge$hcab * ge$cabeceras + ge$hrow * ge$filas
   y <- ge$y + max(0, ge$h - 0.05 - alto) / 2
   # Leyenda sobre el área de barras y el encabezado de la diferencia sobre su columna.
@@ -137,12 +155,17 @@
   invisible(y)
 }
 
-#' Filas que se dibujan en cada bloque: las primeras `k`, bloque por bloque en su orden
+#' Bases que van en otra lámina: lo dice al pie de la lámina y en el aviso ("Por espacio, se muestran Estudiantes y
+#' Docentes; Administrativos va en otra lámina")
 #' @keywords internal
-.lam_cobcat_filas_visibles <- function(por_bloque, k) {
-  out <- integer(length(por_bloque)); quedan <- k
-  for (j in seq_along(por_bloque)) { out[j] <- min(por_bloque[j], max(0L, quedan)); quedan <- quedan - out[j] }
-  out
+.lam_cobcat_omitidos_nota <- function(ge) {
+  if (!length(ge$omitidos)) return(invisible(NULL))
+  y <- function(x) if (length(x) <= 1L) x else paste(paste(x[-length(x)], collapse = ", "), "y", x[length(x)])
+  nota <- sprintf("Por espacio, se muestra%s %s; %s va%s en otra lámina", if (length(ge$mostrados) > 1L) "n" else "", y(ge$mostrados),
+                  y(ge$omitidos), if (length(ge$omitidos) > 1L) "n" else "")
+  .LAM_RR_PIE$notas <- unique(c(.LAM_RR_PIE$notas, nota))
+  .pulso_aviso(.aviso_en_lamina(nota))
+  invisible(nota)
 }
 
 #' ¿La lámina de página entera cabe? Hasta 14 categorías, filas de 0.4 in y 3 in de barras
@@ -170,11 +193,6 @@
   lz <- .lam_lienzo()
   ge <- .lam_cobcat_pagina_geo(espec)
   .lam_cobcat_dibujar(lz, espec, ge)
-  if (isTRUE(ge$k < ge$n_total)) {   # filas de menos: al pie y en el aviso
-    nota <- sprintf("Por espacio, se muestran las %d primeras de %d categorías", ge$k, ge$n_total)
-    .LAM_RR_PIE$notas <- unique(c(.LAM_RR_PIE$notas, nota))
-    .pulso_aviso(.aviso_en_lamina(paste0(nota, "; para verlas todas, divide la variable en dos láminas.")))
-  }
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:cobertura")
   doc <- .lam_pie(doc, .lam_rr_pie_menos_filas(.lam_cobcat_pie(base, espec)), folio)
   list(doc = por_lamina(doc), partes = 1L)

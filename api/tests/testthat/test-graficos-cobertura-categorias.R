@@ -250,11 +250,12 @@ test_that("render: a página entera sale nativo, con barras de muestra y univers
   expect_identical(.pptx_lamina_estado(xml), "nativa")
   expect_true(grepl('name="prosecnur:grafico:cobertura"', xml, fixed = TRUE))
   expect_false(grepl("<p:pic>", xml, fixed = TRUE))
-  expect_identical(sum(nm == 'name="cobertura:barra_muestra"'), 4L)   # 1, 2, 3 de estudiantes (4 tiene n = 0) y 1 de docentes
-  # Con las barras al grosor de la casa no caben las seis filas: la última (2 de docentes) sale y la lámina lo dice.
-  expect_identical(sum(nm == 'name="cobertura:barra_universo"'), 4L)  # 1, 2, 4 de estudiantes y 1 de docentes
-  expect_true(grepl("Por espacio, se muestran las 5 primeras de 6 categorías", tx, fixed = TRUE))
-  expect_identical(sum(nm == 'name="cobertura:publico"'), 2L)
+  # Con las barras al grosor de la casa no caben las seis filas de las dos bases: va Estudiantes ENTERA y Docentes, a otra
+  # lámina (las categorías de una base suman el 100 %: nunca una parte de una base).
+  expect_identical(sum(nm == 'name="cobertura:barra_muestra"'), 3L)   # 1, 2, 3 de estudiantes (4 tiene n = 0)
+  expect_identical(sum(nm == 'name="cobertura:barra_universo"'), 3L)  # 1, 2, 4 de estudiantes
+  expect_true(grepl("Por espacio, se muestra Estudiantes; Docentes va en otra lámina", tx, fixed = TRUE))
+  expect_identical(sum(nm == 'name="cobertura:publico"'), 1L)   # Docentes va en otra lámina
   for (t in c("Muestra", "Universo", "Diferencia (pts)", "Estudiantes", "Docentes", "95 respuestas válidas", "Primer ciclo",
               "n = 50", "52.6%", "45.0%", "+7.6", "-25.0", "0.0%", "sin dato", "Base: respuestas válidas, Estudiantes 95 y Docentes 60",
               "Universo: cifras ingresadas por el analista")) {
@@ -312,18 +313,24 @@ test_that("la columna de la diferencia queda dentro de su rectángulo, con aire 
   }
 })
 
-test_that("las barras llevan el grosor de la casa; si las filas no caben, van las primeras y se dice (R5, 2026-11-09)", {
-  e <- .cc_espec("ciclo", bases = "estudiantes", universo = .cc_univ())
-  n <- sum(vapply(e$bloques, function(b) NROW(b$filas), 0L))
-  holgada <- .lam_cobcat_geo(e, 0.5, 2, 6.0, 4.2, "ranura")
-  expect_true(holgada$cabe); expect_identical(holgada$k, n)
+test_that("las barras llevan el grosor de la casa; si no caben, van bases enteras y nunca una parte de una base", {
+  e <- .cc_espec("ciclo", bases = c("estudiantes", "docentes"), universo = .cc_univ())
+  n <- vapply(e$bloques, function(b) NROW(b$filas), 0L)
+  holgada <- .lam_cobcat_geo(e, 0.5, 2, 6.0, 5.0, "ranura")
+  expect_true(holgada$cabe); expect_identical(holgada$visibles, n); expect_length(holgada$omitidos, 0L)
   expect_gte(holgada$g, .std_piso_panel_in() - 1e-9)
-  justa <- .lam_cobcat_geo(e, 0.5, 2, 6.0, 2.2, "ranura")                    # no caben las cuatro filas
+  justa <- .lam_cobcat_geo(e, 0.5, 2, 6.0, 3.2, "ranura")                    # caben las filas de una sola base
   expect_true(justa$cabe)
-  expect_lt(justa$k, n); expect_identical(sum(justa$visibles), justa$k)
   expect_gte(justa$g, .std_piso_panel_in() - 1e-9)                           # nunca más delgadas
-  expect_false(.lam_cobcat_geo(e, 0.5, 2, 6.0, 1.2, "ranura")$cabe)          # menos de la mitad: va dibujada
+  # Cada base va entera o no va.
+  expect_true(all(justa$visibles == 0L | justa$visibles == n))
+  expect_identical(justa$visibles, c(n[1], 0L)); expect_identical(justa$omitidos, e$bloques[[2]]$publico)
+  for (h in seq(1.5, 5, by = 0.1)) {
+    ge <- .lam_cobcat_geo(e, 0.5, 2, 6.0, h, "ranura")
+    if (isTRUE(ge$cabe)) expect_true(all(ge$visibles == 0L | ge$visibles == n), label = paste("alto", h))
+  }
+  expect_false(.lam_cobcat_geo(e, 0.5, 2, 6.0, 1.6, "ranura")$cabe)          # ni una base entera: va dibujada
   .LAM_RR_PIE$notas <- NULL
-  expect_message(.lam_rr_dibujar(.lam_lienzo(), e, .lam_rr_geo(e, 0.5, 2, 6.0, 2.2)), "Por espacio")
-  expect_match(.lam_rr_pie_menos_filas("Base: 95"), sprintf("muestra las %d primeras de 4", justa$k), fixed = TRUE)
+  expect_message(.lam_rr_dibujar(.lam_lienzo(), e, .lam_rr_geo(e, 0.5, 2, 6.0, 3.2)), "Docentes va en otra lámina")
+  expect_match(.lam_rr_pie_menos_filas("Base: 95"), "Por espacio, se muestra Estudiantes; Docentes va en otra lámina", fixed = TRUE)
 })
