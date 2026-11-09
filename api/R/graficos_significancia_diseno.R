@@ -54,6 +54,24 @@
   V
 }
 
+#' Pesos llevados a media 1 entre los casos que entran a la comparación, dentro de cada unidad
+#'
+#' La z toma la suma de pesos de un grupo como su tamaño de muestra. Con pesos de expansión (o cualquier peso que no
+#' promedie 1) esa suma no es un n: pesos ×100 darían un p cien veces más chico. Se normaliza sobre los casos válidos
+#' con peso positivo de la fila, por unidad (la base de cada público entre públicos; toda la comparación en una base).
+#' Fuera de esos casos el peso vale 0. La varianza de Rao-Scott no lo necesita: es invariante a la escala del peso.
+#' @keywords internal
+.sig_pesos_media_uno <- function(w, dentro, unidad = NULL) {
+  out <- numeric(length(w))
+  ok <- dentro & is.finite(w) & w > 0
+  if (!any(ok)) return(out)
+  u <- if (is.null(unidad)) rep("1", length(w)) else as.character(unidad)
+  u[is.na(u)] <- ".sin_unidad"
+  media <- tapply(w[ok], u[ok], mean)
+  out[ok] <- w[ok] / as.numeric(media[u[ok]])
+  out
+}
+
 #' Contrastes de proporciones entre todos los pares de grupos, por fila
 #'
 #' @param Y Matriz casos × filas con 1/0, y `NA` donde el caso no está en la base de esa fila.
@@ -62,11 +80,13 @@
 #'   prueba coincide con la de muestreo aleatorio simple con reemplazo.
 #' @param w Peso de cada caso (1 si falta).
 #' @param prueba `"rao_scott"` (varianza del diseño) o `"z"` (la de las tablas de siempre: proporción combinada).
+#' @param unidad_pesos Unidad dentro de la cual el peso se lleva a media 1 para la base de la z y de la varianza de
+#'   muestreo aleatorio simple (una por caso: la base de cada público entre públicos). NULL: toda la comparación.
 #' @return `list(celdas, pares, gl, conglomerados)`. `celdas` tiene una fila por (fila, grupo) con la proporción, la base
 #'   en casos y los conglomerados con casos. `pares` una fila por (fila, a, b) con a el de mayor proporción.
 #' @keywords internal
 .sig_contrastes <- function(Y, g, grupos = NULL, cluster = NULL, estrato = NULL, w = NULL,
-                            prueba = c("rao_scott", "z")) {
+                            prueba = c("rao_scott", "z"), unidad_pesos = NULL) {
   prueba <- match.arg(prueba)
   Y <- as.matrix(Y)
   storage.mode(Y) <- "double"
@@ -99,6 +119,8 @@
     Wg <- colSums(I * w)
     yy <- ifelse(en_base, y, 0)
     p <- ifelse(Wg > 0, colSums(I * w * yy) / Wg, NA_real_)
+    # Base de la z: la suma de pesos llevados a media 1. La proporción no cambia (no depende de la escala del peso).
+    Wn <- colSums(I * .sig_pesos_media_uno(w, en_base & rowSums(I) > 0, unidad_pesos))
     n_casos <- colSums(I)
     cl_con_casos <- vapply(seq_len(K), function(j) length(unique(cl[I[, j] > 0])), integer(1))
     celdas[[k]] <- list(fila = rep(filas[[k]], K), grupo = grupos, p = unname(p), n = unname(n_casos),
@@ -114,8 +136,8 @@
       U[is.na(U)] <- 0
       V <- .sig_vcov_conglomerados(U, estrato_cl)
     } else {
-      # Prueba z: grupos independientes, varianza binomial de cada proporción.
-      V <- diag(ifelse(Wg > 0 & is.finite(p), p * (1 - p) / pmax(Wg, 1e-12), 0), nrow = K)
+      # Prueba z: grupos independientes, varianza binomial de cada proporción sobre la base en pesos de media 1.
+      V <- diag(ifelse(Wn > 0 & is.finite(p), p * (1 - p) / pmax(Wn, 1e-12), 0), nrow = K)
     }
     dimnames(V) <- list(grupos, grupos)
     vcovs[[filas[[k]]]] <- list(p = stats::setNames(unname(p), grupos), V = V)
@@ -125,7 +147,7 @@
       a <- if (p[[i]] >= p[[j]]) i else j
       b <- if (a == i) j else i
       dif <- p[[a]] - p[[b]]
-      var_mas <- p[[a]] * (1 - p[[a]]) / Wg[[a]] + p[[b]] * (1 - p[[b]]) / Wg[[b]]
+      var_mas <- p[[a]] * (1 - p[[a]]) / Wn[[a]] + p[[b]] * (1 - p[[b]]) / Wn[[b]]
       if (identical(prueba, "rao_scott")) {
         v <- V[a, a] + V[b, b] - 2 * V[a, b]
         se <- sqrt(max(v, 0))
@@ -135,8 +157,8 @@
         deff <- if (var_mas > 0) v / var_mas else NA_real_
       } else {
         # La z de las tablas de siempre (`comparar_columnas_sig`): proporción combinada en el error estándar.
-        ppool <- (p[[a]] * Wg[[a]] + p[[b]] * Wg[[b]]) / (Wg[[a]] + Wg[[b]])
-        se0 <- sqrt(ppool * (1 - ppool) * (1 / Wg[[a]] + 1 / Wg[[b]]))
+        ppool <- (p[[a]] * Wn[[a]] + p[[b]] * Wn[[b]]) / (Wn[[a]] + Wn[[b]])
+        se0 <- sqrt(ppool * (1 - ppool) * (1 / Wn[[a]] + 1 / Wn[[b]]))
         estad <- if (se0 > 0) dif / se0 else NA_real_
         pv <- if (se0 > 0) 2 * stats::pnorm(-abs(estad)) else if (dif == 0) 1 else NA_real_
         # Como en la tabla: una columna en 0% o 100% queda fuera de la prueba («.a»).

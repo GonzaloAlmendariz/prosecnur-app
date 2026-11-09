@@ -50,9 +50,10 @@
 #' @param filas Filas a probar (rótulos de `ind$Y`).
 #' @param binaria TRUE si la pregunta es de una opción con dos categorías sustantivas: la segunda fila se marca como
 #'   duplicada para la familia de BH (dictamen §3.3: 160 pruebas repetidas en la familia del plan).
+#' @param unidad_pesos Unidad de normalización del peso para la z (`.sig_contrastes`); NULL: toda la comparación.
 #' @keywords internal
 .sig_evaluar <- function(ind, g, grupos, etiquetas_grupos = grupos, cluster = NULL, estrato = NULL, regla, filas,
-                         binaria = FALSE) {
+                         binaria = FALSE, unidad_pesos = NULL) {
   grupos <- as.character(grupos)
   etiquetas_grupos <- stats::setNames(as.character(etiquetas_grupos), grupos)
   filas <- intersect(as.character(filas), colnames(ind$Y))
@@ -70,14 +71,15 @@
 
   Y <- ind$Y[, filas, drop = FALSE]
   if (!frente_al_resto) {
-    res <- .sig_contrastes(Y, g, grupos, cluster, estrato, ind$w, prueba = prueba)
+    res <- .sig_contrastes(Y, g, grupos, cluster, estrato, ind$w, prueba = prueba, unidad_pesos = unidad_pesos)
     pares <- res$pares
   } else {
     # Con más de `max_letras` grupos (D7), cada grupo frente al resto de los casos.
-    res <- .sig_contrastes(Y, g, grupos, cluster, estrato, ind$w, prueba = prueba)
+    res <- .sig_contrastes(Y, g, grupos, cluster, estrato, ind$w, prueba = prueba, unidad_pesos = unidad_pesos)
     trozos <- lapply(grupos, function(gr) {
       g2 <- ifelse(!is.na(g) & g == gr, gr, ifelse(is.na(g), NA_character_, ".resto"))
-      r <- .sig_contrastes(Y, g2, c(gr, ".resto"), cluster, estrato, ind$w, prueba = prueba)
+      r <- .sig_contrastes(Y, g2, c(gr, ".resto"), cluster, estrato, ind$w, prueba = prueba,
+                           unidad_pesos = unidad_pesos)
       r$pares
     })
     pares <- do.call(rbind, trozos)

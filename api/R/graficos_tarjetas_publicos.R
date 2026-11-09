@@ -10,7 +10,8 @@
 #   - grano: la fila de cada base. Cada público es un estrato propio (y el estrato de la regla, si la base lo trae, se
 #     anida dentro de su público). Los conglomerados se toman de la columna de la regla si la base la trae, prefijados con
 #     el nombre de la base; si no, cada caso es su propio conglomerado (muestreo aleatorio simple, sin fpc);
-#   - pesos de cada base (`.radar_mb_pesos`, los mismos del gráfico); denominador: respuestas válidas de cada base;
+#   - pesos de cada base (`.radar_mb_pesos`, los mismos del gráfico); denominador: respuestas válidas de cada base.
+#     Para la base de la z el peso se lleva a media 1 dentro de cada público (la proporción no cambia);
 #   - grados de libertad de Rao-Scott: el MÍNIMO del par (conglomerados menos estratos de cada público), no los del
 #     apilado entero, que inflarían la confianza del público chico;
 #   - pares de públicos, nunca «frente al resto» (el resto lo dominaría el público más grande); sin fila Total;
@@ -236,8 +237,9 @@
   g <- unlist(lapply(activas, function(b) rep(b, length(datos[[b]]$y))), use.names = FALSE)
   ind <- list(Y = matrix(pila("y"), ncol = 1L, dimnames = list(NULL, tema)), w = pila("w"), tipo = "so")
   r1 <- regla; r1$max_letras <- max(length(activas), as.integer(regla$max_letras %||% 6L))   # pares, nunca frente al resto
+  # El peso se lleva a media 1 dentro de cada público: la z no toma la suma de pesos de una base como su n.
   ev <- .sig_evaluar(ind, g, activas, unname(etiquetas[activas]), cluster = pila("cl"), estrato = pila("st"),
-                     regla = r1, filas = tema)
+                     regla = r1, filas = tema, unidad_pesos = g)
   if (identical(regla$prueba, "rao_scott") && !is.null(ev$pares) && nrow(ev$pares)) {
     # Grados de libertad del par: el mínimo de los dos públicos (los del apilado los inflarían).
     df <- pmax(1L, pmin(out$gl[ev$pares$a], out$gl[ev$pares$b]))
