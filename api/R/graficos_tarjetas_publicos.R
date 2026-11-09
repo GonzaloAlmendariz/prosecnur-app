@@ -55,6 +55,13 @@
        indicador = if (is.na(ind) || !nzchar(ind)) NULL else ind, cortos = cortos, todas = FALSE, modo = "panel")
 }
 
+#' Texto de un argumento (primer elemento, recortado) o NULL si viene vacío
+#' @keywords internal
+.tpub_texto_o_null <- function(x) {
+  x <- trimws(as.character(unlist(x %||% ""))[1])
+  if (is.na(x) || !nzchar(x)) NULL else x
+}
+
 # --- Temas y su equivalencia -------------------------------------------------------------------------------------
 
 #' Refs de un tema como vector nombrado base -> variable (NULL si alguna no es `base$var`)
@@ -146,6 +153,21 @@
     out[[bases[i]]] <- cod_de(opciones[[i]])[match(norm(etq), norm(etq_de(opciones[[i]])))]
   }
   list(ok = TRUE, codigos = out, motivo = NULL)
+}
+
+#' Indicador que se probó en un tema: los rótulos de los códigos del corte en la escala del primer público
+#'
+#' «De acuerdo + Totalmente de acuerdo». NULL si la escala no describe esos códigos.
+#' @keywords internal
+.tpub_indicador_tema <- function(te, corte, sources) {
+  if (!length(te$bases)) return(NULL)
+  b <- te$bases[[1]]
+  op <- tryCatch(.equiv_escala_opciones((sources$inst_sources %||% list())[[b]], te$refs[[b]]), error = function(e) list())
+  if (!length(op)) return(NULL)
+  cod <- vapply(op, function(o) as.character(o$codigo)[1], character(1))
+  etq <- vapply(op, function(o) as.character(o$etiqueta)[1], character(1))
+  k <- which(cod %in% as.character(.radar_mb_codigos(corte)))
+  if (!length(k)) NULL else paste(etq[k], collapse = " + ")
 }
 
 # --- Evaluación de un tema ---------------------------------------------------------------------------------------
@@ -407,7 +429,7 @@
   gr <- .tpub_grupos(te)
   fila <- te$tema
   comun <- list(tipo = .TPUB_CRUCE, sin_total = TRUE, total = NA_real_, cifra_total = NA_character_,
-                indicador = opt$indicador %||% NULL,
+                indicador = te$indicador %||% opt$indicador %||% NULL,
                 fila_es_titulo = nzchar(titulo) && .lam_mismo_texto(fila, titulo),
                 evaluacion = list(grupos = gr, pares = pares, motivo = te$motivo))
   if (length(te$bases) == 2L) {
@@ -471,10 +493,11 @@
 #' @param temas Salida de `.tpub_temas_declarados`.
 #' @param referencia Cifras del gráfico: lista `tema -> c(base = valor)`; NULL no concilia (sólo la familia).
 #' @param familia Tabla de BH entre públicos.
+#' @param corte_etiqueta Nombre del indicador en el gráfico; sin él ni `opt$indicador`, el de los rótulos del corte.
 #' @return `list(tarjetas, total, tipo, opcion, temas, rotulos_cruce, regla, nota, familia)`.
 #' @keywords internal
 .tpub_calcular <- function(temas, corte, sources, regla, opt = list(), familia = NULL, filtros = list(), referencia = NULL,
-                           titulo = "") {
+                           titulo = "", corte_etiqueta = NULL) {
   cortos <- opt$cortos %||% character(0)
   if (length(opt$temas)) temas <- Filter(function(x) x$tema %in% opt$temas, temas)
   ev <- lapply(temas, function(x) {
@@ -489,6 +512,9 @@
   })
   ev <- .tpub_veredictos(ev, regla, familia)
   fam <- attr(ev, "familia")
+  # Qué se probó: el indicador de la lámina; si no lo nombra, el del gráfico; si tampoco, los rótulos del corte.
+  fijo <- opt$indicador %||% .tpub_texto_o_null(corte_etiqueta)
+  for (k in seq_along(ev)) ev[[k]]$indicador <- fijo %||% .tpub_indicador_tema(ev[[k]], corte, sources)
   ev <- lapply(ev, function(te) .tpub_conciliar(te, if (is.null(referencia)) NULL else referencia[[te$tema]] %||% numeric(0)))
   tarjetas <- Filter(Negate(is.null), lapply(ev, .tpub_tarjeta, regla = regla, opt = opt, titulo = titulo))
   if (length(tarjetas)) {
@@ -510,6 +536,7 @@
 #'   pares: [{a, b, p_a, p_b, dif_pp, p_ajustado, veredicto}], nota}`.
 #' @keywords internal
 .tpub_tema_json <- function(te, regla, nota = NULL, indicador = NULL) {
+  indicador <- te$indicador %||% indicador
   gr <- if (length(te$bases)) .tpub_grupos(te) else NULL
   pr <- if (length(te$bases) >= 2L) .tpub_pares(te, regla$alfa %||% 0.05) else NULL
   na <- function(x) if (length(x) && !is.na(x)) x else NA

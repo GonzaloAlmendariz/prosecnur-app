@@ -81,7 +81,7 @@
     tt <- .tpub_temas_de_elemento(el, sources, ctx$equivalencias_publicos)
     .tpub_calcular(tt$temas, el$corte, sources, regla, opt, familia = ctx$familia_publicos,
                    filtros = el$filtros %||% list(), referencia = .tpub_referencia_render(el, p, espec, tt$vars_render),
-                   titulo = titulo)
+                   titulo = titulo, corte_etiqueta = el$corte_etiqueta)
   }, error = function(e) {
     .tpub_aviso("no se pudieron calcular en \"", titulo, "\" (", conditionMessage(e), ").")
     NULL
@@ -119,7 +119,7 @@
     tt <- .tpub_temas_de_elemento(el, sources, equiv)
     ref <- .tpub_referencia_inspector(el, tt$vars_render, sources)
     .tpub_calcular(tt$temas, el$corte, sources, regla, opt, familia = familia, filtros = el$filtros %||% list(),
-                   referencia = ref, titulo = titulo)
+                   referencia = ref, titulo = titulo, corte_etiqueta = el$corte_etiqueta)
   }, error = function(e) e)
   if (inherits(res, "error")) {
     error_id <- substr(digest::digest(list(Sys.time(), base$slide_id), algo = "xxhash32"), 1, 8)

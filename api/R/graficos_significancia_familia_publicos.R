@@ -14,7 +14,7 @@
 #' públicos o el panorama (graficos_tarjetas_publicos_radar_panorama.R)
 #'
 #' Lee la forma del plan guardado (`payload` con `graficador` y `args`) o la ya construida (`slots$plot`).
-#' @return `list(vars, corte, filtros, regla, bases, .element_type)` o NULL si la lámina no aplica.
+#' @return `list(vars, corte, filtros, regla, bases, corte_etiqueta, .element_type)` o NULL si la lámina no aplica.
 #' @keywords internal
 .tpub_elemento_de_lamina <- function(slide) {
   meta <- slide$meta %||% (slide$payload %||% list())$meta %||% list()
@@ -25,14 +25,14 @@
   if (is.list(el) && identical(el$.element_type, "dumbbell")) {
     if (!is.null(el$cruce)) return(NULL)
     return(list(vars = el$vars, corte = el$corte, filtros = el$filtros %||% list(), regla = el$regla, bases = el$bases,
-                .element_type = "dumbbell"))
+                corte_etiqueta = .tpub_texto_o_null(el$corte_etiqueta), .element_type = "dumbbell"))
   }
   grafs <- Filter(function(z) is.list(z) && identical(as.character(z$graficador %||% "")[1], "p_dumbbell"), slide$payload %||% list())
   if (!length(grafs)) return(NULL)
   a <- grafs[[1]]$args %||% list()
   if (!is.null(a$cruce) && nzchar(trimws(as.character(a$cruce)[1]))) return(NULL)
   list(vars = a$vars, corte = a$corte, filtros = a$filtros %||% list(), regla = a$regla, bases = a$bases,
-       .element_type = "dumbbell")
+       corte_etiqueta = .tpub_texto_o_null(a$corte_etiqueta), .element_type = "dumbbell")
 }
 
 #' Temas que dibuja la lámina (regla de preguntas aplicada) y su declaración

@@ -25,9 +25,9 @@
 
 #' Forma común del elemento del radar o del panorama
 #' @keywords internal
-.tpub_el_comun <- function(el) {
+.tpub_el_comun <- function(el, corte_etiqueta = el$corte_etiqueta) {
   list(vars = el$vars, corte = el$corte, filtros = el$filtros %||% list(), regla = el$regla, bases = NULL,
-       .element_type = el$.element_type)
+       corte_etiqueta = .tpub_texto_o_null(corte_etiqueta), .element_type = el$.element_type)
 }
 
 #' Elemento del radar por públicos o del panorama de una lámina (slots ya construidos o payload del plan guardado)
@@ -50,7 +50,7 @@
       p_panorama(vars = a$vars, corte = a$corte, filtros = a$filtros %||% list(), regla = a$regla)
     }
   }, error = function(e) NULL)
-  if (is.null(el)) NULL else .tpub_el_comun(el)
+  if (is.null(el)) NULL else .tpub_el_comun(el, .tpub_texto_o_null(el$corte_etiqueta) %||% a$corte_etiqueta)
 }
 
 # --- Temas -------------------------------------------------------------------------------------------------------
