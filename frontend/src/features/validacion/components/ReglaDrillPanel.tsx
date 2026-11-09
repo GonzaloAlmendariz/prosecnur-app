@@ -60,9 +60,9 @@ const ROLE_META: Record<RoleKey, Omit<RoleSection, "items">> = {
   target: {
     key: "target",
     title: "Respuesta que revisamos",
-    hint: "Es la respuesta que esta regla evalua directamente.",
+    hint: "Es la respuesta que esta regla evalúa directamente.",
     eyebrow: "Respuesta central",
-    description: "Es el dato que debe quedar correcto segun el instrumento.",
+    description: "Es el dato que debe quedar correcto según el instrumento.",
     tone: "target",
     Icon: CircleDot,
   },
@@ -79,17 +79,17 @@ const ROLE_META: Record<RoleKey, Omit<RoleSection, "items">> = {
     key: "compare",
     title: "Se compara con",
     hint: "Son datos o referencias que sirven para contrastar la respuesta.",
-    eyebrow: "Comparacion",
-    description: "Aqui vemos con que otra informacion se contrasta la respuesta.",
+    eyebrow: "Comparación",
+    description: "Aquí vemos con qué otra información se contrasta la respuesta.",
     tone: "compare",
     Icon: Scale,
   },
   gate: {
     key: "gate",
     title: "Condiciones heredadas",
-    hint: "Vienen de la logica de la seccion o del grupo del formulario.",
+    hint: "Vienen de la lógica de la sección o del grupo del formulario.",
     eyebrow: "Contexto",
-    description: "Acompanan la regla desde la estructura del formulario.",
+    description: "Acompañan la regla desde la estructura del formulario.",
     tone: "gate",
     Icon: Hash,
   },
@@ -540,7 +540,7 @@ export default function ReglaDrillPanel({
                     if (regla.activa) setPidiendoMotivo(true);
                     else void onToggleActiva(true);
                   }}
-                  title={regla.activa ? "Ignorar esta regla en la proxima auditoria" : "Reactivar esta regla"}
+                  title={regla.activa ? "Ignorar esta regla en la próxima auditoría" : "Reactivar esta regla"}
                   style={{
                     ...ghostButtonStyle,
                     background: regla.activa ? "white" : "var(--pulso-success-bg)",
@@ -580,8 +580,8 @@ export default function ReglaDrillPanel({
 
       <div style={bandStyle}>
         <SectionHeading
-          title="Que significa"
-          subtitle="La lectura principal en palabras simples. La condicion exacta queda en detalle tecnico."
+          title="Qué significa"
+          subtitle="La lectura principal en palabras simples. La condición exacta queda en detalle técnico."
         />
 
         <div style={{ display: "grid", gap: 12 }}>
@@ -657,7 +657,7 @@ export default function ReglaDrillPanel({
         >
           {expandProc ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           <Code2 size={14} />
-          {expandProc ? "Ocultar detalle tecnico" : "Ver detalle tecnico"}
+          {expandProc ? "Ocultar detalle técnico" : "Ver detalle técnico"}
         </button>
 
         <div
@@ -676,20 +676,20 @@ export default function ReglaDrillPanel({
             }}
           >
             {regla.nombre_tecnico && (
-              <TechField label="Nombre tecnico">
+              <TechField label="Nombre técnico">
                 <code style={codeTextStyle}>{regla.nombre_tecnico}</code>
               </TechField>
             )}
-            {regla.tipo_observacion && <TechField label="Tipo de observacion">{regla.tipo_observacion}</TechField>}
-            {regla.categoria && <TechField label="Categoria">{regla.categoria}</TechField>}
+            {regla.tipo_observacion && <TechField label="Tipo de observación">{regla.tipo_observacion}</TechField>}
+            {regla.categoria && <TechField label="Categoría">{regla.categoria}</TechField>}
             {regla.presentation?.subtipo_semantico && (
-              <TechField label="Subtipo semantico">
+              <TechField label="Subtipo semántico">
                 <code style={codeTextStyle}>{regla.presentation.subtipo_semantico}</code>
               </TechField>
             )}
-            {gateHumano && <TechField label="Condicion humanizada">{gateHumano}</TechField>}
+            {gateHumano && <TechField label="Condición humanizada">{gateHumano}</TechField>}
             {technicalVariables.length > 0 && (
-              <TechField label="Vista tecnica de variables">
+              <TechField label="Vista técnica de variables">
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   {technicalVariables.map((value) => (
                     <button
@@ -716,7 +716,7 @@ export default function ReglaDrillPanel({
 
           {regla.procesamiento && (
             <div style={{ marginTop: 14 }}>
-              <div style={sectionMiniTitleStyle}>Expresion evaluada</div>
+              <div style={sectionMiniTitleStyle}>Expresión evaluada</div>
               <pre
                 style={{
                   marginTop: 6,
@@ -815,7 +815,7 @@ export default function ReglaDrillPanel({
             }}
           >
             <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", lineHeight: 1.45 }}>
-              Sugerencia rapida para <code style={codeTextStyle}>{focusedVariable}</code>: toca un valor y dejamos la tabla enfocada en esa variable.
+              Sugerencia rápida para <code style={codeTextStyle}>{focusedVariable}</code>: toca un valor y dejamos la tabla enfocada en esa variable.
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
               {selectedQuickValues.slice(0, 10).map((value) => {
@@ -844,7 +844,7 @@ export default function ReglaDrillPanel({
               })}
               {selectedQuickValues.length > 10 && (
                 <span style={{ fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)", alignSelf: "center" }}>
-                  +{selectedQuickValues.length - 10} valores mas
+                  +{selectedQuickValues.length - 10} valores más
                 </span>
               )}
             </div>
@@ -943,7 +943,7 @@ export default function ReglaDrillPanel({
           rows={filteredCasos}
           preferredOrder={preferredOrder}
           valueLabels={regla.value_labels}
-          emptyHint={isFiltered ? "Ningun caso coincide con los filtros actuales." : "Sin casos inconsistentes."}
+          emptyHint={isFiltered ? "Ningún caso coincide con los filtros actuales." : "Sin casos inconsistentes."}
         />
       </div>
     </section>
@@ -1217,11 +1217,11 @@ function CaseLogicSummary({
     ? humanList(failedComparisons.map((comparison) => comparison.key))
     : "la ruta de entrada";
   const routeIntro = subtipo === "nodebe"
-    ? `Regla aplicada: "${targetLabel}" esta dentro de ${sectionLabel}. Esa pregunta solo se puede responder si todas las condiciones de entrada de la sección se cumplen.`
-    : `Regla aplicada: "${targetLabel}" esta dentro de ${sectionLabel}. Esa pregunta debe responderse cuando todas las condiciones de entrada de la sección se cumplen.`;
+    ? `Regla aplicada: "${targetLabel}" está dentro de ${sectionLabel}. Esa pregunta solo se puede responder si todas las condiciones de entrada de la sección se cumplen.`
+    : `Regla aplicada: "${targetLabel}" está dentro de ${sectionLabel}. Esa pregunta debe responderse cuando todas las condiciones de entrada de la sección se cumplen.`;
   const resultText = subtipo === "nodebe"
-    ? `Con los valores observados, ${failedText} cierra ${sectionLabel}. Por eso ${targetItem.key} debia quedar vacio. Valor registrado: ${targetValue}.`
-    : `Con los valores observados, ${sectionLabel} queda abierta. Por eso ${targetItem.key} debia tener respuesta. Valor registrado: vacio.`;
+    ? `Con los valores observados, ${failedText} cierra ${sectionLabel}. Por eso ${targetItem.key} debía quedar vacío. Valor registrado: ${targetValue}.`
+    : `Con los valores observados, ${sectionLabel} queda abierta. Por eso ${targetItem.key} debía tener respuesta. Valor registrado: vacío.`;
 
   return (
     <div
@@ -1697,7 +1697,7 @@ function summarizeObservedValues(
     .slice(0, 3)
     .map(([label, count]) => `${shortRuleLabel(label, 54)}${count > 1 ? ` en ${count} casos` : ""}`);
   const remaining = Math.max(0, counts.size - parts.length);
-  const suffix = remaining > 0 ? ` y ${remaining} mas` : "";
+  const suffix = remaining > 0 ? ` y ${remaining} más` : "";
   return { text: `${parts.join(", ")}${suffix}`, nonEmpty };
 }
 
@@ -1854,22 +1854,22 @@ function buildExpectationHeadline(regla: ReglaInstrumento, targetDisplay: string
   const tipo = (regla.tipo_observacion ?? "").toLowerCase();
   const subtipo = (regla.presentation?.subtipo_semantico ?? "").toLowerCase();
   if (subtipo === "nodebe") {
-    return `${targetDisplay} no deberia tener respuesta cuando la condicion no aplica.`;
+    return `${targetDisplay} no debería tener respuesta cuando la condición no aplica.`;
   }
   if (subtipo === "debe") {
-    return `Si se cumple la condicion, ${targetDisplay} debe registrarse.`;
+    return `Si se cumple la condición, ${targetDisplay} debe registrarse.`;
   }
   if (subtipo === "req" || tipo.includes("required")) {
     return `${targetDisplay} debe responderse cuando corresponde.`;
   }
   if (tipo.includes("constraint")) {
-    return `${targetDisplay} debe cumplir la condicion de consistencia definida.`;
+    return `${targetDisplay} debe cumplir la condición de consistencia definida.`;
   }
   if (tipo.includes("calculate")) {
     return `${targetDisplay} debe derivarse correctamente a partir de otras respuestas.`;
   }
   if (tipo.includes("choice")) {
-    return `${targetDisplay} solo deberia mostrar opciones validas.`;
+    return `${targetDisplay} solo debería mostrar opciones válidas.`;
   }
   return `${targetDisplay} debe comportarse como espera el instrumento.`;
 }
@@ -1886,7 +1886,7 @@ function buildPlainRuleReading(
   const isOtherText = isSyntheticOtherTarget(targetItem);
   const otherChoice = choiceLabelForSyntheticOther(regla, targetItem);
   const parentLabel = parentLabelForSyntheticOther(regla, targetItem, activationSections);
-  const otherChoiceDisplay = otherChoice ? `"${shortRuleLabel(otherChoice, 58)}"` : "la opcion Otro/Other";
+  const otherChoiceDisplay = otherChoice ? `"${shortRuleLabel(otherChoice, 58)}"` : "la opción Otro/Other";
   const otherParentDisplay = parentLabel ? ` en "${shortRuleLabel(parentLabel, 82)}"` : " en su pregunta principal";
   const hasRouteVariables = activationSections.some((section) => section.items.length > 0) ||
     Boolean(compareSection?.items.length);
@@ -1894,12 +1894,12 @@ function buildPlainRuleReading(
   if (subtipo === "nodebe") {
     return {
       headline: isOtherText
-        ? `${targetDisplay} solo debe tener texto cuando se eligio ${otherChoiceDisplay}${otherParentDisplay}.`
-        : `${targetDisplay} no deberia tener respuesta si la pregunta no correspondia.`,
+        ? `${targetDisplay} solo debe tener texto cuando se eligió ${otherChoiceDisplay}${otherParentDisplay}.`
+        : `${targetDisplay} no debería tener respuesta si la pregunta no correspondía.`,
       found: `Hay una respuesta guardada en ${targetDisplay}.`,
       expected: isOtherText
-        ? `${targetDisplay} debe quedar vacio si no se eligio ${otherChoiceDisplay}${otherParentDisplay} o si el salto ocultaba esa pregunta.`
-        : `Si el salto del formulario no llevaba a esta pregunta, ${targetDisplay} debia quedar vacio.`,
+        ? `${targetDisplay} debe quedar vacío si no se eligió ${otherChoiceDisplay}${otherParentDisplay} o si el salto ocultaba esa pregunta.`
+        : `Si el salto del formulario no llevaba a esta pregunta, ${targetDisplay} debía quedar vacío.`,
       reason: hasRouteVariables
         ? "La ruta esperada del formulario no activaba esta pregunta para ese caso. Las preguntas usadas para decidirlo aparecen abajo."
         : "La ruta esperada del formulario no activaba esta pregunta para ese caso.",
@@ -1908,30 +1908,30 @@ function buildPlainRuleReading(
 
   if (subtipo === "debe" || subtipo === "req" || tipo.includes("required")) {
     return {
-      headline: `${targetDisplay} debia responderse y quedo vacio.`,
+      headline: `${targetDisplay} debía responderse y quedó vacío.`,
       found: `No hay respuesta registrada en ${targetDisplay}.`,
       expected: `Cuando la ruta del formulario llega a esta pregunta, ${targetDisplay} debe tener respuesta.`,
       reason: hasRouteVariables
-        ? "La pregunta correspondia para ese caso. Las preguntas usadas para decidirlo aparecen abajo."
-        : "La pregunta correspondia para ese caso.",
+        ? "La pregunta correspondía para ese caso. Las preguntas usadas para decidirlo aparecen abajo."
+        : "La pregunta correspondía para ese caso.",
     };
   }
 
   if (tipo.includes("constraint")) {
     return {
-      headline: `${targetDisplay} no cumple una condicion de consistencia.`,
+      headline: `${targetDisplay} no cumple una condición de consistencia.`,
       found: `La respuesta registrada en ${targetDisplay} existe, pero no pasa la regla del instrumento.`,
-      expected: `${targetDisplay} debe respetar la condicion definida en el XLSForm.`,
-      reason: "El valor observado queda fuera de lo que el formulario considera valido.",
+      expected: `${targetDisplay} debe respetar la condición definida en el XLSForm.`,
+      reason: "El valor observado queda fuera de lo que el formulario considera válido.",
     };
   }
 
   if (tipo.includes("choice")) {
     return {
-      headline: `${targetDisplay} usa una opcion que no coincide con el catalogo esperado.`,
+      headline: `${targetDisplay} usa una opción que no coincide con el catálogo esperado.`,
       found: `Hay un valor en ${targetDisplay} que no calza con sus opciones permitidas.`,
-      expected: `${targetDisplay} debe usar los codigos y etiquetas del XLSForm.`,
-      reason: "El dato no coincide con el catalogo final del instrumento.",
+      expected: `${targetDisplay} debe usar los códigos y etiquetas del XLSForm.`,
+      reason: "El dato no coincide con el catálogo final del instrumento.",
     };
   }
 
@@ -1939,7 +1939,7 @@ function buildPlainRuleReading(
     headline: `${targetDisplay} debe comportarse como espera el instrumento.`,
     found: `Se encontró un caso llamativo en ${targetDisplay}.`,
     expected: "La respuesta debe coincidir con la regla definida en el formulario.",
-    reason: "El dato no coincide con la condicion esperada por el instrumento.",
+    reason: "El dato no coincide con la condición esperada por el instrumento.",
   };
 }
 
