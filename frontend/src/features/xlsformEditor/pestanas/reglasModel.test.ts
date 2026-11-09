@@ -38,7 +38,7 @@ describe("restriccionesDelFormulario", () => {
     expect(r[1].sinMensaje).toBe(true);
     expect(r[0].sinMensaje).toBe(false);
   });
-  test("«Depende de» no lista a la propia pregunta (age_est escrita como ${age_est})", () => {
+  test('"Depende de" no lista a la propia pregunta (age_est escrita como ${age_est})', () => {
     const r = restriccionesDelFormulario(estructura([nodo(1, "age_est", "integer", { constraint: `${D}{age_est} >= 0 and ${D}{age_est} <= 110` })]));
     expect(r[0]!.usa).toEqual([]);
   });
@@ -75,7 +75,7 @@ describe("S13: una pregunta con fórmula también es un cálculo", () => {
 });
 
 describe("sugeridas de opciones que van solas (E18)", () => {
-  test("una selección múltiple con «Ninguno» es sugerida; sin esas opciones, no", () => {
+  test('una selección múltiple con "Ninguno" es sugerida; sin esas opciones, no', () => {
     const s = estructura([
       nodo(1, "medios", "select_multiple", { typeInfo: { raw: "select_multiple m", base: "select_multiple", listName: "m" } }),
       nodo(2, "frutas", "select_multiple", { typeInfo: { raw: "select_multiple f", base: "select_multiple", listName: "f" } }),

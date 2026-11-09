@@ -204,7 +204,7 @@ export function humanizeRelevantWithLabels(
     if (compact) return raw;
     // La condición referencia la pregunta, no la transcribe: markdown
     // limpio + incipit truncado (ver `compactTitle`).
-    return `«${compactTitle(raw)}» (${varName})`;
+    return `"${compactTitle(raw)}" (${varName})`;
   };
   // selected(${X}, 'v') → X contiene 'v_label'
   r = r.replace(

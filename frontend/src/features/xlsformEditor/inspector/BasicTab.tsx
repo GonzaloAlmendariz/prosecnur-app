@@ -213,7 +213,7 @@ export function BasicTab({
                       key={`${a.sectionLabel}-${i}`}
                       className="pulso-inspector-conditional-required-rule"
                     >
-                      <span>Sección «{a.sectionLabel}» aparece cuando</span>
+                      <span>Sección "{a.sectionLabel}" aparece cuando</span>
                       <code>{a.relevant}</code>
                     </div>
                   ))}

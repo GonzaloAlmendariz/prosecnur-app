@@ -38,7 +38,7 @@ export function describeCall(expr: Expr, d: Describir, scope: LogicScope): strin
       const [c, si, no] = a;
       // Patrón de restricción condicional: if(cond, regla, true()) → «Si cond, regla».
       if (no.kind === "literal" && no.value === true) return `Si ${d(c)}, ${d(si)}`;
-      const valor = (e: Expr) => (e.kind === "compare" || e.kind === "logical" || e.kind === "not" ? d(e) : `vale ${e.kind === "literal" && typeof e.value === "string" ? `«${e.value}»` : d(e)}`);
+      const valor = (e: Expr) => (e.kind === "compare" || e.kind === "logical" || e.kind === "not" ? d(e) : `vale ${e.kind === "literal" && typeof e.value === "string" ? `"${e.value}"` : d(e)}`);
       return `Si ${d(c)}, ${valor(si)}; si no, ${valor(no)}`;
     }
     case "once":
@@ -55,7 +55,7 @@ export function describeCall(expr: Expr, d: Describir, scope: LogicScope): strin
     case "pulldata": {
       const archivo = texto(a[0]);
       const col = texto(a[1]);
-      return a.length === 4 && archivo && col ? `el dato «${col}» de la tabla «${archivo}» que corresponde a ${sujeto(a[3])}` : null;
+      return a.length === 4 && archivo && col ? `el dato "${col}" de la tabla "${archivo}" que corresponde a ${sujeto(a[3])}` : null;
     }
     case "count-selected":
       return a.length === 1 ? (a[0].kind === "current" ? "cuántas opciones marcó" : `cuántas opciones marcó en ${sujeto(a[0])}`) : null;
@@ -73,7 +73,7 @@ export function describeCall(expr: Expr, d: Describir, scope: LogicScope): strin
     case "coalesce":
       return a.length === 2 ? `${sujeto(a[0])} (o ${d(a[1])} si está vacía)` : null;
     case "concat":
-      return a.length ? `${lista(a.map((x) => (texto(x) !== null ? `«${texto(x)}»` : sujeto(x))))} unidos` : null;
+      return a.length ? `${lista(a.map((x) => (texto(x) !== null ? `"${texto(x)}"` : sujeto(x))))} unidos` : null;
     case "join":
       return a.length === 2 ? `las respuestas de ${sujeto(a[1])} unidas en una sola línea` : null;
     case "position":

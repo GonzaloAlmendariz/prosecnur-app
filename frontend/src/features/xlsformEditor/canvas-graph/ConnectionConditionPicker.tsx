@@ -273,13 +273,13 @@ export function ConnectionConditionPicker({
           <>
             <fieldset className="xfc-ops">
               <legend className="xfc-pregunta">
-                ¿Cuándo aparece «{corto(target)}»?
+                ¿Cuándo aparece "{corto(target)}"?
               </legend>
               {OPERADORES.map(({ op: valor, texto }) => (
                 <label key={valor} className={op === valor ? "xfc-op is-on" : "xfc-op"}>
                   <input type="radio" name={`${tituloId}-op`} checked={op === valor} onChange={() => setOp(valor)} />
                   <span>
-                    Cuando «{corto(source)}» {texto}
+                    Cuando "{corto(source)}" {texto}
                   </span>
                 </label>
               ))}
@@ -377,7 +377,7 @@ export function ConnectionConditionPicker({
         ) : (
           <>
             <p className="xfc-pregunta">
-              «{corto(target)}» ya depende de otra condición. ¿Cómo se combinan?
+              "{corto(target)}" ya depende de otra condición. ¿Cómo se combinan?
             </p>
             <div className="xfc-lectura">
               <span>Actual</span>

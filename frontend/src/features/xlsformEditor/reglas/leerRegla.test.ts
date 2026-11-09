@@ -136,15 +136,15 @@ describe("E13 · sorteos de nivel", () => {
   const calc = nodo("t1A_curso", "calculate", "");
   test("int(${r} * k) en cadena → sortea con la misma probabilidad", () => {
     expect(texto("calculation", "if(int(${region} * 3) = 0, 'a', if(int(${region} * 3) = 1, 'b', 'c'))", calc))
-      .toBe("Sortea con la misma probabilidad entre «a», «b» o «c» con el número al azar de Región");
+      .toBe('Sortea con la misma probabilidad entre "a", "b" o "c" con el número al azar de Región');
   });
   test("umbrales acumulados → sortea con sus porcentajes", () => {
     expect(texto("calculation", "if(${region} < 0.2, 'no', if(${region} < 0.5, 'mae', 'pme'))", calc))
-      .toBe("Sortea entre «no» (20 %), «mae» (30 %) o «pme» (50 %) con el número al azar de Región");
+      .toBe('Sortea entre "no" (20 %), "mae" (30 %) o "pme" (50 %) con el número al azar de Región');
   });
   test("un condicional delante se dice al final", () => {
     expect(texto("calculation", "if(${gasto} = 'x', 'NA', if(int(${region} * 2) = 0, 'a', 'b'))", calc))
-      .toMatch(/^Sortea con la misma probabilidad entre «a» o «b» con el número al azar de Región; vale «NA» cuando /);
+      .toMatch(/^Sortea con la misma probabilidad entre "a" o "b" con el número al azar de Región; vale "NA" cuando /);
   });
   test("una cadena que no es sorteo sigue con la lectura de siempre", () => {
     expect(texto("calculation", "if(int(${region} * 3) = 0, 'a', 'b')", calc)).not.toMatch(/^Sortea/);
@@ -224,7 +224,7 @@ describe("M5 · restricciones del corpus que caían en técnica", () => {
 
 describe("cálculos y condiciones", () => {
   test("if encadenado, sin punto y coma", () => {
-    expect(texto("calculation", "if(${edad} < 30, 'joven', if(${edad} < 60, 'adulto', 'mayor'))")).toBe("Si Edad es menor que 30, vale «joven». Si Edad es menor que 60, vale «adulto». Si no, vale «mayor»");
+    expect(texto("calculation", "if(${edad} < 30, 'joven', if(${edad} < 60, 'adulto', 'mayor'))")).toBe('Si Edad es menor que 30, vale "joven". Si Edad es menor que 60, vale "adulto". Si no, vale "mayor"');
   });
   test("aritmética con paréntesis donde cambian el sentido", () => {
     expect(texto("calculation", "${edad} - (${total} * 12)")).toBe("Edad menos (Total de personas por 12)");
@@ -277,7 +277,7 @@ describe("G1 · patrones que el corpus variado destapó", () => {
     expect(g1("calculation", "(today() - ${ingreso}) div 2")).toBe("(hoy menos Ingreso mensual) entre 2");
   });
 
-  test("dentro de un «o» no hay «solo acepta» por alternativa", () => {
+  test('dentro de un "o" no hay "solo acepta" por alternativa', () => {
     expect(g1("constraint", "(. > 0 and . <= 98) or . = 99", numero)).toBe("Mayor que 0 y hasta 98, o 99");
     expect(g1("constraint", "regex(., '^[A-Z]{2}-[0-9]{2}$') or . = ''")).toBe("El formato AA-99 o vacía");
     expect(g1("constraint", "string-length(.) = 0 or regex(., '^[0-9]+$')")).toBe("Vacía o solo números");
@@ -313,7 +313,7 @@ describe("G1 · patrones que el corpus variado destapó", () => {
 describe("G2 · lecturas que pide el armador de patrones", () => {
   const g2 = (raw: string) => texto("constraint", raw, corto);
 
-  test("dígitos con un prefijo fijo: «9 dígitos que empiezan con 9»", () => {
+  test('dígitos con un prefijo fijo: "9 dígitos que empiezan con 9"', () => {
     expect(g2("regex(., '^9[0-9]{8}$')")).toBe("Solo acepta 9 dígitos que empiezan con 9");
     expect(g2("regex(., '^(?:10|20)[0-9]{9}$')")).toBe("Solo acepta 11 dígitos que empiezan con 10 o 20");
   });
@@ -323,7 +323,7 @@ describe("G2 · lecturas que pide el armador de patrones", () => {
     expect(g2("regex(., '^(0[8-9]|1[0-7]):[0-5][0-9]$')")).toBe("Solo acepta una hora de 08:00 a 17:59");
   });
 
-  test("letras con tildes y espacios, sin «una o más»", () => {
+  test('letras con tildes y espacios, sin "una o más"', () => {
     expect(g2("regex(., '^[A-Za-zÁÉÍÓÚáéíóúÑñÜü ]+$')")).toBe("Solo acepta letras con tildes y espacios");
     expect(g2("regex(., '^[A-Za-z]+$')")).toBe("Solo acepta letras");
     expect(g2("regex(., '^[A-Za-zÁÉÍÓÚáéíóúÑñ]{2,4}$')")).toBe("Solo acepta de 2 a 4 letras con tildes");

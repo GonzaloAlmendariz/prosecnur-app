@@ -79,7 +79,7 @@ describe("PanelMarca (contenido)", () => {
 
   test("la condición heredada se lee como bloque con el nombre de la sección y la lectura del motor", () => {
     const html = panel("nota", "cond");
-    expect(html).toContain("Heredada de la sección «Datos del hogar»");
+    expect(html).toContain("Heredada de la sección &quot;Datos del hogar&quot;");
     const l = leerRegla("relevant", "${acepta} = '1'", nodo("hogar"), scope);
     expect(renderToStaticMarkup(<PiezasLectura piezas={l.piezas} />).length).toBeGreaterThan(0);
     expect(html).toContain("relevant de la sección: ${acepta} = &#x27;1&#x27;");
@@ -101,7 +101,7 @@ describe("PanelMarca (contenido)", () => {
   test("restricción con mensaje real del formulario", () => {
     const html = panel("nota", "regla");
     expect(html).toContain("Mensaje del formulario");
-    expect(html).toContain("«Escriba algo»");
+    expect(html).toContain("&quot;Escriba algo&quot;");
   });
 
   test("filtro: lista de opciones y dependencias como chips", () => {
@@ -147,7 +147,7 @@ describe("PanelMarca (contenido)", () => {
   test("M5: el título del panel cita `${x}` como código, no crudo", () => {
     const html = renderToStaticMarkup(<TituloLegible texto="5. ¿Cuál es la fecha de nacimiento de ${HH01}?" />);
     expect(html).toBe('5. ¿Cuál es la fecha de nacimiento de <code class="xfk-pop__var">HH01</code>?');
-    expect(tituloPlano("de ${HH01}?")).toBe("de «HH01»?");
+    expect(tituloPlano("de ${HH01}?")).toBe('de "HH01"?');
     expect(corto("Entrevistador(a): ¿alguien responde la llamada telefónica?", 34)).toBe("Entrevistador(a): ¿alguien…");
   });
 });

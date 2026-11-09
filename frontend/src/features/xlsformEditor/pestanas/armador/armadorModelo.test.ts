@@ -109,7 +109,7 @@ describe("armador · prueba", () => {
     expect(motivo(formato("codigo"), "ab1234")).toBe("van en mayúscula");
     expect(motivo(formato("cel"), "887654321")).toBe("no empieza con 9");
     expect(motivo(formato("dni"), "458712361")).toBe("sobra 1");
-    expect(motivo(formato("letras"), "María 2")).toBe("«2» no es una letra");
+    expect(motivo(formato("letras"), "María 2")).toBe('"2" no es una letra');
   });
 });
 
@@ -139,7 +139,7 @@ describe("armador · estado", () => {
 });
 
 describe("armador · cadenas reales de ACNUR", () => {
-  test("REF10b «[0-9]{2}[/][0-9]{4}» se lee como dos dígitos, «/» y cuatro dígitos", () => {
+  test('REF10b "[0-9]{2}[/][0-9]{4}" se lee como dos dígitos, "/" y cuatro dígitos', () => {
     const e = estadoInicial("regex(., '^[0-9]{2}[/][0-9]{4}$')");
     expect(e.reemplaza).toBe(false);
     expect(e.bloques.map((b) => [b.tipo, b.texto || b.n])).toEqual([["digitos", 2], ["fijo", "/"], ["digitos", 4]]);

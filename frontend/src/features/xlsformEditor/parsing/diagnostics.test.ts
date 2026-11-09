@@ -260,7 +260,7 @@ describe("fusionarDiagnosticos (I1)", () => {
     expect(f.every((x) => x.level === "error")).toBe(true);
   });
 
-  test("«no se pudo interpretar» es informativo: no marca la fila con un punto", () => {
+  test('"no se pudo interpretar" es informativo: no marca la fila con un punto', () => {
     expect(fusionarDiagnosticos([], remotos).find((x) => x.id.startsWith("ast-unparseable-"))?.level).toBe("info");
   });
 });

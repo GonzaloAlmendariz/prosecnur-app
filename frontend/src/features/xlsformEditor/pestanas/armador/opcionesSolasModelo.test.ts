@@ -20,7 +20,7 @@ describe("opciones que van solas", () => {
     expect(escribirSolas(reglaSolas(["99"]), [])).toBe("");
   });
 
-  it("la regla deja «Ninguno» solo y acepta lo demás", () => {
+  it('la regla deja "Ninguno" solo y acepta lo demás', () => {
     const r = reglaSolas(["99"]);
     const acepta = (valor: string) => evaluarRestriccion(r, valor, {});
     expect(acepta("99")).toBe("acepta");
@@ -34,7 +34,7 @@ describe("opciones que van solas", () => {
       { name: "98", label: "No sabe" }, { name: "99", label: "Ninguno" }, { name: "97", label: "Prefiere no responder" },
     ];
     expect(sugeridasSolas(ops)).toEqual(["98", "99", "97"]);
-    expect(mensajeSolas(["Ninguno"])).toBe("«Ninguno» no se puede marcar junto con otras opciones.");
-    expect(mensajeSolas(["No sabe", "Ninguno"])).toBe("«No sabe» y «Ninguno» no se pueden marcar junto con otras opciones.");
+    expect(mensajeSolas(["Ninguno"])).toBe('"Ninguno" no se puede marcar junto con otras opciones.');
+    expect(mensajeSolas(["No sabe", "Ninguno"])).toBe('"No sabe" y "Ninguno" no se pueden marcar junto con otras opciones.');
   });
 });

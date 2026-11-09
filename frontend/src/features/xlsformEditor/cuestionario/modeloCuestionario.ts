@@ -93,7 +93,7 @@ function refDe(variable: string, refs: Referencias): string {
 }
 
 function valorDe(variable: string, codigo: string, refs: Referencias): string {
-  return `«${refs.etiquetaDe(variable, codigo) ?? codigo}»`;
+  return `"${refs.etiquetaDe(variable, codigo) ?? codigo}"`;
 }
 
 /** Traduce una expresión `relevant` a una frase. Lo que no reconoce queda con las variables como P#. */

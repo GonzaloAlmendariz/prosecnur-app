@@ -37,10 +37,10 @@ export const nivelesDeVersiones = (d: DisenoVersiones): NivelConjoint[] =>
 
 export function validarVersiones(d: DisenoVersiones, listas: readonly string[] = []): string[] {
   const out: string[] = [];
-  if (!NOMBRE.test(d.prefijo)) out.push(`El prefijo «${d.prefijo}» no sirve como nombre de variable: usa letras, números y _.`);
+  if (!NOMBRE.test(d.prefijo)) out.push(`El prefijo "${d.prefijo}" no sirve como nombre de variable: usa letras, números y _.`);
   if (!NOMBRE.test(d.pregunta)) out.push("El código de la pregunta no sirve como nombre de variable: usa letras, números y _.");
   if (d.tipo === "select_one" && !d.lista.trim()) out.push("Elige la lista de opciones de la pregunta.");
-  if (d.tipo === "select_one" && d.lista.trim() && listas.length && !listas.includes(d.lista.trim())) out.push(`La lista «${d.lista}» no existe en el formulario.`);
+  if (d.tipo === "select_one" && d.lista.trim() && listas.length && !listas.includes(d.lista.trim())) out.push(`La lista "${d.lista}" no existe en el formulario.`);
   if (d.versiones.length < 2) out.push("Hacen falta al menos dos versiones.");
   if (d.versiones.length > 10) out.push("Van a lo más diez versiones.");
   d.versiones.forEach((v, i) => { if (!v.texto.trim()) out.push(`La versión ${i + 1} no tiene texto.`); });

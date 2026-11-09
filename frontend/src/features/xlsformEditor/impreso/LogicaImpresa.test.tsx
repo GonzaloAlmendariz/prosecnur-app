@@ -31,7 +31,7 @@ describe("lógica impresa", () => {
       salto("4", "filtro", "Solo consultas (3)", "pase a la pregunta 56"),
     ]);
     expect(grupos.map((g) => [g.numero, g.instrucciones.length])).toEqual([["3", 1], ["4", 2]]);
-    expect(rotuloInstruccion(grupos[0]!.instrucciones[0]!)).toBe("Si responde «No (2)»");
+    expect(rotuloInstruccion(grupos[0]!.instrucciones[0]!)).toBe('Si responde "No (2)"');
     expect(rotuloInstruccion({ numero: "1", nombre: "a", tipo: "condicion", opcion: "", texto: "En caso…" })).toBe("Antes de la pregunta");
   });
 
@@ -43,7 +43,7 @@ describe("lógica impresa", () => {
       lenguaje: "saltos", instrucciones: [salto("3", "consent", "No (2)", "pase a la pregunta 56")], avisos: ["Aviso de prueba."],
     } }} />);
     expect(conAviso).toContain("Aviso de prueba.");
-    expect(conAviso).toContain("Si responde «No (2)»");
+    expect(conAviso).toContain("Si responde &quot;No (2)&quot;");
     expect(conAviso).toContain("pase a la pregunta 56");
   });
 });

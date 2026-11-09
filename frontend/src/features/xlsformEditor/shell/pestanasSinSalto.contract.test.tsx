@@ -118,7 +118,7 @@ beforeEach(() => {
   enSitio = espia();
 });
 
-describe("ningún clic de las pestañas cambia de pestaña salvo «Editar en Constructor»", () => {
+describe('ningún clic de las pestañas cambia de pestaña salvo "Editar en Constructor"', () => {
   test("Vista del cuestionario: la pregunta abre su ficha; sólo la ficha lleva al Constructor", () => {
     const { html, disparos } = dispararTodo(
       <VistaCuestionario workbook={WORKBOOK_SIN_SALTO} structure={ESTRUCTURA_SIN_SALTO} logicaPendiente={false}
@@ -130,7 +130,7 @@ describe("ningún clic de las pestañas cambia de pestaña salvo «Editar en Con
     expect(enSitio).toHaveBeenCalled();
     expect(html).toContain("Editar en Constructor");
     expect(html).toContain('aria-expanded="true"');
-    expect(html).toMatch(/Aparece[\s\S]*Si P1 es «Sí»/);
+    expect(html).toMatch(/Aparece[\s\S]*Si P1 es &quot;Sí&quot;/);
     expect(html).toContain("El valor va entre 18 y 99.");
     expect(html).not.toMatch(CERRAR_PESTANA);
   });
@@ -148,7 +148,7 @@ describe("ningún clic de las pestañas cambia de pestaña salvo «Editar en Con
     expect(html).not.toMatch(CERRAR_PESTANA);
   });
 
-  test("Mapa de lógica: el panel del nodo sólo sale con «Editar en Constructor»", () => {
+  test('Mapa de lógica: el panel del nodo sólo sale con "Editar en Constructor"', () => {
     const grafo = buildLogicGraph(ESTRUCTURA_SIN_SALTO, CATALOGOS_SIN_SALTO);
     const nodo = [...grafo.byId.values()].find((n) => n.name === "p2");
     expect(nodo).toBeDefined();
@@ -162,7 +162,7 @@ describe("ningún clic de las pestañas cambia de pestaña salvo «Editar en Con
     expect(html).toContain("Depende de");
   });
 
-  test("Mapa de lógica embebido: el lienzo no tiene «Cerrar» ni salida al Constructor", () => {
+  test('Mapa de lógica embebido: el lienzo no tiene "Cerrar" ni salida al Constructor', () => {
     const { html, disparos } = dispararTodo(
       <LogicCanvas embebido open structure={ESTRUCTURA_SIN_SALTO} catalogs={CATALOGOS_SIN_SALTO} onEditarEnConstructor={salida} />,
       salida,
@@ -171,7 +171,7 @@ describe("ningún clic de las pestañas cambia de pestaña salvo «Editar en Con
     expect(html).not.toMatch(CERRAR_PESTANA);
   });
 
-  test("Probar: sin «Cerrar»; el lápiz es «Editar en Constructor»", () => {
+  test('Probar: sin "Cerrar"; el lápiz es "Editar en Constructor"', () => {
     const { html, disparos } = dispararTodo(
       <FormSimulator workbook={WORKBOOK_SIN_SALTO} structure={ESTRUCTURA_SIN_SALTO} onEditRow={salida} />,
       salida,
@@ -181,7 +181,7 @@ describe("ningún clic de las pestañas cambia de pestaña salvo «Editar en Con
     expect(html).not.toMatch(CERRAR_PESTANA);
   });
 
-  test("Resumen: la fila se despliega y el tramo resalta; salen sólo «Editar» y «Qué falta»", () => {
+  test('Resumen: la fila se despliega y el tramo resalta; salen sólo "Editar" y "Qué falta"', () => {
     const irImpreso = espia();
     const { html, disparos } = dispararTodo(
       <FormSummaryView workbook={WORKBOOK_SIN_SALTO} structure={ESTRUCTURA_SIN_SALTO} diagnostics={[]}
@@ -226,12 +226,12 @@ describe("la página no conecta salidas implícitas", () => {
     expect(fin).toBeGreaterThan(inicio);
   });
 
-  test("ninguna pestaña recibe un «Cerrar» que lleve al Constructor", () => {
+  test('ninguna pestaña recibe un "Cerrar" que lleve al Constructor', () => {
     expect(pestanas).not.toMatch(/onClose=/);
     expect(pestanas).not.toMatch(/irPestana\("constructor"\)/);
   });
 
-  test("irAPregunta e irAFila sólo llegan por props de edición explícita o de «Qué falta»", () => {
+  test('irAPregunta e irAFila sólo llegan por props de edición explícita o de "Qué falta"', () => {
     const usos = [...pestanas.matchAll(/(\w+)(?:=\{|: )(irAPregunta|irAFila)\b/g)].map((m) => m[1]);
     const permitidos = new Set(["onEditar", "onEditarEnConstructor", "onEditRow", "onIrAPregunta", "onSelectRow"]);
     expect(usos.filter((u) => !permitidos.has(u))).toEqual([]);

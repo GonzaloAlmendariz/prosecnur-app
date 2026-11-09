@@ -67,7 +67,7 @@ describe("FichaConstructor", () => {
     expect(html).toContain("Duplicar");
   });
 
-  test("pregunta: bloques de la propuesta, reglas leídas por el motor y sin «Formulario completo»", () => {
+  test('pregunta: bloques de la propuesta, reglas leídas por el motor y sin "Formulario completo"', () => {
     const html = ficha("edad");
     for (const t of ["Texto", "Respuesta", "Reglas", "Apariencia en la plataforma", "Así se ve"]) expect(html).toContain(t);
     const edad = idx.structure.outline.find((n) => n.name === "edad")!;
@@ -86,7 +86,7 @@ describe("FichaConstructor", () => {
     expect(html).not.toMatch(/y \d+ más/);
     expect(html).toContain("Editar en Listas de opciones");
     expect(html).toContain("Se repite");
-    expect(html).toContain("Por cada fila de «Miembros del hogar»");
+    expect(html).toContain("Por cada fila de &quot;Miembros del hogar&quot;");
   });
 
   test("nota: sin bloque de respuesta ni restricción", () => {

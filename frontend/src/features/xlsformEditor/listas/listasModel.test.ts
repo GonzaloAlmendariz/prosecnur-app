@@ -202,7 +202,7 @@ describe("unificarListas", () => {
   });
 
   test("rechaza nombre en uso, nombre inválido, listas distintas o inexistentes", () => {
-    expect(unificarListas(BASE, ["p1_opts", "p2_opts"], "sexo")).toEqual({ ok: false, motivo: "Ya existe otra lista llamada «sexo»." });
+    expect(unificarListas(BASE, ["p1_opts", "p2_opts"], "sexo")).toEqual({ ok: false, motivo: 'Ya existe otra lista llamada "sexo".' });
     expect(unificarListas(BASE, ["p1_opts", "p2_opts"], "mi escala").ok).toBe(false);
     expect(unificarListas(BASE, ["p1_opts", "sexo"], "x").ok).toBe(false);
     expect(unificarListas(BASE, ["p1_opts", "nada"], "x").ok).toBe(false);

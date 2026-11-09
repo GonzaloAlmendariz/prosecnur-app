@@ -51,7 +51,7 @@ function card(pub: XlsformFormPublication, source: Record<string, unknown>, conA
   );
 }
 
-describe("diálogo «se hizo fuera»", () => {
+describe('diálogo "se hizo fuera"', () => {
   test("programa con sugerencias, nota opcional, consecuencia y botón de declarar", () => {
     const html = renderToStaticMarkup(
       <Dialog.Root open>
@@ -68,7 +68,7 @@ describe("diálogo «se hizo fuera»", () => {
     expect(html).not.toContain('role="alert"');
   });
 
-  test("en vuelo: «Guardando…» y controles deshabilitados", () => {
+  test('en vuelo: "Guardando…" y controles deshabilitados', () => {
     const html = renderToStaticMarkup(
       <Dialog.Root open>
         <FormularioLogicaExterna formId="f-1" formName={null} control={{ ...acciones("f-1"), cerrar: vi.fn() }} />
@@ -95,7 +95,7 @@ describe("piezas sueltas", () => {
 });
 
 describe("tarjeta", () => {
-  test("lógica pendiente: «Revisar lógica» y la segunda vía, lado a lado", () => {
+  test('lógica pendiente: "Revisar lógica" y la segunda vía, lado a lado', () => {
     const html = card(PENDIENTE, { logic_status: "pending_manual_confirmation" });
     expect(html).toContain(">Revisar lógica<");
     expect(html).toContain(">Se hizo fuera (p. ej., SPSS)<");
@@ -105,7 +105,7 @@ describe("tarjeta", () => {
     expect(card(PENDIENTE, { logic_status: "pending_manual_confirmation" }, false)).not.toContain("Se hizo fuera");
   });
 
-  test("declarada: etapa neutra con el programa, «Publicar» habilitado y «Deshacer»", () => {
+  test('declarada: etapa neutra con el programa, "Publicar" habilitado y "Deshacer"', () => {
     const html = card(publication(), {
       logic_status: "external_declared",
       logic_confirmed_at: "2026-10-14",

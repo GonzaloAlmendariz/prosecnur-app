@@ -126,7 +126,7 @@ export function MoreTab({ node, onFieldChange }: MoreTabProps) {
             </InspectorField>
             <InspectorField
               label={<>Letra en papel <TechTerm t="paper_subletter" /></>}
-              hint="En una matriz: a, b, c… en vez de número. «@» = enunciado madre."
+              hint='En una matriz: a, b, c… en vez de número. "@" = enunciado madre.'
             >
               {(campo) => (
                 <input

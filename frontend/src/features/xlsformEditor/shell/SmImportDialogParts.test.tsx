@@ -77,7 +77,7 @@ describe("pasos de la cabecera (U4)", () => {
     expect(html).toContain('data-qa-geometry-contract="equal"');
   });
 
-  test("con la encuesta cargada y sin reglas, saltos queda en alerta y no «hecho»", () => {
+  test('con la encuesta cargada y sin reglas, saltos queda en alerta y no "hecho"', () => {
     const html = renderToStaticMarkup(
       <SmImportFlowSummary
         conexion={estadoConexionSm({ hasUsableToken: true, tokenStatus: null, encuestaConectada: true })}
@@ -123,7 +123,7 @@ describe("lógica: aviso honesto y sugerencias (H4/U7)", () => {
     );
     expect(html).toContain(AVISO);
     expect(html).toContain("Sugerencia");
-    expect(html).toContain("Si responde «No» a «¿Desea continuar con la encuesta?» → fin de encuesta");
+    expect(html).toContain("Si responde &quot;No&quot; a &quot;¿Desea continuar con la encuesta?&quot; → fin de encuesta");
     expect(html).toContain(">Aplicar<");
     expect(html).toContain(">Descartar<");
     expect(html).toContain('data-qa-geometry-group="xlsform-import-sm-sugerencias"');
@@ -185,7 +185,7 @@ describe("lógica: aviso honesto y sugerencias (H4/U7)", () => {
 });
 
 describe("aviso de lógica con saltos ya agregados", () => {
-  test("deja de decir «se importa sin saltos» y pasa a tono neutro", () => {
+  test('deja de decir "se importa sin saltos" y pasa a tono neutro', () => {
     const html = renderToStaticMarkup(
       <SmLogicaSugerencias
         estado={{ fase: "listo", aviso: AVISO, sugerencias: [] }}
@@ -298,14 +298,14 @@ describe("secciones de la encuesta (U6/U8)", () => {
 });
 
 describe("no entra al formulario (H9)", () => {
-  const detalle = "La variable personalizada «id» no es una pregunta: llega en los datos como la columna «cv_id» (metadato).";
+  const detalle = 'La variable personalizada "id" no es una pregunta: llega en los datos como la columna "cv_id" (metadato).';
 
   test("el resumen lista cada detalle cuando viene", () => {
     const html = renderToStaticMarkup(
       <FinalImportReviewModal {...resumenBase} fueraDelFormulario={[{ tipo: "variable_personalizada", nombre: "id", detalle }]} />,
     );
     expect(html).toContain("No entra al formulario");
-    expect(html).toContain("«cv_id» (metadato)");
+    expect(html).toContain("&quot;cv_id&quot; (metadato)");
     expect(html).not.toContain("variable_personalizada");
   });
 

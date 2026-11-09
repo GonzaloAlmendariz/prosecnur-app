@@ -102,7 +102,7 @@ export function SmSurveyPicker({
           })}
         </ul>
       ) : (
-        <EstadoVacio icono={<Search size={14} />} titulo={`Ninguna encuesta coincide con «${query}»`} />
+        <EstadoVacio icono={<Search size={14} />} titulo={`Ninguna encuesta coincide con "${query}"`} />
       )}
       {ocultas > 0 ? (
         <button type="button" className="pulso-xf-smi-mas" onClick={() => setTodas(true)}>

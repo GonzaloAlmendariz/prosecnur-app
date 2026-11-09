@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 import { PanelCard, PropRow, QuestionToken, ReadsAs, Segmented, typeFamily, typeTone } from "./index";
 
 describe("kit · tono por tipo", () => {
-  test("cada familia conocida tiene un tono distinto de «otro» y siempre es un var()", () => {
+  test('cada familia conocida tiene un tono distinto de "otro" y siempre es un var()', () => {
     for (const t of ["select_one", "select_multiple", "integer", "text", "date", "calculate", "geopoint", "note"]) {
       expect(typeFamily(t)).not.toBe("otro");
       expect(typeTone(t)).toMatch(/^var\(--/);

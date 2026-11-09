@@ -60,7 +60,7 @@ const KNOWN_TYPES = [
 ];
 
 describe("previewKindForType", () => {
-  test.each(KNOWN_TYPES)("«%s» tiene rama visual propia (no fallback)", (rawType) => {
+  test.each(KNOWN_TYPES)('"%s" tiene rama visual propia (no fallback)', (rawType) => {
     expect(previewKindForType(nodeFor(rawType))).not.toBe("fallback");
   });
 

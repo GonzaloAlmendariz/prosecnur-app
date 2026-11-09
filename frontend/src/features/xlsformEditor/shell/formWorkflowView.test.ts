@@ -130,7 +130,7 @@ describe("getFormWorkflowView", () => {
       }],
     }), actors, "docentes_acreditacion");
 
-    expect(view.processing.label).toBe("En uso por «default»");
+    expect(view.processing.label).toBe('En uso por "default"');
     expect(view.processing.tone).toBe("success");
   });
 
@@ -149,7 +149,7 @@ describe("getFormWorkflowView", () => {
     }), actors, "docentes_acreditacion");
 
     expect(view.processing.tone).toBe("warning");
-    expect(view.processing.label).toBe("«docentes» usa una revisión anterior");
+    expect(view.processing.label).toBe('"docentes" usa una revisión anterior');
     expect(view.processing.detail).toMatch(/revisión 2/);
   });
 
@@ -167,7 +167,7 @@ describe("getFormWorkflowView", () => {
     }), actors, "docentes_acreditacion");
 
     expect(view.processing.label).toBe("En uso por 2 bases");
-    expect(view.processing.detail).toMatch(/«piloto» sigue con una revisión anterior/);
+    expect(view.processing.detail).toMatch(/"piloto" sigue con una revisión anterior/);
   });
 
   test("pending changes preserve the currently available revision", () => {
@@ -194,7 +194,7 @@ describe("getFormWorkflowView", () => {
     expect(view.primaryAction).toBe("publish");
   });
 
-  test("nunca emite «Elegir público» como acción primaria", () => {
+  test('nunca emite "Elegir público" como acción primaria', () => {
     for (const actorKey of [null, "docentes_acreditacion", "fantasma"]) {
       for (const applies of [true, false]) {
         const view = getFormWorkflowView(publication({ can_publish: false }), actors, actorKey, applies);

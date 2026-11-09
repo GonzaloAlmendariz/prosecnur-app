@@ -31,7 +31,7 @@ const filtro = (w: XlsformEditorWorkbook, fila: number) => w.survey.rows[fila]![
 const analisis = (w: XlsformEditorWorkbook, fila: number) => analizarFiltro({ structure: parseBuilderStructure(w.survey), choices: w.choices }, fila)!;
 
 describe("lo marcado antes", () => {
-  it("escribe selected(${q}, name) y se relee como «Marcadas en otra pregunta»", () => {
+  it('escribe selected(${q}, name) y se relee como "Marcadas en otra pregunta"', () => {
     const i = { forma: "marcado" as const, madre: "usa" };
     expect(intentoCompleto(i)).toBe(true);
     const w = escribirIntento(wb, 2, "medios", i);

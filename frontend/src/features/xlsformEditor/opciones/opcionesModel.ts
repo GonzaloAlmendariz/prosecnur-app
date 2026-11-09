@@ -82,8 +82,8 @@ export function textoOrigen(o: OrigenLista): string {
   switch (o.tipo) {
     case "repeticion":
       return o.repeticion
-        ? `Las opciones son las respuestas a «${o.etiquetaVariable}», una por cada fila registrada en la repetición «${o.repeticion}». No se escriben aquí: salen de lo que se anota en la entrevista.`
-        : `Las opciones son las respuestas a «${o.etiquetaVariable}» que se registran en la entrevista. No se escriben aquí.`;
+        ? `Las opciones son las respuestas a "${o.etiquetaVariable}", una por cada fila registrada en la repetición "${o.repeticion}". No se escriben aquí: salen de lo que se anota en la entrevista.`
+        : `Las opciones son las respuestas a "${o.etiquetaVariable}" que se registran en la entrevista. No se escriben aquí.`;
     case "archivo":
       return `Las opciones salen del archivo ${o.archivo}, que se adjunta al formulario. No se escriben aquí.`;
     case "busqueda":
@@ -95,7 +95,7 @@ export function textoOrigen(o: OrigenLista): string {
 
 /** Nombre corto de una lista dinámica para la lista de la izquierda. */
 export function nombreDeOrigen(o: OrigenLista): string {
-  if (o.tipo === "repeticion") return o.repeticion ? `Filas de «${o.repeticion}»` : `Respuestas a «${o.etiquetaVariable}»`;
+  if (o.tipo === "repeticion") return o.repeticion ? `Filas de "${o.repeticion}"` : `Respuestas a "${o.etiquetaVariable}"`;
   return o.tipo === "archivo" ? `Archivo ${o.archivo}` : "Búsqueda en archivo";
 }
 

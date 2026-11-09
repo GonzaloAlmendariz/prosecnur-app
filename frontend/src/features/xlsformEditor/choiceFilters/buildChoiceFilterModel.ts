@@ -297,10 +297,10 @@ function buildExplanation(mode: ChoiceFilterMode, antecedents: ChoiceFilterAntec
     return "Cada opción aparece únicamente si la persona la indicó en la pregunta que le corresponde.";
   }
   if (mode === "simple" && antecedents[0]) {
-    return `Las opciones se limitan según lo que la persona respondió en «${antecedents[0].label}».`;
+    return `Las opciones se limitan según lo que la persona respondió en "${antecedents[0].label}".`;
   }
   if (antecedents.length === 1 && antecedents[0]) {
-    return `Las opciones disponibles dependen de lo que la persona respondió en «${antecedents[0].label}».`;
+    return `Las opciones disponibles dependen de lo que la persona respondió en "${antecedents[0].label}".`;
   }
   if (antecedents.length > 1) return "Las opciones disponibles dependen de respuestas que la persona dio antes.";
   return "El editor no sabe leer qué opciones deja este filtro: revisa la regla técnica.";

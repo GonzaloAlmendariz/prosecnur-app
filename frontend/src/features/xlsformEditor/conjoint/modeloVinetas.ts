@@ -62,12 +62,12 @@ export function nombresVinetasDelEditor(prefijo: string): NombresVinetas {
 /** Problemas del diseño, en castellano. Vacío si se puede generar. */
 export function validarVinetas(d: DisenoVinetas): string[] {
   const out: string[] = [];
-  if (!NOMBRE.test(d.prefijo)) out.push(`El prefijo «${d.prefijo}» no sirve como nombre de variable: usa letras, números y _.`);
+  if (!NOMBRE.test(d.prefijo)) out.push(`El prefijo "${d.prefijo}" no sirve como nombre de variable: usa letras, números y _.`);
   if (!Number.isInteger(d.vinetas) || d.vinetas < 1 || d.vinetas > 20) out.push("El número de viñetas va de 1 a 20.");
   if (!d.atributos.length) out.push("La viñeta necesita al menos un atributo.");
   if (!d.texto.trim()) out.push("Falta el texto de la viñeta.");
   const huecos = new Set([...d.texto.matchAll(HUECO)].map((m) => m[1]!));
-  for (const a of d.atributos) if (!huecos.has(a.clave)) out.push(`El texto no usa «${a.rotulo}»: agrega {${a.clave}} donde va.`);
+  for (const a of d.atributos) if (!huecos.has(a.clave)) out.push(`El texto no usa "${a.rotulo}": agrega {${a.clave}} donde va.`);
   for (const h of huecos) if (!d.atributos.some((a) => a.clave === h)) out.push(`El texto tiene {${h}}, que no es ningún atributo.`);
   if (!d.pregunta.trim()) out.push("Falta la pregunta de calificación.");
   const { min, max } = d.escala;

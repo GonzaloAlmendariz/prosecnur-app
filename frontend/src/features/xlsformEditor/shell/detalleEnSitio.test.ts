@@ -33,7 +33,7 @@ describe("ficha de la pregunta (Vista del cuestionario)", () => {
       variable: "p2",
       tipo: "Número entero",
       obligatoria: true,
-      condicion: "P1 es «Sí»",
+      condicion: 'P1 es "Sí"',
       lista: null,
       restriccion: { texto: "El valor va entre 18 y 99.", tecnica: false },
     });
@@ -82,7 +82,7 @@ describe("papel por pregunta (Impreso)", () => {
       .toEqual([["p2", 0], ["p5", 1]]);
   });
 
-  test("«Ajustar otra pregunta» ofrece las filas sin ajustes", () => {
+  test('"Ajustar otra pregunta" ofrece las filas sin ajustes', () => {
     const nombres = filasSinPapel(ESTRUCTURA_SIN_SALTO).map((f) => f.name);
     expect(nombres).toContain("p1");
     expect(nombres).not.toContain("p5");

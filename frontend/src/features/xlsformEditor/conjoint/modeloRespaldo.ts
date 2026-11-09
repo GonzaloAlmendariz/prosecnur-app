@@ -59,7 +59,7 @@ function concatDe(frase: string, actor: string, politica: string): string {
 
 export function validarRespaldo(d: DisenoRespaldo): string[] {
   const out: string[] = [];
-  if (!NOMBRE.test(d.prefijo)) out.push(`El prefijo «${d.prefijo}» no sirve como nombre de variable: usa letras, números y _.`);
+  if (!NOMBRE.test(d.prefijo)) out.push(`El prefijo "${d.prefijo}" no sirve como nombre de variable: usa letras, números y _.`);
   if (!d.actores.length || d.actores.length > 5) out.push("Van de uno a cinco actores.");
   d.actores.forEach((a, i) => { if (!a.trim()) out.push(`El actor ${i + 1} no tiene nombre.`); });
   if (new Set(d.actores.map((a) => a.trim())).size !== d.actores.length) out.push("Dos actores se llaman igual.");

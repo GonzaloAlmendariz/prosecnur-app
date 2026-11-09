@@ -125,7 +125,7 @@ export function SeccionEstructura({
         {onInsertar ? (
           <BotonInsertar
             destino={abierta ? { despuesDeFila: null, seccionFila: node.rowIndex } : { despuesDeFila: node.rowIndex, seccionFila: contenedor }}
-            etiqueta={abierta ? `Agregar al inicio de «${tituloSinRefs}»` : `Agregar después de «${tituloSinRefs}»`}
+            etiqueta={abierta ? `Agregar al inicio de "${tituloSinRefs}"` : `Agregar después de "${tituloSinRefs}"`}
             onAbrir={onInsertar}
           />
         ) : null}
@@ -134,7 +134,7 @@ export function SeccionEstructura({
         className="xfe-seccion__hijos"
         id={idHijos}
         role="group"
-        aria-label={`Contenido de «${tituloSinRefs}»`}
+        aria-label={`Contenido de "${tituloSinRefs}"`}
         hidden={!abierta}
         data-qa-geometry-group="xlsform/estructura-seccion"
         data-qa-geometry-contract="intrinsic"
@@ -155,7 +155,7 @@ export function SeccionEstructura({
         <div className="xfe-seccion__pie">
           <BotonInsertar
             destino={{ despuesDeFila: node.rowIndex, seccionFila: contenedor }}
-            etiqueta={`Agregar después de «${tituloSinRefs}»`}
+            etiqueta={`Agregar después de "${tituloSinRefs}"`}
             onAbrir={onInsertar}
           />
         </div>

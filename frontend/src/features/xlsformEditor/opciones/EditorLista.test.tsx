@@ -10,11 +10,11 @@ const nada = () => {};
 const props = { usos: 2, onRename: nada, onAgregar: nada, onCambio: nada, onQuitar: nada, onMover: nada, onBorrarLista: nada };
 
 describe("EditorLista con opciones dinámicas", () => {
-  it("con la estructura, cita la pregunta y la repetición por su etiqueta y no ofrece «Agregar opción»", () => {
+  it('con la estructura, cita la pregunta y la repetición por su etiqueta y no ofrece "Agregar opción"', () => {
     const A = acnur();
     const lista = { listName: "${HH01_2_aux}", title: "${HH01_2_aux}", items: [] };
     const html = renderToStaticMarkup(<EditorLista lista={lista} {...props} origen={origenDeLista(lista.listName, A.structure)} />);
-    expect(html).toContain("Las opciones son las respuestas a «Nombre del miembro del hogar», una por cada fila registrada en la repetición «Lista de los miembros del hogar»");
+    expect(html).toContain("Las opciones son las respuestas a &quot;Nombre del miembro del hogar&quot;, una por cada fila registrada en la repetición &quot;Lista de los miembros del hogar&quot;");
     expect(html).not.toContain("Agrega la primera");
     expect(html).not.toContain("Agregar opción");
     expect(html).toContain("opciones dinámicas");
@@ -24,7 +24,7 @@ describe("EditorLista con opciones dinámicas", () => {
   });
   it("sin la estructura, el código de la lista basta para no ofrecer escribirlas", () => {
     const html = renderToStaticMarkup(<EditorLista lista={{ listName: "${HH01_2_aux}", title: "", items: [] }} {...props} />);
-    expect(html).toContain("Las opciones son las respuestas a «HH01_2_aux»");
+    expect(html).toContain("Las opciones son las respuestas a &quot;HH01_2_aux&quot;");
     expect(html).not.toContain("Agregar opción");
   });
   it("una lista de choices vacía sigue ofreciendo agregar la primera", () => {

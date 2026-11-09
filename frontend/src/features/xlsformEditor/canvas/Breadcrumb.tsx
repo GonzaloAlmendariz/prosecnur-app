@@ -63,7 +63,7 @@ export function Breadcrumb({ rowIndex, structure, onSelect }: BreadcrumbProps) {
             type="button"
             className="pulso-canvas-breadcrumb-segment"
             onClick={() => segment.rowIndex != null && onSelect(segment.rowIndex)}
-            title={`Seleccionar la sección «${segment.label}»`}
+            title={`Seleccionar la sección "${segment.label}"`}
             disabled={segment.rowIndex == null}
           >
             <span>{segment.label}</span>

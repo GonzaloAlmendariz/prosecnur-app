@@ -153,7 +153,7 @@ export function VariablePicker({
           {variables.length === 0 ? (
             <EstadoVacio icono={<Search size={14} />} titulo="Aún no hay preguntas previas disponibles para esta condición" />
           ) : filtered.length === 0 ? (
-            <EstadoVacio icono={<Search size={14} />} titulo={`Ninguna pregunta coincide con «${query}»`} />
+            <EstadoVacio icono={<Search size={14} />} titulo={`Ninguna pregunta coincide con "${query}"`} />
           ) : (
             <ul className="pulso-logic-varpicker-list">
               {filtered.map((variable) => {

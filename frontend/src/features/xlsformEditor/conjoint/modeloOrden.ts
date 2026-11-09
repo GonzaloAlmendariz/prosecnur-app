@@ -41,9 +41,9 @@ export function esEscala(opciones: readonly { codigo: string }[]): boolean {
 
 export function validarOrden(d: DisenoOrden, seleccionables: readonly string[]): string[] {
   const out: string[] = [];
-  if (!NOMBRE.test(d.prefijo)) out.push(`El prefijo «${d.prefijo}» no sirve como nombre de variable: usa letras, números y _.`);
+  if (!NOMBRE.test(d.prefijo)) out.push(`El prefijo "${d.prefijo}" no sirve como nombre de variable: usa letras, números y _.`);
   if (!d.preguntas.length) out.push("Elige al menos una pregunta de selección.");
-  for (const p of d.preguntas) if (!seleccionables.includes(p)) out.push(`«${p}» no es una pregunta de selección del formulario.`);
+  for (const p of d.preguntas) if (!seleccionables.includes(p)) out.push(`"${p}" no es una pregunta de selección del formulario.`);
   return out;
 }
 

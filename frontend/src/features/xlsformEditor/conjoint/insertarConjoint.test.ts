@@ -25,7 +25,7 @@ const diseno = (prefijo = "cj"): DisenoConjoint => ({
 });
 
 describe("insertar un conjoint", () => {
-  it("entra entero después de la fila del «+» y agrega su lista", () => {
+  it('entra entero después de la fila del "+" y agrega su lista', () => {
     const wb = formulario();
     const r = insertarConjoint(wb, parseBuilderStructure(wb.survey), { despuesDeFila: 0, seccionFila: null }, diseno());
     expect(r.ok).toBe(true);
@@ -52,7 +52,7 @@ describe("insertar un conjoint", () => {
     const r = insertarConjoint(wb, parseBuilderStructure(wb.survey), { despuesDeFila: null, seccionFila: null }, diseno());
     expect(r.ok).toBe(false);
     if (r.ok) return;
-    expect(r.motivos[0]).toMatch(/«cj2»/);
+    expect(r.motivos[0]).toMatch(/"cj2"/);
     expect(wb.survey.rows.length).toBe(antes);
     expect(prefijoLibre(wb)).toBe("cj2");
   });

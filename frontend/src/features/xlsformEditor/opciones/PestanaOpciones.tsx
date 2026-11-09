@@ -82,7 +82,7 @@ export function PestanaOpciones(p: PestanaOpcionesProps) {
     if (i < 0 || !vecina) { setAnuncio(delta < 0 ? "Ya es la primera opción." : "Ya es la última opción."); return; }
     mover(rowIndex, vecina.rowIndex, true);
     const texto = actual.items[i]!.label.trim() || actual.items[i]!.name;
-    setAnuncio(`«${texto}» pasó a la posición ${i + delta + 1} de ${actual.items.length}.`);
+    setAnuncio(`"${texto}" pasó a la posición ${i + delta + 1} de ${actual.items.length}.`);
   };
 
   const lateral = actual ? (

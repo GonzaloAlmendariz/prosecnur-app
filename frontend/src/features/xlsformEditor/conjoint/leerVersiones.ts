@@ -54,7 +54,7 @@ export function leerVersiones(wb: Pick<XlsformEditorWorkbook, "survey"> | null):
     if (!motivo) {
       const [r, v, t, p] = generarVersiones(diseno);
       const igual = r!.calculation === azar.calculation && v!.calculation === version.calculation && t!.calculation === texto.calculation && p!.type === q.type && p!.label === q.label;
-      if (!igual) motivo = `«${q.name}» no está escrito como lo escribe el editor.`;
+      if (!igual) motivo = `"${q.name}" no está escrito como lo escribe el editor.`;
     }
     out.push({ diseno, pregunta: q.i, calculos, filas: [...calculos, q.i].sort((a, b) => a - b), fiel: motivo == null, motivo });
   }

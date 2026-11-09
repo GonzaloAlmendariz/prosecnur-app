@@ -393,7 +393,7 @@ export function bloquesDesdePatron(cuerpo: string): { formato: string | null; bl
 const pad = (n: number, w: number) => String(n).padStart(w, "0");
 const anchoRango = (b: Bloque) => String(Math.max(b.desde, b.hasta)).length;
 const enLista = (xs: string[]) => (xs.length < 2 ? (xs[0] ?? "") : `${xs.slice(0, -1).join(", ")} o ${xs[xs.length - 1]}`);
-const cita = (s: string) => (/^[\p{L}\d]+$/u.test(s) ? s : `«${s}»`);
+const cita = (s: string) => (/^[\p{L}\d]+$/u.test(s) ? s : `"${s}"`);
 const plural = (n: number, s: string, p: string) => `${n} ${n === 1 ? s : p}`;
 
 export const CLASE_NOMBRE: Record<ClaseLetras, [string, string]> = {
@@ -530,7 +530,7 @@ function diagnostico(b: Bloque, i: number, resto: string): Diagnostico {
       const final = corrida === resto.length;
       return { parcial: final ? corrida : 0, largo: final ? 0 : corrida, hueco: final, motivo: falta(plural(min - corrida, "dígito", "dígitos")) };
     }
-    if (!corrida) return { largo: 1, motivo: `«${resto[0]}» no es un dígito` };
+    if (!corrida) return { largo: 1, motivo: `"${resto[0]}" no es un dígito` };
   }
   if (b.tipo === "digitos" && b.modo === "rango") {
     const w = anchoRango(b);
@@ -542,7 +542,7 @@ function diagnostico(b: Bloque, i: number, resto: string): Diagnostico {
     return {
       largo: Math.max(1, dig.length),
       hueco: tramo.length < w && tramo.length === resto.length,
-      motivo: dig ? `van ${w} cifras, como ${dig.padStart(w, "0")}` : `«${resto[0]}» no es un dígito`,
+      motivo: dig ? `van ${w} cifras, como ${dig.padStart(w, "0")}` : `"${resto[0]}" no es un dígito`,
     };
   }
   if (b.tipo === "fijo" || b.tipo === "lista") {
@@ -560,7 +560,7 @@ function diagnostico(b: Bloque, i: number, resto: string): Diagnostico {
     if (corrida > 0 && corrida < min && corrida === resto.length) {
       return { largo: 0, parcial: corrida, hueco: true, motivo: falta(plural(min - corrida, "letra", "letras")) };
     }
-    return { largo: 1, motivo: `«${resto[corrida] ?? resto[0]}» no es una letra` };
+    return { largo: 1, motivo: `"${resto[corrida] ?? resto[0]}" no es una letra` };
   }
   if (b.tipo === "avanzado") return { largo: resto.length, motivo: `no es ${b.nombre ?? "válido"}` };
   return { largo: 1, motivo: `falta ${nombreBloque(b)}` };
@@ -583,7 +583,7 @@ export function probar(bloques: readonly Bloque[], texto: string): Prueba {
   const sobra = texto.slice(previo);
   const ult = bloques[bloques.length - 1];
   if (!sobra) return { ok: false, tramos: [], k: 0, ini: 0, largo: texto.length, parcial: 0, hueco: false, motivo: "sin partes" };
-  const motivo = !sobra.trim() ? "sobra un espacio al final" : ult && ult.tipo === "letras" && /\d/.test(sobra[0]!) ? `«${sobra[0]}» no es una letra` : `sobra ${cita(sobra)}`;
+  const motivo = !sobra.trim() ? "sobra un espacio al final" : ult && ult.tipo === "letras" && /\d/.test(sobra[0]!) ? `"${sobra[0]}" no es una letra` : `sobra ${cita(sobra)}`;
   return { ok: false, tramos, k: bloques.length, ini: previo, largo: sobra.length, parcial: 0, hueco: false, motivo };
 }
 

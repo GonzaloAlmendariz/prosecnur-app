@@ -188,7 +188,7 @@ function llamada(e: Extract<Expr, { kind: "call" }>, ctx: Contexto): Frase | nul
       const tabla = textoDe(a[0]);
       const col = textoDe(a[1]);
       const clave = L(a[3]);
-      return a.length === 4 && tabla && col && clave ? [t("el dato"), v(`«${col}»`), t("de la tabla"), v(`«${tabla}»`), t("que corresponde a"), ...clave] : null;
+      return a.length === 4 && tabla && col && clave ? [t("el dato"), v(`"${col}"`), t("de la tabla"), v(`"${tabla}"`), t("que corresponde a"), ...clave] : null;
     }
     case "count-selected":
       if (a.length !== 1) return null;

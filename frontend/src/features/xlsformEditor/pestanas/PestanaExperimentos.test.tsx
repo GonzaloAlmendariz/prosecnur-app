@@ -102,7 +102,7 @@ describe("pestaña Experimentos", () => {
     expect(html).toContain("Aplicar cambios");
   });
 
-  test("el orden al azar lista las preguntas de selección y avisa si «No sabe» se movería (C16)", () => {
+  test('el orden al azar lista las preguntas de selección y avisa si "No sabe" se movería (C16)', () => {
     const wb = formulario(false);
     insertRecord(wb.survey, 1, { type: "select_one partido", name: "P1", label: "¿Por quién votaría?", parameters: "randomize=true seed=${or_semilla}" });
     insertRecord(wb.survey, 1, { type: "calculate", name: "or_semilla", calculation: "once(int(random() * 1000000))" });

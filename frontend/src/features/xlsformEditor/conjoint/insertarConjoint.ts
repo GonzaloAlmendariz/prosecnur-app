@@ -75,12 +75,12 @@ export function reemplazarBloque(
 
   const motivos: string[] = [];
   const choque = [...nuevos].find((n) => !viejos.has(n) && draft.survey.rows.some((_, i) => !quitar.has(i) && nombre(i) === n));
-  if (choque) motivos.push(`«${choque}» ya existe fuera del experimento.`);
+  if (choque) motivos.push(`"${choque}" ya existe fuera del experimento.`);
   const perdidos = [...viejos].filter((n) => !nuevos.has(n));
   for (const n of perdidos) {
     const usa = draft.survey.rows.findIndex((row, i) => !quitar.has(i) && row.some((c) => (c ?? "").includes("${" + n + "}")));
     if (usa >= 0) {
-      motivos.push(`«${nombre(usa) || `fila ${usa + 2}`}» usa «${n}», que deja de existir con este cambio.`);
+      motivos.push(`"${nombre(usa) || `fila ${usa + 2}`}" usa "${n}", que deja de existir con este cambio.`);
       break;
     }
   }
@@ -130,7 +130,7 @@ export function insertarBloque(
   if (choque.length || (lista && listas.has(lista))) {
     return {
       ok: false,
-      motivos: [`El prefijo «${prefijo}» ya se usa en el formulario (${choque[0] ?? lista}). Elige otro, por ejemplo «${prefijoLibre(draft, prefijo)}».`],
+      motivos: [`El prefijo "${prefijo}" ya se usa en el formulario (${choque[0] ?? lista}). Elige otro, por ejemplo "${prefijoLibre(draft, prefijo)}".`],
     };
   }
   const indice = indiceInsercion(structure, destino, draft.survey.rows.length);

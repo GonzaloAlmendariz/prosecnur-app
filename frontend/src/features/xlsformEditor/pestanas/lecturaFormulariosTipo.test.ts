@@ -35,7 +35,7 @@ const funcionDe = (raw: string) => (raw.match(/^\s*([a-z][a-z:-]*)\s*\(/i)?.[1] 
 const esBooleano = (v: string) => /^(yes|no|true|false|1|0|si|sí)?$/i.test(v.trim()) || /^(true|false)\(\)$/i.test(v.trim());
 
 describe.skipIf(!activo)("lectura humana sobre los seis formularios tipo", () => {
-  test("mide la proporción de reglas que caen en «técnica» por columna", () => {
+  test('mide la proporción de reglas que caen en "técnica" por columna', () => {
     const cuenta = new Map<ColumnaRegla, [number, number]>(COLUMNAS.map((c) => [c, [0, 0]]));
     const porFuncion = new Map<string, { n: number; ejemplo: string }>();
     const volcado: { formulario: string; columna: ColumnaRegla; raw: string; texto: string; tecnica: boolean; tipo: string }[] = [];

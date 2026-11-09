@@ -20,7 +20,7 @@ const workbook = {
   },
 } as unknown as XlsformEditorWorkbook;
 
-describe("primera página real de «Así queda» (L36)", () => {
+describe('primera página real de "Así queda" (L36)', () => {
   it("omite los grupos de la plataforma con todo lo que cuelga de ellos, como el documento (D-L36-1)", () => {
     const structure = {
       outline: [
@@ -66,7 +66,7 @@ describe("primera página real de «Así queda» (L36)", () => {
 });
 
 describe("partirEnLineas", () => {
-  it("envuelve por palabras y recorta con «…» lo que no cabe", () => {
+  it('envuelve por palabras y recorta con "…" lo que no cabe', () => {
     expect(partirEnLineas("¿En qué distrito vive usted actualmente?", 20, 3)).toEqual(["¿En qué distrito", "vive usted", "actualmente?"]);
     const dos = partirEnLineas("uno dos tres cuatro cinco seis siete ocho", 10, 2);
     expect(dos).toHaveLength(2);

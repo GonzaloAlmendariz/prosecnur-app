@@ -25,7 +25,7 @@ async function leerHermano(scope: ProjectScope, ref: ReferenciaFormulario): Prom
   const local = loadForm(scope, ref.id);
   if (local) return { id: ref.id, nombre: ref.name, workbook: local.workbook };
   const remoto = (await apiXlsformFormGet(ref.id)).form;
-  if (!remoto) throw new Error(`El formulario «${ref.name}» no tiene contenido.`);
+  if (!remoto) throw new Error(`El formulario "${ref.name}" no tiene contenido.`);
   return { id: ref.id, nombre: ref.name, workbook: remoto.workbook };
 }
 

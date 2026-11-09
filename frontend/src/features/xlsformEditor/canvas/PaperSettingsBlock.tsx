@@ -129,7 +129,7 @@ function CamposPapel({
         </InspectorField>
         <InspectorField
           label={<>Letra impresa <TechTerm t="paper_subletter" /></>}
-          hint="En una matriz, a, b, c… en vez de número. «@» marca el enunciado madre."
+          hint='En una matriz, a, b, c… en vez de número. "@" marca el enunciado madre.'
         >
           {(campo) => (
             <input

@@ -173,7 +173,7 @@ export function compararListasEntreFormularios(
       estado = copias.every((c) => c.lista === lista.nombre) ? "coincide" : "referencia";
     } else if (conGemela.has(lista.nombre)) {
       estado = "unificar-primero";
-      motivo = "Primero unifica sus copias en «Escalas repetidas».";
+      motivo = 'Primero unifica sus copias en "Escalas repetidas".';
     } else {
       motivo = validarNombreLista(activo, nombreComun, [lista.nombre], reservados);
       estado = motivo ? "bloqueado" : "renombrar";
@@ -252,10 +252,10 @@ export function describirDondeSeRepite(copias: readonly CopiaEnOtroFormulario[])
 /** «se llama «acuerdo» allí» o «se llama «acuerdo» en Docentes y «lst_p3» en Administrativos». */
 export function describirNombresAlla(copias: readonly CopiaEnOtroFormulario[]): string {
   const nombres = [...new Set(copias.map((c) => c.lista))];
-  if (nombres.length === 1) return `se llama «${nombres[0]}» allí`;
+  if (nombres.length === 1) return `se llama "${nombres[0]}" allí`;
   const porNombre = nombres.map((n) => {
     const forms = [...new Set(copias.filter((c) => c.lista === n).map((c) => c.formulario))];
-    return `«${n}» en ${enumerar(forms)}`;
+    return `"${n}" en ${enumerar(forms)}`;
   });
   return `se llama ${enumerar(porNombre)}`;
 }

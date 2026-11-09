@@ -73,8 +73,8 @@ const ANCHO_MATRICES: readonly OpcionTarjeta<"full" | "column">[] = [
 ];
 
 const LOGICA: readonly OpcionTarjeta<"saltos" | "condiciones">[] = [
-  { valor: "saltos", icono: Route, titulo: "Saltos", detalle: "Instrucciones en las opciones — «Salto a la 15»." },
-  { valor: "condiciones", icono: GitBranch, titulo: "Condiciones", detalle: "Apertura antes de la pregunta — «En caso…»." },
+  { valor: "saltos", icono: Route, titulo: "Saltos", detalle: 'Instrucciones en las opciones — "Salto a la 15".' },
+  { valor: "condiciones", icono: GitBranch, titulo: "Condiciones", detalle: 'Apertura antes de la pregunta — "En caso…".' },
 ];
 
 export function DetalleFormato({ estado, actualizar, tituloDelFormulario }: {
@@ -86,7 +86,7 @@ export function DetalleFormato({ estado, actualizar, tituloDelFormulario }: {
   return (
     <>
       <TarjetaImpreso id="imp-titulo" titulo="Portada" ayuda="Lo que abre la primera página: título, institución y periodo.">
-        <PulsoField label="Título impreso" hint={tituloDelFormulario ? `Si lo dejas vacío se imprime «${tituloDelFormulario}».` : "Si lo dejas vacío se imprime el título del formulario."}>
+        <PulsoField label="Título impreso" hint={tituloDelFormulario ? `Si lo dejas vacío se imprime "${tituloDelFormulario}".` : "Si lo dejas vacío se imprime el título del formulario."}>
           <PulsoInput
             value={estado.documentTitle}
             placeholder={tituloDelFormulario || "Título del formulario"}
@@ -149,7 +149,7 @@ export function DetalleLogica({ estado, actualizar, consentimiento, plano }: {
       <TarjetaImpreso
         id="imp-consentimiento"
         titulo="Consentimiento"
-        ayuda="Se asume que todo el formulario depende del consentimiento: sus condiciones no se repiten y su rechazo marca «Termina la encuesta»."
+        ayuda='Se asume que todo el formulario depende del consentimiento: sus condiciones no se repiten y su rechazo marca "Termina la encuesta".'
       >
         <div className="pulso-xf-pdf-control pulso-xf-pdf-control--consent">
           <label htmlFor="pulso-xf-imp-consent">
@@ -195,7 +195,7 @@ export function DetalleContenido({ estado, actualizar }: { estado: PdfDialogStat
         <InterruptorImpreso
           activo={estado.defaultIntro}
           titulo="Instrucciones al inicio"
-          detalle="Banda «INSTRUCCIONES» si el formulario no trae introducción propia."
+          detalle='Banda "INSTRUCCIONES" si el formulario no trae introducción propia.'
           onCambiar={(v) => actualizar({ defaultIntro: v })}
         />
       </TarjetaImpreso>

@@ -25,7 +25,7 @@ describe("cuántas marcó como condición", () => {
     expect(valueForPredicateTransition(count, { kind: "literal", raw: "tv" }, "select_multiple", catalogo)).toEqual({ kind: "literal", raw: "1" });
     expect(valueForPredicateTransition(sel, { kind: "literal", raw: "2" }, "select_multiple", catalogo)).toEqual({ kind: "literal", raw: "tv" });
   });
-  test("«incluye» escribe el código de la opción como texto", () => {
+  test('"incluye" escribe el código de la opción como texto', () => {
     const flat = tryFlattenCondition(parseExpression("selected(${medios}, '1')")!)!;
     expect(serializeExpression(expandCondition(flat))).toBe("selected(${medios}, '1')");
     const sinComillas = tryFlattenCondition(parseExpression("not(selected(${medios}, 1))")!)!;

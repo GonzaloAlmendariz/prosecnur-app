@@ -73,7 +73,7 @@ export function leerLista(wb: Pick<XlsformEditorWorkbook, "survey"> | null): Lec
         const igual = f && f.type === g.type && (g.label ?? "").trim() === f.label.trim() && (g.calculation ?? "") === f.calculation
           && (g.relevant ?? "") === f.relevant && (g.constraint ?? "") === f.constraint;
         if (!igual) {
-          motivo = `«${g.name}» no está escrito como lo escribe el editor.`;
+          motivo = `"${g.name}" no está escrito como lo escribe el editor.`;
           break;
         }
       }

@@ -25,13 +25,13 @@ describe("cuántas opciones puede marcar", () => {
     expect(escribirCuantas(con, { modo: "libre", min: null, max: null })).toBe("not(selected(., '99') and count-selected(.) > 1)");
   });
 
-  test("un «or» dentro de not(…) no se envuelve otra vez", () => {
+  test('un "or" dentro de not(…) no se envuelve otra vez', () => {
     const solas = escribirSolas("", ["98", "99"]);
     expect(escribirCuantas(solas, { modo: "maximo", min: null, max: 4 })).toBe(`${solas} and count-selected(.) <= 4`);
     expect(escribirSolas(`${solas} and count-selected(.) <= 4`, ["99"])).toBe("count-selected(.) <= 4 and not(selected(., '99') and count-selected(.) > 1)");
   });
 
-  test("un «or» del resto queda entre paréntesis", () => {
+  test('un "or" del resto queda entre paréntesis', () => {
     expect(escribirCuantas("selected(., 'a') or selected(., 'b')", { modo: "alMenos", min: 2, max: null }))
       .toBe("(selected(., 'a') or selected(., 'b')) and count-selected(.) >= 2");
   });

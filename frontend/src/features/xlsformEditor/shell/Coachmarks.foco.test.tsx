@@ -96,7 +96,7 @@ describe("Coachmarks · diálogo modal", () => {
     expect(localStorage.getItem("pulso.xlsformEditor.firstUseDone")).toBe("true");
   });
 
-  test("«Saltar tour» también devuelve el foco", () => {
+  test('"Saltar tour" también devuelve el foco', () => {
     act(() => root.render(<Coachmarks forceShow />));
     const saltar = Array.from(callout()!.querySelectorAll("button")).find((b) => b.textContent === "Saltar tour")!;
     act(() => saltar.click());

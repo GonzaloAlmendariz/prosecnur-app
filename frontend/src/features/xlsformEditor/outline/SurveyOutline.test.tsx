@@ -65,10 +65,10 @@ describe("SurveyOutline", () => {
     expect(html).toContain('data-aviso="error"');
   });
 
-  test("«+» en cada línea cuando la página sabe insertar", () => {
-    expect(html).toContain("Agregar debajo de «Antes»");
-    expect(html).toContain("Agregar al inicio de «Educación»");
-    expect(html).toContain("Agregar después de «Educación»");
+  test('"+" en cada línea cuando la página sabe insertar', () => {
+    expect(html).toContain("Agregar debajo de &quot;Antes&quot;");
+    expect(html).toContain("Agregar al inicio de &quot;Educación&quot;");
+    expect(html).toContain("Agregar después de &quot;Educación&quot;");
     expect(html).toContain("Agregar al inicio del formulario");
     expect(pintar()).not.toContain("xfe-mas");
   });
@@ -78,7 +78,7 @@ describe("SurveyOutline", () => {
     expect(html).toMatch(/tabindex="0"[^>]*data-nav="2"/);
   });
 
-  test("atajos: Insert (no «+») y la lista con rol", () => {
+  test('atajos: Insert (no "+") y la lista con rol', () => {
     expect(html).toContain('aria-keyshortcuts="Enter Alt+ArrowUp Alt+ArrowDown Insert"');
     expect(html).not.toMatch(/aria-keyshortcuts="[^"]*\+"/);
     expect(html).toMatch(/role="group" aria-label="Estructura del formulario"/);

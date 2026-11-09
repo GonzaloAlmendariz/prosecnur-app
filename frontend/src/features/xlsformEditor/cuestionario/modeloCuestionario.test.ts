@@ -45,7 +45,7 @@ describe("documento de lectura", () => {
   test("la condición se lee en llano y la opción que la habilita lo dice", () => {
     const [p1, p2] = doc[1].bloques;
     if (p1.tipo !== "pregunta" || p2.tipo !== "pregunta") throw new Error("esperaba preguntas");
-    expect(p2.pregunta.condicion).toBe("P1 es «Sí»");
+    expect(p2.pregunta.condicion).toBe('P1 es "Sí"');
     expect(p1.pregunta.opciones).toEqual([
       { codigo: "1", etiqueta: "Sí", habilita: [2] },
       { codigo: "2", etiqueta: "No", habilita: [] },
@@ -66,9 +66,9 @@ describe("piezas", () => {
   const refs = { numeroDe: new Map([["p1", 1], ["p5", 5]]), etiquetaDe: (v: string, c: string) => (c === "1" ? "Sí" : null) };
 
   test("lectura de condiciones", () => {
-    expect(leerCondicion("selected(${p5}, '1') and ${p1} != ''", refs)).toBe("P5 incluye «Sí» y P1 tiene respuesta");
-    expect(leerCondicion("${p1} >= 3 or ${otra} = '2'", refs)).toBe("P1 ≥ 3 o otra es «2»");
-    expect(leerCondicion("not(selected(${p5}, '1'))", refs)).toBe("P5 no incluye «Sí»");
+    expect(leerCondicion("selected(${p5}, '1') and ${p1} != ''", refs)).toBe('P5 incluye "Sí" y P1 tiene respuesta');
+    expect(leerCondicion("${p1} >= 3 or ${otra} = '2'", refs)).toBe('P1 ≥ 3 o otra es "2"');
+    expect(leerCondicion("not(selected(${p5}, '1'))", refs)).toBe('P5 no incluye "Sí"');
   });
 
   test("códigos que habilitan, sin contar los negados", () => {

@@ -117,7 +117,7 @@ export const OutlineRow = memo(function OutlineRow({
       {onInsertar ? (
         <BotonInsertar
           destino={{ despuesDeFila: node.rowIndex, seccionFila: contenedor }}
-          etiqueta={`Agregar debajo de «${tituloSinRefs}»`}
+          etiqueta={`Agregar debajo de "${tituloSinRefs}"`}
           onAbrir={onInsertar}
         />
       ) : null}

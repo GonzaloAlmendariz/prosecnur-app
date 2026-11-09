@@ -59,7 +59,7 @@ export function FichaPregunta({ pregunta, onEditar }: { pregunta: PreguntaDoc; o
               <code className="pulso-xf-ficha-regla">{ficha.restriccion.texto}</code>
             </>
           ) : ficha.restriccion.texto}
-          {ficha.mensajeRestriccion && <p className="pulso-xf-ficha-nota">Mensaje: «{ficha.mensajeRestriccion}»</p>}
+          {ficha.mensajeRestriccion && <p className="pulso-xf-ficha-nota">Mensaje: "{ficha.mensajeRestriccion}"</p>}
         </dd>
       </dl>
       <EditarEnConstructor onEditar={() => onEditar(ficha.variable)} describedBy={`${id}-titulo`} />

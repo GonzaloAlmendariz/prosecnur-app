@@ -21,7 +21,7 @@ export function literalLegible(value: string | number | boolean, comoTexto = fal
   if (value === " ") return "un espacio";
   const fecha = fechaLegible(value);
   if (fecha && /^\d{4}-\d{2}-\d{2}$/.test(value)) return fecha;
-  return comoTexto ? `«${value}»` : value;
+  return comoTexto ? `"${value}"` : value;
 }
 
 /** Número literal de una expresión, si lo es (también '3' entre comillas). */

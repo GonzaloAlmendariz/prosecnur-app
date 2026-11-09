@@ -26,7 +26,7 @@ export function evaluarAritmetica(texto: string, respuestas: SimAnswers): number
   const ver = () => tokens[i];
   const tomar = (esperado?: string) => {
     const t = tokens[i++];
-    if (esperado && t !== esperado) throw new UnsupportedExpressionError(`se esperaba «${esperado}»`);
+    if (esperado && t !== esperado) throw new UnsupportedExpressionError(`se esperaba "${esperado}"`);
     return t;
   };
   const primario = (): number => {
@@ -57,7 +57,7 @@ export function evaluarAritmetica(texto: string, respuestas: SimAnswers): number
       tomar(")");
       return t === "int" ? Math.trunc(a) : a;
     }
-    throw new UnsupportedExpressionError(`«${t}» no es aritmética simple`);
+    throw new UnsupportedExpressionError(`"${t}" no es aritmética simple`);
   };
   const producto = (): number => {
     let v = primario();

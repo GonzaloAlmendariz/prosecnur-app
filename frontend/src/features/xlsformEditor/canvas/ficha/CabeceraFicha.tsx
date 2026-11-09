@@ -127,7 +127,7 @@ export function CabeceraFicha({ node, posicion, usosDeLaLista, destinos, onTipo,
       {pierde && pendiente ? (
         <div className="xfh-cab__aviso" role="alert">
           <p>
-            Al pasar a «{tipoPregunta(pendiente).nombre}» la pregunta deja de usar la lista <code className="xfh-code">{pierde.lista}</code>.{" "}
+            Al pasar a "{tipoPregunta(pendiente).nombre}" la pregunta deja de usar la lista <code className="xfh-code">{pierde.lista}</code>.{" "}
             {pierde.quedaSinUso ? "Ninguna otra pregunta la usa, pero sigue en Listas de opciones." : `La siguen usando ${usosDeLaLista - 1} preguntas.`}
           </p>
           <div className="xfh-cab__aviso-acc">
@@ -166,5 +166,5 @@ export function dondeEsta(node: BuilderNode, structure: BuilderStructure | null)
   const id = propia ? propia.parentId : structure.rowToSectionId.get(node.rowIndex) ?? node.sectionId;
   const meta = id ? structure.sections.get(id) : undefined;
   if (!meta || meta.kind === "root") return "fuera de toda sección";
-  return `en «${corto(etiquetaDeGrupo(meta, structure), 40)}»`;
+  return `en "${corto(etiquetaDeGrupo(meta, structure), 40)}"`;
 }

@@ -55,7 +55,7 @@ export function literal(texto: string): string {
 /** Problemas del diseño, en castellano. Vacío si se puede generar. */
 export function validarDiseno(d: DisenoConjoint): string[] {
   const out: string[] = [];
-  if (!NOMBRE.test(d.prefijo)) out.push(`El prefijo «${d.prefijo}» no sirve como nombre de variable: usa letras, números y _.`);
+  if (!NOMBRE.test(d.prefijo)) out.push(`El prefijo "${d.prefijo}" no sirve como nombre de variable: usa letras, números y _.`);
   if (!Number.isInteger(d.tareas) || d.tareas < 1 || d.tareas > 30) out.push("El número de pares va de 1 a 30.");
   if (d.atributos.length < 2) out.push("El experimento necesita al menos dos atributos.");
   if (!d.pregunta.trim()) out.push("Falta la pregunta de elección.");
@@ -68,25 +68,25 @@ export function validarAtributos(atributos: readonly AtributoConjoint[]): string
   const vistos = new Set<string>();
   atributos.forEach((a, i) => {
     const nombre = a.rotulo || a.clave || `#${i + 1}`;
-    if (!NOMBRE.test(a.clave)) out.push(`La clave de «${nombre}» no sirve como nombre de variable.`);
-    if (vistos.has(a.clave)) out.push(`La clave «${a.clave}» se repite.`);
-    if (!a.rotulo.trim()) out.push(`El atributo «${a.clave}» no tiene rótulo.`);
-    if (a.niveles.length < 2) out.push(`«${nombre}» necesita al menos dos niveles.`);
+    if (!NOMBRE.test(a.clave)) out.push(`La clave de "${nombre}" no sirve como nombre de variable.`);
+    if (vistos.has(a.clave)) out.push(`La clave "${a.clave}" se repite.`);
+    if (!a.rotulo.trim()) out.push(`El atributo "${a.clave}" no tiene rótulo.`);
+    if (a.niveles.length < 2) out.push(`"${nombre}" necesita al menos dos niveles.`);
     const codigos = a.niveles.map((n) => n.codigo);
-    if (new Set(codigos).size !== codigos.length) out.push(`«${nombre}» repite un código de nivel.`);
-    if (codigos.some((c) => !NOMBRE.test(c) && !/^\d+$/.test(c))) out.push(`«${nombre}» tiene un código con espacios o símbolos.`);
-    if (codigos.includes("NA")) out.push(`«${nombre}» usa el código NA, que queda reservado para «no aplica».`);
+    if (new Set(codigos).size !== codigos.length) out.push(`"${nombre}" repite un código de nivel.`);
+    if (codigos.some((c) => !NOMBRE.test(c) && !/^\d+$/.test(c))) out.push(`"${nombre}" tiene un código con espacios o símbolos.`);
+    if (codigos.includes("NA")) out.push(`"${nombre}" usa el código NA, que queda reservado para "no aplica".`);
     const pesos = a.niveles.map((n) => n.peso);
     const conPeso = pesos.filter((p) => p != null);
-    if (conPeso.length && conPeso.length !== pesos.length) out.push(`«${nombre}»: o todos los niveles llevan peso o ninguno.`);
+    if (conPeso.length && conPeso.length !== pesos.length) out.push(`"${nombre}": o todos los niveles llevan peso o ninguno.`);
     if (conPeso.length === pesos.length && conPeso.length) {
       const suma = conPeso.reduce((s, p) => s + (p ?? 0), 0);
-      if (Math.abs(suma - 1) > 0.001 || conPeso.some((p) => (p ?? 0) <= 0)) out.push(`«${nombre}»: los pesos deben ser positivos y sumar 1 (suman ${Math.round(suma * 1000) / 1000}).`);
+      if (Math.abs(suma - 1) > 0.001 || conPeso.some((p) => (p ?? 0) <= 0)) out.push(`"${nombre}": los pesos deben ser positivos y sumar 1 (suman ${Math.round(suma * 1000) / 1000}).`);
     }
     if (a.soloSi) {
       const base = atributos.findIndex((b) => b.clave === a.soloSi!.atributo);
-      if (base < 0 || base >= i) out.push(`«${nombre}» depende de «${a.soloSi.atributo}», que debe ir antes en la lista.`);
-      else if (a.soloSi.noEs.some((c) => !atributos[base]!.niveles.some((n) => n.codigo === c))) out.push(`«${nombre}» depende de un nivel que «${a.soloSi.atributo}» no tiene.`);
+      if (base < 0 || base >= i) out.push(`"${nombre}" depende de "${a.soloSi.atributo}", que debe ir antes en la lista.`);
+      else if (a.soloSi.noEs.some((c) => !atributos[base]!.niveles.some((n) => n.codigo === c))) out.push(`"${nombre}" depende de un nivel que "${a.soloSi.atributo}" no tiene.`);
     }
     vistos.add(a.clave);
   });

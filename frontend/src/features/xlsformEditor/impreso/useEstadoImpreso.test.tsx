@@ -127,7 +127,7 @@ describe("useEstadoImpreso con el proyecto", () => {
     expect(guardar).not.toHaveBeenCalled();
   });
 
-  it("guarda una versión con nombre y «Usar» la restaura", async () => {
+  it('guarda una versión con nombre y "Usar" la restaura', async () => {
     const piloto = { nombre: "Piloto", opciones: JSON.stringify({ columns: 1 }), guardado_en: "2026-11-01T10:00:00Z" };
     guardarVersion.mockResolvedValue({ opciones: piloto.opciones, guardado_en: piloto.guardado_en, versiones: [piloto] });
     await montar();
@@ -143,7 +143,7 @@ describe("useEstadoImpreso con el proyecto", () => {
 });
 
 describe("VersionesImpreso", () => {
-  it("lista las versiones con su botón «Usar» y avisa cuando no hay", () => {
+  it('lista las versiones con su botón "Usar" y avisa cuando no hay', () => {
     const con = renderToStaticMarkup(
       <VersionesImpreso sincronia={{ fase: "local" }} puedeGuardar onGuardar={async () => true} onUsar={() => undefined}
         versiones={[{ nombre: "Campo", opciones: "{}", guardado_en: "2026-11-01T10:00:00Z" }]} />,

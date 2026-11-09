@@ -64,7 +64,7 @@ export function GrupoListasCard({
           onClick={aplicar}
         >
           <Combine size={14} aria-hidden="true" />
-          Unificar como «{limpio || "…"}»
+          Unificar como "{limpio || "…"}"
         </PulsoButton>
       </div>
     </article>

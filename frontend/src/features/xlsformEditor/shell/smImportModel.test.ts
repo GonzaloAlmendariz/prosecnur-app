@@ -90,7 +90,7 @@ describe("sugerencia → lógica visual (H4)", () => {
     expect(refCanonicaSm("p1")).toBe("p1");
   });
 
-  test("Aplicar crea la regla «Fin de encuesta» en las opciones que cortan", () => {
+  test('Aplicar crea la regla "Fin de encuesta" en las opciones que cortan', () => {
     const r = aplicarSugerenciaFinDeEncuesta([], PREGUNTAS, CONSENTIMIENTO, id);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
@@ -144,7 +144,7 @@ describe("sugerencia → lógica visual (H4)", () => {
   });
 
   test("la tarjeta dice la regla en una línea", () => {
-    expect(textoSugerencia(CONSENTIMIENTO)).toBe("Si responde «No» a «¿Desea continuar con la encuesta?» → fin de encuesta");
+    expect(textoSugerencia(CONSENTIMIENTO)).toBe('Si responde "No" a "¿Desea continuar con la encuesta?" → fin de encuesta');
   });
 });
 

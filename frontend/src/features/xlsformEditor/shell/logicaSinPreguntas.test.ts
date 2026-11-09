@@ -19,7 +19,7 @@ const publicacion = (blockers: Array<{ id: string; title?: string }>): XlsformFo
   ({ blockers, latest_revision: null } as unknown as XlsformFormPublication);
 
 describe("el hito de lógica con un formulario vacío", () => {
-  it("no dice «Lista» cuando no hay preguntas", () => {
+  it('no dice "Lista" cuando no hay preguntas', () => {
     const view = getFormWorkflowView(
       publicacion([{ id: "no_substantive_questions" }]), [], null, false,
     );

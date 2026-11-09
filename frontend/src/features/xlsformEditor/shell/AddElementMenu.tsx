@@ -183,7 +183,7 @@ export function AddElementMenu({
             className="pulso-add-element-menu-ancho"
             icono={<IconSearch size={17} />}
             titulo="Sin piezas con ese filtro"
-            descripcion="Prueba con «selección», «GPS», «archivo», «cálculo» o limpia la búsqueda."
+            descripcion='Prueba con "selección", "GPS", "archivo", "cálculo" o limpia la búsqueda.'
           />
         )}
       </div>

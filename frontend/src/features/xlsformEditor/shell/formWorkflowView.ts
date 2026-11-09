@@ -169,7 +169,7 @@ export function getFormWorkflowView(
   const basesAlDia = boundBases.filter((bound) => bound.is_latest);
   const basesAtrasadas = boundBases.filter((bound) => !bound.is_latest);
   const nombrarBases = (bases: typeof boundBases) => bases
-    .map((bound) => `«${bound.base}»`)
+    .map((bound) => `"${bound.base}"`)
     .join(", ");
 
   let processing: FormWorkflowStage;

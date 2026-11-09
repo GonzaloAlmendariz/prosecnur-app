@@ -110,7 +110,7 @@ export function CampanaComplementariaPanel({
     setDeclarar({ enCurso: false, error: "" });
     const noElegible = motivoNoElegible(surveyId, encuestaPrincipal, campanasDeclaradas);
     if (noElegible) {
-      setVista({ estado: "error", mensaje: `${noElegible} de «${formName}».` });
+      setVista({ estado: "error", mensaje: `${noElegible} de "${formName}".` });
       return;
     }
     setElegida(surveyId);
@@ -191,7 +191,7 @@ export function CampanaComplementariaPanel({
         {elegirEncuesta ? null : (
           <p className="pulso-xf-campana-regla">
             Otra encuesta de SurveyMonkey que aplica este mismo instrumento. No crea un formulario:
-            sus respuestas se leen con las preguntas de «{formName}».
+            sus respuestas se leen con las preguntas de "{formName}".
           </p>
         )}
 

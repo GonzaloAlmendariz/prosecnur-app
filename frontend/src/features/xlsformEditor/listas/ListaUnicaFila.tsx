@@ -61,7 +61,7 @@ export function ListaUnicaFila({
       {editando ? (
         <div className="pulso-xf-listas-unica-edicion">
           <CampoNombreLista
-            etiqueta={`Nuevo nombre de «${lista.nombre}»`}
+            etiqueta={`Nuevo nombre de "${lista.nombre}"`}
             valor={nombre}
             error={error}
             autoFocus

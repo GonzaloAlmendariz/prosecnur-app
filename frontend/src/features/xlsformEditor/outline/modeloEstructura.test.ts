@@ -87,7 +87,7 @@ describe("filtrarArbol", () => {
     expect(forma(r.arbol.hijos)).toEqual([{ A: [] }]);
     expect(r).toMatchObject({ coinciden: 1, porMarca: true });
   });
-  test("«Con aviso» cuenta exactamente las líneas con punto, secciones incluidas", () => {
+  test('"Con aviso" cuenta exactamente las líneas con punto, secciones incluidas', () => {
     const conAviso = (n: BuilderNode): HechosFila => ({ ...nada, aviso: n.name === "b1" || n.name === "A" || n.name === "q9" });
     const r = filtrarArbol(arbol, { consulta: "", filtro: "aviso" }, conAviso, texto);
     expect(forma(r.arbol.hijos)).toEqual([{ A: [{ B: ["b1"] }] }, "q9"]);
@@ -98,7 +98,7 @@ describe("filtrarArbol", () => {
     const r = filtrarArbol(arbol, { consulta: "nombre", filtro: "aviso" }, hechos, texto);
     expect(forma(r.arbol.hijos)).toEqual([{ A: [{ B: ["b1"] }] }]);
   });
-  test("«N de M» cuenta con el mismo criterio que el subtítulo", () => {
+  test('"N de M" cuenta con el mismo criterio que el subtítulo', () => {
     const soloTexto = (n: BuilderNode) => n.typeInfo.base === "text";
     const r = filtrarArbol(arbol, { consulta: "nombre", filtro: "todas" }, hechos, texto, soloTexto);
     // q0, a2, b1, q9 son texto; casan «Nombre de la institución» y «Nombre del miembro».
@@ -192,9 +192,9 @@ describe("subtituloEstructura", () => {
 describe("textoDestino (M3)", () => {
   const t = (n: BuilderNode) => n.label;
   test("debajo de una pregunta, después de una sección plegada, al inicio de una sección o del formulario", () => {
-    expect(textoDestino(s, { despuesDeFila: 2, seccionFila: 1 }, t)).toBe("Se agrega debajo de «Edad»");
-    expect(textoDestino(s, { despuesDeFila: 8, seccionFila: null }, t)).toBe("Se agrega después de «Vacía»");
-    expect(textoDestino(s, { despuesDeFila: null, seccionFila: 1 }, t)).toBe("Se agrega al inicio de «Educación»");
+    expect(textoDestino(s, { despuesDeFila: 2, seccionFila: 1 }, t)).toBe('Se agrega debajo de "Edad"');
+    expect(textoDestino(s, { despuesDeFila: 8, seccionFila: null }, t)).toBe('Se agrega después de "Vacía"');
+    expect(textoDestino(s, { despuesDeFila: null, seccionFila: 1 }, t)).toBe('Se agrega al inicio de "Educación"');
     expect(textoDestino(s, { despuesDeFila: null, seccionFila: null }, t)).toBe("Se agrega al inicio del formulario");
   });
 });

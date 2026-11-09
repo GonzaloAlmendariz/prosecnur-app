@@ -64,7 +64,7 @@ export function VistaEncuestado({ a, choices, respuestas, onRespuesta, destello 
           <p className="xcf-vista__sin">
             {a.estado.clase === "conflicto"
               ? "No se puede previsualizar mientras el filtro esté en conflicto."
-              : !a.opciones.length ? "La lista no tiene opciones en choices." : "No se puede previsualizar esta expresión. Pruébala en «Probar»."}
+              : !a.opciones.length ? "La lista no tiene opciones en choices." : 'No se puede previsualizar esta expresión. Pruébala en "Probar".'}
           </p>
         ) : (
           <>

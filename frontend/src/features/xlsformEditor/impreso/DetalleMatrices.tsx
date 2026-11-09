@@ -24,7 +24,7 @@ function resumenPreguntas(c: MatrixCandidate, plano: Plano): string {
   const primera = plano(c.questionLabels[0] ?? "") || c.memberNames[0] || "pregunta";
   const corta = primera.length > 48 ? `${primera.slice(0, 47)}…` : primera;
   const extra = c.count - 1;
-  return extra > 0 ? `«${corta}» +${extra}` : `«${corta}»`;
+  return extra > 0 ? `"${corta}" +${extra}` : `"${corta}"`;
 }
 
 function SelectMatriz({ id, etiqueta, valor, onCambiar, children }: {

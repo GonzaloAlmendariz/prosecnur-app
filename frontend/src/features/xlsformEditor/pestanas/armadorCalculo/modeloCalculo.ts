@@ -24,12 +24,12 @@ export type TipoIntencion = Intencion["tipo"];
 
 /** Las cinco intenciones, con el nombre directo que ve quien arma. */
 export const INTENCIONES: { tipo: TipoIntencion; nombre: string; ejemplo: string }[] = [
-  { tipo: "segun", nombre: "Valor por condiciones", ejemplo: "Si la edad es menor que 18, vale «menor»; si no, «adulto»" },
+  { tipo: "segun", nombre: "Valor por condiciones", ejemplo: 'Si la edad es menor que 18, vale "menor"; si no, "adulto"' },
   { tipo: "operar", nombre: "Operación con números", ejemplo: "La suma de los hijos y las hijas" },
   { tipo: "contar", nombre: "Conteo de opciones marcadas", ejemplo: "Cuántos medios marcó en la pregunta 4" },
-  { tipo: "sortear", nombre: "Sorteo", ejemplo: "«A» o «B», equiprobable o con pesos" },
+  { tipo: "sortear", nombre: "Sorteo", ejemplo: '"A" o "B", equiprobable o con pesos' },
   { tipo: "tiempo", nombre: "Tiempo desde una fecha", ejemplo: "Años cumplidos desde la fecha de nacimiento" },
-  { tipo: "unir", nombre: "Unión de textos", ejemplo: "«Hola » y el nombre del encuestado" },
+  { tipo: "unir", nombre: "Unión de textos", ejemplo: '"Hola " y el nombre del encuestado' },
 ];
 
 export function intencionVacia(tipo: TipoIntencion): Intencion {

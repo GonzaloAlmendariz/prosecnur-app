@@ -201,7 +201,7 @@ export function buildDiagnostics(
           level: "warn",
           rowIndex: node.rowIndex,
           title: "Fila rota: las reglas repiten el nombre",
-          detail: `${LECTURA_FILA_ROTA} («${nombre}»). Parece un relleno de Excel: revisa la fila en la vista Hojas.`,
+          detail: `${LECTURA_FILA_ROTA} ("${nombre}"). Parece un relleno de Excel: revisa la fila en la vista Hojas.`,
         });
       }
     }

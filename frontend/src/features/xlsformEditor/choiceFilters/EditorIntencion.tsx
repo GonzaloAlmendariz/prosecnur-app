@@ -72,7 +72,7 @@ export function EditorIntencion({ analisis, workbook, candidatas, numericas, onG
         <TarjetasIntencion valor={forma} onCambio={setForma} />
         {cambia ? <p className="xcf-aviso" role="status">Cambiar la forma reemplaza el filtro actual al guardar.</p> : null}
         {mismaPorOpcion
-          ? <p className="xcf-nota">Cada opción se asigna en la matriz. Para sumar una pregunta usa «Agregar pregunta» en la matriz.</p>
+          ? <p className="xcf-nota">Cada opción se asigna en la matriz. Para sumar una pregunta usa "Agregar pregunta" en la matriz.</p>
           : <ConfigIntento intento={intento} onCambio={(i) => setIntentos((p) => ({ ...p, [i.forma]: i }))} candidatas={candidatas} numericas={numericas} choices={workbook.choices} />}
       </div>
     </div>

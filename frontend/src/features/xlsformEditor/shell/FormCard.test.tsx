@@ -141,7 +141,7 @@ describe("FormCard workflow", () => {
     expect(markup).toContain(">Publicar<");
   });
 
-  test("acreditación sin público: «Publicar» disponible y el público como opcional", () => {
+  test('acreditación sin público: "Publicar" disponible y el público como opcional', () => {
     const markup = renderCard(publication(), {
       actorOptions: [
         { actor_key: "docentes", actor: "Docentes" },
@@ -156,7 +156,7 @@ describe("FormCard workflow", () => {
     expect(markup).not.toContain("antes de publicarlo");
     expect(markup).toContain("opcional");
     // Sugerencia desde el título («Encuesta docentes»), sin asignarla.
-    expect(markup).toContain("Usar «Docentes»");
+    expect(markup).toContain("Usar &quot;Docentes&quot;");
     expect(markup).toMatch(/<option value="" selected="">Sin asignar<\/option>/);
   });
 
@@ -178,7 +178,7 @@ describe("FormCard workflow", () => {
     expect(markup).not.toContain("is-danger");
   });
 
-  test("los avisos de publicación se muestran sin bloquear «Publicar»", () => {
+  test('los avisos de publicación se muestran sin bloquear "Publicar"', () => {
     const markup = renderCard(publication({
       warnings: [{
         id: "actor_not_in_catalog",

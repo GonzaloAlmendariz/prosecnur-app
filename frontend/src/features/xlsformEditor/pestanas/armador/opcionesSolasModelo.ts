@@ -79,7 +79,7 @@ export function sugeridasSolas(opciones: readonly { name: string; label: string 
 /** Mensaje para quien marca una opción sola junto con otras. */
 export function mensajeSolas(etiquetas: readonly string[]): string {
   if (!etiquetas.length) return "";
-  if (etiquetas.length === 1) return `«${etiquetas[0]}» no se puede marcar junto con otras opciones.`;
-  const lista = `${etiquetas.slice(0, -1).map((e) => `«${e}»`).join(", ")} y «${etiquetas[etiquetas.length - 1]}»`;
+  if (etiquetas.length === 1) return `"${etiquetas[0]}" no se puede marcar junto con otras opciones.`;
+  const lista = `${etiquetas.slice(0, -1).map((e) => `"${e}"`).join(", ")} y "${etiquetas[etiquetas.length - 1]}"`;
   return `${lista} no se pueden marcar junto con otras opciones.`;
 }

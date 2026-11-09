@@ -710,7 +710,7 @@ export function CampanaSugeridaAviso({
     <section className="pulso-xf-campana-sugerencia" role="region" aria-label="Posible campaña complementaria">
       <p>
         <strong>
-          Esta encuesta comparte el {cobertura} de las preguntas de «{sugerencia.form_name}». ¿Es una
+          Esta encuesta comparte el {cobertura} de las preguntas de "{sugerencia.form_name}". ¿Es una
           campaña de ese formulario?
         </strong>
       </p>

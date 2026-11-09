@@ -173,11 +173,11 @@ export function leerRespaldo(wb: (Pick<XlsformEditorWorkbook, "survey"> & Partia
         const f = porNombre.get(g.name);
         const igual = f && f.type === g.type && (g.type === "calculate" ? f.calculation === g.calculation : f.label.trim() === (g.label ?? "").trim());
         if (!igual) {
-          motivo = `«${g.name}» no está escrito como lo escribe el editor.`;
+          motivo = `"${g.name}" no está escrito como lo escribe el editor.`;
           break;
         }
       }
-      if (!motivo && nuevasOpciones.some((c, k) => opciones[k]?.label !== c.label)) motivo = `La escala «${lista}» no está escrita como la escribe el editor.`;
+      if (!motivo && nuevasOpciones.some((c, k) => opciones[k]?.label !== c.label)) motivo = `La escala "${lista}" no está escrita como la escribe el editor.`;
     }
     out.push({
       diseno,

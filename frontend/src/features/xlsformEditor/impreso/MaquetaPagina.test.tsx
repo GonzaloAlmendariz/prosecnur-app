@@ -17,7 +17,7 @@ describe("esquema de la primera página", () => {
     expect(html({}, false)).not.toBe(base);
   });
 
-  it("la portada dibuja «institución · periodo» y el bloque de control sólo si están puestos (L36 · D-L36-5)", () => {
+  it('la portada dibuja "institución · periodo" y el bloque de control sólo si están puestos (L36 · D-L36-5)', () => {
     const base = html({});
     expect(base).not.toContain("Encuestador:");
     const conPortada = html({ institution: "UNSA", period: "2026-2", controlBlock: true });

@@ -29,7 +29,7 @@ export function unir(frases: Frase[], conector: string): Frase {
 }
 
 function conMayuscula(texto: string): string {
-  return texto.replace(/^(\s*[«“(]?)(\p{Ll})/u, (_m, pre: string, letra: string) => pre + letra.toUpperCase());
+  return texto.replace(/^(\s*["“(]?)(\p{Ll})/u, (_m, pre: string, letra: string) => pre + letra.toUpperCase());
 }
 
 /** Mayúscula al comienzo de la frase, si empieza con texto o valor («Hoy»). Las etiquetas no se tocan. */

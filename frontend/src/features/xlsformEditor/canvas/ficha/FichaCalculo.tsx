@@ -29,7 +29,7 @@ export function FichaCalculo({ datos }: { datos: DatosFicha }) {
           <>
             <p className="xfh-lectura is-grande"><Lectura lectura={lectura} /></p>
             {lectura.tecnica && lectura.depende.length ? (
-              <p className="xfh-det__sub">Depende de {lectura.depende.map((d, i) => <span key={d.name}>{i ? ", " : ""}«{corto(d.etiqueta || d.name, 36)}»</span>)}.</p>
+              <p className="xfh-det__sub">Depende de {lectura.depende.map((d, i) => <span key={d.name}>{i ? ", " : ""}"{corto(d.etiqueta || d.name, 36)}"</span>)}.</p>
             ) : null}
             <div className="xfh-det__pie">
               <BotonIr onClick={irCalculos}>Editar en Cálculos</BotonIr>
@@ -51,7 +51,7 @@ export function FichaCalculo({ datos }: { datos: DatosFicha }) {
                 <button type="button" onClick={() => acciones.seleccionarFila(u.node.rowIndex)}>
                   <TypeIcon baseType={u.node.typeInfo.base} size={12} />
                   <span className="xfh-usos__txt">{u.node.label ? <TituloLegible texto={u.node.label} /> : u.node.name}</span>
-                  <span className="xfh-usos__donde">{u.columna === "opcion" && u.opcion ? `en la opción «${corto(u.opcion.etiqueta, 24)}»` : DONDE_SE_USA[u.columna]}</span>
+                  <span className="xfh-usos__donde">{u.columna === "opcion" && u.opcion ? `en la opción "${corto(u.opcion.etiqueta, 24)}"` : DONDE_SE_USA[u.columna]}</span>
                 </button>
               </li>
             ))}

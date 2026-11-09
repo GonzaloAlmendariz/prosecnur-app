@@ -374,7 +374,7 @@ export function FormCard({
       {confirmDelete ? (
         <div className="pulso-xf-home-card-confirm" role="alertdialog" aria-label="Confirmar eliminación">
           <span className="pulso-xf-home-card-confirm-text">
-            ¿Eliminar «{entry.name}»? Esta acción no se puede deshacer.
+            ¿Eliminar "{entry.name}"? Esta acción no se puede deshacer.
           </span>
           <div className="pulso-xf-home-card-confirm-actions">
             <button
@@ -472,7 +472,7 @@ export function FormCard({
                   title="Sugerido por el título del formulario"
                 >
                   <Lightbulb size={12} aria-hidden="true" />
-                  Usar «{instrumentActorLabel(suggestedActor)}»
+                  Usar "{instrumentActorLabel(suggestedActor)}"
                   <span className="pulso-xf-home-card-sugerencia-origen">sugerido por el título</span>
                 </button>
               ) : null}

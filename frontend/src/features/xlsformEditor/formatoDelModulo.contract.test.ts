@@ -99,8 +99,8 @@ describe("formato de Formularios", () => {
     expect(archivos(aqui).length).toBeGreaterThan(300);
   });
 
-  it("P3: ningún archivo suma « · »", () => {
-    expect(regresiones(p3, SNAPSHOT_P3), "Une con coma o con «y»; lo que acompaña, entre paréntesis.").toEqual([]);
+  it('P3: ningún archivo suma " · "', () => {
+    expect(regresiones(p3, SNAPSHOT_P3), 'Une con coma o con "y"; lo que acompaña, entre paréntesis.').toEqual([]);
   });
   it("P4: ninguna cifra nueva se formatea a mano", () => {
     expect(regresiones(p4, SNAPSHOT_P4), "Usa formatoConteo o formatoDecimal de lib/formatoNumero.").toEqual([]);

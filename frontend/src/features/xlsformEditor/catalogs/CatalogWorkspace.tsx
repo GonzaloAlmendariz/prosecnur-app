@@ -173,7 +173,7 @@ export function CatalogWorkspace({
           descripcion={<>Agrega la primera opción con <code>+ Opción</code>; aparecen en el orden que verá el encuestado.</>}
         />
       ) : filteredCount === 0 ? (
-        <EstadoVacio icono={<Search size={14} />} titulo={`Ninguna opción coincide con «${query}»`} />
+        <EstadoVacio icono={<Search size={14} />} titulo={`Ninguna opción coincide con "${query}"`} />
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext

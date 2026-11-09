@@ -47,7 +47,7 @@ const redondear = (x: number) => Math.round(x * 1e6) / 1e6;
 
 export function validarLista(d: DisenoLista): string[] {
   const out: string[] = [];
-  if (!NOMBRE.test(d.prefijo)) out.push(`El prefijo «${d.prefijo}» no sirve como nombre de variable: usa letras, números y _.`);
+  if (!NOMBRE.test(d.prefijo)) out.push(`El prefijo "${d.prefijo}" no sirve como nombre de variable: usa letras, números y _.`);
   if (!d.pregunta.trim()) out.push("Falta la pregunta de conteo.");
   if (d.controles.length < 2) out.push("Hacen falta al menos dos afirmaciones de control.");
   if (d.controles.length > 8) out.push("Van a lo más ocho afirmaciones de control.");

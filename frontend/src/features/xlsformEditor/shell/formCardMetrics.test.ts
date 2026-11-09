@@ -43,7 +43,7 @@ describe("computeFormMetrics", () => {
     expect(computeFormMetrics(wb).questions).toBe(1);
   });
 
-  test("el «Otro (especifique)» viaja con su pregunta madre (mismo número que el import)", () => {
+  test('el "Otro (especifique)" viaja con su pregunta madre (mismo número que el import)', () => {
     const wb = workbook([
       ["select_one l", "p3", "Género"],
       ["text", "p3_other", "Otro (especifique)"],

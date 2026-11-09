@@ -54,8 +54,8 @@ export function SmPerfilesRescate({
           id: perfil.id,
           fase: "rechazado",
           mensaje: prueba.status_code === 401
-            ? `SurveyMonkey también rechazó el token de «${perfil.alias}».`
-            : `No se pudo comprobar «${perfil.alias}»: ${prueba.error}`,
+            ? `SurveyMonkey también rechazó el token de "${perfil.alias}".`
+            : `No se pudo comprobar "${perfil.alias}": ${prueba.error}`,
         });
         return;
       }
@@ -70,7 +70,7 @@ export function SmPerfilesRescate({
   const alternativos = perfiles ? perfilesAlternativosSm(perfiles, perfilActivoId) : [];
   const nombreActivo = perfilActivoAlias?.trim();
   const causa = rechazado
-    ? `SurveyMonkey rechazó el token${nombreActivo ? ` del perfil «${nombreActivo}»` : ""}: venció o fue revocado.`
+    ? `SurveyMonkey rechazó el token${nombreActivo ? ` del perfil "${nombreActivo}"` : ""}: venció o fue revocado.`
     : "SurveyMonkey no respondió a la prueba de conexión.";
 
   return (
@@ -96,7 +96,7 @@ export function SmPerfilesRescate({
                     aria-busy={propio?.fase === "probando" || undefined}
                   >
                     {propio?.fase === "probando" ? <RefreshCw size={13} aria-hidden className="is-girando" /> : <User size={13} aria-hidden />}
-                    {propio?.fase === "probando" ? `Probando «${perfil.alias}»…` : `Usar perfil ${perfil.alias}`}
+                    {propio?.fase === "probando" ? `Probando "${perfil.alias}"…` : `Usar perfil ${perfil.alias}`}
                   </button>
                   {perfil.masked_token ? <code>{perfil.masked_token}</code> : null}
                   {propio?.mensaje ? <span className="pulso-xf-smi-rescate-error">{propio.mensaje}</span> : null}

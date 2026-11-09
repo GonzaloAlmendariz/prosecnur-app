@@ -16,7 +16,7 @@ export const corto = (t: string, n = 34) => {
   const x = stripMarkdown(t).replace(/\s+/g, " ").trim();
   if (x.length <= n) return x;
   const corte = x.lastIndexOf(" ", n - 1);
-  return `${x.slice(0, corte > n * 0.5 ? corte : n - 1).replace(/[\s,.;:¿¡(«-]+$/, "")}…`;
+  return `${x.slice(0, corte > n * 0.5 ? corte : n - 1).replace(/[\s,.;:¿¡("-]+$/, "")}…`;
 };
 
 /**
@@ -57,7 +57,7 @@ export function tituloPlano(texto: string, etiquetaDe?: (name: string) => string
   return stripMarkdown(texto)
     .replace(/\s+/g, " ")
     .trim()
-    .replace(REF, (_m, n: string) => `«${(etiquetaDe?.(n) ?? "").trim() || n}»`);
+    .replace(REF, (_m, n: string) => `"${(etiquetaDe?.(n) ?? "").trim() || n}"`);
 }
 
 export function PiezasLectura({ piezas }: { piezas: readonly Pieza[] }) {
@@ -143,14 +143,14 @@ export function CuerpoPanelMarca({ clave, marcas, nodo, scope, idTitulo, onCerra
     }
     marcas.hered.forEach((h, i) => {
       const l = leer("relevant", h.raw, h.nodo);
-      partes.push(<Bloque key={`h${i}`} lectura={l} sub={`Heredada de la sección «${corto(h.etiqueta, 40)}»`} />);
+      partes.push(<Bloque key={`h${i}`} lectura={l} sub={`Heredada de la sección "${corto(h.etiqueta, 40)}"`} />);
       lineas.push(`relevant de la sección: ${h.raw}`);
       tecnica ||= l.tecnica;
     });
   } else if (clave === "regla" && marcas.regla) {
     const l = leer("constraint", marcas.regla.raw);
     const msg = marcas.regla.mensaje
-      ? <p className="xfk-pop__msg"><span>Mensaje del formulario</span>«{marcas.regla.mensaje}»</p>
+      ? <p className="xfk-pop__msg"><span>Mensaje del formulario</span>"{marcas.regla.mensaje}"</p>
       : <p className="xfk-pop__nota">El formulario no trae mensaje para quien se equivoca.</p>;
     partes.push(<Bloque key="r" lectura={l} extra={msg} />);
     lineas.push(`constraint: ${marcas.regla.raw}`);

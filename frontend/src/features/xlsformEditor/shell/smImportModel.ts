@@ -40,7 +40,7 @@ export function textoSaltosSm(reglas: number, sugerenciasPendientes: number): st
   if (reglas > 0) return plural(reglas, "salto", "saltos");
   return sugerenciasPendientes > 0
     ? "Sin saltos: agrégalos o aplica la sugerencia"
-    : "Sin saltos: agrégalos en «Lógica SurveyMonkey»";
+    : 'Sin saltos: agrégalos en "Lógica SurveyMonkey"';
 }
 
 // ── Conexión ─────────────────────────────────────────────────────────────────
@@ -164,14 +164,14 @@ export function aplicarSugerenciaFinDeEncuesta(
   if (!question) {
     return {
       ok: false,
-      motivo: `No encontré «${sugerencia.etiqueta}» entre las preguntas que admiten saltos. Agrégalo a mano en «Lógica SurveyMonkey».`,
+      motivo: `No encontré "${sugerencia.etiqueta}" entre las preguntas que admiten saltos. Agrégalo a mano en "Lógica SurveyMonkey".`,
     };
   }
   const cortan = new Set(opcionesQueCortan(sugerencia, question).map((c) => c.name));
   if (!cortan.size) {
     return {
       ok: false,
-      motivo: `Las opciones de «${sugerencia.etiqueta}» no coinciden con las sugeridas. Agrégalo a mano en «Lógica SurveyMonkey».`,
+      motivo: `Las opciones de "${sugerencia.etiqueta}" no coinciden con las sugeridas. Agrégalo a mano en "Lógica SurveyMonkey".`,
     };
   }
   const existente = rules.find((r) => r.variableRef === question.ref) ?? null;
@@ -211,14 +211,14 @@ export function sugerenciaYaAplicada(
 
 /** «Si responde «No» a «¿Desea continuar…?» → fin de encuesta». */
 export function textoSugerencia(sugerencia: SmSugerenciaLogica, maxEtiqueta = 72): string {
-  const opciones = sugerencia.opciones_que_cortan.map((o) => `«${o.etiqueta}»`);
+  const opciones = sugerencia.opciones_que_cortan.map((o) => `"${o.etiqueta}"`);
   const respuesta = opciones.length > 1
     ? `${opciones.slice(0, -1).join(", ")} o ${opciones[opciones.length - 1]}`
     : opciones[0] ?? "";
   const etiqueta = sugerencia.etiqueta.length > maxEtiqueta
     ? `${sugerencia.etiqueta.slice(0, maxEtiqueta - 1).trimEnd()}…`
     : sugerencia.etiqueta;
-  return `Si responde ${respuesta} a «${etiqueta}» → fin de encuesta`;
+  return `Si responde ${respuesta} a "${etiqueta}" → fin de encuesta`;
 }
 
 /** Clave estable de una sugerencia para descartarla sin perderla al recargar. */

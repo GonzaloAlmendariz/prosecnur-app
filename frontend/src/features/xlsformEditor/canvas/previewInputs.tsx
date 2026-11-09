@@ -453,7 +453,7 @@ export function ChoiceList({
       <PreviewBox
         icon={<ListChecks size={14} />}
         tone="var(--pulso-warn-fg)"
-        title={listName ? `Lista «${listName}» en preparación` : "Sin lista asignada"}
+        title={listName ? `Lista "${listName}" en preparación` : "Sin lista asignada"}
         detail={
           listName
             ? "Agrega opciones en el editor de listas para que esta pregunta tenga respuestas posibles."
@@ -482,7 +482,7 @@ export function ChoiceList({
         </li>
       ))}
       {visible.length === 0 && (
-        <li className="pulso-xfpi-noresults">Sin coincidencias para «{query}»</li>
+        <li className="pulso-xfpi-noresults">Sin coincidencias para "{query}"</li>
       )}
     </ul>
   );
@@ -628,7 +628,7 @@ function RankList({
       <PreviewBox
         icon={<ListOrdered size={14} />}
         tone="var(--pulso-warn-fg)"
-        title={listName ? `Lista «${listName}» en preparación` : "Sin lista asignada"}
+        title={listName ? `Lista "${listName}" en preparación` : "Sin lista asignada"}
         detail="Agrega opciones a la lista para que el encuestador pueda ordenarlas."
       />
     );

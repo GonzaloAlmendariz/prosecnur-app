@@ -2528,7 +2528,7 @@ export default function XlsformEditorPage() {
     toasts.push({
       kind: "info",
       title: "Lista borrada",
-      detail: `Eliminamos «${listName}» de la hoja choices.`,
+      detail: `Eliminamos "${listName}" de la hoja choices.`,
     });
   }
 
@@ -3141,7 +3141,7 @@ export default function XlsformEditorPage() {
           onCampaignDeclared={({ formName }) => {
             smImportPanel.cerrar();
             void refreshBackendFormIndex().catch(() => undefined);
-            toasts.push({ kind: "success", title: "Campaña agregada", detail: `Quedó declarada en «${formName}».`, durationMs: 6000 });
+            toasts.push({ kind: "success", title: "Campaña agregada", detail: `Quedó declarada en "${formName}".`, durationMs: 6000 });
           }}
         />
       ) : null}

@@ -24,7 +24,7 @@ const logicPending = {
 } as XlsformFormPublication["blockers"][number];
 
 describe("deriveEditorHeaderStatus (U10)", () => {
-  it("no dice «Sin avisos» si la lógica está pendiente de confirmación", () => {
+  it('no dice "Sin avisos" si la lógica está pendiente de confirmación', () => {
     const status = deriveEditorHeaderStatus([], publication([logicPending]));
     expect(status.label).toBe("Revisa la lógica");
     expect(status.tone).toBe("warn");
@@ -41,7 +41,7 @@ describe("deriveEditorHeaderStatus (U10)", () => {
       .toBe("Sin avisos");
   });
 
-  it("«Sin avisos» sólo sin diagnósticos ni pasos pendientes", () => {
+  it('"Sin avisos" sólo sin diagnósticos ni pasos pendientes', () => {
     expect(deriveEditorHeaderStatus([], publication([])).label).toBe("Sin avisos");
     expect(deriveEditorHeaderStatus([], null).tone).toBe("ok");
   });
@@ -89,7 +89,7 @@ describe("editorMetrics (U8)", () => {
     expect(formatFieldSectionPair(5, metrics.sections)).toBe("5 campos, 1 sección");
   });
 
-  it("preguntas (cabecera y Resumen): sin notas, cálculos ni metadatos, con el «Otro» que se pregunta", () => {
+  it('preguntas (cabecera y Resumen): sin notas, cálculos ni metadatos, con el "Otro" que se pregunta', () => {
     const node = (kind: string, name: string, base = "text") => ({ kind, name, typeInfo: { base } });
     const outline = [
       node("question", "inicio", "start"),
@@ -121,7 +121,7 @@ describe("deriveEditorHeaderStatus con la lógica hecha fuera", () => {
     logic_external: { herramienta: "SPSS", nota: "", declarada_en: "2026-10-14" },
   };
 
-  it("rótulo neutro con el programa, nunca «Revisa la lógica»", () => {
+  it('rótulo neutro con el programa, nunca "Revisa la lógica"', () => {
     const status = deriveEditorHeaderStatus([], publication([]), declarada);
     expect(status.tone).toBe("neutral");
     expect(status.label).toBe("Lógica: fuera de Prosecnur (SPSS)");

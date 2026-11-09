@@ -307,10 +307,10 @@ export function validarNombreLista(
   }
   const propiasSet = new Set(propias);
   if (!propiasSet.has(limpio) && nombresDeListas(workbook).includes(limpio)) {
-    return `Ya existe otra lista llamada «${limpio}».`;
+    return `Ya existe otra lista llamada "${limpio}".`;
   }
   if (!propiasSet.has(limpio) && reservados.includes(limpio)) {
-    return `«${limpio}» ya está propuesto para otra escala repetida.`;
+    return `"${limpio}" ya está propuesto para otra escala repetida.`;
   }
   return null;
 }
@@ -416,7 +416,7 @@ export function unificarListas(
   if (!unicasPedidas.length) return { ok: false, motivo: "No hay listas que unificar." };
   const leidas = new Map(leerListas(workbook).map((l) => [l.nombre, l]));
   const faltante = unicasPedidas.find((l) => !leidas.has(l));
-  if (faltante) return { ok: false, motivo: `La lista «${faltante}» ya no está en el formulario.` };
+  if (faltante) return { ok: false, motivo: `La lista "${faltante}" ya no está en el formulario.` };
   const firmas = new Set(unicasPedidas.map((l) => leidas.get(l)?.firma));
   if (firmas.size > 1) {
     return { ok: false, motivo: "Las listas ya no son idénticas; revisa sus opciones antes de unificarlas." };
@@ -434,7 +434,7 @@ export function renombrarLista(
 ): ResultadoTransformacion {
   const actual = lista.trim();
   if (!nombresDeListas(workbook).includes(actual)) {
-    return { ok: false, motivo: `La lista «${actual}» ya no está en el formulario.` };
+    return { ok: false, motivo: `La lista "${actual}" ya no está en el formulario.` };
   }
   const nombre = nombreNuevo.trim();
   const motivo = validarNombreLista(workbook, nombre, [actual]);

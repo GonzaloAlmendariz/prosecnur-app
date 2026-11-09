@@ -54,7 +54,7 @@ describe("pdfExportPreference", () => {
     expect(columnsLabel("auto")).toBe("columnas automáticas");
   });
 
-  it("el título del botón refleja «auto» en vez de mentir con «dos columnas»", () => {
+  it('el título del botón refleja "auto" en vez de mentir con "dos columnas"', () => {
     expect(exportButtonTitle({ ...DEFAULT_PDF_EXPORT_PREFERENCE, columns: "auto" }))
       .toContain("columnas automáticas");
   });

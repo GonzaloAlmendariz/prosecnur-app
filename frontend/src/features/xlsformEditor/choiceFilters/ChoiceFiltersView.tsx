@@ -112,7 +112,7 @@ export function ChoiceFiltersView({
           tamano="normal"
           icono={<SlidersHorizontal size={20} />}
           titulo="Ninguna pregunta filtra sus opciones"
-          descripcion={puedeEditar ? "Usa «Nuevo filtro» para crear el primero." : undefined}
+          descripcion={puedeEditar ? 'Usa "Nuevo filtro" para crear el primero.' : undefined}
         />
       ) : (
         <div className="xcf-gestion" data-qa-geometry-group="xlsform/filtros-gestion" data-qa-geometry-contract="intrinsic">

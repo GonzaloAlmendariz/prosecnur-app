@@ -57,7 +57,7 @@ export function repeticionesDe(nodo: Pick<BuilderNode, "rowIndex" | "sectionId">
 export function textoSeRepite(nodo: Pick<BuilderNode, "rowIndex" | "sectionId">, structure: BuilderStructure | null): string | null {
   const reps = repeticionesDe(nodo, structure);
   const interna = reps[reps.length - 1];
-  return interna ? `Se repite por cada fila de «${interna.etiqueta}»` : null;
+  return interna ? `Se repite por cada fila de "${interna.etiqueta}"` : null;
 }
 
 /** Grupos y repeticiones del formulario, con la etiqueta con que se citan y el `repeat_count`. */

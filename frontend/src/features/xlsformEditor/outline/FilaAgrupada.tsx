@@ -64,7 +64,7 @@ export function FilaAgrupada({
           ) : null}
         </div>
       </div>
-      <div className="xfe-seccion__hijos" id={idHijos} role="group" aria-label={`Contenido de «${titulo}»`} hidden={!abierta}>
+      <div className="xfe-seccion__hijos" id={idHijos} role="group" aria-label={`Contenido de "${titulo}"`} hidden={!abierta}>
         {children}
       </div>
     </div>

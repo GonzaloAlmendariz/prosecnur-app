@@ -9,7 +9,7 @@ const A = acnur();
 const nada = () => {};
 
 describe("Cálculos con el ACNUR", () => {
-  it("countryname: «Lo usan» lista las etiquetas que lo muestran, con dónde", () => {
+  it('countryname: "Lo usan" lista las etiquetas que lo muestran, con dónde', () => {
     const html = renderToStaticMarkup(
       <PestanaCalculos structure={A.structure} scope={A.base} seleccionada="countryname" onSeleccionar={nada} onEditar={nada} onCampo={nada} catalogs={A.catalogs} />,
     );

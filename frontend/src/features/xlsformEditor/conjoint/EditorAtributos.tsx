@@ -65,7 +65,7 @@ export function EditorAtributos({ atributos, despachar }: { atributos: AtributoC
                 }}
                 options={[
                   { value: "siempre", label: "siempre se muestra" },
-                  ...atributos.slice(0, i).flatMap((b) => b.niveles.map((n) => ({ value: `${b.clave}|${n.codigo}`, label: `${b.rotulo} es «${n.texto}»` }))),
+                  ...atributos.slice(0, i).flatMap((b) => b.niveles.map((n) => ({ value: `${b.clave}|${n.codigo}`, label: `${b.rotulo} es "${n.texto}"` }))),
                 ]}
               />
             </div>

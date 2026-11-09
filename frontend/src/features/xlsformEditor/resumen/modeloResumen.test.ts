@@ -155,7 +155,7 @@ describe("qué falta para publicar e imprimir", () => {
     expect(items.filter((i) => i.estado !== "listo" && i.accion)).toHaveLength(2);
   });
 
-  test("E9: «Ir al primero» va al primer error con nombre, en el orden del formulario", () => {
+  test('E9: "Ir al primero" va al primer error con nombre, en el orden del formulario', () => {
     const d = (level: "error" | "warn" | "info", rowIndex: number) => ({ id: `${level}${rowIndex}`, level, title: "", detail: "", rowIndex });
     const nombres = new Map([[4, "p4"], [9, "p9"], [2, "p2"]]);
     const nombre = (r: number) => nombres.get(r) ?? null;
@@ -173,7 +173,7 @@ describe("qué falta para publicar e imprimir", () => {
 });
 
 describe("S14: cifras que cuadran y eje legible", () => {
-  test("los automáticos (inicio, fin) no son preguntas ni suman tiempo, y no abren «Fuera de toda sección»", () => {
+  test('los automáticos (inicio, fin) no son preguntas ni suman tiempo, y no abren "Fuera de toda sección"', () => {
     const outline = [
       nodo(0, "root", "start", { name: "start", label: "" }),
       nodo(1, "root", "end", { name: "end", label: "" }),

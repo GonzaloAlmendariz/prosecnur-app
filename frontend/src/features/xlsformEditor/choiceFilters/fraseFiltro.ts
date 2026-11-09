@@ -39,7 +39,7 @@ export function frasesDeFiltros(structure: BuilderStructure | null, columnas: st
     const { piezas, aviso } = separarAviso(lectura.piezas);
     // Sin punto si la frase ya cierra con un signo (una pregunta citada: «¿Qué medios usa?»).
     const sinPunto = textoDePiezas(piezas);
-    const texto = /[.?!…»]$/.test(sinPunto.trim()) ? sinPunto : textoDePiezas([...piezas, { tipo: "texto", texto: "." }]);
+    const texto = /[.?!…"]$/.test(sinPunto.trim()) ? sinPunto : textoDePiezas([...piezas, { tipo: "texto", texto: "." }]);
     out.set(card.rowIndex, { piezas, texto, tecnica: false, aviso });
   }
   return out;

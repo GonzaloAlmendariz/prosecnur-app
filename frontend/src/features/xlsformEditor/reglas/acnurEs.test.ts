@@ -23,7 +23,7 @@ const leer = (col: ColumnaRegla, name: string) => {
   return { l, texto: l.tecnica ? "TÉCNICA" : textoDePiezas(separarAviso(l.piezas).piezas) };
 };
 
-describe("S1 · «Lo usan» cuenta las referencias dentro de los textos", () => {
+describe('S1 · "Lo usan" cuenta las referencias dentro de los textos', () => {
   test("countryname: lo usan las etiquetas de REF10b, REF16 e IDP01 y dos opciones de listas", () => {
     const usos = indiceDeUsos(A.structure, A.catalogs).get("countryname") ?? [];
     const enEtiqueta = usos.filter((u) => u.columna === "label").map((u) => u.node.name);
@@ -37,7 +37,7 @@ describe("S1 · «Lo usan» cuenta las referencias dentro de los textos", () => 
   });
 });
 
-describe("S2 · un filtro fijo no «depende de respuestas previas»", () => {
+describe('S2 · un filtro fijo no "depende de respuestas previas"', () => {
   const modelo = buildChoiceFilterModel({ structure: A.structure, choicesColumns: A.workbook.choices.columns, choicesRows: A.workbook.choices.rows });
   const ficha = (name: string) => modelo.cards.find((c) => c.questionCode === name)!;
   test("REF02CO= 'kk' es un subconjunto fijo de la lista Country, con su cuenta de opciones", () => {
@@ -56,7 +56,7 @@ describe("S2 · un filtro fijo no «depende de respuestas previas»", () => {
     expect(clasificarFiltro("name = '1' or name = '2'")).toBe("fijo");
     expect(clasificarFiltro("filter_P14=${P14} or name='0'")).toBe("cascada");
   });
-  test("el panel del Constructor dice lo mismo: subconjunto fijo, no «Filtro técnico importado»", () => {
+  test('el panel del Constructor dice lo mismo: subconjunto fijo, no "Filtro técnico importado"', () => {
     const s = describeChoiceFilter("REF02CO= 'kk'", A.scope, A.workbook.choices.columns, A.nodo("REF02"));
     expect(s).toMatchObject({ tone: "ok", title: "Subconjunto fijo", detail: "Muestra siempre las mismas opciones: las marcadas con kk en la columna REF02CO." });
   });
@@ -66,13 +66,13 @@ describe("S3 · una lista que sale de una repetición no se ofrece para escribir
   test("select_one ${HH01_2_aux}: las opciones son las respuestas registradas en la repetición", () => {
     const o = origenDeLista("${HH01_2_aux}", A.structure);
     expect(o).toEqual({ tipo: "repeticion", variable: "HH01_2_aux", etiquetaVariable: "Nombre del miembro del hogar", repeticion: "Lista de los miembros del hogar" });
-    expect(textoOrigen(o!)).toMatch(/^Las opciones son las respuestas a «Nombre del miembro del hogar», una por cada fila registrada en la repetición «Lista de los miembros del hogar»/);
+    expect(textoOrigen(o!)).toMatch(/^Las opciones son las respuestas a "Nombre del miembro del hogar", una por cada fila registrada en la repetición "Lista de los miembros del hogar"/);
     expect(origenDeLista("Country", A.structure)).toBeNull();
   });
 });
 
-describe("S4 · «Probar valores» da la causa real y evalúa bien la autorreferencia", () => {
-  test("IDP01 no se prueba por las comillas tipográficas, no por «funciones del teléfono»", () => {
+describe('S4 · "Probar valores" da la causa real y evalúa bien la autorreferencia', () => {
+  test('IDP01 no se prueba por las comillas tipográficas, no por "funciones del teléfono"', () => {
     const c = causaSinPrueba(A.nodo("IDP01"));
     expect(c).toEqual({ tipo: "comillas" });
     expect(textoCausaSinPrueba(c!)).toMatch(/comillas tipográficas/);
@@ -139,7 +139,7 @@ describe("S6/S7 · lecturas con etiquetas, no con códigos", () => {
     expect(v.summary).not.toMatch(/comillas/);
     expect(v.aviso).toMatch(/comillas tipográficas/);
   });
-  test("Lógica lee el filtro fijo como lo lee Filtros, no como «Regla técnica importada»", () => {
+  test('Lógica lee el filtro fijo como lo lee Filtros, no como "Regla técnica importada"', () => {
     expect(describeExpression("REF02CO= 'kk'", A.scope).summary).toBe("Muestra siempre las mismas opciones: las marcadas con kk en la columna REF02CO");
     expect(leerColumna("choice_filter", A.nodo("Spent_1st"), A.nodo("Spent_1st").choiceFilter, A.scope).summary)
       .toBe("Muestra las opciones cuya columna filter_Spent está marcada en ¿En qué ha gastado el dinero recibido del ACNUR?");
@@ -149,7 +149,7 @@ describe("S6/S7 · lecturas con etiquetas, no con códigos", () => {
 describe("S8 · repeticiones y heredadas sin duplicar", () => {
   test("HH06 se repite por cada fila de la lista de miembros (S1 sin etiqueta se nombra por lo que cuenta)", () => {
     expect(repeticionesDe(A.nodo("HH06"), A.structure).map((r) => r.etiqueta)).toEqual(["Lista de los miembros del hogar"]);
-    expect(textoSeRepite(A.nodo("HH06"), A.structure)).toBe("Se repite por cada fila de «Lista de los miembros del hogar»");
+    expect(textoSeRepite(A.nodo("HH06"), A.structure)).toBe('Se repite por cada fila de "Lista de los miembros del hogar"');
     expect(textoSeRepite(A.nodo("REF02"), A.structure)).toBeNull();
   });
   test("REG02 hereda una sola vez la condición que S4 y S2 repiten", () => {

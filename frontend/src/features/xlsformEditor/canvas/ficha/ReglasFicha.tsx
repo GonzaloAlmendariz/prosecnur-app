@@ -106,7 +106,7 @@ export function ReglasFicha({ node, structure, scope, requiredRaw, filas, onObli
       const resumen = propia
         ? <Lectura lectura={propia} corta />
         : primera
-          ? `Heredada de «${corto(primera.h.etiqueta, 38)}»`
+          ? `Heredada de "${corto(primera.h.etiqueta, 38)}"`
           : esSec ? "La sección aparece siempre" : "Aparece siempre";
       const codigo = [
         ...(m.cond ? [{ columna: "relevant", raw: m.cond }] : []),
@@ -135,7 +135,7 @@ export function ReglasFicha({ node, structure, scope, requiredRaw, filas, onObli
               ) : null}
               {heredadas.map(({ h, l }, i) => (
                 <div key={i} className="xfh-det__heredada">
-                  <span className="xfh-det__sub">Heredada de la sección «{corto(h.etiqueta, 48)}»</span>
+                  <span className="xfh-det__sub">Heredada de la sección "{corto(h.etiqueta, 48)}"</span>
                   <p className="xfh-lectura"><Lectura lectura={l} /></p>
                 </div>
               ))}
@@ -163,7 +163,7 @@ export function ReglasFicha({ node, structure, scope, requiredRaw, filas, onObli
             <>
               <p className="xfh-lectura"><Lectura lectura={lect} /></p>
               <span className="xfh-det__sub">
-                {m.regla.mensaje ? <>Mensaje del formulario: «{m.regla.mensaje}»</> : "El formulario no trae mensaje para quien se equivoca."}
+                {m.regla.mensaje ? <>Mensaje del formulario: "{m.regla.mensaje}"</> : "El formulario no trae mensaje para quien se equivoca."}
               </span>
               {editar("regla", [{ columna: "constraint", raw: m.regla.raw }], lect.tecnica)}
             </>
@@ -230,12 +230,12 @@ export function ReglasFicha({ node, structure, scope, requiredRaw, filas, onObli
           tono={INFO_MARCA.repite.tono}
           nombre="Se repite"
           estado="on"
-          resumen={`Por cada fila de «${corto(interna.etiqueta, 44)}»`}
-          resumenPlano={`Se repite por cada fila de «${interna.etiqueta}»`}
+          resumen={`Por cada fila de "${corto(interna.etiqueta, 44)}"`}
+          resumenPlano={`Se repite por cada fila de "${interna.etiqueta}"`}
           abierta={abierta === k}
           onAlternar={() => alternar(k)}
         >
-          <p className="xfh-det__p">Se repite por cada fila de «{interna.etiqueta}»: la respuesta se guarda una vez por fila.</p>
+          <p className="xfh-det__p">Se repite por cada fila de "{interna.etiqueta}": la respuesta se guarda una vez por fila.</p>
           {interna.rowIndex != null ? (
             <div className="xfh-det__pie">
               <BotonIr onClick={() => onSeleccionarFila(interna.rowIndex!)}>Ver la repetición</BotonIr>

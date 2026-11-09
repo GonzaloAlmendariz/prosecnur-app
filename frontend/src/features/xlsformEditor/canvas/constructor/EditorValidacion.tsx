@@ -120,7 +120,7 @@ export function EditorValidacion({ node: nodoCompleto, scope, onFieldChange: esc
       {ofrecer ? (
         <p className="pulso-focus-aviso-mensaje" role="status">
           El mensaje vigente es de otra regla.
-          <button type="button" onClick={() => { onFieldChange("constraint_message", ofrecer); setOferta(null); }}>Usar «{ofrecer}»</button>
+          <button type="button" onClick={() => { onFieldChange("constraint_message", ofrecer); setOferta(null); }}>Usar "{ofrecer}"</button>
         </p>
       ) : null}
       {(node.constraint || constraintMessage) && (

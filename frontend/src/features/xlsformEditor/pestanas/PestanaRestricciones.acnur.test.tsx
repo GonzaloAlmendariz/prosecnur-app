@@ -36,7 +36,7 @@ describe("Restricciones con el ACNUR", () => {
 });
 
 describe("S12: la regla se lee primero, una insignia y el código una vez", () => {
-  it("IDP01: sin «Regla avanzada»/«Regla técnica» juntas, sin `${x}` crudo en el título ni markdown crudo", () => {
+  it('IDP01: sin "Regla avanzada"/"Regla técnica" juntas, sin `${x}` crudo en el título ni markdown crudo', () => {
     const html = pintar("IDP01");
     expect(html).not.toContain("Regla avanzada");
     expect(html).not.toContain("Regla técnica");

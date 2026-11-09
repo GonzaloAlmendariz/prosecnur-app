@@ -26,7 +26,7 @@ export function aplicarArmado(
     if (i === undefined) { nuevas.push(a); continue; }
     const r = rowToRecord(survey, i);
     if ((r.calculation ?? "").trim() !== a.calculation || i > filaCalculo) {
-      return { ok: false, motivo: `El nombre «${a.name}» ya lo usa otra fila del formulario. Elige otro.` };
+      return { ok: false, motivo: `El nombre "${a.name}" ya lo usa otra fila del formulario. Elige otro.` };
     }
   }
   nuevas.forEach((a, k) => insertRecord(survey, filaCalculo + k, { type: "calculate", name: a.name, calculation: a.calculation }));

@@ -262,7 +262,7 @@ export function textoDestino(
 ): string {
   const nombre = (fila: number | null) => {
     const n = fila == null ? null : structure.byRow.get(fila);
-    return n ? `«${tituloDe(n)}»` : null;
+    return n ? `"${tituloDe(n)}"` : null;
   };
   if (destino.despuesDeFila != null) {
     const n = structure.byRow.get(destino.despuesDeFila);

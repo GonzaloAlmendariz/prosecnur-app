@@ -36,7 +36,7 @@ describe("ListasOpcionesPanel", () => {
     expect(html).toContain('data-qa-geometry-contract="equal"');
     expect(html).toContain("Esta escala se repite en 2 preguntas");
     expect(html).toContain('value="acuerdo"');
-    expect(html).toContain("Unificar como «acuerdo»");
+    expect(html).toContain("Unificar como &quot;acuerdo&quot;");
     // Código y etiqueta en columnas rotuladas, no pegados en un chip.
     expect(html).toContain('<th scope="col">Código</th><th scope="col">Etiqueta</th>');
     expect(html).toContain('<code class="pulso-xf-listas-codigo">1</code></td><td class="pulso-xf-listas-etiqueta" title="En desacuerdo">En desacuerdo</td>');
@@ -85,11 +85,11 @@ describe("ListasOpcionesPanel", () => {
     expect(html).toContain("Entre formularios del proyecto");
     expect(html).toContain(TEXTO_ENTRE_FORMULARIOS);
     expect(html).toContain('data-qa-geometry-group="xlsform-listas-entre"');
-    expect(html).toContain("Igual en Docentes; se llama «genero» allí");
-    expect(html).toContain("Renombrar como «genero»");
+    expect(html).toContain("Igual en Docentes; se llama &quot;genero&quot; allí");
+    expect(html).toContain("Renombrar como &quot;genero&quot;");
     expect(html).toContain('data-qa-geometry-group="xlsform-listas-codigos"');
     expect(html).toContain("Misma escala con códigos distintos en Docentes (SIN INF: 5 aquí, 99 allá)");
-    expect(html).toContain("No se pudo leer «Administrativos»");
+    expect(html).toContain("No se pudo leer &quot;Administrativos&quot;");
     // Un solo renombre: la acción global no duplica la de la fila.
     expect(html).not.toContain("Aplicar los nombres comunes");
     const cargando = renderToStaticMarkup(<ListasOpcionesPanel workbook={w} control={control(w)} hermanos={{ estado: "cargando" }} />);

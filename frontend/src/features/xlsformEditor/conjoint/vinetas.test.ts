@@ -49,7 +49,7 @@ const nombres = (wb: XlsformEditorWorkbook) => wb.survey.rows.map((_, i) => rowT
 describe("diseño de viñetas", () => {
   it("el texto usa cada atributo y sólo atributos", () => {
     expect(validarVinetas(diseno())).toEqual([]);
-    expect(validarVinetas({ ...diseno(), texto: "Un candidato de {edad}. {otro}" }).join(" ")).toMatch(/no usa «Pasado».*\{otro\}/);
+    expect(validarVinetas({ ...diseno(), texto: "Un candidato de {edad}. {otro}" }).join(" ")).toMatch(/no usa "Pasado".*\{otro\}/);
   });
 
   it("cada viñeta es una página con su sorteo, su escenario y la escala con los extremos rotulados", () => {

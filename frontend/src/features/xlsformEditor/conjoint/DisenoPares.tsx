@@ -91,7 +91,7 @@ export function DisenoPares({ prefijoSugerido, existente, onInsertar }: {
           <p className="xfe-conjoint__explica">
             Cada perfil sortea un nivel de cada atributo. Sin pesos, todos los niveles salen con la misma probabilidad;
             con pesos, el sorteo los respeta. Un atributo puede depender de otro: si la condición no se cumple, se muestra
-            «—» y en la base queda NA.
+            "—" y en la base queda NA.
           </p>
           <EditorAtributos atributos={d.atributos} despachar={despachar} />
         </section>

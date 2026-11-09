@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { ejemploPorTipo, valoresDePrueba } from "./probarCalculoModelo";
 
 describe("valores de prueba de un cálculo", () => {
-  test("un cálculo o una variable sin tipo recibe un número, no «ejemplo»", () => {
+  test('un cálculo o una variable sin tipo recibe un número, no "ejemplo"', () => {
     expect(ejemploPorTipo("calculate", [])).toBe("3");
     expect(ejemploPorTipo("", [])).toBe("3");
     expect(ejemploPorTipo("text", [])).toBe("ejemplo");

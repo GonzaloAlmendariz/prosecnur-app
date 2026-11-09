@@ -32,7 +32,7 @@ export function agruparLogica(instrucciones: readonly InstruccionImpresa[]): Gru
 export function rotuloInstruccion(i: InstruccionImpresa): string {
   if (i.tipo === "condicion") return "Antes de la pregunta";
   if (i.tipo === "salida") return "Al terminar la pregunta";
-  return i.opcion ? `Si responde «${i.opcion}»` : "En una opción";
+  return i.opcion ? `Si responde "${i.opcion}"` : "En una opción";
 }
 
 export function ListaLogicaImpresa({ estado }: { estado: Estado }) {

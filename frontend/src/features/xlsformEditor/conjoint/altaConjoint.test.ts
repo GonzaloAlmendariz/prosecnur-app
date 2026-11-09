@@ -5,7 +5,7 @@ import { describeAddMenuItem, normalizeAddMenuSearch } from "../shell/AddElement
 import { agruparAlta } from "../shell/familiasAlta";
 import { itemAltaConjoint } from "./altaConjoint";
 
-describe("entrada del conjoint en «Añadir pieza»", () => {
+describe('entrada del conjoint en "Añadir pieza"', () => {
   const abrir = vi.fn();
   const item = itemAltaConjoint(abrir);
   const busca = (q: string) =>

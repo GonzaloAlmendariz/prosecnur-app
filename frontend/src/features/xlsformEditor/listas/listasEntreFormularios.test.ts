@@ -40,7 +40,7 @@ describe("esNombrePosicional", () => {
 });
 
 describe("compararListasEntreFormularios", () => {
-  test("género posicional en los tres: propone «genero» por contenido", () => {
+  test('género posicional en los tres: propone "genero" por contenido', () => {
     const activo = wb({ lst_p3: GENERO });
     const otros = [
       hermano("doc", "Docentes", { lst_p3: GENERO }),
@@ -51,7 +51,7 @@ describe("compararListasEntreFormularios", () => {
     expect(coincidencias).toHaveLength(1);
     expect(coincidencias[0]).toMatchObject({ lista: "lst_p3", nombreComun: "genero", estado: "renombrar", motivo: null });
     expect(describirDondeSeRepite(coincidencias[0].copias)).toBe("Igual en Docentes y Administrativos");
-    expect(describirNombresAlla(coincidencias[0].copias)).toBe("se llama «lst_p3» en Docentes y «lst_p4» en Administrativos");
+    expect(describirNombresAlla(coincidencias[0].copias)).toBe('se llama "lst_p3" en Docentes y "lst_p4" en Administrativos');
   });
 
   test("si otro formulario ya le dio un nombre legible, se sugiere ese", () => {
@@ -67,7 +67,7 @@ describe("compararListasEntreFormularios", () => {
     const otros = [hermano("doc", "Docentes", { acuerdo: ACUERDO })];
     const [c] = compararListasEntreFormularios(activo, otros).coincidencias;
     expect(c.estado).toBe("coincide");
-    expect(describirNombresAlla(c.copias)).toBe("se llama «acuerdo» allí");
+    expect(describirNombresAlla(c.copias)).toBe('se llama "acuerdo" allí');
   });
 
   test("el activo ya tiene el nombre común y los otros no: referencia", () => {
@@ -89,7 +89,7 @@ describe("compararListasEntreFormularios", () => {
     const otros = [hermano("doc", "Docentes", { acuerdo: GENERO })];
     const [c] = compararListasEntreFormularios(activo, otros).coincidencias;
     expect(c.estado).toBe("bloqueado");
-    expect(c.motivo).toMatch(/Ya existe otra lista llamada «acuerdo»/);
+    expect(c.motivo).toMatch(/Ya existe otra lista llamada "acuerdo"/);
   });
 
   test("lista con gemela en el mismo formulario: primero unificar", () => {

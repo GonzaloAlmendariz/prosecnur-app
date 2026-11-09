@@ -117,7 +117,7 @@ export const COLUMN_HELP: Record<string, { label: string; detail: string; badge?
   },
   paper_subletter: {
     label: "Letra en papel",
-    detail: "En una matriz, numera la fila con a, b, c… en vez de un número. «@» marca el enunciado madre.",
+    detail: 'En una matriz, numera la fila con a, b, c… en vez de un número. "@" marca el enunciado madre.',
     badge: "Papel",
   },
   paper_only: {

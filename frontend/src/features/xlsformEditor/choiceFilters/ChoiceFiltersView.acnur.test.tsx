@@ -19,7 +19,7 @@ const pintar = (seleccionada: string, editable = false) =>
   );
 
 describe("Filtros con el ACNUR", () => {
-  it("REF02: subconjunto fijo editable como lista, sin «respuestas previas»", () => {
+  it('REF02: subconjunto fijo editable como lista, sin "respuestas previas"', () => {
     const html = pintar("REF02", true);
     expect(html).toContain("Muestra siempre las mismas 3 opciones: las marcadas con kk en la columna REF02CO de la lista Country.");
     expect(html).toContain("Opciones que se muestran");
@@ -42,7 +42,7 @@ describe("Filtros con el ACNUR", () => {
 });
 
 describe("todo filtro se puede editar", () => {
-  it("REF16 (condición + opciones nombradas) ofrece «Editar filtro» y una vista previa", () => {
+  it('REF16 (condición + opciones nombradas) ofrece "Editar filtro" y una vista previa', () => {
     const html = pintar("REF16", true);
     expect(html).toContain("Editar filtro");
     expect(html).toContain("Qué ve el encuestado");

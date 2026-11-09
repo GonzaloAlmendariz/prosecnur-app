@@ -185,11 +185,11 @@ export function leerVinetas(wb: (Pick<XlsformEditorWorkbook, "survey"> & Partial
       const f = porNombre.get(n.name);
       const igual = f && f.type === n.type && (n.type === "calculate" ? f.calculation === n.calculation : f.label.trim() === n.label.trim());
       if (!igual) {
-        motivo = `«${n.name}» no está escrito como lo escribe el editor.`;
+        motivo = `"${n.name}" no está escrito como lo escribe el editor.`;
         break;
       }
     }
-    if (!motivo && choices.some((c, k) => opciones[k]?.label !== c.label)) motivo = `La escala «${lista}» no está escrita como la escribe el editor.`;
+    if (!motivo && choices.some((c, k) => opciones[k]?.label !== c.label)) motivo = `La escala "${lista}" no está escrita como la escribe el editor.`;
     if (!motivo && nuevas.filter((n) => n.name).length !== [...delExperimento].filter((i) => filas[i]!.name).length) {
       motivo = "El experimento tiene filas que el editor no genera.";
     }

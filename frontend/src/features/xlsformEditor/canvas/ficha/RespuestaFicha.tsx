@@ -55,11 +55,11 @@ export function RespuestaFicha({ node, choices, catalogs, usosDeLaLista, onAsign
       <div className="xfh-primera">
         <Sello baseType={base} size={22} />
         <div>
-          <b>{lista ? `La lista «${lista}» todavía no tiene opciones` : "Esta pregunta necesita su lista de opciones"}</b>
+          <b>{lista ? `La lista "${lista}" todavía no tiene opciones` : "Esta pregunta necesita su lista de opciones"}</b>
           <p>
             {primera
-              ? "Una lista guarda las respuestas posibles con un código para la base y un texto para el encuestado. Varias preguntas pueden usar la misma lista, como «Sí / No»."
-              : "Elige una de las listas del formulario o crea una nueva. Las opciones se escriben en «Listas de opciones»."}
+              ? 'Una lista guarda las respuestas posibles con un código para la base y un texto para el encuestado. Varias preguntas pueden usar la misma lista, como "Sí / No".'
+              : 'Elige una de las listas del formulario o crea una nueva. Las opciones se escriben en "Listas de opciones".'}
           </p>
           <div className="xfh-primera__acc">{acciones}</div>
           {elegir}

@@ -300,7 +300,7 @@ export function leerConjoint(wb: Pick<XlsformEditorWorkbook, "survey"> | null): 
       const f = porNombre.get(n.name);
       const igual = f && f.type === n.type && (n.type === "calculate" ? f.calculation === n.calculation : f.label.trim() === n.label.trim());
       if (!igual) {
-        motivo = `«${n.name}» no está escrito como lo escribe el editor.`;
+        motivo = `"${n.name}" no está escrito como lo escribe el editor.`;
         break;
       }
     }

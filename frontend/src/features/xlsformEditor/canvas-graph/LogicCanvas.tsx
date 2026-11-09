@@ -1545,7 +1545,7 @@ export function LogicCanvas({
                 // combinación (Y/O) o creación nueva.
                 if (combiner) {
                   const key = `${source.id}->${target.id}`;
-                  setInsignia({ key, texto: `Combinada con «${combiner === "and" ? "Y" : "O"}»` });
+                  setInsignia({ key, texto: `Combinada con "${combiner === "and" ? "Y" : "O"}"` });
                   setTimeout(() => setInsignia((v) => (v?.key === key ? null : v)), 2400);
                 } else if (existing && existing === combined) {
                   pushToast("La condición ya existía", "info");

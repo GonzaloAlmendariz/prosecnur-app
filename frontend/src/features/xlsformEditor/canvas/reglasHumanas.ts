@@ -504,7 +504,7 @@ function opcionExclusiva(expr: Expr, scope: LogicScope): string | null {
   if (!sel || !cuenta || sel.kind !== "call") return null;
   const valor = sel.args[1];
   const nombre = valor.kind === "literal" ? String(valor.value) : "esa opción";
-  return `«${nombre}» no se puede marcar junto con otras opciones`;
+  return `"${nombre}" no se puede marcar junto con otras opciones`;
 }
 
 /** Ortografía final de una lectura: mayúscula inicial y contracciones («de el» → «del»). */

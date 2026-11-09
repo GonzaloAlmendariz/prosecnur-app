@@ -17,9 +17,9 @@ describe("variables en un solo formato", () => {
       { tipo: "texto", texto: "es" },
       { tipo: "valor", texto: "1" },
       { tipo: "texto", texto: ", vale" },
-      { tipo: "valor", texto: "«uno y dos»" },
+      { tipo: "valor", texto: '"uno y dos"' },
       { tipo: "texto", texto: "." },
     ];
-    expect(textoLegible(piezas, etq)).toBe("Si p1 es 1, vale «uno y dos».");
+    expect(textoLegible(piezas, etq)).toBe('Si p1 es 1, vale "uno y dos".');
   });
 });

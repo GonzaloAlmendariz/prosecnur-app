@@ -3,11 +3,11 @@ import { asRequired, lecturaRequired } from "./parseType";
 import { leerConContexto } from "../reglas/motor";
 
 describe("lecturaRequired", () => {
-  it.each(["yes", "YES", "true", "True", "1", "true()", "TRUE()", "si", "Sí", " sí "])("«%s» es siempre", (raw) => {
+  it.each(["yes", "YES", "true", "True", "1", "true()", "TRUE()", "si", "Sí", " sí "])('"%s" es siempre', (raw) => {
     expect(lecturaRequired(raw)).toBe("siempre");
   });
 
-  it.each(["", "  ", "no", "NO", "false", "0", "false()", "False()"])("«%s» es nunca", (raw) => {
+  it.each(["", "  ", "no", "NO", "false", "0", "false()", "False()"])('"%s" es nunca', (raw) => {
     expect(lecturaRequired(raw)).toBe("nunca");
   });
 
@@ -16,7 +16,7 @@ describe("lecturaRequired", () => {
     expect(lecturaRequired(undefined)).toBe("nunca");
   });
 
-  it.each(["${edad} >= 18", "selected(${p1}, 'si')", "yes()"])("«%s» es expresión", (raw) => {
+  it.each(["${edad} >= 18", "selected(${p1}, 'si')", "yes()"])('"%s" es expresión', (raw) => {
     expect(lecturaRequired(raw)).toBe("expresion");
   });
 
@@ -34,7 +34,7 @@ describe("el motor de reglas lee required con la misma función", () => {
     ["Sí", "Obligatoria"],
     ["true()", "Obligatoria"],
     ["FALSE()", "Opcional"],
-  ])("«%s» se lee %s", (raw, voz) => {
+  ])('"%s" se lee %s', (raw, voz) => {
     const lectura = leerConContexto("required", raw, ctx);
     expect(lectura.tecnica).toBe(false);
     expect(lectura.piezas).toHaveLength(1);

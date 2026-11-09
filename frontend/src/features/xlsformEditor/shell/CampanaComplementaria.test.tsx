@@ -53,7 +53,7 @@ describe("vista previa de la campaña", () => {
     expect(html).not.toContain("<ul");
   });
 
-  test("muchas diferencias: el detalle arranca plegado con «Ver las N»", () => {
+  test('muchas diferencias: el detalle arranca plegado con "Ver las N"', () => {
     const html = renderToStaticMarkup(<CampanaVistaPreviaResumen vista={{ ...VISTA_OK, faltan: muchas(28) }} />);
     expect(html).toContain("Ver las 28");
     expect(html).toContain('aria-expanded="false"');
@@ -224,7 +224,7 @@ describe("sugerencia al importar", () => {
         onImportarNuevo={vi.fn()}
       />,
     );
-    expect(html).toContain("Esta encuesta comparte el 98.6 % de las preguntas de «Estudiantes»");
+    expect(html).toContain("Esta encuesta comparte el 98.6 % de las preguntas de &quot;Estudiantes&quot;");
     expect(html).toContain("¿Es una");
     expect(html).toContain("Agregar como campaña de Estudiantes");
     expect(html).toContain("Importar como formulario nuevo");

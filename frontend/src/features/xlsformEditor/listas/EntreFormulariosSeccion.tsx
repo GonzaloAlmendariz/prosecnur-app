@@ -78,7 +78,7 @@ export function EntreFormulariosSeccion({
 
       {hermanos.estado === "listo" && hermanos.fallidos.length > 0 ? (
         <p className="pulso-xf-listas-error" role="alert">
-          No se pudo leer {hermanos.fallidos.map((n) => `«${n}»`).join(", ")}; sus listas no entran en la comparación.
+          No se pudo leer {hermanos.fallidos.map((n) => `"${n}"`).join(", ")}; sus listas no entran en la comparación.
         </p>
       ) : null}
 
@@ -158,7 +158,7 @@ function CoincidenciaFila({
         ) : c.estado === "referencia" ? (
           <span className="pulso-xf-listas-entre-ok" title="Renómbrala en los otros formularios al abrirlos.">
             <Check size={14} aria-hidden="true" />
-            Ya se llama «{c.nombreComun}» aquí
+            Ya se llama "{c.nombreComun}" aquí
           </span>
         ) : c.estado === "renombrar" ? (
           <PulsoButton
@@ -167,10 +167,10 @@ function CoincidenciaFila({
             aria-label={`Renombrar la lista ${c.lista} como ${c.nombreComun}`}
             onClick={() => onRenombrar(c.lista, c.nombreComun)}
           >
-            Renombrar como «{c.nombreComun}»
+            Renombrar como "{c.nombreComun}"
           </PulsoButton>
         ) : (
-          <span className="pulso-xf-listas-entre-pendiente">Nombre común: «{c.nombreComun}»</span>
+          <span className="pulso-xf-listas-entre-pendiente">Nombre común: "{c.nombreComun}"</span>
         )}
       </div>
     </li>

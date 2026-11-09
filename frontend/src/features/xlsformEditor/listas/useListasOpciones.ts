@@ -38,7 +38,7 @@ export function useListasOpciones(
     if (!res.ok) return res.motivo;
     const limpio = nombre.trim();
     if (res.workbook !== workbook) onWorkbookChange(res.workbook);
-    setAviso(`${grupo.listas.length} listas quedaron como una sola: «${limpio}», usada en ${grupo.preguntas.length} ${grupo.preguntas.length === 1 ? "pregunta" : "preguntas"}.`);
+    setAviso(`${grupo.listas.length} listas quedaron como una sola: "${limpio}", usada en ${grupo.preguntas.length} ${grupo.preguntas.length === 1 ? "pregunta" : "preguntas"}.`);
     return null;
   }, [onWorkbookChange, workbook]);
 
@@ -47,7 +47,7 @@ export function useListasOpciones(
     if (!res.ok) return res.motivo;
     if (res.workbook !== workbook) {
       onWorkbookChange(res.workbook);
-      setAviso(`La lista «${lista}» ahora se llama «${nombre.trim()}».`);
+      setAviso(`La lista "${lista}" ahora se llama "${nombre.trim()}".`);
     }
     return null;
   }, [onWorkbookChange, workbook]);
