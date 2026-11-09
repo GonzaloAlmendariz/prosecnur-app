@@ -8,14 +8,15 @@ import { avisoDeRanura, bloqueConPares, bloquesDeLamina, filasPorRanura, ranuraD
 const par = { fila: "Sí", a: "A", b: "B", dif: 20, p_ajustado: 0.001, veredicto: "marcada" };
 const ranura = (extra: Record<string, unknown>) => ({ estado: "con_marcas", cruce: "sexo", pares: [par], ...extra });
 const nombres: Record<string, string> = { p_barras_agrupadas: "Barras agrupadas", p_barras_apiladas: "Barras apiladas" };
-const nombreDe = (r: { graficador: string }) => nombres[r.graficador] ?? "";
+const posiciones: Record<string, number> = { grafico_1: 1, grafico_2: 2, grafico_4: 4 };
+const nombreDe = (r: { graficador: string; ranura: string }) => ({ nombre: nombres[r.graficador] ?? "", posicion: posiciones[r.ranura] ?? null });
 
 const CUATRO = normalizeDiferenciasLamina({
   slide_id: "s4", titulo: "Cuatro gráficos", ...ranura({}),
   ranuras: [
     ranura({ ranura: "grafico_1", indice: 1, graficador: "p_barras_agrupadas", base: "estudiantes" }),
     ranura({ ranura: "grafico_2", indice: 2, graficador: "p_barras_apiladas", base: "estudiantes", estado: "abstencion", pares: [], motivo: "Es una escala sin Top Two Box declarado." }),
-    ranura({ ranura: "grafico_4", indice: 4, graficador: "p_barras_agrupadas", base: "docentes", estado: "error", pares: [], error: { code: "E_SIG_PRUEBA_FALLO", message: "La prueba no pudo ejecutarse en esta lámina." } }),
+    ranura({ ranura: "grafico_4", indice: 6, graficador: "p_barras_agrupadas", base: "docentes", estado: "error", pares: [], error: { code: "E_SIG_PRUEBA_FALLO", message: "La prueba no pudo ejecutarse en esta lámina." } }),
   ],
 });
 
@@ -47,6 +48,10 @@ describe("bloquesDeLamina", () => {
     const una = bloquesDeLamina(normalizeDiferenciasLamina({ slide_id: "s1", ...ranura({}) }), nombreDe);
     expect(una).toHaveLength(1);
     expect(una[0]).toMatchObject({ conCabecera: false, titulo: "" });
+  });
+
+  it("«Gráfico N» es la posición entre los gráficos de la lámina, no el índice del payload (que cuenta el título)", () => {
+    expect(bloquesDeLamina(CUATRO, nombreDe).at(-1)?.titulo).toMatch(/^Gráfico 4:/);
   });
 
   it("misma base en todas: la cabecera no repite la base", () => {

@@ -46,11 +46,17 @@ export function avisoDeRanura(r: Pick<RanuraDiferencias, "estado" | "motivo" | "
   }
 }
 
-/** Nombre legible del gráfico de una ranura (catálogo o variante), que resuelve quien conoce los args del plan. */
-export type NombreDeGrafico = (ranura: RanuraDiferencias) => string;
+/**
+ * Lo que dice quién es el gráfico de una ranura, resuelto por quien conoce el plan: su nombre de catálogo (o de
+ * variante) y su posición entre los gráficos de la lámina (1-based). `indice` del backend cuenta todas las claves del
+ * payload (título incluido), así que no sirve para «Gráfico N»; sin posición, se usa ese índice.
+ */
+export type GraficoDeRanura = { nombre: string; posicion: number | null };
+export type NombreDeGrafico = (ranura: RanuraDiferencias) => GraficoDeRanura;
 
-export function tituloDeRanura(ranura: RanuraDiferencias, nombre: string, conBase: boolean): string {
-  const cabeza = nombre ? `Gráfico ${ranura.indice}: ${nombre}` : `Gráfico ${ranura.indice}`;
+export function tituloDeRanura(ranura: RanuraDiferencias, grafico: GraficoDeRanura, conBase: boolean): string {
+  const n = grafico.posicion ?? ranura.indice;
+  const cabeza = grafico.nombre ? `Gráfico ${n}: ${grafico.nombre}` : `Gráfico ${n}`;
   return conBase && ranura.base ? `${cabeza}, base ${nombreBase(ranura.base)}` : cabeza;
 }
 

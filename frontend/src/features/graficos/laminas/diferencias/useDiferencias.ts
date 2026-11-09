@@ -121,11 +121,15 @@ export function useNombreDeGrafico(slideId: string | null = null): NombreDeGrafi
   const slides = usePlanStore((s) => s.plan.slides);
   return useCallback((ranura) => {
     const id = slideId ?? ranura.slide_id;
-    const payload = slides.find((x) => x.id === id)?.payload as Record<string, unknown> | undefined;
+    const slide = slides.find((x) => x.id === id);
+    const payload = slide?.payload as Record<string, unknown> | undefined;
     const ref = payload?.[ranura.ranura] as RefGrafico;
+    const orden = slide ? SLIDE_GRAF_SLOTS[slide.tipo] ?? [] : [];
+    const i = orden.indexOf(ranura.ranura);
+    const posicion = i >= 0 ? i + 1 : null;
     const graficador = ranura.graficador || (typeof ref?.graficador === "string" ? ref.graficador : "");
-    if (!graficador) return "";
+    if (!graficador) return { nombre: "", posicion };
     const args = ref && typeof ref.args === "object" && ref.args ? (ref.args as Record<string, unknown>) : {};
-    return nombreDeEntrada(entradaDeGrafico(graficador, args));
+    return { nombre: nombreDeEntrada(entradaDeGrafico(graficador, args)), posicion };
   }, [slides, slideId]);
 }

@@ -37,6 +37,7 @@ import { filasPorRanura } from "./modeloRanuras";
 import { useDiferenciasUi } from "./store";
 import { useDiferenciasInforme, useNombreDeGrafico } from "./useDiferencias";
 import "./diferencias.css";
+import "./ranurasDiferencias.css";
 
 type Props = {
   panel: ControlPanel;
@@ -101,7 +102,7 @@ export function RevisionDiferenciasPanel({ panel, estructura, slideIdActual, onI
             </PulsoButton>
           )} />
       </header>
-      <div className="pulso-sig-revision-cuerpo" data-qa-geometry-member="" data-qa-scroll-owner="diferencias-informe">
+      <div className="pulso-sig-revision-cuerpo" data-qa-geometry-member="" data-qa-scroll-owner="diferencias-informe" data-qa-geometry-capacity="owned">
         {carga?.estado === "error" ? (
           <CajaDiferencias tono="peligro" role="alert">
             <strong className="pulso-sig-titulo">No se pudo revisar el informe</strong>
@@ -118,13 +119,14 @@ export function RevisionDiferenciasPanel({ panel, estructura, slideIdActual, onI
           </div>
         ) : (
           <>
-            <ul className="pulso-sig-chips" aria-label="Resumen del informe">
-              <li className="pulso-sig-chip">{r.cruces === 1 ? "1 cruce" : `${formatoConteo(r.cruces)} cruces`}</li>
-              <li className="pulso-sig-chip is-marcada"><Capsula letras="" decorativa /> {r.marcadas === 1 ? "1 marcada" : `${formatoConteo(r.marcadas)} marcadas`}</li>
-              <li className="pulso-sig-chip is-fragil">{r.fragiles === 1 ? "1 frágil" : `${formatoConteo(r.fragiles)} frágiles`}</li>
-              <li className="pulso-sig-chip">{formatoConteo(r.ninguna)} sin diferencias</li>
-              {r.bases_chicas > 0 && <li className="pulso-sig-chip is-aviso">{r.bases_chicas === 1 ? "1 base chica" : `${formatoConteo(r.bases_chicas)} bases chicas`}</li>}
-              {r.sin_prueba > 0 && <li className="pulso-sig-chip is-peligro">{formatoConteo(r.sin_prueba)} sin prueba</li>}
+            {/* Las pastillas miden 24 px y centran su rótulo, como un control: ese alto es suyo, no capacidad sin usar. */}
+            <ul className="pulso-sig-chips" aria-label="Resumen del informe" data-qa-geometry-group="graficos/diferencias-informe-resumen" data-qa-geometry-contract="intrinsic">
+              <li data-qa-geometry-member="" data-qa-geometry-capacity="owned" className="pulso-sig-chip">{r.cruces === 1 ? "1 cruce" : `${formatoConteo(r.cruces)} cruces`}</li>
+              <li data-qa-geometry-member="" data-qa-geometry-capacity="owned" className="pulso-sig-chip is-marcada"><Capsula letras="" decorativa /> {r.marcadas === 1 ? "1 marcada" : `${formatoConteo(r.marcadas)} marcadas`}</li>
+              <li data-qa-geometry-member="" data-qa-geometry-capacity="owned" className="pulso-sig-chip is-fragil">{r.fragiles === 1 ? "1 frágil" : `${formatoConteo(r.fragiles)} frágiles`}</li>
+              <li data-qa-geometry-member="" data-qa-geometry-capacity="owned" className="pulso-sig-chip">{formatoConteo(r.ninguna)} sin diferencias</li>
+              {r.bases_chicas > 0 && <li data-qa-geometry-member="" data-qa-geometry-capacity="owned" className="pulso-sig-chip is-aviso">{r.bases_chicas === 1 ? "1 base chica" : `${formatoConteo(r.bases_chicas)} bases chicas`}</li>}
+              {r.sin_prueba > 0 && <li data-qa-geometry-member="" data-qa-geometry-capacity="owned" className="pulso-sig-chip is-peligro">{formatoConteo(r.sin_prueba)} sin prueba</li>}
             </ul>
             <div className="pulso-sig-revision-barra">
               <RadioSegmentado<FiltroRevision> etiqueta="Qué gráficos mostrar" valor={filtro} opciones={OPCIONES_FILTRO} onCambiar={setFiltro} />
@@ -152,10 +154,23 @@ function TablaRevision({ filas, filtro, slideIdActual, onIr }: {
   filas: FilaRevision[]; filtro: FiltroRevision; slideIdActual: string | null; onIr: (posicion: number) => void;
 }) {
   const columnas: PulsoTableColumna<FilaRevision>[] = [
-    { id: "lamina", encabezado: "Lám.", ancho: 52, tipo: "cifra", celda: (f) => f.posicion ?? "—", valor: (f) => f.posicion },
-    { id: "cruce", encabezado: "Cruce", ancho: 190, celda: (f) => textoCruce(f), valor: (f) => textoCruce(f) },
-    { id: "estado", encabezado: "Estado", ancho: 140, celda: (f) => <EstadoChip lamina={f.lamina} /> },
-    { id: "revisar", encabezado: "Qué revisar", ancho: 196, celda: (f) => queRevisar(f.lamina).join("; ") || "—", valor: (f) => queRevisar(f.lamina).join("; ") },
+    // R15: el marco de la revisión mide ~460 px a 1440 (C4): tres columnas que caben enteras. «Qué revisar» va como
+    // última línea de la celda del gráfico, que puede crecer en alto; antes era una cuarta columna escondida a la derecha.
+    { id: "lamina", encabezado: "Lám.", ancho: 44, tipo: "cifra", celda: (f) => f.posicion ?? "—", valor: (f) => f.posicion },
+    {
+      id: "cruce", encabezado: "Gráfico", ancho: 252, valor: (f) => `${textoCruce(f)}. ${queRevisar(f.lamina).join("; ")}`,
+      celda: (f) => {
+        const revisar = queRevisar(f.lamina).join("; ");
+        return (
+          <span className="pulso-sig-revision-celda" title={textoCruce(f)}>
+            <span>{f.titulo}</span>
+            <small>{lineaGrafico(f)}</small>
+            {revisar && <small className="is-revisar">{revisar}</small>}
+          </span>
+        );
+      },
+    },
+    { id: "estado", encabezado: "Estado", ancho: 160, celda: (f) => <EstadoChip lamina={f.lamina} /> },
   ];
   const porClave = new Map(filas.map((f) => [claveDeFila(f), f]));
   // La fila elegida es la primera ranura de la lámina a la vista.
@@ -168,6 +183,12 @@ function TablaRevision({ filas, filtro, slideIdActual, onIr }: {
 }
 
 const claveDeFila = (f: FilaRevision): string => f.clave ?? f.lamina.slide_id;
+
+/** «Gráfico 2: Barras agrupadas (cruce)» con varios gráficos en la lámina; «Cruce: gedad» con uno. */
+function lineaGrafico(f: FilaRevision): string {
+  const cruce = f.lamina.cruce ?? "sin cruce";
+  return f.grafico ? `${f.grafico} (${cruce})` : `Cruce: ${cruce}`;
+}
 
 /** «Título (cruce)»; en una lámina con varios gráficos, además cuál: «Título, Gráfico 2: Barras agrupadas (cruce)». */
 function textoCruce(f: FilaRevision): string {

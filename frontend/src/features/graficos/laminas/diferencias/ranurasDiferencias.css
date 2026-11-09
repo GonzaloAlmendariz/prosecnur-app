@@ -40,3 +40,27 @@
 .pulso-sig-ranura-aviso.is-peligro {
   color: var(--pulso-danger-fg);
 }
+
+/* La celda «Gráfico» de la revisión: título (una línea), gráfico y cruce, y lo que hay que revisar, que parten en líneas
+   para que nada quede cortado en un marco de ~460 px (C4). */
+.pulso-sig-revision-celda {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  padding: var(--pulso-space-1) 0;
+}
+
+.pulso-sig-revision-celda > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-sig-revision-celda > small {
+  min-width: 0;
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-soft);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}

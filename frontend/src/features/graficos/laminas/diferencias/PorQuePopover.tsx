@@ -59,21 +59,26 @@ function buscarAncla(): HTMLElement | null {
   return visibles[0] ?? document.querySelector<HTMLElement>(".pulso-f6-visor");
 }
 
-/** Posición de la capa: bajo el ancla y alineada a su borde derecho; arriba si no cabe; siempre dentro del viewport. */
+/**
+ * Posición de la capa: bajo el ancla y alineada a su borde derecho; arriba si no cabe; siempre dentro del viewport y
+ * bajo `techo` (el borde superior del marco de la página: la barra del módulo queda encima y taparía la cabecera).
+ */
 export function posicionCapa(
   ancla: Pick<DOMRect, "top" | "bottom" | "left" | "right">,
   capa: { width: number; height: number },
   vista: { width: number; height: number },
   dentroDelAncla: boolean,
+  techo = 0,
 ): { top: number; left: number } {
+  const minTop = techo + MARGEN;
   const maxLeft = Math.max(MARGEN, vista.width - capa.width - MARGEN);
-  const maxTop = Math.max(MARGEN, vista.height - capa.height - MARGEN);
+  const maxTop = Math.max(minTop, vista.height - capa.height - MARGEN);
   if (dentroDelAncla) {
-    return { top: Math.min(Math.max(ancla.top + 16, MARGEN), maxTop), left: Math.min(Math.max(ancla.left + 16, MARGEN), maxLeft) };
+    return { top: Math.min(Math.max(ancla.top + 16, minTop), maxTop), left: Math.min(Math.max(ancla.left + 16, MARGEN), maxLeft) };
   }
   let top = ancla.bottom + SEPARACION;
-  if (top + capa.height > vista.height - MARGEN && ancla.top - capa.height - SEPARACION >= MARGEN) top = ancla.top - capa.height - SEPARACION;
-  return { top: Math.min(Math.max(top, MARGEN), maxTop), left: Math.min(Math.max(ancla.right - capa.width, MARGEN), maxLeft) };
+  if (top + capa.height > vista.height - MARGEN && ancla.top - capa.height - SEPARACION >= minTop) top = ancla.top - capa.height - SEPARACION;
+  return { top: Math.min(Math.max(top, minTop), maxTop), left: Math.min(Math.max(ancla.right - capa.width, MARGEN), maxLeft) };
 }
 
 function CapaPorQue({ slideId, cerrarPanel, panelProps }: { slideId: string; cerrarPanel: () => void; panelProps: { "data-pulso-panel": string } }) {
@@ -105,8 +110,12 @@ function CapaPorQue({ slideId, cerrarPanel, panelProps }: { slideId: string; cer
     const ancho = Math.min(ANCHO, vista.width - 2 * MARGEN);
     capa.style.width = `${ancho}px`;
     const rect = ancla?.getBoundingClientRect() ?? { top: MARGEN, bottom: MARGEN, left: MARGEN, right: MARGEN + ancho };
-    const { top, left } = posicionCapa(rect, { width: ancho, height: capa.offsetHeight }, vista, !ancla || ancla.matches(".pulso-f6-visor"));
-    setEstilo({ position: "fixed", top: Math.round(top), left: Math.round(left), width: ancho, maxHeight: vista.height - 2 * MARGEN });
+    // Las barras del módulo y del informe quedan por encima de la capa y le taparían la cabecera (con la X): no sube más
+    // allá del área de láminas; sin ella, del marco de la página.
+    const area = document.querySelector<HTMLElement>(".pulso-f6-laminas-host") ?? capa.closest<HTMLElement>(".pulso-page-frame");
+    const techo = Math.min(Math.max(0, area?.getBoundingClientRect().top ?? 0), vista.height / 2);
+    const { top, left } = posicionCapa(rect, { width: ancho, height: capa.offsetHeight }, vista, !ancla || ancla.matches(".pulso-f6-visor"), techo);
+    setEstilo({ position: "fixed", top: Math.round(top), left: Math.round(left), width: ancho, maxHeight: vista.height - techo - 2 * MARGEN });
   }, []);
 
   useLayoutEffect(() => { reposicionar(); }, [reposicionar, lamina, indice, activo?.clave]);
@@ -178,7 +187,7 @@ function CapaPorQue({ slideId, cerrarPanel, panelProps }: { slideId: string; cer
             <DetallePar lamina={activo.ranura} titulo={varios ? activo.titulo : ""} regla={datos.regla} par={par} indice={indice} total={pares.length}
               onMover={(paso) => elegirPar(slideId, (indice + paso + pares.length) % pares.length, activo.clave)} />
             {varios ? (
-              <div className="pulso-sig-ranuras">
+              <div className="pulso-sig-ranuras" data-qa-geometry-group="graficos/diferencias-ranuras" data-qa-geometry-contract="intrinsic">
                 {bloques.map((b) => (
                   <BloqueDeRanura key={b.clave} bloque={b} indice={b.clave === activo.clave ? indice : null}
                     onElegir={(i) => elegirPar(slideId, i, b.clave)} />
@@ -228,9 +237,10 @@ function DetallePar({ lamina, titulo, regla, par, indice, total, onMover }: {
         <dt>Efecto de diseño</dt><dd>{par.deff === null ? "—" : formatoDecimal(par.deff, 2)}</dd>
         <dt>Intervalo</dt><dd>{par.ic ? `${formatoPuntos(par.ic[0])} a ${formatoPuntos(par.ic[1])} puntos` : "—"}</dd>
       </dl>
-      <ul className="pulso-sig-condiciones" aria-label="Condiciones para marcar">
+      {/* Pastillas de 24 px con el rótulo centrado, como un control: el alto es suyo. */}
+      <ul className="pulso-sig-condiciones" aria-label="Condiciones para marcar" data-qa-geometry-group="graficos/diferencias-condiciones" data-qa-geometry-contract="intrinsic">
         {condiciones.map((c) => (
-          <li key={c.clave} className={c.cumple ? "is-cumple" : "is-falla"}>
+          <li key={c.clave} className={c.cumple ? "is-cumple" : "is-falla"} data-qa-geometry-member="" data-qa-geometry-capacity="owned">
             {c.cumple ? <Check size={12} aria-hidden="true" /> : <X size={12} aria-hidden="true" />}
             <span className="pulso-sr-only">{c.cumple ? "Cumple: " : "No cumple: "}</span>{c.rotulo}
           </li>
@@ -254,7 +264,7 @@ type FilaPar = { par: ParDiferencias; i: number };
 function BloqueDeRanura({ bloque, indice, onElegir }: { bloque: BloqueRanura; indice: number | null; onElegir: (i: number) => void }) {
   const r = bloque.ranura;
   return (
-    <section className="pulso-sig-ranura" aria-label={bloque.titulo} data-ranura={bloque.clave} data-estado={r.estado}>
+    <section className="pulso-sig-ranura" aria-label={bloque.titulo} data-ranura={bloque.clave} data-estado={r.estado} data-qa-geometry-member="">
       <h3 className="pulso-sig-ranura-titulo">{bloque.titulo}</h3>
       {bloque.aviso ? (
         <p className={`pulso-sig-texto pulso-sig-ranura-aviso${r.estado === "error" ? " is-peligro" : ""}`}>
@@ -272,7 +282,7 @@ function BloqueDeRanura({ bloque, indice, onElegir }: { bloque: BloqueRanura; in
 /** Ninguna ranura con pares: un bloque por ranura con su motivo. */
 function BloquesSinPares({ bloques }: { bloques: readonly BloqueRanura[] }) {
   return (
-    <div className="pulso-sig-ranuras is-completa">
+    <div className="pulso-sig-ranuras is-completa" data-qa-geometry-group="graficos/diferencias-ranuras" data-qa-geometry-contract="intrinsic">
       {bloques.map((b) => <BloqueDeRanura key={b.clave} bloque={b} indice={null} onElegir={() => undefined} />)}
     </div>
   );
