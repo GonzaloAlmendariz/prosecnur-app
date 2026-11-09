@@ -173,10 +173,12 @@ entregable_nombre <- function(sid, rotulo, ext, base = NULL, detalle = NULL, fec
 #' `modulo`, `rotulo`, `guardado_en` y `aviso_guardado`. Una copia fallida queda en
 #' `aviso_guardado` y no hace fallar la generación. `copiar = FALSE` registra y sirve
 #' el archivo sin copiarlo aunque el catálogo diga `guardar` (los archivos por base
-#' que viajan dentro de un ZIP multibase: se copia sólo el ZIP).
+#' que viajan dentro de un ZIP multibase: se copia sólo el ZIP). `marca_dirty = FALSE` registra
+#' un derivado que se recalcula de lo guardado (vista previa, miniatura) sin marcar el proyecto
+#' como modificado.
 #' @keywords internal
 entregable_registrar <- function(sid, path, kind, base = NULL, detalle = NULL, original_name = NULL,
-                                 copiar = TRUE) {
+                                 copiar = TRUE, marca_dirty = TRUE) {
   s <- session_get(sid)
   fila <- .entregable_fila(kind)
   ext <- tools::file_ext(path)
@@ -202,7 +204,8 @@ entregable_registrar <- function(sid, path, kind, base = NULL, detalle = NULL, o
   }
   files <- session_get(sid)$files
   files[[meta$file_id]] <- meta
-  session_set(sid, "files", files)
+  # R12-3: un derivado que se recalcula de lo guardado (vista previa, miniatura) no es una edición del proyecto.
+  if (isTRUE(marca_dirty)) session_set(sid, "files", files) else session_set_cache(sid, "files", files)
   meta
 }
 

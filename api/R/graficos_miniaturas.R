@@ -605,7 +605,7 @@
       return(meta)
     }
   }
-  meta <- .register_output_file(sid, kind, path, original_name = original_name)
+  meta <- .register_output_file(sid, kind, path, original_name = original_name, marca_dirty = FALSE)   # derivado (R12-3)
   indice[[clave]] <- list(file_id = meta$file_id, size = meta$size, cached_at = as.numeric(Sys.time()))
   if (length(indice) > 512L) {
     t <- vapply(indice, function(v) if (is.list(v) && is.numeric(v$cached_at)) v$cached_at else 0, numeric(1))

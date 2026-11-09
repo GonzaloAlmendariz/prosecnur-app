@@ -206,8 +206,8 @@
   sub("^[0-9a-fA-F-]{36}_", "", filename)
 }
 
-.register_output_file <- function(sid, kind, path, original_name = NULL, copiar = TRUE) {
-  entregable_registrar(sid, path, kind, original_name = original_name, copiar = copiar)
+.register_output_file <- function(sid, kind, path, original_name = NULL, copiar = TRUE, marca_dirty = TRUE) {
+  entregable_registrar(sid, path, kind, original_name = original_name, copiar = copiar, marca_dirty = marca_dirty)
 }
 
 # ---- Canonical familias draft ---------------------------------------------
