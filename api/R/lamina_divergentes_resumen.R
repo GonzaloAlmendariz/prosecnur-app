@@ -8,9 +8,9 @@
 #     hacia afuera), acuerdo a la derecha, y «Sin información» en una columna gris separada;
 #   - paleta Likert del estándar y leyenda en orden lógico, alineada con cada lado: lo de desacuerdo termina en el
 #     centro, lo de acuerdo empieza en él y «Sin información» va sobre su columna;
-#   - cifras en texto oscuro. Si la cifra no cabe en el segmento de un EXTREMO, va fuera de la barra, en negrita y
-#     con el color del segmento oscurecido; si no cabe en un segmento interior, va adentro con letra más chica. Un
-#     segmento en cero no se pinta ni se rotula. No hay totales por lado ni ningún «tramo crítico» rotulado.
+#   - cifras en texto oscuro. La que no cabe en su segmento va fuera de la barra, en negrita y con el color del
+#     segmento oscurecido: la del extremo pegada a la barra y la de un segmento interior a continuación
+#     (lamina_divergentes_cifras.R). Un segmento en cero no se pinta ni se rotula. No hay totales por lado ni ningún «tramo crítico» rotulado.
 
 #' Color oscurecido de un segmento, para su cifra fuera de la barra
 #' @keywords internal
@@ -158,25 +158,11 @@
     for (k in neu) segs[[length(segs) + 1L]] <- list(k = k, x = xc - mitad * px, w = 2 * mitad * px, lado = "neu")
     off <- mitad; for (k in neg) { segs[[length(segs) + 1L]] <- list(k = k, x = xc - (off + U[i, k]) * px, w = U[i, k] * px, lado = "neg"); off <- off + U[i, k] }
     off <- mitad; for (k in pos) { segs[[length(segs) + 1L]] <- list(k = k, x = xc + off * px, w = U[i, k] * px, lado = "pos"); off <- off + U[i, k] }
-    # El extremo de cada lado es su último segmento con valor: ese es el que puede sacar su cifra fuera de la barra.
-    ext_neg <- utils::tail(neg[U[i, neg] > 0], 1L); ext_pos <- utils::tail(pos[U[i, pos] > 0], 1L)
-    for (sg in segs) {
-      if (U[i, sg$k] <= 0) next
-      .lam_caja(lz, sg$x - 0.002, yb, sg$w + 0.004, g, C$color[sg$k], nombre = "divergentes:segmento")
-      cifra <- X[i, sg$k]
-      # P16 (resumen de Arte, lámina 5): la cifra de un segmento interior que no cabe iba a 8 pt y se montaba con la cifra
-      # de fuera vecina y con el eje («1%» sobre «2%»). Regla de la casa (`.lam_tiene_peq`, como en la ranura): dentro si
-      # cabe con su tinta más 0.12 in; si no, sólo el extremo sale fuera y la interior no se escribe.
-      if (sg$w >= .lam_ancho_txt(cifra, pt_cifra, TRUE) + 0.12) {
-        .lam_txt(lz, cifra, sg$x - 0.2, .lam_y_centrada(yc, pt_cifra), sg$w + 0.4, 0.28, pt_cifra, azul, align = "center", nombre = "divergentes:cifra")
-      } else if (identical(sg$k, ext_neg) && identical(sg$lado, "neg")) {
-        .lam_txt(lz, cifra, .lam_cifra_fuera_x(sg$x, 0.58, "izq"), .lam_y_centrada(yc, pt_cifra), 0.58, 0.28, pt_cifra, .lam_oscurecer(C$color[sg$k]), bold = TRUE, align = "right",
-                 nombre = "divergentes:cifra_fuera")
-      } else if (identical(sg$k, ext_pos) && identical(sg$lado, "pos")) {
-        .lam_txt(lz, cifra, .lam_cifra_fuera_x(sg$x + sg$w, 0.58, "der"), .lam_y_centrada(yc, pt_cifra), 0.58, 0.28, pt_cifra, .lam_oscurecer(C$color[sg$k]), bold = TRUE,
-                 nombre = "divergentes:cifra_fuera")
-      }
-    }
+    for (sg in segs) if (U[i, sg$k] > 0) .lam_caja(lz, sg$x - 0.002, yb, sg$w + 0.004, g, C$color[sg$k], nombre = "divergentes:segmento")
+    # H3: dentro si cabe; si no, fuera, la del extremo pegada a la barra y la interior a continuación, hasta la columna
+    # de las afirmaciones o la de «Sin información» (lamina_divergentes_cifras.R).
+    .lam_div_cifras_dibujar(lz, segs, U[i, ], X[i, ], C$color, pt_cifra, yc, 0.28, 0.58, lim_izq = ge$xa - 0.1,
+                            lim_der = if (ge$hay_si) xsi - 0.1 else ge$fin)
     if (ge$hay_si && U[i, si[1]] > 0) {
       wbar <- (ge$wsi - 0.05) * U[i, si[1]] / max_si
       .lam_caja(lz, xsi, yb, wbar, g, C$color[si[1]], nombre = "divergentes:sin_inf")

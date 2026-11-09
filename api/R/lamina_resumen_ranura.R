@@ -664,24 +664,12 @@
     for (k in neu) segs[[length(segs) + 1L]] <- list(k = k, x = xc - mitad * px, w = 2 * mitad * px, lado = "neu")
     off <- mitad; for (k in neg) { segs[[length(segs) + 1L]] <- list(k = k, x = xc - (off + U[i, k]) * px, w = U[i, k] * px, lado = "neg"); off <- off + U[i, k] }
     off <- mitad; for (k in pos) { segs[[length(segs) + 1L]] <- list(k = k, x = xc + off * px, w = U[i, k] * px, lado = "pos"); off <- off + U[i, k] }
-    ext_neg <- utils::tail(neg[U[i, neg] > 0], 1L); ext_pos <- utils::tail(pos[U[i, pos] > 0], 1L)
-    for (sg in segs) {
-      if (U[i, sg$k] <= 0) next
-      .lam_caja(lz, sg$x - 0.002, yb, sg$w + 0.004, g, C$color[sg$k], nombre = "divergentes:segmento")
-      cifra <- X[i, sg$k]
-      # Ronda 2, ítem 3: la cifra va dentro si cabe con la regla de la casa para los segmentos de una apilada
-      # (`.lam_tiene_peq`, lamina_escala.R: su tinta más 0.12 in); si no, la del extremo sale fuera y la de un segmento
-      # interior no se escribe (antes iba a 8 pt y se montaba con la vecina: «0%» y «14%»).
-      if (sg$w >= .lam_ancho_txt(cifra, pt_cifra, TRUE) + 0.12) {
-        .lam_txt(lz, cifra, sg$x - 0.2, .lam_y_centrada(yc, pt_cifra), sg$w + 0.4, 0.26, pt_cifra, azul, align = "center", nombre = "divergentes:cifra")
-      } else if (identical(sg$k, ext_neg) && identical(sg$lado, "neg")) {
-        .lam_txt(lz, cifra, .lam_cifra_fuera_x(sg$x, 0.56, "izq"), .lam_y_centrada(yc, pt_cifra), 0.56, 0.26, pt_cifra, .lam_oscurecer(C$color[sg$k]), bold = TRUE, align = "right",
-                 nombre = "divergentes:cifra_fuera")
-      } else if (identical(sg$k, ext_pos) && identical(sg$lado, "pos")) {
-        .lam_txt(lz, cifra, .lam_cifra_fuera_x(sg$x + sg$w, 0.56, "der"), .lam_y_centrada(yc, pt_cifra), 0.56, 0.26, pt_cifra, .lam_oscurecer(C$color[sg$k]), bold = TRUE,
-                 nombre = "divergentes:cifra_fuera")
-      }
-    }
+    for (sg in segs) if (U[i, sg$k] > 0) .lam_caja(lz, sg$x - 0.002, yb, sg$w + 0.004, g, C$color[sg$k], nombre = "divergentes:segmento")
+    # Ronda 2, ítem 3 y H3: dentro si cabe (`.lam_tiene_peq`); si no, fuera, la del extremo pegada a la barra y la
+    # interior a continuación, sin pasar de la columna de las afirmaciones ni de la de «Sin información»
+    # (lamina_divergentes_cifras.R).
+    .lam_div_cifras_dibujar(lz, segs, U[i, ], X[i, ], C$color, pt_cifra, yc, 0.26, 0.56, lim_izq = ge$xa - 0.1,
+                            lim_der = if (ge$hay_si) xsi - 0.1 else ge$x + ge$w - (ge$wn %||% 0) - 0.05)
     if (ge$hay_si && U[i, si[1]] > 0) {
       wbar <- (ge$wsi - 0.1) * U[i, si[1]] / max_si
       .lam_caja(lz, xsi, yb, wbar, g, C$color[si[1]], nombre = "divergentes:sin_inf")
