@@ -82,8 +82,43 @@
   list(tabla = tabla, m = tabla$m)
 }
 
-#' Agrega al contexto del informe la matriz de equivalencias y la familia entre públicos (sólo con `bh_informe`)
+#' Regla entre públicos: la guardada del estudio o, si es la propuesta, la resuelta sobre TODAS las bases
 #'
+#' La regla propuesta mira los datos (`.sig_regla_propuesta`): con una columna de conglomerado reconocible, Rao-Scott
+#' con BH del informe; sin ella, z con Bonferroni por fila. Propuesta desde una sola base, el mismo par salía marcado o
+#' no según cuál base fuera la activa (revisión del ADR 0138, P2). Aquí se propone sobre la unión de columnas de todas
+#' las bases: Rao-Scott si alguna trae el conglomerado (las que no lo traen entran como muestreo aleatorio simple en
+#' `.tpub_datos_base`). El resultado no depende del orden de las bases. Sólo cambian prueba, corrección, conglomerado y
+#' estrato; el resto (alfa, umbral, base mínima...) es el de la regla recibida.
+#' @param regla Regla de la base (`ctx$regla`); NULL: la de fábrica.
+#' @param origen «estudio» (guardada: manda tal cual) o «propuesta».
+#' @keywords internal
+.tpub_regla_publicos <- function(regla, origen, data_sources) {
+  if (!identical(origen, "propuesta") || !length(data_sources)) return(regla %||% .sig_regla_normalizar(list()))
+  regla <- .sig_regla_normalizar(regla %||% list())
+  columnas <- sort(unique(unlist(lapply(data_sources, function(d) if (is.data.frame(d)) names(d) else character(0)),
+                                 use.names = FALSE)))
+  muestra <- as.data.frame(stats::setNames(rep(list(character(0)), length(columnas)), columnas), stringsAsFactors = FALSE)
+  pr <- .sig_regla_propuesta(muestra)
+  for (k in c("prueba", "correccion", "conglomerado", "estrato")) regla[k] <- list(pr[[k]])
+  regla
+}
+
+#' Regla entre públicos vigente en un render o en el inspector
+#'
+#' La del contexto del informe si ya la resolvió (`regla_publicos`); si no, la resuelve con las bases a mano. Sin
+#' contexto, la regla es la propuesta. Un contexto sin `origen` se toma como regla del estudio.
+#' @keywords internal
+.tpub_regla_de_contexto <- function(ctx, data_sources) {
+  if (!is.null(ctx$regla_publicos)) return(ctx$regla_publicos)
+  origen <- if (is.null(ctx)) "propuesta" else ctx$origen %||% "estudio"
+  .tpub_regla_publicos(ctx$regla, origen, data_sources)
+}
+
+#' Agrega al contexto del informe la matriz de equivalencias, la regla y la familia entre públicos
+#'
+#' La regla entre públicos (`regla_publicos`) se resuelve sobre todas las bases cuando la del estudio es la propuesta
+#' (`.tpub_regla_publicos`); la familia de BH, sólo con `bh_informe` en esa regla.
 #' @param ctx Contexto liviano (`.sig_contexto_liviano`); NULL lo deja como está.
 #' @param plan Plan del pedido. @param sources `list(data_sources, inst_sources)` de TODAS las bases, o una función que
 #'   las devuelve (la vista previa sólo las pide si el plan tiene láminas entre públicos).
@@ -92,8 +127,16 @@
   if (!is.list(ctx)) return(ctx)
   ctx$equivalencias_publicos <- equiv
   ctx$familia_publicos <- NULL
-  if (identical((ctx$regla %||% list())$correccion, "bh_informe") && length(.tpub_laminas_del_plan(plan))) {
-    fam <- tryCatch(.tpub_familia_plan(plan, if (is.function(sources)) sources() else sources, equiv, ctx$regla), error = function(e) {
+  ctx$regla_publicos <- NULL
+  if (!length(.tpub_laminas_del_plan(plan))) return(ctx)
+  src <- tryCatch(if (is.function(sources)) sources() else sources, error = function(e) {
+    message("[diferencias] no se pudieron leer las bases para las tarjetas entre públicos: ", conditionMessage(e))
+    NULL
+  })
+  regla <- .tpub_regla_de_contexto(ctx, src$data_sources)
+  ctx$regla_publicos <- regla
+  if (identical(regla$correccion, "bh_informe") && !is.null(src)) {
+    fam <- tryCatch(.tpub_familia_plan(plan, src, equiv, regla), error = function(e) {
       message("[diferencias] no se pudo calcular la familia entre públicos: ", conditionMessage(e))
       NULL
     })

@@ -59,7 +59,7 @@
 #'
 #' Lee del entorno del motor la lámina en curso y las fuentes del estudio (`data_sources`, `instrument_sources`). La
 #' regla, la familia entre públicos y la matriz de equivalencias vienen del contexto del informe; sin él, la regla
-#' propuesta y la familia de la propia lámina.
+#' propuesta sobre todas las bases (`.tpub_regla_de_contexto`) y la familia de la propia lámina.
 #' @keywords internal
 .tpub_adjuntar <- function(p, env) {
   slide <- get0("slide", envir = env, inherits = FALSE)
@@ -74,11 +74,12 @@
   sources <- list(data_sources = get0("data_sources", envir = env, inherits = FALSE),
                   inst_sources = get0("instrument_sources", envir = env, inherits = FALSE))
   if (!length(sources$data_sources)) return(p)
-  ctx <- .sig_informe_vigente() %||% .sig_contexto_render(NULL)
+  ctx <- .sig_informe_vigente()
+  regla <- .tpub_regla_de_contexto(ctx, sources$data_sources)
   opt <- .tpub_opcion(slide$meta)
   t <- tryCatch({
     tt <- .tpub_temas_de_elemento(el, sources, ctx$equivalencias_publicos)
-    .tpub_calcular(tt$temas, el$corte, sources, ctx$regla, opt, familia = ctx$familia_publicos,
+    .tpub_calcular(tt$temas, el$corte, sources, regla, opt, familia = ctx$familia_publicos,
                    filtros = el$filtros %||% list(), referencia = .tpub_referencia_render(el, p, espec, tt$vars_render),
                    titulo = titulo)
   }, error = function(e) {
@@ -152,7 +153,7 @@
 .tpub_lamina_json_sesion <- function(sid, slide, sc) {
   sources <- .graficos_processing_sources(sid)
   equiv <- .tpub_equivalencias_sesion(sid)
-  regla <- sc$ctx$regla
+  regla <- .tpub_regla_de_contexto(sc$ctx, sources$data_sources)   # la propuesta se resuelve sobre todas las bases
   familia <- if (identical(regla$correccion, "bh_informe")) .tpub_familia_plan(sc$cfg$plan, sources, equiv, regla)$tabla else NULL
   .tpub_lamina_json(slide, sources, regla, equiv = equiv, familia = familia)
 }

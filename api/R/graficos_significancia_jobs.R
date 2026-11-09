@@ -28,7 +28,7 @@
 #' @keywords internal
 .sig_contexto_liviano <- function(ctx) {
   if (is.null(ctx)) return(NULL)
-  list(regla = ctx$regla, familia = ctx$familia, m = ctx$m, cruces = ctx$cruces)
+  list(regla = ctx$regla, origen = ctx$origen, familia = ctx$familia, m = ctx$m, cruces = ctx$cruces)
 }
 
 #' Fija la regla y la familia en el worker; devuelve las opciones previas para `on.exit(options(...))`

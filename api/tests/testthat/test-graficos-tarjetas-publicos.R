@@ -626,3 +626,53 @@ test_that("el radar y el panorama llevan sus tarjetas y el pie una vez en el PPT
   xml1 <- paste(readLines(unz(f, "ppt/slides/slide1.xml"), warn = FALSE, encoding = "UTF-8"), collapse = "")
   expect_false(grepl("<a:tbl>", xml1, fixed = TRUE))
 })
+
+# ---- Revisión metodológica del 2026-11-09 (P2): la regla propuesta se resuelve sobre todas las bases -------------------
+
+.tp_con_aula <- function() {
+  src <- .tp_tres()
+  set.seed(22)
+  for (b in c("docentes", "estudiantes")) src$data_sources[[b]]$aula <- sample(sprintf("a%02d", 1:15), nrow(src$data_sources[[b]]), TRUE)
+  src   # administrativos no trae aula: entra como muestreo aleatorio simple
+}
+
+test_that("P2. sin regla guardada, la regla entre públicos es la misma sea cual sea la base activa y el orden de las bases", {
+  src <- .tp_con_aula()
+  temas <- .tpub_temas_declarados(.tp_vars6[1:3], .tp_vars6[1:3], NULL)
+  marcas <- list()
+  for (orden in list(c("administrativos", "docentes", "estudiantes"), c("estudiantes", "administrativos", "docentes"))) {
+    ds <- src$data_sources[orden]
+    for (activa in orden) {
+      rb <- .sig_regla_del_estudio(NULL, ds[[activa]], NULL)
+      expect_identical(rb$origen, "propuesta")
+      r <- .tpub_regla_de_contexto(list(regla = rb$regla, origen = rb$origen), ds)
+      expect_identical(r$prueba, "rao_scott")                  # alguna base trae el aula
+      expect_identical(r$conglomerado, "aula")
+      expect_identical(r$correccion, "bh_informe")
+      res <- .tpub_calcular(temas, "3,4", list(data_sources = ds, inst_sources = src$inst_sources), r, .tp_opt())
+      pr <- do.call(rbind, lapply(res$temas, function(te) te$ev$pares))
+      pr <- pr[order(pr$fila, pr$a, pr$b), c("fila", "a", "b", "p_ajustado", "veredicto")]
+      rownames(pr) <- NULL
+      marcas[[length(marcas) + 1L]] <- pr
+    }
+  }
+  for (m in marcas[-1]) expect_equal(m, marcas[[1]])
+  # Sin aula en ninguna base, la propuesta es la z con Bonferroni por fila.
+  r0 <- .tpub_regla_de_contexto(NULL, .tp_tres()$data_sources)
+  expect_identical(r0$prueba, "z"); expect_identical(r0$correccion, "bonferroni_fila")
+})
+
+test_that("P2. una regla guardada manda tal cual entre públicos; el contexto del informe resuelve la propuesta y su familia", {
+  src <- .tp_con_aula()
+  guardada <- .tp_regla("z", "bonferroni_fila")
+  expect_identical(.tpub_regla_de_contexto(list(regla = guardada, origen = "estudio"), src$data_sources), guardada)
+  # La base activa (administrativos, sin aula) propone z; entre públicos se resuelve Rao-Scott y su familia de BH.
+  rb <- .sig_regla_del_estudio(NULL, src$data_sources$administrativos, NULL)
+  plan <- list(slides = list(.tp_lamina_radar(.tp_vars6[1:4])))
+  ctx <- .tpub_en_contexto(list(regla = rb$regla, origen = rb$origen), plan, src, .tp_equiv6())
+  expect_identical(ctx$regla$prueba, "z")                       # la regla de la base no se toca
+  expect_identical(ctx$regla_publicos$prueba, "rao_scott")
+  expect_gt(ctx$familia_publicos$m, 0L)
+  # El contexto liviano del worker conserva el origen.
+  expect_identical(.sig_contexto_liviano(list(regla = rb$regla, origen = "propuesta"))$origen, "propuesta")
+})
