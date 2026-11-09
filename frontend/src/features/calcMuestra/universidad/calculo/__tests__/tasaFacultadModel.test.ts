@@ -163,7 +163,7 @@ describe("origen de la tasa cuando el estudio no trae datos propios", () => {
    * preset, plana. La etiqueta prometía un cálculo propio del estudio que no
    * ocurrió.
    */
-  it("marca «general» cuando ninguna tiene residual y todas comparten la misma tasa", () => {
+  it('marca "general" cuando ninguna tiene residual y todas comparten la misma tasa', () => {
     const filas = [
       { facultad: "A", tasa: 0.53, conResidual: false },
       { facultad: "B", tasa: 0.53, conResidual: false },
@@ -172,7 +172,7 @@ describe("origen de la tasa cuando el estudio no trae datos propios", () => {
     expect(origenTasaFacultades(filas)).toBe("general");
   });
 
-  it("marca «mix» cuando las tasas difieren entre facultades", () => {
+  it('marca "mix" cuando las tasas difieren entre facultades', () => {
     const filas = [
       { facultad: "A", tasa: 0.61, conResidual: false },
       { facultad: "B", tasa: 0.48, conResidual: false },
@@ -180,7 +180,7 @@ describe("origen de la tasa cuando el estudio no trae datos propios", () => {
     expect(origenTasaFacultades(filas)).toBe("mix");
   });
 
-  it("marca «historico» en cuanto alguna trae residual medido", () => {
+  it('marca "historico" en cuanto alguna trae residual medido', () => {
     const filas = [
       { facultad: "A", tasa: 0.53, conResidual: true },
       { facultad: "B", tasa: 0.53, conResidual: false },

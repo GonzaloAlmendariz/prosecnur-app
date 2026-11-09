@@ -11,7 +11,7 @@ describe("avisoMarcoConstruido", () => {
     expect(a.text).toContain("N y estratos listos");
   });
 
-  it("sin cursos-horario elegibles NO dice «listos» y nombra la causa", () => {
+  it('sin cursos-horario elegibles NO dice "listos" y nombra la causa', () => {
     // Con criterios que no dejan pasar ninguna aula, ese cierre mandaba a
     // Cálculo a chocarse con un marco vacío.
     const a = avisoMarcoConstruido({ ...base, chFrag: "0 cursos-horario elegibles", estratos: 3, elegiblesEstudiantes: 566, elegiblesCursosHorario: 0 });

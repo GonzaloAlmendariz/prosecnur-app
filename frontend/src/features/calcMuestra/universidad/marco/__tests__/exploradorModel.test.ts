@@ -327,7 +327,7 @@ describe("boxplot — escala propia por gráfica y posiciones 0..1", () => {
   });
 });
 
-describe("cursoRowsDesdeAulaFrame — «ver todos» desde el marco", () => {
+describe('cursoRowsDesdeAulaFrame — "ver todos" desde el marco', () => {
   const particularidades: CalcMuestraAulasParticularidades = {
     session_type_dominante: null,
     multi_facultad: [{ id: "CH-2", curso: "Generales", facultades: ["A", "B"], n_facultades: 2 }],

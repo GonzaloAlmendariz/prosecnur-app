@@ -272,7 +272,7 @@ export function AulasObjetivoTab({
             min={0}
             step={5}
             onChange={(v) => updateConfig({ techo_aulas_visitadas: Math.max(0, Math.round(v)) })}
-            ayuda="«No pasarnos de N aulas»: titulares + reemplazos activados no deberían superarlo. 0 = sin techo declarado."
+            ayuda='"No pasarnos de N aulas": titulares + reemplazos activados no deberían superarlo. 0 = sin techo declarado.'
           />
           <CampoNumeroAulas
             rotulo="Extra operativo por estrato"

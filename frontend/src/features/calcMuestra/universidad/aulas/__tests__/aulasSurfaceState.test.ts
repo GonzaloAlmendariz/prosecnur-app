@@ -191,7 +191,7 @@ describe("la comparacion vieja no apaga la lectura de una seleccion valida", () 
 describe("con un método elegido, Selección sortea sin comparar", () => {
   const sinComparar = { comparisonReady: false, selectionReady: false };
 
-  it("en Selección el aviso es «Generar selección» con acción local de sortear", () => {
+  it('en Selección el aviso es "Generar selección" con acción local de sortear', () => {
     const notice = resolveAulasStageNotice(
       model({ ...sinComparar, metodoElegido: true, metodoParaSortear: "cube_balanceado" }),
       "seleccion",
@@ -217,7 +217,7 @@ describe("con un método elegido, Selección sortea sin comparar", () => {
     }
   });
 
-  it("en Simulación no dice «Falta comparar los métodos»: pide las corridas", () => {
+  it('en Simulación no dice "Falta comparar los métodos": pide las corridas', () => {
     const notice = resolveAulasStageNotice(model({ ...sinComparar, metodoElegido: true }), "laboratorio");
     expect(notice?.title).toBe("Faltan las corridas de simulación");
     expect(notice?.detail).toContain("ya puede sortearse");

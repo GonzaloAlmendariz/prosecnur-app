@@ -107,7 +107,7 @@ describe("V11 · NumberCell con nombre accesible", () => {
 describe("Acreditación › Actores", () => {
   const tabla = (componentes: CalcMuestraComponente[]) => conRouter(<ActoresAcreditacion componentes={componentes} onComponente={() => {}} />);
 
-  it("V16 · docentes con MAS muestran la respuesta esperada y el margen, no «sobremuestra 0 %»", () => {
+  it('V16 · docentes con MAS muestran la respuesta esperada y el margen, no "sobremuestra 0 %"', () => {
     const html = tabla([docentesMas()]);
     expect(html).toContain('aria-label="Respuesta esperada de Docentes"');
     expect(html).toContain('value="60"');
@@ -116,7 +116,7 @@ describe("Acreditación › Actores", () => {
     expect(html).not.toContain("0.0%");
   });
 
-  it("V11 · Marco (N) y la cuota llevan nombre y rótulo real; nada de «Cuota sin fijar.»", () => {
+  it('V11 · Marco (N) y la cuota llevan nombre y rótulo real; nada de "Cuota sin fijar."', () => {
     const cuotas = { ...docentesMas(), tecnica: "no_prob_cuotas" as const };
     const html = tabla([cuotas]);
     expect(html).toContain('aria-label="Marco (N) de Docentes"');

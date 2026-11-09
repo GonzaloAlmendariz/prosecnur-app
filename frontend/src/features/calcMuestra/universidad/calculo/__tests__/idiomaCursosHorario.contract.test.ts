@@ -67,10 +67,10 @@ describe("las reservas no se coordinan", () => {
   const sinComentarios = (texto: string) =>
     texto.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
 
-  it("ninguna superficie llama «a coordinar» al total del plan", () => {
+  it('ninguna superficie llama "a coordinar" al total del plan', () => {
     for (const f of SUPERFICIES) {
       // Se permite nombrarlo en un comentario que explica por qué NO se usa.
-      expect(sinComentarios(src(f)), `«a coordinar» sigue vivo en ${f}`).not.toMatch(/a coordinar/i);
+      expect(sinComentarios(src(f)), `"a coordinar" sigue vivo en ${f}`).not.toMatch(/a coordinar/i);
     }
   });
 

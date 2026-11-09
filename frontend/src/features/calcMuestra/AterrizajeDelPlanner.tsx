@@ -131,8 +131,8 @@ export function AterrizajeDelPlanner({ decision, perdidas, confirmando, onEmpeza
     <Panel
       className="cmv2-aterrizaje"
       aria-labelledby="cmv2-aterrizaje-titulo"
-      title={<span id="cmv2-aterrizaje-titulo">El tipo del estudio pide «{decision.titulo}»</span>}
-      hint={`Este escenario es «${decision.actual}». Para cambiarlo hay que reiniciar el cálculo.`}
+      title={<span id="cmv2-aterrizaje-titulo">El tipo del estudio pide "{decision.titulo}"</span>}
+      hint={`Este escenario es "${decision.actual}". Para cambiarlo hay que reiniciar el cálculo.`}
       data-audit-ready="calc-muestra-aterrizaje"
     >
       {confirmando ? (
@@ -144,13 +144,13 @@ export function AterrizajeDelPlanner({ decision, perdidas, confirmando, onEmpeza
           ) : null}
           <div className="cmv2-aterrizaje-acciones">
             <button type="button" className="pulso-button pulso-button--secondary" onClick={onCancelar}>Conservar el escenario</button>
-            <button type="button" className="pulso-button is-primary" onClick={onConfirmar}>Reiniciar como «{decision.titulo}»</button>
+            <button type="button" className="pulso-button is-primary" onClick={onConfirmar}>Reiniciar como "{decision.titulo}"</button>
           </div>
         </>
       ) : (
         <div className="cmv2-aterrizaje-acciones">
           <button type="button" className="pulso-button pulso-button--secondary" onClick={onCancelar}>Volver al escenario</button>
-          <button type="button" className="pulso-button is-primary" onClick={() => onPedirCambio(decision.desk)}>Cambiar a «{decision.titulo}»</button>
+          <button type="button" className="pulso-button is-primary" onClick={() => onPedirCambio(decision.desk)}>Cambiar a "{decision.titulo}"</button>
         </div>
       )}
     </Panel>

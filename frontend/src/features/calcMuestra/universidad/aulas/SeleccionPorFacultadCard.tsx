@@ -218,7 +218,7 @@ export function SeleccionPorFacultadCard({
       </ul>
       {q && titularesVisibles.length === 0 && (
         <p className="cmv2-selfac-vacio">
-          Ningún titular de {facultadActiva.facultad} coincide con «{query}».
+          Ningún titular de {facultadActiva.facultad} coincide con "{query}".
         </p>
       )}
       {tooltip}

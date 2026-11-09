@@ -10,7 +10,7 @@ import { describe, expect, it } from "vitest";
 import { ChromeIndicator } from "../../../components/ChromeIndicator";
 import { estadoGuardado, VistaIndicadorGuardado } from "../hooks/IndicadorGuardadoCalcMuestra";
 
-describe("«Guardado» sólo se dice cuando falla", () => {
+describe('"Guardado" sólo se dice cuando falla', () => {
   it("guardado, pendiente o en vuelo: no pinta nada (el .pulso tiene su propio estado)", () => {
     for (const s of [
       { dirty: false, guardando: false, errorGuardado: false },
@@ -26,7 +26,7 @@ describe("«Guardado» sólo se dice cuando falla", () => {
   });
 });
 
-describe("el indicador «Tipo» abre el selector", () => {
+describe('el indicador "Tipo" abre el selector', () => {
   it("con onClick es un botón con la misma geometría; sin él, un dato", () => {
     const boton = renderToStaticMarkup(<ChromeIndicator label="Tipo" value="Conglomerados en aulas" onClick={() => {}} />);
     expect(boton).toMatch(/^<button type="button" class="pulso-chrome-indicator is-accion"/);

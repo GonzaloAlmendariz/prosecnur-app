@@ -17,8 +17,8 @@ export function AvisoDiferenciaDeTipo({ diferencia, onAlinear }: {
   // 5 nov 2026 (pulido de UI): una oración en vez de tres. Lo que importa es el choque entre lo que dice el
   // estudio y lo que está guardado; el resto (de dónde sale el tipo) cabe en un paréntesis.
   const fuente = diferencia.origen === "declarado"
-    ? <>La ficha declara «{diferencia.tipo}»</>
-    : <>El estudio parece «{diferencia.tipo}» (la ficha no declara el tipo)</>;
+    ? <>La ficha declara "{diferencia.tipo}"</>
+    : <>El estudio parece "{diferencia.tipo}" (la ficha no declara el tipo)</>;
   return (
     <div className="cmv2-diferencia-tipo" role="status" data-qa-diferencia-tipo={diferencia.desk}>
       <Alert
@@ -33,7 +33,7 @@ export function AvisoDiferenciaDeTipo({ diferencia, onAlinear }: {
         }
       >
         <p>
-          {fuente}, que aquí es «{diferencia.titulo}», pero el escenario guardado es «{diferencia.actual}».
+          {fuente}, que aquí es "{diferencia.titulo}", pero el escenario guardado es "{diferencia.actual}".
         </p>
       </Alert>
     </div>

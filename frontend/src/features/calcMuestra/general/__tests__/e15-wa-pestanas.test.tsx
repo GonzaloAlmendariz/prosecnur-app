@@ -37,7 +37,7 @@ type Resultado = NonNullable<CalcMuestraComponente["resultado"]>;
 const CALC = PROSECNUR_MODULES.find((m) => m.slug === "calc-muestra")!;
 const firma = (pestanas: readonly { id: string; label: string }[]) => pestanas.map((p) => `${p.id}:${p.label}`);
 
-describe("navegación v3 · la dimensión «pestaña» en Muestra general y Acreditación", () => {
+describe('navegación v3 · la dimensión "pestaña" en Muestra general y Acreditación', () => {
   it("declara las pestañas de cada sección con su orden y copy", () => {
     expect(firma(CALC_MUESTRA_GENERAL_PESTANAS.marco)).toEqual([
       "marco-forma:Forma del marco",
@@ -143,7 +143,7 @@ describe("P4 · la siguiente condición enlaza con la pestaña donde se resuelve
     expect(enlaceSiguiente("marco_disponible", sortear, { seccion: "seleccion", pestana: "seleccion-sorteo" })).toBeNull();
   });
 
-  it("ya en la sección, nombra la pestaña: «Ir a Selección aleatoria», no «Ir a Selección»", () => {
+  it('ya en la sección, nombra la pestaña: "Ir a Selección aleatoria", no "Ir a Selección"', () => {
     expect(enlaceSiguiente("marco_disponible", sortear, { seccion: "seleccion", pestana: "seleccion-corrida" }))
       .toEqual({ etiqueta: "Ir a Selección aleatoria", seccion: "seleccion", pestana: "seleccion-sorteo" });
   });

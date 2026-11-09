@@ -34,7 +34,7 @@ describe("qué razón se muestra", () => {
   it("cubre los términos que la UI ya prohíbe en su propio copy", () => {
     for (const jerga of ["dentro de cada estrato", "auditoría post hoc", "el cube balancea", "PPS clásico", "local pivotal"]) {
       const visible = classroomMethodReasonVisible("cube_balanceado", `Texto del motor con ${jerga}.`);
-      expect(visible, `dejó pasar «${jerga}»`).toBe(classroomMethodReason("cube_balanceado"));
+      expect(visible, `dejó pasar "${jerga}"`).toBe(classroomMethodReason("cube_balanceado"));
     }
   });
 

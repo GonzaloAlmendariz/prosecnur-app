@@ -32,7 +32,7 @@ const CRUDO = {
       columna_en_el_marco: true, aulas: 5263, aulas_con_valor: 0, kind: "flat",
       categorias_declaradas: 1, categorias_presentes: 0, categorias_ausentes: ["teorico"],
       estado: "sin_senal",
-      aviso: "«Tipo de sesión» está declarado pero su columna llega vacía en las 5263 aulas del marco: el criterio no puede filtrar a nadie y no es que deje pasar a todos.",
+      aviso: '"Tipo de sesión" está declarado pero su columna llega vacía en las 5263 aulas del marco: el criterio no puede filtrar a nadie y no es que deje pasar a todos.',
       por_facultad: [
         { facultad: "DERECHO", aulas: 575, con_valor: 0 },
         { facultad: "GESTIÓN", aulas: 184, con_valor: 0 },
@@ -96,7 +96,7 @@ describe("tarjeta de salud de criterios", () => {
     expect(html).toContain("Los otros 1 sí");
   });
 
-  it("con todo sano lo dice CON la cifra, no con un «todo bien»", () => {
+  it('con todo sano lo dice CON la cifra, no con un "todo bien"', () => {
     // «Todo bien» sin número no distingue un marco sano de una comprobación que
     // no llegó a correr.
     const sano = { ...CRUDO, filas: [CRUDO.filas[1]] };

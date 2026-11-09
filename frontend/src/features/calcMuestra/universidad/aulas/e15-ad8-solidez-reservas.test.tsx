@@ -37,7 +37,7 @@ describe("AD8b · reemplazos en cadena y reservas totales se distinguen", () => 
   });
 });
 
-describe("AD8c · «Probar reemplazos» vive en su bloque, sin tarjeta propia", () => {
+describe('AD8c · "Probar reemplazos" vive en su bloque, sin tarjeta propia', () => {
   const model = {
     selection: {}, selectionReady: true, selectionRows: [],
     replacementSimulation: { replacements: [] }, replacementReady: true,
@@ -46,7 +46,7 @@ describe("AD8c · «Probar reemplazos» vive en su bloque, sin tarjeta propia", 
     config: {}, staleJobAviso: null,
   } as unknown as ClassroomLabModel;
 
-  it("no pinta la barra de comandos y el botón cae en «Efecto esperado de los reemplazos»", () => {
+  it('no pinta la barra de comandos y el botón cae en "Efecto esperado de los reemplazos"', () => {
     const html = renderToStaticMarkup(
       <MemoryRouter>
         <AulasReemplazosTab model={model} busy={null} onSimulateReplacements={() => {}} referencia={null} />

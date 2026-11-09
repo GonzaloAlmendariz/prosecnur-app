@@ -27,10 +27,10 @@ const notice = {
 describe("AulasStageNotice — motivo del bloqueo", () => {
   it("publica la causa en pantalla y en el título del control", () => {
     const html = renderToStaticMarkup(
-      <AulasStageNotice notice={notice} onAction={vi.fn()} disabled disabledReason="Corre «Comparando métodos»." />,
+      <AulasStageNotice notice={notice} onAction={vi.fn()} disabled disabledReason='Corre "Comparando métodos".' />,
     );
     expect(html).toContain("cmv2-aulas-stage-blocked");
-    expect(html).toContain("Corre «Comparando métodos».");
+    expect(html).toContain("Corre &quot;Comparando métodos&quot;.");
     expect(html).toMatch(/title="Corre/);
   });
 

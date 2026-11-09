@@ -100,7 +100,7 @@ describe("C5 · una sola definición de sorteo vigente", () => {
     expect(estadoMesaAcreditacion({ componentes, corridas, cargado: true })).toMatchObject({ clave: "desactualizado", tono: "alerta" });
   });
 
-  it("corridas de actores ya sin cálculo: nada «sorteado» mientras la cadena dice «0 calculados»", () => {
+  it('corridas de actores ya sin cálculo: nada "sorteado" mientras la cadena dice "0 calculados"', () => {
     const base = defaultComponente();
     const adm = actor({ id: "adm", actor: "Personal administrativo", tecnica: "intencion_censal", marco: { ...base.marco, marco_validado: 320 } });
     const est = actor({ id: "est", actor: "Estudiantes pregrado", tecnica: "intencion_censal", marco: { ...base.marco, marco_validado: 2800 } });
@@ -121,7 +121,7 @@ describe("C5 · una sola definición de sorteo vigente", () => {
   });
 });
 
-describe("V2 · «Diseño completo» sólo con memoria y resultado", () => {
+describe('V2 · "Diseño completo" sólo con memoria y resultado', () => {
   it("un n guardado sin memoria pide recalcular en vez de declarar el diseño completo", () => {
     const sinMemoria = calculado("c1", "Usuarios", 390, {
       resultado: { n_objetivo: 234, n_operativo: 390 } as unknown as Resultado,
@@ -152,7 +152,7 @@ function primerBoton(nodo: ReactNode): ReactElement<{ onClick?: (e: unknown) => 
   return null;
 }
 
-describe("«Recalcular» de la memoria vacía pide el cálculo", () => {
+describe('"Recalcular" de la memoria vacía pide el cálculo', () => {
   it("llama al handler sin reenviarle el evento del clic", () => {
     const onCalcular = vi.fn();
     const comp = calculado("c1", "Usuarios", 390, { resultado: { n_objetivo: 234, n_operativo: 390 } as unknown as Resultado });

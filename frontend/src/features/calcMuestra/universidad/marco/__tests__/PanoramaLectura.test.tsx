@@ -59,14 +59,14 @@ const criterios = [
 ];
 
 describe("PanoramaCursosHorario", () => {
-  it("no repite «global» en cada celda heredada", () => {
+  it('no repite "global" en cada celda heredada', () => {
     const html = renderToStaticMarkup(
       <PanoramaCursosHorario filas={filas()} criterios={criterios} facultadAbierta={null} onAbrirFacultad={vi.fn()} />,
     );
     expect(html).not.toContain(">global<");
   });
 
-  it("la celda dice LA REGLA, no la palabra «propio»", () => {
+  it('la celda dice LA REGLA, no la palabra "propio"', () => {
     // Gonzalo, sobre la matriz: «¿cómo que "propio"?». La palabra sola no
     // comunica qué decide la facultad; la celda dice la regla en corto y el
     // `title` la frase entera.

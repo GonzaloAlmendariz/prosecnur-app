@@ -445,7 +445,7 @@ export function CalculoPropuestasTab({
             </table>
           </div>
           <p className="cmv2-calc-cuotas-nota">
-            Los cursos-horario requeridos se confirman en su pestaña. La composición P1/P2 completa vive en «Distribución».
+            Los cursos-horario requeridos se confirman en su pestaña. La composición P1/P2 completa vive en "Distribución".
           </p>
         </Panel>
       )}

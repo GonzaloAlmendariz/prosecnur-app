@@ -59,7 +59,7 @@ export function loQueSePierde({
 }): string[] {
   const items: string[] = [];
   const nombre = titulo.trim();
-  if (nombre) items.push(`La ficha del estudio «${nombre}»`);
+  if (nombre) items.push(`La ficha del estudio "${nombre}"`);
   const conMarco = componentes.filter((c) => (c.marco?.marco_validado ?? 0) > 0).length;
   if (componentes.length > 0) {
     const grupos = componentes.length === 1 ? "1 grupo" : `${fmtInt(componentes.length)} grupos`;

@@ -39,7 +39,7 @@ const MARCO_ISSUE_ACTIONS: Record<string, string> = {
   empate_bajo_catalogo: "Busca diferencias de mayúsculas, tildes o códigos en la llave común antes de recalcular.",
   aulas_base_sin_catalogo: "Revisa si a esos cursos-horario les falta docente, salón u horario, o confírmalos como cursos-horario sin ficha.",
   catalogo_fuera_de_base: "Esos cursos-horario quedan como contexto. Revisa en Datos → Fuentes que no falte población en la base.",
-  catalogo_sin_docente: "Asigna la columna «Docente / contacto» en Datos → Variables para preparar la agenda.",
+  catalogo_sin_docente: 'Asigna la columna "Docente / contacto" en Datos → Variables para preparar la agenda.',
 };
 
 function issueAction(code: string) {

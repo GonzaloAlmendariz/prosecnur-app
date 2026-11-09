@@ -40,7 +40,7 @@ describe("el marco sabe si corresponde a las fuentes cargadas", () => {
     expect(marcoCorrespondeALasFuentes(firma2025, [])).toBe(false);
   });
 
-  it("sin firma devuelve null, que NO es «está al día»", () => {
+  it('sin firma devuelve null, que NO es "está al día"', () => {
     // Un marco de un proyecto anterior a este contrato no puede afirmar nada.
     // Devolver `false` lo marcaría desfasado sin motivo; devolver `true` sería
     // el verde por ausencia que este loop lleva persiguiendo.

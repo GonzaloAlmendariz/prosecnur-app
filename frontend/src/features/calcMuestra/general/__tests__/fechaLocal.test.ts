@@ -14,7 +14,7 @@ function localEsperado(iso: string): string {
 }
 
 describe("formatearFechaLocal", () => {
-  it("pinta el ISO del motor en la hora local, sin «UTC»", () => {
+  it('pinta el ISO del motor en la hora local, sin "UTC"', () => {
     const iso = "2026-09-27T13:25:00Z";
     expect(formatearFechaLocal(iso)).toBe(localEsperado(iso));
     expect(formatearFechaLocal(iso)).not.toContain("UTC");
@@ -36,7 +36,7 @@ describe("formatearFechaLocal", () => {
     expect(formatearFechaLocal(iso)).toBe(localEsperado(iso));
   });
 
-  it("lo que no es fecha lo devuelve tal cual, y vacío es «—»", () => {
+  it('lo que no es fecha lo devuelve tal cual, y vacío es "—"', () => {
     expect(formatearFechaLocal("ayer")).toBe("ayer");
     expect(formatearFechaLocal("")).toBe("—");
   });

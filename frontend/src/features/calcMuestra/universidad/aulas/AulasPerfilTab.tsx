@@ -150,7 +150,7 @@ export function AulasPerfilTab({
         <EmptyState
           icon={<PieChart size={22} aria-hidden="true" />}
           title="Todavía no hay una selección que perfilar"
-          hint="Corre la selección en «Cursos-horario titulares» y aquí verás de qué está hecha, facultad por facultad."
+          hint='Corre la selección en "Cursos-horario titulares" y aquí verás de qué está hecha, facultad por facultad.'
           cta={onNavigate ? (
             <button
               type="button"

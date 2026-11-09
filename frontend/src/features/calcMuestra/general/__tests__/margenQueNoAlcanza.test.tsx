@@ -34,7 +34,7 @@ function comp(precision: number, advertencia?: string): CalcMuestraComponente {
 }
 
 describe("L4 · el margen que no alcanza se dice en Método", () => {
-  it("la tarjeta no lleva «cifra validada» y dice que no se alcanza", () => {
+  it('la tarjeta no lleva "cifra validada" y dice que no se alcanza', () => {
     const margen = cifrasDisenoGeneral({ comp: comp(0.0335, TOPE), marco: null, corrida: null, seccion: "metodo" })
       .find((c) => c.clave === "margen");
     expect(margen).toMatchObject({ tono: "alerta" });

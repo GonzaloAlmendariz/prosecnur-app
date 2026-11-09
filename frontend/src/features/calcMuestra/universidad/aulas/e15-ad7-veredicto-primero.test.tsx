@@ -51,7 +51,7 @@ describe("AD7 · veredicto de la rerandomización", () => {
 });
 
 describe("AD7 · veredicto primero, explicación plegada después", () => {
-  it("«¿Este sorteo o otro?» abre con la corrida y pliega la prosa al final", () => {
+  it('"¿Este sorteo o otro?" abre con la corrida y pliega la prosa al final', () => {
     const selection = { rerandomizacion: corrida({}) } as unknown as CalcMuestraAulasSelection;
     const html = renderToStaticMarkup(<AulasRerandomizacionTab config={config} selection={selection} />);
     const iVeredicto = html.indexOf("Qué pasó en la última corrida");
@@ -65,7 +65,7 @@ describe("AD7 · veredicto primero, explicación plegada después", () => {
     expect(html).toContain('data-tone="success"');
   });
 
-  it("«¿Alcanza?» pone el resultado antes de la explicación, plegada", () => {
+  it('"¿Alcanza?" pone el resultado antes de la explicación, plegada', () => {
     const componentes = [
       { actor_id: "total", resultado: null },
       { actor_id: "facultad", resultado: null },

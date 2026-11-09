@@ -136,7 +136,7 @@ export function CalculoCertezaTab({
             evidencia no se distingue si cumple.
           </p>
           <p>
-            «Llevar a N» fija esa facultad en el mínimo certificado. Invalida la selección
+            "Llevar a N" fija esa facultad en el mínimo certificado. Invalida la selección
             vigente: hay que volver a sortear, y Selección lo dirá.
           </p>
         </ExplicacionBloque>

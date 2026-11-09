@@ -134,7 +134,7 @@ describe("V2 · estado de la mesa y siguiente condición", () => {
   });
 });
 
-describe("V1 · banda «Diseño vigente»", () => {
+describe('V1 · banda "Diseño vigente"', () => {
   it("publica N, estratos, n, n a campo, margen y técnica; en Selección suma la corrida", () => {
     const base = cifrasDisenoGeneral({ comp: CALCULADO, marco: MARCO, corrida: corrida(), seccion: "resultados" });
     expect(base.map((c) => c.clave)).toEqual(["N", "estratos", "n", "campo", "margen", "tecnica"]);
@@ -146,7 +146,7 @@ describe("V1 · banda «Diseño vigente»", () => {
     expect(sel.find((c) => c.clave === "sorteo")?.value).toBe("533 + 15");
   });
 
-  it("sin cálculo no inventa cifras: dice «—» y por qué", () => {
+  it('sin cálculo no inventa cifras: dice "—" y por qué', () => {
     const vacio = cifrasDisenoGeneral({ comp: comp(), marco: null, corrida: null, seccion: "marco" });
     expect(vacio.find((c) => c.clave === "n")).toMatchObject({ value: "—", detalle: "sin calcular" });
     expect(vacio.find((c) => c.clave === "N")).toMatchObject({ value: "—", detalle: "sin declarar" });

@@ -234,7 +234,7 @@ describe("el origen del número de titulares", () => {
       .toMatchObject({ aulas_base_fijas: 19, aulas_base_origen: "operativa" });
   });
 
-  it("«Llevar a N» declara que el número lo pide la certificación", () => {
+  it('"Llevar a N" declara que el número lo pide la certificación', () => {
     expect(estratosConAulasFijadas(estratos, "DERECHO", 18)?.[0])
       .toMatchObject({ aulas_base_fijas: 18, aulas_base_origen: "certificacion" });
   });

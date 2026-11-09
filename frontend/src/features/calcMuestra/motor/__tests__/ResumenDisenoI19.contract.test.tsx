@@ -155,7 +155,7 @@ describe("ResumenDiseno bajo contrato I19", () => {
 });
 
 describe("el KPI de aulas dice de qué aulas habla", () => {
-  it("se rotula como las que pide el cálculo, no «Aulas titulares» a secas", () => {
+  it('se rotula como las que pide el cálculo, no "Aulas titulares" a secas', () => {
     // Medido en HSVG2026 el 2026-08-23: el resumen decía «AULAS TITULARES 190»
     // y el mapa del recorrido, en la MISMA pantalla, «CURSOS-HORARIO M1 193 ·
     // cursos-horario titulares sorteados».

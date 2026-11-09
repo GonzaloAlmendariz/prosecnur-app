@@ -263,7 +263,7 @@ export function EfectividadExplicadaCard({
         )}
         {q && candidatas.length === 0 && (
           <p className="cmv2-efexp-sinmatch">
-            Ningún curso-horario{facSel ? ` de ${facSel}` : " del plan"} coincide con «{query}».
+            Ningún curso-horario{facSel ? ` de ${facSel}` : " del plan"} coincide con "{query}".
           </p>
         )}
       </div>

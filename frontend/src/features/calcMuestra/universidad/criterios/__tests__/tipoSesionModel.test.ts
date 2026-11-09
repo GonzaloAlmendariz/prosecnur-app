@@ -155,7 +155,7 @@ describe("herencia vs propia (lecturas de exceptions existentes)", () => {
 });
 
 describe("sugerencias de la reunión — matching defensivo, nunca auto-aplicadas", () => {
-  it("Arte y Diseño → incluir TALLER («son sus cursos principales»)", () => {
+  it('Arte y Diseño → incluir TALLER ("son sus cursos principales")', () => {
     const sug = sugerenciaParaFacultad(VARIABLE, "ARTE Y DISEÑO", UNIVERSITY_SESSION_TYPE_SUGERENCIAS);
     expect(sug).not.toBeNull();
     expect(sug?.modo).toBe("incluir");
@@ -173,7 +173,7 @@ describe("sugerencias de la reunión — matching defensivo, nunca auto-aplicada
     expect(sug?.tipos).toEqual(["taller"]);
   });
 
-  it("Psicología → solo teóricos («no los ves en laboratorio»)", () => {
+  it('Psicología → solo teóricos ("no los ves en laboratorio")', () => {
     const sug = sugerenciaParaFacultad(VARIABLE, "PSICOLOGÍA", UNIVERSITY_SESSION_TYPE_SUGERENCIAS);
     expect(sug?.modo).toBe("solo");
     expect(sug?.tipos).toEqual(["teorico"]);
@@ -313,7 +313,7 @@ describe("sugerencias con la base agrupada por DTI + exclusiones §8.2", () => {
     expect(sug?.tipos).toEqual(["teorico_practico", "teorico_laboratorio", "laboratorio"]);
   });
 
-  it("morfología del sello «practica»: veta la práctica preprofesional (-a), no la naturaleza teórico-práctica (-o)", () => {
+  it('morfología del sello "practica": veta la práctica preprofesional (-a), no la naturaleza teórico-práctica (-o)', () => {
     const base: CriterioVariable = {
       ...VARIABLE_DTI,
       categories: [
@@ -382,7 +382,7 @@ describe("avisosImpacto — gating de la trampa del taller", () => {
     expect(avisos[0].perdidoEn[0].facKey).toBeNull();
   });
 
-  it("«Exceptuar también en …» agrega la excepción al borrador", () => {
+  it('"Exceptuar también en …" agrega la excepción al borrador', () => {
     const next = exceptuarTipoEnFacultad(VARIABLE, SEL_GLOBAL, "estudios_generales_letras", "TALLER");
     expect(next.exceptions?.estudios_generales_letras).toEqual({
       categories: ["teorico", "laboratorio", "taller"],

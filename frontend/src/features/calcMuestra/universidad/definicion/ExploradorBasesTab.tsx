@@ -578,7 +578,7 @@ export function ExploradorBasesTab({
                   );
                 })}
                 {!visibles.length ? (
-                  <li className="cmv2-expb-sin-match">Ninguna columna coincide con «{busqueda}».</li>
+                  <li className="cmv2-expb-sin-match">Ninguna columna coincide con "{busqueda}".</li>
                 ) : null}
               </ul>
             </div>

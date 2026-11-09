@@ -92,7 +92,7 @@ describe("ADR 0057 · regla 1 — no hay sección de criterios transversales", (
   // criterios son por facultad.» Su VALOR puede seguir siendo común —el
   // contrato no admite umbral por facultad—, pero su SITIO es el embudo de la
   // facultad, no una sección aparte que los presenta como generales.
-  it("la pestaña de curso-horario no rotula un bloque «transversal»", () => {
+  it('la pestaña de curso-horario no rotula un bloque "transversal"', () => {
     const tab = leer("marco/CursosHorarioMarcoTab.tsx");
     expect(tab).not.toContain("Ajustes del marco");
     expect(tab).not.toContain("Transversales a todas las facultades");
@@ -207,7 +207,7 @@ describe("ADR 0057 · lenguaje y transparencia", () => {
     }
   });
 
-  it("la unidad se llama siempre «curso-horario», nunca «aula»", () => {
+  it('la unidad se llama siempre "curso-horario", nunca "aula"', () => {
     // Medido: 3 «aulas» contra 60 «cursos-horario» en la misma superficie. Un
     // sinónimo suelto obliga a preguntarse si nombra otra cosa —y en este
     // módulo «aula» sí fue otra cosa en versiones anteriores—.

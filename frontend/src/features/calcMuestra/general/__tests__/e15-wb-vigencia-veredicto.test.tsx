@@ -68,7 +68,7 @@ describe("P6 · técnica sin π con una corrida vieja", () => {
   const docentes = calculado("doc", "Docentes");
   const corridas = { est: corrida("est"), doc: corrida("doc") };
 
-  it("no es un sorteo vigente ni un «selección desactualizada»: es «Sin selección», con la corrida señalada", () => {
+  it('no es un sorteo vigente ni un "selección desactualizada": es "Sin selección", con la corrida señalada', () => {
     const v = vigenciaSorteo({ comp: pregrado, corrida: corridas.est });
     expect(v.estado).toBe("sin-sorteo");
     expect(v.estado === "sin-sorteo" ? v.huerfana : null).toMatch(/no admite selección aleatoria.*no cuenta/);

@@ -28,7 +28,7 @@ describe("los botones de elegir método se distinguen con teclado", () => {
   it("cada uno nombra su método", () => {
     for (const label of ["Usar Sistemático por facultad", "Usar Balance por cuotas y tamaño",
                          "Usar Balance + dispersión", "Usar Optimizar repetidos"]) {
-      expect(html, `falta el nombre accesible «${label}»`).toContain(label);
+      expect(html, `falta el nombre accesible "${label}"`).toContain(label);
     }
   });
 

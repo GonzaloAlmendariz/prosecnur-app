@@ -30,13 +30,13 @@ const heroCon = (razon: string) => {
 };
 
 describe("jerga que entra por el payload guardado", () => {
-  it("una razón guardada con «solape» no llega a la pantalla", () => {
+  it('una razón guardada con "solape" no llega a la pantalla', () => {
     const html = heroCon("Compara muestras candidatas y elige la que reduce mejor el solape, registrando probabilidades por simulación.");
     expect(html).not.toMatch(JERGA);
     expect(html).toContain("menos estudiantes se repiten");
   });
 
-  it("tampoco llegan «estrato», «post hoc» ni los nombres internos", () => {
+  it('tampoco llegan "estrato", "post hoc" ni los nombres internos', () => {
     for (const sucia of [
       "Selecciona dentro de cada estrato sin optimización adicional.",
       "El descuento actuó como auditoría post hoc.",

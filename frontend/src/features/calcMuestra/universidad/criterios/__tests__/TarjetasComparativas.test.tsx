@@ -507,7 +507,7 @@ describe("criterios generales del estudio", () => {
     for (const f of fs) expect(f.hoy).toBe("");
   });
 
-  it("las cifras se formatean, y un AUSENTE nunca se vuelve «0»", () => {
+  it('las cifras se formatean, y un AUSENTE nunca se vuelve "0"', () => {
     expect(fmtCifra(21365)).toMatch(/^21.365$/);
     expect(fmtCifra(0.53, 2)).toContain("53");
     expect(fmtPorcentaje(0.2)).toBe("20 %");

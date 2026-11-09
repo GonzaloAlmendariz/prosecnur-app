@@ -61,7 +61,7 @@ describe("E12 A5 · C1 en las colecciones de aulas", () => {
     expect(grupos(html)).toEqual([{ grupo: "calc-muestra/salud-criterios", contrato: "intrinsic" }]);
   });
 
-  it("Coincidencia: «El método» es grupo propio; resultado y detalle, miembros de la sección", () => {
+  it('Coincidencia: "El método" es grupo propio; resultado y detalle, miembros de la sección', () => {
     const html = renderToStaticMarkup(
       <SalidasCoincidenciaTab criteriosGenerales={[]} criteriosMarco={[]} fichas={[]} referencia={null} />,
     );

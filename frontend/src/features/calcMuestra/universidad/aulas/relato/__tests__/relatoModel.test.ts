@@ -118,7 +118,7 @@ describe("E2 · estratos y cuotas", () => {
 });
 
 describe("E3 · las probabilidades", () => {
-  it("publica la π del sorteo ejecutado y declara la certeza como «sin sorteo»", () => {
+  it('publica la π del sorteo ejecutado y declara la certeza como "sin sorteo"', () => {
     const escena = relatoCompleto().escenas[2] as RelatoEscenaProbabilidades;
     expect(escena.certezas).toBe(1);
     const porCode = new Map(escena.aulas.map((aula) => [aula.code, aula]));

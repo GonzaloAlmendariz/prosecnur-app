@@ -785,8 +785,8 @@ describe("classroomComparisonConfigDiff", () => {
   });
 });
 
-describe("E15 AD1: «Comparar» basta para que la comparación quede vigente", () => {
-  it("una comparación con 0 corridas (la de «Comparar») vale contra un workspace con 500", () => {
+describe('E15 AD1: "Comparar" basta para que la comparación quede vigente', () => {
+  it('una comparación con 0 corridas (la de "Comparar") vale contra un workspace con 500', () => {
     const config = { ...universityDefaultWorkspace().aulas_config, n_aulas: 186, simulation_runs: 500 } as AulasConfigConObjetivo;
     const corrida = { ...classroomComparisonSelectorSnapshot(config), simulation_runs: 0, monte_carlo_n: 0 };
     expect(classroomComparisonMatchesConfig({ selector: corrida } as never, config)).toBe(true);

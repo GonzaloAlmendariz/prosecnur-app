@@ -1138,8 +1138,8 @@ export function CursosHorarioMarcoTab({
                   botón que resuelve, y basta. */}
               {bloques.length === 0 ? (
                 <AvisoModulo tone="info" role="status">
-                  La radiografía por facultad se calcula junto con el marco. Ejecuta «Calcular población y
-                  cursos-horario elegibles» con tu base cargada para ver cada facultad y decidir sus criterios propios.
+                  La radiografía por facultad se calcula junto con el marco. Ejecuta "Calcular población y
+                  cursos-horario elegibles" con tu base cargada para ver cada facultad y decidir sus criterios propios.
                 </AvisoModulo>
               ) : (
                 <>

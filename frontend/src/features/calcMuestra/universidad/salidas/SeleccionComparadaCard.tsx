@@ -128,14 +128,14 @@ export function SeleccionComparadaCard({
       </div>
       {comp.sinReferencia && (
         <p className="cmv2-nota-denominador">
-          Alguna facultad seleccionada no existe en {etiquetaRef}: su fila muestra «—» en las
+          Alguna facultad seleccionada no existe en {etiquetaRef}: su fila muestra "—" en las
           columnas de referencia en vez de inventar un cero.
         </p>
       )}
       {conRef && (
         <p className="cmv2-nota-denominador">
-          Las columnas no son el mismo momento del operativo: «aplicadas» es donde {etiquetaRef}{" "}
-          llegó a levantar datos; «titulares» es lo planificado hoy, antes de campo.
+          Las columnas no son el mismo momento del operativo: "aplicadas" es donde {etiquetaRef}{" "}
+          llegó a levantar datos; "titulares" es lo planificado hoy, antes de campo.
         </p>
       )}
       {/* **El total de aquí puede no ser el de «Aulas que pide el cálculo».**
@@ -150,7 +150,7 @@ export function SeleccionComparadaCard({
        * El KPI ya lo explica en su propio código; en pantalla no lo decía
        * nadie. */}
       <p className="cmv2-nota-denominador">
-        El total son los cursos-horario <b>sorteados</b>. «Aulas que pide el cálculo», arriba,
+        El total son los cursos-horario <b>sorteados</b>. "Aulas que pide el cálculo", arriba,
         cuenta lo que el diseño exige por facultad: si son distintos, la diferencia son los
         adicionales que el sorteo añade donde una facultad no llegaría a su cuota.
       </p>

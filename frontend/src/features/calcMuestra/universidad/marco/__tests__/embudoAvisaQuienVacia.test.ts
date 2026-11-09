@@ -33,7 +33,7 @@ describe("embudoEtapas — el criterio que vacía el marco", () => {
           label: "+ Nivel del curso",
           conteo: 0,
           vaciaMarco: true,
-          aviso: "«+ Nivel del curso» dejó el marco en 0: entraron 3 630 aulas a este paso y no pasó NINGUNA.",
+          aviso: '"+ Nivel del curso" dejó el marco en 0: entraron 3 630 aulas a este paso y no pasó NINGUNA.',
         }),
         paso({ id: "session_type", label: "+ Tipo de sesión", conteo: 0 }),
         paso({ id: "teacher_type", label: "+ Tipo de docente", conteo: 0 }),

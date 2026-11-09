@@ -139,7 +139,7 @@ const CRITERIOS_AULA: CriterioAula[] = [
     regla: "Al menos un docente contratado u ordinario",
     variable: "tipo_docente",
     tipo: "base",
-    porQue: "La aplicación se coordina con el docente; la regla «al menos uno» consolida cursos-horario con varios docentes.",
+    porQue: 'La aplicación se coordina con el docente; la regla "al menos uno" consolida cursos-horario con varios docentes.',
   },
   {
     id: "nivel-unidad",

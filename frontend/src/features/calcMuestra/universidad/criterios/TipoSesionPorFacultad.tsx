@@ -112,7 +112,7 @@ export function TipoSesionPorFacultad({
     <div className="cmv2-crit-tsf">
       {dti ? (
         <AvisoModulo tone="info" compact role="note" className="cmv2-crit-tsf-aviso">
-          Tu base trae el tipo de curso <strong>agrupado por DTI</strong> («{dti.categoria}»): con esta base no se
+          Tu base trae el tipo de curso <strong>agrupado por DTI</strong> ("{dti.categoria}"): con esta base no se
           puede separar teórico-práctico de teórico-laboratorio. La solicitud DTI 2026 (botón en Fuentes) pide el
           dato desagregado.
         </AvisoModulo>

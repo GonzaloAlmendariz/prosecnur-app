@@ -31,7 +31,7 @@ describe("avisoTrasCalcular", () => {
     expect(a.text).toContain("1 de 3");
   });
 
-  it("un status distinto de «incompatible» no dispara la advertencia", () => {
+  it('un status distinto de "incompatible" no dispara la advertencia', () => {
     // El motor puede publicar otros estados; sólo éste invalida el resultado.
     expect(avisoTrasCalcular([comp("ok"), comp("revisar")]).kind).toBe("info");
   });

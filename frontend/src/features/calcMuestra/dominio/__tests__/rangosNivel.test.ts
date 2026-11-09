@@ -34,7 +34,7 @@ describe("rangosDesdeMapa", () => {
     expect(rangosDesdeMapa(mapaMotor, "ee_gg_ciencias")).toEqual([[0, 0], [2, 10]]);
   });
 
-  it("una exención del motor se lee como «sin filtro»", () => {
+  it('una exención del motor se lee como "sin filtro"', () => {
     expect(rangosDesdeMapa(mapaMotor, "gestión")).toEqual([]);
     expect(esExencionNivel(mapaMotor["GESTIÓN"])).toBe(true);
   });

@@ -457,7 +457,7 @@ describe("el tiempo restante no crece mientras el motor no avanza", () => {
   });
 });
 
-describe("reloj de etapa para la ETA (QA de aulas, 2026-09-24: «~190:17»)", () => {
+describe('reloj de etapa para la ETA (QA de aulas, 2026-09-24: "~190:17")', () => {
   const snap = (phase: string, current: number, total: number) =>
     ({ status: "running", progress: { phase, current, total } }) as unknown as Parameters<ReturnType<typeof cmCrearRelojDeEtapa>>[0];
 

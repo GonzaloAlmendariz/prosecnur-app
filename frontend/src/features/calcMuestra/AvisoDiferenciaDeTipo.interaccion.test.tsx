@@ -14,7 +14,7 @@ beforeEach(() => { host = document.createElement("div"); document.body.appendChi
 afterEach(() => { act(() => root.unmount()); host.remove(); });
 
 describe("AvisoDiferenciaDeTipo (hallazgo 11)", () => {
-  test("nombra las dos fuentes y «Alinear» pide el modo que fija el tipo", () => {
+  test('nombra las dos fuentes y "Alinear" pide el modo que fija el tipo', () => {
     const onAlinear = vi.fn();
     act(() => root.render(
       <MemoryRouter>
@@ -25,11 +25,11 @@ describe("AvisoDiferenciaDeTipo (hallazgo 11)", () => {
       </MemoryRouter>,
     ));
     const texto = host.textContent ?? "";
-    expect(texto).toContain("«Territorial presencial»");
+    expect(texto).toContain('"Territorial presencial"');
     // 5 nov 2026: una oración (pulido de UI); sigue nombrando las dos fuentes.
     expect(texto).toContain("la ficha no declara el tipo");
-    expect(texto).toContain("que aquí es «Muestreo de áreas y viviendas»");
-    expect(texto).toContain("el escenario guardado es «Conglomerados en aulas»");
+    expect(texto).toContain('que aquí es "Muestreo de áreas y viviendas"');
+    expect(texto).toContain('el escenario guardado es "Conglomerados en aulas"');
     const boton = [...host.querySelectorAll("button")].find((b) => b.textContent?.includes("Alinear con la ficha"));
     act(() => boton?.click());
     expect(onAlinear).toHaveBeenCalledWith("territorial_handoff");

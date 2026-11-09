@@ -57,8 +57,8 @@ export function SustentoDimensionamientoCard({
               y chicas tiene en el marco vigente, donde las chicas rinden más)
               por el <strong>ajuste de la facultad</strong> del estudio
               anterior, que recoge lo que rindió por encima o por debajo de lo que
-              su tamaño predecía. La sección Cálculo, en «La tasa de cada
-              facultad», abre esa cuenta término a término
+              su tamaño predecía. La sección Cálculo, en "La tasa de cada
+              facultad", abre esa cuenta término a término
             </>
           )}
           . Sobre los titulares se suma 50% de reservas.
@@ -148,7 +148,7 @@ export function SustentoDimensionamientoCard({
         </table>
       </div>
       <p className="cmv2-sustento-nota">
-        La columna «tasa propia 2025» es <strong>referencial</strong>: muestra qué
+        La columna "tasa propia 2025" es <strong>referencial</strong>: muestra qué
         daría la misma fórmula con la tasa de efectividad que esa facultad
         realizó el año pasado (solo facultades con 12+ aulas aplicadas), sin
         cambiar el diseño vigente. El estudio anterior declaró 170 titulares: su fórmula —con la mediana y

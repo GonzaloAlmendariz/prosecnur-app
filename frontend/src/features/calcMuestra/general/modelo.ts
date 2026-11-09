@@ -77,9 +77,9 @@ const PROBABILISTICAS_FUERA_DEL_SORTEO: ReadonlySet<string> = new Set([
 
 export function motivoSinSorteo(tecnica: string): string {
   if (PROBABILISTICAS_FUERA_DEL_SORTEO.has(tecnica)) {
-    return `La técnica «${tecnica}» no selecciona elementos de un marco único: esta selección no la cubre.`;
+    return `La técnica "${tecnica}" no selecciona elementos de un marco único: esta selección no la cubre.`;
   }
-  return `La técnica «${tecnica}» no selecciona unidades con probabilidad conocida: no hay selección ni probabilidad de selección (π) que publicar.`;
+  return `La técnica "${tecnica}" no selecciona unidades con probabilidad conocida: no hay selección ni probabilidad de selección (π) que publicar.`;
 }
 
 export const TEXTO_COBERTURA_CENSAL = "Cobertura censal: el marco entero en orden aleatorio de contacto (π = 1).";

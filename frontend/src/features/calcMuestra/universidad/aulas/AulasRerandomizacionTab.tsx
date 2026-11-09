@@ -168,7 +168,7 @@ export function AulasRerandomizacionTab({
           </p>
           <p>
             Esta pantalla hace lo segundo. Lo primero sigue disponible como motor
-            «pool controlado», con su advertencia.
+            "pool controlado", con su advertencia.
           </p>
         </ExplicacionBloque>
       </ExplicacionPlegable>

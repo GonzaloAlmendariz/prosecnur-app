@@ -222,7 +222,7 @@ export function SelectorTipo({
         <div>
           <span className="cmv2-eyebrow">Tipo de estudio</span>
           <h2>Elige el tipo de muestra</h2>
-          <p>Empieza con «Muestra general», que sirve para cualquier estudio. Las plantillas especializadas añaden pasos propios para casos recurrentes. Cada proyecto usa un solo tipo.</p>
+          <p>Empieza con "Muestra general", que sirve para cualquier estudio. Las plantillas especializadas añaden pasos propios para casos recurrentes. Cada proyecto usa un solo tipo.</p>
         </div>
         <div className="cmv2-route-hub-status" aria-label="Estado del proyecto">
           <span><Route size={13} /> 1 tipo por proyecto</span>

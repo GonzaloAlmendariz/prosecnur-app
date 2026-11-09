@@ -9,7 +9,7 @@ function Sonda({ value }: { value: string }) {
 }
 
 describe("AD5 · useValorSwap no difumina al montar", () => {
-  it("el primer render no marca «cambiando»", () => {
+  it('el primer render no marca "cambiando"', () => {
     expect(renderToStaticMarkup(<Sonda value="186" />)).toContain('data-cambiando="false"');
     expect(renderToStaticMarkup(<CifraMotor label="Titulares" value="186" origen="motor" />)).not.toContain("data-cambiando");
   });

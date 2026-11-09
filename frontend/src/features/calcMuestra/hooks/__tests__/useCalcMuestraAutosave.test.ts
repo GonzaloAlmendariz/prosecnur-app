@@ -46,7 +46,7 @@ describe("autosaveEstudioActual — F7 (markClean condicional)", () => {
 });
 
 describe("indicador de guardado honesto (QA de aulas, 2026-09-24)", () => {
-  it("«Guardando…» sólo con el PUT en vuelo; antes y después, no", async () => {
+  it('"Guardando…" sólo con el PUT en vuelo; antes y después, no', async () => {
     expect(useCalcMuestraStore.getState().guardando).toBe(false);
     let liberarPut!: () => void;
     const pendiente = autosaveEstudioActual(() => new Promise<void>((resolve) => { liberarPut = resolve; }));
@@ -64,7 +64,7 @@ describe("indicador de guardado honesto (QA de aulas, 2026-09-24)", () => {
     expect(useCalcMuestraStore.getState().errorGuardado).toBe(false);
   });
 
-  it("estadoGuardado: pendiente = «Cambios sin guardar», no «Guardando…»", () => {
+  it('estadoGuardado: pendiente = "Cambios sin guardar", no "Guardando…"', () => {
     expect(estadoGuardado({ dirty: true, guardando: false, errorGuardado: false })).toBe("dirty");
     expect(estadoGuardado({ dirty: true, guardando: true, errorGuardado: false })).toBe("saving");
     expect(estadoGuardado({ dirty: true, guardando: false, errorGuardado: true })).toBe("error");

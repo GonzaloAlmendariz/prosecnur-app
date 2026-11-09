@@ -32,7 +32,7 @@ describe("vista previa de otro tipo de estudio", () => {
     const sin = defaultComponente({ id: "b", actor: "Docentes" });
     const items = loQueSePierde({ titulo: "Encuesta Puno", componentes: [con, sin], tieneEstadoAulas: false });
     expect(items).toEqual([
-      "La ficha del estudio «Encuesta Puno»",
+      'La ficha del estudio "Encuesta Puno"',
       "2 grupos con su marco, técnica y parámetros (1 con N declarado)",
       "El tamaño de muestra calculado",
     ]);
@@ -46,7 +46,7 @@ describe("vista previa de otro tipo de estudio", () => {
       destinoTitulo: "Metas por grupo de informantes",
       destinoCopy: "Para procesos que piden un mínimo por grupo.",
       actualTitulo: "Muestra general",
-      perdidas: ["La ficha del estudio «Encuesta Puno»"],
+      perdidas: ['La ficha del estudio "Encuesta Puno"'],
       onVolver: () => {},
       onConfirmar: () => {},
     };
@@ -60,7 +60,7 @@ describe("vista previa de otro tipo de estudio", () => {
 
     const confirmar = renderToStaticMarkup(<VistaPreviaTipo {...props} confirmandoInicial />);
     expect(confirmar).toContain("El cambio es definitivo");
-    expect(confirmar).toContain("«Encuesta Puno»");
+    expect(confirmar).toContain("&quot;Encuesta Puno&quot;");
     expect(confirmar).toContain("No, seguir mirando");
     expect(confirmar).toContain("Borrar y empezar con Metas por grupo de informantes");
   });

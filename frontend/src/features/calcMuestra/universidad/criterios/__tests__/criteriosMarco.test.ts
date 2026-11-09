@@ -37,7 +37,7 @@ describe("criterios del marco", () => {
       .toBe("15 elegibles, 2 facultades con mínimo propio");
   });
 
-  it("un criterio sin declarar dice «no se aplica», no desaparece", () => {
+  it('un criterio sin declarar dice "no se aplica", no desaparece', () => {
     // Omitir la fila haría que un criterio ausente y uno inactivo se vean igual.
     const fs = criteriosMarcoDeEstudio(SEL, {});
     expect(busca(fs, "Tipo de docente")).toBe("no se aplica");
@@ -45,7 +45,7 @@ describe("criterios del marco", () => {
     expect(fs.map((f) => f.concepto)).toContain("Condición del curso");
   });
 
-  it("las facultades excluidas se nombran, y «ninguna» es una respuesta", () => {
+  it('las facultades excluidas se nombran, y "ninguna" es una respuesta', () => {
     expect(busca(criteriosMarcoDeEstudio(SEL, { excluded_faculties: ["ESCUELA DE POSGRADO"] }), "Facultades excluidas"))
       .toBe("ESCUELA DE POSGRADO");
     expect(busca(criteriosMarcoDeEstudio(SEL, {}), "Facultades excluidas")).toBe("ninguna");

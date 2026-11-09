@@ -84,7 +84,7 @@ export function VistaPreviaTipo({
                 {perdidas.map((p) => <li key={p}>{p}</li>)}
               </ul>
             )}
-            <p className="cmv2-vista-previa-guardado">Si quieres conservarlo, primero guarda una copia del proyecto con «Guardar como…».</p>
+            <p className="cmv2-vista-previa-guardado">Si quieres conservarlo, primero guarda una copia del proyecto con "Guardar como…".</p>
           </div>
           <div className="cmv2-vista-previa-acciones">
             <button type="button" className="cmv2-ghost" onClick={() => setConfirmando(false)}>No, seguir mirando</button>

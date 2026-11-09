@@ -88,7 +88,7 @@ export function AulasSolidezTab({
           <EmptyState
             icon={<ShieldCheck size={22} aria-hidden="true" />}
             title="Todavía no hay una selección corrida"
-            hint="El sustento se construye sobre ella. Corre la selección en «Cursos-horario titulares» y aquí verás por qué salieron esas aulas y qué tan sólida es la muestra que arman."
+            hint='El sustento se construye sobre ella. Corre la selección en "Cursos-horario titulares" y aquí verás por qué salieron esas aulas y qué tan sólida es la muestra que arman.'
             cta={onNavigate ? (
             <button type="button" className="pulso-empty-cta" onClick={() => onNavigate("aulas", "seleccion")}>
               Ir a Cursos-horario titulares

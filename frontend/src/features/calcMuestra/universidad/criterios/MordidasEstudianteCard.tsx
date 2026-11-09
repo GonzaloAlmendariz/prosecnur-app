@@ -54,8 +54,8 @@ export function MordidasEstudianteCard({
         <p className="cmv2-mordidas-pie">
           Aplicados juntos, los criterios de marco dejan{" "}
           <strong>{fmtInt(elegiblesFinal)}</strong> de {fmtInt(datos.filasTotal)} filas de matrícula
-          ({((elegiblesFinal / datos.filasTotal) * 100).toFixed(1)}%); los de «al
-          encuestar» actúan dentro del aula, no reducen el marco.
+          ({((elegiblesFinal / datos.filasTotal) * 100).toFixed(1)}%); los de "al
+          encuestar" actúan dentro del aula, no reducen el marco.
         </p>
       )}
     </section>

@@ -172,7 +172,7 @@ export function derivarSaludDiseno(piezas: SaludPiezas): SaludObservacion[] {
       // cifra que manda a mirar.
       titulo: `Desigualdad entre pesos ${fmtDec(piezas.cvPesos, 2)}, por encima de ${fmtDec(piezas.cvWarn, 2)}`,
       detalle: "Unas pocas aulas representan a muchas más que el resto, así que la muestra rinde como si fuera más pequeña de lo que es.",
-      accion: "Míralo en Simulación, en «Estabilidad de pesos».",
+      accion: 'Míralo en Simulación, en "Estabilidad de pesos".',
     });
   }
 

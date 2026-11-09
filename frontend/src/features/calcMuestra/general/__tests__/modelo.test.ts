@@ -184,7 +184,7 @@ describe("técnicas que no se sortean", () => {
 
   it("el 409 de técnica bloquea Sortear con el mensaje del motor, no como error suelto", () => {
     const error = errorGeneralDesde(Object.assign(
-      new Error("La técnica «prob_conglomerado_multietapico» no selecciona unidades con probabilidad conocida · E_CALC_MUESTRA_GENERAL_TECNICA"),
+      new Error('La técnica "prob_conglomerado_multietapico" no selecciona unidades con probabilidad conocida · E_CALC_MUESTRA_GENERAL_TECNICA'),
       { code: "E_CALC_MUESTRA_GENERAL_TECNICA" },
     ));
     const e = seleccionReducer({ ...SELECCION_INICIAL, sorteando: true }, { tipo: "fallo", error, tecnica: "prob_conglomerado_multietapico" });

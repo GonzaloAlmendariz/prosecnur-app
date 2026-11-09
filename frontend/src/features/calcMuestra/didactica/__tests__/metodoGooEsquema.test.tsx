@@ -168,7 +168,7 @@ describe("ClassroomMethodStories — enlace al Relato (d)", () => {
     );
   }
 
-  it("con selección vigente enlaza «ver con tus aulas reales» a la dirección canónica", () => {
+  it('con selección vigente enlaza "ver con tus aulas reales" a la dirección canónica', () => {
     const html = render(true);
     expect(RELATO_TO).toBe(
       "/calc-muestra?modo=opinion-universitaria&seccion=aulas&pestana=aulas-relato",

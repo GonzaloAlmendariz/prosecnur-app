@@ -98,7 +98,7 @@ describe("tarjeta de facultades excluidas", () => {
     expect(html).not.toContain("<strong>Facultades excluidas</strong>");
   });
 
-  it("el pie ofrece «Ninguna | Todas» como botones de texto fuera de la prosa (K3)", () => {
+  it('el pie ofrece "Ninguna | Todas" como botones de texto fuera de la prosa (K3)', () => {
     const html = pintar(["ESCUELA DE POSGRADO"]);
     expect(html).toContain("pulso-button--link");
     expect(html).toMatch(/>Ninguna<\/button>/);
@@ -108,7 +108,7 @@ describe("tarjeta de facultades excluidas", () => {
     expect(html).toContain('<div class="cmv2-facultades-excluidas-pie"');
   });
 
-  it("«Todas» se desactiva sin exclusiones y «Ninguna» con todas fuera", () => {
+  it('"Todas" se desactiva sin exclusiones y "Ninguna" con todas fuera', () => {
     expect(pintar([])).toMatch(/<button[^>]*disabled=""[^>]*>Todas<\/button>/);
     expect(pintar([])).not.toMatch(/<button[^>]*disabled=""[^>]*>Ninguna<\/button>/);
     const todas = pintar(FACULTADES.map((f) => f.label));

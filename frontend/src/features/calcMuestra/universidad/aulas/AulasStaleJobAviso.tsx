@@ -12,7 +12,7 @@ import type { StaleJobAviso } from "./descuentoRepetidosModel";
 export function AulasStaleJobAviso({ aviso }: { aviso: StaleJobAviso | null }) {
   if (!aviso) return null;
   return (
-    <AvisoModulo tone="warn" title={`El resultado del job «${aviso.kindLabel}» no se aplicó.`}>
+    <AvisoModulo tone="warn" title={`El resultado del job "${aviso.kindLabel}" no se aplicó.`}>
       El marco o la decisión de alumnos por CH cambió mientras corría, así que su resultado quedó
       descartado para no pisar la mesa vigente. Vuelve a ejecutarlo sobre el contexto actual.
       {aviso.jobId ? ` (job ${aviso.jobId})` : ""}

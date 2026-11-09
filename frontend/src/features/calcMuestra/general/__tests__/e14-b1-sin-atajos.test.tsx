@@ -28,7 +28,7 @@ const reporte = (p: Partial<ReporteEstudio> = {}): ReporteEstudio => ({
 
 describe("la barra del módulo no hace bypass de las secciones", () => {
   const pagina = readFileSync(new URL("../../CalcMuestraPage.tsx", import.meta.url), "utf8");
-  it("sin Calcular, Reporte ni Cambiar tipo en `acciones`; el tipo lo abre el indicador «Tipo»", () => {
+  it('sin Calcular, Reporte ni Cambiar tipo en `acciones`; el tipo lo abre el indicador "Tipo"', () => {
     // El bloque entero de la prop, hasta el cierre del componente de la barra.
     const inicio = pagina.indexOf("acciones={");
     const acciones = pagina.slice(inicio, pagina.indexOf("\n          />", inicio));

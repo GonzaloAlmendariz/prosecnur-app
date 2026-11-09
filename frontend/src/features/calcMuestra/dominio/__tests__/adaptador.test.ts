@@ -368,7 +368,7 @@ describe("helpers del frame para datosProyecto", () => {
             conteo: 0,
             excluidos: 3630,
             vacia_marco: true,
-            aviso: "«+ Nivel del curso» dejó el marco en 0: entraron 3 630 aulas.",
+            aviso: '"+ Nivel del curso" dejó el marco en 0: entraron 3 630 aulas.',
           },
           { id: "session_type", label: "+ Tipo de sesión", conteo: 0, excluidos: 0 },
         ],

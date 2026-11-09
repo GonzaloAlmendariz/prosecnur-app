@@ -283,7 +283,7 @@ describe("G6 · Resultados contiene su vacío y el motivo del reporte", () => {
     expect(motivoReporteDeshabilitado(1)).toBeNull();
   });
 
-  it("no pinta MARCO 0 ni n «—» sin explicación", () => {
+  it('no pinta MARCO 0 ni n "—" sin explicación', () => {
     const html = conRouter(<ResultadosComponentes modo="marco_disponible" componentes={[comp()]} calculando={false} onCalcular={() => {}} />);
     expect(html).toContain("Sin marco todavía");
     expect(html).not.toContain("<table");

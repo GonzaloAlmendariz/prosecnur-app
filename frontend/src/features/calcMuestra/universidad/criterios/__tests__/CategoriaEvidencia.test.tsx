@@ -368,7 +368,7 @@ describe("CategoriaEvidencia · variantes de umbral y proporción (F118)", () =>
       />,
     );
 
-  it("las cifras responden «qué deja fuera», no «cuántos hay»", () => {
+  it('las cifras responden "qué deja fuera", no "cuántos hay"', () => {
     const html = conUmbral("umbral");
     expect(html).toContain("que cumplen");
     expect(html).toContain("quedan fuera");
@@ -424,7 +424,7 @@ describe("cada variante declara qué es (G36)", () => {
     );
 
   it.each(["categoria", "umbral", "proporcion", "unidad"] as const)(
-    "«%s» sale declarada en el marcado",
+    '"%s" sale declarada en el marcado',
     (variante) => {
       expect(render(variante)).toContain(`data-variante="${variante}"`);
     },
@@ -450,7 +450,7 @@ describe("cada variante declara qué es (G36)", () => {
  * antes de eso mantener la nomenclatura, llegan hasta aquí».
  */
 describe("CategoriaEvidencia · nomenclatura del recorrido", () => {
-  it("con reparto del motor la casilla dice «llegan hasta aquí»", () => {
+  it('con reparto del motor la casilla dice "llegan hasta aquí"', () => {
     const dato = aporte({ llegan: 587 });
     const html = renderToStaticMarkup(
       <CategoriaEvidencia aporte={dato} dominio={dominioCategorias([dato])!} />,
@@ -460,7 +460,7 @@ describe("CategoriaEvidencia · nomenclatura del recorrido", () => {
     expect(html).not.toContain("CH elegibles");
   });
 
-  it("sin reparto no cae en «CH elegibles»: deja la casilla vacía", () => {
+  it('sin reparto no cae en "CH elegibles": deja la casilla vacía', () => {
     const dato = aporte();
     const html = renderToStaticMarkup(
       <CategoriaEvidencia aporte={dato} dominio={dominioCategorias([dato])!} />,

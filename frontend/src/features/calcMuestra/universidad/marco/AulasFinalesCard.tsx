@@ -255,7 +255,7 @@ export function AulasFinalesCard({
               );
             })}
             {filtradas.length === 0 ? (
-              <li className="cmv2-aulas-finales-vacio">Ningún curso-horario coincide con «{q}».</li>
+              <li className="cmv2-aulas-finales-vacio">Ningún curso-horario coincide con "{q}".</li>
             ) : null}
           </ul>
           {filtradas.length > TOPE_FILAS && (

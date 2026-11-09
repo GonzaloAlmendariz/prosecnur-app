@@ -4,7 +4,7 @@ import { esIndicadorVacio, separarIndicadoresVacios } from "./indicadoresVacios"
 const kpi = (label: string, value: number | null, texto?: string) => ({ label, value, texto });
 
 describe("franja del diseño: los indicadores vacíos se juntan (L18)", () => {
-  test("vacío es sin cifra y sin texto, o con el «—» de relleno", () => {
+  test('vacío es sin cifra y sin texto, o con el "—" de relleno', () => {
     expect(esIndicadorVacio(kpi("Muestra", null))).toBe(true);
     expect(esIndicadorVacio(kpi("Método", null, "—"))).toBe(true);
     expect(esIndicadorVacio(kpi("Método", null, "alumnos por CH"))).toBe(false);

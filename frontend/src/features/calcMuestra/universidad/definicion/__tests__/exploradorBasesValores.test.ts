@@ -47,7 +47,7 @@ describe("etiquetaDeValor · otras derivadas", () => {
     expect(etiquetaDeValor("size_group", "G2")).toBe("Tramo 2");
   });
 
-  it("«curso» y «modal» dicen qué nivel se está usando", () => {
+  it('"curso" y "modal" dicen qué nivel se está usando', () => {
     expect(etiquetaDeValor("level_reference", "curso")).toBe("Nivel declarado del curso");
     expect(etiquetaDeValor("level_reference", "modal")).toBe("Nivel más frecuente del aula");
   });

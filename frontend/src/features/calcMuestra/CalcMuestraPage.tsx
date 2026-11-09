@@ -1324,7 +1324,7 @@ export default function CalcMuestraPage() {
         caducada
           ? {
               kind: "error",
-              text: "La decisión de «Alumnos por CH» quedó sellada contra un marco anterior. Vuelve a confirmarla en Marco › Alumnos por CH y recalcula.",
+              text: 'La decisión de "Alumnos por CH" quedó sellada contra un marco anterior. Vuelve a confirmarla en Marco › Alumnos por CH y recalcula.',
             }
           : { kind: "error", text: e instanceof Error ? e.message : "No se pudo calcular." },
       );
@@ -1780,10 +1780,10 @@ export default function CalcMuestraPage() {
       setMsg({
         kind: "info",
         text: canBuildUniversityFrame(nextWorkspace)
-          ? "Excel cargado. Cuando el mapeo de variables esté completo, usa «Construir marco» para calcular el universo y el marco."
+          ? 'Excel cargado. Cuando el mapeo de variables esté completo, usa "Construir marco" para calcular el universo y el marco.'
           : uploadedBinding.file_id
             ? sourceBindingBuildMessage(uploadedBinding)
-            : "Excel cargado. Cuando estén listas las bases que se relacionan entre sí, usa «Construir marco».",
+            : 'Excel cargado. Cuando estén listas las bases que se relacionan entre sí, usa "Construir marco".',
       });
     } catch (e) {
       setMsg({ kind: "error", text: e instanceof Error ? e.message : "No se pudo cargar el Excel de la base." });
@@ -1820,7 +1820,7 @@ export default function CalcMuestraPage() {
       setReferenciaAsistencia(referenceRes.referencia_asistencia);
       setMsg({
         kind: "info",
-        text: `Referencia histórica recalibrada con la hoja «${selectedSheet || "seleccionada"}»: ${fmtInt(referenceRes.referencia_asistencia.cobertura.observados)} cursos-horario observados.`,
+        text: `Referencia histórica recalibrada con la hoja "${selectedSheet || "seleccionada"}": ${fmtInt(referenceRes.referencia_asistencia.cobertura.observados)} cursos-horario observados.`,
       });
     } catch (e) {
       setMsg({
@@ -1978,7 +1978,7 @@ export default function CalcMuestraPage() {
         caducada
           ? {
               kind: "error",
-              text: "La decisión de «Alumnos por CH» cambió después de la última comparación. Vuelve a confirmarla en Marco › Alumnos por CH y compara de nuevo.",
+              text: 'La decisión de "Alumnos por CH" cambió después de la última comparación. Vuelve a confirmarla en Marco › Alumnos por CH y compara de nuevo.',
             }
           : msgDeFallo(e, "No se pudo comparar métodos. Construye primero el marco de cursos-horario."),
       );

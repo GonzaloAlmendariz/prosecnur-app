@@ -337,7 +337,7 @@ export function SalidasCierreTab({
                 <strong>El diseño figura como propuesta preliminar</strong>
                 <span>
                   {puedeValidar
-                    ? "Mientras siga así, el reporte se titula «Propuesta metodológica preliminar». Márcalo validado cuando el diseño esté cerrado para campo."
+                    ? 'Mientras siga así, el reporte se titula "Propuesta metodológica preliminar". Márcalo validado cuando el diseño esté cerrado para campo.'
                     : "Cuando el cálculo y la selección estén acreditados podrás marcarlo como validado, y el reporte dejará de titularse preliminar."}
                 </span>
                 {observaciones.length > 0 && puedeValidar ? (

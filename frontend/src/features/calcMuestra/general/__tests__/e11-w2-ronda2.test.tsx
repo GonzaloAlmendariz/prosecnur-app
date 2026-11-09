@@ -73,8 +73,8 @@ function contraste(a: [number, number, number], b: [number, number, number]): nu
 const mezcla = (a: [number, number, number], b: [number, number, number], pa: number): [number, number, number] =>
   [0, 1, 2].map((i) => Math.round(a[i] * pa + b[i] * (1 - pa))) as [number, number, number];
 
-describe("V17 · el chip «Sin marco» pasa 4.5:1 a 11 px", () => {
-  it("la regla base oscurece el gris de «sin definir» hacia el texto", () => {
+describe('V17 · el chip "Sin marco" pasa 4.5:1 a 11 px', () => {
+  it('la regla base oscurece el gris de "sin definir" hacia el texto', () => {
     const regla = css.match(/\.cmg-actor-estado \{[^}]*\}/)?.[0] ?? "";
     const m = regla.match(/color: color-mix\(in srgb, var\(--pulso-state-unset-fg\) (\d+)%, var\(--pulso-text\)\);/);
     expect(m).not.toBeNull();
@@ -91,7 +91,7 @@ describe("V17 · el chip «Sin marco» pasa 4.5:1 a 11 px", () => {
 });
 
 describe("V15 · el pie de la meta baja por piezas, no por palabras", () => {
-  it("MAS: «Respuesta» y «margen ±5.0%», cada pieza corta; la frase entera queda para el lector", () => {
+  it('MAS: "Respuesta" y "margen ±5.0%", cada pieza corta; la frase entera queda para el lector', () => {
     const campo = campoMetaDelActor(docentes());
     expect(campo.tipo).toBe("respuesta");
     if (campo.tipo !== "respuesta") return;
@@ -149,7 +149,7 @@ describe("V10 · los inputs numéricos declaran es-PE sin tocar su valor", () =>
     expect(html).toMatch(/aria-label="Marco \(N\) de Docentes" value="1000"/);
   });
 
-  it("Parámetros: el margen se escribe «0.05», no «0,05»", () => {
+  it('Parámetros: el margen se escribe "0.05", no "0,05"', () => {
     const catalogo = normalizeCalcMuestraCatalogoParametros({
       ok: true,
       tecnicas: [{ tecnica: "prob_aleatorio_simple", parametros: [{ clave: "e", rotulo: "Margen de error", ayuda: "" }] }],

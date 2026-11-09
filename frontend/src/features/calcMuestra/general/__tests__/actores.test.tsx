@@ -91,7 +91,7 @@ describe("estado del marco y del sorteo por actor", () => {
       .toBe("5,000 a contactar");
   });
 
-  it("un sorteo que ya no es vigente es «Selección desactualizada», nunca «Seleccionado» (QA E11 ronda 2)", () => {
+  it('un sorteo que ya no es vigente es "Selección desactualizada", nunca "Seleccionado" (QA E11 ronda 2)', () => {
     const viejo = estadoDelActor({ tecnica: prob, cargado: true, marco: MARCO, corrida: corrida("probabilistica", 120), vigente: false });
     expect(viejo.fase).toBe("sorteo_viejo");
     expect(viejo.etiqueta).toBe("Selección desactualizada");
@@ -99,7 +99,7 @@ describe("estado del marco y del sorteo por actor", () => {
       .toBe("sorteo_viejo");
   });
 
-  it("antes de rehidratar no afirma «sin marco»; cuotas no espera nada", () => {
+  it('antes de rehidratar no afirma "sin marco"; cuotas no espera nada', () => {
     expect(estadoDelActor({ tecnica: prob, cargado: false, marco: null, corrida: null }).fase).toBe("leyendo");
     expect(estadoDelActor({ tecnica: tecnicaDelActor("no_prob_cuotas"), cargado: false, marco: null, corrida: null }))
       .toEqual({ fase: "sin_sorteo", etiqueta: "Sin selección", detalle: "no da π" });
@@ -264,7 +264,7 @@ describe("el estado de la selección está indexado por componente_id", () => {
 });
 
 describe("actoresDelSelector conecta la vigencia del sorteo (QA E11 ronda 2)", () => {
-  it("un sorteo de un marco que ya cambió sale «Selección desactualizada», aunque el actor tenga corrida", () => {
+  it('un sorteo de un marco que ya cambió sale "Selección desactualizada", aunque el actor tenga corrida', () => {
     const marcoNuevo: CalcMuestraGeneralMarco = { ...MARCO, marco_hash: "0000111122223333" };
     const [, , est] = actoresDelSelector(ACTORES, {
       cargado: true,
@@ -275,7 +275,7 @@ describe("actoresDelSelector conecta la vigencia del sorteo (QA E11 ronda 2)", (
     expect(est.estado.etiqueta).toBe("Selección desactualizada");
   });
 
-  it("con el mismo marco y el mismo cálculo el sorteo sigue «Seleccionado»", () => {
+  it('con el mismo marco y el mismo cálculo el sorteo sigue "Seleccionado"', () => {
     // Un cálculo vigente trae n_objetivo; sin él el sorteo quedó de un cálculo que ya no existe.
     const calculados = ACTORES.map((c) => ({ ...c, resultado: { n_objetivo: 100, n_operativo: 120 } }) as unknown as CalcMuestraComponente);
     const [, , est] = actoresDelSelector(calculados, {

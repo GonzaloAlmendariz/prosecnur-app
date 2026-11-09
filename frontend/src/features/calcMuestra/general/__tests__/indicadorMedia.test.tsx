@@ -147,7 +147,7 @@ describe("asignación de potencia", () => {
   const resultado = (asignacion: "potencia", formula_n: "potencia") =>
     ({ n_objetivo: 215, asignacion, formula_n }) as unknown as CalcMuestraComponente["resultado"];
 
-  it("se elige como «Potencia» y la memoria la nombra con Bankier", () => {
+  it('se elige como "Potencia" y la memoria la nombra con Bankier', () => {
     expect(vista(comp("prob_estratificado"))).toContain('<option value="potencia">Potencia</option>');
     expect(lineaDeAsignacion({ resultado: resultado("potencia", "potencia") }))
       .toBe("Reparto entre estratos: potencia (Bankier), con n calculado por estrato.");

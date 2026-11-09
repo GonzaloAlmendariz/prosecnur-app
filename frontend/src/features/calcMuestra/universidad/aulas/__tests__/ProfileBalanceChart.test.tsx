@@ -28,7 +28,7 @@ const fila = (
 const contar = (html: string, aguja: string) => html.split(aguja).length - 1;
 
 describe("ProfileBalanceChart · la dimensión se dice una vez", () => {
-  it("doce facultades traen un solo rótulo «Facultad»", () => {
+  it('doce facultades traen un solo rótulo "Facultad"', () => {
     const rows = ["ARQUITECTURA", "ARTE", "DERECHO", "EDUCACION"].map((c) => fila(c));
     const html = renderToStaticMarkup(<ProfileBalanceChart rows={rows} />);
     expect(contar(html, "Facultad")).toBe(1);

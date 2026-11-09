@@ -40,13 +40,13 @@ const comp = (subALabel: string, subBLabel: string) => ({
 } as unknown as CalcMuestraComponente);
 
 describe("universityDistributionRows · cada sexo en su columna", () => {
-  it("con sub_a = «M», las mujeres son las F", () => {
+  it('con sub_a = "M", las mujeres son las F', () => {
     const [fila] = universityDistributionRows(comp("M", "F"));
     expect(fila.mujeres).toBe(85);
     expect(fila.hombres).toBe(40);
   });
 
-  it("y con sub_a = «F» da lo mismo: no depende del orden", () => {
+  it('y con sub_a = "F" da lo mismo: no depende del orden', () => {
     // El caso que funcionaba por casualidad. Tiene que seguir funcionando, y
     // por la razón correcta.
     const [fila] = universityDistributionRows(comp("F", "M"));

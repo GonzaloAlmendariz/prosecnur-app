@@ -61,7 +61,7 @@ describe("MatrizCascadaCriterios", () => {
     expect(tfoot).toContain("<b>272</b>");
   });
 
-  it("distingue «se aplicó y no quitó» de «no aplica aquí»", () => {
+  it('distingue "se aplicó y no quitó" de "no aplica aquí"', () => {
     // Son cosas distintas y sin marca se ven igual.
     const c = cascada();
     c.steps[0].faculties = [fac("ing", "Ingeniería", 281, 281), fac("gas", "Gastronomía", 45, 44)];
