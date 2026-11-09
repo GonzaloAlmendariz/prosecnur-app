@@ -4,6 +4,32 @@
    sobreescribe con un nivel más de especificidad (.pulso-button.pulso-button--x)
    para no depender del orden de las hojas en el bundle. */
 
+/* ---------- W3 · la variante enlace (PulsoButtonEnlace) ----------
+   Un <a> no recibe la base global de `button` (theme.css): aquí la caja que el botón trae de fábrica. Sólo ancho y
+   estilo del borde, nunca su color, que lo pone cada variante. Especificidad (0,0,1), como el `button` global: cede
+   ante toda regla de variante y tamaño. */
+a:where(.pulso-button) {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: none;
+  max-width: 100%;
+  border-style: solid;
+  border-width: 1px;
+  font-size: 13px;
+  font-weight: var(--pulso-control-weight);
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+a:where(.pulso-button) > svg {
+  flex: 0 0 auto;
+}
+
 /* ---------- D13 · danger ----------
    Contorno en el rojo vivo --pulso-danger-solid (más puro/anaranjado que el
    carmesí de Monitoreo, que no se toca). El relleno sólido es solo del botón

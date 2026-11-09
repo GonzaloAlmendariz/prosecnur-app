@@ -1,6 +1,8 @@
 import {
   forwardRef,
+  type AnchorHTMLAttributes,
   type ButtonHTMLAttributes,
+  type ReactNode,
 } from "react";
 import { ArrowRight } from "../vendor/lucide-react";
 import "./kit-buttons.css";
@@ -94,6 +96,41 @@ export type PulsoButtonProps =
  * - `nav` (K4, en primary/secondary/ghost/link): flecha `ArrowRight` tras el
  *   destino.
  */
+type Pistas = {
+  variant: PulsoButtonVariant;
+  size: PulsoButtonSize;
+  nav: boolean;
+  confirm: boolean;
+  tone?: "quiet" | "framed";
+  className?: string;
+};
+
+/** Las clases del kit para una variante: las comparten el botón y el enlace (`PulsoButtonEnlace`). */
+function clasesDelKit({ variant, size, nav, confirm, tone, className }: Pistas): string {
+  const quiet = variant === "icon" && tone !== "framed";
+  const framed = variant === "icon" && tone === "framed";
+  return [
+    "pulso-button",
+    `pulso-button--${variant}`,
+    `pulso-button--${size}`,
+    confirm ? "pulso-button--danger-confirm" : null,
+    quiet ? "pulso-button--quiet" : null,
+    framed ? "pulso-button--framed" : null,
+    nav ? "pulso-button--nav" : null,
+    className,
+  ].filter(Boolean).join(" ");
+}
+
+function FlechaNav({ size }: { size: PulsoButtonSize }) {
+  return (
+    <ArrowRight
+      size={size === "sm" ? 13 : 14}
+      className="pulso-button-nav-arrow"
+      aria-hidden="true"
+    />
+  );
+}
+
 export const PulsoButton = forwardRef<HTMLButtonElement, PulsoButtonProps>(
   function PulsoButton(props, ref) {
     const {
@@ -114,8 +151,7 @@ export const PulsoButton = forwardRef<HTMLButtonElement, PulsoButtonProps>(
     const nav = props.variant !== "icon" && props.variant !== "danger" && props.nav === true;
     const confirm = props.variant === "danger" && props.confirm === true;
     const intent = props.variant === "icon" ? props.intent : undefined;
-    const quiet = props.variant === "icon" && props.tone !== "framed";
-    const framed = props.variant === "icon" && props.tone === "framed";
+    const tone = props.variant === "icon" ? props.tone : undefined;
 
     return (
       <button
@@ -123,26 +159,59 @@ export const PulsoButton = forwardRef<HTMLButtonElement, PulsoButtonProps>(
         ref={ref}
         type={type}
         data-intent={intent}
-        className={[
-          "pulso-button",
-          `pulso-button--${variant}`,
-          `pulso-button--${size}`,
-          confirm ? "pulso-button--danger-confirm" : null,
-          quiet ? "pulso-button--quiet" : null,
-          framed ? "pulso-button--framed" : null,
-          nav ? "pulso-button--nav" : null,
-          className,
-        ].filter(Boolean).join(" ")}
+        className={clasesDelKit({ variant, size, nav, confirm, tone, className })}
       >
         {children}
-        {nav ? (
-          <ArrowRight
-            size={size === "sm" ? 13 : 14}
-            className="pulso-button-nav-arrow"
-            aria-hidden="true"
-          />
-        ) : null}
+        {nav ? <FlechaNav size={size} /> : null}
       </button>
+    );
+  },
+);
+
+type NativeAnchorProps = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "aria-label" | "href" | "children">;
+
+export type PulsoButtonEnlaceProps = NativeAnchorProps & {
+  /** Destino del enlace: una descarga (`downloadUrl(...)`) o una ruta externa. */
+  href: string;
+  variant: Exclude<PulsoButtonVariant, "danger">;
+  size?: PulsoButtonSize;
+  /** Del botón de ícono: por defecto quieto, `framed` con caja (igual que PulsoButton). */
+  tone?: "quiet" | "framed";
+  /** K4: flecha tras el destino (no en `icon`). */
+  nav?: boolean;
+  children: ReactNode;
+} & (
+  | { variant: "icon"; "aria-label": string }
+  | { variant: Exclude<PulsoButtonVariant, "danger" | "icon">; "aria-label"?: string }
+);
+
+/**
+ * **La variante enlace de PulsoButton** (W3): la misma piel del kit sobre un
+ * `<a href>` de verdad, para una descarga o una ruta externa (clic medio,
+ * «Guardar enlace como…», `download`, `target`). Mismas variantes, tamaños y
+ * tono que el botón (salvo `danger`, que es una acción y no un destino); el
+ * ícono exige `aria-label`. Nadie copia a mano las clases `pulso-button…`
+ * sobre un `<a>`.
+ */
+export const PulsoButtonEnlace = forwardRef<HTMLAnchorElement, PulsoButtonEnlaceProps>(
+  function PulsoButtonEnlace({ variant, size = "md", tone, nav = false, className, children, ...anchorProps }, ref) {
+    const conFlecha = variant !== "icon" && nav;
+    return (
+      <a
+        {...anchorProps}
+        ref={ref}
+        className={clasesDelKit({
+          variant,
+          size,
+          nav: conFlecha,
+          confirm: false,
+          tone: variant === "icon" ? tone : undefined,
+          className,
+        })}
+      >
+        {children}
+        {conFlecha ? <FlechaNav size={size} /> : null}
+      </a>
     );
   },
 );

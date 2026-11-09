@@ -19,7 +19,7 @@ import {
   SlidersHorizontal,
 } from "../../../vendor/lucide-react";
 import { downloadUrl } from "../../../api/core";
-import { PulsoButton } from "../../../components/PulsoButton";
+import { PulsoButton, PulsoButtonEnlace } from "../../../components/PulsoButton";
 import { RadioSegmentado } from "../subpestanas/RadioSegmentado";
 import { PulsoSelect } from "../../../components/PulsoSelect";
 import { IconoTipo } from "../iconos/IconoTipo";
@@ -224,16 +224,16 @@ export function VisorLamina({
           </PulsoButton>
         )}
         {l?.fileId && vista.fase === "lista" && (
-          // Un enlace de descarga con la piel del ícono quieto (PulsoButton es un <button>; la descarga es un <a>).
-          <a
-            className="pulso-button pulso-button--icon pulso-button--md pulso-button--quiet pulso-f6-visor-descargar"
+          // La descarga es un enlace de verdad con la piel del ícono quieto: la variante enlace del kit (W3).
+          <PulsoButtonEnlace
+            variant="icon"
             href={downloadUrl(l.fileId)}
             download={`lamina-${lamina.posicion}.pptx`}
             aria-label="Descargar esta lámina en PowerPoint"
             title="Descargar esta lámina en PowerPoint"
           >
             <Download aria-hidden="true" />
-          </a>
+          </PulsoButtonEnlace>
         )}
         {/* Previsualizar es un interruptor: secundario pulsado como Estructura y Ajustes, no un relleno del acento. */}
         <PulsoButton

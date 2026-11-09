@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import {
   PulsoButton,
+  PulsoButtonEnlace,
   type PulsoButtonProps,
 } from "./PulsoButton";
 
@@ -224,4 +225,28 @@ describe("PulsoButton", () => {
     expect(definicionesStrong).toEqual([]);
     expect(consumidoresAjenos).toEqual([]);
   });
+
+  it("W3: la variante enlace pinta un <a href> con las clases del kit y el tono quieto por defecto", () => {
+    const icono = renderToStaticMarkup(
+      <PulsoButtonEnlace variant="icon" href="/api/download/1" download="lamina-3.pptx" aria-label="Descargar esta lámina">
+        <svg aria-hidden="true" />
+      </PulsoButtonEnlace>,
+    );
+    expect(icono).toMatch(/^<a /);
+    expect(icono).toContain('href="/api/download/1"');
+    expect(icono).toContain('download="lamina-3.pptx"');
+    expect(icono).toContain('class="pulso-button pulso-button--icon pulso-button--md pulso-button--quiet"');
+    expect(icono).not.toContain('type="button"');
+    const secundario = renderToStaticMarkup(
+      <PulsoButtonEnlace variant="secondary" size="sm" href="https://pulso.pucp.edu.pe" nav>Abrir el sitio</PulsoButtonEnlace>,
+    );
+    expect(secundario).toContain('class="pulso-button pulso-button--secondary pulso-button--sm pulso-button--nav"');
+    expect(secundario).toContain("pulso-button-nav-arrow");
+    // @ts-expect-error el ícono como enlace exige aria-label.
+    const sinNombre = <PulsoButtonEnlace variant="icon" href="/x">x</PulsoButtonEnlace>;
+    expect(sinNombre).toBeTruthy();
+    const kit = fs.readFileSync(path.join(__dirname, "kit-buttons.css"), "utf8");
+    expect(kit).toMatch(/a:where\(\.pulso-button\) \{[^}]*display: inline-flex;[^}]*text-decoration: none;/);
+  });
 });
+

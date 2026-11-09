@@ -52,7 +52,8 @@ describe("W2-B: sin botones F1/F2 en todo laminas/", () => {
     const src = sinComentarios(leer(archivo));
     expect(src).not.toMatch(/pulso-f6-(boton|icono-boton|texto-boton)\b/);
     expect(src).not.toMatch(/\bis-primario\b/);
-    expect(src).not.toMatch(/variant="icon"(?![^>]*tone="quiet")[^>]*>/);
+    // W3: el ícono es quieto por defecto; con caja sólo si pide tone="framed".
+    expect(src).not.toMatch(/variant="icon"[^>]*tone="framed"/);
     expect(src).not.toMatch(/subpestanas\/Segmentado"/);
   });
   it("las hojas de laminas/ no definen F1/F2 (sólo el bloque heredado de laminasWorkbench.css, para fuera de Láminas)", () => {
@@ -209,7 +210,8 @@ describe("R9-1: sin F1/F2 en lo que Láminas abre fuera de laminas/", () => {
     expect(src).not.toMatch(/pulso-f6-(boton|icono-boton|texto-boton)\b/);
     expect(src).not.toMatch(/\bis-primario\b/);
     expect(src).not.toMatch(/className="pulso-icon\b/);
-    expect(src).not.toMatch(/variant="icon"(?![^>]*tone="quiet")[^>]*>/);
+    // W3: el ícono es quieto por defecto; con caja sólo si pide tone="framed".
+    expect(src).not.toMatch(/variant="icon"[^>]*tone="framed"/);
     expect(src).not.toMatch(/subpestanas\/Segmentado"/);
     expect(src).not.toMatch(/ButtonStyle\b/);
   });
@@ -352,7 +354,8 @@ describe("R10-1: sin botones F1/F2 en vistaGeneral/", () => {
     const src = sinComentarios(leer(archivo));
     expect(src).not.toMatch(/pulso-f6-(boton|icono-boton|texto-boton)\b/);
     expect(src).not.toMatch(/\bis-primario\b/);
-    expect(src).not.toMatch(/variant="icon"(?![^>]*tone="quiet")[^>]*>/);
+    // W3: el ícono es quieto por defecto; con caja sólo si pide tone="framed".
+    expect(src).not.toMatch(/variant="icon"[^>]*tone="framed"/);
   });
   it("el vacío de la Vista general tiene un solo primario: «Abrir Láminas» es secundario y navega (K4)", () => {
     const src = sinComentarios(leer("../vistaGeneral/VistaGeneral.tsx"));

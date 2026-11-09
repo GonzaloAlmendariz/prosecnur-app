@@ -402,15 +402,6 @@
   min-width: 104px;
 }
 
-/* La descarga es un <a> con la piel del ícono quieto: el centrado que el <button> trae de fábrica. */
-.pulso-f6-visor-descargar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-  text-decoration: none;
-}
-
 .pulso-f6-visor-barra > .pulso-button {
   flex: none;
 }
