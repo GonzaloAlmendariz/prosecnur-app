@@ -94,7 +94,10 @@ Con `correccion = "bonferroni_fila"`, cada fila se corrige sola, como hoy.
   (`.sig_base_de_lamina`). No hay control de multiplicidad entre bases: cada base se corrige dentro de sí.
 - **Una regla por informe.** Con regla guardada, esa regla, tal cual, para todas las bases. Sin regla guardada se
   propone una sola sobre todas las bases, como la regla entre públicos (ADR 0138 P2): Rao-Scott con BH si alguna base
-  trae el conglomerado, sin depender del orden de las bases. Una base sin la columna de conglomerado se abstiene.
+  trae el conglomerado, sin depender del orden de las bases. La columna se aplica por nombre en cada base que la tiene;
+  la base que no la tiene se prueba como muestreo aleatorio simple y su nota lo dice («En <base> no hay conglomerado: se
+  prueba como muestreo aleatorio simple.»), como en el ADR 0138 «Conglomerado». Guardar la regla exige el conglomerado
+  en al menos una base (si ninguna lo trae, 422 `E_SIG_SIN_CONGLOMERADO`).
 - **Analítica.** Las comparaciones de Analítica entran sólo en la familia de la base de su config (hoy la activa), no en
   la de otra base que tenga columnas con el mismo nombre.
 - **Base ambigua o desconocida.** Una lámina que mezcla bases (la pregunta de una y el cruce de otra, o dos

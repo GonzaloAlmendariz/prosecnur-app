@@ -40,6 +40,8 @@
 #' @keywords internal
 .sig_diseno_invalido <- function(data, regla, weight_col = "peso") {
   if (!is.list(regla) || !identical(regla$prueba, "rao_scott")) return(NULL)
+  # Multibase sin la columna en esta base: muestreo aleatorio simple (ADR 0138 «Conglomerado», `.sig_regla_de_base`).
+  if (!is.null(attr(regla, "mas_sin_conglomerado"))) return(NULL)
   dis <- .cruces_sig_diseno_base(data, .sig_spec_de_regla(regla), weight_col = weight_col)
   if (isTRUE(dis$ok)) NULL else dis$reason
 }
@@ -52,6 +54,7 @@
 .cruces_comparar_con_regla <- function(data, var, opciones, codes_row, estratos, var_estrato, tp, weight_col,
                                        regla, familia = NULL) {
   opciones <- as.character(opciones); codes_row <- as.character(codes_row); estratos <- as.character(estratos)
+  regla <- .sig_regla_de_datos(.sig_informe_vigente(), regla, data)   # multibase: la base sin conglomerado, como MAS
   motivo <- .sig_diseno_invalido(data, regla, weight_col)
   if (!is.null(motivo)) {
     out <- .cruces_sig_vacio(codes_row, estratos, "descriptivo", motivo)

@@ -34,6 +34,48 @@
   .sig_regla_del_estudio(graficos_config, .sig_columnas_de_bases(data_sources), analitica_config)
 }
 
+#' La regla del informe aplicada a una base de un estudio multibase (ADR 0138 «Conglomerado»)
+#'
+#' La columna de conglomerado se aplica por nombre en cada base que la tiene. En la que no la tiene, la base entra como
+#' muestreo aleatorio simple: la regla queda igual y lleva el atributo `mas_sin_conglomerado` (nombre de la base), que
+#' `.sig_diseno_invalido` acepta y la nota de la lámina dice (`.sig_texto_sin_conglomerado`). Las evaluaciones ya pasan
+#' `cluster = NULL` cuando la columna falta: cada caso es su propio conglomerado. Sólo se llama en multibase.
+#' @keywords internal
+.sig_regla_de_base <- function(regla, data, base) {
+  if (!is.list(regla)) return(regla)
+  attr(regla, "mas_sin_conglomerado") <- NULL
+  cl <- as.character(regla$conglomerado %||% "")[1]
+  if (!identical(regla$prueba, "rao_scott") || is.na(cl) || !nzchar(cl) || !is.data.frame(data) || cl %in% names(data)) {
+    return(regla)
+  }
+  attr(regla, "mas_sin_conglomerado") <- as.character(base %||% "")[1]
+  regla
+}
+
+#' Regla con que el render o la tabla de un export multibase prueban los datos que tienen delante
+#' @keywords internal
+.sig_regla_de_datos <- function(ctx, regla, data, base = NULL) {
+  if (is.null(ctx$base_familia)) return(regla)   # una sola base: la regla tal cual
+  .sig_regla_de_base(regla, data, base %||% ctx$base_familia)
+}
+
+#' Valida la regla contra las bases del estudio: Rao-Scott exige el conglomerado en al menos una base
+#'
+#' Con una sola base es `.sig_regla_validar_base`. Con varias, las bases que traen la columna se validan (estrato
+#' anidado); si ninguna la trae, 422 `E_SIG_SIN_CONGLOMERADO`.
+#' @keywords internal
+.sig_regla_validar_bases <- function(regla, data_sources) {
+  ds <- Filter(is.data.frame, data_sources %||% list())
+  if (length(ds) <= 1L || !identical(regla$prueba, "rao_scott")) {
+    return(.sig_regla_validar_base(regla, if (length(ds)) ds[[1]] else NULL))
+  }
+  cl <- as.character(regla$conglomerado %||% "")[1]
+  con <- Filter(function(d) !is.na(cl) && nzchar(cl) && cl %in% names(d), ds)
+  if (!length(con)) return(.sig_regla_validar_base(regla, ds[[1]]))   # el 422 de siempre, con su mensaje
+  for (d in con) .sig_regla_validar_base(regla, d)
+  invisible(TRUE)
+}
+
 #' Base de una ranura con cruce: la que nombra, la activa si es pelada, o `NA` si es ambigua o desconocida
 #' @keywords internal
 .sig_base_de_lamina_o_na <- function(slide, bases, activa) {
@@ -103,6 +145,7 @@
                                        regla_informe = NULL) {
   cfg <- graficos_config
   if (is.list(cfg) && !is.null(cfg$plan)) cfg$plan <- .sig_plan_de_base(cfg$plan, base, activa, bases)
+  if (length(bases) > 1L && !is.null(regla_informe)) regla_informe$regla <- .sig_regla_de_base(regla_informe$regla, data, base)
   .sig_contexto_estudio(data, inst, cfg, analitica_config, regla_informe = regla_informe,
                         con_analitica = length(bases) <= 1L || identical(base, activa))
 }

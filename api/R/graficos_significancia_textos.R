@@ -28,6 +28,15 @@
   gsub("[_.]+", " ", tolower(sub("_id$", "", col)))
 }
 
+#' Línea de la nota para una base sin la columna de conglomerado en un estudio multibase, o NULL
+#' @keywords internal
+.sig_texto_sin_conglomerado <- function(regla) {
+  base <- attr(regla, "mas_sin_conglomerado")
+  if (is.null(base)) return(NULL)
+  nombre <- if (nzchar(base)) .radar_mb_capitalizar(base) else "esta base"
+  sprintf("En %s no hay conglomerado: se prueba como muestreo aleatorio simple.", nombre)
+}
+
 #' Frase del método: qué prueba y qué corrección
 #' @keywords internal
 .sig_texto_metodo <- function(regla) {

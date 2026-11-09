@@ -131,6 +131,8 @@ test_that("el plan de una base: las ranuras de otra base no entran en su familia
   if (!is.null(ac)) .analitica_config_set(sid, ac)
   sid
 }
+# La regla sin la marca de la base sin conglomerado (`.sig_regla_de_base`): la regla del informe es una sola.
+.fpb_sin_marca <- function(r) { attr(r, "mas_sin_conglomerado") <- NULL; r }
 .fpb_pr <- function() mount_graficos_diferencias(plumber::pr_set_serializer(plumber::pr(), .api_serializer()))
 .fpb_p_crudos <- function(d, inst, vars, regla) {
   f <- .sig_fuente(d, inst)
@@ -178,7 +180,7 @@ test_that("una regla por informe: sin regla guardada se propone sobre todas las 
   reglas <- lapply(list(c("docentes", "estudiantes"), c("estudiantes", "docentes")), function(orden) {
     previa <- .sig_informe_preparar(sig, ds[orden], is[orden], "docentes")
     on.exit(options(previa))
-    getOption("prosecnur.sig_informe")$regla
+    .fpb_sin_marca(getOption("prosecnur.sig_informe")$regla)
   })
   expect_identical(reglas[[1]], reglas[[2]])
   expect_identical(reglas[[1]]$prueba, "rao_scott")
@@ -189,8 +191,8 @@ test_that("una regla por informe: sin regla guardada se propone sobre todas las 
   r <- .fpb_get(.fpb_pr(), sid, "/api/graficos/diferencias/regla")
   expect_identical(r$body$regla$prueba, "rao_scott")
   expect_identical(r$body$propuesta$conglomerado, "aula")
-  expect_identical(.sig_contexto_sesion(sid, base = "estudiantes")$ctx$regla, reglas[[1]])
-  expect_identical(.sig_contexto_sesion(sid)$ctx$regla, reglas[[1]])
+  expect_identical(.fpb_sin_marca(.sig_contexto_sesion(sid, base = "estudiantes")$ctx$regla), reglas[[1]])
+  expect_identical(.fpb_sin_marca(.sig_contexto_sesion(sid)$ctx$regla), reglas[[1]])
 })
 
 test_that("una base sin ranuras: la activa sin ranuras tiene familia vacía; sin otras bases no viajan familias", {
@@ -276,4 +278,85 @@ test_that("Analítica con cruces entra sólo en la familia de la base de su conf
   expect_identical(.sig_contexto_sesion(sid)$ctx$m, opt$m)
   expect_identical(.sig_contexto_sesion(sid, base = "estudiantes")$ctx$m, opt$familias$estudiantes$m)
   expect_identical(.sig_contexto_sesion(sid, base = "estudiantes")$ctx$familia, opt$familias$estudiantes$familia)
+})
+
+# --- Decisión del lead (ADR 0138 «Conglomerado»): una base sin la columna de conglomerado entra como muestreo aleatorio
+# simple, no se abstiene; la regla se valida contra las bases del estudio. ------------------------------------------
+
+.fpb_rs <- list(prueba = "rao_scott", correccion = "bh_informe", conglomerado = "aula", umbral_puntos = 0, base_minima = 20)
+.fpb_ds_aula <- function() {
+  ds <- .fpb_ds()
+  ds$estudiantes$aula <- rep(sprintf("A%02d", 1:30), each = 10)   # el conglomerado sólo está en estudiantes
+  ds
+}
+.fpb_post <- function(pr, sid, path, cuerpo) {
+  body <- charToRaw(enc2utf8(as.character(jsonlite::toJSON(cuerpo, auto_unbox = TRUE, null = "null"))))
+  req <- as.environment(list(REQUEST_METHOD = "POST", PATH_INFO = path, QUERY_STRING = "", CONTENT_TYPE = "application/json",
+                             HTTP_X_PULSO_SESSION = sid, HEADERS = c(`x-pulso-session` = sid, `content-type` = "application/json"),
+                             bodyRaw = body,
+                             rook.input = list(read = function(...) body, rewind = function() invisible(0), read_lines = function(...) rawToChar(body))))
+  res <- pr$call(req)
+  list(status = as.integer(res$status), body = jsonlite::fromJSON(as.character(res$body), simplifyVector = FALSE))
+}
+.fpb_texto_mas <- "En Docentes no hay conglomerado: se prueba como muestreo aleatorio simple."
+
+test_that("Rao-Scott único: la base sin conglomerado se prueba como muestreo aleatorio simple y la nota lo dice", {
+  skip_if_not_installed("plumber")
+  ds <- .fpb_ds_aula(); is <- .fpb_is()
+  plan <- list(slides = list(.fpb_lam("est", "estudiantes$p3", "estudiantes$gedad"), .fpb_lam("doc", "p3", "gedad")))
+  sig <- .fpb_sig_arg(plan); sig$graficos_config$significancia <- .fpb_rs
+  previa <- .sig_informe_preparar(sig, ds, is, "docentes")
+  on.exit(options(previa), add = TRUE)
+  opt <- getOption("prosecnur.sig_informe")
+  regla <- .sig_regla_normalizar(.fpb_rs)
+  # Docentes: Rao-Scott sin conglomerados = cada caso es su conglomerado (lo mismo que entre públicos).
+  f <- .sig_fuente(ds$docentes, is$docentes)
+  ind <- .sig_indicadores(ds$docentes, "p3", survey = is$docentes$survey)
+  ref <- .sig_contrastes(ind$Y[, "1", drop = FALSE], ds$docentes$gedad, c("a", "b"), cluster = NULL, w = ind$w,
+                         prueba = "rao_scott")
+  expect_identical(as.integer(opt$m), 1L)
+  ev <- .fpb_render(ds, is, "docentes")
+  expect_null(ev$abstencion)
+  expect_equal(ev$pares$p[ev$pares$fila == "1"], ref$pares$p[ref$pares$fila == "1"])
+  expect_match(gsub("\\s+", " ", .sig_nota_de_evaluacion(ev, ev$regla)), .fpb_texto_mas, fixed = TRUE)
+  # Estudiantes (con aula) no lleva esa línea.
+  ev_est <- .fpb_render(ds, is, "estudiantes")
+  expect_false(grepl("no hay conglomerado", .sig_nota_de_evaluacion(ev_est, ev_est$regla)))
+  # Tabla de cruces de docentes en el mismo export: letras con la regla, no abstención.
+  tab <- .cruces_comparar_con_regla(ds$docentes, "p3", c("1", "2"), c("1", "2"), c("a", "b"), "gedad", "so", "peso",
+                                    opt$regla, opt$familia)
+  expect_identical(tab$method, "regla_rao_scott")
+  expect_false(any(tab$letras == ".b"))
+
+  # Inspector: la misma prueba y la misma nota.
+  sid <- .fpb_sesion(ds, is, plan, regla = .fpb_rs); on.exit(session_delete(sid), add = TRUE)
+  r <- .fpb_get(.fpb_pr(), sid, "/api/graficos/diferencias", "slide=doc")
+  expect_identical(r$status, 200L)
+  expect_false(identical(r$body$lamina$estado, "abstencion"))
+  expect_match(gsub("\\s+", " ", r$body$lamina$nota %||% ""), .fpb_texto_mas, fixed = TRUE)
+  expect_identical(r$body$regla$conglomerado, "aula")
+})
+
+test_that("POST /regla: acepta un conglomerado que sólo trae otra base; sin ninguna base con la columna, 422", {
+  skip_if_not_installed("plumber")
+  ds <- .fpb_ds_aula(); is <- .fpb_is()
+  plan <- list(slides = list(.fpb_lam("doc", "p3", "gedad")))
+  sid <- .fpb_sesion(ds, is, plan, regla = NULL); on.exit(session_delete(sid), add = TRUE)
+  pr <- .fpb_pr()
+  r <- .fpb_post(pr, sid, "/api/graficos/diferencias/regla", list(regla = .fpb_rs))
+  expect_identical(r$status, 200L)
+  expect_identical(.graficos_config_get(sid)$significancia$conglomerado, "aula")
+  mala <- .fpb_rs; mala$conglomerado <- "salon"
+  r2 <- .fpb_post(pr, sid, "/api/graficos/diferencias/regla", list(regla = mala))
+  expect_identical(r2$status, 422L)
+  expect_identical(r2$body$error$code %||% r2$body$code, "E_SIG_SIN_CONGLOMERADO")
+})
+
+test_that("una sola base sin la columna de conglomerado sigue absteniéndose (sin cambio)", {
+  d <- .fpb_ds()$docentes; inst <- .fpb_is()$docentes
+  ctx <- .sig_contexto_estudio_base(d, inst, list(significancia = .fpb_rs, plan = list(slides = list())), NULL,
+                                    "docentes", "docentes", "docentes",
+                                    regla_informe = list(regla = .sig_regla_normalizar(.fpb_rs), origen = "estudio"))
+  expect_null(attr(ctx$regla, "mas_sin_conglomerado"))
+  expect_false(is.null(.sig_diseno_invalido(d, ctx$regla)))
 })

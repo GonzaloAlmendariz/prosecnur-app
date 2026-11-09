@@ -219,6 +219,7 @@
 #' @keywords internal
 .sig_regla_json <- function(regla) {
   if (!is.list(regla)) return(regla)
+  attr(regla, "mas_sin_conglomerado") <- NULL   # marca interna de la base sin conglomerado: no viaja al cliente
   for (k in c("conglomerado", "estrato")) if (is.null(regla[[k]])) regla[k] <- list(NA)
   regla
 }

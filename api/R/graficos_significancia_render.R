@@ -64,7 +64,7 @@
   if (!inherits(fuente, "sig_fuente") || is.null(fuente$data) || is.null(fuente$g)) return(NULL)
   d <- as.data.frame(fuente$data, stringsAsFactors = FALSE)
   ctx <- .sig_contexto_render(d)
-  regla <- ctx$regla
+  regla <- .sig_regla_de_datos(ctx, ctx$regla, d, fuente$base)   # multibase: la base sin conglomerado, como MAS
   motivo <- .sig_diseno_invalido(d, regla)   # ADR 0127 §1: estrato no anidado en el conglomerado
   if (!is.null(motivo)) return(list(abstencion = paste("No se marcan diferencias:", motivo), regla = regla))
   ind <- tryCatch(.sig_indicadores(d, fuente$var, survey = fuente$survey, orders_list = fuente$orders_list),

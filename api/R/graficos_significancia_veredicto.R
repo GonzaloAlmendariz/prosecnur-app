@@ -263,7 +263,7 @@
 #' @keywords internal
 .sig_nota_de_evaluacion <- function(ev, regla, niveles = FALSE) {
   chicos <- if (!is.null(ev$grupos)) ev$grupos$etiqueta[!ev$grupos$comparable] else character(0)
-  contexto <- .sig_texto_bases_chicas(regla, chicos)
+  contexto <- c(.sig_texto_sin_conglomerado(regla), .sig_texto_bases_chicas(regla, chicos))
   marcas <- ev$marcas
   if (!is.null(marcas) && nrow(marcas)) {
     linea <- .sig_texto_linea_marcas(regla, hay_fragiles = any(marcas$fragil),

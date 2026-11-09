@@ -28,9 +28,9 @@
   }
   # Sin config de Analítica (estudio sin esa fase) la familia se arma solo con las láminas: no es un error del pedido.
   ac <- tryCatch(.analitica_get_config(sid), error = function(e) list())
-  # La regla se valida contra la base activa, que es donde se guarda; la lámina de otra base (R12-2) se abstiene si no
-  # trae la columna de diseño (`.sig_diseno_invalido` en `.sig_lamina_json`), como en el render.
-  if (is.list(cfg$significancia) && is.null(base)) .sig_regla_validar_base(.sig_regla_normalizar(cfg$significancia), f$data)
+  # Rao-Scott se acepta si al menos una base trae el conglomerado; la base que no lo trae se prueba como muestreo
+  # aleatorio simple (ADR 0138 «Conglomerado», `.sig_regla_de_base`).
+  if (is.list(cfg$significancia) && is.null(base)) .sig_regla_validar_bases(.sig_regla_normalizar(cfg$significancia), f$sources)
   # ADR 0128 «Familia por base»: una regla para todo el informe y la familia de la base sobre sus ranuras.
   ctx <- .sig_contexto_estudio_base(f$data, f$inst, cfg, ac, f$base, f$activa, f$bases,
                                     regla_informe = .sig_regla_informe(cfg, f$sources, ac))
