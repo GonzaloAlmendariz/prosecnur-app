@@ -70,9 +70,12 @@ describe("C6: galerías sin pistas fijas", () => {
 
 describe("C7: cabecera del selector en angosto", () => {
   it("bajo 1180 px parte en dos renglones", () => {
+    // W3: la cabecera es la rejilla de CabeceraPanel; bajo 1180 px las acciones bajan a una fila propia de todo el ancho.
     const i = selectores.indexOf("@media (max-width: 1180px) {\n  .pulso-f6-selector-cabecera {");
     expect(i).toBeGreaterThan(-1);
-    expect(selectores.slice(i, i + 200)).toContain("flex-wrap: wrap");
+    const angosto = selectores.slice(i, i + 400);
+    expect(angosto).toContain(".pulso-f6-selector-cabecera > .pulso-cabecera-panel__acciones {");
+    expect(angosto).toContain("grid-column: 1 / -1;");
   });
 });
 

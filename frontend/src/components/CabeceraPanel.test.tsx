@@ -3,6 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
+import * as RadixDialog from "@radix-ui/react-dialog";
+import { createRef } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Settings } from "../vendor/lucide-react";
@@ -84,5 +86,64 @@ describe("CabeceraPanel", () => {
     expect(bloque(".pulso-cabecera-panel__cerrar")).toContain("grid-row: 1;");
     expect(bloque(".pulso-cabecera-panel__acciones")).toContain("grid-row: 1;");
     expect(hoja.replace(/\/\*[\s\S]*?\*\//g, "")).not.toMatch(/#[0-9a-f]{3,8}\b/i);
+  });
+
+  it("W3: antetítulo sobre el título; la X, el ícono y las acciones bajan a la fila del título", () => {
+    const html = renderToStaticMarkup(
+      <CabeceraPanel titulo="¿Qué lámina?" antetitulo="Lámina 3" onCerrar={() => {}} etiquetaCerrar="Cerrar sin cambiar" />,
+    );
+    expect(html).toContain("pulso-cabecera-panel--con-antetitulo");
+    expect(html).toMatch(/<div class="pulso-cabecera-panel__antetitulo">Lámina 3<\/div><h2/);
+    const fila = bloque(".pulso-cabecera-panel--con-antetitulo > :is(.pulso-cabecera-panel__titulo, .pulso-cabecera-panel__icono, .pulso-cabecera-panel__acciones, .pulso-cabecera-panel__cerrar)");
+    expect(fila).toContain("grid-row: 2;");
+    const ante = bloque(".pulso-cabecera-panel__antetitulo");
+    expect(ante).toContain("color: var(--pulso-text-faint);");
+    expect(ante).not.toMatch(/accent/);
+  });
+
+  it("W3: data-* pasan a la raíz, raíz header, ref al título enfocable y X deshabilitable", () => {
+    const tituloRef = createRef<HTMLHeadingElement>();
+    const contenedor = document.createElement("div");
+    document.body.appendChild(contenedor);
+    const root = createRoot(contenedor);
+    act(() =>
+      root.render(
+        <CabeceraPanel
+          como="header"
+          titulo={<em>Mazo</em>}
+          tituloCompleto="Mazo del resumen"
+          tituloRef={tituloRef}
+          tituloEnfocable
+          data-qa-geometry-member=""
+          data-audit="cabecera"
+          onCerrar={() => {}}
+          cerrarDeshabilitado
+        />,
+      ),
+    );
+    const raiz = contenedor.firstElementChild as HTMLElement;
+    expect(raiz.tagName).toBe("HEADER");
+    expect(raiz.getAttribute("data-qa-geometry-member")).toBe("");
+    expect(raiz.getAttribute("data-audit")).toBe("cabecera");
+    expect(tituloRef.current?.tagName).toBe("H2");
+    expect(tituloRef.current?.getAttribute("tabindex")).toBe("-1");
+    expect(tituloRef.current?.getAttribute("title")).toBe("Mazo del resumen");
+    const x = contenedor.querySelector<HTMLButtonElement>('button[aria-label="Cerrar Mazo del resumen"]');
+    expect(x?.disabled).toBe(true);
+    act(() => root.unmount());
+  });
+
+  it("W3: enDialogo nombra y describe el diálogo de Radix desde la cabecera", () => {
+    const html = renderToStaticMarkup(
+      <RadixDialog.Root open>
+        <RadixDialog.Content>
+          <CabeceraPanel enDialogo titulo="Publicar" subtitulo="Sube el proyecto" />
+        </RadixDialog.Content>
+      </RadixDialog.Root>,
+    );
+    const labelledby = /aria-labelledby="([^"]+)"/.exec(html)?.[1];
+    const describedby = /aria-describedby="([^"]+)"/.exec(html)?.[1];
+    expect(html).toMatch(new RegExp(`<h2[^>]*id="${labelledby}"[^>]*>Publicar</h2>`));
+    expect(html).toMatch(new RegExp(`<p[^>]*id="${describedby}"[^>]*>Sube el proyecto</p>`));
   });
 });

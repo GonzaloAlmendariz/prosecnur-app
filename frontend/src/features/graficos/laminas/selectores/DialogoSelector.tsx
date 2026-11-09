@@ -1,11 +1,11 @@
-// Marco común de los diálogos «¿Qué lámina?» y «¿Qué gráfico?» (F6.2; dirección F6 §4.3–4.4): cabecera propia (lleva
-// antetítulo, modo, buscador y una acción, que CabeceraPanel no admite; la X sí es la del kit, BotonCerrar) y
-// tres columnas —la pregunta, las tarjetas y el detalle— cada una con su propio desplazamiento (C4). Diálogo modal de
-// Radix: Escape y el velo cierran, el foco entra en la primera opción y vuelve a quien lo abrió.
+// Marco común de los diálogos «¿Qué lámina?» y «¿Qué gráfico?» (F6.2; dirección F6 §4.3–4.4): la cabecera del kit
+// (CabeceraPanel con antetítulo, modo, buscador, una acción y la X del kit; W3) y tres columnas —la pregunta, las
+// tarjetas y el detalle— cada una con su propio desplazamiento (C4). Diálogo modal de Radix: Escape y el velo cierran,
+// el foco entra en la primera opción y vuelve a quien lo abrió.
 
 import * as Dialog from "@radix-ui/react-dialog";
 import { useMemo, useRef, type ReactNode, type RefObject } from "react";
-import { BotonCerrar } from "../../../../components/BotonCerrar";
+import { CabeceraPanel } from "../../../../components/CabeceraPanel";
 import { useLibraryDialogA11y } from "../../useLibraryDialogA11y";
 import "./selectores.css";
 
@@ -78,28 +78,34 @@ export function DialogoSelector({
               alEscape();
             }}
           >
-            <header className="pulso-f6-selector-cabecera">
-              <div className="pulso-f6-selector-titulos">
-                {typeof antetitulo === "string"
-                  ? <span className="pulso-f6-selector-antetitulo">{antetitulo}</span>
-                  : (
-                    <span className="pulso-f6-selector-antetitulo is-partido">
-                      <span className={`pulso-f6-selector-antetitulo-cede${antetitulo.corto ? " is-con-corto" : ""}`}>{antetitulo.texto}</span>
-                      {antetitulo.corto && <span className="pulso-f6-selector-antetitulo-corto">{antetitulo.corto}</span>}{" "}
-                      <span className="pulso-f6-selector-antetitulo-fijo">{antetitulo.fijo}</span>
-                    </span>
-                  )}
-                <Dialog.Title className="pulso-f6-selector-titulo">{titulo}</Dialog.Title>
-                <Dialog.Description className="pulso-f6-selector-descripcion">{descripcion}</Dialog.Description>
-              </div>
-              {modo && <div className="pulso-f6-selector-modo">{modo}</div>}
-              {buscador && <div className="pulso-f6-selector-buscador">{buscador}</div>}
-              {accion && <div className="pulso-f6-selector-accion">{accion}</div>}
-              {/* La X del kit (BotonCerrar), alineada a la línea del título y no a la del antetítulo (selectores.css). */}
-              <Dialog.Close asChild>
-                <BotonCerrar className="pulso-f6-selector-cerrar" aria-label="Cerrar sin cambiar" />
-              </Dialog.Close>
-            </header>
+            {/* W3: la cabecera del kit (CabeceraPanel) con antetítulo, título y descripción de Radix, las acciones del
+                selector y la X del kit en la línea del título. Bajo 1180 px las acciones bajan a su propio renglón
+                (W1B-C7, selectores.css). */}
+            <CabeceraPanel
+              como="header"
+              enDialogo
+              className="pulso-f6-selector-cabecera"
+              antetitulo={typeof antetitulo === "string"
+                ? <span className="pulso-f6-selector-antetitulo">{antetitulo}</span>
+                : (
+                  <span className="pulso-f6-selector-antetitulo is-partido">
+                    <span className={`pulso-f6-selector-antetitulo-cede${antetitulo.corto ? " is-con-corto" : ""}`}>{antetitulo.texto}</span>
+                    {antetitulo.corto && <span className="pulso-f6-selector-antetitulo-corto">{antetitulo.corto}</span>}{" "}
+                    <span className="pulso-f6-selector-antetitulo-fijo">{antetitulo.fijo}</span>
+                  </span>
+                )}
+              titulo={titulo}
+              subtitulo={descripcion}
+              acciones={modo || buscador || accion ? (
+                <>
+                  {modo && <div className="pulso-f6-selector-modo">{modo}</div>}
+                  {buscador && <div className="pulso-f6-selector-buscador">{buscador}</div>}
+                  {accion && <div className="pulso-f6-selector-accion">{accion}</div>}
+                </>
+              ) : undefined}
+              onCerrar={onCerrar}
+              etiquetaCerrar="Cerrar sin cambiar"
+            />
             <div className="pulso-f6-selector-cuerpo" data-qa-geometry-group={`graficos/${auditReady}-columnas`} data-qa-geometry-contract="intrinsic">
               {/* La pregunta es un carril: su alto lo fija el diálogo (no las opciones que tenga) y su material propio
                   (fondo y borde) lo hace visible de arriba abajo. Con pocas opciones el espacio bajo la última es de

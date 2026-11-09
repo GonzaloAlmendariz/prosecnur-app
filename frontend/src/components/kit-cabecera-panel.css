@@ -81,3 +81,47 @@
   justify-self: end;
   margin-inline-start: var(--pulso-space-1);
 }
+
+/* Antetítulo (W3, 9 nov 2026): una línea de contexto SOBRE el título, en text-faint y nunca en el acento (contrato
+ * D1). Con antetítulo la rejilla gana una fila arriba y el título, el ícono, las acciones y la X bajan juntos a la
+ * segunda: la X sigue en la línea del título, no en la del antetítulo. */
+.pulso-cabecera-panel--con-antetitulo {
+  grid-template-rows: auto minmax(var(--pulso-close-size), auto);
+}
+
+.pulso-cabecera-panel--con-antetitulo.pulso-cabecera-panel--con-subtitulo {
+  grid-template-rows: auto minmax(var(--pulso-close-size), auto) auto;
+}
+
+.pulso-cabecera-panel__antetitulo {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-type-eyebrow-weight);
+  letter-spacing: 0.04em;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.pulso-cabecera-panel--con-antetitulo > :is(.pulso-cabecera-panel__titulo, .pulso-cabecera-panel__icono, .pulso-cabecera-panel__acciones, .pulso-cabecera-panel__cerrar) {
+  grid-row: 2;
+}
+
+.pulso-cabecera-panel--con-antetitulo > .pulso-cabecera-panel__subtitulo {
+  grid-row: 3;
+}
+
+/* Un título enfocable por código (tituloEnfocable) lleva el anillo único sólo si el foco llegó por teclado. */
+.pulso-cabecera-panel__titulo:focus {
+  outline: none;
+}
+
+.pulso-cabecera-panel__titulo:focus-visible {
+  outline: var(--mov-foco);
+  outline-offset: 2px;
+}

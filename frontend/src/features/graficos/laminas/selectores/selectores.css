@@ -38,38 +38,10 @@
   outline: none;
 }
 
-.pulso-f6-selector-cabecera {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--pulso-space-3);
+/* W3: la cabecera es CabeceraPanel (kit-cabecera-panel.css): rejilla, título, antetítulo en text-faint, X en la línea
+   del título. Aquí sólo el aire del diálogo grande (el de sus columnas). */
+.pulso-f6-selector-cabecera.pulso-cabecera-panel {
   padding: var(--pulso-space-3) var(--pulso-space-4);
-  border-bottom: 1px solid var(--pulso-border);
-}
-
-.pulso-f6-selector-titulos {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-
-/* Acabado W2-A (contrato B): la X va en la línea del TÍTULO, no en la del antetítulo. Las dos líneas tienen alto fijo
-   y la X baja exactamente lo que miden el antetítulo y el hueco, más la mitad de lo que el título le saca a la caja de
-   la X. Vale para la cabecera en un renglón y para la de dos renglones bajo 1180 px (W1B-C7), y para «Íconos del
-   índice», que comparte la cabecera. */
-.pulso-f6-selector {
-  --pulso-f6-selector-antetitulo-lh: 16px;
-  --pulso-f6-selector-titulo-lh: 24px;
-}
-
-.pulso-f6-selector-cabecera > .pulso-f6-selector-cerrar {
-  flex: none;
-  align-self: flex-start;
-  margin-top: calc(var(--pulso-f6-selector-antetitulo-lh) + 2px + (var(--pulso-f6-selector-titulo-lh) - var(--pulso-close-size)) / 2);
-}
-
-.pulso-f6-selector-antetitulo {
-  line-height: var(--pulso-f6-selector-antetitulo-lh);
 }
 
 .pulso-f6-selector-antetitulo,
@@ -79,19 +51,6 @@
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
-}
-
-.pulso-f6-selector-titulo {
-  margin: 0;
-  font-size: var(--pulso-type-title-size);
-  font-weight: var(--pulso-weight-semibold);
-  line-height: var(--pulso-f6-selector-titulo-lh);
-}
-
-.pulso-f6-selector-descripcion {
-  margin: 0;
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-body-size);
 }
 
 .pulso-f6-selector-cuerpo {
@@ -746,7 +705,7 @@
     white-space: nowrap;
   }
 
-  .pulso-f6-selector-descripcion {
+  .pulso-f6-selector-cabecera .pulso-cabecera-panel__subtitulo {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -763,37 +722,24 @@
 
 /* W1B-C7: bajo 1180 px la cabecera va en dos renglones. Arriba el título con la X; abajo el modo, el buscador (que se
    queda con el sobrante) y la acción. En uno solo, a 1024 el título partía en dos líneas y el buscador se apretaba
-   entre el modo y la acción. Sólo orden y reparto: el marcado de DialogoSelector no cambia, y una pieza ausente (el
-   selector de gráfico no lleva modo) no deja hueco. */
+   entre el modo y la acción. W3: la cabecera es la rejilla de CabeceraPanel; las acciones bajan a una fila propia que
+   ocupa todo el ancho, y una pieza ausente (el selector de gráfico no lleva modo) no deja hueco. */
 @media (max-width: 1180px) {
   .pulso-f6-selector-cabecera {
-    flex-wrap: wrap;
-    align-items: center;
     row-gap: var(--pulso-space-2);
   }
 
-  .pulso-f6-selector-titulos {
-    order: 0;
-    flex: 1 1 calc(100% - var(--pulso-close-hit) - var(--pulso-space-3));
-  }
-
-  .pulso-f6-selector-cerrar {
-    order: 1;
-    align-self: flex-start;
-  }
-
-  .pulso-f6-selector-modo {
-    order: 2;
+  .pulso-f6-selector-cabecera > .pulso-cabecera-panel__acciones {
+    display: flex;
+    flex-wrap: wrap;
+    grid-column: 1 / -1;
+    grid-row: 4;
+    margin-inline-start: 0;
   }
 
   .pulso-f6-selector-buscador {
-    order: 3;
     flex: 1 1 240px;
     margin-left: 0;
-  }
-
-  .pulso-f6-selector-accion {
-    order: 4;
   }
 }
 

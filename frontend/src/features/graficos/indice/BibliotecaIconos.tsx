@@ -7,7 +7,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Ban, Loader2, RefreshCw, Search, Sparkles } from "../../../vendor/lucide-react";
 import { apiGraficosElegirIconos, type ContextoIcono, type EleccionIcono } from "../../../api/graficosRecursos";
 import { PulsoButton } from "../../../components/PulsoButton";
-import { BotonCerrar } from "../../../components/BotonCerrar";
+import { CabeceraPanel } from "../../../components/CabeceraPanel";
 import { usePanelDireccionable } from "../../../lib/navegacion/paneles";
 import { PANEL_ICONOS } from "../panelesGraficos";
 import { useLibraryDialogA11y } from "../useLibraryDialogA11y";
@@ -89,7 +89,7 @@ export function ContenidoBiblioteca({ panelProps, numero, titulo, actual, onCerr
   const t = textos ?? TEXTOS_CAPITULO(numero);
   const id = useId();
   const buscarRef = useRef<HTMLInputElement>(null);
-  const anclaRef = useRef<HTMLDivElement>(null);
+  const anclaRef = useRef<HTMLHeadingElement>(null);
   const a11y = useLibraryDialogA11y({ searchRef: buscarRef, fallbackFocusRef: anclaRef });
   const inicial = actual === null || actual === ICONO_AUTOMATICO || actual === SIN_ICONO ? (actual ?? ICONO_AUTOMATICO) : iconoEnBiblioteca(actual);
   const [eleccion, setEleccion] = useState(inicial);
@@ -111,20 +111,19 @@ export function ContenidoBiblioteca({ panelProps, numero, titulo, actual, onCerr
       data-qa-surface="graficos/f6-iconos-indice"
       aria-modal="true"
     >
-      <header className="pulso-f6-selector-cabecera">
-        <div className="pulso-f6-selector-titulos" ref={anclaRef} tabIndex={-1}>
-          <span className="pulso-f6-selector-antetitulo">{t.antetitulo}</span>
-          <Dialog.Title className="pulso-f6-selector-titulo">
-            {actual === null ? "Íconos del índice" : t.tituloDialogo}
-          </Dialog.Title>
-          <Dialog.Description className="pulso-f6-selector-descripcion">
-            {actual === null ? "El índice no tiene capítulos: añade uno para elegir su ícono." : titulo ? `«${titulo}»` : t.sinTitulo}
-          </Dialog.Description>
-        </div>
-        <Dialog.Close asChild>
-          <BotonCerrar className="pulso-f6-selector-cerrar" aria-label="Cerrar sin cambiar" />
-        </Dialog.Close>
-      </header>
+      {/* W3: la cabecera del kit, la misma del selector de láminas; el título es el ancla del foco de respaldo. */}
+      <CabeceraPanel
+        como="header"
+        enDialogo
+        className="pulso-f6-selector-cabecera"
+        tituloRef={anclaRef}
+        tituloEnfocable
+        antetitulo={t.antetitulo}
+        titulo={actual === null ? "Íconos del índice" : t.tituloDialogo}
+        subtitulo={actual === null ? "El índice no tiene capítulos: añade uno para elegir su ícono." : titulo ? `«${titulo}»` : t.sinTitulo}
+        onCerrar={onCerrar}
+        etiquetaCerrar="Cerrar sin cambiar"
+      />
 
       <div className="pulso-f6-iconos-cuerpo" data-qa-geometry-group="graficos/f6-iconos-indice" data-qa-geometry-contract="intrinsic">
         <div className="pulso-f6-iconos-buscar">

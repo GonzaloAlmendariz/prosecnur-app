@@ -20,14 +20,12 @@ type Props = {
 
 export function EdicionReglaMazo({ id, propuesta: p, scope, onRegla, onCerrar }: Props) {
   const ref = useRef<HTMLElement>(null);
-  const cabecera = useRef<HTMLDivElement>(null);
+  const titulo = useRef<HTMLHeadingElement>(null);
 
-  // Al abrir (o al pasar a otra tarjeta), el foco entra al lateral: a su título, que se vuelve enfocable sólo por código.
+  // Al abrir (o al pasar a otra tarjeta), el foco entra al lateral: a su título, enfocable sólo por código (W3: la
+  // cabecera del kit lo expone con `tituloRef` + `tituloEnfocable`; antes se buscaba por clase y se mutaba tabIndex).
   useEffect(() => {
-    const t = cabecera.current?.querySelector<HTMLElement>(".pulso-cabecera-panel__titulo");
-    if (!t) return;
-    t.tabIndex = -1;
-    t.focus();
+    titulo.current?.focus();
   }, [p.id]);
 
   // Escape en captura sobre window: llega antes que el listener del diálogo (Radix escucha en document) y, si el foco
@@ -48,7 +46,7 @@ export function EdicionReglaMazo({ id, propuesta: p, scope, onRegla, onCerrar }:
     <aside ref={ref} id={id} className="pulso-f6-mazo-lateral" aria-labelledby={`${id}-titulo`} data-qa-geometry-member
       data-qa-geometry-capacity="owned">
       {/* W2-B: la gramática única de cierre (CabeceraPanel + BotonCerrar); quién lee la lámina va de subtítulo. */}
-      <CabeceraPanel ref={cabecera} className="pulso-f6-mazo-lateral-cabeza" nivel={3} tituloId={`${id}-titulo`}
+      <CabeceraPanel tituloRef={titulo} tituloEnfocable className="pulso-f6-mazo-lateral-cabeza" nivel={3} tituloId={`${id}-titulo`}
         titulo={p.nombre} subtitulo={listaPublicos(p.publicos)} onCerrar={onCerrar} etiquetaCerrar="Cerrar la regla de preguntas" />
       <ReglaPreguntas
         rotulo="Regla de preguntas"

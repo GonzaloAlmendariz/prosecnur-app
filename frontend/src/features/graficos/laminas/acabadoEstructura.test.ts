@@ -138,11 +138,13 @@ describe("W2-A: una sola gramática de cierre", () => {
     },
   );
 
-  it("el selector cierra con BotonCerrar dentro de Dialog.Close, alineado a la línea del título", () => {
+  it("W3: el selector usa la cabecera del kit con antetítulo y título de Radix, sin X ni cabecera propias", () => {
     const src = sinComentarios(leer("selectores/DialogoSelector.tsx"));
-    expect(src).toMatch(/<Dialog\.Close asChild>\s*<BotonCerrar className="pulso-f6-selector-cerrar"/);
+    expect(src).toMatch(/<CabeceraPanel\b[\s\S]*enDialogo[\s\S]*antetitulo=/);
+    expect(src).toMatch(/etiquetaCerrar="Cerrar sin cambiar"/);
+    expect(src).not.toMatch(/<BotonCerrar\b|<Dialog\.Title\b|<X\b/);
     const css = sinComentarios(leer("selectores/selectores.css"));
-    expect(css).toMatch(/\.pulso-f6-selector-cabecera > \.pulso-f6-selector-cerrar \{[^}]*margin-top: calc\(var\(--pulso-f6-selector-antetitulo-lh\)/);
+    expect(css).not.toMatch(/pulso-f6-selector-cerrar|--pulso-f6-selector-antetitulo-lh/);
   });
 
   it("«Listo» y la X no conviven en el editor amplio: queda la X", () => {
