@@ -44,6 +44,22 @@ const VOCABULARIO_PROPIO: Record<string, string> = {
   operational_quota: "etiqueta de procedencia del stack de avance",
 };
 
+/**
+ * Palabras del vocabulario propio que también aparecen en api/R con OTRO sentido. El barrido busca la palabra, no el
+ * literal, así que un homónimo hace creer que el motor ya publica el estado. Cada entrada dice dónde está y qué es;
+ * el último test exige que el homónimo siga ahí, para que la excepción no sobreviva a su causa.
+ */
+const HOMONIMOS_EN_EL_MOTOR: Record<string, { archivo: string; patron: RegExp; razon: string }> = {
+  // ea4473e15 (hojas-ruta, ADR 0131 §1c): `hojas_ruta_regla_no_respuesta(sin_salto, en_distrito)`. Es un argumento
+  // booleano de la regla de no respuesta de la hoja del día, no un estado del caso: territorial lo sigue derivando en
+  // geoDisposition() y el motor de monitoreo no lo publica.
+  en_distrito: {
+    archivo: "hojas_ruta_tamano_extras.R",
+    patron: /hojas_ruta_regla_no_respuesta <- function\([^)]*\ben_distrito\b/,
+    razon: "argumento de hojas_ruta_regla_no_respuesta(), no un estado del caso",
+  },
+};
+
 /** Literales snake_case comparados: la forma de un estado, no de una clase CSS. */
 const COMPARADO = /(?:===|!==|\.includes\(|\bcase\s+)\s*"([a-z][a-z0-9]*(?:_[a-z0-9]+)+)"/g;
 
@@ -109,6 +125,7 @@ describe("los estados que territorial compara existen donde dice", () => {
 
   test("el vocabulario propio no se infla: lo que el motor ya publica sale de la lista", () => {
     const sobran = Object.keys(VOCABULARIO_PROPIO)
+      .filter((estado) => !(estado in HOMONIMOS_EN_EL_MOTOR))
       .filter((estado) => new RegExp(`\\b${estado}\\b`).test(motor))
       .sort();
     expect(
@@ -122,5 +139,13 @@ describe("los estados que territorial compara existen donde dice", () => {
       .filter(([, razon]) => razon.trim().length < 20)
       .map(([estado]) => estado);
     expect(mudas, "Una razón vacía convierte la lista en un permiso general.").toEqual([]);
+  });
+
+  test("cada homónimo declarado sigue en el motor con el sentido que dice (si cambia, la excepción sobra)", () => {
+    for (const [estado, h] of Object.entries(HOMONIMOS_EN_EL_MOTOR)) {
+      expect(estado in VOCABULARIO_PROPIO, `${estado}: un homónimo sólo excusa a una entrada del vocabulario propio`).toBe(true);
+      const fuente = readFileSync(path.join(rDir, h.archivo), "utf8");
+      expect(h.patron.test(fuente), `${estado}: ya no está en ${h.archivo} como ${h.razon}`).toBe(true);
+    }
   });
 });
