@@ -30,7 +30,7 @@ export default function PanelDatos({ ficha, filtrado }: { ficha: ExploradorFicha
         )}
         {d.n_otro_textos !== null && (
           <>
-            <dt>Textos en «Otro»</dt>
+            <dt>Textos en "Otro"</dt>
             <dd>{fmtN(d.n_otro_textos)}</dd>
           </>
         )}

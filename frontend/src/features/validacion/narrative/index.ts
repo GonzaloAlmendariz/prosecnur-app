@@ -206,7 +206,7 @@ export function buildActivationSummary(
     driverSections.flatMap((s) => s.items.map((it) => it.label ?? it.key)),
   );
   if (!labels.length) return "";
-  return `La regla se activa cuando ya están registrados ${humanList(labels.map((v) => `«${v}»`))}.`;
+  return `La regla se activa cuando ya están registrados ${humanList(labels.map((v) => `"${v}"`))}.`;
 }
 
 /** Frase sobre la comparación — si la regla cruza con otras variables. */
@@ -222,7 +222,7 @@ export function buildCompareSummary(
     compareSections.flatMap((s) => s.items.map((it) => it.label ?? it.key)),
   );
   if (!labels.length) return "";
-  return `Se valida comparando el caso con ${humanList(labels.map((v) => `«${v}»`))}.`;
+  return `Se valida comparando el caso con ${humanList(labels.map((v) => `"${v}"`))}.`;
 }
 
 function looksLikeTechnicalCondition(value: string): boolean {
@@ -283,7 +283,7 @@ export function displayTargetName(
   const target = sections.find((s) => s.role === "target")?.items[0];
   if (!target) return regla.variables?.[0] ?? regla.nombre ?? "la respuesta";
   const label = target.label && target.label !== target.key ? target.label : null;
-  return label ? `«${shortNarrativeLabel(label)}»` : `«${target.key}»`;
+  return label ? `"${shortNarrativeLabel(label)}"` : `"${target.key}"`;
 }
 
 function shortNarrativeLabel(label: string, max = 96): string {

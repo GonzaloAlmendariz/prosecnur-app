@@ -949,7 +949,7 @@ function Workbench({
         ) : queue.length === 0 ? (
           <EstadoVacio icono={<Inbox size={16} />} titulo="No hay hallazgos pendientes." />
         ) : filteredQueue.length === 0 ? (
-          <EstadoVacio icono={<Search size={16} />} titulo={`No hay hallazgos en «${filterCat}».`} />
+          <EstadoVacio icono={<Search size={16} />} titulo={`No hay hallazgos en "${filterCat}".`} />
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8, overflowY: "auto", paddingRight: 4 }}>
             {filteredQueue.map((item, idx) => {

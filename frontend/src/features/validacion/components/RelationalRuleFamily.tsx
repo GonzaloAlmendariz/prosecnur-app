@@ -253,7 +253,7 @@ export default function RelationalRuleFamily({
   const headline = primary
     ? formatRelationalRepeatHeadline(primary)
     : repeatGroups.length > 0
-      ? `Las respuestas de «${repeatGroups.join("», «")}» se validan junto con la base principal.`
+      ? `Las respuestas de "${repeatGroups.join('", "')}" se validan junto con la base principal.`
       : "La base principal y sus respuestas repetidas se validan en conjunto.";
   const nChecks = summary?.nRelational ?? cards.length;
   const nExternal = summary?.nRequiresExternalDataset ?? 0;

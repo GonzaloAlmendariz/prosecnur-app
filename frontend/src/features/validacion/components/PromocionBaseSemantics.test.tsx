@@ -102,7 +102,7 @@ describe("PromocionBase — sin respaldo", () => {
     expect(render({ ...SIN_RESPALDO, bloqueo: "grupos repetibles" })).toContain('data-estado="bloqueada"');
   });
 
-  it("no comparte tono con «bloqueada»: la pestaña ya tiene una banda ámbar rutinaria", () => {
+  it('no comparte tono con "bloqueada": la pestaña ya tiene una banda ámbar rutinaria', () => {
     const sinRespaldo = render(SIN_RESPALDO);
     const bloqueada = render({ ...BASE, bloqueo: "La base tiene grupos repetibles." });
     expect(sinRespaldo).toContain("--pulso-danger-bg");

@@ -475,8 +475,8 @@ export function desviaciones(modelo: ModeloCalor, limite = 3): Desviacion[] {
         dif: x.dif,
         titulo:
           modelo.lectura === "columna"
-            ? `${col}: ${mas ? "más" : "menos"} «${fila.etiqueta}»`
-            : `«${fila.etiqueta}»: ${mas ? "más" : "menos"} en ${col}`,
+            ? `${col}: ${mas ? "más" : "menos"} "${fila.etiqueta}"`
+            : `"${fila.etiqueta}": ${mas ? "más" : "menos"} en ${col}`,
         detalle: `${fmtPct(x.valor)} frente a ${fmtPct(total)} del total, ${fmtDecimal(Math.abs(x.dif), 1)} puntos ${
           mas ? "por encima" : "por debajo"
         }.`,

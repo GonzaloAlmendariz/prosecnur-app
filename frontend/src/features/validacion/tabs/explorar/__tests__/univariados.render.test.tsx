@@ -79,7 +79,7 @@ const escala = (etiquetas: string[], ns: number[], extra: [string, string, numbe
   return { tipo: "so", ordinal: true, base_n: base, filas: filas.map((f) => ({ ...f, pct: (100 * f.n) / base })) };
 };
 
-test("una escala de 7 con «No sabe» y un código fuera de lista: los dos cierran la barra en gris y van en la leyenda", () => {
+test('una escala de 7 con "No sabe" y un código fuera de lista: los dos cierran la barra en gris y van en la leyenda', () => {
   const dist = escala(
     ["Muy en desacuerdo", "Bastante en desacuerdo", "En desacuerdo", "Neutral", "De acuerdo", "Bastante de acuerdo", "Muy de acuerdo"],
     [5, 8, 12, 20, 25, 15, 5],

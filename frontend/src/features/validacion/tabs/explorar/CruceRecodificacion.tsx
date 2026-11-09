@@ -48,11 +48,11 @@ export default function CruceRecodificacion({ datos }: { datos: Recodificacion }
         </div>
       )}
       {datos.cambios.map((c) => {
-        const filas = [...c.destinos.map((d) => ({ ...d, sigue: false })), { etiqueta: `Sigue en «${c.etiqueta}»`, n: c.quedan, sigue: true }];
+        const filas = [...c.destinos.map((d) => ({ ...d, sigue: false })), { etiqueta: `Sigue en "${c.etiqueta}"`, n: c.quedan, sigue: true }];
         const max = Math.max(1, ...filas.map((f) => f.n));
         return (
           <div key={c.etiqueta}>
-            <span className="vx-eyebrow">Adónde fueron los {fmtN(c.n)} casos de «{c.etiqueta}»</span>
+            <span className="vx-eyebrow">Adónde fueron los {fmtN(c.n)} casos de "{c.etiqueta}"</span>
             <div className="vx-barras">
               {filas.map((f, k) => (
                 <div key={f.etiqueta} className={`vx-barra-fila${k === 0 && !f.sigue ? " is-primera" : ""}${f.sigue ? " is-residual" : ""}`}>

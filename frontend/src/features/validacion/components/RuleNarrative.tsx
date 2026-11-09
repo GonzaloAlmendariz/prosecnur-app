@@ -383,7 +383,7 @@ function renderWithVariables(
   // También detecta mentions sin comillas si coinciden con una variable conocida.
   const parts: ReactNode[] = [];
   let lastIndex = 0;
-  const regex = /«([^»]+)»/g;
+  const regex = /[«"]([^»"]+)[»"]/g;
   let m: RegExpExecArray | null;
   while ((m = regex.exec(text)) !== null) {
     if (m.index > lastIndex) parts.push(text.slice(lastIndex, m.index));
@@ -417,7 +417,7 @@ function renderWithVariables(
         />,
       );
     } else {
-      parts.push(`«${candidate}»`);
+      parts.push(`"${candidate}"`);
     }
     lastIndex = m.index + m[0].length;
   }

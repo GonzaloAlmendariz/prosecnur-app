@@ -85,7 +85,7 @@ describe("base en una frase (E4)", () => {
 });
 
 describe("orden de barras (E6)", () => {
-  it("por frecuencia, con «Otro» y «No sabe» al final", () => {
+  it('por frecuencia, con "Otro" y "No sabe" al final', () => {
     expect(ordenarFilas(DIST.filas!, false).map((f) => f.etiqueta)).toEqual([
       "Dependiente",
       "Independiente",
@@ -210,7 +210,7 @@ describe("tabla de calor (E9)", () => {
   it("las mayores diferencias, de mayor a menor, con su lectura", () => {
     const d = desviaciones(modeloCalor(tabla, "columna", 200));
     expect(d).toHaveLength(3);
-    expect(d[0].titulo).toBe("Ate: más «Dependiente»");
+    expect(d[0].titulo).toBe('Ate: más "Dependiente"');
     expect(d[0].detalle).toBe("60.0% frente a 50.0% del total, 10.0 puntos por encima.");
     expect(rangoColumnas(modeloCalor(tabla, "columna", 200))).toEqual({ min: 100, max: 100, de: "columna" });
   });
@@ -231,7 +231,7 @@ describe("tabla de calor con una múltiple: denominadores en casos", () => {
   };
   const base = 560;
 
-  it("x única × y múltiple, por columna: el Total de «Mujer» es mujeres / base y los Totales suman 100", () => {
+  it('x única × y múltiple, por columna: el Total de "Mujer" es mujeres / base y los Totales suman 100', () => {
     const m = modeloCalor(soSm, "columna", base, "so", "sm");
     expect(m.filas[1].total?.valor).toBeCloseTo((100 * 301) / 560, 6);
     expect(m.filas.reduce((t, f) => t + (f.total?.valor ?? 0), 0)).toBeCloseTo(100, 6);
@@ -293,7 +293,7 @@ describe("tabla de calor con una múltiple: denominadores en casos", () => {
     }
   });
 
-  it("«Antes de leerlo» acota con el denominador de la lectura activa", () => {
+  it('"Antes de leerlo" acota con el denominador de la lectura activa', () => {
     expect(rangoColumnas(modeloCalor(soSm, "columna", base, "so", "sm"))).toEqual({ min: 101, max: 355, de: "columna" });
     expect(rangoColumnas(modeloCalor(soSm, "fila", base, "so", "sm"))).toEqual({ min: 1, max: 301, de: "fila" });
   });
@@ -305,7 +305,7 @@ describe("tabla de calor con una múltiple: denominadores en casos", () => {
     expect(lecturaInicial("sm", "sm")).toBe("columna");
   });
 
-  it("la base del cruce en una frase, con el «de» sólo cuando hay más casos que el cruce", () => {
+  it('la base del cruce en una frase, con el "de" sólo cuando hay más casos que el cruce', () => {
     expect(fraseCruceBase({ base_n: 560, n_x: 1283, n_y: 560 })).toBe("560 casos responden las dos (de 1,283), sin ponderar");
     expect(fraseCruceBase({ base_n: 1283, n_x: 1283, n_y: 1283 })).toBe("1,283 casos responden las dos, sin ponderar");
     expect(fraseCruceBase({ base_n: 1, n_x: null, n_y: null })).toBe("1 caso responde las dos, sin ponderar");

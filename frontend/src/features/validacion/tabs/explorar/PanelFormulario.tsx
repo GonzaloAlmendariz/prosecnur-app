@@ -28,7 +28,7 @@ export default function PanelFormulario({ ficha }: { ficha: ExploradorFicha }) {
       </div>
       <div className="vx-enunciado">
         <span>{ficha.label}</span>
-        {ficha.hint && <span>Ayuda: «{ficha.hint}»</span>}
+        {ficha.hint && <span>Ayuda: "{ficha.hint}"</span>}
       </div>
       <dl className="vx-dl">
         <dt>Tipo</dt>
@@ -44,7 +44,7 @@ export default function PanelFormulario({ ficha }: { ficha: ExploradorFicha }) {
         {ficha.constraint ? (
           <dd>
             <span className="vx-mono">{ficha.constraint}</span>
-            {ficha.constraint_message && <>: «{ficha.constraint_message}»</>}
+            {ficha.constraint_message && <>: "{ficha.constraint_message}"</>}
           </dd>
         ) : (
           <dd className="is-vacio">ninguna</dd>

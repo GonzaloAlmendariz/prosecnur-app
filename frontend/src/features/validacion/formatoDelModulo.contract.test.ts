@@ -92,7 +92,7 @@ describe("formato de Validación", () => {
   });
 
   it("P3: el punto medio no se pinta como separador", () => {
-    expect(hallazgos(/\.tsx?$/, todas(PUNTO)), "Une con coma o «y» (lib/enumerar); un separador es una línea fina.").toEqual([]);
+    expect(hallazgos(/\.tsx?$/, todas(PUNTO)), 'Une con coma o "y" (lib/enumerar); un separador es una línea fina.').toEqual([]);
   });
 
   it("P4: ninguna cifra se formatea con toLocaleString suelto", () => {

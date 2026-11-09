@@ -219,7 +219,7 @@ export default function ReglaDrillPanel({
   const activationSections = roleSections.filter((section) => section.key === "drivers" || section.key === "gate");
   const targetItem = targetSection?.items[0] ?? null;
   const targetLabel = targetItem?.label ?? targetItem?.key ?? null;
-  const targetDisplay = targetLabel ? `«${shortRuleLabel(targetLabel)}»` : "esta respuesta";
+  const targetDisplay = targetLabel ? `"${shortRuleLabel(targetLabel)}"` : "esta respuesta";
   const gateHumano = cleanSentence(regla.presentation?.gate_humano ?? "");
   const detalleCondicion = cleanSentence(regla.presentation?.detalle_condicion ?? "");
   const plainReading = buildPlainRuleReading(regla, targetDisplay, targetItem, activationSections, compareSection);
@@ -1217,8 +1217,8 @@ function CaseLogicSummary({
     ? humanList(failedComparisons.map((comparison) => comparison.key))
     : "la ruta de entrada";
   const routeIntro = subtipo === "nodebe"
-    ? `Regla aplicada: «${targetLabel}» esta dentro de ${sectionLabel}. Esa pregunta solo se puede responder si todas las condiciones de entrada de la sección se cumplen.`
-    : `Regla aplicada: «${targetLabel}» esta dentro de ${sectionLabel}. Esa pregunta debe responderse cuando todas las condiciones de entrada de la sección se cumplen.`;
+    ? `Regla aplicada: "${targetLabel}" esta dentro de ${sectionLabel}. Esa pregunta solo se puede responder si todas las condiciones de entrada de la sección se cumplen.`
+    : `Regla aplicada: "${targetLabel}" esta dentro de ${sectionLabel}. Esa pregunta debe responderse cuando todas las condiciones de entrada de la sección se cumplen.`;
   const resultText = subtipo === "nodebe"
     ? `Con los valores observados, ${failedText} cierra ${sectionLabel}. Por eso ${targetItem.key} debia quedar vacio. Valor registrado: ${targetValue}.`
     : `Con los valores observados, ${sectionLabel} queda abierta. Por eso ${targetItem.key} debia tener respuesta. Valor registrado: vacio.`;
@@ -1765,7 +1765,7 @@ function cleanComparisonValue(value: string): string {
 }
 
 function conditionPhrase(comparison: RouteComparison): string {
-  const value = `«${shortRuleLabel(comparison.expectedDisplay || comparison.expectedRaw, 48)}»`;
+  const value = `"${shortRuleLabel(comparison.expectedDisplay || comparison.expectedRaw, 48)}"`;
   switch (comparison.op) {
     case "==":
       return `igual a ${value}`;
@@ -1886,8 +1886,8 @@ function buildPlainRuleReading(
   const isOtherText = isSyntheticOtherTarget(targetItem);
   const otherChoice = choiceLabelForSyntheticOther(regla, targetItem);
   const parentLabel = parentLabelForSyntheticOther(regla, targetItem, activationSections);
-  const otherChoiceDisplay = otherChoice ? `«${shortRuleLabel(otherChoice, 58)}»` : "la opcion Otro/Other";
-  const otherParentDisplay = parentLabel ? ` en «${shortRuleLabel(parentLabel, 82)}»` : " en su pregunta principal";
+  const otherChoiceDisplay = otherChoice ? `"${shortRuleLabel(otherChoice, 58)}"` : "la opcion Otro/Other";
+  const otherParentDisplay = parentLabel ? ` en "${shortRuleLabel(parentLabel, 82)}"` : " en su pregunta principal";
   const hasRouteVariables = activationSections.some((section) => section.items.length > 0) ||
     Boolean(compareSection?.items.length);
 

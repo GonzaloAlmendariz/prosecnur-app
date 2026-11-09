@@ -204,8 +204,8 @@ describe("resolveRelationalInfo", () => {
 
 describe("copy helpers", () => {
   test("externalRosterBadgeLabel según cantidad de datasets", () => {
-    expect(externalRosterBadgeLabel(["listadoedp"])).toBe('Requiere el listado externo «listadoedp»');
-    expect(externalRosterBadgeLabel(["a", "b"])).toBe('Requiere los listados externos: «a», «b»');
+    expect(externalRosterBadgeLabel(["listadoedp"])).toBe('Requiere el listado externo "listadoedp"');
+    expect(externalRosterBadgeLabel(["a", "b"])).toBe('Requiere los listados externos: "a", "b"');
     expect(externalRosterBadgeLabel([])).toBe("Requiere un listado externo");
   });
 
@@ -217,7 +217,7 @@ describe("copy helpers", () => {
         identityVar: "current_code",
         repeatCount: "count-selected(${services})",
       }),
-    ).toBe('Una fila de «rep_servicios» por cada opción marcada en «services».');
+    ).toBe('Una fila de "rep_servicios" por cada opción marcada en "services".');
     expect(
       formatRelationalRepeatHeadline({
         repeatGroup: "rep_hijos",

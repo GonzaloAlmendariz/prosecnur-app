@@ -58,7 +58,7 @@ describe("única × múltiple en puntos enfrentados (E8b, E8c)", () => {
     n: [[164, 15, 34], [190, 18, 67], [1, 0, 0]],
   };
 
-  it("cada % divide entre los casos del grupo; el total, entre la base; «Otro» al final y el grupo chico aparte", () => {
+  it('cada % divide entre los casos del grupo; el total, entre la base; "Otro" al final y el grupo chico aparte', () => {
     const d = enfrentados(soSm, "so", "sm", 560)!;
     expect(d.grupos.map((g) => g.etiqueta)).toEqual(["Hombre", "Mujer"]);
     expect(d.chicos).toEqual([{ etiqueta: "Otro", n: 1 }]);
@@ -109,7 +109,7 @@ describe("única × múltiple en puntos enfrentados (E8b, E8c)", () => {
     expect(host.querySelectorAll(".vx-svg-fila-destacada")).toHaveLength(1);
     expect(host.querySelector(".vx-svg-categoria.is-fuerte")?.textContent).toBe("Amigos o familiares");
     expect(Array.from(host.querySelectorAll("text.vx-svg-valor")).map((t) => t.textContent)).toEqual(["13%", "22%"]);
-    expect(host.textContent).toContain("«Otro» (1 caso) no se dibuja");
+    expect(host.textContent).toContain('"Otro" (1 caso) no se dibuja');
   });
 });
 
@@ -203,8 +203,8 @@ describe("una múltiple contra su recodificación (E8d)", () => {
     expect(r.intactas.map((o) => o.etiqueta)).toEqual(["Redes", "Radio"]);
     expect(r.cambios).toEqual([{ etiqueta: "Otro", n: 33, quedan: 3, destinos: [{ etiqueta: "Trabajo", n: 18 }, { etiqueta: "Espacios públicos", n: 12 }] }]);
     act(() => root.render(<CruceRecodificacion datos={r} />));
-    expect(host.textContent).toContain("Adónde fueron los 33 casos de «Otro»");
-    expect(host.textContent).toContain("Sigue en «Otro»");
+    expect(host.textContent).toContain('Adónde fueron los 33 casos de "Otro"');
+    expect(host.textContent).toContain('Sigue en "Otro"');
   });
 
   it("dos múltiples distintas no son una recodificación", () => {

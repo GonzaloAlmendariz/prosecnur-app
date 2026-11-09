@@ -15,7 +15,7 @@ export function condicionDesdeBorrador(variable: string, sentido: Sentido, valor
 
 function rotuloValor(valor: string, col?: CasoValidoColumna): string {
   const e = col?.valores.find((v) => v.valor === valor)?.etiqueta?.trim();
-  return e && e !== valor ? `«${e}» (${valor})` : `«${valor}»`;
+  return e && e !== valor ? `"${e}" (${valor})` : `"${valor}"`;
 }
 
 function unirConY(xs: string[]): string {

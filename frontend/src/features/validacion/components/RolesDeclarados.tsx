@@ -153,7 +153,7 @@ export default function RolesDeclarados({ value, onChange, baseNombre, disabled 
       <RolBloque
         icono={<MessageSquare size={13} aria-hidden="true" focusable="false" />}
         titulo="Qué respuestas abiertas se vigilan"
-        ayuda="Las de «otro, especifique» ya se vigilan solas: dependen de otra pregunta y son de contenido por construcción. Acá se suman las independientes que sí son respuestas."
+        ayuda='Las de "otro, especifique" ya se vigilan solas: dependen de otra pregunta y son de contenido por construcción. Acá se suman las independientes que sí son respuestas.'
         activo={abiertas.enabled}
         onToggle={(enabled) => setAbiertas({ enabled })}
         disabled={disabled}

@@ -327,9 +327,9 @@ export function relationalKindCopy(kind: RelationalKind): string {
 /** Etiqueta del badge "requiere un listado externo" (distinto de «Modo experto»). */
 export function externalRosterBadgeLabel(datasets: string[]): string {
   const named = datasets.filter((d) => d.length > 0);
-  if (named.length === 1) return `Requiere el listado externo «${named[0]}»`;
+  if (named.length === 1) return `Requiere el listado externo "${named[0]}"`;
   if (named.length > 1) {
-    return `Requiere los listados externos: ${named.map((d) => `«${d}»`).join(", ")}`;
+    return `Requiere los listados externos: ${named.map((d) => `"${d}"`).join(", ")}`;
   }
   return "Requiere un listado externo";
 }
@@ -341,7 +341,7 @@ export function externalRosterBadgeLabel(datasets: string[]): string {
  */
 export function formatRelationalRepeatHeadline(spec: RelationalRepeatSpec): string {
   if (spec.smConductor) {
-    return `Una fila de «${spec.repeatGroup}» por cada opción marcada en «${spec.smConductor}».`;
+    return `Una fila de "${spec.repeatGroup}" por cada opción marcada en "${spec.smConductor}".`;
   }
-  return `«${spec.repeatGroup}» — respuestas repetidas vinculadas a cada persona.`;
+  return `"${spec.repeatGroup}" — respuestas repetidas vinculadas a cada persona.`;
 }

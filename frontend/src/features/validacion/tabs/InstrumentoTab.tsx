@@ -819,7 +819,7 @@ export default function InstrumentoTab() {
             icon={<AlertTriangle size={20} />}
             title={resultado ? "Esta regla no está en el resultado actual" : "Esta regla todavía no tiene resultado"}
             hint={resultado
-              ? `No encontramos «${detailRuleId}» entre las reglas evaluadas de esta base.`
+              ? `No encontramos "${detailRuleId}" entre las reglas evaluadas de esta base.`
               : "Corre la auditoría para ver su explicación y sus casos."}
           />
         )}
@@ -1144,7 +1144,7 @@ function VariableExclusionsPanel({
                           }
                           if (e.key === "Escape") setPidiendo(null);
                         }}
-                        placeholder={`Por qué se deja «${option.variable}» fuera`}
+                        placeholder={`Por qué se deja "${option.variable}" fuera`}
                         aria-label={`Motivo para excluir ${option.variable}`}
                         style={{
                           minWidth: 200, padding: "4px 8px", borderRadius: 6, fontSize: "var(--pulso-type-caption-size)",
@@ -1785,7 +1785,7 @@ function describeRuleReason(row: CompactRuleRow): { badge: string; explanation: 
   if (row.issueCode === "requires_external_dataset" || row.relationalInfo.requiresExternalDataset) {
     const datasets = row.relationalInfo.externalDatasets.filter((d) => d.length > 0);
     const listado = datasets.length
-      ? datasets.map((d) => `«${d}»`).join(", ")
+      ? datasets.map((d) => `"${d}"`).join(", ")
       : "un listado externo";
     return {
       badge: "Campo pull data",

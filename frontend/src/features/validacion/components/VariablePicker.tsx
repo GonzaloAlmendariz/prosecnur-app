@@ -96,7 +96,7 @@ export default function VariablePicker({
         {filteredSecs.length === 0 && filtrando && (
           <p role="status" className="vx-barra-nota">
             {query.trim()
-              ? `No hay preguntas o campos que coincidan con «${query.trim()}».`
+              ? `No hay preguntas o campos que coincidan con "${query.trim()}".`
               : "No hay preguntas de este tipo."}
           </p>
         )}

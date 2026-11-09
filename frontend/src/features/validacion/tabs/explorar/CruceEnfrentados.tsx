@@ -126,7 +126,7 @@ export default function CruceEnfrentados({ datos }: { datos: Enfrentados }) {
       </div>
       {datos.chicos.length > 0 && (
         <p className="vx-pie">
-          {datos.chicos.map((g) => `«${g.etiqueta}» (${fmtN(g.n)} ${g.n === 1 ? "caso" : "casos"})`).join(", ")} no se dibuja: con menos de {GRUPO_CHICO} casos, su porcentaje salta con un caso.
+          {datos.chicos.map((g) => `"${g.etiqueta}" (${fmtN(g.n)} ${g.n === 1 ? "caso" : "casos"})`).join(", ")} no se dibuja: con menos de {GRUPO_CHICO} casos, su porcentaje salta con un caso.
         </p>
       )}
     </>

@@ -12,8 +12,8 @@ describe("caso válido a mano", () => {
   });
 
   it("lee la condición con la etiqueta del valor cuando la hay", () => {
-    expect(textoCondicion({ variable: "seleccionado", operador: "==", valores: ["1"] }, sel)).toBe("seleccionado es «1»");
-    expect(textoCondicion({ variable: "P1", operador: "not_in", valores: ["1", "99"] }, p1)).toBe("P1 no es «Sí» (1) o «No responde» (99)");
+    expect(textoCondicion({ variable: "seleccionado", operador: "==", valores: ["1"] }, sel)).toBe('seleccionado es "1"');
+    expect(textoCondicion({ variable: "P1", operador: "not_in", valores: ["1", "99"] }, p1)).toBe('P1 no es "Sí" (1) o "No responde" (99)');
   });
 
   it("cuenta los casos de una condición sola", () => {

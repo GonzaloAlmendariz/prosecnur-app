@@ -17,7 +17,7 @@ describe("serie por fecha del cruce (E8j, E8k, E8l, E8i)", () => {
     expect(modoDeSerie("fecha", "num")).toBe("mediana");
   });
 
-  it("las barras apiladas suman los casos del día, de la categoría que más pesa a la que menos, «Otro» al final", () => {
+  it('las barras apiladas suman los casos del día, de la categoría que más pesa a la que menos, "Otro" al final', () => {
     const { fechas, series, barras, max } = barrasApiladas([
       p("2026-06-14", 3, "Mujer"), p("2026-06-13", 6, "Hombre"), p("2026-06-13", 2, "Mujer"), p("2026-06-14", 0, "Hombre"),
       p("2026-06-13", 9, "Otro"),
