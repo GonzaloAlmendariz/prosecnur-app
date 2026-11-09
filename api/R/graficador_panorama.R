@@ -95,9 +95,7 @@ graficar_panorama <- function(
   med <- med[is.finite(med$x), , drop = FALSE]
   formas_gg <- c(ellipse = 16, rect = 15, triangle = 17, diamond = 18)[espec$formas]
   eje <- espec$eje
-  p <- ggplot2::ggplot(puntos, ggplot2::aes(x = .data$x, y = .data$y)) +
-    ggplot2::annotate("rect", xmin = -Inf, xmax = Inf, ymin = seq(k, 1, by = -2) - 0.5, ymax = seq(k, 1, by = -2) + 0.5,
-                      fill = .lam_aclarar(.std_color("cebra"), 0.45))
+  p <- ggplot2::ggplot(puntos, ggplot2::aes(x = .data$x, y = .data$y))   # P10: sin bandas alternas
   if (is.finite(espec$referencia)) {
     p <- p + ggplot2::geom_vline(xintercept = espec$referencia, linetype = "dashed", colour = .std_color("texto_tenue"), linewidth = 0.4)
   }

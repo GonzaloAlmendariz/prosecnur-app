@@ -324,11 +324,7 @@
   eje <- espec$eje; px <- function(v) ge$xl + (ge$xr - ge$xl) * (v - eje[["lo"]]) / (eje[["hi"]] - eje[["lo"]])
   alturas <- ge$alturas
   y_ley <- ge$y + max(0, ge$disponible - sum(alturas)) / 2; y0 <- y_ley + ge$cab; y1 <- y0 + sum(alturas)
-  xp0 <- ge$xl; xp1 <- ge$xr + 0.3
-  .lam_caja(lz, xp0, y0, xp1 - xp0, y1 - y0, "#FFFFFF", nombre = "puntos:panel")
-  banda <- .lam_aclarar(.std_color("cebra"), 0.55)
-  centros <- y0 + cumsum(alturas) - alturas / 2
-  for (i in seq_len(n)) if (i %% 2L == 1L) .lam_caja(lz, xp0, centros[i] - alturas[i] / 2, xp1 - xp0, alturas[i], banda, nombre = "puntos:banda")
+  centros <- y0 + cumsum(alturas) - alturas / 2   # P10: sin panel blanco ni bandas alternas
   .lam_puntos_eje(lz, px, eje, y0, y1, cada = .lam_rr_eje_cada(px, eje))
   for (s in espec$separadores %||% integer(0)) {
     ys <- y0 + sum(alturas[seq_len(s)])
@@ -398,10 +394,7 @@
   eje <- espec$eje; px <- function(v) ge$xl + (ge$xr - ge$xl) * (v - eje[["lo"]]) / (eje[["hi"]] - eje[["lo"]])
   libre <- ge$h - ge$ley - ge$cab - ge$eje - 0.05 - h * k
   y_ley <- ge$y + max(0, libre) / 2; y0 <- y_ley + ge$ley + ge$cab; y1 <- y0 + h * k
-  xp0 <- ge$xl; xp1 <- ge$xr + 0.15
-  .lam_caja(lz, xp0, y0, xp1 - xp0, y1 - y0, "#FFFFFF", nombre = "puntos:panel")
-  banda <- .lam_aclarar(.std_color("cebra"), 0.55)
-  for (i in seq_len(k)) if (i %% 2L == 1L) .lam_caja(lz, xp0, y0 + (i - 1) * h, xp1 - xp0, h, banda, nombre = "puntos:banda")
+  # P10: sin panel blanco ni bandas alternas.
   .lam_puntos_eje(lz, px, eje, y0, y1, cada = .lam_rr_eje_cada(px, eje))
   ref <- espec$referencia
   if (is.finite(ref %||% NA_real_)) .lam_linea(lz, px(ref), y0, px(ref), y1, tenue, pt = 1, nombre = "panorama:referencia", dash = "dash")

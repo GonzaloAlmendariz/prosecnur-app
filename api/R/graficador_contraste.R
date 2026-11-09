@@ -21,10 +21,7 @@
   formas_gg <- stats::setNames(unname(c(ellipse = 21, rect = 22, triangle = 24, diamond = 23)[espec$formas]), espec$grupos)
   con_base <- identical(espec$base_en %||% "tabla", "tabla")
   x_tabla <- eje[["hi"]] + ancho * c(0.18, if (con_base) 0.18 + 0.26 * seq_len(k))
-  bandas <- centro[seq(1, n, by = 2)]
-  p <- ggplot2::ggplot() +
-    ggplot2::annotate("rect", xmin = -Inf, xmax = Inf, ymin = bandas - paso / 2, ymax = bandas + paso / 2,
-                      fill = .lam_aclarar(.std_color("cebra"), 0.45))
+  p <- ggplot2::ggplot()   # P10: sin bandas alternas, sobre el fondo de la lámina
   for (s in espec$separadores %||% integer(0)) {
     p <- p + ggplot2::geom_hline(yintercept = centro[s] - paso / 2, linetype = "dashed", colour = .std_color("texto_tenue"), linewidth = 0.3)
   }

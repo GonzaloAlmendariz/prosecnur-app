@@ -51,7 +51,7 @@
   vs <- seq(eje[["lo"]], eje[["hi"]], by = eje[["paso"]])
   for (i in seq_along(vs)) {
     v <- vs[i]
-    .lam_caja(lz, px(v) - 0.003, y0, 0.006, y1 - y0, .std_color("cebra"), nombre = "puntos:guia")
+    .lam_caja(lz, px(v) - 0.003, y0, 0.006, y1 - y0, .std_color("filete"), nombre = "puntos:guia")   # P10: se ve sobre el gris, como en las pesas
     # `cada`: en un área angosta (una ranura) se rotula una guía de cada `cada`, desde la primera.
     if ((i - 1L) %% cada == 0L) .lam_txt(lz, paste0(format(v, trim = TRUE), "%"), px(v) - 0.4, y1 + 0.04, 0.8, 0.26, 9.5, .std_color("texto_suave"), align = "center", nombre = "puntos:eje")
   }
@@ -168,18 +168,9 @@
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()
-  # Como en el resumen: el área de puntos es un panel blanco con bandas muy claras, sólo donde hay datos; los rótulos
-  # y la tabla quedan sobre el fondo de la lámina.
-  xp0 <- m$xl; xp1 <- m$xr + 0.45
-  .lam_caja(lz, xp0, y0, xp1 - xp0, y1 - y0, "#FFFFFF", nombre = "puntos:panel")
-  banda <- .lam_aclarar(.std_color("cebra"), 0.55)
-  tope <- y0
-  centros <- numeric(n)
-  for (i in seq_len(n)) {
-    h <- alturas[i]
-    if (i %% 2L == 1L) .lam_caja(lz, xp0, tope, xp1 - xp0, h, banda, nombre = "puntos:banda")
-    centros[i] <- tope + h / 2; tope <- tope + h
-  }
+  # P10 (Gonzalo, 2026-11-09: «todo debería ser transparente»): el área de puntos va sobre el fondo de la lámina, sin
+  # panel blanco ni bandas alternas; quedan las guías del eje y los separadores.
+  centros <- y0 + cumsum(alturas) - alturas / 2
   .lam_puntos_eje(lz, px, eje, y0, y1)
   # Separadores entre bloques de preguntas (de salida / genéricas): una línea punteada a lo ancho.
   for (s in espec$separadores %||% integer(0)) {
@@ -262,10 +253,7 @@
   doc <- officer::add_slide(doc, layout = layout, master = master)
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()
-  xp0 <- m$xl; xp1 <- m$xr + 0.2
-  .lam_caja(lz, xp0, y0, xp1 - xp0, y1 - y0, "#FFFFFF", nombre = "puntos:panel")
-  banda <- .lam_aclarar(.std_color("cebra"), 0.55)
-  for (i in seq_len(k)) if (i %% 2L == 1L) .lam_caja(lz, xp0, y0 + (i - 1) * h, xp1 - xp0, h, banda, nombre = "puntos:banda")
+  # P10: sin panel blanco ni bandas alternas, sobre el fondo de la lámina.
   .lam_puntos_eje(lz, px, eje, y0, y1)
   ref <- espec$referencia
   if (is.finite(ref)) .lam_linea(lz, px(ref), y0, px(ref), y1, tenue, pt = 1, nombre = "panorama:referencia", dash = "dash")

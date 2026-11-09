@@ -62,7 +62,7 @@ test_that("la lámina del contraste pone la tabla de Diferencia y Base fuera del
   marcas <- .re_x(xml, "puntos:marca"); dif <- .re_x(xml, "puntos:diferencia")
   expect_true(max(marcas$x + marcas$w) < min(dif$x))                      # ningún punto invade la tabla
   expect_setequal(unique(.re_geom(xml, "puntos:marca")), c("ellipse", "rect"))
-  expect_length(.re_sp(xml, "puntos:banda"), 2L)                          # bandas alternas
+  expect_length(.re_sp(xml, "puntos:banda"), 0L)                          # P10: sin bandas alternas, todo transparente
   expect_match(paste(.re_txt(xml, "Base lamina"), collapse = " "), "Estudiantes menos Docentes")
 })
 
