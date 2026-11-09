@@ -346,7 +346,7 @@
   ctx_var <- resolver(vars[[1]])
   fuente <- list(data = as.data.frame(ctx_var$data, stringsAsFactors = FALSE), survey = ctx_var$survey,
                  choices = ctx_var$choices, orders_list = ctx_var$orders_list)
-  sig <- .sig_contexto_render(fuente$data)
+  sig <- .sig_contexto_render(fuente$data, ctx_var$source)   # multibase: la regla ajustada a esta base
   .tarjetas_calcular(fuente, vars, opt, espec, sig, titulo = slide$title %||% "")
 }
 

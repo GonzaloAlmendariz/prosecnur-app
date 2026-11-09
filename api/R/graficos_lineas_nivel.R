@@ -453,7 +453,7 @@ p_lineas_nivel <- function(
   inst <- ctx$inst %||% list()
   fuente <- list(data = as.data.frame(datos, stringsAsFactors = FALSE), survey = inst$survey %||% NULL,
                  choices = inst$choices %||% NULL, orders_list = inst$orders_list %||% NULL)
-  espec <- .lineas_nivel_modelo(fuente, el, .sig_contexto_render(fuente$data))
+  espec <- .lineas_nivel_modelo(fuente, el, .sig_contexto_render(fuente$data, ctx$source))   # la regla ajustada a su base
   p <- .lineas_nivel_ggplot(espec)
   attr(p, "pulso_espec") <- espec
   p

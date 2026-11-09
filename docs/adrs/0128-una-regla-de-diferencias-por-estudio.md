@@ -98,6 +98,9 @@ Con `correccion = "bonferroni_fila"`, cada fila se corrige sola, como hoy.
   la base que no la tiene se prueba como muestreo aleatorio simple y su nota lo dice («En <base> no hay conglomerado: se
   prueba como muestreo aleatorio simple.»), como en el ADR 0138 «Conglomerado». Guardar la regla exige el conglomerado
   en al menos una base (si ninguna lo trae, 422 `E_SIG_SIN_CONGLOMERADO`).
+  Vale igual para todos los consumidores de la regla: láminas, serie por niveles, línea por nivel, tarjetas de
+  diferencias (ADR 0129), tarjetas entre públicos (ADR 0138) y tablas de cruces, cuya nota del método dice «Rao-Scott
+  por aula» en la base que lo trae y la misma línea de muestreo aleatorio simple en la que no.
 - **Analítica.** Las comparaciones de Analítica entran sólo en la familia de la base de su config (hoy la activa), no en
   la de otra base que tenga columnas con el mismo nombre.
 - **Base ambigua o desconocida.** Una lámina que mezcla bases (la pregunta de una y el cruce de otra, o dos

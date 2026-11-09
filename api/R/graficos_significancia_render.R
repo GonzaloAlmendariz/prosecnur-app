@@ -46,9 +46,14 @@
 
 #' Regla y familia vigentes para un render
 #' @keywords internal
-.sig_contexto_render <- function(data = NULL) {
+.sig_contexto_render <- function(data = NULL, base = NULL) {
   ctx <- .sig_informe_vigente()
-  if (!is.null(ctx)) return(ctx)
+  # Multibase: la base sin la columna de conglomerado, como muestreo aleatorio simple (`.sig_regla_de_base`). Sin
+  # `base`, la nota dice «esta base».
+  if (!is.null(ctx)) {
+    if (!is.null(ctx$base_familia)) ctx$regla <- .sig_regla_de_datos(ctx, ctx$regla, data, base %||% "")
+    return(ctx)
+  }
   list(regla = .sig_regla_normalizar(list(), base = .sig_regla_propuesta(data)), familia = NULL)
 }
 
@@ -63,8 +68,8 @@
 .sig_evaluar_render <- function(fuente, n_render, codigos, etiquetas, top2box = NULL) {
   if (!inherits(fuente, "sig_fuente") || is.null(fuente$data) || is.null(fuente$g)) return(NULL)
   d <- as.data.frame(fuente$data, stringsAsFactors = FALSE)
-  ctx <- .sig_contexto_render(d)
-  regla <- .sig_regla_de_datos(ctx, ctx$regla, d, fuente$base)   # multibase: la base sin conglomerado, como MAS
+  ctx <- .sig_contexto_render(d, fuente$base)   # multibase: la base sin conglomerado, como MAS
+  regla <- ctx$regla
   motivo <- .sig_diseno_invalido(d, regla)   # ADR 0127 §1: estrato no anidado en el conglomerado
   if (!is.null(motivo)) return(list(abstencion = paste("No se marcan diferencias:", motivo), regla = regla))
   ind <- tryCatch(.sig_indicadores(d, fuente$var, survey = fuente$survey, orders_list = fuente$orders_list),

@@ -37,16 +37,31 @@
   sprintf("En %s no hay conglomerado: se prueba como muestreo aleatorio simple.", nombre)
 }
 
-#' Frase del método: qué prueba y qué corrección
+#' ¿La prueba usa conglomerados? Rao-Scott, salvo en la base multibase sin la columna (`mas_sin_conglomerado`)
 #' @keywords internal
-.sig_texto_metodo <- function(regla) {
+.sig_por_conglomerado <- function(regla) {
+  identical(regla$prueba, "rao_scott") && is.null(attr(regla, "mas_sin_conglomerado"))
+}
+
+#' Frase del método: qué prueba y qué corrección
+#'
+#' En la base sin conglomerado de un estudio multibase, la prueba la dice la línea de `.sig_texto_sin_conglomerado`:
+#' con `con_base` va delante (la tabla de cruces); sin él, sólo el nivel y la corrección (la nota de la lámina ya la
+#' lleva en su contexto).
+#' @keywords internal
+.sig_texto_metodo <- function(regla, con_base = TRUE) {
   alfa <- .sig_num(regla$alfa %||% 0.05)
+  corr <- if (identical(regla$correccion, "bh_informe")) "Benjamini-Hochberg" else "Bonferroni"
+  mas <- .sig_texto_sin_conglomerado(regla)
+  if (!is.null(mas)) {
+    resto <- sprintf("p < %s con corrección de %s.", alfa, corr)
+    return(if (isTRUE(con_base)) paste(mas, resto) else resto)
+  }
   prueba <- if (identical(regla$prueba, "rao_scott")) {
     paste0("Rao-Scott por ", .sig_nombre_conglomerado(regla$conglomerado))
   } else {
     "Prueba z"
   }
-  corr <- if (identical(regla$correccion, "bh_informe")) "Benjamini-Hochberg" else "Bonferroni"
   sprintf("%s, p < %s con corrección de %s.", prueba, alfa, corr)
 }
 
@@ -65,7 +80,7 @@
   } else {
     ""
   }
-  paste0(marca, fragil, " ", .sig_texto_metodo(regla))
+  paste0(marca, fragil, " ", .sig_texto_metodo(regla, con_base = FALSE))
 }
 
 #' Nota cuando ninguna diferencia se sostiene: dice las cifras extremas, porque el silencio se leería como «no se probó»
@@ -89,7 +104,7 @@
 .sig_texto_bases_chicas <- function(regla, etiquetas) {
   etiquetas <- unique(as.character(etiquetas[nzchar(etiquetas)]))
   if (!length(etiquetas)) return(NULL)
-  cond <- if (identical(regla$prueba, "rao_scott")) {
+  cond <- if (.sig_por_conglomerado(regla)) {
     sprintf("menos de %s casos o de %s %ss", .sig_num(regla$base_minima), regla$conglomerados_minimos,
             .sig_nombre_conglomerado(regla$conglomerado))
   } else {

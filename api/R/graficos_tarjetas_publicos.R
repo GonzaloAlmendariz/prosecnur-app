@@ -503,6 +503,16 @@
   texto
 }
 
+#' El pie con la línea de cada público probado que no trae la columna de conglomerado (`.sig_regla_de_base`)
+#' @keywords internal
+.tpub_pie_sin_conglomerado <- function(nota, ev, sources, regla) {
+  bases <- unique(unlist(lapply(ev, function(te) if (identical(te$estado, "evaluable")) te$bases)))
+  lineas <- unlist(lapply(bases, function(b) {
+    .sig_texto_sin_conglomerado(.sig_regla_de_base(regla, (sources$data_sources %||% list())[[b]], b))
+  }))
+  if (length(lineas)) paste(c(nota, lineas), collapse = " ") else nota
+}
+
 #' ¿Alguna tarjeta muestra una diferencia frágil (△)?
 #' @keywords internal
 .tpub_hay_fragiles <- function(tarjetas) {
@@ -554,6 +564,7 @@
   probados <- any(vapply(ev, function(te) identical(te$estado, "evaluable"), logical(1)))
   visibles <- utils::head(tarjetas, opt$max %||% .TARJETAS_MAX)
   nota <- if (probados) .tpub_texto_pie(regla, local = isTRUE(fam$local), hay_fragiles = .tpub_hay_fragiles(visibles)) else NULL
+  if (!is.null(nota)) nota <- .tpub_pie_sin_conglomerado(nota, ev, sources, regla)
   list(tarjetas = visibles, total = length(tarjetas), tipo = .TPUB_CRUCE,
        opcion = opt, temas = ev, rotulos_cruce = stats::setNames(.TPUB_ROTULO, .TPUB_CRUCE), cruces = .TPUB_CRUCE,
        grupos = NULL, regla = regla, nota = nota, familia = fam)

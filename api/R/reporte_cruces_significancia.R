@@ -96,7 +96,7 @@
 #' @keywords internal
 .cruces_nota_regla <- function(regla, razones = character(0)) {
   magnitud <- if ((regla$umbral_puntos %||% 0) > 0) sprintf(" y de al menos %s puntos", .sig_num(regla$umbral_puntos)) else ""
-  base <- if (identical(regla$prueba, "rao_scott")) {
+  base <- if (.sig_por_conglomerado(regla)) {
     sprintf("\".b\" indica una columna con menos de %s casos o de %s %ss, que no se compara.", .sig_num(regla$base_minima),
             regla$conglomerados_minimos, .sig_nombre_conglomerado(regla$conglomerado))
   } else {
