@@ -12,7 +12,8 @@ source("setup-load-all.R")
 
 test_that("D5: el eje lleva de cuatro a cinco marcas, paso 10 en rangos medianos y 5 sólo en los muy estrechos", {
   expect_identical(.dumbbell_eje(c(44, 97)), c(lo = 40, hi = 100, paso = 20))      # Arte: 40, 60, 80, 100
-  expect_identical(.dumbbell_eje(c(55, 80)), c(lo = 50, hi = 90, paso = 10))       # rango mediano: paso 10
+  expect_identical(.dumbbell_eje(c(55, 80)), c(lo = 50, hi = 85, paso = 10))       # rango mediano: paso 10, cuatro marcas
+  expect_identical(.dumbbell_eje(c(70, 96)), c(lo = 65, hi = 100, paso = 10))      # 65, 75, 85, 95 antes que cinco marcas
   expect_identical(.dumbbell_eje(c(84, 97)), c(lo = 80, hi = 100, paso = 5))       # rango estrecho: paso 5
   for (r in list(c(10, 95), c(30, 70), c(60, 88), c(0, 100), c(45, 55), c(5, 12))) {
     e <- .dumbbell_eje(r)
