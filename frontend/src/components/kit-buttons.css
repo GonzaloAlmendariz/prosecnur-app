@@ -129,6 +129,16 @@ a:where(.pulso-button) > svg {
   color: var(--pulso-danger-fg);
 }
 
+/* El enmarcado deshabilitado es honesto como el primario y el secundario (D7): surface-3, text-faint y borde. */
+.pulso-button.pulso-button--icon:is(:disabled, [aria-disabled="true"]) {
+  opacity: 1;
+  border-color: var(--pulso-border);
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-faint);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
 .pulso-button.pulso-button--icon:active:not(:disabled) {
   transform: scale(var(--mov-press, 0.97));
 }

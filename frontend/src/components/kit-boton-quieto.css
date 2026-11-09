@@ -96,10 +96,13 @@
   box-shadow: none;
 }
 
-.pulso-button.pulso-button--icon.pulso-button--quiet:disabled {
+/* R11-14a (decisión W3): el quieto deshabilitado sigue sin caja —fondo transparente, sin borde— y sólo apaga el
+ * ícono a text-faint. Es la única excepción a D7 (surface-3 / text-faint / border): una caja que aparece al
+ * deshabilitarse se lee como un botón nuevo. El enmarcado, el primario y el secundario siguen en surface-3. */
+.pulso-button.pulso-button--icon.pulso-button--quiet:is(:disabled, [aria-disabled="true"]) {
   opacity: 1;
-  border-color: var(--pulso-border);
-  background: var(--pulso-surface-3);
+  border-color: transparent;
+  background: transparent;
   color: var(--pulso-text-faint);
   box-shadow: none;
   cursor: not-allowed;

@@ -84,18 +84,18 @@ describe("PulsoButton tone=quiet", () => {
     expect(regla(".pulso-button--sm")).toContain("var(--pulso-icon-size-sm)");
   });
 
-  it("hover en surface-3 sin sombra; un único anillo de foco; deshabilitado sin opacidad", () => {
+  it("hover en surface-3 sin sombra; un único anillo de foco; deshabilitado sin opacidad ni caja (R11-14a)", () => {
     const hover = regla(":hover:not(:disabled)");
     expect(hover).toContain("background: var(--pulso-surface-3);");
     expect(hover).toContain("box-shadow: none;");
     const foco = regla(":focus-visible");
     expect(foco).toContain("outline: var(--mov-foco);");
     expect(foco).toContain("box-shadow: none;");
-    const off = regla(":disabled");
+    const off = regla(':is(:disabled, [aria-disabled="true"])');
     expect(off).toContain("opacity: 1;");
-    expect(off).toContain("background: var(--pulso-surface-3);");
+    expect(off).toContain("background: transparent;");
     expect(off).toContain("color: var(--pulso-text-faint);");
-    expect(off).toContain("border-color: var(--pulso-border);");
+    expect(off).toContain("border-color: transparent;");
   });
 
   it("sin hex en la hoja", () => {
