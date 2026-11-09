@@ -119,6 +119,12 @@ export function etiquetaGrupo(grupos: readonly GrupoDiferencias[], letra: string
   return grupos.find((g) => g.letra === letra)?.etiqueta ?? letra;
 }
 
+/** R11-10: el par que compara una fila de la tabla del «Por qué»: «36 a 45 años y 24 a 35 años». */
+export function parDeGrupos(par: Pick<ParDiferencias, "a" | "b">, grupos: readonly GrupoDiferencias[]): string {
+  const a = etiquetaGrupo(grupos, par.a);
+  return `${a.charAt(0).toLocaleUpperCase("es")}${a.slice(1)} y ${etiquetaGrupo(grupos, par.b)}`;
+}
+
 const unirConY = (partes: readonly string[]): string =>
   partes.length <= 1 ? partes.join("") : `${partes.slice(0, -1).join(", ")} y ${partes[partes.length - 1]}`;
 

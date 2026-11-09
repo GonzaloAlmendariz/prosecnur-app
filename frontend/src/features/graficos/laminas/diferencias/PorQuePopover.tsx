@@ -31,6 +31,7 @@ import {
   frasePar,
   nombreCorreccion,
   nombrePrueba,
+  parDeGrupos,
   parInicial,
   redaccionLamina,
 } from "./modeloDiferencias";
@@ -234,7 +235,16 @@ function TablaPares({ lamina, indice, onElegir }: { lamina: LaminaDiferencias; i
   const columnas: PulsoTableColumna<FilaPar>[] = [
     // La capa mide 640 px y la tabla vive en su columna derecha (~300 px): 4 columnas, 276 px, sin scroll horizontal (C4).
     // El par (B > A) lo dice la cápsula; el veredicto sin marca va abreviado y entero en el `title`.
-    { id: "fila", encabezado: "Fila", ancho: 108, celda: ({ par }) => par.fila, valor: ({ par }) => par.fila },
+    // R11-10: cada fila dice qué par compara (antes seis «Masculino» seguidos sin decir entre qué grupos).
+    {
+      id: "fila", encabezado: "Fila y par", ancho: 108, valor: ({ par }) => `${par.fila}: ${parDeGrupos(par, lamina.grupos)}`,
+      celda: ({ par }) => (
+        <span className="pulso-sig-fila-par" title={`${par.fila}: ${parDeGrupos(par, lamina.grupos)}`}>
+          <span>{par.fila}</span>
+          <small>{parDeGrupos(par, lamina.grupos)}</small>
+        </span>
+      ),
+    },
     { id: "dif", encabezado: "Dif.", ancho: 46, tipo: "cifra", celda: ({ par }) => formatoPuntos(par.dif) },
     { id: "p", encabezado: "p aj.", ancho: 62, tipo: "cifra", celda: ({ par }) => formatoP(par.p_ajustado) },
     {

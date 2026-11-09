@@ -135,3 +135,15 @@ describe("huella de la lámina", () => {
     expect(claveDiferencias([{ ...base, args: { ...base.args, mostrar_significancia: true } }])).not.toBe(k);
   });
 });
+
+describe("R11-10: la tabla del «Por qué» nombra el par", () => {
+  it("las dos etiquetas de grupo, con mayúscula; frente al resto, «el resto»", async () => {
+    const { parDeGrupos } = await import("./modeloDiferencias");
+    const grupos = [
+      { letra: "A", codigo: "1", etiqueta: "24 a 35 años", n: 30, conglomerados: null, comparable: true, motivo: null },
+      { letra: "B", codigo: "2", etiqueta: "36 a 45 años", n: 35, conglomerados: null, comparable: true, motivo: null },
+    ];
+    expect(parDeGrupos({ a: "B", b: "A" }, grupos)).toBe("36 a 45 años y 24 a 35 años");
+    expect(parDeGrupos({ a: "A", b: "resto" }, grupos)).toBe("24 a 35 años y el resto");
+  });
+});

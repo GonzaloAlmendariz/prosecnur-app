@@ -604,3 +604,22 @@
 .pulso-tarjetas-corto-aviso {
   grid-column: 1 / -1;
 }
+
+/* R11-10: la fila del «Por qué» con el par que compara debajo, en una línea que se corta (entera en el title). */
+.pulso-sig-fila-par {
+  display: grid;
+  min-width: 0;
+}
+
+.pulso-sig-fila-par > span,
+.pulso-sig-fila-par > small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-sig-fila-par > small {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}

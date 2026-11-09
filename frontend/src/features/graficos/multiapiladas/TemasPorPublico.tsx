@@ -62,7 +62,8 @@ export function TemasPorPublico({ temas, publicos, variables, onChange, nuevoTem
   const n = (p: string) => Math.max(0, ...lista.map((t) => buscar(variables, refDePublico(t, p))?.n_non_empty ?? 0));
   return (
     <div className="pulso-mapi-temas" data-qa-geometry-group="graficos/mapi-temas" data-qa-geometry-contract="intrinsic">
-      <p className="pulso-mapi-publicos">{publicos.map((p) => (n(p) ? `${nombrePublico(p)}: ${n(p)}` : nombrePublico(p))).join("   ")}</p>
+      {/* R11-10: un público sin pregunta elegida no queda con el nombre suelto: dice que no tiene preguntas. */}
+      <p className="pulso-mapi-publicos">{publicos.map((p) => `${nombrePublico(p)}: ${n(p) ? formatoConteo(n(p)) : "sin preguntas"}`).join("   ")}</p>
       {lista.map((tema, i) => {
         const sugerencias = sugerenciasDeTema(tema, publicos, variables, matriz);
         const lote = aplicablesEnLote(sugerencias);
