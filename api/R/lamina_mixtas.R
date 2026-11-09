@@ -484,9 +484,12 @@
     if (isTRUE(mp)) enc$publicos[[k]] <- publicos_todos[[k]] else if (identical(mp, FALSE)) enc$publicos[k] <- list(NULL)
   }
   titulo <- texto(slots$title %||% slide$title) %||% ""
+  base0 <- base
   base <- .lam_rr_pie(base, especs)   # ADR 0139: base por grupo, sentido y regla de los gráficos de resumen (lamina_resumen_ranura.R)
   # O1 (ola 3): el respaldo se dibuja con su cajón real y su nota de diferencias va al pie (lamina_mixtas_respaldo_alto.R).
   r <- .lam_mixta_respaldos(especs, tipo, rendered, els, titulo_de_var, enc, titulo, redibujar, base_lamina = base)
+  # La cobertura por categorías redibujada con su cajón elige con él cuántas bases enteras caben: el pie dice las suyas.
+  base <- .lam_cobcat_pie_respaldos(base0, base, especs, r$respaldo)
   viejo <- options(prosecnur.lam_reserva_pie = r$reserva); on.exit(options(viejo), add = TRUE)
   .lam_laminas_mixta(doc, especs, tipo, enc$preguntas, enc$publicos, respaldo = r$respaldo, titulo = titulo,
                      ante = texto((slide$meta %||% list())$antetitulo), base = base, folio = length(doc) + 1L,

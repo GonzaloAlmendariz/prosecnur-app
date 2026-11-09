@@ -39,14 +39,9 @@
   # el aire entre filas hasta el mínimo de la casa; si ni así caben, van las bases ENTERAS que quepan (las categorías de
   # una base suman el 100 % y se leen juntas: nunca una parte de una base) y la lámina dice cuáles van en otra. Si no cabe
   # ni una base entera, la lámina va dibujada (con su aviso).
-  g_min <- .std_piso_panel_in(); fila_min <- 2 * g_min + 0.03 + .COBCAT_AIRE_FILAS_MIN
+  g_min <- .std_piso_panel_in(); fila_min <- .COBCAT_FILA_MIN()
   por_bloque <- vapply(bl, function(b) NROW(b$filas), 0L)
-  cabe_m <- function(m) {
-    cab <- if (length(bl) > 1L) m else 0L
-    (h - ley - hcab * cab - 0.05) / sum(por_bloque[seq_len(m)]) >= fila_min - 1e-9
-  }
-  m <- length(bl)
-  while (m >= 1L && !cabe_m(m)) m <- m - 1L
+  m <- .cobcat_bases_que_caben(espec, h, pg)
   if (m < 1L) {
     .pulso_aviso(.aviso_en_lamina(paste0("Por espacio, ninguna base de la cobertura por categorías cabe entera con barras del ",
                                          "grosor de la casa y el gráfico va como imagen; para verlo nativo, usa una lámina de un ",
@@ -55,7 +50,7 @@
   }
   omitidos <- if (m < length(bl)) vapply(bl[-seq_len(m)], function(b) as.character(b$publico %||% b$base)[1], "") else character(0)
   mostrados <- vapply(bl[seq_len(m)], function(b) as.character(b$publico %||% b$base)[1], "")
-  cabeceras <- if (length(bl) > 1L) m else 0L
+  cabeceras <- if (length(bl) > 1L || isTRUE(espec$varias_bases)) m else 0L
   vis <- c(por_bloque[seq_len(m)], rep(0L, length(bl) - m))
   bl <- bl[seq_len(m)]; filas <- sum(vis)
   disponible <- h - ley - hcab * cabeceras - 0.05
@@ -98,7 +93,6 @@
 #' @keywords internal
 .lam_cobcat_dibujar <- function(lz, espec, ge) {
   azul <- .std_color("azul"); suave <- .std_color("texto_suave"); tenue <- .std_color("texto_tenue")
-  .lam_cobcat_omitidos_nota(ge)   # bases que van en otra lámina: al pie
   alto <- ge$ley + ge$hcab * ge$cabeceras + ge$hrow * ge$filas
   y <- ge$y + max(0, ge$h - 0.05 - alto) / 2
   # Leyenda sobre el área de barras y el encabezado de la diferencia sobre su columna.
@@ -155,14 +149,31 @@
   invisible(y)
 }
 
+#' Alto mínimo de la fila de una categoría (in): las dos barras al grosor de la casa, su calle y el aire mínimo
+#' @keywords internal
+.COBCAT_FILA_MIN <- function() 2 * .std_piso_panel_in() + 0.03 + .COBCAT_AIRE_FILAS_MIN
+
+#' Cuántas bases ENTERAS caben en un rectángulo de alto `h` con las barras al grosor de la casa (las primeras, en su orden)
+#'
+#' La comparten la lámina nativa y el dibujo de respaldo (graficos_cobertura_categorias.R): las dos dejan fuera las mismas.
+#' @keywords internal
+.cobcat_bases_que_caben <- function(espec, h, pg = TRUE) {
+  bl <- espec$bloques; if (!length(bl)) return(0L)
+  ley <- if (pg) 0.4 else 0.32; hcab <- if (pg) 0.4 else 0.32
+  por_bloque <- vapply(bl, function(b) NROW(b$filas), 0L)
+  varias <- length(bl) > 1L || isTRUE(espec$varias_bases)
+  cabe_m <- function(m) (h - ley - hcab * (if (varias) m else 0L) - 0.05) / sum(por_bloque[seq_len(m)]) >= .COBCAT_FILA_MIN() - 1e-9
+  m <- length(bl)
+  while (m >= 1L && !cabe_m(m)) m <- m - 1L
+  m
+}
+
 #' Bases que van en otra lámina: lo dice al pie de la lámina y en el aviso ("Por espacio, se muestran Estudiantes y
 #' Docentes; Administrativos va en otra lámina")
 #' @keywords internal
 .lam_cobcat_omitidos_nota <- function(ge) {
   if (!length(ge$omitidos)) return(invisible(NULL))
-  y <- function(x) if (length(x) <= 1L) x else paste(paste(x[-length(x)], collapse = ", "), "y", x[length(x)])
-  nota <- sprintf("Por espacio, se muestra%s %s; %s va%s en otra lámina", if (length(ge$mostrados) > 1L) "n" else "", y(ge$mostrados),
-                  y(ge$omitidos), if (length(ge$omitidos) > 1L) "n" else "")
+  nota <- .cobcat_nota_omitidos(ge$mostrados, ge$omitidos)
   .LAM_RR_PIE$notas <- unique(c(.LAM_RR_PIE$notas, nota))
   .pulso_aviso(.aviso_en_lamina(nota))
   invisible(nota)
@@ -192,6 +203,10 @@
   doc <- .lam_titulo(doc, titulo, ante = ante, sub = sub)
   lz <- .lam_lienzo()
   ge <- .lam_cobcat_pagina_geo(espec)
+  if (length(ge$omitidos)) {   # notas sólo de las bases que se ven, y el aviso
+    espec <- .cobcat_reducir(espec, length(ge$mostrados))
+    .pulso_aviso(.aviso_en_lamina(.cobcat_nota_omitidos(ge$mostrados, ge$omitidos)))
+  }
   .lam_cobcat_dibujar(lz, espec, ge)
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:cobertura")
   doc <- .lam_pie(doc, .lam_rr_pie_menos_filas(.lam_cobcat_pie(base, espec)), folio)
@@ -204,4 +219,23 @@
 
 #' Dibujo en una ranura
 #' @keywords internal
-.lam_rr_cobcat <- function(lz, espec, ge) .lam_cobcat_dibujar(lz, espec, ge)
+.lam_rr_cobcat <- function(lz, espec, ge) {
+  .lam_cobcat_omitidos_nota(ge)   # si la ranura deja fuera una base más que el render: lo dice al pie
+  .lam_cobcat_dibujar(lz, espec, ge)
+}
+
+#' El pie de una lámina mixta con las notas de la cobertura por categorías que se redibujó con su cajón (lamina_mixtas.R)
+#'
+#' El respaldo redibujado puede mostrar otras bases que el render inicial (su alto decide cuántas caben enteras); sus notas
+#' son las de lo que se ve. Sin respaldos de cobertura por categorías, el pie queda como estaba.
+#' @keywords internal
+.lam_cobcat_pie_respaldos <- function(base0, base, especs, respaldo) {
+  if (!length(respaldo)) return(base)
+  nuevas <- especs; cambio <- FALSE
+  for (k in seq_along(especs)) {
+    p <- respaldo[k][[1]]
+    e <- if (inherits(p, "ggplot")) attr(p, "pulso_espec", exact = TRUE)
+    if (.lam_es_cobcat(e) && !identical(e$notas_pie, especs[[k]]$notas_pie)) { nuevas[[k]] <- e; cambio <- TRUE }
+  }
+  if (cambio) .lam_rr_pie(base0, nuevas) else base
+}

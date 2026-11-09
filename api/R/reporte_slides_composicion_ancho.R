@@ -43,6 +43,8 @@
   tipo <- el$.element_type %||% ""
   # O5 (ola 3): la divergente sólo usa el alto para el aire de sus cifras de fuera; su geometría no cambia.
   if (tipo %in% c("barras_apiladas", "barras_multiapiladas", "barras_divergentes")) return(TRUE)
+  # La cobertura por categorías elige con el alto cuántas bases enteras caben (graficos_cobertura_categorias.R).
+  if (identical(tipo, "cobertura") && identical(el$modo, "categorias")) return(TRUE)
   cr <- trimws(as.character(unlist((el$overrides %||% list())$cruces %||% el$cruces %||% character(0))))
   identical(tipo, "barras_agrupadas") && any(!is.na(cr) & nzchar(cr))
 }

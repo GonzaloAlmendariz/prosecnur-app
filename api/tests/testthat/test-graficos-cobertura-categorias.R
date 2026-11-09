@@ -257,7 +257,7 @@ test_that("render: a página entera sale nativo, con barras de muestra y univers
   expect_true(grepl("Por espacio, se muestra Estudiantes; Docentes va en otra lámina", tx, fixed = TRUE))
   expect_identical(sum(nm == 'name="cobertura:publico"'), 1L)   # Docentes va en otra lámina
   for (t in c("Muestra", "Universo", "Diferencia (pts)", "Estudiantes", "Docentes", "95 respuestas válidas", "Primer ciclo",
-              "n = 50", "52.6%", "45.0%", "+7.6", "-25.0", "0.0%", "sin dato", "Base: respuestas válidas, Estudiantes 95 y Docentes 60",
+              "n = 50", "52.6%", "45.0%", "+7.6", "-25.0", "0.0%", "sin dato", "Base: Estudiantes 95 respuestas válidas",   # sólo de la base que se ve
               "Universo: cifras ingresadas por el analista")) {
     expect_true(grepl(t, tx, fixed = TRUE), label = t)
   }
@@ -333,4 +333,27 @@ test_that("las barras llevan el grosor de la casa; si no caben, van bases entera
   .LAM_RR_PIE$notas <- NULL
   expect_message(.lam_rr_dibujar(.lam_lienzo(), e, .lam_rr_geo(e, 0.5, 2, 6.0, 3.2)), "Docentes va en otra lámina")
   expect_match(.lam_rr_pie_menos_filas("Base: 95"), "Por espacio, se muestra Estudiantes; Docentes va en otra lámina", fixed = TRUE)
+})
+
+test_that("las notas del pie son sólo de las bases que se ven y el dibujo de respaldo sigue las reglas de la nativa (2026-11-09)", {
+  e <- .cc_espec("ciclo", bases = c("estudiantes", "docentes"), universo = .cc_univ(), tolerancia = 5)
+  r <- .cobcat_reducir(e, 1L)
+  expect_length(r$bloques, 1L); expect_true(isTRUE(r$varias_bases))
+  expect_true(any(r$notas_pie == "Base: Estudiantes 95 respuestas válidas"))
+  expect_false(any(grepl("Docentes 60", r$notas_pie, fixed = TRUE)))
+  tol <- grep("^Dentro de", r$notas_pie, value = TRUE)
+  d <- r$bloques[[1]]$filas$dentro; expect_identical(tol, sprintf("Dentro de ±5 pts fijado por el analista: %d de %d categorías", sum(d, na.rm = TRUE), sum(!is.na(d))))
+  expect_true(any(r$notas_pie == "Por espacio, se muestra Estudiantes; Docentes va en otra lámina"))
+  # Respaldo: una cabecera por base (con dos bases, nunca dos rótulos iguales sin su público) y la barra al grosor de la casa.
+  p <- .graficar_cobertura_categorias(e, alto = 5.5)
+  b <- ggplot2::ggplot_build(p)
+  textos <- unlist(lapply(b$data, function(d) d$label))
+  expect_true(all(c("Estudiantes  95 respuestas válidas", "Docentes  60 respuestas válidas") %in% textos))
+  g <- suppressWarnings(ggplot2::ggplotGrob(p)); hs <- g$heights
+  panel <- 5.5 - as.numeric(grid::convertHeight(sum(hs[grid::unitType(hs) != "null"]), "in", valueOnly = TRUE))
+  lim <- b$layout$panel_params[[1]]$y.range
+  tiles <- b$data[[1]]; grosor <- unique(round((tiles$ymax - tiles$ymin) * panel / diff(lim), 3))
+  expect_true(all(grosor >= .std_piso_panel_in() - 0.005))
+  expect_identical(attr(p, "note_outside"), .lam_con_punto(do.call(.lam_unir_base, as.list(e$notas_pie))))
+  expect_null(p$labels$caption)
 })

@@ -346,7 +346,22 @@
   todos <- unlist(lapply(bloques, function(b) c(b$filas$pct_muestra, b$filas$pct_universo)))
   escala <- if (any(is.finite(todos))) max(todos[is.finite(todos)]) else 100
   escala <- max(escala, 1)
-  # El pie: la base de cada público, el universo, el filtro, el peso, lo que queda fuera de las barras y la tolerancia.
+  notas <- .cobcat_notas(bloques, tolerancia, ponderado, filtro_texto, base_minima, dec)
+  hay_universo <- any(!vapply(bloques, `[[`, TRUE, "sin_universo"))
+  list(version = .COBCAT_VERSION, tipo = "cobertura", modo = "categorias",
+       bloques = bloques, escala_max = escala,
+       colores = c(muestra = .std_color("azul"), universo = .std_color("tarjeta_total")),
+       leyenda = if (hay_universo) .COBCAT_LEYENDA else .COBCAT_LEYENDA["muestra"],
+       hay_universo = hay_universo, encabezado_diferencia = "Diferencia (pts)",
+       notas_pie = notas, avisos = unique(avisos), tolerancia = tolerancia, decimales = dec,
+       base_minima = base_minima, ponderado = isTRUE(ponderado), filtro_texto = filtro_texto)
+}
+
+#' Notas del pie de la cobertura por categorías, sólo de los `bloques` que se dibujan (base de cada público, universo,
+#' filtro, peso, lo que queda fuera de las barras, lectura referencial y tolerancia)
+#' @keywords internal
+.cobcat_notas <- function(bloques, tolerancia = NULL, ponderado = FALSE, filtro_texto = NULL, base_minima = 30, dec = 1L) {
+  pct <- function(v) ifelse(is.finite(v), paste0(.pulso_fmt_half_up(v, dec), "%"), "")
   bases_txt <- vapply(bloques, function(b) paste(b$publico, .dumbbell_fmt_casos(b$n_validos)), "")
   notas <- if (length(bloques) == 1L) sprintf("Base: %s respuestas válidas", bases_txt) else paste0("Base: respuestas válidas, ", .excluir_grupos_enumerar(bases_txt))
   hay_universo <- any(!vapply(bloques, `[[`, TRUE, "sin_universo"))
@@ -357,27 +372,43 @@
   if (isTRUE(ponderado)) notas <- c(notas, "Sin ponderar")
   for (b in bloques) {
     e <- b$especiales
-    if (!nrow(e)) next
+    if (!NROW(e)) next
     partes <- sprintf("%s %s (%s)", e$etiqueta, vapply(e$n, .dumbbell_fmt_casos, ""), pct(e$pct))
     quien <- if (length(bloques) > 1L) paste0(" en ", b$publico) else ""
     notas <- c(notas, sprintf("Fuera de las barras%s: %s de %s encuestados", quien, paste(partes, collapse = ", "),
                               .dumbbell_fmt_casos(b$n_encuestados)))
   }
-  chicas <- any(vapply(bloques, function(b) any(b$filas$chica), TRUE))
-  if (chicas) notas <- c(notas, sprintf("Con menos de %s casos, lectura referencial", format(base_minima)))
+  if (any(vapply(bloques, function(b) any(b$filas$chica), TRUE))) notas <- c(notas, sprintf("Con menos de %s casos, lectura referencial", format(base_minima)))
   if (!is.null(tolerancia)) {
-    d <- unlist(lapply(bloques, function(b) b$filas$dentro))
-    d <- d[!is.na(d)]
+    d <- unlist(lapply(bloques, function(b) b$filas$dentro)); d <- d[!is.na(d)]
     tol <- .pulso_fmt_half_up(tolerancia, if (tolerancia == round(tolerancia)) 0L else 1L)
     notas <- c(notas, sprintf("Dentro de ±%s pts fijado por el analista: %d de %d categorías", tol, sum(d), length(d)))
   }
-  list(version = .COBCAT_VERSION, tipo = "cobertura", modo = "categorias",
-       bloques = bloques, escala_max = escala,
-       colores = c(muestra = .std_color("azul"), universo = .std_color("tarjeta_total")),
-       leyenda = if (hay_universo) .COBCAT_LEYENDA else .COBCAT_LEYENDA["muestra"],
-       hay_universo = hay_universo, encabezado_diferencia = "Diferencia (pts)",
-       notas_pie = notas, avisos = unique(avisos), tolerancia = tolerancia, decimales = dec,
-       base_minima = base_minima, ponderado = isTRUE(ponderado))
+  notas
+}
+
+#' La especificación con sólo sus primeras `m` bases ENTERAS (las que caben): las notas se rehacen con ellas y se agrega
+#' cuáles van en otra lámina. Las categorías de una base suman el 100 %: una base va entera o no va.
+#' @keywords internal
+.cobcat_reducir <- function(espec, m) {
+  n <- length(espec$bloques)
+  if (m >= n || m < 1L) return(espec)
+  nombre <- function(b) as.character(b$publico %||% b$base)[1]
+  mostrados <- vapply(espec$bloques[seq_len(m)], nombre, ""); omitidos <- vapply(espec$bloques[-seq_len(m)], nombre, "")
+  espec$bloques <- espec$bloques[seq_len(m)]
+  espec$varias_bases <- TRUE   # la base que queda lleva su cabecera: con otra fuera, hay que nombrarla
+  espec$omitidos <- c(espec$omitidos, omitidos)
+  espec$notas_pie <- c(.cobcat_notas(espec$bloques, espec$tolerancia, espec$ponderado, espec$filtro_texto, espec$base_minima, espec$decimales),
+                       .cobcat_nota_omitidos(mostrados, omitidos))
+  espec
+}
+
+#' "Por espacio, se muestran Estudiantes y Docentes; Administrativos va en otra lámina"
+#' @keywords internal
+.cobcat_nota_omitidos <- function(mostrados, omitidos) {
+  y <- function(x) if (length(x) <= 1L) x else paste(paste(x[-length(x)], collapse = ", "), "y", x[length(x)])
+  sprintf("Por espacio, se muestra%s %s; %s va%s en otra lámina", if (length(mostrados) > 1L) "n" else "", y(mostrados),
+          y(omitidos), if (length(omitidos) > 1L) "n" else "")
 }
 
 #' ¿Alguna base del render tiene pesos? (columna `peso` o `attr(data, "var_peso")`)
@@ -418,33 +449,68 @@
 
 # ---- Render (dibujo de respaldo y enganche desde `.render_cobertura`) -------------------------------------------------
 
-#' Cobertura por categorías como dibujo de respaldo (ggplot), con la misma especificación que la lámina nativa
+#' Cobertura por categorías como dibujo de respaldo (ggplot), con la misma especificación y las mismas reglas que la
+#' lámina nativa: una cabecera por base cuando hay más de una (nunca dos "Masculino" sin su público), la barra al grosor de
+#' la casa en el alto que tiene (`alto`, in) y las mismas notas
 #' @keywords internal
-.graficar_cobertura_categorias <- function(espec, titulo = NULL, font_family = "Arial") {
-  filas <- do.call(rbind, lapply(espec$bloques, function(b) {
+.graficar_cobertura_categorias <- function(espec, titulo = NULL, font_family = "Arial", alto = 4.62) {
+  varias <- length(espec$bloques) > 1L || isTRUE(espec$varias_bases)
+  y <- 0; filas <- list(); cabeceras <- list()
+  for (b in espec$bloques) {
+    if (varias) { y <- y + 0.75; cabeceras[[length(cabeceras) + 1L]] <- data.frame(y = y, texto = paste0(b$publico, "  ", b$texto_n_validos)) }
     f <- b$filas
-    data.frame(publico = b$publico, etiqueta = paste0(f$etiqueta, " (", f$texto_n, ")"), muestra = f$pct_muestra,
-               universo = f$pct_universo, t_m = f$texto_muestra, t_u = f$texto_universo, stringsAsFactors = FALSE)
-  }))
-  filas$y <- rev(seq_len(nrow(filas)))
+    for (i in seq_len(NROW(f))) {
+      y <- y + 1
+      filas[[length(filas) + 1L]] <- data.frame(y = y, etiqueta = paste0(f$etiqueta[i], " (", f$texto_n[i], ")"), muestra = f$pct_muestra[i],
+                                                universo = f$pct_universo[i], t_m = f$texto_muestra[i], t_u = f$texto_universo[i],
+                                                stringsAsFactors = FALSE)
+    }
+  }
+  filas <- do.call(rbind, filas); cab <- if (length(cabeceras)) do.call(rbind, cabeceras)
+  # De arriba hacia abajo: ggplot pinta el y mayor arriba.
+  tot <- y; filas$y <- tot + 1 - filas$y; if (!is.null(cab)) cab$y <- tot + 1 - cab$y
+  # Grosor: el de la casa (`.std_piso_panel_in`), igual al de la lámina nativa (B3 de verificar_mazo). La barra se mide en
+  # unidades de fila, así que primero se mide el panel: el alto menos lo que ocupan la leyenda y los márgenes. Sin título
+  # ni nota dentro del dibujo (los escribe la lámina), el panel es el mismo que se pega en la lámina.
+  armar <- function(hb) .cobcat_gg(filas, cab, espec, tot, hb, font_family)
+  g0 <- tryCatch(suppressWarnings(ggplot2::ggplotGrob(armar(0.4))), error = function(e) NULL)   # sólo mide (la fuente da igual)
+  fijo <- if (is.null(g0)) 0.5 else {
+    hs <- g0$heights; tipo <- grid::unitType(hs)
+    as.numeric(grid::convertHeight(sum(hs[tipo != "null"]), "in", valueOnly = TRUE))
+  }
+  u <- max(0.05, (alto - fijo) / (tot + 0.2))
+  hb <- min(0.47, .std_piso_panel_in() / u)
+  p <- armar(hb)
+  attr(p, "pulso_espec") <- espec
+  attr(p, "note_outside") <- .lam_con_punto(do.call(.lam_unir_base, as.list(espec$notas_pie)))   # el pie de la lámina
+  p
+}
+
+#' El ggplot de la cobertura por categorías con barras de alto `hb` (unidades de fila)
+#' @keywords internal
+.cobcat_gg <- function(filas, cab, espec, tot, hb, font_family = "Arial") {
   largo <- rbind(
-    data.frame(y = filas$y + 0.18, valor = filas$muestra, texto = filas$t_m, serie = espec$leyenda[["muestra"]], stringsAsFactors = FALSE),
-    if (isTRUE(espec$hay_universo)) data.frame(y = filas$y - 0.18, valor = filas$universo, texto = filas$t_u, serie = .COBCAT_LEYENDA[["universo"]],
-                                                 stringsAsFactors = FALSE))
+    data.frame(y = filas$y + hb / 2 + 0.015, valor = filas$muestra, texto = filas$t_m, serie = espec$leyenda[["muestra"]], stringsAsFactors = FALSE),
+    if (isTRUE(espec$hay_universo)) data.frame(y = filas$y - hb / 2 - 0.015, valor = filas$universo, texto = filas$t_u,
+                                                 serie = .COBCAT_LEYENDA[["universo"]], stringsAsFactors = FALSE))
   largo$valor[!is.finite(largo$valor)] <- 0
   cols <- stats::setNames(unname(espec$colores[names(espec$leyenda)]), unname(espec$leyenda))
   tope <- espec$escala_max * 1.25
   p <- ggplot2::ggplot(largo) +
-    ggplot2::geom_tile(ggplot2::aes(x = .data$valor / 2, y = .data$y, width = .data$valor, height = 0.32, fill = .data$serie)) +
+    ggplot2::geom_tile(ggplot2::aes(x = .data$valor / 2, y = .data$y, width = .data$valor, height = hb, fill = .data$serie)) +
     ggplot2::geom_text(ggplot2::aes(x = .data$valor + tope * 0.01, y = .data$y, label = .data$texto), hjust = 0, size = 3,
                        colour = .std_color("texto_suave"), family = font_family) +
     ggplot2::scale_fill_manual(values = cols, name = NULL) +
-    ggplot2::scale_y_continuous(breaks = filas$y, labels = filas$etiqueta) +
+    ggplot2::scale_y_continuous(breaks = filas$y, labels = filas$etiqueta, limits = c(0.4, tot + 0.6), expand = c(0, 0)) +
     ggplot2::scale_x_continuous(limits = c(0, tope), breaks = NULL, expand = c(0, 0)) +
-    ggplot2::labs(title = titulo, x = NULL, y = NULL, caption = paste(espec$notas_pie, collapse = ". ")) +
+    ggplot2::coord_cartesian(clip = "off") +
+    ggplot2::labs(title = NULL, x = NULL, y = NULL, caption = NULL) +
     ggplot2::theme_minimal(base_family = font_family) +
     ggplot2::theme(panel.grid = ggplot2::element_blank(), legend.position = "top")
-  attr(p, "pulso_espec") <- espec
+  if (!is.null(cab)) {
+    p <- p + ggplot2::annotate("text", x = 0, y = cab$y, label = cab$texto, hjust = 0, size = 3.6, fontface = "bold",
+                               colour = .std_color("azul"), family = font_family)
+  }
   p
 }
 
@@ -455,7 +521,20 @@
   dec <- (utils::modifyList(as.list(preset_args %||% list()), as.list(el$overrides %||% list())))$valores_decimales %||% 1L
   espec <- .cobcat_desde_fuentes(data_sources, inst_sources, el$variable, bases = el$bases, universo = el$universo_categorias,
                                  filtros = el$filtros, tolerancia = el$tolerancia_pts, decimales = dec)
-  p <- .graficar_cobertura_categorias(espec, titulo = el$title_slide %||% NULL)
+  # Las bases que caben ENTERAS en el alto que tendrá (el del panel si se conoce; si no, el de la lámina de un gráfico): la
+  # lámina nativa y el dibujo de respaldo dejan fuera las mismas y sus notas son sólo de las que se ven.
+  ov <- el$overrides %||% list()
+  alto <- suppressWarnings(as.numeric(ov$alto %||% NA)[1]); alto_conocido <- is.finite(alto); if (!alto_conocido) alto <- 4.62
+  ancho <- suppressWarnings(as.numeric(ov$ancho %||% NA)[1])
+  m <- .cobcat_bases_que_caben(espec, alto, pg = !(is.finite(ancho) && ancho < 9))
+  if (m >= 1L && m < length(espec$bloques)) {
+    nombre <- function(b) as.character(b$publico %||% b$base)[1]
+    nota <- .cobcat_nota_omitidos(vapply(espec$bloques[seq_len(m)], nombre, ""), vapply(espec$bloques[-seq_len(m)], nombre, ""))
+    espec <- .cobcat_reducir(espec, m)
+    # Con el alto de su cajón el aviso es el que vale; con el supuesto, la lámina que lo compone dirá el suyo.
+    if (alto_conocido) .pulso_aviso(.aviso_en_lamina(nota))
+  }
+  p <- .graficar_cobertura_categorias(espec, titulo = el$title_slide %||% NULL, alto = alto)
   for (a in espec$avisos) warning(a, call. = FALSE)
   p
 }

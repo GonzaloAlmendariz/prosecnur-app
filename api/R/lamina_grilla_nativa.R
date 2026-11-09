@@ -123,6 +123,10 @@
   # La nota que declaró el analista (`right_text` de la plantilla) va tras la base, como en la lámina de paneles.
   nota <- texto(slots$right_text)
   base <- if (is.null(nota)) b$base else paste(c(texto(b$base), nota), collapse = ". ")
-  doc <- .lam_composicion_mixta(doc, "graficos_2", b$rendered %||% ps, els, s2, titulo_de_var, base = base, solo_base_declarada = b$solo || !is.null(nota))
+  # O1 (ola 3), también aquí: el respaldo que recibe su alto se vuelve a dibujar con su cajón real (la cobertura por
+  # categorías elige con él cuántas bases enteras caben y el grosor de su barra; 2026-11-09).
+  redib <- .lam_mixta_redibujador(els, dynGet(".render_element", ifnotfound = NULL), dynGet(".inject_title_override", ifnotfound = identity))
+  doc <- .lam_composicion_mixta(doc, "graficos_2", b$rendered %||% ps, els, s2, titulo_de_var, base = base, solo_base_declarada = b$solo || !is.null(nota),
+                                redibujar = redib)
   por_lamina(doc)
 }
