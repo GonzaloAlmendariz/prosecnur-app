@@ -179,8 +179,8 @@ test_that("la brecha rotulada es la diferencia real", {
   p <- graficar_dumbbell(.df_brecha(), mostrar_brecha = TRUE)
   txt <- .capas(p, "GeomText")
   labs <- unlist(lapply(txt, function(l) as.character(l$data$.lab)))
-  expect_true("+27 pts" %in% labs)   # Salud: 72 - 45 (Acogida, la primera, menos Refugiada)
-  expect_true("+18 pts" %in% labs)   # Educacion: 80 - 62
+  expect_true("+27" %in% labs)   # Salud: 72 - 45 (Acogida, la primera, menos Refugiada)
+  expect_true("+18" %in% labs)   # Educacion: 80 - 62
 })
 
 test_that("el umbral silencia las brechas chicas", {
@@ -188,8 +188,8 @@ test_that("el umbral silencia las brechas chicas", {
   p <- graficar_dumbbell(.df_brecha(), mostrar_brecha = TRUE, umbral_brecha_pct = 26)
   txt <- .capas(p, "GeomText")
   labs <- unlist(lapply(txt, function(l) as.character(l$data$.lab)))
-  expect_true("+27 pts" %in% labs)
-  expect_false("+18 pts" %in% labs)
+  expect_true("+27" %in% labs)
+  expect_false("+18" %in% labs)
 })
 
 # --- Lollipop ---------------------------------------------------------------
@@ -553,7 +553,7 @@ test_that("la brecha es primera menos segunda como la página 29 del recetario, 
   d <- p$layers[[1]]$data
   expect_equal(d$.brecha[match(c("Docentes", "Estudiantes"), as.character(d$.eje))], c(6, -3))
   labs <- unlist(lapply(.capas(p, "GeomText"), function(l) as.character(l$data$.lab)))
-  expect_true(all(c("+6 pts", "-3 pts") %in% labs))
+  expect_true(all(c("+6", "-3") %in% labs))
   pesas <- attr(p, "pulso_espec")
   if (!is.null(pesas$textos_diferencia)) expect_setequal(gsub("[^0-9+-]", "", pesas$textos_diferencia), c("+6", "-3"))
 })
@@ -564,15 +564,15 @@ test_that("la brecha se resta entre las cifras que se leen, el cero lleva signo 
                    valor = c(20.4, 18.5, 50, 50), stringsAsFactors = FALSE)
   p <- graficar_dumbbell(df, mostrar_brecha = TRUE)
   labs <- unlist(lapply(.capas(p, "GeomText"), function(l) as.character(l$data$.lab)))
-  expect_true("+1 pts" %in% labs)                    # se leen 20 y 19: +1, no +2
-  expect_true("+0 pts" %in% labs)                    # «%+d» del recetario
+  expect_true("+1" %in% labs)                    # se leen 20 y 19: +1, no +2
+  expect_true("+0" %in% labs)                    # «%+d» del recetario
   pes <- attr(p, "pulso_espec")
-  expect_setequal(pes$textos_diferencia, c("+1 pts", "+0 pts"))   # las pesas dicen lo mismo
+  expect_setequal(pes$textos_diferencia, c("+1", "+0"))   # las pesas dicen lo mismo
   df2 <- data.frame(eje = c("T", "T"), grupo = factor(c("a", "b"), levels = c("a", "b")), valor = c(20.44, 18.51))
   p2 <- graficar_dumbbell(df2, mostrar_brecha = TRUE, valores_decimales = 1)
   l2 <- unlist(lapply(.capas(p2, "GeomText"), function(l) as.character(l$data$.lab)))
-  expect_true("+1.9 pts" %in% l2)
-  expect_identical(attr(p2, "pulso_espec")$textos_diferencia, "+1.9 pts")
+  expect_true("+1.9" %in% l2)
+  expect_identical(attr(p2, "pulso_espec")$textos_diferencia, "+1.9")
 })
 
 test_that("con orden por brecha la mayor con su signo va arriba, igual en ggplot y en pesas", {

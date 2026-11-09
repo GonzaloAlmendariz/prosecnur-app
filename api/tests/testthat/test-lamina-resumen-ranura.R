@@ -75,7 +75,7 @@ test_that("cada gráfico dibuja sus piezas y su nota va al pie de la lámina com
   expect_true(grepl("Cada marca es una pregunta (Top Two Box)", pie(x), fixed = TRUE))
   x <- .rr_render(.rr_slides(2L, .rr_graficos()$contraste))
   expect_true(grepl("Diferencia", pie(x), fixed = TRUE))
-  expect_true(grepl("Docentes − Estudiantes", pie(x), fixed = TRUE))
+  expect_true(grepl("Docentes menos Estudiantes", pie(x), fixed = TRUE))   # D6
   expect_true(grepl("Se muestran las 3 de mayor diferencia", pie(x), fixed = TRUE))
   # Dos ranuras con el mismo gráfico: la regla va una sola vez en el pie.
   expect_identical(lengths(regmatches(pie(x), gregexpr("Se muestran las 3", pie(x), fixed = TRUE))), 1L)

@@ -147,7 +147,7 @@ test_that("las pesas siguen la regla del recetario: diferencia primero menos seg
                   valor = c(92, 96, 98, 94, 91, 96), n = rep(c(51, 109), each = 3))
   e <- attr(graficar_dumbbell(d), "pulso_espec")
   expect_identical(e$rotulos, c("B", "C", "A"))                                  # +5, +2, -2
-  expect_identical(e$textos_diferencia, c("+5 pts", "+2 pts", "-2 pts"))
+  expect_identical(e$textos_diferencia, c("+5", "+2", "-2"))
   expect_identical(e$leyenda, c("Docentes (51)", "Estudiantes (109)"))          # base constante por grupo: en la leyenda
   expect_true(all(is.na(e$n_fila)))
   o <- .lam_laminas_pesas(.nm_doc(), e, "Brecha", folio = 86)
@@ -262,7 +262,7 @@ test_that("las pesas restan las cifras que se leen y la cifra junto a un 0 no en
                   valor = c(20.4, 0, 17.6, 12))
   e <- attr(graficar_dumbbell(d, orden = "declarado", limite_x = c(0, 30)), "pulso_espec")
   expect_identical(e$cifras_a[1], "20%"); expect_identical(e$cifras_b[1], "18%")
-  expect_identical(e$textos_diferencia[1], "+2 pts")                                  # hallazgo 4: antes «+3 pts»
+  expect_identical(e$textos_diferencia[1], "+2")                                  # hallazgo 4: antes «+3 pts»
   o <- .lam_laminas_pesas(.nm_doc(), e, "Pesas", folio = 1)
   ca <- .nm_ext(.nm_xml(.nm_print(o$doc), length(o$doc)), "pesas:cifra_a")
   cb <- .nm_ext(.nm_xml(.nm_print(o$doc), length(o$doc)), "pesas:cifra_b")

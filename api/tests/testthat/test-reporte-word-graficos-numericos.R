@@ -10,16 +10,16 @@ source("setup-load-all.R")
 test_that("los puntos comparativos del Word escriben las cifras y la diferencia de la página 29 desde la espec de pesas", {
   g <- .word_g_pesas(.wn_p29())
   tx <- .wn_textos(g)
-  expect_true(all(c("98%", "92%", "77%", "80%", "+6 pts", "-3 pts", "-7 pts", "Diferencia", "Docentes") %in% tx))
+  expect_true(all(c("98%", "92%", "77%", "80%", "+6", "-3", "-7", "Diferencia", "Docentes") %in% tx))
   expect_equal(attr(g, "alto"), 0.5 + 0.42 * 4)
 })
 
 test_that("entre años la diferencia sube en verde y baja en coral; entre públicos va en azul (recetario_word_graficos.R:140)", {
   colores_dif <- function(e) { b <- suppressWarnings(ggplot2::ggplot_build(.word_g_pesas(e)))
-    l <- Filter(function(l) "label" %in% names(l) && any(grepl("pts$", l$label)), b$data)[[1]]; stats::setNames(l$colour, l$label) }
+    l <- Filter(function(l) "label" %in% names(l) && any(grepl("^[+-][0-9]+$", l$label)), b$data)[[1]]; stats::setNames(l$colour, l$label) }
   anios <- colores_dif(.wn_p29(c("2026", "2021")))
-  expect_identical(unname(anios["+6 pts"]), .WORD_TINTA$verde)
-  expect_identical(unname(anios["-3 pts"]), .WORD_TINTA$coral)
+  expect_identical(unname(anios["+6"]), .WORD_TINTA$verde)
+  expect_identical(unname(anios["-3"]), .WORD_TINTA$coral)
   publicos <- colores_dif(.wn_p29())
   expect_true(all(publicos == .std_word("colores", "titulos")))
 })

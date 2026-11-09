@@ -30,7 +30,7 @@ test_that("el contraste de dos públicos resta el primero menos el segundo, orde
   expect_identical(e$bases[1, ], c("279 (85%)", "115 (93%)"))
   expect_identical(e$formas, c("ellipse", "rect"))                         # se distinguen impresos en blanco y negro
   expect_identical(e$colores, unname(.std_paleta("actores"))[c(2, 1)])   # cada público con su color
-  expect_identical(e$sentido_diferencia, "Estudiantes − Docentes")
+  expect_identical(e$sentido_diferencia, "Estudiantes menos Docentes")   # D6: en palabras
 })
 
 test_that("la base va al pie, abajo a la izquierda, y la tabla queda sólo con la diferencia", {
@@ -63,7 +63,7 @@ test_that("la lámina del contraste pone la tabla de Diferencia y Base fuera del
   expect_true(max(marcas$x + marcas$w) < min(dif$x))                      # ningún punto invade la tabla
   expect_setequal(unique(.re_geom(xml, "puntos:marca")), c("ellipse", "rect"))
   expect_length(.re_sp(xml, "puntos:banda"), 2L)                          # bandas alternas
-  expect_match(paste(.re_txt(xml, "Base lamina"), collapse = " "), "Estudiantes − Docentes")
+  expect_match(paste(.re_txt(xml, "Base lamina"), collapse = " "), "Estudiantes menos Docentes")
 })
 
 test_that("sin padrón, o con uno menor que los casos, la base va sólo con n (no se inventa cobertura)", {

@@ -6,9 +6,18 @@
 # columna «Diferencia» que no decía quién menos quién y con el segundo grupo en el verde azulado de `actores`. Esto
 # sólo decide la FORMA: la diferencia sigue siendo el primer grupo menos el segundo y el porcentaje, el ponderado.
 
-#' Sentido de la diferencia: «Mujer − Hombre» (primer grupo menos el segundo, como `graficar_dumbbell()`)
+#' Sentido de la diferencia: «Mujer menos Hombre» (primer grupo menos el segundo, como `graficar_dumbbell()`)
+#'
+#' D6 (Gonzalo, 2026-11-09): en palabras, sin el signo «−», que en el pie se leía como raya.
 #' @keywords internal
-.dumbbell_sentido <- function(a, b) paste0(a, " − ", b)
+.dumbbell_sentido <- function(a, b) paste0(a, " menos ", b)
+
+#' Unidad junto a la cifra de la diferencia: vacía por defecto («+4»); si el analista la escribe, con un espacio («+4 pts»)
+#' @keywords internal
+.dumbbell_unidad_brecha <- function(etiqueta) {
+  e <- trimws(as.character(etiqueta %||% "")[1])
+  if (is.na(e) || !nzchar(e)) "" else paste0(" ", e)
+}
 
 #' Columna con los casos que la leyenda puede escribir
 #'

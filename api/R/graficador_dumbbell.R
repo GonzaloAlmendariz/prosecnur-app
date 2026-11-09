@@ -25,7 +25,8 @@
 # de los datos (antes 0 a 120 %, con los puntos aplastados contra la derecha),
 # los puntos miden ~0.26 in y la cifra de cada uno va a su costado exterior en
 # el color de su base. La diferencia vive en su propia columna, con encabezado
-# «Diferencia», en puntos y en azul neutro: «+12 pts».
+# «Diferencia», en puntos y en azul neutro: «+12» (D6: la unidad sólo si el analista la escribe; el pie dice «en
+# puntos»).
 
 #' Gráfico de brecha (dumbbell) entre dos bases
 #'
@@ -67,7 +68,7 @@ graficar_dumbbell <- function(
     mostrar_valores = TRUE,
     valores_decimales = 0L,
     mostrar_brecha = TRUE,
-    etiqueta_brecha = "pts",
+    etiqueta_brecha = "",
     encabezado_brecha = "Diferencia",
     umbral_brecha_pct = 0,
     var_n = "n",
@@ -243,7 +244,7 @@ graficar_dumbbell <- function(
     if (nrow(br)) {
       br$.lab <- paste0(
         ifelse(br$.brecha >= 0, "+", ""),          # el recetario escribe «+0 pts» (sprintf("%+d"))
-        .pulso_fmt_half_up(br$.brecha, dec_b), " ", etiqueta_brecha
+        .pulso_fmt_half_up(br$.brecha, dec_b), .dumbbell_unidad_brecha(etiqueta_brecha)
       )
       p <- p + ggplot2::geom_text(
         data = br,
@@ -296,7 +297,7 @@ graficar_dumbbell <- function(
     }, numeric(1)) else rep(NA_real_, nrow(r2))
     list(version = "pesas/1", tipo = "pesas", rotulos = r2$.eje, a = r2$.a, b = r2$.b,
          cifras_a = .pulso_fmt_pct_half_up(r2$.a, dec_p, escala = 1), cifras_b = .pulso_fmt_pct_half_up(r2$.b, dec_p, escala = 1),
-         diferencia = r2$.dif, textos_diferencia = paste0(ifelse(r2$.dif >= 0, "+", ""), .pulso_fmt_half_up(r2$.dif, dec_p), " ", etiqueta_brecha),
+         diferencia = r2$.dif, textos_diferencia = paste0(ifelse(r2$.dif >= 0, "+", ""), .pulso_fmt_half_up(r2$.dif, dec_p), .dumbbell_unidad_brecha(etiqueta_brecha)),
          mostrar_diferencia = isTRUE(mostrar_brecha), encabezado_diferencia = encabezado_brecha, sentido_diferencia = sentido,
          # Con su nombre: el Word casa el color por público (`.word_colores_de_espec`); sin él caía al azul/celeste y el
          # mismo público salía de otro color que en el PPT (Arte, competencias, 2026-10-28).
@@ -315,8 +316,8 @@ graficar_dumbbell <- function(
     ggplot2::coord_cartesian(clip = "off") +
     ggplot2::labs(
       title = titulo, caption = nota_pie, x = titulo_eje,
-      # L10-3: en la ruta de respaldo, quién menos quién va en el subtítulo (la columna no tiene ancho para decirlo).
-      subtitle = if (isTRUE(mostrar_brecha)) paste(c(subtitulo, paste0(encabezado_brecha %||% "Diferencia", ": ", sentido)), collapse = "\n") else subtitulo, y = NULL, colour = NULL
+      # D6: quién menos quién va en el pie («Diferencia: A menos B, en puntos», `note_outside`), como el contraste.
+      subtitle = subtitulo, y = NULL, colour = NULL
     ) +
     ggplot2::theme_minimal(base_family = font_family) +
     ggplot2::theme(
@@ -348,5 +349,6 @@ graficar_dumbbell <- function(
       panel.background = ggplot2::element_rect(fill = NA, colour = NA)
     )
   attr(p, "pulso_espec") <- espec_pesas
+  if (isTRUE(mostrar_brecha)) attr(p, "note_outside") <- paste0("Diferencia: ", sentido, ", en puntos")   # D6: en el pie
   p
 }

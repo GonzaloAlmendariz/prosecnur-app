@@ -160,13 +160,13 @@ test_that("agrupadas: los defaults del registro son los de la casa y un override
 
 test_that("etiqueta_brecha de la tarjeta llega a la columna Diferencia de la lámina nativa", {
   expect_identical(.cm_dumbbell(etiqueta_brecha = "puntos")$textos_diferencia, "+50 puntos")   # 75 % − 25 %
-  expect_identical(.cm_dumbbell()$textos_diferencia, "+50 pts")
+  expect_identical(.cm_dumbbell()$textos_diferencia, "+50")   # D6: sin unidad por defecto; el pie dice «en puntos»
 })
 
-test_that("etiqueta_brecha: registro, preset y motor dicen «pts», como el recetario", {
-  expect_identical(.cm_arg("p_dumbbell", "etiqueta_brecha")$default, "pts")
-  expect_identical(.cm_preset_arg("dumbbell", "etiqueta_brecha")$default, "pts")
-  expect_identical(formals(graficar_dumbbell)$etiqueta_brecha, "pts")
+test_that("etiqueta_brecha: registro, preset y motor la dejan vacía (D6: quien quiere «pts», la escribe)", {
+  expect_identical(.cm_arg("p_dumbbell", "etiqueta_brecha")$default, "")
+  expect_identical(.cm_preset_arg("dumbbell", "etiqueta_brecha")$default, "")
+  expect_identical(formals(graficar_dumbbell)$etiqueta_brecha, "")
 })
 
 # ---- 5. categorías en cero en apiladas y multiapiladas ----------------------------------------------------------------

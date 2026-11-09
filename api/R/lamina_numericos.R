@@ -258,9 +258,9 @@
   }
   if (!is.null(espec$titulo_eje) && nzchar(espec$titulo_eje)) .lam_txt(lz, espec$titulo_eje, xl, yb - 0.58, 6, 0.26, 10, suave, bold = TRUE, nombre = "pesas:titulo_eje")
   if (con_dif && !is.null(espec$encabezado_diferencia) && nzchar(espec$encabezado_diferencia)) {
-    sen <- espec$sentido_diferencia %||% ""   # L10-3: quién menos quién, debajo del encabezado
-    .lam_txt(lz, espec$encabezado_diferencia, W - mr - 1.3, yb - (if (nzchar(sen)) 0.54 else 0.3), 1.3, 0.26, 10, suave, bold = TRUE, align = "center", nombre = "pesas:encabezado")
-    if (nzchar(sen)) .lam_txt(lz, sen, W - mr - 1.45, yb - 0.3, 1.6, 0.26, .lam_pesas_sentido_pt(sen), suave, align = "center", nombre = "pesas:sentido")
+    # D6: quién menos quién va en el pie («Diferencia: A menos B, en puntos», `note_outside` del gráfico), no bajo el
+    # encabezado; la columna lleva sólo «Diferencia» y la cifra en negrita.
+    .lam_txt(lz, espec$encabezado_diferencia, W - mr - 1.3, yb - 0.3, 1.3, 0.26, 10, suave, bold = TRUE, align = "center", nombre = "pesas:encabezado")
   }
   ca <- espec$colores[1]; cb <- espec$colores[2]; tc <- espec$colores_cifra %||% espec$colores; dp <- if (con_dif) 0.13 else 0.12; hs <- if (con_dif) 0.04 else 0.024
   for (i in seq_len(k)) {

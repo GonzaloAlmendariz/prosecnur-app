@@ -2100,10 +2100,10 @@
       list(name = "umbral_brecha_pct", label = "Umbral de brecha (pp)", tipo_input = "number", grupo = "valores",
            default = 0, min = 0, max = 50, step = 1, unidad = "pp",
            descripcion = "Sólo se rotulan las brechas de al menos este tamaño."),
-      # C40: formal de `p_dumbbell()`; «pts» = motor (`graficar_dumbbell()`) y recetario.
+      # D6: vacía por defecto («+6»; el pie dice «en puntos»). Quien quiere «pts», la escribe.
       list(name = "etiqueta_brecha", label = "Unidad de la brecha", tipo_input = "string", grupo = "valores",
-           default = "pts",
-           descripcion = "Se escribe junto a la diferencia: «+6 pts»."),
+           default = "",
+           descripcion = "Texto opcional junto a la diferencia, por ejemplo \"pts\"."),
       # ADR 0134: el contraste del resumen ejecutivo (Arte y Diseño FG 2026): formas por grupo y tabla de base.
       list(name = "estilo", label = "Estilo", tipo_input = "choice", grupo = "estilo",
            default = "recetario",
@@ -3966,10 +3966,10 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
            default = "#C7D2E0"),
       list(name = "size_valores", label = "Tamaño de las cifras", tipo_input = "number", grupo = "valores",
            default = 3.0, min = 1.5, max = 8, step = 0.1),
-      # «pts» y no «pp»: es lo que escriben el motor (`graficar_dumbbell()`) y el recetario (C40).
+      # D6: vacía por defecto, como el motor (`graficar_dumbbell()`); el pie dice «en puntos».
       list(name = "etiqueta_brecha", label = "Unidad de la brecha", tipo_input = "string", grupo = "valores",
-           default = "pts",
-           descripcion = "Se escribe junto a la diferencia: «+6 pts»."),
+           default = "",
+           descripcion = "Texto opcional junto a la diferencia, por ejemplo \"pts\"."),
       list(name = "mostrar_leyenda", label = "Mostrar leyenda", tipo_input = "bool", grupo = "estilo",
            default = TRUE),
       list(name = "leyenda_posicion", label = "Posición de la leyenda", tipo_input = "choice", grupo = "estilo",

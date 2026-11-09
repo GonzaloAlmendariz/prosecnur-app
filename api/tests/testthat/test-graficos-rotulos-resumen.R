@@ -307,6 +307,6 @@ test_that("D4: con la regla «mayor diferencia» el contraste va por la diferenc
 
 test_that("D6: el respaldo del contraste escribe quién menos quién en el pie, como la lámina nativa", {
   p <- .graficar_contraste_gg(.rr_contraste_espec(16))
-  expect_match(attr(p, "note_outside"), "Diferencia: Docentes − Estudiantes, en puntos", fixed = TRUE)
-  expect_identical(.contraste_sentido_nota(.rr_contraste_espec(3)), "Diferencia: Docentes − Estudiantes, en puntos")
+  expect_match(attr(p, "note_outside"), "Diferencia: Docentes menos Estudiantes, en puntos", fixed = TRUE)
+  expect_identical(.contraste_sentido_nota(.rr_contraste_espec(3)), "Diferencia: Docentes menos Estudiantes, en puntos")
 })

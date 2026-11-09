@@ -217,7 +217,7 @@
     diferencia = dif[o],
     textos_diferencia = if (k == 2L) paste0(ifelse(dif[o] > 0, "+", ""), .pulso_fmt_half_up(dif[o], dec)) else .pulso_fmt_half_up(dif[o], dec),
     encabezado_diferencia = encabezado_diferencia %||% "Diferencia",
-    sentido_diferencia = if (k == 2L) .dumbbell_sentido(grupos[1], grupos[2]) else "mayor − menor",
+    sentido_diferencia = if (k == 2L) .dumbbell_sentido(grupos[1], grupos[2]) else "mayor menos menor",
     casos = N[o, , drop = FALSE], bases = B[o, , drop = FALSE], con_cobertura = is.finite(uni),
     base_en = base_en, leyenda = leyenda, nota_base = nota_base, universos = uni, leyenda_con_n = leyenda_con_n,
     separadores = sep, modo = if (k == 2L) "par" else "subfilas",
