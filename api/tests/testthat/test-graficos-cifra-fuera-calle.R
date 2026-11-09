@@ -40,7 +40,10 @@ test_that("en una ranura también", {
   lz <- .lam_lienzo(); .lam_rr_dibujar(lz, e, geo)
   doc <- officer::read_pptx(system.file("plantillas", "plantilla_16_9.pptx", package = "prosecnurapp"))
   xml <- .cf_xml(.lam_agrupar(officer::add_slide(doc, layout = "Graficos2", master = "Office Theme"), lz, nombre = "prueba"))
-  d <- .cf_calles(xml)
-  expect_gte(length(d), 1L)
-  expect_true(all(d > 0 & d <= 0.08), info = paste(round(d, 3), collapse = ", "))
+  # S3: la cifra de un segmento interior que ni con letra chica cabe va fuera, a continuación de la del extremo; la que
+  # queda junto a la barra en cada lado de cada fila es la del extremo, a la calle de la casa.
+  cf <- .cf_cajas(xml, "divergentes:cifra_fuera"); d <- .cf_calles(xml)
+  junto <- tapply(d, paste(round(cf$y, 2), cf$algn), min)
+  expect_gte(length(junto), 1L)
+  expect_true(all(junto > 0 & junto <= 0.08), info = paste(round(d, 3), collapse = ", "))
 })

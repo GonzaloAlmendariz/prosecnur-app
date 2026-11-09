@@ -1,9 +1,9 @@
 source("setup-load-all.R")
 
 # P16 (resumen de Arte, lámina 5, «El estatuto PUCP…»): la cifra de «En desacuerdo» (1%) se montaba con el 2% de fuera
-# y con el eje. H3 (láminas 4 y 5, 2026-11-09): omitirla dejaba sin cifra segmentos de 10 %, 9 %, 6 % y 4 %. La regla
-# es la del resumen original: la cifra interior que no cabe va fuera, a continuación de la del extremo, sin pisarla; se
-# omite sólo si no queda sitio (lamina_divergentes_cifras.R).
+# y con el eje. H3 (láminas 4 y 5, 2026-11-09): omitirla dejaba sin cifra segmentos de 10 %, 9 %, 6 % y 4 %. S3: como
+# en el resumen original, la cifra interior que no cabe con su letra va dentro con letra chica; sólo si ni así cabe va
+# fuera, a continuación de la del extremo, sin pisarla; se omite sólo si no queda sitio (lamina_divergentes_cifras.R).
 
 .ci_niv <- c(t1 = "Totalmente en desacuerdo", t2 = "En desacuerdo", t3 = "De acuerdo", t4 = "Totalmente de acuerdo", t5 = "Sin información")
 .ci_xml <- function(doc) { out <- tempfile(fileext = ".pptx"); print(doc, target = out); xml2::read_xml(unz(out, sprintf("ppt/slides/slide%d.xml", length(doc)))) }
@@ -22,9 +22,9 @@ source("setup-load-all.R")
 # Tinta de una cifra de fuera alineada a la derecha (caja con 0.1 in de margen): [der - tinta, der].
 .ci_tinta_izq <- function(fila) { der <- fila$x + fila$w - 0.1; c(der - .lam_ancho_tinta(fila$txt, 11, TRUE), der) }
 
-test_that("10% y 4% interiores junto a un 3% de fuera: van fuera, a la izquierda del 3%, sin pisarlo ni pisar el eje", {
-  # Como en Arte: un lado del desacuerdo largo (5 % y 43 %) y otro del acuerdo largo (85 %) achican la escala.
-  # Rótulos largos, como los del resumen, dejan la escala angosta.
+test_that("S3: el 10% interior va dentro de su segmento con letra chica y el 3% del extremo, fuera y pegado a la barra", {
+  # Como en el resumen original de Arte (láminas 4 y 5): «En desacuerdo» se escribe dentro, más chico, y sólo el extremo
+  # sale de la barra. Sacar las dos dejaba «10% 3%», que se leía como si el extremo fuera la cifra mayor.
   d <- data.frame(it = c("Los reglamentos de la Unidad se aplican correctamente en todas sus instancias (Doc.)",
                          "El estatuto PUCP y las normas internas de la Facultad se cumplen siempre (Doc.)",
                          "La dotación de recursos para la docencia es suficiente para todas las clases (Doc.)",
@@ -33,18 +33,35 @@ test_that("10% y 4% interiores junto a un 3% de fuera: van fuera, a la izquierda
   xml <- .ci_render(d)
   fuera <- .ci_cajas(xml, "divergentes:cifra_fuera")
   dentro <- .ci_cajas(xml, "divergentes:cifra")
-  centro <- .ci_cajas(xml, "divergentes:centro")
-  expect_true(all(c("10%", "4%") %in% fuera$txt))            # ya no se omiten
-  expect_false(any(c("10%", "4%") %in% dentro$txt))
-  expect_true("43%" %in% dentro$txt)                          # lo que cabe, dentro
-  for (v in c("10%", "4%")) {
-    f <- fuera[fuera$txt == v, ][1, ]
-    tres <- fuera[fuera$txt == "3%" & abs(fuera$y - f$y) < 1e-6, ][1, ]
-    expect_false(is.na(tres$x), info = v)
-    ti <- .ci_tinta_izq(f); t3 <- .ci_tinta_izq(tres)
-    expect_lt(ti[2], t3[1])                                   # a la izquierda del 3 %, sin pisarlo
-    expect_lt(ti[2], centro$x[1])                             # lejos del eje
+  segs <- .ci_cajas(xml, "divergentes:segmento")
+  expect_true("10%" %in% dentro$txt)
+  expect_false("10%" %in% fuera$txt)
+  sz <- function(txt) {
+    sp <- xml2::xml_find_all(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='divergentes:cifra']]")
+    as.numeric(xml2::xml_attr(xml2::xml_find_first(sp[xml2::xml_text(sp) == txt][1], ".//a:rPr"), "sz")) / 100
   }
+  expect_lt(sz("10%"), sz("43%"))                              # la chica, más chica que la de la escala
+  tres <- fuera[fuera$txt == "3%", ]
+  expect_gte(nrow(tres), 1L)
+  # El 3% queda junto a su barra: entre el fin de su tinta y el inicio del segmento del extremo no cabe otra cifra.
+  for (r in seq_len(nrow(tres))) {
+    der <- .ci_tinta_izq(tres[r, ])[2]
+    x_seg <- min(segs$x[abs(segs$y - tres$y[r]) < 0.2])
+    expect_lt(x_seg - der, 0.15)
+  }
+  # El 4% interior: dentro con letra chica si cabe; si no, fuera a la izquierda del 3%, sin pisarlo.
+  if ("4%" %in% fuera$txt) {
+    f <- fuera[fuera$txt == "4%", ][1, ]; t3 <- fuera[fuera$txt == "3%" & abs(fuera$y - f$y) < 1e-6, ][1, ]
+    expect_lt(.ci_tinta_izq(f)[2], .ci_tinta_izq(t3)[1])
+  } else expect_true("4%" %in% dentro$txt)
+})
+
+test_that("S3: una cifra interior que no cabe con su letra va dentro con la chica; el extremo nunca", {
+  segs <- list(list(k = 2L, x = 3.0, w = 0.3, lado = "neg"), list(k = 1L, x = 2.95, w = 0.05, lado = "neg"))
+  p <- .lam_div_cifras_fila(segs, c(1, 1), c("3%", "10%"), 11, lim_izq = 1)
+  expect_identical(p$modo[p$k == 2L], "dentro_chica")
+  expect_identical(p$modo[p$k == 1L], "fuera_izq")
+  expect_true(p$extremo[p$k == 1L])
 })
 
 test_that("con 1% junto a un 2% de fuera, el 1% va fuera a la izquierda del 2% y nada se monta", {

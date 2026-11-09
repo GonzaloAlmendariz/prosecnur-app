@@ -7,7 +7,11 @@
 #
 # Regla de la casa:
 #   - dentro de su segmento si cabe con su tinta más 0.12 in (`.lam_tiene_peq`);
-#   - si no, fuera de la barra, en negrita y con el color de su segmento oscurecido. La del extremo va pegada a la
+#   - S3 (2026-11-09, como el resumen original de Arte, láminas 4 y 5): la cifra de un segmento INTERIOR que no cabe
+#     con su letra va dentro con letra chica (`.lam_div_cifra_pt_chica`) si así cabe: el original nunca saca «En
+#     desacuerdo»; escribe el 4 % y el 6 % dentro de su segmento, más chicos, y sólo el extremo sale de la barra, pegado
+#     a ella y con su color. Sacar las dos dejaba «10% 3%», que se leía como si el extremo fuera la cifra mayor;
+#   - si ni así cabe, fuera de la barra, en negrita y con el color de su segmento oscurecido. La del extremo va pegada a la
 #     barra (como siempre); la de un segmento interior va a continuación, hacia afuera (a la izquierda de la cifra de
 #     fuera del extremo en el lado del desacuerdo, a la derecha en el del acuerdo), sin pisarla;
 #   - una cifra interior se omite sólo si de verdad no queda sitio: su tinta pasaría del límite del lado (la columna de
@@ -18,6 +22,15 @@
 #' @keywords internal
 .LAM_CIFRA_ENTRE_IN <- 0.03
 
+#' Letra chica de la cifra de un segmento interior (S3): tres cuartos de la de la escala, nunca bajo 8 pt
+#' @keywords internal
+.lam_div_cifra_pt_chica <- function(pt) max(8, round(pt * 0.75 * 2) / 2)
+
+#' ¿La cifra cabe dentro de su segmento con la letra chica? Como en el original («4%» en un segmento de 4 %), la tinta
+#' puede asomar 0.02 in por cada lado: con letra chica y del color del texto se sigue leyendo como de su segmento.
+#' @keywords internal
+.lam_div_cabe_chica <- function(w, cifra, pt) w + 0.04 >= .lam_ancho_tinta(cifra, .lam_div_cifra_pt_chica(pt), FALSE)
+
 #' Dónde va cada cifra de una fila de la escala: dentro, fuera u omitida
 #'
 #' @param segs Lista de segmentos `list(k, x, w, lado)` de la fila (neu, neg del eje hacia afuera, pos del eje hacia
@@ -26,7 +39,7 @@
 #' @param cifras Fila de cifras (`X[i, ]`).
 #' @param pt Letra de las cifras.
 #' @param lim_izq,lim_der Hasta dónde puede llegar la tinta de una cifra de fuera por cada lado.
-#' @return data.frame con `k`, `modo` (`"dentro"`, `"fuera_izq"`, `"fuera_der"`, `"omitida"`), `borde` (para fuera: el
+#' @return data.frame con `k`, `modo` (`"dentro"`, `"dentro_chica"`, `"fuera_izq"`, `"fuera_der"`, `"omitida"`), `borde` (para fuera: el
 #'   `x_extremo` de `.lam_cifra_fuera_x`) y `extremo` (lógico).
 #' @keywords internal
 .lam_div_cifras_fila <- function(segs, u, cifras, pt, lim_izq = -Inf, lim_der = Inf) {
@@ -47,6 +60,7 @@
     for (j in rev(seq_along(del_lado))) {
       sg <- del_lado[[j]]; es_ext <- j == length(del_lado)
       if (cabe(sg)) next
+      if (!es_ext && .lam_div_cabe_chica(sg$w, cifras[[sg$k]], pt)) { out <- rbind(out, fila(sg$k, "dentro_chica")); next }
       tinta <- .lam_ancho_tinta(cifras[[sg$k]], pt, TRUE)
       if (identical(lado, "neg")) {
         hasta <- frente - calle - tinta
@@ -73,6 +87,8 @@
     k <- plan$k[r]; sg <- por_k[[as.character(k)]]; cifra <- cifras[[k]]; y <- .lam_y_centrada(yc, pt)
     switch(plan$modo[r],
       dentro = .lam_txt(lz, cifra, sg$x - 0.2, y, sg$w + 0.4, h_caja, pt, azul, align = "center", nombre = "divergentes:cifra"),
+      dentro_chica = .lam_txt(lz, cifra, sg$x - 0.2, .lam_y_centrada(yc, .lam_div_cifra_pt_chica(pt)), sg$w + 0.4, h_caja, .lam_div_cifra_pt_chica(pt), azul,
+                              align = "center", nombre = "divergentes:cifra"),
       fuera_izq = .lam_txt(lz, cifra, .lam_cifra_fuera_x(plan$borde[r], w_caja, "izq"), y, w_caja, h_caja, pt, .lam_oscurecer(colores[[k]]),
                            bold = TRUE, align = "right", nombre = "divergentes:cifra_fuera"),
       fuera_der = .lam_txt(lz, cifra, .lam_cifra_fuera_x(plan$borde[r], w_caja, "der"), y, w_caja, h_caja, pt, .lam_oscurecer(colores[[k]]),
