@@ -98,13 +98,17 @@ describe("usar una versión", () => {
   });
 });
 
-describe("nombre con versión (inspector y Estructura)", () => {
-  it("«<tipo>: <versión>», sin punto medio", () => {
+describe("nombre con versión (selector, maqueta, aviso, inspector y Estructura)", () => {
+  it("ronda 19 (O3): «<tipo>, versión <versión>», sin dos puntos ni punto medio", () => {
     for (const v of VARIANTES_GRAFICO) {
       const nombre = nombreConVersion(v);
-      expect(nombre).toMatch(/^[^:]+: .+$/);
+      expect(nombre).not.toContain(":");
       expect(nombre).not.toContain("·");
-      expect(nombre.endsWith(`: ${nombreVersion(v)}`)).toBe(true);
+      expect(nombre.endsWith(`, versión ${nombreVersion(v)}`)).toBe(true);
+      expect(`Hoy: ${nombre}.`.split(":").length).toBe(2);
     }
+    const contraste = varianteGrafico("p_dumbbell:contraste");
+    if (!contraste) throw new Error("falta la variante");
+    expect(nombreConVersion(contraste, "Brecha entre dos grupos")).toBe("Brecha entre dos grupos, versión Contraste de públicos");
   });
 });

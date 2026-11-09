@@ -73,9 +73,14 @@ export function nombreVersionBase(graficador: string): string {
   return GRAFICO_POR_NOMBRE.get(graficador)?.version_base?.trim() || nombreTipo(graficador);
 }
 
-/** Cómo se nombra un gráfico guardado que es una variante: «<tipo>: <versión>» (el inspector, la Estructura, los avisos). */
-export function nombreConVersion(variante: VarianteGraficoCatalogo): string {
-  return `${nombreTipo(variante.graficador)}: ${nombreVersion(variante)}`;
+/**
+ * Cómo se nombra un gráfico que es una variante, en todas partes (selector, maqueta, aviso, inspector, Estructura):
+ * «<tipo>, versión <versión>». Ronda 19 (O3): antes «<tipo>: <versión>», y en frases como «Hoy: …» o «Gráfico
+ * insertado: …» salían dos veces dos puntos. `tipo` es el nombre del tipo cuando quien llama lo tiene (el del registro);
+ * sin él, el del catálogo.
+ */
+export function nombreConVersion(variante: VarianteGraficoCatalogo, tipo?: string): string {
+  return `${tipo?.trim() || nombreTipo(variante.graficador)}, versión ${nombreVersion(variante)}`;
 }
 
 /** Los args de partida de una entrada: los fijos de la variante (un `null` queda nulo) y un `undefined` por cada

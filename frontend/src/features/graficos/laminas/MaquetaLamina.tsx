@@ -125,7 +125,7 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
 
       {ranuras.map((r, i) => {
         // F1: con un solo gráfico, el nombre que el mazo le dio a la lámina (`meta.nombre`) manda sobre el de su tipo.
-        // Ronda 18: una versión del catálogo se nombra «<tipo>: <versión>», como en el inspector.
+        // Ronda 19: una versión del catálogo se nombra «<tipo>, versión <versión>», como en el inspector y el selector.
         const nombreTipo = nombreTipoEnFicha(slide, r.graficador ? nombreGraficoEnFicha(r.graficador, r.args, graficadorDisplayName(r.graficador, graficadoresById[r.graficador])) : null, conGrafico);
         const activa = r.k !== null && r.k === ranuraActiva;
         const estilo = { left: `${r.rect.x * 100}%`, top: `${r.rect.y * 100}%`, width: `${r.rect.w * 100}%`, height: `${r.rect.h * 100}%` };

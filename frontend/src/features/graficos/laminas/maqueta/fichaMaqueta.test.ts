@@ -201,7 +201,7 @@ describe("geometría de la ficha", () => {
 describe("ronda 18: el nombre con su versión se lee entero en la cabecera", () => {
   it("envuelve hasta tres renglones en vez de recortar la versión tras el «…»", () => {
     const f = ficha(multi({ modo: "var_cruce", vars: { t: tema("importa") } }));
-    const nombre = "Multiapilada divergente: Con columna de Sin información";
+    const nombre = "Multiapilada divergente, versión Con columna de Sin información";
     // Apaisada, como la ranura de «Un gráfico» (9 × 4,4 in): la columna de información es angosta.
     const escena = escenaFicha({ ...f, tipo: nombre }, 9, 4.4);
     const cab = escena.piezas.find((p): p is Extract<Pieza, { tipo: "cabecera" }> => p.tipo === "cabecera");

@@ -25,10 +25,10 @@ describe("el nombre en la ficha de la maqueta", () => {
   });
 });
 
-describe("ronda 18: la ficha nombra la versión como el inspector", () => {
-  it("una versión del catálogo va «<tipo>: <versión>»", () => {
+describe("ronda 19: la ficha nombra la versión como el inspector y el selector", () => {
+  it("una versión del catálogo va «<tipo>, versión <versión>»", () => {
     expect(nombreGraficoEnFicha("p_barras_divergentes", { estilo: "resumen" }, "Multiapilada divergente"))
-      .toBe("Multiapilada divergente: Con columna de Sin información");
+      .toBe("Multiapilada divergente, versión Con columna de Sin información");
   });
   it("la versión base se nombra con su tipo", () => {
     expect(nombreGraficoEnFicha("p_barras_divergentes", {}, "Multiapilada divergente")).toBe("Multiapilada divergente");

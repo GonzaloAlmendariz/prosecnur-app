@@ -95,10 +95,11 @@ export function SelectorTipoGrafico({ slide, posicion, ranura, cerrar }: Props) 
     return g.disabled_reason?.trim() || graficadorAvailabilityLabel(g, dimOk);
   };
   const nombreDe = (e: EntradaGrafico): string => graficadorDisplayName(e.meta.name, e.meta);
-  // «<tipo>: <versión>» para una variante (enmienda del ADR 0139); la base se nombra con su tipo.
+  // Ronda 19 (O3): «<tipo>, versión <versión>» para una variante, con el helper de la maqueta y el aviso; la base, su tipo.
   const nombreConSuVersion = (graficador: string, version: string | null): string => {
     const variante = varianteGrafico(version);
-    return variante ? nombreConVersion(variante) : graficadorDisplayName(graficador, graficadoresById[graficador]);
+    const tipo = graficadorDisplayName(graficador, graficadoresById[graficador]);
+    return variante ? nombreConVersion(variante, tipo) : tipo;
   };
   const nombreActual = actual ? nombreConSuVersion(actual.graficador, entradaActual) : "";
 

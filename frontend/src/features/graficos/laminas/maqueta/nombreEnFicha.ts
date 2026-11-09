@@ -15,10 +15,10 @@ export function nombreTipoEnFicha(slide: Slide, nombreTipo: string | null, grafi
 }
 
 /**
- * Ronda 18: el tipo del gráfico como lo nombra el inspector. Una versión del catálogo va «<tipo>: <versión>»
- * («Multiapilada divergente: Con columna de Sin información», enmienda del ADR 0139); la versión base, con su tipo.
+ * Ronda 18: el tipo del gráfico como lo nombra el inspector. Una versión del catálogo va «<tipo>, versión <versión>»
+ * («Multiapilada divergente, versión Con columna de Sin información», ronda 19); la versión base, con su tipo.
  */
 export function nombreGraficoEnFicha(graficador: string, args: Readonly<Record<string, unknown>>, nombreTipo: string): string {
   const variante = varianteDeGrafico(graficador, args);
-  return variante ? nombreConVersion(variante) : nombreTipo;
+  return variante ? nombreConVersion(variante, nombreTipo) : nombreTipo;
 }

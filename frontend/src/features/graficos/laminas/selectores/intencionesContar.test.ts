@@ -258,12 +258,12 @@ describe("las recomendaciones apuntan al catálogo de gráficos (ADR 0139, decis
     }
   });
 
-  it("el inspector y la Estructura nombran «<tipo>: <versión>» la variante de una lámina guardada (enmienda ADR 0139)", () => {
+  it("el inspector y la Estructura nombran «<tipo>, versión <versión>» la variante de una lámina guardada (ronda 19)", () => {
     // Los nombres salen del catálogo (titulo_humano, nombre_version): el test no los escribe a mano.
     const conVersion = (id: string) => {
       const v = varianteGrafico(id);
       if (!v) throw new Error(`falta ${id}`);
-      return `${NOMBRE_TIPO_GRAFICO[v.graficador]}: ${v.nombre_version ?? v.nombre}`;
+      return `${NOMBRE_TIPO_GRAFICO[v.graficador]}, versión ${v.nombre_version ?? v.nombre}`;
     };
     expect(presentacionDeGrafico("p_dumbbell", { estilo: "resumen", cruce: null }).nombre).toBe(conVersion("p_dumbbell:contraste"));
     expect(presentacionDeGrafico("p_dumbbell", { estilo: "resumen", cruce: "base$ciclo" }).nombre).toBe(conVersion("p_dumbbell:aperturas"));
