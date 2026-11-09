@@ -37,3 +37,18 @@ test_that("la fila de etiqueta larga de la tabla del radar lleva sus cifras y su
   expect_true(.rtl_ejes[5] %in% celdas)
   expect_false("—" %in% celdas)
 })
+
+test_that("con el nombre entero, el radar de seis criterios de Arte sigue en la lámina 90 (la primera columna se ensancha)", {
+  ejes <- c("Aprendizaje autónomo y adaptabilidad", "Ética, ciudadanía y conciencia ambiental",
+            "Investigación, creación e innovación", "Pensamiento crítico y creativo",
+            "Comunicación eficaz: oral, escrita y no verbal", "Habilidades colaborativas")
+  v <- list(docentes = c(85, 70, 89, 83, 76, 84), estudiantes = c(92, 85, 96, 94, 87, 90))
+  d <- do.call(rbind, lapply(names(v), function(g) data.frame(eje = ejes, grupo = g, valor = v[[g]], n = 100)))
+  d$eje <- factor(d$eje, levels = ejes); d$grupo <- factor(d$grupo, levels = names(v))
+  g <- suppressWarnings(.radar_mb_grafico(d, mostrar_valores = TRUE, decimales = 0L, overrides = list(mostrar_tabla_derecha = TRUE)))
+  e <- attr(.radar_mb_componer(g, .radar_mb_tabla(d), titulo_tema = "TOP TWO BOX"), "pulso_espec")
+  expect_identical(e$ejes_tabla, ejes)
+  expect_gt(.lam_radar_anchos(e)[1], .LAM_RADAR$col1)
+  expect_lte(.lam_radar_filas(e)$lineas, 2L)
+  expect_true(.lam_radar_cabe(e))
+})

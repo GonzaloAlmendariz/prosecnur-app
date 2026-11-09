@@ -145,7 +145,25 @@
 #' @keywords internal
 .lam_radar_anchos <- function(espec) {
   R <- .LAM_RADAR
-  c(R$col1, pmax(R$col, .lam_ancho_tinta(espec$grupos, .lam_tabla_m()$enc_pt, TRUE) + 0.25))   # R3 (ola 4): el encabezado del estándar
+  c(.lam_radar_col1(espec), .lam_radar_cols_grupo(espec))
+}
+
+#' Columnas de los públicos: 1.15 in o lo que pida su encabezado con la letra del estándar (R3, ola 4)
+#' @keywords internal
+.lam_radar_cols_grupo <- function(espec) pmax(.LAM_RADAR$col, .lam_ancho_tinta(espec$grupos, .lam_tabla_m()$enc_pt, TRUE) + 0.25)
+
+#' Primera columna: 2.2 in, ensanchada de 0.1 en 0.1 hasta donde llega la lámina si un criterio pide más de dos líneas
+#'
+#' R12-1: la tabla lleva el nombre entero del criterio («Comunicación eficaz: oral, escrita y no verbal»), que a 2.2 in
+#' pide tres líneas y sacaba al radar de la lámina 90. Como en las líneas y puntos (G18), se ensancha lo justo sin bajar
+#' la letra.
+#' @keywords internal
+.lam_radar_col1 <- function(espec) {
+  R <- .LAM_RADAR; ejes <- .lam_radar_ejes_tabla(espec); c1 <- R$col1
+  if (!length(ejes)) return(c1)
+  tope <- .std_geom("ancho") - .std_geom("margen_der") - R$x_tabla - sum(.lam_radar_cols_grupo(espec))
+  while (max(.lam_lineas_tinta(ejes, c1, 13, TRUE)) > 2L && c1 + 0.1 <= tope + 1e-9) c1 <- c1 + 0.1
+  c1
 }
 
 #' Alto de fila de la tabla: 0.5 in, o menos (hasta 0.4) si no caben todas
@@ -161,9 +179,9 @@
 #' @keywords internal
 .lam_radar_lineas <- function(espec) {
   R <- .LAM_RADAR
-  ejes <- .lam_radar_ejes_tabla(espec)
-  if (all(.lam_ancho_tinta(ejes, 13, TRUE) <= R$col1 - 0.2)) return(1L)
-  max(.lam_lineas_tinta(ejes, R$col1, 13, TRUE))
+  ejes <- .lam_radar_ejes_tabla(espec); c1 <- .lam_radar_col1(espec)
+  if (all(.lam_ancho_tinta(ejes, 13, TRUE) <= c1 - 0.2)) return(1L)
+  max(.lam_lineas_tinta(ejes, c1, 13, TRUE))
 }
 
 #' Altos de la tabla: encabezado y filas del cuerpo
