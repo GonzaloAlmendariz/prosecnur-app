@@ -25,11 +25,13 @@
   if (!is.list(espec) || !espec$tipo %in% .TPUB_ESPECS || !length(vars_render)) return(NULL)
   cortos <- names(.resumen_temas_cortos(vars_render))
   bases <- names(.tpub_refs(vars_render[[1]]) %||% character(0))
-  if (length(bases) != 2L) return(NULL)
+  # Las pesas comparan dos públicos; el contraste, de dos a cuatro (graficos_dumbbell_tres_grupos.R), en el orden de las refs.
+  nb <- length(bases)
+  if (nb < 2L || (identical(espec$tipo, "pesas") && nb != 2L) || (identical(espec$tipo, "contraste") && NCOL(espec$valores) != nb)) return(NULL)
   out <- list()
   for (i in seq_along(vars_render)) {
     k <- match(cortos[i], as.character(espec$rotulos))
-    v <- if (is.na(k)) c(NA_real_, NA_real_) else if (identical(espec$tipo, "contraste")) espec$valores[k, 1:2] else c(espec$a[k], espec$b[k])
+    v <- if (is.na(k)) rep(NA_real_, nb) else if (identical(espec$tipo, "contraste")) espec$valores[k, seq_len(nb)] else c(espec$a[k], espec$b[k])
     out[[names(vars_render)[i]]] <- stats::setNames(as.numeric(v), bases)
   }
   out

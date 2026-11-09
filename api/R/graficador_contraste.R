@@ -39,12 +39,15 @@
   } else {
     p <- p + ggplot2::geom_segment(data = largo, ggplot2::aes(x = eje[["lo"]], xend = .data$x, y = .data$y, yend = .data$y, colour = .data$grupo),
                                    alpha = 0.3, linewidth = 0.8, show.legend = FALSE) +
-      ggplot2::geom_text(data = largo, ggplot2::aes(x = .data$x, y = .data$y, label = .data$cifra), hjust = -0.6, size = 2.8,
+      # La cifra a una distancia fija de su punto (con `hjust` relativo, un "0" de un carácter quedaba bajo la marca).
+      ggplot2::geom_text(data = largo, ggplot2::aes(x = .data$x, y = .data$y, label = .data$cifra), hjust = 0, nudge_x = ancho * 0.018, size = 2.8,
                          colour = .std_color("azul"), family = font_family)
   }
   tabla <- data.frame(x = x_tabla[1], y = centro, t = espec$textos_diferencia, stringsAsFactors = FALSE)
   if (con_base) for (j in seq_len(k)) tabla <- rbind(tabla, data.frame(x = x_tabla[j + 1], y = centro, t = espec$bases[, j], stringsAsFactors = FALSE))
-  cab <- data.frame(x = x_tabla, y = max(centro) + paso * 0.9, t = c(espec$encabezado_diferencia, if (con_base) espec$grupos), stringsAsFactors = FALSE)
+  # Encabezado de la tabla sobre la primera fila; con sub-filas, sobre su sub-fila de arriba (no a un paso entero).
+  alto_cab <- if (par) paso * 0.9 else (k + 1) / 2 + 0.4
+  cab <- data.frame(x = x_tabla, y = max(centro) + alto_cab, t = c(espec$encabezado_diferencia, if (con_base) espec$grupos), stringsAsFactors = FALSE)
   p <- p +
     ggplot2::geom_point(data = largo, ggplot2::aes(x = .data$x, y = .data$y, fill = .data$grupo, shape = .data$grupo),
                         size = if (par) 3.6 else 3, colour = "white", stroke = 0.6) +
@@ -52,6 +55,8 @@
     ggplot2::geom_text(data = cab, ggplot2::aes(x = .data$x, y = .data$y, label = .data$t), size = 3, fontface = "bold",
                        colour = .std_color("texto_suave"), family = font_family) +
     ggplot2::scale_fill_manual(values = stats::setNames(espec$colores, espec$grupos), labels = espec$leyenda %||% espec$grupos, name = NULL) +
+    # La línea de cada sub-fila en el color de su grupo (sin esta escala tomaba la paleta por defecto de ggplot).
+    ggplot2::scale_colour_manual(values = stats::setNames(espec$colores, espec$grupos), guide = "none") +
     ggplot2::scale_shape_manual(values = formas_gg, labels = espec$leyenda %||% espec$grupos, name = NULL) +
     ggplot2::scale_x_continuous(limits = c(eje[["lo"]], max(x_tabla) + ancho * 0.12), breaks = seq(eje[["lo"]], eje[["hi"]], by = eje[["paso"]]),
                                 labels = function(x) paste0(x, "%"), expand = c(0, 0)) +
@@ -59,7 +64,7 @@
     # 200 caracteres se quedaba con todo el ancho, el panel quedaba en negativo y rvg pintaba un rectángulo del color de
     # un grupo sobre la lámina, sin puntos (Arte, 2026-11-07).
     ggplot2::scale_y_continuous(breaks = centro, labels = .gg_rotulos_resumen(espec$rotulos, 4, 10, .gg_rotulos_max_lineas(n * paso)),
-                                expand = ggplot2::expansion(add = c(0.6, paso * 1.3))) +
+                                expand = ggplot2::expansion(add = c(if (par) 0.6 else (k + 1) / 2, if (par) paso * 1.3 else alto_cab + 0.5))) +
     ggplot2::coord_cartesian(clip = "off") +
     # La base de cada grupo va al pie de la lámina, abajo a la izquierda (`note_outside`), no dentro del dibujo.
     ggplot2::labs(title = titulo, subtitle = subtitulo, caption = NULL, x = NULL, y = NULL) +

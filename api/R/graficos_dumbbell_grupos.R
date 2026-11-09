@@ -109,11 +109,11 @@
   if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
   ov <- .dumbbell_slot_overrides(overrides, orden, mostrar_brecha, umbral_brecha_pct, etiqueta_brecha)   # O7c
   ov <- .dumbbell_resumen_overrides(ov, estilo, universos, separar_tras, base_en)
-  # El recetario compara dos grupos; el contraste del resumen, hasta cuatro (ADR 0134).
-  tope <- if (identical(ov$estilo, "resumen")) 4L else 2L
+  # Hasta cuatro grupos en los dos estilos: con tres o cuatro el recetario se dibuja como el contraste del resumen
+  # (graficos_dumbbell_tres_grupos.R).
+  tope <- .DUMBBELL_GRUPOS_MAX
   if (length(grupos) < 2L || length(grupos) > tope || anyDuplicated(grupos) || any(!nzchar(grupos))) {
-    .plan_spec_abort(if (tope == 2L) "p_dumbbell(): `grupos` debe traer los dos grupos del cruce que se comparan."
-                     else "p_dumbbell(): `grupos` debe traer entre dos y cuatro grupos del cruce.")
+    .plan_spec_abort("p_dumbbell(): `grupos` debe traer entre dos y cuatro grupos del cruce.")
   }
   el <- list(
     .element_type = "dumbbell",

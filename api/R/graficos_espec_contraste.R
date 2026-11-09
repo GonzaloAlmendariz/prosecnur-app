@@ -205,7 +205,8 @@
   if (identical(base_en, "auto")) base_en <- "nota"
   if (!constante && identical(base_en, "leyenda")) base_en <- "nota"
   base_grupo <- vapply(seq_len(k), function(j) .contraste_base_grupo(N[, j], uni[j]), "")
-  leyenda <- if (identical(base_en, "leyenda")) sprintf("%s (n = %s)", grupos, sub(" \\((.*)\\)$", ", \\1", base_grupo)) else grupos
+  leyenda <- if (identical(base_en, "leyenda")) sprintf("%s (n = %s)", grupos, sub(" \\((.*)\\)$", ", \\1", base_grupo)) else
+    .contraste_leyenda_con_n(grupos, N)   # con tres o cuatro grupos, "2do ciclo (139)" (graficos_dumbbell_tres_grupos.R)
   nota_base <- if (identical(base_en, "nota")) paste0("Base: ", paste(sprintf("%s %s", grupos, base_grupo), collapse = "; ")) else NULL
   colores_g <- .contraste_colores(grupos, colores)
   list(
@@ -218,7 +219,7 @@
     encabezado_diferencia = encabezado_diferencia %||% "Diferencia",
     sentido_diferencia = if (k == 2L) .dumbbell_sentido(grupos[1], grupos[2]) else "mayor − menor",
     casos = N[o, , drop = FALSE], bases = B[o, , drop = FALSE], con_cobertura = is.finite(uni),
-    base_en = base_en, leyenda = leyenda, nota_base = nota_base,
+    base_en = base_en, leyenda = leyenda, nota_base = nota_base, universos = uni,
     separadores = sep, modo = if (k == 2L) "par" else "subfilas",
     eje = .contraste_eje(V, limite_x), titulo_eje = titulo_eje, decimales = dec
   )

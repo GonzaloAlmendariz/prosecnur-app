@@ -780,17 +780,18 @@ p_dumbbell <- function(vars = NULL,
   tema_pareja <- NULL
   for (tema in names(vars_norm)) {
     refs_tema <- vars_norm[[tema]]
-    if (length(refs_tema) != 2L) {
+    # De dos a cuatro públicos (graficos_dumbbell_tres_grupos.R): los elige el analista, tema por tema.
+    if (length(refs_tema) < 2L || length(refs_tema) > .DUMBBELL_GRUPOS_MAX) {
       .plan_spec_abort(
         "p_dumbbell(): el tema `", tema,
-        "` debe declarar exactamente dos referencias de fuentes distintas."
+        "` debe declarar de dos a cuatro referencias de fuentes distintas."
       )
     }
     fuentes <- .ola4_fuentes_de_refs(refs_tema, "p_dumbbell()", tema)
     if (anyDuplicated(fuentes)) {
       .plan_spec_abort(
         "p_dumbbell(): el tema `", tema,
-        "` debe declarar dos fuentes distintas."
+        "` debe declarar fuentes distintas."
       )
     }
     if (is.null(pareja)) {
@@ -867,6 +868,7 @@ p_dumbbell <- function(vars = NULL,
     subtitulo = el$corte_etiqueta %||% NULL
   )
   args <- utils::modifyList(base_args, args_usuario)
+  args <- .dumbbell_estilo_por_grupos(args)   # tres o cuatro grupos: el dibujo del contraste (graficos_dumbbell_tres_grupos.R)
   # ADR 0134: en el contraste del resumen los públicos se rotulan capitalizados («Docentes»), como la leyenda del radar;
   # el padrón se empareja sin mayúsculas, así que «docentes: 123» sigue casando.
   if (identical(args$estilo, "resumen") && is.null(el$cruce)) levels(args$data$grupo) <- .radar_mb_capitalizar(levels(args$data$grupo))

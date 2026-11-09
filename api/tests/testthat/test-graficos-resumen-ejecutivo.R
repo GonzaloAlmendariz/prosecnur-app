@@ -95,11 +95,14 @@ test_that("con tres grupos cada pregunta lleva una sub-fila por grupo y la difer
   expect_true(.lam_contraste_cabe(e))
 })
 
-test_that("el recetario sigue pidiendo exactamente dos grupos y el resumen admite hasta cuatro", {
+test_that("con tres o cuatro grupos el recetario se dibuja como el contraste; con cinco, sigue pidiendo dos", {
+  # Gonzalo, 2026-11-09 (test-dumbbell-tres-grupos.R): el dumbbell con tres o cuatro grupos lleva una sub-fila por grupo.
   d <- data.frame(eje = "a", grupo = c("x", "y", "z"), valor = c(1, 2, 3))
-  expect_error(graficar_dumbbell(d), "exactamente dos")
+  expect_identical(attr(graficar_dumbbell(d), "pulso_espec")$tipo, "contraste")
   expect_s3_class(graficar_dumbbell(d, estilo = "resumen"), "ggplot")
-  expect_error(p_dumbbell(vars = list("b$p1"), corte = "4", cruce = "b$c", grupos = c("1", "2", "3")), "dos grupos")
+  expect_error(graficar_dumbbell(data.frame(eje = "a", grupo = letters[1:5], valor = 1:5)), "exactamente dos")
+  expect_identical(p_dumbbell(vars = list("b$p1"), corte = "4", cruce = "b$c", grupos = c("1", "2", "3"))$grupos, c("1", "2", "3"))
+  expect_error(p_dumbbell(vars = list("b$p1"), corte = "4", cruce = "b$c", grupos = as.character(1:5)), "entre dos y cuatro")
   el <- p_dumbbell(vars = list("b$p1"), corte = "4", cruce = "b$c", grupos = c("1", "2", "3"), estilo = "resumen",
                    universos = "1: 20", separar_tras = 0)
   expect_identical(el$overrides$estilo, "resumen"); expect_identical(el$overrides$universos, "1: 20")

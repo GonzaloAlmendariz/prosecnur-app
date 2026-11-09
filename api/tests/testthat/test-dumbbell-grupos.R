@@ -29,7 +29,7 @@ test_that("el constructor con cruce pide dos grupos y no exige dos bases", {
   expect_identical(el$cruce, "b1$sexo")
   expect_identical(el$grupos, c("1", "2"))
   expect_identical(el$corte, "3,4")
-  expect_error(p_dumbbell(vars = list("b1$a"), corte = "4", cruce = "b1$sexo", grupos = "1"), "dos grupos")
+  expect_error(p_dumbbell(vars = list("b1$a"), corte = "4", cruce = "b1$sexo", grupos = "1"), "entre dos y cuatro grupos")
   expect_error(p_dumbbell(vars = list(), corte = "4", cruce = "", grupos = list()), "define los grupos")   # recién pasada a grupos
 })
 

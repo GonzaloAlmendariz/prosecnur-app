@@ -40,7 +40,10 @@
   # La vista previa arma un mini-plan de una lámina y la corre a su lugar en el plan (K2, graficos_preview_lamina.R).
   desplazo <- getOption("prosecnur.lam_folio_desplazo", 0L)
   if (!is.null(folio) && desplazo != 0L) folio <- folio + desplazo
-  if (!is.null(base) && nzchar(base)) .lam_txt(lz, base, .std_comp("pie", "base_x"), .std_comp("pie", "base_y"), 10.5, 0.4, .std_pt("base"), .std_color("azul"), bold = isTRUE(.std_comp("pie", "base_negrita")), nombre = "Base lamina")   # ítem 24: como Conta (composicion.pie del estándar)
+  if (!is.null(base) && nzchar(base)) {
+    cj <- .lam_pie_caja(base, bold = isTRUE(.std_comp("pie", "base_negrita")))   # más de dos líneas: sube sin salirse (lamina_pie_largo.R)
+    .lam_txt(lz, base, .std_comp("pie", "base_x"), cj$y, 10.5, cj$h, cj$size, .std_color("azul"), bold = isTRUE(.std_comp("pie", "base_negrita")), nombre = "Base lamina")   # ítem 24: como Conta (composicion.pie del estándar)
+  }
   if (!is.null(folio)) .lam_txt(lz, as.character(folio), .std_valor("ppt", "geometria", "ancho") - .std_valor("ppt", "geometria", "margen_der") - 0.6, .std_comp("pie", "base_y"), 0.6, 0.3, .std_pt("base"),   # en la línea de «Base:»; folio crudo: un panel a la derecha (tarjetas) no lo corre
                                 .std_color("texto_suave"), align = "right", nombre = "Folio lamina")
   .lam_agrupar(doc, lz, nombre = "prosecnur:pie")
@@ -170,7 +173,7 @@
   # N3: barras divergentes (lámina 71) y ranking con puntos (lámina 72), si caben.
   if (identical(espec$tipo, "divergentes")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_divergentes_cabe(espec)))
   # ADR 0134: el contraste de públicos y el panorama del resumen ejecutivo, si caben.
-  if (identical(espec$tipo, "contraste")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_contraste_cabe(espec)))
+  if (identical(espec$tipo, "contraste")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && .lam_contraste_cabe_avisa(espec))   # si no cabe, lo dice
   if (identical(espec$tipo, "panorama")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_panorama_cabe(espec)))
   # ADR 0135: fortalezas y alertas, y cobertura y participación, si caben.
   if (identical(espec$tipo, "fortalezas")) return(!identical((slide$meta %||% list())$motor_nativo, FALSE) && isTRUE(.lam_fortalezas_cabe(espec)))

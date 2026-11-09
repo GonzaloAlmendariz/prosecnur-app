@@ -16,9 +16,10 @@
 # mismos numeros: forma (radar), evolucion (serie) y brecha (dumbbell), sin
 # declarar nada nuevo.
 #
-# EXIGE EXACTAMENTE DOS GRUPOS. Con tres, el "segmento" ya no es una brecha sino
-# un rango, y esa es otra afirmacion; el motor lo dice en vez de dibujar algo
-# ambiguo.
+# EL RECETARIO COMPARA DOS GRUPOS. Con tres, el "segmento" ya no es una brecha sino
+# un rango, y esa es otra afirmacion: con tres o cuatro grupos se dibuja como el
+# contraste (una sub-fila por grupo, graficos_dumbbell_tres_grupos.R); con cinco
+# o mas el motor lo dice en vez de dibujar algo ambiguo.
 #
 # RECETARIO (ADR 0092, F2.7a; recetario_m3c.R:29-41). El eje se acerca al rango
 # de los datos (antes 0 a 120 %, con los puntos aplastados contra la derecha),
@@ -99,6 +100,7 @@ graficar_dumbbell <- function(
   escala_valor <- match.arg(escala_valor)
   orden <- match.arg(orden)
   estilo <- match.arg(estilo)
+  estilo <- .dumbbell_estilo_por_grupos(list(data = data, var_grupo = var_grupo, estilo = estilo))$estilo   # 3 o 4 grupos
   # ADR 0134: el contraste del resumen ejecutivo (dos o más grupos, formas por grupo y tabla de base) tiene su propia
   # especificación (graficos_espec_contraste.R); el recetario (láminas 85 y 86) sigue abajo sin cambios.
   if (identical(estilo, "resumen")) {

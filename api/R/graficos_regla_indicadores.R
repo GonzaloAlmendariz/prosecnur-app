@@ -194,7 +194,7 @@
     t <- names(temas)[i]
     d <- tryCatch(.radar_mb_datos(stats::setNames(list(temas[[t]]), t), el$corte, sources, filtros = el$filtros %||% list()),
                   error = function(e) NULL)
-    if (is.null(d) || nrow(d) != 2L || any(!is.finite(d$valor))) { motivos[[length(motivos) + 1L]] <- "no forman un par comparable en las dos bases"; next }
+    if (is.null(d) || nrow(d) != length(temas[[t]]) || any(!is.finite(d$valor))) { motivos[[length(motivos) + 1L]] <- "no son comparables en todos sus públicos"; next }
     for (j in seq_len(nrow(d))) {
       ctx <- .graficos_consolidado_ref_context(temas[[t]][j], sources)
       esc <- .regla_preguntas_escala(ctx$inst, ctx$resolved_variable)

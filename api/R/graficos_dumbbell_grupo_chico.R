@@ -34,5 +34,7 @@
   if (!nzchar(unidad)) unidad <- "casos"
   espec$nota_grupo_chico <- .dumbbell_nota_grupo_chico(espec, unidad)
   attr(p, "pulso_espec") <- espec
+  # El respaldo (imagen) escribe su pie desde `note_outside`: sin esto el grupo chico sólo salía en la lámina nativa.
+  if (!is.null(espec$nota_grupo_chico)) attr(p, "note_outside") <- .lam_unir_base(attr(p, "note_outside", exact = TRUE), espec$nota_grupo_chico)
   p
 }

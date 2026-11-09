@@ -25,7 +25,7 @@ test_that("el mensaje dice el código y su etiqueta", {
   expect_match(.dumbbell_grupos_explicar("b1$sexo", "7", c("1", "2"), c("Mujer", "Hombre")), 'llegaron 1; "7" no es un código del cruce', fixed = TRUE)
   expect_false(isTRUE(.aviso_tiene_jerga(m)))   # el aviso no lo descarta como jerga
   # Quien llama al constructor directamente sigue recibiendo su error.
-  expect_error(p_dumbbell(vars = list("b1$a"), corte = "4", cruce = "b1$sexo", grupos = "1"), "dos grupos")
+  expect_error(p_dumbbell(vars = list("b1$a"), corte = "4", cruce = "b1$sexo", grupos = "1"), "entre dos y cuatro grupos")
 })
 
 test_that("un plan con un grupo que no existe exporta las demás láminas y la mala sale con su aviso", {

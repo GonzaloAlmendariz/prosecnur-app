@@ -293,7 +293,11 @@
   if (is.null(f)) return(list(cabe = FALSE))
   xl <- x + f$wq + 0.15; xr <- x + w - wd - 0.35
   f$n_total <- n
-  wley <- sum(vapply(ley, function(t) 0.14 + .lam_ancho_tinta(t, 10.5, FALSE) + 0.25 + 0.25, 0))
+  ancho_ley <- function(l) sum(vapply(l, function(t) 0.14 + .lam_ancho_tinta(t, 10.5, FALSE) + 0.25 + 0.25, 0))
+  # Con tres o cuatro grupos la leyenda lleva el n de cada uno ("2do ciclo (139)"); si así no cabe en la ranura, va sólo con
+  # el nombre: el n sigue en la nota de la base (graficos_dumbbell_tres_grupos.R).
+  if (ancho_ley(ley) > w - wd + 1e-6) ley <- espec$grupos
+  wley <- ancho_ley(ley)
   # La leyenda arranca sobre el área de puntos; si no cabe hasta la columna de la diferencia, desde el margen de la ranura.
   x_ley <- if (wley <= (x + w - wd) - (xl - 0.05) + 1e-6) xl - 0.05 else x
   c(f, list(cabe = (xr - xl) >= wp_min - 1e-6 && wley <= (x + w - wd) - x_ley + 1e-6,

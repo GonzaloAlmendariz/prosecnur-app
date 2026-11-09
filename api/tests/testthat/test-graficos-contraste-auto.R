@@ -55,13 +55,17 @@ test_that("con `bases` el contraste empareja por nombre y firma: el mismo conteo
   expect_identical(el$vars, list(`Preguntas comunes` = c("docentes$*", "estudiantes$*")))
 })
 
-test_that("con tres públicos y sin indicar el par, el contraste pide elegirlo", {
+test_that("con tres públicos y sin indicar cuáles, el contraste pide elegirlos (y acepta los tres si se eligen)", {
   src <- .ca_fuentes()
   f <- .ca_falla(.regla_preguntas_conteo("p_dumbbell", list(corte = list("3", "4"), regla = list(tipo = "comunes")), src))
   expect_identical(f$code, "E_REGLA_PREGUNTAS_INVALIDA")
-  expect_identical(f$msg, "El contraste compara dos públicos: elige cuáles.")
-  f2 <- .ca_falla(p_dumbbell(bases = c("docentes", "estudiantes", "administrativos"), corte = "4"))
-  expect_identical(f2$msg, "El contraste compara dos públicos: elige cuáles.")
+  expect_identical(f$msg, "El contraste compara de dos a cuatro públicos: elige cuáles.")
+  # Gonzalo, 2026-11-09: con tres o cuatro públicos el dumbbell va con una sub-fila por público (test-dumbbell-tres-grupos.R);
+  # elegidos los tres, el motor los acepta. Lo que sigue fallando es no elegir, o elegir uno solo.
+  expect_identical(p_dumbbell(bases = c("docentes", "estudiantes", "administrativos"), corte = "4")$vars[[1]],
+                   c("docentes$*", "estudiantes$*", "administrativos$*"))
+  f2 <- .ca_falla(p_dumbbell(bases = c("docentes"), corte = "4"))
+  expect_identical(f2$msg, "El contraste compara de dos a cuatro públicos: elige cuáles.")
   # Con dos bases en el estudio, la regla sin temas toma esas dos.
   r <- .regla_preguntas_conteo("p_dumbbell", list(corte = list("3", "4"), regla = list(tipo = "comunes")), .ca_fuentes(tres = FALSE))
   expect_identical(r$total, 6L)
@@ -118,7 +122,7 @@ test_that("HTTP: tres públicos, sin vars y sin corte, el conteo responde 400 co
   expect_identical(msg(r), "Falta el indicador: elige qué respuestas cuentan.")
   r2 <- .ca_http(sid, '{"graficador": "p_dumbbell", "args": {"corte": ["3", "4"], "regla": {"tipo": "mayor_diferencia", "n": 3}}}')
   expect_identical(r2$status, 400L)
-  expect_identical(msg(r2), "El contraste compara dos públicos: elige cuáles.")
+  expect_identical(msg(r2), "El contraste compara de dos a cuatro públicos: elige cuáles.")
   r3 <- .ca_http(sid, '{"graficador": "p_dumbbell", "args": {"bases": ["docentes", "estudiantes"], "corte": ["3", "4"],
                   "estilo": "resumen", "regla": {"tipo": "mayor_diferencia", "n": 3}}}')
   expect_identical(r3$status, 200L)
