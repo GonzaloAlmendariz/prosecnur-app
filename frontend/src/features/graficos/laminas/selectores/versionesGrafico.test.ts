@@ -5,6 +5,8 @@ import { describe, expect, it } from "vitest";
 import { VARIANTES_GRAFICO } from "../../iconos/catalogoTipos.generated";
 import { entradaDeGrafico, nombreConVersion, nombreVersion, nombreVersionBase, varianteGrafico } from "../../catalogoGraficos";
 import { esVersionDe, graficoDeVersion, versionesDeTipo, versionMostrada } from "./versionesGrafico";
+import { compatibleGraficadorRef } from "../../GraficosLibrariesHost";
+import type { GraficadorMetadata, GraficadorRef } from "../../../../api/graficos";
 
 describe("versiones del tipo", () => {
   it("base y variantes, con los nombres del catálogo (nombre_version / version_base, o el nombre de hoy)", () => {
@@ -74,6 +76,20 @@ describe("usar una versión", () => {
     expect(graficoDeVersion("p_cobertura", categorias).args).toEqual({ bases: ["estudiantes"], estilo: "x" });
     expect(entradaDeGrafico("p_cobertura", categorias.args)).toBe("p_cobertura:categorias");
     expect(entradaDeGrafico("p_cobertura", publicos.args)).toBe("p_cobertura");
+  });
+
+  it("ronda 19 (F1): de «Por categorías» a «Por públicos» con el filtro del registro, que no declara `modo`", () => {
+    const anterior: GraficadorRef = {
+      graficador: "p_cobertura",
+      args: { bases: ["estudiantes"], modo: "categorias", variable: "estudiantes$p6", universo_categorias: { estudiantes: {} }, tolerancia_pts: 3 },
+    };
+    // Lo que deja `compatibleGraficadorRef` con un registro que declara variable, universo y tolerancia, pero no `modo`.
+    const meta = { name: "p_cobertura", args: ["bases", "variable", "universo_categorias", "tolerancia_pts"].map((name) => ({ name })) };
+    const filtrado = compatibleGraficadorRef(meta as unknown as GraficadorMetadata, anterior);
+    expect(filtrado.args).not.toHaveProperty("modo");
+    const args = graficoDeVersion("p_cobertura", filtrado, anterior).args ?? {};
+    expect(args).toEqual({ bases: ["estudiantes"] });
+    for (const k of ["variable", "universo_categorias", "tolerancia_pts", "modo"]) expect(args).not.toHaveProperty(k);
   });
 
   it("la base sobre un gráfico que no es variante no toca sus args", () => {

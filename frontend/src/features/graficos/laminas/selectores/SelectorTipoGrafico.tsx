@@ -110,7 +110,8 @@ export function SelectorTipoGrafico({ slide, posicion, ranura, cerrar }: Props) 
   const aplicar = (e: EntradaGrafico | null, version: string | null) => {
     if (!e || !version || !slide || !slot || bloqueoDe(e) || version === entradaActual) return;
     const id = slide.id;
-    setSlot(id, slot, graficoDeVersion(version, compatibleGraficadorRef(e.meta, actualRetirado ? null : actual)));
+    const previo = actualRetirado ? null : actual;
+    setSlot(id, slot, graficoDeVersion(version, compatibleGraficadorRef(e.meta, previo), previo));
     // Ronda 18: «Gráfico insertado: <tipo>, <versión>», sin el doble dos puntos de «Gráfico: <tipo>: <versión>».
     toast.exito(mensajeGraficoInsertado(nombreDe(e), varianteGrafico(version), slots.length > 1 ? rotuloRanura : ""), {
       detalle: actual

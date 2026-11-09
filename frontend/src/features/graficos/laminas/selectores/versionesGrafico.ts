@@ -50,15 +50,18 @@ const PROPIOS_POR_DEFECTO = ["estilo", "regla"] as const;
 
 /**
  * El gráfico que queda en la ranura al usar una versión, sobre `base` (el graficador con los args compatibles del
- * anterior). Una variante escribe sus args fijos y borra los que quita. La base, desde una variante del mismo
+ * anterior; `anterior` es el gráfico original de la ranura, sin filtrar). Una variante escribe sus args fijos y borra los que quita. La base, desde una variante del mismo
  * graficador, deja de ser variante: se borran los args propios de la variante (el estilo y la regla del resumen; en la
  * cobertura, los de la versión por categorías) y el motor vuelve a su versión por defecto.
  */
-export function graficoDeVersion(version: string, base: GraficadorRef): GraficadorRef {
+export function graficoDeVersion(version: string, base: GraficadorRef, anterior: GraficadorRef | null = null): GraficadorRef {
   const args = base.args ?? {};
   const variante = varianteGrafico(version);
   if (variante) return { graficador: base.graficador, args: aplicarVariante(args, variante) };
-  if (!varianteDeGrafico(base.graficador, args)) return base;
+  // Ronda 19 (F1): la variante se reconoce en el gráfico ORIGINAL. `compatibleGraficadorRef` filtra con el registro, que
+  // no declara `modo` en la cobertura: sobre `base` la versión por categorías ya no se veía y sus args se quedaban.
+  const desde = anterior && anterior.graficador === base.graficador ? anterior.args ?? {} : args;
+  if (!varianteDeGrafico(base.graficador, desde) && !varianteDeGrafico(base.graficador, args)) return base;
   const sinVariante: Record<string, unknown> = { ...args };
   for (const k of PROPIOS_DE_LA_VARIANTE[base.graficador] ?? PROPIOS_POR_DEFECTO) delete sinVariante[k];
   return { graficador: base.graficador, args: sinVariante };
