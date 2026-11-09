@@ -2,7 +2,7 @@
 // el nombre corto de los grupos largos, cómo se nombran los casos y cuántas tarjetas como máximo. Escribe en la opción de la lámina o de
 // su ranura (`modeloTarjetas.ts`); el motor la lee en `.tarjetas_opcion` (api/R/graficos_tarjetas_diferencias.R).
 
-import { useId } from "react";
+import { useId, type ReactNode } from "react";
 import { Plus, X } from "../../../../vendor/lucide-react";
 import VariablePicker from "../../VariablePicker";
 import { parseVarRef, useVariables } from "../../useVariables";
@@ -10,6 +10,7 @@ import { RadioSegmentado } from "../../subpestanas/RadioSegmentado";
 import { CortosGrupos } from "./CortosGrupos";
 import { CasosNombrados } from "./CasosNombrados";
 import { AyudaGlobo } from "../AyudaGlobo";
+import { NumeroDeslizable } from "../NumeroDeslizable";
 import {
   crucesDe,
   dondeTarjetas,
@@ -17,11 +18,18 @@ import {
   maxAGuardar,
   maxEfectivo,
   maxPorDefecto,
+  modoVigente,
+  ofreceModo,
   opcionesMax,
+  opcionesModo,
+  RANGO_MAX_PUBLICOS,
+  TARJETAS_MAX,
   rotuloDeCruce,
   rotulosCon,
   type CambiosOpcion,
   type DondeTarjetas,
+  type ModosAdmitidos,
+  type ModoTarjetas,
   type RanuraTarjetas,
   type ValorTarjetas,
 } from "./modeloTarjetas";
@@ -35,14 +43,56 @@ type Props = {
   onCambio: (cambios: CambiosOpcion) => void;
   /** U13: el gráfico admite el desglose bajo cada barra (`admiteEnLinea`). */
   enLinea?: boolean;
+  /** ADR 0138: qué modos admite el gráfico. El selector «Entre grupos / Entre públicos» sólo sale donde aplica. */
+  modos?: ModosAdmitidos;
+  /** Cambia de modo (escribe o borra `entre_publicos`). */
+  onModo?: (modo: ModoTarjetas) => void;
 };
+
+const SOLO_GRUPOS: ModosAdmitidos = { grupos: true, publicos: false };
 
 const DONDE: readonly { clave: DondeTarjetas; rotulo: string }[] = [
   { clave: "panel", rotulo: "Al lado del gráfico" },
   { clave: "en_linea", rotulo: "Bajo cada barra" },
 ];
 
-export function OpcionesTarjetas({ valor, ranura, scope, baseActiva, onCambio, enLinea = false }: Props) {
+export function OpcionesTarjetas({ valor, ranura, scope, baseActiva, onCambio, enLinea = false, modos = SOLO_GRUPOS, onModo }: Props) {
+  const idMax = useId();
+  const modo = modoVigente(valor, modos);
+  const selector = ofreceModo(modos) && (
+    <div className="pulso-f6-dato is-apilado" data-qa="tarjetas-modo" data-qa-geometry-member="">
+      <span className="pulso-f6-dato-rotulo">
+        Comparar
+        <AyudaGlobo rotulo="Comparar" detalle={modo === "publicos"
+          ? "El mismo tema entre públicos, cada público como muestra independiente. Sólo temas con equivalencia declarada."
+          : "Los grupos de un cruce dentro de una base."} />
+      </span>
+      <RadioSegmentado etiqueta="Comparar" ancho qaGrupo="graficos/f6-tarjetas-modo" valor={modo} opciones={opcionesModo(modos)}
+        onCambiar={(k) => onModo?.(k)} />
+    </div>
+  );
+  if (modo === "publicos") {
+    return (
+      <>
+        {selector}
+        <NumeroDeslizable id={`${idMax}-max`} rotulo="Máximo de tarjetas" qa="tarjetas-max-publicos" rango={RANGO_MAX_PUBLICOS}
+          valor={maxEfectivo(valor, null)} porDefecto={TARJETAS_MAX}
+          onCambio={(n) => onCambio({ max: n === null ? undefined : maxAGuardar(n, null) })} />
+      </>
+    );
+  }
+  if (!modos.grupos) {
+    return (
+      <>
+        {selector}
+        <p className="pulso-sig-texto" data-qa="tarjetas-modo-aviso">Este gráfico compara públicos: elige "Entre públicos".</p>
+      </>
+    );
+  }
+  return <OpcionesGrupos valor={valor} ranura={ranura} scope={scope} baseActiva={baseActiva} onCambio={onCambio} enLinea={enLinea} selector={selector} />;
+}
+
+function OpcionesGrupos({ valor, ranura, scope, baseActiva, onCambio, enLinea, selector }: Omit<Props, "modos" | "onModo"> & { selector: ReactNode }) {
   const cruces = crucesDe(valor);
   const publico = valor && typeof valor === "object" && typeof valor.publico === "string" ? valor.publico : "";
   const max = maxEfectivo(valor, ranura);
@@ -50,6 +100,7 @@ export function OpcionesTarjetas({ valor, ranura, scope, baseActiva, onCambio, e
   const donde = dondeTarjetas(valor);
   return (
     <>
+      {selector}
       {enLinea && (
         <div className="pulso-f6-dato" data-qa="tarjetas-donde" data-qa-geometry-member="">
           <span className="pulso-f6-dato-rotulo">

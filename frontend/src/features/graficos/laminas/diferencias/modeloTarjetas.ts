@@ -6,6 +6,7 @@
 // conserva tal como llegó.
 
 import type { SlideMeta, TarjetasDiferenciasMeta, TarjetasPorRanura } from "../../slideMeta";
+import { esEntreGrupos } from "../brecha/modeloBrechaGrupos";
 
 /** Graficadores cuyo total es un gráfico de categorías o una batería de escala (lo que el motor acompaña). */
 export const GRAFICADORES_CON_TARJETAS: ReadonlySet<string> = new Set([
@@ -85,11 +86,13 @@ export function opcionActiva(v: ValorTarjetas): boolean {
 
 /**
  * El valor al alternar. Apagar conserva la opción (rótulos cortos, cruces) con `activo: false`, para que volver a
- * encender no la pierda; sin opción que conservar, la clave se borra.
+ * encender no la pierda; sin opción que conservar, la clave se borra. `soloPublicos`: el gráfico sólo admite tarjetas
+ * entre públicos (ADR 0138), así que encender las pide entre públicos; lo enciende el analista con el interruptor.
  */
-export function opcionAlternada(v: ValorTarjetas, activo: boolean): ValorTarjetas {
+export function opcionAlternada(v: ValorTarjetas, activo: boolean, soloPublicos = false): ValorTarjetas {
   const { activo: _previo, ...resto } = comoOpcion(v);
   const tieneConfig = Object.keys(resto).length > 0;
+  if (activo && soloPublicos) return { ...resto, activo: true, entre_publicos: true };
   if (activo) return tieneConfig ? { ...resto, activo: true } : true;
   return tieneConfig ? { ...resto, activo: false } : undefined;
 }
@@ -105,7 +108,7 @@ export function opcionConTodas(v: ValorTarjetas, todas: boolean): TarjetasDifere
   return todas ? { ...resto, activo: true, todas: true } : { ...resto, activo: true };
 }
 
-export type CambiosOpcion = Partial<Pick<TarjetasDiferenciasMeta, "cruces" | "rotulos" | "cortos" | "publico" | "max" | "modo">>;
+export type CambiosOpcion = Partial<Pick<TarjetasDiferenciasMeta, "cruces" | "rotulos" | "cortos" | "publico" | "max" | "modo" | "entre_publicos">>;
 
 /**
  * La opción con unos ajustes cambiados y encendida. Un ajuste vacío (lista o mapa sin nada, texto en blanco,
@@ -246,3 +249,67 @@ export function dondeTarjetas(v: ValorTarjetas): DondeTarjetas {
 
 /** El `modo` que se guarda: sin clave para el panel, que es el de fábrica. */
 export const modoAGuardar = (d: DondeTarjetas): string | undefined => (d === "en_linea" ? "en_linea" : undefined);
+
+// ---- entre grupos o entre públicos (ADR 0138) ------------------------------------
+
+/**
+ * Graficadores que comparan públicos y admiten tarjetas entre públicos: el contraste de dos bases (`p_dumbbell` sin
+ * cruce), el radar por públicos y el panorama (`.tpub_elemento_de_lamina`, api/R/graficos_significancia_familia_publicos.R).
+ */
+export const GRAFICADORES_ENTRE_PUBLICOS: ReadonlySet<string> = new Set(["p_dumbbell", "p_radar", "p_panorama"]);
+
+/**
+ * ¿El gráfico admite tarjetas entre públicos? Sólo en la lámina de un gráfico (el motor lee la opción de la lámina,
+ * no la de una ranura): el contraste de dos bases sin cruce, el radar en modo «publicos» y el panorama. No aplica a la
+ * brecha entre dos grupos de una base ni a las divergentes multibase.
+ */
+export function admiteEntrePublicos(tipoLamina: string, graficador: string, args: Readonly<Record<string, unknown>>): boolean {
+  if (tipoLamina !== "p_slide_1_grafico" || !GRAFICADORES_ENTRE_PUBLICOS.has(graficador)) return false;
+  if (graficador === "p_dumbbell") return !esEntreGrupos(args);
+  if (graficador === "p_radar") return args.modo === "publicos";
+  return true;
+}
+
+export type ModoTarjetas = "grupos" | "publicos";
+
+/** El modo guardado: entre públicos sólo con `entre_publicos: true`; lo demás es entre grupos. */
+export function modoTarjetas(v: ValorTarjetas): ModoTarjetas {
+  return esObjeto(v) && v.entre_publicos === true ? "publicos" : "grupos";
+}
+
+/** La opción con el modo cambiado y encendida; entre grupos borra la clave (el motor ignora la de una base con ella). */
+export function opcionConModo(v: ValorTarjetas, modo: ModoTarjetas): TarjetasDiferenciasMeta {
+  const { entre_publicos: _previo, activo: _activo, ...resto } = comoOpcion(v);
+  return modo === "publicos" ? { ...resto, activo: true, entre_publicos: true } : { ...resto, activo: true };
+}
+
+export type ModosAdmitidos = { grupos: boolean; publicos: boolean };
+
+/**
+ * Las opciones del selector de modo. Sólo se ofrece donde aplica entre públicos; «Entre grupos» queda deshabilitada
+ * cuando el gráfico no tiene grupos de una base que comparar (el contraste, el radar y el panorama comparan públicos).
+ */
+export function opcionesModo(modos: ModosAdmitidos): { clave: ModoTarjetas; rotulo: string; titulo?: string; deshabilitada?: boolean }[] {
+  return [
+    {
+      clave: "grupos",
+      rotulo: "Entre grupos",
+      deshabilitada: !modos.grupos,
+      titulo: modos.grupos ? "Los grupos de un cruce dentro de una base" : "Este gráfico compara públicos, no grupos de una base",
+    },
+    { clave: "publicos", rotulo: "Entre públicos", titulo: "El mismo tema entre públicos, con equivalencia declarada" },
+  ];
+}
+
+/** ¿Se muestra el selector de modo? Sólo donde «Entre públicos» aplica. */
+export const ofreceModo = (modos: ModosAdmitidos): boolean => modos.publicos;
+
+/** El modo que se pinta: un gráfico que sólo admite públicos con una opción vieja de grupos muestra la guardada. */
+export function modoVigente(v: ValorTarjetas, modos: ModosAdmitidos): ModoTarjetas {
+  const m = modoTarjetas(v);
+  if (m === "publicos" && !modos.publicos) return "grupos";
+  return m;
+}
+
+/** Tramo del tope entre públicos en el deslizable: 1 a 6, como el de la lámina de un gráfico. */
+export const RANGO_MAX_PUBLICOS = { min: 1, max: 6, paso: 1, grande: 1 } as const;

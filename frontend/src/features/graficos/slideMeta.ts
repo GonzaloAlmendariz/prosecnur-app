@@ -54,7 +54,8 @@ export type SlideMeta = {
 
 /**
  * Opción de las tarjetas de diferencias (ADR 0129). El inspector edita `activo`, `todas`, `cruces`, `rotulos`, `cortos`,
- * `publico` y `max` (laminas/diferencias/); `modo`, `indicador` y cualquier otra clave se conservan sin tocarse.
+ * `publico`, `max` y `entre_publicos` (laminas/diferencias/); `modo`, `indicador`, `temas` y cualquier otra clave se
+ * conservan sin tocarse.
  */
 export type TarjetasDiferenciasMeta = {
   activo?: boolean;
@@ -73,6 +74,10 @@ export type TarjetasDiferenciasMeta = {
   /** «en_linea»: el desglose pegado a su barra (lamina_tarjetas_en_linea.R). */
   modo?: string;
   indicador?: string;
+  /** ADR 0138: compara el mismo tema entre públicos (contraste de dos bases, radar por públicos, panorama). */
+  entre_publicos?: boolean;
+  /** ADR 0138: los temas que entran a la comparación entre públicos; vacío, todos los declarados. */
+  temas?: string[];
 };
 
 /** Tarjetas por gráfico en `p_slide_2_graficos`: la opción de cada ranura. */

@@ -25,10 +25,14 @@ import {
   opcionAlternada,
   opcionCon,
   opcionConTodas,
+  opcionConModo,
   opcionTodas,
+  modoVigente,
   ranuraDeTarjetas,
   TARJETAS_MAX,
   type CambiosOpcion,
+  type ModoTarjetas,
+  type ModosAdmitidos,
 } from "./modeloTarjetas";
 import "./diferencias.css";
 
@@ -44,18 +48,26 @@ type VistaProps = {
   enRanura?: boolean;
   /** Cómo salen (cruces, nombres, rótulos cortos, casos, tope); sólo con las tarjetas encendidas. */
   opciones?: ReactNode;
+  /** ADR 0138: «publicos» compara el mismo tema entre públicos; «Todos los grupos» no aplica. */
+  modo?: ModoTarjetas;
+  /** Lo que calculó el motor (el inspector entre públicos); sólo con las tarjetas encendidas. */
+  resultado?: ReactNode;
 };
 
 /** La sección sin store ni dirección: lo que pintan los tests. */
 export function TarjetasDiferenciasVista({
   activas, onAlternar, onAbrirRegla, todas = false, onAlternarTodas, max = TARJETAS_MAX, enRanura = false, opciones,
+  modo = "grupos", resultado,
 }: VistaProps) {
-  const donde = enRanura ? "debajo de este gráfico" : "junto al total";
+  const publicos = modo === "publicos";
+  const donde = enRanura ? "debajo de este gráfico" : publicos ? "junto al gráfico" : "junto al total";
   const tope = `Hasta ${max} ${max === 1 ? "tarjeta" : "tarjetas"}`;
+  const estado = !activas ? "tarjetas_apagadas" : publicos ? "tarjetas_publicos" : todas ? "tarjetas_todas" : "tarjetas_encendidas";
   return (
     <div
       className="pulso-sig-inspector"
-      data-estado={activas ? (todas ? "tarjetas_todas" : "tarjetas_encendidas") : "tarjetas_apagadas"}
+      data-estado={estado}
+      data-modo={modo}
       data-ranura={enRanura ? "" : undefined}
       data-qa="tarjetas-diferencias"
       data-qa-surface="graficos/f6-tarjetas-diferencias"
@@ -63,10 +75,10 @@ export function TarjetasDiferenciasVista({
       data-qa-geometry-contract="intrinsic"
     >
       <div className="pulso-f6-dato" data-qa-geometry-member="">
-        <span className="pulso-f6-dato-rotulo">{enRanura ? "Tarjetas bajo el gráfico" : "Tarjetas junto al total"}</span>
-        <Switch checked={activas} ariaLabel={`Tarjetas de diferencias ${donde}`} onToggle={() => onAlternar(!activas)} />
+        <span className="pulso-f6-dato-rotulo">{enRanura ? "Tarjetas bajo el gráfico" : publicos ? "Tarjetas de diferencias" : "Tarjetas junto al total"}</span>
+        <Switch checked={activas} ariaLabel={publicos ? "Tarjetas de diferencias entre públicos" : `Tarjetas de diferencias ${donde}`} onToggle={() => onAlternar(!activas)} />
       </div>
-      {activas && onAlternarTodas && (
+      {activas && onAlternarTodas && !publicos && (
         <div className="pulso-f6-dato" data-qa-geometry-member="">
           <span className="pulso-f6-dato-rotulo">Todos los grupos</span>
           <Switch checked={todas} ariaLabel="Mostrar todos los grupos aunque no difieran" onToggle={() => onAlternarTodas(!todas)} />
@@ -74,7 +86,11 @@ export function TarjetasDiferenciasVista({
       )}
       <div className="pulso-sig-cuerpo" data-qa-geometry-member="">
         <p className="pulso-sig-texto">
-          {!activas
+          {publicos
+            ? activas
+              ? `Cada par de públicos en los temas con equivalencia declarada. ${tope}; sin diferencias, la lámina va sin ellas.`
+              : "Compara el mismo tema entre públicos con la regla del estudio. Sólo temas con equivalencia declarada."
+            : !activas
             ? `Muestra ${donde} los grupos que difieren del resto.`
             : todas
               ? `Una tarjeta por cruce con todos sus grupos; la flecha marca solo las diferencias. ${tope}.`
@@ -82,6 +98,7 @@ export function TarjetasDiferenciasVista({
         </p>
       </div>
       {activas && opciones}
+      {activas && resultado}
       <div className="pulso-sig-regla-linea" data-qa-geometry-member="">
         <span>Una sola regla para láminas, Word y tablas de cruces.</span>
         <PulsoButton variant="link" size="sm" data-pulso-abre-panel={PANEL_DIFERENCIAS_REGLA.id} onClick={onAbrirRegla}>
@@ -92,8 +109,17 @@ export function TarjetasDiferenciasVista({
   );
 }
 
-/** La sección de un gráfico: en la lámina de un gráfico edita la opción de la lámina; en la de dos, la de su ranura. */
-export function TarjetasDiferencias({ slideId, slot = "grafico" }: { slideId: string; slot?: string }) {
+/**
+ * La sección de un gráfico: en la lámina de un gráfico edita la opción de la lámina; en la de dos, la de su ranura.
+ * `modos` dice si el gráfico admite tarjetas entre grupos, entre públicos (ADR 0138) o ambas; nada se enciende solo.
+ */
+export function TarjetasDiferencias({ slideId, slot = "grafico", modos = { grupos: true, publicos: false }, onIrAlEmparejado }: {
+  slideId: string;
+  slot?: string;
+  modos?: ModosAdmitidos;
+  /** Lleva a donde se declaran los temas por público de este gráfico (Datos). */
+  onIrAlEmparejado?: () => void;
+}) {
   const slide = usePlanStore((s) => s.plan.slides.find((x) => x.id === slideId));
   const updatePayload = usePlanStore((s) => s.updateSlidePayload);
   const reglaPanel = usePanelDireccionable(PANEL_DIFERENCIAS_REGLA);
@@ -107,10 +133,13 @@ export function TarjetasDiferencias({ slideId, slot = "grafico" }: { slideId: st
   const graficador = grafico && typeof grafico === "object" && "graficador" in grafico ? String((grafico as { graficador: unknown }).graficador) : "";
   const guardar = (siguiente: ReturnType<typeof opcionAlternada>) =>
     updatePayload(slide.id, { meta: metaConTarjetas(meta, ranura, siguiente) });
+  const modo = modoVigente(valor, modos);
+  const activas = opcionActiva(valor);
   return (
     <TarjetasDiferenciasVista
-      activas={opcionActiva(valor)}
-      onAlternar={(activas) => guardar(opcionAlternada(valor, activas))}
+      activas={activas}
+      modo={modo}
+      onAlternar={(on) => guardar(opcionAlternada(valor, on, modos.publicos && !modos.grupos))}
       onAbrirRegla={reglaPanel.abrir}
       todas={opcionTodas(valor)}
       onAlternarTodas={(todas) => guardar(opcionConTodas(valor, todas))}
@@ -118,6 +147,7 @@ export function TarjetasDiferencias({ slideId, slot = "grafico" }: { slideId: st
       enRanura={ranura !== null}
       opciones={
         <OpcionesTarjetas valor={valor} ranura={ranura} scope={scope} baseActiva={baseActiva} enLinea={admiteEnLinea(graficador, ranura)}
+          modos={modos} onModo={(m) => guardar(opcionConModo(valor, m))}
           onCambio={(cambios: CambiosOpcion) => guardar(opcionCon(valor, cambios))} />
       }
     />

@@ -90,7 +90,7 @@ import { useVariables } from "../useVariables";
 import { NumeroAcotado, tieneRango } from "./NumeroAcotado";
 import { DiferenciasInspector } from "./diferencias/DiferenciasInspector";
 import { TarjetasDiferencias } from "./diferencias/TarjetasDiferencias";
-import { admiteTarjetas } from "./diferencias/modeloTarjetas";
+import { admiteEntrePublicos, admiteTarjetas } from "./diferencias/modeloTarjetas";
 import { argDeCruce, valorDeCruce } from "./diferencias/modeloDiferencias";
 import { interruptorAplica, interruptorGuardado, parcheInterruptor } from "./diferencias/interruptorDelGrafico";
 import { revelarYEnfocar } from "../revelarFila";
@@ -264,7 +264,10 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
   const sigAplica = !!argSig && interruptorAplica(argSig, meta?.args ?? [], args);
   // ADR 0129: una lámina de total (un gráfico, sin cruce) puede llevar tarjetas de diferencias en vez de marcas; en la
   // de dos gráficos, cada uno las suyas (U2 del checklist del mazo).
-  const conTarjetas = admiteTarjetas(slidesPlan.find((x) => x.id === slideId)?.tipo ?? "", valor.graficador, cruce, slot);
+  const tipoLamina = slidesPlan.find((x) => x.id === slideId)?.tipo ?? "";
+  const conTarjetas = admiteTarjetas(tipoLamina, valor.graficador, cruce, slot);
+  // ADR 0138: el contraste de dos bases, el radar por públicos y el panorama admiten tarjetas entre públicos.
+  const conPublicos = admiteEntrePublicos(tipoLamina, valor.graficador, args);
   const abrirSeccion = useLaminasUi((s) => s.abrirSeccionTarjeta);
   const agregarCruce = () => {
     // H4: «Dividir por» vive en Datos, que puede estar plegada; se abre antes de llevar el foco.
@@ -276,6 +279,14 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
         return;
       }
       revelarYEnfocar(campo);
+    });
+  };
+  // ADR 0138: lleva a donde se declaran los temas por público (Datos), como «Agregar cruce».
+  const irAlEmparejado = () => {
+    abrirSeccion("datos");
+    requestAnimationFrame(() => {
+      const campo = tarjetaRef.current?.querySelector<HTMLElement>('[data-campo="emparejado"], .pulso-teq');
+      if (campo) revelarYEnfocar(campo);
     });
   };
   // H4: al volver a la tarjeta (de Identidad › Colores, de otra lámina) se vuelve a la sección que se abrió por última vez.
@@ -343,8 +354,10 @@ export function DatosGrafico({ slideId, slot, valor }: Props) {
         )}
         {/* R4: método y decimales propios, como excepción a la regla del informe. */}
         <RedondeoDelGrafico graficador={valor.graficador} args={args} scope={scope} onCambio={(ov) => set({ overrides: ov })} />
-        {conTarjetas && <TarjetasDiferencias slideId={slideId} slot={slot} />}
-        {argSig && sigAplica && argCruce && !conTarjetas && (
+        {(conTarjetas || conPublicos) && (
+          <TarjetasDiferencias slideId={slideId} slot={slot} modos={{ grupos: conTarjetas, publicos: conPublicos }} onIrAlEmparejado={irAlEmparejado} />
+        )}
+        {argSig && sigAplica && argCruce && !conTarjetas && !conPublicos && (
           <DiferenciasInspector
             slideId={slideId}
             encendido={interruptorEncendido(argSig, sigGuardada)}
