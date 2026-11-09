@@ -176,9 +176,9 @@
   background: transparent;
 }
 
-/* I6 del rediseño (2026-10-14): las filas se envuelven. Un capítulo ocupa todo el ancho; un bloque corto (Apertura,
-   «Cómo leer», Cierre) sólo lo que miden sus tarjetas, así dos bloques seguidos van lado a lado cuando caben y se apilan
-   cuando no (un bloque más ancho que el cuerpo se encoge y envuelve sus tarjetas). */
+/* R12-10 (C2): toda fila, capítulo o bloque (Apertura, «Cómo leer», Cierre), ocupa el ancho de la columna; el marco
+   no se encoge con el número de tarjetas. Dentro de un bloque las tarjetas conservan su ancho propio y el hueco a la
+   derecha es del bloque (C3). Antes (I6) un bloque medía lo que sus tarjetas y su marco cambiaba de ancho. */
 .pulso-f6-vg-filas {
   display: flex;
   flex-wrap: wrap;
@@ -191,12 +191,8 @@
   flex: 1 1 100%;
 }
 
-.pulso-f6-vg-filas > .pulso-f6-vg-fila.is-bloque {
-  flex: 0 1 auto;
-}
-
-/* Un bloque no tiene asa que sangrar: sus tarjetas arrancan al borde y el bloque gana ese ancho para caber junto a otro.
-   Sus tarjetas son de ancho fijo (el tamaño elegido) para que el bloque mida lo que ellas y pueda ir junto a otro. */
+/* Un bloque no tiene asa que sangrar: sus tarjetas arrancan al borde. Son de ancho fijo (el tamaño elegido): con una,
+   dos o cinco tarjetas cada una mide lo mismo y el bloque no las estira. */
 .pulso-f6-vg-fila.is-bloque .pulso-f6-vg-tarjetas {
   display: flex;
   flex-wrap: wrap;
@@ -205,13 +201,6 @@
 
 .pulso-f6-vg-fila.is-bloque .pulso-f6-vg-tarjeta {
   width: var(--pulso-f6-vg-caja);
-}
-
-/* El ancho de un bloque lo dan sus tarjetas, no su cabecera: la cabecera no aporta al ancho intrínseco (width 0 +
-   min-width 100 %) y su título y su conteo se cortan con elipsis si no caben. */
-.pulso-f6-vg-fila.is-bloque .pulso-f6-vg-fila-cabeza {
-  width: 0;
-  min-width: 100%;
 }
 
 .pulso-f6-vg-fila.is-bloque .pulso-f6-vg-fila-conteo {
