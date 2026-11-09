@@ -41,6 +41,14 @@ tabla retirada, y además aplica el umbral en puntos, la marca «frágil», la b
 Pie de la tarjeta: «Diferencias entre públicos (muestras independientes): {prueba}, {corrección}, al menos {umbral}
 puntos y {base_minima} casos por público.»
 
+## Implementación (2026-11-09)
+
+- Entrega 1 (7630fd55e): contraste de públicos, PPT y Word. Entrega 2 (ee732707e): radar por públicos y panorama en sus
+  temas emparejados (sólo filas confirmadas de la matriz; sin matriz, el panorama va sin tarjetas y lo dice).
+- El radar de cinco criterios o más con tarjetas cede su tabla del costado al panel de tarjetas y lo avisa: no caben las
+  dos.
+- Pendiente: agrupadas y multiapiladas cuando cada fila es el mismo tema emparejado; la activación en el inspector.
+
 ## Supuestos
 
 - Los públicos son muestras disjuntas: nadie respondió en dos bases.
