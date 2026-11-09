@@ -43,6 +43,7 @@ const TRANSVERSALES = [
   "src/components/tablasDelKit.contract.test.ts",  // una <table> a mano en vez de PulsoTable
   "src/components/inputsDelKit.contract.test.ts",  // una casilla o un input fuera del kit
   "src/components/dialogsDelKit.contract.test.ts", // un overlay que no es Dialog/Sideover
+  "src/components/enlacesDelKit.contract.test.ts", // un <a> con las clases pulso-button a mano (R11-14d)
   "src/components/estadosDelKit.contract.test.ts", // un vacío o un error dibujado a mano
   "src/components/indicadorDelKit.contract.test.ts", // un segmentado que empata con el indicador del kit
   "src/components/puntoMedioDelKit.contract.test.ts", // un «·» que el kit, lib/ o app/ pintan en todos los módulos
