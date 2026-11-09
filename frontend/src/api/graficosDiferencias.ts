@@ -5,6 +5,9 @@
 // `normalizeGraficosShareInspect`. Se reexporta desde `graficos.ts`.
 
 import { apiFetch, handle, headers } from "./core";
+import { normalizeLaminaEntrePublicos, type LaminaEntrePublicos } from "./graficosDiferenciasPublicos";
+
+export * from "./graficosDiferenciasPublicos";
 
 // ---------- Regla del estudio (§1) ----------
 
@@ -72,6 +75,7 @@ export type VistaPreviaRegla = { regla: ReglaDiferencias; origen: string | null;
 
 // ---------- Resultado por lámina (§5) ----------
 
+export type ModoLetras = "letras" | "frente_al_resto" | "entre_publicos";
 export type EstadoLaminaDiferencias = "con_marcas" | "ninguna" | "abstencion" | "sin_cruce" | "error";
 export type VeredictoPar = "marcada" | "fragil" | "bajo_umbral" | "no_significativa" | "no_comparable";
 export type CodigoRevisar = "titulo_afirma_fragil" | "sin_diferencias" | "bajo_umbral" | "base_chica" | "sin_prueba";
@@ -116,12 +120,15 @@ export type LaminaDiferencias = {
   error: ErrorDiferencias | null;
   variable: string | null;
   cruce: string | null;
-  modo_letras: "letras" | "frente_al_resto";
+  /** «entre_publicos»: la lámina compara el mismo tema entre bases (ADR 0138) y trae `entre_publicos`. */
+  modo_letras: ModoLetras;
   grupos: GrupoDiferencias[];
   pares: ParDiferencias[];
   nota: string;
   /** Códigos de `revisar`; los que esta versión no conoce se conservan para que el filtro «Para revisar» los cuente. */
   revisar: string[];
+  /** Temas, pares y familia de la lámina entre públicos; `null` en una lámina de grupos de una base. */
+  entre_publicos: LaminaEntrePublicos | null;
 };
 
 export type ResumenInformeDiferencias = {
@@ -319,6 +326,7 @@ export function normalizeDiferenciasLamina(raw: unknown): LaminaDiferencias {
   const conocido = typeof estadoCrudo === "string" && (ESTADOS as readonly string[]).includes(estadoCrudo);
   // Un estado que esta versión no conoce es un error visible, no una abstención ni un vacío: no se afirma nada.
   const estado: EstadoLaminaDiferencias = conocido ? (estadoCrudo as EstadoLaminaDiferencias) : "error";
+  const modo = deEntre(r.modo_letras, ["letras", "frente_al_resto", "entre_publicos"] as const, "letras");
   const error = normalizeError(r.error) ?? (estado === "error"
     ? { code: "", message: conocido ? "La prueba no devolvió el detalle del error." : `El motor devolvió un estado que esta versión no reconoce${typeof estadoCrudo === "string" && estadoCrudo ? ` («${estadoCrudo}»)` : ""}.`, error_id: null }
     : null);
@@ -331,11 +339,12 @@ export function normalizeDiferenciasLamina(raw: unknown): LaminaDiferencias {
     error: estado === "error" ? error : null,
     variable: textoONulo(r.variable),
     cruce: textoONulo(r.cruce),
-    modo_letras: deEntre(r.modo_letras, ["letras", "frente_al_resto"] as const, "letras"),
+    modo_letras: modo,
     grupos: lista(r.grupos).map(normalizeGrupo),
     pares: lista(r.pares).map(normalizePar),
     nota: texto(r.nota),
     revisar: [...new Set(lista(r.revisar).map((c) => texto(c).trim()).filter(Boolean))],
+    entre_publicos: modo === "entre_publicos" ? normalizeLaminaEntrePublicos(r) : null,
   };
 }
 
