@@ -19,7 +19,7 @@ import { useVariables } from "../useVariables";
 import type { LaminaEnEstructura } from "./modeloEstructura";
 import { baseAutomatica, ranurasDeMaqueta } from "./modeloMaqueta";
 import { fichaDeRanura } from "./maqueta/fichaModelo";
-import { nombreTipoEnFicha } from "./maqueta/nombreEnFicha";
+import { nombreGraficoEnFicha, nombreTipoEnFicha } from "./maqueta/nombreEnFicha";
 import { FichaRanura } from "./maqueta/FichaRanura";
 import { AvisoMaqueta } from "./maqueta/AvisoMaqueta";
 import { LlaveDependencia } from "./maqueta/LlaveDependencia";
@@ -125,7 +125,8 @@ export function MaquetaLamina({ slide, lamina, ranuraActiva, onRanura, onCambiar
 
       {ranuras.map((r, i) => {
         // F1: con un solo gráfico, el nombre que el mazo le dio a la lámina (`meta.nombre`) manda sobre el de su tipo.
-        const nombreTipo = nombreTipoEnFicha(slide, r.graficador ? graficadorDisplayName(r.graficador, graficadoresById[r.graficador]) : null, conGrafico);
+        // Ronda 18: una versión del catálogo se nombra «<tipo>: <versión>», como en el inspector.
+        const nombreTipo = nombreTipoEnFicha(slide, r.graficador ? nombreGraficoEnFicha(r.graficador, r.args, graficadorDisplayName(r.graficador, graficadoresById[r.graficador])) : null, conGrafico);
         const activa = r.k !== null && r.k === ranuraActiva;
         const estilo = { left: `${r.rect.x * 100}%`, top: `${r.rect.y * 100}%`, width: `${r.rect.w * 100}%`, height: `${r.rect.h * 100}%` };
         if (r.k === null) {

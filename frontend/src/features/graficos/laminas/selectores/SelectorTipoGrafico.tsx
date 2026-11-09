@@ -20,6 +20,7 @@ import { DetalleTipoGrafico } from "./DetalleTipoGrafico";
 import { DialogoSelector } from "./DialogoSelector";
 import { destinoAlCerrarEnDocumento } from "./focoAlCerrar";
 import { nombreSlot } from "./etiquetas";
+import { mensajeGraficoInsertado } from "./mensajeGraficoInsertado";
 import { PANEL_TIPO_GRAFICO } from "./panelesSelectores";
 import { useSelectoresUi } from "./selectoresStore";
 import { TarjetaTipoGrafico } from "./TarjetaTipoGrafico";
@@ -110,7 +111,8 @@ export function SelectorTipoGrafico({ slide, posicion, ranura, cerrar }: Props) 
     if (!e || !version || !slide || !slot || bloqueoDe(e) || version === entradaActual) return;
     const id = slide.id;
     setSlot(id, slot, graficoDeVersion(version, compatibleGraficadorRef(e.meta, actualRetirado ? null : actual)));
-    toast.exito(`${rotuloRanura.charAt(0).toUpperCase()}${rotuloRanura.slice(1)}: ${nombreConSuVersion(e.id, version)}`, {
+    // Ronda 18: «Gráfico insertado: <tipo>, <versión>», sin el doble dos puntos de «Gráfico: <tipo>: <versión>».
+    toast.exito(mensajeGraficoInsertado(nombreDe(e), varianteGrafico(version), slots.length > 1 ? rotuloRanura : ""), {
       detalle: actual
         ? `Reemplaza a ${nombreActual}; ${actualRetirado ? "sus datos no pasan al nuevo tipo" : "se conservan sus datos compatibles"}.`
         : undefined,

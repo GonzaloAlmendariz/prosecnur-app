@@ -1,7 +1,7 @@
 // F1: la ficha de la maqueta dice el nombre que el mazo guardó en `meta.nombre`, no el del tipo del gráfico.
 import { describe, expect, it } from "vitest";
 import type { Slide } from "../../../../api/graficos";
-import { nombreTipoEnFicha } from "./nombreEnFicha";
+import { nombreGraficoEnFicha, nombreTipoEnFicha } from "./nombreEnFicha";
 
 const lamina = (meta: Record<string, unknown> = {}): Slide => ({
   id: "s26", tipo: "p_slide_1_grafico",
@@ -22,5 +22,16 @@ describe("el nombre en la ficha de la maqueta", () => {
 
   it("la Dicotómica conserva su nombre (de él sale su ícono)", () => {
     expect(nombreTipoEnFicha(lamina({ nombre: "Sí y No" }), "Dicotómica", 1)).toBe("Dicotómica");
+  });
+});
+
+describe("ronda 18: la ficha nombra la versión como el inspector", () => {
+  it("una versión del catálogo va «<tipo>: <versión>»", () => {
+    expect(nombreGraficoEnFicha("p_barras_divergentes", { estilo: "resumen" }, "Multiapilada divergente"))
+      .toBe("Multiapilada divergente: Con columna de Sin información");
+  });
+  it("la versión base se nombra con su tipo", () => {
+    expect(nombreGraficoEnFicha("p_barras_divergentes", {}, "Multiapilada divergente")).toBe("Multiapilada divergente");
+    expect(nombreGraficoEnFicha("p_barras_agrupadas", {}, "Barras agrupadas")).toBe("Barras agrupadas");
   });
 });

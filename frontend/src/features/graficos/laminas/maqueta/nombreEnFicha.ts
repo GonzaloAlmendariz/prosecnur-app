@@ -3,6 +3,7 @@
 // como en la Estructura (nombreSinTitulo), cuando la lámina tiene un solo gráfico: el nombre es de la lámina, no de
 // cada ranura. La Dicotómica conserva su nombre porque de él sale su ícono (FichaRanura). Pura: sin React.
 import type { Slide } from "../../../../api/graficos";
+import { nombreConVersion, varianteDeGrafico } from "../../catalogoGraficos";
 import { leerSlideMeta } from "../../slideMeta";
 import { nombreSinTitulo } from "../tituloQueSale";
 
@@ -11,4 +12,13 @@ export function nombreTipoEnFicha(slide: Slide, nombreTipo: string | null, grafi
   const meta = leerSlideMeta(slide).nombre;
   if (typeof meta !== "string" || !meta.trim()) return nombreTipo;
   return nombreSinTitulo(slide) || nombreTipo;
+}
+
+/**
+ * Ronda 18: el tipo del gráfico como lo nombra el inspector. Una versión del catálogo va «<tipo>: <versión>»
+ * («Multiapilada divergente: Con columna de Sin información», enmienda del ADR 0139); la versión base, con su tipo.
+ */
+export function nombreGraficoEnFicha(graficador: string, args: Readonly<Record<string, unknown>>, nombreTipo: string): string {
+  const variante = varianteDeGrafico(graficador, args);
+  return variante ? nombreConVersion(variante) : nombreTipo;
 }
