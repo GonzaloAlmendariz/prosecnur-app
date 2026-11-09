@@ -28,24 +28,21 @@
 
 .pulso-f6-estructura-busca {
   flex: none;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
   gap: var(--pulso-space-2);
   padding: var(--pulso-space-2) var(--pulso-space-3);
   border-bottom: 1px solid var(--pulso-border);
 }
 
-/* R13-5: en la columna compacta (232 px) «Cerrar todo» dejaba el campo tan angosto que «Buscar lámina…» se recortaba;
-   bajo 260 px el botón pasa debajo del campo, alineado a la derecha, y el campo toma todo el ancho. */
-@container pulso-f6-estructura (max-width: 259px) {
-  .pulso-f6-estructura-busca {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .pulso-f6-estructura-busca > :not(.pulso-f6-busca) {
-    justify-self: end;
-  }
+/* R16-2: el campo nunca baja de 10rem (con el input sin relleno propio deja 120 px a un texto de ~96 px, y "Buscar
+   lámina…" se lee entero en macOS y en Windows). Si no cabe junto a "Cerrar todo", el botón baja a la fila siguiente,
+   a la derecha, a cualquier ancho de columna: ya no depende de un umbral de container query. */
+.pulso-f6-estructura-busca > .pulso-f6-busca {
+  flex: 1 1 10rem;
+  min-width: 10rem;
 }
 
 .pulso-f6-busca {
@@ -68,6 +65,7 @@
 .pulso-f6-busca input {
   flex: 1;
   min-width: 0;
+  padding: 0;
   border: 0;
   outline: 0;
   background: transparent;
