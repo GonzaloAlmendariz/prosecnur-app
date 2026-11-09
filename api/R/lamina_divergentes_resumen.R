@@ -57,30 +57,10 @@
   # ADR 0135 §3: la columna del no sustantivo («Sin información») no pasa de 2 in; su leyenda se parte en dos líneas.
   wsi <- if (hay_si) min(2, max(1.5, .lam_ancho_tinta(C$rotulo[C$lado == "sin_inf"][1], 11, FALSE) + 0.45)) else 0
   xb <- fin - wsi - (if (hay_si) 0.45 else 0)
-  w_max <- min(4.2, xb - 4.5 - 0.2 - ml)
-  max_lin <- if (n > 14L) 2L else 3L
-  u_min <- 0.2; u_max <- 0.52
-  prueba <- function(size, w, lineas, recortar) {
-    rr <- lapply(espec$filas, function(t) .lam_rotulo_recortar(t, w, size, lineas))
-    if (!recortar && any(vapply(rr, `[[`, TRUE, "recortado"))) return(NULL)
-    necesita <- vapply(rr, function(r) length(r$lineas), 0L) * size * 1.2 / 72 + 0.04
-    alto <- function(u) sum(pmax(u, necesita))
-    if (alto(u_min) > disponible + 1e-9) return(NULL)
-    lo <- u_min; hi <- u_max
-    if (alto(hi) <= disponible) lo <- hi else for (it in 1:40) { mid <- (lo + hi) / 2; if (alto(mid) <= disponible) lo <- mid else hi <- mid }
-    list(size = size, wq = w, u = lo, alturas = pmax(lo, necesita), textos = vapply(rr, `[[`, "", "texto"), lineas = lineas,
-         recortados = sum(vapply(rr, `[[`, TRUE, "recortado")))
-  }
-  elegido <- NULL
-  if (n >= 1L && w_max >= 2.2) {
-    for (size in .lam_rotulo_pasos_pt(12)) {
-      tinta <- max(vapply(espec$filas, function(t) .lam_ancho_tinta(t, size, FALSE), 0))
-      w0 <- min(w_max, max(2.2, tinta + 0.25))
-      for (w in unique(c(seq(w0, w_max, by = 0.1), w_max))) { elegido <- prueba(size, w, max_lin, FALSE); if (!is.null(elegido)) break }
-      if (!is.null(elegido)) break
-    }
-    for (lineas in rev(seq_len(max_lin))) { if (!is.null(elegido)) break; elegido <- prueba(.LAM_ROTULO_PT_PISO, w_max, lineas, TRUE) }
-  }
+  # P11: la columna toma el ancho libre desde el margen (sin tope fijo); afirmaciones enteras en dos o tres líneas y, si
+  # todas no caben, menos filas por la prioridad de la regla antes que cortar texto (lamina_divergentes_resumen_filas.R).
+  w_max <- xb - 4.5 - 0.2 - ml
+  elegido <- if (n >= 1L) .lam_div_resumen_filas_elegir(espec, disponible, w_max) else NULL
   if (is.null(elegido)) return(NULL)
   c(list(ml = ml, fin = fin, y0 = y0, hay_si = hay_si, wsi = wsi, xa = ml + elegido$wq + 0.2, xb = xb, g = elegido$u * 0.74),
     elegido)
@@ -107,6 +87,13 @@
   C <- espec$categorias; U <- espec$unidades; X <- espec$cifras; n <- length(espec$filas)
   ge <- .lam_div_resumen_geom(espec)
   if (is.null(ge)) stop("La escala del resumen no cabe en una lámina.", call. = FALSE)
+  # P11: si no caben todas enteras, la lámina muestra las primeras en la prioridad de la regla y su nota lo dice.
+  if (length(ge$filas) < n) {
+    .pulso_aviso(.aviso_en_lamina(.tope_espacio_aviso(length(ge$filas), n)))
+    espec$texto_regla <- .lam_div_resumen_texto(espec, length(ge$filas))
+    espec <- .lam_div_resumen_subset(espec, ge$filas)
+    C <- espec$categorias; U <- espec$unidades; X <- espec$cifras; n <- length(espec$filas)
+  }
   g <- ge$g; y0 <- ge$y0; alturas <- ge$alturas
   # Cada fila centra su barra en su alto (una afirmación de dos o tres líneas agranda su fila); con filas apretadas
   # (más de 14) las cifras bajan a 10 pt.

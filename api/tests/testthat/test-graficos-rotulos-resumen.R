@@ -225,24 +225,34 @@ test_that("D1: la letra de los rótulos baja de a medio punto hasta el piso de 1
   .rr_render(p_slide_1_grafico(d, titulo = "Escala"), src, solo_lista = solo_lista)
 }
 
-test_that("D2: la escala multibase de 18 filas con rótulos reales de Arte sale nativa, con 1 a 2 líneas y el sufijo del público", {
+test_that("P11: la escala de 18 filas con rótulos reales de Arte usa el ancho y el alto: afirmaciones enteras, menos filas si no caben", {
+  # Antes (D2) iba con las 18 filas cortadas a una o dos líneas con «…». Gonzalo, 2026-11-09: «tiene más ancho a la
+  # izquierda y no lo usan, tiene alto y no lo usan». Ahora la columna toma el ancho libre, cada afirmación va entera en
+  # hasta tres líneas y, si las 18 no caben así, se muestran las primeras en la prioridad de la regla y el pie lo dice.
   skip_if_not_installed("officer")
   e <- attr(.rr_escala(9)$rendered[[1]], "pulso_espec")
   expect_length(e$filas, 18L)
   expect_true(.lam_divergentes_resumen_cabe(e))
   ge <- .lam_div_resumen_geom(e)
   expect_gte(ge$size, .LAM_ROTULO_PT_PISO)
-  expect_lte(ge$lineas, 2L)
-  # Las filas caben en la zona de datos y cada una alcanza para las líneas de su afirmación.
+  expect_gt(ge$wq, 4.2)                                   # sin el tope fijo de antes
+  expect_identical(ge$recortados, 0L)
+  expect_false(any(grepl("…", ge$textos, fixed = TRUE)))  # enteras
+  expect_identical(ge$textos, e$filas[ge$filas])
   expect_lte(sum(ge$alturas), (.std_geom("contenido_y1") - 0.05) - (.std_geom("zona_datos_y0") + 0.45) + 1e-6)
-  lineas <- vapply(ge$textos, function(t) length(.lam_rotulo_recortar(t, ge$wq, ge$size, ge$lineas)$lineas), 0L)
-  expect_true(all(lineas <= 2L))
+  lineas <- vapply(ge$textos, function(t) length(.lam_rotulo_recortar(t, ge$wq, ge$size, 3L)$lineas), 0L)
   expect_true(all(ge$alturas >= lineas * ge$size * 1.2 / 72))
-  # El recorte conserva el público al final de cada fila.
-  expect_true(all(grepl("\\((Doc|Est)\\.?\\)$|\\((Docentes|Estudiantes)\\)$", ge$textos)))
+  expect_true(any(lineas >= 2L))
   r <- .rr_escala(9, solo_lista = FALSE)
   expect_identical(.pptx_lamina_estado(r$xml), "nativa")
-  expect_length(.rr_textos(r$xml, "divergentes:afirmacion"), 18L)
+  expect_length(.rr_textos(r$xml, "divergentes:afirmacion"), length(ge$filas))
+  # Si se muestran menos, son las más bajas por el Top Two Box que dibuja la lámina y el pie lo dice en una frase.
+  k <- length(ge$filas)
+  if (k < 18L) {
+    expect_true(all(e$total_pos[ge$filas] <= min(e$total_pos[-ge$filas])))
+    pie <- paste(.rr_textos(r$xml, "Base lamina"), collapse = " ")
+    expect_match(pie, sprintf("Se muestran las %d más bajas de 18 preguntas de escala; el resto en otra lámina.", k), fixed = TRUE)
+  }
 })
 
 test_that("D2: el tope de la escala del resumen es 20 filas; por encima muestra 20 y lo dice (E3)", {

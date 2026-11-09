@@ -633,6 +633,7 @@ p_barras_divergentes <- function(vars = NULL,
   if (identical(esp$estilo, "resumen")) {
     # graficos_escala_tope.R: las dos causas del respaldo, más filas que el tope o más de una columna «Sin información»
     for (av in .divergentes_aviso_tope(length(esp$filas), ap$texto, sum(esp$categorias$lado == "sin_inf"))) .pulso_aviso(av)
+    p <- .divergentes_recorte_en_espec(p, el, ap, tabla$data$categoria)   # P11: la lámina puede mostrar menos (lamina_divergentes_resumen_filas.R)
   }
   .divergentes_nota_porcentaje(p, isTRUE(tabla$hubo_exclusion), tabla$escalas_armonizadas)
 }

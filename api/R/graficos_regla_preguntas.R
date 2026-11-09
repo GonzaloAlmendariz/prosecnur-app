@@ -332,7 +332,9 @@
   ev <- .regla_preguntas_evaluar(ind$indicadores, regla, universo = ind$universo, grupos_unidad = ind$grupos_unidad,
                                  decimales = .regla_preguntas_decimales(el, preset))
   # Lo que no cabe se recorta aquí, en el orden de la regla, y la nota lo dice en una frase (graficos_tope_espacio.R).
+  n_elegidas <- length(ev$temas)
   rc <- .regla_preguntas_recortar(ev, ind, el, regla, decimales = .regla_preguntas_decimales(el, preset)); ev <- rc$ev
+  texto_base <- ev$texto   # la frase de la regla antes del pie de orden: la lámina la reescribe si muestra menos (P11)
   # La escala del resumen: `bajo_umbral` y `mayor_sin_info` fijan el orden de las filas (graficos_regla_orden_escala.R).
   criterio <- .regla_escala_orden_fijado(el, regla)
   if (!is.null(criterio)) ev <- .regla_escala_ordenar(ev, ind$indicadores, criterio)
@@ -345,7 +347,7 @@
   imagen <- if (identical(el$.element_type, "barras_divergentes")) .divergentes_aviso_tope(length(vars), ev$texto, n_sin_inf)
   espacio <- rc$aviso   # E3, P7
   list(evaluacion = ev, vars = vars, avisos = c(ind$avisos, ev$avisos, espacio, imagen), indicadores = ind$indicadores,
-       firma_leyenda = ind$firma_leyenda, motivos_imagen = imagen, recorte = rc$recorte)
+       firma_leyenda = ind$firma_leyenda, motivos_imagen = imagen, recorte = rc$recorte, n_elegidas = n_elegidas, texto_base = texto_base)
 }
 
 #' Los args del preset del tipo con que el render dibuja el elemento
@@ -386,7 +388,8 @@
     el$var <- if (length(r$vars) == 1L) r$vars else NULL
     el$.firma_leyenda <- r$firma_leyenda   # escalas alineadas: la leyenda es la del universo (graficos_escala_armonizada.R)
   }
-  list(el = el, texto = r$evaluacion$texto, total = total)
+  list(el = el, texto = r$evaluacion$texto, total = total, n_elegidas = r$n_elegidas, texto_base = r$texto_base,
+       universo = r$evaluacion$universo)
 }
 
 #' Orden del contraste del resumen con su regla (ADR 0135, decisión del 2026-11-07)

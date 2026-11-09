@@ -32,6 +32,7 @@
   if (!length(r$vars)) stop("La escala no deja ninguna pregunta que se pueda dibujar.", call. = FALSE)
   vars <- .divergentes_por_metrica(r$vars, r$indicadores)
   n <- length(vars); tope <- .LAM_DIV_RESUMEN_MAX_FILAS
+  el$.n_sin_recorte <- n
   if (n > tope) {
     vars <- vars[seq_len(tope)]
     .pulso_aviso(.aviso_en_lamina(.tope_espacio_aviso(tope, n)))
