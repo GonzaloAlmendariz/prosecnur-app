@@ -7,7 +7,7 @@ import { cambioConOpcion, conOpcion, presetDe, tipoDeOpcion, type EstudioDelSele
 import {
   casaBusqueda, indicadorPorDefecto, INTENCIONES_CONTAR, presentacionDeGrafico, ROTULO_CLASE, TARJETAS_CONTAR, tarjetaContar, tarjetaContarDeLamina, tarjetasDe,
 } from "./intencionesContar";
-import { etiquetaBotonTarjeta } from "./detalleLamina";
+import { etiquetaBotonTarjeta, usoDeTarjeta } from "./detalleLamina";
 import { PRESETS_LAMINA } from "./opcionesLamina";
 import { existeEntradaCatalogo, graficadorDeEntrada, nombreDeEntrada } from "../../catalogoGraficos";
 import { CATALOGO_LAMINAS, VARIANTES_GRAFICO } from "../../iconos/catalogoTipos.generated";
@@ -97,7 +97,7 @@ describe("el gráfico de partida", () => {
     expect(c.sobrantes).toEqual([{ slot: "grafico", grafico: pie }]);
     expect(c.conservados).toEqual([]);
     expect(c.payload.grafico).toEqual({ graficador: "p_panorama", args: { regla: { tipo: "todas" } } });
-    expect(etiquetaBotonTarjeta({ modo: "cambiar", actual: false, sobrantes: 1, confirmando: true }).texto).toBe("Cambiar y quitar 1 gráfico");
+    expect(etiquetaBotonTarjeta({ modo: "cambiar", clase: "grafico", actual: false, sobrantes: 1, confirmando: true }).texto).toBe("Cambiar y quitar 1 gráfico");
   });
 
   it("la lámina ya puesta se reconoce como su tarjeta y el inspector la presenta con su nombre y clase", () => {
@@ -108,8 +108,10 @@ describe("el gráfico de partida", () => {
     expect(tarjetaContarDeLamina(g("p_barras_divergentes", {}))?.clave).toBe("p_slide_1_grafico:divergentes");
     expect(presentacionDeGrafico("p_panorama", {})).toEqual({ nombre: "Panorama de públicos", clase: "grafico", deResumen: true });
     expect(presentacionDeGrafico("p_pie", {})).toEqual({ nombre: null, clase: "grafico", deResumen: false });
-    expect(etiquetaBotonTarjeta({ modo: "insertar", actual: false, sobrantes: 0, confirmando: false }).texto).toBe("Insertar lámina");
-    expect(etiquetaBotonTarjeta({ modo: "cambiar", actual: true, sobrantes: 0, confirmando: false })).toEqual({ texto: "Es la lámina actual", deshabilitado: true });
+    // R13-6a: la tarjeta de clase «Gráfico» dice que el gráfico va dentro; la de clase «Lámina» inserta la lámina.
+    expect(etiquetaBotonTarjeta({ modo: "insertar", clase: "grafico", actual: false, sobrantes: 0, confirmando: false }).texto).toBe("Insertar lámina con este gráfico");
+    expect(etiquetaBotonTarjeta({ modo: "insertar", clase: "lamina", actual: false, sobrantes: 0, confirmando: false }).texto).toBe("Insertar lámina");
+    expect(etiquetaBotonTarjeta({ modo: "cambiar", clase: "grafico", actual: true, sobrantes: 0, confirmando: false })).toEqual({ texto: "Es la lámina actual", deshabilitado: true });
   });
 });
 
@@ -267,5 +269,13 @@ describe("las recomendaciones apuntan al catálogo de gráficos (ADR 0139, decis
     for (const t of TARJETAS_CONTAR) {
       for (const texto of [t.nombre, t.uso, t.descripcion, t.pide]) expect(texto, t.clave).not.toMatch(/recetario|lámina \d+/i);
     }
+  });
+
+  it("R13-7: el cierre de «Resumen del estudio» dice lo mismo que su entrada en la familia «Hallazgos»", () => {
+    const cierre = tarjetaContar("p_slide_cierre_hallazgos:cierre");
+    const delCatalogo = usoDeTarjeta("p_slide_cierre_hallazgos", undefined, undefined);
+    expect(delCatalogo).not.toBe("");
+    expect(cierre?.uso).toBe(delCatalogo);
+    expect(cierre?.descripcion).toBe(delCatalogo);
   });
 });

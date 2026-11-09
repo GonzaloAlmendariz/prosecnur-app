@@ -31,18 +31,20 @@ type Props = {
   ficha?: ReactNode;
   /** La lámina con los datos del estudio (useMiniaturasSelector); sin ella, el glifo. */
   miniatura?: MiniaturaSelector;
+  /** La frase bajo el nombre (fraseTarjetaContar); sin ella, el uso de la tarjeta. */
+  frase?: string;
   onAplicar: () => void;
   onVolver: () => void;
 };
 
 export function DetalleTarjetaContar({
-  tarjeta, modo, actual, cambio, confirmando, nombreGrafico, nombreSlot, nombreCampo, ficha, miniatura, onAplicar, onVolver,
+  tarjeta, modo, actual, cambio, confirmando, nombreGrafico, nombreSlot, nombreCampo, ficha, miniatura, frase, onAplicar, onVolver,
 }: Props) {
   const idAviso = useId();
   const sobrantes = cambio && !actual ? cambio.sobrantes : [];
   const textos = cambio && !actual ? cambio.textosSobrantes : [];
   const hayPerdida = sobrantes.length > 0 || textos.length > 0;
-  const boton = etiquetaBotonTarjeta({ modo, actual, sobrantes: sobrantes.length, confirmando });
+  const boton = etiquetaBotonTarjeta({ modo, clase: tarjeta.clase, actual, sobrantes: sobrantes.length, confirmando });
   return (
     <div className="pulso-f6-detalle" data-tarjeta-contar={tarjeta.clave}>
       <div className="pulso-f6-detalle-lienzo is-grafico" data-hueco-miniatura="" {...atributosHueco(miniatura)}>
@@ -55,7 +57,7 @@ export function DetalleTarjetaContar({
       <div className="pulso-f6-detalle-texto">
         <h3>{tarjeta.nombre}</h3>
         <span className="pulso-f6-detalle-clase" data-clase-tarjeta={tarjeta.clase}>{ROTULO_CLASE[tarjeta.clase]}</span>
-        <p>{tarjeta.uso}.</p>
+        <p>{frase ?? `${tarjeta.uso}.`}</p>
       </div>
       {ficha ?? (
         <dl className="pulso-f6-ficha">

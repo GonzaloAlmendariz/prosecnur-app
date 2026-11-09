@@ -34,7 +34,7 @@ import { propuestasDe, usePadronPropuesto } from "../gruposPadron/usePadronPropu
 import { graficosDeLamina, graficosPorSlot, planearCambioTipo, requiereConfirmacion, type CambioTipoLamina } from "./cambioTipoLamina";
 import { DetalleTarjetaContar } from "./DetalleTarjetaContar";
 import { DetalleTipoLamina } from "./DetalleTipoLamina";
-import { usoDeTarjeta } from "./detalleLamina";
+import { fraseTarjetaContar, usoDeTarjeta } from "./detalleLamina";
 import { DialogoSelector } from "./DialogoSelector";
 import { destinoAlCerrarEnDocumento } from "./focoAlCerrar";
 import { nombreCampo, nombreGrafico, nombreLamina, nombreSlot } from "./etiquetas";
@@ -450,6 +450,7 @@ export function SelectorTipoLamina({ slide, posicion, cerrar, onArmarResumen }: 
           nombreCampo={(c) => nombreCampo(c, metaOrigen)}
           ficha={fichaDe(candidato)}
           miniatura={miniaturas[candidato]}
+          frase={fraseTarjetaContar(tarjetaCandidata, slidesById[tarjetaCandidata.tipo]?.descripcion)}
           onAplicar={aplicar}
           onVolver={() => ui.setConfirmando(false)}
         />

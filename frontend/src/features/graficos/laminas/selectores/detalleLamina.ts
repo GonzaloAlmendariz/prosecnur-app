@@ -4,6 +4,7 @@
 
 import type { SlideType } from "../../../../api/graficos";
 import type { FamiliaEstandar } from "../../iconos/estandarLaminas.generated";
+import type { ClaseTarjeta } from "./intencionesContar";
 import type { ModoSelectorLamina } from "./selectoresStore";
 import type { VariantesTipo } from "./tiposLamina";
 
@@ -22,6 +23,16 @@ export function fraseDetalle(uso: string | undefined, descripcion: string | unde
   if (u) return conPunto(u);
   const d = descripcion?.trim() ?? "";
   return d && !MENCIONA_ICONO.test(d) ? conPunto(d) : "";
+}
+
+/**
+ * R13-7: la frase del detalle de una tarjeta de «¿Qué quieres contar?». La que no trae gráfico (el cierre con hallazgos)
+ * es un tipo de lámina del catálogo y dice lo mismo que su detalle en la familia «Hallazgos»: la descripción del registro.
+ * La de un gráfico dice su uso.
+ */
+export function fraseTarjetaContar(t: { uso: string; grafico?: unknown }, descripcionCatalogo: string | undefined): string {
+  const delCatalogo = t.grafico ? "" : fraseDetalle(undefined, descripcionCatalogo);
+  return delCatalogo || conPunto(t.uso);
 }
 
 /**
@@ -73,6 +84,8 @@ export type EntradaBoton = {
 };
 
 export const ROTULO_INSERTAR = "Insertar lámina";
+/** R13-6a (ADR 0139): la tarjeta de clase «Gráfico» dice que la lámina nace con ese gráfico dentro. */
+export const ROTULO_INSERTAR_CON_GRAFICO = "Insertar lámina con este gráfico";
 
 /** Lo que el botón del pie hace, dicho con la palabra de la columna: composición o variante. */
 export function etiquetaBoton(p: EntradaBoton): EstadoBoton {
@@ -92,6 +105,8 @@ export function etiquetaBoton(p: EntradaBoton): EstadoBoton {
 
 export type EntradaBotonTarjeta = {
   modo: ModoSelectorLamina;
+  /** Lo que la tarjeta inserta: un gráfico dentro de una lámina o un tipo de lámina. */
+  clase: ClaseTarjeta;
   /** ¿La lámina del foco ya es esta tarjeta? */
   actual: boolean;
   /** Gráficos que la tarjeta reemplaza o que no caben (sólo al cambiar). */
@@ -101,7 +116,7 @@ export type EntradaBotonTarjeta = {
 
 /** El botón del detalle de una tarjeta por intención («¿Qué quieres contar?», ADR 0135). */
 export function etiquetaBotonTarjeta(p: EntradaBotonTarjeta): EstadoBoton {
-  if (p.modo === "insertar") return { texto: ROTULO_INSERTAR, deshabilitado: false };
+  if (p.modo === "insertar") return { texto: p.clase === "grafico" ? ROTULO_INSERTAR_CON_GRAFICO : ROTULO_INSERTAR, deshabilitado: false };
   if (p.actual) return { texto: "Es la lámina actual", deshabilitado: true };
   if (p.confirmando && p.sobrantes > 0) {
     return { texto: `Cambiar y quitar ${p.sobrantes === 1 ? "1 gráfico" : `${p.sobrantes} gráficos`}`, deshabilitado: false };

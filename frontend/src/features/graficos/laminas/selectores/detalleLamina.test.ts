@@ -2,7 +2,7 @@
 // palabras, ninguna medida del motor y un botón que dice qué hace con la palabra «composición».
 import { describe, expect, it } from "vitest";
 import { ESTANDAR_LAMINAS } from "../../iconos/estandarLaminas.generated";
-import { etiquetaBoton, fraseDetalle, tamanoTexto, usoDeTarjeta } from "./detalleLamina";
+import { etiquetaBoton, fraseDetalle, fraseTarjetaContar, tamanoTexto, usoDeTarjeta } from "./detalleLamina";
 import { INTENCIONES } from "./tiposLamina";
 import { nombreLamina } from "./etiquetas";
 
@@ -78,5 +78,12 @@ describe("la variable del gráfico sin la referencia cruda", () => {
   it("«estudiantes$ciclo» se lee «ciclo (estudiantes)»", () => {
     expect(rotuloVariable("estudiantes$ciclo")).toBe("ciclo (estudiantes)");
     expect(rotuloVariable("p12")).toBe("p12");
+  });
+
+  it("R13-7: la tarjeta sin gráfico dice la descripción del catálogo; la de un gráfico, su uso", () => {
+    const desc = "De tres a cinco hallazgos, cada uno con una cifra tomada de otra lámina del mazo y la frase que escribes.";
+    expect(fraseTarjetaContar({ uso: "Una cifra de otra lámina con tu frase" }, desc)).toBe(desc);
+    expect(fraseTarjetaContar({ uso: "Una cifra de otra lámina con tu frase" }, undefined)).toBe("Una cifra de otra lámina con tu frase.");
+    expect(fraseTarjetaContar({ uso: "Quién valora más", grafico: {} }, desc)).toBe("Quién valora más.");
   });
 });

@@ -15,6 +15,7 @@ import type { Slide } from "../../../../api/graficos";
 import { esEntreGrupos } from "../brecha/modeloBrechaGrupos";
 import { argsDeEntrada, graficadorDeEntrada, nombreDeEntrada, varianteDeGrafico } from "../../catalogoGraficos";
 import { conPropuesta } from "../gruposPadron/modeloPadron";
+import { usoDeTarjeta } from "./detalleLamina";
 import type { ClavePreset, EstudioDelSelector, GraficoDePreset, PresetLamina } from "./opcionesLamina";
 import { TIPOS_RETIRADOS_0137 } from "../../retirados";
 
@@ -248,8 +249,10 @@ export const TARJETAS_CONTAR: readonly TarjetaContar[] = [
     entrada: "p_slide_cierre_hallazgos",
     nombre: "Cierre con hallazgos",
     clase: "lamina",
-    uso: "Las cifras clave del estudio con tu frase",
-    descripcion: "De tres a cinco hallazgos, cada uno con una cifra de otra lámina de resumen.",
+    // R13-7: la misma entrada del catálogo que la familia «Hallazgos» (USO_ESTRUCTURA, detalleLamina.ts); una sola
+    // descripción, no una segunda redactada aquí.
+    uso: usoDeTarjeta("p_slide_cierre_hallazgos", undefined, undefined),
+    descripcion: usoDeTarjeta("p_slide_cierre_hallazgos", undefined, undefined),
     pide: "Láminas de resumen ya puestas en el informe",
     parche: {},
     usaSinGrafico: "Cifras de otras láminas de resumen del informe",
