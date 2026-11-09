@@ -41,7 +41,7 @@ import "./diferencias.css";
 
 const MARGEN = 10;
 const SEPARACION = 8;
-const ANCHO = 640;
+const ANCHO = 720;
 
 type Props = { slideId: string | null };
 
@@ -233,11 +233,12 @@ type FilaPar = { par: ParDiferencias; i: number };
 function TablaPares({ lamina, indice, onElegir }: { lamina: LaminaDiferencias; indice: number; onElegir: (i: number) => void }) {
   const filas: FilaPar[] = lamina.pares.map((par, i) => ({ par, i }));
   const columnas: PulsoTableColumna<FilaPar>[] = [
-    // La capa mide 640 px y la tabla vive en su columna derecha (~300 px): 4 columnas, 276 px, sin scroll horizontal (C4).
+    // La capa mide 720 px y la tabla vive en su columna derecha (~378 px): 4 columnas, 358 px, sin scroll horizontal aun
+    // con la barra de Windows (C4). R12-7: «Fila y par» a 190 px para que el par («36 a 45 años y 24 a 35 años») se lea.
     // El par (B > A) lo dice la cápsula; el veredicto sin marca va abreviado y entero en el `title`.
     // R11-10: cada fila dice qué par compara (antes seis «Masculino» seguidos sin decir entre qué grupos).
     {
-      id: "fila", encabezado: "Fila y par", ancho: 108, valor: ({ par }) => `${par.fila}: ${parDeGrupos(par, lamina.grupos)}`,
+      id: "fila", encabezado: "Fila y par", ancho: 190, valor: ({ par }) => `${par.fila}: ${parDeGrupos(par, lamina.grupos)}`,
       celda: ({ par }) => (
         <span className="pulso-sig-fila-par" title={`${par.fila}: ${parDeGrupos(par, lamina.grupos)}`}>
           <span>{par.fila}</span>

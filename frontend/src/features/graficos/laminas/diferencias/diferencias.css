@@ -406,7 +406,7 @@
 
 .pulso-sig-porque-cuerpo {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
   align-items: start;
   gap: var(--pulso-space-4);
   min-height: 0;
