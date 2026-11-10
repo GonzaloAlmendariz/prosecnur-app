@@ -1,6 +1,11 @@
 # Checklist: lo que hacía la página clásica de Hojas de ruta y ya no está
 
-Fecha: 2026-11-01. Pedido de Gonzalo tras el retiro de la clásica (2c641554b): «Evaluemos que podríamos usar porque
+Tipo: Checklist de pedido
+Estado: Vigente
+Fecha: 2026-11-01
+Autoridad: Pedido de Gonzalo del 2026-11-01 tras el retiro de la página clásica de Hojas de ruta (2c641554b)
+
+Pedido de Gonzalo tras el retiro de la clásica (2c641554b): «Evaluemos que podríamos usar porque
 material ya cubre las fichas y el motor actual entiendo que cubre todo lo que antes cubría el antiguo».
 
 Método: inventario de funciones de `HojasRutaPage.tsx` y sus módulos tal como estaban en `2c641554b^` (leídos con

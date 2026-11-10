@@ -1,5 +1,10 @@
 # Checklist — Revisión de diseño de Material, Cálculo, Hojas de ruta y Monitoreo
 
+Tipo: Checklist QA fechado
+Estado: En curso
+Fecha: 2026-11-02
+Autoridad: pedido de coordinación del 2026-11-02; criterio del ADR 0125
+
 Pedido (coordinación, 2026-11-02): revisar «con ojo de diseño» los cuatro módulos con los proyectos de
 referencia a 1280 y 1440, un ítem por hallazgo con captura, dueño y esfuerzo. Lo transversal (kit, tokens,
 chrome, vocabulario) lo arregla la sesión Revamp; lo de cada módulo va a su sesión dueña. Criterio para «se
@@ -65,4 +70,4 @@ Ninguna captura se repite entre perfiles. Las copias no se versionan: hacerlo ex
   tabla del plan se mide ahí sin esa columna.
 - Un `<details>` cerrado no lo mide el runner: para juzgar el desplegable de Paquetes hay que abrirlo en el navegador (D16).
 - Capturas de D15–D18 (no versionadas): `v0-*` (antes) y `v1-*` (después) a 1440×1000 y 1024×600, en
-  `/private/tmp/claude-501/-Users-gonzaloalmendariz-repos-Pulso-prosecnur-app/fcd67b45-c279-4eca-aa39-4c8cdd56c896/scratchpad/`.
+  el scratchpad de la sesión `fcd67b45-c279-4eca-aa39-4c8cdd56c896` (carpeta temporal del sistema).

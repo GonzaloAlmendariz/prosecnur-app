@@ -1,5 +1,10 @@
 # Formato en Analítica (4 nov 2026, madrugada)
 
+Tipo: Registro QA fechado
+Estado: En curso
+Fecha: 2026-11-04
+Autoridad: encargo de coordinación (Meta B); decisiones revisables por Gonzalo
+
 Quinta tanda del encargo de coordinación (Meta B), pedida al cerrar Hojas de ruta: «si te queda noche, sigue con
 Analítica: 51 «·» y la misma receta». Receta de `formato-monitoreo-2026-11-02.md` y
 `formato-calculo-graficos-2026-11-02.md`. Alcance: `frontend/src/features/analitica/`, las reglas de Analítica que

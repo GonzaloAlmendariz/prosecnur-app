@@ -1,5 +1,10 @@
 # Arquitectura de campo: formatos, límite Material / Monitoreo y Planner
 
+Tipo: Propuesta de diseño
+Estado: En curso
+Fecha: 2026-10-31
+Autoridad: Pedido de Gonzalo del 2026-10-31 (loop de diseño y arquitectura de campo); se apoya en ADR 0118 y ADR 0121
+
 Doc vivo del loop de diseño y arquitectura que pidió Gonzalo el 2026-10-31. Lo mantiene la sesión de Hojas de ruta /
 Material de campo. La versión para leer es el artefacto «Papel y Excel de campo»
 (https://claude.ai/artifact/Rw3NyeQv5kF6UXizMpkYV7); este doc es su fuente y su memoria.

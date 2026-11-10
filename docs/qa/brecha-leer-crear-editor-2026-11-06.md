@@ -1,5 +1,10 @@
 # Brecha entre lo que el editor lee y lo que deja crear
 
+Tipo: Diagnóstico QA fechado
+Estado: Vigente
+Fecha: 2026-11-06
+Autoridad: pregunta de Gonzalo del 2026-11-06, ítem E19 de `checklist-editor-conjoint-2026-11-06.md`
+
 Inventario del 6 de noviembre de 2026 (checklist editor-conjoint, E19). Pregunta de Gonzalo: «si el editor ya interpreta varias cosas, ¿por qué no hay UI que ayude y sea igual de intuitiva?».
 
 Rutas relativas a `frontend/src/features/xlsformEditor/`. La lectura de todas las columnas pasa por `reglas/motor/index.ts` (`leerConContexto`).

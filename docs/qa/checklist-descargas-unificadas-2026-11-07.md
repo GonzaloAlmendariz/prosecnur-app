@@ -1,5 +1,10 @@
 # Checklist: descargas unificadas (2026-11-07)
 
+Tipo: Checklist de pedido con varias indicaciones
+Estado: En curso
+Fecha: 2026-11-07
+Autoridad: Pedido del 2026-11-07 de censar y unificar las descargas; las decisiones y los vistos buenos son de Gonzalo
+
 Pedido: censar todas las formas en que Prosecnur genera algo y lo entrega como
 archivo, para unificar la pantalla de carga, el nombrado y la ubicación del
 guardado. Orden: censo → prototipo (artifact) → implementación.
@@ -19,7 +24,7 @@ guardado. Orden: censo → prototipo (artifact) → implementación.
 |---|---|---|
 | 26 `window.open` de descargas que Electron niega | `frontend/src/lib/descargas.ts` (`descargarArchivo`) + 17 componentes | hecho; Electron en runtime sin verificar |
 | UUID del job en el nombre y tildes sin codificar (10 cabeceras) | `api/R/helpers_descarga.R` (`.content_disposition`) | hecho; probado por HTTP en proceso |
-| Evidencia de Monitoreo escrita en `tmp/qa` relativo al cwd; el cliente elegía `out_dir` | `.session_downloads_dir()`; routers de Monitoreo | hecho |
+| Evidencia de Monitoreo escrita en la subcarpeta `qa` de `tmp`, relativa al cwd; el cliente elegía `out_dir` | `.session_downloads_dir()`; routers de Monitoreo | hecho |
 | Dashboard › Base de datos falla en silencio y se ofrece en modo público | `BaseDatosTab` (`ErrorBlock`, `publicMode`) | hecho; QA visual pendiente |
 | Clase `spin` inexistente (Ocurrencias) | `pulso-spin` | hecho |
 | Portapapeles sin respaldo de Electron (8 sitios) | `copiarTexto` | hecho |

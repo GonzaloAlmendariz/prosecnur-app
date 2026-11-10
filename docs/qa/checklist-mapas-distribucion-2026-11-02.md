@@ -1,5 +1,10 @@
 # Checklist · mapas de distribución al motor (`p_mapa_distribucion`) — 2026-11-02
 
+Tipo: Checklist de pedido con varias indicaciones
+Estado: En curso
+Fecha: 2026-11-02
+Autoridad: encargo de llevar al motor el diseño de mapas aprobado por Gonzalo (lienzo "Maqueta de mapas territoriales", tableros 2 a 7)
+
 Encargo: llevar al motor el diseño de mapas aprobado por Gonzalo (lienzo «Maqueta de mapas territoriales», tableros 2 a 7).
 Rama de trabajo: `claude/jovial-burnell-11d3e8`. Fixture sintético; nunca datos del estudio. Trabajo de varias sesiones
 (Gonzalo, 2026-11-02: «esto va a requerir varias sesiones, aún falta muchísimo»).

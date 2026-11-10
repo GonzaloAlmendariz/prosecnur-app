@@ -1,5 +1,10 @@
 # Estudio de mecanismos de selección de manzanas titulares — 2026-10-29
 
+Tipo: Diagnóstico QA fechado
+Estado: Vigente
+Fecha: 2026-10-29
+Autoridad: Encargo de Gonzalo sobre el sesgo del PPS hacia manzanas grandes (fase 1, diagnóstico y simulación); ADR 0120
+
 Fase 1 (diagnóstico y simulación) del encargo de Gonzalo sobre el sesgo del PPS hacia manzanas grandes. No cambia
 el sorteo. La propuesta de cambio está en el ADR 0120 (borrador, «Propuesto»).
 
@@ -230,6 +235,6 @@ supervisor gestione el acceso. El reemplazo existente cubre el rechazo.
 ## Reproducir
 
 ```bash
-unzip -p api/inst/reference_projects/acnur_acg/acnur_acg.pulso state.rds > /tmp/acg_state.rds
-Rscript api/scripts/estudio_mecanismos_seleccion_manzanas.R /tmp/acg_state.rds /tmp/sim_manzanas 2000
+unzip -p api/inst/reference_projects/acnur_acg/acnur_acg.pulso state.rds > "$TMPDIR/acg_state.rds"
+Rscript api/scripts/estudio_mecanismos_seleccion_manzanas.R "$TMPDIR/acg_state.rds" "$TMPDIR/sim_manzanas" 2000
 ```

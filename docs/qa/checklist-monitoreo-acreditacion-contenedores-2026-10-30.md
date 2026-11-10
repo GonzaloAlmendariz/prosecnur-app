@@ -1,5 +1,10 @@
 # Checklist — Acreditación: contenedores, relieve y avisos (2026-10-30)
 
+Tipo: Checklist de dictado
+Estado: Vigente
+Fecha: 2026-10-30
+Autoridad: dictado de Gonzalo del 2026-10-30, con capturas de Insumos y Modelo
+
 Dictado de Gonzalo (00:0x, con capturas de Insumos › Padrón «Profesores» y
 Modelo › Cuotas): «contenedores que se ven vacíos, pobres, que no terminan de
 verse bien y con una estructura poco práctica». Referencia pedida: los otros

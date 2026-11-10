@@ -1,6 +1,9 @@
 # Paquete: Territorio por ciudades en el lienzo de Hojas de ruta
 
-Fecha: 2026-10-29 · Encargo de Gonzalo · Amplía ADR 0119 (ciudades principales) y ADR 0114 (el mapa es el lienzo).
+Tipo: Plan de implementación
+Estado: En curso
+Fecha: 2026-10-29
+Autoridad: Encargo de Gonzalo. Amplía ADR 0119 (ciudades principales) y ADR 0114 (el mapa es el lienzo).
 
 ## Pedido, textual
 
@@ -30,9 +33,9 @@ Monitoreo territorial. Esos usos no se tocan: el cambio vale solo para el lienzo
 
 ## Decisión de diseño (revisada: dirección A · Atlas)
 
-La primera maqueta (`tmp/revamp-hojas-material/territorio-regiones.html`, regiones con interruptores) se descartó:
+La primera maqueta (en la carpeta temporal del repo, `revamp-hojas-material/territorio-regiones.html`, regiones con interruptores) se descartó:
 «Se ve horrible, necesitamos repensar por completo». La segunda
-(`tmp/revamp-hojas-material/territorio-ciudades.html`) comparó dos direcciones y Gonzalo eligió **A · Atlas**
+(en la carpeta temporal del repo, `revamp-hojas-material/territorio-ciudades.html`) comparó dos direcciones y Gonzalo eligió **A · Atlas**
 (2026-10-29).
 
 ### 1. Se elige la ciudad, no la región

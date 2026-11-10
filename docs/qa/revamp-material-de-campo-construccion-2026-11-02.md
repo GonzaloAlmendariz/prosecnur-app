@@ -1,5 +1,10 @@
 # Revamp de Material de campo: lo que hay que construir (v5, 2 nov 2026)
 
+Tipo: Plan de implementación
+Estado: En curso
+Fecha: 2026-11-02
+Autoridad: diseño del artefacto "Material de campo, revamp" aprobado por Gonzalo; inventario del 2026-11-02 y ADR 0125
+
 Diseño aprobable en el artefacto «Material de campo, revamp»
 (https://claude.ai/artifact/M7cbp4RzDHzpmhe5gMRKVs). La base es el inventario
 [inventario-material-de-campo-2026-11-02.md](inventario-material-de-campo-2026-11-02.md) y el ADR 0125.

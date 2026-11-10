@@ -1,8 +1,13 @@
 # Diferencias significativas en el motor de gráficos: propuesta de rediseño
 
+Tipo: Propuesta de diseño
+Estado: En curso
+Fecha: 2026-11-03
+Autoridad: diseño visual aprobado por Gonzalo el 2026-11-03; decisiones D1 a D9 a su cargo
+
 Prosecnur · Procesamiento › Gráficos · 3 de noviembre de 2026 · Documento de diseño, sin cambios en el código de la app.
 
-**Estado: diseño visual aprobado por Gonzalo el 3 de noviembre de 2026** (sistema ▲A con letras en la leyenda, columna «Base (n)», n en la esquina de las apiladas y rótulo corto del *top two box*). Quedan pendientes las decisiones metodológicas y de alcance D1 a D9 (§7) antes de implementar.
+**Situación: diseño visual aprobado por Gonzalo el 3 de noviembre de 2026** (sistema ▲A con letras en la leyenda, columna «Base (n)», n en la esquina de las apiladas y rótulo corto del *top two box*). Quedan pendientes las decisiones metodológicas y de alcance D1 a D9 (§7) antes de implementar.
 
 Caso de anclaje: Perfil del Estudiante CCSS 2026-II (mazo y Word v4 del 2 de noviembre, `.pulso` `CCSS2026_analitica_muestra400_02-11_maqueta_v3`).
 
@@ -37,17 +42,17 @@ Caso de anclaje: Perfil del Estudiante CCSS 2026-II (mazo y Word v4 del 2 de nov
 
 | Captura | Qué muestra |
 |---|---|
-| ![](img/r1/ppt-lamina-40.png) | **Lámina 40.** La letra va pegada a la cifra y con el mismo peso (`44% A`). La leyenda no lleva letras: para saber quién es «A», hay que leer una nota de 9 pt al pie. |
-| ![](img/r1/ppt-lamina-74.png) | **Lámina 74.** El mismo contraste se marca dos veces: `58% ABC` en «Sí» y `76% D` en «No». El lector ve cuatro letras donde hay una diferencia. |
-| ![](img/r1/ppt-lamina-22.png) | **Lámina 22.** Pasa lo mismo con dos categorías (`22% B` y `89% A`), con espaciado irregular (`22%  B`). Aparece «Otros» en la leyenda sin segmento. |
-| ![](img/r1/ppt-lamina-27.png) | **Lámina 27.** Se marca `4% B` frente a 0%: una diferencia de 4 puntos. El plan de análisis dice que no se destaca nada bajo 10 puntos. |
-| ![](img/r1/ppt-lamina-5.png) | **Lámina 5, «Cómo leer».** Es un bloque de texto sin ejemplo. Dice «confianza de 95%», mientras las notas dicen «α = 0.05». No menciona magnitud, frágiles ni bases pequeñas. |
-| ![](img/r1/word-pag32-46.png) | **Word, gráficos 45, 46 y 78.** La tipografía es distinta de la del PPT. La nota va alineada a la derecha y sin el mapa de letras. El gráfico 78 tiene letras sin nota. |
-| ![](img/r1/word-pag38-39.png) | **Word, gráficos 59 a 63.** Son cruces sin significancia: el Word no marca lo que el PPT sí marca. |
-| ![](img/r1/ui-inspector-grafico.jpg) | **Inspector › Gráfico › Cifras.** Hay un interruptor y un paso a paso para el nivel (0.10/0.05/0.01). |
-| ![](img/r1/ui-ayuda-recortada.png) | **Ayuda del interruptor.** Se corta por el borde derecho (C4). |
-| ![](img/r1/ui-maqueta-lamina37.png) | **Maqueta de la lámina.** El glifo pinta puntos rojos que no corresponden a nada del render final (C1 y C5). |
-| ![](img/r1/ui-previsualizar.jpg) | **Vista previa.** Aparecen letras, pero no hay manera de preguntar por qué. |
+| `img/r1/ppt-lamina-40.png` (no versionada) | **Lámina 40.** La letra va pegada a la cifra y con el mismo peso (`44% A`). La leyenda no lleva letras: para saber quién es «A», hay que leer una nota de 9 pt al pie. |
+| `img/r1/ppt-lamina-74.png` (no versionada) | **Lámina 74.** El mismo contraste se marca dos veces: `58% ABC` en «Sí» y `76% D` en «No». El lector ve cuatro letras donde hay una diferencia. |
+| `img/r1/ppt-lamina-22.png` (no versionada) | **Lámina 22.** Pasa lo mismo con dos categorías (`22% B` y `89% A`), con espaciado irregular (`22%  B`). Aparece «Otros» en la leyenda sin segmento. |
+| `img/r1/ppt-lamina-27.png` (no versionada) | **Lámina 27.** Se marca `4% B` frente a 0%: una diferencia de 4 puntos. El plan de análisis dice que no se destaca nada bajo 10 puntos. |
+| `img/r1/ppt-lamina-5.png` (no versionada) | **Lámina 5, «Cómo leer».** Es un bloque de texto sin ejemplo. Dice «confianza de 95%», mientras las notas dicen «α = 0.05». No menciona magnitud, frágiles ni bases pequeñas. |
+| `img/r1/word-pag32-46.png` (no versionada) | **Word, gráficos 45, 46 y 78.** La tipografía es distinta de la del PPT. La nota va alineada a la derecha y sin el mapa de letras. El gráfico 78 tiene letras sin nota. |
+| `img/r1/word-pag38-39.png` (no versionada) | **Word, gráficos 59 a 63.** Son cruces sin significancia: el Word no marca lo que el PPT sí marca. |
+| `img/r1/ui-inspector-grafico.jpg` (no versionada) | **Inspector › Gráfico › Cifras.** Hay un interruptor y un paso a paso para el nivel (0.10/0.05/0.01). |
+| `img/r1/ui-ayuda-recortada.png` (no versionada) | **Ayuda del interruptor.** Se corta por el borde derecho (C4). |
+| `img/r1/ui-maqueta-lamina37.png` (no versionada) | **Maqueta de la lámina.** El glifo pinta puntos rojos que no corresponden a nada del render final (C1 y C5). |
+| `img/r1/ui-previsualizar.jpg` (no versionada) | **Vista previa.** Aparecen letras, pero no hay manera de preguntar por qué. |
 
 ### 1.2 Inventario de problemas
 
@@ -91,8 +96,8 @@ De ahí salen las direcciones de la ronda 2. Ninguna se copia tal cual.
 
 ### 2.1 Primer juego, con letras y sin letras
 
-![](img/r2/board1.png)
-![](img/r2/board2.png)
+`img/r2/board1.png` (no versionada)
+`img/r2/board2.png` (no versionada)
 
 - **G1, letras guiadas** (letra volada y en la leyenda): se lee como una llamada de nota al pie. Descartada.
 - **G2, frente al total** (▲▼): cambia la prueba a «grupo frente al resto». Con dos grupos es redundante, porque uno sube si el otro baja.
@@ -104,12 +109,12 @@ De ahí salen las direcciones de la ronda 2. Ninguna se copia tal cual.
 
 | # | Propuesta | Imagen |
 |---|---|---|
-| 1 | Énfasis: lo que difiere en color pleno y lo demás atenuado | ![](img/r2b/par-p1-enfasis.png) |
-| 2 | Brecha anotada: corchete con «+27 pts» | ![](img/r2b/par-p2-brecha.png) |
-| 3 | Punto de hallazgo: ● junto al grupo mayor | ![](img/r2b/par-p3-punto.png) |
-| 4 | Frente al total: ▲▼ y una línea con el total | ![](img/r2b/par-p4-promedio.png) |
-| 5 | Anotación directa: una frase junto a la barra | ![](img/r2b/par-p5-anotacion.png) |
-| 0 | Letras ▲A, como referencia | ![](img/r2b/par-p0-letras.png) |
+| 1 | Énfasis: lo que difiere en color pleno y lo demás atenuado | `img/r2b/par-p1-enfasis.png` (no versionada) |
+| 2 | Brecha anotada: corchete con «+27 pts» | `img/r2b/par-p2-brecha.png` (no versionada) |
+| 3 | Punto de hallazgo: ● junto al grupo mayor | `img/r2b/par-p3-punto.png` (no versionada) |
+| 4 | Frente al total: ▲▼ y una línea con el total | `img/r2b/par-p4-promedio.png` (no versionada) |
+| 5 | Anotación directa: una frase junto a la barra | `img/r2b/par-p5-anotacion.png` (no versionada) |
+| 0 | Letras ▲A, como referencia | `img/r2b/par-p0-letras.png` (no versionada) |
 
 ### 2.3 Evaluación
 
@@ -149,13 +154,13 @@ Direcciones de UI (`img/r2/ui-*.png`):
 
 | | |
 |---|---|
-| ![](img/final/f1-agrupadas.png) **Agrupadas.** La letra va dentro del cuadro de color de la leyenda y la base va en la columna «Base (n)», cerca de las barras y sin separador. | ![](img/final/f2-dicotomica.png) **Dicotómica apilada.** Solo se marca «Sí». La letra va junto a cada fila y la n, en la esquina superior derecha de la barra. |
-| ![](img/final/f3-escala-ttb.png) **Escala.** Solo se marca el *top two box*. El frágil lleva contorno punteado. «No sé» se ve, pero no se compara ni se rotula. | ![](img/final/f4-apilada-nominal.png) **Apilada nominal.** Se marca por segmento, solo en el grupo mayor. |
-| ![](img/final/f5-serie-niveles.png) **Serie por niveles.** La leyenda va a la derecha: cuadrados de color, centrada a media altura. El rótulo del punto mayor va arriba y el del menor abajo. | ![](img/final/f6-multiple.png) **Respuesta múltiple.** Cada opción se compara por separado y la nota declara las opciones omitidas. |
+| `img/final/f1-agrupadas.png` (no versionada) **Agrupadas.** La letra va dentro del cuadro de color de la leyenda y la base va en la columna «Base (n)», cerca de las barras y sin separador. | `img/final/f2-dicotomica.png` (no versionada) **Dicotómica apilada.** Solo se marca «Sí». La letra va junto a cada fila y la n, en la esquina superior derecha de la barra. |
+| `img/final/f3-escala-ttb.png` (no versionada) **Escala.** Solo se marca el *top two box*. El frágil lleva contorno punteado. «No sé» se ve, pero no se compara ni se rotula. | `img/final/f4-apilada-nominal.png` (no versionada) **Apilada nominal.** Se marca por segmento, solo en el grupo mayor. |
+| `img/final/f5-serie-niveles.png` (no versionada) **Serie por niveles.** La leyenda va a la derecha: cuadrados de color, centrada a media altura. El rótulo del punto mayor va arriba y el del menor abajo. | `img/final/f6-multiple.png` (no versionada) **Respuesta múltiple.** Cada opción se compara por separado y la nota declara las opciones omitidas. |
 
 ### 3.2 Word A4
 
-![](img/final/w-pagina-a4.png)
+`img/final/w-pagina-a4.png` (no versionada)
 
 Es el mismo sistema, con la cifra a 9.5 pt y la cápsula a 8 pt. La nota se centra bajo «Base», se envuelve al ancho del texto (6.27 in) y usa **el mismo texto** que la lámina.
 
@@ -163,10 +168,10 @@ Es el mismo sistema, con la cifra a 9.5 pt y la cápsula a 8 pt. La nota se cent
 
 | Caso | Maqueta | Regla |
 |---|---|---|
-| Muchas categorías | ![](img/final/e1-muchas-categorias.png) | De mayor a menor, cifra de 12 pt o más y cápsula a 0.8 × la cifra. Solo se marcan las filas que difieren |
-| Base pequeña | ![](img/final/e2-base-pequena.png) | Grupo con n < 30: trama, rótulo «n = 11 · no se compara» en coral, sin cápsula y sin servir de referencia para las demás. Cada grupo es una fila con su letra: no depende del color |
-| Ninguna diferencia | ![](img/final/e3-ninguna.png) | Sin marcas. La nota lo dice con las cifras extremas, porque el silencio se leería como «no se probó» |
-| Todas significativas | ![](img/final/e4-todas.png) | `▲A`, `▲AB`, `▲ABC`: la cápsula crece con las letras y entra en la barra |
+| Muchas categorías | `img/final/e1-muchas-categorias.png` (no versionada) | De mayor a menor, cifra de 12 pt o más y cápsula a 0.8 × la cifra. Solo se marcan las filas que difieren |
+| Base pequeña | `img/final/e2-base-pequena.png` (no versionada) | Grupo con n < 30: trama, rótulo «n = 11 · no se compara» en coral, sin cápsula y sin servir de referencia para las demás. Cada grupo es una fila con su letra: no depende del color |
+| Ninguna diferencia | `img/final/e3-ninguna.png` (no versionada) | Sin marcas. La nota lo dice con las cifras extremas, porque el silencio se leería como «no se probó» |
+| Todas significativas | `img/final/e4-todas.png` (no versionada) | `▲A`, `▲AB`, `▲ABC`: la cápsula crece con las letras y entra en la barra |
 | Respuesta múltiple | f6 | Una prueba por opción, con la base de cada grupo. La línea de contexto declara las opciones omitidas |
 | Escala, *top two box* y «No sé» | f3 | La marca va solo en la columna del *top two box*. «No sé» cuenta en la base, no se compara y su valor va en la leyenda («No sé (1–2%)») |
 | Grupo repetido, sin independencia | UI, estado «Abstención» | Sin marcas. Nota: «No se marcan diferencias: cada estudiante aporta varias respuestas (grupo repetido) y las observaciones no son independientes.» |
@@ -174,7 +179,7 @@ Es el mismo sistema, con la cifra a 9.5 pt y la cápsula a 8 pt. La nota se cent
 
 ### 3.4 «Cómo leer las diferencias entre grupos»
 
-![](img/final/l-como-leer.png)
+`img/final/l-como-leer.png` (no versionada)
 
 Lleva un ejemplo real con llamadas numeradas y cinco reglas: letra, ▲A, sin marca, frágil y trama. El recuadro «Cómo se decide» se genera desde la política del informe, así que si se cambia la prueba, cambia el texto.
 
@@ -182,10 +187,10 @@ Lleva un ejemplo real con llamadas numeradas y cinco reglas: letra, ▲A, sin ma
 
 | Pantalla | |
 |---|---|
-| ![](img/final/u1-politica.png) | **Ajustes del informe › Diferencias entre grupos** (diálogo, `?panel=diferencias-regla`). Es una sola regla para láminas, Word y tablas. Propone por defecto la prueba de diseño cuando el estudio tiene conglomerados, y **avisa de la doble vara** antes de aplicar, con cuántas celdas de las tablas cambiarían. Umbral, base y nivel se eligen entre opciones cerradas; no hay paso a paso libre. Incluye la vista previa del texto que leerá el cliente |
-| ![](img/final/u2-estados-inspector.png) | **Inspector › Gráfico › Diferencias entre grupos.** Interruptor por gráfico y resumen en vivo (marcadas, frágiles, bajo el umbral). Estados: con marcas, **vacío** (sin cruce, con «Agregar cruce»), **calculando** (esqueleto), **ninguna diferencia** (propone quitar el cruce, según el plan), **abstención** (motivo) y **error** (código `E_*` e `error_id`, con salida acotada) |
-| ![](img/final/u3-por-que.png) | **Por qué** (capa sobre la vista previa, `?panel=diferencias-lamina&foco=<celda>`). Una sola capa a la vez, anclada bajo la cápsula. Muestra la frase con la brecha, el p ajustado, la prueba, las bases, el efecto de diseño, el intervalo y las tres condiciones con ✓/✗. «Copiar redacción» entrega la frase prudente si la diferencia es frágil. A la derecha está la tabla de pares de la lámina |
-| ![](img/final/u4-revision-lote.png) | **Diferencias del informe** (sideover, `?panel=diferencias`). Revisión en lote de las 33 láminas con cruce, con el filtro «Para revisar»: frágiles con títulos que afirman, cruces sin diferencias, diferencias bajo el umbral, bases chicas y pruebas no ejecutadas. Exporta la revisión. Es la tabla del §5 del plan de análisis, hecha por la app |
+| `img/final/u1-politica.png` (no versionada) | **Ajustes del informe › Diferencias entre grupos** (diálogo, `?panel=diferencias-regla`). Es una sola regla para láminas, Word y tablas. Propone por defecto la prueba de diseño cuando el estudio tiene conglomerados, y **avisa de la doble vara** antes de aplicar, con cuántas celdas de las tablas cambiarían. Umbral, base y nivel se eligen entre opciones cerradas; no hay paso a paso libre. Incluye la vista previa del texto que leerá el cliente |
+| `img/final/u2-estados-inspector.png` (no versionada) | **Inspector › Gráfico › Diferencias entre grupos.** Interruptor por gráfico y resumen en vivo (marcadas, frágiles, bajo el umbral). Estados: con marcas, **vacío** (sin cruce, con «Agregar cruce»), **calculando** (esqueleto), **ninguna diferencia** (propone quitar el cruce, según el plan), **abstención** (motivo) y **error** (código `E_*` e `error_id`, con salida acotada) |
+| `img/final/u3-por-que.png` (no versionada) | **Por qué** (capa sobre la vista previa, `?panel=diferencias-lamina&foco=<celda>`). Una sola capa a la vez, anclada bajo la cápsula. Muestra la frase con la brecha, el p ajustado, la prueba, las bases, el efecto de diseño, el intervalo y las tres condiciones con ✓/✗. «Copiar redacción» entrega la frase prudente si la diferencia es frágil. A la derecha está la tabla de pares de la lámina |
+| `img/final/u4-revision-lote.png` (no versionada) | **Diferencias del informe** (sideover, `?panel=diferencias`). Revisión en lote de las 33 láminas con cruce, con el filtro «Para revisar»: frágiles con títulos que afirman, cruces sin diferencias, diferencias bajo el umbral, bases chicas y pruebas no ejecutadas. Exporta la revisión. Es la tabla del §5 del plan de análisis, hecha por la app |
 
 Microinteracciones (`emil-design-eng`):
 

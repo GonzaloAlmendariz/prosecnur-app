@@ -1,5 +1,10 @@
 # Formato en Carga (4 nov 2026, noche)
 
+Tipo: Registro QA fechado
+Estado: En curso
+Fecha: 2026-11-04
+Autoridad: encargo de coordinación (Meta B); decisiones revisables por Gonzalo
+
 Segunda tanda del encargo de coordinación (Meta B) de la noche del 3 al 4 de noviembre: la pasada de formato en los
 módulos que no la tuvieron. Receta de `formato-monitoreo-2026-11-02.md` y `formato-calculo-graficos-2026-11-02.md`.
 Alcance de escritura: `frontend/src/features/carga/` y este doc. Decisiones «decididas por coordinación, revisables

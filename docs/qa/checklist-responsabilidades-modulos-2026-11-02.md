@@ -1,5 +1,10 @@
 # Checklist — responsabilidades y traspasos entre módulos (2026-11-02)
 
+Tipo: Checklist de pedido con varias indicaciones
+Estado: En curso
+Fecha: 2026-11-02
+Autoridad: Dirección de Gonzalo de la noche del 2026-11-01
+
 Dirección de Gonzalo (noche del 1/11), textual: «que las vistas de algunos
 módulos se vean incluso mejor en general: material de campo (imprimibles y excel
 que campo llena como asignaciones, las llena al inicio para que se usen en campo

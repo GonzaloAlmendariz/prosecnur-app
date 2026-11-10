@@ -1,5 +1,10 @@
 # Propuesta: pantalla de inicio y carga de Prosecnur — 2026-11-06
 
+Tipo: Propuesta de diseño
+Estado: En curso
+Fecha: 2026-11-06
+Autoridad: decisión de Gonzalo por el Recorrido sobre la propuesta visual del artefacto
+
 Artefacto: https://claude.ai/artifact/3cVPEhL8NGz3Nem4vSM5jg (versión 16). Propuesta visual; no se tocó código
 de la app.
 

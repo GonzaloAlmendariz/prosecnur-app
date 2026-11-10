@@ -1,5 +1,10 @@
 # Checklist — Acreditación: las vistas que aún se ven peor (2026-10-30, 07:3x)
 
+Tipo: Checklist de dictado
+Estado: Vigente
+Fecha: 2026-10-30
+Autoridad: Dictado de Gonzalo del 2026-10-30 con capturas; sigue a `checklist-monitoreo-acreditacion-contenedores-2026-10-30.md`
+
 Dictado de Gonzalo con capturas (panel del público en Avance › Por público,
 lista de Por cuota, Pulso del campo de Ritmo): «lo que a mí me parece que aún
 se ve peor de la UI», más un pedido para Ritmo y uno general. Sigue a

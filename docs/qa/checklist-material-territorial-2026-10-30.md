@@ -1,10 +1,15 @@
 # Checklist: UI de Material de campo territorial
 
-Fecha: 2026-10-30. Loop de Hojas de ruta, reorientado por Gonzalo: «la UI de hojas de ruta y la UI de material de
+Tipo: Checklist vivo
+Estado: En curso
+Fecha: 2026-10-30
+Autoridad: Loop de Hojas de ruta, reorientado por Gonzalo el 2026-10-30
+
+Loop de Hojas de ruta, reorientado por Gonzalo: «la UI de hojas de ruta y la UI de material de
 campo para ruta aún le falta muchísimo trabajo». Vara: que un analista lo use para preparar el campo territorial y
 que sea intuitivo, dinámico y presentable.
 
-Proyecto: acnur_acg (`outputs/reference-runs/acnur_acg-20261028-131642/acnur_acg.pulso`). La muestra se volvió a
+Proyecto: acnur_acg (en la carpeta de salidas del repo, `reference-runs/acnur_acg-20261028-131642/acnur_acg.pulso`). La muestra se volvió a
 sortear con el método vigente y se envió **sólo en la sesión**: no se guardó el `.pulso`.
 
 | # | Hallazgo | Dónde vive | Gravedad | Estado |

@@ -1,6 +1,12 @@
 # Checklist — revamp de Hojas de ruta con el mapa al centro (2026-10-28)
 
-Prototipo: `tmp/revamp-hojas-material/mapa2.html` (no versionado), publicado en
+Tipo: Checklist de pedido con varias indicaciones
+Estado: Histórico
+Fecha: 2026-10-28
+Autoridad: indicaciones de Gonzalo sobre el prototipo de Hojas de ruta con el mapa al centro
+Consolidado en: [Plan del revamp de Hojas de ruta con el mapa como lienzo](plan-revamp-hojas-mapa-2026-10-29.md)
+
+Prototipo: carpeta temporal del repo, `revamp-hojas-material/mapa2.html` (no versionado), publicado en
 https://claude.ai/artifact/RE6A3fibXXzeKMUEX28ZfX. Cartografía INEI 2017 que ya
 sirve la API (`/api/hojas-ruta/block-map`, `street-map`, `zone-map`) y
 selección real de `acnur_acg`.

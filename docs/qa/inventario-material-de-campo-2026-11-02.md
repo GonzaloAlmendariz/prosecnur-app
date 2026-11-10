@@ -1,5 +1,10 @@
 # Inventario de Material de campo (2 nov 2026)
 
+Tipo: Censo QA
+Estado: Vigente
+Fecha: 2026-11-02
+Autoridad: Relevamiento de solo lectura del 2026-11-02, fase 1 del revamp visual de Material de campo; ADR 0125
+
 Fase 1 del revamp visual de Material (sesión «Revamp visual de Material de campo»). Es de sólo lectura: no se tocó
 código de producto. Sirve de base para el rediseño (fase 2, artefacto de diseño) y para la sesión dueña
 («Hojas de ruta y Material»), que lo implementará cuando Gonzalo lo apruebe.

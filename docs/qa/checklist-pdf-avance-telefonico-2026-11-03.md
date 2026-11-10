@@ -1,5 +1,10 @@
 # Checklist: PDF de avance de campo, perfil telefónico (2026-11-03)
 
+Tipo: Checklist de pedido con varias indicaciones
+Estado: En curso
+Fecha: 2026-11-03
+Autoridad: Pedido de Gonzalo del 2026-11-03 sobre el PDF de avance de campo del RMS 2026
+
 Pedido de Gonzalo: «Sí, corrígelo» (el PDF de avance del RMS 2026 salía con las
 encuestas por periodo de llegada en 0 y el rótulo «dim_actor») y «los PDF de
 monitoreo de acreditación y aulas han mejorado bastante, lo mismo podemos hacer

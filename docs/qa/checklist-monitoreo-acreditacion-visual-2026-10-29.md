@@ -1,5 +1,10 @@
 # Checklist · Monitoreo › Acreditación, mejoras visuales de a pocos (2026-10-29)
 
+Tipo: Checklist de pedido con varias indicaciones
+Estado: En curso
+Fecha: 2026-10-29
+Autoridad: pedido de Gonzalo del 2026-10-29 de mejorar el módulo con acreditación de a pocos
+
 Pedido de Gonzalo: «ver cómo se ve este módulo con acreditación y mejorarlo de a pocos».
 Proyecto observado: `Monitoreo Acreditación Institucional PUCP 2026.pulso`, primer día de campo
 (326 efectivas, 81 parciales, 6 públicos, universo 45 120, corte 29/10 18:09). Viewport 1440x1000.

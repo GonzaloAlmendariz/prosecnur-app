@@ -1,6 +1,9 @@
 # Cobertura GeoPeru en los seis departamentos sin Hojas de ruta
 
-Fecha: 2026-11-04. Insumo para la variante nacional urbana del [ADR 0131](../adrs/0131-muestra-probabilistica-urbana-multiciudad.md) (estrato = departamento), pregunta abierta del checklist `checklist-muestra-urbana-multiciudad-2026-11-04.md`, ítem 6.
+Tipo: Diagnóstico QA fechado
+Estado: Vigente
+Fecha: 2026-11-04
+Autoridad: Insumo para la variante nacional urbana del [ADR 0131](../adrs/0131-muestra-probabilistica-urbana-multiciudad.md) (estrato = departamento), pregunta abierta del checklist `checklist-muestra-urbana-multiciudad-2026-11-04.md`, ítem 6.
 
 Es análisis y propuesta. No se integró nada al motor ni a `territorios.json`.
 
@@ -17,16 +20,16 @@ Es análisis y propuesta. No se integró nada al motor ni a `territorios.json`.
 | Insumo | Fuente | Detalle |
 |---|---|---|
 | Manzanas + NSE | GeoPeru/IDEP, `https://descargas.geoperu.gob.pe/peru_estrato_nacional_.zip` | 35 109 469 bytes, archivo del 28-05-2026, md5 `06497e1d721de5bef79efe4758d32191` (igual al ETag del servidor). 267 846 filas, 71 provincias con `IDMZ18`. |
-| Viviendas y población 2017 por manzana | REDATAM CPV 2017 (`Manzana.NMANZ` × `Vivienda.C2P2` / `Poblacio.SEXO`) | 36 consultas, con caché en `tmp/geoperu/redatam_cache/`. |
+| Viviendas y población 2017 por manzana | REDATAM CPV 2017 (`Manzana.NMANZ` × `Vivienda.C2P2` / `Poblacio.SEXO`) | 36 consultas, con caché en la carpeta temporal del repo, `geoperu/redatam_cache/`. |
 | Población censada 2025 por distrito | REDATAM CPV 2025 (`CPV2025DI`) | 1 890 distritos. La suma nacional (32 706 028) cuadra con la población censada publicada. |
 | Proporción urbana por departamento | INEI, *Resultados Definitivos CPV 2017*, Tomo I, Cuadro N.º 2.6 (p. 33) | El REDATAM 2025 no entrega el área urbana/rural por consulta automática. El `Vivienda.AREA` del REDATAM 2017 es el «concepto encuesta» y solo suma 23,2 de los 29,4 millones censados, así que tampoco sirve. |
 
-Se corrió el builder del ADR 0119 sobre las 10 provincias candidatas, sin tocar el registro del repo:
+Se corrió el builder del ADR 0119 sobre las 10 provincias candidatas, sin tocar el registro del repo (`$TMP_REPO` es la carpeta temporal `tmp` del repo):
 
 ```bash
-HOJAS_RUTA_GEOPERU_ESTRATO=tmp/geoperu/zip/peru_estrato_nacional_.zip \
-HOJAS_RUTA_REDDATAM_MANZANA_CACHE=tmp/geoperu/redatam_cache \
-HOJAS_RUTA_CIUDADES_OUT=tmp/geoperu/salida \
+HOJAS_RUTA_GEOPERU_ESTRATO="$TMP_REPO"/geoperu/zip/peru_estrato_nacional_.zip \
+HOJAS_RUTA_REDDATAM_MANZANA_CACHE="$TMP_REPO"/geoperu/redatam_cache \
+HOJAS_RUTA_CIUDADES_OUT="$TMP_REPO"/geoperu/salida \
 HOJAS_RUTA_CIUDADES_PROVINCIAS=0101,0102,0107,0301,0302,0901,1701,1801,1803,1901 \
 Rscript api/inst/hojas_ruta/build_inei2017_ciudades.R
 ```
@@ -187,4 +190,4 @@ Lectura para decidir:
 
 ## Reproducir
 
-Lo descargado y lo intermedio quedó en `tmp/geoperu/`, que no se versiona: `zip/`, `redatam_cache/`, `salida/`, `inei/00TOMO_01.pdf`, `urbana2017_cuadro2_6.csv`, `indicadores_distrito.csv`, `indicadores_provincia.csv` y `reparto_1800.csv`.
+Lo descargado y lo intermedio quedó en la carpeta temporal del repo, `geoperu/`, que no se versiona: `zip/`, `redatam_cache/`, `salida/`, `inei/00TOMO_01.pdf`, `urbana2017_cuadro2_6.csv`, `indicadores_distrito.csv`, `indicadores_provincia.csv` y `reparto_1800.csv`.

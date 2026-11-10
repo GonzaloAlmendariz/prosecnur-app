@@ -1,12 +1,17 @@
 # Checklist — pulido de UI: cargas, fondo, movimiento y Home (2026-11-05)
 
+Tipo: Checklist de pedido con varias indicaciones
+Estado: En curso
+Fecha: 2026-11-05
+Autoridad: Pedido de Gonzalo del 2026-11-05, ampliado el 2026-11-06
+
 Pedido de Gonzalo (textual): «Revisa todo lo que hace la app con sumo detalle y revisas cuestiones de UI front end que
 podría ser más finas o claras, por ejemplo las ventanas de carga de módulos aún no está estandarizada, el fondo de carga
 aún tiene tarjetas como módulos pero puede tener más para que el fondo se vea más completo, puede tener un sistema de
 animación más sofisticado y universal, puede tener un homepage más elegante y que ocupe mejor el espacio, en general».
 Después: «haz cambios sustanciales y sostenidos durante un loop que vaya toda la noche sin consultarme de 30 min cada uno».
 
-Proyecto de observación: copia `outputs/reference-runs/acnur_acg-20260731-093312/acnur_acg.pulso` (API 8804, Vite 5173).
+Proyecto de observación: copia de la carpeta de salidas del repo, `reference-runs/acnur_acg-20260731-093312/acnur_acg.pulso` (API 8804, Vite 5173).
 
 | # | Ítem | Dónde vive | Hallazgo medido | Estado |
 |---|---|---|---|---|

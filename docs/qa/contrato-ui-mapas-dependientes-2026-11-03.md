@@ -1,5 +1,10 @@
 # Contrato UI ↔ motor: mapas dependientes (3 de noviembre de 2026)
 
+Tipo: Contrato de implementación
+Estado: Vigente
+Fecha: 2026-11-03
+Autoridad: láminas de variables geográficas aprobadas por Gonzalo y su especificación aprobada para el motor
+
 Gonzalo aprobó las láminas de variables geográficas del Perfil CCSS 2026-II. La especificación visual está en la carpeta del estudio: `7. Entregables/…/Maqueta de mapas dependientes (2026-11-03)/Especificación aprobada para el motor.md`.
 
 - **S2** (rama `claude/jovial-burnell-11d3e8`) lleva la especificación al motor y al PPT.

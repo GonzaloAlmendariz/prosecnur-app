@@ -1,6 +1,6 @@
 # ADR 0119: Hojas de ruta — el territorio cubre las ciudades principales y cada capa declara el año de su dato
 
-Estado: Aceptado (§1–4 y §6; §5 sigue propuesto hasta la revisión metodológica)
+Estado: Aceptado (§1–4 y §6; §5 queda pendiente de la revisión metodológica)
 
 Implementacion: En curso
 

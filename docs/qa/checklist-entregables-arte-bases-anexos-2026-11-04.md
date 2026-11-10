@@ -1,5 +1,10 @@
 # Checklist — Arte ACRD 2026: bases, libros de códigos y anexos (2026-11-04)
 
+Tipo: Checklist de pedido con varias indicaciones
+Estado: En curso
+Fecha: 2026-11-04
+Autoridad: pedido de Gonzalo del 2026-11-04 para cerrar la entrega de Arte y Diseño PUCP
+
 Pedido de Gonzalo (2026-11-04) para cerrar la entrega de Arte y Diseño PUCP.
 La guía, los cuestionarios y el informe consolidado (Word, PDF y PPT) los ve él;
 aquí solo va lo que pidió explícitamente.

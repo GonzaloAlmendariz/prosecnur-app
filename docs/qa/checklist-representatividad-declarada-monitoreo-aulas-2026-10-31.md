@@ -1,7 +1,7 @@
 # Checklist — representatividad declarada en Monitoreo › Cursos-horario
 
 Tipo: Checklist vivo
-Estado: Abierto
+Estado: En curso
 Fecha: 2026-10-31
 Autoridad: Gonzalo (dictado en sesión)
 

@@ -1,7 +1,12 @@
 # Checklist — revisión de Gabriela Palacios al PPT de Arte (2026-10-28)
 
+Tipo: Checklist de pedido con varias indicaciones
+Estado: En curso
+Fecha: 2026-10-28
+Autoridad: Encargo de Gonzalo del 2026-10-28 a partir de los 34 comentarios de Gabriela Palacios al PPT de Arte
+
 Fuente: `Informe PPT Arte 2026_REV.pptx` (61 láminas, 34 comentarios de Gabriela Palacios Rojo), que Gonzalo dejó en
-`/Users/gonzaloalmendariz/repos/Pulso/`. Encargo de Gonzalo: «hay varias cosas que no están saliendo bien que en conta sí
+la carpeta `repos/Pulso` de su usuario. Encargo de Gonzalo: «hay varias cosas que no están saliendo bien que en conta sí
 lo hacían». Referencia del motor antiguo: `Informe_Contabilidad_Comparativo_Cuantitativo_03.09.2026.pptx` y el VF del
 02.09. El `_REV` se generó CON el ensanche global de +1,2 in del enunciado (N10), que se retiró hoy en `ae4552c26`
 (copia del proyecto: `Arte_v1-9_sin_ensanche.pulso`, 57 láminas, barras de 15,3 cm).

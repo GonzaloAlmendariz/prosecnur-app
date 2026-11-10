@@ -1,5 +1,10 @@
 # Checklist: experimento de elección por pares (conjoint) en el editor, 2026-11-07
 
+Tipo: Checklist de pedido con varias indicaciones
+Estado: Vigente
+Fecha: 2026-11-07
+Autoridad: Pedido de Gonzalo del 2026-11-07, en tres mensajes
+
 Pedido de Gonzalo, en tres mensajes:
 
 1. Sobre los 240 cálculos sueltos en Estructura: «Todos estos cálculos están aquí y entiendo que son por una razón, pero

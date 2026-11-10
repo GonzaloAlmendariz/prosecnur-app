@@ -1,6 +1,9 @@
 # Checklist · flujo del analista en Hojas de ruta → Material de campo → Monitoreo
 
-Fecha: 2026-10-30 · Encargo de Gonzalo (loop indefinido de Hojas de ruta).
+Tipo: Checklist vivo
+Estado: En curso
+Fecha: 2026-10-30
+Autoridad: Encargo de Gonzalo (loop indefinido de Hojas de ruta).
 
 > «es una gran oportunidad para que revises en profundidad y no arregles cosas de forma superficial, sino que en
 > verdad construyas una interfaz que esté en condiciones… Todo lo relacionado con el módulo de campo también pueden

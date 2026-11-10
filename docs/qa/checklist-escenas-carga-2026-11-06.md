@@ -1,5 +1,10 @@
 # Checklist — escenas de la pantalla de carga (2026-11-06)
 
+Tipo: Checklist de pedido con varias indicaciones
+Estado: En curso
+Fecha: 2026-11-06
+Autoridad: Indicaciones de Gonzalo sobre la versión 10 del artefacto de la pantalla de carga; solo él da un ítem por terminado
+
 Indicaciones de Gonzalo sobre la versión 10 del artefacto (https://claude.ai/artifact/3cVPEhL8NGz3Nem4vSM5jg).
 Las escenas viven en el scratchpad de la sesión (`fondo-carga/src/escenas-a.js`, `escenas-b.js`, `app.js`); la regla
 de redacción vive en `CLAUDE.md` › «Redacción». Sólo Gonzalo da un ítem por terminado.

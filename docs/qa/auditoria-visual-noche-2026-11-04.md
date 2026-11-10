@@ -1,5 +1,10 @@
 # Auditoría visual de los nueve módulos (4 nov 2026, madrugada)
 
+Tipo: Auditoría QA fechada
+Estado: En curso
+Fecha: 2026-11-04
+Autoridad: Encargo de coordinación (Meta B) para la madrugada del 2026-11-04
+
 Encargo de coordinación (Meta B): recorrer el homepage y las secciones principales de cada módulo a 1440×1000 y
 1024×600 con `acnur_acg` y `hsvg2026`, anotar lo que se ve mal o desfasado con su cláusula del Contrato de Superficie
 (C1 declara qué es, C2 marco estable, C3 contiene su vacío, C4 todo alcanzable; C5 entrega lo que promete) y su

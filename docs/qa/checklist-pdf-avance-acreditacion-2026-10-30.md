@@ -1,5 +1,10 @@
 # Checklist: PDF de avance de campo, perfil Acreditación (2026-10-30)
 
+Tipo: Checklist de pedido con varias indicaciones
+Estado: Vigente
+Fecha: 2026-10-30
+Autoridad: pedido del 2026-10-30 sobre el PDF de avance que se entrega a la DAA, con la corrección de Gonzalo del ítem 24
+
 Pedido: llevar el PDF de avance que se entrega a la DAA de la PUCP
 (Acreditación Institucional PUCP 2026) a un entregable profesional. El cliente
 debe leer de un vistazo el avance total y por público, el ritmo, y la fecha y
