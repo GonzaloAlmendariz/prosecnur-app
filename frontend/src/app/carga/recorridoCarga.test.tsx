@@ -1,8 +1,12 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { PantallaDeCarga } from "../PantallaDeCarga";
-import { SIN_ESTIMACION, normalizarEstimacionWarmup } from "../warmupTiempo";
+import { SIN_ESTIMACION } from "../warmupTiempo";
 import { ESCENAS_CARGA, type ClaveEscenas } from "./escenasCarga";
+import { CICLO_MS, PAUSA_MS, TRAMO_MS } from "./escenasMotor";
 import { SegmentosRecorrido, tramoRecorrido } from "./RecorridoCarga";
 
 const CLAVES: ClaveEscenas[] = ["calc", "form", "rutas", "material", "monitoreo", "proc", "dash"];
@@ -33,24 +37,33 @@ describe("escenas de la pantalla de carga", () => {
   });
 });
 
-describe("tramos del recorrido", () => {
-  it("con apertura anterior, cada módulo dura la séptima parte (entre 3 y 9 s)", () => {
-    const est = normalizarEstimacionWarmup({ ultima_apertura: { elapsed_ms: 28_000 } });
-    expect(tramoRecorrido(0, est).indice).toBe(0);
-    expect(tramoRecorrido(4_100, est).indice).toBe(1);
-    expect(tramoRecorrido(28_100, est)).toMatchObject({ indice: 0, vuelta: 1 });
-    const larga = normalizarEstimacionWarmup({ ultima_apertura: { elapsed_ms: 600_000 } });
-    expect(tramoRecorrido(8_900, larga).indice).toBe(0);
-    expect(tramoRecorrido(9_100, larga).indice).toBe(1);
+describe("colores de las escenas", () => {
+  // 10 nov 2026: «s-sweep» no tenía regla y el barrido de Formularios salía como una barra negra (un SVG sin fill
+  // se pinta negro). Toda clase s-* que dibuja una escena tiene que tener su regla en recorrido-carga.css.
+  it("toda clase s-* que usa una escena tiene regla en recorrido-carga.css", () => {
+    const aqui = path.dirname(fileURLToPath(import.meta.url));
+    const css = fs.readFileSync(path.join(aqui, "recorrido-carga.css"), "utf8");
+    const definidas = new Set([...css.matchAll(/\.(s-[a-z0-9-]+)/g)].map((m) => m[1]));
+    const usadas = new Set<string>();
+    for (const clave of CLAVES) for (const escena of ESCENAS_CARGA[clave]) {
+      for (const m of escena.svg().matchAll(/class="([^"]+)"/g)) for (const c of m[1].split(/\s+/)) if (c.startsWith("s-")) usadas.add(c);
+    }
+    expect(usadas.size).toBeGreaterThan(20);
+    expect([...usadas].filter((c) => !definidas.has(c))).toEqual([]);
   });
+});
 
-  it("sin apertura anterior, 4 s por módulo", () => {
-    expect(tramoRecorrido(3_900, SIN_ESTIMACION).indice).toBe(0);
-    expect(tramoRecorrido(4_100, SIN_ESTIMACION).indice).toBe(1);
+describe("tramos del recorrido", () => {
+  it("cada módulo dura una sola pasada de su escena y el recorrido da otra vuelta si la carga sigue", () => {
+    expect(TRAMO_MS).toBe(CICLO_MS + PAUSA_MS);
+    expect(tramoRecorrido(0).indice).toBe(0);
+    expect(tramoRecorrido(TRAMO_MS - 1).indice).toBe(0);
+    expect(tramoRecorrido(TRAMO_MS + 1).indice).toBe(1);
+    expect(tramoRecorrido(TRAMO_MS * 7 + 1)).toMatchObject({ indice: 0, vuelta: 1 });
   });
 
   it("la barra marca el módulo actual y los ya vistos", () => {
-    const html = renderToStaticMarkup(<SegmentosRecorrido transcurridoMs={9_000} estimacion={SIN_ESTIMACION} />);
+    const html = renderToStaticMarkup(<SegmentosRecorrido transcurridoMs={TRAMO_MS * 2 + 100} />);
     expect(html.match(/class="is-visto"/g)).toHaveLength(2);
     expect(html.match(/class="is-actual"/g)).toHaveLength(1);
   });

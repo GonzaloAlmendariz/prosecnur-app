@@ -1,8 +1,13 @@
 // Herramientas de las escenas de carga: generan el SVG como texto (las escenas son decorativas y estáticas, sin datos
 // de usuario) con las clases del repertorio de movimientos de recorrido-carga.css.
 
-/** Un ciclo de escena: diez veces --motion-dur-slow (420 ms). */
-export const CICLO_MS = 4200;
+/** Un ciclo de escena: ocho veces --motion-dur-slow (420 ms). 10 nov 2026 (Gonzalo: «algo lenta»): antes diez. */
+export const CICLO_MS = 3360;
+/** Pausa entre el final de una escena y la siguiente. */
+export const PAUSA_MS = 400;
+/** Lo que dura cada módulo en el recorrido: una sola pasada de su escena (antes un tramo de 3 a 9 s, que en cargas
+ *  largas hacía que la misma escena se viera dos veces seguidas). */
+export const TRAMO_MS = CICLO_MS + PAUSA_MS;
 
 /** Pseudoaleatorio con semilla: la misma escena se dibuja igual cada vez. */
 export function rng(seed: number): () => number {

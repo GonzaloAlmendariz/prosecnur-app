@@ -1,15 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { CICLO_MS } from "./escenasMotor";
+import { CICLO_MS, PAUSA_MS } from "./escenasMotor";
 import { ESCENAS_CARGA, type ClaveEscenas } from "./escenasCarga";
 
 /**
- * Una escena de carga en bucle: se arma, se sostiene y se funde, y vuelve a empezar. El SVG es decorativo y lo
+ * Una escena de carga: se arma, se sostiene y se funde. Con `repetir` vuelve a empezar; el recorrido de la carga del
+ * proyecto la pide de una sola pasada, porque cada módulo dura exactamente una escena. El SVG es decorativo y lo
  * generamos nosotros (sin datos del usuario), por eso se inserta como marcado. Cada vuelta remonta el nodo (`key`)
  * para que las animaciones CSS empiecen de nuevo.
  */
-const PAUSA_MS = 400;
-
-export function EscenaCarga({ clave, indice, className }: { clave: ClaveEscenas; indice: number; className?: string }) {
+export function EscenaCarga({ clave, indice, className, repetir = true }: { clave: ClaveEscenas; indice: number; className?: string; repetir?: boolean }) {
   const [vuelta, setVuelta] = useState(0);
   const [cierra, setCierra] = useState(false);
   const escena = ESCENAS_CARGA[clave][indice] ?? ESCENAS_CARGA[clave][0];
@@ -20,12 +19,12 @@ export function EscenaCarga({ clave, indice, className }: { clave: ClaveEscenas;
   useEffect(() => {
     setCierra(false);
     const cerrar = window.setTimeout(() => setCierra(true), CICLO_MS * 0.92 + PAUSA_MS);
-    const repetir = window.setTimeout(() => setVuelta((v) => v + 1), CICLO_MS + PAUSA_MS);
+    const otra = repetir ? window.setTimeout(() => setVuelta((v) => v + 1), CICLO_MS + PAUSA_MS) : undefined;
     return () => {
       window.clearTimeout(cerrar);
-      window.clearTimeout(repetir);
+      if (otra !== undefined) window.clearTimeout(otra);
     };
-  }, [escena, vuelta]);
+  }, [escena, vuelta, repetir]);
 
   return (
     <div
