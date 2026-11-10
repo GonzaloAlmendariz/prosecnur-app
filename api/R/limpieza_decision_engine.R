@@ -1473,10 +1473,12 @@ limpieza_finalize <- function(sid, base_nombre, scope) {
 
   # ADR 0076: lo que se escribe es la base del estudio depurada, con las
   # columnas de su origen; no la tabla de trabajo de Validación.
+  # Sin decisiones listas `preview$data_final` es NULL y rige el origen tal cual
+  # (limpieza_cierre_base.R). Una base sin columnas corta aquí, antes de escribir.
   files_origen <- tryCatch(.resolve_base_files(sid, base_nombre), error = function(e) NULL)
-  data_promovible <- if (!is.null(files_origen)) {
-    .limpieza_forma_de_origen(preview$data_final, files_origen$data$path, files_origen$data_ext)
-  } else preview$data_final
+  data_promovible <- .limpieza_base_a_promover(preview$data_final, files_origen)
+  .limpieza_exigir_base_promovible(data_promovible, base_nombre)
+  n_promocion <- .limpieza_n_promocion(data_promovible, preview$impact$cases_excluded)
 
   clean_path <- file.path(downloads_dir, sprintf("base_limpia_%s_%s.xlsx", base_slug, ts_slug))
   .bases_write_xlsx(data_promovible, data_promovible, clean_path, valores = "codigos")
@@ -1491,14 +1493,14 @@ limpieza_finalize <- function(sid, base_nombre, scope) {
   linaje_limpieza <- .limpieza_promover_base(
     sid = sid, base_nombre = base_nombre, clean_meta = clean_meta,
     source_fid = if (!is.null(files_origen)) files_origen$data$file_id else NULL,
-    n_antes = nrow(preview$data_final) + (preview$impact$cases_excluded %||% 0L),
-    n_despues = nrow(data_promovible),
+    n_antes = n_promocion$n_antes,
+    n_despues = n_promocion$n_despues,
     n_columnas = ncol(data_promovible),
     motivo_bloqueo = bloqueo
   )
 
   limpieza_payload <- build_limpieza(scope, sid = sid, base_nombre = base_nombre, preview_override = preview)
-  estudio_nombre <- session_get(sid)$estudio$nombre %||% NA_character_
+  estudio_nombre <- .limpieza_estudio_nombre(session_get(sid))
   html_path <- file.path(downloads_dir, sprintf("decision_maker_%s_%s.html", base_slug, ts_slug))
   html <- build_report_html(
     scope = scope,
