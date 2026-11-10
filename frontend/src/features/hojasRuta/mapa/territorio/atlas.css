@@ -50,6 +50,9 @@
 .hr-atlas-punto { display: inline-block; width: 11px; height: 11px; margin: 0 2px 0 8px; border-radius: 50%; vertical-align: -1px; background: color-mix(in srgb, var(--pulso-module-routes) 16%, var(--pulso-surface)); box-shadow: inset 0 0 0 1.4px color-mix(in srgb, var(--pulso-module-routes) 70%, var(--pulso-surface)); }
 .hr-atlas-punto:first-child { margin-left: 0; }
 .hr-atlas-punto[data-en-estudio] { background: var(--pulso-module-routes); box-shadow: none; }
+/* Con una ciudad abierta la leyenda habla de distritos: cuadros con el tinte que llevan en el mapa. */
+.hr-atlas-punto[data-forma="distrito"] { border-radius: 3px; background: color-mix(in srgb, var(--pulso-module-routes) 7%, var(--pulso-surface)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pulso-module-routes) 45%, var(--pulso-surface)); }
+.hr-atlas-punto[data-forma="distrito"][data-en-estudio] { background: color-mix(in srgb, var(--pulso-module-routes) 34%, var(--pulso-surface)); box-shadow: inset 0 0 0 1.3px color-mix(in srgb, var(--pulso-module-routes) 80%, var(--pulso-surface)); }
 
 /* Atlas por niveles: volver del departamento o de la ciudad enfocada a todo el Perú. */
 .hr-atlas-volver { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; gap: 4px; margin: 2px 0 6px; padding: 4px 6px; border-radius: 6px; font-size: var(--pulso-type-subtitle-size); font-weight: 600; color: var(--pulso-module-routes); cursor: pointer; }

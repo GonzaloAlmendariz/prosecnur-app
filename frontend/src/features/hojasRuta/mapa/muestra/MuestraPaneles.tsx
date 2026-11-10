@@ -161,7 +161,7 @@ export function MuestraEstructura({ config, resultado: r, bloqueado }: Estructur
               <Shuffle size={13} aria-hidden /> Repartir según población
             </PulsoButton>
             <PulsoButton variant="secondary" size="sm" disabled={bloqueado} title="Pone en cada distrito su mínimo para el margen objetivo" onClick={() => ponerTodos(repartoMinimos(r.filas, ruta))}>
-              Mínimos
+              Mínimo por margen
             </PulsoButton>
           </div>
         ) : null}
