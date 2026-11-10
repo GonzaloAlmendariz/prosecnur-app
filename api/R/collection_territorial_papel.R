@@ -305,11 +305,11 @@ collection_territorial_papel <- function(sid, campaign_id = NULL, pieza = "ruteo
   path <- tempfile(fileext = ".pdf")
   out <- switch(pieza, ruteo = .mtp_ruteo_pdf(ctx, path), consolidados = .mtp_consolidados_pdf(ctx, path),
                 conteo = .mtp_conteo_pdf(ctx, path))
-  base <- c(ruteo = "HojaRuteo", consolidados = "HojaConsolidados", conteo = "HojaConteo")[[pieza]]
-  nombre <- if (length(ctx$cabeceras) == 1L) {
-    sprintf("%s_%s.pdf", base, hojas_ruta_sanitize_filename(ctx$cabeceras[[1]]$label))
-  } else sprintf("%s_%d%s.pdf", base, length(ctx$cabeceras), if (identical(pieza, "conteo")) "Zonas" else "UMP")
-  meta <- .register_output_file(sid, paste0("material_", pieza), path, original_name = nombre)
-  list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name, pieza = pieza,
-       umps = length(ctx$cabeceras), paginas = attr(out, "paginas") %||% NA_integer_)
+  # ADR 0133 §3: el rótulo sale del catálogo y el detalle dice qué unidad o cuántas trae.
+  detalle <- if (length(ctx$cabeceras) == 1L) {
+    ctx$cabeceras[[1]]$label
+  } else sprintf("%d %s", length(ctx$cabeceras), if (identical(pieza, "conteo")) "zonas" else "UMP")
+  meta <- .register_output_file(sid, paste0("material_", pieza), path, detalle = detalle)
+  entregable_respuesta(list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name, size = meta$size, pieza = pieza,
+                            umps = length(ctx$cabeceras), paginas = attr(out, "paginas") %||% NA_integer_), meta)
 }

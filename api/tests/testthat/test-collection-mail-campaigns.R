@@ -361,7 +361,10 @@ test_that("export por campaña: slug = campaign_id y manifest con campaign sin d
   .cmail_fx_completar(sid, fx$b$campaign_id)
   ex <- collection_mail_export(sid, .cmc_rev(sid), campaign_id = fx$b$campaign_id)
   expect_identical(ex$campaign_id, fx$b$campaign_id)
-  expect_match(ex$zip$filename, "^invitacion-docentes_invitacion_mailchimp_\\d{8}-\\d{6}\\.zip$")
+  # ADR 0133 §3 (fase 5): rótulo del catálogo y la campaña de detalle, sin marca de hora.
+  expect_match(ex$zip$filename, "^[A-Za-z0-9]+_Correo_para_Mailchimp_Invitacion_docentes_\\d{2}_\\d{2}_\\d{2}\\.zip$")
+  expect_true(all(c("modulo", "rotulo", "guardado_en", "aviso_guardado", "size") %in% names(ex$zip)))
+  expect_identical(ex$zip$rotulo, "Correo para Mailchimp")
   expect_identical(ex$manifest$campaign, list(campaign_id = "invitacion-docentes", name = "Invitación docentes",
                                               actor = "Docentes"))
   expect_identical(ex$manifest$template$template_id, "invitacion-docentes")

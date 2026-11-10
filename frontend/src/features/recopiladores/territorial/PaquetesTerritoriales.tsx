@@ -11,13 +11,15 @@
 //   puntuales, una tarjeta por miembro.
 // - C3/C4: cada tarjeta contiene su vacío; la lista de titulares tiene tope y
 //   dice cuántas quedan fuera, el scroll es del panel de la sección.
+//
+// Los tres archivos se entregan por el kit de entregables (ADR 0133): el botón
+// sólo se deshabilita y el contenedor (bloque) queda bajo su pieza, con la línea
+// de avance del job y el archivo listo; sin enlaces «Descargar» de segundo clic.
 
 import { resumenDelZip } from "./resumenDelZip";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { ApiError, downloadUrl } from "../../../api/core";
-import { descargarArchivo } from "../../../lib/descargas";
 import {
   apiHojasRutaGenerate,
   apiHojasRutaManualReplacementsPdf,
@@ -30,8 +32,9 @@ import {
   type HojasRutaWorkbookResult,
 } from "../../../api/hojasRuta";
 import type { UnidadesTerritoriales } from "../../../api/materialTerritorial";
+import { ContenedorEntregable } from "../../../components/entregables/ContenedorEntregable";
+import { useGeneracion } from "../../../components/entregables/useGeneracion";
 import { GlidingRadioGroup } from "../../../components/GlidingRadioGroup";
-import { JobProgress } from "../../../components/JobProgress";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { PulsoInput } from "../../../components/PulsoInput";
 import { PulsoSwitch } from "../../../components/PulsoSwitch";
@@ -55,6 +58,8 @@ import { codigoDeUmp } from "../../hojasRuta/seleccion/revisionMarco";
 import { HojasDelPaquete } from "./HojasDeCampo";
 import "./paquetes.css";
 import { AvisoDesactualizada, HREF_REENVIO, VacioSinFuente } from "./UnidadesTerritoriales";
+import { MODULO_MATERIAL, archivoParaElKit, causaConPista } from "../entregas/modeloEntrega";
+import "../styles/entregas.css";
 
 const fmt = (n: number) => new Intl.NumberFormat("es-PE").format(Math.round(Number(n) || 0));
 type FilaPaquete = { ubigeo: string; distrito: string; titulares: number; reemplazos: number; zonas: number };
@@ -66,24 +71,22 @@ const COLUMNAS_PAQUETE: PulsoTableColumna<FilaPaquete>[] = [
 ];
 const POLITICAS = [["alternate_zone_same_district", "Otra zona"], ["paired_by_titular_zone", "Misma zona"]] as const;
 
-/** El estado de una pieza en esta sesión: el backend no guarda cuándo se generó (requiere dato). */
-function EstadoDePieza({ listo, generando }: { listo: boolean; generando: boolean }) {
-  if (generando) return <span className="rec-terr-pieza-estado" data-estado="generando">Generando</span>;
+/**
+ * El estado de una pieza en esta sesión: el backend no guarda cuándo se generó (requiere dato). Mientras se
+ * genera sigue «Sin generar»: la espera la dice el contenedor de la pieza, una sola señal.
+ */
+function EstadoDePieza({ listo }: { listo: boolean }) {
   if (listo) return <span className="rec-terr-pieza-estado" data-estado="listo">Lista</span>;
   return <span className="rec-terr-pieza-estado">Sin generar</span>;
 }
 
-type Trabajo = "" | "zip" | "excel" | "puntuales";
-type Estado = {
-  ocupado: Trabajo;
-  error: string;
-  jobZip: string | null;
-  jobPuntuales: string | null;
+/** Lo que la pantalla recuerda de cada archivo ya generado (para las cifras y la nota del contenedor). */
+type Generados = {
   zip: HojasRutaJobResult | null;
   excel: HojasRutaWorkbookResult | null;
   puntuales: HojasRutaManualReplacementResult | null;
 };
-const INICIAL: Estado = { ocupado: "", error: "", jobZip: null, jobPuntuales: null, zip: null, excel: null, puntuales: null };
+const INICIAL: Generados = { zip: null, excel: null, puntuales: null };
 
 type Props = {
   campaignId: string;
@@ -95,7 +98,10 @@ type Props = {
 };
 
 export function PaquetesTerritoriales({ campaignId, unidades, hojas, onRecargar, focoInicial = null }: Props) {
-  const [e, setE] = useState<Estado>(INICIAL);
+  const [e, setE] = useState<Generados>(INICIAL);
+  const genZip = useGeneracion({ titulo: "Paquete por distrito", modulo: MODULO_MATERIAL, formato: "zip", articulo: "el", describirError: causaConPista });
+  const genExcel = useGeneracion({ titulo: "Excel operativo", modulo: MODULO_MATERIAL, formato: "xlsx", articulo: "el", describirError: causaConPista });
+  const genPuntuales = useGeneracion({ titulo: "PDF de reemplazos puntuales", modulo: MODULO_MATERIAL, formato: "pdf", articulo: "el", describirError: causaConPista });
   const [busqueda, setBusqueda] = useState("");
   const [elegidas, setElegidas] = useState<string[]>(() => (focoInicial ? [focoInicial] : []));
   const [porTitular, setPorTitular] = useState(1);
@@ -105,7 +111,7 @@ export function PaquetesTerritoriales({ campaignId, unidades, hojas, onRecargar,
   const muestra = salidas?.sample ?? null;
   const pasos = pasosDeEntrega(config?.territorios.length ?? 0, salidas);
   const listo = listoParaEntregar(pasos);
-  const corriendo = Boolean(e.jobZip || e.jobPuntuales) || e.ocupado !== "";
+  const corriendo = [genZip, genExcel, genPuntuales].some((g) => g.estado.fase === "en_curso");
   const { filas, coincidencias } = useMemo(() => candidatasDeReemplazo(muestra?.blocks ?? [], busqueda, elegidas), [busqueda, elegidas, muestra]);
   const paquete = conteosDelPaquete(muestra?.blocks ?? [], muestra?.replacement_blocks ?? []);
   const porDistrito = useMemo(() => conteosPorDistrito(muestra?.blocks ?? [], muestra?.replacement_blocks ?? []), [muestra]);
@@ -126,22 +132,31 @@ export function PaquetesTerritoriales({ campaignId, unidades, hojas, onRecargar,
     );
   }
 
-  async function correr<T>(trabajo: Trabajo, f: () => Promise<T>, alTerminar: (r: T) => Partial<Estado>) {
-    setE((s) => ({ ...s, ocupado: trabajo, error: "" }));
-    try {
-      const r = await f();
-      setE((s) => ({ ...s, ocupado: "", ...alTerminar(r) }));
-    } catch (err: unknown) {
-      const texto = err instanceof Error ? err.message.replace(/ · E_[A-Z_]+$/, "") : "No se pudo generar el archivo";
-      const codigo = err instanceof ApiError ? err.code : "";
-      setE((s) => ({ ...s, ocupado: "", error: codigo === "E_COVERAGE_DECISION_REQUIRED" ? `${texto} Resuélvelo en Hojas de ruta › Manzanas.` : texto }));
-    }
-  }
+  // Los datos que vuelven son los del motor (`HojasRutaJobResult`…); el kit ya comprobó que traen el archivo.
+  const generarZip = () => {
+    if (!config) return;
+    void genZip.ejecutar(() => apiHojasRutaGenerate(config, muestra)).then((r) => {
+      if (r.ok) setE((s) => ({ ...s, zip: r.datos as HojasRutaJobResult }));
+    });
+  };
+  const generarExcel = () => {
+    if (!config) return;
+    void genExcel.ejecutar(() => apiHojasRutaRouteWorkbook(config, muestra)).then((r) => {
+      if (r.ok) setE((s) => ({ ...s, excel: r.datos as HojasRutaWorkbookResult }));
+    });
+  };
+  const generarPuntuales = () => {
+    if (!config || !muestra) return;
+    void genPuntuales
+      .ejecutar(() => apiHojasRutaManualReplacementsPdf({ ...config, replacement_policy: politica }, muestra, elegidas, porTitular))
+      .then((r) => {
+        if (r.ok) setE((s) => ({ ...s, puntuales: archivoParaElKit(r.datos) as HojasRutaManualReplacementResult }));
+      });
+  };
 
   return (
     <div className="rec-terr-seccion">
       {unidades.stale ? <AvisoDesactualizada enviadoAt={unidades.enviado_at} /> : null}
-      {e.error ? <p className="rec-terr-error" role="alert">{e.error}</p> : null}
       {muestra && !muestraConCuotasRepartidas(muestra.blocks) ? (
         <div className="rec-terr-aviso" role="status">
           <p>
@@ -189,21 +204,16 @@ export function PaquetesTerritoriales({ campaignId, unidades, hojas, onRecargar,
                   <small>Fichas, hojas por zona, Excel operativo y metadatos del marco, una carpeta por distrito</small>
                 </span>
                 <span className="rec-terr-pieza-formato">ZIP</span>
-                <EstadoDePieza listo={Boolean(e.zip)} generando={Boolean(e.jobZip) || e.ocupado === "zip"} />
-                {e.zip ? (
-                  <a className="pulso-button pulso-button--secondary pulso-button--sm" href={downloadUrl(e.zip.file_id)} title={resumenDelZip(e.zip, pesoLegible(e.zip.size))}>Descargar</a>
-                ) : (
-                  <PulsoButton variant="primary" size="sm" disabled={!config || !listo || corriendo || unidades.stale} onClick={() => config && void correr("zip", () => apiHojasRutaGenerate(config, muestra), (r) => ({ jobZip: r.job_id, zip: null }))}>
-                    {e.ocupado === "zip" ? "Preparando…" : "Generar"}
-                  </PulsoButton>
-                )}
+                <EstadoDePieza listo={Boolean(e.zip)} />
+                <PulsoButton variant="primary" size="sm" disabled={!config || !listo || corriendo || unidades.stale} onClick={generarZip}>
+                  Generar
+                </PulsoButton>
                 <div className="rec-terr-pieza-extra">
-                  <JobProgress<HojasRutaJobResult>
-                    label="Generando las hojas de ruta"
-                    jobId={e.jobZip}
-                    onDone={(r) => setE((s) => ({ ...s, zip: r, jobZip: null }))}
-                    onError={(msg) => setE((s) => ({ ...s, error: msg, jobZip: null }))}
-                    onCancelled={() => setE((s) => ({ ...s, jobZip: null }))}
+                  <ContenedorEntregable
+                    estado={genZip.estado}
+                    forma="bloque"
+                    onCerrar={genZip.cerrar}
+                    pie={e.zip ? <span className="rec-entrega-nota">{resumenDelZip(e.zip, pesoLegible(e.zip.size))}</span> : undefined}
                   />
                   {muestra ? (
                     <details className="rec-terr-pieza-detalle">
@@ -231,22 +241,13 @@ export function PaquetesTerritoriales({ campaignId, unidades, hojas, onRecargar,
                   </small>
                 </span>
                 <span className="rec-terr-pieza-formato">XLSX</span>
-                <EstadoDePieza listo={Boolean(e.excel)} generando={e.ocupado === "excel"} />
-                {e.excel ? (
-                  <a className="pulso-button pulso-button--secondary pulso-button--sm" href={downloadUrl(e.excel.file_id)}>Descargar</a>
-                ) : (
-                  <PulsoButton
-                    variant="secondary"
-                    size="sm"
-                    disabled={!config || !listo || corriendo || unidades.stale}
-                    onClick={() => config && void correr("excel", () => apiHojasRutaRouteWorkbook(config, muestra), (r) => {
-                      descargarArchivo(downloadUrl(r.file_id));
-                      return { excel: r };
-                    })}
-                  >
-                    {e.ocupado === "excel" ? "Creando…" : "Generar"}
-                  </PulsoButton>
-                )}
+                <EstadoDePieza listo={Boolean(e.excel)} />
+                <PulsoButton variant="secondary" size="sm" disabled={!config || !listo || corriendo || unidades.stale} onClick={generarExcel}>
+                  Generar
+                </PulsoButton>
+                <div className="rec-terr-pieza-extra">
+                  <ContenedorEntregable estado={genExcel.estado} forma="bloque" onCerrar={genExcel.cerrar} />
+                </div>
               </li>
             </ul>
           </Panel>
@@ -311,26 +312,18 @@ export function PaquetesTerritoriales({ campaignId, unidades, hojas, onRecargar,
             variant="secondary"
             size="sm"
             disabled={!config || !muestra || !elegidas.length || corriendo || unidades.stale}
-            onClick={() => config && muestra && void correr("puntuales", () => apiHojasRutaManualReplacementsPdf({ ...config, replacement_policy: politica }, muestra, elegidas, porTitular), (r) => ({ jobPuntuales: r.job_id, puntuales: null }))}
+            onClick={generarPuntuales}
           >
             {elegidas.length ? `PDF de reemplazos para ${elegidas.length} titular${elegidas.length === 1 ? "" : "es"}` : "Elige al menos una titular"}
           </PulsoButton>
-          <JobProgress<HojasRutaManualReplacementResult>
-            label="Generando los reemplazos puntuales"
-            jobId={e.jobPuntuales}
-            onDone={(r) => {
-              setE((s) => ({ ...s, puntuales: r, jobPuntuales: null }));
-              if (r.file_id) descargarArchivo(downloadUrl(r.file_id));
-            }}
-            onError={(msg) => setE((s) => ({ ...s, error: msg, jobPuntuales: null }))}
-            onCancelled={() => setE((s) => ({ ...s, jobPuntuales: null }))}
+          <ContenedorEntregable
+            estado={genPuntuales.estado}
+            forma="bloque"
+            onCerrar={genPuntuales.cerrar}
+            pie={e.puntuales
+              ? <span className="rec-entrega-nota">{fmt(e.puntuales.n_replacement_blocks)} reemplazos para {fmt(e.puntuales.n_titulars)} titulares</span>
+              : undefined}
           />
-          {e.puntuales ? (
-            <a className="rec-terr-archivo" href={downloadUrl(e.puntuales.file_id)}>
-              <strong>Descargar PDF</strong>
-              <small>{fmt(e.puntuales.n_replacement_blocks)} reemplazos para {fmt(e.puntuales.n_titulars)} titulares</small>
-            </a>
-          ) : null}
         </Panel>
       </div>
     </div>

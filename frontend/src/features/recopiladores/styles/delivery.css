@@ -134,30 +134,18 @@
   }
 }
 
-.rec-artifact-list article strong,
-.rec-artifact-list article span,
-.rec-artifact-list article code {
+/* Los datos del material; la celda de la entrega es del kit (ADR 0133) y no hereda estas reglas. */
+.rec-artifact-list article > div:not(.rec-entrega-celda) strong,
+.rec-artifact-list article > div:not(.rec-entrega-celda) span,
+.rec-artifact-list article > div:not(.rec-entrega-celda) code {
   display: block;
 }
 
-.rec-artifact-list article span,
-.rec-artifact-list article code {
+.rec-artifact-list article > div:not(.rec-entrega-celda) span,
+.rec-artifact-list article > div:not(.rec-entrega-celda) code {
   color: var(--pulso-text-soft);
   font-size: var(--pulso-type-caption-size);
   overflow-wrap: anywhere;
-}
-
-.rec-artifact-list a {
-  border-radius: var(--pulso-radius-chip);
-  color: var(--pulso-primary-strong);
-  padding: 7px;
-  transition: background-color var(--motion-dur-fast) ease;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .rec-artifact-list a:hover {
-    background: var(--pulso-primary-soft);
-  }
 }
 
 

@@ -237,14 +237,11 @@
       parsed$auditProbe %||%
       NULL
   )
-  template_name <- paste0(.monitoreo_publication_evidence_slug(project, "territorial"), "-operational-package-template.csv")
-  review_name <- paste0(.monitoreo_publication_evidence_slug(project, "territorial"), "-operational-package-review.csv")
-  json_name <- paste0(.monitoreo_publication_evidence_slug(project, "territorial"), "-operational-package-review.json")
-  md_name <- paste0(.monitoreo_publication_evidence_slug(project, "territorial"), "-operational-package-review.md")
-  template_meta <- .register_output_file(sid, "monitoreo_territorial_operational_package_template", review$template_csv, original_name = template_name)
-  review_meta <- .register_output_file(sid, "monitoreo_territorial_operational_package_review_csv", review$review_csv, original_name = review_name)
-  json_meta <- .register_output_file(sid, "monitoreo_territorial_operational_package_review_json", review$json, original_name = json_name)
-  md_meta <- .register_output_file(sid, "monitoreo_territorial_operational_package_review_md", review$markdown, original_name = md_name)
+  # ADR 0133 §3: los cuatro nombres salen del catálogo.
+  template_meta <- .register_output_file(sid, "monitoreo_territorial_operational_package_template", review$template_csv)
+  review_meta <- .register_output_file(sid, "monitoreo_territorial_operational_package_review_csv", review$review_csv)
+  json_meta <- .register_output_file(sid, "monitoreo_territorial_operational_package_review_json", review$json)
+  md_meta <- .register_output_file(sid, "monitoreo_territorial_operational_package_review_md", review$markdown)
   files <- list(
     template = list(file_id = template_meta$file_id, filename = template_meta$original_name, size = template_meta$size),
     review_csv = list(file_id = review_meta$file_id, filename = review_meta$original_name, size = review_meta$size),
@@ -3681,19 +3678,18 @@ mount_monitoreo <- function(pr) {
     })) |>
     plumber::pr_post("/api/monitoreo/territorial/enumerators/template", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)
-      out <- file.path(tempdir(), sprintf("plantilla_encuestadores_pulso_%s.xlsx", format(Sys.time(), "%Y%m%d%H%M%S")))
+      out <- file.path(.session_downloads_dir(sid), paste0(uuid::UUIDgenerate(), "__plantilla_encuestadores.xlsx"))
       result <- tryCatch(
         monitoreo_territorial_enumerator_roster_template(out),
         error = function(e) stop_api(400, "E_ENUMERATOR_TEMPLATE", conditionMessage(e))
       )
       n <- file.info(out)$size
-      bytes <- readBin(out, what = "raw", n = n)
-      meta <- save_upload(sid, "data", "plantilla_encuestadores_pulso.xlsx", bytes)
+      meta <- .register_output_file(sid, "monitoreo_plantilla_encuestadores", out)  # ADR 0133: un entregable, no un insumo
       res$status <- 201
       list(
         ok = TRUE,
         file_id = .monitoreo_scalar(meta$file_id, ""),
-        filename = .monitoreo_scalar(meta$original_name, result$filename %||% "plantilla_encuestadores_pulso.xlsx"),
+        filename = .monitoreo_scalar(meta$original_name, ""),
         size = as.integer(meta$size %||% n),
         rows = as.integer(result$rows %||% 0L)
       )
@@ -3705,19 +3701,18 @@ mount_monitoreo <- function(pr) {
       data <- if (!is.null(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
       cfg <- monitoreo_normalize_config(s$monitoreo_config %||% list(), data)
       roster <- cfg$territorial$enumerator_roster %||% list()
-      out <- file.path(tempdir(), sprintf("codigos_pulso_encuestadores_%s.xlsx", format(Sys.time(), "%Y%m%d%H%M%S")))
+      out <- file.path(.session_downloads_dir(sid), paste0(uuid::UUIDgenerate(), "__codigos_encuestadores.xlsx"))
       result <- tryCatch(
         monitoreo_territorial_enumerator_codes_workbook(out, roster),
         error = function(e) stop_api(400, "E_ENUMERATOR_CODES", conditionMessage(e))
       )
       n <- file.info(out)$size
-      bytes <- readBin(out, what = "raw", n = n)
-      meta <- save_upload(sid, "data", "codigos_pulso_encuestadores.xlsx", bytes)
+      meta <- .register_output_file(sid, "monitoreo_codigos_encuestadores", out)  # ADR 0133: un entregable, no un insumo
       res$status <- 201
       list(
         ok = TRUE,
         file_id = .monitoreo_scalar(meta$file_id, ""),
-        filename = .monitoreo_scalar(meta$original_name, result$filename %||% "codigos_pulso_encuestadores.xlsx"),
+        filename = .monitoreo_scalar(meta$original_name, ""),
         size = as.integer(meta$size %||% n),
         rows = as.integer(result$rows %||% 0L)
       )

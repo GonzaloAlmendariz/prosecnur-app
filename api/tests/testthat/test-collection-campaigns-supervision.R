@@ -114,6 +114,8 @@ test_that("el Excel: una fila por caso del lote, con lo elegido vacío y el Vere
   collection_campaign_create(sid, "supervision", "Sup", lote = "ronda-2")
   collection_supervision_columnas_put(sid, "supervision.ronda-2", barrido = list("Nombre", "Status"))
   r <- collection_supervision_excel(sid, "supervision.ronda-2")
+  expect_true(all(c("modulo", "rotulo", "guardado_en", "aviso_guardado", "size") %in% names(r)))  # ADR 0133, fase 5
+  expect_match(r$filename, "_Base_de_supervision_Ronda_2_[0-9]{2}_[0-9]{2}_[0-9]{2}[.]xlsx$")
   expect_identical(r$casos, 2L)
   path <- session_get(sid)$files[[r$file_id]]$path
   t <- openxlsx::read.xlsx(path, sheet = "Supervisión", check.names = FALSE, sep.names = " ")

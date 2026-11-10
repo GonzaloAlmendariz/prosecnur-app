@@ -190,6 +190,9 @@ collection_supervision_excel <- function(sid, campaign_id = NULL) {
                                                           format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))), colNames = FALSE)
   path <- tempfile(fileext = ".xlsx")
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
-  meta <- .register_output_file(sid, "supervision_base", path, original_name = .export_filename(sid, paste0("supervision_", lote_id), "xlsx"))
-  list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name, casos = n, columnas = as.list(columnas))
+  lote_txt <- gsub("[-_]+", " ", as.character(lote_id))
+  meta <- .register_output_file(sid, "supervision_base", path,
+                                detalle = paste0(toupper(substr(lote_txt, 1L, 1L)), substr(lote_txt, 2L, nchar(lote_txt))))
+  entregable_respuesta(list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name, size = meta$size,
+                            casos = n, columnas = as.list(columnas)), meta)
 }

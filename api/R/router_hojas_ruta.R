@@ -859,13 +859,8 @@ mount_hojas_ruta <- function(pr) {
       .hojas_ruta_exigir_decision_cobertura(sid)
       out_path <- tempfile(fileext = ".pdf")
       summary <- hojas_ruta_generar_pdf_aleatorio_integrado(cfg, out_path)
-      out_name <- sprintf(
-        "HojaRuta_Prueba_%s_Zona_%s_Mz_%s.pdf",
-        hojas_ruta_sanitize_filename(summary$distrito),
-        hojas_ruta_sanitize_filename(summary$zona),
-        hojas_ruta_sanitize_filename(summary$manzana %||% summary$id_manzana)
-      )
-      meta <- .register_output_file(sid, "hojas_ruta_random_pdf", out_path, original_name = out_name)
+      meta <- .register_output_file(sid, "hojas_ruta_random_pdf", out_path,
+        detalle = .hojas_ruta_vp_detalle_manzana(summary$distrito, summary$zona, summary$manzana %||% summary$id_manzana))
       list(
         ok = TRUE,
         file_id = meta$file_id,
@@ -1009,7 +1004,7 @@ mount_hojas_ruta <- function(pr) {
         result_filename = .export_filename(sid, "hojas_ruta_reemplazos_puntuales", "pdf"),
         on_complete = function(j) {
           meta <- .register_output_file(j$sid, "hojas_ruta_reemplazos_puntuales", j$result_path)
-          list(
+          entregable_respuesta(list(
             ok = TRUE,
             file_id = meta$file_id,
             filename = meta$original_name,
@@ -1020,7 +1015,7 @@ mount_hojas_ruta <- function(pr) {
             replacement_blocks = j$result_data$replacement_blocks %||% list(),
             alerts = j$result_data$alerts %||% list(),
             frame_version = j$result_data$frame_version %||% NA_character_
-          )
+          ), meta)
         }
       )
       .hojas_ruta_bitacora_intentar(sid, "reemplazos_puntuales", sprintf("Reemplazos puntuales para %d titular(es), %d por titular.", length(titular_ids), as.integer(replacements_per_titular)), list(titulares = as.list(titular_ids)))
@@ -1046,7 +1041,7 @@ mount_hojas_ruta <- function(pr) {
       )
       out_name <- .export_filename(sid, "hojas_ruta_operativo", "xlsx")
       meta <- .register_output_file(sid, "hojas_ruta_operativo", out_path, original_name = out_name)
-      list(
+      entregable_respuesta(list(
         ok = TRUE,
         file_id = meta$file_id,
         filename = meta$original_name,
@@ -1057,7 +1052,7 @@ mount_hojas_ruta <- function(pr) {
         total_replacement_interviews = as.integer(summary$total_replacement_interviews %||% 0L),
         frame_version = summary$frame_version %||% NA_character_,
         alerts = summary$alerts %||% list()
-      )
+      ), meta)
     })) |>
     plumber::pr_post("/api/hojas-ruta/generate", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
@@ -1100,7 +1095,7 @@ mount_hojas_ruta <- function(pr) {
         on_complete = function(j) {
           session_set(j$sid, "hojas_ruta_ok", TRUE)
           meta <- .register_output_file(j$sid, "hojas_ruta_zip", j$result_path)
-          list(
+          entregable_respuesta(list(
             ok = TRUE,
             file_id = meta$file_id,
             filename = meta$original_name,
@@ -1115,7 +1110,7 @@ mount_hojas_ruta <- function(pr) {
             frame_version = j$result_data$frame_version %||% NA_character_,
             alerts = j$result_data$alerts %||% list(),
             mapas_faltantes = 0L
-          )
+          ), meta)
         }
       )
       list(ok = TRUE, job_id = job_id, kind = "hojas_ruta.generate")
@@ -1162,7 +1157,8 @@ mount_hojas_ruta <- function(pr) {
       insumos_marco <- .reporte_mt_insumos_sesion(sid, active, cfg, outputs$sample %||% list())
 
       ext <- if (formato == "pdf") "pdf" else "html"
-      filename <- sprintf("reporte_muestra_territorial.%s", ext)
+      # ADR 0133 §3: el nombre del job es el del entregable (la descarga lo hereda del path).
+      filename <- .export_filename(sid, "reporte_muestra_territorial", ext)
 
       sid_capt <- sid
       on_complete <- function(j) {

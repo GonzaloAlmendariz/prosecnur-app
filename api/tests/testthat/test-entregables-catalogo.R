@@ -14,9 +14,11 @@
 .MODULOS_ADR_0133 <- c("Cálculo de muestra", "Formularios", "Hojas de ruta", "Material de campo",
                        "Monitoreo", "Procesamiento", "Dashboard", "Proyecto")
 
-# Kinds registrados según el censo (docs/qa/censo-descargas-2026-11-07/backend.json, campo `registro`).
+# Kinds registrados según el censo (docs/qa/censo-descargas-2026-11-07/backend.json, campo `registro`),
+# con los de la fase 5: asignación por UMP y por cuotas, ficha de reemplazo, manifiesto de SurveyMonkey
+# y la plantilla y los códigos de encuestadores, que antes se registraban como insumos.
 .KINDS_CENSO <- c(
-  "asignacion_encuestadores", "aulas_asignacion_plantilla", "aulas_disponibilidad_plantilla", "aulas_libro",
+  "asignacion_encuestadores_cuotas", "asignacion_encuestadores_ump", "aulas_asignacion_plantilla", "aulas_disponibilidad_plantilla", "aulas_libro",
   "aulas_libro_plantilla", "base_panel", "base_panel_auditoria", "base_panel_cruces", "base_panel_frecuencias",
   "base_panel_libro_codigos", "base_panel_sav", "base_panel_sav_bundle", "base_panel_wide", "bases_csv",
   "bases_csv_zip", "bases_data", "bases_data_codificada", "bases_data_zip", "bases_instrumento",
@@ -24,14 +26,14 @@
   "bases_script_r_zip", "bases_unificadas", "bases_xlsx", "bases_xlsx_relacional", "bases_xlsx_zip",
   "calc_muestra_aulas_seleccion", "calc_muestra_general_sorteo", "calc_muestra_solicitud_dti", "codebook",
   "codebook_pdf", "codebook_pdf_zip", "codebook_zip", "codificacion_matriz_client", "codificacion_matriz_internal",
-  "codificacion_matriz_work", "collection_mail_manifest", "collection_mail_sm_zip", "collection_mail_template_zip",
-  "collection_mail_zip", "collection_material_bundle", "collection_material_pdf", "collection_material_png",
+  "codificacion_matriz_work", "collection_mail_manifest", "collection_mail_sm_manifest", "collection_mail_sm_zip", "collection_mail_template_zip",
+  "collection_mail_zip", "collection_material_bundle", "collection_material_pdf", "collection_material_prueba", "collection_material_png",
   "comparativo_cruces", "comparativo_cruces_manifest", "comparativo_simple", "comparativo_simple_manifest",
   "cruces", "cruces_zip", "data_adaptada", "data_normalizada", "enumeradores", "enumeradores_zip",
   "familias_template", "ficha_tecnica", "ficha_tecnica_panel", "formulario_pdf", "formulario_word",
   "frecuencias", "frecuencias_zip", "graficos_miniatura", "graficos_ppt_consolidado",
   "graficos_ppt_consolidado_manifest", "graficos_ppt_zip", "graficos_preview", "graficos_share",
-  "hojas_ruta_ficha_ump", "hojas_ruta_hoja_dia", "hojas_ruta_operativo", "hojas_ruta_population_matrix",
+  "hojas_ruta_ficha_ump", "hojas_ruta_ficha_ump_reemplazo", "hojas_ruta_hoja_dia", "hojas_ruta_operativo", "hojas_ruta_population_matrix",
   "hojas_ruta_random_pdf", "hojas_ruta_reemplazos_puntuales", "hojas_ruta_zip", "instrumento_adaptado",
   "mail_revision", "mail_textos", "material_consolidados", "material_conteo", "material_ruteo",
   "monitoreo_ocurrencias_xlsform", "monitoreo_processing_handoff_data", "monitoreo_processing_handoff_xlsform",
@@ -41,7 +43,7 @@
   "monitoreo_publication_operational_package_status", "monitoreo_reporte",
   "monitoreo_territorial_operational_package_review_csv", "monitoreo_territorial_operational_package_review_json",
   "monitoreo_territorial_operational_package_review_md", "monitoreo_territorial_operational_package_template",
-  "monitoreo_ump_export", "plan_limpieza_export", "plan_trabajo_xlsx", "plantilla_barrido",
+  "monitoreo_codigos_encuestadores", "monitoreo_plantilla_encuestadores", "monitoreo_ump_export", "plan_limpieza_export", "plan_trabajo_xlsx", "plantilla_barrido",
   "plantilla_codif_template", "reporte_ppt", "reporte_word", "spss_bundle", "supervision_base",
   "tablas_multibase", "validacion_limpieza_base_limpia", "validacion_limpieza_excel", "validacion_limpieza_html",
   "validacion_report_html", "xlsform_final", "xlsform_final_zip"

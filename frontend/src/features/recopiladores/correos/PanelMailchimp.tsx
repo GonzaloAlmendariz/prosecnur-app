@@ -1,12 +1,11 @@
 import { useState, type ReactNode } from "react";
 
-import { downloadUrl } from "../../../api/core";
-import type { MailExportPayload, MailExportScope, MailReview } from "../../../api/materialMail";
+import type { MailExportScope, MailReview } from "../../../api/materialMail";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { copiarTexto } from "../../../lib/portapapeles";
-import { Check, Copy, Download, FolderOpen, Loader2, Upload } from "../../../vendor/lucide-react";
+import { Check, Copy, Upload } from "../../../vendor/lucide-react";
 import { VerLosPuntos } from "./VerLosPuntos";
-import { pesoLegible, revisionBloquea } from "./modeloCorreo";
+import { revisionBloquea } from "./modeloCorreo";
 import { SALIDAS_DEL_ENVIO } from "./modeloSalidas";
 import "./correosExportar.css";
 
@@ -27,14 +26,11 @@ type Props = {
   /** Rótulo del envío que se exporta, si la campaña tiene más de uno. */
   envio?: string | null;
   revision: MailReview | null;
-  exportacion: MailExportPayload | null;
-  /** Qué salida se está armando, o `null`. */
-  exportando: MailExportScope | null;
+  /** Hay algo en curso (guardar, exportar…): las salidas se deshabilitan; la espera la dice el contenedor. */
   ocupado: boolean;
   /** HTML de la vista previa actual, para copiarlo a Outlook. */
   htmlActual: string | null;
   onExportar: (scope: MailExportScope) => void;
-  onGuardarJunto: () => void;
   /** Cierra Exportar y abre la Revisión (#13). */
   onVerRevision?: () => void;
 };
@@ -65,23 +61,20 @@ async function copiarHtml(html: string): Promise<void> {
  * hay botón de enviar. Hay dos salidas (E1g): la plantilla sola, un ZIP que se
  * importa en Mailchimp sin datos personales, y la plantilla con la audiencia
  * en CSV. «Copiar para Outlook» queda como salida secundaria. Las etiquetas de
- * cada campo se ven y se editan en Personas.
+ * cada campo se ven y se editan en Personas. El ZIP se espera y se entrega en
+ * el contenedor anclado a «Exportar» (ADR 0133).
  */
 export function PanelMailchimp({
   envio = null,
   revision,
-  exportacion,
-  exportando,
   ocupado,
   htmlActual,
   onExportar,
-  onGuardarJunto,
   onVerRevision,
 }: Props) {
   const [copia, setCopia] = useState<"" | "ok" | "error">("");
   const bloqueaPlantilla = revisionBloquea(revision, "plantilla");
   const bloqueaCompleto = revisionBloquea(revision, "completo");
-  const zip = exportacion?.zip ?? null;
   const [plantilla, completo, outlook] = SALIDAS_DEL_ENVIO.mailchimp;
 
   const copiar = async () => {
@@ -118,11 +111,9 @@ export function PanelMailchimp({
     <div className="rec-exp-cuerpo" aria-label={`Para Mailchimp${envio ? ` · ${envio}` : ""}`}>
       <span className="xfk-over">Para Mailchimp{envio ? ` · ${envio}` : ""}</span>
       <ul className="rec-exp-salidas" data-qa-geometry-group="material-campo/correo/salidas-mailchimp" data-qa-geometry-contract="intrinsic">
-        {salida(plantilla, ocupado || bloqueaPlantilla, () => onExportar("plantilla"),
-          exportando === "plantilla" ? <Loader2 size={14} className="pulso-spin" aria-hidden /> : <Upload size={14} aria-hidden />,
+        {salida(plantilla, ocupado || bloqueaPlantilla, () => onExportar("plantilla"), <Upload size={14} aria-hidden />,
           "Sin datos personales")}
-        {salida(completo, ocupado || bloqueaCompleto, () => onExportar("completo"),
-          exportando === "completo" ? <Loader2 size={14} className="pulso-spin" aria-hidden /> : <Upload size={14} aria-hidden />,
+        {salida(completo, ocupado || bloqueaCompleto, () => onExportar("completo"), <Upload size={14} aria-hidden />,
           "Incluye la audiencia: contiene datos personales")}
         {salida(outlook, !htmlActual, () => { void copiar(); },
           copia === "ok" ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />)}
@@ -138,7 +129,7 @@ export function PanelMailchimp({
         <div className="rec-exp-respaldo" role="status">
           <p className="rec-mail-problema-linea">No se pudo copiar al portapapeles.</p>
           <PulsoButton variant="secondary" size="sm" disabled={ocupado || bloqueaPlantilla} onClick={() => onExportar("plantilla")}>
-            <Download size={14} aria-hidden /> Descargar la plantilla
+            <Upload size={14} aria-hidden /> Generar la plantilla
           </PulsoButton>
         </div>
       ) : null}
@@ -152,25 +143,6 @@ export function PanelMailchimp({
           ))}
         </ol>
       </div>
-      {zip ? (
-        <div className="rec-mail-mc-listo" role="status">
-          <span className="rec-mail-mc-listo-nombre">
-            <b className="xfk-mono">{zip.filename}</b>
-            <span>
-              {pesoLegible(zip.size_bytes)}
-              {exportacion?.scope === "plantilla" ? " · sin datos personales" : " · contiene datos personales"}
-            </span>
-          </span>
-          <span className="rec-mail-botones">
-            <a className="pulso-button pulso-button--secondary pulso-button--sm" href={downloadUrl(zip.file_id)} download={zip.filename}>
-              <Download size={14} aria-hidden /> Descargar
-            </a>
-            <PulsoButton variant="ghost" size="sm" disabled={ocupado} onClick={onGuardarJunto}>
-              <FolderOpen size={14} aria-hidden /> Junto al proyecto
-            </PulsoButton>
-          </span>
-        </div>
-      ) : null}
     </div>
   );
 }

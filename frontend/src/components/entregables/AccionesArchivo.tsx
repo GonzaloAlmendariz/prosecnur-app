@@ -13,9 +13,11 @@ import {
 import { carpetaDeRuta } from "./generacionModelo";
 import type { ArchivoEntregable } from "./tipos";
 
-export function AccionesArchivo({ archivo, rutaDescargada = null, compacta = false }: {
+export function AccionesArchivo({ archivo, rutaDescargada = null, compacta = false, sinDescargar = false }: {
   archivo: ArchivoEntregable;
   rutaDescargada?: string | null;
+  /** El archivo se generó para verse y no se descargó: se ofrece «Descargar», no «Descargar otra vez». */
+  sinDescargar?: boolean;
   /** En la fila de una tabla: solo Abrir y Mostrar en la carpeta (o Descargar). */
   compacta?: boolean;
 }) {
@@ -29,7 +31,7 @@ export function AccionesArchivo({ archivo, rutaDescargada = null, compacta = fal
     ruta ? { id: "copiar", rotulo: "Copiar ruta", hacer: () => copiarRuta(ruta) } : null,
   ].filter((o): o is { id: string; rotulo: string; hacer: () => Promise<void> } => o !== null);
   const descargar = () => descargarDelServidor(archivo.fileId, archivo.nombre);
-  const rotuloDescargar = archivo.guardadoEn ? "Descargar" : "Descargar otra vez";
+  const rotuloDescargar = archivo.guardadoEn || sinDescargar ? "Descargar" : "Descargar otra vez";
 
   return (
     <div className="pulso-entregable-acciones" role="group" aria-label={`Acciones de ${archivo.nombre}`}>

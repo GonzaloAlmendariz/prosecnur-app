@@ -12,6 +12,7 @@ test_that("el libro trae las cinco hojas, la identidad del estudio y la cola id�
   sid <- session_create(); on.exit(session_delete(sid), add = TRUE)
   r <- collection_barrido_plantilla(sid, estudio = "RMS prueba", llave = "Código proGres", estratos = list("Periodo de Llegada"),
                                     telefonos = 3, responsables = list("Responsable", "Agente Uno", "Agente Dos"), filas = 300)
+  expect_true(all(c("modulo", "rotulo", "guardado_en", "aviso_guardado", "size") %in% names(r)))  # ADR 0133, fase 5
   l <- .mbp_libro(sid, r)
   expect_identical(names(l$wb), c("Léeme", "Barrido", "Asignaciones", "Indicadores", "Incidencias", "Listas", "Parámetros", "Control"))
   cab <- names(openxlsx::read.xlsx(l$path, sheet = "Barrido", check.names = FALSE, sep.names = " "))

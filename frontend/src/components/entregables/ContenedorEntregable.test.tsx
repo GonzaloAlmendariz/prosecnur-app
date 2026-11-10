@@ -319,3 +319,40 @@ describe("hoja de estilos", () => {
     expect(sinComentarios.match(/animation\s*:/g) ?? []).toHaveLength(1);
   });
 });
+
+describe("ver sin entregar y alineación de la anclada", () => {
+  const SIN_DESCARGAR: EstadoGeneracion = {
+    fase: "lista", titulo: "Imagen de una ficha", rutaDescargada: null, sinDescargar: true,
+    archivos: [{ fileId: "png1", nombre: "Ficha.png", formato: "png", tamano: 2048 }],
+  };
+
+  it("bloque: dice «Listo» (no «Descargado») y ofrece «Descargar», no «Descargar otra vez»", async () => {
+    await montar(SIN_DESCARGAR, "bloque");
+    expect(host.querySelector(".pulso-entregable-ok")?.textContent).toBe("Listo");
+    expect(host.textContent).not.toContain("Descargado");
+    expect(boton("Descargar")).not.toBeNull();
+    expect(boton("Descargar otra vez")).toBeNull();
+    await act(async () => { boton("Descargar")?.click(); });
+    expect(espia.descargar).toHaveBeenCalledWith("/api/files/png1/download", "Ficha.png");
+  });
+
+  it("fila: también dice «Listo» y el ícono se llama «Descargar»", async () => {
+    await montar(SIN_DESCARGAR, "fila");
+    expect(host.querySelector(".pulso-entregable-fila-texto")?.textContent).toBe("Listo");
+    expect(boton("Descargar")).not.toBeNull();
+  });
+
+  it("anclada: `alinear=\"inicio\"` se declara y su regla la abre hacia la derecha; por defecto no se escribe", async () => {
+    await act(async () => { root.render(<ContenedorEntregable estado={ESTADOS.lista} forma="anclada" alinear="inicio" onCerrar={() => undefined} />); });
+    expect(host.querySelector("[data-entregable-forma='anclada']")?.getAttribute("data-entregable-alinear")).toBe("inicio");
+    await act(async () => { root.render(<ContenedorEntregable estado={ESTADOS.lista} forma="anclada" onCerrar={() => undefined} />); });
+    expect(host.querySelector("[data-entregable-forma='anclada']")?.hasAttribute("data-entregable-alinear")).toBe(false);
+    // En bloque la alineación no aplica.
+    await act(async () => { root.render(<ContenedorEntregable estado={ESTADOS.lista} forma="bloque" alinear="inicio" onCerrar={() => undefined} />); });
+    expect(host.querySelector("[data-entregable-alinear]")).toBeNull();
+    const css = readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "entregables.css"), "utf8");
+    const regla = /\.pulso-entregable\[data-entregable-forma="anclada"\]\[data-entregable-alinear="inicio"\]\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
+    expect(regla).toMatch(/left:\s*0/);
+    expect(regla).toMatch(/right:\s*auto/);
+  });
+});

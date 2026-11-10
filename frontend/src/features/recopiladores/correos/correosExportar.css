@@ -26,11 +26,17 @@
   white-space: nowrap;
 }
 
-.rec-barra-exportar:hover,
+.rec-barra-exportar:hover:not(:disabled),
 .rec-barra-exportar.is-on {
   background: var(--pulso-module-fieldkit-soft);
   border-color: transparent;
   color: var(--pulso-module-fieldkit);
+}
+
+/* Mientras se genera un archivo, el disparador sólo se apaga: la espera la dice el contenedor (ADR 0133). */
+.rec-barra-exportar:disabled {
+  cursor: default;
+  opacity: 0.6;
 }
 
 .rec-barra-exportar:focus-visible {
@@ -264,8 +270,3 @@
   gap: 8px;
 }
 
-.rec-exp-revision-error {
-  color: var(--pulso-danger-fg);
-  font-size: var(--pulso-type-body-size);
-  margin: 0;
-}

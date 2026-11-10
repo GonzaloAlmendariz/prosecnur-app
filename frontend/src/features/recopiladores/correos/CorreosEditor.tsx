@@ -72,7 +72,10 @@ import {
 import { envioElegido, hayCambios, hayQueGuardar, useCorreosStore } from "./store";
 import { useCampanaDelFoco } from "./useCampanaDelFoco";
 import type { AccionesDeCampanas } from "./useCampanas";
-import { useCorreos } from "./useCorreos";
+import { causaDeExportacion, esBloqueoDeRevision, useCorreos } from "./useCorreos";
+import { useGeneracion } from "../../../components/entregables/useGeneracion";
+import { MODULO_MATERIAL, archivoParaElKit } from "../entregas/modeloEntrega";
+import { SALIDAS_DEL_ENVIO, datosPersonalesDelPaquete } from "./modeloSalidas";
 import "./correos.css";
 import "./correosCampanas.css";
 import { useColoresDeLaMarca } from "./useColoresDeLaMarca";
@@ -121,6 +124,9 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
   const onEscrito = useCallback(() => { void onStateRefresh?.(); }, [onStateRefresh]);
   const cerrarDeshacible = useCallback(() => setDeshacible(null), []);
   const acciones = useCorreos({ onEscrito });
+  // Lo que sale de «Exportar ▾» (paquete, vista para revisión, Word) se espera y se entrega en un solo
+  // contenedor anclado a ese botón (ADR 0133, forma anclada): una generación a la vez.
+  const exportacion = useGeneracion({ titulo: "Paquete del envío", modulo: MODULO_MATERIAL, formato: "zip", articulo: "el", describirError: causaDeExportacion });
   const st = useCorreosStore();
   const { ir } = useCampanaDelFoco();
   const [deshacible, setDeshacible] = useState<Deshacible | null>(null);
@@ -573,12 +579,25 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
   const saludo = template.blocks.find((b): b is MailGreetingBlock => b.type === "greeting") ?? null;
   const oferta = ofertaDelTrato(saludo, st.destinatarios?.loaded ? st.destinatarios.columns : []);
   const exportarYVer = (scope: "plantilla" | "completo") => {
-    void acciones.exportar(scope).then((resultado) => {
-      if (resultado !== "revision") return;
-      st.setExportarAbierto(false);
-      irAPestana("revision");
-    });
+    st.setExportarAbierto(false);
+    const salidas = SALIDAS_DEL_ENVIO[dialecto];
+    const titulo = dialecto === "mailchimp" ? (scope === "plantilla" ? salidas[0] : salidas[1]).accion : salidas[1].accion;
+    void exportacion.ejecutar(async () => {
+      try {
+        const paquete = await acciones.exportar(scope);
+        return { ...paquete, zip: archivoParaElKit(paquete.zip) };
+      } catch (cause) {
+        // La revisión bloquea: la causa queda en el contenedor y la pestaña Revisión muestra los puntos.
+        if (esBloqueoDeRevision(cause)) irAPestana("revision");
+        throw cause;
+      }
+    }, { titulo, articulo: dialecto === "mailchimp" ? "la" : "el" });
   };
+  // El paquete listo dice si trae datos personales; la vista para revisión y el Word, no.
+  const archivoListo = exportacion.estado.fase === "lista" ? exportacion.estado.archivos[0] ?? null : null;
+  const notaDelPaquete = archivoListo && st.exportacion?.zip && archivoListo.fileId === st.exportacion.zip.file_id
+    ? <span className="rec-entrega-nota">{datosPersonalesDelPaquete(st.exportacion.platform, st.exportacion.scope)}</span>
+    : undefined;
   const verRevisionDesdeExportar = () => {
     st.setExportarAbierto(false);
     irAPestana("revision");
@@ -629,34 +648,35 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
             </CajonDeBloques>
           ) : null}
           exportar={(
-            <MenuExportar plataforma={dialecto} abierto={st.exportarAbierto} onAbierto={st.setExportarAbierto} listo={Boolean(st.exportacion?.zip)}>
+            <MenuExportar
+              plataforma={dialecto}
+              abierto={st.exportarAbierto}
+              onAbierto={st.setExportarAbierto}
+              listo={Boolean(st.exportacion?.zip)}
+              generacion={exportacion}
+              pie={notaDelPaquete}
+            >
               {dialecto === "surveymonkey" ? (
                 <PanelSurveyMonkey
                   envio={envio}
                   revision={st.revision}
-                  exportacion={st.exportacion}
-                  exportando={st.ocupado === "exportando-plantilla" || st.ocupado === "exportando"}
-                  ocupado={ocupado}
+                  ocupado={ocupado || exportacion.estado.fase === "en_curso"}
                   conLista={alcanceDelPaquete === "completo"}
                   onHtml={acciones.htmlParaLaPlataforma}
                   onExportar={() => exportarYVer(alcanceDelPaquete)}
-                  onGuardarJunto={() => { void acciones.guardarJuntoAlProyecto(); }}
                   onVerRevision={verRevisionDesdeExportar}
                 />
               ) : (
                 <PanelMailchimp
                   envio={st.envios.length > 1 ? envio.label : null}
                   revision={st.revision}
-                  exportacion={st.exportacion}
-                  exportando={st.ocupado === "exportando" ? "completo" : st.ocupado === "exportando-plantilla" ? "plantilla" : null}
-                  ocupado={ocupado}
+                  ocupado={ocupado || exportacion.estado.fase === "en_curso"}
                   htmlActual={st.vistaPrevia?.html ?? null}
                   onExportar={exportarYVer}
-                  onGuardarJunto={() => { void acciones.guardarJuntoAlProyecto(); }}
                   onVerRevision={verRevisionDesdeExportar}
                 />
               )}
-              <VistaParaRevision campana={st.campana} />
+              <VistaParaRevision campana={st.campana} generacion={exportacion} onPedir={() => st.setExportarAbierto(false)} />
             </MenuExportar>
           )}
           plataforma={dialecto}
@@ -790,8 +810,7 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
                 template={template}
                 plataforma={dialecto}
                 porGuardar={porGuardar}
-                ocupado={ocupado}
-                exportando={st.ocupado === "exportando-plantilla"}
+                ocupado={ocupado || exportacion.estado.fase === "en_curso"}
                 exportados={exportados}
                 onElegir={st.setEnvio}
                 onAgregar={agregarEnvio}

@@ -20,6 +20,8 @@ T1 <- "150101001001"; T2 <- "150101001002"; R1 <- "150101001009"
 
 .mtx_generar <- function(sid) {
   r <- collection_territorial_asignacion_excel(sid)
+  expect_true(all(c("modulo", "rotulo", "guardado_en", "aviso_guardado", "size") %in% names(r)))  # ADR 0133, fase 5
+  expect_identical(r$rotulo, "Asignación de encuestadores por UMP")
   list(r = r, path = session_get(sid)$files[[r$file_id]]$path)
 }
 

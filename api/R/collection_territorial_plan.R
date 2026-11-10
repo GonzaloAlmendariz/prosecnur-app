@@ -44,7 +44,7 @@ collection_territorial_hoja_dia <- function(sid, campaign_id = NULL, jornada = N
   }
   out <- tempfile(fileext = ".pdf")
   hojas_ruta_hoja_dia_pdf(modelo, out)
-  meta <- .hojas_ruta_vp_registrar(sid, "hojas_ruta_hoja_dia", out, original_name = .hojas_ruta_hd_nombre(modelo))
+  meta <- .hojas_ruta_vp_registrar(sid, "hojas_ruta_hoja_dia", out, detalle = .hojas_ruta_hd_detalle(modelo))
   list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name, jornada = modelo$jornada,
        rutas = as.list(vapply(modelo$rutas, `[[`, character(1), "id_manzana")), fuente = "envio", stale = ctx$stale)
 }

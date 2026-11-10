@@ -256,3 +256,40 @@ describe("bandeja y cierre", () => {
     expect(useBandejaEntregables.getState().entradas[0].estado).toMatchObject({ fase: "lista", archivos: [{ fileId: "f6" }] });
   });
 });
+
+describe("ver sin entregar (descargar: false)", () => {
+  it("sync: el contenedor queda listo sin descargar ni esperar aviso, y lo dice", async () => {
+    escritorio();
+    let r: Awaited<ReturnType<Gen["ejecutar"]>> | null = null;
+    await act(async () => {
+      r = await gen().ejecutar(async () => ({ file_id: "png1", filename: "Ficha.png", size: 10 }), { titulo: "Imagen de una ficha", descargar: false });
+    });
+    expect(r).toMatchObject({ ok: true, datos: { file_id: "png1" } });
+    expect(gen().estado).toMatchObject({ fase: "lista", titulo: "Imagen de una ficha", sinDescargar: true, archivos: [{ fileId: "png1" }] });
+    expect(espia.descargar).not.toHaveBeenCalled();
+    expect(avisoDescarga).toBeNull();
+  });
+
+  it("job: tampoco descarga al terminar; sin la opción, la descarga sigue igual que antes", async () => {
+    let promesa: Promise<unknown> = Promise.resolve();
+    await act(async () => { promesa = gen().seguirJob("job-png", { descargar: false }); });
+    await act(async () => {
+      espia.polls.get("job-png")?.({ snapshot: snap({ status: "done", result_data: { file_id: "p2", filename: "Ficha.png" } }) });
+      await promesa;
+    });
+    expect(gen().estado).toMatchObject({ fase: "lista", sinDescargar: true });
+    expect(espia.descargar).not.toHaveBeenCalled();
+
+    await act(async () => { await gen().ejecutar(async () => ({ file_id: "p3", filename: "Lote.pdf" })); });
+    expect(gen().estado).not.toHaveProperty("sinDescargar");
+    expect(espia.descargar).toHaveBeenCalledTimes(1);
+  });
+
+  it("con la copia junto al proyecto no cambia nada: ya está guardado", async () => {
+    await act(async () => {
+      await gen().ejecutar(async () => ({ file_id: "g1", filename: "F.xlsx", guardado_en: GUARDADO }), { descargar: false });
+    });
+    expect(gen().estado).toMatchObject({ fase: "lista", archivos: [{ guardadoEn: GUARDADO }] });
+    expect(espia.descargar).not.toHaveBeenCalled();
+  });
+});

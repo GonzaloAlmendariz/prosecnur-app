@@ -6,7 +6,6 @@ import {
   type CollectionArtifactReceipt,
   type CollectionStatePayload,
 } from "../../api/recopiladores";
-import { downloadUrl } from "../../api/core";
 import { Panel } from "../../components/Panel";
 import { PulsoButton } from "../../components/PulsoButton";
 import { serializarDireccion } from "../../lib/navegacion/direccion";
@@ -22,6 +21,8 @@ import { CifrasEnTarjeta } from "../../components/CifrasEnTarjeta";
 import { EstadoVacio } from "../../components/EstadoVacio";
 import { RecorridoDelTraspaso, ReciboPendiente } from "./TraspasoTablero";
 import { enumerar } from "../../lib/enumerar";
+import { GenerarEnFila } from "./entregas/GenerarEnFila";
+import { formatoDelNombre } from "../../components/entregables/archivoDesdeRespuesta";
 
 type Props = {
   payload: CollectionStatePayload | null;
@@ -253,7 +254,16 @@ export function DeliverySection({ payload, latestArtifact, onState, onIr, onIrAA
                   <code>{shortFingerprint(artifact.sha256)}</code>
                 </div>
                 {disponible ? (
-                  <a href={downloadUrl(artifact.file_id)} aria-label={`Descargar ${artifact.filename}`}><Download size={15} /></a>
+                  // El archivo ya existe en la sesión: se entrega por el kit (ADR 0133), con su estado en la fila.
+                  <GenerarEnFila
+                    icono
+                    titulo={artifact.filename}
+                    formato={formatoDelNombre(artifact.filename)}
+                    ariaLabel={`Descargar ${artifact.filename}`}
+                    generar={async () => ({ file_id: artifact.file_id, filename: artifact.filename, size: artifact.size_bytes })}
+                  >
+                    <Download size={15} aria-hidden />
+                  </GenerarEnFila>
                 ) : onIr ? (
                   <PulsoButton
                     variant="ghost"

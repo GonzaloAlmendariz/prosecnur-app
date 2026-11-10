@@ -18,6 +18,7 @@
 // rol que esta versión no conoce se descarta, no se inventa.
 
 import { ApiError, apiFetch, handle, headers } from "./core";
+import { camposDeEntregable, type CamposDeEntregable } from "./jobs";
 
 export const FASES_TERRITORIALES = ["pilot", "field"] as const;
 export type FaseTerritorial = (typeof FASES_TERRITORIALES)[number];
@@ -364,7 +365,7 @@ export async function apiMaterialTerritorialGuardarAsignacion(
 //        devuelve la propuesta UMP → código y las filas que no se pudieron leer. Se
 //        guarda con apiMaterialTerritorialGuardarAsignacion.
 
-export type ExcelAsignacion = { file_id: string; filename: string; umps: number };
+export type ExcelAsignacion = { file_id: string; filename: string; umps: number } & CamposDeEntregable;
 
 export type ProblemaDeFila = { fila: number; id_manzana: string; valor: string; motivo: string };
 
@@ -450,7 +451,7 @@ export async function apiMaterialTerritorialExcelAsignacion(campaignId: string):
   const o = esRegistro(r) ? r : {};
   const file_id = texto(o.file_id);
   if (!file_id) throw new Error("El backend no devolvió el Excel de asignación.");
-  return { file_id, filename: texto(o.filename), umps: entero(o.umps) };
+  return { ...camposDeEntregable(o), file_id, filename: texto(o.filename), umps: entero(o.umps) };
 }
 
 export async function apiMaterialTerritorialImportarAsignacion(campaignId: string, archivo: File): Promise<ImportacionAsignacion> {
@@ -554,7 +555,7 @@ export async function apiMaterialTerritorialGuardarFormatos(
 /** `conteo` es la hoja por zona de un territorial por cuotas (ADR 0125 §2); el backend la niega en UMP. */
 export type PiezaDePapel = "ruteo" | "consolidados" | "conteo";
 
-export type HojaDePapel = { file_id: string; filename: string; umps: number; paginas: number };
+export type HojaDePapel = { file_id: string; filename: string; umps: number; paginas: number } & CamposDeEntregable;
 
 export async function apiMaterialTerritorialPapel(
   campaignId: string,
@@ -571,6 +572,6 @@ export async function apiMaterialTerritorialPapel(
   const o = esRegistro(r) ? r : {};
   const file_id = texto(o.file_id);
   if (!file_id) throw new Error("El backend no devolvió la hoja.");
-  return { file_id, filename: texto(o.filename), umps: entero(o.umps), paginas: entero(o.paginas) };
+  return { ...camposDeEntregable(o), file_id, filename: texto(o.filename), umps: entero(o.umps), paginas: entero(o.paginas) };
 }
 

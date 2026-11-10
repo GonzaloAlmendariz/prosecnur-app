@@ -24,7 +24,7 @@
   png <- item$imagen %||% NA_character_
   if (is.na(png) || !file.exists(png)) return(NA)
   f <- .mini_registrar(sid, paste0(item$hash, ":", basename(png)), png, "graficos_miniatura",
-                       original_name = sprintf("lamina_%s.png", .export_slug(item$slide_id %||% "lamina", fallback = "lamina")))
+                       original_name = .export_filename(sid, "lamina", "png", detalle = item$slide_id))
   dims <- .mini_png_dims(png)
   list(file_id = f$file_id, url = sprintf("/api/files/%s/download", f$file_id), mime = "image/png",
        width = dims[["width"]], height = dims[["height"]])

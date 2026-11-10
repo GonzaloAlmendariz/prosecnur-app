@@ -192,12 +192,6 @@
   x
 }
 
-.graficos_share_project_slug <- function(sid) {
-  s <- session_get(sid, required = FALSE)
-  label <- (s$estudio %||% list())$nombre %||% tools::file_path_sans_ext(basename(s$project_path %||% "proyecto"))
-  .export_slug(label, fallback = "proyecto")
-}
-
 .graficos_share_source_vars <- function(sid) {
   payload <- .graficos_variables_sources_payload(sid, scoped = FALSE)
   active <- as.character(.graficos_active_base_name(sid) %||% "")
@@ -308,10 +302,9 @@
     useBytes = TRUE
   )
 
-  out_name <- sprintf("%s_plan_graficos_%s.pulso-graficos.zip",
-                      .graficos_share_project_slug(sid),
-                      format(Sys.time(), "%Y%m%d_%H%M%S", tz = "UTC"))
-  out_path <- file.path(s$dir, "downloads", out_name)
+  # ADR 0133 §3: «Plan de gráficos» del catálogo; la extensión doble es la que reconoce la importación.
+  out_name <- .export_filename(sid, "graficos_share", "pulso-graficos.zip")
+  out_path <- file.path(s$dir, "downloads", paste0(uuid::UUIDgenerate(), "__", out_name))
   dir.create(dirname(out_path), recursive = TRUE, showWarnings = FALSE)
 
   old_wd <- getwd()

@@ -220,12 +220,32 @@ collection_material_prueba_start <- function(sid, codigo, etiqueta = NULL) {
     kind = "recopiladores.materials_prueba",
     func = collection_material_render_job,
     args = list(snapshot_path = snapshot_path, format = "pdf", page = 1L),
-    result_filename = snapshot$output_filename
+    result_filename = snapshot$output_filename,
+    on_complete = .cmp_on_complete
   )
   list(
     ok = TRUE, job_id = job_id, kind = "recopiladores.materials_prueba",
     codigo = snapshot$instance$unit_refs[[1]]
   )
+}
+
+# Registra el PDF de la prueba como entregable (ADR 0133) y devuelve su file_id:
+# sin esto el resultado del job no traía con qué descargarlo. No suma un recibo a
+# `artifact_receipts`: la ficha de prueba no es material del reparto, y su rastro
+# ya quedó en el histórico de pruebas al arrancar.
+.cmp_on_complete <- function(job) {
+  result <- job$result_data
+  path <- job$result_path
+  if (!is.list(result) || is.null(path) || !file.exists(path)) {
+    stop("El job de la ficha de prueba terminó sin PDF registrable.", call. = FALSE)
+  }
+  meta <- entregable_registrar(job$sid, path, "collection_material_prueba", original_name = result$filename)
+  entregable_respuesta(list(
+    ok = TRUE, file_id = meta$file_id, filename = meta$original_name,
+    size = meta$size, size_bytes = meta$size, media_type = result$media_type %||% "application/pdf",
+    sha256 = result$sha256, page_count = result$page_count, audience = result$audience,
+    sensitivity = result$sensitivity, warnings = result$warnings
+  ), meta)
 }
 
 # ---------------------------------------------------------------------------

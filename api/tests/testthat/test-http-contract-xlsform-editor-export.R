@@ -73,7 +73,8 @@ test_that("export-word por el wire: job, titulo de form_title, subgrupo, sub-let
   res <- x$snap$result_data
   expect_identical(names(res), c("ok", "file_id", "original_name", "size", "summary", "warnings"))
   expect_true(isTRUE(res$ok))
-  expect_identical(res$original_name, "nombre_de_archivo_editado.docx")
+  # ADR 0133 §3 (fase 5): «Cuestionario» con el título impreso de detalle; el nombre del front no viaja.
+  expect_match(res$original_name, "_Cuestionario_Encuesta_declarada_en_settings_[0-9]{2}_[0-9]{2}_[0-9]{2}[.]docx$")
   # Madre (imprime su numero) + la abierta; la nota y las letras no cuentan.
   expect_identical(res$summary$n_questions, 2L)
   expect_false(isTRUE(x$snap$has_file_result))
@@ -98,7 +99,7 @@ test_that("export-pdf por el wire responde el mismo contrato de job", {
   expect_identical(x$snap$status, "done")
   res <- x$snap$result_data
   expect_true(isTRUE(res$ok))
-  expect_identical(res$original_name, "otro.pdf")
+  expect_match(res$original_name, "_Cuestionario_.+_[0-9]{2}_[0-9]{2}_[0-9]{2}[.]pdf$")
   expect_gt(res$size, 1000L)
   dl <- .http_contract_request(srv, sprintf("/api/files/%s/download", res$file_id), sid = x$sid)
   expect_identical(dl$status, 200L)

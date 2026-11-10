@@ -179,11 +179,10 @@
   ump_df <- .monitoreo_ump_export_rows(by_ump, only_missing = only_missing, responsable = responsable, distrito = distrito, resp_map = resp_map)
 
   dir.create(file.path(s$dir, "downloads"), showWarnings = FALSE, recursive = TRUE)
-  project <- .monitoreo_publication_project_label(parsed, s, cfg)
-  project_slug <- .monitoreo_publication_evidence_slug(project, "monitoreo")
-  suffix <- if (only_missing) "faltantes" else if (nzchar(responsable)) "responsable" else "determinadas"
-  out_name <- paste0(paste(project_slug, "umps", suffix, sep = "-"), ".xlsx")
-  out_path <- file.path(s$dir, "downloads", sprintf("%s_%s", uuid::UUIDgenerate(), out_name))
+  # ADR 0133 §3: «UMP» del catálogo y, de detalle, qué UMP trae el libro.
+  detalle <- if (only_missing) "faltantes" else if (nzchar(responsable)) responsable else "determinadas"
+  out_name <- .export_filename(sid, "monitoreo_ump_export", "xlsx", detalle = detalle)
+  out_path <- file.path(s$dir, "downloads", sprintf("%s__%s", uuid::UUIDgenerate(), out_name))
   sin_oc <- if (nrow(ump_df)) sum(ump_df[["¿Tiene ocurrencias?"]] == "No") else 0L
   meta <- list(
     Universo = if (only_missing) "Solo faltantes (sin ocurrencias)" else "UMP determinadas",

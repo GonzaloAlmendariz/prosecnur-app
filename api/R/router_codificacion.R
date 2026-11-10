@@ -194,9 +194,11 @@
   if (isTRUE(fila$catalogado)) tolower(.export_slug(fila$rotulo)) else .export_slug(fallback %||% kind)
 }
 
-.export_filename <- function(sid, label, ext, base = NULL) {
+# `label` es un kind del catálogo, un alias o un archivo suelto; `detalle`, la unidad
+# (zona, manzana, aula, lámina, envío) de una salida por unidad (ADR 0133 §3).
+.export_filename <- function(sid, label, ext, base = NULL, detalle = NULL) {
   e <- .entregable_por_label(label)
-  entregable_nombre(sid, e$rotulo, ext, base = if (isTRUE(e$por_base)) base else NULL)
+  entregable_nombre(sid, e$rotulo, ext, base = if (isTRUE(e$por_base)) base else NULL, detalle = detalle)
 }
 
 .strip_internal_prefix <- function(filename) {
@@ -206,8 +208,8 @@
   sub("^[0-9a-fA-F-]{36}_", "", filename)
 }
 
-.register_output_file <- function(sid, kind, path, original_name = NULL, copiar = TRUE) {
-  entregable_registrar(sid, path, kind, original_name = original_name, copiar = copiar)
+.register_output_file <- function(sid, kind, path, original_name = NULL, copiar = TRUE, detalle = NULL) {
+  entregable_registrar(sid, path, kind, detalle = detalle, original_name = original_name, copiar = copiar)
 }
 
 # ---- Canonical familias draft ---------------------------------------------

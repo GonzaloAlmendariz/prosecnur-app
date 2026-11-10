@@ -25,8 +25,8 @@ mount_hojas_ruta_vista_previa <- function(pr) {
         stop_api(404, "E_NOT_FOUND", sprintf("La manzana %s no está entre las titulares ni los reemplazos de la muestra.", id))
       }
       out <- hojas_ruta_ficha_ump(guardada$sample, found, tempfile(fileext = paste0(".", formato)), formato)
-      nombre <- .hojas_ruta_vp_nombre_ficha(found$block, found$tipo, out$formato)
-      meta <- .hojas_ruta_vp_registrar(sid, "hojas_ruta_ficha_ump", out$path, original_name = nombre)
+      meta <- .hojas_ruta_vp_registrar(sid, .hojas_ruta_vp_kind_ficha(found$tipo), out$path,
+                                       detalle = .hojas_ruta_vp_detalle_ficha(found$block))
       list(
         ok = TRUE,
         file_id = meta$file_id,
@@ -50,7 +50,7 @@ mount_hojas_ruta_vista_previa <- function(pr) {
       }
       out <- tempfile(fileext = ".pdf")
       hojas_ruta_hoja_dia_pdf(modelo, out)
-      meta <- .hojas_ruta_vp_registrar(sid, "hojas_ruta_hoja_dia", out, original_name = .hojas_ruta_hd_nombre(modelo))
+      meta <- .hojas_ruta_vp_registrar(sid, "hojas_ruta_hoja_dia", out, detalle = .hojas_ruta_hd_detalle(modelo))
       list(
         ok = TRUE,
         file_id = meta$file_id,
@@ -64,9 +64,9 @@ mount_hojas_ruta_vista_previa <- function(pr) {
 # Registra el PNG/PDF para descargarlo SIN marcar el proyecto como modificado: una
 # vista previa no cambia el estudio (inventario de la brecha, B0). `.register_output_file`
 # escribe la clave `files` de la sesión y eso, por sí solo, ensuciaba el .pulso.
-.hojas_ruta_vp_registrar <- function(sid, kind, path, original_name = NULL) {
+.hojas_ruta_vp_registrar <- function(sid, kind, path, original_name = NULL, detalle = NULL) {
   antes <- session_get(sid)
-  meta <- .register_output_file(sid, kind, path, original_name = original_name)
+  meta <- .register_output_file(sid, kind, path, original_name = original_name, detalle = detalle)
   s <- session_get(sid)
   s$project_dirty <- antes$project_dirty
   s$project_dirty_reasons <- antes$project_dirty_reasons

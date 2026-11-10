@@ -11,6 +11,8 @@
 // - Al terminar: si el backend ya copió el archivo junto al proyecto
 //   (`guardado_en`), no se descarga nada; si no, se descarga (en Electron va a
 //   Descargas sin diálogo y el aviso de la descarga deja su ruta para «Abrir»).
+//   Con `descargar: false` (ver sin entregar: una vista previa) tampoco: el
+//   contenedor muestra el archivo listo y ofrece «Descargar».
 // - Toda generación se registra en la bandeja «Entregables» y sigue viva allí
 //   aunque la pantalla que la pidió se desmonte: el poll no depende del
 //   componente.
@@ -46,6 +48,8 @@ export type OpcionesEjecucion = {
   titulo?: string;
   formato?: string | null;
   articulo?: Articulo | null;
+  /** `false`: el archivo se genera para verse en pantalla y no se descarga al terminar. Por defecto, `true`. */
+  descargar?: boolean;
 };
 
 export type ResultadoGeneracion =
@@ -76,6 +80,7 @@ type Contexto = {
   titulo: string;
   formato: string | null;
   articulo: Articulo | null;
+  descargar: boolean;
   describir: (e: unknown) => ErrorLegible;
   reintentar?: () => void;
 };
@@ -103,10 +108,14 @@ function entregar(ctx: Contexto, datos: unknown): boolean {
     fallar(ctx, { causa: "El motor terminó sin devolver un archivo. Reintenta.", codigo: null });
     return false;
   }
-  const lista: EstadoEnBandeja = { fase: "lista", titulo: ctx.titulo, archivos, rutaDescargada: null };
+  const lista: EstadoEnBandeja = {
+    fase: "lista", titulo: ctx.titulo, archivos, rutaDescargada: null, ...(ctx.descargar ? {} : { sinDescargar: true }),
+  };
   bandeja().actualizar(ctx.id, lista);
   // Ya quedó en `Entregables\<Módulo>`: descargarlo lo duplicaría.
   if (archivos.some((a) => a.guardadoEn)) return true;
+  // Se pidió para verlo en pantalla: el contenedor ofrece «Descargar».
+  if (!ctx.descargar) return true;
   if (typeof document === "undefined") return true;
   const principal = archivos[0];
   let dejar = () => {};
@@ -184,6 +193,7 @@ export function useGeneracion({ titulo, modulo = null, formato = null, articulo 
       titulo: opciones?.titulo ?? base,
       formato: opciones?.formato ?? config.current.formato ?? null,
       articulo: opciones?.articulo ?? config.current.articulo ?? null,
+      descargar: opciones?.descargar !== false,
       describir: (e) => describir?.(e) ?? errorLegible(e),
       ...(reintentar ? { reintentar } : {}),
     };

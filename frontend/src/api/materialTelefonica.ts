@@ -8,6 +8,7 @@
 // `null` y una lista vacía como `{}`.
 
 import { apiFetch, handle, headers } from "./core";
+import { camposDeEntregable, type CamposDeEntregable } from "./jobs";
 
 export type ClaseDeStatus = "efectiva" | "pendiente" | "no_contacto" | "rechazo" | "invalido";
 
@@ -73,7 +74,7 @@ export type CambioTelefonico = Partial<{
   responsables: string[];
 }>;
 
-export type PlantillaDelBarrido = { file_id: string; filename: string; filas: number; status: number };
+export type PlantillaDelBarrido = { file_id: string; filename: string; filas: number; status: number } & CamposDeEntregable;
 
 type Registro = Record<string, unknown>;
 
@@ -164,7 +165,7 @@ export async function apiMaterialTelefonicaPlantilla(campaignId: string): Promis
   const o = esRegistro(r) ? r : {};
   const file_id = texto(o.file_id);
   if (!file_id) throw new Error("El backend no devolvió la plantilla.");
-  return { file_id, filename: texto(o.filename), filas: entero(o.filas), status: entero(o.status) };
+  return { ...camposDeEntregable(o), file_id, filename: texto(o.filename), filas: entero(o.filas), status: entero(o.status) };
 }
 
 // ---- La base de barrido en el Sheets del estudio (decisión de Gonzalo 2 nov 2026) ----------------------

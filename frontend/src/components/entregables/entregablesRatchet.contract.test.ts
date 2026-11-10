@@ -85,8 +85,8 @@ const DEFINICION = new RegExp(
   `\\b(?:function|const|let)\\s+(?:${[...FUNCIONES_PROPIAS, ...URLS_DE_DESCARGA, ...HELPERS_DE_DESCARGA].join("|")})\\b`,
 );
 
-/** Foto tras la oleada 0 de la fase 5. Sólo baja. */
-const BASE = 56;
+/** Foto tras la oleada 1 de la fase 5 (Material de campo en 0). Sólo baja. */
+const BASE = 41;
 
 function fuentes(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {

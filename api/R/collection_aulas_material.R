@@ -79,7 +79,8 @@ collection_aulas_plantilla <- function(sid, pieza = "libro", body = list()) {
                                    filas = length(aplicadores) + max(0L, args$filas - length(args$aplicadores)),
                                    aplicadores = aplicadores)
     meta <- .register_output_file(sid, "aulas_disponibilidad_plantilla", path, original_name = nombre)
-    return(list(ok = TRUE, pieza = pieza, file_id = meta$file_id, filename = meta$original_name, aplicadores = length(aplicadores)))
+    return(entregable_respuesta(list(ok = TRUE, pieza = pieza, file_id = meta$file_id, filename = meta$original_name,
+                                     size = meta$size, aplicadores = length(aplicadores)), meta))
   }
   entrega <- collection_aulas_entrega_get(sid)
   if (!isTRUE(entrega$entregada) || !length(entrega$unidades)) {
@@ -92,13 +93,15 @@ collection_aulas_plantilla <- function(sid, pieza = "libro", body = list()) {
     path <- file.path(s$dir, "downloads", sprintf("%s_%s", uuid::UUIDgenerate(), nombre))
     r <- aulas_asignacion_plantilla(path, entrega$unidades, .mau_aplicadores(sid))
     meta <- .register_output_file(sid, "aulas_asignacion_plantilla", path, original_name = nombre)
-    return(list(ok = TRUE, pieza = pieza, file_id = meta$file_id, filename = meta$original_name,
-                unidades = r$aulas, aplicadores = r$aplicadores, deployment_fingerprint = entrega$deployment_fingerprint))
+    return(entregable_respuesta(list(ok = TRUE, pieza = pieza, file_id = meta$file_id, filename = meta$original_name,
+                                     size = meta$size, unidades = r$aulas, aplicadores = r$aplicadores,
+                                     deployment_fingerprint = entrega$deployment_fingerprint), meta))
   }
   nombre <- .export_filename(sid, "libro_aulas_PLANTILLA", "xlsx")
   path <- file.path(s$dir, "downloads", sprintf("%s_%s", uuid::UUIDgenerate(), nombre))
   aulas_libro_generar(entrega$unidades, path)
   meta <- .register_output_file(sid, "aulas_libro_plantilla", path, original_name = nombre)
-  list(ok = TRUE, pieza = pieza, file_id = meta$file_id, filename = meta$original_name,
-       unidades = length(entrega$unidades), deployment_fingerprint = entrega$deployment_fingerprint)
+  entregable_respuesta(list(ok = TRUE, pieza = pieza, file_id = meta$file_id, filename = meta$original_name,
+                            size = meta$size, unidades = length(entrega$unidades),
+                            deployment_fingerprint = entrega$deployment_fingerprint), meta)
 }

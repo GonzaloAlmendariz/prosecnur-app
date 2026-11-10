@@ -18,6 +18,7 @@ test_that("sin entrega: el GET lo dice, el libro es 409 y la disponibilidad sale
   expect_length(g$unidades, 0L)
   expect_identical(.mau_code(collection_aulas_plantilla(sid, "libro")), "E_COLLECTION_HANDOFF_NOT_READY")
   d <- collection_aulas_plantilla(sid, "disponibilidad")
+  expect_true(all(c("modulo", "rotulo", "guardado_en", "aviso_guardado", "size") %in% names(d)))  # ADR 0133, fase 5
   expect_true(file.exists(session_get(sid)$files[[d$file_id]]$path))
   expect_identical(.mau_code(collection_aulas_plantilla(sid, "otra")), "E_COLLECTION_CAMPAIGN_INVALID")
 })
@@ -40,6 +41,7 @@ test_that("con entrega: el GET trae el recibo sellado y las unidades, y el libro
   expect_true(length(g$unidades) > 0L)
   expect_identical(g$unidades[[1]]$collection_deployment_fingerprint, g$deployment_fingerprint)
   l <- collection_aulas_plantilla(sid, "libro")
+  expect_true(all(c("modulo", "rotulo", "guardado_en", "aviso_guardado", "size") %in% names(l)))  # ADR 0133, fase 5
   path <- session_get(sid)$files[[l$file_id]]$path
   expect_true(file.exists(path))
   expect_true(any(grepl("Aulas", openxlsx::getSheetNames(path))))
@@ -86,6 +88,7 @@ test_that("R7: la pieza «asignacion» sale de la entrega y no toca el plan de M
   collection_handoff(sid, seeded$state_revision)
   plan_monitoreo <- session_get(sid)$monitoreo_aulas_plan
   a <- collection_aulas_plantilla(sid, "asignacion")
+  expect_true(all(c("modulo", "rotulo", "guardado_en", "aviso_guardado", "size") %in% names(a)))  # ADR 0133, fase 5
   expect_identical(a$pieza, "asignacion")
   expect_true(file.exists(session_get(sid)$files[[a$file_id]]$path))
   expect_identical(session_get(sid)$monitoreo_aulas_plan, plan_monitoreo)

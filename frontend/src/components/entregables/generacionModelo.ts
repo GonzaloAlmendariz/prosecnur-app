@@ -111,6 +111,12 @@ export function coincideDescarga(pedido: string, recibido: string): boolean {
   return /^\d+$/.test(b.slice(base.length + 1, b.length - ext.length));
 }
 
+/** Cómo quedó un archivo listo: copiado junto al proyecto, descargado o sólo generado para verse (`descargar: false`). */
+export function comoQuedo(archivo: { guardadoEn?: string | null } | null | undefined, sinDescargar = false): "Guardado" | "Descargado" | "Listo" {
+  if (archivo?.guardadoEn) return "Guardado";
+  return sinDescargar ? "Listo" : "Descargado";
+}
+
 /** Peso legible: «820 B», «48 KB», «1.4 MB» (es-PE usa punto decimal). */
 export function pesoLegible(bytes: number | null | undefined): string | null {
   if (bytes == null || !Number.isFinite(bytes) || bytes < 0) return null;

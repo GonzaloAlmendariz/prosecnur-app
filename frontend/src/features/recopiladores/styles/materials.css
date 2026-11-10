@@ -249,56 +249,6 @@
   flex-shrink: 0;
 }
 
-.rec-render-result {
-  background: var(--pulso-success-bg);
-  border: 1px solid var(--pulso-success-border);
-  border-radius: var(--pulso-radius-panel);
-  display: grid;
-  gap: 10px;
-  padding: 12px;
-}
-
-.rec-render-result img {
-  background: var(--pulso-surface);
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-panel);
-  max-height: 420px;
-  object-fit: contain;
-  width: 100%;
-}
-
-.rec-render-result div,
-.rec-render-result strong,
-.rec-render-result span,
-.rec-render-result code {
-  display: block;
-}
-
-.rec-render-result span,
-.rec-render-result code {
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-caption-size);
-  overflow-wrap: anywhere;
-}
-
-.rec-render-result a {
-  align-items: center;
-  border-radius: var(--pulso-radius-chip);
-  color: var(--pulso-primary-strong);
-  display: inline-flex;
-  font-size: var(--pulso-type-body-size);
-  gap: 6px;
-  padding: 4px 8px;
-  margin: -4px -8px;
-  transition: background-color var(--motion-dur-fast) ease;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .rec-render-result a:hover {
-    background: var(--pulso-primary-soft);
-  }
-}
-
 @media (max-width: 1120px) {
   .rec-editor {
     grid-template-columns: minmax(160px, 210px) minmax(320px, 1fr);

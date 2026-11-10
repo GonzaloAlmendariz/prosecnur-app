@@ -329,10 +329,12 @@
   stage_dir <- file.path(s$dir, "downloads", paste(project_slug, "processing-handoff", universe_slug, uuid::UUIDgenerate(), sep = "-"))
   dir.create(stage_dir, recursive = TRUE, showWarnings = FALSE)
 
-  data_xlsx_name <- paste(project_slug, universe_slug, "data-procesamiento.xlsx", sep = "-")
-  data_csv_name <- paste(project_slug, universe_slug, "data-procesamiento.csv", sep = "-")
-  audit_csv_name <- paste(project_slug, universe_slug, "audit-prosecnur.csv", sep = "-")
-  xlsform_name <- paste(project_slug, "xlsform.xlsx", sep = "-")
+  # ADR 0133 §3: los nombres del paquete son los del entregable, también dentro del ZIP.
+  universo_txt <- if (identical(universe, "strict_validada")) "solo validadas" else NULL
+  data_xlsx_name <- .export_filename(sid, "monitoreo_processing_handoff_data", "xlsx", detalle = universo_txt)
+  data_csv_name <- sub("\\.xlsx$", ".csv", data_xlsx_name)
+  audit_csv_name <- entregable_nombre(sid, "Auditoría de casos", "csv", detalle = universo_txt)
+  xlsform_name <- .export_filename(sid, "monitoreo_processing_handoff_xlsform", "xlsx")
   manifest_name <- "manifest.json"
   readme_name <- "README.md"
   data_xlsx_path <- file.path(stage_dir, data_xlsx_name)
@@ -469,9 +471,9 @@
     "4. Continuar el flujo de Procesamiento/Validación/Codificación según corresponda."
   ), readme_path, useBytes = TRUE)
 
-  zip_name <- paste(project_slug, universe_slug, "processing-handoff", cut_slug, sep = "-")
-  zip_name <- paste0(zip_name, ".zip")
-  zip_path <- file.path(s$dir, "downloads", sprintf("%s_%s", uuid::UUIDgenerate(), zip_name))
+  zip_name <- .export_filename(sid, "monitoreo_processing_handoff_zip", "zip",
+                               detalle = if (identical(universe, "strict_validada")) "solo validadas" else NULL)
+  zip_path <- file.path(s$dir, "downloads", sprintf("%s__%s", uuid::UUIDgenerate(), zip_name))
   old_wd <- getwd()
   on.exit(setwd(old_wd), add = TRUE)
   setwd(stage_dir)

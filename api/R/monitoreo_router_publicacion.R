@@ -378,39 +378,36 @@
     performance = performance
   )
 
+  # ADR 0133 §3: rótulo del catálogo y, de detalle, para quién es la evidencia.
+  audiencia_txt <- if (identical(bundle$audience, "internal")) "interna" else "para el cliente"
   pack_file_specs <- list(
     operational_package_request_csv = list(
       path = pack$operational_package_request_csv,
-      kind = "monitoreo_publication_operational_package_request_csv",
-      filename = paste(project_slug, audience_slug, "operational-package-request.csv", sep = "-")
+      kind = "monitoreo_publication_operational_package_request_csv"
     ),
     operational_package_request = list(
       path = pack$operational_package_request,
-      kind = "monitoreo_publication_operational_package_request_json",
-      filename = paste(project_slug, audience_slug, "operational-package-request.json", sep = "-")
+      kind = "monitoreo_publication_operational_package_request_json"
     ),
     operational_package_status = list(
       path = pack$operational_package_status,
-      kind = "monitoreo_publication_operational_package_status",
-      filename = paste(project_slug, audience_slug, "operational-package-status.json", sep = "-")
+      kind = "monitoreo_publication_operational_package_status"
     ),
     publication_decision = list(
       path = pack$publication_decision,
-      kind = "monitoreo_publication_decision",
-      filename = paste(project_slug, audience_slug, "publication-decision.json", sep = "-")
+      kind = "monitoreo_publication_decision"
     )
   )
   pack_files <- lapply(pack_file_specs, function(spec) {
     path <- .monitoreo_scalar(spec$path, "")
     if (!nzchar(path) || !file.exists(path)) return(NULL)
-    file_meta <- .register_output_file(sid, spec$kind, path, original_name = spec$filename)
+    file_meta <- .register_output_file(sid, spec$kind, path, detalle = audiencia_txt)
     list(file_id = file_meta$file_id, filename = file_meta$original_name, size = file_meta$size)
   })
   pack_files <- pack_files[!vapply(pack_files, is.null, logical(1))]
 
-  zip_filename <- paste(project_slug, audience_slug, "evidence-pack", cut_slug, sep = "-")
-  zip_filename <- paste0(zip_filename, ".zip")
-  zip_path <- .session_tmp(sid, sprintf("%s_%s", uuid::UUIDgenerate(), zip_filename))
+  zip_filename <- .export_filename(sid, "monitoreo_publication_evidence_pack", "zip", detalle = audiencia_txt)
+  zip_path <- .session_tmp(sid, sprintf("%s__%s", uuid::UUIDgenerate(), zip_filename))
   .monitoreo_publication_evidence_zip_dir(pack$out_dir, zip_path)
   meta <- .register_output_file(sid, "monitoreo_publication_evidence_pack", zip_path, original_name = zip_filename)
   list(

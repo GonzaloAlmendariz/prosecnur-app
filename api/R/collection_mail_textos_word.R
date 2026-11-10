@@ -201,7 +201,7 @@ collection_mail_textos_word <- function(sid, campaign_ids, titulo = NULL) {
   titulo <- .cmail_one(titulo) %||% "Textos de los correos"
   campanas <- lapply(ids, function(id) .cmail_textos_campana(por_id[[id]]))
   dir.create(file.path(session$dir, "downloads"), recursive = TRUE, showWarnings = FALSE)
-  nombre <- paste0(.cmail_campaign_slug(titulo), ".docx")
+  nombre <- .export_filename(sid, "mail_textos", "docx", detalle = .cmail_detalle_documento(titulo, "Textos de los correos", por_id[ids]))
   path <- file.path(session$dir, "downloads", paste0(uuid::UUIDgenerate(), "__", nombre))
   .cmail_textos_docx(titulo, campanas, path)
   file <- .cmail_register_artifact(sid, path, "mail_textos", nombre, "textos",

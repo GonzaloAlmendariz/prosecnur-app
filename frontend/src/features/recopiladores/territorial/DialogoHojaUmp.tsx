@@ -1,5 +1,7 @@
-// La hoja de ruta de una UMP en grande, con «Imprimir o descargar» (ADR 0118 §1,
-// brecha B46). Panel direccionable `?panel=hoja&foco=<id_manzana>` sobre
+// La hoja de ruta de una UMP en grande, con «Generar el PDF» (ADR 0118 §1,
+// brecha B46; antes «Imprimir o descargar»). El PDF se entrega por el kit de
+// entregables (ADR 0133): el botón del pie sólo se deshabilita y el contenedor
+// queda al final del cuerpo. Panel direccionable `?panel=hoja&foco=<id_manzana>` sobre
 // Territorial › Unidades; cerrar quita sólo el panel y deja la UMP resaltada.
 //
 // Abrir NO genera nada (Gonzalo, 2026-10-31): se ve la maqueta de la ficha con los
@@ -10,20 +12,23 @@
 
 import { useEffect, useState } from "react";
 
-import { downloadUrl } from "../../../api/core";
-import { descargarArchivo } from "../../../lib/descargas";
+import { urlDelArchivo } from "../../../api/core";
 import { apiHojasRutaFichaUmp } from "../../../api/hojasRuta";
 import type { UnidadTerritorial } from "../../../api/materialTerritorial";
 import { Dialog } from "../../../components/Dialog";
+import { ContenedorEntregable } from "../../../components/entregables/ContenedorEntregable";
+import { useGeneracion } from "../../../components/entregables/useGeneracion";
 import { EstadoVacio } from "../../../components/EstadoVacio";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { usePanelDireccionable } from "../../../lib/navegacion/paneles";
 import { ChevronLeft, ChevronRight, FileText, Loader2, Printer } from "../../../vendor/lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { MODULO_MATERIAL } from "../entregas/modeloEntrega";
 import { MaquetaFicha } from "./MaquetaFicha";
 import { PANEL_HOJA_UMP } from "./panelesTerritorial";
 
-type Estado = { png: string | null; pdf: string | null; cargando: boolean; error: string };
+/** `pdf`: la respuesta del motor cuando la vista previa salió en PDF; se entrega tal cual. */
+type Estado = { png: string | null; pdf: unknown; cargando: boolean; error: string };
 const INICIAL: Estado = { png: null, pdf: null, cargando: false, error: "" };
 
 function mensaje(e: unknown, porDefecto: string): string {
@@ -56,10 +61,14 @@ export function DialogoHojaUmp({ unidad, stale, hrefAnterior = null, hrefSiguien
   }, [abierto, hrefAnterior, hrefSiguiente, navigate]);
   const [e, setE] = useState<Estado>(INICIAL);
   const id = unidad?.unit_id ?? null;
+  const gen = useGeneracion({ titulo: "Hoja de ruta", modulo: MODULO_MATERIAL, formato: "pdf", articulo: "la" });
+  const generando = gen.estado.fase === "en_curso";
+  const { cerrar } = gen;
 
-  // La vista previa real se genera sólo si se pide; cambiar de UMP vuelve a la maqueta.
+  // La vista previa real se genera sólo si se pide; cambiar de UMP vuelve a la maqueta y suelta el
+  // contenedor de la anterior (si seguía generando, sigue en la bandeja «Entregables»).
   const [pedida, setPedida] = useState(false);
-  useEffect(() => { setPedida(false); }, [id]);
+  useEffect(() => { setPedida(false); cerrar(); }, [id, cerrar]);
   useEffect(() => {
     setE(INICIAL);
     if (!abierto || !id || !pedida) return;
@@ -68,26 +77,21 @@ export function DialogoHojaUmp({ unidad, stale, hrefAnterior = null, hrefSiguien
     apiHojasRutaFichaUmp(id, "png")
       .then((r) => {
         if (!vivo) return;
-        const url = downloadUrl(r.file_id);
-        setE({ ...INICIAL, png: r.formato === "png" ? url : null, pdf: r.formato === "pdf" ? url : null });
+        setE({ ...INICIAL, png: r.formato === "png" ? urlDelArchivo(r.file_id) : null, pdf: r.formato === "pdf" ? r : null });
       })
       .catch((err: unknown) => { if (vivo) setE({ ...INICIAL, error: mensaje(err, "No se pudo generar la hoja.") }); });
     return () => { vivo = false; };
   }, [abierto, id, pedida]);
 
-  const imprimir = () => {
-    if (e.pdf) {
-      descargarArchivo(e.pdf);
-      return;
-    }
+  const generarPdf = () => {
     if (!id) return;
-    apiHojasRutaFichaUmp(id, "pdf")
-      .then((r) => {
-        const url = downloadUrl(r.file_id);
-        setE((s) => ({ ...s, pdf: url }));
-        descargarArchivo(url);
-      })
-      .catch((err: unknown) => setE((s) => ({ ...s, error: mensaje(err, "No se pudo generar el PDF.") })));
+    const yaGenerado = e.pdf;
+    void gen.ejecutar(async () => {
+      if (yaGenerado) return yaGenerado;
+      const r = await apiHojasRutaFichaUmp(id, "pdf");
+      setE((s) => ({ ...s, pdf: r }));
+      return r;
+    }, { titulo: unidad ? `Hoja de ruta de ${unidad.label}` : "Hoja de ruta" });
   };
 
   return (
@@ -105,8 +109,8 @@ export function DialogoHojaUmp({ unidad, stale, hrefAnterior = null, hrefSiguien
             {hrefAnterior ? <Link className="rec-terr-hoja-paso" to={hrefAnterior} title="Hoja anterior (←)"><ChevronLeft size={14} aria-hidden /> Anterior</Link> : null}
             {hrefSiguiente ? <Link className="rec-terr-hoja-paso" to={hrefSiguiente} title="Hoja siguiente (→)">Siguiente <ChevronRight size={14} aria-hidden /></Link> : null}
           </span>
-          <PulsoButton variant="primary" size="sm" disabled={!unidad || e.cargando} onClick={imprimir}>
-            <Printer size={14} aria-hidden /> Imprimir o descargar
+          <PulsoButton variant="primary" size="sm" disabled={!unidad || e.cargando || generando} onClick={generarPdf}>
+            <Printer size={14} aria-hidden /> Generar el PDF
           </PulsoButton>
         </>
       )}
@@ -139,8 +143,9 @@ export function DialogoHojaUmp({ unidad, stale, hrefAnterior = null, hrefSiguien
         <img className="rec-terr-hoja-img" src={e.png} alt={`Hoja de ruta de ${unidad?.label ?? "la UMP"}`} />
       ) : null}
       {!e.png && e.pdf && !e.cargando ? (
-        <p className="rec-terr-nota">La vista previa salió en PDF: ábrela con «Imprimir o descargar».</p>
+        <p className="rec-terr-nota">La vista previa salió en PDF: se entrega con "Generar el PDF".</p>
       ) : null}
+      <ContenedorEntregable estado={gen.estado} forma="bloque" onCerrar={gen.cerrar} />
     </Dialog>
   );
 }

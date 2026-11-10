@@ -65,8 +65,8 @@ attr(armonizada_job_worker, "prosecnur_job_function_name") <- "armonizada_job_wo
   kind <- .armonizada_kind(tipo)
   out_name <- .export_filename(sid, kind, "xlsx")
   meta <- .register_output_file(sid, kind, result_path, original_name = out_name)
-  man <- .register_output_file(sid, paste0(kind, "_manifest"), manifest_path,
-                               original_name = sub("\\.xlsx$", "_manifest.json", out_name))
+  # ADR 0133 §3: el manifiesto lleva su propio rótulo del catálogo, no un sufijo tras la fecha.
+  man <- .register_output_file(sid, paste0(kind, "_manifest"), manifest_path)
   sha <- function(p) tolower(digest::digest(file = p, algo = "sha256"))
   artefacto <- function(m, role) list(file_id = m$file_id, filename = m$original_name,
                                       role = role, size = m$size, sha256 = sha(m$path),

@@ -1345,7 +1345,8 @@ mount_calc_muestra <- function(pr) {
       }, error = function(e) NULL)
 
       ext <- if (formato == "pdf") "pdf" else "html"
-      filename <- sprintf("reporte_calc_muestra.%s", ext)
+      # ADR 0133 §3: el nombre del job es el del entregable (la descarga lo hereda del path).
+      filename <- .export_filename(sid, "reporte_calc_muestra", ext)
 
       sid_capt <- sid
       on_complete <- function(j) {

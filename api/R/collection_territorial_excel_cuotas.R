@@ -131,9 +131,11 @@
 
   path <- tempfile(fileext = ".xlsx")
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
-  nombre <- .export_filename(sid, "asignacion_encuestadores", "xlsx")
-  meta <- .register_output_file(sid, "asignacion_encuestadores", path, original_name = nombre)
-  list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name, kind = "cuotas", zonas = length(zonas), filas = n, umps = 0L,
-       entrevistas = as.integer(sum(tabla$Entrevistas, na.rm = TRUE)),
-       encuestadores = length(equipo), asignadas = length(actual$asignacion), hojas_registro = list(), variante = NA_character_)
+  # ADR 0133 §3: el nombre sale del catálogo; por UMP y por cuotas son dos entregables.
+  meta <- .register_output_file(sid, "asignacion_encuestadores_cuotas", path)
+  entregable_respuesta(list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name, size = meta$size, kind = "cuotas",
+                            zonas = length(zonas), filas = n, umps = 0L,
+                            entrevistas = as.integer(sum(tabla$Entrevistas, na.rm = TRUE)),
+                            encuestadores = length(equipo), asignadas = length(actual$asignacion),
+                            hojas_registro = list(), variante = NA_character_), meta)
 }

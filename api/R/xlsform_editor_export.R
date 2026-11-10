@@ -173,6 +173,9 @@ xlsform_editor_export_job_runner <- function(input_path, formato, fail_code, fai
     .xlsform_editor_empty_df(.xlsform_editor_default_columns("paper"))
   }
   options <- .xlsform_editor_export_titulo(parsed$options %||% list(), settings, filename)
+  # ADR 0133 §3: «Cuestionario» del catálogo con el título impreso de detalle; el
+  # nombre que manda el front sólo sirve para deducir ese título.
+  filename <- .export_filename(sid, spec$output_kind, ext, detalle = options$title)
 
   input_path <- job_save_rds(sid, "xlsform_export", list(
     survey = survey, choices = choices, settings = settings, paper = paper, options = options))
@@ -191,7 +194,7 @@ xlsform_editor_export_job_runner <- function(input_path, formato, fail_code, fai
       func = runner,
       args = list(input_path = input_path, formato = ext,
                   fail_code = spec$fail_code, fail_message = spec$fail_message),
-      result_filename = paste0("formulario.", ext),
+      result_filename = filename,
       on_complete = armar_on_complete(sid, spec, filename),
       on_cleanup = function(j) job_unlink_inputs(input_path)
     ),

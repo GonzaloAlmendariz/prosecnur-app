@@ -1231,36 +1231,6 @@ textarea.rec-mail-input {
   margin: 0;
 }
 
-.rec-mail-mc-listo {
-  background: var(--pulso-success-bg);
-  border: 1px solid var(--pulso-success-border);
-  border-radius: 10px;
-  display: grid;
-  gap: 8px;
-  padding: 8px 10px;
-}
-
-.rec-mail-mc-listo a {
-  text-decoration: none;
-}
-
-.rec-mail-mc-listo-nombre {
-  display: flex;
-  flex-direction: column;
-  font-size: var(--pulso-type-body-size);
-  min-width: 0;
-}
-
-.rec-mail-mc-listo-nombre b {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.rec-mail-mc-listo-nombre span {
-  color: var(--pulso-text-muted);
-}
-
 /* — Regímenes por ancho del contenedor — */
 @container rec-mail (max-width: 1080px) {
   /* El inspector conserva el ancho que piden sus cuatro pestañas; el correo,

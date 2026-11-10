@@ -2,21 +2,24 @@
 // legible y el panel lateral las acciones. Mientras no se genera la vista real (PNG del
 // motor, tarda por el mapa), el escenario dibuja la estructura de la ficha de la UMP
 // elegida (`MaquetaFicha`), rotulada como tal. El PDF de prueba de una manzana al azar es
-// un bloque secundario al pie del panel.
+// un bloque secundario al pie del panel. Los dos PDF se entregan por el kit de entregables
+// (ADR 0133): el botón sólo se deshabilita y el contenedor queda bajo él.
 //
 // Contrato de Superficie: C1 `material-campo/territorial/ficha` (intrinsic); el escenario
 // es dueño de su alto y de su scroll (C3/C4).
 
 import { useState } from "react";
 
-import { downloadUrl } from "../../../api/core";
-import { descargarArchivo } from "../../../lib/descargas";
+import { urlDelArchivo } from "../../../api/core";
 import { apiHojasRutaFichaUmp, apiHojasRutaRandomPdf, type HojasRutaRandomPreference, type HojasRutaState } from "../../../api/hojasRuta";
 import type { UnidadesTerritoriales } from "../../../api/materialTerritorial";
+import { ContenedorEntregable } from "../../../components/entregables/ContenedorEntregable";
+import { useGeneracion } from "../../../components/entregables/useGeneracion";
 import { GlidingRadioGroup } from "../../../components/GlidingRadioGroup";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { PulsoSelect } from "../../../components/PulsoSelect";
 import { Loader2, Printer } from "../../../vendor/lucide-react";
+import { MODULO_MATERIAL } from "../entregas/modeloEntrega";
 import { MaquetaFicha } from "./MaquetaFicha";
 import "./ficha.css";
 
@@ -30,36 +33,43 @@ function mensaje(e: unknown, porDefecto: string): string {
 export function FichaPorUmp({ unidades, hojas }: { unidades: UnidadesTerritoriales; hojas: HojasRutaState | null }) {
   const [elegida, setElegida] = useState(unidades.units[0]?.unit_id ?? "");
   const [png, setPng] = useState<string | null>(null);
-  const [ocupado, setOcupado] = useState<"" | "png" | "pdf" | "azar">("");
+  // La vista real (PNG) se ve en el escenario: no es un entregable.
+  const [cargandoVista, setCargandoVista] = useState(false);
   const [error, setError] = useState("");
   const [preferencia, setPreferencia] = useState<HojasRutaRandomPreference>("balanced");
   const [azar, setAzar] = useState<string | null>(null);
   const unidad = unidades.units.find((u) => u.unit_id === elegida) ?? unidades.units[0] ?? null;
+  const pdf = useGeneracion({ titulo: "Ficha de la UMP", modulo: MODULO_MATERIAL, formato: "pdf", articulo: "la" });
+  const prueba = useGeneracion({ titulo: "PDF de prueba", modulo: MODULO_MATERIAL, formato: "pdf", articulo: "el" });
+  const generandoPdf = pdf.estado.fase === "en_curso";
+  const generandoPrueba = prueba.estado.fase === "en_curso";
+  const tituloFicha = `Ficha de ${unidad?.label ?? "la UMP"}`;
 
-  const correr = (tipo: "png" | "pdf" | "azar", f: () => Promise<void>) => {
-    setOcupado(tipo);
+  const verPng = () => {
+    setCargandoVista(true);
     setError("");
-    f().catch((e: unknown) => setError(mensaje(e, "No se pudo generar la ficha."))).finally(() => setOcupado(""));
+    apiHojasRutaFichaUmp(elegida, "png")
+      .then((r) => {
+        if (r.formato === "png") setPng(urlDelArchivo(r.file_id));
+        // Sin imagen, la vista llega en PDF: se entrega como la ficha.
+        else void pdf.ejecutar(async () => r, { titulo: tituloFicha });
+      })
+      .catch((e: unknown) => setError(mensaje(e, "No se pudo generar la ficha.")))
+      .finally(() => setCargandoVista(false));
   };
-  const verPng = () => correr("png", async () => {
-    const r = await apiHojasRutaFichaUmp(elegida, "png");
-    setPng(r.formato === "png" ? downloadUrl(r.file_id) : null);
-    if (r.formato === "pdf") descargarArchivo(downloadUrl(r.file_id));
-  });
-  const abrirPdf = () => correr("pdf", async () => {
-    const r = await apiHojasRutaFichaUmp(elegida, "pdf");
-    descargarArchivo(downloadUrl(r.file_id));
-  });
-  const alAzar = () => correr("azar", async () => {
+  const generarPdf = () => { void pdf.ejecutar(() => apiHojasRutaFichaUmp(elegida, "pdf"), { titulo: tituloFicha }); };
+  const generarPrueba = () => {
     if (!hojas) return;
-    const r = await apiHojasRutaRandomPdf(hojas.integrated_config, preferencia);
-    setAzar(`${r.distrito}, zona ${r.zona}, manzana ${r.manzana}`);
-    descargarArchivo(downloadUrl(r.file_id));
-  });
+    void prueba.ejecutar(async () => {
+      const r = await apiHojasRutaRandomPdf(hojas.integrated_config, preferencia);
+      setAzar(`${r.distrito}, zona ${r.zona}, manzana ${r.manzana}`);
+      return r;
+    });
+  };
 
   return (
     <div className="rec-terr-ficha" data-qa-geometry-member data-qa-geometry-group="material-campo/territorial/ficha" data-qa-geometry-contract="intrinsic">
-      <figure className="rec-terr-ficha-escenario" data-qa-geometry-capacity="owned" aria-busy={ocupado === "png"}>
+      <figure className="rec-terr-ficha-escenario" data-qa-geometry-capacity="owned" aria-busy={cargandoVista}>
         {png ? (
           <img src={png} alt={`Ficha de ${unidad?.label ?? "la UMP"}`} />
         ) : unidad ? (
@@ -87,13 +97,14 @@ export function FichaPorUmp({ unidades, hojas }: { unidades: UnidadesTerritorial
           />
         </div>
         <div className="rec-terr-ficha-acciones">
-          <PulsoButton variant="primary" disabled={!elegida || ocupado !== "" || unidades.stale} onClick={abrirPdf}>
-            <Printer size={14} aria-hidden /> {ocupado === "pdf" ? "Generando…" : "Abrir el PDF"}
+          <PulsoButton variant="primary" disabled={!elegida || generandoPdf || cargandoVista || unidades.stale} onClick={generarPdf}>
+            <Printer size={14} aria-hidden /> Generar el PDF
           </PulsoButton>
-          <PulsoButton variant="secondary" disabled={!elegida || ocupado !== "" || unidades.stale || Boolean(png)} onClick={verPng}>
-            {ocupado === "png" ? <Loader2 size={14} className="pulso-spin" aria-hidden /> : null} {ocupado === "png" ? "Generando la vista…" : "Ver la ficha real"}
+          <PulsoButton variant="secondary" disabled={!elegida || generandoPdf || cargandoVista || unidades.stale || Boolean(png)} onClick={verPng}>
+            {cargandoVista ? <Loader2 size={14} className="pulso-spin" aria-hidden /> : null} {cargandoVista ? "Generando la vista…" : "Ver la ficha real"}
           </PulsoButton>
         </div>
+        <ContenedorEntregable estado={pdf.estado} forma="bloque" onCerrar={pdf.cerrar} />
         {error ? <p className="rec-terr-error" role="alert">{error}</p> : null}
 
         <section className="rec-terr-ficha-prueba" aria-labelledby="rec-terr-prueba-titulo">
@@ -106,13 +117,14 @@ export function FichaPorUmp({ unidades, hojas }: { unidades: UnidadesTerritorial
             onValueChange={setPreferencia}
             className="rec-terr-opciones"
             aria-label="Qué manzana sortear para la prueba"
-            getOptionProps={(o) => ({ disabled: ocupado !== "", title: o[2] })}
+            getOptionProps={(o) => ({ disabled: generandoPrueba, title: o[2] })}
           >
             {(o) => <span>{o[1]}</span>}
           </GlidingRadioGroup>
-          <PulsoButton variant="secondary" size="sm" disabled={!hojas || ocupado !== "" || unidades.stale} onClick={alAzar}>
-            {ocupado === "azar" ? "Generando…" : "Abrir un PDF de prueba"}
+          <PulsoButton variant="secondary" size="sm" disabled={!hojas || generandoPrueba || unidades.stale} onClick={generarPrueba}>
+            Generar un PDF de prueba
           </PulsoButton>
+          <ContenedorEntregable estado={prueba.estado} forma="bloque" onCerrar={prueba.cerrar} />
           {azar ? <span className="rec-terr-nota">Última: {azar}</span> : null}
         </section>
       </aside>

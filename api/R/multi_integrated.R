@@ -1487,8 +1487,8 @@ mount_multi_integrated <- function(pr) {
       }
       downloads_dir <- file.path(session_get(sid)$dir, "downloads")
       dir.create(downloads_dir, recursive = TRUE, showWarnings = FALSE)
-      filename <- "diferencias_integracion.docx"
-      out_path <- file.path(downloads_dir, paste0(uuid::UUIDgenerate(), "_", filename))
+      filename <- .export_filename(sid, "diferencias_integracion", "docx")
+      out_path <- file.path(downloads_dir, paste0(uuid::UUIDgenerate(), "__", filename))
       .mi_decisions_docx(audit, parsed$decisions %||% list(), out_path)
       n <- file.info(out_path)$size
       bytes <- readBin(out_path, what = "raw", n = n)

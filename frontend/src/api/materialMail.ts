@@ -44,6 +44,7 @@
 // navegador. Lo que llega vive en memoria mientras la vista existe.
 
 import { ApiError, apiFetch, handle, headers } from "./core";
+import { camposDeEntregable, type CamposDeEntregable } from "./jobs";
 import { MAIL_GUARDADO_TYPES, MAIL_SECTION_TYPES, normalizeMailSection, type MailGuardado, type MailSectionBlock } from "./materialMailSecciones";
 
 // El resto del catálogo de secciones (L6) vive en su módulo; se lee desde aquí como el resto del contrato.
@@ -596,7 +597,7 @@ export type MailArtifact = {
   sha256: string;
   audience: string;
   sensitivity: string;
-};
+} & CamposDeEntregable;
 
 export type MailExportPayload = {
   scope?: MailExportScope;
@@ -1527,6 +1528,8 @@ function normalizeArtifact(value: unknown): MailArtifact | null {
   const file_id = str(value.file_id);
   if (!file_id) return null;
   return {
+    // El meta del entregable (ADR 0133): peso en `size`, copia junto al proyecto y su aviso.
+    ...camposDeEntregable(value),
     file_id,
     role: str(value.role),
     filename: str(value.filename) || file_id,
@@ -1541,7 +1544,9 @@ function normalizeArtifact(value: unknown): MailArtifact | null {
 export function normalizeMailExport(value: unknown): MailExportPayload {
   if (!isRecord(value)) throw contractError("la exportación no es un objeto.");
   const artifacts = list(value.artifacts).map(normalizeArtifact).filter((a): a is MailArtifact => a !== null);
-  const zip = normalizeArtifact(value.zip) ?? artifacts.find((a) => a.role === "deliverable") ?? null;
+  const artefacto = normalizeArtifact(value.zip) ?? artifacts.find((a) => a.role === "deliverable") ?? null;
+  // El ZIP es el entregable: si el registro dejó la copia en la raíz de la respuesta, se lee en el ZIP.
+  const zip = artefacto ? { ...camposDeEntregable(value), ...artefacto } : null;
   const review = isRecord(value.review)
     ? { ready: bool(value.review.ready), errors: int(value.review.errors, 0), warnings: int(value.review.warnings, 0) }
     : null;
@@ -1818,7 +1823,20 @@ export async function apiMailPresets(): Promise<MailPresetsPayload> {
 }
 
 /** Vista para revisión (L9): un HTML con los correos de las campañas elegidas, para quien aprueba. */
-export type MailRevision = { file_id: string; filename: string; size_bytes: number };
+export type MailRevision = { file_id: string; filename: string; size_bytes: number } & CamposDeEntregable;
+
+/** El archivo de la vista para revisión o de los textos en Word, con el meta del entregable (ADR 0133). */
+export function normalizeMailRevision(raw: unknown, porDefecto: string, falta: string): MailRevision {
+  const file = isRecord(raw) && isRecord(raw.file) ? raw.file : null;
+  if (!file || !str(file.file_id)) throw contractError(falta);
+  return {
+    ...camposDeEntregable(raw),
+    ...camposDeEntregable(file),
+    file_id: str(file.file_id),
+    filename: str(file.filename) || porDefecto,
+    size_bytes: int(file.size_bytes, 0),
+  };
+}
 
 /** Qué envío de cada campaña muestra la vista para revisión (L17), sin numerar. */
 export const MAIL_REVISION_ENVIOS = ["primero", "recordatorio", "ultimo"] as const;
@@ -1831,17 +1849,13 @@ export async function apiMailRevision(input: {
   envio?: MailRevisionEnvio;
 }): Promise<MailRevision> {
   const raw = await handleMail(await apiFetch(`${BASE}/mail-revision`, json("POST", input)));
-  const file = isRecord(raw) && isRecord(raw.file) ? raw.file : null;
-  if (!file || !str(file.file_id)) throw contractError("la vista para revisión no devolvió el archivo.");
-  return { file_id: str(file.file_id), filename: str(file.filename) || "revision.html", size_bytes: int(file.size_bytes, 0) };
+  return normalizeMailRevision(raw, "revision.html", "la vista para revisión no devolvió el archivo.");
 }
 
 /** «Textos en Word» (L13): asuntos, vistas previas y cuerpos de las campañas elegidas, para validar. */
 export async function apiMailTextosWord(input: { campaign_ids: string[]; titulo?: string }): Promise<MailRevision> {
   const raw = await handleMail(await apiFetch(`${BASE}/mail-textos-word`, json("POST", input)));
-  const file = isRecord(raw) && isRecord(raw.file) ? raw.file : null;
-  if (!file || !str(file.file_id)) throw contractError("los textos en Word no devolvieron el archivo.");
-  return { file_id: str(file.file_id), filename: str(file.filename) || "textos.docx", size_bytes: int(file.size_bytes, 0) };
+  return normalizeMailRevision(raw, "textos.docx", "los textos en Word no devolvieron el archivo.");
 }
 
 export async function apiMailCampaigns(): Promise<MailCampaignsPayload> {

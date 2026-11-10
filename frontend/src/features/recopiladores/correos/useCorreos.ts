@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
 
-import { apiSaveEntregable } from "../../../api/workspace";
 import {
   MailApiError,
   apiMailExport,
@@ -14,10 +13,12 @@ import {
   apiMailReview,
   apiMailTemplate,
   apiMailTemplatePut,
+  type MailExportPayload,
   type MailExportScope,
   type MailRecipientsMapping,
   type MailTemplate,
 } from "../../../api/materialMail";
+import { errorLegible, type ErrorLegible } from "../../../components/entregables/generacionModelo";
 import { camposNoDeclarados } from "./camposDeclarados";
 import { conDestinatarios, conPlantillaGuardada } from "./modeloCampanas";
 import { huellaDeEdicion } from "./modeloCorreo";
@@ -59,6 +60,28 @@ export function avisoDeImportacion(cause: unknown): string {
   return mensajeDe(cause, "No se pudo leer la lista de destinatarios.");
 }
 const AVISO_GUARDADA_INVALIDA = "La plantilla guardada en el proyecto no es válida. Corrige lo marcado y guarda el correo para reemplazarla.";
+
+const BLOQUEO_DE_REVISION = "E_COLLECTION_MAIL_REVIEW_BLOCKING";
+
+/** Exportar falló porque la revisión tiene puntos que corregir: hay que ir a verla. */
+export function esBloqueoDeRevision(cause: unknown): boolean {
+  return cause instanceof MailApiError && cause.code === BLOQUEO_DE_REVISION;
+}
+
+/** Lo que exportar no pudo hacer, dicho en la voz de la vista, para el contenedor del entregable. */
+const CAUSA_DE_EXPORTACION: Record<string, string> = {
+  [BLOQUEO_DE_REVISION]: "La revisión tiene puntos por corregir antes de exportar.",
+  E_COLLECTION_MAIL_EXPORT_TOO_LARGE: "El paquete supera 5 MB: revisa el peso de las imágenes.",
+  E_COLLECTION_STATE_STALE: "Otro cambio del módulo se guardó antes. Vuelve a cargar el correo.",
+  [GUARDADA_INVALIDA]: AVISO_GUARDADA_INVALIDA,
+};
+
+export function causaDeExportacion(cause: unknown): ErrorLegible {
+  if (cause instanceof MailApiError && CAUSA_DE_EXPORTACION[cause.code]) {
+    return { causa: CAUSA_DE_EXPORTACION[cause.code], codigo: cause.code };
+  }
+  return errorLegible(cause);
+}
 
 function mensajeDe(cause: unknown, fallback: string): string {
   if (cause instanceof MailApiError && cause.code === GUARDADA_INVALIDA) return AVISO_GUARDADA_INVALIDA;
@@ -283,20 +306,20 @@ export function useCorreos(opciones: { onEscrito?: () => void } = {}) {
     }
   }, [s, vigente]);
 
-  /** `revision`: la revisión bloquea y hay que ir a verla; `error`: otro motivo, ya avisado. */
-  /** Exporta el envío que se mira (lo GUARDADO: si hay cambios, se guardan antes). */
-  const exportar = useCallback(async (scope: MailExportScope = "completo"): Promise<"ok" | "revision" | "error"> => {
+  /**
+   * Exporta el envío que se mira (lo GUARDADO: si hay cambios, se guardan antes) y devuelve el paquete. Si no
+   * se puede, lanza: la causa la dice el contenedor del entregable (`causaDeExportacion`); si la revisión
+   * bloquea, además la relee para que la pestaña Revisión muestre los puntos.
+   */
+  const exportar = useCallback(async (scope: MailExportScope = "completo"): Promise<MailExportPayload> => {
     if (hayQueGuardar(s.getState())) {
       const ok = await guardar();
-      if (!ok) return "error";
+      if (!ok) throw new Error("No se pudo guardar el correo antes de exportarlo.");
     }
     const st = s.getState();
     // El backend exige la revisión que esta vista vio: sin ella no se exporta.
     const revision = st.stateRevision;
-    if (revision === null) {
-      st.setAviso({ tono: "error", texto: AVISO_SIN_REVISION });
-      return "error";
-    }
+    if (revision === null) throw new Error(AVISO_SIN_REVISION);
     st.setOcupado(scope === "plantilla" ? "exportando-plantilla" : "exportando");
     // La nota del .pulso que dejó el guardado previo se queda (F6); el resto se limpia.
     if (st.aviso?.texto !== NOTA_DEL_PROYECTO) st.setAviso(null);
@@ -305,21 +328,10 @@ export function useCorreos(opciones: { onEscrito?: () => void } = {}) {
       // Tras guardar, el envío elegido ya tiene su id del servidor.
       const payload = await apiMailExport({ expected_revision: revision, campaign_id: st.campana, scope, send_id: st.envio });
       if (vivo.current) s.getState().setExportacion(payload);
-      return "ok";
+      return payload;
     } catch (cause) {
-      if (!vivo.current) return "error";
-      if (cause instanceof MailApiError && cause.code === "E_COLLECTION_MAIL_REVIEW_BLOCKING") {
-        s.getState().setAviso({ tono: "error", texto: "La revisión tiene puntos por corregir antes de exportar." });
-        void revisar(null);
-        return "revision";
-      } else if (cause instanceof MailApiError && cause.code === "E_COLLECTION_MAIL_EXPORT_TOO_LARGE") {
-        s.getState().setAviso({ tono: "error", texto: "El paquete supera 5 MB: revisa el peso de las imágenes." });
-      } else if (cause instanceof MailApiError && cause.code === "E_COLLECTION_STATE_STALE") {
-        s.getState().setAviso({ tono: "error", texto: "Otro cambio del módulo se guardó antes. Vuelve a cargar el correo." });
-      } else {
-        s.getState().setAviso({ tono: "error", texto: mensajeDe(cause, "No se pudo exportar el correo.") });
-      }
-      return "error";
+      if (vivo.current && esBloqueoDeRevision(cause)) void revisar(null);
+      throw cause;
     } finally {
       if (vivo.current) s.getState().setOcupado(null);
     }
@@ -342,20 +354,6 @@ export function useCorreos(opciones: { onEscrito?: () => void } = {}) {
         s.getState().setAviso({ tono: "error", texto: mensajeDe(cause, `No se pudo armar el HTML de ${rotuloDeEnvio(envio)}.`) });
       }
       return null;
-    }
-  }, [s]);
-
-  const guardarJuntoAlProyecto = useCallback(async () => {
-    const zip = s.getState().exportacion?.zip;
-    if (!zip) return;
-    s.getState().setOcupado("guardando");
-    try {
-      const out = await apiSaveEntregable(zip.file_id, zip.filename, { overwrite: false });
-      if (vivo.current) s.getState().setAviso({ tono: "ok", texto: `Guardado junto al proyecto: ${out.filename}` });
-    } catch (cause) {
-      if (vivo.current) s.getState().setAviso({ tono: "error", texto: mensajeDe(cause, "No se pudo guardar el paquete junto al proyecto.") });
-    } finally {
-      if (vivo.current) s.getState().setOcupado(null);
     }
   }, [s]);
 
@@ -437,7 +435,7 @@ export function useCorreos(opciones: { onEscrito?: () => void } = {}) {
     }
   }, [s]);
 
-  return { cargar, guardar, exportar, htmlParaLaPlataforma, guardarJuntoAlProyecto, importar, mapear, olvidar, subirImagen };
+  return { cargar, guardar, exportar, htmlParaLaPlataforma, importar, mapear, olvidar, subirImagen };
 }
 
 export type AccionesDeCorreos = ReturnType<typeof useCorreos>;

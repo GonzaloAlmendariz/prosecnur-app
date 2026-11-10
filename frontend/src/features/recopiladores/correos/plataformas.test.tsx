@@ -114,12 +114,9 @@ describe("«Exportar ▾» por plataforma (F7)", () => {
       <PanelSurveyMonkey
         envio={{ send_id: "recordatorio-1", kind: "recordatorio", label: "Recordatorio 1", audience: "sin_respuesta", date: "2026-09-08" }}
         revision={null}
-        exportacion={null}
-        exportando={false}
         ocupado={false}
         onHtml={async () => null}
         onExportar={noop}
-        onGuardarJunto={noop}
       />,
     );
     expect(html).toContain("Para SurveyMonkey · Recordatorio 1 · 08/09");
@@ -164,8 +161,8 @@ describe("«Exportar ▾» por plataforma (F7)", () => {
 
   it("Mailchimp no cambia y nombra el envío cuando hay más de uno", () => {
     const html = renderToStaticMarkup(
-      <PanelMailchimp envio="Recordatorio 1" revision={null} exportacion={null} exportando={null} ocupado={false} htmlActual={null}
-        onExportar={noop} onGuardarJunto={noop} />,
+      <PanelMailchimp envio="Recordatorio 1" revision={null} ocupado={false} htmlActual={null}
+        onExportar={noop} />,
     );
     expect(html).toContain("Para Mailchimp · Recordatorio 1");
     expect(html).toContain("Plantilla para importar en Mailchimp");
@@ -219,7 +216,6 @@ describe("panel de envíos", () => {
         plataforma="surveymonkey"
         porGuardar
         ocupado={false}
-        exportando={false}
         onElegir={noop}
         onAgregar={noop}
         onQuitar={noop}

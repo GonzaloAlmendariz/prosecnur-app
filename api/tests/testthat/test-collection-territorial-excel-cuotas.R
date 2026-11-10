@@ -37,6 +37,8 @@ test_that("el Excel tiene una fila por zona con su cuota, y se lee de vuelta por
   collection_territorial_asignacion_put(sid, asignacion = list(list(id_zona = "150132", codigo = "P930")))
   r <- collection_territorial_asignacion_excel(sid)
   expect_identical(r$kind, "cuotas")
+  expect_true(all(c("modulo", "rotulo", "guardado_en", "aviso_guardado", "size") %in% names(r)))  # ADR 0133, fase 5
+  expect_identical(r$rotulo, "Asignación de encuestadores por cuotas")
   expect_identical(r$zonas, 2L)
   path <- session_get(sid)$files[[r$file_id]]$path
   t <- openxlsx::read.xlsx(path, sheet = "Asignación", startRow = 4, check.names = FALSE, sep.names = " ")
@@ -73,7 +75,7 @@ test_that("la hoja de conteo sale una por zona y sólo en cuotas", {
   r <- collection_territorial_papel(sid, pieza = "conteo")
   expect_identical(r$umps, 2L)
   expect_identical(r$paginas, 2L)
-  expect_match(r$filename, "^HojaConteo_2Zonas\\.pdf$")
+  expect_match(r$filename, "_Hoja_de_conteo_2_zonas_\\d{2}_\\d{2}_\\d{2}\\.pdf$")
   uno <- collection_territorial_papel(sid, pieza = "conteo", unidad = "150103")
   expect_identical(uno$paginas, 1L)
   expect_true(file.exists(session_get(sid)$files[[uno$file_id]]$path))

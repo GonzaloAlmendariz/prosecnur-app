@@ -252,11 +252,8 @@ mount_dashboard <- function(pr) {
       path <- .dashboard_relacion_descargar(s, var_p, var_s, filtros, iterar)
       n <- file.info(path)$size
       bytes <- readBin(path, what = "raw", n = n)
-      filename <- .export_filename(
-        sid,
-        paste0("relacion_", .export_slug(var_p), "_x_", .export_slug(var_s)),
-        "xlsx"
-      )
+      # ADR 0133 §3: «Relación» con las dos variables de detalle («P12 por sexo»).
+      filename <- .export_filename(sid, "relacion", "xlsx", detalle = paste(var_p, "por", var_s))
       res$setHeader("Content-Type",
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
       res$setHeader("Content-Length", as.character(n))
