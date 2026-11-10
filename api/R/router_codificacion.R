@@ -2154,7 +2154,9 @@ attr(.codif_apply_job_runner, "prosecnur_job_function_name") <- ".codif_apply_jo
     exportar_plantilla_codificacion_xlsx(
       plantilla, path_xlsx = codes_path, inst = inst
     )
-    codes_meta <- .register_output_file(sid, "plantilla_codif_template", codes_path)
+    # Transporte hacia ppra_adaptar_* (ver el puente más arriba): se registra sin
+    # copia a Entregables/; la respuesta de adaptar anuncia sólo data e instrumento.
+    codes_meta <- .register_output_file(sid, "plantilla_codif_template", codes_path, copiar = FALSE)
     codif_set(sid, "plantilla_codigos_file_id", codes_meta$file_id)
 
     .bridge_grupos_to_plantilla(sid)
@@ -3143,7 +3145,9 @@ mount_codificacion <- function(pr) {
       exportar_plantilla_codificacion_xlsx(
         plantilla, path_xlsx = codes_path, inst = inst
       )
-      codes_meta <- .register_output_file(sid, "plantilla_codif_template", codes_path)
+      # Transporte hacia ppra_adaptar_*: sin copia a Entregables/ (ADR 0133). La
+      # respuesta anuncia sólo la data y el instrumento adaptados.
+      codes_meta <- .register_output_file(sid, "plantilla_codif_template", codes_path, copiar = FALSE)
       codif_set(sid, "plantilla_codigos_file_id", codes_meta$file_id)
 
       # 4) Bridge — write every in-app codification decision into the xlsx.

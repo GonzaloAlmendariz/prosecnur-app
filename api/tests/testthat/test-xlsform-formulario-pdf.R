@@ -2066,7 +2066,7 @@ test_that("«Otra identidad de género (especifica)» bajo la opción 88 va en l
   choices <- data.frame(list_name = c("gi", "gi", "sn", "sn"), name = c("1", "88", "1", "2"),
                         label = c("Mujer", "Otra identidad de género", "Sí", "No"), stringsAsFactors = FALSE)
   m <- suppressWarnings(formulario_pdf_build_model(survey, choices, NULL))
-  expect_false(any(grepl("Numeracion secuencial", unlist(m$warnings))))
+  expect_false(any(grepl("Numeraci[oó]n secuencial", unlist(m$warnings))))
   expect_identical(m$summary$n_questions, 10L)
 })
 

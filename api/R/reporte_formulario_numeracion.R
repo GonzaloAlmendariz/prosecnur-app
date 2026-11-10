@@ -133,12 +133,12 @@
     fams <- unique(vapply(der_u[derivables], `[[`, "", "familia"))
     Ns <- vapply(der_u[derivables], `[[`, 0, "N")
     if (anyDuplicated(todas)) {
-      falla <- sprintf("dos variables dan el mismo numero (%s)", todas[anyDuplicated(todas)])
+      falla <- sprintf("dos variables dan el mismo número (%s)", todas[anyDuplicated(todas)])
     } else if (length(fams) > 1L) {
       falla <- sprintf("mezcla prefijos (%s)", paste(fams, collapse = ", "))
     } else if (any(Ns >= 1000) || any(Ns > 3 * total)) {
       k <- derivables[which(Ns >= 1000 | Ns > 3 * total)[1]]
-      falla <- sprintf("`%s` daria el numero %s, que no es plausible",
+      falla <- sprintf("`%s` daría el número %s, que no es plausible",
                        nombres[unidades[[k]]$filas[1]], der_u[[k]]$etiqueta)
     } else {
       ultimo <- list()
@@ -161,11 +161,11 @@
         if (length(f)) faltan <- c(faltan, paste0(md, f))
       }
       if (length(faltan) > .FORM_NUM_FALTANTES * total) {
-        falla <- sprintf("le faltan %d numeros (%s%s)", length(faltan),
+        falla <- sprintf("le faltan %d números (%s%s)", length(faltan),
                          paste(utils::head(faltan, 6), collapse = ", "), if (length(faltan) > 6) ", ..." else "")
       } else if (length(faltan)) {
         avisos <- c(avisos, sprintf(
-          "Numeracion tomada de los nombres de variable; faltan %d numero(s): %s.",
+          "Numeración tomada de los nombres de variable; faltan %d número(s): %s.",
           length(faltan), paste(faltan, collapse = ", ")))
       }
     }
@@ -174,7 +174,7 @@
   modo <- if (nzchar(falla)) "secuencial" else "derivado"
   if (identical(modo, "secuencial") && total) {
     avisos <- c(avisos, sprintf(
-      "Numeracion secuencial: no se usa la de los nombres de variable porque %s.", falla))
+      "Numeración secuencial: no se usa la de los nombres de variable porque %s.", falla))
   }
 
   ultimo_num <- 0L; ultima_et <- ""; extra <- 0L

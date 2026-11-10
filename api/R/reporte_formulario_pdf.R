@@ -276,7 +276,7 @@
       label_full <- .form_pdf_paper_text(df$label[i])
       if (!identical(label_safe, label_full)) {
         warnings <<- c(warnings, sprintf(
-          "Categoria conservada tal cual en la lista `%s`, codigo `%s`: «%s» (la limpieza de enunciados la habria dejado como «%s»).",
+          "Categoría conservada tal cual en la lista `%s`, código `%s`: \"%s\" (la limpieza de enunciados la habría dejado como \"%s\").",
           list_name, .form_pdf_chr(df$name[i]), label_safe, label_full
         ))
       }
@@ -547,7 +547,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
     columns <- suppressWarnings(as.integer(columns_raw))
     if (is.na(columns) || !columns %in% c(1L, 2L)) {
       option_warnings <- c(option_warnings, sprintf(
-        "Opcion `columns` no reconocida: se recibio «%s» y se usa 2 (valores validos: 1, 2, \"auto\").",
+        "Opción `columns` no reconocida: se recibió \"%s\" y se usa 2 (valores válidos: 1, 2, \"auto\").",
         .form_pdf_chr(columns_raw)))
       columns <- 2L
     }
@@ -595,7 +595,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   for (ln in names(choices_by_list)) {
     for (o in choices_by_list[[ln]]) {
       if (!nzchar(.form_pdf_clean_text_safe(o$label %||% ""))) {
-        categorias_mudas <- c(categorias_mudas, sprintf("`%s` / codigo `%s`", ln, .form_pdf_chr(o$code)))
+        categorias_mudas <- c(categorias_mudas, sprintf("`%s`, código `%s`", ln, .form_pdf_chr(o$code)))
       }
     }
   }
@@ -642,7 +642,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   openings <- logica$condiciones
   warnings <- c(option_warnings, group_warnings, cls$avisos, num$avisos, logica$avisos)
   if (length(categorias_mudas)) warnings <- c(warnings, sprintf(
-    "Categorias sin rotulo (saldran como celda vacia en el papel): %s.",
+    "Categorías sin rótulo (saldrán como celda vacía en el papel): %s.",
     paste(unique(categorias_mudas), collapse = "; ")))
 
   warnings <- c(rti$aviso, aviso_idioma, warnings)
@@ -1004,7 +1004,7 @@ formulario_pdf_build_model <- function(survey, choices, settings = NULL, paper =
   }
 
   if (length(sin_rotulo)) warnings <- c(warnings, sprintf(
-    "Preguntas sin rotulo en el instrumento (salen con su numero y la variable, sin enunciado): %s.",
+    "Preguntas sin rótulo en el instrumento (salen con su número y la variable, sin enunciado): %s.",
     paste(sin_rotulo, collapse = ", ")))
   # Indice de seccion corrido (para el kicker "SECCION N").
   sec_i <- 0L

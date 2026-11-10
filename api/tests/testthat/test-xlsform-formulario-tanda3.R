@@ -267,7 +267,7 @@ test_that("item 39: `censo_2025` ya no se imprime como pregunta 2025; secuencial
   expect_identical(nums, c("1", "2", "3", "4"))
   expect_identical(.t3_bloque(m, "censo_2025")$label, "Poblacion del censo [censo_2025]")
   expect_identical(.t3_bloque(m, "p1")$label, "Edad")          # 1 = p1: sin etiqueta
-  expect_true(any(grepl("Numeracion secuencial.*censo_2025", m$warnings)))
+  expect_true(any(grepl("Numeración secuencial.*censo_2025", m$warnings)))
 })
 
 test_that("item 39: el esquema derivado se usa entero cuando cumple todo (modulos y subnumeros)", {
@@ -282,7 +282,7 @@ test_that("item 39: el esquema derivado se usa entero cuando cumple todo (modulo
                                        function(b) b$label, ""))))
   # Los saltos nombran el mismo rotulo impreso.
   expect_identical(.t3_salto(.t3_bloque(m, "A1"), "2"), "pase a la pregunta A3.1")
-  expect_false(any(grepl("Numeracion", m$warnings)))
+  expect_false(any(grepl("Numeraci[oó]n", m$warnings)))
 })
 
 test_that("item 39: una secuencia derivada que no crece cae a secuencial y dice donde", {
@@ -423,7 +423,7 @@ test_that("item 44: campos de control, cabecera de table-list, geopunto, proceso
   expect_true(all(vapply(ctrl, function(b) b$number, "") == ""))
   nombres <- unlist(lapply(m$blocks, function(b) c(b$name, vapply(b$items %||% list(), `[[`, "", "name"))))
   for (fuera in c("n_cuestionario", "gps", "hdr", "m2_cod", "nivel_otro")) expect_false(fuera %in% nombres, info = fuera)
-  expect_true(any(grepl("ubicacion.*gps", m$warnings)))
+  expect_true(any(grepl("ubicación.*gps", m$warnings)))
   expect_true(any(grepl("proceso.*m2_cod", m$warnings)))
   expect_true(any(grepl("cabecera", m$warnings)))
   # La fila `appearance=label` no corta la matriz: m1 y m2 siguen juntas.

@@ -164,10 +164,10 @@
   if (length(omit_plat)) avisos <- c(avisos, sprintf(
     "Bloques de la plataforma que no se preguntan en papel (se omiten): %s.", paste(unique(omit_plat), collapse = ", ")))
   if (length(omit_geo)) avisos <- c(avisos, sprintf(
-    "Campos de ubicacion que no tienen lugar en el papel (se omiten): %s.", paste(unique(omit_geo), collapse = ", ")))
+    "Campos de ubicación que no tienen lugar en el papel (se omiten): %s.", paste(unique(omit_geo), collapse = ", ")))
   if (length(omit_proc)) avisos <- c(avisos, sprintf(
     "Variables de proceso que no se preguntan (se omiten del papel): %s.", paste(unique(omit_proc), collapse = ", ")))
   if (length(vinc)) avisos <- c(avisos, sprintf(
-    "El numero de cuestionario (%s) se anota en las casillas de la cabecera.", paste(unique(vinc), collapse = ", ")))
+    "El número de cuestionario (%s) se anota en las casillas de la cabecera.", paste(unique(vinc), collapse = ", ")))
   list(rol = rol, control = control, especifique = esp, avisos = avisos)
 }

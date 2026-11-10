@@ -40,7 +40,7 @@
   if (!is.null(prestadas) && nrow(prestadas)) {
     celdas <- unique(sprintf("`%s` (%s)", quien(prestadas$fila), prestadas$columna))
     out <- c(out, sprintf(
-      "Texto tomado de otro idioma porque el idioma por defecto (%s) lo deja vacio, en %d celda(s): %s.",
+      "Texto tomado de otro idioma porque el idioma por defecto (%s) lo deja vacío, en %d celda(s): %s.",
       lang, length(celdas), paste(utils::head(celdas, 12), collapse = "; ")))
   }
   if (!is.null(ajenas) && nrow(ajenas)) {
