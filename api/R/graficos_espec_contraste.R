@@ -138,7 +138,9 @@
   if (!any(ok)) return(NULL)
   rot <- vapply(grupos, .base_rotulo, "", USE.NAMES = FALSE)
   pub <- if (is.null(publico) || is.na(publico[1]) || !nzchar(trimws(publico[1]))) NULL else .base_rotulo(publico)
-  items <- if (is.null(pub)) paste(ns, rot) else c(paste(ns[1], pub, "de", rot[1]), paste(ns[-1], "de", rot[-1]))
+  # Sin público, un grupo que empieza con cifra va con «de» para no juntar dos números («129 a 139 de 2do ciclo»).
+  items <- if (is.null(pub)) ifelse(grepl("^[[:digit:]]", rot), paste(ns, "de", rot), paste(ns, rot)) else
+    c(paste(ns[1], pub, "de", rot[1]), paste(ns[-1], "de", rot[-1]))
   paste0("Base: ", .base_lista(items[ok]))
 }
 

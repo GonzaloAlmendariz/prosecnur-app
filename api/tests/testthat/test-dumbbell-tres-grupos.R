@@ -46,7 +46,7 @@ test_that("con tres grupos: una sub-fila por grupo, diferencia = mayor menos men
   expect_equal(e$diferencia, apply(R, 1, max) - apply(R, 1, min))
   expect_false(any(grepl("^[+-]", e$textos_diferencia)))
   expect_identical(e$base_en, "nota")
-  expect_identical(e$nota_base, "Base: 2do ciclo 129 a 139; 3er ciclo 15 a 25; 4to ciclo 105 a 115")
+  expect_identical(e$nota_base, "Base: 129 a 139 de 2do ciclo, 15 a 25 de 3er ciclo y 105 a 115 de 4to ciclo")
   expect_identical(e$leyenda, c("2do ciclo (139)", "3er ciclo (25)", "4to ciclo (115)"))
   expect_length(.lam_contraste_anchos(e), 1L)                        # sin columnas de base: sólo "Diferencia"
   expect_identical(e$formas, c("ellipse", "rect", "triangle"))
@@ -57,7 +57,7 @@ test_that("con cuatro grupos: cuatro sub-filas, cuatro formas y la leyenda con s
   expect_identical(ncol(e$valores), 4L); expect_identical(e$modo, "subfilas")
   expect_identical(e$formas, c("ellipse", "rect", "triangle", "diamond"))
   expect_identical(e$leyenda[4], "5to ciclo (60)")
-  expect_match(e$nota_base, "5to ciclo 50 a 60", fixed = TRUE)
+  expect_match(e$nota_base, "50 a 60 de 5to ciclo", fixed = TRUE)
   expect_length(.lam_contraste_anchos(e), 1L)
 })
 
@@ -82,7 +82,7 @@ test_that("el dumbbell entre públicos acepta de dos a cuatro: el analista los e
   expect_identical(e$tipo, "contraste")
   expect_identical(e$grupos, c("Docentes", "Estudiantes", "Administrativos"))
   expect_identical(e$leyenda, c("Docentes (115)", "Estudiantes (279)", "Administrativos (85)"))
-  expect_identical(e$nota_base, "Base: Docentes 115; Estudiantes 279; Administrativos 85")
+  expect_identical(e$nota_base, "Base: 115 docentes, 279 estudiantes y 85 administrativos")
   # Cuatro públicos.
   e4 <- attr(.d3_render(.render_dumbbell, p_dumbbell(vars = .d3_vars(4), corte = c("3", "4"), estilo = "resumen"), .d3_fuentes(4)), "pulso_espec")
   expect_identical(ncol(e4$valores), 4L)
@@ -113,7 +113,7 @@ test_that("la lámina de un gráfico con tres públicos sale nativa: sub-filas, 
   expect_false(grepl('name="puntos:base"', xml, fixed = TRUE))                        # sin columna de base
   expect_false(grepl(">Base</a:t>", xml, fixed = TRUE))
   expect_match(xml, "Docentes (115)", fixed = TRUE)
-  expect_match(xml, "Base: Docentes 115; Estudiantes 279; Administrativos 85", fixed = TRUE)
+  expect_match(xml, "Base: 115 docentes, 279 estudiantes y 85 administrativos", fixed = TRUE)
   expect_false(grepl("el grupo mayor menos el menor", xml, fixed = TRUE))   # 8c9b5ffca: el pie lleva sólo la base; la nota va al analista
 })
 
