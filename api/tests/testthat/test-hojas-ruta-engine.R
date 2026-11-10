@@ -1200,6 +1200,8 @@ test_that("campo real puede ignorar piloto y recalcular sin modificar la piloto"
   sid <- session_create()
   on.exit(session_delete(sid), add = TRUE)
   pilot_sample <- hojas_ruta_sample_preview_integrado(list(
+    # N total escrito: la config guardada se normaliza con modo «Calculado» por defecto, que tomaría el N del cálculo.
+    sample_size_mode = "external_total",
     n_objetivo = 24,
     territorios = c("150110", "070106"),
     sampling_method = "pps",

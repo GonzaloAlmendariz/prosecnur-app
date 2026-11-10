@@ -778,7 +778,7 @@ mount_hojas_ruta <- function(pr) {
       sid <- session_header(req)
       parsed <- .hojas_ruta_parse_body(req)
       # Con la lógica «Calculado» las cuotas reparten el N del cálculo, no el guardado (hojas_ruta_n_calculado.R).
-      cfg <- hojas_ruta_n_calculado(hojas_ruta_integrada_normalize_config(parsed$config %||% parsed))
+      cfg <- hojas_ruta_n_calculado(hojas_ruta_integrada_normalize_config(parsed$config %||% parsed), declarado = !is.null((parsed$config %||% parsed)$sample_size_mode))
       active <- .hojas_ruta_active_run(sid)
       .hojas_ruta_save_run(sid, active$phase, config = cfg)
       result <- hojas_ruta_quota_preview_integrado(cfg)
@@ -824,7 +824,7 @@ mount_hojas_ruta <- function(pr) {
       parsed <- .hojas_ruta_parse_body(req)
       # El sorteo con lógica «Calculado» usa el N del cálculo: con el guardado sorteaba 20 UMP donde el diseño
       # decía 402 rutas (hojas_ruta_n_calculado.R).
-      cfg <- hojas_ruta_n_calculado(hojas_ruta_integrada_normalize_config(parsed$config %||% parsed))
+      cfg <- hojas_ruta_n_calculado(hojas_ruta_integrada_normalize_config(parsed$config %||% parsed), declarado = !is.null((parsed$config %||% parsed)$sample_size_mode))
       active <- .hojas_ruta_active_run(sid)
       marco_anterior <- active$run$config$marco_elegible %||% NULL
       .hojas_ruta_save_run(sid, active$phase, config = cfg)

@@ -43,8 +43,10 @@ test_that("enviar por cuotas guarda la foto con huella; cambiar el N la deja des
   expect_true(all(vapply(envio$zonas, function(z) length(z$cuotas) > 0L, logical(1))))
   # La foto no viaja por HTTP; los metadatos sí.
   expect_null(.hojas_ruta_runs_publicos(session_get(sid)$hojas_ruta_runs)$field[["envio"]])  # [[ ]]: $envio pesca envio_meta
-  # Otra N: otras cuotas, otra huella.
+  # Otra N: otras cuotas, otra huella. Con la lógica «Calculado» el N sale del cálculo y `n_objetivo` no cuenta
+  # (hojas_ruta_n_calculado.R); otro N es otro N total escrito.
   s <- session_get(sid)
+  s$hojas_ruta_runs$field$config$sample_size_mode <- "external_total"
   s$hojas_ruta_runs$field$config$n_objetivo <- 400L
   .session_env[[sid]] <- s
   expect_true(hojas_ruta_envio_meta(session_get(sid)$hojas_ruta_runs$field)$desactualizado)
@@ -104,8 +106,10 @@ test_that("Material lee el envío por cuotas: unidades son zonas con su cuota y 
   expect_identical(u$n_titulares, 0L)
   expect_false(u$stale)
 
-  # Cambiar el N en Hojas deja la lista desactualizada, sin reescribir la foto.
+  # Cambiar el N en Hojas deja la lista desactualizada, sin reescribir la foto (un N total escrito: con «Calculado»
+  # `n_objetivo` no cuenta).
   s <- session_get(sid)
+  s$hojas_ruta_runs$field$config$sample_size_mode <- "external_total"
   s$hojas_ruta_runs$field$config$n_objetivo <- 300L
   .session_env[[sid]] <- s
   expect_true(collection_territorial_unidades(sid, "territorial.principal")$stale)
