@@ -14,6 +14,9 @@ import { useAsignacionPlanificada } from "./useAsignacionPlanificada";
 import { RotuloDePestana } from "../navegacion/RotuloDePestana";
 import { avancePorZona } from "./porZonaModelo";
 import { ZonasConEquipo } from "./ZonasConEquipo";
+import { archivoCsv } from "../../../../../components/entregables/archivoLocal";
+import { EntregaEnBloque } from "../../../entregas/EntregaEnBloque";
+import { useEntrega } from "../../../entregas/useEntrega";
 import "./umps.css";
 
 const ROTULO_DE_FILTRO: Record<FiltroDeUmps, string> = {
@@ -23,16 +26,6 @@ const ROTULO_DE_FILTRO: Record<FiltroDeUmps, string> = {
   completas: "Completas",
   "sin-parte": "Sin parte",
 };
-
-function descargarCsv(nombre: string, csv: string) {
-  const blob = new Blob([`﻿${csv}`], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const enlace = document.createElement("a");
-  enlace.href = url;
-  enlace.download = nombre;
-  enlace.click();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
 
 /**
  * Avance › UMP (territorial.md §3.16 y §3.16b). La tabla de las UMP con las
@@ -60,6 +53,7 @@ function UmpsTabImpl({
   // B3: lo que Material asignó a cada UMP, contra quién respondió.
   const asignacion = useAsignacionPlanificada(avance?.generated_at ?? "");
   const planificado = useMemo(() => columnaPlanificada(asignacion), [asignacion]);
+  const csv = useEntrega("UMP del corte", { formato: "csv", articulo: "las" });
 
   if (!modelo.filas.length) {
     return (
@@ -131,11 +125,17 @@ function UmpsTabImpl({
             <span className="pulso-sr-only">Buscar UMP, distrito, manzana o aplicador</span>
             <input type="search" value={busqueda} placeholder="Buscar UMP" onChange={(event) => setBusqueda(event.currentTarget.value)} />
           </label>
-          <button type="button" className="mon-umps-boton" onClick={() => descargarCsv("ump-del-corte.csv", csvDeUmps(filas, modelo.conOcurrencias))}>
+          <button
+            type="button"
+            className="mon-umps-boton"
+            disabled={csv.enCurso}
+            onClick={() => { void csv.ejecutar(async () => archivoCsv(csvDeUmps(filas, modelo.conOcurrencias), "ump-del-corte.csv")); }}
+          >
             <Download size={14} aria-hidden="true" />
             CSV
           </button>
         </header>
+        <EntregaEnBloque entrega={csv} />
         {planificado.tipo === "aviso" ? <p className="mon-umps-planificado-aviso" role="status">{planificado.texto}</p> : null}
         {planificado.tipo === "columna" ? <p className="mon-umps-planificado-aviso">{planificado.resumen}</p> : null}
         <div className="mon-umps-tabla-marco" data-qa-geometry-capacity="owned" tabIndex={0} aria-label="UMP del corte, con desplazamiento">

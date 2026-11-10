@@ -1,0 +1,76 @@
+/* Monitoreo sobre el kit de entregables (ADR 0133, fase 5). Sólo lo que el
+   módulo pone alrededor del contenedor del kit: el ancla de la forma anclada,
+   los archivos sueltos y la nota del pie. El contenedor mismo es del kit
+   (components/entregables/entregables.css). */
+
+/* Ancla de la forma anclada: el contenedor flota bajo el disparador sin mover la barra. */
+.mon-entrega-anclaje {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+/* Archivos que acompañan al principal, al pie del contenedor: botones neutros que se parten en líneas. */
+.mon-entrega-sueltos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+}
+
+/* Lo que el archivo trae dicho en palabras (filas, estado de la validación), al pie del contenedor. */
+.mon-entrega-nota {
+  min-width: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+/* Bloque bajo la cabecera o el pie de un panel: una fila más del panel, que encoge con él; la separación
+   la pone el `gap` del panel. */
+.mon-entrega-bloque {
+  min-width: 0;
+}
+
+/* En un panel sin relleno propio (la cabecera pone el suyo): el contenedor se separa de los bordes como ella. */
+.mon-entrega-bloque--inset {
+  flex-shrink: 0;
+  padding: 0 var(--pulso-space-5) var(--pulso-space-3);
+}
+
+/* `monitoreo.css` da forma de botón de barra a todo `button` crudo dentro de un panel
+   (`.mon-page .pulso-panel button:not(.pulso-button)`, 0,3,1): el «Cerrar» del contenedor
+   saldría como un botón de 32 px con borde. Se sube la especificidad, como en
+   `escalaDeSuperficies.css`, y se redeclara lo que esa regla pisa con los valores del kit. */
+.mon-page .pulso-panel .pulso-entregable button.pulso-entregable-cerrar {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--pulso-text-faint);
+  font-size: inherit;
+}
+
+.mon-page .pulso-panel .pulso-entregable button.pulso-entregable-cerrar:hover {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+}
+
+/* Celda de acción de una fila: el disparador arriba y el contenedor en fila debajo, al ancho de la celda. */
+.mon-entrega-celda {
+  display: grid;
+  justify-items: end;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+}
+
+.mon-entrega-celda > .pulso-entregable {
+  justify-self: stretch;
+  min-width: 0;
+}

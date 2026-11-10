@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import type { MonitoreoAulasConfig, MonitoreoSource } from "../../../../../api/monitoreo";
+import type { GenerarPlantillaDeDisponibilidad } from "../entregasDeAulas";
 
 /**
  * Lo que la sección Insumos toma de la página: el estado de la sesión y sus
@@ -27,8 +28,8 @@ export type ContextoDeInsumos = {
   criterioDeAula?: ReactNode;
   /** Declara el umbral de duración sospechosa; `null` si todavía no se puede guardar. */
   onDeclararUmbralDeDuracion?: ((minutos: number) => void | Promise<void>) | null;
-  /** I3: baja la plantilla de disponibilidad. */
-  plantillaDisponibilidad?: () => void;
+  /** I3: pide la plantilla de disponibilidad; la entrega el contenedor del kit bajo la cabecera. */
+  plantillaDisponibilidad?: GenerarPlantillaDeDisponibilidad;
   /** I3: reemplaza la disponibilidad entera con la del archivo. */
   importarDisponibilidad?: (archivo: File) => void;
   /** Vuelve a pedir el corte (después de traer la entrega de Material). */

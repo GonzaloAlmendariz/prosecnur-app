@@ -16,7 +16,7 @@ const contexto: ContextoDeSalidas = {
   clientSheets: null,
   ocupado: false,
   irAMaterial: () => {},
-  generarLibro: async () => {},
+  generarLibro: async () => ({ ok: true as const, file_id: "libro-1", filename: "Libro.xlsx", unidades: 0, partes: 0, control: 0 }),
   hrefHerramientas: "/monitoreo?modo=aulas&seccion=avance&pestana=salidas&panel=herramientas",
 };
 

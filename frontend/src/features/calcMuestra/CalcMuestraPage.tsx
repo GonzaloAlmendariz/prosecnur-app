@@ -22,7 +22,6 @@ import {
   X,
 } from "lucide-react";
 import { PageFrame } from "../../components/PageFrame";
-import { descargarArchivo } from "../../lib/descargas";
 import { ChromeIndicator, ChromeIndicatorGroup } from "../../components/ChromeIndicator";
 import { ModuleCommandBar } from "../../components/ModuleCommandBar";
 import { Alert } from "../../components/Alert";
@@ -39,7 +38,6 @@ import { EMPTY_WORKSPACE } from "./workspaceDefaults";
 import {
   apiCalcMuestraAulasCerteza,
   apiCalcMuestraAulasCompararMetodos,
-  apiCalcMuestraAulasExportar,
   apiCalcMuestraAulasSeleccionar,
   apiCalcMuestraAulasSimularReemplazos,
   apiCalcMuestraAsistenciaReferencia,
@@ -48,14 +46,11 @@ import {
   apiCalcMuestraIniciarEstudio,
   apiCalcMuestraMarcoConstruir,
   apiCalcMuestraMarcoInspeccionarArchivo,
-  apiCalcMuestraReporteIniciar,
   apiCalcMuestraState,
   apiJobCancel,
   apiJobStatus,
   apiMonitoreoImportFromCalcMuestra,
   apiUpload,
-  calcMuestraReporteDescargarUrl,
-  downloadUrl,
   normalizeCalcMuestraReferenciaAsistencia,
   type CalcMuestraAulasFileInspection,
   type CalcMuestraAulasSheetInspectionSheet,
@@ -139,7 +134,8 @@ import {
   jsonIgual,
   registrarCorrida,
 } from "./corridas";
-import type { PaqueteDefensaPaso, PaqueteDefensaPasoId } from "./universidad/salidas";
+import { memoriaDefensaComoArchivo } from "./entregas/memoriaDefensa";
+import { useEntregasCalcMuestra } from "./entregas/useEntregasCalcMuestra";
 import {
   construirMemoriaPaqueteDefensa,
   leerContextoPaqueteTrasRefresco,
@@ -149,10 +145,7 @@ import {
   type PaqueteDefensaFingerprint,
 } from "./universidad/salidas/paqueteDefensa";
 import {
-  CM_JOB_MAX_NOT_FOUND,
-  CM_JOB_POLL_TIMEOUT_MS,
   cmJobErrorText,
-  esJobNoEncontrado,
   esperarJob,
   JobCancelledError,
 } from "./hooks/jobPolling";
@@ -751,17 +744,9 @@ export default function CalcMuestraPage() {
   // set actúa de guarda anti-loop: la persistencia del workspace re-dispara el
   // efecto, pero el file_id ya marcado no se vuelve a inspeccionar.
   const inspectedSourceFileIdsRef = useRef<Set<string>>(new Set());
-  // F13: id del interval de polling del reporte + guard de unmount. El interval
-  // se crea dentro de una función async (generarReporte): sin ref ni cleanup
-  // seguía corriendo tras desmontar la página (leak + setState sobre un
-  // componente muerto).
-  const reportePollRef = useRef<number | null>(null);
-  const unmountedRef = useRef(false);
-  const [reporteEnCurso, setReporteEnCurso] = useState(false);
   // F5: el backend ya no borra la meta del reporte en cada PUT; marca `stale`
   // cuando el estudio cambió después de generarlo. La descarga sigue viva.
   const [reporteStale, setReporteStale] = useState(false);
-  const [exportandoAulas, setExportandoAulas] = useState(false);
   // Bandera propia y no `busy === "<etiqueta>"`: mientras corre el job, el
   // progreso sobrescribe `busy` con el mensaje de la fase, así que comparar
   // contra la etiqueta inicial deja el botón habilitado justo cuando no debe.
@@ -798,7 +783,13 @@ export default function CalcMuestraPage() {
   const [aulasStateChecked, setAulasStateChecked] = useState(false);
   const [uploadingSourceId, setUploadingSourceId] = useState<string | null>(null);
   const [paqueteEnCurso, setPaqueteEnCurso] = useState(false);
-  const [paquetePasos, setPaquetePasos] = useState<PaqueteDefensaPaso[] | null>(null);
+  // Reporte, anexo y piezas del paquete por el kit de entregables (ADR 0133): el kit sigue el job.
+  const entregas = useEntregasCalcMuestra({
+    persistir: () => apiCalcMuestraEstudioPut(useCalcMuestraStore.getState().estudio),
+    alReporte: setReporteMeta,
+    alEstadoAulas: (state) => setAulasState(state.aulas ?? null),
+  });
+  const reporteEnCurso = [entregas.reporte, entregas.paqueteReporte].some((g) => g.estado.fase === "en_curso");
   const handleHydratedState = useCallback((state: CalcMuestraState) => {
     setAulasState(state.aulas ?? null);
     setReferenciaAsistencia(
@@ -902,18 +893,6 @@ export default function CalcMuestraPage() {
     if (!debeResetearRailSection({ prevDesk, desk, recoveredAulasDesk, deskOverride, direccionPideSeccion })) return;
     setActiveRailSection(defaultRailSectionForDesk(desk));
   }, [desk, recoveredAulasDesk, deskOverride, direccion.seccion, direccion.secciones, setActiveRailSection]);
-
-  // F13: cleanup del polling del reporte al desmontar (ver reportePollRef).
-  useEffect(() => {
-    unmountedRef.current = false;
-    return () => {
-      unmountedRef.current = true;
-      if (reportePollRef.current != null) {
-        window.clearInterval(reportePollRef.current);
-        reportePollRef.current = null;
-      }
-    };
-  }, []);
 
   // Los avisos transitorios (error/cancelado/info) no deben sobrevivir a la
   // navegación: al cambiar de sección o de pestaña del laboratorio se limpian,
@@ -1356,95 +1335,14 @@ export default function CalcMuestraPage() {
     setWorkspaceSiCambia(corrida ? registrarCorrida(nextWorkspace, corrida) : nextWorkspace);
   }
 
-  async function generarReporte(formato: "html" | "pdf" = "html") {
-    setReporteEnCurso(true);
+  function generarReporte(formato: "html" | "pdf" = "html") {
     setMsg(null);
-    try {
-      await persistCurrent();
-      const res = await apiCalcMuestraReporteIniciar(formato);
-      setReporteMeta({ disponible: false, jobId: res.job_id });
-      const start = Date.now();
-      let notFoundSeguidos = 0;
-      // F13: interval con ref + cleanup en unmount (efecto arriba). Una corrida
-      // nueva reemplaza al interval anterior si quedara vivo.
-      if (reportePollRef.current != null) window.clearInterval(reportePollRef.current);
-      const detener = () => {
-        if (reportePollRef.current != null) {
-          window.clearInterval(reportePollRef.current);
-          reportePollRef.current = null;
-        }
-      };
-      reportePollRef.current = window.setInterval(async () => {
-        if (unmountedRef.current) {
-          detener();
-          return;
-        }
-        if (Date.now() - start > CM_JOB_POLL_TIMEOUT_MS) {
-          detener();
-          // Mismo criterio que esperarJob (F6): si el polling se rinde, se pide
-          // cancelar el job en el backend (best-effort).
-          void apiJobCancel(res.job_id).catch(() => undefined);
-          setReporteEnCurso(false);
-          setMsg({ kind: "error", text: "El reporte superó los 30 minutos de espera. Se pidió cancelar el job; revisa el estado del backend y reintenta." });
-          return;
-        }
-        try {
-          // Pollear el JOB (no solo el state): si el worker falla, el error
-          // real llega aquí en vez de dejar la UI esperando para siempre.
-          const snap = await apiJobStatus(res.job_id);
-          notFoundSeguidos = 0;
-          if (unmountedRef.current) {
-            detener();
-            return;
-          }
-          if (snap.status === "error" || snap.status === "cancelled") {
-            detener();
-            setReporteEnCurso(false);
-            setMsg({ kind: "error", text: `No se pudo generar el reporte: ${cmJobErrorText(snap)}` });
-            return;
-          }
-          if (snap.status === "done") {
-            detener();
-            setReporteEnCurso(false);
-            setReporteMeta({ disponible: true, jobId: res.job_id });
-            setMsg({ kind: "info", text: "Reporte metodológico listo." });
-          }
-        } catch (e) {
-          // F6: los jobs viven en memoria del backend; 404 consecutivos
-          // significan que el job ya no existe (backend reiniciado).
-          if (esJobNoEncontrado(e)) {
-            notFoundSeguidos += 1;
-            if (notFoundSeguidos >= CM_JOB_MAX_NOT_FOUND) {
-              detener();
-              if (!unmountedRef.current) {
-                setReporteEnCurso(false);
-                setMsg({ kind: "error", text: "No se pudo generar el reporte: el backend se reinició y el job ya no existe. Vuelve a intentarlo." });
-              }
-              return;
-            }
-          }
-          // Otros errores: transitorios, el siguiente polling vuelve a consultar.
-        }
-      }, 2000);
-    } catch (e) {
-      setReporteEnCurso(false);
-      setMsg({ kind: "error", text: e instanceof Error ? e.message : "No se pudo generar el reporte." });
-    }
+    void entregas.generarReporte(formato);
   }
 
-  async function exportarAulasAnexo() {
+  function exportarAulasAnexo() {
     setMsg(null);
-    setExportandoAulas(true);
-    try {
-      const res = await apiCalcMuestraAulasExportar();
-      setAulasState(res.state.aulas ?? null);
-      if (res.export?.file_id) descargarArchivo(downloadUrl(res.export.file_id));
-      setMsg({ kind: "info", text: `Anexo de cursos-horario exportado: ${res.export?.filename ?? "workbook xlsx"}.` });
-    } catch (e) {
-      setMsg({ kind: "error", text: e instanceof Error ? e.message : "No se pudo exportar la selección de cursos-horario." });
-    } finally {
-      setExportandoAulas(false);
-    }
+    void entregas.exportarAnexo();
   }
 
   async function enviarMonitoreo() {
@@ -2064,19 +1962,10 @@ export default function CalcMuestraPage() {
   }
 
   // --- Paquete de defensa de un clic ----------------------------------------
-  // Encadena secuencialmente lo que ya existe: (a) reporte metodológico (job
-  // Quarto), (b) anexo xlsx de la selección de aulas y (c) memoria JSON de
-  // reproducibilidad generada en el frontend. Cada pieza reporta ok/error por
-  // separado en el checklist; un fallo no corta las piezas siguientes.
-  const memoriaUrlRef = useRef<string | null>(null);
-  useEffect(() => () => {
-    if (memoriaUrlRef.current) URL.revokeObjectURL(memoriaUrlRef.current);
-  }, []);
-
-  function actualizarPasoPaquete(id: PaqueteDefensaPasoId, patch: Partial<PaqueteDefensaPaso>) {
-    setPaquetePasos((prev) => (prev ? prev.map((paso) => (paso.id === id ? { ...paso, ...patch } : paso)) : prev));
-  }
-
+  // Encadena: (a) reporte metodológico (job Quarto) y (b) anexo xlsx de la
+  // selección, cada uno con su contenedor del kit, y (c) la memoria JSON de
+  // reproducibilidad que arma el frontend. Un fallo no corta las piezas
+  // siguientes; cada contenedor dice el suyo.
   async function leerContextoPaquete() {
     const contexto = await leerContextoPaqueteTrasRefresco({
       refrescarAulas: async () => {
@@ -2119,97 +2008,15 @@ export default function CalcMuestraPage() {
       return;
     }
     const fingerprintInicial = contextoInicial.fingerprint;
+    const vigente = () => exigirContextoPaqueteVigente(fingerprintInicial);
     setPaqueteEnCurso(true);
-    setPaquetePasos([
-      { id: "reporte", label: "Reporte metodológico", status: "pendiente" },
-      { id: "aulas", label: "Anexo de selección de cursos-horario (xlsx)", status: "pendiente" },
-      { id: "memoria", label: "Memoria JSON de reproducibilidad", status: "pendiente" },
-    ]);
-    let piezasOk = 0;
-
-    // (a) Reporte metodológico: mismo flujo que el botón actual (job Quarto).
     try {
-      actualizarPasoPaquete("reporte", { status: "curso" });
-      setReporteEnCurso(true);
-      const contextoReporte = await exigirContextoPaqueteVigente(fingerprintInicial);
-      await persistCurrent(contextoReporte.estudio);
-      const res = await apiCalcMuestraReporteIniciar(formato);
-      setReporteMeta({ disponible: false, jobId: res.job_id });
-      await esperarJobAulas(res.job_id, "Paquete de defensa — reporte metodológico", "reporte");
-      await exigirContextoPaqueteVigente(fingerprintInicial);
-      setReporteMeta({ disponible: true, jobId: res.job_id });
-      actualizarPasoPaquete("reporte", {
-        status: "ok",
-        detalle: `reporte ${formato.toUpperCase()} generado`,
-        url: calcMuestraReporteDescargarUrl({ inline: true }),
-      });
-      piezasOk += 1;
-    } catch (e) {
-      actualizarPasoPaquete("reporte", {
-        status: "error",
-        detalle: e instanceof Error ? e.message : "No se pudo generar el reporte.",
-      });
+      await entregas.generarReporte(formato, entregas.paqueteReporte, vigente);
+      await entregas.exportarAnexo(entregas.paqueteAnexo, vigente);
+      await entregas.paqueteMemoria.ejecutar(async () => memoriaDefensaComoArchivo(construirMemoriaPaqueteDefensa(await vigente())));
     } finally {
-      setReporteEnCurso(false);
-    }
-
-    // (b) Anexo xlsx de la selección (mismo export que "Exportar selección").
-    try {
-      actualizarPasoPaquete("aulas", { status: "curso" });
-      setBusy("Paquete de defensa — exportando anexo de cursos-horario");
-      await exigirContextoPaqueteVigente(fingerprintInicial);
-      const res = await apiCalcMuestraAulasExportar();
-      setAulasState(res.state.aulas ?? null);
-      await exigirContextoPaqueteVigente(fingerprintInicial);
-      actualizarPasoPaquete("aulas", {
-        status: "ok",
-        detalle: res.export?.filename ?? "workbook xlsx",
-        url: res.export?.file_id ? downloadUrl(res.export.file_id) : undefined,
-      });
-      piezasOk += 1;
-    } catch (e) {
-      actualizarPasoPaquete("aulas", {
-        status: "error",
-        detalle: e instanceof Error ? e.message : "No se pudo exportar la selección de cursos-horario.",
-      });
-    }
-
-    // (c) Memoria JSON generada en el frontend (semilla, firma, decision log).
-    try {
-      actualizarPasoPaquete("memoria", { status: "curso" });
-      setBusy("Paquete de defensa — armando memoria JSON");
-      const contextoMemoria = await exigirContextoPaqueteVigente(fingerprintInicial);
-      const memoria = construirMemoriaPaqueteDefensa(contextoMemoria);
-      const blob = new Blob([JSON.stringify(memoria, null, 2)], { type: "application/json" });
-      if (memoriaUrlRef.current) URL.revokeObjectURL(memoriaUrlRef.current);
-      const url = URL.createObjectURL(blob);
-      memoriaUrlRef.current = url;
-      actualizarPasoPaquete("memoria", {
-        status: "ok",
-        detalle: "semilla, firma del marco y decision log",
-        url,
-        downloadName: `memoria-defensa-${new Date().toISOString().slice(0, 10)}.json`,
-      });
-      piezasOk += 1;
-    } catch (e) {
-      actualizarPasoPaquete("memoria", {
-        status: "error",
-        detalle: e instanceof Error ? e.message : "No se pudo armar la memoria JSON.",
-      });
-    } finally {
-      setBusy(null);
       setPaqueteEnCurso(false);
     }
-
-    const piezasConError = 3 - piezasOk;
-    setMsg(
-      piezasConError === 0
-        ? { kind: "info", text: "Paquete de defensa listo: reporte, anexo de cursos-horario y memoria JSON." }
-        : {
-            kind: "warn",
-            text: `Paquete de defensa con ${piezasConError} ${piezasConError === 1 ? "pieza" : "piezas"} con error: revisa el checklist.`,
-          },
-    );
   }
 
   const chromeStatus = chromeStatusForDesk({
@@ -2454,7 +2261,7 @@ export default function CalcMuestraPage() {
               onComponente={updateComponente}
               onCalcular={calcular}
               calculando={calculando}
-              reporte={{ resultados, enCurso: reporteEnCurso, disponible: reporteDisponible, verUrl: reporteJobId ? calcMuestraReporteDescargarUrl({ inline: true }) : null, onGenerar: () => void generarReporte() }}
+              reporte={{ resultados, disponible: reporteDisponible, estado: entregas.reporte.estado, onCerrar: entregas.reporte.cerrar, onGenerar: () => generarReporte() }}
               onCambiarTipo={openStudyChooser}
             />
           )}
@@ -2491,16 +2298,19 @@ export default function CalcMuestraPage() {
               onReferenceSheetChange={recalibrarReferenciaAsistencia}
               uploadingSourceId={uploadingSourceId}
               calculando={calculando}
-              onGenerarReporte={(formato) => void generarReporte(formato)}
-              reporteEnCurso={reporteEnCurso}
+              onGenerarReporte={generarReporte}
               reporteDisponible={reporteDisponible}
               reporteStale={reporteStale}
-              reporteDescargarUrl={reporteJobId ? calcMuestraReporteDescargarUrl({ inline: true }) : null}
-              onExportarAulas={() => void exportarAulasAnexo()}
-              exportandoAulas={exportandoAulas}
+              reporteEntrega={{ estado: entregas.reporte.estado, onCerrar: entregas.reporte.cerrar }}
+              onExportarAulas={exportarAulasAnexo}
+              anexoEntrega={{ estado: entregas.anexo.estado, onCerrar: entregas.anexo.cerrar }}
               onGenerarPaqueteDefensa={(formato) => void generarPaqueteDefensa(formato)}
               paqueteEnCurso={paqueteEnCurso}
-              paquetePasos={paquetePasos}
+              paqueteEntregas={{
+                reporte: { estado: entregas.paqueteReporte.estado, onCerrar: entregas.paqueteReporte.cerrar },
+                anexo: { estado: entregas.paqueteAnexo.estado, onCerrar: entregas.paqueteAnexo.cerrar },
+                memoria: { estado: entregas.paqueteMemoria.estado, onCerrar: entregas.paqueteMemoria.cerrar },
+              }}
               onNavigate={navegarDesdeRecorrido}
               onCambiarTipo={openStudyChooser}
             />
@@ -2522,7 +2332,7 @@ export default function CalcMuestraPage() {
               onMonitoreo={enviarMonitoreo}
               calculando={calculando}
               reporteListo={!!reporteJobId}
-              reporte={{ resultados, enCurso: reporteEnCurso, disponible: reporteDisponible, verUrl: reporteJobId ? calcMuestraReporteDescargarUrl({ inline: true }) : null, onGenerar: () => void generarReporte() }}
+              reporte={{ resultados, disponible: reporteDisponible, estado: entregas.reporte.estado, onCerrar: entregas.reporte.cerrar, onGenerar: () => generarReporte() }}
               onCambiarTipo={openStudyChooser}
             />
           )}

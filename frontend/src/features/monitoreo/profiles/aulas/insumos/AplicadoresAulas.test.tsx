@@ -102,7 +102,7 @@ describe("construirAplicadores", () => {
 });
 
 describe("AplicadoresAulas", () => {
-  const contexto: ContextoDeInsumos = { config, fuentes: [], ocupado: false, importarPlan: () => {}, operaciones: null, importarDisponibilidad: () => {}, plantillaDisponibilidad: () => {} };
+  const contexto: ContextoDeInsumos = { config, fuentes: [], ocupado: false, importarPlan: () => {}, operaciones: null, importarDisponibilidad: () => {}, plantillaDisponibilidad: async () => ({ ok: true as const, file_id: "plantilla-1", filename: "Plantilla.xlsx", size: 1, aplicadores: 0 }) };
 
   it("publica su marca, explica el mecanismo y marca el viaje sobre el tope", () => {
     const html = renderToStaticMarkup(<AplicadoresAulas dashboard={tablero()} cargando={false} vacioSinTablero={null} contexto={contexto} />);

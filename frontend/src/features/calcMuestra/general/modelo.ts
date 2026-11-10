@@ -465,26 +465,6 @@ export function nDesfasado(
 // Libro de entrega
 // ---------------------------------------------------------------------------
 
-export type ExportEstado = { exportando: boolean; error: ErrorGeneral | null; ultimo: string };
-
-export type ExportAccion =
-  | { tipo: "exportando" }
-  | { tipo: "exportado"; filename: string }
-  | { tipo: "fallo"; error: ErrorGeneral };
-
-export const EXPORT_INICIAL: ExportEstado = { exportando: false, error: null, ultimo: "" };
-
-export function exportReducer(estado: ExportEstado, accion: ExportAccion): ExportEstado {
-  switch (accion.tipo) {
-    case "exportando":
-      return { ...estado, exportando: true, error: null };
-    case "exportado":
-      return { exportando: false, error: null, ultimo: accion.filename };
-    case "fallo":
-      return { ...estado, exportando: false, error: accion.error };
-  }
-}
-
 export const MOTIVO_SIN_CORRIDA_EXPORT = "Selecciona primero: el libro sale de la selección vigente.";
 
 // ---------------------------------------------------------------------------

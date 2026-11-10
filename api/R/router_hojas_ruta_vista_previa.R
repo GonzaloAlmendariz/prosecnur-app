@@ -51,13 +51,14 @@ mount_hojas_ruta_vista_previa <- function(pr) {
       out <- tempfile(fileext = ".pdf")
       hojas_ruta_hoja_dia_pdf(modelo, out)
       meta <- .hojas_ruta_vp_registrar(sid, "hojas_ruta_hoja_dia", out, detalle = .hojas_ruta_hd_detalle(modelo))
-      list(
+      entregable_respuesta(list(
         ok = TRUE,
         file_id = meta$file_id,
         filename = meta$original_name,
+        size = meta$size,
         jornada = modelo$jornada,
         rutas = as.list(vapply(modelo$rutas, `[[`, character(1), "id_manzana"))
-      )
+      ), meta)
     }))
 }
 

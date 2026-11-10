@@ -228,7 +228,7 @@ describe("la plantilla de disponibilidad, al lado del import", () => {
         oferta={oferta}
         vivas={vivas}
         onImportar={() => {}}
-        onPlantilla={() => {}}
+        onPlantilla={async () => ({ ok: true as const, file_id: "plantilla-1", filename: "Plantilla.xlsx", size: 1, aplicadores: 0 })}
       />,
     );
   };

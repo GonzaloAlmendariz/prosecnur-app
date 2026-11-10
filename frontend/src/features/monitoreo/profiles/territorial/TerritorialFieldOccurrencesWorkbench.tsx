@@ -32,7 +32,6 @@ import {
   apiMonitoreoTerritorialOccurrencesUploadKobo,
   apiMonitoreoTerritorialOccurrencesXlsform,
   apiMonitoreoTerritorialUmpExport,
-  downloadUrl,
   type ConnectionTokenState,
   type MonitoreoFieldOccurrenceConfig,
   type MonitoreoFieldOccurrenceDashboard,
@@ -54,10 +53,14 @@ import {
   type OccurrenceUmpAttentionStatus,
 } from "../../fieldOccurrences";
 import { copiarTexto } from "../../../../lib/portapapeles";
-import { descargarArchivo } from "../../../../lib/descargas";
+import { archivoCsv } from "../../../../components/entregables/archivoLocal";
+import { EntregaEnBloque } from "../../entregas/EntregaEnBloque";
+import { archivoAnidado } from "../../entregas/modeloEntrega";
+import { useEntrega } from "../../entregas/useEntrega";
 
 type OccurrenceTab = "states" | "distritos" | "registro" | "ump" | "alerts" | "rhythm";
-type OccurrenceBusy = "" | "config" | "xlsform" | "upload" | "inspect" | "ump-export";
+type OccurrenceBusy = "" | "config" | "upload" | "inspect";
+type ExportarUmp = (opts: { responsable?: string; only_missing?: boolean }) => Promise<unknown>;
 type OccurrenceAlertKind = "missing" | "observations" | "outside_route" | "high_non_effective";
 type OccurrenceAlertFilter = "todos" | OccurrenceAlertKind;
 type OccurrenceRegisterFilter = "todos" | "con_registro" | "sin_registro" | "sin_conciliacion";
@@ -475,6 +478,10 @@ function TerritorialFieldOccurrencesWorkbenchImpl({
   const config = occurrences?.config ?? null;
   const summary = occurrences?.summary ?? EMPTY_OCCURRENCE_SUMMARY;
   const [localBusy, setLocalBusy] = useState<OccurrenceBusy>("");
+  // El XLSForm y el Excel de UMP se entregan por el kit (ADR 0133, fase 5): el
+  // botón sólo se deshabilita y el contenedor va bajo las acciones del panel.
+  const xlsform = useEntrega("XLSForm de ocurrencias", { formato: "xlsx", articulo: "el" });
+  const excelUmp = useEntrega("Excel de UMP", { formato: "xlsx", articulo: "el" });
   const [fieldCheck, setFieldCheck] = useState<MonitoreoFieldOccurrenceFieldCheck | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
   const [assetPickerOpen, setAssetPickerOpen] = useState(false);
@@ -492,7 +499,7 @@ function TerritorialFieldOccurrencesWorkbenchImpl({
   const [alertSearch, setAlertSearch] = useState("");
   const [alertFilter, setAlertFilter] = useState<OccurrenceAlertFilter>("todos");
   const tab = isOccurrenceTab(pestanaActiva) ? pestanaActiva : "states";
-  const disabled = busy || Boolean(localBusy);
+  const disabled = busy || Boolean(localBusy) || xlsform.enCurso || excelUmp.enCurso;
   const active = Boolean(config?.asset_uid);
   const surveyLink = String(config?.survey_url || config?.asset_url || "").trim();
   const rateLabel = occurrenceRateLabel(summary);
@@ -719,13 +726,13 @@ function TerritorialFieldOccurrencesWorkbenchImpl({
     selectedProfileId,
   ]);
 
-  const generateXlsform = useCallback(() => runAction("xlsform", async () => {
-    const result = await apiMonitoreoTerritorialOccurrencesXlsform(config ?? {});
-    onStateChange?.(result.state);
-    if (result.download_url && typeof window !== "undefined") {
-      descargarArchivo(result.download_url);
-    }
-  }), [config, onStateChange, runAction]);
+  const generateXlsform = useCallback(() => {
+    void xlsform.ejecutar(async () => {
+      const result = await apiMonitoreoTerritorialOccurrencesXlsform(config ?? {});
+      onStateChange?.(result.state);
+      return archivoAnidado(result);
+    });
+  }, [config, onStateChange, xlsform]);
 
   const uploadKobo = useCallback(() => runAction("upload", async () => {
     const result = await apiMonitoreoTerritorialOccurrencesUploadKobo({
@@ -743,16 +750,10 @@ function TerritorialFieldOccurrencesWorkbenchImpl({
     setFieldCheck(result.field_check);
   }), [config, runAction]);
 
-  const exportUmp = useCallback((opts: { responsable?: string; only_missing?: boolean } = {}) =>
-    runAction("ump-export", async () => {
-      const result = await apiMonitoreoTerritorialUmpExport({
-        ...(opts.responsable ? { responsable: opts.responsable } : {}),
-        ...(opts.only_missing ? { only_missing: true } : {}),
-      });
-      if (result.file_id && typeof window !== "undefined") {
-        descargarArchivo(downloadUrl(result.file_id));
-      }
-    }), [runAction]);
+  const exportUmp = useCallback<ExportarUmp>((opts) => apiMonitoreoTerritorialUmpExport({
+    ...(opts.responsable ? { responsable: opts.responsable } : {}),
+    ...(opts.only_missing ? { only_missing: true } : {}),
+  }), []);
 
   const copyOccurrenceLink = useCallback(async () => {
     if (!surveyLink) return;
@@ -805,7 +806,7 @@ function TerritorialFieldOccurrencesWorkbenchImpl({
               {assetPickerOpen ? "Ocultar Kobo" : active ? "Cambiar formulario" : "Elegir formulario"}
             </button>
             <button type="button" className="pulso-button" onClick={generateXlsform} disabled={disabled}>
-              {localBusy === "xlsform" ? <Loader2 size={15} className="pulso-spin" /> : <Download size={15} />}
+              <Download size={15} aria-hidden="true" />
               XLSForm
             </button>
             <button type="button" className="pulso-button" onClick={uploadKobo} disabled={disabled || !hasKoboToken}>
@@ -816,8 +817,8 @@ function TerritorialFieldOccurrencesWorkbenchImpl({
               {localBusy === "inspect" ? <Loader2 size={15} className="pulso-spin" /> : <FileCheck2 size={15} />}
               Campos
             </button>
-            <button type="button" className="pulso-button" onClick={() => exportUmp({})} disabled={disabled} title="Descarga un Excel con las UMP totales y sus estados">
-              {localBusy === "ump-export" ? <Loader2 size={15} className="pulso-spin" /> : <Download size={15} />}
+            <button type="button" className="pulso-button" onClick={() => { void excelUmp.ejecutar(() => exportUmp({})); }} disabled={disabled} title="Descarga un Excel con las UMP totales y sus estados">
+              <Download size={15} aria-hidden="true" />
               Excel UMP
             </button>
             {/* «Actualizar» (traer las ocurrencias) vive en el «Actualizar ▾» de la
@@ -827,6 +828,8 @@ function TerritorialFieldOccurrencesWorkbenchImpl({
             </button>
           </div>
         </section>
+        <EntregaEnBloque entrega={xlsform} />
+        <EntregaEnBloque entrega={excelUmp} />
 
         <section className="mon-field-occurrences-connect-summary" aria-label="Estado de configuracion de ocurrencias">
           <span>
@@ -1333,7 +1336,8 @@ function occurrenceRegisterCsvValue(value: unknown) {
   return /[",;]/.test(textValue) ? `"${textValue.replace(/"/g, '""')}"` : textValue;
 }
 
-function occurrenceRegisterDownloadCsv(rows: ReturnType<typeof buildOccurrenceRegisterRows>, suffix = "visibles") {
+/** El registro de UMP visible, en CSV para Excel (lo entrega el kit con `archivoCsv`). */
+function occurrenceRegisterCsv(rows: ReturnType<typeof buildOccurrenceRegisterRows>) {
   const header = [
     "UMP",
     "Reporte_UMP",
@@ -1370,18 +1374,9 @@ function occurrenceRegisterDownloadCsv(rows: ReturnType<typeof buildOccurrenceRe
       item.row.has_report ? item.registeredAt : "",
       item.row.records.map((record) => occurrenceRecordCode(record)).filter(Boolean).join("; "),
     ]);
-  const csv = [header, ...body]
+  return [header, ...body]
     .map((line) => line.map(occurrenceRegisterCsvValue).join(","))
     .join("\n");
-  const blob = new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `reporte_ump_ocurrencias_${suffix}.csv`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
 }
 
 function buildOccurrenceRegisterRows(rows: OccurrenceRouteUmpRow[]) {
@@ -1447,6 +1442,7 @@ function OccurrenceRegisterWorkspace({ rows }: { rows: OccurrenceRouteUmpRow[] }
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<OccurrenceRegisterFilter>("todos");
   const [districtFilter, setDistrictFilter] = useState("todos");
+  const csv = useEntrega("Reporte UMP de ocurrencias", { formato: "csv", articulo: "el" });
   const registerRows = useMemo(() => buildOccurrenceRegisterRows(rows), [rows]);
   const counts = useMemo(() => {
     const expected = registerRows.filter((item) => !item.row.is_unreconciled);
@@ -1504,11 +1500,17 @@ function OccurrenceRegisterWorkspace({ rows }: { rows: OccurrenceRouteUmpRow[] }
           <option value="todos">Todos los distritos</option>
           {districtOptions.map((item) => <option key={item} value={item}>{item}</option>)}
         </select>
-        <button type="button" className="pulso-button" onClick={() => occurrenceRegisterDownloadCsv(filteredRows, "visibles")}>
-          <Download size={14} />
+        <button
+          type="button"
+          className="pulso-button"
+          disabled={csv.enCurso}
+          onClick={() => { void csv.ejecutar(async () => archivoCsv(occurrenceRegisterCsv(filteredRows), "reporte_ump_ocurrencias_visibles.csv")); }}
+        >
+          <Download size={14} aria-hidden="true" />
           CSV UMP
         </button>
       </div>
+      <EntregaEnBloque entrega={csv} />
 
       <div className="mon-field-occurrences-register-table" role="table" aria-label="Lista simple de UMP con y sin reporte">
         <div className="mon-field-occurrences-register-row is-head" role="row">
@@ -1564,8 +1566,9 @@ const OCCURRENCE_MISSING_STATES: OccurrenceUmpAttentionStatus[] = [
 function OccurrenceUmpWorkspace({ rows, allRows, onExportUmp }: {
   rows: OccurrenceRouteUmpRow[];
   allRows: OccurrenceRouteUmpRow[];
-  onExportUmp?: (opts: { responsable?: string; only_missing?: boolean }) => void;
+  onExportUmp?: ExportarUmp;
 }) {
+  const excel = useEntrega("Excel de UMP filtradas", { formato: "xlsx", articulo: "el" });
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"todos" | OccurrenceUmpAttentionStatus>("todos");
   const [districtFilter, setDistrictFilter] = useState("todos");
@@ -1692,17 +1695,19 @@ function OccurrenceUmpWorkspace({ rows, allRows, onExportUmp }: {
           <button
             type="button"
             className="pulso-button"
-            onClick={() => onExportUmp({
+            disabled={excel.enCurso}
+            onClick={() => { void excel.ejecutar(() => onExportUmp({
               responsable: responsableFilter !== "todos" ? responsableFilter : undefined,
               only_missing: OCCURRENCE_MISSING_STATES.includes(statusFilter as OccurrenceUmpAttentionStatus),
-            })}
+            })); }}
             title="Exporta a Excel las UMP con los filtros aplicados (responsable / faltantes)"
           >
-            <Download size={14} />
+            <Download size={14} aria-hidden="true" />
             Excel
           </button>
         ) : null}
       </div>
+      <EntregaEnBloque entrega={excel} />
 
       <div className={`mon-field-occurrences-board ${detailOpen && selectedRow ? "is-detail-open is-detail-right" : ""}`}>
         <section className="mon-field-occurrences-ump-index" aria-label="Lista operativa de UMP">

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EstadoChip } from "../../../../components/EstadoChip";
 import { tonoDeCruce, tonoDeLectura, tonoDeRespuesta } from "../../core/tonosDeCaso";
 import type { CSSProperties, ReactNode } from "react";
-import { AlertCircle, BarChart3, CalendarRange, CheckCircle2, ChevronDown, ClipboardCheck, Clock3, ContactRound, Download, Eye, FileCheck2, Filter, KeyRound, Layers3, Link2, Loader2, Mail, PhoneCall, PlugZap, Plus, ListChecks, QrCode, RefreshCw, Route, Save, Search, ShieldAlert, SlidersHorizontal, Table2, Target, X, XCircle } from "lucide-react";
+import { AlertCircle, BarChart3, CalendarRange, CheckCircle2, ChevronDown, ClipboardCheck, Clock3, ContactRound, Eye, FileCheck2, Filter, KeyRound, Layers3, Link2, Loader2, Mail, PhoneCall, PlugZap, Plus, ListChecks, QrCode, RefreshCw, Route, Save, Search, ShieldAlert, SlidersHorizontal, Table2, Target, X, XCircle } from "lucide-react";
 import { PageFrame } from "../../../../components/PageFrame";
 import { LoadingBlock } from "../../../../components/States";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
@@ -295,7 +295,8 @@ import type {
 import { compactSelectLabel, calendarWeekWindowLabel, calendarDateWindowLabel, parseCalendarIsoDate, calendarDateDiffDays, calendarDurationLabel, prettyModelLabel, phonePercentLabel, phoneLooksLikeTechnicalSourceLabel, phoneOpsPercent, phoneAttemptCountLabel, sourceProviderLabel, sourceActorLabel, mostRecentSyncLabel, dimensionLabel, collectorNumber, caseResponseDateTimeLabel, caseResponseTimeDetailLabel, explicitBoolean, caseCountsInAdvance, caseCountsLabel, cleanCaseKeyText, advancementLabel, formatPercentLabel, formatSignedPp, normalizeReportMatch, reportNumberValue, reportPercentValue, normalizeAcreditacionDailyDateLabel, isTechnicalAcreditacionCollectorLabel, compactMechanismLabel, shortColumnLabel, formatReportCell } from "../../core/rotulosComunes";
 import { calendarAddDaysIso, calendarReportExceptions, calendarWeekRange, calendarReportDateForWeek, reportsFromState, normalizeAcreditacionReports, rowValue, rowsFromSheets, rowsForSheetBlock, phoneDisplayRowsWithBaseColumn, acreditacionPhoneControlSampleRows, caseDisplayName, caseWithoutCrossing, responseCounts, groupedCaseRows, caseDimensionRows, reportBlockForSheet, reportBlockColumns, reportStateTone, acreditacionReportRowValue, acreditacionReportColumn, acreditacionReportBlockDateColumns, reportPanelSheetTitle, reportBlockTone, reportBlockMetric } from "../../core/tablasComunes";
 import { caseIdentity, countCaseOptions, caseChannelValue, caseSourceValue, caseCollectorValue, caseToneClass, assistedReviewCandidateCountForCase, caseNeedsReconciliationReview, acreditacionSurveyStateTone, caseDailyTone } from "../../core/casosComunes";
-import { preferredPhoneEffectiveValue, splitListInput, calendarPhaseDurationDays, calendarPhaseWeekDurationDays, calendarPhaseOverlapCount, calendarBasePhase, distributeCalendarDatesByWeek, inferCalendarModality, calendarGoalActor, calendarGoalForActor, calendarTargetRule, splitCalendarTokens, phoneQuotaGoalValue, statusValueOptions, phoneIsUnassignedResponsible, phoneQuotaStatusTone, phoneDailyBlockForPanel, uniqueDisplayValues, isPlatformResponseSource, isSurveyMonkeyResponseSource, isKoboResponseSource, shortenMiddle, sourceFlatField, presetSourceStatus, cleanSourceDimensions, sourceDimensionEntries, collectorDisplayName, countFromRecord, inferAcreditacionSurveyChannel, surveyMonkeyDisplayTitle, csvCell, platformToneValue, crossingToneValue, acreditacionQueryDonutBackground, uniqueNormalizedKeys, addAcreditacionDailyValue, dailySeriesTotals, collectorDisplayLookupKey, sourceRoleForActor, surveySourceForAcreditacionId, surveySourceForAcreditacionTitle, sheetTitleIcon } from "../../core/helpersComunesTelAcr";
+import { preferredPhoneEffectiveValue, splitListInput, calendarPhaseDurationDays, calendarPhaseWeekDurationDays, calendarPhaseOverlapCount, calendarBasePhase, distributeCalendarDatesByWeek, inferCalendarModality, calendarGoalActor, calendarGoalForActor, calendarTargetRule, splitCalendarTokens, phoneQuotaGoalValue, statusValueOptions, phoneIsUnassignedResponsible, phoneQuotaStatusTone, phoneDailyBlockForPanel, uniqueDisplayValues, isPlatformResponseSource, isSurveyMonkeyResponseSource, isKoboResponseSource, shortenMiddle, sourceFlatField, presetSourceStatus, cleanSourceDimensions, sourceDimensionEntries, collectorDisplayName, countFromRecord, inferAcreditacionSurveyChannel, surveyMonkeyDisplayTitle, platformToneValue, crossingToneValue, acreditacionQueryDonutBackground, uniqueNormalizedKeys, addAcreditacionDailyValue, dailySeriesTotals, collectorDisplayLookupKey, sourceRoleForActor, surveySourceForAcreditacionId, surveySourceForAcreditacionTitle, sheetTitleIcon } from "../../core/helpersComunesTelAcr";
+import { BaseDeBarridoDeSupervision } from "../../core/BaseDeBarridoDeSupervision";
 import { caracterDeCuotas, phoneQuotaGoalHasActor, phoneQuotaGoalTotal, phoneQuotaRemoveGoal, phoneQuotaGoalVariables, phoneQuotaUpsertGoal } from "../../core/cuotasTelefonicasComunes";
 import { phoneRowNumber, phoneRowOptionalNumber, phoneRowRatioPct, phoneAttemptValue, phoneDurationAlertThreshold, phoneDurationAlertDisplayDetail, phoneAlertCaseCount, phoneContractReadyCount, acreditacionPhoneAlertSignalRows } from "../../core/alertasTelefonicasComunes";
 import { useSubvistaEnFoco } from "../../core/subvistaEnFoco";
@@ -4671,12 +4672,6 @@ function AcreditacionPhoneSupervisionBoard({
     rows: timeRows,
     assignmentRows,
   });
-  const handleExport = () => {
-    downloadRowsAsCsv(
-      controlPlan.exportRows,
-      `base-barrido-supervision-${controlPlan.hasReadBase ? "leida" : "propuesta"}-${new Date().toISOString().slice(0, 10)}.csv`,
-    );
-  };
   const tabs = [
     {
       key: "tiempo",
@@ -4742,7 +4737,14 @@ function AcreditacionPhoneSupervisionBoard({
         </div>
       ) : activeSupervisionTab === "muestra" ? (
         <div className="mon-phone-supervision-focus">
-          <AcreditacionPhoneSupervisionSamplePlan plan={controlPlan} onExport={handleExport} />
+          <BaseDeBarridoDeSupervision plan={controlPlan}>
+            <DataTable
+              rows={controlPlan.tableRows}
+              empty="El corte no desglosa efectivas por responsable. Sincroniza el barrido antes de preparar la supervisión."
+              preferredColumns={["Responsable", "Base", "Efectivas", "Objetivo 30%", controlPlan.hasReadBase ? "Base leída" : "Base propuesta", "Por completar", "Cobertura", "Prioridad"]}
+              maxColumns={8}
+            />
+          </BaseDeBarridoDeSupervision>
           {controlPlan.hasReadBase ? <AcreditacionPhoneSupervisionBaseState plan={controlPlan} sampleRows={sampleRows} /> : null}
         </div>
       ) : (
@@ -4875,41 +4877,6 @@ function phoneTimeCaseSourceLabel(item: AcreditacionPhoneTimeCase) {
   return "KoboToolbox";
 }
 
-
-function AcreditacionPhoneSupervisionSamplePlan({
-  plan,
-  onExport,
-}: {
-  plan: AcreditacionPhoneSupervisionControlPlan;
-  onExport: () => void;
-}) {
-  return (
-    <section className="mon-phone-supervision-plan" aria-label="Base de barrido de supervisión">
-      <header className="mon-phone-ops-head">
-        <div>
-          <span>Base de barrido de supervisión</span>
-          <strong>{plan.hasReadBase ? "Lectura de base cargada" : "Propuesta 30% por responsable"}</strong>
-        </div>
-        <button type="button" className="mon-phone-supervision-export" onClick={onExport} disabled={!plan.exportRows.length}>
-          <Download size={13} />
-          Exportar CSV
-        </button>
-      </header>
-      <div className="mon-phone-supervision-plan-strip" aria-label="Resumen de muestra de supervisión">
-        <span><em>Responsables</em><strong>{formatMetric(plan.rows.length)}</strong></span>
-        <span><em>Objetivo</em><strong>{formatMetric(plan.targetTotal)}</strong></span>
-        <span><em>{plan.hasReadBase ? "Leídos" : "Propuestos"}</em><strong>{formatMetric(plan.selectedTotal)}</strong></span>
-        <span className={plan.gapTotal ? "is-warning" : "is-ready"}><em>{plan.hasReadBase ? "Brecha" : "Por generar"}</em><strong>{formatMetric(plan.gapTotal)}</strong></span>
-      </div>
-      <DataTable
-        rows={plan.tableRows}
-        empty="El corte no desglosa efectivas por responsable. Sincroniza el barrido antes de preparar la supervisión."
-        preferredColumns={["Responsable", "Base", "Efectivas", "Objetivo 30%", plan.hasReadBase ? "Base leída" : "Base propuesta", "Por completar", "Cobertura", "Prioridad"]}
-        maxColumns={8}
-      />
-    </section>
-  );
-}
 
 function AcreditacionPhoneSupervisionBaseState({
   plan,
@@ -9511,22 +9478,6 @@ function DataTable({
       ) : null}
     </div>
   );
-}
-
-function downloadRowsAsCsv(rows: Array<Record<string, unknown>>, filename: string) {
-  if (!rows.length || typeof document === "undefined" || typeof URL === "undefined" || typeof Blob === "undefined") return;
-  const columns = compactColumns(rows, [], 60);
-  const csv = [
-    columns.join(","),
-    ...rows.map((row) => columns.map((column) => csvCell(row[column])).join(",")),
-  ].join("\n");
-  const blob = new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.click();
-  URL.revokeObjectURL(url);
 }
 
 type AcreditacionCaseFilters = {

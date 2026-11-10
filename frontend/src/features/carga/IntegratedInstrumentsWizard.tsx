@@ -28,6 +28,8 @@ import {
   uploadKindForDataFile,
 } from "../../api/client";
 import { ErrorBlock } from "../../components/States";
+import { ContenedorEntregable } from "../../components/entregables/ContenedorEntregable";
+import { useGeneracion } from "../../components/entregables/useGeneracion";
 import { GlidingTabList } from "../../components/GlidingTabList";
 import { EstadoVacio } from "../../components/EstadoVacio";
 import { Inbox } from "../../vendor/lucide-react";
@@ -348,17 +350,6 @@ function diffRefOriginLabel(diff: MultiIntegratedDiff) {
   return diff.ref_origin_key || "Referencia";
 }
 
-function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
 function auditStatusText(audit: MultiIntegratedAudit, unresolvedCount: number) {
   if (audit.n_blocking > 0) return "Corrige los bloqueos antes de importar.";
   if (unresolvedCount > 0) return "Revisa las decisiones o acepta las sugeridas.";
@@ -395,6 +386,7 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, plannedInputCoun
   const [decisions, setDecisions] = useState<MultiIntegratedDecisions>({ resolved_ids: [] });
   const [activeWordingTabs, setActiveWordingTabs] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState("");
+  const wordDiferencias = useGeneracion({ titulo: "Diferencias de integración", modulo: "Procesamiento", formato: "docx", articulo: "las" });
   const importEnCurso = useCancelarImport();
   const [error, setError] = useState("");
   const [draftLoaded, setDraftLoaded] = useState(false);
@@ -849,19 +841,12 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, plannedInputCoun
     }
   }
 
+  // El Word de diferencias por el kit de entregables (ADR 0133, forma bloque al pie del asistente): el botón
+  // sólo se deshabilita y el contenedor muestra la espera, el archivo o la causa del fallo.
   async function runExportDocx() {
     if (!audit) return;
-    setError("");
-    setBusy("Generando Word de diferencias...");
-    try {
-      const blob = await apiMultiIntegratedDecisionsDocx({ audit, decisions });
-      const ts = new Date().toISOString().replace(/[:.]/g, "").slice(0, 15);
-      downloadBlob(blob, `diferencias_integracion_${ts}.docx`);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy("");
-    }
+    const pedido = { audit, decisions };
+    await wordDiferencias.ejecutar(() => apiMultiIntegratedDecisionsDocx(pedido));
   }
 
   return (
@@ -1192,7 +1177,12 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, plannedInputCoun
           {busy ? <Loader2 size={13} className="pulso-spin" /> : <RefreshCw size={13} />}
           Auditar integración
         </button>
-        <button type="button" className="pulso-sm-secondary" disabled={!audit || !!busy || disabled} onClick={runExportDocx}>
+        <button
+          type="button"
+          className="pulso-sm-secondary"
+          disabled={!audit || !!busy || disabled || wordDiferencias.estado.fase === "en_curso"}
+          onClick={() => void runExportDocx()}
+        >
           <FileText size={14} />
           Exportar Word
         </button>
@@ -1201,6 +1191,7 @@ export function IntegratedInstrumentsWizard({ canonicalOptions, plannedInputCoun
           Importar base integrada
         </button>
       </div>
+      <ContenedorEntregable estado={wordDiferencias.estado} forma="bloque" onCerrar={wordDiferencias.cerrar} />
 
       {busy && (
         <div className="pulso-sm-status">

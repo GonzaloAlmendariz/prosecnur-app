@@ -19,6 +19,8 @@ export type ArchivoEntregable = {
   avisoGuardado?: string | null;
   modulo?: string | null;
   rotulo?: string | null;
+  /** Archivo armado en el front (`archivoLocal.ts`): sin `file_id` del backend; se vuelve a bajar de aquí. */
+  local?: Blob | null;
 };
 
 export type EstadoGeneracion =

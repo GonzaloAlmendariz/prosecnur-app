@@ -192,7 +192,7 @@
   )
   .monitoreo_ump_export_write_workbook(ump_df, out_path, meta = meta)
   file_meta <- .register_output_file(sid, "monitoreo_ump_export", out_path, original_name = out_name)
-  list(
+  entregable_respuesta(list(
     ok = TRUE,
     file_id = file_meta$file_id,
     filename = file_meta$original_name,
@@ -202,5 +202,5 @@
       sin_ocurrencias = as.integer(sin_oc)
     ),
     filters = list(only_missing = only_missing, responsable = responsable, distrito = distrito)
-  )
+  ), file_meta)
 }

@@ -1285,8 +1285,9 @@ mount_calc_muestra <- function(pr) {
       out_name <- .export_filename(sid, "calc_muestra_aulas_seleccion", "xlsx")
       meta <- .register_output_file(sid, "calc_muestra_aulas_seleccion", out_path, original_name = out_name)
       export <- list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name, size = meta$size)
+      # Se persiste sin los campos del registro: `guardado_en` es una ruta de esta máquina.
       session_set(sid, "calc_muestra_aulas_export", export)
-      list(ok = TRUE, export = export, state = .cm_state_payload(sid))
+      list(ok = TRUE, export = entregable_respuesta(export, meta), state = .cm_state_payload(sid))
     })) |>
 
     # -----------------------------------------------------------------------
@@ -1307,9 +1308,9 @@ mount_calc_muestra <- function(pr) {
       calc_muestra_solicitud_dti_workbook(body, out_path)
       out_name <- .export_filename(sid, "solicitud_dti", "xlsx")
       meta <- .register_output_file(sid, "calc_muestra_solicitud_dti", out_path, original_name = out_name)
-      list(ok = TRUE, export = list(
+      list(ok = TRUE, export = entregable_respuesta(list(
         ok = TRUE, file_id = meta$file_id, filename = meta$original_name, size = meta$size
-      ))
+      ), meta))
     })) |>
 
     # -----------------------------------------------------------------------
@@ -1349,20 +1350,9 @@ mount_calc_muestra <- function(pr) {
       filename <- .export_filename(sid, "reporte_calc_muestra", ext)
 
       sid_capt <- sid
-      on_complete <- function(j) {
-        if (identical(j$status, "done") &&
-            !is.null(j$result_path) && file.exists(j$result_path)) {
-          s_now <- session_get(sid_capt, required = FALSE)
-          if (is.null(s_now)) return(j$result_data)
-          meta_now <- s_now$calc_muestra_reporte %||% list()
-          meta_now$disponible   <- TRUE
-          meta_now$path         <- j$result_path
-          meta_now$generated_at <- format(j$finished_at,
-                                          "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
-          session_set(sid_capt, "calc_muestra_reporte", meta_now)
-        }
-        j$result_data
-      }
+      # ADR 0133 (fase 5): el reporte se registra como entregable y la respuesta del
+      # job trae su file_id; la ruta del worker no viaja (reportes_job_entrega.R).
+      on_complete <- function(j) .calc_muestra_reporte_on_complete(sid_capt, j, formato)
 
       job_id <- job_submit(
         sid    = sid,

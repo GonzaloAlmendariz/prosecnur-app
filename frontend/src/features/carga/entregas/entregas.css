@@ -1,0 +1,13 @@
+/* Carga sobre el kit de entregables (ADR 0133, fase 5). Sólo lo que el módulo
+   pone alrededor del contenedor del kit; el contenedor mismo es del kit
+   (components/entregables/entregables.css). */
+
+/* Forma fila: el pie de la fila de una base, a todo el ancho de su rejilla. */
+.pulso-base-row-entrega {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.pulso-base-row-entrega > .pulso-entregable {
+  min-width: 0;
+}

@@ -141,6 +141,10 @@ errores_registrados <- function() {
     "E_MAILCHIMP_API",                                       "collection_mail_mailchimp.R",       "502",
     "E_MAILCHIMP_SYNC_SURVEYMONKEY",                         "collection_mail_mailchimp.R",       "502",
     "E_MONITOREO_DESTINO_ES_BARRIDO",                        "monitoreo_destino_no_barrido.R",    "409",
+    # Monitoreo › aulas › Carga de campo en Excel (ADR 0133, fase 5).
+    "E_MONITOREO_CARGA_CAMPO_PARAMETROS",                    "monitoreo_aulas_carga_de_campo.R",  "422",
+    "E_MONITOREO_CARGA_CAMPO_SIN_PLAN",                      "monitoreo_aulas_carga_de_campo.R",  "409",
+    "E_MONITOREO_CARGA_CAMPO_SIN_HORARIO",                   "monitoreo_aulas_carga_de_campo.R",  "409",
     # Monitoreo › Avance › Correo (T3, docs/qa/checklist-monitoreo-mailchimp-t3-2026-10-22.md).
     "E_MONITOREO_MAILCHIMP_AUDIENCIA",                       "router_monitoreo_mailchimp.R",      "400,409",
     # Monitoreo › Avance › Cuotas (T2).

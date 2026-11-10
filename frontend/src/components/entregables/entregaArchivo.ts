@@ -31,6 +31,26 @@ export function descargarDelServidor(fileId: string, nombre: string): void {
   descargarArchivo(downloadUrl(fileId), nombre);
 }
 
+/** Cuánto vive la URL de un blob tras pedir la descarga: Electron la lee después del clic. */
+const VIDA_URL_LOCAL_MS = 60_000;
+
+/** Descarga un archivo armado en el front (Descargas, sin diálogo en Electron). */
+export function descargarLocal(blob: Blob, nombre: string): void {
+  if (typeof URL === "undefined" || typeof URL.createObjectURL !== "function") return;
+  const url = URL.createObjectURL(blob);
+  try {
+    descargarArchivo(url, nombre);
+  } finally {
+    setTimeout(() => URL.revokeObjectURL(url), VIDA_URL_LOCAL_MS);
+  }
+}
+
+/** Vuelve a bajar un archivo ya entregado, venga del backend o del front. */
+export function descargarEntregable(archivo: { fileId: string; nombre: string; local?: Blob | null }): void {
+  if (archivo.local) descargarLocal(archivo.local, archivo.nombre);
+  else descargarDelServidor(archivo.fileId, archivo.nombre);
+}
+
 export async function abrirEntregable(ruta: string): Promise<void> {
   if (!(await abrirArchivo(ruta))) {
     toast.error("No se pudo abrir el archivo", { detalle: "Puede que se haya movido o borrado. Usa Mostrar en la carpeta para ubicarlo." });

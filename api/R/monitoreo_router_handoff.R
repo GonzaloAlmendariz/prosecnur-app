@@ -483,7 +483,7 @@
   data_meta <- .register_output_file(sid, "monitoreo_processing_handoff_data", data_xlsx_path, original_name = data_xlsx_name)
   xls_meta <- .register_output_file(sid, "monitoreo_processing_handoff_xlsform", xlsform_path, original_name = xlsform_name)
   zip_meta <- .register_output_file(sid, "monitoreo_processing_handoff_zip", zip_path, original_name = zip_name)
-  list(
+  entregable_respuesta(list(
     ok = TRUE,
     schema = "monitoreo_processing_handoff_v1",
     universe = universe,
@@ -493,7 +493,7 @@
     filename = zip_meta$original_name,
     size = zip_meta$size,
     files = list(
-      package = list(file_id = zip_meta$file_id, filename = zip_meta$original_name, size = zip_meta$size),
+      package = entregable_respuesta(list(file_id = zip_meta$file_id, filename = zip_meta$original_name, size = zip_meta$size), zip_meta),
       data_xlsx = list(file_id = data_meta$file_id, filename = data_meta$original_name, size = data_meta$size),
       xlsform = list(
         file_id = xls_meta$file_id,
@@ -504,7 +504,7 @@
       )
     ),
     would_mutate_pulso = FALSE
-  )
+  ), zip_meta)
 }
 
 # Persiste el resultado del handoff como una base de Procesamiento del proyecto:

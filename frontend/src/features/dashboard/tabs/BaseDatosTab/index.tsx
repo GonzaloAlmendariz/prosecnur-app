@@ -4,7 +4,8 @@ import {
   apiDashboardBaseDatosDescargar,
   type DashboardBaseDatosSeccion,
 } from "../../../../api/dashboard";
-import { ErrorBlock } from "../../../../components/States";
+import { ContenedorEntregable } from "../../../../components/entregables/ContenedorEntregable";
+import { useGeneracion } from "../../../../components/entregables/useGeneracion";
 import { useDashboardStore } from "../../store";
 import {
   useBaseDatosData,
@@ -47,8 +48,10 @@ export function BaseDatosTab({ publicMode = false }: { publicMode?: boolean } = 
 
   const [diccionarioOpen, setDiccionarioOpen] = useState(false);
   const [downloadFormato, setDownloadFormato] = useState<"xlsx" | "csv">("xlsx");
-  const [downloadBusy, setDownloadBusy] = useState(false);
-  const [downloadError, setDownloadError] = useState<string | null>(null);
+  // La base por el kit de entregables (ADR 0133, forma bloque en la tarjeta): el botón sólo se deshabilita y
+  // el contenedor dice la espera, el archivo o la causa del fallo (con su código y Reintentar).
+  const descarga = useGeneracion({ titulo: "Base de datos", modulo: "Dashboard", articulo: "la" });
+  const downloadBusy = descarga.estado.fase === "en_curso";
 
   const allVarNames = useMemo(() => {
     if (!estructura) return [];
@@ -66,28 +69,8 @@ export function BaseDatosTab({ publicMode = false }: { publicMode?: boolean } = 
 
   function handleDescargar() {
     if (!baseDatos.variables.length) return;
-    setDownloadBusy(true);
-    setDownloadError(null);
-    apiDashboardBaseDatosDescargar({
-      modo: baseDatos.modo,
-      variables: baseDatos.variables,
-      formato: downloadFormato,
-    })
-      .then((blob) => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        const ts = new Date().toISOString().replace(/[:.]/g, "").slice(0, 15);
-        a.download = `base_datos_${ts}.${downloadFormato}`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-      })
-      .catch((err: unknown) => {
-        setDownloadError(err instanceof Error ? err.message : "No se pudo descargar el archivo.");
-      })
-      .finally(() => setDownloadBusy(false));
+    const pedido = { modo: baseDatos.modo, variables: baseDatos.variables, formato: downloadFormato };
+    void descarga.ejecutar(() => apiDashboardBaseDatosDescargar(pedido), { formato: downloadFormato });
   }
 
   // Resumen "Filas a exportar / Columnas" — mismo cálculo que el legacy
@@ -205,9 +188,9 @@ export function BaseDatosTab({ publicMode = false }: { publicMode?: boolean } = 
             style={{ marginTop: 10 }}
           >
             <Download size={14} style={{ marginRight: 6 }} />
-            {downloadBusy ? "Generando…" : "Descargar"}
+            Descargar
           </button>
-          {downloadError && <ErrorBlock label="No se pudo descargar la base" detail={downloadError} />}
+          <ContenedorEntregable estado={descarga.estado} forma="bloque" onCerrar={descarga.cerrar} />
           {/* Resumen pre-descarga (legacy: interactivo_base_datos.R:924-951). */}
           <div className="dash-base-download-summary">
             <div><strong>{formatoConteo(resumenFilas)}</strong> filas a exportar</div>

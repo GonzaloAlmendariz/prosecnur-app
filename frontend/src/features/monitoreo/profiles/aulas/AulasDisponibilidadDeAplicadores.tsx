@@ -9,6 +9,9 @@ import { aplicadoresDeLaOferta, semanaDelAplicador } from "./disponibilidadDeApl
 import { nombreDeAplicador } from "./nombreDeAplicador";
 import type { MallaDeOferta } from "./disponibilidadDeAplicadores";
 import { fmt } from "./kpisDeAulas";
+import { notaDeLaPlantillaDeDisponibilidad, type GenerarPlantillaDeDisponibilidad } from "./entregasDeAulas";
+import { EntregaEnBloque } from "../../entregas/EntregaEnBloque";
+import { useEntregaConNota, type EntregaConNota } from "../../entregas/useEntregaConNota";
 
 /**
  * El tercer cuadro de Carga de campo: la malla de OFERTA (dictado 2026-09-02:
@@ -72,29 +75,40 @@ function BotonDeImportarDisponibilidad({ onImportar }: {
  * nadie sabe cómo tiene que ser. Y muerde sobre todo en el estado vacío, que
  * es exactamente donde está quien todavía no tiene nada.
  */
-function BotonDePlantillaDisponibilidad({ onPlantilla }: {
-  onPlantilla?: (() => void | Promise<void>) | null;
-}) {
-  if (!onPlantilla) return null;
+function BotonDePlantillaDisponibilidad({ plantilla }: { plantilla: EntregaConNota | null }) {
+  if (!plantilla) return null;
   return (
-    <button type="button" className="aulas-dispo-importar" onClick={() => void onPlantilla()}>
+    <button type="button" className="aulas-dispo-importar" onClick={plantilla.pedir} disabled={plantilla.entrega.enCurso}>
       Descargar plantilla (.xlsx)
       <em>días y franjas ya puestos; se llena con 1 y 0, y los nombres ya declarados vienen escritos</em>
     </button>
   );
 }
 
-/** El par, en el orden en que se usan: primero se baja, después se sube. */
+/**
+ * El par, en el orden en que se usan: primero se baja, después se sube. La
+ * plantilla se entrega por el kit (ADR 0133, fase 5): el contenedor va bajo el
+ * par, con qué hacer con ella al pie.
+ */
 function AccionesDeDisponibilidad({ onImportar, onPlantilla }: {
   onImportar?: ((archivo: File) => void | Promise<void>) | null;
-  onPlantilla?: (() => void | Promise<void>) | null;
+  onPlantilla?: GenerarPlantillaDeDisponibilidad | null;
 }) {
+  const plantilla = useEntregaConNota(
+    "Plantilla de disponibilidad de aplicadores",
+    { formato: "xlsx", articulo: "la" },
+    onPlantilla,
+    notaDeLaPlantillaDeDisponibilidad,
+  );
   if (!onImportar && !onPlantilla) return null;
   return (
-    <div className="aulas-dispo-acciones">
-      <BotonDePlantillaDisponibilidad onPlantilla={onPlantilla} />
-      <BotonDeImportarDisponibilidad onImportar={onImportar} />
-    </div>
+    <>
+      <div className="aulas-dispo-acciones">
+        <BotonDePlantillaDisponibilidad plantilla={onPlantilla ? plantilla : null} />
+        <BotonDeImportarDisponibilidad onImportar={onImportar} />
+      </div>
+      <EntregaEnBloque entrega={plantilla.entrega} pie={plantilla.pie} />
+    </>
   );
 }
 
@@ -129,7 +143,7 @@ export function AulasDisponibilidadDeAplicadores({
   /** B74: importar/reemplazar el excel de disponibilidad. */
   onImportar?: ((archivo: File) => void | Promise<void>) | null;
   /** Descargar la plantilla vacía que se llena y se vuelve a subir por aquí. */
-  onPlantilla?: (() => void | Promise<void>) | null;
+  onPlantilla?: GenerarPlantillaDeDisponibilidad | null;
   /**
    * Quién NO sale en el despliegue vigente (`reparto_fuera` del config), con
    * el nombre CRUDO de la oferta. El operativo pierde y gana gente cada

@@ -136,6 +136,7 @@ mount_calc_muestra_general <- function(pr) {
                                              comp, resultado, out_path)
       out_name <- .export_filename(sid, "calc_muestra_sorteo", "xlsx")
       meta <- .register_output_file(sid, "calc_muestra_general_sorteo", out_path, original_name = out_name)
-      list(ok = TRUE, export = list(file_id = meta$file_id, filename = meta$original_name, size = meta$size))
+      list(ok = TRUE, export = entregable_respuesta(list(file_id = meta$file_id, filename = meta$original_name,
+                                                         size = meta$size), meta))
     }))
 }

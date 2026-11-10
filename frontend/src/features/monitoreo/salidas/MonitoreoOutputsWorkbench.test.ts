@@ -4,8 +4,8 @@ import type {
   MonitoreoPublicationEvidencePackResult,
   MonitoreoTerritorialOperationalPackageReviewResult,
 } from "../../../api/client";
+import { archivosDeLaEvidencia, archivosDelPaqueteDeProcesamiento, archivosDeLaRevisionOperativa, plantillaDeLaRevisionOperativa } from "./archivosDeSalidas";
 import {
-  monitoreoEvidencePackFileLinks,
   monitoreoEvidencePackHighlights,
   monitoreoOperationalPackageDetail,
   monitoreoOperationalPackageMessage,
@@ -13,7 +13,6 @@ import {
   monitoreoOperationalPackageReviewSource,
   monitoreoOperationalPackageStatusKind,
   monitoreoProcessingHandoffDetail,
-  monitoreoProcessingHandoffFileLinks,
   preflightHasOnlyColdPerformanceWarnings,
   PDF_POR_FAMILIA,
 } from "./MonitoreoOutputsWorkbench";
@@ -330,49 +329,23 @@ describe("MonitoreoOutputsWorkbench evidence pack highlights", () => {
     expect(monitoreoEvidencePackHighlights({ evidence_pack: null } as unknown as MonitoreoPublicationEvidencePackResult)).toEqual([]);
   });
 
-  test("returns direct download links for actionable pack files only", () => {
+  test("los archivos directos de la evidencia salen con su rótulo, en orden, y sólo los que llegaron", () => {
     const result = {
       evidence_pack: { schema: "monitoreo_deliverables_evidence_pack_result_v1" },
       files: {
-        operational_package_request_csv: {
-          file_id: "request-csv",
-          filename: "request.csv",
-          download_url: "/api/files/request-csv/download",
-        },
-        operational_package_request: {
-          file_id: "request-json",
-          filename: "request.json",
-          download_url: "/api/files/request-json/download",
-        },
-        operational_package_status: {
-          file_id: "status-json",
-          filename: "status.json",
-        },
-        publication_decision: {
-          file_id: "decision-json",
-          filename: "decision.json",
-          download_url: "/api/files/decision-json/download",
-        },
+        operational_package_request_csv: { file_id: "request-csv", filename: "request.csv" },
+        operational_package_request: { file_id: "request-json", filename: "request.json" },
+        operational_package_status: { file_id: "", filename: "status.json" },
+        publication_decision: { file_id: "decision-json", filename: "decision.json" },
       },
     } as MonitoreoPublicationEvidencePackResult;
 
-    expect(monitoreoEvidencePackFileLinks(result)).toEqual([
-      {
-        key: "operational_package_request_csv",
-        label: "Request CSV",
-        downloadUrl: "/api/files/request-csv/download",
-      },
-      {
-        key: "operational_package_request",
-        label: "Request JSON",
-        downloadUrl: "/api/files/request-json/download",
-      },
-      {
-        key: "publication_decision",
-        label: "Decisión",
-        downloadUrl: "/api/files/decision-json/download",
-      },
+    expect(archivosDeLaEvidencia(result)).toEqual([
+      { clave: "operational_package_request_csv", rotulo: "Solicitud CSV", fileId: "request-csv", nombre: "request.csv" },
+      { clave: "operational_package_request", rotulo: "Solicitud JSON", fileId: "request-json", nombre: "request.json" },
+      { clave: "publication_decision", rotulo: "Decisión", fileId: "decision-json", nombre: "decision.json" },
     ]);
+    expect(archivosDeLaEvidencia(null)).toEqual([]);
   });
 });
 
@@ -391,49 +364,34 @@ describe("MonitoreoOutputsWorkbench processing handoff package", () => {
       file_id: "zip-file",
       filename: "acnurcg-procesable-processing-handoff.zip",
       size: 2048,
-      download_url: "/api/files/zip-file/download",
       files: {
         package: {
           file_id: "zip-file",
           filename: "acnurcg-procesable-processing-handoff.zip",
-          download_url: "/api/files/zip-file/download",
         },
         data_xlsx: {
           file_id: "data-file",
           filename: "acnurcg-procesable-data-procesamiento.xlsx",
-          download_url: "/api/files/data-file/download",
         },
         xlsform: {
           file_id: "xlsform-file",
           filename: "acnurcg-xlsform.xlsx",
-          download_url: "/api/files/xlsform-file/download",
         },
       },
       would_mutate_pulso: false,
     } as MonitoreoProcessingHandoffResult;
 
-    expect(monitoreoProcessingHandoffDetail(result)).toBe("1,283 filas, estatus validada + revision, 2 KB");
-    expect(monitoreoProcessingHandoffFileLinks(result)).toEqual([
-      {
-        key: "package",
-        label: "ZIP completo",
-        downloadUrl: "/api/files/zip-file/download",
-      },
-      {
-        key: "data_xlsx",
-        label: "Data XLSX",
-        downloadUrl: "/api/files/data-file/download",
-      },
-      {
-        key: "xlsform",
-        label: "XLSForm",
-        downloadUrl: "/api/files/xlsform-file/download",
-      },
+    // El peso lo dice el contenedor del archivo; el detalle sólo las filas y el estatus.
+    expect(monitoreoProcessingHandoffDetail(result)).toBe("1,283 filas, estatus validada + revision");
+    // El ZIP es el entregable del contenedor; al pie van la data y el XLSForm sueltos.
+    expect(archivosDelPaqueteDeProcesamiento(result)).toEqual([
+      { clave: "data_xlsx", rotulo: "Data XLSX", fileId: "data-file", nombre: "acnurcg-procesable-data-procesamiento.xlsx" },
+      { clave: "xlsform", rotulo: "XLSForm", fileId: "xlsform-file", nombre: "acnurcg-xlsform.xlsx" },
     ]);
   });
 
-  test("omits package links that do not have a download URL yet", () => {
-    expect(monitoreoProcessingHandoffFileLinks({
+  test("omite las piezas que no llegaron con file_id", () => {
+    expect(archivosDelPaqueteDeProcesamiento({
       ok: true,
       schema: "monitoreo_processing_handoff_v1",
       universe: "strict_validada",
@@ -444,16 +402,27 @@ describe("MonitoreoOutputsWorkbench processing handoff package", () => {
         data_xlsx: {
           file_id: "data-file",
           filename: "data.xlsx",
-          download_url: "/api/files/data-file/download",
         },
       },
     })).toEqual([
-      {
-        key: "data_xlsx",
-        label: "Data XLSX",
-        downloadUrl: "/api/files/data-file/download",
-      },
+      { clave: "data_xlsx", rotulo: "Data XLSX", fileId: "data-file", nombre: "data.xlsx" },
     ]);
+  });
+});
+
+describe("MonitoreoOutputsWorkbench paquete operacional: archivos de la revisión", () => {
+  test("la plantilla es el archivo del contenedor; la revisión y el reporte van al pie", () => {
+    const result = reviewResult({
+      files: {
+        template: { file_id: "tpl", filename: "plantilla.csv", size: 120 },
+        review_csv: { file_id: "rev", filename: "revision.csv" },
+        report_json: { file_id: "json", filename: "reporte.json" },
+        report_md: { file_id: "md", filename: "reporte.md" },
+      },
+    });
+    expect(plantillaDeLaRevisionOperativa(result)).toEqual({ file_id: "tpl", filename: "plantilla.csv", size: 120 });
+    expect(archivosDeLaRevisionOperativa(result).map((a) => a.rotulo)).toEqual(["Revisión CSV", "Reporte JSON", "Reporte MD"]);
+    expect(plantillaDeLaRevisionOperativa(reviewResult())).toBeNull();
   });
 });
 

@@ -101,6 +101,40 @@ afterEach(() => {
   actual.gen = null;
 });
 
+describe("archivo armado en el front (ArchivoLocal)", () => {
+  it("se entrega al instante: Descargado, con su peso, sin file_id del backend y bajado de su blob", async () => {
+    const { archivoCsv } = await import("./archivoLocal");
+    const crear = vi.fn(() => "blob:local-1");
+    const revocar = vi.fn();
+    const original = { crear: URL.createObjectURL, revocar: URL.revokeObjectURL };
+    URL.createObjectURL = crear;
+    URL.revokeObjectURL = revocar;
+    try {
+      let r: Awaited<ReturnType<Gen["ejecutar"]>> | null = null;
+      await act(async () => { r = await gen().ejecutar(() => Promise.resolve(archivoCsv("a,b\n1,2", "personas.csv"))); });
+      expect(r).toMatchObject({ ok: true });
+      const estado = gen().estado;
+      expect(estado).toMatchObject({ fase: "lista", titulo: "Frecuencias", archivos: [{ nombre: "personas.csv", formato: "csv", guardadoEn: null }] });
+      const archivo = estado.fase === "lista" ? estado.archivos[0] : null;
+      expect(archivo?.fileId.startsWith("local-")).toBe(true);
+      expect(archivo?.tamano).toBeGreaterThan(0);
+      expect(archivo?.local).toBeInstanceOf(Blob);
+      expect(crear).toHaveBeenCalledTimes(1);
+      expect(espia.descargar).toHaveBeenCalledWith("blob:local-1", "personas.csv");
+    } finally {
+      URL.createObjectURL = original.crear;
+      URL.revokeObjectURL = original.revocar;
+    }
+  });
+
+  it("si armarlo falla, el fallo queda en el contenedor con Reintentar", async () => {
+    const fn = vi.fn(async () => { throw new Error("No hay filas que exportar."); });
+    await act(async () => { await gen().ejecutar(fn); });
+    expect(gen().estado).toMatchObject({ fase: "fallo", causa: "No hay filas que exportar." });
+    expect(espia.descargar).not.toHaveBeenCalled();
+  });
+});
+
 describe("generación síncrona", () => {
   it("con guardado_en no descarga: ya quedó en Entregables", async () => {
     escritorio();

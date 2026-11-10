@@ -1171,22 +1171,9 @@ mount_hojas_ruta <- function(pr) {
       filename <- .export_filename(sid, "reporte_muestra_territorial", ext)
 
       sid_capt <- sid
-      on_complete <- function(j) {
-        if (identical(j$status, "done") &&
-            !is.null(j$result_path) && file.exists(j$result_path)) {
-          s_now <- session_get(sid_capt, required = FALSE)
-          if (is.null(s_now)) return(j$result_data)
-          meta_now <- list(
-            disponible   = TRUE,
-            path         = j$result_path,
-            formato      = formato,
-            generated_at = format(j$finished_at,
-                                  "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
-          )
-          session_set(sid_capt, "hojas_ruta_reporte_decisional", meta_now)
-        }
-        j$result_data
-      }
+      # ADR 0133 (fase 5): el reporte se registra como entregable y la respuesta del
+      # job trae su file_id; la ruta del worker no viaja (`.hojas_ruta_reporte_on_complete`).
+      on_complete <- function(j) .hojas_ruta_reporte_on_complete(sid_capt, j, formato)
 
       job_id <- job_submit(
         sid    = sid,

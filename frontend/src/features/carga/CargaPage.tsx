@@ -14,7 +14,6 @@ import {
   apiCargaReviewSummary,
   apiCargaReviewReconciliation,
   apiCargaData,
-  apiCargaExportNormalized,
   apiCargaConfirmChoiceMapping,
   apiCargaInstrumento,
   apiConnectionsList,
@@ -43,10 +42,9 @@ import {
   ReconciliacionInfo,
   Seccion,
   SurveyMonkeyMultibaseListItem,
-  downloadUrl,
   uploadKindForDataFile,
 } from "../../api/client";
-import { apiCargaAgregarFuenteSm, apiCargaVistaPreviaFuenteSm, type VistaPreviaFuente } from "../../api/xlsformEditor";
+import { apiCargaAgregarFuenteSm, apiCargaExportNormalized, apiCargaVistaPreviaFuenteSm, type VistaPreviaFuente } from "../../api/xlsformEditor";
 import { nombreCortoDeEncuesta, nombreLibreDeBase } from "./importSeparadoModel";
 import { BasesDelEstudio } from "./fuentes/BasesDelEstudio";
 import { NuevaBaseArchivos } from "./fuentes/NuevaBaseArchivos";
@@ -1110,19 +1108,6 @@ export default function CargaPage() {
     }
   }
 
-  async function onExportNormalized(format: NormalizedExportFormat) {
-    setError("");
-    setBusy(`Preparando base normalizada .${format}…`);
-    try {
-      const out = await apiCargaExportNormalized(format);
-      window.location.href = downloadUrl(out.file_id);
-    } catch (e: unknown) {
-      setError((e as Error).message);
-    } finally {
-      setBusy("");
-    }
-  }
-
   async function onEnableMultiBase(strategy: MultiBaseStrategy) {
     setError("");
     setBusy("Activando modo de varias bases…");
@@ -1760,7 +1745,7 @@ export default function CargaPage() {
                     : null}
                   detallesNormalizacion={normalizationDetails}
                   exportar={dataPreview.normalizacion?.applied && !pendingChoiceMapping
-                    ? { busy: !!busy, onExport: (format) => void onExportNormalized(format) }
+                    ? { disabled: !!busy, generar: (format: NormalizedExportFormat) => apiCargaExportNormalized(format) }
                     : null}
                 />
               )}

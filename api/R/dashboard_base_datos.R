@@ -270,7 +270,8 @@
   if (is.null(s$rp_data) || is.null(s$rp_inst)) {
     out <- tempfile(fileext = ".csv")
     utils::write.csv(data.frame(error = "Sin data"), out, row.names = FALSE)
-    return(list(path = out, formato = "csv"))
+    return(list(path = out, formato = "csv", vacio = TRUE,
+                motivo = "El dashboard no tiene una base cargada para descargar."))
   }
   variables <- as.character(unlist(variables))
   spec <- .dashboard_base_datos_expand_cols(s, variables)
@@ -279,7 +280,8 @@
   if (!length(cols)) {
     out <- tempfile(fileext = ".csv")
     utils::write.csv(data.frame(), out, row.names = FALSE)
-    return(list(path = out, formato = "csv"))
+    return(list(path = out, formato = "csv", vacio = TRUE,
+                motivo = "Elige al menos una variable para descargar la base."))
   }
 
   df <- s$rp_data[, cols, drop = FALSE]

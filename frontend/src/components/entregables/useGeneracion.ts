@@ -7,6 +7,8 @@
 //
 // - `ejecutar(fn)` corre la generación. Si `fn` devuelve un archivo, termina ahí;
 //   si devuelve el arranque de un job (`{ job_id }`), lo sigue hasta el final.
+//   Si `fn` devuelve un `ArchivoLocal` (un CSV armado en el front,
+//   `archivoLocal.ts`), lo entrega sin pasar por el backend.
 // - `seguirJob(jobId)` sigue un job que ya arrancó otro.
 // - Al terminar: si el backend ya copió el archivo junto al proyecto
 //   (`guardado_en`), no se descarga nada; si no, se descarga (en Electron va a
@@ -23,7 +25,8 @@ import { iniciarJobPoll } from "../../hooks/useJob";
 import { alTerminarDescarga } from "../../lib/escritorio";
 import { useBandejaEntregables, type EstadoEnBandeja } from "./bandejaStore";
 import { archivoDesdeRespuesta } from "./archivoDesdeRespuesta";
-import { descargarDelServidor } from "./entregaArchivo";
+import { archivoDesdeLocal, esArchivoLocal } from "./archivoLocal";
+import { descargarEntregable } from "./entregaArchivo";
 import {
   avanceDelJob, coincideDescarga, errorDelResultado, errorLegible, jobIdDeInicio, nombreDelFallo,
   type Articulo, type ErrorLegible,
@@ -98,12 +101,13 @@ function fallar(ctx: Contexto, error: ErrorLegible): void {
 
 /** Cierra una generación que devolvió `datos`: lista, descarga si hace falta y escucha la ruta. */
 function entregar(ctx: Contexto, datos: unknown): boolean {
-  const dominio = errorDelResultado(datos);
+  const local = esArchivoLocal(datos);
+  const dominio = local ? null : errorDelResultado(datos);
   if (dominio) {
     fallar(ctx, dominio);
     return false;
   }
-  const archivos = archivoDesdeRespuesta(datos);
+  const archivos = local ? [archivoDesdeLocal(datos)] : archivoDesdeRespuesta(datos);
   if (!archivos.length) {
     fallar(ctx, { causa: "El motor terminó sin devolver un archivo. Reintenta.", codigo: null });
     return false;
@@ -129,7 +133,7 @@ function entregar(ctx: Contexto, datos: unknown): boolean {
   });
   plazo = setTimeout(() => dejar(), ESPERA_AVISO_DESCARGA_MS);
   try {
-    for (const archivo of archivos) descargarDelServidor(archivo.fileId, archivo.nombre);
+    for (const archivo of archivos) descargarEntregable(archivo);
   } catch {
     // El archivo está listo en el backend: si la descarga no arrancó, el contenedor ofrece «Descargar otra vez».
     dejar();

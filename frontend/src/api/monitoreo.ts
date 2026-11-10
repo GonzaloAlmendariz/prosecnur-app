@@ -3,8 +3,8 @@
 // importan del barrel ./client; este módulo no cambia el contrato.
 
 import type { CalcMuestraAulasFrame, CalcMuestraAulasSelection, CalcMuestraEstudio } from "./calcMuestra";
-import { ApiError, apiFetch, apiPath, downloadUrl, getSession, handle, headers, registerMonitoreoMutationInvalidator, SESSION_KEY } from "./core";
-import { type AsyncJobStart, type FileJobResult, jobResultDomainError, type JobStart } from "./jobs";
+import { ApiError, apiFetch, getSession, handle, headers, registerMonitoreoMutationInvalidator } from "./core";
+import { type AsyncJobStart, camposDeEntregable, type CamposDeEntregable, type FileJobResult, jobResultDomainError, type JobStart } from "./jobs";
 import { type CargaMonitoreoHandoffValidity, normalizeKoboAssets } from "./xlsformEditor";
 import { captureUrlOk } from "../lib/captureUrl";
 
@@ -2679,11 +2679,11 @@ export type MonitoreoTerritorialOperationalAdjustmentsPayload = {
   applied?: MonitoreoTerritorialOperationalAdjustment[];
 };
 
-export type MonitoreoTerritorialOperationalPackageFile = {
+/** Un archivo que acompaña a un resultado de Monitoreo; lo entrega el kit por su `file_id` (ADR 0133). */
+export type MonitoreoTerritorialOperationalPackageFile = CamposDeEntregable & {
   file_id: string;
   filename: string;
   size?: number;
-  download_url?: string;
 };
 
 export type MonitoreoProcessingHandoffUniverse = "processable" | "strict_validada";
@@ -2710,7 +2710,6 @@ export type MonitoreoProcessingHandoffResult = {
   file_id: string;
   filename?: string;
   size?: number;
-  download_url?: string;
   files?: {
     package?: MonitoreoTerritorialOperationalPackageFile;
     data_xlsx?: MonitoreoTerritorialOperationalPackageFile;
@@ -4151,8 +4150,7 @@ export type MonitoreoFieldOccurrenceInspectResult = {
 
 export type MonitoreoFieldOccurrenceUploadResult = {
   ok: true;
-  file?: { file_id: string; original_name: string; size: number; ext?: string };
-  download_url?: string;
+  file?: CamposDeEntregable & { file_id: string; original_name: string; size: number; ext?: string };
   upload?: { asset_uid: string; version_id: string; survey_url?: string; asset_url?: string; deployment?: unknown };
   source?: MonitoreoSource;
   config?: MonitoreoConfig;
@@ -4842,7 +4840,8 @@ export type MonitoreoPublicationEvidencePackResult = MonitoreoPublicationPreflig
     operational_package_status?: MonitoreoTerritorialOperationalPackageFile;
     publication_decision?: MonitoreoTerritorialOperationalPackageFile;
   };
-  zip?: {
+  /** El ZIP de la evidencia: el entregable que el kit lee primero (`archivoDesdeRespuesta`). */
+  zip?: CamposDeEntregable & {
     file_id: string;
     filename: string;
     size?: number;
@@ -4850,8 +4849,7 @@ export type MonitoreoPublicationEvidencePackResult = MonitoreoPublicationPreflig
   file_id: string;
   filename: string;
   size?: number;
-  download_url?: string;
-};
+} & CamposDeEntregable;
 
 export type MonitoreoAcreditacionSeguimientoPayload = {
   id: string;
@@ -5044,21 +5042,9 @@ export async function apiMonitoreoPublicationEvidencePack(
       body: JSON.stringify(monitoreoPublicationRequestBody(spreadsheetId, options)),
     }),
   );
-  const withUrl = (file?: MonitoreoTerritorialOperationalPackageFile) =>
-    file?.file_id ? { ...file, download_url: downloadUrl(file.file_id) } : file;
-  return {
-    ...result,
-    ...(result.file_id ? { download_url: downloadUrl(result.file_id) } : {}),
-    ...(result.files ? {
-      files: {
-        ...result.files,
-        operational_package_request_csv: withUrl(result.files.operational_package_request_csv),
-        operational_package_request: withUrl(result.files.operational_package_request),
-        operational_package_status: withUrl(result.files.operational_package_status),
-        publication_decision: withUrl(result.files.publication_decision),
-      },
-    } : {}),
-  };
+  // El ZIP y los archivos directos se entregan por el kit con su `file_id`; los
+  // campos del registro (guardado_en, rótulo…) viajan tal cual (ADR 0133).
+  return { ...result, ...camposDeEntregable(result.zip ?? result) };
 }
 
 export async function apiMonitoreoTerritorialPrewarm(options: { phase?: string; scopes?: string[] } = {}) {
@@ -5285,27 +5271,6 @@ export async function apiMonitoreoClientReportPdf(
   );
 }
 
-/**
- * `v` identifica la generación. **No es cosmético.** La descarga vive siempre en
- * la misma URL y el backend no manda `Cache-Control` para `/api/` —el filtro
- * `no-store` de `plumber_app.R` sólo cubre lo que NO es API—, así que el
- * navegador puede servir de su caché el PDF anterior. Quien cambia la portada,
- * regenera y descarga se encontraría el documento viejo y concluiría que los
- * campos no funcionan. Cambiando la URL en cada generación, no hay nada que
- * acertar: es otra petición.
- */
-export function monitoreoClientReportPdfDownloadUrl(
-  opts: { inline?: boolean; v?: string | number } = {},
-): string {
-  const sid = localStorage.getItem(SESSION_KEY);
-  const params = new URLSearchParams();
-  if (sid) params.set("sid", sid);
-  if (opts.inline) params.set("inline", "1");
-  if (opts.v !== undefined && opts.v !== "") params.set("v", String(opts.v));
-  const qs = params.toString();
-  return apiPath(`/api/monitoreo/client-report/pdf/download${qs ? `?${qs}` : ""}`);
-}
-
 export async function apiMonitoreoProductionReportPdf(
   options: { includeTargets?: boolean; config?: Partial<MonitoreoConfig>; title?: string } = {},
 ) {
@@ -5320,19 +5285,6 @@ export async function apiMonitoreoProductionReportPdf(
       }),
     }),
   );
-}
-
-/** Mismo motivo que en el reporte de cliente: ver `monitoreoClientReportPdfDownloadUrl`. */
-export function monitoreoProductionReportPdfDownloadUrl(
-  opts: { inline?: boolean; v?: string | number } = {},
-): string {
-  const sid = localStorage.getItem(SESSION_KEY);
-  const params = new URLSearchParams();
-  if (sid) params.set("sid", sid);
-  if (opts.inline) params.set("inline", "1");
-  if (opts.v !== undefined && opts.v !== "") params.set("v", String(opts.v));
-  const qs = params.toString();
-  return apiPath(`/api/monitoreo/production-report/pdf/download${qs ? `?${qs}` : ""}`);
 }
 
 export async function apiMonitoreoDemo(options: { seed?: number; n?: number } = {}) {
@@ -5579,24 +5531,6 @@ export async function apiMonitoreoTerritorialSpatialReconciliationDismissPattern
   );
 }
 
-function withOperationalPackageDownloadUrls(
-  result: MonitoreoTerritorialOperationalPackageReviewResult,
-): MonitoreoTerritorialOperationalPackageReviewResult {
-  if (!result.files) return result;
-  const withUrl = (file?: MonitoreoTerritorialOperationalPackageFile) =>
-    file?.file_id ? { ...file, download_url: downloadUrl(file.file_id) } : file;
-  return {
-    ...result,
-    files: {
-      ...result.files,
-      template: withUrl(result.files.template),
-      review_csv: withUrl(result.files.review_csv),
-      report_json: withUrl(result.files.report_json),
-      report_md: withUrl(result.files.report_md),
-    },
-  };
-}
-
 export async function apiMonitoreoTerritorialOperationalPackageReview(payload: {
   packageRows?: Array<Record<string, unknown>>;
   packageFileId?: string;
@@ -5633,7 +5567,7 @@ export async function apiMonitoreoTerritorialOperationalPackageReview(payload: {
       }),
     }),
   );
-  return withOperationalPackageDownloadUrls(result);
+  return result;
 }
 
 export async function apiMonitoreoTerritorialOperationalAdjustmentApply(
@@ -5847,7 +5781,7 @@ export async function apiMonitoreoTerritorialEnumeratorsTemplate() {
       body: JSON.stringify({}),
     }),
   );
-  return { ...result, download_url: downloadUrl(result.file_id) };
+  return { ...result, ...camposDeEntregable(result) };
 }
 
 export async function apiMonitoreoTerritorialEnumeratorsCodes() {
@@ -5864,7 +5798,7 @@ export async function apiMonitoreoTerritorialEnumeratorsCodes() {
       body: JSON.stringify({}),
     }),
   );
-  return { ...result, download_url: downloadUrl(result.file_id) };
+  return { ...result, ...camposDeEntregable(result) };
 }
 
 export async function apiMonitoreoTerritorialMap(options: {
@@ -5944,7 +5878,7 @@ export async function apiMonitoreoTerritorialOccurrencesXlsform(payload: Partial
       body: JSON.stringify(payload),
     }),
   );
-  return result.file?.file_id ? { ...result, download_url: downloadUrl(result.file.file_id) } : result;
+  return result.file?.file_id ? { ...result, file: { ...result.file, ...camposDeEntregable(result.file) } } : result;
 }
 
 export async function apiMonitoreoTerritorialOccurrencesUploadKobo(payload: Partial<MonitoreoFieldOccurrenceConfig> = {}) {
@@ -6175,7 +6109,7 @@ export async function apiMonitoreoAulasGenerarLibro() {
       body: "{}",
     }),
   );
-  return { ...result, download_url: downloadUrl(result.file_id) };
+  return { ...result, ...camposDeEntregable(result) };
 }
 
 /**
@@ -6282,7 +6216,7 @@ export async function apiMonitoreoAulasDisponibilidadPlantilla() {
       body: JSON.stringify({}),
     }),
   );
-  return { ...result, download_url: downloadUrl(result.file_id) };
+  return { ...result, ...camposDeEntregable(result) };
 }
 
 /**
@@ -6973,25 +6907,6 @@ export async function apiMonitoreoExport(config?: Partial<MonitoreoConfig>) {
   );
 }
 
-function withProcessingHandoffDownloadUrls(
-  result: MonitoreoProcessingHandoffResult,
-): MonitoreoProcessingHandoffResult {
-  const withUrl = (file?: MonitoreoTerritorialOperationalPackageFile) =>
-    file?.file_id ? { ...file, download_url: downloadUrl(file.file_id) } : file;
-  return {
-    ...result,
-    ...(result.file_id ? { download_url: downloadUrl(result.file_id) } : {}),
-    ...(result.files ? {
-      files: {
-        ...result.files,
-        package: withUrl(result.files.package),
-        data_xlsx: withUrl(result.files.data_xlsx),
-        xlsform: withUrl(result.files.xlsform),
-      },
-    } : {}),
-  };
-}
-
 export async function apiMonitoreoProcessingHandoffExport(options: {
   universe?: MonitoreoProcessingHandoffUniverse | string;
   config?: Partial<MonitoreoConfig>;
@@ -7006,7 +6921,7 @@ export async function apiMonitoreoProcessingHandoffExport(options: {
       }),
     }),
   );
-  return withProcessingHandoffDownloadUrls(result);
+  return { ...result, ...camposDeEntregable(result) };
 }
 
 export async function apiMonitoreoProcessingHandoffPromote(options: {

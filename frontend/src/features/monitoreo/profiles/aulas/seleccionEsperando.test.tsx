@@ -23,7 +23,7 @@ const render = (
       origen={origen}
       onImportPlan={() => {}}
       onSyncField={() => {}}
-      onGenerarLibro={() => {}}
+      onGenerarLibro={async () => ({ ok: true as const, file_id: "libro-1", filename: "Libro.xlsx", unidades: 0, partes: 0, control: 0 })}
       onImportarLibro={() => {}}
     />,
   );

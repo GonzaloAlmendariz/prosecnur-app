@@ -402,7 +402,7 @@
     path <- .monitoreo_scalar(spec$path, "")
     if (!nzchar(path) || !file.exists(path)) return(NULL)
     file_meta <- .register_output_file(sid, spec$kind, path, detalle = audiencia_txt)
-    list(file_id = file_meta$file_id, filename = file_meta$original_name, size = file_meta$size)
+    entregable_respuesta(list(file_id = file_meta$file_id, filename = file_meta$original_name, size = file_meta$size), file_meta)
   })
   pack_files <- pack_files[!vapply(pack_files, is.null, logical(1))]
 
@@ -410,7 +410,7 @@
   zip_path <- .session_tmp(sid, sprintf("%s__%s", uuid::UUIDgenerate(), zip_filename))
   .monitoreo_publication_evidence_zip_dir(pack$out_dir, zip_path)
   meta <- .register_output_file(sid, "monitoreo_publication_evidence_pack", zip_path, original_name = zip_filename)
-  list(
+  entregable_respuesta(list(
     ok = TRUE,
     audience = bundle$audience,
     family = bundle$publication_family,
@@ -419,11 +419,11 @@
     preflight = bundle$preflight,
     evidence_pack = pack,
     files = pack_files,
-    zip = list(file_id = meta$file_id, filename = meta$original_name, size = meta$size),
+    zip = entregable_respuesta(list(file_id = meta$file_id, filename = meta$original_name, size = meta$size), meta),
     file_id = meta$file_id,
     filename = meta$original_name,
     size = meta$size
-  )
+  ), meta)
 }
 .monitoreo_sheets_stop <- function(e) {
   stop_api(400, "E_GOOGLE_SHEETS", conditionMessage(e))

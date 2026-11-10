@@ -67,9 +67,17 @@ mount_monitoreo_aulas_plantilla <- function(pr) {
                                      desde = args$desde, hasta = args$hasta,
                                      filas = args$filas,
                                      aplicadores = args$aplicadores)
-      meta <- .register_output_file(sid, "aulas_disponibilidad_plantilla", out_path,
-                                    original_name = out_name)
-      list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name,
-           size = meta$size, aplicadores = length(args$aplicadores))
+      # ADR 0133 (fase 5): la plantilla se guarda en la carpeta del módulo que la pide;
+      # desde Material de campo es `aulas_disponibilidad_plantilla`.
+      meta <- .register_output_file(sid, "monitoreo_aulas_disponibilidad_plantilla", out_path)
+      entregable_respuesta(list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name,
+                                size = meta$size, aplicadores = length(args$aplicadores)), meta)
+    })) |>
+    # La carga de campo como .xlsx real (malla y detalle en dos hojas); la lógica
+    # vive en monitoreo_aulas_carga_de_campo.R.
+    plumber::pr_post("/api/monitoreo/aulas/carga-de-campo/excel",
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      monitoreo_aulas_carga_de_campo_excel(sid, .monitoreo_parse_body(req) %||% list())
     }))
 }

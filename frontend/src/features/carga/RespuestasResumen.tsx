@@ -2,9 +2,15 @@
 // cargado. Una línea de cifras, cómo calza con el formulario, qué preparó la
 // app, las descargas de la base preparada en una fila y el detalle plegado. Si
 // se acaba de reemplazar, arriba va qué cambió y el paso que sigue.
+//
+// Las descargas van por el kit de entregables (ADR 0133): los botones .xlsx,
+// .csv y .sav sólo se deshabilitan mientras se prepara la base y el contenedor,
+// en bloque bajo su línea, muestra la espera, el archivo o la causa del fallo.
 
 import type { CambiosDeRespuestas } from "../../api/estudio";
 import type { apiCargaData, NormalizedExportFormat } from "../../api/xlsformEditor";
+import { ContenedorEntregable } from "../../components/entregables/ContenedorEntregable";
+import { useGeneracion } from "../../components/entregables/useGeneracion";
 import { formatoConteo } from "../../lib/formatoNumero";
 import { ArrowRightLeft, Download } from "../../vendor/lucide-react";
 import { CambiosDeRespuestasAviso } from "./fuentes/CambiosDeRespuestasAviso";
@@ -27,9 +33,11 @@ export function RespuestasResumen({
   /** Mapeo de códigos: `null` si no aplica. */
   mapeo: { pendiente: boolean; onRevisar: () => void } | null;
   detallesNormalizacion: string[];
-  /** Descargas de la base preparada: `null` si aún no se pueden ofrecer. */
-  exportar: { busy: boolean; onExport: (format: NormalizedExportFormat) => void } | null;
+  /** Descargas de la base preparada: `null` si aún no se pueden ofrecer. `generar` devuelve el archivo del motor. */
+  exportar: { disabled: boolean; generar: (format: NormalizedExportFormat) => Promise<unknown> } | null;
 }) {
+  const base = useGeneracion({ titulo: "Base preparada", modulo: "Procesamiento", articulo: "la" });
+  const preparando = base.estado.fase === "en_curso";
   const compat = textoCompatibilidad(preview.compatibilidad);
   const preparacion = partesPreparacion(preview.normalizacion);
   return (
@@ -63,14 +71,22 @@ export function RespuestasResumen({
       ) : null}
 
       {exportar ? (
-        <p className="pulso-resp-descargas">
-          <span>Descargar la base preparada</span>
-          {(["xlsx", "csv", "sav"] as NormalizedExportFormat[]).map((format) => (
-            <button key={format} type="button" disabled={exportar.busy} onClick={() => exportar.onExport(format)}>
-              <Download size={12} aria-hidden="true" />.{format}
-            </button>
-          ))}
-        </p>
+        <>
+          <p className="pulso-resp-descargas">
+            <span>Descargar la base preparada</span>
+            {(["xlsx", "csv", "sav"] as NormalizedExportFormat[]).map((format) => (
+              <button
+                key={format}
+                type="button"
+                disabled={exportar.disabled || preparando}
+                onClick={() => { void base.ejecutar(() => exportar.generar(format), { formato: format }); }}
+              >
+                <Download size={12} aria-hidden="true" />.{format}
+              </button>
+            ))}
+          </p>
+          <ContenedorEntregable estado={base.estado} forma="bloque" onCerrar={base.cerrar} />
+        </>
       ) : null}
 
       {detallesNormalizacion.length > 0 ? (

@@ -243,10 +243,10 @@
   json_meta <- .register_output_file(sid, "monitoreo_territorial_operational_package_review_json", review$json)
   md_meta <- .register_output_file(sid, "monitoreo_territorial_operational_package_review_md", review$markdown)
   files <- list(
-    template = list(file_id = template_meta$file_id, filename = template_meta$original_name, size = template_meta$size),
-    review_csv = list(file_id = review_meta$file_id, filename = review_meta$original_name, size = review_meta$size),
-    report_json = list(file_id = json_meta$file_id, filename = json_meta$original_name, size = json_meta$size),
-    report_md = list(file_id = md_meta$file_id, filename = md_meta$original_name, size = md_meta$size)
+    template = .monitoreo_archivo_publico(template_meta),
+    review_csv = .monitoreo_archivo_publico(review_meta),
+    report_json = .monitoreo_archivo_publico(json_meta),
+    report_md = .monitoreo_archivo_publico(md_meta)
   )
   list(
     ok = TRUE,
@@ -3192,18 +3192,9 @@ mount_monitoreo <- function(pr) {
         args = list(model_path = model_path, include_targets = include_targets,
                     portada = portada),
         result_filename = filename,
-        on_complete = function(j) {
-          if (identical(j$status, "done") && !is.null(j$result_path) && file.exists(j$result_path)) {
-            session_set(j$sid, "monitoreo_client_report_pdf", list(
-              disponible = TRUE,
-              path = j$result_path,
-              generated_at = format(j$finished_at, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
-              include_targets = include_targets,
-              report_kind = model$report_kind %||% ""
-            ))
-          }
-          j$result_data
-        }
+        # ADR 0133 (fase 5): registra el PDF y responde con el registro (monitoreo_reportes_entrega.R).
+        on_complete = function(j) .monitoreo_reporte_pdf_on_complete(j, report_slug, "monitoreo_client_report_pdf",
+          list(include_targets = include_targets, report_kind = model$report_kind %||% ""))
       )
       session_set(sid, "monitoreo_client_report_pdf", list(
         disponible = FALSE,
@@ -3214,6 +3205,7 @@ mount_monitoreo <- function(pr) {
       ))
       list(ok = TRUE, job_id = job_id, kind = report_job_kind)
     })) |>
+    # Heredado (ADR 0133, fase 5): el front baja el PDF por su file_id; sólo lo usan tests de R.
     plumber::pr_get("/api/monitoreo/client-report/pdf/download", wrap_endpoint(function(req, res, sid = NULL, inline = NULL, ...) {
       effective_sid <- session_header(req)
       if ((is.null(effective_sid) || !nzchar(effective_sid)) && is.character(sid) && length(sid) >= 1L && nzchar(sid[[1]])) {
@@ -3264,19 +3256,9 @@ mount_monitoreo <- function(pr) {
         func = pdf_job_runner,
         args = list(model_path = model_path, include_targets = include_targets, report_title = report_title),
         result_filename = filename,
-        on_complete = function(j) {
-          if (identical(j$status, "done") && !is.null(j$result_path) && file.exists(j$result_path)) {
-            session_set(j$sid, "monitoreo_production_report_pdf", list(
-              disponible = TRUE,
-              path = j$result_path,
-              generated_at = format(j$finished_at, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
-              include_targets = include_targets,
-              title = report_title,
-              report_kind = model$report_kind %||% ""
-            ))
-          }
-          j$result_data
-        }
+        on_complete = function(j) .monitoreo_reporte_pdf_on_complete(j, "produccion_responsable_monitoreo",
+          "monitoreo_production_report_pdf",
+          list(include_targets = include_targets, title = report_title, report_kind = model$report_kind %||% ""))
       )
       session_set(sid, "monitoreo_production_report_pdf", list(
         disponible = FALSE,
@@ -3288,6 +3270,7 @@ mount_monitoreo <- function(pr) {
       ))
       list(ok = TRUE, job_id = job_id, kind = "monitoreo.production_report_pdf")
     })) |>
+    # Heredado (ADR 0133, fase 5): el front baja el PDF por su file_id; sólo lo usan tests de R.
     plumber::pr_get("/api/monitoreo/production-report/pdf/download", wrap_endpoint(function(req, res, sid = NULL, inline = NULL, ...) {
       effective_sid <- session_header(req)
       if ((is.null(effective_sid) || !nzchar(effective_sid)) && is.character(sid) && length(sid) >= 1L && nzchar(sid[[1]])) {
@@ -3686,13 +3669,13 @@ mount_monitoreo <- function(pr) {
       n <- file.info(out)$size
       meta <- .register_output_file(sid, "monitoreo_plantilla_encuestadores", out)  # ADR 0133: un entregable, no un insumo
       res$status <- 201
-      list(
+      entregable_respuesta(list(
         ok = TRUE,
         file_id = .monitoreo_scalar(meta$file_id, ""),
         filename = .monitoreo_scalar(meta$original_name, ""),
         size = as.integer(meta$size %||% n),
         rows = as.integer(result$rows %||% 0L)
-      )
+      ), meta)
     })) |>
     plumber::pr_post("/api/monitoreo/territorial/enumerators/codes", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)
@@ -3709,13 +3692,13 @@ mount_monitoreo <- function(pr) {
       n <- file.info(out)$size
       meta <- .register_output_file(sid, "monitoreo_codigos_encuestadores", out)  # ADR 0133: un entregable, no un insumo
       res$status <- 201
-      list(
+      entregable_respuesta(list(
         ok = TRUE,
         file_id = .monitoreo_scalar(meta$file_id, ""),
         filename = .monitoreo_scalar(meta$original_name, ""),
         size = as.integer(meta$size %||% n),
         rows = as.integer(result$rows %||% 0L)
-      )
+      ), meta)
     })) |>
     plumber::pr_post("/api/monitoreo/territorial/enumerators/reconcile-code", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)
@@ -4270,7 +4253,7 @@ mount_monitoreo <- function(pr) {
         ),
         error = function(e) stop_api(400, "E_OCCURRENCES_XLSFORM", conditionMessage(e))
       )
-      meta <- .register_output_file(sid, "monitoreo_ocurrencias_xlsform", out_path, original_name = basename(xls$filename))
+      meta <- .register_output_file(sid, "monitoreo_ocurrencias_xlsform_descarga", out_path)  # ADR 0133: la descarga se copia
       tcfg <- cfg$territorial
       occ <- tcfg$field_occurrences %||% list()
       occ$form_title <- xls$form_title
@@ -4297,7 +4280,7 @@ mount_monitoreo <- function(pr) {
       saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
       list(
         ok = TRUE,
-        file = meta,
+        file = .monitoreo_archivo_publico(meta),
         xlsform = xls,
         config = cfg,
         field_occurrences = .monitoreo_territorial_occurrences_dashboard(sid, cfg),
@@ -5177,7 +5160,7 @@ mount_monitoreo <- function(pr) {
       titulares_escritos <- as.integer(attr(escrito, "titulares") %||% NA_integer_)
       reservas_escritas <- as.integer(attr(escrito, "reservas") %||% NA_integer_)
       meta <- .register_output_file(sid, "aulas_libro", destino, original_name = nombre)
-      list(ok = TRUE, file_id = meta$file_id, filename = nombre,
+      entregable_respuesta(list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name, size = meta$size,
            unidades = unidades_escritas, partes = length(partes),
            titulares = if (is.na(titulares_escritos)) NULL else titulares_escritos,
            reservas = if (is.na(reservas_escritas)) NULL else reservas_escritas,
@@ -5185,7 +5168,7 @@ mount_monitoreo <- function(pr) {
            # Cuantas aulas llevan su cifra de efectivas dentro. Sin esto, un
            # libro generado antes de la primera sincronizacion se ve igual que
            # uno completo.
-           efectivas = length(efectivas %||% numeric(0)))
+           efectivas = length(efectivas %||% numeric(0))), meta)
     })) |>
     # Importa el libro operativo del estudio: las tres hojas que el equipo llena
     # en Excel. La app LEE; no sustituye la hoja de calculo.

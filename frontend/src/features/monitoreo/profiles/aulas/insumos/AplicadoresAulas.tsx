@@ -12,6 +12,9 @@ import {
   TOPE_POR_VIAJE,
   type FilaDeAplicador,
 } from "./aplicadoresModelo";
+import { notaDeLaPlantillaDeDisponibilidad } from "../entregasDeAulas";
+import { EntregaEnBloque } from "../../../entregas/EntregaEnBloque";
+import { useEntregaConNota } from "../../../entregas/useEntregaConNota";
 import "./insumos.css";
 
 const DIAS = Object.keys(ROTULO_DIA) as Array<keyof typeof ROTULO_DIA>;
@@ -42,6 +45,12 @@ function AplicadoresAulasImpl({ dashboard, cargando, vacioSinTablero, contexto }
 }) {
   const [tramo, setTramo] = useState("");
   const archivo = useRef<HTMLInputElement>(null);
+  const plantilla = useEntregaConNota(
+    "Plantilla de disponibilidad de aplicadores",
+    { formato: "xlsx", articulo: "la" },
+    contexto.plantillaDisponibilidad,
+    notaDeLaPlantillaDeDisponibilidad,
+  );
   const modelo = cargando ? null : construirAplicadores(dashboard, contexto.config, tramo);
   const readiness = readinessDeAplicadores(cargando, modelo);
 
@@ -51,7 +60,7 @@ function AplicadoresAulasImpl({ dashboard, cargando, vacioSinTablero, contexto }
   const acciones = (
     <span className="aulas-ins-acciones">
       {contexto.plantillaDisponibilidad ? (
-        <button type="button" className="pulso-button pulso-button--secondary pulso-button--sm" onClick={contexto.plantillaDisponibilidad} disabled={contexto.ocupado}>
+        <button type="button" className="pulso-button pulso-button--secondary pulso-button--sm" onClick={plantilla.pedir} disabled={contexto.ocupado || plantilla.entrega.enCurso}>
           <Download size={14} aria-hidden="true" /> Plantilla
         </button>
       ) : null}
@@ -86,6 +95,7 @@ function AplicadoresAulasImpl({ dashboard, cargando, vacioSinTablero, contexto }
             <h3 id="aulas-ins-apl-titulo">Aplicadores</h3>
             {acciones}
           </header>
+          <EntregaEnBloque entrega={plantilla.entrega} pie={plantilla.pie} />
           <p className="aulas-ins-nota" data-qa-geometry-empty="legitimo">{modelo.causa}</p>
         </section>
       </section>
@@ -107,6 +117,7 @@ function AplicadoresAulasImpl({ dashboard, cargando, vacioSinTablero, contexto }
             {modelo.elegido ? <span className="aulas-ins-sub">{modelo.elegido.nombre}, {modelo.elegido.rango}</span> : null}
             {acciones}
           </header>
+          <EntregaEnBloque entrega={plantilla.entrega} pie={plantilla.pie} />
           {modelo.tramos.length > 1 ? (
             <div className="aulas-ins-tramos-selector" role="group" aria-label="Tramo">
               {modelo.tramos.map((t) => (

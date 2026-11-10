@@ -1,5 +1,8 @@
-import { Check, Copy, Download, Maximize2, Minimize2 } from "lucide-react";
+import { Check, Copy, Maximize2, Minimize2 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { ArchivoLocal } from "../../../components/entregables/archivoLocal";
+import { ContenedorEntregable } from "../../../components/entregables/ContenedorEntregable";
+import { useGeneracion } from "../../../components/entregables/useGeneracion";
 import "./fullscreen.css";
 
 // Lazy: html-to-image solo se carga cuando el usuario hace click en Copiar.
@@ -34,27 +37,22 @@ async function captureBlob(panel: HTMLElement): Promise<Blob | null> {
   }
 }
 
-async function copyOrDownloadBlob(blob: Blob, filename: string): Promise<"copied" | "downloaded"> {
-  // Algunos navegadores (Safari, Firefox sin permiso) no soportan
-  // ClipboardItem con imágenes — caemos a descarga sin alarmar al usuario.
+/**
+ * Copia la imagen al portapapeles. Algunos navegadores (Safari, Firefox sin
+ * permiso) no aceptan `ClipboardItem` con imágenes: devuelve false y quien
+ * llama la entrega como archivo por el kit de entregables (ADR 0133).
+ */
+async function copiarImagen(blob: Blob): Promise<boolean> {
   try {
     const ClipboardItemCtor = (window as unknown as { ClipboardItem?: typeof ClipboardItem }).ClipboardItem;
     if (ClipboardItemCtor && navigator.clipboard?.write) {
       await navigator.clipboard.write([new ClipboardItemCtor({ "image/png": blob })]);
-      return "copied";
+      return true;
     }
   } catch {
-    // cae a descarga
+    // cae a la entrega como archivo
   }
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-  return "downloaded";
+  return false;
 }
 
 // Patrón hook + scope. El padre obtiene `ctx` con `useFullscreen()` y
@@ -140,7 +138,9 @@ export function FullscreenScope({
   // Estado del botón Copiar — declarado SIEMPRE arriba (Rules of Hooks).
   // Si lo movés debajo del early return, React lanza error #310 al
   // alternar fullscreen on/off.
-  const [copyStatus, setCopyStatus] = useState<"idle" | "working" | "copied" | "downloaded" | "error">("idle");
+  const [copyStatus, setCopyStatus] = useState<"idle" | "working" | "copied" | "error">("idle");
+  // Respaldo cuando el portapapeles no acepta imágenes: el PNG por el kit, en bloque bajo la cabecera.
+  const respaldo = useGeneracion({ titulo: "Imagen del gráfico", modulo: "Dashboard", formato: "png", articulo: "la" });
 
   // Bloquea el scroll del body mientras está fullscreen.
   useEffect(() => {
@@ -209,9 +209,13 @@ export function FullscreenScope({
     }
     const safeTitle = (title ?? "dashboard").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "dashboard";
     const filename = `${safeTitle}.png`;
-    const result = await copyOrDownloadBlob(blob, filename);
-    setCopyStatus(result);
-    window.setTimeout(() => setCopyStatus("idle"), 1800);
+    if (await copiarImagen(blob)) {
+      setCopyStatus("copied");
+      window.setTimeout(() => setCopyStatus("idle"), 1800);
+      return;
+    }
+    setCopyStatus("idle");
+    void respaldo.ejecutar(() => Promise.resolve(new ArchivoLocal(blob, filename)));
   };
 
   return (
@@ -234,8 +238,6 @@ export function FullscreenScope({
                 title={
                   copyStatus === "copied"
                     ? "Copiado al portapapeles"
-                    : copyStatus === "downloaded"
-                    ? "Descargado como PNG"
                     : copyStatus === "error"
                     ? "No se pudo copiar"
                     : "Copiar como imagen"
@@ -246,11 +248,6 @@ export function FullscreenScope({
                   <>
                     <Check size={13} />
                     <span>Copiado</span>
-                  </>
-                ) : copyStatus === "downloaded" ? (
-                  <>
-                    <Download size={13} />
-                    <span>Descargado</span>
                   </>
                 ) : copyStatus === "error" ? (
                   <span>Error</span>
@@ -275,6 +272,7 @@ export function FullscreenScope({
               </button>
             </div>
           </div>
+          <ContenedorEntregable estado={respaldo.estado} forma="bloque" onCerrar={respaldo.cerrar} />
           <div className="dash-fs-body">{children}</div>
         </div>
       </div>

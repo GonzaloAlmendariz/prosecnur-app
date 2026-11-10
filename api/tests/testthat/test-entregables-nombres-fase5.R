@@ -242,3 +242,173 @@ test_that("Paquetes territoriales: las tres entregas que se copian devuelven gua
     expect_true(isTRUE(as.logical(fila(kind)$guardar)), info = kind)
   }
 })
+
+# ---- Oleada 2: respuestas del registro en Hojas de ruta, Cálculo de muestra, Dashboard y Carga ----
+# Cada ruta responde file_id, filename, size y los cuatro campos del registro; con un .pulso
+# guardado, `guardado_en` existe y en `Entregables/<Módulo>` queda UNA sola copia. Los motores
+# pesados se simulan; el registro y el handler son los reales (`.bv_call`, helper-base-variables.R).
+
+.f5b_guardada <- function(envir = parent.frame()) {
+  withr::local_envvar(PULSO_PUBLIC_MODE = "", .local_envir = envir)
+  sid <- .f5_sesion(envir = envir)
+  carpeta <- withr::local_tempdir(.local_envir = envir)
+  s <- session_get(sid); s$project_path <- file.path(carpeta, "HSVG2026.pulso"); .session_env[[sid]] <- s
+  list(sid = sid, carpeta = carpeta)
+}
+
+.f5b_escribir <- function(path, ...) { writeBin(charToRaw("contenido de prueba"), path); invisible(path) }
+
+.f5b_contrato <- function(resp, fx, modulo, rotulo, patron) {
+  expect_true(all(c("file_id", "filename", "size", "modulo", "rotulo", "guardado_en", "aviso_guardado") %in% names(resp)),
+              info = rotulo)
+  expect_true(is.character(resp$file_id) && nzchar(resp$file_id))
+  expect_false(is.null(get_file(fx$sid, resp$file_id)))
+  expect_gt(resp$size, 0)
+  expect_identical(resp$modulo, modulo)
+  expect_identical(resp$rotulo, rotulo)
+  expect_match(resp$filename, patron)
+  expect_true(is.character(resp$guardado_en) && !is.na(resp$guardado_en) && file.exists(resp$guardado_en), info = rotulo)
+  expect_true(is.na(resp$aviso_guardado))
+  expect_identical(list.files(file.path(fx$carpeta, "Entregables", modulo)), basename(resp$guardado_en))
+  expect_false("path" %in% names(resp))
+  .f5_sin_rastros(resp$filename)
+}
+
+.f5b_job <- function(sid, kind, ext) {
+  nombre <- .export_filename(sid, kind, ext)
+  path <- file.path(withr::local_tempdir(.local_envir = parent.frame(2)), paste0(uuid::UUIDgenerate(), "__", nombre))
+  .f5b_escribir(path)
+  list(status = "done", result_path = path, finished_at = Sys.time(),
+       result_data = list(ok = TRUE, path = path, formato = ext, generated_at = "2026-11-10T10:00:00Z"))
+}
+
+test_that("reporte de Cálculo de muestra: el job registra el archivo y responde con el registro", {
+  fx <- .f5b_guardada()
+  session_set(fx$sid, "calc_muestra_reporte", list(disponible = FALSE, job_id = "job-1", stale = FALSE))
+  j <- .f5b_job(fx$sid, "reporte_calc_muestra", "pdf")
+  resp <- .calc_muestra_reporte_on_complete(fx$sid, j, "pdf")
+  .f5b_contrato(resp, fx, "Cálculo de muestra", "Reporte de muestra", .f5_patron("HSVG2026_Reporte_de_muestra", "pdf"))
+  expect_identical(resp$formato, "pdf")
+  meta <- session_get(fx$sid)$calc_muestra_reporte
+  expect_true(isTRUE(meta$disponible))
+  expect_identical(meta$file_id, resp$file_id)
+  expect_identical(meta$job_id, "job-1")   # la ruta /descargar y el aviso de desactualizado la leen
+  expect_identical(meta$path, j$result_path)
+  expect_match(paste(deparse(body(mount_calc_muestra)), collapse = "\n"), ".calc_muestra_reporte_on_complete", fixed = TRUE)
+})
+
+test_that("reporte decisional de Hojas de ruta: el job registra el archivo y responde con el registro", {
+  fx <- .f5b_guardada()
+  j <- .f5b_job(fx$sid, "reporte_muestra_territorial", "html")
+  resp <- .hojas_ruta_reporte_on_complete(fx$sid, j, "html")
+  .f5b_contrato(resp, fx, "Hojas de ruta", "Reporte de muestra territorial",
+                .f5_patron("HSVG2026_Reporte_de_muestra_territorial", "html"))
+  meta <- session_get(fx$sid)$hojas_ruta_reporte_decisional
+  expect_true(isTRUE(meta$disponible))
+  expect_identical(meta$file_id, resp$file_id)
+  expect_match(paste(deparse(body(mount_hojas_ruta)), collapse = "\n"), ".hojas_ruta_reporte_on_complete", fixed = TRUE)
+  # Ya no son archivos sueltos: tienen fila propia en el catálogo y se copian.
+  cat <- entregables_catalogo()
+  expect_true(all(cat$guardar[cat$kind %in% c("reporte_calc_muestra", "reporte_muestra_territorial")]))
+})
+
+test_that("Dashboard › Base de datos responde el registro, no bytes; sin datos no registra nada", {
+  fx <- .f5b_guardada()
+  local_mocked_bindings(.dashboard_base_datos_descargar = function(s, modo, variables, formato) {
+    p <- tempfile(fileext = ".xlsx"); .f5b_escribir(p); list(path = p, formato = "xlsx")
+  })
+  resp <- .bv_call(mount_dashboard, "POST", "/api/dashboard/base-datos/descargar", fx$sid, list(formato = "xlsx"))
+  .f5b_contrato(resp, fx, "Dashboard", "Base de datos del dashboard",
+                .f5_patron("HSVG2026_Base_de_datos_del_dashboard", "xlsx"))
+  expect_identical(resp$formato, "xlsx")
+
+  local_mocked_bindings(.dashboard_base_datos_descargar = function(...) {
+    list(path = tempfile(), formato = "csv", vacio = TRUE, motivo = "Elige al menos una variable para descargar la base.")
+  })
+  antes <- length(session_get(fx$sid)$files)
+  res <- plumber:::PlumberResponse$new()
+  ep <- .bv_endpoint(mount_dashboard, "POST", "/api/dashboard/base-datos/descargar")
+  err <- ep$getFunc()(req = .bv_req(fx$sid, list(formato = "csv")), res = res)
+  expect_equal(res$status, 409)
+  expect_identical(err$error$code, "E_NO_DATA")
+  expect_identical(length(session_get(fx$sid)$files), antes)
+  # Sigue prohibida en modo público.
+  expect_false("POST /api/dashboard/base-datos/descargar" %in% PUBLIC_MODE_WHITELIST)
+})
+
+test_that("Diferencias de integración responde el registro, no bytes", {
+  fx <- .f5b_guardada()
+  local_mocked_bindings(.mi_decisions_docx = function(audit, decisions, out_path) .f5b_escribir(out_path))
+  resp <- .bv_call(mount_multi_integrated, "POST", "/api/multi/integrated/decisions-docx", fx$sid,
+                   list(audit = list(diffs = list(list(variable = "p1")))))
+  .f5b_contrato(resp, fx, "Procesamiento", "Diferencias de integración",
+                .f5_patron("HSVG2026_Diferencias_de_integracion", "docx"))
+})
+
+test_that("Matriz poblacional y hojas del día traen size y los campos del registro", {
+  fx <- .f5b_guardada()
+  modelo <- list(jornada = "J03", distrito = "Breña", rutas = list(list(id_manzana = "M1")))
+  local_mocked_bindings(
+    hojas_ruta_exportar_matriz_poblacional = function(cfg, out_path) {
+      .f5b_escribir(out_path); list(total_poblacion = 10L, n_territorios = 1L, n_cells = 2L)
+    },
+    .hojas_ruta_vp_requiere_muestra = function(sid) list(sample = list(), run = list(ui_state = list())),
+    .mtpl_contexto = function(sid, campaign_id) list(envio = list(sample = list()), guardados = list(), stale = FALSE),
+    hojas_ruta_hoja_dia_modelo = function(...) modelo,
+    hojas_ruta_hoja_dia_pdf = function(m, out) .f5b_escribir(out)
+  )
+  pob <- .bv_call(mount_hojas_ruta, "POST", "/api/hojas-ruta/population-export", fx$sid, list(config = list()))
+  .f5b_contrato(pob, fx, "Hojas de ruta", "Matriz poblacional", .f5_patron("HSVG2026_Matriz_poblacional", "xlsx"))
+  expect_identical(pob$n_cells, 2L)
+
+  dia <- .bv_call(mount_hojas_ruta_vista_previa, "POST", "/api/hojas-ruta/hoja-dia", fx$sid, list(jornada = "J03"))
+  .f5b_contrato(dia, fx, "Material de campo", "Hoja del día", .f5_patron("HSVG2026_Hoja_del_dia_J03_Brena", "pdf"))
+
+  fx2 <- .f5b_guardada()
+  envio <- .bv_call(mount_recopiladores, "POST", "/api/recopiladores/campaigns/territorial/hoja-dia", fx2$sid,
+                    list(id = "terr-1", jornada = "J03"))
+  .f5b_contrato(envio, fx2, "Material de campo", "Hoja del día", .f5_patron("HSVG2026_Hoja_del_dia_J03_Brena", "pdf"))
+  expect_identical(envio$fuente, "envio")
+})
+
+test_that("las tres exportaciones de Cálculo de muestra traen el registro dentro de `export`", {
+  fx <- .f5b_guardada()
+  s <- session_get(fx$sid)
+  s$calc_muestra_aulas_frame <- list(config = list())
+  s$calc_muestra_aulas_selection <- list()
+  s$calc_muestra_estudio <- list(componentes = list(list(id = "c1", resultado = list())))
+  .session_env[[fx$sid]] <- s
+  local_mocked_bindings(
+    .cm_aulas_assert_decision_vigente = function(...) invisible(TRUE),
+    calc_muestra_aulas_exportar_workbook = function(frame, selection, out_path, ...) .f5b_escribir(out_path),
+    .cm_state_payload = function(sid) list(),
+    calc_muestra_solicitud_dti_workbook = function(body, out_path) .f5b_escribir(out_path),
+    .cm_general_estado = function(x) list(corridas = list(c1 = list(id = "corrida")), marcos = list()),
+    .cm_general_buscar_componente = function(estudio, id) 1L,
+    calc_muestra_general_exportar_workbook = function(corrida, marco, comp, resultado, out_path) .f5b_escribir(out_path)
+  )
+  aulas <- .bv_call(mount_calc_muestra, "POST", "/api/calc-muestra/aulas/exportar", fx$sid)
+  .f5b_contrato(aulas$export, fx, "Cálculo de muestra", "Selección de aulas", .f5_patron("HSVG2026_Seleccion_de_aulas", "xlsx"))
+  # Lo que se persiste en el .pulso no lleva la ruta de esta máquina.
+  expect_false("guardado_en" %in% names(session_get(fx$sid)$calc_muestra_aulas_export))
+
+  fx2 <- .f5b_guardada()
+  dti <- .bv_call(mount_calc_muestra, "POST", "/api/calc-muestra/solicitud-dti", fx2$sid, list(variables = list()))
+  .f5b_contrato(dti$export, fx2, "Cálculo de muestra", "Solicitud DTI", .f5_patron("HSVG2026_Solicitud_DTI", "xlsx"))
+
+  fx3 <- .f5b_guardada()
+  s3 <- session_get(fx3$sid); s3$calc_muestra_estudio <- s$calc_muestra_estudio; .session_env[[fx3$sid]] <- s3
+  gen <- .bv_call(mount_calc_muestra_general, "POST", "/api/calc-muestra/general/exportar", fx3$sid, list(componente_id = "c1"))
+  .f5b_contrato(gen$export, fx3, "Cálculo de muestra", "Sorteo de muestra", .f5_patron("HSVG2026_Sorteo_de_muestra", "xlsx"))
+})
+
+test_that("Carga › base normalizada trae filename, size y los campos del registro", {
+  fx <- .f5b_guardada()
+  local_mocked_bindings(.carga_export_normalized_data = function(sid, base_nombre = NULL, format = "xlsx") {
+    p <- tempfile(fileext = ".xlsx"); .f5b_escribir(p); .register_output_file(sid, "data_normalizada", p)
+  })
+  resp <- .bv_call(mount_carga, "GET", "/api/carga/data/normalized-export", fx$sid, format = "xlsx")
+  .f5b_contrato(resp, fx, "Procesamiento", "Base normalizada", .f5_patron("HSVG2026_Base_normalizada", "xlsx"))
+  expect_identical(resp$original_name, resp$filename)
+  expect_identical(resp$format, "xlsx")
+})

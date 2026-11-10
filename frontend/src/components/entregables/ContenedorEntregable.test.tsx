@@ -226,6 +226,25 @@ describe("listo", () => {
     expect(espia.descargar).toHaveBeenCalledWith("/api/files/f3/download", "Frecuencias.xlsx");
   });
 
+  it("archivo armado en el front: sin «Guardar como…» y «Descargar otra vez» lo baja de su blob", async () => {
+    escritorio();
+    const crear = vi.fn(() => "blob:local-csv");
+    const original = URL.createObjectURL;
+    URL.createObjectURL = crear;
+    try {
+      const blob = new Blob(["a,b"], { type: "text/csv" });
+      await montar({ fase: "lista", titulo: "Personas", archivos: [{ fileId: "local-9", nombre: "personas.csv", formato: "csv", tamano: 3, local: blob }] }, "bloque");
+      expect(host.textContent).toContain("Descargado");
+      // Sin ruta avisada no hay Abrir ni carpeta, y sin backend no hay Guardar como…
+      expect(boton("Más")).toBeNull();
+      await act(async () => { boton("Descargar otra vez")?.click(); });
+      expect(crear).toHaveBeenCalledWith(blob);
+      expect(espia.descargar).toHaveBeenCalledWith("blob:local-csv", "personas.csv");
+    } finally {
+      URL.createObjectURL = original;
+    }
+  });
+
   it("el aviso de guardado se lee como nota junto al archivo", async () => {
     const aviso = "La ruta pasa de 240 caracteres: el archivo no se copió junto al proyecto.";
     await montar({ fase: "lista", titulo: "Frecuencias", archivos: [{ fileId: "f4", nombre: "F.xlsx", formato: "xlsx", avisoGuardado: aviso }] }, "bloque");

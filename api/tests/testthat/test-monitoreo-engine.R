@@ -6170,6 +6170,8 @@ test_that("paquete manual para procesamiento exporta revision y excluye uuid anu
   expect_true(any(grepl("_Auditoria_de_casos_[0-9]{2}_[0-9]{2}_[0-9]{2}\\.csv$", zip_files)))
   expect_false(any(grepl("handoff|processing|audit-", zip_files)))
   expect_match(out$filename, "_Entrega_a_procesamiento_[0-9]{2}_[0-9]{2}_[0-9]{2}\\.zip$")
+  expect_true(all(c("modulo", "rotulo", "guardado_en", "aviso_guardado") %in% names(out)))
+  expect_true(all(c("modulo", "rotulo", "guardado_en", "aviso_guardado") %in% names(out$files$package)))
   expect_true(all(c("survey", "choices", "settings") %in% xlsform_sheets))
   expect_true(isTRUE(compat$ok))
   expect_true("M8_ump" %in% as.character(xlsform_survey$name))

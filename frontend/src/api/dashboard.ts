@@ -3,6 +3,7 @@
 // importan del barrel ./client; este módulo no cambia el contrato.
 
 import { apiFetch, downloadFailedMessage, handle, headers } from "./core";
+import { camposDeEntregable, type CamposDeEntregable } from "./jobs";
 import type { CodifAplicarAvisos, CodifSinRecodificar } from "./codificacion";
 import { normalizeCodifAplicarAvisos, normalizeCodifAvisoFuente, normalizeCodifMotivoOmision } from "./codificacion";
 
@@ -796,20 +797,37 @@ export async function apiDashboardBaseDatosData(opts: {
   );
 }
 
+/** La base del dashboard registrada como entregable (ADR 0133 §1). */
+export type DashboardBaseDatosArchivo = { file_id: string; filename: string } & CamposDeEntregable;
+
+/**
+ * Genera la base con las variables elegidas. El motor la registra en el file
+ * store y devuelve su `file_id` con el meta del entregable; la descarga va por
+ * el kit de entregables. Sin `file_id` no hay archivo.
+ */
+export function normalizeDashboardBaseDatosArchivo(raw: unknown): DashboardBaseDatosArchivo {
+  const o = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
+  const escalar = (v: unknown) => (Array.isArray(v) && v.length === 1 ? v[0] : v);
+  const fileId = escalar(o.file_id);
+  if (typeof fileId !== "string" || !fileId.trim()) throw new Error("El motor no devolvió la base de datos.");
+  const nombre = escalar(o.filename) ?? escalar(o.original_name);
+  return { ...camposDeEntregable(o), file_id: fileId.trim(), filename: typeof nombre === "string" ? nombre : "" };
+}
+
 export async function apiDashboardBaseDatosDescargar(opts: {
   modo: "codigos" | "etiquetas";
   variables: string[];
   formato: "xlsx" | "csv";
-}): Promise<Blob> {
-  const res = await apiFetch("/api/dashboard/base-datos/descargar", {
-    method: "POST",
-    headers: headers({ "Content-Type": "application/json" }),
-    body: JSON.stringify(opts),
-  });
-  if (!res.ok) {
-    throw new Error(downloadFailedMessage(res.status));
-  }
-  return await res.blob();
+}): Promise<DashboardBaseDatosArchivo> {
+  return normalizeDashboardBaseDatosArchivo(
+    await handle<unknown>(
+      await apiFetch("/api/dashboard/base-datos/descargar", {
+        method: "POST",
+        headers: headers({ "Content-Type": "application/json" }),
+        body: JSON.stringify(opts),
+      }),
+    ),
+  );
 }
 
 export type DashboardBaseDatosOpcion = { codigo: string; etiqueta: string };

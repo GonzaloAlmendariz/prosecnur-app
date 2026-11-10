@@ -20,9 +20,6 @@
 # la UI los ofrezca o que ya viajan dentro de otro entregable: el XLSForm de
 # ocurrencias (lo registra «Subir Kobo»), los tres de la limpieza (base limpia,
 # revisión HTML y decisiones) y los dos archivos que contiene el ZIP del handoff.
-# Los kinds que la fase 5 creó para salidas que antes no pasaban por el catálogo
-# (plantilla y códigos de encuestadores) entran también sin copia hasta que su
-# flujo del front migre.
 
 .ENTREGABLES_MODULOS <- c(
   cm = "Cálculo de muestra", fo = "Formularios", hr = "Hojas de ruta", mc = "Material de campo",
@@ -35,6 +32,7 @@
   "calc_muestra_general_sorteo|Sorteo de muestra|cm|0|1",
   "calc_muestra_aulas_seleccion|Selección de aulas|cm|0|1",
   "calc_muestra_solicitud_dti|Solicitud DTI|cm|0|1",
+  "reporte_calc_muestra|Reporte de muestra|cm|0|1",
   # Formularios (el flujo del Editor guarda a mano: transitorio)
   "formulario_pdf|Cuestionario|fo|0|0",
   "formulario_word|Cuestionario|fo|0|0",
@@ -44,6 +42,7 @@
   "hojas_ruta_reemplazos_puntuales|Reemplazos puntuales|hr|0|1",
   "hojas_ruta_operativo|Libro operativo de rutas|hr|0|1",
   "hojas_ruta_zip|Hojas de ruta|hr|0|1",
+  "reporte_muestra_territorial|Reporte de muestra territorial|hr|0|1",
   "hojas_ruta_ficha_ump|Ficha de UMP|hr|0|0",
   "hojas_ruta_ficha_ump_reemplazo|Ficha de reemplazo UMP|hr|0|0",
   # Material de campo
@@ -77,6 +76,7 @@
   "monitoreo_processing_handoff_xlsform|XLSForm procesable|mo|0|0",
   "monitoreo_processing_handoff_zip|Entrega a procesamiento|mo|0|1",
   "monitoreo_ocurrencias_xlsform|XLSForm de ocurrencias|mo|0|0",
+  "monitoreo_ocurrencias_xlsform_descarga|XLSForm de ocurrencias|mo|0|1",
   "monitoreo_territorial_operational_package_template|Paquete operativo plantilla|mo|0|0",
   "monitoreo_territorial_operational_package_review_csv|Paquete operativo revisión|mo|0|0",
   "monitoreo_territorial_operational_package_review_json|Paquete operativo revisión|mo|0|0",
@@ -86,8 +86,15 @@
   "monitoreo_publication_operational_package_request_json|Evidencia de publicación solicitud|mo|0|0",
   "monitoreo_publication_operational_package_status|Evidencia de publicación estado|mo|0|0",
   "monitoreo_publication_decision|Decisión de publicación|mo|0|0",
-  "monitoreo_plantilla_encuestadores|Plantilla de encuestadores|mo|0|0",
-  "monitoreo_codigos_encuestadores|Códigos de encuestadores|mo|0|0",
+  "monitoreo_plantilla_encuestadores|Plantilla de encuestadores|mo|0|1",
+  "monitoreo_codigos_encuestadores|Códigos de encuestadores|mo|0|1",
+  "monitoreo_aulas_disponibilidad_plantilla|Plantilla de disponibilidad de aplicadores|mo|0|1",
+  "monitoreo_aulas_carga_de_campo|Carga de campo|mo|0|1",
+  "avance_territorial_monitoreo|Avance territorial|mo|0|1",
+  "avance_telefonico_monitoreo|Avance telefónico|mo|0|1",
+  "avance_aulas_monitoreo|Avance de aulas|mo|0|1",
+  "reporte_cliente_monitoreo|Reporte de avance para el cliente|mo|0|1",
+  "produccion_responsable_monitoreo|Producción por responsable|mo|0|1",
   # Procesamiento: carga y validación
   "data_normalizada|Base normalizada|pr|1|1",
   "validacion_report_html|Reporte de validación|pr|1|1",
@@ -163,6 +170,9 @@
   "graficos_icon|Ícono de gráficos|pr|0|0",
   # Proyecto
   "plan_trabajo_xlsx|Plan de trabajo|py|0|1",
+  # Dashboard y Carga: salidas que antes viajaban como bytes en la respuesta (fase 5)
+  "dashboard_base_datos|Base de datos del dashboard|da|0|1",
+  "diferencias_integracion|Diferencias de integración|pr|0|1",
   "audit_project_analitica_csv|Auditoría de analítica|py|0|0",
   "audit_project_analitica_sav|Auditoría de analítica|py|0|0",
   "audit_project_processing_xlsx|Auditoría de procesamiento|py|0|0",
@@ -193,17 +203,8 @@
 )
 
 .ENTREGABLES_SUELTOS <- c(
-  "avance_territorial_monitoreo|Avance territorial|0",
-  "avance_telefonico_monitoreo|Avance telefónico|0",
-  "avance_aulas_monitoreo|Avance de aulas|0",
-  "reporte_cliente_monitoreo|Reporte de avance para el cliente|0",
-  "produccion_responsable_monitoreo|Producción por responsable|0",
   "metodologia_validacion|Metodología de validación|1",
-  "base_datos|Base de datos del dashboard|0",
   "relacion|Relación|0",
-  "reporte_calc_muestra|Reporte de muestra|0",
-  "reporte_muestra_territorial|Reporte de muestra territorial|0",
-  "diferencias_integracion|Diferencias de integración|0",
   "codificacion_config|Configuración de codificación|0",
   "lamina|Lámina|0"
 )

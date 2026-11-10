@@ -1,23 +1,19 @@
-import { useReducer } from "react";
-import { Download, Loader2, Shuffle } from "lucide-react";
+import { Download, Shuffle } from "lucide-react";
 
 import type { CalcMuestraComponente } from "../../../api/calcMuestra";
-import { descargarArchivo } from "../../../lib/descargas";
 import { apiCalcMuestraGeneralExportar, type CalcMuestraGeneralCorrida } from "../../../api/calcMuestraGeneral";
-import { downloadUrl } from "../../../api/core";
+import { ContenedorEntregable } from "../../../components/entregables/ContenedorEntregable";
+import { useGeneracion } from "../../../components/entregables/useGeneracion";
 import { Panel } from "../../../components/Panel";
 import { EmptyState } from "../../../components/States";
 import { fmtDec, fmtInt } from "../sharedCore";
 import { AvisoModulo } from "../universidad/shared/AvisoModulo";
 import { CifraFila, CifraMotor } from "../universidad/ui";
 import { useValorSwap } from "../universidad/ui/useValorSwap";
-import { ErrorDelMotor } from "./ErrorDelMotor";
+import { MODULO_CALC_MUESTRA } from "../entregas/modeloEntrega";
 import {
-  EXPORT_INICIAL,
   MOTIVO_SIN_CORRIDA_EXPORT,
   TEXTO_COBERTURA_CENSAL,
-  errorGeneralDesde,
-  exportReducer,
   formatearFechaLocal,
   formatearPi,
   hashCorto,
@@ -42,7 +38,10 @@ export function FichaCorrida({
   corrida: CalcMuestraGeneralCorrida | null;
   componente: CalcMuestraComponente | null;
 }) {
-  const [exp, dispatch] = useReducer(exportReducer, EXPORT_INICIAL);
+  // El libro de entrega por el kit (ADR 0133): el botón de la cabecera sólo se deshabilita; la espera, el
+  // archivo y el fallo van en el contenedor, en bloque bajo la cabecera.
+  const libro = useGeneracion({ titulo: "Listado de la selección", modulo: MODULO_CALC_MUESTRA, formato: "xlsx", articulo: "el" });
+  const exportando = libro.estado.fase === "en_curso";
   const componenteId = componente?.id ?? null;
   const c = corrida?.corrida ?? null;
   const esCenso = c?.modalidad === "censo";
@@ -56,17 +55,12 @@ export function FichaCorrida({
   const tituloCambiando = useValorSwap(nombre?.titulo ?? null);
   const estratificada = Boolean(corrida && c && !esCenso && corridaEstratificada(corrida) && corrida.estratos.length > 1);
 
-  async function exportar() {
+  function exportar() {
     if (!componenteId || !corrida) return;
-    dispatch({ tipo: "exportando" });
-    try {
+    void libro.ejecutar(async () => {
       await guardarEstudioPendiente();
-      const res = await apiCalcMuestraGeneralExportar(componenteId);
-      descargarArchivo(downloadUrl(res.file_id));
-      dispatch({ tipo: "exportado", filename: res.filename });
-    } catch (e) {
-      dispatch({ tipo: "fallo", error: errorGeneralDesde(e) });
-    }
+      return apiCalcMuestraGeneralExportar(componenteId);
+    });
   }
 
   return (
@@ -85,27 +79,21 @@ export function FichaCorrida({
           <button
             type="button"
             className="cmv2-ghost"
-            onClick={() => void exportar()}
-            disabled={!corrida || exp.exportando}
+            onClick={exportar}
+            disabled={!corrida || exportando}
             aria-describedby="cmg-exportar-estado"
           >
-            {exp.exportando
-              ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" />
-              : <Download size={14} aria-hidden="true" />}
+            <Download size={14} aria-hidden="true" />
             Descargar listado (XLSX)
           </button>
-          <small id="cmg-exportar-estado" aria-live="polite">
-            {!corrida
-              ? MOTIVO_SIN_CORRIDA_EXPORT
-              : exp.ultimo
-                ? `Descargado: ${exp.ultimo}`
-                : "Selección, memoria de cálculo, estratos y listado."}
+          <small id="cmg-exportar-estado">
+            {!corrida ? MOTIVO_SIN_CORRIDA_EXPORT : "Selección, memoria de cálculo, estratos y listado."}
           </small>
         </div>
       )}
     >
 
-      {exp.error && <ErrorDelMotor error={exp.error} label="No se pudo exportar el listado" />}
+      <ContenedorEntregable estado={libro.estado} forma="bloque" onCerrar={libro.cerrar} />
 
       {!corrida || !c ? (
         <EmptyState

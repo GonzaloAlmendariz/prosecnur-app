@@ -119,25 +119,6 @@
   .cmv2-sal-stack .cmv2-university-results .cmv2-table-wrap {
     animation: pulso-mov-aparece 200ms var(--cmv2-ease-out, ease-out) both;
   }
-
-  /* "Ver reporte" recién disponible: entra con fade + scale(0.97) y un único
-     pulso de acento (300ms) para señalar que ya está. */
-  .cmv2-sal-stack .cmv2-did-sal-row a.cmv2-ghost {
-    animation:
-      pulso-mov-escala 200ms var(--cmv2-ease-out, ease-out) both,
-      cmv2-sal-reporte-pulso 300ms var(--cmv2-ease-out, ease-out) 220ms 1;
-  }
-}
-
-@keyframes cmv2-sal-reporte-pulso {
-  from {
-    border-color: var(--cmv2-accent);
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--cmv2-accent) 38%, transparent);
-  }
-
-  to {
-    box-shadow: 0 0 0 9px color-mix(in srgb, var(--cmv2-accent) 0%, transparent);
-  }
 }
 
 /* --- Cierre: la ficha ejecutiva como "documento" ------------------------------
@@ -873,100 +854,19 @@
 }
 
 /* -----------------------------------------------------------------------------
-   Paquete de defensa (Entregables): CTA de un clic + checklist de 3 piezas
-   con estado (pendiente / en curso / ok / error) y descarga por pieza.
+   Paquete de defensa (Entregables): CTA de un clic y, debajo, cada pieza con su
+   contenedor del kit de entregables (ADR 0133). La memoria JSON la arma el
+   front y sale como archivo local del kit.
    ----------------------------------------------------------------------------- */
 
 .cmv2-sal-paquete-hint {
   color: var(--pulso-warn-fg, var(--pulso-text-muted));
 }
 
-.cmv2-sal-paquete-lista {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.cmv2-sal-paquete-piezas {
   display: grid;
-  gap: 6px;
-}
-
-.cmv2-sal-paquete-lista li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  border: 1px solid var(--cmv2-border);
-  border-radius: 10px;
-  background: var(--cmv2-surface-tint);
-  transition: border-color 200ms ease-out, background 200ms ease-out;
-}
-
-.cmv2-sal-paquete-lista li > svg {
-  flex: none;
-  color: var(--pulso-text-muted);
-}
-
-.cmv2-sal-paquete-lista li > div {
-  flex: 1 1 auto;
+  gap: var(--pulso-space-2);
   min-width: 0;
-  display: grid;
-  gap: 1px;
-}
-
-.cmv2-sal-paquete-lista li strong {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  font-size: var(--pulso-type-body-size);
-  color: var(--pulso-text);
-}
-
-.cmv2-sal-paquete-lista li strong em {
-  font-style: normal;
-  font-size: var(--pulso-type-micro-size);
-  font-weight: var(--pulso-weight-bold);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--pulso-text-muted);
-}
-
-.cmv2-sal-paquete-lista li small {
-  font-size: var(--pulso-type-caption-size);
-  color: var(--pulso-text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.cmv2-sal-paquete-lista li a {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.cmv2-sal-paquete-lista li[data-status="ok"] {
-  border-color: var(--pulso-success-border, var(--cmv2-accent-border));
-  background: color-mix(in srgb, var(--pulso-success-bg, var(--cmv2-accent-soft)) 45%, transparent);
-}
-
-.cmv2-sal-paquete-lista li[data-status="ok"] > svg,
-.cmv2-sal-paquete-lista li[data-status="ok"] strong em {
-  color: var(--pulso-success-fg, var(--cmv2-accent-fg));
-}
-
-.cmv2-sal-paquete-lista li[data-status="error"] {
-  border-color: var(--pulso-danger-border);
-  background: color-mix(in srgb, var(--pulso-danger-bg) 45%, transparent);
-}
-
-.cmv2-sal-paquete-lista li[data-status="error"] > svg,
-.cmv2-sal-paquete-lista li[data-status="error"] strong em {
-  color: var(--pulso-danger-fg);
-}
-
-.cmv2-sal-paquete-lista li[data-status="curso"] > svg,
-.cmv2-sal-paquete-lista li[data-status="curso"] strong em {
-  color: var(--pulso-info-fg, var(--pulso-text));
 }
 
 /* -----------------------------------------------------------------------------
@@ -1032,7 +932,6 @@
   .cmv2-sal-stack,
   .cmv2-sal-historial-lista button,
   .cmv2-sal-historial-check,
-  .cmv2-sal-paquete-lista li,
   .pulso-segmented.cmv2-sal-pii-segment > button,
   .cmv2-sal-stack .cmv2-did-segment button {
     transition: none;

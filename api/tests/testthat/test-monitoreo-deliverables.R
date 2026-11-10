@@ -327,6 +327,10 @@ test_that("publication evidence pack registra ZIP descargable con workbook gener
   expect_match(status_meta$original_name, "_Evidencia_de_publicacion_estado_interna_[0-9]{2}_[0-9]{2}_[0-9]{2}\\.json$")
   expect_match(decision_meta$original_name, "_Decision_de_publicacion_interna_[0-9]{2}_[0-9]{2}_[0-9]{2}\\.json$")
   expect_match(meta$original_name, "_Evidencia_de_publicacion_interna_[0-9]{2}_[0-9]{2}_[0-9]{2}\\.zip$")
+  expect_true(all(c("modulo", "rotulo", "guardado_en", "aviso_guardado") %in% names(result)))
+  expect_true(all(c("modulo", "rotulo", "guardado_en", "aviso_guardado") %in% names(result$zip)))
+  expect_true(all(c("modulo", "rotulo", "guardado_en", "aviso_guardado") %in% names(result$files$publication_decision)))
+  expect_identical(result$rotulo, "Evidencia de publicación")
   expect_identical(normalizePath(request_csv_meta$path), normalizePath(result$evidence_pack$operational_package_request_csv))
   expect_identical(normalizePath(request_json_meta$path), normalizePath(result$evidence_pack$operational_package_request))
   entries <- zip::zip_list(meta$path)$filename
@@ -816,6 +820,8 @@ test_that("endpoint helper de paquete operacional revisa CSV subido sin aplicar 
   expect_match(template_meta$original_name, "_Paquete_operativo_plantilla_[0-9]{2}_[0-9]{2}_[0-9]{2}\\.csv$")
   expect_match(review_meta$original_name, "_Paquete_operativo_revision_[0-9]{2}_[0-9]{2}_[0-9]{2}\\.csv$")
   expect_match(md_meta$original_name, "_Paquete_operativo_revision_[0-9]{2}_[0-9]{2}_[0-9]{2}\\.md$")
+  expect_true(all(c("modulo", "rotulo", "guardado_en", "aviso_guardado") %in% names(result$files$template)))
+  expect_false("path" %in% names(result$files$template))
 })
 
 test_that("preflight puede resolver drift de referencia desde file_id y review operacional", {

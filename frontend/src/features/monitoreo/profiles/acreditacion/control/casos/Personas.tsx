@@ -15,7 +15,9 @@ import {
   ROTULO_DE_ESTADO,
   type EstadoDePersona,
 } from "./personasModelo";
-import { descargarCsv } from "./descargarCsv";
+import { archivoCsv } from "../../../../../../components/entregables/archivoLocal";
+import { EntregaEnBloque } from "../../../../entregas/EntregaEnBloque";
+import { useEntrega } from "../../../../entregas/useEntrega";
 import "../../avance/avance.css";
 import "./cruce.css";
 import "./personas.css";
@@ -65,6 +67,7 @@ export function Personas({ consultas }: { consultas: MonitoreoInternalQueries })
   const [estado, setEstado] = useState<EstadoDePersona | null>(null);
   const [busqueda, setBusqueda] = useState("");
   const [numero, setNumero] = useState(1);
+  const csv = useEntrega("Personas del padrón", { formato: "csv", articulo: "las" });
   const delPublico = useMemo(() => (publico ? personas.filter((persona) => persona.publico === publico) : personas), [personas, publico]);
   const filtradas = useMemo(() => filtrarPersonas(personas, { publico, estado, busqueda }), [personas, publico, estado, busqueda]);
   // Si todos los que respondieron entraron por el mismo canal y cruzaron igual, la columna repetiría lo mismo en cada fila.
@@ -143,10 +146,11 @@ export function Personas({ consultas }: { consultas: MonitoreoInternalQueries })
               </button>
             ))}
           </div>
-          <button type="button" className="acr-av-boton" onClick={() => descargarCsv(csvDePersonas(filtradas), "personas-del-padron.csv")} disabled={!filtradas.length}>
+          <button type="button" className="acr-av-boton" onClick={() => { void csv.ejecutar(async () => archivoCsv(csvDePersonas(filtradas), "personas-del-padron.csv")); }} disabled={!filtradas.length || csv.enCurso}>
             <Download size={14} aria-hidden="true" /> Exportar CSV
           </button>
         </header>
+        <EntregaEnBloque entrega={csv} inset />
         <MarcoDesplazable etiqueta="Personas del padrón">
           {vista.filas.length ? (
             <table className="acr-pub-tabla">

@@ -1,0 +1,37 @@
+/* Hojas de ruta sobre el kit de entregables (ADR 0133, fase 5). Sólo lo que el
+   módulo pone alrededor del contenedor del kit: el disparador con su bloque
+   debajo, el ancla de la forma anclada y la celda de una jornada. El
+   contenedor mismo es del kit (components/entregables/entregables.css). */
+
+/* Forma bloque: el disparador arriba, a su ancho; el contenedor debajo, al ancho del grupo. */
+.hr-entrega-bloque {
+  display: grid;
+  justify-items: start;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.hr-entrega-bloque > .pulso-entregable {
+  justify-self: stretch;
+  min-width: 0;
+}
+
+/* Forma anclada: el contenedor flota bajo el menú que lo abrió sin mover el cajón. */
+.hr-entrega-anclaje {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Forma fila: en la celda de una jornada, bajo «Hoja del día», al ancho de la celda. */
+.hr-entrega-celda {
+  display: grid;
+  justify-items: start;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+}
+
+.hr-entrega-celda > .pulso-entregable {
+  justify-self: stretch;
+  min-width: 0;
+}
