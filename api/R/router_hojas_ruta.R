@@ -764,7 +764,7 @@ mount_hojas_ruta <- function(pr) {
       summary <- hojas_ruta_exportar_matriz_poblacional(cfg, out_path)
       out_name <- .export_filename(sid, "hojas_ruta_population_matrix", "xlsx")
       meta <- .hojas_ruta_vp_registrar(sid, "hojas_ruta_population_matrix", out_path, original_name = out_name)
-      list(
+      entregable_respuesta(list(
         ok = TRUE,
         file_id = meta$file_id,
         filename = meta$original_name,
