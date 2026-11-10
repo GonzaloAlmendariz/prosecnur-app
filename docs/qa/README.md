@@ -142,6 +142,8 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
 
 ## En curso
 
+- [Plan: rediseño de Procesamiento (2026-11-10)](plan-revamp-procesamiento-2026-11-10.md):
+  diagnóstico, mapa de pestañas de Carga, Validación, Codificación y Analítica, escenarios, decisiones y fases.
 - [Goal loop de Cálculo de muestra](goal-loop-calc-muestra-2026-07-31.md):
   selector con evidencia estadística, revamp de Aulas y ledger de iteraciones.
 - [Goal loop visual de toda la aplicación](goal-loop-visual-app-2026-07-30.md):
