@@ -109,7 +109,7 @@ test_that("el contraste real (bases + regla de 13) sale nativo, con los rótulos
   expect_true(.rr_largos[3] %in% rot || any(startsWith(rot, "La dotación de recursos")))
   # U3: el pie lleva la base de cada grupo y no la genérica de base$*.
   pie <- paste(regmatches(r$xml, gregexpr("Base:[^<]*", r$xml))[[1]], collapse = " | ")
-  expect_match(pie, "Base: Docentes 115; Estudiantes 279")
+  expect_match(pie, "Base: 115 docentes y 279 estudiantes")
   expect_identical(lengths(regmatches(r$xml, gregexpr("Base:", r$xml)))[[1]], 1L)
 })
 
@@ -156,7 +156,7 @@ test_that("el contraste de más de 14 pares muestra los 14 de mayor diferencia y
   expect_null(p$labels$caption)
   # P7: con regla, el recorte reescribe su nota en una sola frase.
   expect_match(attr(p, "note_outside"),
-               "^Base: Docentes 115; Estudiantes 279\\. Diferencia: Docentes menos Estudiantes, en puntos\\. Se muestran las 14 de mayor diferencia de las 18 elegidas, de 20 preguntas comunes; las 4 siguientes no caben en esta lámina\\.$")
+               "^Base: 115 docentes y 279 estudiantes\\. Diferencia: Docentes menos Estudiantes, en puntos\\. Se muestran las 14 de mayor diferencia de las 18 elegidas, de 20 preguntas comunes; las 4 siguientes no caben en esta lámina\\.$")
 })
 
 test_that("con el respaldo, la lámina lleva una sola base: la de cada grupo, abajo a la izquierda (U3)", {
@@ -166,7 +166,7 @@ test_that("con el respaldo, la lámina lleva una sola base: la de cada grupo, ab
   expect_false(identical(.pptx_lamina_estado(r$xml), "nativa"))
   bases <- regmatches(r$xml, gregexpr("Base:[^<]*", r$xml))[[1]]
   expect_length(bases, 1L)
-  expect_match(bases, "^Base: Docentes 115; Estudiantes 279")
+  expect_match(bases, "^Base: 115 docentes y 279 estudiantes")
   expect_true(.plan_base_escrita_por_grupo(g))
   expect_false(.base_para_word(.plan_base_escrita_por_grupo(g)))   # el Word conserva su párrafo de base
   expect_false(.plan_base_escrita_por_grupo(p_panorama(vars = list("docentes$*"), corte = c("3", "4"))))
@@ -185,7 +185,7 @@ test_that("fortalezas con rótulos largos salen nativas: enteros en hasta cuatro
   expect_true(all(mapply(function(t, w, s) .lam_rotulo_lineas(t, w, s) <= 4L, rot, w, sz)))
   expect_false(any(grepl("…", rot, fixed = TRUE)))
   bases <- regmatches(r$xml, gregexpr("Base:[^<]*", r$xml))[[1]]
-  expect_length(bases, 1L); expect_match(bases, "^Base: Docentes 115")
+  expect_length(bases, 1L); expect_match(bases, "^Base: 115 docentes")
 })
 
 test_that("el respaldo de fortalezas pone los rótulos partidos a la izquierda del cero y la base fuera del dibujo", {

@@ -71,13 +71,10 @@ p_fortalezas <- function(vars,
   list(filas = filas, texto = r$evaluacion$texto, publico = .radar_mb_capitalizar(as.character(filas$grupo[1])))
 }
 
-#' Base del público en el pie: «Base: Docentes 115 (93%)», o su rango si cambia de pregunta a pregunta
+#' Base del público en el pie: «Base: 115 docentes», o su rango si cambia de pregunta a pregunta (sin cobertura,
+#' como el contraste; `universos` se acepta y no se escribe)
 #' @keywords internal
-.fortalezas_nota_base <- function(publico, n, universos = NULL) {
-  u <- .contraste_universos(universos)
-  uni <- if (is.null(u)) NA_real_ else unname(u[.contraste_clave(publico)])
-  paste0("Base: ", publico, " ", .contraste_base_grupo(n, if (length(uni)) uni[1] else NA_real_))
-}
+.fortalezas_nota_base <- function(publico, n, universos = NULL) .base_frase(publico, matrix(n, ncol = 1L))
 
 #' @keywords internal
 .render_fortalezas <- function(el, preset_args = list()) {

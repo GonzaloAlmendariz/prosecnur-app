@@ -63,6 +63,8 @@
   out$grupo <- factor(out$grupo, levels = etiquetas)
   rownames(out) <- NULL
   if (length(grupos) == 2L) attr(out, "dumbbell_colores") <- unname(.std_paleta("dicotomica"))[1:2]   # L10-3: pareja de marca para dos grupos de una base
+  # El público que se abrió, para que la base diga «24 docentes de TC y 91 de TPA»; «default» no se nombra.
+  if (nzchar(.base_nombre_visible(cx$source))) attr(out, "dumbbell_publico") <- .base_sufijo_de_fuente(cx$source)
   out
 }
 

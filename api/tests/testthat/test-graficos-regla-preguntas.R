@@ -370,7 +370,7 @@ test_that("la lámina nativa escribe la regla en la nota, junto a la base", {
   texto <- function(k) paste(xml2::xml_text(xml2::xml_find_all(xml2::read_xml(unz(out, sprintf("ppt/slides/slide%d.xml", k))), "//a:t")), collapse = " ")
   grupos <- function(k) xml2::xml_attr(xml2::xml_find_all(xml2::read_xml(unz(out, sprintf("ppt/slides/slide%d.xml", k))), "//p:grpSp/p:nvGrpSpPr/p:cNvPr"), "name")
   expect_true("prosecnur:grafico:contraste" %in% grupos(1))
-  expect_match(texto(1), "Base: Docentes 40; Estudiantes 40", fixed = TRUE)
+  expect_match(texto(1), "Base: 40 docentes y 40 estudiantes", fixed = TRUE)
   expect_match(texto(1), "Se muestran las 2 de mayor diferencia, de 5 preguntas comunes", fixed = TRUE)
   expect_true("prosecnur:grafico:panorama" %in% grupos(2))
   expect_match(texto(2), "Se muestran las 4 bajo 50%, de 10 preguntas de escala", fixed = TRUE)
