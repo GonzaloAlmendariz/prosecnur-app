@@ -11,11 +11,13 @@ import {
   aplicarImportacionJson,
   aplicarPlanPortatil,
   basesAplicables,
+  exportarPlanPortatil,
   exportarSeccionesJson,
   prepararImportacionJson,
   type DepsCompartir,
 } from "./accionesCompartir";
 import { SECCIONES_JSON_POR_DEFECTO, todasLasSecciones } from "./seccionesJson";
+import { esArchivoLocal } from "../../../components/entregables/archivoLocal";
 
 function archivo(texto: string, nombre = "plan.json"): File {
   return new File([texto], nombre, { type: "application/json" });
@@ -31,11 +33,8 @@ function deps(over: Partial<DepsCompartir> = {}): DepsCompartir & { llamadas: st
     shareExport: vi.fn(async () => ({ file_id: "f1", filename: "" })),
     shareInspect: vi.fn(),
     shareImport: vi.fn(async () => { llamadas.push("share-import"); return {}; }),
-    downloadUrl: (id) => `/api/files/${id}/download`,
     getSession: () => "sid-1",
     hydrate: vi.fn(() => { llamadas.push("hydrate"); }),
-    descargar: vi.fn(),
-    crearUrlBlob: () => ({ href: "blob:1", liberar: vi.fn() }),
     ahora: () => new Date("2026-10-11T00:00:00Z"),
     ...over,
   };
@@ -79,12 +78,22 @@ describe("importar secciones JSON: valida antes y escribe sólo al confirmar", (
 });
 
 describe("exportar secciones JSON", () => {
-  it("descarga el blob con nombre parcial y lo libera", async () => {
-    const liberar = vi.fn();
-    const d = deps({ crearUrlBlob: () => ({ href: "blob:9", liberar }) });
-    await exportarSeccionesJson({ ...todasLasSecciones(false), plan: true }, d);
-    expect(d.descargar).toHaveBeenCalledWith("blob:9", expect.stringMatching(/^pulso_graficos_parcial_\d+\.json$/));
-    expect(liberar).toHaveBeenCalled();
+  it("devuelve el JSON como archivo local con nombre parcial, sin descargar por su cuenta", async () => {
+    const d = deps();
+    const local = await exportarSeccionesJson({ ...todasLasSecciones(false), plan: true }, d);
+    expect(esArchivoLocal(local)).toBe(true);
+    expect(local.nombre).toMatch(/^pulso_graficos_parcial_\d+\.json$/);
+    expect(local.blob.type).toBe("application/json");
+    const sobre = JSON.parse(await local.blob.text()) as { export_scope: string[]; config: { plan: { slides: unknown[] } } };
+    expect(sobre.export_scope).toEqual(["plan"]);
+    expect(sobre.config.plan.slides).toHaveLength(1);
+  });
+});
+
+describe("exportar el plan portátil", () => {
+  it("devuelve el archivo que registró el backend; sin nombre, el del paquete", async () => {
+    const d = deps({ shareExport: vi.fn(async () => ({ file_id: "f9", filename: "" })) });
+    await expect(exportarPlanPortatil(d)).resolves.toMatchObject({ file_id: "f9", filename: "plan_graficos.pulso-graficos.zip" });
   });
 });
 

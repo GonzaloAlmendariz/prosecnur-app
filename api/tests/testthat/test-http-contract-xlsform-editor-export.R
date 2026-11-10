@@ -71,7 +71,9 @@ test_that("export-word por el wire: job, titulo de form_title, subgrupo, sub-let
   expect_identical(x$fases[length(x$fases)], "done")
 
   res <- x$snap$result_data
-  expect_identical(names(res), c("ok", "file_id", "original_name", "size", "summary", "warnings"))
+  # ADR 0133 (fase 5): el resultado suma los cuatro campos del registro único.
+  expect_identical(names(res), c("ok", "file_id", "original_name", "size", "summary", "warnings",
+                                  "modulo", "rotulo", "guardado_en", "aviso_guardado"))
   expect_true(isTRUE(res$ok))
   # ADR 0133 §3 (fase 5): «Cuestionario» con el título impreso de detalle; el nombre del front no viaja.
   expect_match(res$original_name, "_Cuestionario_Encuesta_declarada_en_settings_[0-9]{2}_[0-9]{2}_[0-9]{2}[.]docx$")

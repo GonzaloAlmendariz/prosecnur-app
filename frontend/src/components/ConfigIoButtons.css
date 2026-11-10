@@ -1,0 +1,34 @@
+/* Exportar e importar JSON (ConfigIoButtons). Los botones son PulsoButton; aquí solo
+   la línea de estado de importar y el lugar del contenedor de archivo del kit. */
+
+.pulso-config-io-estado,
+.pulso-config-io-error {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.4;
+}
+
+.pulso-config-io-estado {
+  color: var(--pulso-success-fg);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-config-io-error {
+  padding: 2px var(--pulso-space-2);
+  border: 1px solid var(--pulso-danger-border);
+  border-radius: 999px;
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+  font-weight: var(--pulso-weight-medium);
+  overflow-wrap: anywhere;
+}
+
+/* Forma bloque en una fila que envuelve: el contenedor ocupa su propia línea bajo los botones,
+   al ancho de la fila, y encoge con ella. */
+.pulso-config-io-entrega {
+  flex: 1 0 100%;
+  min-width: 0;
+}

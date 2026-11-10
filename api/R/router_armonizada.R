@@ -136,10 +136,11 @@ attr(armonizada_job_worker, "prosecnur_job_function_name") <- "armonizada_job_wo
         stop_api(500, "E_ARMONIZADA_SIN_RESULTADO", "El comparativo no produjo su archivo.")
       }
       reg <- .armonizada_registrar(j$sid, tipo, j$result_path, manifest_path)
-      list(ok = TRUE, file_id = reg$meta$file_id, filename = reg$meta$original_name,
+      # ADR 0133 (fase 5): los cuatro campos del registro, para el kit de entregables.
+      entregable_respuesta(list(ok = TRUE, file_id = reg$meta$file_id, filename = reg$meta$original_name,
            size = reg$meta$size, sha256 = reg$artifacts[[1]]$sha256,
            artifacts = reg$artifacts, periodos = periodos_out,
-           resumen = (j$result_data %||% list())$resumen)
+           resumen = (j$result_data %||% list())$resumen), reg$meta)
     }
   )
   list(ok = TRUE, job_id = job_id, kind = job_kind, periodos = periodos_out)

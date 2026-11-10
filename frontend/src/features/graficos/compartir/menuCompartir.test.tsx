@@ -24,6 +24,10 @@ function control(scope: "active" | "consolidated"): ControlCompartir {
     nSecciones: 9,
     totalSecciones: 9,
     basesElegidas: [],
+    entregas: {
+      json: { estado: { fase: "inactiva" }, cerrar: nada },
+      plan: { estado: { fase: "inactiva" }, cerrar: nada },
+    },
     elegirSeccion: nada, elegirTodas: nada, elegirModo: nada, alternarAvanzado: nada, elegirBase: nada,
     exportarJson: asinc, prepararImportacion: asinc, confirmarImportacion: asinc,
     exportarPlan: asinc, inspeccionarPlan: asinc, pedirConfirmarPlan: nada, confirmarPlan: asinc, cancelarConfirmacion: nada,

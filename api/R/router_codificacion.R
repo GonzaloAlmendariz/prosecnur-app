@@ -2037,8 +2037,11 @@ isTRUE_vec <- function(x) {
   .codif_with_base_active(sid, target_base, .codif_switch_analitica_to_adapted(sid))
   list(
     ok = TRUE,
-    data_adaptada = list(file_id = data_meta$file_id, size = data_meta$size),
-    instrumento_adaptado = list(file_id = inst_meta$file_id, size = inst_meta$size)
+    # ADR 0133 (fase 5): nombre público y los cuatro campos del registro.
+    data_adaptada = entregable_respuesta(list(file_id = data_meta$file_id, filename = data_meta$original_name,
+                                              size = data_meta$size), data_meta),
+    instrumento_adaptado = entregable_respuesta(list(file_id = inst_meta$file_id, filename = inst_meta$original_name,
+                                                     size = inst_meta$size), inst_meta)
   )
 }
 

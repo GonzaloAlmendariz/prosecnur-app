@@ -96,11 +96,8 @@ describe("claves opacas en el JSON por secciones", () => {
       shareExport: vi.fn(async () => ({ file_id: "f", filename: "" })),
       shareInspect: vi.fn(),
       shareImport: vi.fn(async () => ({})),
-      downloadUrl: (id) => `/api/files/${id}/download`,
       getSession: () => "sid",
       hydrate: vi.fn(),
-      descargar: vi.fn(),
-      crearUrlBlob: () => ({ href: "blob:1", liberar: vi.fn() }),
       ahora: () => new Date(0),
     };
   }

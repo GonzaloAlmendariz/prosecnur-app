@@ -1,14 +1,19 @@
 // Plan portátil (C11): exportar el paquete `.pulso-graficos.zip`, inspeccionar uno recibido y aplicarlo a las bases
-// compatibles tras confirmar. Mismo cuerpo en el diálogo de Láminas y en el popover del Editor anterior.
+// compatibles tras confirmar. Mismo cuerpo en el diálogo de Láminas y en el popover del Editor anterior. El paquete
+// exportado sale en el contenedor de archivo del kit, en forma bloque bajo la cabecera (ADR 0133, fase 5).
 
 import { useId, useRef } from "react";
 import { Check, Download, Loader2, Upload } from "../../../vendor/lucide-react";
+import { ContenedorEntregable } from "../../../components/entregables/ContenedorEntregable";
 import { ConfirmacionCompartir, MotivoNoDisponible } from "./ConfirmacionCompartir";
 import { textoConfirmarPlan } from "./textosConfirmacion";
+import "./entregaCompartir.css";
 import type { ControlCompartir } from "./useCompartirPlan";
 
 export function PlanPortatilContenido({ control }: { control: ControlCompartir }) {
   const { estado, disponibilidad, basesElegidas } = control;
+  const entrega = control.entregas.plan;
+  const exportando = entrega.estado.fase === "en_curso";
   const d = disponibilidad.planPortatil;
   const motivoId = useId();
   const archivoRef = useRef<HTMLInputElement>(null);
@@ -27,8 +32,8 @@ export function PlanPortatilContenido({ control }: { control: ControlCompartir }
         </div>
         <div className="pulso-gv2-share-package-actions">
           <button type="button" onClick={() => void control.exportarPlan()} aria-describedby={describe}
-            disabled={!d.habilitado || estado.ocupado === "exportar-plan"} className="pulso-gv2-share-action is-primary">
-            {estado.ocupado === "exportar-plan" ? <Loader2 size={12} className="pulso-spin" aria-hidden="true" /> : <Download size={12} aria-hidden="true" />}
+            disabled={!d.habilitado || exportando} className="pulso-gv2-share-action is-primary">
+            <Download size={12} aria-hidden="true" />
             Exportar plan
           </button>
           <button type="button" onClick={() => archivoRef.current?.click()} aria-describedby={describe}
@@ -52,6 +57,12 @@ export function PlanPortatilContenido({ control }: { control: ControlCompartir }
           />
         </div>
       </div>
+
+      {entrega.estado.fase !== "inactiva" && (
+        <div className="pulso-gv2-share-entrega">
+          <ContenedorEntregable estado={entrega.estado} forma="bloque" onCerrar={entrega.cerrar} />
+        </div>
+      )}
 
       {!d.habilitado && <MotivoNoDisponible id={motivoId} motivo={d.motivo} />}
 

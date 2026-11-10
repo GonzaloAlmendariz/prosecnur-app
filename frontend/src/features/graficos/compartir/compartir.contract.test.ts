@@ -58,7 +58,12 @@ describe("compartir: una sola fuente de lógica", () => {
     ] as const) {
       const inicio = hook.indexOf(`const ${accion} = useCallback(`);
       expect(inicio, accion).toBeGreaterThan(0);
-      const cuerpo = hook.slice(inicio, hook.indexOf("despachar({ tipo: \"inicio\"", inicio));
+      // Lo que hace la acción: despachar el inicio (importar, aplicar) o ejecutar la entrega del kit (exportar).
+      const marcas = ["despachar({ tipo: \"inicio\"", "await ejecutar"]
+        .map((m) => hook.indexOf(m, inicio))
+        .filter((i) => i > inicio);
+      expect(marcas.length, accion).toBeGreaterThan(0);
+      const cuerpo = hook.slice(inicio, Math.min(...marcas));
       expect(cuerpo, accion).toContain(`disponibilidadRef.current.${clave}.habilitado`);
     }
   });

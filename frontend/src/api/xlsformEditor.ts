@@ -4,7 +4,7 @@
 
 import { ApiError, apiFetch, handle, headers } from "./core";
 import { normalizarCambiosDeRespuestas, type EstudioBase, type EstudioLogicSyncResult, type EstudioPayload } from "./estudio";
-import { type AsyncJobStart, jobResultDomainError, type JobStart } from "./jobs";
+import { type AsyncJobStart, type CamposDeEntregable, camposDeEntregable, jobResultDomainError, type JobStart } from "./jobs";
 import { normalizeShareArray } from "./graficos";
 import { type DeclaracionLogicaExterna, normalizeLogicaExternaSource } from "./xlsformLogicaExterna";
 import type { MonitoreoKoboAssetItem, MonitoreoProcessingHandoffPromoteResult } from "./monitoreo";
@@ -912,12 +912,13 @@ export async function apiXlsformEditorExport(
   options?: { include_app_columns?: boolean },
 ) {
   const safeSource = normalizeXlsformFormSource(source);
+  // ADR 0133: el kit de entregables lee de la respuesta, tal cual, el nombre y la copia junto al proyecto.
   return handle<{
     ok: true;
     file_id: string;
     original_name: string;
     size: number;
-  }>(
+  } & CamposDeEntregable>(
     await apiFetch("/api/xlsform-editor/export", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
@@ -954,8 +955,8 @@ export type XlsformPaperExportOptions = {
   no_default_intro?: boolean;
 };
 
-/** Resultado de exportar el formulario a papel: `result_data` del job. */
-export type XlsformPaperExportResult = {
+/** Resultado de exportar el formulario a papel: `result_data` del job, con los campos del registro (ADR 0133). */
+export type XlsformPaperExportResult = CamposDeEntregable & {
   ok: true;
   file_id: string;
   original_name: string;
@@ -1007,6 +1008,7 @@ export function normalizeXlsformPaperExportResult(data: unknown): XlsformPaperEx
   const summary: Record<string, unknown> = raw.summary && typeof raw.summary === "object" ? raw.summary : {};
   const num = (v: unknown) => (Number.isFinite(Number(v)) ? Number(v) : 0);
   return {
+    ...camposDeEntregable(raw),
     ok: true,
     file_id: fileId,
     original_name: typeof raw.original_name === "string" && raw.original_name ? raw.original_name : fileId,
@@ -1028,15 +1030,28 @@ async function startPaperExport(
   workbook: XlsformEditorWorkbook,
   filename: string | undefined,
   options: XlsformPaperExportOptions,
+  previa = false,
 ): Promise<XlsformPaperExportJobStart> {
   const data = await handle<unknown>(
     await apiFetch(path, {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ workbook, filename, options }),
+      body: JSON.stringify(previa ? { workbook, filename, options, previa: true } : { workbook, filename, options }),
     })
   );
   return normalizePaperExportJobStart(data);
+}
+
+/**
+ * El mismo PDF, pedido como vista previa del Impreso: el motor lo registra sin
+ * copiarlo a Entregables (ADR 0133), así ver la previa no deja un archivo.
+ */
+export async function apiXlsformEditorPreviaPdf(
+  workbook: XlsformEditorWorkbook,
+  filename?: string,
+  options: XlsformPaperExportOptions = {},
+) {
+  return startPaperExport("/api/xlsform-editor/export-pdf", workbook, filename, options, true);
 }
 
 /**

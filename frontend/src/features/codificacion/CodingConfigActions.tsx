@@ -21,11 +21,9 @@ import {
   X,
 } from "lucide-react";
 import {
-  apiCodifExportJson,
   apiCodifImportJsonPreview,
   apiCodifMatricesApply,
   apiCodifMatricesCasePatch,
-  apiCodifMatricesExport,
   apiCodifMatricesMap,
   apiCodifMatricesPreview,
   apiCodifPreguntasAbiertas,
@@ -36,14 +34,14 @@ import {
   CodifImportPreviewItem,
   CodifImportSelection,
   PreguntaAbierta,
-  downloadUrl,
 } from "../../api/client";
 import { Alert } from "../../components/Alert";
 import { EstadoVacio } from "../../components/EstadoVacio";
 import { LoadingBlock } from "../../components/States";
 import { useCodifSource } from "./useCodifSource";
 import { formatoConteo } from "../../lib/formatoNumero";
-import { descargarArchivo } from "../../lib/descargas";
+import { ContenedorEntregable } from "../../components/entregables/ContenedorEntregable";
+import { useEntregasMatrices } from "./entregas/useEntregasMatrices";
 
 type Props = {
   disabled?: boolean;
@@ -51,7 +49,7 @@ type Props = {
 };
 
 type MatrixVisibility = "work" | "internal" | "client";
-type Busy = "export" | "preview" | "apply" | "map" | "case-patch" | "export-work" | "export-internal" | "export-client" | null;
+type Busy = "preview" | "apply" | "map" | "case-patch" | null;
 type MatrixCaseRow = {
   base: string;
   variable: string;
@@ -73,6 +71,8 @@ type MatrixMapVariable = CodifMatrixMap["bases"][number]["variables"][number];
 
 export function CodingConfigActions({ disabled = false, onImported }: Props) {
   const [busy, setBusy] = useState<Busy>(null);
+  // Matrices Excel y respaldo JSON (ADR 0133): el contenedor del kit anclado a la barra.
+  const entregas = useEntregasMatrices();
   const [error, setError] = useState<string>("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [map, setMap] = useState<CodifMatrixMap | null>(null);
@@ -261,54 +261,18 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
     }
   }
 
-  async function exportConfig() {
-    setBusy("export");
+  function exportConfig() {
     setError("");
-    try {
-      const bundle = await apiCodifExportJson();
-      const { ok: _ok, suggested_filename: suggestedFilename, ...payload } = bundle;
-      void _ok;
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-      const href = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = href;
-      a.download = suggestedFilename || `prosecnur_codificacion_${new Date().toISOString().slice(0, 10)}.json`;
-      a.click();
-      URL.revokeObjectURL(href);
-      toast.exito(`JSON guardado: ${payload.variables.length} pregunta(s) o campo(s).`);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(null);
-    }
+    void entregas.respaldo();
   }
 
-  async function exportMatrix(visibility: MatrixVisibility) {
+  function exportMatrix(visibility: MatrixVisibility) {
     if (!activeBase) {
       setError("Selecciona una base para generar la matriz.");
       return;
     }
-    const busyKey =
-      visibility === "work" ? "export-work" :
-      visibility === "internal" ? "export-internal" :
-      "export-client";
-    setBusy(busyKey);
     setError("");
-    try {
-      const out = await apiCodifMatricesExport(visibility, exportVariableNames, activeBase);
-      descargarArchivo(downloadUrl(out.file_id));
-      toast.exito(
-        visibility === "work"
-          ? `Matriz de trabajo generada para ${activeBaseLabel}.`
-          : visibility === "internal"
-          ? `Auditoría interna generada para ${activeBaseLabel}.`
-          : `Matriz para compartir generada para ${activeBaseLabel}.`
-      );
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(null);
-    }
+    void entregas.matriz(visibility, exportVariableNames, activeBase);
   }
 
   function updateSelectedVarsForActive(updater: (prev: Record<string, boolean>) => Record<string, boolean>) {
@@ -376,6 +340,9 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
     />
   ) : null;
 
+  // La barra se deshabilita mientras corre cualquier trabajo suyo, incluida una matriz o el respaldo.
+  const barraOcupada = busy !== null || entregas.enCurso;
+
   return (
     <div className="pulso-codificacion-matrix-workbench" aria-label="Matrices y mapeo de codificación">
       {!source.loading && !source.error && !error && map !== null && (
@@ -423,7 +390,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
               setError("");
               setDialogOpen(true);
             }}
-            disabled={disabled || busy !== null}
+            disabled={disabled || barraOcupada}
             title="Importa una matriz Excel o JSON; queda como mapeo listo para confirmar en Adaptación."
           >
             <Upload size={13} />
@@ -434,11 +401,11 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
               type="button"
               className="pulso-codificacion-config-button is-primary"
               onClick={() => void exportMatrix("work")}
-              disabled={disabled || busy !== null || exportVariableNames.length === 0}
+              disabled={disabled || barraOcupada || exportVariableNames.length === 0}
               title="Crea una matriz editable con id de caso, variable, texto original, código, categoría y observaciones."
             >
               <FileSpreadsheet size={14} />
-              {busy === "export-work" ? "Generando..." : "Generar matriz"}
+              Generar matriz
             </button>
           )}
           {hasActiveMatrix && (
@@ -446,11 +413,11 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
               type="button"
               className="pulso-codificacion-config-button"
               onClick={() => void exportMatrix("work")}
-              disabled={disabled || busy !== null || exportVariableNames.length === 0}
+              disabled={disabled || barraOcupada || exportVariableNames.length === 0}
               title="Descarga una matriz editable de la base activa para revisar, completar o actualizar casos."
             >
               <FileSpreadsheet size={14} />
-              {busy === "export-work" ? "Generando..." : "Generar matriz"}
+              Generar matriz
             </button>
           )}
           {hasActiveMatrix && (
@@ -458,7 +425,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
               type="button"
               className="pulso-codificacion-config-button"
               onClick={() => visibleCaseRows[0] && openCaseEditor(visibleCaseRows[0])}
-              disabled={disabled || busy !== null || visibleCaseRows.length === 0}
+              disabled={disabled || barraOcupada || visibleCaseRows.length === 0}
               title="Abre la edición puntual de un caso visible del mapeo."
             >
               <Pencil size={13} />
@@ -469,17 +436,17 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
             type="button"
             className="pulso-codificacion-config-button"
             onClick={() => void exportMatrix("client")}
-            disabled={disabled || busy !== null}
+            disabled={disabled || barraOcupada}
             title="Exporta una matriz limpia para compartir, sin IDs internos ni rutas locales."
           >
             <Table2 size={13} />
-            Compartir
+            Matriz para el cliente
           </button>
           <button
             type="button"
             className="pulso-codificacion-config-button"
             onClick={() => void exportMatrix("internal")}
-            disabled={disabled || busy !== null}
+            disabled={disabled || barraOcupada}
             title="Exporta una auditoría interna con trazabilidad y casos cuando existen."
           >
             <ShieldCheck size={13} />
@@ -489,26 +456,28 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
             type="button"
             className="pulso-codificacion-config-button"
             onClick={exportConfig}
-            disabled={disabled || busy !== null}
+            disabled={disabled || barraOcupada}
             title="Descarga un respaldo JSON reutilizable de categorías, reglas y recodificaciones."
           >
             <Download size={13} />
-            {busy === "export" ? "Guardando..." : "Respaldo JSON"}
+            Respaldo JSON
           </button>
           <button
             type="button"
             className="pulso-codificacion-config-button is-icon"
             onClick={() => void refreshMatrixContext()}
-            disabled={disabled || busy !== null}
+            disabled={disabled || barraOcupada}
             aria-label="Actualizar mapa de matrices"
             title="Actualizar mapa de bases, variables y categorías."
           >
             {busy === "map" ? <Loader2 size={13} className="pulso-spin" /> : <RefreshCw size={13} />}
           </button>
         </div>
+        {/* Matrices y respaldo: el contenedor del kit flota bajo la barra sin mover la página. */}
+        <ContenedorEntregable estado={entregas.estado} forma="anclada" onCerrar={entregas.cerrar} />
       </div>
 
-      {/* L25: los resultados («Matriz aplicada…», «JSON guardado…») son toasts; aquí queda sólo el error, que no se va solo. */}
+      {/* L25: "Matriz aplicada…" es un toast y las matrices y el respaldo salen en el contenedor de la barra; aquí queda sólo el error, que no se va solo. */}
       {visibleError && (
         <div className="pulso-codificacion-matrix-feedback" role="status" aria-live="polite" aria-atomic="true">
           {visibleError && <span className="pulso-codificacion-config-feedback is-error">{visibleError}</span>}

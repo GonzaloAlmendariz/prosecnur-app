@@ -1,8 +1,12 @@
 // Hook único de «Compartir el plan» (C11 plan portátil y C12 secciones JSON). Une el reductor, las acciones y la
 // disponibilidad por alcance; la barra de Láminas y la del Editor anterior lo usan tal cual. Una acción no disponible en
 // el alcance (informe compartido) no corre aunque se llegue a ella por teclado o por enlace.
+//
+// Exportar es una entrega del kit (ADR 0133, fase 5): cada exportación tiene su `useGeneracion` y su contenedor de
+// archivo en el cuerpo que la ofrece (forma bloque). El reductor sólo lleva importar y aplicar.
 
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
+import { useGeneracion, type Generacion } from "../../../components/entregables/useGeneracion";
 import type { GraficosReportScope } from "../reportScope";
 import {
   aplicarImportacionJson,
@@ -21,12 +25,17 @@ import { GRAFICOS_JSON_SECTIONS, seccionesElegidas, type GraficosJsonSectionId, 
 
 const MENSAJE_MS = 3200;
 
+/** Lo que el cuerpo de una exportación necesita de su generación: el estado para el contenedor y cómo cerrarlo. */
+export type EntregaCompartir = Pick<Generacion, "estado" | "cerrar">;
+
 export type ControlCompartir = {
   estado: EstadoCompartir;
   disponibilidad: DisponibilidadCompartir;
   nSecciones: number;
   totalSecciones: number;
   basesElegidas: string[];
+  /** Exportaciones en curso o listas, una por cuerpo: el JSON de componentes y el plan portátil. */
+  entregas: { json: EntregaCompartir; plan: EntregaCompartir };
   elegirSeccion: (id: GraficosJsonSectionId, valor: boolean) => void;
   elegirTodas: (valor: boolean) => void;
   elegirModo: (modo: ModoImportacionJson) => void;
@@ -57,6 +66,10 @@ export function useCompartirPlan(scope: GraficosReportScope, deps?: DepsComparti
   const disponibilidadRef = useRef(disponibilidad);
   disponibilidadRef.current = disponibilidad;
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const entregaJson = useGeneracion({ titulo: "Componentes del plan", modulo: "Procesamiento", formato: "json", articulo: "los" });
+  const entregaPlan = useGeneracion({ titulo: "Plan portátil", modulo: "Procesamiento", formato: "zip", articulo: "el" });
+  const ejecutarJson = entregaJson.ejecutar;
+  const ejecutarPlan = entregaPlan.ejecutar;
 
   useEffect(() => () => { if (temporizador.current) clearTimeout(temporizador.current); }, []);
 
@@ -68,13 +81,9 @@ export function useCompartirPlan(scope: GraficosReportScope, deps?: DepsComparti
 
   const exportarJson = useCallback(async () => {
     if (!disponibilidadRef.current.exportarJson.habilitado) return;
-    despachar({ tipo: "inicio", operacion: "exportar-json" });
-    try {
-      terminar({ tipo: "fin", mensaje: await exportarSeccionesJson(estadoRef.current.secciones, depsRef.current) });
-    } catch (e) {
-      despachar({ tipo: "fallo", error: mensajeDe(e) });
-    }
-  }, [terminar]);
+    const secciones = estadoRef.current.secciones;
+    await ejecutarJson(() => exportarSeccionesJson(secciones, depsRef.current));
+  }, [ejecutarJson]);
 
   const prepararImportacion = useCallback(async (file: File | undefined) => {
     if (!file || !disponibilidadRef.current.importarJson.habilitado) return;
@@ -100,13 +109,8 @@ export function useCompartirPlan(scope: GraficosReportScope, deps?: DepsComparti
 
   const exportarPlan = useCallback(async () => {
     if (!disponibilidadRef.current.planPortatil.habilitado) return;
-    despachar({ tipo: "inicio", operacion: "exportar-plan" });
-    try {
-      terminar({ tipo: "fin", mensaje: await exportarPlanPortatil(depsRef.current) });
-    } catch (e) {
-      despachar({ tipo: "fallo", error: mensajeDe(e) });
-    }
-  }, [terminar]);
+    await ejecutarPlan(() => exportarPlanPortatil(depsRef.current));
+  }, [ejecutarPlan]);
 
   const inspeccionarPlan = useCallback(async (file: File | undefined) => {
     if (!file || !disponibilidadRef.current.planPortatil.habilitado) return;
@@ -137,6 +141,10 @@ export function useCompartirPlan(scope: GraficosReportScope, deps?: DepsComparti
     nSecciones: seccionesElegidas(estado.secciones).length,
     totalSecciones: GRAFICOS_JSON_SECTIONS.length,
     basesElegidas: basesAplicables(estado.planInspeccionado, estado.seleccionBases),
+    entregas: {
+      json: { estado: entregaJson.estado, cerrar: entregaJson.cerrar },
+      plan: { estado: entregaPlan.estado, cerrar: entregaPlan.cerrar },
+    },
     elegirSeccion: useCallback((id, valor) => despachar({ tipo: "seccion", id, valor }), []),
     elegirTodas: useCallback((valor) => despachar({ tipo: "todas", valor }), []),
     elegirModo: useCallback((modo) => despachar({ tipo: "modo", modo }), []),

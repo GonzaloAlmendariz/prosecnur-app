@@ -14,9 +14,9 @@
 
 import { conEjemploParaPapel } from "../cuestionario/ejemploSorteo";
 import { create } from "zustand";
-import { downloadUrl } from "../../../api/core";
+import { urlDelArchivo } from "../../../api/core";
 import {
-  apiXlsformEditorExportPdf,
+  apiXlsformEditorPreviaPdf,
   apiXlsformEditorWordVisor,
   normalizeXlsformWordVisor,
   type XlsformPaperExportOptions,
@@ -94,7 +94,7 @@ export function previaVieja(
 }
 
 type DepsPrevia = {
-  exportar: typeof apiXlsformEditorExportPdf;
+  exportar: typeof apiXlsformEditorPreviaPdf;
   visorWord: typeof apiXlsformEditorWordVisor;
   esperar: typeof esperarExportPapel;
   descargar: (fileId: string) => Promise<Uint8Array>;
@@ -102,11 +102,11 @@ type DepsPrevia = {
 };
 
 const DEPS: DepsPrevia = {
-  exportar: apiXlsformEditorExportPdf,
+  exportar: apiXlsformEditorPreviaPdf,
   visorWord: apiXlsformEditorWordVisor,
   esperar: esperarExportPapel,
   descargar: async (fileId) => {
-    const res = await fetch(downloadUrl(fileId));
+    const res = await fetch(urlDelArchivo(fileId));
     if (!res.ok) throw new Error(`No se pudo leer el PDF generado (HTTP ${res.status}).`);
     return new Uint8Array(await res.arrayBuffer());
   },

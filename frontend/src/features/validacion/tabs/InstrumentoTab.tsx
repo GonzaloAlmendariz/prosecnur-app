@@ -17,15 +17,11 @@ import {
   apiV2InstrumentoBuildPlan,
   apiV2InstrumentoDrill,
   apiV2InstrumentoEstado,
-  apiV2InstrumentoExportPlan,
   apiV2InstrumentoImportPlan,
-  apiV2MethodologyReportBundle,
   apiV2InstrumentoReglaToggleActiva,
   apiV2InstrumentoResultado,
   apiV2InstrumentoVariablesExcluidas,
   apiV2InstrumentoVariablesExcluidasSave,
-  downloadUrl,
-  jobResultUrl,
   type InstrumentoDrillResult,
   type InstrumentoResultado,
 } from "../../../api/client";
@@ -40,6 +36,8 @@ import {
   LoadingBlock,
 } from "../../../components/States";
 import { JobProgress } from "../../../components/JobProgress";
+import { ContenedorEntregable } from "../../../components/entregables/ContenedorEntregable";
+import { useEntregasInstrumento } from "../entregas/useEntregasInstrumento";
 import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import { relationalBaseKey, useValidacionStore } from "../store";
 import PlotlyView from "../components/PlotlyView";
@@ -103,9 +101,12 @@ export default function InstrumentoTab() {
   const [busy, setBusy] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [jobId, setJobId] = useState<string | null>(null);
-  const [methodologyPackageJobId, setMethodologyPackageJobId] = useState<string | null>(null);
-  const [methodologyPackageReadyJobId, setMethodologyPackageReadyJobId] = useState<string | null>(null);
-  const [exportFileId, setExportFileId] = useState<string | null>(null);
+  // ADR 0133: el plan en Excel y el paquete metodológico salen en el contenedor del kit de entregables.
+  const entregas = useEntregasInstrumento(baseNombre);
+  const { plan: entregaPlan, paquete: entregaPaquete } = entregas;
+  const cerrarPlan = entregaPlan.cerrar;
+  const cerrarPaquete = entregaPaquete.cerrar;
+  const exportando = entregaPlan.enCurso || entregaPaquete.enCurso;
   const [drill, setDrill] = useState<InstrumentoDrillResult | null>(null);
   const [reglaDirty, setReglaDirty] = useState(false);
   const [selectedRuleId, setSelectedRuleId] = useState<string>("");
@@ -159,13 +160,12 @@ export default function InstrumentoTab() {
   useEffect(() => {
     void refetchAll();
     // Reset local state al cambiar de base.
-    setExportFileId(null);
+    cerrarPlan();
+    cerrarPaquete();
     setDrill(null);
     if (baseAnteriorRef.current !== baseNombre) cerrarRegla();
     baseAnteriorRef.current = baseNombre;
     setJobId(null);
-    setMethodologyPackageJobId(null);
-    setMethodologyPackageReadyJobId(null);
     setVariableQuery("");
     setOperationalConfig(defaultOperationalConfig());
     setAppliedOperationalConfig(defaultOperationalConfig());
@@ -222,28 +222,14 @@ export default function InstrumentoTab() {
     }
   }
 
-  async function onExport() {
-    setBusy("Exportando plan a Excel…");
+  function onExport() {
     setError("");
-    try {
-      const out = await apiV2InstrumentoExportPlan(baseNombre);
-      setExportFileId(out.file_id);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy("");
-    }
+    void entregas.exportarPlan();
   }
 
-  async function onMethodologyPackage() {
+  function onMethodologyPackage() {
     setError("");
-    setMethodologyPackageReadyJobId(null);
-    try {
-      const out = await apiV2MethodologyReportBundle(baseNombre);
-      setMethodologyPackageJobId(out.job_id);
-    } catch (e) {
-      setError((e as Error).message);
-    }
+    void entregas.generarPaquete();
   }
 
   async function onImport(file: File) {
@@ -605,16 +591,16 @@ export default function InstrumentoTab() {
             <>
               <button
                 type="button"
-                onClick={() => void onExport()}
-                disabled={!!busy || !!methodologyPackageJobId}
+                onClick={onExport}
+                disabled={!!busy || exportando}
                 className="pulso-instrumento-action"
               >
                 <Download size={12} /> Exportar a Excel
               </button>
               <button
                 type="button"
-                onClick={() => void onMethodologyPackage()}
-                disabled={!!busy || !!jobId || !!methodologyPackageJobId}
+                onClick={onMethodologyPackage}
+                disabled={!!busy || !!jobId || exportando}
                 className="pulso-instrumento-action"
               >
                 <FileText size={12} /> Paquete metodológico PDF + R
@@ -637,43 +623,9 @@ export default function InstrumentoTab() {
             </>
           )}
         </div>
-        {exportFileId && (
-          <div
-            className="pulso-instrumento-export-note"
-          >
-            Plan exportado.{" "}
-            <a
-              href={downloadUrl(exportFileId)}
-              style={{ color: "var(--pulso-primary)", fontWeight: 600 }}
-            >
-              Descargar →
-            </a>
-          </div>
-        )}
-        <JobProgress
-          label="Generando paquete metodológico"
-          jobId={methodologyPackageJobId}
-          onDone={() => {
-            setMethodologyPackageReadyJobId(methodologyPackageJobId);
-            setMethodologyPackageJobId(null);
-          }}
-          onError={(message) => {
-            setMethodologyPackageJobId(null);
-            setError(message);
-          }}
-          onCancelled={() => setMethodologyPackageJobId(null)}
-        />
-        {methodologyPackageReadyJobId && (
-          <div className="pulso-instrumento-export-note">
-            Paquete listo. Incluye el reporte PDF y el script R derivados del mismo inventario metodológico.{" "}
-            <a
-              href={jobResultUrl(methodologyPackageReadyJobId)}
-              style={{ color: "var(--pulso-primary)", fontWeight: 600 }}
-            >
-              Descargar paquete ZIP →
-            </a>
-          </div>
-        )}
+        {/* El plan y el paquete: cada uno en su contenedor, en bloque bajo la fila de acciones. */}
+        <ContenedorEntregable estado={entregaPlan.estado} forma="bloque" onCerrar={cerrarPlan} />
+        <ContenedorEntregable estado={entregaPaquete.estado} forma="bloque" onCerrar={cerrarPaquete} />
       </PasoDeValidacion>
 
       {/* --- Paso 2: Ejecutar auditoría --- */}

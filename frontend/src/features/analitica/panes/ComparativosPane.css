@@ -489,13 +489,6 @@
   color: var(--pulso-text-soft);
 }
 
-.pulso-comparativos-error {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--pulso-space-2);
-}
-
 .pulso-comparativos-enlace {
   display: inline-flex;
   align-items: center;
@@ -514,8 +507,7 @@
   background: var(--pulso-primary-soft);
 }
 
-.pulso-comparativos-enlace:focus-visible,
-.pulso-comparativos-manifest:focus-visible {
+.pulso-comparativos-enlace:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px var(--pulso-primary-focus);
 }
@@ -540,30 +532,6 @@
 .pulso-panel.pulso-comparativos-resultado > .pulso-panel-header,
 .pulso-panel.pulso-comparativos-resultado > .pulso-panel-hint {
   margin-bottom: 0;
-}
-
-.pulso-comparativos-descargas {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--pulso-space-2);
-}
-
-.pulso-comparativos-descargas .analitica-download-pill small {
-  font-weight: var(--pulso-weight-regular);
-  color: var(--pulso-text-soft);
-}
-
-.pulso-comparativos-manifest {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-chip);
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-body-size);
-  text-decoration: none;
 }
 
 /* Avisos agrupados por tipo: un plegable por grupo, radio de tarjeta (texto

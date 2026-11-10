@@ -126,21 +126,32 @@ xlsform_editor_export_job_runner <- function(input_path, formato, fail_code, fai
         file.copy(j$result_path, out_path, overwrite = TRUE)
         unlink(j$result_path)
       }
-      meta <- .register_output_file(sid, spec$output_kind, out_path, original_name = filename)
-      list(
+      meta <- .register_output_file(sid, .xlsform_editor_registro_kind(spec), out_path, original_name = filename)
+      # ADR 0133 (fase 5): los cuatro campos del registro, para el kit de entregables.
+      entregable_respuesta(list(
         ok = TRUE,
         file_id = meta$file_id,
         original_name = meta$original_name,
         size = meta$size,
         summary = data$summary,
         warnings = data$warnings %||% character(0)
-      )
+      ), meta)
     }, error = function(e) {
       out <- .xlsform_editor_export_error(e, spec$fail_code, spec$fail_message)
       out$.detalle_interno <- NULL
       out
     })
   }
+}
+
+# Kind con que se registra el archivo: el de la salida, o el propio de una vista
+# previa (`spec$registro_kind`). El kind del JOB no cambia: lo leen el front y los
+# contratos HTTP.
+.xlsform_editor_registro_kind <- function(spec) spec$registro_kind %||% spec$output_kind
+
+.xlsform_editor_es_previa <- function(parsed) {
+  isTRUE(as.logical((parsed$previa %||% FALSE)[1])) ||
+    identical(as.character((parsed$proposito %||% "")[1]), "previa")
 }
 
 # Handler compartido de las dos rutas: valida y prepara en el request (barato)
@@ -173,9 +184,14 @@ xlsform_editor_export_job_runner <- function(input_path, formato, fail_code, fai
     .xlsform_editor_empty_df(.xlsform_editor_default_columns("paper"))
   }
   options <- .xlsform_editor_export_titulo(parsed$options %||% list(), settings, filename)
-  # ADR 0133 §3: «Cuestionario» del catálogo con el título impreso de detalle; el
+  # ADR 0133 (fase 5): una vista previa (`previa: true` en el cuerpo, o el visor de
+  # Word) se registra con su propio kind, sin copia junto al proyecto.
+  if (is.null(spec$registro_kind) && .xlsform_editor_es_previa(parsed)) {
+    spec$registro_kind <- if (identical(ext, "pdf")) "formulario_pdf_previa" else "formulario_word_visor"
+  }
+  # ADR 0133 §3: el rótulo del catálogo con el título impreso de detalle; el
   # nombre que manda el front sólo sirve para deducir ese título.
-  filename <- .export_filename(sid, spec$output_kind, ext, detalle = options$title)
+  filename <- .export_filename(sid, .xlsform_editor_registro_kind(spec), ext, detalle = options$title)
 
   input_path <- job_save_rds(sid, "xlsform_export", list(
     survey = survey, choices = choices, settings = settings, paper = paper, options = options))
@@ -204,4 +220,20 @@ xlsform_editor_export_job_runner <- function(input_path, formato, fail_code, fai
     }
   )
   list(ok = TRUE, job_id = job_id, kind = kind)
+}
+
+# Export .xlsx del editor como entregable (ADR 0133, fase 5). Antes se guardaba
+# con `save_upload(kind = "xlsform")`, como un insumo: entraba a la lista de
+# XLSForm de la sesión (el fallback de Carga, los candidatos del traspaso de
+# Monitoreo, el XLSForm que viaja dentro del .pulso) aunque sólo era una
+# descarga. Ahora es el kind `xlsform_editor_export` (Formularios, se copia),
+# con el título del formulario de detalle. `tmp` lo borra el handler al salir:
+# aquí se copia a las descargas de la sesión antes de registrarlo.
+.xlsform_editor_registrar_xlsx <- function(sid, tmp, settings) {
+  destino <- file.path(.session_downloads_dir(sid), paste0(uuid::UUIDgenerate(), ".xlsx"))
+  if (!isTRUE(file.copy(tmp, destino, overwrite = TRUE))) {
+    stop_internal("no se pudo copiar el XLSForm exportado a las descargas de la sesión")
+  }
+  titulo <- trimws(.form_pdf_setting(settings, "form_title", ""))
+  .register_output_file(sid, "xlsform_editor_export", destino, detalle = if (nzchar(titulo)) titulo else NULL)
 }

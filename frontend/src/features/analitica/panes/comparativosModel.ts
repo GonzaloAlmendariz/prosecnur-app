@@ -159,9 +159,8 @@ export type ComparativosUi = {
   notasPregunta: Record<string, string>;
   /** Una nota por línea. */
   notasGenerales: string;
-  enviando: ComparativoTipo | null;
-  job: { id: string; tipo: ComparativoTipo } | null;
-  error: ErrorComparativo | null;
+  /** El último comparativo generado. La espera, el archivo y el fallo los lleva el kit de entregables
+   *  (`useGeneracion`, ADR 0133); aquí queda sólo lo que la pestaña pinta del resultado. */
   resultado: { tipo: ComparativoTipo; datos: ComparativoResultado } | null;
 };
 
@@ -191,9 +190,6 @@ export function estadoInicial(filas: FilaArmonizada[], periodos: string[]): Comp
     rotulos: rotulosPorDefecto(periodos),
     notasPregunta: {},
     notasGenerales: "",
-    enviando: null,
-    job: null,
-    error: null,
     resultado: null,
   };
 }
@@ -209,11 +205,7 @@ export type AccionComparativos =
   | { tipo: "rotulo"; base: string; valor: string }
   | { tipo: "nota-pregunta"; clave: string; valor: string }
   | { tipo: "notas-generales"; valor: string }
-  | { tipo: "enviando"; comparativo: ComparativoTipo }
-  | { tipo: "job"; comparativo: ComparativoTipo; id: string }
-  | { tipo: "listo"; datos: ComparativoResultado }
-  | { tipo: "fallo"; error: ErrorComparativo }
-  | { tipo: "cancelado" };
+  | { tipo: "listo"; comparativo: ComparativoTipo; datos: ComparativoResultado };
 
 function alternar(lista: string[], clave: string): string[] {
   return lista.includes(clave) ? lista.filter((c) => c !== clave) : [...lista, clave];
@@ -241,18 +233,8 @@ export function comparativosReducer(ui: ComparativosUi, accion: AccionComparativ
       return { ...ui, notasPregunta: { ...ui.notasPregunta, [accion.clave]: accion.valor } };
     case "notas-generales":
       return { ...ui, notasGenerales: accion.valor };
-    case "enviando":
-      return { ...ui, enviando: accion.comparativo, error: null };
-    case "job":
-      return { ...ui, enviando: null, job: { id: accion.id, tipo: accion.comparativo } };
     case "listo":
-      return ui.job
-        ? { ...ui, job: null, resultado: { tipo: ui.job.tipo, datos: accion.datos } }
-        : ui;
-    case "fallo":
-      return { ...ui, enviando: null, job: null, error: accion.error };
-    case "cancelado":
-      return { ...ui, enviando: null, job: null };
+      return { ...ui, resultado: { tipo: accion.comparativo, datos: accion.datos } };
   }
 }
 
@@ -705,12 +687,6 @@ function unirLista(items: string[]): string {
 
 export function cantidad(n: number, singular: string, plural: string): string {
   return formatoConteoDe(n, singular, plural);
-}
-
-export function formatoBytes(n: number): string {
-  if (n >= 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
-  if (n >= 1024) return `${Math.round(n / 1024)} KB`;
-  return `${n} B`;
 }
 
 // ---- Notas por pregunta ------------------------------------------------------

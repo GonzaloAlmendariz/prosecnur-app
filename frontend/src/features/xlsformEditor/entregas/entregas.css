@@ -1,0 +1,24 @@
+/* Editor de formularios sobre el kit de entregables (ADR 0133, fase 5). Sólo lo
+   que el módulo pone alrededor del contenedor del kit; el contenedor mismo es
+   del kit (components/entregables/entregables.css). */
+
+/* Pestaña Impreso: el bloque entre la cabecera y el cuerpo, con el mismo margen lateral que el cuerpo. */
+.xf-entrega-bloque {
+  flex: 0 0 auto;
+  min-width: 0;
+  padding: var(--pulso-space-4) var(--pulso-space-4) 0;
+}
+
+/* Avisos del motor al pie del contenedor: texto llano, sin viñetas de color. */
+.xf-entrega-avisos {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}

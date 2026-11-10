@@ -4,7 +4,9 @@
  * contenedor.
  */
 import { describe, expect, it } from "vitest";
-import { ArchivoLocal, archivoCsv, archivoDesdeLocal, celdaCsv, csvDeFilas, esArchivoLocal } from "./archivoLocal";
+import {
+  ArchivoLocal, archivoCsv, archivoDesdeLocal, archivoJson, archivoTexto, celdaCsv, csvDeFilas, esArchivoLocal, fechaDelNombre,
+} from "./archivoLocal";
 
 describe("archivoCsv", () => {
   it("lleva la marca UTF-8 para que Excel lea las tildes y el tipo text/csv", async () => {
@@ -61,5 +63,27 @@ describe("archivoDesdeLocal", () => {
     expect(esArchivoLocal(archivoCsv("a", "x.csv"))).toBe(true);
     expect(esArchivoLocal({ blob: new Blob(["a"]), nombre: "x.csv" })).toBe(false);
     expect(esArchivoLocal({ file_id: "f1" })).toBe(false);
+  });
+});
+
+describe("archivoJson y archivoTexto", () => {
+  it("el JSON sale con sangría y tipo application/json", async () => {
+    const local = archivoJson({ a: 1, b: ["x"] }, "plantilla.json");
+    expect(local.blob.type).toBe("application/json");
+    expect(await local.blob.text()).toBe('{\n  "a": 1,\n  "b": [\n    "x"\n  ]\n}');
+    expect(archivoDesdeLocal(local).formato).toBe("json");
+  });
+
+  it("el texto conserva su contenido y el tipo que se le pasa", async () => {
+    const local = archivoTexto("# Guía", "guia.md", "text/markdown;charset=utf-8");
+    expect(local.blob.type).toBe("text/markdown;charset=utf-8");
+    expect(await local.blob.text()).toBe("# Guía");
+  });
+});
+
+describe("fechaDelNombre", () => {
+  it("dd_mm_yy, como los nombres del motor", () => {
+    expect(fechaDelNombre(new Date(2026, 10, 7))).toBe("07_11_26");
+    expect(fechaDelNombre(new Date(2031, 0, 31))).toBe("31_01_31");
   });
 });

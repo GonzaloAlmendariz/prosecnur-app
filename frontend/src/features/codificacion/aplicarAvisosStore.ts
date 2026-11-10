@@ -4,6 +4,8 @@ import type {
   CodifSinRecodificar,
 } from "../../api/codificacion";
 import type { CodifAplicarRespuesta } from "../../api/dashboard";
+import type { ArchivoEntregable } from "../../components/entregables/tipos";
+import type { AvanceAdaptacion } from "./entregas/modeloEntrega";
 
 // =============================================================================
 // Store de la última aplicación de Codificación › Adaptar
@@ -18,19 +20,24 @@ import type { CodifAplicarRespuesta } from "../../api/dashboard";
 // backend. Va keyed por sesión y base activa para que una base no muestre los
 // avisos de otra ni un proyecto los del anterior.
 
-export type AplicarSalida = { data: string; inst: string };
+/** Los archivos que dejó la adaptación (data e instrumento), como los lee el kit de entregables. */
+export type AplicarSalida = { archivos: ArchivoEntregable[] };
 
 export type AplicarEntrada = {
   /** POST de `/aplicar` en curso (síncrono, 54–130 s medidos). */
   aplicando: boolean;
   /** Job de adaptación ya lanzado y todavía corriendo. */
   jobId: string | null;
+  /** Avance del job (porcentaje y mensaje del motor), para el contenedor de entregables. */
+  avance: AvanceAdaptacion | null;
   avisos: CodifAplicarAvisos;
   sinRecodificar: CodifSinRecodificar[];
   /** B1: lo adaptado no corresponde a la base vigente (otro n). Aviso propio, no de `avisos_incompletos`. */
   avisoFuente: string | null;
   salida: AplicarSalida | null;
   error: string;
+  /** El usuario cerró el contenedor de los archivos (o del fallo); la adaptación sigue hecha. */
+  entregaCerrada: boolean;
   /**
    * La respuesta recién llegó con avisos y nadie los llevó a la vista todavía.
    * Se consume una sola vez: remontar no vuelve a mover scroll ni foco.
@@ -50,11 +57,13 @@ export type AplicarEntrada = {
 export const APLICAR_ENTRADA_VACIA: AplicarEntrada = Object.freeze({
   aplicando: false,
   jobId: null,
+  avance: null,
   avisos: Object.freeze({ omitidas: [], textos_sin_codigo: [], avisos_incompletos: [] }) as CodifAplicarAvisos,
   sinRecodificar: [],
   avisoFuente: null,
   salida: null,
   error: "",
+  entregaCerrada: false,
   enfocarPendiente: false,
   revelarTrasJob: false,
 }) as AplicarEntrada;
@@ -77,6 +86,10 @@ type AplicarAvisosState = {
   fallar: (clave: string, mensaje: string) => void;
   terminar: (clave: string, salida: AplicarSalida) => void;
   cancelar: (clave: string) => void;
+  /** Avance del job en curso; se ignora si el job ya no es el de la entrada. */
+  avanzar: (clave: string, jobId: string, avance: AvanceAdaptacion) => void;
+  /** Cierra el contenedor de los archivos o del fallo. */
+  cerrarEntrega: (clave: string) => void;
   marcarEnfocado: (clave: string) => void;
   /**
    * Montaje de la vista de Adaptar: si el job ya terminó y quedó armado el
@@ -126,14 +139,19 @@ export const useAplicarAvisosStore = create<AplicarAvisosState>((set) => ({
       porBase: actualizar(s.porBase, clave, {
         aplicando: false,
         jobId: null,
+        avance: null,
         error: mensaje,
         revelarTrasJob: false,
       }),
     })),
   terminar: (clave, salida) =>
-    set((s) => ({ porBase: actualizar(s.porBase, clave, { jobId: null, salida }) })),
+    set((s) => ({ porBase: actualizar(s.porBase, clave, { jobId: null, avance: null, salida, entregaCerrada: false }) })),
   cancelar: (clave) =>
-    set((s) => ({ porBase: actualizar(s.porBase, clave, { jobId: null, revelarTrasJob: false }) })),
+    set((s) => ({ porBase: actualizar(s.porBase, clave, { jobId: null, avance: null, revelarTrasJob: false }) })),
+  avanzar: (clave, jobId, avance) =>
+    set((s) => (s.porBase[clave]?.jobId === jobId ? { porBase: actualizar(s.porBase, clave, { avance }) } : s)),
+  cerrarEntrega: (clave) =>
+    set((s) => ({ porBase: actualizar(s.porBase, clave, { entregaCerrada: true }) })),
   marcarEnfocado: (clave) =>
     set((s) => ({ porBase: actualizar(s.porBase, clave, { enfocarPendiente: false }) })),
   alMontar: (clave) =>

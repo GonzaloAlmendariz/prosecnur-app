@@ -12,11 +12,10 @@ import {
   type SeccionesJson,
 } from "./seccionesJson";
 
+/** Lo que el reductor sigue: importar y aplicar. Exportar lo lleva el kit de entregables (`useCompartirPlan`). */
 export type OperacionCompartir =
-  | "exportar-json"
   | "preparar-json"
   | "importar-json"
-  | "exportar-plan"
   | "inspeccionar-plan"
   | "aplicar-plan";
 
@@ -53,7 +52,6 @@ export type AccionCompartir =
   | { tipo: "modo"; modo: ModoImportacionJson }
   | { tipo: "avanzado"; abierto?: boolean }
   | { tipo: "inicio"; operacion: OperacionCompartir }
-  | { tipo: "fin"; mensaje?: string }
   | { tipo: "fallo"; error: string; olvidarPlan?: boolean }
   | { tipo: "plan-inspeccionado"; plan: GraficosShareInspectResult; seleccion: Record<string, boolean>; mensaje: string }
   | { tipo: "base"; base: string; valor: boolean }
@@ -76,8 +74,6 @@ export function compartirReducer(estado: EstadoCompartir, accion: AccionComparti
       return { ...estado, avanzadoAbierto: accion.abierto ?? !estado.avanzadoAbierto };
     case "inicio":
       return { ...estado, ocupado: accion.operacion, mensaje: "", error: "" };
-    case "fin":
-      return { ...estado, ocupado: null, mensaje: accion.mensaje ?? estado.mensaje };
     case "fallo":
       return {
         ...estado,

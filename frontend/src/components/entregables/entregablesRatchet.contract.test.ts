@@ -53,14 +53,13 @@ export const URLS_DE_DESCARGA = [
   "jobResultUrl",
 ] as const;
 
-/** Helpers locales que entregan un archivo (blob o enlace) por quien los llama. */
-export const HELPERS_DE_DESCARGA = [
-  "descargarConEnlace",
-  "descargarCsv",
-  "downloadRecipe",
-] as const;
+/** Helpers locales que entregan un archivo (blob o enlace) por quien los llama. La fase 5
+ *  los retiró todos (oleada 3); si vuelve a aparecer uno, se agrega aquí y cuenta. */
+export const HELPERS_DE_DESCARGA: readonly string[] = [];
 
-const llamadaA = (nombres: readonly string[]) => new RegExp(`\\b(?:${nombres.join("|")})\\s*\\(`);
+/** Lista vacía = nunca coincide (una alternancia vacía coincidiría con cualquier llamada). */
+const llamadaA = (nombres: readonly string[]) =>
+  nombres.length ? new RegExp(`\\b(?:${nombres.join("|")})\\s*\\(`) : /(?!)/;
 
 const FORMAS = {
   propia: new RegExp(`${llamadaA(FUNCIONES_PROPIAS).source}|\\.saveEntregableDialog\\s*\\(|\\bsaveEntregableDialog\\s*\\?\\.\\s*\\(`),
@@ -76,8 +75,8 @@ const DEFINICION = new RegExp(
   `\\b(?:function|const|let)\\s+(?:${[...FUNCIONES_PROPIAS, ...URLS_DE_DESCARGA, ...HELPERS_DE_DESCARGA].join("|")})\\b`,
 );
 
-/** Foto tras la oleada 2 de la fase 5 (Monitoreo, Hojas de ruta, Cálculo de muestra, Dashboard y Carga en 0). Sólo baja. */
-const BASE = 15;
+/** Foto tras la oleada 3 de la fase 5: ningún archivo fuera del kit hace su propia entrega. Sólo baja. */
+const BASE = 0;
 
 function fuentes(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
@@ -144,8 +143,8 @@ describe("entregas por cuenta propia (fuera del kit de entregables)", () => {
     expect(formasDeEntrega("window.open(jobResultUrl(id), '_blank');")).toEqual(["url"]);
     expect(formasDeEntrega("verUrl: jobResultUrl(job.id),")).toEqual(["url"]);
     // helper local
-    expect(formasDeEntrega("onClick={() => descargarCsv(contenido, nombre)}")).toEqual(["helper"]);
-    expect(formasDeEntrega("downloadRecipe(receta, 'receta.json');")).toEqual(["helper"]);
+    expect(llamadaA(["descargarCsv"]).test("onClick={() => descargarCsv(contenido, nombre)}")).toBe(true);
+    expect(llamadaA([]).test("cualquierFuncion(argumento)")).toBe(false);
 
     // negativos
     expect(formasDeEntrega("export function downloadUrl(file_id: string) {")).toEqual([]);

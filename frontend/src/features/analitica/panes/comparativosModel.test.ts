@@ -245,16 +245,17 @@ describe("estado y body", () => {
     expect(bloqueoDeGeneracion(ui, "cruces")).toMatch(/no sea variable de cruce/);
   });
 
-  it("sigue el ciclo enviar, job, listo y descarta un listo sin job", () => {
+  it("listo guarda el resultado con el tipo que se pidió y conserva la selección", () => {
     let ui = estadoInicial(filas, periodos);
     const datos = normalizarComparativoResultado({ file_id: "f1" });
-    expect(comparativosReducer(ui, { tipo: "listo", datos })).toBe(ui);
-    ui = comparativosReducer(ui, { tipo: "enviando", comparativo: "cruces" });
-    ui = comparativosReducer(ui, { tipo: "job", comparativo: "cruces", id: "j1" });
-    expect(ui.job).toEqual({ id: "j1", tipo: "cruces" });
-    ui = comparativosReducer(ui, { tipo: "listo", datos });
-    expect(ui.job).toBeNull();
+    const preguntas = ui.preguntas;
+    ui = comparativosReducer(ui, { tipo: "listo", comparativo: "cruces", datos });
     expect(ui.resultado?.tipo).toBe("cruces");
+    expect(ui.resultado?.datos.file_id).toBe("f1");
+    expect(ui.preguntas).toBe(preguntas);
+    // Un segundo comparativo reemplaza al anterior.
+    ui = comparativosReducer(ui, { tipo: "listo", comparativo: "frecuencias", datos });
+    expect(ui.resultado?.tipo).toBe("frecuencias");
   });
 });
 
@@ -282,6 +283,18 @@ describe("errores", () => {
 });
 
 describe("normalizarComparativoResultado", () => {
+  it("conserva el meta del registro de entregables cuando el motor lo informa", () => {
+    const r = normalizarComparativoResultado({
+      file_id: "f1",
+      guardado_en: ["C:\\Estudios\\HSVG\\Entregables\\Procesamiento\\HSVG_Comparativo_de_cruces_10_11_26.xlsx"],
+      rotulo: "Comparativo de cruces",
+      aviso_guardado: {},
+    });
+    expect(r.guardado_en).toBe("C:\\Estudios\\HSVG\\Entregables\\Procesamiento\\HSVG_Comparativo_de_cruces_10_11_26.xlsx");
+    expect(r.rotulo).toBe("Comparativo de cruces");
+    expect(r).not.toHaveProperty("aviso_guardado");
+  });
+
   it("tolera las formas de R: {} por lista vacía, escalares y tipos desconocidos", () => {
     const r = normalizarComparativoResultado({
       ok: true,

@@ -12,6 +12,7 @@ import type {
   ExplorerRepeatVariableScope,
 } from "../../lib/rosterExplorer";
 import type { ValidacionTabId as ValidacionTabIdCatalogo } from "../../lib/navegacion/catalogos/procesamiento";
+import type { CamposDeEntregable } from "../../api/jobs";
 
 /**
  * Tipo de visualización que el frontend sabe renderizar. Se mapea a una
@@ -317,11 +318,14 @@ export type LimpiezaModuleStats = {
   decision_maker: { pendientes: number; listas: number };
 };
 
-export type LimpiezaArtifact = {
+/** Un archivo del cierre de Limpieza, con el nombre público y los campos del registro único (ADR 0133). */
+export type LimpiezaArtifact = CamposDeEntregable & {
   kind: string;
   label: string;
   file_id: string;
+  filename?: string;
   original_name: string;
+  ext?: string;
   generated_at: string;
 };
 

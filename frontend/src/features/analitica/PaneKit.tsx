@@ -97,7 +97,7 @@ export function Collapsible({ title, summary, defaultOpen, children }: { title: 
 // el backend ya copió el archivo a `Entregables\<Módulo>` o se descargó;
 // «Guardar como…» vive en «Más» del contenedor.
 export function GenerateFooter({
-  label, run, onGenerate, disabled, disabledHint, error,
+  label, run, onGenerate, disabled, disabledHint, error, pie,
   variant = "primary",
 }: {
   label: string;
@@ -108,11 +108,16 @@ export function GenerateFooter({
   disabledHint?: string;
   /** Un error del pane que no viene de la generación (p. ej. no se pudo leer la configuración). */
   error?: string;
+  /** Archivos que salen en la misma corrida (el XLSForm final del libro de códigos), al pie del archivo listo. */
+  pie?: React.ReactNode;
   variant?: "primary" | "secondary";
 }) {
   const { estado, cerrar } = run.generacion;
   const running = estado.fase === "en_curso";
   const porBase = run.perBase.length > 1 ? run.perBase : [];
+  const alPie = porBase.length > 0 || pie
+    ? <>{porBase.length > 0 && <ArchivosPorBase bases={porBase} />}{pie}</>
+    : undefined;
 
   return (
     <>
@@ -139,7 +144,7 @@ export function GenerateFooter({
         estado={estado}
         forma="bloque"
         onCerrar={cerrar}
-        pie={porBase.length > 0 ? <ArchivosPorBase bases={porBase} /> : undefined}
+        pie={estado.fase === "lista" ? alPie : undefined}
       />
 
       {error && <ErrorBlock label="No se pudo generar" detail={error} />}

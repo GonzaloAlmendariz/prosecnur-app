@@ -34,6 +34,26 @@ export function archivoCsv(contenido: string, nombre: string): ArchivoLocal {
   return new ArchivoLocal(new Blob([`${MARCA_UTF8}${contenido}`], { type: "text/csv;charset=utf-8" }), nombre);
 }
 
+/** Un JSON legible (sangría de dos espacios), como lo escribían las exportaciones de configuración. */
+export function archivoJson(valor: unknown, nombre: string): ArchivoLocal {
+  return new ArchivoLocal(new Blob([JSON.stringify(valor, null, 2)], { type: "application/json" }), nombre);
+}
+
+/** Un archivo de texto (Markdown, por ejemplo) con su tipo; la extensión la pone el nombre. */
+export function archivoTexto(contenido: string, nombre: string, tipo = "text/plain;charset=utf-8"): ArchivoLocal {
+  return new ArchivoLocal(new Blob([contenido], { type: tipo }), nombre);
+}
+
+/**
+ * Fecha del nombre de un archivo armado en el front, la misma de los que nombra
+ * el motor (`dd_mm_yy`, ADR 0133 §3): `plantilla_analitica_10_11_26.json`. Sin
+ * hora: si el nombre se repite, el escritorio agrega `_2` en vez de pisar.
+ */
+export function fechaDelNombre(fecha: Date = new Date()): string {
+  const dos = (n: number) => String(n).padStart(2, "0");
+  return `${dos(fecha.getDate())}_${dos(fecha.getMonth() + 1)}_${dos(fecha.getFullYear() % 100)}`;
+}
+
 /** Celda CSV entre comillas dobles, con las comillas internas duplicadas. */
 export function celdaCsv(valor: unknown): string {
   const texto = valor == null ? "" : String(valor);

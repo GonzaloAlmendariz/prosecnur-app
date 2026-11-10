@@ -11,15 +11,16 @@
 # `guardar = FALSE`: vistas previas y miniaturas, assets de estilo, manifiestos,
 # evidencias e intercambio (naturaleza distinta de «entregable» en el censo de
 # descargas 2026-11-07) y, de forma transitoria (ADR 0133, Consecuencias), los
-# kinds cuyos flujos del front ya guardan a mano en la raíz del proyecto: el
-# export del Editor XLSForm. Los ZIP de Correos dejaron de ser transitorios en la
-# fase 5: el front retiró su «Junto al proyecto» manual y se copian como el resto.
+# kinds cuyos flujos del front guardaban a mano en la raíz del proyecto. En la
+# fase 5 dejaron de serlo los ZIP de Correos y el Editor XLSForm (su export y el
+# formulario impreso): el front retiró el guardado manual y se copian como el
+# resto. Las vistas previas del Editor tienen kinds propios sin copia.
 #
 # Regla del lead (2026-11-07): sólo se copia lo que el usuario pidió descargar.
-# Hasta la fase 5 van con guardar = FALSE los archivos que se registran sin que
-# la UI los ofrezca o que ya viajan dentro de otro entregable: el XLSForm de
-# ocurrencias (lo registra «Subir Kobo»), los tres de la limpieza (base limpia,
-# revisión HTML y decisiones) y los dos archivos que contiene el ZIP del handoff.
+# Van con guardar = FALSE los archivos que se registran sin que la UI los ofrezca
+# o que ya viajan dentro de otro entregable: el XLSForm de ocurrencias que
+# registra «Subir Kobo» y los dos archivos que contiene el ZIP del handoff. Los
+# tres de la limpieza se copian desde la fase 5: la UI ya los ofrece.
 
 .ENTREGABLES_MODULOS <- c(
   cm = "Cálculo de muestra", fo = "Formularios", hr = "Hojas de ruta", mc = "Material de campo",
@@ -33,9 +34,12 @@
   "calc_muestra_aulas_seleccion|Selección de aulas|cm|0|1",
   "calc_muestra_solicitud_dti|Solicitud DTI|cm|0|1",
   "reporte_calc_muestra|Reporte de muestra|cm|0|1",
-  # Formularios (el flujo del Editor guarda a mano: transitorio)
-  "formulario_pdf|Cuestionario|fo|0|0",
-  "formulario_word|Cuestionario|fo|0|0",
+  # Formularios
+  "formulario_pdf|Cuestionario|fo|0|1",
+  "formulario_word|Cuestionario|fo|0|1",
+  "formulario_pdf_previa|Vista previa del cuestionario|fo|0|0",
+  "formulario_word_visor|Vista previa del cuestionario|fo|0|0",
+  "xlsform_editor_export|XLSForm|fo|0|1",
   # Hojas de ruta
   "hojas_ruta_population_matrix|Matriz poblacional|hr|0|1",
   "hojas_ruta_random_pdf|Hoja de ruta de prueba|hr|0|0",
@@ -99,9 +103,10 @@
   "data_normalizada|Base normalizada|pr|1|1",
   "validacion_report_html|Reporte de validación|pr|1|1",
   "plan_limpieza_export|Plan de limpieza|pr|1|1",
-  "validacion_limpieza_base_limpia|Base limpia|pr|1|0",
-  "validacion_limpieza_html|Revisión de limpieza|pr|1|0",
-  "validacion_limpieza_excel|Decisiones de limpieza|pr|1|0",
+  "validacion_limpieza_base_limpia|Base limpia|pr|1|1",
+  "validacion_limpieza_html|Revisión de limpieza|pr|1|1",
+  "validacion_limpieza_excel|Decisiones de limpieza|pr|1|1",
+  "metodologia_validacion|Metodología de validación|pr|1|1",
   # Procesamiento: codificación
   "familias_template|Plantilla de familias|pr|0|1",
   "plantilla_codif_template|Plantilla de codificación|pr|0|1",
@@ -203,7 +208,6 @@
 )
 
 .ENTREGABLES_SUELTOS <- c(
-  "metodologia_validacion|Metodología de validación|1",
   "relacion|Relación|0",
   "codificacion_config|Configuración de codificación|0",
   "lamina|Lámina|0"

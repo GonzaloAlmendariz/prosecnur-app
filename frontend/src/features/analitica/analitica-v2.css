@@ -325,12 +325,6 @@
   color: var(--pulso-module-processing);
 }
 
-.analitica-codebook-xlsform-copy {
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-caption-size);
-  line-height: 1.5;
-}
-
 .analitica-codebook-pdf-copy {
   color: var(--pulso-text-soft);
   font-size: var(--pulso-type-caption-size);
@@ -1122,28 +1116,6 @@
   border-radius: 999px;
 }
 
-/* Pills-enlace (descargas) con el mismo focus ring que los botones. */
-.pulso-analitica-frame .analitica-download-pill,
-.pulso-analitica-frame .analitica-codebook-download,
-.pulso-analitica-frame .analitica-codebook-base-link {
-  transition:
-    transform var(--motion-dur-press) var(--motion-ease-out),
-    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
-}
-
-.pulso-analitica-frame .analitica-download-pill:active,
-.pulso-analitica-frame .analitica-codebook-download:active,
-.pulso-analitica-frame .analitica-codebook-base-link:active {
-  transform: scale(var(--mov-press, 0.97));
-}
-
-.pulso-analitica-frame .analitica-download-pill:focus-visible,
-.pulso-analitica-frame .analitica-codebook-download:focus-visible,
-.pulso-analitica-frame .analitica-codebook-base-link:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
-}
-
 /* ── 2. Segmented → pills gv2 (activo = azul primario) ─────────────────── */
 
 .pulso-analitica-frame .analitica-segmented {
@@ -1297,7 +1269,6 @@
   .analitica-control-copy,
   .analitica-codebook-info,
   .analitica-codebook-note,
-  .analitica-codebook-xlsform-copy,
   .analitica-cruces-summary,
   .analitica-exclusion-subtitle,
   .analitica-exclusion-warning,

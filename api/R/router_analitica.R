@@ -4006,6 +4006,9 @@ mount_analitica <- function(pr) {
         ext           = "xlsx",
         kind_single   = "xlsform_final",
         kind_multi    = "xlsform_final_zip",
+        # ADR 0133 (fase 5): el XLSForm final se copia sólo con el libro en Excel; con
+        # cada PDF dejaba otra copia `_2` del mismo XLSForm.
+        copiar        = !identical(formato, "pdf"),
         fn = function(rp_data, rp_inst, out_path) {
           reviewed <- .analitica_apply_data_review(rp_data, rp_inst, cfg)
           final_inst <- .analitica_filter_xlsform_inst(reviewed$inst, excluidas)

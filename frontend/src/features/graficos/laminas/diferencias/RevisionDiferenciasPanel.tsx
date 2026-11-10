@@ -2,7 +2,8 @@
 // las láminas con cruce desde GET /api/graficos/diferencias/informe: resumen arriba, filtro «Para revisar» (frágiles con
 // títulos que afirman, cruces sin diferencias, diferencias bajo el umbral, bases chicas, pruebas no ejecutadas) y una
 // fila por lámina que lleva a ella. Como Avisos, no es modal: la lámina elegida se ve al lado. «Exportar revisión»
-// arma el CSV en el cliente.
+// arma el CSV en el cliente y lo entrega el kit de entregables (ADR 0133, fase 5): el contenedor de archivo va en forma
+// bloque al inicio del cuerpo, bajo la cabecera que tiene el botón.
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { Download, RotateCcw, X } from "../../../../vendor/lucide-react";
@@ -10,6 +11,9 @@ import type { ControlPanel } from "../../../../lib/navegacion/paneles";
 import type { LaminaDiferencias } from "../../../../api/graficosDiferencias";
 import { PulsoTable, type PulsoTableColumna } from "../../../../components/PulsoTable";
 import { PulsoButton } from "../../../../components/PulsoButton";
+import { ContenedorEntregable } from "../../../../components/entregables/ContenedorEntregable";
+import { archivoCsv } from "../../../../components/entregables/archivoLocal";
+import { useGeneracion } from "../../../../components/entregables/useGeneracion";
 import { Skeleton } from "../../../../components/Skeleton";
 import { formatoConteo } from "../../../../lib/formatoNumero";
 import { usePanelDireccionable } from "../../../../lib/navegacion/paneles";
@@ -48,6 +52,8 @@ export function RevisionDiferenciasPanel({ panel, estructura, slideIdActual, onI
   const filtro = useDiferenciasUi((s) => s.filtro);
   const setFiltro = useDiferenciasUi((s) => s.setFiltro);
   const regla = usePanelDireccionable(PANEL_DIFERENCIAS_REGLA);
+  const revision = useGeneracion({ titulo: "Diferencias del informe", modulo: "Procesamiento", formato: "csv", articulo: "las" });
+  const exportando = revision.estado.fase === "en_curso";
   const raizRef = useRef<HTMLElement>(null);
   const disparadorRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
@@ -69,12 +75,12 @@ export function RevisionDiferenciasPanel({ panel, estructura, slideIdActual, onI
   }), [datos, filtro, porId]);
 
   const exportar = () => {
-    if (!datos) return;
+    if (!datos || exportando) return;
     const todas = datos.laminas.map((lamina) => {
       const enPlan = porId.get(lamina.slide_id);
       return { lamina, posicion: enPlan?.posicion ?? null, titulo: lamina.titulo || enPlan?.titulo || lamina.slide_id };
     });
-    descargarCsv(csvRevision(todas), "diferencias-del-informe.csv");
+    void revision.ejecutar(async () => archivoCsv(csvRevision(todas), "diferencias-del-informe.csv"));
   };
 
   const r = datos?.resumen;
@@ -92,7 +98,7 @@ export function RevisionDiferenciasPanel({ panel, estructura, slideIdActual, onI
       <header className="pulso-f6-col-head" data-qa-geometry-member="">
         <h2>Diferencias del informe</h2>
         <span className="pulso-f6-col-sp" />
-        <PulsoButton variant="secondary" size="sm" onClick={exportar} disabled={!datos || datos.laminas.length === 0}>
+        <PulsoButton variant="secondary" size="sm" onClick={exportar} disabled={!datos || datos.laminas.length === 0 || exportando}>
           <Download size={14} aria-hidden="true" /> Exportar revisión
         </PulsoButton>
         <PulsoButton variant="icon" size="sm" aria-label="Cerrar diferencias del informe" onClick={cerrar}>
@@ -100,6 +106,7 @@ export function RevisionDiferenciasPanel({ panel, estructura, slideIdActual, onI
         </PulsoButton>
       </header>
       <div className="pulso-sig-revision-cuerpo" data-qa-geometry-member="" data-qa-scroll-owner="diferencias-informe">
+        <ContenedorEntregable estado={revision.estado} forma="bloque" onCerrar={revision.cerrar} />
         {carga?.estado === "error" ? (
           <CajaDiferencias tono="peligro" role="alert">
             <strong className="pulso-sig-titulo">No se pudo revisar el informe</strong>
@@ -174,14 +181,4 @@ function EstadoChip({ lamina }: { lamina: LaminaDiferencias }) {
       {(e.tono === "marcada" || e.tono === "fragil") && <Capsula letras="" fragil={e.tono === "fragil"} decorativa />} {e.rotulo}
     </span>
   );
-}
-
-/** El CSV con la marca UTF-8 para que Excel lea las tildes. */
-function descargarCsv(contenido: string, nombre: string) {
-  const url = URL.createObjectURL(new Blob([`﻿${contenido}`], { type: "text/csv;charset=utf-8" }));
-  const enlace = document.createElement("a");
-  enlace.href = url;
-  enlace.download = nombre;
-  enlace.click();
-  URL.revokeObjectURL(url);
 }

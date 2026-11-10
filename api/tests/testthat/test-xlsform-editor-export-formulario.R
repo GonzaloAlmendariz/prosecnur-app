@@ -100,7 +100,9 @@ test_that("B: el POST encola un job y devuelve { ok, job_id, kind } sin renderiz
 test_that("B: el resultado publico es el objeto de la ruta sincrona y el archivo queda registrado", {
   cap <- .xef_correr(.xef_body_simple())
   pub <- cap$publico
-  expect_identical(names(pub), c("ok", "file_id", "original_name", "size", "summary", "warnings"))
+  # ADR 0133 (fase 5): el resultado suma los cuatro campos del registro único.
+  expect_identical(names(pub), c("ok", "file_id", "original_name", "size", "summary", "warnings",
+                                  "modulo", "rotulo", "guardado_en", "aviso_guardado"))
   expect_true(isTRUE(pub$ok))
   # ADR 0133 §3 (fase 5): el nombre es el del entregable, con el título impreso de detalle.
   expect_match(pub$original_name, "_Cuestionario_.+_[0-9]{2}_[0-9]{2}_[0-9]{2}[.]pdf$")

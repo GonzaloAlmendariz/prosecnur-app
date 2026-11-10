@@ -205,7 +205,7 @@ describe("ningún clic de las pestañas cambia de pestaña salvo «Editar en Con
     const { html, disparos } = dispararTodo(
       <PestanaImpreso formId="f1" workbook={WORKBOOK_SIN_SALTO} structure={ESTRUCTURA_SIN_SALTO} storageKey={null}
         candidatas={[]} consentimiento={[]} nombrePdf="x.pdf" parte="papel" onParte={enSitio}
-        onExportar={() => {}} onIrAPregunta={salida} onCampoPapel={campo} ocupado="" />,
+        onExportar={() => {}} entrega={{ estado: { fase: "inactiva" }, cerrar: () => {}, avisos: [] }} onIrAPregunta={salida} onCampoPapel={campo} ocupado={false} />,
       salida,
     );
     expect(fugas(disparos)).toEqual([]);

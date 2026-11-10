@@ -5,7 +5,9 @@
 // pestaña Word de Gráficos: partes a la izquierda (`ListaPartes`), tarjetas de
 // detalle al centro y «Así queda» a la derecha con la previa real. La cabecera
 // dice el formato y, si hay previa, sus cifras (páginas contadas en el PDF y
-// preguntas del resumen del motor); exporta Word y PDF por `onExportForm`.
+// preguntas del resumen del motor); exporta Word y PDF por `onExportForm`, y el
+// resultado sale en el contenedor del kit de entregables, en bloque bajo la
+// cabecera (ADR 0133): los botones sólo se deshabilitan.
 //
 // La parte elegida es el `foco` de la dirección (`?pestana=impreso&foco=matrices`).
 // En «Papel por pregunta» una fila abre sus ajustes de papel ahí mismo (ítem 50);
@@ -47,6 +49,7 @@ import { useEstadoImpreso } from "./useEstadoImpreso";
 import { VersionesImpreso } from "./VersionesImpreso";
 import { LogicaImpresa } from "./LogicaImpresa";
 import { EstilosImpreso } from "./EstilosImpreso";
+import { EntregaImpreso, type EntregaImpresoVista } from "../entregas/EntregaImpreso";
 import "./impreso.css";
 
 const ID_DETALLE = "xf-impreso-detalle";
@@ -64,14 +67,16 @@ export type PestanaImpresoProps = {
   /** Parte pedida por la dirección (`foco`). */
   parte: string | null;
   onParte: (parte: ParteImpreso) => void;
-  /** Exportar de verdad: guarda en el proyecto y avisa (el `onExportForm` del editor). */
+  /** Exportar de verdad (el `onExportForm` del editor): el resultado llega en `entrega`. */
   onExportar: (formato: "pdf" | "word", opciones: XlsformPaperExportOptions) => void;
+  /** El impreso exportado en el contenedor del kit, con los avisos del motor. */
+  entrega: EntregaImpresoVista;
   /** «Editar en Constructor» de la ficha de papel: la única salida al Constructor. */
   onIrAPregunta: (name: string) => void;
   /** Escribe un ajuste `paper_*` de la fila en el workbook, igual que «Datos › Ajustes de papel» del Constructor. */
   onCampoPapel: (rowIndex: number, campo: string, valor: string) => void;
-  /** Texto del trabajo en curso del editor (exportando…), o vacío. */
-  ocupado: string;
+  /** El editor tiene otro trabajo en curso (importar, aplicar lógica) o un impreso exportándose. */
+  ocupado: boolean;
 };
 
 export function PestanaImpreso({
@@ -87,6 +92,7 @@ export function PestanaImpreso({
   onExportar,
   onIrAPregunta,
   onCampoPapel,
+  entrega,
   ocupado,
 }: PestanaImpresoProps) {
   // Sólo se sugieren matrices con lista corta, y nacen apagadas (E7, 2026-10-20).
@@ -188,14 +194,15 @@ export function PestanaImpreso({
         <h2 className="pulso-xf-imp-titulo">Impreso</h2>
         <p className="pulso-xf-imp-resumen" role="note" title={resumenCabecera(cifras)}>{resumenCabecera(cifras)}</p>
         <span className="pulso-xf-imp-acciones">
-          <PulsoButton variant="secondary" size="sm" onClick={() => onExportar("word", opciones)} disabled={Boolean(ocupado)}>
+          <PulsoButton variant="secondary" size="sm" onClick={() => onExportar("word", opciones)} disabled={ocupado}>
             Exportar Word
           </PulsoButton>
-          <PulsoButton variant="primary" size="sm" onClick={() => onExportar("pdf", opciones)} disabled={Boolean(ocupado)}>
-            {ocupado || "Exportar PDF"}
+          <PulsoButton variant="primary" size="sm" onClick={() => onExportar("pdf", opciones)} disabled={ocupado}>
+            Exportar PDF
           </PulsoButton>
         </span>
       </header>
+      <EntregaImpreso entrega={entrega} />
       <div className="pulso-xf-imp-cuerpo">
         <div className="pulso-xf-imp-partes">
           <ListaPartes etiqueta="Partes del impreso" grupos={grupos} actual={parte} onElegir={onParte} idPanel={ID_DETALLE} prefijoId={PREFIJO} />

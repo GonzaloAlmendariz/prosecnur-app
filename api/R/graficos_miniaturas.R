@@ -628,6 +628,7 @@
   .preview_con_formas(list(
     ok = TRUE,
     file_id = meta_file$file_id,
+    filename = meta_file$original_name,  # ADR 0133 (fase 5)
     size = meta_file$size,
     type = "pptx",
     images = if (isTRUE(opts$include_images)) .extract_pptx_images(r$pptx) else list(),

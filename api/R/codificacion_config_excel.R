@@ -2141,5 +2141,6 @@ codif_matrix_export_xlsx <- function(sid, visibility = c("work", "internal", "cl
   )
   openxlsx::saveWorkbook(wb, out, overwrite = TRUE)
   meta <- .register_output_file(sid, paste0("codificacion_matriz_", visibility), out)
-  list(ok = TRUE, file_id = meta$file_id, size = meta$size, visibility = visibility)
+  entregable_respuesta(list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name, size = meta$size,
+                            visibility = visibility), meta)
 }

@@ -1,9 +1,7 @@
 import { useEffect, useRef } from "react";
-import { ArrowLeft, CheckCircle2, Download, FileSpreadsheet, Loader2, Play } from "lucide-react";
-import { apiCodifAplicar, AplicarResult, downloadUrl } from "../../api/client";
-import { Alert } from "../../components/Alert";
-import { JobProgress } from "../../components/JobProgress";
-import { Panel } from "../../components/Panel";
+import { ArrowLeft, CheckCircle2, FileSpreadsheet, Play } from "lucide-react";
+import { apiCodifAplicar } from "../../api/client";
+import { ContenedorEntregable } from "../../components/entregables/ContenedorEntregable";
 import { useSession } from "../../lib/SessionContext";
 import { AplicarOmitidasAviso, irAlAviso } from "./AplicarOmitidasAviso";
 import { SinRecodificarAviso } from "./SinRecodificarAviso";
@@ -16,13 +14,17 @@ import {
   selectAplicarEntrada,
   useAplicarAvisosStore,
 } from "./aplicarAvisosStore";
+import { estadoDeAdaptacion } from "./entregas/modeloEntrega";
+import { cancelarAdaptacion, seguirAdaptacion } from "./entregas/seguirAdaptacion";
 import "./AdaptarAplicacion.css";
 import { formatoConteo } from "../../lib/formatoNumero";
 
 // La mitad de Adaptar que sobrevive al remontaje: el botón que lanza
-// `/aplicar`, el progreso del job, lo que no se aplicó, lo que se entrega sin
-// recodificar y las descargas. Todo sale de `aplicarAvisosStore`, keyed por
-// sesión y base; AdaptarPane sólo aporta el plan.
+// `/aplicar`, el avance del job, lo que no se aplicó, lo que se entrega sin
+// recodificar y los dos archivos adaptados. Todo sale de `aplicarAvisosStore`,
+// keyed por sesión y base; AdaptarPane sólo aporta el plan. El avance y los
+// archivos van en el contenedor del kit de entregables (ADR 0133, fase 5), en
+// bloque bajo el botón; el job lo sigue `seguirAdaptacion`, fuera de React.
 
 type Props = {
   /** `claveAplicar(sessionId, base)`. */
@@ -57,9 +59,7 @@ export function pulsarAdaptar(estado: Enfocable | null, adaptar: () => void): vo
 export function AdaptarAplicacion({ clave, nPreguntas, onBackToCodificar, onBackToMatrices, yaCodificadaEn = null, yaListadas = [] }: Props) {
   const { refresh } = useSession();
   const entrada = useAplicarAvisosStore(selectAplicarEntrada(clave));
-  const terminar = useAplicarAvisosStore((s) => s.terminar);
-  const fallar = useAplicarAvisosStore((s) => s.fallar);
-  const cancelar = useAplicarAvisosStore((s) => s.cancelar);
+  const cerrarEntrega = useAplicarAvisosStore((s) => s.cerrarEntrega);
   const marcarEnfocado = useAplicarAvisosStore((s) => s.marcarEnfocado);
   const alMontar = useAplicarAvisosStore((s) => s.alMontar);
 
@@ -70,6 +70,16 @@ export function AdaptarAplicacion({ clave, nPreguntas, onBackToCodificar, onBack
     alMontar(clave);
   }, [alMontar, clave]);
 
+  // El job se sigue una sola vez, aunque el panel se monte varias veces.
+  const jobId = entrada.jobId;
+  useEffect(() => {
+    if (!jobId) return;
+    seguirAdaptacion(clave, jobId, () => {
+      void refresh();
+      window.dispatchEvent(new Event("pulso:session-changed"));
+    });
+  }, [clave, jobId, refresh]);
+
   return (
     <AdaptarAplicacionVista
       entrada={entrada}
@@ -79,13 +89,8 @@ export function AdaptarAplicacion({ clave, nPreguntas, onBackToCodificar, onBack
       yaCodificadaEn={yaCodificadaEn}
       yaListadas={yaListadas}
       onAdaptar={() => void aplicarCodificacion(clave, apiCodifAplicar)}
-      onJobDone={(d) => {
-        terminar(clave, { data: d.data_adaptada.file_id, inst: d.instrumento_adaptado.file_id });
-        void refresh();
-        window.dispatchEvent(new Event("pulso:session-changed"));
-      }}
-      onJobError={(msg) => fallar(clave, msg)}
-      onJobCancelled={() => cancelar(clave)}
+      onCancelar={jobId ? () => cancelarAdaptacion(jobId) : undefined}
+      onCerrarEntrega={() => cerrarEntrega(clave)}
       onEnfocado={() => marcarEnfocado(clave)}
     />
   );
@@ -97,9 +102,9 @@ type VistaProps = {
   onBackToCodificar: () => void;
   onBackToMatrices: () => void;
   onAdaptar: () => void;
-  onJobDone: (d: AplicarResult) => void;
-  onJobError: (msg: string) => void;
-  onJobCancelled: () => void;
+  /** Cancela el job en curso; sin job, no hay "Cancelar". */
+  onCancelar?: () => void;
+  onCerrarEntrega: () => void;
   onEnfocado: () => void;
   yaCodificadaEn?: string | null;
   yaListadas?: readonly string[];
@@ -112,15 +117,18 @@ export function AdaptarAplicacionVista({
   onBackToCodificar,
   onBackToMatrices,
   onAdaptar,
-  onJobDone,
-  onJobError,
-  onJobCancelled,
+  onCancelar,
+  onCerrarEntrega,
   onEnfocado,
   yaCodificadaEn = null,
   yaListadas = [],
 }: VistaProps) {
-  const { aplicando, jobId, avisos, sinRecodificar, salida, error, enfocarPendiente } = entrada;
+  const { aplicando, jobId, avisos, sinRecodificar, salida, enfocarPendiente } = entrada;
   const estadoRef = useRef<HTMLSpanElement>(null);
+  const entrega = estadoDeAdaptacion(
+    { ...entrada, archivos: salida?.archivos ?? null },
+    { cancelar: onCancelar, reintentar: nPreguntas > 0 ? () => pulsarAdaptar(estadoRef.current, onAdaptar) : undefined },
+  );
 
   const motivoDeshabilitado = aplicando
     ? "La codificación se está aplicando."
@@ -165,15 +173,7 @@ export function AdaptarAplicacionVista({
             data-testid="codificacion-adaptar-boton"
             style={{ fontSize: "var(--pulso-type-body-size)", display: "inline-flex", alignItems: "center", gap: 6 }}
           >
-            {aplicando ? (
-              <>
-                <Loader2 size={14} aria-hidden="true" className="pulso-codif-adaptar-giro" /> Aplicando…
-              </>
-            ) : (
-              <>
-                <Play size={14} aria-hidden="true" /> Confirmar y adaptar respuestas
-              </>
-            )}
+            <Play size={14} aria-hidden="true" /> Confirmar y adaptar respuestas
           </button>
           )}
           {motivoDeshabilitado && (
@@ -184,17 +184,9 @@ export function AdaptarAplicacionVista({
         </div>
       )}
 
-      {jobId && (
-        <JobProgress<AplicarResult>
-          label="Adaptando respuestas con mapeos confirmados"
-          jobId={jobId}
-          onDone={onJobDone}
-          onError={onJobError}
-          onCancelled={onJobCancelled}
-        />
-      )}
-
-      {error && <Alert kind="error">{error}</Alert>}
+      {/* El avance, el fallo o los dos archivos adaptados: una sola señal en
+          movimiento (la línea del contenedor); el botón sólo se deshabilita. */}
+      <ContenedorEntregable estado={entrega} forma="bloque" onCerrar={onCerrarEntrega} />
 
       {/* B1: Codificación leyó otro número de casos que el de la base. */}
       <AvisoFuenteAplicar aviso={entrada.avisoFuente} />
@@ -215,28 +207,6 @@ export function AdaptarAplicacionVista({
           todo, que dejaría el módulo peor que ahora. */}
       <SinRecodificarAviso variables={sinRecodificar} />
 
-      {salida && (
-        <Panel eyebrow="Resultado" title="Archivos adaptados listos para descargar">
-          <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-success-fg)", marginBottom: 10 }}>
-            <CheckCircle2 size={16} /> La adaptación terminó correctamente.
-          </div>
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-            <a
-              href={downloadUrl(salida.data)}
-              className="pulso-primary"
-              style={{ fontSize: "var(--pulso-type-body-size)", padding: "8px 14px", display: "inline-flex", alignItems: "center", gap: 6, textDecoration: "none" }}
-            >
-              <Download size={14} /> data_adaptada.xlsx
-            </a>
-            <a
-              href={downloadUrl(salida.inst)}
-              style={{ fontSize: "var(--pulso-type-body-size)", padding: "8px 14px", display: "inline-flex", alignItems: "center", gap: 6 }}
-            >
-              <Download size={14} /> instrumento_adaptado.xlsx
-            </a>
-          </div>
-        </Panel>
-      )}
     </>
   );
 }

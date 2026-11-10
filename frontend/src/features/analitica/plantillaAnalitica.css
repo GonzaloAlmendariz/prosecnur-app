@@ -1,0 +1,6 @@
+/* Plantilla de Analítica sobre el kit de entregables (ADR 0133, fase 5). El contenedor de archivo
+   de "Guardar plantilla" cuelga de la barra de fuente (forma anclada), alineado a su borde derecho,
+   que es donde está el menú "Plantilla". La barra es su ancla. */
+.pulso-analitica-sourcebar {
+  position: relative;
+}
