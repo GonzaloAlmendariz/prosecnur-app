@@ -221,5 +221,6 @@ identidad; no debe usarse como precedente para IDs nuevos.
 | [0139](0139-tipos-de-lamina-y-tipos-de-grafico.md) | Aceptado | 2026-11-08 | Tipos de lámina y tipos de gráfico, dos catálogos |
 | [0140](0140-cobertura-por-categorias-frente-al-universo.md) | Aceptado | 2026-11-09 | Cobertura por categorías de una variable frente al universo |
 | [0141](0141-ranking-de-rotulos-cortos.md) | Aceptado | 2026-11-09 | Ranking de rótulos largos y rótulos cortos del mazo de Gráficos |
+| [0142](0142-mapa-de-pestanas-de-procesamiento.md) | Propuesto | 2026-11-10 | Mapa de pestañas de Procesamiento: de 27 a 21 |
 
 Ver tambien la [guia arquitectonica canonica](../arquitectura-prosecnur.md).

@@ -529,8 +529,8 @@ Gonzalo pidió implementar la propuesta en un loop indefinido con un tick cada 5
 
 | Etapa | Alcance | Estado |
 |---|---|---|
-| P0 | Preparación: inventario de qué componente renderiza hoy cada pestaña, archivos congelados, línea base de gates y ADR propuesto del mapa de pestañas | siguiente |
-| P1 | Piezas compartidas, en archivos nuevos: franja de recorrido, frase de regla con ficha de pregunta, pie con efecto, cifra de hallazgo, esqueleto, progreso, bloque de error y vacío | pendiente |
+| P0 | Preparación: inventario de qué componente renderiza hoy cada pestaña, archivos congelados, línea base de gates y ADR propuesto del mapa de pestañas | hecho el 2026-11-10: ADR 0142 en Propuesto; typecheck en verde; contratos transversales 811 de 812, con un rojo ajeno (comillas angulares en dos archivos de Validación que otra sesión tiene sin commitear) |
+| P1 | Piezas compartidas, en archivos nuevos: franja de recorrido, frase de regla con ficha de pregunta, pie con efecto, cifra de hallazgo y bloque de error con identificador. El esqueleto, la barra de avance, el sondeo de trabajos y el estado vacío ya existen en el kit y se reutilizan | siguiente |
 | P2 | Columna común: cabecera de pestaña con tira de cifras, base activa única y "Estado del estudio" | pendiente |
 | P3 | Codificación: Preguntas, Codificar (tarjetas y tabla) y Aplicar | pendiente; el retiro de Matrices está bloqueado por la decisión 5 |
 | P4 | Carga: Bases, Revisión, Variables, Equivalencias, Formulario, Respuestas y el panel de actualizar | pendiente |
@@ -539,4 +539,4 @@ Gonzalo pidió implementar la propuesta en un loop indefinido con un tick cada 5
 | P7 | Estados de carga, trabajo en curso y error en las cuatro secciones | pendiente |
 | M1 a M7 | Motor: conteo previo de una regla, caso completo, pareja de las respuestas casi iguales, D8, D12, D13 y D9 | pendiente |
 
-**Pendiente de Gonzalo:** confirmar el retiro de la pestaña Matrices.
+**Pendiente de Gonzalo:** aceptar el ADR 0142, que retira diez direcciones de pestaña, entre ellas Matrices. Mientras esté en Propuesto no se borra ninguna.
