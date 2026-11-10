@@ -94,6 +94,9 @@ export function revisarInstalacionR(comando, sondas = sondasReales) {
   if (enCurso) return deny(`Ya hay un \`R CMD INSTALL\` corriendo (${enCurso}). Dos instalaciones a la vez dejan la librería vacía y tumban la app. Espera a que termine; no lo mates.`)
   const lock = sondas.lock()
   if (lock) return deny(`Existe ${lock}: una instalación anterior quedó a medias o sigue en curso. Comprueba con \`pgrep -fl "R CMD INSTALL"\`; si no hay ninguna, avisa al usuario antes de borrar el lock.`)
+  // Decisión del dueño (2026-11-10): se le pregunta solo si está activo. Su
+  // backend escucha en 8787; mientras dure la instalación su app no responde.
+  if (sondas.backendDelUsuarioEnUso()) return ask('El backend del usuario está escuchando en el puerto 8787. Instalar el paquete deja su app sin responder varios minutos: requiere su visto bueno.')
   return null
 }
 
@@ -104,6 +107,13 @@ const sondasReales = {
       return salida ? salida.split('\n')[0].slice(0, 80) : null
     } catch {
       return null // pgrep sale con 1 cuando no encuentra nada
+    }
+  },
+  backendDelUsuarioEnUso() {
+    try {
+      return execFileSync('lsof', ['-nP', '-iTCP:8787', '-sTCP:LISTEN', '-t'], { encoding: 'utf8', timeout: 5000 }).trim().length > 0
+    } catch {
+      return false // lsof sale con 1 cuando nadie escucha
     }
   },
   lock() {

@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url'
 import { decidir, revisarAdaptador, revisarGit, revisarInstalacionR } from '../hooks/guardas.mjs'
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
-const sinR = { instalacionEnCurso: () => null, lock: () => null }
+const sinR = { instalacionEnCurso: () => null, lock: () => null, backendDelUsuarioEnUso: () => false }
 const bash = (command, cwd = raiz) => decidir({ tool_name: 'Bash', tool_input: { command }, cwd }, sinR)
 
 test('bloquea agregar todo, commit -a y stash sin rutas', () => {
@@ -93,6 +93,9 @@ test('R CMD INSTALL se bloquea solo si hay otra instalación o un lock', () => {
   assert.equal(revisarInstalacionR(comando, { ...sinR, lock: () => '/lib/00LOCK-api' })?.decision, 'deny')
   assert.equal(revisarInstalacionR('echo "no corras R CMD INSTALL a la vez"', { ...sinR, lock: () => '/lib/00LOCK-api' }), null)
   assert.equal(revisarInstalacionR('Rscript -e "1"', { ...sinR, lock: () => '/lib/00LOCK-api' }), null)
+  // Con el backend del usuario en uso se pregunta; sin él, se instala sin preguntar.
+  assert.equal(revisarInstalacionR(comando, { ...sinR, backendDelUsuarioEnUso: () => true })?.decision, 'ask')
+  assert.equal(revisarInstalacionR(comando, { ...sinR, lock: () => '/lib/00LOCK-api', backendDelUsuarioEnUso: () => true })?.decision, 'deny')
 })
 
 test('los adaptadores generados no se editan a mano', () => {

@@ -137,6 +137,12 @@ y ese turno lo relanza de inmediato, antes de trabajar.
    tick?». Va junto con la vara, antes de escribir el encargo. Si contesta con
    una unidad («cada minuto», «cada 5 min»), tradúcela a segundos y cítala
    textual en el encargo.
+   **Pregunta también el modo de consulta**: sin consultas (el caso típico es
+   el loop de la noche) o con consultas (cuando el usuario está activo). Va en
+   la primera línea del encargo, junto a la cadencia. El usuario puede cambiarlo
+   a mitad del loop en cualquier sentido y manda lo último que diga. Sin
+   consultas se decide con criterio conservador y se anota; lo irreversible
+   (borrados, publicaciones) se detiene siempre.
 5. **Escribe `ENCARGO_LOOP.md` completo** con los bloques de abajo, aunque la
    mitad estén vacíos, lanza el ticker con el `sleep <N>` que él eligió y avisa
    los dos límites (app cerrada, suspensión).
