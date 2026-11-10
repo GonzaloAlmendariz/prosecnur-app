@@ -16,7 +16,7 @@ export async function estudioDelProyecto(): Promise<string> {
     apiPlannerEstado().catch(() => null),
     apiProjectStatus().catch(() => null),
   ]);
-  return estudioDelNombre(plan?.planner.estudio.codigo ?? null, proyecto?.path ?? null);
+  return estudioDelNombre(plan?.planner?.estudio?.codigo ?? null, proyecto?.path ?? null);
 }
 
 /** `<Estudio>_<Entregable>[_<Detalle>]_<dd_mm_yy>.<ext>` con el estudio de este proyecto. */

@@ -34,4 +34,12 @@ describe("nombreConEstudio", () => {
     proyecto.mockRejectedValue(new Error("sin red"));
     expect(await estudioDelProyecto()).toBe("Prosecnur");
   });
+
+  it("una respuesta de la Ficha sin planner ni estudio no detiene el nombre", async () => {
+    proyecto.mockResolvedValue({ path: "/Users/ana/Perfil.pulso" });
+    plan.mockResolvedValue({});
+    expect(await estudioDelProyecto()).toBe("Perfil");
+    plan.mockResolvedValue({ planner: {} });
+    expect(await estudioDelProyecto()).toBe("Perfil");
+  });
 });
