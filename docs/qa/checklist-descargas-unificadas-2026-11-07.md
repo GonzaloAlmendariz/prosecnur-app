@@ -86,7 +86,7 @@ QA visual: la primera ronda rechazó (bloque estirado a todo el alto, disparador
 | 2 | Monitoreo (26 filas); Hojas de ruta, Cálculo de muestra, Dashboard y Carga; motor: reportes por job y PDF de Monitoreo registran su archivo, base del dashboard y diferencias de integración devuelven JSON, todas las rutas informan `guardado_en`, Excel real de la carga de campo de aulas | `50b00abff` (+ `b55a322f9`, arreglo de parseo de `router_hojas_ruta.R` que dejó un commit ajeno) | hecho; BASE 15; verificador aprobó con pendientes (QA visual y Electron) |
 | 3 | Gráficos, Analítica, ConfigIoButtons, Codificación, Editor XLSForm y Validación al kit; "Cerrar y generar base" ofrece sus tres archivos; el export del Editor es entregable (ya no se cuela como instrumento); previas del impreso, visor Word y vista previa de lámina sin copia; se borra `SaveEntregableButton.tsx` | `bbf6ce5a8` | hecho; BASE 0 (ningún archivo fuera del kit hace su propia entrega); verificador aprobó con pendientes |
 | 3b | Portapapeles y publicaciones en el contenedor | sin commit | pendiente; el kit aún no muestra resultados que no son archivo |
-| 4 | QA visual por muestreo de los módulos migrados en las oleadas 1–3 y prueba en Electron real (Windows) | `b750081a9`, `8147812d4`, `14bf1eea0`, `5accea786` | QA visual hecha (Chromium sin interfaz, macOS): rechazó; hallazgos H1–H9 abajo. Electron en Windows sigue pendiente |
+| 4 | QA visual por muestreo de los módulos migrados en las oleadas 1–3 y prueba en Electron real (Windows) | `b750081a9`, `8147812d4`, `14bf1eea0`, `5accea786`, `c1d454ae1`, `c4a0a20f5`, `ebca1bd32`, `1fdf0e89c` | QA visual en tres rondas (Chromium sin interfaz, macOS): la tercera aceptó con 20 de 20 celdas; verificador aprobado. Electron en Windows sigue pendiente |
 | 5 | Limpieza de lo que quedó sin uso: `FilenameInput.tsx`, `apiSaveEntregable`, `apiListProjectDir`, `exportWarningDetail`, `textoExportando`, `AplicarResult`, la variante `export` de `XlsformTransferNotice`, CSS huérfano en `theme.css` y `validacion-v2.css`, y tres comentarios que dicen que el paquete metodológico no se registra | sin commit | pendiente |
 
 Decisiones pendientes de Gonzalo: (1) el "Actualizar" de Monitoreo › Aulas que también republica en Sheets: que el rótulo lo diga o separar las acciones; (2) los archivos DENTRO del ZIP de evidencia de Monitoreo siguen en inglés; (3) las piezas DENTRO del ZIP de Hojas de ruta pierden la ñ; (4) "Cerrar y generar base" copia sus tres archivos a Entregables en cada cierre (con `_2`, `_3` si se repite).
@@ -107,9 +107,29 @@ Matriz de 146 celdas (superficie, estado y viewport en 1440x1000 y 1024x600) sob
 | H6: Población no deshabilitaba su "Descargar"; Adaptar tenía un texto al lado del botón (segunda señal) | `MenuDelCajon.tsx`, `AdaptarAplicacion.tsx` | hecho en `5accea786`. Queda a revisar: el foco del teclado pasa a una región que solo lee el lector de pantalla |
 | H7: bloque pegado al disparador (0 px) en Libro de códigos y Dashboard › Base de datos | `.pulso-entregable-grupo` | hecho en `5accea786`; 8 px medidos |
 | H8: plan portátil saltaba 39 px; nombre cortado a mitad de extensión; bandeja sin sigla en curso; Adaptar copiaba una plantilla interna sin anunciarla | `compartir.css`, `NombreArchivo.tsx`, `BandejaEntregables.tsx`, `router_codificacion.R` (`copiar = FALSE`) | hecho en `5accea786` y `8147812d4` |
-| H9: "Bases separadas" de Carga sin descarga de la base preparada (hueco desde octubre) | `carga/fuentes/BasesDelEstudio.tsx` | en curso; incluye el salto de alto de la forma fila (28/34/28 px) |
+| H9: "Bases separadas" de Carga sin descarga de la base preparada (hueco desde octubre) | `carga/fuentes/BasesDelEstudio.tsx`; forma fila del kit | hecho en `c1d454ae1`; la fila mide 34 px en curso, lista y fallo |
 
-Sin cubrir, con la causa comprobada: Monitoreo de aulas (ningún proyecto de referencia lo trae; hsvg2026 no tiene el módulo), armado de paquetes de Material de campo (hsvg2026 dice "Sin unidades en el plan"), Material territorial (acnur_acg pide volver a sortear en Manzanas), anexo y paquete de Cálculo de muestra (falta confirmar "Alumnos por CH"), Comparativos (acrconta_mazo sin preguntas armonizadas). Electron y Windows no se probaron.
+Segunda ronda (19 conformes y 4 rechazos) y su nueva medición (20 de 20 conformes, en `ebca1bd32` y `1fdf0e89c`):
+
+| Hallazgo | Dónde vive | Estado |
+|---|---|---|
+| Crítico: en Monitoreo › Cursos-horario › Salidas, la fila de fallo de "Generar libro" encogía el texto vecino a 0 px y la fila crecía de 65 a 797 px | kit (el texto de la fila aporta 16ch); `SalidasDeMonitoreo.tsx` con renglón propio; mismo arreglo en Material generado | hecho; la fila crece 46 px y el botón no se mueve. Material generado no se vio en pantalla (sin material en la sesión) |
+| Revisión HTML: 9 filas NA en "Reglas con más casos", encabezados en inglés, celdas con raya | `validacion_report_html.R` | hecho; las reglas sin conteo se avisan aparte |
+| Foco de Adaptar en un elemento invisible | `AdaptarAplicacion.tsx`, `ContenedorEntregable` (`enfocar`) | hecho; el foco cae en el contenedor visible con contorno |
+| C2 en Bases del estudio: la rejilla estiraba a las hermanas (`ui-quick-check` lo daba verde por ausencia) | `basesDelEstudio.css` (`align-items: start`) | hecho, con test que falla si la rejilla estira |
+| Ancladas de "Matriz para el cliente" y "Plantilla" fuera del eje | `components/entregables/ejeDeEntrega.ts` (sube desde Gráficos) | hecho; Δ ≤ 0.3 px en las cuatro ancladas |
+| Impreso con dos fechas cuando el formulario trae la suya; mensajes de aulas sin tildes | `xlsform_editor_export.R`; `carga_aulas_libro_generar.R`, `monitoreo_aulas_publicar_libro.R`, `router_monitoreo.R` (una línea) | hecho |
+| `__pulsoNav.ir("dashboard/dashboard/base-datos")` no navegaba | `lib/navegacion/manifiesto.ts` | hecho; test que recorre todo el manifiesto |
+
+Abiertos que no son de esta línea:
+
+- **Comillas angulares (29 pares).** Vienen de los nombres de regla que arma el motor de Validación (`validacion_ast_introspect.R`, `validacion_methodology_report.R`, `validacion_rule_factory.R` y otros, unas 150), y `validacion_methodology_report.R:993` compara uno de esos nombres de forma literal. Las comparte la sesión de Validación.
+- **La revisión dice "0 de 94 reglas evaluadas" y "Total inconsistencias 0" en verde** con 9 reglas sin conteo: es una cifra con dos lecturas, para `revisor-metodologico`.
+- En la copia fresca, "Ejecutar auditoría" tardó unos 910 s en volver a habilitarse aunque el job duró 14.8 s. Sin investigar.
+- La portada de la lámina dice "Informe de resultados13 jun." (falta un espacio).
+- En Monitoreo, la causa del fallo se corta con puntos suspensivos; el `title` completo se comprobó en Carga.
+
+Sin cubrir, con la causa comprobada: Monitoreo de aulas (ningún proyecto de referencia lo trae; hsvg2026 no tiene el módulo), armado de paquetes de Material de campo (hsvg2026 dice "Sin unidades en el plan"), Material territorial (acnur_acg pide volver a sortear en Manzanas), anexo y paquete de Cálculo de muestra (falta confirmar "Alumnos por CH"), Comparativos (acrconta_mazo sin preguntas armonizadas), forma fila en Hojas de ruta (pide repartir cuotas y volver a sortear) y en Material de campo (sin artefactos de Paquetes). Electron y Windows no se probaron.
 
 ### Pendiente original
 
