@@ -93,21 +93,53 @@
   sprintf("%s (%s%%)", .dumbbell_fmt_casos(n), .pulso_fmt_half_up(100 * n / universo, 0L))
 }
 
-#' Base de un grupo en la nota: «115 (93%)» si es la misma en todas las filas; si no, su rango («107 a 115 (87% a 93%)»)
-#'
-#' La comparten el contraste, las fortalezas y alertas y la cobertura: la base de un público se escribe igual en todas
-#' las láminas del resumen.
-#' @param n Casos de cada fila (pregunta) del grupo.
-#' @param universo Padrón del grupo (`NA` sin padrón).
+#' Casos de un grupo en la base: «115», o su rango si cambia de pregunta a pregunta («107 a 115»)
 #' @keywords internal
-.contraste_base_grupo <- function(n, universo = NA_real_) {
+.base_n <- function(n) {
   n <- n[is.finite(n)]
-  if (!length(n)) return("—")
-  if (length(unique(n)) == 1L) return(.contraste_base_texto(n[1], universo))
-  rango <- sprintf("%s a %s", .dumbbell_fmt_casos(min(n)), .dumbbell_fmt_casos(max(n)))
-  if (is.finite(universo) && max(n) <= universo) rango <- sprintf("%s (%s%% a %s%%)", rango, .pulso_fmt_half_up(100 * min(n) / universo, 0L),
-                                                               .pulso_fmt_half_up(100 * max(n) / universo, 0L))
-  rango
+  if (!length(n)) return(NA_character_)
+  if (length(unique(n)) == 1L) return(.dumbbell_fmt_casos(n[1]))
+  sprintf("%s a %s", .dumbbell_fmt_casos(min(n)), .dumbbell_fmt_casos(max(n)))
+}
+
+#' Un público o grupo como se escribe dentro de la base
+#'
+#' La sigla que el analista declaró entre paréntesis manda («Tiempo completo (TC)» → «TC»); una sigla sola o un nombre
+#' con mayúsculas propias («Departamento Académico») queda como se declaró; un nombre común va en minúscula
+#' («Estudiantes» → «estudiantes»), como en los informes de la casa.
+#' @keywords internal
+.base_rotulo <- function(x) {
+  x <- trimws(gsub("_+", " ", as.character(x)[1]))
+  sigla <- regmatches(x, regexec("\\(([[:upper:][:digit:]]{2,})\\)\\s*$", x))[[1]]
+  if (length(sigla) == 2L) return(sigla[2])
+  if (grepl("^[[:upper:][:digit:]]{2,}$", x)) return(x)
+  if (!grepl("[[:upper:]]", substring(x, 2))) x <- paste0(tolower(substr(x, 1, 1)), substring(x, 2))
+  x
+}
+
+#' «a, b y c»
+#' @keywords internal
+.base_lista <- function(x) if (length(x) <= 1L) x else paste(paste(utils::head(x, -1L), collapse = ", "), "y", utils::tail(x, 1L))
+
+#' La base del resumen ejecutivo, sobria: sólo los casos de cada público o de cada grupo
+#'
+#' Gonzalo, 2026-11-10: «que solo diga el n de o los perfiles y si hay algún cruce que diga el n de los cruces, pero de
+#' la misma forma sobria y elegante». Sin cobertura ni punto y coma: «Base: 279 estudiantes y 115 docentes». Con un
+#' cruce, los grupos dentro de su público: «Base: 24 docentes de TC y 91 de TPA». Si los casos cambian de pregunta a
+#' pregunta, su rango: «Base: 200 a 279 estudiantes y 115 docentes».
+#' @param grupos Rótulos de los públicos o de los grupos, en su orden.
+#' @param N Matriz de casos (una fila por pregunta, una columna por grupo), o un vector para un solo grupo.
+#' @param publico Público que se abrió en grupos (`NULL` cuando los grupos ya son públicos).
+#' @keywords internal
+.base_frase <- function(grupos, N, publico = NULL) {
+  N <- as.matrix(N)
+  ns <- vapply(seq_along(grupos), function(j) .base_n(N[, j]), "")
+  ok <- !is.na(ns)
+  if (!any(ok)) return(NULL)
+  rot <- vapply(grupos, .base_rotulo, "", USE.NAMES = FALSE)
+  pub <- if (is.null(publico) || is.na(publico[1]) || !nzchar(trimws(publico[1]))) NULL else .base_rotulo(publico)
+  items <- if (is.null(pub)) paste(ns, rot) else c(paste(ns[1], pub, "de", rot[1]), paste(ns[-1], "de", rot[-1]))
+  paste0("Base: ", .base_lista(items[ok]))
 }
 
 #' Eje de porcentaje acercado al rango, en decenas y sin pasar de 0 ni 100
@@ -153,7 +185,7 @@
 .espec_contraste <- function(data, var_eje = "eje", var_grupo = "grupo", var_valor = "valor", var_n_casos = "n_casos",
                              universos = NULL, separar_tras = NULL, orden = c("brecha", "valor", "declarado", "brecha_absoluta"),
                              decimales = 0L, colores = NULL, encabezado_diferencia = "Diferencia", limite_x = NULL,
-                             titulo_eje = NULL, base_en = c("auto", "tabla", "leyenda", "nota")) {
+                             titulo_eje = NULL, base_en = c("auto", "tabla", "leyenda", "nota"), publico = NULL) {
   orden <- match.arg(orden)
   base_en <- match.arg(base_en)
   for (col in c(var_eje, var_grupo, var_valor)) {
@@ -204,9 +236,10 @@
   constante <- all(vapply(seq_len(k), function(j) length(unique(B[, j])) == 1L, TRUE))
   if (identical(base_en, "auto")) base_en <- "nota"
   if (!constante && identical(base_en, "leyenda")) base_en <- "nota"
-  base_grupo <- vapply(seq_len(k), function(j) .contraste_base_grupo(N[, j], uni[j]), "")
-  leyenda <- if (identical(base_en, "leyenda")) sprintf("%s (n = %s)", grupos, sub(" \\((.*)\\)$", ", \\1", base_grupo)) else grupos
-  nota_base <- if (identical(base_en, "nota")) paste0("Base: ", paste(sprintf("%s %s", grupos, base_grupo), collapse = "; ")) else NULL
+  # La cobertura (`universos`) sólo se escribe en las columnas de la tabla, que la piden explícitamente; la nota y la
+  # leyenda llevan sólo los casos (Gonzalo, 2026-11-10).
+  leyenda <- if (identical(base_en, "leyenda")) sprintf("%s (n = %s)", grupos, vapply(seq_len(k), function(j) .base_n(N[, j]), "")) else grupos
+  nota_base <- if (identical(base_en, "nota")) .base_frase(grupos, N, publico) else NULL
   colores_g <- .contraste_colores(grupos, colores)
   list(
     version = "contraste/1", tipo = "contraste",

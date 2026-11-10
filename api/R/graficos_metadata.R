@@ -2087,17 +2087,17 @@
            default = "recetario",
            choices = list(
              list(value = "recetario", label = "Recetario", hint = "Láminas 85 y 86: dos grupos y la diferencia al margen."),
-             list(value = "resumen", label = "Contraste de públicos", hint = "La del resumen ejecutivo: una forma por grupo, bandas alternas, la diferencia fuera del gráfico y la base n (cobertura %) en la nota. Con un cruce admite hasta cuatro grupos.")
+             list(value = "resumen", label = "Contraste de públicos", hint = "La del resumen ejecutivo: una forma por grupo, bandas alternas, la diferencia fuera del gráfico y la base en la nota, sólo con los casos. Con un cruce admite hasta cuatro grupos.")
            ),
            descripcion = "Cómo se compone la lámina. La diferencia se calcula igual."),
       list(name = "universos", label = "Padrón de cada grupo", tipo_input = "string", grupo = "datos",
-           descripcion = "Para escribir la base como n (cobertura %): «Docentes: 123; Estudiantes: 327». Un grupo sin padrón confiable se omite y su base va sólo con n."),
+           descripcion = "Da la cobertura de las columnas de base: «Docentes: 123; Estudiantes: 327». La nota de la base lleva sólo los casos."),
       list(name = "universos_no_confiables", label = "Padrones no confiables", tipo_input = "string", grupo = "datos",
            descripcion = "Padrón de los grupos con «Padrón confiable» apagado. Se guarda y no se usa en el cálculo."),
       list(name = "base_en", label = "Dónde va la base", tipo_input = "choice", grupo = "estilo",
            default = "auto",
            choices = list(
-             list(value = "auto", label = "En la nota de la base", hint = "Abajo a la izquierda: Base: Docentes 115 (93%); Estudiantes 279 (85%). Si cambia de pregunta a pregunta, su rango."),
+             list(value = "auto", label = "En la nota de la base", hint = "Abajo a la izquierda: Base: 279 estudiantes y 115 docentes. Si cambia de pregunta a pregunta, su rango."),
              list(value = "leyenda", label = "En la leyenda", hint = "Docentes (n = 115, 93%). Sólo si es la misma en todas las preguntas."),
              list(value = "tabla", label = "En columnas de la tabla", hint = "Una columna por grupo, fila por fila.")
            ),
@@ -2155,7 +2155,7 @@
       list(name = "regla", label = "Regla de preguntas", tipo_input = "regla_preguntas", grupo = "datos",
            descripcion = "Por defecto, las más altas y las más bajas."),
       list(name = "universos", label = "Padrón del público", tipo_input = "string", grupo = "datos",
-           descripcion = "Para la base n (cobertura %): «Docentes: 123». Sin padrón, sólo n.")
+           descripcion = "Se acepta por compatibilidad: la base lleva sólo los casos.")
     ), .args_graf_comunes())
   ),
 

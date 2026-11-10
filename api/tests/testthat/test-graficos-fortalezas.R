@@ -63,7 +63,7 @@ test_that("en la ruta real las cifras son las de la regla y la nota lleva la bas
   expect_identical(e$columnas[[1]]$cifras, c("90%", "75%"))
   # Biblioteca y Laboratorios empatan en 50: la regla toma la primera del instrumento entre las bajas.
   expect_identical(e$columnas[[2]]$rotulos, c("Salud", "Biblioteca"))
-  expect_identical(e$nota_base, "Base: Docentes 40 (80%)")
+  expect_identical(e$nota_base, "Base: 40 docentes")                          # sólo n, sin cobertura (Gonzalo, 2026-11-10)
   expect_identical(e$texto_regla, "Se muestran las 2 más altas y las 2 más bajas, de 6 preguntas de escala.")
   # Las mismas cifras que la regla mide para el contador del inspector.
   r <- .regla_preguntas_conteo("p_fortalezas", list(vars = "docentes$*", corte = c("4", "5"), n = 2), src)
@@ -85,7 +85,7 @@ test_that("la lámina nativa: dos columnas, la cifra de cada barra y la base con
   texto <- paste(xml2::xml_text(xml2::xml_find_all(x, "//a:t")), collapse = " | ")
   expect_match(texto, "Más altas", fixed = TRUE); expect_match(texto, "Más bajas", fixed = TRUE)
   expect_match(texto, "90%", fixed = TRUE); expect_match(texto, "25%", fixed = TRUE)
-  expect_match(texto, "Base: Docentes 40. Se muestran las 3 más altas y las 3 más bajas, de 6 preguntas de escala", fixed = TRUE)
+  expect_match(texto, "Base: 40 docentes. Se muestran las 3 más altas y las 3 más bajas, de 6 preguntas de escala", fixed = TRUE)
   expect_false(grepl("tramo", texto, ignore.case = TRUE))
   nombres <- xml2::xml_attr(xml2::xml_find_all(x, "//p:sp/p:nvSpPr/p:cNvPr"), "name")
   expect_identical(sum(nombres == "fortalezas:barra"), 6L)

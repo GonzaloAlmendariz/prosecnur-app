@@ -108,7 +108,8 @@ graficar_dumbbell <- function(
     espec <- .espec_contraste(d, var_eje, var_grupo, var_valor, var_n_casos = col_casos, universos = universos,
                               separar_tras = separar_tras, orden = orden, decimales = valores_decimales,
                               colores = colores_grupos, encabezado_diferencia = encabezado_brecha, limite_x = limite_x,
-                              titulo_eje = titulo_eje, base_en = match.arg(base_en))
+                              titulo_eje = titulo_eje, base_en = match.arg(base_en),
+                              publico = attr(data, "dumbbell_publico", exact = TRUE))   # aperturas: «24 docentes de TC y 91 de TPA»
     return(.graficar_contraste_gg(espec, titulo = titulo, subtitulo = subtitulo, nota_pie = nota_pie, font_family = font_family))
   }
   leyenda_posicion <- match.arg(leyenda_posicion)

@@ -33,23 +33,23 @@ test_that("el contraste de dos públicos resta el primero menos el segundo, orde
   expect_identical(e$sentido_diferencia, "Estudiantes − Docentes")
 })
 
-test_that("la base va al pie, abajo a la izquierda, y la tabla queda sólo con la diferencia", {
+test_that("la base va al pie, abajo a la izquierda, sólo con los casos, y la tabla queda sólo con la diferencia", {
   e <- attr(graficar_dumbbell(.re_publicos(), estilo = "resumen", universos = "Docentes: 123; Estudiantes: 327"), "pulso_espec")
   expect_identical(e$base_en, "nota")
-  expect_identical(e$nota_base, "Base: Estudiantes 279 (85%); Docentes 115 (93%)")
+  expect_identical(e$nota_base, "Base: 279 estudiantes y 115 docentes")      # sin cobertura (Gonzalo, 2026-11-10)
   expect_identical(e$leyenda, c("Estudiantes", "Docentes"))
   xml <- .re_xml(.lam_laminas_contraste(.re_doc(), e, "Docentes y estudiantes", base = "Top Two Box", folio = 6)$doc)
   expect_identical(.re_txt(xml, "tabla:encabezado"), "Diferencia")       # sin columnas de base
   expect_length(.re_sp(xml, "puntos:base"), 0L)
-  expect_match(.re_txt(xml, "Base lamina"), "^Base: Estudiantes 279 \\(85%\\); Docentes 115 \\(93%\\)\\. Top Two Box")
+  expect_match(.re_txt(xml, "Base lamina"), "^Base: 279 estudiantes y 115 docentes\\. Top Two Box")
   # Si la base cambia de fila a fila (una pregunta filtrada), el pie da su rango; nunca abre columnas por su cuenta.
   d <- .re_publicos(); d$n_casos[1] <- 200
   ed <- attr(graficar_dumbbell(d, estilo = "resumen", universos = "Docentes: 123; Estudiantes: 327"), "pulso_espec")
   expect_identical(ed$base_en, "nota")
-  expect_identical(ed$nota_base, "Base: Estudiantes 200 a 279 (61% a 85%); Docentes 115 (93%)")
+  expect_identical(ed$nota_base, "Base: 200 a 279 estudiantes y 115 docentes")
   # La leyenda sigue disponible si se pide y la base es la misma en todas las filas.
   el <- attr(graficar_dumbbell(.re_publicos(), estilo = "resumen", universos = "Docentes: 123; Estudiantes: 327", base_en = "leyenda"), "pulso_espec")
-  expect_identical(el$leyenda, c("Estudiantes (n = 279, 85%)", "Docentes (n = 115, 93%)"))
+  expect_identical(el$leyenda, c("Estudiantes (n = 279)", "Docentes (n = 115)"))
   expect_identical(attr(graficar_dumbbell(d, estilo = "resumen", base_en = "leyenda"), "pulso_espec")$base_en, "nota")
 })
 
@@ -83,11 +83,12 @@ test_that("con tres grupos cada pregunta lleva una sub-fila por grupo y la difer
   d <- data.frame(eje = rep(c("Dotación de recursos", "Servicio de salud"), 3), grupo = rep(c("2do", "3er", "4to"), each = 2),
                   valor = c(70, 85, 64, 96, 53, 79), n_casos = c(139, 139, 25, 25, 115, 115))
   d$grupo <- factor(d$grupo, levels = c("2do", "3er", "4to"))
+  attr(d, "dumbbell_publico") <- "estudiantes"                                # lo anota .dumbbell_grupos_datos
   e <- attr(graficar_dumbbell(d, estilo = "resumen", orden = "declarado"), "pulso_espec")
   expect_identical(e$modo, "subfilas"); expect_identical(e$formas, c("ellipse", "rect", "triangle"))
   expect_identical(e$textos_diferencia, c("17", "17"))
   expect_identical(e$bases[1, ], c("139", "25", "115"))                    # sin padrón del subgrupo: sólo n
-  expect_identical(e$nota_base, "Base: 2do 139; 3er 25; 4to 115")
+  expect_identical(e$nota_base, "Base: 139 estudiantes de 2do, 25 de 3er y 115 de 4to")
   expect_identical(e$colores, unname(.std_paleta("grupos"))[1:3])
   xml <- .re_xml(.lam_laminas_contraste(.re_doc(), e, "Por ciclo", folio = 9)$doc)
   expect_length(.re_sp(xml, "puntos:marca"), 6L)
@@ -247,4 +248,18 @@ test_that("en la ruta real el panorama y la escala del resumen salen como lámin
   g <- function(k) xml2::xml_attr(xml2::xml_find_all(xml2::read_xml(unz(out, sprintf("ppt/slides/slide%d.xml", k))), "//p:grpSp/p:nvGrpSpPr/p:cNvPr"), "name")
   expect_true("prosecnur:grafico:divergentes" %in% g(1))
   expect_true("prosecnur:grafico:panorama" %in% g(2))
+})
+
+test_that("la base nombra la sigla declarada, conserva los nombres propios y no lleva cobertura", {
+  expect_identical(.base_rotulo("Tiempo completo (TC)"), "TC")
+  expect_identical(.base_rotulo("Departamento Académico"), "Departamento Académico")
+  expect_identical(.base_rotulo("Segundo ciclo"), "segundo ciclo")
+  expect_identical(.base_rotulo("TPA"), "TPA")
+  expect_identical(.base_frase(c("Tiempo completo (TC)", "Tiempo parcial por asignaturas (TPA)"), cbind(24, 91), publico = "docentes"),
+                   "Base: 24 docentes de TC y 91 de TPA")
+  expect_identical(.base_frase(c("Facultad", "Departamento Académico"), cbind(70, 15), publico = "administrativos"),
+                   "Base: 70 administrativos de facultad y 15 de Departamento Académico")
+  expect_identical(.base_frase(c("Segundo ciclo", "Tercer ciclo", "Cuarto ciclo"), cbind(c(115, 139), c(20, 25), c(107, 115)), publico = "estudiantes"),
+                   "Base: 115 a 139 estudiantes de segundo ciclo, 20 a 25 de tercer ciclo y 107 a 115 de cuarto ciclo")
+  expect_identical(.fortalezas_nota_base("Docentes", c(115, 115), universos = "Docentes: 123"), "Base: 115 docentes")
 })
