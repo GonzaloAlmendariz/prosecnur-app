@@ -63,11 +63,10 @@ test_that("la lámina del contraste pone la tabla de Diferencia y Base fuera del
   expect_true(max(marcas$x + marcas$w) < min(dif$x))                      # ningún punto invade la tabla
   expect_setequal(unique(.re_geom(xml, "puntos:marca")), c("ellipse", "rect"))
   expect_length(.re_sp(xml, "puntos:banda"), 0L)                          # P10: sin bandas alternas, todo transparente
-  # Tras la base, qué son las cifras y quién menos quién (Gonzalo, 2026-11-10: «la base debe especificar qué significan
-  # los valores porque en ningún lado se explica»).
-  expect_match(paste(.re_txt(xml, "Base lamina"), collapse = " "),
-               "Las cifras son el porcentaje que eligió las dos respuestas más favorables de la escala (Top Two Box); la diferencia es estudiantes menos docentes, en puntos",
-               fixed = TRUE)
+  # Tras la base, qué es el porcentaje (Gonzalo, 2026-11-10); quién menos quién va al analista, no al pie.
+  pie <- paste(.re_txt(xml, "Base lamina"), collapse = " ")
+  expect_match(pie, "Las cifras son el porcentaje que eligió las dos respuestas más favorables de la escala (Top Two Box)", fixed = TRUE)
+  expect_false(grepl("menos", pie, fixed = TRUE))
 })
 
 test_that("sin padrón, o con uno menor que los casos, la base va sólo con n (no se inventa cobertura)", {

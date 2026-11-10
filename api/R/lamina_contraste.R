@@ -263,10 +263,10 @@
   sentido <- .contraste_sentido_nota(espec)
   # ADR 0135: con regla de preguntas, cómo se eligieron va al final de la nota («Se muestran las 13 de mayor diferencia…»).
   # Al pie, la base (y la de cada grupo); quién menos quién, el grupo chico y la regla, al analista (lamina_pie_resumen.R).
-  # Tras la base, qué son las cifras y quién menos quién (Gonzalo, 2026-11-10); el grupo chico y la regla, al analista.
-  valores <- if (isTRUE(espec$mostrar_diferencia %||% TRUE)) .lam_pie_valores(espec$indicador, .lam_pie_diferencia(espec$grupos)) else
-    .lam_pie_valores(espec$indicador)
-  doc <- .lam_pie(doc, .lam_pie_resumen(base, espec$nota_grupo_chico, espec$texto_regla, en_pie = espec$nota_base, valores = valores), folio)
+  # Tras la base, qué es el porcentaje (Gonzalo, 2026-11-10: «no hace falta especificar la diferencia, solo qué significa
+  # el porcentaje en sí»); quién menos quién, el grupo chico y la regla, al analista.
+  doc <- .lam_pie(doc, .lam_pie_resumen(base, sentido, espec$nota_grupo_chico, espec$texto_regla, en_pie = espec$nota_base,
+                                        valores = .lam_pie_valores(espec$indicador)), folio)
   list(doc = por_lamina(doc), partes = 1L)
 }
 

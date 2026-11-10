@@ -26,13 +26,12 @@
 #'
 #' Gonzalo, 2026-11-10: «la base debe especificar qué significan los valores porque en ningún lado se explica». La base
 #' dice a quién se le preguntó; esta frase, qué es cada cifra: «Las cifras son el porcentaje que eligió las dos
-#' respuestas más favorables de la escala (Top Two Box); la diferencia es estudiantes menos docentes, en puntos».
-#' Un indicador propio del analista se nombra tal cual.
+#' respuestas más favorables de la escala (Top Two Box)». Quién menos quién no va: «no hace falta especificar la
+#' diferencia, solo qué significa el porcentaje en sí» (el mismo día). Un indicador propio del analista se nombra tal cual.
 #' @param indicador Nombre del indicador (`corte_etiqueta`); vacío o «Top Two Box» da la frase del Top Two Box.
-#' @param diferencia Quién menos quién («estudiantes menos docentes»), o `NULL` sin columna de diferencia.
 #' @param tipo `puntos` (una cifra por punto o barra) o `panorama` (cada punto es una pregunta).
 #' @keywords internal
-.lam_pie_valores <- function(indicador = NULL, diferencia = NULL, tipo = c("puntos", "panorama")) {
+.lam_pie_valores <- function(indicador = NULL, tipo = c("puntos", "panorama")) {
   tipo <- match.arg(tipo)
   ind <- trimws(as.character(indicador %||% "")[1])
   if (is.na(ind) || !nzchar(ind)) ind <- "Top Two Box"
@@ -40,15 +39,7 @@
     "el porcentaje que eligió las dos respuestas más favorables de la escala (Top Two Box)"
   } else paste0("el porcentaje de «", ind, "»")
   txt <- if (identical(tipo, "panorama")) paste0("Cada punto es una pregunta y su valor, ", que) else paste0("Las cifras son ", que)
-  if (!is.null(diferencia) && !is.na(diferencia[1]) && nzchar(diferencia[1])) txt <- paste0(txt, "; la diferencia es ", diferencia[1], ", en puntos")
   txt
-}
-
-#' Quién menos quién en la frase de las cifras: «estudiantes menos docentes», «TC menos TPA» o, con tres grupos o más,
-#' «el grupo mayor menos el menor»
-#' @keywords internal
-.lam_pie_diferencia <- function(grupos) {
-  if (length(grupos) == 2L) paste(.base_rotulo(grupos[1]), "menos", .base_rotulo(grupos[2])) else "el grupo mayor menos el menor"
 }
 
 #' Las notas que no van al pie, como aviso al analista (una vez cada una)
