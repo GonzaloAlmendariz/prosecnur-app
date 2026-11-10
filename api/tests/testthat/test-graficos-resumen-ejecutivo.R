@@ -306,3 +306,10 @@ test_that("la base nombra la sigla declarada, conserva los nombres propios y no 
                    "Base: 115 a 139 estudiantes de segundo ciclo, 20 a 25 de tercer ciclo y 107 a 115 de cuarto ciclo")
   expect_identical(.fortalezas_nota_base("Docentes", c(115, 115), universos = "Docentes: 123"), "Base: 115 docentes")
 })
+
+test_that("el pie del panorama dice que cada punto es una pregunta, con las palabras de Gonzalo y sin un segundo «:» (2026-11-10)", {
+  expect_identical(.lam_pie_valores("Top Two Box", tipo = "panorama"),
+                   "Cada punto es una pregunta y marca el porcentaje del público que eligió las dos respuestas más favorables (Top Two Box)")
+  expect_identical(.lam_pie_valores(NULL, tipo = "panorama"), .lam_pie_valores("Top Two Box", tipo = "panorama"))
+  expect_identical(.lam_pie_valores("Satisfechos", tipo = "panorama"), "Cada punto es una pregunta y marca el porcentaje del público en «Satisfechos»")
+})

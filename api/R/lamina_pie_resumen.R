@@ -38,8 +38,15 @@
   que <- if (grepl("^top two box$", ind, ignore.case = TRUE)) {
     "el porcentaje que eligió las dos respuestas más favorables de la escala (Top Two Box)"
   } else paste0("el porcentaje de «", ind, "»")
-  txt <- if (identical(tipo, "panorama")) paste0("Cada punto es una pregunta y su valor, ", que) else paste0("Las cifras son ", que)
-  txt
+  # Panorama, con las palabras de Gonzalo (2026-11-10), sin un segundo «:» tras el de la base: «Cada punto es una pregunta
+  # y marca el porcentaje del público que eligió las dos respuestas más favorables (Top Two Box)». Así se entiende que la
+  # fila tiene un punto por pregunta, no por persona.
+  if (identical(tipo, "panorama")) {
+    return(if (grepl("^top two box$", ind, ignore.case = TRUE)) {
+      "Cada punto es una pregunta y marca el porcentaje del público que eligió las dos respuestas más favorables (Top Two Box)"
+    } else paste0("Cada punto es una pregunta y marca el porcentaje del público en «", ind, "»"))
+  }
+  paste0("Las cifras son ", que)
 }
 
 #' Las notas que no van al pie, como aviso al analista (una vez cada una)
