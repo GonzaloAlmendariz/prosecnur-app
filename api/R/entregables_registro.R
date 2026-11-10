@@ -199,6 +199,9 @@ entregable_registrar <- function(sid, path, kind, base = NULL, detalle = NULL, o
     copia <- .entregable_copiar(s, path, nombre, fila$modulo)
     meta["guardado_en"] <- list(copia$guardado_en)
     meta["aviso_guardado"] <- list(copia$aviso)
+    # Si la carpeta ya tenía el nombre, la copia sale con _2: ése es el nombre del
+    # archivo para el usuario (contenedor, bandeja y descarga dicen lo mismo).
+    if (!is.null(copia$guardado_en)) meta$original_name <- basename(copia$guardado_en)
   }
   files <- session_get(sid)$files
   files[[meta$file_id]] <- meta

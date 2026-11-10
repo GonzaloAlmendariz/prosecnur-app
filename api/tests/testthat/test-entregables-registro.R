@@ -108,6 +108,10 @@ test_that("§4: nunca sobrescribe; el repetido sale con _2 y luego _3", {
   expect_identical(readLines(m1$guardado_en), "uno")
   expect_identical(readLines(m2$guardado_en), "dos")
   expect_identical(readLines(m3$guardado_en), "tres")
+  # El nombre que ve el usuario (contenedor, bandeja, descarga) es el del archivo de la carpeta.
+  expect_identical(m2$original_name, basename(m2$guardado_en))
+  expect_identical(session_get(sid)$files[[m3$file_id]]$original_name, basename(m3$guardado_en))
+  expect_identical(entregable_respuesta(list(filename = m2$original_name), m2)$filename, basename(m2$guardado_en))
 })
 
 test_that("§4: un archivo que difiere sólo en mayúsculas cuenta como repetido (Windows)", {
