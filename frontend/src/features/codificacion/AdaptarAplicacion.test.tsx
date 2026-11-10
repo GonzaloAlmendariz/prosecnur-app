@@ -77,7 +77,7 @@ describe("AdaptarAplicacionVista", () => {
     expect(boton(html)).toContain("Confirmar y adaptar respuestas");
     expect(html).not.toContain('data-testid="codificacion-aplicar-omitidas"');
     expect(html).toMatch(
-      /<span id="codificacion-adaptar-estado" class="pulso-codif-adaptar-estado" role="status" aria-live="polite" tabindex="-1"><\/span>/,
+      /<span id="codificacion-adaptar-estado" class="pulso-codif-adaptar-estado pulso-sr-only" role="status" aria-live="polite" tabindex="-1"><\/span>/,
     );
   });
 
@@ -103,6 +103,8 @@ describe("AdaptarAplicacionVista", () => {
     expect(boton(despues)).toMatch(/\sdisabled=""/);
     expect(boton(despues)).not.toContain("aria-busy");
     expect(despues).toContain("La adaptación ya está corriendo.");
+    // Una sola señal en pantalla: la región de estado es sólo para el lector; la línea del contenedor informa.
+    expect(despues).toMatch(/<span id="codificacion-adaptar-estado" class="pulso-codif-adaptar-estado pulso-sr-only"/);
   });
 
   it("el aviso sobrevive a desmontar y volver a montar el panel", async () => {

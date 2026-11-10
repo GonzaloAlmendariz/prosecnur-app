@@ -119,8 +119,11 @@ export function GenerateFooter({
     ? <>{porBase.length > 0 && <ArchivosPorBase bases={porBase} />}{pie}</>
     : undefined;
 
+  // El botón y su contenedor van en el grupo del kit: la separación entre ambos no depende del padre (en el
+  // Libro de códigos el padre no tiene `gap` y quedaban pegados).
   return (
     <>
+      <div className="pulso-entregable-grupo">
       <div className="analitica-generate-footer">
         {/* La misma receta que «Generar comparativo»: PulsoButton grande con
             el acento del módulo (resto de P-A5). */}
@@ -146,6 +149,7 @@ export function GenerateFooter({
         onCerrar={cerrar}
         pie={estado.fase === "lista" ? alPie : undefined}
       />
+      </div>
 
       {error && <ErrorBlock label="No se pudo generar" detail={error} />}
     </>

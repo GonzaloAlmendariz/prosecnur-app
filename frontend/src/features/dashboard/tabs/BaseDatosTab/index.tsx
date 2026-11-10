@@ -180,17 +180,19 @@ export function BaseDatosTab({ publicMode = false }: { publicMode?: boolean } = 
             <option value="xlsx">Excel (.xlsx)</option>
             <option value="csv">CSV (.csv)</option>
           </select>
-          <button
-            type="button"
-            className="dash-primary-btn"
-            disabled={!baseDatos.variables.length || downloadBusy}
-            onClick={handleDescargar}
-            style={{ marginTop: 10 }}
-          >
-            <Download size={14} style={{ marginRight: 6 }} />
-            Descargar
-          </button>
-          <ContenedorEntregable estado={descarga.estado} forma="bloque" onCerrar={descarga.cerrar} />
+          {/* El botón y su contenedor en el grupo del kit: la separación entre ambos es del kit. */}
+          <div className="pulso-entregable-grupo" style={{ marginTop: 10 }}>
+            <button
+              type="button"
+              className="dash-primary-btn"
+              disabled={!baseDatos.variables.length || downloadBusy}
+              onClick={handleDescargar}
+            >
+              <Download size={14} style={{ marginRight: 6 }} />
+              Descargar
+            </button>
+            <ContenedorEntregable estado={descarga.estado} forma="bloque" onCerrar={descarga.cerrar} />
+          </div>
           {/* Resumen pre-descarga (legacy: interactivo_base_datos.R:924-951). */}
           <div className="dash-base-download-summary">
             <div><strong>{formatoConteo(resumenFilas)}</strong> filas a exportar</div>

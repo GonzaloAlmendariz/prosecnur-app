@@ -73,6 +73,15 @@ const EQUIVALENCIAS: EquivalenciasEstado = {
   filas: [fila({ id: "p1", etiqueta_estandar: "Acoso", seccion: "Clima", armonizacion: armon })],
 } as EquivalenciasEstado;
 
+// El nombre de la plantilla lleva el código de la Ficha del estudio (ADR 0133 §3).
+vi.mock("../../api/planner", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../api/planner")>()),
+  apiPlannerEstado: vi.fn(async () => ({ planner: { estudio: { codigo: "acnur_acg" } } })),
+}));
+vi.mock("../../api/workspace", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../api/workspace")>()),
+  apiProjectStatus: vi.fn(async () => ({ path: "/Users/ana/acnur.pulso" })),
+}));
 vi.mock("../../api/equivalencias", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../api/equivalencias")>()),
   getEquivalencias: vi.fn(async () => EQUIVALENCIAS),
@@ -151,7 +160,7 @@ describe("anclada: Guardar plantilla", () => {
     // Fuera de `.pulso-analitica-source-actions`, cuyas reglas vuelven píldora todo botón.
     expect(anclada?.closest(".pulso-analitica-source-actions")).toBeNull();
     expect(anclada?.parentElement?.classList.contains("pulso-analitica-sourcebar")).toBe(true);
-    const nombre = `prosecnur_analitica_${fechaDelNombre()}.json`;
+    const nombre = `acnur_acg_Plantilla_de_analitica_${fechaDelNombre()}.json`;
     expect(anclada?.textContent).toContain(nombre);
     expect(espia.descargar).toHaveBeenCalledWith("blob:analitica", nombre);
     expect(disparador?.textContent).toBe("Plantilla");

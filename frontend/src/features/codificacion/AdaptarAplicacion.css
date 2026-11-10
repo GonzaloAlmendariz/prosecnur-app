@@ -1,31 +1,10 @@
 /* Estado del POST de `/aplicar` en la barra de acciones de Adaptar.
  * Sólo tokens --pulso-*. La región viva queda montada siempre para que el
- * lector anuncie el cambio; vacía sale del flujo del flex (no suma un gap)
- * sin salir del árbol de accesibilidad. */
-
-.pulso-codif-adaptar-estado {
-  min-width: 0;
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-body-size);
-}
-
-.pulso-codif-adaptar-estado:empty {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-}
-
+ * lector anuncie el cambio, y es sólo para el lector (`pulso-sr-only`): fuera
+ * del flujo del flex, recibe el foco al pulsar sin pintar un segundo aviso
+ * junto al botón. */
 .pulso-codif-adaptar-estado:focus {
   outline: none;
-}
-
-.pulso-codif-adaptar-estado:focus-visible {
-  outline: var(--mov-foco, 2px solid var(--pulso-primary));
-  outline-offset: 2px;
-  border-radius: 2px;
 }
 
 /* Línea de arriba tras una aplicación con avisos: una fila, sin caja propia,

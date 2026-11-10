@@ -34,13 +34,13 @@ describe("Codificación sobre el kit de entregables", () => {
     const archivos = archivosDeAdaptacion({
       ok: true,
       instrumento_adaptado: { file_id: "fi", size: 1024 },
-      data_adaptada: { file_id: "fd", size: 2048, filename: "HSVG2026_Data_adaptada_10_11_26.xlsx", guardado_en: "C:\\E\\Entregables\\Procesamiento\\x.xlsx" },
+      data_adaptada: { file_id: "fd", size: 2048, filename: "HSVG2026_Data_adaptada_10_11_26.xlsx", guardado_en: "C:\\E\\Entregables\\Procesamiento\\HSVG2026_Data_adaptada_10_11_26.xlsx" },
     });
     expect(archivos.map((a) => [a.fileId, a.nombre, a.formato])).toEqual([
       ["fd", "HSVG2026_Data_adaptada_10_11_26.xlsx", "xlsx"],
       ["fi", "Instrumento_adaptado.xlsx", "xlsx"],
     ]);
-    expect(archivos[0].guardadoEn).toBe("C:\\E\\Entregables\\Procesamiento\\x.xlsx");
+    expect(archivos[0].guardadoEn).toBe("C:\\E\\Entregables\\Procesamiento\\HSVG2026_Data_adaptada_10_11_26.xlsx");
     expect(archivosDeAdaptacion({ ok: true, data_adaptada: {} })).toEqual([]);
   });
 

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { apiHojasRutaPopulationExport, type HojasRutaIntegratedConfig } from "../../../../api/hojasRuta";
 import { ContenedorEntregable } from "../../../../components/entregables/ContenedorEntregable";
 import { archivoCsv } from "../../../../components/entregables/archivoLocal";
+import { nombreConEstudio } from "../../../../components/entregables/nombreConEstudio";
 import { useGeneracion } from "../../../../components/entregables/useGeneracion";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { Panel } from "../../../../components/Panel";
@@ -48,7 +49,7 @@ export function PoblacionCajon({ matriz, rangos, sexo, zonas, config }: Props) {
   const filas = agruparFilas(matriz.filas, por, zonas);
   const descargarCsvDeLaVista = () => {
     const contenido = csvDeLaMatriz(filas, por, rangos, sexo);
-    void descarga.ejecutar(() => Promise.resolve(archivoCsv(contenido, "matriz-poblacional.csv")), { titulo: "Matriz poblacional de esta vista", formato: "csv" });
+    void descarga.ejecutar(async () => archivoCsv(contenido, await nombreConEstudio("Matriz poblacional", "csv")), { titulo: "Matriz poblacional de esta vista", formato: "csv" });
   };
   const nombre = (f: FilaMatriz) => (por === "distrito" ? nombreDistrito(f.territorio) : por === "ubigeo" ? `${f.ubigeo}, ${nombreDistrito(f.territorio)}` : f.territorio);
   const columnasRango = rangos.flatMap((r, i) =>
@@ -81,6 +82,7 @@ export function PoblacionCajon({ matriz, rangos, sexo, zonas, config }: Props) {
               aria="Descargar la matriz"
               icono={<Download size={14} aria-hidden />}
               rotulo="Descargar"
+              deshabilitado={exportando}
               opciones={[
                 { id: "excel", rotulo: <><FileSpreadsheet size={14} aria-hidden /> Excel, por distrito</>, deshabilitada: exportando, alElegir: descargarExcel },
                 { id: "csv", rotulo: <><Download size={14} aria-hidden /> CSV de esta vista</>, deshabilitada: exportando, alElegir: descargarCsvDeLaVista },

@@ -32,6 +32,15 @@ export function formatoDelNombre(nombre: string): string {
   return m ? m[1].toLowerCase() : "";
 }
 
+/**
+ * Último tramo de una ruta, sea de Windows (`C:\…\x_2.xlsx`) o POSIX (`/…/x_2.xlsx`); null si no queda nada.
+ * Si la copia junto al proyecto se renombró para no pisar otra (`_2`), el nombre que vale es el de esa copia.
+ */
+export function nombreDeRuta(ruta: string | null | undefined): string | null {
+  const ultimo = (ruta ?? "").split(/[\\/]+/).filter(Boolean).pop();
+  return ultimo?.trim() ? ultimo.trim() : null;
+}
+
 export function archivoDesdeRespuesta(raw: unknown): ArchivoEntregable[] {
   const raiz = comoObjeto(raw);
   if (!raiz) return [];
@@ -39,7 +48,8 @@ export function archivoDesdeRespuesta(raw: unknown): ArchivoEntregable[] {
   const fileId = texto(meta.file_id);
   if (!fileId) return [];
   const guardado = normalizeEntregableGuardado(raiz);
-  const nombre = texto(meta.filename) ?? texto(meta.original_name) ?? guardado.rotulo ?? "Entregable";
+  const nombre = nombreDeRuta(guardado.guardadoEn)
+    ?? texto(meta.filename) ?? texto(meta.original_name) ?? guardado.rotulo ?? "Entregable";
   return [
     {
       fileId,

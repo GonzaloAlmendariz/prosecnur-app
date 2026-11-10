@@ -33,6 +33,9 @@ export type LaminaVisor = {
   motivoSinImagen: MotivoSinImagen | null;
   /** El mini-PPTX de esta lámina, descargable. */
   fileId: string | null;
+  /** Su nombre y su peso, como los registró el motor: lo que el contenedor muestra es lo que baja. */
+  nombreArchivo: string | null;
+  tamano: number | null;
 };
 
 const esObjeto = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
@@ -85,6 +88,8 @@ export function leerLaminaVisor(r: PreviewSlideResponse): LaminaVisor {
     sinImagen: imagenes.size === 0,
     motivoSinImagen: imagenes.size === 0 ? normalizeMotivoSinImagen(r.motivo_sin_imagen) : null,
     fileId: typeof r.file_id === "string" && r.file_id ? r.file_id : null,
+    nombreArchivo: typeof r.filename === "string" && r.filename.trim() ? r.filename.trim() : null,
+    tamano: typeof r.size === "number" && Number.isFinite(r.size) && r.size >= 0 ? r.size : null,
   };
 }
 

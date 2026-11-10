@@ -22,7 +22,8 @@ import type { AnaliticaFuenteBase, RepeatGrain } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 import { ConfigIoButtons } from "../../components/ConfigIoButtons";
 import { ContenedorEntregable } from "../../components/entregables/ContenedorEntregable";
-import { archivoJson, fechaDelNombre } from "../../components/entregables/archivoLocal";
+import { archivoJson } from "../../components/entregables/archivoLocal";
+import { nombreConEstudio } from "../../components/entregables/nombreConEstudio";
 import { useGeneracion, type Generacion } from "../../components/entregables/useGeneracion";
 import { ContextBar, ContextBarDivider } from "../../components/ContextBar";
 import { RepeatBadge } from "../../components/RepeatBadge";
@@ -238,7 +239,7 @@ export function AnaliticaHeader({ prepBusy, prepError, variant = "bar" }: Analit
             exportacion={plantilla}
             onExport={ioExport}
             onImport={ioImport}
-            filenamePrefix={PREFIJO_PLANTILLA}
+            entregable={ENTREGABLE_PLANTILLA}
             exportTitle="Guarda una plantilla JSON de Analítica. No incluye respuestas ni bases."
             importTitle="Aplica una plantilla JSON de Analítica sin reemplazar las respuestas del proyecto."
             importSuccessLabel="Plantilla aplicada"
@@ -247,7 +248,7 @@ export function AnaliticaHeader({ prepBusy, prepError, variant = "bar" }: Analit
           <ConfigIoButtons
             onExport={ioExport}
             onImport={ioImport}
-            filenamePrefix={PREFIJO_PLANTILLA}
+            entregable={ENTREGABLE_PLANTILLA}
             exportTitulo={TITULO_PLANTILLA}
             exportLabel="Guardar plantilla"
             importLabel="Aplicar plantilla…"
@@ -267,13 +268,14 @@ export function AnaliticaHeader({ prepBusy, prepError, variant = "bar" }: Analit
 }
 
 const TITULO_PLANTILLA = "Plantilla de Analítica";
-const PREFIJO_PLANTILLA = "prosecnur_analitica";
+/** El entregable en el nombre del archivo: `<Estudio>_Plantilla_de_analitica_dd_mm_yy.json` (ADR 0133 §3). */
+const ENTREGABLE_PLANTILLA = "Plantilla de analítica";
 
 function AnaliticaTemplateMenu({
   exportacion,
   onExport,
   onImport,
-  filenamePrefix,
+  entregable,
   exportTitle,
   importTitle,
   importSuccessLabel,
@@ -282,7 +284,8 @@ function AnaliticaTemplateMenu({
   exportacion: Pick<Generacion, "estado" | "ejecutar">;
   onExport: () => Promise<unknown>;
   onImport: (parsed: unknown) => Promise<string | void>;
-  filenamePrefix: string;
+  /** El entregable en palabras, para el nombre del archivo con el código del estudio. */
+  entregable: string;
   exportTitle: string;
   importTitle: string;
   importSuccessLabel: string;
@@ -316,7 +319,10 @@ function AnaliticaTemplateMenu({
     if (exportando) return;
     setError("");
     setOpen(false);
-    void exportacion.ejecutar(async () => archivoJson(await onExport(), `${filenamePrefix}_${fechaDelNombre()}.json`));
+    void exportacion.ejecutar(async () => {
+      const valor = await onExport();
+      return archivoJson(valor, await nombreConEstudio(entregable, "json"));
+    });
   }
 
   async function handleImport(file?: File) {

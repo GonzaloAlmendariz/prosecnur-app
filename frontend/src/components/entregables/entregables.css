@@ -29,6 +29,21 @@
   height: auto;
 }
 
+/* El disparador y su bloque, juntos: la separación entre ambos es del kit (8 px) y no depende de que el padre
+   tenga `gap`. Un padre de bloque sin `gap` los dejaba pegados (0 px). El disparador conserva su ancho; el
+   contenedor ocupa el del grupo. */
+.pulso-entregable-grupo {
+  display: grid;
+  justify-items: start;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-entregable-grupo > .pulso-entregable {
+  justify-self: stretch;
+  min-width: 0;
+}
+
 .pulso-entregable[data-entregable-fase="fallo"] {
   border-color: color-mix(in srgb, var(--pulso-danger-border) 70%, var(--pulso-border));
 }

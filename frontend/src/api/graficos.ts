@@ -949,6 +949,8 @@ export type PreviewSlideOptions = {
 export type PreviewSlideResponse = {
   ok: true;
   file_id: string;             // id interno del mini-PPTX generado
+  /** Nombre público del mini-PPTX (ADR 0133 §3); ausente en backends viejos. */
+  filename?: string;
   size: number;
   type: "pptx";
   images: PreviewImage[];      // vacío si el slide no tiene gráficos (ej. portada)

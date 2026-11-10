@@ -9,16 +9,20 @@
   background: color-mix(in srgb, var(--pulso-text) 52%, transparent);
 }
 
+/* Anclado arriba, no centrado: cuando el cuerpo crece (el contenedor del archivo exportado aparece bajo las
+   acciones) el diálogo se alarga hacia abajo y la cabecera y los botones no se mueven. Centrado, se recentraba y
+   el disparador saltaba 39 px. */
 .pulso-f6-compartir-dialogo {
+  --pulso-f6-compartir-tope: clamp(var(--pulso-space-6), 12vh, 112px);
   position: fixed;
   z-index: var(--pulso-z-modal);
-  top: 50%;
+  top: var(--pulso-f6-compartir-tope);
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   width: min(860px, calc(100vw - 32px));
-  max-height: calc(100dvh - 48px);
+  max-height: calc(100dvh - var(--pulso-f6-compartir-tope) - var(--pulso-space-6));
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-panel);
   background: var(--pulso-surface);

@@ -24,6 +24,7 @@ import { useOptionalProjectShell } from "../project/ProjectShell";
 import { buildSuggestedPlanRecipeMarkdown } from "./suggestedPlanRecipe";
 import { ContenedorEntregable } from "../../components/entregables/ContenedorEntregable";
 import { archivoTexto } from "../../components/entregables/archivoLocal";
+import { nombreConEstudio } from "../../components/entregables/nombreConEstudio";
 import { useGeneracion } from "../../components/entregables/useGeneracion";
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
 import { PANEL_ARMAR_DESDE } from "./panelesGraficos";
@@ -284,7 +285,7 @@ export function SuggestedPlanButton() {
       acnurMode: result.acnur_mode ?? acnurMode,
       profileLabel: "ACNUR",
     });
-    void guia.ejecutar(async () => archivoTexto(markdown, "guia-informe-acnur.md", "text/markdown;charset=utf-8"));
+    void guia.ejecutar(async () => archivoTexto(markdown, await nombreConEstudio("Guía del plan de informe", "md"), "text/markdown;charset=utf-8"));
   }
 
   const summary = result?.coverage?.summary;

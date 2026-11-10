@@ -3,6 +3,7 @@ import { AlertCircle, Check, Download, Upload } from "../vendor/lucide-react";
 import { PulsoButton } from "./PulsoButton";
 import { ContenedorEntregable } from "./entregables/ContenedorEntregable";
 import { archivoJson, fechaDelNombre } from "./entregables/archivoLocal";
+import { nombreConEstudio } from "./entregables/nombreConEstudio";
 import { useGeneracion } from "./entregables/useGeneracion";
 import "./ConfigIoButtons.css";
 
@@ -33,8 +34,15 @@ export type ConfigIoProps = {
    */
   onImport: (parsed: unknown) => Promise<string | void>;
   /**
-   * Prefijo del nombre del archivo. Se le pega la fecha como en los
-   * nombres del motor: `<prefijo>_dd_mm_yy.json`. Default: "prosecnur_config".
+   * El entregable en palabras para nombrar el archivo con la regla del motor
+   * (ADR 0133 §3): "Plantilla de analítica" →
+   * `<Estudio>_Plantilla_de_analitica_dd_mm_yy.json`, con el código de la Ficha
+   * del estudio. Manda sobre `filenamePrefix`.
+   */
+  entregable?: string;
+  /**
+   * Prefijo del nombre del archivo cuando no se declara `entregable`: se le
+   * pega la fecha, `<prefijo>_dd_mm_yy.json`. Default: "prosecnur_config".
    */
   filenamePrefix?: string;
   /** Nombre del archivo en palabras, para el contenedor: "Plantilla de Analítica". Default "Configuración". */
@@ -56,6 +64,7 @@ const MENSAJE_MS = 3000;
 export function ConfigIoButtons({
   onExport,
   onImport,
+  entregable,
   filenamePrefix = "prosecnur_config",
   exportTitulo = "Configuración",
   exportLabel = "Exportar JSON",
@@ -74,7 +83,11 @@ export function ConfigIoButtons({
   function handleExport() {
     if (exportando) return;
     setError(""); setMsg("");
-    void exportacion.ejecutar(async () => archivoJson(await onExport(), `${filenamePrefix}_${fechaDelNombre()}.json`));
+    void exportacion.ejecutar(async () => {
+      const valor = await onExport();
+      const nombre = entregable ? await nombreConEstudio(entregable, "json") : `${filenamePrefix}_${fechaDelNombre()}.json`;
+      return archivoJson(valor, nombre);
+    });
   }
 
   async function handleImport(file?: File) {
