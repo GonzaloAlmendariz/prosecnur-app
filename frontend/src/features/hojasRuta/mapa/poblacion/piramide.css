@@ -2,17 +2,18 @@
 .hr-piramide-cab { display: flex; justify-content: space-between; font-size: var(--pulso-type-caption-size); color: var(--pulso-text-soft); font-variant-numeric: tabular-nums; }
 .hr-piramide-cab span { display: inline-flex; align-items: center; gap: 5px; }
 .hr-piramide-cab i { width: 9px; height: 9px; border-radius: 2px; }
-.hr-piramide ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+/* Revisión del 10 nov 2026 («poca definición»): filas de 24 px, cifras a tamaño de leyenda y tintas más firmes. */
+.hr-piramide ul { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .hr-piramide li { display: grid; grid-template-columns: minmax(0, 1fr) 54px minmax(0, 1fr); align-items: center; gap: 6px; }
-.hr-piramide li b { font-size: var(--pulso-type-caption-size); font-weight: 600; text-align: center; color: var(--pulso-text); white-space: nowrap; }
-.hr-piramide-lado { position: relative; display: flex; align-items: center; height: 18px; }
+.hr-piramide li b { font-size: var(--pulso-type-body-size); font-weight: 700; text-align: center; color: var(--pulso-text); white-space: nowrap; }
+.hr-piramide-lado { position: relative; display: flex; align-items: center; height: 24px; }
 /* La cifra vive en su propio margen, fuera de la barra, para leerse aunque la barra llegue al tope. */
-.hr-piramide-lado[data-sexo="H"] { padding-left: 50px; }
-.hr-piramide-lado[data-sexo="M"] { padding-right: 50px; }
+.hr-piramide-lado[data-sexo="H"] { padding-left: 52px; }
+.hr-piramide-lado[data-sexo="M"] { padding-right: 52px; }
 .hr-piramide-lado[data-sexo="H"] { justify-content: flex-end; }
 .hr-piramide-lado i { display: block; height: 100%; border-radius: 3px; }
-.hr-piramide-lado small { position: absolute; font-size: var(--pulso-type-micro-size); font-variant-numeric: tabular-nums; color: var(--pulso-text-soft); }
+.hr-piramide-lado small { position: absolute; font-size: var(--pulso-type-caption-size); font-variant-numeric: tabular-nums; color: var(--pulso-text); }
 .hr-piramide-lado[data-sexo="H"] small { left: 0; }
 .hr-piramide-lado[data-sexo="M"] small { right: 0; }
-[data-sexo="H"] > i, .hr-piramide-cab i[data-sexo="H"] { background: color-mix(in srgb, var(--pulso-text-soft) 55%, var(--pulso-surface)); }
-[data-sexo="M"] > i, .hr-piramide-cab i[data-sexo="M"] { background: color-mix(in srgb, var(--pulso-module-routes) 70%, var(--pulso-surface)); }
+[data-sexo="H"] > i, .hr-piramide-cab i[data-sexo="H"] { background: color-mix(in srgb, var(--pulso-text-soft) 72%, var(--pulso-surface)); }
+[data-sexo="M"] > i, .hr-piramide-cab i[data-sexo="M"] { background: color-mix(in srgb, var(--pulso-module-routes) 88%, var(--pulso-surface)); }
