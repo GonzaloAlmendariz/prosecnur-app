@@ -42,10 +42,10 @@ Caso de anclaje: Perfil del Estudiante CCSS 2026-II (mazo y Word v4 del 2 de nov
 
 | Captura | Qué muestra |
 |---|---|
-| `img/r1/ppt-lamina-40.png` (no versionada) | **Lámina 40.** La letra va pegada a la cifra y con el mismo peso (`44% A`). La leyenda no lleva letras: para saber quién es «A», hay que leer una nota de 9 pt al pie. |
-| `img/r1/ppt-lamina-74.png` (no versionada) | **Lámina 74.** El mismo contraste se marca dos veces: `58% ABC` en «Sí» y `76% D` en «No». El lector ve cuatro letras donde hay una diferencia. |
-| `img/r1/ppt-lamina-22.png` (no versionada) | **Lámina 22.** Pasa lo mismo con dos categorías (`22% B` y `89% A`), con espaciado irregular (`22%  B`). Aparece «Otros» en la leyenda sin segmento. |
-| `img/r1/ppt-lamina-27.png` (no versionada) | **Lámina 27.** Se marca `4% B` frente a 0%: una diferencia de 4 puntos. El plan de análisis dice que no se destaca nada bajo 10 puntos. |
+| `img/r1/ppt-lamina-40.png` (no versionada) | **Lámina 40.** La letra va pegada a la cifra y con el mismo peso (`NN% A`). La leyenda no lleva letras: para saber quién es «A», hay que leer una nota de 9 pt al pie. |
+| `img/r1/ppt-lamina-74.png` (no versionada) | **Lámina 74.** El mismo contraste se marca dos veces: `NN% ABC` en «Sí» y `NN% D` en «No». El lector ve cuatro letras donde hay una diferencia. |
+| `img/r1/ppt-lamina-22.png` (no versionada) | **Lámina 22.** Pasa lo mismo con dos categorías (`NN% B` y `NN% A`), con espaciado irregular (`NN%  B`). Aparece «Otros» en la leyenda sin segmento. |
+| `img/r1/ppt-lamina-27.png` (no versionada) | **Lámina 27.** Se marca con letra una diferencia de menos de 5 puntos. El plan de análisis dice que no se destaca nada bajo 10 puntos. |
 | `img/r1/ppt-lamina-5.png` (no versionada) | **Lámina 5, «Cómo leer».** Es un bloque de texto sin ejemplo. Dice «confianza de 95%», mientras las notas dicen «α = 0.05». No menciona magnitud, frágiles ni bases pequeñas. |
 | `img/r1/word-pag32-46.png` (no versionada) | **Word, gráficos 45, 46 y 78.** La tipografía es distinta de la del PPT. La nota va alineada a la derecha y sin el mapa de letras. El gráfico 78 tiene letras sin nota. |
 | `img/r1/word-pag38-39.png` (no versionada) | **Word, gráficos 59 a 63.** Son cruces sin significancia: el Word no marca lo que el PPT sí marca. |
@@ -61,7 +61,7 @@ Caso de anclaje: Perfil del Estudiante CCSS 2026-II (mazo y Word v4 del 2 de nov
 | D1 | Ambigüedad | No se sabe qué contra qué: la letra remite a la nota y no a la leyenda | Todos los cruces |
 | D2 | Carga | En dicotómicas, dos categorías y escalas, el complemento se marca dos veces | 22, 60, 74 |
 | D3 | Legibilidad | La letra se funde con la cifra (mismo cuerpo y peso, blanca sobre azul) y el espaciado es irregular | Todos |
-| D4 | Coherencia con la prueba | No hay umbral de magnitud: se marcan diferencias de 4 puntos | 27 |
+| D4 | Coherencia con la prueba | No hay umbral de magnitud: se marcan diferencias de menos de 5 puntos | 27 |
 | D5 | Coherencia con la prueba | **Doble vara.** La lámina y las tablas usan z con Bonferroni dentro de la fila, sin conglomerado. El plan de análisis (§4) exige Rao-Scott por aula, umbral de 10 puntos y frágiles (p de 0.01 a 0.05) redactadas con prudencia | Motor (`comparar_columnas_sig`) |
 | D6 | Notas | Notas de dos líneas, genéricas y lejos del gráfico, con un mapa «A = … \| B = …» que duplica la leyenda | Todos |
 | D7 | PPT y Word | El Word tiene otra tipografía, notas sin mapa, letras sin nota y cruces sin marcas | Word v4 |
@@ -169,11 +169,11 @@ Es el mismo sistema, con la cifra a 9.5 pt y la cápsula a 8 pt. La nota se cent
 | Caso | Maqueta | Regla |
 |---|---|---|
 | Muchas categorías | `img/final/e1-muchas-categorias.png` (no versionada) | De mayor a menor, cifra de 12 pt o más y cápsula a 0.8 × la cifra. Solo se marcan las filas que difieren |
-| Base pequeña | `img/final/e2-base-pequena.png` (no versionada) | Grupo con n < 30: trama, rótulo «n = 11 · no se compara» en coral, sin cápsula y sin servir de referencia para las demás. Cada grupo es una fila con su letra: no depende del color |
+| Base pequeña | `img/final/e2-base-pequena.png` (no versionada) | Grupo con n < 30: trama, rótulo «n = NN · no se compara» en coral, sin cápsula y sin servir de referencia para las demás. Cada grupo es una fila con su letra: no depende del color |
 | Ninguna diferencia | `img/final/e3-ninguna.png` (no versionada) | Sin marcas. La nota lo dice con las cifras extremas, porque el silencio se leería como «no se probó» |
 | Todas significativas | `img/final/e4-todas.png` (no versionada) | `▲A`, `▲AB`, `▲ABC`: la cápsula crece con las letras y entra en la barra |
 | Respuesta múltiple | f6 | Una prueba por opción, con la base de cada grupo. La línea de contexto declara las opciones omitidas |
-| Escala, *top two box* y «No sé» | f3 | La marca va solo en la columna del *top two box*. «No sé» cuenta en la base, no se compara y su valor va en la leyenda («No sé (1–2%)») |
+| Escala, *top two box* y «No sé» | f3 | La marca va solo en la columna del *top two box*. «No sé» cuenta en la base, no se compara y su valor va en la leyenda («No sé (N %)») |
 | Grupo repetido, sin independencia | UI, estado «Abstención» | Sin marcas. Nota: «No se marcan diferencias: cada estudiante aporta varias respuestas (grupo repetido) y las observaciones no son independientes.» |
 | Preguntas distintas a las mismas personas (multiapiladas por pregunta) | — | Sin marcas y con nota de abstención («dependiente»), como hoy |
 
@@ -226,7 +226,7 @@ Para cada fila (categoría, opción o *top two box*) y cada par de grupos (a, b)
 | Cápsula dentro de una barra | Solo si cabe con 0.10 in de aire a cada lado. Si no, va afuera, tras la cifra |
 | Leyenda (agrupadas) | Cuadro de 0.19 in, radio 0.04, con la letra centrada (blanca sobre los oscuros y #081F5C sobre los claros), más el nombre del grupo a 12 pt, **sin la n**. Separación entre entradas: 0.34 in |
 | Base por grupo (n), agrupadas | **Columna «Base (n)» a la derecha**, como la columna del *top two box* o la «Diferencia» de la lámina 94 (`.lam_laminas_comparativo_dim`). Va **sin separador** y a **0.34 in del borde derecho real** de la barra más larga (cifra y cápsula incluidas), no contra el margen. Encabezado «Base (n)» de 10 pt en negrita #5A6480. Una cifra por barra, en 11 pt #081F5C, centrada en una columna de 0.56 in y alineada con su barra. Base chica en coral |
-| Base por grupo (n), apiladas | En la **esquina superior derecha de cada barra** (estándar de la casa): «n = 119» de 10 pt, #5A6480, alineado a la derecha con el final de la barra y a 0.06 in sobre ella. Un rótulo de segmento chico que caería en esa esquina pasa debajo de la barra |
+| Base por grupo (n), apiladas | En la **esquina superior derecha de cada barra** (estándar de la casa): «n = NNN» de 10 pt, #5A6480, alineado a la derecha con el final de la barra y a 0.06 in sobre ella. Un rótulo de segmento chico que caería en esa esquina pasa debajo de la barra |
 | Base por grupo (n), serie | Bajo el rótulo de cada nivel del eje, en 10 pt |
 | Columna del *top two box* | Columna de 1 in del estándar (`columna_top_two_box`), a 0.20 in de la barra. **Rótulo corto y formal, centrado sobre sus cifras**: el nombre del indicador («Comodidad», «Calidad alta») en 10 pt negrita, en el verde del top two box. Nunca la suma de opciones («Cómodo + Muy cómodo»), que pasa a la línea de contexto. Cifra de 15 pt centrada en el eje de la columna; la cápsula va a su derecha sin desplazar la cifra |
 | Ocupación vertical | El grosor de barra se conserva (estándar de `grosor_fraccion`) y el bloque de filas más leyenda **se centra a media altura de la zona de datos** (de `zona_datos_y0` = 1.65 in a `leyenda_y` = 6.42 in). No se estira la separación entre filas para llenar la altura |
@@ -276,7 +276,7 @@ Un revisor sin acceso a mi razonamiento evaluó las maquetas de la ronda 3 contr
 | # | Hallazgo | Corrección |
 |---|---|---|
 | 1 | e2 dependía del color (seis tonos, A y D a 1.78:1) | Cada carrera es una fila con su letra |
-| 2 | f5 tenía «32%», «38%» y «▲A» superpuestos | El mayor va arriba y el menor abajo. Leyenda a la derecha (pedido de Gonzalo) |
+| 2 | f5 tenía dos porcentajes y «▲A» superpuestos | El mayor va arriba y el menor abajo. Leyenda a la derecha (pedido de Gonzalo) |
 | 3 | En «Cómo leer», texto sobre texto y llamadas sobre cifras | Recolocadas y medidas |
 | 4 | El frágil daba 3.76:1 | #3A6591 (≈5.3:1) |
 | 5 | La nota explicaba solo ▲A | Redacción genérica («del grupo de esa letra») |
@@ -318,7 +318,7 @@ Rama 1 (Construir) con la superficie de la Rama 2. Este archivo está en `policy
              "base_minima": 30, "fragiles": "contorno", "conglomerado": "curso_horario" },
   "laminas": [{ "slide_id": "ccss-040", "estado": "con_marcas|ninguna|abstencion|sin_cruce|error",
     "motivo": null, "error": null,
-    "grupos": [{ "letra": "A", "etiqueta": "Economía y Finanzas", "n": 224, "comparable": true }],
+    "grupos": [{ "letra": "A", "etiqueta": "Grupo A", "n": 200, "comparable": true }],
     "pares": [{ "fila": "Académica", "a": "B", "b": "A", "p_a": 44, "p_b": 17, "dif": 27,
                 "p": 0.00002, "p_ajustado": 0.0004, "deff": 1.14, "ic": [18, 36],
                 "veredicto": "marcada|fragil|bajo_umbral|no_significativa|no_comparable",
@@ -404,8 +404,8 @@ El normalizador defensivo va en `frontend/src/api/graficos.ts`, siguiendo el pat
 
 ## 8. Datos de las maquetas
 
-- **Reales del mazo v4:** las láminas 40, 74, 60 y 91; las bases por nivel, sexo y carrera; el 47% y el 69% de comodidad; el 51% y el 39% de calidad; el 48% y el 12% de «esfuerzo» en Finanzas y Ciencia Política.
-- **Ilustrativos:** los p, intervalos y efectos de diseño de la UI; los niveles 7 y 8 de las escalas; la serie «experiencia vinculada»; el transporte con 10 opciones; las carreras distintas de Finanzas y CPG; los conteos del panel de revisión.
+- **Reales del mazo v4:** las láminas 40, 74, 60 y 91, las bases por grupo y los porcentajes de tres láminas de escala. Esas cifras estaban en las imágenes, que no se versionan, y se retiraron de este texto porque el repositorio es público.
+- **Ilustrativos:** los p, intervalos y efectos de diseño de la UI; los niveles 7 y 8 de las escalas; la serie «experiencia vinculada»; el transporte con 10 opciones; las carreras que no venían del mazo; los conteos del panel de revisión.
 - Las letras de las maquetas siguen las de la lámina original (z con Bonferroni), salvo los ajustes de magnitud. **No son el resultado de la regla nueva.**
 
 Generadores en `mock/`: `python3 mock/r3.py <salida>` y `python3 mock/r3ui.py <salida>`. Los detectores van con `node mock/solapes.cjs <html…>` y `node mock/solapes-ui.cjs <html…>` (usan el Playwright de `frontend/node_modules`).
