@@ -70,3 +70,7 @@
 .hr-atlas-nse li b { margin-left: auto; }
 .hr-atlas-nse li i { width: 9px; height: 9px; border-radius: 2px; flex: none; }
 .hr-atlas-nse li b { font-weight: 600; color: var(--pulso-text); font-variant-numeric: tabular-nums; }
+/* La miga del atlas comparte la fila con el selector de capas. A 1280 y 1024 px el selector la tapaba («Pueblo Libre (sus m…»
+   quedaba debajo de «Distritos») y a 1440 px «Pueblo Libre (cargando manzanas…)» salía cortado con ancho libre. Llega
+   hasta 12 px antes del selector (335 = su ancho de ~295 más los márgenes) y, si no cabe, se corta con puntos. */
+.hr-lienzo-miga:has(.hr-miga-nivel) { max-width: max(96px, min(560px, calc(100% - 335px))); }

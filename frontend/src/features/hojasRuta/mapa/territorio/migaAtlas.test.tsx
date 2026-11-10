@@ -25,4 +25,11 @@ describe("la ayuda de la miga del atlas", () => {
       "(12 distritos, en el estudio)",
     ]);
   });
+
+  it("dentro de un distrito dice si sus manzanas aún cargan", () => {
+    const miga = (cargandoManzanas: boolean) =>
+      ayuda(renderToStaticMarkup(<MigaAtlas total={26} departamento={null} ciudad={arequipa} distritos={12} cargando={false} distrito="Cayma" adentro cargandoManzanas={cargandoManzanas} onPeru={nada} onDepartamento={nada} />));
+    expect(miga(true)).toBe("(cargando manzanas…)");
+    expect(miga(false)).toBe("(sus manzanas)");
+  });
 });

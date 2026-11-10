@@ -232,7 +232,7 @@ export function CiudadCabecera({ ciudad, onVolver }: { ciudad: CiudadAtlas; onVo
 }
 
 /** Miga del atlas por niveles: Perú › departamento › ciudad, con cada nivel clicable para subir. */
-export function MigaAtlas({ total, departamento, ciudad, distritos, cargando, fallo = false, onReintentar, distrito = null, adentro = false, onCiudad, enEstudio = false, onPeru, onDepartamento }: {
+export function MigaAtlas({ total, departamento, ciudad, distritos, cargando, fallo = false, onReintentar, distrito = null, adentro = false, cargandoManzanas = false, onCiudad, enEstudio = false, onPeru, onDepartamento }: {
   total: number;
   /** Si la ciudad ya está en el estudio: sólo entonces existe «Elegir distritos». */
   enEstudio?: boolean;
@@ -247,6 +247,8 @@ export function MigaAtlas({ total, departamento, ciudad, distritos, cargando, fa
   distrito?: string | null;
   /** Si se ven sus manzanas. */
   adentro?: boolean;
+  /** Mientras llegan sus manzanas (la primera lectura de un distrito tarda): el mapa se ve vacío y la miga dice por qué. */
+  cargandoManzanas?: boolean;
   onCiudad?: () => void;
   onPeru: () => void;
   onDepartamento: (nombre: string) => void;
@@ -261,7 +263,7 @@ export function MigaAtlas({ total, departamento, ciudad, distritos, cargando, fa
         <>
           {" › "}
           <button type="button" className="hr-miga-nivel" onClick={onCiudad}>{ciudad.nombre}</button> › <b>{distrito}</b>
-          {adentro ? <span className="hr-lienzo-miga-ayuda">(sus manzanas)</span> : null}
+          {adentro ? <span className="hr-lienzo-miga-ayuda">{cargandoManzanas ? "(cargando manzanas…)" : "(sus manzanas)"}</span> : null}
         </>
       ) : null}
       {ciudad && !distrito ? <> › <b>{ciudad.nombre}</b></> : null}

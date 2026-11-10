@@ -556,6 +556,20 @@ export default function HojasRutaMapaPage() {
   const manzanaAdentroPorId = useMemo(() => new Map((geoAdentro.piezas?.manzanas ?? []).map((m) => [m.id, m] as const)), [geoAdentro.piezas]);
   const manzanaAdentro = adentro && manzanaBajoCursor ? (manzanaAdentroPorId.get(manzanaBajoCursor) ?? null) : null;
   useEffect(() => { if (!adentro) setManzanaBajoCursor(null); }, [adentro, setManzanaBajoCursor]);
+  // Escape sube un nivel en el atlas: de las manzanas al distrito y del distrito a la ciudad. No sale de la ciudad: eso
+  // se pide con la miga o con «Todo el Perú», como el alejamiento (H3).
+  useEffect(() => {
+    if (!enAtlas || !ciudadEnfocada || !distritoEnfocado) return;
+    const alTeclear = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      const foco = e.target instanceof HTMLElement ? e.target : null;
+      if (foco && (foco.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(foco.tagName) || foco.closest("[role=dialog]"))) return;
+      if (manzanasDistrito === distritoEnfocado) setManzanasDistrito(null);
+      else setDistritoEnfocado(null);
+    };
+    window.addEventListener("keydown", alTeclear);
+    return () => window.removeEventListener("keydown", alTeclear);
+  }, [enAtlas, ciudadEnfocada, distritoEnfocado, manzanasDistrito, setManzanasDistrito, setDistritoEnfocado]);
   // La ciudad abierta en el atlas, coloreada por distrito (población, viviendas o NSE): sin leer sus manzanas.
   // Densidad por km²: el área sale del contorno de cada distrito (el de la cartografía del lienzo).
   const areasCiudad = useMemo(
@@ -978,7 +992,7 @@ export default function HojasRutaMapaPage() {
         <LienzoMapa
           className="hr-mapa-lienzo"
           ariaLabel="Mapa del territorio del estudio"
-          miga={enAtlas ? <MigaAtlas total={atlas.length} departamento={departamentoEnfocado} ciudad={atlas.find((c) => c.codigo === ciudadEnfocada) ?? null} distritos={contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadEnfocada).length} cargando={regionesCargando.length > 0} fallo={regionesFallidas.length > 0} onReintentar={reintentarRegiones} distrito={distritoAtlas ? nombreDistrito(distritoAtlas.nombre) : null} adentro={Boolean(adentro)} onCiudad={() => setDistritoEnfocado(null)} enEstudio={Boolean(ciudadEnfocada && enEstudio.includes(ciudadEnfocada))} onPeru={() => { setCiudadEnfocada(null); setDepartamentoEnfocado(null); }} onDepartamento={(d) => { setCiudadEnfocada(null); setDepartamentoEnfocado(d); }} /> : enTerritorio && ciudadAbierta ? <><b>{atlas.find((c) => c.codigo === ciudadAbierta)?.nombre}</b>{regionesCargando.length ? "(cargando su mapa…)" : <span className="hr-lienzo-miga-ayuda">(clic en un distrito para ver su ficha)</span>}</> : nacional.miga ? <>{nacional.miga}{regionesCargando.length && nacional.nivel?.nivel !== "nacional" ? <span className="hr-lienzo-miga-ayuda">(cargando sus distritos…)</span> : null}</> : migaLienzo(nav.seccion as SeccionLienzo, confirmados.length, titularEnfocada ? { distrito: nombreDistrito(titularEnfocada.distrito), ump: codigoDeUmp(titularEnfocada) } : null, atlas.filter((c) => enEstudio.includes(c.codigo)).map((c) => c.nombre))}
+          miga={enAtlas ? <MigaAtlas total={atlas.length} departamento={departamentoEnfocado} ciudad={atlas.find((c) => c.codigo === ciudadEnfocada) ?? null} distritos={contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadEnfocada).length} cargando={regionesCargando.length > 0} fallo={regionesFallidas.length > 0} onReintentar={reintentarRegiones} distrito={distritoAtlas ? nombreDistrito(distritoAtlas.nombre) : null} adentro={Boolean(adentro)} cargandoManzanas={geoAdentro.cargando} onCiudad={() => setDistritoEnfocado(null)} enEstudio={Boolean(ciudadEnfocada && enEstudio.includes(ciudadEnfocada))} onPeru={() => { setCiudadEnfocada(null); setDepartamentoEnfocado(null); }} onDepartamento={(d) => { setCiudadEnfocada(null); setDepartamentoEnfocado(d); }} /> : enTerritorio && ciudadAbierta ? <><b>{atlas.find((c) => c.codigo === ciudadAbierta)?.nombre}</b>{regionesCargando.length ? "(cargando su mapa…)" : <span className="hr-lienzo-miga-ayuda">(clic en un distrito para ver su ficha)</span>}</> : nacional.miga ? <>{nacional.miga}{regionesCargando.length && nacional.nivel?.nivel !== "nacional" ? <span className="hr-lienzo-miga-ayuda">(cargando sus distritos…)</span> : null}</> : migaLienzo(nav.seccion as SeccionLienzo, confirmados.length, titularEnfocada ? { distrito: nombreDistrito(titularEnfocada.distrito), ump: codigoDeUmp(titularEnfocada) } : null, atlas.filter((c) => enEstudio.includes(c.codigo)).map((c) => c.nombre))}
           leyenda={adentro && capaAdentro !== "manzanas" ? leyendaLienzo("territorio", { capa: capaAdentro }) : escalaCiudad ? leyendaCapaDistritos(escalaCiudad) : enAtlas ? <><span className="hr-atlas-punto" aria-hidden="true" /> Con cartografía <span className="hr-atlas-punto" data-en-estudio aria-hidden="true" /> En el estudio</> : nacional.nivel?.nivel === "nacional" ? <><span className="hr-atlas-punto" data-en-estudio aria-hidden="true" /> Ciudad del estudio</> : leyendaLienzo(nav.seccion as SeccionLienzo, { zonasCortas: zonasCortas.size > 0, areas: (configSorteo?.marco_elegible?.areas_excluidas ?? []).length > 0, capa: capaMapa })}
           // Con una capa por distrito, las manzanas de los confirmados tapaban el color de su distrito.
           distritos={adentro ? (geoAdentro.piezas ? [geoAdentro.piezas] : []) : enPoblacion || enMuestra || escalaCiudad ? [] : distritos}
