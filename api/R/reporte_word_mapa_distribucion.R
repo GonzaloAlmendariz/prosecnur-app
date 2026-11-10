@@ -2,9 +2,11 @@
 # reporte_word_mapa_distribucion.R — el mapa de distribución en el Word (diseño aprobado, tablero 7 «Prueba en página A4»)
 # =============================================================================
 #
-# El mapa va al ancho de texto (16 cm) con su propia letra: rótulos a 10,5 pt y leyenda a 9 pt, porque reducir la lámina
-# al ancho de página los dejaría bajo 8 pt. Debajo, la leyenda en su franja y la lista en dos columnas, con el estilo de la
-# especificación aprobada (Gonzalo, 2026-11-03): barra sobre pista y la fila «otros» al final (al costado no cabe). Todo es un solo gráfico ggplot compuesto con cowplot.
+# El mapa lleva su propia letra: rótulos a 10,5 pt y leyenda a 9 pt, porque reducir la lámina al ancho de página los
+# dejaría bajo 8 pt. Tiene tope de alto (9,5 cm) y toma el ancho que ese alto pide, como la lámina (Gonzalo, 2026-11-09).
+# Si deja sitio, la lista va a su derecha en una columna; si no, debajo en dos. La leyenda va en su franja, con el estilo
+# de la especificación aprobada (Gonzalo, 2026-11-03): barra sobre pista y la fila «otros» al final. Todo es un solo
+# gráfico ggplot compuesto con cowplot.
 
 #' Leyenda del Word: la de la lámina (`.lam_mapa_dist_leyenda`) dibujada en ggplot, con el rayado de otra respuesta
 #' @param w Ancho (in). @keywords internal
@@ -47,11 +49,11 @@
 #' Lista del Word en dos columnas, como la de la lámina: nombre y «N (%)» en una línea, la barra sobre su pista debajo y la
 #' fila «otros» al final, en gris
 #' @return ggplot con atributo `alto` (in). @keywords internal
-.word_mapa_dist_ranking <- function(espec, w, pt) {
+.word_mapa_dist_ranking <- function(espec, w, pt, columnas = 2L, max_filas = 16L) {
   M <- .MAPA_DIST(); fuente <- "Arial"
-  f <- .lam_mapa_dist_filas(espec, 16L)
-  n <- nrow(f); por_col <- max(1L, ceiling(n / 2)); fila <- pt * 2.6 / 72
-  col_w <- (w - 0.3) / 2
+  f <- .lam_mapa_dist_filas(espec, max_filas)
+  n <- nrow(f); por_col <- max(1L, ceiling(n / columnas)); fila <- pt * 2.6 / 72
+  col_w <- if (columnas > 1L) (w - 0.3 * (columnas - 1L)) / columnas else w
   k <- seq_len(n) - 1L
   d <- data.frame(x = (k %/% por_col) * (col_w + 0.3), y = -(k %% por_col) * fila, nombre = f$nombre, cifra = f$cifra, frac = pmin(1, f$frac),
                   color = f$color, texto = ifelse(f$otros, M$otros_texto, M$texto))
@@ -79,17 +81,51 @@
   g
 }
 
-#' Figura del mapa de distribución en el Word: mapa al ancho de texto, leyenda escalonada y ranking en dos columnas
+#' Alto máximo (in) del panel del mapa en el Word
+#'
+#' Gonzalo, 2026-11-09, sobre el Word v7.31: «no creo que en el Word el gráfico tenga que ser tan enorme» y el mapa «no
+#' está bien centrado y muestra mucha info que no es del Perú, como el PPT antes». El panel iba siempre a 16 cm de ancho
+#' con hasta 13,6 cm de alto: el Perú, alto y angosto, se encogía al alto y el resto del ancho se llenaba de países
+#' vecinos; la figura entera llegaba a 19–22 cm, una página. Ahora el mapa tiene tope de alto y toma el ancho que ese
+#' alto pide (el «zoom preciso» de la lámina, `.mapa_dist_ancho_natural`).
+#' @keywords internal
+.WORD_MAPA_ALTO_MAX <- 9.5 / 2.54
+
+#' Figura del mapa de distribución en el Word: el mapa a su ancho natural (tope de alto), la leyenda debajo y la lista
+#'
+#' Si el mapa deja al costado al menos 6,5 cm, la lista va a su derecha en una columna, con las filas que caben en el alto
+#' del mapa (el resto suma en «otros», como en la lámina). Si no, el mapa va centrado y la lista debajo, en dos columnas.
 #' @keywords internal
 .word_g_mapa_distribucion <- function(espec) {
   pt <- .mapa_dist_pt("word")
-  w <- min(16 / 2.54, .std_word("pagina", "ancho_util"))
-  h_map <- min(w * 0.85, max(w * 0.5, .mapa_dist_alto_natural(espec, w, pt))); h_ley <- 0.62   # el alto que pide el mapa a 16 cm
-  panel <- .mapa_dist_panel_gg(espec, w, h_map, pt)
-  rk <- .word_mapa_dist_ranking(espec, w, pt$leyenda)
-  h_rk <- attr(rk, "alto")
-  g <- cowplot::plot_grid(panel, .word_mapa_dist_leyenda(espec, w, pt$leyenda), rk, ncol = 1, rel_heights = c(h_map, h_ley, h_rk + 0.1))
-  attr(g, "alto") <- h_map + h_ley + h_rk + 0.1
+  w <- min(16 / 2.54, .std_word("pagina", "ancho_util")); h_ley <- 0.62
+  h_full <- .mapa_dist_alto_natural(espec, w, pt)   # el alto que pide el mapa al ancho de texto
+  if (h_full <= .WORD_MAPA_ALTO_MAX) {
+    w_map <- w; h_map <- max(w * 0.5, h_full)
+  } else {
+    h_map <- .WORD_MAPA_ALTO_MAX
+    w_map <- min(w, .mapa_dist_ancho_natural(espec, h_map, pt))
+  }
+  panel <- .mapa_dist_panel_gg(espec, w_map, h_map, pt)
+  gap <- 0.25; w_lista <- w - w_map - gap
+  fila <- pt$leyenda * 2.6 / 72
+  if (w_lista >= 6.5 / 2.54) {
+    filas <- max(3L, min(16L, floor((h_map - 0.16 * length(espec$nota_pie) - 0.1) / fila) - 1L))
+    rk <- .word_mapa_dist_ranking(espec, w_lista, pt$leyenda, columnas = 1L, max_filas = filas)
+    h_rk <- attr(rk, "alto"); h_fila <- max(h_map, h_rk)
+    lista <- cowplot::plot_grid(rk, NULL, ncol = 1, rel_heights = c(h_rk, max(0.001, h_fila - h_rk)))
+    arriba <- cowplot::plot_grid(panel, NULL, lista, nrow = 1, rel_widths = c(w_map, gap, w_lista))
+    g <- cowplot::plot_grid(arriba, .word_mapa_dist_leyenda(espec, w, pt$leyenda), ncol = 1, rel_heights = c(h_fila, h_ley))
+    attr(g, "alto") <- h_fila + h_ley
+  } else {
+    lado <- (w - w_map) / 2
+    fila_mapa <- if (lado > 0.01) cowplot::plot_grid(NULL, panel, NULL, nrow = 1, rel_widths = c(lado, w_map, lado)) else panel
+    rk <- .word_mapa_dist_ranking(espec, w, pt$leyenda)
+    h_rk <- attr(rk, "alto")
+    g <- cowplot::plot_grid(fila_mapa, .word_mapa_dist_leyenda(espec, w, pt$leyenda), rk, ncol = 1, rel_heights = c(h_map, h_ley, h_rk + 0.1))
+    attr(g, "alto") <- h_map + h_ley + h_rk + 0.1
+  }
   attr(g, "ancho") <- w
+  attr(g, "ancho_mapa") <- w_map
   g
 }

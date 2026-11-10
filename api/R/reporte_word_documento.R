@@ -68,7 +68,14 @@
 #' fijo: un «estandar» elegido es una decisión.
 #' @keywords internal
 .DOCUMENTO_WORD_DEFAULTS <- list(portada = "A", apertura = "B", como_leer = NULL, redondeo = "estandar",
-                                 contacto = list(), meta_portada = list())
+                                 contacto = list(), meta_portada = list(), resumen_ejecutivo = FALSE)
+
+#' ¿La entrada es el resumen ejecutivo de `p_slide_hallazgos` (modos «resumen» y «titulares»)?
+#' @keywords internal
+.word_es_resumen_ejecutivo <- function(e) {
+  esp <- attr(e$plot_word, "pulso_espec")
+  is.list(esp) && isTRUE(as.character(esp$modo %||% "")[1] %in% .HALLAZGOS_MODOS_RESUMEN)
+}
 
 #' Arma el Word del recetario desde `render_meta`
 #'
@@ -79,7 +86,9 @@
 #'   `indices` (`list(contenido = TRUE, graficos = "inicio"|"anexo"|FALSE, tablas = igual)`; default los tres al inicio),
 #'   `redondeo` («estandar», «resto_mayor»), `contacto` (para la contraportada), `meta_portada` (ante, para, version...),
 #'   `logos` (rutas de los logos propios del cliente por lugar: `portada_izquierda`, `portada_derecha`, `contraportada`;
-#'   sólo las pone el worker desde `estilo_cliente`, nunca el body).
+#'   sólo las pone el worker desde `estilo_cliente`, nunca el body), `resumen_ejecutivo` (`FALSE` por defecto: el resumen
+#'   ejecutivo de `p_slide_hallazgos` va sólo en el PPT; Gonzalo, 2026-11-09: «de cara a Word no ponemos un resumen
+#'   ejecutivo, solo en PPT, es una opción»).
 #' @return Invisible: `list(path, figuras, tablas, avisos)`.
 #' @keywords internal
 .word_documento <- function(render_meta, path_docx, fuente = NULL, opciones = list(), mensajes = FALSE) {
@@ -154,6 +163,11 @@
     e <- render_meta[[i]]; kind <- e$kind %||% "chart"
     if (isTRUE(mensajes)) message(sprintf("  Word %03d/%03d — %s", i, length(render_meta), kind))
     if (identical(kind, "title_doc")) next
+    if (!isTRUE(op$resumen_ejecutivo) && .word_es_resumen_ejecutivo(e)) {
+      avisar(sprintf("«%s»: el resumen ejecutivo va sólo en el PPT; el Word no lo lleva (opción «resumen_ejecutivo»).",
+                     .word_txt1(e$title) %||% "Resumen ejecutivo"))
+      next
+    }
     if (identical(kind, "section")) {
       nivel <- .word_nivel_seccion(e$meta)
       titulo <- .word_oracion(sub("^\\s*\\d+(?:\\.\\d+)*\\.?\\s+", "", .word_txt1(e$title), perl = TRUE))

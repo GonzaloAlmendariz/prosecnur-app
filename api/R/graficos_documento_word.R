@@ -13,7 +13,7 @@
 #' Normaliza las opciones del documento que manda el editor
 #'
 #' @param x Lista (del JSON del editor) con `portada`, `apertura`, `como_leer` (`"auto"`, `TRUE`, `FALSE` o un vector de secciones: top_two_box, bottom_two_box, redondeo, misma_escala, cifras_pequenas, bases_chicas), `indices` (`contenido` lógico; `graficos` y `tablas`: `"inicio"`, `"anexo"` o `FALSE`), `redondeo`,
-#'   `titulo_corto`, `fuente`, `contacto` (`correo`, `direccion`, `web`) y `meta_portada` (`ante`, `sub`, `para`, `por`,
+#'   `resumen_ejecutivo` (lógico; por defecto el Word no lo lleva), `titulo_corto`, `fuente`, `contacto` (`correo`, `direccion`, `web`) y `meta_portada` (`ante`, `sub`, `para`, `por`,
 #'   `fecha`, `version`).
 #' @return Lista para `opciones_documento` de `reporte_word_plan` (más `fuente`), sin las claves que no vinieron: lo que
 #'   falta usa el valor por defecto del recetario. Un valor fuera de lo admitido es un error 400 con `E_BAD_DOCUMENTO_WORD`.
@@ -64,6 +64,11 @@
       oi[[k]] <- if (is.logical(v)) { if (v) "inicio" else FALSE } else tolower(trimws(as.character(v)))
     }
     if (length(oi)) out$indices <- oi
+  }
+  if (!is.null(x$resumen_ejecutivo)) {
+    v <- unlist(x$resumen_ejecutivo)
+    if (!is.logical(v) || length(v) != 1L || is.na(v)) stop_api(400, "E_BAD_DOCUMENTO_WORD", "«resumen_ejecutivo» debe ser true o false.")
+    out$resumen_ejecutivo <- v
   }
   for (k in c("titulo_corto", "fuente")) if (nzchar(txt(x[[k]]))) out[[k]] <- txt(x[[k]])
   sub_lista <- function(l, claves) {

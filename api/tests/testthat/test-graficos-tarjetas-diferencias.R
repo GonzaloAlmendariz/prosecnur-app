@@ -307,3 +307,21 @@ test_that("el backend grid desplaza las posiciones pero no los anchos (la tarjet
   b$rect(0, 0, 1, 0.2, fill = "#000000")
   expect_equal(grid::convertWidth(rects[[1]], "in", valueOnly = TRUE), 0.5)
 })
+
+test_that("Word: dos preguntas con las mismas opciones no comparten tarjetas; la cifra del total debe ser la de la figura (CCSS v7.31, figura 27)", {
+  previo <- .tarjetas_estado$registro; on.exit(.tarjetas_estado$registro <- previo, add = TRUE)
+  .tarjetas_estado$registro <- NULL
+  fig <- function(cifras) {
+    p <- ggplot2::ggplot()
+    attr(p, "pulso_espec") <- list(tipo = "barras", rotulos = c("Hasta secundaria completa", "Superior técnica", "Universitaria", "Posgrado"),
+                                   cifras = cifras)
+    p
+  }
+  padre <- fig(c("17%", "20%", "40%", "23%")); madre <- fig(c("24%", "21%", "38%", "17%"))
+  t <- list(tipo = "opcion", tarjetas = list(list(fila = "Posgrado", cifra_total = "23%")))
+  .tarjetas_registrar(padre, t)
+  expect_identical(.tarjetas_de_figura(fig(c("17%", "20%", "40%", "23%"))), t)   # la misma pregunta en el Word: sus tarjetas
+  expect_null(.tarjetas_de_figura(madre))                                       # otra pregunta con las mismas opciones: ninguna
+  sin_cifras <- ggplot2::ggplot(); attr(sin_cifras, "pulso_espec") <- list(tipo = "barras", rotulos = attr(padre, "pulso_espec")$rotulos)
+  expect_identical(.tarjetas_de_figura(sin_cifras), t)                         # sin cifras con qué comparar, como antes
+})

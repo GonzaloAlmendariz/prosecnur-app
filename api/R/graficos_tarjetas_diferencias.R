@@ -487,6 +487,26 @@
   invisible(NULL)
 }
 
+#' ¿Las tarjetas registradas son de esta figura? La cifra del total de cada tarjeta debe ser la de la figura en su fila
+#'
+#' La firma (tipo y filas) no distingue dos preguntas con las mismas opciones: en el Word v7.31 de CCSS, el nivel
+#' educativo de la madre (figura 27) tomó las tarjetas de la lámina del padre (Posgrado: total 23 %, Hombre 32 % △,
+#' Mujer 15 % ▽), con la cifra de la madre en 17 % (Gonzalo, 2026-11-09). Sin cifras en la figura no hay con qué
+#' comparar y se conserva lo que había.
+#' @keywords internal
+.tarjetas_casan_cifras <- function(t, espec) {
+  if (!is.list(espec) || !length(espec$cifras) || length(espec$cifras) != length(espec$rotulos) || !length(t$tarjetas)) return(TRUE)
+  norm <- function(x) gsub("\\s+", " ", trimws(as.character(x)))
+  num <- function(x) suppressWarnings(as.numeric(gsub("[^0-9.]", "", sub(",", ".", as.character(x), fixed = TRUE))))
+  propias <- stats::setNames(num(espec$cifras), norm(espec$rotulos))
+  for (x in t$tarjetas) {
+    fila <- norm(x$fila %||% ""); ref <- num(x$cifra_total %||% NA)
+    if (!fila %in% names(propias) || !length(ref) || is.na(ref) || is.na(propias[[fila]])) next
+    if (abs(ref - propias[[fila]]) > 0.5) return(FALSE)
+  }
+  TRUE
+}
+
 #' Tarjetas de una figura del Word: las que heredó o, si no, las registradas con su misma firma
 #' @keywords internal
 .tarjetas_de_figura <- function(p) {
@@ -495,7 +515,7 @@
   f <- .tarjetas_firma(p)
   if (is.na(f) || is.null(.tarjetas_estado$registro)) return(NULL)
   t <- .tarjetas_estado$registro[[f]]
-  if (!is.null(t)) return(t)
+  if (!is.null(t)) return(if (.tarjetas_casan_cifras(t, attr(p, "pulso_espec"))) t else NULL)
   # El Word parte una batería larga en piezas (redes sociales: 8 ítems en dos figuras): cada pieza toma, de la lámina
   # que contiene todas sus filas, las tarjetas de esas filas.
   espec <- attr(p, "pulso_espec")

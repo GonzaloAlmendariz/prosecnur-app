@@ -62,9 +62,11 @@
   col <- as.vector(.word_colores_de_espec(espec, espec$rotulos, col))          # paleta por lista (ADR 0097), recetario de respaldo
   marcas <- isTRUE(espec$escala_completa) && isTRUE(espec$marcas_eje)
   pista <- .lam_barras_pista_activa(espec)   # v7.11: la pista hasta el 100%, como en la lámina (lamina_barras_pista.R)
-  esc <- if (isTRUE(espec$escala_completa) || pista) max(100, max(p)) * 1.12 else max(p) * (if (any(grepl("\\(", espec$cifras))) 1.34 else 1.18)
   # U5 (revisión v7.23, ítem 1): «0%» con casos se escribe «<1%», como en la lámina (lamina_cifra_menor_uno.R).
-  d <- data.frame(l = l, p = p, pd = ifelse(p <= 0, 100 * .BARRAS_PISO_CERO, p), y = ps$y, col = col, et = .lam_cifras_menor_uno(espec$cifras, .espec_casos(espec)), negrita = isTRUE(espec$realce) & seq_along(p) == mx, stringsAsFactors = FALSE)   # 0 % con casos: astilla visible (piso del graficador)
+  et <- .lam_cifras_menor_uno(espec$cifras, .espec_casos(espec))
+  col_in <- .word_escala_columna(.word_rotulo_in(l, .word_barras_pt()), l)
+  esc <- .word_barras_escala(p, et, base = if (isTRUE(espec$escala_completa) || pista) 100 else max(p), col_in = col_in)
+  d <- data.frame(l = l, p = p, pd = ifelse(p <= 0, 100 * .BARRAS_PISO_CERO, p), y = ps$y, col = col, et = et, negrita = isTRUE(espec$realce) & seq_along(p) == mx, stringsAsFactors = FALSE)   # 0 % con casos: astilla visible (piso del graficador)
   g <- ggplot2::ggplot(d) +
     (if (pista) ggplot2::geom_rect(ggplot2::aes(xmin = 0, xmax = 100, ymin = .data$y - 0.32, ymax = .data$y + 0.32), fill = .lam_barras_pista_color())) +
     ggplot2::geom_rect(ggplot2::aes(xmin = 0, xmax = .data$pd, ymin = .data$y - 0.32, ymax = .data$y + 0.32, fill = .data$col)) + ggplot2::scale_fill_identity() +
@@ -72,7 +74,7 @@
     ggplot2::geom_text(ggplot2::aes(x = -esc * 0.02, y = .data$y, label = .data$l, fontface = .word_cara("categorias", .data$negrita)), hjust = 1, size = .word_pt(9, "rotulo"),
                        colour = navy, family = "Arial", lineheight = 0.9) +
     # Rótulo corto: la columna común del capítulo, como las escalas (reporte_word_eje_comun.R).
-    ggplot2::scale_x_continuous(limits = c(.word_xmin(l, .word_barras_pt(), esc, ancho_in = .word_escala_columna(.word_rotulo_in(l, .word_barras_pt()), l)), esc), expand = c(0, 0)) +
+    ggplot2::scale_x_continuous(limits = c(.word_xmin(l, .word_barras_pt(), esc, ancho_in = col_in), esc), expand = c(0, 0)) +
     ggplot2::scale_y_continuous(limits = c(if (marcas) -0.1 else 0.4, ps$tot + 0.6), expand = c(0, 0)) + .word_tema()
   # Marcas 0-25-50-75-100 % bajo las barras, como la variante «fiel» de g_barras (RG:91): opcionales con la escala de 0 a
   # 100 % (Gonzalo, 2026-10-09: «Opcional brindar ambas opciones»).

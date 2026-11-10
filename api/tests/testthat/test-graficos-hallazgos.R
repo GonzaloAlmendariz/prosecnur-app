@@ -439,3 +439,24 @@ test_that("H3: sin capítulos completos el aviso habla en lenguaje de analista, 
   expect_identical(final, "Resumen ejecutivo: escribe al menos un capítulo con un hallazgo completo, o elige que los proponga el motor.")
   expect_false(any(grepl("`|seleccion|capitulos|\"auto\"|;", avisos[grepl("^Resumen ejecutivo", avisos)])))
 })
+
+test_that("el resumen ejecutivo va sólo en el PPT: el Word no lo lleva salvo `resumen_ejecutivo = TRUE` (Gonzalo, 2026-11-09)", {
+  g <- .halla_res_ggplot(.hz_resumen(modo = "resumen", capitulos = .hz_caps()))
+  e_res <- list(kind = "chart", title = "Información general", plot_word = g)
+  e_otro <- list(kind = "chart", title = "Otra", plot_word = .halla_ggplot(.hz_modelo()))
+  expect_true(.word_es_resumen_ejecutivo(e_res))
+  expect_false(.word_es_resumen_ejecutivo(e_otro))
+  expect_false(.DOCUMENTO_WORD_DEFAULTS$resumen_ejecutivo)
+  rm_ <- list(list(kind = "section", title = "Capítulo uno", meta = list()), e_res)
+  n_fig <- function(opciones) {
+    out <- tempfile(fileext = ".docx")
+    msgs <- testthat::capture_messages(r <- suppressWarnings(.word_documento(rm_, out, opciones = opciones)))
+    list(figuras = r$figuras, aviso = any(grepl("el resumen ejecutivo va sólo en el PPT", msgs, fixed = TRUE)))
+  }
+  sin <- n_fig(list()); con <- n_fig(list(resumen_ejecutivo = TRUE))
+  expect_true(sin$aviso); expect_false(con$aviso)
+  expect_lt(sin$figuras, con$figuras)
+  # El editor puede encenderlo; un valor que no es lógico es un 400.
+  expect_identical(.graficos_opciones_documento(list(resumen_ejecutivo = TRUE))$resumen_ejecutivo, TRUE)
+  expect_error(.graficos_opciones_documento(list(resumen_ejecutivo = "si")), "resumen_ejecutivo")
+})
