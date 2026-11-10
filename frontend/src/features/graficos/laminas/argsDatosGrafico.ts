@@ -80,7 +80,7 @@ export const AYUDA_TIPO_RANGO = "La leyenda de la lámina dice qué abarca la ba
 export const AVISO_RANGO_CUSTOM = "Personalizado: se dibuja con los percentiles guardados.";
 // ADR 0134: los gráficos del resumen ejecutivo (Arte y Diseño FG 2026).
 export const AYUDA_ESTILO = "Cómo se compone la lámina; el cálculo es el mismo.";
-export const AYUDA_UNIVERSOS = "Para escribir la base como n (cobertura %). Un grupo sin padrón va sólo con n.";
+export const AYUDA_UNIVERSOS = "Da la cobertura de las columnas de base. La nota de la base lleva sólo los casos.";
 export const AYUDA_SEPARAR_TRAS = "Línea punteada entre dos grupos de preguntas. 0: sin separador.";
 export const AYUDA_BASE_EN = "Por defecto, en la nota de la base (abajo a la izquierda); la tabla lleva sólo la diferencia.";
 export const AYUDA_REFERENCIA = 'La línea punteada y la columna "Bajo" de la tabla.';
@@ -316,7 +316,8 @@ const LISTA_BLANCA: Record<string, Entrada> = {
   estilo: { rotulo: "Estilo", ayuda: AYUDA_ESTILO, soloEn: ESTILO_RESUMEN },
   universos: {
     rotulo: "Padrón de cada grupo", ayuda: AYUDA_UNIVERSOS, placeholder: "Docentes: 123; Estudiantes: 327",
-    soloEn: ["p_dumbbell"], cuando: esEstiloResumen,
+    // Gonzalo, 2026-11-10: la nota de la base lleva sólo los casos; el padrón sólo se lee en las columnas de la tabla.
+    soloEn: ["p_dumbbell"], cuando: (v) => esEstiloResumen(v) && v.base_en === "tabla",
   },
   // ADR 0140: la cobertura por categorías de una variable. Su `depende` (modo = "categorias") se cumple sólo en esa versión;
   // en "Por públicos" no salen (estricto). El universo es una tabla por base (coberturaCategorias/UniversoCategorias.tsx).

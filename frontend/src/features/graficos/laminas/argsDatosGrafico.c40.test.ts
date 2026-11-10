@@ -121,11 +121,13 @@ describe("C40 · ASIGNAR", () => {
     expect(nombres(resumen, { estilo: "recetario" }, "p_dumbbell")).not.toEqual(expect.arrayContaining(["universos"]));
     expect(nombres(resumen, { estilo: "recetario" }, "p_dumbbell")).not.toContain("base_en");
     expect(nombres(resumen, { estilo: "resumen" }, "p_dumbbell")).toEqual(
-      ["corte_etiqueta", "estilo", "universos", "base_en", "orden", "separar_tras", "mostrar_brecha", "etiqueta_brecha"]);
+      ["corte_etiqueta", "estilo", "base_en", "orden", "separar_tras", "mostrar_brecha", "etiqueta_brecha"]);
+    // El padrón sólo se lee en las columnas de base: la nota lleva sólo los casos (Gonzalo, 2026-11-10).
+    expect(nombres(resumen, { estilo: "resumen", base_en: "tabla" }, "p_dumbbell")).toContain("universos");
     expect(campo(resumen, { estilo: "resumen" }, "p_dumbbell", "base_en")?.ayuda).toBe(AYUDA_BASE_EN);
     expect(campo(resumen, { estilo: "resumen" }, "p_dumbbell", "base_en")?.control).toBe("opciones");
     expect(campo(resumen, {}, "p_dumbbell", "estilo")?.ayuda).toBe(AYUDA_ESTILO);
-    expect(campo(resumen, { estilo: "resumen" }, "p_dumbbell", "universos")?.control).toBe("texto");
+    expect(campo(resumen, { estilo: "resumen", base_en: "tabla" }, "p_dumbbell", "universos")?.control).toBe("texto");
     expect(campo(resumen, { estilo: "resumen" }, "p_dumbbell", "separar_tras")?.ayuda).toBe(AYUDA_SEPARAR_TRAS);
     expect(campo(resumen, { estilo: "resumen" }, "p_dumbbell", "separar_tras")?.control).toBe("numero");
     // En otro graficador el mismo nombre no tiene efecto nativo.

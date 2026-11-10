@@ -1,8 +1,8 @@
 // Grupos internos de las aperturas (ADR 0135 §6): tope de cuatro en el orden de elección, la línea «Base:» con el formato
-// del motor (`.contraste_base_texto`) y el aviso del grupo chico con el texto del pie (`.dumbbell_nota_grupo_chico`).
+// del motor (`.base_frase`) y el aviso del grupo chico con el texto del pie (`.dumbbell_nota_grupo_chico`).
 import { describe, expect, it } from "vitest";
 import {
-  alternarGrupo, baseDeGrupo, filasGrupos, incluidosEnOrden, lineaBase, notaGrupoChico, textoTope, unidadDeCruce,
+  alternarGrupo, baseDeGrupo, filasGrupos, incluidosEnOrden, lineaBase, notaGrupoChico, rotuloEnBase, textoTope, unidadDeCruce,
 } from "./modeloGruposPadron";
 
 const OPCIONES = [
@@ -31,10 +31,20 @@ describe("filasGrupos y alternarGrupo", () => {
 });
 
 describe("lineaBase", () => {
-  it("escribe la base como el motor: n (cobertura %) con padrón confiable, sólo n sin él, en el orden de la lámina", () => {
+  it("escribe la base como el motor: sólo los casos, dentro de su público y en el orden de la lámina", () => {
     const args = { grupos: ["1", "2"], universos: "TP: 103", universos_no_confiables: "TC: 30" };
     const inc = incluidosEnOrden(filasGrupos(OPCIONES, CONTEOS, args), args);
-    expect(lineaBase(inc)).toBe("Base: TC 24; TP 91 (88%)");
+    expect(lineaBase(inc, "docentes")).toBe("Base: 24 docentes de TC y 91 de TP");
+    expect(lineaBase(inc)).toBe("Base: 24 de TC y 91 de TP");
+    const tres = { grupos: ["3", "4", "1"] };
+    expect(lineaBase(incluidosEnOrden(filasGrupos(OPCIONES, CONTEOS, tres), tres), "docentes"))
+      .toBe("Base: 139 docentes de contratado, 115 de visitante y 24 de TC");
+  });
+
+  it("nombra la sigla declarada y conserva los nombres propios, como el motor", () => {
+    expect(rotuloEnBase("Tiempo completo (TC)")).toBe("TC");
+    expect(rotuloEnBase("Departamento Académico")).toBe("Departamento Académico");
+    expect(rotuloEnBase("Segundo ciclo")).toBe("segundo ciclo");
   });
 
   it("un padrón que no cubre los casos no da cobertura", () => {

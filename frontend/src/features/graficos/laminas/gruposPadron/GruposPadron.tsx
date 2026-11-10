@@ -50,7 +50,8 @@ export function GruposPadron({ args, cruce, opciones, scope, onCambio }: Props) 
   const lista = useRef<HTMLUListElement>(null);
   useFlipFilas(lista, vistas.map((f) => f.codigo).join("|"));
   const chico = notaGrupoChico(incluidos, unidadDeCruce(cruce));
-  const base = lineaBase(incluidos);
+  const unidad = unidadDeCruce(cruce);
+  const base = lineaBase(incluidos, unidad === "casos" ? null : unidad);
   const diferencia = textoDiferencia(incluidos);
   // Alt+Flecha arriba/abajo desde cualquier control de la fila mueve el grupo en la lámina.
   const alTeclear = (codigo: string, incluido: boolean) => (e: KeyboardEvent<HTMLLIElement>) => {
