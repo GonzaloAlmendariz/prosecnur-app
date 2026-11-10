@@ -137,6 +137,7 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
 - [L36: DOC.0: dirección del cuestionario impreso](l36-doc0-direccion-cuestionario-2026-11-01.md): propuesta de diseño. Autoridad: Criterio delegado por Gonzalo ("avanza con tu criterio", ronda de 10 preguntas del 2026-11-01) a la sesión de unidades de la maqueta de Meta B.
 - [Plan: revamp de Hojas de ruta con el mapa como lienzo (2026-10-29)](plan-revamp-hojas-mapa-2026-10-29.md): plan de implementación. Autoridad: prototipo aprobado por Gonzalo (versión 8 del artefacto) y su checklist del 2026-10-28.
 - [Propuesta: el historial de ruteos deja de guardar la muestra entera](propuesta-route-history-2026-10-30.md): propuesta de diseño. Autoridad: Loop de Hojas de ruta, pendiente de fondo de `checklist-flujo-analista-2026-10-30.md`; revisada por `guardian-contratos` el 2026-10-30.
+- [Total y diferencias en una sola lámina: evaluación y maqueta](maqueta-total-con-diferencias-2026-11-03/propuesta.md): propuesta de diseño de las tarjetas de diferencias del ADR 0129, con las variantes descartadas y las indicaciones de Gonzalo; sin cifras del estudio.
 
 ## En curso
 
