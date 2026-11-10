@@ -772,12 +772,13 @@ mount_hojas_ruta <- function(pr) {
         total_poblacion = summary$total_poblacion,
         n_territorios = summary$n_territorios,
         n_cells = summary$n_cells
-      )
+      ), meta)
     })) |>
     plumber::pr_post("/api/hojas-ruta/quota-preview", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       parsed <- .hojas_ruta_parse_body(req)
-      cfg <- hojas_ruta_integrada_normalize_config(parsed$config %||% parsed)
+      # Con la lógica «Calculado» las cuotas reparten el N del cálculo, no el guardado (hojas_ruta_n_calculado.R).
+      cfg <- hojas_ruta_n_calculado(hojas_ruta_integrada_normalize_config(parsed$config %||% parsed))
       active <- .hojas_ruta_active_run(sid)
       .hojas_ruta_save_run(sid, active$phase, config = cfg)
       result <- hojas_ruta_quota_preview_integrado(cfg)
@@ -797,6 +798,13 @@ mount_hojas_ruta <- function(pr) {
       active <- .hojas_ruta_active_run(sid)
       .hojas_ruta_save_run(sid, active$phase, config = cfg)
       result <- hojas_ruta_sample_size_preview(cfg)
+      # Con la lógica «Calculado» el N del cálculo queda en la config: se guardaba antes de calcular y `n_objetivo`
+      # conservaba el valor anterior (hojas_ruta_n_calculado.R).
+      n_calc <- suppressWarnings(as.integer(result$n_used %||% NA_integer_))
+      if (identical(cfg$sample_size_mode, "calculator") && length(n_calc) == 1L && !is.na(n_calc) && n_calc > 0L && !identical(as.integer(cfg$n_objetivo), n_calc)) {
+        cfg$n_objetivo <- n_calc
+        .hojas_ruta_save_run(sid, active$phase, config = cfg)
+      }
       # ADR 0116: visitas, contactos, procedencia del DEFF y sus avisos.
       result <- hojas_ruta_tamano_extras_completar(result, cfg)
       .hojas_ruta_bitacora_intentar(sid, "tamano_calculado", sprintf(
@@ -814,7 +822,9 @@ mount_hojas_ruta <- function(pr) {
     plumber::pr_post("/api/hojas-ruta/sample-preview", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       parsed <- .hojas_ruta_parse_body(req)
-      cfg <- hojas_ruta_integrada_normalize_config(parsed$config %||% parsed)
+      # El sorteo con lógica «Calculado» usa el N del cálculo: con el guardado sorteaba 20 UMP donde el diseño
+      # decía 402 rutas (hojas_ruta_n_calculado.R).
+      cfg <- hojas_ruta_n_calculado(hojas_ruta_integrada_normalize_config(parsed$config %||% parsed))
       active <- .hojas_ruta_active_run(sid)
       marco_anterior <- active$run$config$marco_elegible %||% NULL
       .hojas_ruta_save_run(sid, active$phase, config = cfg)

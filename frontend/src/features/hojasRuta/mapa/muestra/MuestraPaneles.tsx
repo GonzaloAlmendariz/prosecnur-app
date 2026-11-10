@@ -103,10 +103,20 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
             <PulsoButton variant="secondary" disabled={!hayMuestra && !hayTamano} aria-pressed={cajonMuestra} onClick={() => setCajonMuestra(!cajonMuestra)}>
               {cajonMuestra ? "Ocultar cuotas" : "Ver cuotas"}
             </PulsoButton>
-            {/* Por cuotas no hay sorteo de manzanas: lo que sigue es enviar las zonas (ADR 0125 §2). */}
-            <PulsoButton variant="primary" disabled={!hayMuestra} onClick={() => nav.irA("seccion", nav.modo === "cuotas" ? "seleccion" : "manzanas")}>
-              {nav.modo === "cuotas" ? "Ir a la entrega" : "Ir al sorteo"}
-            </PulsoButton>
+            {/* Sin tamaño calculado (calcular la matriz de Población lo descarta) el pie se quedaba con dos botones
+                apagados y Manzanas pedía «Primero calcula el tamaño en Muestra»: el siguiente paso es calcularlo
+                (revisión del 10 nov 2026, diseño nacional TCD). */}
+            {!hayTamano && !hayMuestra ? (
+              <PulsoButton variant="primary" disabled={bloqueado || guardando || !r.multiploDeRuta || !r.filas.length || !(ruta > 0)} onClick={onGuardar}>
+                {guardando ? "Calculando…" : "Calcular el tamaño"}
+              </PulsoButton>
+            ) : (
+              // Por cuotas no hay sorteo de manzanas: lo que sigue es enviar las zonas (ADR 0125 §2).
+              // Con el tamaño basta: Manzanas sortea con él (`listoParaSortear`), no necesita cuotas previas.
+              <PulsoButton variant="primary" disabled={!hayMuestra && !hayTamano} onClick={() => nav.irA("seccion", nav.modo === "cuotas" ? "seleccion" : "manzanas")}>
+                {nav.modo === "cuotas" ? "Ir a la entrega" : "Ir al sorteo"}
+              </PulsoButton>
+            )}
           </>
         )}
       </footer>
