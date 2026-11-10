@@ -524,19 +524,20 @@ Gonzalo pidió implementar la propuesta en un loop indefinido con un tick cada 5
 | 3 | Una pantalla se da por buena cuando iguala a su prototipo en los cinco tamaños, mirando la captura, y pasa typecheck, las pruebas de su área y el Contrato de Superficie C1 a C4 | Es la vara que la propuesta ya usó en el prototipo |
 | 4 | Validación va al final | Otra sesión tiene sin commitear cuatro archivos de esa sección |
 | 5 | La pestaña Matrices no se borra sin su confirmación | Borrar una página exige doble confirmación y un ADR aceptado |
+| 6 | En Carga no se añade el selector de base de la banda, aunque el prototipo lo dibuja | El código tiene una regla escrita: todas las secciones llevan selector de base menos Carga, que es donde se dan de alta |
 
 **Tablero de implementación.**
 
 | Etapa | Alcance | Estado |
 |---|---|---|
 | P0 | Preparación: inventario de qué componente renderiza hoy cada pestaña, archivos congelados, línea base de gates y ADR propuesto del mapa de pestañas | hecho el 2026-11-10: ADR 0142 en Propuesto; typecheck en verde; contratos transversales 811 de 812, con un rojo ajeno (comillas angulares en dos archivos de Validación que otra sesión tiene sin commitear) |
-| P1 | Piezas compartidas, en archivos nuevos: franja de recorrido, frase de regla con ficha de pregunta, pie con efecto, cifra de hallazgo y bloque de error con identificador. El esqueleto, la barra de avance, el sondeo de trabajos y el estado vacío ya existen en el kit y se reutilizan | siguiente |
-| P2 | Columna común: cabecera de pestaña con tira de cifras, base activa única y "Estado del estudio" | pendiente |
+| P1 | Piezas compartidas del kit, en `frontend/src/components/procesamiento/`: franja de recorrido, ficha de pregunta, frase de regla, pie con efecto y cifra de hallazgo. El error con causa es una extensión compatible de `ErrorBlock`. El esqueleto, la barra de avance, el sondeo de trabajos y el estado vacío ya existían y se reutilizan | hecho el 2026-11-10: 39 pruebas, typecheck en verde, contratos transversales 812 de 813 con el mismo rojo ajeno, veredicto PASA del verificador. Sin ver dentro de la app: se montan desde P2 |
+| P2 | Columna común: cifras de cabecera sin repetir, selector de base común en Validación y Codificación, y "Estado del estudio" con lo que la app ya expone | siguiente. La cabecera con cifras y el selector común ya existen en el kit; la matriz de bases por fases espera a M8 |
 | P3 | Codificación: Preguntas, Codificar (tarjetas y tabla) y Aplicar | pendiente; el retiro de Matrices está bloqueado por la decisión 5 |
 | P4 | Carga: Bases, Revisión, Variables, Equivalencias, Formulario, Respuestas y el panel de actualizar | pendiente |
 | P5 | Analítica: las ocho pestañas en tres grupos | pendiente |
 | P6 | Validación: Explorar, Reglas con su panel, Hallazgos por tipo y Cierre | en espera por la decisión 4 |
 | P7 | Estados de carga, trabajo en curso y error en las cuatro secciones | pendiente |
-| M1 a M7 | Motor: conteo previo de una regla, caso completo, pareja de las respuestas casi iguales, D8, D12, D13 y D9 | pendiente |
+| M1 a M8 | Motor: conteo previo de una regla, caso completo, pareja de las respuestas casi iguales, D8, D12, D13, D9 y el estado de cada base por fase | pendiente |
 
 **Pendiente de Gonzalo:** aceptar el ADR 0142, que retira diez direcciones de pestaña, entre ellas Matrices. Mientras esté en Propuesto no se borra ninguna.

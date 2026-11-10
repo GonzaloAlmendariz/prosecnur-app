@@ -119,6 +119,134 @@
   white-space: nowrap;
 }
 
+/* --- ErrorBlock con causa (ADR 0142, etapa P1) ------------------------------
+   La forma centrada del mismo bloque: emblema, qué pasó, por qué, qué no cambió,
+   acciones e identificador copiable. `en-superficie` no dibuja marco (es de la
+   superficie que lo contiene, como el vacío); `enmarcado` trae el suyo. Las
+   reglas de arriba, las de la franja compacta, no cambian. */
+
+.pulso-error-block--con-causa {
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  box-sizing: border-box;
+  min-height: 280px;
+  min-width: 0;
+  padding: var(--pulso-space-7) var(--pulso-space-6);
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  text-align: center;
+}
+
+.pulso-error-block--con-causa[data-variante="enmarcado"] {
+  flex: 0 0 auto;
+  min-height: 0;
+  padding: var(--pulso-space-5) var(--pulso-space-4);
+  border: 1px solid var(--pulso-danger-border);
+  border-radius: var(--pulso-radius-card);
+  background: color-mix(in srgb, var(--pulso-danger-bg) 40%, var(--pulso-surface));
+}
+
+.pulso-error-block-mensaje {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.pulso-error-block-emblema {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 48px;
+  height: 48px;
+  margin-bottom: var(--pulso-space-2);
+  border: 1px solid var(--pulso-danger-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-error-block-titulo {
+  max-width: 34ch;
+  font-size: var(--pulso-type-title-size);
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+.pulso-error-block-causa,
+.pulso-error-block-queda {
+  max-width: 44ch;
+  margin: 0;
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.5;
+}
+
+.pulso-error-block-causa {
+  color: var(--pulso-text-soft);
+}
+
+.pulso-error-block-queda {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-medium);
+  text-align: start;
+}
+
+.pulso-error-block-queda > svg {
+  flex: none;
+  color: var(--pulso-success-fg);
+  transform: translateY(2px);
+}
+
+.pulso-error-block-acciones {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-3);
+  max-width: 100%;
+  margin-top: var(--pulso-space-5);
+}
+
+.pulso-error-block-id {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  max-width: 100%;
+  margin-top: var(--pulso-space-4);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-error-block-id > code {
+  padding: 2px 7px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-control-radius);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  overflow-wrap: anywhere;
+}
+
+/* El aviso de la copia no reserva sitio: vacío, no deja hueco junto al botón. */
+.pulso-error-block-id-aviso:empty {
+  display: none;
+}
+
 /* --- EmptyState ------------------------------------------------------------ */
 
 .pulso-empty-state {

@@ -1,8 +1,11 @@
-import { AlertTriangle } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { AlertTriangle, Check, Copy } from "lucide-react";
 
 import { splitErrorDetail } from "./errorPresentation";
 import { BarraDeAvance } from "./BarraDeAvance";
+import { PulsoButton } from "./PulsoButton";
 import { IsotipoCarga } from "../app/marca/IsotipoCarga";
+import { copiarTexto } from "../lib/portapapeles";
 import "./states.css";
 
 // Componentes de estado compartidos entre editores. Antes vivían inline en
@@ -52,30 +55,119 @@ export function LoadingBlock({
 // Contrato de presentación de errores (identidad verbal v1.2): el heading
 // dice qué pasó en tono sereno; el detalle explica; el código `E_*` va al
 // final, en mono y atenuado — nunca encabezando ni como único contenido.
+//
+// Error con causa (ADR 0142, etapa P1). Con `causa`, `queda`, `acciones` o
+// `identificador` el mismo bloque pasa a su forma centrada: emblema, qué pasó,
+// por qué, qué no cambió (con check), acciones e identificador copiable. Sin
+// ninguna de esas props rinde EXACTAMENTE como antes: la franja compacta.
+export type ErrorBlockProps = {
+  label?: string;
+  detail?: string;
+  /** Por qué pasó, en una frase. Si falta, se usa el mensaje de `detail`. */
+  causa?: ReactNode;
+  /** Qué no cambió: va con un check ("La base sigue como estaba"). */
+  queda?: ReactNode;
+  /** Botones para salir del error: reintentar, volver a conectar. */
+  acciones?: ReactNode;
+  /** Identificador del error para soporte. Se muestra con un botón que lo copia. */
+  identificador?: string;
+  /**
+   * Solo en la forma con causa. `en-superficie` (por defecto): centrado y sin
+   * marco, que es de la superficie que lo contiene. `enmarcado`: con su propio
+   * marco, para ir entre otros bloques (un panel lateral).
+   */
+  variante?: "en-superficie" | "enmarcado";
+};
+
 export function ErrorBlock({
   label,
   detail,
-}: {
-  label?: string;
-  detail?: string;
-}) {
+  causa,
+  queda,
+  acciones,
+  identificador,
+  variante = "en-superficie",
+}: ErrorBlockProps) {
+  // Qué identificador se intentó copiar y si se pudo: al cambiar de error, el aviso no se arrastra.
+  const [copia, setCopia] = useState<{ id: string; lograda: boolean } | null>(null);
   const parsed = detail ? splitErrorDetail(detail) : null;
+  const conCausa = causa != null || queda != null || acciones != null || Boolean(identificador);
+
+  if (!conCausa) {
+    return (
+      <div role="alert" className="pulso-error-block">
+        <span className="pulso-error-block-icon" aria-hidden="true">
+          <AlertTriangle size={14} />
+        </span>
+        <span className="pulso-error-block-copy">
+          <strong>{label ?? "No se pudo completar"}</strong>
+          {parsed && (
+            <span className="pulso-error-block-detail">
+              {parsed.message}
+              {parsed.code && (
+                <code className="pulso-error-block-code">{parsed.code}</code>
+              )}
+            </span>
+          )}
+        </span>
+      </div>
+    );
+  }
+
+  const copiaDeEste = copia && copia.id === identificador ? copia : null;
+  const copiado = copiaDeEste?.lograda === true;
+  const explicacion = causa ?? parsed?.message;
   return (
-    <div role="alert" className="pulso-error-block">
-      <span className="pulso-error-block-icon" aria-hidden="true">
-        <AlertTriangle size={14} />
-      </span>
-      <span className="pulso-error-block-copy">
-        <strong>{label ?? "No se pudo completar"}</strong>
-        {parsed && (
-          <span className="pulso-error-block-detail">
-            {parsed.message}
-            {parsed.code && (
-              <code className="pulso-error-block-code">{parsed.code}</code>
-            )}
+    <div
+      className="pulso-error-block pulso-error-block--con-causa"
+      data-variante={variante}
+      // Como en EmptyState: la altura mínima de la forma en superficie es capacidad
+      // reservada a propósito y su contenido es fijo y centrado. La enmarcada mide lo suyo.
+      data-qa-geometry-capacity={variante === "en-superficie" ? "owned" : undefined}
+    >
+      {/* Solo el mensaje es la alerta: las acciones y el identificador quedan fuera para que
+          copiar no haga releer el error entero. */}
+      <div className="pulso-error-block-mensaje" role="alert">
+        <span className="pulso-error-block-emblema" aria-hidden="true">
+          <AlertTriangle size={20} />
+        </span>
+        <strong className="pulso-error-block-titulo">{label ?? "No se pudo completar"}</strong>
+        {explicacion || parsed?.code ? (
+          <p className="pulso-error-block-causa">
+            {explicacion}
+            {parsed?.code && <code className="pulso-error-block-code">{parsed.code}</code>}
+          </p>
+        ) : null}
+        {queda != null ? (
+          <p className="pulso-error-block-queda">
+            <Check size={13} aria-hidden="true" />
+            <span>{queda}</span>
+          </p>
+        ) : null}
+      </div>
+      {acciones != null ? <div className="pulso-error-block-acciones">{acciones}</div> : null}
+      {identificador ? (
+        <div className="pulso-error-block-id">
+          <span>Identificador del error</span>
+          <code>{identificador}</code>
+          <PulsoButton
+            variant="icon"
+            size="sm"
+            aria-label={copiado ? "Identificador copiado" : "Copiar el identificador"}
+            onClick={() => {
+              copiarTexto(identificador).then(
+                () => setCopia({ id: identificador, lograda: true }),
+                () => setCopia({ id: identificador, lograda: false }),
+              );
+            }}
+          >
+            {copiado ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
+          </PulsoButton>
+          <span className="pulso-error-block-id-aviso" role="status">
+            {copiaDeEste ? (copiaDeEste.lograda ? "Copiado" : "No se pudo copiar") : null}
           </span>
-        )}
-      </span>
+        </div>
+      ) : null}
     </div>
   );
 }
