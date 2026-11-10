@@ -36,6 +36,9 @@ vi.mock("../../../../hooks/useJob", async (importOriginal) => ({
     return () => undefined;
   },
 }));
+// El nombre del CSV lleva el código de la Ficha del estudio (ADR 0133 §3).
+vi.mock("../../../../api/planner", () => ({ apiPlannerEstado: async () => ({ planner: { estudio: { codigo: "HSVG2026" } } }) }));
+vi.mock("../../../../api/workspace", () => ({ apiProjectStatus: async () => ({ path: "/Users/ana/hsvg.pulso" }) }));
 vi.mock("../../../../api/hojasRuta", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../../api/hojasRuta")>()),
   apiHojasRutaReporteDecisionalIniciar: espia.informe,
@@ -44,6 +47,7 @@ vi.mock("../../../../api/hojasRuta", async (importOriginal) => ({
 
 const { ApiError } = await import("../../../../api/core");
 const { useBandejaEntregables } = await import("../../../../components/entregables/bandejaStore");
+const { fechaDelNombre } = await import("../../../../components/entregables/archivoLocal");
 const { InformeDiseno } = await import("../seleccion/InformeDiseno");
 const { HojaDelDia } = await import("../seleccion/HojaDelDia");
 const { PoblacionCajon } = await import("../poblacion/PoblacionCajon");
@@ -155,13 +159,16 @@ describe("anclada: el Excel de la matriz poblacional bajo el menú «Descargar»
     const enCurso = contenedor("anclada");
     expect(enCurso?.dataset.entregableFase).toBe("en_curso");
     expect(enCurso?.parentElement?.classList.contains("hr-entrega-anclaje")).toBe(true);
-    expect(boton("Descargar la matriz: Descargar")).toBeTruthy();
+    // Una sola señal: el disparador del menú se deshabilita y conserva su rótulo.
+    expect(boton("Descargar la matriz: Descargar").disabled).toBe(true);
+    expect(boton("Descargar la matriz: Descargar").textContent).toBe("Descargar");
     sinResaltadoNiSpinner(enCurso as HTMLElement);
 
     await act(async () => { d.resolver({ ok: true, file_id: "m1", filename: "HSVG2026_Matriz_poblacional_10_11_26.xlsx", size: [2048] }); await d.promesa; });
     const lista = contenedor("anclada");
     expect(lista?.dataset.entregableFase).toBe("lista");
     expect(lista?.textContent).toContain("2 KB");
+    expect(boton("Descargar la matriz: Descargar").disabled).toBe(false);
     sinResaltadoNiSpinner(lista as HTMLElement);
   });
 
@@ -203,10 +210,11 @@ describe("anclada: el CSV de esta vista, armado en el front", () => {
     expect(espia.matriz).not.toHaveBeenCalled();
     const lista = contenedor("anclada");
     expect(lista?.dataset.entregableFase).toBe("lista");
-    expect(lista?.textContent).toContain("matriz-poblacional.csv");
+    const nombre = `HSVG2026_Matriz_poblacional_${fechaDelNombre()}.csv`;
+    expect(lista?.textContent).toContain(nombre);
     expect(lista?.parentElement?.classList.contains("hr-entrega-anclaje")).toBe(true);
     sinResaltadoNiSpinner(lista as HTMLElement);
-    expect(espia.descargar).toHaveBeenCalledWith(expect.any(String), "matriz-poblacional.csv");
+    expect(espia.descargar).toHaveBeenCalledWith(expect.any(String), nombre);
   });
 });
 

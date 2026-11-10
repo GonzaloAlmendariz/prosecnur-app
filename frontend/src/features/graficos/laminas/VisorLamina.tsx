@@ -3,8 +3,8 @@
 // imagen, zoom y tira de miniaturas (parte 2); guías por capas encima de la hoja (plan F6 §8, `guias/`).
 //
 // "Descargar esta lámina en PowerPoint" entrega por el kit (ADR 0133, fase 5): el archivo es el PPTX que el motor ya
-// armó para la vista previa; su contenedor flota bajo la barra, alineado a su borde derecho (forma anclada). No vive
-// dentro de la barra porque esta recorta lo que se sale (`overflow: hidden`).
+// armó para la vista previa; su contenedor flota bajo la barra, alineado al borde derecho del botón (forma anclada).
+// No vive dentro de la barra porque esta recorta lo que se sale (`overflow: hidden`).
 
 import { useMemo, useRef, type CSSProperties, type KeyboardEvent, type ReactNode, type RefObject } from "react";
 import {
@@ -48,6 +48,7 @@ import type { RanuraSobreLamina } from "./ranurasLamina";
 import { BotonGuias } from "./guias/BotonGuias";
 import { GuiasSobreLamina } from "./guias/GuiasSobreLamina";
 import { useGuiasUi } from "./guias/guiasStore";
+import { useEjeDeEntrega } from "./ejeDeEntrega";
 import { construirGuias, rolesPresentes } from "./guias/modeloGuias";
 import { presentacionPreview } from "./presentacionPreview";
 import { useTituloEnLienzo } from "./modeloTituloLienzo";
@@ -108,6 +109,7 @@ export function VisorLamina({
 }: Props) {
   const descarga = useGeneracion({ titulo: "Lámina en PowerPoint", modulo: "Procesamiento", formato: "pptx", articulo: "la" });
   const descargando = descarga.estado.fase === "en_curso";
+  const eje = useEjeDeEntrega(descarga.estado.fase !== "inactiva");
   const zoom = useLaminasUi((s) => s.zoom);
   const setZoom = useLaminasUi((s) => s.setZoom);
   const tiraVisible = useLaminasUi((s) => s.tiraVisible);
@@ -235,13 +237,16 @@ export function VisorLamina({
           // La descarga pasa por el kit de entregables (ADR 0133): es un botón del kit con la piel del ícono quieto.
           <PulsoButton
             variant="icon"
+            ref={eje.disparador}
             aria-label="Descargar esta lámina en PowerPoint"
             title="Descargar esta lámina en PowerPoint"
             disabled={descargando}
             onClick={() => {
               const fileId = l.fileId;
               if (!fileId) return;
-              void descarga.ejecutar(async () => ({ file_id: fileId, filename: nombreDeLaLamina(lamina.posicion) }), {
+              // El nombre y el peso que registró el motor: lo que el contenedor muestra es lo que baja (H4).
+              const archivo = { file_id: fileId, filename: l.nombreArchivo ?? nombreDeLaLamina(lamina.posicion), size: l.tamano };
+              void descarga.ejecutar(async () => archivo, {
                 titulo: `Lámina ${lamina.posicion} en PowerPoint`,
               });
             }}
@@ -303,9 +308,10 @@ export function VisorLamina({
         </BotonConTecla>
       </header>
 
-      {/* Ancla de la forma anclada: una franja sin alto bajo la barra; el contenedor flota sobre el lienzo. */}
+      {/* Ancla de la forma anclada: una franja sin alto bajo la barra; el contenedor flota sobre el lienzo, con su
+          borde derecho en el del botón de descarga (`useEjeDeEntrega`). */}
       {descarga.estado.fase !== "inactiva" && (
-        <div className="pulso-f6-visor-entrega">
+        <div className="pulso-f6-visor-entrega" ref={eje.ancla} style={eje.estilo}>
           <ContenedorEntregable estado={descarga.estado} forma="anclada" onCerrar={descarga.cerrar} />
         </div>
       )}
@@ -369,7 +375,7 @@ export function VisorLamina({
   );
 }
 
-/** Nombre del PPTX de una lámina. El motor no lo informa en `/preview-slide`; mientras tanto, el de siempre. */
+/** Nombre del PPTX de una lámina con un backend que no informa `filename` en `/preview-slide`. */
 export function nombreDeLaLamina(posicion: number): string {
   return `lamina-${posicion}.pptx`;
 }

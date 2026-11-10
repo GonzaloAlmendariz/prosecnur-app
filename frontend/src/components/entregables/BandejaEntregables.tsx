@@ -12,6 +12,7 @@ import { useOptionalSession } from "../../lib/SessionContext";
 import { carpetaDelEntregable } from "../../api/jobs";
 import { Popover } from "../Popover";
 import { AccionesArchivo } from "./AccionesArchivo";
+import { NombreArchivo } from "./NombreArchivo";
 import { resumenBandeja, useBandejaEntregables, type EntradaBandeja } from "./bandejaStore";
 import { carpetaDeRuta, comoQuedo, textoDelAvance } from "./generacionModelo";
 import { TileFormato } from "./TileFormato";
@@ -39,9 +40,9 @@ function ItemBandeja({ entrada }: { entrada: EntradaBandeja }) {
     <li className="pulso-entregable-bandeja-item" data-entregable-fase={estado.fase} data-qa-geometry-member="true">
       {estado.fase === "fallo"
         ? <AlertCircle size={14} className="pulso-entregable-alerta" aria-hidden="true" />
-        : <TileFormato formato={archivo?.formato ?? null} chico />}
+        : <TileFormato formato={archivo?.formato ?? (estado.fase === "en_curso" ? estado.formato ?? null : null)} chico />}
       <div className="pulso-entregable-cuerpo">
-        <div className="pulso-entregable-nombre">{archivo?.nombre ?? estado.titulo}</div>
+        {archivo ? <NombreArchivo nombre={archivo.nombre} /> : <div className="pulso-entregable-nombre">{estado.titulo}</div>}
         <div className="pulso-entregable-meta"><span>{detalle}</span></div>
       </div>
       {archivo && estado.fase === "lista" && (

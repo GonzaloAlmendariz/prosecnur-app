@@ -373,6 +373,11 @@
 # -----------------------------------------------------------------------------
 # Builder principal
 # -----------------------------------------------------------------------------
+# Un texto de una sola pieza que se puede imprimir: ni NULL, ni NA, ni vacío.
+.report_html_texto_presente <- function(x) {
+  length(x) == 1L && !is.na(x) && nzchar(trimws(as.character(x)))
+}
+
 build_report_html <- function(scope,
                                base_nombre = NULL,
                                estudio_nombre = NULL,
@@ -383,11 +388,11 @@ build_report_html <- function(scope,
   title <- "Reporte de validación"
   meta_line <- paste(
     c(
-      if (!is.null(estudio_nombre) && nzchar(estudio_nombre)) paste("Estudio:", estudio_nombre),
-      if (!is.null(base_nombre) && nzchar(base_nombre)) paste("Base:", base_nombre),
+      if (.report_html_texto_presente(estudio_nombre)) paste("Estudio:", estudio_nombre),
+      if (.report_html_texto_presente(base_nombre)) paste("Base:", base_nombre),
       format(generated_at, "%Y-%m-%d %H:%M")
     ),
-    collapse = " · "
+    collapse = ", "
   )
 
   version_app <- tryCatch(

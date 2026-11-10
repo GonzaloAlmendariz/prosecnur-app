@@ -26,6 +26,7 @@ import { carpetaDelEntregable } from "../../api/jobs";
 import { copiarTexto } from "../../lib/portapapeles";
 import { toast } from "../toasterStore";
 import { AccionesArchivo } from "./AccionesArchivo";
+import { NombreArchivo } from "./NombreArchivo";
 import { carpetaDeRuta, comoQuedo, pesoLegible, textoDelAvance } from "./generacionModelo";
 import { TileFormato } from "./TileFormato";
 import type { AlineacionAnclada, ArchivoEntregable, EstadoGeneracion, FormaContenedor } from "./tipos";
@@ -90,7 +91,7 @@ function FilaArchivo({ archivo, rutaDescargada, sinDescargar }: { archivo: Archi
     <li className="pulso-entregable-fila" data-qa-geometry-member="true">
       <TileFormato formato={archivo.formato} />
       <div className="pulso-entregable-cuerpo">
-        <div className="pulso-entregable-nombre">{archivo.nombre}</div>
+        <NombreArchivo nombre={archivo.nombre} />
         <MetaArchivo archivo={archivo} rutaDescargada={rutaDescargada} sinDescargar={sinDescargar} />
         {archivo.avisoGuardado && <p className="pulso-entregable-nota">{archivo.avisoGuardado}</p>}
       </div>

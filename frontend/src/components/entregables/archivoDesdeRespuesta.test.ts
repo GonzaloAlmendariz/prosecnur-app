@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { ApiError } from "../../api/core";
-import { archivoDesdeRespuesta, formatoDelNombre } from "./archivoDesdeRespuesta";
+import { archivoDesdeRespuesta, formatoDelNombre, nombreDeRuta } from "./archivoDesdeRespuesta";
 import {
   avanceDelJob, carpetaDeRuta, coincideDescarga, errorDelResultado, errorLegible, jobIdDeInicio, nombreDelFallo, pesoLegible,
-  textoDelAvance,
+  textoDelAvance, tramosDelNombre,
 } from "./generacionModelo";
 
 const CARPETA = "C:\\Users\\ana\\Estudios\\HSVG2026\\Entregables\\Procesamiento";
@@ -23,6 +23,30 @@ describe("archivoDesdeRespuesta", () => {
       modulo: "Procesamiento",
       rotulo: "Frecuencias",
     }]);
+  });
+
+  it("con copia junto al proyecto, el nombre es el de la copia (el _2 que puso para no pisar), en Windows y en POSIX", () => {
+    const [win] = archivoDesdeRespuesta({
+      file_id: "f1", filename: "HSVG2026_Frecuencias_07_11_26.xlsx", size: 10,
+      guardado_en: `${CARPETA}\\HSVG2026_Frecuencias_07_11_26_2.xlsx`,
+    });
+    expect(win).toMatchObject({ nombre: "HSVG2026_Frecuencias_07_11_26_2.xlsx", formato: "xlsx" });
+    const [posix] = archivoDesdeRespuesta({
+      file_id: "f2", filename: "HSVG2026_Informe_07_11_26.pptx",
+      guardado_en: "/Users/ana/Estudios/HSVG2026/Entregables/Procesamiento/HSVG2026_Informe_07_11_26_2.pptx",
+    });
+    expect(posix).toMatchObject({ nombre: "HSVG2026_Informe_07_11_26_2.pptx", formato: "pptx" });
+    // Sin copia, el nombre del motor.
+    expect(archivoDesdeRespuesta({ file_id: "f3", filename: "HSVG2026_Cruces_07_11_26.xlsx" })[0].nombre).toBe("HSVG2026_Cruces_07_11_26.xlsx");
+  });
+
+  it("nombreDeRuta corta por / y por \\, y no inventa un nombre de una ruta vacía", () => {
+    expect(nombreDeRuta("C:\\Users\\ana\\x_2.xlsx")).toBe("x_2.xlsx");
+    expect(nombreDeRuta("/Users/ana/x_2.xlsx")).toBe("x_2.xlsx");
+    expect(nombreDeRuta("C:\\Users/ana\\mixta/x.pdf")).toBe("x.pdf");
+    expect(nombreDeRuta("")).toBeNull();
+    expect(nombreDeRuta(null)).toBeNull();
+    expect(nombreDeRuta("/")).toBeNull();
   });
 
   it("varias bases: el entregable es el ZIP (lo único que se copia)", () => {
@@ -126,5 +150,18 @@ describe("modelo de la generación", () => {
     expect(pesoLegible(null)).toBeNull();
     expect(carpetaDeRuta("C:\\Users\\ana\\Downloads\\a.xlsx")).toBe("C:\\Users\\ana\\Downloads");
     expect(carpetaDeRuta("/Users/ana/Downloads/a.xlsx")).toBe("/Users/ana/Downloads");
+  });
+
+  it("tramosDelNombre parte tras cada _ y deja la fecha, el _N de la copia y la extensión juntos", () => {
+    expect(tramosDelNombre("acnur_acg_Matriz_poblacional_10_11_26.xlsx"))
+      .toEqual(["acnur_", "acg_", "Matriz_", "poblacional_", "10_11_26.xlsx"]);
+    expect(tramosDelNombre("acnur_acg_Matriz_poblacional_10_11_26_4.xlsx"))
+      .toEqual(["acnur_", "acg_", "Matriz_", "poblacional_", "10_11_26_4.xlsx"]);
+    expect(tramosDelNombre("Plan_de_graficos_10_11_26.pulso-graficos.zip"))
+      .toEqual(["Plan_", "de_", "graficos_", "10_11_26.pulso-graficos.zip"]);
+    expect(tramosDelNombre("guia_informe.md")).toEqual(["guia_", "informe.md"]);
+    expect(tramosDelNombre("Informe.pptx")).toEqual(["Informe.pptx"]);
+    expect(tramosDelNombre("a__b")).toEqual(["a_", "_", "b"]);
+    expect(tramosDelNombre("").join("")).toBe("");
   });
 });

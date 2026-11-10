@@ -25,6 +25,15 @@ describe("leerLaminaVisor", () => {
     expect(l.renderer).toBe("soffice+pdftools");
     expect(l.sinImagen).toBe(false);
     expect(l.fileId).toBe("f");
+    // Sin `filename` (backend viejo) no se inventa un nombre.
+    expect(l.nombreArchivo).toBeNull();
+    expect(l.tamano).toBe(1);
+  });
+
+  it("lleva el nombre y el peso que registró el motor: el contenedor muestra lo que baja", () => {
+    const l = leerLaminaVisor({ ...base, filename: " acnur_acg_Vista_previa_de_lamina_10_11_26.pptx ", size: 48213 });
+    expect(l.nombreArchivo).toBe("acnur_acg_Vista_previa_de_lamina_10_11_26.pptx");
+    expect(l.tamano).toBe(48213);
   });
 
   it("acepta escalares de auto_unbox y huecos vacíos", () => {

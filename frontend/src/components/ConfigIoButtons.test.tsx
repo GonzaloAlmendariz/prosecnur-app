@@ -12,6 +12,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const espia = vi.hoisted(() => ({ descargar: vi.fn() }));
 vi.mock("../lib/descargas", () => ({ descargarArchivo: espia.descargar }));
+vi.mock("../api/planner", () => ({ apiPlannerEstado: async () => ({ planner: { estudio: { codigo: "acnur_acg" } } }) }));
+vi.mock("../api/workspace", () => ({ apiProjectStatus: async () => ({ path: "/Users/ana/acnur.pulso" }) }));
 
 const { ConfigIoButtons } = await import("./ConfigIoButtons");
 const { useBandejaEntregables } = await import("./entregables/bandejaStore");
@@ -80,6 +82,17 @@ describe("exportar: bloque del kit con un JSON armado en el front", () => {
     expect(host.querySelectorAll(".pulso-button--primary")).toHaveLength(0);
     // Ya no hay chip "Exportado ✓": el contenedor dice cómo quedó el archivo.
     expect(host.querySelector(".pulso-config-io-estado")).toBeNull();
+  });
+
+  it("con `entregable`, el nombre sigue la regla del motor con el código del estudio", async () => {
+    await act(async () => {
+      root.render(<ConfigIoButtons onExport={async () => ({ a: 1 })} onImport={vi.fn()} entregable="Plantilla de analítica" filenamePrefix="viejo" />);
+    });
+    await act(async () => { boton("Exportar JSON").click(); });
+    await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    const nombre = `acnur_acg_Plantilla_de_analitica_${fechaDelNombre()}.json`;
+    expect(host.querySelector("[data-entregable-forma='bloque']")?.textContent).toContain(nombre);
+    expect(espia.descargar).toHaveBeenCalledWith("blob:config", nombre);
   });
 
   it("un fallo al armar el payload se dice en el contenedor con Reintentar", async () => {

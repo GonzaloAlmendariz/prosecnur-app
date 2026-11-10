@@ -149,11 +149,13 @@ export function AdaptarAplicacionVista({
             <FileSpreadsheet size={13} /> Revisar matrices
           </button>
           <div style={{ flex: 1 }} />
-          {/* Región viva siempre montada: el lector anuncia el cambio de texto. */}
+          {/* Región viva siempre montada y sólo para el lector: anuncia el cambio de texto y recibe el foco al
+              pulsar. En pantalla la única señal es la línea del contenedor, debajo; un texto al lado del
+              botón era una segunda. */}
           <span
             ref={estadoRef}
             id={ID_ESTADO_ADAPTAR}
-            className="pulso-codif-adaptar-estado"
+            className="pulso-codif-adaptar-estado pulso-sr-only"
             role="status"
             aria-live="polite"
             tabIndex={-1}

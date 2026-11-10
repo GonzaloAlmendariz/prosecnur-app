@@ -98,6 +98,20 @@ describe("BandejaEntregables", () => {
     expect(document.querySelectorAll(".pulso-entregable-bandeja a")).toHaveLength(0);
   });
 
+  it("el ítem en curso lleva la sigla del formato declarado; el listo parte su nombre tras cada _", async () => {
+    useBandejaEntregables.getState().registrar(LISTA);
+    useBandejaEntregables.getState().registrar(entrada("d", { fase: "en_curso", titulo: "Libro de códigos", formato: "xlsx", porcentaje: null }));
+    await act(async () => { root.render(<BandejaEntregables />); });
+    await act(async () => { host.querySelector<HTMLButtonElement>(".pulso-entregable-bandeja-boton")?.click(); });
+    const [enCurso, lista] = Array.from(document.querySelectorAll<HTMLElement>(".pulso-entregable-bandeja-item"));
+    expect(enCurso.querySelector(".pulso-entregable-tile")?.textContent).toBe("XLSX");
+    expect(enCurso.querySelector(".pulso-entregable-nombre")?.textContent).toBe("Libro de códigos");
+    const nombre = lista.querySelector(".pulso-entregable-nombre");
+    expect(nombre?.textContent).toBe("HSVG2026_Frecuencias_07_11_26.xlsx");
+    // HSVG2026_ Frecuencias_ 07_11_26.xlsx: dos cortes posibles, la fecha con su extensión entera.
+    expect(nombre?.querySelectorAll("wbr")).toHaveLength(2);
+  });
+
   it("otra sesión (otro proyecto) vacía la bandeja", async () => {
     useBandejaEntregables.getState().registrar(LISTA);
     await act(async () => { root.render(<BandejaEntregables />); });

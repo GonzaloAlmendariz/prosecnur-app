@@ -132,3 +132,19 @@ export function pesoLegible(bytes: number | null | undefined): string | null {
 export function carpetaDeRuta(ruta: string): string {
   return ruta.replace(/[\\/][^\\/]*$/, "");
 }
+
+/** Cierre del nombre que el motor arma: la fecha `dd_mm_yy`, el `_N` de una copia que no pisó a otra y la extensión. */
+const CIERRE_DEL_NOMBRE = /\d{2}_\d{2}_\d{2}(?:_\d+)?\.[A-Za-z0-9.-]+$/;
+
+/**
+ * Tramos de un nombre de archivo donde puede partirse la línea: tras cada `_` del nombre, salvo en su cierre (la
+ * fecha, el `_N` de la copia y la extensión van juntos). `acnur_acg_Matriz_10_11_26_2.xlsx` → `acnur_`, `acg_`,
+ * `Matriz_`, `10_11_26_2.xlsx`. Un contenedor angosto parte entre tramos y no a media palabra ("26.xl" arriba y
+ * "sx" abajo) ni deja el `_2` solo en la línea siguiente.
+ */
+export function tramosDelNombre(nombre: string): string[] {
+  const cierre = CIERRE_DEL_NOMBRE.exec(nombre);
+  const cuerpo = cierre ? nombre.slice(0, cierre.index) : nombre;
+  const tramos = cuerpo.split(/(?<=_)/).filter(Boolean);
+  return cierre ? [...tramos, cierre[0]] : tramos;
+}

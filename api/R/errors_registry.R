@@ -730,6 +730,7 @@ errores_registrados <- function() {
     "E_LABEL_OVERRIDES_INVALIDAS",                           "label_overrides.R",                 "400",
     "E_LABEL_OVERRIDES_SIN_CHOICES",                         "label_overrides.R",                 "500",
     "E_LIMPIEZA_ACTION",                                     "limpieza_decision_engine.R",        "400",
+    "E_LIMPIEZA_BASE_VACIA",                                 "limpieza_cierre_base.R",            "409",
     "E_LIMPIEZA_DECISION_NOT_FOUND",                         "limpieza_decision_engine.R",        "404",
     "E_LIMPIEZA_HIERARCHY_MAP",                              "limpieza_decision_engine.R",        "400",
     "E_LIMPIEZA_PENDING",                                    "limpieza_decision_engine.R",        "409",

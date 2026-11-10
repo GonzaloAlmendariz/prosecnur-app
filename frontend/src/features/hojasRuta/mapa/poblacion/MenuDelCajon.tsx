@@ -20,11 +20,13 @@ export type OpcionDelMenu = {
   alElegir: () => void;
 };
 
-export function MenuDelCajon({ rotulo, icono, aria, opciones }: {
+export function MenuDelCajon({ rotulo, icono, aria, opciones, deshabilitado = false }: {
   rotulo: ReactNode;
   icono?: ReactNode;
   aria: string;
   opciones: readonly OpcionDelMenu[];
+  /** El disparador mismo se deshabilita (una descarga en curso): sólo eso, sin cambiar su rótulo. */
+  deshabilitado?: boolean;
 }) {
   // Cada elección cierra el menú: el que lo abrió ya obtuvo lo que pidió.
   const [elecciones, setElecciones] = useState(0);
@@ -37,7 +39,7 @@ export function MenuDelCajon({ rotulo, icono, aria, opciones }: {
       ariaLabel={aria}
       cerrarAlCambiar={elecciones}
       trigger={
-        <PulsoButton variant="secondary" size="sm" className="hr-cajon-menu-boton" data-con-icono={icono ? "" : undefined} aria-label={typeof rotulo === "string" ? `${aria}: ${rotulo}` : aria} title={aria}>
+        <PulsoButton variant="secondary" size="sm" className="hr-cajon-menu-boton" disabled={deshabilitado} data-con-icono={icono ? "" : undefined} aria-label={typeof rotulo === "string" ? `${aria}: ${rotulo}` : aria} title={aria}>
           {icono}
           <span className="hr-cajon-menu-rotulo">{rotulo}</span>
           <ChevronDown size={14} aria-hidden />
