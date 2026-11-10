@@ -346,6 +346,7 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
 - [Paquete: Territorio por ciudades en el lienzo de Hojas de ruta](plan-territorio-por-regiones-2026-10-29.md): plan de implementación. Autoridad: Encargo de Gonzalo. Amplía ADR 0119 (ciudades principales) y ADR 0114 (el mapa es el lienzo).
 - [Propuesta: pantalla de inicio y carga de Prosecnur: 2026-11-06](propuesta-fondo-carga-2026-11-06.md): propuesta de diseño. Autoridad: decisión de Gonzalo por el Recorrido sobre la propuesta visual del artefacto.
 - [Revamp de Material de campo: lo que hay que construir (v5, 2 nov 2026)](revamp-material-de-campo-construccion-2026-11-02.md): plan de implementación. Autoridad: diseño del artefacto "Material de campo, revamp" aprobado por Gonzalo; inventario del 2026-11-02 y ADR 0125.
+- [Checklist: las bases hijas siguen "Familia por base"](checklist-hija-repeat-familia-por-base-2026-11-10.md): diez ítems del motor de diferencias para bases hijas repeat en estudios de varias bases, con los valores esperados.
 
 ## Reemplazados
 
