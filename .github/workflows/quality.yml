@@ -26,37 +26,51 @@ env:
   PNPM_VERSION: '10'
 
 jobs:
+  # Topes de tiempo (diagnóstico del ciclo de release, 2026-11-10): ningún job
+  # tenía `timeout-minutes` y el run 41257157814 quedó 6 horas colgado en la
+  # descarga de Chromium. Cada tope deja holgura sobre el máximo medido en 100
+  # runs, incluidos los días en que Setup R tardó 20 minutos y apt 34.
   agentic-os:
     name: Agentic OS (sync, contracts, smokes)
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Setup Node.js
+        id: node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      # Los pasos de este job son independientes entre sí: cada uno corre
+      # aunque otro haya fallado, para que un run muestre TODOS los rojos y no
+      # el primero. Sólo dependen de que Node haya quedado instalado.
       - name: Test synchronizer and orchestration policy
         run: node --test agentic/tests/*.test.mjs
 
       - name: Check generated adapters
+        if: ${{ !cancelled() && steps.node.outcome == 'success' }}
         run: node agentic/sync-agentic-os.mjs --check --platform=none
 
       # --check valida estructura; --audit valida verdad: archivos congelados
       # que crecieron, monolitos nuevos sin gobierno, skills/agentes huérfanos
       # y rutas o make targets citados que ya no existen.
       - name: Audit governance truth
+        if: ${{ !cancelled() && steps.node.outcome == 'success' }}
         run: node agentic/sync-agentic-os.mjs --audit --platform=none
 
       - name: Check exact R lock and immutable CI
+        if: ${{ !cancelled() && steps.node.outcome == 'success' }}
         run: node scripts/check-r-lock.mjs
 
       - name: Check documentation governance
+        if: ${{ !cancelled() && steps.node.outcome == 'success' }}
         run: node scripts/check-docs-governance.mjs
 
       - name: Check release preview contract
+        if: ${{ !cancelled() && steps.node.outcome == 'success' }}
         run: node scripts/release-contract.mjs preview
 
   # Frontend y backend corren en paralelo: el typecheck roto avisa en ~3-4 min
@@ -65,6 +79,7 @@ jobs:
   frontend:
     name: Frontend (typecheck, tests, build, audits)
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     # El árbol ya no cabe en el tope por defecto de Node (~2 GB): en el corte
     # 0.9.6 murieron por «JavaScript heap out of memory» primero el typecheck
     # y, con él arreglado, el build de producción. Con 6 GB pasan los dos.
@@ -88,8 +103,14 @@ jobs:
         run: pnpm -C frontend install --frozen-lockfile
 
       - name: Install desktop dependencies
+        id: deps
         run: pnpm -C desktop install --frozen-lockfile
 
+      # Desde aquí los pasos son independientes entre sí: cada uno corre aunque
+      # otro haya fallado. En el corte 0.9.6 el typecheck rojo saltó el build,
+      # que también estaba rojo, y eso costó otra vuelta de 43 minutos; y un
+      # contrato de scripts rojo a los 30 segundos dejaba el run sin decir nada
+      # del typecheck, los tests ni el build. Sólo dependen de las dependencias.
       - name: Desktop lifecycle tests
         run: pnpm -C desktop test
 
@@ -99,25 +120,32 @@ jobs:
       # por nombre en vez de listar los incluidos, para que un test nuevo entre
       # a este job por defecto en lugar de quedar sin correr en ninguno.
       - name: Repository script contract tests
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         run: |
           node --test $(ls scripts/tests/*.test.mjs | grep -vE 'check-r-lock|ui-quick-check-|visual-qa-readiness')
 
       - name: Check technical-debt baseline
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         run: node scripts/debt-audit.mjs --check
 
       - name: Frontend typecheck
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         run: pnpm -C frontend exec tsc --noEmit --pretty false
 
       - name: Frontend tests
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         run: pnpm -C frontend test
 
       - name: Frontend production build
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         run: pnpm -C frontend exec vite build --outDir /tmp/prosecnur-vite-build --emptyOutDir
 
       - name: Frontend audit
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         run: pnpm -C frontend audit --audit-level=high
 
       - name: Desktop audit
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         run: pnpm -C desktop audit --audit-level=high
 
   # El backend R va en tres jobs. Antes era uno solo de ~90 min: 40 de ellos
@@ -130,6 +158,7 @@ jobs:
   backend-r-deps:
     name: Backend R (lock + librería exacta)
     runs-on: ubuntu-24.04
+    timeout-minutes: 120
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -208,6 +237,7 @@ jobs:
     name: Backend R (load_all + R CMD check)
     needs: backend-r-deps
     runs-on: ubuntu-24.04
+    timeout-minutes: 75
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -278,6 +308,7 @@ jobs:
     name: Backend R tests (shard ${{ matrix.shard }}/4)
     needs: backend-r-deps
     runs-on: ubuntu-24.04
+    timeout-minutes: 120
     strategy:
       # Un shard rojo no cancela a los otros: el run tiene que mostrar TODOS
       # los rojos de una vez, no el primero.
@@ -387,6 +418,7 @@ jobs:
   ui-contracts:
     name: UI contracts (quick-check, visual QA)
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4

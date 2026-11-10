@@ -325,3 +325,4 @@ una reparación esté implementada.
 - [Checklist · la matriz de equivalencias sólo declara equivalencias (ADR 0103)](checklist-matriz-equivalencias-pura-2026-10-14.md): La matriz de equivalencias sólo declara equivalencias (ADR 0103).
 - [Láminas de población nativas y filtro con subpregunta](checklist-poblacion-y-filtro-2026-10-14.md): las láminas de población con piezas del recetario y las mejoras de la pregunta filtro (F1–F5).
 - [Checklist: puesta al día del agentic OS](checklist-agentic-os-2026-11-10.md): mejoras de claridad y de calidad del agentic OS y lo que el historial, las sesiones y las memorias piden llevar a reglas.
+- [Diagnóstico del ciclo de release](diagnostico-ciclo-release-2026-11-10.md): tiempos por job y paso, causas de fallo de Quality y Release, repeticiones por corte y cambios propuestos.

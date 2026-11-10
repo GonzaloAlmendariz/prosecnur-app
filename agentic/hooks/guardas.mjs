@@ -9,6 +9,8 @@
 // - Adaptadores generados (`.codex/`, `.agents/`): se regeneran con
 //   `node agentic/sync-agentic-os.mjs --write`; una edición manual se pierde.
 // - Sheets del equipo: hay personas trabajando en vivo sobre esas hojas.
+// - Tag de release: 14 de 19 tags se empujaron sin esperar el Quality verde de
+//   su commit (guarda-tag-release.mjs).
 //
 // Decisiones: "deny" bloquea y le explica al agente qué hacer; "ask" deja la
 // decisión al usuario; sin salida, la llamada sigue su curso normal.
@@ -19,6 +21,8 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
+
+import { revisarPublicacionOpaca, revisarPushDeTag, sondasDeTagReales } from './guarda-tag-release.mjs'
 
 const deny = (motivo) => ({ decision: 'deny', motivo })
 const ask = (motivo) => ({ decision: 'ask', motivo })
@@ -88,6 +92,29 @@ export function revisarGit(comando) {
   return null
 }
 
+/** El push de un tag `vX.Y.Z` exige Quality verde en el commit que se empuja (guarda-tag-release.mjs). */
+export function revisarTagDeRelease(comando, cwd, sondasDeTag = sondasDeTagReales) {
+  const traducir = (r) => (r ? (r.decision === 'deny' ? deny(r.motivo) : ask(r.motivo)) : null)
+  // `soloComandos` vacía las comillas, y un tag, un refspec o una variable pueden
+  // venir entre ellas: se quitan las que envuelven un solo token. Un mensaje de
+  // commit lleva espacios y sigue siendo texto.
+  const sinComillas = comando.replace(/(["'])([^"'\s;|&()<>]+)\1/gu, '$2')
+  const opaca = revisarPublicacionOpaca(soloComandos(sinComillas))
+  if (opaca) return traducir(opaca)
+  const preparado = sinComillas
+    // `v0.9.6^{}` es el commit del tag: las llaves partirían el comando en `segmentos`.
+    .replace(/\^\{\w*\}/gu, '')
+    // Un tag pegado a una redirección (`v0.9.6>/dev/null`) perdía su último dígito,
+    // que `segmentos` toma por un descriptor de archivo.
+    .replace(/(v\d+\.\d+\.\d+[\w.+-]*)(?=[<>])/gu, '$1 ')
+  for (const segmento of segmentos(preparado)) {
+    const partes = git(segmento)
+    const resultado = partes?.length ? revisarPushDeTag(partes, cwd, sondasDeTag) : null
+    if (resultado) return traducir(resultado)
+  }
+  return null
+}
+
 export function revisarInstalacionR(comando, sondas = sondasReales) {
   if (!/\bR\s+CMD\s+INSTALL\b/u.test(soloComandos(comando))) return null
   const enCurso = sondas.instalacionEnCurso()
@@ -153,7 +180,7 @@ export function revisarAdaptador(rutaArchivo, raiz) {
 
 const ESCRIBE_EN_SHEETS = /^mcp__.+__(?:update_values|append_values|batch_clear_values|update_formulas|insert_dimension|update_spreadsheet|copy_sheet_to_another_spreadsheet)$/u
 
-export function decidir(entrada, sondas = sondasReales) {
+export function decidir(entrada, sondas = sondasReales, sondasDeTag = sondasDeTagReales) {
   const herramienta = entrada?.tool_name ?? ''
   const datos = entrada?.tool_input ?? {}
   const cwd = entrada?.cwd ?? process.cwd()
@@ -165,7 +192,8 @@ export function decidir(entrada, sondas = sondasReales) {
     // salvo que el comando salga de él con `-C`, `--git-dir`, `--work-tree` o un `cd`.
     const saleDelWorktree = /(?:^|\s)(?:-C|--git-dir|--work-tree)(?:\s|=)|(?:^|[\s;&(])cd\s/u.test(soloComandos(comando))
     const enWorktree = typeof cwd === 'string' && cwd.includes(`${path.sep}.claude${path.sep}worktrees${path.sep}`) && !saleDelWorktree
-    return (enWorktree ? null : revisarGit(comando)) ?? revisarInstalacionR(comando, sondas) ?? revisarPublicacion(comando)
+    // Los tags son del repositorio, no del worktree: esta guarda no se relaja ahí.
+    return (enWorktree ? null : revisarGit(comando)) ?? revisarTagDeRelease(comando, cwd, sondasDeTag) ?? revisarInstalacionR(comando, sondas) ?? revisarPublicacion(comando)
   }
   if (herramienta === 'Edit' || herramienta === 'Write' || herramienta === 'NotebookEdit') {
     return revisarAdaptador(datos.file_path ?? datos.notebook_path, raiz)
