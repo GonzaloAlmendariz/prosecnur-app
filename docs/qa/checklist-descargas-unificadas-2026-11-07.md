@@ -78,7 +78,7 @@ QA visual: la primera ronda rechazó (bloque estirado a todo el alto, disparador
 |---|---|---|---|
 | 0 | Ratchet ampliado (blobs, enlaces a URLs de descarga, helpers de CSV) y `urlDelArchivo` para imágenes en línea | `50ebd5ee3` | hecho; BASE 56 |
 | 1 | Material de campo al kit (28 filas del censo); normalizadores de Material; kit con «ver sin descargar» y alineación de la anclada; nombres del motor alineados en ~30 salidas; ficha de prueba con archivo; «Cerrar y generar base» devuelve sus archivos; ZIP de correos se copian | `70b122050` | hecho; BASE 41; verificador rechazó una vez (Paquetes territoriales copiaba y descargaba; comillas angulares) y se corrigió |
-| 2 | Monitoreo; Hojas de ruta, Cálculo de muestra, Dashboard y Carga | — | en curso |
+| 2 | Monitoreo (26 filas); Hojas de ruta, Cálculo de muestra, Dashboard y Carga; motor: reportes por job y PDF de Monitoreo registran su archivo, base del dashboard y diferencias de integración devuelven JSON, todas las rutas informan `guardado_en`, Excel real de la carga de campo de aulas | `50b00abff` (+ `b55a322f9`, arreglo de parseo de `router_hojas_ruta.R` que dejó un commit ajeno) | hecho; BASE 15; verificador aprobó con pendientes (QA visual y Electron) |
 | 3 | Codificación, Validación (ofrecer la base limpia), Editor XLSForm, Analítica y Gráficos restantes, componentes compartidos | — | pendiente |
 | 3b | Portapapeles y publicaciones en el contenedor | — | pendiente; el kit aún no muestra resultados que no son archivo |
 
