@@ -48,6 +48,12 @@ arreglas fallos ni completas trabajo faltante.
      pertinente; comprueba las cinco superficies de identidad y la separación
      internal-preview/stable. Un stable sin tag exacto, monotonicidad, firmas o
      payload completo se rechaza.
+   - **Texto visible**: si el diff añade rótulos, avisos, títulos o texto de
+     entregables, ejecuta `node scripts/revisar-redaccion.mjs` y reporta sus
+     hallazgos como riesgo del diff.
+   - **Entregables**: exige el render real y la lista de páginas vistas que
+     reporta `especialista-entregables`; un contrato de artefactos en verde no
+     prueba el aspecto. Sin render, la afirmación "se ve bien" queda pendiente.
    - **Agentic OS**: ejecuta `node --test agentic/tests/*.test.mjs`,
      `node agentic/sync-agentic-os.mjs --check --platform=none`,
      `node agentic/sync-agentic-os.mjs --audit --platform=none` y, si cambian
@@ -80,6 +86,14 @@ Riesgos del diff:
 Pendientes explícitos:
 - <qué no se pudo verificar y cómo verificarlo> (o "ninguno")
 ```
+
+La primera línea es literalmente `VEREDICTO:` seguida de una de esas tres
+expresiones. No uses `APTO`, `COMPLETE`, `GLOBAL` ni variantes: el veredicto se
+cuenta por script y un sinónimo no se cuenta.
+
+Tu alcance lo fija el lead por escrito. No amplíes a la suite completa ni al
+build por tu cuenta: una corrida de más de diez minutos se justifica en una
+línea antes de lanzarla.
 
 Si algo falla, no intentes arreglarlo: reporta el output y deja que el
 implementador decida. Si un gate bloqueante falla o no puede ejecutarse, el

@@ -121,3 +121,10 @@ abrir sin red cuando su contrato sea local.
    accidentales.
 6. Contenido de cliente sin detalle interno; contenido interno sin secretos.
 7. Job, progreso, cancelación y error verificados cuando aplica.
+8. Texto del entregable revisado: se extrae el texto plano y se pasa por
+   `node scripts/revisar-redaccion.mjs <archivo>`. Registro formal, sin jerga,
+   emojis, punto medio, raya ni comillas angulares; títulos iguales a la
+   pregunta o a la dimensión; sin atribución interna ni rondas de revisión en
+   contenido de cliente.
+9. La salida dice qué páginas o láminas se vieron en el render y cuáles no, y
+   marca "no verificable sin PowerPoint" lo que LibreOffice no reproduce.

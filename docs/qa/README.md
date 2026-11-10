@@ -324,3 +324,4 @@ una reparación esté implementada.
 - [Checklist · rediseño de Informe, Identidad, Reglas y Word](checklist-revamp-informe-graficos-2026-10-14.md): Un ítem por indicación aprobada, con dónde vive y su estado.
 - [Checklist · la matriz de equivalencias sólo declara equivalencias (ADR 0103)](checklist-matriz-equivalencias-pura-2026-10-14.md): La matriz de equivalencias sólo declara equivalencias (ADR 0103).
 - [Láminas de población nativas y filtro con subpregunta](checklist-poblacion-y-filtro-2026-10-14.md): las láminas de población con piezas del recetario y las mejoras de la pregunta filtro (F1–F5).
+- [Checklist: puesta al día del agentic OS](checklist-agentic-os-2026-11-10.md): mejoras de claridad y de calidad del agentic OS y lo que el historial, las sesiones y las memorias piden llevar a reglas.

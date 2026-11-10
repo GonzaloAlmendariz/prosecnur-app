@@ -1,6 +1,6 @@
 ---
 name: orquestar-trabajo
-description: Orquesta tareas no triviales de Prosecnur en oleadas paralelas seguras. Usar automáticamente cuando haya dos o más líneas independientes de investigación, implementación o revisión; cuando la tarea cruce frontend/backend/tests/metodología/QA; en auditorías profundas, bugs ambiguos, features multilayer o cuando el usuario pida agentes, delegación o trabajo paralelo. Mantiene seriales las tareas pequeñas, conflictivas, destructivas o externas.
+description: Fuente única de los límites de oleada y del ORCHESTRATION CONTRACT de Prosecnur. Cargar siempre que una oleada lleve dos writers o más de un agente sobre el mismo módulo, en features cross-layer, auditorías profundas, bugs ambiguos o cuando el usuario pida agentes, delegación o trabajo paralelo. Una sola línea de trabajo o un cambio pequeño no lo necesitan.
 ---
 
 # Orquestar trabajo
@@ -77,6 +77,15 @@ gate. Para features cross-layer: revisiones iniciales → contrato congelado →
 frontend/backend en paralelo → revisiones → gate. Para deuda, reparte ejes entre
 tres `auditor-deuda`. En cierre, `verificador` y `curador-commits` pueden
 analizar en paralelo, pero el curador queda plan-only hasta aprobación.
+
+## Presupuesto de verificación por oleada
+
+Verificar de más cuesta minutos y cuota del usuario, y no sube la confianza. Por
+oleada: una revisión ligera por lente que aplique, una corrida visual "después"
+a dos viewports (la matriz completa queda para el cierre del módulo) y un
+`verificador` con el alcance escrito por el lead. El cuidado va en leer la
+captura o el render final, no en multiplicar corridas. Si el usuario está
+presentando o usando la app en vivo, no se lanzan cargas pesadas.
 
 ## Control y fallos
 
