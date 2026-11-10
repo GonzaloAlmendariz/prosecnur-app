@@ -4,6 +4,7 @@ import { formatoDecimal } from "../../../../lib/formatoNumero";
 import { Inbox } from "../../../../vendor/lucide-react";
 import { tonoCss } from "../lienzo/tonos";
 import { nombreDistrito } from "../nombres";
+import { CabeceraCiudad, gruposPorCiudad } from "../territorio/gruposPorCiudad";
 import type { FilaMatriz, ResumenMatriz } from "./matriz";
 
 const fmt = (n: number) => new Intl.NumberFormat("es-PE").format(Math.round(n));
@@ -77,7 +78,9 @@ export function PoblacionLectura({ rangos, matriz, orden }: { rangos: readonly H
         <h3 className="hr-mapa-subtitulo">Por distrito</h3>
         {matriz.vigente ? (
           <ul className="hr-pob-distritos">
-            {filas.map((f) => {
+            {gruposPorCiudad(filas, (f) => f.ubigeo, orden).flatMap((g, _, todos) => [
+              todos.length > 1 ? <CabeceraCiudad key={`ciudad-${g.codigo}`} nombre={g.nombre} resumen={`${fmt(g.items.reduce((a, f) => a + f.total, 0))} personas, ${pct(g.items.reduce((a, f) => a + f.total, 0), matriz.total)}`} /> : null,
+              ...g.items.map((f) => {
               const nombre = nombreDistrito(f.territorio);
               const porEdad = f.porRango.map((c) => c.H + c.M);
               return (
@@ -96,7 +99,8 @@ export function PoblacionLectura({ rangos, matriz, orden }: { rangos: readonly H
                   <small>{pct(f.total, matriz.total)} de la población objetivo</small>
                 </li>
               );
-            })}
+            }),
+            ])}
           </ul>
         ) : (
           <EstadoVacio icono={<Inbox size={16} />} titulo="Población sin calcular" descripcion="Calcula la matriz en el panel derecho para ver la población de cada distrito." />

@@ -8,6 +8,7 @@ import { PulsoButton } from "../../../../components/PulsoButton";
 import type { HojasRutaAlert, HojasRutaEstratoMuestral, HojasRutaIntegratedConfig, HojasRutaTerritory } from "../../../../api/hojasRuta";
 import { nombreDistrito } from "../nombres";
 import { tonoCss } from "../lienzo/tonos";
+import { CabeceraCiudad, gruposPorCiudad } from "../territorio/gruposPorCiudad";
 import { useLienzoHojasRuta } from "../store";
 import { useSeccion } from "../../../../lib/navegacion/useDireccion";
 import type { ResultadoTamano } from "./motorTamano";
@@ -168,7 +169,10 @@ export function MuestraEstructura({ config, resultado: r, bloqueado }: Estructur
       </div>
       {!r.filas.length ? <EstadoVacio icono={<Inbox size={16} />} titulo="Sin distritos confirmados" descripcion="Elígelos en Territorio y calcula la población para repartir la muestra." /> : null}
       <ul className="hr-muestra-reparto">
-        {r.filas.map((f) => (
+        {/* Con varias ciudades, cada una con su cabecera y su subtotal (diseño nacional, 10 nov 2026). */}
+        {gruposPorCiudad(r.filas, (f) => f.ubigeo, config.territorios).flatMap((g, _, todos) => [
+          todos.length > 1 ? <CabeceraCiudad key={`ciudad-${g.codigo}`} nombre={g.nombre} resumen={`${g.items.length} distrito${g.items.length === 1 ? "" : "s"}, ${fmt(g.items.reduce((a, f) => a + f.nUsado, 0))} entrevistas`} /> : null,
+          ...g.items.map((f) => (
           <li key={f.ubigeo}>
             <div className="hr-muestra-rep-cab">
               <strong className="hr-muestra-rep-nombre">
@@ -201,7 +205,8 @@ export function MuestraEstructura({ config, resultado: r, bloqueado }: Estructur
               {porDistrito && f.nUsado % ruta ? <span data-error>, no es múltiplo de {ruta}</span> : null}
             </small>
           </li>
-        ))}
+          )),
+        ])}
       </ul>
       {porDistrito ? <p className="hr-mapa-nota hr-muestra-pie">Puedes pegar una columna desde Excel o Sheets sobre el primer campo.</p> : <AjustesPorDistrito config={config} filas={r.filas} bloqueado={bloqueado} />}
       <EscenariosMuestra config={config} resultado={r} bloqueado={bloqueado} />

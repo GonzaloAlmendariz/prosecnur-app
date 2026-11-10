@@ -24,6 +24,7 @@ import { resumenGrupo } from "../ajustes/gruposAjustes";
 import { useAbrirAjustes } from "../ajustes/useAjustesDiseno";
 import { etiquetaRuteo, resumenHistorial } from "./resumenHistorial";
 import { BarraNseDistrito } from "./BarraNseDistrito";
+import { CabeceraCiudad, gruposPorCiudad } from "../territorio/gruposPorCiudad";
 import { ORDEN_NSE } from "./nsePorDistrito";
 import { NOMBRE_NSE } from "../territorio/capaDistritos";
 /**
@@ -267,7 +268,9 @@ export function ManzanasEstructura({ muestra, historial, territorios, nFinal, co
       <div className="hr-mapa-ins-cuerpo">
         {filas.length ? (
           <ul className="hr-sorteo-distritos">
-            {filas.map(([u, f]) => (
+            {gruposPorCiudad(filas, ([u]) => u, territorios).flatMap((g, _, todos) => [
+              todos.length > 1 ? <CabeceraCiudad key={`ciudad-${g.codigo}`} nombre={g.nombre} resumen={`${g.items.length} distrito${g.items.length === 1 ? "" : "s"}, ${fmt(g.items.reduce((a, [, f]) => a + f.titulares, 0))} UMP`} /> : null,
+              ...g.items.map(([u, f]) => (
               <li key={u}>
                 {/* B40: el punto lleva el tono del distrito en el mapa (orden de confirmación, como en B9). */}
                 <i style={{ background: tonoCss(territorios.indexOf(u)) }} aria-hidden="true" />
@@ -283,7 +286,8 @@ export function ManzanasEstructura({ muestra, historial, territorios, nFinal, co
                 </span>
                 {nsePorDistrito?.get(u) ? <BarraNseDistrito conteos={nsePorDistrito.get(u) ?? []} largo={f.titulares / masUmp} distrito={nombreDistrito(f.distrito)} /> : null}
               </li>
-            ))}
+            )),
+            ])}
           </ul>
         ) : null}
         {filas.length && nivelesVistos.length ? (
