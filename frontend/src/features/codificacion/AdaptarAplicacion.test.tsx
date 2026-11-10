@@ -14,7 +14,7 @@ vi.stubGlobal("localStorage", {
   removeItem: () => {},
 });
 
-const { AdaptarAplicacionResumenVista, AdaptarAplicacionVista, ID_ESTADO_ADAPTAR, pulsarAdaptar } = await import(
+const { AdaptarAplicacionResumenVista, AdaptarAplicacionVista, pulsarAdaptar } = await import(
   "./AdaptarAplicacion"
 );
 const { ID_AVISO_APLICAR, irAlAviso, revelarAviso } = await import("./AplicarOmitidasAviso");
@@ -77,7 +77,7 @@ describe("AdaptarAplicacionVista", () => {
     expect(boton(html)).toContain("Confirmar y adaptar respuestas");
     expect(html).not.toContain('data-testid="codificacion-aplicar-omitidas"');
     expect(html).toMatch(
-      /<span id="codificacion-adaptar-estado" class="pulso-codif-adaptar-estado pulso-sr-only" role="status" aria-live="polite" tabindex="-1"><\/span>/,
+      /<span id="codificacion-adaptar-estado" class="pulso-codif-adaptar-estado pulso-sr-only" role="status" aria-live="polite"><\/span>/,
     );
   });
 
@@ -93,7 +93,7 @@ describe("AdaptarAplicacionVista", () => {
     expect(boton(durante)).not.toContain("pulso-codif-adaptar-giro");
     expect(durante).toContain('data-entregable-forma="bloque"');
     expect(durante).toContain('data-entregable-fase="en_curso"');
-    expect(durante).toMatch(/role="status" aria-live="polite" tabindex="-1">[^<]+<\/span>/);
+    expect(durante).toMatch(/role="status" aria-live="polite">[^<]+<\/span>/);
     expect(durante).toContain("La codificación se está aplicando.");
 
     resolver(respuesta);
@@ -257,24 +257,21 @@ describe("el aviso vuelve a la vista tras el remontaje del fin del job", () => {
 describe("el foco durante el POST de /aplicar", () => {
   beforeEach(() => useAplicarAvisosStore.getState().reset());
 
-  it("pasa a la región de estado antes de que el botón se deshabilite: no cae a BODY", () => {
-    // Doble del documento: un botón que se deshabilita suelta el foco a BODY.
-    const body = { nombre: "BODY" };
-    const boton = { nombre: "Adaptar" };
-    const region = { nombre: ID_ESTADO_ADAPTAR, focus: () => { doc.activeElement = region; } };
-    const doc: { activeElement: object } = { activeElement: boton };
-    const adaptar = () => {
-      if (doc.activeElement === boton) doc.activeElement = body;
-    };
-    pulsarAdaptar(region, adaptar);
-    expect(doc.activeElement).toBe(region);
+  it("pide el foco para el contenedor antes de adaptar: el pedido llega antes de que el botón se deshabilite", () => {
+    const orden: string[] = [];
+    pulsarAdaptar(() => orden.push("foco"), () => orden.push("adaptar"));
+    expect(orden).toEqual(["foco", "adaptar"]);
   });
 
-  it("la región que recibe el foco es enfocable por programa y no queda vacía mientras trabaja", async () => {
+  it("la región viva anuncia sin recibir el foco y no queda vacía mientras trabaja", async () => {
     let resolver: (r: CodifAplicarRespuesta) => void = () => {};
     const enCurso = aplicarCodificacion(A, () => new Promise((r) => { resolver = r; }));
+    const region = (html: string) => html.match(/<span id="codificacion-adaptar-estado"[^>]*>/)?.[0] ?? "";
     const estado = (html: string) =>
-      html.match(/<span id="codificacion-adaptar-estado"[^>]*tabindex="-1">([^<]*)<\/span>/)?.[1] ?? null;
+      html.match(/<span id="codificacion-adaptar-estado"[^>]*>([^<]*)<\/span>/)?.[1] ?? null;
+    // Era el destino del foco: un `span` invisible de 1 px, sin contorno.
+    expect(region(montar(A))).not.toMatch(/tabindex/);
+    expect(region(montar(A))).toMatch(/aria-live="polite"/);
     expect(estado(montar(A))).toContain("Revisando el catálogo");
     resolver({ ...respuesta, omitidas: [], textos_sin_codigo: [] });
     await enCurso;

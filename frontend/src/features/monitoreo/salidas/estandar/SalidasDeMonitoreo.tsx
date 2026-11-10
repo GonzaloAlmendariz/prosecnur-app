@@ -90,7 +90,8 @@ export function SalidasDeMonitoreo({
   );
 }
 
-export type FilaDePortada = FilaDeSalida & { accion?: ReactNode; icono?: typeof FileText };
+/** `pie`: lo que va bajo la fila entera, del texto a la acción (el contenedor del kit en forma fila). */
+export type FilaDePortada = FilaDeSalida & { accion?: ReactNode; icono?: typeof FileText; pie?: ReactNode };
 
 /**
  * La portada de Salidas, sólo presentación: la lista a la izquierda (con lo que el modo agrega debajo) y la hoja
@@ -124,7 +125,7 @@ export function PortadaDeSalidas({ rotulo, lectura, acciones, filas, despues, vi
           acciones={acciones}
         >
           <ul className="mon-sal-filas" data-qa-geometry-group="monitoreo-salidas-filas" data-qa-geometry-contract="intrinsic">
-            {filas.map((fila) => <Fila key={fila.clave} fila={fila} accion={fila.accion} icono={fila.icono} />)}
+            {filas.map((fila) => <Fila key={fila.clave} fila={fila} accion={fila.accion} icono={fila.icono} pie={fila.pie} />)}
           </ul>
         </BloqueDeMonitoreo>
         {despues}
@@ -136,7 +137,7 @@ export function PortadaDeSalidas({ rotulo, lectura, acciones, filas, despues, vi
   );
 }
 
-function Fila({ fila, accion, icono }: { fila: FilaDeSalida; accion?: ReactNode; icono?: typeof FileText }) {
+function Fila({ fila, accion, icono, pie }: { fila: FilaDeSalida; accion?: ReactNode; icono?: typeof FileText; pie?: ReactNode }) {
   const Icono = icono ?? ICONOS[String(fila.clave)] ?? FileText;
   return (
     <li className="mon-sal-fila" data-qa-geometry-member>
@@ -149,6 +150,7 @@ function Fila({ fila, accion, icono }: { fila: FilaDeSalida; accion?: ReactNode;
         <p>{fila.detalle}</p>
       </div>
       {accion ? <div className="mon-sal-accion">{accion}</div> : null}
+      {pie}
     </li>
   );
 }

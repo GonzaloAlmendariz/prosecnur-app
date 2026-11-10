@@ -17,6 +17,7 @@ import {
 import {
   serializarDireccion,
   describirDireccion,
+  normalizarToken,
   type DireccionProsecnur,
 } from "./direccion";
 import type { PanelDeclarado } from "./paneles";
@@ -279,12 +280,29 @@ export function nodoPorClave(clave: string): NodoNavegacion | null {
  * (ADR 0125 §2). Lo usa el puente; los contratos siguen leyendo la clave exacta.
  */
 export function nodoPorClaveOModoPorDefecto(clave: string): NodoNavegacion | null {
-  const exacto = nodoPorClave(clave);
+  const exacto = nodoPorClaveNormalizada(clave);
   if (exacto) return exacto;
   const [modulo, ...resto] = clave.split("/");
   const primerModo = PROSECNUR_MODULES.find((m) => m.slug === modulo)?.modos?.[0]?.id;
-  if (!primerModo || !resto.length || resto[0] === primerModo) return null;
-  return nodoPorClave([modulo, primerModo, ...resto].join("/"));
+  if (!primerModo || !resto.length || normalizarToken(resto[0]) === normalizarToken(primerModo)) return null;
+  return nodoPorClaveNormalizada([modulo, primerModo, ...resto].join("/"));
+}
+
+/** Clave con cada tramo normalizado como lo hace el parser de la URL (`base_datos` → `base-datos`). */
+function claveNormalizada(clave: string): string {
+  return clave.split("/").map(normalizarToken).join("/");
+}
+
+/**
+ * La clave exacta o, si no está, la que coincide tramo a tramo una vez normalizada. El parser de la URL normaliza
+ * los tokens (`?pestana=base_datos` se lee `base-datos`), así que `describir()` del puente devolvía
+ * `dashboard/dashboard/base-datos` y `ir()` con esa misma clave no encontraba `dashboard/dashboard/base_datos`.
+ */
+function nodoPorClaveNormalizada(clave: string): NodoNavegacion | null {
+  const exacto = nodoPorClave(clave);
+  if (exacto) return exacto;
+  const buscada = claveNormalizada(clave);
+  return MANIFIESTO_NAVEGACION.find((item) => claveNormalizada(item.clave) === buscada) ?? null;
 }
 
 /**

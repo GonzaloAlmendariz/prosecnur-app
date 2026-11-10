@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ReactNode, RefObject } from "react";
 import { toast } from "../../components/toasterStore";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -82,6 +82,8 @@ export function AnaliticaHeader({ prepBusy, prepError, variant = "bar" }: Analit
   const fuenteActiva: FuentePreferida = usandoAdaptados ? "adaptados" : "originales";
   const [switching, setSwitching] = useState(false);
   const plantilla = useGeneracion({ titulo: TITULO_PLANTILLA, modulo: "Procesamiento", formato: "json", articulo: "la" });
+  // El menú "Plantilla": su contenedor cuelga del borde de este botón, no del de la barra.
+  const plantillaEje = useRef<HTMLButtonElement>(null);
 
   // ADR 0030 Fase 5: si la base activa es una hija repeat, el backend anota el
   // grano de instancia en /api/analitica/variables. Lo consumimos para pintar
@@ -237,6 +239,7 @@ export function AnaliticaHeader({ prepBusy, prepError, variant = "bar" }: Analit
         {panelVariant ? (
           <AnaliticaTemplateMenu
             exportacion={plantilla}
+            disparadorRef={plantillaEje}
             onExport={ioExport}
             onImport={ioImport}
             entregable={ENTREGABLE_PLANTILLA}
@@ -259,8 +262,8 @@ export function AnaliticaHeader({ prepBusy, prepError, variant = "bar" }: Analit
         )}
       </div>
       {/* Fuera de `.pulso-analitica-source-actions`, cuyas reglas vuelven píldora todo botón: el contenedor
-          cuelga del borde derecho de la barra, bajo "Plantilla". */}
-      {panelVariant && <ContenedorEntregable estado={plantilla.estado} forma="anclada" onCerrar={plantilla.cerrar} />}
+          cuelga de la barra con su borde derecho en el de "Plantilla". */}
+      {panelVariant && <ContenedorEntregable estado={plantilla.estado} forma="anclada" eje={plantillaEje} onCerrar={plantilla.cerrar} />}
     </ContextBar>
     <RepeatGrainNote grain={repeatGrain} className="pulso-analitica-repeat-grain" />
     </>
@@ -273,6 +276,7 @@ const ENTREGABLE_PLANTILLA = "Plantilla de analítica";
 
 function AnaliticaTemplateMenu({
   exportacion,
+  disparadorRef,
   onExport,
   onImport,
   entregable,
@@ -282,6 +286,8 @@ function AnaliticaTemplateMenu({
 }: {
   /** La generación del JSON: su contenedor lo pinta la barra (forma anclada). */
   exportacion: Pick<Generacion, "estado" | "ejecutar">;
+  /** El botón "Plantilla": el eje del que cuelga el contenedor. */
+  disparadorRef: RefObject<HTMLButtonElement>;
   onExport: () => Promise<unknown>;
   onImport: (parsed: unknown) => Promise<string | void>;
   /** El entregable en palabras, para el nombre del archivo con el código del estudio. */
@@ -347,6 +353,7 @@ function AnaliticaTemplateMenu({
     <div className="pulso-analitica-template-menu" ref={rootRef}>
       <button
         type="button"
+        ref={disparadorRef}
         className="pulso-analitica-template-trigger"
         aria-haspopup="menu"
         aria-expanded={open}

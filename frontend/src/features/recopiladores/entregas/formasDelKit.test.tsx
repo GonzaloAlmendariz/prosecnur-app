@@ -11,6 +11,9 @@
  * spinner ni cambio de rótulo), lo único que se mueve es la línea del
  * contenedor, y dentro del contenedor no hay enlaces ni botones primarios.
  */
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
@@ -229,5 +232,16 @@ describe("anclada: el Excel de asignación en la barra de acciones", () => {
     expect(lista?.dataset.entregableFase).toBe("lista");
     sinResaltadoNiSpinner(lista as HTMLElement);
     expect(boton("Excel para campo").disabled).toBe(false);
+  });
+});
+
+describe("fila en la lista de material generado", () => {
+  it("el contenedor baja a su propio renglón y no comparte la columna `auto` con el botón", () => {
+    const css = readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../styles/delivery.css"), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "");
+    const fila = /\.rec-artifact-list article\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
+    expect(fila).toMatch(/grid-template-columns:\s*auto minmax\(0, 1fr\) auto/);
+    expect(/\.rec-artifact-list article > \.rec-entrega-celda\s*\{([^}]*)\}/.exec(css)?.[1]).toMatch(/display:\s*contents/);
+    expect(/\.rec-artifact-list article > \.rec-entrega-celda > \.pulso-entregable\s*\{([^}]*)\}/.exec(css)?.[1]).toMatch(/grid-column:\s*2 \/ -1/);
   });
 });

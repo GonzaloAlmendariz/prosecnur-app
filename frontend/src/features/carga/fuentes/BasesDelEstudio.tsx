@@ -21,6 +21,7 @@ import { ArmonizacionBasePanel } from "./ArmonizacionBasePanel";
 import { CompararFuentesPanel } from "./CompararFuentesPanel";
 import { VariablesBasePanel } from "../variablesBase/VariablesBasePanel";
 import { DescargaDeBaseEnFila, useDescargaDeBase } from "../entregas/DescargaDeBase";
+import { NombreArchivo } from "../../../components/entregables/NombreArchivo";
 import { searchConVariablesBase } from "../variablesBase/variablesBaseModel";
 import { comparablesCon, hayFuentesComparables, primerParComparable, searchConArmonizacionBase, searchConComparacion } from "./compararFuentesModel";
 import "./basesDelEstudio.css";
@@ -49,6 +50,11 @@ export function origenDeBase(b: Pick<EstudioBase, "source_kind">): string {
   if (k === "formulario_publicado_excel") return "Excel";
   if (k.startsWith("kobo")) return "KoboToolbox";
   return "Archivos";
+}
+
+/** El título de la base es un archivo (`…_03_08_26.xlsx`), no el título de una encuesta: parte como nombre de archivo. */
+export function esNombreDeArchivo(titulo: string): boolean {
+  return /\.(?:xlsx|xls|xlsm|csv|sav|json|zip|txt|tsv|ods)$/i.test(titulo.trim());
 }
 
 /** Las bases que se muestran como tarjeta: las hijas de un grupo repetido viven dentro de su madre. */
@@ -110,7 +116,12 @@ function TarjetaBase({ base, vinculo, comparables, ocupado, onRenombrar, onQuita
             <li key={`${f.survey_id ?? ""}:${f.channel ?? ""}:${i}`}>{f.source_title || f.survey_id}{f.channel ? <span className="pulso-bde-canal">{f.channel}</span> : null}</li>
           ))}
         </ul>
-      ) : titulo ? <p className="pulso-bde-fuente">{titulo}{base.source_channel ? <span className="pulso-bde-canal">{base.source_channel}</span> : null}</p> : null}
+      ) : titulo ? (
+        <div className="pulso-bde-fuente">
+          {esNombreDeArchivo(titulo) ? <NombreArchivo nombre={titulo} /> : titulo}
+          {base.source_channel ? <span className="pulso-bde-canal">{base.source_channel}</span> : null}
+        </div>
+      ) : null}
       {vinculo ? (
         <p className="pulso-bfp-vinculo">
           <FileCheck2 size={13} aria-hidden="true" />

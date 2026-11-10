@@ -62,15 +62,11 @@
   color: var(--pulso-text);
 }
 
-/* Celda de acción de una fila: el disparador arriba y el contenedor en fila debajo, al ancho de la celda. */
-.mon-entrega-celda {
-  display: grid;
-  justify-items: end;
-  gap: var(--pulso-space-1);
+/* Forma fila: su propia línea bajo la fila entera, a todo su ancho; el disparador queda en su celda. */
+.mon-entrega-fila {
   min-width: 0;
 }
 
-.mon-entrega-celda > .pulso-entregable {
-  justify-self: stretch;
+.mon-entrega-fila > .pulso-entregable {
   min-width: 0;
 }

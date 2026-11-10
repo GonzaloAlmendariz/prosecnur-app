@@ -48,20 +48,29 @@
   border-color: color-mix(in srgb, var(--pulso-danger-border) 70%, var(--pulso-border));
 }
 
-/* Flota bajo el disparador sin mover la página: el padre es position: relative. */
+/* Flota bajo el disparador sin mover la página: el padre es position: relative. Cuelga del eje del botón: su
+   borde derecho va al del botón (`--pulso-entregable-eje`, medido y acotado a la ventana en `ejeDeEntrega.ts`;
+   un ancla más angosta que el contenedor lo dejaba 4 px corrido). Sin medida, al borde del ancla. */
 .pulso-entregable[data-entregable-forma="anclada"] {
   position: absolute;
   top: calc(100% + 8px);
-  right: 0;
+  right: max(0px, var(--pulso-entregable-eje, 0px));
   z-index: var(--pulso-z-flyout);
   width: min(380px, calc(100vw - 28px));
   box-shadow: var(--pulso-shadow-popover);
 }
 
-/* El disparador está al inicio de su fila: el contenedor se abre hacia la derecha, no fuera de la pantalla. */
+/* El disparador está al inicio de su fila: el contenedor se abre hacia la derecha, no fuera de la pantalla, y su
+   borde izquierdo va al del botón. */
 .pulso-entregable[data-entregable-forma="anclada"][data-entregable-alinear="inicio"] {
   right: auto;
-  left: 0;
+  left: max(0px, var(--pulso-entregable-eje, 0px));
+}
+
+/* Recibe el foco al aparecer cuando el botón que lo pidió se deshabilita (`enfocar`): el mismo anillo del kit. */
+.pulso-entregable:focus-visible {
+  outline: var(--mov-foco);
+  outline-offset: 2px;
 }
 
 .pulso-entregable-archivos {
@@ -327,12 +336,24 @@
   color: var(--pulso-danger-fg);
 }
 
+/* El texto de la fila no impone su ancho a la celda: aporta un ancho fijo y modesto al cálculo de la celda (el de
+   "Guardado en Descargas"), crece si hay sitio y se recorta si no (el `title` lo dice entero). Con `flex: 1 1 auto`
+   y `nowrap` aportaba la causa entera: en una columna `auto` de la rejilla de su fila (Monitoreo › Salidas) la
+   celda se ensanchaba hasta dejar en 0 px el texto vecino. */
 .pulso-entregable-fila-texto {
   flex: 1 1 auto;
+  width: 16ch;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* En curso la fila es una rejilla (línea arriba, texto abajo): el texto ocupa el ancho de la fila, que no fija él.
+   Los porcentajes no cuentan al medir la celda; ahí aporta solo su ancho fijo. */
+.pulso-entregable[data-entregable-forma="fila"][data-entregable-fase="en_curso"] > .pulso-entregable-fila-texto {
+  min-width: 100%;
+  max-width: 100%;
 }
 
 /* ---------- Menú «Más» ---------- */

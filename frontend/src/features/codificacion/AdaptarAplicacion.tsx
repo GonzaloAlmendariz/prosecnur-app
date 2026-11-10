@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, CheckCircle2, FileSpreadsheet, Play } from "lucide-react";
 import { apiCodifAplicar } from "../../api/client";
 import { ContenedorEntregable } from "../../components/entregables/ContenedorEntregable";
@@ -43,16 +43,14 @@ const TEXTO_APLICANDO = "Revisando el catálogo contra la base; puede tardar un 
 const TEXTO_CORRIENDO = "La adaptación está corriendo; el avance se muestra abajo.";
 export const ID_ESTADO_ADAPTAR = "codificacion-adaptar-estado";
 
-type Enfocable = { focus: (opciones?: FocusOptions) => void };
-
 /**
- * Pulsar «Adaptar». El botón se deshabilita en cuanto el store marca
- * `aplicando` y un control deshabilitado suelta el foco a BODY; por eso el foco
- * pasa antes a la región de estado (estable, `tabIndex=-1`), que es la que
- * cuenta qué está pasando.
+ * Pulsar "Adaptar" (o "Reintentar" en el contenedor). El botón se deshabilita en cuanto el store marca
+ * `aplicando`, y un control deshabilitado suelta el foco a BODY; por eso, antes de adaptar, se pide que el
+ * contenedor del kit que aparece debajo tome el foco (`enfocar`): es visible, tiene el anillo del kit y dice qué
+ * está pasando. La región viva sólo anuncia; no recibe el foco (era un `span` invisible de 1 px).
  */
-export function pulsarAdaptar(estado: Enfocable | null, adaptar: () => void): void {
-  estado?.focus({ preventScroll: true });
+export function pulsarAdaptar(pedirFoco: () => void, adaptar: () => void): void {
+  pedirFoco();
   adaptar();
 }
 
@@ -124,10 +122,12 @@ export function AdaptarAplicacionVista({
   yaListadas = [],
 }: VistaProps) {
   const { aplicando, jobId, avisos, sinRecodificar, salida, enfocarPendiente } = entrada;
-  const estadoRef = useRef<HTMLSpanElement>(null);
+  // Cada pulsación pide el foco otra vez: también "Reintentar", que desaparece al volver a correr.
+  const [pedidoDeFoco, setPedidoDeFoco] = useState(0);
+  const pulsar = () => pulsarAdaptar(() => setPedidoDeFoco((n) => n + 1), onAdaptar);
   const entrega = estadoDeAdaptacion(
     { ...entrada, archivos: salida?.archivos ?? null },
-    { cancelar: onCancelar, reintentar: nPreguntas > 0 ? () => pulsarAdaptar(estadoRef.current, onAdaptar) : undefined },
+    { cancelar: onCancelar, reintentar: nPreguntas > 0 ? pulsar : undefined },
   );
 
   const motivoDeshabilitado = aplicando
@@ -149,16 +149,14 @@ export function AdaptarAplicacionVista({
             <FileSpreadsheet size={13} /> Revisar matrices
           </button>
           <div style={{ flex: 1 }} />
-          {/* Región viva siempre montada y sólo para el lector: anuncia el cambio de texto y recibe el foco al
-              pulsar. En pantalla la única señal es la línea del contenedor, debajo; un texto al lado del
-              botón era una segunda. */}
+          {/* Región viva siempre montada y sólo para el lector: anuncia el cambio de texto. El foco va al
+              contenedor de abajo, que se ve. En pantalla la única señal es la línea del contenedor; un texto al
+              lado del botón era una segunda. */}
           <span
-            ref={estadoRef}
             id={ID_ESTADO_ADAPTAR}
             className="pulso-codif-adaptar-estado pulso-sr-only"
             role="status"
             aria-live="polite"
-            tabIndex={-1}
           >
             {aplicando ? TEXTO_APLICANDO : jobId ? TEXTO_CORRIENDO : ""}
           </span>
@@ -168,7 +166,7 @@ export function AdaptarAplicacionVista({
           <button
             type="button"
             className="pulso-primary"
-            onClick={() => pulsarAdaptar(estadoRef.current, onAdaptar)}
+            onClick={pulsar}
             disabled={aplicando || !!jobId || nPreguntas === 0}
             aria-busy={aplicando || undefined}
             aria-describedby={motivoDeshabilitado ? "codificacion-adaptar-disabled-reason" : undefined}
@@ -188,7 +186,7 @@ export function AdaptarAplicacionVista({
 
       {/* El avance, el fallo o los dos archivos adaptados: una sola señal en
           movimiento (la línea del contenedor); el botón sólo se deshabilita. */}
-      <ContenedorEntregable estado={entrega} forma="bloque" onCerrar={onCerrarEntrega} />
+      <ContenedorEntregable estado={entrega} forma="bloque" enfocar={pedidoDeFoco} onCerrar={onCerrarEntrega} />
 
       {/* B1: Codificación leyó otro número de casos que el de la base. */}
       <AvisoFuenteAplicar aviso={entrada.avisoFuente} />

@@ -284,6 +284,13 @@ describe("fallo", () => {
     expect(el?.textContent).toContain("No hay base activa.");
     expect(boton("Reintentar")).not.toBeNull();
   });
+
+  it("fila: la causa recortada se lee entera en el `title`, no el código", async () => {
+    await montar(ESTADOS.fallo, "fila");
+    const texto = host.querySelector(".pulso-entregable-fila-texto");
+    expect(texto?.getAttribute("title")).toBe("No hay base activa.");
+    expect(host.innerHTML).not.toContain("E_ANALITICA_SIN_BASE");
+  });
 });
 
 describe("hoja de estilos", () => {
@@ -354,6 +361,36 @@ describe("hoja de estilos", () => {
     expect(control).toBeLessThanOrEqual(alto);
   });
 
+  it("fila: su texto no impone ancho a la celda ni encoge a sus hermanos (Monitoreo › Salidas, 463 → 0 px)", () => {
+    // La causa va en una línea (`nowrap`). Si su ancho al medir la celda es el de la frase entera, una columna
+    // `auto` de la fila se ensancha hasta dejar en 0 px la columna del texto vecino. Aporta un ancho fijo y
+    // modesto, crece con `flex-grow` y se recorta con elipsis.
+    const texto = regla(".pulso-entregable-fila-texto");
+    expect(texto).toMatch(/white-space:\s*nowrap/);
+    expect(texto, "ancho fijo al medir la celda").toMatch(/(?:^|[\s;{])width:\s*\d+(?:ch|px|em|rem);/);
+    expect(texto).toMatch(/min-width:\s*0;/);
+    expect(texto).toMatch(/flex:\s*1\b/);
+    expect(texto).toMatch(/text-overflow:\s*ellipsis/);
+    expect(texto).not.toMatch(/contain:|max-content|fit-content/);
+    // En curso (rejilla) ocupa el ancho de la fila sin aportarlo: sólo porcentajes.
+    const enCurso = regla('.pulso-entregable[data-entregable-forma="fila"][data-entregable-fase="en_curso"] > .pulso-entregable-fila-texto');
+    expect(enCurso).toMatch(/min-width:\s*100%/);
+    expect(enCurso).toMatch(/max-width:\s*100%/);
+    expect(enCurso).not.toMatch(/(?:^|[\s;{])width:/);
+  });
+
+  it("anclada: cuelga del eje del botón (`--pulso-entregable-eje`), sin salirse del ancla", () => {
+    const fin = regla('.pulso-entregable[data-entregable-forma="anclada"]');
+    expect(fin).toMatch(/right:\s*max\(0px,\s*var\(--pulso-entregable-eje,\s*0px\)\)/);
+    const inicio = regla('.pulso-entregable[data-entregable-forma="anclada"][data-entregable-alinear="inicio"]');
+    expect(inicio).toMatch(/right:\s*auto/);
+    expect(inicio).toMatch(/left:\s*max\(0px,\s*var\(--pulso-entregable-eje,\s*0px\)\)/);
+  });
+
+  it("el contenedor que recibe el foco lleva el anillo del kit", () => {
+    expect(regla(".pulso-entregable:focus-visible")).toMatch(/outline:\s*var\(--mov-foco\)/);
+  });
+
   it("no anima nada propio: la única animación es la de la línea del kit", () => {
     const sinComentarios = css.replace(/\/\*[\s\S]*?\*\//g, "");
     expect(sinComentarios).not.toMatch(/@keyframes/);
@@ -393,7 +430,86 @@ describe("ver sin entregar y alineación de la anclada", () => {
     expect(host.querySelector("[data-entregable-alinear]")).toBeNull();
     const css = readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "entregables.css"), "utf8");
     const regla = /\.pulso-entregable\[data-entregable-forma="anclada"\]\[data-entregable-alinear="inicio"\]\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
-    expect(regla).toMatch(/left:\s*0/);
+    expect(regla).toMatch(/left:\s*max\(0px/);
     expect(regla).toMatch(/right:\s*auto/);
+  });
+});
+
+/** Rectángulo fijo para un elemento (happy-dom no hace layout). */
+function caja(el: HTMLElement, left: number, right: number) {
+  Object.defineProperty(el, "getBoundingClientRect", { configurable: true, value: () => ({ left, right, top: 0, bottom: 30, width: right - left, height: 30, x: left, y: 0 }) });
+  Object.defineProperty(el, "clientLeft", { configurable: true, value: 0 });
+  Object.defineProperty(el, "clientWidth", { configurable: true, value: right - left });
+}
+
+describe("anclada: eje del botón", () => {
+  function Banco({ estado, alinear, conEje = true }: { estado: EstadoGeneracion; alinear?: "inicio" | "fin"; conEje?: boolean }) {
+    const eje = { current: document.getElementById("disparador") };
+    return <ContenedorEntregable estado={estado} forma="anclada" alinear={alinear} eje={conEje ? eje : undefined} onCerrar={() => undefined} />;
+  }
+
+  beforeEach(() => {
+    // El bloque contenedor de la anclada es su padre posicionado; happy-dom no lo calcula.
+    Object.defineProperty(HTMLElement.prototype, "offsetParent", { configurable: true, get() { return (this as HTMLElement).parentElement; } });
+  });
+  afterEach(() => {
+    delete (HTMLElement.prototype as { offsetParent?: unknown }).offsetParent;
+  });
+
+  it("publica la distancia del borde del ancla al del botón; sin `eje`, nada (queda al borde)", async () => {
+    // Codificación a 1440: barra de 260 a 1412 y "Matriz para el cliente" terminando en 1139.
+    caja(host, 260, 1412);
+    const disparador = document.createElement("button");
+    disparador.id = "disparador";
+    document.body.appendChild(disparador);
+    caja(disparador, 980, 1139);
+    await act(async () => { root.render(<Banco estado={ESTADOS.lista} />); });
+    const el = host.querySelector<HTMLElement>("[data-entregable-forma='anclada']");
+    expect(el?.style.getPropertyValue("--pulso-entregable-eje")).toBe("273px");
+
+    await act(async () => { root.render(<Banco estado={ESTADOS.lista} alinear="inicio" />); });
+    expect(host.querySelector<HTMLElement>("[data-entregable-forma='anclada']")?.style.getPropertyValue("--pulso-entregable-eje")).toBe("720px");
+
+    act(() => root.unmount());
+    root = createRoot(host);
+    await act(async () => { root.render(<Banco estado={ESTADOS.lista} conEje={false} />); });
+    expect(host.querySelector<HTMLElement>("[data-entregable-forma='anclada']")?.style.getPropertyValue("--pulso-entregable-eje")).toBe("");
+  });
+
+  it("si el botón deja el documento conserva la última medida", async () => {
+    caja(host, 0, 1000);
+    const disparador = document.createElement("button");
+    disparador.id = "disparador";
+    document.body.appendChild(disparador);
+    caja(disparador, 800, 900);
+    const eje = { current: disparador as HTMLElement | null };
+    const Con = () => <ContenedorEntregable estado={ESTADOS.lista} forma="anclada" eje={eje} onCerrar={() => undefined} />;
+    await act(async () => { root.render(<Con />); });
+    disparador.remove();
+    await act(async () => { root.render(<Con />); });
+    expect(host.querySelector<HTMLElement>("[data-entregable-forma='anclada']")?.style.getPropertyValue("--pulso-entregable-eje")).toBe("100px");
+  });
+});
+
+describe("enfocar al aparecer", () => {
+  it("bloque: con `enfocar` toma el foco una vez al aparecer y no vuelve a robarlo al cambiar de fase", async () => {
+    const otro = document.createElement("button");
+    document.body.appendChild(otro);
+    await act(async () => { root.render(<ContenedorEntregable estado={{ fase: "inactiva" }} forma="bloque" enfocar onCerrar={() => undefined} />); });
+    expect(document.activeElement).not.toBe(host.querySelector("[data-entregable-fase]"));
+    await act(async () => { root.render(<ContenedorEntregable estado={ESTADOS.indeterminada} forma="bloque" enfocar onCerrar={() => undefined} />); });
+    const el = host.querySelector<HTMLElement>("[data-entregable-fase]");
+    expect(el?.getAttribute("tabindex")).toBe("-1");
+    expect(document.activeElement).toBe(el);
+    otro.focus();
+    await act(async () => { root.render(<ContenedorEntregable estado={ESTADOS.lista} forma="bloque" enfocar onCerrar={() => undefined} />); });
+    expect(document.activeElement).toBe(otro);
+  });
+
+  it("sin `enfocar` no es enfocable ni toma el foco", async () => {
+    await act(async () => { root.render(<ContenedorEntregable estado={ESTADOS.indeterminada} forma="bloque" onCerrar={() => undefined} />); });
+    const el = host.querySelector<HTMLElement>("[data-entregable-fase]");
+    expect(el?.hasAttribute("tabindex")).toBe(false);
+    expect(document.activeElement).not.toBe(el);
   });
 });

@@ -73,6 +73,8 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
   const [busy, setBusy] = useState<Busy>(null);
   // Matrices Excel y respaldo JSON (ADR 0133): el contenedor del kit anclado a la barra.
   const entregas = useEntregasMatrices();
+  // El botón que pidió el archivo: el contenedor cuelga de su borde, no del de la barra.
+  const ejeEntrega = useRef<HTMLElement | null>(null);
   const [error, setError] = useState<string>("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [map, setMap] = useState<CodifMatrixMap | null>(null);
@@ -261,12 +263,14 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
     }
   }
 
-  function exportConfig() {
+  function exportConfig(boton: HTMLElement) {
+    ejeEntrega.current = boton;
     setError("");
     void entregas.respaldo();
   }
 
-  function exportMatrix(visibility: MatrixVisibility) {
+  function exportMatrix(visibility: MatrixVisibility, boton: HTMLElement) {
+    ejeEntrega.current = boton;
     if (!activeBase) {
       setError("Selecciona una base para generar la matriz.");
       return;
@@ -400,7 +404,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
             <button
               type="button"
               className="pulso-codificacion-config-button is-primary"
-              onClick={() => void exportMatrix("work")}
+              onClick={(e) => exportMatrix("work", e.currentTarget)}
               disabled={disabled || barraOcupada || exportVariableNames.length === 0}
               title="Crea una matriz editable con id de caso, variable, texto original, código, categoría y observaciones."
             >
@@ -412,7 +416,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
             <button
               type="button"
               className="pulso-codificacion-config-button"
-              onClick={() => void exportMatrix("work")}
+              onClick={(e) => exportMatrix("work", e.currentTarget)}
               disabled={disabled || barraOcupada || exportVariableNames.length === 0}
               title="Descarga una matriz editable de la base activa para revisar, completar o actualizar casos."
             >
@@ -435,7 +439,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
           <button
             type="button"
             className="pulso-codificacion-config-button"
-            onClick={() => void exportMatrix("client")}
+            onClick={(e) => exportMatrix("client", e.currentTarget)}
             disabled={disabled || barraOcupada}
             title="Exporta una matriz limpia para compartir, sin IDs internos ni rutas locales."
           >
@@ -445,7 +449,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
           <button
             type="button"
             className="pulso-codificacion-config-button"
-            onClick={() => void exportMatrix("internal")}
+            onClick={(e) => exportMatrix("internal", e.currentTarget)}
             disabled={disabled || barraOcupada}
             title="Exporta una auditoría interna con trazabilidad y casos cuando existen."
           >
@@ -455,7 +459,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
           <button
             type="button"
             className="pulso-codificacion-config-button"
-            onClick={exportConfig}
+            onClick={(e) => exportConfig(e.currentTarget)}
             disabled={disabled || barraOcupada}
             title="Descarga un respaldo JSON reutilizable de categorías, reglas y recodificaciones."
           >
@@ -473,8 +477,8 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
             {busy === "map" ? <Loader2 size={13} className="pulso-spin" /> : <RefreshCw size={13} />}
           </button>
         </div>
-        {/* Matrices y respaldo: el contenedor del kit flota bajo la barra sin mover la página. */}
-        <ContenedorEntregable estado={entregas.estado} forma="anclada" onCerrar={entregas.cerrar} />
+        {/* Matrices y respaldo: el contenedor del kit flota bajo la barra sin mover la página, colgado del botón pulsado. */}
+        <ContenedorEntregable estado={entregas.estado} forma="anclada" eje={ejeEntrega} onCerrar={entregas.cerrar} />
       </div>
 
       {/* L25: "Matriz aplicada…" es un toast y las matrices y el respaldo salen en el contenedor de la barra; aquí queda sólo el error, que no se va solo. */}

@@ -36,7 +36,7 @@ export type ContextoDeSalidas = {
   ocupado: boolean;
   /** R13: lleva a Material › Entrega, donde se construyen las tablas del Sheets. */
   irAMaterial: () => void;
-  /** Pide el libro en Excel; lo entrega el contenedor del kit en la fila de la salida. */
+  /** Pide el libro en Excel; lo entrega el contenedor del kit bajo la fila de la salida. */
   generarLibro: () => Promise<LibroGenerado>;
   /** La sub-vista con los flujos de PDF y del Sheets del cliente. */
   hrefHerramientas: string;
@@ -87,17 +87,16 @@ function SalidasAulasImpl({ contexto }: { contexto: ContextoDeSalidas }) {
           {a.rotulo}
         </PulsoButton>
       ) : a.accion === "excel" ? (
-        <EntregaEnFila key={a.accion} entrega={libroExcel}>
-          <PulsoButton
-            variant={a.principal ? "primary" : "secondary"}
-            size="sm"
-            disabled={contexto.ocupado || Boolean(a.deshabilitada) || libroExcel.enCurso}
-            title={a.deshabilitada}
-            onClick={() => ejecutar(a.accion)}
-          >
-            {a.rotulo}
-          </PulsoButton>
-        </EntregaEnFila>
+        <PulsoButton
+          key={a.accion}
+          variant={a.principal ? "primary" : "secondary"}
+          size="sm"
+          disabled={contexto.ocupado || Boolean(a.deshabilitada) || libroExcel.enCurso}
+          title={a.deshabilitada}
+          onClick={() => ejecutar(a.accion)}
+        >
+          {a.rotulo}
+        </PulsoButton>
       ) : (
         <PulsoButton
           key={a.accion}
@@ -128,6 +127,8 @@ function SalidasAulasImpl({ contexto }: { contexto: ContextoDeSalidas }) {
           detalle: salida.detalle,
           icono: ICONOS[salida.clave],
           accion: accionesDe(salida),
+          // El libro en Excel: su contenedor va bajo la fila entera, no en la celda del botón.
+          pie: salida.acciones.some((a) => a.accion === "excel") ? <EntregaEnFila entrega={libroExcel} className="mon-sal-pie" /> : undefined,
         }))}
         despues={<QueTocaPublicarPanel queToca={modelo.queToca} />}
         vistaPrevia={<VistaPreviaDelAvance vista={modelo.vistaPrevia} corte={contexto.corte} />}

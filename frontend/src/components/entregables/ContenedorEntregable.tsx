@@ -12,13 +12,19 @@
 //    apila sus acciones si es angosto.
 //  - `anclada`: flota bajo el botón o menú que la abrió sin mover la página
 //    (el padre es `position: relative`). `alinear="inicio"` la abre hacia la
-//    derecha cuando el disparador está al inicio de su fila.
+//    derecha cuando el disparador está al inicio de su fila. Con `eje`, cuelga
+//    del borde del botón y no del de su ancla (`ejeDeEntrega.ts`).
 //  - `fila`: dentro de la celda de acción de una tabla: línea fina, luego
-//    mini-ícono y Abrir/Carpeta; el error en la misma fila.
+//    mini-ícono y Abrir/Carpeta; el error en la misma fila. Su texto no impone
+//    ancho a la celda: se recorta y el `title` lo dice entero.
+//
+// `enfocar`: quien pulsó con el teclado sigue en el contenedor. Al aparecer,
+// el contenedor (bloque o anclada) recibe el foco una vez por pedido, con el
+// anillo del kit.
 //
 // QA: `data-entregable-fase` (en_curso | lista | fallo) y `data-entregable-forma`.
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { AlertCircle, Check, Copy, RotateCw, X } from "../../vendor/lucide-react";
 import { BarraDeAvance } from "../BarraDeAvance";
 import { PulsoButton } from "../PulsoButton";
@@ -29,6 +35,7 @@ import { AccionesArchivo } from "./AccionesArchivo";
 import { NombreArchivo } from "./NombreArchivo";
 import { carpetaDeRuta, comoQuedo, pesoLegible, textoDelAvance } from "./generacionModelo";
 import { TileFormato } from "./TileFormato";
+import { useEjeAnclado } from "./ejeDeEntrega";
 import type { AlineacionAnclada, ArchivoEntregable, EstadoGeneracion, FormaContenedor } from "./tipos";
 import "./entregables.css";
 
@@ -40,6 +47,14 @@ type Props = {
   pie?: ReactNode;
   /** Sólo en la forma anclada: hacia dónde se abre bajo el disparador (por defecto, `fin`). */
   alinear?: AlineacionAnclada;
+  /** Sólo en la forma anclada: el botón que la abrió. El contenedor cuelga de su borde y no del de su ancla. */
+  eje?: RefObject<HTMLElement | null>;
+  /**
+   * Formas bloque y anclada: al aparecer recibe el foco (el botón que lo pidió se deshabilita y lo soltaría al
+   * `body`). `true` lo pide una vez; un contador lo pide otra vez en cada valor nuevo (p. ej. tras "Reintentar",
+   * que desaparece al volver a correr). Con 0 o `false` es enfocable por programa pero no se enfoca.
+   */
+  enfocar?: boolean | number;
 };
 
 function Linea({ estado }: { estado: Extract<EstadoGeneracion, { fase: "en_curso" }> }) {
@@ -124,7 +139,7 @@ function FormaFila({ estado }: { estado: Exclude<EstadoGeneracion, { fase: "inac
   return (
     <>
       <AlertCircle size={14} className="pulso-entregable-alerta" aria-hidden="true" />
-      <span className="pulso-entregable-fila-texto" title={estado.codigo ?? undefined}>{estado.causa}</span>
+      <span className="pulso-entregable-fila-texto" title={estado.causa}>{estado.causa}</span>
       {estado.reintentar && (
         <PulsoButton variant="icon" size="sm" aria-label="Reintentar" title="Reintentar" onClick={estado.reintentar}>
           <RotateCw size={14} aria-hidden="true" />
@@ -151,8 +166,29 @@ function useTraerALaVista(fase: EstadoGeneracion["fase"], activo: boolean) {
   return ref;
 }
 
-export function ContenedorEntregable({ estado, forma, onCerrar, pie, alinear = "fin" }: Props) {
+/**
+ * `enfocar`: cada pedido nuevo (un valor verdadero distinto del último atendido) se atiende la primera vez que el
+ * contenedor está en el documento: toma el foco. Apagado (`false`, 0), se rearma.
+ */
+function useEnfocarAlAparecer(ref: RefObject<HTMLElement | null>, fase: EstadoGeneracion["fase"], enfocar: boolean | number) {
+  const atendido = useRef<boolean | number>(false);
+  useEffect(() => {
+    if (!enfocar) {
+      atendido.current = false;
+      return;
+    }
+    const el = ref.current;
+    if (atendido.current === enfocar || fase === "inactiva" || !el) return;
+    atendido.current = enfocar;
+    el.focus({ preventScroll: true });
+  }, [ref, fase, enfocar]);
+}
+
+export function ContenedorEntregable({ estado, forma, onCerrar, pie, alinear = "fin", eje, enfocar }: Props) {
   const ref = useTraerALaVista(estado.fase, forma === "bloque");
+  const anclada = forma === "anclada";
+  const distanciaAlEje = useEjeAnclado(ref, anclada && estado.fase !== "inactiva", alinear, anclada ? eje : undefined);
+  useEnfocarAlAparecer(ref, estado.fase, forma === "fila" ? false : enfocar ?? false);
   if (estado.fase === "inactiva") return null;
   const comun = {
     className: "pulso-entregable",
@@ -161,7 +197,11 @@ export function ContenedorEntregable({ estado, forma, onCerrar, pie, alinear = "
     role: estado.fase === "fallo" ? "alert" : "status",
     "aria-label": estado.titulo,
     // QA y CSS: sólo la anclada se alinea; el valor por defecto (`fin`) no se escribe.
-    ...(forma === "anclada" && alinear === "inicio" ? { "data-entregable-alinear": "inicio" } : {}),
+    ...(anclada && alinear === "inicio" ? { "data-entregable-alinear": "inicio" } : {}),
+    // El eje del botón: la regla de la anclada lo usa como `right` (o `left` con `inicio`).
+    ...(anclada && distanciaAlEje != null ? { style: { "--pulso-entregable-eje": `${distanciaAlEje}px` } as CSSProperties } : {}),
+    // Recibe el foco por programa, nunca con Tab.
+    ...(forma !== "fila" && enfocar !== undefined ? { tabIndex: -1 } : {}),
   } as const;
 
   if (forma === "fila") {

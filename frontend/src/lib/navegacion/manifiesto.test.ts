@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PROSECNUR_MODULES } from "../modules";
-import { parsearDireccionDesdeHref } from "./direccion";
+import { describirDireccion, parsearDireccion, parsearDireccionDesdeHref } from "./direccion";
 import {
   MANIFIESTO_NAVEGACION,
   hijosDe,
@@ -242,6 +242,23 @@ describe("manifiesto de navegación", () => {
     expect(nodoPorClaveOModoPorDefecto("hojas-ruta/seleccion/titulares")?.clave).toBe("hojas-ruta/ump/seleccion/titulares");
     expect(nodoPorClaveOModoPorDefecto("hojas-ruta/cuotas/muestra")?.clave).toBe("hojas-ruta/cuotas/muestra");
     expect(nodoPorClaveOModoPorDefecto("hojas-ruta/inventada")).toBeNull();
+  });
+
+  it("la clave que describe el puente en una vista lleva de vuelta a esa vista (dashboard/dashboard/base-datos)", () => {
+    // El parser normaliza `?pestana=base_datos` a `base-datos`: `describir()` devolvía esa clave e `ir()` no la
+    // encontraba porque el manifiesto la guarda con guion bajo. Se recorre todo el manifiesto publicado.
+    expect(nodoPorClaveOModoPorDefecto("dashboard/dashboard/base-datos")?.clave).toBe("dashboard/dashboard/base_datos");
+    const sinVuelta = MANIFIESTO_NAVEGACION
+      .filter((nodo) => nodo.direccionPublicada)
+      .filter((nodo) => {
+        const url = new URL(nodo.href, "http://pulso.local");
+        const leida = parsearDireccion(url.pathname, url.search);
+        const vuelta = leida ? nodoPorClaveOModoPorDefecto(describirDireccion(leida))?.clave : undefined;
+        // Un módulo de una sola sección (Formularios, Dashboard) se lee con su sección: cae dentro de él.
+        return !vuelta || (vuelta !== nodo.clave && !vuelta.startsWith(`${nodo.clave}/`));
+      })
+      .map((nodo) => nodo.clave);
+    expect(sinVuelta).toEqual([]);
   });
 
   it("expone las pestañas de Selección de Hojas de ruta", () => {

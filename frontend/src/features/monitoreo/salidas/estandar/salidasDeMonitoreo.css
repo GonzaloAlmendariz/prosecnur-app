@@ -83,6 +83,12 @@
   justify-content: flex-end;
 }
 
+/* Bajo la fila entera, del texto a la acción: el contenedor del kit no le quita ancho al texto ni mueve el botón. */
+.mon-sal-pie {
+  grid-column: 2 / -1;
+  min-width: 0;
+}
+
 /* La hoja del cliente sobre su mesa: centrada, con sombra de papel; si es más alta que el panel, la mesa
  * desplaza. */
 .mon-sal-mesa {

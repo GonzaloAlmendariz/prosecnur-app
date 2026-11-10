@@ -12,6 +12,9 @@
  * spinner ni cambio de rótulo), lo único que se mueve es la línea del
  * contenedor, y dentro del contenedor no hay enlaces ni botones primarios.
  */
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -241,9 +244,15 @@ function BancoAnclada({ generar }: { generar: () => Promise<unknown> }) {
 function BancoFila({ generar }: { generar: () => Promise<unknown> }) {
   const entrega = useEntrega("Libro en Excel", { formato: "xlsx", articulo: "el" });
   return (
-    <EntregaEnFila entrega={entrega}>
-      <button type="button" disabled={entrega.enCurso} onClick={() => { void entrega.ejecutar(generar); }}>Generar libro</button>
-    </EntregaEnFila>
+    <ul>
+      <li className="fila">
+        <p className="texto">Las hojas del equipo, en un archivo.</p>
+        <div className="accion">
+          <button type="button" disabled={entrega.enCurso} onClick={() => { void entrega.ejecutar(generar); }}>Generar libro</button>
+        </div>
+        <EntregaEnFila entrega={entrega} className="pie" />
+      </li>
+    </ul>
   );
 }
 
@@ -258,18 +267,40 @@ describe("anclada y fila: los envoltorios de Monitoreo", () => {
     sinResaltadoNiSpinner(lista as HTMLElement);
   });
 
-  it("fila: el disparador conserva su celda y el contenedor va debajo, en la misma celda; el error queda en la fila", async () => {
+  it("fila: el disparador conserva su celda y el contenedor va bajo la fila entera, no en la celda del botón", async () => {
     const d = diferida();
     await act(async () => { root.render(<BancoFila generar={() => d.promesa} />); });
+    // Sin generación, la fila no gana un renglón vacío.
+    expect(document.querySelector(".mon-entrega-fila")).toBeNull();
     await act(async () => { boton("Generar libro").click(); });
-    const celda = boton("Generar libro").closest(".mon-entrega-celda");
     expect(boton("Generar libro").disabled).toBe(true);
-    expect(celda?.querySelector("[data-entregable-forma='fila']")?.getAttribute("data-entregable-fase")).toBe("en_curso");
+    const enCurso = contenedor("fila");
+    expect(enCurso?.dataset.entregableFase).toBe("en_curso");
+    // Su propia línea, hermana de la celda de acción y del texto: no compite con ellos por ancho.
+    expect(enCurso?.parentElement?.classList.contains("mon-entrega-fila")).toBe(true);
+    expect(enCurso?.parentElement?.classList.contains("pie")).toBe(true);
+    expect(enCurso?.parentElement?.parentElement?.classList.contains("fila")).toBe(true);
+    expect(boton("Generar libro").closest(".accion")?.contains(enCurso as Node)).toBe(false);
     await act(async () => { d.resolver({ ok: false, error: { code: "E_AULAS_SIN_PLAN", message: "Primero importa el plan." } }); await d.promesa; });
     const fallo = contenedor("fila");
     expect(fallo?.dataset.entregableFase).toBe("fallo");
     expect(fallo?.textContent).toContain("Primero importa el plan.");
     expect(fallo?.querySelector("button[aria-label='Reintentar']")).not.toBeNull();
     sinResaltadoNiSpinner(fallo as HTMLElement);
+  });
+});
+
+describe("Salidas: el pie de la fila", () => {
+  it("va del texto a la acción en su propio renglón, en ancho y en compacto (H1: el texto vecino quedaba en 0 px)", () => {
+    const css = readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../salidas/estandar/salidasDeMonitoreo.css"), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "");
+    const fila = /\.mon-sal-fila\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
+    expect(fila).toMatch(/grid-template-columns:\s*36px minmax\(0, 1fr\) auto/);
+    const pie = /\.mon-sal-pie\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
+    expect(pie).toMatch(/grid-column:\s*2 \/ -1/);
+    expect(pie).toMatch(/min-width:\s*0/);
+    const fuente = readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../profiles/aulas/avance/SalidasAulas.tsx"), "utf8");
+    expect(fuente).toMatch(/pie:[^\n]*<EntregaEnFila entrega=\{libroExcel\} className="mon-sal-pie" \/>/);
+    expect(fuente).not.toMatch(/<EntregaEnFila[^>]*>\s*<PulsoButton/);
   });
 });

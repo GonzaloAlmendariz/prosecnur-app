@@ -134,6 +134,17 @@
   }
 }
 
+/* La entrega de un material: el botón queda en la columna de acción y el contenedor del kit baja a su propio
+   renglón, del texto a la acción. En la columna `auto` competía por ancho con el nombre del archivo, como en
+   Monitoreo › Salidas. */
+.rec-artifact-list article > .rec-entrega-celda {
+  display: contents;
+}
+
+.rec-artifact-list article > .rec-entrega-celda > .pulso-entregable {
+  grid-column: 2 / -1;
+}
+
 /* Los datos del material; la celda de la entrega es del kit (ADR 0133) y no hereda estas reglas. */
 .rec-artifact-list article > div:not(.rec-entrega-celda) strong,
 .rec-artifact-list article > div:not(.rec-entrega-celda) span,

@@ -48,7 +48,6 @@ import type { RanuraSobreLamina } from "./ranurasLamina";
 import { BotonGuias } from "./guias/BotonGuias";
 import { GuiasSobreLamina } from "./guias/GuiasSobreLamina";
 import { useGuiasUi } from "./guias/guiasStore";
-import { useEjeDeEntrega } from "./ejeDeEntrega";
 import { construirGuias, rolesPresentes } from "./guias/modeloGuias";
 import { presentacionPreview } from "./presentacionPreview";
 import { useTituloEnLienzo } from "./modeloTituloLienzo";
@@ -109,7 +108,8 @@ export function VisorLamina({
 }: Props) {
   const descarga = useGeneracion({ titulo: "Lámina en PowerPoint", modulo: "Procesamiento", formato: "pptx", articulo: "la" });
   const descargando = descarga.estado.fase === "en_curso";
-  const eje = useEjeDeEntrega(descarga.estado.fase !== "inactiva");
+  // El contenedor cuelga del eje de este botón (`eje` del kit).
+  const disparadorDescarga = useRef<HTMLButtonElement>(null);
   const zoom = useLaminasUi((s) => s.zoom);
   const setZoom = useLaminasUi((s) => s.setZoom);
   const tiraVisible = useLaminasUi((s) => s.tiraVisible);
@@ -237,7 +237,7 @@ export function VisorLamina({
           // La descarga pasa por el kit de entregables (ADR 0133): es un botón del kit con la piel del ícono quieto.
           <PulsoButton
             variant="icon"
-            ref={eje.disparador}
+            ref={disparadorDescarga}
             aria-label="Descargar esta lámina en PowerPoint"
             title="Descargar esta lámina en PowerPoint"
             disabled={descargando}
@@ -309,10 +309,10 @@ export function VisorLamina({
       </header>
 
       {/* Ancla de la forma anclada: una franja sin alto bajo la barra; el contenedor flota sobre el lienzo, con su
-          borde derecho en el del botón de descarga (`useEjeDeEntrega`). */}
+          borde derecho en el del botón de descarga (`eje` del kit). */}
       {descarga.estado.fase !== "inactiva" && (
-        <div className="pulso-f6-visor-entrega" ref={eje.ancla} style={eje.estilo}>
-          <ContenedorEntregable estado={descarga.estado} forma="anclada" onCerrar={descarga.cerrar} />
+        <div className="pulso-f6-visor-entrega">
+          <ContenedorEntregable estado={descarga.estado} forma="anclada" eje={disparadorDescarga} onCerrar={descarga.cerrar} />
         </div>
       )}
 

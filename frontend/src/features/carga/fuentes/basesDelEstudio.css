@@ -28,9 +28,13 @@
   font-size: var(--pulso-type-body-size);
 }
 
+/* Contrato `intrinsic` (C2): cada tarjeta mide lo que contiene. Con el `stretch` por defecto de la rejilla, la
+   fila de descarga de una tarjeta estiraba a sus hermanas (24 px a 1440, 42 px a 1024) y el hueco entre las cifras
+   y las acciones crecía de 8 a 32 o 50 px sin que cambiara su contenido. */
 .pulso-bde-grilla {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
+  align-items: start;
   gap: var(--pulso-space-3);
 }
 
@@ -110,6 +114,14 @@
   line-height: 1.4;
 }
 
+/* El nombre del archivo parte tras un `_` y no a media extensión ("…26.xl" arriba y "sx" abajo); con el peso y el
+   tamaño del texto de la tarjeta, no los del nombre del contenedor. */
+.pulso-bde-fuente > .pulso-entregable-nombre {
+  min-width: 0;
+  font-weight: inherit;
+  line-height: inherit;
+}
+
 .pulso-bde-canal {
   padding: 0 7px;
   border-radius: 999px;
@@ -134,7 +146,6 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  margin-top: auto;
 }
 
 .pulso-bde-confirmar {
