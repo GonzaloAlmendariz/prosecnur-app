@@ -72,7 +72,19 @@ Gates: `pnpm -C desktop test` 69/69; `escritorio.test.ts` 19/19; `tsc` limpio; a
 
 QA visual: la primera ronda rechazó (bloque estirado a todo el alto, disparador de Gráficos colapsado a 1024, foco invisible); la segunda, con fallos reales provocados por la API, dio 31 PASS y 0 FAIL a 1440x1000 y 1024x600. Gates: `tsc` limpio, vitest de kit, Analítica y Gráficos 2345/2345, `make gate-front` 750/750, audit limpio. Pendiente: Electron real (Abrir, Mostrar en la carpeta, Guardar como, aviso de descarga) y el foco de «Cancelar» a 1024. Observaciones bajas: a 1024 el contenedor queda al ras del borde inferior (falta `scroll-margin-bottom`); la anclada tapa «Ver avisos» hasta que se cierra.
 
-## Fase 5: migración (pendiente)
+## Fase 5: migración (en curso)
+
+| Oleada | Alcance | Commit | Estado |
+|---|---|---|---|
+| 0 | Ratchet ampliado (blobs, enlaces a URLs de descarga, helpers de CSV) y `urlDelArchivo` para imágenes en línea | `50ebd5ee3` | hecho; BASE 56 |
+| 1 | Material de campo al kit (28 filas del censo); normalizadores de Material; kit con «ver sin descargar» y alineación de la anclada; nombres del motor alineados en ~30 salidas; ficha de prueba con archivo; «Cerrar y generar base» devuelve sus archivos; ZIP de correos se copian | `70b122050` | hecho; BASE 41; verificador rechazó una vez (Paquetes territoriales copiaba y descargaba; comillas angulares) y se corrigió |
+| 2 | Monitoreo; Hojas de ruta, Cálculo de muestra, Dashboard y Carga | — | en curso |
+| 3 | Codificación, Validación (ofrecer la base limpia), Editor XLSForm, Analítica y Gráficos restantes, componentes compartidos | — | pendiente |
+| 3b | Portapapeles y publicaciones en el contenedor | — | pendiente; el kit aún no muestra resultados que no son archivo |
+
+Desvíos del glosario que hizo el motor en la oleada 1, por exactitud: la ficha de UMP titular se llama «Ficha de UMP» (antes todas decían «de reemplazo»); el libro de UMP es «UMP» con detalle `faltantes`, `<responsable>` o `determinadas`; la evidencia de Monitoreo es «Evidencia de publicación» con detalle «para el cliente» o «interna». Pendientes del motor: los archivos DENTRO del ZIP de evidencia siguen en inglés (esquema versionado que lee `audit_projects.R`) y las piezas dentro del ZIP de Hojas de ruta pierden la ñ (`hojas_ruta_sanitize_filename`, motor congelado); ambos piden decisión.
+
+### Pendiente original
 
 Los 41 archivos que el ratchet aún cuenta, módulo por módulo, hasta 0: Material de campo, Monitoreo, Hojas de ruta, Cálculo de muestra, Codificación, Carga, Validación (incluye ofrecer la base limpia de «Cerrar y generar base»), Editor XLSForm, Correos y Dashboard. Al migrar cada flujo se retira su `guardar = FALSE` transitorio del catálogo y su nombre propio pasa a `entregable_nombre()`. Decisión pendiente: el «Actualizar» de aulas que también publica en Sheets.
 
