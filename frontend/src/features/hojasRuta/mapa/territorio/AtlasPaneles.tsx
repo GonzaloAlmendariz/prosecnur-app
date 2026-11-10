@@ -126,14 +126,16 @@ type DistritoProps = {
   cargandoManzanas: boolean;
   errorManzanas: string | null;
   manzanas: number | null;
+  /** Con qué se pintan sus manzanas («viviendas», «NSE»); null si van sin color. */
+  pintadasPor?: string | null;
   onVerManzanas: () => void;
   onVolverCiudad: () => void;
 };
 
 export function AtlasInspector(props: InspectorProps & DistritoProps) {
-  const { distrito, adentro, cargandoManzanas, errorManzanas, manzanas, onVerManzanas, onVolverCiudad, ...ciudad } = props;
+  const { distrito, adentro, cargandoManzanas, errorManzanas, manzanas, pintadasPor = null, onVerManzanas, onVolverCiudad, ...ciudad } = props;
   if (distrito && ciudad.ciudad) {
-    return <DistritoAtlasTarjeta ciudad={ciudad.ciudad.nombre} distrito={distrito} adentro={adentro} cargandoManzanas={cargandoManzanas} errorManzanas={errorManzanas} manzanas={manzanas} onVerManzanas={onVerManzanas} onVolver={onVolverCiudad} />;
+    return <DistritoAtlasTarjeta ciudad={ciudad.ciudad.nombre} distrito={distrito} adentro={adentro} cargandoManzanas={cargandoManzanas} errorManzanas={errorManzanas} manzanas={manzanas} pintadasPor={pintadasPor} onVerManzanas={onVerManzanas} onVolver={onVolverCiudad} />;
   }
   // La confirmación de quitar es de UNA ciudad: al abrir otra, vuelve a pedirse.
   return <AtlasInspectorCiudad key={ciudad.ciudad?.codigo ?? ""} {...ciudad} />;

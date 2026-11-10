@@ -3,7 +3,7 @@ import type { HojasRutaTerritory } from "../../../../api/hojasRuta";
 import { formatoConteo } from "../../../../lib/formatoNumero";
 import { leyendaLienzo } from "../lienzo/flotantes";
 import "./capaDistritos.css";
-import { CAPAS_DISTRITOS, NOMBRE_NSE, type CapaDistritos, type EscalaDistritos } from "./capaDistritos";
+import { CAPAS_DISTRITOS, CAPAS_MANZANAS_DISTRITO, capaMarcada, NOMBRE_NSE, type CapaDistritos, type EscalaDistritos } from "./capaDistritos";
 
 /** El valor de un distrito en la capa que se ve, para el rótulo del cursor: «13,995 habitantes por km²», «NSE predominante: medio». */
 export function valorDeCapa(capa: CapaDistritos, t: HojasRutaTerritory, areaKm2: number | null): string {
@@ -17,14 +17,31 @@ export function valorDeCapa(capa: CapaDistritos, t: HojasRutaTerritory, areaKm2:
   return `${formatoConteo(t.poblacion)} habitantes, ${formatoConteo(t.viviendas)} viviendas`;
 }
 
-/** Selector de la capa de distritos de la ciudad abierta en el atlas (mismo control que el de manzanas). */
-export function SelectorCapaDistritos({ capa, onCapa }: { capa: CapaDistritos; onCapa: (c: CapaDistritos) => void }) {
+/**
+ * Selector de la capa de la ciudad abierta en el atlas (mismo control que el de manzanas). Dentro de un distrito ofrece
+ * las capas de sus manzanas.
+ */
+export function SelectorCapaDistritos({ capa, onCapa, adentro = false }: { capa: CapaDistritos; onCapa: (c: CapaDistritos) => void; adentro?: boolean }) {
+  const marcada = capaMarcada(capa, adentro);
   return (
-    <div className="hr-lienzo-capas" role="group" aria-label="Capa de los distritos">
-      {CAPAS_DISTRITOS.map(([id, label]) => (
-        <button key={id} type="button" aria-pressed={capa === id} onClick={() => onCapa(id)}>{label}</button>
+    <div className="hr-lienzo-capas" role="group" aria-label={adentro ? "Capa de las manzanas" : "Capa de los distritos"}>
+      {(adentro ? CAPAS_MANZANAS_DISTRITO : CAPAS_DISTRITOS).map(([id, label]) => (
+        <button key={id} type="button" aria-pressed={marcada === id} onClick={() => onCapa(id)}>{label}</button>
       ))}
     </div>
+  );
+}
+
+/**
+ * Leyenda de las manzanas de un distrito sin capa de color: la manzana y el límite del distrito. Antes quedaba la del
+ * atlas («Con cartografía», «En el estudio»), que habla de ciudades.
+ */
+export function leyendaManzanasDistrito(): ReactNode {
+  return (
+    <>
+      <span><i style={{ background: "var(--pulso-mapa-manzana)", border: "1px solid var(--pulso-mapa-manzana-borde)" }} />Manzana</span>
+      <span><i style={{ background: "transparent", border: "2px solid var(--pulso-module-routes)" }} />Límite del distrito</span>
+    </>
   );
 }
 

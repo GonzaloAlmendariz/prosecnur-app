@@ -20,6 +20,22 @@ export const CAPAS_DISTRITOS: readonly [CapaDistritos, string][] = [
   ["nse", "NSE"],
 ];
 
+/**
+ * Las capas dentro de un distrito, al ver sus manzanas: por manzana no hay población, así que «Población» no se ofrece
+ * (antes seguía marcada y el mapa pintaba viviendas sin decirlo). «Distritos» pasa a llamarse «Manzanas»: el mismo
+ * valor del almacén, para que al volver a la ciudad la capa elegida siga ahí.
+ */
+export const CAPAS_MANZANAS_DISTRITO: readonly [CapaDistritos, string][] = [
+  ["distritos", "Manzanas"],
+  ["viviendas", "Viviendas"],
+  ["nse", "NSE"],
+];
+
+/** La opción marcada en el selector: dentro de un distrito, «Población» se lee como «Viviendas». */
+export function capaMarcada(capa: CapaDistritos, adentro: boolean): CapaDistritos {
+  return adentro && capa === "poblacion" ? "viviendas" : capa;
+}
+
 /** Nombre de cada nivel NSE (1 = Alto … 5 = Bajo; 0 sin dato), el de la leyenda. */
 export const NOMBRE_NSE = ["Sin dato", "Alto", "Medio alto", "Medio", "Medio bajo", "Bajo"] as const;
 

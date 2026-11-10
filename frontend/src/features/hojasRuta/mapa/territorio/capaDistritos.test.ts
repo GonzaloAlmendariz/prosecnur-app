@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { HojasRutaTerritory } from "../../../../api/hojasRuta";
-import { areaKm2, escalaDistritos } from "./capaDistritos";
+import { areaKm2, CAPAS_MANZANAS_DISTRITO, capaMarcada, escalaDistritos } from "./capaDistritos";
 import { rangosDensidad } from "./CapaDistritosControles";
 
 const t = (ubigeo: string, poblacion: number, nse: number | null): HojasRutaTerritory =>
@@ -59,5 +59,14 @@ describe("rótulo del cursor en el atlas", () => {
     expect(valorDeCapa("poblacion", d, 12.1)).toBe("14,005 habitantes por km²");
     expect(valorDeCapa("nse", d, 12.1)).toBe("NSE predominante: medio");
     expect(valorDeCapa("poblacion", d, null)).toBe("sin área");
+  });
+});
+
+describe("capas dentro de un distrito", () => {
+  it("no ofrecen Población (por manzana no existe) y la leen como Viviendas", () => {
+    expect(CAPAS_MANZANAS_DISTRITO.map(([id]) => id)).not.toContain("poblacion");
+    expect(capaMarcada("poblacion", true)).toBe("viviendas");
+    expect(capaMarcada("poblacion", false)).toBe("poblacion");
+    expect(capaMarcada("nse", true)).toBe("nse");
   });
 });
