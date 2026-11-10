@@ -1,0 +1,8 @@
+/* Barra de NSE por distrito en «Rutas por distrito» (BarraNseDistrito.tsx). Ocupa la fila entera bajo el nombre. */
+.hr-sorteo-distritos li > .hr-nse-distrito { grid-column: 2 / -1; margin-top: 6px; }
+.hr-nse-distrito { display: block; width: 100%; }
+.hr-nse-distrito > span { display: flex; gap: 1px; height: 8px; border-radius: 3px; overflow: hidden; }
+.hr-nse-distrito i { display: block; min-width: 0; }
+.hr-sorteo-distritos-leyenda { display: flex; flex-wrap: wrap; gap: 4px 10px; margin: 2px 8px 0; font-size: var(--pulso-type-caption-size); color: var(--pulso-text-soft); }
+.hr-sorteo-distritos-leyenda span { display: inline-flex; align-items: center; gap: 5px; }
+.hr-sorteo-distritos-leyenda i { width: 9px; height: 9px; border-radius: 2px; }

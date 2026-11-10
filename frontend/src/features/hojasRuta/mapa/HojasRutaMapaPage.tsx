@@ -72,6 +72,7 @@ import { proyectarLonLat } from "./lienzo/camara";
 import { cajaDelAtlas, departamentoEnPunto } from "./territorio/atlasFoco";
 import { useVistaNacional } from "./nacional/useVistaNacional";
 import { estadosPorTitular, manzanaEnPunto, reemplazosDe, rutasPorDistrito, vecina } from "./seleccion/rutas";
+import { nsePorDistrito } from "./manzanas/nsePorDistrito";
 import { SeleccionCajon, SeleccionEstructura, SeleccionInspector } from "./seleccion/SeleccionPaneles";
 import { SalidasPanel } from "./seleccion/SalidasPanel";
 import { AjustesDisenoHost } from "./ajustes/AjustesDisenoHost";
@@ -479,6 +480,8 @@ export default function HojasRutaMapaPage() {
       return [{ id: b.id_manzana, numero: b.hoja_num ?? i + 1, estado: estadoUmp, manzana }];
     });
   }, [bloquesTitulares, manzanaPorId, entrevistasPorRuta, estados, enSeleccion]);
+  // UMP titulares por NSE y distrito, para la columna de Manzanas (nsePorDistrito.ts).
+  const nseTitulares = useMemo(() => nsePorDistrito(titulares.map((t) => t.manzana)), [titulares]);
   // El mapa dice lo mismo que la lista: con «Por revisar» o una búsqueda, sólo esas rutas (y la enfocada); antes la lista
   // mostraba 12 de 150 y el mapa seguía pintando las 150 con el mismo peso.
   const titularesVisibles = useMemo(() => {
@@ -961,7 +964,7 @@ export default function HojasRutaMapaPage() {
           ) : enSeleccion && estado ? (
             <SeleccionEstructura grupos={grupos} total={bloquesTitulares.length} observadas={[...estados.values()].filter((e) => e === "error" || e === "aviso").length} confirmados={confirmados} />
           ) : enManzanas && estado ? (
-            <ManzanasEstructura muestra={salidas?.sample ?? null} historial={estado.ui_state?.route_history ?? []} territorios={confirmados} nFinal={salidas?.sample?.total_entrevistas ?? null} cobertura={marcoDeclarado ? vistaMarco?.por_distrito ?? [] : []} bloqueado={bloqueado} guardando={guardando} onUsar={usarRuteo} onQuitar={(h) => void quitarRuteo(h)} usado={ruteoUsado} />
+            <ManzanasEstructura muestra={salidas?.sample ?? null} historial={estado.ui_state?.route_history ?? []} territorios={confirmados} nFinal={salidas?.sample?.total_entrevistas ?? null} cobertura={marcoDeclarado ? vistaMarco?.por_distrito ?? [] : []} bloqueado={bloqueado} guardando={guardando} onUsar={usarRuteo} onQuitar={(h) => void quitarRuteo(h)} usado={ruteoUsado} nsePorDistrito={nseTitulares} />
           ) : enMuestra && configMuestra && tamano ? (
             <MuestraEstructura config={configMuestra} resultado={tamano} bloqueado={bloqueado} />
           ) : enPoblacion && estado ? (
