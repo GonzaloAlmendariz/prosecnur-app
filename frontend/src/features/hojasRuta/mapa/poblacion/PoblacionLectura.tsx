@@ -1,17 +1,15 @@
 import type { HojasRutaAgeRange } from "../../../../api/hojasRuta";
 import { formatoDecimal } from "../../../../lib/formatoNumero";
-import { AccesoAjustes } from "../ajustes/AccesoAjustes";
-import { resumenGrupo } from "../ajustes/gruposAjustes";
-import type { HojasRutaIntegratedConfig } from "../../../../api/hojasRuta";
 import type { ResumenMatriz } from "./matriz";
 
 const fmt = (n: number) => new Intl.NumberFormat("es-PE").format(Math.round(n));
 
 /**
  * La columna de Población después de mudar la edición a «Ajustes del diseño» (M4, lámina 2 de la maqueta):
- * los rangos como lectura, cada uno con su peso en la población objetivo, y el acceso «Editar ›».
+ * los rangos como lectura, cada uno con su peso en la población objetivo. El acceso a Ajustes va al pie del panel
+ * derecho, como en Muestra y Manzanas (H29).
  */
-export function PoblacionLectura({ rangos, config, matriz }: { rangos: readonly HojasRutaAgeRange[]; config: HojasRutaIntegratedConfig; matriz: ResumenMatriz }) {
+export function PoblacionLectura({ rangos, matriz }: { rangos: readonly HojasRutaAgeRange[]; matriz: ResumenMatriz }) {
   const mayor = Math.max(1, ...(matriz.vigente ? matriz.pesoPorRango : [1]));
   return (
     <>
@@ -34,7 +32,6 @@ export function PoblacionLectura({ rangos, config, matriz }: { rangos: readonly 
             );
           })}
         </ul>
-        <AccesoAjustes grupo="cuotas" titulo="Cuotas y edades" valor={resumenGrupo("cuotas", config)} />
       </div>
     </>
   );

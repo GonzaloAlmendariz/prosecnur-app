@@ -965,7 +965,7 @@ export default function HojasRutaMapaPage() {
           ) : enMuestra && configMuestra && tamano ? (
             <MuestraEstructura config={configMuestra} resultado={tamano} bloqueado={bloqueado} />
           ) : enPoblacion && estado ? (
-            <PoblacionLectura rangos={rangosVista} config={estado.integrated_config} matriz={matriz} />
+            <PoblacionLectura rangos={rangosVista} matriz={matriz} />
           ) : (
           <>
           <header className="hr-mapa-cab">

@@ -6,6 +6,8 @@ import { InspectorCabecera } from "../InspectorCabecera";
 import { PulsoSwitch } from "../../../../components/PulsoSwitch";
 import type { HojasRutaAgeRange, HojasRutaAgeRangeMode, HojasRutaAgeRangeScope, HojasRutaAlert, HojasRutaIntegratedConfig } from "../../../../api/hojasRuta";
 import { AvisosDelMotor } from "../AvisosDelMotor";
+import { AccesoAjustes } from "../ajustes/AccesoAjustes";
+import { resumenGrupo } from "../ajustes/gruposAjustes";
 import { useLienzoHojasRuta } from "../store";
 import { payloadDeRangos } from "./aplicarRangos";
 import type { ResumenMatriz } from "./matriz";
@@ -259,7 +261,9 @@ export function PoblacionInspector({ config, rangosConfig, matriz, poblacionDist
           </PulsoButton>
         ) : null}
         {matriz.vigente && sexo && !cambiaron ? <PiramidePoblacion filas={matriz.filas} rangos={rangosConfig} /> : null}
-        {/* Sexo, qué se exige y los rangos se editan en «Ajustes del diseño» (M4); el acceso está en la columna. */}
+        {/* Sexo, qué se exige y los rangos se editan en «Ajustes del diseño» (M4). El acceso va al pie del panel, como
+            en Muestra y Manzanas: estaba en la columna izquierda y era la única sección que lo ponía ahí (H29). */}
+        <AccesoAjustes grupo="cuotas" titulo="Cuotas y edades" valor={resumenGrupo("cuotas", config)} />
         {cambiaron || !matriz.vigente ? (
           hayMuestra ? <p className="hr-mapa-aviso">Calcular con estos rangos recalcula la población y descarta el tamaño, las cuotas y el sorteo actual.</p> : null
         ) : null}
