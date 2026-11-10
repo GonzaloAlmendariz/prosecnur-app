@@ -6,6 +6,9 @@
  * de estado. El botón no gira ni cambia de rótulo, y el nombre lleva la fecha
  * como los del motor, no la hora en milisegundos.
  */
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -129,5 +132,26 @@ describe("importar: línea de estado, sin contenedor", () => {
     await act(async () => { root.render(<ConfigIoButtons onExport={vi.fn()} onImport={vi.fn()} />); });
     await subir("{no");
     expect(host.querySelector("[role='alert']")?.textContent).toMatch(/^ ?JSON inválido/);
+  });
+});
+
+describe("consumidores", () => {
+  const SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+  function archivos(dir: string): string[] {
+    return readdirSync(dir).flatMap((n) => {
+      const ruta = path.join(dir, n);
+      if (statSync(ruta).isDirectory()) return archivos(ruta);
+      return /\.tsx$/.test(n) && !/\.test\.tsx$/.test(n) ? [ruta] : [];
+    });
+  }
+
+  it("todo <ConfigIoButtons> de producción nombra su archivo con `entregable`, no con `filenamePrefix`", () => {
+    const usos = archivos(SRC).flatMap((ruta) => {
+      const fuente = readFileSync(ruta, "utf8");
+      return Array.from(fuente.matchAll(/<ConfigIoButtons\b([\s\S]*?)\/>/g), (m) => ({ ruta: path.relative(SRC, ruta), props: m[1] }));
+    });
+    expect(usos.length).toBeGreaterThan(0);
+    const sinEntregable = usos.filter((u) => !/\bentregable=/.test(u.props) || /\bfilenamePrefix=/.test(u.props)).map((u) => u.ruta);
+    expect(sinEntregable).toEqual([]);
   });
 });

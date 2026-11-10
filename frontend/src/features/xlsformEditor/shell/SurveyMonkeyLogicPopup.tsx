@@ -233,7 +233,8 @@ export function SurveyMonkeyLogicPopup({
             </p>
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 10 }}>
               <ConfigIoButtons
-                filenamePrefix="pulso_surveymonkey_logic"
+                entregable="Lógica de SurveyMonkey"
+                exportTitulo="Lógica de SurveyMonkey"
                 exportLabel="Exportar lógica JSON"
                 importLabel="Importar lógica JSON"
                 onExport={exportLogicPack}

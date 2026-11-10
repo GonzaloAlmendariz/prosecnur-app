@@ -7,7 +7,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { apiEstudioGet, apiEstudioRemoveBase, apiEstudioRenameBase, type EstudioBase, type EstudioPayload } from "../../../api/estudio";
 import type { VistaPreviaFuente } from "../../../api/xlsformEditor";
 import { PulsoButton } from "../../../components/PulsoButton";
-import { ClipboardCheck, CloudDownload, Columns3, Database, FileCheck2, FileUp, GitCompareArrows, GitMerge, ListChecks, Pencil, Plus, Trash2, Upload, X } from "../../../vendor/lucide-react";
+import { ClipboardCheck, CloudDownload, Columns3, Database, Download, FileCheck2, FileUp, GitCompareArrows, GitMerge, ListChecks, Pencil, Plus, Trash2, Upload, X } from "../../../vendor/lucide-react";
 import { formatoConteo, formatoConteoDe } from "../../../lib/formatoNumero";
 import { ordenarBasesPorSerie } from "../equivalenciasEditorModel";
 import { useOrdenDeSerie } from "./useOrdenDeSerie";
@@ -20,6 +20,7 @@ import { NuevaVersionRespuestas } from "./NuevaVersionRespuestas";
 import { ArmonizacionBasePanel } from "./ArmonizacionBasePanel";
 import { CompararFuentesPanel } from "./CompararFuentesPanel";
 import { VariablesBasePanel } from "../variablesBase/VariablesBasePanel";
+import { DescargaDeBaseEnFila, useDescargaDeBase } from "../entregas/DescargaDeBase";
 import { searchConVariablesBase } from "../variablesBase/variablesBaseModel";
 import { comparablesCon, hayFuentesComparables, primerParComparable, searchConArmonizacionBase, searchConComparacion } from "./compararFuentesModel";
 import "./basesDelEstudio.css";
@@ -82,6 +83,8 @@ function TarjetaBase({ base, vinculo, comparables, ocupado, onRenombrar, onQuita
   const [editando, setEditando] = useState(false);
   const [borrador, setBorrador] = useState(base.nombre);
   const [confirmando, setConfirmando] = useState(false);
+  // ADR 0133, fase 5: la misma descarga que la fila de BasesPanel; el contenedor va al pie de la tarjeta.
+  const descarga = useDescargaDeBase(base.nombre);
   const titulo = base.source_title || base.source_alias || base.data_file_name || "";
   return (
     <article className="pulso-bde-tarjeta" data-qa-geometry-member>
@@ -147,6 +150,16 @@ function TarjetaBase({ base, vinculo, comparables, ocupado, onRenombrar, onQuita
         </div>
       ) : (
         <div className="pulso-bde-acciones">
+          <PulsoButton
+            variant="secondary"
+            size="sm"
+            disabled={ocupado || descarga.estado.fase === "en_curso"}
+            onClick={descarga.descargar}
+            title={`Descargar la base lista para análisis de ${base.nombre}`}
+            aria-label={`Descargar base lista para análisis de ${base.nombre}`}
+          >
+            <Download size={13} aria-hidden="true" />Descargar base
+          </PulsoButton>
           {onOtraFuente ? (
             <PulsoButton variant="secondary" size="sm" disabled={ocupado} onClick={onOtraFuente}><GitMerge size={13} aria-hidden="true" />Agregar otra fuente</PulsoButton>
           ) : null}
@@ -166,6 +179,7 @@ function TarjetaBase({ base, vinculo, comparables, ocupado, onRenombrar, onQuita
           <PulsoButton variant="secondary" size="sm" disabled={ocupado} onClick={() => setConfirmando(true)}><Trash2 size={13} aria-hidden="true" />Quitar</PulsoButton>
         </div>
       )}
+      <DescargaDeBaseEnFila gen={descarga} />
     </article>
   );
 }
