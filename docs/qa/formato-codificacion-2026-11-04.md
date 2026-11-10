@@ -1,5 +1,10 @@
 # Formato en Codificación (4 nov 2026, noche)
 
+Tipo: Registro QA fechado
+Estado: En curso
+Fecha: 2026-11-04
+Autoridad: Encargo de coordinación (Meta B) para la noche del 3 al 4 de noviembre de 2026, por pedido de Gonzalo; decisiones revisables por él
+
 Encargo de coordinación (Meta B) para la noche del 3 al 4 de noviembre: la pasada de formato en los módulos que no
 la tuvieron, empezando por el más desfasado. Gonzalo: «aún hay bastante UI desfasada por mejorar durante toda la
 noche» y que esta vez no se pase de fino. Receta: la de `formato-monitoreo-2026-11-02.md` y

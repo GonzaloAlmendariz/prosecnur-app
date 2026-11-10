@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
-import { downloadUrl } from "../../api/core";
+import { urlDelArchivo } from "../../api/core";
 import {
   apiRecopiladoresMaterialDrive,
   apiRecopiladoresMaterialInstances,
@@ -18,10 +18,12 @@ import {
 } from "../../api/recopiladores";
 import { FichaPruebaControl } from "./FichaPruebaControl";
 import { FichasPruebaHistorico } from "./FichasPruebaHistorico";
-import { JobProgress } from "../../components/JobProgress";
+import { ContenedorEntregable } from "../../components/entregables/ContenedorEntregable";
+import type { Articulo } from "../../components/entregables/generacionModelo";
+import { useGeneracion } from "../../components/entregables/useGeneracion";
 import { Panel } from "../../components/Panel";
 import { PulsoButton } from "../../components/PulsoButton";
-import { Archive, CheckCircle2, Download, FileText, Image, Layers, Loader2, UploadCloud } from "../../vendor/lucide-react";
+import { Archive, CheckCircle2, FileText, Image, Layers, Loader2, UploadCloud } from "../../vendor/lucide-react";
 import type { RecopiladoresPestana } from "./navegacion";
 import { deploymentStatusLabel } from "./providerRules";
 import { VacioSinPlanCard } from "./VacioSinPlanCard";
@@ -36,7 +38,8 @@ import { Alert } from "../../components/Alert";
 import { CifrasEnTarjeta } from "../../components/CifrasEnTarjeta";
 import { serializarDireccion } from "../../lib/navegacion/direccion";
 import { FormatoDeSalida, FormatosDeSalida } from "./PaquetesAulasTablero";
-import { enumerar } from "../../lib/enumerar";
+import { MODULO_MATERIAL } from "./entregas/modeloEntrega";
+import "./styles/entregas.css";
 
 type Props = {
   payload: CollectionStatePayload | null;
@@ -97,6 +100,15 @@ const TEMPLATE_PLACEHOLDER: CollectionMaterialTemplate = {
   sensitivity_policy: "operational",
 };
 
+type FormatoDeRender = "png" | "pdf" | "bundle";
+
+/** Cómo se llama cada salida en el contenedor de entregables: el título de su tarjeta. */
+const SALIDA_DE_RENDER: Record<FormatoDeRender, { titulo: string; formato: string; articulo: Articulo }> = {
+  png: { titulo: "Imagen de una ficha", formato: "png", articulo: "la" },
+  pdf: { titulo: "PDF del lote", formato: "pdf", articulo: "el" },
+  bundle: { titulo: "Paquete por facultad", formato: "zip", articulo: "el" },
+};
+
 function firstReceipt(result: CollectionMaterialRenderResult): CollectionArtifactReceipt | null {
   if (result.receipt?.schema === "collection_artifact_receipt/v1") return result.receipt;
   if (Array.isArray(result.manifest)) {
@@ -109,8 +121,10 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
   const [template, setTemplate] = useState<CollectionMaterialTemplate>(TEMPLATE_PLACEHOLDER);
   const [loading, setLoading] = useState(true);
   const [instanceBusy, setInstanceBusy] = useState(false);
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [jobFormat, setJobFormat] = useState<"png" | "pdf" | "bundle" | null>(null);
+  // El render (job) se espera y se entrega en el contenedor del kit (ADR 0133): los botones sólo se deshabilitan.
+  const gen = useGeneracion({ titulo: "Fichas con QR", modulo: MODULO_MATERIAL, articulo: "las" });
+  const generando = gen.estado.fase === "en_curso";
+  const cerrarEntrega = gen.cerrar;
   const [codigoPrueba, setCodigoPrueba] = useState("");
   const [pruebas, setPruebas] = useState<CollectionFichaPrueba[]>([]);
   const [renderResult, setRenderResult] = useState<CollectionMaterialRenderResult | null>(null);
@@ -122,7 +136,7 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
   // Una receta nueva deja viejo el resultado: el panel no muestra el archivo
   // anterior como si reflejara la receta recién leída — mismo patrón que la
   // vista previa stale de Accesos (ece1b0dc).
-  useEffect(() => { setRenderResult(null); }, [template]);
+  useEffect(() => { setRenderResult(null); cerrarEntrega(); }, [template, cerrarEntrega]);
   const deployment = payload?.state.deployment ?? null;
   // Las aulas que se van a visitar: son las fichas que hay que llegar a tener.
   // El denominador es lo que el botón de al lado va a crear: `createInstances`
@@ -172,7 +186,8 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
     return () => { alive = false; };
   }, []);
 
-  const createInstances = async (): Promise<CollectionMaterialInstance[]> => {
+  /** Crea las fichas del plan; lanza si no se pudo (el render lo dice en su contenedor). */
+  const crearInstancias = async (): Promise<CollectionMaterialInstance[]> => {
     if (!payload || !deployment) return [];
     // Con el plan entero cubierto no se crea otra: cada click duplicaba.
     if (fichasAlDia(payload.state)) {
@@ -180,7 +195,6 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
       return vigente ? [vigente] : [];
     }
     setInstanceBusy(true);
-    setError("");
     try {
       const result = await apiRecopiladoresMaterialInstances({
         expected_revision: payload.state_revision,
@@ -191,66 +205,70 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
       // mandaría la revisión vieja y chocaría (409), y el contador no se movería.
       await onStateRefresh();
       return result.instances;
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "No se pudieron crear las fichas.");
-      return [];
     } finally {
       setInstanceBusy(false);
     }
   };
 
-  const render = async (format: "png" | "pdf" | "bundle") => {
+  // «Crear las fichas»: el error va a la línea del panel, no a un contenedor de entregable.
+  const createInstances = async () => {
+    setError("");
+    try {
+      await crearInstancias();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "No se pudieron crear las fichas.");
+    }
+  };
+
+  /** Lo que queda al terminar un render: el recibo para Entrega y, si es imagen, la vista. */
+  const alTerminarRender = (datos: unknown) => {
+    const result = datos as CollectionMaterialRenderResult;
+    setRenderResult(result);
+    setDrivePub(null);
+    setDriveError("");
+    onArtifact(firstReceipt(result));
+    void onStateRefresh();
+  };
+
+  const render = (format: FormatoDeRender) => {
     if (!deployment) return;
-    // Reutiliza la instancia persistida: crear una en cada render hacía crecer
-    // `material_instances` en cada visita.
-    const persistida = instanciaReutilizable(payload?.state);
-    const readyInstances = persistida ? [persistida] : await createInstances();
-    if (!readyInstances.length) return;
     setError("");
     setRenderResult(null);
-    try {
-      const job = await apiRecopiladoresMaterialsRender({
+    const salida = SALIDA_DE_RENDER[format];
+    // La imagen de una ficha es para verla aquí: se muestra sin descargarse y el contenedor ofrece «Descargar».
+    void gen.ejecutar(async () => {
+      // Reutiliza la instancia persistida: crear una en cada render hacía crecer
+      // `material_instances` en cada visita.
+      const persistida = instanciaReutilizable(payload?.state);
+      const readyInstances = persistida ? [persistida] : await crearInstancias();
+      if (!readyInstances.length) throw new Error("No hay fichas que generar: crea las fichas del plan primero.");
+      return apiRecopiladoresMaterialsRender({
         format,
         instance_id: readyInstances[0].instance_id,
         audience: "field_team",
       });
-      setJobFormat(format);
-      setJobId(job.job_id);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "No se pudo generar el archivo.");
-    }
+    }, { ...salida, descargar: format !== "png" }).then((r) => { if (r.ok) alTerminarRender(r.datos); });
   };
 
   // Ficha suelta con un identificador inventado: la que se escanea ANTES de
   // imprimir las 1.512 para comprobar que el QR abre y que la respuesta llega
   // con su colector, y la que se usa en la capacitación sin ensuciar el estudio.
   // No pasa por `createInstances()`: no persiste nada en el plan.
-  const renderPrueba = async (codigoPedido?: string) => {
+  const renderPrueba = (codigoPedido?: string) => {
     const codigo = (codigoPedido ?? codigoPrueba).trim();
     if (!deployment || !codigo) return;
     setError("");
     setRenderResult(null);
-    try {
+    void gen.ejecutar(async () => {
       const job = await apiRecopiladoresMaterialPrueba({ codigo });
-      setJobFormat("pdf");
-      setJobId(job.job_id);
       // El histórico se relee del backend en vez de añadir la entrada a mano:
       // ahí es donde se decide si un código ya existía —se actualiza en su
-      // sitio— y si su enlace sigue siendo el del despliegue de hoy.
-      setPruebas(await apiRecopiladoresMaterialPruebas());
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "No se pudo generar la ficha de prueba.");
-    }
+      // sitio— y si su enlace sigue siendo el del despliegue de hoy. Si la
+      // relectura falla, la ficha se genera igual.
+      void apiRecopiladoresMaterialPruebas().then(setPruebas, () => undefined);
+      return job;
+    }, { titulo: `Ficha de prueba ${codigo}`, formato: "pdf", articulo: "la" }).then((r) => { if (r.ok) alTerminarRender(r.datos); });
   };
-
-  const onRenderDone = useCallback((result: CollectionMaterialRenderResult) => {
-    setJobId(null);
-    setRenderResult(result);
-    setDrivePub(null);
-    setDriveError("");
-    onArtifact(firstReceipt(result));
-    void onStateRefresh();
-  }, [onArtifact, onStateRefresh]);
 
   // B6(b): el artefacto YA renderizado se sube al Drive del operativo con la
   // credencial del libro. La carpeta se recuerda en el estado; lo que falla
@@ -343,13 +361,13 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
               la esquina opuesta. */}
           <FormatosDeSalida>
             <FormatoDeSalida icono={<Image size={16} />} titulo="Imagen de una ficha" descripcion="La primera ficha en PNG, para revisarla antes de generar el lote.">
-              <PulsoButton variant="secondary" size="sm" title={motivoBloqueo ?? undefined} onClick={() => { void render("png"); }} disabled={!deployment || Boolean(jobId)}><Image size={15} /> Ver imagen</PulsoButton>
+              <PulsoButton variant="secondary" size="sm" title={motivoBloqueo ?? undefined} onClick={() => render("png")} disabled={!deployment || generando}><Image size={15} /> Ver imagen</PulsoButton>
             </FormatoDeSalida>
             <FormatoDeSalida principal icono={<FileText size={16} />} titulo="PDF del lote" descripcion="Todas las fichas del plan en un solo PDF, listo para imprimir.">
-              <PulsoButton variant="primary" size="sm" title={motivoBloqueo ?? undefined} onClick={() => { void render("pdf"); }} disabled={!deployment || Boolean(jobId)}><FileText size={15} /> Generar PDF</PulsoButton>
+              <PulsoButton variant="primary" size="sm" title={motivoBloqueo ?? undefined} onClick={() => render("pdf")} disabled={!deployment || generando}><FileText size={15} /> Generar PDF</PulsoButton>
             </FormatoDeSalida>
             <FormatoDeSalida icono={<Archive size={16} />} titulo="Paquete por facultad" descripcion="Un ZIP con las fichas repartidas en carpetas, titulares y reservas aparte.">
-              <PulsoButton variant="secondary" size="sm" title={motivoBloqueo ?? undefined} onClick={() => { void render("bundle"); }} disabled={!deployment || Boolean(jobId)}><Archive size={15} /> Generar el paquete</PulsoButton>
+              <PulsoButton variant="secondary" size="sm" title={motivoBloqueo ?? undefined} onClick={() => render("bundle")} disabled={!deployment || generando}><Archive size={15} /> Generar el paquete</PulsoButton>
             </FormatoDeSalida>
           </FormatosDeSalida>
           {/* **La ficha de ensayo no es un formato mas, por eso va aparte.**
@@ -360,44 +378,48 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
           <FichaPruebaControl
             codigo={codigoPrueba}
             onCodigo={setCodigoPrueba}
-            onGenerar={() => { void renderPrueba(); }}
+            onGenerar={() => renderPrueba()}
             motivoBloqueo={motivoBloqueo}
             listo={Boolean(deployment)}
-            ocupado={Boolean(jobId)}
+            ocupado={generando}
           />
           <FichasPruebaHistorico
             fichas={pruebas}
-            onPdf={(codigo) => { void renderPrueba(codigo); }}
-            ocupado={Boolean(jobId)}
+            onPdf={(codigo) => renderPrueba(codigo)}
+            ocupado={generando}
           />
-          <JobProgress<CollectionMaterialRenderResult>
-            label={`Render ${jobFormat ?? "material"}`}
-            jobId={jobId}
-            onDone={onRenderDone}
-            onError={(message) => { setJobId(null); setError(message); }}
-            onCancelled={() => setJobId(null)}
-          />
-          {renderResult ? (
-            <div className="rec-render-result">
-              {renderResult.media_type === "image/png" ? (
-                <img src={downloadUrl(renderResult.file_id)} alt="La ficha tal como la genera Pulso" />
-              ) : null}
-              <div><strong>{renderResult.filename}</strong><span>{enumerar([renderResult.media_type, `${renderResult.page_count} páginas`, `${renderResult.size_bytes.toLocaleString("es-PE")} bytes`])}</span><code>{renderResult.sha256}</code></div>
-              <a href={downloadUrl(renderResult.file_id)}><Download size={14} /> Descargar la ficha</a>
-              <div className="rec-drive">
-                <button type="button" onClick={() => { void enviarAlDrive(); }} disabled={driveBusy}>
-                  <UploadCloud size={14} /> {driveBusy ? "Subiendo al Drive…" : "Enviar al Drive del operativo"}
-                </button>
-                {drivePub ? (
-                  <span className="rec-drive-listo">
-                    En <strong>{drivePub.folderName || "el Drive"}</strong>:{" "}
-                    <a href={drivePub.webViewLink} target="_blank" rel="noreferrer">ver en Drive</a>
-                  </span>
+          {/* El archivo, su espera y su fallo, en el contenedor del kit; «Enviar al Drive del operativo» no es una
+              entrega del archivo: va al pie como botón neutro y lo que contesta el Drive, debajo. */}
+          <ContenedorEntregable
+            estado={gen.estado}
+            forma="bloque"
+            onCerrar={gen.cerrar}
+            pie={renderResult ? (
+              <>
+                {renderResult.page_count > 0 ? (
+                  <span className="rec-entrega-nota">{renderResult.page_count === 1 ? "1 página" : `${renderResult.page_count.toLocaleString("es-PE")} páginas`}</span>
                 ) : null}
-                {driveError ? <span className="rec-inline-error" role="alert">{driveError}</span> : null}
-              </div>
+                <span className="pulso-entregable-crece" />
+                <PulsoButton variant="secondary" size="sm" className="pulso-entregable-texto" onClick={() => { void enviarAlDrive(); }} disabled={driveBusy}>
+                  <UploadCloud size={14} aria-hidden /> {driveBusy ? "Subiendo al Drive…" : "Enviar al Drive del operativo"}
+                </PulsoButton>
+              </>
+            ) : undefined}
+          />
+          {renderResult?.media_type === "image/png" ? (
+            <img className="rec-entrega-vista" src={urlDelArchivo(renderResult.file_id)} alt="La ficha tal como la genera Pulso" />
+          ) : null}
+          {renderResult && (drivePub || driveError) ? (
+            <div className="rec-drive">
+              {drivePub ? (
+                <span className="rec-drive-listo">
+                  En <strong>{drivePub.folderName || "el Drive"}</strong>:{" "}
+                  <a href={drivePub.webViewLink} target="_blank" rel="noreferrer">ver en Drive</a>
+                </span>
+              ) : null}
+              {driveError ? <span className="rec-inline-error" role="alert">{driveError}</span> : null}
             </div>
-          ) : (
+          ) : gen.estado.fase !== "inactiva" ? null : (
             /* **El vacio dice lo que hace falta, no una nota de archivo.**
                Sin accesos preparados los tres botones estan apagados y este
                hueco explicaba donde NO se guardan unos archivos que todavia no

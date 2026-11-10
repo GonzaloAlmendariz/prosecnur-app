@@ -19,7 +19,6 @@ import {
   apiV2Limpieza,
   apiV2LimpiezaDecisionDelete,
   apiV2LimpiezaDecisionSave,
-  apiV2LimpiezaFinalize,
   apiV2LimpiezaRevertirPromocion,
   type InstrumentoDrillResult,
 } from "../../../api/client";
@@ -38,6 +37,8 @@ import PromocionBase from "../components/PromocionBase";
 import ImpactoDecisiones from "../components/ImpactoDecisiones";
 import { calcularImpacto } from "../impactoDecisiones";
 import { extractArtifacts } from "../limpiezaArtifacts";
+import { ContenedorEntregable } from "../../../components/entregables/ContenedorEntregable";
+import { useCierreLimpieza } from "../entregas/useCierreLimpieza";
 import { useValidacionStore } from "../store";
 import {
   RuleNarrative,
@@ -270,7 +271,9 @@ export default function LimpiezaTab() {
   const [actionError, setActionError] = useState("");
   const [refreshBusy, setRefreshBusy] = useState(false);
   const [saveBusy, setSaveBusy] = useState(false);
-  const [finalizeBusy, setFinalizeBusy] = useState(false);
+  // ADR 0133: "Cerrar y generar base" ofrece sus archivos en el contenedor del kit de entregables.
+  const cierre = useCierreLimpieza(baseNombre);
+  const finalizeBusy = cierre.cerrando;
   const [revertBusy, setRevertBusy] = useState(false);
 
   const [selectedSourceId, setSelectedSourceId] = useState("");
@@ -547,19 +550,11 @@ export default function LimpiezaTab() {
     }
   }
 
+  // El resultado (los archivos del cierre o su fallo) sale en el contenedor bajo "Cerrar y generar base".
   async function handleFinalize() {
-    setFinalizeBusy(true);
     setActionError("");
     setNotice("");
-    try {
-      await apiV2LimpiezaFinalize(baseNombre);
-      setNotice("Base limpia generada.");
-      await loadLimpieza({ quiet: true });
-    } catch (err) {
-      setActionError((err as Error).message);
-    } finally {
-      setFinalizeBusy(false);
-    }
+    if (await cierre.finalizar()) await loadLimpieza({ quiet: true });
   }
 
   // ADR 0076 — revertir la promoción devuelve la base anterior al estudio. Las
@@ -637,6 +632,10 @@ export default function LimpiezaTab() {
         onRefresh={() => void loadLimpieza({ quiet: true })}
         onFinalize={() => void handleFinalize()}
       />
+
+      {/* Los archivos del cierre (o su fallo), en bloque bajo la banda de "Cerrar y generar base". Fuera de la
+          banda: ella es sticky y con tres archivos taparía media pantalla a 1024x600. */}
+      <ContenedorEntregable estado={cierre.estado} forma="bloque" onCerrar={cierre.cerrar} />
 
       <ImpactoDecisiones impacto={impacto} />
 
@@ -789,7 +788,7 @@ function StatusBar({
             className="pulso-primary"
             style={primaryButtonStyle}
           >
-            {finalizeBusy ? <Loader2 size={13} className="pulso-spin" /> : <Check size={13} />}
+            <Check size={13} />
             Cerrar y generar base
           </button>
         </>

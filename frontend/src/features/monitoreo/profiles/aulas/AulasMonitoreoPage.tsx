@@ -58,7 +58,6 @@ import { AulasSeccionConsultas } from "./AulasSeccionConsultas";
 import { avisoConversacion } from "./avisoConversacion";
 import { fraseDelRetiro } from "./retiroDeLaDistribucion";
 import { avisoDelSync } from "./avisoDelSync";
-import { avisoLibroGenerado } from "./avisoLibroGenerado";
 import { avisoLibroImportado, type TonoAviso } from "./avisoLibroImportado";
 import { avisoDisponibilidadImportada } from "./avisoDisponibilidadImportada";
 import { avisoTraslapeRecalculado } from "./avisoLibroPublicado";
@@ -134,6 +133,7 @@ import { columnasSinConstantesInertes, columnasSinDuplicados } from "./columnasQ
 // esperar a un job y leer su progreso, idéntico para cualquier familia.
 import { useWaitForSourceSyncJob } from "../../sync/pollSourceSync";
 import { construirBarraDeAulas } from "./barraDeAulas";
+import type { GenerarPlantillaDeDisponibilidad } from "./entregasDeAulas";
 
 const AULAS_ROUTE = MONITOREO_MODOS.find((route) => route.family === "aulas_universitarias") ?? MONITOREO_MODOS[2];
 
@@ -905,7 +905,7 @@ function renderAulasView({
   /** B74: importar el excel de disponibilidad de aplicadores. */
   onImportarDisponibilidad?: ((archivo: File) => void | Promise<void>) | null;
   /** Descargar la plantilla vacía de disponibilidad. */
-  onPlantillaDisponibilidad?: (() => void | Promise<void>) | null;
+  onPlantillaDisponibilidad?: GenerarPlantillaDeDisponibilidad | null;
   /** B75: declarar/limpiar el rango de despliegue del reparto. */
   onDeclararRango?: ((rango: { desde: string; hasta: string } | null) => void | Promise<void>) | null;
   /** Los tramos del operativo con su estado derivado, de paso hacia la asignación. */
@@ -1264,68 +1264,24 @@ export default function AulasMonitoreoPage() {
     }
   }, []);
 
-  // El ciclo del libro operativo. Generar lo descarga; leer lo vuelve a meter
+  // El ciclo del libro operativo. Generar lo entrega; leer lo vuelve a meter
   // en la sesión. Los endpoints existían desde hace rato y no los llamaba nadie:
   // el ciclo sólo se podía cerrar por API.
-  const generarLibro = useCallback(async () => {
-    setMutating(true);
-    setError("");
-    setAviso({ texto: "", tono: "ok" });
-    try {
-      const res = await apiMonitoreoAulasGenerarLibro();
-      // Decir qué lleva dentro: el libro se descargaba en silencio.
-      setAviso({ texto: avisoLibroGenerado(res), tono: "ok" });
-      // La descarga la dispara un enlace efímero: no hay dónde «guardar» un
-      // Excel operativo dentro del proyecto, y sacarlo es justo el punto.
-      const a = document.createElement("a");
-      a.href = res.download_url;
-      a.download = res.filename;
-      a.rel = "noopener";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "No se pudo generar el libro.");
-    } finally {
-      setMutating(false);
-    }
-  }, []);
+  //
+  // Generar el libro y la plantilla de disponibilidad sólo piden el archivo: lo
+  // entrega el contenedor del kit junto al botón que lo pidió (ADR 0133, fase
+  // 5), con qué lleva dentro al pie. No marcan la página como ocupada: la línea
+  // del contenedor es la única señal, y los demás botones no giran por esto.
+  const generarLibro = useCallback(() => apiMonitoreoAulasGenerarLibro(), []);
 
   /**
    * La plantilla de disponibilidad, para que haya qué importar.
    *
    * El motor la sabía escribir —días, franjas, el 1 en verde y el 0 en rojo—
    * y no la pedía nadie: hasta hoy el coordinador tenía que adivinar el
-   * formato que el lector espera. Misma mecánica de descarga efímera que el
-   * libro: un Excel operativo no vive dentro del proyecto, y sacarlo es el punto.
+   * formato que el lector espera.
    */
-  const plantillaDisponibilidad = useCallback(async () => {
-    setMutating(true);
-    setError("");
-    setAviso({ texto: "", tono: "ok" });
-    try {
-      const res = await apiMonitoreoAulasDisponibilidadPlantilla();
-      setAviso({
-        texto: "Plantilla lista" +
-          (res.aplicadores
-            ? ": trae escritos los " + fmt(res.aplicadores) + " aplicadores ya declarados."
-            : ": se llena con el nombre de cada aplicador y un 1 o un 0 por franja.") +
-          ' Al llenarla, vuelve por "Importar disponibilidad".',
-        tono: "ok",
-      });
-      const a = document.createElement("a");
-      a.href = res.download_url;
-      a.download = res.filename;
-      a.rel = "noopener";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "No se pudo generar la plantilla.");
-    } finally {
-      setMutating(false);
-    }
-  }, []);
+  const plantillaDisponibilidad = useCallback(() => apiMonitoreoAulasDisponibilidadPlantilla(), []);
 
   const importarLibro = useCallback(async (archivo: File) => {
     setMutating(true);
@@ -2026,7 +1982,7 @@ export default function AulasMonitoreoPage() {
                   onSyncField={() => { void syncField(); }}
               selloDeLibro={aulasConfig?.libro_publicado ?? null}
               sincronizadoEn={state?.synced_at ?? ""}
-                  onGenerarLibro={() => { void generarLibro(); }}
+                  onGenerarLibro={generarLibro}
                   onImportarLibro={(archivo) => { void importarLibro(archivo); }}
                   onLeerDeSheets={(enlace) => { void leerDeSheets(enlace); }}
                   onIrAMaterial={irAMaterial}
@@ -2077,7 +2033,7 @@ export default function AulasMonitoreoPage() {
           criterioDeEfectiva: criterioDeEfectivaDelEstudio,
           criterioDeAula: criterioDeAulaDelEstudio,
           onDeclararUmbralDeDuracion: guardarUmbralDeDuracion,
-          plantillaDisponibilidad: () => { void plantillaDisponibilidad(); },
+          plantillaDisponibilidad,
           importarDisponibilidad: (archivo) => { void importarDisponibilidad(archivo); },
         }}
       />

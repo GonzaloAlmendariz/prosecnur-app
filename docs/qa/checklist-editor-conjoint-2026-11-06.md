@@ -1,5 +1,10 @@
 # Checklist: el editor de formularios programa y prueba un experimento conjoint
 
+Tipo: Checklist de pedido con varias indicaciones
+Estado: En curso
+Fecha: 2026-11-06
+Autoridad: pedido de Gonzalo del 2026-11-06, con agregados del mismo día; origen en el diagnóstico de un XLSForm conjoint real
+
 Abierto el 6 de noviembre de 2026. Lo trabaja un loop indefinido (reloj de 300 s). Sólo Gonzalo da el checklist por terminado.
 
 Pedido textual: «Tratemos de integrar todo en un loop elegante, visiblemente didáctico y que se integre bien con las vistas». Agregado el 2026-11-06 ~15:05: «Si el editor ya interpreta varias cosas, ¿por qué no hay UI que ayude y sea igual de intuitiva?». Agregado el 2026-11-06 ~14:58: «Y la clásica de que si marca esta o marca la otra ya no puede marcar más en select multiple». Agregado el 2026-11-06 ~14:50: «Creo que la construcción de bloque o funciones tiene que quedar aún más clara, aún más intuitiva». Agregado el 2026-11-06 ~14:40: «Sigue mejorando las pestañas de calculate y todas las demás». Agregado en el tick 2: «De paso aprovecha en mejorar todo lo relacionado a las vistas profesionales como la vista de la pestaña de calculate, la de filtros, etc.».

@@ -6,7 +6,9 @@ import { fmt } from "../../formato";
 import { fechaCorta } from "../../avance/graficosDeAvance";
 import { pagina } from "./personasModelo";
 import { conteoDeFaceta, csvDeRespuestas, FACETAS, filtrarRespuestas, respuestasDe, type Seleccion } from "./respuestasModelo";
-import { descargarCsv } from "./descargarCsv";
+import { archivoCsv } from "../../../../../../components/entregables/archivoLocal";
+import { EntregaEnBloque } from "../../../../entregas/EntregaEnBloque";
+import { useEntrega } from "../../../../entregas/useEntrega";
 import "../../avance/avance.css";
 import "./cruce.css";
 import "./personas.css";
@@ -26,6 +28,7 @@ export function Respuestas({ consultas }: { consultas: MonitoreoInternalQueries 
   const [seleccion, setSeleccion] = useState<Seleccion>({});
   const [busqueda, setBusqueda] = useState("");
   const [numero, setNumero] = useState(1);
+  const csv = useEntrega("Respuestas recibidas", { formato: "csv", articulo: "las" });
   const filtradas = useMemo(() => filtrarRespuestas(respuestas, seleccion, busqueda), [respuestas, seleccion, busqueda]);
   const vista = pagina(filtradas, numero);
   const cuentan = respuestas.filter((respuesta) => respuesta.cuenta).length;
@@ -82,10 +85,11 @@ export function Respuestas({ consultas }: { consultas: MonitoreoInternalQueries 
             <input type="search" value={busqueda} onChange={(event) => { setBusqueda(event.target.value); setNumero(1); }} placeholder="Respuesta, público o encuesta" aria-label="Buscar respuestas" />
           </label>
           <span className="acr-av-tenue acr-ps-chips">Las más recientes primero</span>
-          <button type="button" className="acr-av-boton" onClick={() => descargarCsv(csvDeRespuestas(filtradas), "respuestas-recibidas.csv")} disabled={!filtradas.length}>
+          <button type="button" className="acr-av-boton" onClick={() => { void csv.ejecutar(async () => archivoCsv(csvDeRespuestas(filtradas), "respuestas-recibidas.csv")); }} disabled={!filtradas.length || csv.enCurso}>
             <Download size={14} aria-hidden="true" /> Exportar CSV
           </button>
         </CabeceraDeTarjeta>
+        <EntregaEnBloque entrega={csv} inset />
         <MarcoDesplazable etiqueta="Respuestas recibidas">
           {vista.filas.length ? (
             <table className="acr-pub-tabla">

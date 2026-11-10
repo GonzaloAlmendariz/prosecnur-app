@@ -18,7 +18,6 @@ import {
   X as XIcon,
 } from "lucide-react";
 import {
-  apiCargaExportNormalized,
   apiEstudioDowngradeToSingle,
   apiEstudioGet,
   apiEstudioRemoveBase,
@@ -26,7 +25,6 @@ import {
   apiEstudioReplaceBaseFiles,
   apiEstudioSetNombre,
   apiUpload,
-  downloadUrl,
   uploadKindForDataFile,
 } from "../../api/client";
 import type { EstudioBase, EstudioMultiIntegratedOrigin, EstudioPayload } from "../../api/client";
@@ -35,6 +33,7 @@ import { RepeatBadge } from "../../components/RepeatBadge";
 import { isRepeatChildBase } from "../../lib/repeatIdentity";
 import { IntegratedInstrumentsWizard } from "./IntegratedInstrumentsWizard";
 import { CargaManualBaseLanes } from "./CargaManualBaseLanes";
+import { DescargaDeBaseEnFila, useDescargaDeBase } from "./entregas/DescargaDeBase";
 import { useCargaStore } from "./store";
 import type { MultiBaseStrategy } from "./store";
 import {
@@ -331,18 +330,6 @@ export function BasesPanel({
     }
   }
 
-  async function handleExportBase(nombre: string) {
-    setError(""); setBusy(`Preparando base normalizada de ${nombre}…`);
-    try {
-      const out = await apiCargaExportNormalized("xlsx", nombre);
-      window.location.href = downloadUrl(out.file_id);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy("");
-    }
-  }
-
   return (
     <section className="pulso-multibase-study-shell">
       <header className="pulso-multibase-study-head">
@@ -484,7 +471,6 @@ export function BasesPanel({
                 onRenameCancel={() => setRenaming(null)}
                 onRemove={() => handleRemoveBase(b.nombre)}
                 onStartReplace={() => setReplacingFiles(b.nombre)}
-                onExport={() => void handleExportBase(b.nombre)}
                 isReplacing={replacingFiles === b.nombre}
                 busy={!!busy}
               />
@@ -828,7 +814,7 @@ function HistoryFile({ icon, label, value }: { icon: ReactNode; label: string; v
 function BaseRow({
   base, isRenaming, renameDraft,
   onStartRename, onRenameChange, onRenameCommit, onRenameCancel,
-  onRemove, onStartReplace, onExport, isReplacing, busy,
+  onRemove, onStartReplace, isReplacing, busy,
 }: {
   base: EstudioBase;
   isRenaming: boolean;
@@ -839,10 +825,10 @@ function BaseRow({
   onRenameCancel: () => void;
   onRemove: () => void;
   onStartReplace: () => void;
-  onExport: () => void;
   isReplacing: boolean;
   busy: boolean;
 }) {
+  const descarga = useDescargaDeBase(base.nombre);
   const filterLabel = responseFilterLabel(base.response_filter);
   const sourceAlias = String(base.source_alias ?? "").trim();
   const sourceTitle = String(base.source_title ?? "").trim();
@@ -941,8 +927,8 @@ function BaseRow({
       <div className="pulso-base-row-actions">
         <button
           type="button"
-          onClick={onExport}
-          disabled={busy}
+          onClick={descarga.descargar}
+          disabled={busy || descarga.estado.fase === "en_curso"}
           title={`Descargar la base lista para análisis de ${base.nombre}`}
           aria-label={`Descargar base lista para análisis de ${base.nombre}`}
           className="pulso-base-row-button is-primary"
@@ -972,6 +958,7 @@ function BaseRow({
           <Trash2 size={11} /> Retirar
         </button>
       </div>
+      <DescargaDeBaseEnFila gen={descarga} />
     </div>
   );
 }

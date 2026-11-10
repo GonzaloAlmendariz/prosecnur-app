@@ -33,9 +33,13 @@ env:
   PNPM_VERSION: '10'
 
 jobs:
+  # Topes de tiempo: ver la nota de quality.yml. El job `quality` no lleva tope
+  # porque llama a un workflow reutilizable, y ahí `timeout-minutes` no es
+  # válido: rigen los topes de cada job de quality.yml.
   contract:
     name: Validate release channel contract
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - name: Checkout with release history
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -76,6 +80,7 @@ jobs:
     name: ¿Quality ya pasó para este SHA?
     needs: contract
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     outputs:
       skip_gate: ${{ steps.check.outputs.skip_gate }}
     steps:
@@ -122,6 +127,7 @@ jobs:
           || (needs.precheck.outputs.skip_gate == 'true'
               && needs.quality.result == 'skipped'))
     runs-on: ubuntu-24.04
+    timeout-minutes: 60
     # El build del frontend necesita más que el tope por defecto de Node
     # (~2 GB); sin esto muere por memoria, como en Quality (corte 0.9.6).
     env:
@@ -259,6 +265,7 @@ jobs:
           || (needs.precheck.outputs.skip_gate == 'true'
               && needs.quality.result == 'skipped'))
     runs-on: macos-26
+    timeout-minutes: 60
     # El build del frontend necesita más que el tope por defecto de Node
     # (~2 GB); sin esto muere por memoria, como en Quality (corte 0.9.6).
     env:
@@ -391,6 +398,7 @@ jobs:
           || (needs.precheck.outputs.skip_gate == 'true'
               && needs.quality.result == 'skipped'))
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     permissions:
       actions: read
       contents: write

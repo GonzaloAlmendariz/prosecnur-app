@@ -58,8 +58,19 @@
   invisible(TRUE)
 }
 
-.limpieza_register_download <- function(sid, kind, original_name, path, ext = NULL) {
-  entregable_registrar(sid, path, kind, original_name = original_name)
+# ADR 0133 §3: el nombre sale del catálogo (lleva la base si el estudio tiene varias).
+.limpieza_register_download <- function(sid, kind, path, base = NULL) {
+  entregable_registrar(sid, path, kind, base = base)
+}
+
+# Un archivo del cierre tal como lo ofrece la respuesta de finalize: identidad,
+# nombre público y los cuatro campos del registro único (ADR 0133 §1).
+.limpieza_artefacto_publico <- function(kind, label, meta) {
+  entregable_respuesta(list(
+    kind = kind, label = label, file_id = meta$file_id,
+    filename = meta$original_name, original_name = meta$original_name,
+    size = meta$size, ext = meta$ext, generated_at = meta$uploaded_at
+  ), meta)
 }
 
 .limpieza_uuid_candidates <- function() {
@@ -1469,13 +1480,7 @@ limpieza_finalize <- function(sid, base_nombre, scope) {
 
   clean_path <- file.path(downloads_dir, sprintf("base_limpia_%s_%s.xlsx", base_slug, ts_slug))
   .bases_write_xlsx(data_promovible, data_promovible, clean_path, valores = "codigos")
-  clean_meta <- .limpieza_register_download(
-    sid = sid,
-    kind = "validacion_limpieza_base_limpia",
-    original_name = sprintf("base_limpia_%s.xlsx", base_slug),
-    path = clean_path,
-    ext = "xlsx"
-  )
+  clean_meta <- .limpieza_register_download(sid, "validacion_limpieza_base_limpia", clean_path, base = base_nombre)
 
   # ADR 0076: promover es responsabilidad de quien depura. Sin esto la decisión
   # se registra, se justifica y se exporta, y el entregable sigue saliendo con
@@ -1503,23 +1508,11 @@ limpieza_finalize <- function(sid, base_nombre, scope) {
     limpieza_payload = limpieza_payload
   )
   writeLines(html, html_path, useBytes = TRUE)
-  html_meta <- .limpieza_register_download(
-    sid = sid,
-    kind = "validacion_limpieza_html",
-    original_name = sprintf("decision_maker_%s.html", base_slug),
-    path = html_path,
-    ext = "html"
-  )
+  html_meta <- .limpieza_register_download(sid, "validacion_limpieza_html", html_path, base = base_nombre)
 
   excel_path <- file.path(downloads_dir, sprintf("decisiones_limpieza_%s_%s.xlsx", base_slug, ts_slug))
   .limpieza_export_excel(excel_path, summary, decisions, preview)
-  excel_meta <- .limpieza_register_download(
-    sid = sid,
-    kind = "validacion_limpieza_excel",
-    original_name = sprintf("decisiones_limpieza_%s.xlsx", base_slug),
-    path = excel_path,
-    ext = "xlsx"
-  )
+  excel_meta <- .limpieza_register_download(sid, "validacion_limpieza_excel", excel_path, base = base_nombre)
 
   artifacts <- list(
     finalized_at = .limpieza_now_utc(),
@@ -1528,10 +1521,12 @@ limpieza_finalize <- function(sid, base_nombre, scope) {
     # promueve sola describía algo que ya no ocurre. Quien quiera el archivo lo
     # tiene en `files` con kind "base_limpia"; qué base rige lo dice `promocion`.
     promocion = linaje_limpieza,
+    # ADR 0133 (fase 5): cada archivo trae su nombre público y los campos del
+    # registro único, para que la UI los ofrezca como entregables.
     files = list(
-      list(kind = "base_limpia", label = "Base final limpia", file_id = clean_meta$file_id, original_name = clean_meta$original_name, generated_at = clean_meta$uploaded_at),
-      list(kind = "reporte_html", label = "Reporte HTML ejecutivo", file_id = html_meta$file_id, original_name = html_meta$original_name, generated_at = html_meta$uploaded_at),
-      list(kind = "excel_detalle", label = "Excel detalle de decisiones", file_id = excel_meta$file_id, original_name = excel_meta$original_name, generated_at = excel_meta$uploaded_at)
+      .limpieza_artefacto_publico("base_limpia", "Base final limpia", clean_meta),
+      .limpieza_artefacto_publico("reporte_html", "Reporte HTML ejecutivo", html_meta),
+      .limpieza_artefacto_publico("excel_detalle", "Excel detalle de decisiones", excel_meta)
     )
   )
 

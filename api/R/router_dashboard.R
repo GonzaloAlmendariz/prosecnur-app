@@ -252,11 +252,8 @@ mount_dashboard <- function(pr) {
       path <- .dashboard_relacion_descargar(s, var_p, var_s, filtros, iterar)
       n <- file.info(path)$size
       bytes <- readBin(path, what = "raw", n = n)
-      filename <- .export_filename(
-        sid,
-        paste0("relacion_", .export_slug(var_p), "_x_", .export_slug(var_s)),
-        "xlsx"
-      )
+      # ADR 0133 §3: «Relación» con las dos variables de detalle («P12 por sexo»).
+      filename <- .export_filename(sid, "relacion", "xlsx", detalle = paste(var_p, "por", var_s))
       res$setHeader("Content-Type",
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
       res$setHeader("Content-Length", as.character(n))
@@ -290,20 +287,12 @@ mount_dashboard <- function(pr) {
       variables <- body$variables %||% list()
       formato <- as.character(body$formato %||% "xlsx")[1]
       result <- .dashboard_base_datos_descargar(s, modo, variables, formato)
-      n <- file.info(result$path)$size
-      bytes <- readBin(result$path, what = "raw", n = n)
-      if (identical(result$formato, "csv")) {
-        filename <- .export_filename(sid, "base_datos", "csv")
-        res$setHeader("Content-Type", "text/csv; charset=utf-8")
-      } else {
-        filename <- .export_filename(sid, "base_datos", "xlsx")
-        res$setHeader("Content-Type",
-                      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-      }
-      res$setHeader("Content-Length", as.character(n))
-      res$setHeader("Content-Disposition", .content_disposition("attachment", filename))
-      res$body <- bytes
-      res
+      # ADR 0133 (fase 5): un entregable registrado, no bytes; sin datos no se registra
+      # un archivo de relleno. Sigue fuera de la lista del modo público (forbid_mutations.R).
+      if (isTRUE(result$vacio)) stop_api(409, "E_NO_DATA", result$motivo)
+      meta <- .register_output_file(sid, "dashboard_base_datos", result$path)
+      entregable_respuesta(list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name,
+                                size = meta$size, formato = result$formato), meta)
     })) |>
     plumber::pr_get("/api/dashboard/base-datos/diccionario", wrap_endpoint(function(req, res, variable = NULL) {
       sid <- session_header(req)

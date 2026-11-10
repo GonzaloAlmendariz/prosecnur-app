@@ -127,13 +127,16 @@ test_that("informe consolidado: la respuesta trae guardado_en y en disco hay una
   expect_match(.rs_json(r), '"aviso_guardado":null', fixed = TRUE)
 })
 
-test_that("sólo se copia lo que el usuario pidió descargar (regla del lead, transitoria hasta la fase 5)", {
+test_that("sólo se copia lo que el usuario pidió descargar (regla del lead)", {
   cat <- entregables_catalogo()
   guardar <- function(k) cat$guardar[cat$kind == k]
-  for (k in c("monitoreo_ocurrencias_xlsform", "validacion_limpieza_base_limpia", "validacion_limpieza_html",
-              "validacion_limpieza_excel", "monitoreo_processing_handoff_data",
+  for (k in c("monitoreo_ocurrencias_xlsform", "monitoreo_processing_handoff_data",
               "monitoreo_processing_handoff_xlsform")) {
     expect_identical(guardar(k), FALSE, info = k)
+  }
+  # Fase 5, oleada 3: la UI ya ofrece los tres archivos del cierre de limpieza.
+  for (k in c("validacion_limpieza_base_limpia", "validacion_limpieza_html", "validacion_limpieza_excel")) {
+    expect_identical(guardar(k), TRUE, info = k)
   }
   expect_identical(guardar("monitoreo_processing_handoff_zip"), TRUE)
   expect_identical(guardar("graficos_ppt_consolidado"), TRUE)

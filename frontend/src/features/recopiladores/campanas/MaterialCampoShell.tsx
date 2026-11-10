@@ -19,7 +19,11 @@ import { ConfirmarBorrarCampana } from "../correos/ConfirmarBorrarCampana";
 import { DialogoImportarHtml } from "../correos/DialogoImportarHtml";
 import { cabeceraSinAlt } from "../correos/modeloCorreo";
 import { nombreLibre } from "../correos/modeloCampanas";
-import { PANEL_CORREO_CAMPANA_BORRAR, PANEL_CORREO_IDENTIDAD, PANEL_CORREO_IMPORTAR } from "../correos/panelesCorreos";
+import { PANEL_CORREO_CAMPANA_BORRAR, PANEL_CORREO_HERMANAS, PANEL_CORREO_IDENTIDAD, PANEL_CORREO_IMPORTAR } from "../correos/panelesCorreos";
+import { AplicarAHermanas } from "../correos/AplicarAHermanas";
+import { useHermanas } from "../correos/useHermanas";
+import { hayCambios } from "../correos/store";
+import type { ParteHermana } from "../../../api/materialMailHermanas";
 import { useCorreosStore } from "../correos/store";
 import { useCampanas, type AccionesDeCampanas } from "../correos/useCampanas";
 import { RecopiladoresShell } from "../RecopiladoresShell";
@@ -96,6 +100,7 @@ export function MaterialCampoShell() {
   const [tipoInicial, setTipoInicial] = useState<TipoDeCampana | null>(null);
   const renombrar = usePanelDireccionable(PANEL_RENOMBRAR_CAMPANA);
   const borrar = usePanelDireccionable(PANEL_CORREO_CAMPANA_BORRAR);
+  const hermanas = usePanelDireccionable(PANEL_CORREO_HERMANAS);
   const [aviso, setAviso] = useState<AvisoDeLaLista | null>(null);
   const [plataformaImportar, setPlataformaImportar] = useState<MailPlatform>("mailchimp");
   // ADR 0125 A4: en acreditación, «Nueva campaña» nombra «Acreditación telefónica» / «Acreditación en aulas».
@@ -178,6 +183,7 @@ export function MaterialCampoShell() {
     if (accion === "renombrar") return abrirPanelSobre(PANEL_RENOMBRAR_CAMPANA.id, campana);
     if (accion === "borrar") return abrirPanelSobre(PANEL_CORREO_CAMPANA_BORRAR.id, campana);
     if (accion === "ver-lote") return navigate(A_MONITOREO_SUPERVISION);
+    if (accion === "hermanas") return abrirPanelSobre(PANEL_CORREO_HERMANAS.id, campana);
     if (accion === "duplicar") {
       const resumen = correos.find((c) => idDeCorreo(c.campaign_id) === campana.id);
       if (!resumen) return;
@@ -220,6 +226,19 @@ export function MaterialCampoShell() {
     cerrarPanel();
     return { ok: true };
   }, [campanasAcc, cerrarPanel, reg]);
+
+  // L16: se aplica lo guardado; con el correo de origen abierto y sin guardar, el diálogo lo dice.
+  const origenSinGuardar = useCorreosStore((st) => Boolean(resumenDelObjetivo) && st.campana === resumenDelObjetivo?.campaign_id && hayCambios(st));
+  const simularOAplicar = useHermanas(campanasAcc.cargarCampanas, onEscrito);
+  const aplicarAHermanas = useCallback(async (origen: string, destinos: string[], partes: ParteHermana[], simular: boolean) => {
+    const out = await simularOAplicar(origen, destinos, partes, simular);
+    if (out.ok && !simular) {
+      const n = out.hermanas.filter((h) => h.cambios.length || h.campos_agregados.length || h.datos_agregados.length).length;
+      setAviso({ tono: "ok", texto: `Se aplicó a ${n} ${n === 1 ? "campaña" : "campañas"}. Cada una conserva su trato, su enlace y sus datos.` });
+      cerrarPanel();
+    }
+    return out;
+  }, [cerrarPanel, simularOAplicar]);
 
   const borrarCorreo = useCallback(async (campaignId: string, confirmName: string) => {
     const out = await campanasAcc.borrar(campaignId, confirmName);
@@ -295,6 +314,14 @@ export function MaterialCampoShell() {
         campanas={registro.campaigns}
         ocupado={reg.ocupado || ocupadoCorreos}
         onGuardar={guardarNombre}
+        onCerrar={cerrarPanel}
+      />
+      <AplicarAHermanas
+        panel={hermanas}
+        origen={hermanas.abierto ? resumenDelObjetivo : null}
+        campanas={correos}
+        sinGuardar={origenSinGuardar}
+        onAplicar={aplicarAHermanas}
         onCerrar={cerrarPanel}
       />
       <ConfirmarBorrarCampana

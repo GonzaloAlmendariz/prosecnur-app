@@ -72,12 +72,13 @@ import { proyectarLonLat } from "./lienzo/camara";
 import { cajaDelAtlas, departamentoEnPunto } from "./territorio/atlasFoco";
 import { useVistaNacional } from "./nacional/useVistaNacional";
 import { estadosPorTitular, manzanaEnPunto, reemplazosDe, rutasPorDistrito, vecina } from "./seleccion/rutas";
+import { nsePorDistrito } from "./manzanas/nsePorDistrito";
 import { SeleccionCajon, SeleccionEstructura, SeleccionInspector } from "./seleccion/SeleccionPaneles";
 import { SalidasPanel } from "./seleccion/SalidasPanel";
 import { AjustesDisenoHost } from "./ajustes/AjustesDisenoHost";
 import { BotonDiseno } from "./ajustes/BotonDiseno";
 import { NOMBRE_NSE, areaKm2, escalaDistritos, rellenoDistrito } from "./territorio/capaDistritos";
-import { leyendaCapaDistritos, SelectorCapaDistritos, valorDeCapa } from "./territorio/CapaDistritosControles";
+import { leyendaCapaDistritos, leyendaManzanasDistrito, SelectorCapaDistritos, valorDeCapa } from "./territorio/CapaDistritosControles";
 import { useGeometriaDistrito } from "./territorio/useGeometriaDistrito";
 import { alcanceEstudio, seccionLista } from "./ajustes/barraDiseno";
 import { useSeleccionDireccion } from "./seleccion/useSeleccionDireccion";
@@ -479,6 +480,8 @@ export default function HojasRutaMapaPage() {
       return [{ id: b.id_manzana, numero: b.hoja_num ?? i + 1, estado: estadoUmp, manzana }];
     });
   }, [bloquesTitulares, manzanaPorId, entrevistasPorRuta, estados, enSeleccion]);
+  // UMP titulares por NSE y distrito, para la columna de Manzanas (nsePorDistrito.ts).
+  const nseTitulares = useMemo(() => nsePorDistrito(titulares.map((t) => t.manzana)), [titulares]);
   // El mapa dice lo mismo que la lista: con «Por revisar» o una búsqueda, sólo esas rutas (y la enfocada); antes la lista
   // mostraba 12 de 150 y el mapa seguía pintando las 150 con el mismo peso.
   const titularesVisibles = useMemo(() => {
@@ -556,6 +559,20 @@ export default function HojasRutaMapaPage() {
   const manzanaAdentroPorId = useMemo(() => new Map((geoAdentro.piezas?.manzanas ?? []).map((m) => [m.id, m] as const)), [geoAdentro.piezas]);
   const manzanaAdentro = adentro && manzanaBajoCursor ? (manzanaAdentroPorId.get(manzanaBajoCursor) ?? null) : null;
   useEffect(() => { if (!adentro) setManzanaBajoCursor(null); }, [adentro, setManzanaBajoCursor]);
+  // Escape sube un nivel en el atlas: de las manzanas al distrito y del distrito a la ciudad. No sale de la ciudad: eso
+  // se pide con la miga o con «Todo el Perú», como el alejamiento (H3).
+  useEffect(() => {
+    if (!enAtlas || !ciudadEnfocada || !distritoEnfocado) return;
+    const alTeclear = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      const foco = e.target instanceof HTMLElement ? e.target : null;
+      if (foco && (foco.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(foco.tagName) || foco.closest("[role=dialog]"))) return;
+      if (manzanasDistrito === distritoEnfocado) setManzanasDistrito(null);
+      else setDistritoEnfocado(null);
+    };
+    window.addEventListener("keydown", alTeclear);
+    return () => window.removeEventListener("keydown", alTeclear);
+  }, [enAtlas, ciudadEnfocada, distritoEnfocado, manzanasDistrito, setManzanasDistrito, setDistritoEnfocado]);
   // La ciudad abierta en el atlas, coloreada por distrito (población, viviendas o NSE): sin leer sus manzanas.
   // Densidad por km²: el área sale del contorno de cada distrito (el de la cartografía del lienzo).
   const areasCiudad = useMemo(
@@ -601,7 +618,11 @@ export default function HojasRutaMapaPage() {
         if (ciudadEnfocada) dibujarContornos(ctx, u, contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadEnfocada), (c) => {
           // El distrito por dentro queda neutro: el color lo llevan sus manzanas.
           if (c.ubigeo === adentro) return { relleno: u.colores.fondo, borde: u.colores.distritoBorde, grosor: 1 };
-          if (!escalaCiudad) return { relleno: mezclar(u.colores.fondo, u.colores.acento, 0.07), borde: mezclar(u.colores.distritoBorde, u.colores.acento, 0.45), grosor: 1 };
+          // Sin capa de color, los distritos del estudio se distinguen: la leyenda decía «En el estudio» y la tarjeta
+          // «6 de 50 distritos en el estudio», pero los 50 iban con el mismo tinte.
+          if (!escalaCiudad) return confirmados.includes(c.ubigeo)
+            ? { relleno: mezclar(u.colores.fondo, u.colores.acento, 0.34), borde: mezclar(u.colores.distritoBorde, u.colores.acento, 0.8), grosor: 1.3 }
+            : { relleno: mezclar(u.colores.fondo, u.colores.acento, 0.07), borde: mezclar(u.colores.distritoBorde, u.colores.acento, 0.45), grosor: 1 };
           // Coropleta: borde blanco fino entre distritos, como en los mapas de la ONS o Datawrapper.
           // Dentro de un distrito, los vecinos quedan atenuados: su densidad por km² iba en la misma rampa que las
           // viviendas por manzana y se leían como una sola escala (H21).
@@ -943,11 +964,11 @@ export default function HojasRutaMapaPage() {
           ) : enSeleccion && estado ? (
             <SeleccionEstructura grupos={grupos} total={bloquesTitulares.length} observadas={[...estados.values()].filter((e) => e === "error" || e === "aviso").length} confirmados={confirmados} />
           ) : enManzanas && estado ? (
-            <ManzanasEstructura muestra={salidas?.sample ?? null} historial={estado.ui_state?.route_history ?? []} territorios={confirmados} nFinal={salidas?.sample?.total_entrevistas ?? null} cobertura={marcoDeclarado ? vistaMarco?.por_distrito ?? [] : []} bloqueado={bloqueado} guardando={guardando} onUsar={usarRuteo} onQuitar={(h) => void quitarRuteo(h)} usado={ruteoUsado} />
+            <ManzanasEstructura muestra={salidas?.sample ?? null} historial={estado.ui_state?.route_history ?? []} territorios={confirmados} nFinal={salidas?.sample?.total_entrevistas ?? null} cobertura={marcoDeclarado ? vistaMarco?.por_distrito ?? [] : []} bloqueado={bloqueado} guardando={guardando} onUsar={usarRuteo} onQuitar={(h) => void quitarRuteo(h)} usado={ruteoUsado} nsePorDistrito={nseTitulares} />
           ) : enMuestra && configMuestra && tamano ? (
             <MuestraEstructura config={configMuestra} resultado={tamano} bloqueado={bloqueado} />
           ) : enPoblacion && estado ? (
-            <PoblacionLectura rangos={rangosVista} config={estado.integrated_config} matriz={matriz} />
+            <PoblacionLectura rangos={rangosVista} matriz={matriz} orden={confirmados} />
           ) : (
           <>
           <header className="hr-mapa-cab">
@@ -978,15 +999,15 @@ export default function HojasRutaMapaPage() {
         <LienzoMapa
           className="hr-mapa-lienzo"
           ariaLabel="Mapa del territorio del estudio"
-          miga={enAtlas ? <MigaAtlas total={atlas.length} departamento={departamentoEnfocado} ciudad={atlas.find((c) => c.codigo === ciudadEnfocada) ?? null} distritos={contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadEnfocada).length} cargando={regionesCargando.length > 0} fallo={regionesFallidas.length > 0} onReintentar={reintentarRegiones} distrito={distritoAtlas ? nombreDistrito(distritoAtlas.nombre) : null} adentro={Boolean(adentro)} onCiudad={() => setDistritoEnfocado(null)} enEstudio={Boolean(ciudadEnfocada && enEstudio.includes(ciudadEnfocada))} onPeru={() => { setCiudadEnfocada(null); setDepartamentoEnfocado(null); }} onDepartamento={(d) => { setCiudadEnfocada(null); setDepartamentoEnfocado(d); }} /> : enTerritorio && ciudadAbierta ? <><b>{atlas.find((c) => c.codigo === ciudadAbierta)?.nombre}</b>{regionesCargando.length ? "(cargando su mapa…)" : <span className="hr-lienzo-miga-ayuda">(clic en un distrito para ver su ficha)</span>}</> : nacional.miga ? <>{nacional.miga}{regionesCargando.length && nacional.nivel?.nivel !== "nacional" ? <span className="hr-lienzo-miga-ayuda">(cargando sus distritos…)</span> : null}</> : migaLienzo(nav.seccion as SeccionLienzo, confirmados.length, titularEnfocada ? { distrito: nombreDistrito(titularEnfocada.distrito), ump: codigoDeUmp(titularEnfocada) } : null, atlas.filter((c) => enEstudio.includes(c.codigo)).map((c) => c.nombre))}
-          leyenda={adentro && capaAdentro !== "manzanas" ? leyendaLienzo("territorio", { capa: capaAdentro }) : escalaCiudad ? leyendaCapaDistritos(escalaCiudad) : enAtlas ? <><span className="hr-atlas-punto" aria-hidden="true" /> Con cartografía <span className="hr-atlas-punto" data-en-estudio aria-hidden="true" /> En el estudio</> : nacional.nivel?.nivel === "nacional" ? <><span className="hr-atlas-punto" data-en-estudio aria-hidden="true" /> Ciudad del estudio</> : leyendaLienzo(nav.seccion as SeccionLienzo, { zonasCortas: zonasCortas.size > 0, areas: (configSorteo?.marco_elegible?.areas_excluidas ?? []).length > 0, capa: capaMapa })}
+          miga={enAtlas ? <MigaAtlas total={atlas.length} departamento={departamentoEnfocado} ciudad={atlas.find((c) => c.codigo === ciudadEnfocada) ?? null} distritos={contornos.filter((c) => ciudadDeUbigeo(c.ubigeo) === ciudadEnfocada).length} cargando={regionesCargando.length > 0} fallo={regionesFallidas.length > 0} onReintentar={reintentarRegiones} distrito={distritoAtlas ? nombreDistrito(distritoAtlas.nombre) : null} adentro={Boolean(adentro)} cargandoManzanas={geoAdentro.cargando} onCiudad={() => setDistritoEnfocado(null)} enEstudio={Boolean(ciudadEnfocada && enEstudio.includes(ciudadEnfocada))} onPeru={() => { setCiudadEnfocada(null); setDepartamentoEnfocado(null); }} onDepartamento={(d) => { setCiudadEnfocada(null); setDepartamentoEnfocado(d); }} /> : enTerritorio && ciudadAbierta ? <><b>{atlas.find((c) => c.codigo === ciudadAbierta)?.nombre}</b>{regionesCargando.length ? "(cargando su mapa…)" : <span className="hr-lienzo-miga-ayuda">(clic en un distrito para ver su ficha)</span>}</> : nacional.miga ? <>{nacional.miga}{regionesCargando.length && nacional.nivel?.nivel !== "nacional" ? <span className="hr-lienzo-miga-ayuda">(cargando sus distritos…)</span> : null}</> : migaLienzo(nav.seccion as SeccionLienzo, confirmados.length, titularEnfocada ? { distrito: nombreDistrito(titularEnfocada.distrito), ump: codigoDeUmp(titularEnfocada) } : null, atlas.filter((c) => enEstudio.includes(c.codigo)).map((c) => c.nombre))}
+          leyenda={adentro ? (capaAdentro === "manzanas" ? leyendaManzanasDistrito() : leyendaLienzo("territorio", { capa: capaAdentro })) : escalaCiudad ? leyendaCapaDistritos(escalaCiudad) : enAtlas && ciudadEnfocada ? <><span className="hr-atlas-punto" data-forma="distrito" aria-hidden="true" /> Distrito <span className="hr-atlas-punto" data-forma="distrito" data-en-estudio aria-hidden="true" /> En el estudio</> : enAtlas ? <><span className="hr-atlas-punto" aria-hidden="true" /> Con cartografía <span className="hr-atlas-punto" data-en-estudio aria-hidden="true" /> En el estudio</> : nacional.nivel?.nivel === "nacional" ? <><span className="hr-atlas-punto" data-en-estudio aria-hidden="true" /> Ciudad del estudio</> : leyendaLienzo(nav.seccion as SeccionLienzo, { zonasCortas: zonasCortas.size > 0, areas: (configSorteo?.marco_elegible?.areas_excluidas ?? []).length > 0, capa: capaMapa })}
           // Con una capa por distrito, las manzanas de los confirmados tapaban el color de su distrito.
           distritos={adentro ? (geoAdentro.piezas ? [geoAdentro.piezas] : []) : enPoblacion || enMuestra || escalaCiudad ? [] : distritos}
           capa={adentro ? capaAdentro : conSelectorDeCapa(nav.seccion as SeccionLienzo) ? capaMapa : "manzanas"}
           anclaZoom={centroEnfocado}
           // Con una ciudad abierta, la ciudad; si no, el Perú: alejarse se detiene apenas pasado su encuadre (H4, H13).
           limiteCamara={enTerritorio && cajaTerritorio && (ciudadAbierta || ciudadEnfocada) ? { caja: cajaTerritorio } : limites.pais[0] ? { caja: limites.pais[0].caja } : null}
-          controles={enAtlas && ciudadEnfocada ? <SelectorCapaDistritos capa={capaDistritos} onCapa={setCapaDistritos} /> : !enAtlas && nacional.nivel?.nivel !== "nacional" && conSelectorDeCapa(nav.seccion as SeccionLienzo) ? <SelectorCapa capa={capaMapa} onCapa={setCapaMapa} /> : undefined}
+          controles={enAtlas && ciudadEnfocada ? <SelectorCapaDistritos capa={capaDistritos} onCapa={setCapaDistritos} adentro={Boolean(adentro)} /> : !enAtlas && nacional.nivel?.nivel !== "nacional" && conSelectorDeCapa(nav.seccion as SeccionLienzo) ? <SelectorCapa capa={capaMapa} onCapa={setCapaMapa} /> : undefined}
           encuadreObjetivo={!estado ? null : enTerritorio && distritoAtlas ? { caja: distritoAtlas.caja, pad: adentro ? 0.08 : 0.35, clave: `territorio:distrito:${distritoAtlas.ubigeo}:${adentro ? "manzanas" : ""}`, animar: true } : enTerritorio && cajaTerritorio ? { caja: cajaTerritorio, pad: enAtlas ? 0.04 : 0.08, tapadoAbajo: enAtlas ? 0.07 : 0, clave: `territorio:${ciudadAbierta ?? `pe:${departamentoEnfocado ?? ""}:${ciudadEnfocada ?? ""}`}:${(ciudadAbierta || ciudadEnfocada) && regionesCargando.length ? "silueta" : "distritos"}`, animar: true } : cajaEnfocada ? { caja: cajaEnfocada, pad: 2.2, clave: `ump:${umpEnfocada}:${cajon ? "cajon" : "libre"}`, animar: true, tapadoAbajo: cajon ? 0.5 : 0 } : nacional.encuadre ? (cajon && nav.seccion === "seleccion" ? { ...nacional.encuadre, clave: `${nacional.encuadre.clave}:cajon`, tapadoAbajo: 0.5 } : nacional.encuadre) : (caja ? { caja, pad: 0.08, clave: `${nav.seccion}:${confirmados.join(",") || "lima"}:${contornosConfirmados}`, animar: false } : null)}
           ficha={nacional.ficha}
           dibujarFondo={dibujarFondo}
@@ -1153,6 +1174,7 @@ export default function HojasRutaMapaPage() {
               cargandoManzanas={geoAdentro.cargando}
               errorManzanas={geoAdentro.error}
               manzanas={geoAdentro.piezas ? geoAdentro.piezas.manzanas.length : null}
+              pintadasPor={capaAdentro === "nse" ? "NSE" : capaAdentro === "viviendas" ? "viviendas" : null}
               onVerManzanas={() => distritoAtlas && setManzanasDistrito(distritoAtlas.ubigeo)}
               onVolverCiudad={() => setDistritoEnfocado(null)}
             />

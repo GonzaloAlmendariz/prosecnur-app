@@ -21,10 +21,11 @@ test_that("un .docx con las tres partes por campaña, los datos escritos y los r
   rev <- as.integer(session_get(sid)$collection_state$state_revision %||% 0L)
   a <- .cmtw_campana(sid, rev, "Profesores")
   r <- collection_mail_textos_word(sid, list(a$id), titulo = "Acreditación 2028")
+  expect_true(all(c("modulo", "rotulo", "guardado_en", "aviso_guardado", "size") %in% names(r$file)))  # ADR 0133, fase 5
   expect_true(r$ok)
   f <- session_get(sid)$files[[r$file$file_id]]
   expect_identical(r$file$sensitivity, "internal")
-  expect_identical(r$file$filename, "acreditacion-2028.docx")
+  expect_match(r$file$filename, "^[A-Za-z0-9]+_Textos_de_los_correos_Acreditacion_2028_\\d{2}_\\d{2}_\\d{2}\\.docx$")
   s <- officer::docx_summary(officer::read_docx(f$path))
   txt <- s$text[nzchar(s$text %||% "")]
   expect_true(all(c("Profesores", "Primer correo", "Recordatorios", "Último recordatorio") %in% s$text[grepl("heading", s$style_name %||% "")]))

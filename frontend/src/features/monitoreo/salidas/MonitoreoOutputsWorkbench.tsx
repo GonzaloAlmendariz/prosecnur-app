@@ -5,20 +5,15 @@ import {
   Archive,
   CheckCircle2,
   Database,
-  Download,
   ExternalLink,
   FileText,
   Loader2,
   ShieldAlert,
   Table2,
   Upload,
-  UsersRound,
-  ChevronDown,
 } from "lucide-react";
 import {
-  apiJobStatus,
   apiMonitoreoClientReportPdf,
-  type MonitoreoPortadaPdf,
   apiMonitoreoProcessingHandoffExport,
   apiMonitoreoPublicationEvidencePack,
   apiMonitoreoPublicationPreflight,
@@ -26,12 +21,10 @@ import {
   apiMonitoreoProductionReportPdf,
   apiMonitoreoTerritorialOperationalPackageReview,
   apiUpload,
-  monitoreoClientReportPdfDownloadUrl,
-  monitoreoProductionReportPdfDownloadUrl,
-  type JobSnapshot,
   type MonitoreoConfig,
   type MonitoreoDeliverablesPreflight,
   type MonitoreoLastSheetsPublication,
+  type MonitoreoPortadaPdf,
   type MonitoreoProcessingHandoffResult,
   type MonitoreoProcessingHandoffUniverse,
   type MonitoreoPublicationEvidencePackResult,
@@ -46,6 +39,13 @@ import { EnsayoPublicacionDialog, type EstadoEnsayo } from "./EnsayoPublicacionD
 import { Switch } from "../../../components/Switch";
 import { readinessDeSalidas, type MonitoreoCorte } from "../corte/corteContract";
 import { MonitoreoOutputsReadiness } from "./MonitoreoOutputsReadiness";
+import { ArchivosSueltos } from "../entregas/ArchivosSueltos";
+import { EntregaEnBloque } from "../entregas/EntregaEnBloque";
+import { useEntrega } from "../entregas/useEntrega";
+import { archivosDeLaEvidencia, archivosDeLaRevisionOperativa, plantillaDeLaRevisionOperativa } from "./archivosDeSalidas";
+import { TarjetaPdfDeAvance } from "./TarjetaPdfDeAvance";
+import { TarjetaProcesamiento } from "./TarjetaProcesamiento";
+import { TarjetaProduccion } from "./TarjetaProduccion";
 import "./outputsWorkbench.css";
 
 type OutputAudience = "client" | "internal";
@@ -81,11 +81,6 @@ type PublicationStatus = {
   message: string;
   detail?: string;
 };
-type EvidencePackStatus = {
-  kind: "idle" | "generating" | "ready" | "warnings" | "blocked" | "error";
-  message: string;
-  detail?: string;
-};
 type OperationalPackageUpload = {
   fileId: string;
   filename: string;
@@ -96,25 +91,10 @@ export type EvidencePackHighlight = {
   label: string;
   detail: string;
 };
-export type EvidencePackFileLink = {
-  key: "operational_package_request_csv" | "operational_package_request" | "operational_package_status" | "publication_decision";
-  label: string;
-  downloadUrl: string;
-};
 export type OperationalPackageStatus = {
   kind: "idle" | "reviewing" | "missing" | "applicable" | "ready" | "blocked" | "error";
   message: string;
   detail?: string;
-};
-type ProcessingPackageStatus = {
-  kind: "idle" | "generating" | "ready" | "error";
-  message: string;
-  detail?: string;
-};
-export type ProcessingHandoffFileLink = {
-  key: "package" | "data_xlsx" | "xlsform";
-  label: string;
-  downloadUrl: string;
 };
 
 export type MonitoreoOutputsWorkbenchProps = {
@@ -229,9 +209,6 @@ function copyForFamily(family: OutputFamily) {
       title: "PDF de avance territorial",
       detail: "Mapa, avance y lectura territorial del corte activo.",
       button: "Generar PDF de avance",
-      progress: "Generando PDF de avance",
-      ready: "PDF de avance listo para descargar.",
-      download: "Descargar PDF territorial",
       sheetsTitle: "Salidas territoriales a Sheets",
     };
   }
@@ -241,9 +218,6 @@ function copyForFamily(family: OutputFamily) {
       title: "PDF de avance telefónico",
       detail: "Avance, ritmo diario y cuotas",
       button: "Generar PDF telefónico",
-      progress: "Generando PDF telefónico",
-      ready: "PDF telefónico listo para descargar.",
-      download: "Descargar PDF telefónico",
       sheetsTitle: "Salidas telefónicas a Sheets",
     };
   }
@@ -253,9 +227,6 @@ function copyForFamily(family: OutputFamily) {
       title: "PDF de avance por cursos-horario",
       detail: "Aplicación por aula, cuotas y brechas del corte activo.",
       button: "Generar PDF de avance",
-      progress: "Generando PDF de avance",
-      ready: "PDF de avance listo para descargar.",
-      download: "Descargar PDF de cursos-horario",
       sheetsTitle: "Salidas de cursos-horario a Sheets",
     };
   }
@@ -264,9 +235,6 @@ function copyForFamily(family: OutputFamily) {
     title: "PDF ejecutivo",
     detail: "Lectura ejecutiva del avance y respuestas del corte activo.",
     button: "Generar PDF ejecutivo",
-    progress: "Generando PDF ejecutivo",
-    ready: "PDF ejecutivo listo para descargar.",
-    download: "Descargar PDF ejecutivo",
     // Reúne Sheets, PDF ejecutivo y producción: no sólo «a Sheets».
     sheetsTitle: "Entregables del corte",
   };
@@ -279,9 +247,6 @@ function productionCopyForFamily(family: OutputFamily) {
       title: "Producción por encuestador",
       detail: "Resumen por apellido y detalle de UMP completadas por responsable.",
       button: "Generar PDF de producción",
-      progress: "Generando PDF de producción",
-      ready: "PDF de producción listo para descargar.",
-      download: "Descargar producción",
     };
   }
   if (family === "telefonico") {
@@ -290,9 +255,6 @@ function productionCopyForFamily(family: OutputFamily) {
       title: "Producción por responsable",
       detail: "Por responsable, con sus estados de llamada",
       button: "Generar PDF de producción telefónica",
-      progress: "Generando PDF de producción telefónica",
-      ready: "PDF de producción telefónica listo para descargar.",
-      download: "Descargar producción telefónica",
     };
   }
   if (family === "aulas") {
@@ -301,9 +263,6 @@ function productionCopyForFamily(family: OutputFamily) {
       title: "Producción por responsable",
       detail: "Cursos-horario aplicados por responsable de campo y trazabilidad de la agenda.",
       button: "Generar PDF de producción",
-      progress: "Generando PDF de producción",
-      ready: "PDF de producción listo para descargar.",
-      download: "Descargar producción",
     };
   }
   return {
@@ -312,9 +271,6 @@ function productionCopyForFamily(family: OutputFamily) {
     // Rama de acreditación: sin «telefónica», que el estudio puede ser sólo de correo (#21, 29/10).
     detail: "Respuestas del corte por responsable o recopilador, en orden alfabético.",
     button: "Generar PDF de producción",
-    progress: "Generando PDF de producción",
-    ready: "PDF de producción listo para descargar.",
-    download: "Descargar producción",
   };
 }
 
@@ -389,13 +345,6 @@ function preflightIssues(preflight?: MonitoreoDeliverablesPreflight | null) {
     .slice(0, 3);
 }
 
-function emptyEvidencePackStatuses(): Record<OutputAudience, EvidencePackStatus> {
-  return {
-    client: { kind: "idle", message: "" },
-    internal: { kind: "idle", message: "" },
-  };
-}
-
 export function monitoreoEvidencePackHighlights(result?: MonitoreoPublicationEvidencePackResult | null): EvidencePackHighlight[] {
   const pack = result?.evidence_pack;
   if (!pack) return [];
@@ -424,33 +373,6 @@ export function monitoreoEvidencePackHighlights(result?: MonitoreoPublicationEvi
   return highlights;
 }
 
-export function monitoreoEvidencePackFileLinks(result?: MonitoreoPublicationEvidencePackResult | null): EvidencePackFileLink[] {
-  const files = result?.files;
-  if (!files) return [];
-  return [
-    {
-      key: "operational_package_request_csv" as const,
-      label: "Request CSV",
-      downloadUrl: files.operational_package_request_csv?.download_url ?? "",
-    },
-    {
-      key: "operational_package_request" as const,
-      label: "Request JSON",
-      downloadUrl: files.operational_package_request?.download_url ?? "",
-    },
-    {
-      key: "operational_package_status" as const,
-      label: "Diagnóstico",
-      downloadUrl: files.operational_package_status?.download_url ?? "",
-    },
-    {
-      key: "publication_decision" as const,
-      label: "Decisión",
-      downloadUrl: files.publication_decision?.download_url ?? "",
-    },
-  ].filter((item) => item.downloadUrl);
-}
-
 export function monitoreoProcessingHandoffDetail(result?: MonitoreoProcessingHandoffResult | null) {
   const counts = result?.counts;
   if (!counts) return "";
@@ -461,29 +383,7 @@ export function monitoreoProcessingHandoffDetail(result?: MonitoreoProcessingHan
   return [
     `${fmt(counts.exported_rows ?? 0)} filas`,
     statusLabel ? `estatus ${statusLabel}` : "",
-    formatBytes(result?.size),
   ].filter(Boolean).join(", ");
-}
-
-export function monitoreoProcessingHandoffFileLinks(result?: MonitoreoProcessingHandoffResult | null): ProcessingHandoffFileLink[] {
-  const files = result?.files;
-  return [
-    {
-      key: "package" as const,
-      label: "ZIP completo",
-      downloadUrl: result?.download_url ?? files?.package?.download_url ?? "",
-    },
-    {
-      key: "data_xlsx" as const,
-      label: "Data XLSX",
-      downloadUrl: files?.data_xlsx?.download_url ?? "",
-    },
-    {
-      key: "xlsform" as const,
-      label: "XLSForm",
-      downloadUrl: files?.xlsform?.download_url ?? "",
-    },
-  ].filter((item) => item.downloadUrl);
 }
 
 export function monitoreoOperationalPackageReviewSource(
@@ -566,84 +466,6 @@ export function monitoreoOperationalPackageMessage(result: MonitoreoTerritorialO
   return "Paquete operacional incompleto para revisión.";
 }
 
-function JobStatusLine({
-  jobId,
-  label,
-  onDone,
-  onError,
-  onCancelled,
-  onProgress,
-}: {
-  jobId: string | null;
-  label: string;
-  onDone: () => void;
-  onError: (message: string) => void;
-  onCancelled: () => void;
-  onProgress?: (progress: number | null) => void;
-}) {
-  const [snapshot, setSnapshot] = useState<JobSnapshot | null>(null);
-  const callbacksRef = useRef({ onDone, onError, onCancelled, onProgress });
-
-  useEffect(() => {
-    callbacksRef.current = { onDone, onError, onCancelled, onProgress };
-  }, [onCancelled, onDone, onError, onProgress]);
-
-  useEffect(() => {
-    if (!jobId) {
-      setSnapshot(null);
-      callbacksRef.current.onProgress?.(null);
-      return undefined;
-    }
-    let cancelled = false;
-    let timer = 0;
-    const poll = async () => {
-      try {
-        const next = await apiJobStatus(jobId);
-        if (cancelled) return;
-        setSnapshot(next);
-        const nextProgress = next.progress && "percent" in next.progress
-          ? Number(next.progress.percent)
-          : null;
-        callbacksRef.current.onProgress?.(Number.isFinite(nextProgress) ? nextProgress : null);
-        if (next.status === "done") {
-          callbacksRef.current.onDone();
-          return;
-        }
-        if (next.status === "error") {
-          const message = typeof next.error === "string" && next.error ? next.error : "No se pudo generar el PDF.";
-          callbacksRef.current.onError(message);
-          return;
-        }
-        if (next.status === "cancelled") {
-          callbacksRef.current.onCancelled();
-          return;
-        }
-        timer = window.setTimeout(poll, 1200);
-      } catch (e) {
-        if (!cancelled) callbacksRef.current.onError((e as Error).message);
-      }
-    };
-    void poll();
-    return () => {
-      cancelled = true;
-      if (timer) window.clearTimeout(timer);
-    };
-  }, [jobId]);
-
-  if (!jobId) return null;
-  const progress = snapshot?.progress && "percent" in snapshot.progress
-    ? Number(snapshot.progress.percent)
-    : null;
-  const progressLabel = Number.isFinite(progress) ? `${Math.round(progress as number)}%` : "en curso";
-  return (
-    <div className="mon-outputs-job" role="status" aria-live="polite">
-      <span><Loader2 size={14} className="pulso-spin" /> {label}</span>
-      <strong>{progressLabel}</strong>
-      <i style={{ "--mon-output-job-progress": `${Number.isFinite(progress) ? progress : 35}%` } as CSSProperties} />
-    </div>
-  );
-}
-
 export function MonitoreoOutputsWorkbench({
   family,
   routeLabel,
@@ -690,52 +512,19 @@ export function MonitoreoOutputsWorkbench({
     () => productionPdfTitleSeed(family, defaultTitle, routeLabel),
     [defaultTitle, family, routeLabel],
   );
-  // **Los seis campos de la portada, declarados una vez.** El rótulo, el
-  // placeholder —que dice lo que el motor pondrá si se deja en blanco— y el
-  // tope de caracteres viven juntos, para que la tarjeta no tenga seis bloques
-  // casi iguales que se desincronizan al primer retoque.
-  const camposDePortada: ReadonlyArray<{
-    clave: keyof MonitoreoPortadaPdf;
-    rotulo: string;
-    ejemplo: string;
-    tope: number;
-    ancho?: "completo";
-  }> = [
-    { clave: "titulo", rotulo: "Título", ejemplo: "Avance del trabajo de campo", tope: 140 },
-    { clave: "subtitulo", rotulo: "Subtítulo", ejemplo: "El nombre del estudio", tope: 180 },
-    { clave: "cliente", rotulo: "Preparado para", ejemplo: "Sin destinatario en la portada", tope: 140 },
-    { clave: "periodo", rotulo: "Periodo de campo", ejemplo: "Del primer al último día con respuestas", tope: 90 },
-    { clave: "corte", rotulo: "Datos al", ejemplo: "La fecha del corte sincronizado", tope: 90 },
-    { clave: "nota", rotulo: "Nota al pie", ejemplo: "Sin nota", tope: 320, ancho: "completo" },
-  ];
-  const [portada, setPortada] = useState<MonitoreoPortadaPdf>({});
-  const [portadaAbierta, setPortadaAbierta] = useState(false);
-  const portadaEscrita = Object.values(portada).filter((v) => (v ?? "").trim() !== "").length;
 
   const [includeTargets, setIncludeTargets] = useState(false);
   const [activeAudience, setActiveAudience] = useState<OutputAudience>("client");
   const [internalConfirmed, setInternalConfirmed] = useState(false);
-  // Sello de la generación: cambia la URL de descarga en cada PDF nuevo, para
-  // que el navegador no pueda servir el anterior de su caché.
-  const [pdfSello, setPdfSello] = useState<number>(0);
-  const [pdfJobId, setPdfJobId] = useState<string | null>(null);
-  const [pdfProgress, setPdfProgress] = useState<number | null>(null);
-  const [pdfReady, setPdfReady] = useState(false);
-  const [pdfMessage, setPdfMessage] = useState("");
-  const [pdfError, setPdfError] = useState("");
-  const [productionPdfSello, setProductionPdfSello] = useState<number>(0);
-  const [productionPdfJobId, setProductionPdfJobId] = useState<string | null>(null);
-  const [productionPdfProgress, setProductionPdfProgress] = useState<number | null>(null);
-  const [productionPdfReady, setProductionPdfReady] = useState(false);
-  const [productionPdfMessage, setProductionPdfMessage] = useState("");
-  const [productionPdfError, setProductionPdfError] = useState("");
-  const [productionPdfTitle, setProductionPdfTitle] = useState(productionDefaultTitle);
-  const [processingUniverse, setProcessingUniverse] = useState<MonitoreoProcessingHandoffUniverse>("processable");
-  const [processingPackage, setProcessingPackage] = useState<MonitoreoProcessingHandoffResult | null>(null);
-  const [processingPackageStatus, setProcessingPackageStatus] = useState<ProcessingPackageStatus>({
-    kind: "idle",
-    message: "",
-  });
+  // Cada PDF y cada evidencia, en el contenedor del kit (ADR 0133, fase 5): el
+  // job se sigue con su avance real y «Cancelar», y el archivo se entrega con
+  // el nombre y la carpeta del motor. Una evidencia por audiencia, como antes.
+  const pdf = useEntrega(copy.title, { formato: "pdf", articulo: "el" });
+  const produccion = useEntrega(`PDF de ${productionCopy.title.charAt(0).toLowerCase()}${productionCopy.title.slice(1)}`, { formato: "pdf", articulo: "el" });
+  const evidenciaCliente = useEntrega("Evidencia de publicación para el cliente", { formato: "zip", articulo: "la" });
+  const evidenciaInterna = useEntrega("Evidencia de publicación interna", { formato: "zip", articulo: "la" });
+  const evidencia: Record<OutputAudience, typeof evidenciaCliente> = { client: evidenciaCliente, internal: evidenciaInterna };
+  const revision = useEntrega("Plantilla del paquete operativo", { formato: "csv", articulo: "la" });
   const clientInitial = useMemo(() => sheetsStateFromPublication(clientSheets), [clientSheets]);
   const internalInitial = useMemo(() => sheetsStateFromPublication(internalSheets), [internalSheets]);
   const [spreadsheetIds, setSpreadsheetIds] = useState<Record<OutputAudience, string>>({
@@ -758,15 +547,14 @@ export function MonitoreoOutputsWorkbench({
     client: null,
     internal: null,
   });
-  const [evidenceStatuses, setEvidenceStatuses] = useState<Record<OutputAudience, EvidencePackStatus>>(() => emptyEvidencePackStatuses());
   const [operationalReview, setOperationalReview] = useState<MonitoreoTerritorialOperationalPackageReviewResult | null>(null);
   const [operationalReviewStatus, setOperationalReviewStatus] = useState<OperationalPackageStatus>({ kind: "idle", message: "" });
   const [operationalPackageUpload, setOperationalPackageUpload] = useState<OperationalPackageUpload | null>(null);
   const [operationalDriftUpload, setOperationalDriftUpload] = useState<OperationalPackageUpload | null>(null);
   const [publishing, setPublishing] = useState<OutputAudience | null>(null);
   const [preflighting, setPreflighting] = useState<OutputAudience | null>(null);
-  const [evidencePacking, setEvidencePacking] = useState<OutputAudience | null>(null);
-  const [reviewingOperationalPackage, setReviewingOperationalPackage] = useState(false);
+  const evidencePacking: OutputAudience | null = evidenciaCliente.enCurso ? "client" : evidenciaInterna.enCurso ? "internal" : null;
+  const reviewingOperationalPackage = revision.enCurso;
   const [uploadingOperationalPackage, setUploadingOperationalPackage] = useState(false);
   const [uploadingOperationalDrift, setUploadingOperationalDrift] = useState(false);
   const seedRef = useRef("");
@@ -789,16 +577,11 @@ export function MonitoreoOutputsWorkbench({
     setStatuses({ client: { kind: "idle", message: "" }, internal: { kind: "idle", message: "" } });
     setPreflights({ client: null, internal: null });
     setEvidencePacks({ client: null, internal: null });
-    setEvidenceStatuses(emptyEvidencePackStatuses());
     setOperationalReview(null);
     setOperationalReviewStatus({ kind: "idle", message: "" });
     setOperationalPackageUpload(null);
     setOperationalDriftUpload(null);
-    setProcessingPackage(null);
-    setProcessingPackageStatus({ kind: "idle", message: "" });
-    setProcessingUniverse("processable");
-    setProductionPdfTitle(productionDefaultTitle);
-  }, [clientInitial, defaultTitle, family, internalInitial, productionDefaultTitle, routeLabel]);
+  }, [clientInitial, defaultTitle, family, internalInitial, routeLabel]);
 
   const activeTarget = spreadsheetIds[activeAudience] ?? "";
   const activePublished = published[activeAudience];
@@ -810,18 +593,18 @@ export function MonitoreoOutputsWorkbench({
   const activeStatus = statuses[activeAudience];
   const activePreflight = preflights[activeAudience];
   const activeEvidencePack = evidencePacks[activeAudience];
-  const activeEvidenceStatus = evidenceStatuses[activeAudience];
+  const activeEvidence = evidencia[activeAudience];
   const activeEvidenceHighlights = monitoreoEvidencePackHighlights(activeEvidencePack);
-  const activeEvidenceFiles = monitoreoEvidencePackFileLinks(activeEvidencePack);
+  const activeEvidenceFiles = archivosDeLaEvidencia(activeEvidencePack);
   const showOperationalPackageReview = family === "territorial" && activeAudience === "internal";
   const operationalBusy = reviewingOperationalPackage || uploadingOperationalPackage || uploadingOperationalDrift;
   // El PDF de avance es el entregable de cliente: pasa por el gate de readiness,
   // no por el conteo de filas del snapshot.
-  const canGeneratePdf = salidaClienteHabilitada && !pdfJobId;
+  const canGeneratePdf = salidaClienteHabilitada;
   const motivoPdfBloqueado = salidaClienteHabilitada
     ? undefined
     : readiness.bloqueos[0]?.mensaje ?? "El corte todavía no puede publicarse a cliente";
-  const canGenerateProductionPdf = hasSnapshot && nRows > 0 && !productionPdfJobId;
+  const canGenerateProductionPdf = hasSnapshot && nRows > 0;
   const sheetsClienteBloqueado = activeAudience === "client" && !salidaClienteHabilitada;
   const canPreflightSheets = hasSnapshot &&
     !sheetsClienteBloqueado &&
@@ -866,12 +649,7 @@ export function MonitoreoOutputsWorkbench({
     !preflighting &&
     !evidencePacking &&
     !operationalBusy;
-  const processingPackageBusy = processingPackageStatus.kind === "generating";
-  const canGenerateProcessingPackage = family === "territorial" &&
-    hasSnapshot &&
-    nRows > 0 &&
-    !processingPackageBusy;
-  const processingPackageFiles = monitoreoProcessingHandoffFileLinks(processingPackage);
+  const canGenerateProcessingPackage = family === "territorial" && hasSnapshot && nRows > 0;
 
   const publicationOperationalEvidence = (audience: OutputAudience) => (
     family === "territorial" && audience === "internal"
@@ -923,16 +701,14 @@ export function MonitoreoOutputsWorkbench({
     }
   };
 
-  const generateEvidencePack = async () => {
+  // La evidencia es un ZIP: el contenedor lo entrega y su pie lleva lo que la
+  // validación dijo y los archivos directos. Sin estado propio de «generando»:
+  // la línea del contenedor es la única señal.
+  const generateEvidencePack = () => {
     if (!canGenerateEvidencePack) return;
     const audience = activeAudience;
-    setEvidencePacking(audience);
     setEvidencePacks((current) => ({ ...current, [audience]: null }));
-    setEvidenceStatuses((current) => ({
-      ...current,
-      [audience]: { kind: "generating", message: `Generando soporte ${audienceLabel(audience).toLowerCase()}...` },
-    }));
-    try {
+    void evidencia[audience].ejecutar(async () => {
       const result = await apiMonitoreoPublicationEvidencePack(activeTarget.trim(), {
         audience,
         includeTargets,
@@ -940,34 +716,10 @@ export function MonitoreoOutputsWorkbench({
         ...publicationOperationalEvidence(audience),
         ...(config ? { config } : {}),
       });
-      const preflightStatus = result.preflight?.status ?? "ready";
-      const statusKind: EvidencePackStatus["kind"] = preflightStatus === "blocked"
-        ? "blocked"
-        : preflightStatus === "warnings"
-          ? "warnings"
-          : "ready";
       setPreflights((current) => ({ ...current, [audience]: result.preflight }));
       setEvidencePacks((current) => ({ ...current, [audience]: result }));
-      setEvidenceStatuses((current) => ({
-        ...current,
-        [audience]: {
-          kind: statusKind,
-        message: statusKind === "blocked"
-          ? "Soporte generado con validación bloqueada."
-          : statusKind === "warnings"
-            ? "Soporte generado con advertencias."
-            : "Soporte de publicación listo.",
-          detail: [result.filename, formatBytes(result.size)].filter(Boolean).join(", "),
-        },
-      }));
-    } catch (e) {
-      setEvidenceStatuses((current) => ({
-        ...current,
-        [audience]: { kind: "error", message: (e as Error).message },
-      }));
-    } finally {
-      setEvidencePacking(null);
-    }
+      return result;
+    });
   };
 
   const uploadOperationalPackage = async (file?: File | null) => {
@@ -1014,15 +766,14 @@ export function MonitoreoOutputsWorkbench({
     }
   };
 
-  const reviewOperationalPackage = async () => {
+  // La revisión no muta el .pulso: su resultado va en la tarjeta del paquete y
+  // sus archivos en el contenedor del kit, para verse sin descargarse (la
+  // plantilla, y al pie la revisión y el reporte).
+  const reviewOperationalPackage = () => {
     if (!canReviewOperationalPackage) return;
-    setReviewingOperationalPackage(true);
     setOperationalReview(null);
-    setOperationalReviewStatus({
-      kind: "reviewing",
-      message: "Validando paquete operacional territorial...",
-    });
-    try {
+    setOperationalReviewStatus({ kind: "idle", message: "" });
+    void revision.ejecutar(async () => {
       const result = await apiMonitoreoTerritorialOperationalPackageReview({
         ...(operationalPackageUpload ? { packageFileId: operationalPackageUpload.fileId } : {}),
         ...(operationalDriftUpload ? { driftFileId: operationalDriftUpload.fileId } : {}),
@@ -1038,87 +789,28 @@ export function MonitoreoOutputsWorkbench({
         message: monitoreoOperationalPackageMessage(result, statusKind),
         detail: monitoreoOperationalPackageDetail(result),
       });
-    } catch (e) {
-      setOperationalReviewStatus({
-        kind: "error",
-        message: (e as Error).message,
-      });
-    } finally {
-      setReviewingOperationalPackage(false);
-    }
+      return plantillaDeLaRevisionOperativa(result) ?? result;
+    }, { descargar: false });
   };
 
   // Entre el clic y el job, el servidor arma el modelo del reporte (~15 s en
-  // Acreditación): sin este estado el botón no decía nada (Gonzalo, 30/10).
-  const [pdfPreparando, setPdfPreparando] = useState(false);
-  const [productionPdfPreparando, setProductionPdfPreparando] = useState(false);
-  const generatePdf = async () => {
-    if (!canGeneratePdf || pdfPreparando || pdfJobId) return;
-    setPdfPreparando(true);
-    setPdfReady(false);
-    setPdfProgress(3);
-    setPdfMessage("");
-    setPdfError("");
-    try {
-      const start = await apiMonitoreoClientReportPdf({
-        includeTargets,
-        ...(config ? { config } : {}),
-        ...(ofrecePortada ? { portada } : {}),
-      });
-      setPdfJobId(start.job_id);
-    } catch (e) {
-      setPdfProgress(null);
-      setPdfError((e as Error).message);
-    } finally {
-      setPdfPreparando(false);
-    }
-  };
+  // Acreditación): el contenedor ya está en curso desde el clic (Gonzalo, 30/10).
+  const generatePdf = (portada: MonitoreoPortadaPdf | undefined) => apiMonitoreoClientReportPdf({
+    includeTargets,
+    ...(config ? { config } : {}),
+    ...(portada ? { portada } : {}),
+  });
 
-  const generateProductionPdf = async () => {
-    if (!canGenerateProductionPdf || productionPdfPreparando || productionPdfJobId) return;
-    setProductionPdfPreparando(true);
-    setProductionPdfReady(false);
-    setProductionPdfProgress(3);
-    setProductionPdfMessage("");
-    setProductionPdfError("");
-    try {
-      const title = productionPdfTitle.trim() || productionDefaultTitle;
-      const start = await apiMonitoreoProductionReportPdf({
-        includeTargets,
-        title,
-        ...(config ? { config } : {}),
-      });
-      setProductionPdfJobId(start.job_id);
-    } catch (e) {
-      setProductionPdfProgress(null);
-      setProductionPdfError((e as Error).message);
-    } finally {
-      setProductionPdfPreparando(false);
-    }
-  };
+  const generateProductionPdf = (title: string) => apiMonitoreoProductionReportPdf({
+    includeTargets,
+    title,
+    ...(config ? { config } : {}),
+  });
 
-  const generateProcessingPackage = async () => {
-    if (!canGenerateProcessingPackage) return;
-    setProcessingPackage(null);
-    setProcessingPackageStatus({
-      kind: "generating",
-      message: "Preparando data procesable y XLSForm...",
-    });
-    try {
-      const result = await apiMonitoreoProcessingHandoffExport({
-        universe: processingUniverse,
-        ...(config ? { config } : {}),
-      });
-      setProcessingPackage(result);
-      setProcessingPackageStatus({
-        kind: "ready",
-        message: "Paquete listo para compartir.",
-        detail: monitoreoProcessingHandoffDetail(result),
-      });
-    } catch (e) {
-      setProcessingPackageStatus({ kind: "error", message: (e as Error).message });
-    }
-  };
+  const generateProcessingPackage = (universe: MonitoreoProcessingHandoffUniverse) => apiMonitoreoProcessingHandoffExport({
+    universe,
+    ...(config ? { config } : {}),
+  });
 
   // Revisar y Aplicar mandan el MISMO body: el backend arma el destino con el
   // mismo helper en los dos, así que el ensayo describe lo que Aplicar escribe.
@@ -1228,14 +920,6 @@ export function MonitoreoOutputsWorkbench({
   const snapshotHint = hasSnapshot
     ? <span className="mon-outputs-corte-datos">{piezasDelCorte.map((pieza) => <span key={pieza}>{pieza}</span>)}</span>
     : "Sin corte sincronizado";
-  const pdfButtonProgress = pdfJobId ? Math.max(8, Math.min(100, pdfProgress ?? 35)) : pdfPreparando ? 6 : pdfReady ? 100 : 0;
-  const productionPdfButtonProgress = productionPdfJobId
-    ? Math.max(8, Math.min(100, productionPdfProgress ?? 35))
-    : productionPdfPreparando
-      ? 6
-      : productionPdfReady
-        ? 100
-        : 0;
   const publishRunning = publishing === activeAudience || preflighting === activeAudience;
   const publishProgress = publishRunning
     ? activeStatus.kind === "publishing"
@@ -1251,12 +935,15 @@ export function MonitoreoOutputsWorkbench({
     : activeReady
       ? `Revisar y actualizar Sheets ${audienceLabel(activeAudience).toLowerCase()}`
       : `Revisar y publicar Sheets ${audienceLabel(activeAudience).toLowerCase()}`;
-  const operationalFiles = [
-    { key: "template", label: "Plantilla", file: operationalReview?.files?.template },
-    { key: "review_csv", label: "Revisión CSV", file: operationalReview?.files?.review_csv },
-    { key: "report_json", label: "Reporte JSON", file: operationalReview?.files?.report_json },
-    { key: "report_md", label: "Reporte MD", file: operationalReview?.files?.report_md },
-  ].filter((item) => item.file?.download_url);
+  const operationalSueltos = archivosDeLaRevisionOperativa(operationalReview);
+  const evidenceNotas = [
+    activeEvidencePack?.preflight?.status === "blocked"
+      ? "Soporte generado con validación bloqueada."
+      : activeEvidencePack?.preflight?.status === "warnings"
+        ? "Soporte generado con advertencias."
+        : null,
+    ...activeEvidenceHighlights.map((item) => `${item.label}: ${item.detail}`),
+  ].filter((nota): nota is string => Boolean(nota));
 
   return (
     <section
@@ -1289,9 +976,10 @@ export function MonitoreoOutputsWorkbench({
                 setIncludeTargets((actual) => !actual);
                 setPreflights({ client: null, internal: null });
                 setEvidencePacks({ client: null, internal: null });
-                setEvidenceStatuses(emptyEvidencePackStatuses());
+                evidenciaCliente.cerrar();
+                evidenciaInterna.cerrar();
               }}
-              disabled={!hasSnapshot || Boolean(pdfJobId) || Boolean(productionPdfJobId) || Boolean(publishing) || Boolean(preflighting) || Boolean(evidencePacking) || operationalBusy}
+              disabled={!hasSnapshot || pdf.enCurso || produccion.enCurso || Boolean(publishing) || Boolean(preflighting) || Boolean(evidencePacking) || operationalBusy}
             />
             <span aria-hidden="true">Incluir metas</span>
           </label>
@@ -1303,177 +991,26 @@ export function MonitoreoOutputsWorkbench({
       <div className="mon-outputs-grid">
         <div className="mon-outputs-side-stack">
           {ofreceClientPdf ? (
-            <article className="mon-outputs-card mon-outputs-card--pdf">
-              <div className="mon-outputs-card__head">
-                <span>{copy.eyebrow}</span>
-                <strong>{copy.title}</strong>
-                <small>{copy.detail}</small>
-              </div>
-              {ofrecePortada ? (
-                <div className="mon-outputs-portada">
-                  <button
-                    type="button"
-                    className="mon-outputs-portada__toggle"
-                    aria-expanded={portadaAbierta}
-                    onClick={() => setPortadaAbierta((v) => !v)}
-                  >
-                    <ChevronDown size={14} aria-hidden />
-                    <span>Portada del PDF</span>
-                    <small>
-                      {portadaEscrita
-                        ? `${portadaEscrita} de ${camposDePortada.length} escritos`
-                        : "Se completa sola con los datos del corte"}
-                    </small>
-                  </button>
-                  {portadaAbierta ? (
-                    <div className="mon-outputs-portada__campos">
-                      {camposDePortada.map((campo) => (
-                        <label
-                          key={campo.clave}
-                          className="mon-outputs-field"
-                          data-ancho={campo.ancho ?? "medio"}
-                        >
-                          <span>{campo.rotulo}</span>
-                          <input
-                            type="text"
-                            value={portada[campo.clave] ?? ""}
-                            maxLength={campo.tope}
-                            placeholder={campo.ejemplo}
-                            disabled={Boolean(pdfJobId)}
-                            onChange={(event) =>
-                              setPortada((prev) => ({ ...prev, [campo.clave]: event.target.value }))
-                            }
-                          />
-                        </label>
-                      ))}
-                      <small className="mon-outputs-portada__nota">
-                        Lo que dejes en blanco lo escribe el reporte con lo que ves en gris.
-                      </small>
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-              {/* El bloqueo se dice una sola vez, en el estado del corte de arriba.
-                  Aquí sólo queda el motivo en el tooltip del botón deshabilitado;
-                  el envoltorio lleva el `title` porque un botón deshabilitado no
-                  recibe el puntero en todos los motores. */}
-              <span className="mon-outputs-action-motivo" title={motivoPdfBloqueado}>
-                <button
-                  type="button"
-                  className={`mon-outputs-primary mon-outputs-action-progress${pdfJobId || pdfPreparando ? " is-running" : ""}${pdfReady ? " is-complete" : ""}`}
-                  onClick={() => { void generatePdf(); }}
-                  disabled={!canGeneratePdf || pdfPreparando}
-                  aria-busy={pdfPreparando || Boolean(pdfJobId)}
-                  aria-describedby={motivoPdfBloqueado ? "mon-outputs-pdf-motivo" : undefined}
-                  style={{ "--mon-output-action-progress": `${pdfButtonProgress}%` } as CSSProperties}
-                >
-                  {pdfJobId || pdfPreparando ? <Loader2 size={14} className="pulso-spin" /> : pdfReady ? <CheckCircle2 size={14} /> : <Download size={14} />}
-                  {pdfPreparando ? "Preparando el reporte…" : pdfJobId ? copy.progress : pdfReady ? copy.ready : copy.button}
-                </button>
-                {motivoPdfBloqueado ? (
-                  <span id="mon-outputs-pdf-motivo" className="pulso-sr-only">{motivoPdfBloqueado}</span>
-                ) : null}
-              </span>
-              <JobStatusLine
-                jobId={pdfJobId}
-                label={copy.progress}
-                onProgress={setPdfProgress}
-                onDone={() => {
-                  setPdfJobId(null);
-                  setPdfProgress(100);
-                  setPdfReady(true);
-                  setPdfSello(Date.now());
-                  setPdfMessage(copy.ready);
-                }}
-                onError={(message) => {
-                  setPdfJobId(null);
-                  setPdfProgress(null);
-                  setPdfError(message);
-                }}
-                onCancelled={() => {
-                  setPdfJobId(null);
-                  setPdfProgress(null);
-                  setPdfMessage("Generación cancelada.");
-                }}
-              />
-              {pdfError ? <div className="mon-outputs-alert is-error"><AlertTriangle size={14} /> {pdfError}</div> : null}
-              {pdfMessage ? <div className="mon-outputs-alert is-info"><CheckCircle2 size={14} /> {pdfMessage}</div> : null}
-              {pdfReady ? (
-                <a className="mon-outputs-download" href={monitoreoClientReportPdfDownloadUrl({ v: pdfSello })} download>
-                  <Download size={14} />
-                  {copy.download}
-                </a>
-              ) : null}
-            </article>
+            <TarjetaPdfDeAvance
+              textos={copy}
+              ofrecePortada={ofrecePortada}
+              entrega={pdf}
+              habilitado={canGeneratePdf}
+              motivo={motivoPdfBloqueado}
+              generar={generatePdf}
+            />
           ) : null}
 
           {ofreceProductionPdf ? (
-            <article className="mon-outputs-card mon-outputs-card--production">
-              <div className="mon-outputs-card__head">
-                <span><UsersRound size={14} /> {productionCopy.eyebrow}</span>
-                <strong>{productionCopy.title}</strong>
-                <small>{productionCopy.detail}</small>
-              </div>
-              <div className="mon-outputs-production-tags" aria-label="Contenido del reporte de producción">
-                <span>Orden por apellido</span>
-                <span>Detalle por responsable</span>
-              </div>
-              <label className="mon-outputs-field mon-outputs-production-title" title="Va en la portada y en el encabezado del reporte">
-                <span>Título del PDF</span>
-                <input
-                  type="text"
-                  value={productionPdfTitle}
-                  maxLength={140}
-                  placeholder={productionDefaultTitle}
-                  disabled={Boolean(productionPdfJobId)}
-                  onChange={(event) => setProductionPdfTitle(event.target.value)}
-                />
-              </label>
-              {!hasSnapshot ? (
-                <div className="mon-outputs-alert is-error"><AlertTriangle size={14} /> Sincroniza un corte antes de generar producción.</div>
-              ) : null}
-              <button
-                type="button"
-                className={`mon-outputs-primary mon-outputs-action-progress${productionPdfJobId || productionPdfPreparando ? " is-running" : ""}${productionPdfReady ? " is-complete" : ""}`}
-                onClick={() => { void generateProductionPdf(); }}
-                disabled={!canGenerateProductionPdf || productionPdfPreparando}
-                aria-busy={productionPdfPreparando || Boolean(productionPdfJobId)}
-                style={{ "--mon-output-action-progress": `${productionPdfButtonProgress}%` } as CSSProperties}
-              >
-                {productionPdfJobId || productionPdfPreparando ? <Loader2 size={14} className="pulso-spin" /> : productionPdfReady ? <CheckCircle2 size={14} /> : <UsersRound size={14} />}
-                {productionPdfPreparando ? "Preparando el reporte…" : productionPdfJobId ? productionCopy.progress : productionPdfReady ? productionCopy.ready : productionCopy.button}
-              </button>
-              <JobStatusLine
-                jobId={productionPdfJobId}
-                label={productionCopy.progress}
-                onProgress={setProductionPdfProgress}
-                onDone={() => {
-                  setProductionPdfJobId(null);
-                  setProductionPdfProgress(100);
-                  setProductionPdfReady(true);
-                  setProductionPdfSello(Date.now());
-                  setProductionPdfMessage(productionCopy.ready);
-                }}
-                onError={(message) => {
-                  setProductionPdfJobId(null);
-                  setProductionPdfProgress(null);
-                  setProductionPdfError(message);
-                }}
-                onCancelled={() => {
-                  setProductionPdfJobId(null);
-                  setProductionPdfProgress(null);
-                  setProductionPdfMessage("Generación cancelada.");
-                }}
-              />
-              {productionPdfError ? <div className="mon-outputs-alert is-error"><AlertTriangle size={14} /> {productionPdfError}</div> : null}
-              {productionPdfMessage ? <div className="mon-outputs-alert is-info"><CheckCircle2 size={14} /> {productionPdfMessage}</div> : null}
-              {productionPdfReady ? (
-                <a className="mon-outputs-download" href={monitoreoProductionReportPdfDownloadUrl({ v: productionPdfSello })} download>
-                  <Download size={14} />
-                  {productionCopy.download}
-                </a>
-              ) : null}
-            </article>
+            <TarjetaProduccion
+              key={productionDefaultTitle}
+              textos={productionCopy}
+              tituloSugerido={productionDefaultTitle}
+              entrega={produccion}
+              hayCorte={hasSnapshot}
+              habilitado={canGenerateProductionPdf}
+              generar={generateProductionPdf}
+            />
           ) : null}
 
           <article className="mon-outputs-card mon-outputs-card--processing">
@@ -1483,61 +1020,12 @@ export function MonitoreoOutputsWorkbench({
               <small>{hasSnapshot ? snapshotHint : "Esperando corte sincronizado"}</small>
             </div>
             {family === "territorial" ? (
-              <>
-                <label className="mon-outputs-field">
-                  <span>Paquete manual</span>
-                  <select
-                    value={processingUniverse}
-                    onChange={(event) => {
-                      setProcessingUniverse(event.target.value as MonitoreoProcessingHandoffUniverse);
-                      setProcessingPackage(null);
-                      setProcessingPackageStatus({ kind: "idle", message: "" });
-                    }}
-                    disabled={processingPackageBusy}
-                  >
-                    <option value="processable">Procesable (validada + revisión)</option>
-                    <option value="strict_validada">Sólo validada</option>
-                  </select>
-                  <small>Descarga data filtrada, XLSForm, auditoría y manifest.</small>
-                </label>
-                {processingPackageStatus.kind !== "idle" || processingPackage ? (
-                  <div className={`mon-outputs-evidence is-${processingPackageStatus.kind}`} role="status" aria-live="polite">
-                    <div className="mon-outputs-evidence__summary">
-                      <span>
-                        {processingPackageStatus.kind === "generating"
-                          ? <Loader2 size={14} className="pulso-spin" />
-                          : processingPackageStatus.kind === "error"
-                            ? <AlertTriangle size={14} />
-                            : <Archive size={14} />}
-                      </span>
-                      <div>
-                        <strong>Data + XLSForm</strong>
-                        <small>{processingPackageStatus.message}</small>
-                        {processingPackageStatus.detail ? <small>{processingPackageStatus.detail}</small> : null}
-                      </div>
-                    </div>
-                    {processingPackageFiles.length ? (
-                      <div className="mon-outputs-evidence__files" aria-label="Archivos del paquete manual para Procesamiento">
-                        {processingPackageFiles.map((item) => (
-                          <a key={item.key} className="mon-outputs-download" href={item.downloadUrl} download>
-                            <Download size={14} />
-                            {item.label}
-                          </a>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
-                ) : null}
-                <button
-                  type="button"
-                  className="mon-outputs-processing-link"
-                  onClick={() => { void generateProcessingPackage(); }}
-                  disabled={!canGenerateProcessingPackage}
-                >
-                  {processingPackageBusy ? <Loader2 size={14} className="pulso-spin" /> : <Download size={14} />}
-                  {processingPackageBusy ? "Preparando paquete" : "Descargar data + XLSForm"}
-                </button>
-              </>
+              <TarjetaProcesamiento
+                key={family}
+                habilitado={canGenerateProcessingPackage}
+                detalleDelPaquete={monitoreoProcessingHandoffDetail}
+                generar={generateProcessingPackage}
+              />
             ) : (
               <p
                 className="mon-outputs-processing-hint"
@@ -1600,7 +1088,8 @@ export function MonitoreoOutputsWorkbench({
                     setInternalConfirmed((actual) => !actual);
                     setPreflights((current) => ({ ...current, internal: null }));
                     setEvidencePacks((current) => ({ ...current, internal: null }));
-                    setEvidenceStatuses((current) => ({ ...current, internal: { kind: "idle", message: "" } }));
+                    evidenciaInterna.cerrar();
+                    revision.cerrar();
                     setOperationalReview(null);
                     setOperationalReviewStatus({ kind: "idle", message: "" });
                     setOperationalPackageUpload(null);
@@ -1621,7 +1110,7 @@ export function MonitoreoOutputsWorkbench({
                   updateStatus(activeAudience, { kind: "idle", message: "" });
                   setPreflights((current) => ({ ...current, [activeAudience]: null }));
                   setEvidencePacks((current) => ({ ...current, [activeAudience]: null }));
-                  setEvidenceStatuses((current) => ({ ...current, [activeAudience]: { kind: "idle", message: "" } }));
+                  activeEvidence.cerrar();
                 }}
                 disabled={Boolean(publishing) || Boolean(preflighting) || Boolean(evidencePacking) || operationalBusy}
                 placeholder="https://docs.google.com/spreadsheets/d/..."
@@ -1647,53 +1136,6 @@ export function MonitoreoOutputsWorkbench({
                       </li>
                     ))}
                   </ul>
-                ) : null}
-              </div>
-            ) : null}
-            {activeEvidenceStatus.kind !== "idle" || activeEvidencePack ? (
-              <div className={`mon-outputs-evidence is-${activeEvidenceStatus.kind}`} role="status" aria-live="polite">
-                <div className="mon-outputs-evidence__summary">
-                  <span>
-                    {evidencePacking === activeAudience
-                      ? <Loader2 size={14} className="pulso-spin" />
-                      : activeEvidenceStatus.kind === "blocked"
-                        ? <ShieldAlert size={14} />
-                        : activeEvidenceStatus.kind === "warnings"
-                          ? <AlertTriangle size={14} />
-                          : activeEvidenceStatus.kind === "error"
-                            ? <AlertTriangle size={14} />
-                            : <Archive size={14} />}
-                  </span>
-                  <div>
-                    <strong>Soporte de publicación</strong>
-                    <small>{activeEvidenceStatus.message}</small>
-                    {activeEvidenceStatus.detail ? <small>{activeEvidenceStatus.detail}</small> : null}
-                    {activeEvidenceHighlights.length ? (
-                      <div className="mon-outputs-evidence__highlights" aria-label="Contenido clave del soporte de publicación">
-                        {activeEvidenceHighlights.map((item) => (
-                          <small key={item.kind}>
-                            <strong>{item.label}:</strong> {item.detail}
-                          </small>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-                {activeEvidencePack?.download_url ? (
-                  <a className="mon-outputs-download" href={activeEvidencePack.download_url} download>
-                    <Download size={14} />
-                    Descargar evidencia
-                  </a>
-                ) : null}
-                {activeEvidenceFiles.length ? (
-                  <div className="mon-outputs-evidence__files" aria-label="Archivos directos del soporte de publicación">
-                    {activeEvidenceFiles.map((item) => (
-                      <a key={item.key} className="mon-outputs-download" href={item.downloadUrl} download>
-                        <Download size={14} />
-                        {item.label}
-                      </a>
-                    ))}
-                  </div>
                 ) : null}
               </div>
             ) : null}
@@ -1759,9 +1201,7 @@ export function MonitoreoOutputsWorkbench({
               <div className={`mon-outputs-operational is-${operationalReviewStatus.kind}`} role="status" aria-live="polite">
                 <div className="mon-outputs-operational__summary">
                   <span>
-                    {reviewingOperationalPackage
-                      ? <Loader2 size={14} className="pulso-spin" />
-                      : operationalReviewStatus.kind === "ready"
+                    {operationalReviewStatus.kind === "ready"
                         ? <CheckCircle2 size={14} />
                         : operationalReviewStatus.kind === "applicable"
                           ? <AlertTriangle size={14} />
@@ -1776,16 +1216,6 @@ export function MonitoreoOutputsWorkbench({
                     <small>Solo revisión; no modifica .pulso.</small>
                   </div>
                 </div>
-                {operationalFiles.length ? (
-                  <div className="mon-outputs-operational__files" aria-label="Archivos del paquete operacional">
-                    {operationalFiles.map((item) => (
-                      <a key={item.key} className="mon-outputs-download" href={item.file?.download_url} download>
-                        <Download size={14} />
-                        {item.label}
-                      </a>
-                    ))}
-                  </div>
-                ) : null}
               </div>
             ) : null}
             <div className="mon-outputs-sheets-actions mon-outputs-sheets-actions--primary">
@@ -1824,8 +1254,8 @@ export function MonitoreoOutputsWorkbench({
               </summary>
               <div className="mon-outputs-sheets-actions mon-outputs-sheets-actions--diagnostics">
                 {showOperationalPackageReview ? (
-                  <button type="button" className="mon-outputs-secondary" onClick={() => { void reviewOperationalPackage(); }} disabled={!canReviewOperationalPackage}>
-                    {reviewingOperationalPackage ? <Loader2 size={14} className="pulso-spin" /> : <ShieldAlert size={14} />}
+                  <button type="button" className="mon-outputs-secondary" onClick={reviewOperationalPackage} disabled={!canReviewOperationalPackage}>
+                    <ShieldAlert size={14} aria-hidden="true" />
                     Validar paquete territorial
                   </button>
                 ) : null}
@@ -1833,11 +1263,28 @@ export function MonitoreoOutputsWorkbench({
                   {preflighting === activeAudience ? <Loader2 size={14} className="pulso-spin" /> : <ShieldAlert size={14} />}
                   Validar salida
                 </button>
-                <button type="button" className="mon-outputs-secondary" onClick={() => { void generateEvidencePack(); }} disabled={!canGenerateEvidencePack}>
-                  {evidencePacking === activeAudience ? <Loader2 size={14} className="pulso-spin" /> : <Archive size={14} />}
+                <button type="button" className="mon-outputs-secondary" onClick={generateEvidencePack} disabled={!canGenerateEvidencePack}>
+                  <Archive size={14} aria-hidden="true" />
                   Descargar soporte
                 </button>
               </div>
+              {showOperationalPackageReview ? (
+                <EntregaEnBloque
+                  entrega={revision}
+                  pie={revision.estado.fase === "lista"
+                    ? <ArchivosSueltos archivos={operationalSueltos} etiqueta="Revisión y reporte del paquete operacional" />
+                    : undefined}
+                />
+              ) : null}
+              <EntregaEnBloque
+                entrega={activeEvidence}
+                pie={activeEvidence.estado.fase === "lista" && activeEvidencePack ? (
+                  <>
+                    {evidenceNotas.map((nota) => <span key={nota} className="mon-entrega-nota">{nota}</span>)}
+                    <ArchivosSueltos archivos={activeEvidenceFiles} etiqueta="Archivos directos del soporte de publicación" />
+                  </>
+                ) : undefined}
+              />
             </details>
           </div>
         </article>

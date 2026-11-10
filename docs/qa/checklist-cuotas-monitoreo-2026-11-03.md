@@ -1,8 +1,11 @@
 # Cuotas en Monitoreo: metas frente a referenciales y vistas de avance (3 nov 2026)
 
 Tipo: Checklist vivo (gate 5 de `CLAUDE.md`)
-Estado: D1–D3 tomadas por coordinación (Meta B, 3/11, revisables por Gonzalo); contrato en ADR 0126. Telefónico hecho
+Estado: En curso
+Fecha: 2026-11-03
 Autoridad: dictado de Gonzalo, 3 nov 2026; coordinación con Meta B (plan conjunto)
+
+Situación: D1–D3 tomadas por coordinación (Meta B, 3/11, revisables por Gonzalo); contrato en ADR 0126. Telefónico hecho
 
 > Gonzalo, textual: «El avance de cuotas en todos los monitoreos aún le falta bastante pulido, mezcla conceptos y no
 > deja claro o permite que el modelo distinga claramente cuotas establecidas como metas de cuotas referenciales, y las

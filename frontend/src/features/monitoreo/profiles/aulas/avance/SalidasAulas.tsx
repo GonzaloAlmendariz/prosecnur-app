@@ -23,6 +23,9 @@ import { corteCorto } from "../../../core/barraComun";
 import { BloqueDeMonitoreo } from "../../../core/BloqueDeMonitoreo";
 import { HojaDelCliente, type TablaDelCliente } from "../../../salidas/estandar/HojaDelCliente";
 import { PortadaDeSalidas } from "../../../salidas/estandar/SalidasDeMonitoreo";
+import { EntregaEnFila } from "../../../entregas/EntregaEnFila";
+import { useEntrega } from "../../../entregas/useEntrega";
+import type { LibroGenerado } from "../entregasDeAulas";
 import "./salidas.css";
 
 /** Lo que Salidas necesita de la página: el estado del corte y sus acciones. */
@@ -33,8 +36,8 @@ export type ContextoDeSalidas = {
   ocupado: boolean;
   /** R13: lleva a Material › Entrega, donde se construyen las tablas del Sheets. */
   irAMaterial: () => void;
-  /** Genera y descarga el libro en Excel. */
-  generarLibro: () => Promise<void>;
+  /** Pide el libro en Excel; lo entrega el contenedor del kit en la fila de la salida. */
+  generarLibro: () => Promise<LibroGenerado>;
   /** La sub-vista con los flujos de PDF y del Sheets del cliente. */
   hrefHerramientas: string;
 };
@@ -68,11 +71,12 @@ function SalidasAulasImpl({ contexto }: { contexto: ContextoDeSalidas }) {
     [contexto.config, contexto.corte, contexto.clientSheets, tablas, error, sinPlan],
   );
   const revisar = usePanelDireccionable(PANEL_REVISAR_LIBRO);
+  const libroExcel = useEntrega("Libro en Excel", { formato: "xlsx", articulo: "el" });
   const libro = modelo.salidas.find((s) => s.clave === "libro");
 
   const ejecutar = (accion: AccionDeSalida) => {
     if (accion === "revisar" || accion === "publicar") revisar.abrir();
-    else if (accion === "excel") void contexto.generarLibro();
+    else if (accion === "excel") void libroExcel.ejecutar(() => contexto.generarLibro());
   };
 
   const navegar = useNavigate();
@@ -82,6 +86,18 @@ function SalidasAulasImpl({ contexto }: { contexto: ContextoDeSalidas }) {
         <PulsoButton key={a.accion} variant="secondary" size="sm" onClick={() => navegar(contexto.hrefHerramientas)}>
           {a.rotulo}
         </PulsoButton>
+      ) : a.accion === "excel" ? (
+        <EntregaEnFila key={a.accion} entrega={libroExcel}>
+          <PulsoButton
+            variant={a.principal ? "primary" : "secondary"}
+            size="sm"
+            disabled={contexto.ocupado || Boolean(a.deshabilitada) || libroExcel.enCurso}
+            title={a.deshabilitada}
+            onClick={() => ejecutar(a.accion)}
+          >
+            {a.rotulo}
+          </PulsoButton>
+        </EntregaEnFila>
       ) : (
         <PulsoButton
           key={a.accion}

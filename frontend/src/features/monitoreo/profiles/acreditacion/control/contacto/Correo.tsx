@@ -8,7 +8,9 @@ import { AvanceCorreoVista } from "../../AvanceCorreoVista";
 import { fechaCorta } from "../../avanceCorreoMatriz";
 import { tramosDelPublico } from "../../avanceCorreoEmbudoModelo";
 import { cifra, faseCorreo, marcaReadiness, motivoInvalido, nombreAudiencia, porcentaje, RITMO, type AvanceDeLectura } from "../../avanceCorreoModelo";
-import { descargarCsv } from "../casos/descargarCsv";
+import { archivoCsv } from "../../../../../../components/entregables/archivoLocal";
+import { EntregaEnBloque } from "../../../../entregas/EntregaEnBloque";
+import { useEntrega } from "../../../../entregas/useEntrega";
 import { pctConEspacio } from "../../../../core/formatoComun";
 import { aperturaAutomatica, campanas, csvDeInvalidos, papelesQueInforman, rotuloDeColumna, secuenciaDeEnvios, tasasPorPublico } from "./correoModelo";
 import { useCorreoMailchimp } from "./useCorreoMailchimp";
@@ -58,6 +60,7 @@ export function CorreoVista({ estado, audiencias, foco, lectura, aviso, error, o
   const invalidos = estado.invalidos.total ?? estado.invalidos.filas.length;
   const u = estado.umbrales;
   const paleta = paletaDePublicos(estado.publicos.map((publico) => publico.actor));
+  const csv = useEntrega("Correos inválidos", { formato: "csv", articulo: "los" });
   return (
     <div className="acr-co" data-qa-geometry-group="acreditacion-control-correo" data-qa-geometry-contract="intrinsic">
       <span hidden data-audit-ready={marcaReadiness("listo")} />
@@ -257,12 +260,13 @@ export function CorreoVista({ estado, audiencias, foco, lectura, aviso, error, o
             <button
               type="button"
               className="acr-av-boton"
-              disabled={!estado.invalidos.filas.length}
-              onClick={() => descargarCsv(csvDeInvalidos(estado.invalidos.filas, titulos, motivoInvalido), "correos-invalidos.csv")}
+              disabled={!estado.invalidos.filas.length || csv.enCurso}
+              onClick={() => { void csv.ejecutar(async () => archivoCsv(csvDeInvalidos(estado.invalidos.filas, titulos, motivoInvalido), "correos-invalidos.csv")); }}
             >
-              <Download size={14} aria-hidden="true" /> Exportar
+              <Download size={14} aria-hidden="true" /> Exportar CSV
             </button>
           </header>
+          <EntregaEnBloque entrega={csv} inset />
           {estado.invalidos.por_actor.some((item) => (item.n ?? 0) > 0) ? (
             <ul className="acr-co-cuerpo acr-co-umbrales">
               {estado.invalidos.por_actor.filter((item) => (item.n ?? 0) > 0).sort((a, b) => (b.n ?? 0) - (a.n ?? 0)).map((item) => (

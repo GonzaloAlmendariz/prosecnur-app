@@ -226,6 +226,25 @@ describe("listo", () => {
     expect(espia.descargar).toHaveBeenCalledWith("/api/files/f3/download", "Frecuencias.xlsx");
   });
 
+  it("archivo armado en el front: sin «Guardar como…» y «Descargar otra vez» lo baja de su blob", async () => {
+    escritorio();
+    const crear = vi.fn(() => "blob:local-csv");
+    const original = URL.createObjectURL;
+    URL.createObjectURL = crear;
+    try {
+      const blob = new Blob(["a,b"], { type: "text/csv" });
+      await montar({ fase: "lista", titulo: "Personas", archivos: [{ fileId: "local-9", nombre: "personas.csv", formato: "csv", tamano: 3, local: blob }] }, "bloque");
+      expect(host.textContent).toContain("Descargado");
+      // Sin ruta avisada no hay Abrir ni carpeta, y sin backend no hay Guardar como…
+      expect(boton("Más")).toBeNull();
+      await act(async () => { boton("Descargar otra vez")?.click(); });
+      expect(crear).toHaveBeenCalledWith(blob);
+      expect(espia.descargar).toHaveBeenCalledWith("blob:local-csv", "personas.csv");
+    } finally {
+      URL.createObjectURL = original;
+    }
+  });
+
   it("el aviso de guardado se lee como nota junto al archivo", async () => {
     const aviso = "La ruta pasa de 240 caracteres: el archivo no se copió junto al proyecto.";
     await montar({ fase: "lista", titulo: "Frecuencias", archivos: [{ fileId: "f4", nombre: "F.xlsx", formato: "xlsx", avisoGuardado: aviso }] }, "bloque");
@@ -302,7 +321,8 @@ describe("hoja de estilos", () => {
       ".pulso-entregable-menu-item:focus-visible",
       ".pulso-entregable-bandeja-boton:focus-visible",
     ]) expect(selectores).toContain(s);
-    expect(cuerpo).toMatch(/box-shadow:\s*0 0 0 3px/);
+    // Un solo anillo en toda la app (317d53c95): el del kit, `var(--mov-foco)`, y no un halo propio.
+    expect(cuerpo).toMatch(/outline:\s*var\(--mov-foco\)/);
     // Más específico que el `box-shadow: none` de los botones neutros (0,2,0).
     expect(".pulso-entregable .pulso-button:focus-visible".match(/[.:]/g)?.length).toBeGreaterThan(2);
   });
@@ -317,5 +337,42 @@ describe("hoja de estilos", () => {
     const sinComentarios = css.replace(/\/\*[\s\S]*?\*\//g, "");
     expect(sinComentarios).not.toMatch(/@keyframes/);
     expect(sinComentarios.match(/animation\s*:/g) ?? []).toHaveLength(1);
+  });
+});
+
+describe("ver sin entregar y alineación de la anclada", () => {
+  const SIN_DESCARGAR: EstadoGeneracion = {
+    fase: "lista", titulo: "Imagen de una ficha", rutaDescargada: null, sinDescargar: true,
+    archivos: [{ fileId: "png1", nombre: "Ficha.png", formato: "png", tamano: 2048 }],
+  };
+
+  it("bloque: dice «Listo» (no «Descargado») y ofrece «Descargar», no «Descargar otra vez»", async () => {
+    await montar(SIN_DESCARGAR, "bloque");
+    expect(host.querySelector(".pulso-entregable-ok")?.textContent).toBe("Listo");
+    expect(host.textContent).not.toContain("Descargado");
+    expect(boton("Descargar")).not.toBeNull();
+    expect(boton("Descargar otra vez")).toBeNull();
+    await act(async () => { boton("Descargar")?.click(); });
+    expect(espia.descargar).toHaveBeenCalledWith("/api/files/png1/download", "Ficha.png");
+  });
+
+  it("fila: también dice «Listo» y el ícono se llama «Descargar»", async () => {
+    await montar(SIN_DESCARGAR, "fila");
+    expect(host.querySelector(".pulso-entregable-fila-texto")?.textContent).toBe("Listo");
+    expect(boton("Descargar")).not.toBeNull();
+  });
+
+  it("anclada: `alinear=\"inicio\"` se declara y su regla la abre hacia la derecha; por defecto no se escribe", async () => {
+    await act(async () => { root.render(<ContenedorEntregable estado={ESTADOS.lista} forma="anclada" alinear="inicio" onCerrar={() => undefined} />); });
+    expect(host.querySelector("[data-entregable-forma='anclada']")?.getAttribute("data-entregable-alinear")).toBe("inicio");
+    await act(async () => { root.render(<ContenedorEntregable estado={ESTADOS.lista} forma="anclada" onCerrar={() => undefined} />); });
+    expect(host.querySelector("[data-entregable-forma='anclada']")?.hasAttribute("data-entregable-alinear")).toBe(false);
+    // En bloque la alineación no aplica.
+    await act(async () => { root.render(<ContenedorEntregable estado={ESTADOS.lista} forma="bloque" alinear="inicio" onCerrar={() => undefined} />); });
+    expect(host.querySelector("[data-entregable-alinear]")).toBeNull();
+    const css = readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "entregables.css"), "utf8");
+    const regla = /\.pulso-entregable\[data-entregable-forma="anclada"\]\[data-entregable-alinear="inicio"\]\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
+    expect(regla).toMatch(/left:\s*0/);
+    expect(regla).toMatch(/right:\s*auto/);
   });
 });

@@ -1,6 +1,11 @@
 # L36 · DOC.0 — dirección del cuestionario impreso
 
-Fecha: 2026-11-01. Autoría: sesión «Meta B · unidades de la maqueta», con criterio
+Tipo: Propuesta de diseño
+Estado: Vigente
+Fecha: 2026-11-01
+Autoridad: Criterio delegado por Gonzalo ("avanza con tu criterio", ronda de 10 preguntas del 2026-11-01) a la sesión de unidades de la maqueta de Meta B
+
+Autoría: sesión «Meta B · unidades de la maqueta», con criterio
 delegado por Gonzalo («avanza con tu criterio», ronda de 10 preguntas del 1/11).
 Cada decisión es reversible y se cita por su código (`D-L36-n`).
 

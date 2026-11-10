@@ -3,7 +3,8 @@
 // importan del barrel ./client; este módulo no cambia el contrato.
 
 import type { ExploradorVariablesList, InstrumentoEstado, InstrumentoOperationalConfig, InstrumentoVariablesExcluidas, LimpiezaBeforeAfterPreview, LimpiezaDecision, LimpiezaPromocion, LimpiezaSummary, ReglaCustom, ReglaSemilla, ReglasCustomList, RolesSugerencias, ViewDescriptor } from "../features/validacion/types";
-import { apiFetch, handle, headers } from "./core";
+import { apiFetch, downloadFailedMessage, handle, headers } from "./core";
+import type { CamposDeEntregable } from "./jobs";
 import {
   normalizeExploradorCruce,
   normalizeExploradorDist,
@@ -142,6 +143,21 @@ export async function apiV2MethodologyReportBundle(baseNombre?: string | null) {
       headers: v2Headers(baseNombre),
     }),
   );
+}
+
+/**
+ * El ZIP del paquete metodológico, leído del resultado del job. Transitorio
+ * (ADR 0133, fase 5): el job no registra el ZIP en el file store, así que no
+ * trae `file_id` ni `guardado_en`; el front lo baja y lo entrega como archivo
+ * local. `disposicion` es la cabecera `Content-Disposition`, con el nombre.
+ */
+export async function apiV2MethodologyBundleArchivo(jobId: string): Promise<{ blob: Blob; disposicion: string | null }> {
+  const res = await apiFetch(`/api/jobs/${encodeURIComponent(jobId)}/result`, { headers: headers() });
+  if (!res.ok) {
+    const cuerpo = await res.text().catch(() => "");
+    throw new Error(downloadFailedMessage(res.status, cuerpo));
+  }
+  return { blob: await res.blob(), disposicion: res.headers.get("Content-Disposition") };
 }
 
 export async function apiV2InstrumentoEstado(baseNombre?: string | null) {
@@ -333,7 +349,8 @@ export async function apiV2InstrumentoBuildPlan(
 }
 
 export async function apiV2InstrumentoExportPlan(baseNombre?: string | null) {
-  return handle<{ ok: true; file_id: string; size: number }>(
+  // ADR 0133: el kit de entregables lee de la respuesta, tal cual, el nombre y la copia junto al proyecto.
+  return handle<{ ok: true; file_id: string; size: number; original_name?: string } & CamposDeEntregable>(
     await apiFetch("/api/validacion/v2/instrumento/plan/export", {
       method: "POST",
       headers: v2Headers(baseNombre),

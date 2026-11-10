@@ -17,16 +17,12 @@ import { useLocation, useNavigate } from "react-router-dom";
 import {
   CalendarDays,
   CheckCircle2,
-  Download,
-  FileSpreadsheet,
-  FileText,
   ListChecks,
   Plus,
   X,
 } from "lucide-react";
 import { IconRedo, IconSearch, IconUndo } from "../../lib/icons";
 import {
-  apiSaveEntregable,
   apiEstudioProcessingSuggestions,
   apiUpload,
   apiXlsformEditorExport,
@@ -47,7 +43,6 @@ import {
   apiXlsformFormsList,
   apiXlsformEditorImportInstrumentoEstudio,
   type InstrumentoDelEstudio,
-  downloadUrl,
   normalizeXlsformFormSource,
   type ChoiceCodeMap,
   type Hallazgo,
@@ -56,7 +51,7 @@ import {
   type XlsformFormSource,
 } from "../../api/client";
 import type { XlsformPaperExportOptions } from "../../api/xlsformEditor";
-import { descargarArchivo } from "../../lib/descargas";
+import { useExportacionImpresa, useExportacionXlsform } from "./entregas/useExportaciones";
 import { useProjectShell } from "../project/ProjectShell";
 import { ImportSurveyMonkeyDialog } from "./shell/ImportSurveyMonkeyDialog";
 import { MatrizPulsoDialog } from "./shell/MatrizPulsoDialog";
@@ -72,8 +67,6 @@ import { Panel } from "../../components/Panel";
 import { PageFrame } from "../../components/PageFrame";
 import { EmptyState, ErrorBlock, LoadingBlock } from "../../components/States";
 import { ConfigIoButtons } from "../../components/ConfigIoButtons";
-import SaveEntregableButton from "../project/SaveEntregableButton";
-import { sanitizeFilenameStem } from "../project/FilenameInput";
 import { useSession } from "../../lib/SessionContext";
 import { registerPendingFlush } from "../../lib/pendingFlushRegistry";
 import { editorFormIdFromSearch, editorRequestedFormExists, searchConFormId } from "./state/editorDeepLink";
@@ -156,14 +149,13 @@ import {
   type PersistedSnapshot,
 } from "./state/persistence";
 import { FormsLibrary } from "./shell/FormsLibrary";
-import { XlsformTransferNotice } from "./shell/XlsformTransferNotice";
 import {
   formSourceWithActorKey,
   instrumentActorOptions,
   type InstrumentActorOption,
 } from "./shell/actorAssignmentModel";
 import { instrumentActorLabel } from "./shell/formWorkflowView";
-import { exportWarningDetail, pdfDialogStorageKey } from "./shell/pdfExportPreference";
+import { pdfDialogStorageKey } from "./shell/pdfExportPreference";
 import { EditorPestanas } from "./shell/EditorPestanas";
 import { usePestanaEditor } from "./shell/pestanaEditor";
 import { PANEL_CATALOGOS, PANEL_IMPORTAR_SURVEYMONKEY, PANEL_LOGICA_SURVEYMONKEY } from "./shell/panelesEditor";
@@ -181,7 +173,6 @@ import { leerVersiones } from "./conjoint/leerVersiones";
 import { leerLista } from "./conjoint/leerLista";
 import { leerRespaldo } from "./conjoint/leerRespaldo";
 import { leerOrden } from "./conjoint/modeloOrden";
-import { esperarExportPapel, textoExportando } from "./shell/paperExportJob";
 import { ToastDeck, useToastDeck } from "./shell/ToastDeck";
 import { EditorCommandBar } from "./shell/EditorCommandBar";
 import { EditorSmImportNotice } from "./shell/EditorSmImportNotice";
@@ -319,7 +310,11 @@ export default function XlsformEditorPage() {
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [status, setStatus] = useState("Todavía no hay un formulario abierto.");
-  const [artifact, setArtifact] = useState<{ file_id: string; original_name: string; extension: "xlsx" | "pdf" | "docx" } | null>(null);
+  // ADR 0133: el XLSForm y el impreso exportados van en el contenedor del kit de entregables.
+  const exportacionXlsform = useExportacionXlsform();
+  const exportacionImpresa = useExportacionImpresa();
+  const cerrarExportXlsform = exportacionXlsform.cerrar;
+  const cerrarExportImpreso = exportacionImpresa.cerrar;
   const [source, setSource] = useState<XlsformFormSource | null>(null);
   const [catalogFocus, setCatalogFocus] = useState<string | null>(null);
   const [showAddMenu, setShowAddMenu] = useState(false);
@@ -1267,7 +1262,8 @@ export default function XlsformEditorPage() {
       const loadedWorkbook = cloneWorkbook(next);
       dispatch({ type: "LOAD_FORM", formId, workbook: loadedWorkbook });
       setSource(nextSource);
-      setArtifact(null);
+      cerrarExportXlsform();
+      cerrarExportImpreso();
       setStatus(nextStatus);
       setRestoreOffer(null);
       // La pestaña no se resetea: es la dirección (un enlace a `?pestana=impreso`
@@ -1343,7 +1339,7 @@ export default function XlsformEditorPage() {
       setForms(listForms(projectScope));
       return formId;
     },
-    [persistence, projectScope, dispatch, toasts],
+    [persistence, projectScope, dispatch, toasts, cerrarExportXlsform, cerrarExportImpreso],
   );
 
   // Wrapper retrocompatible: cada import/creación abre un formulario NUEVO.
@@ -1424,9 +1420,9 @@ export default function XlsformEditorPage() {
       const draft = cloneWorkbook(workbook);
       mutator(draft);
       dispatch({ type: "SET", workbook: draft });
-      setArtifact(null);
+      cerrarExportXlsform();
     },
-    [workbook],
+    [workbook, cerrarExportXlsform],
   );
 
   // Descartar el snapshot ofrecido al montar y empezar de cero. Limpia
@@ -1745,7 +1741,7 @@ export default function XlsformEditorPage() {
         setLogicReviewFormId(null);
       } else {
         dispatch({ type: "SET", workbook: nextWorkbook });
-        setArtifact(null);
+        cerrarExportXlsform();
         toasts.push({
           kind: "success",
           title: "Lógica SurveyMonkey recalculada",
@@ -1778,7 +1774,7 @@ export default function XlsformEditorPage() {
       type: "SET",
       workbook: workbookWithSurveyMonkeyLogic(workbook, nextRules, nextVisualRules, nextOverrides, nextChoiceCodeMaps),
     });
-    setArtifact(null);
+    cerrarExportXlsform();
   }
 
   function updateSurveyMonkeyOverridesDraft(nextOverrides: Record<string, string[]>, nextChoiceCodeMaps?: ChoiceCodeMap[]) {
@@ -1803,10 +1799,6 @@ export default function XlsformEditorPage() {
     updateSurveyMonkeyLogicDraft(smLogicRules, nextVisualRules, smLogicChoiceOverrides);
   }
 
-  function entregableStem(originalName: string): string {
-    return sanitizeFilenameStem(originalName);
-  }
-
   function pdfFilenameFromSource(name: string | null | undefined): string {
     return cleanFilename(name)
       .replace(/_editado\.xlsx$/i, "_papel.pdf")
@@ -1819,145 +1811,41 @@ export default function XlsformEditorPage() {
       .replace(/\.xlsx$/i, ".docx");
   }
 
+  // ADR 0133: el export va por el kit de entregables. El motor nombra el archivo y, si el catálogo lo permite, lo
+  // copia en `Entregables\Formularios`; si no, el kit lo descarga. El resultado (o el fallo) sale en el contenedor
+  // anclado bajo "Exportar": sin panel "Procesando", sin panel "XLSForm listo" y sin avisos con "Descargar".
   async function onExport() {
     if (!workbook) return;
     resetMessages();
-    setArtifact(null);
-    setBusy("Exportando XLSForm…");
-    try {
-      const exportableWorkbook = { ...workbook, diagnostico: null };
-      const out = await apiXlsformEditorExport(
-        exportableWorkbook,
-        cleanFilename(source?.original_name),
-        normalizeXlsformFormSource(source),
-        { include_app_columns: includeAppColumns },
-      );
-      setArtifact({ file_id: out.file_id, original_name: out.original_name, extension: "xlsx" });
-      // Tras un export exitoso el workbook está "guardado" (en disco).
-      // Forzamos el flush del autosave también para sellar el snapshot
-      // local con el mismo timestamp.
-      const savedAt = persistence.flush() ?? Date.now();
-      dispatch({ type: "MARK_SAVED", savedAt });
-      setStatus(`Listo: generamos ${out.original_name} para descargarlo o seguir iterándolo.`);
-      // Si hay un proyecto .pulso abierto, el archivo va automáticamente a
-      // su carpeta (junto al .pulso). Si no, fallback a descarga browser.
-      if (project.status.has_project) {
-        // El backend rechaza nombres con espacios, acentos o caracteres
-        // especiales (E_INVALID_FILENAME). Normalizamos: quitamos
-        // diacríticos, sustituimos no-alfanuméricos por underscore, y
-        // colapsamos repetidos.
-        const baseName = entregableStem(out.original_name);
-        try {
-          const saved = await apiSaveEntregable(out.file_id, baseName, { overwrite: true });
-          toasts.push({
-            kind: "success",
-            title: "Exportación guardada en el proyecto",
-            detail: saved.path,
-            durationMs: 8000,
-          });
-        } catch (e) {
-          toasts.push({
-            kind: "warn",
-            title: "No se pudo guardar en la carpeta del proyecto",
-            detail: (e as Error).message,
-            durationMs: 8000,
-            action: {
-              label: "Descargar",
-              onClick: () => { descargarArchivo(downloadUrl(out.file_id)); },
-            },
-          });
-        }
-      } else {
-        toasts.push({
-          kind: "success",
-          title: "Exportación lista",
-          detail: out.original_name,
-          durationMs: 6000,
-          action: {
-            label: "Descargar",
-            onClick: () => { descargarArchivo(downloadUrl(out.file_id)); },
-          },
-        });
-      }
-    } catch (e: unknown) {
-      const msg = (e as Error).message;
-      setError(msg);
-      toasts.push({ kind: "danger", title: "No se pudo exportar", detail: msg });
-    } finally {
-      setBusy("");
-    }
+    const exportableWorkbook = { ...workbook, diagnostico: null };
+    const resultado = await exportacionXlsform.ejecutar(() => apiXlsformEditorExport(
+      exportableWorkbook,
+      cleanFilename(source?.original_name),
+      normalizeXlsformFormSource(source),
+      { include_app_columns: includeAppColumns },
+    ));
+    if (!resultado.ok) return;
+    // Tras un export exitoso el workbook está "guardado" (en disco). Forzamos el flush del autosave también para
+    // sellar el snapshot local con el mismo timestamp.
+    const savedAt = persistence.flush() ?? Date.now();
+    dispatch({ type: "MARK_SAVED", savedAt });
   }
 
+  // El impreso (PDF o Word) es un job: el kit lo sigue y pinta su avance en el bloque de la pestaña Impreso.
   async function onExportForm(
     format: "pdf" | "word" = "pdf",
     exportOptions: XlsformPaperExportOptions = {},
   ) {
     if (!workbook) return;
-    const isWord = format === "word";
-    const label = isWord ? "Word" : "PDF";
-    const ext = isWord ? "docx" : "pdf";
     resetMessages();
-    setArtifact(null);
-    setBusy(textoExportando(label, ""));
-    try {
-      // El papel lleva cada par de conjoint con un sorteo de ejemplo (E8c).
-      const exportableWorkbook = conEjemploParaPapel({ ...workbook, diagnostico: null });
-      const exportFn = isWord ? apiXlsformEditorExportWord : apiXlsformEditorExportPdf;
-      const filename = isWord
-        ? wordFilenameFromSource(source?.original_name)
-        : pdfFilenameFromSource(source?.original_name);
-      const job = await exportFn(
-        exportableWorkbook,
-        filename,
-        exportOptions,
-      );
-      const out = await esperarExportPapel(job.job_id, {
-        onFase: (fase) => setBusy(textoExportando(label, fase)),
-      });
-      setArtifact({ file_id: out.file_id, original_name: out.original_name, extension: ext });
-      setStatus(`Listo: generamos ${out.original_name}.`);
-      const warnDetail = exportWarningDetail(out.warnings);
-
-      if (project.status.has_project) {
-        try {
-          const saved = await apiSaveEntregable(out.file_id, entregableStem(out.original_name), { overwrite: true });
-          toasts.push({
-            kind: out.warnings?.length ? "warn" : "success",
-            title: `${label} guardado en el proyecto`,
-            detail: `${saved.path}${warnDetail}`,
-            durationMs: 9000,
-          });
-        } catch (e) {
-          toasts.push({
-            kind: "warn",
-            title: `${label} listo, pero no se pudo guardar en el proyecto`,
-            detail: (e as Error).message,
-            durationMs: 8000,
-            action: {
-              label: "Descargar",
-              onClick: () => { descargarArchivo(downloadUrl(out.file_id)); },
-            },
-          });
-        }
-      } else {
-        toasts.push({
-          kind: out.warnings?.length ? "warn" : "success",
-          title: `${label} listo`,
-          detail: `${out.original_name}${warnDetail}`,
-          durationMs: 7000,
-          action: {
-            label: "Descargar",
-            onClick: () => { descargarArchivo(downloadUrl(out.file_id)); },
-          },
-        });
-      }
-    } catch (e: unknown) {
-      const msg = (e as Error).message;
-      setError(msg);
-      toasts.push({ kind: "danger", title: `No se pudo exportar el ${label}`, detail: msg });
-    } finally {
-      setBusy("");
-    }
+    // El papel lleva cada par de conjoint con un sorteo de ejemplo (E8c).
+    const exportableWorkbook = conEjemploParaPapel({ ...workbook, diagnostico: null });
+    const isWord = format === "word";
+    const exportFn = isWord ? apiXlsformEditorExportWord : apiXlsformEditorExportPdf;
+    const filename = isWord
+      ? wordFilenameFromSource(source?.original_name)
+      : pdfFilenameFromSource(source?.original_name);
+    await exportacionImpresa.exportar(format, () => exportFn(exportableWorkbook, filename, exportOptions));
   }
 
   // Vuelve al hub (biblioteca de formularios) sin perder la colección: sella
@@ -2654,8 +2542,9 @@ export default function XlsformEditorPage() {
           includeAppColumns={includeAppColumns}
           onIncludeAppColumnsChange={setIncludeAppColumns}
           onExport={onExport}
+          exportacion={exportacionXlsform}
           onOpenDocument={() => irPestana("impreso")}
-          busy={!!busy}
+          busy={!!busy || exportacionXlsform.enCurso}
         />
       ) : undefined}
     >
@@ -2736,50 +2625,11 @@ export default function XlsformEditorPage() {
         />
       )}
 
-      {/* En Impreso el progreso vive en el botón de su cabecera y el resultado
-          llega como aviso (con «Descargar» si no hay proyecto): estos dos
-          paneles empujaban la pestaña hacia abajo mientras exportaba. */}
+      {/* Importar y aplicar lógica muestran aquí su trabajo en curso. Los exports no: su avance y su archivo van en el
+          contenedor del kit de entregables (anclado bajo "Exportar", o en bloque en la pestaña Impreso). */}
       {busy && pestanaEditor.pestana !== "impreso" && (
         <Panel title="Procesando" hint={busy}>
           <LoadingBlock label={busy} variant="inline" minHeight={88} />
-        </Panel>
-      )}
-
-      {workbook && artifact && !(pestanaEditor.pestana === "impreso" && artifact.extension !== "xlsx") && (
-        <Panel
-          title={artifact.extension === "xlsx" ? "XLSForm listo" : "Documento listo"}
-          hint={project.status.has_project
-            ? "El archivo quedó en sesión y puedes guardarlo en el proyecto."
-            : "El archivo quedó listo para descargar en esta sesión."}
-          actions={(
-            <SaveEntregableButton
-              fileId={artifact.file_id}
-              defaultName={artifact.original_name.replace(/\.(xlsx|pdf|docx)$/i, "")}
-              extension={artifact.extension}
-              label={`Descargar .${artifact.extension}`}
-              icon={artifact.extension === "pdf" ? <FileText size={14} /> : <Download size={14} />}
-              className="pulso-primary"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "6px 12px",
-                borderRadius: 6,
-                fontSize: 13,
-                border: "1px solid var(--pulso-primary)",
-              }}
-            />
-          )}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--pulso-text-soft)", fontSize: 13 }}>
-            <FileSpreadsheet size={16} />
-            <span>{artifact.original_name}</span>
-          </div>
-          {artifact.extension === "xlsx" ? (
-            <div style={{ marginTop: 10 }}>
-              <XlsformTransferNotice variant="export" compact />
-            </div>
-          ) : null}
         </Panel>
       )}
 
@@ -3012,7 +2862,7 @@ export default function XlsformEditorPage() {
             {pestana === "opciones" && workbook && (
               <PestanaOpciones
                 workbook={workbook}
-                onWorkbookChange={(next) => { dispatch({ type: "SET", workbook: next }); setArtifact(null); }}
+                onWorkbookChange={(next) => { dispatch({ type: "SET", workbook: next }); cerrarExportXlsform(); }}
                 structure={structure}
                 catalogs={catalogs}
                 seleccionada={pestanaEditor.foco ?? activeCatalogName}
@@ -3038,7 +2888,7 @@ export default function XlsformEditorPage() {
                 onEditar={irAFila}
                 workbook={workbook}
                 catalogs={catalogs}
-                onWorkbookChange={(next) => { dispatch({ type: "SET", workbook: next }); setArtifact(null); }}
+                onWorkbookChange={(next) => { dispatch({ type: "SET", workbook: next }); cerrarExportXlsform(); }}
               />
             )}
             {pestana === "probar" && (
@@ -3083,9 +2933,10 @@ export default function XlsformEditorPage() {
                 parte={pestanaEditor.foco}
                 onParte={(parte) => pestanaEditor.fijarFoco(parte)}
                 onExportar={(formato, opciones) => { void onExportForm(formato, opciones); }}
+                entrega={exportacionImpresa}
                 onIrAPregunta={irAPregunta}
                 onCampoPapel={updateSurveyField}
-                ocupado={busy}
+                ocupado={Boolean(busy) || exportacionImpresa.enCurso}
               />
             )}
           </EditorPestanas>

@@ -1528,8 +1528,8 @@ function WarmupView({
       // 6 nov 2026 (Gonzalo, propuesta «Fondo de carga de Prosecnur»): la carga del proyecto es el Recorrido de
       // los siete módulos, con la lámina angosta a la izquierda y la barra de módulos debajo.
       disposicion="recorrido"
-      fondo={<RecorridoCarga transcurridoMs={transcurridoMs} estimacion={estimacion} />}
-      bajoLamina={<SegmentosRecorrido transcurridoMs={transcurridoMs} estimacion={estimacion} />}
+      fondo={<RecorridoCarga transcurridoMs={transcurridoMs} />}
+      bajoLamina={<SegmentosRecorrido transcurridoMs={transcurridoMs} />}
       ceja={destino ? `Abriendo ${destino.rotulo}` : "Abriendo el proyecto"}
       sujeto={projectName(projectPath)}
       titulo={message}

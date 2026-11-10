@@ -127,3 +127,12 @@
     transition: none;
   }
 }
+
+/* El botón de un Destacado o de una Fecha límite (Acreditación 2026, R4): ponerlo, quitarlo o separarlo. */
+.rec-boton-del-bloque {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  justify-content: space-between;
+}

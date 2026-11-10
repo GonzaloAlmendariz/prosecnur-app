@@ -120,6 +120,7 @@ describe("PulsoButton tone=quiet", () => {
       "components/ChromeOverflowMenu.tsx:1",
       "components/ModuleCommandBar.tsx:1",
       "components/entregables/AccionesArchivo.tsx:4",
+      "features/graficos/SuggestedPlanButton.tsx:1",   // el disparador de "Armar desde": enmarcado desde 27fe14459 (2026-11-09)
       "features/hojasRuta/mapa/ajustes/grupos/GrupoRecorrido.tsx:2",
       "features/hojasRuta/mapa/manzanas/MarcoElegiblePanel.tsx:2",
     ]);

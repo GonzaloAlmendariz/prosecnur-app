@@ -1,6 +1,10 @@
 // Centro de la pestaña Láminas: la lámina real que va a salir (F6.1; dirección F6 §4.1 «Visor», §4.8 estados).
 // La imagen la rasteriza el motor del export (`preview-slide`, vía el coordinador). Ranuras seleccionables sobre la
 // imagen, zoom y tira de miniaturas (parte 2); guías por capas encima de la hoja (plan F6 §8, `guias/`).
+//
+// "Descargar esta lámina en PowerPoint" entrega por el kit (ADR 0133, fase 5): el archivo es el PPTX que el motor ya
+// armó para la vista previa; su contenedor flota bajo la barra, alineado a su borde derecho (forma anclada). No vive
+// dentro de la barra porque esta recorta lo que se sale (`overflow: hidden`).
 
 import { useMemo, useRef, type CSSProperties, type KeyboardEvent, type ReactNode, type RefObject } from "react";
 import {
@@ -18,8 +22,9 @@ import {
   Plus,
   SlidersHorizontal,
 } from "../../../vendor/lucide-react";
-import { downloadUrl } from "../../../api/core";
-import { PulsoButton, PulsoButtonEnlace } from "../../../components/PulsoButton";
+import { ContenedorEntregable } from "../../../components/entregables/ContenedorEntregable";
+import { useGeneracion } from "../../../components/entregables/useGeneracion";
+import { PulsoButton } from "../../../components/PulsoButton";
 import { RadioSegmentado } from "../subpestanas/RadioSegmentado";
 import { PulsoSelect } from "../../../components/PulsoSelect";
 import { IconoTipo } from "../iconos/IconoTipo";
@@ -49,6 +54,7 @@ import { useTituloEnLienzo } from "./modeloTituloLienzo";
 import { BotonConTecla } from "./BotonConTecla";
 import { useBarraCompacta } from "./barraCompacta";
 import "./visorLamina.css";
+import "./entregaLamina.css";
 import { formatoConteo } from "../../../lib/formatoNumero";
 
 type Props = {
@@ -100,6 +106,8 @@ export function VisorLamina({
   lamina, total, vista, prepOk, parte, onParte, onIr, motorNativoApagado, onAbrirAjustes, ajustesAbiertos, onVerAvisos, ajustesRef, estructuraAbierta, onAlternarEstructura, tira,
   ranuras, ranuraActiva, nombreRanura, onRanura, onCambiarGrafico, formas = null,
 }: Props) {
+  const descarga = useGeneracion({ titulo: "Lámina en PowerPoint", modulo: "Procesamiento", formato: "pptx", articulo: "la" });
+  const descargando = descarga.estado.fase === "en_curso";
   const zoom = useLaminasUi((s) => s.zoom);
   const setZoom = useLaminasUi((s) => s.setZoom);
   const tiraVisible = useLaminasUi((s) => s.tiraVisible);
@@ -224,16 +232,22 @@ export function VisorLamina({
           </PulsoButton>
         )}
         {l?.fileId && vista.fase === "lista" && (
-          // La descarga es un enlace de verdad con la piel del ícono quieto: la variante enlace del kit (W3).
-          <PulsoButtonEnlace
+          // La descarga pasa por el kit de entregables (ADR 0133): es un botón del kit con la piel del ícono quieto.
+          <PulsoButton
             variant="icon"
-            href={downloadUrl(l.fileId)}
-            download={`lamina-${lamina.posicion}.pptx`}
             aria-label="Descargar esta lámina en PowerPoint"
             title="Descargar esta lámina en PowerPoint"
+            disabled={descargando}
+            onClick={() => {
+              const fileId = l.fileId;
+              if (!fileId) return;
+              void descarga.ejecutar(async () => ({ file_id: fileId, filename: nombreDeLaLamina(lamina.posicion) }), {
+                titulo: `Lámina ${lamina.posicion} en PowerPoint`,
+              });
+            }}
           >
             <Download aria-hidden="true" />
-          </PulsoButtonEnlace>
+          </PulsoButton>
         )}
         {/* Previsualizar es un interruptor: secundario pulsado como Estructura y Ajustes, no un relleno del acento. */}
         <PulsoButton
@@ -288,6 +302,13 @@ export function VisorLamina({
           </PulsoButton>
         </BotonConTecla>
       </header>
+
+      {/* Ancla de la forma anclada: una franja sin alto bajo la barra; el contenedor flota sobre el lienzo. */}
+      {descarga.estado.fase !== "inactiva" && (
+        <div className="pulso-f6-visor-entrega">
+          <ContenedorEntregable estado={descarga.estado} forma="anclada" onCerrar={descarga.cerrar} />
+        </div>
+      )}
 
       <div
         className={`pulso-f6-lienzo${factor > 1 ? " is-zoom" : ""}`}
@@ -346,6 +367,11 @@ export function VisorLamina({
       {tiraVisible && tira}
     </section>
   );
+}
+
+/** Nombre del PPTX de una lámina. El motor no lo informa en `/preview-slide`; mientras tanto, el de siempre. */
+export function nombreDeLaLamina(posicion: number): string {
+  return `lamina-${posicion}.pptx`;
 }
 
 /** Con tres partes o más los botones no caben junto a los controles de la barra (C4): un selector de ancho fijo. */

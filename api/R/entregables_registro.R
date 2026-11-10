@@ -256,6 +256,19 @@ entregable_registrar <- function(sid, path, kind, base = NULL, detalle = NULL, o
 
 # ---- Campos del registro en una respuesta HTTP --------------------------------
 
+#' Registra el archivo de un job terminado y arma su respuesta pública (ADR 0133 §1)
+#'
+#' Para el `on_complete` de un job (proceso principal, nunca el worker): registra
+#' `j$result_path` con el kind del catálogo (el nombre del §3 lo hereda del
+#' `result_filename`) y devuelve `list(meta, respuesta)`. `extra` se suma a la
+#' respuesta; la ruta del worker no viaja nunca.
+#' @keywords internal
+entregable_registrar_job <- function(sid, j, kind, extra = list()) {
+  meta <- entregable_registrar(sid, j$result_path, kind)
+  resp <- c(list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name, size = meta$size), extra)
+  list(meta = meta, respuesta = entregable_respuesta(resp, meta))
+}
+
 #' Agrega a una respuesta los cuatro campos del registro único (ADR 0133 §1)
 #'
 #' `modulo`, `rotulo`, `guardado_en` y `aviso_guardado` del meta de un archivo

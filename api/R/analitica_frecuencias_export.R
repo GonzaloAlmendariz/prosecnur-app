@@ -60,11 +60,14 @@
     # nativas POR SERVICIO (`current_label`), evitando el total plano inflado.
     # Fuera de bases hija, el plan queda igual.
     grain_child <- .repeat_grain_from_inst(rp_inst)
+    notas_base <- notas
     if (is.list(grain_child) && identical(as.character(grain_child$kind %||% ""), "instancia")) {
       plan <- .repeat_frecuencias_plan_por_servicio(sid, data_out, rp_inst, grain_child)
       data_out <- plan$data
       rp_inst <- plan$inst
       secs <- plan$secciones
+      # Sus filas son registros, no encuestados: el texto de base del estudio no la describe (ADR 0128 §4 ter).
+      notas_base <- .frecuencias_notas_hija(sid, notas, grain_child)   # analitica_repeats_grano.R
     }
     reporte_frecuencias(
       data = data_out, instrumento = rp_inst,
@@ -78,7 +81,7 @@
       numericas = if (length(numericas_arg) > 0L) numericas_arg else NULL,
       ordinal_lists = ordinal_lists,
       fuente = notas$fuente,
-      notas = notas,
+      notas = notas_base,
       ficha_tecnica = list(
         cfg = cfg,
         instrumento = rp_inst,

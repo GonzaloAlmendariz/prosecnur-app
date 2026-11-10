@@ -13,16 +13,24 @@ release; los workers sólo preparan evidencia local.
 
 1. Verifica `git status`, diff, commits y que el SHA candidato sea exactamente
    el revisado.
-2. Lee `.github/workflows/quality.yml` y ejecuta localmente sus gates vigentes:
-   Agentic OS, desktop, typecheck, tests, build de producción, suite R y audits
-   de frontend/desktop.
-3. Ejecuta además:
+2. Corre primero el pre-flight rápido, antes de cualquier otro gate y antes de
+   cada push:
 
    ```bash
-   node scripts/check-docs-governance.mjs
-   node --test scripts/tests/release-contract.test.mjs
-   pnpm -C frontend exec vitest run src/api/client.test.ts
+   make preflight-rapido
    ```
+
+   Son unos 20 segundos y cubre lo que en el CI da rojo antes del primer
+   minuto: gobernanza documental, Agentic OS, lock de R, contrato de release,
+   tests de desktop, contratos de `scripts/tests` y baseline de deuda. Corre todos los pasos
+   aunque uno falle. Con un paso en rojo no se pushea: 12 de los 43 runs
+   fallidos medidos cayeron por uno de estos
+   (`docs/qa/diagnostico-ciclo-release-2026-11-10.md`). La lista de pasos vive
+   en `scripts/preflight-rapido.mjs`, atada a `quality.yml` por un contrato; no
+   la copies aquí.
+3. Lee `.github/workflows/quality.yml` y ejecuta localmente el resto de sus
+   gates vigentes: typecheck, tests, build de producción, suite R,
+   contratos de UI y audits de frontend/desktop.
 
 4. Respeta la API modular: funcionalidad nueva vive en
    `frontend/src/api/<dominio>.ts`; `frontend/src/api/client.ts` sigue siendo un
@@ -57,6 +65,18 @@ Antes del tag exige:
 - `node scripts/release-contract.mjs prepare` en verde;
 - Quality verde en el mismo SHA;
 - audits realmente ejecutados, no omitidos por indisponibilidad.
+
+El orden es fijo: push de main, Quality verde sobre ese commit y recién
+entonces el tag sobre el mismo commit. Así Release reutiliza el gate y tarda
+unos 20 minutos; con el tag empujado junto con main el gate corre dos veces y
+un rojo obliga a mover el tag. Una guarda (`agentic/hooks/guarda-tag-release.mjs`)
+revisa el `git push` de un tag `vX.Y.Z` escrito de forma literal: lo bloquea si
+el commit que se empuja tiene Quality en curso o en rojo, y pide el sí del
+usuario cuando no hay corrida, cuando no se puede consultar GitHub, cuando el
+tag sale de una variable, con `--tags` y con `gh release create`. No ve un push
+escondido en `bash -c`, `eval`, `xargs` o un alias, así que la regla sigue
+siendo tuya: el tag se escribe literal y se empuja solo sobre un commit en
+verde. Si la guarda bloquea, no se rodea: se espera el verde.
 
 Después de crear localmente el tag autorizado, ejecuta
 `node scripts/release-contract.mjs stable --tag vX.Y.Z`. El push del tag es un

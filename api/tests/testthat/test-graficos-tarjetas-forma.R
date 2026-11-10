@@ -81,3 +81,12 @@ test_that("con la pista gris al 100%, la tarjeta va después del fin de la escal
   expect_lte(tarj$x + tarj$w, borde + 1e-6)
   expect_match(paste(readLines(file.path(d, "ppt/slides/slide1.xml"), warn = FALSE), collapse = ""), 'name="tarjeta:guia:punto"', fixed = TRUE)
 })
+
+test_that("compacta: un nombre de grupo que pide 3 líneas tiene renglón de 3 líneas y no pisa al de abajo (CCSS v7.32, lámina 24)", {
+  op <- options(prosecnur.lam_tarjeta_compacta = TRUE); on.exit(options(op), add = TRUE)
+  largo <- "CP, RR. II., Antropología y Sociología"
+  m <- .lam_tarjeta_medidas(2.6, c(largo, "Economía y Finanzas"))
+  expect_false(m$apilada)
+  expect_identical(.lam_tarjeta_lineas_nombre(largo, m), 3L)
+  expect_equal(.lam_tarjeta_alto_renglon(largo, m), m$fila + 2 * 0.16)
+})

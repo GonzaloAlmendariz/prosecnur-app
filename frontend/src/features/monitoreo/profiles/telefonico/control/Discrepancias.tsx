@@ -20,6 +20,9 @@ import "./controlTelefonico.css";
 import "./discrepancias.css";
 import { formatoConteo } from "../../../../../lib/formatoNumero";
 import { copiarTexto } from "../../../../../lib/portapapeles";
+import { archivoCsv } from "../../../../../components/entregables/archivoLocal";
+import { EntregaEnBloque } from "../../../entregas/EntregaEnBloque";
+import { useEntrega } from "../../../entregas/useEntrega";
 
 const TODOS = "";
 
@@ -37,15 +40,6 @@ function fechaHora(iso: string) {
   if (!iso) return "";
   const fecha = new Date(iso);
   return Number.isNaN(fecha.getTime()) ? iso : fecha.toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" });
-}
-
-function descargar(nombre: string, contenido: string) {
-  const url = URL.createObjectURL(new Blob([`﻿${contenido}`], { type: "text/csv;charset=utf-8" }));
-  const enlace = document.createElement("a");
-  enlace.href = url;
-  enlace.download = nombre;
-  enlace.click();
-  URL.revokeObjectURL(url);
 }
 
 /**
@@ -72,6 +66,7 @@ export function Discrepancias({
   const [responsable, setResponsable] = useState<string>(TODOS);
   const [aviso, setAviso] = useState<{ tono: "exito" | "error"; texto: string } | null>(null);
   const [foco, escribirFoco] = useFocoMonitoreo();
+  const csv = useEntrega("Discrepancias entre Kobo y la hoja", { formato: "csv", articulo: "las" });
   const visibles = responsable === TODOS ? grupos.flatMap((grupo) => grupo.casos) : grupos.find((grupo) => grupo.responsable === responsable)?.casos ?? [];
   const elegido = vigentes.find((caso) => caso.codigo === foco) ?? visibles[0] ?? null;
   const gruposParaAvisar = responsable === TODOS ? grupos : grupos.filter((grupo) => grupo.responsable === responsable);
@@ -149,12 +144,13 @@ export function Discrepancias({
             <button
               type="button"
               className="mon-insumos-boton"
-              disabled={!visibles.length}
-              onClick={() => descargar("discrepancias-kobo-hoja.csv", csvParaElEquipo(visibles))}
+              disabled={!visibles.length || csv.enCurso}
+              onClick={() => { void csv.ejecutar(async () => archivoCsv(csvParaElEquipo(visibles), "discrepancias-kobo-hoja.csv")); }}
             >
               <Download size={14} /> Exportar CSV
             </button>
             {aviso ? <NotaDelModo estado tono={aviso.tono} className="mon-dsc-aviso">{aviso.texto}</NotaDelModo> : null}
+            <EntregaEnBloque entrega={csv} />
           </footer>
         </section>
       </div>

@@ -11,7 +11,8 @@
 //  - `bloque`: en el flujo, bajo la fila de acciones, al ancho del contenedor;
 //    apila sus acciones si es angosto.
 //  - `anclada`: flota bajo el botón o menú que la abrió sin mover la página
-//    (el padre es `position: relative`).
+//    (el padre es `position: relative`). `alinear="inicio"` la abre hacia la
+//    derecha cuando el disparador está al inicio de su fila.
 //  - `fila`: dentro de la celda de acción de una tabla: línea fina, luego
 //    mini-ícono y Abrir/Carpeta; el error en la misma fila.
 //
@@ -25,9 +26,9 @@ import { carpetaDelEntregable } from "../../api/jobs";
 import { copiarTexto } from "../../lib/portapapeles";
 import { toast } from "../toasterStore";
 import { AccionesArchivo } from "./AccionesArchivo";
-import { carpetaDeRuta, pesoLegible, textoDelAvance } from "./generacionModelo";
+import { carpetaDeRuta, comoQuedo, pesoLegible, textoDelAvance } from "./generacionModelo";
 import { TileFormato } from "./TileFormato";
-import type { ArchivoEntregable, EstadoGeneracion, FormaContenedor } from "./tipos";
+import type { AlineacionAnclada, ArchivoEntregable, EstadoGeneracion, FormaContenedor } from "./tipos";
 import "./entregables.css";
 
 type Props = {
@@ -36,6 +37,8 @@ type Props = {
   onCerrar: () => void;
   /** Contenido extra al pie del archivo listo (p. ej. los archivos de cada base) o del fallo. */
   pie?: ReactNode;
+  /** Sólo en la forma anclada: hacia dónde se abre bajo el disparador (por defecto, `fin`). */
+  alinear?: AlineacionAnclada;
 };
 
 function Linea({ estado }: { estado: Extract<EstadoGeneracion, { fase: "en_curso" }> }) {
@@ -64,7 +67,7 @@ function copiarCodigo(codigo: string) {
   );
 }
 
-function MetaArchivo({ archivo, rutaDescargada }: { archivo: ArchivoEntregable; rutaDescargada: string | null }) {
+function MetaArchivo({ archivo, rutaDescargada, sinDescargar }: { archivo: ArchivoEntregable; rutaDescargada: string | null; sinDescargar: boolean }) {
   const peso = pesoLegible(archivo.tamano);
   const ruta = archivo.guardadoEn ?? rutaDescargada;
   const carpeta = archivo.guardadoEn
@@ -74,7 +77,7 @@ function MetaArchivo({ archivo, rutaDescargada }: { archivo: ArchivoEntregable; 
     <div className="pulso-entregable-meta">
       <span className="pulso-entregable-ok">
         <Check size={13} aria-hidden="true" />
-        {archivo.guardadoEn ? "Guardado" : "Descargado"}
+        {comoQuedo(archivo, sinDescargar)}
       </span>
       {peso && <span>{peso}</span>}
       {carpeta && <span className="pulso-entregable-carpeta" title={ruta ?? undefined}>{carpeta}</span>}
@@ -82,16 +85,16 @@ function MetaArchivo({ archivo, rutaDescargada }: { archivo: ArchivoEntregable; 
   );
 }
 
-function FilaArchivo({ archivo, rutaDescargada }: { archivo: ArchivoEntregable; rutaDescargada: string | null }) {
+function FilaArchivo({ archivo, rutaDescargada, sinDescargar }: { archivo: ArchivoEntregable; rutaDescargada: string | null; sinDescargar: boolean }) {
   return (
     <li className="pulso-entregable-fila" data-qa-geometry-member="true">
       <TileFormato formato={archivo.formato} />
       <div className="pulso-entregable-cuerpo">
         <div className="pulso-entregable-nombre">{archivo.nombre}</div>
-        <MetaArchivo archivo={archivo} rutaDescargada={rutaDescargada} />
+        <MetaArchivo archivo={archivo} rutaDescargada={rutaDescargada} sinDescargar={sinDescargar} />
         {archivo.avisoGuardado && <p className="pulso-entregable-nota">{archivo.avisoGuardado}</p>}
       </div>
-      <AccionesArchivo archivo={archivo} rutaDescargada={rutaDescargada} />
+      <AccionesArchivo archivo={archivo} rutaDescargada={rutaDescargada} sinDescargar={sinDescargar} />
     </li>
   );
 }
@@ -111,9 +114,9 @@ function FormaFila({ estado }: { estado: Exclude<EstadoGeneracion, { fase: "inac
       <>
         {archivo && <TileFormato formato={archivo.formato} chico />}
         <span className="pulso-entregable-fila-texto" title={archivo?.nombre}>
-          {archivo?.guardadoEn ? "Guardado" : "Descargado"}
+          {comoQuedo(archivo, estado.sinDescargar)}
         </span>
-        {archivo && <AccionesArchivo archivo={archivo} rutaDescargada={estado.rutaDescargada ?? null} compacta />}
+        {archivo && <AccionesArchivo archivo={archivo} rutaDescargada={estado.rutaDescargada ?? null} sinDescargar={estado.sinDescargar} compacta />}
       </>
     );
   }
@@ -147,7 +150,7 @@ function useTraerALaVista(fase: EstadoGeneracion["fase"], activo: boolean) {
   return ref;
 }
 
-export function ContenedorEntregable({ estado, forma, onCerrar, pie }: Props) {
+export function ContenedorEntregable({ estado, forma, onCerrar, pie, alinear = "fin" }: Props) {
   const ref = useTraerALaVista(estado.fase, forma === "bloque");
   if (estado.fase === "inactiva") return null;
   const comun = {
@@ -156,6 +159,8 @@ export function ContenedorEntregable({ estado, forma, onCerrar, pie }: Props) {
     "data-entregable-fase": estado.fase,
     role: estado.fase === "fallo" ? "alert" : "status",
     "aria-label": estado.titulo,
+    // QA y CSS: sólo la anclada se alinea; el valor por defecto (`fin`) no se escribe.
+    ...(forma === "anclada" && alinear === "inicio" ? { "data-entregable-alinear": "inicio" } : {}),
   } as const;
 
   if (forma === "fila") {
@@ -193,7 +198,7 @@ export function ContenedorEntregable({ estado, forma, onCerrar, pie }: Props) {
           {...(varios ? { "data-qa-geometry-group": "entregables/archivos", "data-qa-geometry-contract": "equal" } : {})}
         >
           {estado.archivos.map((archivo) => (
-            <FilaArchivo key={archivo.fileId} archivo={archivo} rutaDescargada={estado.rutaDescargada ?? null} />
+            <FilaArchivo key={archivo.fileId} archivo={archivo} rutaDescargada={estado.rutaDescargada ?? null} sinDescargar={Boolean(estado.sinDescargar)} />
           ))}
         </ul>
         {pie && <div className="pulso-entregable-pie">{pie}</div>}

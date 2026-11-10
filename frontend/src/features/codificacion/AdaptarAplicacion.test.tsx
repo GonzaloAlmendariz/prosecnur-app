@@ -57,9 +57,7 @@ const montar = (clave: string, nPreguntas = 2) =>
       onBackToCodificar={nada}
       onBackToMatrices={nada}
       onAdaptar={nada}
-      onJobDone={nada}
-      onJobError={nada}
-      onJobCancelled={nada}
+      onCerrarEntrega={nada}
       onEnfocado={nada}
     />,
   );
@@ -90,7 +88,11 @@ describe("AdaptarAplicacionVista", () => {
     const durante = montar(A);
     expect(boton(durante)).toMatch(/\sdisabled=""/);
     expect(boton(durante)).toContain('aria-busy="true"');
-    expect(boton(durante)).toContain("Aplicando…");
+    // Sólo se deshabilita: no gira ni cambia de rótulo; lo que se mueve es la línea del contenedor.
+    expect(boton(durante)).toContain("Confirmar y adaptar respuestas");
+    expect(boton(durante)).not.toContain("pulso-codif-adaptar-giro");
+    expect(durante).toContain('data-entregable-forma="bloque"');
+    expect(durante).toContain('data-entregable-fase="en_curso"');
     expect(durante).toMatch(/role="status" aria-live="polite" tabindex="-1">[^<]+<\/span>/);
     expect(durante).toContain("La codificación se está aplicando.");
 
@@ -109,13 +111,22 @@ describe("AdaptarAplicacionVista", () => {
     expect(primero).toContain('data-testid="codificacion-aplicar-omitidas"');
 
     // Fin del job: la página desmonta el panel y lo vuelve a montar.
-    useAplicarAvisosStore.getState().terminar(A, { data: "file-data", inst: "file-inst" });
+    useAplicarAvisosStore.getState().terminar(A, {
+      archivos: [
+        { fileId: "file-data", nombre: "HSVG2026_Data_adaptada_10_11_26.xlsx", formato: "xlsx", tamano: 2048 },
+        { fileId: "file-inst", nombre: "HSVG2026_Instrumento_adaptado_10_11_26.xlsx", formato: "xlsx", tamano: 1024 },
+      ],
+    });
     const remontado = montar(A);
     expect(remontado).toContain('data-testid="codificacion-aplicar-omitidas"');
     expect(remontado).toContain("1 pregunta del catálogo no se aplicó");
     expect(remontado).toContain('data-testid="codificacion-sin-recodificar"');
-    expect(remontado).toContain("data_adaptada.xlsx");
-    expect(remontado).toContain("file-data");
+    // Los dos archivos, con su nombre real, en un solo contenedor en bloque; sin el panel «Resultado».
+    expect(remontado).toContain('data-entregable-fase="lista"');
+    expect(remontado).toContain("HSVG2026_Data_adaptada_10_11_26.xlsx");
+    expect(remontado).toContain("HSVG2026_Instrumento_adaptado_10_11_26.xlsx");
+    expect(remontado).not.toContain("Archivos adaptados listos para descargar");
+    expect(remontado).not.toMatch(/<a\b[^>]*href=/);
     // El título es enfocable por programa, no un tab stop.
     expect(remontado).toMatch(/<strong[^>]*tabindex="-1"[^>]*>1 pregunta del catálogo no se aplicó/);
   });
@@ -169,7 +180,7 @@ describe("el aviso vuelve a la vista tras el remontaje del fin del job", () => {
     expect(duranteJob).toEqual(dobles());
 
     // 2. Termina el job y la página remonta el panel: vuelve a la vista.
-    useAplicarAvisosStore.getState().terminar(A, { data: "f1", inst: "f2" });
+    useAplicarAvisosStore.getState().terminar(A, { archivos: [{ fileId: "f1", nombre: "Data.xlsx", formato: "xlsx" }, { fileId: "f2", nombre: "Instrumento.xlsx", formato: "xlsx" }] });
     const remontaje = dobles();
     montaje(A, remontaje);
     expect(remontaje.scroll).toEqual([{ block: "nearest" }]);
@@ -192,7 +203,7 @@ describe("el aviso vuelve a la vista tras el remontaje del fin del job", () => {
 
     // Aplicación sin avisos, job terminado.
     await aplicarCodificacion(A, async () => ({ ...respuesta, omitidas: [], textos_sin_codigo: [] }));
-    useAplicarAvisosStore.getState().terminar(A, { data: "f1", inst: "f2" });
+    useAplicarAvisosStore.getState().terminar(A, { archivos: [{ fileId: "f1", nombre: "Data.xlsx", formato: "xlsx" }, { fileId: "f2", nombre: "Instrumento.xlsx", formato: "xlsx" }] });
     const sinAvisos = dobles();
     montaje(A, sinAvisos);
     expect(sinAvisos).toEqual(dobles());
@@ -220,7 +231,7 @@ describe("el aviso vuelve a la vista tras el remontaje del fin del job", () => {
     await aplicarCodificacion(A, async () => respuesta);
     // Con el job corriendo todavía no hay nada que resumir.
     expect(vista(A)).toBe("");
-    useAplicarAvisosStore.getState().terminar(A, { data: "f1", inst: "f2" });
+    useAplicarAvisosStore.getState().terminar(A, { archivos: [{ fileId: "f1", nombre: "Data.xlsx", formato: "xlsx" }, { fileId: "f2", nombre: "Instrumento.xlsx", formato: "xlsx" }] });
     const html = vista(A);
     expect(html).toContain('data-testid="codificacion-adaptar-resumen"');
     expect(html).toContain("La adaptación terminó con 1 aviso.");

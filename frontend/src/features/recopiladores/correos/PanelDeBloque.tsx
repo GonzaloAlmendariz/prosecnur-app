@@ -7,6 +7,8 @@ import { AjusteDeBloque } from "./AjusteDeBloque";
 import { AJUSTES_CON_CONTROL_PROPIO, ajustesDe, conAjuste, sigueAIdentidad, valorDeAjuste } from "./ajustesDeBloque";
 import { ColorDePieza } from "./ColorDePieza";
 import { ColorDelBoton } from "./ColorDelBoton";
+import { BotonDelBloque } from "./BotonDelBloque";
+import { admiteBoton, botonPuesto, tieneBoton } from "./modeloBotonDelBloque";
 import { EstiloDelBloque, SelectorDeVista } from "./EstiloDelBloque";
 import { admiteCaja } from "./modeloCaja";
 import { PanelDeDosImagenes } from "./PanelDeDosImagenes";
@@ -292,7 +294,10 @@ export function PanelDeBloque({
       </div>
     );
   }
-  const props = propsDeTexto(block.type);
+  // Sin botón, la sección no pide su texto ni su enlace: el interruptor "Lleva botón" lo pone.
+  // Vaciar el texto no lo quita: el enlace sigue y sus campos también (botonPuesto).
+  const sinSuBoton = admiteBoton(block) && !botonPuesto(block);
+  const props = propsDeTexto(block.type).filter((p) => !(sinSuBoton && (p === "button_text" || p === "url")));
   const sueltos = propios.filter((p) => !esProblemaDelTrato(p)).filter((p) => {
     const prop = propDelProblema(p.path);
     // La descripción de la foto de una sección la muestra su propio panel; las entradas, el suyo.
@@ -302,6 +307,20 @@ export function PanelDeBloque({
   });
   const editar = (update: (b: MailBlock) => MailBlock, grupo?: string) => onEditarBloque(block.block_id, update, grupo);
   const conEstilo = admiteCaja(block);
+  const controlDeAjuste = (ajuste: ReturnType<typeof ajustesDe>[number]) => (
+    <AjusteDeBloque
+      key={ajuste.clave}
+      ajuste={ajuste}
+      valor={valorDeAjuste(block, ajuste, template.theme)}
+      sigueAIdentidad={sigueAIdentidad(block, ajuste, template.theme)}
+      acento={template.theme.accent}
+      onCambio={(valor) => {
+        // Elegir lo que ya hereda no escribe nada: ni la clave ni una edición vacía.
+        if (conAjuste(block, ajuste.clave, valor, template.theme) === block) return;
+        editar((b) => conAjuste(b, ajuste.clave, valor, template.theme));
+      }}
+    />
+  );
 
   if (conEstilo && vista === "estilo") {
     return (
@@ -378,21 +397,13 @@ export function PanelDeBloque({
       {block.type === "icon_text" ? (
         <SelectorDeIcono valor={block.icon} onElegir={(icon) => editar((b) => conAjuste(b, "icon", icon))} />
       ) : null}
-      {block.type !== "image" ? ajustesDe(block).filter((a) => !AJUSTES_CON_CONTROL_PROPIO.has(a.clave)).map((ajuste) => (
-        <AjusteDeBloque
-          key={ajuste.clave}
-          ajuste={ajuste}
-          valor={valorDeAjuste(block, ajuste, template.theme)}
-          sigueAIdentidad={sigueAIdentidad(block, ajuste, template.theme)}
-          acento={template.theme.accent}
-          onCambio={(valor) => {
-            // Elegir lo que ya hereda no escribe nada: ni la clave ni una edición vacía.
-            if (conAjuste(block, ajuste.clave, valor, template.theme) === block) return;
-            editar((b) => conAjuste(b, ajuste.clave, valor, template.theme));
-          }}
-        />
-      )) : null}
-      {block.type === "feature" && block.button_text ? (
+      {block.type !== "image" ? ajustesDe(block).filter((a) => !AJUSTES_CON_CONTROL_PROPIO.has(a.clave) && a.clave !== "button_size").map(controlDeAjuste) : null}
+      {admiteBoton(block) ? (
+        // Todo lo del botón junto: ponerlo o quitarlo, separarlo, su tamaño y su color.
+        <BotonDelBloque template={template} block={block} onEditarBloque={(update) => editar(update)} onEditar={onEditar} onSeleccionar={onSeleccionar} />
+      ) : null}
+      {sinSuBoton ? null : ajustesDe(block).filter((a) => a.clave === "button_size").map(controlDeAjuste)}
+      {block.type === "feature" && tieneBoton(block) ? (
         <ColorDelBoton
           block={block}
           theme={template.theme}

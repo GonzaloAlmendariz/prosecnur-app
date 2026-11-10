@@ -9,7 +9,6 @@ import {
   Download,
   FileSpreadsheet,
   GitBranch,
-  Loader2,
   Upload,
 } from "lucide-react";
 import {
@@ -22,16 +21,22 @@ import {
 import type { AnaliticaFuenteBase, RepeatGrain } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 import { ConfigIoButtons } from "../../components/ConfigIoButtons";
+import { ContenedorEntregable } from "../../components/entregables/ContenedorEntregable";
+import { archivoJson, fechaDelNombre } from "../../components/entregables/archivoLocal";
+import { useGeneracion, type Generacion } from "../../components/entregables/useGeneracion";
 import { ContextBar, ContextBarDivider } from "../../components/ContextBar";
 import { RepeatBadge } from "../../components/RepeatBadge";
 import { RepeatGrainNote } from "../../components/RepeatGrainNote";
 import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
 import { useAnaliticaStore, type FuentePreferida } from "./store";
+import "./plantillaAnalitica.css";
 
 // Header global del módulo Analítica. Muestra:
 // - Qué fuente de datos alimenta los reportes (data codificada vs
 //   original) con toggle para forzar una u otra.
-// - Plantilla portable de Analitica como JSON.
+// - Plantilla portable de Analitica como JSON. Guardarla es una entrega del kit
+//   (ADR 0133, fase 5): el JSON se arma en el front y su contenedor de archivo
+//   cuelga de la barra, bajo el menú "Plantilla" (forma anclada).
 // - Indicador "Autoguardado activo".
 // Aparece como command bar por encima del split view de reportes.
 
@@ -75,6 +80,7 @@ export function AnaliticaHeader({ prepBusy, prepError, variant = "bar" }: Analit
   const codificadaDisponible = Boolean(detalle?.codificada.available || state?.codif_aplicado);
   const fuenteActiva: FuentePreferida = usandoAdaptados ? "adaptados" : "originales";
   const [switching, setSwitching] = useState(false);
+  const plantilla = useGeneracion({ titulo: TITULO_PLANTILLA, modulo: "Procesamiento", formato: "json", articulo: "la" });
 
   // ADR 0030 Fase 5: si la base activa es una hija repeat, el backend anota el
   // grano de instancia en /api/analitica/variables. Lo consumimos para pintar
@@ -229,53 +235,62 @@ export function AnaliticaHeader({ prepBusy, prepError, variant = "bar" }: Analit
         {!panelVariant && <SaveStatusIndicator state="saved" savedLabel="Autoguardado" />}
         {panelVariant ? (
           <AnaliticaTemplateMenu
+            exportacion={plantilla}
             onExport={ioExport}
             onImport={ioImport}
-            filenamePrefix="prosecnur_analitica"
+            filenamePrefix={PREFIJO_PLANTILLA}
             exportTitle="Guarda una plantilla JSON de Analítica. No incluye respuestas ni bases."
             importTitle="Aplica una plantilla JSON de Analítica sin reemplazar las respuestas del proyecto."
-            exportSuccessLabel="Plantilla guardada"
             importSuccessLabel="Plantilla aplicada"
           />
         ) : (
           <ConfigIoButtons
             onExport={ioExport}
             onImport={ioImport}
-            filenamePrefix="prosecnur_analitica"
+            filenamePrefix={PREFIJO_PLANTILLA}
+            exportTitulo={TITULO_PLANTILLA}
             exportLabel="Guardar plantilla"
             importLabel="Aplicar plantilla…"
             exportTitle="Guarda una plantilla JSON de Analítica. No incluye respuestas ni bases."
             importTitle="Aplica una plantilla JSON de Analítica sin reemplazar las respuestas del proyecto."
-            exportSuccessLabel="Plantilla guardada"
             importSuccessLabel="Plantilla aplicada"
           />
         )}
       </div>
+      {/* Fuera de `.pulso-analitica-source-actions`, cuyas reglas vuelven píldora todo botón: el contenedor
+          cuelga del borde derecho de la barra, bajo "Plantilla". */}
+      {panelVariant && <ContenedorEntregable estado={plantilla.estado} forma="anclada" onCerrar={plantilla.cerrar} />}
     </ContextBar>
     <RepeatGrainNote grain={repeatGrain} className="pulso-analitica-repeat-grain" />
     </>
   );
 }
 
+const TITULO_PLANTILLA = "Plantilla de Analítica";
+const PREFIJO_PLANTILLA = "prosecnur_analitica";
+
 function AnaliticaTemplateMenu({
+  exportacion,
   onExport,
   onImport,
   filenamePrefix,
   exportTitle,
   importTitle,
-  exportSuccessLabel,
   importSuccessLabel,
 }: {
+  /** La generación del JSON: su contenedor lo pinta la barra (forma anclada). */
+  exportacion: Pick<Generacion, "estado" | "ejecutar">;
   onExport: () => Promise<unknown>;
   onImport: (parsed: unknown) => Promise<string | void>;
   filenamePrefix: string;
   exportTitle: string;
   importTitle: string;
-  exportSuccessLabel: string;
   importSuccessLabel: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [busy, setBusy] = useState<"export" | "import" | null>(null);
+  const [importando, setImportando] = useState(false);
+  const exportando = exportacion.estado.fase === "en_curso";
+  const ocupado = importando || exportando;
   const [error, setError] = useState("");
   const rootRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -296,31 +311,18 @@ function AnaliticaTemplateMenu({
     };
   }, [open]);
 
-  async function handleExport() {
+  // El menú se cierra al elegir: la espera, el archivo o el fallo los dice el contenedor bajo la barra.
+  function handleExport() {
+    if (exportando) return;
     setError("");
-    setBusy("export");
-    try {
-      const payload = await onExport();
-      const text = JSON.stringify(payload, null, 2);
-      const blob = new Blob([text], { type: "application/json" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `${filenamePrefix}_${Date.now()}.json`;
-      a.click();
-      URL.revokeObjectURL(a.href);
-      toast.exito(exportSuccessLabel);
-      setOpen(false);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(null);
-    }
+    setOpen(false);
+    void exportacion.ejecutar(async () => archivoJson(await onExport(), `${filenamePrefix}_${fechaDelNombre()}.json`));
   }
 
   async function handleImport(file?: File) {
     if (!file) return;
     setError("");
-    setBusy("import");
+    setImportando(true);
     try {
       const text = await file.text();
       const parsed = JSON.parse(text);
@@ -330,12 +332,10 @@ function AnaliticaTemplateMenu({
     } catch (e) {
       setError(`JSON inválido: ${(e as Error).message}`);
     } finally {
-      setBusy(null);
+      setImportando(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
-
-  const busyLabel = busy === "export" ? "Guardando…" : busy === "import" ? "Aplicando…" : "Plantilla";
 
   return (
     <div className="pulso-analitica-template-menu" ref={rootRef}>
@@ -346,16 +346,18 @@ function AnaliticaTemplateMenu({
         aria-expanded={open}
         title="Guardar o aplicar plantilla de Analítica"
         onClick={() => setOpen((value) => !value)}
-        disabled={busy !== null}
+        // Mientras guarda o aplica, el disparador solo se deshabilita: conserva ícono y rótulo.
+        disabled={ocupado}
+        aria-busy={ocupado || undefined}
       >
-        {busy ? <Loader2 size={12} className="pulso-spin" /> : <Download size={12} />}
-        <span>{busyLabel}</span>
+        <Download size={12} aria-hidden="true" />
+        <span>Plantilla</span>
         <ChevronDown size={12} aria-hidden="true" />
       </button>
 
       {open && (
         <div className="pulso-analitica-template-popover" role="menu" aria-label="Plantilla de Analítica">
-          <button type="button" role="menuitem" onClick={() => void handleExport()} disabled={busy !== null} title={exportTitle}>
+          <button type="button" role="menuitem" onClick={handleExport} disabled={ocupado} title={exportTitle}>
             <Download size={13} />
             <span>
               <strong>Guardar plantilla</strong>
@@ -366,7 +368,7 @@ function AnaliticaTemplateMenu({
             type="button"
             role="menuitem"
             onClick={() => fileInputRef.current?.click()}
-            disabled={busy !== null}
+            disabled={ocupado}
             title={importTitle}
           >
             <Upload size={13} />
@@ -386,7 +388,8 @@ function AnaliticaTemplateMenu({
         onChange={(e) => void handleImport(e.target.files?.[0])}
       />
 
-      {/* L25: el resultado de exportar o importar la plantilla es un toast; aquí queda sólo el error. */}
+      {/* L25: el resultado de aplicar la plantilla es un toast y el de guardarla, el contenedor de archivo;
+          aquí queda sólo el error de aplicar. */}
       {error && (
         <span role="alert" className="pulso-analitica-template-feedback is-error">
           <AlertCircle size={11} />

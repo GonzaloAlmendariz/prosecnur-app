@@ -10,7 +10,7 @@ import type { CampanaMaterial } from "../../../api/materialCampanas";
 import { LIMITE_CAMPANAS } from "../correos/modeloCampanas";
 import type { FuenteDelRegistro } from "./useRegistroDeCampanas";
 
-export type IdDeAccion = "renombrar" | "duplicar" | "borrar" | "archivar" | "reabrir" | "ver-lote";
+export type IdDeAccion = "renombrar" | "duplicar" | "hermanas" | "borrar" | "archivar" | "reabrir" | "ver-lote";
 
 export type AccionDeCampana = {
   id: IdDeAccion;
@@ -53,6 +53,8 @@ export function accionesDeCampana(
     return [
       { id: "renombrar", label: "Renombrar…", motivo: null, peligrosa: false },
       { id: "duplicar", label: "Duplicar", motivo: lleno ? `Hasta ${LIMITE_CAMPANAS} campañas de correo por proyecto.` : null, peligrosa: false },
+      // L16: lleva este correo a las campañas de los otros públicos.
+      { id: "hermanas", label: "Aplicar a las hermanas…", motivo: contexto.correos < 2 ? "No hay otras campañas de correo en el proyecto." : null, peligrosa: false },
       { id: "borrar", label: "Borrar…", motivo: null, peligrosa: true },
     ];
   }

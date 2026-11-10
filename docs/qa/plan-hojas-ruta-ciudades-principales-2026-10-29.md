@@ -1,6 +1,11 @@
 # Plan — Hojas de ruta en las ciudades principales, con el marco al año más reciente posible
 
-Fecha: 2026-10-29 · Decisión: [ADR 0119](../adrs/0119-hojas-de-ruta-cobertura-ciudades-principales.md) (Propuesto)
+Tipo: Plan de implementación
+Estado: En curso
+Fecha: 2026-10-29
+Autoridad: ADR 0119
+
+Decisión: [ADR 0119](../adrs/0119-hojas-de-ruta-cobertura-ciudades-principales.md) (Propuesto)
 
 ## Pedido
 
@@ -30,7 +35,7 @@ Fecha: 2026-10-29 · Decisión: [ADR 0119](../adrs/0119-hojas-de-ruta-cobertura-
 
 - **El SAV de «principales ciudades» no sirve como marco**: 57 427 de sus 135 115 manzanas traen `VIVIENDAS` vacío,
   la columna `NSE` es «-» en todas, y solo calza con el 68 % de los ids de GeoPeru. El conteo sale del REDATAM CPV 2017
-  por manzana (unos 5 s por distrito, cacheado en `tmp/redatam_manzana_cache`).
+  por manzana (unos 5 s por distrito, cacheado en `redatam_manzana_cache`, dentro de la carpeta temporal del repo).
 - **Los «Sin Data» de la capa GeoPeru son polígonos sin `IDMZ18`**, no manzanas censales sin estrato: quedan fuera del
   marco. Entre las manzanas con id, todas traen estrato.
 - **Una manzana sin fila en REDATAM es una manzana sin viviendas censadas** (parques, plazas, comercio): 28 % en el

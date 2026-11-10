@@ -1,5 +1,10 @@
 # Checklist · pendientes de la noche del 4/11
 
+Tipo: Checklist de pedido
+Estado: En curso
+Fecha: 2026-11-04
+Autoridad: pedido de Gonzalo del 2026-11-04 sobre los pendientes del plan conjunto v75; coordina Meta B
+
 Pedido de Gonzalo (4/11), textual: «O avance esto aquí mismo», sobre la lista de pendientes del plan conjunto v75. Coordina Meta B.
 
 | # | Pendiente | Dónde vive | Estado |

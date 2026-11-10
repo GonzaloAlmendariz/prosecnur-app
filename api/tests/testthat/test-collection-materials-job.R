@@ -229,10 +229,14 @@ test_that("on_complete registra output y persiste un solo receipt sin resolved_a
   public <- collection_material_render_on_complete(list(
     sid = fx$sid, status = "done", result_path = path, result_data = result
   ))
+  # ADR 0133 (fase 5): `size` como el resto de entregables y los cuatro campos del registro único.
   expect_identical(names(public), c(
-    "file_id", "media_type", "filename", "sha256", "size_bytes", "page_count",
-    "page_map", "generator", "audience", "sensitivity", "manifest"
+    "file_id", "media_type", "filename", "sha256", "size", "size_bytes", "page_count",
+    "page_map", "generator", "audience", "sensitivity", "manifest",
+    "modulo", "rotulo", "guardado_en", "aviso_guardado"
   ))
+  expect_identical(public$size, public$size_bytes)
+  expect_identical(public$modulo, "Material de campo")
   expect_identical(public$manifest$file_id, public$file_id)
   expect_identical(public$manifest$sha256, public$sha256)
   expect_true(collection_artifact_receipt_validate(public$manifest)$ok)
@@ -305,4 +309,33 @@ test_that("el acolchado del codigo ordena la cadena sin reescribir el codigo", {
 
   expect_identical(padd("", 2L), "")
   expect_identical(padd("SIN-NUMERO", 2L), "SIN-NUMERO")
+})
+
+
+test_that("la ficha de prueba se registra al terminar el job, con file_id y sin recibo de reparto", {
+  # Antes el job no tenía on_complete: el resultado llegaba sin file_id y el enlace
+  # apuntaba a /api/files/undefined/download (fase 5 de descargas unificadas).
+  fx <- .cmj_test_seed()
+  on.exit(session_delete(fx$sid), add = TRUE)
+  path <- file.path(withr::local_tempdir(), "prueba.pdf")
+  result <- collection_material_render_job(fx$snapshot_path, "pdf", path)
+  result$filename <- entregable_nombre(fx$sid, "Ficha de prueba", "pdf", detalle = "P01")
+  antes <- session_get(fx$sid)$collection_state
+
+  public <- prosecnurapp:::.cmp_on_complete(list(sid = fx$sid, status = "done", result_path = path, result_data = result))
+
+  expect_true(public$ok)
+  meta <- get_file(fx$sid, public$file_id)
+  expect_true(file.exists(meta$path))
+  expect_identical(meta$kind, "collection_material_prueba")
+  expect_match(public$filename, "_Ficha_de_prueba_P01_[0-9]{2}_[0-9]{2}_[0-9]{2}[.]pdf$")
+  expect_identical(public$size, meta$size)
+  expect_identical(public$rotulo, "Ficha de prueba")
+  expect_identical(public$modulo, "Material de campo")
+  expect_true(all(c("guardado_en", "aviso_guardado") %in% names(public)))
+  # Ni recibo ni revisión nueva: la prueba no es material del reparto.
+  expect_identical(session_get(fx$sid)$collection_state, antes)
+  # El job la engancha.
+  src <- paste(deparse(body(collection_material_prueba_start)), collapse = "\n")
+  expect_match(src, "on_complete = .cmp_on_complete", fixed = TRUE)
 })

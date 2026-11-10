@@ -7,6 +7,9 @@
  * 2. En la publicación (`<DashboardPage publicMode />`, PublicArtifactApp) la
  *    tarjeta «Descargar» no se muestra: el lector del tablero publicado no
  *    exporta la base. El modo público llega como prop, igual que a DashboardPage.
+ * 3. Fase 5 (ADR 0133): la descarga va por el kit de entregables en forma
+ *    bloque dentro de la tarjeta. El botón sólo se deshabilita (sin
+ *    «Generando…») y el error lo dice el contenedor, con su código y Reintentar.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -16,6 +19,13 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 const api = vi.hoisted(() => ({
   apiDashboardBaseDatosDescargar: vi.fn(),
+  descargar: vi.fn(),
+}));
+
+vi.mock("../../../../lib/descargas", () => ({ descargarArchivo: api.descargar }));
+vi.mock("../../../../api/core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../../api/core")>()),
+  downloadUrl: (fileId: string) => `/api/files/${fileId}/download`,
 }));
 
 // `api/client` es el barrel de `api/dashboard`: mockear el módulo de dominio cubre los dos imports.
@@ -38,6 +48,7 @@ import { BaseDatosTab } from "./index";
 import { useDashboardStore } from "../../store";
 import { Toaster } from "../../../../components/Toaster";
 import { useToasterStore } from "../../../../components/toasterStore";
+import { useBandejaEntregables } from "../../../../components/entregables/bandejaStore";
 
 let host: HTMLDivElement;
 let root: Root;
@@ -70,6 +81,8 @@ beforeEach(() => {
   useDashboardStore.getState().resetBaseDatos();
   useDashboardStore.getState().setBaseDatosVariables(["p1"]);
   api.apiDashboardBaseDatosDescargar.mockReset();
+  api.descargar.mockClear();
+  useBandejaEntregables.getState().vaciar();
   host = document.createElement("div");
   document.body.appendChild(host);
   root = createRoot(host);
@@ -102,6 +115,27 @@ test("si la descarga falla, la pestaña muestra el error en vez de callar", asyn
   const alertas = [...document.querySelectorAll('[role="alert"]')].filter((n) => (n.textContent ?? "").trim().length > 0);
   expect(alertas.length, "un mensaje de error visible tras la descarga fallida").toBeGreaterThan(0);
   // Y el botón queda usable para reintentar.
+  expect(botonDescargar()?.disabled).toBe(false);
+});
+
+test("la base sale por el kit: el botón sólo se deshabilita y el archivo queda en el contenedor de la tarjeta", async () => {
+  let resolver: (v: unknown) => void = () => undefined;
+  api.apiDashboardBaseDatosDescargar.mockReturnValue(new Promise((res) => { resolver = res; }));
+  montar();
+  await act(async () => { botonDescargar()?.click(); });
+
+  expect(api.apiDashboardBaseDatosDescargar).toHaveBeenCalledWith(expect.objectContaining({ variables: ["p1"], formato: "xlsx" }));
+  expect(botonDescargar()?.disabled).toBe(true);
+  expect(botonDescargar()?.textContent?.trim()).toBe("Descargar");
+  const enCurso = host.querySelector<HTMLElement>("[data-entregable-forma='bloque']");
+  expect(enCurso?.dataset.entregableFase).toBe("en_curso");
+  expect(enCurso?.closest(".dash-cardbox")).not.toBeNull();
+
+  await act(async () => { resolver({ file_id: "b1", filename: "HSVG2026_Base_de_datos_del_dashboard_10_11_26.xlsx" }); });
+  const lista = host.querySelector<HTMLElement>("[data-entregable-forma='bloque']");
+  expect(lista?.dataset.entregableFase).toBe("lista");
+  expect(lista?.querySelectorAll("a")).toHaveLength(0);
+  expect(api.descargar).toHaveBeenCalledWith("/api/files/b1/download", "HSVG2026_Base_de_datos_del_dashboard_10_11_26.xlsx");
   expect(botonDescargar()?.disabled).toBe(false);
 });
 

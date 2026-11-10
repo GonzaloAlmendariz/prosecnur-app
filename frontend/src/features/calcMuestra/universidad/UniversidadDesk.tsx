@@ -83,8 +83,8 @@ import {
   SalidasEntregablesTab,
   SalidasMonitoreoTab,
   SalidasResultadosTab,
-  type PaqueteDefensaPaso,
 } from "./salidas";
+import type { EntregaEnPantalla, PaqueteDefensaEntregas } from "../entregas/modeloEntrega";
 import type { MotorEfectivo } from "../motor/usePerfilEfectivo";
 import { useMotorStore } from "../store";
 import { TabCobertura } from "../motor/pestanas/TabCobertura";
@@ -136,15 +136,14 @@ export function UniversidadDesk({
   uploadingSourceId,
   calculando,
   onGenerarReporte,
-  reporteEnCurso,
   reporteDisponible,
   reporteStale,
-  reporteDescargarUrl,
+  reporteEntrega,
   onExportarAulas,
-  exportandoAulas,
+  anexoEntrega,
   onGenerarPaqueteDefensa,
   paqueteEnCurso,
-  paquetePasos,
+  paqueteEntregas,
   onNavigate,
   onPatchEstudio,
   onCambiarTipo,
@@ -165,15 +164,15 @@ export function UniversidadDesk({
   activeFocus: string | null;
   activeLabTab: ClassroomLabTab;
   onGenerarReporte: (formato: "html" | "pdf") => void;
-  reporteEnCurso: boolean;
   reporteDisponible: boolean;
   reporteStale: boolean;
-  reporteDescargarUrl: string | null;
+  /** Reporte, anexo y paquete por el kit de entregables (ADR 0133): estado y cierre de cada contenedor. */
+  reporteEntrega: EntregaEnPantalla;
   onExportarAulas: () => void;
-  exportandoAulas: boolean;
+  anexoEntrega: EntregaEnPantalla;
   onGenerarPaqueteDefensa: (formato: "html" | "pdf") => void;
   paqueteEnCurso: boolean;
-  paquetePasos: PaqueteDefensaPaso[] | null;
+  paqueteEntregas: PaqueteDefensaEntregas;
   onTitulo: (titulo: string) => void;
   onContexto: (campo: "cliente" | "tipo_cliente" | "descripcion_libre", valor: string) => void;
   onWorkspace: (workspace: CalcMuestraWorkspace) => void;
@@ -1147,17 +1146,15 @@ export function UniversidadDesk({
                 aulasState={aulasState}
                 reporte={{
                   puedeGenerar: calculationReady,
-                  enCurso: reporteEnCurso,
                   disponible: reporteDisponible,
                   stale: reporteStale,
                   formato: reporteFormato,
                   onFormato: setReporteFormato,
                   onGenerar: () => onGenerarReporte(reporteFormato),
-                  descargarUrl: reporteDescargarUrl,
+                  reporte: reporteEntrega,
                   aulasListas: selectionReady,
-                  exportandoAulas,
                   onExportarAulas,
-                  aulasExportFilename: aulasState?.export?.filename ?? null,
+                  anexo: anexoEntrega,
                 }}
                 paquete={{
                   puedeGenerar: calculationReady && selectionReady,
@@ -1167,7 +1164,7 @@ export function UniversidadDesk({
                       ? "Calcula la muestra (sección Cálculo) para armar el paquete completo."
                       : undefined,
                   enCurso: paqueteEnCurso,
-                  pasos: paquetePasos,
+                  entregas: paqueteEntregas,
                   onGenerar: () => onGenerarPaqueteDefensa(reporteFormato),
                 }}
               />

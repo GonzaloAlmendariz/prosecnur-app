@@ -196,7 +196,7 @@ describe("P1–P3 · la mesa pinta el rail de aulas y un tabpanel por pestaña",
           estudio={estudio} workspace={workspace} activeSection={seccion}
           onTitulo={noop} onContexto={noop} onPatchEstudio={noop} onWorkspace={noop} onComponente={noop}
           onReplaceComponente={noop} onEnsureKind={noop} onCalcular={noop} onMonitoreo={noop}
-          calculando={false} reporteListo={false} reporte={{ resultados: 0, enCurso: false, disponible: false, verUrl: null, onGenerar: noop }} onCambiarTipo={noop}
+          calculando={false} reporteListo={false} reporte={{ resultados: 0, disponible: false, estado: { fase: "inactiva" }, onCerrar: noop, onGenerar: noop }} onCambiarTipo={noop}
         />
       </MemoryRouter>,
     );

@@ -39,6 +39,9 @@ import { etiquetaDeFecha } from "./agendaPorDia";
 import { hoyISO } from "./calendarioDeAgenda";
 import { semanaInicial, semanasDeCarga } from "./semanasDeCarga";
 import { fmt } from "./kpisDeAulas";
+import type { GenerarPlantillaDeDisponibilidad } from "./entregasDeAulas";
+import { EntregaAnclada } from "../../entregas/EntregaAnclada";
+import { useEntrega } from "../../entregas/useEntrega";
 
 /**
  * Cuánta gente hace falta en campo, a qué hora y en qué edificio.
@@ -162,7 +165,8 @@ export function AulasCargaDeCampo({
    * valores por defecto: la duración es un control y exportar 30 minutos
    * mientras el usuario mira 90 entrega un pico que no es el que decidió.
    */
-  onExportar?: (opciones: OpcionesDeCarga) => void;
+  /** Pide al motor el libro de la malla (.xlsx); lo entrega el contenedor del kit, anclado al botón. */
+  onExportar?: (opciones: OpcionesDeCarga) => Promise<unknown>;
   /** Fijar/soltar el aplicador de una cita (B36); lo consume Asignación. */
   onFijarReparto?: ((mapa: Record<string, string>) => void | Promise<void>) | null;
   /**
@@ -174,7 +178,7 @@ export function AulasCargaDeCampo({
   /** B74: importar el excel de disponibilidad; lo pinta la vista Disponibilidad. */
   onImportarDisponibilidad?: ((archivo: File) => void | Promise<void>) | null;
   /** Descargar la plantilla vacía de disponibilidad. */
-  onPlantillaDisponibilidad?: (() => void | Promise<void>) | null;
+  onPlantillaDisponibilidad?: GenerarPlantillaDeDisponibilidad | null;
   /** Quién no sale en el despliegue vigente (`reparto_fuera` del config). */
   fueraDelReparto?: ReadonlyArray<string>;
   /** Persiste esa lista; `null` deja el control fuera (sólo lectura). */
@@ -206,6 +210,7 @@ export function AulasCargaDeCampo({
     ? (franjas!.duracion_min as number)
     : null;
   const [duracionMin, setDuracion] = useState(duracionDelMotor ?? DURACION_POR_DEFECTO);
+  const excelCarga = useEntrega("Carga de campo", { formato: "xlsx", articulo: "la" });
   const editandoDuracionRef = useRef(false);
   useEffect(() => {
     // Un Recargar puede traer otra duración (otro dispositivo la confirmó);
@@ -473,9 +478,16 @@ export function AulasCargaDeCampo({
                exportar con el texto crudo re-parsearía el «8:00pm». Solo en la
                demanda: es el libro de ESA malla, y ofrecerlo delante de la
                oferta prometería un contenido que no trae. */
-            <button type="button" className="aulas-carga-exportar" onClick={() => onExportar({ duracionMin, eje, ventanas, preparacionMin, salidaMin })}>
-              Descargar Excel
-            </button>
+            <EntregaAnclada entrega={excelCarga}>
+              <button
+                type="button"
+                className="aulas-carga-exportar"
+                disabled={excelCarga.enCurso}
+                onClick={() => { void excelCarga.ejecutar(() => onExportar({ duracionMin, eje, ventanas, preparacionMin, salidaMin })); }}
+              >
+                Descargar Excel
+              </button>
+            </EntregaAnclada>
           ) : null}
         </div>
       </header>

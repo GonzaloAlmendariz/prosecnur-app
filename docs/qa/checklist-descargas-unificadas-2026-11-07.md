@@ -1,5 +1,10 @@
 # Checklist: descargas unificadas (2026-11-07)
 
+Tipo: Checklist de pedido con varias indicaciones
+Estado: En curso
+Fecha: 2026-11-07
+Autoridad: Pedido del 2026-11-07 de censar y unificar las descargas; las decisiones y los vistos buenos son de Gonzalo
+
 Pedido: censar todas las formas en que Prosecnur genera algo y lo entrega como
 archivo, para unificar la pantalla de carga, el nombrado y la ubicación del
 guardado. Orden: censo → prototipo (artifact) → implementación.
@@ -19,7 +24,7 @@ guardado. Orden: censo → prototipo (artifact) → implementación.
 |---|---|---|
 | 26 `window.open` de descargas que Electron niega | `frontend/src/lib/descargas.ts` (`descargarArchivo`) + 17 componentes | hecho; Electron en runtime sin verificar |
 | UUID del job en el nombre y tildes sin codificar (10 cabeceras) | `api/R/helpers_descarga.R` (`.content_disposition`) | hecho; probado por HTTP en proceso |
-| Evidencia de Monitoreo escrita en `tmp/qa` relativo al cwd; el cliente elegía `out_dir` | `.session_downloads_dir()`; routers de Monitoreo | hecho |
+| Evidencia de Monitoreo escrita en la subcarpeta `qa` de `tmp`, relativa al cwd; el cliente elegía `out_dir` | `.session_downloads_dir()`; routers de Monitoreo | hecho |
 | Dashboard › Base de datos falla en silencio y se ofrece en modo público | `BaseDatosTab` (`ErrorBlock`, `publicMode`) | hecho; QA visual pendiente |
 | Clase `spin` inexistente (Ocurrencias) | `pulso-spin` | hecho |
 | Portapapeles sin respaldo de Electron (8 sitios) | `copiarTexto` | hecho |
@@ -72,7 +77,23 @@ Gates: `pnpm -C desktop test` 69/69; `escritorio.test.ts` 19/19; `tsc` limpio; a
 
 QA visual: la primera ronda rechazó (bloque estirado a todo el alto, disparador de Gráficos colapsado a 1024, foco invisible); la segunda, con fallos reales provocados por la API, dio 31 PASS y 0 FAIL a 1440x1000 y 1024x600. Gates: `tsc` limpio, vitest de kit, Analítica y Gráficos 2345/2345, `make gate-front` 750/750, audit limpio. Pendiente: Electron real (Abrir, Mostrar en la carpeta, Guardar como, aviso de descarga) y el foco de «Cancelar» a 1024. Observaciones bajas: a 1024 el contenedor queda al ras del borde inferior (falta `scroll-margin-bottom`); la anclada tapa «Ver avisos» hasta que se cierra.
 
-## Fase 5: migración (pendiente)
+## Fase 5: migración (en curso)
+
+| Oleada | Alcance | Commit | Estado |
+|---|---|---|---|
+| 0 | Ratchet ampliado (blobs, enlaces a URLs de descarga, helpers de CSV) y `urlDelArchivo` para imágenes en línea | `50ebd5ee3` | hecho; BASE 56 |
+| 1 | Material de campo al kit (28 filas del censo); normalizadores de Material; kit con «ver sin descargar» y alineación de la anclada; nombres del motor alineados en ~30 salidas; ficha de prueba con archivo; «Cerrar y generar base» devuelve sus archivos; ZIP de correos se copian | `70b122050` | hecho; BASE 41; verificador rechazó una vez (Paquetes territoriales copiaba y descargaba; comillas angulares) y se corrigió |
+| 2 | Monitoreo (26 filas); Hojas de ruta, Cálculo de muestra, Dashboard y Carga; motor: reportes por job y PDF de Monitoreo registran su archivo, base del dashboard y diferencias de integración devuelven JSON, todas las rutas informan `guardado_en`, Excel real de la carga de campo de aulas | `50b00abff` (+ `b55a322f9`, arreglo de parseo de `router_hojas_ruta.R` que dejó un commit ajeno) | hecho; BASE 15; verificador aprobó con pendientes (QA visual y Electron) |
+| 3 | Gráficos, Analítica, ConfigIoButtons, Codificación, Editor XLSForm y Validación al kit; «Cerrar y generar base» ofrece sus tres archivos; el export del Editor es entregable (ya no se cuela como instrumento); previas del impreso, visor Word y vista previa de lámina sin copia; se borra `SaveEntregableButton.tsx` | `bbf6ce5a8` | hecho; BASE 0 (ningún archivo fuera del kit hace su propia entrega); verificador aprobó con pendientes |
+| 3b | Portapapeles y publicaciones en el contenedor | — | pendiente; el kit aún no muestra resultados que no son archivo |
+| 4 | QA visual por muestreo de los módulos migrados en las oleadas 1–3 y prueba en Electron real (Windows) | — | pendiente |
+| 5 | Limpieza de lo que quedó sin uso: `FilenameInput.tsx`, `apiSaveEntregable`, `apiListProjectDir`, `exportWarningDetail`, `textoExportando`, `AplicarResult`, la variante `export` de `XlsformTransferNotice`, CSS huérfano en `theme.css` y `validacion-v2.css`, y tres comentarios que dicen que el paquete metodológico no se registra | — | pendiente |
+
+Decisiones pendientes de Gonzalo: (1) el «Actualizar» de Monitoreo › Aulas que también republica en Sheets: que el rótulo lo diga o separar las acciones; (2) los archivos DENTRO del ZIP de evidencia de Monitoreo siguen en inglés; (3) las piezas DENTRO del ZIP de Hojas de ruta pierden la ñ; (4) «Cerrar y generar base» copia sus tres archivos a Entregables en cada cierre (con `_2`, `_3` si se repite).
+
+Desvíos del glosario que hizo el motor en la oleada 1, por exactitud: la ficha de UMP titular se llama «Ficha de UMP» (antes todas decían «de reemplazo»); el libro de UMP es «UMP» con detalle `faltantes`, `<responsable>` o `determinadas`; la evidencia de Monitoreo es «Evidencia de publicación» con detalle «para el cliente» o «interna». Pendientes del motor: los archivos DENTRO del ZIP de evidencia siguen en inglés (esquema versionado que lee `audit_projects.R`) y las piezas dentro del ZIP de Hojas de ruta pierden la ñ (`hojas_ruta_sanitize_filename`, motor congelado); ambos piden decisión.
+
+### Pendiente original
 
 Los 41 archivos que el ratchet aún cuenta, módulo por módulo, hasta 0: Material de campo, Monitoreo, Hojas de ruta, Cálculo de muestra, Codificación, Carga, Validación (incluye ofrecer la base limpia de «Cerrar y generar base»), Editor XLSForm, Correos y Dashboard. Al migrar cada flujo se retira su `guardar = FALSE` transitorio del catálogo y su nombre propio pasa a `entregable_nombre()`. Decisión pendiente: el «Actualizar» de aulas que también publica en Sheets.
 

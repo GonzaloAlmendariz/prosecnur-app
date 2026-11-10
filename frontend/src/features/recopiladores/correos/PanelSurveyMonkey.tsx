@@ -4,7 +4,8 @@
 // recopilador. «Exportar ▾» de la barra da (antes, el pie del inspector):
 // - «Copiar HTML para SurveyMonkey»: el HTML del envío que se mira con las
 //   etiquetas de la plataforma (`mode: "export"`), NO el de la vista previa;
-// - el paquete del envío (ZIP con el HTML, el LEEME y el manifiesto);
+// - el paquete del envío (ZIP con el HTML, el LEEME y el manifiesto), que se
+//   espera y se entrega en el contenedor anclado a «Exportar» (ADR 0133);
 // - los pasos en la plataforma. La tabla `{{campo}} → [CustomDataN]`
 //   (`fields[].sm`) vive en Personas, junto a los campos (F5).
 //
@@ -14,14 +15,13 @@
 
 import { useId, useState } from "react";
 
-import { downloadUrl } from "../../../api/core";
-import type { MailExportPayload, MailReview, MailSend, MailTemplate } from "../../../api/materialMail";
-import { PulsoButton, PulsoButtonEnlace } from "../../../components/PulsoButton";
+import type { MailReview, MailSend, MailTemplate } from "../../../api/materialMail";
+import { PulsoButton } from "../../../components/PulsoButton";
 import { copiarTexto } from "../../../lib/portapapeles";
-import { Check, Copy, Download, FolderOpen, Inbox, Loader2, Upload } from "../../../vendor/lucide-react";
+import { Check, Copy, Inbox, Loader2, Upload } from "../../../vendor/lucide-react";
 import { VerLosPuntos } from "./VerLosPuntos";
 import { camposDeEnlace, conDestino, conEtiquetaSurveyMonkey, etiquetasDePlataforma, motivoSinEtiqueta, opcionesSurveyMonkey, problemaDeEtiquetas } from "./dialectos";
-import { pesoLegible, revisionBloquea } from "./modeloCorreo";
+import { revisionBloquea } from "./modeloCorreo";
 import { pasosEnSurveyMonkey, rotuloDeEnvio } from "./modeloEnvios";
 import { SALIDAS_DEL_ENVIO } from "./modeloSalidas";
 import "./correosEnvios.css";
@@ -113,35 +113,30 @@ export function MapeoSurveyMonkey({
 type Props = {
   envio: MailSend;
   revision: MailReview | null;
-  exportacion: MailExportPayload | null;
-  exportando: boolean;
+  /** Hay algo en curso (guardar, exportar…): las salidas se deshabilitan; la espera la dice el contenedor. */
   ocupado: boolean;
   /** El HTML del envío para pegar en SurveyMonkey (`mode: "export"`); `null` si no se pudo. */
   onHtml: () => Promise<string | null>;
   /** Con la lista cargada el paquete trae los contactos con su saludo (datos personales). */
   conLista?: boolean;
   onExportar: () => void;
-  onGuardarJunto: () => void;
   /** Cierra Exportar y abre la Revisión (#13). */
   onVerRevision?: () => void;
 };
 
 /**
  * Lo que sale para SurveyMonkey, dentro de «Exportar ▾» de la barra (F7): la
- * acción principal (copiar el HTML), el paquete de respaldo, dónde se pega y
- * el ZIP listo. Lo que falta corregir lo dice la cuenta de la pestaña
+ * acción principal (copiar el HTML), el paquete de respaldo y dónde se pega;
+ * el ZIP listo queda en el contenedor de «Exportar». Lo que falta corregir lo dice la cuenta de la pestaña
  * Revisión: aquí sólo se nombra por qué no se puede todavía.
  */
 export function PanelSurveyMonkey({
   envio,
   revision,
-  exportacion,
-  exportando,
   ocupado,
   onHtml,
   conLista = false,
   onExportar,
-  onGuardarJunto,
   onVerRevision,
 }: Props) {
   const [copia, setCopia] = useState<"" | "copiando" | "ok" | "error">("");
@@ -149,7 +144,6 @@ export function PanelSurveyMonkey({
   const [htmlDeRespaldo, setHtmlDeRespaldo] = useState<string | null>(null);
   const bloquea = revisionBloquea(revision, "plantilla");
   const bloqueaPaquete = revisionBloquea(revision, conLista ? "completo" : "plantilla");
-  const zip = exportacion?.zip ?? null;
   const pasos = pasosEnSurveyMonkey(envio);
   const [principal, paquete] = SALIDAS_DEL_ENVIO.surveymonkey;
 
@@ -195,7 +189,7 @@ export function PanelSurveyMonkey({
             onClick={onExportar}
           >
             <span className="rec-exp-salida-titulo">
-              {exportando ? <Loader2 size={14} className="pulso-spin" aria-hidden /> : <Upload size={14} aria-hidden />}
+              <Upload size={14} aria-hidden />
               {paquete.accion}
             </span>
             <span className="rec-exp-salida-para">{paquete.para}</span>
@@ -217,7 +211,7 @@ export function PanelSurveyMonkey({
             </label>
           ) : null}
           <PulsoButton variant="secondary" size="sm" disabled={ocupado || bloqueaPaquete} onClick={onExportar}>
-            <Download size={14} aria-hidden /> Descargar el paquete
+            <Upload size={14} aria-hidden /> Generar el paquete
           </PulsoButton>
         </div>
       ) : null}
@@ -229,22 +223,6 @@ export function PanelSurveyMonkey({
           ? 'Pega el HTML en el formato "HTML personalizado", que requiere plan Enterprise.'
           : 'Pega el HTML en el mensaje del recordatorio; el formato "HTML personalizado" requiere plan Enterprise.'}
       </p>
-      {zip ? (
-        <div className="rec-mail-mc-listo" role="status">
-          <span className="rec-mail-mc-listo-nombre">
-            <b className="xfk-mono">{zip.filename}</b>
-            <span>{pesoLegible(zip.size_bytes)}{exportacion?.scope === "completo" ? " · contiene datos personales" : " · sin datos personales"}</span>
-          </span>
-          <span className="rec-mail-botones">
-            <PulsoButtonEnlace variant="secondary" size="sm" href={downloadUrl(zip.file_id)} download={zip.filename}>
-              <Download size={14} aria-hidden /> Descargar
-            </PulsoButtonEnlace>
-            <PulsoButton variant="ghost" size="sm" disabled={ocupado} onClick={onGuardarJunto}>
-              <FolderOpen size={14} aria-hidden /> Junto al proyecto
-            </PulsoButton>
-          </span>
-        </div>
-      ) : null}
     </div>
   );
 }

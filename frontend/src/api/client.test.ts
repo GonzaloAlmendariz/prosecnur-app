@@ -2212,12 +2212,14 @@ describe("Monitoreo client", () => {
         publication_ready: false,
       },
     });
+    // La entrega va por el kit con el `file_id` de cada archivo (ADR 0133, fase 5): sin URL armada aquí.
     expect(result.file_id).toBe("pack-file");
-    expect(result.download_url).toContain("/api/files/pack-file/download");
-    expect(result.files?.operational_package_request_csv?.download_url).toContain("/api/files/request-csv/download");
-    expect(result.files?.operational_package_request?.download_url).toContain("/api/files/request-json/download");
-    expect(result.files?.operational_package_status?.download_url).toContain("/api/files/status-json/download");
-    expect(result.files?.publication_decision?.download_url).toContain("/api/files/decision-json/download");
+    expect(result.zip?.file_id).toBe("pack-file");
+    expect(result.files?.operational_package_request_csv?.file_id).toBe("request-csv");
+    expect(result.files?.operational_package_request?.file_id).toBe("request-json");
+    expect(result.files?.operational_package_status?.file_id).toBe("status-json");
+    expect(result.files?.publication_decision?.file_id).toBe("decision-json");
+    expect(result).not.toHaveProperty("download_url");
     expect(result.evidence_pack.artifacts?.generated_xlsx).toBe("generated.xlsx");
   });
 
@@ -2324,8 +2326,9 @@ describe("Monitoreo client", () => {
     });
     expect(result.safe_to_apply).toBe(true);
     expect(result.would_mutate_pulso).toBe(false);
-    expect(result.files?.template?.download_url).toContain("/api/files/template-file/download");
-    expect(result.files?.review_csv?.download_url).toContain("/api/files/review-file/download");
+    expect(result.files?.template?.file_id).toBe("template-file");
+    expect(result.files?.review_csv?.file_id).toBe("review-file");
+    expect(result.files?.template).not.toHaveProperty("download_url");
   });
 
   test("lists Kobo assets with selected connection profile", async () => {

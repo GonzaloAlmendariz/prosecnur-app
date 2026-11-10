@@ -7,6 +7,7 @@ import { Segmented } from "../../xlsformEditor/kit";
 import { NOMBRE_DE_PLATAFORMA } from "./dialectos";
 import { notasDeLectura, nuevoCampo, problemaDeCampo, CUERPO_DEL_INSPECTOR } from "./modeloCorreo";
 import type { OfertaDelTrato } from "./modeloTrato";
+import { TratoDeLaCampana } from "./TratoDeLaCampana";
 import { DatosDeLaCampana } from "./DatosDeLaCampana";
 import { DestinatariosEnSurveyMonkey, MapeoSurveyMonkey } from "./PanelSurveyMonkey";
 import { SaludoSegunLaPersona } from "./SaludoSegunLaPersona";
@@ -466,6 +467,7 @@ export function PanelDestinatarios({
         </div>
       </section>
       <DatosDeLaCampana template={template} onEditar={onEditar} />
+      <TratoDeLaCampana template={template} onEditar={onEditar} />
     </div>
   );
 }

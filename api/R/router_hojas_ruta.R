@@ -764,7 +764,7 @@ mount_hojas_ruta <- function(pr) {
       summary <- hojas_ruta_exportar_matriz_poblacional(cfg, out_path)
       out_name <- .export_filename(sid, "hojas_ruta_population_matrix", "xlsx")
       meta <- .hojas_ruta_vp_registrar(sid, "hojas_ruta_population_matrix", out_path, original_name = out_name)
-      list(
+      entregable_respuesta(list(
         ok = TRUE,
         file_id = meta$file_id,
         filename = meta$original_name,
@@ -772,12 +772,13 @@ mount_hojas_ruta <- function(pr) {
         total_poblacion = summary$total_poblacion,
         n_territorios = summary$n_territorios,
         n_cells = summary$n_cells
-      )
+      ), meta)
     })) |>
     plumber::pr_post("/api/hojas-ruta/quota-preview", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       parsed <- .hojas_ruta_parse_body(req)
-      cfg <- hojas_ruta_integrada_normalize_config(parsed$config %||% parsed)
+      # Con la lógica «Calculado» las cuotas reparten el N del cálculo, no el guardado (hojas_ruta_n_calculado.R).
+      cfg <- hojas_ruta_n_calculado(hojas_ruta_integrada_normalize_config(parsed$config %||% parsed), declarado = !is.null((parsed$config %||% parsed)$sample_size_mode))
       active <- .hojas_ruta_active_run(sid)
       .hojas_ruta_save_run(sid, active$phase, config = cfg)
       result <- hojas_ruta_quota_preview_integrado(cfg)
@@ -797,6 +798,13 @@ mount_hojas_ruta <- function(pr) {
       active <- .hojas_ruta_active_run(sid)
       .hojas_ruta_save_run(sid, active$phase, config = cfg)
       result <- hojas_ruta_sample_size_preview(cfg)
+      # Con la lógica «Calculado» el N del cálculo queda en la config: se guardaba antes de calcular y `n_objetivo`
+      # conservaba el valor anterior (hojas_ruta_n_calculado.R).
+      n_calc <- suppressWarnings(as.integer(result$n_used %||% NA_integer_))
+      if (identical(cfg$sample_size_mode, "calculator") && length(n_calc) == 1L && !is.na(n_calc) && n_calc > 0L && !identical(as.integer(cfg$n_objetivo), n_calc)) {
+        cfg$n_objetivo <- n_calc
+        .hojas_ruta_save_run(sid, active$phase, config = cfg)
+      }
       # ADR 0116: visitas, contactos, procedencia del DEFF y sus avisos.
       result <- hojas_ruta_tamano_extras_completar(result, cfg)
       .hojas_ruta_bitacora_intentar(sid, "tamano_calculado", sprintf(
@@ -814,7 +822,9 @@ mount_hojas_ruta <- function(pr) {
     plumber::pr_post("/api/hojas-ruta/sample-preview", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       parsed <- .hojas_ruta_parse_body(req)
-      cfg <- hojas_ruta_integrada_normalize_config(parsed$config %||% parsed)
+      # El sorteo con lógica «Calculado» usa el N del cálculo: con el guardado sorteaba 20 UMP donde el diseño
+      # decía 402 rutas (hojas_ruta_n_calculado.R).
+      cfg <- hojas_ruta_n_calculado(hojas_ruta_integrada_normalize_config(parsed$config %||% parsed), declarado = !is.null((parsed$config %||% parsed)$sample_size_mode))
       active <- .hojas_ruta_active_run(sid)
       marco_anterior <- active$run$config$marco_elegible %||% NULL
       .hojas_ruta_save_run(sid, active$phase, config = cfg)
@@ -859,13 +869,8 @@ mount_hojas_ruta <- function(pr) {
       .hojas_ruta_exigir_decision_cobertura(sid)
       out_path <- tempfile(fileext = ".pdf")
       summary <- hojas_ruta_generar_pdf_aleatorio_integrado(cfg, out_path)
-      out_name <- sprintf(
-        "HojaRuta_Prueba_%s_Zona_%s_Mz_%s.pdf",
-        hojas_ruta_sanitize_filename(summary$distrito),
-        hojas_ruta_sanitize_filename(summary$zona),
-        hojas_ruta_sanitize_filename(summary$manzana %||% summary$id_manzana)
-      )
-      meta <- .register_output_file(sid, "hojas_ruta_random_pdf", out_path, original_name = out_name)
+      meta <- .register_output_file(sid, "hojas_ruta_random_pdf", out_path,
+        detalle = .hojas_ruta_vp_detalle_manzana(summary$distrito, summary$zona, summary$manzana %||% summary$id_manzana))
       list(
         ok = TRUE,
         file_id = meta$file_id,
@@ -1009,7 +1014,7 @@ mount_hojas_ruta <- function(pr) {
         result_filename = .export_filename(sid, "hojas_ruta_reemplazos_puntuales", "pdf"),
         on_complete = function(j) {
           meta <- .register_output_file(j$sid, "hojas_ruta_reemplazos_puntuales", j$result_path)
-          list(
+          entregable_respuesta(list(
             ok = TRUE,
             file_id = meta$file_id,
             filename = meta$original_name,
@@ -1020,7 +1025,7 @@ mount_hojas_ruta <- function(pr) {
             replacement_blocks = j$result_data$replacement_blocks %||% list(),
             alerts = j$result_data$alerts %||% list(),
             frame_version = j$result_data$frame_version %||% NA_character_
-          )
+          ), meta)
         }
       )
       .hojas_ruta_bitacora_intentar(sid, "reemplazos_puntuales", sprintf("Reemplazos puntuales para %d titular(es), %d por titular.", length(titular_ids), as.integer(replacements_per_titular)), list(titulares = as.list(titular_ids)))
@@ -1046,7 +1051,7 @@ mount_hojas_ruta <- function(pr) {
       )
       out_name <- .export_filename(sid, "hojas_ruta_operativo", "xlsx")
       meta <- .register_output_file(sid, "hojas_ruta_operativo", out_path, original_name = out_name)
-      list(
+      entregable_respuesta(list(
         ok = TRUE,
         file_id = meta$file_id,
         filename = meta$original_name,
@@ -1057,7 +1062,7 @@ mount_hojas_ruta <- function(pr) {
         total_replacement_interviews = as.integer(summary$total_replacement_interviews %||% 0L),
         frame_version = summary$frame_version %||% NA_character_,
         alerts = summary$alerts %||% list()
-      )
+      ), meta)
     })) |>
     plumber::pr_post("/api/hojas-ruta/generate", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
@@ -1100,7 +1105,7 @@ mount_hojas_ruta <- function(pr) {
         on_complete = function(j) {
           session_set(j$sid, "hojas_ruta_ok", TRUE)
           meta <- .register_output_file(j$sid, "hojas_ruta_zip", j$result_path)
-          list(
+          entregable_respuesta(list(
             ok = TRUE,
             file_id = meta$file_id,
             filename = meta$original_name,
@@ -1115,7 +1120,7 @@ mount_hojas_ruta <- function(pr) {
             frame_version = j$result_data$frame_version %||% NA_character_,
             alerts = j$result_data$alerts %||% list(),
             mapas_faltantes = 0L
-          )
+          ), meta)
         }
       )
       list(ok = TRUE, job_id = job_id, kind = "hojas_ruta.generate")
@@ -1162,25 +1167,13 @@ mount_hojas_ruta <- function(pr) {
       insumos_marco <- .reporte_mt_insumos_sesion(sid, active, cfg, outputs$sample %||% list())
 
       ext <- if (formato == "pdf") "pdf" else "html"
-      filename <- sprintf("reporte_muestra_territorial.%s", ext)
+      # ADR 0133 §3: el nombre del job es el del entregable (la descarga lo hereda del path).
+      filename <- .export_filename(sid, "reporte_muestra_territorial", ext)
 
       sid_capt <- sid
-      on_complete <- function(j) {
-        if (identical(j$status, "done") &&
-            !is.null(j$result_path) && file.exists(j$result_path)) {
-          s_now <- session_get(sid_capt, required = FALSE)
-          if (is.null(s_now)) return(j$result_data)
-          meta_now <- list(
-            disponible   = TRUE,
-            path         = j$result_path,
-            formato      = formato,
-            generated_at = format(j$finished_at,
-                                  "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
-          )
-          session_set(sid_capt, "hojas_ruta_reporte_decisional", meta_now)
-        }
-        j$result_data
-      }
+      # ADR 0133 (fase 5): el reporte se registra como entregable y la respuesta del
+      # job trae su file_id; la ruta del worker no viaja (`.hojas_ruta_reporte_on_complete`).
+      on_complete <- function(j) .hojas_ruta_reporte_on_complete(sid_capt, j, formato)
 
       job_id <- job_submit(
         sid    = sid,

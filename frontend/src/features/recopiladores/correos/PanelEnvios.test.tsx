@@ -65,7 +65,6 @@ function pintar(envios: MailSend[], activo: MailSend, plataforma: "mailchimp" | 
       plataforma={plataforma}
       porGuardar={false}
       ocupado={false}
-      exportando={false}
       onElegir={noop}
       onAgregar={noop}
       onQuitar={noop}

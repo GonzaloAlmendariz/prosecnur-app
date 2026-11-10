@@ -2,19 +2,24 @@
 // equipo de campo no usa la app, así que se le da un Excel con el desplegable de la
 // lista de Monitoreo y luego se sube lleno. Leerlo no guarda nada: se muestra qué se
 // leyó y qué filas no, y «Aplicar» reemplaza la asignación guardada.
+//
+// El Excel se entrega por el kit de entregables (ADR 0133) en forma anclada: está en la
+// barra de acciones de la asignación, y el contenedor flota bajo el botón.
 
 import { useRef, useState } from "react";
 
-import { downloadUrl } from "../../../api/core";
-import { descargarArchivo } from "../../../lib/descargas";
 import {
   apiMaterialTerritorialExcelAsignacion,
   apiMaterialTerritorialImportarAsignacion,
   type EstadoDeclarado,
   type ImportacionAsignacion,
 } from "../../../api/materialTerritorial";
+import { ContenedorEntregable } from "../../../components/entregables/ContenedorEntregable";
+import { useGeneracion } from "../../../components/entregables/useGeneracion";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { AlertTriangle } from "../../../vendor/lucide-react";
+import { MODULO_MATERIAL } from "../entregas/modeloEntrega";
+import "../styles/entregas.css";
 
 const MAX_PROBLEMAS = 8;
 
@@ -26,19 +31,14 @@ type Props = {
 
 export function ExcelDeAsignacion({ campaignId, deshabilitado, aplicar }: Props) {
   const entrada = useRef<HTMLInputElement>(null);
-  const [ocupado, setOcupado] = useState<"" | "generar" | "leer" | "aplicar">("");
+  const [ocupado, setOcupado] = useState<"" | "leer" | "aplicar">("");
   const [lectura, setLectura] = useState<ImportacionAsignacion | null>(null);
   const [error, setError] = useState("");
+  const gen = useGeneracion({ titulo: "Excel de asignación", modulo: MODULO_MATERIAL, formato: "xlsx", articulo: "el" });
+  const generando = gen.estado.fase === "en_curso";
   if (!campaignId) return null;
 
-  const generar = () => {
-    setOcupado("generar");
-    setError("");
-    apiMaterialTerritorialExcelAsignacion(campaignId)
-      .then((r) => descargarArchivo(downloadUrl(r.file_id)))
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : "No se pudo generar el Excel"))
-      .finally(() => setOcupado(""));
-  };
+  const generar = () => { void gen.ejecutar(() => apiMaterialTerritorialExcelAsignacion(campaignId)); };
   const leer = (archivo: File) => {
     setOcupado("leer");
     setError("");
@@ -52,9 +52,12 @@ export function ExcelDeAsignacion({ campaignId, deshabilitado, aplicar }: Props)
   return (
     <div className="rec-asig-excel">
       <div className="rec-asig-excel-acciones">
-        <PulsoButton size="sm" variant="secondary" disabled={deshabilitado || ocupado !== ""} onClick={generar}>
-          {ocupado === "generar" ? "Generando…" : "Excel para campo"}
-        </PulsoButton>
+        <span className="rec-entrega-anclaje">
+          <PulsoButton size="sm" variant="secondary" disabled={deshabilitado || ocupado !== "" || generando} onClick={generar}>
+            Excel para campo
+          </PulsoButton>
+          <ContenedorEntregable estado={gen.estado} forma="anclada" alinear="inicio" onCerrar={gen.cerrar} />
+        </span>
         <PulsoButton size="sm" variant="secondary" disabled={deshabilitado || ocupado !== ""} onClick={() => entrada.current?.click()}>
           {ocupado === "leer" ? "Leyendo…" : "Subir Excel llenado"}
         </PulsoButton>

@@ -177,10 +177,11 @@ collection_territorial_asignacion_excel <- function(sid, campaign_id = NULL) {
 
   path <- tempfile(fileext = ".xlsx")
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
-  nombre <- .export_filename(sid, "asignacion_encuestadores", "xlsx")
-  meta <- .register_output_file(sid, "asignacion_encuestadores", path, original_name = nombre)
-  list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name, umps = n,
-       encuestadores = length(equipo), asignadas = length(explicita), hojas_registro = as.list(registro), variante = variante)
+  # ADR 0133 §3: el nombre sale del catálogo; por UMP y por cuotas son dos entregables.
+  meta <- .register_output_file(sid, "asignacion_encuestadores_ump", path)
+  entregable_respuesta(list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name, size = meta$size, umps = n,
+                            encuestadores = length(equipo), asignadas = length(explicita),
+                            hojas_registro = as.list(registro), variante = variante), meta)
 }
 
 # Columna por su rótulo, con los nombres del Excel operativo viejo como alias.

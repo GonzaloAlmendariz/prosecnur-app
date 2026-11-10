@@ -2,8 +2,8 @@
 // Extraído de client.ts (split por dominio, 2026-07). Los consumidores
 // importan del barrel ./client; este módulo no cambia el contrato.
 
-import { apiFetch, downloadFailedMessage, handle, headers } from "./core";
-import type { AsyncJobStart } from "./jobs";
+import { apiFetch, handle, headers } from "./core";
+import { camposDeEntregable, type AsyncJobStart, type CamposDeEntregable } from "./jobs";
 import type { EstudioBase, EstudioPayload } from "./estudio";
 import type { MonitoreoSheetsConnectResult } from "./monitoreo";
 import { type ChoiceCodeMap, normalizeFueraDelFormulario, normalizeSurveyMonkeyLogicState, normalizeXlsformFormSource } from "./xlsformEditor";
@@ -246,20 +246,31 @@ export async function apiMultiIntegratedImportAsync(payload: MultiIntegratedImpo
   );
 }
 
+/** El Word de diferencias registrado como entregable (ADR 0133 §1). */
+export type MultiIntegratedDecisionsDocx = { file_id: string; filename: string } & CamposDeEntregable;
+
+/**
+ * Word con las diferencias y decisiones de la integración. El motor lo
+ * registra en el file store y devuelve su `file_id` con el meta del
+ * entregable; la entrega va por el kit de entregables.
+ */
 export async function apiMultiIntegratedDecisionsDocx(payload: {
   audit: MultiIntegratedAudit;
   decisions?: MultiIntegratedDecisions;
-}): Promise<Blob> {
-  const res = await apiFetch("/api/multi/integrated/decisions-docx", {
-    method: "POST",
-    headers: headers({ "Content-Type": "application/json" }),
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    const raw = await res.text().catch(() => "");
-    throw new Error(downloadFailedMessage(res.status, raw));
-  }
-  return await res.blob();
+}): Promise<MultiIntegratedDecisionsDocx> {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/multi/integrated/decisions-docx", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+  const o = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
+  const escalar = (v: unknown) => (Array.isArray(v) && v.length === 1 ? v[0] : v);
+  const fileId = escalar(o.file_id);
+  if (typeof fileId !== "string" || !fileId.trim()) throw new Error("El motor no devolvió el Word de diferencias.");
+  const nombre = escalar(o.filename) ?? escalar(o.original_name);
+  return { ...camposDeEntregable(o), file_id: fileId.trim(), filename: typeof nombre === "string" ? nombre : "" };
 }
 
 export async function apiMultiIntegratedDraftGet() {

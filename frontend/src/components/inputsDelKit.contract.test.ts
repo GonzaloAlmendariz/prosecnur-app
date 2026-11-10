@@ -109,6 +109,8 @@ const SNAPSHOT_CASILLAS: Record<string, number> = {
   "features/monitoreo/profiles/aulas/AulasFiltrosDeEfectiva.tsx": 1,
   "features/monitoreo/profiles/telefonico/TelefonicoMonitoreoPage.tsx": 5,
   "features/recopiladores/AccessSection.tsx": 1,
+  // Elegir a qué campañas aplicar (L16): selección múltiple, no un booleano.
+  "features/recopiladores/correos/AplicarAHermanas.tsx": 1,
   "features/recopiladores/correos/ImportarSecciones.tsx": 1,
   "features/recopiladores/editor/AjustesDelBloque.tsx": 1,
   "features/xlsformEditor/choiceFilters/ListaFija.tsx": 1,

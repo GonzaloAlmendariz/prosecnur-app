@@ -114,10 +114,12 @@ describe("H23 — recibo sin archivo en la sesión", () => {
     expect(markup).toMatch(/regener/i);
   });
 
-  it("el recibo disponible conserva su descarga", () => {
+  it("el recibo disponible conserva su descarga, por el kit de entregables y sin enlace propio", () => {
     const markup = renderReceipts([receipt("nuevo", { file_available: true })]);
     expect(markup).toContain('aria-label="Descargar fichas-nuevo.pdf"');
-    expect(markup).toContain("file-nuevo");
+    // ADR 0133: un botón que entrega por el kit, no un <a href> a /api/files/<id>/download.
+    expect(markup).toMatch(/<button[^>]*aria-label="Descargar fichas-nuevo.pdf"/);
+    expect(markup).not.toContain("/download");
   });
 
   it('page_count 1 dice "1 página", en singular', () => {

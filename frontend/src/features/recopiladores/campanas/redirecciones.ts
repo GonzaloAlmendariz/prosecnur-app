@@ -65,6 +65,7 @@ export const PANELES_DE_LA_LISTA: readonly string[] = [
   PANEL_NUEVA_CAMPANA_ID,
   PANEL_RENOMBRAR_CAMPANA.id,
   "correo-campana-borrar",
+  "correo-hermanas",
   "correo-importar",
 ];
 

@@ -156,7 +156,7 @@ collection_mail_revision <- function(sid, campaign_ids, ejemplo = "femenino", ti
   titulo <- .cmail_one(titulo) %||% "Correos para revisar"
   html <- .cmail_revision_pagina(titulo, correos)
   dir.create(file.path(session$dir, "downloads"), recursive = TRUE, showWarnings = FALSE)
-  nombre <- paste0(.cmail_campaign_slug(titulo), "_revision.html")
+  nombre <- .export_filename(sid, "mail_revision", "html", detalle = .cmail_detalle_documento(titulo, "Correos para revisar", por_id[ids]))
   path <- file.path(session$dir, "downloads", paste0(uuid::UUIDgenerate(), "__", nombre))
   writeLines(html, path, useBytes = TRUE)
   file <- .cmail_register_artifact(sid, path, "mail_revision", nombre, "revision", "text/html", "internal")

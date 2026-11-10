@@ -4,7 +4,6 @@
 
 /* Botones de acción a la medida de su texto, no barras rojas de ancho completo. */
 .acr-sa .mon-outputs-primary,
-.acr-sa .mon-outputs-download,
 .acr-sa .mon-outputs-sheets-actions button,
 .acr-sa .mon-outputs-sheets-actions a {
   align-self: flex-start;

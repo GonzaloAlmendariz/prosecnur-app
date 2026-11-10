@@ -29,7 +29,7 @@ import { formatSource, formatSourceLong } from "../parsing/parseType";
 import { DiagnosticsBadge, type LogicaExternaCabecera } from "./DiagnosticsPopover";
 import { deriveEditorHeaderStatus } from "./editorHeaderStatus";
 import { formatSaveStatus, plural } from "./editorMetrics";
-import { ExportMenu } from "./ExportMenu";
+import { ExportMenu, type ExportMenuProps } from "./ExportMenu";
 import { LeyendaIconos } from "./LeyendaIconos";
 import { FormIntakeMenu } from "./FormIntakeMenu";
 import { FormSwitcher, type FormSwitcherProps } from "./FormSwitcher";
@@ -65,6 +65,8 @@ export type EditorCommandBarProps = {
   includeAppColumns: boolean;
   onIncludeAppColumnsChange: (next: boolean) => void;
   onExport: () => void;
+  /** Avance, archivo listo o fallo del export del XLSForm (contenedor del kit, anclado bajo "Exportar"). */
+  exportacion?: ExportMenuProps["entrega"];
   onOpenDocument: () => void;
   busy: boolean;
 };
@@ -164,6 +166,7 @@ export function EditorCommandBar(props: EditorCommandBarProps) {
             onExport={props.onExport}
             onOpenDocument={props.onOpenDocument}
             disabled={busy}
+            entrega={props.exportacion}
           />
         </>
       )}

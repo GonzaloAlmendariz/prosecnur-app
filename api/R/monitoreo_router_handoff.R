@@ -329,10 +329,12 @@
   stage_dir <- file.path(s$dir, "downloads", paste(project_slug, "processing-handoff", universe_slug, uuid::UUIDgenerate(), sep = "-"))
   dir.create(stage_dir, recursive = TRUE, showWarnings = FALSE)
 
-  data_xlsx_name <- paste(project_slug, universe_slug, "data-procesamiento.xlsx", sep = "-")
-  data_csv_name <- paste(project_slug, universe_slug, "data-procesamiento.csv", sep = "-")
-  audit_csv_name <- paste(project_slug, universe_slug, "audit-prosecnur.csv", sep = "-")
-  xlsform_name <- paste(project_slug, "xlsform.xlsx", sep = "-")
+  # ADR 0133 §3: los nombres del paquete son los del entregable, también dentro del ZIP.
+  universo_txt <- if (identical(universe, "strict_validada")) "solo validadas" else NULL
+  data_xlsx_name <- .export_filename(sid, "monitoreo_processing_handoff_data", "xlsx", detalle = universo_txt)
+  data_csv_name <- sub("\\.xlsx$", ".csv", data_xlsx_name)
+  audit_csv_name <- entregable_nombre(sid, "Auditoría de casos", "csv", detalle = universo_txt)
+  xlsform_name <- .export_filename(sid, "monitoreo_processing_handoff_xlsform", "xlsx")
   manifest_name <- "manifest.json"
   readme_name <- "README.md"
   data_xlsx_path <- file.path(stage_dir, data_xlsx_name)
@@ -469,9 +471,9 @@
     "4. Continuar el flujo de Procesamiento/Validación/Codificación según corresponda."
   ), readme_path, useBytes = TRUE)
 
-  zip_name <- paste(project_slug, universe_slug, "processing-handoff", cut_slug, sep = "-")
-  zip_name <- paste0(zip_name, ".zip")
-  zip_path <- file.path(s$dir, "downloads", sprintf("%s_%s", uuid::UUIDgenerate(), zip_name))
+  zip_name <- .export_filename(sid, "monitoreo_processing_handoff_zip", "zip",
+                               detalle = if (identical(universe, "strict_validada")) "solo validadas" else NULL)
+  zip_path <- file.path(s$dir, "downloads", sprintf("%s__%s", uuid::UUIDgenerate(), zip_name))
   old_wd <- getwd()
   on.exit(setwd(old_wd), add = TRUE)
   setwd(stage_dir)
@@ -481,7 +483,7 @@
   data_meta <- .register_output_file(sid, "monitoreo_processing_handoff_data", data_xlsx_path, original_name = data_xlsx_name)
   xls_meta <- .register_output_file(sid, "monitoreo_processing_handoff_xlsform", xlsform_path, original_name = xlsform_name)
   zip_meta <- .register_output_file(sid, "monitoreo_processing_handoff_zip", zip_path, original_name = zip_name)
-  list(
+  entregable_respuesta(list(
     ok = TRUE,
     schema = "monitoreo_processing_handoff_v1",
     universe = universe,
@@ -491,7 +493,7 @@
     filename = zip_meta$original_name,
     size = zip_meta$size,
     files = list(
-      package = list(file_id = zip_meta$file_id, filename = zip_meta$original_name, size = zip_meta$size),
+      package = entregable_respuesta(list(file_id = zip_meta$file_id, filename = zip_meta$original_name, size = zip_meta$size), zip_meta),
       data_xlsx = list(file_id = data_meta$file_id, filename = data_meta$original_name, size = data_meta$size),
       xlsform = list(
         file_id = xls_meta$file_id,
@@ -502,7 +504,7 @@
       )
     ),
     would_mutate_pulso = FALSE
-  )
+  ), zip_meta)
 }
 
 # Persiste el resultado del handoff como una base de Procesamiento del proyecto:

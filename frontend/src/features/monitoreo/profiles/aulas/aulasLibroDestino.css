@@ -48,7 +48,8 @@
    este bloque llega después de las acciones y toma el ancho entero para no
    robarle el carril a la fila de botones. */
 @media (max-height: 760px) {
-  .mon-profile-page.is-aulas-flow .aulas-libro-destino {
+  .mon-profile-page.is-aulas-flow .aulas-libro-destino,
+  .mon-profile-page.is-aulas-flow .aulas-ops-panel > .mon-entrega-bloque {
     grid-column: 1 / -1;
   }
 }

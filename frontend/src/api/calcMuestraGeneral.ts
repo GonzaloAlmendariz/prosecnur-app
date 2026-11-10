@@ -18,6 +18,7 @@
  *    reconocible devuelve `null`, no un objeto a medias.
  */
 import { ApiError, apiFetch, handle, headers } from "./core";
+import { camposDeEntregable, type CamposDeEntregable } from "./jobs";
 import type { CalcMuestraAvisoParametro, CalcMuestraComponente, CalcMuestraEstudio } from "./calcMuestra";
 
 export type CalcMuestraGeneralMetodo = "mas" | "sistematico" | "pps";
@@ -485,12 +486,12 @@ export async function apiCalcMuestraGeneralResumen(): Promise<CalcMuestraGeneral
   return normalizeCalcMuestraGeneralResumen(asRecord(raw)?.general);
 }
 
-export type CalcMuestraGeneralExport = { file_id: string; filename: string; size: number };
+export type CalcMuestraGeneralExport = { file_id: string; filename: string; size: number } & CamposDeEntregable;
 
 /**
  * Libro de entrega de la corrida vigente (Corrida, Memoria de cálculo,
- * Estratos, Listado). Devuelve el `file_id` registrado; la descarga va por
- * `downloadUrl`, igual que `/aulas/exportar`.
+ * Estratos, Listado). Devuelve el `file_id` registrado con el meta del
+ * entregable (ADR 0133 §1); la entrega va por el kit de entregables.
  */
 export async function apiCalcMuestraGeneralExportar(componenteId: string): Promise<CalcMuestraGeneralExport> {
   const raw = await handleConDetalle<unknown>(
@@ -503,7 +504,7 @@ export async function apiCalcMuestraGeneralExportar(componenteId: string): Promi
   const exp = asRecord(asRecord(raw)?.export);
   const file_id = asText(exp?.file_id);
   if (!exp || !file_id) throw sinForma("/general/exportar");
-  return { file_id, filename: asText(exp.filename), size: asCount(exp.size) };
+  return { ...camposDeEntregable(raw), ...camposDeEntregable(exp), file_id, filename: asText(exp.filename), size: asCount(exp.size) };
 }
 
 // ---------------------------------------------------------------------------

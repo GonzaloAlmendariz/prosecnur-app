@@ -147,7 +147,63 @@ La marca deja de viajar como texto pegado a la cifra. El motor devuelve una estr
 - **Siembra desde Analítica.** Un estudio sin regla guardada que declaró el diseño en Analítica › Cruces arranca con
   esa declaración.
 - **Medias y bases repeat.** Las medias de dimensiones se prueban con la misma linealización (corrección dentro de la
-  fila), y una base repeat sin la columna de conglomerado sigue con el contraste por persona.
+  fila). Una base repeat hereda la columna de conglomerado de su madre (§4 ter) y sólo sin ella sigue con el contraste
+  por persona.
+
+### 4 ter. Bases hija repeat: grano de cada tabla y regla (2026-11-05)
+
+Caso que lo motivó: CCSS 2026, base `datos_crianza`, 739 filas, una por persona responsable de la crianza de cada uno
+de los 400 estudiantes. Sus tablas de cruces contaban a cada estudiante tantas veces como personas lo criaron (Total
+739 en ciclo, carrera y género) bajo la nota «Base: total de encuestados (n = 400)», y sus letras salían del contraste
+por persona con Bonferroni, sin el umbral de 10 puntos ni las frágiles, porque la hija no traía `aula`. Decidido con el
+dictamen del revisor metodológico del 2026-11-05.
+
+**Grano.** Se decide por tabla, según su variable de fila:
+
+- **Variable heredada de la madre** (del encuestado). Su tabla se calcula sobre la base madre, con la regla y la familia
+  de la madre, y sale idéntica a la tabla de la madre. No se deduplica la hija, porque la deduplicación pierde a los
+  encuestados sin registros. Si la exportación no trae la madre, se deduplica por la llave de enlace como respaldo.
+- **Variable propia de la hija** (del registro). Su tabla se queda en la hija. El pie lo genera el motor con la unidad y
+  los dos conteos, «Base: datos de cada persona indicada (739 registros de 400 encuestados)», y no usa el texto de base
+  del estudio (`notas$base_defecto`), que describe al encuestado. La unidad es el rótulo del `begin_repeat` en el
+  XLSForm de la madre; sin rótulo, «registros del grupo repetido «nombre»». Un texto de base por pregunta escrito por el
+  estudio sigue mandando. Cada registro pesa lo mismo: un encuestado con tres registros aporta tres casos, que es el
+  estimando correcto para la unidad de la hija.
+- **Cruces propios.** Una tabla cruza su fila contra todas las variables de cruce a la vez. Va a la madre sólo si la
+  madre tiene la fila y todos los cruces; si un cruce es propio de la hija, la tabla entera queda en el registro.
+- **Frecuencias.** El univariado de la hija ya excluía las heredadas (ADR 0030, fase 4); su pie usa el mismo texto de
+  base de registros.
+
+**Regla.** La hija hereda de la madre el conglomerado y el estrato de la regla, como hereda el peso (ADR 0127 §3), aunque
+no estén en el XLSForm. Con ellos usa la regla del estudio: Rao-Scott por aula, Benjamini-Hochberg, 10 puntos, base
+mínima y frágiles. El aula es el último conglomerado: su varianza ya recoge la correlación entre los registros de un
+mismo encuestado. El contraste por persona subestima esa varianza y sólo queda como respaldo cuando la madre tampoco
+tiene conglomerado. No poner letras se descartó: la hija tiene un diseño conocido.
+
+Se descartaron dos alternativas: rotular toda la base como registros (n = 739), porque deja sin sentido los porcentajes
+de las variables del encuestado, y el contraste por persona con Bonferroni, por la varianza subestimada.
+
+**Familia de BH.** La familia de la hija es la de la madre más las comparaciones de las variables propias de la hija,
+evaluadas a grano de registro. Las heredadas entran una sola vez, con su p de la madre. La familia de la madre no
+incluye las comparaciones propias de la hija: incluirlas cambiaría las letras de la base madre y del mazo ya
+entregados. Queda como decisión aparte si algún día se quiere una sola familia para todas las bases.
+
+**Secciones.** La exportación multibase filtra las secciones contra los instrumentos de todas sus bases, no sólo el de
+la activa. Antes, las variables propias de una hija nunca llegaban a sus tablas.
+
+**Rótulos.** La hija copia las opciones de la madre al materializarse. Al heredar variables, las opciones y los
+diccionarios de la madre reemplazan a los homónimos de la hija, así que una corrección del XLSForm de la madre llega a
+la hija («Entre una 1 hora y 30 minutos y 2 horas» seguía en crianza después de corregirse en la base principal).
+
+**Nota sin letras.** Cuando una tabla repeat queda sin letras, la nota dice «Esta tabla es descriptiva y no lleva letras
+de diferencias significativas.» y la razón, en registro formal: sin punto y coma, sin «clusters» (se dice
+«encuestados»), con tildes y sin cifras que se contradigan. Si hay encuestados de sobra y lo que falta es variación,
+lo dice así, en vez de citar el número de encuestados junto al mínimo.
+
+Cumplimiento: `api/R/reporte_cruces_grano.R` (grano por tabla y contexto de la hija), `api/R/analitica_repeats_grano.R`
+(diseño de la hija, unidad, secciones multibase y pie de frecuencias), `api/R/analitica_repeats.R` (herencia del
+conglomerado y rótulos de la madre) y `api/R/reporte_cruces_cluster.R` (nota). Test:
+`test-reporte-cruces-grano-repeat.R`.
 
 ### 5. Contrato hacia la UI
 

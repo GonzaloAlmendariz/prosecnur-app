@@ -20,7 +20,7 @@ import { useId, useRef, type CSSProperties } from "react";
 
 import type { MailPlatform, MailProblem, MailSend, MailTemplate } from "../../../api/materialMail";
 import { PulsoButton } from "../../../components/PulsoButton";
-import { AlertTriangle, CalendarDays, Loader2, Plus, Trash2, Upload } from "../../../vendor/lucide-react";
+import { AlertTriangle, CalendarDays, Plus, Trash2, Upload } from "../../../vendor/lucide-react";
 import { CampoConCampos } from "./CampoConCampos";
 import { CampoDeTexto } from "./CampoDeTexto";
 import { rotulosDeCampos } from "./rotulosDeCampos";
@@ -49,8 +49,8 @@ type Props = {
   plataforma: MailPlatform;
   /** Hay cambios sin guardar (exportar los guarda antes). */
   porGuardar: boolean;
+  /** Algo en curso (guardar, exportar…): el botón sólo se deshabilita; la espera la dice el contenedor de «Exportar». */
   ocupado: boolean;
-  exportando: boolean;
   onElegir: (sendId: string) => void;
   onAgregar: () => void;
   onQuitar: (sendId: string) => void;
@@ -94,7 +94,6 @@ export function PanelEnvios({
   plataforma,
   porGuardar,
   ocupado,
-  exportando,
   onElegir,
   onAgregar,
   onQuitar,
@@ -303,7 +302,7 @@ export function PanelEnvios({
           title={porGuardar ? "Guarda los cambios y arma el paquete de este envío" : "Arma el paquete de este envío"}
           onClick={onExportar}
         >
-          {exportando ? <Loader2 size={14} className="pulso-spin" aria-hidden /> : <Upload size={14} aria-hidden />}
+          <Upload size={14} aria-hidden />
           {porGuardar ? `Guardar y exportar ${activo.label}` : `Exportar ${activo.label}`}
         </PulsoButton>
         </span>

@@ -56,7 +56,7 @@ export function GrupoTamano({ config, resultado: r, bloqueado, guardando, margen
         {config.sample_size_mode === "external_total" ? (
           <CampoN valor={config.n_objetivo} k={ruta} deshabilitado={ed} onCambio={(n_objetivo) => cambiar({ n_objetivo })} />
         ) : config.sample_size_mode === "external_district" ? (
-          <p className="hr-mapa-nota">Escribe el N de cada distrito en la lista de la izquierda.</p>
+          <p className="hr-mapa-nota">El N de cada distrito se escribe en Muestra, en "Reparto por distrito".</p>
         ) : (
           <p className="hr-mapa-nota">El N sale de los márgenes y supuestos de abajo, redondeado a rutas completas.</p>
         )}

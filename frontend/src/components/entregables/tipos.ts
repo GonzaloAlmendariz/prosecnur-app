@@ -19,6 +19,8 @@ export type ArchivoEntregable = {
   avisoGuardado?: string | null;
   modulo?: string | null;
   rotulo?: string | null;
+  /** Archivo armado en el front (`archivoLocal.ts`): sin `file_id` del backend; se vuelve a bajar de aquí. */
+  local?: Blob | null;
 };
 
 export type EstadoGeneracion =
@@ -41,6 +43,8 @@ export type EstadoGeneracion =
       archivos: ArchivoEntregable[];
       /** Ruta donde Electron dejó la descarga (Descargas), si la avisó. */
       rutaDescargada?: string | null;
+      /** Se generó para verse en pantalla (`descargar: false`): no se descargó; se ofrece «Descargar». */
+      sinDescargar?: boolean;
     }
   | {
       fase: "fallo";
@@ -54,3 +58,7 @@ export type EstadoGeneracion =
 
 /** Dónde vive el contenedor respecto del botón que dispara la generación. */
 export type FormaContenedor = "bloque" | "anclada" | "fila";
+
+/** Forma anclada: hacia dónde se abre bajo el disparador. `fin` (por defecto) alinea los bordes derechos;
+ *  `inicio`, los izquierdos, para un disparador al inicio de su fila. */
+export type AlineacionAnclada = "inicio" | "fin";

@@ -1,21 +1,25 @@
 // Acciones sobre un archivo ya entregado. Todas del mismo peso, íconos neutros
 // del kit (PulsoButton `icon`): Abrir, Mostrar en la carpeta y Más («Guardar
 // como…», «Copiar ruta»). Sin puente de escritorio (navegador) no hay Abrir ni
-// carpeta: se ofrece descargar otra vez.
+// carpeta: se ofrece descargar otra vez. Un archivo armado en el front
+// (`local`) no vive en el backend: no tiene «Guardar como…» y se vuelve a bajar
+// de su blob.
 
 import { useState } from "react";
 import { Download, ExternalLink, FolderOpen, MoreHorizontal } from "../../vendor/lucide-react";
 import { Popover } from "../Popover";
 import { PulsoButton } from "../PulsoButton";
 import {
-  abrirEntregable, copiarRuta, descargarDelServidor, guardarComo, hayGuardarComo, hayPuenteDeArchivos, mostrarEntregable,
+  abrirEntregable, copiarRuta, descargarEntregable, guardarComo, hayGuardarComo, hayPuenteDeArchivos, mostrarEntregable,
 } from "./entregaArchivo";
 import { carpetaDeRuta } from "./generacionModelo";
 import type { ArchivoEntregable } from "./tipos";
 
-export function AccionesArchivo({ archivo, rutaDescargada = null, compacta = false }: {
+export function AccionesArchivo({ archivo, rutaDescargada = null, compacta = false, sinDescargar = false }: {
   archivo: ArchivoEntregable;
   rutaDescargada?: string | null;
+  /** El archivo se generó para verse y no se descargó: se ofrece «Descargar», no «Descargar otra vez». */
+  sinDescargar?: boolean;
   /** En la fila de una tabla: solo Abrir y Mostrar en la carpeta (o Descargar). */
   compacta?: boolean;
 }) {
@@ -23,13 +27,13 @@ export function AccionesArchivo({ archivo, rutaDescargada = null, compacta = fal
   const ruta = archivo.guardadoEn ?? rutaDescargada ?? null;
   const puente = hayPuenteDeArchivos();
   const conRuta = puente && ruta !== null;
-  const guardarOtro = hayGuardarComo();
+  const guardarOtro = hayGuardarComo() && !archivo.local;
   const opcionesMas = [
     guardarOtro ? { id: "guardar", rotulo: "Guardar como…", hacer: () => guardarComo(archivo.fileId, archivo.nombre, ruta ? carpetaDeRuta(ruta) : null) } : null,
     ruta ? { id: "copiar", rotulo: "Copiar ruta", hacer: () => copiarRuta(ruta) } : null,
   ].filter((o): o is { id: string; rotulo: string; hacer: () => Promise<void> } => o !== null);
-  const descargar = () => descargarDelServidor(archivo.fileId, archivo.nombre);
-  const rotuloDescargar = archivo.guardadoEn ? "Descargar" : "Descargar otra vez";
+  const descargar = () => descargarEntregable(archivo);
+  const rotuloDescargar = archivo.guardadoEn || sinDescargar ? "Descargar" : "Descargar otra vez";
 
   return (
     <div className="pulso-entregable-acciones" role="group" aria-label={`Acciones de ${archivo.nombre}`}>

@@ -4,6 +4,9 @@
 import { describe, expect, it } from "vitest";
 import { insertRecord, makeSheet, rowToRecord } from "../parsing/sheetUtils";
 import type { XlsformEditorWorkbook } from "../types";
+import { reemplazarVersiones, insertarVersiones } from "./insertarConjoint";
+import { leerVersiones } from "./leerVersiones";
+import { parseBuilderStructure } from "../parsing/buildIndex";
 import { aplicarOrden, conOrden, esEscala, leerOrden, opcionesQueSeMueven, sinOrden, validarOrden } from "./modeloOrden";
 
 function formulario(): XlsformEditorWorkbook {
@@ -48,5 +51,17 @@ describe("orden al azar de las opciones", () => {
     expect(esEscala([{ codigo: "1" }, { codigo: "2" }, { codigo: "3" }, { codigo: "4" }, { codigo: "5" }])).toBe(true);
     expect(esEscala([{ codigo: "pe" }, { codigo: "cl" }, { codigo: "ar" }])).toBe(false);
     expect(opcionesQueSeMueven([{ codigo: "1", etiqueta: "Perú Libre" }, { codigo: "88", etiqueta: "No sabe" }, { codigo: "96", etiqueta: "Otro" }])).toEqual(["No sabe", "Otro"]);
+  });
+
+  it("editar el experimento de una pregunta con orden al azar no le quita el orden", () => {
+    const wb = formulario();
+    insertRecord(wb.choices, 0, { list_name: "acuerdo", name: "1", label: "Sí" });
+    const d = { prefijo: "vs", pregunta: "P5", tipo: "select_one" as const, lista: "acuerdo", obligatoria: true, versiones: [{ texto: "¿Apoya?" }, { texto: "¿Apoya, aunque cueste?" }] };
+    insertarVersiones(wb, parseBuilderStructure(wb.survey), { despuesDeFila: 2, seccionFila: null }, d);
+    aplicarOrden(wb, { prefijo: "or", preguntas: ["P5"] }, 0, null);
+    const r = reemplazarVersiones(wb, leerVersiones(wb)[0]!, { ...d, versiones: [...d.versiones, { texto: "¿La apoyaría?" }] });
+    expect(r.ok).toBe(true);
+    expect(parametros(wb, "P5")).toBe("randomize=true seed=${or_semilla}");
+    expect(leerOrden(wb)[0]!.diseno.preguntas).toEqual(["P5"]);
   });
 });

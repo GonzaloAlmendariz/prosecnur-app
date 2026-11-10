@@ -128,7 +128,7 @@
   png <- item$png %||% NA_character_
   if (!is.na(png) && file.exists(png)) {
     f <- .mini_registrar(sid, paste0(item$hash, ":", basename(png)), png, "graficos_miniatura",
-                         original_name = sprintf("miniatura_%s.png", .export_slug(item$slide_id %||% "lamina", fallback = "lamina")))
+                         original_name = .export_filename(sid, "graficos_miniatura", "png", detalle = item$slide_id))
     dims <- .mini_png_dims(png)
     miniatura <- list(
       file_id = f$file_id,

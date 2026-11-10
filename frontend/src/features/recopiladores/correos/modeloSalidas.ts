@@ -7,7 +7,7 @@
 // para qué sirve cada uno. La lista vive fuera del render para que el texto se
 // pruebe sin montar los paneles.
 
-import type { MailPlatform } from "../../../api/materialMail";
+import type { MailExportScope, MailPlatform } from "../../../api/materialMail";
 
 export type SalidaDelEnvio = {
   /** El rótulo del botón, tal cual. */
@@ -30,3 +30,12 @@ export const SALIDAS_DEL_ENVIO: Readonly<Record<MailPlatform, readonly SalidaDel
     { accion: "Copiar para Outlook", corto: "Outlook", para: "para un envío a mano.", principal: false },
   ],
 };
+
+/**
+ * Lo que el paquete listo dice de sí mismo al pie de su contenedor. En SurveyMonkey sólo el alcance
+ * `completo` trae contactos; en Mailchimp, todo salvo la plantilla sola trae la audiencia.
+ */
+export function datosPersonalesDelPaquete(plataforma: MailPlatform, alcance: MailExportScope | undefined): string {
+  const conDatos = plataforma === "mailchimp" ? alcance !== "plantilla" : alcance === "completo";
+  return conDatos ? "Contiene datos personales" : "Sin datos personales";
+}

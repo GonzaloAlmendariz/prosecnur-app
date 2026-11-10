@@ -41,7 +41,9 @@
 # Corre `fn` sobre cada base del estudio y registra cada output como
 # file en el store. Devuelve una lista con info por base:
 #   list(nombre, file_id, filename, size, path)
-run_report_per_base <- function(sid, base_filename, ext, kind_single, fn) {
+# `copiar = FALSE` registra y sirve sin copiar junto al proyecto (ADR 0133): para
+# una salida que acompaña a otra que es la que se entrega.
+run_report_per_base <- function(sid, base_filename, ext, kind_single, fn, copiar = TRUE) {
   s <- session_get(sid, required = FALSE)
   sources <- if (exists(".load_rp_sources", mode = "function")) {
     tryCatch(.load_rp_sources(sid), error = function(e) NULL)
@@ -101,7 +103,8 @@ run_report_per_base <- function(sid, base_filename, ext, kind_single, fn) {
     }
 
     # Con más de una base se copia a Entregables sólo el ZIP, que es lo que se entrega.
-    meta <- .register_output_file(sid, kind_single, path, original_name = fname, copiar = length(ds) == 1L)
+    meta <- .register_output_file(sid, kind_single, path, original_name = fname,
+                                  copiar = isTRUE(copiar) && length(ds) == 1L)
     entregable_respuesta(list(
       nombre   = nombre,
       file_id  = meta$file_id,
@@ -113,7 +116,7 @@ run_report_per_base <- function(sid, base_filename, ext, kind_single, fn) {
 }
 
 # Empaqueta N archivos en un ZIP. Devuelve metadata del archivo zip.
-.zip_outputs <- function(sid, outputs, zip_basename, kind_multi) {
+.zip_outputs <- function(sid, outputs, zip_basename, kind_multi, copiar = TRUE) {
   if (length(outputs) == 0L) {
     stop_api(500, "E_NO_OUTPUTS", "Sin archivos para empaquetar.")
   }
@@ -137,7 +140,7 @@ run_report_per_base <- function(sid, base_filename, ext, kind_single, fn) {
   zip::zip(zipfile = zip_path, files = names_inside)
   setwd(old_wd)
 
-  meta <- .register_output_file(sid, kind_multi, zip_path, original_name = zip_name)
+  meta <- .register_output_file(sid, kind_multi, zip_path, original_name = zip_name, copiar = copiar)
   entregable_respuesta(list(
     file_id  = meta$file_id,
     # El nombre limpio, no el de la ruta temporal: ésa lleva un uuid delante y
@@ -161,8 +164,8 @@ run_report_per_base <- function(sid, base_filename, ext, kind_single, fn) {
 # El frontend puede decidir qué mostrar:
 #   - single → descargar `file_id` directo.
 #   - multi → ofrecer el zip O descargas individuales por `bases[].file_id`.
-run_report_multibase <- function(sid, base_filename, ext, kind_single, kind_multi, fn) {
-  outputs <- run_report_per_base(sid, base_filename, ext, kind_single, fn)
+run_report_multibase <- function(sid, base_filename, ext, kind_single, kind_multi, fn, copiar = TRUE) {
+  outputs <- run_report_per_base(sid, base_filename, ext, kind_single, fn, copiar = copiar)
 
   if (length(outputs) == 1L) {
     o <- outputs[[1]]
@@ -176,7 +179,7 @@ run_report_multibase <- function(sid, base_filename, ext, kind_single, kind_mult
     ), o))
   }
 
-  zip_meta <- .zip_outputs(sid, outputs, base_filename, kind_multi)
+  zip_meta <- .zip_outputs(sid, outputs, base_filename, kind_multi, copiar = copiar)
   list(
     ok       = TRUE,
     n_bases  = length(outputs),

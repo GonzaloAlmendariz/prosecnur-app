@@ -353,33 +353,6 @@
   color: var(--pulso-text-soft);
 }
 
-.rec-terr-archivo {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: var(--pulso-space-2) var(--pulso-space-3);
-  border-radius: var(--pulso-radius-card);
-  background: var(--pulso-surface-2);
-  color: var(--pulso-text);
-  text-decoration: none;
-}
-
-.rec-terr-archivo:hover,
-.rec-terr-archivo:focus-visible {
-  box-shadow: inset 0 0 0 1.5px var(--pulso-module-fieldkit);
-  outline: none;
-}
-
-.rec-terr-archivo strong {
-  font-size: var(--pulso-type-body-size);
-  color: var(--pulso-module-fieldkit);
-}
-
-.rec-terr-archivo small {
-  font-size: var(--pulso-type-caption-size);
-  color: var(--pulso-text-soft);
-}
-
 .rec-terr-filas {
   list-style: none;
   margin: 0;

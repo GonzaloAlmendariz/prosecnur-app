@@ -1598,8 +1598,8 @@ mount_xlsform_editor <- function(pr) {
       # Kobo (pyxform/openpyxl) rechaza el .xlsx si quedan relaciones a dibujos
       # que openxlsx no escribe. Ver xlsx_relaciones_huerfanas.R.
       xlsx_quitar_relaciones_huerfanas(tmp)
-      bytes <- readBin(tmp, what = "raw", n = file.info(tmp)$size)
-      meta <- save_upload(sid, kind = "xlsform", original_name = filename, raw_bytes = bytes)
+      # ADR 0133 (fase 5): es un entregable, no un insumo de la sesión (lógica en xlsform_editor_export.R).
+      meta <- .xlsform_editor_registrar_xlsx(sid, tmp, settings)
       if (length(source_meta %||% list())) {
         s <- session_get(sid)
         s$files[[meta$file_id]]$source <- .xlsform_forms_sanitize_source(source_meta)
@@ -1608,12 +1608,13 @@ mount_xlsform_editor <- function(pr) {
         meta <- s$files[[meta$file_id]]
       }
 
-      list(
+      entregable_respuesta(list(
         ok = TRUE,
         file_id = meta$file_id,
+        filename = meta$original_name,
         original_name = meta$original_name,
         size = meta$size
-      )
+      ), meta)
     })) |>
     plumber::pr_post("/api/xlsform-editor/export-pdf", wrap_endpoint(function(req, res, ...) {
       .xlsform_editor_export_formulario(req, res, list(
@@ -1643,6 +1644,7 @@ mount_xlsform_editor <- function(pr) {
         output_kind = "formulario_word",
         fail_code = "E_WORD_VISOR_FAILED",
         fail_message = "No pude armar las páginas del Word del formulario",
+        registro_kind = "formulario_word_visor",  # ADR 0133: una vista previa no se copia
         runner = xlsform_editor_word_visor_job_runner,
         on_complete = .xlsform_editor_word_visor_on_complete
       ))

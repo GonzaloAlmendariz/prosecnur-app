@@ -1,9 +1,11 @@
 // Secciones JSON (C12): elegir qué componentes del plan viajan, cómo se importan y exportar o importar el archivo. La
 // importación se valida primero y se escribe sólo tras confirmar. Mismo cuerpo en el diálogo de Láminas y en el
-// popover del Editor anterior («Selección avanzada»).
+// popover del Editor anterior ("Selección avanzada"). El JSON exportado sale en el contenedor de archivo del kit, en
+// forma bloque bajo los botones (ADR 0133, fase 5).
 
 import { useId, useMemo, useRef } from "react";
 import { Download, Upload } from "../../../vendor/lucide-react";
+import { ContenedorEntregable } from "../../../components/entregables/ContenedorEntregable";
 import { ConfirmacionCompartir, MotivoNoDisponible } from "./ConfirmacionCompartir";
 import { usePlanStore } from "../store";
 import { GRAFICOS_JSON_SECTIONS, resumenImportacion } from "./seccionesJson";
@@ -19,6 +21,8 @@ export function SeccionesJsonContenido({ control }: { control: ControlCompartir 
   const modoId = useId();
   const archivoRef = useRef<HTMLInputElement>(null);
   const pendiente = estado.importacionPendiente;
+  const entrega = control.entregas.json;
+  const exportando = entrega.estado.fase === "en_curso";
   const preparando = estado.ocupado === "preparar-json";
   // El estilo del cliente del editor es el del proyecto hidratado: sus logos son los que existen aquí. La composición
   // (`componerImportacion`) aplica la misma regla sobre lo que relee del backend, así que el aviso dice lo que pasará.
@@ -86,8 +90,8 @@ export function SeccionesJsonContenido({ control }: { control: ControlCompartir 
           <div className="pulso-gv2-share-advanced-actions">
             <button type="button" onClick={() => void control.exportarJson()}
               aria-describedby={exportar.habilitado ? undefined : motivoExportarId}
-              disabled={!exportar.habilitado || estado.ocupado === "exportar-json" || nSecciones === 0}>
-              <Download size={12} aria-hidden="true" /> {estado.ocupado === "exportar-json" ? "Exportando…" : "Exportar componentes"}
+              disabled={!exportar.habilitado || exportando || nSecciones === 0}>
+              <Download size={12} aria-hidden="true" /> Exportar componentes
             </button>
             <button type="button" onClick={() => archivoRef.current?.click()}
               aria-describedby={importar.habilitado ? undefined : motivoImportarId}
@@ -108,6 +112,11 @@ export function SeccionesJsonContenido({ control }: { control: ControlCompartir 
               }}
             />
           </div>
+
+          {/* Fuera de `.pulso-gv2-share-advanced-actions`, que da forma de botón de la barra a todo `button`. */}
+          {entrega.estado.fase !== "inactiva" && (
+            <ContenedorEntregable estado={entrega.estado} forma="bloque" onCerrar={entrega.cerrar} />
+          )}
 
           {!exportar.habilitado && <MotivoNoDisponible id={motivoExportarId} motivo={exportar.motivo} />}
           {!importar.habilitado && <MotivoNoDisponible id={motivoImportarId} motivo={importar.motivo} />}

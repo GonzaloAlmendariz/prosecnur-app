@@ -65,8 +65,8 @@ attr(armonizada_job_worker, "prosecnur_job_function_name") <- "armonizada_job_wo
   kind <- .armonizada_kind(tipo)
   out_name <- .export_filename(sid, kind, "xlsx")
   meta <- .register_output_file(sid, kind, result_path, original_name = out_name)
-  man <- .register_output_file(sid, paste0(kind, "_manifest"), manifest_path,
-                               original_name = sub("\\.xlsx$", "_manifest.json", out_name))
+  # ADR 0133 §3: el manifiesto lleva su propio rótulo del catálogo, no un sufijo tras la fecha.
+  man <- .register_output_file(sid, paste0(kind, "_manifest"), manifest_path)
   sha <- function(p) tolower(digest::digest(file = p, algo = "sha256"))
   artefacto <- function(m, role) list(file_id = m$file_id, filename = m$original_name,
                                       role = role, size = m$size, sha256 = sha(m$path),
@@ -136,10 +136,11 @@ attr(armonizada_job_worker, "prosecnur_job_function_name") <- "armonizada_job_wo
         stop_api(500, "E_ARMONIZADA_SIN_RESULTADO", "El comparativo no produjo su archivo.")
       }
       reg <- .armonizada_registrar(j$sid, tipo, j$result_path, manifest_path)
-      list(ok = TRUE, file_id = reg$meta$file_id, filename = reg$meta$original_name,
+      # ADR 0133 (fase 5): los cuatro campos del registro, para el kit de entregables.
+      entregable_respuesta(list(ok = TRUE, file_id = reg$meta$file_id, filename = reg$meta$original_name,
            size = reg$meta$size, sha256 = reg$artifacts[[1]]$sha256,
            artifacts = reg$artifacts, periodos = periodos_out,
-           resumen = (j$result_data %||% list())$resumen)
+           resumen = (j$result_data %||% list())$resumen), reg$meta)
     }
   )
   list(ok = TRUE, job_id = job_id, kind = job_kind, periodos = periodos_out)

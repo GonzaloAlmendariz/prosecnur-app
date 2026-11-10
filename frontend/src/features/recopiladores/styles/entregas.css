@@ -1,0 +1,44 @@
+/* Material de campo sobre el kit de entregables (ADR 0133, fase 5). Sólo lo que
+   el módulo pone alrededor del contenedor del kit: la celda de una fila, el
+   ancla de la forma anclada, la nota del pie y la vista de la imagen. El
+   contenedor mismo es del kit (components/entregables/entregables.css). */
+
+/* Celda de acción de una tabla: el disparador arriba y el contenedor en fila debajo, al ancho de la celda. */
+.rec-entrega-celda {
+  display: grid;
+  justify-items: start;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+}
+
+.rec-entrega-celda > .pulso-entregable {
+  justify-self: stretch;
+  min-width: 0;
+}
+
+/* Ancla de la forma anclada: el contenedor flota bajo el disparador sin mover la página. */
+.rec-entrega-anclaje {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Lo que el archivo trae dicho en palabras, al pie del contenedor (conteos, datos personales). */
+.rec-entrega-nota {
+  min-width: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+/* La imagen de una ficha, bajo su contenedor: se ve antes de generar el lote. */
+.rec-entrega-vista {
+  display: block;
+  width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+}

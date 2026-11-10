@@ -177,13 +177,19 @@ hojas_ruta_ficha_ump <- function(sample, found, out_path, formato = c("png", "pd
   list(path = out_path, formato = "png")
 }
 
-.hojas_ruta_vp_nombre_ficha <- function(block, tipo, formato) {
-  sprintf(
-    "FichaUMP_%s%s_Zona_%s_Mz_%s.%s",
-    if (identical(tipo, "reemplazo")) "Reemplazo_" else "",
-    hojas_ruta_sanitize_filename(block$distrito %||% ""),
-    hojas_ruta_sanitize_filename(block$zona %||% ""),
-    hojas_ruta_sanitize_filename(block$manzana %||% block$id_manzana %||% ""),
-    formato
-  )
+# Detalle del nombre de una salida por manzana (ADR 0133 §3): «Breña Z003 Mz045A».
+# La titular y el reemplazo son dos entregables (`.hojas_ruta_vp_kind_ficha`).
+.hojas_ruta_vp_detalle_manzana <- function(distrito = "", zona = "", manzana = "") {
+  txt <- function(x) { x <- trimws(as.character(x %||% "")[1]); if (is.na(x)) "" else x }
+  partes <- c(txt(distrito), if (nzchar(txt(zona))) paste0("Z", txt(zona)) else "",
+              if (nzchar(txt(manzana))) paste0("Mz", txt(manzana)) else "")
+  paste(partes[nzchar(partes)], collapse = " ")
+}
+
+.hojas_ruta_vp_detalle_ficha <- function(block) {
+  .hojas_ruta_vp_detalle_manzana(block$distrito, block$zona, block$manzana %||% block$id_manzana)
+}
+
+.hojas_ruta_vp_kind_ficha <- function(tipo) {
+  if (identical(tipo, "reemplazo")) "hojas_ruta_ficha_ump_reemplazo" else "hojas_ruta_ficha_ump"
 }

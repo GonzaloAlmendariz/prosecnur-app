@@ -1487,15 +1487,12 @@ mount_multi_integrated <- function(pr) {
       }
       downloads_dir <- file.path(session_get(sid)$dir, "downloads")
       dir.create(downloads_dir, recursive = TRUE, showWarnings = FALSE)
-      filename <- "diferencias_integracion.docx"
-      out_path <- file.path(downloads_dir, paste0(uuid::UUIDgenerate(), "_", filename))
+      filename <- .export_filename(sid, "diferencias_integracion", "docx")
+      out_path <- file.path(downloads_dir, paste0(uuid::UUIDgenerate(), "__", filename))
       .mi_decisions_docx(audit, parsed$decisions %||% list(), out_path)
-      n <- file.info(out_path)$size
-      bytes <- readBin(out_path, what = "raw", n = n)
-      res$setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
-      res$setHeader("Content-Length", as.character(n))
-      res$setHeader("Content-Disposition", .content_disposition("attachment", filename))
-      res$body <- bytes
-      res
+      # ADR 0133 (fase 5): un entregable registrado, no bytes en la respuesta.
+      meta <- .register_output_file(sid, "diferencias_integracion", out_path, original_name = filename)
+      entregable_respuesta(list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name,
+                                size = meta$size), meta)
     }))
 }

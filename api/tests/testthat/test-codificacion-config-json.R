@@ -880,6 +880,9 @@ test_that("codificacion matrices exportan matriz de trabajo y auditoria estandar
   work <- codif_matrix_export_xlsx(target_sid, "work", variables = "p35")
   internal <- codif_matrix_export_xlsx(target_sid, "internal")
   client <- codif_matrix_export_xlsx(target_sid, "client")
+  # ADR 0133 (fase 5): nombre público y los cuatro campos del registro.
+  for (m in list(work, internal, client)) expect_true(all(c("filename", "modulo", "rotulo", "guardado_en", "aviso_guardado") %in% names(m)))
+  expect_identical(client$rotulo, "Matriz de codificación para el cliente")
   s <- session_get(target_sid)
   work_sheets <- readxl::excel_sheets(s$files[[work$file_id]]$path)
   internal_sheets <- readxl::excel_sheets(s$files[[internal$file_id]]$path)

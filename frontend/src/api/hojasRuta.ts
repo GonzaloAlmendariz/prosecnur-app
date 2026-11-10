@@ -2,9 +2,9 @@
 // Extraído de client.ts (split por dominio, 2026-07). Los consumidores
 // importan del barrel ./client; este módulo no cambia el contrato.
 
-import { apiFetch, apiPath, handle, headers, SESSION_KEY } from "./core";
+import { apiFetch, handle, headers } from "./core";
 import { normalizarEnvioMeta, type EnvioMeta } from "./materialTerritorial";
-import type { JobStart } from "./jobs";
+import { camposDeEntregable, type CamposDeEntregable, type JobStart } from "./jobs";
 import { normalizeHojasRutaDistritosSorteo, type HojasRutaDistritosSorteo } from "./hojasRutaDistritos";
 
 // ---------- Hojas de ruta para campo ----------
@@ -660,7 +660,7 @@ export type HojasRutaPopulationExportResult = {
   total_poblacion: number;
   n_territorios: number;
   n_cells: number;
-};
+} & CamposDeEntregable;
 
 export type SelectedBlock = {
   id_manzana: string;
@@ -1182,14 +1182,16 @@ export async function apiHojasRutaPopulationPreview(config: Partial<HojasRutaInt
   );
 }
 
-export async function apiHojasRutaPopulationExport(config: Partial<HojasRutaIntegratedConfig>) {
-  return handle<HojasRutaPopulationExportResult>(
+export async function apiHojasRutaPopulationExport(config: Partial<HojasRutaIntegratedConfig>): Promise<HojasRutaPopulationExportResult> {
+  const raw = await handle<HojasRutaPopulationExportResult>(
     await apiFetch("/api/hojas-ruta/population-export", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ config }),
     }),
   );
+  // El meta del entregable (ADR 0133 §1) con sus escalares de R ya leídos.
+  return { ...raw, ...camposDeEntregable(raw) };
 }
 
 export async function apiHojasRutaSampleSizePreview(config: Partial<HojasRutaIntegratedConfig>, origen?: HojasRutaOrigenCalculo) {
@@ -1311,15 +1313,6 @@ export async function apiHojasRutaReporteDecisionalIniciar(
       body: JSON.stringify({ formato }),
     }),
   );
-}
-
-export function hojasRutaReporteDecisionalUrl(opts: { inline?: boolean } = {}): string {
-  const sid = localStorage.getItem(SESSION_KEY);
-  const params = new URLSearchParams();
-  if (sid) params.set("sid", sid);
-  if (opts.inline) params.set("inline", "1");
-  const qs = params.toString();
-  return apiPath(`/api/hojas-ruta/reporte-decisional/descargar${qs ? `?${qs}` : ""}`);
 }
 
 // ---------- Geometría compacta para el lienzo (ADR 0114 §7) ----------
@@ -1801,12 +1794,18 @@ export async function apiHojasRutaDecisionCobertura() {
 
 // ---------- Vista previa de la hoja y hoja del día (U15) ----------
 
-export type HojasRutaArchivoGenerado = { file_id: string; filename: string; formato: "png" | "pdf" };
+export type HojasRutaArchivoGenerado = { file_id: string; filename: string; formato: "png" | "pdf" } & CamposDeEntregable;
 
 export function normalizarArchivo(raw: unknown, formatoPorDefecto: "png" | "pdf"): HojasRutaArchivoGenerado & Record<string, unknown> {
   const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   const f = comoTexto(o.formato);
-  return { ...o, file_id: comoTexto(o.file_id), filename: comoTexto(o.filename), formato: f === "png" || f === "pdf" ? f : formatoPorDefecto };
+  return {
+    ...o,
+    ...camposDeEntregable(o),
+    file_id: comoTexto(o.file_id),
+    filename: comoTexto(o.filename),
+    formato: f === "png" || f === "pdf" ? f : formatoPorDefecto,
+  };
 }
 
 /** La ficha de una UMP de la muestra guardada (titular o reemplazo); tarda unos segundos. */

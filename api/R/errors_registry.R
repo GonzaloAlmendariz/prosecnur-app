@@ -141,6 +141,10 @@ errores_registrados <- function() {
     "E_MAILCHIMP_API",                                       "collection_mail_mailchimp.R",       "502",
     "E_MAILCHIMP_SYNC_SURVEYMONKEY",                         "collection_mail_mailchimp.R",       "502",
     "E_MONITOREO_DESTINO_ES_BARRIDO",                        "monitoreo_destino_no_barrido.R",    "409",
+    # Monitoreo › aulas › Carga de campo en Excel (ADR 0133, fase 5).
+    "E_MONITOREO_CARGA_CAMPO_PARAMETROS",                    "monitoreo_aulas_carga_de_campo.R",  "422",
+    "E_MONITOREO_CARGA_CAMPO_SIN_PLAN",                      "monitoreo_aulas_carga_de_campo.R",  "409",
+    "E_MONITOREO_CARGA_CAMPO_SIN_HORARIO",                   "monitoreo_aulas_carga_de_campo.R",  "409",
     # Monitoreo › Avance › Correo (T3, docs/qa/checklist-monitoreo-mailchimp-t3-2026-10-22.md).
     "E_MONITOREO_MAILCHIMP_AUDIENCIA",                       "router_monitoreo_mailchimp.R",      "400,409",
     # Monitoreo › Avance › Cuotas (T2).
@@ -163,6 +167,9 @@ errores_registrados <- function() {
     "E_COLLECTION_MAIL_CAMPAIGN_NAME",                       "collection_mail_campaigns.R",       "422",
     "E_COLLECTION_MAIL_CAMPAIGN_LIMIT",                      "collection_mail_campaigns.R",       "409",
     "E_COLLECTION_MAIL_CAMPAIGN_CONFIRM",                    "collection_mail_campaigns.R",       "422",
+    # «Aplicar a las campañas hermanas» (GOAL editor de correos, L16).
+    "E_COLLECTION_MAIL_HERMANAS_PARTES",                     "collection_mail_hermanas.R",        "422",
+    "E_COLLECTION_MAIL_HERMANAS_SIN_DESTINO",                "collection_mail_hermanas.R",        "422",
     # «Mis secciones» del correo (ADR 0113).
     "E_COLLECTION_MAIL_SECTION_INVALID",                     "collection_mail_sections.R",        "422",
     "E_COLLECTION_MAIL_SECTION_NAME",                        "collection_mail_sections.R",        "422",

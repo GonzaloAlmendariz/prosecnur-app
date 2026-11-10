@@ -17,9 +17,6 @@ Use skill-style routing for repairs: name when the loop applies, which
 category/source of truth controls the task, and what output checklist proves the
 work is complete.
 
-Loops.so CLI/API/LMX tooling is optional and only applies to explicit Loops
-platform tasks. It is not part of the default Prosecnur baseline.
-
 Prosecnur is a local-first desktop app: Electron + React/Vite/TypeScript +
 R/Plumber in `api/`, with portable `.pulso` projects and secrets kept outside
 `.pulso`. Do not reference or modify the deprecated `../prosecnur/` directory.
@@ -47,16 +44,14 @@ and run `--check` again. Do not hand-edit generated adapters. See
 
 ## Adaptive orchestration
 
-For every non-trivial task, the lead must load the canonical
-`orquestar-trabajo` skill and decide whether at least two independent lanes
-exist. When they do, proactively spawn 2–3 agents in the same wave; the user has
-authorized this repository-level delegation. Keep at most three workers, two
-writers, and depth one. The lead alone reads governing skills, freezes shared
-contracts, assigns non-overlapping globs, integrates results, controls external
-side effects, and launches the final `verificador` serially.
+The canonical `orquestar-trabajo` skill is the single source for wave limits,
+the ORCHESTRATION CONTRACT, the `ownedFiles` collision preflight and the
+fallback cascade. Load it whenever a wave has two writers or more than one
+agent on the same module; a single line of work does not need it. Only the lead
+delegates, and the final `verificador` runs serially after every wave.
 
-Do not delegate trivial one-file work, undefined contracts, overlapping edits,
-`.pulso` migrations, destructive operations, credentials, publication, or
-external services. If agents are unavailable, execute the same lanes
-sequentially and report the fallback. Every delegated prompt must include the
-ORCHESTRATION CONTRACT defined by the skill.
+## Writing
+
+All user-facing text (UI labels, deliverables, emails, commit subjects, chat
+replies) follows the "Redacción" section of `CLAUDE.md`. Run
+`node scripts/revisar-redaccion.mjs` on new text before delivering it.

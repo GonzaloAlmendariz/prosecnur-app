@@ -1,6 +1,11 @@
 # Plan — revamp de Hojas de ruta con el mapa como lienzo (2026-10-29)
 
-Origen: prototipo aprobado por Gonzalo (`tmp/revamp-hojas-material/mapa2.html`, artefacto
+Tipo: Plan de implementación
+Estado: Vigente
+Fecha: 2026-10-29
+Autoridad: prototipo aprobado por Gonzalo (versión 8 del artefacto) y su checklist del 2026-10-28
+
+Origen: prototipo aprobado por Gonzalo (carpeta temporal del repo, `revamp-hojas-material/mapa2.html`, artefacto
 https://claude.ai/artifact/RE6A3fibXXzeKMUEX28ZfX, versión 8) y su checklist
 `docs/qa/checklist-revamp-hojas-mapa-2026-10-28.md` (paridad §7, capacidades §8 y §9).
 

@@ -12,13 +12,16 @@ test_that("las barras Word leen la espec: residual al final en gris, la mayor en
   expect_identical(unique(b$data[[1]]$fill), .lam_barras_pista_color())
   rect <- b$data[[2]]
   expect_identical(rect$fill[rect$xmax == max(rect$xmax)], .WORD_TINTA$navy)
-  expect_equal(b$layout$panel_params[[1]]$x.range[2], 112)
+  # «El mismo ancho de los textos» (Gonzalo, 2026-11-09): con la mayor en 45 % la cifra cabe dentro del 100 % y la pista
+  # llega al margen derecho; antes el eje iba a 112 %.
+  expect_equal(b$layout$panel_params[[1]]$x.range[2], 100)
   e$pista <- "nunca"
-  expect_equal(suppressWarnings(ggplot2::ggplot_build(.word_g_barras(e)))$layout$panel_params[[1]]$x.range[2], 45 * 1.18)   # sin pista ni marca: al máximo con aire
+  libre <- suppressWarnings(ggplot2::ggplot_build(.word_g_barras(e)))$layout$panel_params[[1]]$x.range[2]   # sin pista ni marca: al máximo, más la cifra
+  expect_gt(libre, 45); expect_lt(libre, 45 * 1.18)
   e$pista <- NULL
   e$escala_completa <- TRUE
   b2 <- suppressWarnings(ggplot2::ggplot_build(.word_g_barras(e)))
-  expect_equal(b2$layout$panel_params[[1]]$x.range[2], 112)                     # agrupadas: 0-100 %, con aire para la cifra
+  expect_equal(b2$layout$panel_params[[1]]$x.range[2], 100)                     # agrupadas: 0-100 %, la cifra de 45 % cabe dentro
   expect_gt(attr(g, "alto"), attr(g, "alto_fijo"))                               # N25: alto desde el eje y (grosor común), ya no la fórmula lineal
 })
 
@@ -83,8 +86,8 @@ test_that("en la ruta real las barras agrupadas llegan al Word de 0 a 100 % y co
                                                          etiquetas_series = c(pct = "Total"), ...)), "pulso_espec")
     suppressWarnings(ggplot2::ggplot_build(.word_g_barras(e)))$layout$panel_params[[1]]$x.range[2]
   }
-  expect_equal(rango(), 112)                                  # 100 % con aire para la cifra
-  expect_equal(rango(usar_eje_libre = TRUE), 112)             # v7.23 ítem 8: con la pista, también el eje libre va a 0-100 %
+  expect_equal(rango(), 100)                                  # 0-100 %: con la mayor en 45 % la cifra cabe (2026-11-09)
+  expect_equal(rango(usar_eje_libre = TRUE), 100)             # v7.23 ítem 8: con la pista, también el eje libre va a 0-100 %
   expect_lt(rango(usar_eje_libre = TRUE, pista_barras = "nunca"), 100)   # sin pista: al máximo (45 %) con aire
 })
 
@@ -98,4 +101,14 @@ test_that("las marcas 0-100 % son opcionales: apagadas por defecto, encendidas c
   expect_true(all(c("0%", "25%", "50%", "75%", "100%") %in% .wc_textos(con)))
   expect_gt(attr(con, "alto"), attr(.word_g_barras(esp()), "alto"))
   expect_false(isTRUE(esp(marcas_eje = TRUE, usar_eje_libre = TRUE)$marcas_eje))
+})
+
+test_that("Word: el eje llega a lo justo para la cifra; una barra cerca del 100 % abre sólo el sitio de su cifra (Gonzalo, 2026-11-09)", {
+  col <- 1.2
+  expect_equal(.word_barras_escala(c(45, 30), c("45%", "30%"), base = 100, col_in = col), 100)
+  alto <- .word_barras_escala(c(96, 4), c("96%", "4%"), base = 100, col_in = col)
+  expect_gt(alto, 100); expect_lt(alto, 112)
+  # la cifra de la barra más larga termina dentro del eje, con la conversión de .word_xmin()
+  W <- .std_word("pagina", "ancho_util"); B <- (W - 0.3 - col) * W / (W - 0.3)
+  expect_lte(96 + 0.015 * alto + .word_texto_in("96%", 9) * alto / B, alto)
 })

@@ -1,5 +1,10 @@
 # Checklist — Revamp del explorador de variables (Validación › Explorar)
 
+Tipo: Checklist de pedido con varias indicaciones
+Estado: En curso
+Fecha: 2026-11-02
+Autoridad: pedido de Gonzalo del 2026-11-02 y maqueta aprobada tras sus cuatro comentarios
+
 Pedido de Gonzalo (2026-11-02): «El visor de variables y sus gráficos y sus
 opciones de filtro y cruce se puede ver muchísimo mejor». Maqueta aprobada
 («Sí, impleméntala») tras sus cuatro comentarios: faltaban los gráficos por

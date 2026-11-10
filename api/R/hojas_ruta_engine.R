@@ -4483,7 +4483,7 @@ hojas_ruta_sample_size_preview <- function(config = list()) {
 #' @return Lista serializable con matriz de cuotas y diagnostico.
 #' @export
 hojas_ruta_quota_preview_integrado <- function(config = list()) {
-  cfg <- hojas_ruta_integrada_normalize_config(config)
+  cfg <- hojas_ruta_config_para_reparto(config) # «Calculado» declarado: N y reparto del cálculo del tamaño (hojas_ruta_n_calculado.R)
   frame_all <- hojas_ruta_inei_frame(cfg$frame_source)
   frame <- frame_all[frame_all$ubigeo %in% unlist(cfg$territorios, use.names = FALSE), , drop = FALSE]
   alerts <- list()
@@ -5386,7 +5386,7 @@ hojas_ruta_generar_reemplazos_manual_pdf <- function(config = list(), sample = N
 #' @return Lista serializable con cuotas, muestra y alertas.
 #' @export
 hojas_ruta_sample_preview_integrado <- function(config = list()) {
-  cfg <- hojas_ruta_integrada_normalize_config(config)
+  cfg <- hojas_ruta_config_para_reparto(config) # el N sorteado y el de la π (estrato provincia) son el mismo
   quota <- hojas_ruta_quota_preview_integrado(cfg)
   excluded_titular_ids <- unique(as.character(unlist(cfg$excluded_titular_ids %||% list(), use.names = FALSE)))
   excluded_titular_ids <- excluded_titular_ids[nzchar(excluded_titular_ids)]

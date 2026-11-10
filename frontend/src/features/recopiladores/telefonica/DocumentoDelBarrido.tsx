@@ -8,15 +8,15 @@
 // Contrato de Superficie: C1 `material-campo/telefonica/barrido` (intrinsic); las columnas
 // son dueñas de su scroll (C3/C4).
 
-import { useState } from "react";
 import { Link } from "react-router-dom";
 
-import { downloadUrl } from "../../../api/core";
-import { descargarArchivo } from "../../../lib/descargas";
 import { apiMaterialTelefonicaPlantilla, type ConfigTelefonica } from "../../../api/materialTelefonica";
+import { ContenedorEntregable } from "../../../components/entregables/ContenedorEntregable";
+import { useGeneracion } from "../../../components/entregables/useGeneracion";
 import { PulsoButton, PulsoButtonEnlace } from "../../../components/PulsoButton";
 import { Check, ExternalLink, FileSpreadsheet } from "../../../vendor/lucide-react";
 import { fechaDelEnvio } from "../territorial/modeloUnidades";
+import { MODULO_MATERIAL } from "../entregas/modeloEntrega";
 import { BarridoEnSheets } from "./BarridoEnSheets";
 import "./barrido.css";
 
@@ -34,8 +34,9 @@ type Props = {
 type Paso = { titulo: string; detalle: string; hecho: boolean | null; accion?: { texto: string; href: string } };
 
 export function DocumentoDelBarrido({ config, campaignId, hrefCasos, hrefFuentes, onCambio }: Props) {
-  const [ocupado, setOcupado] = useState(false);
-  const [error, setError] = useState("");
+  // La espera y el archivo van en el contenedor del kit (ADR 0133): el botón sólo se deshabilita.
+  const gen = useGeneracion({ titulo: "Excel del barrido", modulo: MODULO_MATERIAL, formato: "xlsx", articulo: "el" });
+  const enCurso = gen.estado.fase === "en_curso";
   const { barrido } = config;
   const casos = config.muestra + config.backup;
   const identidad = ["Cod pulso", config.llave, ...(config.reemplazo ? ["Origen", "Tanda"] : []), "Nombre",
@@ -62,14 +63,7 @@ export function DocumentoDelBarrido({ config, campaignId, hrefCasos, hrefFuentes
       accion: barrido.conectado_en_monitoreo ? undefined : { texto: "Ir a Insumos › Fuentes", href: hrefFuentes },
     },
   ];
-  const descargar = () => {
-    setOcupado(true);
-    setError("");
-    apiMaterialTelefonicaPlantilla(campaignId)
-      .then((r) => descargarArchivo(downloadUrl(r.file_id)))
-      .catch((e: unknown) => setError(e instanceof Error ? e.message.replace(/ · E_[A-Z_]+$/, "") : "No se pudo generar la plantilla."))
-      .finally(() => setOcupado(false));
-  };
+  const generar = () => { void gen.ejecutar(() => apiMaterialTelefonicaPlantilla(campaignId)); };
 
   return (
     <div className="rec-tel-barrido" data-qa-geometry-group="material-campo/telefonica/barrido" data-qa-geometry-contract="intrinsic">
@@ -105,11 +99,11 @@ export function DocumentoDelBarrido({ config, campaignId, hrefCasos, hrefFuentes
         </ol>
         <p className="rec-tel-alterno">
           Sin Sheets:{" "}
-          <PulsoButton variant="ghost" size="sm" disabled={ocupado} onClick={descargar}>
-            {ocupado ? "Generando…" : `Excel del barrido${casos ? ` (${fmt(casos)} filas)` : " (2,000 filas)"}`}
+          <PulsoButton variant="ghost" size="sm" disabled={enCurso} onClick={generar}>
+            {`Excel del barrido${casos ? ` (${fmt(casos)} filas)` : " (2,000 filas)"}`}
           </PulsoButton>
         </p>
-        {error ? <p className="rec-terr-error" role="alert">{error}</p> : null}
+        <ContenedorEntregable estado={gen.estado} forma="bloque" onCerrar={gen.cerrar} />
       </section>
 
       <aside className="rec-tel-barrido-lado" aria-label="Columnas de la plantilla" data-qa-geometry-member>

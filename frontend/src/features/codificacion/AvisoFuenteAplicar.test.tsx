@@ -24,7 +24,7 @@ const respuesta = (aviso_fuente: string | null): CodifAplicarRespuesta => ({
 const nada = () => {};
 const montar = () => renderToStaticMarkup(
   <AdaptarAplicacionVista entrada={selectAplicarEntrada(A)(useAplicarAvisosStore.getState())} nPreguntas={2}
-    onBackToCodificar={nada} onBackToMatrices={nada} onAdaptar={nada} onJobDone={nada} onJobError={nada} onJobCancelled={nada} onEnfocado={nada} />,
+    onBackToCodificar={nada} onBackToMatrices={nada} onAdaptar={nada} onCerrarEntrega={nada} onEnfocado={nada} />,
 );
 
 describe("B1 · aviso de la fuente de Codificación al aplicar", () => {
@@ -40,7 +40,7 @@ describe("B1 · aviso de la fuente de Codificación al aplicar", () => {
 
   it("se pinta como aviso propio, en texto llano, y sobrevive al remontaje del fin del job", async () => {
     await aplicarCodificacion(A, async () => respuesta(AVISO_R));
-    useAplicarAvisosStore.getState().terminar(A, { data: "f-data", inst: "f-inst" });
+    useAplicarAvisosStore.getState().terminar(A, { archivos: [{ fileId: "f1", nombre: "Data.xlsx", formato: "xlsx" }, { fileId: "f2", nombre: "Instrumento.xlsx", formato: "xlsx" }] });
     const html = montar();
     expect(html).toContain('data-testid="codificacion-aviso-fuente"');
     expect(html).toContain("Se leyeron 380 respuestas, pero la base tiene 397");

@@ -255,8 +255,9 @@ test_that("6: manifest con procedencia y cifras completas, sin correos; LEEME co
   .cmail_fx_import(sid)
   .cmail_fx_completar(sid)
   res <- collection_mail_export(sid, .cmail_fx_rev(sid))
-  expect_lte(nchar(res$zip$filename), 80L)
-  expect_lte(nchar(res$artifacts[[2]]$filename), 80L)
+  # ADR 0133 §3: el límite de 80 es del nombre sin extensión; se recorta el detalle.
+  expect_lte(nchar(tools::file_path_sans_ext(res$zip$filename)), 80L)
+  expect_lte(nchar(tools::file_path_sans_ext(res$artifacts[[2]]$filename)), 80L)
   expect_identical(vapply(res$artifacts, `[[`, "", "role"), c("deliverable", "manifest"))
   expect_identical(res$zip$media_type, "application/zip")
 

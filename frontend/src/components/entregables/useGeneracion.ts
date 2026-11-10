@@ -7,10 +7,14 @@
 //
 // - `ejecutar(fn)` corre la generación. Si `fn` devuelve un archivo, termina ahí;
 //   si devuelve el arranque de un job (`{ job_id }`), lo sigue hasta el final.
+//   Si `fn` devuelve un `ArchivoLocal` (un CSV armado en el front,
+//   `archivoLocal.ts`), lo entrega sin pasar por el backend.
 // - `seguirJob(jobId)` sigue un job que ya arrancó otro.
 // - Al terminar: si el backend ya copió el archivo junto al proyecto
 //   (`guardado_en`), no se descarga nada; si no, se descarga (en Electron va a
 //   Descargas sin diálogo y el aviso de la descarga deja su ruta para «Abrir»).
+//   Con `descargar: false` (ver sin entregar: una vista previa) tampoco: el
+//   contenedor muestra el archivo listo y ofrece «Descargar».
 // - Toda generación se registra en la bandeja «Entregables» y sigue viva allí
 //   aunque la pantalla que la pidió se desmonte: el poll no depende del
 //   componente.
@@ -21,7 +25,8 @@ import { iniciarJobPoll } from "../../hooks/useJob";
 import { alTerminarDescarga } from "../../lib/escritorio";
 import { useBandejaEntregables, type EstadoEnBandeja } from "./bandejaStore";
 import { archivoDesdeRespuesta } from "./archivoDesdeRespuesta";
-import { descargarDelServidor } from "./entregaArchivo";
+import { archivoDesdeLocal, esArchivoLocal } from "./archivoLocal";
+import { descargarEntregable } from "./entregaArchivo";
 import {
   avanceDelJob, coincideDescarga, errorDelResultado, errorLegible, jobIdDeInicio, nombreDelFallo,
   type Articulo, type ErrorLegible,
@@ -46,6 +51,8 @@ export type OpcionesEjecucion = {
   titulo?: string;
   formato?: string | null;
   articulo?: Articulo | null;
+  /** `false`: el archivo se genera para verse en pantalla y no se descarga al terminar. Por defecto, `true`. */
+  descargar?: boolean;
 };
 
 export type ResultadoGeneracion =
@@ -76,6 +83,7 @@ type Contexto = {
   titulo: string;
   formato: string | null;
   articulo: Articulo | null;
+  descargar: boolean;
   describir: (e: unknown) => ErrorLegible;
   reintentar?: () => void;
 };
@@ -93,20 +101,25 @@ function fallar(ctx: Contexto, error: ErrorLegible): void {
 
 /** Cierra una generación que devolvió `datos`: lista, descarga si hace falta y escucha la ruta. */
 function entregar(ctx: Contexto, datos: unknown): boolean {
-  const dominio = errorDelResultado(datos);
+  const local = esArchivoLocal(datos);
+  const dominio = local ? null : errorDelResultado(datos);
   if (dominio) {
     fallar(ctx, dominio);
     return false;
   }
-  const archivos = archivoDesdeRespuesta(datos);
+  const archivos = local ? [archivoDesdeLocal(datos)] : archivoDesdeRespuesta(datos);
   if (!archivos.length) {
     fallar(ctx, { causa: "El motor terminó sin devolver un archivo. Reintenta.", codigo: null });
     return false;
   }
-  const lista: EstadoEnBandeja = { fase: "lista", titulo: ctx.titulo, archivos, rutaDescargada: null };
+  const lista: EstadoEnBandeja = {
+    fase: "lista", titulo: ctx.titulo, archivos, rutaDescargada: null, ...(ctx.descargar ? {} : { sinDescargar: true }),
+  };
   bandeja().actualizar(ctx.id, lista);
   // Ya quedó en `Entregables\<Módulo>`: descargarlo lo duplicaría.
   if (archivos.some((a) => a.guardadoEn)) return true;
+  // Se pidió para verlo en pantalla: el contenedor ofrece «Descargar».
+  if (!ctx.descargar) return true;
   if (typeof document === "undefined") return true;
   const principal = archivos[0];
   let dejar = () => {};
@@ -120,7 +133,7 @@ function entregar(ctx: Contexto, datos: unknown): boolean {
   });
   plazo = setTimeout(() => dejar(), ESPERA_AVISO_DESCARGA_MS);
   try {
-    for (const archivo of archivos) descargarDelServidor(archivo.fileId, archivo.nombre);
+    for (const archivo of archivos) descargarEntregable(archivo);
   } catch {
     // El archivo está listo en el backend: si la descarga no arrancó, el contenedor ofrece «Descargar otra vez».
     dejar();
@@ -184,6 +197,7 @@ export function useGeneracion({ titulo, modulo = null, formato = null, articulo 
       titulo: opciones?.titulo ?? base,
       formato: opciones?.formato ?? config.current.formato ?? null,
       articulo: opciones?.articulo ?? config.current.articulo ?? null,
+      descargar: opciones?.descargar !== false,
       describir: (e) => describir?.(e) ?? errorLegible(e),
       ...(reintentar ? { reintentar } : {}),
     };

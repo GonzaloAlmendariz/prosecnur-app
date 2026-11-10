@@ -1,5 +1,10 @@
 # Auditoría de saltos en los tests de R (4 nov 2026)
 
+Tipo: Registro QA fechado
+Estado: Vigente
+Fecha: 2026-11-04
+Autoridad: encargo de coordinación (Meta B); decisiones de la sesión, revisables por Gonzalo
+
 Encargo de coordinación (Meta B): auditar los tests de `api/tests/testthat/` que se apagan según dónde corren, y no
 por una causa del propio test. Revivir los que no deberían estar saltados, arreglar lo que salga rojo y poner un
 guardián. Lo destapó el verificador: el test del deploy manual del tablero llevaba `skip_on_cran()`, seguía
@@ -53,7 +58,7 @@ los `skip_if_not` del árbol.
 Fuera de esta tabla quedan los saltos por fixtures o rutas locales que no viajan al CI. No son de herramienta y
 no cambian con instalar nada. Son estos: `test-corpus-instrumentos.R` (`PULSO_CORPUS_DIR`),
 `test-engine-surveymonkey-fixture-amdt.R`, `test-engine-construir-plantilla-ppt.R`, `test-carga-sav-preview.R`,
-`test-calc-muestra-criterios.R` (scratchpad), `test-analitica-script-replica.R` (`tmp/`, 2),
+`test-calc-muestra-criterios.R` (scratchpad), `test-analitica-script-replica.R` (carpeta temporal `tmp` del repo, 2),
 `test-reporte-ppt-saneo-ooxml.R`, `test-reference-projects-fixtures.R` y `test-calc-muestra-aulas-seleccion-nivel-curso.R`.
 
 ## Bitácora

@@ -9,10 +9,16 @@
 //
 //   [ ⤓ Exportar .xlsx | ▾ ]  →  Destino: (•) Kobo / ODK  ( ) Prosecnur
 //                                Documento impreso (PDF o Word)
+//
+// El resultado del export (ADR 0133) es el contenedor del kit de entregables,
+// anclado bajo el botón: el avance, el archivo listo o el fallo.
 // =============================================================================
 
 import { useEffect, useRef, useState } from "react";
+import { ContenedorEntregable } from "../../../components/entregables/ContenedorEntregable";
+import type { EstadoGeneracion } from "../../../components/entregables/tipos";
 import { Check, ChevronDown, Download, FileText } from "../../../vendor/lucide-react";
+import "../entregas/entregas.css";
 
 export type ExportMenuProps = {
   includeAppColumns: boolean;
@@ -20,7 +26,12 @@ export type ExportMenuProps = {
   onExport: () => void;
   onOpenDocument: () => void;
   disabled: boolean;
+  /** El export del XLSForm en el contenedor del kit; sin él, no se pinta nada bajo el botón. */
+  entrega?: { estado: EstadoGeneracion; cerrar: () => void };
 };
+
+/** Al pie del XLSForm listo: lo que no viaja en el archivo (antes, en el panel "XLSForm listo"). */
+export const NOTA_DEL_XLSX = "La revisión publicada, el público asignado y la confirmación metodológica quedan en el proyecto .pulso y no viajan en el .xlsx.";
 
 const TARGETS = [
   {
@@ -43,6 +54,7 @@ export function ExportMenu({
   onExport,
   onOpenDocument,
   disabled,
+  entrega,
 }: ExportMenuProps) {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -136,6 +148,14 @@ export function ExportMenu({
             </span>
           </button>
         </div>
+      )}
+      {entrega && (
+        <ContenedorEntregable
+          estado={entrega.estado}
+          forma="anclada"
+          onCerrar={entrega.cerrar}
+          pie={entrega.estado.fase === "lista" ? <p className="xf-entrega-avisos">{NOTA_DEL_XLSX}</p> : undefined}
+        />
       )}
     </div>
   );

@@ -26,7 +26,7 @@ export const pct = (v: number) => (v > 0 && v < 0.005 ? "menos de 1 %" : `${Math
  * sobre el mapa y lo tapaba). Dice sus cifras, su densidad y el reparto de sus hogares por NSE —el predominante solo
  * escondía la mezcla— y marca la vista siguiente: sus manzanas.
  */
-export function DistritoAtlasTarjeta({ ciudad, distrito, adentro, cargandoManzanas, errorManzanas, manzanas, onVerManzanas, onVolver }: {
+export function DistritoAtlasTarjeta({ ciudad, distrito, adentro, cargandoManzanas, errorManzanas, manzanas, pintadasPor = null, onVerManzanas, onVolver }: {
   ciudad: string;
   distrito: DistritoAtlas;
   /** Si ya se ven sus manzanas (la vista más profunda). */
@@ -34,6 +34,8 @@ export function DistritoAtlasTarjeta({ ciudad, distrito, adentro, cargandoManzan
   cargandoManzanas: boolean;
   errorManzanas: string | null;
   manzanas: number | null;
+  /** Con qué se pintan sus manzanas («viviendas», «NSE»); null si van sin color. */
+  pintadasPor?: string | null;
   onVerManzanas: () => void;
   onVolver: () => void;
 }) {
@@ -74,7 +76,7 @@ export function DistritoAtlasTarjeta({ ciudad, distrito, adentro, cargandoManzan
         <div className="hr-atlas-acciones">
           {adentro ? (
             <p className="hr-atlas-nota" role="status">
-              {cargandoManzanas ? "Cargando sus manzanas…" : errorManzanas ? errorManzanas : `Ves sus ${formatoConteo(manzanas ?? 0)} manzanas, con el color de la capa elegida.`}
+              {cargandoManzanas ? "Cargando sus manzanas…" : errorManzanas ? errorManzanas : `Ves sus ${formatoConteo(manzanas ?? 0)} manzanas${pintadasPor ? `, pintadas por ${pintadasPor}` : ""}.`}
             </p>
           ) : (
             <PulsoButton variant="primary" onClick={onVerManzanas}>

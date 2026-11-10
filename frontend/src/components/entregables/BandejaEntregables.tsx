@@ -13,7 +13,7 @@ import { carpetaDelEntregable } from "../../api/jobs";
 import { Popover } from "../Popover";
 import { AccionesArchivo } from "./AccionesArchivo";
 import { resumenBandeja, useBandejaEntregables, type EntradaBandeja } from "./bandejaStore";
-import { carpetaDeRuta, textoDelAvance } from "./generacionModelo";
+import { carpetaDeRuta, comoQuedo, textoDelAvance } from "./generacionModelo";
 import { TileFormato } from "./TileFormato";
 import "./entregables.css";
 
@@ -34,7 +34,7 @@ function ItemBandeja({ entrada }: { entrada: EntradaBandeja }) {
       ? estado.causa
       : archivo?.guardadoEn
         ? `Guardado en ${carpetaDelEntregable(archivo.guardadoEn, null)}`
-        : ruta ? `Descargado en ${carpetaDeRuta(ruta)}` : "Descargado";
+        : ruta ? `Descargado en ${carpetaDeRuta(ruta)}` : comoQuedo(archivo, estado.fase === "lista" && estado.sinDescargar);
   return (
     <li className="pulso-entregable-bandeja-item" data-entregable-fase={estado.fase} data-qa-geometry-member="true">
       {estado.fase === "fallo"
@@ -45,7 +45,7 @@ function ItemBandeja({ entrada }: { entrada: EntradaBandeja }) {
         <div className="pulso-entregable-meta"><span>{detalle}</span></div>
       </div>
       {archivo && estado.fase === "lista" && (
-        <AccionesArchivo archivo={archivo} rutaDescargada={estado.rutaDescargada ?? null} compacta />
+        <AccionesArchivo archivo={archivo} rutaDescargada={estado.rutaDescargada ?? null} sinDescargar={estado.sinDescargar} compacta />
       )}
     </li>
   );

@@ -4006,6 +4006,9 @@ mount_analitica <- function(pr) {
         ext           = "xlsx",
         kind_single   = "xlsform_final",
         kind_multi    = "xlsform_final_zip",
+        # ADR 0133 (fase 5): el XLSForm final se copia sólo con el libro en Excel; con
+        # cada PDF dejaba otra copia `_2` del mismo XLSForm.
+        copiar        = !identical(formato, "pdf"),
         fn = function(rp_data, rp_inst, out_path) {
           reviewed <- .analitica_apply_data_review(rp_data, rp_inst, cfg)
           final_inst <- .analitica_filter_xlsform_inst(reviewed$inst, excluidas)
@@ -4409,6 +4412,10 @@ mount_analitica <- function(pr) {
 	      sources <- .load_rp_sources(sid)
 	      data_sources <- sources$data_sources
 	      inst_sources <- sources$inst_sources
+	      # Las variables propias de una hija repeat también entran (analitica_repeats_grano.R).
+	      if (length(inst_sources) > 1L) {
+	        secs <- .analitica_filter_sections_bases(.secciones_from_config(cfg), inst_sources, numericas_arg, excluidas) %||% secs
+	      }
 	      for (nombre in names(data_sources)) {
 	        reviewed <- .analitica_apply_data_review(data_sources[[nombre]], inst_sources[[nombre]], cfg)
 	        data_sources[[nombre]] <- .excluir_cols(reviewed$data, excluidas)
@@ -4430,7 +4437,7 @@ mount_analitica <- function(pr) {
 	        df <- .excluir_cruce_rows(data_sources[[nombre]], cruces_map)
 	        design <- repeat_design_by_base[[nombre]]
 	        if (!is.null(design)) attr(df, "repeat_design") <- design
-	        df
+	        .cruces_adjuntar_madre(df, design, data_sources, cruces_map)   # ADR 0128 §4 ter
 	      })
 	      names(data_sources_filt) <- names(data_sources)
 	      # Una base que no trae ninguna de las variables de cruce no se cruza: antes
@@ -4515,11 +4522,11 @@ mount_analitica <- function(pr) {
                     "No activada"
                   } else if (is.list(repeat_design_by_base[[nombre]]) &&
                              !isTRUE(repeat_design_by_base[[nombre]]$inference_ok)) {
-                    paste0("Descriptiva; ", repeat_design_by_base[[nombre]]$reason %||% "clusters insuficientes")
+                    paste0("Descriptiva. ", repeat_design_by_base[[nombre]]$reason %||% "Faltan encuestados para comparar.")
                   } else if (identical(significancia$metodo, "diseno")) {
                     .cruces_sig_ficha(significancia, alpha)
                   } else if (is.list(repeat_design_by_base[[nombre]])) {
-                    paste0("Cluster-robust por persona; alpha = ", alpha)
+                    paste0("Errores agrupados por encuestado, alfa = ", alpha)
                   } else {
                     .cruces_sig_ficha(significancia, alpha)
                   }

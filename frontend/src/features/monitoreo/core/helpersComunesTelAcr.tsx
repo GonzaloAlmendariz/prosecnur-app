@@ -265,11 +265,6 @@ export function surveyMonkeyDisplayTitle(survey: SurveyMonkeyMultibaseListItem) 
   return survey.nickname || survey.title || survey.id;
 }
 
-export function csvCell(value: unknown) {
-  const raw = value == null ? "" : String(value);
-  return `"${raw.replace(/"/g, "\"\"")}"`;
-}
-
 export function platformToneValue(item: MonitoreoInternalQueryCase): "effective" | "partial" | "refusal" | "warning" | "muted" {
   const response = internalCaseResponseStateValue(item);
   if (response === "complete") return "effective";

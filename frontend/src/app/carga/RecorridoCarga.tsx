@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { PROSECNUR_MODULES, type ProsecnurModuleMeta, type ProsecnurModuleSlug } from "../../lib/modules";
-import type { WarmupEstimacion } from "../warmupTiempo";
 import { EscenaCarga } from "./EscenaCarga";
+import { TRAMO_MS } from "./escenasMotor";
 import { ESCENAS_CARGA, type ClaveEscenas } from "./escenasCarga";
 import "./recorrido-carga.css";
 
 /**
  * Recorrido de la pantalla de inicio y carga del proyecto (6 nov 2026, propuesta aprobada por Gonzalo). Los siete
  * módulos pasan en orden; cada uno muestra una de sus cinco escenas, elegida al azar y sin repetir la última que
- * mostró. Cada tramo dura la apertura anterior entre siete (3 a 9 s), así el recorrido termina cuando la carga
- * debería terminar; sin apertura anterior, 4 s. `RecorridoCarga` es el escaparate (fondo de PantallaDeCarga) y
+ * mostró. Cada tramo dura una sola pasada de su escena (`TRAMO_MS`, 10 nov 2026: antes la apertura anterior entre
+ * siete, de 3 a 9 s, y en cargas largas la misma escena se veía dos veces); si la carga sigue, el recorrido da otra
+ * vuelta. `RecorridoCarga` es el escaparate (fondo de PantallaDeCarga) y
  * `SegmentosRecorrido` la barra que va debajo de la lámina; los dos calculan el mismo tramo a partir del tiempo.
  */
 type PasoRecorrido = { clave: ClaveEscenas; slug: ProsecnurModuleSlug; descripcion: string };
@@ -24,18 +25,12 @@ const PASOS: readonly PasoRecorrido[] = [
   { clave: "dash", slug: "dashboard", descripcion: "Tablero interactivo y editable para el cliente." },
 ];
 
-const TRAMO_MIN_MS = 3000;
-const TRAMO_MAX_MS = 9000;
-const TRAMO_SIN_ESTIMACION_MS = 4000;
-
-export function tramoRecorrido(transcurridoMs: number, estimacion: WarmupEstimacion) {
-  const total = estimacion.totalMs;
-  const tramo = Math.max(TRAMO_MIN_MS, Math.min(TRAMO_MAX_MS, total ? total / PASOS.length : TRAMO_SIN_ESTIMACION_MS));
+export function tramoRecorrido(transcurridoMs: number) {
   const t = Math.max(0, transcurridoMs);
   return {
-    indice: Math.floor(t / tramo) % PASOS.length,
-    vuelta: Math.floor(t / tramo / PASOS.length),
-    dentro: (t % tramo) / tramo,
+    indice: Math.floor(t / TRAMO_MS) % PASOS.length,
+    vuelta: Math.floor(t / TRAMO_MS / PASOS.length),
+    dentro: (t % TRAMO_MS) / TRAMO_MS,
   };
 }
 
@@ -54,8 +49,8 @@ function escenaAlAzar(n: number, ultima: number | undefined): number {
   return i;
 }
 
-export function RecorridoCarga({ transcurridoMs, estimacion }: { transcurridoMs: number; estimacion: WarmupEstimacion }) {
-  const { indice } = tramoRecorrido(transcurridoMs, estimacion);
+export function RecorridoCarga({ transcurridoMs }: { transcurridoMs: number }) {
+  const { indice } = tramoRecorrido(transcurridoMs);
   const ultimas = useRef<Partial<Record<ClaveEscenas, number>>>({});
   const [actual, setActual] = useState<{ paso: number; escena: number; turno: number }>(() => ({ paso: -1, escena: 0, turno: 0 }));
 
@@ -91,14 +86,14 @@ export function RecorridoCarga({ transcurridoMs, estimacion }: { transcurridoMs:
           <span className="rc-eb">{nombreDe(meta)} › {escena.donde}</span>
           <span className="rc-tt">{escena.titulo}</span>
         </div>
-        <EscenaCarga clave={paso.clave} indice={actual.escena} />
+        <EscenaCarga clave={paso.clave} indice={actual.escena} repetir={false} />
       </div>
     </div>
   );
 }
 
-export function SegmentosRecorrido({ transcurridoMs, estimacion }: { transcurridoMs: number; estimacion: WarmupEstimacion }) {
-  const { indice, vuelta, dentro } = tramoRecorrido(transcurridoMs, estimacion);
+export function SegmentosRecorrido({ transcurridoMs }: { transcurridoMs: number }) {
+  const { indice, vuelta, dentro } = tramoRecorrido(transcurridoMs);
   return (
     <div className="rc-segmentos" aria-hidden="true" style={{ "--rc-n": PASOS.length } as CSSProperties}>
       {PASOS.map((paso, i) => {

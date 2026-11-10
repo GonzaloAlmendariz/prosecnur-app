@@ -8,15 +8,13 @@
 // aparte del `preparar` de la sección, así que publica su marca en sus tres
 // estados terminales (cargada, sin serie que comparar y error).
 
-import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useReducer, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
   ArrowRight,
   Download,
-  FileJson,
   GitCompare,
-  Loader2,
   Play,
 } from "../../../vendor/lucide-react";
 import {
@@ -27,13 +25,14 @@ import {
   type ComparativoResultado,
   type ComparativoTipo,
 } from "../../../api/analitica";
-import { downloadUrl } from "../../../api/core";
 import { getEquivalencias, type EquivalenciasEstado } from "../../../api/equivalencias";
 import { EstadoVacio } from "../../../components/EstadoVacio";
 import { ErrorBlock, LoadingBlock } from "../../../components/States";
 import { formatoConteo } from "../../../lib/formatoNumero";
 import { CifrasPestana } from "../CifrasPestana";
-import { JobProgress } from "../../../components/JobProgress";
+import { ContenedorEntregable } from "../../../components/entregables/ContenedorEntregable";
+import { descargarDelServidor } from "../../../components/entregables/entregaArchivo";
+import { useGeneracion } from "../../../components/entregables/useGeneracion";
 import {
   DIRECCION_EQUIVALENCIAS,
   accionParaError,
@@ -55,7 +54,6 @@ import {
   clavesPreguntasPorDefecto,
   filasArmonizadas,
   opcionesDeNotaComparativo,
-  formatoBytes,
   motivoVacio,
   periodosDeSerie,
   preguntasEfectivas,
@@ -63,7 +61,6 @@ import {
   rotuloDe,
   totalSinMapa,
   type CeldaResumen,
-  type ErrorComparativo,
   type MotivoVacio,
 } from "./comparativosModel";
 import { ComparativosLista } from "./ComparativosLista";
@@ -155,37 +152,47 @@ export function ComparativosPane() {
   return <ComparativosMesa equivalencias={carga.equivalencias} />;
 }
 
+/** El código del motor viene en `ApiError` o al final del mensaje del job (`errorDesde`): el contenedor lo muestra aparte. */
+function describirErrorComparativo(e: unknown) {
+  const { mensaje, codigo } = errorDesde(e);
+  return { causa: mensaje, codigo };
+}
+
+const TITULO_COMPARATIVO: Record<ComparativoTipo, string> = {
+  frecuencias: "Comparativo simple",
+  cruces: "Comparativo de cruces",
+};
+
 function ComparativosMesa({ equivalencias }: { equivalencias: EquivalenciasEstado }) {
   const filas = useMemo(() => filasArmonizadas(equivalencias), [equivalencias]);
   const periodos = useMemo(() => periodosDeSerie(equivalencias), [equivalencias]);
   const [ui, dispatch] = useReducer(comparativosReducer, undefined, () => estadoInicial(filas, periodos));
   const ponderacion = usePonderacionDeLaSerie(periodos);
-
-  const ocupado = ui.enviando !== null || ui.job !== null;
+  // Pie de panel: el contenedor de archivo del kit en forma bloque, bajo los dos botones (ADR 0133, fase 5).
+  const entrega = useGeneracion({
+    titulo: TITULO_COMPARATIVO.frecuencias,
+    modulo: "Procesamiento",
+    formato: "xlsx",
+    articulo: "el",
+    describirError: describirErrorComparativo,
+  });
+  const enCurso = entrega.estado.fase === "en_curso";
+  // Mientras se genera, los botones solo se deshabilitan; el que se pidió no cambia de rótulo.
+  const [pedido, setPedido] = useState<ComparativoTipo | null>(null);
+  const ocupado = enCurso;
   // La serie se nombra siempre «bases» (`nombreDeSerie`).
   const serie = nombreDeSerie(periodos.map((p) => (ui.rotulos[p] ?? "").trim() || p));
 
   async function generar(tipo: ComparativoTipo) {
     if (bloqueoDeGeneracion(ui, tipo) || ocupado) return;
-    dispatch({ tipo: "enviando", comparativo: tipo });
     const body = construirBody(ui, tipo, filas, periodos);
-    try {
-      const inicio = tipo === "cruces"
-        ? await apiAnaliticaComparativoCruces(body)
-        : await apiAnaliticaComparativoFrecuencias(body);
-      dispatch({ tipo: "job", comparativo: tipo, id: inicio.job_id });
-    } catch (e) {
-      dispatch({ tipo: "fallo", error: errorDesde(e) });
-    }
+    setPedido(tipo);
+    const r = await entrega.ejecutar(
+      () => (tipo === "cruces" ? apiAnaliticaComparativoCruces(body) : apiAnaliticaComparativoFrecuencias(body)),
+      { titulo: TITULO_COMPARATIVO[tipo] },
+    );
+    if (r.ok) dispatch({ tipo: "listo", comparativo: tipo, datos: normalizarComparativoResultado(r.datos) });
   }
-
-  const onDone = useCallback((datos: unknown) => {
-    dispatch({ tipo: "listo", datos: normalizarComparativoResultado(datos) });
-  }, []);
-  const onError = useCallback((mensaje: string) => {
-    dispatch({ tipo: "fallo", error: errorDesde(mensaje) });
-  }, []);
-  const onCancelled = useCallback(() => dispatch({ tipo: "cancelado" }), []);
 
   const opcionesDeNota = useMemo(() => opcionesDeNotaComparativo(filas, ui.preguntas), [filas, ui.preguntas]);
 
@@ -279,14 +286,14 @@ function ComparativosMesa({ equivalencias }: { equivalencias: EquivalenciasEstad
         <div className="pulso-comparativos-botones">
           <BotonGenerar
             etiqueta="Generar comparativo simple"
-            corriendo={ui.enviando === "frecuencias" || ui.job?.tipo === "frecuencias"}
+            corriendo={enCurso && pedido === "frecuencias"}
             deshabilitado={ocupado || bloqueoSimple !== null}
             variante="primary"
             onClick={() => { void generar("frecuencias"); }}
           />
           <BotonGenerar
             etiqueta="Generar comparativo de cruces"
-            corriendo={ui.enviando === "cruces" || ui.job?.tipo === "cruces"}
+            corriendo={enCurso && pedido === "cruces"}
             deshabilitado={ocupado || bloqueoCruces !== null}
             variante="secondary"
             onClick={() => { void generar("cruces"); }}
@@ -295,16 +302,18 @@ function ComparativosMesa({ equivalencias }: { equivalencias: EquivalenciasEstad
         {(bloqueoSimple || bloqueoCruces) && !ocupado ? (
           <p className="pulso-comparativos-bloqueo">{bloqueoSimple ?? bloqueoCruces}</p>
         ) : null}
-        {ui.job ? (
-          <JobProgress<unknown>
-            label={ui.job.tipo === "cruces" ? "Comparativo de cruces" : "Comparativo simple"}
-            jobId={ui.job.id}
-            onDone={onDone}
-            onError={onError}
-            onCancelled={onCancelled}
-          />
-        ) : null}
-        {ui.error ? <ErrorConAccion error={ui.error} /> : null}
+        <ContenedorEntregable
+          estado={entrega.estado}
+          forma="bloque"
+          onCerrar={entrega.cerrar}
+          pie={
+            entrega.estado.fase === "fallo"
+              ? <AccionDelFallo codigo={entrega.estado.codigo ?? null} />
+              : entrega.estado.fase === "lista" && ui.resultado
+                ? <ManifiestoAlPie datos={ui.resultado.datos} />
+                : undefined
+          }
+        />
       </div>
 
       {ui.resultado ? <Resultado tipo={ui.resultado.tipo} datos={ui.resultado.datos} /> : null}
@@ -357,32 +366,44 @@ function BotonGenerar({
   onClick: () => void;
 }) {
   return (
-    <PulsoButton variant={variante} size="lg" disabled={deshabilitado} onClick={onClick} aria-busy={corriendo}>
-      {corriendo ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> : <Play size={14} aria-hidden="true" />}
-      {corriendo ? "Generando…" : etiqueta}
+    // El disparador solo se deshabilita: conserva ícono y rótulo (la línea del contenedor es lo único que se mueve).
+    <PulsoButton variant={variante} size="lg" disabled={deshabilitado} onClick={onClick} aria-busy={corriendo || undefined}>
+      <Play size={14} aria-hidden="true" />
+      {etiqueta}
     </PulsoButton>
   );
 }
 
-function ErrorConAccion({ error }: { error: ErrorComparativo }) {
-  const accion = accionParaError(error.codigo);
+/** Dónde se resuelve el fallo (Equivalencias, Ponderación, Fuentes), como acción neutra al pie del contenedor. */
+function AccionDelFallo({ codigo }: { codigo: string | null }) {
+  const navegar = useNavigate();
+  const accion = accionParaError(codigo);
+  if (!accion) return null;
   return (
-    <div className="pulso-comparativos-error">
-      <ErrorBlock
-        label="No se pudo generar el comparativo"
-        detail={error.codigo ? `${error.mensaje} (${error.codigo})` : error.mensaje}
-      />
-      {accion ? (
-        <Link className="pulso-comparativos-enlace" to={accion.href}>
-          {accion.etiqueta} <ArrowRight size={14} />
-        </Link>
-      ) : null}
-    </div>
+    <PulsoButton variant="secondary" size="sm" className="pulso-entregable-texto" onClick={() => navegar(accion.href)}>
+      {accion.etiqueta}
+    </PulsoButton>
+  );
+}
+
+/** El manifiesto del comparativo (sus huellas y su configuración) acompaña al libro al pie del contenedor. */
+function ManifiestoAlPie({ datos }: { datos: ComparativoResultado }) {
+  const manifest = datos.artifacts.find((a) => a.role === "manifest");
+  if (!manifest) return null;
+  return (
+    <PulsoButton
+      variant="secondary"
+      size="sm"
+      className="pulso-entregable-texto"
+      title={manifest.filename}
+      onClick={() => descargarDelServidor(manifest.file_id, manifest.filename)}
+    >
+      <Download size={12} aria-hidden="true" /> Manifiesto
+    </PulsoButton>
   );
 }
 
 function Resultado({ tipo, datos }: { tipo: ComparativoTipo; datos: ComparativoResultado }) {
-  const manifest = datos.artifacts.find((a) => a.role === "manifest");
   return (
     <Panel
       className="pulso-comparativos-resultado"
@@ -400,19 +421,6 @@ function Resultado({ tipo, datos }: { tipo: ComparativoTipo; datos: ComparativoR
       }
     >
 
-      <div className="pulso-comparativos-descargas">
-        {datos.file_id ? (
-          <a className="analitica-download-pill" href={downloadUrl(datos.file_id)} download={datos.filename}>
-            <Download size={12} /> {datos.filename}
-            {datos.size ? <small>{formatoBytes(datos.size)}</small> : null}
-          </a>
-        ) : null}
-        {manifest ? (
-          <a className="pulso-comparativos-manifest" href={downloadUrl(manifest.file_id)} download={manifest.filename}>
-            <FileJson size={12} /> Manifest
-          </a>
-        ) : null}
-      </div>
 
       <PreguntasOmitidas omitidas={omitidasDe(datos.resumen)} periodos={datos.periodos} />
 

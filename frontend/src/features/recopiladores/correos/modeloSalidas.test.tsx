@@ -31,12 +31,12 @@ describe("cada plataforma dice cuál es su salida principal y para qué sirve ca
     const sm = renderToStaticMarkup(
       <PanelSurveyMonkey
         envio={{ send_id: "invitacion", kind: "invitacion", label: "Invitación", audience: "todos" }}
-        revision={null} exportacion={null} exportando={false} ocupado={false}
-        onHtml={async () => null} onExportar={noop} onGuardarJunto={noop}
+        revision={null} ocupado={false}
+        onHtml={async () => null} onExportar={noop}
       />,
     );
     const mc = renderToStaticMarkup(
-      <PanelMailchimp revision={null} exportacion={null} exportando={null} ocupado={false} htmlActual={null} onExportar={noop} onGuardarJunto={noop} />,
+      <PanelMailchimp revision={null} ocupado={false} htmlActual={null} onExportar={noop} />,
     );
     for (const [html, p] of [[sm, "surveymonkey"], [mc, "mailchimp"]] as const) {
       expect(html.match(/rec-mail-salida-principal/g)).toHaveLength(1);

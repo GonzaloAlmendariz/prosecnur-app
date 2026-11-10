@@ -2,6 +2,8 @@
 // común de Láminas y Vista general y en la del Editor anterior. Aplicar es UN paso deshacible
 // (`usePlanStore.aplicarPlanSugerido`), también en el informe compartido (ADR 0096 decisión 9). Las reglas puras viven en
 // `armarDesde/aplicarPlanSugerido.ts`.
+// "Descargar guía" entrega el Markdown por el kit (ADR 0133, fase 5): su contenedor de archivo va en forma bloque dentro
+// de "Datos que usará el informe", bajo la cabecera que tiene el botón.
 
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
@@ -20,6 +22,9 @@ import { usePptStyleProfiles } from "./usePptStyleProfiles";
 import { useGraficosRegistry } from "./useGraficosRegistry";
 import { useOptionalProjectShell } from "../project/ProjectShell";
 import { buildSuggestedPlanRecipeMarkdown } from "./suggestedPlanRecipe";
+import { ContenedorEntregable } from "../../components/entregables/ContenedorEntregable";
+import { archivoTexto } from "../../components/entregables/archivoLocal";
+import { useGeneracion } from "../../components/entregables/useGeneracion";
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
 import { PANEL_ARMAR_DESDE } from "./panelesGraficos";
 import { useGraficosReportScope } from "./reportScope";
@@ -136,6 +141,8 @@ export function SuggestedPlanButton() {
   const [comparisonMode, setComparisonMode] = useState<ComparisonMode>("paired_district");
   // Lo que el plan propone para «Otros» sólo se aplica si el analista lo acepta aquí (nunca sin avisar).
   const [aceptarOtros, setAceptarOtros] = useState(false);
+  const guia = useGeneracion({ titulo: "Guía del informe", modulo: "Procesamiento", formato: "md", articulo: "la" });
+  const guiaEnCurso = guia.estado.fase === "en_curso";
   const rootRef = useRef<HTMLDivElement>(null);
   const disparadorRef = useRef<HTMLButtonElement>(null);
   const dialogoRef = useRef<HTMLDivElement>(null);
@@ -271,19 +278,14 @@ export function SuggestedPlanButton() {
     aplicar("fusionar", { slides: [...currentPlan.slides, ...suggested.slides] });
   }
 
-  function downloadRecipe() {
-    if (!result?.report_inputs) return;
-    const markdown = buildSuggestedPlanRecipeMarkdown(result.report_inputs, {
+  function entregarGuia() {
+    const inputs = result?.report_inputs;
+    if (!inputs || guiaEnCurso) return;
+    const markdown = buildSuggestedPlanRecipeMarkdown(inputs, {
       acnurMode: result.acnur_mode ?? acnurMode,
       profileLabel: "ACNUR",
     });
-    const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = "guia-informe-acnur.md";
-    anchor.click();
-    URL.revokeObjectURL(url);
+    void guia.ejecutar(async () => archivoTexto(markdown, "guia-informe-acnur.md", "text/markdown;charset=utf-8"));
   }
 
   const summary = result?.coverage?.summary;
@@ -416,10 +418,12 @@ export function SuggestedPlanButton() {
                       <strong>Datos que usará el informe</strong>
                       <span>Revisa estos datos antes de aplicar el plan.</span>
                     </div>
-                    <PulsoButton variant="ghost" size="sm" onClick={downloadRecipe}>
+                    <PulsoButton variant="ghost" size="sm" onClick={entregarGuia} disabled={guiaEnCurso}>
                       <Download aria-hidden="true" /> Descargar guía
                     </PulsoButton>
                   </div>
+
+                  <ContenedorEntregable estado={guia.estado} forma="bloque" onCerrar={guia.cerrar} />
 
                   <dl className="pulso-gv2-suggest-inputs-summary">
                     <div>

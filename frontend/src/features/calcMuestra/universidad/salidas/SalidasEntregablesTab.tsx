@@ -11,13 +11,8 @@
  * stagger y su pill de estado también funde al cambiar.
  */
 import {
-  AlertTriangle,
-  CheckCircle2,
-  Circle,
   CircleHelp,
-  Download,
   FileSpreadsheet,
-  Loader2,
   ShieldCheck,
   Table2,
 } from "lucide-react";
@@ -27,6 +22,7 @@ import type {
   CalcMuestraWorkspace,
   CalcMuestraWorkspacePublicationConfig,
 } from "../../../../api/client";
+import { ContenedorEntregable } from "../../../../components/entregables/ContenedorEntregable";
 import { Popover } from "../../../../components/Popover";
 import { GlidingRadioGroup } from "../../../../components/GlidingRadioGroup";
 import { GlidingTabList } from "../../../../components/GlidingTabList";
@@ -34,6 +30,7 @@ import { PulsoField, PulsoFieldRow } from "../../../../components/PulsoField";
 import { PulsoInput } from "../../../../components/PulsoInput";
 import { PulsoSwitch } from "../../../../components/PulsoSwitch";
 import { ReporteMetodologicoCard } from "../../didactica/ReporteMetodologicoCard";
+import type { EntregaEnPantalla, PaqueteDefensaEntregas } from "../../entregas/modeloEntrega";
 import { SustentoCoberturaCard } from "./SustentoCoberturaCard";
 import { AvisoModulo } from "../shared/AvisoModulo";
 import { DEFAULT_UNIVERSITY_PUBLICATION_CONFIG } from "../shared/constants";
@@ -48,33 +45,20 @@ import { Panel } from "../../../../components/Panel";
 /** Props del reporte metodológico que el desk arma con su estado real. */
 export type SalidasReporteProps = {
   puedeGenerar: boolean;
-  enCurso: boolean;
+  /** Hay un reporte generado en el backend (meta `reporte.disponible`). */
   disponible: boolean;
   formato: "html" | "pdf";
   onFormato: (f: "html" | "pdf") => void;
   onGenerar: () => void;
-  descargarUrl: string | null;
+  /** La generación del reporte por el kit de entregables (ADR 0133). */
+  reporte: EntregaEnPantalla;
   aulasListas: boolean;
-  exportandoAulas: boolean;
   onExportarAulas?: () => void;
-  aulasExportFilename?: string | null;
+  anexo?: EntregaEnPantalla;
   /** true cuando el estudio cambió después de generar el reporte (meta
    *  `reporte.stale` del backend, F5): sigue descargable pero desactualizado.
    *  Retrocompatible: si no viene, la tarjeta se comporta como hoy. */
   stale?: boolean;
-};
-
-/** Piezas del paquete de defensa (reporte + anexo xlsx + memoria JSON). */
-export type PaqueteDefensaPasoId = "reporte" | "aulas" | "memoria";
-
-export type PaqueteDefensaPaso = {
-  id: PaqueteDefensaPasoId;
-  label: string;
-  status: "pendiente" | "curso" | "ok" | "error";
-  detalle?: string;
-  url?: string;
-  /** Nombre sugerido cuando el enlace es un blob descargable (memoria JSON). */
-  downloadName?: string;
 };
 
 /** Props del paquete de defensa que el desk orquesta desde la página. */
@@ -82,27 +66,19 @@ export type SalidasPaqueteDefensaProps = {
   puedeGenerar: boolean;
   hint?: string;
   enCurso: boolean;
-  pasos: PaqueteDefensaPaso[] | null;
+  entregas: PaqueteDefensaEntregas;
   onGenerar: () => void;
 };
 
-const PAQUETE_STATUS_LABEL: Record<PaqueteDefensaPaso["status"], string> = {
-  pendiente: "pendiente",
-  curso: "en curso",
-  ok: "listo",
-  error: "con error",
-};
-
-function PaqueteDefensaPasoIcon({ status }: { status: PaqueteDefensaPaso["status"] }) {
-  if (status === "ok") return <CheckCircle2 size={15} aria-hidden="true" />;
-  if (status === "error") return <AlertTriangle size={15} aria-hidden="true" />;
-  if (status === "curso") return <Loader2 size={15} className="pulso-spin" aria-hidden="true" />;
-  return <Circle size={15} aria-hidden="true" />;
-}
-
-/** CTA de un clic + checklist con estado y descarga por pieza. */
+/**
+ * CTA de un clic y, debajo, cada pieza con su contenedor del kit: el botón sólo
+ * se deshabilita mientras se arma y lo único que se mueve es la línea de la
+ * pieza en curso. La memoria JSON la arma el front (archivo local del kit).
+ */
 function PaqueteDefensaCard({ paquete }: { paquete: SalidasPaqueteDefensaProps }) {
-  const { puedeGenerar, hint, enCurso, pasos, onGenerar } = paquete;
+  const { puedeGenerar, hint, enCurso, entregas, onGenerar } = paquete;
+  const { reporte, anexo, memoria } = entregas;
+  const hayPiezas = [reporte, anexo, memoria].some((pieza) => pieza.estado.fase !== "inactiva");
   return (
     <Panel className="cmv2-sal-panel cmv2-sal-paquete" aria-label="Paquete de defensa del diseño" title="Paquete de defensa" actions={
         <>
@@ -113,8 +89,8 @@ function PaqueteDefensaCard({ paquete }: { paquete: SalidasPaqueteDefensaProps }
             title={!puedeGenerar && hint ? hint : undefined}
             onClick={onGenerar}
           >
-            {enCurso ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" /> : <ShieldCheck size={14} aria-hidden="true" />}
-            {enCurso ? "Generando paquete…" : "Generar paquete de defensa"}
+            <ShieldCheck size={14} aria-hidden="true" />
+            Generar paquete de defensa
           </button>
         </>
       }>
@@ -123,32 +99,12 @@ function PaqueteDefensaCard({ paquete }: { paquete: SalidasPaqueteDefensaProps }
         firma del marco y decision log — lo que se presenta cuando piden justificar el diseño.
       </p>
       {!puedeGenerar && hint && <p className="cmv2-sal-nota cmv2-sal-paquete-hint">{hint}</p>}
-      {pasos && (
-        <ol className="cmv2-sal-paquete-lista cmv2-uni-stagger" aria-label="Checklist del paquete de defensa">
-          {pasos.map((paso) => (
-            <li key={paso.id} data-status={paso.status}>
-              <PaqueteDefensaPasoIcon status={paso.status} />
-              <div>
-                <strong>
-                  {paso.label}
-                  <em>{PAQUETE_STATUS_LABEL[paso.status]}</em>
-                </strong>
-                {paso.detalle && <small>{paso.detalle}</small>}
-              </div>
-              {paso.status === "ok" && paso.url && (
-                <a
-                  className="cmv2-ghost"
-                  href={paso.url}
-                  download={paso.downloadName}
-                  target={paso.downloadName ? undefined : "_blank"}
-                  rel="noreferrer"
-                >
-                  <Download size={13} aria-hidden="true" /> {paso.downloadName ? "Descargar" : "Abrir"}
-                </a>
-              )}
-            </li>
-          ))}
-        </ol>
+      {hayPiezas && (
+        <div className="cmv2-sal-paquete-piezas" aria-label="Piezas del paquete de defensa">
+          <ContenedorEntregable estado={reporte.estado} forma="bloque" onCerrar={reporte.onCerrar} />
+          <ContenedorEntregable estado={anexo.estado} forma="bloque" onCerrar={anexo.onCerrar} />
+          <ContenedorEntregable estado={memoria.estado} forma="bloque" onCerrar={memoria.onCerrar} />
+        </div>
       )}
     </Panel>
   );
@@ -235,9 +191,8 @@ export function SalidasEntregablesTab({
   const notaPiiCambiando = useValorSwap(pii);
 
   // El badge de desactualización se pinta FUERA de la tarjeta (didactica/ es
-  // compartida): la descarga sigue disponible, solo se avisa que el estudio
-  // cambió después de generar el reporte.
-  const { stale: reporteStale, ...reporteCard } = reporte;
+  // compartida): solo se avisa que el estudio cambió después de generar el reporte.
+  const reporteStale = reporte.stale;
 
   return (
     <div
@@ -251,13 +206,22 @@ export function SalidasEntregablesTab({
       data-qa-geometry-group="calc-muestra/salidas-entregables"
       data-qa-geometry-contract="intrinsic"
     >
-      <ReporteMetodologicoCard {...reporteCard} />
+      <ReporteMetodologicoCard
+        puedeGenerar={reporte.puedeGenerar}
+        formato={reporte.formato}
+        onFormato={reporte.onFormato}
+        onGenerar={reporte.onGenerar}
+        reporte={reporte.reporte}
+        aulasListas={reporte.aulasListas}
+        onExportarAulas={reporte.onExportarAulas}
+        anexo={reporte.anexo}
+      />
       {/* Antes de generar nada, qué capítulos tendría el sustento. */}
       <SustentoCoberturaCard estudio={estudio} workspace={workspace} aulasState={aulasState} />
       {Boolean(reporteStale) && reporte.disponible && (
         <AvisoModulo tone="warn" role="status" compact title="Desactualizado:">
-          el estudio cambió después de generarlo. La descarga sigue disponible; vuelve a generar el
-          reporte para que refleje el diseño vigente.
+          el estudio cambió después de generar el reporte. Vuelve a generarlo para que refleje el
+          diseño vigente.
         </AvisoModulo>
       )}
 

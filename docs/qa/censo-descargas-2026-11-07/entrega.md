@@ -1,6 +1,11 @@
 # Censo de entrega de archivos: capa de entrega y bordes
 
-Repo: `/Users/gonzaloalmendariz/repos/Pulso/prosecnur-app` (HEAD `5da0353d8`, 2026-11-07). Solo lectura estática; nada se ejecutó en runtime. Lo marcado **(no verificado en runtime)** sale del código y de la documentación de Electron, no de una prueba.
+Tipo: Censo QA
+Estado: Vigente
+Fecha: 2026-11-07
+Autoridad: relevamiento de solo lectura del 2026-11-07, parte de `censo-descargas-2026-11-07.md`
+
+Repo: `prosecnur-app`, checkout local del dueño (HEAD `5da0353d8`, 2026-11-07). Solo lectura estática; nada se ejecutó en runtime. Lo marcado **(no verificado en runtime)** sale del código y de la documentación de Electron, no de una prueba.
 
 ---
 

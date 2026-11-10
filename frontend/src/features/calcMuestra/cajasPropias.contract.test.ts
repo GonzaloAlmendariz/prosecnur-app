@@ -82,7 +82,7 @@ const SNAPSHOT: Record<string, number> = {
   "universidad/marco/panoramaCursosHorario.css": 1,
   "universidad/marco/tipoSesionRadiografia.css": 4,
   "universidad/salidas/embudoComparado.css": 1,
-  "universidad/salidas/salidas.css": 10,
+  "universidad/salidas/salidas.css": 9,
   "universidad/shared/aviso.css": 2,
   "universidad/shared/graficos/graficos.css": 1,
   "universidad/ui/ui.css": 7,

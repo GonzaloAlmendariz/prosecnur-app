@@ -194,7 +194,7 @@
    chico (6,8) mide 10,2 px o más. Por eso están en el snapshot del piso de 10 px.
    ============================================================================= */
 .escena-carga {
-  --ciclo: calc(var(--motion-dur-slow, 420ms) * 10);
+  --ciclo: calc(var(--motion-dur-slow, 420ms) * 8); /* = CICLO_MS de escenasMotor.ts */
   display: block;
 }
 
@@ -260,6 +260,8 @@
 .escena-carga .s-bar-ink { fill: color-mix(in srgb, var(--pulso-border-strong) 80%, var(--pulso-surface)); }
 .escena-carga .s-white { fill: var(--pulso-surface); }
 .escena-carga .s-radio { fill: var(--pulso-surface); stroke: var(--pulso-text-faint); stroke-width: 1.2; }
+/* 10 nov 2026: s-sweep no tenía regla y el SVG lo pintaba negro (el barrido que recorre las columnas en Formularios). */
+.escena-carga .s-sweep { fill: color-mix(in srgb, var(--rc-tono, var(--pulso-primary)) 14%, transparent); }
 .escena-carga .s-sweep-teal { fill: color-mix(in srgb, var(--pulso-module-processing) 14%, transparent); }
 .escena-carga .s-navy { fill: var(--pulso-primary); }
 .escena-carga .s-navy-st { stroke: var(--pulso-primary); }

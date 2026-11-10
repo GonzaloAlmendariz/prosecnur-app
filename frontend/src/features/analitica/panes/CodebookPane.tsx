@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { BookOpen, CheckCircle2, Download, FileSpreadsheet, FileText, Info } from "lucide-react";
-import { apiAnaliticaCodebook, apiAnaliticaConfigPut, downloadUrl, type MultiBaseResult } from "../../../api/client";
+import { BookOpen, Download, FileSpreadsheet, FileText, Info } from "lucide-react";
+import { apiAnaliticaCodebook, apiAnaliticaConfigPut, type MultiBaseResult } from "../../../api/client";
+import { PulsoButton } from "../../../components/PulsoButton";
+import { descargarDelServidor } from "../../../components/entregables/entregaArchivo";
 import { apiAnaliticaCodigosEspeciales, type CodigoEspecialSugerido } from "../../../api/analitica";
 import { codigoEscrito, opcionesCodigosEspeciales, textoEfecto, textoPorBase, textoUso } from "./codigosEspecialesModel";
 import { Panel } from "../../../components/Panel";
@@ -19,7 +21,9 @@ import "./CodebookPane.css";
 
 // CodebookPane. La inclusión/exclusión y los labels confirmados viven en
 // Datos / Revisión de data. Este panel genera el diccionario y el XLSForm
-// final de la misma corrida para que ambos queden sincronizados.
+// final de la misma corrida para que ambos queden sincronizados. El XLSForm
+// final acompaña al libro en Excel al pie de su contenedor de archivo
+// (ADR 0133, fase 5): ya no hay enlace aparte que pida un segundo clic.
 
 export function CodebookPane() {
   const codebook = useAnaliticaStore((s) => s.config.codebook);
@@ -220,9 +224,8 @@ export function CodebookPane() {
               label="Generar Excel"
               run={run}
               onGenerate={onGenerate}
+              pie={<XlsformFinalAlPie result={run.lastResult?.xlsform} />}
             />
-
-            <FinalXlsformDownload result={run.lastResult?.xlsform} />
           </Section>
 
           <Section
@@ -245,60 +248,22 @@ export function CodebookPane() {
   );
 }
 
-function FinalXlsformDownload({ result }: { result?: MultiBaseResult }) {
+/** El XLSForm final de la misma corrida: un botón neutro al pie del libro en Excel (el ZIP si hay varias bases). */
+function XlsformFinalAlPie({ result }: { result?: MultiBaseResult }) {
   const fileId = result?.zip?.file_id ?? result?.file_id;
+  if (!fileId) return null;
   const filename = result?.zip?.filename ?? result?.filename ?? "xlsform_final.xlsx";
-  const multi = (result?.bases?.length ?? 0) > 1;
-
   return (
-    <div className="analitica-codebook-xlsform">
-      <div className="analitica-codebook-xlsform-head">
-        <div>
-          <FileSpreadsheet size={14} />
-          XLSForm final descargable
-        </div>
-        {fileId ? (
-          <a
-            href={downloadUrl(fileId)}
-            download={filename}
-            className="analitica-codebook-download"
-          >
-            <Download size={12} />
-            {multi ? `${filename} (zip)` : filename}
-          </a>
-        ) : (
-          <span className="analitica-codebook-pending">
-            Pendiente de generar
-          </span>
-        )}
-      </div>
-
-      <div className="analitica-codebook-xlsform-copy">
-        Sale de la misma corrida: mismas etiquetas y exclusiones que Frecuencias, Bases y Cruces.
-      </div>
-      {fileId ? (
-        <div className="analitica-codebook-sync">
-          <CheckCircle2 size={12} />
-          Sincronizado con la última generación del libro de códigos
-        </div>
-      ) : null}
-
-      {multi && result?.bases?.length ? (
-        <div className="analitica-codebook-base-links">
-          {result.bases.map((base) => (
-            base.file_id ? (
-              <a
-                key={base.nombre}
-                href={downloadUrl(base.file_id)}
-                className="analitica-codebook-base-link"
-              >
-                <Download size={10} />
-                {base.nombre}
-              </a>
-            ) : null
-          ))}
-        </div>
-      ) : null}
+    <div className="analitica-per-base-list" role="group" aria-label="XLSForm final">
+      <PulsoButton
+        variant="secondary"
+        size="sm"
+        className="pulso-entregable-texto"
+        title={filename}
+        onClick={() => descargarDelServidor(fileId, filename)}
+      >
+        <Download size={12} aria-hidden="true" /> XLSForm final
+      </PulsoButton>
     </div>
   );
 }

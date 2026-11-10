@@ -4,7 +4,7 @@
 
 import { normalizeRepeatGrain, type RepeatGrain } from "../lib/repeatIdentity";
 import { apiFetch, handle, headers } from "./core";
-import type { JobStart } from "./jobs";
+import { camposDeEntregable, type CamposDeEntregable, type JobStart } from "./jobs";
 import type { ProcessingSheetPayload, ProcessingSheetRequest } from "./xlsformEditor";
 
 // ---------- Analítica ----------
@@ -799,7 +799,9 @@ export type ComparativoOmitida = {
   ausentes: ComparativoAusente[];
 };
 
-export type ComparativoResultado = {
+/** Resultado del job de un comparativo. Lleva además el meta del registro de entregables (ADR 0133 §1) cuando el
+ *  motor lo informa (`guardado_en`, `rotulo`…), para que el kit no lo descargue si ya quedó junto al proyecto. */
+export type ComparativoResultado = CamposDeEntregable & {
   file_id: string;
   filename: string;
   size: number;
@@ -1014,6 +1016,7 @@ export function normalizarComparativoResultado(raw: unknown): ComparativoResulta
   }
   const principal = artifacts.find((a) => a.role === "deliverable");
   return {
+    ...camposDeEntregable(r),
     file_id: cmpTexto(r.file_id).trim() || principal?.file_id || "",
     filename: cmpTexto(r.filename).trim() || principal?.filename || "comparativo.xlsx",
     size: cmpNumero(r.size),

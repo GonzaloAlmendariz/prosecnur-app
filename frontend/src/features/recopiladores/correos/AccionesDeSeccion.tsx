@@ -10,7 +10,8 @@ import { useEffect, useRef, useState } from "react";
 import { useMisSecciones } from "./misSeccionesStore";
 
 import type { MailBlock, MailTemplate } from "../../../api/materialMail";
-import { ArrowLeftRight, Bookmark, Copy, Palette } from "../../../vendor/lucide-react";
+import { ArrowLeftRight, Bookmark, Copy, Palette, Unlink } from "../../../vendor/lucide-react";
+import { puedeSepararBoton } from "./modeloBotonDelBloque";
 import { ListaDeDestinos } from "./CambiarPorSeccion";
 import { GuardarSeccion } from "./GuardarSeccion";
 import { puedeDuplicar } from "./estructuraCorreo";
@@ -23,18 +24,21 @@ type Props = {
   onDuplicar: (blockId: string) => void;
   onEditarBloque: (blockId: string, update: (b: MailBlock) => MailBlock) => void;
   onEstilo: (blockId: string) => void;
+  /** "Separar el botón": el botón de un Destacado o una Fecha límite sale a un bloque Botón propio. */
+  onSepararBoton?: (blockId: string) => void;
   /** «Guardar» en Mis secciones (L9); sin ella, la barra no lo ofrece. */
   onGuardarSeccion?: (blockId: string, name: string) => Promise<boolean>;
   errorAlGuardar?: string | null;
 };
 
 /** Cuántos botones suma a la barra (para estimar su ancho, `anchoDeLasAcciones`). */
-export function botonesDeSeccion(template: MailTemplate, block: MailBlock | undefined, conGuardar = false): number {
+export function botonesDeSeccion(template: MailTemplate, block: MailBlock | undefined, conGuardar = false, conSeparar = false): number {
   if (!block) return 0;
-  return Number(puedeDuplicar(template, block.block_id)) + Number(esIntercambiable(block.type)) + Number(admiteCaja(block)) * (conGuardar ? 2 : 1);
+  return Number(puedeDuplicar(template, block.block_id)) + Number(esIntercambiable(block.type)) + Number(admiteCaja(block)) * (conGuardar ? 2 : 1)
+    + Number(conSeparar && puedeSepararBoton(template, block.block_id));
 }
 
-export function AccionesDeSeccion({ template, block, onDuplicar, onEditarBloque, onEstilo, onGuardarSeccion, errorAlGuardar = null }: Props) {
+export function AccionesDeSeccion({ template, block, onDuplicar, onEditarBloque, onEstilo, onSepararBoton, onGuardarSeccion, errorAlGuardar = null }: Props) {
   const [abierto, setAbierto] = useState<"cambiar" | "guardar" | null>(null);
   const cambiando = abierto === "cambiar";
   const setCambiando = (v: boolean) => setAbierto(v ? "cambiar" : null);
@@ -75,6 +79,11 @@ export function AccionesDeSeccion({ template, block, onDuplicar, onEditarBloque,
           onClick={() => setCambiando(!cambiando)}
         >
           <ArrowLeftRight size={14} aria-hidden />
+        </button>
+      ) : null}
+      {onSepararBoton && puedeSepararBoton(template, block.block_id) ? (
+        <button type="button" className="rec-capa-accion" aria-label="Separar el botón como bloque propio" title="Separar el botón" onClick={() => onSepararBoton(block.block_id)}>
+          <Unlink size={14} aria-hidden />
         </button>
       ) : null}
       {admiteCaja(block) ? (

@@ -262,3 +262,18 @@ test_that("el ancho del mapa es configurable y el Perú solo en su tarjeta toma 
   expect_null(p_mapa_distribucion("dep", area = "peru")$ancho_mapa)
   expect_error(p_mapa_distribucion("dep", ancho_mapa = 0.95), "ancho_mapa")
 })
+
+test_that("Word: el mapa tiene tope de alto y toma el ancho que pide; el Perú no se llena de países vecinos (Gonzalo, 2026-11-09)", {
+  fx <- .md_fx()
+  for (area in c("peru", "lima_callao")) {
+    g <- suppressWarnings(.word_g_mapa(.md_espec(fx, if (area == "peru") "dep" else "dist", area)))
+    expect_lte(attr(g, "alto"), 12 / 2.54)                       # antes 19 cm: una página entera
+    expect_lte(attr(g, "ancho"), 16 / 2.54 + 1e-9)
+  }
+  e <- suppressWarnings(.md_espec(fx, "dep", "peru"))
+  g <- .word_g_mapa(e)
+  pt <- .mapa_dist_pt("word")
+  # El panel del Perú es angosto: su ancho es el que pide su alto, no los 16 cm del texto.
+  expect_lt(attr(g, "ancho_mapa"), 10 / 2.54)
+  expect_equal(attr(g, "ancho_mapa"), .mapa_dist_ancho_natural(e, .WORD_MAPA_ALTO_MAX, pt), tolerance = 1e-6)
+})

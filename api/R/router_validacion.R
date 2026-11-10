@@ -915,7 +915,8 @@ mount_validacion <- function(pr) {
         kind = "validacion.v2.methodology_report_bundle",
         func = runner,
         args = list(model_path = model_path),
-        result_filename = filename
+        result_filename = filename,
+        on_complete = .validacion_metodologia_bundle_on_complete  # ADR 0133: registra el ZIP
       )
       list(ok = TRUE, job_id = job_id, kind = "validacion.v2.methodology_report_bundle")
     })) |>
@@ -1144,8 +1145,8 @@ mount_validacion <- function(pr) {
       )
       meta <- .register_output_file(sid, "plan_limpieza_export", out_path,
                                     original_name = out_name)
-      list(ok = TRUE, file_id = meta$file_id, size = meta$size,
-           original_name = meta$original_name)
+      entregable_respuesta(list(ok = TRUE, file_id = meta$file_id, size = meta$size, filename = meta$original_name,
+                                original_name = meta$original_name), meta)
     })) |>
 
     # --- Instrumento: importar plan editado en Excel (scoped) ----------------

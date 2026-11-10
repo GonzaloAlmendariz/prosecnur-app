@@ -152,7 +152,7 @@
 }
 
 # Nota de significancia (ítem 1e). `metodo`: "z" (proporciones), "cluster"
-# (repeat cluster-robust) o "welch" (medias). Sin «Letras por estrato» ni
+# (repeat, errores agrupados por encuestado) o "welch" (medias). Sin «Letras por estrato» ni
 # «Fuente».
 .notas_pie_significancia <- function(metodo = c("z", "cluster", "welch"), alpha = 0.05) {
   metodo <- match.arg(metodo)
@@ -167,7 +167,7 @@
     ))
   }
   prueba <- if (identical(metodo, "cluster")) {
-    "contrastes cluster-robust por persona con corrección de Bonferroni"
+    "contraste con errores agrupados por encuestado y corrección de Bonferroni"
   } else {
     "prueba z de diferencia de proporciones con corrección de Bonferroni"
   }

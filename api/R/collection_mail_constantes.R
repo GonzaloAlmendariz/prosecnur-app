@@ -113,14 +113,15 @@
 #' La plantilla con las constantes ya escritas en el texto.
 #' @keywords internal
 .cmail_constants_apply <- function(t) {
+  # Después de los datos, el trato: `[[tú|usted]]` (collection_mail_registro.R, L16).
   cs <- t$constants %||% list()
-  if (!is.list(cs) || !length(cs)) return(t)
+  if (!is.list(cs) || !length(cs)) return(.cmail_registro_apply(t))
   valores <- list()
   for (c in cs) {
     key <- .cmail_one(c$key); value <- .cmail_one(c$value)
     if (!is.null(key) && !is.null(value)) valores[[key]] <- value
   }
-  if (!length(valores)) return(t)
+  if (!length(valores)) return(.cmail_registro_apply(t))
   for (k in c("subject", "preheader", "blocks")) if (!is.null(t[[k]])) t[[k]] <- .cmail_constants_walk(t[[k]], valores)
-  t
+  .cmail_registro_apply(t)
 }

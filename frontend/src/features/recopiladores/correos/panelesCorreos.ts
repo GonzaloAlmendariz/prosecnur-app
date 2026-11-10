@@ -64,6 +64,17 @@ export const PANEL_CORREO_IMPORTAR: PanelDeclarado = {
   clase: "dialogo",
 };
 
+/**
+ * «Aplicar a las campañas hermanas» (GOAL editor, L16): ver qué cambia en cada
+ * una y aplicar. Sobre la lista, `?panel=correo-hermanas&foco=correo.<id>`; en
+ * la campaña abierta, `?campana=correo.<id>&panel=correo-hermanas`.
+ */
+export const PANEL_CORREO_HERMANAS: PanelDeclarado = {
+  id: "correo-hermanas",
+  label: "Aplicar a las campañas hermanas",
+  clase: "dialogo",
+};
+
 export const PANELES_CORREOS = [
   PANEL_CORREO_IDENTIDAD,
   PANEL_CORREO_DESTINATARIOS,
@@ -71,4 +82,5 @@ export const PANELES_CORREOS = [
   PANEL_CORREO_ENVIOS,
   PANEL_CORREO_CAMPANA_BORRAR,
   PANEL_CORREO_IMPORTAR,
+  PANEL_CORREO_HERMANAS,
 ] as const;

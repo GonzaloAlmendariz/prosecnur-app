@@ -88,8 +88,19 @@ export function reemplazarBloque(
 
   // Entra donde empezaba el experimento: el sorteo que estuviera suelto más arriba se recoge adentro.
   const indice = bloque.ancla - bloque.filas.filter((i) => i < bloque.ancla).length;
+  // Lo que el experimento no escribe (parameters con el orden al azar, hint, traducciones…) se conserva: cada fila
+  // nueva hereda de la vieja con su mismo nombre las columnas que el generador no trae.
+  const previas = new Map<string, Record<string, string>>();
+  for (const i of quitar) {
+    const n = nombre(i);
+    if (n) previas.set(n, { ...rowToRecord(draft.survey, i) });
+  }
   [...quitar].sort((a, b) => b - a).forEach((i) => deleteRow(draft.survey, i));
-  survey.forEach((f, k) => insertRecord(draft.survey, indice + k, { ...f }));
+  survey.forEach((f, k) => {
+    const vieja = previas.get(f.name ?? "");
+    const heredadas = vieja ? Object.fromEntries(Object.entries(vieja).filter(([c, v]) => v && !(c in f))) : {};
+    insertRecord(draft.survey, indice + k, { ...heredadas, ...f });
+  });
 
   // Sin lista propia (versiones al azar usa una lista del formulario), choices no se toca.
   if (!bloque.lista) return { ok: true, rowIndex: indice, filas: survey.length, calculos: survey.filter((f) => f.type === "calculate").length };

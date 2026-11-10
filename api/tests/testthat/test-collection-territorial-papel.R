@@ -32,8 +32,9 @@ test_that("ruteo: una hoja por UMP titular y cara, con el encuestador asignado y
   expect_identical(todas$umps, titulares)
   expect_identical(todas$paginas, 2L * titulares)
   una <- collection_territorial_papel(sid, pieza = "ruteo", unidad = T1)
+  expect_true(all(c("modulo", "rotulo", "guardado_en", "aviso_guardado", "size") %in% names(una)))  # ADR 0133, fase 5
   expect_identical(una$umps, 1L)
-  expect_match(una$filename, "^HojaRuteo_.+\\.pdf$")
+  expect_match(una$filename, "_Hoja_de_ruteo_.+_\\d{2}_\\d{2}_\\d{2}\\.pdf$")
   txt <- .mtp_texto(sid, una$file_id)
   expect_match(txt, "P844 · Encuestador Ejemplo Uno", fixed = TRUE)
   expect_match(txt, "No hay persona de 18 a 25", fixed = TRUE)

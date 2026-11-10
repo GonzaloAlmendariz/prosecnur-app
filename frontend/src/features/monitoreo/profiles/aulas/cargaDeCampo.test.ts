@@ -14,7 +14,6 @@ import {
   hayHorarioDeCurso,
   sesionesDelPlan,
 } from "./cargaDeCampo";
-import { libroDeCargaDeCampo } from "./cargaDeCampoExcel";
 
 const aula = (over: Partial<MonitoreoAulasPlanRow>): MonitoreoAulasPlanRow =>
   ({
@@ -253,26 +252,6 @@ describe("el lugar de la cita en el detalle de la malla", () => {
   });
 });
 
-describe("libro de Excel", () => {
-  const plan = [aula({ classroom_id: "a", sesiones_dia_hora: "LUN 10:00-13:00", venue: "A501" })];
-
-  it("lleva la malla con color y el detalle por sesion", () => {
-    const html = libroDeCargaDeCampo(plan, { duracionMin: 30 });
-    expect(html).toContain("Carga de campo");
-    expect(html).toContain("Detalle por sesión");
-    expect(html).toContain("A501");
-    expect(html).toMatch(/background:#[0-9a-f]{6}/i);
-  });
-
-  it("escapa el contenido en vez de romper la tabla", () => {
-    const html = libroDeCargaDeCampo(
-      [aula({ classroom_id: "a", sesiones_dia_hora: "LUN 10:00-12:00", course_name: "A <b>&</b> B" })],
-      { duracionMin: 30 },
-    );
-    expect(html).toContain("A &lt;b&gt;&amp;&lt;/b&gt; B");
-  });
-});
-
 describe("comoHora", () => {
   it("formatea con dos digitos", () => {
     expect(comoHora(7 * 60)).toBe("07:00");
@@ -504,35 +483,6 @@ describe("ejeSugerido", () => {
         aula({ classroom_id: "b", sesiones_dia_hora: "LUN 10:00-12:00", scheduled_time: "10:00" }),
       ]),
     ).toBe("semana");
-  });
-});
-
-describe("libro de Excel por fecha", () => {
-  it("sale con el eje que se le pide y lo dice en la cabecera", () => {
-    const html = libroDeCargaDeCampo(
-      [aula({
-        classroom_id: "a", sesiones_dia_hora: "LUN 10:00-12:00",
-        scheduled_time: "10:00", scheduled_date: "2026-09-14",
-      })],
-      { duracionMin: 30, eje: "calendario" },
-    );
-    expect(html).toContain("Calendario:");
-    expect(html).toContain("Lunes 14/09");
-    expect(html).toContain(">Fecha<");
-  });
-
-  it("rotula el carril de las que faltan agendar", () => {
-    const html = libroDeCargaDeCampo(
-      [
-        aula({
-          classroom_id: "a", sesiones_dia_hora: "LUN 10:00-12:00",
-          scheduled_time: "10:00", scheduled_date: "2026-09-14",
-        }),
-        aula({ classroom_id: "b", sesiones_dia_hora: "MAR 10:00-12:00" }),
-      ],
-      { duracionMin: 30, eje: "calendario" },
-    );
-    expect(html).toContain("Por agendar");
   });
 });
 

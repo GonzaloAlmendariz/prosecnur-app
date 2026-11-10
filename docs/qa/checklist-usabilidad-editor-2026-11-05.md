@@ -1,5 +1,10 @@
 # Checklist: el editor de Gráficos, intuitivo (2026-11-05)
 
+Tipo: Checklist de pedido con varias indicaciones
+Estado: En curso
+Fecha: 2026-11-05
+Autoridad: preocupación de Gonzalo del 2026-11-05 por que la UI sea intuitiva; revisión independiente de usabilidad (qa-visual-desktop, solo lectura)
+
 Origen: Gonzalo, «me preocupa que la UI sea intuitiva con todo esto», tras abrir al editor los mandos del mazo
 (checklist-ui-mandos-mazo-2026-11-05.md). Revisión independiente de usabilidad (qa-visual-desktop, solo lectura) con el
 proyecto CCSS en 1440x1000 y 1024x600: ocho tareas de analista, 50 capturas en el scratchpad de la sesión (qa-usab/).

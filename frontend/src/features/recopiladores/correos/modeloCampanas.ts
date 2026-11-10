@@ -159,7 +159,8 @@ export function problemaDelActor(actor: string): string | null {
 /** «Recuperación estudiantes · Estudiantes», o sólo el nombre si no hay actor. */
 export function rotuloDeCampana(c: Pick<MailCampaignSummary, "name" | "actor">): string {
   const actor = c.actor.trim();
-  return actor ? `${c.name} · ${actor}` : c.name;
+  // «Profesores · Profesores» no dice nada: el actor sólo va si agrega algo.
+  return actor && actor.toLocaleLowerCase("es") !== c.name.trim().toLocaleLowerCase("es") ? `${c.name} · ${actor}` : c.name;
 }
 
 /** Un nombre que no repite el de otra campaña: «Invitación docentes (2)». */

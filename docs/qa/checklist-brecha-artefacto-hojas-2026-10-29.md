@@ -1,10 +1,16 @@
 # Checklist — brecha de Hojas de ruta con el artefacto (2026-10-29)
 
+Tipo: Checklist de pedido con varias indicaciones
+Estado: Histórico
+Fecha: 2026-10-29
+Autoridad: pedido de Gonzalo del 2026-10-29 sobre la distancia entre la UI de Hojas de ruta y el artefacto
+Consolidado en: [Checklist del flujo del analista en Hojas de ruta, Material de campo y Monitoreo](checklist-flujo-analista-2026-10-30.md)
+
 Pedido de Gonzalo (textual): «aún veo a la UI muy lejos del artefacto, le faltan muchísimas cosas y las cosas que ya están aún no terminan de verse bien».
 
-Referencia: `tmp/revamp-hojas-material/mapa-artefacto.html` (fuentes `mapa2.src.js`, `mapa2.css`, `mapa.css`). App: lienzo (`frontend/src/features/hojasRuta/mapa/**`) con acnur_acg. Inventario de qa-visual-desktop, 1440×1000 y 1024×600, con capturas pareadas (fuera del repo, scratchpad `brecha/`). Veredicto: **RECHAZADO VISUAL**.
+Referencia: carpeta temporal del repo, `revamp-hojas-material/mapa-artefacto.html` (fuentes `mapa2.src.js`, `mapa2.css`, `mapa.css`). App: lienzo (`frontend/src/features/hojasRuta/mapa/**`) con acnur_acg. Inventario de qa-visual-desktop, 1440×1000 y 1024×600, con capturas pareadas (fuera del repo, scratchpad `brecha/`). Veredicto: **RECHAZADO VISUAL**.
 
-Estado: ☐ pendiente · ◐ en curso · ☑ hecho (con commit) · ⛔ bloqueado (decisión) · — anotado, no es brecha. Sólo Gonzalo da el checklist por terminado.
+Leyenda de estado: ☐ pendiente · ◐ en curso · ☑ hecho (con commit) · ⛔ bloqueado (decisión) · — anotado, no es brecha. Sólo Gonzalo da el checklist por terminado.
 
 | # | Dónde | Tipo · impacto | Brecha | Dónde vive | Estado |
 |---|---|---|---|---|---|

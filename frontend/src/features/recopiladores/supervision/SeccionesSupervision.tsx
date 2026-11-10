@@ -7,15 +7,16 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { downloadUrl } from "../../../api/core";
-import { descargarArchivo } from "../../../lib/descargas";
 import { apiSupervisionExcel, type ColumnasDeSupervision } from "../../../api/materialSupervision";
+import { ContenedorEntregable } from "../../../components/entregables/ContenedorEntregable";
+import { useGeneracion } from "../../../components/entregables/useGeneracion";
 import { EstadoVacio } from "../../../components/EstadoVacio";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { PulsoInput } from "../../../components/PulsoInput";
 import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import { serializarDireccion } from "../../../lib/navegacion/direccion";
 import { CheckCircle2, ListChecks, PhoneCall, Search, ShieldCheck, Table2 } from "../../../vendor/lucide-react";
+import { MODULO_MATERIAL } from "../entregas/modeloEntrega";
 import { SupervisionEnSheets } from "./SupervisionEnSheets";
 
 /** Dónde Monitoreo arma los lotes de supervisión. */
@@ -97,8 +98,9 @@ export function EntregaSupervision({ campaignId, columnas, casos, sinLote, loteI
   casos: number;
   sinLote: boolean;
 }) {
-  const [ocupado, setOcupado] = useState(false);
-  const [error, setError] = useState("");
+  // La espera y el archivo van en el contenedor del kit (ADR 0133): el botón sólo se deshabilita.
+  const gen = useGeneracion({ titulo: "Base de supervisión", modulo: MODULO_MATERIAL, formato: "xlsx", articulo: "la" });
+  const enCurso = gen.estado.fase === "en_curso";
   if (sinLote) {
     return (
       <EstadoVacio
@@ -111,14 +113,7 @@ export function EntregaSupervision({ campaignId, columnas, casos, sinLote, loteI
     );
   }
   const orden = [columnas.llave, "Enumerador", "Fecha de la llamada", ...columnas.elegidas.barrido, ...columnas.elegidas.resultados];
-  const descargar = () => {
-    setOcupado(true);
-    setError("");
-    apiSupervisionExcel(campaignId)
-      .then((r) => descargarArchivo(downloadUrl(r.file_id)))
-      .catch((e: unknown) => setError(e instanceof Error ? e.message.replace(/ · E_[A-Z_]+$/, "") : "No se pudo generar la base."))
-      .finally(() => setOcupado(false));
-  };
+  const generar = () => { void gen.ejecutar(() => apiSupervisionExcel(campaignId)); };
   return (
     <>
       <article className="rec-terr-tarjeta" data-qa-geometry-member>
@@ -132,9 +127,9 @@ export function EntregaSupervision({ campaignId, columnas, casos, sinLote, loteI
           {columnas.fijas.map((c) => <span key={c} className="rec-tel-col is-campo">{c}</span>)}
         </div>
         <div className="rec-terr-fila">
-          <PulsoButton variant="primary" size="sm" disabled={ocupado || !casos} onClick={descargar}>{ocupado ? "Generando…" : "Excel de la supervisión"}</PulsoButton>
+          <PulsoButton variant="primary" size="sm" disabled={enCurso || !casos} onClick={generar}>Excel de la supervisión</PulsoButton>
         </div>
-        {error ? <p className="rec-terr-error" role="alert">{error}</p> : null}
+        <ContenedorEntregable estado={gen.estado} forma="bloque" onCerrar={gen.cerrar} />
       </article>
       <SupervisionEnSheets campaignId={campaignId} loteId={loteId} />
       <article className="rec-terr-tarjeta" data-qa-geometry-member>

@@ -61,6 +61,16 @@ test_that("router de Recopiladores declara exactamente las rutas V1 (diecinueve 
     "/api/recopiladores/campaigns/aulas/siembra",
     "/api/recopiladores/campaigns/telefonica/config",
     "/api/recopiladores/campaigns/telefonica/plantilla",
+    # ADR 0125 (Material arma, Monitoreo sigue). A2: la base de barrido se siembra en el
+    # Sheets del estudio, una pestaña por campaña telefónica y nunca en el documento de control.
+    # A3: la campaña de supervisión de cada lote de Monitoreo, con sus columnas (PUT con
+    # expected_revision), su salida en Excel o en un Sheets propio, y los documentos que Monitoreo
+    # lee. Se montaron en c070da965, ca7e5052b y bb86b0252 sin actualizar esta lista cerrada.
+    "/api/recopiladores/campaigns/telefonica/sheets",
+    "/api/recopiladores/campaigns/supervision/columnas",
+    "/api/recopiladores/campaigns/supervision/excel",
+    "/api/recopiladores/campaigns/supervision/sheets",
+    "/api/recopiladores/campaigns/supervision/documentos",
     "/api/recopiladores/campaigns/territorial/plan",
     "/api/recopiladores/campaigns/territorial/hoja-dia",
     "/api/recopiladores/campaigns/territorial/formatos",
@@ -71,6 +81,8 @@ test_that("router de Recopiladores declara exactamente las rutas V1 (diecinueve 
     "/api/recopiladores/mail-campaigns/duplicate",
     "/api/recopiladores/mail-campaigns/meta",
     "/api/recopiladores/mail-campaigns/delete",
+    # «Aplicar a las campañas hermanas» (L16; ADR 0136).
+    "/api/recopiladores/mail-campaigns/apply-siblings",
     "/api/recopiladores/mail-template",
     "/api/recopiladores/mail-template/preview",
     "/api/recopiladores/mail-template/review",

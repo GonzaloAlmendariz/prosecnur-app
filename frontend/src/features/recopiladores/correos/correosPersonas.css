@@ -150,3 +150,29 @@
   font-size: var(--pulso-type-body-size);
   white-space: nowrap;
 }
+
+/* Trato de la campaña (L16): tú o usted en las frases con [[tú|usted]]. */
+.rec-trato-registro {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+.rec-trato-registro-cuenta {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  margin: 0;
+}
+
+.rec-trato-registro-armar {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  width: 100%;
+}
+
+.rec-trato-registro-lista {
+  font-size: var(--pulso-type-caption-size);
+  overflow-wrap: anywhere;
+}

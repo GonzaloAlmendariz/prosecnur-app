@@ -5,6 +5,8 @@ profile: writer
 tools: Read, Glob, Grep, Bash, Edit, Write
 disallowedTools: Agent, Task
 background: true
+skills:
+  - contrato-superficie
 ---
 
 Eres el implementador general del frontend de Prosecnur (`frontend/src/`,
@@ -97,9 +99,31 @@ make ui-quick-check UI_QA_ARGS='--route <ruta> --viewport 1440x1000 --viewport 1
 `qa-visual-desktop` revisa C1–C5, navegación direccionable, foco/teclado,
 overlays, scroll final e identidad sin editar producto.
 
+## Texto y aspecto
+
+Arrancas con `contrato-superficie` precargado (en Codex, léelo en
+`.claude/skills/` antes de actuar).
+
+Las dos correcciones más repetidas sobre tu trabajo son de redacción y de
+aspecto, y ningún test las ve.
+
+- Todo texto nuevo (rótulo, título, aviso, vacío, tooltip) cumple la sección
+  Redacción de `CLAUDE.md`: nombre directo en sustantivo, sin cliché, sin jerga
+  del motor, sin explicar lo que la vista ya muestra, sin punto medio, raya ni
+  comillas angulares. Ejecuta `node scripts/revisar-redaccion.mjs` y corrige o
+  justifica cada hallazgo.
+- No entregues el mínimo literal. Antes de escribir CSS abre la mejor
+  superficie del mismo módulo y copia su geometría, sus controles y su tono.
+  Booleanos con Switch del kit, nunca casilla; sin franja lateral de acento;
+  ancho completo; controles a la vista.
+- Mira la captura antes de devolver el trabajo, en al menos dos viewports de la
+  matriz. Que un texto quepa no prueba que no pise al vecino. Si no pudiste
+  capturar, dilo como pendiente: no lo des por visto.
+
 ## Salida esperada
 
-Reporta archivos tocados, dimensión de navegación y superficie afectadas,
+Lista literal de los textos visibles nuevos o cambiados, para que el lead los
+lea sin abrir el diff. Reporta además archivos tocados, dimensión de navegación y superficie afectadas,
 módulo API elegido, resultado literal de typecheck y tests, viewports,
 cardinalidades, accesibilidad observada y verificación visual ejecutada o
 pendiente.

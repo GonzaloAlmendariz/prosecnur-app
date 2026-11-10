@@ -6,11 +6,12 @@
 //
 // Contrato de Superficie: cada pieza es una tarjeta con título (C1) que contiene su
 // propio vacío y su error (C3); el scroll es del panel de la sección (C4).
+//
+// Los PDF se entregan por el kit de entregables (ADR 0133): el botón sólo se
+// deshabilita y el contenedor (bloque) queda bajo las acciones de la tarjeta.
 
 import { useCallback, useEffect, useState } from "react";
 
-import { downloadUrl } from "../../../api/core";
-import { descargarArchivo } from "../../../lib/descargas";
 import {
   apiMaterialTerritorialFormatos,
   apiMaterialTerritorialGuardarFormatos,
@@ -20,6 +21,8 @@ import {
   type PiezaDePapel,
   type UnidadesTerritoriales,
 } from "../../../api/materialTerritorial";
+import { ContenedorEntregable } from "../../../components/entregables/ContenedorEntregable";
+import { useGeneracion } from "../../../components/entregables/useGeneracion";
 import { GlidingRadioGroup } from "../../../components/GlidingRadioGroup";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { PulsoInput } from "../../../components/PulsoInput";
@@ -28,6 +31,7 @@ import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import { Hash, ListOrdered, Printer, Table2 } from "../../../vendor/lucide-react";
 import { CargaDeBloque } from "../../../components/CargaDeBloque";
 import { MaquetaDeConsolidados, MaquetaDeRuteo } from "./MaquetaDeHoja";
+import { MODULO_MATERIAL } from "../entregas/modeloEntrega";
 import "./ficha.css";
 import { Panel } from "../../../components/Panel";
 
@@ -37,10 +41,6 @@ const CARAS = [[1, "Una cara"], [2, "Doble cara"]] as const;
 
 function mensaje(e: unknown, porDefecto: string): string {
   return e instanceof Error ? e.message.replace(/ · E_[A-Z_]+$/, "") : porDefecto;
-}
-
-function abrir(fileId: string) {
-  descargarArchivo(downloadUrl(fileId));
 }
 
 /** Los códigos del estudio: se leen al entrar y se guardan con la revisión leída. */
@@ -217,19 +217,16 @@ const PIEZAS: Record<PiezaPorUmp, { titulo: string; icono: typeof ListOrdered; t
 export function HojaDePapel({ pieza, campaignId, unidades }: ConCampana & { pieza: PiezaPorUmp }) {
   const { formatos, error: errorFormatos, guardando, guardar } = useFormatos(campaignId);
   const [elegida, setElegida] = useState(unidades.units[0]?.unit_id ?? "");
-  const [ocupado, setOcupado] = useState(false);
-  const [error, setError] = useState("");
   const p = PIEZAS[pieza];
   const Icono = p.icono;
-  const generar = () => {
-    setOcupado(true);
-    setError("");
-    apiMaterialTerritorialPapel(campaignId, pieza, { unidad: elegida })
-      .then((r) => abrir(r.file_id))
-      .catch((e: unknown) => setError(mensaje(e, "No se pudo generar la hoja.")))
-      .finally(() => setOcupado(false));
-  };
+  const gen = useGeneracion({ titulo: p.titulo, modulo: MODULO_MATERIAL, formato: "pdf", articulo: "la" });
+  const generando = gen.estado.fase === "en_curso";
   const unidad = unidades.units.find((u) => u.unit_id === elegida) ?? unidades.units[0] ?? null;
+  const generar = () => {
+    void gen.ejecutar(() => apiMaterialTerritorialPapel(campaignId, pieza, { unidad: elegida }), {
+      titulo: unidad ? `${p.titulo} de ${unidad.label}` : p.titulo,
+    });
+  };
   // Pasada de diseño (2 nov 2026): el esquema de Fichas —la hoja en maqueta a la izquierda y las
   // acciones al lado— en vez de una tarjeta delgada sobre 450 px vacíos.
   return (
@@ -271,12 +268,13 @@ export function HojaDePapel({ pieza, campaignId, unidades }: ConCampana & { piez
           />
         </div>
         <div className="rec-terr-ficha-acciones">
-          <PulsoButton variant="primary" disabled={!elegida || ocupado || unidades.stale} onClick={generar}>
-            <Printer size={14} aria-hidden /> {ocupado ? "Generando…" : "Abrir el PDF"}
+          <PulsoButton variant="primary" disabled={!elegida || generando || unidades.stale} onClick={generar}>
+            <Printer size={14} aria-hidden /> Generar el PDF
           </PulsoButton>
         </div>
+        <ContenedorEntregable estado={gen.estado} forma="bloque" onCerrar={gen.cerrar} />
         <p className="rec-terr-nota">Para todas las UMP a la vez, en Paquetes.</p>
-        {error || errorFormatos ? <p className="rec-terr-error" role="alert">{error || errorFormatos}</p> : null}
+        {errorFormatos ? <p className="rec-terr-error" role="alert">{errorFormatos}</p> : null}
       </aside>
     </div>
   );
@@ -285,18 +283,14 @@ export function HojaDePapel({ pieza, campaignId, unidades }: ConCampana & { piez
 /** Paquetes: las dos hojas para todas las UMP, en un PDF cada una. */
 export function HojasDelPaquete({ campaignId, unidades }: ConCampana) {
   const [conReemplazos, setConReemplazos] = useState(false);
-  const [ocupado, setOcupado] = useState<PiezaPorUmp | "">("");
-  const [error, setError] = useState("");
+  const gen = useGeneracion({ titulo: "Hojas de campo", modulo: MODULO_MATERIAL, formato: "pdf", articulo: "las" });
+  const generando = gen.estado.fase === "en_curso";
   const titulares = unidades.units.filter((u) => u.role === "titular").length;
   const reemplazos = unidades.units.length - titulares;
   const total = conReemplazos ? unidades.units.length : titulares;
   const generar = (pieza: PiezaPorUmp) => {
-    setOcupado(pieza);
-    setError("");
-    apiMaterialTerritorialPapel(campaignId, pieza, { alcance: conReemplazos ? "todas" : "titulares" })
-      .then((r) => abrir(r.file_id))
-      .catch((e: unknown) => setError(mensaje(e, "No se pudo generar la hoja.")))
-      .finally(() => setOcupado(""));
+    const titulo = pieza === "ruteo" ? "Hojas de ruteo" : "Hojas de consolidados";
+    void gen.ejecutar(() => apiMaterialTerritorialPapel(campaignId, pieza, { alcance: conReemplazos ? "todas" : "titulares" }), { titulo });
   };
   return (
     <Panel
@@ -305,16 +299,16 @@ export function HojasDelPaquete({ campaignId, unidades }: ConCampana) {
       title={<><ListOrdered size={16} aria-hidden /> Hojas de ruteo y de consolidados</>}
       hint="Una de cada por UMP, con su encuestador y los códigos del estudio. Los reemplazos se imprimen cuando se activan; inclúyelos si quieres llevarlos de reserva."
     >
-      <PulsoSwitch size="sm" label={`Incluir los reemplazos (${reemplazos.toLocaleString("es-PE")} UMP más)`} checked={conReemplazos} disabled={ocupado !== ""} onCheckedChange={setConReemplazos} />
+      <PulsoSwitch size="sm" label={`Incluir los reemplazos (${reemplazos.toLocaleString("es-PE")} UMP más)`} checked={conReemplazos} disabled={generando} onCheckedChange={setConReemplazos} />
       <div className="rec-terr-fila">
-        <PulsoButton variant="secondary" size="sm" disabled={!total || ocupado !== "" || unidades.stale} onClick={() => generar("ruteo")}>
-          <Printer size={14} aria-hidden /> {ocupado === "ruteo" ? "Generando…" : "Hojas de ruteo"}
+        <PulsoButton variant="secondary" size="sm" disabled={!total || generando || unidades.stale} onClick={() => generar("ruteo")}>
+          <Printer size={14} aria-hidden /> Hojas de ruteo
         </PulsoButton>
-        <PulsoButton variant="secondary" size="sm" disabled={!total || ocupado !== "" || unidades.stale} onClick={() => generar("consolidados")}>
-          <Printer size={14} aria-hidden /> {ocupado === "consolidados" ? "Generando…" : "Hojas de consolidados"}
+        <PulsoButton variant="secondary" size="sm" disabled={!total || generando || unidades.stale} onClick={() => generar("consolidados")}>
+          <Printer size={14} aria-hidden /> Hojas de consolidados
         </PulsoButton>
       </div>
-      {error ? <p className="rec-terr-error" role="alert">{error}</p> : null}
+      <ContenedorEntregable estado={gen.estado} forma="bloque" onCerrar={gen.cerrar} />
     </Panel>
   );
 }

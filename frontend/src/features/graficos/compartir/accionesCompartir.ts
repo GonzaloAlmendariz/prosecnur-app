@@ -1,6 +1,9 @@
 // Acciones de compartir el plan de gráficos (C11 plan portátil y C12 secciones JSON). Sin React: reciben sus
-// dependencias (API, sesión, descarga, hidratación) para poder probarse sin red ni DOM. La barra de Láminas y la del
-// Editor anterior las usan a través de `useCompartirPlan`.
+// dependencias (API, sesión, hidratación) para poder probarse sin red ni DOM. La barra de Láminas y la del Editor
+// anterior las usan a través de `useCompartirPlan`.
+//
+// Exportar no descarga: devuelve el archivo (el JSON armado aquí o el paquete que registró el backend) y lo entrega el
+// kit de entregables (`useGeneracion`, ADR 0133, fase 5), con su contenedor en el diálogo.
 //
 // Importar pasa por la misma validación que el editor siempre usó: `JSON.parse` + `normalizeGraficosConfig` del
 // archivo y de la config actual, composición por secciones (`componerImportacion`) y, al aplicar,
@@ -17,7 +20,8 @@ import {
   apiGraficosShareInspect,
   type GraficosShareInspectResult,
 } from "../../../api/graficos";
-import { downloadUrl, getSession } from "../../../api/core";
+import { getSession } from "../../../api/core";
+import { archivoTexto, type ArchivoLocal } from "../../../components/entregables/archivoLocal";
 import { normalizeGraficosConfig } from "../../../api/graficosConfigNormalizer";
 import { usePlanStore, type GraficosConfig } from "../store";
 import { acknowledgeSlideCompositionConfig, invalidateSlideCompositionPersistenceAck } from "../slideCompositionPersistence";
@@ -39,21 +43,10 @@ export type DepsCompartir = {
   shareExport: () => Promise<{ file_id: string; filename: string }>;
   shareInspect: (file: File) => Promise<GraficosShareInspectResult>;
   shareImport: (packageFileId: string, bases: string[]) => Promise<unknown>;
-  downloadUrl: (fileId: string) => string;
   getSession: () => string | null;
   hydrate: (cfg: GraficosConfig) => void;
-  /** Descarga por enlace: `href` es una URL de la API o un `blob:`. */
-  descargar: (href: string, nombre: string) => void;
-  crearUrlBlob: (texto: string) => { href: string; liberar: () => void };
   ahora: () => Date;
 };
-
-function descargarConEnlace(href: string, nombre: string) {
-  const a = document.createElement("a");
-  a.href = href;
-  a.download = nombre;
-  a.click();
-}
 
 // Las dos escrituras se invocan con paréntesis a propósito: `useGraficosAutosave.test.ts` enumera los call sites que
 // mutan la config de Gráficos buscando `nombre(`.
@@ -65,14 +58,8 @@ export function depsCompartirPorDefecto(): DepsCompartir {
     shareExport: apiGraficosShareExport,
     shareInspect: (file) => apiGraficosShareInspect(file),
     shareImport: (packageFileId, bases) => apiGraficosShareImport(packageFileId, bases),
-    downloadUrl,
     getSession,
     hydrate: (cfg) => usePlanStore.getState().hydrate(cfg),
-    descargar: descargarConEnlace,
-    crearUrlBlob: (texto) => {
-      const href = URL.createObjectURL(new Blob([texto], { type: "application/json" }));
-      return { href, liberar: () => URL.revokeObjectURL(href) };
-    },
     ahora: () => new Date(),
   };
 }
@@ -91,17 +78,12 @@ async function rehidratarDesdeBackend(sid: string | null, deps: DepsCompartir) {
 
 // --- C12: secciones JSON ------------------------------------------------------------------------------------------
 
-export async function exportarSeccionesJson(secciones: SeccionesJson, deps: DepsCompartir): Promise<string> {
+/** El JSON con las secciones elegidas, armado en el front: lo entrega `useGeneracion` como archivo local. */
+export async function exportarSeccionesJson(secciones: SeccionesJson, deps: DepsCompartir): Promise<ArchivoLocal> {
   const bundle = await deps.configExport();
   const cfg = normalizeGraficosConfig(cuerpoConfig(bundle), { includeLegacyAliases: true });
   const { texto, nombreArchivo } = armarExportacionJson(cfg, secciones, deps.ahora());
-  const url = deps.crearUrlBlob(texto);
-  try {
-    deps.descargar(url.href, nombreArchivo);
-  } finally {
-    url.liberar();
-  }
-  return "JSON exportado";
+  return archivoTexto(texto, nombreArchivo, "application/json");
 }
 
 export type ImportacionJsonPreparada = {
@@ -154,10 +136,10 @@ export async function aplicarImportacionJson(prep: ImportacionJsonPreparada, dep
 
 // --- C11: plan portátil -------------------------------------------------------------------------------------------
 
-export async function exportarPlanPortatil(deps: DepsCompartir): Promise<string> {
+/** El paquete `.pulso-graficos.zip` que registró el backend, con su nombre; lo entrega `useGeneracion`. */
+export async function exportarPlanPortatil(deps: DepsCompartir): Promise<{ file_id: string; filename: string }> {
   const result = await deps.shareExport();
-  deps.descargar(deps.downloadUrl(result.file_id), result.filename || "plan_graficos.pulso-graficos.zip");
-  return "Paquete compartible exportado";
+  return { ...result, filename: result.filename || "plan_graficos.pulso-graficos.zip" };
 }
 
 export function seleccionInicialBases(plan: GraficosShareInspectResult): Record<string, boolean> {

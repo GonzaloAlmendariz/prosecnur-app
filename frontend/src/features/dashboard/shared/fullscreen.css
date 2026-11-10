@@ -38,7 +38,8 @@
 }
 
 /* Botón "Copiar" del overlay — mismo lenguaje visual que .dash-fs-trigger
- * pero más compacto y con feedback de estado (copiado/descargado/error). */
+ * pero más compacto y con feedback de estado (copiado/error). Si el
+ * portapapeles no acepta imágenes, el PNG sale por el contenedor del kit. */
 .dashboard-scope .dash-fs-copy-btn {
   align-items: center;
   appearance: none;
@@ -73,8 +74,7 @@
   cursor: progress;
   opacity: 0.7;
 }
-.dashboard-scope .dash-fs-copy-btn.is-copied,
-.dashboard-scope .dash-fs-copy-btn.is-downloaded {
+.dashboard-scope .dash-fs-copy-btn.is-copied {
   background: color-mix(in srgb, #3A9A5B 14%, var(--dash-superficie));
   border-color: color-mix(in srgb, #3A9A5B 50%, var(--dash-borde));
   color: #2a7a47;
@@ -145,6 +145,12 @@
   align-items: center;
   display: inline-flex;
   gap: 6px;
+}
+
+/* Respaldo del portapapeles: el PNG en el contenedor del kit (ADR 0133), entre la cabecera y el gráfico. */
+.dashboard-scope .dash-fs-panel > .pulso-entregable {
+  flex: none;
+  margin: 10px 14px 0;
 }
 
 .dashboard-scope .dash-fs-body {

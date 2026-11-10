@@ -8,6 +8,7 @@ import { PulsoButton } from "../../../../components/PulsoButton";
 import type { HojasRutaAlert, HojasRutaEstratoMuestral, HojasRutaIntegratedConfig, HojasRutaTerritory } from "../../../../api/hojasRuta";
 import { nombreDistrito } from "../nombres";
 import { tonoCss } from "../lienzo/tonos";
+import { CabeceraCiudad, gruposPorCiudad } from "../territorio/gruposPorCiudad";
 import { useLienzoHojasRuta } from "../store";
 import { useSeccion } from "../../../../lib/navegacion/useDireccion";
 import type { ResultadoTamano } from "./motorTamano";
@@ -102,10 +103,20 @@ export function MuestraInspector({ config, resultado: r, bloqueado, guardando, h
             <PulsoButton variant="secondary" disabled={!hayMuestra && !hayTamano} aria-pressed={cajonMuestra} onClick={() => setCajonMuestra(!cajonMuestra)}>
               {cajonMuestra ? "Ocultar cuotas" : "Ver cuotas"}
             </PulsoButton>
-            {/* Por cuotas no hay sorteo de manzanas: lo que sigue es enviar las zonas (ADR 0125 §2). */}
-            <PulsoButton variant="primary" disabled={!hayMuestra} onClick={() => nav.irA("seccion", nav.modo === "cuotas" ? "seleccion" : "manzanas")}>
-              {nav.modo === "cuotas" ? "Ir a la entrega" : "Ir al sorteo"}
-            </PulsoButton>
+            {/* Sin tamaño calculado (calcular la matriz de Población lo descarta) el pie se quedaba con dos botones
+                apagados y Manzanas pedía «Primero calcula el tamaño en Muestra»: el siguiente paso es calcularlo
+                (revisión del 10 nov 2026, diseño nacional TCD). */}
+            {!hayTamano && !hayMuestra ? (
+              <PulsoButton variant="primary" disabled={bloqueado || guardando || !r.multiploDeRuta || !r.filas.length || !(ruta > 0)} onClick={onGuardar}>
+                {guardando ? "Calculando…" : "Calcular el tamaño"}
+              </PulsoButton>
+            ) : (
+              // Por cuotas no hay sorteo de manzanas: lo que sigue es enviar las zonas (ADR 0125 §2).
+              // Con el tamaño basta: Manzanas sortea con él (`listoParaSortear`), no necesita cuotas previas.
+              <PulsoButton variant="primary" disabled={!hayMuestra && !hayTamano} onClick={() => nav.irA("seccion", nav.modo === "cuotas" ? "seleccion" : "manzanas")}>
+                {nav.modo === "cuotas" ? "Ir a la entrega" : "Ir al sorteo"}
+              </PulsoButton>
+            )}
           </>
         )}
       </footer>
@@ -161,14 +172,17 @@ export function MuestraEstructura({ config, resultado: r, bloqueado }: Estructur
               <Shuffle size={13} aria-hidden /> Repartir según población
             </PulsoButton>
             <PulsoButton variant="secondary" size="sm" disabled={bloqueado} title="Pone en cada distrito su mínimo para el margen objetivo" onClick={() => ponerTodos(repartoMinimos(r.filas, ruta))}>
-              Mínimos
+              Mínimo por margen
             </PulsoButton>
           </div>
         ) : null}
       </div>
       {!r.filas.length ? <EstadoVacio icono={<Inbox size={16} />} titulo="Sin distritos confirmados" descripcion="Elígelos en Territorio y calcula la población para repartir la muestra." /> : null}
       <ul className="hr-muestra-reparto">
-        {r.filas.map((f) => (
+        {/* Con varias ciudades, cada una con su cabecera y su subtotal (diseño nacional, 10 nov 2026). */}
+        {gruposPorCiudad(r.filas, (f) => f.ubigeo, config.territorios).flatMap((g, _, todos) => [
+          todos.length > 1 ? <CabeceraCiudad key={`ciudad-${g.codigo}`} nombre={g.nombre} resumen={`${g.items.length} distrito${g.items.length === 1 ? "" : "s"}, ${fmt(g.items.reduce((a, f) => a + f.nUsado, 0))} entrevistas`} /> : null,
+          ...g.items.map((f) => (
           <li key={f.ubigeo}>
             <div className="hr-muestra-rep-cab">
               <strong className="hr-muestra-rep-nombre">
@@ -201,7 +215,8 @@ export function MuestraEstructura({ config, resultado: r, bloqueado }: Estructur
               {porDistrito && f.nUsado % ruta ? <span data-error>, no es múltiplo de {ruta}</span> : null}
             </small>
           </li>
-        ))}
+          )),
+        ])}
       </ul>
       {porDistrito ? <p className="hr-mapa-nota hr-muestra-pie">Puedes pegar una columna desde Excel o Sheets sobre el primer campo.</p> : <AjustesPorDistrito config={config} filas={r.filas} bloqueado={bloqueado} />}
       <EscenariosMuestra config={config} resultado={r} bloqueado={bloqueado} />

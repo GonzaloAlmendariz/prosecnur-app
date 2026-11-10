@@ -1,5 +1,10 @@
 # Checklist — Arte contra Contabilidad, medido al milímetro (2026-10-29)
 
+Tipo: Checklist de pedido con varias indicaciones
+Estado: En curso
+Fecha: 2026-10-29
+Autoridad: Decisiones de Gonzalo del 2026-10-29 sobre la comparación del PPT de Arte con el aprobado de Contabilidad
+
 Origen: el PPT de Arte (copia con la revisión de Gabriela, 52 láminas) comparado lámina a lámina con el aprobado de
 Contabilidad (73 láminas). Pares lado a lado en el scratchpad de la sesión (`cmp_conta/par_*.png`). Gonzalo decide cuáles
 van: «hay cosas que entran y cosas que no».

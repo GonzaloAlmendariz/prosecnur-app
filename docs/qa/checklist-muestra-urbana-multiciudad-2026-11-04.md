@@ -1,5 +1,10 @@
 # Checklist — muestra probabilística urbana multiciudad (2026-11-04)
 
+Tipo: Checklist de pedido con varias indicaciones
+Estado: En curso
+Fecha: 2026-11-04
+Autoridad: encargo de Gonzalo del 2026-11-04; marco y ciudades del ADR 0119
+
 Encargo de Gonzalo: dejar Hojas de ruta en condiciones de diseñar una muestra **probabilística de hogares,
 solo urbana, en las principales ciudades** (Lima, Callao y las 25 ciudades del ADR 0119), con 1.500–1.800
 entrevistas a adultos de 18 a más. Lo rural queda fuera por decisión explícita.
@@ -70,7 +75,7 @@ Contexto que ya se verificó (no reinvestigar):
   - Según el plan del 29 de octubre, incluye Mariscal Nieto (Moquegua) y Chaupimarca (Pasco). Mariscal Nieto
     tiene más población 2017 en la capa que en el CPV 2025, así que hay que revisar el cruce de ubigeo.
   - No está verificado si incluye Chachapoyas, Abancay/Andahuaylas, Huancavelica o Tambopata. La capa no está
-    en el repo ni en `tmp/`.
+    en el repo ni en su carpeta temporal `tmp`.
   - Con reparto proporcional, un departamento chico recibe muy pocas entrevistas. La ciudad principal pasa a
     representar todo el urbano de su departamento, y eso es un supuesto: no lo vuelve probabilístico para ese
     departamento salvo que las ciudades se sorteen por PPS.

@@ -2,10 +2,9 @@ import { useState, type ReactNode } from "react";
 import "./planCampo.css";
 import { tonoCss } from "../lienzo/tonos";
 import { PulsoButton } from "../../../../components/PulsoButton";
-import { downloadUrl } from "../../../../api/core";
-import { descargarArchivo } from "../../../../lib/descargas";
 import { apiHojasRutaHojaDia, apiHojasRutaPlanCampo, normalizarPlanSupuestos, PLAN_SUPUESTOS_POR_DEFECTO, type HojasRutaJornada, type HojasRutaPlanCampo, type HojasRutaPlanSupuestos } from "../../../../api/hojasRuta";
 import { nombreDistrito } from "../nombres";
+import { HojaDelDia } from "./HojaDelDia";
 
 import { formatoDecimal } from "../../../../lib/formatoNumero";
 /**
@@ -36,7 +35,8 @@ export function porDia(jornadas: readonly HojasRutaJornada[]): [number, HojasRut
  */
 export type FuenteDelPlan = {
   plan: (s: HojasRutaPlanSupuestos) => Promise<HojasRutaPlanCampo>;
-  hojaDia: (jornada: string, s: HojasRutaPlanSupuestos) => Promise<{ file_id: string }>;
+  /** El archivo de la hoja (`file_id`, `filename` y el meta del entregable); lo entrega el kit. */
+  hojaDia: (jornada: string, s: HojasRutaPlanSupuestos) => Promise<unknown>;
 };
 
 const FUENTE_VIVA: FuenteDelPlan = { plan: apiHojasRutaPlanCampo, hojaDia: apiHojasRutaHojaDia };
@@ -46,7 +46,6 @@ export function PlanCampo({ guardados, deshabilitado, onGuardar, conCostos = tru
   const [plan, setPlan] = useState<HojasRutaPlanCampo | null>(null);
   const [ocupado, setOcupado] = useState<"" | "calcular" | "guardar">("");
   const [error, setError] = useState("");
-  const [hoja, setHoja] = useState<string | null>(null);
   const cambiado = JSON.stringify(s) !== JSON.stringify(normalizarPlanSupuestos(guardados));
   const campo = (k: keyof Omit<HojasRutaPlanSupuestos, "moneda">, etiqueta: string, sufijo?: string) => (
     <label className="hr-muestra-campo">
@@ -130,20 +129,7 @@ export function PlanCampo({ guardados, deshabilitado, onGuardar, conCostos = tru
                         {j.excede_jornada ? `, ${j.jornadas_equivalentes} días seguidos` : `, ${fmt(j.km, 1)} km`}
                       </small>
                       {corta ? <em>Jornada corta: una sola ruta</em> : null}
-                      <button
-                        type="button"
-                        className="hr-plan-hoja"
-                        disabled={hoja != null}
-                        onClick={() => {
-                          setHoja(j.id);
-                          fuente.hojaDia(j.id, s)
-                            .then((r) => descargarArchivo(downloadUrl(r.file_id)))
-                            .catch((e: unknown) => setError(e instanceof Error ? e.message : "No se pudo generar la hoja del día"))
-                            .finally(() => setHoja(null));
-                        }}
-                      >
-                        {hoja === j.id ? "Generando…" : "Hoja del día"}
-                      </button>
+                      <HojaDelDia jornada={j.id} generar={() => fuente.hojaDia(j.id, s)} />
                     </span>
                   );
                 })}

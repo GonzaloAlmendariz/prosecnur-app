@@ -133,12 +133,9 @@ describe("PanelRevision y PanelMailchimp", () => {
     const html = renderToStaticMarkup(
       <PanelMailchimp
         revision={revision}
-        exportacion={null}
-        exportando={null}
         ocupado={false}
         htmlActual="<p>x</p>"
         onExportar={noop}
-        onGuardarJunto={noop}
       />,
     );
     // Las etiquetas viven en Personas (F5/F7): el menú de exportar no las repite.
@@ -298,12 +295,9 @@ describe("Revisión con un repetido que cambia el enlace y un enlace vacío", ()
     const mc = renderToStaticMarkup(
       <PanelMailchimp
         revision={revision}
-        exportacion={null}
-        exportando={null}
         ocupado={false}
         htmlActual="<p>x</p>"
         onExportar={noop}
-        onGuardarJunto={noop}
       />,
     );
     expect(mc).toMatch(/<button[^>]*disabled=""[^>]*>(?:(?!<\/button>).)*Plantilla \+ audiencia/);

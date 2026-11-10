@@ -16,6 +16,10 @@ import {
 } from "./destinoDelLibro";
 import "./aulasLibroDestino.css";
 import { AulasDosSheets } from "./AulasDosSheets";
+import { avisoLibroGenerado } from "./avisoLibroGenerado";
+import type { LibroGenerado } from "./entregasDeAulas";
+import { EntregaEnBloque } from "../../entregas/EntregaEnBloque";
+import { useEntregaConNota } from "../../entregas/useEntregaConNota";
 
 // Movido del monolito (aulasShortId): compacta hashes/run-ids largos.
 function aulasOpsShortId(value: unknown, limit = 18) {
@@ -64,8 +68,8 @@ export type AulasOperationsPanelProps = {
    */
   selloDeLibro?: SelloDePublicacion | null;
   sincronizadoEn?: string;
-  /** Produce el libro que el equipo llena en Excel y lo descarga. */
-  onGenerarLibro: () => void;
+  /** Pide el libro que el equipo llena en Excel; lo entrega el contenedor del kit, bajo las acciones. */
+  onGenerarLibro: () => Promise<LibroGenerado>;
   /** Relee el libro que alguien llenó. */
   onImportarLibro: (archivo: File) => void;
   /** Lee el libro desde las tres pestañas de un Google Sheets. Recibe el
@@ -100,6 +104,8 @@ export function AulasOperationsPanel({
   // sola vez: dos sitios decidiendo si el Sheets está al día acabarían
   // discrepando, que es el defecto del que sale esta frase.
   const sheets = estadoDelSheets(selloDeLibro, sincronizadoEn);
+  // Decir qué lleva dentro, al pie del archivo: el libro se descargaba en silencio.
+  const libro = useEntregaConNota("Libro en Excel", { formato: "xlsx", articulo: "el" }, onGenerarLibro, avisoLibroGenerado);
   const entradaLibro = useRef<HTMLInputElement | null>(null);
   // El destino del Sheets del operativo. El estado DURO —qué enlace quedó
   // recordado— vive en el backend (`libro_sheets` de la config); aquí sólo el
@@ -276,13 +282,13 @@ export function AulasOperationsPanel({
             acordarse de «Leer del Sheets» en medio. */}
         <button
           type="button"
-          onClick={onGenerarLibro}
-          disabled={busy || !hayPlan}
+          onClick={libro.pedir}
+          disabled={busy || !hayPlan || libro.entrega.enCurso}
           title={hayPlan
             ? "Generar el Excel de tres hojas para que el equipo lo llene"
             : "Primero importa el plan de cursos-horario"}
         >
-          {busy ? <Loader2 size={14} className="pulso-spin" /> : <FileSpreadsheet size={14} />}
+          <FileSpreadsheet size={14} aria-hidden="true" />
           <span>Generar libro</span>
         </button>
         <button
@@ -397,6 +403,7 @@ export function AulasOperationsPanel({
             estudio de aulas— la barra decía «1 fuentes activas». */}
         <em>{activeSources.length ? `${contar(activeSources.length, "fuente activa", "fuentes activas")}, ${sourceKinds}` : "Sin fuentes activas conectadas"}</em>
       </div>
+      <EntregaEnBloque entrega={libro.entrega} pie={libro.pie} />
       {/* El destino de las dos acciones de Sheets: se pega UNA vez y queda
           recordado en el proyecto (decisión textual de Gonzalo). Va después de
           los botones para que la banda compacta conserve su par rejilla +

@@ -17,5 +17,10 @@ trabajo ajeno: explica por qué no puede obtenerse rojo. Tras la reparación,
 ejecuta verde y el subset vecino. Sin red, credenciales, reloj real ni rutas
 absolutas; snapshots/goldens solo tras inspección explícita.
 
+Un guard o contrato que escanea el árbol se entrega con la mutación que lo pone
+rojo y con la cantidad de elementos que recorre: un guard que mira cero
+archivos está verde por ausencia. Si el fixture tiene dos fuentes con el mismo
+valor, no distingue de cuál lee el código; dales valores distintos.
+
 Devuelve `COMPLETE|BLOCKED|FAILED`, archivos, comando/fallo rojo, comando/verde,
 contrato cubierto y huecos pendientes.

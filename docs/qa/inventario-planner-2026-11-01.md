@@ -1,5 +1,11 @@
 # Inventario del Planner para la sesión de definición — 2026-11-01
 
+Tipo: Registro QA fechado
+Estado: Histórico
+Fecha: 2026-11-01
+Autoridad: principios y respuestas de Gonzalo del 2026-11-01 en la sesión de definición del Planner
+Consolidado en: [ADR 0124: el Planner sale como módulo](../adrs/0124-el-planner-sale-como-modulo.md)
+
 Insumo para la sesión larga de preguntas y correcciones con Gonzalo. **No es un plan:
 no se revierte ni se construye nada hasta esa sesión.** El Planner no crece mientras tanto.
 

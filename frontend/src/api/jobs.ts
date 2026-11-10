@@ -90,6 +90,27 @@ export function normalizeEntregableGuardado(raw: unknown): EntregableGuardado {
   };
 }
 
+/** Lo que un normalizador de dominio conserva del meta de un archivo entregado
+ *  para que el kit de entregables lo lea: el peso (en `size`, venga como `size`
+ *  o como `size_bytes`) y los campos del registro (ADR 0133 §1). Sólo trae las
+ *  claves que llegaron con un valor útil; se esparce sobre el objeto tipado. */
+export type CamposDeEntregable = EntregableGuardadoMeta & { size?: number };
+
+export function camposDeEntregable(raw: unknown): CamposDeEntregable {
+  const obj = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
+  const peso = [obj.size, obj.size_bytes]
+    .map((v) => (Array.isArray(v) && v.length === 1 ? v[0] : v))
+    .map((v) => (typeof v === "number" ? v : typeof v === "string" && v.trim() ? Number(v) : Number.NaN))
+    .find((n) => Number.isFinite(n) && n >= 0);
+  const campos: CamposDeEntregable = {};
+  if (peso !== undefined) campos.size = peso;
+  for (const clave of ["modulo", "rotulo", "guardado_en", "aviso_guardado"] as const) {
+    const v = textoDelMeta(obj[clave]);
+    if (v !== null) campos[clave] = v;
+  }
+  return campos;
+}
+
 /** file_id del archivo principal de un resultado (el zip si es multibase). */
 export function fileIdPrincipal(raw: unknown): string | null {
   const obj = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};

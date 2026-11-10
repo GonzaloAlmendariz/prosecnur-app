@@ -1,6 +1,11 @@
 # Checklist: los formatos que campo llena, y quién los genera
 
-Fecha: 2026-10-31. Pedido de Gonzalo tras ver la asignación en la app: «la asignación no suele hacerse desde la
+Tipo: Checklist de pedido con varias indicaciones
+Estado: En curso
+Fecha: 2026-10-31
+Autoridad: pedido de Gonzalo del 2026-10-31 tras ver la asignación en la app
+
+Pedido de Gonzalo tras ver la asignación en la app: «la asignación no suele hacerse desde la
 aplicación, sino que hay que generar una especie de documento Excel»; «el equipo de campo no usa la app»; revisar las
 carpetas de campo de ACNUR acogida (territorial) y de Ser Adolescente; el barrido telefónico del RMS; y los PDF de
 recorrido y de consolidado, que «has inventado tus propios mecanismos».

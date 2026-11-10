@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from "react";
+import { CabeceraCiudad, gruposPorCiudad } from "../territorio/gruposPorCiudad";
 import { EvidenciaRevision } from "./EvidenciaRevision";
 import { AvisosDelMotor } from "../AvisosDelMotor";
 import { cuotasDescuadradas } from "../filtroDeAvisos";
@@ -67,7 +68,10 @@ export function SeleccionEstructura({ grupos, total, observadas, confirmados = [
         </GlidingRadioGroup>
       </div>
       <div className="hr-mapa-catalogo" ref={catalogo}>
-        {grupos.map((g) => (
+        {/* Con varias ciudades, sus distritos van bajo la cabecera de la ciudad (diseño nacional, 10 nov 2026). */}
+        {gruposPorCiudad(grupos, (g) => g.ubigeo, confirmados).flatMap((c, _, todas) => [
+          todas.length > 1 ? <CabeceraCiudad key={`ciudad-${c.codigo}`} como="div" nombre={c.nombre} resumen={`${fmt(c.items.reduce((a, g) => a + g.filas.length, 0))} rutas`} /> : null,
+          ...c.items.map((g) => (
           <section key={g.ubigeo} aria-label={nombreDistrito(g.distrito)}>
             <h3>
               <span className="hr-sel-grupo-nombre">
@@ -102,7 +106,8 @@ export function SeleccionEstructura({ grupos, total, observadas, confirmados = [
               ))}
             </ul>
           </section>
-        ))}
+          )),
+        ])}
         {!grupos.length ? (
           total ? (
             <EstadoVacio icono={<Search size={16} />} titulo={soloPorRevisar ? "Ninguna ruta por revisar" : `Ninguna ruta coincide con "${busquedaUmp}"`} />

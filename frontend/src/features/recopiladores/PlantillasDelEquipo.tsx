@@ -11,9 +11,10 @@ import { useEffect, useState } from "react";
 
 import { Link } from "react-router-dom";
 
-import { downloadUrl } from "../../api/core";
-import { descargarArchivo } from "../../lib/descargas";
 import { apiMaterialAulasEntrega, apiMaterialAulasPlantilla, type EntregaDeAulas, type PiezaDelEquipo } from "../../api/materialAulasEntrega";
+import { ContenedorEntregable } from "../../components/entregables/ContenedorEntregable";
+import type { Articulo } from "../../components/entregables/generacionModelo";
+import { useGeneracion } from "../../components/entregables/useGeneracion";
 import { Panel } from "../../components/Panel";
 import { PulsoButton } from "../../components/PulsoButton";
 import { serializarDireccion } from "../../lib/navegacion/direccion";
@@ -21,12 +22,13 @@ import { CalendarDays, Download, FileSpreadsheet } from "../../vendor/lucide-rea
 import "./styles/plantillas-equipo.css";
 import { CargaDeBloque } from "../../components/CargaDeBloque";
 import { FormatoDeSalida, FormatosDeSalida } from "./PaquetesAulasTablero";
+import { MODULO_MATERIAL } from "./entregas/modeloEntrega";
 
-const PIEZAS: readonly { pieza: PiezaDelEquipo; titulo: string; llena: string; requiereEntrega: boolean }[] = [
-  { pieza: "libro", titulo: "Libro del equipo", llena: "Aulas Agendadas (fecha, hora y aplicador de cada aula) y Aulas Aplicadas (el parte)", requiereEntrega: true },
-  { pieza: "disponibilidad", titulo: "Disponibilidad de aplicadores", llena: "Qué días y franjas puede cada aplicador", requiereEntrega: false },
+const PIEZAS: readonly { pieza: PiezaDelEquipo; titulo: string; articulo: Articulo; llena: string; requiereEntrega: boolean }[] = [
+  { pieza: "libro", titulo: "Libro del equipo", articulo: "el", llena: "Aulas Agendadas (fecha, hora y aplicador de cada aula) y Aulas Aplicadas (el parte)", requiereEntrega: true },
+  { pieza: "disponibilidad", titulo: "Disponibilidad de aplicadores", articulo: "la", llena: "Qué días y franjas puede cada aplicador", requiereEntrega: false },
   // R7 del mapa de responsabilidades (2 nov 2026): la asignación con la que campo empieza.
-  { pieza: "asignacion", titulo: "Asignación inicial de aplicadores", llena: "Qué aplicador va a cada aula titular, elegido de la lista del equipo", requiereEntrega: true },
+  { pieza: "asignacion", titulo: "Asignación inicial de aplicadores", articulo: "la", llena: "Qué aplicador va a cada aula titular, elegido de la lista del equipo", requiereEntrega: true },
 ];
 
 /** Donde Monitoreo rehace el reparto de cada día sobre la agenda (control, no material). */
@@ -40,7 +42,9 @@ const fecha = (iso: string) => {
 export function PlantillasDelEquipo() {
   const [entrega, setEntrega] = useState<EntregaDeAulas | null>(null);
   const [error, setError] = useState("");
-  const [ocupado, setOcupado] = useState<PiezaDelEquipo | null>(null);
+  // La espera y el archivo van en el contenedor del kit (ADR 0133): el botón sólo se deshabilita.
+  const gen = useGeneracion({ titulo: "Plantilla del equipo", modulo: MODULO_MATERIAL, formato: "xlsx" });
+  const enCurso = gen.estado.fase === "en_curso";
 
   useEffect(() => {
     let vivo = true;
@@ -50,13 +54,8 @@ export function PlantillasDelEquipo() {
     return () => { vivo = false; };
   }, []);
 
-  const descargar = (pieza: PiezaDelEquipo) => {
-    setOcupado(pieza);
-    setError("");
-    apiMaterialAulasPlantilla(pieza)
-      .then((r) => descargarArchivo(downloadUrl(r.file_id)))
-      .catch((e: unknown) => setError(e instanceof Error ? e.message.replace(/ · E_[A-Z_]+$/, "") : "No se pudo generar la plantilla."))
-      .finally(() => setOcupado(null));
+  const generar = (p: (typeof PIEZAS)[number]) => {
+    void gen.ejecutar(() => apiMaterialAulasPlantilla(p.pieza), { titulo: p.titulo, articulo: p.articulo });
   };
 
   const entregada = Boolean(entrega?.entregada);
@@ -79,13 +78,14 @@ export function PlantillasDelEquipo() {
                 titulo={p.titulo}
                 descripcion={bloqueada ? `${p.llena}. Sale después de entregar el material a Monitoreo.` : `${p.llena}.`}
               >
-                <PulsoButton size="sm" variant="secondary" disabled={bloqueada || ocupado !== null || entrega === null} onClick={() => descargar(p.pieza)}>
-                  <Download size={14} aria-hidden /> {ocupado === p.pieza ? "Generando…" : "Excel"}
+                <PulsoButton size="sm" variant="secondary" disabled={bloqueada || enCurso || entrega === null} onClick={() => generar(p)}>
+                  <Download size={14} aria-hidden /> Excel
                 </PulsoButton>
               </FormatoDeSalida>
             );
           })}
         </FormatosDeSalida>
+        <ContenedorEntregable estado={gen.estado} forma="bloque" onCerrar={gen.cerrar} />
         <p className="rec-equipo-nota">
           La asignación inicial es con la que campo empieza. El reparto de cada día sobre la agenda lo rehace Monitoreo, en{" "}
           <Link to={A_MONITOREO_REPARTO}>Modelo › Carga</Link>.

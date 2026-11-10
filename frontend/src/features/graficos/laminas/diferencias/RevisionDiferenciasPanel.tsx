@@ -3,7 +3,8 @@
 // títulos que afirman, cruces sin diferencias, diferencias bajo el umbral, bases chicas, pruebas no ejecutadas) y una
 // fila por ranura con cruce (ADR 0128 «Familia por base»: una lámina de cuatro gráficos tiene hasta cuatro) que lleva a
 // su lámina; los conteos de arriba son los del `resumen`, que el backend cuenta por ranura. Como Avisos, no es modal: la lámina elegida se ve al lado. «Exportar revisión»
-// arma el CSV en el cliente.
+// arma el CSV en el cliente y lo entrega el kit de entregables (ADR 0133, fase 5): el contenedor de archivo va en forma
+// bloque al inicio del cuerpo, bajo la cabecera que tiene el botón.
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { Download, RotateCcw } from "../../../../vendor/lucide-react";
@@ -12,6 +13,9 @@ import type { ResultadoDiferencias } from "../../../../api/graficosDiferencias";
 import { PulsoTable, type PulsoTableColumna } from "../../../../components/PulsoTable";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { CabeceraPanel } from "../../../../components/CabeceraPanel";
+import { ContenedorEntregable } from "../../../../components/entregables/ContenedorEntregable";
+import { archivoCsv } from "../../../../components/entregables/archivoLocal";
+import { useGeneracion } from "../../../../components/entregables/useGeneracion";
 import { Skeleton } from "../../../../components/Skeleton";
 import { formatoConteo } from "../../../../lib/formatoNumero";
 import { usePanelDireccionable } from "../../../../lib/navegacion/paneles";
@@ -52,6 +56,8 @@ export function RevisionDiferenciasPanel({ panel, estructura, slideIdActual, onI
   const filtro = useDiferenciasUi((s) => s.filtro);
   const setFiltro = useDiferenciasUi((s) => s.setFiltro);
   const regla = usePanelDireccionable(PANEL_DIFERENCIAS_REGLA);
+  const revision = useGeneracion({ titulo: "Diferencias del informe", modulo: "Procesamiento", formato: "csv", articulo: "las" });
+  const exportando = revision.estado.fase === "en_curso";
   const raizRef = useRef<HTMLElement>(null);
   const disparadorRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
@@ -78,8 +84,8 @@ export function RevisionDiferenciasPanel({ panel, estructura, slideIdActual, onI
   }, [todas, filtro]);
 
   const exportar = () => {
-    if (!datos) return;
-    descargarCsv(csvRevision(todas), "diferencias-del-informe.csv");
+    if (!datos || exportando) return;
+    void revision.ejecutar(async () => archivoCsv(csvRevision(todas), "diferencias-del-informe.csv"));
   };
 
   const r = datos?.resumen;
@@ -97,12 +103,13 @@ export function RevisionDiferenciasPanel({ panel, estructura, slideIdActual, onI
       <header data-qa-geometry-member="">
         <CabeceraPanel titulo="Diferencias del informe" onCerrar={cerrar} etiquetaCerrar="Cerrar diferencias del informe"
           acciones={(
-            <PulsoButton variant="secondary" size="sm" onClick={exportar} disabled={todas.length === 0}>
+            <PulsoButton variant="secondary" size="sm" onClick={exportar} disabled={todas.length === 0 || exportando}>
               <Download size={14} aria-hidden="true" /> Exportar revisión
             </PulsoButton>
           )} />
       </header>
       <div className="pulso-sig-revision-cuerpo" data-qa-geometry-member="" data-qa-scroll-owner="diferencias-informe" data-qa-geometry-capacity="owned">
+        <ContenedorEntregable estado={revision.estado} forma="bloque" onCerrar={revision.cerrar} />
         {carga?.estado === "error" ? (
           <CajaDiferencias tono="peligro" role="alert">
             <strong className="pulso-sig-titulo">No se pudo revisar el informe</strong>
@@ -203,14 +210,4 @@ function EstadoChip({ lamina }: { lamina: ResultadoDiferencias }) {
       {(e.tono === "marcada" || e.tono === "fragil") && <Capsula letras="" fragil={e.tono === "fragil"} decorativa />} {e.rotulo}
     </span>
   );
-}
-
-/** El CSV con la marca UTF-8 para que Excel lea las tildes. */
-function descargarCsv(contenido: string, nombre: string) {
-  const url = URL.createObjectURL(new Blob([`﻿${contenido}`], { type: "text/csv;charset=utf-8" }));
-  const enlace = document.createElement("a");
-  enlace.href = url;
-  enlace.download = nombre;
-  enlace.click();
-  URL.revokeObjectURL(url);
 }

@@ -99,11 +99,6 @@
   background: var(--pulso-success-bg);
   color: var(--pulso-success-fg);
 }
-.rec-terr-pieza-estado[data-estado="generando"] {
-  border-color: var(--pulso-module-fieldkit-border);
-  background: var(--pulso-module-fieldkit-soft);
-  color: var(--pulso-module-fieldkit);
-}
 .rec-terr-pieza-extra {
   grid-column: 2 / -1;
   display: flex;

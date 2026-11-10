@@ -1,5 +1,10 @@
 # Checklist: todo lo del mazo, configurable en la UI (2026-11-05)
 
+Tipo: Checklist de pedido con varias indicaciones
+Estado: En curso
+Fecha: 2026-11-05
+Autoridad: ítem 15 de la revisión del PPT v7.23; auditoría de solo lectura del plan del mazo de referencia
+
 Origen: ítem 15 de la revisión del PPT v7.23 («todo lo que está en este PPT debe estar habilitado de forma intuitiva y
 configurable en la UI del editor de PPTs; esa debe ser la vara final»). Auditoría de solo lectura del plan del mazo de
 referencia (56 láminas) frente al editor de Gráficos. Un ítem por mando sin control o con control parcial, ordenados por

@@ -8,6 +8,7 @@
 // Normalización defensiva: R manda un vector de uno como escalar y una lista vacía como `{}`.
 
 import { apiFetch, handle, headers } from "./core";
+import { camposDeEntregable, type CamposDeEntregable } from "./jobs";
 
 export type VariableDeResultados = { nombre: string; etiqueta: string };
 
@@ -77,7 +78,10 @@ export async function apiSupervisionGuardarColumnas(
   ));
 }
 
-export async function apiSupervisionExcel(campaignId: string): Promise<{ file_id: string; casos: number }> {
+/** La base de supervisión generada, con su nombre y el meta del entregable (ADR 0133). */
+export type BaseDeSupervision = { file_id: string; filename: string; casos: number } & CamposDeEntregable;
+
+export async function apiSupervisionExcel(campaignId: string): Promise<BaseDeSupervision> {
   const r = await handle<unknown>(await apiFetch("/api/recopiladores/campaigns/supervision/excel", {
     method: "POST",
     headers: headers({ "Content-Type": "application/json" }),
@@ -86,7 +90,7 @@ export async function apiSupervisionExcel(campaignId: string): Promise<{ file_id
   const o = esRegistro(r) ? r : {};
   const file_id = texto(o.file_id);
   if (!file_id) throw new Error("El backend no devolvió la base de supervisión.");
-  return { file_id, casos: entero(o.casos) };
+  return { ...camposDeEntregable(o), file_id, filename: texto(o.filename), casos: entero(o.casos) };
 }
 
 // ---- La base en su propio Sheets (Gonzalo: «Fórmula en el Sheets») ----------------------------------

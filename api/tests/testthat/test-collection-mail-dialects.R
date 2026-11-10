@@ -34,14 +34,14 @@ test_that("paridad: export/mailchimp da el MISMO SHA256 que el render anterior (
     c <- cases[[n]]
     new <- collection_mail_render(c$t, "export", "mailchimp", images = c$images)$html
     alias <- collection_mail_render(c$t, "mailchimp", images = c$images)$html
-    expect_identical(.cmail_fx_sha(new), fx$sha256[[n]], label = paste("export/mailchimp", n))
+    expect_identical(.cmail_fx_sha(.cmail_fx_pie_l17(new)), fx$sha256[[n]], label = paste("export/mailchimp", n))
     expect_identical(alias, new, label = paste("alias mode = mailchimp", n))
     pv <- collection_mail_render(c$t, "preview", values = fx$preview_values, images = c$images)$html
-    expect_identical(.cmail_fx_sha(pv), fx$preview_sha256[[n]], label = paste("preview mailchimp", n))
+    expect_identical(.cmail_fx_sha(.cmail_fx_pie_l17(pv)), fx$preview_sha256[[n]], label = paste("preview mailchimp", n))
   }
   # Los dos presets reales, como los sirve la app hoy (con `sm` en el enlace).
   for (id in c("recuperacion", "invitacion")) {
-    expect_identical(.cmail_fx_sha(collection_mail_render(cases[[id]]$t, "export")$html), fx$sha256[[id]])
+    expect_identical(.cmail_fx_sha(.cmail_fx_pie_l17(collection_mail_render(cases[[id]]$t, "export")$html)), fx$sha256[[id]])
   }
 })
 
@@ -214,7 +214,8 @@ test_that("export SurveyMonkey: ZIP con HTML verificado, LEEME y manifest; un so
   ex <- collection_mail_export(sid, .cmd_rev(sid), sm$id)
   expect_identical(ex$platform, "surveymonkey")
   expect_identical(ex$send_id, "invitacion")
-  expect_match(ex$zip$filename, "^arte-fg_invitacion_surveymonkey_\\d{8}-\\d{6}\\.zip$")
+  expect_match(ex$zip$filename, "^[A-Za-z0-9]+_Correo_para_SurveyMonkey_Invitacion_.+_\\d{2}_\\d{2}_\\d{2}\\.zip$")
+  expect_match(ex$artifacts[[2]]$filename, "^[A-Za-z0-9]+_Correo_para_SurveyMonkey_manifiesto_Invitacion_.+\\.json$")
   expect_identical(vapply(ex$artifacts, `[[`, "", "role"), c("deliverable", "manifest"))
   expect_identical(unique(vapply(ex$artifacts, `[[`, "", "sensitivity")), "none")
   files <- session_get(sid)$files
@@ -251,10 +252,10 @@ test_that("mailchimp: el export lleva el send_id en el nombre y manifest.send; e
   a <- collection_mail_campaign_create(sid, 0L, name = "Uno")
   .cmail_fx_completar(sid, "uno")
   ex <- collection_mail_export(sid, .cmd_rev(sid), "uno", scope = "plantilla")
-  expect_match(ex$zip$filename, "^uno_invitacion_plantilla-mailchimp_\\d{8}-\\d{6}\\.zip$")
+  expect_match(ex$zip$filename, "^[A-Za-z0-9]+_Plantilla_de_correo_para_Mailchimp_Invitacion_Uno_\\d{2}_\\d{2}_\\d{2}\\.zip$")
   expect_identical(ex$manifest$platform, "mailchimp")
   expect_identical(ex$manifest$send$send_id, "invitacion")
-  expect_identical(ex$artifacts[[2]]$filename, "uno_invitacion_mailchimp_manifest.json")
+  expect_match(ex$artifacts[[2]]$filename, "^[A-Za-z0-9]+_Correo_para_Mailchimp_manifiesto_Invitacion_Uno_\\d{2}_\\d{2}_\\d{2}\\.json$")
   pv <- collection_mail_preview(sid, mode = "mailchimp", campaign_id = "uno")
   expect_identical(pv$dialect, "mailchimp")
   expect_match(pv$html, "*|UNSUB|*", fixed = TRUE)

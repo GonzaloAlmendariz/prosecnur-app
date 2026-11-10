@@ -8,7 +8,7 @@
 #
 # Exportación (síncrona; sobre 5 MB se rechaza), FUERA del `.pulso`, en
 # `<session$dir>/downloads`. Con `scope = "completo"` (por defecto):
-#   <campaign_id>_<send_id>_mailchimp_<stamp>.zip   sensitivity personal_data
+#   <Estudio>_Correo_para_Mailchimp_<Envío_Campaña>_<dd_mm_yy>.zip   personal_data (ADR 0133 §3)
 #   ├── plantilla-mailchimp.zip              importable («Import ZIP»), sin datos personales
 #   │   ├── <campaign_id>.html               src relativos o URL https declarada
 #   │   └── <id>.png / <id>.jpg              en la raíz (collection_mail_import_zip.R)
@@ -558,11 +558,31 @@ collection_mail_review <- function(sid, template = NULL, campaign_id = NULL, sco
   )
 }
 
-# Nombre público de un artefacto, ≤ 80 caracteres (O2): recorta el slug si hace falta.
-.cmail_export_name <- function(slug, send_id, suffix, ext = "zip", stamp = NULL) {
-  tail <- paste0("_", send_id, "_", suffix, if (!is.null(stamp)) paste0("_", stamp), ".", ext)
-  room <- max(1L, 80L - nchar(tail))
-  paste0(gsub("-+$", "", substr(slug, 1L, room)), tail)
+# Envío y campaña en palabras, el detalle del nombre (ADR 0133 §3): «Invitación Docentes».
+.cmail_export_detalle <- function(campaign, send) {
+  tag <- .cmail_send_tag(campaign, send)
+  envio <- if (identical(tag, .CMAIL_SEND_INVITATION)) "Invitación" else if (identical(tag, "ultimo")) {
+    "Último recordatorio"
+  } else sub("^recordatorio-([0-9]+)$", "Recordatorio \\1", tag)
+  nombre <- trimws(.cmail_one(campaign$name) %||% .cmail_one(campaign$campaign_id) %||% "")
+  # «Invitación docentes» ya dice qué envío es: no se repite la palabra.
+  ya_lo_dice <- grepl(paste0("(^|_)", tolower(.entregable_slug(envio)), "(_|$)"), tolower(.entregable_slug(nombre)))
+  paste(c(if (!ya_lo_dice) envio, if (nzchar(nombre)) nombre), collapse = " ")
+}
+
+# Detalle de la revisión y de los textos: el título si el usuario lo cambió; si no,
+# la campaña cuando es una sola. El título por defecto ya es el rótulo del catálogo.
+.cmail_detalle_documento <- function(titulo, por_defecto, campanas) {
+  titulo <- trimws(.cmail_one(titulo) %||% "")
+  if (nzchar(titulo) && !identical(titulo, por_defecto)) return(titulo)
+  if (length(campanas) == 1L) return(.cmail_one(campanas[[1]]$name) %||% .cmail_one(campanas[[1]]$campaign_id))
+  NULL
+}
+
+# Nombre público de un artefacto (ADR 0133 §3, ≤ 80 caracteres): el rótulo del
+# kind en el catálogo y, de detalle, el envío y la campaña.
+.cmail_export_name <- function(sid, campaign, send, kind, ext = "zip") {
+  .export_filename(sid, kind, ext, detalle = .cmail_export_detalle(campaign, send))
 }
 
 # Registra un artefacto de la exportación con sus metadatos de entregable.
@@ -576,9 +596,9 @@ collection_mail_review <- function(sid, template = NULL, campaign_id = NULL, sco
   files[[meta$file_id]]$audience <- "client"
   files[[meta$file_id]]$sensitivity <- sensitivity
   session_set(sid, "files", files)
-  list(file_id = meta$file_id, role = role, filename = name, media_type = media_type,
-       size_bytes = as.integer(meta$size), sha256 = digest_value,
-       audience = "client", sensitivity = sensitivity)
+  entregable_respuesta(list(file_id = meta$file_id, role = role, filename = meta$original_name, media_type = media_type,
+                            size = as.integer(meta$size), size_bytes = as.integer(meta$size), sha256 = digest_value,
+                            audience = "client", sensitivity = sensitivity), meta)
 }
 
 # Bloque `send` del manifest: qué envío es y la huella de su definición.
@@ -694,14 +714,13 @@ collection_mail_export <- function(sid, expected_revision = NULL, campaign_id = 
   manifest_path <- file.path(work, "manifest.json")
   writeLines(jsonlite::toJSON(manifest, auto_unbox = TRUE, pretty = TRUE, null = "null"), manifest_path, useBytes = TRUE)
 
-  stamp <- format(Sys.time(), "%Y%m%d-%H%M%S")
   if (completo) {
-    zip_name <- .cmail_export_name(slug, .cmail_send_tag(campaign, send), "mailchimp", stamp = stamp)
+    zip_name <- .cmail_export_name(sid, campaign, send, "collection_mail_zip")
     zip_path <- file.path(session$dir, "downloads", paste0(uuid::UUIDgenerate(), "__", zip_name))
     zip::zip(zip_path, files = c(entries, "manifest.json"), root = work, mode = "mirror")
   } else {
     # Solo la plantilla: el entregable ES el ZIP importable, tal cual se verificó.
-    zip_name <- .cmail_export_name(slug, .cmail_send_tag(campaign, send), "plantilla-mailchimp", stamp = stamp)
+    zip_name <- .cmail_export_name(sid, campaign, send, "collection_mail_template_zip")
     zip_path <- file.path(session$dir, "downloads", paste0(uuid::UUIDgenerate(), "__", zip_name))
     file.copy(importable$path, zip_path, overwrite = TRUE)
   }
@@ -711,7 +730,7 @@ collection_mail_export <- function(sid, expected_revision = NULL, campaign_id = 
     stop_api(413, "E_COLLECTION_MAIL_EXPORT_TOO_LARGE",
              "El paquete supera 5 MB (revisa el peso de las imágenes).", details = list(size_bytes = as.integer(size)))
   }
-  manifest_name <- .cmail_export_name(slug, .cmail_send_tag(campaign, send), "mailchimp_manifest", ext = "json")
+  manifest_name <- .cmail_export_name(sid, campaign, send, "collection_mail_manifest", ext = "json")
   manifest_out <- file.path(session$dir, "downloads", paste0(uuid::UUIDgenerate(), "__", manifest_name))
   file.copy(manifest_path, manifest_out, overwrite = TRUE)
 

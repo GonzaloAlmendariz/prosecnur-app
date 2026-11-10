@@ -1,5 +1,10 @@
 # Checklist · Verificación de lo construido el 1 y 2/11 — 2026-11-02
 
+Tipo: Checklist de encargo
+Estado: En curso
+Fecha: 2026-11-02
+Autoridad: Encargo de coordinación con la autorización de Gonzalo de la noche del 2026-11-02
+
 Encargo de coordinación, con la autorización de Gonzalo de esa noche: comprobar «que lo construido esté todo bien,
 mejoras palpables» y que «toda la app esté consistente», sin consultarle. Lo que dependa de él va «para la mañana».
 Reglas: sin push, sin relanzar ni reinstalar backends, sin borrar páginas fuera del ADR 0124 y sin cambiar cifras

@@ -2,8 +2,6 @@
 export { SalidasCierreTab } from "./SalidasCierreTab";
 export {
   SalidasEntregablesTab,
-  type PaqueteDefensaPaso,
-  type PaqueteDefensaPasoId,
   type SalidasPaqueteDefensaProps,
   type SalidasReporteProps,
 } from "./SalidasEntregablesTab";

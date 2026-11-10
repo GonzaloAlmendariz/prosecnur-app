@@ -1916,13 +1916,14 @@ mount_carga <- function(pr) {
     plumber::pr_get("/api/carga/data/normalized-export", wrap_endpoint(function(req, res, format = "xlsx", base_nombre = NULL) {
       sid <- session_header(req)
       meta <- .carga_export_normalized_data(sid, base_nombre = base_nombre, format = format)
-      list(
+      entregable_respuesta(list(
         ok = TRUE,
         file_id = meta$file_id,
         size = meta$size,
+        filename = meta$original_name,
         original_name = meta$original_name,
         format = meta$ext
-      )
+      ), meta)
     })) |>
 
     plumber::pr_post("/api/carga/base-sheet", wrap_endpoint(function(req, res, ...) {

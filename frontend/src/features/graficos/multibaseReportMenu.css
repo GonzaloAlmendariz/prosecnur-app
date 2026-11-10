@@ -1,0 +1,7 @@
+/* Menú "Conjunto" sobre el kit de entregables (ADR 0133, fase 5). El contenedor del paquete por bases cuelga del
+   disparador (forma anclada; `.pulso-multibase-reports` es su ancla). Con el menú cerrado la fila de bases vuelve a su
+   capa (44) y el contenedor podría quedar bajo las capas de la página: mientras se ve, la fila sube a la capa de los
+   menús, igual que con el menú abierto (theme.css, `:has(.pulso-multibase-reports.is-open)`). */
+.pulso-processing-phase-row:has(.pulso-multibase-reports > .pulso-entregable) {
+  z-index: var(--pulso-z-flyout);
+}

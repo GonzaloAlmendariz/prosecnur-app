@@ -23,6 +23,10 @@ import { AccesoAjustes } from "../ajustes/AccesoAjustes";
 import { resumenGrupo } from "../ajustes/gruposAjustes";
 import { useAbrirAjustes } from "../ajustes/useAjustesDiseno";
 import { etiquetaRuteo, resumenHistorial } from "./resumenHistorial";
+import { BarraNseDistrito } from "./BarraNseDistrito";
+import { CabeceraCiudad, gruposPorCiudad } from "../territorio/gruposPorCiudad";
+import { ORDEN_NSE } from "./nsePorDistrito";
+import { NOMBRE_NSE } from "../territorio/capaDistritos";
 /**
  * Manzanas en la página del lienzo (U8). El inspector arma el sorteo —método,
  * peso, semilla, recorrido y reemplazos— y lo manda a R; la estructura es el
@@ -224,9 +228,14 @@ type EstructuraProps = {
   onQuitar?: (s: HojasRutaRouteSnapshot) => void;
   /** El ruteo al que se acaba de volver y si salió la misma muestra (causaRuteo.ts). */
   usado?: { id: string; causa: CausaRuteo } | null;
+  /** UMP titulares de cada distrito por NSE (nsePorDistrito.ts); vacío si la geometría aún no llega. */
+  nsePorDistrito?: ReadonlyMap<string, readonly number[]>;
 };
 
-export function ManzanasEstructura({ muestra, historial, territorios, nFinal, cobertura = [], bloqueado, guardando, onUsar, onQuitar, usado = null }: EstructuraProps) {
+// Nombres literales: el contrato de tokens no lee nombres armados.
+const NSE_LEYENDA = ["--pulso-nse-0", "--pulso-nse-1", "--pulso-nse-2", "--pulso-nse-3", "--pulso-nse-4", "--pulso-nse-5"] as const;
+
+export function ManzanasEstructura({ muestra, historial, territorios, nFinal, cobertura = [], bloqueado, guardando, onUsar, onQuitar, usado = null, nsePorDistrito }: EstructuraProps) {
   const porDistrito = new Map<string, { distrito: string; titulares: number; entrevistas: number; reemplazos: number }>();
   for (const b of muestra?.blocks ?? []) {
     const f = porDistrito.get(b.ubigeo) ?? { distrito: b.distrito, titulares: 0, entrevistas: 0, reemplazos: 0 };
@@ -240,6 +249,9 @@ export function ManzanasEstructura({ muestra, historial, territorios, nFinal, co
     porDistrito.set(b.ubigeo, f);
   }
   const filas = [...porDistrito.entries()].sort((a, b) => a[1].distrito.localeCompare(b[1].distrito, "es"));
+  const masUmp = Math.max(1, ...filas.map(([, f]) => f.titulares));
+  // La leyenda declara sólo los niveles que aparecen en alguna barra.
+  const nivelesVistos = ORDEN_NSE.filter((k) => filas.some(([u]) => (nsePorDistrito?.get(u)?.[k] ?? 0) > 0));
   // Con huella en los dos lados, «en uso» es la misma muestra; si no, la misma semilla, método y tamaño.
   const vigente = (h: HojasRutaRouteSnapshot) => Boolean(muestra) && (h.sample_fingerprint && muestra?.sample_fingerprint ? h.sample_fingerprint === muestra.sample_fingerprint : h.seed === muestra?.seed && h.method === muestra?.method && h.n_blocks === muestra?.n_blocks);
 
@@ -256,7 +268,9 @@ export function ManzanasEstructura({ muestra, historial, territorios, nFinal, co
       <div className="hr-mapa-ins-cuerpo">
         {filas.length ? (
           <ul className="hr-sorteo-distritos">
-            {filas.map(([u, f]) => (
+            {gruposPorCiudad(filas, ([u]) => u, territorios).flatMap((g, _, todos) => [
+              todos.length > 1 ? <CabeceraCiudad key={`ciudad-${g.codigo}`} nombre={g.nombre} resumen={`${g.items.length} distrito${g.items.length === 1 ? "" : "s"}, ${fmt(g.items.reduce((a, [, f]) => a + f.titulares, 0))} UMP`} /> : null,
+              ...g.items.map(([u, f]) => (
               <li key={u}>
                 {/* B40: el punto lleva el tono del distrito en el mapa (orden de confirmación, como en B9). */}
                 <i style={{ background: tonoCss(territorios.indexOf(u)) }} aria-hidden="true" />
@@ -270,10 +284,20 @@ export function ManzanasEstructura({ muestra, historial, territorios, nFinal, co
                   <b>{fmt(f.titulares)}</b>
                   <small>UMP</small>
                 </span>
+                {nsePorDistrito?.get(u) ? <BarraNseDistrito conteos={nsePorDistrito.get(u) ?? []} largo={f.titulares / masUmp} distrito={nombreDistrito(f.distrito)} /> : null}
               </li>
-            ))}
+            )),
+            ])}
           </ul>
-        ) : (
+        ) : null}
+        {filas.length && nivelesVistos.length ? (
+          <p className="hr-sorteo-distritos-leyenda" aria-label="NSE de las UMP titulares">
+            {nivelesVistos.map((k) => (
+              <span key={k}><i style={{ background: `var(${NSE_LEYENDA[k]})` }} aria-hidden="true" />{NOMBRE_NSE[k]}</span>
+            ))}
+          </p>
+        ) : null}
+        {filas.length ? null : (
           <EstadoVacio icono={<Inbox size={16} />} titulo="Todavía no hay manzanas sorteadas" descripcion="Sortea desde el panel de la derecha." />
         )}
         <GrupoMuestra titulo="Historial de ruteos" resumen={resumenHistorial(historial.length, historial.some(vigente))} abierto={!muestra}>

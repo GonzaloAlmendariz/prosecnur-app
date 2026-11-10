@@ -414,7 +414,7 @@
   cursor: pointer;
 }
 .pulso-resp-descargas button:hover:not(:disabled) { text-decoration: underline; }
-.pulso-resp-descargas button:disabled { opacity: 0.5; cursor: progress; }
+.pulso-resp-descargas button:disabled { opacity: 0.5; cursor: default; }
 .pulso-resp-detalle summary { cursor: pointer; color: var(--pulso-text-soft); }
 .pulso-resp-detalle ul {
   margin: 6px 0 0;

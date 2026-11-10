@@ -11,14 +11,16 @@
 # `guardar = FALSE`: vistas previas y miniaturas, assets de estilo, manifiestos,
 # evidencias e intercambio (naturaleza distinta de «entregable» en el censo de
 # descargas 2026-11-07) y, de forma transitoria (ADR 0133, Consecuencias), los
-# kinds cuyos flujos del front ya guardan a mano en la raíz del proyecto: el
-# export del Editor XLSForm y los ZIP de Correos con «Junto al proyecto».
+# kinds cuyos flujos del front guardaban a mano en la raíz del proyecto. En la
+# fase 5 dejaron de serlo los ZIP de Correos y el Editor XLSForm (su export y el
+# formulario impreso): el front retiró el guardado manual y se copian como el
+# resto. Las vistas previas del Editor tienen kinds propios sin copia.
 #
 # Regla del lead (2026-11-07): sólo se copia lo que el usuario pidió descargar.
-# Hasta la fase 5 van con guardar = FALSE los archivos que se registran sin que
-# la UI los ofrezca o que ya viajan dentro de otro entregable: el XLSForm de
-# ocurrencias (lo registra «Subir Kobo»), los tres de la limpieza (base limpia,
-# revisión HTML y decisiones) y los dos archivos que contiene el ZIP del handoff.
+# Van con guardar = FALSE los archivos que se registran sin que la UI los ofrezca
+# o que ya viajan dentro de otro entregable: el XLSForm de ocurrencias que
+# registra «Subir Kobo» y los dos archivos que contiene el ZIP del handoff. Los
+# tres de la limpieza se copian desde la fase 5: la UI ya los ofrece.
 
 .ENTREGABLES_MODULOS <- c(
   cm = "Cálculo de muestra", fo = "Formularios", hr = "Hojas de ruta", mc = "Material de campo",
@@ -31,19 +33,26 @@
   "calc_muestra_general_sorteo|Sorteo de muestra|cm|0|1",
   "calc_muestra_aulas_seleccion|Selección de aulas|cm|0|1",
   "calc_muestra_solicitud_dti|Solicitud DTI|cm|0|1",
-  # Formularios (el flujo del Editor guarda a mano: transitorio)
-  "formulario_pdf|Cuestionario|fo|0|0",
-  "formulario_word|Cuestionario|fo|0|0",
+  "reporte_calc_muestra|Reporte de muestra|cm|0|1",
+  # Formularios
+  "formulario_pdf|Cuestionario|fo|0|1",
+  "formulario_word|Cuestionario|fo|0|1",
+  "formulario_pdf_previa|Vista previa del cuestionario|fo|0|0",
+  "formulario_word_visor|Vista previa del cuestionario|fo|0|0",
+  "xlsform_editor_export|XLSForm|fo|0|1",
   # Hojas de ruta
   "hojas_ruta_population_matrix|Matriz poblacional|hr|0|1",
   "hojas_ruta_random_pdf|Hoja de ruta de prueba|hr|0|0",
   "hojas_ruta_reemplazos_puntuales|Reemplazos puntuales|hr|0|1",
   "hojas_ruta_operativo|Libro operativo de rutas|hr|0|1",
   "hojas_ruta_zip|Hojas de ruta|hr|0|1",
-  "hojas_ruta_ficha_ump|Ficha de reemplazo UMP|hr|0|0",
+  "reporte_muestra_territorial|Reporte de muestra territorial|hr|0|1",
+  "hojas_ruta_ficha_ump|Ficha de UMP|hr|0|0",
+  "hojas_ruta_ficha_ump_reemplazo|Ficha de reemplazo UMP|hr|0|0",
   # Material de campo
   "hojas_ruta_hoja_dia|Hoja del día|mc|0|1",
-  "asignacion_encuestadores|Asignación de encuestadores|mc|0|1",
+  "asignacion_encuestadores_ump|Asignación de encuestadores por UMP|mc|0|1",
+  "asignacion_encuestadores_cuotas|Asignación de encuestadores por cuotas|mc|0|1",
   "plantilla_barrido|Plantilla de barrido|mc|0|1",
   "supervision_base|Base de supervisión|mc|0|1",
   "aulas_disponibilidad_plantilla|Plantilla de disponibilidad de aplicadores|mc|0|1",
@@ -54,37 +63,50 @@
   "material_conteo|Hoja de conteo|mc|0|1",
   "mail_revision|Correos para revisar|mc|0|1",
   "mail_textos|Textos de los correos|mc|0|1",
-  "collection_mail_zip|Correo para Mailchimp|mc|0|0",
-  "collection_mail_template_zip|Plantilla de correo para Mailchimp|mc|0|0",
-  "collection_mail_sm_zip|Correo para SurveyMonkey|mc|0|0",
+  "collection_mail_zip|Correo para Mailchimp|mc|0|1",
+  "collection_mail_template_zip|Plantilla de correo para Mailchimp|mc|0|1",
+  "collection_mail_sm_zip|Correo para SurveyMonkey|mc|0|1",
   "collection_mail_manifest|Correo para Mailchimp manifiesto|mc|0|0",
+  "collection_mail_sm_manifest|Correo para SurveyMonkey manifiesto|mc|0|0",
   "collection_material_png|Vista previa de fichas|mc|0|0",
   "collection_material_pdf|Fichas con QR|mc|0|1",
   "collection_material_bundle|Fichas con QR|mc|0|1",
+  "collection_material_prueba|Ficha de prueba|mc|0|1",
   # Monitoreo
   "aulas_libro|Libro de aulas|mo|0|1",
   "monitoreo_reporte|Reporte de monitoreo|mo|0|1",
-  "monitoreo_ump_export|UMP faltantes|mo|0|1",
+  "monitoreo_ump_export|UMP|mo|0|1",
   "monitoreo_processing_handoff_data|Data procesable|mo|0|0",
   "monitoreo_processing_handoff_xlsform|XLSForm procesable|mo|0|0",
   "monitoreo_processing_handoff_zip|Entrega a procesamiento|mo|0|1",
   "monitoreo_ocurrencias_xlsform|XLSForm de ocurrencias|mo|0|0",
+  "monitoreo_ocurrencias_xlsform_descarga|XLSForm de ocurrencias|mo|0|1",
   "monitoreo_territorial_operational_package_template|Paquete operativo plantilla|mo|0|0",
   "monitoreo_territorial_operational_package_review_csv|Paquete operativo revisión|mo|0|0",
   "monitoreo_territorial_operational_package_review_json|Paquete operativo revisión|mo|0|0",
   "monitoreo_territorial_operational_package_review_md|Paquete operativo revisión|mo|0|0",
-  "monitoreo_publication_evidence_pack|Evidencia para el cliente|mo|0|0",
-  "monitoreo_publication_operational_package_request_csv|Evidencia para el cliente solicitud|mo|0|0",
-  "monitoreo_publication_operational_package_request_json|Evidencia para el cliente solicitud|mo|0|0",
-  "monitoreo_publication_operational_package_status|Evidencia para el cliente estado|mo|0|0",
+  "monitoreo_publication_evidence_pack|Evidencia de publicación|mo|0|0",
+  "monitoreo_publication_operational_package_request_csv|Evidencia de publicación solicitud|mo|0|0",
+  "monitoreo_publication_operational_package_request_json|Evidencia de publicación solicitud|mo|0|0",
+  "monitoreo_publication_operational_package_status|Evidencia de publicación estado|mo|0|0",
   "monitoreo_publication_decision|Decisión de publicación|mo|0|0",
+  "monitoreo_plantilla_encuestadores|Plantilla de encuestadores|mo|0|1",
+  "monitoreo_codigos_encuestadores|Códigos de encuestadores|mo|0|1",
+  "monitoreo_aulas_disponibilidad_plantilla|Plantilla de disponibilidad de aplicadores|mo|0|1",
+  "monitoreo_aulas_carga_de_campo|Carga de campo|mo|0|1",
+  "avance_territorial_monitoreo|Avance territorial|mo|0|1",
+  "avance_telefonico_monitoreo|Avance telefónico|mo|0|1",
+  "avance_aulas_monitoreo|Avance de aulas|mo|0|1",
+  "reporte_cliente_monitoreo|Reporte de avance para el cliente|mo|0|1",
+  "produccion_responsable_monitoreo|Producción por responsable|mo|0|1",
   # Procesamiento: carga y validación
   "data_normalizada|Base normalizada|pr|1|1",
   "validacion_report_html|Reporte de validación|pr|1|1",
   "plan_limpieza_export|Plan de limpieza|pr|1|1",
-  "validacion_limpieza_base_limpia|Base limpia|pr|1|0",
-  "validacion_limpieza_html|Revisión de limpieza|pr|1|0",
-  "validacion_limpieza_excel|Decisiones de limpieza|pr|1|0",
+  "validacion_limpieza_base_limpia|Base limpia|pr|1|1",
+  "validacion_limpieza_html|Revisión de limpieza|pr|1|1",
+  "validacion_limpieza_excel|Decisiones de limpieza|pr|1|1",
+  "metodologia_validacion|Metodología de validación|pr|1|1",
   # Procesamiento: codificación
   "familias_template|Plantilla de familias|pr|0|1",
   "plantilla_codif_template|Plantilla de codificación|pr|0|1",
@@ -153,6 +175,9 @@
   "graficos_icon|Ícono de gráficos|pr|0|0",
   # Proyecto
   "plan_trabajo_xlsx|Plan de trabajo|py|0|1",
+  # Dashboard y Carga: salidas que antes viajaban como bytes en la respuesta (fase 5)
+  "dashboard_base_datos|Base de datos del dashboard|da|0|1",
+  "diferencias_integracion|Diferencias de integración|pr|0|1",
   "audit_project_analitica_csv|Auditoría de analítica|py|0|0",
   "audit_project_analitica_sav|Auditoría de analítica|py|0|0",
   "audit_project_processing_xlsx|Auditoría de procesamiento|py|0|0",
@@ -183,13 +208,9 @@
 )
 
 .ENTREGABLES_SUELTOS <- c(
-  "avance_territorial_monitoreo|Avance territorial|0",
-  "avance_telefonico_monitoreo|Avance telefónico|0",
-  "avance_aulas_monitoreo|Avance de aulas|0",
-  "reporte_cliente_monitoreo|Reporte de avance para el cliente|0",
-  "produccion_responsable_monitoreo|Producción por responsable|0",
-  "metodologia_validacion|Metodología de validación|1",
-  "base_datos|Base de datos del dashboard|0"
+  "relacion|Relación|0",
+  "codificacion_config|Configuración de codificación|0",
+  "lamina|Lámina|0"
 )
 
 .entregables_cache <- new.env(parent = emptyenv())

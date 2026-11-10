@@ -6,6 +6,7 @@
 //   POST /api/recopiladores/campaigns/territorial/hoja-dia  {id, jornada, supuestos} → PDF
 
 import { apiFetch, handle, headers } from "./core";
+import { camposDeEntregable, type CamposDeEntregable } from "./jobs";
 import { normalizarPlanCampo, type HojasRutaPlanCampo, type HojasRutaPlanSupuestos } from "./hojasRuta";
 
 export async function apiMaterialTerritorialPlan(campaignId: string, supuestos: HojasRutaPlanSupuestos): Promise<HojasRutaPlanCampo> {
@@ -20,7 +21,11 @@ export async function apiMaterialTerritorialPlan(campaignId: string, supuestos: 
   );
 }
 
-export async function apiMaterialTerritorialHojaDia(campaignId: string, jornada: string, supuestos: HojasRutaPlanSupuestos): Promise<{ file_id: string }> {
+export async function apiMaterialTerritorialHojaDia(
+  campaignId: string,
+  jornada: string,
+  supuestos: HojasRutaPlanSupuestos,
+): Promise<{ file_id: string; filename: string } & CamposDeEntregable> {
   const r = await handle<unknown>(
     await apiFetch("/api/recopiladores/campaigns/territorial/hoja-dia", {
       method: "POST",
@@ -32,5 +37,7 @@ export async function apiMaterialTerritorialHojaDia(campaignId: string, jornada:
   const v = Array.isArray(o.file_id) ? o.file_id[0] : o.file_id;
   const file_id = typeof v === "string" ? v.trim() : "";
   if (!file_id) throw new Error("El backend no devolvió la hoja del día.");
-  return { file_id };
+  const n = Array.isArray(o.filename) ? o.filename[0] : o.filename;
+  // El nombre y el meta del entregable (ADR 0133 §1): sin ellos el kit no sabe cómo se llama el PDF.
+  return { ...camposDeEntregable(o), file_id, filename: typeof n === "string" ? n : "" };
 }

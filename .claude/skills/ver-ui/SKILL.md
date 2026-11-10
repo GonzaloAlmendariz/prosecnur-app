@@ -165,3 +165,42 @@ owner de implementación aprovecha HMR para editar sus globs.
 - Si el backend reinicia y el `sid` expira, vuelve a abrir con `pulso`; no
   inyectes una sesión inventada.
 - Cierra informando si dejaste una pila local activa y en qué puertos.
+
+## 7. Trampas de medición del QA visual
+
+Cada una costó al menos un ciclo. Vivían en `CLAUDE.md`; su sitio es este skill.
+
+- **El tope por defecto son 30 s y no alcanza para Monitoreo**: su warm start
+  con proyecto real tarda 4–6 min, así que el runner se rinde en
+  `marca-en-false` antes de capturar nada. Pásale `--timeout-ms 420000` (o
+  `UI_QA_TIMEOUT_MS`). Ese motivo ahí no significa "la vista está rota",
+  significa "no le diste tiempo": son acciones opuestas y distinguirlas costó
+  un ciclo entero el 2026-09-12.
+- **Sin `--post-click-wait-selector ".js-plotly-plot"`, todo panel con gráfico
+  sale VACÍO**: la readiness dice que la vista montó, no que Plotly pintó. Una
+  matriz capturada sin ese flag no sirve para juzgar gráficos, y el gate la da
+  por buena —un panel de 250 px en blanco no es recorte, ni derrame, ni
+  desborde—. (`--wait-selector` no vale: se evalúa antes.)
+- **`overflow-x` sobre un `<td>` con `colSpan` en una tabla `table-layout:
+  fixed` es FALSO POSITIVO**: la caja de esa celda mide lo que suman sus
+  columnas y el contenido se pinta sobre el ancho real, sin recorte. Mira la
+  captura antes de tocar CSS —11 "desbordes" de Avance > Metas resultaron ser
+  texto que se lee entero—.
+- **Comprueba que las capturas son DISTINTAS antes de darlas por mediciones
+  distintas**: `md5 -q out/*.png | sort -u | wc -l`. Una `?seccion=` que no
+  existe en ese perfil **no falla**: aterriza muda en la sección por defecto, y
+  el gate mide y aprueba la misma pantalla N veces. Pasó el 2026-09-12 con 5
+  "vistas" de acreditación que eran un solo archivo byte a byte.
+- **`desplazamientoH=N` en el resumen** dice cuántos contenedores esconden
+  contenido a la derecha, y el informe trae el selector y los píxeles. No
+  falla el gate —desplazarse en horizontal es legítimo—, pero un `0` ahí es
+  lo único que permite afirmar que no se está perdiendo una columna.
+- **Las corridas NO se paralelizan** —y sus TESTS tampoco: correr
+  `node --test scripts/tests/*.test.mjs` con una captura en background fabrica
+  rojos por contención (4 tests caídos, los 4 verdes aislados).** Dos a la vez se pisan en el puerto de la
+  API y la segunda muere con "/api/system/bootstrap no devolvió sid". Van en
+  serie; varias `--route` dentro de UNA corrida sí comparten la pila.
+- **`--ir` encadena y captura SÓLO el final.** Varias vistas en una sola pila
+  se piden con varios `--route` y query (`--route "/monitoreo?seccion=modelo"`),
+  que es para lo que existe la regla de que toda vista sea enlazable; así se
+  paga un warm start en vez de uno por vista.

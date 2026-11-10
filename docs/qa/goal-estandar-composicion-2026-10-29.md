@@ -1,5 +1,10 @@
 # GOAL — el motor define su estándar de composición (2026-10-29)
 
+Tipo: GOAL (loop de convergencia)
+Estado: En curso
+Fecha: 2026-10-29
+Autoridad: Encargo de Gonzalo del 2026-10-29
+
 Encargo de Gonzalo: «Ahora que ya tenemos un estándar más fino, tratemos de mejorar la UI y que el motor defina mejor sus
 estándares, elementos visuales, y que todo esté fino y no construido por encima».
 

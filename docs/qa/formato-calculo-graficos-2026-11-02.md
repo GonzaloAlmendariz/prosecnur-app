@@ -1,5 +1,10 @@
 # Formato sistemático en Cálculo de muestra y Gráficos — 2 nov 2026 (noche)
 
+Tipo: Registro QA fechado
+Estado: En curso
+Fecha: 2026-11-02
+Autoridad: Encargo de coordinación para la noche del 2 al 3 de noviembre de 2026, por pedido de Gonzalo
+
 Doc vivo. Encargo de coordinación para la noche del 2 al 3 de noviembre, con el pedido de Gonzalo:
 «no es solo un pequeño ajuste, es un tema sistemático que debe solucionarse» y «Formato en Cálculo y Gráficos».
 
@@ -73,7 +78,7 @@ de código son el blanco real de P3.
 
 ### Verificación de P5 + P1 + P4 + P3a en Cálculo (capturas)
 
-HSVG2026 (copia de corrida), 49 vistas a 1280×720 y 1440×1000, antes en `tmp/visual-qa/calc/est-*` (worktree en HEAD
+HSVG2026 (copia de corrida), 49 vistas a 1280×720 y 1440×1000, antes en la carpeta temporal del repo, `visual-qa/calc/est-*` (worktree en HEAD
 previo) y después en `desp1-*`. Las 49 capturas cambian (md5 distinto en todas). Agregados iguales salvo
 `rotulosPartidos`: dos nuevos, ambos por el guion de «curso-horario» al subir de 12 a 13 px (tarjeta de variable en
 Datos › Variables y nombre del archivo en Datos › Fuentes). Arreglados en `f936edc75` y `22cee538d`. `textosFuera` 0.
@@ -84,8 +89,8 @@ Gráficos; muestra general: un proyecto vacío).
 
 ## Vistas de Cálculo, de la peor a la menos fea (estado con selección guardada, 1280×720)
 
-Proyecto: `tmp/qa-campanas-0111/aulas.pulso` (selección corrida, propuesta sin calcular). Capturas antes en
-`tmp/visual-qa/calc/uni-antes-*` y después en `rec-desp-*`.
+Proyecto: la carpeta temporal del repo, `qa-campanas-0111/aulas.pulso` (selección corrida, propuesta sin calcular). Capturas antes en
+la carpeta temporal del repo, `visual-qa/calc/uni-antes-*` y después en `rec-desp-*`.
 
 | # | Vista | Qué estaba mal | Qué se hizo | Commit |
 |---|---|---|---|---|
@@ -212,7 +217,7 @@ Sustento de cobertura— (`c2ebe884c`, 17 → 0). Se borraron las cabeceras prop
   de exportación (`api/R`): es del loop del motor.
 - 06:40 h: Entrega pasa sus ocho bloques a `Panel` (`5eb4cedc9`). El pendiente de coordinación sobre `.cmg-metodos` y
   `.cmv2-aulas-modalidad` (indicadorDelKit) ya estaba saldado en `866036a52`, antes de esta noche.
-- 00:15 h: capturas finales (`tmp/visual-qa/calc/final-*`, `gid-*`): Identidad de Gráficos `ok=true` a 1280 y 1440;
+- 00:15 h: capturas finales (en la carpeta temporal del repo, `visual-qa/calc/final-*`, `gid-*`): Identidad de Gráficos `ok=true` a 1280 y 1440;
   sin rótulos partidos; Pase a Monitoreo con «Pendiente» apagado. Quedan dos hallazgos previos del Explorador que
   dependen de los datos anonimizados (deriva de 2.5 px en la fila de filtros y una etiqueta larga con line-clamp) y la
   cabecera fija del Panorama.

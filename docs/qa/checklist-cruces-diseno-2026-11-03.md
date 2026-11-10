@@ -1,5 +1,10 @@
 # Checklist — letras de cruces bajo diseño muestral (2026-11-03)
 
+Tipo: Checklist de implementación
+Estado: En curso
+Fecha: 2026-11-03
+Autoridad: ADR 0127; lo da por terminado solo el usuario
+
 Contrato: [ADR 0127](../adrs/0127-las-letras-de-los-cruces-se-prueban-bajo-el-diseno-muestral.md). Lo da por terminado
 solo el usuario.
 

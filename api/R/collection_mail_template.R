@@ -13,12 +13,13 @@
 #   theme  = { accent: "#rrggbb", link?: "#rrggbb", band?: "acento"|"suave",
 #              estilo?, page_bg?, button_bg?, button_text?, text_align?, onda?, onda_color? },
 #            (las de E1n: collection_mail_campana.R)
-#   header = { kind: "logos", logo_ids: [..], background: "dark"|"light" }
+#   header = { kind: "logos", logo_ids: [..], background: "dark"|"light", color?: "#rrggbb" }   # color: franja oscura (L15)
 #          | { kind: "banner", image_ref: "<id>" },
 #   images = { <image_id>: { alt, url? } },   # url pública opcional (https)
 #   fields = [ { key, tag, label, fallback?, sm?, destino? } ],   # sm: etiqueta SurveyMonkey (E1j)
 #   blocks = [ { block_id, type, ... } ]      # registro CERRADO
 #   greeting.trato = { modo, columna?, masculino, femenino, respaldo, sm? }   # collection_mail_trato.R
+#   registro = "tu" | "usted"                 # [[tú|usted]] en el texto: collection_mail_registro.R
 #
 # Estilos: solo las enumeraciones de collection_mail_styles.R (`size`, `tone`,
 # `fill`, `level`, `style`, `variant`, `align`). Enlaces `[texto](url)` solo en
@@ -262,7 +263,7 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
     add(list(.cmail_problem("template.schema", "bad_schema", sprintf("Se esperaba '%s'.", COLLECTION_MAIL_TEMPLATE_SCHEMA))))
   }
   known_top <- c("schema", "template_id", "preset_id", "title", "revision", "template_sha256",
-                 "subject", "preheader", "theme", "header", "images", "fields", "constants", "blocks")
+                 "subject", "preheader", "theme", "header", "images", "fields", "constants", "registro", "blocks")
   for (k in setdiff(names(template), known_top)) {
     add(list(.cmail_problem(paste0("template.", k), "unknown_key", sprintf("`%s` no pertenece al contrato.", k))))
   }
@@ -330,6 +331,7 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
 
   # Datos fijos de la campaña (collection_mail_constantes.R): se usan como un campo.
   add(.cmail_constants_problems(template, keys))
+  add(.cmail_registro_problems(template))
   keys <- unique(c(keys, .cmail_constant_keys(template)))
 
   add(.cmail_text_problems(template$subject %||% "", "template.subject", keys))
@@ -389,7 +391,7 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
   } else {
     kind <- .cmail_one(header$kind)
     if (identical(kind, "logos")) {
-      for (k in setdiff(names(header), c("kind", "logo_ids", "background", "logo_tone", "divider"))) {
+      for (k in setdiff(names(header), c("kind", "logo_ids", "background", "logo_tone", "divider", "color"))) {
         add(list(.cmail_problem(paste0("template.header.", k), "unknown_key", sprintf("`%s` no pertenece a la cabecera.", k))))
       }
       ids <- .cmail_strings(header$logo_ids)
@@ -407,6 +409,10 @@ collection_mail_template_validate <- function(template, allow_reserved_ids = FAL
       }
       if (!is.null(header$divider) && !(is.logical(unlist(header$divider)) && length(unlist(header$divider)) == 1L)) {
         add(list(.cmail_problem("template.header.divider", "bad_divider", "divider es verdadero o falso.")))
+      }
+      # Color propio de la franja oscura (GOAL editor L15); sin él, el acento.
+      if (!is.null(header$color) && !.cmail_hex_ok(.cmail_one(header$color))) {
+        add(list(.cmail_problem("template.header.color", "bad_color", "El color de la franja es #rrggbb.")))
       }
     } else if (identical(kind, "banner")) {
       for (k in setdiff(names(header), c("kind", "image_ref"))) {

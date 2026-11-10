@@ -266,8 +266,9 @@ collection_barrido_plantilla <- function(sid, estudio = "", llave = NULL, estrat
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
   nombre <- .export_filename(sid, "plantilla_barrido", "xlsx")
   meta <- .register_output_file(sid, "plantilla_barrido", path, original_name = nombre)
-  list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name, version = COLLECTION_BARRIDO_PLANTILLA_VERSION,
-       columnas = as.list(col$todas), sensibles = as.list(p$sensibles), status = length(p$status), filas = p$filas)
+  entregable_respuesta(list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name, size = meta$size,
+                            version = COLLECTION_BARRIDO_PLANTILLA_VERSION, columnas = as.list(col$todas),
+                            sensibles = as.list(p$sensibles), status = length(p$status), filas = p$filas), meta)
 }
 
 # Asignaciones (T11): «Responsable» y «Casos asignados», como en el barrido del RMS. Con

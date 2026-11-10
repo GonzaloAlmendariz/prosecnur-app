@@ -13,7 +13,8 @@ import { AulasColaDeContacto } from "./AulasColaDeContacto";
 import { AulasRitmoDeAgendacion } from "./AulasRitmoDeAgendacion";
 import { AulasMedioDeContacto } from "./AulasMedioDeContacto";
 import { AulasSelectorDeEslabon } from "./AulasSelectorDeEslabon";
-import { descargarCargaDeCampo } from "./cargaDeCampoExcel";
+import { apiMonitoreoAulasCargaDeCampoExcel } from "../../../../api/monitoreoAulasCargaDeCampo";
+import { pedidoDeCargaDeCampo } from "./entregasDeAulas";
 import { eslabonVigente, filasDeReemplazo, opcionesDeEslabon } from "./eslabonDeLaAgenda";
 import { fmt } from "./kpisDeAulas";
 import { soloFacultad } from "./aulasPresentation";
@@ -21,6 +22,7 @@ import type { FocoDeCuota } from "./AulasCuotasResumen";
 import type { TablaDelPerfil } from "./tablaDelPerfil";
 import { hrefDeFichaDeAula } from "./navegacion/direccionAulas";
 import type { MonitoreoAulasDashboard, MonitoreoAulasPlanRow, MonitoreoAulasDistribucionSheets } from "../../../../api/monitoreo";
+import type { GenerarPlantillaDeDisponibilidad } from "./entregasDeAulas";
 
 /**
  * La sección «Modelo» del perfil de aulas: preparación, contacto, por facultad
@@ -79,7 +81,7 @@ export function AulasSeccionModelo({
   /** B74: importar el excel de disponibilidad; llega a la vista Disponibilidad. */
   onImportarDisponibilidad?: ((archivo: File) => void | Promise<void>) | null;
   /** Descargar la plantilla vacía de disponibilidad. */
-  onPlantillaDisponibilidad?: (() => void | Promise<void>) | null;
+  onPlantillaDisponibilidad?: GenerarPlantillaDeDisponibilidad | null;
   /** Quién no sale en el despliegue vigente; viaja hasta la malla de oferta. */
   fueraDelReparto?: ReadonlyArray<string>;
   onDeclararFuera?: ((nombres: string[]) => void | Promise<void>) | null;
@@ -196,9 +198,8 @@ export function AulasSeccionModelo({
               // A qué clase se puede entrar sin cita, en la misma ventana del
               // reparto: titulares por agendar que se dictan esos días.
               sinAgendar={dashboard.sin_agendar}
-              onExportar={(opciones) =>
-                descargarCargaDeCampo(agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[], opciones)
-              }
+              // El libro lo arma el motor (.xlsx real de dos hojas) con las mismas opciones que la vista.
+              onExportar={(opciones) => apiMonitoreoAulasCargaDeCampoExcel(pedidoDeCargaDeCampo(opciones))}
               onFijarReparto={onFijarReparto}
               onConfirmarDuracion={onConfirmarDuracion}
               onImportarDisponibilidad={onImportarDisponibilidad}

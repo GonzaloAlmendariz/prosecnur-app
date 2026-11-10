@@ -38,13 +38,9 @@ CODIF_CONFIG_SCHEMA_VERSION <- "prosecnur.coding_config.v1"
   .codif_config_scalar((s$estudio %||% list())$nombre, "Prosecnur")
 }
 
+# ADR 0133 §3: el nombre sugerido es el de cualquier entregable del estudio.
 .codif_config_filename <- function(sid) {
-  project <- if (exists(".export_project_slug", mode = "function")) {
-    .export_project_slug(sid)
-  } else {
-    .codif_config_norm(.codif_config_project_label(sid))
-  }
-  sprintf("prosecnur_codificacion_%s_%s.json", project, format(Sys.Date(), "%Y-%m-%d"))
+  .export_filename(sid, "codificacion_config", "json")
 }
 
 .codif_config_base_names <- function(sid) {

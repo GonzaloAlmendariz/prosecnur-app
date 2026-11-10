@@ -44,23 +44,28 @@ identidad exacta, monotonicidad y que el tag apunte a `HEAD`.
 
 ## 3. Gate local
 
-Ejecuta lo que declaran los workflows vigentes, no una lista recordada. El
-mínimo de gobierno y release es:
+Ejecuta lo que declaran los workflows vigentes, no una lista recordada.
+Primero el pre-flight rápido, que tarda unos 20 segundos y espeja los pasos
+baratos de `quality.yml` (gobernanza documental, Agentic OS, lock de R, contrato
+de release, tests de desktop, contratos de `scripts/tests` y baseline de deuda):
 
 ```bash
-node --test agentic/tests/*.test.mjs
-node agentic/sync-agentic-os.mjs --check --platform=none
-node agentic/sync-agentic-os.mjs --audit --platform=none
-node scripts/check-docs-governance.mjs
-node --test scripts/tests/release-contract.test.mjs
-pnpm -C desktop test
+make preflight-rapido
+```
+
+Con un paso en rojo el corte se detiene ahí: no tiene sentido pagar la suite de
+R sobre un árbol que el CI rechazará en el primer minuto. Después, el resto del
+gate:
+
+```bash
 pnpm -C frontend exec tsc --noEmit --pretty false
 pnpm -C frontend test
 pnpm -C frontend exec vite build --outDir /tmp/prosecnur-vite-build --emptyOutDir
 Rscript -e "pkgload::load_all('api', quiet=TRUE); testthat::test_dir('api/tests/testthat', reporter='summary')"
 ```
 
-Completa los audits de dependencias que figuren en `quality.yml`. Un endpoint
+Completa los contratos de UI con Chromium (`scripts/tests/ui-quick-check-*` y
+`visual-qa-readiness`) y los audits de dependencias que figuren en `quality.yml`. Un endpoint
 de advisories inaccesible no convierte un candidato estable en verde: se
 registra como gate no ejecutado y detiene el corte. Si hubo UI, añade el gate
 visual proporcional con proyecto de referencia.

@@ -55,6 +55,8 @@ import { cruceDeDistritos } from "./cruceDeDistritos";
 import { describirFilasDeFase } from "./filasDeFase";
 import { useFormatoDelPadron } from "./formatoDelPadron";
 import { useWaitForSourceSyncJob } from "./sync/pollSourceSync";
+import { EntregaEnBloque } from "../../entregas/EntregaEnBloque";
+import { useEntrega } from "../../entregas/useEntrega";
 import "./buscadoresDeConciliacion.css";
 
 type TerritorialSourceTab = "form" | "filter" | "roster" | "reconciliation" | "history";
@@ -183,16 +185,6 @@ function shortenMiddle(value = "", max = 34) {
   if (value.length <= max) return value;
   const side = Math.max(6, Math.floor((max - 1) / 2));
   return `${value.slice(0, side)}...${value.slice(-side)}`;
-}
-
-function downloadFile(url: string) {
-  if (!url) return;
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
 }
 
 function cleanDimensions(dimensions: Record<string, string | undefined>) {
@@ -614,33 +606,11 @@ function TerritorialSourceConsoleImpl({
     }
   }, [mapping?.pulso_code_var, mapping?.ump_var, notifyError, onStateChange, rosterFile, rosterFormat]);
 
-  const downloadRosterTemplate = useCallback(async () => {
-    setSaving(true);
-    setMessage("");
-    try {
-      const result = await apiMonitoreoTerritorialEnumeratorsTemplate();
-      downloadFile(result.download_url);
-      setMessage(`Plantilla generada: ${result.filename}.`);
-    } catch (error) {
-      notifyError(error);
-    } finally {
-      setSaving(false);
-    }
-  }, [notifyError]);
-
-  const downloadRosterCodes = useCallback(async () => {
-    setSaving(true);
-    setMessage("");
-    try {
-      const result = await apiMonitoreoTerritorialEnumeratorsCodes();
-      downloadFile(result.download_url);
-      setMessage(`Códigos exportados: ${result.filename}.`);
-    } catch (error) {
-      notifyError(error);
-    } finally {
-      setSaving(false);
-    }
-  }, [notifyError]);
+  // La plantilla y los códigos se entregan por el kit (ADR 0133, fase 5): el
+  // contenedor, bajo las acciones del padrón, dice el archivo o la causa del fallo.
+  const plantillaPadron = useEntrega("Plantilla de encuestadores", { formato: "xlsx", articulo: "la" });
+  const codigosPadron = useEntrega("Códigos de encuestadores", { formato: "xlsx", articulo: "los" });
+  const entregandoPadron = plantillaPadron.enCurso || codigosPadron.enCurso;
 
   const filteredAssets = useMemo(() => {
     const q = assetQuery.trim().toLocaleLowerCase("es-PE");
@@ -1371,19 +1341,21 @@ function TerritorialSourceConsoleImpl({
                   }}
                 />
                 <div className="mon-territorial-enumerator-actions">
-                  <button type="button" className="pulso-button" onClick={() => { void downloadRosterTemplate(); }} disabled={saving || busy}>
-                    <Download size={15} />
+                  <button type="button" className="pulso-button" onClick={() => { void plantillaPadron.ejecutar(() => apiMonitoreoTerritorialEnumeratorsTemplate()); }} disabled={saving || busy || entregandoPadron}>
+                    <Download size={15} aria-hidden="true" />
                     <span>Plantilla Excel</span>
                   </button>
-                  <button type="button" className="pulso-button is-code-download" onClick={() => { void downloadRosterCodes(); }} disabled={saving || busy || !rosterAssignments.length}>
-                    <Download size={15} />
+                  <button type="button" className="pulso-button is-code-download" onClick={() => { void codigosPadron.ejecutar(() => apiMonitoreoTerritorialEnumeratorsCodes()); }} disabled={saving || busy || entregandoPadron || !rosterAssignments.length}>
+                    <Download size={15} aria-hidden="true" />
                     <span>Descargar códigos</span>
                   </button>
-                  <button type="button" className="pulso-button" onClick={() => fileInputRef.current?.click()} disabled={saving || busy}>
+                  <button type="button" className="pulso-button" onClick={() => fileInputRef.current?.click()} disabled={saving || busy || entregandoPadron}>
                     {saving && rosterFile ? <Loader2 size={15} className="pulso-spin" /> : <Upload size={15} />}
                     <span>{rosterAssignments.length ? "Actualizar Excel" : "Subir Excel"}</span>
                   </button>
                 </div>
+                <EntregaEnBloque entrega={plantillaPadron} />
+                <EntregaEnBloque entrega={codigosPadron} />
               </div>
 
               <div className="mon-territorial-enumerator-table" aria-label="Asignaciones de código Pulso">

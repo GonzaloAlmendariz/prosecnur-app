@@ -32,9 +32,7 @@
   gap: 8px;
 }
 
-.cmv2-did-sal-file {
-  font-size: var(--pulso-type-micro-size);
-  font-variant-numeric: tabular-nums;
-  color: var(--pulso-text-muted);
-  overflow-wrap: anywhere;
+/* El contenedor del kit (ADR 0133) bajo su fila, al ancho de la tarjeta. */
+.cmv2-did-sal-card .pulso-entregable {
+  min-width: 0;
 }

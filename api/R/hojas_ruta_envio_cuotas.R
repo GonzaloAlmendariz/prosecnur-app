@@ -58,7 +58,8 @@ HOJAS_RUTA_ENVIO_KINDS <- c("ump", "cuotas")
 #' Las zonas que hoy saldrían de la configuración de una fase.
 #' @keywords internal
 .hojas_ruta_zonas_vigentes <- function(config) {
-  cfg <- hojas_ruta_integrada_normalize_config(config %||% list())
+  # Material recibe el mismo reparto que Selección > Cuotas: con «Calculado», el del cálculo con sus mínimos.
+  cfg <- hojas_ruta_config_para_reparto(config)
   ubigeos <- unlist(cfg$territorios, use.names = FALSE)
   if (!length(ubigeos)) return(list())
   frame <- hojas_ruta_inei_frame(cfg$frame_source)

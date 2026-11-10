@@ -1,5 +1,5 @@
 # =============================================================================
-# Contrastes de cruces para bases repeat (cluster = persona)
+# Contrastes de cruces para bases repeat, con errores agrupados por encuestado
 # =============================================================================
 
 .repeat_sig_empty <- function(codes_row, estratos, method = "descriptivo",
@@ -15,6 +15,17 @@
     reason = as.character(reason %||% ""),
     n_clusters = as.integer(n_clusters)
   )
+}
+
+#' Nota de una tabla repeat sin letras, en registro formal
+#'
+#' `razones` son las de `.repeat_compare_columns_cluster()` o `.analitica_repeat_design()`. Una sola oración de
+#' encabezado y las razones, cada una con un único punto final.
+#' @keywords internal
+.repeat_nota_descriptiva <- function(razones = character(0)) {
+  razones <- unique(Filter(nzchar, trimws(as.character(razones))))
+  razones <- sub("[.]+$", ".", paste0(razones, "."))
+  paste(c("Esta tabla es descriptiva y no lleva letras de diferencias significativas.", razones), collapse = " ")
 }
 
 .repeat_cluster_cr1_factor <- function(n_clusters) {
@@ -75,7 +86,7 @@
   if (!is.list(repeat_design) || !isTRUE(repeat_design$inference_ok)) {
     return(.repeat_sig_empty(
       codes_row, estratos, reason = (repeat_design %||% list())$reason %||%
-        "No hay diseño repeat inferencial disponible.", n_clusters = n_clusters
+        "La base no tiene un diseño que permita comparar columnas.", n_clusters = n_clusters
     ))
   }
 
@@ -84,7 +95,7 @@
       !var_estrato %in% names(data)) {
     return(.repeat_sig_empty(
       codes_row, estratos,
-      reason = "Falta la llave de cluster o la variable de estrato; resultados descriptivos sin letras.",
+      reason = "La base no identifica al encuestado de cada fila o no trae la variable de cruce.",
       n_clusters = n_clusters
     ))
   }
@@ -100,8 +111,8 @@
     return(.repeat_sig_empty(
       codes_row, estratos,
       reason = sprintf(
-        "El cruce conserva %d clusters de persona; se requieren al menos %d. Resultados descriptivos sin letras.",
-        effective_clusters, min_clusters
+        "La prueba requiere al menos %d encuestados con datos en el cruce y hay %d.",
+        min_clusters, effective_clusters
       ),
       n_clusters = effective_clusters
     ))
@@ -115,6 +126,7 @@
   pairs_by_row <- vector("list", length(codes_row))
   valid_clusters_by_row <- rep(0L, length(codes_row))
   any_eligible_pair <- FALSE
+  any_pair_enough <- FALSE
 
   for (i in seq_along(codes_row)) {
     y <- .repeat_outcome_for_code(data, var, codes_row[[i]], codes_row, tp)
@@ -142,6 +154,7 @@
       pair_rows <- strata[ok] %in% estratos[ab]
       g_pair <- length(unique(cluster[ok][pair_rows]))
       if (g_pair < min_clusters) return(NA_real_)
+      any_pair_enough <<- TRUE
       contrast <- rep(0, K)
       contrast[ab[[1]]] <- 1
       contrast[ab[[2]]] <- -1
@@ -161,10 +174,11 @@
   if (!any_eligible_pair) {
     return(.repeat_sig_empty(
       codes_row, estratos,
-      reason = sprintf(
-        "El contraste conserva %d clusters con respuesta valida; se requieren al menos %d. Resultados descriptivos sin letras.",
-        n_effective, min_clusters
-      ),
+      reason = if (any_pair_enough) {
+        "Ninguna comparación entre columnas tiene variación suficiente para estimar su error."
+      } else {
+        sprintf("Ninguna comparación entre columnas reúne al menos %d encuestados con respuesta válida.", min_clusters)
+      },
       n_clusters = n_effective
     ))
   }

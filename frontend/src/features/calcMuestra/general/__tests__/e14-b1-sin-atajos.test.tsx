@@ -23,7 +23,7 @@ import { SalidaReporte, type ReporteEstudio } from "../SalidaReporte";
 
 const noop = () => {};
 const reporte = (p: Partial<ReporteEstudio> = {}): ReporteEstudio => ({
-  resultados: 1, enCurso: false, disponible: false, verUrl: null, onGenerar: noop, ...p,
+  resultados: 1, disponible: false, estado: { fase: "inactiva" }, onCerrar: noop, onGenerar: noop, ...p,
 });
 
 describe("la barra del módulo no hace bypass de las secciones", () => {
@@ -52,16 +52,21 @@ describe("SalidaReporte", () => {
     expect(html).toContain('aria-describedby="cmg-reporte-motivo"');
     expect(html).toContain("Calcula primero");
   });
-  it("con reporte disponible ofrece verlo y regenerarlo", () => {
-    const html = renderToStaticMarkup(<SalidaReporte reporte={reporte({ disponible: true, verUrl: "/r.html" })} />);
+  it("con reporte disponible ofrece regenerarlo, sin enlace a una URL de descarga", () => {
+    const html = renderToStaticMarkup(<SalidaReporte reporte={reporte({ disponible: true })} />);
     expect(html).toContain("Regenerar reporte");
-    expect(html).toContain('href="/r.html"');
+    expect(html).not.toContain("href=");
     expect(html).not.toMatch(/<button[^>]*disabled/);
   });
-  it("mientras se genera, lo dice y no se puede volver a pedir", () => {
-    const html = renderToStaticMarkup(<SalidaReporte reporte={reporte({ enCurso: true })} />);
-    expect(html).toContain("Generando reporte");
+  it("mientras se genera, el botón sólo se deshabilita y la espera va en el contenedor del kit", () => {
+    const html = renderToStaticMarkup(
+      <SalidaReporte reporte={reporte({ estado: { fase: "en_curso", titulo: "Reporte metodológico", porcentaje: null } })} />,
+    );
+    expect(html).not.toContain("Generando reporte");
+    expect(html).not.toMatch(/pulso-spin/);
     expect(html).toMatch(/<button[^>]*disabled/);
+    expect(html).toContain('data-entregable-forma="bloque"');
+    expect(html).toContain('data-entregable-fase="en_curso"');
   });
 });
 

@@ -1,13 +1,19 @@
+// Menú "Conjunto" de la fila de bases de Procesamiento: configurar el informe compartido y armar el paquete por bases.
+//
+// El paquete es una entrega del kit (ADR 0133, fase 5), en forma anclada: al elegirlo el menú se cierra, el disparador
+// solo se deshabilita y el contenedor de archivo cuelga de él con el avance del job, el ZIP listo y los avisos del motor
+// al pie, o el fallo con "Reintentar".
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, Archive, CheckCircle2, ChevronDown, Download, LayoutGrid, Loader2 } from "../../vendor/lucide-react";
+import { AlertTriangle, Archive, CheckCircle2, ChevronDown, LayoutGrid, Loader2 } from "../../vendor/lucide-react";
 import {
   apiGraficosConsolidadoPreflight,
   apiGraficosPptAll,
-  downloadUrl,
   type GraficosConsolidadoPreflight,
 } from "../../api/client";
-import { JobProgress } from "../../components/JobProgress";
+import { ContenedorEntregable } from "../../components/entregables/ContenedorEntregable";
+import { useGeneracion } from "../../components/entregables/useGeneracion";
 import { useSession } from "../../lib/SessionContext";
 import { processingBaseScopePresentation } from "../procesamiento/baseScopeModel";
 import { flushGraficosConfigIfHydrated } from "./configSnapshot";
@@ -17,6 +23,7 @@ import {
   type SharedReportPreflightStatus,
 } from "./multibaseReportMenuModel";
 import { formatoConteo } from "../../lib/formatoNumero";
+import "./multibaseReportMenu.css";
 
 type ExportResult = {
   ok: true;
@@ -72,25 +79,22 @@ export function AvisosPaqueteBases({ avisos }: { avisos: readonly string[] }) {
   );
 }
 
-type GroupJob = { kind: "ppt_all"; id: string };
-
 export function MultibaseReportMenu() {
   const navigate = useNavigate();
   const { state, refresh } = useSession();
   const [open, setOpen] = useState(false);
-  const [job, setJob] = useState<GroupJob | null>(null);
-  const [starting, setStarting] = useState(false);
   const [preflightStatus, setPreflightStatus] = useState<SharedReportPreflightStatus>("idle");
   const [preflight, setPreflight] = useState<GraficosConsolidadoPreflight | null>(null);
   const [error, setError] = useState("");
-  const [allBases, setAllBases] = useState<{ fileId: string; filename: string; avisos: string[] } | null>(null);
+  const [allBases, setAllBases] = useState<{ avisos: string[] } | null>(null);
+  const paquete = useGeneracion({ titulo: "Archivos por base", modulo: "Procesamiento", formato: "zip", articulo: "los" });
   const rootRef = useRef<HTMLDivElement>(null);
   const preflightRequestRef = useRef(0);
   const visible = processingBaseScopePresentation(
     state?.estudio_processing_mode,
     state?.n_bases,
   ).showSharedReports;
-  const busy = Boolean(job) || starting;
+  const busy = paquete.estado.fase === "en_curso";
   const presentation = multibaseReportMenuPresentation(preflightStatus, preflight, busy);
   const pendingRequirements = sharedReportPendingRequirements(preflight);
 
@@ -131,14 +135,15 @@ export function MultibaseReportMenu() {
     if (open && visible) void loadPreflight();
   }, [loadPreflight, open, visible]);
 
+  const cerrarPaquete = paquete.cerrar;
   useEffect(() => {
     setAllBases(null);
     setError("");
-    setStarting(false);
+    cerrarPaquete();
     setPreflight(null);
     setPreflightStatus("idle");
     preflightRequestRef.current += 1;
-  }, [state?.session_id]);
+  }, [state?.session_id, cerrarPaquete]);
 
   if (!visible) return null;
 
@@ -149,26 +154,16 @@ export function MultibaseReportMenu() {
   }
 
   async function startAllBases() {
-    if (presentation.packageDisabled) return;
-    setError("");
-    setStarting(true);
-    try {
-      const jobId = await iniciarPaqueteBases({ flush: flushGraficosConfigIfHydrated, pptAll: apiGraficosPptAll });
-      setJob({ kind: "ppt_all", id: jobId });
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "No se pudo iniciar el paquete por bases.");
-    } finally {
-      setStarting(false);
-    }
-  }
-
-  function onDone(result: ExportResult | ExportAllResult) {
-    setAllBases({
-      fileId: result.file_id,
-      filename: result.filename ?? "reportes_por_base.zip",
-      avisos: avisosDelPaquete(result),
-    });
-    setJob(null);
+    if (presentation.packageDisabled || busy) return;
+    setOpen(false);
+    setAllBases(null);
+    // Guardar lo pendiente y lanzar el job van dentro de la generación: si el guardado falla, el contenedor lo dice.
+    const r = await paquete.ejecutar(async () => ({
+      job_id: await iniciarPaqueteBases({ flush: flushGraficosConfigIfHydrated, pptAll: apiGraficosPptAll }),
+    }));
+    if (!r.ok) return;
+    const result = r.datos as ExportResult | ExportAllResult;
+    setAllBases({ avisos: avisosDelPaquete(result) });
     void refresh();
   }
 
@@ -178,12 +173,14 @@ export function MultibaseReportMenu() {
         type="button"
         className="pulso-multibase-reports-trigger"
         onClick={() => setOpen((current) => !current)}
+        // Mientras arma el paquete, el disparador solo se deshabilita: conserva ícono y rótulo.
+        disabled={busy}
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-label="Entregables del conjunto de bases"
         title="Entregables que reúnen las bases independientes"
       >
-        {busy ? <Loader2 size={14} className="pulso-spin" /> : <LayoutGrid size={14} />}
+        <LayoutGrid size={14} aria-hidden="true" />
         <span>Conjunto</span>
         <ChevronDown size={12} />
       </button>
@@ -240,25 +237,16 @@ export function MultibaseReportMenu() {
             </span>
           </button>
 
-          {job && (
-            <JobProgress<ExportResult | ExportAllResult>
-              label="Empaquetando bases"
-              jobId={job.id}
-              onDone={onDone}
-              onError={(message) => { setError(message); setJob(null); }}
-              onCancelled={() => setJob(null)}
-            />
-          )}
-
           {error && <div className="pulso-multibase-reports-error" role="alert">{error}</div>}
-          {allBases && (
-            <div className="pulso-multibase-reports-files">
-              <a href={downloadUrl(allBases.fileId)}><Download size={12} /> {allBases.filename}</a>
-              <AvisosPaqueteBases avisos={allBases.avisos} />
-            </div>
-          )}
         </div>
       )}
+
+      <ContenedorEntregable
+        estado={paquete.estado}
+        forma="anclada"
+        onCerrar={paquete.cerrar}
+        pie={paquete.estado.fase === "lista" && allBases ? <AvisosPaqueteBases avisos={allBases.avisos} /> : undefined}
+      />
     </div>
   );
 }

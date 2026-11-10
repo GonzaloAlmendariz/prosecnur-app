@@ -207,7 +207,9 @@ test_that("HTTP: montado, errores 400/409/404 y artefactos registrados", {
   expect_true(length(r$body$rutas) >= 1L)
   expect_true(all(unlist(r$body$rutas) %in% vapply(sm$blocks, `[[`, character(1), "id_manzana")))
   expect_artefacto(r$body, "pdf")
-  expect_setequal(names(r$body), c("ok", "file_id", "filename", "jornada", "rutas"))
+  # ADR 0133 (fase 5): `size` y los cuatro campos del registro único.
+  expect_setequal(names(r$body), c("ok", "file_id", "filename", "size", "jornada", "rutas",
+                                   "modulo", "rotulo", "guardado_en", "aviso_guardado"))
   # La vista previa no guarda nada en el run.
   expect_identical(length(.hojas_ruta_active_run(sid)$run$workspace_outputs$sample$blocks), length(sm$blocks))
 })

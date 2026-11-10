@@ -1,44 +1,34 @@
-import { useState } from "react";
-import { JobProgress } from "../../../../components/JobProgress";
+import { ContenedorEntregable } from "../../../../components/entregables/ContenedorEntregable";
+import { useGeneracion } from "../../../../components/entregables/useGeneracion";
 import { PulsoButton } from "../../../../components/PulsoButton";
-import { apiHojasRutaReporteDecisionalIniciar, hojasRutaReporteDecisionalUrl } from "../../../../api/hojasRuta";
-import { descargarArchivo } from "../../../../lib/descargas";
+import { apiHojasRutaReporteDecisionalIniciar } from "../../../../api/hojasRuta";
 import { FileText } from "../../../../vendor/lucide-react";
+import { MODULO_HOJAS_RUTA } from "../entregas/modeloEntrega";
+import "../entregas/entregas.css";
 
 /**
  * «Descargar el informe» (brecha B22): el informe de diseño muestral (U16) que arma el
- * motor en un job; al terminar se descarga. Nada se calcula aquí.
+ * motor en un job. La espera, el archivo y el fallo van en el contenedor del kit
+ * (ADR 0133, forma bloque); el botón sólo se deshabilita mientras se genera.
  */
 export function InformeDiseno({ deshabilitado }: { deshabilitado: boolean }) {
-  const [job, setJob] = useState<string | null>(null);
-  const [error, setError] = useState("");
-  const iniciar = () => {
-    setError("");
-    apiHojasRutaReporteDecisionalIniciar("html")
-      .then((r) => setJob(r.job_id))
-      .catch((e: unknown) => setError(e instanceof Error ? e.message.replace(/, E_[A-Z_]+$/, "") : "No se pudo preparar el informe"));
-  };
+  const gen = useGeneracion({ titulo: "Informe de diseño muestral", modulo: MODULO_HOJAS_RUTA, formato: "html", articulo: "el" });
+  const enCurso = gen.estado.fase === "en_curso";
   return (
     <section className="hr-muestra-grupo" aria-label="Informe de diseño muestral">
       <h3>Informe de diseño muestral</h3>
       <p className="hr-mapa-nota">Territorio, población, tamaño, marco elegible y sorteo, con sus supuestos, para compartir con el cliente.</p>
-      {error ? <p className="hr-mapa-aviso">{error}</p> : null}
-      <PulsoButton variant="secondary" size="sm" disabled={deshabilitado || job != null} onClick={iniciar}>
-        <FileText size={13} aria-hidden /> {job ? "Preparando el informe…" : "Descargar el informe"}
-      </PulsoButton>
-      <JobProgress
-        label="Preparando el informe"
-        jobId={job}
-        onDone={() => {
-          setJob(null);
-          descargarArchivo(hojasRutaReporteDecisionalUrl());
-        }}
-        onError={(msg) => {
-          setJob(null);
-          setError(msg);
-        }}
-        onCancelled={() => setJob(null)}
-      />
+      <div className="hr-entrega-bloque">
+        <PulsoButton
+          variant="secondary"
+          size="sm"
+          disabled={deshabilitado || enCurso}
+          onClick={() => { void gen.ejecutar(() => apiHojasRutaReporteDecisionalIniciar("html")); }}
+        >
+          <FileText size={13} aria-hidden /> Descargar el informe
+        </PulsoButton>
+        <ContenedorEntregable estado={gen.estado} forma="bloque" onCerrar={gen.cerrar} />
+      </div>
     </section>
   );
 }

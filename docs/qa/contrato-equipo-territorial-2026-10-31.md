@@ -1,9 +1,14 @@
 # Contrato: el equipo de campo y la asignación UMP → encuestador en Material territorial
 
-Fecha: 2026-10-31. Decisiones de Gonzalo sobre I3 (`checklist-flujo-analista-2026-10-30.md`): **el equipo se asigna
+Tipo: Contrato de implementación
+Estado: Vigente
+Fecha: 2026-10-31
+Autoridad: Decisiones de Gonzalo sobre I3 de `checklist-flujo-analista-2026-10-30.md`; revisado por `guardian-contratos` el 2026-10-31
+
+Decisiones de Gonzalo sobre I3 (`checklist-flujo-analista-2026-10-30.md`): **el equipo se asigna
 en Material** y, ante B1, **«la de Monitoreo»**: la lista de encuestadores es una sola, la de Monitoreo.
 
-Estado: **revisado por `guardian-contratos` (2026-10-31) y B1 decidido.** Lo que sigue es el contrato construido; el
+Situación: **revisado por `guardian-contratos` (2026-10-31) y B1 decidido.** Lo que sigue es el contrato construido; el
 borrador previo (equipo propio en Material) queda descartado.
 
 ## Problema

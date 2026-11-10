@@ -3,6 +3,7 @@
 //   GET  campaigns/aulas/entrega     recibo sellado y unidades entregadas (lectura pura)
 //   POST campaigns/aulas/plantilla   {pieza: libro | disponibilidad} → file_id
 import { apiFetch, handle, headers } from "./core";
+import { camposDeEntregable, type CamposDeEntregable } from "./jobs";
 
 export type EntregaDeAulas = {
   entregada: boolean;
@@ -17,7 +18,8 @@ export type EntregaDeAulas = {
 
 /** `asignacion`: la planilla inicial de aplicadores (R7), con las titulares de la entrega. */
 export type PiezaDelEquipo = "libro" | "disponibilidad" | "asignacion";
-export type PlantillaDelEquipo = { file_id: string; filename: string };
+/** La plantilla generada, con el meta del entregable (ADR 0133) que el kit lee. */
+export type PlantillaDelEquipo = { file_id: string; filename: string } & CamposDeEntregable;
 
 type Registro = Record<string, unknown>;
 const esRegistro = (v: unknown): v is Registro => Boolean(v) && typeof v === "object" && !Array.isArray(v);
@@ -56,5 +58,5 @@ export async function apiMaterialAulasPlantilla(pieza: PiezaDelEquipo): Promise<
     }),
   );
   const o = esRegistro(r) ? r : {};
-  return { file_id: texto(o.file_id), filename: texto(o.filename) };
+  return { ...camposDeEntregable(o), file_id: texto(o.file_id), filename: texto(o.filename) };
 }

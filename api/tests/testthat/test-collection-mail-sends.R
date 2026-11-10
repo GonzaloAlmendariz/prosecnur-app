@@ -167,7 +167,7 @@ test_that("preview y review por envío: send_id, borrador y 404; export por env�
 
   .cmail_fx_completar(sid, "uno")
   ex <- collection_mail_export(sid, .cms_rev(sid), "uno", scope = "plantilla", send_id = "recordatorio-1")
-  expect_match(ex$zip$filename, "^uno_recordatorio-1_plantilla-mailchimp_\\d{8}-\\d{6}\\.zip$")
+  expect_match(ex$zip$filename, "^[A-Za-z0-9]+_Plantilla_de_correo_para_Mailchimp_Recordatorio_1_Uno_\\d{2}_\\d{2}_\\d{2}\\.zip$")
   expect_identical(ex$send_id, "recordatorio-1")
   expect_identical(ex$manifest$send$send_id, "recordatorio-1")
   expect_identical(ex$manifest$send$subject, "Recordatorio: queda una semana")
@@ -179,8 +179,10 @@ test_that("preview y review por envío: send_id, borrador y 404; export por env�
   html <- .cmail_fx_read_text(file.path(tmp, "uno.html"))
   expect_match(html, "Aún puede responder.", fixed = TRUE)
   expect_match(html, "<title>Recordatorio: queda una semana</title>", fixed = TRUE)
-  # Nombre de 80 como máximo aun con un id de campaña de 40 y un recordatorio.
-  expect_identical(nchar(.cmail_export_name(strrep("a", 40), "recordatorio-5", "mailchimp", stamp = "20261020-101010")) <= 80L, TRUE)
+  # Nombre de 80 como máximo (sin extensión, ADR 0133 §3) aun con una campaña de 80 y un recordatorio.
+  largo <- .cmail_export_name(sid, list(campaign_id = strrep("a", 40), name = strrep("a", 80)),
+                              list(send_id = "recordatorio-5", kind = "recordatorio"), "collection_mail_zip")
+  expect_lte(nchar(tools::file_path_sans_ext(largo)), 80L)
 })
 
 test_that("HTTP: PUT mail-template con sends y GET mail-campaigns con platform y sends", {
@@ -270,9 +272,16 @@ test_that("el archivo nombra el envío por su orden y el último como «ultimo»
   uno <- list(sends = camp$sends[1:2])
   expect_identical(.cmail_send_tag(uno, uno$sends[[2]]), "recordatorio-1")
   expect_identical(.cmail_send_tag(camp, list(send_id = "recordatorio-9", kind = "recordatorio")), "recordatorio-9")
-  # El nombre más largo del estudio cabe entero: no se corta la campaña.
-  expect_identical(.cmail_export_name("estudiantes-de-pregrado", .cmail_send_tag(camp, camp$sends[[4]]), "plantilla-mailchimp", stamp = "20261027-164533"),
-                   "estudiantes-de-pregrado_ultimo_plantilla-mailchimp_20261027-164533.zip")
-  expect_identical(.cmail_export_name("estudiantes-de-pregrado", .cmail_send_tag(camp, camp$sends[[2]]), "plantilla-mailchimp", stamp = "20261027-164533"),
-                   "estudiantes-de-pregrado_recordatorio-1_plantilla-mailchimp_20261027-164533.zip")
+  # ADR 0133 §3 (fase 5): el envío va en palabras al inicio del detalle; si el nombre pasa de 80
+  # sin extensión se recorta el detalle por la cola (la campaña), nunca el envío ni la fecha.
+  camp$name <- "Estudiantes de pregrado"
+  sid <- session_create(); on.exit(session_delete(sid), add = TRUE)
+  expect_identical(.cmail_export_detalle(camp, camp$sends[[4]]), "Último recordatorio Estudiantes de pregrado")
+  expect_identical(.cmail_export_detalle(camp, camp$sends[[2]]), "Recordatorio 1 Estudiantes de pregrado")
+  for (i in c(4L, 2L)) {
+    n <- .cmail_export_name(sid, camp, camp$sends[[i]], "collection_mail_template_zip")
+    expect_lte(nchar(tools::file_path_sans_ext(n)), 80L)
+    expect_match(n, if (i == 4L) "_Mailchimp_Ultimo_recordatorio_" else "_Mailchimp_Recordatorio_1_")
+    expect_match(n, "_[0-9]{2}_[0-9]{2}_[0-9]{2}[.]zip$")
+  }
 })

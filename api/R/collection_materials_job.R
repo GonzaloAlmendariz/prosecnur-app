@@ -453,11 +453,12 @@ collection_material_render_on_complete <- function(job) {
   next_state$state_revision <- as.integer(current$state_revision) + 1L
   .collection_store(job$sid, next_state)
 
-  list(
+  entregable_respuesta(list(
     file_id = receipt$file_id,
     media_type = receipt$media_type,
     filename = receipt$filename,
     sha256 = receipt$sha256,
+    size = receipt$size_bytes,
     size_bytes = receipt$size_bytes,
     page_count = receipt$page_count,
     page_map = receipt$page_map,
@@ -465,7 +466,7 @@ collection_material_render_on_complete <- function(job) {
     audience = receipt$audience,
     sensitivity = receipt$sensitivity,
     manifest = receipt
-  )
+  ), meta)
 }
 
 #' Encola el render de una instancia de materiales.

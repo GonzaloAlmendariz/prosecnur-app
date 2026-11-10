@@ -2,7 +2,8 @@
 // Extraído de client.ts (split por dominio, 2026-07). Los consumidores
 // importan del barrel ./client; este módulo no cambia el contrato.
 
-import { apiFetch, apiPath, downloadFailedMessage, handle, headers, SESSION_KEY } from "./core";
+import { apiFetch, apiPath, handle, headers, SESSION_KEY } from "./core";
+import { camposDeEntregable, type CamposDeEntregable } from "./jobs";
 import type { MonitoreoRow } from "./monitoreo";
 import type { CalcMuestraAulasCriteriosRadiografia } from "./calcMuestraCriteriosRadiografia";
 import type {
@@ -5096,14 +5097,45 @@ export async function apiCalcMuestraAulasSimularReemplazos(payload: {
   );
 }
 
-export async function apiCalcMuestraAulasExportar() {
-  return handle<{ ok: true; export: { ok?: true; file_id: string; filename: string; size: number }; state: CalcMuestraState }>(
+/** Un archivo que exporta Cálculo de muestra, con el meta del entregable (ADR 0133 §1). */
+export type CalcMuestraArchivoExportado = { file_id: string; filename: string; size: number } & CamposDeEntregable;
+
+/**
+ * Lee el archivo de una exportación de Cálculo de muestra. El motor lo deja en
+ * `export` ({ file_id, filename, size }) y el meta del entregable (copia junto
+ * al proyecto, rótulo) puede venir dentro de `export` o junto a él: se conserva
+ * de los dos sitios, con lo de `export` mandando. Sin `file_id` no hay archivo.
+ */
+export function normalizeCalcMuestraArchivoExportado(raw: unknown, ruta: string): CalcMuestraArchivoExportado {
+  const raiz = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
+  const exp = raiz.export && typeof raiz.export === "object" && !Array.isArray(raiz.export)
+    ? (raiz.export as Record<string, unknown>)
+    : raiz;
+  const escalar = (v: unknown) => (Array.isArray(v) && v.length === 1 ? v[0] : v);
+  const fileId = escalar(exp.file_id);
+  if (typeof fileId !== "string" || !fileId.trim()) {
+    throw new Error(`El motor no devolvió el archivo de ${ruta}.`);
+  }
+  const nombre = escalar(exp.filename) ?? escalar(exp.original_name);
+  const peso = Number(escalar(exp.size));
+  return {
+    ...camposDeEntregable(raiz),
+    ...camposDeEntregable(exp),
+    file_id: fileId.trim(),
+    filename: typeof nombre === "string" ? nombre : "",
+    size: Number.isFinite(peso) && peso >= 0 ? peso : 0,
+  };
+}
+
+export async function apiCalcMuestraAulasExportar(): Promise<{ ok: true; export: CalcMuestraArchivoExportado; state: CalcMuestraState }> {
+  const raw = await handle<{ ok: true; export?: unknown; state: CalcMuestraState }>(
     await apiFetch("/api/calc-muestra/aulas/exportar", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({}),
     }),
   );
+  return { ...raw, export: normalizeCalcMuestraArchivoExportado(raw, "la selección de cursos-horario") };
 }
 
 /** Una variable de la solicitud de base a DTI (claves congeladas del contrato). */
@@ -5119,23 +5151,21 @@ export type CalcMuestraSolicitudDtiVariable = {
 /**
  * Exporta el XLSX de solicitud de base para DTI: estructura de variables
  * esperadas + criterios de la reunión del diseño muestral en bullets, listo
- * para adjuntar al correo. Devuelve el binario (mismo patrón blob que
- * apiDashboardBaseDatosDescargar).
+ * para adjuntar al correo. El motor registra el archivo (mismo patrón que
+ * /aulas/exportar: `export.file_id`) y la entrega va por el kit de entregables.
  */
 export async function apiCalcMuestraSolicitudDtiExportar(payload: {
   variables: CalcMuestraSolicitudDtiVariable[];
   notas?: string[];
-}): Promise<Blob> {
-  const res = await apiFetch("/api/calc-muestra/solicitud-dti", {
-    method: "POST",
-    headers: headers({ "Content-Type": "application/json" }),
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    const raw = await res.text().catch(() => "");
-    throw new Error(downloadFailedMessage(res.status, raw));
-  }
-  return await res.blob();
+}): Promise<CalcMuestraArchivoExportado> {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/calc-muestra/solicitud-dti", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+  return normalizeCalcMuestraArchivoExportado(raw, "la solicitud para DTI");
 }
 
 // ----------------------------------------------------------------------------
@@ -5186,11 +5216,3 @@ export async function apiCalcMuestraReporteIniciar(formato: "html" | "pdf" = "ht
   );
 }
 
-export function calcMuestraReporteDescargarUrl(opts: { inline?: boolean } = {}): string {
-  const sid = localStorage.getItem(SESSION_KEY);
-  const params = new URLSearchParams();
-  if (sid) params.set("sid", sid);
-  if (opts.inline) params.set("inline", "1");
-  const qs = params.toString();
-  return apiPath(`/api/calc-muestra/reporte/descargar${qs ? `?${qs}` : ""}`);
-}

@@ -9,7 +9,8 @@ import { cajasDeLaHoja } from "../../test/cajasPropias";
  *
  * Cuenta, por hoja, las reglas que dibujan una caja (borde sólido, radio y padding en la misma regla)
  * y sólo deja que bajen. Pasaron al kit Presentación, Columnas del comparativo y el Resultado de Comparativos
- * (62 → 60). La lista de preguntas es un `fieldset` con su `legend`: `Panel` le quitaría esa semántica, y comparte
+ * (62 → 60). La pastilla "Manifest" del resultado salió con la descarga al contenedor de entregables (ADR 0133,
+ * fase 5; ComparativosPane.css 11 → 10). La lista de preguntas es un `fieldset` con su `legend`: `Panel` le quitaría esa semántica, y comparte
  * la regla `.pulso-comparativos-bloque`. Lo demás son controles, filas y avisos (`docs/qa/formato-analitica-2026-11-04.md`).
  */
 
@@ -31,7 +32,7 @@ const SNAPSHOT: Record<string, number> = {
   "analitica-v2.css": 37,
   "cifrasPestana.css": 1,
   "panes/CodebookPane.css": 1,
-  "panes/ComparativosPane.css": 11,
+  "panes/ComparativosPane.css": 10,
   "panes/DataReviewPane.css": 2,
   "panes/PesoPorColumna.css": 2,
   "panes/PonderacionPane.css": 3,

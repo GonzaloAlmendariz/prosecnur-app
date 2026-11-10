@@ -47,7 +47,8 @@ TRANSVERSALES <- c(
 # las dos listas, para que un contrato nuevo no quede fuera de los gates sin que nadie lo decida.
 RECORREN_PERO_SON_DEL_AREA <- c(
   "test-hojas-ruta-bitacora.R",   # cada acción del vocabulario de la bitácora tiene quien la emita
-  "test-hojas-ruta-ficha-pdf.R"   # un asset retirado de la ficha que nadie vuelva a referir
+  "test-hojas-ruta-ficha-pdf.R",  # un asset retirado de la ficha que nadie vuelva a referir
+  "test-graficos-contraste-alto.R" # ningún texto que llega a una lámina promete "otra lámina": recorre api/R, pero vigila a Gráficos
 )
 
 dir_tests <- file.path("api", "tests", "testthat")

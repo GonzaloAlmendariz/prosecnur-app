@@ -1,5 +1,10 @@
 # Checklist — unir una lámina suelta como bloque de otra (2026-10-29)
 
+Tipo: Checklist de pedido
+Estado: Vigente
+Fecha: 2026-10-29
+Autoridad: Pedido de Gonzalo del 2026-10-29 ("Sí, corrígelos") tras la prueba de unión de láminas en la app
+
 Origen: prueba en la app sobre una copia de Arte (lámina 39, Sí/No «¿Conoce los objetivos formativos de Formación
 General?», unida como bloque 2 a la lámina 40, multiapiladas de Estudiantes con Top Two Box). 18 acciones; funcionó con
 los defectos de abajo. Gonzalo: «Sí, corrígelos».

@@ -1452,7 +1452,7 @@
 .cmv2-defi-dti-btn:hover:not(:disabled) {
   background: color-mix(in srgb, var(--cmv2-accent) 8%, var(--pulso-surface));
 }
-.cmv2-defi-dti-btn:disabled { cursor: progress; opacity: 0.7; }
+.cmv2-defi-dti-btn:disabled { cursor: default; opacity: 0.7; }
 
 .cmv2-defi-dti-hint {
   flex: 1 1 260px;
@@ -1462,10 +1462,10 @@
   color: var(--pulso-text-muted);
 }
 
-.cmv2-defi-dti-error {
+/* El contenedor del kit (ADR 0133) ocupa su propio renglón bajo el botón y la nota. */
+.cmv2-defi-dti > .pulso-entregable {
   flex-basis: 100%;
-  font-size: var(--pulso-type-body-size);
-  color: var(--pulso-danger-fg, var(--pulso-warn-fg));
+  min-width: 0;
 }
 
 /* ADR 0060 · catálogo de filtros de corte de la base histórica.

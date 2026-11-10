@@ -43,6 +43,12 @@
   box-shadow: var(--pulso-shadow-popover);
 }
 
+/* El disparador está al inicio de su fila: el contenedor se abre hacia la derecha, no fuera de la pantalla. */
+.pulso-entregable[data-entregable-forma="anclada"][data-entregable-alinear="inicio"] {
+  right: auto;
+  left: 0;
+}
+
 .pulso-entregable-archivos {
   margin: 0;
   padding: 0;

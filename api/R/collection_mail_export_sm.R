@@ -2,7 +2,7 @@
 # (ADR 0110, etapa E1j). El HTML lo escribe el MISMO render, en dialecto
 # surveymonkey (collection_mail_dialects.R); aquí solo se empaqueta.
 #
-#   <campaign_id>_<send_id>_surveymonkey_<stamp>.zip     sensitivity none, role deliverable
+#   <Estudio>_Correo_para_SurveyMonkey_<Envío_Campaña>_<dd_mm_yy>.zip   role deliverable (ADR 0133 §3)
 #   ├── <campaign_id>-<send_id>.html   para pegar en «Formato HTML personalizado»; src https; [..] en href
 #   ├── LEEME.txt                      asunto, fecha prevista, a quién, pasos, campo → [CustomDataN], plan Enterprise
 #   ├── contactos_surveymonkey.csv     SOLO con scope completo (lista cargada): Email, FirstName, LastName?,
@@ -117,16 +117,15 @@
   manifest_path <- file.path(work, "manifest.json")
   writeLines(jsonlite::toJSON(manifest, auto_unbox = TRUE, pretty = TRUE, null = "null"), manifest_path, useBytes = TRUE)
 
-  stamp <- format(Sys.time(), "%Y%m%d-%H%M%S")
-  zip_name <- .cmail_export_name(slug, .cmail_send_tag(campaign, send), "surveymonkey", stamp = stamp)
+  zip_name <- .cmail_export_name(sid, campaign, send, "collection_mail_sm_zip")
   zip_path <- file.path(session$dir, "downloads", paste0(uuid::UUIDgenerate(), "__", zip_name))
   zip::zip(zip_path, files = c(entries, "manifest.json"), root = work, mode = "mirror")
-  manifest_name <- .cmail_export_name(slug, .cmail_send_tag(campaign, send), "surveymonkey_manifest", ext = "json")
+  manifest_name <- .cmail_export_name(sid, campaign, send, "collection_mail_sm_manifest", ext = "json")
   manifest_out <- file.path(session$dir, "downloads", paste0(uuid::UUIDgenerate(), "__", manifest_name))
   file.copy(manifest_path, manifest_out, overwrite = TRUE)
   artifacts <- list(
     .cmail_register_artifact(sid, zip_path, "collection_mail_sm_zip", zip_name, "deliverable", "application/zip", sensitivity),
-    .cmail_register_artifact(sid, manifest_out, "collection_mail_manifest", manifest_name, "manifest", "application/json", sensitivity)
+    .cmail_register_artifact(sid, manifest_out, "collection_mail_sm_manifest", manifest_name, "manifest", "application/json", sensitivity)
   )
   list(
     ok = TRUE,

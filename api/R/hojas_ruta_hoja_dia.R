@@ -376,6 +376,8 @@ hojas_ruta_hoja_dia_pdf <- function(m, out_pdf, fecha = Sys.Date()) {
   invisible(out_pdf)
 }
 
-.hojas_ruta_hd_nombre <- function(m) {
-  sprintf("HojaDia_%s_%s.pdf", hojas_ruta_sanitize_filename(m$jornada), hojas_ruta_sanitize_filename(m$distrito))
+# Detalle del nombre de la hoja del día (ADR 0133 §3): «J03 Breña».
+.hojas_ruta_hd_detalle <- function(m) {
+  partes <- trimws(c(as.character(m$jornada %||% "")[1], as.character(m$distrito %||% "")[1]))
+  paste(partes[!is.na(partes) & nzchar(partes)], collapse = " ")
 }

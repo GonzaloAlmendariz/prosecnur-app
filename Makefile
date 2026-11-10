@@ -39,7 +39,7 @@ QA_URL ?= http://localhost:5173/
 QA_API ?= auto
 QA_OUT ?= $(REPO_ROOT)/outputs/visual-qa/$(shell date +%Y%m%d-%H%M%S)
 
-.PHONY: catalogo-recetario-build help dev-api dev-frontend dev-pulso dev-electron-vite dev-status dev-prune visual-qa ui-quick-check monitoreo-qa audit-reference-build audit-reference-run audit-reference-smoke desktop-audit audit-projects-build audit-project-build audit-project-run audit-project-visual-matrix audit-project-deliverables reference-projects-build reference-project-build reference-project-verify reference-project-seed-aulas reference-project-run reference-project-visual-matrix build build-if-stale build-if-stale-fast dev-port-preflight clean install-r install-frontend install-desktop desktop desktop-fast package-local package-windows-self-contained package-mac-dmg
+.PHONY: preflight-rapido catalogo-recetario-build help dev-api dev-frontend dev-pulso dev-electron-vite dev-status dev-prune visual-qa ui-quick-check monitoreo-qa audit-reference-build audit-reference-run audit-reference-smoke desktop-audit audit-projects-build audit-project-build audit-project-run audit-project-visual-matrix audit-project-deliverables reference-projects-build reference-project-build reference-project-verify reference-project-seed-aulas reference-project-run reference-project-visual-matrix build build-if-stale build-if-stale-fast dev-port-preflight clean install-r install-frontend install-desktop desktop desktop-fast package-local package-windows-self-contained package-mac-dmg
 
 help:
 	@echo "Entrada normal del usuario:"
@@ -181,6 +181,13 @@ gate-front:
 
 gate-area:
 	@Rscript scripts/gate-area.R $(or $(AREA),aulas) $(GATE_ARGS)
+
+# Lo que en el CI da rojo antes del primer minuto y en local tarda segundos:
+# gobernanza documental, Agentic OS, lock de R, contrato de release, contratos
+# de scripts y baseline de deuda. Se corre antes de cada push. No reemplaza al
+# gate completo (typecheck, vitest, build, suite de R).
+preflight-rapido:
+	@node scripts/preflight-rapido.mjs
 
 monitoreo-qa:
 	@test -n "$(PULSO)" || (echo "uso: make monitoreo-qa PULSO=/ruta/al/proyecto.pulso [QA_API=auto]"; exit 1)

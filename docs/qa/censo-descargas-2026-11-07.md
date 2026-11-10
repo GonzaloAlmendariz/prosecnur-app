@@ -1,5 +1,10 @@
 # Censo de descargas (2026-11-07)
 
+Tipo: Censo QA
+Estado: Vigente
+Fecha: 2026-11-07
+Autoridad: Ítem 1 de `checklist-descargas-unificadas-2026-11-07.md` (censar toda salida descargable); relevamiento de solo lectura del código
+
 Todas las formas en que Prosecnur genera algo y lo entrega como archivo, portapapeles o publicación. Fuente de verdad en JSON junto a este documento: `backend.json` (salidas del motor R), `frontend.json` (disparadores en la UI) y `entrega.md` (Electron, jobs, publicaciones y componentes de espera). Todo sale de leer el código; nada se ejecutó.
 
 ## Cobertura
@@ -23,7 +28,7 @@ Rotos hoy, independientes de la unificación:
 9. **`Content-Disposition` sin codificar** (`api/R/router_sistema.R:800`): nombres con tilde pueden llegar mal.
 10. **`/api/fs/save-to-project` rechaza tildes y más de 80 caracteres** (`^[A-Za-z0-9_.-]{1,80}$`), y `.export_filename()` puede pasar ese largo.
 11. **Nombres iguales para contenidos distintos**: ZIP de CSV y ZIP de XLSX (`<proyecto>_datos_<fecha>.zip`), todas las vistas previas de lámina, libro de códigos en ZIP/XLSX/PDF.
-12. **Paquete de evidencia de Monitoreo escribe fuera de la sesión** (`tmp/qa/monitoreo-deliverables/`, relativo al cwd del proceso R).
+12. **Paquete de evidencia de Monitoreo escribe fuera de la sesión** (`qa/monitoreo-deliverables/` dentro de la carpeta `tmp`, relativa al cwd del proceso R).
 
 
 ## Contenedores y forma de la tarjeta
@@ -445,10 +450,10 @@ Hoy la espera aparece en al menos seis posiciones respecto del botón (en el bot
 | tablero-relacion-xlsx | tablero | Tabla de relación entre dos variables del dashboard | xlsx | POST /api/dashboard/relacion/descargar | attachment directo (bytes en la respuesta, no entra a s$files) | sync | HSVG2026_relacion_p12_x_sexo_07_11_26.xlsx |
 | tablero-base-datos-xlsx | tablero | Base de datos del dashboard (XLSX) | xlsx | POST /api/dashboard/base-datos/descargar {formato: "xlsx"} | attachment directo (no entra a s$files) | sync | HSVG2026_base_datos_07_11_26.xlsx |
 | tablero-base-datos-csv | tablero | Base de datos del dashboard (CSV) | csv | POST /api/dashboard/base-datos/descargar {formato: "csv"} | attachment directo (no entra a s$files) | sync | HSVG2026_base_datos_07_11_26.csv |
-| proyecto-pulso | proyecto/home | Proyecto .pulso (zip con manifest.json, state.rds y files/) | pulso | POST /api/project/save | escribe a disco (ruta elegida por el usuario o la del proyecto abierto) | sync | /Users/…/HSVG2026.pulso |
-| proyecto-pulso-duplicado | proyecto/home | Copia de un proyecto .pulso | pulso | POST /api/project/duplicate | escribe a disco (target_path del body) | sync | /Users/…/HSVG2026_copia.pulso |
+| proyecto-pulso | proyecto/home | Proyecto .pulso (zip con manifest.json, state.rds y files/) | pulso | POST /api/project/save | escribe a disco (ruta elegida por el usuario o la del proyecto abierto) | sync | <carpeta del usuario>/HSVG2026.pulso |
+| proyecto-pulso-duplicado | proyecto/home | Copia de un proyecto .pulso | pulso | POST /api/project/duplicate | escribe a disco (target_path del body) | sync | <carpeta del usuario>/HSVG2026_copia.pulso |
 | proyecto-guardar-en-carpeta | proyecto/home | Cualquier archivo registrado copiado a la carpeta del .pulso (opcionalmente en un subdirectorio) | cualquiera (la del file_id) | POST /api/fs/save-to-project | escribe a disco (carpeta del proyecto) | sync | <carpeta del proyecto>/entregables/HSVG2026_frecuencias_07_11_26.xlsx |
-| proyecto-guardar-como | proyecto/home | Cualquier archivo registrado copiado a una ruta absoluta elegida por el usuario | cualquiera | POST /api/fs/save-file-as | escribe a disco (ruta absoluta del body) | sync | /Users/…/Descargas/HSVG2026_reporte_07_11_26.pptx |
+| proyecto-guardar-como | proyecto/home | Cualquier archivo registrado copiado a una ruta absoluta elegida por el usuario | cualquiera | POST /api/fs/save-file-as | escribe a disco (ruta absoluta del body) | sync | <carpeta del usuario>/Descargas/HSVG2026_reporte_07_11_26.pptx |
 | proyecto-plan-trabajo-xlsx | proyecto/home | Plan de trabajo (legado ADR 0124) | xlsx | POST /api/plan-trabajo/export | .register_output_file() kind plan_trabajo_xlsx | sync | HSVG2026_plan_trabajo_07_11_26.xlsx |
 | proyecto-bitacora-md | proyecto/home | Entradas de la bitácora en Markdown (legado ADR 0124) | md | POST /api/bitacora/entradas/exportar | cuerpo JSON con campo markdown (el front arma el archivo) | sync | (lo pone el front) |
 | proyecto-bitacora-portabilidad-json | proyecto/home | Documento de portabilidad de la bitácora/plan (legado ADR 0124) | json | GET /api/bitacora/portabilidad/exportar | cuerpo JSON (el front arma el archivo) | sync | (lo pone el front) |
@@ -496,7 +501,7 @@ Hoy la espera aparece en al menos seis posiciones respecto del botón (en el bot
 - Base podada para publicar (internos (caches, estado, payloads de job)): Transformación interna previa a publicar en HF.
 - Borrado/poda de files (internos (caches, estado, payloads de job)): Quita entradas de s$files.
 - Reescritura de una plantilla subida (internos (caches, estado, payloads de job)): Actualiza tamaño/fecha de un file existente.
-- Copia de evidencia en tmp/qa/monitoreo-deliverables/ (internos (caches, estado, payloads de job)): Escritura lateral relativa al cwd (ver notas de monitoreo-evidence-pack-zip).
+- Copia de evidencia en la carpeta tmp, subcarpeta qa/monitoreo-deliverables/ (internos (caches, estado, payloads de job)): Escritura lateral relativa al cwd (ver notas de monitoreo-evidence-pack-zip).
 - Jobs sin archivo de resultado (internos (caches, estado, payloads de job)): Devuelven JSON por result_data.
 - Mapas y contornos (internos (caches, estado, payloads de job)): JSON para el lienzo, no archivos del usuario.
 - POST /api/monitoreo/mailchimp/sync (revisados_sin_salida (asumido por lectura de código, sin ejecutar)): Lee métricas de Mailchimp (monitoreo_mailchimp_lectura.R); no publica ni produce archivo.

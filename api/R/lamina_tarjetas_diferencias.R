@@ -45,11 +45,14 @@
 #' @keywords internal
 .TARJETA_TINTA_TITULO <- 1.05
 
-#' Líneas que ocupa un rótulo de grupo en su columna (1 o 2); apilada, el nombre va en su propio renglón
+#' Líneas que ocupa un rótulo de grupo en su columna (1 a 3); apilada, el nombre va en su propio renglón
+#'
+#' La compacta tenía tope de 2 líneas y el renglón se medía con ese tope: «CP, RR. II., Antropología y Sociología» (CCSS,
+#' correo del 2026-11-05) pide 3 en la columna angosta y la tercera caía sobre el grupo de abajo (PPT v7.32, lámina 24).
 #' @keywords internal
 .lam_tarjeta_lineas_nombre <- function(nombre, m) {
   ancho <- if (isTRUE(m$apilada)) m$wi * .TARJETA_TINTA_TITULO + 0.22 else m$xn + 0.2   # misma holgura que el título
-  min(if (isTRUE(m$apilada)) 3L else 2L, max(1L, as.integer(.lam_lineas_tinta(nombre, ancho, m$pt_nombre, TRUE))))   # apilada, hasta tres líneas
+  min(3L, max(1L, as.integer(.lam_lineas_tinta(nombre, ancho, m$pt_nombre, TRUE))))
 }
 
 #' Alto de un renglón de grupo (in): con el nombre encima, suma su línea

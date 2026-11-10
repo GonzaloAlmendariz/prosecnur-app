@@ -1,5 +1,10 @@
 # Checklist · El Planner sale como módulo (ADR 0124) — 2026-11-01
 
+Tipo: Checklist de pedido con varias indicaciones
+Estado: En curso
+Fecha: 2026-11-01
+Autoridad: decisión de Gonzalo del 2026-11-01 de quitar el Planner como módulo; ADR 0124
+
 Gonzalo, al revisar la Q5 en la app: «el tipo de estudio es uno solo», «¿por qué pide definir poblaciones?», «¿qué tanto
 perderíamos si quitamos el Planner por completo?». Decidió: quitar el módulo, el nombre y el tipo en el Home, el
 cronograma se va por completo («Sí, procede»). Sólo Gonzalo da los ítems por terminados.

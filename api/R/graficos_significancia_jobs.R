@@ -31,6 +31,7 @@
   out <- list(regla = ctx$regla, origen = ctx$origen, familia = ctx$familia, m = ctx$m, cruces = ctx$cruces)
   if (!is.null(ctx$base_familia)) out$base_familia <- ctx$base_familia   # «Familia por base»: sólo en multibase
   if (!is.null(ctx$familias)) out$familias <- ctx$familias
+  if (!is.null(ctx$madre)) out$madre <- ctx$madre   # hija repeat: el contexto de su madre (reporte_cruces_grano.R)
   out
 }
 
@@ -50,9 +51,15 @@
   .tarjetas_fuente_fijar(ds[[nombre]], is[[nombre]])   # ADR 0129: la tarjeta de ejemplo de la lectura
   gc <- significancia$graficos_config; ac <- significancia$analitica_config
   ctx <- tryCatch(
-    # ADR 0128 «Familia por base»: una regla para todo el informe y la familia de la activa sobre sus ranuras.
-    .sig_contexto_estudio_base(ds[[nombre]], is[[nombre]], gc, ac, nombre, nombre, names(ds),
-                               regla_informe = .sig_regla_informe(gc, ds, ac)),
+    # Dos caminos que entraron por separado y aquí se juntan (fusión del 2026-11-10):
+    # - hija repeat: su familia hereda la de la madre (reporte_cruces_grano.R);
+    # - el resto, ADR 0128 «Familia por base»: una regla para todo el informe y la familia de la activa sobre sus ranuras.
+    if (is.list(attr(ds[[nombre]], "repeat_design", exact = TRUE))) {
+      .sig_contexto_de_base(ds, is, nombre, significancia)
+    } else {
+      .sig_contexto_estudio_base(ds[[nombre]], is[[nombre]], gc, ac, nombre, nombre, names(ds),
+                                 regla_informe = .sig_regla_informe(gc, ds, ac))
+    },
     error = function(e) {
       message("[diferencias] no se pudo calcular la familia: ", conditionMessage(e))
       if (exists(".pulso_aviso", mode = "function")) {

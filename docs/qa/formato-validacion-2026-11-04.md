@@ -1,5 +1,10 @@
 # Formato en Validación (4 nov 2026, madrugada)
 
+Tipo: Registro QA fechado
+Estado: Vigente
+Fecha: 2026-11-04
+Autoridad: encargo de coordinación (Meta B); decisiones revisables por Gonzalo
+
 Encargo de coordinación (Meta B): la pasada de formato en el resto de Validación (reglas del formulario, criterios
 de revisión, cierre de base y los controles que comparten), con el explorador ya rehecho en E8. Receta de
 `formato-codificacion-2026-11-04.md` y `formato-calculo-graficos-2026-11-02.md`: P1 letra por rol, P3 sin « · »,

@@ -43,7 +43,9 @@
 .CMAIL_BORDER <- "#e2e6ed"
 .CMAIL_MUTED <- "#5f6673"
 .CMAIL_PAGE_BG <- "#eef1f5"
-.CMAIL_FOOTER_TEXT <- "#8a909c"
+# El pie (dirección y por qué recibe el correo) a 12 px sobre el gris de la
+# página: 4,66:1, que pasa AA (4,5). Era #8a909c, 2,83:1 (GOAL editor L17).
+.CMAIL_FOOTER_TEXT <- "#666c78"
 .CMAIL_PAD_X <- 48L
 .CMAIL_FIELD_TINT <- "#eef3e8"
 
@@ -238,8 +240,13 @@
                            ctx, "__cabecera", "header"))
   }
   dark <- identical(h$background %||% "light", "dark")
-  bg <- if (dark) accent else "#ffffff"
-  divider <- if (dark) "#5a6a94" else .CMAIL_BORDER
+  # La franja oscura es el acento salvo que la cabecera declare su color (GOAL editor L15:
+  # en Acreditación 2026 la franja es #022051 y el acento #004dac).
+  propio <- if (dark) .cmail_one(h$color) else NULL
+  propio <- if (!is.null(propio) && .cmail_hex_ok(propio)) tolower(propio) else NULL
+  bg <- if (!dark) "#ffffff" else propio %||% accent
+  # La línea entre logos sobre un color propio sale de ese color; sin él, la de siempre (paridad).
+  divider <- if (!dark) .CMAIL_BORDER else if (!is.null(propio)) .cmail_mix("#ffffff", propio, 0.35) else "#5a6a94"
   height <- if (dark) 46L else 40L
   ids <- as.character(unlist(h$logo_ids, use.names = FALSE))
   blancos <- dark && identical(.cmail_one(h$logo_tone), "blanco")

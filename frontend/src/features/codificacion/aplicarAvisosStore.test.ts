@@ -72,8 +72,9 @@ describe("aplicarAvisosStore", () => {
     const s = useAplicarAvisosStore.getState();
     s.iniciar(A);
     s.recibir(A, respuesta());
-    s.terminar(A, { data: "f1", inst: "f2" });
-    expect(entrada(A).salida).toEqual({ data: "f1", inst: "f2" });
+    const archivos = [{ fileId: "f1", nombre: "Data.xlsx", formato: "xlsx" }, { fileId: "f2", nombre: "Instrumento.xlsx", formato: "xlsx" }];
+    s.terminar(A, { archivos });
+    expect(entrada(A).salida).toEqual({ archivos });
     expect(entrada(A).jobId).toBeNull();
     s.iniciar(A);
     const e = entrada(A);
@@ -101,7 +102,7 @@ describe("aplicarAvisosStore", () => {
     const s = useAplicarAvisosStore.getState();
     s.iniciar(A);
     s.recibir(A, respuesta());
-    s.terminar(A, { data: "viejo", inst: "viejo" });
+    s.terminar(A, { archivos: [{ fileId: "viejo", nombre: "Viejo.xlsx", formato: "xlsx" }] });
 
     let resolver: (r: CodifAplicarRespuesta) => void = () => {};
     const llamar = vi.fn(() => new Promise<CodifAplicarRespuesta>((r) => { resolver = r; }));

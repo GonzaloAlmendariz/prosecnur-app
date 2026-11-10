@@ -335,6 +335,10 @@
     }
     other_text_col <- paste0(parent, "_other")
     if (!isTRUE(has_sm_zero_other) && !(other_text_col %in% names(out))) next
+    # Si el XLSForm declara el 0 como opción, el 0 es una respuesta (Kobo: LIGHT03 = 0
+    # «No hay electricidad»), no el «Otro» de SurveyMonkey. Sólo se recodifica cuando
+    # las etiquetas del SAV dicen que el 0 es «Otro».
+    if (!isTRUE(has_sm_zero_other) && "0" %in% trimws(as.character(ch$name))) next
 
     x_chr <- trimws(as.character(out[[parent]]))
     hit <- !is.na(x_chr) & x_chr == "0"

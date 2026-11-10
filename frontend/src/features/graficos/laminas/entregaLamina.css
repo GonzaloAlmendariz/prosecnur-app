@@ -1,0 +1,15 @@
+/* Descarga de la lámina sobre el kit de entregables (ADR 0133, fase 5). La barra del visor recorta lo que se sale
+   (`overflow: hidden`), así que el contenedor de la forma anclada cuelga de esta franja sin alto, justo bajo la barra y
+   alineada a su borde derecho (el relleno es el de la barra). Flota sobre el lienzo sin moverlo. */
+.pulso-f6-visor-entrega {
+  position: relative;
+  flex: none;
+  height: 0;
+  margin: 0 var(--pulso-space-3);
+  z-index: 2;
+}
+
+/* La anclada del kit se separa 8 px de su ancla; aquí el ancla ya es el borde de la barra. */
+.pulso-f6-visor-entrega > .pulso-entregable[data-entregable-forma="anclada"] {
+  top: var(--pulso-space-2);
+}

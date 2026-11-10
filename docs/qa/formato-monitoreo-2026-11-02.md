@@ -1,5 +1,10 @@
 # Formato en Monitoreo (2 nov 2026, noche)
 
+Tipo: Registro QA fechado
+Estado: En curso
+Fecha: 2026-11-02
+Autoridad: Pedido de Gonzalo para la noche del 2026-11-02 ("Formato en Monitoreo")
+
 Gonzalo: «no es solo un pequeño ajuste, es un tema sistemático que debe solucionarse», y para esta noche «Formato
 en Monitoreo». El método es el de Material de campo (`revamp-material-de-campo-construccion-2026-11-02.md`, sección
 «Causas compartidas»): por cada patrón, su fuente, su conteo y un guard que impide que vuelva. Alcance de escritura:

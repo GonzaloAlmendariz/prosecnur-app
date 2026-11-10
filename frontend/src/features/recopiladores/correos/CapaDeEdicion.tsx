@@ -77,6 +77,7 @@ type Props = {
   onDuplicar: (blockId: string) => void;
   onEditarBloque: (blockId: string, update: (b: MailBlock) => MailBlock) => void;
   onEstilo: (blockId: string) => void;
+  onSepararBoton?: (blockId: string) => void;
   /** «Mis secciones» (L9): guardar la elegida e insertar una guardada en un hueco. */
   onGuardarSeccion?: (blockId: string, name: string) => Promise<boolean>;
   errorAlGuardar?: string | null;
@@ -193,6 +194,7 @@ export function CapaDeEdicion({
   onDuplicar,
   onEditarBloque,
   onEstilo,
+  onSepararBoton,
   onGuardarSeccion,
   errorAlGuardar = null,
   onInsertarGuardada,
@@ -470,7 +472,7 @@ export function CapaDeEdicion({
   const bloqueElegido = elegida ? porId.get(elegida.id) : undefined;
   const conAcciones = Boolean(elegida && bloqueElegido && elegida.id !== CABECERA && elegida.id !== APERTURA);
   const nombreElegido = bloqueElegido ? rotuloDeBloque(bloqueElegido) : "";
-  const anchoAcciones = anchoDeLasAcciones(nombreElegido, (elegida && esMovible(template, elegida.id) ? 4 : 1) + botonesDeSeccion(template, bloqueElegido, Boolean(onGuardarSeccion)));
+  const anchoAcciones = anchoDeLasAcciones(nombreElegido, (elegida && esMovible(template, elegida.id) ? 4 : 1) + botonesDeSeccion(template, bloqueElegido, Boolean(onGuardarSeccion), Boolean(onSepararBoton)));
 
   // N2/N3: la barra del bloque elegido va encima de su borde superior; si ahí
   // no se ve, pegada a lo más alto visible del bloque. El área visible se
@@ -660,6 +662,7 @@ export function CapaDeEdicion({
               onDuplicar={onDuplicar}
               onEditarBloque={onEditarBloque}
               onEstilo={onEstilo}
+              onSepararBoton={onSepararBoton}
               onGuardarSeccion={onGuardarSeccion}
               errorAlGuardar={errorAlGuardar}
             />

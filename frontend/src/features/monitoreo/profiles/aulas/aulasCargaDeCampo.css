@@ -1380,6 +1380,13 @@ button.aulas-dispo-importar {
   font-family: inherit;
 }
 
+/* Mientras se genera la plantilla o el Excel, el botón sólo se apaga: la línea del contenedor es la señal. */
+button.aulas-dispo-importar:disabled,
+.aulas-carga-exportar:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
 /* A qué clase se puede entrar sin cita, dentro del día del despliegue. */
 .aulas-sincita {
   margin-top: 10px;

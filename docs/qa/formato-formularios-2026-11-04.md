@@ -1,5 +1,10 @@
 # Formato en Formularios (4 nov 2026, noche)
 
+Tipo: Registro QA fechado
+Estado: En curso
+Fecha: 2026-11-04
+Autoridad: Encargo de coordinación (Meta B) a pedido de Gonzalo; decisiones revisables por él
+
 Encargo de coordinación (Meta B) a pedido de Gonzalo: «aún hay bastante UI desfasada por mejorar durante toda la
 noche». Receta de `formato-monitoreo-2026-11-02.md` y `formato-hojas-ruta-2026-11-04.md`. Alcance de escritura:
 `frontend/src/features/xlsformEditor/`, sus tests y este doc. Las decisiones son de coordinación y **revisables por

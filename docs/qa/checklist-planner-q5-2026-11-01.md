@@ -1,5 +1,11 @@
 # Checklist · Planner Q5, la pantalla nueva (ADR 0123) — 2026-11-01
 
+Tipo: Checklist de implementación
+Estado: Histórico
+Fecha: 2026-11-01
+Autoridad: ADR 0123; propuesta aprobada por Gonzalo el 2026-11-01 ("Sí, constrúyela")
+Consolidado en: [Checklist del retiro del Planner](checklist-planner-retiro-2026-11-01.md)
+
 Gonzalo aprobó la propuesta («Sí, constrúyela», 1/11), sobre el prototipo navegable
 https://claude.ai/artifact/4FGYFbie5F4JeUdLAc88k9 (versión 7). Un ítem por pieza; sólo Gonzalo los da por terminados.
 

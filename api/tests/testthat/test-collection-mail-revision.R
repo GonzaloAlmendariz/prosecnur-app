@@ -7,6 +7,8 @@ test_that("arma un HTML con cada campaña en una columna, en computadora y en ce
   b <- collection_mail_campaign_create(sid, a$state_revision, name = "Propuesta dos", preset_id = "recuperacion_estudiantes_v1")
   r <- collection_mail_revision(sid, list(a$campaign$campaign_id, b$campaign$campaign_id), ejemplo = "masculino",
                                 titulo = "Correo de invitación")
+  expect_true(all(c("modulo", "rotulo", "guardado_en", "aviso_guardado", "size") %in% names(r$file)))  # ADR 0133, fase 5
+  expect_match(r$file$filename, "_Correos_para_revisar_Correo_de_invitacion_[0-9]{2}_[0-9]{2}_[0-9]{2}[.]html$")
   expect_true(r$ok)
   f <- session_get(sid)$files[[r$file$file_id]]
   expect_true(file.exists(f$path))
