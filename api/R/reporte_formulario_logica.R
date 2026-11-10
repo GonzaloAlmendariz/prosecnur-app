@@ -719,10 +719,10 @@
 
   av <- character(0)
   if (length(avisos$tecnicas)) av <- c(av, sprintf(
-    "Condiciones tecnicas que el papel asume cumplidas (metadatos o variables que no existen): %s.",
+    "Condiciones técnicas que el papel asume cumplidas (metadatos o variables que no existen): %s.",
     paste(avisos$tecnicas, collapse = ", ")))
   if (length(avisos$calculados)) av <- c(av, sprintf(
-    "AVISO BLOQUEANTE: condiciones que dependen de calculos sin rotulo (%s); el papel las nombra por su variable. Agregue un rotulo al calculo.",
+    "AVISO BLOQUEANTE: condiciones que dependen de cálculos sin rótulo (%s); el papel las nombra por su variable. Agregue un rótulo al cálculo.",
     paste(avisos$calculados, collapse = ", ")))
   if (length(avisos$notas)) av <- c(av, sprintf(
     "Condiciones que apuntan a una nota o a un grupo, que no tienen respuesta (dato del instrumento): %s.",

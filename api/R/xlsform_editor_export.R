@@ -31,20 +31,38 @@
 # Antes la ruta rellenaba SIEMPRE el titulo con el nombre del archivo, y el
 # fallback del motor a `form_title` (formulario_pdf_build_model) quedaba muerto.
 # `footer_title` sigue al titulo salvo que venga explicito.
-.xlsform_editor_export_titulo <- function(options, settings, filename) {
+.xlsform_editor_export_titulo <- function(options, settings, filename, sid = NULL) {
   options <- options %||% list()
   titulo <- trimws(.form_pdf_chr(options$title))
   if (!nzchar(titulo)) {
     titulo <- trimws(.form_pdf_setting(settings, "form_title", ""))
   }
   if (!nzchar(titulo)) {
-    titulo <- tools::file_path_sans_ext(basename(filename))
-    titulo <- gsub("(_papel|_editado)$", "", titulo, ignore.case = TRUE)
-    titulo <- gsub("[_-]+", " ", titulo)
+    titulo <- gsub("[_-]+", " ", .xlsform_editor_nombre_formulario(sid, filename))
   }
   options$title <- titulo
   if (!nzchar(trimws(.form_pdf_chr(options$footer_title)))) options$footer_title <- titulo
   options
+}
+
+# Nombre del formulario a partir del archivo que manda el front. El front lo
+# deriva del XLSForm abierto (`<nombre>_editado.xlsx` -> `<nombre>_papel.pdf`), y
+# ese XLSForm puede ser un entregable con el nombre del ADR 0133 §3
+# (`acnur_acg_Instrumento_adaptado_10_11_26.xlsx`). Si el nombre tiene esa forma
+# (lo reconoce `.entregable_nombre_heredado()`), se le quitan el código del
+# estudio y la fecha: van una sola vez, los pone `entregable_nombre()`. Antes salía
+# `acnur_acg_Cuestionario_acnur_acg_Instrumento_adaptado_10_11_26_10_11_26.pdf`.
+# No se respeta el nombre tal cual porque es el de otro entregable: el PDF se
+# llamaría "Instrumento adaptado" y llevaría la fecha del XLSForm, no la de hoy.
+.xlsform_editor_nombre_formulario <- function(sid, filename) {
+  stem <- tools::file_path_sans_ext(basename(as.character(filename %||% "")[1]))
+  stem <- gsub("(_papel|_editado)+$", "", stem, ignore.case = TRUE)
+  s <- if (is.null(sid)) NULL else session_get(sid, required = FALSE)
+  if (!is.null(.entregable_nombre_heredado(s, paste0(stem, ".x")))) {
+    sin_estudio <- substring(stem, nchar(.entregable_estudio(s)) + 2L)
+    stem <- sub("_[0-9]{2}_[0-9]{2}_[0-9]{2}$", "", sin_estudio)
+  }
+  stem
 }
 
 # Traduce un fallo del motor al error de dominio que viaja en `result_data`.
@@ -183,7 +201,7 @@ xlsform_editor_export_job_runner <- function(input_path, formato, fail_code, fai
   } else {
     .xlsform_editor_empty_df(.xlsform_editor_default_columns("paper"))
   }
-  options <- .xlsform_editor_export_titulo(parsed$options %||% list(), settings, filename)
+  options <- .xlsform_editor_export_titulo(parsed$options %||% list(), settings, filename, sid = sid)
   # ADR 0133 (fase 5): una vista previa (`previa: true` en el cuerpo, o el visor de
   # Word) se registra con su propio kind, sin copia junto al proyecto.
   if (is.null(spec$registro_kind) && .xlsform_editor_es_previa(parsed)) {
