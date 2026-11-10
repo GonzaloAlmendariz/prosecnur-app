@@ -176,9 +176,11 @@ test_that("una reserva sin codigo de cadena no produce fila fantasma: se declara
   expect_identical(err$code, "E_AULAS_LIBRO_SIN_CADENAS")
   expect_identical(err$status, 409)
   # El mensaje nombra la CAUSA y las dos salidas, no solo el hecho.
-  expect_match(err$message, "cadena")
-  expect_match(err$message, "[Cc][aá]lculo de muestra")
-  expect_match(err$message, "Recopiladores")
+  expect_match(err$message, "código de cadena", fixed = TRUE)
+  expect_match(err$message, "Cálculo de muestra", fixed = TRUE)
+  expect_match(err$message, "Material de campo", fixed = TRUE)
+  # Una sola reserva sin cadena: el mensaje concuerda en singular.
+  expect_match(err$message, "^1 fila del plan entraría al libro")
 })
 
 test_that("UNA sola reserva sin toc dispara, aunque el resto del plan este sano", {

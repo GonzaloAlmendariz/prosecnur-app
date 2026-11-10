@@ -54,15 +54,26 @@
 # `acnur_acg_Cuestionario_acnur_acg_Instrumento_adaptado_10_11_26_10_11_26.pdf`.
 # No se respeta el nombre tal cual porque es el de otro entregable: el PDF se
 # llamaría "Instrumento adaptado" y llevaría la fecha del XLSForm, no la de hoy.
+# El código del estudio solo se quita cuando es el de la Ficha; la fecha final se
+# quita siempre (QA del 2026-11-10: `ACNURCG_instrumento_adaptado_10_07_26` salía
+# con dos fechas porque no tiene la forma completa del §3).
 .xlsform_editor_nombre_formulario <- function(sid, filename) {
   stem <- tools::file_path_sans_ext(basename(as.character(filename %||% "")[1]))
   stem <- gsub("(_papel|_editado)+$", "", stem, ignore.case = TRUE)
   s <- if (is.null(sid)) NULL else session_get(sid, required = FALSE)
   if (!is.null(.entregable_nombre_heredado(s, paste0(stem, ".x")))) {
-    sin_estudio <- substring(stem, nchar(.entregable_estudio(s)) + 2L)
-    stem <- sub("_[0-9]{2}_[0-9]{2}_[0-9]{2}$", "", sin_estudio)
+    stem <- substring(stem, nchar(.entregable_estudio(s)) + 2L)
   }
-  stem
+  .xlsform_editor_sin_fecha_final(stem)
+}
+
+# Quita un `_dd_mm_yy` final cuando es una fecha válida y queda nombre delante.
+.xlsform_editor_sin_fecha_final <- function(stem) {
+  fecha <- regmatches(stem, regexpr("_[0-9]{2}_[0-9]{2}_[0-9]{2}$", stem))
+  if (!length(fecha)) return(stem)
+  if (is.na(as.Date(substring(fecha, 2L), format = "%d_%m_%y"))) return(stem)
+  resto <- substring(stem, 1L, nchar(stem) - nchar(fecha))
+  if (nzchar(resto)) resto else stem
 }
 
 # Traduce un fallo del motor al error de dominio que viaja en `result_data`.

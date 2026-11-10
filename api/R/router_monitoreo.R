@@ -5083,7 +5083,7 @@ mount_monitoreo <- function(pr) {
       unidades <- s$monitoreo_aulas_plan %||% list()
       if (!length(unidades)) {
         stop_api(409, "E_AULAS_LIBRO_SIN_PLAN",
-                 "No hay plan de aulas del que generar el libro. Importa la seleccion de calculo de muestra primero.")
+                 "No hay plan de aulas del que generar el libro. Importa primero la selección de Cálculo de muestra.")
       }
       nombre <- .export_filename(sid, "libro_aulas", "xlsx")
       dir.create(file.path(s$dir, "downloads"), showWarnings = FALSE, recursive = TRUE)

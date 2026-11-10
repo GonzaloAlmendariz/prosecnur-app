@@ -1543,15 +1543,18 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
       .calg_txt(u$operational_code, .calg_txt(u$classroom_id))
     }, character(1))
     codigos <- unique(codigos[nzchar(codigos)])
+    n_sin <- length(sin_cadena)
     stop_api(
       409, "E_AULAS_LIBRO_SIN_CADENAS",
-      sprintf(paste0(
-        "%d fila(s) del plan entrarian al libro sin su codigo de cadena ",
-        "(titular_operational_code): %s. Sin el, cada una saldria como una fila ",
-        "fantasma agrupada bajo un titular que no es el suyo. Vuelve a entregar ",
-        "la seleccion desde Calculo de muestra, que si escribe la cadena, o ",
-        "reimporta el plan desde Recopiladores con la seleccion vigente."
-      ), length(sin_cadena), paste(codigos, collapse = ", ")),
+      paste0(
+        if (n_sin == 1L) "1 fila del plan entraría" else sprintf("%d filas del plan entrarían", n_sin),
+        " al libro sin su código de cadena (titular_operational_code): ",
+        paste(codigos, collapse = ", "), ". Sin él, ",
+        if (n_sin == 1L) "saldría" else "cada una saldría",
+        " como una fila fantasma agrupada bajo un titular que no es el suyo. ",
+        "Vuelve a entregar la selección desde Cálculo de muestra, que sí escribe ",
+        "la cadena, o reimporta el plan desde Material de campo con la selección vigente."
+      ),
       details = list(filas = length(sin_cadena), codigos = as.list(codigos))
     )
   }

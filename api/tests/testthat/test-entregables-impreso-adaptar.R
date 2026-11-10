@@ -109,9 +109,37 @@ test_that("H5a: un nombre que no tiene la forma del §3 sigue dando el detalle d
   expect_match(cap$result_filename, paste0("^acnur_acg_Cuestionario_egresados_v3_", .eia_fecha, "[.]pdf$"))
   expect_identical(cap$payload$options$title, "egresados v3")
 
-  # Otro estudio en el nombre: no se reconoce como propio y no se le quita nada.
+  # Otro estudio en el nombre: el código no es el de la Ficha y se conserva; la
+  # fecha del final sí se quita, porque la que vale es la de hoy.
   cap <- .eia_encolar(.eia_body("OTRO_Instrumento_adaptado_10_11_26_papel.pdf"), .eia_specs()$pdf, sid)
-  expect_match(cap$result_filename, "^acnur_acg_Cuestionario_OTRO_Instrumento_adaptado_10_11_26_")
+  expect_match(cap$result_filename, paste0("^acnur_acg_Cuestionario_OTRO_Instrumento_adaptado_", .eia_fecha, "[.]pdf$"))
+  expect_identical(lengths(regmatches(cap$result_filename, gregexpr(.eia_fecha, cap$result_filename))), 1L)
+})
+
+# QA visual del 2026-11-10: `ACNURCG_instrumento_adaptado_10_07_26` salía como
+# `acnur_acg_Cuestionario_ACNURCG_instrumento_adaptado_10_07_26_10_11_26.pdf`.
+# Solo se limpiaba la fecha cuando el nombre tenía la forma completa del §3.
+test_that("H5a: la fecha del final del nombre se quita siempre, una sola fecha en el impreso", {
+  sid <- .eia_sesion()
+  for (spec_nombre in c("pdf", "docx")) {
+    spec <- .eia_specs()[[spec_nombre]]
+    filename <- paste0("ACNURCG_instrumento_adaptado_10_07_26_papel.", spec$ext)
+    cap <- .eia_encolar(.eia_body(filename), spec, sid)
+    nombre <- cap$result_filename
+    expect_match(nombre, paste0("^acnur_acg_Cuestionario_ACNURCG_instrumento_adaptado_", .eia_fecha, "[.]", spec$ext, "$"),
+                 info = spec_nombre)
+    expect_false(grepl("10_07_26", nombre, fixed = TRUE), info = nombre)
+    expect_identical(lengths(regmatches(nombre, gregexpr(.eia_fecha, nombre))), 1L, info = nombre)
+    expect_identical(cap$payload$options$title, "ACNURCG instrumento adaptado", info = spec_nombre)
+  }
+})
+
+test_that("H5a: un final numérico que no es una fecha no se recorta", {
+  expect_identical(.xlsform_editor_nombre_formulario(NULL, "encuesta_31_13_26_papel.pdf"), "encuesta_31_13_26")
+  expect_identical(.xlsform_editor_nombre_formulario(NULL, "encuesta_2024_01_02.xlsx"), "encuesta_2024_01_02")
+  expect_identical(.xlsform_editor_nombre_formulario(NULL, "encuesta_v3_10_07_26_editado.xlsx"), "encuesta_v3")
+  # Un nombre que es solo la fecha conserva la fecha: sin ella no queda nombre.
+  expect_identical(.xlsform_editor_nombre_formulario(NULL, "10_07_26.xlsx"), "10_07_26")
 })
 
 test_that("H5a: el impreso registrado se copia a Entregables/Formularios con el nombre corto", {

@@ -19,8 +19,9 @@
 # -----------------------------------------------------------------------------
 # Helpers de formato
 # -----------------------------------------------------------------------------
+# Una cifra sin dato deja la celda vacía: la raya no es un valor (CLAUDE.md, Redacción).
 .report_fmt_int <- function(x) {
-  if (is.null(x) || is.na(x)) return("—")
+  if (is.null(x) || is.na(x)) return("")
   format(as.integer(x), big.mark = ",", scientific = FALSE)
 }
 
@@ -62,7 +63,7 @@
   if (!length(kpis)) return("")
   cards <- vapply(kpis, function(k) {
     sev <- .report_sev_class(k$meta$severidad %||% "neutral")
-    value <- if (is.null(k$meta$value) || is.na(k$meta$value)) "—"
+    value <- if (is.null(k$meta$value) || is.na(k$meta$value)) ""
              else as.character(k$meta$value)
     sub <- if (!is.null(k$subtitle) && !is.na(k$subtitle)) k$subtitle else ""
     sprintf(
@@ -88,11 +89,18 @@
   n_col <- "n_inconsistencias"
   if (!(n_col %in% names(resumen))) return('<p class="empty">Resumen de auditoría en formato inesperado.</p>')
 
-  ord <- order(-as.integer(resumen[[n_col]]), na.last = TRUE)
-  top <- resumen[ord, , drop = FALSE]
-  top <- top[as.integer(top[[n_col]]) > 0L, , drop = FALSE]
-  top <- utils::head(top, 20L)
-  if (!nrow(top)) return('<p class="empty">Ninguna regla arroja inconsistencias.</p>')
+  # Una regla que el motor no pudo evaluar trae `n_inconsistencias = NA`. Filtrar
+  # con `n > 0L` indexaba con NA y fabricaba una fila `NA | NA` por cada una; se
+  # separan y se declaran debajo de la tabla, no se descartan en silencio.
+  n_casos <- suppressWarnings(as.integer(resumen[[n_col]]))
+  sin_conteo <- .report_reglas_sin_conteo(resumen, id_col, n_casos)
+  con_casos <- which(!is.na(n_casos) & n_casos > 0L)
+  con_casos <- utils::head(con_casos[order(-n_casos[con_casos])], 20L)
+  top <- resumen[con_casos, , drop = FALSE]
+  if (!nrow(top)) {
+    if (!any(!is.na(n_casos))) return(sin_conteo)
+    return(paste0('<p class="empty">Ninguna regla evaluada arroja inconsistencias.</p>', sin_conteo))
+  }
 
   rows <- vapply(seq_len(nrow(top)), function(i) {
     id_v <- if (is.na(id_col)) sprintf("R%03d", i) else as.character(top[[id_col]][i])
@@ -105,8 +113,60 @@
   paste0(
     '<table class="tbl"><thead><tr><th>ID</th><th>Regla</th><th class="num">Casos</th></tr></thead><tbody>',
     paste(rows, collapse = ""),
-    "</tbody></table>"
+    "</tbody></table>",
+    sin_conteo
   )
+}
+
+# Aviso de las reglas sin conteo de casos, con sus ID (hasta 10) para ubicarlas
+# en Validación. Vacío cuando todas se evaluaron.
+.report_reglas_sin_conteo <- function(resumen, id_col, n_casos) {
+  idx <- which(is.na(n_casos))
+  if (!length(idx)) return("")
+  n <- length(idx)
+  ids <- if (is.na(id_col)) character(0) else as.character(resumen[[id_col]][idx])
+  ids <- ids[!is.na(ids) & nzchar(ids)]
+  lista <- if (!length(ids)) "" else paste0(
+    ": ", paste(utils::head(ids, 10L), collapse = ", "),
+    if (length(ids) > 10L) sprintf(" y %d más", length(ids) - 10L) else ""
+  )
+  texto <- if (n == 1L) {
+    "1 regla no se pudo evaluar y no tiene conteo de casos"
+  } else {
+    sprintf("%d reglas no se pudieron evaluar y no tienen conteo de casos", n)
+  }
+  sprintf('<p class="empty">%s.</p>', .report_escape(paste0(texto, lista)))
+}
+
+# Encabezados en castellano de las columnas que el reporte muestra del motor.
+.report_encabezados <- c(
+  id = "ID", source_id = "Regla", action_type = "Acción", target_variable = "Variable",
+  status = "Estado", rationale = "Justificación",
+  id_regla = "ID", nombre_regla = "Regla", n_inconsistencias = "Casos", porcentaje = "Porcentaje"
+)
+
+.report_encabezado <- function(columnas) {
+  rotulo <- unname(.report_encabezados[columnas])
+  ifelse(is.na(rotulo), columnas, rotulo)
+}
+
+.report_estados_decision <- c(draft = "Borrador", ready = "Lista")
+
+# La acción con el rótulo que ya usa Limpieza (`.limpieza_summarize_decision`) y
+# el estado en palabras. Un código fuera de esas listas se muestra tal cual, para
+# que se vea, en vez de quedar como "Decisión" genérica.
+.report_decisiones_legibles <- function(df) {
+  if ("action_type" %in% names(df)) {
+    df$action_type <- vapply(as.character(df$action_type), function(a) {
+      rotulo <- .limpieza_summarize_decision(list(action_type = a))
+      if (identical(rotulo, "Decisión") || is.na(rotulo)) a else rotulo
+    }, character(1), USE.NAMES = FALSE)
+  }
+  if ("status" %in% names(df)) {
+    estado <- unname(.report_estados_decision[as.character(df$status)])
+    df$status <- ifelse(is.na(estado), as.character(df$status), estado)
+  }
+  df
 }
 
 .report_reglas_custom_list <- function(scope) {
@@ -114,7 +174,7 @@
   if (!length(rc)) return('<p class="empty">No hay reglas personalizadas definidas.</p>')
   items <- vapply(rc, function(r) {
     activa <- isTRUE(r$activa %||% TRUE)
-    tipo <- as.character(r$tipo %||% "—")
+    tipo <- as.character(r$tipo %||% "")
     nombre <- as.character(r$nombre %||% (r$id %||% "(sin nombre)"))
     mensaje <- as.character(r$mensaje %||% "")
     badge <- if (activa) '<span class="badge ok">Activa</span>'
@@ -193,8 +253,8 @@
   df <- .limpieza_flatten_decisions(decisions)
   keep <- intersect(c("id", "source_id", "action_type", "target_variable", "status", "rationale"), names(df))
   if (!length(keep)) return('<p class="empty">Sin decisiones para renderizar.</p>')
-  df <- df[, keep, drop = FALSE]
-  headers <- paste(sprintf("<th>%s</th>", .report_escape(names(df))), collapse = "")
+  df <- .report_decisiones_legibles(df[, keep, drop = FALSE])
+  headers <- paste(sprintf("<th>%s</th>", .report_escape(.report_encabezado(names(df)))), collapse = "")
   rows <- vapply(seq_len(nrow(df)), function(i) {
     paste0("<tr>", paste(sprintf("<td>%s</td>", .report_escape(.report_row_values(df, i))), collapse = ""), "</tr>")
   }, character(1))
@@ -217,7 +277,7 @@
   df <- tibble::as_tibble(dplyr::bind_rows(residual_display))
   keep <- intersect(display_fields, names(df))
   df <- utils::head(df[, keep, drop = FALSE], 30L)
-  headers <- paste(sprintf("<th>%s</th>", .report_escape(names(df))), collapse = "")
+  headers <- paste(sprintf("<th>%s</th>", .report_escape(.report_encabezado(names(df)))), collapse = "")
   rows <- vapply(seq_len(nrow(df)), function(i) {
     paste0("<tr>", paste(sprintf("<td>%s</td>", .report_escape(.report_row_values(df, i))), collapse = ""), "</tr>")
   }, character(1))
@@ -240,7 +300,7 @@
     '<ul class="checklist">',
     chk(plan_ok, "Plan de limpieza construido"),
     chk(audit_ok, "Auditoría de consistencia ejecutada"),
-    chk(n_custom > 0L, sprintf("Reglas custom definidas (%d)", n_custom)),
+    chk(n_custom > 0L, sprintf("Reglas personalizadas definidas (%d)", n_custom)),
     "</ul>"
   )
 }
@@ -413,13 +473,13 @@ build_report_html <- function(scope,
     '<h2>Indicadores principales</h2>',
     .report_kpi_cards(pan$kpis),
 
-    '<h2>Decision maker</h2>',
+    '<h2>Resumen de decisiones</h2>',
     .report_decision_summary(pan),
 
     '<h2>Antes y después</h2>',
     .report_before_after(pan),
 
-    '<h2>Top reglas con más casos</h2>',
+    '<h2>Reglas con más casos</h2>',
     .report_top_reglas_table(scope),
 
     '<h2>Reglas personalizadas</h2>',

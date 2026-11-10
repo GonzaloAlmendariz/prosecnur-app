@@ -507,16 +507,19 @@ monitoreo_aulas_publicar_libro <- function(spreadsheet_id,
     codigos <- unique(Filter(nzchar, vapply(sin_cadena_pub, function(u) {
       .calg_txt(u$operational_code, .calg_txt(u$classroom_id))
     }, character(1))))
+    n_sin <- length(sin_cadena_pub)
     stop_api(
       409, "E_AULAS_LIBRO_SIN_CADENAS",
-      sprintf(paste0(
-        "%d fila(s) del plan irian al Sheets sin su codigo de cadena ",
-        "(titular_operational_code): %s. Con ellas, todo lo que cuenta por ",
-        "CADENA cuenta de mas —«Aulas del diseño» de «Avance de agendacion» ",
-        "sumaria una por reserva— y el libro publicado no se puede regenerar. ",
-        "Suele pasar al publicar con un plan reconstruido leyendo el propio ",
-        "Sheets: publica desde la sesion de la app."
-      ), length(sin_cadena_pub), paste(utils::head(codigos, 12L), collapse = ", ")),
+      paste0(
+        if (n_sin == 1L) "1 fila del plan iría" else sprintf("%d filas del plan irían", n_sin),
+        " al Sheets sin su código de cadena (titular_operational_code): ",
+        paste(utils::head(codigos, 12L), collapse = ", "), ". ",
+        if (n_sin == 1L) "Con ella" else "Con ellas",
+        ", todo lo que cuenta por cadena cuenta de más (\"Aulas del diseño\" de ",
+        "\"Avance de agendación\" sumaría una por reserva) y el libro publicado ",
+        "no se puede regenerar. Suele pasar al publicar con un plan reconstruido ",
+        "leyendo el propio Sheets: publica desde la sesión de la app."
+      ),
       details = list(filas = length(sin_cadena_pub), codigos = as.list(codigos))
     )
   }
@@ -1088,7 +1091,7 @@ monitoreo_aulas_publicar_libro_en_sesion <- function(sid, cfg = NULL, destino = 
   if (length(adopcion$fijadas)) aulas_cfg[["reparto_fijado"]] <- adopcion$fijadas
   if (!length(unidades)) {
     stop_api(409, "E_AULAS_LIBRO_SIN_PLAN",
-             "No hay plan de aulas del que publicar el libro. Importa la seleccion de calculo de muestra primero.")
+             "No hay plan de aulas del que publicar el libro. Importa primero la selección de Cálculo de muestra.")
   }
   partes <- s$monitoreo_aulas_partes_campo %||% aulas_cfg[["partes_campo"]] %||% list()
   control <- s$monitoreo_aulas_control %||% aulas_cfg[["control"]] %||% list()
