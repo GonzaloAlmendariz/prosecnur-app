@@ -332,6 +332,27 @@ describe("hoja de estilos", () => {
     expect(regla(".pulso-entregable-tile")).toMatch(/white-space:\s*nowrap/);
   });
 
+  it("fila: en curso, lista y fallo miden lo mismo (la QA midió 28, 34 y 28 px con `min-height`)", () => {
+    const limpio = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    const fila = regla('.pulso-entregable[data-entregable-forma="fila"]');
+    const alto = Number(/(?:^|[\s;{])height:\s*(\d+)px;/.exec(fila)?.[1]);
+    expect(alto, "la fila declara un alto fijo en px").toBeGreaterThan(0);
+    expect(fila).not.toMatch(/min-height|max-height/);
+    expect(fila).toMatch(/box-sizing:\s*border-box/);
+    // Ninguna fase cambia la caja: ni alto, ni relleno, ni borde, ni interlineado.
+    const porFase = Array.from(limpio.matchAll(/\.pulso-entregable\[data-entregable-forma="fila"\]\[data-entregable-fase="[a-z_]+"\]\s*\{([^}]*)\}/g), (m) => m[1]);
+    expect(porFase.length).toBeGreaterThan(0);
+    for (const cuerpo of porFase) expect(cuerpo).not.toMatch(/(?:^|[\s;])(?:height|min-height|max-height|padding[a-z-]*|border(?:-[a-z]+)*-width|border|line-height)\s*:/);
+    // Lo más alto que lleva cada fase cabe en ese alto: el mini-ícono de la lista y el ícono de Reintentar.
+    const tileChico = Number(/height:\s*(\d+)px/.exec(regla('.pulso-entregable-tile[data-chico="true"]'))?.[1]);
+    expect(tileChico).toBeGreaterThan(0);
+    expect(tileChico).toBeLessThanOrEqual(alto);
+    const tokens = readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../app/tokens.css"), "utf8");
+    const control = Number(/--pulso-control-height-sm:\s*(\d+)px/.exec(tokens)?.[1]);
+    expect(control).toBeGreaterThan(0);
+    expect(control).toBeLessThanOrEqual(alto);
+  });
+
   it("no anima nada propio: la única animación es la de la línea del kit", () => {
     const sinComentarios = css.replace(/\/\*[\s\S]*?\*\//g, "");
     expect(sinComentarios).not.toMatch(/@keyframes/);

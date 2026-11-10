@@ -294,11 +294,16 @@
 
 /* ---------- Forma fila (celda de acción de una tabla) ---------- */
 
+/* Alto fijo, el mismo en curso, lista y con fallo: la fila no salta al cambiar de fase. Es el del mini-ícono
+   del formato (`.pulso-entregable-tile[data-chico]`, 34 px), lo más alto que lleva; la línea con su texto y
+   el ícono de Reintentar (28 px) se centran en él. Con `min-height: 28px` la fase lista medía 34 y las otras
+   dos 28. */
 .pulso-entregable[data-entregable-forma="fila"] {
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: 6px;
-  min-height: 28px;
+  height: 34px;
   overflow: visible;
   border: 0;
   border-radius: 0;
@@ -310,6 +315,7 @@
 
 .pulso-entregable[data-entregable-forma="fila"][data-entregable-fase="en_curso"] {
   display: grid;
+  align-content: center;
   gap: 4px;
 }
 

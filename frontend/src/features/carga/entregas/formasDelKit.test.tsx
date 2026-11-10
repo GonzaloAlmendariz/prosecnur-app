@@ -28,7 +28,18 @@ vi.mock("../../../api/xlsformEditor", async (importOriginal) => ({
   apiCargaExportNormalized: espia.exportar,
 }));
 
+vi.mock("../../../api/cargaFormularioPublicado", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../api/cargaFormularioPublicado")>()),
+  apiCargaFormulariosPublicados: vi.fn(async () => []),
+}));
+vi.mock("../../../api/equivalencias", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../api/equivalencias")>()),
+  getEquivalencias: vi.fn(async () => ({ armonizacion_periodos: [] })),
+}));
+
+const { MemoryRouter } = await import("react-router-dom");
 const { ApiError } = await import("../../../api/core");
+const { BasesDelEstudio } = await import("../fuentes/BasesDelEstudio");
 const { useBandejaEntregables } = await import("../../../components/entregables/bandejaStore");
 const { RespuestasResumen } = await import("../RespuestasResumen");
 const { DescargaDeBaseEnFila, useDescargaDeBase } = await import("./DescargaDeBase");
@@ -134,5 +145,44 @@ describe("fila: «Descargar base» de cada base", () => {
     expect(fallo?.dataset.entregableFase).toBe("fallo");
     expect(fallo?.textContent).toContain("La base no tiene respuestas cargadas.");
     expect(fallo?.querySelector("button[aria-label='Reintentar']")).not.toBeNull();
+  });
+});
+
+describe("fila en «Bases separadas»: la misma descarga en cada tarjeta de BasesDelEstudio", () => {
+  const ESTUDIO = {
+    bases: {
+      docentes: { nombre: "docentes", n_filas: 120, n_columnas: 40, source_kind: "manual" },
+      alumnos: { nombre: "alumnos", n_filas: 300, n_columnas: 40, source_kind: "manual" },
+    },
+  } as unknown as Parameters<typeof BasesDelEstudio>[0]["estudio"];
+
+  it("el disparador sólo se deshabilita, pide el Excel de esa base y el contenedor va al pie de su tarjeta", async () => {
+    let resolver: (v: unknown) => void = () => undefined;
+    espia.exportar.mockReturnValue(new Promise<unknown>((res) => { resolver = res; }));
+    await act(async () => {
+      root.render(<MemoryRouter><BasesDelEstudio estudio={ESTUDIO} onCambio={() => undefined} renderOrigen={() => null} /></MemoryRouter>);
+    });
+    expect(host.querySelector("[data-entregable-forma]")).toBeNull();
+    const disparador = boton("Descargar base lista para análisis de docentes");
+    expect(disparador.textContent?.trim()).toBe("Descargar base");
+    expect(disparador.className).not.toMatch(/primary|is-active/);
+    await act(async () => { disparador.click(); });
+
+    expect(espia.exportar).toHaveBeenCalledWith("xlsx", "docentes");
+    expect(boton("Descargar base lista para análisis de docentes").disabled).toBe(true);
+    expect(boton("Descargar base lista para análisis de docentes").textContent?.trim()).toBe("Descargar base");
+    expect(boton("Descargar base lista para análisis de alumnos").disabled).toBe(false);
+    const fila = host.querySelector<HTMLElement>("[data-entregable-forma='fila']");
+    expect(fila?.dataset.entregableFase).toBe("en_curso");
+    const tarjeta = fila?.closest<HTMLElement>(".pulso-bde-tarjeta");
+    expect(tarjeta?.querySelector(".pulso-bde-nombre")?.textContent).toBe("docentes");
+    expect(fila?.closest(".pulso-base-row-entrega")?.parentElement).toBe(tarjeta);
+    // Una sola señal: la línea del kit, sin spinner en el botón ni en la tarjeta.
+    expect(tarjeta?.querySelectorAll(".pulso-spin, [class*='spin']")).toHaveLength(0);
+
+    await act(async () => { resolver({ ok: true, file_id: "d1", original_name: "acnur_acg_Base_normalizada_docentes_10_11_26.xlsx" }); });
+    expect(host.querySelector<HTMLElement>("[data-entregable-forma='fila']")?.dataset.entregableFase).toBe("lista");
+    expect(espia.descargar).toHaveBeenCalledWith("/api/files/d1/download", "acnur_acg_Base_normalizada_docentes_10_11_26.xlsx");
+    expect(boton("Descargar base lista para análisis de docentes").disabled).toBe(false);
   });
 });
