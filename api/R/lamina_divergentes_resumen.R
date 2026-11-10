@@ -185,6 +185,7 @@
   nota <- espec$nota_porcentaje
   if (!is.null(nota) && grepl("porcentaje sobre", base %||% "", ignore.case = TRUE)) nota <- NULL
   # Al pie, sólo la base, como el resto del informe; el denominador y la frase de la regla, al analista (lamina_pie_resumen.R).
-  doc <- .lam_pie(doc, .lam_pie_resumen(base, nota, espec$texto_regla), folio)
+  # Tras la base, sobre qué es el porcentaje (Gonzalo, 2026-11-10: «la base debe especificar qué significan los valores»).
+  doc <- .lam_pie(doc, .lam_pie_resumen(base, espec$texto_regla, valores = nota), folio)
   list(doc = por_lamina(doc), partes = 1L)
 }

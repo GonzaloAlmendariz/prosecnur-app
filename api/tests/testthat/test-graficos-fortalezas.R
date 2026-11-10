@@ -88,7 +88,7 @@ test_that("la lámina nativa: dos columnas, la cifra de cada barra y la base con
   expect_match(texto, "Más altas", fixed = TRUE); expect_match(texto, "Más bajas", fixed = TRUE)
   expect_match(texto, "90%", fixed = TRUE); expect_match(texto, "25%", fixed = TRUE)
   # Al pie, sólo la base; cómo se eligieron, al analista (Gonzalo, 2026-11-09; lamina_pie_resumen.R).
-  expect_match(texto, "Base: 40 docentes |", fixed = TRUE)
+  expect_match(texto, "Base: 40 docentes. Las cifras son el porcentaje que eligió las dos respuestas más favorables de la escala (Top Two Box). |", fixed = TRUE)
   expect_true(any(grepl("Se muestran las 3 más altas y las 3 más bajas, de 6 preguntas de escala", avisos, fixed = TRUE)))
   expect_false(grepl("tramo", texto, ignore.case = TRUE))
   nombres <- xml2::xml_attr(xml2::xml_find_all(x, "//p:sp/p:nvSpPr/p:cNvPr"), "name")

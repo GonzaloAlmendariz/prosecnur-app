@@ -156,9 +156,9 @@ test_that("H5: sobre qué es el porcentaje lo dice el aviso al analista; el pie,
     list(pie = paste(xml2::xml_text(sp), collapse = " "), avisos = paste(avisos, collapse = "\n"))
   }
   r <- pie_de(p_barras_divergentes(vars = "b$a", estilo = "resumen"))
-  expect_match(r$pie, "^Base: 40 b$")
-  expect_match(r$avisos, "Porcentaje sobre el total de respondientes.", fixed = TRUE)
-  expect_match(pie_de(p_barras_divergentes(vars = "b$a", estilo = "resumen", excluir_opciones = "9"))$avisos,
+  # Sobre qué es el porcentaje va tras la base: dice qué significan las cifras (Gonzalo, 2026-11-10).
+  expect_match(r$pie, "^Base: 40 b\\. Porcentaje sobre el total de respondientes\\.$")
+  expect_match(pie_de(p_barras_divergentes(vars = "b$a", estilo = "resumen", excluir_opciones = "9"))$pie,
                "Porcentaje sobre quienes respondieron, sin contar las respuestas excluidas.", fixed = TRUE)
   expect_identical(.dns_espec(src)$nota_porcentaje, "Porcentaje sobre el total de respondientes.")
   expect_null(.dns_espec(src, estilo = "recetario")$nota_porcentaje)

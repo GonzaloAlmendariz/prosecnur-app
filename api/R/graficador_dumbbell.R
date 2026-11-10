@@ -116,6 +116,8 @@ graficar_dumbbell <- function(
                               colores = colores_grupos, encabezado_diferencia = encabezado_brecha, limite_x = limite_x,
                               titulo_eje = titulo_eje, base_en = match.arg(base_en), leyenda_con_n = leyenda_con_n,
                               publico = attr(data, "dumbbell_publico", exact = TRUE))   # aperturas: «24 docentes de TC y 91 de TPA»
+    espec$indicador <- subtitulo                      # el nombre del indicador (corte_etiqueta) para el pie de las cifras
+    espec$mostrar_diferencia <- isTRUE(mostrar_brecha)
     return(.graficar_contraste_gg(espec, titulo = titulo, subtitulo = subtitulo, nota_pie = nota_pie, font_family = font_family))
   }
   leyenda_posicion <- match.arg(leyenda_posicion)

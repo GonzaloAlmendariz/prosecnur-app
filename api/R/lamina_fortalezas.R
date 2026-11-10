@@ -87,7 +87,7 @@
   }
   .lam_rotulos_largos_aviso(ge$largos)   # S4 (lamina_rotulos_columna.R)
   doc <- .lam_agrupar(doc, lz, nombre = "prosecnur:grafico:fortalezas")
-  nota <- sprintf("Barras: %s de cada pregunta", espec$indicador %||% "Top Two Box")
-  doc <- .lam_pie(doc, .lam_pie_resumen(base, espec$texto_regla, nota, en_pie = espec$nota_base), folio)   # lamina_pie_resumen.R
+  # Tras la base, qué son las cifras (Gonzalo, 2026-11-10); la regla, al analista (lamina_pie_resumen.R).
+  doc <- .lam_pie(doc, .lam_pie_resumen(base, espec$texto_regla, en_pie = espec$nota_base, valores = .lam_pie_valores(espec$indicador)), folio)
   list(doc = por_lamina(doc), partes = 1L)
 }
