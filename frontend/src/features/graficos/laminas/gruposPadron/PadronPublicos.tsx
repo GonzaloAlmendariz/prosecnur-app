@@ -28,7 +28,7 @@ type Props = {
   onCambio: (patch: Record<string, unknown>) => void;
 };
 
-const AYUDA_PUBLICOS = "Con padrón confiable la base sale como n (cobertura %); sin él, sólo n. El padrón propuesto se escribe al usarlo.";
+const AYUDA_PUBLICOS = "Con padrón confiable se calcula la cobertura; la nota de la base lleva sólo los casos. El padrón propuesto se escribe al usarlo.";
 
 const textoPropuesta = (p: PadronPropuesto, conMetas: boolean): string => {
   const piezas = [p.padron !== null ? `padrón ${formatoConteo(p.padron)}` : null,

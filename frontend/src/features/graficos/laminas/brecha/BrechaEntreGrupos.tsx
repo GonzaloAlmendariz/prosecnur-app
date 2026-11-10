@@ -76,7 +76,7 @@ export function BrechaEntreGrupos({ args, onCambio }: Props) {
 
       {!grupos && <EditorTemasEquivalentes tipo="brecha" args={args} onCambio={onCambio} />}
       {!grupos && resumen && <EntradaEmparejado args={args} scope={scope} onCambio={onCambio} />}
-      {!grupos && resumen && <PadronPublicos graficador="p_dumbbell" args={args} scope={scope} onCambio={onCambio} />}
+      {!grupos && resumen && args.base_en === "tabla" && <PadronPublicos graficador="p_dumbbell" args={args} scope={scope} onCambio={onCambio} />}
 
       {grupos && (
         <>

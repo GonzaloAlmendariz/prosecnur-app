@@ -1,8 +1,9 @@
 // Grupos internos de las aperturas (p_dumbbell estilo resumen con cruce; ADR 0135 §6, maqueta graficos-sintesis,
 // Grupos). Modelo puro: qué grupos entran (hasta cuatro, en el orden en que se eligen), su padrón, el aviso del grupo
 // chico y la línea «Base:» de la nota escrita con el mismo formato que el motor:
-//   - `.contraste_base_texto`: «115 (93%)» con padrón confiable que lo cubre; «115» sin él (graficos_espec_contraste.R).
-//   - `nota_base`: «Base: » y los grupos separados por «; ».
+//   - `.base_frase` (graficos_espec_contraste.R): sólo los casos, sin cobertura, con los grupos dentro de su público:
+//     «Base: 24 docentes de TC y 91 de TPA» (Gonzalo, 2026-11-10). La sigla declarada entre paréntesis manda; un nombre
+//     común va en minúscula y uno con mayúsculas propias queda como se declaró (`.base_rotulo`).
 //   - `.dumbbell_nota_grupo_chico`: «Grupo chico: 24 docentes TC.» o «Grupos chicos: …; ….» (umbral 30).
 // La vista previa usa los casos de cada grupo en el cruce. El motor usa los de cada pregunta, que pueden ser menos (quien
 // no respondió una pregunta no cuenta en su base); cuando cambian de pregunta a pregunta, el pie da su rango.
@@ -63,12 +64,31 @@ export function baseDeGrupo(n: number, padron: Padron): string {
   return `${formatoConteo(n)} (${pct(n, u)}%)`;
 }
 
+/** Un grupo como lo escribe la base del motor (`.base_rotulo`): la sigla entre paréntesis, la sigla sola, o el nombre en minúscula. */
+export function rotuloEnBase(etiqueta: string): string {
+  const x = etiqueta.replace(/_+/g, " ").trim();
+  const sigla = /\(([A-ZÁÉÍÓÚÑ0-9]{2,})\)\s*$/.exec(x);
+  if (sigla) return sigla[1];
+  if (/^[A-ZÁÉÍÓÚÑ0-9]{2,}$/.test(x)) return x;
+  return /[A-ZÁÉÍÓÚÑ]/.test(x.slice(1)) ? x : x.charAt(0).toLowerCase() + x.slice(1);
+}
+
+/** «a, b y c». */
+function lista(xs: readonly string[]): string {
+  return xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} y ${xs[xs.length - 1]}`;
+}
+
 /**
  * La línea «Base:» que irá en la nota, o `null` si no hay dos grupos con conteo (la vista previa no inventa una base).
+ * Con el público del cruce: «Base: 24 docentes de TC y 91 de TPA»; sin él: «Base: 24 de TC y 91 de TPA».
  */
-export function lineaBase(incluidos: readonly FilaGrupo[]): string | null {
+export function lineaBase(incluidos: readonly FilaGrupo[], publico: string | null = null): string | null {
   if (incluidos.length < 2 || incluidos.some((f) => f.n === null)) return null;
-  return `Base: ${incluidos.map((f) => `${f.etiqueta} ${baseDeGrupo(f.n as number, f.padron)}`).join("; ")}`;
+  const piezas = incluidos.map((f, i) => {
+    const n = formatoConteo(f.n as number), r = rotuloEnBase(f.etiqueta);
+    return i === 0 && publico ? `${n} ${publico} de ${r}` : `${n} de ${r}`;
+  });
+  return `Base: ${lista(piezas)}`;
 }
 
 /** Cómo nombra el motor a los casos del cruce: la base en minúscula («docentes»); sin base, «casos». */

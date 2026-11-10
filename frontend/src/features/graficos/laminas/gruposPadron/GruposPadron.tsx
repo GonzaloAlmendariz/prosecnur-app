@@ -42,7 +42,8 @@ export function GruposPadron({ args, cruce, opciones, scope, onCambio }: Props) 
   const filas = filasGrupos(opciones, conteos, args);
   const incluidos = incluidosEnOrden(filas, args);
   const chico = notaGrupoChico(incluidos, unidadDeCruce(cruce));
-  const base = lineaBase(incluidos);
+  const unidad = unidadDeCruce(cruce);
+  const base = lineaBase(incluidos, unidad === "casos" ? null : unidad);
 
   return (
     <div className="pulso-f6-dato is-apilado pulso-f6-grupos" data-campo="grupos"
