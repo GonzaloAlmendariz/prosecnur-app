@@ -51,6 +51,7 @@ import {
   sinPuntosVacios,
   srcDeImagenDelBloque, srcDelMovil, srcOriginalDelBloque,
 } from "./estructuraCorreo";
+import { separarBoton } from "./modeloBotonDelBloque";
 import { atajoDeHistorial, esCampoNativo } from "./historialCorreo";
 import type { CampoDelMenu } from "./MenuDeCampos";
 import type { MedidasDeLaHoja } from "./VistaPreviaDelCorreo";
@@ -340,6 +341,13 @@ export function CorreosEditor({ onCargando, onStateRefresh, campanasAcc, cabecer
         onEstilo={(id) => {
           seleccionar(id);
           st.setVistaDelBloque("estilo");
+        }}
+        onSepararBoton={(id) => {
+          const actual = useCorreosStore.getState().borrador;
+          const out = actual ? separarBoton(actual, id) : null;
+          if (!out) return;
+          st.reemplazarBorrador(out.template);
+          seleccionar(out.block_id);
         }}
         onGuardarSeccion={guardarSeccion}
         errorAlGuardar={misSecciones.error}
