@@ -109,6 +109,39 @@
   cats
 }
 
+# Conteos sin ponderar (peso > 0) que el archivo no escribe y la vista previa necesita para decir qué se pierde:
+#   - `con_peso`: filas de la base de la tabla con peso > 0 (la `base.de` de la tabla, en su grano);
+#   - `con_respuesta`: de ellas, las que tienen alguna respuesta en la variable, esté o no entre las filas de la
+#     tabla (única: valor no vacío; múltiple: alguna marca);
+#   - `omitidas`: cada categoría omitida con los casos que la eligieron (o marcaron).
+# Usa las primitivas del archivo (`denominador_validos`, `contar_por_opcion`) con todos los códigos que trae el dato.
+.cruces_tabla_casos <- function(data, var, tp, omitidas, weight_col, col_sin_peso) {
+  con_peso <- get_pesos(data, weight_col) > 0
+  observados <- if (identical(tp, "so")) {
+    v <- as.character(data[[var]])
+    unique(v[!is.na(v) & nzchar(v) & v != "NA"])
+  } else {
+    colc <- col_sm_compact(data, var)
+    if (!is.na(colc)) {
+      unique(sm_compact_to_long(data[[colc]], id = seq_len(nrow(data)), w = 1)$valor)
+    } else {
+      # El nombre de la variable se escapa: un punto o un paréntesis en él no es un comodín.
+      prefijo <- paste0("^", regex_escape(var), "[/\\.]")
+      sub(prefijo, "", grep(prefijo, names(data), value = TRUE))
+    }
+  }
+  con_respuesta <- if (length(observados)) {
+    denominador_validos(data = data, var = var, codes = observados, tp = tp, mask = con_peso,
+                        weight_col = col_sin_peso)
+  } else 0
+  omitidas <- lapply(omitidas, function(o) {
+    o$casos <- as.integer(contar_por_opcion(data = data, var = var, codes = o$codigo, tp = tp, mask = con_peso,
+                                            weight_col = col_sin_peso))
+    o
+  })
+  list(con_peso = as.integer(sum(con_peso)), con_respuesta = as.integer(con_respuesta), omitidas = omitidas)
+}
+
 # Columnas de una variable de cruce: por categoría, `n` y `pct` de cada fila y el denominador `N`.
 .cruces_tabla_estrato <- function(data, var, s, codes_row, tp, survey, orders_list, opciones_excluir,
                                   dic_vars, labels_override, weight_col, n_sin_peso, col_sin_peso,
@@ -148,6 +181,14 @@
     list(n = as.numeric(n_vec), pct = as.numeric(pct), N = N, N_sin_peso = N_sin_peso, casos = casos)
   })
 
+  # Casos del denominador de la tabla (sin ponderar, peso > 0) cuya variable de cruce trae un valor que no es la
+  # clave de ninguna columna: con códigos y rótulos mezclados, quedan fuera de todas las columnas sin aviso.
+  valores_sin_columna <- if (isTRUE(casos_sin_ponderar)) {
+    ajeno <- !is.na(v_estr) & nzchar(v_estr) & v_estr != "NA" & !(v_estr %in% keys_vec)
+    denominador_validos(data = data, var = var, codes = codes_row, tp = tp, mask = ajeno & con_peso,
+                        weight_col = col_sin_peso)
+  } else NA_real_
+
   list(
     variable = s, codes = estr_codes, labels = estr_labels, s_lbl = s_lbl,
     clave = if (por_codigo) "codigo" else "rotulo",
@@ -155,7 +196,8 @@
     pct = do.call(cbind, lapply(bloques, `[[`, "pct")),
     N = vapply(bloques, `[[`, numeric(1), "N"),
     n_sin_peso = vapply(bloques, `[[`, numeric(1), "N_sin_peso"),
-    casos = vapply(bloques, `[[`, numeric(1), "casos")
+    casos = vapply(bloques, `[[`, numeric(1), "casos"),
+    valores_sin_columna = valores_sin_columna
   )
 }
 
@@ -261,7 +303,12 @@
   qlab <- label_variable(var, dic_vars, labels_override, data)
   out <- list(var = var, tp = tp, etiqueta = qlab, sin_datos = !length(cats$opciones),
               opciones = cats$opciones, codes_row = cats$codes_row, omitidas = cats$omitidas,
-              total = NULL, estratos = list(), cuerpo = NULL, pie = character(0), sig = NULL)
+              total = NULL, estratos = list(), cuerpo = NULL, pie = character(0), sig = NULL,
+              casos = NULL)
+  if (isTRUE(casos_sin_ponderar)) {
+    out$casos <- .cruces_tabla_casos(data, var, tp, cats$omitidas, weight_col, col_sin_peso)
+    out$omitidas <- out$casos$omitidas
+  }
   if (out$sin_datos) return(out)
 
   cats <- .cruces_tabla_ordenar(cats, data, var, tp, survey, orden, ordinal_lists, weight_col)

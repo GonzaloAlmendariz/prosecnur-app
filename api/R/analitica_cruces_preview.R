@@ -11,10 +11,11 @@
 #
 # Cifras (definición única, la del archivo):
 #   - `n` de una celda: suma de `peso` de los casos de la fila en la columna; sin ponderación, un conteo.
-#   - `pct`: proporción de 0 a 1 sobre el denominador de su columna, sin redondear.
-#   - Denominador de una columna (`n_ponderado`): suma de pesos de los casos de la columna que respondieron una de las
-#     categorías de la tabla (única) o marcaron al menos una (múltiple). `n` de la columna es la celda de la fila
-#     Total del archivo: ese denominador redondeado a entero.
+#   - `n` de una columna (y de `total`): su denominador, la suma de pesos de los casos de la columna que respondieron
+#     una de las categorías de la tabla (única) o marcaron al menos una (múltiple), sin redondear. El archivo escribe
+#     en la fila Total ese número redondeado; la pantalla redondea igual. Un solo significado de `n`, como en
+#     Frecuencias.
+#   - `pct`: `n` de la celda sobre `n` de su columna, de 0 a 1, sin redondear; nulo cuando ese denominador es 0.
 #   - `base_n` (regla I1): el mismo denominador contado en casos SIN ponderar, con peso mayor que cero. Entero.
 #
 # Base y alcance: la base ACTIVA del estudio y, en ella, las filas que deja la preparación (universo de análisis y
@@ -77,10 +78,21 @@
   as.character(m[, codigo_col])
 }
 
-# Una tabla del motor en el formato de la respuesta. `excluidas` son las categorías excluidas por variable de cruce:
-# la exclusión quita filas de la base, pero el archivo sigue escribiendo su columna (vacía); aquí se marca.
-.cruces_preview_tabla <- function(tb, sec, rotulo, grano, excluidas = list()) {
+# Modo de las letras de una variable de cruce. Con la regla del estudio y más columnas que `max_letras`, la regla
+# compara cada columna frente al resto y la celda lleva flechas, no letras (`.sig_evaluar`, misma cuenta: K columnas).
+.cruces_preview_modo_letras <- function(bl, n_columnas) {
+  regla <- bl$regla
+  if (is.list(regla) && n_columnas > (regla$max_letras %||% 6L)) "frente_al_resto" else "letras"
+}
+
+# Una tabla del motor en el formato de la respuesta.
+#   `excluidas`: categorías excluidas por variable de cruce. La exclusión quita filas de toda la base, pero el archivo
+#     sigue escribiendo su columna; aquí se marca.
+#   `unidad`: "encuestado" o "registro", el nivel de los casos de esta tabla.
+#   `survey`: para saber si una variable de cruce es de selección múltiple.
+.cruces_preview_tabla <- function(tb, sec, rotulo, grano, excluidas = list(), unidad = "encuestado", survey = NULL) {
   codes <- as.character(tb$codes_row)
+  casos <- tb$casos %||% list()
   out <- list(
     variable = tb$var,
     etiqueta = as.character(tb$etiqueta),
@@ -88,8 +100,16 @@
     denominador = if (identical(tb$tp, "sm")) "marcaron_alguna_opcion" else "validos_de_la_columna",
     seccion = list(nombre = sec, rotulo = rotulo),
     grano = grano,
+    base = list(n = 0L, de = as.integer(casos$con_peso %||% NA_integer_), unidad = unidad),
     sin_datos = isTRUE(tb$sin_datos),
-    filas = lapply(seq_along(codes), function(i) list(codigo = codes[[i]], etiqueta = as.character(tb$opciones[[i]]))),
+    # "La tabla existe pero nadie respondió". Con `sin_datos` no hay tabla: falso.
+    sin_respuestas = FALSE,
+    filas = {
+      probadas <- .cruces_preview_filas_probadas(tb)
+      lapply(seq_along(codes), function(i) {
+        list(codigo = codes[[i]], etiqueta = as.character(tb$opciones[[i]]), probada = probadas[[i]])
+      })
+    },
     filas_omitidas = tb$omitidas,
     total = NULL,
     cruces = list(),
@@ -98,10 +118,13 @@
   )
   if (out$sin_datos) return(out)
 
+  base_total <- as.integer(tb$total$casos)
+  out$base$n <- base_total
+  out$sin_respuestas <- identical(base_total, 0L)
   out$total <- list(
-    n = round(as.numeric(tb$total$N), 0),
-    n_ponderado = as.numeric(tb$total$N),
-    base_n = as.integer(tb$total$casos),
+    n = as.numeric(tb$total$N),
+    base_n = base_total,
+    casos_sin_fila = as.integer(casos$con_respuesta %||% NA_integer_) - base_total,
     celdas = lapply(seq_along(codes), function(i) {
       list(fila = codes[[i]], n = tb$total$n[[i]], pct = tb$total$pct[[i]])
     })
@@ -109,18 +132,31 @@
   out$cruces <- unname(lapply(names(tb$estratos), function(s) {
     e <- tb$estratos[[s]]
     bl <- (tb$sig %||% list())$bloques[[s]]
+    multiple <- identical(tipo_pregunta(s, survey = survey), "sm")
+    # Con la columna emparejada por rótulo, el motor calcula los porcentajes por rótulo pero compara las letras por
+    # código: las letras del archivo no dicen nada. La vista previa no las publica y lo avisa.
+    por_rotulo <- !is.null(bl) && identical(e$clave, "rotulo")
+    modo <- if (is.null(bl)) NA_character_ else .cruces_preview_modo_letras(bl, length(e$codes))
+    exc <- as.character(excluidas[[s]] %||% character(0))
     columnas <- lapply(seq_along(e$codes), function(j) {
-      letras <- .cruces_preview_letras(bl, codes, tb$opciones, as.character(e$codes[[j]]))
-      sin_base <- !is.null(letras) && any(letras == ".b")
+      codigo <- as.character(e$codes[[j]])
+      letras <- if (por_rotulo) NULL else .cruces_preview_letras(bl, codes, tb$opciones, codigo)
+      excluida <- codigo %in% exc
+      motivo <- if (excluida) {
+        "excluida"
+      } else if (!is.null(letras) && any(letras == ".b")) {
+        "base_insuficiente"
+      } else NA_character_
       list(
-        codigo = as.character(e$codes[[j]]),
+        codigo = codigo,
         etiqueta = as.character(e$labels[[j]]),
-        letra = if (is.null(bl)) NA_character_ else openxlsx::int2col(j),
-        n = round(as.numeric(e$N[[j]]), 0),
-        n_ponderado = as.numeric(e$N[[j]]),
+        letra = if (is.null(letras) || identical(modo, "frente_al_resto")) NA_character_ else openxlsx::int2col(j),
+        n = as.numeric(e$N[[j]]),
         base_n = as.integer(e$casos[[j]]),
-        excluida = as.character(e$codes[[j]]) %in% as.character(excluidas[[s]] %||% character(0)),
-        motivo = if (sin_base) "base_insuficiente" else NA_character_,
+        excluida = excluida,
+        # La exclusión dejó la columna sin casos. Falso en una excluida con datos: la base trae otro valor (D3).
+        exclusion_aplicada = excluida && e$N[[j]] == 0 && e$casos[[j]] == 0,
+        motivo = motivo,
         celdas = lapply(seq_along(codes), function(i) {
           list(fila = codes[[i]], n = e$n[i, j], pct = e$pct[i, j],
                letras = if (is.null(letras)) NA_character_ else letras[[i]])
@@ -131,9 +167,23 @@
       variable = s,
       etiqueta = as.character(e$s_lbl),
       columnas_por = e$clave,
-      significancia = if (is.null(bl)) NULL else list(
+      multiple = multiple,
+      # Total menos la suma de las columnas: casos sin valor en la variable de cruce o con un valor que no es clave
+      # de ninguna columna (`valores_no_reconocidos`). En una variable de cruce múltiple las columnas se solapan y
+      # la resta no tiene sentido.
+      sin_columna = list(
+        base_n = if (multiple) NA_integer_ else base_total - as.integer(sum(e$casos)),
+        n = if (multiple) NA_real_ else .cruces_preview_resta(as.numeric(tb$total$N), sum(e$N)),
+        valores_no_reconocidos = as.integer(e$valores_sin_columna)
+      ),
+      significancia = if (is.null(bl)) NULL else if (por_rotulo) list(
+        metodo = "descriptivo",
+        motivo = "letras_por_rotulo_no_calculadas",
+        modo = modo
+      ) else list(
         metodo = as.character(bl$method),
-        motivo = if (nzchar(bl$reason %||% "")) as.character(bl$reason) else NA_character_
+        motivo = if (nzchar(bl$reason %||% "")) as.character(bl$reason) else NA_character_,
+        modo = modo
       ),
       columnas = columnas
     )
@@ -142,9 +192,72 @@
   out
 }
 
-# Regla de diferencias del estudio fijada como en el worker del archivo, con el estado del proceso repuesto al
-# salir: la vista previa corre en el proceso del servidor, no en un worker.
-.cruces_preview_con_regla <- function(p, base, expr_fn) {
+# Total menos la suma de las columnas, sin el residuo de coma flotante de las sumas de pesos (un -5e-12 no es
+# un caso).
+.cruces_preview_resta <- function(total, suma) {
+  x <- total - suma
+  if (abs(x) < 1e-9 * max(1, abs(total))) 0 else x
+}
+
+# Qué filas entran a la prueba de letras. Con la regla del estudio, las que elige `.sig_filas_a_probar()` con los
+# mismos argumentos que `.cruces_comparar_con_regla()` (las no sustantivas quedan fuera salvo `incluir_ns`); con
+# otra prueba, todas; si ningún bloque se probó (descriptivo), ninguna; sin letras, nulo. Una celda con letra vacía en una fila no probada no dice "sin diferencia".
+.cruces_preview_filas_probadas <- function(tb) {
+  n <- length(tb$codes_row)
+  bloques <- (tb$sig %||% list())$bloques %||% list()
+  if (!length(bloques)) return(rep(NA, n))
+  regla <- .cruces_preview_regla_de_tabla(tb)
+  if (is.null(regla)) {
+    descriptivas <- all(vapply(bloques, function(bl) identical(as.character(bl$method), "descriptivo"), logical(1)))
+    return(rep(!descriptivas, n))
+  }
+  opciones <- as.character(tb$opciones)
+  codigos <- stats::setNames(as.list(as.character(tb$codes_row)), opciones)
+  opciones %in% .sig_filas_a_probar(opciones, codigos, regla, solo_principal = FALSE)
+}
+
+# La regla que de verdad decidió las letras de una tabla: la del primer bloque cuyo método es `regla_*`. Un bloque
+# `descriptivo` también trae la regla (no se pudo aplicar, por ejemplo por pocos conglomerados) y no cuenta.
+.cruces_preview_regla_de_tabla <- function(tb) {
+  bloques <- (tb$sig %||% list())$bloques %||% list()
+  con_regla <- Filter(function(bl) is.list(bl$regla) && startsWith(as.character(bl$method %||% ""), "regla_"), bloques)
+  if (length(con_regla)) con_regla[[1]]$regla else NULL
+}
+
+# Avisos que salen de las tablas devueltas: casos fuera de toda columna por un valor no reconocido, letras que no se
+# pueden leer porque la columna se emparejó por rótulo y variables de cruce de selección múltiple.
+.cruces_preview_avisos_tablas <- function(tablas) {
+  avisos <- list()
+  cruces <- unlist(lapply(tablas, function(t) lapply(t$cruces, function(c) c(list(tabla = t$variable), c))),
+                   recursive = FALSE)
+  nombres <- function(f) unique(vapply(Filter(f, cruces), function(c) c$variable, character(1)))
+  ajenos <- nombres(function(c) isTRUE((c$sin_columna$valores_no_reconocidos %||% 0L) > 0L))
+  if (length(ajenos)) {
+    avisos[[length(avisos) + 1L]] <- .cruces_preview_aviso("casos_sin_columna", paste0(
+      "Hay casos que no entran en ninguna columna porque la base trae en la variable de cruce valores que no son ",
+      "categorías del instrumento (por ejemplo, códigos y rótulos mezclados): ", paste(ajenos, collapse = ", "),
+      ". El Total sí los cuenta."))
+  }
+  rotulo <- nombres(function(c) identical((c$significancia %||% list())$motivo, "letras_por_rotulo_no_calculadas"))
+  if (length(rotulo)) {
+    avisos[[length(avisos) + 1L]] <- .cruces_preview_aviso("letras_por_rotulo_no_calculadas", paste0(
+      "Sin letras de diferencias en ", paste(rotulo, collapse = ", "),
+      ": la base guarda el rótulo de la categoría y no su código, y la prueba compara por código. ",
+      "El archivo trae esas letras vacías o como base insuficiente."))
+  }
+  multiples <- nombres(function(c) isTRUE(c$multiple))
+  if (length(multiples)) {
+    avisos[[length(avisos) + 1L]] <- .cruces_preview_aviso("cruce_multiple", paste0(
+      "Variables de cruce de selección múltiple: ", paste(multiples, collapse = ", "),
+      ". Cada columna cuenta solo a quienes marcaron esa única opción; quien marcó varias no entra en ninguna."))
+  }
+  avisos
+}
+
+# Estado del proceso repuesto al salir, haya o no significancia: la vista previa corre en el proceso del servidor y
+# la preparación de una base hija fija la regla de diferencias aunque no se pidan letras (`.cruces_grano_tabla`).
+# Con significancia, la regla del estudio se fija como en el worker del archivo.
+.cruces_preview_con_estado <- function(p, base, expr_fn) {
   previa <- options("prosecnur.sig_informe")
   tarjetas <- as.list(.tarjetas_estado, all.names = TRUE)
   on.exit({
@@ -152,9 +265,34 @@
     rm(list = ls(.tarjetas_estado, all.names = TRUE), envir = .tarjetas_estado)
     list2env(tarjetas, envir = .tarjetas_estado)
   }, add = TRUE)
-  suppressMessages(.sig_informe_preparar(p$sig_estudio, p$data_sources, p$inst_sources, base))
+  if (isTRUE(p$show_sig)) {
+    suppressMessages(.sig_informe_preparar(p$sig_estudio, p$data_sources, p$inst_sources, base))
+  }
   expr_fn()
 }
+
+# Lo que la prueba de letras usó de verdad: la regla efectiva de la primera variable de cruce con letras (tras
+# ajustarla a la base, `.sig_regla_de_datos`) y su origen. `n_prueba` dice con qué n se calcula el error estándar.
+.cruces_preview_regla <- function(regla, origen) {
+  if (!is.list(regla)) return(NULL)
+  rao <- identical(regla$prueba, "rao_scott")
+  txt <- function(x) if (is.null(x) || !length(x) || is.na(x[[1]])) NA_character_ else as.character(x[[1]])
+  list(
+    origen = txt(origen),
+    prueba = txt(regla$prueba),
+    correccion = txt(regla$correccion),
+    alfa = as.numeric(regla$alfa %||% NA_real_),
+    umbral_puntos = as.numeric(regla$umbral_puntos %||% NA_real_),
+    base_minima = as.numeric(regla$base_minima %||% NA_real_),
+    conglomerados_minimos = as.integer(regla$conglomerados_minimos %||% NA_integer_),
+    conglomerado = txt(regla$conglomerado),
+    max_letras = as.integer(regla$max_letras %||% 6L),
+    # Si las filas de no sustantivas (98 No sabe, 99 No responde y afines) entran a la prueba.
+    incluir_ns = isTRUE(regla$incluir_ns),
+    n_prueba = if (rao) "linealizacion_con_pesos_y_conglomerado" else "pesos_llevados_a_media_1"
+  )
+}
+
 
 # Tablas del archivo para la base `base` de la preparación `p`.
 .cruces_preview_tablas <- function(p, base, variables = NULL, cruces = NULL,
@@ -202,7 +340,10 @@
   recortado <- length(categoricas) > limite
   if (recortado) categoricas <- categoricas[seq_len(limite)]
 
+  regla_usada <- NULL
+  origen_regla <- NULL
   calcular <- function() {
+    origen_regla <<- (.sig_informe_vigente() %||% list())$origen
     # Mismo orden que el worker y que exportar_cruces_multi(): la regla vigente decide el método de las letras.
     sig_spec <- .cruces_significancia_normalizar(.sig_spec_vigente(
       .cruces_significancia_normalizar(.sig_spec_vigente(p$significancia))
@@ -218,16 +359,14 @@
         show_sig = p$show_sig, sig_spec = sig_spec, alpha = p$alpha,
         repeat_design = g$repeat_design, casos_sin_ponderar = TRUE
       )
+      if (is.null(regla_usada)) regla_usada <<- .cruces_preview_regla_de_tabla(tb)
       rotulo <- if (isTRUE(p$incluir_secciones)) toupper(.freq_clean_section_label_for_export(e$sec)) else NA_character_
       grano_tabla <- if (is.null(grano)) NA_character_ else if (is.null(g$repeat_design)) "encuestado" else "registro"
-      .cruces_preview_tabla(tb, e$sec, rotulo, grano_tabla, excluidas = p$cruces_map)
+      .cruces_preview_tabla(tb, e$sec, rotulo, grano_tabla, excluidas = p$cruces_map,
+                            unidad = if (is.na(grano_tabla)) "encuestado" else grano_tabla, survey = ctx$survey)
     })
   }
-  tablas <- if (!length(categoricas)) list() else if (isTRUE(p$show_sig)) {
-    .cruces_preview_con_regla(p, base, calcular)
-  } else {
-    calcular()
-  }
+  tablas <- if (!length(categoricas)) list() else .cruces_preview_con_estado(p, base, calcular)
   list(
     total_variables = sum(!es_numerica[elegidas]),
     total_en_archivo = length(entradas),
@@ -235,7 +374,8 @@
     recortado = recortado,
     cruzar = cruzar,
     tablas = tablas,
-    sin_tabla = sin_tabla
+    sin_tabla = sin_tabla,
+    regla = .cruces_preview_regla(regla_usada, origen_regla)
   )
 }
 
@@ -259,7 +399,33 @@
 .cruces_preview_exclusiones <- function(p, base) {
   ex <- (p$exclusion_por_base %||% list())[[base]]
   if (is.null(ex)) return(list())
-  unname(lapply(names(ex$por_cruce), function(v) list(variable = v, categorias = ex$por_cruce[[v]])))
+  unidad <- if (is.list(p$repeat_design_by_base[[base]])) "registro" else "encuestado"
+  unname(lapply(names(ex$por_cruce), function(v) list(variable = v, unidad = unidad, categorias = ex$por_cruce[[v]])))
+}
+
+# Aviso de que la exclusión de categorías de cruce es global: quita los casos de toda la base, así que el Total y
+# las columnas de las demás variables de cruce tampoco los cuentan. Solo si quitó alguno.
+.cruces_preview_exclusion_global <- function(p, base, exclusiones) {
+  ex <- (p$exclusion_por_base %||% list())[[base]]
+  data <- p$data_sources[[base]]
+  quitados <- as.integer((ex$filas_antes %||% nrow(data)) - nrow(data))
+  if (!length(exclusiones) || quitados <= 0L) return(NULL)
+  ctx <- .cruces_contexto_instrumento(p$inst_sources[[base]])
+  partes <- unlist(lapply(exclusiones, function(x) {
+    usadas <- Filter(function(c) c$filas > 0L, x$categorias)
+    if (!length(usadas)) return(character(0))
+    cats <- get_categorias(x$variable, data, survey = ctx$survey, orders_list = ctx$orders_list)
+    etiq <- vapply(usadas, function(c) {
+      i <- match(c$codigo, cats$codes)
+      if (is.na(i)) c$codigo else as.character(cats$labels[[i]])
+    }, character(1))
+    sprintf("\"%s\" en \"%s\"", etiq, label_variable(x$variable, ctx$dic_vars, NULL, data))
+  }))
+  unidad <- if (is.list(p$repeat_design_by_base[[base]])) c("registro", "registros") else c("caso", "casos")
+  .cruces_preview_aviso("exclusion_global", sprintf(
+    "Se %s %d %s de toda la base al excluir %s. El Total y las columnas de las demás variables de cruce tampoco los cuentan.",
+    if (quitados == 1L) "quitó" else "quitaron", quitados, if (quitados == 1L) unidad[1] else unidad[2],
+    paste(partes, collapse = ", ")))
 }
 
 .cruces_preview_aviso <- function(codigo, mensaje) list(codigo = codigo, mensaje = mensaje)
@@ -294,7 +460,7 @@ analitica_cruces_preview <- function(sid, variables = NULL, cruces = NULL,
   data <- if (con_tablas) p$data_sources[[base]] else NULL
 
   res <- list(total_variables = 0L, total_en_archivo = 0L, devueltas = 0L, recortado = FALSE,
-              cruzar = character(0), tablas = list(), sin_tabla = list())
+              cruzar = character(0), tablas = list(), sin_tabla = list(), regla = NULL)
   if (identical(p$vacio, "sin_configurar")) {
     avisos[[length(avisos) + 1L]] <- .cruces_preview_aviso("sin_variables_de_cruce",
       "No hay tablas porque no hay variables de cruce configuradas.")
@@ -316,6 +482,12 @@ analitica_cruces_preview <- function(sid, variables = NULL, cruces = NULL,
       avisos[[length(avisos) + 1L]] <- .cruces_preview_aviso("sin_variables_de_cruce",
         "Ninguna de las variables de cruce pedidas está entre las del archivo.")
     }
+    avisos <- c(avisos, .cruces_preview_avisos_tablas(res$tablas))
+  }
+  if (is.null(p$vacio) && !identical(modo_configurado, p$modo)) {
+    avisos[[length(avisos) + 1L]] <- .cruces_preview_aviso("modo_configurado_no_aplicado", sprintf(
+      "La configuración pide el modo \"%s\", pero el archivo se genera en modo \"%s\": la generación no recibe el modo guardado.",
+      modo_configurado, p$modo))
   }
 
   sin_columnas <- if (is.null(p$vacio)) .cruces_preview_cruces_sin_columnas(p, if (con_tablas) base else NULL, cruces) else list()
@@ -350,7 +522,8 @@ analitica_cruces_preview <- function(sid, variables = NULL, cruces = NULL,
       "La exclusión no quitó ninguna fila porque la base no tiene esas categorías: ", paste(vacias, collapse = ", "), "."))
   }
 
-  ctx_sig <- .sig_informe_vigente()
+  global <- if (con_tablas) .cruces_preview_exclusion_global(p, base, exclusiones) else NULL
+  if (!is.null(global)) avisos[[length(avisos) + 1L]] <- global
   list(
     ok = TRUE,
     base = list(
@@ -371,15 +544,20 @@ analitica_cruces_preview <- function(sid, variables = NULL, cruces = NULL,
       cuentan = nrow(data),
       antes_de_excluir = as.integer(((p$exclusion_por_base %||% list())[[base]] %||% list())$filas_antes %||% nrow(data)),
       suma_pesos = sum(.peso_vec(data)),
-      con_peso = .frecuencias_base_con_peso(data)
+      con_peso = .frecuencias_base_con_peso(data),
+      # En una base hija repeat cada fila es un registro del grupo repetido; las tablas con grano "encuestado"
+      # cuentan en la madre y declaran su propia base (`tablas[].base`).
+      unidad = if (is.list(p$repeat_design_by_base[[base]])) "registro" else "encuestado"
     ) else NULL,
     escala_pct = "proporcion",
     opciones = list(
       orden = p$orden_cruces %||% NA_character_,
       incluir_secciones = isTRUE(p$incluir_secciones),
       significancia = isTRUE(p$show_sig),
-      alfa = p$alpha %||% NA_real_
+      # El alfa guardado en Cruces. Con la regla del estudio la prueba usa el de la regla (`significancia_regla$alfa`).
+      alfa_configurado = p$alpha %||% NA_real_
     ),
+    significancia_regla = res$regla,
     cruces = lapply(res$cruzar, function(v) list(
       variable = v,
       excluidas = as.list(as.character((p$cruces_map %||% list())[[v]] %||% character(0)))

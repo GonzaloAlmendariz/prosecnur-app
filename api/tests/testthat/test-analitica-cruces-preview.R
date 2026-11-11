@@ -183,7 +183,8 @@
       co <- cols[[c]]
       if (!identical(co$h2, b$h2[[c]])) nota(v, ": rótulo de la columna ", c)
       if (c > 1L && !identical(co$h1, b$h1[[c]])) nota(v, ": variable de cruce de la columna ", c)
-      if (!igual(co$n, b$total$n[[c]])) nota(v, ": Total de la columna ", co$h2)
+      # `n` de la columna es la suma de pesos sin redondear; la fila Total del archivo la escribe redondeada.
+      if (!igual(round(co$n, 0), b$total$n[[c]])) nota(v, ": Total de la columna ", co$h2)
       n_p <- vapply(co$celdas, function(x) x$n, numeric(1))
       pct_p <- vapply(co$celdas, function(x) x$pct, numeric(1))
       if (!identical(vapply(co$celdas, function(x) x$fila, character(1)),
@@ -197,16 +198,25 @@
       next
     }
     if (length(con_letras)) {
-      esperado <- unlist(lapply(con_letras, function(cr) vapply(cr$columnas, function(co) {
-        paste0(co$etiqueta, " (", co$letra, ")")
+      # El archivo rotula siempre la columna con su letra; la vista previa la anula "frente al resto".
+      esperado <- unlist(lapply(con_letras, function(cr) vapply(seq_along(cr$columnas), function(j) {
+        co <- cr$columnas[[j]]
+        publica <- !identical(cr$significancia$modo, "frente_al_resto") &&
+          !identical(cr$significancia$motivo, "letras_por_rotulo_no_calculadas")
+        if (publica && !identical(co$letra, openxlsx::int2col(j))) return("letra")
+        paste0(co$etiqueta, " (", openxlsx::int2col(j), ")")
       }, character(1))))
       if (!identical(esperado, attr(b$letras, "encabezado"))) nota(v, ": encabezado de letras")
+      # Las letras de una columna emparejada por rótulo no se publican (el archivo las trae mal): no se comparan.
+      leidas <- unlist(lapply(con_letras, function(cr) {
+        rep(!identical(cr$significancia$motivo, "letras_por_rotulo_no_calculadas"), length(cr$columnas))
+      }))
       for (i in seq_along(t$filas)) {
         prev <- unlist(lapply(con_letras, function(cr) vapply(cr$columnas, function(co) {
           l <- co$celdas[[i]]$letras
           if (is.na(l)) "" else l
         }, character(1))))
-        if (!identical(prev, b$letras[[i]])) nota(v, ": letras de la fila ", t$filas[[i]]$etiqueta)
+        if (!identical(prev[leidas], b$letras[[i]][leidas])) nota(v, ": letras de la fila ", t$filas[[i]]$etiqueta)
       }
       if (!identical(t$significancia$nota, attr(b$letras, "nota"))) nota(v, ": nota de letras")
     }
@@ -228,11 +238,21 @@
   for (t in res$tablas) {
     if (isTRUE(t$sin_datos)) next
     expect_true(is.integer(t$total$base_n), label = t$variable)
-    expect_lte(t$total$base_n, res$casos$con_peso)
-    for (cr in t$cruces) for (co in cr$columnas) {
-      expect_true(is.integer(co$base_n), label = paste(t$variable, co$codigo))
-      expect_lte(co$base_n, t$total$base_n)
-      if (!isTRUE(res$ponderado)) expect_equal(co$base_n, co$n_ponderado, label = paste(t$variable, co$codigo))
+    # La base de la tabla se compara con los casos de SU nivel (`base.de`), no con los de la base activa.
+    expect_identical(t$base$n, t$total$base_n)
+    expect_true(is.integer(t$base$de))
+    expect_lte(t$total$base_n, t$base$de)
+    expect_identical(t$sin_respuestas, identical(t$total$base_n, 0L))
+    expect_gte(t$total$casos_sin_fila, 0L)
+    if (!isTRUE(res$ponderado)) expect_equal(t$total$base_n, t$total$n, label = t$variable)
+    for (cr in t$cruces) {
+      if (!isTRUE(cr$multiple)) expect_gte(cr$sin_columna$base_n, 0L)
+      for (co in cr$columnas) {
+        expect_true(is.integer(co$base_n), label = paste(t$variable, co$codigo))
+        expect_lte(co$base_n, t$total$base_n)
+        expect_null(co$n_ponderado)
+        if (!isTRUE(res$ponderado)) expect_equal(co$base_n, co$n, label = paste(t$variable, co$codigo))
+      }
     }
   }
 }
@@ -293,8 +313,14 @@ test_that("con calibración: n y porcentajes ponderados son los del archivo y la
   col_sin <- .cp_columna(impacto_sin, "M5_district", "smp")
   expect_identical(col$base_n, col_sin$base_n)
   expect_identical(impacto$total$base_n, impacto_sin$total$base_n)
-  expect_false(isTRUE(all.equal(col$n_ponderado, as.numeric(col$base_n))))
-  expect_equal(col$n, round(col$n_ponderado))
+  expect_false(isTRUE(all.equal(col$n, as.numeric(col$base_n))))
+  expect_false(isTRUE(all.equal(col$n, round(col$n))))   # `n` sin redondear: un solo significado, como Frecuencias
+  # Total menos columnas con pesos: sin residuo negativo de coma flotante.
+  sin_col <- unlist(lapply(res$tablas, function(t) lapply(t$cruces, function(cr) cr$sin_columna$n)))
+  expect_gt(length(sin_col), 0L)
+  expect_true(all(sin_col >= 0))
+  expect_equal(.cruces_preview_resta(10, 10 + 5.34e-12), 0)
+  expect_equal(.cruces_preview_resta(10, 9.5), 0.5)
 })
 
 # --- Base sin ponderar (regla I1) --------------------------------------------
@@ -323,9 +349,9 @@ test_that("base: entera, sin ponderar, peso 0 fuera y en una múltiple cada pers
   x <- .cp_columna(medios, "grupo", "x")
   y <- .cp_columna(medios, "grupo", "y")
   expect_identical(x$base_n, 2L)            # dos personas; una marcó dos opciones
-  expect_equal(x$n_ponderado, 1.75)
+  expect_equal(x$n, 1.75)
   expect_identical(y$base_n, 1L)            # peso 0 y "sin marcar" quedan fuera
-  expect_equal(y$n_ponderado, 2.2)
+  expect_equal(y$n, 2.2)
   expect_identical(medios$total$base_n, 3L)
   expect_equal(sum(vapply(x$celdas, function(c) c$n, numeric(1))), 1.25 + 1.25 + 0.5)   # marcas, no personas
 
@@ -333,13 +359,13 @@ test_that("base: entera, sin ponderar, peso 0 fuera y en una múltiple cada pers
   y <- .cp_columna(voto, "grupo", "y")
   expect_identical(voto$denominador, "validos_de_la_columna")
   expect_identical(y$base_n, 2L)
-  expect_equal(y$n_ponderado, 3.2)
+  expect_equal(y$n, 3.2)
   expect_identical(voto$total$base_n, 4L)
   expect_true(is.integer(voto$total$base_n))
 
   sin_pesos <- .cp_tabla_sintetica(datos[setdiff(names(datos), "peso")], "voto")
-  for (co in sin_pesos$cruces[[1]]$columnas) expect_equal(co$base_n, co$n_ponderado)
-  expect_equal(sin_pesos$total$base_n, sin_pesos$total$n_ponderado)
+  for (co in sin_pesos$cruces[[1]]$columnas) expect_equal(co$base_n, co$n)
+  expect_equal(sin_pesos$total$base_n, sin_pesos$total$n)
 })
 
 test_that("dos opciones con el mismo rótulo: el archivo deja la segunda fuera y la vista previa lo dice", {
@@ -348,7 +374,7 @@ test_that("dos opciones con el mismo rótulo: el archivo deja la segunda fuera y
   tb <- .cruces_tabla_archivo(datos, "voto", "grupo", orders_list = inst$orders_list,
                               notas = .notas_pie_normalizar(NULL), casos_sin_ponderar = TRUE)
   expect_identical(tb$codes_row, c("1", "3"))
-  expect_identical(tb$omitidas, list(list(codigo = "2", etiqueta = "Sí", motivo = "rotulo_repetido")))
+  expect_identical(tb$omitidas, list(list(codigo = "2", etiqueta = "Sí", motivo = "rotulo_repetido", casos = 1L)))
 })
 
 test_that("las letras se leen por código de fila y de columna; si la matriz no corresponde, error interno", {
@@ -465,7 +491,13 @@ test_that("categorías de cruce excluidas: salen de toda la base, su columna que
   expect_identical(otro$base_n, 0L)
   expect_identical(otro$n, 0)
   expect_true(all(is.na(vapply(otro$celdas, function(c) c$pct, numeric(1)))))
+  expect_identical(otro$motivo, "excluida")          # con letras, la regla le pone `.b`; el motivo real es la exclusión
+  expect_true(otro$exclusion_aplicada)
   expect_identical(res$casos$antes_de_excluir - res$casos$cuentan, 2L)   # los dos casos de "Otro"
+  global <- Filter(function(a) identical(a$codigo, "exclusion_global"), res$avisos)
+  expect_length(global, 1L)
+  expect_match(global[[1]]$mensaje, "Se quitaron 2 casos de toda la base", fixed = TRUE)
+  expect_match(global[[1]]$mensaje, "\"Otro\"", fixed = TRUE)
   ex <- stats::setNames(lapply(res$exclusiones, function(x) x$categorias), vapply(res$exclusiones, function(x) x$variable, character(1)))
   expect_identical(ex$E2_sex[[1]], list(codigo = "3", filas = 2L))
   expect_identical(ex$M3_edu[[1]], list(codigo = "9", filas = 0L))
@@ -490,6 +522,15 @@ test_that("letras con la regla del estudio y con la de siempre: las del archivo,
   expect_identical(.cp_diferencias(siempre$tablas, bloques), character(0))
   info <- .cp_tabla(siempre, "D1_information")
   expect_identical(info$cruces[[1]]$significancia$metodo, "regla_z")
+  expect_identical(info$cruces[[1]]$significancia$modo, "letras")   # 6 distritos: no pasa de max_letras
+  # Lo que la prueba usó de verdad: la regla propuesta (sin regla del estudio), no el alfa guardado en Cruces.
+  expect_identical(siempre$significancia_regla$origen, "propuesta")
+  expect_identical(siempre$significancia_regla$prueba, "z")
+  expect_equal(siempre$significancia_regla$base_minima, 30)
+  expect_equal(siempre$significancia_regla$umbral_puntos, 10)
+  expect_identical(siempre$significancia_regla$n_prueba, "pesos_llevados_a_media_1")
+  expect_null(siempre$opciones[["alfa"]])
+  expect_equal(siempre$opciones$alfa_configurado, 0.05)
   # "Primaria o menos" tiene entre 20 y 30 casos en esta pregunta: con la base mínima de siempre (30) no se compara.
   primaria <- .cp_columna(info, "M3_edu", "1")
   expect_gte(primaria$base_n, 20L)
@@ -510,6 +551,9 @@ test_that("letras con la regla del estudio y con la de siempre: las del archivo,
   info <- .cp_tabla(estudio, "D1_information")
   expect_true(is.na(.cp_columna(info, "M3_edu", "1")$motivo))
   expect_match(info$significancia$nota, "menos de 20 casos", fixed = TRUE)
+  expect_identical(estudio$significancia_regla$origen, "estudio")
+  expect_equal(estudio$significancia_regla$base_minima, 20)
+  expect_equal(estudio$significancia_regla$umbral_puntos, 5)
   expect_match(info$significancia$nota, "al menos 5 puntos", fixed = TRUE)
 
   # Sin significancia: sin letras, sin método y el archivo sin subtabla.
@@ -524,6 +568,7 @@ test_that("letras con la regla del estudio y con la de siempre: las del archivo,
   t <- .cp_tabla(apagada, "D1_information")
   expect_null(t$significancia)
   expect_null(t$cruces[[1]]$significancia)
+  expect_null(apagada$significancia_regla)
   expect_true(is.na(t$cruces[[1]]$columnas[[1]]$letra))
   expect_true(is.na(t$cruces[[1]]$columnas[[1]]$celdas[[1]]$letras))
   expect_true(all(vapply(bloques, function(b) is.null(b$letras), logical(1))))
@@ -555,6 +600,15 @@ test_that("hija repeat (acnur_pdm): cada tabla en su grano y con las cifras del 
                             vapply(res$tablas, function(t) t$variable, character(1)))
   expect_identical(granos[["conocimiento"]], "encuestado")
   expect_identical(granos[["srv_satisfaccion"]], "registro")
+  # transport tiene 7 categorías declaradas (una excluida, vacía): la regla compara frente al resto, con flechas.
+  medio <- Filter(function(c) identical(c$variable, "transport"), .cp_tabla(res, "conocimiento")$cruces)[[1]]
+  expect_identical(medio$significancia$modo, "frente_al_resto")
+  expect_true(all(is.na(vapply(medio$columnas, function(co) co$letra, character(1)))))
+  # En estos datos ningún medio difiere del resto (bases de 0 a 235 registros): celdas vacías o `.b`, nunca letras
+  # de columna. Las flechas con una diferencia real las fija la prueba "más de 6 columnas".
+  flechas <- unlist(lapply(medio$columnas, function(co) vapply(co$celdas, function(c) c$letras, character(1))))
+  expect_true(all(flechas %in% c("", ".b") | grepl("^[▲▼△▽]+$", flechas)))
+  expect_true(any(flechas == ".b"))
 
   bloques <- .cp_leer_archivo(.cp_generar_archivo(sid, "rep_servicios"))
   expect_identical(.cp_diferencias(res$tablas, bloques), character(0))
@@ -563,6 +617,315 @@ test_that("hija repeat (acnur_pdm): cada tabla en su grano y con las cifras del 
   madre <- suppressWarnings(.analitica_cruces_preparar(sid, modo = "estandar"))$data_sources[[1]]
   expect_lte(.cp_tabla(res, "conocimiento")$total$base_n, nrow(madre))
   expect_gt(.cp_tabla(res, "srv_satisfaccion")$total$base_n, nrow(madre))
+})
+
+# --- Revisión metodológica (C1 a C8) ----------------------------------------------
+
+# Base de 400 casos con una pregunta sí/no y un cruce de dos grupos con 80/20 frente a 20/80.
+.cp_rev_datos <- function(sexo = NULL, n = 400) {
+  set.seed(1)
+  cod <- sample(c("1", "2"), n, TRUE)
+  q <- ifelse(cod == "1", sample(c("1", "2"), n, TRUE, prob = c(.8, .2)), sample(c("1", "2"), n, TRUE, prob = c(.2, .8)))
+  list(cod = cod, data = data.frame(q = q, sexo = sexo %||% cod, stringsAsFactors = FALSE))
+}
+.cp_rev_inst <- list(
+  survey = data.frame(type = c("select_one yn", "select_one sx"), name = c("q", "sexo"), label = c("Q", "Sexo"),
+                      stringsAsFactors = FALSE),
+  orders_list = list(yn = list(names = c("1", "2"), labels = c("Sí", "No")),
+                     sx = list(names = c("1", "2"), labels = c("Hombre", "Mujer")))
+)
+.cp_rev_tabla <- function(data, cruce = "sexo", inst = .cp_rev_inst, regla = TRUE, excluidas = list()) {
+  previa <- options(prosecnur.sig_informe = if (regla) list(regla = .sig_regla_fabrica(), familia = NULL) else NULL)
+  on.exit(options(previa), add = TRUE)
+  tb <- .cruces_tabla_archivo(data, "q", cruce, survey = inst$survey, orders_list = inst$orders_list,
+                              notas = .notas_pie_normalizar(NULL), show_sig = TRUE,
+                              sig_spec = .cruces_significancia_normalizar(NULL), casos_sin_ponderar = TRUE)
+  .cruces_preview_tabla(tb, "S", NA_character_, NA_character_, excluidas = excluidas, survey = inst$survey)
+}
+.cp_codigos_avisos <- function(tablas) vapply(.cruces_preview_avisos_tablas(tablas), function(a) a$codigo, character(1))
+
+test_that("clave mezclada (5 con código y 395 con rótulo): los casos sin columna se cuentan y se avisan", {
+  d <- .cp_rev_datos()
+  limpia <- .cp_rev_tabla(d$data)
+  expect_identical(limpia$cruces[[1]]$sin_columna$base_n, 0L)
+  expect_false("casos_sin_columna" %in% .cp_codigos_avisos(list(limpia)))     # el caso que no debe avisar
+
+  mixta <- d$data
+  mixta$sexo <- ifelse(d$cod == "1", "Hombre", "Mujer")
+  mixta$sexo[1:5] <- d$cod[1:5]
+  t <- .cp_rev_tabla(mixta)
+  cr <- t$cruces[[1]]
+  expect_identical(cr$columnas_por, "codigo")                  # basta un código para cruzar por código
+  expect_identical(sum(vapply(cr$columnas, function(co) co$base_n, integer(1))), 5L)
+  expect_identical(t$total$base_n, 400L)                       # el Total sí los cuenta
+  expect_identical(cr$sin_columna$valores_no_reconocidos, 395L)
+  expect_identical(cr$sin_columna$base_n, 395L)
+  expect_true("casos_sin_columna" %in% .cp_codigos_avisos(list(t)))
+})
+
+test_that("columnas emparejadas por rótulo: el archivo trae letras vacías y la vista previa no las publica", {
+  d <- .cp_rev_datos()
+  por_codigo <- .cp_rev_tabla(d$data)
+  expect_identical(por_codigo$cruces[[1]]$significancia$metodo, "regla_z")
+  expect_true(any(nzchar(unlist(lapply(por_codigo$cruces[[1]]$columnas, function(co) {
+    vapply(co$celdas, function(c) c$letras, character(1))
+  })))))                                                       # con códigos, 80/20 contra 20/80 sí marca
+
+  rot <- d$data
+  rot$sexo <- ifelse(d$cod == "1", "Hombre", "Mujer")
+  t <- .cp_rev_tabla(rot)
+  cr <- t$cruces[[1]]
+  expect_identical(cr$columnas_por, "rotulo")
+  expect_identical(cr$significancia$metodo, "descriptivo")
+  expect_identical(cr$significancia$motivo, "letras_por_rotulo_no_calculadas")
+  for (co in cr$columnas) {
+    expect_true(is.na(co$letra))
+    expect_true(all(is.na(vapply(co$celdas, function(c) c$letras, character(1)))))
+  }
+  expect_true("letras_por_rotulo_no_calculadas" %in% .cp_codigos_avisos(list(t)))
+  # Los porcentajes sí salen por rótulo, iguales a los de la base con códigos.
+  expect_equal(vapply(cr$columnas[[1]]$celdas, function(c) c$pct, numeric(1)),
+               vapply(por_codigo$cruces[[1]]$columnas[[1]]$celdas, function(c) c$pct, numeric(1)))
+})
+
+test_that("más de 6 columnas: la regla compara cada una frente al resto y la columna no lleva letra", {
+  set.seed(4)
+  n <- 1400
+  g <- as.character(rep(1:7, each = n / 7))
+  q <- ifelse(g == "1", sample(c("1", "2"), n, TRUE, prob = c(.9, .1)), sample(c("1", "2"), n, TRUE, prob = c(.3, .7)))
+  inst <- .cp_rev_inst
+  inst$orders_list$sx <- list(names = as.character(1:7), labels = paste("Grupo", 1:7))
+  siete <- .cp_rev_tabla(data.frame(q = q, sexo = g, stringsAsFactors = FALSE), inst = inst)
+  cr <- siete$cruces[[1]]
+  expect_identical(cr$significancia$modo, "frente_al_resto")
+  expect_true(all(is.na(vapply(cr$columnas, function(co) co$letra, character(1)))))
+  celdas <- unlist(lapply(cr$columnas, function(co) vapply(co$celdas, function(c) c$letras, character(1))))
+  expect_true(any(grepl("[▲▼△▽]", celdas)))                   # flechas, no letras
+
+  # La regla cuenta todas las columnas que escribe el archivo, también una vacía: 7 declaradas y 6 con datos.
+  vacia <- .cp_rev_tabla(data.frame(q = q[g != "7"], sexo = g[g != "7"], stringsAsFactors = FALSE), inst = inst)
+  expect_identical(vacia$cruces[[1]]$columnas[[7]]$base_n, 0L)
+  expect_identical(vacia$cruces[[1]]$significancia$modo, "frente_al_resto")
+  # Con seis declaradas, letras.
+  inst$orders_list$sx <- list(names = as.character(1:6), labels = paste("Grupo", 1:6))
+  seis <- .cp_rev_tabla(data.frame(q = q[g != "7"], sexo = g[g != "7"], stringsAsFactors = FALSE), inst = inst)
+  expect_identical(seis$cruces[[1]]$significancia$modo, "letras")
+  expect_identical(vapply(seis$cruces[[1]]$columnas, function(co) co$letra, character(1))[1:3], c("A", "B", "C"))
+})
+
+test_that("columna excluida sin la regla: su motivo es la exclusión, no la base insuficiente", {
+  d <- .cp_rev_datos()
+  inst <- .cp_rev_inst
+  inst$orders_list$sx <- list(names = c("1", "2", "3"), labels = c("Hombre", "Mujer", "Otro"))
+  sin_excluir <- .cp_rev_tabla(d$data, inst = inst, regla = FALSE)
+  otro <- sin_excluir$cruces[[1]]$columnas[[3]]
+  expect_identical(sin_excluir$cruces[[1]]$significancia$metodo, "z_simple")
+  expect_identical(otro$motivo, "base_insuficiente")           # el `.b` de la prueba z, sin decir por qué
+  excluida <- .cp_rev_tabla(d$data, inst = inst, regla = FALSE, excluidas = list(sexo = "3"))
+  otro <- excluida$cruces[[1]]$columnas[[3]]
+  expect_identical(otro$motivo, "excluida")
+  expect_true(otro$exclusion_aplicada)
+  # Excluida pero con datos (la base trae otro valor y la exclusión no quitó nada): no se promete vacía.
+  con_datos <- .cp_rev_tabla(d$data, inst = inst, regla = FALSE, excluidas = list(sexo = "1"))
+  hombre <- con_datos$cruces[[1]]$columnas[[1]]
+  expect_true(hombre$excluida)
+  expect_false(hombre$exclusion_aplicada)
+  expect_identical(hombre$motivo, "excluida")
+})
+
+test_that("base sin respuestas: la tabla existe, con su base en 0 y `sin_respuestas`", {
+  d <- .cp_rev_datos()
+  vacia <- d$data
+  vacia$q <- NA_character_
+  t <- .cp_rev_tabla(vacia)
+  expect_false(t$sin_datos)
+  expect_true(t$sin_respuestas)
+  expect_identical(t$base$n, 0L)
+  expect_identical(t$base$de, 400L)
+  expect_false(.cp_rev_tabla(d$data)$sin_respuestas)          # con respuestas, falso
+})
+
+# Hija repeat opcional: 160 estudiantes en la madre y 60 registros de 40 de ellos en la hija.
+.cp_hija_opcional <- function() {
+  set.seed(7)
+  madre <- data.frame(`_index` = 1:160, ciclo = sample(c("6", "9"), 160, TRUE), area = rep(c("1", "2"), 80),
+                      check.names = FALSE, stringsAsFactors = FALSE)
+  pos <- rep(1:40, c(rep(1L, 20), rep(2L, 20)))
+  hija <- data.frame(`_parent_index` = pos, `_index` = seq_along(pos),
+                     nivel = sample(c("u", "s"), length(pos), TRUE),
+                     ciclo = madre$ciclo[pos], area = madre$area[pos], check.names = FALSE, stringsAsFactors = FALSE)
+  survey <- data.frame(name = c("ciclo", "area", "nivel"), type = c("select_one ci", "select_one ar", "select_one nv"),
+                       label = c("Ciclo", "Área", "Nivel"), stringsAsFactors = FALSE)
+  inst <- list(survey = survey, orders_list = list(
+    ci = list(names = c("6", "9"), labels = c("Sexto", "Noveno")),
+    ar = list(names = c("1", "2"), labels = c("Uno", "Dos")),
+    nv = list(names = c("u", "s"), labels = c("Universitario", "Secundaria"))))
+  diseno <- list(kind = "cluster_persona", cluster_col = "_parent_index", n_instancias = nrow(hija), n_personas = 40L,
+                 min_clusters = 8L, inference_ok = TRUE, reason = "", heredadas = c("ciclo", "area"),
+                 parent_base = "madre", unidad = "registros")
+  attr(hija, "repeat_design") <- diseno
+  attr(hija, "repeat_madre") <- madre
+  list(
+    data_sources = list(hija = hija), inst_sources = list(hija = inst), repeat_design_by_base = list(hija = diseno),
+    notas = .notas_pie_normalizar(NULL), secs = list(G = c("ciclo", "nivel")), cruces_val = "area",
+    numericas_arg = character(0), show_sig = FALSE, orden_cruces = "original", ordinal_lists_by_base = list(),
+    incluir_secciones = FALSE, cruces_map = list(area = character(0)), excluidas = character(0), alpha = 0.05,
+    significancia = NULL
+  )
+}
+
+test_that("hija con más encuestados que registros: cada tabla declara su base y su unidad", {
+  p <- .cp_hija_opcional()
+  withr::local_options(prosecnur.sig_informe = NULL)
+  res <- .cruces_preview_tablas(p, "hija")
+  ciclo <- Filter(function(t) identical(t$variable, "ciclo"), res$tablas)[[1]]
+  nivel <- Filter(function(t) identical(t$variable, "nivel"), res$tablas)[[1]]
+  expect_identical(ciclo$grano, "encuestado")
+  expect_identical(ciclo$base, list(n = 160L, de = 160L, unidad = "encuestado"))
+  expect_identical(nivel$grano, "registro")
+  expect_identical(nivel$base, list(n = 60L, de = 60L, unidad = "registro"))
+  # El invariante viejo (contra las filas de la base activa, la hija) se rompe con un grupo opcional.
+  expect_gt(ciclo$total$base_n, .frecuencias_base_con_peso(p$data_sources$hija))
+  for (t in res$tablas) expect_lte(t$total$base_n, t$base$de)
+})
+
+test_that("sin letras en una base hija, la vista previa repone la regla del proceso", {
+  sid <- .cp_abrir("pdm")
+  .cp_configurar(sid, function(cfg) {
+    cfg$cruces$cruces_vars <- list(list(name = "timing"))
+    cfg$cruces$show_sig <- FALSE
+    # La última tabla es heredada: si la regla no se repone, queda la de la madre.
+    cfg$secciones <- list(list(id = "a", nombre = "A", variables = list("srv_satisfaccion", "conocimiento")))
+    cfg
+  })
+  estudio_active_base_set(sid, "rep_servicios")
+  # Una regla ya vigente en el proceso (de otra vista previa): la tabla heredada de la hija activa la de la madre.
+  vigente <- list(regla = .sig_regla_fabrica(), familia = NULL,
+                  madre = list(regla = .sig_regla_fabrica(), familia = NULL, marca = "madre"))
+  previa <- options(prosecnur.sig_informe = vigente)
+  on.exit(options(previa), add = TRUE)
+  res <- suppressWarnings(analitica_cruces_preview(sid))
+  expect_identical(res$casos$unidad, "registro")
+  expect_true(any(vapply(res$tablas, function(t) identical(t$grano, "encuestado"), logical(1))))
+  expect_identical(getOption("prosecnur.sig_informe"), vigente)
+})
+
+test_that("total.base_n de Cruces es la base.n de Frecuencias en toda categórica de acnur_acg", {
+  sid <- .cp_abrir("acg")
+  .cp_configurar(sid, function(cfg) {
+    cfg$cruces$cruces_vars <- list(list(name = "M5_district"))
+    cfg$cruces$show_sig <- FALSE
+    cfg
+  })
+  frec <- suppressWarnings(analitica_frecuencias_preview(sid, limite = 500L))
+  base_frec <- stats::setNames(vapply(frec$tablas, function(t) as.integer(t$base$n), integer(1)),
+                               vapply(frec$tablas, function(t) t$variable, character(1)))
+  cruces <- suppressWarnings(analitica_cruces_preview(sid, limite = 200L))
+  base_cruces <- stats::setNames(vapply(cruces$tablas, function(t) t$total$base_n, integer(1)),
+                                 vapply(cruces$tablas, function(t) t$variable, character(1)))
+  expect_gt(length(base_cruces), 20L)
+  expect_setequal(names(base_cruces), intersect(names(base_frec), names(base_cruces)))
+  expect_identical(base_cruces, base_frec[names(base_cruces)])
+  for (t in cruces$tablas) expect_identical(t$total$casos_sin_fila, 0L)
+
+  # Diferencia documentada: la exclusión de categorías de cruce es global. Al excluir "Otro" de sexo, Cruces pierde
+  # esos 2 casos en toda tabla y Frecuencias no.
+  .cp_configurar(sid, function(cfg) {
+    cfg$cruces$cruces_vars <- list(list(name = "M5_district"), list(name = "E2_sex", excluidas = list("3")))
+    cfg
+  })
+  excl <- suppressWarnings(analitica_cruces_preview(sid, limite = 200L))
+  dif <- base_frec[vapply(excl$tablas, function(t) t$variable, character(1))] -
+    vapply(excl$tablas, function(t) t$total$base_n, integer(1))
+  expect_true(all(dif >= 0L & dif <= 2L))
+  expect_identical(unname(dif[["A1_leg"]]), 2L)
+})
+
+
+test_that("avisos con su caso que no avisa: modo configurado no aplicado y variable de cruce múltiple", {
+  sid <- .cp_abrir("acg")
+  .cp_configurar(sid, function(cfg) {
+    cfg$cruces$cruces_vars <- list(list(name = "M5_district"))
+    cfg$cruces$show_sig <- FALSE
+    cfg$cruces$modo <- "estandar"
+    cfg
+  })
+  codigos <- function(r) vapply(r$avisos, function(a) a$codigo, character(1))
+  expect_false("modo_configurado_no_aplicado" %in% codigos(suppressWarnings(analitica_cruces_preview(sid, variables = "E6_impact"))))
+  .cp_configurar(sid, function(cfg) {
+    cfg$cruces$modo <- "dimensiones"
+    cfg
+  })
+  dim <- suppressWarnings(analitica_cruces_preview(sid, variables = "E6_impact"))
+  expect_identical(dim$modo, "estandar")
+  expect_identical(dim$modo_configurado, "dimensiones")
+  expect_true("modo_configurado_no_aplicado" %in% codigos(dim))
+
+  d <- .cp_rev_datos()
+  expect_false("cruce_multiple" %in% .cp_codigos_avisos(list(.cp_rev_tabla(d$data))))
+  inst <- .cp_rev_inst
+  inst$survey$type[inst$survey$name == "sexo"] <- "select_multiple sx"
+  multiple <- .cp_rev_tabla(d$data, inst = inst)
+  expect_true(multiple$cruces[[1]]$multiple)
+  expect_true(is.na(multiple$cruces[[1]]$sin_columna$base_n))
+  expect_true("cruce_multiple" %in% .cp_codigos_avisos(list(multiple)))
+})
+
+test_that("código ajeno al instrumento: fuera del denominador y contado en `casos_sin_fila`", {
+  d <- .cp_rev_datos()
+  expect_identical(.cp_rev_tabla(d$data)$total$casos_sin_fila, 0L)
+  ajeno <- d$data
+  ajeno$q[1:7] <- "7"
+  t <- .cp_rev_tabla(ajeno)
+  expect_identical(t$total$casos_sin_fila, 7L)
+  expect_identical(t$total$base_n, 393L)
+})
+
+test_that("`sin_respuestas` es falso cuando no hay tabla (`sin_datos`)", {
+  vacia <- data.frame(q = c(NA, NA), sexo = c("1", "2"), stringsAsFactors = FALSE)
+  inst <- .cp_rev_inst
+  inst$orders_list$yn <- NULL
+  inst$survey$type[inst$survey$name == "q"] <- "select_one zz"
+  t <- .cp_rev_tabla(vacia, inst = inst)
+  expect_true(t$sin_datos)
+  expect_false(t$sin_respuestas)
+})
+
+test_that("filas no probadas: con la regla, 99 No responde no entra a la prueba; sin regla todas entran", {
+  set.seed(9)
+  n <- 600
+  sexo <- sample(c("1", "2"), n, TRUE)
+  q <- ifelse(sexo == "1", sample(c("1", "2", "99"), n, TRUE, prob = c(.7, .2, .1)),
+              sample(c("1", "2", "99"), n, TRUE, prob = c(.2, .7, .1)))
+  inst <- .cp_rev_inst
+  inst$orders_list$yn <- list(names = c("1", "2", "99"), labels = c("Sí", "No", "No responde"))
+  datos <- data.frame(q = q, sexo = sexo, stringsAsFactors = FALSE)
+  con_regla <- .cp_rev_tabla(datos, inst = inst)
+  expect_identical(vapply(con_regla$filas, function(f) f$probada, logical(1)), c(TRUE, TRUE, FALSE))
+  sin_regla <- .cp_rev_tabla(datos, inst = inst, regla = FALSE)
+  expect_identical(vapply(sin_regla$filas, function(f) f$probada, logical(1)), c(TRUE, TRUE, TRUE))
+})
+
+test_that("`significancia_regla` sale de un bloque que usó la regla; si ninguno la usó, es nula", {
+  p <- .cp_hija_opcional()
+  p$show_sig <- TRUE
+  p$sig_estudio <- NULL                       # sin regla vigente: la hija compara con errores agrupados
+  withr::local_options(prosecnur.sig_informe = NULL)
+  res <- suppressMessages(.cruces_preview_tablas(p, "hija"))
+  nivel <- Filter(function(t) identical(t$variable, "nivel"), res$tablas)[[1]]
+  expect_false(startsWith(nivel$cruces[[1]]$significancia$metodo, "regla_"))
+  expect_null(res$regla)
+  # Un bloque descriptivo trae la regla que no pudo aplicar: no es la regla usada.
+  fabrica <- .sig_regla_fabrica()
+  tb <- list(sig = list(bloques = list(
+    a = list(method = "descriptivo", regla = modifyList(fabrica, list(prueba = "rao_scott"))),
+    b = list(method = "regla_z", regla = fabrica))))
+  expect_identical(.cruces_preview_regla_de_tabla(tb)$prueba, "z")
+  tb$sig$bloques$b <- NULL
+  expect_null(.cruces_preview_regla_de_tabla(tb))
+  regla <- .cruces_preview_regla(modifyList(.sig_regla_fabrica(), list(incluir_ns = TRUE)), "estudio")
+  expect_true(regla$incluir_ns)
+  expect_false(.cruces_preview_regla(.sig_regla_fabrica(), "propuesta")$incluir_ns)
 })
 
 # --- Contrato HTTP -----------------------------------------------------------
