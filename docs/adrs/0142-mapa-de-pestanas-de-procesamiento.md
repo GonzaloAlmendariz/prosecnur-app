@@ -1,7 +1,7 @@
 # ADR 0142: mapa de pestañas de Procesamiento
 
-Estado: Propuesto
-Fecha: 2026-11-10
+Estado: Aceptado
+Fecha: 2026-11-10 (aceptado el 2026-11-11)
 Autoridad: Gonzalo pidió "una propuesta profunda de mejora y no solo superficial" para "todas sus secciones (menos Gráficos) y pestañas", y el 2026-11-10 aprobó el mapa de pestañas con las decisiones D1 a D11 de `docs/qa/plan-revamp-procesamiento-2026-11-10.md`. Después decidió D9, D12, D13 y D14. Este ADR recoge solo lo que cambia el contrato de navegación; queda como Propuesto hasta que él lo acepte, porque retira pestañas.
 
 ## Contexto
@@ -49,7 +49,7 @@ El total pasa de 32 a 26 contando Gráficos. `/procesamiento` deja de redirigir 
 
 ## Cumplimiento
 
-La implementación va por secciones, y el catálogo de cada sección cambia en el mismo commit que monta sus pestañas nuevas, con sus pruebas de contrato actualizadas. Mientras este ADR esté en Propuesto no se borra ninguna pestaña: las nuevas se construyen al lado y el retiro espera la aceptación de Gonzalo.
+La implementación va por secciones, y el catálogo de cada sección cambia en el mismo commit que monta sus pestañas nuevas, con sus pruebas de contrato actualizadas. Mientras este ADR estuvo en Propuesto no se borró ninguna pestaña. Gonzalo lo aceptó el 2026-11-11 ("Acepto todo lo que haga falta", en respuesta a la lista de decisiones pendientes, cuya primera era este ADR). Desde entonces el catálogo de cada sección puede cambiar a sus pestañas nuevas; las direcciones viejas se siguen leyendo como alias y no se escriben. El borrado de los archivos de página que queden sin uso sigue pidiendo su confirmación en el momento de hacerlo.
 
 ## Notas
 
