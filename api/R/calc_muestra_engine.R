@@ -904,6 +904,9 @@ calc_muestra_componentes_sin <- function(componentes, id) {
 #' El usuario NO elige técnica directamente: la elige indirectamente al
 #' declarar actor + canal + N.
 .cm_inferir_acreditacion <- function(actor, canal, N) {
+  # ADR 0143: por correo, teléfono o mixto se invita a toda la base.
+  barrido <- .cm_cuadro_inferir_barrido(actor, canal)
+  if (!is.null(barrido)) return(barrido)
   if (actor == "administrativos") {
     return(list(
       tecnica = "intencion_censal",
@@ -1626,6 +1629,12 @@ calc_muestra_calcular_componente <- function(comp) {
   if (cobertura_obj <= 0) cobertura_obj <- 0.6
 
   n_objetivo <- as.integer(ceiling(N * cobertura_obj))
+  # ADR 0143: una meta declarada fija las encuestas (nunca más que el marco).
+  meta_valor <- as.integer(comp$meta$valor %||% 0L)
+  if (!is.na(meta_valor) && meta_valor > 0L && N > 0L) {
+    n_objetivo <- min(meta_valor, as.integer(N))
+    cobertura_obj <- n_objetivo / N
+  }
   n_operativo <- N  # se intenta contactar a todos
   sobremuestra <- 0L  # no aplica
   tasa_respuesta_esperada <- min(if (par$tasa_respuesta > 0) par$tasa_respuesta else cobertura_obj, 1)
@@ -1634,6 +1643,10 @@ calc_muestra_calcular_componente <- function(comp) {
   # no movía nada y el aviso llamaba «esperada» a la cobertura pedida.
   esperadas <- N * tasa_respuesta_esperada
   no_alcanza <- esperadas < n_objetivo - 1e-9
+  # ADR 0143: con segmentos, la meta se reparte con mínimo y se mide cada uno.
+  estratos <- comp$marco$estratos %||% list()
+  piso <- as.integer(par$n_minimo_estrato %||% 0L)
+  seg <- if (length(estratos)) .cm_barrido_por_segmento(n_objetivo, estratos, piso, tasa_respuesta_esperada)
 
   out <- list(
     n_teorico                = NA_integer_,
@@ -1653,10 +1666,12 @@ calc_muestra_calcular_componente <- function(comp) {
       if (no_alcanza) sprintf(
         "Abordando a todo el marco se esperan %s de las %d que pide la cobertura del %.0f %%: sube la respuesta esperada o baja la cobertura.",
         .cm_general_fmt_completas(esperadas), as.integer(n_objetivo), 100 * cobertura_obj),
+      if (!is.null(seg)) .cm_barrido_aviso_segmentos(seg, piso, tasa_respuesta_esperada),
       sprintf("Con una cobertura esperada del %.0f %%, el riesgo es el sesgo de no respuesta: conviene comparar quién respondió con el marco (sexo, programa, etc.).",
               100 * min(tasa_respuesta_esperada, cobertura_obj))), collapse = " ")
   )
   if (no_alcanza) out$n_completas_esperadas <- esperadas
+  if (!is.null(seg)) out$distribucion_estratos <- seg$distribucion
   out
 }
 

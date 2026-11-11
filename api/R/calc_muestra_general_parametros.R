@@ -16,7 +16,7 @@
   sistematico = c("z", "p", "e", "tasa_respuesta", "oversample_pct", "tipo_indicador", "cv"),
   prob_estratificado = c("z", "p", "e", "deff", "tasa_respuesta", "oversample_pct", "n_minimo_estrato",
                          "asignacion", "tipo_indicador", "cv"),
-  intencion_censal = c("cobertura_objetivo", "tasa_respuesta"),
+  intencion_censal = c("cobertura_objetivo", "tasa_respuesta", "n_minimo_estrato"),
   # Sin sobremuestra: se barre el marco entero y no hay reserva fuera de él (L30).
   barrido = c("cobertura_objetivo", "tau", "promedio_conglomerado"),
   no_prob_cuotas = c("tasa_respuesta", "oversample_pct"),

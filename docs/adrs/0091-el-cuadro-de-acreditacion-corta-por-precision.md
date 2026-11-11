@@ -1,6 +1,6 @@
 # ADR 0091 — El cuadro de acreditación corta por precisión, no por N fijo
 
-- **Estado**: Aceptado
+- **Estado**: Aceptado; reemplazado por el [ADR 0143](0143-acreditacion-por-correo-o-telefono-invita-a-toda-la-base.md) en correo, teléfono y mixto
 - **Implementación**: Implementada — `api/R/calc_muestra_acreditacion_cuadro.R`
   y `.cm_inferir_acreditacion` en `api/R/calc_muestra_engine.R`
 - **Ámbito**: Cálculo de muestra, modo `acreditacion` · estudiantes con canal

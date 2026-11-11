@@ -4,6 +4,9 @@
 # del otro lado: la muestra de estudiantes BAJABA al cruzar (1 800 → 1 519) y
 # docentes quedaban en 150 cuotas sin margen. Decisión de Gonzalo, 2026-09-24:
 # «haz lo que estadísticamente sea más válido».
+# Desde el ADR 0143 (2026-11-11) ese corte rige sólo fuera del correo, el
+# teléfono y el mixto, que se barren enteros: estos tests usan `presencial` y
+# el barrido por canal vive en test-calc-muestra-acreditacion-barrido-canal.R.
 
 .cuadro_comp <- function(actor, canal, N, meta = NULL) {
   calc_muestra_normalize_componente(list(
@@ -52,18 +55,18 @@ test_that("una meta que el usuario declaró manda sobre la del cuadro", {
 })
 
 test_that("docentes: censo mientras la muestra pediría el 60 %, luego MAS a ±5 % con margen", {
-  curva <- .cuadro_curva("docentes", "online_email", 150:1200)
+  curva <- .cuadro_curva("docentes", "presencial", 150:1200)
   expect_false(any(diff(curva$n) < 0))
   expect_lte(max(abs(diff(curva$n))), 1L)
   expect_identical(sum(curva$tecnica[-1] != curva$tecnica[-nrow(curva)]), 1L)
-  expect_identical(.cuadro_comp("docentes", "online_email", 250)$tecnica, "intencion_censal")
-  r <- .cuadro_n("docentes", "online_email", 1000)
+  expect_identical(.cuadro_comp("docentes", "presencial", 250)$tecnica, "intencion_censal")
+  r <- .cuadro_n("docentes", "presencial", 1000)
   expect_identical(r$tecnica, "prob_aleatorio_simple")
   expect_identical(as.integer(r$n_objetivo), calc_n_muestra(N = 1000, p = 0.5, z = 1.96, e = 0.05, deff = 1))
   expect_lte(r$precision_alcanzada, 0.05 + 1e-9)
   # La respuesta se infla con la cobertura observada (60 %) y nunca pasa del marco.
   expect_identical(as.integer(r$n_operativo), as.integer(ceiling(278 / 0.6)))
-  expect_lte(as.integer(.cuadro_n("docentes", "online_email", 260)$n_operativo), 260L)
+  expect_lte(as.integer(.cuadro_n("docentes", "presencial", 260)$n_operativo), 260L)
   # La dedicación sigue siendo la variable de control para el monitoreo.
   expect_identical(r$variable_control, "dedicacion_docente")
 })
@@ -76,7 +79,7 @@ test_that("el punto de cambio es único porque la fracción sin redondear decrec
 
 test_that("un .pulso con la meta que escribió el cuadro viejo se recalcula con la regla vigente", {
   # Docentes N = 400 guardado antes del ADR 0091: meta 150 cuota sin origen.
-  viejo <- .cuadro_n("docentes", "online_email", 400, meta = list(valor = 150, tipo = "cuota"))
+  viejo <- .cuadro_n("docentes", "presencial", 400, meta = list(valor = 150, tipo = "cuota"))
   expect_identical(viejo$tecnica, "prob_aleatorio_simple")
   expect_identical(as.integer(viejo$n_objetivo), calc_n_muestra(N = 400, p = .5, z = 1.96, e = .05, deff = 1))
   expect_lte(viejo$precision_alcanzada, 0.05 + 1e-9)
@@ -86,20 +89,20 @@ test_that("un .pulso con la meta que escribió el cuadro viejo se recalcula con 
 })
 
 test_that("la meta que tecleó el usuario manda aunque coincida con el valor viejo del cuadro", {
-  r <- .cuadro_n("docentes", "online_email", 400, meta = list(valor = 150, tipo = "cuota", origen = "usuario"))
+  r <- .cuadro_n("docentes", "presencial", 400, meta = list(valor = 150, tipo = "cuota", origen = "usuario"))
   expect_identical(as.integer(r$n_objetivo), 150L)
 })
 
 test_that("la meta que rellena el cuadro se marca y se recalcula en la ida y vuelta", {
   # Desde G1 ninguna regla vigente rellena meta.valor (egresados a N = 800 va a
   # MAS, sin meta): no se sella nada que el usuario no haya puesto.
-  comp <- .cuadro_comp("egresados", "telefonico", 800)
+  comp <- .cuadro_comp("egresados", "presencial", 800)
   expect_identical(comp$tecnica, "prob_aleatorio_simple")
   expect_identical(as.integer(comp$meta$valor), 0L)
   expect_identical(comp$meta$origen, "")
   # La meta que sí escribió el cuadro (la conveniencia de antes, ya sellada)
   # no manda: se libera y sigue a la regla.
-  comp <- .cuadro_comp("egresados", "telefonico", 800, meta = list(valor = 150, origen = "cuadro"))
+  comp <- .cuadro_comp("egresados", "presencial", 800, meta = list(valor = 150, origen = "cuadro"))
   expect_identical(as.integer(comp$meta$valor), 0L)
   expect_identical(as.integer(calc_muestra_calcular_componente(comp)$n_objetivo),
                    calc_n_muestra(N = 800, p = .5, z = 1.96, e = .05, deff = 1))
@@ -118,7 +121,7 @@ test_that("la meta que rellena el cuadro se marca y se recalcula en la ida y vue
 # desde 301 — la muestra caía de 151 a 150 en el cruce y no tenía margen.
 
 test_that("egresados: censo mientras la muestra pediría el 50 %, luego MAS a ±5 %, sin saltos", {
-  curva <- .cuadro_curva("egresados", "telefonico", 100:2000)
+  curva <- .cuadro_curva("egresados", "presencial", 100:2000)
   expect_false(any(diff(curva$n) < 0))
   expect_lte(max(abs(diff(curva$n))), 1L)
   expect_identical(sum(curva$tecnica[-1] != curva$tecnica[-nrow(curva)]), 1L)
@@ -126,14 +129,16 @@ test_that("egresados: censo mientras la muestra pediría el 50 %, luego MAS a ±
   expect_identical(curva$tecnica[curva$N == 385], "intencion_censal")
   expect_identical(curva$tecnica[curva$N == 386], "prob_aleatorio_simple")
   expect_identical(curva$n[curva$N %in% c(300, 385, 386)], c(150L, 193L, 193L))
-  # El canal no decide: otra vía de contacto sigue la misma regla.
-  expect_identical(.cuadro_comp("egresados", "online_email", 1000)$tecnica, "prob_aleatorio_simple")
-  expect_identical(.cuadro_comp("egresados", "telefonico", 385)$meta$variable_control, "ciclo_egreso")
+  # ADR 0143: el canal sí decide. Por correo, teléfono o mixto se invita a
+  # toda la base; el corte por precisión queda para los demás canales.
+  expect_identical(.cuadro_comp("egresados", "online_email", 1000)$tecnica, "intencion_censal")
+  expect_identical(.cuadro_comp("egresados", "telefonico", 1000)$tecnica, "intencion_censal")
+  expect_identical(.cuadro_comp("egresados", "presencial", 385)$meta$variable_control, "ciclo_egreso")
 })
 
 test_that("egresados del lado probabilístico: margen declarado y respuesta inflada al 50 %", {
   for (N in c(386, 800, 1000, 5000)) {
-    r <- .cuadro_n("egresados", "telefonico", N)
+    r <- .cuadro_n("egresados", "presencial", N)
     n <- calc_n_muestra(N = N, p = .5, z = 1.96, e = .05, deff = 1)
     expect_identical(r$tecnica, "prob_aleatorio_simple", info = paste("N =", N))
     expect_identical(as.integer(r$n_objetivo), n, info = paste("N =", N))
@@ -144,21 +149,21 @@ test_that("egresados del lado probabilístico: margen declarado y respuesta infl
 })
 
 test_that("egresados: la meta 150 heredada se recalcula; la del usuario manda", {
-  heredada <- .cuadro_n("egresados", "telefonico", 800, meta = list(valor = 150, tipo = "cuota"))
+  heredada <- .cuadro_n("egresados", "presencial", 800, meta = list(valor = 150, tipo = "cuota"))
   expect_identical(as.integer(heredada$n_objetivo), calc_n_muestra(N = 800, p = .5, z = 1.96, e = .05, deff = 1))
   expect_lte(heredada$precision_alcanzada, 0.05 + 1e-9)
   # Con N entre 301 y 385 la meta heredada también cae: toca el censo al 50 %.
-  expect_identical(as.integer(.cuadro_n("egresados", "telefonico", 350, meta = list(valor = 150))$n_objetivo), 175L)
-  usuario <- .cuadro_n("egresados", "telefonico", 800, meta = list(valor = 150, tipo = "cuota", origen = "usuario"))
+  expect_identical(as.integer(.cuadro_n("egresados", "presencial", 350, meta = list(valor = 150))$n_objetivo), 175L)
+  usuario <- .cuadro_n("egresados", "presencial", 800, meta = list(valor = 150, tipo = "cuota", origen = "usuario"))
   expect_identical(as.integer(usuario$n_objetivo), 150L)
   # Bajo 301 la regla vieja no escribía 150: un 150 ahí es del usuario y se conserva.
-  expect_identical(as.integer(.cuadro_comp("egresados", "telefonico", 250, meta = list(valor = 150))$meta$valor), 150L)
+  expect_identical(as.integer(.cuadro_comp("egresados", "presencial", 250, meta = list(valor = 150))$meta$valor), 150L)
 })
 
 test_that("si el cuadro cambia la técnica guardada, el origen y el respaldo siguen a la nueva", {
   # Docentes guardados con la regla vieja: cuotas, origen matriz cualitativa.
   viejo <- list(
-    actor_categoria = "docentes", canal_recojo = "online_email", tecnica = "no_prob_cuotas",
+    actor_categoria = "docentes", canal_recojo = "presencial", tecnica = "no_prob_cuotas",
     origen_tamano = "matriz_perfiles_cualitativa", nivel_respaldo = "representatividad_teorica_controlada",
     marco = list(universo_bruto = 1000, marco_validado = 1000, marco_contactable = 1000, estado = "validado")
   )
