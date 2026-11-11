@@ -7,10 +7,23 @@
 // base (`esGrupoRepetido`, el mismo criterio que Estado del estudio).
 
 import type { EstudioBase, EstudioMultiIntegratedOrigin, EstudioPayload } from "../../../../api/estudio";
-import { esGrupoRepetido } from "../../../procesamiento/estado/basesDelEstudioModel";
+import { esGrupoRepetido, fasesDeBase, type FaseDeBase } from "../../../procesamiento/estado/basesDelEstudioModel";
 import type { CargaTopologyResolution } from "../../CargaTopologyModel";
 import type { CargaTopologyIntent, MultiBaseStrategy } from "../../store";
 import { integratedHistoryArray } from "../../surveymonkey/smBasesModel";
+
+/**
+ * El estado de Carga de una base, con la misma lectura y las mismas palabras
+ * que la columna "Carga" de Estado del estudio (`fasesDeBase`): "Cargada" o
+ * "Incompleta". Es el literal de `status.imported`; el motor no publica si la
+ * base está al día ni cuántas decisiones le faltan.
+ */
+export type EstadoDeCarga = Pick<FaseDeBase, "estado" | "tono" | "detalle">;
+
+export function estadoDeCarga(status: EstudioBase["status"]): EstadoDeCarga | null {
+  const carga = fasesDeBase(status)?.find((f) => f.fase === "carga");
+  return carga ? { estado: carga.estado, tono: carga.tono, detalle: carga.detalle } : null;
+}
 
 /** De dónde viene una base, con el nombre que ve el usuario. Lista cerrada. */
 export type OrigenDeCarga =
@@ -33,6 +46,18 @@ export type FuenteDeBase = {
   esArchivo: boolean;
   /** Vía por la que llegó (correo, QR en aula), si la base la declara. */
   canal: string | null;
+  /** De dónde viene esta fuente, con el nombre que ve el usuario. */
+  origen: OrigenDeCarga;
+  /**
+   * Respuestas que aporta la fuente a la base. Solo se sabe por fuente cuando
+   * el motor lo publica (`included_records` de cada encuesta de SurveyMonkey);
+   * en una base de una sola fuente es la cifra de la base.
+   */
+  respuestas: number | null;
+  /** Última lectura desde la plataforma (ISO), solo si el motor la publica. */
+  leidaEl: string | null;
+  /** Valor de la columna de origen en una base integrada ("docentes"). */
+  llave: string | null;
 };
 
 export type HijaDeBase = {
@@ -40,6 +65,7 @@ export type HijaDeBase = {
   etiqueta: string;
   filas: number | null;
   madre: string;
+  estado: EstadoDeCarga | null;
 };
 
 export type BaseDeLaColeccion = {
@@ -51,6 +77,10 @@ export type BaseDeLaColeccion = {
   /** Columnas del archivo de respuestas recibido (antes de prepararlo). */
   columnas: number | null;
   formulario: string | null;
+  /** De dónde sale el formulario, en una frase corta ("Formulario cargado (XLSForm)"). */
+  formularioDe: string;
+  /** Estado de Carga de la base (`status.imported`); `null` si el motor no lo envió. */
+  estado: EstadoDeCarga | null;
   fuentes: FuenteDeBase[];
   /** Columna que distingue las fuentes de una base integrada. */
   unidasPor: string | null;
@@ -86,17 +116,45 @@ function entero(valor: unknown): number | null {
   return typeof valor === "number" && Number.isFinite(valor) ? valor : null;
 }
 
-/**
- * Nombre de la base en Carga: el que se renombra y el que usan los selectores
- * de Revisión, Variables y Respuestas. El título de la encuesta va en sus fuentes.
- */
-export function etiquetaDeBase(base: Pick<EstudioBase, "nombre">): string {
-  return base.nombre === NOMBRE_BASE_UNICA ? "Base única" : base.nombre;
-}
-
 /** El título es un archivo (`…_03_08_26.xlsx`), no el título de una encuesta. */
 export function esNombreDeArchivo(titulo: string): boolean {
   return /\.(?:xlsx|xls|xlsm|csv|sav|json|zip|txt|tsv|ods)$/i.test(titulo.trim());
+}
+
+/**
+ * Un nombre que puso el motor y no una persona: minúsculas, cifras y guiones
+ * bajos, con al menos un separador (`post_distribution_monitoring_2026_q2`).
+ * "docentes" o "Estudiantes 2026" son nombres elegidos.
+ */
+export function esIdentificador(nombre: string): boolean {
+  return /^[a-z0-9]+(?:[_-][a-z0-9]+)+$/.test(nombre.trim());
+}
+
+/**
+ * Nombre de la base en Carga. Es el que eligió el usuario (el que se renombra)
+ * salvo cuando la base todavía lleva el identificador que le puso el motor:
+ * entonces se lee el título de su encuesta, como lo hacen el selector de bases
+ * y Estado del estudio (`source_alias` y luego `source_title`). Un título que es
+ * un nombre de archivo no sirve de nombre. El identificador queda en el `title`.
+ */
+export function etiquetaDeBase(base: Pick<EstudioBase, "nombre" | "source_alias" | "source_title" | "repeat_group">): string {
+  const propio = [texto(base.source_alias), texto(base.source_title)]
+    .find((t) => t && t !== base.nombre && !esNombreDeArchivo(t)) ?? "";
+  if (base.nombre === NOMBRE_BASE_UNICA) return propio || "Base única";
+  if (!esIdentificador(base.nombre)) return base.nombre;
+  if (propio) return propio;
+  // Sin título: el identificador con formato mínimo, partido en palabras y no a
+  // media palabra. Una hija de grupo repetido se nombra por su grupo. No se
+  // inventa un nombre: la etiqueta del grupo en el formulario no llega en
+  // `/api/estudio` (pedido al motor).
+  const grupo = texto(base.repeat_group);
+  return identificadorLegible(grupo || base.nombre);
+}
+
+/** `rep_servicios` → "Rep servicios": guiones por espacios y mayúscula inicial; nada más. */
+export function identificadorLegible(identificador: string): string {
+  const palabras = identificador.trim().replace(/[_-]+/g, " ").replace(/\s+/g, " ");
+  return palabras ? palabras.charAt(0).toLocaleUpperCase("es") + palabras.slice(1) : identificador;
 }
 
 export function origenDeCarga(base: Pick<EstudioBase, "source_kind">): OrigenDeCarga {
@@ -139,6 +197,11 @@ export function reemplazaArchivosDe(base: Pick<EstudioBase, "source_kind" | "mul
   return (k === "manual" || k === "local" || k === "xlsform") && !base.multi_integrated && !texto(base.parent_base);
 }
 
+/** Fecha (ISO) de la última lectura desde la plataforma; solo SurveyMonkey la publica en `/api/estudio`. */
+function leidaEl(base: EstudioBase): string | null {
+  return texto(base.surveymonkey_refreshed_at) || null;
+}
+
 function fuentesDeBase(base: EstudioBase): { fuentes: FuenteDeBase[]; unidasPor: string | null } {
   const integradas = integratedHistoryArray<EstudioMultiIntegratedOrigin>(base.multi_integrated?.origins);
   if (integradas.length > 0) {
@@ -147,7 +210,17 @@ function fuentesDeBase(base: EstudioBase): { fuentes: FuenteDeBase[]; unidasPor:
       fuentes: integradas.map((o, i) => {
         const archivo = texto(o.data_file_name);
         const titulo = texto(o.label) || texto(o.key_value) || archivo || texto(o.survey_id) || `Fuente ${i + 1}`;
-        return { clave: `${texto(o.id) || i}`, titulo, esArchivo: esNombreDeArchivo(titulo), canal: null };
+        return {
+          clave: `${texto(o.id) || i}`,
+          titulo,
+          esArchivo: esNombreDeArchivo(titulo),
+          canal: null,
+          origen: origenDeCarga({ source_kind: o.source_kind }),
+          // El motor no guarda cuántas respuestas aportó cada origen integrado.
+          respuestas: null,
+          leidaEl: null,
+          llave: texto(o.key_value) || null,
+        };
       }),
     };
   }
@@ -157,7 +230,16 @@ function fuentesDeBase(base: EstudioBase): { fuentes: FuenteDeBase[]; unidasPor:
       unidasPor: null,
       fuentes: sm.map((f, i) => {
         const titulo = texto(f.source_title) || texto(f.source_alias) || texto(f.survey_id) || `Encuesta ${i + 1}`;
-        return { clave: `${texto(f.survey_id)}:${texto(f.channel)}:${i}`, titulo, esArchivo: false, canal: texto(f.channel) || null };
+        return {
+          clave: `${texto(f.survey_id)}:${texto(f.channel)}:${i}`,
+          titulo,
+          esArchivo: false,
+          canal: texto(f.channel) || null,
+          origen: "SurveyMonkey",
+          respuestas: entero(f.included_records),
+          leidaEl: leidaEl(base),
+          llave: null,
+        };
       }),
     };
   }
@@ -165,8 +247,30 @@ function fuentesDeBase(base: EstudioBase): { fuentes: FuenteDeBase[]; unidasPor:
   if (!titulo) return { fuentes: [], unidasPor: null };
   return {
     unidasPor: null,
-    fuentes: [{ clave: "unica", titulo, esArchivo: esNombreDeArchivo(titulo), canal: texto(base.source_channel) || null }],
+    fuentes: [{
+      clave: "unica",
+      titulo,
+      esArchivo: esNombreDeArchivo(titulo),
+      canal: texto(base.source_channel) || null,
+      origen: origenDeCarga(base),
+      respuestas: entero(base.n_filas),
+      leidaEl: leidaEl(base),
+      llave: null,
+    }],
   };
+}
+
+/** De dónde sale el formulario de la base, en una frase corta. */
+export function formularioDeBase(
+  base: Pick<EstudioBase, "source_kind" | "multi_integrated" | "xlsform_file_id">,
+): string {
+  if (!texto(base.xlsform_file_id)) return "Sin formulario";
+  if (base.multi_integrated) return "Formulario integrado";
+  const origen = origenDeCarga(base);
+  if (origen === "Formulario publicado") return "Formulario publicado";
+  if (origen === "SurveyMonkey") return "Formulario leído de la encuesta";
+  if (origen === "KoboToolbox" || origen === "Monitoreo") return "Formulario leído de la plataforma";
+  return "Formulario cargado (XLSForm)";
 }
 
 function filaDeBase(base: EstudioBase, hijas: HijaDeBase[]): BaseDeLaColeccion {
@@ -181,6 +285,8 @@ function filaDeBase(base: EstudioBase, hijas: HijaDeBase[]): BaseDeLaColeccion {
     respuestas: entero(base.n_filas),
     columnas: entero(base.n_columnas),
     formulario: texto(base.xlsform_file_name) || null,
+    formularioDe: formularioDeBase(base),
+    estado: estadoDeCarga(base.status),
     fuentes,
     unidasPor,
     hijas,
@@ -219,7 +325,7 @@ export function coleccionDelEstudio(estudio: Pick<EstudioPayload, "bases">, orde
     madre,
     hijas
       .filter((h) => texto(h.parent_base) === madre.nombre)
-      .map((h) => ({ nombre: h.nombre, etiqueta: etiquetaDeBase(h), filas: entero(h.n_filas), madre: etiquetaDeBase(madre) })),
+      .map((h) => ({ nombre: h.nombre, etiqueta: etiquetaDeBase(h), filas: entero(h.n_filas), madre: etiquetaDeBase(madre), estado: estadoDeCarga(h.status) })),
   ));
   const huerfanas = hijas.filter((h) => !nombresMadre.has(texto(h.parent_base)));
   for (const h of huerfanas) filas.push(filaDeBase(h, []));
@@ -252,6 +358,8 @@ export function coleccionDeUnaBase(sesion: SesionDeUnaBase): ColeccionDeBases {
         respuestas: null,
         columnas: null,
         formulario: null,
+        formularioDe: sesion.tieneFormulario ? "Formulario cargado (XLSForm)" : "Sin formulario",
+        estado: null,
         fuentes: [],
         unidasPor: null,
         hijas: [],
@@ -291,9 +399,60 @@ export function baseEnfocada(
   return null;
 }
 
-/** Cifra de la tarjeta: lo que se cuenta va en el rótulo ("421 respuestas recibidas"). */
+/** Cifra de la fila: lo que se cuenta va en el rótulo ("421 respuestas"). */
 export function rotuloRespuestas(n: number): string {
-  return n === 1 ? "respuesta recibida" : "respuestas recibidas";
+  return n === 1 ? "respuesta" : "respuestas";
+}
+
+export type CifrasDeLaColeccion = {
+  nBases: number;
+  nGruposRepetidos: number;
+  /** Fuentes de respuestas de las bases madre. */
+  nFuentes: number;
+  /**
+   * Suma de las respuestas recibidas por las bases madre (las filas de un
+   * grupo repetido no son respuestas). `null` si alguna base no tiene cifra:
+   * una suma parcial diría menos de lo que hay.
+   */
+  respuestas: number | null;
+};
+
+/** Las cifras de la cabecera de Bases; cada una sale solo de aquí. */
+export function cifrasDeLaColeccion(coleccion: ColeccionDeBases): CifrasDeLaColeccion {
+  const madres = coleccion.bases;
+  const conCifra = madres.filter((b) => b.respuestas !== null);
+  return {
+    nBases: coleccion.nBases,
+    nGruposRepetidos: coleccion.nGruposRepetidos,
+    nFuentes: madres.reduce((suma, b) => suma + b.fuentes.length, 0),
+    respuestas: madres.length > 0 && conCifra.length === madres.length
+      ? conCifra.reduce((suma, b) => suma + (b.respuestas ?? 0), 0)
+      : null,
+  };
+}
+
+/**
+ * La base que muestra el inspector: la que nombra el `foco` o, sin foco, la
+ * primera. El inspector está siempre a la vista, como en el prototipo; elegir
+ * otra base escribe su `foco`.
+ */
+export function baseDelInspector(
+  coleccion: ColeccionDeBases,
+  foco: string | null,
+): { base: BaseDeLaColeccion; hija: HijaDeBase | null } | null {
+  const pedida = baseEnfocada(coleccion, foco);
+  if (pedida) return pedida;
+  const primera = coleccion.bases[0];
+  return primera ? { base: primera, hija: null } : null;
+}
+
+/** Qué significa la relación, en una frase, bajo su nombre en la línea de la relación. */
+export function descripcionDeRelacion(relacion: string): string {
+  if (relacion === "Una base") return "Un formulario y sus respuestas. Al agregar otra base se elige cómo se relacionan.";
+  if (relacion === "Bases separadas") return "Cada base tiene su formulario y se procesa por su cuenta.";
+  if (relacion === "Una base con varias fuentes") return "Las fuentes se reúnen en una base con un formulario guía común.";
+  if (relacion === "Bases independientes") return "Cada encuesta es una base; comparten reglas y sus datos no se mezclan.";
+  return "Elige cómo se relacionan antes de agregar bases.";
 }
 
 /** La relación entre las bases en una línea, con el nombre que ve el usuario. */
@@ -304,7 +463,7 @@ export function textoDeRelacion(
   const estrategia: MultiBaseStrategy | null = resolucion.strategy
     ?? (intencion === "separate" || intencion === "integrated" || intencion === "independent" ? intencion : null);
   if (resolucion.mode !== "multi" && estrategia === null && intencion !== "multi") return "Una base";
-  if (estrategia === "separate") return "Bases separadas, cada una con su formulario";
+  if (estrategia === "separate") return "Bases separadas";
   if (estrategia === "integrated") return "Una base con varias fuentes";
   if (estrategia === "independent") return "Bases independientes";
   return "Varias bases, falta decidir cómo se relacionan";

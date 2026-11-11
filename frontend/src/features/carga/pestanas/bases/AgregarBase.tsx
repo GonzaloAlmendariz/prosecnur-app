@@ -10,11 +10,12 @@ import { apiEstudioGet, type EstudioPayload } from "../../../../api/estudio";
 import { Dialog } from "../../../../components/Dialog";
 import { StageStepper } from "../../../../components/StageStepper";
 import { usePanelDireccionable } from "../../../../lib/navegacion/paneles";
-import { ClipboardCheck, CloudDownload, FileCheck2, FileUp, Layers, Plus, Upload, type LucideIcon } from "../../../../vendor/lucide-react";
+import { Plus } from "../../../../vendor/lucide-react";
 import { BaseSavPanel } from "../../BaseSavPanel";
 import { opcionesCanonicas } from "../../opcionesCanonicas";
 import { CargaManualBaseLanes } from "../../CargaManualBaseLanes";
 import { EntradasPrevistas } from "./EntradasPrevistas";
+import { ICONO_DE_ALTA } from "./OrigenesALaVista";
 import { AvisoFormularioPublicado } from "../../fuentes/AvisoFormularioPublicado";
 import { NuevaBaseArchivos } from "../../fuentes/NuevaBaseArchivos";
 import { NuevaBaseFormularioPublicado } from "../../fuentes/NuevaBaseFormularioPublicado";
@@ -26,20 +27,11 @@ import type { MultiBaseStrategy } from "../../store";
 import {
   origenDeLaDireccion,
   origenesDeAlta,
+  previstasVisibles,
   searchConAgregarBase,
   searchSinPanelNiFoco,
   type OrigenDeAlta,
 } from "./agregarBaseModel";
-
-const ICONO: Readonly<Record<OrigenDeAlta, LucideIcon>> = {
-  formulario: FileCheck2,
-  surveymonkey: CloudDownload,
-  kobo: CloudDownload,
-  archivos: Upload,
-  sav: FileUp,
-  monitoreo: ClipboardCheck,
-  varias: Layers,
-};
 
 export type AgregarBaseProps = {
   varias: boolean;
@@ -67,12 +59,16 @@ export function AgregarBase(props: AgregarBaseProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const cerrar = () => navigate({ pathname: location.pathname, search: searchSinPanelNiFoco(location.search) }, { replace: true });
+  // El paso "Origen" es una lista fija de orígenes: el diálogo abraza su
+  // contenido. El paso "Datos" monta asistentes que cambian de contenido: alto
+  // fijo con el cuerpo dueño del scroll (política de `Dialog`, C2).
+  const enOrigen = origenDeLaDireccion(location.search) === null;
   return (
     <Dialog
       open={panel.abierto}
       onOpenChange={(abierto) => { if (!abierto) cerrar(); }}
       size="lg"
-      alto="fijo"
+      alto={enOrigen ? "contenido" : "fijo"}
       title={props.cambiaFuente ? "Cambiar la fuente" : "Agregar base"}
       icon={<Plus size={16} aria-hidden="true" />}
       closeLabel="Cerrar el recorrido para agregar una base"
@@ -121,6 +117,7 @@ function Recorrido({
 
   const opcion = opciones.find((o) => o.id === origen) ?? null;
   const bases = estudio ? Object.values(estudio.bases ?? {}) : [];
+  const previstas = previstasVisibles({ estrategia, previstas: entradasPrevistas, existentes: entradasMinimas });
 
   return (
     <div className="pulso-bases-recorrido">
@@ -139,7 +136,7 @@ function Recorrido({
       {opcion === null ? (
         <ul className="pulso-bases-origenes" aria-label={cambiaFuente ? "Origen de la base" : "Origen de la base nueva"}>
           {opciones.map((o) => {
-            const Icono = ICONO[o.id];
+            const Icono = ICONO_DE_ALTA[o.id];
             return (
               <li key={o.id}>
                 <button type="button" className="pulso-bases-origen" data-origen={o.id} onClick={() => ir(o.id)}>
@@ -180,8 +177,9 @@ function Recorrido({
             <>
             <EntradasPrevistas
               estrategia={estrategia}
-              valor={entradasPrevistas}
-              minimo={entradasMinimas}
+              valor={previstas.valor}
+              minimo={previstas.minimo}
+              existentes={entradasMinimas}
               ocupado={ocupado}
               onCambio={onEntradasPrevistas}
             />
@@ -208,7 +206,7 @@ function Recorrido({
               />
             ) : (
               <CargaManualBaseLanes
-                plannedInputCount={entradasPrevistas}
+                plannedInputCount={previstas.valor}
                 bases={bases}
                 disabled={ocupado || estudio.n_bases >= estudio.max_bases}
                 onChanged={onEstudioCambiado}

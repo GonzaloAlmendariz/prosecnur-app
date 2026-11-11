@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   acotarEntradas,
+  ayudaDeEntradas,
+  previstasVisibles,
   entradasPrevistasDe,
   focoDelInspector,
   origenDeLaDireccion,
@@ -74,5 +76,25 @@ describe("número previsto y foco con Comparar abierto", () => {
   it("con Comparar abierto el inspector es el de la base enfocada al abrir", () => {
     expect(focoDelInspector("comparar-fuentes", "docentes~estudiantes", { focoAlCerrar: "docentes" })).toBe("docentes");
     expect(focoDelInspector("comparar-fuentes", "docentes~estudiantes", null)).toBeNull();
+  });
+});
+
+describe("número previsto coherente con lo que se ve (oleada 15-B)", () => {
+  it("con bases separadas no baja de las que hay más el lugar libre del asistente", () => {
+    expect(previstasVisibles({ estrategia: "separate", previstas: 1, existentes: 1 })).toEqual({ valor: 2, minimo: 2 });
+    expect(previstasVisibles({ estrategia: "separate", previstas: 4, existentes: 1 })).toEqual({ valor: 4, minimo: 2 });
+    expect(previstasVisibles({ estrategia: "separate", previstas: 1, existentes: 0 })).toEqual({ valor: 1, minimo: 1 });
+  });
+
+  it("en una base integrada el piso son las fuentes que ya tiene", () => {
+    expect(previstasVisibles({ estrategia: "integrated", previstas: 2, existentes: 2 })).toEqual({ valor: 2, minimo: 2 });
+    expect(previstasVisibles({ estrategia: "independent", previstas: 1, existentes: 0 })).toEqual({ valor: 1, minimo: 1 });
+  });
+
+  it("la ayuda dice los topes y lo que resulta, con concordancia", () => {
+    expect(ayudaDeEntradas("integrated", 2, 16, 2)).toBe("Entre 2 y 16; se unen en una base.");
+    expect(ayudaDeEntradas("separate", 2, 16, 1)).toBe("Entre 2 y 16; 1 base ya está en el estudio.");
+    expect(ayudaDeEntradas("separate", 4, 16, 3)).toBe("Entre 4 y 16; 3 bases ya están en el estudio.");
+    expect(ayudaDeEntradas("independent", 1, 10, 0)).toBe("Entre 1 y 10.");
   });
 });

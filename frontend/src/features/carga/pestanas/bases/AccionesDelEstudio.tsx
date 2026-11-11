@@ -87,6 +87,11 @@ export function AccionesDelEstudio({
     }
   };
 
+  const volverAUna = () => correr("No se pudo volver a una base", async () => {
+    await apiEstudioDowngradeToSingle();
+    await onSinVariasBases();
+  });
+
   const guardarNombre = () => {
     const nuevo = borrador.trim();
     if (!nuevo || nuevo === estudio.nombre) return;
@@ -122,10 +127,7 @@ export function AccionesDelEstudio({
             size="sm"
             disabled={quieto}
             onClick={() => void (salida === "volver-a-una"
-              ? correr("No se pudo volver a una base", async () => {
-                  await apiEstudioDowngradeToSingle();
-                  await onSinVariasBases();
-                })
+              ? volverAUna()
               : correr("No se pudieron quitar las bases", async () => {
                   for (const nombre of estudio.bases) await apiEstudioRemoveBase(nombre);
                   await onSinVariasBases();
@@ -137,7 +139,13 @@ export function AccionesDelEstudio({
         </div>
       ) : (
         <div className="pulso-bases-acciones">
-          <PulsoButton variant="secondary" size="sm" disabled={quieto} onClick={() => setConfirmando(true)}>
+          {/* Sin bases no hay formulario ni respuestas que conservar: vuelve sin pedir confirmación, como antes de R2. */}
+          <PulsoButton
+            variant="secondary"
+            size="sm"
+            disabled={quieto}
+            onClick={() => (estudio.bases.length === 0 ? void volverAUna() : setConfirmando(true))}
+          >
             {salida === "volver-a-una"
               ? <><Database size={13} aria-hidden="true" />Volver a una base</>
               : <><Trash2 size={13} aria-hidden="true" />Quitar todas las bases</>}

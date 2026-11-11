@@ -23,7 +23,7 @@ export function CargaBaseFilePicker({
         <strong>{label}</strong>
         <small>{file?.name || formats}</small>
       </span>
-      <span className="pulso-carga-base-picker-action">{file ? "Cambiar…" : "Elegir…"}</span>
+      <span className="pulso-carga-base-picker-action">{file ? "Cambiar" : "Elegir"}</span>
       <input
         type="file"
         accept={isForm

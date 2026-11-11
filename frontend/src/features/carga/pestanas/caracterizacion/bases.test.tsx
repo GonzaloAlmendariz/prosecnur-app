@@ -8,9 +8,13 @@
  *
  * R2 (P4b): Bases es una colección con inspector. La relación entre las bases
  * es una línea con "Cambiar" (`panel=relacion`); "Agregar base" es un recorrido
- * por pasos (`panel=agregar-base`, el origen en `foco`); el inspector se abre
- * con `foco=<base>`. Los diálogos se montan en un portal, así que este grupo
- * mide también el marcado del portal.
+ * por pasos (`panel=agregar-base`, el origen en `foco`). Los diálogos se montan
+ * en un portal, así que este grupo mide también el marcado del portal.
+ *
+ * Oleada 15-B (fidelidad al prototipo "carga-bases"): las bases van en filas a
+ * todo el ancho, los orígenes para agregar otra están a la vista bajo las filas
+ * (`button.pulso-bases-origen-vista`) y el inspector está siempre a la vista:
+ * muestra la base del `foco` o, sin foco, la primera.
  */
 import { act } from "react";
 import { describe, expect, it } from "vitest";
@@ -53,8 +57,9 @@ escenariosDeAlias("plan", "bases");
 escenariosDeAlias("fuentes", "bases");
 
 const AGREGAR = 'button[data-plf-abrir="agregar-base"]';
-const AGREGAR_EN_VACIO = ".pulso-estado-vacio button";
 const origen = (id: string) => `button.pulso-bases-origen[data-origen="${id}"]`;
+/** El origen a la vista bajo las bases (o, sin bases, en la pantalla). */
+const origenALaVista = (id: string) => `button.pulso-bases-origen-vista[data-origen="${id}"]`;
 const agregarEn = (origenId: string) => `/carga?pestana=bases&panel=agregar-base&foco=${origenId}`;
 
 /** La base `default` que deja la carga simple en el estudio. */
@@ -96,16 +101,15 @@ const PUBLICADOS: Ruta = ["GET", "/api/carga/formularios-publicados", {
 }];
 
 describe("CargaPage, una base: Agregar base por origen y en curso", () => {
-  escenario("una-base_bases_agregar", "sin archivos: el primer paso de Agregar base", async () => {
-    await montar({ estado: UNA_BASE_VACIA, pestana: "bases" });
-    await pulsar(AGREGAR_EN_VACIO, "Agregar base");
+  escenario("una-base_bases_agregar", "sin archivos: el primer paso de Agregar base, por dirección", async () => {
+    await montar({ estado: UNA_BASE_VACIA, entrada: "/carga?pestana=bases&panel=agregar-base" });
     fijar("una-base_bases_agregar");
   });
 
-  escenario("una-base_bases_plataforma", "SurveyMonkey, antes de leer el catálogo", async () => {
+  escenario("una-base_bases_plataforma", "SurveyMonkey desde los orígenes a la vista, antes de leer el catálogo", async () => {
     await montar({ estado: UNA_BASE_VACIA, pestana: "bases" });
-    await pulsar(AGREGAR_EN_VACIO, "Agregar base");
-    await pulsar(origen("surveymonkey"));
+    await pulsar(origenALaVista("surveymonkey"));
+    expect(direccionActual()).toBe("/carga?pestana=bases&panel=agregar-base&foco=surveymonkey");
     fijar("una-base_bases_plataforma");
   });
 
@@ -205,9 +209,10 @@ describe("CargaPage, una base: Agregar base por origen y en curso", () => {
     fijar("una-base_bases_sin-estudio");
   });
 
-  escenario("una-base_bases_completa", "una base completa: la tarjeta con su cifra y sin Agregar base", async () => {
+  escenario("una-base_bases_completa", "una base completa: la fila con su cifra; Agregar base abre la relación", async () => {
     await montar({ estado: UNA_BASE_COMPLETA, pestana: "bases", rutas: [ESTUDIO_UNA_BASE] });
-    expect(control(".pulso-bases-cifra").textContent).toBe("421respuestas recibidas");
+    expect(control(".pulso-bases-fila-cifra").textContent).toBe("421respuestas");
+    expect(document.querySelector('header.pulso-tab-heading button[data-plf-abrir="relacion"]')?.textContent).toBe("Agregar base");
     fijar("una-base_bases_completa");
   });
 
@@ -313,7 +318,8 @@ describe("CargaPage, varias bases: colección, inspector y Agregar base", () => 
 
   escenario("varias_madre-hija_bases", "madre con grupo repetido: la hija va dentro de su madre", async () => {
     await montar({ ...MADRE_E_HIJA, pestana: "bases" });
-    expect(document.querySelectorAll(".pulso-bases-tarjeta")).toHaveLength(1);
+    expect(document.querySelectorAll(".pulso-bases-fila")).toHaveLength(1);
+    expect(control(".pulso-bases-fila .pulso-bases-hija").textContent).toContain("miembros");
     fijar("varias_madre-hija_bases");
   });
 
@@ -374,21 +380,33 @@ describe("CargaPage, Bases no pide el catálogo de variables por base", () => {
 });
 
 describe("CargaPage › Bases: interacción por dirección", () => {
-  it("la tarjeta abre el inspector con foco=<base> y la X lo cierra", async () => {
+  it("sin foco el inspector muestra la primera base, y una fila escribe su foco", async () => {
     await montar({ ...VARIAS_SEPARADAS, pestana: "bases" });
-    expect(document.getElementById("pulso-bases-inspector")).toBeNull();
-    await pulsar("button.pulso-bases-tarjeta-abrir", "estudiantes");
+    expect(document.getElementById("pulso-bases-inspector")?.getAttribute("aria-label")).toBe("Detalle de docentes");
+    expect(control("button.pulso-bases-fila-abrir", "docentes").getAttribute("aria-current")).toBe("true");
+    // El inspector está siempre a la vista: no tiene X.
+    expect(document.querySelector('#pulso-bases-inspector button[aria-label^="Cerrar"]')).toBeNull();
+    await pulsar("button.pulso-bases-fila-abrir", "estudiantes");
     expect(direccionActual()).toBe("/carga?pestana=bases&foco=estudiantes");
     expect(document.getElementById("pulso-bases-inspector")?.getAttribute("aria-label")).toBe("Detalle de estudiantes");
-    await pulsar('#pulso-bases-inspector button[aria-label="Cerrar el detalle de la base"]');
-    expect(direccionActual()).toBe("/carga?pestana=bases");
-    expect(document.getElementById("pulso-bases-inspector")).toBeNull();
+    expect(control("button.pulso-bases-fila-abrir", "docentes").hasAttribute("aria-current")).toBe(false);
   });
 
   it("un enlace guardado con foco=<base> abre el inspector de esa base", async () => {
-    await montar({ ...VARIAS_SEPARADAS, entrada: "/carga?pestana=bases&foco=docentes" });
-    expect(document.getElementById("pulso-bases-inspector")?.getAttribute("aria-label")).toBe("Detalle de docentes");
-    expect(control("button.pulso-bases-tarjeta-abrir", "docentes").getAttribute("aria-expanded")).toBe("true");
+    await montar({ ...VARIAS_SEPARADAS, entrada: "/carga?pestana=bases&foco=estudiantes" });
+    expect(document.getElementById("pulso-bases-inspector")?.getAttribute("aria-label")).toBe("Detalle de estudiantes");
+    expect(control("button.pulso-bases-fila-abrir", "estudiantes").getAttribute("aria-current")).toBe("true");
+  });
+
+  it("la cabecera dice las bases y las respuestas del estudio, y Agregar base abre el recorrido", async () => {
+    await montar({ ...VARIAS_SEPARADAS, pestana: "bases" });
+    // Número sobre rótulo, como el prototipo y Frecuencias; sin palabra de estado junto al título.
+    const cifras = Array.from(document.querySelectorAll(".pulso-bases-cifra-cabecera")).map((c) => `${c.querySelector("dd")?.textContent} ${c.querySelector("dt")?.textContent}`);
+    expect(cifras[0]).toBe("2 bases");
+    expect(cifras[1]).toMatch(/^\d[\d,]* respuestas$/);
+    expect(document.querySelector("header.pulso-tab-heading .pulso-tab-heading-estado")).toBeNull();
+    await pulsar('header.pulso-tab-heading button[data-plf-abrir="agregar-base"]');
+    expect(direccionActual()).toBe("/carga?pestana=bases&panel=agregar-base");
   });
 
   it("Cambiar abre la relación entre las bases en panel=relacion", async () => {
@@ -401,16 +419,16 @@ describe("CargaPage › Bases: interacción por dirección", () => {
 
   it("Agregar una fuente queda deshabilitada con su causa fuera de SurveyMonkey, y habilitada en SurveyMonkey", async () => {
     await montar({ ...VARIAS_SM, entrada: "/carga?pestana=bases&foco=estudiantes" });
-    const deshabilitada = control("#pulso-bases-inspector button", "Agregar una fuente") as HTMLButtonElement;
+    const deshabilitada = control("#pulso-bases-inspector button", "Agregar otra fuente") as HTMLButtonElement;
     expect(deshabilitada.disabled).toBe(true);
     const causa = document.getElementById(deshabilitada.getAttribute("aria-describedby") ?? "");
     expect(causa?.textContent).toBe("Todavía no se pueden unir más fuentes a una base de este origen.");
 
     await montar({ ...VARIAS_SM, entrada: "/carga?pestana=bases&foco=docentes" });
-    const habilitada = control("#pulso-bases-inspector button", "Agregar una fuente") as HTMLButtonElement;
+    const habilitada = control("#pulso-bases-inspector button", "Agregar otra fuente") as HTMLButtonElement;
     expect(habilitada.disabled).toBe(false);
     expect(habilitada.hasAttribute("aria-describedby")).toBe(false);
-    await pulsar("#pulso-bases-inspector button", "Agregar una fuente");
+    await pulsar("#pulso-bases-inspector button", "Agregar otra fuente");
     expect(direccionActual()).toBe("/carga?pestana=bases&foco=docentes&panel=agregar-fuente");
   });
 
@@ -420,8 +438,21 @@ describe("CargaPage › Bases: interacción por dirección", () => {
     expect(direccionActual()).toBe("/carga?pestana=bases&panel=agregar-base");
     await pulsar(origen("kobo"));
     expect(direccionActual()).toBe("/carga?pestana=bases&panel=agregar-base&foco=kobo");
-    // El foco del recorrido es el origen, no una base: no abre el inspector.
-    expect(document.getElementById("pulso-bases-inspector")).toBeNull();
+    // El foco del recorrido es el origen, no una base: el inspector sigue con la primera.
+    expect(document.getElementById("pulso-bases-inspector")?.getAttribute("aria-label")).toBe("Detalle de docentes");
+  });
+
+  it("un origen a la vista abre el recorrido ya en ese origen", async () => {
+    await montar({ ...VARIAS_SEPARADAS, pestana: "bases" });
+    await pulsar(origenALaVista("sav"));
+    expect(direccionActual()).toBe("/carga?pestana=bases&panel=agregar-base&foco=sav");
+  });
+
+  it("con una base que ya tiene archivos, un origen a la vista abre la relación entre las bases", async () => {
+    await montar({ estado: UNA_BASE_COMPLETA, pestana: "bases", rutas: [ESTUDIO_UNA_BASE] });
+    expect(control(".pulso-bases-agregar-desde-titulo").textContent).toBe("Agregar otra base desde");
+    await pulsar(origenALaVista("kobo"));
+    expect(direccionActual()).toBe("/carga?pestana=bases&panel=relacion");
   });
 });
 
@@ -498,6 +529,17 @@ describe("CargaPage › Bases: acciones del estudio en la relación entre las ba
     expect(pedidosHechos().some((p) => p.startsWith("DELETE"))).toBe(false);
   });
 
+  it("sin bases, Volver a una base no pide confirmación: no hay nada que conservar", async () => {
+    const VACIO_EN_VARIAS = {
+      estado: estado({ has_estudio: true, estudio_processing_mode: "multibase", estudio_topology_declared: "separate", n_bases: 0, bases_nombres: [], active_base: null }),
+      estudio: estudio([]),
+    };
+    await montar({ ...VACIO_EN_VARIAS, entrada: "/carga?pestana=bases&panel=relacion", rutas: rutasDelEstudio(0) });
+    await pulsar('[role="dialog"] button', "Volver a una base");
+    expect(document.querySelector('[role="dialog"] .pulso-bases-confirmar')).toBeNull();
+    expect(pedidosHechos()).toContain("POST /api/estudio/downgrade-to-single");
+  });
+
   it("si el motor rechaza la vuelta, el panel dice la causa y que el estudio sigue como estaba", async () => {
     // El doble rechaza como si el estudio tuviera más de una entrada.
     await montar({ ...UNA_SOLA_EN_VARIAS, entrada: "/carga?pestana=bases&panel=relacion", rutas: rutasDelEstudio(2) });
@@ -549,7 +591,7 @@ describe("CargaPage › Bases: funciones que no se pierden (verificación R2)", 
 
   it("una base con archivos cambia su fuente desde el inspector, con el paso Origen y sus cuatro orígenes", async () => {
     await montar({ estado: UNA_BASE_COMPLETA, pestana: "bases", rutas: [ESTUDIO_UNA_BASE] });
-    await pulsar("button.pulso-bases-tarjeta-abrir");
+    await pulsar("button.pulso-bases-fila-abrir");
     await pulsar("#pulso-bases-inspector button", "Cambiar la fuente");
     const dialogo = () => document.querySelector('[role="dialog"]');
     expect(dialogo()?.textContent).toContain("Cambiar la fuente");
@@ -567,7 +609,8 @@ describe("CargaPage › Bases: funciones que no se pierden (verificación R2)", 
   it("la base integrada dice cómo se integró y abre su bitácora sin cerrar el inspector", async () => {
     await montar({ ...VARIAS_INTEGRADAS, entrada: "/carga?pestana=bases&foco=integrada" });
     const inspector = () => document.getElementById("pulso-bases-inspector")?.textContent ?? "";
-    expect(inspector()).toContain("Unidas por la columna publico");
+    expect(inspector()).toContain("Unidas por la columna");
+    expect(control("#pulso-bases-inspector .pulso-bases-hechos code").textContent).toBe("publico");
     expect(inspector()).toContain("Formulario guía");
     expect(inspector()).toContain("Respuestas integradas");
     expect(inspector()).toContain("Fraseo final común");
@@ -597,11 +640,11 @@ describe("CargaPage › Bases: funciones que no se pierden (verificación R2)", 
     expect(document.getElementById("pulso-bases-inspector")).not.toBeNull();
   });
 
-  it("cerrar el inspector devuelve el foco a la tarjeta de su base", async () => {
-    await montar({ ...VARIAS_SEPARADAS, pestana: "bases" });
-    await pulsar("button.pulso-bases-tarjeta-abrir", "estudiantes");
-    await pulsar('#pulso-bases-inspector button[aria-label="Cerrar el detalle de la base"]');
-    expect((document.activeElement as HTMLElement | null)?.dataset.baseAbre).toBe("estudiantes");
+  it("cada fila controla el inspector y la elegida lo dice con aria-current", async () => {
+    await montar({ ...VARIAS_SEPARADAS, entrada: "/carga?pestana=bases&foco=estudiantes" });
+    const filas = Array.from(document.querySelectorAll<HTMLElement>("button.pulso-bases-fila-abrir"));
+    expect(filas.map((f) => f.getAttribute("aria-controls"))).toEqual(filas.map(() => "pulso-bases-inspector"));
+    expect(filas.filter((f) => f.getAttribute("aria-current") === "true").map((f) => f.dataset.baseAbre)).toEqual(["estudiantes"]);
   });
 
   it("ningún nombre accesible dice el nombre interno de la base única", async () => {
@@ -613,7 +656,7 @@ describe("CargaPage › Bases: funciones que no se pierden (verificación R2)", 
 
   it("la confirmación de Quitar base avisa lo que queda sin datos en Gráficos", async () => {
     await montar({ ...VARIAS_SEPARADAS, entrada: "/carga?pestana=bases&foco=docentes" });
-    await pulsar("#pulso-bases-inspector button", "Quitar base");
+    await pulsar("#pulso-bases-inspector button", "Quitar");
     expect(control("#pulso-bases-inspector .pulso-bases-confirmar").textContent).toContain("Las láminas de Gráficos que usan sus variables se quedan sin datos.");
   });
 });

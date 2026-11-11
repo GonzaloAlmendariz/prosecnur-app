@@ -7,6 +7,7 @@ import {
   CargaWorkspaceNavigation,
   cargaWorkspaceTabId,
 } from "../CargaWorkspaceNavigation";
+import { CabeceraDeCargaContexto, pestanaConCabeceraPropia } from "./bases/contextoDeCabecera";
 
 /**
  * Mesa de trabajo de Carga: riel de pestañas, encabezado y panel de la pestaña
@@ -56,8 +57,11 @@ export function MesaDeCarga({
           ? "pulso-carga-content pulso-content-area pulso-carga-content--multi pulso-carga-content--framed"
           : "pulso-carga-content pulso-content-area"}
       >
-        <CargaWorkspaceHeader active={activa} context={contexto} />
-        {varias ? <div className="pulso-carga-scrollarea">{children}</div> : children}
+        {/* Bases dibuja su cabecera con sus cifras y "Agregar base" (contextoDeCabecera.ts). */}
+        {pestanaConCabeceraPropia(activa) ? null : <CargaWorkspaceHeader active={activa} context={contexto} />}
+        <CabeceraDeCargaContexto.Provider value={{ activa, contexto }}>
+          {varias ? <div className="pulso-carga-scrollarea">{children}</div> : children}
+        </CabeceraDeCargaContexto.Provider>
       </div>
     </AdaptiveSplitView>
   );

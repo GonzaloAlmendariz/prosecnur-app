@@ -16,7 +16,7 @@ import { PANEL_RELACION } from "../../panelesCarga";
 import type { MultiBaseStrategy } from "../../store";
 import { searchConRelacion } from "./agregarBaseModel";
 import { AccionesDelEstudio, type EstudioDeVariasBases } from "./AccionesDelEstudio";
-import { textoDeRelacion } from "./basesModel";
+import { descripcionDeRelacion, textoDeRelacion } from "./basesModel";
 
 type Decision = ComponentProps<typeof CargaTopologyDecision>;
 
@@ -39,7 +39,7 @@ export type RelacionDeBases = {
 function IconoDeRelacion({ texto }: { texto: string }) {
   const Icono = texto === "Una base"
     ? Database
-    : texto.startsWith("Bases separadas")
+    : texto === "Bases separadas"
       ? Layers
       : texto === "Una base con varias fuentes"
         ? GitMerge
@@ -49,21 +49,29 @@ function IconoDeRelacion({ texto }: { texto: string }) {
   return <Icono size={15} aria-hidden="true" />;
 }
 
-/** La línea de la relación, con "Cambiar". */
+/** La línea de la relación (prototipo "carga-bases"): su nombre, qué significa y "Cambiar". */
 export function LineaDeRelacion({ relacion }: { relacion: RelacionDeBases }) {
   const location = useLocation();
   const navigate = useNavigate();
   const texto = textoDeRelacion(relacion.topologia, relacion.intencion);
   return (
-    <div className="pulso-bases-relacion" role="group" aria-label="Relación entre las bases">
+    <div
+      className="pulso-bases-relacion"
+      role="group"
+      aria-label="Relación entre las bases"
+      data-qa-geometry-group="carga/bases-relacion"
+      data-qa-geometry-contract="intrinsic"
+    >
       <span className="pulso-bases-relacion-icono"><IconoDeRelacion texto={texto} /></span>
-      <span className="pulso-bases-relacion-texto">{texto}</span>
+      <strong className="pulso-bases-relacion-texto">{texto}</strong>
+      <span className="pulso-bases-relacion-descripcion">{descripcionDeRelacion(texto)}</span>
       {relacion.porActivar ? (
         <EstadoChip label="Por activar" tone="warn" detail="El estudio todavía no está preparado para varias bases." />
       ) : null}
       <PulsoButton
         variant="ghost"
         size="sm"
+        className="pulso-bases-relacion-cambiar"
         aria-haspopup="dialog"
         aria-label="Cambiar la relación entre las bases"
         data-plf-abrir="relacion"

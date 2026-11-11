@@ -17,12 +17,13 @@ function Vacio({ titulo }: { titulo: string }) {
 
 export function BitacoraDeIntegracion({ coleccion }: { coleccion: ColeccionDeBases }) {
   const { foco } = useSeccion("procesamiento");
-  const base = coleccion.bases.find((b) => b.nombre === foco)?.base ?? null;
+  const fila = coleccion.bases.find((b) => b.nombre === foco) ?? null;
+  const base = fila?.base ?? null;
   const resumen = base ? resumenDeIntegracion(base) : null;
   return (
     <Sideover
       panel={PANEL_BITACORA_INTEGRACION}
-      title={base ? `Bitácora de la integración de ${base.nombre}` : "Bitácora de la integración"}
+      title={fila && base ? `Bitácora de la integración de ${fila.etiqueta}` : "Bitácora de la integración"}
       icon={<ScrollText size={16} aria-hidden="true" />}
       className="pulso-bases-bitacora"
     >

@@ -130,7 +130,7 @@ export function resolveCargaTopology(input: CargaTopologyInput): CargaTopologyRe
       status: "materialized",
       modeLocked: true,
       strategyLocked: true,
-      lockReason: "Las hermanas independientes ya están materializadas en el estudio.",
+      lockReason: "Las bases independientes ya están cargadas en el estudio.",
     };
   }
 
@@ -141,7 +141,7 @@ export function resolveCargaTopology(input: CargaTopologyInput): CargaTopologyRe
       status: "materialized",
       modeLocked: true,
       strategyLocked: true,
-      lockReason: "La base integrada ya está materializada en el estudio.",
+      lockReason: "La base integrada ya está cargada en el estudio.",
     };
   }
 
@@ -176,7 +176,7 @@ export function resolveCargaTopology(input: CargaTopologyInput): CargaTopologyRe
         strategyLocked: true,
         lockReason: baseCount > 1
           ? "El estudio ya contiene varias bases separadas; se agregan y se quitan en la lista de bases."
-          // Con una sola base, «Varias bases» describe para qué está preparado el estudio, no lo que ya tiene: se dice.
+          // Con una sola base, "Varias bases" describe para qué está preparado el estudio, no lo que ya tiene: se dice.
           : "El estudio está preparado para varias bases separadas y por ahora tiene una; la siguiente se agrega en la lista de bases.",
       };
     }

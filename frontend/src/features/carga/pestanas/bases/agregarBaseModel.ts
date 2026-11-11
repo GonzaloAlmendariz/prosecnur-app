@@ -67,6 +67,33 @@ export function entradasPrevistasDe(estrategia: MultiBaseStrategy): { rotulo: st
   return { rotulo: "Bases previstas", maximo: 16 };
 }
 
+/**
+ * El número previsto que ve el usuario, coherente con lo que el asistente
+ * dibuja. Con bases separadas el asistente de archivos siempre deja un lugar
+ * libre tras las bases que ya existen (`CargaManualBaseLanes`): el número no
+ * baja de ahí, así "Bases previstas" dice lo mismo que la lista de abajo.
+ */
+export function previstasVisibles({
+  estrategia,
+  previstas,
+  existentes,
+}: {
+  estrategia: MultiBaseStrategy;
+  previstas: number;
+  existentes: number;
+}): { valor: number; minimo: number } {
+  const minimo = estrategia === "separate" ? existentes + 1 : Math.max(1, existentes);
+  return { valor: Math.max(previstas, minimo), minimo };
+}
+
+/** La ayuda del número previsto: sus topes y lo que resulta. */
+export function ayudaDeEntradas(estrategia: MultiBaseStrategy, minimo: number, maximo: number, existentes: number): string {
+  const topes = `Entre ${minimo} y ${maximo}`;
+  if (estrategia === "integrated") return `${topes}; se unen en una base.`;
+  if (existentes <= 0) return `${topes}.`;
+  return existentes === 1 ? `${topes}; 1 base ya está en el estudio.` : `${topes}; ${existentes} bases ya están en el estudio.`;
+}
+
 /** Un número tecleado, entero y dentro de los topes. */
 export function acotarEntradas(valor: number, minimo: number, maximo: number): number {
   if (!Number.isFinite(valor)) return minimo;

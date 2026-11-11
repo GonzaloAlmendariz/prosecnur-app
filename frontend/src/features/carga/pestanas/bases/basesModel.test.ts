@@ -2,9 +2,17 @@ import { describe, expect, it } from "vitest";
 import type { EstudioBase } from "../../../../api/estudio";
 import {
   CAUSA_SIN_OTRA_FUENTE,
+  baseDelInspector,
   baseEnfocada,
+  cifrasDeLaColeccion,
   coleccionDeUnaBase,
   coleccionDelEstudio,
+  descripcionDeRelacion,
+  esIdentificador,
+  estadoDeCarga,
+  etiquetaDeBase,
+  identificadorLegible,
+  formularioDeBase,
   origenDeCarga,
   reemplazaArchivosDe,
   recibeNuevaVersionDe,
@@ -53,7 +61,7 @@ describe("coleccionDelEstudio", () => {
     expect(c.nBases).toBe(1);
     expect(c.nGruposRepetidos).toBe(1);
     expect(c.bases.map((b) => b.nombre)).toEqual(["hogares"]);
-    expect(c.bases[0].hijas).toEqual([{ nombre: "miembros", etiqueta: "miembros", filas: 900, madre: "hogares" }]);
+    expect(c.bases[0].hijas).toEqual([{ nombre: "miembros", etiqueta: "miembros", filas: 900, madre: "hogares", estado: null }]);
   });
 
   it("una hija cuya madre no está en el estudio no se pierde: queda como tarjeta propia", () => {
@@ -174,9 +182,9 @@ describe("baseEnfocada", () => {
 
 describe("textos", () => {
   it("concuerda la cifra de la tarjeta con su número", () => {
-    expect(rotuloRespuestas(1)).toBe("respuesta recibida");
-    expect(rotuloRespuestas(421)).toBe("respuestas recibidas");
-    expect(rotuloRespuestas(0)).toBe("respuestas recibidas");
+    expect(rotuloRespuestas(1)).toBe("respuesta");
+    expect(rotuloRespuestas(421)).toBe("respuestas");
+    expect(rotuloRespuestas(0)).toBe("respuestas");
   });
 
   it("dice la relación entre las bases en una línea", () => {
@@ -184,12 +192,20 @@ describe("textos", () => {
     const varias = (strategy: "separate" | "integrated" | "independent" | null) => ({ mode: "multi" as const, strategy });
     expect(textoDeRelacion(una, null)).toBe("Una base");
     expect(textoDeRelacion({ mode: "undecided", strategy: null }, null)).toBe("Una base");
-    expect(textoDeRelacion(varias("separate"), null)).toBe("Bases separadas, cada una con su formulario");
+    expect(textoDeRelacion(varias("separate"), null)).toBe("Bases separadas");
     expect(textoDeRelacion(varias("integrated"), null)).toBe("Una base con varias fuentes");
     expect(textoDeRelacion(varias("independent"), null)).toBe("Bases independientes");
     expect(textoDeRelacion(varias(null), "multi")).toBe("Varias bases, falta decidir cómo se relacionan");
     // La intención elegida, todavía sin estudio, ya se dice.
     expect(textoDeRelacion({ mode: "multi", strategy: null }, "integrated")).toBe("Una base con varias fuentes");
+  });
+
+  it("cada relación tiene su frase, y la de una base dice cómo se agrega otra", () => {
+    for (const r of ["Una base", "Bases separadas", "Una base con varias fuentes", "Bases independientes", "Varias bases, falta decidir cómo se relacionan"]) {
+      expect(descripcionDeRelacion(r).length).toBeGreaterThan(0);
+    }
+    expect(descripcionDeRelacion("Una base")).toBe("Un formulario y sus respuestas. Al agregar otra base se elige cómo se relacionan.");
+    expect(descripcionDeRelacion("Bases separadas")).not.toBe(descripcionDeRelacion("Bases independientes"));
   });
 });
 
@@ -224,5 +240,112 @@ describe("alcance de HEAD para cambiar respuestas y archivos", () => {
     expect(reemplazaArchivosDe({ source_kind: "formulario_publicado_excel" })).toBe(false);
     expect(reemplazaArchivosDe({ source_kind: "manual", multi_integrated: { version: 1 } })).toBe(false);
     expect(reemplazaArchivosDe({ source_kind: "manual", parent_base: "hogares" })).toBe(false);
+  });
+});
+
+describe("nombre de la base (oleada 15-B)", () => {
+  it("el identificador que puso el motor se lee por el título de su encuesta", () => {
+    const pdm = { nombre: "post_distribution_monitoring_espacios_de_protecci_on_2026_q2", source_alias: null, source_title: "Post-Distribution Monitoring - Espacios de Protección 2026 Q2" };
+    expect(esIdentificador(pdm.nombre)).toBe(true);
+    expect(etiquetaDeBase(pdm)).toBe("Post-Distribution Monitoring - Espacios de Protección 2026 Q2");
+    // El alias gana al título, como en el selector de bases.
+    expect(etiquetaDeBase({ ...pdm, source_alias: "PDM espacios" })).toBe("PDM espacios");
+  });
+
+  it("un nombre elegido por el usuario se respeta aunque la encuesta tenga título", () => {
+    expect(esIdentificador("docentes")).toBe(false);
+    expect(esIdentificador("Estudiantes 2026")).toBe(false);
+    expect(etiquetaDeBase({ nombre: "docentes", source_title: "Encuesta a docentes 2026" })).toBe("docentes");
+    expect(etiquetaDeBase({ nombre: "Docentes PDM", source_title: "Post-Distribution Monitoring" })).toBe("Docentes PDM");
+  });
+
+  it("un título que es un nombre de archivo o repite el identificador no sirve de nombre", () => {
+    expect(etiquetaDeBase({ nombre: "base_2026_q2", source_title: "respuestas_2026.xlsx" })).toBe("Base 2026 q2");
+    expect(etiquetaDeBase({ nombre: "base_2026_q2", source_title: "base_2026_q2" })).toBe("Base 2026 q2");
+  });
+
+  it("sin título, el identificador se lee en palabras y la hija por su grupo repetido, sin inventar", () => {
+    expect(etiquetaDeBase({ nombre: "auditoria_ola2" })).toBe("Auditoria ola2");
+    expect(etiquetaDeBase({ nombre: "base_1" })).toBe("Base 1");
+    expect(etiquetaDeBase({ nombre: "rep_servicios", repeat_group: "servicios" })).toBe("Servicios");
+    expect(etiquetaDeBase({ nombre: "rep_servicios", repeat_group: "rep_servicios" })).toBe("Rep servicios");
+    expect(identificadorLegible("post_distribution__monitoring")).toBe("Post distribution monitoring");
+  });
+
+  it("la base única se llama por su encuesta si la tiene y si no \"Base única\", nunca default", () => {
+    expect(etiquetaDeBase({ nombre: "default" })).toBe("Base única");
+    expect(etiquetaDeBase({ nombre: "default", source_title: "default" })).toBe("Base única");
+    expect(etiquetaDeBase({ nombre: "default", source_title: "Encuesta a hogares" })).toBe("Encuesta a hogares");
+  });
+});
+
+describe("fila de la base (oleada 15-B)", () => {
+  it("el estado de Carga usa la misma lectura y las mismas palabras que Estado del estudio", () => {
+    expect(estadoDeCarga(null)).toBeNull();
+    expect(estadoDeCarga({ imported: true })).toMatchObject({ estado: "Cargada", tono: "success" });
+    expect(estadoDeCarga({ imported: false })).toMatchObject({ estado: "Incompleta", tono: "warn" });
+  });
+
+  it("dice de dónde sale el formulario", () => {
+    expect(formularioDeBase({ source_kind: "manual", xlsform_file_id: "x" })).toBe("Formulario cargado (XLSForm)");
+    expect(formularioDeBase({ source_kind: "surveymonkey", xlsform_file_id: "x" })).toBe("Formulario leído de la encuesta");
+    expect(formularioDeBase({ source_kind: "kobo", xlsform_file_id: "x" })).toBe("Formulario leído de la plataforma");
+    expect(formularioDeBase({ source_kind: "monitoreo_territorial", xlsform_file_id: "x" })).toBe("Formulario leído de la plataforma");
+    expect(formularioDeBase({ source_kind: "formulario_publicado_sav", xlsform_file_id: "x" })).toBe("Formulario publicado");
+    expect(formularioDeBase({ source_kind: "manual", xlsform_file_id: "x", multi_integrated: { version: 1 } })).toBe("Formulario integrado");
+    expect(formularioDeBase({ source_kind: "manual", xlsform_file_id: "" })).toBe("Sin formulario");
+  });
+
+  it("cada encuesta de SurveyMonkey trae sus respuestas y la última lectura; la integrada no inventa la cifra por origen", () => {
+    const c = coleccionDelEstudio({
+      bases: {
+        est: base("est", {
+          source_kind: "surveymonkey",
+          surveymonkey_refreshed_at: "2026-11-09T16:40:00Z",
+          surveymonkey_sources: [
+            { survey_id: "1", source_title: "En línea", included_records: 265 },
+            { survey_id: "2", source_title: "En aula", included_records: 28 },
+          ],
+        }),
+        int: base("int", { multi_integrated: { version: 1, origins: [{ key_value: "a", label: "A", source_kind: "surveymonkey" }] } }),
+        arch: base("arch", { n_filas: 85 }),
+      },
+    });
+    const por = Object.fromEntries(c.bases.map((b) => [b.nombre, b]));
+    expect(por.est.fuentes.map((f) => [f.origen, f.respuestas, f.leidaEl])).toEqual([
+      ["SurveyMonkey", 265, "2026-11-09T16:40:00Z"],
+      ["SurveyMonkey", 28, "2026-11-09T16:40:00Z"],
+    ]);
+    expect(por.int.fuentes.map((f) => [f.origen, f.respuestas, f.llave])).toEqual([["SurveyMonkey", null, "a"]]);
+    // Una base de archivos no publica fecha de lectura: queda vacía.
+    expect(por.arch.fuentes[0]).toMatchObject({ origen: "Archivos", respuestas: 85, leidaEl: null });
+  });
+});
+
+describe("cifras de la cabecera y base del inspector (oleada 15-B)", () => {
+  const c = coleccionDelEstudio({
+    bases: {
+      hogares: base("hogares", { n_filas: 293 }),
+      miembros: base("miembros", { source_kind: "kobo_repeat", parent_base: "hogares", n_filas: 1104 }),
+      docentes: base("docentes", { n_filas: 115 }),
+    },
+  });
+
+  it("suma las respuestas de las bases madre; las filas del grupo repetido no son respuestas", () => {
+    expect(cifrasDeLaColeccion(c)).toEqual({ nBases: 2, nGruposRepetidos: 1, nFuentes: 2, respuestas: 408 });
+  });
+
+  it("si una base no tiene cifra, no se publica una suma parcial", () => {
+    const sinCifra = coleccionDelEstudio({ bases: { a: base("a", { n_filas: 10 }), b: base("b", { n_filas: null }) } });
+    expect(cifrasDeLaColeccion(sinCifra).respuestas).toBeNull();
+    expect(cifrasDeLaColeccion({ bases: [], nBases: 0, nGruposRepetidos: 0 }).respuestas).toBeNull();
+  });
+
+  it("el inspector muestra la base del foco, la hija del foco o, sin foco, la primera", () => {
+    expect(baseDelInspector(c, null)).toMatchObject({ base: { nombre: "hogares" }, hija: null });
+    expect(baseDelInspector(c, "docentes")).toMatchObject({ base: { nombre: "docentes" }, hija: null });
+    expect(baseDelInspector(c, "miembros")).toMatchObject({ base: { nombre: "hogares" }, hija: { nombre: "miembros" } });
+    expect(baseDelInspector(c, "surveymonkey")).toMatchObject({ base: { nombre: "hogares" } });
+    expect(baseDelInspector({ bases: [], nBases: 0, nGruposRepetidos: 0 }, null)).toBeNull();
   });
 });

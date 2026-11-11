@@ -30,7 +30,7 @@ describe("CargaPage, navegación entre pestañas", () => {
   escenario("navegacion_una-base_ida-y-vuelta", "una base: recorre las pestañas desde el riel sin remontar la página", async () => {
     await montar({ estado: UNA_BASE_COMPLETA, pestana: "bases", rutas: rutasDeRevision(false) });
     const pasos = [mesa()];
-    await pulsar("button.pulso-bases-tarjeta-abrir");
+    await pulsar("button.pulso-bases-fila-abrir");
     expect(baseInspeccionada()).toBe("Detalle de Base única");
     await pulsar("#carga-workspace-tab-revision");
     pasos.push(mesa());

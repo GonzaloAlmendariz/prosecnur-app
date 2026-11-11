@@ -5,7 +5,8 @@ import { PulsoButton } from "../../components/PulsoButton";
 import { TabHeading } from "../../components/TabHeading";
 import { Skeleton, SkeletonVista, type SkeletonVistaVariante } from "../../components/Skeleton";
 import { ErrorBlock } from "../../components/States";
-import { ClipboardList, Loader2, RefreshCw } from "../../vendor/lucide-react";
+import type { ReactNode } from "react";
+import { ClipboardList, Loader2, RefreshCw, type LucideIcon } from "../../vendor/lucide-react";
 import {
   formatoTranscurrido,
   textoHidratacionCarga,
@@ -26,7 +27,7 @@ import "./pestanas/bases/bases.css";
  * nombres y destinos vienen del catálogo de navegación) y el nombre de la
  * pestaña activa. Lo que depende del estudio —estado de la pestaña, plan,
  * carriles de bases— reserva su silueta con piezas `Skeleton`. Nada dice
- * «Pendiente» ni «0/1»: durante la lectura no hay cifra que dar.
+ * "Pendiente" ni "0/1": durante la lectura no hay cifra que dar.
  *
  * Contrato de readiness: este componente NUNCA escribe `data-audit-ready`. La
  * marca la publica `PageFrame` cuando la hidratación termina.
@@ -104,24 +105,24 @@ export function CargaHidratando({
         {/* La misma cabecera que pinta CargaWorkspaceHeader al terminar (L14):
             mientras hidrata no hay estado que declarar, y la espera la dice el
             renglón de lectura de abajo. La cabecera no numera las pestañas. */}
-        <TabHeading
-          eyebrow="Carga"
-          titulo={metadata.label}
-          icono={ClipboardList}
-          detalle={metadata.summary}
-        />
+        {/* Bases dibuja su cabecera dentro de la pestaña (con sus cifras), y su
+            silueta la anticipa ahí mismo. */}
+        {pestana === "bases" ? null : (
+          <TabHeading
+            eyebrow="Carga"
+            titulo={metadata.label}
+            icono={ClipboardList}
+            detalle={metadata.summary}
+          />
+        )}
         <div className="pulso-carga-scrollarea">
           {leyendo ? (
             <div className="pulso-carga-hidratando-cuerpo">
-              <div className="pulso-carga-hidratando-estado" role="status" aria-live="polite">
-                <Loader2 size={14} className="pulso-spin" aria-hidden="true" />
-                <span className="pulso-sr-only">{texto}</span>
-                <span aria-hidden="true">
-                  {texto}, <strong>{formatoTranscurrido(segundos)}</strong>
-                </span>
-              </div>
+              {pestana === "bases" ? null : (
+                <EstadoDeLectura texto={texto} segundos={segundos} />
+              )}
               {pestana === "bases" ? (
-                <SiluetaFuentes />
+                <SiluetaFuentes titulo={metadata.label} icono={metadata.icon} estado={<EstadoDeLectura texto={texto} segundos={segundos} />} />
               ) : (
                 <SkeletonVista
                   variante={SILUETA_POR_PESTANA[pestana] ?? "workbench"}
@@ -149,28 +150,66 @@ export function CargaHidratando({
   );
 }
 
-/**
- * Silueta de Bases con la forma de la pestaña hidratada (R2): la línea de la
- * relación entre las bases y el marco "Bases del estudio" a todo el alto, con
- * tres tarjetas del tamaño de las reales. Al llegar los datos el marco no
- * cambia (C2). Sin cifras ni conteo: durante la lectura no hay dato que dar.
- */
-export function SiluetaFuentes() {
+/** El renglón de lectura: qué se está leyendo y cuánto lleva. */
+function EstadoDeLectura({ texto, segundos }: { texto: string; segundos: number }) {
   return (
-    <div className="pulso-bases pulso-bases--silueta" aria-hidden="true" data-carga-silueta="bases">
-      <div className="pulso-bases-barra">
-        <Skeleton forma="texto" ancho={280} alto={12} />
-      </div>
-      <div className="pulso-bases-mesa">
+    <div className="pulso-carga-hidratando-estado" role="status" aria-live="polite">
+      <Loader2 size={14} className="pulso-spin" aria-hidden="true" />
+      <span className="pulso-sr-only">{texto}</span>
+      <span aria-hidden="true">
+        {texto}, <strong>{formatoTranscurrido(segundos)}</strong>
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Silueta de Bases con la forma de la pestaña hidratada: la cabecera en su
+ * panel con el lugar de las cifras y de "Agregar base", la franja de la
+ * relación (que dice qué se está leyendo) y las dos columnas, la colección con
+ * tres filas del alto de las reales y el inspector. Al llegar los datos el
+ * marco no cambia (C2). Sin cifras: durante la lectura no hay dato que dar.
+ */
+export function SiluetaFuentes({ titulo, icono, estado }: { titulo: string; icono: LucideIcon; estado: ReactNode }) {
+  return (
+    <div className="pulso-bases pulso-bases--silueta" data-carga-silueta="bases">
+      <Panel noPadding className="pulso-bases-cabecera" aria-hidden="true">
+        <TabHeading
+          eyebrow="Carga"
+          titulo={titulo}
+          icono={icono}
+          control={(
+            <div className="pulso-bases-cabecera-control">
+              <Skeleton forma="texto" ancho={64} alto={30} />
+              <Skeleton forma="texto" ancho={84} alto={30} />
+              <div className="pulso-bases-cabecera-accion">
+                <Skeleton forma="texto" ancho={118} alto={28} />
+              </div>
+            </div>
+          )}
+        />
+      </Panel>
+      <Panel noPadding className="pulso-bases-barra">
+        <div className="pulso-bases-relacion">{estado}</div>
+      </Panel>
+      <div className="pulso-bases-mesa" data-con-inspector="" aria-hidden="true">
         <Panel noPadding className="pulso-bases-panel" title={<Skeleton forma="titulo" ancho={150} />}>
           <div className="pulso-bases-cuerpo">
             <div className="pulso-bases-coleccion">
               {[0, 1, 2].map((i) => (
                 <div className="pulso-bases-celda" key={i}>
-                  <Skeleton forma="card" alto={113} />
+                  <Skeleton forma="card" alto={74} />
                 </div>
               ))}
             </div>
+          </div>
+        </Panel>
+        <Panel noPadding className="pulso-bases-inspector" title={<Skeleton forma="titulo" ancho={140} />}>
+          <div className="pulso-bases-inspector-cuerpo">
+            <Skeleton forma="texto" ancho="40%" alto={10} />
+            <Skeleton forma="card" alto={56} />
+            <Skeleton forma="texto" ancho="30%" alto={10} />
+            <Skeleton forma="card" alto={72} />
           </div>
         </Panel>
       </div>

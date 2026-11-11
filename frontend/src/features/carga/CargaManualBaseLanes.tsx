@@ -9,6 +9,8 @@ import {
   type EstudioPayload,
 } from "../../api/client";
 import { CargaBaseFilePicker } from "./CargaBaseFilePicker";
+import { formatoConteoDe } from "../../lib/formatoNumero";
+import { etiquetaDeBase } from "./pestanas/bases/basesModel";
 
 import { EstadoVacio } from "../../components/EstadoVacio";
 type LaneDraft = {
@@ -109,7 +111,7 @@ export function CargaManualBaseLanes({
   return (
     <section className="pulso-carga-manual-lanes" aria-label="Entradas manuales planificadas">
       <div className="pulso-carga-manual-lanes-note" role="note">
-        Cada carril se materializa por separado. Si una carga falla, las demás entradas no cambian.
+        Cada base se carga por separado. Si una falla, las demás no cambian.
       </div>
       <div className="pulso-carga-manual-lanes-list">
         {lanes.map(({ index, base }) => {
@@ -124,10 +126,13 @@ export function CargaManualBaseLanes({
               {base ? (
                 <div className="pulso-carga-manual-lane-materialized">
                   <span className="pulso-carga-manual-lane-state">
-                    <CheckCircle2 size={15} aria-hidden="true" /> Base materializada
+                    <CheckCircle2 size={15} aria-hidden="true" /> Base cargada
                   </span>
                   {renderMaterializedBase ? renderMaterializedBase(base) : (
-                    <span><strong>{base.nombre}</strong>: {base.n_filas ?? "—"} filas</span>
+                    <span className="pulso-carga-manual-lane-base" title={base.nombre}>
+                      <strong>{etiquetaDeBase(base)}</strong>
+                      <small>{base.n_filas !== null && base.n_filas !== undefined ? formatoConteoDe(base.n_filas, "respuesta") : "Sin conteo de respuestas"}</small>
+                    </span>
                   )}
                 </div>
               ) : (
@@ -162,7 +167,7 @@ export function CargaManualBaseLanes({
                     onClick={() => void materializeLane(index)}
                   >
                     {draft.busy ? <Loader2 size={14} className="pulso-spin" /> : <Plus size={14} />}
-                    {draft.busy ? "Materializando…" : "Crear esta base"}
+                    {draft.busy ? "Cargando" : "Crear esta base"}
                   </button>
                   {draft.error ? <span className="pulso-carga-manual-lane-error" role="alert">{draft.error}</span> : null}
                 </div>
@@ -172,7 +177,7 @@ export function CargaManualBaseLanes({
         })}
       </div>
       {lanes.length === 0 ? (
-        <EstadoVacio icono={<Database size={15} />} titulo="No hay entradas planificadas" />
+        <EstadoVacio icono={<Database size={15} />} titulo="No hay bases previstas" />
       ) : null}
     </section>
   );

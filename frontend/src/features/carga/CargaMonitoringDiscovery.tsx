@@ -1,3 +1,4 @@
+import { formatoConteoDe } from "../../lib/formatoNumero";
 import { useState } from "react";
 import {
   AlertTriangle,
@@ -90,12 +91,12 @@ export function CargaMonitoringDiscovery({
         <div className="pulso-carga-monitoring-consent">
           <span className="pulso-carga-monitoring-consent-icon" aria-hidden="true"><ShieldCheck size={18} /></span>
           <div>
-            <strong>Monitoreo permanece local y sin explorar</strong>
-            <p>Revisa el snapshot del proyecto solo cuando quieras preparar sus fuentes para Procesamiento. No se contactan servicios externos.</p>
+            <strong>Monitoreo todavía no se revisó</strong>
+            <p>Revisa el corte de campo guardado en el proyecto cuando quieras traer sus fuentes a Procesamiento. No se contacta ninguna plataforma.</p>
           </div>
           <button type="button" className="pulso-primary" disabled={loading} onClick={() => void reviewMonitoring()}>
             {loading ? <Loader2 size={14} className="pulso-spin" /> : <ClipboardCheck size={14} />}
-            {loading ? "Revisando…" : reviewLabel}
+            {loading ? "Revisando" : reviewLabel}
           </button>
         </div>
       ) : (
@@ -125,7 +126,7 @@ export function CargaMonitoringDiscovery({
               {groups.map((group) => (
                 <li key={group.id}>
                   <Database size={14} aria-hidden="true" />
-                  <span><strong>{group.actor || group.label}</strong><small>{group.sources[0]?.channel || group.platform}, {group.source_count} fuente{group.source_count === 1 ? "" : "s"}, {group.response_count ?? "—"} respuestas</small></span>
+                  <span><strong>{group.actor || group.label}</strong><small>{group.sources[0]?.channel || group.platform}, {group.source_count} fuente{group.source_count === 1 ? "" : "s"}, {typeof group.response_count === "number" ? formatoConteoDe(group.response_count, "respuesta") : "sin conteo de respuestas"}</small></span>
                 </li>
               ))}
             </ul>

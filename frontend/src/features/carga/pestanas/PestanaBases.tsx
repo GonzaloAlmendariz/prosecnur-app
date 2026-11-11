@@ -6,12 +6,12 @@ import { PulsoButton } from "../../../components/PulsoButton";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import { Database, GitCompareArrows, Plus } from "../../../vendor/lucide-react";
 import { Panel } from "../../../components/Panel";
-import { formatoConteo } from "../../../lib/formatoNumero";
 import { InstrumentRevisionBindingNotice } from "../InstrumentRevisionBindingNotice";
 import { AbrirPanelFuentes } from "../fuentes/AbrirPanelFuentes";
 import { ArmonizacionBasePanel } from "../fuentes/ArmonizacionBasePanel";
 import { CompararFuentesPanel } from "../fuentes/CompararFuentesPanel";
 import { hayFuentesComparables, primerParComparable, searchConComparacion } from "../fuentes/compararFuentesModel";
+import { useFormulariosPublicados } from "../fuentes/useFormulariosPublicados";
 import { useOrdenDeSerie } from "../fuentes/useOrdenDeSerie";
 import type { MultiBaseStrategy } from "../store";
 import type { SessionState } from "../../../api/core";
@@ -20,12 +20,16 @@ import { AgregarFuente } from "./bases/AgregarFuente";
 import { BitacoraDeIntegracion } from "./bases/BitacoraDeIntegracion";
 import {
   focoDelInspector,
+  origenesDeAlta,
   searchConAgregarBase,
   searchConAgregarFuente,
   searchConInspector,
+  searchConRelacion,
   type OrigenDeAlta,
 } from "./bases/agregarBaseModel";
-import { baseEnfocada, coleccionDelEstudio, coleccionDeUnaBase } from "./bases/basesModel";
+import { baseDelInspector, cifrasDeLaColeccion, coleccionDelEstudio, coleccionDeUnaBase } from "./bases/basesModel";
+import { CabeceraDeBases } from "./bases/CabeceraDeBases";
+import { OrigenesALaVista } from "./bases/OrigenesALaVista";
 import { ColeccionDeBases } from "./bases/ColeccionDeBases";
 import { InspectorDeBase } from "./bases/InspectorDeBase";
 import { LineaDeRelacion, PanelDeRelacion, type RelacionDeBases } from "./bases/RelacionEntreBases";
@@ -64,10 +68,12 @@ export type PestanaBasesProps = {
 };
 
 /**
- * Bases (ADR 0142, R2): la relación entre las bases en una línea, la colección
- * de bases y el inspector de la base enfocada (`foco=<base>`). Igual para una
- * base, bases separadas, integrada, independientes y grupo repetido. "Agregar
- * base" es un recorrido por pasos (`panel=agregar-base`).
+ * Bases (ADR 0142, R2; fidelidad al prototipo "carga-bases" en la oleada 15-B):
+ * la cabecera con sus cifras y "Agregar base", la relación entre las bases en
+ * una línea, las bases en filas a todo el ancho con los orígenes para agregar
+ * otra debajo, y el inspector de la base elegida (`foco=<base>`, o la primera).
+ * Igual para una base, bases separadas, integrada, independientes y grupo
+ * repetido. "Agregar base" es un recorrido por pasos (`panel=agregar-base`).
  */
 export function PestanaBases({
   varias,
@@ -106,32 +112,62 @@ export function PestanaBases({
         columnasSubidas: unaBase.vistaPrevia?.n_columnas ?? null,
       });
   const foco = focoDelInspector(direccion.panel, direccion.foco, location.state);
-  const objetivo = baseEnfocada(coleccion, foco);
-  const enfocar = (nombre: string) => ir(searchConInspector(location.search, foco === nombre ? null : nombre));
-  // Al cerrar el inspector, el foco del teclado vuelve a la tarjeta (o a la fila de la hija) que lo abrió.
-  const cerrarInspector = (nombre: string) => {
-    ir(searchConInspector(location.search, null));
-    window.setTimeout(() => {
-      const destino = Array.from(document.querySelectorAll<HTMLElement>("[data-base-abre]")).find((e) => e.dataset.baseAbre === nombre);
-      destino?.focus();
-    }, 0);
-  };
+  // El inspector está siempre a la vista (prototipo "carga-bases"): la base del `foco` o la primera.
+  const objetivo = baseDelInspector(coleccion, foco);
+  const enfocar = (nombre: string) => ir(searchConInspector(location.search, nombre));
   const unaBaseConArchivos = !varias && coleccion.bases.length > 0;
+  const sinBases = coleccion.bases.length === 0;
+  // Los orígenes que ofrece la relación; el catálogo de formularios publicados solo se pide con varias bases.
+  const publicados = useFormulariosPublicados(varias);
+  const origenes = origenesDeAlta({ varias, estrategia, hayPublicados: publicados.formularios.length > 0 });
 
   const panelPlataforma = <PlatformImportPanel {...plataforma} />;
   const panelMonitoreo = <PanelMonitoreoCarga {...monitoreo} />;
   const subidaDeUnaBase = <SubidaDeUnaBase {...unaBase} />;
 
-  const botonAgregar = (
+  // "Agregar base" en la cabecera. Con una base que ya tiene archivos, otra base
+  // exige antes elegir cómo se relacionan: abre la relación entre las bases.
+  const accionDeCabecera = sinBases ? null : unaBaseConArchivos ? (
+    <PulsoButton
+      variant="secondary"
+      size="md"
+      aria-haspopup="dialog"
+      data-plf-abrir="relacion"
+      onClick={() => ir(searchConRelacion(location.search))}
+    >
+      <Plus size={14} aria-hidden="true" />Agregar base
+    </PulsoButton>
+  ) : (
     <PulsoButton
       variant="primary"
-      size="sm"
+      size="md"
       aria-haspopup="dialog"
       data-plf-abrir="agregar-base"
       onClick={() => ir(searchConAgregarBase(location.search, null))}
     >
       <Plus size={14} aria-hidden="true" />Agregar base
     </PulsoButton>
+  );
+
+  // "Agregar una base desde": los orígenes a la vista; cada uno abre el recorrido
+  // ya en ese origen. Con una base que ya tiene archivos, la segunda base exige
+  // elegir antes cómo se relacionan (prototipo "carga-bases-una": "Al agregar
+  // otra base se elige cómo se relacionan"): se muestran los orígenes de varias
+  // bases y cada uno abre la relación entre las bases.
+  const origenesALaVista = unaBaseConArchivos ? (
+    <OrigenesALaVista
+      titulo="Agregar otra base desde"
+      opciones={origenesDeAlta({ varias: true, estrategia: "separate", hayPublicados: false })}
+      grandes={false}
+      onElegir={() => ir(searchConRelacion(location.search))}
+    />
+  ) : (
+    <OrigenesALaVista
+      titulo={sinBases ? null : "Agregar una base desde"}
+      opciones={origenes}
+      grandes={sinBases}
+      onElegir={(o) => ir(searchConAgregarBase(location.search, o))}
+    />
   );
 
   return (
@@ -141,9 +177,11 @@ export function PestanaBases({
       data-qa-geometry-group="carga/bases-pestana"
       data-qa-geometry-contract="intrinsic"
     >
-      <div className="pulso-bases-barra">
+      <CabeceraDeBases cifras={cifrasDeLaColeccion(coleccion)} varias={varias} accion={accionDeCabecera} />
+
+      <Panel noPadding className="pulso-bases-barra">
         <LineaDeRelacion relacion={relacion} />
-      </div>
+      </Panel>
 
       {/* C1: la colección y el inspector son dos marcos que llegan al borde inferior;
           cada uno es dueño de su scroll y de su vacío. */}
@@ -159,29 +197,22 @@ export function PestanaBases({
           title={(
             <>
               <Database size={16} aria-hidden="true" />
-              <span>Bases del estudio</span>
-              {coleccion.nBases > 0 ? <span className="pulso-bases-conteo">{formatoConteo(coleccion.nBases)}</span> : null}
+              <span>{sinBases ? "Agregar la primera base" : "Bases del estudio"}</span>
             </>
           )}
-          actions={(
-            <>
-              {/* ADR 0102: dos bases de la misma revisión se comparan fuente contra fuente. */}
-              {varias && hayFuentesComparables(madres) ? (
-                <AbrirPanelFuentes variant="secondary" clave="comparar" destino={(search) => searchConComparacion(search, primerParComparable(madres))}>
-                  <GitCompareArrows size={14} aria-hidden="true" />Comparar fuentes
-                </AbrirPanelFuentes>
-              ) : null}
-              {/* Con una base que ya existe, otra base se agrega cambiando la relación. */}
-              {coleccion.bases.length > 0 && !unaBaseConArchivos ? botonAgregar : null}
-            </>
-          )}
+          actions={varias && hayFuentesComparables(madres) ? (
+            // ADR 0102: dos bases de la misma revisión se comparan fuente contra fuente.
+            <AbrirPanelFuentes variant="secondary" clave="comparar" destino={(search) => searchConComparacion(search, primerParComparable(madres))}>
+              <GitCompareArrows size={14} aria-hidden="true" />Comparar fuentes
+            </AbrirPanelFuentes>
+          ) : null}
         >
           <div className="pulso-bases-cuerpo" role="region" aria-label="Bases del estudio" tabIndex={0} data-qa-geometry-capacity="owned">
             <ColeccionDeBases
               coleccion={coleccion}
               enfocada={objetivo ? (objetivo.hija?.nombre ?? objetivo.base.nombre) : null}
               onEnfocar={enfocar}
-              accionVacia={botonAgregar}
+              origenes={origenesALaVista}
             />
           </div>
         </Panel>
@@ -191,8 +222,8 @@ export function PestanaBases({
             base={objetivo.base}
             hija={objetivo.hija}
             basesDelEstudio={madres}
+            formulariosPublicados={publicados.formularios}
             ocupado={ocupado}
-            onCerrar={() => cerrarInspector(objetivo.hija?.nombre ?? objetivo.base.nombre)}
             onCambio={variasBases.onEstudioCambiado}
             onRenombrada={(nuevo) => ir(searchConInspector(location.search, nuevo))}
             onQuitada={() => ir(searchConInspector(location.search, null))}

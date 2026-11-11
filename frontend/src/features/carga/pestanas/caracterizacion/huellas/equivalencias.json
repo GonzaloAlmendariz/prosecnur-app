@@ -1,30 +1,30 @@
 {
   "una-base_con-insumos_equivalencias": {
-    "marcado": "3c58eba8d64865ccb6b0bfde07962989b0ae66218ea62cc4daea815887c23827",
+    "marcado": "bbae3a83c906e0139c71ce2dde96a29ed458d6d5ccd806136152abc18f10b283",
     "pedidos": "04bb4ed094f39f847645a244af68aa69aaff93d300202b6624a030d13cd7087a"
   },
   "una-base_equivalencias_no-disponible": {
-    "marcado": "3c58eba8d64865ccb6b0bfde07962989b0ae66218ea62cc4daea815887c23827",
+    "marcado": "bbae3a83c906e0139c71ce2dde96a29ed458d6d5ccd806136152abc18f10b283",
     "pedidos": "04bb4ed094f39f847645a244af68aa69aaff93d300202b6624a030d13cd7087a"
   },
   "una-base_sin-archivos_equivalencias": {
-    "marcado": "407c80e305e6b69dbe31a8a0ef21a3a42879026a17ae36617a159cba5ce244c8",
+    "marcado": "54fd417b7e1d7c407280ee7b9cba76f6b671d45c09a8977d808680565279377c",
     "pedidos": "d65ce24193d0313f4beb2688d9448844ad733a2f0cc4c5efa3ea96dde5d48bc6"
   },
   "varias_integradas_equivalencias": {
-    "marcado": "382d6513ac0d4289ebe90592cef3bdfc879acedcb18fbfd8b097dbf0b76d72e1",
-    "pedidos": "1fdfd21575a33862aa71209ec6b6ee704434b3ea116d9b54b94ed7e2592a3199"
+    "marcado": "48bcbb4d4af1e6ee2a04cd7939bb4240db58dce220333341bbed16d855a73821",
+    "pedidos": "a6dbd5bfbb8dcb0a774f5e813caa729709cc02131f184f59ca45701748b8fe7a"
   },
   "varias_integradas_equivalencias_no-disponible": {
-    "marcado": "382d6513ac0d4289ebe90592cef3bdfc879acedcb18fbfd8b097dbf0b76d72e1",
-    "pedidos": "1fdfd21575a33862aa71209ec6b6ee704434b3ea116d9b54b94ed7e2592a3199"
+    "marcado": "48bcbb4d4af1e6ee2a04cd7939bb4240db58dce220333341bbed16d855a73821",
+    "pedidos": "a6dbd5bfbb8dcb0a774f5e813caa729709cc02131f184f59ca45701748b8fe7a"
   },
   "varias_separadas_equivalencias": {
     "marcado": "3c783280c9f8b76aeb985e8d844b6ded997d9a135e44a801ba4da86cfe40c962",
     "pedidos": "7fa0652c05e6b66496db76d34094e4888a7168db2124ffe68f1d3a75322b8943"
   },
   "varias_sin-bases_equivalencias": {
-    "marcado": "37675b643a99e34ec6c6e4bcaf7e9ab4146d2e7438c53ba75549319d981fdaaf",
-    "pedidos": "bb6b2c8f7a4b618c938b24c0fdf70c21c41a2f1aa6a120616191c5becd517d0e"
+    "marcado": "96a41dc366b69ade6548e83b0a2b05695ebc4f310512b209aae556938d23941e",
+    "pedidos": "d92802ba9f6daf921766b07ca9eccb3261f67407f234f19af77c7fc60f2da85f"
   }
 }
