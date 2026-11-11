@@ -182,6 +182,12 @@
   overflow-wrap: anywhere;
 }
 
+/* El nombre de un campo parte solo en sus separadores (NombreDeCampo pone el punto de corte tras "/" y
+ * "_"); a media palabra solo si un tramo entero no cabe en la celda. */
+.pulso-aplicar-campo {
+  overflow-wrap: break-word;
+}
+
 .pulso-aplicar-ficha-neutra {
   font-weight: var(--pulso-weight-semibold);
 }

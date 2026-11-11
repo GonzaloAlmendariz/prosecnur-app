@@ -19,6 +19,7 @@ import { Tags } from "../../../vendor/lucide-react";
 import { FichaDePlan } from "./FichaDePlan";
 import { codigosDeDetalle, etiquetaDePregunta, ROTULO_DE_ORIGEN, tipoDeFicha } from "./modeloAplicar";
 import { PanelAplicar } from "./PanelAplicar";
+import { NombreDeCampo } from "./NombreDeCampo";
 
 export function DetalleAplicar({ id, pregunta }: { id: string; pregunta: PlanPregunta }) {
   const codigos = codigosDeDetalle(pregunta);
@@ -36,7 +37,7 @@ export function DetalleAplicar({ id, pregunta }: { id: string; pregunta: PlanPre
         {campo ? (
           <p className="pulso-aplicar-detalle-campo">
             <span className="pulso-aplicar-rotulo">{pregunta.tipo === "select_multiple" ? "Campos nuevos" : "Campo nuevo"}</span>
-            <code className="pulso-aplicar-campo">{campo}</code>
+            <NombreDeCampo className="pulso-aplicar-campo" nombre={campo} />
           </p>
         ) : null}
       </div>

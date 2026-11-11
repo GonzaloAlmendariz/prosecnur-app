@@ -23,7 +23,8 @@ const PREGUNTAS: PlanPregunta[] = [
   pregunta({ parent: "p5", parent_label: "Sector", tipo: "agrupacion", modo_so: "", nueva_variable: "p5_agrup", n_codigos_nuevos: 3, n_respuestas_afectadas: 90 }),
 ];
 
-const texto = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+// `<wbr>` es un punto de corte dentro de un nombre de campo, no un espacio: se quita antes de leer el texto.
+const texto = (html: string) => html.replace(/<wbr\/?>/g, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 const filas = (html: string) => html.split('<li class="pulso-aplicar-fila"').slice(1);
 const pintar = (preguntas: PlanPregunta[], elegida: string | null) =>
   renderToStaticMarkup(<ListaAplicar preguntas={preguntas} elegida={elegida} onElegir={() => undefined} idDeDetalle="detalle-1" />);

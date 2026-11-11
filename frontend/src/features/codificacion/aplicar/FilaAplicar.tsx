@@ -9,6 +9,7 @@ import type { KeyboardEvent } from "react";
 
 import { FichaDePlan } from "./FichaDePlan";
 import type { FilaDeAplicar } from "./modeloAplicar";
+import { NombreDeCampo } from "./NombreDeCampo";
 
 type Props = {
   fila: FilaDeAplicar;
@@ -36,7 +37,7 @@ export function FilaAplicar({ fila, elegida, onElegir, onTecla }: Props) {
         {fila.campo ? (
           <>
             <span className="pulso-aplicar-rotulo">{fila.variosCampos ? "Campos nuevos" : "Campo nuevo"}</span>
-            <code className="pulso-aplicar-campo">{fila.campo}</code>
+            <NombreDeCampo className="pulso-aplicar-campo" nombre={fila.campo} />
           </>
         ) : null}
       </div>
