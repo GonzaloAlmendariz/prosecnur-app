@@ -1,866 +1,458 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties } from "react";
-import {
-  CheckSquare,
-  ChevronDown,
-  Inbox,
-  Layers,
-  ListChecks,
-  ListPlus,
-  Plus,
-  Search,
-  Tags,
-  Square,
-  Target,
-} from "lucide-react";
-import {
-  apiCodifGrupos,
-  apiCodifRespuestas,
-  Grupo,
-  type MarcaPrevia,
-  RespuestaUnica,
-} from "../../api/client";
+// Codificar, la mesa de una pregunta (etapa P3c del rediseño de Procesamiento).
+//
+// Este archivo compone: una cabecera de una fila (cifras y herramientas) y dos paneles que llegan al pie,
+// las respuestas a la izquierda (en tarjetas o en tabla) y los códigos a la derecha. Las piezas, los
+// modelos y la hoja viven en `codificar/`; la tabla, en `tabla/`. Aquí se decide qué le pasa a los
+// códigos con cada gesto y todo cambio pasa por `mesa.cambiar`, que lo guarda y lo deja deshacer.
+
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
+import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from "@dnd-kit/core";
+import type { Grupo } from "../../api/client";
 import type { ModuloSugerible, PropuestaModulo } from "../../api/codificacion";
-import { LoadingBlock, ErrorBlock } from "../../components/States";
-import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
-import { GrupoCodificacionCard } from "./GrupoCodificacionCard";
-import { cleanCodificacionLabel, displayCodificacionValueLabel, displayRespuestaLabel } from "./codificacionLabels";
-import { grupoAccentColor } from "./codificacionGrupoColor";
-import { avisoMarcaPrevia } from "./marcasPrevias";
+import { Alert } from "../../components/Alert";
+import { Panel } from "../../components/Panel";
+import { PulsoButton } from "../../components/PulsoButton";
+import { ErrorBlock } from "../../components/States";
 import { formatoConteo } from "../../lib/formatoNumero";
-import { EstadoVacio } from "../../components/EstadoVacio";
+import { conModificador } from "../../lib/teclado";
+import { avanceDeRespuestas } from "./avanceRespuestas";
+import { ESTILO_DE_LA_CAPA_DEL_FANTASMA, anunciosDeRespuestas, fantasmaDentroDeLaVentana } from "./codificar/arrastreDeRespuestas";
+import { asignarVarias, crearCodigoCon, destinoDeSuelta, quitarUltimoCodigo, siguienteCodigo } from "./codificar/asignacionEnLote";
+import { BarraDeCodificar } from "./codificar/BarraDeCodificar";
+import { CargaDeCodificar } from "./codificar/CargaDeCodificar";
+import { FantasmaRespuestas } from "./codificar/FantasmaRespuestas";
+import { claveDeArrastre } from "./codificar/FilaRespuesta";
+import { FiltroDeRespuestas } from "./codificar/FiltroDeRespuestas";
+import { useFiltroRespuestas } from "./codificar/filtroRespuestasStore";
+import { ListaRespuestas } from "./codificar/ListaRespuestas";
+import { avisosDelLote, buscarRespuestas, cifrasDeCasos, filasDeRespuestas, filtrarPorCodigo, tarjetasDeCodigos } from "./codificar/modeloDeCodificar";
+import { BotonModuloSugerido, propuestasPorConfirmar } from "./codificar/ModuloSugerido";
+import { PanelCodigos } from "./codificar/PanelCodigos";
+import {
+  SELECCION_VACIA,
+  reconciliarSeleccion,
+  respuestasLevantadas,
+  seleccionar,
+  seleccionarTodo,
+  seleccionTrasAsignar,
+  soltarSeleccion,
+} from "./codificar/seleccionRespuestas";
+import { SinRespuestas, type MotivoSinRespuestas } from "./codificar/SinRespuestas";
+import { useGruposDeCodificacion } from "./codificar/useGruposDeCodificacion";
+import "./codificar/codificar.css";
+import { clavesNoRespuesta, separarNoRespuestas } from "./noRespuestas";
+import "./noRespuestas.css";
+import { PalabrasBoton, PalabrasPanel } from "./PalabrasPanel";
+import { colisionDePreguntas } from "./preguntas/arrastre";
 import { SugerenciaModuloFila } from "./SugerenciaModuloFila";
 import { SugerenciasModuloBanda, type UltimaConfirmacion } from "./SugerenciasModuloBanda";
 import {
   confirmarSugerencias,
   deshacerConfirmacion,
-  podarCasosSugeridos,
   quitarSugerencia,
   rotuloDePropuesta,
   sugerenciasPorRespuesta,
   type EntradaSugerida,
   type RegistroConfirmacion,
 } from "./sugerenciasModulo";
-import { useSugerenciasModulo } from "./useSugerenciasModulo";
-import { PalabrasBoton, PalabrasPanel } from "./PalabrasPanel";
-import { avanceDeRespuestas } from "./avanceRespuestas";
-import { clavesNoRespuesta, separarNoRespuestas } from "./noRespuestas";
-import "./noRespuestas.css";
-import { asignarCodigo, quitarCodigo } from "./tabla/asignacionCodigos";
+import { quitarCodigo } from "./tabla/asignacionCodigos";
 import { BuscadorRespuestas } from "./tabla/BuscadorRespuestas";
-import { ConmutadorVista } from "./tabla/ConmutadorVista";
 import { TablaCodificar } from "./tabla/TablaCodificar";
+import { codigosDeTabla } from "./tabla/tablaCodificarModelo";
 import { useVistaCodificar } from "./tabla/vistaCodificarStore";
-
-// Estilo inline que expone el color de acento del grupo como custom property
-// para que el CSS lo mezcle con las superficies (color-mix) y adapte a claro/
-// oscuro. Casteo a CSSProperties porque las custom props no están tipadas.
-function accentStyle(accent: string): CSSProperties {
-  return { "--cv2-chip-accent": accent } as CSSProperties;
-}
-
-function truncateChip(s: string, n: number): string {
-  if (!s) return "";
-  return s.length > n ? `${s.slice(0, n - 1)}…` : s;
-}
-
-// Chips de color de las categorías a las que pertenece una respuesta. En
-// select_multiple una respuesta puede aparecer en varias — cada chip lleva el
-// color del grupo, así se ve de un vistazo la multi-pertenencia.
-function GrupoMembershipChips({ grupos }: { grupos: Grupo[] }) {
-  return (
-    <span className="pulso-cv2-memberships">
-      {grupos.map((g) => {
-        const d = displayCodificacionValueLabel(g.codigo, g.etiqueta);
-        const accent = grupoAccentColor(g.codigo, g.id);
-        const full = d.code ? `${d.code}. ${d.label}` : d.label;
-        const primary = truncateChip(d.label || d.code || "sin nombre", 16);
-        return (
-          <span
-            key={g.id}
-            className="pulso-cv2-member-chip"
-            style={accentStyle(accent)}
-            title={full}
-          >
-            <span className="pulso-cv2-member-dot" aria-hidden="true" />
-            <span className="pulso-cv2-member-code">{primary}</span>
-          </span>
-        );
-      })}
-    </span>
-  );
-}
-
-type SaveStatus = "idle" | "dirty" | "saving" | "saved" | "error";
-type StatTone = "neutral" | "success" | "warn" | "info" | "muted";
+import { useSugerenciasModulo } from "./useSugerenciasModulo";
 
 type Props = {
   parent: string;
 };
 
-export function RespuestasCodificador({ parent }: Props) {
-  const [respuestas, setRespuestas] = useState<RespuestaUnica[] | null>(null);
-  const [grupos, setGrupos] = useState<Grupo[]>([]);
-  const [error, setError] = useState<string>("");
-  const [query, setQuery] = useState<string>("");
-  const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
-  const [tipo, setTipo] = useState<string>("");
-  const [smOtros, setSmOtros] = useState<{ dummy_col: string; n_otros_marcados: number } | null>(null);
-  const [liveMsg, setLiveMsg] = useState("");
-  // TXT-3: la columna que se codifica (para pedir la propuesta de módulo) y la última confirmación masiva (deshacer).
-  const [colEfectiva, setColEfectiva] = useState("");
-  const [ultimaMasiva, setUltimaMasiva] = useState<{ registro: RegistroConfirmacion; aviso: UltimaConfirmacion } | null>(null);
+const SIN_RESPUESTAS: never[] = [];
 
-  // Tarjetas o tabla: se recuerda entre preguntas (este componente se vuelve a montar con cada una).
+export function RespuestasCodificador({ parent }: Props) {
+  const [liveMsg, setLiveMsg] = useState("");
+  const anunciar = useCallback((mensaje: string) => {
+    setLiveMsg(mensaje);
+    window.setTimeout(() => setLiveMsg(""), 1200);
+  }, []);
+  const mesa = useGruposDeCodificacion(parent, anunciar);
+  const { carga, grupos } = mesa;
+  const respuestas = carga?.respuestas ?? null;
+  const tipo = carga?.tipo ?? "";
+  const colEfectiva = carga?.colEfectiva ?? "";
+  // La única regla de cuándo una respuesta admite varios códigos: una múltiple con su opción "Otros".
+  const esSM = tipo === "select_multiple" && !!carga?.smOtros;
+
+  // Tarjetas o tabla, y todas o por codificar: se recuerdan entre preguntas (este componente se vuelve a montar con cada una).
   const vista = useVistaCodificar((s) => s.vista);
   const elegirVista = useVistaCodificar((s) => s.elegirVista);
+  const filtro = useFiltroRespuestas((s) => s.filtro);
+  const elegirFiltro = useFiltroRespuestas((s) => s.elegirFiltro);
 
-  const skipNextSave = useRef(true);
-  const saveTimer = useRef<number | null>(null);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const r = await apiCodifRespuestas(parent);
-        skipNextSave.current = true;
-        setRespuestas(r.respuestas);
-        // Merge: siempre mostrar las opciones del choice list (existentes)
-        // como grupos. Si ya hay un grupo persistido para ese código con
-        // origen="existente", usa ese (mantiene respuestas asignadas). Si
-        // no, agregar vacío. Luego agregar los grupos persistidos con
-        // origen="nuevo" después.
-        const persistidos = r.grupos ?? [];
-        const existentes = r.opciones_existentes ?? [];
-        const persistByCode = new Map(persistidos.map((g) => [g.codigo, g]));
-        const merged: Grupo[] = [];
-        // 1. Opciones existentes (preservando respuestas si ya había persistido)
-        for (const o of existentes) {
-          const prior = persistByCode.get(o.codigo);
-          const etiqueta = cleanCodificacionLabel(o.etiqueta || o.codigo);
-          if (prior && prior.origen !== "nuevo") {
-            merged.push({ ...prior, origen: "existente", etiqueta });
-            persistByCode.delete(o.codigo);
-          } else {
-            merged.push({
-              id: `ex_${o.codigo}`,
-              codigo: o.codigo,
-              etiqueta,
-              respuestas: prior?.respuestas ?? [],
-              origen: "existente",
-            });
-            if (prior) persistByCode.delete(o.codigo);
-          }
-        }
-        // 2. Grupos nuevos (todo lo que queda en persistidos)
-        for (const g of persistByCode.values()) {
-          merged.push({ ...g, origen: g.origen ?? "nuevo" });
-        }
-        setGrupos(merged);
-        setTipo(r.tipo);
-        setColEfectiva(r.col_efectiva || parent);
-        setSmOtros(r.sm_otros ?? null);
-        setSaveStatus("idle");
-      } catch (e) {
-        setError((e as Error).message);
-      }
-    })();
-  }, [parent]);
-
-  // Autosave 2s after any change
-  useEffect(() => {
-    if (!respuestas) return;
-    if (skipNextSave.current) { skipNextSave.current = false; return; }
-    setSaveStatus("dirty");
-    if (saveTimer.current) window.clearTimeout(saveTimer.current);
-    saveTimer.current = window.setTimeout(async () => {
-      setSaveStatus("saving");
-      try {
-        // Un caso confirmado desde una sugerencia cuya respuesta ya salió del grupo deja de valer (sugerenciasModulo.ts).
-        await apiCodifGrupos(parent, podarCasosSugeridos(grupos));
-        setSaveStatus("saved");
-        announce("Cambios guardados.");
-      } catch (e) {
-        setSaveStatus("error");
-        setError((e as Error).message);
-        announce("No se pudo guardar la codificación.");
-      }
-    }, 2000);
-    return () => { if (saveTimer.current) window.clearTimeout(saveTimer.current); };
-  }, [grupos, parent, respuestas]);
-
-  const esSM = tipo === "select_multiple" && !!smOtros;
-
-  // TXT-3: el módulo del formulario que se propone para cada comentario. Sólo en texto abierto y sólo como propuesta.
-  // TXT-6/7: guardar el diccionario de la pregunta (panel «Palabras») vuelve a pedir la propuesta.
-  const [versionDiccionario, setVersionDiccionario] = useState(0);
-  const alGuardarDiccionario = useCallback(() => setVersionDiccionario((v) => v + 1), []);
-  const sugerencias = useSugerenciasModulo(colEfectiva, tipo === "text" && !!respuestas, versionDiccionario);
+  const [query, setQuery] = useState("");
+  const [seleccionElegida, setSeleccion] = useState(SELECCION_VACIA);
+  // Las respuestas que se arrastran, y las que esperan el nombre del código nuevo (`null` con el formulario cerrado).
+  const [lote, setLote] = useState<{ levantadas: string[]; paraNuevo: string[] | null }>({ levantadas: [], paraNuevo: null });
+  // TXT-3: la propuesta de módulo (solo texto abierto), su fila a pedido y la última confirmación por módulo.
+  const [modulo, setModulo] = useState<{ abierto: boolean; version: number; ultima: { registro: RegistroConfirmacion; aviso: UltimaConfirmacion } | null }>({
+    abierto: false,
+    version: 0,
+    ultima: null,
+  });
+  const idModulo = `${useId()}-modulo`;
+  // TXT-6/7: guardar el diccionario de la pregunta (panel "Palabras") vuelve a pedir la propuesta.
+  const alGuardarDiccionario = useCallback(() => setModulo((m) => ({ ...m, version: m.version + 1 })), []);
+  const sugerencias = useSugerenciasModulo(colEfectiva, tipo === "text" && !!respuestas, modulo.version);
   const mapaSugerencias = useMemo(
     () => (sugerencias.fase === "lista" && respuestas ? sugerenciasPorRespuesta(sugerencias.datos, respuestas) : new Map<string, EntradaSugerida>()),
     [sugerencias, respuestas],
   );
 
-  // Reverse map: texto_normalizado → grupos. En recodificación de
-  // select_multiple una misma respuesta puede aportar a más de una categoría.
-  const asignaciones = useMemo(() => {
-    const m = new Map<string, Grupo[]>();
-    for (const g of grupos) {
-      for (const t of g.respuestas) {
-        const current = m.get(t) ?? [];
-        if (!current.some((x) => x.id === g.id)) current.push(g);
-        m.set(t, current);
-      }
-    }
-    return m;
-  }, [grupos]);
-
-  const asignacion = useMemo(() => {
-    const m = new Map<string, Grupo>();
-    for (const [t, gs] of asignaciones) {
-      if (gs[0]) m.set(t, gs[0]);
-    }
-    return m;
-  }, [asignaciones]);
-
-  const activeGroup = grupos.find((g) => g.id === activeGroupId) ?? null;
-
-  // Filtered respuestas list
-  const visibleRespuestas = useMemo(() => {
-    if (!respuestas) return [];
-    const q = query.trim().toLowerCase();
-    return respuestas.filter((r) => {
-      if (!q) return true;
-      return r.texto.toLowerCase().includes(q) || r.texto_normalizado.includes(q);
-    });
-  }, [respuestas, query]);
-
-  // TXT-12: las no respuestas («No», «.», «Ninguno»…) van aparte y al final, con el criterio del backend.
+  // Las respuestas a la vista: lo buscado, lo que falta si así se pidió, y las no respuestas al final (TXT-12).
   const tramos = useMemo(() => {
-    const claves = sugerencias.fase === "lista" && respuestas ? clavesNoRespuesta(sugerencias.datos, respuestas) : new Set<string>();
-    return separarNoRespuestas(visibleRespuestas, claves);
-  }, [sugerencias, respuestas, visibleRespuestas]);
+    const todas = respuestas ?? SIN_RESPUESTAS;
+    const visibles = filtrarPorCodigo(buscarRespuestas(todas, query), grupos, filtro);
+    const claves = sugerencias.fase === "lista" ? clavesNoRespuesta(sugerencias.datos, todas) : new Set<string>();
+    return separarNoRespuestas(visibles, claves);
+  }, [respuestas, query, grupos, filtro, sugerencias]);
 
-  // Codificadas y pendientes salen de la misma lista (regla en avanceRespuestas.ts): un código guardado
+  // Con código y pendientes salen de la misma lista (regla en avanceRespuestas.ts): un código guardado
   // para un texto que la base ya no trae no cuenta.
   const avance = useMemo(() => avanceDeRespuestas(respuestas, grupos), [respuestas, grupos]);
-  const codificadas = avance.codificadas;
-  const pendientes = avance.pendientes;
+  const casos = useMemo(
+    () => (esSM && respuestas ? cifrasDeCasos(respuestas, grupos, carga?.smOtros?.n_otros_marcados) : []),
+    [esSM, respuestas, grupos, carga],
+  );
+  const codigos = useMemo(() => codigosDeTabla(grupos, respuestas ?? SIN_RESPUESTAS), [grupos, respuestas]);
+  // La base de la barra de proporción de cada código: los casos que escribieron algo en la pregunta.
+  const casosConTexto = useMemo(() => (respuestas ?? SIN_RESPUESTAS).reduce((suma, r) => suma + (r.frecuencia ?? 0), 0), [respuestas]);
+  const filas = useMemo(() => filasDeRespuestas(tramos, grupos, codigos), [tramos, grupos, codigos]);
+  const tarjetas = useMemo(() => tarjetasDeCodigos(grupos, respuestas ?? SIN_RESPUESTAS), [grupos, respuestas]);
+  const orden = useMemo(() => filas.map((f) => f.clave), [filas]);
+  const seleccion = useMemo(() => reconciliarSeleccion(seleccionElegida, orden), [seleccionElegida, orden]);
+  const enJuego = lote.levantadas.length ? lote.levantadas : seleccion.claves;
+  const avisos = useMemo(() => avisosDelLote(codigos, respuestas ?? SIN_RESPUESTAS, enJuego), [codigos, respuestas, enJuego]);
 
-  // Para el counter de SM "Otros": conteos en términos de CASOS reales
-  // (no textos únicos). Cada `respuesta.frecuencia` = filas que tienen
-  // ese texto. codificadas = casos con texto libre que ya caen en algún
-  // grupo. `smOtros.n_otros_marcados` viene del backend con el conteo
-  // de filas donde el dummy de Otros está en 1.
-  const totalTextoFrecuencia = useMemo(() => {
-    return (respuestas ?? []).reduce((s, r) => s + (r.frecuencia ?? 0), 0);
-  }, [respuestas]);
-  const casosCodificados = useMemo(() => {
-    let n = 0;
-    for (const [norm] of asignaciones) {
-      const r = (respuestas ?? []).find((x) => x.texto_normalizado === norm);
-      if (r) n += r.frecuencia ?? 0;
+  const sensores = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+  const rotuloDeCodigo = (grupoId: string) => codigos.find((c) => c.id === grupoId)?.rotulo ?? "";
+  const anuncios = anunciosDeRespuestas(
+    (zona) => {
+      const destino = destinoDeSuelta(zona);
+      return destino?.tipo === "codigo" ? `el código ${rotuloDeCodigo(destino.grupoId)}` : "un código nuevo";
+    },
+    () => lote.levantadas.length,
+  );
+
+  // Cmd o Ctrl y Z deshace el último paso, esté donde esté el foco; un campo de texto o un diálogo abierto
+  // deshacen lo suyo. (El selector busca diálogos, no dibuja uno: va sin comillas para no contarse como tal.)
+  const deshacer = mesa.deshacer;
+  useEffect(() => {
+    function alTeclear(evento: KeyboardEvent) {
+      if (!conModificador(evento) || evento.shiftKey || evento.altKey || evento.key.toLowerCase() !== "z") return;
+      const origen = evento.target instanceof HTMLElement ? evento.target : null;
+      if (origen && (origen.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(origen.tagName) || origen.closest("[role=dialog]"))) return;
+      if (deshacer()) evento.preventDefault();
     }
-    return n;
-  }, [asignaciones, respuestas]);
-  const casosPendientesOtros = (smOtros?.n_otros_marcados ?? 0) - casosCodificados;
+    window.addEventListener("keydown", alTeclear);
+    return () => window.removeEventListener("keydown", alTeclear);
+  }, [deshacer]);
 
-  function nextCodigo(): string {
-    // Los códigos ≥ 70 son convenciones (Otros=70, No sabe=88, No aplica=99,
-    // etc.). Al crear un grupo nuevo queremos el siguiente entero "real" de
-    // la lista, no saltar a 71 solo porque ya existe un 70. Si no hay
-    // códigos < 70, caemos a max+1 (caso raro donde toda la lista es
-    // convencional).
-    const nums = grupos.map((g) => parseInt(g.codigo, 10)).filter((n) => !Number.isNaN(n));
-    if (nums.length === 0) return "1";
-    const realCodes = nums.filter((n) => n < 70);
-    if (realCodes.length > 0) return String(Math.max(...realCodes) + 1);
-    return String(Math.max(...nums) + 1);
+  function textoDe(clave: string): string {
+    return filas.find((f) => f.clave === clave)?.texto ?? tarjetas.flatMap((t) => t.respuestas).find((r) => r.clave === clave)?.texto ?? clave;
   }
-
-  function announce(message: string) {
-    setLiveMsg(message);
-    window.setTimeout(() => setLiveMsg(""), 1200);
-  }
-
-  function respuestaLabel(texto_normalizado: string): string {
-    const found = respuestas?.find((r) => r.texto_normalizado === texto_normalizado);
-    return found ? displayRespuestaLabel(found.texto, found.label).label : texto_normalizado;
-  }
-
-  function grupoLabel(grupo: Grupo): string {
-    const display = displayCodificacionValueLabel(grupo.codigo, grupo.etiqueta);
-    if (display.code) return `${display.code}. ${display.label}`;
-    return display.label || `grupo ${grupo.codigo}`;
-  }
-
-  function grupoTieneRespuesta(grupo: Grupo, texto_normalizado: string): boolean {
-    return grupo.respuestas.includes(texto_normalizado);
-  }
-
-  function addGroup() {
-    const id = `g_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-    const codigo = nextCodigo();
-    const etiqueta = "";
-    const nuevo: Grupo = { id, codigo, etiqueta, respuestas: [], origen: "nuevo" };
-    setGrupos((gs) => [...gs, nuevo]);
-    setActiveGroupId(id);
-    announce(`Grupo ${codigo} creado y seleccionado.`);
-  }
-
-  function updateGroup(id: string, patch: Partial<Grupo>) {
-    setGrupos((gs) => gs.map((g) => (g.id === id ? { ...g, ...patch } : g)));
-  }
-
-  function deleteGroup(id: string) {
-    setGrupos((gs) => gs.filter((g) => g.id !== id));
-    if (activeGroupId === id) setActiveGroupId(null);
-  }
-
-  // Reordena grupos ↑/↓. El autosave de grupos recoge el cambio automático;
-  // el orden se persiste y se usa downstream (p.ej. integer usa el orden
-  // como precedencia first-match-wins de las reglas).
-  function moveGroup(id: string, direction: "up" | "down") {
-    setGrupos((gs) => {
-      const i = gs.findIndex((g) => g.id === id);
-      if (i < 0) return gs;
-      const j = direction === "up" ? i - 1 : i + 1;
-      if (j < 0 || j >= gs.length) return gs;
-      const next = [...gs];
-      [next[i], next[j]] = [next[j], next[i]];
-      return next;
-    });
-  }
-
-  function toggleRespuesta(texto_normalizado: string) {
-    if (esSM && activeGroup) {
-      const alreadyInActive = grupoTieneRespuesta(activeGroup, texto_normalizado);
-      updateGroup(activeGroup.id, {
-        respuestas: alreadyInActive
-          ? activeGroup.respuestas.filter((r) => r !== texto_normalizado)
-          : [...activeGroup.respuestas, texto_normalizado],
-      });
-      announce(
-        `"${respuestaLabel(texto_normalizado)}" ${alreadyInActive ? "quitada de" : "asignada a"} ${grupoLabel(activeGroup)}.`,
-      );
-      return;
-    }
-
-    const current = asignacion.get(texto_normalizado);
-    if (current) {
-      // Quitar de su grupo actual
-      updateGroup(current.id, {
-        respuestas: current.respuestas.filter((r) => r !== texto_normalizado),
-      });
-      announce(`"${respuestaLabel(texto_normalizado)}" quitada de ${grupoLabel(current)}.`);
-      return;
-    }
-    // Agregar al grupo activo (o crear uno)
-    if (!activeGroupId || !activeGroup) {
-      const id = `g_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-      const codigo = nextCodigo();
-      const nuevo: Grupo = { id, codigo, etiqueta: "", respuestas: [texto_normalizado], origen: "nuevo" };
-      setGrupos((gs) => [...gs, nuevo]);
-      setActiveGroupId(id);
-      announce(`"${respuestaLabel(texto_normalizado)}" asignada al nuevo grupo ${codigo}.`);
-      return;
-    }
-    updateGroup(activeGroup.id, {
-      respuestas: [...activeGroup.respuestas, texto_normalizado],
-    });
-    announce(`"${respuestaLabel(texto_normalizado)}" asignada a ${grupoLabel(activeGroup)}.`);
+  /** `"Iglesia"` para una respuesta, `3 respuestas` para varias. */
+  function nombreDelLote(claves: readonly string[]): string {
+    return claves.length === 1 ? `"${textoDe(claves[0])}"` : `${formatoConteo(claves.length)} respuestas`;
   }
 
   // Con `esSM` el código se suma; sin él, la respuesta sale de donde esté (regla en tabla/asignacionCodigos.ts).
-  function moveToGroup(texto_normalizado: string, targetGroupId: string) {
-    const target = grupos.find((g) => g.id === targetGroupId);
-    setGrupos((gs) => asignarCodigo(gs, texto_normalizado, targetGroupId, esSM));
-    if (target) announce(`"${respuestaLabel(texto_normalizado)}" ${esSM ? "asignada también a" : "movida a"} ${grupoLabel(target)}.`);
+  function asignar(claves: readonly string[], grupoId: string, despues: "siguiente" | "quedarse" | "soltar") {
+    const rotulo = rotuloDeCodigo(grupoId);
+    if (!rotulo || claves.length === 0) return;
+    const paso = `${nombreDelLote(claves)} ${claves.length === 1 ? "asignada" : "asignadas"} al código ${rotulo}`;
+    const resultado = mesa.cambiar((gs) => asignarVarias(gs, claves, grupoId, esSM), paso);
+    anunciar(`${paso}.`);
+    if (despues === "soltar") setSeleccion((s) => soltarSeleccion(s));
+    else if (despues === "siguiente") {
+      const asignadas = new Set(resultado.flatMap((g) => g.respuestas));
+      setSeleccion(seleccionTrasAsignar(claves, orden, (clave) => asignadas.has(clave)));
+    }
   }
 
-  // Vista de tabla: quitar un código de una respuesta, y crear un código con lo escrito y asignárselo.
-  function quitarDeGrupo(texto_normalizado: string, groupId: string) {
-    const g = grupos.find((x) => x.id === groupId);
-    setGrupos((gs) => quitarCodigo(gs, texto_normalizado, groupId));
-    if (g) announce(`"${respuestaLabel(texto_normalizado)}" quitada de ${grupoLabel(g)}.`);
+  function quitarDeCodigo(clave: string, grupoId: string) {
+    const paso = `"${textoDe(clave)}" sin el código ${rotuloDeCodigo(grupoId)}`;
+    mesa.cambiar((gs) => quitarCodigo(gs, clave, grupoId), paso);
+    anunciar(`${paso}.`);
   }
 
-  function crearGrupoCon(texto_normalizado: string, etiqueta: string) {
-    const nuevo: Grupo = { id: `g_${Date.now()}_${Math.floor(Math.random() * 1000)}`, codigo: nextCodigo(), etiqueta, respuestas: [], origen: "nuevo" };
-    setGrupos((gs) => asignarCodigo([...gs, nuevo], texto_normalizado, nuevo.id, esSM));
-    announce(`"${respuestaLabel(texto_normalizado)}" asignada al nuevo grupo ${grupoLabel(nuevo)}.`);
+  function quitarUltimo(claves: readonly string[]) {
+    const paso = `código quitado a ${nombreDelLote(claves)}`;
+    mesa.cambiar((gs) => quitarUltimoCodigo(gs, claves), paso);
+    anunciar(`Se quitó el código a ${nombreDelLote(claves)}.`);
   }
 
-  // Multi-select real (SM): togglea la pertenencia de una respuesta en UN grupo
-  // sin tocar los demás, de modo que la misma respuesta puede quedar marcada en
-  // varias categorías a la vez.
-  function toggleRespuestaEnGrupo(texto_normalizado: string, groupId: string) {
-    const g = grupos.find((x) => x.id === groupId);
-    if (!g) return;
-    const has = g.respuestas.includes(texto_normalizado);
-    updateGroup(groupId, {
-      respuestas: has
-        ? g.respuestas.filter((r) => r !== texto_normalizado)
-        : [...g.respuestas, texto_normalizado],
-    });
-    announce(
-      `"${respuestaLabel(texto_normalizado)}" ${has ? "quitada de" : "asignada también a"} ${grupoLabel(g)}.`,
-    );
+  function crearCon(claves: readonly string[], nombre: string, despues: "siguiente" | "quedarse" | "soltar") {
+    const id = `g_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    const numero = siguienteCodigo(grupos);
+    const paso = claves.length ? `código ${numero}. ${nombre} creado con ${nombreDelLote(claves)}` : `código ${numero}. ${nombre} creado`;
+    const resultado = mesa.cambiar((gs) => crearCodigoCon(gs, claves, nombre, esSM, id).grupos, paso);
+    anunciar(`Se creó el código ${numero}. ${nombre}.`);
+    setLote((l) => ({ ...l, paraNuevo: null }));
+    if (despues === "soltar") setSeleccion((s) => soltarSeleccion(s));
+    else if (despues === "siguiente" && claves.length) {
+      const asignadas = new Set(resultado.flatMap((g) => g.respuestas));
+      setSeleccion(seleccionTrasAsignar(claves, orden, (clave) => asignadas.has(clave)));
+    }
+  }
+
+  function cambiarGrupo(id: string, cambio: Partial<Grupo>) {
+    mesa.cambiar((gs) => gs.map((g) => (g.id === id ? { ...g, ...cambio } : g)), "código editado");
+  }
+
+  function eliminarGrupo(id: string) {
+    const rotulo = rotuloDeCodigo(id);
+    mesa.cambiar((gs) => gs.filter((g) => g.id !== id), `código ${rotulo} eliminado`);
+    anunciar(`Se eliminó el código ${rotulo}.`);
+  }
+
+  // El orden se guarda y es el del archivo de salida.
+  function moverGrupo(id: string, hacia: "arriba" | "abajo") {
+    mesa.cambiar((gs) => {
+      const i = gs.findIndex((g) => g.id === id);
+      const j = hacia === "arriba" ? i - 1 : i + 1;
+      if (i < 0 || j < 0 || j >= gs.length) return gs;
+      const lista = [...gs];
+      [lista[i], lista[j]] = [lista[j], lista[i]];
+      return lista;
+    }, "código movido");
   }
 
   function confirmarPropuesta(entrada: EntradaSugerida, p: PropuestaModulo) {
     const r = rotuloDePropuesta(p);
-    setGrupos(confirmarSugerencias(grupos, { codigo: p.codigo, etiqueta: r.grupo }, [entrada]).grupos);
-    announce(`"${respuestaLabel(entrada.clave)}" confirmada en ${r.corto}.`);
+    const paso = `"${textoDe(entrada.clave)}" confirmada en ${r.corto}`;
+    mesa.cambiar((gs) => confirmarSugerencias(gs, { codigo: p.codigo, etiqueta: r.grupo }, [entrada]).grupos, paso);
+    anunciar(`${paso}.`);
   }
 
   function quitarPropuesta(entrada: EntradaSugerida, p: PropuestaModulo) {
     const r = rotuloDePropuesta(p);
-    setGrupos(quitarSugerencia(grupos, p.codigo, entrada.clave));
-    announce(`"${respuestaLabel(entrada.clave)}" quitada de ${r.corto}.`);
+    const paso = `"${textoDe(entrada.clave)}" quitada de ${r.corto}`;
+    mesa.cambiar((gs) => quitarSugerencia(gs, p.codigo, entrada.clave), paso);
+    anunciar(`${paso}.`);
   }
 
   function confirmarModulo(m: ModuloSugerible, entradas: EntradaSugerida[]) {
     if (!entradas.length) return;
     const r = rotuloDePropuesta(m);
-    const out = confirmarSugerencias(grupos, { codigo: m.codigo, etiqueta: r.grupo }, entradas);
-    setGrupos(out.grupos);
-    setUltimaMasiva({ registro: out.registro, aviso: { modulo: r.corto, n: entradas.length } });
-    announce(`${entradas.length === 1 ? "Se confirmó 1 respuesta" : `Se confirmaron ${formatoConteo(entradas.length)} respuestas`} en ${r.corto}.`);
+    const cuantas = entradas.length === 1 ? "1 respuesta" : `${formatoConteo(entradas.length)} respuestas`;
+    const salida = confirmarSugerencias(grupos, { codigo: m.codigo, etiqueta: r.grupo }, entradas);
+    mesa.cambiar(() => salida.grupos, `${cuantas} confirmadas en ${r.corto}`);
+    setModulo((actual) => ({ ...actual, ultima: { registro: salida.registro, aviso: { modulo: r.corto, n: entradas.length } } }));
+    anunciar(`${entradas.length === 1 ? "Se confirmó 1 respuesta" : `Se confirmaron ${formatoConteo(entradas.length)} respuestas`} en ${r.corto}.`);
   }
 
   function deshacerMasiva() {
-    if (!ultimaMasiva) return;
-    setGrupos(deshacerConfirmacion(grupos, ultimaMasiva.registro));
-    announce(`Se deshizo la confirmación en ${ultimaMasiva.aviso.modulo}.`);
-    setUltimaMasiva(null);
+    const ultima = modulo.ultima;
+    if (!ultima) return;
+    mesa.cambiar((gs) => deshacerConfirmacion(gs, ultima.registro), `confirmación en ${ultima.aviso.modulo} retirada`);
+    anunciar(`Se deshizo la confirmación en ${ultima.aviso.modulo}.`);
+    setModulo((actual) => ({ ...actual, ultima: null }));
   }
 
-  if (error) return <ErrorBlock label="Error cargando respuestas" detail={error} />;
-  if (!respuestas) return <LoadingBlock variant="inline" label="Cargando respuestas…" />;
-  // En texto abierto se espera también la propuesta de módulo (o su error): la mesa se monta una vez y con sus chips.
-  if (tipo === "text" && (sugerencias.fase === "cargando" || sugerencias.fase === "apagado")) return <LoadingBlock variant="inline" label="Leyendo los módulos del formulario…" />;
+  function alLevantar(evento: DragStartEvent) {
+    const clave = claveDeArrastre(evento.active.id);
+    const levantadas = respuestasLevantadas(seleccion, clave);
+    if (!seleccion.claves.includes(clave)) setSeleccion(seleccionar(seleccion, clave, "unica", orden));
+    setLote((l) => ({ ...l, levantadas }));
+  }
 
-  // Banda de KPIs: para SM el conteo es en CASOS reales (quienes marcaron
-  // "Otros"); para el resto, en textos únicos. Tonos semánticos, no el accent
-  // del módulo para todo el bloque.
-  const stats: Array<{ label: string; value: number; tone: StatTone }> = esSM
-    ? [
-        { label: "Marcaron Otros", value: smOtros!.n_otros_marcados, tone: "neutral" },
-        { label: "Con texto libre", value: totalTextoFrecuencia, tone: "info" },
-        // En casos, y lo dice el rótulo: la cabecera de la columna cuenta respuestas únicas con la palabra "codificadas".
-        { label: "Casos codificados", value: casosCodificados, tone: "success" },
-        { label: "Casos sin codificar", value: Math.max(0, casosPendientesOtros), tone: casosPendientesOtros > 0 ? "warn" : "muted" },
-      ]
-    : [
-        { label: "Respuestas", value: avance.total, tone: "neutral" },
-        { label: "Codificadas", value: codificadas, tone: codificadas > 0 ? "success" : "muted" },
-        { label: "Sin codificar", value: pendientes, tone: pendientes > 0 ? "warn" : "muted" },
-        { label: grupos.length === 1 ? "Grupo" : "Grupos", value: grupos.length, tone: "info" },
-      ];
+  function alSoltar(evento: DragEndEvent) {
+    const levantadas = respuestasLevantadas(seleccion, claveDeArrastre(evento.active.id));
+    const destino = destinoDeSuelta(evento.over?.id);
+    setLote((l) => ({ levantadas: [], paraNuevo: destino?.tipo === "nuevo" ? levantadas : l.paraNuevo }));
+    if (destino?.tipo === "codigo") asignar(levantadas, destino.grupoId, "soltar");
+  }
 
-  function filaRespuesta(r: RespuestaUnica) {
-    const gruposAsignados = asignaciones.get(r.texto_normalizado) ?? [];
-    const grupo = gruposAsignados[0];
-    const assigned = gruposAsignados.length > 0;
-    const checked = esSM && activeGroup ? activeGroup.respuestas.includes(r.texto_normalizado) : assigned;
-    const display = displayRespuestaLabel(r.texto, r.label);
-    const gruposDisponibles = grupos.filter((g) => !g.respuestas.includes(r.texto_normalizado));
-    const puedeAsignarRapidoSO = !assigned && grupos.length > 1;
-    const assignedIds = new Set(gruposAsignados.map((g) => g.id));
-    const checkboxLabel = esSM && activeGroup
-      ? `${checked ? "Quitar" : "Agregar"} "${display.label}" ${checked ? "del" : "al"} grupo activo ${grupoLabel(activeGroup)}${gruposAsignados.length > 1 ? `; en ${gruposAsignados.length} grupos` : ""}`
-      : `${checked ? "Quitar" : "Agregar"} "${display.label}" ${assigned ? `del grupo ${grupo!.etiqueta || grupo!.codigo}` : "al grupo activo"}`;
+  if (mesa.errorDeCarga) {
     return (
-      <div
-        key={r.texto_normalizado}
-        className={`pulso-cv2-resp-row${assigned ? " is-assigned" : ""}`}
-      >
-        <input
-          type="checkbox"
-          checked={checked}
-          onChange={() => toggleRespuesta(r.texto_normalizado)}
-          aria-label={checkboxLabel}
-        />
-        <div className="pulso-cv2-resp-main">
-          <div className="pulso-cv2-resp-text" title={display.title}>
-            {display.code && <code className="pulso-cv2-resp-code">{display.code}</code>}
-            {display.label}
-          </div>
-          <div className="pulso-cv2-resp-meta">
-            <span><strong>{r.frecuencia}</strong> {r.frecuencia === 1 ? "vez" : "veces"}</span>
-            {r.variantes > 1 && <span>{r.variantes} variantes</span>}
-            {assigned && <GrupoMembershipChips grupos={gruposAsignados} />}
-            {mapaSugerencias.size > 0 && (
-              <SugerenciaModuloFila
-                entrada={mapaSugerencias.get(r.texto_normalizado)}
-                grupos={grupos}
-                onConfirmar={(p) => { const e = mapaSugerencias.get(r.texto_normalizado); if (e) confirmarPropuesta(e, p); }}
-                onQuitar={(p) => { const e = mapaSugerencias.get(r.texto_normalizado); if (e) quitarPropuesta(e, p); }}
-              />
-            )}
-          </div>
-        </div>
-        {esSM
-          ? grupos.length > 0 && (
-              <QuickAssignDropdown
-                mode="multi"
-                grupos={grupos}
-                asignados={assignedIds}
-                respuesta={display.label}
-                yaMarcadas={r.ya_marcadas}
-                frecuencia={r.frecuencia}
-                onToggle={(gid) => toggleRespuestaEnGrupo(r.texto_normalizado, gid)}
-              />
-            )
-          : puedeAsignarRapidoSO && (
-              <QuickAssignDropdown
-                mode="single"
-                grupos={gruposDisponibles}
-                respuesta={display.label}
-                yaMarcadas={r.ya_marcadas}
-                frecuencia={r.frecuencia}
-                onPick={(gid) => moveToGroup(r.texto_normalizado, gid)}
-              />
-            )}
-      </div>
+      <ErrorBlock
+        label="No se pudieron cargar las respuestas"
+        detail={mesa.errorDeCarga}
+        queda="Los códigos guardados siguen como estaban"
+        acciones={<PulsoButton variant="secondary" size="sm" onClick={mesa.reintentarCarga}>Reintentar</PulsoButton>}
+      />
     );
   }
+  if (!respuestas) return <CargaDeCodificar rotulo="Cargando respuestas" />;
+  // En texto abierto se espera también la propuesta de módulo (o su error): la mesa se monta una vez y con sus chips.
+  if (tipo === "text" && (sugerencias.fase === "cargando" || sugerencias.fase === "apagado")) return <CargaDeCodificar rotulo="Leyendo los módulos del formulario" />;
+
+  const vacio: MotivoSinRespuestas | null =
+    filas.length > 0 ? null : respuestas.length === 0 ? "sin-respuestas" : query.trim() ? "sin-coincidencias" : filtro === "sin-codigo" ? "todas-con-codigo" : "sin-respuestas";
+  const verTodas = () => {
+    elegirFiltro("todas");
+    setQuery("");
+  };
+  const todasElegidas = orden.length > 0 && seleccion.claves.length === orden.length;
+  const primeraLevantada = lote.levantadas[0];
 
   return (
-    <div
-      className="pulso-codificacion-respuestas pulso-cv2-rc"
-      data-audit-ready="codificacion-codificar"
+    <DndContext
+      sensors={sensores}
+      collisionDetection={colisionDePreguntas}
+      accessibility={{ announcements: anuncios }}
+      onDragStart={alLevantar}
+      onDragEnd={alSoltar}
+      onDragCancel={() => setLote((l) => ({ ...l, levantadas: [] }))}
     >
-      {/* Toolbar: guardado + acción. La banda de KPIs va debajo, full-width. */}
-      <div className="pulso-cv2-rc-toolbar">
-        <SaveStatusIndicator state={saveStatus} variant="badge" />
-        <div className="pulso-cv2-rc-toolbar-spacer" />
-        {/* Aquí y no en la cabecera de la columna: no le quita una línea a la lista y no se mueve al cambiar de vista. */}
-        <ConmutadorVista vista={vista} onElegir={elegirVista} />
-        {tipo === "text" && colEfectiva && (
-          <>
-            <PalabrasBoton />
-            <PalabrasPanel variable={colEfectiva} onGuardado={alGuardarDiccionario} />
-          </>
-        )}
-        <button
-          type="button"
-          className="pulso-primary pulso-cv2-newgroup"
-          onClick={addGroup}
-          aria-label="Crear nuevo grupo de codificación"
+      <div className="pulso-codificacion-respuestas pulso-cv2-rc pulso-cc-mesa" data-audit-ready="codificacion-codificar">
+        <BarraDeCodificar
+          avance={avance}
+          casos={casos}
+          guardado={mesa.guardado}
+          ultimoPaso={mesa.ultimoPaso}
+          onDeshacer={deshacer}
+          vista={vista}
+          onVista={elegirVista}
         >
-          <Plus size={14} /> Nuevo grupo
-        </button>
-      </div>
-      <div className="pulso-sr-only" aria-live="polite" aria-atomic="true">
-        {liveMsg}
-      </div>
-
-      {/* Banda de KPIs (stat-row) — tonos semánticos. Para SM lleva el
-          eyebrow de la opción "Otros, especifique". */}
-      <div className={`pulso-cv2-statband${esSM ? " is-otros" : ""}`}>
-        {esSM && (
-          <div className="pulso-cv2-statband-eyebrow">
-            Opción "Otros, especifique" en <code>{parent}</code>
-          </div>
-        )}
-        <div className="pulso-cv2-statrow">
-          {stats.map((s) => (
-            <div key={s.label} className={`pulso-cv2-stat is-${s.tone}`}>
-              <span className="pulso-cv2-stat-val">{typeof s.value === "number" ? formatoConteo(s.value) : s.value}</span>
-              <span className="pulso-cv2-stat-label">{s.label}</span>
-            </div>
-          ))}
+          {tipo === "text" && sugerencias.fase === "lista" ? (
+            <BotonModuloSugerido
+              abierto={modulo.abierto}
+              controla={idModulo}
+              porConfirmar={propuestasPorConfirmar(mapaSugerencias, grupos)}
+              onAlternar={() => setModulo((m) => ({ ...m, abierto: !m.abierto }))}
+            />
+          ) : null}
+          {tipo === "text" && colEfectiva ? (
+            <>
+              <PalabrasBoton />
+              <PalabrasPanel variable={colEfectiva} onGuardado={alGuardarDiccionario} />
+            </>
+          ) : null}
+        </BarraDeCodificar>
+        <div className="pulso-sr-only" aria-live="polite" aria-atomic="true">
+          {liveMsg}
         </div>
-      </div>
 
-      {tipo === "text" && (
-        <div className="pulso-cv2-modsug-slot">
-          {sugerencias.fase === "lista" && (
+        {mesa.guardado === "error" ? (
+          <Alert kind="error" acciones={<PulsoButton variant="secondary" size="sm" onClick={mesa.reintentarGuardado}>Reintentar</PulsoButton>}>
+            No se pudo guardar la codificación: {mesa.errorDeGuardado}
+          </Alert>
+        ) : null}
+        {tipo === "text" && sugerencias.fase === "lista" && modulo.abierto ? (
+          <div id={idModulo} className="pulso-cc-modulo">
             <SugerenciasModuloBanda
               datos={sugerencias.datos}
               mapa={mapaSugerencias}
               grupos={grupos}
-              ultima={ultimaMasiva?.aviso ?? null}
+              ultima={modulo.ultima?.aviso ?? null}
               onConfirmarModulo={confirmarModulo}
               onDeshacer={deshacerMasiva}
             />
-          )}
-          {sugerencias.fase === "error" && (
-            <p className="pulso-cv2-modsug-banda-vacia" role="note">No se pudo proponer un módulo para estos comentarios: {sugerencias.mensaje}</p>
-          )}
-        </div>
-      )}
-
-      {/* Split-view origen → destino. El destino (grupos) lleva superficie de
-          acento del módulo para leerse como el lugar donde caen las respuestas. */}
-      <div className={`pulso-cv2-split${vista === "tabla" ? " pulso-ct-split" : ""}`}>
-        {/* ORIGEN — respuestas únicas */}
-        <section className="pulso-cv2-col pulso-cv2-col--origen">
-          <div className="pulso-cv2-col-head">
-            <span className="pulso-cv2-col-title">
-              Respuestas únicas
-              {esSM && (
-                <span
-                  className="pulso-cv2-multi-hint"
-                  title="Cada respuesta puede pertenecer a varias categorías a la vez"
-                  aria-label="Cada respuesta puede pertenecer a varias categorías a la vez"
-                >
-                  <Layers size={11} aria-hidden="true" /> multi
-                </span>
-              )}
-            </span>
-            <span className="pulso-cv2-col-count">
-              {formatoConteo(codificadas)} de {formatoConteo(avance.total)} codificadas
-            </span>
           </div>
-          {vista === "tabla" ? (
-            <TablaCodificar
-              pregunta={parent}
-              respuestas={respuestas}
-              tramos={tramos}
-              grupos={grupos}
-              busqueda={query}
-              onBuscar={setQuery}
-              permiteVarios={esSM}
-              onAsignar={moveToGroup}
-              onQuitar={quitarDeGrupo}
-              onCrear={crearGrupoCon}
-            />
-          ) : (
-            <>
-              <BuscadorRespuestas valor={query} onCambiar={setQuery} etiqueta={`Buscar respuestas de ${parent}`} />
-              {/* C1: filas de respuesta; su alto depende de las variantes que agrupan. */}
-              <div className="pulso-cv2-resp-list" data-qa-geometry-group="codificacion/respuestas" data-qa-geometry-contract="intrinsic">
-                {visibleRespuestas.length === 0 && (
-                  <EstadoVacio icono={<Search size={16} />} titulo="No hay respuestas que coincidan" />
-                )}
-                {tramos.conContenido.map(filaRespuesta)}
-                {tramos.noRespuestas.length > 0 && (
-                  <div className="pulso-cv2-resp-tramo" data-qa-geometry-member="no-respuestas">
-                    <span className="pulso-cv2-resp-tramo-titulo">No responden</span>
-                    <span className="pulso-cv2-resp-tramo-n">
-                      {formatoConteo(tramos.noRespuestas.length)} {tramos.noRespuestas.length === 1 ? "respuesta" : "respuestas"} como "No", "." o "Ninguno"
-                    </span>
-                  </div>
-                )}
-                {tramos.noRespuestas.map(filaRespuesta)}
-              </div>
-            </>
-          )}
-        </section>
+        ) : null}
+        {tipo === "text" && sugerencias.fase === "error" ? (
+          <p className="pulso-cv2-modsug-banda-vacia pulso-cc-nota" role="note">No se pudo proponer un módulo para estos comentarios: {sugerencias.mensaje}</p>
+        ) : null}
 
-        {/* DESTINO — grupos de codificación */}
-        <section className="pulso-cv2-col pulso-cv2-col--destino">
-          <div className="pulso-cv2-col-head">
-            <span className="pulso-cv2-col-title">
-              <Target size={13} className="pulso-cv2-col-title-icon" />
-              Grupos de codificación
-            </span>
-            <span className="pulso-cv2-col-count">
-              {grupos.length} {grupos.length === 1 ? "grupo" : "grupos"}
-            </span>
-          </div>
-          {grupos.length === 0 ? (
-            <EstadoVacio
-              tamano="compacto"
-              icono={<Inbox size={15} />}
-              titulo="Sin grupos todavía"
-              descripcion='Crea uno con "Nuevo grupo" o marca una respuesta de la izquierda.'
-            />
-          ) : (
-            <div
-              className="pulso-cv2-grupos-list pulso-codificacion-grupos-list"
-              data-qa-geometry-group="codificacion/grupos"
-              data-qa-geometry-contract="intrinsic"
-            >
-              {grupos.map((g, idx) => (
-                <GrupoCodificacionCard
-                  key={`${g.id}-${idx}`}
-                  grupo={g}
-                  respuestas={respuestas}
-                  asignacion={asignacion}
-                  active={g.id === activeGroupId}
-                  onActivate={() => setActiveGroupId(g.id)}
-                  onUpdate={(patch) => updateGroup(g.id, patch)}
-                  onDelete={() => deleteGroup(g.id)}
-                  onRemoveRespuesta={(t) => updateGroup(g.id, { respuestas: g.respuestas.filter((r) => r !== t) })}
-                  onAddRespuesta={(t) => {
-                    if (g.respuestas.includes(t)) return;
-                    updateGroup(g.id, { respuestas: [...g.respuestas, t] });
-                    announce(`"${respuestaLabel(t)}" agregada a ${grupoLabel(g)}.`);
+        <div className={`pulso-cv2-split pulso-cc-split${vista === "tabla" ? " pulso-ct-split" : ""}`}>
+          <Panel noPadding className="pulso-cc-panel pulso-cc-respuestas pulso-cv2-col" aria-label="Respuestas">
+            <div className="pulso-cc-panel-cab">
+              {vista === "tarjetas" ? (
+                <input
+                  type="checkbox"
+                  className="pulso-cc-todas"
+                  checked={todasElegidas}
+                  disabled={orden.length === 0}
+                  ref={(casilla) => {
+                    if (casilla) casilla.indeterminate = seleccion.claves.length > 0 && !todasElegidas;
                   }}
-                  onMoveUp={() => moveGroup(g.id, "up")}
-                  onMoveDown={() => moveGroup(g.id, "down")}
-                  isFirst={idx === 0}
-                  isLast={idx === grupos.length - 1}
-                  allowMultiAssign={esSM}
+                  onChange={() => setSeleccion(todasElegidas ? soltarSeleccion(seleccion) : seleccionarTodo(orden, seleccion))}
+                  aria-label="Seleccionar todas las respuestas a la vista"
+                  title="Seleccionar todas"
                 />
-              ))}
+              ) : null}
+              <h3 className="pulso-cc-panel-titulo">Respuestas</h3>
+              <FiltroDeRespuestas filtro={filtro} pendientes={avance.pendientes} onElegir={elegirFiltro} />
+              <BuscadorRespuestas valor={query} onCambiar={setQuery} etiqueta={`Buscar respuestas de ${parent}`} placeholder="Buscar" />
             </div>
-          )}
-        </section>
-      </div>
-    </div>
-  );
-}
+            {vacio ? (
+              <SinRespuestas motivo={vacio} onVerTodas={verTodas} />
+            ) : vista === "tabla" ? (
+              <TablaCodificar
+                pregunta={parent}
+                respuestas={respuestas}
+                tramos={tramos}
+                grupos={grupos}
+                busqueda={query}
+                onBuscar={setQuery}
+                buscadorPropio={false}
+                permiteVarios={esSM}
+                onAsignar={(clave, grupoId) => asignar([clave], grupoId, "quedarse")}
+                onQuitar={quitarDeCodigo}
+                onCrear={(clave, nombre) => crearCon([clave], nombre, "quedarse")}
+              />
+            ) : (
+              <ListaRespuestas
+                pregunta={parent}
+                respuestas={respuestas}
+                filas={filas}
+                codigos={codigos}
+                permiteVarios={esSM}
+                seleccion={seleccion}
+                onSeleccion={setSeleccion}
+                levantadas={lote.levantadas}
+                extraDeFila={mapaSugerencias.size > 0 ? (clave) => {
+                  const entrada = mapaSugerencias.get(clave);
+                  // Sin propuesta no hay nada que decir: la ausencia no lleva rótulo ("Sin módulo claro" se retiró).
+                  if (!entrada?.propuestas.length) return null;
+                  return (
+                    <SugerenciaModuloFila
+                      entrada={entrada}
+                      grupos={grupos}
+                      onConfirmar={(p) => { if (entrada) confirmarPropuesta(entrada, p); }}
+                      onQuitar={(p) => { if (entrada) quitarPropuesta(entrada, p); }}
+                    />
+                  );
+                } : undefined}
+                onAsignar={(claves, grupoId, quedarse) => asignar(claves, grupoId, quedarse ? "quedarse" : "siguiente")}
+                onCrear={(claves, nombre) => crearCon(claves, nombre, "siguiente")}
+                onQuitarCodigo={quitarDeCodigo}
+                onQuitarUltimo={quitarUltimo}
+              />
+            )}
+          </Panel>
 
-// `yaMarcadas` + `frecuencia` sólo llegan en select_multiple: son los códigos
-// que las filas de esta respuesta ya tenían marcados. Aparecen únicamente al
-// elegir destino —que es donde se comete el error— y no en la fila de siempre,
-// que ya carga texto, frecuencia, variantes y grupos asignados.
-type QuickAssignComun = {
-  respuesta: string;
-  yaMarcadas?: readonly MarcaPrevia[];
-  frecuencia?: number;
-};
-
-type QuickAssignProps =
-  | ({ mode: "single"; grupos: Grupo[]; onPick: (gid: string) => void } & QuickAssignComun)
-  | ({
-      mode: "multi";
-      grupos: Grupo[];
-      asignados: Set<string>;
-      onToggle: (gid: string) => void;
-    } & QuickAssignComun);
-
-function QuickAssignDropdown(props: QuickAssignProps) {
-  const { mode, grupos, respuesta, yaMarcadas, frecuencia = 1 } = props;
-  const isMulti = mode === "multi";
-  const asignadosCount = isMulti ? grupos.filter((g) => props.asignados.has(g.id)).length : 0;
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const firstItemRef = useRef<HTMLButtonElement>(null);
-  const menuId = useMemo(() => `qa-${Math.random().toString(36).slice(2)}`, []);
-
-  // Click-outside + Escape cierran el menú. Patrón estándar para dropdowns
-  // controlados — más robusto que onMouseLeave (que se pierde si el cursor
-  // sale rápido del área). El botón padre también cierra al reclickear
-  // gracias al toggle `setOpen((v) => !v)`.
-  useEffect(() => {
-    if (!open) return;
-    function onDocMouseDown(e: MouseEvent) {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("mousedown", onDocMouseDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDocMouseDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
-
-  useEffect(() => {
-    if (open) firstItemRef.current?.focus();
-  }, [open]);
-
-  function focusSibling(current: HTMLElement, direction: 1 | -1) {
-    const items = Array.from(rootRef.current?.querySelectorAll<HTMLButtonElement>("[role='menuitem']:not(:disabled),[role='menuitemcheckbox']:not(:disabled)") ?? []);
-    if (!items.length) return;
-    const idx = items.indexOf(current as HTMLButtonElement);
-    const next = items[(idx + direction + items.length) % items.length];
-    next?.focus();
-  }
-
-  const itemRole = isMulti ? "menuitemcheckbox" : "menuitem";
-
-  return (
-    <div ref={rootRef} className="pulso-cv2-qa">
-      <button
-        type="button"
-        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
-        aria-expanded={open}
-        aria-haspopup="menu"
-        aria-controls={open ? menuId : undefined}
-        aria-label={isMulti
-          ? `Editar grupos de "${respuesta}" (marca varios)${asignadosCount > 0 ? `, en ${asignadosCount}` : ""}`
-          : `Asignar "${respuesta}" a un grupo existente`}
-        className={`pulso-cv2-qa-btn${open ? " is-open" : ""}${isMulti ? " is-multi" : ""}`}
-        title={isMulti ? "Marcar en varias categorías" : "Asignar a grupo existente"}
-      >
-        {isMulti ? <ListChecks size={11} /> : <ListPlus size={11} />}
-        <span>{isMulti ? "grupos" : "asignar"}</span>
-        {isMulti && asignadosCount > 0 && <span className="pulso-cv2-qa-count">{asignadosCount}</span>}
-        <ChevronDown size={9} className="pulso-cv2-qa-caret" />
-      </button>
-      {open && (
-        <div id={menuId} role="menu" className="pulso-cv2-qa-menu" aria-label={`Grupos para "${respuesta}"`}>
-          {grupos.length === 0 && (
-            <EstadoVacio icono={<Tags size={16} />} titulo="Todavía no hay grupos creados" />
-          )}
-          {grupos.map((g, idx) => {
-            const display = displayCodificacionValueLabel(g.codigo, g.etiqueta);
-            const checked = isMulti && props.asignados.has(g.id);
-            const accent = grupoAccentColor(g.codigo, g.id);
-            const aviso = avisoMarcaPrevia(g.codigo, yaMarcadas, frecuencia);
-            return (
-              <button
-                key={g.id}
-                ref={idx === 0 ? firstItemRef : undefined}
-                type="button"
-                role={itemRole}
-                aria-checked={isMulti ? checked : undefined}
-                style={accentStyle(accent)}
-                onKeyDown={(e) => {
-                  if (e.key === "ArrowDown") {
-                    e.preventDefault();
-                    focusSibling(e.currentTarget, 1);
-                  } else if (e.key === "ArrowUp") {
-                    e.preventDefault();
-                    focusSibling(e.currentTarget, -1);
-                  } else if (e.key === "Home") {
-                    e.preventDefault();
-                    firstItemRef.current?.focus();
-                  } else if (e.key === "End") {
-                    e.preventDefault();
-                    const items = rootRef.current?.querySelectorAll<HTMLButtonElement>("[role='menuitem'],[role='menuitemcheckbox']");
-                    items?.[items.length - 1]?.focus();
-                  } else if (e.key === "Escape") {
-                    e.preventDefault();
-                    setOpen(false);
-                  }
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (props.mode === "multi") {
-                    props.onToggle(g.id);
-                    // El menú multi NO se cierra: el usuario puede marcar varias.
-                  } else {
-                    props.onPick(g.id);
-                    setOpen(false);
-                  }
-                }}
-                className={`pulso-cv2-qa-item${isMulti ? " is-check" : ""}${checked ? " is-checked" : ""}`}
-                title={display.title}
-              >
-                {isMulti && (
-                  <span className="pulso-cv2-qa-check" aria-hidden="true">
-                    {checked ? <CheckSquare size={13} /> : <Square size={13} />}
-                  </span>
-                )}
-                <span className="pulso-cv2-qa-dot" aria-hidden="true" />
-                <span className="pulso-cv2-qa-item-label">
-                  {display.code && <strong>{display.code}</strong>} {display.label || <em className="pulso-cv2-qa-unnamed">sin nombre</em>}
-                </span>
-                {aviso && (
-                  <span
-                    className={`pulso-cv2-qa-marcada${aviso.todas ? " is-todas" : ""}`}
-                    title={aviso.detalle}
-                  >
-                    {aviso.etiqueta}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+          <PanelCodigos
+            tarjetas={tarjetas}
+            grupos={grupos}
+            respuestas={respuestas}
+            casosConTexto={casosConTexto}
+            permiteVarios={esSM}
+            arrastrando={lote.levantadas.length > 0}
+            avisos={avisos}
+            siguiente={siguienteCodigo(grupos)}
+            pendientesDeNuevo={lote.paraNuevo ? lote.paraNuevo.length : null}
+            onAbrirNuevo={() => setLote((l) => ({ ...l, paraNuevo: l.paraNuevo ?? [] }))}
+            onCrear={(nombre) => crearCon(lote.paraNuevo ?? [], nombre, "soltar")}
+            onCancelarNuevo={() => setLote((l) => ({ ...l, paraNuevo: null }))}
+            onCambiar={cambiarGrupo}
+            onEliminar={eliminarGrupo}
+            onMover={moverGrupo}
+            onQuitarRespuesta={quitarDeCodigo}
+            onAgregarRespuesta={(clave, grupoId) => asignar([clave], grupoId, "quedarse")}
+          />
         </div>
+      </div>
+
+      {/* El fantasma se porta a document.body: un ancestro con transform haría de bloque contenedor de su
+          position: fixed y lo separaría del cursor. El portal conserva el contexto del arrastre. */}
+      {createPortal(
+        <DragOverlay dropAnimation={null} modifiers={[fantasmaDentroDeLaVentana]} style={ESTILO_DE_LA_CAPA_DEL_FANTASMA}>
+          {primeraLevantada ? <FantasmaRespuestas texto={textoDe(primeraLevantada)} cuantas={lote.levantadas.length} /> : null}
+        </DragOverlay>,
+        document.body,
       )}
-    </div>
+    </DndContext>
   );
 }

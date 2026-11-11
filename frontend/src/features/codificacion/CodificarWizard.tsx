@@ -1,19 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight, CheckCircle2, Circle, ClipboardList, Clock } from "lucide-react";
-import {
-  apiCodifPreguntasAbiertas,
-  arquetipoOf,
-  PreguntaAbierta,
-  PreguntaStatus,
-} from "../../api/client";
+import { ArrowLeft, ClipboardList } from "lucide-react";
+import { apiCodifPreguntasAbiertas, arquetipoOf, PreguntaAbierta } from "../../api/client";
 import { LoadingBlock, ErrorBlock } from "../../components/States";
 import { RespuestasCodificador } from "./RespuestasCodificador";
 import { IntegerCodificador } from "./IntegerCodificador";
 import { ModoSelectOneTabs } from "./AgruparCategoriasCodificador";
 import { textoPlano } from "../../lib/textoPlano";
 import { sinEnfasis } from "../../lib/enfasisTexto";
-import { TextoConEnfasis } from "../../lib/TextoConEnfasis";
 import { conNivel } from "../../lib/navegacion/direccion";
 import { useDireccion } from "../../lib/navegacion/useDireccion";
 import { formatoConteo } from "../../lib/formatoNumero";
@@ -22,37 +16,28 @@ import { PulsoButton } from "../../components/PulsoButton";
 import { apiCodifMarcar } from "../../api/codificacion";
 import { resolverFocoCodificar } from "./focoCodificar";
 import { FocoSinIncluirAviso } from "./FocoSinIncluirAviso";
+import { Panel } from "../../components/Panel";
+import { CabeceraDePregunta } from "./codificar/CabeceraDePregunta";
+import { ListaDePreguntas } from "./codificar/ListaDePreguntas";
+import { tipoDeFicha } from "./preguntas/modeloUnidades";
+import "./codificar/codificar.css";
 
 type Props = {
   onBackToOrganizar: () => void;
 };
 
-type TipoStyle = { bg: string; border: string; fg: string; label: string };
-
-const TIPO_STYLE: Record<string, TipoStyle> = {
-  select_multiple: { bg: "var(--tipo-sm-bg)", border: "var(--tipo-sm-border)", fg: "var(--tipo-sm-fg)", label: "Múltiple" },
-  select_one: { bg: "var(--tipo-so-bg)", border: "var(--tipo-so-border)", fg: "var(--tipo-so-fg)", label: "Opción única" },
-  integer: { bg: "var(--tipo-int-bg)", border: "var(--tipo-int-border)", fg: "var(--tipo-int-fg)", label: "Numérica" },
-  text: { bg: "var(--tipo-text-bg)", border: "var(--tipo-text-border)", fg: "var(--tipo-text-fg)", label: "Texto abierto" },
-  text_select_multiple: { bg: "var(--tipo-sm-bg)", border: "var(--tipo-sm-border)", fg: "var(--tipo-sm-fg)", label: "Recodificación múltiple" },
+const TIPOS: Record<string, string> = {
+  select_multiple: "Múltiple",
+  select_one: "Opción única",
+  integer: "Numérica",
+  text: "Texto abierto",
 };
-
-function tipoStyleForPregunta(p: PreguntaAbierta, arq = arquetipoOf(p)): TipoStyle {
-  if (arq === "pareja-sm") return TIPO_STYLE.text_select_multiple;
-  return TIPO_STYLE[p.tipo] ?? TIPO_STYLE.text;
-}
 
 /** Rótulo de la pregunta con su énfasis markdown del formulario (`*…*`) intacto. */
 function questionLabel(p: PreguntaAbierta): string {
   const label = (p.parent_label ?? "").trim();
   if (label && label !== p.parent) return label;
   return p.parent;
-}
-
-function compactQuestionLabel(p?: PreguntaAbierta): string {
-  if (!p) return "";
-  const label = sinEnfasis(questionLabel(p));
-  return label.length > 54 ? `${label.slice(0, 51)}...` : label;
 }
 
 export function CodificarWizard({ onBackToOrganizar }: Props) {
@@ -83,7 +68,7 @@ export function CodificarWizard({ onBackToOrganizar }: Props) {
   }, []);
   useEffect(() => { void cargar(); }, [cargar]);
 
-  // TXT-10/16: incluir la pregunta del foco cuando no está en «Preguntas para codificar». Es la misma acción del
+  // TXT-10/16: incluir la pregunta del foco cuando no está en "Preguntas para codificar". Es la misma acción del
   // interruptor de Preparar y sólo corre con el clic del analista.
   const [inclusion, setInclusion] = useState<{ incluyendo: boolean; error: string }>({ incluyendo: false, error: "" });
   const incluirFoco = useCallback(async (parent: string) => {
@@ -130,8 +115,21 @@ export function CodificarWizard({ onBackToOrganizar }: Props) {
     if (activeIdx >= 0 && activeIdx < marcadas.length - 1) setActiveParent(marcadas[activeIdx + 1].parent);
   }
 
-  if (error) return <ErrorBlock label="Error cargando preguntas" detail={error} />;
-  if (!data) return <LoadingBlock label="Cargando preguntas marcadas…" />;
+  if (error) {
+    return (
+      <ErrorBlock
+        label="No se pudieron cargar las preguntas para codificar"
+        detail={error}
+        queda="Los códigos guardados siguen como estaban"
+        acciones={
+          <PulsoButton variant="secondary" size="sm" onClick={() => { setError(""); void cargar(); }}>
+            Reintentar
+          </PulsoButton>
+        }
+      />
+    );
+  }
+  if (!data) return <LoadingBlock label="Cargando las preguntas para codificar" />;
 
   if (marcadas.length === 0) {
     if (aviso) return aviso;
@@ -142,10 +140,10 @@ export function CodificarWizard({ onBackToOrganizar }: Props) {
           tamano="normal"
           icono={<ClipboardList size={18} />}
           titulo="No hay preguntas marcadas para codificar"
-          descripcion='Márcalas en Organizar, o empareja las de opción con su "Otros, especifique".'
+          descripcion='Márcalas en Preguntas, o empareja las de opción con su "Otros, especifique".'
           accion={
             <PulsoButton variant="secondary" size="sm" onClick={onBackToOrganizar}>
-              <ArrowLeft size={13} aria-hidden="true" /> Volver a organizar
+              <ArrowLeft size={13} aria-hidden="true" /> Volver a Preguntas
             </PulsoButton>
           }
         />
@@ -154,53 +152,23 @@ export function CodificarWizard({ onBackToOrganizar }: Props) {
   }
 
   return (
-    <div className="pulso-codificacion-wizard">
-      {/* Sidebar */}
-      <aside className="pulso-codificacion-wizard-sidebar">
-        <div className="pulso-codificacion-wizard-count">
-          {marcadas.length} {marcadas.length === 1 ? "pregunta" : "preguntas"} para codificar
-        </div>
-        {marcadas.map((p) => (
-          <SidebarItem
-            key={p.parent}
-            p={p}
-            active={p.parent === activeParent}
-            onClick={() => setActiveParent(p.parent)}
-          />
-        ))}
-        <div className="pulso-codificacion-wizard-actions">
-          <button
-            type="button"
-            onClick={onBackToOrganizar}
-            className="pulso-codificacion-soft-button"
-          >
-            <ArrowLeft size={12} /> Volver a organizar
-          </button>
+    <div className="pulso-cc-wizard">
+      <ListaDePreguntas
+        preguntas={marcadas}
+        activa={activeParent}
+        etiquetaDe={questionLabel}
+        onElegir={setActiveParent}
+        onVolver={onBackToOrganizar}
+      />
 
-          <div className="pulso-codificacion-autosave-card">
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <div style={{ fontSize: "var(--pulso-type-micro-size)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--pulso-success-fg)", display: "inline-flex", alignItems: "center", gap: 4 }}>
-                <CheckCircle2 size={11} /> Autoguardado activo
-              </div>
-              <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-success-fg)", opacity: 0.85, lineHeight: 1.4 }}>
-                El progreso se guarda en el proyecto. Puedes guardar o aplicar plantillas desde la barra superior sin mover respuestas ni bases.
-              </div>
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      {/* Central */}
-      <main className="pulso-codificacion-wizard-main">
+      <main className="pulso-cc-principal">
         {aviso ?? (activePregunta ? (
           <CodificadorPane
             p={activePregunta}
-            canPrev={activeIdx > 0}
-            canNext={activeIdx < marcadas.length - 1}
             onPrev={gotoPrev}
             onNext={gotoNext}
-            prevLabel={compactQuestionLabel(marcadas[activeIdx - 1])}
-            nextLabel={compactQuestionLabel(marcadas[activeIdx + 1])}
+            prevLabel={activeIdx > 0 ? sinEnfasis(questionLabel(marcadas[activeIdx - 1])) : ""}
+            nextLabel={activeIdx < marcadas.length - 1 ? sinEnfasis(questionLabel(marcadas[activeIdx + 1])) : ""}
           />
         ) : (
           <EstadoVacio
@@ -215,60 +183,23 @@ export function CodificarWizard({ onBackToOrganizar }: Props) {
   );
 }
 
-function SidebarItem({ p, active, onClick }: { p: PreguntaAbierta; active: boolean; onClick: () => void }) {
-  const ts = tipoStyleForPregunta(p);
-  const sm = statusMeta(p.status);
-  const StatusIcon = sm.Icon;
-  const label = questionLabel(p);
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`pulso-codificacion-sidebar-question${active ? " is-active" : ""}`}
-      title={`${sinEnfasis(label)} (${p.parent})`}
-      aria-current={active ? "true" : undefined}
-    >
-      <span className="pulso-codificacion-sidebar-question-accent" style={{ background: ts.border }} />
-      <div className="pulso-codificacion-sidebar-question-copy">
-        <span className="pulso-codificacion-sidebar-question-meta">
-          <span
-            className="pulso-codificacion-sidebar-question-code"
-            style={{ color: active ? "var(--pulso-primary)" : ts.fg, background: ts.bg, borderColor: ts.border }}
-          >
-            {p.parent}
-          </span>
-          <span className="pulso-codificacion-sidebar-question-status">
-            <StatusIcon size={10} color={sm.color} />
-            {sm.label}
-          </span>
-        </span>
-        <span className="pulso-codificacion-sidebar-question-label">
-          <TextoConEnfasis texto={label} />
-        </span>
-      </div>
-    </button>
-  );
+/** Cómo se codifica la pregunta, con las palabras de la pestaña Preguntas. */
+function rotuloDeTipo(p: PreguntaAbierta, arq: ReturnType<typeof arquetipoOf>): string {
+  if (arq === "pareja-sm") return "Recodificación múltiple";
+  const base = TIPOS[p.tipo] ?? TIPOS.text;
+  if (p.modo_so === "hijo") return `${base}, texto aparte`;
+  if (p.modo_so === "padre") return `${base}, pregunta original`;
+  return base;
 }
 
-function statusMeta(s: PreguntaStatus): { label: string; color: string; Icon: typeof Circle; spin?: boolean } {
-  if (s === "completo") return { label: "Codificada", color: "var(--pulso-success-fg)", Icon: CheckCircle2 };
-  if (s === "en-curso") return { label: "En curso", color: "var(--pulso-status-in-progress)", Icon: Clock };
-  if (s === "sin-datos") return { label: "Sin datos", color: "var(--pulso-status-empty)", Icon: Circle };
-  return { label: "Pendiente", color: "var(--pulso-status-pending)", Icon: Circle };
-}
-
-function CodificadorPane({ p, canPrev, canNext, onPrev, onNext, prevLabel, nextLabel }: {
+function CodificadorPane({ p, onPrev, onNext, prevLabel, nextLabel }: {
   p: PreguntaAbierta;
-  canPrev: boolean;
-  canNext: boolean;
   onPrev: () => void;
   onNext: () => void;
   prevLabel: string;
   nextLabel: string;
 }) {
   const arq = arquetipoOf(p);
-  const ts = tipoStyleForPregunta(p, arq);
-  const label = questionLabel(p);
 
   // Todos los arquetipos que codifican valores discretos o texto abierto
   // usan el mismo RespuestasCodificador (agrupar respuestas \u2192 c\u00f3digo).
@@ -286,77 +217,23 @@ function CodificadorPane({ p, canPrev, canNext, onPrev, onNext, prevLabel, nextL
     arq === "config-so";
 
   return (
-    <section className="pulso-codificacion-coder-pane">
-      {/* Header: misma jerarquía que el resto del app: pregunta, ID del
-          formulario, chip de tipo y sección. */}
-      <header className="pulso-codificacion-coder-head">
-        <span
-          className="pulso-codificacion-type-avatar"
-          style={{
-            background: ts.bg, color: ts.fg,
-            border: `1px solid ${ts.border}`,
-          }}
-          aria-hidden="true"
-          title={ts.label}
-        >
-          {ts.label.slice(0, 2).toUpperCase()}
-        </span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="pulso-codificacion-coder-meta">
-            <code
-              title={`ID del formulario: ${p.parent}`}
-              className="pulso-codificacion-coder-code"
-              style={{ color: ts.fg, background: ts.bg, borderColor: ts.border }}
-            >
-              {p.parent}
-            </code>
-            <span
-              className="pulso-codificacion-coder-type"
-              style={{ background: ts.bg, color: ts.fg }}
-            >
-              {ts.label}
-              {p.modo_so === "hijo" && " (hijo)"}
-              {p.modo_so === "padre" && " (padre)"}
-            </span>
-          </div>
-          <h2 className="pulso-codificacion-coder-title">
-            <TextoConEnfasis texto={label} />
-          </h2>
-          {textoPlano(p.section_label) && (
-            <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", marginTop: 4 }}>
-              {textoPlano(p.section_label)}
-            </div>
-          )}
-        </div>
-      </header>
+    <section className="pulso-cc-pane">
+      <CabeceraDePregunta
+        codigo={p.parent}
+        tipo={arq === "pareja-sm" ? "multiple" : tipoDeFicha(p.tipo)}
+        rotuloDeTipo={rotuloDeTipo(p, arq)}
+        etiqueta={questionLabel(p)}
+        seccion={textoPlano(p.section_label) || undefined}
+        anterior={prevLabel}
+        siguiente={nextLabel}
+        onAnterior={onPrev}
+        onSiguiente={onNext}
+      />
 
-      {/* Nav prev/next con ghost-buttons consistentes */}
-      <div className="pulso-codificacion-coder-nav">
-        <button
-          type="button"
-          onClick={onPrev}
-          disabled={!canPrev}
-          className="pulso-ghost-nav"
-          style={{ fontSize: "var(--pulso-type-body-size)", display: "inline-flex", alignItems: "center", gap: 5 }}
-        >
-          <ArrowLeft size={12} /> <span style={{ opacity: 0.7 }}>Anterior:</span> {prevLabel || "—"}
-        </button>
-        <div style={{ flex: 1 }} />
-        <button
-          type="button"
-          onClick={onNext}
-          disabled={!canNext}
-          className="pulso-ghost-nav"
-          style={{ fontSize: "var(--pulso-type-body-size)", display: "inline-flex", alignItems: "center", gap: 5 }}
-        >
-          <span style={{ opacity: 0.7 }}>Siguiente:</span> {nextLabel || "—"} <ArrowRight size={12} />
-        </button>
-      </div>
-
-      {/* Codificador */}
       {codificableInline ? (
         arq === "auto"
-          ? <IntegerCodificador key={p.parent} parent={p.parent} />
+          // Las mesas de numéricas y de agrupar categorías conservan su marco de una sola tarjeta.
+          ? <Panel className="pulso-cc-otra-mesa"><IntegerCodificador key={p.parent} parent={p.parent} /></Panel>
           : arq === "pareja-so" || arq === "config-so"
             // Una select_one ofrece además agrupar sus categorías (ítem 1f).
             ? (
@@ -368,17 +245,13 @@ function CodificadorPane({ p, canPrev, canNext, onPrev, onNext, prevLabel, nextL
             )
             : <RespuestasCodificador key={p.parent} parent={p.parent} />
       ) : (
-        <div
-          data-audit-ready="codificacion-codificar"
-          style={{ padding: 18, background: "white", border: "1px solid var(--pulso-border)", borderRadius: 8 }}
-        >
-          <div style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text-soft)", lineHeight: 1.6 }}>
+        <Panel className="pulso-cc-otra-mesa" data-audit-ready="codificacion-codificar">
+          <p className="pulso-cc-sin-mesa">
             Esta pregunta tiene <strong>{formatoConteo(p.n_respuestas)}</strong> respuestas
-            ({<strong>{formatoConteo(p.n_unicas)}</strong>} únicas) en la columna <code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" }}>{p.col_efectiva}</code>.
-            <br /><br />
-            {arq === "no-aplica" && "Esta pregunta está desactivada."}
-          </div>
-        </div>
+            ({<strong>{formatoConteo(p.n_unicas)}</strong>} únicas) en la columna <code>{p.col_efectiva}</code>.
+            {arq === "no-aplica" ? " Esta pregunta está desactivada." : null}
+          </p>
+        </Panel>
       )}
     </section>
   );

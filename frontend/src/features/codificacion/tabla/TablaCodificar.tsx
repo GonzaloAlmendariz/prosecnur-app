@@ -39,6 +39,8 @@ export type TablaCodificarProps = {
   grupos: readonly Grupo[];
   busqueda: string;
   onBuscar: (texto: string) => void;
+  /** `false` cuando quien monta la tabla ya pinta el buscador en su cabecera (el marco común de Codificar). */
+  buscadorPropio?: boolean;
   /** La pregunta admite más de un código por respuesta. Lo decide quien monta la tabla. */
   permiteVarios: boolean;
   onAsignar: (clave: string, grupoId: string) => void;
@@ -69,6 +71,7 @@ export function TablaCodificar({
   grupos,
   busqueda,
   onBuscar,
+  buscadorPropio = true,
   permiteVarios,
   onAsignar,
   onQuitar,
@@ -235,7 +238,7 @@ export function TablaCodificar({
 
   return (
     <div className="pulso-ct">
-      <BuscadorRespuestas valor={busqueda} onCambiar={onBuscar} etiqueta={`Buscar respuestas de ${pregunta}`} />
+      {buscadorPropio ? <BuscadorRespuestas valor={busqueda} onCambiar={onBuscar} etiqueta={`Buscar respuestas de ${pregunta}`} /> : null}
 
       <div ref={marco} className="pulso-cv2-resp-list pulso-ct-marco">
         {filas.length === 0 ? (

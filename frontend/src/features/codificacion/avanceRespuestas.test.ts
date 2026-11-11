@@ -37,18 +37,19 @@ describe("avance de la codificación de una pregunta", () => {
 });
 
 describe("la pantalla de Codificar usa esa única cuenta", () => {
-  const fuente = readFileSync(fileURLToPath(new URL("./RespuestasCodificador.tsx", import.meta.url)), "utf8");
+  const leer = (archivo: string) => readFileSync(fileURLToPath(new URL(archivo, import.meta.url)), "utf8");
+  const mesa = leer("./RespuestasCodificador.tsx");
+  const cifras = leer("./codificar/CifrasDeCodificar.tsx");
 
   test("el contador no vuelve a contar todas las claves asignadas contra la lista", () => {
-    expect(fuente).toMatch(/avanceDeRespuestas\(respuestas, grupos\)/);
-    expect(fuente).not.toMatch(/codificadas = useMemo\(\(\) => asignaciones\.size/);
-    expect(fuente).toMatch(/de \{formatoConteo\(avance\.total\)\} codificadas/);
-    expect(fuente).toMatch(/label: "Respuestas", value: avance\.total/);
+    expect(mesa).toMatch(/avanceDeRespuestas\(respuestas, grupos\)/);
+    expect(mesa).not.toMatch(/asignaciones\.size/);
+    expect(cifras).toMatch(/\{formatoConteo\(avance\.codificadas\)\} de \{formatoConteo\(avance\.total\)\}/);
+    expect(cifras).toMatch(/"respuestas con código"/);
   });
 
-  test("la banda de una pregunta múltiple dice que cuenta casos", () => {
-    // La cabecera de la columna cuenta respuestas únicas; la banda, casos. No comparten palabra.
-    expect(fuente).toMatch(/label: "Casos codificados", value: casosCodificados/);
-    expect(fuente).toMatch(/label: "Casos sin codificar"/);
+  test("en una múltiple la cifra en casos dice que cuenta casos, no respuestas", () => {
+    // La primera cifra cuenta respuestas distintas; la de casos lleva su propia palabra.
+    expect(leer("./codificar/modeloDeCodificar.ts")).toMatch(/plural: "casos con código"/);
   });
 });

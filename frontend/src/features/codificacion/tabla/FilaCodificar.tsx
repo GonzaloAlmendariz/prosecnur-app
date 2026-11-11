@@ -62,7 +62,9 @@ export const FilaCodificar = memo(function FilaCodificar({
               onQuitar={() => onQuitar(fila.clave, codigo.id)}
             />
           ))}
-          {campo ?? (fila.codigos.length === 0 ? <span className="pulso-ct-vacia">Sin código</span> : null)}
+          {/* La fila activa también dice su estado: con el campo a la vista, una respuesta sin código seguía sin rótulo. */}
+          {fila.codigos.length === 0 ? <span className="pulso-ct-vacia">Sin código</span> : null}
+          {campo}
         </div>
       </div>
     </div>
