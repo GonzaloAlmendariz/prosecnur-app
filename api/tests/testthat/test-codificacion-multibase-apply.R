@@ -160,7 +160,12 @@ test_that("aplicación multibase codifica madre y repeat y completa solo al fina
   # ADR 0133 (fase 5): data e instrumento adaptados con nombre y los cuatro campos del registro.
   expect_true(all(c("filename", "modulo", "rotulo", "guardado_en", "aviso_guardado") %in% names(aplicado$data_adaptada)))
   expect_true(all(c("filename", "modulo", "rotulo", "guardado_en", "aviso_guardado") %in% names(aplicado$instrumento_adaptado)))
-  expect_identical(aplicado$data_adaptada$rotulo, "Data adaptada")
+  # El nombre que lee el usuario es el de la fase; las claves de la respuesta no cambian.
+  expect_identical(aplicado$data_adaptada$rotulo, "Base codificada")
+  expect_identical(aplicado$instrumento_adaptado$rotulo, "Formulario codificado")
+  expect_match(aplicado$data_adaptada$filename, "^Prosecnur_Base_codificada_[0-9]{2}_[0-9]{2}_[0-9]{2}[.]xlsx$")
+  expect_match(aplicado$instrumento_adaptado$filename,
+               "^Prosecnur_Formulario_codificado_[0-9]{2}_[0-9]{2}_[0-9]{2}[.]xlsx$")
   partial <- session_get(sid)
   expect_true(isTRUE(partial$codif_por_base$principal$aplicado))
   expect_false(isTRUE(partial$codif_por_base$rep_servicios$aplicado))

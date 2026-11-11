@@ -110,8 +110,10 @@
   # Procesamiento: codificación
   "familias_template|Plantilla de familias|pr|0|1",
   "plantilla_codif_template|Plantilla de codificación|pr|0|1",
-  "data_adaptada|Data adaptada|pr|0|1",
-  "instrumento_adaptado|Instrumento adaptado|pr|0|1",
+  # La base se nombra por su fase (cargada, limpia, codificada): el kind conserva
+  # "adaptad*" porque es el identificador con que se reconoce el par, no lo que se lee.
+  "data_adaptada|Base codificada|pr|0|1",
+  "instrumento_adaptado|Formulario codificado|pr|0|1",
   "codificacion_matriz_work|Matriz de codificación de trabajo|pr|0|1",
   "codificacion_matriz_internal|Matriz de codificación interna|pr|0|1",
   "codificacion_matriz_client|Matriz de codificación para el cliente|pr|0|1",

@@ -112,7 +112,8 @@ test_that("nomenclatura de exports: slugs ASCII, mapeo por kind y fecha; jamás 
   expect_identical(.export_slug("Base Niñez 2026"), "Base_Ninez_2026")
   expect_identical(.export_slug(""), "Prosecnur")
   expect_identical(.export_label_for_kind("codebook"), "libro_de_codigos")
-  expect_identical(.export_label_for_kind("data_adaptada"), "data_adaptada")
+  # El rótulo del catálogo en minúsculas, que ya no coincide con el kind.
+  expect_identical(.export_label_for_kind("data_adaptada"), "base_codificada")
 
   sid <- session_create()
   fname <- .export_filename(sid, "codebook", "xlsx")
@@ -137,8 +138,8 @@ test_that("register_output_file: registra el artefacto en la sesión y limpia el
 
   meta <- .register_output_file(sid, "data_adaptada", out_path)
   expect_identical(meta$kind, "data_adaptada")
-  # ADR 0133 §3: sin original_name, el nombre del catálogo («Data adaptada»).
-  expect_identical(meta$original_name, paste0("Prosecnur_Data_adaptada_", format(Sys.Date(), "%d_%m_%y"), ".xlsx"))
+  # ADR 0133 §3: sin original_name, el nombre del catálogo ("Base codificada").
+  expect_identical(meta$original_name, paste0("Prosecnur_Base_codificada_", format(Sys.Date(), "%d_%m_%y"), ".xlsx"))
   expect_false(grepl("[0-9a-fA-F-]{36}", meta$original_name))
   expect_identical(session_get(sid)$files[[meta$file_id]]$path, out_path)
 })
