@@ -37,7 +37,6 @@ export function BarraDeCodificar({ avance, casos, guardado, ultimoPaso, onDeshac
         <SaveStatusIndicator state={guardado} variant="badge" />
         <PulsoButton
           variant="icon"
-          tone="framed"
           size="sm"
           disabled={!ultimoPaso}
           onClick={onDeshacer}

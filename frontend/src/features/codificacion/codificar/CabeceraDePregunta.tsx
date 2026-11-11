@@ -36,7 +36,6 @@ export function CabeceraDePregunta({ codigo, tipo, rotuloDeTipo, etiqueta, secci
       <span className="pulso-cc-pregunta-paso">
         <PulsoButton
           variant="icon"
-          tone="framed"
           size="sm"
           disabled={!anterior}
           onClick={onAnterior}
@@ -47,7 +46,6 @@ export function CabeceraDePregunta({ codigo, tipo, rotuloDeTipo, etiqueta, secci
         </PulsoButton>
         <PulsoButton
           variant="icon"
-          tone="framed"
           size="sm"
           disabled={!siguiente}
           onClick={onSiguiente}

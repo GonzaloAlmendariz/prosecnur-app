@@ -66,6 +66,9 @@ const TRANSVERSALES = [
   "src/components/entregables/entregablesRatchet.contract.test.ts",
   // Una cita con comillas angulares en el texto visible de cualquier feature (R16-5, extendido a todo src/ en R17).
   "src/app/comillasRectas.contract.test.ts",
+  // Un botón de ícono enmarcado (tone="framed") fuera de la lista declarada: escanea todo src/ y se rompe desde
+  // cualquier feature. Lo dejó pasar el gate de Codificación el 2026-11-11.
+  "src/components/PulsoButton.quiet.test.tsx",
 ];
 
 const area = process.argv[2] ?? "";
