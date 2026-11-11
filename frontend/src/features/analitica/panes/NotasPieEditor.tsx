@@ -426,7 +426,7 @@ function NotasPorCruce({
               codigo={variable}
               etiqueta={labelPorVariable.get(variable)}
               texto={texto}
-              placeholder="Agrupa las regiones con menos de 30 casos."
+              placeholder="Por ejemplo: se agrupan las categorías con menos de 30 casos."
               onTexto={(t) => onChange(setNotaTexto(valores, variable, t))}
             />
           ))}

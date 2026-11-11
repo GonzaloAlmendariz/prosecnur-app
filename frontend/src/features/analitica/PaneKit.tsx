@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { ChevronDown, Download, Play } from "../../vendor/lucide-react";
 import { PulsoButton } from "../../components/PulsoButton";
 import { ErrorBlock } from "../../components/States";
@@ -112,6 +112,7 @@ export function GenerateFooter({
   pie?: React.ReactNode;
   variant?: "primary" | "secondary";
 }) {
+  const idDelMotivo = useId();
   const { estado, cerrar } = run.generacion;
   const running = estado.fase === "en_curso";
   const porBase = run.perBase.length > 1 ? run.perBase : [];
@@ -132,12 +133,13 @@ export function GenerateFooter({
           size="lg"
           onClick={onGenerate}
           disabled={running || !!disabled}
+          aria-describedby={disabled && disabledHint ? idDelMotivo : undefined}
         >
           <Play size={14} aria-hidden="true" />
           {label}
         </PulsoButton>
         {disabled && disabledHint && (
-          <span className="analitica-generate-hint">
+          <span id={idDelMotivo} className="analitica-generate-hint">
             {disabledHint}
           </span>
         )}

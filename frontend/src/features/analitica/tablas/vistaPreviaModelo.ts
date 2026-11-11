@@ -184,10 +184,18 @@ export function dicePorBase(preview: FrecuenciasPreview, releyendo: boolean): bo
   return !releyendo && preview.base.n_bases > 1;
 }
 
-/** Cuántas tablas pedir al pulsar "mostrar más"; `null` si ya no se puede pedir más. */
-export function siguienteLimite(limite: number, total: number): number | null {
-  if (limite >= total || limite >= LIMITE_DEL_SERVICIO) return null;
-  return Math.min(limite + TABLAS_POR_PEDIDO, total, LIMITE_DEL_SERVICIO);
+/**
+ * Cuántas tablas pedir al pulsar "mostrar más"; `null` si ya no se puede pedir
+ * más. Por defecto, los tramos y el tope de Frecuencias; Cruces pasa los suyos.
+ */
+export function siguienteLimite(
+  limite: number,
+  total: number,
+  porPedido = TABLAS_POR_PEDIDO,
+  tope = LIMITE_DEL_SERVICIO,
+): number | null {
+  if (limite >= total || limite >= tope) return null;
+  return Math.min(limite + porPedido, total, tope);
 }
 
 /** "Se ven 50 de 120 tablas." */
@@ -201,20 +209,23 @@ export function rotuloMostrarMas(limite: number, siguiente: number, total: numbe
   return siguiente >= total ? `Mostrar ${mas === 1 ? "la que falta" : `las ${formatoConteo(mas)} que faltan`}` : `Mostrar ${formatoConteo(mas)} más`;
 }
 
-export type SeccionDeLaHoja = {
+/** Lo que una tabla de la hoja dice de su sección (Frecuencias y Cruces). */
+type ConSeccion = { seccion: { nombre: string; rotulo: string | null } };
+
+export type SeccionDeLaHoja<T extends ConSeccion = FrecuenciasPreviewTabla> = {
   clave: string;
   nombre: string;
   /** El archivo escribe la fila de sección. */
   enElArchivo: boolean;
-  tablas: FrecuenciasPreviewTabla[];
+  tablas: T[];
 };
 
 /**
  * Las tablas agrupadas por sección en el orden en que llegan: una sección
  * nueva empieza cuando cambia el nombre. No reordena ni filtra.
  */
-export function seccionesDeLaHoja(tablas: readonly FrecuenciasPreviewTabla[]): SeccionDeLaHoja[] {
-  const secciones: SeccionDeLaHoja[] = [];
+export function seccionesDeLaHoja<T extends ConSeccion = FrecuenciasPreviewTabla>(tablas: readonly T[]): SeccionDeLaHoja<T>[] {
+  const secciones: SeccionDeLaHoja<T>[] = [];
   for (const tabla of tablas) {
     const ultima = secciones[secciones.length - 1];
     if (ultima && ultima.nombre === tabla.seccion.nombre) {

@@ -10,16 +10,15 @@ import { useNavigate } from "react-router-dom";
 import type { FrecuenciasPreview, VariableInstrumento } from "../../../api/analitica";
 import { EstadoVacio } from "../../../components/EstadoVacio";
 import { PulsoButton } from "../../../components/PulsoButton";
-import { ErrorBlock, LoadingBlock } from "../../../components/States";
-import { DatabaseZap, RotateCw, Table2 } from "../../../vendor/lucide-react";
+import { LoadingBlock } from "../../../components/States";
+import { Table2 } from "../../../vendor/lucide-react";
 import { DIRECCION_DATOS } from "../direccionesAnalitica";
 import { AvisoDeGuardado } from "./AvisoDeGuardado";
-import { SIN_BASE_PREPARADA } from "./cifrasDeFrecuencias";
+import { FalloDeVistaPrevia } from "./FalloDeVistaPrevia";
 import { HojaDeFrecuencias } from "./HojaDeFrecuencias";
 import { IrAPregunta, type PreguntaParaIr } from "./IrAPregunta";
 import { PanelDeZona } from "./PanelDeZona";
 import { PieDeVistaPrevia } from "./PieDeVistaPrevia";
-import { usePrepararBase } from "./usePrepararBase";
 import type { VistaPreviaDeFrecuencias as Vista } from "./useVistaPreviaDeFrecuencias";
 import { codigoDeLaTabla, esLaVariable, tienePie } from "./vistaPreviaModelo";
 
@@ -66,8 +65,6 @@ export function VistaPreviaDeFrecuencias({ vista, candidatas, causaDelVacio, ele
   }, [tablas, preview?.recortado, candidatas]);
 
   const fallo = hoja.fase === "error" ? hoja : null;
-  const sinBase = fallo?.codigo === SIN_BASE_PREPARADA;
-  const base = usePrepararBase(hoja.reintentar);
   const leyendo = !fallo && preview === null;
   const hayHoja = !fallo && preview !== null && preview.tablas.length > 0;
   const vacia = !fallo && preview !== null && preview.tablas.length === 0;
@@ -99,37 +96,7 @@ export function VistaPreviaDeFrecuencias({ vista, candidatas, causaDelVacio, ele
       ) : undefined}
     >
       <div ref={cuerpo} className="tablas-vista" data-qa-geometry-group="analitica/frecuencias-tablas" data-qa-geometry-contract="intrinsic">
-        {fallo && sinBase ? (
-          <ErrorBlock
-            label="Sin base preparada"
-            causa={base.causa
-              ? `No se pudo preparar la base: ${base.causa}`
-              : "Analítica todavía no tiene la base lista para tabular: no hay datos cargados o no se pudieron preparar."}
-            queda="Los ajustes del archivo siguen como estaban."
-            acciones={(
-              <>
-                <PulsoButton variant="primary" onClick={base.preparar} disabled={base.preparando}>
-                  <DatabaseZap size={14} aria-hidden="true" /> {base.preparando ? "Preparando la base" : "Preparar la base"}
-                </PulsoButton>
-                <PulsoButton variant="secondary" onClick={hoja.reintentar} disabled={base.preparando}>
-                  <RotateCw size={14} aria-hidden="true" /> Reintentar
-                </PulsoButton>
-              </>
-            )}
-          />
-        ) : null}
-        {fallo && !sinBase ? (
-          <ErrorBlock
-            label="No se pudo leer la vista previa"
-            causa={fallo.causa || "El servidor no respondió al pedido de la vista previa."}
-            queda="Los ajustes del archivo siguen como estaban."
-            acciones={(
-              <PulsoButton variant="secondary" onClick={hoja.reintentar}>
-                <RotateCw size={14} aria-hidden="true" /> Reintentar
-              </PulsoButton>
-            )}
-          />
-        ) : null}
+        {fallo ? <FalloDeVistaPrevia fallo={fallo} /> : null}
         {leyendo ? <LoadingBlock label="Leyendo las tablas del archivo" /> : null}
         {vacia && preview ? (
           <EstadoVacio

@@ -1,0 +1,561 @@
+/* Analítica, Cruces (etapa P5c del ADR 0142): la hoja de tablas cruzadas
+ * dentro del marco de tablas (`tablas/tablas.css`) y los ajustes propios.
+ *
+ * La tabla cruzada es ancha. El cuerpo del panel de la vista previa es el único
+ * dueño del scroll, en los dos ejes: la hoja mide lo que la tabla más ancha con
+ * las columnas que se ven, la primera columna queda fija a la izquierda y la
+ * cabecera de cada tabla se queda arriba mientras la tabla está a la vista. Lo
+ * que no es tabla (leyenda, sección, título, notas) va fijo a la izquierda con
+ * el ancho visible del cuerpo (`100cqi`).
+ *
+ * Aquí no hay cajas: filas y secciones separadas por una línea; el marco es el
+ * `Panel` del kit y `cajasPropias` lo vigila.
+ */
+
+/* El cuerpo de la vista previa mide el ancho visible para lo que va fijo. */
+.tablas-superficie[data-tablas="cruces"] .tablas-panel--tabla .tablas-panel-cuerpo {
+  container-type: inline-size;
+}
+
+/* La cabecera lleva dos selectores: el de columnas y el de pregunta. */
+.cruces-selector {
+  display: flex;
+  flex: 0 1 300px;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  margin-inline-start: auto;
+}
+
+.cruces-selector-rotulo {
+  flex: none;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  white-space: nowrap;
+}
+
+.cruces-selector > :last-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cruces-selector + .tablas-ir-a {
+  flex-basis: 260px;
+  margin-inline-start: 0;
+}
+
+/* El vacío lleva aire propio cuando la pestaña es angosta y el contenedor mide lo que su contenido. */
+.cruces-vista:has(> .pulso-estado-vacio) {
+  padding-block: var(--pulso-space-5);
+}
+
+.cruces-vacio-accion {
+  width: min(320px, 100%);
+}
+
+/* ---------- Hoja ---------- */
+
+.cruces-hoja {
+  --cruces-cat: 240px;
+  --cruces-col: 92px;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: calc(var(--cruces-cat) + var(--cruces-max, 1) * var(--cruces-col) + var(--pulso-space-5));
+  padding-block-end: var(--pulso-space-4);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+}
+
+.cruces-fijo {
+  position: sticky;
+  left: 0;
+  box-sizing: border-box;
+  width: 100cqi;
+  padding-inline: var(--pulso-space-5);
+}
+
+.cruces-leyenda > p {
+  margin: 0;
+}
+
+.cruces-leyenda {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  margin-block-start: var(--pulso-space-3);
+  padding-block: var(--pulso-space-3) 0;
+  border-top: 1px solid var(--pulso-border);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.cruces-seccion {
+  margin: 0;
+  padding-block: var(--pulso-space-5) var(--pulso-space-1);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+/* Cuando el archivo escribe la fila de sección, lleva su línea, como en la hoja. */
+.cruces-seccion[data-en-archivo] {
+  padding-block-end: var(--pulso-space-2);
+  border-bottom: 1px solid var(--pulso-border-strong);
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.cruces-tabla {
+  padding-block-end: var(--pulso-space-2);
+  transition: opacity var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.cruces-tabla-titulo {
+  padding-block: var(--pulso-space-4) var(--pulso-space-2);
+}
+
+.cruces-tabla[aria-current="true"] .pulso-bloque-pregunta {
+  outline: 2px solid color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 55%, transparent);
+  outline-offset: 1px;
+}
+
+/* Mientras se relee o un cambio espera a guardarse, lo que hay es de antes: sigue a la vista, atenuado. */
+.cruces-hoja[data-releyendo] .cruces-tabla {
+  opacity: 0.55;
+}
+
+/* ---------- Tabla cruzada ---------- */
+
+/* Contiene a sus hijos posicionados (los rótulos solo para lector de pantalla):
+   sin esto, a lo angosto, se salen del dueño del scroll y alargan la página. */
+.cruces-rejilla {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Todas las filas de una tabla comparten las columnas: la categoría, el Total
+   y una por categoría de cada variable de cruce que se ve. */
+.cruces-fila {
+  display: grid;
+  grid-template-columns:
+    minmax(var(--cruces-cat), 2.4fr)
+    repeat(var(--cruces-columnas, 1), minmax(var(--cruces-col), 1fr));
+  align-items: stretch;
+  padding-inline-end: var(--pulso-space-5);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.cruces-fila > * {
+  box-sizing: border-box;
+  min-width: 0;
+  padding: var(--pulso-space-2);
+}
+
+/* La primera columna queda a la vista al desplazar a lo ancho. El código va a
+   la izquierda y el rótulo parte línea a su lado; la marca, debajo del rótulo. */
+.cruces-primera {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  align-content: start;
+  gap: 2px var(--pulso-space-2);
+  padding-inline-start: var(--pulso-space-5);
+  background: var(--pulso-surface);
+  box-shadow: inset -1px 0 0 var(--pulso-border);
+}
+
+.cruces-categoria {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.cruces-primera > :first-child:not(.tablas-codigo),
+.cruces-primera > .cruces-marca {
+  grid-column: 1 / -1;
+}
+
+.cruces-primera > .tablas-codigo + .cruces-categoria + .cruces-marca {
+  grid-column: 2;
+}
+
+.cruces-cifra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 0 var(--pulso-space-1);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.cruces-pct {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.cruces-letras {
+  color: var(--module-accent, var(--pulso-primary));
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.02em;
+}
+
+/* ".b" o ".a": la columna no se comparó. Se lee, pero sin el peso de una diferencia. */
+.cruces-letras[data-clase="sin-comparar"] {
+  color: var(--pulso-text-muted);
+  font-weight: var(--pulso-weight-regular, 400);
+}
+
+.cruces-cifra.is-sin-dato {
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-caption-size);
+}
+
+/* La línea que separa una variable de cruce de la anterior (y del Total). */
+.cruces-fila > [data-inicio] {
+  box-shadow: inset 1px 0 0 var(--pulso-border);
+}
+
+/* Una columna excluida sale en el archivo sin casos: se lee atenuada. */
+.cruces-fila > [data-excluida],
+.cruces-fila > [data-excluida] .cruces-pct {
+  color: var(--pulso-text-muted);
+  font-weight: var(--pulso-weight-regular, 400);
+}
+
+/* Un rótulo corto junto al dato: "Excluida", "No se compara". */
+.cruces-marca {
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-regular, 400);
+  letter-spacing: 0;
+}
+
+/* Una fila que no entra a la prueba: su rótulo atenuado; su porcentaje cuenta como los demás. */
+.cruces-fila[data-probada="no"] .cruces-categoria {
+  color: var(--pulso-text-soft);
+}
+
+/* ---------- Cabecera de dos niveles ---------- */
+
+.cruces-cabecera {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.cruces-cabecera .cruces-primera {
+  z-index: 3;
+  align-items: end;
+  align-content: end;
+  background: var(--pulso-surface-2);
+}
+
+.cruces-fila--variables {
+  border-bottom: 0;
+}
+
+.cruces-fila--variables > * {
+  padding-block-end: 0;
+}
+
+.cruces-variable {
+  margin-inline: var(--pulso-space-1);
+  border-bottom: 1px solid var(--pulso-border-strong);
+  color: var(--pulso-text);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.cruces-variable-texto {
+  position: sticky;
+  left: calc(var(--cruces-cat) + var(--pulso-space-2));
+  display: inline-block;
+  max-width: 100%;
+}
+
+.cruces-columna {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 2px;
+  text-align: right;
+}
+
+.cruces-columna-etiqueta {
+  max-width: 100%;
+  overflow-wrap: break-word;
+}
+
+.cruces-letra {
+  color: var(--module-accent, var(--pulso-primary));
+  font-weight: var(--pulso-weight-bold);
+}
+
+/* ---------- N y bases ---------- */
+
+.cruces-pie-cifras .cruces-fila,
+.cruces-pie-cifras .cruces-primera {
+  background: color-mix(in srgb, var(--pulso-surface-2) 60%, var(--pulso-surface));
+}
+
+.cruces-pie-cifras .cruces-fila {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-bold);
+}
+
+/* Con pesos el N ponderado va debajo de la base y sin negrita: la base es la cifra de referencia. */
+.cruces-pie-cifras .cruces-fila--n[data-ponderado] {
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-regular, 400);
+}
+
+/* ---------- Notas de cada tabla ---------- */
+
+.cruces-nota {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding-block: var(--pulso-space-2) 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.4;
+}
+
+.cruces-nota > span {
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Ajustes ---------- */
+
+.cruces-variables {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+}
+
+.cruces-variables-lista {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cruces-variable-de-cruce {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  padding-block: var(--pulso-space-3);
+}
+
+.cruces-variable-de-cruce:first-child {
+  padding-block-start: 0;
+}
+
+.cruces-variable-de-cruce + .cruces-variable-de-cruce {
+  border-top: 1px solid var(--pulso-border);
+}
+
+.cruces-variable-cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.cruces-variable-nombre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px var(--pulso-space-2);
+  min-width: 0;
+  padding-block-start: var(--pulso-space-1);
+}
+
+.cruces-variable-etiqueta {
+  min-width: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.cruces-categorias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+}
+
+.cruces-categorias-estado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+}
+
+.cruces-regla {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.cruces-regla-filas {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--pulso-space-1) var(--pulso-space-3);
+  margin: 0;
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.4;
+}
+
+.cruces-regla-filas > div {
+  display: contents;
+}
+
+.cruces-regla-filas dt {
+  color: var(--pulso-text-soft);
+}
+
+.cruces-regla-filas dd {
+  margin: 0;
+  color: var(--pulso-text);
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Tamaños ---------- */
+
+@container tablas-superficie (max-width: 1149px) {
+  .cruces-hoja {
+    --cruces-cat: 200px;
+    --cruces-col: 84px;
+  }
+
+  .cruces-selector {
+    flex-basis: 260px;
+  }
+
+  .cruces-selector + .tablas-ir-a {
+    flex-basis: 200px;
+  }
+}
+
+/* Superficie angosta: la pestaña entera se desplaza a lo alto (como Frecuencias)
+   y la vista es la dueña del desplazamiento a lo ancho. */
+@container tablas-superficie (max-width: 959px) {
+  .tablas-superficie[data-tablas="cruces"] .cruces-vista {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+
+  .cruces-cabecera {
+    position: static;
+  }
+}
+
+/* Ventana baja (1366x768 y menores): el alto es de las filas. Se recorta el
+   aire de la sección, del título y de la cabecera; nada se quita. */
+@media (max-height: 820px) {
+  .cruces-seccion {
+    padding-block: var(--pulso-space-2) 0;
+  }
+
+  .cruces-seccion[data-en-archivo] {
+    padding-block-end: var(--pulso-space-1);
+  }
+
+  .cruces-tabla-titulo {
+    padding-block: var(--pulso-space-2) var(--pulso-space-1);
+  }
+
+  .cruces-fila > * {
+    padding-block: var(--pulso-space-1);
+  }
+
+  .cruces-fila--variables > * {
+    padding-block: var(--pulso-space-1) 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cruces-tabla {
+    transition: none;
+  }
+}
+
+.cruces-quitar-exclusiones {
+  align-self: flex-start;
+}
+
+.cruces-regla-titulo {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/* Una tabla sin respuestas: su vacío ocupa el lugar de la grilla, con el borde de las filas. */
+.cruces-vacio-tabla {
+  margin: 0;
+  padding-block: var(--pulso-space-3);
+  border-block: 1px solid var(--pulso-border);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+}
+
+/* El selector de variable a cruzar: el del kit, a todo el ancho de su lugar. */
+.cruces-elegir {
+  min-width: 0;
+}
+
+.cruces-elegir > .pulso-select-trigger {
+  width: 100%;
+}
+
+/* Cada opción va en el portal del select (fuera de la superficie): la pregunta
+   parte línea y debajo van el nombre de la variable y su tipo, sin pisarse. */
+.cruces-opcion {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  max-width: min(440px, 80vw);
+  padding-block: var(--pulso-space-1);
+  white-space: normal;
+}
+
+.cruces-opcion-pregunta {
+  overflow-wrap: anywhere;
+}
+
+.cruces-opcion-datos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--pulso-space-2);
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-regular, 400);
+}

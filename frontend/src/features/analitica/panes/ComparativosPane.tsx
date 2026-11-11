@@ -374,7 +374,7 @@ function BotonGenerar({
   );
 }
 
-/** Dónde se resuelve el fallo (Equivalencias, Ponderación, Fuentes), como acción neutra al pie del contenedor. */
+/** Dónde se resuelve el fallo (Equivalencias, Ponderación, Bases), como acción neutra al pie del contenedor. */
 function AccionDelFallo({ codigo }: { codigo: string | null }) {
   const navegar = useNavigate();
   const accion = accionParaError(codigo);

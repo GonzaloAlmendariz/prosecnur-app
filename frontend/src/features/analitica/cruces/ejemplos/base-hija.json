@@ -1,0 +1,1264 @@
+{
+  "ok": true,
+  "base": {
+    "nombre": "rep_servicios",
+    "bases_del_archivo": [
+      "post_distribution_monitoring_espacios_de_protecci_on_2026_q2",
+      "rep_servicios"
+    ],
+    "bases_sin_cruces": [],
+    "n_bases": 2,
+    "independientes": false
+  },
+  "fuente": "originales",
+  "modo": "estandar",
+  "modo_configurado": "estandar",
+  "ponderado": false,
+  "ponderacion": {
+    "configurada": false,
+    "estado": "sin_config",
+    "modo": null,
+    "peso_columna": null,
+    "motivo": null,
+    "n_efectivo": null,
+    "deff": null,
+    "sello": "Base sin ponderar",
+    "escala": null
+  },
+  "casos": {
+    "cuentan": 660,
+    "antes_de_excluir": 667,
+    "suma_pesos": 660,
+    "con_peso": 660,
+    "unidad": "registro"
+  },
+  "escala_pct": "proporcion",
+  "opciones": {
+    "orden": "original",
+    "incluir_secciones": true,
+    "significancia": true,
+    "alfa_configurado": 0.05
+  },
+  "significancia_regla": {
+    "origen": "propuesta",
+    "prueba": "z",
+    "correccion": "bonferroni_fila",
+    "alfa": 0.05,
+    "umbral_puntos": 10,
+    "base_minima": 30,
+    "conglomerados_minimos": 8,
+    "conglomerado": null,
+    "max_letras": 6,
+    "incluir_ns": false,
+    "n_prueba": "pesos_llevados_a_media_1"
+  },
+  "cruces": [
+    {
+      "variable": "timing",
+      "excluidas": []
+    },
+    {
+      "variable": "transport",
+      "excluidas": [
+        "colective"
+      ]
+    }
+  ],
+  "cruces_sin_columnas": [],
+  "exclusiones": [
+    {
+      "variable": "transport",
+      "unidad": "registro",
+      "categorias": [
+        {
+          "codigo": "colective",
+          "filas": 7
+        }
+      ]
+    }
+  ],
+  "limite": 20,
+  "total_variables": 2,
+  "total_en_archivo": 2,
+  "devueltas": 2,
+  "recortado": false,
+  "tablas": [
+    {
+      "variable": "conocimiento",
+      "etiqueta": "¿Cómo se enteró del Espacio de Protección de ${sede_ppl} ?",
+      "tipo": "unica",
+      "denominador": "validos_de_la_columna",
+      "seccion": {
+        "nombre": "Llegada",
+        "rotulo": "LLEGADA"
+      },
+      "grano": "encuestado",
+      "base": {
+        "n": 422,
+        "de": 422,
+        "unidad": "encuestado"
+      },
+      "sin_datos": false,
+      "sin_respuestas": false,
+      "filas": [
+        {
+          "codigo": "infoacnur",
+          "etiqueta": "Línea de Atención (InfoACNUR)",
+          "probada": true
+        },
+        {
+          "codigo": "usuarios",
+          "etiqueta": "Otros usuarios de los EdP",
+          "probada": false
+        },
+        {
+          "codigo": "redes_sociales",
+          "etiqueta": "Redes sociales (Instagram, X, Facebook)",
+          "probada": true
+        },
+        {
+          "codigo": "whatsapp",
+          "etiqueta": "Grupos de WhatsApp/Telegram",
+          "probada": true
+        },
+        {
+          "codigo": "web",
+          "etiqueta": "Help Perú (web ACNUR)",
+          "probada": true
+        },
+        {
+          "codigo": "ongs",
+          "etiqueta": "ONGs / Liderazgos comunitarios",
+          "probada": true
+        },
+        {
+          "codigo": "other",
+          "etiqueta": "Otros",
+          "probada": false
+        }
+      ],
+      "filas_omitidas": [],
+      "total": {
+        "n": 422,
+        "base_n": 422,
+        "casos_sin_fila": 0,
+        "celdas": [
+          {
+            "fila": "infoacnur",
+            "n": 40,
+            "pct": 0.0947867298578199
+          },
+          {
+            "fila": "usuarios",
+            "n": 168,
+            "pct": 0.398104265402844
+          },
+          {
+            "fila": "redes_sociales",
+            "n": 60,
+            "pct": 0.14218009478673
+          },
+          {
+            "fila": "whatsapp",
+            "n": 15,
+            "pct": 0.0355450236966825
+          },
+          {
+            "fila": "web",
+            "n": 0,
+            "pct": 0
+          },
+          {
+            "fila": "ongs",
+            "n": 17,
+            "pct": 0.0402843601895735
+          },
+          {
+            "fila": "other",
+            "n": 122,
+            "pct": 0.289099526066351
+          }
+        ]
+      },
+      "cruces": [
+        {
+          "variable": "timing",
+          "etiqueta": "¿Cuánto tiempo le tomó aproximadamente llegar al Espacio de Protección de  ${sede_ppl} ?",
+          "columnas_por": "codigo",
+          "multiple": false,
+          "sin_columna": {
+            "base_n": 0,
+            "n": 0,
+            "valores_no_reconocidos": 0
+          },
+          "significancia": {
+            "metodo": "regla_z",
+            "motivo": null,
+            "modo": "letras"
+          },
+          "columnas": [
+            {
+              "codigo": "less15",
+              "etiqueta": "Hasta 15 minutos",
+              "letra": "A",
+              "n": 89,
+              "base_n": 89,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": null,
+              "celdas": [
+                {
+                  "fila": "infoacnur",
+                  "n": 3,
+                  "pct": 0.0337078651685393,
+                  "letras": ""
+                },
+                {
+                  "fila": "usuarios",
+                  "n": 46,
+                  "pct": 0.51685393258427,
+                  "letras": ""
+                },
+                {
+                  "fila": "redes_sociales",
+                  "n": 16,
+                  "pct": 0.179775280898876,
+                  "letras": ""
+                },
+                {
+                  "fila": "whatsapp",
+                  "n": 1,
+                  "pct": 0.0112359550561798,
+                  "letras": ""
+                },
+                {
+                  "fila": "web",
+                  "n": 0,
+                  "pct": 0,
+                  "letras": ""
+                },
+                {
+                  "fila": "ongs",
+                  "n": 1,
+                  "pct": 0.0112359550561798,
+                  "letras": ""
+                },
+                {
+                  "fila": "other",
+                  "n": 22,
+                  "pct": 0.247191011235955,
+                  "letras": ""
+                }
+              ]
+            },
+            {
+              "codigo": "15_30",
+              "etiqueta": "Más de 15 minutos hasta 30 minutos",
+              "letra": "B",
+              "n": 108,
+              "base_n": 108,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": null,
+              "celdas": [
+                {
+                  "fila": "infoacnur",
+                  "n": 9,
+                  "pct": 0.0833333333333333,
+                  "letras": ""
+                },
+                {
+                  "fila": "usuarios",
+                  "n": 46,
+                  "pct": 0.425925925925926,
+                  "letras": ""
+                },
+                {
+                  "fila": "redes_sociales",
+                  "n": 14,
+                  "pct": 0.12962962962963,
+                  "letras": ""
+                },
+                {
+                  "fila": "whatsapp",
+                  "n": 4,
+                  "pct": 0.037037037037037,
+                  "letras": ""
+                },
+                {
+                  "fila": "web",
+                  "n": 0,
+                  "pct": 0,
+                  "letras": ""
+                },
+                {
+                  "fila": "ongs",
+                  "n": 4,
+                  "pct": 0.037037037037037,
+                  "letras": ""
+                },
+                {
+                  "fila": "other",
+                  "n": 31,
+                  "pct": 0.287037037037037,
+                  "letras": ""
+                }
+              ]
+            },
+            {
+              "codigo": "30_1h",
+              "etiqueta": "Más de 30 minutos hasta 1 hora",
+              "letra": "C",
+              "n": 111,
+              "base_n": 111,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": null,
+              "celdas": [
+                {
+                  "fila": "infoacnur",
+                  "n": 15,
+                  "pct": 0.135135135135135,
+                  "letras": ""
+                },
+                {
+                  "fila": "usuarios",
+                  "n": 43,
+                  "pct": 0.387387387387387,
+                  "letras": ""
+                },
+                {
+                  "fila": "redes_sociales",
+                  "n": 12,
+                  "pct": 0.108108108108108,
+                  "letras": ""
+                },
+                {
+                  "fila": "whatsapp",
+                  "n": 6,
+                  "pct": 0.0540540540540541,
+                  "letras": ""
+                },
+                {
+                  "fila": "web",
+                  "n": 0,
+                  "pct": 0,
+                  "letras": ""
+                },
+                {
+                  "fila": "ongs",
+                  "n": 4,
+                  "pct": 0.036036036036036,
+                  "letras": ""
+                },
+                {
+                  "fila": "other",
+                  "n": 31,
+                  "pct": 0.279279279279279,
+                  "letras": ""
+                }
+              ]
+            },
+            {
+              "codigo": "1_2h",
+              "etiqueta": "Más de 1 hora hasta 2 horas",
+              "letra": "D",
+              "n": 74,
+              "base_n": 74,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": null,
+              "celdas": [
+                {
+                  "fila": "infoacnur",
+                  "n": 6,
+                  "pct": 0.0810810810810811,
+                  "letras": ""
+                },
+                {
+                  "fila": "usuarios",
+                  "n": 20,
+                  "pct": 0.27027027027027,
+                  "letras": ""
+                },
+                {
+                  "fila": "redes_sociales",
+                  "n": 14,
+                  "pct": 0.189189189189189,
+                  "letras": ""
+                },
+                {
+                  "fila": "whatsapp",
+                  "n": 3,
+                  "pct": 0.0405405405405405,
+                  "letras": ""
+                },
+                {
+                  "fila": "web",
+                  "n": 0,
+                  "pct": 0,
+                  "letras": ""
+                },
+                {
+                  "fila": "ongs",
+                  "n": 8,
+                  "pct": 0.108108108108108,
+                  "letras": ""
+                },
+                {
+                  "fila": "other",
+                  "n": 23,
+                  "pct": 0.310810810810811,
+                  "letras": ""
+                }
+              ]
+            },
+            {
+              "codigo": "more_2h",
+              "etiqueta": "Más de 2 horas",
+              "letra": "E",
+              "n": 40,
+              "base_n": 40,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": null,
+              "celdas": [
+                {
+                  "fila": "infoacnur",
+                  "n": 7,
+                  "pct": 0.175,
+                  "letras": ""
+                },
+                {
+                  "fila": "usuarios",
+                  "n": 13,
+                  "pct": 0.325,
+                  "letras": ""
+                },
+                {
+                  "fila": "redes_sociales",
+                  "n": 4,
+                  "pct": 0.1,
+                  "letras": ""
+                },
+                {
+                  "fila": "whatsapp",
+                  "n": 1,
+                  "pct": 0.025,
+                  "letras": ""
+                },
+                {
+                  "fila": "web",
+                  "n": 0,
+                  "pct": 0,
+                  "letras": ""
+                },
+                {
+                  "fila": "ongs",
+                  "n": 0,
+                  "pct": 0,
+                  "letras": ""
+                },
+                {
+                  "fila": "other",
+                  "n": 15,
+                  "pct": 0.375,
+                  "letras": ""
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "variable": "transport",
+          "etiqueta": "¿Qué medio de transporte utilizó para llegar al Espacio de Protección?",
+          "columnas_por": "codigo",
+          "multiple": false,
+          "sin_columna": {
+            "base_n": 0,
+            "n": 0,
+            "valores_no_reconocidos": 0
+          },
+          "significancia": {
+            "metodo": "regla_z",
+            "motivo": null,
+            "modo": "frente_al_resto"
+          },
+          "columnas": [
+            {
+              "codigo": "walking",
+              "etiqueta": "A pie (caminando)",
+              "letra": null,
+              "n": 37,
+              "base_n": 37,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": null,
+              "celdas": [
+                {
+                  "fila": "infoacnur",
+                  "n": 1,
+                  "pct": 0.027027027027027,
+                  "letras": ""
+                },
+                {
+                  "fila": "usuarios",
+                  "n": 18,
+                  "pct": 0.486486486486487,
+                  "letras": ""
+                },
+                {
+                  "fila": "redes_sociales",
+                  "n": 3,
+                  "pct": 0.0810810810810811,
+                  "letras": ""
+                },
+                {
+                  "fila": "whatsapp",
+                  "n": 0,
+                  "pct": 0,
+                  "letras": ""
+                },
+                {
+                  "fila": "web",
+                  "n": 0,
+                  "pct": 0,
+                  "letras": ""
+                },
+                {
+                  "fila": "ongs",
+                  "n": 1,
+                  "pct": 0.027027027027027,
+                  "letras": ""
+                },
+                {
+                  "fila": "other",
+                  "n": 14,
+                  "pct": 0.378378378378378,
+                  "letras": ""
+                }
+              ]
+            },
+            {
+              "codigo": "bus",
+              "etiqueta": "Combi/Bus (tránsporte público)",
+              "letra": null,
+              "n": 235,
+              "base_n": 235,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": null,
+              "celdas": [
+                {
+                  "fila": "infoacnur",
+                  "n": 25,
+                  "pct": 0.106382978723404,
+                  "letras": ""
+                },
+                {
+                  "fila": "usuarios",
+                  "n": 87,
+                  "pct": 0.370212765957447,
+                  "letras": ""
+                },
+                {
+                  "fila": "redes_sociales",
+                  "n": 37,
+                  "pct": 0.157446808510638,
+                  "letras": ""
+                },
+                {
+                  "fila": "whatsapp",
+                  "n": 9,
+                  "pct": 0.0382978723404255,
+                  "letras": ""
+                },
+                {
+                  "fila": "web",
+                  "n": 0,
+                  "pct": 0,
+                  "letras": ""
+                },
+                {
+                  "fila": "ongs",
+                  "n": 8,
+                  "pct": 0.0340425531914894,
+                  "letras": ""
+                },
+                {
+                  "fila": "other",
+                  "n": 69,
+                  "pct": 0.293617021276596,
+                  "letras": ""
+                }
+              ]
+            },
+            {
+              "codigo": "taxi",
+              "etiqueta": "Taxi / Moto-taxi",
+              "letra": null,
+              "n": 103,
+              "base_n": 103,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": null,
+              "celdas": [
+                {
+                  "fila": "infoacnur",
+                  "n": 10,
+                  "pct": 0.0970873786407767,
+                  "letras": ""
+                },
+                {
+                  "fila": "usuarios",
+                  "n": 44,
+                  "pct": 0.427184466019417,
+                  "letras": ""
+                },
+                {
+                  "fila": "redes_sociales",
+                  "n": 15,
+                  "pct": 0.145631067961165,
+                  "letras": ""
+                },
+                {
+                  "fila": "whatsapp",
+                  "n": 5,
+                  "pct": 0.0485436893203883,
+                  "letras": ""
+                },
+                {
+                  "fila": "web",
+                  "n": 0,
+                  "pct": 0,
+                  "letras": ""
+                },
+                {
+                  "fila": "ongs",
+                  "n": 4,
+                  "pct": 0.0388349514563107,
+                  "letras": ""
+                },
+                {
+                  "fila": "other",
+                  "n": 25,
+                  "pct": 0.242718446601942,
+                  "letras": ""
+                }
+              ]
+            },
+            {
+              "codigo": "colective",
+              "etiqueta": "Colectivo (vehículo particular compartido)",
+              "letra": null,
+              "n": 0,
+              "base_n": 0,
+              "excluida": true,
+              "exclusion_aplicada": true,
+              "motivo": "excluida",
+              "celdas": [
+                {
+                  "fila": "infoacnur",
+                  "n": 0,
+                  "pct": null,
+                  "letras": ""
+                },
+                {
+                  "fila": "usuarios",
+                  "n": 0,
+                  "pct": null,
+                  "letras": ""
+                },
+                {
+                  "fila": "redes_sociales",
+                  "n": 0,
+                  "pct": null,
+                  "letras": ""
+                },
+                {
+                  "fila": "whatsapp",
+                  "n": 0,
+                  "pct": null,
+                  "letras": ""
+                },
+                {
+                  "fila": "web",
+                  "n": 0,
+                  "pct": null,
+                  "letras": ""
+                },
+                {
+                  "fila": "ongs",
+                  "n": 0,
+                  "pct": null,
+                  "letras": ""
+                },
+                {
+                  "fila": "other",
+                  "n": 0,
+                  "pct": null,
+                  "letras": ""
+                }
+              ]
+            },
+            {
+              "codigo": "metropolitan_transport",
+              "etiqueta": "Metropolitano/SIT/Tren",
+              "letra": null,
+              "n": 15,
+              "base_n": 15,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": "base_insuficiente",
+              "celdas": [
+                {
+                  "fila": "infoacnur",
+                  "n": 2,
+                  "pct": 0.133333333333333,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "usuarios",
+                  "n": 4,
+                  "pct": 0.266666666666667,
+                  "letras": ""
+                },
+                {
+                  "fila": "redes_sociales",
+                  "n": 1,
+                  "pct": 0.0666666666666667,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "whatsapp",
+                  "n": 0,
+                  "pct": 0,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "web",
+                  "n": 0,
+                  "pct": 0,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "ongs",
+                  "n": 3,
+                  "pct": 0.2,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "other",
+                  "n": 5,
+                  "pct": 0.333333333333333,
+                  "letras": ""
+                }
+              ]
+            },
+            {
+              "codigo": "own_car",
+              "etiqueta": "Vehículo propio",
+              "letra": null,
+              "n": 14,
+              "base_n": 14,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": "base_insuficiente",
+              "celdas": [
+                {
+                  "fila": "infoacnur",
+                  "n": 0,
+                  "pct": 0,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "usuarios",
+                  "n": 10,
+                  "pct": 0.714285714285714,
+                  "letras": ""
+                },
+                {
+                  "fila": "redes_sociales",
+                  "n": 1,
+                  "pct": 0.0714285714285714,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "whatsapp",
+                  "n": 1,
+                  "pct": 0.0714285714285714,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "web",
+                  "n": 0,
+                  "pct": 0,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "ongs",
+                  "n": 1,
+                  "pct": 0.0714285714285714,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "other",
+                  "n": 1,
+                  "pct": 0.0714285714285714,
+                  "letras": ""
+                }
+              ]
+            },
+            {
+              "codigo": "other",
+              "etiqueta": "Otro",
+              "letra": null,
+              "n": 18,
+              "base_n": 18,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": "base_insuficiente",
+              "celdas": [
+                {
+                  "fila": "infoacnur",
+                  "n": 2,
+                  "pct": 0.111111111111111,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "usuarios",
+                  "n": 5,
+                  "pct": 0.277777777777778,
+                  "letras": ""
+                },
+                {
+                  "fila": "redes_sociales",
+                  "n": 3,
+                  "pct": 0.166666666666667,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "whatsapp",
+                  "n": 0,
+                  "pct": 0,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "web",
+                  "n": 0,
+                  "pct": 0,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "ongs",
+                  "n": 0,
+                  "pct": 0,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "other",
+                  "n": 8,
+                  "pct": 0.444444444444444,
+                  "letras": ""
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "significancia": {
+        "nota": "Las letras comparan las columnas de una misma variable de cruce: la letra marca la columna superada, con diferencia significativa y de al menos 10 puntos. En minúscula, frágil (p ajustado entre 0.01 y 0.05). \".b\" indica una columna con menos de 30 casos, que no se compara. Prueba z, p < 0.05 con corrección de Bonferroni."
+      },
+      "notas": [
+        "Fuente: Pulso PUCP"
+      ]
+    },
+    {
+      "variable": "srv_satisfaccion",
+      "etiqueta": "¿Se encuentra satisfecho/a con la atención recibida -  ${current_label}?",
+      "tipo": "unica",
+      "denominador": "validos_de_la_columna",
+      "seccion": {
+        "nombre": "Llegada",
+        "rotulo": "LLEGADA"
+      },
+      "grano": "registro",
+      "base": {
+        "n": 660,
+        "de": 660,
+        "unidad": "registro"
+      },
+      "sin_datos": false,
+      "sin_respuestas": false,
+      "filas": [
+        {
+          "codigo": "Yes",
+          "etiqueta": "Sí",
+          "probada": true
+        },
+        {
+          "codigo": "No",
+          "etiqueta": "No",
+          "probada": true
+        }
+      ],
+      "filas_omitidas": [],
+      "total": {
+        "n": 660,
+        "base_n": 660,
+        "casos_sin_fila": 0,
+        "celdas": [
+          {
+            "fila": "Yes",
+            "n": 646,
+            "pct": 0.978787878787879
+          },
+          {
+            "fila": "No",
+            "n": 14,
+            "pct": 0.0212121212121212
+          }
+        ]
+      },
+      "cruces": [
+        {
+          "variable": "timing",
+          "etiqueta": "¿Cuánto tiempo le tomó aproximadamente llegar al Espacio de Protección de  ${sede_ppl} ?",
+          "columnas_por": "codigo",
+          "multiple": false,
+          "sin_columna": {
+            "base_n": 0,
+            "n": 0,
+            "valores_no_reconocidos": 0
+          },
+          "significancia": {
+            "metodo": "cluster_robust",
+            "motivo": null,
+            "modo": "letras"
+          },
+          "columnas": [
+            {
+              "codigo": "less15",
+              "etiqueta": "Hasta 15 minutos",
+              "letra": "A",
+              "n": 152,
+              "base_n": 152,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": null,
+              "celdas": [
+                {
+                  "fila": "Yes",
+                  "n": 149,
+                  "pct": 0.980263157894737,
+                  "letras": ""
+                },
+                {
+                  "fila": "No",
+                  "n": 3,
+                  "pct": 0.0197368421052632,
+                  "letras": ""
+                }
+              ]
+            },
+            {
+              "codigo": "15_30",
+              "etiqueta": "Más de 15 minutos hasta 30 minutos",
+              "letra": "B",
+              "n": 162,
+              "base_n": 162,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": null,
+              "celdas": [
+                {
+                  "fila": "Yes",
+                  "n": 158,
+                  "pct": 0.975308641975309,
+                  "letras": ""
+                },
+                {
+                  "fila": "No",
+                  "n": 4,
+                  "pct": 0.0246913580246914,
+                  "letras": ""
+                }
+              ]
+            },
+            {
+              "codigo": "30_1h",
+              "etiqueta": "Más de 30 minutos hasta 1 hora",
+              "letra": "C",
+              "n": 168,
+              "base_n": 168,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": null,
+              "celdas": [
+                {
+                  "fila": "Yes",
+                  "n": 167,
+                  "pct": 0.994047619047619,
+                  "letras": ""
+                },
+                {
+                  "fila": "No",
+                  "n": 1,
+                  "pct": 0.00595238095238095,
+                  "letras": ""
+                }
+              ]
+            },
+            {
+              "codigo": "1_2h",
+              "etiqueta": "Más de 1 hora hasta 2 horas",
+              "letra": "D",
+              "n": 110,
+              "base_n": 110,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": null,
+              "celdas": [
+                {
+                  "fila": "Yes",
+                  "n": 108,
+                  "pct": 0.981818181818182,
+                  "letras": ""
+                },
+                {
+                  "fila": "No",
+                  "n": 2,
+                  "pct": 0.0181818181818182,
+                  "letras": ""
+                }
+              ]
+            },
+            {
+              "codigo": "more_2h",
+              "etiqueta": "Más de 2 horas",
+              "letra": "E",
+              "n": 68,
+              "base_n": 68,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": null,
+              "celdas": [
+                {
+                  "fila": "Yes",
+                  "n": 64,
+                  "pct": 0.941176470588235,
+                  "letras": ""
+                },
+                {
+                  "fila": "No",
+                  "n": 4,
+                  "pct": 0.0588235294117647,
+                  "letras": ""
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "variable": "transport",
+          "etiqueta": "¿Qué medio de transporte utilizó para llegar al Espacio de Protección?",
+          "columnas_por": "codigo",
+          "multiple": false,
+          "sin_columna": {
+            "base_n": 0,
+            "n": 0,
+            "valores_no_reconocidos": 0
+          },
+          "significancia": {
+            "metodo": "descriptivo",
+            "motivo": "Ninguna comparación entre columnas tiene variación suficiente para estimar su error.",
+            "modo": "letras"
+          },
+          "columnas": [
+            {
+              "codigo": "walking",
+              "etiqueta": "A pie (caminando)",
+              "letra": "A",
+              "n": 66,
+              "base_n": 66,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": null,
+              "celdas": [
+                {
+                  "fila": "Yes",
+                  "n": 66,
+                  "pct": 1,
+                  "letras": ""
+                },
+                {
+                  "fila": "No",
+                  "n": 0,
+                  "pct": 0,
+                  "letras": ""
+                }
+              ]
+            },
+            {
+              "codigo": "bus",
+              "etiqueta": "Combi/Bus (tránsporte público)",
+              "letra": "B",
+              "n": 365,
+              "base_n": 365,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": null,
+              "celdas": [
+                {
+                  "fila": "Yes",
+                  "n": 359,
+                  "pct": 0.983561643835616,
+                  "letras": ""
+                },
+                {
+                  "fila": "No",
+                  "n": 6,
+                  "pct": 0.0164383561643836,
+                  "letras": ""
+                }
+              ]
+            },
+            {
+              "codigo": "taxi",
+              "etiqueta": "Taxi / Moto-taxi",
+              "letra": "C",
+              "n": 153,
+              "base_n": 153,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": null,
+              "celdas": [
+                {
+                  "fila": "Yes",
+                  "n": 148,
+                  "pct": 0.967320261437909,
+                  "letras": ""
+                },
+                {
+                  "fila": "No",
+                  "n": 5,
+                  "pct": 0.0326797385620915,
+                  "letras": ""
+                }
+              ]
+            },
+            {
+              "codigo": "colective",
+              "etiqueta": "Colectivo (vehículo particular compartido)",
+              "letra": "D",
+              "n": 0,
+              "base_n": 0,
+              "excluida": true,
+              "exclusion_aplicada": true,
+              "motivo": "excluida",
+              "celdas": [
+                {
+                  "fila": "Yes",
+                  "n": 0,
+                  "pct": null,
+                  "letras": ""
+                },
+                {
+                  "fila": "No",
+                  "n": 0,
+                  "pct": null,
+                  "letras": ""
+                }
+              ]
+            },
+            {
+              "codigo": "metropolitan_transport",
+              "etiqueta": "Metropolitano/SIT/Tren",
+              "letra": "E",
+              "n": 23,
+              "base_n": 23,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": null,
+              "celdas": [
+                {
+                  "fila": "Yes",
+                  "n": 23,
+                  "pct": 1,
+                  "letras": ""
+                },
+                {
+                  "fila": "No",
+                  "n": 0,
+                  "pct": 0,
+                  "letras": ""
+                }
+              ]
+            },
+            {
+              "codigo": "own_car",
+              "etiqueta": "Vehículo propio",
+              "letra": "F",
+              "n": 17,
+              "base_n": 17,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": null,
+              "celdas": [
+                {
+                  "fila": "Yes",
+                  "n": 17,
+                  "pct": 1,
+                  "letras": ""
+                },
+                {
+                  "fila": "No",
+                  "n": 0,
+                  "pct": 0,
+                  "letras": ""
+                }
+              ]
+            },
+            {
+              "codigo": "other",
+              "etiqueta": "Otro",
+              "letra": "G",
+              "n": 36,
+              "base_n": 36,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": null,
+              "celdas": [
+                {
+                  "fila": "Yes",
+                  "n": 33,
+                  "pct": 0.916666666666667,
+                  "letras": ""
+                },
+                {
+                  "fila": "No",
+                  "n": 3,
+                  "pct": 0.0833333333333333,
+                  "letras": ""
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "significancia": {
+        "nota": "Las letras comparan las columnas de una misma variable de cruce. Una letra en una celda indica que esa proporción es significativamente mayor que la de la columna identificada con esa letra (prueba z de diferencia de proporciones con corrección de Bonferroni, nivel de significancia de 0.05). La prueba supone muestreo aleatorio simple. \".a\" indica una columna excluida de la comparación porque su proporción es 0 % o 100 %. \".b\" indica una columna con menos de 30 casos, que no se compara. Sin letras en parte de la tabla: Ninguna comparación entre columnas tiene variación suficiente para estimar su error."
+      },
+      "notas": [
+        "Fuente: Pulso PUCP. Base: evaluación del servicio recibido (667 registros de 426 encuestados). Porcentajes por columna."
+      ]
+    }
+  ],
+  "sin_tabla": [],
+  "avisos": [
+    {
+      "codigo": "exclusion_global",
+      "mensaje": "Se quitaron 7 registros de toda la base al excluir \"Colectivo (vehículo particular compartido)\" en \"¿Qué medio de transporte utilizó para llegar al Espacio de Protección?\". El Total y las columnas de las demás variables de cruce tampoco los cuentan."
+    }
+  ]
+}

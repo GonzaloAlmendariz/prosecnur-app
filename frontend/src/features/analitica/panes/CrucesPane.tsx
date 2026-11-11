@@ -1,510 +1,140 @@
-import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ArrowDown01, ArrowUp01, Filter, GitBranch, Grid3x3, Info, Layers, ListOrdered, Plus, X } from "lucide-react";
+import { useCallback, useEffect, useMemo } from "react";
 import {
-  apiAnaliticaColumnValues,
   apiAnaliticaCruces,
   apiAnaliticaVariables,
-  ValorColumna,
-  VariableInstrumento,
-} from "../../../api/client";
-import { EstadoVacio } from "../../../components/EstadoVacio";
-import { Panel } from "../../../components/Panel";
-import { PulsoButton } from "../../../components/PulsoButton";
-import { formatoConteo } from "../../../lib/formatoNumero";
-import { CifrasPestana } from "../CifrasPestana";
-import { InterruptorOpcion } from "../InterruptorOpcion";
-import { CruceVarConfig, useAnaliticaStore } from "../store";
-import { VariableSelect } from "../VariableSelect";
-import { Section, GenerateFooter } from "../PaneKit";
-import { useReporteRun } from "../useReporteRun";
+  type VariableInstrumento,
+} from "../../../api/analitica";
+import { apiEstudioGet } from "../../../api/estudio";
+import { useFoco } from "../../../lib/navegacion/useFoco";
 import { useSession } from "../../../lib/SessionContext";
-import { NotasPieEditor } from "./NotasPieEditor";
-import { ALFA_CRUCES, detalleSignificancia, subtituloSignificancia } from "./crucesSignificancia";
-import { CrucesReglaEstudio } from "./CrucesReglaEstudio";
+import { AjustesDeCruces } from "../cruces/AjustesDeCruces";
+import { BandaDeCruces } from "../cruces/BandaDeCruces";
+import { etiquetasDeCategorias, motivoSinGenerarCruces } from "../cruces/crucesModelo";
+import { useVistaPreviaDeCruces } from "../cruces/useVistaPreviaDeCruces";
+import { VistaPreviaDeCruces } from "../cruces/VistaPreviaDeCruces";
+import { resumenSecciones } from "../estructuraDeSecciones";
+import { claveDeLaBase } from "../ponderacion/useBaseDelCalculo";
+import { useAnaliticaStore } from "../store";
+import { MarcoDeTablas } from "../tablas/MarcoDeTablas";
+import { PieDeArchivo } from "../tablas/PieDeArchivo";
+import { useLecturaPorBase } from "../tablas/useLecturaPorBase";
+import { useReporteRun } from "../useReporteRun";
+import { ALFA_CRUCES } from "./crucesSignificancia";
 
-// CrucesPane — configuración mínima.
-// 1. Variables a cruzar (con posibilidad de excluir categorías específicas).
-// 2. Modo: estándar (frecuencias) o dimensiones (índices 0-100). El modo
-//    "dimensiones" solo está disponible cuando el tab Dimensiones ya generó
-//    `rp_dim` en backend.
-// 3. Significancia estadística.
-// 4. Generar.
+// CrucesPane: el archivo de cruces. A la izquierda, las tablas cruzadas tal
+// como las escribe el archivo, calculadas por el motor con la config guardada
+// (`POST /api/analitica/cruces/preview`); a la derecha, lo que se decide sobre
+// ellas; debajo, el archivo. Las secciones y las exclusiones de variables se
+// deciden en Datos.
 //
-// Hardcodeado: `incluir_total` siempre en true (la fila Total es útil
-// siempre), `alpha` fijo en 0.05. Semáforo y brechas se delegan al módulo
-// Dashboard cuando se publica; en Cruces solo se persisten al store.
+// La config se guarda con el autosave de Analítica (`analitica_config`) y el
+// motor la lee al generar: el pedido del archivo va con el cuerpo vacío.
+
+const SIN_VARIABLES: VariableInstrumento[] = [];
+const leerVariables = async () => (await apiAnaliticaVariables()).variables;
+const leerEstudio = () => apiEstudioGet();
 
 export function CrucesPane() {
   const cruces = useAnaliticaStore((s) => s.config.cruces);
+  const secciones = useAnaliticaStore((s) => s.config.secciones);
   const frec = useAnaliticaStore((s) => s.config.frecuencias);
   const numericasGlobal = useAnaliticaStore((s) => s.config.numericas);
+  const excluidas = useAnaliticaStore((s) => s.config.variables_excluidas);
   const setCruces = useAnaliticaStore((s) => s.setCruces);
   const addCruceVar = useAnaliticaStore((s) => s.addCruceVar);
   const removeCruceVar = useAnaliticaStore((s) => s.removeCruceVar);
   const setCruceVarExcluidas = useAnaliticaStore((s) => s.setCruceVarExcluidas);
   const run = useReporteRun("Cruces", { articulo: "los", formato: "xlsx" });
-  const { state } = useSession();
-  const dimOk = !!state?.analitica_dim_ok;
+  const [elegida, elegir] = useFoco();
+  const sesion = useSession().state;
+  const dimensionesListas = Boolean(sesion?.analitica_dim_ok);
 
-  // Si el usuario tenía guardado modo="dimensiones" pero las dimensiones aún
-  // no están construidas, caemos a "estandar" silenciosamente para no fallar.
+  // Modo "dimensiones" guardado sin dimensiones generadas: vuelve a "estandar"
+  // para que el archivo no falle (comportamiento de siempre).
   useEffect(() => {
-    if (cruces.modo === "dimensiones" && !dimOk) {
-      setCruces({ modo: "estandar" });
-    }
-  }, [cruces.modo, dimOk, setCruces]);
+    if (cruces.modo === "dimensiones" && !dimensionesListas) setCruces({ modo: "estandar" });
+  }, [cruces.modo, dimensionesListas, setCruces]);
 
-  const [variables, setVariables] = useState<VariableInstrumento[]>([]);
-  useEffect(() => {
-    (async () => {
-      try {
-        const r = await apiAnaliticaVariables();
-        setVariables(r.variables);
-      } catch {/* no-op */}
-    })();
-  }, []);
-
-  async function onGenerate() {
-    // Defaults fijos: alpha 0.05 e incluir_total siempre. `modo` lo
-    // controla el usuario (estandar / dimensiones).
-    const patch: Partial<typeof cruces> = {};
-    if (cruces.alpha !== ALFA_CRUCES) patch.alpha = ALFA_CRUCES;
-    if (!cruces.incluir_total) patch.incluir_total = true;
-    if (Object.keys(patch).length > 0) setCruces(patch);
-    await run.runAsync(() => apiAnaliticaCruces());
-  }
-
-  const nVars = cruces.cruces_vars.length;
+  // Las tablas: las del motor, releídas cuando cambia lo que cambia el archivo.
+  const vista = useVistaPreviaDeCruces(elegida);
+  // Las variables del formulario: para elegir variables de cruce y bases por pregunta.
+  const variables = useLecturaPorBase(leerVariables, claveDeLaBase(sesion?.active_base, sesion?.analitica_fuente, 0));
+  const lista = variables.datos ?? SIN_VARIABLES;
   const numericas = frec.numericas_override ?? numericasGlobal;
-  const crucesVariables = useMemo(
-    () => variables.filter((v) => !!v.categorica),
-    [variables],
+  const cruzables = useMemo(() => lista.filter((v) => Boolean(v.categorica)), [lista]);
+  const conTabla = useMemo(
+    () => lista.filter((v) => !excluidas.includes(v.name) && (Boolean(v.categorica) || numericas.includes(v.name))),
+    [lista, excluidas, numericas],
   );
-  const nResto = Math.max(
-    0,
-    variables.filter((v) => !!v.categorica || numericas.includes(v.name)).length - nVars,
-  );
-  const variablesConTabla = useMemo(
-    () => variables.filter((v) => !!v.categorica || numericas.includes(v.name)),
-    [variables, numericas],
-  );
-  const crucesVarNames = useMemo(() => cruces.cruces_vars.map((cv) => cv.name), [cruces.cruces_vars]);
-  const modoLabel = cruces.modo === "dimensiones" ? "Dimensiones" : "Estándar";
+  const etiquetas = useMemo(() => new Map(lista.map((v) => [v.name, v.label?.trim() || v.name])), [lista]);
+  const etiquetaDe = useCallback((variable: string) => etiquetas.get(variable) ?? variable, [etiquetas]);
+  const resumen = useMemo(() => resumenSecciones(secciones), [secciones]);
+  const categorias = useMemo(() => etiquetasDeCategorias(vista.hoja.datos), [vista.hoja.datos]);
+  // Con varias bases el pie nombra la de la vista previa: por su etiqueta, como el selector de bases.
+  const nBases = vista.hoja.datos?.base.n_bases ?? 1;
+  const estudio = useLecturaPorBase(leerEstudio, nBases > 1 ? claveDeLaBase(sesion?.active_base, sesion?.analitica_fuente, 0) : null);
+  const etiquetaDeBase = useCallback((base: string) => {
+    const b = estudio.datos?.bases?.[base];
+    return b?.source_alias?.trim() || b?.source_title?.trim() || base;
+  }, [estudio.datos]);
 
-  // Orden de las FILAS de cada tabla de cruce (espejo del de Frecuencias, pero
-  // solo filas: las columnas las fija la variable de cruce). Persiste en
-  // `cruces.orden`; el backend hace el ordenamiento y respeta las listas
-  // ordinales.
-  const ordenFilasOptions = [
-    { k: "desc", label: "Más frecuentes", hint: "Prioriza lectura ejecutiva", icon: <ArrowDown01 size={13} /> },
-    { k: "asc", label: "Menos frecuentes", hint: "Útil para detectar minorías", icon: <ArrowUp01 size={13} /> },
-    { k: "original", label: "Instrumento", hint: "Respeta el orden del XLSForm", icon: <ListOrdered size={13} /> },
-  ] as const;
+  // Lo de siempre al generar: alfa 0.05 y fila Total; el motor lee el resto de la config guardada.
+  const generar = () => {
+    const ajuste: Partial<typeof cruces> = {};
+    if (cruces.alpha !== ALFA_CRUCES) ajuste.alpha = ALFA_CRUCES;
+    if (!cruces.incluir_total) ajuste.incluir_total = true;
+    if (Object.keys(ajuste).length > 0) setCruces(ajuste);
+    void run.runAsync(() => apiAnaliticaCruces());
+  };
 
   return (
-    <Panel className="analitica-cruces-panel">
-      {/* C1: barra, nota, secciones, notas al pie y pie de generación son
-          bloques independientes de alto intrínseco. */}
-      <div
-        className="analitica-report-shell analitica-cruces-workbench"
-        data-qa-geometry-group="analitica/cruces-workbench"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="analitica-cruces-docbar">
-          <span className="analitica-cruces-docbar-icon" aria-hidden="true">
-            <Grid3x3 size={16} />
-          </span>
-          <div className="analitica-cruces-docbar-copy">
-            <span>Producto comparativo</span>
-            <strong>Cruces</strong>
-            <small>Comparaciones 2D con totales y significancia opcional.</small>
-          </div>
-          <CifrasPestana
-            ariaLabel="Estado del reporte de cruces"
-            cifras={[
-              { etiqueta: "Cruces", valor: `${formatoConteo(nVars)} ${nVars === 1 ? "variable" : "variables"}` },
-              { etiqueta: "Contra", valor: `${formatoConteo(nResto)} ${nResto === 1 ? "variable" : "variables"}` },
-              { etiqueta: "Modo", valor: modoLabel },
-            ]}
-          />
-        </div>
-
-        <div className="analitica-report-note">
-          <Info size={14} />
-          <div>
-            Elige pocas variables de columna, pero buenas: sexo, distrito, sede, grupo etario o servicio. Cada una abre un bloque y se cruza contra el resto del instrumento.
-          </div>
-        </div>
-
-        <Section
-          title="Variables a cruzar"
-          subtitle={<>
-            Cada variable <strong>define las columnas</strong> de un bloque y se cruza contra el resto del instrumento; puedes excluir categorías con casi ninguna respuesta.
-          </>}
-        >
-          <VariableChips
-            selected={cruces.cruces_vars}
-            variables={crucesVariables}
-            onAdd={addCruceVar}
-            onRemove={removeCruceVar}
-            onSetExcluidas={setCruceVarExcluidas}
-          />
-          {nVars > 0 && (
-            <div className="analitica-cruces-summary">
-              El reporte generará <strong>{formatoConteo(nVars)}</strong> {nVars === 1 ? "bloque de tablas" : "bloques de tablas"} cruzando cada variable seleccionada contra las otras <strong>{formatoConteo(nResto)}</strong> variables del instrumento.
-            </div>
-          )}
-        </Section>
-
-        <Section
-          title="Modo de cruces"
-          subtitle={<>
-            <strong>Estándar</strong> reporta frecuencias y porcentajes; <strong>Dimensiones</strong> reporta promedios 0-100 de los índices construidos.
-          </>}
-        >
-          <div className="analitica-control-grid">
-            <ModoOption
-              active={cruces.modo === "estandar"}
-              icon={<Grid3x3 size={13} />}
-              label="Estándar"
-              hint="Frecuencias % por categoría"
-              onClick={() => setCruces({ modo: "estandar" })}
-            />
-            <ModoOption
-              active={cruces.modo === "dimensiones"}
-              disabled={!dimOk}
-              icon={<Layers size={13} />}
-              label="Dimensiones"
-              hint={dimOk
-                ? "Promedios 0-100 de índices y bloques"
-                : "Genera dimensiones primero (tab Dimensiones)"}
-              onClick={() => dimOk && setCruces({ modo: "dimensiones" })}
-            />
-          </div>
-        </Section>
-
-        <Section
-          title="Orden de las filas"
-          subtitle={<>
-            Cómo se ordenan las <strong>filas</strong> de cada tabla de cruce. Las columnas las define la variable de cruce, así que este orden no las toca.
-          </>}
-        >
-          <div className="analitica-frecuencias-presentation-stack">
-            <div className="analitica-segmented" role="group" aria-label="Orden de las filas del cruce">
-              {ordenFilasOptions.map((o) => (
-                <button
-                  key={o.k}
-                  type="button"
-                  onClick={() => setCruces({ orden: o.k })}
-                  className={cruces.orden === o.k ? "is-on" : undefined}
-                  title={o.hint}
-                >
-                  <span className="analitica-inline-title">
-                    {o.icon}
-                    {o.label}
-                  </span>
-                </button>
-              ))}
-            </div>
-            <p className="analitica-presentation-hint">
-              Aplica solo a las <strong>filas</strong>. Las listas marcadas como <em>ordinales</em> en <em>Orden de categorías</em> conservan su orden fijo aunque elijas “Más frecuentes”.
-            </p>
-          </div>
-        </Section>
-
-        <Section
-          title="Presentación del Excel"
-          subtitle="Controla si el archivo incluye celdas separadoras de sección. El título de cada variable se conserva siempre al inicio de su tabla."
-        >
-          <div className="analitica-control-grid">
-            <InterruptorOpcion
-              checked={cruces.incluir_secciones}
-              onToggle={() => setCruces({ incluir_secciones: !cruces.incluir_secciones })}
-              titulo="Mostrar nombres de sección"
-              descripcion="Agrega una celda separadora antes de las tablas de cada sección."
-            />
-          </div>
-          {/* Lo que no es una opción no lleva forma de opción (P-B5). */}
-          <p className="analitica-presentation-hint analitica-presentation-note">
-            <Grid3x3 size={13} aria-hidden="true" />
-            <span>
-              <strong>Títulos fijos:</strong> la pregunta o etiqueta de la variable permanece encima de cada tabla de cruce.
-            </span>
-          </p>
-        </Section>
-
-        <Section
-          title="Significancia estadística"
-          subtitle={subtituloSignificancia()}
-        >
-          <InterruptorOpcion
-            checked={cruces.show_sig}
-            onToggle={() => setCruces({ show_sig: !cruces.show_sig })}
-            titulo="Mostrar diferencias significativas"
-            descripcion={detalleSignificancia(cruces.modo)}
-          />
-          {/* ADR 0128: la prueba es la regla del estudio, no un ajuste de Analítica. */}
-          {cruces.show_sig && <CrucesReglaEstudio />}
-        </Section>
-
-        <NotasPieEditor variante="cruces" variables={variablesConTabla} crucesVars={crucesVarNames} />
-
-        <GenerateFooter
-          label="Generar cruces"
+    <MarcoDeTablas
+      pestana="cruces"
+      banda={(
+        <BandaDeCruces
+          vistaPrevia={vista.hoja}
+          resumen={resumen}
+          seccionesDeclaradas={secciones.length}
+          excluidas={excluidas.length}
+        />
+      )}
+      tabla={(
+        <VistaPreviaDeCruces
+          vista={vista}
+          candidatas={conTabla}
+          cruzables={cruzables}
+          resumen={resumen}
+          etiquetaDe={etiquetaDe}
+          etiquetaDeBase={etiquetaDeBase}
+          elegida={elegida}
+          onElegir={elegir}
+          onAgregarCruce={addCruceVar}
+        />
+      )}
+      ajustes={(
+        <AjustesDeCruces
+          cruces={cruces}
+          cruzables={cruzables}
+          etiquetasDeCategorias={categorias}
+          conTabla={conTabla}
+          dimensionesListas={dimensionesListas}
+          regla={vista.hoja.datos?.significancia_regla ?? null}
+          ponderado={vista.hoja.datos?.ponderado ?? false}
+          leyendo={vista.hoja.datos === null && vista.hoja.fase !== "error"}
+          onCambio={setCruces}
+          onAgregar={addCruceVar}
+          onQuitar={removeCruceVar}
+          onExcluidas={setCruceVarExcluidas}
+        />
+      )}
+      archivo={(
+        <PieDeArchivo
+          rotulo="Generar cruces"
           run={run}
-          onGenerate={onGenerate}
-          disabled={nVars === 0}
-          disabledHint={nVars === 0 ? "Agrega al menos una variable a cruzar arriba." : undefined}
-        />
-      </div>
-    </Panel>
-  );
-}
-
-// -- Variable chips + picker (schema v2 con exclusiones) ---------------------
-
-function VariableChips({
-  selected, variables, onAdd, onRemove, onSetExcluidas,
-}: {
-  selected: CruceVarConfig[];
-  variables: VariableInstrumento[];
-  onAdd: (name: string) => void;
-  onRemove: (name: string) => void;
-  onSetExcluidas: (name: string, excluidas: string[]) => void;
-}) {
-  const [adding, setAdding] = useState(false);
-  const [pendingVar, setPendingVar] = useState("");
-  const [editingExclusion, setEditingExclusion] = useState<string | null>(null);
-
-  function commit() {
-    if (pendingVar) onAdd(pendingVar);
-    setPendingVar("");
-    setAdding(false);
-  }
-
-  const editingCr = selected.find((cv) => cv.name === editingExclusion) ?? null;
-
-  return (
-    <div className="analitica-variable-picker">
-      {selected.length === 0 && !adding && (
-        <EstadoVacio
-          icono={<GitBranch size={15} />}
-          titulo="Sin variables de cruce"
-          descripcion="El primer bloque se crea con una variable de columna."
+          onGenerar={generar}
+          bloqueo={motivoSinGenerarCruces(vista.hoja, cruces.cruces_vars.length, vista)}
         />
       )}
-      {selected.length > 0 && (
-        <div className="analitica-variable-list">
-          {selected.map((cv) => {
-            const meta = variables.find((x) => x.name === cv.name);
-            const nExcl = cv.excluidas?.length ?? 0;
-            return (
-              <div
-                key={cv.name}
-                className="analitica-variable-row"
-              >
-                <code>{cv.name}</code>
-                {meta?.label && (
-                  <span className="analitica-variable-label">
-                    {meta.label}
-                  </span>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setEditingExclusion(editingExclusion === cv.name ? null : cv.name)}
-                  title="Excluir categorías cuando esta variable sea cruce"
-                  className={`analitica-cruces-filter-chip ${nExcl > 0 ? "is-active" : ""}`}
-                >
-                  <Filter size={11} />
-                  {nExcl === 0 ? "Excluir…" : `${nExcl} excluida${nExcl === 1 ? "" : "s"}`}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onRemove(cv.name)}
-                  className="pulso-icon"
-                  aria-label={`Quitar ${cv.name}`}
-                >
-                  <X size={11} />
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {editingCr && (
-        <ExclusionEditor
-          cruceVar={editingCr}
-          onChange={(excl) => onSetExcluidas(editingCr.name, excl)}
-          onClose={() => setEditingExclusion(null)}
-        />
-      )}
-
-      {adding ? (
-        <div className="analitica-picker-edit-row">
-          <div className="analitica-picker-select">
-            <VariableSelect
-              variables={variables.filter((v) => !selected.some((cv) => cv.name === v.name))}
-              value={pendingVar}
-              onChange={setPendingVar}
-              placeholder="Seleccionar variable a cruzar…"
-            />
-          </div>
-          <PulsoButton variant="primary" onClick={commit} disabled={!pendingVar}>Añadir</PulsoButton>
-          <PulsoButton variant="secondary" onClick={() => { setAdding(false); setPendingVar(""); }}>Cancelar</PulsoButton>
-        </div>
-      ) : (
-        <PulsoButton variant="secondary" className="analitica-add-button" onClick={() => setAdding(true)}>
-          <Plus size={13} aria-hidden="true" />
-          Añadir variable
-        </PulsoButton>
-      )}
-    </div>
-  );
-}
-
-// -- Exclusion editor --------------------------------------------------------
-
-function ExclusionEditor({
-  cruceVar, onChange, onClose,
-}: {
-  cruceVar: CruceVarConfig;
-  onChange: (excl: string[]) => void;
-  onClose: () => void;
-}) {
-  const [valores, setValores] = useState<ValorColumna[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const excluidas = cruceVar.excluidas ?? [];
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    (async () => {
-      try {
-        const r = await apiAnaliticaColumnValues(cruceVar.name);
-        if (!cancelled) setValores(r.values);
-      } catch (e) {
-        if (!cancelled) setError((e as Error).message);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [cruceVar.name]);
-
-  function toggle(value: string) {
-    onChange(excluidas.includes(value) ? excluidas.filter((x) => x !== value) : [...excluidas, value]);
-  }
-
-  return (
-    <div className="analitica-exclusion-editor">
-      <div className="analitica-exclusion-head">
-        <span className="analitica-exclusion-icon" aria-hidden="true">
-          <Filter size={14} />
-        </span>
-        <div className="analitica-exclusion-copy">
-          <div className="analitica-exclusion-title">
-            Excluir categorías de <code>{cruceVar.name}</code>
-          </div>
-          <div className="analitica-exclusion-subtitle">
-            Las categorías marcadas <strong>no aparecen como columnas</strong> de este cruce; útil para frecuencias casi nulas.
-          </div>
-        </div>
-        <button type="button" onClick={onClose} className="pulso-icon analitica-exclusion-close" aria-label="Cerrar">
-          <X size={13} />
-        </button>
-      </div>
-
-      <div className="analitica-exclusion-warning">
-        <AlertTriangle size={12} />
-        <div>
-          <strong>Limitación conocida:</strong> las filas excluidas se filtran de todo el bloque de cruces (tampoco aparecen como fila); en Frecuencias y Libro de códigos siguen visibles.
-        </div>
-      </div>
-
-      {error && (
-        <div className="analitica-exclusion-error">
-          {error}
-        </div>
-      )}
-
-      {loading ? (
-        <div className="analitica-exclusion-state">Cargando categorías…</div>
-      ) : valores.length === 0 ? (
-        <div className="analitica-exclusion-state">
-          Esta variable no tiene categorías distintas en la data.
-        </div>
-      ) : (
-        <div className="analitica-exclusion-list">
-          {valores.map((v) => {
-            const active = excluidas.includes(v.value);
-            return (
-              <label
-                key={v.value}
-                className={`analitica-exclusion-row${active ? " is-active" : ""}`}
-              >
-                <input type="checkbox" checked={active} onChange={() => toggle(v.value)} />
-                <div className="analitica-exclusion-value">
-                  <code>{v.value}</code>
-                  {v.label && (
-                    <span>
-                      {v.label}
-                    </span>
-                  )}
-                </div>
-              </label>
-            );
-          })}
-        </div>
-      )}
-
-      {excluidas.length > 0 && (
-        <div className="analitica-exclusion-actions">
-          <PulsoButton variant="secondary" size="sm" onClick={() => onChange([])}>Quitar todas las exclusiones</PulsoButton>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// -- Selector de modo de cruces (estandar / dimensiones) --------------------
-// Pill grande tipo radio button. Quedó fuera del PaneKit por ser específica
-// de Cruces — si Dashboard reutiliza el patrón en el futuro, se promueve.
-
-function ModoOption({
-  active,
-  disabled,
-  icon,
-  label,
-  hint,
-  onClick,
-}: {
-  active: boolean;
-  disabled?: boolean;
-  icon: React.ReactNode;
-  label: string;
-  hint: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      title={disabled ? hint : undefined}
-      className={`analitica-control-card analitica-cruces-mode-option ${active ? "is-active" : ""} ${disabled ? "is-disabled" : ""}`}
-    >
-      <span className="analitica-control-icon">{icon}</span>
-      <span className="analitica-control-stack">
-        <span className="analitica-control-title">
-          <GitBranch size={13} />
-          {label}
-        </span>
-        <span className="analitica-control-copy">
-          {hint}
-        </span>
-      </span>
-    </button>
+    />
   );
 }

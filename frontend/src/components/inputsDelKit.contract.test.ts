@@ -73,7 +73,6 @@ const SNAPSHOT_CASILLAS: Record<string, number> = {
   "features/analitica/dimensiones/shared/CombinarVarsPanel.tsx": 1,
   "features/analitica/panes/CodebookPane.tsx": 1,
   "features/analitica/panes/ComparativosLista.tsx": 2,
-  "features/analitica/panes/CrucesPane.tsx": 1,
   "features/analitica/panes/EnumeradoresPane.tsx": 1,
   "features/carga/AcreditacionBatchPanel.tsx": 1,
   "features/carga/ArmonizacionEscalaCompartida.tsx": 2,

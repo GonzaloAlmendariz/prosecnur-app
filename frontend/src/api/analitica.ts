@@ -399,13 +399,13 @@ export class FrecuenciasPreviewInvalida extends Error {
 }
 
 /**
- * Normalizador defensivo de la vista previa (patrón `normalizeGraficosShareInspect`).
- * R puede mandar un escalar como arreglo de un elemento, `null` donde va una
- * lista o una lista vacía como objeto `{}`. Lo opcional cae a su vacío; lo que
- * sostiene una cifra (las tablas, sus filas, el total de variables) falla con
- * un error que nombra el campo en vez de pintar un cero.
+ * Lectura defensiva de una respuesta de R, común a las vistas previas de
+ * Frecuencias y de Cruces. R puede mandar un escalar como arreglo de un
+ * elemento, `null` donde va una lista o una lista vacía como objeto `{}`. Lo
+ * opcional cae a su vacío; `exigido` falla con el error de la vista previa,
+ * que nombra el campo, en vez de pintar un cero.
  */
-export function normalizarFrecuenciasPreview(raw: unknown): FrecuenciasPreview {
+function lectorDeR(invalida: (campo: string) => Error) {
   const desenvolver = (v: unknown): unknown => (Array.isArray(v) && v.length === 1 ? v[0] : v);
   const esObjeto = (v: unknown): v is Record<string, unknown> =>
     typeof v === "object" && v !== null && !Array.isArray(v);
@@ -437,9 +437,25 @@ export function normalizarFrecuenciasPreview(raw: unknown): FrecuenciasPreview {
   };
   const logico = (v: unknown): boolean => desenvolver(v) === true;
   const exigido = <T,>(valor: T | null, campo: string): T => {
-    if (valor === null) throw new FrecuenciasPreviewInvalida(campo);
+    if (valor === null) throw invalida(campo);
     return valor;
   };
+  const deLista = <T extends string>(valores: readonly T[], v: string | null): T | null =>
+    v !== null && (valores as readonly string[]).includes(v) ? (v as T) : null;
+  const textos = (v: unknown): string[] => lista(v).map((x) => texto(x)).filter((x): x is string => Boolean(x));
+  return { desenvolver, esObjeto, objeto, lista, texto, numero, logico, exigido, deLista, textos };
+}
+
+/**
+ * Normalizador defensivo de la vista previa (patrón `normalizeGraficosShareInspect`).
+ * R puede mandar un escalar como arreglo de un elemento, `null` donde va una
+ * lista o una lista vacía como objeto `{}`. Lo opcional cae a su vacío; lo que
+ * sostiene una cifra (las tablas, sus filas, el total de variables) falla con
+ * un error que nombra el campo en vez de pintar un cero.
+ */
+export function normalizarFrecuenciasPreview(raw: unknown): FrecuenciasPreview {
+  const { desenvolver, esObjeto, objeto, lista, texto, numero, logico, exigido, deLista } =
+    lectorDeR((campo) => new FrecuenciasPreviewInvalida(campo));
 
   const r = objeto(raw);
   if (!esObjeto(desenvolver(raw))) throw new FrecuenciasPreviewInvalida("respuesta");
@@ -452,8 +468,6 @@ export function normalizarFrecuenciasPreview(raw: unknown): FrecuenciasPreview {
   const tipos = ["unica", "multiple", "numerica"] as const;
   const denominadores = ["respondieron", "marcaron_alguna_opcion", "casos_validos"] as const;
   const motivos = ["excluida", "fuera_del_archivo", "desconocida"] as const;
-  const deLista = <T extends string>(valores: readonly T[], v: string | null): T | null =>
-    v !== null && (valores as readonly string[]).includes(v) ? (v as T) : null;
 
   const tablas = lista(r.tablas).map((item, i): FrecuenciasPreviewTabla => {
     const t = objeto(item);
@@ -559,6 +573,396 @@ export async function apiAnaliticaFrecuenciasPreview(entrada: FrecuenciasPreview
     }),
   );
   return normalizarFrecuenciasPreview(raw);
+}
+
+// ---------- Vista previa de Cruces ----------
+// POST /api/analitica/cruces/preview (api/R/analitica_cruces_preview.R): las
+// tablas cruzadas que el archivo de Cruces escribiría para la base activa con
+// la config GUARDADA, calculadas por `.cruces_tabla_archivo()`, lo mismo que
+// escribe el Excel. El frontend las pinta tal cual: no recalcula porcentajes,
+// totales, bases ni letras, y cruza cada celda con su fila por código.
+
+export type CrucesPreviewEntrada = {
+  /** Variables de fila; sin ellas, las primeras del archivo en su orden. */
+  variables?: string[];
+  /** Variables de cruce, subconjunto de las configuradas; sin ellas, todas. */
+  cruces?: string[];
+  /** Tope de tablas, de 1 a 200 (el servicio usa 20 por defecto). */
+  limite?: number;
+};
+
+/** El nivel de los casos: una persona o un registro de un grupo repetido. */
+export type CrucesUnidad = "encuestado" | "registro";
+
+export type CrucesPreviewFila = {
+  /** Código del instrumento: la llave con la que cada celda nombra su fila. */
+  codigo: string;
+  etiqueta: string;
+  /** Entra a la prueba de letras; `false` es "no probada", no "sin diferencia"; `null` sin letras. */
+  probada: boolean | null;
+};
+
+export type CrucesPreviewFilaOmitida = {
+  codigo: string | null;
+  etiqueta: string;
+  motivo: string;
+  /** Casos sin ponderar que eligieron esa categoría y no cuentan en la tabla. */
+  casos: number | null;
+};
+
+export type CrucesPreviewCelda = {
+  /** Código de la fila: la celda se empareja por él, nunca por posición. */
+  fila: string;
+  /** Suma de pesos sin redondear; sin ponderación, un conteo. */
+  n: number;
+  /** Proporción de 0 a 1 sobre el `n` de su columna; nula si ese denominador es 0. */
+  pct: number | null;
+  /** El texto de la celda en la subtabla de letras; `null` sin significancia. */
+  letras: string | null;
+};
+
+export type CrucesPreviewColumna = {
+  codigo: string;
+  etiqueta: string;
+  /** "A", "B"...; `null` sin significancia, frente al resto o con letras por rótulo. */
+  letra: string | null;
+  /** Denominador de la columna: suma de pesos sin redondear. */
+  n: number;
+  /** El mismo denominador en casos sin ponderar con peso mayor que cero. */
+  base_n: number;
+  excluida: boolean;
+  exclusion_aplicada: boolean;
+  motivo: "excluida" | "base_insuficiente" | null;
+  celdas: CrucesPreviewCelda[];
+};
+
+export type CrucesPreviewSignificanciaDeCruce = {
+  metodo: string;
+  /** Texto del motor cuando no compara, `"letras_por_rotulo_no_calculadas"` o `null`. */
+  motivo: string | null;
+  modo: "letras" | "frente_al_resto";
+};
+
+export type CrucesPreviewCruce = {
+  variable: string;
+  etiqueta: string;
+  columnas_por: "codigo" | "rotulo" | null;
+  multiple: boolean;
+  /** Total menos la suma de las columnas; `base_n` y `n` nulos en una variable de cruce múltiple. */
+  sin_columna: { base_n: number | null; n: number | null; valores_no_reconocidos: number };
+  significancia: CrucesPreviewSignificanciaDeCruce | null;
+  columnas: CrucesPreviewColumna[];
+};
+
+export type CrucesPreviewTabla = {
+  variable: string;
+  etiqueta: string;
+  tipo: "unica" | "multiple";
+  denominador: "validos_de_la_columna" | "marcaron_alguna_opcion" | null;
+  seccion: { nombre: string; rotulo: string | null };
+  /** `null` en una base normal; en una hija, de dónde salen los casos de la tabla. */
+  grano: CrucesUnidad | null;
+  /** En casos sin ponderar: `n` los que forman el Total, `de` los casos con peso de la base de la tabla. */
+  base: { n: number; de: number | null; unidad: CrucesUnidad };
+  sin_datos: boolean;
+  sin_respuestas: boolean;
+  filas: CrucesPreviewFila[];
+  filas_omitidas: CrucesPreviewFilaOmitida[];
+  /** La columna Total; `null` cuando la tabla no tiene datos. */
+  total: { n: number; base_n: number; casos_sin_fila: number | null; celdas: CrucesPreviewCelda[] } | null;
+  cruces: CrucesPreviewCruce[];
+  significancia: { nota: string } | null;
+  notas: string[];
+};
+
+export type CrucesPreviewSinTabla = {
+  variable: string;
+  motivo: "numerica" | "excluida" | "fuera_del_archivo" | "desconocida";
+  seccion: string | null;
+};
+
+/** Un aviso del servicio: su código y el mensaje del motor. */
+export type CrucesPreviewAviso = { codigo: string; mensaje: string };
+
+export type CrucesPreviewRegla = {
+  origen: "estudio" | "propuesta" | null;
+  prueba: "z" | "rao_scott" | null;
+  correccion: string | null;
+  alfa: number | null;
+  umbral_puntos: number | null;
+  base_minima: number | null;
+  conglomerados_minimos: number | null;
+  conglomerado: string | null;
+  max_letras: number | null;
+  incluir_ns: boolean;
+  n_prueba: string | null;
+};
+
+export type CrucesPreview = {
+  ok: true;
+  base: { nombre: string; bases_del_archivo: string[]; bases_sin_cruces: string[]; n_bases: number; independientes: boolean };
+  /** Valor interno de la fuente ("originales", "adaptados"): se rotula, no se muestra. */
+  fuente: string | null;
+  /** El modo con que sale el archivo y el que dice la configuración. */
+  modo: string | null;
+  modo_configurado: string | null;
+  ponderado: boolean;
+  ponderacion: FrecuenciasPreview["ponderacion"];
+  casos: {
+    cuentan: number | null;
+    antes_de_excluir: number | null;
+    suma_pesos: number | null;
+    con_peso: number | null;
+    unidad: CrucesUnidad;
+  } | null;
+  opciones: { orden: string | null; incluir_secciones: boolean; significancia: boolean; alfa_configurado: number | null };
+  significancia_regla: CrucesPreviewRegla | null;
+  cruces: { variable: string; excluidas: string[] }[];
+  cruces_sin_columnas: { variable: string; motivo: string }[];
+  exclusiones: { variable: string; unidad: CrucesUnidad; categorias: { codigo: string; filas: number }[] }[];
+  limite: number;
+  total_variables: number;
+  total_en_archivo: number;
+  devueltas: number;
+  recortado: boolean;
+  tablas: CrucesPreviewTabla[];
+  sin_tabla: CrucesPreviewSinTabla[];
+  avisos: CrucesPreviewAviso[];
+};
+
+/** La respuesta de la vista previa de Cruces no tiene la forma del contrato. */
+export class CrucesPreviewInvalida extends Error {
+  constructor(campo: string) {
+    super(`La vista previa de Cruces llegó incompleta: falta o no se entiende "${campo}".`);
+    this.name = "CrucesPreviewInvalida";
+  }
+}
+
+/**
+ * Normalizador defensivo de la vista previa de Cruces. Lo que sostiene una
+ * cifra o una llave (el código de cada fila y de cada celda, los `n`, las
+ * bases, la unidad) falla con un error que nombra el campo; lo opcional cae a
+ * su vacío. Una letra vacía (`""`, sin diferencia) se conserva distinta de una
+ * nula (sin significancia).
+ */
+export function normalizarCrucesPreview(raw: unknown): CrucesPreview {
+  const { desenvolver, esObjeto, objeto, lista, texto, numero, logico, exigido, deLista, textos } =
+    lectorDeR((campo) => new CrucesPreviewInvalida(campo));
+  if (!esObjeto(desenvolver(raw))) throw new CrucesPreviewInvalida("respuesta");
+  const r = objeto(raw);
+  if (texto(r.escala_pct) !== "proporcion") throw new CrucesPreviewInvalida("escala_pct");
+  const unidades = ["encuestado", "registro"] as const;
+  const quizas = (v: unknown): boolean | null => {
+    const u = desenvolver(v);
+    return typeof u === "boolean" ? u : null;
+  };
+  const celdas = (v: unknown, donde: string): CrucesPreviewCelda[] => lista(v).map((c, k) => {
+    const celda = objeto(c);
+    return {
+      fila: exigido(texto(celda.fila), `${donde}[${k}].fila`),
+      n: exigido(numero(celda.n), `${donde}[${k}].n`),
+      pct: numero(celda.pct),
+      letras: texto(celda.letras),
+    };
+  });
+
+  const tablas = lista(r.tablas).map((item, i): CrucesPreviewTabla => {
+    const t = objeto(item);
+    const campo = (nombre: string) => `tablas[${i}].${nombre}`;
+    const variable = exigido(texto(t.variable), campo("variable"));
+    const sinDatos = logico(t.sin_datos);
+    const seccion = objeto(t.seccion);
+    const base = objeto(t.base);
+    const total = objeto(t.total);
+    const significancia = objeto(t.significancia);
+    const nota = texto(significancia.nota);
+    return {
+      variable,
+      etiqueta: texto(t.etiqueta) ?? variable,
+      tipo: exigido(deLista(["unica", "multiple"] as const, texto(t.tipo)), campo("tipo")),
+      denominador: deLista(["validos_de_la_columna", "marcaron_alguna_opcion"] as const, texto(t.denominador)),
+      seccion: { nombre: texto(seccion.nombre) ?? "", rotulo: texto(seccion.rotulo) },
+      grano: deLista(unidades, texto(t.grano)),
+      base: {
+        // Sin datos la tabla no tiene base: el servicio manda 0.
+        n: sinDatos ? numero(base.n) ?? 0 : exigido(numero(base.n), campo("base.n")),
+        de: numero(base.de),
+        unidad: exigido(deLista(unidades, texto(base.unidad)), campo("base.unidad")),
+      },
+      sin_datos: sinDatos,
+      sin_respuestas: logico(t.sin_respuestas),
+      filas: lista(t.filas).map((f, k): CrucesPreviewFila => {
+        const fila = objeto(f);
+        return {
+          codigo: exigido(texto(fila.codigo), `${campo("filas")}[${k}].codigo`),
+          etiqueta: exigido(texto(fila.etiqueta), `${campo("filas")}[${k}].etiqueta`),
+          probada: quizas(fila.probada),
+        };
+      }),
+      filas_omitidas: lista(t.filas_omitidas).flatMap((f): CrucesPreviewFilaOmitida[] => {
+        const o = objeto(f);
+        const etiqueta = texto(o.etiqueta) ?? texto(o.codigo);
+        return etiqueta === null ? [] : [{ codigo: texto(o.codigo), etiqueta, motivo: texto(o.motivo) ?? "", casos: numero(o.casos) }];
+      }),
+      total: sinDatos ? null : {
+        n: exigido(numero(total.n), campo("total.n")),
+        base_n: exigido(numero(total.base_n), campo("total.base_n")),
+        casos_sin_fila: numero(total.casos_sin_fila),
+        celdas: celdas(total.celdas, campo("total.celdas")),
+      },
+      cruces: sinDatos ? [] : lista(t.cruces).map((c, j): CrucesPreviewCruce => {
+        const cruce = objeto(c);
+        const donde = `${campo("cruces")}[${j}]`;
+        const nombre = exigido(texto(cruce.variable), `${donde}.variable`);
+        const sinColumna = objeto(cruce.sin_columna);
+        const sig = objeto(cruce.significancia);
+        const metodo = texto(sig.metodo);
+        return {
+          variable: nombre,
+          etiqueta: texto(cruce.etiqueta) ?? nombre,
+          columnas_por: deLista(["codigo", "rotulo"] as const, texto(cruce.columnas_por)),
+          multiple: logico(cruce.multiple),
+          sin_columna: {
+            base_n: numero(sinColumna.base_n),
+            n: numero(sinColumna.n),
+            valores_no_reconocidos: numero(sinColumna.valores_no_reconocidos) ?? 0,
+          },
+          significancia: metodo === null ? null : {
+            metodo,
+            motivo: texto(sig.motivo),
+            modo: deLista(["letras", "frente_al_resto"] as const, texto(sig.modo)) ?? "letras",
+          },
+          columnas: lista(cruce.columnas).map((col, k): CrucesPreviewColumna => {
+            const co = objeto(col);
+            const dondeCol = `${donde}.columnas[${k}]`;
+            const codigo = exigido(texto(co.codigo), `${dondeCol}.codigo`);
+            return {
+              codigo,
+              etiqueta: texto(co.etiqueta) ?? codigo,
+              letra: texto(co.letra),
+              n: exigido(numero(co.n), `${dondeCol}.n`),
+              base_n: exigido(numero(co.base_n), `${dondeCol}.base_n`),
+              excluida: logico(co.excluida),
+              exclusion_aplicada: logico(co.exclusion_aplicada),
+              motivo: deLista(["excluida", "base_insuficiente"] as const, texto(co.motivo)),
+              celdas: celdas(co.celdas, `${dondeCol}.celdas`),
+            };
+          }),
+        };
+      }),
+      significancia: nota ? { nota } : null,
+      notas: textos(t.notas),
+    };
+  });
+
+  const base = objeto(r.base);
+  const pond = objeto(r.ponderacion);
+  const casos = esObjeto(desenvolver(r.casos)) ? objeto(r.casos) : null;
+  const opciones = objeto(r.opciones);
+  const regla = esObjeto(desenvolver(r.significancia_regla)) ? objeto(r.significancia_regla) : null;
+  return {
+    ok: true,
+    base: {
+      nombre: texto(base.nombre) ?? "",
+      bases_del_archivo: textos(base.bases_del_archivo),
+      bases_sin_cruces: textos(base.bases_sin_cruces),
+      n_bases: numero(base.n_bases) ?? 1,
+      independientes: logico(base.independientes),
+    },
+    fuente: texto(r.fuente),
+    modo: texto(r.modo),
+    modo_configurado: texto(r.modo_configurado),
+    ponderado: logico(r.ponderado),
+    ponderacion: {
+      configurada: logico(pond.configurada),
+      estado: texto(pond.estado),
+      modo: texto(pond.modo),
+      peso_columna: texto(pond.peso_columna),
+      motivo: texto(pond.motivo),
+      n_efectivo: numero(pond.n_efectivo),
+      deff: numero(pond.deff),
+      escala: deLista(["normalizada", "expansion"] as const, texto(pond.escala)),
+    },
+    casos: casos === null ? null : {
+      cuentan: numero(casos.cuentan),
+      antes_de_excluir: numero(casos.antes_de_excluir),
+      suma_pesos: numero(casos.suma_pesos),
+      con_peso: numero(casos.con_peso),
+      unidad: deLista(unidades, texto(casos.unidad)) ?? "encuestado",
+    },
+    opciones: {
+      orden: texto(opciones.orden),
+      incluir_secciones: logico(opciones.incluir_secciones),
+      significancia: logico(opciones.significancia),
+      alfa_configurado: numero(opciones.alfa_configurado),
+    },
+    significancia_regla: regla === null ? null : {
+      origen: deLista(["estudio", "propuesta"] as const, texto(regla.origen)),
+      prueba: deLista(["z", "rao_scott"] as const, texto(regla.prueba)),
+      correccion: texto(regla.correccion),
+      alfa: numero(regla.alfa),
+      umbral_puntos: numero(regla.umbral_puntos),
+      base_minima: numero(regla.base_minima),
+      conglomerados_minimos: numero(regla.conglomerados_minimos),
+      conglomerado: texto(regla.conglomerado),
+      max_letras: numero(regla.max_letras),
+      incluir_ns: logico(regla.incluir_ns),
+      n_prueba: texto(regla.n_prueba),
+    },
+    cruces: lista(r.cruces).flatMap((c) => {
+      const cruce = objeto(c);
+      const variable = texto(cruce.variable);
+      return variable ? [{ variable, excluidas: textos(cruce.excluidas) }] : [];
+    }),
+    cruces_sin_columnas: lista(r.cruces_sin_columnas).flatMap((c) => {
+      const x = objeto(c);
+      const variable = texto(x.variable);
+      return variable ? [{ variable, motivo: texto(x.motivo) ?? "" }] : [];
+    }),
+    exclusiones: lista(r.exclusiones).flatMap((e) => {
+      const x = objeto(e);
+      const variable = texto(x.variable);
+      if (!variable) return [];
+      return [{
+        variable,
+        unidad: deLista(unidades, texto(x.unidad)) ?? "encuestado",
+        categorias: lista(x.categorias).flatMap((c) => {
+          const cat = objeto(c);
+          const codigo = texto(cat.codigo);
+          const filas = numero(cat.filas);
+          return codigo !== null && filas !== null ? [{ codigo, filas }] : [];
+        }),
+      }];
+    }),
+    limite: numero(r.limite) ?? tablas.length,
+    total_variables: exigido(numero(r.total_variables), "total_variables"),
+    total_en_archivo: numero(r.total_en_archivo) ?? 0,
+    devueltas: numero(r.devueltas) ?? tablas.length,
+    recortado: logico(r.recortado),
+    tablas,
+    sin_tabla: lista(r.sin_tabla).flatMap((item): CrucesPreviewSinTabla[] => {
+      const x = objeto(item);
+      const variable = texto(x.variable);
+      const motivo = deLista(["numerica", "excluida", "fuera_del_archivo", "desconocida"] as const, texto(x.motivo)) ?? "desconocida";
+      return variable ? [{ variable, motivo, seccion: texto(x.seccion) }] : [];
+    }),
+    avisos: lista(r.avisos).flatMap((item): CrucesPreviewAviso[] => {
+      const a = objeto(item);
+      const mensaje = texto(a.mensaje);
+      return mensaje ? [{ codigo: texto(a.codigo) ?? "motor", mensaje }] : [];
+    }),
+  };
+}
+
+export async function apiAnaliticaCrucesPreview(entrada: CrucesPreviewEntrada = {}) {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/analitica/cruces/preview", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(entrada),
+    }),
+  );
+  return normalizarCrucesPreview(raw);
 }
 
 export type AnaliticaMultibaseKey = {

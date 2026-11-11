@@ -1,0 +1,1359 @@
+{
+  "ok": true,
+  "base": {
+    "nombre": "Monitoreo territorial",
+    "bases_del_archivo": [
+      "Monitoreo territorial"
+    ],
+    "bases_sin_cruces": [],
+    "n_bases": 1,
+    "independientes": false
+  },
+  "fuente": "adaptados",
+  "modo": "estandar",
+  "modo_configurado": "estandar",
+  "ponderado": true,
+  "ponderacion": {
+    "configurada": true,
+    "estado": "aplicada",
+    "modo": "calibracion",
+    "peso_columna": null,
+    "motivo": null,
+    "n_efectivo": 817.050306067994,
+    "deff": 1.57028274816316,
+    "sello": "Resultados ponderados (n efectivo = 817)",
+    "escala": "normalizada"
+  },
+  "casos": {
+    "cuentan": 1281,
+    "antes_de_excluir": 1283,
+    "suma_pesos": 1281.31786680216,
+    "con_peso": 1281,
+    "unidad": "encuestado"
+  },
+  "escala_pct": "proporcion",
+  "opciones": {
+    "orden": "original",
+    "incluir_secciones": false,
+    "significancia": true,
+    "alfa_configurado": 0.05
+  },
+  "significancia_regla": {
+    "origen": "propuesta",
+    "prueba": "z",
+    "correccion": "bonferroni_fila",
+    "alfa": 0.05,
+    "umbral_puntos": 10,
+    "base_minima": 30,
+    "conglomerados_minimos": 8,
+    "conglomerado": null,
+    "max_letras": 6,
+    "incluir_ns": false,
+    "n_prueba": "pesos_llevados_a_media_1"
+  },
+  "cruces": [
+    {
+      "variable": "M5_district",
+      "excluidas": []
+    },
+    {
+      "variable": "E2_sex",
+      "excluidas": [
+        "3"
+      ]
+    }
+  ],
+  "cruces_sin_columnas": [],
+  "exclusiones": [
+    {
+      "variable": "E2_sex",
+      "unidad": "encuestado",
+      "categorias": [
+        {
+          "codigo": "3",
+          "filas": 2
+        }
+      ]
+    }
+  ],
+  "limite": 3,
+  "total_variables": 2,
+  "total_en_archivo": 27,
+  "devueltas": 2,
+  "recortado": false,
+  "tablas": [
+    {
+      "variable": "D1_information",
+      "etiqueta": "Si respondió sí: ¿Dónde vio o escuchó esos mensajes?",
+      "tipo": "multiple",
+      "denominador": "marcaron_alguna_opcion",
+      "seccion": {
+        "nombre": "Exposición a acciones del proyecto",
+        "rotulo": null
+      },
+      "grano": null,
+      "base": {
+        "n": 559,
+        "de": 1281,
+        "unidad": "encuestado"
+      },
+      "sin_datos": false,
+      "sin_respuestas": false,
+      "filas": [
+        {
+          "codigo": "1",
+          "etiqueta": "Redes sociales",
+          "probada": true
+        },
+        {
+          "codigo": "2",
+          "etiqueta": "Televisión",
+          "probada": true
+        },
+        {
+          "codigo": "3",
+          "etiqueta": "Radio",
+          "probada": true
+        },
+        {
+          "codigo": "4",
+          "etiqueta": "Internet / sitios web",
+          "probada": true
+        },
+        {
+          "codigo": "5",
+          "etiqueta": "Eventos o actividades comunitarias",
+          "probada": true
+        },
+        {
+          "codigo": "6",
+          "etiqueta": "Afiches o carteles en espacios públicos",
+          "probada": true
+        },
+        {
+          "codigo": "7",
+          "etiqueta": "Amigos o familiares",
+          "probada": true
+        },
+        {
+          "codigo": "8",
+          "etiqueta": "Instituciones públicas o municipales",
+          "probada": true
+        },
+        {
+          "codigo": "96",
+          "etiqueta": "Otro",
+          "probada": false
+        }
+      ],
+      "filas_omitidas": [],
+      "total": {
+        "n": 540.79257426766,
+        "base_n": 559,
+        "casos_sin_fila": 0,
+        "celdas": [
+          {
+            "fila": "1",
+            "n": 318.841016980902,
+            "pct": 0.589580981973866
+          },
+          {
+            "fila": "2",
+            "n": 162.201675616716,
+            "pct": 0.299933252294318
+          },
+          {
+            "fila": "3",
+            "n": 25.3247840757707,
+            "pct": 0.0468290159310442
+          },
+          {
+            "fila": "4",
+            "n": 70.7169801759726,
+            "pct": 0.130765442317209
+          },
+          {
+            "fila": "5",
+            "n": 34.6097493838617,
+            "pct": 0.0639981964078004
+          },
+          {
+            "fila": "6",
+            "n": 40.9269929705629,
+            "pct": 0.0756796504204706
+          },
+          {
+            "fila": "7",
+            "n": 115.250541914492,
+            "pct": 0.213114135434577
+          },
+          {
+            "fila": "8",
+            "n": 51.0197921575807,
+            "pct": 0.0943426270722589
+          },
+          {
+            "fila": "96",
+            "n": 34.543283943879,
+            "pct": 0.0638752926492332
+          }
+        ]
+      },
+      "cruces": [
+        {
+          "variable": "M5_district",
+          "etiqueta": "¿En qué distrito vive actualmente?",
+          "columnas_por": "codigo",
+          "multiple": false,
+          "sin_columna": {
+            "base_n": 0,
+            "n": 0,
+            "valores_no_reconocidos": 0
+          },
+          "significancia": {
+            "metodo": "regla_z",
+            "motivo": null,
+            "modo": "letras"
+          },
+          "columnas": [
+            {
+              "codigo": "smp",
+              "etiqueta": "San Martín de Porres",
+              "letra": "A",
+              "n": 107.770622191784,
+              "base_n": 120,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": null,
+              "celdas": [
+                {
+                  "fila": "1",
+                  "n": 67.5069560822996,
+                  "pct": 0.626394788388317,
+                  "letras": ""
+                },
+                {
+                  "fila": "2",
+                  "n": 28.5297989232344,
+                  "pct": 0.264727050313063,
+                  "letras": ""
+                },
+                {
+                  "fila": "3",
+                  "n": 3.61630405210766,
+                  "pct": 0.0335555643881526,
+                  "letras": ""
+                },
+                {
+                  "fila": "4",
+                  "n": 8.621638447012,
+                  "pct": 0.0799998948847983,
+                  "letras": ""
+                },
+                {
+                  "fila": "5",
+                  "n": 8.15862833274644,
+                  "pct": 0.0757036395153006,
+                  "letras": ""
+                },
+                {
+                  "fila": "6",
+                  "n": 9.08464856127756,
+                  "pct": 0.084296150254296,
+                  "letras": ""
+                },
+                {
+                  "fila": "7",
+                  "n": 28.6225850314605,
+                  "pct": 0.265588009508984,
+                  "letras": "F"
+                },
+                {
+                  "fila": "8",
+                  "n": 4.79436193707384,
+                  "pct": 0.044486724114314,
+                  "letras": ""
+                },
+                {
+                  "fila": "96",
+                  "n": 4.07931416637322,
+                  "pct": 0.0378518197576503,
+                  "letras": ""
+                }
+              ]
+            },
+            {
+              "codigo": "sjl",
+              "etiqueta": "San Juan de Lurigancho",
+              "letra": "B",
+              "n": 79.3229536657583,
+              "base_n": 92,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": null,
+              "celdas": [
+                {
+                  "fila": "1",
+                  "n": 37.8918853823252,
+                  "pct": 0.477691306629725,
+                  "letras": ""
+                },
+                {
+                  "fila": "2",
+                  "n": 29.4451634407485,
+                  "pct": 0.371206089536467,
+                  "letras": ""
+                },
+                {
+                  "fila": "3",
+                  "n": 3.3642663956726,
+                  "pct": 0.0424122683309115,
+                  "letras": ""
+                },
+                {
+                  "fila": "4",
+                  "n": 8.41066598918151,
+                  "pct": 0.106030670827279,
+                  "letras": ""
+                },
+                {
+                  "fila": "5",
+                  "n": 10.0927991870178,
+                  "pct": 0.127236804992735,
+                  "letras": "f"
+                },
+                {
+                  "fila": "6",
+                  "n": 3.11222873923754,
+                  "pct": 0.0392349073680676,
+                  "letras": ""
+                },
+                {
+                  "fila": "7",
+                  "n": 18.2514275197642,
+                  "pct": 0.230090114857169,
+                  "letras": "F"
+                },
+                {
+                  "fila": "8",
+                  "n": 5.76144736420952,
+                  "pct": 0.0726327890976732,
+                  "letras": ""
+                },
+                {
+                  "fila": "96",
+                  "n": 0,
+                  "pct": 0,
+                  "letras": ""
+                }
+              ]
+            },
+            {
+              "codigo": "chorrillos",
+              "etiqueta": "Chorrillos",
+              "letra": "C",
+              "n": 81.3392549172388,
+              "base_n": 92,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": null,
+              "celdas": [
+                {
+                  "fila": "1",
+                  "n": 62.3317144281693,
+                  "pct": 0.766317745246015,
+                  "letras": "BEF"
+                },
+                {
+                  "fila": "2",
+                  "n": 22.793751800403,
+                  "pct": 0.280230644153247,
+                  "letras": ""
+                },
+                {
+                  "fila": "3",
+                  "n": 5.2573720513394,
+                  "pct": 0.0646351144559743,
+                  "letras": ""
+                },
+                {
+                  "fila": "4",
+                  "n": 31.8423444092854,
+                  "pct": 0.391475732617472,
+                  "letras": "ABDEF"
+                },
+                {
+                  "fila": "5",
+                  "n": 5.29843724994396,
+                  "pct": 0.0651399776815638,
+                  "letras": ""
+                },
+                {
+                  "fila": "6",
+                  "n": 12.0269700412892,
+                  "pct": 0.147861817194249,
+                  "letras": "f"
+                },
+                {
+                  "fila": "7",
+                  "n": 16.8623971769676,
+                  "pct": 0.207309462007302,
+                  "letras": "f"
+                },
+                {
+                  "fila": "8",
+                  "n": 14.4241510098261,
+                  "pct": 0.177333207987981,
+                  "letras": "a"
+                },
+                {
+                  "fila": "96",
+                  "n": 6.26552267707965,
+                  "pct": 0.0770295066441745,
+                  "letras": ""
+                }
+              ]
+            },
+            {
+              "codigo": "olivos",
+              "etiqueta": "Los Olivos",
+              "letra": "D",
+              "n": 93.614173795619,
+              "base_n": 93,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": null,
+              "celdas": [
+                {
+                  "fila": "1",
+                  "n": 62.8053802534519,
+                  "pct": 0.670896058865726,
+                  "letras": "e"
+                },
+                {
+                  "fila": "2",
+                  "n": 29.2859118925396,
+                  "pct": 0.312836301439538,
+                  "letras": ""
+                },
+                {
+                  "fila": "3",
+                  "n": 3.61630405210766,
+                  "pct": 0.0386298773517232,
+                  "letras": ""
+                },
+                {
+                  "fila": "4",
+                  "n": 14.7689747744873,
+                  "pct": 0.157764301875177,
+                  "letras": "F"
+                },
+                {
+                  "fila": "5",
+                  "n": 8.91474130205163,
+                  "pct": 0.0952285422239002,
+                  "letras": ""
+                },
+                {
+                  "fila": "6",
+                  "n": 4.33135182280828,
+                  "pct": 0.0462681199565422,
+                  "letras": ""
+                },
+                {
+                  "fila": "7",
+                  "n": 20.8752459033581,
+                  "pct": 0.22299236383727,
+                  "letras": "f"
+                },
+                {
+                  "fila": "8",
+                  "n": 11.9859048426846,
+                  "pct": 0.128035150626363,
+                  "letras": ""
+                },
+                {
+                  "fila": "96",
+                  "n": 5.50940970777446,
+                  "pct": 0.0588523028553642,
+                  "letras": ""
+                }
+              ]
+            },
+            {
+              "codigo": "ate",
+              "etiqueta": "Ate (Vitarte)",
+              "letra": "E",
+              "n": 81.4066407840868,
+              "base_n": 79,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": null,
+              "celdas": [
+                {
+                  "fila": "1",
+                  "n": 35.2583317145796,
+                  "pct": 0.433113703931041,
+                  "letras": ""
+                },
+                {
+                  "fila": "2",
+                  "n": 22.4645929929682,
+                  "pct": 0.275955287880636,
+                  "letras": ""
+                },
+                {
+                  "fila": "3",
+                  "n": 0,
+                  "pct": 0,
+                  "letras": ""
+                },
+                {
+                  "fila": "4",
+                  "n": 5.39122335817013,
+                  "pct": 0.0662258423421397,
+                  "letras": ""
+                },
+                {
+                  "fila": "5",
+                  "n": 1.43009554140124,
+                  "pct": 0.0175673081167205,
+                  "letras": ""
+                },
+                {
+                  "fila": "6",
+                  "n": 9.72257518097841,
+                  "pct": 0.11943221200793,
+                  "letras": ""
+                },
+                {
+                  "fila": "7",
+                  "n": 25.088411376562,
+                  "pct": 0.308186299482661,
+                  "letras": "F"
+                },
+                {
+                  "fila": "8",
+                  "n": 6.98057044778027,
+                  "pct": 0.0857493980901963,
+                  "letras": ""
+                },
+                {
+                  "fila": "96",
+                  "n": 5.2573720513394,
+                  "pct": 0.0645816115331847,
+                  "letras": ""
+                }
+              ]
+            },
+            {
+              "codigo": "sjm",
+              "etiqueta": "San Juan de Miraflores",
+              "letra": "F",
+              "n": 97.3389289131792,
+              "base_n": 83,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": null,
+              "celdas": [
+                {
+                  "fila": "1",
+                  "n": 53.0467491200782,
+                  "pct": 0.544969517461949,
+                  "letras": ""
+                },
+                {
+                  "fila": "2",
+                  "n": 29.6824565668224,
+                  "pct": 0.304939214949627,
+                  "letras": ""
+                },
+                {
+                  "fila": "3",
+                  "n": 9.47053752454335,
+                  "pct": 0.0972944497159048,
+                  "letras": ""
+                },
+                {
+                  "fila": "4",
+                  "n": 1.6821331978363,
+                  "pct": 0.0172811969128679,
+                  "letras": ""
+                },
+                {
+                  "fila": "5",
+                  "n": 0.71504777070062,
+                  "pct": 0.00734595889521655,
+                  "letras": ""
+                },
+                {
+                  "fila": "6",
+                  "n": 2.64921862497198,
+                  "pct": 0.0272164349305193,
+                  "letras": ""
+                },
+                {
+                  "fila": "7",
+                  "n": 5.55047490637903,
+                  "pct": 0.0570221489834734,
+                  "letras": ""
+                },
+                {
+                  "fila": "8",
+                  "n": 7.07335655600643,
+                  "pct": 0.0726672939078204,
+                  "letras": ""
+                },
+                {
+                  "fila": "96",
+                  "n": 13.4316653413122,
+                  "pct": 0.137988628920424,
+                  "letras": ""
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "variable": "E2_sex",
+          "etiqueta": "¿Cuál es su sexo?",
+          "columnas_por": "codigo",
+          "multiple": false,
+          "sin_columna": {
+            "base_n": 0,
+            "n": 0,
+            "valores_no_reconocidos": 0
+          },
+          "significancia": {
+            "metodo": "regla_z",
+            "motivo": null,
+            "modo": "letras"
+          },
+          "columnas": [
+            {
+              "codigo": "1",
+              "etiqueta": "Hombre",
+              "letra": "A",
+              "n": 252.250345842983,
+              "base_n": 258,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": null,
+              "celdas": [
+                {
+                  "fila": "1",
+                  "n": 144.777552544182,
+                  "pct": 0.573943920910623,
+                  "letras": ""
+                },
+                {
+                  "fila": "2",
+                  "n": 85.1157309444206,
+                  "pct": 0.337425626355344,
+                  "letras": ""
+                },
+                {
+                  "fila": "3",
+                  "n": 16.7031456287587,
+                  "pct": 0.0662165420346174,
+                  "letras": ""
+                },
+                {
+                  "fila": "4",
+                  "n": 28.8483020196522,
+                  "pct": 0.114363775887979,
+                  "letras": ""
+                },
+                {
+                  "fila": "5",
+                  "n": 13.4570655826904,
+                  "pct": 0.0533480560263214,
+                  "letras": ""
+                },
+                {
+                  "fila": "6",
+                  "n": 23.2978271132731,
+                  "pct": 0.0923599412140161,
+                  "letras": ""
+                },
+                {
+                  "fila": "7",
+                  "n": 36.77055765319,
+                  "pct": 0.145770098075815,
+                  "letras": ""
+                },
+                {
+                  "fila": "8",
+                  "n": 25.2837188771661,
+                  "pct": 0.100232643062081,
+                  "letras": ""
+                },
+                {
+                  "fila": "96",
+                  "n": 15.9470326594535,
+                  "pct": 0.0632190715384785,
+                  "letras": ""
+                }
+              ]
+            },
+            {
+              "codigo": "2",
+              "etiqueta": "Mujer",
+              "letra": "B",
+              "n": 288.542228424681,
+              "base_n": 301,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": null,
+              "celdas": [
+                {
+                  "fila": "1",
+                  "n": 174.063464436722,
+                  "pct": 0.603251265463066,
+                  "letras": ""
+                },
+                {
+                  "fila": "2",
+                  "n": 77.0859446722955,
+                  "pct": 0.267156544444646,
+                  "letras": ""
+                },
+                {
+                  "fila": "3",
+                  "n": 8.621638447012,
+                  "pct": 0.0298799884304025,
+                  "letras": ""
+                },
+                {
+                  "fila": "4",
+                  "n": 41.8686781563204,
+                  "pct": 0.145104161650466,
+                  "letras": ""
+                },
+                {
+                  "fila": "5",
+                  "n": 21.1526838011713,
+                  "pct": 0.0733087975256033,
+                  "letras": ""
+                },
+                {
+                  "fila": "6",
+                  "n": 17.6291658572898,
+                  "pct": 0.0610973511694896,
+                  "letras": ""
+                },
+                {
+                  "fila": "7",
+                  "n": 78.4799842613015,
+                  "pct": 0.271987863578129,
+                  "letras": "A"
+                },
+                {
+                  "fila": "8",
+                  "n": 25.7360732804146,
+                  "pct": 0.0891934377194034,
+                  "letras": ""
+                },
+                {
+                  "fila": "96",
+                  "n": 18.5962512844255,
+                  "pct": 0.0644489764494895,
+                  "letras": ""
+                }
+              ]
+            },
+            {
+              "codigo": "3",
+              "etiqueta": "Otro",
+              "letra": "C",
+              "n": 0,
+              "base_n": 0,
+              "excluida": true,
+              "exclusion_aplicada": true,
+              "motivo": "excluida",
+              "celdas": [
+                {
+                  "fila": "1",
+                  "n": 0,
+                  "pct": null,
+                  "letras": ""
+                },
+                {
+                  "fila": "2",
+                  "n": 0,
+                  "pct": null,
+                  "letras": ""
+                },
+                {
+                  "fila": "3",
+                  "n": 0,
+                  "pct": null,
+                  "letras": ""
+                },
+                {
+                  "fila": "4",
+                  "n": 0,
+                  "pct": null,
+                  "letras": ""
+                },
+                {
+                  "fila": "5",
+                  "n": 0,
+                  "pct": null,
+                  "letras": ""
+                },
+                {
+                  "fila": "6",
+                  "n": 0,
+                  "pct": null,
+                  "letras": ""
+                },
+                {
+                  "fila": "7",
+                  "n": 0,
+                  "pct": null,
+                  "letras": ""
+                },
+                {
+                  "fila": "8",
+                  "n": 0,
+                  "pct": null,
+                  "letras": ""
+                },
+                {
+                  "fila": "96",
+                  "n": 0,
+                  "pct": null,
+                  "letras": ""
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "significancia": {
+        "nota": "Las letras comparan las columnas de una misma variable de cruce: la letra marca la columna superada, con diferencia significativa y de al menos 10 puntos. En minúscula, frágil (p ajustado entre 0.01 y 0.05). \".b\" indica una columna con menos de 30 casos, que no se compara. Prueba z, p < 0.05 con corrección de Bonferroni."
+      },
+      "notas": [
+        "Fuente: Pulso PUCP"
+      ]
+    },
+    {
+      "variable": "E6_impact",
+      "etiqueta": "¿El trabajo de ACNUR en el Perú tiene un impacto positivo?",
+      "tipo": "unica",
+      "denominador": "validos_de_la_columna",
+      "seccion": {
+        "nombre": "Conocimiento de ACNUR",
+        "rotulo": null
+      },
+      "grano": null,
+      "base": {
+        "n": 37,
+        "de": 1281,
+        "unidad": "encuestado"
+      },
+      "sin_datos": false,
+      "sin_respuestas": false,
+      "filas": [
+        {
+          "codigo": "1",
+          "etiqueta": "Totalmente en desacuerdo",
+          "probada": true
+        },
+        {
+          "codigo": "2",
+          "etiqueta": "En desacuerdo",
+          "probada": true
+        },
+        {
+          "codigo": "3",
+          "etiqueta": "Ni de acuerdo ni en desacuerdo",
+          "probada": true
+        },
+        {
+          "codigo": "4",
+          "etiqueta": "De acuerdo",
+          "probada": true
+        },
+        {
+          "codigo": "5",
+          "etiqueta": "Totalmente de acuerdo",
+          "probada": true
+        }
+      ],
+      "filas_omitidas": [],
+      "total": {
+        "n": 28.7251064238385,
+        "base_n": 37,
+        "casos_sin_fila": 0,
+        "celdas": [
+          {
+            "fila": "1",
+            "n": 2.39718096853692,
+            "pct": 0.0834524660471768
+          },
+          {
+            "fila": "2",
+            "n": 1.43009554140124,
+            "pct": 0.0497855611150818
+          },
+          {
+            "fila": "3",
+            "n": 11.270857071984,
+            "pct": 0.392369549678343
+          },
+          {
+            "fila": "4",
+            "n": 10.5147441026788,
+            "pct": 0.366047176554681
+          },
+          {
+            "fila": "5",
+            "n": 3.11222873923754,
+            "pct": 0.108345246604718
+          }
+        ]
+      },
+      "cruces": [
+        {
+          "variable": "M5_district",
+          "etiqueta": "¿En qué distrito vive actualmente?",
+          "columnas_por": "codigo",
+          "multiple": false,
+          "sin_columna": {
+            "base_n": 0,
+            "n": 0,
+            "valores_no_reconocidos": 0
+          },
+          "significancia": {
+            "metodo": "regla_z",
+            "motivo": null,
+            "modo": "letras"
+          },
+          "columnas": [
+            {
+              "codigo": "smp",
+              "etiqueta": "San Martín de Porres",
+              "letra": "A",
+              "n": 6.68746759274064,
+              "base_n": 9,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": "base_insuficiente",
+              "celdas": [
+                {
+                  "fila": "1",
+                  "n": 0.71504777070062,
+                  "pct": 0.106923549278477,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "2",
+                  "n": 0,
+                  "pct": 0,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "3",
+                  "n": 0.71504777070062,
+                  "pct": 0.106923549278477,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "4",
+                  "n": 4.29028662420372,
+                  "pct": 0.64154129567086,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "5",
+                  "n": 0.967085427135681,
+                  "pct": 0.144611605772186,
+                  "letras": ".b"
+                }
+              ]
+            },
+            {
+              "codigo": "sjl",
+              "etiqueta": "San Juan de Lurigancho",
+              "letra": "B",
+              "n": 6.68746759274064,
+              "base_n": 9,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": "base_insuficiente",
+              "celdas": [
+                {
+                  "fila": "1",
+                  "n": 0,
+                  "pct": 0,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "2",
+                  "n": 0.71504777070062,
+                  "pct": 0.106923549278477,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "3",
+                  "n": 3.11222873923754,
+                  "pct": 0.465382253607616,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "4",
+                  "n": 1.43009554140124,
+                  "pct": 0.213847098556953,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "5",
+                  "n": 1.43009554140124,
+                  "pct": 0.213847098556953,
+                  "letras": ".b"
+                }
+              ]
+            },
+            {
+              "codigo": "chorrillos",
+              "etiqueta": "Chorrillos",
+              "letra": "C",
+              "n": 4.54232428063878,
+              "base_n": 6,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": "base_insuficiente",
+              "celdas": [
+                {
+                  "fila": "1",
+                  "n": 0.71504777070062,
+                  "pct": 0.157418917391795,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "2",
+                  "n": 0,
+                  "pct": 0,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "3",
+                  "n": 2.39718096853692,
+                  "pct": 0.527743247824616,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "4",
+                  "n": 1.43009554140124,
+                  "pct": 0.31483783478359,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "5",
+                  "n": 0,
+                  "pct": 0,
+                  "letras": ".b"
+                }
+              ]
+            },
+            {
+              "codigo": "olivos",
+              "etiqueta": "Los Olivos",
+              "letra": "D",
+              "n": 3.82727650993816,
+              "base_n": 5,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": "base_insuficiente",
+              "celdas": [
+                {
+                  "fila": "1",
+                  "n": 0,
+                  "pct": 0,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "2",
+                  "n": 0.71504777070062,
+                  "pct": 0.18682939914163,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "3",
+                  "n": 1.6821331978363,
+                  "pct": 0.439511802575111,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "4",
+                  "n": 1.43009554140124,
+                  "pct": 0.373658798283259,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "5",
+                  "n": 0,
+                  "pct": 0,
+                  "letras": ".b"
+                }
+              ]
+            },
+            {
+              "codigo": "ate",
+              "etiqueta": "Ate (Vitarte)",
+              "letra": "E",
+              "n": 5.29843724994396,
+              "base_n": 6,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": "base_insuficiente",
+              "celdas": [
+                {
+                  "fila": "1",
+                  "n": 0.967085427135681,
+                  "pct": 0.18252276690564,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "2",
+                  "n": 0,
+                  "pct": 0,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "3",
+                  "n": 2.39718096853692,
+                  "pct": 0.452431699283081,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "4",
+                  "n": 1.93417085427136,
+                  "pct": 0.36504553381128,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "5",
+                  "n": 0,
+                  "pct": 0,
+                  "letras": ".b"
+                }
+              ]
+            },
+            {
+              "codigo": "sjm",
+              "etiqueta": "San Juan de Miraflores",
+              "letra": "F",
+              "n": 1.6821331978363,
+              "base_n": 2,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": "base_insuficiente",
+              "celdas": [
+                {
+                  "fila": "1",
+                  "n": 0,
+                  "pct": 0,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "2",
+                  "n": 0,
+                  "pct": 0,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "3",
+                  "n": 0.967085427135681,
+                  "pct": 0.574916081782124,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "4",
+                  "n": 0,
+                  "pct": 0,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "5",
+                  "n": 0.71504777070062,
+                  "pct": 0.425083918217876,
+                  "letras": ".b"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "variable": "E2_sex",
+          "etiqueta": "¿Cuál es su sexo?",
+          "columnas_por": "codigo",
+          "multiple": false,
+          "sin_columna": {
+            "base_n": 0,
+            "n": 0,
+            "valores_no_reconocidos": 0
+          },
+          "significancia": {
+            "metodo": "regla_z",
+            "motivo": null,
+            "modo": "letras"
+          },
+          "columnas": [
+            {
+              "codigo": "1",
+              "etiqueta": "Hombre",
+              "letra": "A",
+              "n": 18.1692971225551,
+              "base_n": 24,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": "base_insuficiente",
+              "celdas": [
+                {
+                  "fila": "1",
+                  "n": 1.43009554140124,
+                  "pct": 0.0787094586958974,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "2",
+                  "n": 1.43009554140124,
+                  "pct": 0.0787094586958974,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "3",
+                  "n": 6.22445747847508,
+                  "pct": 0.342581082608205,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "4",
+                  "n": 6.68746759274064,
+                  "pct": 0.368064188043846,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "5",
+                  "n": 2.39718096853692,
+                  "pct": 0.131935811956154,
+                  "letras": ".b"
+                }
+              ]
+            },
+            {
+              "codigo": "2",
+              "etiqueta": "Mujer",
+              "letra": "B",
+              "n": 10.5558093012834,
+              "base_n": 13,
+              "excluida": false,
+              "exclusion_aplicada": false,
+              "motivo": "base_insuficiente",
+              "celdas": [
+                {
+                  "fila": "1",
+                  "n": 0.967085427135681,
+                  "pct": 0.0916164170394878,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "2",
+                  "n": 0,
+                  "pct": 0,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "3",
+                  "n": 5.0463995935089,
+                  "pct": 0.478068469169424,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "4",
+                  "n": 3.82727650993816,
+                  "pct": 0.362575374440768,
+                  "letras": ".b"
+                },
+                {
+                  "fila": "5",
+                  "n": 0.71504777070062,
+                  "pct": 0.0677397393503201,
+                  "letras": ".b"
+                }
+              ]
+            },
+            {
+              "codigo": "3",
+              "etiqueta": "Otro",
+              "letra": "C",
+              "n": 0,
+              "base_n": 0,
+              "excluida": true,
+              "exclusion_aplicada": true,
+              "motivo": "excluida",
+              "celdas": [
+                {
+                  "fila": "1",
+                  "n": 0,
+                  "pct": null,
+                  "letras": ""
+                },
+                {
+                  "fila": "2",
+                  "n": 0,
+                  "pct": null,
+                  "letras": ""
+                },
+                {
+                  "fila": "3",
+                  "n": 0,
+                  "pct": null,
+                  "letras": ""
+                },
+                {
+                  "fila": "4",
+                  "n": 0,
+                  "pct": null,
+                  "letras": ""
+                },
+                {
+                  "fila": "5",
+                  "n": 0,
+                  "pct": null,
+                  "letras": ""
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "significancia": {
+        "nota": "Las letras comparan las columnas de una misma variable de cruce: la letra marca la columna superada, con diferencia significativa y de al menos 10 puntos. En minúscula, frágil (p ajustado entre 0.01 y 0.05). \".b\" indica una columna con menos de 30 casos, que no se compara. Prueba z, p < 0.05 con corrección de Bonferroni."
+      },
+      "notas": [
+        "Fuente: Pulso PUCP"
+      ]
+    }
+  ],
+  "sin_tabla": [
+    {
+      "variable": "E1_age",
+      "motivo": "numerica",
+      "seccion": "Datos Generales"
+    }
+  ],
+  "avisos": [
+    {
+      "codigo": "numericas_sin_vista_previa",
+      "mensaje": "El archivo trae 1 tabla de una variable numérica que la vista previa todavía no muestra."
+    },
+    {
+      "codigo": "exclusion_global",
+      "mensaje": "Se quitaron 2 casos de toda la base al excluir \"Otro\" en \"¿Cuál es su sexo?\". El Total y las columnas de las demás variables de cruce tampoco los cuentan."
+    }
+  ]
+}
