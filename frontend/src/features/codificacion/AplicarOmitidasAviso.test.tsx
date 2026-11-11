@@ -5,7 +5,7 @@ import type { CodifOmitida, CodifTextosSinCodigo } from "../../api/codificacion"
 import { AplicarOmitidasAviso } from "./AplicarOmitidasAviso";
 
 // ADR 0100, P1: lo que `/aplicar` no aplicó deja de ser silencioso. Y cuando
-// no hay nada que decir, el silencio es lo correcto: nada de «0 omitidas».
+// no hay nada que decir, el silencio es lo correcto: nada de "0 omitidas".
 
 function texto(html: string) {
   return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
@@ -33,7 +33,9 @@ describe("AplicarOmitidasAviso", () => {
   it("las preguntas omitidas se anuncian como alerta, con su mensaje y su motivo", () => {
     const html = renderToStaticMarkup(<AplicarOmitidasAviso omitidas={[P29, P66]} textosSinCodigo={[]} />);
     const t = texto(html);
-    expect(t).toContain("2 preguntas del catálogo no se aplicaron");
+    expect(t).toContain("2 preguntas no se aplicaron");
+    expect(t).toContain("Su codificación no llega a la base codificada. Corrige la causa y vuelve a aplicar.");
+    expect(t).not.toContain("adapta");
     expect(t).toContain("P66");
     expect(t).toContain("La columna de texto &quot;P66_otro&quot; no está en la base.");
     expect(t).toContain("P29_10");
@@ -59,7 +61,7 @@ describe("AplicarOmitidasAviso", () => {
         textosSinCodigo={[]}
       />,
     );
-    expect(texto(html)).toContain("1 pregunta del catálogo no se aplicó");
+    expect(texto(html)).toContain("1 pregunta no se aplicó");
     expect(texto(html)).toContain("No se crea P12_agrup");
   });
 
@@ -88,16 +90,18 @@ describe("AplicarOmitidasAviso", () => {
     expect(t).toContain("12 casos, 8 textos distintos");
     // Columna igual a la pregunta: no se repite.
     expect(t).not.toContain(" en P60");
-    // Los ejemplos se cuentan en su lista: «Otro» también lleva comillas.
+    // Los ejemplos se cuentan en su lista: "Otro" también lleva comillas.
     expect((html.match(/<li>&quot;/g) ?? []).length).toBe(5);
     expect(t).toContain("y 3 más");
   });
 
-  it("declara sus listas como grupos de geometría intrínseca (C1)", () => {
+  it("declara sus bloques y sus listas como grupos de geometría intrínseca (C1)", () => {
     const html = renderToStaticMarkup(<AplicarOmitidasAviso omitidas={[P66]} textosSinCodigo={[P4]} />);
+    // Los bloques son hermanos de la misma variante: sin declarar, el runner los daba por colección sin contrato.
+    expect(html).toMatch(/<section[^>]*data-qa-geometry-group="codificacion\/aplicar-avisos"[^>]*data-qa-geometry-contract="intrinsic"/);
     expect(html).toContain('data-qa-geometry-group="codificacion/aplicar-omitidas"');
     expect(html).toContain('data-qa-geometry-group="codificacion/aplicar-sin-codigo"');
-    expect((html.match(/data-qa-geometry-contract="intrinsic"/g) ?? []).length).toBe(2);
+    expect((html.match(/data-qa-geometry-contract="intrinsic"/g) ?? []).length).toBe(3);
   });
 });
 

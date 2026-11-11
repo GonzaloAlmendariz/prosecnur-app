@@ -1,7 +1,7 @@
 /* Lo que `/aplicar` no aplicó (ADR 0100, P1). Sólo tokens --pulso-*.
- * Altura intrínseca: crece con sus filas dentro de AdaptarPane y el dueño del
- * scroll es la página (No Scroll Jail); no hay scroll interno. Ningún dato se
- * recorta: preguntas, columnas y ejemplos envuelven en vez de truncarse. */
+ * Altura intrínseca: crece con sus filas dentro del panel de Aplicar y el dueño
+ * del scroll es la pantalla (No Scroll Jail); no hay scroll interno. Ningún dato
+ * se recorta: preguntas, columnas y ejemplos envuelven en vez de truncarse. */
 
 .pulso-codif-omitidas {
   display: flex;
@@ -22,10 +22,10 @@
   color: var(--pulso-text);
 }
 
-/* La omisión de una pregunta entera es el daño mayor: avisa fuerte (ADR 0077). */
+/* La omisión de una pregunta entera es el daño mayor: avisa fuerte (ADR 0077),
+ * con borde y fondo más marcados y sin franja lateral de acento. */
 .pulso-codif-omitidas-bloque--fuerte {
   border-color: color-mix(in srgb, var(--pulso-warn-accent) 45%, var(--pulso-warn-border));
-  border-left: 4px solid var(--pulso-warn-accent);
   background: var(--pulso-warn-bg);
 }
 
@@ -144,7 +144,7 @@
   font-size: var(--pulso-type-body-size);
 }
 
-/* Fila con su acción a la derecha («Codificar P55»). */
+/* Fila con su acción a la derecha ("Codificar P55"). */
 .pulso-codif-omitidas-fila--accion {
   grid-template-columns: minmax(64px, max-content) minmax(0, 1fr) auto;
   align-items: start;

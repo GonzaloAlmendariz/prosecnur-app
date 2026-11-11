@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
 /**
- * Codificación › Adaptar con teclado (QA fase 5b): al pulsar Enter en "Confirmar y adaptar respuestas" el foco
+ * Codificación, Aplicar con teclado (QA fase 5b): al pulsar Enter en "Aplicar a la base" el foco
  * caía en `span#codificacion-adaptar-estado.pulso-sr-only`, un elemento invisible de 1×1 sin contorno, y se
- * quedaba ahí. Ahora va al contenedor del kit que aparece debajo, que se ve y lleva el anillo del kit.
+ * quedaba ahí. Ahora va al contenedor del kit que aparece sobre el pie, que se ve y lleva el anillo del kit.
  */
 import { act, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -50,8 +50,8 @@ function Banco({ inicial }: { inicial: Entrada }) {
 
 const botonAdaptar = () => host.querySelector<HTMLButtonElement>("[data-testid='codificacion-adaptar-boton']");
 
-describe('el foco al pulsar "Adaptar"', () => {
-  it("va al contenedor visible que aparece debajo, no a la región invisible", async () => {
+describe('el foco al pulsar "Aplicar a la base"', () => {
+  it("va al contenedor visible que aparece sobre el pie, no a la región invisible", async () => {
     await act(async () => { root.render(<Banco inicial={APLICAR_ENTRADA_VACIA} />); });
     botonAdaptar()?.focus();
     await act(async () => { botonAdaptar()?.click(); });
@@ -64,7 +64,7 @@ describe('el foco al pulsar "Adaptar"', () => {
     const region = document.getElementById(ID_ESTADO_ADAPTAR);
     expect(region?.getAttribute("aria-live")).toBe("polite");
     expect(region?.hasAttribute("tabindex")).toBe(false);
-    expect(region?.textContent).toContain("Revisando el catálogo");
+    expect(region?.textContent).toContain("Revisando la codificación");
   });
 
   it('"Reintentar" en el fallo vuelve a dejar el foco en el contenedor al correr de nuevo', async () => {

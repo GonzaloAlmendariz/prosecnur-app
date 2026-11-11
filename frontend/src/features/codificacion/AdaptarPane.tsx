@@ -1,16 +1,31 @@
-import { useEffect, useState } from "react";
-import { CheckCircle2, FileSpreadsheet, RefreshCw, Tags } from "lucide-react";
-import { apiCodifPlanAdaptacion, PlanAdaptacion, PlanPregunta } from "../../api/client";
+// Codificación, Aplicar (ADR 0142, etapa P3d): qué se aplica a la base y qué
+// produce. Una franja dice de dónde sale y a dónde llega. Debajo, dos paneles:
+// las preguntas (con las que no se pueden aplicar, el resultado de la última
+// aplicación y, al pie, la acción con su efecto) y el detalle de la pregunta
+// elegida, con la tabla de sus códigos.
+//
+// Cada cifra aparece una vez: los totales en la franja, lo de cada pregunta en
+// su fila y el desglose por código en el detalle. Todas salen del plan del motor
+// (`aplicar/modeloAplicar.ts`).
+
+import { useId, useState } from "react";
+
 import { Alert } from "../../components/Alert";
-import { Panel } from "../../components/Panel";
-import { LoadingBlock, ErrorBlock } from "../../components/States";
+import { EstadoVacio } from "../../components/EstadoVacio";
+import { FranjaRecorrido } from "../../components/procesamiento/FranjaRecorrido";
+import { PulsoButton } from "../../components/PulsoButton";
+import { ErrorBlock, LoadingBlock } from "../../components/States";
 import { useSession } from "../../lib/SessionContext";
-import { AdaptarAplicacion, AdaptarAplicacionResumen } from "./AdaptarAplicacion";
+import { Database, RefreshCw, Tags } from "../../vendor/lucide-react";
+import { AdaptarAplicacion } from "./AdaptarAplicacion";
+import { AdaptarOmitidas } from "./AdaptarOmitidas";
+import { DetalleAplicar } from "./aplicar/DetalleAplicar";
+import { ListaAplicar } from "./aplicar/ListaAplicar";
+import { AVISO_BASE_CAMBIO, claveDePregunta, franjaDeAplicar, preguntaElegida, resumenDelPlan } from "./aplicar/modeloAplicar";
+import { PanelAplicar } from "./aplicar/PanelAplicar";
+import { usePlanAplicar } from "./aplicar/usePlanAplicar";
 import { claveAplicar } from "./aplicarAvisosStore";
 import { useBaseYaCodificada } from "./useBaseYaCodificada";
-import { AdaptarOmitidas } from "./AdaptarOmitidas";
-import { formatoConteo } from "../../lib/formatoNumero";
-import { textoPlano } from "../../lib/textoPlano";
 
 type Props = {
   /** Base activa de codificación: los avisos de la última aplicación van por base. */
@@ -19,272 +34,138 @@ type Props = {
   onBackToMatrices: () => void;
 };
 
+/** El marco de la pantalla mientras no hay plan: la misma sección y el mismo panel, sin marca de lista. */
+const CLASE_DE_PANTALLA = "pulso-codificacion-adaptar pulso-aplicar";
+const TITULO_DE_PREGUNTAS = "Preguntas por aplicar";
+
 export function AdaptarPane({ base, onBackToCodificar, onBackToMatrices }: Props) {
   const { sessionId } = useSession();
-  const [plan, setPlan] = useState<PlanAdaptacion | null>(null);
-  const [loadErr, setLoadErr] = useState<string>("");
-  const [busyLoad, setBusyLoad] = useState(false);
-  // Lo que deja una aplicación (avisos, sin recodificar, descargas, job) vive
+  const { plan, error, cargando, recargar } = usePlanAplicar();
+  // La pregunta elegida para el detalle. Estado efímero de la vista: no va a la dirección.
+  // Sin elegir, o si la elegida ya no está en el plan, vale la primera.
+  const [claveElegida, setClaveElegida] = useState<string | null>(null);
+  const idDeDetalle = useId();
+  // Lo que deja una aplicación (avisos, sin recodificar, archivos, job) vive
   // en `aplicarAvisosStore`: al terminar el job la página remonta este panel y
-  // el estado local se perdía (QA C5, Codificación › Adaptar).
+  // el estado local se perdía (QA C5, Codificación, Aplicar).
   const clave = claveAplicar(sessionId, base);
   const yaCodificada = useBaseYaCodificada(base);
+  const iconoDePreguntas = <Database size={16} />;
 
-  async function load() {
-    setBusyLoad(true);
-    setLoadErr("");
-    try {
-      const p = await apiCodifPlanAdaptacion();
-      setPlan(p);
-    } catch (e) {
-      setLoadErr((e as Error).message);
-    } finally {
-      setBusyLoad(false);
-    }
+  if (error) {
+    return (
+      <section className={CLASE_DE_PANTALLA}>
+        <div className="pulso-aplicar-mesa">
+          <PanelAplicar variante="preguntas" titulo={TITULO_DE_PREGUNTAS} icono={iconoDePreguntas} soloEstado>
+            <ErrorBlock
+              label="No se pudieron leer las preguntas por aplicar"
+              detail={error}
+              queda="La base y la codificación siguen como estaban."
+              acciones={
+                <PulsoButton variant="secondary" onClick={recargar}>
+                  Reintentar
+                </PulsoButton>
+              }
+            />
+          </PanelAplicar>
+        </div>
+      </section>
+    );
   }
-  useEffect(() => { void load(); }, []);
+  if (!plan) {
+    return (
+      <section className={CLASE_DE_PANTALLA}>
+        <div className="pulso-aplicar-mesa">
+          <PanelAplicar variante="preguntas" titulo={TITULO_DE_PREGUNTAS} icono={iconoDePreguntas} soloEstado>
+            <LoadingBlock label="Cargando las preguntas por aplicar" />
+          </PanelAplicar>
+        </div>
+      </section>
+    );
+  }
 
-  if (loadErr) return <ErrorBlock label="Error cargando plan" detail={loadErr} />;
-  if (!plan) return <LoadingBlock label="Cargando resumen…" />;
+  const resumen = resumenDelPlan(plan);
+  const nAplicables = resumen.aplicables.length;
+  // Sin preguntas en el plan (ni aplicables ni fuera): un vacío con su texto propio, nunca una buena noticia.
+  const sinPreguntas = nAplicables === 0 && resumen.fuera.length === 0;
+  const baseCambio = plan.respuestas_cambiaron === true;
+  const elegida = preguntaElegida(resumen.aplicables, claveElegida);
 
-  const noHayNada = plan.preguntas.length === 0;
-  const preguntasSoportadas = plan.preguntas.filter((p) => p.bridge_soportado);
-  const preguntasNoSoportadas = plan.preguntas.filter((p) => !p.bridge_soportado);
-  // Los totales mostrados en el header reflejan solo lo que realmente se
-  // va a adaptar (preguntas soportadas). El backend devuelve totales que
-  // incluyen las no-soportadas; las reclacula aquí para evitar el gap
-  // visual "2 preguntas pero veo 1 card".
-  const t = {
-    n_preguntas: preguntasSoportadas.length,
-    n_variables_nuevas: preguntasSoportadas.length,
-    n_codigos_nuevos: preguntasSoportadas.reduce((s, p) => s + p.n_codigos_nuevos, 0),
-    n_codigos_reutilizados: preguntasSoportadas.reduce((s, p) => s + p.n_codigos_reutilizados, 0),
-  };
   return (
     <section
-      className="pulso-codificacion-adaptar"
+      className={CLASE_DE_PANTALLA}
       data-audit-ready="codificacion-adaptar"
-      // C1: sus hijos (paneles de confirmación y resultado, avisos del plan y de
-      // lo no recodificado) son secciones independientes, no pares. La QA del
-      // 2026-10-13 los marcó como colecciones sin declarar.
+      // C1: sus hijos (franja y mesa de paneles) son secciones independientes,
+      // no pares. La mesa llega al borde inferior y el vacío queda dentro de
+      // sus paneles (C3). El resultado de una aplicación va dentro del panel de
+      // preguntas: no mueve la franja ni la mesa (C2).
       data-qa-geometry-group="codificacion/adaptar-secciones"
       data-qa-geometry-contract="intrinsic"
     >
-      {/* Tras una aplicación con avisos: lo dice arriba y lleva al aviso. */}
-      <AdaptarAplicacionResumen clave={clave} />
-
-      {/* ADR 0100 D3: la base cambió y la adaptación anterior se descartó. */}
-      {plan.respuestas_cambiaron && !noHayNada ? (
-        <Alert kind="info">
-          La base cambió después de la última adaptación: las columnas <code>_recod</code> ya no están en ella. Los grupos se
-          conservaron; confirma abajo para volver a crearlas.
-        </Alert>
+      {/* De dónde sale y a dónde llega. Sin preguntas aplicables no hay recorrido que contar.
+          ADR 0100 D3: si la base cambió y la aplicación anterior se descartó, lo dice su aviso. */}
+      {nAplicables > 0 ? (
+        <FranjaRecorrido {...franjaDeAplicar(resumen, { baseCambio })} grupoDeGeometria="codificacion/aplicar-franja" />
       ) : null}
 
-      {/* Header con totales */}
-      <div className="pulso-codificacion-adaptar-stats">
-        <Stat label="Preguntas" value={t.n_preguntas} />
-        <Divider />
-        <Stat label="Campos nuevos" value={t.n_variables_nuevas} hint="Se agregan como columnas *_recod" />
-        <Divider />
-        <Stat label="Códigos nuevos" value={t.n_codigos_nuevos} />
-        <Divider />
-        <Stat label="Códigos reutilizados" value={t.n_codigos_reutilizados} hint="Opciones existentes que reciben más respuestas" />
-        <div style={{ flex: 1 }} />
-        <button
-          type="button"
-          className="pulso-cv2-pill"
-          onClick={load}
-          disabled={busyLoad}
-          style={{ fontSize: "var(--pulso-type-body-size)", display: "inline-flex", alignItems: "center", gap: 4 }}
-          title="Recargar el resumen (útil si volviste a codificar)"
+      <div className="pulso-aplicar-mesa" data-con-detalle={elegida ? "" : undefined}>
+        <PanelAplicar
+          variante="preguntas"
+          titulo={TITULO_DE_PREGUNTAS}
+          icono={iconoDePreguntas}
+          acciones={
+            <PulsoButton
+              variant="ghost"
+              size="sm"
+              onClick={recargar}
+              disabled={cargando}
+              aria-busy={cargando || undefined}
+              title="Volver a leer la codificación"
+            >
+              <RefreshCw size={13} aria-hidden="true" /> Actualizar
+            </PulsoButton>
+          }
         >
-          <RefreshCw size={12} /> Actualizar
-        </button>
+          <AdaptarAplicacion
+            clave={clave}
+            nPreguntas={nAplicables}
+            onBackToCodificar={onBackToCodificar}
+            onBackToMatrices={onBackToMatrices}
+            yaCodificadaEn={yaCodificada ? base : null}
+            yaListadas={resumen.fuera.map((p) => p.parent)}
+          >
+            {/* Sin franja no hay dónde decir que la base cambió: lo dice el panel. */}
+            {nAplicables === 0 && baseCambio ? (
+              <div className="pulso-aplicar-aviso">
+                <Alert kind="info">{AVISO_BASE_CAMBIO}.</Alert>
+              </div>
+            ) : null}
+
+            {elegida ? (
+              <ListaAplicar
+                preguntas={resumen.aplicables}
+                elegida={claveDePregunta(elegida)}
+                onElegir={setClaveElegida}
+                idDeDetalle={idDeDetalle}
+              />
+            ) : null}
+            {sinPreguntas ? (
+              <EstadoVacio
+                tamano="normal"
+                icono={<Tags size={18} />}
+                titulo="Ninguna pregunta tiene códigos por aplicar"
+                descripcion="Los códigos se asignan en Codificar o se importan en Matrices."
+              />
+            ) : null}
+
+            {/* Las que no se pueden aplicar: cada una con su causa y, si se puede, la acción que la destraba. */}
+            <AdaptarOmitidas preguntas={resumen.fuera} onCambio={recargar} onIrAPreguntas={onBackToCodificar} />
+          </AdaptarAplicacion>
+        </PanelAplicar>
+
+        {/* El desglose por código de la pregunta elegida. Sin preguntas aplicables no hay detalle. */}
+        {elegida ? <DetalleAplicar id={idDeDetalle} pregunta={elegida} /> : null}
       </div>
-
-      <div className="pulso-codificacion-adaptar-bridge" aria-label="Confirmación de codificación">
-        <span className="pulso-codificacion-adaptar-bridge-icon" aria-hidden="true">
-          <CheckCircle2 size={17} />
-        </span>
-        <div className="pulso-codificacion-adaptar-bridge-copy">
-          <strong>Adaptación confirma toda la codificación</strong>
-          <p>
-            Integra los grupos creados en Prosecnur y los mapeos importados desde matrices Excel; recién aquí se aplican a las respuestas adaptadas.
-          </p>
-        </div>
-        <div className="pulso-codificacion-adaptar-bridge-paths" aria-label="Fuentes que se confirman">
-          <span><Tags size={13} /> Manual Prosecnur</span>
-          <span><FileSpreadsheet size={13} /> Matriz Excel</span>
-        </div>
-      </div>
-
-      {noHayNada && (
-        <Alert kind="warn">
-          No hay preguntas con grupos codificados. Vuelve a <strong>Codificar</strong> o <strong>Matrices</strong> para preparar un mapeo antes de adaptar.
-        </Alert>
-      )}
-
-      {/* Tabla de preguntas soportadas */}
-      {preguntasSoportadas.length > 0 && (
-        <Panel eyebrow="Confirmación final" title="Codificaciones que se aplicarán">
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {preguntasSoportadas.map((p) => (
-              <PreguntaPlanCard key={p.parent} p={p} />
-            ))}
-          </div>
-        </Panel>
-      )}
-
-      {/* No soportadas: cada una con su motivo y, si se puede, la acción que la destraba. */}
-      <AdaptarOmitidas preguntas={preguntasNoSoportadas} onCambio={() => void load()} onIrAPreguntas={onBackToCodificar} />
-
-      <AdaptarAplicacion
-        clave={clave}
-        nPreguntas={t.n_preguntas}
-        onBackToCodificar={onBackToCodificar}
-        onBackToMatrices={onBackToMatrices}
-        yaCodificadaEn={yaCodificada ? base : null}
-        yaListadas={preguntasNoSoportadas.map((p) => p.parent)}
-      />
     </section>
-  );
-}
-
-function Stat({ label, value, hint }: { label: string; value: number; hint?: string }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      <span style={{ fontSize: "var(--pulso-type-kpi-size)", fontWeight: 700, color: "var(--pulso-primary)" }}>{value}</span>
-      <span style={{ fontSize: "var(--pulso-type-eyebrow-size)", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--pulso-text-soft)" }}>
-        {label}
-      </span>
-      {hint && <span style={{ fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)", fontStyle: "italic" }}>{hint}</span>}
-    </div>
-  );
-}
-
-function Divider() {
-  return <div style={{ width: 1, alignSelf: "stretch", background: "var(--pulso-border)" }} />;
-}
-
-function PreguntaPlanCard({ p }: { p: PlanPregunta }) {
-  const arqLabel =
-    p.tipo === "select_one" && p.modo_so === "hijo" ? "Opción única, texto codificado aparte" :
-    p.tipo === "select_one" && p.modo_so === "padre" ? "Opción única, pregunta original codificada" :
-    p.tipo === "integer" ? "Numérica por rangos" :
-    p.tipo === "text" ? "Texto abierto" :
-    p.tipo === "select_multiple" ? "Opción múltiple" : p.tipo;
-
-  return (
-    <article
-      style={{
-        border: "1px solid var(--pulso-border)",
-        borderRadius: 6,
-        padding: 12,
-        background: "white",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-        <code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 700, color: "var(--pulso-primary)" }}>
-          {p.parent}
-        </code>
-        <span style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text-soft)" }}>{textoPlano(p.parent_label)}</span>
-        <div style={{ flex: 1 }} />
-        <span
-          style={{
-            fontSize: "var(--pulso-type-micro-size)",
-            fontWeight: 700,
-            textTransform: "uppercase",
-            letterSpacing: 0.5,
-            color: "var(--pulso-text-soft)",
-          }}
-        >
-          {arqLabel}
-        </span>
-      </div>
-
-      <div
-        style={{
-          marginTop: 10,
-          padding: "8px 10px",
-          background: "#f0fdf4",
-          border: "1px solid #bbf7d0",
-          borderRadius: 4,
-          fontSize: "var(--pulso-type-body-size)",
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          flexWrap: "wrap",
-        }}
-      >
-        <span style={{ color: "var(--pulso-success-fg)", fontWeight: 700 }}>Campo nuevo:</span>
-        <code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", fontWeight: 700 }}>{p.nueva_variable}</code>
-        <span>{formatoConteo(p.n_respuestas_afectadas)} {p.n_respuestas_afectadas === 1 ? "respuesta afectada" : "respuestas afectadas"}</span>
-      </div>
-
-      {/* Códigos nuevos */}
-      {p.codigos_nuevos.length > 0 && (
-        <div style={{ marginTop: 10 }}>
-          <div style={{ fontSize: "var(--pulso-type-eyebrow-size)", fontWeight: 700, color: "var(--pulso-text-soft)", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
-            {p.codigos_nuevos.length} código{p.codigos_nuevos.length === 1 ? "" : "s"} nuevo{p.codigos_nuevos.length === 1 ? "" : "s"}
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-            {p.codigos_nuevos.map((c) => (
-              <CodigoRow key={`n-${c.codigo}`} c={c} kind="nuevo" />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Códigos reutilizados */}
-      {p.codigos_reutilizados.length > 0 && (
-        <div style={{ marginTop: 10 }}>
-          <div style={{ fontSize: "var(--pulso-type-eyebrow-size)", fontWeight: 700, color: "var(--pulso-text-soft)", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
-            {p.codigos_reutilizados.length === 1 ? "1 opción existente reutilizada" : `${p.codigos_reutilizados.length} opciones existentes reutilizadas`}
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-            {p.codigos_reutilizados.map((c) => (
-              <CodigoRow key={`r-${c.codigo}`} c={c} kind="reuso" />
-            ))}
-          </div>
-        </div>
-      )}
-    </article>
-  );
-}
-
-function CodigoRow({ c, kind }: { c: { codigo: string; etiqueta: string; n_respuestas: number }; kind: "nuevo" | "reuso" }) {
-  const bg = kind === "nuevo" ? "var(--pulso-success-bg)" : "#eef2ff";
-  const fg = kind === "nuevo" ? "var(--pulso-success-fg)" : "#4338ca";
-  return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "50px 1fr auto",
-        gap: 10,
-        alignItems: "center",
-        fontSize: "var(--pulso-type-body-size)",
-        padding: "3px 8px",
-      }}
-    >
-      <code
-        style={{
-          fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-          fontWeight: 700,
-          padding: "2px 8px",
-          background: bg,
-          color: fg,
-          borderRadius: 4,
-          fontSize: "var(--pulso-type-caption-size)",
-          textAlign: "center",
-        }}
-      >
-        {c.codigo}
-      </code>
-      <span>{c.etiqueta || <em style={{ color: "var(--pulso-text-soft)" }}>sin etiqueta</em>}</span>
-      <span style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)" }}>
-        {formatoConteo(c.n_respuestas)} {c.n_respuestas === 1 ? "respuesta" : "respuestas"}
-      </span>
-    </div>
   );
 }

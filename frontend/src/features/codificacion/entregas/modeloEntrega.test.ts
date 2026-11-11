@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { CodifConfigBundle } from "../../../api/dashboard";
 import {
-  archivosDeAdaptacion, conNombre, estadoDeAdaptacion, MATRICES, respaldoComoArchivo, type EntradaAdaptacion,
+  archivosDeAdaptacion, conNombre, estadoDeAdaptacion, MATRICES, MENSAJE_PREPARANDO, respaldoComoArchivo, rotulosDeArchivos,
+  TITULO_ADAPTACION, TITULO_ARCHIVOS,
+  type EntradaAdaptacion,
 } from "./modeloEntrega";
 
 const VACIA: EntradaAdaptacion = { aplicando: false, jobId: null, avance: null, archivos: null, error: "", entregaCerrada: false };
@@ -38,8 +40,19 @@ describe("Codificación sobre el kit de entregables", () => {
     });
     expect(archivos.map((a) => [a.fileId, a.nombre, a.formato])).toEqual([
       ["fd", "HSVG2026_Data_adaptada_10_11_26.xlsx", "xlsx"],
-      ["fi", "Instrumento_adaptado.xlsx", "xlsx"],
+      ["fi", "Formulario_codificado.xlsx", "xlsx"],
     ]);
+    // Sin nombre del motor, la base también toma el de respaldo: "base codificada", no "adaptada".
+    expect(archivosDeAdaptacion({ data_adaptada: { file_id: "fd" } }).map((a) => a.nombre)).toEqual(["Base_codificada.xlsx"]);
+    // El nombre del motor conserva "adaptada": cada archivo lleva lo que es, emparejado por su clave del resultado.
+    expect(archivos.map((a) => a.rotulo)).toEqual(["Base codificada", "Formulario codificado"]);
+    expect(rotulosDeArchivos(archivos)).toBe("Base codificada y formulario codificado");
+    // Si solo llega el formulario, se nombra solo ese: no se empareja por posición.
+    const soloFormulario = archivosDeAdaptacion({ instrumento_adaptado: { file_id: "fi" } });
+    expect(soloFormulario.map((a) => a.rotulo)).toEqual(["Formulario codificado"]);
+    expect(rotulosDeArchivos(soloFormulario)).toBe("Formulario codificado");
+    expect(rotulosDeArchivos([{ fileId: "x", nombre: "D.xlsx", formato: "xlsx" }])).toBe("");
+    expect(rotulosDeArchivos(null)).toBe("");
     expect(archivos[0].guardadoEn).toBe("C:\\E\\Entregables\\Procesamiento\\HSVG2026_Data_adaptada_10_11_26.xlsx");
     expect(archivosDeAdaptacion({ ok: true, data_adaptada: {} })).toEqual([]);
   });
@@ -49,13 +62,18 @@ describe("Codificación sobre el kit de entregables", () => {
     const reintentar = () => {};
     expect(estadoDeAdaptacion(VACIA)).toEqual({ fase: "inactiva" });
     expect(estadoDeAdaptacion({ ...VACIA, aplicando: true })).toMatchObject({ fase: "en_curso", porcentaje: null });
+    // Lo que lee el usuario: "base codificada" y "aplicar"; los identificadores conservan "adaptacion".
+    expect(TITULO_ADAPTACION).toBe("Base codificada");
+    expect(MENSAJE_PREPARANDO).toBe("Preparando la aplicación");
+    expect(estadoDeAdaptacion({ ...VACIA, aplicando: true })).toMatchObject({ titulo: "Base codificada", mensaje: "Preparando la aplicación" });
     expect(estadoDeAdaptacion({ ...VACIA, jobId: "j", avance: { porcentaje: 40, mensaje: "Adaptando base" } }, { cancelar }))
       .toMatchObject({ fase: "en_curso", porcentaje: 40, mensaje: "Adaptando base", cancelar });
     expect(estadoDeAdaptacion({ ...VACIA, error: "Sin mapeos" }, { reintentar }))
-      .toMatchObject({ fase: "fallo", titulo: "No se pudieron adaptar las respuestas", causa: "Sin mapeos", reintentar });
+      .toMatchObject({ fase: "fallo", titulo: "No se pudo aplicar la codificación", causa: "Sin mapeos", reintentar });
     const archivos = [{ fileId: "f", nombre: "D.xlsx", formato: "xlsx" }];
-    // Lista sin descarga automática: la adaptación cambia la base; los archivos se ofrecen.
-    expect(estadoDeAdaptacion({ ...VACIA, archivos })).toMatchObject({ fase: "lista", archivos, sinDescargar: true });
+    // Lista sin descarga automática: aplicar cambia la base; los archivos se ofrecen.
+    expect(estadoDeAdaptacion({ ...VACIA, archivos })).toMatchObject({ fase: "lista", titulo: "Archivos codificados", archivos, sinDescargar: true });
+    expect(TITULO_ARCHIVOS).toBe("Archivos codificados");
     expect(estadoDeAdaptacion({ ...VACIA, archivos, entregaCerrada: true })).toEqual({ fase: "inactiva" });
     // Un job corriendo se ve aunque se haya cerrado el contenedor anterior.
     expect(estadoDeAdaptacion({ ...VACIA, jobId: "j", entregaCerrada: true }).fase).toBe("en_curso");

@@ -6,7 +6,7 @@ import { normalizeCodifAvisoFuente } from "../../api/codificacion";
 
 // B1 (2026-10-24): `/aplicar` devuelve `aviso_fuente` cuando Codificación leyó otro número de casos que el de la base
 // (codificacion_fuente_aviso_n, api/R/codificacion_fuente_actual.R). El frontend lo descartaba. Se pinta como aviso
-// propio, en texto llano; no por `avisos_incompletos`, que lo diría como «No se pudo revisar…».
+// propio, en texto llano; no por `avisos_incompletos`, que lo diría como "No se pudo revisar…".
 
 vi.mock("../../lib/SessionContext", () => ({
   useSession: () => ({ sessionId: "sid-1", refresh: async () => {} }),
@@ -27,7 +27,7 @@ const montar = () => renderToStaticMarkup(
     onBackToCodificar={nada} onBackToMatrices={nada} onAdaptar={nada} onCerrarEntrega={nada} onEnfocado={nada} />,
 );
 
-describe("B1 · aviso de la fuente de Codificación al aplicar", () => {
+describe("B1: aviso de la fuente de Codificación al aplicar", () => {
   beforeEach(() => useAplicarAvisosStore.getState().reset());
 
   it("el normalizador lee el texto y descarta lo que no es texto (un NULL de R llega como {})", () => {
@@ -44,6 +44,9 @@ describe("B1 · aviso de la fuente de Codificación al aplicar", () => {
     const html = montar();
     expect(html).toContain('data-testid="codificacion-aviso-fuente"');
     expect(html).toContain("Se leyeron 380 respuestas, pero la base tiene 397");
+    expect(html).toContain("La codificación no se aplicó sobre la base actual");
+    expect(html).toContain("los archivos codificados no corresponden a la base actual");
+    expect(html.replace(/<[^>]+>/g, " ")).not.toMatch(/adapta/i);
     expect(html).not.toContain("No se pudo revisar");
     expect(html).not.toContain("default");
     expect(renderToStaticMarkup(<AdaptarAplicacionResumenVista entrada={selectAplicarEntrada(A)(useAplicarAvisosStore.getState())} onVerAvisos={nada} />))

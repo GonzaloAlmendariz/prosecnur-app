@@ -79,7 +79,7 @@ export function tieneAvisos(avisos: CodifAplicarAvisos): boolean {
 
 type AplicarAvisosState = {
   porBase: Record<string, AplicarEntrada>;
-  /** Pulsar «Adaptar»: borra lo de la aplicación anterior de esa base. */
+  /** Pulsar "Aplicar a la base": borra lo de la aplicación anterior de esa base. */
   iniciar: (clave: string) => void;
   /** Respuesta del POST: avisos, sin recodificar y el job que arrancó. */
   recibir: (clave: string, r: CodifAplicarRespuesta) => void;

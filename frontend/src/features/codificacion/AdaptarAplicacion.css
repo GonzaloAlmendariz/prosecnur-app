@@ -1,4 +1,4 @@
-/* Estado del POST de `/aplicar` en la barra de acciones de Adaptar.
+/* Estado del POST de `/aplicar` junto al pie de Aplicar.
  * Sólo tokens --pulso-*. La región viva queda montada siempre para que el
  * lector anuncie el cambio, y es sólo para el lector (`pulso-sr-only`): fuera
  * del flujo del flex, recibe el foco al pulsar sin pintar un segundo aviso
@@ -83,6 +83,7 @@
   font-weight: var(--pulso-weight-semibold);
 }
 
-/* B1: aviso de la fuente de Codificación (otro n que el de la base). */
-.pulso-codif-aviso-fuente { margin: 12px 0; }
+/* B1: aviso de la fuente de Codificación (otro n que el de la base). La separación la da la
+ * zona de resultado del panel (aplicar/aplicar.css). */
+.pulso-codif-aviso-fuente { margin: 0; }
 .pulso-codif-aviso-fuente p { margin: 2px 0 0; }

@@ -9,13 +9,16 @@
 // - `respaldoComoArchivo`: el respaldo JSON se arma en el front con lo que
 //   devuelve el backend (sin `ok` ni `suggested_filename`).
 // - `archivosDeAdaptacion` y `estadoDeAdaptacion`: los dos archivos de
-//   "Confirmar y adaptar respuestas", en un solo contenedor.
+//   "Aplicar a la base" (base codificada y formulario codificado), en un solo
+//   contenedor. Los identificadores conservan "adaptacion": son cable y estado
+//   del .pulso; lo que lee el usuario dice "base codificada".
 
 import type { CodifConfigBundle } from "../../../api/dashboard";
 import { archivoDesdeRespuesta } from "../../../components/entregables/archivoDesdeRespuesta";
 import { ArchivoLocal } from "../../../components/entregables/archivoLocal";
 import type { Articulo } from "../../../components/entregables/generacionModelo";
 import type { ArchivoEntregable, EstadoGeneracion } from "../../../components/entregables/tipos";
+import { enumerar } from "../../../lib/enumerar";
 
 export const MODULO_PROCESAMIENTO = "Procesamiento";
 
@@ -29,7 +32,9 @@ export const MATRICES: Record<VisibilidadMatriz, { titulo: string; articulo: Art
 };
 
 export const TITULO_RESPALDO = "Respaldo de codificación";
-export const TITULO_ADAPTACION = "Respuestas adaptadas";
+export const TITULO_ADAPTACION = "Base codificada";
+/** El título del bloque con los archivos que deja aplicar. */
+export const TITULO_ARCHIVOS = "Archivos codificados";
 
 function esRegistro(valor: unknown): valor is Record<string, unknown> {
   return Boolean(valor) && typeof valor === "object" && !Array.isArray(valor);
@@ -55,20 +60,33 @@ export function respaldoComoArchivo(bundle: CodifConfigBundle, fecha: Date = new
   return new ArchivoLocal(new Blob([JSON.stringify(contenido, null, 2)], { type: "application/json" }), nombre);
 }
 
+/** Clave del resultado del motor, nombre de respaldo y lo que es cada archivo, dicho para quien lo lee. */
 const ARCHIVOS_ADAPTACION = [
-  ["data_adaptada", "Data_adaptada.xlsx"],
-  ["instrumento_adaptado", "Instrumento_adaptado.xlsx"],
+  ["data_adaptada", "Base_codificada.xlsx", "Base codificada"],
+  ["instrumento_adaptado", "Formulario_codificado.xlsx", "Formulario codificado"],
 ] as const;
 
-/** Los dos archivos de la adaptación (data e instrumento), en ese orden; los que no llegaron no salen. */
+/**
+ * Los dos archivos que deja aplicar (base codificada y formulario codificado), en ese orden; los que no llegaron
+ * no salen. El nombre de archivo lo pone el motor y conserva "adaptada"; cada uno lleva su `rotulo` para que la
+ * pantalla diga qué es, emparejado por la clave del resultado y no por su posición.
+ */
 export function archivosDeAdaptacion(resultado: unknown): ArchivoEntregable[] {
   if (!esRegistro(resultado)) return [];
-  return ARCHIVOS_ADAPTACION.flatMap(([clave, respaldo]) => archivoDesdeRespuesta(conNombre(resultado[clave], respaldo)));
+  return ARCHIVOS_ADAPTACION.flatMap(([clave, respaldo, rotulo]) =>
+    archivoDesdeRespuesta(conNombre(resultado[clave], respaldo)).map((archivo) => ({ ...archivo, rotulo })),
+  );
+}
+
+/** "Base codificada y formulario codificado": lo que son los archivos listos, en el orden en que se listan. */
+export function rotulosDeArchivos(archivos: readonly ArchivoEntregable[] | null | undefined): string {
+  const rotulos = (archivos ?? []).map((a) => (a.rotulo ?? "").trim()).filter(Boolean);
+  return enumerar(rotulos.map((r, i) => (i === 0 ? r : r.charAt(0).toLocaleLowerCase("es-PE") + r.slice(1))));
 }
 
 export type AvanceAdaptacion = { porcentaje: number | null; paso?: number; pasos?: number; mensaje?: string };
 
-/** Lo que el contenedor de "Confirmar y adaptar respuestas" necesita saber de la entrada del store. */
+/** Lo que el contenedor de "Aplicar a la base" necesita saber de la entrada del store. */
 export type EntradaAdaptacion = {
   aplicando: boolean;
   jobId: string | null;
@@ -78,13 +96,13 @@ export type EntradaAdaptacion = {
   entregaCerrada: boolean;
 };
 
-export const MENSAJE_PREPARANDO = "Preparando la adaptación";
+export const MENSAJE_PREPARANDO = "Preparando la aplicación";
 
 /**
  * El estado del contenedor: el POST en curso (sin avance), el job con su avance
  * y "Cancelar", el fallo con "Reintentar" o los dos archivos listos. Los
- * archivos no se descargan solos: la adaptación cambia la base del estudio y
- * los archivos se ofrecen con "Descargar" (o ya copiados, si el motor lo dice).
+ * archivos no se descargan solos: aplicar cambia la base del estudio y los
+ * archivos se ofrecen con "Descargar" (o ya copiados, si el motor lo dice).
  */
 export function estadoDeAdaptacion(
   entrada: EntradaAdaptacion,
@@ -106,14 +124,14 @@ export function estadoDeAdaptacion(
   if (entrada.error) {
     return {
       fase: "fallo",
-      titulo: "No se pudieron adaptar las respuestas",
+      titulo: "No se pudo aplicar la codificación",
       formato: "xlsx",
       causa: entrada.error,
       ...(acciones.reintentar ? { reintentar: acciones.reintentar } : {}),
     };
   }
   if (entrada.archivos?.length) {
-    return { fase: "lista", titulo: TITULO_ADAPTACION, archivos: entrada.archivos, sinDescargar: true };
+    return { fase: "lista", titulo: TITULO_ARCHIVOS, archivos: entrada.archivos, sinDescargar: true };
   }
   return { fase: "inactiva" };
 }

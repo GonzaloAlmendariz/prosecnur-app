@@ -1,8 +1,11 @@
-import { useEffect, useState } from "react";
-import { ArrowLeft, CheckCircle2, FileSpreadsheet, Play } from "lucide-react";
-import { apiCodifAplicar } from "../../api/client";
+import { useEffect, useState, type ReactNode } from "react";
+import { apiCodifAplicar } from "../../api/dashboard";
 import { ContenedorEntregable } from "../../components/entregables/ContenedorEntregable";
+import { PieConEfecto } from "../../components/procesamiento/PieConEfecto";
+import { PulsoButton } from "../../components/PulsoButton";
 import { useSession } from "../../lib/SessionContext";
+import { ArrowLeft, CheckCircle2, FileSpreadsheet, Play } from "../../vendor/lucide-react";
+import { efectoDeAplicar } from "./aplicar/modeloAplicar";
 import { AplicarOmitidasAviso, irAlAviso } from "./AplicarOmitidasAviso";
 import { SinRecodificarAviso } from "./SinRecodificarAviso";
 import { AvisoBaseYaCodificada } from "./AvisoBaseYaCodificada";
@@ -14,47 +17,52 @@ import {
   selectAplicarEntrada,
   useAplicarAvisosStore,
 } from "./aplicarAvisosStore";
-import { estadoDeAdaptacion } from "./entregas/modeloEntrega";
+import { estadoDeAdaptacion, rotulosDeArchivos, TITULO_ARCHIVOS } from "./entregas/modeloEntrega";
 import { cancelarAdaptacion, seguirAdaptacion } from "./entregas/seguirAdaptacion";
+import "./aplicar/aplicar.css";
 import "./AdaptarAplicacion.css";
-import { formatoConteo } from "../../lib/formatoNumero";
 
-// La mitad de Adaptar que sobrevive al remontaje: el botón que lanza
-// `/aplicar`, el avance del job, lo que no se aplicó, lo que se entrega sin
-// recodificar y los dos archivos adaptados. Todo sale de `aplicarAvisosStore`,
-// keyed por sesión y base; AdaptarPane sólo aporta el plan. El avance y los
-// archivos van en el contenedor del kit de entregables (ADR 0133, fase 5), en
-// bloque bajo el botón; el job lo sigue `seguirAdaptacion`, fuera de React.
+// El interior del panel de preguntas de Aplicar, que sobrevive al remontaje:
+// el cuerpo (lo que le pasa AdaptarPane y, debajo, el avance del job, los dos
+// archivos codificados, lo que no se aplicó y lo que se entrega sin recodificar)
+// y el pie con el efecto y el botón que lanza `/aplicar`. El cuerpo es el dueño
+// del scroll del panel; el pie queda siempre a la vista. Todo sale de
+// `aplicarAvisosStore`, keyed por sesión y base; AdaptarPane sólo aporta el
+// plan. El avance y los archivos van en el contenedor del kit de entregables
+// (ADR 0133, fase 5), en bloque y dentro del mismo panel; el job lo sigue
+// `seguirAdaptacion`, fuera de React.
 
 type Props = {
   /** `claveAplicar(sessionId, base)`. */
   clave: string;
-  /** Preguntas soportadas del plan: con 0 no hay nada que adaptar. */
+  /** Preguntas aplicables del plan: con 0 no hay nada que aplicar. */
   nPreguntas: number;
   onBackToCodificar: () => void;
   onBackToMatrices: () => void;
-  /** ADR 0106: la base marcada «ya viene codificada»; no se ofrece aplicar. */
+  /** ADR 0106: la base marcada "ya viene codificada"; no se ofrece aplicar. */
   yaCodificadaEn?: string | null;
   /** Preguntas que el bloque de arriba ya lista con sus acciones: no se repiten. */
   yaListadas?: readonly string[];
+  /** Lo que va en el cuerpo del panel antes del resultado: la lista y las preguntas que no se pueden aplicar. */
+  children?: ReactNode;
 };
 
-const TEXTO_APLICANDO = "Revisando el catálogo contra la base; puede tardar un par de minutos.";
-const TEXTO_CORRIENDO = "La adaptación está corriendo; el avance se muestra abajo.";
+const TEXTO_APLICANDO = "Revisando la codificación contra la base; puede tardar un par de minutos.";
+const TEXTO_CORRIENDO = "La codificación se está aplicando a la base; el avance se muestra bajo la lista de preguntas.";
 export const ID_ESTADO_ADAPTAR = "codificacion-adaptar-estado";
 
 /**
- * Pulsar "Adaptar" (o "Reintentar" en el contenedor). El botón se deshabilita en cuanto el store marca
- * `aplicando`, y un control deshabilitado suelta el foco a BODY; por eso, antes de adaptar, se pide que el
- * contenedor del kit que aparece debajo tome el foco (`enfocar`): es visible, tiene el anillo del kit y dice qué
- * está pasando. La región viva sólo anuncia; no recibe el foco (era un `span` invisible de 1 px).
+ * Pulsar "Aplicar a la base" (o "Reintentar" en el contenedor). El botón se deshabilita en cuanto el store marca
+ * `aplicando`, y un control deshabilitado suelta el foco a BODY; por eso, antes de aplicar, se pide que el
+ * contenedor del kit que aparece en el cuerpo del panel tome el foco (`enfocar`): es visible, tiene el anillo del kit
+ * y dice qué está pasando. La región viva sólo anuncia; no recibe el foco (era un `span` invisible de 1 px).
  */
 export function pulsarAdaptar(pedirFoco: () => void, adaptar: () => void): void {
   pedirFoco();
   adaptar();
 }
 
-export function AdaptarAplicacion({ clave, nPreguntas, onBackToCodificar, onBackToMatrices, yaCodificadaEn = null, yaListadas = [] }: Props) {
+export function AdaptarAplicacion({ clave, nPreguntas, onBackToCodificar, onBackToMatrices, yaCodificadaEn = null, yaListadas = [], children }: Props) {
   const { refresh } = useSession();
   const entrada = useAplicarAvisosStore(selectAplicarEntrada(clave));
   const cerrarEntrega = useAplicarAvisosStore((s) => s.cerrarEntrega);
@@ -90,7 +98,9 @@ export function AdaptarAplicacion({ clave, nPreguntas, onBackToCodificar, onBack
       onCancelar={jobId ? () => cancelarAdaptacion(jobId) : undefined}
       onCerrarEntrega={() => cerrarEntrega(clave)}
       onEnfocado={() => marcarEnfocado(clave)}
-    />
+    >
+      {children}
+    </AdaptarAplicacionVista>
   );
 }
 
@@ -106,6 +116,7 @@ type VistaProps = {
   onEnfocado: () => void;
   yaCodificadaEn?: string | null;
   yaListadas?: readonly string[];
+  children?: ReactNode;
 };
 
 /** Presentación pura de la entrada del store; testeable sin DOM. */
@@ -120,6 +131,7 @@ export function AdaptarAplicacionVista({
   onEnfocado,
   yaCodificadaEn = null,
   yaListadas = [],
+  children,
 }: VistaProps) {
   const { aplicando, jobId, avisos, sinRecodificar, salida, enfocarPendiente } = entrada;
   // Cada pulsación pide el foco otra vez: también "Reintentar", que desaparece al volver a correr.
@@ -129,97 +141,113 @@ export function AdaptarAplicacionVista({
     { ...entrada, archivos: salida?.archivos ?? null },
     { cancelar: onCancelar, reintentar: nPreguntas > 0 ? pulsar : undefined },
   );
+  // Qué son los archivos listos: su nombre lo pone el motor y no lo dice.
+  const queSon = rotulosDeArchivos(salida?.archivos);
 
   const motivoDeshabilitado = aplicando
     ? "La codificación se está aplicando."
     : jobId
-    ? "La adaptación ya está corriendo."
+    ? "La aplicación ya está en curso."
     : nPreguntas === 0
-    ? "No hay codificaciones listas para adaptar."
+    ? "No hay preguntas con códigos por aplicar."
     : "";
+  const sinBoton = Boolean(yaCodificadaEn) && !aplicando && !jobId;
 
   return (
     <>
-      {!salida && (
-        <div className="pulso-codificacion-adaptar-actions">
-          <button type="button" className="pulso-cv2-pill" onClick={onBackToCodificar} style={{ fontSize: "var(--pulso-type-body-size)", display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <ArrowLeft size={13} /> Volver a codificar
-          </button>
-          <button type="button" className="pulso-cv2-pill" onClick={onBackToMatrices} style={{ fontSize: "var(--pulso-type-body-size)", display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <FileSpreadsheet size={13} /> Revisar matrices
-          </button>
-          <div style={{ flex: 1 }} />
-          {/* Región viva siempre montada y sólo para el lector: anuncia el cambio de texto. El foco va al
-              contenedor de abajo, que se ve. En pantalla la única señal es la línea del contenedor; un texto al
-              lado del botón era una segunda. */}
-          <span
-            id={ID_ESTADO_ADAPTAR}
-            className="pulso-codif-adaptar-estado pulso-sr-only"
-            role="status"
-            aria-live="polite"
-          >
-            {aplicando ? TEXTO_APLICANDO : jobId ? TEXTO_CORRIENDO : ""}
+      {/* El cuerpo del panel: su dueño de scroll. Lleva la lista y, debajo, lo que deja la aplicación. */}
+      <div className="pulso-aplicar-cuerpo">
+        {children}
+        {/* Sin nada que decir, la zona de resultado no ocupa lugar. */}
+        <div className="pulso-aplicar-resultado">
+          {/* Los archivos listos llevan su título y lo que son: el contenedor del kit solo pinta sus nombres. */}
+          {entrega.fase === "lista" ? (
+            <div className="pulso-aplicar-resultado-cab" data-testid="codificacion-aplicar-archivos">
+              <h4 className="pulso-aplicar-resultado-titulo">{TITULO_ARCHIVOS}</h4>
+              {queSon ? <p className="pulso-aplicar-resultado-nota">{queSon}</p> : null}
+            </div>
+          ) : null}
+
+          {/* El avance, el fallo o los dos archivos codificados: una sola señal en
+              movimiento (la línea del contenedor); el botón sólo se deshabilita. */}
+          <ContenedorEntregable estado={entrega} forma="bloque" enfocar={pedidoDeFoco} onCerrar={onCerrarEntrega} />
+
+          {/* La aplicación terminó con avisos: lo dice aquí, junto a los archivos, y lleva al primero.
+              Un resultado no mueve lo que ya estaba en pantalla (C2): no va sobre la franja. */}
+          <AdaptarAplicacionResumenVista entrada={entrada} onVerAvisos={() => irAlAviso(document)} />
+
+          {/* B1: Codificación leyó otro número de casos que el de la base. */}
+          <AvisoFuenteAplicar aviso={entrada.avisoFuente} />
+
+          {/* ADR 0100, P1: las preguntas que no se aplicaron y los textos que
+              quedaron sin código. Sin nada que decir, no pinta. */}
+          <AplicarOmitidasAviso
+            omitidas={avisos.omitidas.filter((o) => !yaListadas.includes(o.pregunta))}
+            textosSinCodigo={avisos.textos_sin_codigo}
+            incompletos={avisos.avisos_incompletos}
+            enfocar={enfocarPendiente}
+            onEnfocado={onEnfocado}
+          />
+
+          {/* ADR 0078, punto 5: qué se entrega sin recodificar. Aparece al aplicar
+              y no antes, porque es el momento en que deja de ser reversible sin
+              rehacer. Informa y no frena: bloquear acá se satisfaría desmarcando
+              todo, que dejaría el módulo peor que ahora. */}
+          <SinRecodificarAviso variables={sinRecodificar} />
+        </div>
+      </div>
+
+      <div className="pulso-aplicar-cierre">
+        {/* Región viva siempre montada y sólo para el lector: anuncia el cambio de texto. El foco va al
+            contenedor de arriba, que se ve. En pantalla la única señal es la línea del contenedor. */}
+        <span
+          id={ID_ESTADO_ADAPTAR}
+          className="pulso-codif-adaptar-estado pulso-sr-only"
+          role="status"
+          aria-live="polite"
+        >
+          {aplicando ? TEXTO_APLICANDO : jobId ? TEXTO_CORRIENDO : ""}
+        </span>
+        {motivoDeshabilitado && !sinBoton && (
+          <span id="codificacion-adaptar-disabled-reason" className="pulso-sr-only">
+            {motivoDeshabilitado}
           </span>
-          {yaCodificadaEn && !aplicando && !jobId ? (
+        )}
+
+        {/* El pie dice qué se escribe antes de pulsar. La acción sigue disponible después de aplicar: si se
+            corrige una causa o se codifica algo más, se aplica otra vez. */}
+        <PieConEfecto className="pulso-aplicar-pie" efecto={efectoDeAplicar(nPreguntas, Boolean(yaCodificadaEn))}>
+          <PulsoButton variant="ghost" size="lg" onClick={onBackToCodificar}>
+            <ArrowLeft size={14} aria-hidden="true" /> Volver a Codificar
+          </PulsoButton>
+          <PulsoButton variant="secondary" size="lg" onClick={onBackToMatrices}>
+            <FileSpreadsheet size={14} aria-hidden="true" /> Revisar matrices
+          </PulsoButton>
+          {sinBoton && yaCodificadaEn ? (
             <AvisoBaseYaCodificada base={yaCodificadaEn} />
           ) : (
-          <button
-            type="button"
-            className="pulso-primary"
-            onClick={pulsar}
-            disabled={aplicando || !!jobId || nPreguntas === 0}
-            aria-busy={aplicando || undefined}
-            aria-describedby={motivoDeshabilitado ? "codificacion-adaptar-disabled-reason" : undefined}
-            data-testid="codificacion-adaptar-boton"
-            style={{ fontSize: "var(--pulso-type-body-size)", display: "inline-flex", alignItems: "center", gap: 6 }}
-          >
-            <Play size={14} aria-hidden="true" /> Confirmar y adaptar respuestas
-          </button>
+            <PulsoButton
+              variant="primary"
+              size="lg"
+              onClick={pulsar}
+              disabled={aplicando || !!jobId || nPreguntas === 0}
+              aria-busy={aplicando || undefined}
+              aria-describedby={motivoDeshabilitado ? "codificacion-adaptar-disabled-reason" : undefined}
+              data-testid="codificacion-adaptar-boton"
+            >
+              <Play size={14} aria-hidden="true" /> Aplicar a la base
+            </PulsoButton>
           )}
-          {motivoDeshabilitado && (
-            <span id="codificacion-adaptar-disabled-reason" className="pulso-sr-only">
-              {motivoDeshabilitado}
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* El avance, el fallo o los dos archivos adaptados: una sola señal en
-          movimiento (la línea del contenedor); el botón sólo se deshabilita. */}
-      <ContenedorEntregable estado={entrega} forma="bloque" enfocar={pedidoDeFoco} onCerrar={onCerrarEntrega} />
-
-      {/* B1: Codificación leyó otro número de casos que el de la base. */}
-      <AvisoFuenteAplicar aviso={entrada.avisoFuente} />
-
-      {/* ADR 0100, P1: las preguntas del catálogo que no se aplicaron y los
-          textos que quedaron sin código. Sin nada que decir, no pinta. */}
-      <AplicarOmitidasAviso
-        omitidas={avisos.omitidas.filter((o) => !yaListadas.includes(o.pregunta))}
-        textosSinCodigo={avisos.textos_sin_codigo}
-        incompletos={avisos.avisos_incompletos}
-        enfocar={enfocarPendiente}
-        onEnfocado={onEnfocado}
-      />
-
-      {/* ADR 0078, punto 5: qué se entrega sin recodificar. Aparece al aplicar
-          y no antes, porque es el momento en que deja de ser reversible sin
-          rehacer. Informa y no frena: bloquear acá se satisfaría desmarcando
-          todo, que dejaría el módulo peor que ahora. */}
-      <SinRecodificarAviso variables={sinRecodificar} />
-
+        </PieConEfecto>
+      </div>
     </>
   );
 }
 
 /**
- * Línea de arriba de Adaptar: la aplicación terminó y dejó avisos que viven al
- * pie, varias pantallas más abajo. Sin avisos o sin job terminado no pinta.
+ * La aplicación terminó y dejó avisos: una línea en el bloque de resultado, junto a los archivos,
+ * con el enlace al primero. Sin avisos o sin job terminado no pinta.
  */
-export function AdaptarAplicacionResumen({ clave }: { clave: string }) {
-  const entrada = useAplicarAvisosStore(selectAplicarEntrada(clave));
-  return <AdaptarAplicacionResumenVista entrada={entrada} onVerAvisos={() => irAlAviso(document)} />;
-}
-
 export function AdaptarAplicacionResumenVista({
   entrada,
   onVerAvisos,
@@ -233,7 +261,7 @@ export function AdaptarAplicacionResumenVista({
     <p className="pulso-codif-adaptar-resumen" data-testid="codificacion-adaptar-resumen">
       <CheckCircle2 size={14} aria-hidden="true" className="pulso-codif-adaptar-resumen-icono" />
       <span>
-        La adaptación terminó con {n === 1 ? "1 aviso" : `${n} avisos`}.
+        La aplicación terminó con {n === 1 ? "1 aviso" : `${n} avisos`}.
       </span>
       <button type="button" className="pulso-codif-adaptar-resumen-enlace" onClick={onVerAvisos}>
         Ver {n === 1 ? "el aviso" : "los avisos"}

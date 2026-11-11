@@ -1,21 +1,94 @@
-/* Codificación › Adaptar: preguntas que quedan fuera, con su acción. Sólo tokens `--pulso-*`. */
-.pulso-codif-omitidas {
+/* Codificación, Aplicar: las preguntas con códigos que no se pueden aplicar. Van en el
+   mismo panel que la lista, debajo: cada una con su causa y, si se resuelve aquí, su
+   acción. Usa las columnas de la lista (`--pulso-aplicar-columnas`, aplicar/aplicar.css)
+   para que las fichas se alineen. Sin cajas propias: filas separadas por una línea.
+   Solo tokens --pulso-*. */
+
+.pulso-aplicar-fuera {
+  border-block-start: 1px solid var(--pulso-border);
+}
+
+/* Si abre el cuerpo del panel, o va tras el aviso de base cambiada, no dibuja una segunda línea. */
+.pulso-aplicar-fuera:first-child,
+.pulso-aplicar-aviso + .pulso-aplicar-fuera {
+  border-block-start: 0;
+}
+
+.pulso-aplicar-fuera-titulo {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: var(--pulso-space-4) var(--pulso-space-5) var(--pulso-space-1);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-weight-bold);
+}
+
+/* El punto lleva el color del estado; el bloque no se rellena de color. */
+.pulso-aplicar-fuera-punto {
+  flex: none;
+  inline-size: 7px;
+  block-size: 7px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-warn-accent);
+}
+
+.pulso-aplicar-fuera-lista {
+  container-type: inline-size;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-aplicar-fuera-fila {
+  display: grid;
+  grid-template-columns: var(--pulso-aplicar-columnas, minmax(0, 1fr) minmax(0, 2fr));
+  align-items: start;
+  column-gap: var(--pulso-space-5);
+  row-gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3) var(--pulso-space-5);
+  border-block-start: 1px solid color-mix(in srgb, var(--pulso-border) 70%, transparent);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.4;
+}
+
+.pulso-aplicar-fuera-fila:first-child {
+  border-block-start: 0;
+}
+
+.pulso-aplicar-fuera-pregunta {
+  min-inline-size: 0;
+}
+
+.pulso-aplicar-fuera-causa {
+  grid-column: 2 / -1;
   display: flex;
   flex-direction: column;
   gap: var(--pulso-space-2);
-  margin: 6px 0 0;
-  padding-left: 18px;
-  font-size: var(--pulso-type-body-size);
+  min-inline-size: 0;
 }
 
-.pulso-codif-omitida-motivo {
-  color: var(--pulso-text-soft);
+.pulso-aplicar-fuera-motivo {
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 
-.pulso-codif-omitida-acciones {
+.pulso-aplicar-fuera-acciones {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--pulso-space-2);
-  margin-top: 4px;
+}
+
+/* Lista angosta: la pregunta ocupa el renglón y su causa baja debajo. */
+@container (max-width: 720px) {
+  .pulso-aplicar-fuera-fila {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pulso-aplicar-fuera-causa {
+    grid-column: 1 / -1;
+  }
 }

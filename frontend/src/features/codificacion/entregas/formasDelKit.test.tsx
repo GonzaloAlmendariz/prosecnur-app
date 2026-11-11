@@ -4,7 +4,7 @@
  *
  * - anclada: la barra de Matrices (`useEntregasMatrices` con el contenedor
  *   anclado), con una matriz del motor y el respaldo JSON armado en el front;
- * - bloque con job: "Confirmar y adaptar respuestas", seguido fuera de React,
+ * - bloque con job: "Aplicar a la base", seguido fuera de React,
  *   con los dos archivos en un solo contenedor y sin el panel "Resultado".
  *
  * Vigila lo que pidió Gonzalo: el disparador sólo se deshabilita, lo único que
@@ -159,7 +159,7 @@ describe("anclada: la barra de Matrices", () => {
   });
 });
 
-describe("bloque con job: Confirmar y adaptar respuestas", () => {
+describe("bloque con job: Aplicar a la base", () => {
   const A = claveAplicar("sid-1", "base_a");
   const nada = () => {};
   function Vista() {
@@ -185,7 +185,7 @@ describe("bloque con job: Confirmar y adaptar respuestas", () => {
     await act(async () => { espia.polls.get("adp-1")?.({ snapshot: snap({ progress: { percent: 35, message: "Adaptando base de datos..." } }) }); });
     const disparador = host.querySelector<HTMLButtonElement>('[data-testid="codificacion-adaptar-boton"]');
     expect(disparador?.disabled).toBe(true);
-    expect(disparador?.textContent?.trim()).toBe("Confirmar y adaptar respuestas");
+    expect(disparador?.textContent?.trim()).toBe("Aplicar a la base");
     const enCurso = contenedor("bloque");
     expect(enCurso?.dataset.entregableFase).toBe("en_curso");
     expect(enCurso?.textContent).toContain("Adaptando base de datos");
@@ -227,7 +227,7 @@ describe("bloque con job: Confirmar y adaptar respuestas", () => {
     await act(async () => { espia.polls.get("adp-2")?.({ snapshot: snap({ status: "error", error: "El worker se cerró." }) }); });
     const fallo = contenedor("bloque");
     expect(fallo?.dataset.entregableFase).toBe("fallo");
-    expect(fallo?.textContent).toContain("No se pudieron adaptar las respuestas");
+    expect(fallo?.textContent).toContain("No se pudo aplicar la codificación");
     expect(fallo?.textContent).toContain("El worker se cerró.");
     expect(host.querySelectorAll("[role='alert']")).toHaveLength(1);
   });

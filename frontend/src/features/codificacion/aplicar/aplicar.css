@@ -1,0 +1,458 @@
+/* Codificación, Aplicar (ADR 0142, etapa P3d).
+   Vara: el prototipo aprobado del plan docs/qa/plan-revamp-procesamiento-2026-11-10.md.
+
+   Una receta: el marco es `components/Panel` y dentro van filas separadas por una
+   línea. Esta hoja no dibuja cajas (borde, radio y relleno juntos): lo vigila
+   cajasPropias.contract.test.ts. Solo tokens --pulso-*, letra por rol y espacios
+   de la escala.
+
+   Scroll. La mesa tiene dos paneles: preguntas y detalle. Con ancho para las dos
+   columnas, la mesa ocupa el alto libre y cada panel desplaza lo suyo: el cuerpo
+   en el de preguntas (su pie queda siempre a la vista) y la lista de códigos en
+   el de detalle. Si la pantalla es tan baja que la mesa no llega a su mínimo
+   operativo, la sección `.pulso-codificacion-adaptar` (cuyo overflow declara
+   codificacion-v2.css) desplaza el conjunto. Sin ancho para dos columnas el
+   detalle baja bajo las preguntas y cada dueño tiene un alto acotado. */
+
+/* El ancho que manda es el de la pantalla de Aplicar, no el de la ventana: el
+   riel de pestañas puede estar abierto o cerrado. */
+.pulso-aplicar {
+  container: pulso-aplicar / inline-size;
+}
+
+.pulso-aplicar-mesa {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--pulso-space-4);
+  flex: 1 0 auto;
+  min-inline-size: 0;
+  /* Las columnas de una fila de pregunta: las comparten la lista y las preguntas que
+     no se pueden aplicar (AdaptarOmitidas.css), para que las fichas se alineen. */
+  --pulso-aplicar-columnas: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1.2fr);
+}
+
+/* Los dos paneles llegan al borde inferior y el vacío queda dentro (C3). La
+   especificidad supera a la regla de densidad compacta de theme.css, que le
+   devolvía el relleno a un panel sin relleno. */
+.pulso-aplicar .pulso-aplicar-mesa > .pulso-panel.pulso-aplicar-panel {
+  display: flex;
+  flex-direction: column;
+  min-block-size: 0;
+  margin: 0;
+  padding: 0;
+}
+
+/* Riel interior de 20 px: título, filas y pie caen sobre la misma línea. */
+.pulso-aplicar-panel > .pulso-panel-header {
+  flex: none;
+  align-items: center;
+  margin: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-5);
+  border-block-end: 1px solid var(--pulso-border);
+}
+
+.pulso-aplicar-tesela {
+  flex: none;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  inline-size: 30px;
+  block-size: 30px;
+  border: 1px solid var(--module-accent-border, var(--pulso-primary-border));
+  border-radius: var(--pulso-control-radius);
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+/* Carga y error: un solo estado, centrado en el alto libre del panel. */
+.pulso-aplicar-panel[data-solo-estado] > :last-child {
+  margin-block: auto;
+}
+
+/* --- Cuerpo del panel de preguntas --------------------------------------------
+   Lleva la lista, las preguntas que no se pueden aplicar y lo que deja la última
+   aplicación. Es el dueño del scroll de su panel. */
+
+.pulso-aplicar-cuerpo {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-block-size: 0;
+  min-inline-size: 0;
+  /* Sin dos columnas, el cuerpo tiene tope: así el detalle queda cerca de la lista. */
+  max-block-size: max(var(--pulso-operational-min-panel), 45vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Cada bloque del cuerpo conserva su alto: el que cede es el cuerpo, que desplaza. */
+.pulso-aplicar-cuerpo > * {
+  flex: none;
+}
+
+.pulso-aplicar-cuerpo > .pulso-estado-vacio {
+  margin: auto var(--pulso-space-5);
+}
+
+.pulso-aplicar-aviso {
+  padding: var(--pulso-space-4) var(--pulso-space-5) 0;
+}
+
+/* --- Lista de preguntas ------------------------------------------------------
+   Una fila por pregunta. El ancho que manda es el de la lista (container query). */
+
+.pulso-aplicar-lista {
+  container-type: inline-size;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-aplicar-fila {
+  display: grid;
+  grid-template-columns: var(--pulso-aplicar-columnas);
+  align-items: center;
+  column-gap: var(--pulso-space-5);
+  row-gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3) var(--pulso-space-5);
+  border-block-start: 1px solid color-mix(in srgb, var(--pulso-border) 70%, transparent);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-aplicar-fila:first-child {
+  border-block-start: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-aplicar-fila:hover {
+    background: var(--pulso-surface-2);
+  }
+}
+
+/* La elegida: relleno y borde del acento, de borde a borde y sin franja lateral. */
+.pulso-aplicar-fila[aria-selected="true"] {
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+  box-shadow: inset 0 0 0 1px var(--module-accent-border, var(--pulso-primary-border));
+}
+
+.pulso-aplicar-fila:focus-visible,
+.pulso-aplicar-codigos:focus-visible {
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
+  outline-offset: -2px;
+}
+
+.pulso-aplicar-celda {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.pulso-aplicar-celda--pregunta,
+.pulso-aplicar-celda--campo,
+.pulso-aplicar-celda--cifras {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--pulso-space-1);
+}
+
+.pulso-aplicar-celda--cifras {
+  align-items: flex-end;
+  text-align: end;
+}
+
+.pulso-aplicar-tipo,
+.pulso-aplicar-rotulo,
+.pulso-aplicar-respuestas-de-fila {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-aplicar-respuestas-de-fila {
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-aplicar-campo,
+.pulso-aplicar-ficha-neutra > code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: var(--pulso-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.pulso-aplicar-ficha-neutra {
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-aplicar-ficha-neutra > code {
+  margin-inline-end: var(--pulso-space-2);
+  color: var(--pulso-text-soft);
+}
+
+/* --- Detalle de la pregunta elegida ---------------------------------------------
+   Su ficha, el campo que se crea y sus códigos, uno por fila. */
+
+.pulso-aplicar-detalle-cab {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  min-inline-size: 0;
+  padding: var(--pulso-space-4) var(--pulso-space-5);
+  border-block-end: 1px solid var(--pulso-border);
+  font-size: var(--pulso-type-body-size);
+}
+
+.pulso-aplicar-detalle-campo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  min-inline-size: 0;
+}
+
+/* La tabla de códigos es la dueña del scroll del panel de detalle. Es una rejilla con
+   roles de tabla: cada fila reparte las mismas columnas y la cabecera queda fija. */
+.pulso-aplicar-codigos {
+  flex: 1 1 auto;
+  min-block-size: 0;
+  max-block-size: max(var(--pulso-operational-min-panel), 45vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.pulso-aplicar-codigos-fila {
+  display: grid;
+  grid-template-columns: 60px minmax(0, 1.2fr) 100px minmax(104px, 1fr);
+  align-items: center;
+  column-gap: var(--pulso-space-3);
+  padding: var(--pulso-space-2) var(--pulso-space-5);
+}
+
+.pulso-aplicar-codigos-cab {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
+  border-block-end: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.pulso-aplicar-codigo {
+  border-block-start: 1px solid color-mix(in srgb, var(--pulso-border) 70%, transparent);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.4;
+}
+
+.pulso-aplicar-codigo:first-child {
+  border-block-start: 0;
+}
+
+.pulso-aplicar-codigo > .pulso-aplicar-col-codigo {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+/* La categoría se lee entera: parte en renglones, nunca se recorta. */
+.pulso-aplicar-col-categoria {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.pulso-aplicar-col-categoria[data-sin-etiqueta] {
+  color: var(--pulso-text-faint);
+}
+
+/* El origen se dice con palabras, en su columna; el tinte solo lo acompaña. */
+.pulso-aplicar-origen {
+  display: inline-block;
+  padding: 1px var(--pulso-space-2);
+  border-radius: var(--pulso-control-radius);
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+
+.pulso-aplicar-codigo[data-origen="nuevo"] .pulso-aplicar-origen {
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+/* Respuestas: barra proporcional al código con más respuestas de la pregunta y la cifra
+   a la derecha, alineada. La barra usa la secuencia de datos (tokens-datos.css). */
+.pulso-aplicar-codigos-cab .pulso-aplicar-col-respuestas {
+  text-align: end;
+}
+
+.pulso-aplicar-codigo > .pulso-aplicar-col-respuestas {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  min-inline-size: 0;
+}
+
+.pulso-aplicar-barra {
+  flex: 1 1 auto;
+  display: block;
+  min-inline-size: 0;
+  block-size: 4px;
+}
+
+.pulso-aplicar-barra > span {
+  display: block;
+  block-size: 100%;
+  /* Una proporción mayor que cero nunca baja de 2 px, para que se vea. */
+  inline-size: max(2px, calc(var(--pulso-aplicar-proporcion, 0) * 100%));
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-data-seq-4);
+}
+
+.pulso-aplicar-cifra {
+  flex: none;
+  min-inline-size: 5ch;
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+.pulso-aplicar-panel--detalle > .pulso-estado-vacio {
+  margin: var(--pulso-space-4) var(--pulso-space-5);
+}
+
+/* --- Resultado de la aplicación y pie con la acción -----------------------------
+   El avance, los archivos y los avisos de la última aplicación van en el cuerpo,
+   bajo la lista. El pie cierra el panel y no desplaza. */
+
+.pulso-aplicar-resultado {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-inline-size: 0;
+  padding: var(--pulso-space-4) var(--pulso-space-5);
+  border-block-start: 1px solid var(--pulso-border);
+}
+
+.pulso-aplicar-resultado:empty {
+  display: none;
+}
+
+/* El título del bloque de archivos y, debajo, lo que son. */
+.pulso-aplicar-resultado-cab {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--pulso-space-3);
+  row-gap: 2px;
+  min-inline-size: 0;
+}
+
+.pulso-aplicar-resultado-titulo {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.pulso-aplicar-resultado-nota {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+/* Dentro de un panel, el contenedor de archivos va sin sombra: nunca una caja
+   con sombra dentro de otra. */
+.pulso-aplicar-resultado .pulso-entregable {
+  box-shadow: none;
+}
+
+.pulso-aplicar-cierre {
+  /* Ancla de la región viva (`pulso-sr-only`, en absoluto): sin ella se colgaba del documento y le
+     sumaba alto de scroll a la página. */
+  position: relative;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  /* Si el panel es más alto que su contenido, el pie va al fondo y el vacío queda sobre él. */
+  margin-block-start: auto;
+  min-inline-size: 0;
+}
+
+/* El pie del kit nació para un inspector angosto, con la acción a todo el ancho.
+   Aquí el efecto va a la izquierda y las acciones a la derecha, con su ancho. Si
+   no caben en una línea, las acciones bajan. */
+.pulso-aplicar-panel .pulso-aplicar-pie {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--pulso-space-5);
+  border-radius: 0 0 calc(var(--pulso-radius-card) - 1px) calc(var(--pulso-radius-card) - 1px);
+}
+
+.pulso-aplicar-pie > .pulso-pie-efecto-linea {
+  flex: 1 1 280px;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+}
+
+.pulso-aplicar-pie > .pulso-pie-efecto-acciones {
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  margin-inline-start: auto;
+}
+
+.pulso-aplicar-pie > .pulso-pie-efecto-acciones > :last-child {
+  flex: 0 1 auto;
+}
+
+/* Lista angosta: la pregunta ocupa el renglón y sus datos bajan debajo. */
+@container (max-width: 620px) {
+  .pulso-aplicar-fila {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .pulso-aplicar-celda--pregunta {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Con ancho para dos columnas: preguntas y, a su derecha, el detalle. La mesa ocupa
+   el alto libre de la pantalla (nunca menos que el mínimo operativo de un panel) y
+   cada panel desplaza lo suyo, sin tope de alto. */
+@container pulso-aplicar (min-width: 1040px) {
+  .pulso-aplicar-mesa {
+    flex: 1 1 0;
+    grid-template-rows: minmax(0, 1fr);
+    min-block-size: var(--pulso-operational-min-panel);
+  }
+
+  .pulso-aplicar-mesa[data-con-detalle] {
+    grid-template-columns: minmax(0, 1fr) clamp(440px, 44%, 640px);
+  }
+
+  .pulso-aplicar-cuerpo,
+  .pulso-aplicar-codigos {
+    flex: 1 1 0;
+    max-block-size: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-aplicar-fila {
+    transition: none;
+  }
+}

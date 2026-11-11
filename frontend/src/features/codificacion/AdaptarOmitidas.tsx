@@ -1,20 +1,22 @@
-// Codificación › Adaptar: las preguntas que quedan fuera de la adaptación, cada
-// una con su motivo en llano y, cuando se puede resolver aquí, la acción.
+// Codificación, Aplicar: las preguntas con códigos que todavía no se pueden
+// aplicar, cada una con su causa en llano y, cuando se resuelve aquí, la acción.
+// Van en el mismo panel que la lista, debajo, con las mismas columnas.
 //
 // Caso real (HSyVbG 2026, 2026-10-16): P29_10 se emparejó por error con su
-// texto «Otro», se le armaron grupos, y al deshacer el emparejamiento los grupos
-// quedaron huérfanos. El aviso decía «ajuste no reconocido» y no había cómo
+// texto "Otro", se le armaron grupos, y al deshacer el emparejamiento los grupos
+// quedaron huérfanos. El aviso decía "ajuste no reconocido" y no había cómo
 // destrabarlo. Ahora dice qué pasó y ofrece descartar esos grupos o volver a
 // emparejar; una pregunta con texto pero sin modo ofrece elegirlo.
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import type { PlanPregunta } from "../../api/dashboard";
 import { apiCodifGrupos, apiCodifPareja } from "../../api/codificacion";
-import { Alert } from "../../components/Alert";
 import { PulsoButton } from "../../components/PulsoButton";
 import { formatoConteoDe } from "../../lib/formatoNumero";
-import { textoPlano } from "../../lib/textoPlano";
+import { FichaDePlan } from "./aplicar/FichaDePlan";
+import { etiquetaDePregunta, tipoDeFicha } from "./aplicar/modeloAplicar";
 import { motivoNoSoportado } from "./planAdaptacionModel";
+import "./aplicar/aplicar.css";
 import "./AdaptarOmitidas.css";
 
 export function AdaptarOmitidas({
@@ -27,19 +29,24 @@ export function AdaptarOmitidas({
   onCambio: () => void;
   onIrAPreguntas: () => void;
 }) {
+  const idTitulo = useId();
   if (!preguntas.length) return null;
   return (
-    <Alert kind="warn">
-      <div style={{ fontWeight: 600, marginBottom: 4 }}>
-        {preguntas.length} {preguntas.length === 1 ? "pregunta quedará" : "preguntas quedarán"} fuera de la adaptación
-      </div>
-      <div style={{ fontSize: "var(--pulso-type-body-size)" }}>Tienen grupos codificados que todavía no se pueden aplicar:</div>
-      <ul className="pulso-codif-omitidas">
+    <div className="pulso-aplicar-fuera" role="group" aria-labelledby={idTitulo} data-testid="codificacion-aplicar-fuera">
+      <h4 id={idTitulo} className="pulso-aplicar-fuera-titulo">
+        <span className="pulso-aplicar-fuera-punto" aria-hidden="true" />
+        {preguntas.length === 1 ? "1 pregunta no se puede aplicar" : `${preguntas.length} preguntas no se pueden aplicar`}
+      </h4>
+      <ul
+        className="pulso-aplicar-fuera-lista"
+        data-qa-geometry-group="codificacion/aplicar-fuera"
+        data-qa-geometry-contract="intrinsic"
+      >
         {preguntas.map((p) => (
           <OmitidaFila key={p.parent} p={p} onCambio={onCambio} onIrAPreguntas={onIrAPreguntas} />
         ))}
       </ul>
-    </Alert>
+    </div>
   );
 }
 
@@ -59,45 +66,48 @@ function OmitidaFila({ p, onCambio, onIrAPreguntas }: { p: PlanPregunta; onCambi
       setOcupado(false);
     }
   };
-  const grupos = formatoConteoDe(p.n_grupos, "grupo", "grupos");
+  // "el código" con uno; "los 3 códigos" con varios.
+  const losCodigos = Number(p.n_grupos) === 1 ? "el código" : `los ${formatoConteoDe(p.n_grupos, "código", "códigos")}`;
   return (
-    <li>
-      <div>
-        <code>{p.parent}</code> — {textoPlano(p.parent_label)}
+    <li className="pulso-aplicar-fuera-fila">
+      <div className="pulso-aplicar-fuera-pregunta">
+        <FichaDePlan tipo={tipoDeFicha(p.tipo)} codigo={p.parent} etiqueta={etiquetaDePregunta(p)} />
       </div>
-      <div className="pulso-codif-omitida-motivo">{motivoNoSoportado(p)}</div>
-      {p.motivo_codigo === "sin_texto_emparejado" && (
-        <div className="pulso-codif-omitida-acciones">
-          {confirmando ? (
-            <>
-              <span>¿Descartar los {grupos} de {p.parent}? Los textos siguen en su propia pregunta.</span>
-              <PulsoButton variant="danger" size="sm" disabled={ocupado} onClick={() => void correr(() => apiCodifGrupos(p.parent, []))}>
-                Descartar
-              </PulsoButton>
-              <PulsoButton variant="ghost" size="sm" onClick={() => setConfirmando(false)}>Cancelar</PulsoButton>
-            </>
-          ) : (
-            <>
-              <PulsoButton variant="secondary" size="sm" onClick={() => setConfirmando(true)}>
-                Descartar los {grupos}
-              </PulsoButton>
-              <PulsoButton variant="ghost" size="sm" onClick={onIrAPreguntas}>Volver a emparejar</PulsoButton>
-            </>
-          )}
-        </div>
-      )}
-      {p.motivo_codigo === "sin_modo" && p.text_col && (
-        <div className="pulso-codif-omitida-acciones">
-          <span>¿Qué hacen los grupos de {p.text_col}?</span>
-          <PulsoButton variant="secondary" size="sm" disabled={ocupado} onClick={() => void correr(() => apiCodifPareja(p.parent, p.text_col, "padre"))}>
-            Corrigen la respuesta de {p.parent}
-          </PulsoButton>
-          <PulsoButton variant="secondary" size="sm" disabled={ocupado} onClick={() => void correr(() => apiCodifPareja(p.parent, p.text_col, "hijo"))}>
-            Van en una variable aparte
-          </PulsoButton>
-        </div>
-      )}
-      {error && <div className="pulso-armon-error" role="alert">{error}</div>}
+      <div className="pulso-aplicar-fuera-causa">
+        <p className="pulso-aplicar-fuera-motivo">{motivoNoSoportado(p)}</p>
+        {p.motivo_codigo === "sin_texto_emparejado" && (
+          <div className="pulso-aplicar-fuera-acciones">
+            {confirmando ? (
+              <>
+                <span>¿Descartar {losCodigos} de {p.parent}? Los textos siguen en su propia pregunta.</span>
+                <PulsoButton variant="danger" size="sm" disabled={ocupado} onClick={() => void correr(() => apiCodifGrupos(p.parent, []))}>
+                  Descartar
+                </PulsoButton>
+                <PulsoButton variant="ghost" size="sm" onClick={() => setConfirmando(false)}>Cancelar</PulsoButton>
+              </>
+            ) : (
+              <>
+                <PulsoButton variant="secondary" size="sm" onClick={() => setConfirmando(true)}>
+                  Descartar {losCodigos}
+                </PulsoButton>
+                <PulsoButton variant="ghost" size="sm" onClick={onIrAPreguntas}>Volver a emparejar</PulsoButton>
+              </>
+            )}
+          </div>
+        )}
+        {p.motivo_codigo === "sin_modo" && p.text_col && (
+          <div className="pulso-aplicar-fuera-acciones">
+            <span>¿Qué hacen los códigos de {p.text_col}?</span>
+            <PulsoButton variant="secondary" size="sm" disabled={ocupado} onClick={() => void correr(() => apiCodifPareja(p.parent, p.text_col, "padre"))}>
+              Corrigen la respuesta de {p.parent}
+            </PulsoButton>
+            <PulsoButton variant="secondary" size="sm" disabled={ocupado} onClick={() => void correr(() => apiCodifPareja(p.parent, p.text_col, "hijo"))}>
+              Van en una variable aparte
+            </PulsoButton>
+          </div>
+        )}
+        {error && <div className="pulso-armon-error" role="alert">{error}</div>}
+      </div>
     </li>
   );
 }

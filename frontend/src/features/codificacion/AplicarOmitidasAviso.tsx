@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { useInRouterContext } from "react-router-dom";
 import { BotonCodificar } from "./SinRecodificarAviso";
 import { DejarEnOtroBoton } from "./DejarEnOtroBoton";
-import { AlertTriangle, Tags } from "lucide-react";
+import { AlertTriangle, Tags } from "../../vendor/lucide-react";
 import type { CodifOmitida, CodifTextosSinCodigo } from "../../api/codificacion";
 import "./AplicarOmitidasAviso.css";
 
@@ -13,14 +13,14 @@ import "./AplicarOmitidasAviso.css";
 //   2. textos de una pregunta aplicada que no están en ningún grupo y quedan
 //      sin código.
 // Avisa fuerte (ADR 0077) y no bloquea: el job ya está corriendo. Con las dos
-// listas vacías no pinta nada; un «0 omitidas» sería ruido.
+// listas vacías no pinta nada; un "0 omitidas" sería ruido.
 
 type Props = {
   omitidas: CodifOmitida[];
   textosSinCodigo: CodifTextosSinCodigo[];
   /**
    * Diagnósticos que fallaron en el backend. Sin esto, una lista vacía por
-   * error se leería como «no se omitió nada» (verde por ausencia).
+   * error se leería como "no se omitió nada" (verde por ausencia).
    */
   incompletos?: string[];
   /**
@@ -34,7 +34,7 @@ type Props = {
   onEnfocado?: () => void;
 };
 
-/** Ancla del aviso, para que «Ver avisos» lo encuentre desde arriba. */
+/** Ancla del aviso, para que "Ver los avisos" lo encuentre desde arriba. */
 export const ID_AVISO_APLICAR = "codificacion-aplicar-omitidas";
 
 type Desplazable = { scrollIntoView: (opciones: ScrollIntoViewOptions) => void };
@@ -52,7 +52,7 @@ export function revelarAviso(seccion: Desplazable | null, titulo: Enfocable | nu
   return true;
 }
 
-/** Busca el aviso montado y lo revela; para el enlace «Ver avisos». */
+/** Busca el aviso montado y lo revela; para el enlace "Ver los avisos". */
 export function irAlAviso(doc: Pick<Document, "getElementById">): boolean {
   const seccion = doc.getElementById(ID_AVISO_APLICAR);
   const titulo = seccion?.querySelector<HTMLElement>(".pulso-codif-omitidas-titulo[tabindex='-1']") ?? null;
@@ -82,8 +82,11 @@ export function AplicarOmitidasAviso({ omitidas, textosSinCodigo, incompletos = 
       ref={seccionRef}
       id={ID_AVISO_APLICAR}
       className="pulso-codif-omitidas"
-      aria-label="Lo que la adaptación no aplicó"
+      aria-label="Preguntas y textos que no se aplicaron"
       data-testid="codificacion-aplicar-omitidas"
+      // C1: sus bloques (revisión incompleta, preguntas, textos) son secciones independientes.
+      data-qa-geometry-group="codificacion/aplicar-avisos"
+      data-qa-geometry-contract="intrinsic"
     >
       {incompletos.length > 0 && (
         <div
@@ -109,10 +112,10 @@ export function AplicarOmitidasAviso({ omitidas, textosSinCodigo, incompletos = 
             <div>
               <strong ref={tituloRef} tabIndex={-1} className="pulso-codif-omitidas-titulo">
                 {omitidas.length === 1
-                  ? "1 pregunta del catálogo no se aplicó"
-                  : `${omitidas.length} preguntas del catálogo no se aplicaron`}
+                  ? "1 pregunta no se aplicó"
+                  : `${omitidas.length} preguntas no se aplicaron`}
               </strong>
-              <p>Su codificación no llega a la base adaptada. Corrige la causa y vuelve a adaptar.</p>
+              <p>Su codificación no llega a la base codificada. Corrige la causa y vuelve a aplicar.</p>
             </div>
           </div>
           <ul
